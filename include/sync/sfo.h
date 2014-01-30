@@ -20,6 +20,6 @@
 #define SFO_
 
 float sfo_estimate(int *t0, int len, float period);
-
+float sfo_estimate_period(int *t0, int *t, int len, float period);
 
 #endif

@@ -81,7 +81,7 @@ void chest_ce_ref(chest_t *q, cf_t *input, int nslot, int port_id, int nref) {
 	q->refsignal[port_id][nslot].refs[nref].recv_simbol = channel_ref;
 	/* FIXME: compare with treshold */
 	if (channel_ref != 0) {
-		q->refsignal[port_id][nslot].ch_est[nref] = known_ref/channel_ref;
+		q->refsignal[port_id][nslot].ch_est[nref] = channel_ref/known_ref;
 	} else {
 		q->refsignal[port_id][nslot].ch_est[nref] = 0;
 	}
@@ -118,14 +118,10 @@ void chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, int nslot, int port_i
 	for (i=0;i<q->nof_prb * RE_X_RB; i++) {
 		for (j=0;j<r->nsymbols;j++) {
 			x[j] = ce[r->symbols_ref[j] * q->nof_prb * RE_X_RB + i];
-			printf("x[%d]=ce[%d]=%.3f\n", j,
-					r->symbols_ref[j] * q->nof_prb * RE_X_RB + i,
-					cabsf(x[j]));
 		}
 		interp_linear_offset(x, y, r->symbols_ref[1]-r->symbols_ref[0],
 				2, r->symbols_ref[0], 3);
 		for (j=0;j<q->nof_symbols;j++) {
-			printf("ce[%d] = y[%d] =%.3f\n", j * q->nof_prb * RE_X_RB + i, j, cabsf(x[j]));
 			ce[j * q->nof_prb * RE_X_RB + i] = y[j];
 		}
 	}

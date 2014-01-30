@@ -117,7 +117,7 @@ void vec_fprint_c(FILE *stream, _Complex float *x, int len) {
 		//if (!((i+1)%10))
 		//	fprintf(stream, "\n");
 	}
-	fprintf(stream, "]\n");
+	fprintf(stream, "];\n");
 }
 
 void vec_fprint_f(FILE *stream, float *x, int len) {
@@ -128,7 +128,7 @@ void vec_fprint_f(FILE *stream, float *x, int len) {
 		//if (!((i+1)%10))
 		//	fprintf(stream, "\n");
 	}
-	fprintf(stream, "]\n");
+	fprintf(stream, "];\n");
 }
 
 
@@ -138,7 +138,7 @@ void vec_fprint_i(FILE *stream, int *x, int len) {
 	for (i=0;i<len;i++) {
 		fprintf(stream, "%d, ", x[i]);
 	}
-	fprintf(stream, "]\n");
+	fprintf(stream, "];\n");
 }
 
 void vec_conj(_Complex float *x, _Complex float *y, int len) {

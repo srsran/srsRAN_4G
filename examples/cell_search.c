@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 
-	if (sync_init(&synch)) {
+	if (sync_init(&synch, 960)) {
 		fprintf(stderr, "Error initiating PSS/SSS\n");
 		exit(-1);
 	}

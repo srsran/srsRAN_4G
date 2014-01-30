@@ -132,14 +132,14 @@ int pss_generate(cf_t *signal, int direction, int N_id_2) {
 	for (i = 0; i < PSS_LEN / 2; i++) {
 		arg = (float) sign * M_PI * root_value[root_idx]
 				* ((float) i * ((float) i + 1.0)) / 63.0;
-		__real__ signal[i] = cos(arg);
-		__imag__ signal[i] = sin(arg);
+		__real__ signal[i] = cosf(arg);
+		__imag__ signal[i] = sinf(arg);
 	}
 	for (i = PSS_LEN / 2; i < PSS_LEN; i++) {
 		arg = (float) sign * M_PI * root_value[root_idx]
 				* (((float) i + 2.0) * ((float) i + 1.0)) / 63.0;
-		__real__ signal[i] = cos(arg);
-		__imag__ signal[i] = sin(arg);
+		__real__ signal[i] = cosf(arg);
+		__imag__ signal[i] = sinf(arg);
 	}
 	return 0;
 }
