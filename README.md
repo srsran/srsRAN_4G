@@ -7,6 +7,12 @@ The license is LGPLv3.
 
 The project contains a set of Python tools for the automatic code generation of modules for popular SDR frameworks, including GNURadio, ALOE++, IRIS, and OSSIE. These tools are easy to use and adapt for generating targets for specific platforms or frameworks. 
 
+Support
+========
+
+Mailing list: https://lists.sourceforge.net/lists/listinfo/liblte-users
+
+
 Download & Install Instructions
 =================================
 
