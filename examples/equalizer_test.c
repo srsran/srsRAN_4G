@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
 		goto do_exit;
 	}
 
-	if (lte_fft_init(&fft, cp, lte_symbol_sz(nof_prb))) {
+	if (lte_fft_init(&fft, cp, nof_prb)) {
 		fprintf(stderr, "Error: initializing FFT\n");
 		goto do_exit;
 	}
@@ -142,11 +142,19 @@ int main(int argc, char **argv) {
 	while (in_slot_length() == filesource_read(&fsrc, input, in_slot_length())
 			&& (slot_cnt < nof_slots || nof_slots == -1)) {
 
+		fprintf(f, "infft=");
+		vec_fprint_c(f, input, CP_NSYMB(cp) * 128);
+		fprintf(f, ";\n");
+
 		lte_fft_run(&fft, input, outfft);
 
-		chest_ce_slot_port(&eq, outfft, ce, slot_cnt%20, 0);
+		fprintf(f, "outfft=");
+		vec_fprint_c(f, outfft, CP_NSYMB(cp) * nof_prb * RE_X_RB);
+		fprintf(f, ";\n");
 
-		//chest_fprint(&eq, f, slot_cnt%20, 0);
+		chest_ce_slot_port(&eq, outfft, ce, 0, 0);
+
+		chest_fprint(&eq, f, slot_cnt%20, 0);
 
 		for (i=0;i<CP_NSYMB(cp);i++) {
 			fprintf(f, "ce(%d,:)=", slot_cnt * CP_NSYMB(cp) + i + 1);

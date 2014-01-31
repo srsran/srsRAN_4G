@@ -65,7 +65,7 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define GUARD_RE(nof_prb)	((lte_symbol_sz(nof_prb)-nof_prb*RE_X_RB)/2)
 
-#define SAMPLE_IDX(symbol_sz, symbol_idx, sample_idx) (symbol_idx*symbol_sz + sample_idx)
+#define SAMPLE_IDX(nof_prb, symbol_idx, sample_idx) (symbol_idx*nof_prb*RE_X_RB + sample_idx)
 
 const int lte_symbol_sz(int nof_prb);
 int lte_re_x_prb(int ns, int symbol, int nof_ports, int nof_symbols);

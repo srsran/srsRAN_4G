@@ -39,7 +39,6 @@ typedef struct {
 	int nof_ports;
 	int nof_symbols;
 	int nof_prb;
-	int symbol_sz;
 	lte_cp_t cp;
 	refsignal_t refsignal[MAX_PORTS][NSLOTS_X_FRAME];
 }chest_t;

@@ -40,39 +40,22 @@ int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id, bo
 	if (put) {
 		ptr = input;
 		output += nof_prb * RE_X_RB / 2 - 36;
-		output += GUARD_RE(nof_prb);
 	} else {
 		ptr = output;
 		input += nof_prb * RE_X_RB / 2 - 36;
-		input += GUARD_RE(nof_prb);
 	}
 
 	/* symbol 0 & 1 */
 	for (i=0;i<2;i++) {
 		phch_cp_prb_ref(&input, &output, cell_id%3, 4, 6, put);
-		if (put) {
-			output += 2*GUARD_RE(nof_prb);
-		} else {
-			input += 2*GUARD_RE(nof_prb);
-		}
 	}
 	/* symbols 2 & 3 */
 	if (CP_ISNORM(cp)) {
 		for (i=0;i<2;i++) {
 			phch_cp_prb(&input, &output, 6);
-			if (put) {
-				output += 2*GUARD_RE(nof_prb);
-			} else {
-				input += 2*GUARD_RE(nof_prb);
-			}
 		}
 	} else {
 		phch_cp_prb(&input, &output, 6);
-		if (put) {
-			output += 2*GUARD_RE(nof_prb);
-		} else {
-			input += 2*GUARD_RE(nof_prb);
-		}
 		phch_cp_prb_ref(&input, &output, cell_id%3, 4, 6, put);
 	}
 	if (put) {
@@ -324,8 +307,9 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, pbch_mib_t *mib, int nof_prb, float ebno) {
-	int src, dst, res, nb;
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t **ce, int nof_ports,
+		int nof_prb, float ebno, pbch_mib_t *mib) {
+	int src, dst, res, nb, nant;
 
 	int nof_symbols = (CP_ISNORM(q->cp)) ? PBCH_RE_CPNORM: PBCH_RE_CPEXT;
 	int nof_bits = 2 * nof_symbols;
@@ -337,39 +321,52 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, pbch_mib_t *mib, int nof_prb, fl
 		return -1;
 	}
 
-	/* demodulate symbols */
-	demod_soft_sigma_set(&q->demod, ebno);
-	demod_soft_demodulate(&q->demod, q->pbch_symbols,
-			&q->pbch_llr[nof_bits * q->frame_idx], nof_symbols);
+	/* Try decoding for 1 to nof_ports antennas */
+	for (nant=0;nant<nof_ports;nant++) {
 
-	q->frame_idx++;
+		/* pre-decoder & matched filter */
+		int i;
+		for (i=0;i<nof_symbols;i++) {
+			q->pbch_symbols[i] /= ce[0][i];
+		}
 
-	INFO("PBCH: %d frames in buffer\n", q->frame_idx);
+		/* layer demapper */
+		//x    = lte_pre_decoder_and_matched_filter(y_est, ce(1:n,:), "tx_diversity");
+		//d    = lte_layer_demapper(x, 1, "tx_diversity");
 
-	/* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
-	 * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
-	 * We know they are ordered.
-	 */
-	res = 0;
-	for (nb=0;nb<q->frame_idx && !res;nb++) {
-		for (dst=0;(dst<4-nb) && !res;dst++) {
-			for (src=0;src<q->frame_idx && !res;src++) {
-				DEBUG("Trying %d blocks at offset %d as subframe mod4 number %d\n", nb+1, src, dst);
-				res = pbch_decode_frame(q, mib, src, dst, nb+1, nof_bits);
+		/* demodulate symbols */
+		demod_soft_sigma_set(&q->demod, ebno);
+		demod_soft_demodulate(&q->demod, q->pbch_symbols,
+				&q->pbch_llr[nof_bits * q->frame_idx], nof_symbols);
+
+		q->frame_idx++;
+
+		INFO("PBCH: %d frames in buffer\n", q->frame_idx);
+
+		/* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
+		 * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
+		 * We know they are ordered.
+		 */
+		res = 0;
+		for (nb=0;nb<q->frame_idx && !res;nb++) {
+			for (dst=0;(dst<4-nb) && !res;dst++) {
+				for (src=0;src<q->frame_idx && !res;src++) {
+					DEBUG("Trying %d blocks at offset %d as subframe mod4 number %d\n", nb+1, src, dst);
+					res = pbch_decode_frame(q, mib, src, dst, nb+1, nof_bits);
+				}
 			}
 		}
-	}
 
-	if (res) {
-		q->frame_idx = 0;
-		return 1;
-	} else {
-		/* make room for the next packet of radio frame symbols */
-		if (q->frame_idx == 4) {
-			memcpy(&q->pbch_llr[nof_bits], q->pbch_llr, nof_bits * 3 * sizeof(float));
-			q->frame_idx = 3;
+		if (res) {
+			q->frame_idx = 0;
+			return 1;
 		}
-		return 0;
 	}
 
+	/* If not found, make room for the next packet of radio frame symbols */
+	if (q->frame_idx == 4) {
+		memcpy(&q->pbch_llr[nof_bits], q->pbch_llr, nof_bits * 3 * sizeof(float));
+		q->frame_idx = 3;
+	}
+	return 0;
 }

@@ -67,7 +67,7 @@ typedef struct {
 
 int pbch_init(pbch_t *q, int cell_id, lte_cp_t cp);
 void pbch_free(pbch_t *q);
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, pbch_mib_t *data, int nof_prb, float ebno);
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t **ce, int nof_ports, int nof_prb, float ebno, pbch_mib_t *data);
 void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib);
 
 

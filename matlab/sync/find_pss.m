@@ -14,8 +14,9 @@ function [ fs eps p_m w2] = find_pss( x, N_id_2, doplot, threshold)
 
     w2=conv(x,ccf);
     if (doplot)
-        plot(10*log10(abs(w2)./mean(abs(w2))));
-        axis([0 length(w2) 0 20])
+        %plot(10*log10(abs(w2)));%./mean(abs(w2))));
+       plot(abs(w2)) 
+       %axis([0 length(w2) 0 20])
     end
     [m i]=max(abs(w2));
     fs=i-960;

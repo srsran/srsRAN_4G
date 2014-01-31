@@ -171,7 +171,7 @@ int sync_run(sync_t *q, cf_t *input, int read_offset) {
 			INFO("SSS detected N_id_1=%d, slot_idx=%d, m0=%d, m1=%d\n",
 					q->N_id_1, q->slot_id, m0, m1);
 
-			return peak_pos[N_id_2];
+			return peak_pos[N_id_2] - 960;
 		} else {
 			return -1;
 		}
