@@ -18,15 +18,18 @@
 #define FLEN 			9600
 #define FLEN_PERIOD		0.005
 
+#define RSSI_DECIM		20
+
 #define IS_SIGNAL(i) (10*log10f(rssi[i]) + 30 > rssi_threshold)
 
 
 int band, earfcn=-1;
-float find_threshold = 40.0, track_threshold = 25.0;
+float find_threshold = 40.0, track_threshold = 8.0;
 int earfcn_start=-1, earfcn_end = -1;
 float rssi_threshold = -30.0;
 int max_track_lost=9;
 int nof_frames_find=8, nof_frames_track=100, nof_samples_rssi=50000;
+int track_len=500;
 
 cf_t *input_buffer;
 float *cfo_v;
@@ -39,6 +42,7 @@ float gain = 20.0;
 #define MAX_EARFCN 1000
 lte_earfcn_t channels[MAX_EARFCN];
 float rssi[MAX_EARFCN];
+float rssi_d[MAX_EARFCN/RSSI_DECIM];
 float freqs[MAX_EARFCN];
 float cfo[MAX_EARFCN];
 float p2a[MAX_EARFCN];
@@ -57,6 +61,7 @@ void usage(char *prog) {
 	printf("\t-f pss_find_threshold [Default %.2f]\n", find_threshold);
 	printf("\t-T pss_track_nof_frames [Default %d]\n", nof_frames_track);
 	printf("\t-t pss_track_threshold [Default %.2f]\n", track_threshold);
+	printf("\t-l pss_track_len [Default %d]\n", track_len);
 	printf("\t-g gain [Default %.2f dB]\n", gain);
 	printf("\t-v [set verbose to debug, default none]\n");
 }
@@ -196,11 +201,10 @@ int preprocess_idx(int *in, int *out, int *period, int len) {
 int rssi_scan() {
 	int n=0;
 	int i;
-	float rssi_d[MAX_EARFCN/10];
 
 	if (nof_bands > 100) {
 		/* scan every Mhz, that is 10 freqs */
-		for (i=0;i<nof_bands;i+=10) {
+		for (i=0;i<nof_bands;i+=RSSI_DECIM) {
 			freqs[n] = channels[i].fd * MHZ;
 			n++;
 		}
@@ -209,7 +213,7 @@ int rssi_scan() {
 			return -1;
 		}
 		/* linearly interpolate the rssi vector */
-		interp_linear_f(rssi_d, rssi, 10, n);
+		interp_linear_f(rssi_d, rssi, RSSI_DECIM, n);
 	} else {
 		for (i=0;i<nof_bands;i++) {
 			freqs[i] = channels[i].fd * MHZ;
@@ -229,12 +233,13 @@ int main(int argc, char **argv) {
 	int frame_cnt, valid_frames;
 	int freq;
 	int cell_id;
-	sync_t synch;
+	sync_t sfind, strack;
 	float max_peak_to_avg;
 	float sfo;
-	int find_idx, last_found;
+	int find_idx, track_idx, last_found;
 	enum sync_state state;
 	int n;
+	filesink_t fs;
 
 	if (argc < 3) {
 		usage(argv[0]);
@@ -248,11 +253,17 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 
-	if (sync_init(&synch, FLEN)) {
+	if (sync_init(&sfind, FLEN)) {
 		fprintf(stderr, "Error initiating PSS/SSS\n");
 		exit(-1);
 	}
-	sync_pss_det_peakmean(&synch);
+	sync_pss_det_peakmean(&sfind);
+
+	if (sync_init(&strack, track_len)) {
+		fprintf(stderr, "Error initiating PSS/SSS\n");
+		exit(-1);
+	}
+	sync_pss_det_peakmean(&strack);
 
 	nof_bands = lte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
 	printf("RSSI scan: %d freqs in band %d, RSSI threshold %.2f dBm\n", nof_bands, band, rssi_threshold);
@@ -271,6 +282,7 @@ int main(int argc, char **argv) {
 
 	print_to_matlab();
 
+	filesink_init(&fs, "test.dat", COMPLEX_FLOAT_BIN);
 
 	freq=0;
 	state = INIT;
@@ -306,24 +318,24 @@ int main(int argc, char **argv) {
 				uhd_recv(uhd, input_buffer, FLEN, 1);
 
 				/* set find_threshold and go to FIND state */
-				sync_set_threshold(&synch, find_threshold);
-				sync_force_N_id_2(&synch, -1);
+				sync_set_threshold(&sfind, find_threshold);
+				sync_force_N_id_2(&sfind, -1);
 				state = FIND;
 				break;
 			case FIND:
 				/* find peak in all frame */
-				find_idx = sync_run(&synch, input_buffer, FLEN);
-				DEBUG("[%3d/%d]: PAR=%.2f\n", freq, nof_bands, sync_get_peak_to_avg(&synch));
+				find_idx = sync_run(&sfind, input_buffer, FLEN);
+				DEBUG("[%3d/%d]: PAR=%.2f\n", freq, nof_bands, sync_get_peak_to_avg(&sfind));
 				if (find_idx != -1) {
 					/* if found peak, go to track and set lower threshold */
 					frame_cnt = -1;
 					last_found = 0;
-					sync_set_threshold(&synch, track_threshold);
-					sync_force_N_id_2(&synch, sync_get_N_id_2(&synch));
+					sync_set_threshold(&strack, track_threshold);
+					sync_force_N_id_2(&strack, sync_get_N_id_2(&sfind));
 					state = TRACK;
 					INFO("[%3d/%d]: EARFCN %d Freq. %.2f MHz PSS found PAR %.2f dB\n", freq, nof_bands,
 												channels[freq].id, channels[freq].fd,
-												10*log10f(sync_get_peak_to_avg(&synch)));
+												10*log10f(sync_get_peak_to_avg(&sfind)));
 				} else {
 					if (frame_cnt >= nof_frames_find) {
 						state = INIT;
@@ -337,22 +349,28 @@ int main(int argc, char **argv) {
 				}
 				break;
 			case TRACK:
-				/* TODO: find peak around find_idx */
-				idx_v[frame_cnt] = sync_run(&synch, input_buffer, FLEN);
-				p2a_v[frame_cnt] = sync_get_peak_to_avg(&synch);
+				INFO("Tracking PSS find_idx %d offset %d\n", find_idx, find_idx + track_len);
+
+				filesink_write(&fs, &input_buffer[FLEN+find_idx+track_len], track_len);
+
+				track_idx = sync_run(&strack, input_buffer, FLEN + find_idx - track_len);
+				p2a_v[frame_cnt] = sync_get_peak_to_avg(&strack);
 
 				/* save cell id for the best peak-to-avg */
 				if (p2a_v[frame_cnt] > max_peak_to_avg) {
 					max_peak_to_avg = p2a_v[frame_cnt];
-					cell_id = sync_get_cell_id(&synch);
+					cell_id = sync_get_cell_id(&strack);
 				}
-				if (idx_v[frame_cnt] != -1) {
-					cfo_v[frame_cnt] = sync_get_cfo(&synch);
+				if (track_idx != -1) {
+					cfo_v[frame_cnt] = sync_get_cfo(&strack);
 					last_found = frame_cnt;
+					find_idx += track_idx - track_len;
+					idx_v[frame_cnt] = find_idx;
 				} else {
+					idx_v[frame_cnt] = -1;
 					cfo_v[frame_cnt] = 0.0;
 				}
-				/* if we missed to many frames it is not a cell, next freq */
+				/* if we missed to many PSS it is not a cell, next freq */
 				if (frame_cnt - last_found > max_track_lost) {
 					INFO("\n[%3d/%d]: EARFCN %d Freq. %.2f MHz %d frames lost\n", freq, nof_bands,
 							channels[freq].id, channels[freq].fd, frame_cnt - last_found);
@@ -370,9 +388,9 @@ int main(int argc, char **argv) {
 				valid_frames = preprocess_idx(idx_v, idx_valid, t, frame_cnt);
 				sfo = sfo_estimate_period(idx_valid, t, valid_frames, FLEN_PERIOD);
 
-				printf("\n[%3d/%d]: FOUND EARFCN %d Freq. %.2f MHz, "
-						"RSSI %3.2f dBm, PAR %2.2f dB, CFO=%+.2f KHz, SFO=%+2.3f KHz, CELL_ID=%3d\n", freq, nof_bands,
-								channels[freq].id, channels[freq].fd, 10*log10f(rssi[freq]) + 30,
+				printf("\n[%3d/%d]: FOUND EARFCN %d Freq. %.2f MHz. "
+						"PAR %2.2f dB, CFO=%+.2f KHz, SFO=%+2.3f KHz, CELL_ID=%3d\n", freq, nof_bands,
+								channels[freq].id, channels[freq].fd,
 								10*log10f(p2a[freq]), cfo[freq] * 15, sfo / 1000, cell_id);
 				state = INIT;
 				freq++;
@@ -387,7 +405,7 @@ int main(int argc, char **argv) {
 
 	print_to_matlab();
 
-	sync_free(&synch);
+	sync_free(&sfind);
 	base_free();
 
 	printf("\n\nDone\n");
@@ -411,6 +429,13 @@ void print_to_matlab() {
 	fprintf(f, "rssi=[");
 	for (i=0;i<nof_bands;i++) {
 		fprintf(f, "%g, ", rssi[i]);
+	}
+	fprintf(f, "];\n");
+
+
+	fprintf(f, "rssi_d=[");
+	for (i=0;i<nof_bands/RSSI_DECIM;i++) {
+		fprintf(f, "%g, ", rssi_d[i]);
 	}
 	fprintf(f, "];\n");
 

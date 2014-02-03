@@ -221,6 +221,7 @@ int main(int argc, char **argv) {
 			INFO("State Sync, Slot idx=%d\n", frame_idx);
 			idx = sync_run(&synch, input_buffer, read_offset);
 			if (idx != -1) {
+				idx -= 960;
 				slot_start = read_offset + idx;
 				read_length = idx;
 				read_offset += FLEN;

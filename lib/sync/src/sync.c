@@ -133,14 +133,14 @@ int sync_run(sync_t *q, cf_t *input, int read_offset) {
 				&peak_value[N_id_2], &mean_value[N_id_2]);
 	}
 
-	DEBUG("PSS possible peak N_id_2=%d, pos=%d value=%.2f threshold=%.2f\n",
-			N_id_2, peak_pos[N_id_2], peak_value[N_id_2], q->threshold);
-
 	q->peak_to_avg = peak_value[N_id_2] / mean_value[N_id_2];
+
+	DEBUG("PSS possible peak N_id_2=%d, pos=%d peak=%.2f par=%.2f threshold=%.2f\n",
+			N_id_2, peak_pos[N_id_2], peak_value[N_id_2], q->peak_to_avg, q->threshold);
 
 	/* If peak detected */
 	peak_detected = 0;
-	if (peak_pos[N_id_2] > 128) {
+	if (peak_pos[N_id_2] + read_offset > 128) {
 		if (q->pss_mode == ABSOLUTE) {
 			if (peak_value[N_id_2] > q->threshold) {
 				peak_detected = 1;
@@ -171,7 +171,7 @@ int sync_run(sync_t *q, cf_t *input, int read_offset) {
 			INFO("SSS detected N_id_1=%d, slot_idx=%d, m0=%d, m1=%d\n",
 					q->N_id_1, q->slot_id, m0, m1);
 
-			return peak_pos[N_id_2] - 960;
+			return peak_pos[N_id_2];
 		} else {
 			return -1;
 		}
