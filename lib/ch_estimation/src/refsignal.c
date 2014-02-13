@@ -20,6 +20,7 @@
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <complex.h>
 
 #include "lte/base.h"
 #include "ch_estimation/refsignal.h"
@@ -110,9 +111,6 @@ int refsignal_init_LTEDL(refsignal_t *q, int port_id, int nslot,
 
 	memcpy(q->symbols_ref, lp, sizeof(int) * nof_ref_symbols);
 
-	DEBUG("Initializing %d CRS for LTE DL slot=%d, %d RE in %d symbols\n",
-			q->nof_refs, nslot, nof_refs_x_symbol, nof_ref_symbols);
-
 	q->refs = vec_malloc(q->nof_refs * sizeof(ref_t));
 	if (!q->refs) {
 		goto free_and_exit;
@@ -127,7 +125,6 @@ int refsignal_init_LTEDL(refsignal_t *q, int port_id, int nslot,
 
 		c_init = 1024 * (7 * (ns + 1) + lp[l] + 1) * (2 * cell_id + 1)
 				+ 2 * cell_id + N_cp;
-
 		if (sequence_LTEPRS(&seq, 2 * 2 * MAX_PRB, c_init)) {
 			goto free_and_exit;
 		}
@@ -142,13 +139,13 @@ int refsignal_init_LTEDL(refsignal_t *q, int port_id, int nslot,
 			__imag__ q->refs[idx(l,i)].simbol = (1 - 2 * (float) seq.c[2 * mp + 1]) / sqrt(2);
 
 			/* mapping to resource elements */
-			q->refs[idx(l,i)].freq_idx = refsignal_k(i, v, cell_id)+GUARD_RE(nof_prb);
+			q->refs[idx(l,i)].freq_idx = refsignal_k(i, v, cell_id);
 			q->refs[idx(l,i)].time_idx = lp[l];
 
 			/* print only first slot */
 			if (ns == 0) {
 				DEBUG("(%-2d,%2d) is mapped to (%-2d,%2d) (mp=%d, v=%d)\n",
-						l,i,q->refs[idx(l,i)].time_idx, q->refs[idx(l,i)].freq_idx-GUARD_RE(nof_prb), mp, v);
+						l,i,q->refs[idx(l,i)].time_idx, q->refs[idx(l,i)].freq_idx, mp, v);
 			}
 		}
 	}

@@ -8,16 +8,18 @@
 
 char *input_file_name = NULL;
 int nof_slots=100;
-float corr_peak_threshold=2.5;
-int ntime = 4;
-int nfreq = 10;
+float corr_peak_threshold=15;
 int file_binary = 0;
 int force_N_id_2=-1;
+int nof_ports = 1;
+
+
+#define FLEN	9600
 
 filesource_t fsrc;
-cf_t *input_buffer, *fft_buffer;
+cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 pbch_t pbch;
-dft_plan_t fft_plan;
+lte_fft_t fft;
 chest_t chest;
 sync_t synch;
 
@@ -64,29 +66,43 @@ void parse_args(int argc, char **argv) {
 }
 
 int base_init() {
+	int i;
+
 	file_data_type_t type = file_binary?COMPLEX_FLOAT_BIN:COMPLEX_FLOAT;
 	if (filesource_init(&fsrc, input_file_name, type)) {
 		fprintf(stderr, "Error opening file %s\n", input_file_name);
 		exit(-1);
 	}
 
-	input_buffer = malloc(4 * 960 * sizeof(cf_t));
+	input_buffer = malloc(4 * FLEN * sizeof(cf_t));
 	if (!input_buffer) {
 		perror("malloc");
 		exit(-1);
 	}
-	fft_buffer = malloc(CPNORM_NSYMB * 128 * sizeof(cf_t));
+
+	fft_buffer = malloc(CPNORM_NSYMB * 72 * sizeof(cf_t));
 	if (!fft_buffer) {
 		perror("malloc");
 		return -1;
 	}
 
-	/* Init FFT plan */
-	if (dft_plan_c2c(128, FORWARD, &fft_plan)) {
-		fprintf(stderr, "Error initiating FFT plan\n");
+	for (i=0;i<nof_ports;i++) {
+		ce[i] = malloc(CPNORM_NSYMB * 72 * sizeof(cf_t));
+		if (!ce[i]) {
+			perror("malloc");
+			return -1;
+		}
+	}
+
+	if (chest_init(&chest, CPNORM, 6, 1)) {
+		fprintf(stderr, "Error initializing equalizer\n");
 		return -1;
 	}
-	fft_plan.options = DFT_DC_OFFSET | DFT_MIRROR_POS | DFT_NORMALIZE;
+
+	if (lte_fft_init(&fft, CPNORM, 6)) {
+		fprintf(stderr, "Error initializing FFT\n");
+		return -1;
+	}
 
 	DEBUG("Memory init OK\n",0);
 	return 0;
@@ -96,14 +112,10 @@ int base_init() {
 
 int mib_decoder_init(int cell_id) {
 
-	/*
-	if (chest_LTEDL_init(&chest, ntime, nfreq, CPNORM_NSYMB, cell_id, 6)) {
-		fprintf(stderr, "Error initiating LTE equalizer\n");
+	if (chest_ref_LTEDL(&chest, cell_id)) {
+		fprintf(stderr, "Error initializing reference signal\n");
 		return -1;
 	}
-	*/
-
-	DEBUG("Channel estimation initiated ntime=%d nfreq=%d\n", ntime, nfreq);
 
 	if (pbch_init(&pbch, cell_id, CPNORM)) {
 		fprintf(stderr, "Error initiating PBCH\n");
@@ -113,21 +125,17 @@ int mib_decoder_init(int cell_id) {
 	return 0;
 }
 
-void fft_run_slot(dft_plan_t *fft_plan, cf_t *input, cf_t *output) {
-	int i;
-	for (i=0;i<CPNORM_NSYMB;i++) {
-		DEBUG("Running FFT %d\n", i);
-		input += CP_NORM(i, 128);
-		dft_run_c2c(fft_plan, input, output);
-		input += 128;
-		output += 128;
-	}
-}
-
 int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
-	fft_run_slot(&fft_plan, input, fft_buffer);
+	int i;
+	lte_fft_run(&fft, input, fft_buffer);
+
+	/* Get channel estimates for each port */
+	for (i=0;i<nof_ports;i++) {
+		chest_ce_slot_port(&chest, fft_buffer, ce[i], 1, 0);
+	}
+
 	DEBUG("Decoding PBCH\n", 0);
-	return pbch_decode(&pbch, fft_buffer, mib, 6, 1);
+	return pbch_decode(&pbch, fft_buffer, ce, nof_ports, 6, 1, mib);
 }
 
 int get_samples(int length, int offset) {
@@ -155,7 +163,7 @@ enum radio_state { DONE, SYNC, MIB};
 int main(int argc, char **argv) {
 	enum radio_state state;
 	int sf_size, slot_start;
-	int read_length, slot_idx;
+	int read_length, frame_idx;
 	int mib_attempts;
 	pbch_mib_t mib;
 	int cell_id;
@@ -176,19 +184,20 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 
-	if (sync_init(&synch)) {
+	if (sync_init(&synch, FLEN)) {
 		fprintf(stderr, "Error initiating PSS/SSS\n");
 		exit(-1);
 	}
 
 	sync_force_N_id_2(&synch, force_N_id_2);
 	sync_set_threshold(&synch, corr_peak_threshold);
+	sync_pss_det_peakmean(&synch);
 
 	state = SYNC;
-	sf_size = 960;
+	sf_size = FLEN;
 	read_length = sf_size;
 	slot_start = 0;
-	slot_idx = 0;
+	frame_idx = 0;
 	mib_attempts = 0;
 	frame_cnt = -1;
 	read_offset = 0;
@@ -203,39 +212,40 @@ int main(int argc, char **argv) {
 		}
 		if (read_length) {
 			frame_cnt++;
-			INFO("\n\tSlot idx=%d\n\n", slot_idx);
+			INFO("\nFrame idx=%d\n\n", frame_idx);
 			INFO("Correcting CFO=%.4f\n", cfo);
 			nco_cexp_f_direct(&input_buffer[read_offset], -cfo/128, read_length);
 		}
 		switch(state) {
 		case SYNC:
-			INFO("State Sync, Slot idx=%d\n", slot_idx);
+			INFO("State Sync, Slot idx=%d\n", frame_idx);
 			idx = sync_run(&synch, input_buffer, read_offset);
 			if (idx != -1) {
+				idx -= 960;
 				slot_start = read_offset + idx;
 				read_length = idx;
-				read_offset += 960;
+				read_offset += FLEN;
 				cell_id = sync_get_cell_id(&synch);
 				cfo = sync_get_cfo(&synch);
-				slot_idx = sync_get_slot_id(&synch);
+				frame_idx = sync_get_slot_id(&synch)?1:0;
 				state = MIB;
 				if (mib_decoder_init(cell_id)) {
 					fprintf(stderr, "Error initiating MIB decoder\n");
 					exit(-1);
 				}
-				INFO("SYNC done, cell_id=%d slot_start=%d\n", cell_id, slot_start);
+				INFO("SYNC done, cell_id=%d slot_start=%d frame_idx=%d\n", cell_id, slot_start, frame_idx);
 			} else {
-				read_offset = 960;
-				memcpy(input_buffer, &input_buffer[960], 960 * sizeof(cf_t));
+				read_offset = FLEN;
+				memcpy(input_buffer, &input_buffer[FLEN], FLEN * sizeof(cf_t));
 			}
 			break;
 		case MIB:
-			read_length = 960;
+			read_length = FLEN;
 			read_offset = slot_start;
-			INFO("State MIB, Slot idx=%d\n", slot_idx);
-			if (slot_idx == 1) {
+			INFO("State MIB, frame idx=%d\n", frame_idx);
+			if (frame_idx == 0) {
 				INFO("Trying to find MIB offset %d\n", slot_start);
-				if (mib_decoder_run(&input_buffer[slot_start], &mib)) {
+				if (mib_decoder_run(&input_buffer[slot_start+FLEN/10], &mib)) {
 					INFO("MIB detected attempt=%d\n", mib_attempts);
 					state = DONE;
 				} else {
@@ -248,16 +258,16 @@ int main(int argc, char **argv) {
 			}
 			break;
 		case DONE:
-			INFO("State Done, Slot idx=%d\n", slot_idx);
+			INFO("State Done, Slot idx=%d\n", frame_idx);
 			pbch_mib_fprint(stdout, &mib);
 			printf("Done\n");
 			break;
 		}
 
 		if (read_length) {
-			slot_idx++;
-			if (slot_idx == 20) {
-				slot_idx = 0;
+			frame_idx++;
+			if (frame_idx == 2) {
+				frame_idx = 0;
 			}
 		}
 	}

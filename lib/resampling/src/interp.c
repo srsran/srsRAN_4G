@@ -57,3 +57,14 @@ void interp_linear_offset(cf_t *input, cf_t *output, int M, int len, int off_st,
 void interp_linear(cf_t *input, cf_t *output, int M, int len) {
 	interp_linear_offset(input, output, M, len, 0, 0);
 }
+
+
+/* Performs 1st order integer linear interpolation */
+void interp_linear_f(float *input, float *output, int M, int len) {
+	int i, j;
+	for (i=0;i<len-1;i++) {
+		for (j=0;j<M;j++) {
+			output[i*M+j] = input[i] + j * (input[i+1]-input[i]) / M;
+		}
+	}
+}

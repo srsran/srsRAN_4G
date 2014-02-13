@@ -70,7 +70,7 @@ int uhd_open(char *args, void **h) {
 	std::string _args=std::string(args);
 	handler->usrp = uhd::usrp::multi_usrp::make(_args);
 
-	uhd::msg::register_handler(&my_handler);
+	//uhd::msg::register_handler(&my_handler);
 
 	std::string otw, cpu;
 	otw="sc16";

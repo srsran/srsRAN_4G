@@ -33,14 +33,17 @@ typedef struct {
 	dft_plan_t fft_plan;
 	int nof_symbols;
 	int symbol_sz;
+	int nof_guards;
+	int nof_re;
 	lte_cp_t cp_type;
+	cf_t *tmp; // for removing zero padding
 }lte_fft_t;
 
-int lte_fft_init(lte_fft_t *q, lte_cp_t cp_type, int symbol_sz);
+int lte_fft_init(lte_fft_t *q, lte_cp_t cp_type, int nof_prb);
 void lte_fft_free(lte_fft_t *q);
 void lte_fft_run(lte_fft_t *q, cf_t *input, cf_t *output);
 
-int lte_ifft_init(lte_fft_t *q, lte_cp_t cp_type, int symbol_sz);
+int lte_ifft_init(lte_fft_t *q, lte_cp_t cp_type, int nof_prb);
 void lte_ifft_free(lte_fft_t *q);
 void lte_ifft_run(lte_fft_t *q, cf_t *input, cf_t *output);
 

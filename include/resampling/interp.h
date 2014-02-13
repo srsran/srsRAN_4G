@@ -21,3 +21,4 @@ typedef _Complex float cf_t;
 
 void interp_linear_offset(cf_t *input, cf_t *output, int M, int len, int off_st, int off_end);
 void interp_linear(cf_t *input, cf_t *output, int M, int len);
+void interp_linear_f(float *input, float *output, int M, int len);

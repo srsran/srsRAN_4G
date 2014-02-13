@@ -85,6 +85,7 @@ int main(int argc, char **argv) {
 	cf_t *input = NULL;
 	cf_t *outfft = NULL;
 	cf_t *ce = NULL;
+	int i;
 
 	if (argc < 3) {
 		usage(argv[0]);
@@ -119,7 +120,7 @@ int main(int argc, char **argv) {
 		goto do_exit;
 	}
 
-	if (lte_fft_init(&fft, cp, lte_symbol_sz(nof_prb))) {
+	if (lte_fft_init(&fft, cp, nof_prb)) {
 		fprintf(stderr, "Error: initializing FFT\n");
 		goto do_exit;
 	}
@@ -135,20 +136,30 @@ int main(int argc, char **argv) {
 	bzero(input, sizeof(cf_t) * in_slot_length());
 	bzero(outfft, sizeof(cf_t) * slot_length());
 
+	fprintf(f, "ce=zeros(%d, %d);\n", nof_slots * CP_NSYMB(cp), nof_prb * RE_X_RB);
 	/* read all file or nof_slots */
 	slot_cnt = 0;
 	while (in_slot_length() == filesource_read(&fsrc, input, in_slot_length())
 			&& (slot_cnt < nof_slots || nof_slots == -1)) {
 
+		fprintf(f, "infft=");
+		vec_fprint_c(f, input, CP_NSYMB(cp) * 128);
+		fprintf(f, ";\n");
+
 		lte_fft_run(&fft, input, outfft);
 
-		chest_ce_slot_port(&eq, outfft, ce, slot_cnt%20, 0);
+		fprintf(f, "outfft=");
+		vec_fprint_c(f, outfft, CP_NSYMB(cp) * nof_prb * RE_X_RB);
+		fprintf(f, ";\n");
+
+		chest_ce_slot_port(&eq, outfft, ce, 0, 0);
 
 		chest_fprint(&eq, f, slot_cnt%20, 0);
 
-		fprintf(f, "ce=[");
-		vec_fprint_c(f, ce, nof_prb * RE_X_RB * CP_NSYMB(cp));
-		fprintf(f, "];\n");
+		for (i=0;i<CP_NSYMB(cp);i++) {
+			fprintf(f, "ce(%d,:)=", slot_cnt * CP_NSYMB(cp) + i + 1);
+			vec_fprint_c(f, &ce[i * nof_prb * RE_X_RB], nof_prb * RE_X_RB);
+		}
 
 		slot_cnt++;
 	}
@@ -170,6 +181,6 @@ do_exit:
 	}
 	filesource_close(&fsrc);
 
-	printf("Done\n");
+	printf("Done processed %d slots\n", slot_cnt);
 	exit(0);
 }

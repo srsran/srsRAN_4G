@@ -19,13 +19,11 @@
 #include "lte/sequence.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <strings.h>
 #include <assert.h>
 
 #define Nc 1600
-#define GOLDMAXLEN (Nc*10)
-static int x1[GOLDMAXLEN];
-static int x2[GOLDMAXLEN];
 
 
 /*
@@ -35,24 +33,37 @@ static int x2[GOLDMAXLEN];
  */
 void generate_prs_c(sequence_t *q, unsigned int seed) {
 	int n;
+	unsigned int *x1;
+	unsigned int *x2;
 
-	assert(q->len + Nc + 31 < GOLDMAXLEN);
+	x1 = calloc(Nc + q->len + 31, sizeof(unsigned int));
+	if (!x1) {
+		perror("calloc");
+		return;
+	}
+	x2 = calloc(Nc + q->len + 31, sizeof(unsigned int));
+	if (!x2) {
+		free(x1);
+		perror("calloc");
+		return;
+	}
 
 	for (n = 0; n < 31; n++) {
-		x1[n] = 0;
 		x2[n] = (seed >> n) & 0x1;
 	}
 	x1[0] = 1;
 
 	for (n = 0; n < Nc + q->len; n++) {
 		x1[n + 31] = (x1[n + 3] + x1[n]) & 0x1;
-		x2[n + 31] = (x2[n + 3] + x2[n + 2] + x2[n]) & 0x1;
+		x2[n + 31] = (x2[n + 3] + x2[n + 2] + +x2[n+1] + x2[n]) & 0x1;
 	}
 
 	for (n = 0; n < q->len; n++) {
 		q->c[n] = (x1[n + Nc] + x2[n + Nc]) & 0x1;
 	}
 
+	free(x1);
+	free(x2);
 }
 
 int sequence_LTEPRS(sequence_t *q, int len, int seed) {

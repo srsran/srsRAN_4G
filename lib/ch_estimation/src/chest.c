@@ -77,11 +77,15 @@ void chest_ce_ref(chest_t *q, cf_t *input, int nslot, int port_id, int nref) {
 	fidx = q->refsignal[port_id][nslot].refs[nref].freq_idx; // reference frequency index
 	tidx = q->refsignal[port_id][nslot].refs[nref].time_idx; // reference time index
 	known_ref = q->refsignal[port_id][nslot].refs[nref].simbol;
-	channel_ref = input[SAMPLE_IDX(q->symbol_sz, tidx, fidx)];
+	channel_ref = input[SAMPLE_IDX(q->nof_prb, tidx, fidx)];
 	q->refsignal[port_id][nslot].refs[nref].recv_simbol = channel_ref;
+
+	DEBUG("Reference %d pos (%d,%d)=%d %.2f/%.2f=%.2f %.2f/%.2f=%.2f\n", nref, tidx, fidx, SAMPLE_IDX(q->nof_prb, tidx, fidx),
+			cabsf(channel_ref),cabsf(known_ref),cabsf(channel_ref/known_ref),
+			cargf(channel_ref)/M_PI,cargf(known_ref)/M_PI,cargf(channel_ref/known_ref)/M_PI);
 	/* FIXME: compare with treshold */
 	if (channel_ref != 0) {
-		q->refsignal[port_id][nslot].ch_est[nref] = known_ref/channel_ref;
+		q->refsignal[port_id][nslot].ch_est[nref] = channel_ref/known_ref;
 	} else {
 		q->refsignal[port_id][nslot].ch_est[nref] = 0;
 	}
@@ -118,14 +122,10 @@ void chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, int nslot, int port_i
 	for (i=0;i<q->nof_prb * RE_X_RB; i++) {
 		for (j=0;j<r->nsymbols;j++) {
 			x[j] = ce[r->symbols_ref[j] * q->nof_prb * RE_X_RB + i];
-			printf("x[%d]=ce[%d]=%.3f\n", j,
-					r->symbols_ref[j] * q->nof_prb * RE_X_RB + i,
-					cabsf(x[j]));
 		}
 		interp_linear_offset(x, y, r->symbols_ref[1]-r->symbols_ref[0],
 				2, r->symbols_ref[0], 3);
 		for (j=0;j<q->nof_symbols;j++) {
-			printf("ce[%d] = y[%d] =%.3f\n", j * q->nof_prb * RE_X_RB + i, j, cabsf(x[j]));
 			ce[j * q->nof_prb * RE_X_RB + i] = y[j];
 		}
 	}
@@ -151,12 +151,11 @@ int chest_init(chest_t *q, lte_cp_t cp, int nof_prb, int nof_ports) {
 
 	q->nof_ports = nof_ports;
 	q->nof_symbols = CP_NSYMB(cp);
-	q->symbol_sz = lte_symbol_sz(nof_prb);
 	q->cp = cp;
 	q->nof_prb = nof_prb;
 
-	INFO("Initializing channel estimator size %dx%d nof_prb=%d, nof_ports=%d\n",
-			q->nof_symbols, q->symbol_sz, nof_prb, nof_ports);
+	INFO("Initializing channel estimator size %dx%d, nof_ports=%d\n",
+			q->nof_symbols, nof_prb, nof_ports);
 
 	return 0;
 }
@@ -168,8 +167,6 @@ int chest_ref_LTEDL_slot_port(chest_t *q, int port, int nslot, int cell_id) {
 	if (nslot < 0 || nslot > NSLOTS_X_FRAME) {
 		return -1;
 	}
-
-	INFO("Setting LTE DL reference signals port=%d, nslot=%d, cell_id=%d\n", port, nslot, cell_id);
 
 	if (refsignal_init_LTEDL(&q->refsignal[port][nslot], port, nslot, cell_id, q->cp, q->nof_prb)) {
 		fprintf(stderr, "Error initiating CRS port=%d, slot=%d\n", port, nslot);

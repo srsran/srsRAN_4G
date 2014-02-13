@@ -28,9 +28,6 @@ target_link_libraries(equalizer_test ${LIBRARIES})
 add_executable(viterbi_test viterbi_test.c)
 target_link_libraries(viterbi_test ${LIBRARIES})
 
-add_executable(bch_test bch_test.c)
-target_link_libraries(bch_test ${LIBRARIES})
-
 add_executable(cell_search cell_search.c)
 target_link_libraries(cell_search ${LIBRARIES})
 

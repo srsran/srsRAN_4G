@@ -29,7 +29,7 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 #define DEFAULT_CORRELATION_TH 10000
 #define DEFAULT_NOSYNC_TIMEOUT	5
 
-#define PSS_LEN_FREQ 	129
+#define PSS_LEN_FREQ 	129		// FFT-based convolution removes 1 leaving it in 128
 #define PSS_LEN			62
 #define PSS_RE			6*12
 

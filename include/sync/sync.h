@@ -49,7 +49,7 @@ int sync_get_N_id_2(sync_t *q);
 int sync_get_N_id_1(sync_t *q);
 int sync_get_cell_id(sync_t *q);
 void sync_set_threshold(sync_t *q, float threshold);
-int sync_init(sync_t *q);
+int sync_init(sync_t *q, int frame_size);
 void sync_free(sync_t *q);
 
 #endif

@@ -23,7 +23,7 @@
 #include "lte/base.h"
 #include "sync/sync.h"
 
-int sync_init(sync_t *q) {
+int sync_init(sync_t *q, int frame_size) {
 	int N_id_2;
 
 	bzero(q, sizeof(sync_t));
@@ -32,7 +32,7 @@ int sync_init(sync_t *q) {
 	q->pss_mode = PEAK_MEAN;
 
 	for (N_id_2=0;N_id_2<3;N_id_2++) {
-		if (pss_synch_init(&q->pss[N_id_2], 960)) {
+		if (pss_synch_init(&q->pss[N_id_2], frame_size)) {
 			fprintf(stderr, "Error initializing PSS object\n");
 			return -1;
 		}
@@ -133,14 +133,14 @@ int sync_run(sync_t *q, cf_t *input, int read_offset) {
 				&peak_value[N_id_2], &mean_value[N_id_2]);
 	}
 
-	DEBUG("PSS possible peak N_id_2=%d, pos=%d value=%.2f threshold=%.2f\n",
-			N_id_2, peak_pos[N_id_2], peak_value[N_id_2], q->threshold);
-
 	q->peak_to_avg = peak_value[N_id_2] / mean_value[N_id_2];
+
+	DEBUG("PSS possible peak N_id_2=%d, pos=%d peak=%.2f par=%.2f threshold=%.2f\n",
+			N_id_2, peak_pos[N_id_2], peak_value[N_id_2], q->peak_to_avg, q->threshold);
 
 	/* If peak detected */
 	peak_detected = 0;
-	if (peak_pos[N_id_2] > 128) {
+	if (peak_pos[N_id_2] + read_offset > 128) {
 		if (q->pss_mode == ABSOLUTE) {
 			if (peak_value[N_id_2] > q->threshold) {
 				peak_detected = 1;
@@ -153,10 +153,11 @@ int sync_run(sync_t *q, cf_t *input, int read_offset) {
 	}
 	if (peak_detected) {
 
-		INFO("PSS peak detected N_id_2=%d, pos=%d value=%.2f\n", N_id_2, peak_pos[N_id_2], peak_value[N_id_2]);
 
 		q->cfo = pss_synch_cfo_compute(&q->pss[N_id_2], &input[read_offset + peak_pos[N_id_2]-128]);
-		INFO("Estimated CFO=%.4f\n", q->cfo);
+
+		INFO("PSS peak detected N_id_2=%d, pos=%d peak=%.2f par=%.2f th=%.2f cfo=%.4f\n", N_id_2,
+				peak_pos[N_id_2], peak_value[N_id_2], q->peak_to_avg, q->threshold, q->cfo);
 
 		sss_idx = read_offset + peak_pos[N_id_2]-2*(128+CP(128,CPNORM_LEN));
 		if (sss_idx>= 0) {
