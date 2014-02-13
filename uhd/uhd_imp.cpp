@@ -15,8 +15,6 @@ typedef _Complex float complex_t;
 
 #define SAMPLE_SZ sizeof(complex_t)
 
-void uhd_rx_stream(void *h);
-
 bool isLocked(void *h)
 {
    uhd_handler* handler = static_cast<uhd_handler*>(h);

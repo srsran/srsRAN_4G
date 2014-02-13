@@ -155,12 +155,10 @@ int binsource_work(binsource_hl* hl) {
 	} else {
 		ret = binsource_generate(&hl->obj,hl->output,hl->ctrl_in.nbits);
 	}
-	if (hl->out_len) {
-		if (!ret) {
-			*hl->out_len = hl->ctrl_in.nbits;
-		} else {
-			*hl->out_len = 0;
-		}
+	if (!ret) {
+		hl->out_len = hl->ctrl_in.nbits;
+	} else {
+		hl->out_len = 0;
 	}
 	return ret;
 }

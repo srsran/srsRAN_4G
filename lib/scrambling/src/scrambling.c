@@ -100,7 +100,7 @@ int scrambling_work(scrambling_hl* hl) {
 		memcpy(hl->output, hl->input, sizeof(float) * hl->in_len);
 		scrambling_float(seq, hl->output);
 	}
-	*(hl->out_len) = hl->in_len;
+	hl->out_len = hl->in_len;
 	return 0;
 }
 

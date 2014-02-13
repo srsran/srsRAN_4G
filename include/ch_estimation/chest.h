@@ -27,6 +27,9 @@
 
 typedef _Complex float cf_t; /* this is only a shortcut */
 
+typedef enum {LINEAR} chest_interp_t;
+typedef void (*interpolate_fnc_t) (cf_t *input, cf_t *output, int M, int len, int off_st, int off_end);
+
 /** This is an OFDM channel estimator.
  * It works with any reference signal pattern, provided by the object
  * refsignal_t
@@ -41,9 +44,10 @@ typedef struct {
 	int nof_prb;
 	lte_cp_t cp;
 	refsignal_t refsignal[MAX_PORTS][NSLOTS_X_FRAME];
+	interpolate_fnc_t interp;
 }chest_t;
 
-int chest_init(chest_t *q, lte_cp_t cp, int nof_prb, int nof_ports);
+int chest_init(chest_t *q, chest_interp_t interp, lte_cp_t cp, int nof_prb, int nof_ports);
 void chest_free(chest_t *q);
 
 int chest_ref_LTEDL_slot_port(chest_t *q, int port, int nslot, int cell_id);
@@ -68,20 +72,18 @@ typedef struct {
 	chest_t obj;
 	struct chest_init {
 		int nof_symbols; 		// 7 for normal cp, 6 for extended
-		int port_id;
 		int nof_ports;
-		int cell_id;
 		int nof_prb;
-		int ntime;
-		int nfreq;
+		int cell_id;	// set to -1 to init at runtime
 	} init;
 	cf_t *input;
 	int in_len;
 	struct chest_ctrl_in {
 		int slot_id;	// slot id in the 10ms frame
+		int cell_id;
 	} ctrl_in;
-	cf_t *output;
-	int *out_len;
+	cf_t *output[MAX_PORTS];
+	int out_len[MAX_PORTS];
 }chest_hl;
 
 #define DEFAULT_FRAME_SIZE		2048

@@ -72,9 +72,7 @@ int demod_soft_work(demod_soft_hl* hl) {
 	hl->obj.sigma = hl->ctrl_in.sigma;
 	hl->obj.alg_type = hl->ctrl_in.alg_type;
 	int ret = demod_soft_demodulate(&hl->obj,hl->input,hl->output,hl->in_len);
-	if (hl->out_len) {
-		*hl->out_len = ret;
-	}
+	hl->out_len = ret;
 	return 0;
 }
 

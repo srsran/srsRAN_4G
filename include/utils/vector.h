@@ -21,24 +21,42 @@
 
 #include <stdio.h>
 
-int sum_i(int *x, int len);
-float sum_r(float *x, int len);
-_Complex float sum_c(_Complex float *x, int len);
+typedef _Complex float cf_t;
+
+/** Return the sum of all the elements */
+int vec_acc_ii(int *x, int len);
+float vec_acc_ff(float *x, int len);
+cf_t vec_acc_cc(cf_t *x, int len);
 
 void *vec_malloc(int size);
-void vec_fprint_c(FILE *stream, _Complex float *x, int len);
+
+/* print vectors */
+void vec_fprint_c(FILE *stream, cf_t *x, int len);
 void vec_fprint_f(FILE *stream, float *x, int len);
 void vec_fprint_i(FILE *stream, int *x, int len);
 
+/* sum two vectors */
 void vec_sum_ch(char *z, char *x, char *y, int len);
-void vec_sum_c(_Complex float *z, _Complex float *x, _Complex float *y, int len);
-void vec_mult_c_r(_Complex float *x,_Complex float *y, float h, int len);
-void vec_mult_c(_Complex float *x,_Complex float *y, _Complex float h, int len);
-void vec_conj(_Complex float *x, _Complex float *y, int len);
-float vec_power(_Complex float *x, int len);
-void vec_dot_prod(_Complex float *x,_Complex float *y, _Complex float *z, int len);
-void vec_dot_prod_u(_Complex float *x,_Complex float *y, _Complex float *z, int len);
-void vec_max(float *x, float *max, int *pos, int len);
-void vec_abs(_Complex float *x, float *abs, int len);
+void vec_sum_ccc(cf_t *z, cf_t *x, cf_t *y, int len);
+
+/* scalar product */
+void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len);
+void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, int len);
+
+/* dot product */
+void vec_dot_prod_ccc(cf_t *x, cf_t *y, cf_t *z, int len);
+void vec_dot_prod_ccc_unalign(cf_t *x, cf_t *y, cf_t *z, int len);
+
+/* conjugate */
+void vec_conj_cc(cf_t *x, cf_t *y, int len);
+
+/* average vector power */
+float vec_avg_power_cf(cf_t *x, int len);
+
+/* return the index of the maximum value in the vector */
+int vec_max_fi(float *x, int len);
+
+/* magnitude of each vector element */
+void vec_abs_cf(cf_t *x, float *abs, int len);
 
 #endif

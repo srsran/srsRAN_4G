@@ -19,27 +19,9 @@
 #ifndef CONVCODER_
 #define CONVCODER_
 
-
 #include <stdbool.h>
 
-typedef enum {
-	CONVCODER_27, CONVCODER_29, CONVCODER_37, CONVCODER_39
-}viterbi_type_t;
 
-typedef struct {
-	void *ptr;
-	int R;
-	int K;
-	unsigned int framebits;
-	bool tail_biting;
-	int poly[3];
-	int (*decode) (void*, float*, char*);
-	void (*free) (void*);
-}viterbi_t;
-
-int viterbi_init(viterbi_t *q, viterbi_type_t type, int poly[3], int framebits, bool tail_bitting);
-void viterbi_free(viterbi_t *q);
-int viterbi_decode(viterbi_t *q, float *symbols, char *data);
 
 typedef struct {
 	int R;
@@ -49,6 +31,29 @@ typedef struct {
 	bool tail_biting;
 }convcoder_t;
 
-int conv_encode(convcoder_t *q, char *input, char *output);
+int convcoder_encode(convcoder_t *q, char *input, char *output);
+
+
+/* High-level API */
+typedef struct {
+	convcoder_t obj;
+	struct convcoder_ctrl_in {
+		int rate;
+		int constraint_length;
+		int tail_bitting;
+		int generator_0;
+		int generator_1;
+		int generator_2;
+		int frame_length;
+	} ctrl_in;
+	char *input;
+	int in_len;
+	char *output;
+	int out_len;
+}convcoder_hl;
+
+int convcoder_initialize(convcoder_hl* h);
+int convcoder_work(convcoder_hl* hl);
+int convcoder_stop(convcoder_hl* h);
 
 #endif

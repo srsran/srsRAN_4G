@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 		rssi[i]=0;
 		while(frame_cnt < nof_slots) {
 			nsamples += uhd_recv(uhd, input_buffer, 1920, 1);
-			rssi[i] += vec_power(input_buffer, 1920);
+			rssi[i] += vec_avg_power_cf(input_buffer, 1920);
 			frame_cnt++;
 		}
 		printf("[%3d/%d]: Scanning earfcn %d freq %.2f MHz RSSI %.2f dBm\n", i, nof_bands,

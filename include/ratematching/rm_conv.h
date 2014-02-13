@@ -36,7 +36,7 @@ typedef struct {
 		int S;
 	} ctrl_in;
 	void *output;
-	int *out_len;
+	int out_len;
 }rm_conv_hl;
 
 int rm_conv_initialize(rm_conv_hl* h);

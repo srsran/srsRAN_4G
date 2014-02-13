@@ -34,10 +34,11 @@ typedef struct {
 	} ctrl_in;
 
 	cf* output;
-	int* out_len;
+	int out_len;
 }ch_awgn_hl;
 
 int ch_awgn_initialize(ch_awgn_hl* hl);
 int ch_awgn_work(ch_awgn_hl* hl);
+int ch_awgn_stop(ch_awgn_hl* hl);
 
 #endif

@@ -41,15 +41,14 @@ void interp_linear_offset(cf_t *input, cf_t *output, int M, int len, int off_st,
 			mag = mag0 + j*(mag1-mag0)/M;
 			arg = arg0 + j*(arg1-arg0)/M;
 			output[i*M+j+off_st] = mag * cexpf(I * arg);
-//			DEBUG("output[%d] = input[%d]+%d*(input[%d]-input[%d])/%d = %.3f+%.3f = %.3f delta=%.3f\n",
-//					i*M+j, i, j, i+1, i, M, cabsf(input[i]), cabsf(j*(input[i+1] - input[i])/M),
-//					cabsf(output[i*M+j]));
 		}
 	}
-	for (j=0;j<off_end;j++) {
-		mag = mag1 + j*(mag1-mag0)/M;
-		arg = arg1 + j*(arg1-arg0)/M;
-		output[i*M+j+off_st] = mag * cexpf(I * arg);
+	if (len > 1) {
+		for (j=0;j<off_end;j++) {
+			mag = mag1 + j*(mag1-mag0)/M;
+			arg = arg1 + j*(arg1-arg0)/M;
+			output[i*M+j+off_st] = mag * cexpf(I * arg);
+		}
 	}
 }
 

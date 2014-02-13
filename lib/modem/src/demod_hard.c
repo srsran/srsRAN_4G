@@ -65,11 +65,12 @@ int demod_hard_initialize(demod_hard_hl* hl) {
 
 int demod_hard_work(demod_hard_hl* hl) {
 	int ret = demod_hard_demodulate(&hl->obj,hl->input,hl->output,hl->in_len);
-	if (hl->out_len) {
-		*hl->out_len = ret;
-	}
+	hl->out_len = ret;
 	return 0;
 }
 
+int demod_hard_stop(demod_hard_hl* hl) {
+	return 0;
+}
 
 

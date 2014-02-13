@@ -80,8 +80,8 @@ void chest_ce_ref(chest_t *q, cf_t *input, int nslot, int port_id, int nref) {
 	channel_ref = input[SAMPLE_IDX(q->nof_prb, tidx, fidx)];
 	q->refsignal[port_id][nslot].refs[nref].recv_simbol = channel_ref;
 
-	DEBUG("Reference %d pos (%d,%d)=%d %.2f/%.2f=%.2f %.2f/%.2f=%.2f\n", nref, tidx, fidx, SAMPLE_IDX(q->nof_prb, tidx, fidx),
-			cabsf(channel_ref),cabsf(known_ref),cabsf(channel_ref/known_ref),
+	DEBUG("Reference %2d pos (%2d,%2d)=%3d %.2f dB %.2f/%.2f=%.2f\n", nref, tidx, fidx, SAMPLE_IDX(q->nof_prb, tidx, fidx),
+			10*log10f(cabsf(channel_ref/known_ref)),
 			cargf(channel_ref)/M_PI,cargf(known_ref)/M_PI,cargf(channel_ref/known_ref)/M_PI);
 	/* FIXME: compare with treshold */
 	if (channel_ref != 0) {
@@ -141,7 +141,7 @@ void chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, int nslot) {
 	}
 }
 
-int chest_init(chest_t *q, lte_cp_t cp, int nof_prb, int nof_ports) {
+int chest_init(chest_t *q, chest_interp_t interp, lte_cp_t cp, int nof_prb, int nof_ports) {
 
 	if (nof_ports > MAX_PORTS) {
 		fprintf(stderr, "Error: Maximum ports %d\n", MAX_PORTS);
@@ -153,6 +153,11 @@ int chest_init(chest_t *q, lte_cp_t cp, int nof_prb, int nof_ports) {
 	q->nof_symbols = CP_NSYMB(cp);
 	q->cp = cp;
 	q->nof_prb = nof_prb;
+
+	switch(interp) {
+	case LINEAR:
+		q->interp = interp_linear_offset;
+	}
 
 	INFO("Initializing channel estimator size %dx%d, nof_ports=%d\n",
 			q->nof_symbols, nof_prb, nof_ports);
@@ -222,50 +227,45 @@ int chest_ref_symbols(chest_t *q, int port_id, int nslot, int l[2]) {
 */
 int chest_initialize(chest_hl* h) {
 
-	if (!h->init.ntime) {
-		h->init.ntime = 7;
-	}
-	if (!h->init.nfreq) {
-		h->init.nfreq = 10;
-	}
 	if (!h->init.nof_symbols) {
 		h->init.nof_symbols = CPNORM_NSYMB; // Normal CP
-	}
-	if (!h->init.port_id) {
-		h->init.port_id = 0;
-	}
-	if (!h->init.cell_id) {
-		h->init.cell_id = 0;
 	}
 	if (!h->init.nof_prb) {
 		h->init.nof_prb = 6;
 	}
 
-/*	if (chest_LTEDL_init(&h->obj, h->init.ntime, h->init.nfreq,
-			h->init.nof_symbols==CPNORM_NSYMB, h->init.cell_id, h->init.nof_prb)) {
+	if (chest_init(&h->obj, LINEAR, (h->init.nof_symbols==CPNORM_NSYMB)?CPNORM:CPEXT,
+			h->init.nof_prb, h->init.nof_ports)) {
+		fprintf(stderr, "Error initializing equalizer\n");
 		return -1;
 	}
-*/
+	if (h->init.cell_id != -1) {
+		if (chest_ref_LTEDL(&h->obj, h->init.cell_id)) {
+			fprintf(stderr, "Error initializing reference signal\n");
+			return -1;
+		}
+	}
+
 	return 0;
 }
 
-/** This function can be called in a subframe (1ms) or slot basis (0.5ms) for LTE */
+/** This function must be called in an slot basis (0.5ms) for LTE */
 int chest_work(chest_hl* hl) {
+	int i;
 	chest_t *q = &hl->obj;
-	/*
-	if (hl->in_len == SF_SZ(q)) {
-		*hl->out_len = chest_LTEDL_run_sf(q, hl->input, hl->output, hl->ctrl_in.slot_id/2);
-	} else if (hl->in_len == SLOT_SZ(q)) {
-		*hl->out_len = chest_LTEDL_run_slot(q, hl->input, hl->output, hl->ctrl_in.slot_id);
-	}
-	*/
 
-	if (*hl->out_len < 0) {
-		return -1;
-	} else {
-		return 0;
+	if (hl->init.cell_id != hl->ctrl_in.cell_id) {
+		if (chest_ref_LTEDL(q, hl->init.cell_id)) {
+			fprintf(stderr, "Error initializing reference signal\n");
+			return -1;
+		}
 	}
 
+	for (i=0;i<hl->init.nof_ports;i++) {
+		chest_ce_slot_port(q, hl->input, hl->output[i], 1, 0);
+		hl->out_len[i] = hl->in_len;
+	}
+	return 0;
 }
 
 int chest_stop(chest_hl* hl) {

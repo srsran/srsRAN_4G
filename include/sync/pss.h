@@ -114,7 +114,7 @@ typedef struct {
 		float manual_cfo;
 	} ctrl_in;
 	cf_t *output;
-	int *out_len;
+	int out_len;
 }pss_synch_hl;
 
 #define DEFAULT_FRAME_SIZE		2048

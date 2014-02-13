@@ -8,7 +8,7 @@
 
 char *input_file_name = NULL;
 int nof_slots=100;
-float corr_peak_threshold=15;
+float corr_peak_threshold=30;
 int file_binary = 0;
 int force_N_id_2=-1;
 int nof_ports = 1;
@@ -94,7 +94,7 @@ int base_init() {
 		}
 	}
 
-	if (chest_init(&chest, CPNORM, 6, 1)) {
+	if (chest_init(&chest, LINEAR, CPNORM, 6, 1)) {
 		fprintf(stderr, "Error initializing equalizer\n");
 		return -1;
 	}

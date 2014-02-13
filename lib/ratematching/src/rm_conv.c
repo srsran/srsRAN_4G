@@ -102,10 +102,10 @@ int rm_conv_initialize(rm_conv_hl* h) {
 int rm_conv_work(rm_conv_hl* hl) {
 	if (hl->init.direction) {
 		//rm_conv_tx(hl->input, hl->output, hl->in_len, hl->ctrl_in.S);
-		*(hl->out_len) = hl->ctrl_in.S;
+		hl->out_len = hl->ctrl_in.S;
 	} else {
 		rm_conv_rx(hl->input, hl->output, hl->in_len, hl->ctrl_in.E);
-		*(hl->out_len) = hl->ctrl_in.E;
+		hl->out_len = hl->ctrl_in.E;
 	}
 	return 0;
 }
