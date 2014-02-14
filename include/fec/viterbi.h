@@ -16,34 +16,51 @@
  * along with OSLD-lib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MOD_
-#define MOD_
+#ifndef VITERBI_
+#define VITERBI_
 
-#include <complex.h>
-#include <stdint.h>
+#include <stdbool.h>
 
-#include "modem_table.h"
+typedef enum {
+	viterbi_27, viterbi_29, viterbi_37, viterbi_39
+}viterbi_type_t;
 
-typedef _Complex float cf;
+typedef struct {
+	void *ptr;
+	int R;
+	int K;
+	unsigned int framebits;
+	bool tail_biting;
+	int poly[3];
+	int (*decode) (void*, float*, char*);
+	void (*free) (void*);
+}viterbi_t;
 
-int mod_modulate(modem_table_t* table, const char *bits, cf* symbols, int nbits);
+int viterbi_init(viterbi_t *q, viterbi_type_t type, int poly[3], int framebits, bool tail_bitting);
+void viterbi_free(viterbi_t *q);
+int viterbi_decode(viterbi_t *q, float *symbols, char *data);
+
 
 /* High-level API */
 typedef struct {
-	modem_table_t obj;
-	struct mod_init {
-		enum modem_std std;	// symbol mapping standard (see modem_table.h)
+	viterbi_t obj;
+	struct viterbi_init {
+		int rate;
+		int constraint_length;
+		int tail_bitting;
+		int generator_0;
+		int generator_1;
+		int generator_2;
+		int frame_length;
 	} init;
-
-	const char* input;
+	float *input;
 	int in_len;
-
-	cf* output;
+	char *output;
 	int out_len;
-}mod_hl;
+}viterbi_hl;
 
-int mod_initialize(mod_hl* hl);
-int mod_work(mod_hl* hl);
-int mod_stop(mod_hl* hl);
+int viterbi_initialize(viterbi_hl* h);
+int viterbi_work(viterbi_hl* hl);
+int viterbi_stop(viterbi_hl* h);
 
 #endif

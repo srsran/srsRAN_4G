@@ -49,9 +49,7 @@ int mod_initialize(mod_hl* hl) {
 
 int mod_work(mod_hl* hl) {
 	int ret = mod_modulate(&hl->obj,hl->input,hl->output,hl->in_len);
-	if (hl->out_len) {
-		*hl->out_len = ret;
-	}
+	hl->out_len = ret;
 	return 0;
 }
 

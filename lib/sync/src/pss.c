@@ -174,10 +174,10 @@ int pss_synch_set_N_id_2(pss_synch_t *q, int N_id_2) {
 
 	dft_run_c2c(&plan, pss_signal_pad, q->pss_signal_freq);
 
-	vec_mult_c_r(q->pss_signal_freq, pss_signal_pad,
-			(float) 1 / (PSS_LEN_FREQ - 1), PSS_LEN_FREQ);
+	vec_sc_prod_cfc(q->pss_signal_freq, (float) 1 / (PSS_LEN_FREQ - 1),
+			pss_signal_pad, PSS_LEN_FREQ);
 
-	vec_conj(pss_signal_pad, q->pss_signal_freq, PSS_LEN_FREQ);
+	vec_conj_cc(pss_signal_pad, q->pss_signal_freq, PSS_LEN_FREQ);
 
 	q->N_id_2 = N_id_2;
 
@@ -206,13 +206,16 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value, floa
 	conv_output_len = conv_cc(input, q->pss_signal_freq, q->conv_output, q->frame_size, PSS_LEN_FREQ);
 #endif
 
-	vec_abs(q->conv_output, q->conv_abs, conv_output_len);
-	vec_max(q->conv_abs, corr_peak_value, &corr_peak_pos, conv_output_len);
+	vec_abs_cf(q->conv_output, q->conv_abs, conv_output_len);
+	corr_peak_pos = vec_max_fi(q->conv_abs, conv_output_len);
+	if (corr_peak_value) {
+		*corr_peak_value = q->conv_abs[corr_peak_pos];
+	}
 	if (corr_mean_value) {
-		*corr_mean_value = sum_r(q->conv_abs, conv_output_len) / conv_output_len;
+		*corr_mean_value = vec_acc_ff(q->conv_abs, conv_output_len) / conv_output_len;
 	}
 
-	return corr_peak_pos;
+	return (int) corr_peak_pos;
 }
 
 /* Returns the CFO estimation given a PSS received sequence
@@ -224,10 +227,10 @@ float pss_synch_cfo_compute(pss_synch_t* q, cf_t *pss_recv) {
 	cf_t y0, y1, yr;
 	cf_t y[PSS_LEN_FREQ-1];
 
-	vec_dot_prod_u(q->pss_signal_freq, pss_recv, y, PSS_LEN_FREQ - 1);
+	vec_dot_prod_ccc_unalign(q->pss_signal_freq, pss_recv, y, PSS_LEN_FREQ - 1);
 
-	y0 = sum_c(y, (PSS_LEN_FREQ - 1)/2);
-	y1 = sum_c(&y[(PSS_LEN_FREQ - 1)/2], (PSS_LEN_FREQ - 1)/2);
+	y0 = vec_acc_cc(y, (PSS_LEN_FREQ - 1)/2);
+	y1 = vec_acc_cc(&y[(PSS_LEN_FREQ - 1)/2], (PSS_LEN_FREQ - 1)/2);
 	yr = conjf(y0) * y1;
 
 	return atan2f(__imag__ yr, __real__ yr) / M_PI;
@@ -380,10 +383,7 @@ int pss_synch_work(pss_synch_hl* hl) {
 		pss_synch_set_threshold(&hl->obj, hl->ctrl_in.correlation_threshold);
 	}
 
-	*hl->out_len = pss_synch_frame(&hl->obj, hl->input, hl->output, hl->in_len);
-	if (*hl->out_len < 0) {
-		return -1;
-	}
+	hl->out_len = pss_synch_frame(&hl->obj, hl->input, hl->output, hl->in_len);
 
 	return 0;
 }

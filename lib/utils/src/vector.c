@@ -27,23 +27,23 @@
 #include "volk/volk.h"
 #endif
 
-int sum_i(int *x, int len) {
+int vec_acc_ii(int *x, int len) {
 	int i;
-	int y=0;
+	int z=0;
 	for (i=0;i<len;i++) {
-		y+=x[i];
+		z+=x[i];
 	}
-	return y;
+	return z;
 }
 
-float sum_r(float *x, int len) {
+float vec_acc_ff(float *x, int len) {
 #ifndef HAVE_VOLK
 	int i;
-	float y=0;
+	float z=0;
 	for (i=0;i<len;i++) {
-		y+=x[i];
+		z+=x[i];
 	}
-	return y;
+	return z;
 #else
 	float result;
 	volk_32f_accumulator_s32f_a(&result,x,(unsigned int) len);
@@ -51,50 +51,55 @@ float sum_r(float *x, int len) {
 #endif
 }
 
-_Complex float sum_c(_Complex float *x, int len) {
+cf_t vec_acc_cc(cf_t *x, int len) {
 	int i;
-	_Complex float y=0;
+	cf_t z=0;
 	for (i=0;i<len;i++) {
-		y+=x[i];
+		z+=x[i];
 	}
-	return y;
+	return z;
 }
 
-void vec_sum_c(_Complex float *z, _Complex float *x, _Complex float *y, int len) {
-	int i;
-	for (i=0;i<len;i++) {
-		z[i] = x[i]+y[i];
-	}
-}
-
-void vec_sum_char(char *z, char *x, char *y, int len) {
+void vec_sum_ccc(cf_t *z, cf_t *x, cf_t *y, int len) {
 	int i;
 	for (i=0;i<len;i++) {
 		z[i] = x[i]+y[i];
 	}
 }
 
-void vec_mult_c_r(_Complex float *x,_Complex float *y, float h, int len) {
+void vec_sum_bbb(char *z, char *x, char *y, int len) {
+	int i;
+	for (i=0;i<len;i++) {
+		z[i] = x[i]+y[i];
+	}
+}
+
+void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len) {
 #ifndef HAVE_VOLK
 	int i;
 	for (i=0;i<len;i++) {
-		y[i] = x[i]*h;
+		z[i] = x[i]*h;
 	}
 #else
-	_Complex float hh;
+	cf_t hh;
 	__real__ hh = h;
 	__imag__ hh = 0;
-	volk_32fc_s32fc_multiply_32fc_a(y,x,hh,(unsigned int) len);
+	volk_32fc_s32fc_multiply_32fc_a(z,x,hh,(unsigned int) len);
+#endif
+}
+
+void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, int len) {
+#ifndef HAVE_VOLK
+	int i;
+	for (i=0;i<len;i++) {
+		z[i] = x[i]*h;
+	}
+#else
+	volk_32fc_s32fc_multiply_32fc_a(z,x,h,(unsigned int) len);
 #endif
 }
 
 
-void vec_mult_c(_Complex float *x,_Complex float *y, _Complex float h, int len) {
-	int i;
-	for (i=0;i<len;i++) {
-		y[i] = x[i]*h;
-	}
-}
 
 void *vec_malloc(int size) {
 #ifndef HAVE_VOLK
@@ -109,7 +114,7 @@ void *vec_malloc(int size) {
 #endif
 }
 
-void vec_fprint_c(FILE *stream, _Complex float *x, int len) {
+void vec_fprint_c(FILE *stream, cf_t *x, int len) {
 	int i;
 	fprintf(stream, "[");
 	for (i=0;i<len;i++) {
@@ -141,7 +146,7 @@ void vec_fprint_i(FILE *stream, int *x, int len) {
 	fprintf(stream, "];\n");
 }
 
-void vec_conj(_Complex float *x, _Complex float *y, int len) {
+void vec_conj_cc(cf_t *x, cf_t *y, int len) {
 #ifndef HAVE_VOLK
 	int i;
 	for (i=0;i<len;i++) {
@@ -152,7 +157,7 @@ void vec_conj(_Complex float *x, _Complex float *y, int len) {
 #endif
 }
 
-void vec_dot_prod(_Complex float *x,_Complex float *y, _Complex float *z, int len) {
+void vec_dot_prod_ccc(cf_t *x,cf_t *y, cf_t *z, int len) {
 #ifndef HAVE_VOLK
 	int i;
 	for (i=0;i<len;i++) {
@@ -164,7 +169,7 @@ void vec_dot_prod(_Complex float *x,_Complex float *y, _Complex float *z, int le
 }
 
 
-float vec_power(_Complex float *x, int len) {
+float vec_avg_power_cf(cf_t *x, int len) {
 	int j;
 	float power = 0;
 	for (j=0;j<len;j++) {
@@ -174,7 +179,7 @@ float vec_power(_Complex float *x, int len) {
 	return power / len;
 }
 
-void vec_dot_prod_u(_Complex float *x,_Complex float *y, _Complex float *z, int len) {
+void vec_dot_prod_ccc_unalign(cf_t *x,cf_t *y, cf_t *z, int len) {
 #ifndef HAVE_VOLK
 	int i;
 	for (i=0;i<len;i++) {
@@ -185,7 +190,7 @@ void vec_dot_prod_u(_Complex float *x,_Complex float *y, _Complex float *z, int 
 #endif
 }
 
-void vec_abs(_Complex float *x, float *abs, int len) {
+void vec_abs_cf(cf_t *x, float *abs, int len) {
 #ifndef HAVE_VOLK
 	int i;
 	for (i=0;i<len;i++) {
@@ -198,24 +203,22 @@ void vec_abs(_Complex float *x, float *abs, int len) {
 
 }
 
-void vec_max(float *x, float *max, int *pos, int len) {
+int vec_max_fi(float *x, int len) {
 #ifndef HAVE_VOLK
 	int i;
 	float m=-FLT_MAX;
-	int p=-1;
+	int p=0;
 	for (i=0;i<len;i++) {
 		if (x[i]>m) {
 			m=x[i];
 			p=i;
 		}
 	}
-	if (pos) *pos=p;
-	if (max) *max=m;
+	return p;
 #else
 	unsigned int target=0;
 	volk_32f_index_max_16u_a(&target,x,(unsigned int) len);
-	if (pos) *pos=(int) target;
-	if (max) *max=x[target];
+	return (int) target;
 #endif
 }
 

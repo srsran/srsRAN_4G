@@ -137,7 +137,7 @@ int pbch_init(pbch_t *q, int cell_id, lte_cp_t cp) {
 	}
 
 	int poly[3] = {0x6D, 0x4F, 0x57};
-	if (viterbi_init(&q->decoder, CONVCODER_37, poly, 40, true)) {
+	if (viterbi_init(&q->decoder, viterbi_37, poly, 40, true)) {
 		goto clean;
 	}
 	int nof_symbols = (CP_ISNORM(q->cp)) ? PBCH_RE_CPNORM: PBCH_RE_CPEXT;
@@ -275,7 +275,7 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
 	}
 
 	/* unrate matching */
-	rm_conv_rx(q->temp, q->pbch_rm, 4*nof_bits, 120);
+	rm_conv_rx(q->temp, q->pbch_rm, 4 * nof_bits, 120);
 
 	/* decode */
 	viterbi_decode(&q->decoder, q->pbch_rm, q->data);
@@ -324,15 +324,13 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t **ce, int nof_ports,
 	/* Try decoding for 1 to nof_ports antennas */
 	for (nant=0;nant<nof_ports;nant++) {
 
-		/* pre-decoder & matched filter */
+		/*@TODO: pre-decoder & matched filter */
 		int i;
 		for (i=0;i<nof_symbols;i++) {
 			q->pbch_symbols[i] /= ce[0][i];
 		}
 
-		/* layer demapper */
-		//x    = lte_pre_decoder_and_matched_filter(y_est, ce(1:n,:), "tx_diversity");
-		//d    = lte_layer_demapper(x, 1, "tx_diversity");
+		/*@TODO: layer demapping */
 
 		/* demodulate symbols */
 		demod_soft_sigma_set(&q->demod, ebno);

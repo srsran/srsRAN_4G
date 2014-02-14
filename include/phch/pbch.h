@@ -25,6 +25,7 @@
 #include "scrambling/scrambling.h"
 #include "ratematching/rm_conv.h"
 #include "fec/convcoder.h"
+#include "fec/viterbi.h"
 #include "fec/crc.h"
 
 #define PBCH_RE_CPNORM		240

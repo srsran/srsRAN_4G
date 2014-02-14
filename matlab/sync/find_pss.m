@@ -28,7 +28,7 @@ function [ fs eps p_m w2] = find_pss( x, N_id_2, doplot, threshold)
     end
     
     % Estimate PSS-aided CFO
-    if (i > 200 && i<length(x)&& p_m > threshold)
+    if (i > 128 && i<length(x)&& p_m > threshold)
         y=ccf.*x(i-128:i-1);
     
         y0=y(1:64);

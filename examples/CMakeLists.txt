@@ -42,5 +42,9 @@ add_executable(pss_scan_usrp pss_scan_usrp.c ../uhd/uhd_imp.cpp ../uhd/uhd_utils
 target_link_libraries(pss_scan_usrp ${LIBRARIES} ${UHD_LIBRARIES})
 
 
+include_directories(${UHD_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/../uhd)
+add_executable(mib_scan_usrp mib_scan_usrp.c ../uhd/uhd_imp.cpp ../uhd/uhd_utils.c)
+target_link_libraries(mib_scan_usrp ${LIBRARIES} ${UHD_LIBRARIES})
+
 
 

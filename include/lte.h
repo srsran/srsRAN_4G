@@ -41,6 +41,7 @@
 
 #include "channel/ch_awgn.h"
 
+#include "fec/viterbi.h"
 #include "fec/convcoder.h"
 #include "fec/crc.h"
 

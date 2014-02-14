@@ -48,7 +48,7 @@ typedef struct {
 		int nsamples;				// Number of samples to read
 	} ctrl_in;
 	void* output;
-	int* out_len;
+	int out_len;
 }filesource_hl;
 
 int filesource_initialize(filesource_hl* h);

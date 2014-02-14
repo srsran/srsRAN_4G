@@ -57,7 +57,7 @@ typedef struct {
 	}ctrl_in;
 
 	float* output;
-	int *out_len;
+	int out_len;
 
 }demod_soft_hl;
 

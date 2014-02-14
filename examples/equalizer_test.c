@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Error: initializing FFT\n");
 		goto do_exit;
 	}
-	if (chest_init(&eq, cp, nof_prb, 1)) {
+	if (chest_init(&eq, LINEAR, cp, nof_prb, 1)) {
 		fprintf(stderr, "Error initializing equalizer\n");
 		goto do_exit;
 	}

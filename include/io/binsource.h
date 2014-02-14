@@ -50,7 +50,7 @@ typedef struct {
 		int nbits;				// Number of bits to generate
 	} ctrl_in;
 	char* output;
-	int* out_len;
+	int out_len;
 }binsource_hl;
 
 int binsource_initialize(binsource_hl* h);

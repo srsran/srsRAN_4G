@@ -48,11 +48,12 @@ typedef struct {
 	int in_len;
 
 	char* output;
-	int *out_len;
+	int out_len;
 }demod_hard_hl;
 
 int demod_hard_initialize(demod_hard_hl* hl);
 int demod_hard_work(demod_hard_hl* hl);
+int demod_hard_stop(demod_hard_hl* hl);
 
 
 #endif

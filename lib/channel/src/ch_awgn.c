@@ -43,8 +43,10 @@ int ch_awgn_initialize(ch_awgn_hl* hl) {
 
 int ch_awgn_work(ch_awgn_hl* hl) {
 	ch_awgn(hl->input,hl->output,hl->ctrl_in.variance,hl->in_len);
-	if (hl->out_len) {
-		*hl->out_len = hl->in_len;
-	}
+	hl->out_len = hl->in_len;
+	return 0;
+}
+
+int ch_awgn_stop(ch_awgn_hl* hl) {
 	return 0;
 }

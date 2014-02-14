@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
 	demod_soft_alg_set(&demod, APPROX);
 	demod_soft_sigma_set(&demod, var);
 
-	viterbi_init(&dec, CONVCODER_37, cod.poly, frame_length, tail_biting);
+	viterbi_init(&dec, viterbi_37, cod.poly, frame_length, tail_biting);
 
 	/* read all file or nof_frames */
 	frame_cnt = 0;
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
 			data_tx[i] = message[i];
 		}
 
-		conv_encode(&cod, data_tx, symbols);
+		convcoder_encode(&cod, data_tx, symbols);
 
 		bit_fprint(stdout, symbols, 120);
 

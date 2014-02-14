@@ -59,7 +59,7 @@ typedef struct {
 		int subframe;
 	} ctrl_in;
 	void *output;
-	int *out_len;
+	int out_len;
 }scrambling_hl;
 
 #endif

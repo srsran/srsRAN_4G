@@ -36,7 +36,7 @@ int uhd_rssi_scan(void *uhd, float *freqs, float *rssi, int nof_bands, double fs
 				goto free_and_exit;
 			}
 		}
-		rssi[i] = vec_power(buffer, nsamp);
+		rssi[i] = vec_avg_power_cf(buffer, nsamp);
 		printf("[%3d]: Freq %4.1f Mhz - RSSI: %3.2f dBm\r", i, f/1000000, 10*log10f(rssi[i]) + 30); fflush(stdout);
 		if (VERBOSE_ISINFO()) {
 			printf("\n");

@@ -92,8 +92,8 @@ int filesource_initialize(filesource_hl* h) {
 }
 
 int filesource_work(filesource_hl* h) {
-	*h->out_len = filesource_read(&h->obj, h->output, h->ctrl_in.nsamples);
-	if (*h->out_len < 0) {
+	h->out_len = filesource_read(&h->obj, h->output, h->ctrl_in.nsamples);
+	if (h->out_len < 0) {
 		return -1;
 	}
 	return 0;
