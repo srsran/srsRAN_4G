@@ -66,7 +66,7 @@ int conv_fft_cc_run(conv_fft_cc_t *state, _Complex float *input, _Complex float 
 	dft_run_c2c(&state->input_plan, input, state->input_fft);
 	dft_run_c2c(&state->filter_plan, filter, state->filter_fft);
 
-	vec_dot_prod_ccc(state->input_fft,state->filter_fft,state->output_fft,state->output_len);
+	vec_prod_ccc(state->input_fft,state->filter_fft,state->output_fft,state->output_len);
 
 	dft_run_c2c(&state->output_plan, state->output_fft, output);
 

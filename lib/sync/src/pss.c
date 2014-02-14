@@ -227,7 +227,7 @@ float pss_synch_cfo_compute(pss_synch_t* q, cf_t *pss_recv) {
 	cf_t y0, y1, yr;
 	cf_t y[PSS_LEN_FREQ-1];
 
-	vec_dot_prod_ccc_unalign(q->pss_signal_freq, pss_recv, y, PSS_LEN_FREQ - 1);
+	vec_prod_ccc_unalign(q->pss_signal_freq, pss_recv, y, PSS_LEN_FREQ - 1);
 
 	y0 = vec_acc_cc(y, (PSS_LEN_FREQ - 1)/2);
 	y1 = vec_acc_cc(&y[(PSS_LEN_FREQ - 1)/2], (PSS_LEN_FREQ - 1)/2);

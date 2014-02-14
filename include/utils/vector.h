@@ -43,9 +43,9 @@ void vec_sum_ccc(cf_t *z, cf_t *x, cf_t *y, int len);
 void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len);
 void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, int len);
 
-/* dot product */
-void vec_dot_prod_ccc(cf_t *x, cf_t *y, cf_t *z, int len);
-void vec_dot_prod_ccc_unalign(cf_t *x, cf_t *y, cf_t *z, int len);
+/* vector product */
+void vec_prod_ccc(cf_t *x, cf_t *y, cf_t *z, int len);
+void vec_prod_ccc_unalign(cf_t *x, cf_t *y, cf_t *z, int len);
 
 /* conjugate */
 void vec_conj_cc(cf_t *x, cf_t *y, int len);

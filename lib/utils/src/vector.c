@@ -157,7 +157,7 @@ void vec_conj_cc(cf_t *x, cf_t *y, int len) {
 #endif
 }
 
-void vec_dot_prod_ccc(cf_t *x,cf_t *y, cf_t *z, int len) {
+void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, int len) {
 #ifndef HAVE_VOLK
 	int i;
 	for (i=0;i<len;i++) {
@@ -179,7 +179,7 @@ float vec_avg_power_cf(cf_t *x, int len) {
 	return power / len;
 }
 
-void vec_dot_prod_ccc_unalign(cf_t *x,cf_t *y, cf_t *z, int len) {
+void vec_prod_ccc_unalign(cf_t *x,cf_t *y, cf_t *z, int len) {
 #ifndef HAVE_VOLK
 	int i;
 	for (i=0;i<len;i++) {
