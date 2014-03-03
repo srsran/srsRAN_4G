@@ -1,3 +1,30 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2014 The libLTE Developers. See the
+ * COPYRIGHT file at the top-level directory of this distribution.
+ *
+ * \section LICENSE
+ *
+ * This file is part of the libLTE library.
+ *
+ * libLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * libLTE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * A copy of the GNU Lesser General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,9 +33,9 @@
 #include <math.h>
 
 #include "lte.h"
-#include "uhd.h"
+#include "cuhd.h"
 
-int nof_slots=1000;
+int nof_frames=1000;
 int band;
 
 cf_t *input_buffer, *fft_buffer;
@@ -25,7 +52,7 @@ void usage(char *prog) {
 	printf("Usage: %s [nvse] -b band\n", prog);
 	printf("\t-s earfcn_start [Default All]\n");
 	printf("\t-e earfcn_end [Default All]\n");
-	printf("\t-n number of frames [Default %d]\n", nof_slots);
+	printf("\t-n number of frames [Default %d]\n", nof_frames);
 	printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -43,7 +70,7 @@ void parse_args(int argc, char **argv) {
 			earfcn_end = atoi(argv[optind]);
 			break;
 		case 'n':
-			nof_slots = atoi(argv[optind]);
+			nof_frames = atoi(argv[optind]);
 			break;
 		case 'v':
 			verbose++;
@@ -65,16 +92,16 @@ int base_init() {
 
 	/* open UHD device */
 	printf("Opening UHD device...\n");
-	if (uhd_open("",&uhd)) {
+	if (cuhd_open("",&uhd)) {
 		fprintf(stderr, "Error opening uhd\n");
 		exit(-1);
 	}
 
 	printf("Setting sampling frequency %.2f MHz\n", (float) SAMP_FREQ/MHZ);
-	uhd_set_rx_srate(uhd, SAMP_FREQ);
+	cuhd_set_rx_srate(uhd, SAMP_FREQ);
 
 	printf("Starting receiver...\n");
-	uhd_start_rx_stream(uhd);
+	cuhd_start_rx_stream(uhd);
 	return 0;
 }
 
@@ -101,12 +128,12 @@ int main(int argc, char **argv) {
 	int nof_bands = lte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
 	printf("Scanning %d freqs in band %d\n", nof_bands, band);
 	for (i=0;i<nof_bands;i++) {
-		uhd_set_rx_freq(uhd, (double) channels[i].fd * MHZ);
+		cuhd_set_rx_freq(uhd, (double) channels[i].fd * MHZ);
 		frame_cnt = 0;
 		nsamples=0;
 		rssi[i]=0;
-		while(frame_cnt < nof_slots) {
-			nsamples += uhd_recv(uhd, input_buffer, 1920, 1);
+		while(frame_cnt < nof_frames) {
+			nsamples += cuhd_recv(uhd, input_buffer, 1920, 1);
 			rssi[i] += vec_avg_power_cf(input_buffer, 1920);
 			frame_cnt++;
 		}

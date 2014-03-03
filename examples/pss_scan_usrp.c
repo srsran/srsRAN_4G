@@ -1,3 +1,30 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2014 The libLTE Developers. See the
+ * COPYRIGHT file at the top-level directory of this distribution.
+ *
+ * \section LICENSE
+ *
+ * This file is part of the libLTE library.
+ *
+ * libLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * libLTE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * A copy of the GNU Lesser General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,9 +35,7 @@
 #include <unistd.h>
 
 #include "lte.h"
-
-#include "uhd.h"
-#include "uhd_utils.h"
+#include "cuhd.h"
 
 #define MHZ 			1000000
 #define SAMP_FREQ 		1920000
@@ -149,7 +174,7 @@ int base_init(int frame_length) {
 
 	/* open UHD device */
 	printf("Opening UHD device...\n");
-	if (uhd_open("",&uhd)) {
+	if (cuhd_open("",&uhd)) {
 		fprintf(stderr, "Error opening uhd\n");
 		exit(-1);
 	}
@@ -159,7 +184,7 @@ int base_init(int frame_length) {
 
 void base_free() {
 
-	uhd_close(&uhd);
+	cuhd_close(&uhd);
 	free(input_buffer);
 	free(idx_v);
 	free(idx_valid);
@@ -208,7 +233,7 @@ int rssi_scan() {
 			freqs[n] = channels[i].fd * MHZ;
 			n++;
 		}
-		if (uhd_rssi_scan(uhd, freqs, rssi_d, n, (double) RSSI_FS, nof_samples_rssi)) {
+		if (cuhd_rssi_scan(uhd, freqs, rssi_d, n, (double) RSSI_FS, nof_samples_rssi)) {
 			fprintf(stderr, "Error while doing RSSI scan\n");
 			return -1;
 		}
@@ -218,7 +243,7 @@ int rssi_scan() {
 		for (i=0;i<nof_bands;i++) {
 			freqs[i] = channels[i].fd * MHZ;
 		}
-		if (uhd_rssi_scan(uhd, freqs, rssi, nof_bands, (double) RSSI_FS, nof_samples_rssi)) {
+		if (cuhd_rssi_scan(uhd, freqs, rssi, nof_bands, (double) RSSI_FS, nof_samples_rssi)) {
 			fprintf(stderr, "Error while doing RSSI scan\n");
 			return -1;
 		}
@@ -276,9 +301,9 @@ int main(int argc, char **argv) {
 	printf("\nDone. Starting PSS search on %d channels\n", n);
 	usleep(500000);
 	INFO("Setting sampling frequency %.2f MHz\n", (float) SAMP_FREQ/MHZ);
-	uhd_set_rx_srate(uhd, SAMP_FREQ);
+	cuhd_set_rx_srate(uhd, SAMP_FREQ);
 
-	uhd_set_rx_gain(uhd, gain);
+	cuhd_set_rx_gain(uhd, gain);
 
 	print_to_matlab();
 
@@ -298,20 +323,20 @@ int main(int argc, char **argv) {
 			freq++;
 		} else {
 			if (state == TRACK || state == FIND) {
-				uhd_recv(uhd, &input_buffer[FLEN], FLEN, 1);
+				cuhd_recv(uhd, &input_buffer[FLEN], FLEN, 1);
 			}
 			switch(state) {
 			case INIT:
 				DEBUG("Stopping receiver...\n",0);
-				uhd_stop_rx_stream(uhd);
+				cuhd_stop_rx_stream(uhd);
 
 				/* set freq */
-				uhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
-				uhd_rx_wait_lo_locked(uhd);
+				cuhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
+				cuhd_rx_wait_lo_locked(uhd);
 				DEBUG("Set freq to %.3f MHz\n", (double) channels[freq].fd);
 
 				DEBUG("Starting receiver...\n",0);
-				uhd_start_rx_stream(uhd);
+				cuhd_start_rx_stream(uhd);
 
 				/* init variables */
 				frame_cnt = 0;
@@ -319,7 +344,7 @@ int main(int argc, char **argv) {
 				cell_id = -1;
 
 				/* receive first frame */
-				uhd_recv(uhd, input_buffer, FLEN, 1);
+				cuhd_recv(uhd, input_buffer, FLEN, 1);
 
 				/* set find_threshold and go to FIND state */
 				sync_set_threshold(&sfind, find_threshold);
@@ -328,7 +353,7 @@ int main(int argc, char **argv) {
 				break;
 			case FIND:
 				/* find peak in all frame */
-				find_idx = sync_run(&sfind, input_buffer, FLEN);
+				find_idx = sync_run(&sfind, &input_buffer[FLEN]);
 				DEBUG("[%3d/%d]: PAR=%.2f\n", freq, nof_bands, sync_get_peak_to_avg(&sfind));
 				if (find_idx != -1) {
 					/* if found peak, go to track and set lower threshold */
@@ -357,7 +382,7 @@ int main(int argc, char **argv) {
 
 				filesink_write(&fs, &input_buffer[FLEN+find_idx+track_len], track_len);
 
-				track_idx = sync_run(&strack, input_buffer, FLEN + find_idx - track_len);
+				track_idx = sync_run(&strack, &input_buffer[FLEN + find_idx - track_len]);
 				p2a_v[frame_cnt] = sync_get_peak_to_avg(&strack);
 
 				/* save cell id for the best peak-to-avg */

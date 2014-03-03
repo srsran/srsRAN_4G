@@ -1,3 +1,30 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2014 The libLTE Developers. See the
+ * COPYRIGHT file at the top-level directory of this distribution.
+ *
+ * \section LICENSE
+ *
+ * This file is part of the libLTE library.
+ *
+ * libLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * libLTE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * A copy of the GNU Lesser General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -8,7 +35,7 @@
 
 char *input_file_name;
 char *output_file_name="abs_corr.txt";
-int nof_slots=100, frame_length=9600, symbol_sz=128;
+int nof_frames=100, frame_length=9600, symbol_sz=128;
 float corr_peak_threshold=25.0;
 int file_binary = 0;
 int out_N_id_2 = 0, force_N_id_2=-1;
@@ -20,7 +47,7 @@ void usage(char *prog) {
 	printf("Usage: %s [onlt] -i input_file\n", prog);
 	printf("\t-o output_file [Default %s]\n", output_file_name);
 	printf("\t-l frame_length [Default %d]\n", frame_length);
-	printf("\t-n number of frames [Default %d]\n", nof_slots);
+	printf("\t-n number of frames [Default %d]\n", nof_frames);
 	printf("\t-t correlation threshold [Default %g]\n", corr_peak_threshold);
 	printf("\t-s symbol_sz [Default %d]\n", symbol_sz);
 	printf("\t-b Input files is binary [Default %s]\n", file_binary?"yes":"no");
@@ -40,7 +67,7 @@ void parse_args(int argc, char **argv) {
 			output_file_name = argv[optind];
 			break;
 		case 'n':
-			nof_slots = atoi(argv[optind]);
+			nof_frames = atoi(argv[optind]);
 			break;
 		case 'l':
 			frame_length = atoi(argv[optind]);
@@ -102,7 +129,7 @@ int main(int argc, char **argv) {
 	gettimeofday(&tdata[1], NULL);
 	printf("Initializing...");fflush(stdout);
 
-	file_data_type_t type = file_binary?COMPLEX_FLOAT_BIN:COMPLEX_FLOAT;
+	data_type_t type = file_binary?COMPLEX_FLOAT_BIN:COMPLEX_FLOAT;
 	if (filesource_init(&fsrc, input_file_name, type)) {
 		fprintf(stderr, "Error opening file %s\n", input_file_name);
 		exit(-1);
@@ -117,12 +144,12 @@ int main(int argc, char **argv) {
 		perror("malloc");
 		exit(-1);
 	}
-	cfo = malloc(nof_slots*sizeof(float));
+	cfo = malloc(nof_frames*sizeof(float));
 	if (!cfo) {
 		perror("malloc");
 		exit(-1);
 	}
-	exec_time = malloc(nof_slots*sizeof(int));
+	exec_time = malloc(nof_frames*sizeof(int));
 	if (!exec_time) {
 		perror("malloc");
 		exit(-1);
@@ -161,7 +188,7 @@ int main(int argc, char **argv) {
 	/* read all file or nof_frames */
 	frame_cnt = 0;
 	while (frame_length == filesource_read(&fsrc, input, frame_length)
-			&& frame_cnt < nof_slots) {
+			&& frame_cnt < nof_frames) {
 
 		gettimeofday(&tdata[1], NULL);
 		if (force_cfo != CFO_AUTO) {
@@ -229,8 +256,8 @@ int main(int argc, char **argv) {
 		sss_synch_free(&sss[N_id_2]);
 	}
 
-	filesource_close(&fsrc);
-	filesink_close(&fsink);
+	filesource_free(&fsrc);
+	filesink_free(&fsink);
 
 	free(input);
 	free(cfo);

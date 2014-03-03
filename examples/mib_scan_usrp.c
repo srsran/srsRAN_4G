@@ -1,3 +1,30 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2014 The libLTE Developers. See the
+ * COPYRIGHT file at the top-level directory of this distribution.
+ *
+ * \section LICENSE
+ *
+ * This file is part of the libLTE library.
+ *
+ * libLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * libLTE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * A copy of the GNU Lesser General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,11 +36,10 @@
 
 #include "lte.h"
 
-#define DISABLE_UHD
+//#define DISABLE_UHD
 
 #ifndef DISABLE_UHD
-#include "uhd.h"
-#include "uhd_utils.h"
+#include "cuhd.h"
 #endif
 
 #define MHZ 			1000000
@@ -26,7 +52,6 @@
 
 #define IS_SIGNAL(i) (10*log10f(rssi[i]) + 30 > rssi_threshold)
 
-
 int band, earfcn=-1;
 float find_threshold = 40.0, track_threshold = 8.0;
 int earfcn_start=-1, earfcn_end = -1;
@@ -34,7 +59,6 @@ float rssi_threshold = -30.0;
 int max_track_lost=9;
 int nof_frames_find=8, nof_frames_track=100, nof_samples_rssi=50000;
 int track_len=500;
-int nof_ports;
 
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 pbch_t pbch;
@@ -47,7 +71,7 @@ int *idx_v, *idx_valid, *t;
 float *p2a_v;
 void *uhd;
 int nof_bands;
-float gain = 20.0;
+float gain = 30.0;
 
 #define MAX_EARFCN 1000
 lte_earfcn_t channels[MAX_EARFCN];
@@ -59,7 +83,6 @@ float p2a[MAX_EARFCN];
 
 enum sync_state {INIT, FIND, TRACK, MIB, DONE};
 
-void print_to_matlab();
 
 void usage(char *prog) {
 	printf("Usage: %s [seRrFfTtgv] -b band\n", prog);
@@ -135,7 +158,7 @@ int base_init(int frame_length) {
 		return -1;
 	}
 
-	for (i=0;i<nof_ports;i++) {
+	for (i=0;i<MAX_PORTS;i++) {
 		ce[i] = malloc(CPNORM_NSYMB * 72 * sizeof(cf_t));
 		if (!ce[i]) {
 			perror("malloc");
@@ -150,7 +173,7 @@ int base_init(int frame_length) {
 		fprintf(stderr, "Error initiating PSS/SSS\n");
 		return -1;
 	}
-	if (chest_init(&chest, LINEAR, CPNORM, 6, 1)) {
+	if (chest_init(&chest, LINEAR, CPNORM, 6, MAX_PORTS)) {
 		fprintf(stderr, "Error initializing equalizer\n");
 		return -1;
 	}
@@ -192,7 +215,7 @@ int base_init(int frame_length) {
 	/* open UHD device */
 #ifndef DISABLE_UHD
 	printf("Opening UHD device...\n");
-	if (uhd_open("",&uhd)) {
+	if (cuhd_open("",&uhd)) {
 		fprintf(stderr, "Error opening uhd\n");
 		return -1;
 	}
@@ -204,7 +227,7 @@ void base_free() {
 	int i;
 
 #ifndef DISABLE_UHD
-	uhd_close(&uhd);
+	cuhd_close(&uhd);
 #endif
 	sync_free(&sfind);
 	sync_free(&strack);
@@ -213,7 +236,7 @@ void base_free() {
 
 	free(input_buffer);
 	free(fft_buffer);
-	for (i=0;i<nof_ports;i++) {
+	for (i=0;i<MAX_PORTS;i++) {
 			free(ce[i]);
 	}
 	free(idx_v);
@@ -264,7 +287,7 @@ int rssi_scan() {
 			n++;
 		}
 #ifndef DISABLE_UHD
-		if (uhd_rssi_scan(uhd, freqs, rssi_d, n, (double) RSSI_FS, nof_samples_rssi)) {
+		if (cuhd_rssi_scan(uhd, freqs, rssi_d, n, (double) RSSI_FS, nof_samples_rssi)) {
 			fprintf(stderr, "Error while doing RSSI scan\n");
 			return -1;
 		}
@@ -276,7 +299,7 @@ int rssi_scan() {
 			freqs[i] = channels[i].fd * MHZ;
 		}
 #ifndef DISABLE_UHD
-		if (uhd_rssi_scan(uhd, freqs, rssi, nof_bands, (double) RSSI_FS, nof_samples_rssi)) {
+		if (cuhd_rssi_scan(uhd, freqs, rssi, nof_bands, (double) RSSI_FS, nof_samples_rssi)) {
 			fprintf(stderr, "Error while doing RSSI scan\n");
 			return -1;
 		}
@@ -308,12 +331,12 @@ int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
 	lte_fft_run(&fft, input, fft_buffer);
 
 	/* Get channel estimates for each port */
-	for (i=0;i<nof_ports;i++) {
-		chest_ce_slot_port(&chest, fft_buffer, ce[i], 1, 0);
+	for (i=0;i<MAX_PORTS;i++) {
+		chest_ce_slot_port(&chest, fft_buffer, ce[i], 1, i);
 	}
 
 	DEBUG("Decoding PBCH\n", 0);
-	return pbch_decode(&pbch, fft_buffer, ce, nof_ports, 6, 1, mib);
+	return pbch_decode(&pbch, fft_buffer, ce, 6, 1, mib);
 }
 
 int main(int argc, char **argv) {
@@ -356,12 +379,10 @@ int main(int argc, char **argv) {
 	usleep(500000);
 	INFO("Setting sampling frequency %.2f MHz\n", (float) SAMP_FREQ/MHZ);
 #ifndef DISABLE_UHD
-	uhd_set_rx_srate(uhd, SAMP_FREQ);
+	cuhd_set_rx_srate(uhd, SAMP_FREQ);
 
-	uhd_set_rx_gain(uhd, gain);
+	cuhd_set_rx_gain(uhd, gain);
 #endif
-
-	print_to_matlab();
 
 	freq=0;
 	state = INIT;
@@ -369,6 +390,10 @@ int main(int argc, char **argv) {
 	sfo = 0;
 	find_idx = 0;
 	frame_cnt = 0;
+	max_peak_to_avg = -1;
+	last_found = 0;
+	cell_id = 0;
+
 	while(freq<nof_bands) {
 		/* scan only bands above rssi_threshold */
 		if (!IS_SIGNAL(freq)) {
@@ -378,31 +403,32 @@ int main(int argc, char **argv) {
 		} else {
 			if (state != INIT && state != DONE) {
 #ifndef DISABLE_UHD
-				uhd_recv(uhd, &input_buffer[FLEN], FLEN, 1);
+				DEBUG(" -----   RECEIVING %d SAMPLES ---- \n", FLEN);
+				cuhd_recv(uhd, &input_buffer[FLEN], FLEN, 1);
 #endif
 			}
 			switch(state) {
 			case INIT:
 				DEBUG("Stopping receiver...\n",0);
 #ifndef DISABLE_UHD
-				uhd_stop_rx_stream(uhd);
+				cuhd_stop_rx_stream(uhd);
 
 				/* set freq */
-				uhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
-				uhd_rx_wait_lo_locked(uhd);
+				cuhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
+				cuhd_rx_wait_lo_locked(uhd);
 				DEBUG("Set freq to %.3f MHz\n", (double) channels[freq].fd);
 
 				DEBUG("Starting receiver...\n",0);
-				uhd_start_rx_stream(uhd);
+				cuhd_start_rx_stream(uhd);
 #endif
 				/* init variables */
 				frame_cnt = 0;
-				max_peak_to_avg = -99;
+				max_peak_to_avg = -1;
 				cell_id = -1;
 
 				/* receive first frame */
 #ifndef DISABLE_UHD
-				uhd_recv(uhd, input_buffer, FLEN, 1);
+				cuhd_recv(uhd, input_buffer, FLEN, 1);
 #endif
 				/* set find_threshold and go to FIND state */
 				sync_set_threshold(&sfind, find_threshold);
@@ -411,7 +437,7 @@ int main(int argc, char **argv) {
 				break;
 			case FIND:
 				/* find peak in all frame */
-				find_idx = sync_run(&sfind, input_buffer, FLEN);
+				find_idx = sync_run(&sfind, &input_buffer[FLEN]);
 				DEBUG("[%3d/%d]: PAR=%.2f\n", freq, nof_bands, sync_get_peak_to_avg(&sfind));
 				if (find_idx != -1) {
 					/* if found peak, go to track and set lower threshold */
@@ -420,8 +446,7 @@ int main(int argc, char **argv) {
 					max_peak_to_avg = -1;
 					sync_set_threshold(&strack, track_threshold);
 					sync_force_N_id_2(&strack, sync_get_N_id_2(&sfind));
-					cell_id = sync_get_cell_id(&strack);
-					mib_decoder_init(cell_id);
+					cell_id = sync_get_cell_id(&sfind);
 
 					state = TRACK;
 					INFO("[%3d/%d]: EARFCN %d Freq. %.2f MHz PSS found PAR %.2f dB\n", freq, nof_bands,
@@ -435,9 +460,9 @@ int main(int argc, char **argv) {
 				}
 				break;
 			case TRACK:
-				INFO("Tracking PSS find_idx %d offset %d\n", find_idx, find_idx + track_len);
+				INFO("Tracking PSS find_idx %d offset %d\n", find_idx, find_idx - track_len);
 
-				track_idx = sync_run(&strack, input_buffer, FLEN + find_idx - track_len);
+				track_idx = sync_run(&strack, &input_buffer[FLEN + find_idx - track_len]);
 				p2a_v[frame_cnt] = sync_get_peak_to_avg(&strack);
 
 				/* save cell id for the best peak-to-avg */
@@ -463,38 +488,41 @@ int main(int argc, char **argv) {
 					state = INIT;
 					freq++;
 				} else if (frame_cnt >= nof_frames_track) {
+					mib_decoder_init(cell_id);
+
+					cfo[freq] = mean_valid(idx_v, cfo_v, frame_cnt);
+					p2a[freq] = mean_valid(idx_v, p2a_v, frame_cnt);
+					valid_frames = preprocess_idx(idx_v, idx_valid, t, frame_cnt);
+					sfo = sfo_estimate_period(idx_valid, t, valid_frames, FLEN_PERIOD);
+
 					state = MIB;
 					nslot=(nslot+10)%20;
 				}
 				break;
 			case MIB:
-				INFO("Finding MIB at freq %.2f Mhz\n", channels[freq].fd);
-				cfo[freq] = mean_valid(idx_v, cfo_v, frame_cnt);
-				p2a[freq] = mean_valid(idx_v, p2a_v, frame_cnt);
-				valid_frames = preprocess_idx(idx_v, idx_valid, t, frame_cnt);
-				sfo = sfo_estimate_period(idx_valid, t, valid_frames, FLEN_PERIOD);
+				INFO("Finding MIB at freq %.2f Mhz offset=%d, cell_id=%d, slot_idx=%d\n", channels[freq].fd, find_idx, cell_id, nslot);
 
 				// TODO: Correct SFO
 
 				// Correct CFO
 				INFO("Correcting CFO=%.4f\n", cfo[freq]);
-				nco_cexp_f_direct(&input_buffer[FLEN], -cfo[freq]/128, FLEN);
+				nco_cexp_f_direct(&input_buffer[FLEN], (-cfo[freq])/128, FLEN);
 
-				if (nslot == 10) {
-					if (mib_decoder_run(&input_buffer[FLEN+find_idx+FLEN/10], &mib)) {
+				if (nslot == 0) {
+					if (mib_decoder_run(&input_buffer[FLEN+find_idx], &mib)) {
 						INFO("MIB detected attempt=%d\n", mib_attempts);
 						state = DONE;
 					} else {
 						INFO("MIB not detected attempt=%d\n", mib_attempts);
-						if (mib_attempts >= 20) {
+						if (mib_attempts == 0) {
 							freq++;
 							state = INIT;
 						}
 					}
 					mib_attempts++;
-				} else {
-					nslot = (nslot+10)%20;
 				}
+				nslot = (nslot+10)%20;
+
 
 				break;
 			case DONE:
@@ -509,14 +537,12 @@ int main(int argc, char **argv) {
 			}
 
 			/** FIXME: This is not necessary at all */
-			if (state == TRACK || (state == FIND && frame_cnt)) {
+			if (state == TRACK || state == FIND) {
 				memcpy(input_buffer, &input_buffer[FLEN], FLEN * sizeof(cf_t));
 			}
 			frame_cnt++;
 		}
 	}
-
-	print_to_matlab();
 
 	base_free();
 
@@ -524,69 +550,3 @@ int main(int argc, char **argv) {
 	exit(0);
 }
 
-void print_to_matlab() {
-	int i;
-
-	FILE *f = fopen("output.m", "w");
-	if (!f) {
-		perror("fopen");
-		exit(-1);
-	}
-	fprintf(f, "fd=[");
-	for (i=0;i<nof_bands;i++) {
-		fprintf(f, "%g, ", channels[i].fd);
-	}
-	fprintf(f, "];\n");
-
-	fprintf(f, "rssi=[");
-	for (i=0;i<nof_bands;i++) {
-		fprintf(f, "%g, ", rssi[i]);
-	}
-	fprintf(f, "];\n");
-
-
-	fprintf(f, "rssi_d=[");
-	for (i=0;i<nof_bands/RSSI_DECIM;i++) {
-		fprintf(f, "%g, ", rssi_d[i]);
-	}
-	fprintf(f, "];\n");
-
-	/*
-	fprintf(f, "cfo=[");
-	for (i=0;i<nof_bands;i++) {
-		if (IS_SIGNAL(i)) {
-			fprintf(f, "%g, ", cfo[i]);
-		} else {
-			fprintf(f, "NaN, ");
-		}
-	}
-	fprintf(f, "];\n");
-*/
-	fprintf(f, "p2a=[");
-	for (i=0;i<nof_bands;i++) {
-		if (IS_SIGNAL(i)) {
-			fprintf(f, "%g, ", p2a[i]);
-		} else {
-			fprintf(f, "0, ");
-		}
-	}
-	fprintf(f, "];\n");
-	fprintf(f, "clf;\n\n");
-	fprintf(f, "subplot(1,2,1)\n");
-	fprintf(f, "plot(fd, 10*log10(rssi)+30)\n");
-	fprintf(f, "grid on; xlabel('f [Mhz]'); ylabel('RSSI [dBm]');\n");
-	fprintf(f, "title('RSSI Estimation')\n");
-
-	fprintf(f, "subplot(1,2,2)\n");
-	fprintf(f, "plot(fd, p2a)\n");
-	fprintf(f, "grid on; xlabel('f [Mhz]'); ylabel('Peak-to-Avg [dB]');\n");
-	fprintf(f, "title('PSS Correlation')\n");
-/*
-	fprintf(f, "subplot(1,3,3)\n");
-	fprintf(f, "plot(fd, cfo)\n");
-	fprintf(f, "grid on; xlabel('f [Mhz]'); ylabel(''); axis([min(fd) max(fd) -0.5 0.5]);\n");
-	fprintf(f, "title('CFO Estimation')\n");
-	*/
-	fprintf(f, "drawnow;\n");
-	fclose(f);
-}

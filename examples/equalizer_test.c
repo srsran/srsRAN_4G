@@ -1,3 +1,30 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2014 The libLTE Developers. See the
+ * COPYRIGHT file at the top-level directory of this distribution.
+ *
+ * \section LICENSE
+ *
+ * This file is part of the libLTE library.
+ *
+ * libLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * libLTE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * A copy of the GNU Lesser General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -6,7 +33,7 @@
 #include "lte.h"
 
 char *input_file_name;
-int nof_slots=1;
+int nof_frames=1;
 int cell_id = 0;
 int port_id = 0;
 int nof_prb = 6;
@@ -29,7 +56,7 @@ int slot_length() {
 void usage(char *prog) {
 	printf("Usage: %s [bncprev] -i input_file\n", prog);
 	printf("\t-b input file is binary [Default no]\n");
-	printf("\t-n number of slots [Default %d]\n", nof_slots);
+	printf("\t-n number of slots [Default %d]\n", nof_frames);
 	printf("\t-c cell_id [Default %d]\n", cell_id);
 	printf("\t-p port_id [Default %d]\n", port_id);
 	printf("\t-r nof_prb [Default %d]\n", nof_prb);
@@ -48,7 +75,7 @@ void parse_args(int argc, char **argv) {
 			input_file_name = argv[optind];
 			break;
 		case 'n':
-			nof_slots = atoi(argv[optind]);
+			nof_frames = atoi(argv[optind]);
 			break;
 		case 'c':
 			cell_id = atoi(argv[optind]);
@@ -124,7 +151,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Error: initializing FFT\n");
 		goto do_exit;
 	}
-	if (chest_init(&eq, LINEAR, cp, nof_prb, 1)) {
+	if (chest_init(&eq, LINEAR, cp, nof_prb, port_id+1)) {
 		fprintf(stderr, "Error initializing equalizer\n");
 		goto do_exit;
 	}
@@ -136,14 +163,14 @@ int main(int argc, char **argv) {
 	bzero(input, sizeof(cf_t) * in_slot_length());
 	bzero(outfft, sizeof(cf_t) * slot_length());
 
-	fprintf(f, "ce=zeros(%d, %d);\n", nof_slots * CP_NSYMB(cp), nof_prb * RE_X_RB);
+	fprintf(f, "ce=zeros(%d, %d);\n", nof_frames * CP_NSYMB(cp), nof_prb * RE_X_RB);
 	/* read all file or nof_slots */
 	slot_cnt = 0;
 	while (in_slot_length() == filesource_read(&fsrc, input, in_slot_length())
-			&& (slot_cnt < nof_slots || nof_slots == -1)) {
+			&& (slot_cnt < nof_frames || nof_frames == -1)) {
 
 		fprintf(f, "infft=");
-		vec_fprint_c(f, input, CP_NSYMB(cp) * 128);
+		vec_fprint_c(f, input, in_slot_length());
 		fprintf(f, ";\n");
 
 		lte_fft_run(&fft, input, outfft);
@@ -152,9 +179,9 @@ int main(int argc, char **argv) {
 		vec_fprint_c(f, outfft, CP_NSYMB(cp) * nof_prb * RE_X_RB);
 		fprintf(f, ";\n");
 
-		chest_ce_slot_port(&eq, outfft, ce, 0, 0);
+		chest_ce_slot_port(&eq, outfft, ce, slot_cnt%20, port_id);
 
-		chest_fprint(&eq, f, slot_cnt%20, 0);
+		chest_fprint(&eq, f, slot_cnt%20, port_id);
 
 		for (i=0;i<CP_NSYMB(cp);i++) {
 			fprintf(f, "ce(%d,:)=", slot_cnt * CP_NSYMB(cp) + i + 1);
@@ -179,7 +206,7 @@ do_exit:
 	if (f) {
 		fclose(f);
 	}
-	filesource_close(&fsrc);
+	filesource_free(&fsrc);
 
 	printf("Done processed %d slots\n", slot_cnt);
 	exit(0);
