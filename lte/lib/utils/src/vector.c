@@ -31,8 +31,6 @@
 #include <complex.h>
 #include <stdlib.h>
 
-//#define HAVE_VOLK
-
 #ifdef HAVE_VOLK
 #include "volk/volk.h"
 #endif
@@ -56,7 +54,7 @@ float vec_acc_ff(float *x, int len) {
 	return z;
 #else
 	float result;
-	volk_32f_accumulator_s32f_a(&result,x,(unsigned int) len);
+	volk_32f_accumulator_s32f_u(&result,x,(unsigned int) len);
 	return result;
 #endif
 }
@@ -94,7 +92,7 @@ void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len) {
 	cf_t hh;
 	__real__ hh = h;
 	__imag__ hh = 0;
-	volk_32fc_s32fc_multiply_32fc_a(z,x,hh,(unsigned int) len);
+	volk_32fc_s32fc_multiply_32fc_u(z,x,hh,(unsigned int) len);
 #endif
 }
 
@@ -105,7 +103,7 @@ void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, int len) {
 		z[i] = x[i]*h;
 	}
 #else
-	volk_32fc_s32fc_multiply_32fc_a(z,x,h,(unsigned int) len);
+	volk_32fc_s32fc_multiply_32fc_u(z,x,h,(unsigned int) len);
 #endif
 }
 
@@ -170,7 +168,7 @@ void vec_conj_cc(cf_t *x, cf_t *y, int len) {
 		y[i] = conjf(x[i]);
 	}
 #else
-	volk_32fc_conjugate_32fc_a(y,x,(unsigned int) len);
+	volk_32fc_conjugate_32fc_u(y,x,(unsigned int) len);
 #endif
 }
 
@@ -181,7 +179,7 @@ void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, int len) {
 		z[i] = x[i]*y[i];
 	}
 #else
-	volk_32fc_x2_multiply_32fc_a(z,x,y,(unsigned int) len);
+	volk_32fc_x2_multiply_32fc_u(z,x,y,(unsigned int) len);
 #endif
 }
 
@@ -220,7 +218,7 @@ void vec_abs_cf(cf_t *x, float *abs, int len) {
 		abs[i] = cabsf(x[i]);
 	}
 #else
-	volk_32fc_magnitude_32f_a(abs,x,(unsigned int) len);
+	volk_32fc_magnitude_32f_u(abs,x,(unsigned int) len);
 
 #endif
 
@@ -240,7 +238,7 @@ int vec_max_fi(float *x, int len) {
 	return p;
 #else
 	unsigned int target=0;
-	volk_32f_index_max_16u_a(&target,x,(unsigned int) len);
+	volk_32f_index_max_16u_u(&target,x,(unsigned int) len);
 	return (int) target;
 #endif
 }

@@ -25,8 +25,15 @@
 ########################################################################
 
 FIND_PACKAGE(FFTW3F REQUIRED) # TODO: distribute kissfft instead
-include_directories(${FFTW3F_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${FFTW3F_INCLUDE_DIRS})
 
+IF(${DISABLE_VOLK})
+	IF(${DISABLE_VOLK} EQUAL 0)
+		FIND_PACKAGE(Volk)
+	ENDIF(${DISABLE_VOLK} EQUAL 0)
+ELSE(${DISABLE_VOLK})
+	FIND_PACKAGE(Volk)
+ENDIF(${DISABLE_VOLK})
 
 ########################################################################
 # Recurse subdirectories and compile all source files into the same lib  
@@ -45,6 +52,15 @@ ADD_LIBRARY(lte ${SOURCES_ALL})
 TARGET_LINK_LIBRARIES(lte m ${FFTW3F_LIBRARIES})
 INSTALL(TARGETS lte DESTINATION ${LIBRARY_DIR})
 LIBLTE_SET_PIC(lte)
+
+IF(VOLK_FOUND)
+	INCLUDE_DIRECTORIES(${VOLK_INCLUDE_DIRS})
+	SET_TARGET_PROPERTIES(lte PROPERTIES COMPILE_DEFINITIONS "HAVE_VOLK")
+	TARGET_LINK_LIBRARIES(lte ${VOLK_LIBRARIES})
+	MESSAGE(STATUS "   Compiling with VOLK SIMD library.")
+ELSE(VOLK_FOUND)
+	MESSAGE(STATUS "   VOLK SIMD library NOT found. Using generic implementation.")
+ENDIF(VOLK_FOUND)
 
 
 

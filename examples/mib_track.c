@@ -154,6 +154,18 @@ int base_init(int frame_length) {
 		if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
 			return -1;
 		}
+	} else {
+		/* open UHD device */
+	#ifndef DISABLE_UHD
+		printf("Opening UHD device...\n");
+		if (cuhd_open(uhd_args,&uhd)) {
+			fprintf(stderr, "Error opening uhd\n");
+			return -1;
+		}
+	#else
+		printf("Error UHD not configured. Select an input file\n");
+		return -1;
+	#endif
 	}
 
 	input_buffer = (cf_t*) malloc(frame_length * sizeof(cf_t));
@@ -193,26 +205,18 @@ int base_init(int frame_length) {
 		return -1;
 	}
 
-	/* open UHD device */
-#ifndef DISABLE_UHD
-	printf("Opening UHD device...\n");
-	if (cuhd_open(uhd_args,&uhd)) {
-		fprintf(stderr, "Error opening uhd\n");
-		return -1;
-	}
-#endif
 	return 0;
 }
 
 void base_free() {
 	int i;
 
-#ifndef DISABLE_UHD
-	cuhd_close(&uhd);
-#endif
-
 	if (input_file_name) {
 		filesource_free(&fsrc);
+	} else {
+	#ifndef DISABLE_UHD
+		cuhd_close(&uhd);
+	#endif
 	}
 
 	sync_free(&sfind);
@@ -280,6 +284,7 @@ int main(int argc, char **argv) {
 	int nslot;
 	pbch_mib_t mib;
 	float cfo;
+	int n;
 	int nof_found_mib = 0;
 
 	parse_args(argc,argv);
@@ -292,11 +297,20 @@ int main(int argc, char **argv) {
 	sync_pss_det_peakmean(&sfind);
 	sync_pss_det_peakmean(&strack);
 
-#ifndef DISABLE_UHD
-	INFO("Setting sampling frequency %.2f MHz\n", (float) SAMP_FREQ/MHZ);
-	cuhd_set_rx_srate(uhd, SAMP_FREQ);
-	cuhd_set_rx_gain(uhd, uhd_gain);
-#endif
+	if (!input_file_name) {
+	#ifndef DISABLE_UHD
+		INFO("Setting sampling frequency %.2f MHz\n", (float) SAMP_FREQ/MHZ);
+		cuhd_set_rx_srate(uhd, SAMP_FREQ);
+		cuhd_set_rx_gain(uhd, uhd_gain);
+		/* set uhd_freq */
+		cuhd_set_rx_freq(uhd, (double) uhd_freq);
+		cuhd_rx_wait_lo_locked(uhd);
+		DEBUG("Set uhd_freq to %.3f MHz\n", (double) uhd_freq);
+
+		DEBUG("Starting receiver...\n",0);
+		cuhd_start_rx_stream(uhd);
+	#endif
+	}
 
 	state = FIND;
 	nslot = 0;
@@ -308,21 +322,8 @@ int main(int argc, char **argv) {
 	sync_set_threshold(&sfind, find_threshold);
 	sync_force_N_id_2(&sfind, -1);
 
-#ifndef DISABLE_UHD
-	/* set uhd_freq */
-	cuhd_set_rx_freq(uhd, (double) uhd_freq);
-	cuhd_rx_wait_lo_locked(uhd);
-	DEBUG("Set uhd_freq to %.3f MHz\n", (double) uhd_freq);
-
-	DEBUG("Starting receiver...\n",0);
-	cuhd_start_rx_stream(uhd);
-#endif
-
 	while(frame_cnt < nof_frames || nof_frames==-1) {
 		INFO(" -----   RECEIVING %d SAMPLES ---- \n", FLEN);
-#ifndef DISABLE_UHD
-		cuhd_recv(uhd, input_buffer, FLEN, 1);
-#else
 		if (input_file_name) {
 			n = filesource_read(&fsrc, input_buffer, FLEN);
 			if (n == -1) {
@@ -333,11 +334,10 @@ int main(int argc, char **argv) {
 				filesource_read(&fsrc, input_buffer, FLEN);
 			}
 		} else {
-			fprintf(stderr, "UHD is DISABLED but input file name not specified\n");
-			usage(argv[0]);
-			exit(-1);
+		#ifndef DISABLE_UHD
+			cuhd_recv(uhd, input_buffer, FLEN, 1);
+		#endif
 		}
-#endif
 
 		switch(state) {
 		case FIND:

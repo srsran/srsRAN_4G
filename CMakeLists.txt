@@ -51,8 +51,8 @@ SET(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
 
 IF(NOT CMAKE_BUILD_TYPE)
-   SET(CMAKE_BUILD_TYPE "Release")
-   MESSAGE(STATUS "Build type not specified: defaulting to release.")
+   SET(CMAKE_BUILD_TYPE Release)
+   MESSAGE(STATUS "Build type not specified: defaulting to Release.")
 ENDIF(NOT CMAKE_BUILD_TYPE)
 SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
