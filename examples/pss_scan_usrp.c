@@ -62,7 +62,7 @@ int *idx_v, *idx_valid, *t;
 float *p2a_v;
 void *uhd;
 int nof_bands;
-float gain = 20.0;
+float uhd_gain = 20.0;
 
 #define MAX_EARFCN 1000
 lte_earfcn_t channels[MAX_EARFCN];
@@ -87,7 +87,7 @@ void usage(char *prog) {
 	printf("\t-T pss_track_nof_frames [Default %d]\n", nof_frames_track);
 	printf("\t-t pss_track_threshold [Default %.2f]\n", track_threshold);
 	printf("\t-l pss_track_len [Default %d]\n", track_len);
-	printf("\t-g gain [Default %.2f dB]\n", gain);
+	printf("\t-g gain [Default %.2f dB]\n", uhd_gain);
 	printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -123,7 +123,7 @@ void parse_args(int argc, char **argv) {
 			track_threshold = atof(argv[optind]);
 			break;
 		case 'g':
-			gain = atof(argv[optind]);
+			uhd_gain = atof(argv[optind]);
 			break;
 		case 'v':
 			verbose++;
@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
 	INFO("Setting sampling frequency %.2f MHz\n", (float) SAMP_FREQ/MHZ);
 	cuhd_set_rx_srate(uhd, SAMP_FREQ);
 
-	cuhd_set_rx_gain(uhd, gain);
+	cuhd_set_rx_gain(uhd, uhd_gain);
 
 	print_to_matlab();
 

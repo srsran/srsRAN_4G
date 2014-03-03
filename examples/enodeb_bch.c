@@ -44,7 +44,9 @@ char *output_file_name = NULL;
 int nof_frames=-1;
 int cell_id = 1;
 int nof_prb = 6;
+char *uhd_args = "";
 
+float uhd_amp=0.25, uhd_gain=10.0, uhd_freq=2400000000;
 
 filesink_t fsink;
 lte_fft_t ifft;
@@ -53,14 +55,14 @@ pbch_t pbch;
 cf_t *slot_buffer = NULL, *output_buffer = NULL;
 int slot_n_re, slot_n_samples;
 
-#define cuhd_FREQ		2680000000
-#define cuhd_SAMP_FREQ	1920000
-#define cuhd_GAIN		10
-#define cuhd_AMP			0.25
-#define cuhd_ARGS		"addr=192.168.10.3"
+#define UHD_SAMP_FREQ	1920000
 
 void usage(char *prog) {
-	printf("Usage: %s [ncvp]\n", prog);
+	printf("Usage: %s [agmfoncvp]\n", prog);
+	printf("\t-a UHD args [Default %s]\n", uhd_args);
+	printf("\t-g UHD TX gain [Default %.2f dB]\n", uhd_gain);
+	printf("\t-m UHD signal amplitude [Default %.2f]\n", uhd_amp);
+	printf("\t-f UHD TX frequency [Default %.1f MHz]\n", uhd_freq/1000000);
 	printf("\t-o output_file [Default USRP]\n");
 	printf("\t-n number of frames [Default %d]\n", nof_frames);
 	printf("\t-c cell id [Default %d]\n", cell_id);
@@ -70,8 +72,20 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
 	int opt;
-	while ((opt = getopt(argc, argv, "oncpv")) != -1) {
+	while ((opt = getopt(argc, argv, "agfmoncpv")) != -1) {
 		switch(opt) {
+		case 'a':
+			uhd_args = argv[optind];
+			break;
+		case 'g':
+			uhd_gain = atof(argv[optind]);
+			break;
+		case 'm':
+			uhd_amp = atof(argv[optind]);
+			break;
+		case 'f':
+			uhd_freq = atof(argv[optind]);
+			break;
 		case 'o':
 			output_file_name = argv[optind];
 			break;
@@ -121,7 +135,7 @@ void base_init() {
 	} else {
 #ifdef ENABLE_UHD
 		printf("Opening UHD device...\n");
-		if (cuhd_open(cuhd_ARGS,&uhd)) {
+		if (cuhd_open(uhd_args,&uhd)) {
 			fprintf(stderr, "Error opening uhd\n");
 			exit(-1);
 		}
@@ -138,13 +152,6 @@ void base_init() {
 		fprintf(stderr, "Error creating PBCH object\n");
 		exit(-1);
 	}
-#ifdef ENABLE_MATLAB
-	fmatlab = fopen("output.m", "w");
-	if (!fmatlab) {
-		perror("fopen");
-		exit(-1);
-	}
-#endif
 }
 
 void base_free() {
@@ -166,9 +173,6 @@ void base_free() {
 		cuhd_close(&uhd);
 #endif
 	}
-#ifdef ENABLE_MATLAB
-	fclose(fmatlab);
-#endif
 }
 
 int main(int argc, char **argv) {
@@ -222,9 +226,9 @@ int main(int argc, char **argv) {
 
 #ifdef ENABLE_UHD
 	if (!output_file_name) {
-		printf("Set TX rate: %.2f MHz\n", cuhd_set_tx_srate(uhd, cuhd_SAMP_FREQ)/1000000);
-		printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, cuhd_GAIN));
-		printf("Set TX freq: %.2f MHz\n", cuhd_set_tx_freq(uhd, cuhd_FREQ)/1000000);
+		printf("Set TX rate: %.2f MHz\n", cuhd_set_tx_srate(uhd, UHD_SAMP_FREQ)/1000000);
+		printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
+		printf("Set TX freq: %.2f MHz\n", cuhd_set_tx_freq(uhd, uhd_freq)/1000000);
 		cuhd_start_tx_stream(uhd);
 	}
 #endif
@@ -258,7 +262,7 @@ int main(int argc, char **argv) {
 				filesink_write(&fsink, output_buffer, slot_n_samples);
 			} else {
 #ifdef ENABLE_UHD
-				vec_sc_prod_cfc(output_buffer, cuhd_AMP, output_buffer, slot_n_samples);
+				vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, slot_n_samples);
 				cuhd_send(uhd, output_buffer, slot_n_samples, 1);
 #endif
 			}

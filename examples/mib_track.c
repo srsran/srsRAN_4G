@@ -49,12 +49,14 @@
 
 #define NOF_PORTS 2
 
-float freq = 2680000000.0;
 float find_threshold = 40.0, track_threshold = 8.0;
 int max_track_lost = 9, nof_frames = -1;
 int track_len=300;
 char *input_file_name = NULL;
 int disable_plots = 0;
+
+float uhd_freq = 2400000000.0, uhd_gain = 20.0;
+char *uhd_args = "";
 
 filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS_CTRL];
@@ -68,32 +70,38 @@ plot_complex_t pce;
 plot_scatter_t pscatrecv, pscatequal;
 
 void *uhd;
-float gain = 30.0;
 
 enum sync_state {FIND, TRACK};
 
 void usage(char *prog) {
-	printf("Usage: %s [ifgv]\n", prog);
+	printf("Usage: %s [iagfndv]\n", prog);
 	printf("\t-i input_file [Default use USRP]\n");
+	printf("\t-a UHD args [Default %s]\n", uhd_args);
+	printf("\t-g UHD RX gain [Default %.2f dB]\n", uhd_gain);
+	printf("\t-f UHD RX frequency [Default %.1f MHz]\n", uhd_freq/1000000);
 	printf("\t-n nof_frames [Default %d]\n", nof_frames);
 	printf("\t-d disable plots [Default enabled]\n");
-	printf("\t-f freq [Default %.1f MHz]\n", freq/MHZ);
-	printf("\t-g gain [Default %.2f dB]\n", gain);
 	printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
 	int opt;
-	while ((opt = getopt(argc, argv, "ifdgv")) != -1) {
+	while ((opt = getopt(argc, argv, "iagfndv")) != -1) {
 		switch(opt) {
 		case 'i':
 			input_file_name = argv[optind];
 			break;
-		case 'f':
-			freq = atof(argv[optind]);
+		case 'a':
+			uhd_args = argv[optind];
 			break;
 		case 'g':
-			gain = atof(argv[optind]);
+			uhd_gain = atof(argv[optind]);
+			break;
+		case 'f':
+			uhd_freq = atof(argv[optind]);
+			break;
+		case 'n':
+			nof_frames = atoi(argv[optind]);
 			break;
 		case 'd':
 			disable_plots = 1;
@@ -188,7 +196,7 @@ int base_init(int frame_length) {
 	/* open UHD device */
 #ifndef DISABLE_UHD
 	printf("Opening UHD device...\n");
-	if (cuhd_open("addr=192.168.10.2",&uhd)) {
+	if (cuhd_open(uhd_args,&uhd)) {
 		fprintf(stderr, "Error opening uhd\n");
 		return -1;
 	}
@@ -287,7 +295,7 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_UHD
 	INFO("Setting sampling frequency %.2f MHz\n", (float) SAMP_FREQ/MHZ);
 	cuhd_set_rx_srate(uhd, SAMP_FREQ);
-	cuhd_set_rx_gain(uhd, gain);
+	cuhd_set_rx_gain(uhd, uhd_gain);
 #endif
 
 	state = FIND;
@@ -301,10 +309,10 @@ int main(int argc, char **argv) {
 	sync_force_N_id_2(&sfind, -1);
 
 #ifndef DISABLE_UHD
-	/* set freq */
-	cuhd_set_rx_freq(uhd, (double) freq);
+	/* set uhd_freq */
+	cuhd_set_rx_freq(uhd, (double) uhd_freq);
 	cuhd_rx_wait_lo_locked(uhd);
-	DEBUG("Set freq to %.3f MHz\n", (double) freq);
+	DEBUG("Set uhd_freq to %.3f MHz\n", (double) uhd_freq);
 
 	DEBUG("Starting receiver...\n",0);
 	cuhd_start_rx_stream(uhd);
