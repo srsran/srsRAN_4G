@@ -38,7 +38,7 @@
 #include "lte/utils/dft.h"
 #include "lte/utils/matrix.h"
 #include "lte/utils/mux.h"
-#include "lte/utils/nco.h"
+#include "lte/utils/cexptab.h"
 #include "lte/utils/pack.h"
 #include "lte/utils/vector.h"
 
@@ -83,6 +83,6 @@
 #include "lte/sync/sfo.h"
 #include "lte/sync/sss.h"
 #include "lte/sync/sync.h"
-
+#include "lte/sync/cfo.h"
 
 #endif

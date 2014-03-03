@@ -106,6 +106,7 @@ int main(int argc, char **argv) {
 	filesink_t fsink;
 	pss_synch_t pss[3]; // One for each N_id_2
 	sss_synch_t sss[3]; // One for each N_id_2
+	cfo_t cfocorr;
 	int peak_pos[3];
 	float *cfo;
 	float peak_value[3];
@@ -155,6 +156,11 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 
+	if (cfo_init(&cfocorr, frame_length)) {
+		fprintf(stderr, "Error initiating CFO\n");
+		return -1;
+	}
+
 	/* We have 2 options here:
 	 * a) We create 3 pss objects, each initialized with a different N_id_2
 	 * b) We create 1 pss object which scans for each N_id_2 one after another.
@@ -192,7 +198,7 @@ int main(int argc, char **argv) {
 
 		gettimeofday(&tdata[1], NULL);
 		if (force_cfo != CFO_AUTO) {
-			nco_cexp_f_direct(input, -force_cfo/128, frame_length);
+			cfo_correct(&cfocorr, input, -force_cfo/128);
 		}
 
 		if (force_N_id_2 != -1) {

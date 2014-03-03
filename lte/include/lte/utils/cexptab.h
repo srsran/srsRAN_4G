@@ -26,28 +26,22 @@
  */
 
 
-#ifndef NCO_
-#define NCO_
+#ifndef _cexptab_
+#define _cexptab_
 
 #include <complex.h>
 
+typedef _Complex float cf_t;
+
 typedef struct {
 	int size;
-	float *cost;
-	float *sint;
-}nco_t;
+	cf_t *tab;
+}cexptab_t;
 
-void nco_init(nco_t *nco, int size);
-void nco_destroy(nco_t *nco);
+int cexptab_init(cexptab_t *nco, int size);
+void cexptab_free(cexptab_t *nco);
 
-float nco_sin(nco_t *nco, float phase);
-float nco_cos(nco_t *nco, float phase);
-void nco_sincos(nco_t *nco, float phase, float *sin, float *cos);
-_Complex float nco_cexp(nco_t *nco, float arg);
-
-void nco_sin_f(nco_t *nco, float *x, float freq, int len);
-void nco_cos_f(nco_t *nco, float *x, float freq, int len);
-void nco_cexp_f(nco_t *nco, _Complex float *x, float freq, int len);
-void nco_cexp_f_direct(_Complex float *x, float freq, int len);
+void cexptab_gen(cexptab_t *nco, cf_t *x, float freq, int len);
+void cexptab_gen_direct(cf_t *x, float freq, int len);
 
 #endif

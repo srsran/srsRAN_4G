@@ -49,6 +49,7 @@ pbch_t pbch;
 lte_fft_t fft;
 chest_t chest;
 sync_t synch;
+cfo_t cfocorr;
 
 void usage(char *prog) {
 	printf("Usage: %s [onlt] -i input_file\n", prog);
@@ -120,6 +121,11 @@ int base_init() {
 			perror("malloc");
 			return -1;
 		}
+	}
+
+	if (cfo_init(&cfocorr, FLEN)) {
+		fprintf(stderr, "Error initiating CFO\n");
+		return -1;
 	}
 
 	if (chest_init(&chest, LINEAR, CPNORM, 6, NOF_PORTS)) {
@@ -265,8 +271,10 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "Error reading %d samples\n", FLEN);
 			break;
 		}
+
 		INFO("Correcting CFO=%.4f\n", cfo);
-		nco_cexp_f_direct(input_buffer, -cfo/128, FLEN);
+		cfo_correct(&cfocorr, input_buffer, -cfo/128);
+
 		switch(state) {
 		case SYNC:
 			INFO("State Sync, Slot idx=%d\n", frame_cnt);

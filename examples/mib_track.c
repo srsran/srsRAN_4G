@@ -64,6 +64,7 @@ pbch_t pbch;
 lte_fft_t fft;
 chest_t chest;
 sync_t sfind, strack;
+cfo_t cfocorr;
 
 plot_real_t poutfft;
 plot_complex_t pce;
@@ -200,6 +201,11 @@ int base_init(int frame_length) {
 		return -1;
 	}
 
+	if (cfo_init(&cfocorr, FLEN)) {
+		fprintf(stderr, "Error initiating CFO\n");
+		return -1;
+	}
+
 	if (lte_fft_init(&fft, CPNORM, 6)) {
 		fprintf(stderr, "Error initializing FFT\n");
 		return -1;
@@ -223,6 +229,7 @@ void base_free() {
 	sync_free(&strack);
 	lte_fft_free(&fft);
 	chest_free(&chest);
+	cfo_free(&cfocorr);
 
 	free(input_buffer);
 	free(fft_buffer);
@@ -385,7 +392,8 @@ int main(int argc, char **argv) {
 
 			// Correct CFO
 			INFO("Correcting CFO=%.4f\n", cfo);
-			nco_cexp_f_direct(input_buffer, (-cfo)/128, FLEN);
+
+			cfo_correct(&cfocorr, input_buffer, -cfo/128);
 
 			if (nslot == 0) {
 				INFO("Finding MIB at idx %d\n", find_idx);
