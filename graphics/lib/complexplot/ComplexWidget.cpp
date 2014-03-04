@@ -4,10 +4,8 @@
 
 #include <qlayout.h>
 #include <algorithm>
-#include <boost/lambda/lambda.hpp>
 
 using namespace std;
-namespace bl = boost::lambda;
 
 ComplexWidget::ComplexWidget(QWidget *parent)
   :QWidget(parent)

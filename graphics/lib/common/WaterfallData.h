@@ -7,8 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include "irisapi/Exceptions.h"
-
+#include <assert.h>
 
 class WaterfallData
     :public QwtRasterData
@@ -34,8 +33,7 @@ public:
 
   void appendData(double* data, int n)
   {
-    if(n != nData_)
-      throw iris::InvalidDataException("WaterfallData: invalid data length");
+    assert(n == nData_);
 
     VecPtr v = data_.front();
     v->assign(data, data+n);

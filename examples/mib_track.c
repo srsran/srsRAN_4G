@@ -35,12 +35,19 @@
 #include <unistd.h>
 #include <assert.h>
 
+#include "lte.h"
+
 #ifndef DISABLE_UHD
-#include "cuhd.h"
+	#include "cuhd.h"
+	void *uhd;
 #endif
 
-#include "lte.h"
-#include "plot.h"
+#ifndef DISABLE_GRAPHICS
+	#include "plot.h"
+	plot_real_t poutfft;
+	plot_complex_t pce;
+	plot_scatter_t pscatrecv, pscatequal;
+#endif
 
 #define MHZ 			1000000
 #define SAMP_FREQ 		1920000
@@ -66,22 +73,25 @@ chest_t chest;
 sync_t sfind, strack;
 cfo_t cfocorr;
 
-plot_real_t poutfft;
-plot_complex_t pce;
-plot_scatter_t pscatrecv, pscatequal;
-
-void *uhd;
 
 enum sync_state {FIND, TRACK};
 
 void usage(char *prog) {
 	printf("Usage: %s [iagfndv]\n", prog);
 	printf("\t-i input_file [Default use USRP]\n");
+#ifndef DISABLE_UHD
 	printf("\t-a UHD args [Default %s]\n", uhd_args);
 	printf("\t-g UHD RX gain [Default %.2f dB]\n", uhd_gain);
 	printf("\t-f UHD RX frequency [Default %.1f MHz]\n", uhd_freq/1000000);
+#else
+	printf("\t   UHD is disabled. CUHD library not available\n");
+#endif
 	printf("\t-n nof_frames [Default %d]\n", nof_frames);
+#ifndef DISABLE_GRAPHICS
 	printf("\t-d disable plots [Default enabled]\n");
+#else
+	printf("\t plots are disabled. Graphics library not available\n");
+#endif
 	printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -117,6 +127,8 @@ void parse_args(int argc, char **argv) {
 	}
 }
 
+#ifndef DISABLE_GRAPHICS
+
 void init_plots() {
 	plot_init();
 	plot_real_init(&poutfft);
@@ -141,15 +153,20 @@ void init_plots() {
 	plot_scatter_setTitle(&pscatequal, "Equalized Symbols");
 	plot_scatter_setXAxisScale(&pscatequal, -1, 1);
 	plot_scatter_setYAxisScale(&pscatequal, -1, 1);
-
 }
+
+#endif
 
 int base_init(int frame_length) {
 	int i;
 
+#ifndef DISABLE_GRAPHICS
 	if (!disable_plots) {
 		init_plots();
 	}
+#else
+	printf("-- PLOTS are disabled. Graphics library not available --\n\n");
+#endif
 
 	if (input_file_name) {
 		if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
@@ -164,7 +181,7 @@ int base_init(int frame_length) {
 			return -1;
 		}
 	#else
-		printf("Error UHD not configured. Select an input file\n");
+		printf("Error UHD not available. Select an input file\n");
 		return -1;
 	#endif
 	}
@@ -257,7 +274,6 @@ int mib_decoder_init(int cell_id) {
 int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
 	int i, n;
 	lte_fft_run(&fft, input, fft_buffer);
-	float tmp[72*7];
 
 	/* Get channel estimates for each port */
 	for (i=0;i<NOF_PORTS;i++) {
@@ -267,6 +283,9 @@ int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
 	DEBUG("Decoding PBCH\n", 0);
 	n = pbch_decode(&pbch, fft_buffer, ce, 6, 1, mib);
 
+
+#ifndef DISABLE_GRAPHICS
+	float tmp[72*7];
 	if (!disable_plots) {
 		for (i=0;i<72*7;i++) {
 			tmp[i] = 10*log10f(cabsf(fft_buffer[i]));
@@ -278,6 +297,7 @@ int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
 			plot_scatter_setNewData(&pscatequal, pbch.pbch_d, pbch.nof_symbols);
 		}
 	}
+#endif
 
 	return n;
 }
@@ -293,6 +313,13 @@ int main(int argc, char **argv) {
 	float cfo;
 	int n;
 	int nof_found_mib = 0;
+
+#ifdef DISABLE_UHD
+	if (argc < 3) {
+		usage(argv[0]);
+		exit(-1);
+	}
+#endif
 
 	parse_args(argc,argv);
 

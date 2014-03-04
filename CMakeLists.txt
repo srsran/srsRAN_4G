@@ -77,7 +77,6 @@ IF(MSVC)
         -D_CRT_SECURE_NO_DEPRECATE
         -D_CRT_NONSTDC_NO_DEPRECATE
     )
-    LIST(APPEND IRIS_CORE_COMMON_FLAGS_AND_DEFINES -DHAVE_CONFIG_H)
     ADD_DEFINITIONS(/MP) #build with multiple processors
 ENDIF(MSVC)
 
@@ -86,52 +85,6 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    SET(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-
-########################################################################
-# Setup Boost
-########################################################################
-MESSAGE(STATUS "")
-MESSAGE(STATUS "Configuring Boost C++ Libraries...")
-SET(BOOST_REQUIRED_COMPONENTS
-    program_options
-    system
-    thread
-    unit_test_framework
-)
-
-IF(UNIX AND EXISTS "/usr/lib64")
-    LIST(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
-ENDIF(UNIX AND EXISTS "/usr/lib64")
-
-IF(MSVC)
-    SET(BOOST_ALL_DYN_LINK "${BOOST_ALL_DYN_LINK}" CACHE BOOL "boost enable dynamic linking")
-    IF(BOOST_ALL_DYN_LINK)
-        ADD_DEFINITIONS(-DBOOST_ALL_DYN_LINK) #setup boost auto-linking in msvc
-    ELSE(BOOST_ALL_DYN_LINK)
-        UNSET(BOOST_REQUIRED_COMPONENTS) #empty components list for static link
-    ENDIF(BOOST_ALL_DYN_LINK)
-ENDIF(MSVC)
-
-SET(Boost_ADDITIONAL_VERSIONS 
-    "1.37.0" "1.37" "1.38.0" "1.38" "1.39.0" "1.39" "1.40.0" "1.40"
-    "1.41.0" "1.41" "1.42.0" "1.42" "1.43.0" "1.43" "1.44.0" "1.44"
-    "1.42.0" "1.42" "1.43.0" "1.43" "1.44.0" "1.44" "1.45.0" "1.45" 
-    "1.46.0" "1.46" "1.47.0" "1.47" "1.48.0" "1.48" "1.49.0" "1.49" 
-    "1.50.0" "1.50" "1.51.0" "1.51" "1.52.0" "1.52" "1.53.0" "1.53")
-FIND_PACKAGE(Boost 1.37 REQUIRED ${BOOST_REQUIRED_COMPONENTS})
-MESSAGE(STATUS "Boost version: ${Boost_VERSION}")
-
-IF(Boost_VERSION LESS 104600)
-    ADD_DEFINITIONS( -DBOOST_FILESYSTEM_VERSION=2 ) #use filesystem version 2 in boost < 1.46
-    MESSAGE(STATUS "Using Boost Filesystem V2")
-ENDIF(Boost_VERSION LESS 104600)
-
-INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
-LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
-
-MESSAGE(STATUS "Boost include directories: ${Boost_INCLUDE_DIRS}")
-MESSAGE(STATUS "Boost library directories: ${Boost_LIBRARY_DIRS}")
-MESSAGE(STATUS "Boost libraries: ${Boost_LIBRARIES}")
 
 
 ########################################################################

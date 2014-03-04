@@ -4,7 +4,6 @@
 
 #include <qlayout.h>
 #include <algorithm>
-#include <boost/lambda/lambda.hpp>
 
 using namespace std;
 

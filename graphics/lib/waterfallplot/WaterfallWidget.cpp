@@ -6,10 +6,8 @@
 #include <qlayout.h>
 #include <qpushbutton.h>
 #include <algorithm>
-#include <boost/lambda/lambda.hpp>
 
 using namespace std;
-namespace bl = boost::lambda;
 
 
 WaterfallWidget::WaterfallWidget(int numDataPoints, int numRows, QWidget *parent)

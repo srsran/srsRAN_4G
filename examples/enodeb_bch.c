@@ -33,11 +33,9 @@
 
 #include "lte.h"
 
-#define ENABLE_UHD
-
-#ifdef ENABLE_UHD
-#include "cuhd.h"
-void *uhd;
+#ifndef DISABLE_UHD
+	#include "cuhd.h"
+	void *uhd;
 #endif
 
 char *output_file_name = NULL;
@@ -59,10 +57,14 @@ int slot_n_re, slot_n_samples;
 
 void usage(char *prog) {
 	printf("Usage: %s [agmfoncvp]\n", prog);
+#ifndef DISABLE_UHD
 	printf("\t-a UHD args [Default %s]\n", uhd_args);
 	printf("\t-g UHD TX gain [Default %.2f dB]\n", uhd_gain);
 	printf("\t-m UHD signal amplitude [Default %.2f]\n", uhd_amp);
 	printf("\t-f UHD TX frequency [Default %.1f MHz]\n", uhd_freq/1000000);
+#else
+	printf("\t   UHD is disabled. CUHD library not available\n");
+#endif
 	printf("\t-o output_file [Default USRP]\n");
 	printf("\t-n number of frames [Default %d]\n", nof_frames);
 	printf("\t-c cell id [Default %d]\n", cell_id);
@@ -106,7 +108,7 @@ void parse_args(int argc, char **argv) {
 			exit(-1);
 		}
 	}
-#ifndef ENABLE_UHD
+#ifdef DISABLE_UHD
 	if (!output_file_name) {
 		usage(argv[0]);
 		exit(-1);
@@ -133,16 +135,18 @@ void base_init() {
 			exit(-1);
 		}
 	} else {
-#ifdef ENABLE_UHD
+#ifndef DISABLE_UHD
 		printf("Opening UHD device...\n");
 		if (cuhd_open(uhd_args,&uhd)) {
 			fprintf(stderr, "Error opening uhd\n");
 			exit(-1);
 		}
 #else
-		exit(-1); // not supposed to be here
+		printf("Error UHD not available. Select an output file\n");
+		exit(-1);
 #endif
 	}
+
 	/* create ifft object */
 	if (lte_ifft_init(&ifft, CPNORM, nof_prb)) {
 		fprintf(stderr, "Error creating iFFT object\n");
@@ -169,7 +173,7 @@ void base_free() {
 	if (output_file_name) {
 		filesink_free(&fsink);
 	} else {
-#ifdef ENABLE_UHD
+#ifndef DISABLE_UHD
 		cuhd_close(&uhd);
 #endif
 	}
@@ -186,7 +190,7 @@ int main(int argc, char **argv) {
 	cf_t *slot1_symbols[MAX_PORTS_CTRL];
 
 
-#ifndef ENABLE_UHD
+#ifdef DISABLE_UHD
 	if (argc < 3) {
 		usage(argv[0]);
 		exit(-1);
@@ -224,7 +228,7 @@ int main(int argc, char **argv) {
 		slot1_symbols[i] = slot_buffer;
 	}
 
-#ifdef ENABLE_UHD
+#ifndef DISABLE_UHD
 	if (!output_file_name) {
 		printf("Set TX rate: %.2f MHz\n", cuhd_set_tx_srate(uhd, UHD_SAMP_FREQ)/1000000);
 		printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
@@ -260,8 +264,9 @@ int main(int argc, char **argv) {
 			/* send to file or usrp */
 			if (output_file_name) {
 				filesink_write(&fsink, output_buffer, slot_n_samples);
+				usleep(5000);
 			} else {
-#ifdef ENABLE_UHD
+#ifndef DISABLE_UHD
 				vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, slot_n_samples);
 				cuhd_send(uhd, output_buffer, slot_n_samples, 1);
 #endif
