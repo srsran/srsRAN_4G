@@ -30,7 +30,7 @@
 
 #include "plot/plot_complex.h"
 #include "Complexplot.h"
-#include <complex.h>
+#include <complex>
 
 
 int plot_complex_init(plot_complex_t *h) {

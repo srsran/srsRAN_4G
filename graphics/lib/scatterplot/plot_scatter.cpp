@@ -29,7 +29,7 @@
 
 #include "plot/plot_scatter.h"
 #include "Scatterplot.h"
-#include <complex.h>
+#include <complex>
 
 
 
