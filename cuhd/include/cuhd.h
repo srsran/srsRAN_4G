@@ -46,7 +46,6 @@ double cuhd_set_rx_gain(void *h, double gain);
 double cuhd_set_rx_freq(void *h, double freq);
 int cuhd_recv(void *h, void *data, int nsamples, int blocking);
 
-int cuhd_start_tx_stream(void *h);
 double cuhd_set_tx_srate(void *h, double freq);
 double cuhd_set_tx_gain(void *h, double gain);
 double cuhd_set_tx_freq(void *h, double freq);

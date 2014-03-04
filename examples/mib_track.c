@@ -34,6 +34,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <assert.h>
+#include <signal.h>
 
 #include "lte.h"
 
@@ -61,6 +62,8 @@ int max_track_lost = 9, nof_frames = -1;
 int track_len=300;
 char *input_file_name = NULL;
 int disable_plots = 0;
+
+int go_exit=0;
 
 float uhd_freq = 2400000000.0, uhd_gain = 20.0;
 char *uhd_args = "";
@@ -238,9 +241,13 @@ void base_free() {
 		filesource_free(&fsrc);
 	} else {
 	#ifndef DISABLE_UHD
-		cuhd_close(&uhd);
+		cuhd_close(uhd);
 	#endif
 	}
+
+#ifndef DISABLE_GRAPHICS
+	plot_exit();
+#endif
 
 	sync_free(&sfind);
 	sync_free(&strack);
@@ -302,6 +309,10 @@ int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
 	return n;
 }
 
+void sigintHandler(int sig_num)
+{
+	go_exit=1;
+}
 
 int main(int argc, char **argv) {
 	int frame_cnt;
@@ -346,6 +357,9 @@ int main(int argc, char **argv) {
 	#endif
 	}
 
+	printf("\n --- Press Ctrl+C to exit --- \n");
+	signal(SIGINT, sigintHandler);
+
 	state = FIND;
 	nslot = 0;
 	find_idx = 0;
@@ -356,7 +370,7 @@ int main(int argc, char **argv) {
 	sync_set_threshold(&sfind, find_threshold);
 	sync_force_N_id_2(&sfind, -1);
 
-	while(frame_cnt < nof_frames || nof_frames==-1) {
+	while(!go_exit && (frame_cnt < nof_frames || nof_frames==-1)) {
 		INFO(" -----   RECEIVING %d SAMPLES ---- \n", FLEN);
 		if (input_file_name) {
 			n = filesource_read(&fsrc, input_buffer, FLEN);
@@ -386,6 +400,7 @@ int main(int argc, char **argv) {
 				sync_force_N_id_2(&strack, sync_get_N_id_2(&sfind));
 				cell_id = sync_get_cell_id(&sfind);
 				mib_decoder_init(cell_id);
+				nof_found_mib = 0;
 				nslot = sync_get_slot_id(&sfind);
 				nslot=(nslot+10)%20;
 				cfo = 0;
@@ -393,7 +408,7 @@ int main(int argc, char **argv) {
 				state = TRACK;
 			}
 			if (verbose == VERBOSE_NONE) {
-				printf("Tracking... PAR=%.2f\r", sync_get_peak_to_avg(&sfind));
+				printf("Finding PSS... PAR=%.2f\r", sync_get_peak_to_avg(&sfind));
 			}
 			break;
 		case TRACK:
@@ -408,13 +423,16 @@ int main(int argc, char **argv) {
 				find_idx += track_idx - track_len;
 				if (nslot != sync_get_slot_id(&strack)) {
 					INFO("Expected slot %d but got %d\n", nslot, sync_get_slot_id(&strack));
-					state = TRACK;
+					printf("\r\n");fflush(stdout);
+					state = FIND;
 				}
 			}
 
-			/* if we missed too many PSS go back to track */
+			/* if we missed too many PSS go back to FIND */
 			if (frame_cnt - last_found > max_track_lost) {
-				INFO("%d frames lost. Going back to TRACK\n", frame_cnt - last_found);
+				INFO("%d frames lost. Going back to FIND", frame_cnt - last_found);
+				printf("\r\n");fflush(stdout);
+				state = FIND;
 			}
 
 			// Correct CFO
@@ -454,7 +472,7 @@ int main(int argc, char **argv) {
 
 	base_free();
 
-	printf("\n\nDone\n");
+	printf("\nBye\n");
 	exit(0);
 }
 

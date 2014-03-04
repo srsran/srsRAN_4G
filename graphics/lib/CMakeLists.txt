@@ -100,8 +100,11 @@ ENDFOREACH(_module ${modules})
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../../)
 
+IF(QWT_MAJOR_VERSION LESS 6)
+	MESSAGE(STATUS "QWT6 is required.")
+ENDIF(QWT_MAJOR_VERSION LESS 6)
 
-IF(QT4_FOUND AND QWT_FOUND AND Boost_FOUND)
+IF(QT4_FOUND AND QWT_FOUND AND Boost_FOUND AND QWT_MAJOR_VERSION EQUAL 6)
   QT4_WRAP_CPP(lineplotwraps common/Lineplot.h)
   QT4_WRAP_CPP(pointplotwraps common/Pointplot.h)
   QT4_WRAP_CPP(spectrogramplotwraps common/Spectrogramplot.h)
@@ -128,11 +131,11 @@ IF(QT4_FOUND AND QWT_FOUND AND Boost_FOUND)
   MESSAGE(STATUS "   GRAPHICS library will be installed.")
   
 
-ELSE(QT4_FOUND AND QWT_FOUND AND Boost_FOUND) 
+ELSE(QT4_FOUND AND QWT_FOUND AND Boost_FOUND AND QWT_MAJOR_VERSION EQUAL 6) 
 
-  MESSAGE(STATUS "   QT4/Qwt or Boost not found. GRAPHICS library is not generated")
+  MESSAGE(STATUS "   QT4/Qwt6 or Boost not found. GRAPHICS library is not generated")
   
-ENDIF(QT4_FOUND AND QWT_FOUND AND Boost_FOUND)
+ENDIF(QT4_FOUND AND QWT_FOUND AND Boost_FOUND AND QWT_MAJOR_VERSION EQUAL 6)
 
 
 

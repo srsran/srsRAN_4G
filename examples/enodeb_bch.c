@@ -233,7 +233,6 @@ int main(int argc, char **argv) {
 		printf("Set TX rate: %.2f MHz\n", cuhd_set_tx_srate(uhd, UHD_SAMP_FREQ)/1000000);
 		printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
 		printf("Set TX freq: %.2f MHz\n", cuhd_set_tx_freq(uhd, uhd_freq)/1000000);
-		cuhd_start_tx_stream(uhd);
 	}
 #endif
 

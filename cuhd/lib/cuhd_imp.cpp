@@ -95,29 +95,23 @@ int cuhd_open(char *args, void **h) {
 	cuhd_handler* handler = new cuhd_handler();
 	std::string _args=std::string(args);
 	handler->usrp = uhd::usrp::multi_usrp::make(_args);
-
-	//uhd::msg::register_handler(&my_handler);
+	handler->usrp->set_clock_source("internal");
 
 	std::string otw, cpu;
 	otw="sc16";
 	cpu="fc32";
-
-	handler->usrp->set_clock_source("internal");
-
 	uhd::stream_args_t stream_args(cpu, otw);
-//	stream_args.channels.push_back(0);
-//	stream_args.args["noclear"] = "1";
-
 	handler->rx_stream = handler->usrp->get_rx_stream(stream_args);
-	*h = handler;
-
 	handler->tx_stream = handler->usrp->get_tx_stream(stream_args);
+
+	*h = handler;
 
 	return 0;
 }
 
 int cuhd_close(void *h) {
-	/** TODO */
+	cuhd_stop_rx_stream(h);
+	/** Something else to close the USRP?? */
 	return 0;
 }
 
@@ -158,17 +152,6 @@ int cuhd_recv(void *h, void *data, int nsamples, int blocking) {
 	} else {
 		return handler->rx_stream->recv(data, nsamples, md, 0.0);
 	}
-}
-
-
-
-int cuhd_start_tx_stream(void *h) {
-	cuhd_handler* handler = static_cast<cuhd_handler*>(h);
-    uhd::stream_cmd_t cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
-    cmd.time_spec = handler->usrp->get_time_now();
-    cmd.stream_now = true;
-    handler->usrp->issue_stream_cmd(cmd);
-    return 0;
 }
 
 double cuhd_set_tx_gain(void *h, double gain) {
