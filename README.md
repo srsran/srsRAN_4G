@@ -60,6 +60,21 @@ https://www.dropbox.com/s/txh1nuzdb0igq5n/demo_pbch.ogv
 
 ![Screenshopt of the PBCH example output](pbch_capture.png "Screenshopt of the PBCH example output")
 
+
+If you don't have a pair of USRP, you can also test the demo by writing the samples to a file and then reading them: 
+
+From the eNodeB, type
+
+```
+examples/enodeb_bch -o [output_file] -c [cell_id] [-h for more commands]
+```
+
+From the UE, type 
+```
+examples/mib_track -i [input_file] -c [cell_id] [-h for more commands]
+```
+
+
 * Cell Search Example
 
 This program uses any hardware supported by the UHD driver to scan an LTE band for active cells. See http://niviuk.free.fr/lte_band.php for a list of available bands. The program first obtains a power spectral density of the entire band. For all frequencies with an RSSI higher than a threshold, it tries to find the LTE Primary Synchronization Signal (PSS) and then identifies the CELL ID using the Secondary Synchronization Signal (SSS). Finally, it estimates the Carrier Frequency Offset (CFO) and Sampling Frequency Offset (SFO) and decodes the Master Information Block (MIB) from the PBCH. 
