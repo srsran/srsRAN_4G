@@ -23,10 +23,8 @@
 ########################################################################
 # Build tests
 ########################################################################
-#turn the test cpp file into an executable with an int main() function
-ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK -DBOOST_TEST_MAIN)
 INCLUDE_DIRECTORIES(..)
 ADD_EXECUTABLE(scatterplot_test scatterplot_test.cpp)
-TARGET_LINK_LIBRARIES(scatterplot_test ${Boost_LIBRARIES} graphics)
+TARGET_LINK_LIBRARIES(scatterplot_test pthread graphics)
 ADD_TEST(scatterplot_test scatterplot_test)
 

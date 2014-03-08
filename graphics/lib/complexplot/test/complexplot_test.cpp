@@ -35,112 +35,112 @@
 
 #include "Complexplot.h"
 
-#include <boost/scoped_ptr.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/progress.hpp>
-#include <boost/bind.hpp>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdio.h>
 #include <qapplication.h>
 #include <cstdlib>
 #include <complex>
 #include <vector>
-#include <boost/test/unit_test.hpp>
 
 #define PI     3.14159265358979323846
 
 using namespace std;
 
-typedef vector< complex<float> > FloatVec;
+typedef vector<complex<float> > FloatVec;
 
-void threadMain1()
-{
-  Complexplot plot;
-  plot.setTitle("Float");
-  plot.setXAxisRange(0,2);
-  plot.setYAxisScale(Complexplot::Magnitude, 0.9, 1.1);
+void *threadMain1(void *arg) {
+	Complexplot plot;
+	plot.setTitle("Float");
+	plot.setXAxisRange(0, 2);
+	plot.setYAxisScale(Complexplot::Magnitude, 0.9, 1.1);
 
-  int n=1024;
-  float step = 2.0*PI/n;
-  complex<float>* data = new complex<float>[n];
-  for(int i=0;i<n;i++)
-    data[i] = polar(1.0f,step*i);
+	int n = 1024;
+	float step = 2.0 * PI / n;
+	complex<float>* data = new complex<float> [n];
+	for (int i = 0; i < n; i++)
+		data[i] = polar(1.0f, step * i);
 
-  plot.setNewData(data, n);
+	plot.setNewData(data, n);
 
-  for(int i=0;i<n;i++)
-  {
-    rotate(data, data+1, data+n);
-    plot.setNewData(data, n);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-  }
+	for (int i = 0; i < n; i++) {
+		rotate(data, data + 1, data + n);
+		plot.setNewData(data, n);
+		usleep(1000);
+	}
+	return NULL;
 }
 
-void threadMain2()
-{
-  Complexplot plot;
-  plot.setTitle("Double");
-  plot.setXAxisRange(0,2);
-  plot.setYAxisScale(Complexplot::Magnitude, 0.9, 1.1);
+void *threadMain2(void *arg) {
+	Complexplot plot;
+	plot.setTitle("Double");
+	plot.setXAxisRange(0, 2);
+	plot.setYAxisScale(Complexplot::Magnitude, 0.9, 1.1);
 
-  int n=1024;
-  double step = 2.0*PI/n;
-  complex<double>* data = new complex<double>[n];
-  for(int i=0;i<n;i++)
-    data[i] = polar(1.0,step*i);
+	int n = 1024;
+	double step = 2.0 * PI / n;
+	complex<double>* data = new complex<double> [n];
+	for (int i = 0; i < n; i++)
+		data[i] = polar(1.0, step * i);
 
-  plot.setNewData(data, n);
+	plot.setNewData(data, n);
 
-  for(int i=0;i<n;i++)
-  {
-    rotate(data, data+1, data+n);
-    plot.setNewData(data, n);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-  }
+	for (int i = 0; i < n; i++) {
+		rotate(data, data + 1, data + n);
+		plot.setNewData(data, n);
+		usleep(1000);
+	}
+	return NULL;
 }
 
-void threadMain3()
-{
+void *threadMain3(void *arg) {
 
-  Complexplot plot;
-  plot.setTitle("FloatVec");
-  plot.setXAxisRange(0,2);
-  plot.setYAxisScale(Complexplot::Magnitude, 0.9, 1.1);
+	Complexplot plot;
+	plot.setTitle("FloatVec");
+	plot.setXAxisRange(0, 2);
+	plot.setYAxisScale(Complexplot::Magnitude, 0.9, 1.1);
 
-  FloatVec data(1024);
-  int n=data.size();
-  float step = 2.0*PI/n;
-  for(int i=0;i<n;i++)
-    data[i] = polar(1.0f,step*i);
+	FloatVec data(1024);
+	int n = data.size();
+	float step = 2.0 * PI / n;
+	for (int i = 0; i < n; i++)
+		data[i] = polar(1.0f, step * i);
 
-  plot.setNewData(data.begin(), data.end());
+	plot.setNewData(data.begin(), data.end());
 
-  for(int i=0;i<n;i++)
-  {
-    rotate(data.begin(), data.begin()+1, data.end());
-    plot.setNewData(data.begin(), data.end());
-    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-  }
+	for (int i = 0; i < n; i++) {
+		rotate(data.begin(), data.begin() + 1, data.end());
+		plot.setNewData(data.begin(), data.end());
+		usleep(1000);
+	}
+	return NULL;
 }
 
-BOOST_AUTO_TEST_SUITE (Complexplot_Test)
+int main(int argc, char *argv[]) {
+	int argc2 = 1;
+	char* argv2[] = { const_cast<char *>("Compleplot_Basic_Test"), NULL };
+	QApplication a(argc2, argv2);
+	pthread_t threads[3];
+	int i;
 
-BOOST_AUTO_TEST_CASE(Complexplot_Basic_Test)
-{
-  int argc = 1;
-  char* argv[] = { const_cast<char *>("Compleplot_Basic_Test"), NULL };
-  QApplication a(argc, argv);
+	if (pthread_create(&threads[0], NULL, threadMain1, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
+	if (pthread_create(&threads[1], NULL, threadMain2, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
+	if (pthread_create(&threads[2], NULL, threadMain3, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
 
-  boost::scoped_ptr< boost::thread > thread1_;
-  boost::scoped_ptr< boost::thread > thread2_;
-  boost::scoped_ptr< boost::thread > thread3_;
+	qApp->exec();
 
-  thread1_.reset( new boost::thread( &threadMain1 ) );
-  thread2_.reset( new boost::thread( &threadMain2 ) );
-  thread3_.reset( new boost::thread( &threadMain3 ) );
-
-  qApp->exec();
-  thread1_->join();
-  thread2_->join();
-  thread3_->join();
+	for (i=0;i<3;i++) {
+		pthread_join(threads[i], NULL);
+	}
+	exit(0);
 }
 
-BOOST_AUTO_TEST_SUITE_END()

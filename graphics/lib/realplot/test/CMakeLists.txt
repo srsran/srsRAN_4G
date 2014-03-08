@@ -24,9 +24,8 @@
 # Build tests
 ########################################################################
 #turn the test cpp file into an executable with an int main() function
-ADD_DEFINITIONS(-DBOOST_TEST_DYN_LINK -DBOOST_TEST_MAIN)
 INCLUDE_DIRECTORIES(..)
 ADD_EXECUTABLE(realplot_test realplot_test.cpp)
-TARGET_LINK_LIBRARIES(realplot_test ${Boost_LIBRARIES} graphics)
+TARGET_LINK_LIBRARIES(realplot_test pthread graphics)
 ADD_TEST(realplot_test realplot_test)
 

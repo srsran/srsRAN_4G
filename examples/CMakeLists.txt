@@ -32,12 +32,6 @@ target_link_libraries(ll_example lte)
 add_executable(synch_test synch_test.c)
 target_link_libraries(synch_test lte)
 
-add_executable(equalizer_test equalizer_test.c)
-target_link_libraries(equalizer_test lte)
-
-add_executable(viterbi_test viterbi_test.c)
-target_link_libraries(viterbi_test lte)
-
 add_executable(mib_test mib_test.c)
 target_link_libraries(mib_test lte)
 

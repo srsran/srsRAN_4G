@@ -39,7 +39,7 @@
 #endif
 
 char *output_file_name = NULL;
-int nof_frames=-1;
+int nof_slots=-1;
 int cell_id = 1;
 int nof_prb = 6;
 char *uhd_args = "";
@@ -66,7 +66,7 @@ void usage(char *prog) {
 	printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
 	printf("\t-o output_file [Default USRP]\n");
-	printf("\t-n number of frames [Default %d]\n", nof_frames);
+	printf("\t-n number of frames [Default %d]\n", nof_slots);
 	printf("\t-c cell id [Default %d]\n", cell_id);
 	printf("\t-p nof_prb [Default %d]\n", nof_prb);
 	printf("\t-v [set verbose to debug, default none]\n");
@@ -92,7 +92,7 @@ void parse_args(int argc, char **argv) {
 			output_file_name = argv[optind];
 			break;
 		case 'n':
-			nof_frames = atoi(argv[optind]);
+			nof_slots = atoi(argv[optind]);
 			break;
 		case 'p':
 			nof_prb = atoi(argv[optind]);
@@ -238,7 +238,7 @@ int main(int argc, char **argv) {
 
 	nf = 0;
 
-	while(nf<nof_frames || nof_frames == -1) {
+	while(nf<nof_slots || nof_slots == -1) {
 		for (ns=0;ns<NSLOTS_X_FRAME;ns++) {
 			bzero(slot_buffer, sizeof(cf_t) * slot_n_re);
 

@@ -35,99 +35,94 @@
 
 #include "Scatterplot.h"
 
-#include <boost/scoped_ptr.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/progress.hpp>
-#include <boost/bind.hpp>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdio.h>
 #include <qapplication.h>
 #include <cstdlib>
 #include <complex>
 #include <vector>
-#include <boost/test/unit_test.hpp>
 
 typedef std::complex<float> Cplx;
-typedef std::vector<Cplx>   CplxVec;
+typedef std::vector<Cplx> CplxVec;
 
 template<class T>
-void getPoints(std::complex<T>* data, int numPoints)
-{
-  for(int i=0;i<numPoints;i++)
-  {
-    data[i] = std::complex<T>(2*((T)rand()/RAND_MAX)-1,
-                              2*((T)rand()/RAND_MAX)-1);
-  }
+void getPoints(std::complex<T>* data, int numPoints) {
+	for (int i = 0; i < numPoints; i++) {
+		data[i] = std::complex<T>(2 * ((T) rand() / RAND_MAX) - 1,
+				2 * ((T) rand() / RAND_MAX) - 1);
+	}
 }
 
 template<class Iterator>
-void getPoints(Iterator begin, Iterator end)
-{
-  for(;begin!=end;begin++)
-  {
-    float r = 2*((double)rand()/RAND_MAX)-1;
-    float i = 2*((double)rand()/RAND_MAX)-1;
-    *begin = Cplx(r,i);
-  }
+void getPoints(Iterator begin, Iterator end) {
+	for (; begin != end; begin++) {
+		float r = 2 * ((double) rand() / RAND_MAX) - 1;
+		float i = 2 * ((double) rand() / RAND_MAX) - 1;
+		*begin = Cplx(r, i);
+	}
 }
 
-void threadMain1()
-{
-  Scatterplot plot;
-  std::complex<float> data[1024];
+void *threadMain1(void *arg) {
+	Scatterplot plot;
+	std::complex<float> data[1024];
 
-  for(int i=0;i<10;i++)
-  {
-    getPoints(data, 1024);
-    plot.setNewData(data, 1024);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  }
+	for (int i = 0; i < 10; i++) {
+		getPoints(data, 1024);
+		plot.setNewData(data, 1024);
+		usleep(100000);
+	}
+	return NULL;
 }
 
-void threadMain2()
-{
-  Scatterplot plot;
-  std::complex<double> data[1024];
+void *threadMain2(void *arg) {
+	Scatterplot plot;
+	std::complex<double> data[1024];
 
-  for(int i=0;i<10;i++)
-  {
-    getPoints(data, 1024);
-    plot.setNewData(data, 1024);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  }
+	for (int i = 0; i < 10; i++) {
+		getPoints(data, 1024);
+		plot.setNewData(data, 1024);
+		usleep(100000);
+	}
+	return NULL;
 }
 
-void threadMain3()
-{
-  Scatterplot plot;
-  CplxVec v(1024);
+void *threadMain3(void *arg) {
+	Scatterplot plot;
+	CplxVec v(1024);
 
-  for(int i=0;i<10;i++)
-  {
-    getPoints(v.begin(), v.end());
-    plot.setNewData(v.begin(), v.end());
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-  }
+	for (int i = 0; i < 10; i++) {
+		getPoints(v.begin(), v.end());
+		plot.setNewData(v.begin(), v.end());
+		boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+	}
+	return NULL;
 }
 
-BOOST_AUTO_TEST_SUITE (Scatterplot_Test)
+int main(int argc, char *argv[]) {
+	int argc2 = 1;
+	char* argv2[] = { const_cast<char *>("Scatterplot_Basic_Test"), NULL };
+	QApplication a(argc2, argv2);
+	pthread_t threads[3];
+	int i;
 
-BOOST_AUTO_TEST_CASE(Scatterplot_Basic_Test)
-{
-  int argc = 1;
-  char* argv[] = { const_cast<char *>("Scatterplot_Basic_Test"), NULL };
-  QApplication a(argc, argv);
+	if (pthread_create(&threads[0], NULL, threadMain1, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
+	if (pthread_create(&threads[1], NULL, threadMain2, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
+	if (pthread_create(&threads[2], NULL, threadMain3, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
 
-  boost::scoped_ptr< boost::thread > thread1_;
-  boost::scoped_ptr< boost::thread > thread2_;
-  boost::scoped_ptr< boost::thread > thread3_;
+	qApp->exec();
 
-  thread1_.reset( new boost::thread( &threadMain1 ) );
-  thread2_.reset( new boost::thread( &threadMain2 ) );
-  thread3_.reset( new boost::thread( &threadMain3 ) );
-
-  qApp->exec();
-  thread1_->join();
-  thread2_->join();
-  thread3_->join();
+	for (i=0;i<3;i++) {
+		pthread_join(threads[i], NULL);
+	}
+	exit(0);
 }
-
-BOOST_AUTO_TEST_SUITE_END()

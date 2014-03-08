@@ -35,94 +35,93 @@
 
 #include "Waterfallplot.h"
 
-#include <boost/scoped_ptr.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/progress.hpp>
-#include <boost/bind.hpp>
+
+#include <pthread.h>
+#include <unistd.h>
+#include <stdio.h>
 #include <qapplication.h>
 #include <cstdlib>
 #include <vector>
-#include <boost/test/unit_test.hpp>
 
 #define PI     3.14159265358979323846
 
 using namespace std;
 
-void threadMain1()
-{
-  int n=2048;
-  Waterfallplot plot(n,n);
-  plot.setTitle("Float");
+void *threadMain1(void *arg) {
+	int n = 2048;
+	Waterfallplot plot(n, n);
+	plot.setTitle("Float");
 
-  float step = 1.0*PI/n;
-  float* data = new float[n*2];
-  for(int i=0;i<n*2;i++)
-    data[i] = sinf(step*i);
+	float step = 1.0 * PI / n;
+	float* data = new float[n * 2];
+	for (int i = 0; i < n * 2; i++)
+		data[i] = sinf(step * i);
 
-  for(int i=0;i<n;i++)
-  {
-    plot.appendNewData(data+i, n);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-  }
+	for (int i = 0; i < n; i++) {
+		plot.appendNewData(data + i, n);
+		usleep(1000);
+	}
+	return NULL;
 }
 
-void threadMain2()
-{
-  int n=2048;
-  Waterfallplot plot(n,n);
-  plot.setTitle("Double");
+void threadMain2() {
+	int n = 2048;
+	Waterfallplot plot(n, n);
+	plot.setTitle("Double");
 
-  double step = 2.0*PI/n;
-  double* data = new double[n*2];
-  for(int i=0;i<n*2;i++)
-    data[i] = sin(step*i);
+	double step = 2.0 * PI / n;
+	double* data = new double[n * 2];
+	for (int i = 0; i < n * 2; i++)
+		data[i] = sin(step * i);
 
-  for(int i=0;i<n;i++)
-  {
-    plot.appendNewData(data+i, n);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-  }
+	for (int i = 0; i < n; i++) {
+		plot.appendNewData(data + i, n);
+		boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+	}
 }
 
-void threadMain3()
-{
-  int n=2048;
-  Waterfallplot plot(n,n);
-  plot.setTitle("FloatVec");
+void *threadMain3(void *arg) {
+	int n = 2048;
+	Waterfallplot plot(n, n);
+	plot.setTitle("FloatVec");
 
-  double step = 2.0*PI/n;
-  std::vector<float> data;
-  data.resize(n*2);
-  for(int i=0;i<n*2;i++)
-    data[i] = sin(step*i);
+	double step = 2.0 * PI / n;
+	std::vector<float> data;
+	data.resize(n * 2);
+	for (int i = 0; i < n * 2; i++)
+		data[i] = sin(step * i);
 
-  for(int i=0;i<n;i++)
-  {
-    plot.appendNewData(data.begin()+i, data.begin()+i+n);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-  }
+	for (int i = 0; i < n; i++) {
+		plot.appendNewData(data.begin() + i, data.begin() + i + n);
+		boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+	}
 }
 
-BOOST_AUTO_TEST_SUITE (Waterfallplot_Test)
+int main(int argc, char *argv[]) {
+	int argc2 = 1;
+	char* argv2[] = { const_cast<char *>("Waterfallplot_Init_Test"), NULL };
+	QApplication a(argc2, argv2);
+	pthread_t threads[3];
+	int i;
 
-BOOST_AUTO_TEST_CASE(Waterfallplot_Init_Test)
-{
-  int argc = 1;
-  char* argv[] = { const_cast<char *>("Waterfallplot_Init_Test"), NULL };
-  QApplication a(argc, argv);
+	if (pthread_create(&threads[0], NULL, threadMain1, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
+	if (pthread_create(&threads[1], NULL, threadMain2, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
+	if (pthread_create(&threads[2], NULL, threadMain3, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
 
-  boost::scoped_ptr< boost::thread > thread1_;
-  boost::scoped_ptr< boost::thread > thread2_;
-  boost::scoped_ptr< boost::thread > thread3_;
+	qApp->exec();
 
-  thread1_.reset( new boost::thread( &threadMain1 ) );
-  thread2_.reset( new boost::thread( &threadMain2 ) );
-  thread3_.reset( new boost::thread( &threadMain3 ) );
+	for (i = 0; i < 3; i++) {
+		pthread_join(threads[i], NULL);
+	}
+	exit(0);
 
-  qApp->exec();
-  thread1_->join();
-  thread2_->join();
-  thread3_->join();
 }
-
-BOOST_AUTO_TEST_SUITE_END()

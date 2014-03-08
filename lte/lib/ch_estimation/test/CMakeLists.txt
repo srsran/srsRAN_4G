@@ -1,16 +1,15 @@
 #
-# Copyright 2012-2013 The Iris Project Developers. See the
-# COPYRIGHT file at the top-level directory of this distribution
-# and at http://www.softwareradiosystems.com/iris/copyright.html.
+# Copyright 2012-2013 The libLTE Developers. See the
+# COPYRIGHT file at the top-level directory of this distribution.
 #
-# This file is part of the Iris Project.
+# This file is part of the libLTE library.
 #
-# Iris is free software: you can redistribute it and/or modify
+# libLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# Iris is distributed in the hope that it will be useful,
+# libLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -21,11 +20,12 @@
 #
 
 ########################################################################
-# Build tests
+# Channel Estimation TEST  
 ########################################################################
-#turn the test cpp file into an executable with an int main() function
-INCLUDE_DIRECTORIES(..)
-ADD_EXECUTABLE(complexplot_test complexplot_test.cpp)
-TARGET_LINK_LIBRARIES(complexplot_test pthread graphics)
-ADD_TEST(complexplot_test complexplot_test)
+
+ADD_EXECUTABLE(chest_test chest_test.c)
+TARGET_LINK_LIBRARIES(chest_test lte)
+
+ADD_TEST(chest_test_all_cellids chest_test) 
+
 

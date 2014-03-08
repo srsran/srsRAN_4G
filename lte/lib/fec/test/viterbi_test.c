@@ -35,9 +35,11 @@
 
 #include "lte.h"
 
+#include "viterbi_test.h"
+
 typedef _Complex float cf_t;
 
-int frame_length = 1000, nof_frames = 128;
+int frame_length = 1000, nof_slots = 128;
 float ebno_db = 100.0;
 unsigned int seed = 0;
 bool tail_biting = false;
@@ -52,7 +54,7 @@ int K = -1;
 
 void usage(char *prog) {
 	printf("Usage: %s [nlestk]\n", prog);
-	printf("\t-n nof_frames [Default %d]\n", nof_frames);
+	printf("\t-n nof_frames [Default %d]\n", nof_slots);
 	printf("\t-l frame_length [Default %d]\n", frame_length);
 	printf("\t-e ebno in dB [Default scan]\n");
 	printf("\t-s seed [Default 0=time]\n");
@@ -65,7 +67,7 @@ void parse_args(int argc, char **argv) {
 	while ((opt = getopt(argc, argv, "nlstek")) != -1) {
 		switch (opt) {
 		case 'n':
-			nof_frames = atoi(argv[optind]);
+			nof_slots = atoi(argv[optind]);
 			break;
 		case 'l':
 			frame_length = atoi(argv[optind]);
@@ -74,7 +76,7 @@ void parse_args(int argc, char **argv) {
 			ebno_db = atof(argv[optind]);
 			break;
 		case 's':
-			seed = atoi(argv[optind]);
+			seed = (unsigned int) strtoul(argv[optind], NULL, 0);
 			break;
 		case 't':
 			tail_biting = true;
@@ -87,6 +89,34 @@ void parse_args(int argc, char **argv) {
 			exit(-1);
 		}
 	}
+}
+
+void output_matlab(float ber[NTYPES][SNR_POINTS], int snr_points,
+		convcoder_t cod[NCODS], int ncods) {
+	int i, j, n;
+	FILE *f = fopen("viterbi_snr.m", "w");
+	if (!f) {
+		perror("fopen");
+		exit(-1);
+	}
+	fprintf(f, "ber=[");
+	for (j = 0; j < NTYPES; j++) {
+		for (i = 0; i < snr_points; i++) {
+			fprintf(f, "%g ", ber[j][i]);
+		}
+		fprintf(f, "; ");
+	}
+	fprintf(f, "];\n");
+	fprintf(f, "snr=linspace(%g,%g-%g/%d,%d);\n", SNR_MIN, SNR_MAX, SNR_MAX,
+			snr_points, snr_points);
+	fprintf(f, "semilogy(snr,ber,snr,0.5*erfc(sqrt(10.^(snr/10))));\n");
+	fprintf(f, "legend('uncoded',");
+	for (n=0;n<ncods;n++) {
+		fprintf(f,"'1/3 K=%d%s',",cod[n].K,cod[n].tail_biting?" tb":"");
+	}
+	fprintf(f,"'theory-uncoded');");
+	fprintf(f, "grid on;\n");
+	fclose(f);
 }
 
 int main(int argc, char **argv) {
@@ -225,7 +255,7 @@ int main(int argc, char **argv) {
 		for (j = 0; j < NTYPES; j++) {
 			errors[j] = 0;
 		}
-		while (frame_cnt < nof_frames) {
+		while (frame_cnt < nof_slots) {
 
 			/* generate data_tx */
 			for (j = 0; j < frame_length; j++) {
@@ -257,19 +287,19 @@ int main(int argc, char **argv) {
 			}
 
 			/* check errors */
-			for (j = 0; j < NTYPES; j++) {
+			for (j = 0; j < 1+ncods; j++) {
 				errors[j] += bit_diff(data_tx, data_rx[j], frame_length);
 			}
 			frame_cnt++;
 			printf("Eb/No: %3.2f %10d/%d   ",
-					SNR_MIN + i * ebno_inc,frame_cnt,nof_frames);
-			for (n=0;n<NTYPES;n++) {
+					SNR_MIN + i * ebno_inc,frame_cnt,nof_slots);
+			for (n=0;n<1+ncods;n++) {
 				printf("BER: %.2e  ",(float) errors[n] / (frame_cnt * frame_length));
 			}
 			printf("\r");
 		}
 		printf("\n");
-		for (j = 0; j < NTYPES; j++) {
+		for (j = 0; j < 1+ncods; j++) {
 			ber[j][i] = (float) errors[j] / (frame_cnt * frame_length);
 		}
 
@@ -282,33 +312,6 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
-	if (snr_points > 1) {
-		printf("\n");
-
-		FILE *f = fopen("output.m", "w");
-		if (!f) {
-			perror("fopen");
-			exit(-1);
-		}
-		fprintf(f, "ber=[");
-		for (j = 0; j < NTYPES; j++) {
-			for (i = 0; i < snr_points; i++) {
-				fprintf(f, "%g ", ber[j][i]);
-			}
-			fprintf(f, "; ");
-		}
-		fprintf(f, "];\n");
-		fprintf(f, "snr=linspace(%g,%g-%g/%d,%d);\n", SNR_MIN, SNR_MAX, SNR_MAX,
-				snr_points, snr_points);
-		fprintf(f, "semilogy(snr,ber,snr,0.5*erfc(sqrt(10.^(snr/10))));\n");
-		fprintf(f, "legend('uncoded',");
-		for (n=0;n<ncods;n++) {
-			fprintf(f,"'1/3 K=%d%s',",cod[n].K,cod[n].tail_biting?" tb":"");
-		}
-		fprintf(f,"'theory-uncoded');");
-		fprintf(f, "grid on;\n");
-		fclose(f);
-	}
 	for (n=0;n<ncods;n++) {
 		viterbi_free(&dec[n]);
 	}
@@ -316,10 +319,25 @@ int main(int argc, char **argv) {
 	free(data_tx);
 	free(symbols);
 	free(llr);
+	free(llr_c);
 	for (i = 0; i < NTYPES; i++) {
 		free(data_rx[i]);
 	}
 
-	printf("Done\n");
-	exit(0);
+	if (snr_points == 1) {
+		int expected_errors = get_expected_errors(nof_slots,
+				seed, frame_length, K, tail_biting, ebno_db);
+		if (expected_errors == -1) {
+			fprintf(stderr, "Test parameters not defined in test_results.h\n");
+			exit(-1);
+		} else {
+			printf("errors =%d, expected =%d\n", errors[1], expected_errors);
+			exit(errors[1] > expected_errors);
+		}
+	} else {
+		printf("\n");
+		output_matlab(ber, snr_points, cod, ncods);
+		printf("Done\n");
+		exit(0);
+	}
 }

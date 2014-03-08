@@ -30,6 +30,8 @@ INCLUDE_DIRECTORIES(${FFTW3F_INCLUDE_DIRS})
 IF(${DISABLE_VOLK})
 	IF(${DISABLE_VOLK} EQUAL 0)
 		FIND_PACKAGE(Volk)
+	ELSE(${DISABLE_VOLK} EQUAL 0)
+		MESSAGE(STATUS "VOLK library disabled (DISABLE_VOLK=1)")
 	ENDIF(${DISABLE_VOLK} EQUAL 0)
 ELSE(${DISABLE_VOLK})
 	FIND_PACKAGE(Volk)
@@ -63,7 +65,17 @@ ELSE(VOLK_FOUND)
 ENDIF(VOLK_FOUND)
 
 
+########################################################################
+# Recurse subdirectories and find all directories with a CMakeLists.txt file in it  
+########################################################################
 
+FILE(GLOB_RECURSE cmakefiles CMakeLists.txt) 
+FOREACH (_file ${cmakefiles})
+	GET_FILENAME_COMPONENT(dir ${_file} PATH)
+	IF (NOT ${dir} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
+		ADD_SUBDIRECTORY(${dir})
+	ENDIF ()
+ENDFOREACH()
 
 
 

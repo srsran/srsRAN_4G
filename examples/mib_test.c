@@ -34,7 +34,7 @@
 #include "lte.h"
 
 char *input_file_name = NULL;
-int nof_frames=100;
+int nof_slots=100;
 float corr_peak_threshold=30;
 int force_N_id_2=-1;
 
@@ -53,7 +53,7 @@ cfo_t cfocorr;
 
 void usage(char *prog) {
 	printf("Usage: %s [onlt] -i input_file\n", prog);
-	printf("\t-n number of frames [Default %d]\n", nof_frames);
+	printf("\t-n number of frames [Default %d]\n", nof_slots);
 	printf("\t-t correlation threshold [Default %g]\n", corr_peak_threshold);
 	printf("\t-v [set verbose to debug, default none]\n");
 	printf("\t-f force_N_id_2 [Default %d]\n", force_N_id_2);
@@ -67,7 +67,7 @@ void parse_args(int argc, char **argv) {
 			input_file_name = argv[optind];
 			break;
 		case 'n':
-			nof_frames = atoi(argv[optind]);
+			nof_slots = atoi(argv[optind]);
 			break;
 		case 't':
 			corr_peak_threshold = atof(argv[optind]);
@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
 
 	printf("\n\n-- Initiating MIB search --\n\n");
 
-	while(frame_cnt < nof_frames) {
+	while(frame_cnt < nof_slots) {
 		if (get_samples(read_samples, 0) == -1) {
 			fprintf(stderr, "Error reading %d samples\n", FLEN);
 			break;
@@ -313,7 +313,7 @@ int main(int argc, char **argv) {
 		case DONE:
 			INFO("State Done after %d frames\n", frame_cnt);
 			pbch_mib_fprint(stdout, &mib);
-			frame_cnt = nof_frames;
+			frame_cnt = nof_slots;
 			printf("Done\n");
 			break;
 		}

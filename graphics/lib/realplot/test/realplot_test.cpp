@@ -35,96 +35,91 @@
 
 #include "Realplot.h"
 
-#include <boost/scoped_ptr.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/progress.hpp>
-#include <boost/bind.hpp>
+#include <pthread.h>
+#include <unistd.h>
+#include <stdio.h>
 #include <qapplication.h>
 #include <cstdlib>
 #include <complex>
 #include <vector>
-#include <boost/test/unit_test.hpp>
 
-typedef std::vector<float>   FloatVec;
+typedef std::vector<float> FloatVec;
 
 template<class T>
-void getPoints(T* data, int numPoints)
-{
-  for(int i=0;i<numPoints;i++)
-  {
-    data[i] = 10*((T)rand()/RAND_MAX);
-  }
+void getPoints(T* data, int numPoints) {
+	for (int i = 0; i < numPoints; i++) {
+		data[i] = 10 * ((T) rand() / RAND_MAX);
+	}
 }
 
 template<class Iterator>
-void getPoints(Iterator begin, Iterator end)
-{
-  for(;begin!=end;begin++)
-  {
-    *begin = 10*((double)rand()/RAND_MAX);
-  }
+void getPoints(Iterator begin, Iterator end) {
+	for (; begin != end; begin++) {
+		*begin = 10 * ((double) rand() / RAND_MAX);
+	}
 }
 
-void threadMain1()
-{
-  Realplot plot;
+void *threadMain1(void *arg) {
+	Realplot plot;
 
-  float data[1024];
+	float data[1024];
 
-  for(int i=0;i<10;i++)
-  {
-    getPoints(data, 504);
-    plot.setNewData(data, 504);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(5));
-  }
+	for (int i = 0; i < 100; i++) {
+		getPoints(data, 504);
+		plot.setNewData(data, 504);
+		boost::this_thread::sleep(boost::posix_time::milliseconds(5));
+	}
+	return NULL;
 }
 
-void threadMain2()
-{
-  Realplot plot;
-  double data[1024];
+void *threadMain2(void *arg) {
+	Realplot plot;
+	double data[1024];
 
-  for(int i=0;i<10000;i++)
-  {
-    getPoints(data, 504);
-    plot.setNewData(data, 504);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(5));
-  }
+	for (int i = 0; i < 100; i++) {
+		getPoints(data, 504);
+		plot.setNewData(data, 504);
+		usleep(5000);
+	}
+	return NULL;
 }
 
-void threadMain3()
-{
-  Realplot plot;
-  FloatVec v(1024);
+void *threadMain3(void *arg) {
+	Realplot plot;
+	FloatVec v(1024);
 
-  for(int i=0;i<10000;i++)
-  {
-    getPoints(v.begin(), v.end());
-    plot.setNewData(v.begin(), v.end());
-    boost::this_thread::sleep(boost::posix_time::milliseconds(10));
-  }
+	for (int i = 0; i < 100; i++) {
+		getPoints(v.begin(), v.end());
+		plot.setNewData(v.begin(), v.end());
+		usleep(5000);
+	}
+	return NULL;
 }
 
-BOOST_AUTO_TEST_SUITE (Realplot_Test)
+int main(int argc, char *argv[]) {
+	int argc2 = 1;
+	char* argv2[] = { const_cast<char *>("Realplot_Basic_Test"), NULL };
+	QApplication a(argc2, argv2);
+	pthread_t threads[3];
+	int i;
 
-BOOST_AUTO_TEST_CASE(Realplot_Basic_Test)
-{
-  int argc = 1;
-  char* argv[] = { const_cast<char *>("Realplot_Basic_Test"), NULL };
-  QApplication a(argc, argv);
+	if (pthread_create(&threads[0], NULL, threadMain1, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
+	if (pthread_create(&threads[1], NULL, threadMain2, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
+	if (pthread_create(&threads[2], NULL, threadMain3, NULL)) {
+		perror("pthread_create");
+		exit(-1);
+	}
 
-  boost::scoped_ptr< boost::thread > thread1_;
-  boost::scoped_ptr< boost::thread > thread2_;
-  boost::scoped_ptr< boost::thread > thread3_;
+	qApp->exec();
 
-  thread1_.reset( new boost::thread( &threadMain1 ) );
-  thread2_.reset( new boost::thread( &threadMain2 ) );
-  thread3_.reset( new boost::thread( &threadMain3 ) );
-
-  qApp->exec();
-  thread1_->join();
-  thread2_->join();
-  thread3_->join();
+	for (i=0;i<3;i++) {
+		pthread_join(threads[i], NULL);
+	}
+	exit(0);
 }
-
-BOOST_AUTO_TEST_SUITE_END()

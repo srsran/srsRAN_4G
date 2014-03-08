@@ -40,6 +40,9 @@ LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
 INCLUDE(libLTEPackage)	#setup cpack
 
+include(CTest)
+set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
+
 ########################################################################
 # Install Dirs
 ########################################################################
