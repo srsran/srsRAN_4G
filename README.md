@@ -21,11 +21,6 @@ Hardware
 
 The library currently uses Ettus Universal Hardware Driver (UHD). Thus, any hardware supported by UHD can be used. There is no sampling rate conversion, therefore the hardware should support 30.72 MHz clock in order to work correctly with LTE sampling frequencies and decode signals from live LTE base stations. 
 
-Support
-========
-
-Mailing list: https://lists.sourceforge.net/lists/listinfo/liblte-users
-
 
 Download & Install Instructions
 =================================
@@ -76,3 +71,9 @@ For instance, the command:
 
 Scans the LTE band 3 (1805 to 1880 MHz). Note that you need a hardware supporting these frequencies (e.g. SBX daughterboard for USRP). For more command arguments, type ``` examples/mib_scan_usrp -h ```
 
+
+
+Support
+========
+
+Mailing list: https://lists.sourceforge.net/lists/listinfo/liblte-users
