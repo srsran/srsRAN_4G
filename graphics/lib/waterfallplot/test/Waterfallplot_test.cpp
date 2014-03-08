@@ -31,11 +31,9 @@
  * Main test file for Waterfallplot class.
  */
 
-#define BOOST_TEST_MODULE Waterfallplot_Test
-
 #include "Waterfallplot.h"
 
-
+#include <math.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -64,7 +62,7 @@ void *threadMain1(void *arg) {
 	return NULL;
 }
 
-void threadMain2() {
+void *threadMain2(void *arg) {
 	int n = 2048;
 	Waterfallplot plot(n, n);
 	plot.setTitle("Double");
@@ -76,8 +74,9 @@ void threadMain2() {
 
 	for (int i = 0; i < n; i++) {
 		plot.appendNewData(data + i, n);
-		boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+		usleep(1000);
 	}
+	return NULL;
 }
 
 void *threadMain3(void *arg) {
@@ -93,8 +92,9 @@ void *threadMain3(void *arg) {
 
 	for (int i = 0; i < n; i++) {
 		plot.appendNewData(data.begin() + i, data.begin() + i + n);
-		boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+		usleep(1000);
 	}
+	return NULL;
 }
 
 int main(int argc, char *argv[]) {

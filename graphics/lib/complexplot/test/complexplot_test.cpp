@@ -31,8 +31,6 @@
  * Main test file for Complexplot class.
  */
 
-#define BOOST_TEST_MODULE Complexplot_Test
-
 #include "Complexplot.h"
 
 #include <pthread.h>

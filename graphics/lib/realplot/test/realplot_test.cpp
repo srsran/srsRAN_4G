@@ -31,8 +31,6 @@
  * Main test file for Realplot class.
  */
 
-#define BOOST_TEST_MODULE Realplot_Test
-
 #include "Realplot.h"
 
 #include <pthread.h>
@@ -67,7 +65,7 @@ void *threadMain1(void *arg) {
 	for (int i = 0; i < 100; i++) {
 		getPoints(data, 504);
 		plot.setNewData(data, 504);
-		boost::this_thread::sleep(boost::posix_time::milliseconds(5));
+		usleep(5000);
 	}
 	return NULL;
 }

@@ -31,8 +31,6 @@
  * Main test file for scatterplot class.
  */
 
-#define BOOST_TEST_MODULE Scatterplot_Test
-
 #include "Scatterplot.h"
 
 #include <pthread.h>
@@ -94,7 +92,7 @@ void *threadMain3(void *arg) {
 	for (int i = 0; i < 10; i++) {
 		getPoints(v.begin(), v.end());
 		plot.setNewData(v.begin(), v.end());
-		boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+		usleep(100000);
 	}
 	return NULL;
 }
