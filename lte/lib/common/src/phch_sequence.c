@@ -25,10 +25,11 @@
  *
  */
 
-
+#include <strings.h>
 #include "lte/common/base.h"
 #include "lte/common/sequence.h"
 
 int sequence_pbch(sequence_t *seq, lte_cp_t cp, int cell_id) {
+	bzero(seq, sizeof(sequence_t));
 	return sequence_LTEPRS(seq, CP_ISNORM(cp)?1920:1728, cell_id);
 }

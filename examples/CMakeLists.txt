@@ -19,8 +19,9 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+
 #################################################################
-# TO BE MOVED TO UNIT TESTS
+# EXAMPLES
 #################################################################
 
 add_executable(hl_example hl_example.c)
@@ -29,8 +30,13 @@ target_link_libraries(hl_example lte)
 add_executable(ll_example ll_example.c)
 target_link_libraries(ll_example lte)
 
-add_executable(synch_test synch_test.c)
-target_link_libraries(synch_test lte)
+add_executable(synch_file synch_file.c)
+target_link_libraries(synch_file lte)
+
+
+#################################################################
+# TO BE MOVED TO UNIT TESTS
+#################################################################
 
 add_executable(mib_test mib_test.c)
 target_link_libraries(mib_test lte)
@@ -47,26 +53,26 @@ LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
 # These two can be compiled without UHD or graphics support
 #################################################################
 
-add_executable(mib_track mib_track.c)
-target_link_libraries(mib_track lte)
+add_executable(pbch_ue pbch_ue.c)
+target_link_libraries(pbch_ue lte)
 
-add_executable(enodeb_bch enodeb_bch.c)
-target_link_libraries(enodeb_bch lte)
+add_executable(pbch_enodeb pbch_enodeb.c)
+target_link_libraries(pbch_enodeb lte)
 
 IF(${CUHD_FIND} EQUAL -1)
-	SET_TARGET_PROPERTIES(mib_track PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
-	SET_TARGET_PROPERTIES(enodeb_bch PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
+	SET_TARGET_PROPERTIES(pbch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
+	SET_TARGET_PROPERTIES(pbch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
 ELSE(${CUHD_FIND} EQUAL -1)	
-	target_link_libraries(mib_track cuhd)
-	target_link_libraries(enodeb_bch cuhd)
+	target_link_libraries(pbch_ue cuhd)
+	target_link_libraries(pbch_enodeb cuhd)
 ENDIF(${CUHD_FIND} EQUAL -1)
 
 IF(${GRAPHICS_FIND} EQUAL -1)
-	SET_TARGET_PROPERTIES(mib_track PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-	SET_TARGET_PROPERTIES(enodeb_bch PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
+	SET_TARGET_PROPERTIES(pbch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
+	SET_TARGET_PROPERTIES(pbch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
 ELSE(${GRAPHICS_FIND} EQUAL -1)
-	target_link_libraries(mib_track graphics)
-	target_link_libraries(enodeb_bch graphics)
+	target_link_libraries(pbch_ue graphics)
+	target_link_libraries(pbch_enodeb graphics)
 ENDIF(${GRAPHICS_FIND} EQUAL -1)
 
 
@@ -77,14 +83,14 @@ ENDIF(${GRAPHICS_FIND} EQUAL -1)
 
 IF(${CUHD_FIND} GREATER -1)
 	
-	add_executable(rssi_scan_usrp rssi_scan_usrp.c)
-	target_link_libraries(rssi_scan_usrp lte cuhd )
+	add_executable(scan_rssi scan_rssi.c)
+	target_link_libraries(scan_rssi lte cuhd )
 	
-	add_executable(pss_scan_usrp pss_scan_usrp.c)
-	target_link_libraries(pss_scan_usrp lte cuhd )
+	add_executable(scan_pss scan_pss.c)
+	target_link_libraries(scan_pss lte cuhd )
 	
-	add_executable(mib_scan_usrp mib_scan_usrp.c)
-	target_link_libraries(mib_scan_usrp lte cuhd )
+	add_executable(scan_mib scan_mib.c)
+	target_link_libraries(scan_mib lte cuhd )
 
 	MESSAGE(STATUS "   UHD examples will be installed.")
 

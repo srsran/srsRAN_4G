@@ -20,13 +20,15 @@
 #
 
 ########################################################################
-# Channel Estimation TEST  
+# FFT TEST  
 ########################################################################
 
-ADD_EXECUTABLE(chest_test chest_test.c)
-TARGET_LINK_LIBRARIES(chest_test lte)
+ADD_EXECUTABLE(fft_test fft_test.c)
+TARGET_LINK_LIBRARIES(fft_test lte)
 
-ADD_TEST(chest_test_all_cellids chest_test) 
-ADD_TEST(chest_test_cellid chest_test -c 1) 
+ADD_TEST(fft_normal fft_test) 
+ADD_TEST(fft_extended fft_test -e) 
 
+ADD_TEST(fft_normal_single fft_test -n 6) 
+ADD_TEST(fft_extended_single fft_test -e -n 6) 
 

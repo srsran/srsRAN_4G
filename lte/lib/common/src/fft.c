@@ -71,6 +71,9 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp_type, int nof_prb, dft_dir_t dir) {
 
 void lte_fft_free_(lte_fft_t *q) {
 	dft_plan_free(&q->fft_plan);
+	if (q->tmp) {
+		free(q->tmp);
+	}
 	bzero(q, sizeof(lte_fft_t));
 }
 

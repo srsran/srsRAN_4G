@@ -37,11 +37,11 @@ void demod_hard_init(demod_hard_t* q) {
 	bzero((void*) q, sizeof(demod_hard_t));
 }
 
-void demod_hard_table(demod_hard_t* q, enum modem_std table) {
+void demod_hard_table_set(demod_hard_t* q, enum modem_std table) {
 	q->table = table;
 }
 
-int demod_hard_demodulate(demod_hard_t* q, const cf_t* symbols, char *bits, int nsymbols) {
+int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits, int nsymbols) {
 
 	int nbits=-1;
 	switch(q->table) {
@@ -68,7 +68,7 @@ int demod_hard_demodulate(demod_hard_t* q, const cf_t* symbols, char *bits, int 
 
 int demod_hard_initialize(demod_hard_hl* hl) {
 	demod_hard_init(&hl->obj);
-	demod_hard_table(&hl->obj,hl->init.std);
+	demod_hard_table_set(&hl->obj,hl->init.std);
 
 	return 0;
 }

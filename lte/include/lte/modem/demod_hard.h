@@ -42,8 +42,8 @@ typedef struct {
 
 
 void demod_hard_init(demod_hard_t* q);
-void demod_hard_table(demod_hard_t* q, enum modem_std table);
-int demod_hard_demodulate(demod_hard_t* q, const cf_t* symbols, char *bits, int nsymbols);
+void demod_hard_table_set(demod_hard_t* q, enum modem_std table);
+int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits, int nsymbols);
 
 
 

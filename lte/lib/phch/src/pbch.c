@@ -404,17 +404,13 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], int no
 	/* Set pointers for layermapping & precoding */
 	int i;
 	int nof_bits = 2 * q->nof_symbols;
+	cf_t *x[MAX_LAYERS];
 
-	cf_t *x[MAX_LAYERS], *d[MAX_CODEWORDS];
 	/* number of layers equals number of ports */
 	for (i=0;i<MAX_PORTS_CTRL;i++) {
 		x[i] = q->pbch_x[i];
 	}
 	memset(&x[MAX_PORTS_CTRL], 0, sizeof(cf_t*) * (MAX_LAYERS - MAX_PORTS_CTRL));
-	/* always one codeword only */
-	d[0] = q->pbch_d;
-	memset(&d[1], 0, sizeof(cf_t*) * (MAX_CODEWORDS - 1));
-
 
 	/* extract symbols */
 	if (q->nof_symbols != pbch_get(slot1_symbols, q->pbch_symbols[0], nof_prb,
@@ -441,8 +437,14 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], int no
 
 		INFO("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
 
-		precoding_decode(q->pbch_symbols, q->ce, x, nant, q->nof_symbols, TX_DIVERSITY);
-		layermap_decode(x, d, nant, 1, q->nof_symbols/nant, TX_DIVERSITY);
+		/* in conctrol channels, only diversity is supported */
+		if (nant == 1) {
+			/* no need for layer demapping */
+			predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d, q->nof_symbols);
+		} else {
+			predecoding_diversity_zf(q->pbch_symbols, q->ce, x, nant, q->nof_symbols);
+			layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols/nant);
+		}
 
 		/* demodulate symbols */
 		demod_soft_sigma_set(&q->demod, ebno);
@@ -482,20 +484,16 @@ void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL]
 	int i;
 	int nof_bits = 2 * q->nof_symbols;
 
-	/* Set pointers for layermapping & precoding */
 	assert(nof_ports < MAX_PORTS_CTRL);
-	cf_t *x[MAX_LAYERS], *d[MAX_CODEWORDS];
+
+	/* Set pointers for layermapping & precoding */
+	cf_t *x[MAX_LAYERS];
 
 	/* number of layers equals number of ports */
 	for (i=0;i<nof_ports;i++) {
 		x[i] = q->pbch_x[i];
 	}
 	memset(&x[nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - nof_ports));
-
-	/* there's always 1 codeword only */
-	d[0] = q->pbch_d;
-	memset(&d[1], 0, sizeof(cf_t*) * (MAX_CODEWORDS - 1));
-
 
 	if (q->frame_idx == 0) {
 		/* pack MIB */
@@ -517,8 +515,12 @@ void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL]
 
 
 	/* layer mapping & precoding */
-	layermap_encode(d, x, nof_ports, 1, q->nof_symbols/nof_ports, TX_DIVERSITY);
-	precoding_encode(x, q->pbch_symbols, nof_ports, q->nof_symbols/nof_ports, TX_DIVERSITY);
+	if (nof_ports > 1) {
+		layermap_diversity(q->pbch_d, x, nof_ports, q->nof_symbols/nof_ports);
+		precoding_diversity(x, q->pbch_symbols, nof_ports, q->nof_symbols/nof_ports);
+	} else {
+		memcpy(q->pbch_symbols[0], q->pbch_d, q->nof_symbols * sizeof(cf_t));
+	}
 
 
 	/* mapping to resource elements */

@@ -37,20 +37,18 @@ char *input_file_name;
 char *output_file_name="abs_corr.txt";
 int nof_slots=100, frame_length=9600, symbol_sz=128;
 float corr_peak_threshold=25.0;
-int file_binary = 0;
 int out_N_id_2 = 0, force_N_id_2=-1;
 
 #define CFO_AUTO	-9999.0
 float force_cfo = CFO_AUTO;
 
 void usage(char *prog) {
-	printf("Usage: %s [onlt] -i input_file\n", prog);
+	printf("Usage: %s [olntsNfc] -i input_file\n", prog);
 	printf("\t-o output_file [Default %s]\n", output_file_name);
 	printf("\t-l frame_length [Default %d]\n", frame_length);
 	printf("\t-n number of frames [Default %d]\n", nof_slots);
 	printf("\t-t correlation threshold [Default %g]\n", corr_peak_threshold);
 	printf("\t-s symbol_sz [Default %d]\n", symbol_sz);
-	printf("\t-b Input files is binary [Default %s]\n", file_binary?"yes":"no");
 	printf("\t-N out_N_id_2 [Default %d]\n", out_N_id_2);
 	printf("\t-f force_N_id_2 [Default %d]\n", force_N_id_2);
 	printf("\t-c force_cfo [Default disabled]\n");
@@ -58,7 +56,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
 	int opt;
-	while ((opt = getopt(argc, argv, "ionltsbNfc")) != -1) {
+	while ((opt = getopt(argc, argv, "ionltsNfc")) != -1) {
 		switch(opt) {
 		case 'i':
 			input_file_name = argv[optind];
@@ -77,9 +75,6 @@ void parse_args(int argc, char **argv) {
 			break;
 		case 's':
 			symbol_sz = atof(argv[optind]);
-			break;
-		case 'b':
-			file_binary = 1;
 			break;
 		case 'N':
 			out_N_id_2 = atoi(argv[optind]);
@@ -130,12 +125,11 @@ int main(int argc, char **argv) {
 	gettimeofday(&tdata[1], NULL);
 	printf("Initializing...");fflush(stdout);
 
-	data_type_t type = file_binary?COMPLEX_FLOAT_BIN:COMPLEX_FLOAT;
-	if (filesource_init(&fsrc, input_file_name, type)) {
+	if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
 		fprintf(stderr, "Error opening file %s\n", input_file_name);
 		exit(-1);
 	}
-	if (filesink_init(&fsink, output_file_name, type)) {
+	if (filesink_init(&fsink, output_file_name, COMPLEX_FLOAT_BIN)) {
 		fprintf(stderr, "Error opening file %s\n", output_file_name);
 		exit(-1);
 	}

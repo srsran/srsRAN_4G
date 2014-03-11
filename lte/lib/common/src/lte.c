@@ -134,6 +134,30 @@ struct lte_band lte_bands[NOF_LTE_BANDS] = {
 };
 #define EOF_BAND 9919
 
+int lte_str2mimotype(char *mimo_type_str, mimo_type_t *type) {
+	if (!strcmp(mimo_type_str, "single")) {
+		*type = SINGLE_ANTENNA;
+	} else if (!strcmp(mimo_type_str, "diversity")) {
+		*type = TX_DIVERSITY;
+	} else if (!strcmp(mimo_type_str, "multiplex")) {
+		*type = SPATIAL_MULTIPLEX;
+	} else {
+		return -1;
+	}
+	return 0;
+}
+
+char *lte_mimotype2str(mimo_type_t type) {
+	switch(type) {
+	case SINGLE_ANTENNA:
+		return "single";
+	case TX_DIVERSITY:
+		return "diversity";
+	case SPATIAL_MULTIPLEX:
+		return "multiplex";
+	}
+}
+
 float get_fd(struct lte_band *band, int earfcn) {
 	return band->fd_low_mhz + 0.1*(earfcn - band->earfcn_offset);
 }

@@ -20,13 +20,16 @@
 #
 
 ########################################################################
-# Channel Estimation TEST  
+# SCRAMBLING TEST  
 ########################################################################
 
-ADD_EXECUTABLE(chest_test chest_test.c)
-TARGET_LINK_LIBRARIES(chest_test lte)
+ADD_EXECUTABLE(scrambling_test scrambling_test.c)
+TARGET_LINK_LIBRARIES(scrambling_test lte)
 
-ADD_TEST(chest_test_all_cellids chest_test) 
-ADD_TEST(chest_test_cellid chest_test -c 1) 
+ADD_TEST(scrambling_pbch_bit scrambling_test -s PBCH -c 50) 
+ADD_TEST(scrambling_pbch_float scrambling_test -s PBCH -c 50 -f) 
+ADD_TEST(scrambling_pbch_e_bit scrambling_test -s PBCH -c 50 -e) 
+ADD_TEST(scrambling_pbch_e_float scrambling_test -s PBCH -c 50 -f -e) 
+ 
 
 

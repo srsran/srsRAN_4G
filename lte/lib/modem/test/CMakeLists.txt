@@ -20,13 +20,21 @@
 #
 
 ########################################################################
-# Channel Estimation TEST  
+# MODEM TEST  
 ########################################################################
 
-ADD_EXECUTABLE(chest_test chest_test.c)
-TARGET_LINK_LIBRARIES(chest_test lte)
+ADD_EXECUTABLE(modem_test modem_test.c)
+TARGET_LINK_LIBRARIES(modem_test lte)
 
-ADD_TEST(chest_test_all_cellids chest_test) 
-ADD_TEST(chest_test_cellid chest_test -c 1) 
+ADD_TEST(modem_bpsk modem_test -n 1020 -m 1) 
+ADD_TEST(modem_qpsk modem_test -n 1020 -m 2)
+ADD_TEST(modem_qam16 modem_test -n 1020 -m 4)
+ADD_TEST(modem_qam64 modem_test -n 1020 -m 6)
+
+ADD_TEST(modem_bpsk_soft modem_test -n 1020 -m 1 -s) 
+ADD_TEST(modem_qpsk_soft modem_test -n 1020 -m 2 -s)
+ADD_TEST(modem_qam16_soft modem_test -n 1020 -m 4 -s)
+ADD_TEST(modem_qam64_soft modem_test -n 1020 -m 6 -s)
+ 
 
 

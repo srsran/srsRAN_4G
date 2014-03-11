@@ -42,6 +42,10 @@ INCLUDE(libLTEPackage)	#setup cpack
 
 include(CTest)
 set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
+CONFIGURE_FILE(
+    "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
+    IMMEDIATE @ONLY)
 
 ########################################################################
 # Install Dirs

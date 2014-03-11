@@ -34,8 +34,8 @@
 
 #define MAX_PORTS		4
 #define MAX_PORTS_CTRL	4
-#define MAX_LAYERS		4
-#define MAX_CODEWORDS	4
+#define MAX_LAYERS		8
+#define MAX_CODEWORDS	2
 
 typedef enum {CPNORM, CPEXT} lte_cp_t;
 
@@ -85,7 +85,7 @@ int lte_voffset(int symbol_id, int cell_id, int nof_ports);
 
 
 typedef enum {
-	TX_DIVERSITY, SPATIAL_MULTIPLEX
+	SINGLE_ANTENNA,TX_DIVERSITY, SPATIAL_MULTIPLEX
 } mimo_type_t;
 
 
@@ -103,6 +103,8 @@ int lte_band_get_fd_band(int band, lte_earfcn_t *earfcn, int earfcn_start, int e
 int lte_band_get_fd_band_all(int band, lte_earfcn_t *earfcn, int max_nelems);
 int lte_band_get_fd_region(enum band_geographical_area region, lte_earfcn_t *earfcn, int max_elems);
 
+int lte_str2mimotype(char *mimo_type_str, mimo_type_t *type);
+char *lte_mimotype2str(mimo_type_t type);
 
 
 #endif

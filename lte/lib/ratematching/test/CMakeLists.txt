@@ -20,13 +20,14 @@
 #
 
 ########################################################################
-# Channel Estimation TEST  
+# RATEMATCHING TEST  
 ########################################################################
 
-ADD_EXECUTABLE(chest_test chest_test.c)
-TARGET_LINK_LIBRARIES(chest_test lte)
+ADD_EXECUTABLE(rm_conv_test rm_conv_test.c)
+TARGET_LINK_LIBRARIES(rm_conv_test lte)
 
-ADD_TEST(chest_test_all_cellids chest_test) 
-ADD_TEST(chest_test_cellid chest_test -c 1) 
+ADD_TEST(rm_conv_test_1 rm_conv_test -t 480 -r 1920) 
+ADD_TEST(rm_conv_test_2 rm_conv_test -t 1920 -r 480) 
+ 
 
 
