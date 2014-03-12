@@ -49,11 +49,11 @@
 
 
 int band, earfcn=-1;
-float find_threshold = 40.0, track_threshold = 8.0;
+float find_threshold = 10.0, track_threshold = 8.0;
 int earfcn_start=-1, earfcn_end = -1;
-float rssi_threshold = -30.0;
+float rssi_threshold = -45.0;
 int max_track_lost=9;
-int nof_frames_find=8, nof_frames_track=100, nof_samples_rssi=50000;
+int nof_frames_find=20, nof_frames_track=100, nof_samples_rssi=50000;
 int track_len=500;
 
 cf_t *input_buffer;
@@ -184,7 +184,7 @@ int base_init(int frame_length) {
 
 void base_free() {
 
-	cuhd_close(&uhd);
+	cuhd_close(uhd);
 	free(input_buffer);
 	free(idx_v);
 	free(idx_valid);

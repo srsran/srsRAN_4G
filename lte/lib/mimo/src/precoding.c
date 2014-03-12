@@ -53,8 +53,29 @@ int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports, 
 		}
 		return i;
 	} else if (nof_ports == 4) {
-		fprintf(stderr, "Error not implemented\n");
-		return -1;
+		int m_ap = (nof_symbols%4)?(nof_symbols*4-2):nof_symbols*4;
+		for (i=0;i<m_ap;i++) {
+			y[0][4*i] = x[0][i]/sqrtf(2);
+			y[1][4*i] = 0;
+			y[2][4*i] = -conjf(x[1][i])/sqrtf(2);
+			y[3][4*i] = 0;
+
+			y[0][4*i+1] = x[1][i]/sqrtf(2);
+			y[1][4*i+1] = 0;
+			y[2][4*i+1] = conjf(x[0][i])/sqrtf(2);
+			y[3][4*i+1] = 0;
+
+			y[0][4*i+2] = 0;
+			y[1][4*i+2] = x[2][i]/sqrtf(2);
+			y[2][4*i+2] = 0;
+			y[3][4*i+2] = -conjf(x[3][i])/sqrtf(2);
+
+			y[0][4*i+3] = 0;
+			y[1][4*i+3] = x[3][i]/sqrtf(2);
+			y[2][4*i+3] = 0;
+			y[3][4*i+3] = conjf(x[2][i])/sqrtf(2);
+		}
+		return i;
 	} else {
 		fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity\n");
 		return -1;
@@ -111,7 +132,7 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 	cf_t h0, h1, r0, r1;
 	float hh;
 	if (nof_ports == 2) {
-		/* FIXME: Use VOLK here */
+		/* TODO: Use VOLK here */
 		for (i=0;i<nof_symbols/2;i++) {
 			h0 = ce[0][2*i];
 			h1 = ce[1][2*i];
@@ -124,6 +145,29 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 		}
 		return i;
 	} else if (nof_ports == 4) {
+		/*
+		int m_ap = (nof_symbols%4)?((nof_symbols-2)/4):nof_symbols/4;
+		for (i=0;i<m_ap;i++) {
+			h0 = ce[0][2*i];
+			h1 = ce[1][2*i];
+			h2 = ce[2][2*i];
+			h3 = ce[3][2*i];
+			hh = crealf(h0)*crealf(h0)+cimagf(h0)*cimagf(h0)
+					+ crealf(h1)*crealf(h1)+cimagf(h1)*cimagf(h1)
+					+ crealf(h2)*crealf(h2)+cimagf(h2)*cimagf(h2)
+					+ crealf(h3)*crealf(h3)+cimagf(h3)*cimagf(h3);
+			r0 = y[0][2*i];
+			r1 = y[0][2*i+1];
+			r2 = y[0][2*i+2];
+			r3 = y[0][2*i+3];
+
+			x[0][i] = (conjf(h0)*r0 + conjf(h1)*r1)/hh * sqrt(2);
+			x[1][i] = (h1*conj(r0) + conj(h0)*r1)/hh * sqrt(2);
+			x[2][i] = (conjf(h0)*r0 + h1*conjf(r1))/hh * sqrt(2);
+			x[3][i] = (-h1*conj(r0) + conj(h0)*r1)/hh * sqrt(2);
+
+		}
+		*/
 		fprintf(stderr, "Error not implemented\n");
 		return -1;
 	} else {

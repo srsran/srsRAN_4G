@@ -112,6 +112,7 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 
+	nof_errors = 0;
 	for (i=0;i<nof_tx_bits;i++) {
 		if ((unrm_symbols[i] > 0) != bits[i]) {
 			nof_errors++;

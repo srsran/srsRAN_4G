@@ -68,6 +68,9 @@ void cexptab_gen(cexptab_t *h, cf_t *x, float freq, int len) {
 		if (phase >= (float) h->size) {
 			phase -= (float) h->size;
 		}
+		if (phase <= 0) {
+			phase += (float) h->size;
+		}
 	}
 }
 

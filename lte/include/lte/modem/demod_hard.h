@@ -54,7 +54,7 @@ typedef struct {
 		enum modem_std std;		// Symbol mapping standard (see modem_table.h)
 	} init;
 
-	const cf_t* input;
+	cf_t* input;
 	int in_len;
 
 	char* output;

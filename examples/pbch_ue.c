@@ -58,7 +58,7 @@
 #define NOF_PORTS 2
 
 float find_threshold = 40.0, track_threshold = 8.0;
-int max_track_lost = 9, nof_slots = -1;
+int max_track_lost = 20, nof_slots = -1;
 int track_len=300;
 char *input_file_name = NULL;
 int disable_plots = 0;
@@ -80,7 +80,7 @@ cfo_t cfocorr;
 enum sync_state {FIND, TRACK};
 
 void usage(char *prog) {
-	printf("Usage: %s [iagfndv]\n", prog);
+	printf("Usage: %s [iagfndvp]\n", prog);
 	printf("\t-i input_file [Default use USRP]\n");
 #ifndef DISABLE_UHD
 	printf("\t-a UHD args [Default %s]\n", uhd_args);
@@ -90,6 +90,7 @@ void usage(char *prog) {
 	printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
 	printf("\t-n nof_frames [Default %d]\n", nof_slots);
+	printf("\t-p PSS threshold [Default %f]\n", find_threshold);
 #ifndef DISABLE_GRAPHICS
 	printf("\t-d disable plots [Default enabled]\n");
 #else
@@ -100,7 +101,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
 	int opt;
-	while ((opt = getopt(argc, argv, "iagfndv")) != -1) {
+	while ((opt = getopt(argc, argv, "iagfndvp")) != -1) {
 		switch(opt) {
 		case 'i':
 			input_file_name = argv[optind];
@@ -113,6 +114,9 @@ void parse_args(int argc, char **argv) {
 			break;
 		case 'f':
 			uhd_freq = atof(argv[optind]);
+			break;
+		case 'p':
+			find_threshold = atof(argv[optind]);
 			break;
 		case 'n':
 			nof_slots = atoi(argv[optind]);
@@ -423,7 +427,9 @@ int main(int argc, char **argv) {
 				find_idx += track_idx - track_len;
 				if (nslot != sync_get_slot_id(&strack)) {
 					INFO("Expected slot %d but got %d\n", nslot, sync_get_slot_id(&strack));
-					printf("\r\n");fflush(stdout);
+					printf("\r\n");
+					fflush(stdout);
+					printf("\r\n");
 					state = FIND;
 				}
 			}
@@ -431,7 +437,9 @@ int main(int argc, char **argv) {
 			/* if we missed too many PSS go back to FIND */
 			if (frame_cnt - last_found > max_track_lost) {
 				INFO("%d frames lost. Going back to FIND", frame_cnt - last_found);
-				printf("\r\n");fflush(stdout);
+				printf("\r\n");
+				fflush(stdout);
+				printf("\r\n");
 				state = FIND;
 			}
 
@@ -447,6 +455,9 @@ int main(int argc, char **argv) {
 					last_found = frame_cnt;
 					if (verbose == VERBOSE_NONE) {
 						if (!nof_found_mib) {
+							printf("\r\n");
+							fflush(stdout);
+							printf("\r\n");
 							pbch_mib_fprint(stdout, &mib);
 						}
 					}

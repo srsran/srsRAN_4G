@@ -53,11 +53,11 @@
 #define IS_SIGNAL(i) (10*log10f(rssi[i]) + 30 > rssi_threshold)
 
 int band, earfcn=-1;
-float find_threshold = 40.0, track_threshold = 8.0;
+float find_threshold = 10.0, track_threshold = 8.0;
 int earfcn_start=-1, earfcn_end = -1;
-float rssi_threshold = -30.0;
+float rssi_threshold = -45.0;
 int max_track_lost=9;
-int nof_frames_find=8, nof_frames_track=100, nof_samples_rssi=50000;
+int nof_frames_find=20, nof_frames_track=100, nof_samples_rssi=50000;
 int track_len=500;
 
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
@@ -72,7 +72,7 @@ int *idx_v, *idx_valid, *t;
 float *p2a_v;
 void *uhd;
 int nof_bands;
-float uhd_gain = 30.0;
+float uhd_gain = 20.0;
 
 #define MAX_EARFCN 1000
 lte_earfcn_t channels[MAX_EARFCN];
@@ -232,7 +232,7 @@ void base_free() {
 	int i;
 
 #ifndef DISABLE_UHD
-	cuhd_close(&uhd);
+	cuhd_close(uhd);
 #endif
 
 	sync_free(&sfind);

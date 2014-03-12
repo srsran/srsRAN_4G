@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "lte/common/base.h"
 
@@ -156,6 +157,7 @@ char *lte_mimotype2str(mimo_type_t type) {
 	case SPATIAL_MULTIPLEX:
 		return "multiplex";
 	}
+	return NULL;
 }
 
 float get_fd(struct lte_band *band, int earfcn) {
