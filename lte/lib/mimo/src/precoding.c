@@ -46,10 +46,10 @@ int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports, 
 	if (nof_ports == 2) {
 		/* FIXME: Use VOLK here */
 		for (i=0;i<nof_symbols;i++) {
-			y[0][2*i] = (crealf(x[0][i]) + I * cimagf(x[0][i]))/sqrtf(2);
-			y[1][2*i] = (-crealf(x[1][i]) + I * cimagf(x[1][i]))/sqrtf(2);
-			y[0][2*i+1] = (crealf(x[1][i]) + I * cimagf(x[1][i]))/sqrtf(2);
-			y[1][2*i+1] = (crealf(x[0][i]) + I * cimagf(x[0][i]))/sqrtf(2);
+			y[0][2*i] = x[0][i]/sqrtf(2);
+			y[1][2*i] = -conjf(x[1][i])/sqrtf(2);
+			y[0][2*i+1] = x[1][i]/sqrtf(2);
+			y[1][2*i+1] = conjf(x[0][i])/sqrtf(2);
 		}
 		return i;
 	} else if (nof_ports == 4) {
@@ -85,7 +85,7 @@ int precoding_type(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_layers, int 
 		break;
 	case TX_DIVERSITY:
 		if (nof_ports == nof_layers) {
-			return precoding_diversity(y, x, nof_ports, nof_symbols);
+			return precoding_diversity(x, y, nof_ports, nof_symbols);
 		} else {
 			fprintf(stderr, "Error number of layers must equal number of ports in transmit diversity\n");
 			return -1;
@@ -115,11 +115,12 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 		for (i=0;i<nof_symbols/2;i++) {
 			h0 = ce[0][2*i];
 			h1 = ce[1][2*i];
-			hh = cabs(h0)*cabs(h0)+cabs(h1)*cabs(h1);
+			hh = crealf(h0)*crealf(h0)+cimagf(h0)*cimagf(h0)+
+					crealf(h1)*crealf(h1)+cimagf(h1)*cimagf(h1);
 			r0 = y[0][2*i];
 			r1 = y[0][2*i+1];
-			x[0][i] = (conj(h0)*r0 + h1*conj(r1))/hh;
-			x[1][i] = (h0*conj(r1) - h1*conj(r0))/hh;
+			x[0][i] = (conjf(h0)*r0 + h1*conjf(r1))/hh * sqrt(2);
+			x[1][i] = (-h1*conj(r0) + conj(h0)*r1)/hh * sqrt(2);
 		}
 		return i;
 	} else if (nof_ports == 4) {

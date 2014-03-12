@@ -36,24 +36,26 @@
 
 #include "lte.h"
 
+#define MSE_THRESHOLD	0.00001
+
 int nof_symbols = 1000;
-int nof_cw = 1, nof_layers = 1;
+int nof_layers = 1, nof_ports = 1;
 char *mimo_type_name = NULL;
 
 void usage(char *prog) {
-	printf("Usage: %s -m [single|diversity|multiplex] -c [nof_cw] -l [nof_layers]\n", prog);
+	printf("Usage: %s -m [single|diversity|multiplex] -l [nof_layers] -p [nof_ports]\n", prog);
 	printf("\t-n num_symbols [Default %d]\n", nof_symbols);
 }
 
 void parse_args(int argc, char **argv) {
 	int opt;
-	while ((opt = getopt(argc, argv, "mcln")) != -1) {
+	while ((opt = getopt(argc, argv, "mpln")) != -1) {
 		switch (opt) {
 		case 'n':
 			nof_symbols = atoi(argv[optind]);
 			break;
-		case 'c':
-			nof_cw = atoi(argv[optind]);
+		case 'p':
+			nof_ports = atoi(argv[optind]);
 			break;
 		case 'l':
 			nof_layers = atoi(argv[optind]);
@@ -73,88 +75,116 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-	int i, j, num_errors, symbols_layer;
-	cf_t *d[MAX_CODEWORDS], *x[MAX_LAYERS], *dp[MAX_CODEWORDS];
+	int i, j;
+	float mse;
+	cf_t *x[MAX_LAYERS], *r[MAX_PORTS], *y[MAX_PORTS], *h[MAX_PORTS], *xr[MAX_LAYERS];
 	mimo_type_t type;
-	int nof_symb_cw[MAX_CODEWORDS];
-	int n[2];
 
 	parse_args(argc, argv);
+
+	if (nof_ports > MAX_PORTS || nof_layers > MAX_LAYERS) {
+		fprintf(stderr, "Invalid number of layers or ports\n");
+		exit(-1);
+	}
 
 	if (lte_str2mimotype(mimo_type_name, &type)) {
 		fprintf(stderr, "Invalid MIMO type %s\n", mimo_type_name);
 		exit(-1);
 	}
 
-	if (nof_cw > 1) {
-		n[0] = nof_layers / nof_cw;
-		n[1] = nof_layers - n[0];
-		nof_symb_cw[0] = nof_symbols * n[0];
-		nof_symb_cw[1] = nof_symbols * n[1];
-	} else {
-		nof_symb_cw[0] = nof_symbols;
-		nof_symb_cw[1] = 0;
-	}
-
-	for (i=0;i<nof_cw;i++) {
-		d[i] = malloc(sizeof(cf_t) * nof_symb_cw[i]);
-		if (!d[i]) {
-			perror("malloc");
-			exit(-1);
-		}
-		dp[i] = malloc(sizeof(cf_t) * nof_symb_cw[i]);
-		if (!dp[i]) {
-			perror("malloc");
-			exit(-1);
-		}
-	}
 	for (i=0;i<nof_layers;i++) {
 		x[i] = malloc(sizeof(cf_t) * nof_symbols);
 		if (!x[i]) {
 			perror("malloc");
 			exit(-1);
 		}
+		xr[i] = malloc(sizeof(cf_t) * nof_symbols);
+		if (!xr[i]) {
+			perror("malloc");
+			exit(-1);
+		}
 	}
-
-	/* generate random data */
-	for (i=0;i<nof_cw;i++) {
-		for (j=0;j<nof_symb_cw[i];j++) {
-			d[i][j] = 100 * (rand()/RAND_MAX + I*rand()/RAND_MAX);
+	for (i=0;i<nof_ports;i++) {
+		y[i] = malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+		// TODO: The number of symbols per port is different in spatial multiplexing.
+ 		if (!y[i]) {
+			perror("malloc");
+			exit(-1);
+		}
+		h[i] = malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+		if (!h[i]) {
+			perror("malloc");
+			exit(-1);
 		}
 	}
 
-	/* layer encode */
-	if ((symbols_layer = layermap_type(d, x, nof_cw, nof_layers, nof_symb_cw, type)) < 0) {
+	/* only 1 receiver antenna supported now */
+	r[0] = malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+	if (!r[0]) {
+		perror("malloc");
+		exit(-1);
+	}
+
+	/* generate random data */
+	for (i=0;i<nof_layers;i++) {
+		for (j=0;j<nof_symbols;j++) {
+			x[i][j] = 100 * ((float) rand()/RAND_MAX + (float) I*rand()/RAND_MAX);
+		}
+	}
+
+	/* precoding */
+	if (precoding_type(x, y, nof_layers, nof_ports, nof_symbols, type) < 0) {
 		fprintf(stderr, "Error layer mapper encoder\n");
 		exit(-1);
 	}
 
-	/* layer decode */
-	if (layerdemap_type(x, dp, nof_layers, nof_cw, nof_symbols/nof_layers, nof_symb_cw, type) < 0) {
+	/* generate channel */
+	for (i=0;i<nof_ports;i++) {
+		for (j=0;j<nof_symbols * nof_layers;j++) {
+			float hc = -1+(float) i/nof_ports + j/nof_symbols;
+			h[i][j] = (3+hc) * cexpf(I * hc);
+		}
+	}
+
+	/* pass signal through channel
+	   (we are in the frequency domain so it's a multiplication) */
+	/* there's only one receiver antenna, signals from different transmitter
+	 * ports are simply combined at the receiver
+	 */
+	for (j=0;j<nof_symbols * nof_layers;j++) {
+		r[0][j] = 0;
+		for (i=0;i<nof_ports;i++) {
+			r[0][j] += y[i][j] * h[i][j];
+		}
+	}
+
+	/* predecoding / equalization */
+	if (predecoding_type(r, h, xr, nof_ports, nof_layers, nof_symbols * nof_layers, type) < 0) {
 		fprintf(stderr, "Error layer mapper encoder\n");
 		exit(-1);
 	}
 
 	/* check errors */
-	num_errors = 0;
-	for (i=0;i<nof_cw;i++) {
-		for (j=0;j<nof_symb_cw[i];j++) {
-			if (d[i][j] != dp[i][j]) {
-				num_errors++;
-			}
+	mse = 0;
+	for (i=0;i<nof_layers;i++) {
+		for (j=0;j<nof_symbols;j++) {
+			mse += cabsf(xr[i][j] - x[i][j])/nof_layers/nof_symbols;
 		}
 	}
 
-	for (i=0;i<nof_cw;i++) {
-		free(d[i]);
-		free(dp[i]);
-	}
 	for (i=0;i<nof_layers;i++) {
 		free(x[i]);
+		free(xr[i]);
+	}
+	for (i=0;i<nof_ports;i++) {
+		free(y[i]);
+		free(h[i]);
 	}
 
-	if (num_errors) {
-		printf("%d Errors\n", num_errors);
+	free(r[0]);
+
+	if (mse > MSE_THRESHOLD) {
+		printf("MSE: %f\n", mse);
 		exit(-1);
 	} else {
 		printf("Ok\n");
