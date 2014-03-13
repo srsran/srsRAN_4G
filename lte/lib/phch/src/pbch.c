@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <math.h>
 
 #include "phch.h"
 #include "lte/phch/pbch.h"
@@ -57,6 +58,7 @@ bool pbch_exists(int nframe, int nslot) {
 int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id, bool put) {
 	int i;
 	cf_t *ptr;
+	assert(cell_id >= 0);
 	if (put) {
 		ptr = input;
 		output += nof_prb * RE_X_RB / 2 - 36;
@@ -110,6 +112,9 @@ int pbch_get(cf_t *slot1_data, cf_t *pbch, int nof_prb, lte_cp_t cp, int cell_id
 /** Initializes the PBCH channel receiver */
 int pbch_init(pbch_t *q, int cell_id, lte_cp_t cp) {
 	int ret = -1;
+	if (cell_id < 0) {
+		return -1;
+	}
 	bzero(q, sizeof(pbch_t));
 	q->cell_id = cell_id;
 	q->cp = cp;
@@ -374,8 +379,23 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
 	/* unrate matching */
 	rm_conv_rx(q->temp, q->pbch_rm_f, 4 * nof_bits, 120);
 
+	/* FIXME: If channel estimates are zero, received LLR are NaN. Check and return error */
+	for (j=0;j<120;j++) {
+		if (isnan(q->pbch_rm_f[j]) || isinf(q->pbch_rm_f[j])) {
+			return 0;
+		}
+	}
+
 	/* decode */
 	viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data);
+
+	int c=0;
+	for (j=0;j<40;j++) {
+		c+=q->data[j];
+	}
+	if (!c) {
+		c=1;
+	}
 
 	if (!pbch_crc_check(q->data, nof_ports)) {
 		/* unpack MIB */

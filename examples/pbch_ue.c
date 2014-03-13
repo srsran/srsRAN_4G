@@ -57,7 +57,7 @@
 
 #define NOF_PORTS 2
 
-float find_threshold = 40.0, track_threshold = 8.0;
+float find_threshold = 30.0, track_threshold = 10.0;
 int max_track_lost = 20, nof_slots = -1;
 int track_len=300;
 char *input_file_name = NULL;
@@ -65,7 +65,7 @@ int disable_plots = 0;
 
 int go_exit=0;
 
-float uhd_freq = 2400000000.0, uhd_gain = 20.0;
+float uhd_freq = 2600000000.0, uhd_gain = 20.0;
 char *uhd_args = "";
 
 filesource_t fsrc;
@@ -328,6 +328,7 @@ int main(int argc, char **argv) {
 	float cfo;
 	int n;
 	int nof_found_mib = 0;
+	float timeoffset = 0;
 
 #ifdef DISABLE_UHD
 	if (argc < 3) {
@@ -398,18 +399,23 @@ int main(int argc, char **argv) {
 			INFO("FIND %3d:\tPAR=%.2f\n", frame_cnt, sync_get_peak_to_avg(&sfind));
 			if (find_idx != -1) {
 				/* if found peak, go to track and set track threshold */
-				frame_cnt = -1;
-				last_found = 0;
-				sync_set_threshold(&strack, track_threshold);
-				sync_force_N_id_2(&strack, sync_get_N_id_2(&sfind));
 				cell_id = sync_get_cell_id(&sfind);
-				mib_decoder_init(cell_id);
-				nof_found_mib = 0;
-				nslot = sync_get_slot_id(&sfind);
-				nslot=(nslot+10)%20;
-				cfo = 0;
-				printf("\n");
-				state = TRACK;
+				if (cell_id != -1) {
+					frame_cnt = -1;
+					last_found = 0;
+					sync_set_threshold(&strack, track_threshold);
+					sync_force_N_id_2(&strack, sync_get_N_id_2(&sfind));
+					mib_decoder_init(cell_id);
+					nof_found_mib = 0;
+					nslot = sync_get_slot_id(&sfind);
+					nslot=(nslot+10)%20;
+					cfo = 0;
+					timeoffset = 0;
+					printf("\n");
+					state = TRACK;
+				} else {
+					printf("cellid=-1\n");
+				}
 			}
 			if (verbose == VERBOSE_NONE) {
 				printf("Finding PSS... PAR=%.2f\r", sync_get_peak_to_avg(&sfind));
@@ -423,8 +429,10 @@ int main(int argc, char **argv) {
 			if (track_idx != -1) {
 				/* compute cumulative moving average CFO */
 				cfo = (sync_get_cfo(&strack) + frame_cnt * cfo) / (frame_cnt + 1);
+				/* compute cumulative moving average time offset */
+				timeoffset = (float) (track_idx-track_len + timeoffset * frame_cnt) / (frame_cnt + 1);
 				last_found = frame_cnt;
-				find_idx += track_idx - track_len;
+				find_idx = (find_idx + track_idx - track_len)%FLEN;
 				if (nslot != sync_get_slot_id(&strack)) {
 					INFO("Expected slot %d but got %d\n", nslot, sync_get_slot_id(&strack));
 					printf("\r\n");
@@ -432,6 +440,9 @@ int main(int argc, char **argv) {
 					printf("\r\n");
 					state = FIND;
 				}
+			} else {
+				/* if sync not found, adjust time offset with the averaged value */
+				find_idx = (find_idx + (int) timeoffset)%FLEN;
 			}
 
 			/* if we missed too many PSS go back to FIND */
@@ -448,11 +459,10 @@ int main(int argc, char **argv) {
 
 			cfo_correct(&cfocorr, input_buffer, -cfo/128);
 
-			if (nslot == 0) {
+			if (nslot == 0 && find_idx + 960 < FLEN) {
 				INFO("Finding MIB at idx %d\n", find_idx);
 				if (mib_decoder_run(&input_buffer[find_idx], &mib)) {
 					INFO("MIB detected attempt=%d\n", frame_cnt);
-					last_found = frame_cnt;
 					if (verbose == VERBOSE_NONE) {
 						if (!nof_found_mib) {
 							printf("\r\n");
@@ -466,8 +476,8 @@ int main(int argc, char **argv) {
 					INFO("MIB not found attempt %d\n",frame_cnt);
 				}
 				if (frame_cnt) {
-					printf("SFN: %4d\tCFO: %+.4f KHz\tTimeOffset: %4d\tErrors: %4d/%4d\tErrorRate: %.1e\r", mib.sfn,
-							cfo*15, find_idx, frame_cnt-2*(nof_found_mib-1), frame_cnt,
+					printf("SFN: %4d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, ErrorRate: %.1e\r", mib.sfn,
+							cfo*15, timeoffset/5, find_idx, frame_cnt-2*(nof_found_mib-1), frame_cnt,
 							(float) (frame_cnt-2*(nof_found_mib-1))/frame_cnt);
 					fflush(stdout);
 				}
