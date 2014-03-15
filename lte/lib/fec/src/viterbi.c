@@ -175,7 +175,13 @@ void viterbi_free(viterbi_t *q) {
 
 /* symbols are real-valued */
 int viterbi_decode_f(viterbi_t *q, float *symbols, char *data) {
-	vec_quant_fuc(symbols, q->symbols_uc, 32, 127.5, 255, 3 * (q->framebits + q->K - 1));
+	int len;
+	if (q->tail_biting) {
+		len = 3 * q->framebits;
+	} else {
+		len = 3 * (q->framebits + q->K - 1);
+	}
+	vec_quant_fuc(symbols, q->symbols_uc, 32, 127.5, 255, len);
 	return q->decode(q, q->symbols_uc, data);
 }
 

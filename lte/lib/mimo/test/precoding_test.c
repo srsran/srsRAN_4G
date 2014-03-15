@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
 	/* generate channel */
 	for (i=0;i<nof_ports;i++) {
 		for (j=0;j<nof_symbols * nof_layers;j++) {
-			float hc = -1+(float) i/nof_ports + j/nof_symbols;
+			float hc = -1+(float) i/nof_ports;
 			h[i][j] = (3+hc) * cexpf(I * hc);
 		}
 	}

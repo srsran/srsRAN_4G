@@ -62,15 +62,16 @@ void cexptab_gen(cexptab_t *h, cf_t *x, float freq, int len) {
 	float phase=0;
 
 	for (i = 0; i < len; i++) {
+		while (phase >= (float) h->size) {
+			phase -= (float) h->size;
+		}
+		while (phase < 0) {
+			phase += (float) h->size;
+		}
 		idx = (unsigned int) phase;
 		x[i] = h->tab[idx];
 		phase += phase_inc;
-		if (phase >= (float) h->size) {
-			phase -= (float) h->size;
-		}
-		if (phase <= 0) {
-			phase += (float) h->size;
-		}
+
 	}
 }
 

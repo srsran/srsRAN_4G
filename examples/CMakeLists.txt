@@ -30,16 +30,13 @@ target_link_libraries(hl_example lte)
 add_executable(ll_example ll_example.c)
 target_link_libraries(ll_example lte)
 
+
+#################################################################
+# Applications
+#################################################################
+
 add_executable(synch_file synch_file.c)
 target_link_libraries(synch_file lte)
-
-
-#################################################################
-# TO BE MOVED TO UNIT TESTS
-#################################################################
-
-add_executable(mib_test mib_test.c)
-target_link_libraries(mib_test lte)
 
 
 #################################################################

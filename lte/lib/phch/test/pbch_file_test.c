@@ -142,7 +142,7 @@ int base_init() {
 	return 0;
 }
 
-void base_close() {
+void base_free() {
 	int i;
 
 	filesource_free(&fsrc);
@@ -158,6 +158,10 @@ void base_close() {
 	}
 	chest_free(&chest);
 	lte_fft_free(&fft);
+
+	cfo_free(&cfocorr);
+
+	pbch_free(&pbch);
 
 }
 
@@ -278,6 +282,11 @@ int main(int argc, char **argv) {
 		switch(state) {
 		case SYNC:
 			INFO("State Sync, Slot idx=%d\n", frame_cnt);
+			fprintf(fmatlab, "input_buffer=");
+			vec_sc_prod_cfc(input_buffer, 1000.0, input_buffer, FLEN);
+			vec_fprint_c(fmatlab, input_buffer, FLEN);
+			vec_sc_prod_cfc(input_buffer, 0.0001, input_buffer, FLEN);
+			fprintf(fmatlab, ";\n");
 			mib_idx = sync_run(&synch, input_buffer);
 			if (mib_idx != -1) {
 				cell_id = sync_get_cell_id(&synch);
@@ -320,8 +329,16 @@ int main(int argc, char **argv) {
 		frame_cnt++;
 	}
 
-	base_close();
+	base_free();
 
-	printf("Exit\n");
-	exit(0);
+	fftwf_cleanup();
+
+	if (mib.nof_ports == 2 && mib.nof_prb == 50 && mib.phich_length == NORMAL
+			&& mib.phich_resources == R_1 && mib.sfn == 28) {
+		printf("This is the h3g.mib.dat file\n");
+		exit(0);
+	} else {
+		printf("Exit\n");
+		exit(-1);
+	}
 }

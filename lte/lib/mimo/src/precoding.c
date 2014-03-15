@@ -51,10 +51,11 @@ int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports, 
 			y[0][2*i+1] = x[1][i]/sqrtf(2);
 			y[1][2*i+1] = conjf(x[0][i])/sqrtf(2);
 		}
-		return i;
+		return 2*i;
 	} else if (nof_ports == 4) {
-		int m_ap = (nof_symbols%4)?(nof_symbols*4-2):nof_symbols*4;
-		for (i=0;i<m_ap;i++) {
+		//int m_ap = (nof_symbols%4)?(nof_symbols*4-2):nof_symbols*4;
+		int m_ap = 4 * nof_symbols;
+		for (i=0;i<m_ap/4;i++) {
 			y[0][4*i] = x[0][i]/sqrtf(2);
 			y[1][4*i] = 0;
 			y[2][4*i] = -conjf(x[1][i])/sqrtf(2);
@@ -75,7 +76,7 @@ int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports, 
 			y[2][4*i+3] = 0;
 			y[3][4*i+3] = conjf(x[2][i])/sqrtf(2);
 		}
-		return i;
+		return 4*i;
 	} else {
 		fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity\n");
 		return -1;
@@ -129,8 +130,8 @@ int predecoding_single_zf(cf_t *y, cf_t *ce, cf_t *x, int nof_symbols) {
 int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 		cf_t *x[MAX_LAYERS], int nof_ports, int nof_symbols) {
 	int i;
-	cf_t h0, h1, r0, r1;
-	float hh;
+	cf_t h0, h1, h2, h3, r0, r1, r2, r3;
+	float hh, hh02, hh13;
 	if (nof_ports == 2) {
 		/* TODO: Use VOLK here */
 		for (i=0;i<nof_symbols/2;i++) {
@@ -145,31 +146,29 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 		}
 		return i;
 	} else if (nof_ports == 4) {
-		/*
+
 		int m_ap = (nof_symbols%4)?((nof_symbols-2)/4):nof_symbols/4;
 		for (i=0;i<m_ap;i++) {
-			h0 = ce[0][2*i];
-			h1 = ce[1][2*i];
-			h2 = ce[2][2*i];
-			h3 = ce[3][2*i];
-			hh = crealf(h0)*crealf(h0)+cimagf(h0)*cimagf(h0)
-					+ crealf(h1)*crealf(h1)+cimagf(h1)*cimagf(h1)
-					+ crealf(h2)*crealf(h2)+cimagf(h2)*cimagf(h2)
+			h0 = ce[0][4*i];
+			h1 = ce[1][4*i+2];
+			h2 = ce[2][4*i];
+			h3 = ce[3][4*i+2];
+			hh02 = crealf(h0)*crealf(h0)+cimagf(h0)*cimagf(h0)
+						+ crealf(h2)*crealf(h2)+cimagf(h2)*cimagf(h2);
+			hh13 = crealf(h1)*crealf(h1)+cimagf(h1)*cimagf(h1)
 					+ crealf(h3)*crealf(h3)+cimagf(h3)*cimagf(h3);
-			r0 = y[0][2*i];
-			r1 = y[0][2*i+1];
-			r2 = y[0][2*i+2];
-			r3 = y[0][2*i+3];
+			r0 = y[0][4*i];
+			r1 = y[0][4*i+1];
+			r2 = y[0][4*i+2];
+			r3 = y[0][4*i+3];
 
-			x[0][i] = (conjf(h0)*r0 + conjf(h1)*r1)/hh * sqrt(2);
-			x[1][i] = (h1*conj(r0) + conj(h0)*r1)/hh * sqrt(2);
-			x[2][i] = (conjf(h0)*r0 + h1*conjf(r1))/hh * sqrt(2);
-			x[3][i] = (-h1*conj(r0) + conj(h0)*r1)/hh * sqrt(2);
+			x[0][i] = (conjf(h0)*r0 + h2*conjf(r1))/hh02 * sqrt(2);
+			x[1][i] = (-h2*conjf(r0) + conjf(h0)*r1)/hh02 * sqrt(2);
+			x[2][i] = (conjf(h1)*r2 + h3*conjf(r3))/hh13 * sqrt(2);
+			x[3][i] = (-h3*conjf(r2) + conjf(h1)*r3)/hh13 * sqrt(2);
 
 		}
-		*/
-		fprintf(stderr, "Error not implemented\n");
-		return -1;
+		return i;
 	} else {
 		fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity\n");
 		return -1;

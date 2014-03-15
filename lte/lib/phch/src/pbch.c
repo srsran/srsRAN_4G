@@ -212,6 +212,9 @@ void pbch_free(pbch_t *q) {
 	if (q->pbch_llr) {
 		free(q->pbch_llr);
 	}
+	if (q->temp) {
+		free(q->temp);
+	}
 	if (q->pbch_rm_f) {
 		free(q->pbch_rm_f);
 	}

@@ -58,7 +58,8 @@ ADD_EXECUTABLE(precoding_test precoding_test.c)
 TARGET_LINK_LIBRARIES(precoding_test lte)
 
 ADD_TEST(precoding_single precoding_test -n 1000 -m single) 
-ADD_TEST(precoding_diversity precoding_test -n 1000 -m diversity -l 2 -p 2) 
+ADD_TEST(precoding_diversity2 precoding_test -n 1000 -m diversity -l 2 -p 2) 
+ADD_TEST(precoding_diversity4 precoding_test -n 1024 -m diversity -l 4 -p 4) 
 
 
 
