@@ -29,6 +29,8 @@ Download & Install Instructions
 
 To install QT4 and libfftw use your distribution packet management system, for instance in ubuntu you can run: `sudo apt-get install libfftw3-dev libqt4-dev` to install all requirements. 
 
+
+Finally, to download and build libLTE, just run: 
 ```
 git clone https://github.com/ismagom/libLTE.git
 cd libLTE
