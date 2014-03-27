@@ -282,13 +282,13 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Error initiating PSS/SSS\n");
 		exit(-1);
 	}
-	sync_pss_det_peakmean(&sfind);
+	sync_pss_det_peak_to_avg(&sfind);
 
 	if (sync_init(&strack, track_len)) {
 		fprintf(stderr, "Error initiating PSS/SSS\n");
 		exit(-1);
 	}
-	sync_pss_det_peakmean(&strack);
+	sync_pss_det_peak_to_avg(&strack);
 
 	nof_bands = lte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
 	printf("RSSI scan: %d freqs in band %d, RSSI threshold %.2f dBm\n", nof_bands, band, rssi_threshold);

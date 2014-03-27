@@ -28,10 +28,10 @@
 
 typedef _Complex float cf_t;
 
-void phch_cp_prb_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
+void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
 		int nof_prb, bool advance_input);
-void phch_cp_prb(cf_t **input, cf_t **output, int nof_prb);
-void phch_put_prb_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
+void prb_cp(cf_t **input, cf_t **output, int nof_prb);
+void prb_put_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
 		int nof_prb);
 void phch_get_prb_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
 		int nof_prb);

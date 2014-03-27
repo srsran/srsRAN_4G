@@ -45,15 +45,12 @@
 
 typedef _Complex float cf_t;
 
-enum phich_length { NORMAL, EXTENDED};
-enum phich_resources { R_1_6, R_1_2, R_1, R_2};
-
 typedef struct {
 	int nof_ports;
 	int nof_prb;
 	int sfn;
-	enum phich_length phich_length;
-	enum phich_resources phich_resources;
+	phich_length_t phich_length;
+	phich_resources_t phich_resources;
 }pbch_mib_t;
 
 /* PBCH object */

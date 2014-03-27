@@ -33,10 +33,9 @@
 
 #include "lte.h"
 
-int cell_id = 1;
+int cell_id = -1;
 int nof_prb = 6;
 int nof_ports = 1;
-
 
 void usage(char *prog) {
 	printf("Usage: %s [cpv]\n", prog);
@@ -71,12 +70,14 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
-	pbch_t pbch;
-	pbch_mib_t mib_tx, mib_rx;
+	pcfich_t pcfich;
+	regs_t regs;
 	int i, j;
 	cf_t *ce[MAX_PORTS_CTRL];
 	int nof_re;
-	cf_t *slot1_symbols[MAX_PORTS_CTRL];
+	cf_t *slot_symbols[MAX_PORTS_CTRL];
+	int cfi, cfi_rx, nsf, distance;
+	int cid, max_cid;
 
 	parse_args(argc,argv);
 
@@ -92,51 +93,65 @@ int main(int argc, char **argv) {
 		for (j=0;j<nof_re;j++) {
 			ce[i][j] = 1;
 		}
-		slot1_symbols[i] = 	malloc(sizeof(cf_t) * nof_re);
-		if (!slot1_symbols[i]) {
+		slot_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+		if (!slot_symbols[i]) {
 			perror("malloc");
 			exit(-1);
 		}
-
-	}
-	if (pbch_init(&pbch, cell_id, CPNORM)) {
-		fprintf(stderr, "Error creating PBCH object\n");
-		exit(-1);
 	}
 
-	mib_tx.nof_ports = nof_ports;
-	mib_tx.nof_prb = 50;
-	mib_tx.phich_length = PHICH_EXT;
-	mib_tx.phich_resources = R_1_6;
-	mib_tx.sfn = 124;
+	if (cell_id == -1) {
+		cid = 0;
+		max_cid = 503;
+	} else {
+		cid = cell_id;
+		max_cid = cell_id;
+	}
+	while(cid <= max_cid) {
 
-	pbch_encode(&pbch, &mib_tx, slot1_symbols, nof_prb, nof_ports);
+		printf("Testing CellID=%d...\n", cid);
 
-	/* combine outputs */
-	for (i=1;i<nof_ports;i++) {
-		for (j=0;j<nof_re;j++) {
-			slot1_symbols[0][j] += slot1_symbols[i][j];
+		if (regs_init(&regs, cid, nof_prb, nof_ports, R_1, PHICH_NORM, CPNORM)) {
+			fprintf(stderr, "Error initiating regs\n");
+			exit(-1);
 		}
-	}
 
-	pbch_decode_reset(&pbch);
-	if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, nof_prb, 1, &mib_rx)) {
-		printf("Error decoding\n");
-		exit(-1);
-	}
+		if (pcfich_init(&pcfich, &regs, cid, nof_prb, nof_ports, CPNORM)) {
+			fprintf(stderr, "Error creating PBCH object\n");
+			exit(-1);
+		}
 
-	pbch_free(&pbch);
+		for (nsf=0;nsf<10;nsf++) {
+			for (cfi=1;cfi<4;cfi++) {
+				pcfich_encode(&pcfich, cfi, slot_symbols, nsf);
+
+				/* combine outputs */
+				for (i=1;i<nof_ports;i++) {
+					for (j=0;j<nof_re;j++) {
+						slot_symbols[0][j] += slot_symbols[i][j];
+					}
+				}
+				if (pcfich_decode(&pcfich, slot_symbols[0], ce, nsf, &cfi_rx, &distance)<0) {
+					exit(-1);
+				}
+				INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %d\n",
+						cfi, cfi_rx, nsf, distance);
+
+				if (distance) {
+					printf("Error\n");
+					exit(-1);
+				}
+			}
+		}
+		pcfich_free(&pcfich);
+		regs_free(&regs);
+		cid++;
+	}
 
 	for (i=0;i<MAX_PORTS_CTRL;i++) {
 		free(ce[i]);
-		free(slot1_symbols[i]);
+		free(slot_symbols[i]);
 	}
-
-	if (!memcmp(&mib_tx, &mib_rx, sizeof(pbch_mib_t))) {
-		printf("OK\n");
-		exit(0);
-	} else {
-		pbch_mib_fprint(stdout, &mib_rx);
-		exit(-1);
-	}
+	printf("OK\n");
+	exit(0);
 }

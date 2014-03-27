@@ -47,10 +47,15 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 
 
 
-/** The pss_synch_t object provides functions for fast computation of the crosscorrelation
+/**
+ * The pss_synch_t object provides functions for fast computation of the crosscorrelation
  * between the PSS and received signal and CFO estimation. Also, the function pss_synch_periodic() is designed
  * to be called periodically every subframe, taking care of the correct data alignment with respect
  * to the PSS sequence.
+ *
+ * The object is designed to work with signals sampled at 1.92 Mhz centered at the carrier frequency.
+ * Thus, downsampling is required if the signal is sampled at higher frequencies.
+ *
  */
 
 

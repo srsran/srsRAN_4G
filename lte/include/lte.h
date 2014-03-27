@@ -71,7 +71,10 @@
 #include "lte/mimo/precoding.h"
 #include "lte/mimo/layermap.h"
 
+#include "lte/phch/regs.h"
 #include "lte/phch/pbch.h"
+#include "lte/phch/pcfich.h"
+#include "lte/phch/phich.h"
 
 #include "lte/ratematching/rm_conv.h"
 

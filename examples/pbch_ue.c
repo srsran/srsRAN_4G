@@ -344,8 +344,8 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 
-	sync_pss_det_peakmean(&sfind);
-	sync_pss_det_peakmean(&strack);
+	sync_pss_det_peak_to_avg(&sfind);
+	sync_pss_det_peak_to_avg(&strack);
 
 	if (!input_file_name) {
 	#ifndef DISABLE_UHD
@@ -405,6 +405,7 @@ int main(int argc, char **argv) {
 					last_found = 0;
 					sync_set_threshold(&strack, track_threshold);
 					sync_force_N_id_2(&strack, sync_get_N_id_2(&sfind));
+					sync_force_cp(&strack, sync_get_cp(&sfind));
 					mib_decoder_init(cell_id);
 					nof_found_mib = 0;
 					nslot = sync_get_slot_id(&sfind);
@@ -468,6 +469,7 @@ int main(int argc, char **argv) {
 							printf("\r\n");
 							fflush(stdout);
 							printf("\r\n");
+							printf(" - Phy. CellId:\t%d\n", cell_id);
 							pbch_mib_fprint(stdout, &mib);
 						}
 					}

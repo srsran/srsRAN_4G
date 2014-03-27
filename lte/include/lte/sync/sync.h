@@ -29,9 +29,22 @@
 #ifndef SYNC_
 #define SYNC_
 
+#include <stdbool.h>
+
 #include "pss.h"
 #include "sss.h"
 #include "sfo.h"
+
+/**
+ *
+ * This object performs time and frequency synchronization using the PSS and SSS signals.
+ * The object is designed to work with signals sampled at 1.92 Mhz centered at the carrier frequency.
+ * Thus, downsampling is required if the signal is sampled at higher frequencies.
+ *
+ * Correlation peak is detected comparing the maximum at the output of the correlator with a threshold.
+ * The comparison accepts two modes: absolute value or peak-to-mean ratio, which are configured with the
+ * functions sync_pss_det_absolute() and sync_pss_det_peakmean().
+ */
 
 enum sync_pss_det { ABSOLUTE, PEAK_MEAN};
 
@@ -46,21 +59,43 @@ typedef struct {
 	int N_id_1;
 	int slot_id;
 	float cfo;
+	lte_cp_t cp;
+	bool detect_cp;
 }sync_t;
 
-int sync_run(sync_t *q, cf_t *input);
-float sync_get_cfo(sync_t *q);
-void sync_pss_det_absolute(sync_t *q);
-void sync_pss_det_peakmean(sync_t *q);
-void sync_force_N_id_2(sync_t *q, int force_N_id_2);
-int sync_get_slot_id(sync_t *q);
-float sync_get_peak_to_avg(sync_t *q);
-int sync_get_N_id_2(sync_t *q);
-int sync_get_N_id_1(sync_t *q);
-int sync_get_cell_id(sync_t *q);
-void sync_set_threshold(sync_t *q, float threshold);
+
 int sync_init(sync_t *q, int frame_size);
 void sync_free(sync_t *q);
+
+/* Runs the synchronization algorithm. input signal must be sampled at 1.92 MHz and should be frame_size long at least */
+int sync_run(sync_t *q, cf_t *input);
+
+/* Sets the threshold for peak comparison */
+void sync_set_threshold(sync_t *q, float threshold);
+/* Set peak comparison to absolute value */
+void sync_pss_det_absolute(sync_t *q);
+/* Set peak comparison to relative to the mean */
+void sync_pss_det_peak_to_avg(sync_t *q);
+
+/* Forces the synchronizer to check one N_id_2 PSS sequence only (useful for tracking mode) */
+void sync_force_N_id_2(sync_t *q, int force_N_id_2);
+/* Forces the synchronizer to skip CP detection (useful for tracking mode) */
+void sync_force_cp(sync_t *q, lte_cp_t cp);
+
+/* Gets the slot id (0 or 10) */
+int sync_get_slot_id(sync_t *q);
+/* Gets the last peak-to-average ratio */
+float sync_get_peak_to_avg(sync_t *q);
+/* Gets the N_id_2 from the last call to synch_run() */
+int sync_get_N_id_2(sync_t *q);
+/* Gets the N_id_1 from the last call to synch_run() */
+int sync_get_N_id_1(sync_t *q);
+/* Gets the Physical CellId from the last call to synch_run() */
+int sync_get_cell_id(sync_t *q);
+/* Gets the CFO estimation from the last call to synch_run() */
+float sync_get_cfo(sync_t *q);
+/* Gets the CP length estimation from the last call to synch_run() */
+lte_cp_t sync_get_cp(sync_t *q);
 
 #endif
 

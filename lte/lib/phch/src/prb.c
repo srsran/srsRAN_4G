@@ -29,10 +29,10 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "phch.h"
+#include "prb.h"
 #include "lte/common/base.h"
 
-void phch_cp_prb_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
+void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
 		int nof_prb, bool advance_output) {
 	int i;
 
@@ -62,19 +62,19 @@ void phch_cp_prb_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
 	}
 }
 
-void phch_cp_prb(cf_t **input, cf_t **output, int nof_prb) {
+void prb_cp(cf_t **input, cf_t **output, int nof_prb) {
 	memcpy(*output, *input, sizeof(cf_t) * RE_X_RB * nof_prb);
 	*input += nof_prb * RE_X_RB;
 	*output += nof_prb * RE_X_RB;
 }
 
-void phch_put_prb_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
+void prb_put_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
 		int nof_prb) {
-	phch_cp_prb_ref(input, output, offset, nof_refs, nof_prb, false);
+	prb_cp_ref(input, output, offset, nof_refs, nof_prb, false);
 }
 
-void phch_get_prb_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
+void prb_get_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
 		int nof_prb) {
-	phch_cp_prb_ref(input, output, offset, nof_refs, nof_prb, true);
+	prb_cp_ref(input, output, offset, nof_refs, nof_prb, true);
 }
 

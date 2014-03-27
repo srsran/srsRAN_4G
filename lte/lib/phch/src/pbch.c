@@ -35,13 +35,12 @@
 #include <assert.h>
 #include <math.h>
 
-#include "phch.h"
+#include "prb.h"
 #include "lte/phch/pbch.h"
 #include "lte/common/base.h"
 #include "lte/utils/bit.h"
 #include "lte/utils/vector.h"
 #include "lte/utils/debug.h"
-#include "lte/io/udpsink.h"
 
 const char crc_mask[4][16] = {
 		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -52,7 +51,7 @@ const char crc_mask[4][16] = {
 
 
 bool pbch_exists(int nframe, int nslot) {
-	return (!(nframe % 4) && nslot == 1);
+	return (!(nframe % 5) && nslot == 1);
 }
 
 int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id, bool put) {
@@ -69,16 +68,16 @@ int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id, bo
 
 	/* symbol 0 & 1 */
 	for (i=0;i<2;i++) {
-		phch_cp_prb_ref(&input, &output, cell_id%3, 4, 6, put);
+		prb_cp_ref(&input, &output, cell_id%3, 4, 6, put);
 	}
 	/* symbols 2 & 3 */
 	if (CP_ISNORM(cp)) {
 		for (i=0;i<2;i++) {
-			phch_cp_prb(&input, &output, 6);
+			prb_cp(&input, &output, 6);
 		}
 	} else {
-		phch_cp_prb(&input, &output, 6);
-		phch_cp_prb_ref(&input, &output, cell_id%3, 4, 6, put);
+		prb_cp(&input, &output, 6);
+		prb_cp_ref(&input, &output, cell_id%3, 4, 6, put);
 	}
 	if (put) {
 		return input - ptr;
@@ -109,7 +108,7 @@ int pbch_get(cf_t *slot1_data, cf_t *pbch, int nof_prb, lte_cp_t cp, int cell_id
 	return pbch_cp(slot1_data, pbch, nof_prb, cp, cell_id, false);
 }
 
-/** Initializes the PBCH channel receiver */
+/** Initializes the PBCH transmitter and receiver */
 int pbch_init(pbch_t *q, int cell_id, lte_cp_t cp) {
 	int ret = -1;
 	if (cell_id < 0) {
@@ -251,9 +250,9 @@ void pbch_mib_unpack(char *msg, pbch_mib_t *mib) {
 		break;
 	}
 	if (*msg) {
-		mib->phich_length = EXTENDED;
+		mib->phich_length = PHICH_EXT;
 	} else {
-		mib->phich_length = NORMAL;
+		mib->phich_length = PHICH_NORM;
 	}
 	msg++;
 
@@ -293,7 +292,7 @@ void pbch_mib_pack(pbch_mib_t *mib, char *msg) {
 	}
 	bit_pack(bw, &msg, 3);
 
-	*msg = mib->phich_length == EXTENDED;
+	*msg = mib->phich_length == PHICH_EXT;
 	msg++;
 
 	switch(mib->phich_resources) {
@@ -317,7 +316,7 @@ void pbch_mib_pack(pbch_mib_t *mib, char *msg) {
 void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib) {
 	printf(" - Nof ports:       %d\n", mib->nof_ports);
 	printf(" - PRB:             %d\n", mib->nof_prb);
-	printf(" - PHICH Length:    %s\n", mib->phich_length==EXTENDED?"Extended":"Normal");
+	printf(" - PHICH Length:    %s\n", mib->phich_length==PHICH_EXT?"Extended":"Normal");
 	printf(" - PHICH Resources: ");
 	switch(mib->phich_resources) {
 	case R_1_6:
@@ -370,7 +369,7 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
 	memcpy(&q->temp[dst*nof_bits], &q->pbch_llr[src*nof_bits], n*nof_bits*sizeof(float));
 
 	/* descramble */
-	scrambling_float_offset(&q->seq_pbch, &q->temp[dst*nof_bits], dst*nof_bits, n*nof_bits);
+	scrambling_f_offset(&q->seq_pbch, &q->temp[dst*nof_bits], dst*nof_bits, n*nof_bits);
 
 	for (j=0;j<dst*nof_bits;j++) {
 		q->temp[j] = RX_NULL;
@@ -422,7 +421,9 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
 int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], int nof_prb, float ebno, pbch_mib_t *mib) {
-	int src, dst, res, nb, nant;
+	int src, dst, res, nb;
+	int nant_[3] = {1, 2, 4};
+	int na, nant;
 
 	/* Set pointers for layermapping & precoding */
 	int i;
@@ -455,8 +456,8 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], int no
 	res = 0;
 
 	/* Try decoding for 1 to 4 antennas */
-	/** currently only 2 TX antennas are supported */
-	for (nant=1;nant<=2 && !res;nant++) {
+	for (na=0;na<3 && !res;na++) {
+		nant = nant_[na];
 
 		INFO("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
 
@@ -507,7 +508,7 @@ void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL]
 	int i;
 	int nof_bits = 2 * q->nof_symbols;
 
-	assert(nof_ports < MAX_PORTS_CTRL);
+	assert(nof_ports <= MAX_PORTS_CTRL);
 
 	/* Set pointers for layermapping & precoding */
 	cf_t *x[MAX_LAYERS];
@@ -532,14 +533,14 @@ void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL]
 
 	}
 
-	scrambling_bit_offset(&q->seq_pbch, &q->pbch_rm_b[q->frame_idx * nof_bits],
+	scrambling_b_offset(&q->seq_pbch, &q->pbch_rm_b[q->frame_idx * nof_bits],
 			q->frame_idx * nof_bits, nof_bits);
 	mod_modulate(&q->mod, &q->pbch_rm_b[q->frame_idx * nof_bits], q->pbch_d, nof_bits);
 
 
 	/* layer mapping & precoding */
 	if (nof_ports > 1) {
-		layermap_diversity(q->pbch_d, x, nof_ports, q->nof_symbols/nof_ports);
+		layermap_diversity(q->pbch_d, x, nof_ports, q->nof_symbols);
 		precoding_diversity(x, q->pbch_symbols, nof_ports, q->nof_symbols/nof_ports);
 	} else {
 		memcpy(q->pbch_symbols[0], q->pbch_d, q->nof_symbols * sizeof(cf_t));

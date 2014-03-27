@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
 
 	if (cell_id == -1) {
 		cid = 0;
-		max_cid = 149;
+		max_cid = 504;
 	} else {
 		cid = cell_id;
 		max_cid = cell_id;
@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		chest_free(&eq);
-		cid++;
+		cid+=10;
 		INFO("cid=%d\n", cid);
 	}
 

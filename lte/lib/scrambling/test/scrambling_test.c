@@ -118,8 +118,8 @@ int main(int argc, char **argv) {
 			scrambled_b[i] = input_b[i];
 		}
 
-		scrambling_bit(&seq, scrambled_b);
-		scrambling_bit(&seq, scrambled_b);
+		scrambling_b(&seq, scrambled_b);
+		scrambling_b(&seq, scrambled_b);
 
 		for (i=0;i<seq.len;i++) {
 			if (scrambled_b[i] != input_b[i]) {
@@ -146,8 +146,8 @@ int main(int argc, char **argv) {
 			scrambled_f[i] = input_f[i];
 		}
 
-		scrambling_float(&seq, scrambled_f);
-		scrambling_float(&seq, scrambled_f);
+		scrambling_f(&seq, scrambled_f);
+		scrambling_f(&seq, scrambled_f);
 
 		for (i=0;i<seq.len;i++) {
 			if (scrambled_f[i] != input_f[i]) {

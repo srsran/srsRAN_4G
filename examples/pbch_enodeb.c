@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
 
 	mib.nof_ports = 1;
 	mib.nof_prb = 6;
-	mib.phich_length = NORMAL;
+	mib.phich_length = PHICH_NORM;
 	mib.phich_resources = R_1;
 	mib.sfn = 0;
 

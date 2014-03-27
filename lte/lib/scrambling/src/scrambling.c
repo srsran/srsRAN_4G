@@ -32,17 +32,11 @@
 #include <assert.h>
 #include "lte/scrambling/scrambling.h"
 
-/**
- * @ingroup Soft-bit Scrambling
- * Scrambles the input softbit-sequence (floats) with the scrambling
- * sequence (32-bit integers).
- *
- */
-void scrambling_float(sequence_t *s, float *data) {
-	scrambling_float_offset(s, data, 0, s->len);
+void scrambling_f(sequence_t *s, float *data) {
+	scrambling_f_offset(s, data, 0, s->len);
 }
 
-void scrambling_float_offset(sequence_t *s, float *data, int offset, int len) {
+void scrambling_f_offset(sequence_t *s, float *data, int offset, int len) {
 	int i;
 	assert (len + offset <= s->len);
 
@@ -51,12 +45,20 @@ void scrambling_float_offset(sequence_t *s, float *data, int offset, int len) {
 	}
 }
 
-/**
- * @ingroup Bit Scrambling
- * Directly scrambles the input bit-sequence (char) with the scrambling
- * sequence.
- */
-void scrambling_bit(sequence_t *s, char *data) {
+void scrambling_c(sequence_t *s, cf_t *data) {
+	scrambling_c_offset(s, data, 0, s->len);
+}
+
+void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len) {
+	int i;
+	assert (len + offset <= s->len);
+
+	for (i = 0; i < len; i++) {
+		data[i] = data[i]*(1-2*s->c[i+offset]);
+	}
+}
+
+void scrambling_b(sequence_t *s, char *data) {
 	int i;
 
 	for (i = 0; i < s->len; i++) {
@@ -64,7 +66,7 @@ void scrambling_bit(sequence_t *s, char *data) {
 	}
 }
 
-void scrambling_bit_offset(sequence_t *s, char *data, int offset, int len) {
+void scrambling_b_offset(sequence_t *s, char *data, int offset, int len) {
 	int i;
 	assert (len + offset <= s->len);
 	for (i = 0; i < len; i++) {
@@ -77,14 +79,18 @@ void scrambling_bit_offset(sequence_t *s, char *data, int offset, int len) {
 int compute_sequences(scrambling_hl* h) {
 
 	switch (h->init.channel) {
-	case PBCH:
-		return sequence_pbch(&h->obj.seq[0], h->init.nof_symbols == CPNORM_NSYMB,
+	case SCRAMBLING_PBCH:
+		return sequence_pbch(&h->obj.seq[0], h->init.nof_symbols == CPNORM_NSYMB?CPNORM:CPEXT,
 				h->init.cell_id);
-	case PDSCH:
-	case PCFICH:
-	case PDCCH:
-	case PMCH:
-	case PUCCH:
+	case SCRAMBLING_PDSCH:
+	case SCRAMBLING_PCFICH:
+		for (int ns=0;ns<NSUBFRAMES_X_FRAME;ns++) {
+			sequence_pcfich(&h->obj.seq[ns], 2*ns, h->init.cell_id);
+		}
+		return 0;
+	case SCRAMBLING_PDCCH:
+	case SCRAMBLING_PMCH:
+	case SCRAMBLING_PUCCH:
 		fprintf(stderr, "Not implemented\n");
 		return -1;
 	default:
@@ -103,7 +109,7 @@ int scrambling_initialize(scrambling_hl* h) {
 /** This function can be called in a subframe (1ms) basis for LTE */
 int scrambling_work(scrambling_hl* hl) {
 	int sf;
-	if (hl->init.channel == PBCH) {
+	if (hl->init.channel == SCRAMBLING_PBCH) {
 		sf = 0;
 	} else {
 		sf = hl->ctrl_in.subframe;
@@ -112,10 +118,10 @@ int scrambling_work(scrambling_hl* hl) {
 
 	if (hl->init.hard) {
 		memcpy(hl->output, hl->input, sizeof(char) * hl->in_len);
-		scrambling_bit(seq, hl->output);
+		scrambling_b(seq, hl->output);
 	} else {
 		memcpy(hl->output, hl->input, sizeof(float) * hl->in_len);
-		scrambling_float(seq, hl->output);
+		scrambling_f(seq, hl->output);
 	}
 	hl->out_len = hl->in_len;
 	return 0;

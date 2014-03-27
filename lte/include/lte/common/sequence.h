@@ -42,6 +42,7 @@ void sequence_free(sequence_t *q);
 int sequence_LTEPRS(sequence_t *q, int len, int seed);
 
 int sequence_pbch(sequence_t *seq, lte_cp_t cp, int cell_id);
-int sequence_pbch_crc(sequence_t *seq, int nof_ports);
+int sequence_pcfich(sequence_t *seq, int nslot, int cell_id);
+int sequence_phich(sequence_t *seq, int nslot, int cell_id);
 
 #endif

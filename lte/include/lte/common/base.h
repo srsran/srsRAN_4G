@@ -61,9 +61,11 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define SLOT_LEN_CPNORM(symbol_sz) (symbol_sz+CP(symbol_sz,CPNORM_0_LEN)+(CPNORM_NSYMB-1)*(symbol_sz+CP(symbol_sz,CPNORM_LEN)))
 #define SLOT_LEN_CPEXT(symbol_sz) (CPEXT_NSYMB*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
+#define SLOT_LEN(symbol_sz, cp) CP_ISNORM(cp)?SLOT_LEN_CPNORM(symbol_sz):SLOT_LEN_CPEXT(symbol_sz)
 
 #define SF_LEN_CPNORM(symbol_sz) 2*SLOT_LEN_CPNORM(symbol_sz)
 #define SF_LEN_CPEXT(symbol_sz) 2*SLOT_LEN_CPEXT(symbol_sz)
+#define SF_LEN(symbol_sz, cp) 2*SLOT_LEN(cp, symbol_sz)
 
 #define SLOT_IDX_CPNORM(idx, symbol_sz) (idx==0?(CP(symbol_sz, CPNORM_0_LEN)):(CP(symbol_sz, CPNORM_0_LEN)+idx*(symbol_sz+CP(symbol_sz, CPNORM_LEN))))
 #define SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
@@ -87,6 +89,9 @@ int lte_voffset(int symbol_id, int cell_id, int nof_ports);
 typedef enum {
 	SINGLE_ANTENNA,TX_DIVERSITY, SPATIAL_MULTIPLEX
 } mimo_type_t;
+
+typedef enum { PHICH_NORM, PHICH_EXT} phich_length_t;
+typedef enum { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
 
 
 typedef struct {

@@ -32,23 +32,28 @@
 #include "lte/common/sequence.h"
 #include "lte/common/base.h"
 
-/* Scrambling has no state */
-void scrambling_bit(sequence_t *s, char *data);
-void scrambling_bit_offset(sequence_t *s, char *data, int offset, int len);
+typedef _Complex float cf_t;
 
-void scrambling_float(sequence_t *s, float *data);
-void scrambling_float_offset(sequence_t *s, float *data, int offset, int len);
+/* Scrambling has no state */
+void scrambling_b(sequence_t *s, char *data);
+void scrambling_b_offset(sequence_t *s, char *data, int offset, int len);
+
+void scrambling_f(sequence_t *s, float *data);
+void scrambling_f_offset(sequence_t *s, float *data, int offset, int len);
+
+void scrambling_c(sequence_t *s, cf_t *data);
+void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len);
 
 
 /* High-level API */
 
 /* channel integer values */
-#define PDSCH			0	/* also PUSCH */
-#define PCFICH			1
-#define PDCCH			2
-#define PBCH			3
-#define PMCH			4
-#define PUCCH			5
+#define SCRAMBLING_PDSCH			0	/* also PUSCH */
+#define SCRAMBLING_PCFICH			1
+#define SCRAMBLING_PDCCH			2
+#define SCRAMBLING_PBCH			3
+#define SCRAMBLING_PMCH			4
+#define SCRAMBLING_PUCCH			5
 
 typedef struct {
 	sequence_t seq[NSUBFRAMES_X_FRAME];

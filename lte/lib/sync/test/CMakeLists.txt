@@ -28,6 +28,8 @@ TARGET_LINK_LIBRARIES(sync_test lte)
 
 ADD_TEST(sync_test_100 sync_test -o 100) 
 ADD_TEST(sync_test_400 sync_test -o 400) 
+ADD_TEST(sync_test_100_e sync_test -o 100 -e) 
+ADD_TEST(sync_test_400_e sync_test -o 400 -e) 
  
 ########################################################################
 # CFO TEST  

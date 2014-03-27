@@ -37,24 +37,33 @@
 #include "lte.h"
 
 int cell_id = -1, offset = 0;
+lte_cp_t cp = CPNORM;
 
 #define FLEN	9600
 
 void usage(char *prog) {
-	printf("Usage: %s [co]\n", prog);
+	printf("Usage: %s [coev]\n", prog);
 	printf("\t-c cell_id [Default check for all]\n");
 	printf("\t-o offset [Default %d]\n", offset);
+	printf("\t-e extended CP [Default normal]\n");
+	printf("\t-v verbose\n");
 }
 
 void parse_args(int argc, char **argv) {
 	int opt;
-	while ((opt = getopt(argc, argv, "co")) != -1) {
+	while ((opt = getopt(argc, argv, "coev")) != -1) {
 		switch (opt) {
 		case 'c':
 			cell_id = atoi(argv[optind]);
 			break;
 		case 'o':
 			offset = atoi(argv[optind]);
+			break;
+		case 'e':
+			cp = CPEXT;
+			break;
+		case 'v':
+			verbose++;
 			break;
 		default:
 			usage(argv[0]);
@@ -87,7 +96,7 @@ int main(int argc, char **argv) {
 		exit(-1);
 	}
 
-	if (lte_ifft_init(&ifft, CPNORM, 6)) {
+	if (lte_ifft_init(&ifft, cp, 6)) {
 		fprintf(stderr, "Error creating iFFT object\n");
 		exit(-1);
 	}
@@ -106,7 +115,7 @@ int main(int argc, char **argv) {
 	} else {
 		cid = cell_id;
 		max_cid = cell_id;
-	}
+}
 	while(cid <= max_cid) {
 		N_id_2 = cid%3;
 
@@ -116,8 +125,8 @@ int main(int argc, char **argv) {
 
 		for (ns=0;ns<2;ns++) {
 			memset(buffer, 0, sizeof(cf_t) * FLEN);
-			pss_put_slot(pss_signal, buffer, 6, CPNORM);
-			sss_put_slot(ns?sss_signal5:sss_signal0, buffer, 6, CPNORM);
+			pss_put_slot(pss_signal, buffer, 6, cp);
+			sss_put_slot(ns?sss_signal5:sss_signal0, buffer, 6, cp);
 
 			/* Transform to OFDM symbols */
 			memset(fft_buffer, 0, sizeof(cf_t) * 2 * FLEN);
@@ -135,6 +144,10 @@ int main(int argc, char **argv) {
 				printf("ns != find_ns\n", 10 * ns, find_ns);
 				exit(-1);
 			}
+			if (sync_get_cp(&sync) != cp) {
+				printf("Detected CP should be %s\n", CP_ISNORM(cp)?"Normal":"Extended");
+				exit(-1);
+			}
 		}
 		cid++;
 	}
@@ -150,3 +163,4 @@ int main(int argc, char **argv) {
 	printf("Ok\n");
 	exit(0);
 }
+

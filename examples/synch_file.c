@@ -43,7 +43,7 @@ int out_N_id_2 = 0, force_N_id_2=-1;
 float force_cfo = CFO_AUTO;
 
 void usage(char *prog) {
-	printf("Usage: %s [olntsNfc] -i input_file\n", prog);
+	printf("Usage: %s [olntsNfcv] -i input_file\n", prog);
 	printf("\t-o output_file [Default %s]\n", output_file_name);
 	printf("\t-l frame_length [Default %d]\n", frame_length);
 	printf("\t-n number of frames [Default %d]\n", nof_slots);
@@ -52,11 +52,12 @@ void usage(char *prog) {
 	printf("\t-N out_N_id_2 [Default %d]\n", out_N_id_2);
 	printf("\t-f force_N_id_2 [Default %d]\n", force_N_id_2);
 	printf("\t-c force_cfo [Default disabled]\n");
+	printf("\t-v verbose\n");
 }
 
 void parse_args(int argc, char **argv) {
 	int opt;
-	while ((opt = getopt(argc, argv, "ionltsNfc")) != -1) {
+	while ((opt = getopt(argc, argv, "ionltsNfcv")) != -1) {
 		switch(opt) {
 		case 'i':
 			input_file_name = argv[optind];
@@ -84,6 +85,9 @@ void parse_args(int argc, char **argv) {
 			break;
 		case 'c':
 			force_cfo = atof(argv[optind]);
+			break;
+		case 'v':
+			verbose++;
 			break;
 		default:
 			usage(argv[0]);
