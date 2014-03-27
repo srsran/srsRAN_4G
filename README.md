@@ -25,8 +25,12 @@ The library currently uses Ettus Universal Hardware Driver (UHD). Thus, any hard
 Download & Install Instructions
 =================================
 
-* Requirements: Currently, the library requires libfftw, although we plan make this dependency optional in the future. Also, QT4 and Qwt6 are needed for graphics visualization. If they are not present, though, compilation is still possible although graphics will be disabled. 
+* Requirements: Currently, the library requires libfftw, although we plan make this dependency optional in the future. Also, QT4 is needed for graphics visualization. Compilation is possible without QT4, although graphics will be disabled.
 
+To install QT4 and libfftw use your distribution packet management system, for instance in ubuntu you can run: `sudo apt-get install libfftw3-dev libqt4-dev` to install all requirements. 
+
+
+Finally, to download and build libLTE, just run: 
 ```
 git clone https://github.com/ismagom/libLTE.git
 cd libLTE
@@ -46,12 +50,12 @@ Examples
 Setup one or two computers connected to two USRP or UHD-compatible hardware. From the eNodeB, type
 
 ```
-examples/enodeb_bch -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
+examples/pbch_enodeb -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
 ```
 
 From the UE, type 
 ```
-examples/mib_track -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
+examples/pbch_ue -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
 ```
 
 And the output should look something like the following video. In this example, we removed the transmitter and receiver antennas in the middle of the demonstration, showing how reception is still possible (despite with some erros). 
@@ -66,12 +70,12 @@ If you don't have a pair of USRP, you can also test the demo by writing the samp
 From the eNodeB, type
 
 ```
-examples/enodeb_bch -o [output_file] -c [cell_id] [-h for more commands]
+examples/pbch_enodeb -o [output_file] -c [cell_id] [-h for more commands]
 ```
 
 From the UE, type 
 ```
-examples/mib_track -i [input_file] -c [cell_id] [-h for more commands]
+examples/pbch_ue -i [input_file] -c [cell_id] [-h for more commands]
 ```
 
 
@@ -81,7 +85,7 @@ This program uses any hardware supported by the UHD driver to scan an LTE band f
 
 For instance, the command:
 
-``` examples/mib_scan_usrp -b 3 ```
+``` examples/scan_mib -b 3 ```
 
 
 Scans the LTE band 3 (1805 to 1880 MHz). Note that you need a hardware supporting these frequencies (e.g. SBX daughterboard for USRP). For more command arguments, type ``` examples/mib_scan_usrp -h ```
