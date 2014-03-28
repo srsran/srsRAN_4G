@@ -41,6 +41,7 @@ int sync_init(sync_t *q, int frame_size) {
 	q->threshold = 1.5;
 	q->pss_mode = PEAK_MEAN;
 	q->detect_cp = true;
+	q->sss_en = true;
 
 	for (N_id_2=0;N_id_2<3;N_id_2++) {
 		if (pss_synch_init(&q->pss[N_id_2], frame_size)) {
@@ -207,7 +208,10 @@ int sync_run(sync_t *q, cf_t *input) {
 					}
 				}
 			}
-
+			N_id_1_e = -1;
+			N_id_1_n = -1;
+			slot_id_e = -1;
+			slot_id_n = -1;
 			/* try Normal CP length */
 			if (q->detect_cp || CP_ISNORM(q->cp)) {
 				sss_synch_m0m1(&q->sss[N_id_2], &input[sss_idx_n],
