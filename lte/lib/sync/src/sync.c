@@ -94,6 +94,10 @@ void sync_force_cp(sync_t *q, lte_cp_t cp) {
 	q->detect_cp = false;
 }
 
+void sync_sss_en(sync_t *q, bool enabled) {
+	q->sss_en = enabled;
+}
+
 int sync_get_cell_id(sync_t *q) {
 	if (q->N_id_1 >=0 && q->N_id_2 >= 0) {
 		return q->N_id_1*3 + q->N_id_2;
@@ -179,62 +183,67 @@ int sync_run(sync_t *q, cf_t *input) {
 		INFO("PSS peak detected N_id_2=%d, pos=%d peak=%.2f par=%.2f th=%.2f cfo=%.4f\n", N_id_2,
 				peak_pos[N_id_2], peak_value[N_id_2], q->peak_to_avg, q->threshold, q->cfo);
 
-		/* Make sure we have enough room to find SSS sequence */
-		sss_idx_n = peak_pos[N_id_2]-2*(128+CP(128,CPNORM_LEN));
-		sss_idx_e = peak_pos[N_id_2]-2*(128+CP(128,CPEXT_LEN));
+		if (q->sss_en) {
 
-		if (q->detect_cp) {
-			if (sss_idx_n < 0 || sss_idx_e < 0) {
-				INFO("Not enough room to decode SSS (%d, %d)\n", sss_idx_n, sss_idx_e);
-				return -1;
-			}
-		} else {
-			if (CP_ISNORM(q->cp)) {
-				if (sss_idx_n < 0) {
-					INFO("Not enough room to decode SSS (%d)\n", sss_idx_n);
+			/* Make sure we have enough room to find SSS sequence */
+			sss_idx_n = peak_pos[N_id_2]-2*(128+CP(128,CPNORM_LEN));
+			sss_idx_e = peak_pos[N_id_2]-2*(128+CP(128,CPEXT_LEN));
+
+			if (q->detect_cp) {
+				if (sss_idx_n < 0 || sss_idx_e < 0) {
+					INFO("Not enough room to decode SSS (%d, %d)\n", sss_idx_n, sss_idx_e);
 					return -1;
 				}
 			} else {
-				if (sss_idx_e < 0) {
-					INFO("Not enough room to decode SSS (%d)\n", sss_idx_e);
-					return -1;
+				if (CP_ISNORM(q->cp)) {
+					if (sss_idx_n < 0) {
+						INFO("Not enough room to decode SSS (%d)\n", sss_idx_n);
+						return -1;
+					}
+				} else {
+					if (sss_idx_e < 0) {
+						INFO("Not enough room to decode SSS (%d)\n", sss_idx_e);
+						return -1;
+					}
 				}
 			}
+
+			/* try Normal CP length */
+			if (q->detect_cp || CP_ISNORM(q->cp)) {
+				sss_synch_m0m1(&q->sss[N_id_2], &input[sss_idx_n],
+						&m0, &m0_value_n, &m1, &m1_value_n);
+
+				slot_id_n = 2 * sss_synch_subframe(m0, m1);
+				N_id_1_n = sss_synch_N_id_1(&q->sss[N_id_2], m0, m1);
+			}
+
+			if (q->detect_cp || CP_ISEXT(q->cp)) {
+				/* Now try Extended CP length */
+				sss_synch_m0m1(&q->sss[N_id_2], &input[sss_idx_e],
+						&m0, &m0_value_e, &m1, &m1_value_e);
+
+				slot_id_e = 2 * sss_synch_subframe(m0, m1);
+				N_id_1_e = sss_synch_N_id_1(&q->sss[N_id_2], m0, m1);
+			}
+
+			/* Correlation with extended CP hypoteshis is greater than with normal? */
+			if ((q->detect_cp && m0_value_e * m1_value_e > m0_value_n * m1_value_n)
+					|| CP_ISEXT(q->cp)) {
+				q->cp = CPEXT;
+				q->slot_id = slot_id_e;
+				q->N_id_1 = N_id_1_e;
+			/* then is normal CP */
+			} else {
+				q->cp = CPNORM;
+				q->slot_id = slot_id_n;
+				q->N_id_1 = N_id_1_n;
+			}
+			q->N_id_2 = N_id_2;
+
+			INFO("SSS detected N_id_1=%d, slot_idx=%d, %s CP\n",
+					q->N_id_1, q->slot_id, CP_ISNORM(q->cp)?"Normal":"Extended");
 		}
 
-		/* try Normal CP length */
-		if (q->detect_cp || CP_ISNORM(q->cp)) {
-			sss_synch_m0m1(&q->sss[N_id_2], &input[sss_idx_n],
-					&m0, &m0_value_n, &m1, &m1_value_n);
-
-			slot_id_n = 2 * sss_synch_subframe(m0, m1);
-			N_id_1_n = sss_synch_N_id_1(&q->sss[N_id_2], m0, m1);
-		}
-
-		if (q->detect_cp || CP_ISEXT(q->cp)) {
-			/* Now try Extended CP length */
-			sss_synch_m0m1(&q->sss[N_id_2], &input[sss_idx_e],
-					&m0, &m0_value_e, &m1, &m1_value_e);
-
-			slot_id_e = 2 * sss_synch_subframe(m0, m1);
-			N_id_1_e = sss_synch_N_id_1(&q->sss[N_id_2], m0, m1);
-		}
-
-		/* Correlation with extended CP hypoteshis is greater than with normal? */
-		if ((q->detect_cp && m0_value_e * m1_value_e > m0_value_n * m1_value_n)
-				|| CP_ISEXT(q->cp)) {
-			q->cp = CPEXT;
-			q->slot_id = slot_id_e;
-			q->N_id_1 = N_id_1_e;
-		/* then is normal CP */
-		} else {
-			q->cp = CPNORM;
-			q->slot_id = slot_id_n;
-			q->N_id_1 = N_id_1_n;
-		}
-		q->N_id_2 = N_id_2;
-		INFO("SSS detected N_id_1=%d, slot_idx=%d, %s CP\n",
-				q->N_id_1, q->slot_id, CP_ISNORM(q->cp)?"Normal":"Extended");
 		return peak_pos[N_id_2];
 
 	} else {

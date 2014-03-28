@@ -61,6 +61,7 @@ typedef struct {
 	float cfo;
 	lte_cp_t cp;
 	bool detect_cp;
+	bool sss_en;
 }sync_t;
 
 
@@ -81,6 +82,9 @@ void sync_pss_det_peak_to_avg(sync_t *q);
 void sync_force_N_id_2(sync_t *q, int force_N_id_2);
 /* Forces the synchronizer to skip CP detection (useful for tracking mode) */
 void sync_force_cp(sync_t *q, lte_cp_t cp);
+/* Enables/Disables SSS detection (useful for tracking mode) */
+void sync_sss_en(sync_t *q, bool enabled);
+
 
 /* Gets the slot id (0 or 10) */
 int sync_get_slot_id(sync_t *q);
