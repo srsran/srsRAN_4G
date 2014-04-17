@@ -44,5 +44,6 @@ int sequence_LTEPRS(sequence_t *q, int len, int seed);
 int sequence_pbch(sequence_t *seq, lte_cp_t cp, int cell_id);
 int sequence_pcfich(sequence_t *seq, int nslot, int cell_id);
 int sequence_phich(sequence_t *seq, int nslot, int cell_id);
+int sequence_pdcch(sequence_t *seq, int nslot, int cell_id, int len);
 
 #endif

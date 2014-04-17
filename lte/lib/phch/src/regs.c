@@ -58,6 +58,9 @@ void regs_pdcch_free(regs_t *h) {
 	}
 }
 
+int regs_pdcch_nregs(regs_t *h) {
+	return 9;
+}
 
 
 

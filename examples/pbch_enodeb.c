@@ -152,7 +152,7 @@ void base_init() {
 		fprintf(stderr, "Error creating iFFT object\n");
 		exit(-1);
 	}
-	if (pbch_init(&pbch, cell_id, CPNORM)) {
+	if (pbch_init(&pbch, 6, cell_id, CPNORM)) {
 		fprintf(stderr, "Error creating PBCH object\n");
 		exit(-1);
 	}
@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
 				sss_put_slot(ns?sss_signal5:sss_signal0, slot_buffer, nof_prb, CPNORM);
 				break;
 			case 1: // tx pbch
-				pbch_encode(&pbch, &mib, slot1_symbols, nof_prb, 1);
+				pbch_encode(&pbch, &mib, slot1_symbols, 1);
 				break;
 			default: // transmit zeros
 				break;

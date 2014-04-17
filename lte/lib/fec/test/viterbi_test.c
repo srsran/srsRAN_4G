@@ -187,7 +187,6 @@ int main(int argc, char **argv) {
 	max_coded_length = 0;
 	for (i=0;i<ncods;i++) {
 		cod[i].R = 3;
-		cod[i].framelength = frame_length;
 		coded_length[i] = cod[i].R * (frame_length + ((cod[i].tail_biting) ? 0 : cod[i].K - 1));
 		if (coded_length[i] > max_coded_length) {
 			max_coded_length = coded_length[i];
@@ -273,7 +272,7 @@ int main(int argc, char **argv) {
 
 			/* coded BER */
 			for (n=0;n<ncods;n++) {
-				convcoder_encode(&cod[n], data_tx, symbols);
+				convcoder_encode(&cod[n], data_tx, symbols, frame_length);
 
 				for (j = 0; j < coded_length[n]; j++) {
 					llr[j] = symbols[j] ? sqrt(2) : -sqrt(2);
@@ -283,7 +282,7 @@ int main(int argc, char **argv) {
 				vec_quant_fuc(llr, llr_c, Gain, 127.5, 255, coded_length[n]);
 
 				/* decoder 1 */
-				viterbi_decode_uc(&dec[n], llr_c, data_rx[1+n]);
+				viterbi_decode_uc(&dec[n], llr_c, data_rx[1+n], frame_length);
 			}
 
 			/* check errors */

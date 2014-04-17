@@ -27,6 +27,8 @@
 
 #include <stdbool.h>
 
+#include "lte/fec/crc.h"
+
 typedef struct {
 	int n;
 	int l;
@@ -37,10 +39,10 @@ typedef struct {
 
 
 static expected_word_t expected_words[] = {
-		{5000, 24, 0x1864CFB, 1, 0x4D0836},		// LTE CRC24A (36.212 Sec 5.1.1)
-		{5000, 24, 0X1800063, 1, 0x9B68F8},		// LTE CRC24B
-		{5000, 16, 0x11021, 1, 0xBFFA},  		// LTE CRC16
-		{5000, 8, 0x19B, 1, 0xF8},				// LTE CRC8
+		{5000, 24, LTE_CRC24A, 1, 0x4D0836},		// LTE CRC24A (36.212 Sec 5.1.1)
+		{5000, 24, LTE_CRC24B, 1, 0x9B68F8},		// LTE CRC24B
+		{5000, 16, LTE_CRC16, 1, 0xBFFA},  		// LTE CRC16
+		{5000, 8, LTE_CRC8, 1, 0xF8},				// LTE CRC8
 
 		{-1, -1, 0, 0, 0}
 };

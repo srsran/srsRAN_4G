@@ -32,12 +32,17 @@
 #define NSUBFRAMES_X_FRAME	10
 #define NSLOTS_X_FRAME (2*NSUBFRAMES_X_FRAME)
 
+#define LTE_NIL_SYMBOL	2
+
 #define MAX_PORTS		4
 #define MAX_PORTS_CTRL	4
 #define MAX_LAYERS		8
 #define MAX_CODEWORDS	2
 
 typedef enum {CPNORM, CPEXT} lte_cp_t;
+
+#define SIRNTI		0xFFFF
+#define PRNTI		0xFFFE
 
 #define MAX_NSYMB		7
 

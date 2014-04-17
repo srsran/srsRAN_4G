@@ -30,6 +30,11 @@
 #ifndef CRC_
 #define CRC_
 
+#define LTE_CRC24A	0x1864CFB
+#define LTE_CRC24B	0X1800063
+#define LTE_CRC16	0x11021
+#define LTE_CRC8	0x19B
+
 
 unsigned int crc(unsigned int crc, char *bufptr, int len,
 		int long_crc,unsigned int poly, int paste_word);
