@@ -54,3 +54,11 @@ int sequence_phich(sequence_t *seq, int nslot, int cell_id) {
 	bzero(seq, sizeof(sequence_t));
 	return sequence_LTEPRS(seq, 12, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
 }
+
+/**
+ * 36.211 6.8.2
+ */
+int sequence_pdcch(sequence_t *seq, int nslot, int cell_id, int len) {
+	bzero(seq, sizeof(sequence_t));
+	return sequence_LTEPRS(seq, len, (nslot/2) * 512 + cell_id);
+}

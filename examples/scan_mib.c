@@ -325,7 +325,7 @@ int mib_decoder_init(int cell_id) {
 		return -1;
 	}
 
-	if (pbch_init(&pbch, cell_id, CPNORM)) {
+	if (pbch_init(&pbch, 6, cell_id, CPNORM)) {
 		fprintf(stderr, "Error initiating PBCH\n");
 		return -1;
 	}
@@ -343,7 +343,7 @@ int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
 	}
 
 	DEBUG("Decoding PBCH\n", 0);
-	return pbch_decode(&pbch, fft_buffer, ce, 6, 1, mib);
+	return pbch_decode(&pbch, fft_buffer, ce, 1, mib);
 }
 
 int main(int argc, char **argv) {

@@ -57,6 +57,7 @@ typedef struct {
 typedef struct {
 	int cell_id;
 	lte_cp_t cp;
+	int nof_prb;
 	int nof_symbols;
 
 	/* buffers */
@@ -82,11 +83,10 @@ typedef struct {
 
 }pbch_t;
 
-int pbch_init(pbch_t *q, int cell_id, lte_cp_t cp);
+int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp);
 void pbch_free(pbch_t *q);
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], int nof_prb, float ebno, pbch_mib_t *mib);
-void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL],
-		int nof_prb, int nof_ports);
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float ebno, pbch_mib_t *mib);
+void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports);
 void pbch_decode_reset(pbch_t *q);
 
 void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib);

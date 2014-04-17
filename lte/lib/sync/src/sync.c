@@ -41,6 +41,7 @@ int sync_init(sync_t *q, int frame_size) {
 	q->threshold = 1.5;
 	q->pss_mode = PEAK_MEAN;
 	q->detect_cp = true;
+	q->sss_en = true;
 
 	for (N_id_2=0;N_id_2<3;N_id_2++) {
 		if (pss_synch_init(&q->pss[N_id_2], frame_size)) {
