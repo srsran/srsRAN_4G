@@ -63,7 +63,7 @@ void dci_candidate_fprint(FILE *f, dci_candidate_t *q) {
 			q->L, q->ncce, q->rnti, q->nof_bits);
 }
 
-int dci_format1_add(dci_t *q, dci_format1_t *msg) {
+int dci_format1_add(dci_t *q, dci_format1_t *msg, int L, int nCCE, unsigned short rnti) {
 	int i, j;
 	i=0;
 	while(i<q->nof_dcis && q->msg[i].location.nof_bits)
@@ -72,10 +72,10 @@ int dci_format1_add(dci_t *q, dci_format1_t *msg) {
 		fprintf(stderr, "No more space in DCI container\n");
 		return -1;
 	}
-	q->msg[i].location.L = 0;
-	q->msg[i].location.ncce = 0;
-	q->msg[i].location.nof_bits = dci_format1_sizeof();
-	q->msg[i].location.rnti = 1234;
+	q->msg[i].location.L = L;
+	q->msg[i].location.ncce = nCCE;
+	q->msg[i].location.nof_bits = dci_format1_sizeof(6, 1);
+	q->msg[i].location.rnti = rnti;
 	for (j=0;j<q->msg[i].location.nof_bits;j++) {
 		q->msg[i].data[j] = rand()%2;
 	}

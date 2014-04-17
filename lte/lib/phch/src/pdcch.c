@@ -117,7 +117,7 @@ void pdcch_init_common(pdcch_t *q, pdcch_search_t *s, unsigned short rnti) {
 			// Format 1A and 1C L=4 and L=8, 4 and 2 candidates, only if nof_cce > 16
 			k = 0;
 			k += gen_common_search(&c[k], q->nof_cce,
-					dci_format1A_sizeof(q->nof_prb), SIRNTI);
+					dci_format1A_sizeof(q->nof_prb, true), SIRNTI);
 			k += gen_common_search(&c[k], q->nof_cce,
 					dci_format1C_sizeof(q->nof_prb), SIRNTI);
 		}
@@ -155,9 +155,9 @@ void pdcch_init_search_ue(pdcch_t *q, unsigned short c_rnti) {
 				k += gen_ue_search(&c[k], q->nof_cce,
 						dci_format0_sizeof(q->nof_prb), c_rnti, n);
 				k += gen_ue_search(&c[k], q->nof_cce,
-						dci_format1_sizeof(q->nof_prb), c_rnti, n);
+						dci_format1_sizeof(q->nof_prb, 1), c_rnti, n);
 				k += gen_ue_search(&c[k], q->nof_cce,
-						dci_format1A_sizeof(q->nof_prb), c_rnti, n);
+						dci_format1A_sizeof(q->nof_prb, true), c_rnti, n);
 			}
 		}
 	}

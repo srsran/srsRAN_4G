@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
 	}
 
 	dci_init(&dci_tx, 1);
-	dci_format1_add(&dci_tx, &dci_msg);
+	dci_format1_add(&dci_tx, &dci_msg, 1, 0, 1234);
 
 	pdcch_encode(&pdcch, &dci_tx, slot1_symbols, 0);
 

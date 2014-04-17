@@ -102,12 +102,12 @@ int dci_format0_add(dci_t *q, dci_format0_t *msg, int L, int nCCE, unsigned shor
 int dci_format0_sizeof(int nof_prb);
 
 int dci_format1_add(dci_t *q, dci_format1_t *msg, int L, int nCCE, unsigned short rnti);
-int dci_format1_sizeof(int nof_prb);
+int dci_format1_sizeof(int nof_prb, int P);
 
-int dci_format1A_add(dci_t *q, dci_format1_t *msg, int L, int nCCE, unsigned short rnti);
-int dci_format1A_sizeof(int nof_prb);
+int dci_format1A_add(dci_t *q, dci_format1_t *msg);
+int dci_format1A_sizeof(int nof_prb, bool random_access_initiated);
 
-int dci_format1C_add(dci_t *q, dci_format1_t *msg, int L, int nCCE, unsigned short rnti);
-int dci_format1C_sizeof(int nof_prb);
+int dci_format1C_add(dci_t *q, dci_format1_t *msg);
+int dci_format1C_sizeof();
 
 #endif
