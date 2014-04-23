@@ -45,17 +45,17 @@ int vec_acc_ii(int *x, int len) {
 }
 
 float vec_acc_ff(float *x, int len) {
-#ifndef HAVE_VOLK
+#ifdef HAVE_VOLK_ACC_FUNCTION
+	float result;
+	volk_32f_accumulator_s32f_u(&result,x,(unsigned int) len);
+	return result;
+#else
 	int i;
 	float z=0;
 	for (i=0;i<len;i++) {
 		z+=x[i];
 	}
 	return z;
-#else
-	float result;
-	volk_32f_accumulator_s32f_u(&result,x,(unsigned int) len);
-	return result;
 #endif
 }
 
@@ -83,7 +83,7 @@ void vec_sum_bbb(char *z, char *x, char *y, int len) {
 }
 
 void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len) {
-#ifndef HAVE_VOLK
+#ifndef HAVE_VOLK_MULT_FUNCTION
 	int i;
 	for (i=0;i<len;i++) {
 		z[i] = x[i]*h;
@@ -97,7 +97,7 @@ void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len) {
 }
 
 void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, int len) {
-#ifndef HAVE_VOLK
+#ifndef HAVE_VOLK_MULT_FUNCTION
 	int i;
 	for (i=0;i<len;i++) {
 		z[i] = x[i]*h;
@@ -162,7 +162,7 @@ void vec_fprint_i(FILE *stream, int *x, int len) {
 }
 
 void vec_conj_cc(cf_t *x, cf_t *y, int len) {
-#ifndef HAVE_VOLK
+#ifndef HAVE_VOLK_CONJ_FUNCTION
 	int i;
 	for (i=0;i<len;i++) {
 		y[i] = conjf(x[i]);
@@ -173,7 +173,7 @@ void vec_conj_cc(cf_t *x, cf_t *y, int len) {
 }
 
 void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, int len) {
-#ifndef HAVE_VOLK
+#ifndef HAVE_VOLK_MULT2_FUNCTION
 	int i;
 	for (i=0;i<len;i++) {
 		z[i] = x[i]*y[i];
@@ -201,7 +201,7 @@ float vec_avg_power_cf(cf_t *x, int len) {
 }
 
 void vec_prod_ccc_unalign(cf_t *x,cf_t *y, cf_t *z, int len) {
-#ifndef HAVE_VOLK
+#ifndef HAVE_VOLK_MULT_FUNCTION
 	int i;
 	for (i=0;i<len;i++) {
 		z[i] = x[i]*y[i];
@@ -212,7 +212,7 @@ void vec_prod_ccc_unalign(cf_t *x,cf_t *y, cf_t *z, int len) {
 }
 
 void vec_abs_cf(cf_t *x, float *abs, int len) {
-#ifndef HAVE_VOLK
+#ifndef HAVE_VOLK_MAG_FUNCTION
 	int i;
 	for (i=0;i<len;i++) {
 		abs[i] = cabsf(x[i]);
@@ -225,7 +225,12 @@ void vec_abs_cf(cf_t *x, float *abs, int len) {
 }
 
 int vec_max_fi(float *x, int len) {
-#ifndef HAVE_VOLK
+#ifdef HAVE_VOLK_MAX_FUNCTION
+	unsigned int target=0;
+	volk_32f_index_max_16u_u(&target,x,(unsigned int) len);
+	return (int) target;
+
+#else
 	int i;
 	float m=-FLT_MAX;
 	int p=0;
@@ -236,10 +241,6 @@ int vec_max_fi(float *x, int len) {
 		}
 	}
 	return p;
-#else
-	unsigned int target=0;
-	volk_32f_index_max_16u_u(&target,x,(unsigned int) len);
-	return (int) target;
 #endif
 }
 

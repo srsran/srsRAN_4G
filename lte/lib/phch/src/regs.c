@@ -93,6 +93,9 @@ int regs_phich_init(regs_t *h) {
 	case R_2:
 		ng = 2;
 		break;
+	default:
+		ng = 0;
+		break;
 	}
 	h->ngroups_phich = (int) ceilf(ng * ((float) h->nof_prb/8));
 	h->phich = malloc(sizeof(regs_ch_t) * h->ngroups_phich);
