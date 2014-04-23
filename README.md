@@ -25,9 +25,9 @@ The library currently uses Ettus Universal Hardware Driver (UHD). Thus, any hard
 Download & Install Instructions
 =================================
 
-* Requirements: Currently, the library requires libfftw, although we plan make this dependency optional in the future. Also, QT4 is needed for graphics visualization. Compilation is possible without QT4, although graphics will be disabled.
+* Requirements: Currently, the library requires libfftw, although we plan make this dependency optional in the future. Also, QT4 and Qwt6 are needed for graphics visualization. Compilation is possible without QT4, although graphics will be disabled.
 
-To install QT4 and libfftw use your distribution packet management system, for instance in ubuntu you can run: `sudo apt-get install libfftw3-dev libqt4-dev` to install all requirements. 
+To install QT4, Qwt6 and libfftw use your distribution packet management system, for instance in ubuntu you can run: `sudo apt-get install libfftw3-dev libqwt-dev libqt4-dev` to install all requirements. 
 
 
 Finally, to download and build libLTE, just run: 
