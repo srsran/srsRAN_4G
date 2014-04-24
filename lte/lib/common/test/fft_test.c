@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
 		}
 		printf("MSE=%f\n", mse);
 
-		if (mse >= 0.05) {
+		if (mse >= 0.07) {
 			printf("MSE too large\n");
 			exit(-1);
 		}
