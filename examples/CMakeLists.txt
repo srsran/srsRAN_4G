@@ -38,6 +38,7 @@ target_link_libraries(ll_example lte)
 add_executable(synch_file synch_file.c)
 target_link_libraries(synch_file lte)
 
+LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
 
 #################################################################
 # Check if UHD C-API and Graphics library are available
@@ -59,8 +60,8 @@ target_link_libraries(pbch_enodeb lte)
 IF(${CUHD_FIND} EQUAL -1)
 	SET_TARGET_PROPERTIES(pbch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
 	SET_TARGET_PROPERTIES(pbch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
-ELSE(${CUHD_FIND} EQUAL -1)	
-	target_link_libraries(pbch_ue cuhd)
+ELSE(${CUHD_FIND} EQUAL -1)
+        target_link_libraries(pbch_ue cuhd)
 	target_link_libraries(pbch_enodeb cuhd)
 ENDIF(${CUHD_FIND} EQUAL -1)
 
@@ -79,13 +80,13 @@ ENDIF(${GRAPHICS_FIND} EQUAL -1)
 #################################################################
 
 IF(${CUHD_FIND} GREATER -1)
-	
+
 	add_executable(scan_rssi scan_rssi.c)
 	target_link_libraries(scan_rssi lte cuhd )
-	
+
 	add_executable(scan_pss scan_pss.c)
 	target_link_libraries(scan_pss lte cuhd )
-	
+
 	add_executable(scan_mib scan_mib.c)
 	target_link_libraries(scan_mib lte cuhd )
 
@@ -93,5 +94,4 @@ IF(${CUHD_FIND} GREATER -1)
 
 ELSE(${CUHD_FIND} GREATER -1)
 	MESSAGE(STATUS "   UHD examples NOT INSTALLED: CUHD library not compiled.")
-ENDIF(${CUHD_FIND} GREATER -1)	
-
+ENDIF(${CUHD_FIND} GREATER -1)

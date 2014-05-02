@@ -46,7 +46,18 @@ typedef _Complex float complex_t;
 bool isLocked(void *h)
 {
    cuhd_handler* handler = static_cast<cuhd_handler*>(h);
-   return handler->usrp->get_rx_sensor("lo_locked", 0).to_bool();
+   std::vector<std::string> mb_sensors = handler->usrp->get_mboard_sensor_names();
+   std::vector<std::string> rx_sensors = handler->usrp->get_rx_sensor_names(0);
+   if(std::find(rx_sensors.begin(), rx_sensors.end(), "lo_locked") != rx_sensors.end()) {
+     return handler->usrp->get_rx_sensor("lo_locked", 0).to_bool();
+   }
+   else if(std::find(mb_sensors.begin(), mb_sensors.end(), "ref_locked") != mb_sensors.end()) {
+     return handler->usrp->get_mboard_sensor("ref_locked", 0).to_bool();
+   }
+   else {
+     usleep(500);
+     return true;
+   }
 }
 
 bool cuhd_rx_wait_lo_locked(void *h)
@@ -190,4 +201,3 @@ int cuhd_send(void *h, void *data, int nsamples, int blocking) {
 		return handler->tx_stream->send(data, nsamples, md, 0.0);
 	}
 }
-
