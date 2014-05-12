@@ -25,19 +25,17 @@ IF(UHD_FOUND)
 
 	ADD_LIBRARY(cuhd cuhd_imp.cpp cuhd_utils.c)
 	INCLUDE_DIRECTORIES(${UHD_INCLUDE_DIRS})
+        LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
 	TARGET_LINK_LIBRARIES(cuhd ${UHD_LIBRARIES})
-	
+
 	LIBLTE_SET_PIC(cuhd)
 	APPEND_INTERNAL_LIST(OPTIONAL_LIBS cuhd)
 	INSTALL(TARGETS cuhd DESTINATION ${LIBRARY_DIR})
-	
+
 	MESSAGE(STATUS "   cuhd UHD C wrapper will be installed.")
-	
+
 ELSE(UHD_FOUND)
 
-	MESSAGE(STATUS "   UHD driver not found. CUHD library is not generated")  
+	MESSAGE(STATUS "   UHD driver not found. CUHD library is not generated")
 
 ENDIF(UHD_FOUND)
-
-	
-	 
