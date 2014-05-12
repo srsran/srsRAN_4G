@@ -142,8 +142,13 @@ int rm_conv_rx(float *input, float *output, int in_len, int out_len) {
 		d_i = (i + ndummy) / NCOLS;
 		d_j = (i + ndummy) % NCOLS;
 		for (j = 0; j < RATE; j++) {
-			output[i * RATE + j] = tmp[K_p * j + RM_PERM_CC_INV[d_j] * nrows
-					+ d_i];
+			float o = tmp[K_p * j + RM_PERM_CC_INV[d_j] * nrows
+							+ d_i];
+			if (o != RX_NULL) {
+				output[i * RATE + j] = o;
+			} else {
+				output[i * RATE + j] = 0;
+			}
 		}
 	}
 	return 0;

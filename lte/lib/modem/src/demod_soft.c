@@ -47,7 +47,7 @@ void demod_soft_alg_set(demod_soft_t *q, enum alg alg_type) {
 }
 
 void demod_soft_sigma_set(demod_soft_t *q, float sigma) {
-	q->sigma = sigma;
+	q->sigma = 2*sigma;
 }
 
 int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int nsymbols) {

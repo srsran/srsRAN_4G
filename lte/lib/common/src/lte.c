@@ -135,7 +135,7 @@ struct lte_band lte_bands[NOF_LTE_BANDS] = {
 };
 #define EOF_BAND 9919
 
-int lte_str2mimotype(char *mimo_type_str, mimo_type_t *type) {
+int lte_str2mimotype(char *mimo_type_str, lte_mimo_type_t *type) {
 	if (!strcmp(mimo_type_str, "single")) {
 		*type = SINGLE_ANTENNA;
 	} else if (!strcmp(mimo_type_str, "diversity")) {
@@ -148,7 +148,7 @@ int lte_str2mimotype(char *mimo_type_str, mimo_type_t *type) {
 	return 0;
 }
 
-char *lte_mimotype2str(mimo_type_t type) {
+char *lte_mimotype2str(lte_mimo_type_t type) {
 	switch(type) {
 	case SINGLE_ANTENNA:
 		return "single";

@@ -37,29 +37,144 @@
 regs_reg_t *regs_find_reg(regs_t *h, int k, int l);
 
 
-
-
 /***************************************************************
  *
  * PDCCH REG ALLOCATION
  *
  ***************************************************************/
 
+void regs_pdcch_free(regs_t *h) {
+	int i;
+	for (i=0;i<3;i++) {
+		if (h->pdcch[i].regs) {
+			free(h->pdcch[i].regs);
+		}
+	}
+}
+
+#define PDCCH_NCOLS	32
+const unsigned char PDCCH_PERM[PDCCH_NCOLS] =
+		{ 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31, 0, 16, 8,
+				24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30 };
+
 /** Initialize REGs for PDCCH
  * 36.211 10.3 section 6.8.5
  */
 int regs_pdcch_init(regs_t *h) {
-	return 0;
-}
+	int i, m, cfi, nof_ctrl_symbols;
+	int ret = -1;
+	int nrows, ndummy, j, k, kp;
+	regs_reg_t **tmp = NULL;
 
-void regs_pdcch_free(regs_t *h) {
-	if (h->pdcch) {
-		free(h->pdcch);
+	bzero(&h->pdcch, sizeof(regs_ch_t));
+
+	for (cfi=0;cfi<3;cfi++) {
+		if (h->nof_prb < 10) {
+			nof_ctrl_symbols = cfi+2;
+		} else {
+			nof_ctrl_symbols = cfi+1;
+		}
+
+		tmp = malloc(sizeof(regs_reg_t*) * h->nof_regs);
+		if (!tmp) {
+			perror("malloc");
+			goto clean_and_exit;
+		}
+
+		/* Number and count REGs for this CFI */
+		m=0;
+		for (i=0;i<h->nof_regs;i++) {
+			if (h->regs[i].l < nof_ctrl_symbols && !h->regs[i].assigned) {
+				tmp[m] = &h->regs[i];
+				m++;
+			}
+		}
+
+		h->pdcch[cfi].nof_regs = m;
+
+		h->pdcch[cfi].regs = malloc(sizeof(regs_reg_t*) * h->pdcch[cfi].nof_regs);
+		if (!h->pdcch[cfi].regs) {
+			perror("malloc");
+			goto clean_and_exit;
+		}
+
+		/* Interleave REGs */
+		nrows = (h->pdcch[cfi].nof_regs-1)/PDCCH_NCOLS+1;
+		ndummy = PDCCH_NCOLS*nrows - h->pdcch[cfi].nof_regs;
+		if (ndummy < 0) {
+			ndummy = 0;
+		}
+
+		k=0;
+		for (j = 0; j < PDCCH_NCOLS; j++) {
+			for (i = 0; i < nrows; i++) {
+				if (i*PDCCH_NCOLS + PDCCH_PERM[j] >= ndummy) {
+					m = i*PDCCH_NCOLS + PDCCH_PERM[j]-ndummy;
+					kp = (k-h->cell_id)%h->pdcch[cfi].nof_regs;
+					if (kp < 0) {
+						kp += h->pdcch[cfi].nof_regs;
+					}
+					h->pdcch[cfi].regs[m] = tmp[kp];
+					k++;
+				}
+			}
+		}
+		h->pdcch[cfi].nof_regs = (h->pdcch[cfi].nof_regs/9)*9;
+		free(tmp);
+		tmp = NULL;
+		if (VERBOSE_ISINFO() && cfi == 1) {
+			for (i=0;i<h->pdcch[cfi].nof_regs;i++) {
+				INFO("Logical PDCCH REG#%d:%d (%d,%d)\n", i%9,i/9,
+						h->pdcch[cfi].regs[i]->k0, h->pdcch[cfi].regs[i]->l);
+			}
+		}
 	}
+
+	ret = 0;
+clean_and_exit:
+	if (tmp) {
+		free(tmp);
+	}
+	if (ret == -1) {
+		regs_pdcch_free(h);
+	}
+	return ret;
 }
 
 int regs_pdcch_nregs(regs_t *h) {
-	return 9;
+	if (h->cfi == -1) {
+		fprintf(stderr, "Must call regs_set_cfi() first\n");
+		return -1;
+	} else {
+		return h->pdcch[h->cfi].nof_regs;
+	}
+}
+
+/** Copy quadruplets to REGs and cyclic shift them, according to the
+ * second part of 6.8.5 in 36.211
+ */
+int regs_pdcch_put(regs_t *h, cf_t *pdcch_symbols, cf_t *slot_symbols) {
+	if (h->cfi == -1) {
+		fprintf(stderr, "Must call regs_set_cfi() first\n");
+		return -1;
+	}
+	int i;
+	for (i=0;i<h->pdcch[h->cfi].nof_regs;i++) {
+		regs_put_reg(h->pdcch[h->cfi].regs[i], &pdcch_symbols[i*4], slot_symbols, h->nof_prb);
+	}
+	return h->pdcch[h->cfi].nof_regs*4;
+}
+
+int regs_pdcch_get(regs_t *h, cf_t *slot_symbols, cf_t *pdcch_symbols) {
+	if (h->cfi == -1) {
+		fprintf(stderr, "Must call regs_set_cfi() first\n");
+		return -1;
+	}
+	int i;
+	for (i=0;i<h->pdcch[h->cfi].nof_regs;i++) {
+		regs_get_reg(h->pdcch[h->cfi].regs[i], slot_symbols, &pdcch_symbols[i*4], h->nof_prb);
+	}
+	return h->pdcch[h->cfi].nof_regs*4;
 }
 
 
@@ -195,6 +310,16 @@ void regs_phich_free(regs_t *h) {
 	}
 }
 
+int regs_phich_nregs(regs_t *h) {
+	int i, n;
+	n=0;
+	for (i=0;i<h->ngroups_phich;i++) {
+		n += h->phich[i].nof_regs;
+	}
+	return n;
+}
+
+
 int regs_phich_ngroups(regs_t *h) {
 	return h->ngroups_phich;
 }
@@ -274,10 +399,6 @@ int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_
 
 
 
-
-
-
-
 /***************************************************************
  *
  * PCFICH REG ALLOCATION
@@ -328,6 +449,10 @@ void regs_pcfich_free(regs_t *h) {
 	if (h->pcfich.regs) {
 		free(h->pcfich.regs);
 	}
+}
+
+int regs_pcfich_nregs(regs_t *h) {
+	return h->pcfich.nof_regs;
 }
 
 /**
@@ -392,13 +517,13 @@ regs_reg_t *regs_find_reg(regs_t *h, int k, int l) {
  * Returns the number of REGs in a PRB
  * 36.211 Section 6.2.4
  */
-int regs_num_x_symbol(int symbol, int refs_in_symbol1, lte_cp_t cp) {
+int regs_num_x_symbol(int symbol, int nof_port, lte_cp_t cp) {
 
 	switch (symbol) {
 	case 0:
 		return 2;
 	case 1:
-		switch (refs_in_symbol1) {
+		switch (nof_port) {
 		case 1:
 		case 2:
 			return 3;
@@ -430,10 +555,10 @@ int regs_reg_init(regs_reg_t *reg, int symbol, int nreg, int k0, int maxreg, int
 
 	reg->l = symbol;
 	reg->assigned = false;
-	reg->k0 = k0 + nreg * 6;
 
 	switch (maxreg) {
 	case 2:
+		reg->k0 = k0 + nreg * 6;
 		/* there are two references in the middle */
 		j = z = 0;
 		for (i = 0; i < vo; i++) {
@@ -456,6 +581,7 @@ int regs_reg_init(regs_reg_t *reg, int symbol, int nreg, int k0, int maxreg, int
 		break;
 
 	case 3:
+		reg->k0 = k0 + nreg * 4;
 		/* there is no reference */
 		for (i = 0; i < 4; i++) {
 			reg->k[i] = k0 + nreg * 4 + i;
@@ -479,15 +605,33 @@ void regs_free(regs_t *h) {
 	bzero(h, sizeof(regs_t));
 }
 
+/** Sets the CFI value for this subframe (CFI must be in the range 1..3).
+ */
+int regs_set_cfi(regs_t *h, int cfi) {
+	if (cfi > 0 && cfi <= 3) {
+		if (h->phich_len == PHICH_EXT &&
+				((h->nof_prb < 10 && cfi < 2) || (h->nof_prb >= 10 && cfi < 3))) {
+			fprintf(stderr, "PHICH length is extended. The number of control symbols should be at least 3.\n");
+			return -1;
+		} else {
+			h->cfi = cfi - 1;
+			return 0;
+		}
+	} else {
+		fprintf(stderr, "Invalid CFI %d\n", cfi);
+		return -1;
+	}
+}
+
 /**
  * Initializes REGs structure.
  * Sets all REG indices and initializes PCFICH, PHICH and PDCCH REGs
  * Returns 0 if OK, -1 on error
  */
-int regs_init(regs_t *h, int cell_id, int nof_prb, int refs_in_symbol1,
+int regs_init(regs_t *h, int cell_id, int nof_prb, int nof_ports,
 		phich_resources_t phich_res, phich_length_t phich_len, lte_cp_t cp) {
 	int ret = -1;
-	int i, j, n, p, k;
+	int i, j[4], jmax, n[4], prb, k;
 	int vo = cell_id % 3;
 	int max_ctrl_symbols = nof_prb<10?4:3;
 
@@ -496,18 +640,19 @@ int regs_init(regs_t *h, int cell_id, int nof_prb, int refs_in_symbol1,
 	h->cell_id = cell_id;
 	h->nof_prb = nof_prb;
 	h->max_ctrl_symbols = max_ctrl_symbols;
+	h->cfi = -1; // not yet initialized
 	h->phich_res = phich_res;
 	h->phich_len = phich_len;
 	h->cp = cp;
-	h->refs_in_symbol1 = refs_in_symbol1;
+	h->nof_ports = nof_ports;
 
 	h->nof_regs = 0;
 	for (i = 0; i < max_ctrl_symbols; i++) {
-		n = regs_num_x_symbol(i, refs_in_symbol1, cp);
-		if (n == -1) {
+		n[i] = regs_num_x_symbol(i, nof_ports, cp);
+		if (n[i] == -1) {
 			return -1;
 		}
-		h->nof_regs += nof_prb * n;
+		h->nof_regs += nof_prb * n[i];
 	}
 	INFO("Indexing %d REGs. CellId: %d, %d PRB, CP: %s\n", h->nof_regs, h->cell_id, h->nof_prb,
 			CP_ISNORM(cp)?"Normal":"Extended");
@@ -517,26 +662,36 @@ int regs_init(regs_t *h, int cell_id, int nof_prb, int refs_in_symbol1,
 		goto clean_and_exit;
 	}
 
-	k = 0;
-	for (i = 0; i < max_ctrl_symbols; i++) {
-		n = regs_num_x_symbol(i, refs_in_symbol1, cp);
-		for (p = 0; p < nof_prb; p++) {
-			for (j = 0; j < n; j++) {
-				if (regs_reg_init(&h->regs[k], i, j, p * RE_X_RB, n, vo)) {
-					fprintf(stderr, "Error initializing REGs\n");
-					goto clean_and_exit;
-				}
-				DEBUG("Available REG #%3d: %d:%d:%d (k0=%d)\n", k, i, p, j,
-						h->regs[k].k0);
-				k++;
+	/* Sort REGs according to PDCCH mapping, beggining from the lowest l index then k */
+	bzero(j, sizeof(int) * 4);
+	k = i = prb = jmax = 0;
+	while (k < h->nof_regs) {
+		if (n[i] == 3 || (n[i] == 2 && jmax != 1)) {
+			if (regs_reg_init(&h->regs[k], i, j[i], prb * RE_X_RB, n[i], vo)) {
+				fprintf(stderr, "Error initializing REGs\n");
+				goto clean_and_exit;
 			}
+			DEBUG("Available REG #%3d: l=%d, prb=%d, nreg=%d (k0=%d)\n", k, i, prb, j[i],
+					h->regs[k].k0);
+			j[i]++;
+			k++;
+		}
+		i++;
+		if (i == max_ctrl_symbols) {
+			i = 0;
+			jmax++;
+		}
+		if (jmax == 3) {
+			prb++;
+			bzero(j, sizeof(int) * 4);
+			jmax = 0;
 		}
 	}
-
 	if (regs_pcfich_init(h)) {
 		fprintf(stderr, "Error initializing PCFICH REGs\n");
 		goto clean_and_exit;
 	}
+
 	if (regs_phich_init(h)) {
 		fprintf(stderr, "Error initializing PHICH REGs\n");
 		goto clean_and_exit;
@@ -548,7 +703,8 @@ int regs_init(regs_t *h, int cell_id, int nof_prb, int refs_in_symbol1,
 
 	ret = 0;
 
-	clean_and_exit: if (ret == -1) {
+clean_and_exit:
+	if (ret == -1) {
 		regs_free(h);
 	}
 	return ret;
@@ -562,13 +718,8 @@ int regs_init(regs_t *h, int cell_id, int nof_prb, int refs_in_symbol1,
 int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb) {
 	int i;
 	for (i = 0; i < REGS_RE_X_REG; i++) {
-		if (reg->assigned) {
-			DEBUG("PUT REG: i=%d, (k=%d,l=%d)\n", i, REG_IDX(reg, i, nof_prb),reg->l);
-			slot_symbols[REG_IDX(reg, i, nof_prb)] = reg_data[i];
-		} else {
-			fprintf(stderr, "Error REG not assigned\n");
-			return -1;
-		}
+		DEBUG("PUT REG: i=%d, (k=%d,l=%d)\n", i, REG_IDX(reg, i, nof_prb),reg->l);
+		slot_symbols[REG_IDX(reg, i, nof_prb)] = reg_data[i];
 	}
 	return REGS_RE_X_REG;
 }
@@ -580,15 +731,10 @@ int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_pr
 int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb) {
 	int i;
 	for (i = 0; i < REGS_RE_X_REG; i++) {
-		if (reg->assigned) {
-			slot_symbols[REG_IDX(reg, i, nof_prb)] += reg_data[i];
-			DEBUG("ADD REG: i=%d, (k=%d,l=%d): %.1f+%.1fi\n", i, REG_IDX(reg, i, nof_prb),reg->l,
-					__real__ slot_symbols[REG_IDX(reg, i, nof_prb)],
-					__imag__ slot_symbols[REG_IDX(reg, i, nof_prb)]);
-		} else {
-			fprintf(stderr, "Error REG not assigned\n");
-			return -1;
-		}
+		slot_symbols[REG_IDX(reg, i, nof_prb)] += reg_data[i];
+		DEBUG("ADD REG: i=%d, (k=%d,l=%d): %.1f+%.1fi\n", i, REG_IDX(reg, i, nof_prb),reg->l,
+				__real__ slot_symbols[REG_IDX(reg, i, nof_prb)],
+				__imag__ slot_symbols[REG_IDX(reg, i, nof_prb)]);
 	}
 	return REGS_RE_X_REG;
 }
@@ -600,13 +746,8 @@ int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_pr
 int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, int nof_prb) {
 	int i;
 	for (i = 0; i < REGS_RE_X_REG; i++) {
-		if (reg->assigned) {
-			DEBUG("RESET REG: i=%d, (k=%d,l=%d)\n", i, REG_IDX(reg, i, nof_prb),reg->l);
-			slot_symbols[REG_IDX(reg, i, nof_prb)] = 0;
-		} else {
-			fprintf(stderr, "Error REG not assigned\n");
-			return -1;
-		}
+		DEBUG("RESET REG: i=%d, (k=%d,l=%d)\n", i, REG_IDX(reg, i, nof_prb),reg->l);
+		slot_symbols[REG_IDX(reg, i, nof_prb)] = 0;
 	}
 	return REGS_RE_X_REG;
 }
@@ -617,14 +758,9 @@ int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, int nof_prb) {
 int regs_get_reg(regs_reg_t *reg, cf_t *slot_symbols, cf_t *reg_data, int nof_prb) {
 	int i;
 	for (i = 0; i < REGS_RE_X_REG; i++) {
-		if (reg->assigned) {
-			reg_data[i] = slot_symbols[REG_IDX(reg, i, nof_prb)];
-			DEBUG("GET REG: i=%d, (k=%d,l=%d): %.1f+%.1fi\n", i, REG_IDX(reg, i, nof_prb),reg->l,
-					__real__ reg_data[i], __imag__ reg_data[i]);
-		} else {
-			fprintf(stderr, "Error REG not assigned\n");
-			return -1;
-		}
+		reg_data[i] = slot_symbols[REG_IDX(reg, i, nof_prb)];
+		//DEBUG("GET REG: i=%d, (k=%d,l=%d): %.1f+%.1fi\n", i, REG_IDX(reg, i, nof_prb),reg->l,
+			//	__real__ reg_data[i], __imag__ reg_data[i]);
 	}
 	return REGS_RE_X_REG;
 }
