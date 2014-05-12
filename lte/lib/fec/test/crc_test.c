@@ -35,12 +35,11 @@
 #include <time.h>
 
 #include "lte.h"
-
 #include "crc_test.h"
 
-int num_bits = 1000, crc_length = 16;
-unsigned int crc_poly = 0x11021;
-unsigned int seed = 0;
+int num_bits = 5000, crc_length = 24;
+unsigned int crc_poly = 0x1864CFB;
+unsigned int seed = 1;
 
 
 void usage(char *prog) {
@@ -81,7 +80,7 @@ int main(int argc, char **argv) {
 
 	parse_args(argc, argv);
 
-	data = malloc(sizeof(char) * (num_bits+crc_length));
+	data = malloc(sizeof(char) * (num_bits+crc_length)*2);
 	if (!data) {
 		perror("malloc");
 		exit(-1);
@@ -96,6 +95,9 @@ int main(int argc, char **argv) {
 	for (i=0;i<num_bits;i++) {
 		data[i] = rand()%2;
 	}
+
+	//Initialize crc params and tables
+	if(!init_crc(crc_length, crc_poly))exit(0);
 
 	// generate CRC word
 	crc_word = crc(0, data, num_bits, crc_length, crc_poly, 1);

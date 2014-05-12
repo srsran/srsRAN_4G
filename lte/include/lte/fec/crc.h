@@ -36,6 +36,7 @@
 #define LTE_CRC8	0x19B
 
 
+int init_crc(int lorder, unsigned long polynom);
 unsigned int crc(unsigned int crc, char *bufptr, int len,
 		int long_crc,unsigned int poly, int paste_word);
 
