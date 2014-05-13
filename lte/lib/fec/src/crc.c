@@ -105,14 +105,6 @@ int crc_init(crc_t *crc_par){
 	return(1);
 }
 
-///ELIMINATE//////////////////////////
-unsigned int crc(unsigned int crc, char *bufptr, int len,
-		int long_crc, unsigned int poly, int paste_word){
-	return(0);
-}
-///////////////////////////////////////
-
-
 
 unsigned int crc_attach(char *bufptr, int len, crc_t *crc_params) {
 
