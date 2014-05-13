@@ -154,3 +154,62 @@ unsigned int crc_attach(char *bufptr, int len, crc_t *crc_params) {
 	//Return CRC value
 	return crc;
 }
+
+
+unsigned int cword;
+
+unsigned int icrc1(unsigned int crc, unsigned short onech,int long_crc,
+		int left_shift,unsigned int poly)
+{
+  int i;
+  unsigned int tmp=(unsigned int) (crc ^ (onech << (long_crc >> 1) ));
+
+  for (i=0;i<left_shift;i++) {
+    if (tmp & (0x1<<(long_crc-1)))
+      tmp=(tmp<<1)^poly;
+    else
+      tmp <<= 1;
+  }
+
+  return tmp;
+}
+
+unsigned int crc(unsigned int crc, char *bufptr, int len,
+		int long_crc,unsigned int poly, int paste_word) {
+
+  int i,k;
+  unsigned int data;
+  int stop;
+  unsigned int ret;
+
+  cword=crc;
+
+  k=0;
+  stop=0;
+  while(!stop) {
+    data=0;
+    for (i=0;i<long_crc/2;i++) {
+      if (bufptr[k] && k<len)
+        data|=(0x1<<(long_crc/2-1-i));
+      k++;
+      if (k==len) {
+        stop=1;
+        i++;
+        break;
+      }
+    }
+
+    cword=(unsigned int) (icrc1((unsigned int) (cword<<long_crc>>long_crc),
+    		data,long_crc,i,poly)<<long_crc)>>long_crc;
+  }
+
+  ret=cword;
+  if (paste_word) {
+    cword<<=32-long_crc;
+    for (i=0;i<long_crc;i++) {
+       bufptr[i+len]=((cword&(0x1<<31))>>31);
+       cword<<=1;
+    }
+  }
+  return (ret);
+}

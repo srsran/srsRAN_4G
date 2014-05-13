@@ -61,5 +61,7 @@ typedef struct {
 
 int crc_init(crc_t *crc_par);
 unsigned int crc_attach(char *bufptr, int len, crc_t *crc_params);
+unsigned int crc(unsigned int crc, char *bufptr, int len,
+		int long_crc,unsigned int poly, int paste_word);
 
 #endif
