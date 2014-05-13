@@ -58,7 +58,7 @@
 #define NOF_PORTS 2
 
 float find_threshold = 30.0, track_threshold = 10.0;
-int max_track_lost = 20, nof_slots = -1;
+int max_track_lost = 20, nof_frames = -1;
 int track_len=300;
 char *input_file_name = NULL;
 int disable_plots = 0;
@@ -89,7 +89,7 @@ void usage(char *prog) {
 #else
 	printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
-	printf("\t-n nof_frames [Default %d]\n", nof_slots);
+	printf("\t-n nof_frames [Default %d]\n", nof_frames);
 	printf("\t-p PSS threshold [Default %f]\n", find_threshold);
 #ifndef DISABLE_GRAPHICS
 	printf("\t-d disable plots [Default enabled]\n");
@@ -119,7 +119,7 @@ void parse_args(int argc, char **argv) {
 			find_threshold = atof(argv[optind]);
 			break;
 		case 'n':
-			nof_slots = atoi(argv[optind]);
+			nof_frames = atoi(argv[optind]);
 			break;
 		case 'd':
 			disable_plots = 1;
@@ -375,7 +375,7 @@ int main(int argc, char **argv) {
 	sync_set_threshold(&sfind, find_threshold);
 	sync_force_N_id_2(&sfind, -1);
 
-	while(!go_exit && (frame_cnt < nof_slots || nof_slots==-1)) {
+	while(!go_exit && (frame_cnt < nof_frames || nof_frames==-1)) {
 		INFO(" -----   RECEIVING %d SAMPLES ---- \n", FLEN);
 		if (input_file_name) {
 			n = filesource_read(&fsrc, input_buffer, FLEN);

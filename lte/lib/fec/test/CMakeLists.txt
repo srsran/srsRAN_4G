@@ -19,6 +19,18 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+
+########################################################################
+# Turbo Coder TEST  
+########################################################################
+ADD_EXECUTABLE(turbocoder_test turbocoder_test.c)
+TARGET_LINK_LIBRARIES(turbocoder_test lte)
+
+ADD_TEST(turbocoder_test_504_1 turbocoder_test -n 100 -s 1 -l 504 -e 1.0 -t) 
+ADD_TEST(turbocoder_test_504_2 turbocoder_test -n 100 -s 1 -l 504 -e 2.0 -t) 
+ADD_TEST(turbocoder_test_6114_1_5 turbocoder_test -n 100 -s 1 -l 6144 -e 1.5 -t)
+ADD_TEST(turbocoder_test_known turbocoder_test -n 1 -s 1 -k -e 0.5)  
+
 ########################################################################
 # Viterbi TEST  
 ########################################################################

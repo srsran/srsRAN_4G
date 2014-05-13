@@ -35,7 +35,7 @@
 #include "lte.h"
 #include "cuhd.h"
 
-int nof_slots=1000;
+int nof_frames=1000;
 int band;
 
 cf_t *input_buffer, *fft_buffer;
@@ -52,7 +52,7 @@ void usage(char *prog) {
 	printf("Usage: %s [nvse] -b band\n", prog);
 	printf("\t-s earfcn_start [Default All]\n");
 	printf("\t-e earfcn_end [Default All]\n");
-	printf("\t-n number of frames [Default %d]\n", nof_slots);
+	printf("\t-n number of frames [Default %d]\n", nof_frames);
 	printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -70,7 +70,7 @@ void parse_args(int argc, char **argv) {
 			earfcn_end = atoi(argv[optind]);
 			break;
 		case 'n':
-			nof_slots = atoi(argv[optind]);
+			nof_frames = atoi(argv[optind]);
 			break;
 		case 'v':
 			verbose++;
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
 		frame_cnt = 0;
 		nsamples=0;
 		rssi[i]=0;
-		while(frame_cnt < nof_slots) {
+		while(frame_cnt < nof_frames) {
 			nsamples += cuhd_recv(uhd, input_buffer, 1920, 1);
 			rssi[i] += vec_avg_power_cf(input_buffer, 1920);
 			frame_cnt++;

@@ -54,6 +54,9 @@
 #include "lte/fec/viterbi.h"
 #include "lte/fec/convcoder.h"
 #include "lte/fec/crc.h"
+#include "lte/fec/tc_interl.h"
+#include "lte/fec/turbocoder.h"
+#include "lte/fec/turbodecoder.h"
 
 #include "lte/filter/filter2d.h"
 

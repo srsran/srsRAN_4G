@@ -91,6 +91,8 @@ int lte_voffset(int symbol_id, int cell_id, int nof_ports);
 
 #define NOF_LTE_BANDS	29
 
+#define NOF_TC_CB_SIZES 188
+
 
 typedef enum {
 	SINGLE_ANTENNA,TX_DIVERSITY, SPATIAL_MULTIPLEX
@@ -108,6 +110,9 @@ typedef struct {
 enum band_geographical_area {
 	ALL, NAR, APAC, EMEA, JAPAN, CALA, NA
 };
+
+int lte_cb_size(int index);
+int lte_find_cb_index(int long_cb);
 
 float lte_band_fd(int earfcn);
 int lte_band_get_fd_band(int band, lte_earfcn_t *earfcn, int earfcn_start, int earfcn_end, int max_elems);
