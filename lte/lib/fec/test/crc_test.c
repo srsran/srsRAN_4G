@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
 	int i;
 	char *data;
 	unsigned int crc_word, expected_word;
+	crc_t crc_p;
 
 	parse_args(argc, argv);
 
@@ -96,21 +97,23 @@ int main(int argc, char **argv) {
 		data[i] = rand()%2;
 	}
 
-	//Initialize crc params and tables
-	if(!init_crc(crc_length, crc_poly))exit(0);
+	//Initialize CRC params and tables
+	crc_p.polynom=crc_poly;
+	crc_p.order=crc_length;
+	crc_p.crcinit=0x00000000; 
+	crc_p.crcxor=0x00000000;
+	if(!crc_init(&crc_p))exit(0);
 
 	// generate CRC word
-	crc_word = crc(0, data, num_bits, crc_length, crc_poly, 1);
+	crc_word = crc_attach(data, num_bits, &crc_p);
 
 	// check if result is zero
-	if (crc(0, data, num_bits + crc_length, crc_length, crc_poly, 0)) {
+	if (crc_attach(data, num_bits + crc_length, &crc_p)) {
 		printf("CRC check is non-zero\n");
 		exit(-1);
 	}
 
 	free(data);
-
-	printf("CRC word: 0x%x\n", crc_word);
 
 	// check if generated word is as expected
 	if (get_expected_word(num_bits, crc_length, crc_poly, seed, &expected_word)) {

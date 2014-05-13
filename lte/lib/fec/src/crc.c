@@ -31,116 +31,103 @@
 #include <string.h>
 #include "lte/utils/pack.h"
 
-#define _WITHMALLOC
-
-unsigned int cword;
-char *cdata;
-const unsigned long crcinit = 0x00000000; 	//initial CRC value
-const unsigned long crcxor = 0x00000000;	//final XOR value
-unsigned long crcmask;
-unsigned long crchighbit;
-unsigned long crctab[256]; 
+#include "lte/fec/crc.h"
 
 
+void gen_crc_table(crc_t *crc_params) {
 
-
-void gen_crc_table(int lorder, unsigned long poly) {
-
-	int i, j, ord=(lorder-8);
+	int i, j, ord=(crc_params->order-8);
 	unsigned long bit, crc;
 
 	for (i=0; i<256; i++) {
 		crc = ((unsigned long)i)<<ord;
 		for (j=0; j<8; j++) {
-			bit = crc & crchighbit;
+			bit = crc & crc_params->crchighbit;
 			crc<<= 1;
-			if (bit) crc^= poly;
+			if (bit) crc^= crc_params->polynom;
 		}			
-		crctab[i] = crc & crcmask;
+		crc_params->table[i]=crc & crc_params->crcmask;
 	}
 }
 
 
-unsigned long crctable (unsigned char* data, unsigned long length, int lorder) {
+unsigned long  crctable (unsigned long length, crc_t *crc_params) {
 
-	// Polynom lorders of 8, 16, 24 or 32.
-	unsigned long crc = crcinit;
+	// Polynom order 8, 16, 24 or 32 only.
+	int ord=crc_params->order-8;
+	unsigned long crc = crc_params->crcinit;
+	unsigned char* data = crc_params->data0;
 
-	while (length--) crc = (crc << 8) ^ crctab[ ((crc >> (lorder-8)) & 0xff) ^ *data++];
-	
-	return((crc^crcxor)&crcmask);
+	while (length--){
+		 crc = (crc << 8) ^ crc_params->table[ ((crc >> (ord)) & 0xff) ^ *data++];
+	}
+	return((crc ^ crc_params->crcxor) & crc_params->crcmask);
 }
 
-unsigned long reversecrcbit(unsigned int crc, unsigned int polynom, int lorder, int nbits) {
+unsigned long reversecrcbit(unsigned int crc, int nbits, crc_t *crc_params) {
 
 	unsigned long m, rmask=0x1;
 
 	for(m=0; m<nbits; m++){	
-		if((rmask & crc) == 0x01 )crc = (crc ^ polynom)>>1;
+		if((rmask & crc) == 0x01 )crc = (crc ^ crc_params->polynom)>>1;
 		else crc = crc >> 1;
 	}
-	return((crc^crcxor)&crcmask);
+	return((crc ^ crc_params->crcxor) & crc_params->crcmask);
 }
 
 
-int init_crc(int lorder, unsigned long polynom){
-
-	unsigned long polyhighbit;
+int crc_init(crc_t *crc_par){
 
 	// Compute bit masks for whole CRC and CRC high bit
-	crcmask = ((((unsigned long)1<<(lorder-1))-1)<<1)|1;
-	polyhighbit=0xFFFFFFFF ^ (crcmask+1);
-	crchighbit = (unsigned long)1<<(lorder-1);
+	crc_par->crcmask = ((((unsigned long)1<<(crc_par->order-1))-1)<<1)|1;
+	crc_par->crchighbit = (unsigned long)1<<(crc_par->order-1);
 
-	// Eliminate highest bit in polynom word
-	polynom=polynom & polyhighbit;  
+	printf("crcmask=%x, crchightbit=%x\n", 
+			(unsigned int)crc_par->crcmask, (unsigned int)crc_par->crchighbit);
 
 	// check parameters
-	if (lorder < 1 || lorder > 32) {
-		printf("ERROR, invalid order, it must be between 1..32.\n");
+	if (crc_par->order%8 != 0) {
+		printf("ERROR, invalid order=%d, it must be 8, 16, 24 or 32.\n", crc_par->order);
 		return(0);
 	}
-	if (lorder%8 != 0) {
-		printf("ERROR, invalid order=%d, it must be 8, 16, 24 or 32.\n", lorder);
-		return(0);
-	}
-	if (polynom != (polynom & crcmask)) {
-		printf("ERROR, invalid polynom.\n");
-		return(0);
-	}
-	if (crcinit != (crcinit & crcmask)) {
+
+	if (crc_par->crcinit != (crc_par->crcinit & crc_par->crcmask)) {
 		printf("ERROR, invalid crcinit.\n");
 		return(0);
 	}
-	if (crcxor != (crcxor & crcmask)) {
+	if (crc_par->crcxor != (crc_par->crcxor & crc_par->crcmask)) {
 		printf("ERROR, invalid crcxor.\n");
 		return(0);
 	}
 	// generate lookup table
-	gen_crc_table(lorder, polynom);
+	gen_crc_table(crc_par);
 
 	return(1);
 }
 
-#define MAX_LENGTH	8192
-
+///ELIMINATE//////////////////////////
 unsigned int crc(unsigned int crc, char *bufptr, int len,
-		int long_crc, unsigned int poly, int paste_word) {
+		int long_crc, unsigned int poly, int paste_word){
+	return(0);
+}
+///////////////////////////////////////
+
+
+
+unsigned int crc_attach(char *bufptr, int len, crc_t *crc_params) {
 
 	int i, len8, res8, a;
-#ifdef _WITHMALLOC
-	char *data0, *pter;
+	unsigned int crc;
+	char *pter;
 
-	data0 = (char *)malloc(sizeof(char) * (len+long_crc)*2);
-	if (!data0) {
+#ifdef _WITHMALLOC
+	crc_params->data0 = (unsigned char *)malloc(sizeof(*crc_params->data0) * (len+crc_params->order)*2);
+	if (!crc_params->data0) {
 		perror("malloc ERROR: Allocating memory for data pointer in crc() function");
 		return(-1);
 	}
-#endif
-#ifndef _WITHMALLOC
-	char data0[MAX_LENGTH], *pter;	
-
-	if((((len+long_crc)>>3) + 1) > MAX_LENGTH){
+#else
+	if((((len+crc_params->order)>>3) + 1) > MAX_LENGTH){
 		printf("ERROR: Not enough memory allocated\n");
 		return(-1);
 	}
@@ -156,24 +143,22 @@ unsigned int crc(unsigned int crc, char *bufptr, int len,
 
 	for(i=0; i<len8+a; i++){
 		pter=(char *)(bufptr+8*i);
-		data0[i]=(char)(unpack_bits(&pter, 8)&0xFF);
+		crc_params->data0[i]=(unsigned char)(unpack_bits(&pter, 8)&0xFF);
 	}
 	// Calculate CRC
-	pter=data0;
-	crc=crctable ((unsigned char *)pter, len8+a, long_crc);
+	crc=crctable(len8+a, crc_params);
 
 	// Reverse CRC res8 positions
-	if(a==1)crc=reversecrcbit(crc, poly, long_crc, res8);
+	if(a==1)crc=reversecrcbit(crc, res8, crc_params);
 
 	// Add CRC
 	pter=(char *)(bufptr+len);
-	pack_bits(crc, &pter, long_crc);
+	pack_bits(crc, &pter, crc_params->order);
 
 #ifdef _WITHMALLOC
-	free(data0);
-	data0=NULL;
+	free(crc_params->data0);
+	crc_params->data0=NULL;
 #endif
 	//Return CRC value
 	return crc;
 }
-
