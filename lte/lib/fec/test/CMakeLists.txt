@@ -55,9 +55,9 @@ ADD_TEST(viterbi_1000_4 viterbi_test -n 100 -s 1 -l 1000 -k 7 -t -e 4.5)
 ADD_EXECUTABLE(crc_test crc_test.c)
 TARGET_LINK_LIBRARIES(crc_test lte)
 
-ADD_TEST(crc_24A crc_test -n 5000 -l 24 -p 0x1864CFB -s 1)
-ADD_TEST(crc_24B crc_test -n 5000 -l 24 -p 0x1800063 -s 1)
-ADD_TEST(crc_16 crc_test -n 5000 -l 16 -p 0x11021 -s 1)
-ADD_TEST(crc_8 crc_test -n 5000 -l 8 -p 0x19B -s 1)
+ADD_TEST(crc_24A crc_test -n 5001 -l 24 -p 0x1864CFB -s 1)
+ADD_TEST(crc_24B crc_test -n 5001 -l 24 -p 0x1800063 -s 1)
+ADD_TEST(crc_16 crc_test -n 5001 -l 16 -p 0x11021 -s 1)
+ADD_TEST(crc_8 crc_test -n 5001 -l 8 -p 0x19B -s 1)
 
  
