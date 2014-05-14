@@ -22,6 +22,7 @@
 ########################################################################
 # Install headers
 ########################################################################
+ADD_SUBDIRECTORY(include)
 INSTALL(DIRECTORY include/ DESTINATION "${INCLUDE_DIR}" 
     FILES_MATCHING     PATTERN "*.h"
             PATTERN ".svn" EXCLUDE
