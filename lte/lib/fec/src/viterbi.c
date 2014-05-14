@@ -38,48 +38,61 @@
 
 #define DEB 0
 
-int decode37(void *o, unsigned char *symbols, char *data) {
+int decode37(void *o, unsigned char *symbols, char *data, int frame_length) {
 	viterbi_t *q = o;
 	int i;
 
 	int best_state;
 
+	if (frame_length > q->framebits) {
+		fprintf(stderr, "Initialized decoder for max frame length %d bits\n",
+				q->framebits);
+		return -1;
+	}
+
 	/* Initialize Viterbi decoder */
-	init_viterbi37_port(q->ptr, q->tail_biting?-1:0);
+	init_viterbi37_port(q->ptr, q->tail_biting ? -1 : 0);
 
 	/* Decode block */
 	if (q->tail_biting) {
-		memcpy(q->tmp, symbols, 3 * q->framebits * sizeof(char));
-		for (i=0;i<3*(q->K-1);i++) {
-			q->tmp[i+3*q->framebits] = q->tmp[i];
+		memcpy(q->tmp, symbols, 3 * frame_length * sizeof(char));
+		for (i = 0; i < 3 * (q->K - 1); i++) {
+			q->tmp[i + 3 * frame_length] = q->tmp[i];
 		}
 	} else {
 		q->tmp = symbols;
 	}
 
-	update_viterbi37_blk_port(q->ptr, q->tmp, q->framebits + q->K - 1, q->tail_biting?&best_state:NULL);
+	update_viterbi37_blk_port(q->ptr, q->tmp, frame_length + q->K - 1,
+			q->tail_biting ? &best_state : NULL);
 
 	/* Do Viterbi chainback */
-	chainback_viterbi37_port(q->ptr, data, q->framebits, q->tail_biting?best_state:0);
+	chainback_viterbi37_port(q->ptr, data, frame_length,
+			q->tail_biting ? best_state : 0);
 
 	return q->framebits;
 }
 
-int decode39(void *o, unsigned char *symbols, char *data) {
+int decode39(void *o, unsigned char *symbols, char *data, int frame_length) {
 	viterbi_t *q = o;
+
+	if (frame_length > q->framebits) {
+		fprintf(stderr, "Initialized decoder for max frame length %d bits\n",
+				q->framebits);
+		return -1;
+	}
 
 	/* Initialize Viterbi decoder */
 	init_viterbi39_port(q->ptr, 0);
 
 	/* Decode block */
-	update_viterbi39_blk_port(q->ptr, symbols,q->framebits + q->K - 1);
+	update_viterbi39_blk_port(q->ptr, symbols, frame_length + q->K - 1);
 
 	/* Do Viterbi chainback */
-	chainback_viterbi39_port(q->ptr, data, q->framebits, 0);
+	chainback_viterbi39_port(q->ptr, data, frame_length, 0);
 
 	return q->framebits;
 }
-
 
 void free37(void *o) {
 	viterbi_t *q = o;
@@ -107,13 +120,13 @@ int init37(viterbi_t *q, int poly[3], int framebits, bool tail_biting) {
 	q->tail_biting = tail_biting;
 	q->decode = decode37;
 	q->free = free37;
-	q->symbols_uc = malloc(3 * (q->framebits + q->K -1) * sizeof(char));
+	q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(char));
 	if (!q->symbols_uc) {
 		perror("malloc");
 		return -1;
 	}
 	if (q->tail_biting) {
-		q->tmp = malloc(3 * (q->framebits + q->K -1) * sizeof(char));
+		q->tmp = malloc(3 * (q->framebits + q->K - 1) * sizeof(char));
 		if (!q->tmp) {
 			perror("malloc");
 			free37(q);
@@ -140,10 +153,11 @@ int init39(viterbi_t *q, int poly[3], int framebits, bool tail_biting) {
 	q->decode = decode39;
 	q->free = free39;
 	if (q->tail_biting) {
-		fprintf(stderr, "Error: Tailbitting not supported in 1/3 K=9 decoder\n");
+		fprintf(stderr,
+				"Error: Tailbitting not supported in 1/3 K=9 decoder\n");
 		return -1;
 	}
-	q->symbols_uc = malloc(3 * (q->framebits + q->K -1) * sizeof(char));
+	q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(char));
 	if (!q->symbols_uc) {
 		perror("malloc");
 		return -1;
@@ -157,12 +171,13 @@ int init39(viterbi_t *q, int poly[3], int framebits, bool tail_biting) {
 	}
 }
 
-int viterbi_init(viterbi_t *q, viterbi_type_t type, int poly[3], int framebits, bool tail_bitting) {
-	switch(type) {
+int viterbi_init(viterbi_t *q, viterbi_type_t type, int poly[3],
+		int max_frame_length, bool tail_bitting) {
+	switch (type) {
 	case viterbi_37:
-		return init37(q, poly, framebits, tail_bitting);
+		return init37(q, poly, max_frame_length, tail_bitting);
 	case viterbi_39:
-		return init39(q, poly, framebits, tail_bitting);
+		return init39(q, poly, max_frame_length, tail_bitting);
 	default:
 		fprintf(stderr, "Decoder not implemented\n");
 		return -1;
@@ -174,21 +189,26 @@ void viterbi_free(viterbi_t *q) {
 }
 
 /* symbols are real-valued */
-int viterbi_decode_f(viterbi_t *q, float *symbols, char *data) {
+int viterbi_decode_f(viterbi_t *q, float *symbols, char *data, int frame_length) {
 	int len;
+	if (frame_length > q->framebits) {
+		fprintf(stderr, "Initialized decoder for max frame length %d bits\n",
+				q->framebits);
+		return -1;
+	}
 	if (q->tail_biting) {
-		len = 3 * q->framebits;
+		len = 3 * frame_length;
 	} else {
-		len = 3 * (q->framebits + q->K - 1);
+		len = 3 * (frame_length + q->K - 1);
 	}
 	vec_quant_fuc(symbols, q->symbols_uc, 32, 127.5, 255, len);
-	return q->decode(q, q->symbols_uc, data);
+	return q->decode(q, q->symbols_uc, data, frame_length);
 }
 
-int viterbi_decode_uc(viterbi_t *q, unsigned char *symbols, char *data) {
-	return q->decode(q, symbols, data);
+int viterbi_decode_uc(viterbi_t *q, unsigned char *symbols, char *data,
+		int frame_length) {
+	return q->decode(q, symbols, data, frame_length);
 }
-
 
 int viterbi_initialize(viterbi_hl* h) {
 	int poly[3];
@@ -222,15 +242,16 @@ int viterbi_initialize(viterbi_hl* h) {
 	poly[1] = h->init.generator_1;
 	poly[2] = h->init.generator_2;
 	return viterbi_init(&h->obj, type, poly, h->init.frame_length,
-			h->init.tail_bitting?true:false);
+			h->init.tail_bitting ? true : false);
 }
 
 int viterbi_work(viterbi_hl* hl) {
 	if (hl->in_len != hl->init.frame_length) {
-		fprintf(stderr, "Expected input length %d but got %d\n", hl->init.frame_length, hl->in_len);
+		fprintf(stderr, "Expected input length %d but got %d\n",
+				hl->init.frame_length, hl->in_len);
 		return -1;
 	}
-	return viterbi_decode_f(&hl->obj, hl->input, hl->output);
+	return viterbi_decode_f(&hl->obj, hl->input, hl->output, hl->init.frame_length);
 }
 
 int viterbi_stop(viterbi_hl* h) {

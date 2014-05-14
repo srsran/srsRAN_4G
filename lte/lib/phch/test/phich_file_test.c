@@ -37,16 +37,20 @@ char *input_file_name = NULL;
 char *matlab_file_name = NULL;
 int cell_id = 150;
 lte_cp_t cp = CPNORM;
-int nof_prb = 6;
+int nof_prb = 50;
+int nof_ports = 2;
+int flen;
+int nof_ctrl_symbols = 1;
+phich_resources_t phich_res = R_1;
+phich_length_t phich_length = PHICH_NORM;
+int numsubframe = 0;
 
 FILE *fmatlab = NULL;
 
-#define NOF_PORTS 2
-#define FLEN	9600
-
 filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS_CTRL];
-pbch_t pbch;
+phich_t phich;
+regs_t regs;
 lte_fft_t fft;
 chest_t chest;
 
@@ -54,27 +58,57 @@ void usage(char *prog) {
 	printf("Usage: %s [vcoe] -i input_file\n", prog);
 	printf("\t-o output matlab file name [Default Disabled]\n");
 	printf("\t-c cell_id [Default %d]\n", cell_id);
-	printf("\t-e Set extended prefix [Default Normal]\n");
+	printf("\t-p nof_ports [Default %d]\n", nof_ports);
+	printf("\t-n nof_prb [Default %d]\n", nof_prb);
+	printf("\t-f nof control symbols [Default %d]\n", nof_ctrl_symbols);
+	printf("\t-g phich ng factor: 1/6, 1/2, 1, 2 [Default 1]\n");
+	printf("\t-e phich extended length [Default normal]\n");
+	printf("\t-l extended cyclic prefix [Default normal]\n");
 	printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
 	int opt;
-	while ((opt = getopt(argc, argv, "iovce")) != -1) {
+	while ((opt = getopt(argc, argv, "iovcenpfgl")) != -1) {
 		switch(opt) {
 		case 'i':
 			input_file_name = argv[optind];
 			break;
+		case 'o':
+			matlab_file_name = argv[optind];
+			break;
 		case 'c':
 			cell_id = atoi(argv[optind]);
 			break;
-		case 'o':
-			matlab_file_name = argv[optind];
+		case 'f':
+			nof_ctrl_symbols = atoi(argv[optind]);
+			break;
+		case 'g':
+			if (!strcmp(argv[optind], "1/6")) {
+				phich_res = R_1_6;
+			} else if (!strcmp(argv[optind], "1/2")) {
+				phich_res = R_1_2;
+			} else if (!strcmp(argv[optind], "1")) {
+				phich_res = R_1;
+			} else if (!strcmp(argv[optind], "2")) {
+				phich_res = R_2;
+			} else {
+				fprintf(stderr, "Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
+			}
+			break;
+		case 'e':
+			phich_length = PHICH_EXT;
+			break;
+		case 'n':
+			nof_prb = atoi(argv[optind]);
+			break;
+		case 'p':
+			nof_ports = atoi(argv[optind]);
 			break;
 		case 'v':
 			verbose++;
 			break;
-		case 'e':
+		case 'l':
 			cp = CPEXT;
 			break;
 		default:
@@ -106,7 +140,9 @@ int base_init() {
 		fmatlab = NULL;
 	}
 
-	input_buffer = malloc(FLEN * sizeof(cf_t));
+	flen = SLOT_LEN(lte_symbol_sz(nof_prb), cp);
+
+	input_buffer = malloc(flen * sizeof(cf_t));
 	if (!input_buffer) {
 		perror("malloc");
 		exit(-1);
@@ -126,7 +162,7 @@ int base_init() {
 		}
 	}
 
-	if (chest_init(&chest, LINEAR, cp, nof_prb, NOF_PORTS)) {
+	if (chest_init(&chest, LINEAR, cp, nof_prb, nof_ports)) {
 		fprintf(stderr, "Error initializing equalizer\n");
 		return -1;
 	}
@@ -141,8 +177,13 @@ int base_init() {
 		return -1;
 	}
 
-	if (pbch_init(&pbch, nof_prb, cell_id, cp)) {
-		fprintf(stderr, "Error initiating PBCH\n");
+	if (regs_init(&regs, cell_id, nof_prb, nof_ports, phich_res, phich_length, cp)) {
+		fprintf(stderr, "Error initiating regs\n");
+		return -1;
+	}
+
+	if (phich_init(&phich, &regs, cell_id, nof_prb, nof_ports, cp)) {
+		fprintf(stderr, "Error creating PBCH object\n");
 		return -1;
 	}
 
@@ -168,12 +209,15 @@ void base_free() {
 	chest_free(&chest);
 	lte_fft_free(&fft);
 
-	pbch_free(&pbch);
+	phich_free(&phich);
+	regs_free(&regs);
 }
 
 int main(int argc, char **argv) {
-	pbch_mib_t mib;
+	int distance;
 	int i, n;
+	int ngroup, nseq, max_nseq;
+	char ack_rx;
 
 	if (argc < 3) {
 		usage(argv[0]);
@@ -182,53 +226,61 @@ int main(int argc, char **argv) {
 
 	parse_args(argc,argv);
 
+	max_nseq = CP_ISNORM(cp)?PHICH_NORM_NSEQUENCES:PHICH_EXT_NSEQUENCES;
+
 	if (base_init()) {
 		fprintf(stderr, "Error initializing memory\n");
 		exit(-1);
 	}
 
-	n = filesource_read(&fsrc, input_buffer, FLEN);
+	n = filesource_read(&fsrc, input_buffer, flen);
 
-	lte_fft_run(&fft, &input_buffer[960], fft_buffer);
+	lte_fft_run(&fft, input_buffer, fft_buffer);
 
 	if (fmatlab) {
+		fprintf(fmatlab, "infft=");
+		vec_fprint_c(fmatlab, input_buffer, flen);
+		fprintf(fmatlab, ";\n");
+
 		fprintf(fmatlab, "outfft=");
-		vec_sc_prod_cfc(fft_buffer, 1000.0, fft_buffer, CP_NSYMB(cp) * nof_prb * RE_X_RB);
 		vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cp) * nof_prb * RE_X_RB);
 		fprintf(fmatlab, ";\n");
-		vec_sc_prod_cfc(fft_buffer, 0.001, fft_buffer, 	CP_NSYMB(cp) * nof_prb * RE_X_RB);
 	}
 
 	/* Get channel estimates for each port */
-	for (i=0;i<NOF_PORTS;i++) {
-		chest_ce_slot_port(&chest, fft_buffer, ce[i], 1, i);
+	for (i=0;i<nof_ports;i++) {
+		chest_ce_slot_port(&chest, fft_buffer, ce[i], 0, i);
 		if (fmatlab) {
-			chest_fprint(&chest, fmatlab, 1, i);
+			chest_fprint(&chest, fmatlab, 0, i);
 		}
 	}
 
-	INFO("Decoding PBCH\n", 0);
+	INFO("Decoding PHICH\n", 0);
 
-	n = pbch_decode(&pbch, fft_buffer, ce, 1, &mib);
+	/* Receive all PHICH groups and sequence numbers */
+	for (ngroup=0;ngroup<phich_ngroups(&phich);ngroup++) {
+		for (nseq=0;nseq<max_nseq;nseq++) {
+
+			if (phich_decode(&phich, fft_buffer, ce, ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
+				printf("Error decoding ACK\n");
+				exit(-1);
+			}
+
+			INFO("%d/%d, ack_rx: %d, ns: %d, distance: %d\n",
+					ngroup, nseq, ack_rx, numsubframe, distance);
+		}
+	}
 
 	base_free();
 	fftwf_cleanup();
 
 	if (n < 0) {
-		fprintf(stderr, "Error decoding PBCH\n");
+		fprintf(stderr, "Error decoding phich\n");
 		exit(-1);
 	} else if (n == 0) {
-		printf("Could not decode PBCH\n");
+		printf("Could not decode phich\n");
 		exit(-1);
 	} else {
-		if (mib.nof_ports == 2 && mib.nof_prb == 50 && mib.phich_length == PHICH_NORM
-				&& mib.phich_resources == R_1 && mib.sfn == 28) {
-			printf("This is the pbch_test.dat file\n");
-			exit(0);
-		} else {
-			pbch_mib_fprint(stdout, &mib);
-			printf("This is an unknown file\n");
-			exit(-1);
-		}
+		exit(0);
 	}
 }

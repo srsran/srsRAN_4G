@@ -23,6 +23,7 @@
 ########################################################################
 # Find Dependencies  
 ########################################################################
+include(CheckFunctionExistsMath)
 
 FIND_PACKAGE(FFTW3F REQUIRED) # TODO: distribute kissfft instead
 INCLUDE_DIRECTORIES(${FFTW3F_INCLUDE_DIRS})
@@ -57,9 +58,9 @@ LIBLTE_SET_PIC(lte)
 
 IF(VOLK_FOUND)
 	INCLUDE_DIRECTORIES(${VOLK_INCLUDE_DIRS})
-	SET_TARGET_PROPERTIES(lte PROPERTIES COMPILE_DEFINITIONS "HAVE_VOLK")
+	SET_TARGET_PROPERTIES(lte PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")
 	TARGET_LINK_LIBRARIES(lte ${VOLK_LIBRARIES})
-	MESSAGE(STATUS "   Compiling with VOLK SIMD library.")
+	MESSAGE(STATUS "   Compiling with VOLK SIMD library.")	
 ELSE(VOLK_FOUND)
 	MESSAGE(STATUS "   VOLK SIMD library NOT found. Using generic implementation.")
 ENDIF(VOLK_FOUND)

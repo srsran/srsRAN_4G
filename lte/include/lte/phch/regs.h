@@ -89,5 +89,6 @@ int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_
 int regs_phich_ngroups(regs_t *h);
 int regs_phich_reset(regs_t *h, cf_t *slot_symbols);
 
+int regs_pdcch_nregs(regs_t *h);
 
 #endif

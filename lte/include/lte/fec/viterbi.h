@@ -42,16 +42,16 @@ typedef struct {
 	unsigned int framebits;
 	bool tail_biting;
 	int poly[3];
-	int (*decode) (void*, unsigned char*, char*);
+	int (*decode) (void*, unsigned char*, char*, int);
 	void (*free) (void*);
 	unsigned char *tmp;
 	unsigned char *symbols_uc;
 }viterbi_t;
 
-int viterbi_init(viterbi_t *q, viterbi_type_t type, int poly[3], int framebits, bool tail_bitting);
+int viterbi_init(viterbi_t *q, viterbi_type_t type, int poly[3], int max_frame_length, bool tail_bitting);
 void viterbi_free(viterbi_t *q);
-int viterbi_decode_f(viterbi_t *q, float *symbols, char *data);
-int viterbi_decode_uc(viterbi_t *q, unsigned char *symbols, char *data);
+int viterbi_decode_f(viterbi_t *q, float *symbols, char *data, int frame_length);
+int viterbi_decode_uc(viterbi_t *q, unsigned char *symbols, char *data, int frame_length);
 
 
 /* High-level API */

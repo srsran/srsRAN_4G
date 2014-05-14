@@ -58,6 +58,9 @@ void regs_pdcch_free(regs_t *h) {
 	}
 }
 
+int regs_pdcch_nregs(regs_t *h) {
+	return 9;
+}
 
 
 
@@ -89,6 +92,9 @@ int regs_phich_init(regs_t *h) {
 		break;
 	case R_2:
 		ng = 2;
+		break;
+	default:
+		ng = 0;
 		break;
 	}
 	h->ngroups_phich = (int) ceilf(ng * ((float) h->nof_prb/8));

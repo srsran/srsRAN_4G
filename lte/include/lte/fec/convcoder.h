@@ -38,11 +38,10 @@ typedef struct {
 	int R;
 	int K;
 	int poly[3];
-	int framelength;
 	bool tail_biting;
 }convcoder_t;
 
-int convcoder_encode(convcoder_t *q, char *input, char *output);
+int convcoder_encode(convcoder_t *q, char *input, char *output, int frame_length);
 
 
 /* High-level API */
