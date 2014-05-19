@@ -67,7 +67,7 @@ IF(QT4_FOUND AND QWT_FOUND AND QWT_MAJOR_VERSION EQUAL 6)
 
   INCLUDE_DIRECTORIES(common complexplot realplot scatterplot waterfallplot ${Boost_INCLUDE_DIRS}) 
   
-  ADD_LIBRARY(graphics ${eventwraps} ${lineplotwraps} ${pointplotwraps} ${spectrogramplotwraps} ${complex} ${real} ${scatter} ${waterfall} ${SOURCES_ALL} )
+  ADD_LIBRARY(graphics SHARED ${eventwraps} ${lineplotwraps} ${pointplotwraps} ${spectrogramplotwraps} ${complex} ${real} ${scatter} ${waterfall} ${SOURCES_ALL} )
   TARGET_LINK_LIBRARIES(graphics pthread ${QT_LIBRARIES} ${QWT_LIBRARIES})
   INSTALL(TARGETS graphics DESTINATION ${LIBRARY_DIR})
   LIBLTE_SET_PIC(graphics)
