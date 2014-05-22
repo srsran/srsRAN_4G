@@ -22,15 +22,17 @@
 ########################################################################
 # Add headers to cmake project (useful for IDEs)
 ########################################################################
-FILE(GLOB headers *) 
 SET(HEADERS_ALL "")
+FILE(GLOB_RECURSE tmp "*.h")
+LIST(APPEND HEADERS_ALL ${tmp})
+FILE(GLOB headers *)
 FOREACH (_header ${headers})
 	IF(IS_DIRECTORY ${_header})
 		FILE(GLOB_RECURSE tmp "${_header}/*.h")
 		LIST(APPEND HEADERS_ALL ${tmp})		
 	ENDIF(IS_DIRECTORY ${_header})
 ENDFOREACH()
-ADD_CUSTOM_TARGET (add_headers SOURCES ${HEADERS_ALL})
+ADD_CUSTOM_TARGET (add_lte_headers SOURCES ${HEADERS_ALL})
 
 
 
