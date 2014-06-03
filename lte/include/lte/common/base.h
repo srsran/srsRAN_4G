@@ -39,6 +39,11 @@
 #define MAX_LAYERS		8
 #define MAX_CODEWORDS	2
 
+#define LTE_CRC24A	0x1864CFB
+#define LTE_CRC24B	0X1800063
+#define LTE_CRC16	0x11021
+#define LTE_CRC8	0x19B
+
 typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define SIRNTI		0xFFFF

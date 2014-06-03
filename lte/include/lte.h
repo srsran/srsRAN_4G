@@ -57,6 +57,8 @@
 #include "lte/fec/tc_interl.h"
 #include "lte/fec/turbocoder.h"
 #include "lte/fec/turbodecoder.h"
+#include "lte/fec/rm_conv.h"
+#include "lte/fec/rm_turbo.h"
 
 #include "lte/filter/filter2d.h"
 
@@ -80,8 +82,6 @@
 #include "lte/phch/pbch.h"
 #include "lte/phch/pcfich.h"
 #include "lte/phch/phich.h"
-
-#include "lte/ratematching/rm_conv.h"
 
 #include "lte/scrambling/scrambling.h"
 

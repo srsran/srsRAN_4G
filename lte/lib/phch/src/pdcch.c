@@ -221,6 +221,9 @@ int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
 	if (modem_table_std(&q->mod, LTE_QPSK, true)) {
 		goto clean;
 	}
+	if (crc_init(&q->crc, LTE_CRC16, 16)) {
+		goto clean;
+	}
 
 	demod_soft_init(&q->demod);
 	demod_soft_table_set(&q->demod, &q->mod);
@@ -318,7 +321,7 @@ void pdcch_free(pdcch_t *q) {
  *
  * TODO: UE transmit antenna selection CRC mask
  */
-unsigned short dci_decode(viterbi_t *decoder, float *e, char *data, int E,
+unsigned short dci_decode(pdcch_t *q, float *e, char *data, int E,
 		int nof_bits) {
 
 	float tmp[3 * (DCI_MAX_BITS + 16)];
@@ -343,7 +346,7 @@ unsigned short dci_decode(viterbi_t *decoder, float *e, char *data, int E,
 	}
 
 	/* viterbi decoder */
-	viterbi_decode_f(decoder, tmp, data, nof_bits + 16);
+	viterbi_decode_f(&q->decoder, tmp, data, nof_bits + 16);
 
 	if (VERBOSE_ISDEBUG()) {
 		bit_fprint(stdout, data, nof_bits+16);
@@ -351,8 +354,7 @@ unsigned short dci_decode(viterbi_t *decoder, float *e, char *data, int E,
 
 	x = &data[nof_bits];
 	p_bits = (unsigned short) bit_unpack(&x, 16);
-	crc_res = ((unsigned short) crc(0, data, nof_bits, 16, LTE_CRC16, 0)
-			& 0xffff);
+	crc_res = ((unsigned short) crc_checksum(&q->crc, data, nof_bits) & 0xffff);
 	DEBUG("p_bits: 0x%x, crc_res: 0x%x, tot: 0x%x\n", p_bits, crc_res, p_bits ^ crc_res);
 	return (p_bits ^ crc_res);
 }
@@ -363,7 +365,7 @@ int pdcch_decode_candidate(pdcch_t *q, float *llr, dci_candidate_t *c,
 	DEBUG("Trying Candidate: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
 				c->nof_bits, PDCCH_FORMAT_NOF_BITS(c->L), c->ncce, c->L,
 				c->rnti);
-	crc_res = dci_decode(&q->decoder, &llr[72 * c->ncce], msg->data,
+	crc_res = dci_decode(q, &llr[72 * c->ncce], msg->data,
 			PDCCH_FORMAT_NOF_BITS(c->L), c->nof_bits);
 
 	if (c->rnti == crc_res) {
@@ -519,7 +521,7 @@ void crc_set_mask_rnti(char *crc, unsigned short rnti) {
 /** 36.212 5.3.3.2 to 5.3.3.4
  * TODO: UE transmit antenna selection CRC mask
  */
-void dci_encode(char *data, char *e, int nof_bits, int E, unsigned short rnti) {
+void dci_encode(pdcch_t *q, char *data, char *e, int nof_bits, int E, unsigned short rnti) {
 	convcoder_t encoder;
 	char tmp[3 * (DCI_MAX_BITS + 16)];
 
@@ -531,7 +533,7 @@ void dci_encode(char *data, char *e, int nof_bits, int E, unsigned short rnti) {
 	encoder.tail_biting = true;
 	memcpy(encoder.poly, poly, 3 * sizeof(int));
 
-	crc(0, data, nof_bits, 16, LTE_CRC16, 1);
+	crc_attach(&q->crc, data, nof_bits);
 	crc_set_mask_rnti(&data[nof_bits], rnti);
 
 	convcoder_encode(&encoder, data, tmp, nof_bits + 16);
@@ -579,7 +581,7 @@ int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL],
 				i, dci->msg[i].location.nof_bits, PDCCH_FORMAT_NOF_BITS(dci->msg[i].location.L),
 				dci->msg[i].location.ncce, dci->msg[i].location.L, dci->msg[i].location.rnti);
 
-		dci_encode(dci->msg[i].data, &q->pdcch_e[72 * dci->msg[i].location.ncce],
+		dci_encode(q, dci->msg[i].data, &q->pdcch_e[72 * dci->msg[i].location.ncce],
 				dci->msg[i].location.nof_bits, PDCCH_FORMAT_NOF_BITS(dci->msg[i].location.L),
 				dci->msg[i].location.rnti);
 	}

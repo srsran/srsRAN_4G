@@ -133,6 +133,9 @@ int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp) {
 	if (viterbi_init(&q->decoder, viterbi_37, poly, 40, true)) {
 		goto clean;
 	}
+	if (crc_init(&q->crc, LTE_CRC16, 16)) {
+		goto clean;
+	}
 	q->encoder.K = 7;
 	q->encoder.R = 3;
 	q->encoder.tail_biting = true;
@@ -356,11 +359,11 @@ void crc_set_mask(char *data, int nof_ports) {
  *
  * Returns 0 if the data is correct, -1 otherwise
  */
-int pbch_crc_check(char *bits, int nof_ports) {
+int pbch_crc_check(pbch_t *q, char *bits, int nof_ports) {
 	char data[40];
 	memcpy(data, bits, 40 * sizeof(char));
 	crc_set_mask(data, nof_ports);
-	return crc(0, data, 40, 16, LTE_CRC16, 0);
+	return crc_checksum(&q->crc, data, 40);
 }
 
 int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int nof_bits, int nof_ports) {
@@ -399,7 +402,7 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
 		c=1;
 	}
 
-	if (!pbch_crc_check(q->data, nof_ports)) {
+	if (!pbch_crc_check(q, q->data, nof_ports)) {
 		/* unpack MIB */
 		pbch_mib_unpack(q->data, mib);
 
@@ -523,7 +526,7 @@ void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL]
 		pbch_mib_pack(mib, q->data);
 
 		/* encode & modulate */
-		crc(0, q->data, 24, 16, 0x11021, 1);
+		crc_attach(&q->crc, q->data, 24);
 		crc_set_mask(q->data, nof_ports);
 
 		convcoder_encode(&q->encoder, q->data, q->data_enc, 40);

@@ -35,7 +35,7 @@
 #include "lte/modem/mod.h"
 #include "lte/modem/demod_soft.h"
 #include "lte/scrambling/scrambling.h"
-#include "lte/ratematching/rm_conv.h"
+#include "lte/fec/rm_conv.h"
 #include "lte/fec/convcoder.h"
 #include "lte/fec/viterbi.h"
 #include "lte/fec/crc.h"
@@ -88,7 +88,7 @@ typedef struct {
 	demod_soft_t demod;
 	sequence_t seq_pdcch[NSUBFRAMES_X_FRAME];
 	viterbi_t decoder;
-
+	crc_t crc;
 }pdcch_t;
 
 int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports, int cell_id, lte_cp_t cp);

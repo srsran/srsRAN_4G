@@ -26,23 +26,34 @@
  */
 
 
-#ifndef CRC_
-#define CRC_
+#ifndef RM_CONV_
+#define RM_CONV_
 
+#define RX_NULL 10000
+#define TX_NULL 80
+
+
+int rm_turbo_tx(char *input, char *output, int in_len, int out_len);
+int rm_turbo_rx(float *input, float *output, int in_len, int out_len);
+
+
+/* High-level API */
 typedef struct {
-	unsigned long table[256];
-	unsigned char byte;
-	int polynom;
-	int order;
-	unsigned long crcinit; 
-	unsigned long crcmask;
-	unsigned long crchighbit;
-	unsigned int crc_out;
-} crc_t;
+	struct rm_turbo_init {
+		int direction;
+	} init;
+	void *input;			// input type may be char or float depending on hard
+	int in_len;
+	struct rm_turbo_ctrl_in {
+		int E;
+		int S;
+	} ctrl_in;
+	void *output;
+	int out_len;
+}rm_turbo_hl;
 
-int crc_init(crc_t *h, unsigned int crc_poly, int crc_order);
-int crc_set_init(crc_t *h, unsigned long crc_init_value);
-void crc_attach(crc_t *h, char *data, int len);
-unsigned int crc_checksum(crc_t *h, char *data, int len);
+int rm_turbo_initialize(rm_turbo_hl* h);
+int rm_turbo_work(rm_turbo_hl* hl);
+int rm_turbo_stop(rm_turbo_hl* hl);
 
 #endif

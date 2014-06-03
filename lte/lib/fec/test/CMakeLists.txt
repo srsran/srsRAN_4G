@@ -21,6 +21,17 @@
 
 
 ########################################################################
+# RATEMATCHING TEST  
+########################################################################
+
+ADD_EXECUTABLE(rm_conv_test rm_conv_test.c)
+TARGET_LINK_LIBRARIES(rm_conv_test lte)
+
+ADD_TEST(rm_conv_test_1 rm_conv_test -t 480 -r 1920) 
+ADD_TEST(rm_conv_test_2 rm_conv_test -t 1920 -r 480) 
+ 
+
+########################################################################
 # Turbo Coder TEST  
 ########################################################################
 ADD_EXECUTABLE(turbocoder_test turbocoder_test.c)

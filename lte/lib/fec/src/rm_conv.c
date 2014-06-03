@@ -28,7 +28,7 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "lte/ratematching/rm_conv.h"
+#include "lte/fec/rm_conv.h"
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
@@ -59,6 +59,7 @@ int rm_conv_tx(char *input, char *output, int in_len, int out_len) {
 	if (ndummy < 0) {
 		ndummy = 0;
 	}
+	/* Sub-block interleaver 5.1.4.2.1 */
 	k=0;
 	for (s = 0; s < 3; s++) {
 		for (j = 0; j < NCOLS; j++) {
@@ -72,6 +73,7 @@ int rm_conv_tx(char *input, char *output, int in_len, int out_len) {
 			}
 		}
 	}
+	/* Bit collection, selection and transmission 5.1.4.2.2 */
 	k = 0;
 	j = 0;
 	while (k < out_len) {
