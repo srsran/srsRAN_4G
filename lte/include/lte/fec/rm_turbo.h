@@ -26,19 +26,32 @@
  */
 
 
-#ifndef RM_CONV_
-#define RM_CONV_
+#ifndef RM_TURBO_
+#define RM_TURBO_
 
+#ifndef RX_NULL
 #define RX_NULL 10000
+#endif
+
+#ifndef TX_NULL
 #define TX_NULL 80
+#endif
 
+typedef struct {
+	int buffer_len;
+	char *buffer;
+	int *d2_perm;
+} rm_turbo_t;
 
-int rm_turbo_tx(char *input, char *output, int in_len, int out_len);
-int rm_turbo_rx(float *input, float *output, int in_len, int out_len);
+int rm_turbo_init(rm_turbo_t *q, int max_codeblock_len);
+void rm_turbo_free(rm_turbo_t *q);
+int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output, int out_len, int rv_idx);
+int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_len, int rv_idx);
 
 
 /* High-level API */
 typedef struct {
+	rm_turbo_t q;
 	struct rm_turbo_init {
 		int direction;
 	} init;
@@ -47,6 +60,7 @@ typedef struct {
 	struct rm_turbo_ctrl_in {
 		int E;
 		int S;
+		int rv_idx;
 	} ctrl_in;
 	void *output;
 	int out_len;

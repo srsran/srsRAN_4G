@@ -382,7 +382,7 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
 	}
 
 	/* unrate matching */
-	rm_conv_rx(q->temp, q->pbch_rm_f, 4 * nof_bits, 120);
+	rm_conv_rx(q->temp, 4 * nof_bits, q->pbch_rm_f, 120);
 
 	/* FIXME: If channel estimates are zero, received LLR are NaN. Check and return error */
 	for (j=0;j<120;j++) {
@@ -531,7 +531,7 @@ void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL]
 
 		convcoder_encode(&q->encoder, q->data, q->data_enc, 40);
 
-		rm_conv_tx(q->data_enc, q->pbch_rm_b, 120, 4 * nof_bits);
+		rm_conv_tx(q->data_enc, 120, q->pbch_rm_b, 4 * nof_bits);
 
 	}
 

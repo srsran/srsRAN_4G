@@ -33,8 +33,8 @@
 #define TX_NULL 80
 
 
-int rm_conv_tx(char *input, char *output, int in_len, int out_len);
-int rm_conv_rx(float *input, float *output, int in_len, int out_len);
+int rm_conv_tx(char *input, int in_len, char *output, int out_len);
+int rm_conv_rx(float *input, int in_len, float *output, int out_len);
 
 
 /* High-level API */

@@ -34,14 +34,14 @@
 #define NROWS_MAX NCOLS
 #define RATE 3
 
-unsigned char RM_PERM_CC[NCOLS] =
+unsigned char RM_PERM_TC[NCOLS] =
 		{ 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31, 0, 16, 8,
 				24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30 };
-unsigned char RM_PERM_CC_INV[NCOLS] = { 16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26,
+unsigned char RM_PERM_TC_INV[NCOLS] = { 16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26,
 		10, 22, 6, 30, 14, 17, 1, 25, 9, 21, 5, 29, 13, 19, 3, 27, 11, 23, 7,
 		31, 15 };
 
-int rm_conv_tx(char *input, char *output, int in_len, int out_len) {
+int rm_conv_tx(char *input, int in_len, char *output, int out_len) {
 
 	char tmp[RATE * NCOLS * NROWS_MAX];
 	int nrows, ndummy, K_p;
@@ -64,10 +64,10 @@ int rm_conv_tx(char *input, char *output, int in_len, int out_len) {
 	for (s = 0; s < 3; s++) {
 		for (j = 0; j < NCOLS; j++) {
 			for (i = 0; i < nrows; i++) {
-				if (i*NCOLS + RM_PERM_CC[j] < ndummy) {
+				if (i*NCOLS + RM_PERM_TC[j] < ndummy) {
 					tmp[k] = TX_NULL;
 				} else {
-					tmp[k] = input[(i*NCOLS + RM_PERM_CC[j]-ndummy)*3+s];
+					tmp[k] = input[(i*NCOLS + RM_PERM_TC[j]-ndummy)*3+s];
 				}
 				k++;
 			}
@@ -93,7 +93,7 @@ int rm_conv_tx(char *input, char *output, int in_len, int out_len) {
 /* Undoes Convolutional Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.2
  */
-int rm_conv_rx(float *input, float *output, int in_len, int out_len) {
+int rm_conv_rx(float *input, int in_len, float *output, int out_len) {
 
 	int nrows, ndummy, K_p;
 	int i, j, k;
@@ -125,7 +125,7 @@ int rm_conv_rx(float *input, float *output, int in_len, int out_len) {
 		d_i = (j % K_p) / nrows;
 		d_j = (j % K_p) % nrows;
 
-		if (d_j * NCOLS + RM_PERM_CC[d_i] >= ndummy) {
+		if (d_j * NCOLS + RM_PERM_TC[d_i] >= ndummy) {
 			if (tmp[j] == RX_NULL) {
 				tmp[j] = input[k];
 			} else if (input[k] != RX_NULL) {
@@ -144,7 +144,7 @@ int rm_conv_rx(float *input, float *output, int in_len, int out_len) {
 		d_i = (i + ndummy) / NCOLS;
 		d_j = (i + ndummy) % NCOLS;
 		for (j = 0; j < RATE; j++) {
-			float o = tmp[K_p * j + RM_PERM_CC_INV[d_j] * nrows
+			float o = tmp[K_p * j + RM_PERM_TC_INV[d_j] * nrows
 							+ d_i];
 			if (o != RX_NULL) {
 				output[i * RATE + j] = o;

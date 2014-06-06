@@ -100,12 +100,14 @@ int cuhd_start_rx_stream_nsamples(void *h, int nsamples) {
     return 0;
 }
 
-
-
 int cuhd_open(char *args, void **h) {
 	cuhd_handler* handler = new cuhd_handler();
 	std::string _args=std::string(args);
 	handler->usrp = uhd::usrp::multi_usrp::make(_args);
+
+	// Try to set LTE clock
+	handler->usrp->set_master_clock_rate(30720000);
+
 	handler->usrp->set_clock_source("internal");
 
 	std::string otw, cpu;

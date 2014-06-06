@@ -338,7 +338,7 @@ unsigned short dci_decode(pdcch_t *q, float *e, char *data, int E,
 	}
 */
 	/* unrate matching */
-	rm_conv_rx(e, tmp, E, 3 * (nof_bits + 16));
+	rm_conv_rx(e, E, tmp, 3 * (nof_bits + 16));
 
 	DEBUG("Viterbi input: ", 0);
 	if (VERBOSE_ISDEBUG()) {
@@ -543,7 +543,7 @@ void dci_encode(pdcch_t *q, char *data, char *e, int nof_bits, int E, unsigned s
 		vec_fprint_b(stdout, tmp, 3 * (nof_bits + 16));
 	}
 
-	rm_conv_tx(tmp, e, 3 * (nof_bits + 16), E);
+	rm_conv_tx(tmp, 3 * (nof_bits + 16), e, E);
 }
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission

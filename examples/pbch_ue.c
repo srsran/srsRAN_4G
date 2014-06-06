@@ -57,7 +57,7 @@
 
 #define NOF_PORTS 2
 
-float find_threshold = 30.0, track_threshold = 10.0;
+float find_threshold = 20.0, track_threshold = 10.0;
 int max_track_lost = 20, nof_frames = -1;
 int track_len=300;
 char *input_file_name = NULL;
