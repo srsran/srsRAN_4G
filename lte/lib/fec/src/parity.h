@@ -11,7 +11,7 @@
 /* Determine parity of argument: 1 = odd, 0 = even */
 #ifdef __i386__
 static inline int parityb(unsigned char x){
-  __asm__ __volatile__ ("test %1,%1;setpo %0" : "=g"(x) : "r" (x));
+  __asm__ __volatile__ ("test %1,%1;setpo %0" : "=qhm" (x) : "qh" (x));
   return x;
 }
 #else

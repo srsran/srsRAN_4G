@@ -59,36 +59,42 @@ typedef struct {
 	int cell_id;
 	int nof_prb;
 	int max_ctrl_symbols;
+	int cfi;
 	int ngroups_phich;
-	int refs_in_symbol1;
+	int nof_ports;
 	lte_cp_t cp;
 	phich_resources_t phich_res;
 	phich_length_t phich_len;
-	int nof_cce;
 	regs_ch_t pcfich;
 	regs_ch_t *phich; // there are several phich
-	regs_ch_t *pdcch; // there are several pdcch
+	regs_ch_t pdcch[3]; /* PDCCH indexing, permutation and interleaving is computed for
+						the three possible CFI value */
 	int nof_regs;
 	regs_reg_t *regs;
 }regs_t;
 
-int regs_init(regs_t *h, int cell_id, int nof_prb, int refs_in_symbol1,
+int regs_init(regs_t *h, int cell_id, int nof_prb, int nof_ports,
 		phich_resources_t phich_res, phich_length_t phich_len, lte_cp_t cp);
 void regs_free(regs_t *h);
+int regs_set_cfi(regs_t *h, int nof_ctrl_symbols);
 
 int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb);
 int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb);
 int regs_get_reg(regs_reg_t *reg, cf_t *slot_symbols, cf_t *reg_data, int nof_prb);
 int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, int nof_prb);
 
+int regs_pcfich_nregs(regs_t *h);
 int regs_pcfich_put(regs_t *h, cf_t pcfich_symbols[REGS_PCFICH_NSYM], cf_t *slot_symbols);
-int regs_pcfich_get(regs_t *h, cf_t *slot_symbols, cf_t ch_data[REGS_PCFICH_NSYM]);
+int regs_pcfich_get(regs_t *h, cf_t *slot_symbols, cf_t pcfich_symbols[REGS_PCFICH_NSYM]);
 
+int regs_phich_nregs(regs_t *h);
 int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup, cf_t *slot_symbols);
 int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup);
 int regs_phich_ngroups(regs_t *h);
 int regs_phich_reset(regs_t *h, cf_t *slot_symbols);
 
 int regs_pdcch_nregs(regs_t *h);
+int regs_pdcch_put(regs_t *h, cf_t *pdcch_symbols, cf_t *slot_symbols);
+int regs_pdcch_get(regs_t *h, cf_t *slot_symbols, cf_t *pdcch_symbols);
 
 #endif

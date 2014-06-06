@@ -26,17 +26,23 @@
  */
 
 
-
 #ifndef CRC_
 #define CRC_
 
-#define LTE_CRC24A	0x1864CFB
-#define LTE_CRC24B	0X1800063
-#define LTE_CRC16	0x11021
-#define LTE_CRC8	0x19B
+typedef struct {
+	unsigned long table[256];
+	unsigned char byte;
+	int polynom;
+	int order;
+	unsigned long crcinit; 
+	unsigned long crcmask;
+	unsigned long crchighbit;
+	unsigned int crc_out;
+} crc_t;
 
-
-unsigned int crc(unsigned int crc, char *bufptr, int len,
-		int long_crc,unsigned int poly, int paste_word);
+int crc_init(crc_t *h, unsigned int crc_poly, int crc_order);
+int crc_set_init(crc_t *h, unsigned long crc_init_value);
+void crc_attach(crc_t *h, char *data, int len);
+unsigned int crc_checksum(crc_t *h, char *data, int len);
 
 #endif

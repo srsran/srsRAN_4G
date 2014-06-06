@@ -46,7 +46,18 @@ typedef _Complex float complex_t;
 bool isLocked(void *h)
 {
    cuhd_handler* handler = static_cast<cuhd_handler*>(h);
-   return handler->usrp->get_rx_sensor("lo_locked", 0).to_bool();
+   std::vector<std::string> mb_sensors = handler->usrp->get_mboard_sensor_names();
+   std::vector<std::string> rx_sensors = handler->usrp->get_rx_sensor_names(0);
+   if(std::find(rx_sensors.begin(), rx_sensors.end(), "lo_locked") != rx_sensors.end()) {
+     return handler->usrp->get_rx_sensor("lo_locked", 0).to_bool();
+   }
+   else if(std::find(mb_sensors.begin(), mb_sensors.end(), "ref_locked") != mb_sensors.end()) {
+     return handler->usrp->get_mboard_sensor("ref_locked", 0).to_bool();
+   }
+   else {
+     usleep(500);
+     return true;
+   }
 }
 
 bool cuhd_rx_wait_lo_locked(void *h)
@@ -89,12 +100,14 @@ int cuhd_start_rx_stream_nsamples(void *h, int nsamples) {
     return 0;
 }
 
-
-
 int cuhd_open(char *args, void **h) {
 	cuhd_handler* handler = new cuhd_handler();
 	std::string _args=std::string(args);
 	handler->usrp = uhd::usrp::multi_usrp::make(_args);
+
+	// Try to set LTE clock
+	handler->usrp->set_master_clock_rate(30720000);
+
 	handler->usrp->set_clock_source("internal");
 
 	std::string otw, cpu;
@@ -190,4 +203,3 @@ int cuhd_send(void *h, void *data, int nsamples, int blocking) {
 		return handler->tx_stream->send(data, nsamples, md, 0.0);
 	}
 }
-

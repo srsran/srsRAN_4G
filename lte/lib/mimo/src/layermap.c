@@ -78,7 +78,7 @@ int layermap_multiplex(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, 
  * Returns the number of symbols per layer (M_symb^layer in the specs)
  */
 int layermap_type(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
-		int nof_symbols[MAX_CODEWORDS], mimo_type_t type) {
+		int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type) {
 
 	if (nof_cw > MAX_CODEWORDS) {
 		fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", MAX_CODEWORDS, nof_cw);
@@ -167,7 +167,7 @@ int layerdemap_multiplex(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_la
  * nof_symbols. Returns -1 on error
  */
 int layerdemap_type(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
-		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], mimo_type_t type) {
+		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type) {
 
 	if (nof_cw > MAX_CODEWORDS) {
 		fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", MAX_CODEWORDS, nof_cw);

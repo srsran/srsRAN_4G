@@ -35,7 +35,7 @@
 
 char *input_file_name;
 char *output_file_name="abs_corr.txt";
-int nof_slots=100, frame_length=9600, symbol_sz=128;
+int nof_frames=100, frame_length=9600, symbol_sz=128;
 float corr_peak_threshold=25.0;
 int out_N_id_2 = 0, force_N_id_2=-1;
 
@@ -46,7 +46,7 @@ void usage(char *prog) {
 	printf("Usage: %s [olntsNfcv] -i input_file\n", prog);
 	printf("\t-o output_file [Default %s]\n", output_file_name);
 	printf("\t-l frame_length [Default %d]\n", frame_length);
-	printf("\t-n number of frames [Default %d]\n", nof_slots);
+	printf("\t-n number of frames [Default %d]\n", nof_frames);
 	printf("\t-t correlation threshold [Default %g]\n", corr_peak_threshold);
 	printf("\t-s symbol_sz [Default %d]\n", symbol_sz);
 	printf("\t-N out_N_id_2 [Default %d]\n", out_N_id_2);
@@ -66,7 +66,7 @@ void parse_args(int argc, char **argv) {
 			output_file_name = argv[optind];
 			break;
 		case 'n':
-			nof_slots = atoi(argv[optind]);
+			nof_frames = atoi(argv[optind]);
 			break;
 		case 'l':
 			frame_length = atoi(argv[optind]);
@@ -143,12 +143,12 @@ int main(int argc, char **argv) {
 		perror("malloc");
 		exit(-1);
 	}
-	cfo = malloc(nof_slots*sizeof(float));
+	cfo = malloc(nof_frames*sizeof(float));
 	if (!cfo) {
 		perror("malloc");
 		exit(-1);
 	}
-	exec_time = malloc(nof_slots*sizeof(int));
+	exec_time = malloc(nof_frames*sizeof(int));
 	if (!exec_time) {
 		perror("malloc");
 		exit(-1);
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
 	/* read all file or nof_frames */
 	frame_cnt = 0;
 	while (frame_length == filesource_read(&fsrc, input, frame_length)
-			&& frame_cnt < nof_slots) {
+			&& frame_cnt < nof_frames) {
 
 		gettimeofday(&tdata[1], NULL);
 		if (force_cfo != CFO_AUTO) {
