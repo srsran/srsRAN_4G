@@ -35,7 +35,6 @@
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
-#define RATE 3
 
 unsigned char RM_PERM_TC[NCOLS] =
 		{ 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30, 1, 17, 9,
@@ -45,11 +44,6 @@ int rm_turbo_init(rm_turbo_t *q, int buffer_len) {
 	q->buffer_len = buffer_len;
 	q->buffer = malloc(buffer_len * sizeof(float));
 	if (!q->buffer) {
-		perror("malloc");
-		return -1;
-	}
-	q->d2_perm = malloc(buffer_len * sizeof(int) / 3 + 1);
-	if (!q->d2_perm) {
 		perror("malloc");
 		return -1;
 	}
@@ -74,7 +68,7 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output, int out_le
 
 	int i, j, k, s, kidx, N_cb, k0;
 
-	nrows = (int) (in_len / RATE - 1) / NCOLS + 1;
+	nrows = (int) (in_len / 3 - 1) / NCOLS + 1;
 	K_p = nrows * NCOLS;
 	if (3 * K_p > q->buffer_len) {
 		fprintf(stderr,
@@ -83,7 +77,7 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output, int out_le
 		return -1;
 	}
 
-	ndummy = K_p - in_len / RATE;
+	ndummy = K_p - in_len / 3;
 	if (ndummy < 0) {
 		ndummy = 0;
 	}
@@ -148,7 +142,7 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_
 
 	float *tmp = (float*) q->buffer;
 
-	nrows = (int) (out_len / RATE - 1) / NCOLS + 1;
+	nrows = (int) (out_len / 3 - 1) / NCOLS + 1;
 	K_p = nrows * NCOLS;
 	if (3 * K_p > q->buffer_len) {
 		fprintf(stderr,
@@ -157,12 +151,12 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_
 		return -1;
 	}
 
-	ndummy = K_p - out_len / RATE;
+	ndummy = K_p - out_len / 3;
 	if (ndummy < 0) {
 		ndummy = 0;
 	}
 
-	for (i = 0; i < RATE * K_p; i++) {
+	for (i = 0; i < 3 * K_p; i++) {
 		tmp[i] = RX_NULL;
 	}
 
@@ -170,14 +164,11 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_
 	N_cb = 3 * K_p;	// TODO: Soft buffer size limitation
 	k0 = nrows * (2 * (int) ceilf((float) N_cb / (float) (8 * nrows))
 							* rv_idx + 2);
+
 	k = 0;
 	j = 0;
 	while (k < in_len) {
 		jp = (k0 + j) % N_cb;
-
-		if (jp == 32 || jp == 95 || jp == 0) {
-			i=0;
-		}
 
 		if (jp < K_p || !(jp%2)) {
 			if (jp >= K_p) {
@@ -195,7 +186,6 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_
 		} else {
 			int jpp = (jp-K_p-1)/2;
 			kidx = (RM_PERM_TC[jpp / nrows] + NCOLS * (jpp % nrows) + 1) % K_p;
-			q->d2_perm[kidx] = jpp; // save the permutation in a temporary buffer
 			if ((kidx - ndummy) < 0) {
 				isdummy = true;
 			} else {
@@ -215,21 +205,23 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_
 	}
 
 	/* interleaving and bit selection */
-	for (i = 0; i < out_len / RATE; i++) {
+	for (i = 0; i < out_len / 3; i++) {
 		d_i = (i + ndummy) / NCOLS;
 		d_j = (i + ndummy) % NCOLS;
-		for (j = 0; j < RATE; j++) {
+		for (j = 0; j < 3; j++) {
 			if (j != 2) {
 				kidx = K_p * j + (j+1)*(RM_PERM_TC[d_j] * nrows + d_i);
 			} else {
-				// use the saved permuatation function to avoid computing the inverse
-				kidx = 2*q->d2_perm[(i+ndummy)%K_p]+K_p+1;
+
+				k=(i+ndummy-1)%K_p;
+				if (k<0) k+=K_p;
+				kidx = (k / NCOLS + nrows * RM_PERM_TC[k % NCOLS]) % K_p;
+				kidx = 2*kidx+K_p+1;
 			}
-			float o = tmp[kidx];
-			if (o != RX_NULL) {
-				output[i * RATE + j] = o;
+			if (tmp[kidx] != RX_NULL) {
+				output[i * 3 + j] = tmp[kidx];
 			} else {
-				output[i * RATE + j] = 0;
+				output[i * 3 + j] = 0;
 			}
 		}
 	}
