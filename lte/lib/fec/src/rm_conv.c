@@ -32,7 +32,6 @@
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
-#define RATE 3
 
 unsigned char RM_PERM_TC[NCOLS] =
 		{ 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31, 0, 16, 8,
@@ -43,19 +42,19 @@ unsigned char RM_PERM_TC_INV[NCOLS] = { 16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26,
 
 int rm_conv_tx(char *input, int in_len, char *output, int out_len) {
 
-	char tmp[RATE * NCOLS * NROWS_MAX];
+	char tmp[3 * NCOLS * NROWS_MAX];
 	int nrows, ndummy, K_p;
 
 	int i, j, k, s;
 
-	nrows = (int) (in_len / RATE - 1) / NCOLS + 1;
+	nrows = (int) (in_len / 3 - 1) / NCOLS + 1;
 	if (nrows > NROWS_MAX) {
 		fprintf(stderr, "Input too large. Max input length is %d\n",
-				RATE * NCOLS * NROWS_MAX);
+				3 * NCOLS * NROWS_MAX);
 		return -1;
 	}
 	K_p = nrows * NCOLS;
-	ndummy = K_p - in_len / RATE;
+	ndummy = K_p - in_len / 3;
 	if (ndummy < 0) {
 		ndummy = 0;
 	}
@@ -82,7 +81,7 @@ int rm_conv_tx(char *input, int in_len, char *output, int out_len) {
 			k++;
 		}
 		j++;
-		if (j == RATE * K_p) {
+		if (j == 3 * K_p) {
 			j = 0;
 		}
 	}
@@ -99,22 +98,22 @@ int rm_conv_rx(float *input, int in_len, float *output, int out_len) {
 	int i, j, k;
 	int d_i, d_j;
 
-	float tmp[RATE * NCOLS * NROWS_MAX];
+	float tmp[3 * NCOLS * NROWS_MAX];
 
-	nrows = (int) (out_len / RATE - 1) / NCOLS + 1;
+	nrows = (int) (out_len / 3 - 1) / NCOLS + 1;
 	if (nrows > NROWS_MAX) {
 		fprintf(stderr, "Output too large. Max output length is %d\n",
-				RATE * NCOLS * NROWS_MAX);
+				3 * NCOLS * NROWS_MAX);
 		return -1;
 	}
 	K_p = nrows * NCOLS;
 
-	ndummy = K_p - out_len / RATE;
+	ndummy = K_p - out_len / 3;
 	if (ndummy < 0) {
 		ndummy = 0;
 	}
 
-	for (i = 0; i < RATE * K_p; i++) {
+	for (i = 0; i < 3 * K_p; i++) {
 		tmp[i] = RX_NULL;
 	}
 
@@ -134,22 +133,22 @@ int rm_conv_rx(float *input, int in_len, float *output, int out_len) {
 			k++;
 		}
 		j++;
-		if (j == RATE * K_p) {
+		if (j == 3 * K_p) {
 			j = 0;
 		}
 	}
 
 	/* interleaving and bit selection */
-	for (i = 0; i < out_len / RATE; i++) {
+	for (i = 0; i < out_len / 3; i++) {
 		d_i = (i + ndummy) / NCOLS;
 		d_j = (i + ndummy) % NCOLS;
-		for (j = 0; j < RATE; j++) {
+		for (j = 0; j < 3; j++) {
 			float o = tmp[K_p * j + RM_PERM_TC_INV[d_j] * nrows
 							+ d_i];
 			if (o != RX_NULL) {
-				output[i * RATE + j] = o;
+				output[i * 3 + j] = o;
 			} else {
-				output[i * RATE + j] = 0;
+				output[i * 3 + j] = 0;
 			}
 		}
 	}
@@ -166,11 +165,11 @@ int rm_conv_initialize(rm_conv_hl* h) {
 /** This function can be called in a subframe (1ms) basis */
 int rm_conv_work(rm_conv_hl* hl) {
 	if (hl->init.direction) {
-		//rm_conv_tx(hl->input, hl->output, hl->in_len, hl->ctrl_in.S);
-		hl->out_len = hl->ctrl_in.S;
-	} else {
-		rm_conv_rx(hl->input, hl->output, hl->in_len, hl->ctrl_in.E);
+		rm_conv_tx(hl->input, hl->in_len, hl->output, hl->ctrl_in.E);
 		hl->out_len = hl->ctrl_in.E;
+	} else {
+		rm_conv_rx(hl->input, hl->in_len, hl->output, hl->ctrl_in.S);
+		hl->out_len = hl->ctrl_in.S;
 	}
 	return 0;
 }
