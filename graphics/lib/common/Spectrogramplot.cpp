@@ -36,6 +36,7 @@
 #include <qprinter.h>
 #include <qprintdialog.h>
 #include <qwt_color_map.h>
+#include <qwt_plot_canvas.h>
 #include <qwt_plot_spectrogram.h>
 #include <qwt_scale_widget.h>
 #include <qwt_scale_draw.h>
@@ -116,7 +117,8 @@ Spectrogramplot::Spectrogramplot(int numDataPoints, int numRows, QWidget *parent
   // RightButton: zoom out by 1
   // Ctrl+RighButton: zoom out to full size
 
-  zoomer_ = new MyZoomer(canvas());
+  QwtPlotCanvas *mycanvas = qobject_cast<QwtPlotCanvas*>(canvas());
+  zoomer_ = new MyZoomer(mycanvas);
   zoomer_->setMousePattern(QwtEventPattern::MouseSelect1,
       Qt::LeftButton);
   zoomer_->setMousePattern(QwtEventPattern::MouseSelect2,

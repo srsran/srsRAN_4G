@@ -33,6 +33,8 @@
 
 #include "Lineplot.h"
 
+#include "qwt_scale_div.h"
+#include "qwt_plot_canvas.h"
 #include <algorithm>
 
 class MyZoomer: public QwtPlotZoomer
@@ -94,7 +96,8 @@ Lineplot::Lineplot(QWidget *parent)
   axisScaleEngine(QwtPlot::yLeft)->setAttribute(QwtScaleEngine::Floating,true);
   axisScaleEngine(QwtPlot::yRight)->setAttribute(QwtScaleEngine::Floating,true);
 
-  zoomer_ = new MyZoomer(canvas());
+  QwtPlotCanvas *mycanvas = qobject_cast<QwtPlotCanvas*>(canvas());
+  zoomer_ = new MyZoomer(mycanvas);
   zoomer_->setMousePattern(QwtEventPattern::MouseSelect1, Qt::LeftButton);
   zoomer_->setMousePattern(QwtEventPattern::MouseSelect2, Qt::LeftButton,
                            Qt::ControlModifier);
@@ -160,5 +163,5 @@ void Lineplot::resetZoom()
 
 void Lineplot::linkScales()
 {
-  setAxisScaleDiv(QwtPlot::yRight, *axisScaleDiv(QwtPlot::yLeft));
+//  setAxisScaleDiv(QwtPlot::yRight, *axisScaleDiv(QwtPlot::yLeft));
 }
