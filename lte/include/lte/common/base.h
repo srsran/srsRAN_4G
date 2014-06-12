@@ -39,10 +39,16 @@
 #define MAX_LAYERS		8
 #define MAX_CODEWORDS	2
 
+#define LTE_CRC24A	0x1864CFB
+#define LTE_CRC24B	0X1800063
+#define LTE_CRC16	0x11021
+#define LTE_CRC8	0x19B
+
 typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define SIRNTI		0xFFFF
 #define PRNTI		0xFFFE
+#define MRNTI		0xFFFD
 
 #define MAX_NSYMB		7
 
@@ -90,10 +96,12 @@ int lte_voffset(int symbol_id, int cell_id, int nof_ports);
 
 #define NOF_LTE_BANDS	29
 
+#define NOF_TC_CB_SIZES 188
+
 
 typedef enum {
 	SINGLE_ANTENNA,TX_DIVERSITY, SPATIAL_MULTIPLEX
-} mimo_type_t;
+} lte_mimo_type_t;
 
 typedef enum { PHICH_NORM, PHICH_EXT} phich_length_t;
 typedef enum { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
@@ -108,13 +116,16 @@ enum band_geographical_area {
 	ALL, NAR, APAC, EMEA, JAPAN, CALA, NA
 };
 
+int lte_cb_size(int index);
+int lte_find_cb_index(int long_cb);
+
 float lte_band_fd(int earfcn);
 int lte_band_get_fd_band(int band, lte_earfcn_t *earfcn, int earfcn_start, int earfcn_end, int max_elems);
 int lte_band_get_fd_band_all(int band, lte_earfcn_t *earfcn, int max_nelems);
 int lte_band_get_fd_region(enum band_geographical_area region, lte_earfcn_t *earfcn, int max_elems);
 
-int lte_str2mimotype(char *mimo_type_str, mimo_type_t *type);
-char *lte_mimotype2str(mimo_type_t type);
+int lte_str2mimotype(char *mimo_type_str, lte_mimo_type_t *type);
+char *lte_mimotype2str(lte_mimo_type_t type);
 
 
 #endif

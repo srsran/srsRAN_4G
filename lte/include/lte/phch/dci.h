@@ -25,11 +25,12 @@
  *
  */
 
-
 #ifndef DCI_
 #define DCI_
 
 #include "lte/common/base.h"
+#include <stdint.h>
+#include "lte/phch/ra.h"
 
 typedef _Complex float cf_t;
 
@@ -37,77 +38,63 @@ typedef _Complex float cf_t;
  * DCI message generation according to the formats, as specified in
  * 36.212 Section 5.3.3.1
  *
- * Call the function dci_init(&q) to generate a collection of DCI messages
- * to be transmitted in a subframe. Each subsequent call to
- * dci_add_formatXX(&q, ...) generates the DCI message and appends the data
- * to the collection "q".
- *
  */
 
-#define DCI_MAX_BITS	45
+
+#define DCI_MAX_BITS	57
 
 typedef enum {
-	FORMAT0,
-	FORMAT1,
-	FORMAT1A,
-	/* ... */
-}dci_format_t;
+	Format0, Format1, Format1A, Format1C
+} dci_format_t;
+
+// Each type is for a different interface to packing/unpacking functions
+typedef struct {
+	enum {
+		PUSCH_SCHED, PDSCH_SCHED, MCCH_CHANGE, TPC_COMMAND, RA_PROC_PDCCH
+	} type;
+	dci_format_t format;
+}dci_msg_type_t;
 
 typedef enum {
-	DCI_COMMON=0, DCI_UE=1
-}dci_spec_t;
-
-/** TODO: this is Release 8 */
-typedef struct {
-	/* 36.213 Table 8.4-2: hop_half is 0 for < 10 Mhz and 10 for > 10 Mh.
-	 * hop_quart is 00 for > 10 Mhz and hop_quart_neg is 01 for > 10 Mhz.
-	 */
-	enum {hop_disabled, hop_half, hop_quart, hop_quart_neg, hop_type_2} freq_hop_fl;
-	int n_rb_ul; // number of resource blocks
-	int riv; // Resource Indication Value (36.213 8.1)
-	int mcs_and_rv; // MCS and RV value
-	enum {ndi_true=1, ndi_false=0} ndi; // New Data Indicator
-	int tpc; // Transmit Power Control
-	int dm_rs; // DM RS
-	enum {cqi_true=0, cqi_false=1} cqi_request;
-}dci_format0_t;
-
-typedef struct {
-
-}dci_format1_t;
+	DCI_COMMON = 0, DCI_UE = 1
+} dci_spec_t;
 
 typedef struct {
 	unsigned char nof_bits;
 	unsigned char L; // Aggregation level
 	unsigned char ncce; // Position of first CCE of the dci
 	unsigned short rnti;
-}dci_candidate_t;
+} dci_candidate_t;
 
 typedef struct {
 	char data[DCI_MAX_BITS];
 	dci_candidate_t location;
-}dci_msg_t;
+} dci_msg_t;
 
 typedef struct {
 	dci_msg_t *msg;
 	int nof_dcis;
-}dci_t;
+	int max_dcis;
+} dci_t;
 
-
-int dci_init(dci_t *q, int nof_dci);
+int dci_init(dci_t *q, int max_dci);
 void dci_free(dci_t *q);
+char* dci_format_string(dci_format_t format);
+
+int dci_msg_candidate_set(dci_msg_t *msg, int L, int nCCE, unsigned short rnti);
 void dci_candidate_fprint(FILE *f, dci_candidate_t *q);
 
-int dci_format0_add(dci_t *q, dci_format0_t *msg, int L, int nCCE, unsigned short rnti);
-int dci_format0_sizeof(int nof_prb);
+int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, int nof_prb, unsigned short crnti);
+void dci_msg_type_fprint(FILE *f, dci_msg_type_t type);
 
-int dci_format1_add(dci_t *q, dci_format1_t *msg, int L, int nCCE, unsigned short rnti);
-int dci_format1_sizeof(int nof_prb, int P);
+// For dci_msg_type_t = PUSCH_SCHED
+int dci_msg_pack_pusch(ra_pusch_t *data, dci_msg_t *msg, int nof_prb);
+int dci_msg_unpack_pusch(dci_msg_t *msg, ra_pusch_t *data, int nof_prb);
 
-int dci_format1A_add(dci_t *q, dci_format1_t *msg);
-int dci_format1A_sizeof(int nof_prb, bool random_access_initiated);
+// For dci_msg_type_t = PDSCH_SCHED
+int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format, int nof_prb, bool crc_is_crnti);
+int dci_msg_unpack_pdsch(dci_msg_t *msg, ra_pdsch_t *data, int nof_prb, bool crc_is_crnti);
 
-int dci_format1C_add(dci_t *q, dci_format1_t *msg);
-int dci_format1C_sizeof();
+int dci_format_sizeof(dci_format_t format, int nof_prb);
 
 #endif

@@ -41,7 +41,7 @@ typedef _Complex float cf_t;
 int precoding_single(cf_t *x, cf_t *y, int nof_symbols);
 int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports, int nof_symbols);
 int precoding_type(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_layers, int nof_ports,
-		int nof_symbols, mimo_type_t type);
+		int nof_symbols, lte_mimo_type_t type);
 
 
 /* Estimates the vector "x" based on the received signal "y" and the channel estimates "ce"
@@ -51,6 +51,6 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 		cf_t *x[MAX_LAYERS], int nof_ports, int nof_symbols);
 int predecoding_type(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 		cf_t *x[MAX_LAYERS], int nof_ports, int nof_layers, int nof_symbols,
-		mimo_type_t type);
+		lte_mimo_type_t type);
 
 #endif /* PRECODING_H_ */

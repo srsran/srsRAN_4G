@@ -75,6 +75,11 @@ ADD_TEST(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2)
 ADD_EXECUTABLE(pdcch_test pdcch_test.c)
 TARGET_LINK_LIBRARIES(pdcch_test lte)
 
+ADD_TEST(pdcch_test pdcch_test) 
+
+ADD_EXECUTABLE(dci_unpacking dci_unpacking.c)
+TARGET_LINK_LIBRARIES(dci_unpacking lte)
+
 ########################################################################
 # FILE TEST  
 ########################################################################
@@ -88,7 +93,11 @@ TARGET_LINK_LIBRARIES(pcfich_file_test lte)
 ADD_EXECUTABLE(phich_file_test phich_file_test.c)
 TARGET_LINK_LIBRARIES(phich_file_test lte)
 
+ADD_EXECUTABLE(pdcch_file_test pdcch_file_test.c)
+TARGET_LINK_LIBRARIES(pdcch_file_test lte)
+
 ADD_TEST(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat) 
 ADD_TEST(pcfich_file_test pcfich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat) 
 ADD_TEST(phich_file_test phich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat) 
+ADD_TEST(pdcch_file_test pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat) 
  
