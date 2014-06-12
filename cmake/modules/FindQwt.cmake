@@ -35,22 +35,25 @@
 
 SET(QWT_FOUND "NO")
 
+SET(HINT_INCLUDE_PATHS $ENV{QWT_DIR}/include
+                       $ENV{QWT_DIR}/src
+                       $ENV{QWTDIR}/include
+                       $ENV{QWTDIR}/src
+                       $ENV{QWT_ROOT}/include
+                       $ENV{QWT_ROOT}/src
+                       $ENV{QWTROOT}/include
+                       $ENV{QWTROOT}/src)
+SET(POTENTIAL_INCLUDE_PATHS /usr/local/qwt/include
+                            /usr/local/include
+                            /usr/include/qwt
+                            /usr/include/qwt-qt4
+                            /usr/include/qwt5
+                            /usr/include
+                            /opt/local/include/qwt) #macports path
+
 FIND_PATH(QWT_INCLUDE_DIR qwt.h
-  /usr/local/qwt/include
-  /usr/local/include
-  /usr/include/qwt
-  /usr/include/qwt-qt4
-  /usr/include/qwt5
-  /usr/include
-  /opt/local/include/qwt #macports path
-  $ENV{QWT_DIR}/include
-  $ENV{QWT_DIR}/src
-  $ENV{QWTDIR}/include
-  $ENV{QWTDIR}/src
-  $ENV{QWT_ROOT}/include
-  $ENV{QWT_ROOT}/src
-  $ENV{QWTROOT}/include
-  $ENV{QWTROOT}/src
+  HINTS ${HINT_INCLUDE_PATHS}
+  PATHS ${POTENTIAL_INCLUDE_PATHS}
 )
 
 SET(QWT_INCLUDE_DIRS ${QWT_INCLUDE_DIR})
@@ -82,12 +85,19 @@ IF( Qwt_FIND_VERSION AND QWT_VERSION_STRING )
   ENDIF()
 ENDIF()
 
-SET(POTENTIAL_LIBRARY_PATHS /usr/local/qwt/lib /usr/local/lib /usr/lib /opt/local/lib
-              $ENV{QWT_DIR}/lib $ENV{QWTDIR}/lib $ENV{QWT_ROOT}/lib $ENV{QWTROOT}/lib)
-              
 SET(QWT_NAMES ${QWT_NAMES} qwt qwt-qt4 qwt5 )
+SET(HINT_LIBRARY_PATHS $ENV{QWT_DIR}/lib
+                       $ENV{QWTDIR}/lib
+                       $ENV{QWT_ROOT}/lib
+                       $ENV{QWTROOT}/lib)
+SET(POTENTIAL_LIBRARY_PATHS /usr/local/qwt/lib
+                            /usr/local/lib
+                            /usr/lib
+                            /opt/local/lib)
+
 FIND_LIBRARY(QWT_LIBRARY
   NAMES ${QWT_NAMES}
+  HINTS ${HINT_LIBRARY_PATHS}
   PATHS ${POTENTIAL_LIBRARY_PATHS}
 )
 MARK_AS_ADVANCED(QWT_LIBRARY)
@@ -99,6 +109,7 @@ IF (QWT_LIBRARY)
     SET(QWT_NAMES_DEBUG qwtd qwtd-qt4 qwtd5 )
     FIND_LIBRARY(QWT_LIBRARY_DEBUG
       NAMES ${QWT_NAMES_DEBUG}
+      HINTS ${HINT_LIBRARY_PATHS}
       PATHS ${POTENTIAL_LIBRARY_PATHS}
     )
     MARK_AS_ADVANCED(QWT_LIBRARY_DEBUG)
