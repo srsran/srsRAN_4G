@@ -85,7 +85,7 @@ int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports, 
 
 /* 36.211 v10.3.0 Section 6.3.4 */
 int precoding_type(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_layers, int nof_ports, int nof_symbols,
-		mimo_type_t type) {
+		lte_mimo_type_t type) {
 
 	if (nof_ports > MAX_PORTS) {
 		fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", MAX_PORTS, nof_ports);
@@ -177,7 +177,7 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 
 /* 36.211 v10.3.0 Section 6.3.4 */
 int predecoding_type(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
-		cf_t *x[MAX_LAYERS], int nof_ports, int nof_layers, int nof_symbols, mimo_type_t type) {
+		cf_t *x[MAX_LAYERS], int nof_ports, int nof_layers, int nof_symbols, lte_mimo_type_t type) {
 
 	if (nof_ports > MAX_PORTS) {
 		fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", MAX_PORTS, nof_ports);

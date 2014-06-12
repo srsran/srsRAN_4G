@@ -41,8 +41,8 @@ void get_time_interval(struct timeval * tdata);
 
 extern int verbose;
 
-#define VERBOSE_ISINFO() (verbose==VERBOSE_INFO)
-#define VERBOSE_ISDEBUG() (verbose==VERBOSE_DEBUG)
+#define VERBOSE_ISINFO() (verbose>=VERBOSE_INFO)
+#define VERBOSE_ISDEBUG() (verbose>=VERBOSE_DEBUG)
 
 #define PRINT_DEBUG verbose=VERBOSE_DEBUG
 #define PRINT_INFO verbose=VERBOSE_INFO

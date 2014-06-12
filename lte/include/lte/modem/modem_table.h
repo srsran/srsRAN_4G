@@ -40,7 +40,7 @@ typedef struct {
 }soft_table_t;
 
 typedef struct {
-	cf_t* symbol_table; 			// bit-to-symbol mapping
+	cf_t* symbol_table; 		// bit-to-symbol mapping
 	soft_table_t soft_table; 	// symbol-to-bit mapping (used in soft demodulating)
 	int nsymbols;				// number of modulation symbols
 	int nbits_x_symbol;			// number of bits per symbol
@@ -49,7 +49,7 @@ typedef struct {
 
 // Modulation standards
 enum modem_std {
-	LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64
+	LTE_BPSK = 1, LTE_QPSK = 2, LTE_QAM16 = 4, LTE_QAM64 = 6
 };
 
 void modem_table_init(modem_table_t* q);

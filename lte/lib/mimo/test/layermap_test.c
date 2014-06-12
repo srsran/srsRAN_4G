@@ -75,7 +75,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
 	int i, j, num_errors, symbols_layer;
 	cf_t *d[MAX_CODEWORDS], *x[MAX_LAYERS], *dp[MAX_CODEWORDS];
-	mimo_type_t type;
+	lte_mimo_type_t type;
 	int nof_symb_cw[MAX_CODEWORDS];
 	int n[2];
 

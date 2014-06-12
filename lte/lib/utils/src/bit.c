@@ -71,3 +71,11 @@ unsigned int bit_diff(char *x, char *y, int nbits) {
 	}
 	return errors;
 }
+
+// Counts the number of ones in a word. K&R book exercise 2.9
+int bit_count(unsigned int n) {
+  int c;
+  for (c = 0; n; c++)
+    n &= n - 1;
+  return c;
+}

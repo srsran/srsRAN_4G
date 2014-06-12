@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
 	int i, j;
 	float mse;
 	cf_t *x[MAX_LAYERS], *r[MAX_PORTS], *y[MAX_PORTS], *h[MAX_PORTS], *xr[MAX_LAYERS];
-	mimo_type_t type;
+	lte_mimo_type_t type;
 
 	parse_args(argc, argv);
 

@@ -47,15 +47,11 @@
 #define PDCCH_FORMAT_NOF_REGS(i) 	((1<<i)*9)
 #define PDCCH_FORMAT_NOF_BITS(i) 	((1<<i)*72)
 
-int pdcch_put(cf_t *pdcch, cf_t *slot1_data, int nsymbols) {
-	memcpy(slot1_data, pdcch, sizeof(cf_t) * nsymbols);
-	return nsymbols;
-}
+#define NOF_COMMON_FORMATS	2
+const dci_format_t common_formats[NOF_COMMON_FORMATS] = {Format1A, Format1C};
 
-int pdcch_get(cf_t *slot1_data, cf_t *pdcch, int nsymbols) {
-	memcpy(pdcch, slot1_data, sizeof(cf_t) * nsymbols);
-	return nsymbols;
-}
+#define NOF_UE_FORMATS	2
+const dci_format_t ue_formats[NOF_UE_FORMATS] = {Format0, Format1}; // 1A has the same payload as 0
 
 #define MIN(a,b) ((a>b)?b:a)
 
@@ -63,18 +59,18 @@ int pdcch_get(cf_t *slot1_data, cf_t *pdcch, int nsymbols) {
  * 36.213 9.1
  */
 int gen_common_search(dci_candidate_t *c, int nof_cce, int nof_bits, unsigned short rnti) {
-	int i, L, k;
+	int i, l, L, k;
 	k = 0;
-	for (L = 2; L > 0; L--) {
-		for (i = 0; i < MIN(nof_cce,16) / (4 * L); i++) {
-			c[k].L = 4 * L;
+	for (l = 3; l > 1; l--) {
+		L = (1 << l);
+		for (i = 0; i < MIN(nof_cce,16) / (L); i++) {
+			c[k].L = l;
 			c[k].nof_bits = nof_bits;
 			c[k].rnti = rnti;
-			c[k].ncce = (4 * L) * (i % (nof_cce / (4 * L)));
-			k++;
-			INFO(
-					"Common SS Candidate %d: RNTI: 0x%x, nCCE: %d, Nbits: %d, L: %d\n",
+			c[k].ncce = (L) * (i % (nof_cce / (L)));
+			INFO("Common SS Candidate %d: RNTI: 0x%x, nCCE: %d, Nbits: %d, L: %d\n",
 					k, c[k].rnti, c[k].ncce, c[k].nof_bits, c[k].L);
+			k++;
 		}
 	}
 	return k;
@@ -88,6 +84,11 @@ int gen_ue_search(dci_candidate_t *c, int nof_cce, int nof_bits, unsigned short 
 	unsigned int Yk;
 	const int S[4] = { 6, 12, 8, 16 };
 	k = 0;
+	if (!subframe) {
+		INFO("UE-specific candidates for RNTI: 0x%x, NofBits: %d, NofCCE: %d\n",
+				rnti, nof_bits, nof_cce);
+		if (VERBOSE_ISINFO()) printf("[INFO]: ");
+	}
 	for (l = 3; l >= 0; l--) {
 		L = (1 << l);
 		for (i = 0; i < MIN(nof_cce/L,16/S[l]); i++) {
@@ -99,27 +100,35 @@ int gen_ue_search(dci_candidate_t *c, int nof_cce, int nof_bits, unsigned short 
 				Yk = (39827 * Yk) % 65537;
 			}
 			c[k].ncce = L * ((Yk + i) % (nof_cce / L));
-			INFO("UE-specific SS Candidate %d: SF: %d, RNTI: 0x%x, nCCE: %d, Nbits: %d, L: %d\n",
-					k, subframe, c[k].rnti, c[k].ncce, c[k].nof_bits, c[k].L);
+			if (!subframe) {
+				if (VERBOSE_ISINFO()) {
+					printf("(%d, %d), ", c[k].ncce, c[k].L);
+				}
+			}
 			k++;
 		}
 	}
+	if (!subframe) {
+		if (VERBOSE_ISINFO()) printf("\n");
+	}
 	return k;
 }
+
 void pdcch_init_common(pdcch_t *q, pdcch_search_t *s, unsigned short rnti) {
-	int k;
-	s->nof_candidates = 2*(MIN(q->nof_cce,16) / 4 + MIN(q->nof_cce,16) / 8);
+	int k, i;
+	s->nof_candidates = NOF_COMMON_FORMATS*(MIN(q->nof_cce,16) / 4 + MIN(q->nof_cce,16) / 8);
 	if (s->nof_candidates) {
 		s->candidates[0] = malloc(sizeof(dci_candidate_t) * s->nof_candidates);
 		dci_candidate_t *c = s->candidates[0];
-
+		s->nof_candidates = 0;
 		if (c) {
 			// Format 1A and 1C L=4 and L=8, 4 and 2 candidates, only if nof_cce > 16
 			k = 0;
-			k += gen_common_search(&c[k], q->nof_cce,
-					dci_format1A_sizeof(q->nof_prb, true), SIRNTI);
-			k += gen_common_search(&c[k], q->nof_cce,
-					dci_format1C_sizeof(q->nof_prb), SIRNTI);
+			for(i=0;i<NOF_COMMON_FORMATS;i++) {
+				k += gen_common_search(&c[k], q->nof_cce,
+						dci_format_sizeof(common_formats[i], q->nof_prb), SIRNTI);
+				s->nof_candidates++;
+			}
 		}
 	}
 }
@@ -137,11 +146,11 @@ void pdcch_init_search_si(pdcch_t *q) {
  * DCI Format 1A and 1 + PUSCH scheduling format 0
  */
 void pdcch_init_search_ue(pdcch_t *q, unsigned short c_rnti) {
-	int l, n, k;
+	int l, n, k, i;
 	pdcch_search_t *s = &q->search_mode[SEARCH_UE];
 	s->nof_candidates = 0;
 	for (l=0;l<3;l++) {
-		s->nof_candidates += 3*(MIN(q->nof_cce,16) / (1<<l));
+		s->nof_candidates += NOF_UE_FORMATS*(MIN(q->nof_cce,16) / (1<<l));
 	}
 	INFO("Initiating %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", s->nof_candidates, c_rnti);
 	if (s->nof_candidates) {
@@ -152,12 +161,10 @@ void pdcch_init_search_ue(pdcch_t *q, unsigned short c_rnti) {
 			if (c) {
 				// Expect Formats 1, 1A, 0
 				k = 0;
-				k += gen_ue_search(&c[k], q->nof_cce,
-						dci_format0_sizeof(q->nof_prb), c_rnti, n);
-				k += gen_ue_search(&c[k], q->nof_cce,
-						dci_format1_sizeof(q->nof_prb, 1), c_rnti, n);
-				k += gen_ue_search(&c[k], q->nof_cce,
-						dci_format1A_sizeof(q->nof_prb, true), c_rnti, n);
+				for(i=0;i<NOF_UE_FORMATS;i++) {
+					k += gen_ue_search(&c[k], q->nof_cce,
+							dci_format_sizeof(ue_formats[i], q->nof_prb), c_rnti, n);
+				}
 			}
 		}
 	}
@@ -200,17 +207,21 @@ int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
 	q->cp = cp;
 	q->regs = regs;
 	q->nof_ports = nof_ports;
+	q->nof_prb = nof_prb;
 	q->current_search_mode = SEARCH_NONE;
 
-	q->nof_regs = regs_pdcch_nregs(q->regs);
+	q->nof_regs = (regs_pdcch_nregs(q->regs)/9)*9;
 	q->nof_cce = q->nof_regs / 9;
 	q->nof_symbols = 4 * q->nof_regs;
 	q->nof_bits = 2 * q->nof_symbols;
 
-	INFO("Init PDCCH: %d REGs, %d bits, %d symbols, %d ports\n", q->nof_regs,
-			q->nof_bits, q->nof_symbols, q->nof_ports);
+	INFO("Init PDCCH: %d CCEs (%d REGs), %d bits, %d symbols, %d ports\n", q->nof_cce,
+			q->nof_regs, q->nof_bits, q->nof_symbols, q->nof_ports);
 
 	if (modem_table_std(&q->mod, LTE_QPSK, true)) {
+		goto clean;
+	}
+	if (crc_init(&q->crc, LTE_CRC16, 16)) {
 		goto clean;
 	}
 
@@ -310,17 +321,24 @@ void pdcch_free(pdcch_t *q) {
  *
  * TODO: UE transmit antenna selection CRC mask
  */
-unsigned short dci_decode(viterbi_t *decoder, float *e, char *data, int E,
+unsigned short dci_decode(pdcch_t *q, float *e, char *data, int E,
 		int nof_bits) {
 
 	float tmp[3 * (DCI_MAX_BITS + 16)];
-	unsigned short p_bits;
+	unsigned short p_bits, crc_res;
 	char *x;
 
 	assert(nof_bits < DCI_MAX_BITS);
 
+/*	char a[] = {1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0};
+
+	float *b = malloc(sizeof(E));
+	for (int i=0;i<E;i++) {
+		b[i] = a[i]?1:-1;
+	}
+*/
 	/* unrate matching */
-	rm_conv_rx(e, tmp, E, 3 * (nof_bits + 16));
+	rm_conv_rx(e, E, tmp, 3 * (nof_bits + 16));
 
 	DEBUG("Viterbi input: ", 0);
 	if (VERBOSE_ISDEBUG()) {
@@ -328,26 +346,32 @@ unsigned short dci_decode(viterbi_t *decoder, float *e, char *data, int E,
 	}
 
 	/* viterbi decoder */
-	viterbi_decode_f(decoder, tmp, data, nof_bits + 16);
+	viterbi_decode_f(&q->decoder, tmp, data, nof_bits + 16);
+
+	if (VERBOSE_ISDEBUG()) {
+		bit_fprint(stdout, data, nof_bits+16);
+	}
 
 	x = &data[nof_bits];
 	p_bits = (unsigned short) bit_unpack(&x, 16);
-
-	return (p_bits
-			^ ((unsigned short) crc(0, data, nof_bits, 16, LTE_CRC16, 0)
-					& 0xffff));
+	crc_res = ((unsigned short) crc_checksum(&q->crc, data, nof_bits) & 0xffff);
+	DEBUG("p_bits: 0x%x, crc_res: 0x%x, tot: 0x%x\n", p_bits, crc_res, p_bits ^ crc_res);
+	return (p_bits ^ crc_res);
 }
 
 int pdcch_decode_candidate(pdcch_t *q, float *llr, dci_candidate_t *c,
 		dci_msg_t *msg) {
 	unsigned short crc_res;
-	crc_res = dci_decode(&q->decoder, &llr[72 * c->ncce], msg->data,
+	DEBUG("Trying Candidate: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+				c->nof_bits, PDCCH_FORMAT_NOF_BITS(c->L), c->ncce, c->L,
+				c->rnti);
+	crc_res = dci_decode(q, &llr[72 * c->ncce], msg->data,
 			PDCCH_FORMAT_NOF_BITS(c->L), c->nof_bits);
 
 	if (c->rnti == crc_res) {
 		memcpy(&msg->location, c, sizeof(dci_candidate_t));
 		INFO(
-				"FOUND CAND: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+				"FOUND Candidate: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
 				c->nof_bits, PDCCH_FORMAT_NOF_BITS(c->L), c->ncce, c->L,
 				c->rnti);
 		return 1;
@@ -379,23 +403,19 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
 	memset(&x[q->nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->nof_ports));
 
 	/* extract symbols */
-	if (q->nof_symbols
-			!= pdcch_get(slot1_symbols, q->pdcch_symbols[0], q->nof_symbols)) {
-		fprintf(stderr, "There was an error getting the PDCCH symbols\n");
+	int n = regs_pdcch_get(q->regs, slot1_symbols, q->pdcch_symbols[0]);
+	if (q->nof_symbols != n) {
+		fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", q->nof_symbols, n);
 		return -1;
 	}
 
 	/* extract channel estimates */
 	for (i = 0; i < q->nof_ports; i++) {
-		if (q->nof_symbols != pdcch_get(ce[i], q->ce[i], q->nof_symbols)) {
-			fprintf(stderr, "There was an error getting the PDCCH symbols\n");
+		n = regs_pdcch_get(q->regs, ce[i], q->ce[i]);
+		if (q->nof_symbols != n) {
+			fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", q->nof_symbols, n);
 			return -1;
 		}
-	}
-
-	DEBUG("pdcch_symbols: ", 0);
-	if (VERBOSE_ISDEBUG()) {
-		vec_fprint_c(stdout, q->pdcch_symbols[0], q->nof_symbols);
 	}
 
 	/* in control channels, only diversity is supported */
@@ -410,13 +430,18 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
 				q->nof_symbols / q->nof_ports);
 	}
 
+	DEBUG("pdcch d symbols: ", 0);
+	if (VERBOSE_ISDEBUG()) {
+		vec_fprint_c(stdout, q->pdcch_d, q->nof_symbols);
+	}
+
 	/* demodulate symbols */
 	demod_soft_sigma_set(&q->demod, ebno);
 	demod_soft_demodulate(&q->demod, q->pdcch_d, q->pdcch_llr, q->nof_symbols);
 
 	DEBUG("llr: ", 0);
 	if (VERBOSE_ISDEBUG()) {
-		vec_fprint_f(stdout, q->pdcch_llr, q->nof_symbols);
+		vec_fprint_f(stdout, q->pdcch_llr, q->nof_bits);
 	}
 
 	/* descramble */
@@ -426,7 +451,6 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
 }
 
 int pdcch_decode_current_mode(pdcch_t *q, float *llr, dci_t *dci, int subframe) {
-	int dci_cnt;
 	int k, i;
 
 	if (q->current_search_mode == SEARCH_UE) {
@@ -435,16 +459,15 @@ int pdcch_decode_current_mode(pdcch_t *q, float *llr, dci_t *dci, int subframe) 
 		k = 0;
 	}
 
-	dci_cnt = 0;
 	for (i = 0; i < q->search_mode[q->current_search_mode].nof_candidates
-					&& dci_cnt < dci->nof_dcis; i++) {
+					&& dci->nof_dcis < dci->max_dcis; i++) {
 		if (pdcch_decode_candidate(q, q->pdcch_llr,
 				&q->search_mode[q->current_search_mode].candidates[k][i],
-				&dci->msg[dci_cnt])) {
-			dci_cnt++;
+				&dci->msg[dci->nof_dcis])) {
+			dci->nof_dcis++;
 		}
 	}
-	return dci_cnt;
+	return dci->nof_dcis;
 }
 
 int pdcch_decode_si(pdcch_t *q, float *llr, dci_t *dci) {
@@ -498,7 +521,7 @@ void crc_set_mask_rnti(char *crc, unsigned short rnti) {
 /** 36.212 5.3.3.2 to 5.3.3.4
  * TODO: UE transmit antenna selection CRC mask
  */
-void dci_encode(char *data, char *e, int nof_bits, int E, unsigned short rnti) {
+void dci_encode(pdcch_t *q, char *data, char *e, int nof_bits, int E, unsigned short rnti) {
 	convcoder_t encoder;
 	char tmp[3 * (DCI_MAX_BITS + 16)];
 
@@ -510,7 +533,7 @@ void dci_encode(char *data, char *e, int nof_bits, int E, unsigned short rnti) {
 	encoder.tail_biting = true;
 	memcpy(encoder.poly, poly, 3 * sizeof(int));
 
-	crc(0, data, nof_bits, 16, LTE_CRC16, 1);
+	crc_attach(&q->crc, data, nof_bits);
 	crc_set_mask_rnti(&data[nof_bits], rnti);
 
 	convcoder_encode(&encoder, data, tmp, nof_bits + 16);
@@ -520,7 +543,7 @@ void dci_encode(char *data, char *e, int nof_bits, int E, unsigned short rnti) {
 		vec_fprint_b(stdout, tmp, 3 * (nof_bits + 16));
 	}
 
-	rm_conv_tx(tmp, e, 3 * (nof_bits + 16), E);
+	rm_conv_tx(tmp, 3 * (nof_bits + 16), e, E);
 }
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
@@ -558,7 +581,7 @@ int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL],
 				i, dci->msg[i].location.nof_bits, PDCCH_FORMAT_NOF_BITS(dci->msg[i].location.L),
 				dci->msg[i].location.ncce, dci->msg[i].location.L, dci->msg[i].location.rnti);
 
-		dci_encode(dci->msg[i].data, &q->pdcch_e[72 * dci->msg[i].location.ncce],
+		dci_encode(q, dci->msg[i].data, &q->pdcch_e[72 * dci->msg[i].location.ncce],
 				dci->msg[i].location.nof_bits, PDCCH_FORMAT_NOF_BITS(dci->msg[i].location.L),
 				dci->msg[i].location.rnti);
 	}
@@ -578,7 +601,7 @@ int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL],
 
 	/* mapping to resource elements */
 	for (i = 0; i < q->nof_ports; i++) {
-		pdcch_put(q->pdcch_symbols[i], slot1_symbols[i], q->nof_symbols);
+		regs_pdcch_put(q->regs, q->pdcch_symbols[i], slot1_symbols[i]);
 	}
 	return 0;
 }

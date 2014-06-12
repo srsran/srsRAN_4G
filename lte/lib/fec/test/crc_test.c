@@ -25,7 +25,6 @@
  *
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,13 +34,11 @@
 #include <time.h>
 
 #include "lte.h"
-
 #include "crc_test.h"
 
-int num_bits = 1000, crc_length = 16;
-unsigned int crc_poly = 0x11021;
-unsigned int seed = 0;
-
+int num_bits = 5001, crc_length = 24;
+unsigned int crc_poly = 0x1864CFB;
+unsigned int seed = 1;
 
 void usage(char *prog) {
 	printf("Usage: %s [nlps]\n", prog);
@@ -78,10 +75,11 @@ int main(int argc, char **argv) {
 	int i;
 	char *data;
 	unsigned int crc_word, expected_word;
+	crc_t crc_p;
 
 	parse_args(argc, argv);
 
-	data = malloc(sizeof(char) * (num_bits+crc_length));
+	data = malloc(sizeof(char) * (num_bits + crc_length * 2));
 	if (!data) {
 		perror("malloc");
 		exit(-1);
@@ -93,25 +91,23 @@ int main(int argc, char **argv) {
 	srand(seed);
 
 	// Generate data
-	for (i=0;i<num_bits;i++) {
-		data[i] = rand()%2;
+	for (i = 0; i < num_bits; i++) {
+		data[i] = rand() % 2;
 	}
 
-	// generate CRC word
-	crc_word = crc(0, data, num_bits, crc_length, crc_poly, 1);
-
-	// check if result is zero
-	if (crc(0, data, num_bits + crc_length, crc_length, crc_poly, 0)) {
-		printf("CRC check is non-zero\n");
+	//Initialize CRC params and tables
+	if (crc_init(&crc_p, crc_poly, crc_length)) {
 		exit(-1);
 	}
 
+	// generate CRC word
+	crc_word = crc_checksum(&crc_p, data, num_bits);
+
 	free(data);
 
-	printf("CRC word: 0x%x\n", crc_word);
-
 	// check if generated word is as expected
-	if (get_expected_word(num_bits, crc_length, crc_poly, seed, &expected_word)) {
+	if (get_expected_word(num_bits, crc_length, crc_poly, seed,
+			&expected_word)) {
 		fprintf(stderr, "Test parameters not defined in test_results.h\n");
 		exit(-1);
 	}

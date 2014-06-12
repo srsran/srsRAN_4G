@@ -38,7 +38,7 @@ int layermap_diversity(cf_t *d, cf_t *x[MAX_LAYERS], int nof_layers, int nof_sym
 int layermap_multiplex(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
 		int nof_symbols[MAX_CODEWORDS]);
 int layermap_type(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
-		int nof_symbols[MAX_CODEWORDS], mimo_type_t type);
+		int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type);
 
 
 /* Generates the vector of data symbols "d" based on the vector of layer-mapped symbols "x"
@@ -48,6 +48,6 @@ int layerdemap_diversity(cf_t *x[MAX_LAYERS], cf_t *d, int nof_layers, int nof_l
 int layerdemap_multiplex(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
 		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS]);
 int layerdemap_type(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
-		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], mimo_type_t type);
+		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type);
 
 #endif
