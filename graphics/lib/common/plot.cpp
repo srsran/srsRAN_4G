@@ -61,5 +61,6 @@ void plot_exit() {
 	if (plot_initiated) {
 		pthread_cancel(thread);
 	}
+  plot_initiated=0;
 }
 

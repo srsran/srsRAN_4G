@@ -94,7 +94,7 @@ Lineplot::Lineplot(QWidget *parent)
   axisScaleEngine(QwtPlot::yLeft)->setAttribute(QwtScaleEngine::Floating,true);
   axisScaleEngine(QwtPlot::yRight)->setAttribute(QwtScaleEngine::Floating,true);
 
-  zoomer_ = new MyZoomer(canvas());
+  zoomer_ = new MyZoomer(qobject_cast<QwtPlotCanvas*>(canvas()));
   zoomer_->setMousePattern(QwtEventPattern::MouseSelect1, Qt::LeftButton);
   zoomer_->setMousePattern(QwtEventPattern::MouseSelect2, Qt::LeftButton,
                            Qt::ControlModifier);
@@ -160,5 +160,9 @@ void Lineplot::resetZoom()
 
 void Lineplot::linkScales()
 {
+#if QWT_VERSION < 0x060100
   setAxisScaleDiv(QwtPlot::yRight, *axisScaleDiv(QwtPlot::yLeft));
+#else // QWT_VERSION < 0x060100
+  setAxisScaleDiv(QwtPlot::yRight, axisScaleDiv(QwtPlot::yLeft));
+#endif // QWT_VERSION < 0x060100
 }

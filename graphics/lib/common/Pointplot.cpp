@@ -83,7 +83,7 @@ Pointplot::Pointplot(QWidget *parent)
   memset(realPoints_, 0x0, numPoints_*sizeof(double));
   memset(imagPoints_, 0x0, numPoints_*sizeof(double));
 
-  zoomer_ = new MyZoomer(canvas());
+  zoomer_ = new MyZoomer(qobject_cast<QwtPlotCanvas*>(canvas()));
   zoomer_->setMousePattern(QwtEventPattern::MouseSelect1, Qt::LeftButton);
   zoomer_->setMousePattern(QwtEventPattern::MouseSelect2, Qt::LeftButton,
                            Qt::ControlModifier);
