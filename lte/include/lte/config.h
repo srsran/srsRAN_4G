@@ -25,23 +25,31 @@
  *
  */
 
-#ifndef MATRIX_
-#define MATRIX_
+#ifndef CONFIG_H
+#define CONFIG_H
 
-#include <stdio.h>
-#include "lte/config.h"
+// Generic helper definitions for shared library support
+#if defined _WIN32 || defined __CYGWIN__
+  #define LIBLTE_IMPORT __declspec(dllimport)
+  #define LIBLTE_EXPORT __declspec(dllexport)
+  #define LIBLTE_LOCAL
+#else
+  #if __GNUC__ >= 4
+    #define LIBLTE_IMPORT __attribute__ ((visibility ("default")))
+    #define LIBLTE_EXPORT __attribute__ ((visibility ("default")))
+  #else
+    #define LIBLTE_IMPORT
+    #define LIBLTE_EXPORT
+    #define LIBLTE_LOCAL
+  #endif
+#endif
 
-typedef _Complex float cf_t;
+// Define LIBLTE_API
+// LIBLTE_API is used for the public API symbols.
+#ifdef LIBLTE_DLL_EXPORTS // defined if we are building the LIBLTE DLL (instead of using it)
+  #define LIBLTE_API LIBLTE_EXPORT
+#else
+  #define LIBLTE_API LIBLTE_IMPORT
+#endif
 
-LIBLTE_API int matrix_init(void ***m, int sz_x, int sz_y, int elem_sz);
-LIBLTE_API void matrix_free(void **q, int sz_x);
-LIBLTE_API void matrix_bzero(void **q, int sz_x, int sz_y, int elem_sz);
-LIBLTE_API void matrix_fprintf_cf(FILE *f, cf_t **q, int sz_x, int sz_y);
-LIBLTE_API void matrix_fprintf_f(FILE *f, float **q, int sz_x, int sz_y);
-LIBLTE_API void matrix_copy(void **dst, void **src, int sz_x, int sz_y, int elem_sz);
-LIBLTE_API void matrix_dotprod_cf(cf_t **x, cf_t **y, cf_t **out, int sz_x, int sz_y);
-LIBLTE_API void matrix_dotprod_float(float **x, float **y, float **out, int sz_x, int sz_y);
-LIBLTE_API void matrix_dotprod_int(int **x, int **y, int **out, int sz_x, int sz_y);
-
-#endif // MATRIX_
-
+#endif // CONFIG_H

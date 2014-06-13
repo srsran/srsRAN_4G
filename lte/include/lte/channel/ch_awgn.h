@@ -27,18 +27,19 @@
 
 
 #include <complex.h>
+#include "lte/config.h"
 
 #ifndef CH_AWGN_
 #define CH_AWGN_
 
 typedef _Complex float cf_t;
 
-void ch_awgn_c(const cf_t* input, cf_t* output, float variance, int buff_sz);
-void ch_awgn_f(const float* x, float* y, float variance, int buff_sz);
+LIBLTE_API void ch_awgn_c(const cf_t* input, cf_t* output, float variance, int buff_sz);
+LIBLTE_API void ch_awgn_f(const float* x, float* y, float variance, int buff_sz);
 
 /* High-level API */
 
-typedef struct {
+typedef struct LIBLTE_API{
 	const cf_t* input;
 	int in_len;
 	struct ch_awgn_ctrl_in {
@@ -49,8 +50,8 @@ typedef struct {
 	int out_len;
 }ch_awgn_hl;
 
-int ch_awgn_initialize(ch_awgn_hl* hl);
-int ch_awgn_work(ch_awgn_hl* hl);
-int ch_awgn_stop(ch_awgn_hl* hl);
+LIBLTE_API int ch_awgn_initialize(ch_awgn_hl* hl);
+LIBLTE_API int ch_awgn_work(ch_awgn_hl* hl);
+LIBLTE_API int ch_awgn_stop(ch_awgn_hl* hl);
 
 #endif

@@ -32,14 +32,15 @@
 #include <complex.h>
 #include <stdint.h>
 
+#include "lte/config.h"
 #include "modem_table.h"
 
 typedef _Complex float cf_t;
 
-int mod_modulate(modem_table_t* table, const char *bits, cf_t* symbols, int nbits);
+LIBLTE_API int mod_modulate(modem_table_t* table, const char *bits, cf_t* symbols, int nbits);
 
 /* High-level API */
-typedef struct {
+typedef struct LIBLTE_API {
 	modem_table_t obj;
 	struct mod_init {
 		enum modem_std std;	// symbol mapping standard (see modem_table.h)
@@ -52,8 +53,8 @@ typedef struct {
 	int out_len;
 }mod_hl;
 
-int mod_initialize(mod_hl* hl);
-int mod_work(mod_hl* hl);
-int mod_stop(mod_hl* hl);
+LIBLTE_API int mod_initialize(mod_hl* hl);
+LIBLTE_API int mod_work(mod_hl* hl);
+LIBLTE_API int mod_stop(mod_hl* hl);
 
-#endif
+#endif // MOD_

@@ -29,6 +29,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "lte/utils/bit.h"
+
 void bit_pack(uint32_t value, char **bits, int nof_bits)
 {
     int i;

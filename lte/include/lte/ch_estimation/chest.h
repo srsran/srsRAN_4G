@@ -32,6 +32,7 @@
 
 #include <stdio.h>
 
+#include "lte/config.h"
 #include "lte/ch_estimation/refsignal.h"
 #include "lte/filter/filter2d.h"
 #include "lte/common/base.h"
@@ -49,7 +50,7 @@ typedef void (*interpolate_fnc_t) (cf_t *input, cf_t *output, int M, int len, in
  */
 
 /* Low-level API */
-typedef struct {
+typedef struct LIBLTE_API{
 	int nof_ports;
 	int nof_symbols;
 	int nof_prb;
@@ -58,28 +59,28 @@ typedef struct {
 	interpolate_fnc_t interp;
 }chest_t;
 
-int chest_init(chest_t *q, chest_interp_t interp, lte_cp_t cp, int nof_prb, int nof_ports);
-void chest_free(chest_t *q);
+LIBLTE_API int chest_init(chest_t *q, chest_interp_t interp, lte_cp_t cp, int nof_prb, int nof_ports);
+LIBLTE_API void chest_free(chest_t *q);
 
-int chest_ref_LTEDL_slot_port(chest_t *q, int port, int nslot, int cell_id);
-int chest_ref_LTEDL_slot(chest_t *q, int nslot, int cell_id);
-int chest_ref_LTEDL(chest_t *q, int cell_id);
+LIBLTE_API int chest_ref_LTEDL_slot_port(chest_t *q, int port, int nslot, int cell_id);
+LIBLTE_API int chest_ref_LTEDL_slot(chest_t *q, int nslot, int cell_id);
+LIBLTE_API int chest_ref_LTEDL(chest_t *q, int cell_id);
 
-void chest_ce_ref(chest_t *q, cf_t *input, int nslot, int port_id, int nref);
-void chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, int nslot, int port_id);
-void chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, int nslot);
+LIBLTE_API void chest_ce_ref(chest_t *q, cf_t *input, int nslot, int port_id, int nref);
+LIBLTE_API void chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, int nslot, int port_id);
+LIBLTE_API void chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, int nslot);
 
-void chest_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
-void chest_ref_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
-void chest_recvsig_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
-void chest_ce_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
-int chest_ref_symbols(chest_t *q, int port_id, int nslot, int l[2]);
+LIBLTE_API void chest_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
+LIBLTE_API void chest_ref_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
+LIBLTE_API void chest_recvsig_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
+LIBLTE_API void chest_ce_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
+LIBLTE_API int chest_ref_symbols(chest_t *q, int port_id, int nslot, int l[2]);
 
 /* High-level API */
 
 /** TODO: The high-level API has N interfaces, one for each port */
 
-typedef struct {
+typedef struct LIBLTE_API{
 	chest_t obj;
 	struct chest_init {
 		int nof_symbols; 		// 7 for normal cp, 6 for extended
@@ -99,8 +100,8 @@ typedef struct {
 
 #define DEFAULT_FRAME_SIZE		2048
 
-int chest_initialize(chest_hl* h);
-int chest_work(chest_hl* hl);
-int chest_stop(chest_hl* hl);
+LIBLTE_API int chest_initialize(chest_hl* h);
+LIBLTE_API int chest_work(chest_hl* hl);
+LIBLTE_API int chest_stop(chest_hl* hl);
 
 #endif

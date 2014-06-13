@@ -30,50 +30,51 @@
 #define VECTOR_
 
 #include <stdio.h>
+#include "lte/config.h"
 
 typedef _Complex float cf_t;
 
 /** Return the sum of all the elements */
-int vec_acc_ii(int *x, int len);
-float vec_acc_ff(float *x, int len);
-cf_t vec_acc_cc(cf_t *x, int len);
+LIBLTE_API int vec_acc_ii(int *x, int len);
+LIBLTE_API float vec_acc_ff(float *x, int len);
+LIBLTE_API cf_t vec_acc_cc(cf_t *x, int len);
 
-void *vec_malloc(int size);
+LIBLTE_API void *vec_malloc(int size);
 
 /* print vectors */
-void vec_fprint_c(FILE *stream, cf_t *x, int len);
-void vec_fprint_f(FILE *stream, float *x, int len);
-void vec_fprint_b(FILE *stream, char *x, int len);
-void vec_fprint_i(FILE *stream, int *x, int len);
+LIBLTE_API void vec_fprint_c(FILE *stream, cf_t *x, int len);
+LIBLTE_API void vec_fprint_f(FILE *stream, float *x, int len);
+LIBLTE_API void vec_fprint_b(FILE *stream, char *x, int len);
+LIBLTE_API void vec_fprint_i(FILE *stream, int *x, int len);
 
 /* sum two vectors */
-void vec_sum_ch(char *z, char *x, char *y, int len);
-void vec_sum_ccc(cf_t *z, cf_t *x, cf_t *y, int len);
+LIBLTE_API void vec_sum_ch(char *z, char *x, char *y, int len);
+LIBLTE_API void vec_sum_ccc(cf_t *z, cf_t *x, cf_t *y, int len);
 
 /* scalar product */
-void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len);
-void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, int len);
+LIBLTE_API void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len);
+LIBLTE_API void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, int len);
 
 /* vector product (element-wise) */
-void vec_prod_ccc(cf_t *x, cf_t *y, cf_t *z, int len);
-void vec_prod_ccc_unalign(cf_t *x, cf_t *y, cf_t *z, int len);
+LIBLTE_API void vec_prod_ccc(cf_t *x, cf_t *y, cf_t *z, int len);
+LIBLTE_API void vec_prod_ccc_unalign(cf_t *x, cf_t *y, cf_t *z, int len);
 
 /* z=x/y vector division (element-wise) */
-void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, int len);
+LIBLTE_API void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, int len);
 
 /* conjugate */
-void vec_conj_cc(cf_t *x, cf_t *y, int len);
+LIBLTE_API void vec_conj_cc(cf_t *x, cf_t *y, int len);
 
 /* average vector power */
-float vec_avg_power_cf(cf_t *x, int len);
+LIBLTE_API float vec_avg_power_cf(cf_t *x, int len);
 
 /* return the index of the maximum value in the vector */
-int vec_max_fi(float *x, int len);
+LIBLTE_API int vec_max_fi(float *x, int len);
 
 /* quantify vector of floats and convert to unsigned char */
-void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, int len);
+LIBLTE_API void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, int len);
 
 /* magnitude of each vector element */
-void vec_abs_cf(cf_t *x, float *abs, int len);
+LIBLTE_API void vec_abs_cf(cf_t *x, float *abs, int len);
 
-#endif
+#endif // VECTOR_

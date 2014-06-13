@@ -29,6 +29,7 @@
 #ifndef PDCCH_
 #define PDCCH_
 
+#include "lte/config.h"
 #include "lte/common/base.h"
 #include "lte/mimo/precoding.h"
 #include "lte/mimo/layermap.h"
@@ -54,13 +55,13 @@ typedef enum {
  * A search mode is indicated by higher layers to look for SI/C/RA-RNTI
  * DCI messages as defined in Section 7.1 of 36.213
  */
-typedef struct {
+typedef struct LIBLTE_API {
 	int nof_candidates;
 	dci_candidate_t *candidates[NSUBFRAMES_X_FRAME];
 }pdcch_search_t;
 
 /* PDCCH object */
-typedef struct {
+typedef struct LIBLTE_API {
 	int cell_id;
 	lte_cp_t cp;
 	int nof_prb;
@@ -91,11 +92,11 @@ typedef struct {
 	crc_t crc;
 }pdcch_t;
 
-int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports, int cell_id, lte_cp_t cp);
-void pdcch_free(pdcch_t *q);
+LIBLTE_API int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports, int cell_id, lte_cp_t cp);
+LIBLTE_API void pdcch_free(pdcch_t *q);
 
 /* Encoding functions */
-int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nsubframe);
+LIBLTE_API int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nsubframe);
 
 
 /* Decoding functions */
@@ -105,22 +106,22 @@ int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL], in
  * b) call pdcch_extract_llr() and then call pdcch_decode_si/ue/ra
  */
 
-int pdcch_decode(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
+LIBLTE_API int pdcch_decode(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
 		dci_t *dci, int nsubframe, float ebno);
-int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float *llr,
+LIBLTE_API int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float *llr,
 		int nsubframe, float ebno);
 
-void pdcch_init_search_si(pdcch_t *q);
-void pdcch_set_search_si(pdcch_t *q);
-int pdcch_decode_si(pdcch_t *q, float *llr, dci_t *dci);
+LIBLTE_API void pdcch_init_search_si(pdcch_t *q);
+LIBLTE_API void pdcch_set_search_si(pdcch_t *q);
+LIBLTE_API int pdcch_decode_si(pdcch_t *q, float *llr, dci_t *dci);
 
-void pdcch_init_search_ue(pdcch_t *q, unsigned short c_rnti);
-void pdcch_set_search_ue(pdcch_t *q);
-int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, int nsubframe);
+LIBLTE_API void pdcch_init_search_ue(pdcch_t *q, unsigned short c_rnti);
+LIBLTE_API void pdcch_set_search_ue(pdcch_t *q);
+LIBLTE_API int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, int nsubframe);
 
-void pdcch_init_search_ra(pdcch_t *q, unsigned short ra_rnti);
-void pdcch_set_search_ra(pdcch_t *q);
-int pdcch_decode_ra(pdcch_t *q, float *llr, dci_t *dci);
+LIBLTE_API void pdcch_init_search_ra(pdcch_t *q, unsigned short ra_rnti);
+LIBLTE_API void pdcch_set_search_ra(pdcch_t *q);
+LIBLTE_API int pdcch_decode_ra(pdcch_t *q, float *llr, dci_t *dci);
 
 
 #endif

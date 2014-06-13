@@ -34,24 +34,25 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include "lte/config.h"
 
 typedef void* plot_waterfall_t;
 
-int plot_waterfall_init(plot_waterfall_t *h);
-void plot_waterfall_setTitle(plot_waterfall_t *h, char *title);
-void plot_waterfall_appendNewData(plot_waterfall_t *h, float *data,
+LIBLTE_API int plot_waterfall_init(plot_waterfall_t *h);
+LIBLTE_API void plot_waterfall_setTitle(plot_waterfall_t *h, char *title);
+LIBLTE_API void plot_waterfall_appendNewData(plot_waterfall_t *h, float *data,
 		int num_points);
-void plot_complex_setPlotXLabel(plot_waterfall_t *h, char *xLabel);
-void plot_complex_setPlotYLabel(plot_waterfall_t *h, char *yLabel);
-void plot_waterfall_setPlotXAxisRange(plot_waterfall_t *h, double xMin, double xMax);
-void plot_waterfall_setPlotXAxisScale(plot_waterfall_t *h, double xMin, double xMax);
-void plot_waterfall_setPlotYAxisScale(plot_waterfall_t *h, double yMin, double yMax);
+LIBLTE_API void plot_complex_setPlotXLabel(plot_waterfall_t *h, char *xLabel);
+LIBLTE_API void plot_complex_setPlotYLabel(plot_waterfall_t *h, char *yLabel);
+LIBLTE_API void plot_waterfall_setPlotXAxisRange(plot_waterfall_t *h, double xMin, double xMax);
+LIBLTE_API void plot_waterfall_setPlotXAxisScale(plot_waterfall_t *h, double xMin, double xMax);
+LIBLTE_API void plot_waterfall_setPlotYAxisScale(plot_waterfall_t *h, double yMin, double yMax);
 
-void plot_waterfall_setSpectrogramXLabel(plot_waterfall_t *h, char* xLabel);
-void plot_waterfall_setSpectrogramYLabel(plot_waterfall_t *h, char* yLabel);
-void plot_waterfall_setSpectrogramXAxisRange(plot_waterfall_t *h, double xMin, double xMax);
-void plot_waterfall_setSpectrogramYAxisRange(plot_waterfall_t *h, double yMin, double yMax);
-void plot_waterfall_setSpectrogramZAxisScale(plot_waterfall_t *h, double zMin, double zMax);
+LIBLTE_API void plot_waterfall_setSpectrogramXLabel(plot_waterfall_t *h, char* xLabel);
+LIBLTE_API void plot_waterfall_setSpectrogramYLabel(plot_waterfall_t *h, char* yLabel);
+LIBLTE_API void plot_waterfall_setSpectrogramXAxisRange(plot_waterfall_t *h, double xMin, double xMax);
+LIBLTE_API void plot_waterfall_setSpectrogramYAxisRange(plot_waterfall_t *h, double yMin, double yMax);
+LIBLTE_API void plot_waterfall_setSpectrogramZAxisScale(plot_waterfall_t *h, double zMin, double zMax);
 
 
 #ifdef __cplusplus

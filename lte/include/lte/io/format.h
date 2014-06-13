@@ -31,4 +31,4 @@
 
 typedef enum { FLOAT, COMPLEX_FLOAT, COMPLEX_SHORT, FLOAT_BIN, COMPLEX_FLOAT_BIN, COMPLEX_SHORT_BIN} data_type_t;
 
-#endif
+#endif // FORMAT_

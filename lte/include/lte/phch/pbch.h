@@ -29,6 +29,7 @@
 #ifndef PBCH_
 #define PBCH_
 
+#include "lte/config.h"
 #include "lte/common/base.h"
 #include "lte/mimo/precoding.h"
 #include "lte/mimo/layermap.h"
@@ -45,7 +46,7 @@
 
 typedef _Complex float cf_t;
 
-typedef struct {
+typedef struct LIBLTE_API {
 	int nof_ports;
 	int nof_prb;
 	int sfn;
@@ -54,7 +55,7 @@ typedef struct {
 }pbch_mib_t;
 
 /* PBCH object */
-typedef struct {
+typedef struct LIBLTE_API {
 	int cell_id;
 	lte_cp_t cp;
 	int nof_prb;
@@ -84,15 +85,15 @@ typedef struct {
 
 }pbch_t;
 
-int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp);
-void pbch_free(pbch_t *q);
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float ebno, pbch_mib_t *mib);
-void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports);
-void pbch_decode_reset(pbch_t *q);
+LIBLTE_API int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp);
+LIBLTE_API void pbch_free(pbch_t *q);
+LIBLTE_API int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float ebno, pbch_mib_t *mib);
+LIBLTE_API void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports);
+LIBLTE_API void pbch_decode_reset(pbch_t *q);
 
-void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib);
-bool pbch_exists(int nframe, int nslot);
-int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id);
-int pbch_get(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id);
+LIBLTE_API void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib);
+LIBLTE_API bool pbch_exists(int nframe, int nslot);
+LIBLTE_API int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id);
+LIBLTE_API int pbch_get(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id);
 
-#endif
+#endif // PBCH_

@@ -29,20 +29,21 @@
 #ifndef SCRAMBLING_
 #define SCRAMBLING_
 
+#include "lte/config.h"
 #include "lte/common/sequence.h"
 #include "lte/common/base.h"
 
 typedef _Complex float cf_t;
 
 /* Scrambling has no state */
-void scrambling_b(sequence_t *s, char *data);
-void scrambling_b_offset(sequence_t *s, char *data, int offset, int len);
+LIBLTE_API void scrambling_b(sequence_t *s, char *data);
+LIBLTE_API void scrambling_b_offset(sequence_t *s, char *data, int offset, int len);
 
-void scrambling_f(sequence_t *s, float *data);
-void scrambling_f_offset(sequence_t *s, float *data, int offset, int len);
+LIBLTE_API void scrambling_f(sequence_t *s, float *data);
+LIBLTE_API void scrambling_f_offset(sequence_t *s, float *data, int offset, int len);
 
-void scrambling_c(sequence_t *s, cf_t *data);
-void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len);
+LIBLTE_API void scrambling_c(sequence_t *s, cf_t *data);
+LIBLTE_API void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len);
 
 
 /* High-level API */
@@ -55,11 +56,11 @@ void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len);
 #define SCRAMBLING_PMCH			4
 #define SCRAMBLING_PUCCH			5
 
-typedef struct {
+typedef struct LIBLTE_API {
 	sequence_t seq[NSUBFRAMES_X_FRAME];
 }scrambling_t;
 
-typedef struct {
+typedef struct LIBLTE_API {
 	scrambling_t obj;
 	struct scrambling_init {
 		int hard;
@@ -79,4 +80,4 @@ typedef struct {
 	int out_len;
 }scrambling_hl;
 
-#endif
+#endif // SCRAMBLING_

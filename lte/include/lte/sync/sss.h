@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "lte/config.h"
 #include "lte/common/base.h"
 #include "lte/utils/dft.h"
 
@@ -48,7 +49,7 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 #define N_SSS 		31
 #define SSS_LEN		2*N_SSS
 
-struct sss_tables {
+struct sss_tables{
 	int z1[N_SSS][N_SSS];
 	int c[2][N_SSS];
 	int s[N_SSS][N_SSS];
@@ -58,7 +59,7 @@ struct sss_tables {
 /* Allocate 32 complex to make it multiple of 32-byte AVX instructions alignment requirement.
  * Should use vect_malloc() to make it platform agnostic.
  */
-struct fc_tables {
+struct fc_tables{
 	cf_t z1[N_SSS+1][N_SSS+1];
 	cf_t c[2][N_SSS+1];
 	cf_t s[N_SSS+1][N_SSS+1];
@@ -66,7 +67,7 @@ struct fc_tables {
 
 
 /* Low-level API */
-typedef struct {
+typedef struct LIBLTE_API {
 
 	dft_plan_t dftp_input;
 
@@ -81,27 +82,27 @@ typedef struct {
 
 
 /* Basic functionality */
-int sss_synch_init(sss_synch_t *q);
-void sss_synch_free(sss_synch_t *q);
-void sss_generate(float *signal0, float *signal5, int cell_id);
-void sss_put_slot(float *sss, cf_t *symbol, int nof_prb, lte_cp_t cp);
+LIBLTE_API int sss_synch_init(sss_synch_t *q);
+LIBLTE_API void sss_synch_free(sss_synch_t *q);
+LIBLTE_API void sss_generate(float *signal0, float *signal5, int cell_id);
+LIBLTE_API void sss_put_slot(float *sss, cf_t *symbol, int nof_prb, lte_cp_t cp);
 
-int sss_synch_set_N_id_2(sss_synch_t *q, int N_id_2);
+LIBLTE_API int sss_synch_set_N_id_2(sss_synch_t *q, int N_id_2);
 
-void sss_synch_m0m1(sss_synch_t *q, cf_t *input, int *m0, float *m0_value,
+LIBLTE_API void sss_synch_m0m1(sss_synch_t *q, cf_t *input, int *m0, float *m0_value,
 		int *m1, float *m1_value);
-int sss_synch_subframe(int m0, int m1);
-int sss_synch_N_id_1(sss_synch_t *q, int m0, int m1);
+LIBLTE_API int sss_synch_subframe(int m0, int m1);
+LIBLTE_API int sss_synch_N_id_1(sss_synch_t *q, int m0, int m1);
 
-int sss_synch_frame(sss_synch_t *q, cf_t *input, int *subframe_idx, int *N_id_1);
-void sss_synch_set_threshold(sss_synch_t *q, float threshold);
-void sss_synch_set_symbol_sz(sss_synch_t *q, int symbol_sz);
-void sss_synch_set_subframe_sz(sss_synch_t *q, int subframe_sz);
+LIBLTE_API int sss_synch_frame(sss_synch_t *q, cf_t *input, int *subframe_idx, int *N_id_1);
+LIBLTE_API void sss_synch_set_threshold(sss_synch_t *q, float threshold);
+LIBLTE_API void sss_synch_set_symbol_sz(sss_synch_t *q, int symbol_sz);
+LIBLTE_API void sss_synch_set_subframe_sz(sss_synch_t *q, int subframe_sz);
 
 
 /* High-level API */
 
-typedef struct {
+typedef struct LIBLTE_API {
 	sss_synch_t obj;
 	struct sss_synch_init {
 		int N_id_2;
@@ -121,9 +122,9 @@ typedef struct {
 
 #define DEFAULT_FRAME_SIZE		2048
 
-int sss_synch_initialize(sss_synch_hl* h);
-int sss_synch_work(sss_synch_hl* hl);
-int sss_synch_stop(sss_synch_hl* hl);
+LIBLTE_API int sss_synch_initialize(sss_synch_hl* h);
+LIBLTE_API int sss_synch_work(sss_synch_hl* hl);
+LIBLTE_API int sss_synch_stop(sss_synch_hl* hl);
 
-#endif
+#endif // SSS_
 

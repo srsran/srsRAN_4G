@@ -29,9 +29,10 @@
 #ifndef CONVOLUTION_H_
 #define CONVOLUTION_H_
 
+#include "lte/config.h"
 #include "lte/utils/dft.h"
 
-typedef struct  {
+typedef struct LIBLTE_API {
 	_Complex float *input_fft;
 	_Complex float *filter_fft;
 	_Complex float *output_fft;
@@ -44,10 +45,10 @@ typedef struct  {
 	dft_plan_t output_plan;
 }conv_fft_cc_t;
 
-int conv_fft_cc_init(conv_fft_cc_t *state, int input_len, int filter_len);
-void conv_fft_cc_free(conv_fft_cc_t *state);
-int conv_fft_cc_run(conv_fft_cc_t *state, _Complex float *input, _Complex float *filter, _Complex float *output);
+LIBLTE_API int conv_fft_cc_init(conv_fft_cc_t *state, int input_len, int filter_len);
+LIBLTE_API void conv_fft_cc_free(conv_fft_cc_t *state);
+LIBLTE_API int conv_fft_cc_run(conv_fft_cc_t *state, _Complex float *input, _Complex float *filter, _Complex float *output);
 
-int conv_cc(_Complex float *input, _Complex float *filter, _Complex float *output, int input_len, int filter_len);
+LIBLTE_API int conv_cc(_Complex float *input, _Complex float *filter, _Complex float *output, int input_len, int filter_len);
 
-#endif
+#endif // CONVOLUTION_H_

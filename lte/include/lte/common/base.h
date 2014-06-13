@@ -29,6 +29,8 @@
 #ifndef _LTEBASE_
 #define _LTEBASE_
 
+#include "lte/config.h"
+
 #define NSUBFRAMES_X_FRAME	10
 #define NSLOTS_X_FRAME (2*NSUBFRAMES_X_FRAME)
 
@@ -90,9 +92,9 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define SAMPLE_IDX(nof_prb, symbol_idx, sample_idx) (symbol_idx*nof_prb*RE_X_RB + sample_idx)
 
-const int lte_symbol_sz(int nof_prb);
-int lte_re_x_prb(int ns, int symbol, int nof_ports, int nof_symbols);
-int lte_voffset(int symbol_id, int cell_id, int nof_ports);
+LIBLTE_API const int lte_symbol_sz(int nof_prb);
+LIBLTE_API int lte_re_x_prb(int ns, int symbol, int nof_ports, int nof_symbols);
+LIBLTE_API int lte_voffset(int symbol_id, int cell_id, int nof_ports);
 
 #define NOF_LTE_BANDS	29
 
@@ -107,7 +109,7 @@ typedef enum { PHICH_NORM, PHICH_EXT} phich_length_t;
 typedef enum { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
 
 
-typedef struct {
+typedef struct LIBLTE_API{
 	int id;
 	float fd;
 }lte_earfcn_t;
@@ -116,16 +118,16 @@ enum band_geographical_area {
 	ALL, NAR, APAC, EMEA, JAPAN, CALA, NA
 };
 
-int lte_cb_size(int index);
-int lte_find_cb_index(int long_cb);
+LIBLTE_API int lte_cb_size(int index);
+LIBLTE_API int lte_find_cb_index(int long_cb);
 
-float lte_band_fd(int earfcn);
-int lte_band_get_fd_band(int band, lte_earfcn_t *earfcn, int earfcn_start, int earfcn_end, int max_elems);
-int lte_band_get_fd_band_all(int band, lte_earfcn_t *earfcn, int max_nelems);
-int lte_band_get_fd_region(enum band_geographical_area region, lte_earfcn_t *earfcn, int max_elems);
+LIBLTE_API float lte_band_fd(int earfcn);
+LIBLTE_API int lte_band_get_fd_band(int band, lte_earfcn_t *earfcn, int earfcn_start, int earfcn_end, int max_elems);
+LIBLTE_API int lte_band_get_fd_band_all(int band, lte_earfcn_t *earfcn, int max_nelems);
+LIBLTE_API int lte_band_get_fd_region(enum band_geographical_area region, lte_earfcn_t *earfcn, int max_elems);
 
-int lte_str2mimotype(char *mimo_type_str, lte_mimo_type_t *type);
-char *lte_mimotype2str(lte_mimo_type_t type);
+LIBLTE_API int lte_str2mimotype(char *mimo_type_str, lte_mimo_type_t *type);
+LIBLTE_API char *lte_mimotype2str(lte_mimo_type_t type);
 
 
 #endif

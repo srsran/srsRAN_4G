@@ -30,6 +30,7 @@
 #define _REGS_H_
 
 #include <stdbool.h>
+#include "lte/config.h"
 #include "lte/common/base.h"
 
 #define REGS_PHICH_NSYM			12
@@ -43,19 +44,19 @@
 
 typedef _Complex float cf_t;
 
-typedef struct {
+typedef struct LIBLTE_API {
 	int k[4];
 	int k0;
 	int l;
 	bool assigned;
 }regs_reg_t;
 
-typedef struct {
+typedef struct LIBLTE_API {
 	int nof_regs;
 	regs_reg_t **regs;
 }regs_ch_t;
 
-typedef struct {
+typedef struct LIBLTE_API {
 	int cell_id;
 	int nof_prb;
 	int max_ctrl_symbols;
@@ -73,28 +74,28 @@ typedef struct {
 	regs_reg_t *regs;
 }regs_t;
 
-int regs_init(regs_t *h, int cell_id, int nof_prb, int nof_ports,
+LIBLTE_API int regs_init(regs_t *h, int cell_id, int nof_prb, int nof_ports,
 		phich_resources_t phich_res, phich_length_t phich_len, lte_cp_t cp);
-void regs_free(regs_t *h);
-int regs_set_cfi(regs_t *h, int nof_ctrl_symbols);
+LIBLTE_API void regs_free(regs_t *h);
+LIBLTE_API int regs_set_cfi(regs_t *h, int nof_ctrl_symbols);
 
-int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb);
-int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb);
-int regs_get_reg(regs_reg_t *reg, cf_t *slot_symbols, cf_t *reg_data, int nof_prb);
-int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, int nof_prb);
+LIBLTE_API int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb);
+LIBLTE_API int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb);
+LIBLTE_API int regs_get_reg(regs_reg_t *reg, cf_t *slot_symbols, cf_t *reg_data, int nof_prb);
+LIBLTE_API int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, int nof_prb);
 
-int regs_pcfich_nregs(regs_t *h);
-int regs_pcfich_put(regs_t *h, cf_t pcfich_symbols[REGS_PCFICH_NSYM], cf_t *slot_symbols);
-int regs_pcfich_get(regs_t *h, cf_t *slot_symbols, cf_t pcfich_symbols[REGS_PCFICH_NSYM]);
+LIBLTE_API int regs_pcfich_nregs(regs_t *h);
+LIBLTE_API int regs_pcfich_put(regs_t *h, cf_t pcfich_symbols[REGS_PCFICH_NSYM], cf_t *slot_symbols);
+LIBLTE_API int regs_pcfich_get(regs_t *h, cf_t *slot_symbols, cf_t pcfich_symbols[REGS_PCFICH_NSYM]);
 
-int regs_phich_nregs(regs_t *h);
-int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup, cf_t *slot_symbols);
-int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup);
-int regs_phich_ngroups(regs_t *h);
-int regs_phich_reset(regs_t *h, cf_t *slot_symbols);
+LIBLTE_API int regs_phich_nregs(regs_t *h);
+LIBLTE_API int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup, cf_t *slot_symbols);
+LIBLTE_API int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup);
+LIBLTE_API int regs_phich_ngroups(regs_t *h);
+LIBLTE_API int regs_phich_reset(regs_t *h, cf_t *slot_symbols);
 
-int regs_pdcch_nregs(regs_t *h);
-int regs_pdcch_put(regs_t *h, cf_t *pdcch_symbols, cf_t *slot_symbols);
-int regs_pdcch_get(regs_t *h, cf_t *slot_symbols, cf_t *pdcch_symbols);
+LIBLTE_API int regs_pdcch_nregs(regs_t *h);
+LIBLTE_API int regs_pdcch_put(regs_t *h, cf_t *pdcch_symbols, cf_t *slot_symbols);
+LIBLTE_API int regs_pdcch_get(regs_t *h, cf_t *slot_symbols, cf_t *pdcch_symbols);
 
-#endif
+#endif // REGS_H_

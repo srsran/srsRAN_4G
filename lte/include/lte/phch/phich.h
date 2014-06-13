@@ -29,6 +29,7 @@
 #ifndef PHICH_
 #define PHICH_
 
+#include "lte/config.h"
 #include "lte/common/base.h"
 #include "lte/mimo/precoding.h"
 #include "lte/mimo/layermap.h"
@@ -53,7 +54,7 @@ typedef _Complex float cf_t;
 #define PHICH_EXT_NSF			2
 
 /* phich object */
-typedef struct {
+typedef struct LIBLTE_API {
 	lte_cp_t cp;
 	int nof_prb;
 	int nof_tx_ports;
@@ -79,18 +80,18 @@ typedef struct {
 
 }phich_t;
 
-int phich_init(phich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_ports, lte_cp_t cp);
-void phich_free(phich_t *q);
-int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
+LIBLTE_API int phich_init(phich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_ports, lte_cp_t cp);
+LIBLTE_API void phich_free(phich_t *q);
+LIBLTE_API int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
 		int ngroup, int nseq, int nsubframe, char *ack, int *distance);
-int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
+LIBLTE_API int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
 		cf_t *slot_symbols[MAX_PORTS_CTRL]);
 
 
-void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS_CTRL]);
-int phich_ngroups(phich_t *q);
-bool phich_exists(int nframe, int nslot);
-int phich_put(regs_t *h, cf_t *phich, cf_t *slot_data);
-int phich_get(regs_t *h, cf_t *phich, cf_t *slot_data);
+LIBLTE_API void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS_CTRL]);
+LIBLTE_API int phich_ngroups(phich_t *q);
+LIBLTE_API bool phich_exists(int nframe, int nslot);
+LIBLTE_API int phich_put(regs_t *h, cf_t *phich, cf_t *slot_data);
+LIBLTE_API int phich_get(regs_t *h, cf_t *phich, cf_t *slot_data);
 
-#endif
+#endif // PHICH_

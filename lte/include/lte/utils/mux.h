@@ -25,16 +25,16 @@
  *
  */
 
-
-
 #ifndef MUX_
 #define MUX_
 
-void mux(void **input, void *output, int *input_lengths, int *input_padding_pre, int nof_inputs,
+#include "lte/config.h"
+
+LIBLTE_API void mux(void **input, void *output, int *input_lengths, int *input_padding_pre, int nof_inputs,
 		int sample_sz);
 
-void demux(void *input, void **output, int *output_lengths,
+LIBLTE_API void demux(void *input, void **output, int *output_lengths,
 		int *output_padding_pre, int *output_padding_post, int nof_outputs,
 		int sample_sz);
 
-#endif
+#endif // MUX_

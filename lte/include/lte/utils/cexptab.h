@@ -26,22 +26,23 @@
  */
 
 
-#ifndef _cexptab_
-#define _cexptab_
+#ifndef CEXPTAB_
+#define CEXPTAB_
 
 #include <complex.h>
+#include "lte/config.h"
 
 typedef _Complex float cf_t;
 
-typedef struct {
+typedef struct LIBLTE_API {
 	int size;
 	cf_t *tab;
 }cexptab_t;
 
-int cexptab_init(cexptab_t *nco, int size);
-void cexptab_free(cexptab_t *nco);
+LIBLTE_API int cexptab_init(cexptab_t *nco, int size);
+LIBLTE_API void cexptab_free(cexptab_t *nco);
 
-void cexptab_gen(cexptab_t *nco, cf_t *x, float freq, int len);
-void cexptab_gen_direct(cf_t *x, float freq, int len);
+LIBLTE_API void cexptab_gen(cexptab_t *nco, cf_t *x, float freq, int len);
+LIBLTE_API void cexptab_gen_direct(cf_t *x, float freq, int len);
 
-#endif
+#endif // CEXPTAB_

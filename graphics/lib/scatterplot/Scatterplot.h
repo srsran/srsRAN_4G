@@ -3,10 +3,11 @@
 
 #include <string>
 #include <complex>
+#include "lte/config.h"
 
 class ScatterplotWrapper;
 
-class Scatterplot
+class LIBLTE_API Scatterplot
 {
 public:
   Scatterplot();
@@ -28,7 +29,7 @@ private:
 };
 
 template<class Iterator>
-void Scatterplot::setNewData(Iterator begin, Iterator end)
+LIBLTE_API void Scatterplot::setNewData(Iterator begin, Iterator end)
 {
   int numPoints = end-begin;
   std::complex<double>* data = new std::complex<double>[numPoints];

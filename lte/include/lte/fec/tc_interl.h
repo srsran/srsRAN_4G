@@ -25,17 +25,19 @@
  *
  */
 
-#ifndef _PERMUTE_H
-#define _PERMUTE_H
+#ifndef TC_INTERL_H
+#define TC_INTERL_H
 
-typedef struct {
+#include "lte/config.h"
+
+typedef struct LIBLTE_API{
 	int *forward;
 	int *reverse;
 }tc_interl_t;
 
-int tc_interl_LTE_init(tc_interl_t *h, int long_cb);
-int tc_interl_UMTS_init(tc_interl_t *h, int long_cb);
+LIBLTE_API int tc_interl_LTE_init(tc_interl_t *h, int long_cb);
+LIBLTE_API int tc_interl_UMTS_init(tc_interl_t *h, int long_cb);
 
-void tc_interl_free(tc_interl_t *h);
+LIBLTE_API void tc_interl_free(tc_interl_t *h);
 
-#endif
+#endif // TC_INTERL_H

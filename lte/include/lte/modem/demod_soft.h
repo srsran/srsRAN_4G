@@ -32,29 +32,30 @@
 #include <complex.h>
 #include <stdint.h>
 
+#include "lte/config.h"
 #include "modem_table.h"
 
 enum alg { EXACT, APPROX };
 
-typedef struct {
+typedef struct LIBLTE_API {
 	float sigma;			// noise power
 	enum alg alg_type;		// soft demapping algorithm (EXACT or APPROX)
 	modem_table_t *table;	// symbol mapping table (see modem_table.h)
 }demod_soft_t;
 
-void demod_soft_init(demod_soft_t *q);
-void demod_soft_table_set(demod_soft_t *q, modem_table_t *table);
-void demod_soft_alg_set(demod_soft_t *q, enum alg alg_type);
-void demod_soft_sigma_set(demod_soft_t *q, float sigma);
-int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int nsymbols);
+LIBLTE_API void demod_soft_init(demod_soft_t *q);
+LIBLTE_API void demod_soft_table_set(demod_soft_t *q, modem_table_t *table);
+LIBLTE_API void demod_soft_alg_set(demod_soft_t *q, enum alg alg_type);
+LIBLTE_API void demod_soft_sigma_set(demod_soft_t *q, float sigma);
+LIBLTE_API int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int nsymbols);
 
 
 /* High-level API */
-typedef struct {
+typedef struct LIBLTE_API {
 	demod_soft_t obj;
 	modem_table_t table;
 
-	struct demod_soft_init {
+  struct demod_soft_init{
 		enum modem_std std;		// symbol mapping standard (see modem_table.h)
 	} init;
 
@@ -71,9 +72,9 @@ typedef struct {
 
 }demod_soft_hl;
 
-int demod_soft_initialize(demod_soft_hl* hl);
-int demod_soft_work(demod_soft_hl* hl);
-int demod_soft_stop(demod_soft_hl* hl);
+LIBLTE_API int demod_soft_initialize(demod_soft_hl* hl);
+LIBLTE_API int demod_soft_work(demod_soft_hl* hl);
+LIBLTE_API int demod_soft_stop(demod_soft_hl* hl);
 
 
-#endif
+#endif // DEMOD_SOFT_

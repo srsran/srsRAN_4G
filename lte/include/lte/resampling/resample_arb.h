@@ -31,19 +31,21 @@
 #include <stdint.h>
 #include <complex.h>
 
+#include "lte/config.h"
+
 typedef _Complex float cf_t;
 
 #define RESAMPLE_ARB_N    32  // Polyphase filter rows
 #define RESAMPLE_ARB_M    8   // Polyphase filter columns
 
-typedef struct {
+typedef struct LIBLTE_API {
   float rate;                // Resample rate
   float step;                // Step increment through filter
   float acc;                 // Index into filter
   cf_t reg[RESAMPLE_ARB_M];  // Our window of samples
 }resample_arb_t;
 
-void resample_arb_init(resample_arb_t *q, float rate);
-int resample_arb_compute(resample_arb_t *q, cf_t *input, cf_t *output, int n_in);
+LIBLTE_API void resample_arb_init(resample_arb_t *q, float rate);
+LIBLTE_API int resample_arb_compute(resample_arb_t *q, cf_t *input, cf_t *output, int n_in);
 
 #endif //RESAMPLE_ARB_

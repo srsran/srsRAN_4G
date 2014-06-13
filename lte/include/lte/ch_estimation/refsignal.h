@@ -37,18 +37,19 @@
  *
  */
 
+#include "lte/config.h"
 #include "lte/common/base.h"
 
 typedef _Complex float cf_t;
 
-typedef struct {
+typedef struct LIBLTE_API{
 	int time_idx;
 	int freq_idx;
 	cf_t simbol;
 	cf_t recv_simbol;
 }ref_t;
 
-typedef struct {
+typedef struct LIBLTE_API{
 	int nof_refs;		// number of reference signals
 	int *symbols_ref; 	// symbols with at least one reference
 	int nsymbols;		// number of symbols with at least one reference
@@ -58,10 +59,10 @@ typedef struct {
 	cf_t *ch_est;
 } refsignal_t;
 
-int refsignal_init_LTEDL(refsignal_t *q, int port_id, int nslot,
+LIBLTE_API int refsignal_init_LTEDL(refsignal_t *q, int port_id, int nslot,
 		int cell_id, lte_cp_t cp, int nof_prb);
-void refsignal_free(refsignal_t *q);
+LIBLTE_API void refsignal_free(refsignal_t *q);
 
-void refsignal_put(refsignal_t *q, cf_t *slot_symbols);
+LIBLTE_API void refsignal_put(refsignal_t *q, cf_t *slot_symbols);
 
 #endif
