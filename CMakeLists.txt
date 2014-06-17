@@ -156,7 +156,7 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/graphics/include)
 # Add the subdirectories
 ########################################################################
 ADD_SUBDIRECTORY(common)
-ADD_SUBDIRECTORY(lte)
 ADD_SUBDIRECTORY(cuhd)
 ADD_SUBDIRECTORY(graphics)
+ADD_SUBDIRECTORY(lte)
 
