@@ -119,7 +119,7 @@ ADD_CUSTOM_TARGET(uninstall
 # Macro to add -fPIC property to static libs 
 ########################################################################
 MACRO(LIBLTE_SET_PIC)
-	IF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
+    IF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
         SET_TARGET_PROPERTIES(${ARGV} PROPERTIES COMPILE_FLAGS -fPIC)
     ENDIF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
 ENDMACRO(LIBLTE_SET_PIC)
@@ -129,15 +129,12 @@ ENDMACRO(LIBLTE_SET_PIC)
 # through an internal cache variable.
 ########################################################################
 MACRO (APPEND_INTERNAL_LIST  LIST_NAME  VALUE)
-
    # If the list in not in the cache, create it.
    IF (${LIST_NAME})
-      SET (${LIST_NAME} "${${LIST_NAME}};${VALUE}" CACHE INTERNAL "Internal
-variable")
+      SET (${LIST_NAME} "${${LIST_NAME}};${VALUE}" CACHE INTERNAL "Internal variable")
    ELSE (${LIST_NAME})
       SET (${LIST_NAME} "${VALUE}" CACHE INTERNAL "Internal variable")
    ENDIF (${LIST_NAME})
-
 ENDMACRO (APPEND_INTERNAL_LIST)
 
 
@@ -150,16 +147,16 @@ MESSAGE(STATUS "Building for version: ${VERSION}")
 ########################################################################
 # Add general includes and dependencies
 ########################################################################
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lte/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/common/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lte/phy/include/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/cuhd/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/graphics/include)
 
 ########################################################################
 # Add the subdirectories
 ########################################################################
-
-ADD_SUBDIRECTORY(lte)
+ADD_SUBDIRECTORY(common)
 ADD_SUBDIRECTORY(cuhd)
 ADD_SUBDIRECTORY(graphics)
-ADD_SUBDIRECTORY(examples)
+ADD_SUBDIRECTORY(lte)
 

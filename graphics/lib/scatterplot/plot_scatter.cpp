@@ -27,7 +27,7 @@
 
 
 
-#include "plot/plot_scatter.h"
+#include "liblte/graphics/plot/plot_scatter.h"
 #include "Scatterplot.h"
 #include <complex>
 

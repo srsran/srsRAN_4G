@@ -3,7 +3,7 @@
 
 #include <string>
 #include <complex>
-#include "lte/config.h"
+#include "liblte/config.h"
 
 class ScatterplotWrapper;
 

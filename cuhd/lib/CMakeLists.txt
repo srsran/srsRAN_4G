@@ -23,7 +23,7 @@ FIND_PACKAGE(UHD)
 
 IF(UHD_FOUND)
 
-	ADD_LIBRARY(cuhd cuhd_imp.cpp cuhd_utils.c)
+        ADD_LIBRARY(cuhd SHARED cuhd_imp.cpp cuhd_utils.c)
 	INCLUDE_DIRECTORIES(${UHD_INCLUDE_DIRS})
         LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
 	TARGET_LINK_LIBRARIES(cuhd ${UHD_LIBRARIES})
