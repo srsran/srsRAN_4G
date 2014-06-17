@@ -42,7 +42,7 @@ void generate_N_id_1_table(int table[30][30]);
 int sss_synch_init(sss_synch_t *q) {
 	bzero(q, sizeof(sss_synch_t));
 
-	if (dft_plan(SSS_DFT_LEN, COMPLEX_2_COMPLEX, FORWARD, &q->dftp_input)) {
+  if (dft_plan(&q->dftp_input, SSS_DFT_LEN, COMPLEX_2_COMPLEX, FORWARD)) {
 		return -1;
 	}
 	generate_N_id_1_table(q->N_id_1_table);

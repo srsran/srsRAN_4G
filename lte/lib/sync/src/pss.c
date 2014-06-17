@@ -183,7 +183,7 @@ int pss_synch_set_N_id_2(pss_synch_t *q, int N_id_2) {
 	memset(q->pss_signal_freq, 0, PSS_LEN_FREQ * sizeof(cf_t));
 	memcpy(&pss_signal_pad[33], pss_signal_time, PSS_LEN * sizeof(cf_t));
 
-	if (dft_plan(PSS_LEN_FREQ - 1, COMPLEX_2_COMPLEX, BACKWARD, &plan)) {
+  if (dft_plan(&plan, PSS_LEN_FREQ - 1, COMPLEX_2_COMPLEX, BACKWARD)) {
 		return -1;
 	}
 	plan.options = DFT_MIRROR_PRE | DFT_DC_OFFSET;

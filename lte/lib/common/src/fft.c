@@ -42,7 +42,7 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp_type, int nof_prb, dft_dir_t dir) {
 		fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
 		return -1;
 	}
-	if (dft_plan_c2c(symbol_sz, dir, &q->fft_plan)) {
+  if (dft_plan_c2c(&q->fft_plan, symbol_sz, dir)) {
 		fprintf(stderr, "Error: Creating DFT plan\n");
 		return -1;
 	}

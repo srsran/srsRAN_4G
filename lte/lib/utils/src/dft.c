@@ -36,40 +36,44 @@
 #define div(a,b) ((a-1)/b+1)
 
 
-int dft_plan_multi(const int *dft_points, dft_mode_t *modes, dft_dir_t *dirs,
-		int nof_plans, dft_plan_t *plans) {
+int dft_plan_vector(dft_plan_t *plans, const int *dft_points,
+                    dft_mode_t *modes, dft_dir_t *dirs, int nof_plans) {
 	int i;
 	for (i=0;i<nof_plans;i++) {
-		if (dft_plan(dft_points[i],modes[i],dirs[i], &plans[i])) {
+    if (dft_plan(&plans[i], dft_points[i],modes[i],dirs[i])) {
 			return -1;
 		}
 	}
 	return 0;
 }
 
-int dft_plan_multi_c2c(const int *dft_points, dft_dir_t dir, int nof_plans, dft_plan_t *plans) {
+int dft_plan_multi_c2c(dft_plan_t *plans, const int *dft_points,
+                       dft_dir_t dir, int nof_plans) {
 	int i;
 	for (i=0;i<nof_plans;i++) {
-		if (dft_plan(dft_points[i],COMPLEX_2_COMPLEX,dir,&plans[i])) {
+    if (dft_plan(&plans[i],dft_points[i],COMPLEX_2_COMPLEX,dir)) {
 			return -1;
 		}
 	}
 	return 0;
 }
 
-int dft_plan_multi_c2r(const int *dft_points, dft_dir_t dir, int nof_plans, dft_plan_t *plans) {
+int dft_plan_multi_c2r(dft_plan_t *plans, const int *dft_points,
+                       dft_dir_t dir, int nof_plans) {
 	int i;
 	for (i=0;i<nof_plans;i++) {
-		if (dft_plan(dft_points[i],COMPLEX_2_REAL,dir,&plans[i])) {
+    if (dft_plan(&plans[i], dft_points[i],COMPLEX_2_REAL,dir)) {
 			return -1;
 		}
 	}
 	return 0;
 }
-int dft_plan_multi_r2r(const int *dft_points, dft_dir_t dir, int nof_plans, dft_plan_t *plans) {
+
+int dft_plan_multi_r2r(dft_plan_t *plans, const int *dft_points,
+                       dft_dir_t dir, int nof_plans) {
 	int i;
 	for (i=0;i<nof_plans;i++) {
-		if (dft_plan(dft_points[i],REAL_2_REAL,dir,&plans[i])) {
+    if (dft_plan(&plans[i], dft_points[i],REAL_2_REAL,dir)) {
 			return -1;
 		}
 	}
@@ -77,21 +81,22 @@ int dft_plan_multi_r2r(const int *dft_points, dft_dir_t dir, int nof_plans, dft_
 }
 
 
-int dft_plan(const int dft_points, dft_mode_t mode, dft_dir_t dir, dft_plan_t *plan) {
+int dft_plan(dft_plan_t *plan, const int dft_points,
+             dft_mode_t mode, dft_dir_t dir) {
 
 	switch(mode) {
 	case COMPLEX_2_COMPLEX:
-		if (dft_plan_c2c(dft_points,dir,plan)) {
+    if (dft_plan_c2c(plan,dft_points,dir)) {
 			return -1;
 		}
 		break;
 	case REAL_2_REAL:
-		if (dft_plan_r2r(dft_points,dir,plan)) {
+    if (dft_plan_r2r(plan,dft_points,dir)) {
 			return -1;
 		}
 		break;
 	case COMPLEX_2_REAL:
-		if (dft_plan_c2r(dft_points,dir,plan)) {
+    if (dft_plan_c2r(plan,dft_points,dir)) {
 			return -1;
 		}
 		break;
@@ -104,7 +109,7 @@ static void allocate(dft_plan_t *plan, int size_in, int size_out, int len) {
 	plan->out = fftwf_malloc(size_out*len);
 }
 
-int dft_plan_c2c(const int dft_points, dft_dir_t dir, dft_plan_t *plan) {
+int dft_plan_c2c(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
 	int sign;
 	sign = (dir == FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
 	allocate(plan,sizeof(fftwf_complex),sizeof(fftwf_complex), dft_points);
@@ -120,7 +125,7 @@ int dft_plan_c2c(const int dft_points, dft_dir_t dir, dft_plan_t *plan) {
 	return 0;
 }
 
-int dft_plan_r2r(const int dft_points, dft_dir_t dir, dft_plan_t *plan) {
+int dft_plan_r2r(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
 	int sign;
 	sign = (dir == FORWARD) ? FFTW_R2HC : FFTW_HC2R;
 
@@ -137,8 +142,8 @@ int dft_plan_r2r(const int dft_points, dft_dir_t dir, dft_plan_t *plan) {
 	return 0;
 }
 
-int dft_plan_c2r(const int dft_points, dft_dir_t dir, dft_plan_t *plan) {
-	if (dft_plan_c2c(dft_points, dir, plan)) {
+int dft_plan_c2r(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
+  if (dft_plan_c2c(plan, dft_points, dir)) {
 		return -1;
 	}
 	plan->mode = COMPLEX_2_REAL;
@@ -221,7 +226,7 @@ void dft_run_r2r(dft_plan_t *plan, dft_r_t *in, dft_r_t *out) {
 	}
 	if (plan->options & DFT_PSD) {
 		for (i=0;i<(len+1)/2-1;i++) {
-			out[i] = sqrtf(f_out[i]*f_out[i]+f_out[len-i-1]*f_out[len-i-1]);
+      out[i] = sqrtf(f_out[i]*f_out[i]+f_out[len-i-1]*f_out[len-i-1]);
 		}
 	}
 	if (plan->options & DFT_OUT_DB) {

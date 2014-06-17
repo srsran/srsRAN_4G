@@ -44,13 +44,13 @@ int conv_fft_cc_init(conv_fft_cc_t *state, int input_len, int filter_len) {
 	if (!state->input_fft || !state->filter_fft || !state->output_fft) {
 		return -1;
 	}
-	if (dft_plan(state->output_len,COMPLEX_2_COMPLEX,FORWARD,&state->input_plan)) {
+  if (dft_plan(&state->input_plan,state->output_len,COMPLEX_2_COMPLEX,FORWARD)) {
 		return -2;
 	}
-	if (dft_plan(state->output_len,COMPLEX_2_COMPLEX,FORWARD,&state->filter_plan)) {
+  if (dft_plan(&state->filter_plan,state->output_len,COMPLEX_2_COMPLEX,FORWARD)) {
 		return -3;
 	}
-	if (dft_plan(state->output_len,COMPLEX_2_COMPLEX,BACKWARD,&state->output_plan)) {
+  if (dft_plan(&state->output_plan,state->output_len,COMPLEX_2_COMPLEX,BACKWARD)) {
 		return -4;
 	}
 	return 0;

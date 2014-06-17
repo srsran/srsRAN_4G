@@ -72,24 +72,25 @@ typedef float dft_r_t;
 
 /* Create DFT plans */
 
-LIBLTE_API int dft_plan(const int dft_points, dft_mode_t mode, dft_dir_t dir, dft_plan_t *plan);
-LIBLTE_API int dft_plan_c2c(const int dft_points, dft_dir_t dir, dft_plan_t *plan);
-LIBLTE_API int dft_plan_r2r(const int dft_points, dft_dir_t dir, dft_plan_t *plan);
-LIBLTE_API int dft_plan_c2r(const int dft_points, dft_dir_t dir, dft_plan_t *plan);
+LIBLTE_API int dft_plan(dft_plan_t *plan, const int dft_points,
+                        dft_mode_t mode, dft_dir_t dir);
+LIBLTE_API int dft_plan_c2c(dft_plan_t *plan, const int dft_points, dft_dir_t dir);
+LIBLTE_API int dft_plan_r2r(dft_plan_t *plan, const int dft_points, dft_dir_t dir);
+LIBLTE_API int dft_plan_c2r(dft_plan_t *plan, const int dft_points, dft_dir_t dir);
 LIBLTE_API void dft_plan_free(dft_plan_t *plan);
 
 
 /* Create a vector of DFT plans */
 
-LIBLTE_API int dft_plan_vector(const int *dft_points, dft_mode_t *modes, dft_dir_t *dirs,
-		int nof_plans, dft_plan_t *plans);
-LIBLTE_API int dft_plan_multi_c2c(const int *dft_points, dft_dir_t dir, int nof_plans,
-		dft_plan_t *plans);
-LIBLTE_API int dft_plan_multi_c2r(const int *dft_points, dft_dir_t dir, int nof_plans,
-		dft_plan_t *plans);
-LIBLTE_API int dft_plan_multi_r2r(const int *dft_points, dft_dir_t dir, int nof_plans,
-		dft_plan_t *plans);
-LIBLTE_API void dft_plan_free_vector(dft_plan_t *plan, int nof_plans);
+LIBLTE_API int dft_plan_vector(dft_plan_t *plans, const int *dft_points,
+                               dft_mode_t *modes, dft_dir_t *dirs, int nof_plans);
+LIBLTE_API int dft_plan_multi_c2c(dft_plan_t *plans, const int *dft_points,
+                                  dft_dir_t dir, int nof_plans);
+LIBLTE_API int dft_plan_multi_c2r(dft_plan_t *plans, const int *dft_points,
+                                  dft_dir_t dir, int nof_plans);
+LIBLTE_API int dft_plan_multi_r2r(dft_plan_t *plans, const int *dft_points,
+                                  dft_dir_t dir, int nof_plans);
+LIBLTE_API void dft_plan_free_vector(dft_plan_t *plans, int nof_plans);
 
 /* Compute DFT */
 
