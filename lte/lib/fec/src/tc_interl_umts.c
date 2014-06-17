@@ -27,11 +27,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 
 #include "lte/fec/tc_interl.h"
 #include "lte/fec/turbocoder.h"
 
-#define TURBO_RATE   3
+#define TURBO_RATE 	3
 
 int mcd(int x, int y);
 
@@ -41,16 +42,36 @@ int mcd(int x, int y);
  *
  ************************************************/
 
-#define MAX_ROWS   20
-#define MAX_COLS   256
+#define MAX_ROWS 	20
+#define MAX_COLS 	256
 
 const unsigned short table_p[52] = { 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43,
-    47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113,
-    127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193,
-    197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257 };
+    47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127,
+    131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199,
+    211, 223, 227, 229, 233, 239, 241, 251, 257 };
 const unsigned char table_v[52] = { 3, 2, 2, 3, 2, 5, 2, 3, 2, 6, 3, 5, 2, 2, 2,
-    2, 7, 5, 3, 2, 3, 5, 2, 5, 2, 6, 3, 3, 2, 3, 2, 2, 6, 5, 2, 5, 2, 2, 2,
-    19, 5, 2, 3, 2, 3, 2, 6, 3, 7, 7, 6, 3 };
+    2, 7, 5, 3, 2, 3, 5, 2, 5, 2, 6, 3, 3, 2, 3, 2, 2, 6, 5, 2, 5, 2, 2, 2, 19,
+    5, 2, 3, 2, 3, 2, 6, 3, 7, 7, 6, 3 };
+
+int tc_interl_init(tc_interl_t *h, int max_long_cb) {
+  int ret = -1;
+  h->forward = malloc(sizeof(int) * max_long_cb);
+  if (!h->forward) {
+    perror("malloc");
+    goto clean_exit;
+  }
+  h->reverse = malloc(sizeof(int) * max_long_cb);
+  if (!h->reverse) {
+    perror("malloc");
+    goto clean_exit;
+  }
+  h->max_long_cb = max_long_cb;
+  ret = 0;
+  clean_exit: if (ret == -1) {
+    tc_interl_free(h);
+  }
+  return ret;
+}
 
 void tc_interl_free(tc_interl_t *h) {
   if (h->forward) {
@@ -59,10 +80,10 @@ void tc_interl_free(tc_interl_t *h) {
   if (h->reverse) {
     free(h->reverse);
   }
-  h->forward = h->reverse = NULL;
+  bzero(h, sizeof(tc_interl_t));
 }
 
-int tc_interl_UMTS_init(tc_interl_t *h, int long_cb) {
+int tc_interl_UMTS_gen(tc_interl_t *h, int long_cb) {
 
   int i, j;
   int res, prim, aux;
@@ -74,19 +95,13 @@ int tc_interl_UMTS_init(tc_interl_t *h, int long_cb) {
   unsigned short U[MAX_COLS * MAX_ROWS];
   int M_Rows, M_Cols, M_long;
 
-  h->forward = h->reverse = NULL;
-  h->forward = malloc(sizeof(int) * (long_cb));
-  if (!h->forward) {
-    return -1;
-  }
-  h->reverse = malloc(sizeof(int) * (long_cb));
-  if (!h->reverse) {
-    perror("malloc");
-    free(h->forward);
-    h->forward = h->reverse = NULL;
-    return -1;
-  }
   M_long = long_cb;
+
+  if (long_cb > h->max_long_cb) {
+    fprintf(stderr, "Interleaver initiated for max_long_cb=%d\n",
+        h->max_long_cb);
+    return -1;
+  }
 
   /* Find R*/
   if ((40 <= M_long) && (M_long <= 159))

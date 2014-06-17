@@ -25,11 +25,9 @@
  *
  */
 
-
 #ifndef PCFICH_
 #define PCFICH_
 
-#include "lte/config.h"
 #include "lte/common/base.h"
 #include "lte/mimo/precoding.h"
 #include "lte/mimo/layermap.h"
@@ -38,9 +36,9 @@
 #include "lte/scrambling/scrambling.h"
 #include "lte/phch/regs.h"
 
-#define PCFICH_CFI_LEN    32
-#define PCFICH_RE      PCFICH_CFI_LEN/2
-#define PCFICH_MAX_DISTANCE  5
+#define PCFICH_CFI_LEN		32
+#define PCFICH_RE			PCFICH_CFI_LEN/2
+#define PCFICH_MAX_DISTANCE	5
 
 typedef _Complex float cf_t;
 
@@ -50,7 +48,7 @@ typedef struct LIBLTE_API {
   lte_cp_t cp;
   int nof_symbols;
   int nof_prb;
-  int nof_tx_ports;
+  int nof_ports;
 
   /* handler to REGs resource mapper */
   regs_t *regs;
@@ -69,15 +67,18 @@ typedef struct LIBLTE_API {
   demod_hard_t demod;
   sequence_t seq_pcfich[NSUBFRAMES_X_FRAME];
 
-}pcfich_t;
+} pcfich_t;
 
-LIBLTE_API int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_ports, lte_cp_t cp);
+LIBLTE_API int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb,
+    int nof_tx_ports, lte_cp_t cp);
 LIBLTE_API void pcfich_free(pcfich_t *q);
-LIBLTE_API int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL], int nsubframe, int *cfi, int *distance);
-LIBLTE_API int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL], int nsubframe);
+LIBLTE_API int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
+    int nsubframe, int *cfi, int *distance);
+LIBLTE_API int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL],
+    int nsubframe);
 
 LIBLTE_API bool pcfich_exists(int nframe, int nslot);
 LIBLTE_API int pcfich_put(regs_t *h, cf_t *pcfich, cf_t *slot_data);
 LIBLTE_API int pcfich_get(regs_t *h, cf_t *pcfich, cf_t *slot_data);
 
-#endif // PCFICH_
+#endif

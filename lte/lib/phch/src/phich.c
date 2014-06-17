@@ -59,7 +59,7 @@ int phich_ngroups(phich_t *q) {
 
 void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS_CTRL]) {
   int i;
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS_CTRL; i++) {
     regs_phich_reset(q->regs, slot_symbols[i]);
   }
 }
@@ -114,7 +114,7 @@ char phich_ack_decode(char bits[PHICH_NBITS], int *distance) {
   INFO("PHICH decoder: %d, %d, %d\n", bits[0], bits[1], bits[2]);
   if (n >= 2) {
     if (distance) {
-      *distance = 3-n;
+      *distance = 3 - n;
     }
     return 1;
   } else {
@@ -143,7 +143,6 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
   int i, j;
   cf_t *x[MAX_LAYERS];
   cf_t *ce_precoding[MAX_PORTS];
-  cf_t *symbols_precoding[MAX_PORTS];
 
   DEBUG("Decoding PHICH Ngroup: %d, Nseq: %d\n", ngroup, nseq);
 
@@ -174,21 +173,18 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
   }
   for (i = 0; i < MAX_PORTS; i++) {
     ce_precoding[i] = q->ce[i];
-    symbols_precoding[i] = q->phich_symbols[i];
   }
 
   /* extract symbols */
   if (PHICH_MAX_NSYMB
-      != regs_phich_get(q->regs, slot_symbols, q->phich_symbols[0],
-          ngroup)) {
+      != regs_phich_get(q->regs, slot_symbols, q->phich_symbols[0], ngroup)) {
     fprintf(stderr, "There was an error getting the phich symbols\n");
     return -1;
   }
 
   /* extract channel estimates */
   for (i = 0; i < q->nof_tx_ports; i++) {
-    if (PHICH_MAX_NSYMB
-        != regs_phich_get(q->regs, ce[i], q->ce[i], ngroup)) {
+    if (PHICH_MAX_NSYMB != regs_phich_get(q->regs, ce[i], q->ce[i], ngroup)) {
       fprintf(stderr, "There was an error getting the phich symbols\n");
       return -1;
     }
@@ -200,14 +196,15 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
     predecoding_single_zf(q->phich_symbols[0], q->ce[0], q->phich_d0,
     PHICH_MAX_NSYMB);
   } else {
-    predecoding_diversity_zf(symbols_precoding, ce_precoding, x,
+    predecoding_diversity_zf(q->phich_symbols[0], ce_precoding, x,
         q->nof_tx_ports, PHICH_MAX_NSYMB);
     layerdemap_diversity(x, q->phich_d0, q->nof_tx_ports,
     PHICH_MAX_NSYMB / q->nof_tx_ports);
   }
-  DEBUG("Recv!!: \n",0);
-  DEBUG("d0: ",0);
-  if (VERBOSE_ISDEBUG()) vec_fprint_c(stdout, q->phich_d0, PHICH_MAX_NSYMB);
+  DEBUG("Recv!!: \n", 0);
+  DEBUG("d0: ", 0);
+  if (VERBOSE_ISDEBUG())
+    vec_fprint_c(stdout, q->phich_d0, PHICH_MAX_NSYMB);
 
   if (CP_ISEXT(q->cp)) {
     if (ngroup % 2) {
@@ -225,32 +222,34 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
     memcpy(q->phich_d, q->phich_d0, PHICH_MAX_NSYMB * sizeof(cf_t));
   }
 
-  DEBUG("d: ",0);
-  if (VERBOSE_ISDEBUG()) vec_fprint_c(stdout, q->phich_d, PHICH_EXT_MSYMB);
+  DEBUG("d: ", 0);
+  if (VERBOSE_ISDEBUG())
+    vec_fprint_c(stdout, q->phich_d, PHICH_EXT_MSYMB);
 
   scrambling_c(&q->seq_phich[nsubframe], q->phich_d);
 
   /* De-spreading */
   if (CP_ISEXT(q->cp)) {
-    for (i=0;i<PHICH_NBITS;i++) {
+    for (i = 0; i < PHICH_NBITS; i++) {
       q->phich_z[i] = 0;
-      for (j=0;j<PHICH_EXT_NSF;j++) {
-        q->phich_z[i] += conjf(w_ext[nseq][j]) *
-            q->phich_d[i*PHICH_EXT_NSF+j]/PHICH_EXT_NSF;
+      for (j = 0; j < PHICH_EXT_NSF; j++) {
+        q->phich_z[i] += conjf(w_ext[nseq][j])
+            * q->phich_d[i * PHICH_EXT_NSF + j] / PHICH_EXT_NSF;
       }
     }
   } else {
-    for (i=0;i<PHICH_NBITS;i++) {
+    for (i = 0; i < PHICH_NBITS; i++) {
       q->phich_z[i] = 0;
-      for (j=0;j<PHICH_NORM_NSF;j++) {
-        q->phich_z[i] += conjf(w_normal[nseq][j]) *
-            q->phich_d[i*PHICH_NORM_NSF+j]/PHICH_NORM_NSF;
+      for (j = 0; j < PHICH_NORM_NSF; j++) {
+        q->phich_z[i] += conjf(w_normal[nseq][j])
+            * q->phich_d[i * PHICH_NORM_NSF + j] / PHICH_NORM_NSF;
       }
     }
   }
 
-  DEBUG("z: ",0);
-  if (VERBOSE_ISDEBUG()) vec_fprint_c(stdout, q->phich_z, PHICH_NBITS);
+  DEBUG("z: ", 0);
+  if (VERBOSE_ISDEBUG())
+    vec_fprint_c(stdout, q->phich_z, PHICH_NBITS);
 
   demod_hard_demodulate(&q->demod, q->phich_z, q->data, PHICH_NBITS);
 
@@ -306,8 +305,9 @@ int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
 
   mod_modulate(&q->mod, q->data, q->phich_z, PHICH_NBITS);
 
-  DEBUG("data: ",0);
-  if (VERBOSE_ISDEBUG()) vec_fprint_c(stdout, q->phich_z, PHICH_NBITS);
+  DEBUG("data: ", 0);
+  if (VERBOSE_ISDEBUG())
+    vec_fprint_c(stdout, q->phich_z, PHICH_NBITS);
 
   /* Spread with w */
   if (CP_ISEXT(q->cp)) {
@@ -322,8 +322,9 @@ int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
     }
   }
 
-  DEBUG("d: ",0);
-  if (VERBOSE_ISDEBUG()) vec_fprint_c(stdout, q->phich_d, PHICH_EXT_MSYMB);
+  DEBUG("d: ", 0);
+  if (VERBOSE_ISDEBUG())
+    vec_fprint_c(stdout, q->phich_d, PHICH_EXT_MSYMB);
 
   scrambling_c(&q->seq_phich[nsubframe], q->phich_d);
 
@@ -348,9 +349,9 @@ int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
     memcpy(q->phich_d0, q->phich_d, PHICH_MAX_NSYMB * sizeof(cf_t));
   }
 
-  DEBUG("d0: ",0);
-  if (VERBOSE_ISDEBUG()) vec_fprint_c(stdout, q->phich_d0, PHICH_MAX_NSYMB);
-
+  DEBUG("d0: ", 0);
+  if (VERBOSE_ISDEBUG())
+    vec_fprint_c(stdout, q->phich_d0, PHICH_MAX_NSYMB);
 
   /* layer mapping & precoding */
   if (q->nof_tx_ports > 1) {
@@ -364,8 +365,8 @@ int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
 
   /* mapping to resource elements */
   for (i = 0; i < q->nof_tx_ports; i++) {
-    if (regs_phich_add(q->regs, q->phich_symbols[i], ngroup,
-        slot_symbols[i]) < 0) {
+    if (regs_phich_add(q->regs, q->phich_symbols[i], ngroup, slot_symbols[i])
+        < 0) {
       fprintf(stderr, "Error putting PCHICH resource elements\n");
       return -1;
     }

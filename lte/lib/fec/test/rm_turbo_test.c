@@ -36,7 +36,7 @@
 
 #include "lte.h"
 
-int nof_tx_bits=-1, nof_rx_bits=-1;
+int nof_tx_bits = -1, nof_rx_bits = -1;
 int rv_idx = 0;
 
 void usage(char *prog) {
@@ -101,25 +101,25 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  for (i=0;i<nof_tx_bits;i++) {
-    bits[i] = rand()%2;
+  for (i = 0; i < nof_tx_bits; i++) {
+    bits[i] = rand() % 2;
   }
 
-  rm_turbo_init(&rm_turbo, 1000);
+  rm_turbo_init(&rm_turbo, 2000);
 
   rm_turbo_tx(&rm_turbo, bits, nof_tx_bits, rm_bits, nof_rx_bits, rv_idx);
 
-  for (i=0;i<nof_rx_bits;i++) {
-    rm_symbols[i] = (float) rm_bits[i]?1:-1;
+  for (i = 0; i < nof_rx_bits; i++) {
+    rm_symbols[i] = (float) rm_bits[i] ? 1 : -1;
   }
 
-  rm_turbo_rx(&rm_turbo, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits, rv_idx);
+  rm_turbo_rx(&rm_turbo, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits,
+      rv_idx);
 
   nof_errors = 0;
-  for (i=0;i<nof_tx_bits;i++) {
-    if ((unrm_symbols[i] > 0) != bits[i]) {
+  for (i = 0; i < nof_tx_bits; i++) {
+    if (unrm_symbols[i] > 0 && ((unrm_symbols[i] > 0) != bits[i])) {
       nof_errors++;
-      printf("%.2f != %d\n", unrm_symbols[i], bits[i]);
     }
   }
 
@@ -130,11 +130,9 @@ int main(int argc, char **argv) {
   free(rm_symbols);
   free(unrm_symbols);
 
-  if (nof_tx_bits >= nof_rx_bits) {
-    if (nof_errors) {
-      printf("nof_errors=%d\n", nof_errors);
-      exit(-1);
-    }
+  if (nof_errors) {
+    printf("nof_errors=%d\n", nof_errors);
+    exit(-1);
   }
 
   printf("Ok\n");

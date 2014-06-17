@@ -41,23 +41,24 @@
 
 typedef _Complex float cf_t;
 
-int frame_length = 1000, nof_frames=100;
+int frame_length = 1000, nof_frames = 100;
 float ebno_db = 100.0;
 unsigned int seed = 0;
 int K = -1;
 
-#define MAX_ITERATIONS  4
+#define MAX_ITERATIONS	4
 int nof_iterations = MAX_ITERATIONS;
 int test_known_data = 0;
 int test_errors = 0;
 
-#define SNR_POINTS  8
-#define SNR_MIN    0.0
-#define SNR_MAX    4.0
+#define SNR_POINTS	8
+#define SNR_MIN		0.0
+#define SNR_MAX		4.0
 
 void usage(char *prog) {
   printf("Usage: %s [nlesv]\n", prog);
-  printf("\t-k Test with known data (ignores frame_length) [Default disabled]\n");
+  printf(
+      "\t-k Test with known data (ignores frame_length) [Default disabled]\n");
   printf("\t-i nof_iterations [Default %d]\n", nof_iterations);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-l frame_length [Default %d]\n", frame_length);
@@ -109,7 +110,7 @@ void output_matlab(float ber[MAX_ITERATIONS][SNR_POINTS], int snr_points) {
     exit(-1);
   }
   fprintf(f, "ber=[");
-  for (j=0;j<MAX_ITERATIONS;j++) {
+  for (j = 0; j < MAX_ITERATIONS; j++) {
     for (i = 0; i < snr_points; i++) {
       fprintf(f, "%g ", ber[j][i]);
     }
@@ -119,7 +120,8 @@ void output_matlab(float ber[MAX_ITERATIONS][SNR_POINTS], int snr_points) {
   fprintf(f, "snr=linspace(%g,%g-%g/%d,%d);\n", SNR_MIN, SNR_MAX, SNR_MAX,
       snr_points, snr_points);
   fprintf(f, "semilogy(snr,ber,snr,0.5*erfc(sqrt(10.^(snr/10))));\n");
-  fprintf(f, "legend('1 iter','2 iter', '3 iter', '4 iter', 'theory-uncoded');");
+  fprintf(f,
+      "legend('1 iter','2 iter', '3 iter', '4 iter', 'theory-uncoded');");
   fprintf(f, "grid on;\n");
   fclose(f);
 }
@@ -153,7 +155,7 @@ int main(int argc, char **argv) {
     frame_length = lte_cb_size(lte_find_cb_index(frame_length));
   }
 
-  coded_length = 3*(frame_length)+TOTALTAIL;
+  coded_length = 3 * (frame_length) + TOTALTAIL;
 
   printf("  Frame length: %d\n", frame_length);
   if (ebno_db < 100.0) {
@@ -229,11 +231,11 @@ int main(int argc, char **argv) {
 
       /* coded BER */
       if (test_known_data) {
-        for (j=0;j<coded_length;j++) {
+        for (j = 0; j < coded_length; j++) {
           symbols[j] = known_data_encoded[j];
         }
       } else {
-        tcod_encode(&tcod, data_tx, symbols);
+        tcod_encode(&tcod, data_tx, symbols, frame_length);
       }
 
       for (j = 0; j < coded_length; j++) {
@@ -243,7 +245,7 @@ int main(int argc, char **argv) {
       ch_awgn_f(llr, llr, var[i], coded_length);
 
       /* decoder */
-      tdec_reset(&tdec);
+      tdec_reset(&tdec, frame_length);
 
       int t;
       if (nof_iterations == -1) {
@@ -251,26 +253,31 @@ int main(int argc, char **argv) {
       } else {
         t = nof_iterations;
       }
-      for (j=0;j<t;j++) {
+      for (j = 0; j < t; j++) {
 
-        if (!j) gettimeofday(&tdata[1],NULL); // Only measure 1 iteration
-        tdec_iteration(&tdec, llr);
-        tdec_decision(&tdec, data_rx);
-        if (!j) gettimeofday(&tdata[2],NULL);
-        if (!j) get_time_interval(tdata);
-        if (!j) mean_usec = (float) mean_usec*0.9+(float) tdata[0].tv_usec*0.1;
+        if (!j)
+          gettimeofday(&tdata[1], NULL); // Only measure 1 iteration
+        tdec_iteration(&tdec, llr, frame_length);
+        tdec_decision(&tdec, data_rx, frame_length);
+        if (!j)
+          gettimeofday(&tdata[2], NULL);
+        if (!j)
+          get_time_interval(tdata);
+        if (!j)
+          mean_usec = (float) mean_usec * 0.9 + (float) tdata[0].tv_usec * 0.1;
 
         /* check errors */
         errors[j] += bit_diff(data_tx, data_rx, frame_length);
         if (j < MAX_ITERATIONS) {
-          ber[j][i] = (float) errors[j] /(frame_cnt * frame_length);
+          ber[j][i] = (float) errors[j] / (frame_cnt * frame_length);
         }
       }
       frame_cnt++;
       printf("Eb/No: %3.2f %10d/%d   ",
-          SNR_MIN + i * ebno_inc,frame_cnt,nof_frames);
-      printf("BER: %.2e  ",(float) errors[j-1] / (frame_cnt * frame_length));
-      printf("%3.1f Mbps (%6.2f usec)", (float) frame_length/mean_usec, mean_usec);
+      SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
+      printf("BER: %.2e  ", (float) errors[j - 1] / (frame_cnt * frame_length));
+      printf("%3.1f Mbps (%6.2f usec)", (float) frame_length / mean_usec,
+          mean_usec);
       printf("\r");
 
     }
@@ -278,29 +285,30 @@ int main(int argc, char **argv) {
 
     if (snr_points == 1) {
       if (test_known_data && seed == KNOWN_DATA_SEED
-          && ebno_db == KNOWN_DATA_EBNO
-          && frame_cnt == KNOWN_DATA_NFRAMES) {
-        for (j=0;j<MAX_ITERATIONS;j++) {
+          && ebno_db == KNOWN_DATA_EBNO && frame_cnt == KNOWN_DATA_NFRAMES) {
+        for (j = 0; j < MAX_ITERATIONS; j++) {
           if (errors[j] > known_data_errors[j]) {
             fprintf(stderr, "Expected %d errors but got %d\n",
                 known_data_errors[j], errors[j]);
             exit(-1);
-          }else {
-            printf("Iter %d ok\n", j+1);
+          } else {
+            printf("Iter %d ok\n", j + 1);
           }
         }
       } else {
-        for (j=0;j<MAX_ITERATIONS;j++) {
-            printf("BER: %g\t%u errors\n",
-            (float) errors[j] / (frame_cnt * frame_length), errors[j]);
+        for (j = 0; j < MAX_ITERATIONS; j++) {
+          printf("BER: %g\t%u errors\n",
+              (float) errors[j] / (frame_cnt * frame_length), errors[j]);
           if (test_errors) {
-            if (errors[j] > get_expected_errors(frame_cnt, seed, j+1, frame_length, ebno_db)) {
+            if (errors[j]
+                > get_expected_errors(frame_cnt, seed, j + 1, frame_length,
+                    ebno_db)) {
               fprintf(stderr, "Expected %d errors but got %d\n",
-                  get_expected_errors(frame_cnt, seed, j+1, frame_length, ebno_db),
-                  errors[j]);
+                  get_expected_errors(frame_cnt, seed, j + 1, frame_length,
+                      ebno_db), errors[j]);
               exit(-1);
             } else {
-              printf("Iter %d ok\n", j+1);
+              printf("Iter %d ok\n", j + 1);
             }
           }
         }

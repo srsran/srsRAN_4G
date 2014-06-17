@@ -25,7 +25,6 @@
  *
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,7 +40,7 @@ void scrambling_f_offset(sequence_t *s, float *data, int offset, int len) {
   assert (len + offset <= s->len);
 
   for (i = 0; i < len; i++) {
-    data[i] = data[i]*(1-2*s->c[i+offset]);
+    data[i] = data[i] * (1 - 2 * s->c[i + offset]);
   }
 }
 
@@ -54,7 +53,7 @@ void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len) {
   assert (len + offset <= s->len);
 
   for (i = 0; i < len; i++) {
-    data[i] = data[i]*(1-2*s->c[i+offset]);
+    data[i] = data[i] * (1 - 2 * s->c[i + offset]);
   }
 }
 
@@ -70,7 +69,7 @@ void scrambling_b_offset(sequence_t *s, char *data, int offset, int len) {
   int i;
   assert (len + offset <= s->len);
   for (i = 0; i < len; i++) {
-    data[i] = (data[i] + s->c[i+offset]) % 2;
+    data[i] = (data[i] + s->c[i + offset]) % 2;
   }
 }
 
@@ -80,15 +79,24 @@ int compute_sequences(scrambling_hl* h) {
 
   switch (h->init.channel) {
   case SCRAMBLING_PBCH:
-    return sequence_pbch(&h->obj.seq[0], h->init.nof_symbols == CPNORM_NSYMB?CPNORM:CPEXT,
-        h->init.cell_id);
+    return sequence_pbch(&h->obj.seq[0],
+        h->init.nof_symbols == CPNORM_NSYMB ? CPNORM : CPEXT, h->init.cell_id);
   case SCRAMBLING_PDSCH:
+    for (int ns = 0; ns < NSUBFRAMES_X_FRAME; ns++) {
+      sequence_pdsch(&h->obj.seq[ns], h->init.nrnti, 0, 2 * ns, h->init.cell_id,
+          LTE_NSOFT_BITS);
+    }
+    return 0;
   case SCRAMBLING_PCFICH:
-    for (int ns=0;ns<NSUBFRAMES_X_FRAME;ns++) {
-      sequence_pcfich(&h->obj.seq[ns], 2*ns, h->init.cell_id);
+    for (int ns = 0; ns < NSUBFRAMES_X_FRAME; ns++) {
+      sequence_pcfich(&h->obj.seq[ns], 2 * ns, h->init.cell_id);
     }
     return 0;
   case SCRAMBLING_PDCCH:
+    for (int ns = 0; ns < NSUBFRAMES_X_FRAME; ns++) {
+      sequence_pdcch(&h->obj.seq[ns], 2 * ns, h->init.cell_id, LTE_NSOFT_BITS);
+    }
+    return 0;
   case SCRAMBLING_PMCH:
   case SCRAMBLING_PUCCH:
     fprintf(stderr, "Not implemented\n");
@@ -129,7 +137,7 @@ int scrambling_work(scrambling_hl* hl) {
 
 int scrambling_stop(scrambling_hl* hl) {
   int i;
-  for (i=0;i<NSUBFRAMES_X_FRAME;i++) {
+  for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
     sequence_free(&hl->obj.seq[i]);
   }
   return 0;

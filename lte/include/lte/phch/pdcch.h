@@ -25,11 +25,9 @@
  *
  */
 
-
 #ifndef PDCCH_
 #define PDCCH_
 
-#include "lte/config.h"
 #include "lte/common/base.h"
 #include "lte/mimo/precoding.h"
 #include "lte/mimo/layermap.h"
@@ -45,11 +43,11 @@
 
 typedef _Complex float cf_t;
 
-#define PDCCH_NOF_SEARCH_MODES  3
+#define PDCCH_NOF_SEARCH_MODES	3
 
-typedef enum {
-  SEARCH_NONE=3, SEARCH_SI=0, SEARCH_RA=1, SEARCH_UE=2
-}pdcch_search_mode_t;
+typedef enum LIBLTE_API {
+  SEARCH_NONE = 3, SEARCH_SI = 0, SEARCH_RA = 1, SEARCH_UE = 2
+} pdcch_search_mode_t;
 
 /*
  * A search mode is indicated by higher layers to look for SI/C/RA-RNTI
@@ -58,7 +56,7 @@ typedef enum {
 typedef struct LIBLTE_API {
   int nof_candidates;
   dci_candidate_t *candidates[NSUBFRAMES_X_FRAME];
-}pdcch_search_t;
+} pdcch_search_t;
 
 /* PDCCH object */
 typedef struct LIBLTE_API {
@@ -90,14 +88,15 @@ typedef struct LIBLTE_API {
   sequence_t seq_pdcch[NSUBFRAMES_X_FRAME];
   viterbi_t decoder;
   crc_t crc;
-}pdcch_t;
+} pdcch_t;
 
-LIBLTE_API int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports, int cell_id, lte_cp_t cp);
+LIBLTE_API int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
+    int cell_id, lte_cp_t cp);
 LIBLTE_API void pdcch_free(pdcch_t *q);
 
 /* Encoding functions */
-LIBLTE_API int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nsubframe);
-
+LIBLTE_API int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS_CTRL],
+    int nsubframe);
 
 /* Decoding functions */
 
@@ -106,10 +105,10 @@ LIBLTE_API int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORT
  * b) call pdcch_extract_llr() and then call pdcch_decode_si/ue/ra
  */
 
-LIBLTE_API int pdcch_decode(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
+LIBLTE_API int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
     dci_t *dci, int nsubframe, float ebno);
-LIBLTE_API int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float *llr,
-    int nsubframe, float ebno);
+LIBLTE_API int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
+    float *llr, int nsubframe, float ebno);
 
 LIBLTE_API void pdcch_init_search_si(pdcch_t *q);
 LIBLTE_API void pdcch_set_search_si(pdcch_t *q);
@@ -122,6 +121,5 @@ LIBLTE_API int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, int nsubframe
 LIBLTE_API void pdcch_init_search_ra(pdcch_t *q, unsigned short ra_rnti);
 LIBLTE_API void pdcch_set_search_ra(pdcch_t *q);
 LIBLTE_API int pdcch_decode_ra(pdcch_t *q, float *llr, dci_t *dci);
-
 
 #endif
