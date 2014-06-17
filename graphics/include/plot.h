@@ -33,13 +33,15 @@
 extern "C" {
 #endif
 
+#include "lte/config.h"
+
 #include "plot/plot_real.h"
 #include "plot/plot_scatter.h"
 #include "plot/plot_complex.h"
 #include "plot/plot_waterfall.h"
 
-int plot_init();
-void plot_exit();
+LIBLTE_API int plot_init();
+LIBLTE_API void plot_exit();
 
 #ifdef __cplusplus
 }

@@ -31,39 +31,38 @@
 #define CONVCODER_
 
 #include <stdbool.h>
+#include "lte/config.h"
 
-
-
-typedef struct {
-	int R;
-	int K;
-	int poly[3];
-	bool tail_biting;
+typedef struct LIBLTE_API {
+  int R;
+  int K;
+  int poly[3];
+  bool tail_biting;
 }convcoder_t;
 
-int convcoder_encode(convcoder_t *q, char *input, char *output, int frame_length);
+LIBLTE_API int convcoder_encode(convcoder_t *q, char *input, char *output, int frame_length);
 
 
 /* High-level API */
-typedef struct {
-	convcoder_t obj;
-	struct convcoder_ctrl_in {
-		int rate;
-		int constraint_length;
-		int tail_bitting;
-		int generator_0;
-		int generator_1;
-		int generator_2;
-		int frame_length;
-	} ctrl_in;
-	char *input;
-	int in_len;
-	char *output;
-	int out_len;
+typedef struct LIBLTE_API {
+  convcoder_t obj;
+  struct convcoder_ctrl_in {
+    int rate;
+    int constraint_length;
+    int tail_bitting;
+    int generator_0;
+    int generator_1;
+    int generator_2;
+    int frame_length;
+  } ctrl_in;
+  char *input;
+  int in_len;
+  char *output;
+  int out_len;
 }convcoder_hl;
 
-int convcoder_initialize(convcoder_hl* h);
-int convcoder_work(convcoder_hl* hl);
-int convcoder_stop(convcoder_hl* h);
+LIBLTE_API int convcoder_initialize(convcoder_hl* h);
+LIBLTE_API int convcoder_work(convcoder_hl* hl);
+LIBLTE_API int convcoder_stop(convcoder_hl* h);
 
 #endif

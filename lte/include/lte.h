@@ -32,6 +32,12 @@
 #ifndef _LTE_
 #define _LTE_
 
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
+#include "lte/config.h"
+
 #include "lte/utils/bit.h"
 #include "lte/utils/convolution.h"
 #include "lte/utils/debug.h"
@@ -93,5 +99,9 @@
 #include "lte/sync/sss.h"
 #include "lte/sync/sync.h"
 #include "lte/sync/cfo.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

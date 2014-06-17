@@ -39,128 +39,128 @@
 int cell_id = -1, offset = 0;
 lte_cp_t cp = CPNORM;
 
-#define FLEN	9600
+#define FLEN  9600
 
 void usage(char *prog) {
-	printf("Usage: %s [coev]\n", prog);
-	printf("\t-c cell_id [Default check for all]\n");
-	printf("\t-o offset [Default %d]\n", offset);
-	printf("\t-e extended CP [Default normal]\n");
-	printf("\t-v verbose\n");
+  printf("Usage: %s [coev]\n", prog);
+  printf("\t-c cell_id [Default check for all]\n");
+  printf("\t-o offset [Default %d]\n", offset);
+  printf("\t-e extended CP [Default normal]\n");
+  printf("\t-v verbose\n");
 }
 
 void parse_args(int argc, char **argv) {
-	int opt;
-	while ((opt = getopt(argc, argv, "coev")) != -1) {
-		switch (opt) {
-		case 'c':
-			cell_id = atoi(argv[optind]);
-			break;
-		case 'o':
-			offset = atoi(argv[optind]);
-			break;
-		case 'e':
-			cp = CPEXT;
-			break;
-		case 'v':
-			verbose++;
-			break;
-		default:
-			usage(argv[0]);
-			exit(-1);
-		}
-	}
+  int opt;
+  while ((opt = getopt(argc, argv, "coev")) != -1) {
+    switch (opt) {
+    case 'c':
+      cell_id = atoi(argv[optind]);
+      break;
+    case 'o':
+      offset = atoi(argv[optind]);
+      break;
+    case 'e':
+      cp = CPEXT;
+      break;
+    case 'v':
+      verbose++;
+      break;
+    default:
+      usage(argv[0]);
+      exit(-1);
+    }
+  }
 }
 
 int main(int argc, char **argv) {
-	int N_id_2, ns, find_ns;
-	cf_t *buffer, *fft_buffer;
-	cf_t pss_signal[PSS_LEN];
-	float sss_signal0[SSS_LEN]; // for subframe 0
-	float sss_signal5[SSS_LEN]; // for subframe 5
-	int cid, max_cid, find_idx;
-	sync_t sync;
-	lte_fft_t ifft;
+  int N_id_2, ns, find_ns;
+  cf_t *buffer, *fft_buffer;
+  cf_t pss_signal[PSS_LEN];
+  float sss_signal0[SSS_LEN]; // for subframe 0
+  float sss_signal5[SSS_LEN]; // for subframe 5
+  int cid, max_cid, find_idx;
+  sync_t sync;
+  lte_fft_t ifft;
 
-	parse_args(argc, argv);
+  parse_args(argc, argv);
 
-	buffer = malloc(sizeof(cf_t) * FLEN);
-	if (!buffer) {
-		perror("malloc");
-		exit(-1);
-	}
+  buffer = malloc(sizeof(cf_t) * FLEN);
+  if (!buffer) {
+    perror("malloc");
+    exit(-1);
+  }
 
-	fft_buffer = malloc(sizeof(cf_t) * 2 * FLEN);
-	if (!fft_buffer) {
-		perror("malloc");
-		exit(-1);
-	}
+  fft_buffer = malloc(sizeof(cf_t) * 2 * FLEN);
+  if (!fft_buffer) {
+    perror("malloc");
+    exit(-1);
+  }
 
-	if (lte_ifft_init(&ifft, cp, 6)) {
-		fprintf(stderr, "Error creating iFFT object\n");
-		exit(-1);
-	}
+  if (lte_ifft_init(&ifft, cp, 6)) {
+    fprintf(stderr, "Error creating iFFT object\n");
+    exit(-1);
+  }
 
-	if (sync_init(&sync, FLEN)) {
-		fprintf(stderr, "Error initiating PSS/SSS\n");
-		return -1;
-	}
+  if (sync_init(&sync, FLEN)) {
+    fprintf(stderr, "Error initiating PSS/SSS\n");
+    return -1;
+  }
 
-	sync_set_threshold(&sync, 20);
-	sync_force_N_id_2(&sync, -1);
+  sync_set_threshold(&sync, 20);
+  sync_force_N_id_2(&sync, -1);
 
-	if (cell_id == -1) {
-		cid = 0;
-		max_cid = 149;
-	} else {
-		cid = cell_id;
-		max_cid = cell_id;
+  if (cell_id == -1) {
+    cid = 0;
+    max_cid = 149;
+  } else {
+    cid = cell_id;
+    max_cid = cell_id;
 }
-	while(cid <= max_cid) {
-		N_id_2 = cid%3;
+  while(cid <= max_cid) {
+    N_id_2 = cid%3;
 
-		/* Generate PSS/SSS signals */
-		pss_generate(pss_signal, N_id_2);
-		sss_generate(sss_signal0, sss_signal5, cid);
+    /* Generate PSS/SSS signals */
+    pss_generate(pss_signal, N_id_2);
+    sss_generate(sss_signal0, sss_signal5, cid);
 
-		for (ns=0;ns<2;ns++) {
-			memset(buffer, 0, sizeof(cf_t) * FLEN);
-			pss_put_slot(pss_signal, buffer, 6, cp);
-			sss_put_slot(ns?sss_signal5:sss_signal0, buffer, 6, cp);
+    for (ns=0;ns<2;ns++) {
+      memset(buffer, 0, sizeof(cf_t) * FLEN);
+      pss_put_slot(pss_signal, buffer, 6, cp);
+      sss_put_slot(ns?sss_signal5:sss_signal0, buffer, 6, cp);
 
-			/* Transform to OFDM symbols */
-			memset(fft_buffer, 0, sizeof(cf_t) * 2 * FLEN);
-			lte_ifft_run(&ifft, buffer, &fft_buffer[offset]);
+      /* Transform to OFDM symbols */
+      memset(fft_buffer, 0, sizeof(cf_t) * 2 * FLEN);
+      lte_ifft_run(&ifft, buffer, &fft_buffer[offset]);
 
-			find_idx = sync_run(&sync, fft_buffer);
-			find_ns = sync_get_slot_id(&sync);
-			printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
-					ns, find_ns);
-			if (find_idx != offset + 960) {
-				printf("offset != find_offset: %d != %d\n", find_idx, offset + 960);
-				exit(-1);
-			}
-			if (ns*10 != find_ns) {
-				printf("ns != find_ns\n", 10 * ns, find_ns);
-				exit(-1);
-			}
-			if (sync_get_cp(&sync) != cp) {
-				printf("Detected CP should be %s\n", CP_ISNORM(cp)?"Normal":"Extended");
-				exit(-1);
-			}
-		}
-		cid++;
-	}
+      find_idx = sync_run(&sync, fft_buffer);
+      find_ns = sync_get_slot_id(&sync);
+      printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
+          ns, find_ns);
+      if (find_idx != offset + 960) {
+        printf("offset != find_offset: %d != %d\n", find_idx, offset + 960);
+        exit(-1);
+      }
+      if (ns*10 != find_ns) {
+        printf("ns != find_ns\n", 10 * ns, find_ns);
+        exit(-1);
+      }
+      if (sync_get_cp(&sync) != cp) {
+        printf("Detected CP should be %s\n", CP_ISNORM(cp)?"Normal":"Extended");
+        exit(-1);
+      }
+    }
+    cid++;
+  }
 
-	free(fft_buffer);
-	free(buffer);
+  free(fft_buffer);
+  free(buffer);
 
-	sync_free(&sync);
-	lte_ifft_free(&ifft);
+  sync_free(&sync);
+  lte_ifft_free(&ifft);
 
-	fftwf_cleanup();
+  fftwf_cleanup();
 
-	printf("Ok\n");
-	exit(0);
+  printf("Ok\n");
+  exit(0);
 }
 

@@ -29,21 +29,21 @@
 #define TURBOCODER_
 
 #include "lte/fec/tc_interl.h"
+#include "lte/config.h"
 
 #define NUMREGS     3
 
 #define RATE 3
 #define TOTALTAIL 12
 
-typedef struct {
-	int max_long_cb;
-	tc_interl_t interl;
+typedef struct LIBLTE_API {
+  int max_long_cb;
+  tc_interl_t interl;
+} tcod_t;
 
-}tcod_t;
-
-int tcod_init(tcod_t *h, int max_long_cb);
-void tcod_free(tcod_t *h);
-int tcod_encode(tcod_t *h, char *input, char *output, int long_cb);
+LIBLTE_API int tcod_init(tcod_t *h, int max_long_cb);
+LIBLTE_API void tcod_free(tcod_t *h);
+LIBLTE_API int tcod_encode(tcod_t *h, char *input, char *output, int long_cb);
 
 #endif
 

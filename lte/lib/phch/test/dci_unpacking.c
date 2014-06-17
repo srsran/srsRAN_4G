@@ -34,71 +34,71 @@
 #include "lte.h"
 
 void usage(char *prog) {
-	printf("Usage: %s nof_prb length_bits Word0 Word1 ...\n", prog);
+  printf("Usage: %s nof_prb length_bits Word0 Word1 ...\n", prog);
 }
 
 int main(int argc, char **argv) {
-	dci_msg_t msg;
-	ra_pdsch_t ra_dl;
-	int len, rlen;
-	int nof_prb;
-	int nwords;
-	int i;
-	char *y;
+  dci_msg_t msg;
+  ra_pdsch_t ra_dl;
+  int len, rlen;
+  int nof_prb;
+  int nwords;
+  int i;
+  char *y;
 
-	if (argc < 3) {
-		usage(argv[0]);
-		exit(-1);
-	}
+  if (argc < 3) {
+    usage(argv[0]);
+    exit(-1);
+  }
 
-	nof_prb = atoi(argv[1]);
-	len = atoi(argv[2]);
+  nof_prb = atoi(argv[1]);
+  len = atoi(argv[2]);
 
-	nwords = (len-1)/32+1;
+  nwords = (len - 1) / 32 + 1;
 
-	if (argc < 3 + nwords) {
-		usage(argv[0]);
-		exit(-1);
-	}
+  if (argc < 3 + nwords) {
+    usage(argv[0]);
+    exit(-1);
+  }
 
-	y = msg.data;
-	rlen = 0;
-	unsigned int x;
-	for (i=0;i<nwords;i++) {
-		x = strtoul(argv[i+3],NULL,16);
-		if (len-rlen < 32) {
-			bit_pack(x, &y, len - rlen);
-		} else {
-			bit_pack(x, &y, 32);
-		}
+  y = msg.data;
+  rlen = 0;
+  unsigned int x;
+  for (i = 0; i < nwords; i++) {
+    x = strtoul(argv[i + 3], NULL, 16);
+    if (len - rlen < 32) {
+      bit_pack(x, &y, len - rlen);
+    } else {
+      bit_pack(x, &y, 32);
+    }
 
-	}
+  }
 
-	printf("DCI message len %d:\n",len);
-	for (i=0;i<len;i++) {
-		printf("%d, ", msg.data[i]);
-	}
-	printf("\n");
+  printf("DCI message len %d:\n", len);
+  for (i = 0; i < len; i++) {
+    printf("%d, ", msg.data[i]);
+  }
+  printf("\n");
 
-	dci_msg_type_t dci_type;
-	msg.location.rnti = SIRNTI;
-	msg.location.nof_bits = len;
-	if (dci_msg_get_type(&msg, &dci_type, nof_prb, 1234)) {
-		fprintf(stderr, "Can't obtain DCI message type\n");
-		exit(-1);
-	}
-	printf("\n");
-	printf("Message type:");
-	dci_msg_type_fprint(stdout, dci_type);
-	switch(dci_type.type) {
-	case PDSCH_SCHED:
-		bzero(&ra_dl, sizeof(ra_pdsch_t));
-		dci_msg_unpack_pdsch(&msg, &ra_dl, nof_prb, false);
-		ra_pdsch_fprint(stdout, &ra_dl, nof_prb);
-		break;
-	default:
-		printf("Error expected PDSCH\n");
-		exit(-1);
-	}
-	printf("\n");
+  dci_msg_type_t dci_type;
+  msg.location.rnti = SIRNTI;
+  msg.location.nof_bits = len;
+  if (dci_msg_get_type(&msg, &dci_type, nof_prb, 1234)) {
+    fprintf(stderr, "Can't obtain DCI message type\n");
+    exit(-1);
+  }
+  printf("\n");
+  printf("Message type:");
+  dci_msg_type_fprint(stdout, dci_type);
+  switch (dci_type.type) {
+  case PDSCH_SCHED:
+    bzero(&ra_dl, sizeof(ra_pdsch_t));
+    dci_msg_unpack_pdsch(&msg, &ra_dl, nof_prb, false);
+    ra_pdsch_fprint(stdout, &ra_dl, nof_prb);
+    break;
+  default:
+    printf("Error expected PDSCH\n");
+    exit(-1);
+  }
+  printf("\n");
 }

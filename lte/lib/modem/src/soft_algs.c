@@ -51,48 +51,48 @@
  * \param sigma2 Noise vatiance
  */
 void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
-		_Complex float *symbols, int (*S)[6][32], float sigma2) {
-	int i, s, b;
-	float num, den;
-	float new_num, new_den;
-	float idiff0, qdiff0, idiff1, qdiff1;
-	int change_sign = -1;
+    _Complex float *symbols, int (*S)[6][32], float sigma2) {
+  int i, s, b;
+  float num, den;
+  float new_num, new_den;
+  float idiff0, qdiff0, idiff1, qdiff1;
+  int change_sign = -1;
 
-	for (s=0; s<N; s++) {  	/* recevied symbols */
-	    for (b=0; b<B; b++) {/* bits per symbol*/
-	        /* initiate num[b] and den[b] */
-		idiff0 = __real__ in[s] - __real__ symbols[S[0][b][0]];
-		qdiff0 = __imag__ in[s] - __imag__ symbols[S[0][b][0]];
-	        num = idiff0*idiff0 + qdiff0*qdiff0;
+  for (s=0; s<N; s++) {    /* recevied symbols */
+      for (b=0; b<B; b++) {/* bits per symbol*/
+          /* initiate num[b] and den[b] */
+    idiff0 = __real__ in[s] - __real__ symbols[S[0][b][0]];
+    qdiff0 = __imag__ in[s] - __imag__ symbols[S[0][b][0]];
+          num = idiff0*idiff0 + qdiff0*qdiff0;
 
-	        idiff1 = __real__ in[s] - __real__ symbols[S[1][b][0]];
-	        qdiff1 = __imag__ in[s] - __imag__ symbols[S[1][b][0]];
-	        den = idiff1*idiff1 + qdiff1*qdiff1;
+          idiff1 = __real__ in[s] - __real__ symbols[S[1][b][0]];
+          qdiff1 = __imag__ in[s] - __imag__ symbols[S[1][b][0]];
+          den = idiff1*idiff1 + qdiff1*qdiff1;
 
-	        /* half the constellation symbols have '1'|'0' at any bit pos. */
-	        for (i=1; i<M/2; i++) {
-	        	idiff0 = __real__ in[s] - __real__ symbols[S[0][b][i]];
-	        	qdiff0 = __imag__ in[s] - __imag__ symbols[S[0][b][i]];
-	        	new_num = idiff0*idiff0 + qdiff0*qdiff0;
+          /* half the constellation symbols have '1'|'0' at any bit pos. */
+          for (i=1; i<M/2; i++) {
+            idiff0 = __real__ in[s] - __real__ symbols[S[0][b][i]];
+            qdiff0 = __imag__ in[s] - __imag__ symbols[S[0][b][i]];
+            new_num = idiff0*idiff0 + qdiff0*qdiff0;
 
-	        	idiff1 = __real__ in[s] - __real__ symbols[S[1][b][i]];
-	        	qdiff1 = __imag__ in[s] - __imag__ symbols[S[1][b][i]];
-	        	new_den = idiff1*idiff1 + qdiff1*qdiff1;
+            idiff1 = __real__ in[s] - __real__ symbols[S[1][b][i]];
+            qdiff1 = __imag__ in[s] - __imag__ symbols[S[1][b][i]];
+            new_den = idiff1*idiff1 + qdiff1*qdiff1;
 
-	        	if (new_num < num) {
-	        		num = new_num;
-	        	}
-	        	if (new_den < den) {
-	        		den = new_den;
-	        	}
-	        }
-	        /* Theoretical LLR and approximate LLR values are positive if
-	         * symbol(s) with '0' is/are closer and negative if symbol(s)
-	         * with '1' are closer.
-	         * Change sign if mapping negative to '0' and positive to '1' */
-	        out[s*B+b] = change_sign*(den-num)/sigma2;
-	    }
-	}
+            if (new_num < num) {
+              num = new_num;
+            }
+            if (new_den < den) {
+              den = new_den;
+            }
+          }
+          /* Theoretical LLR and approximate LLR values are positive if
+           * symbol(s) with '0' is/are closer and negative if symbol(s)
+           * with '1' are closer.
+           * Change sign if mapping negative to '0' and positive to '1' */
+          out[s*B+b] = change_sign*(den-num)/sigma2;
+      }
+  }
 }
 
 /**
@@ -112,32 +112,32 @@ void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
  * \param sigma2 Noise vatiance
  */
 void llr_exact(const _Complex float *in, float *out, int N, int M, int B,
-		_Complex float *symbols, int (*S)[6][32], float sigma2) {
-	int i, s, b;
-	float num, den;
-	float idiff0, qdiff0, idiff1, qdiff1;
-	int change_sign = -1;
+    _Complex float *symbols, int (*S)[6][32], float sigma2) {
+  int i, s, b;
+  float num, den;
+  float idiff0, qdiff0, idiff1, qdiff1;
+  int change_sign = -1;
 
-	for (s=0; s<N; s++) {  	/* recevied symbols */
-	    for (b=0; b<B; b++) {/* bits per symbol*/
-	        /* initiate num[b] and den[b] */
-		num = 0;
-		den = 0;
-	        /* half the constellation symbols have '1'|'0' at any bit pos. */
-	        for (i=0; i<M/2; i++) {
-	        	idiff0 = __real__ in[s] - __real__ symbols[S[0][b][i]];
-	        	qdiff0 = __imag__ in[s] - __imag__ symbols[S[0][b][i]];
-	        	num += exp(-1*(idiff0*idiff0 + qdiff0*qdiff0)/sigma2);
+  for (s=0; s<N; s++) {    /* recevied symbols */
+      for (b=0; b<B; b++) {/* bits per symbol*/
+          /* initiate num[b] and den[b] */
+    num = 0;
+    den = 0;
+          /* half the constellation symbols have '1'|'0' at any bit pos. */
+          for (i=0; i<M/2; i++) {
+            idiff0 = __real__ in[s] - __real__ symbols[S[0][b][i]];
+            qdiff0 = __imag__ in[s] - __imag__ symbols[S[0][b][i]];
+            num += exp(-1*(idiff0*idiff0 + qdiff0*qdiff0)/sigma2);
 
-	        	idiff1 = __real__ in[s] - __real__ symbols[S[1][b][i]];
-	        	qdiff1 = __imag__ in[s] - __imag__ symbols[S[1][b][i]];
-	        	den += exp(-1*(idiff1*idiff1 + qdiff1*qdiff1)/sigma2);
-	        }
-	        /* Theoretical LLR and approximate LLR values are positive if
-	         * symbol(s) with '0' is/are closer and negative if symbol(s)
-	         * with '1' are closer.
-	         * Change sign if mapping negative to '0' and positive to '1' */
-	        out[s*B+b] = change_sign*log(num/den);
-	    }
-	}
+            idiff1 = __real__ in[s] - __real__ symbols[S[1][b][i]];
+            qdiff1 = __imag__ in[s] - __imag__ symbols[S[1][b][i]];
+            den += exp(-1*(idiff1*idiff1 + qdiff1*qdiff1)/sigma2);
+          }
+          /* Theoretical LLR and approximate LLR values are positive if
+           * symbol(s) with '0' is/are closer and negative if symbol(s)
+           * with '1' are closer.
+           * Change sign if mapping negative to '0' and positive to '1' */
+          out[s*B+b] = change_sign*log(num/den);
+      }
+  }
 }

@@ -34,28 +34,30 @@
 #include <complex.h>
 #include <stdint.h>
 
+#include "lte/config.h"
+
 typedef _Complex float cf_t;
-typedef struct {
-	int idx[2][6][32];
+typedef struct LIBLTE_API {
+  int idx[2][6][32];
 }soft_table_t;
 
-typedef struct {
-	cf_t* symbol_table; 		// bit-to-symbol mapping
-	soft_table_t soft_table; 	// symbol-to-bit mapping (used in soft demodulating)
-	int nsymbols;				// number of modulation symbols
-	int nbits_x_symbol;			// number of bits per symbol
+typedef struct LIBLTE_API {
+  cf_t* symbol_table;     // bit-to-symbol mapping
+  soft_table_t soft_table;   // symbol-to-bit mapping (used in soft demodulating)
+  int nsymbols;        // number of modulation symbols
+  int nbits_x_symbol;      // number of bits per symbol
 }modem_table_t;
 
 
 // Modulation standards
 enum modem_std {
-	LTE_BPSK = 1, LTE_QPSK = 2, LTE_QAM16 = 4, LTE_QAM64 = 6
+  LTE_BPSK = 1, LTE_QPSK = 2, LTE_QAM16 = 4, LTE_QAM64 = 6
 };
 
-void modem_table_init(modem_table_t* q);
-void modem_table_free(modem_table_t* q);
-void modem_table_reset(modem_table_t* q);
-int modem_table_set(modem_table_t* q, cf_t* table, soft_table_t *soft_table, int nsymbols, int nbits_x_symbol);
-int modem_table_std(modem_table_t* q, enum modem_std table, bool compute_soft_demod);
+LIBLTE_API void modem_table_init(modem_table_t* q);
+LIBLTE_API void modem_table_free(modem_table_t* q);
+LIBLTE_API void modem_table_reset(modem_table_t* q);
+LIBLTE_API int modem_table_set(modem_table_t* q, cf_t* table, soft_table_t *soft_table, int nsymbols, int nbits_x_symbol);
+LIBLTE_API int modem_table_std(modem_table_t* q, enum modem_std table, bool compute_soft_demod);
 
-#endif
+#endif // MODEM_TABLE_

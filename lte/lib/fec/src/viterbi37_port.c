@@ -10,117 +10,117 @@
 #include <limits.h>
 
 typedef union {
-	unsigned int w[64];
+  unsigned int w[64];
 } metric_t;
 typedef union {
-	unsigned long w[2];
+  unsigned long w[2];
 } decision_t;
 
 static union {
-	unsigned char c[128];
+  unsigned char c[128];
 } Branchtab37[3];
 
 /* State info for instance of Viterbi decoder */
 struct v37 {
-	metric_t metrics1; /* path metric buffer 1 */
-	metric_t metrics2; /* path metric buffer 2 */
-	decision_t *dp; /* Pointer to current decision */
-	metric_t *old_metrics, *new_metrics; /* Pointers to path metrics, swapped on every bit */
-	decision_t *decisions; /* Beginning of decisions for block */
+  metric_t metrics1; /* path metric buffer 1 */
+  metric_t metrics2; /* path metric buffer 2 */
+  decision_t *dp; /* Pointer to current decision */
+  metric_t *old_metrics, *new_metrics; /* Pointers to path metrics, swapped on every bit */
+  decision_t *decisions; /* Beginning of decisions for block */
 };
 
 /* Initialize Viterbi decoder for start of new frame */
 int init_viterbi37_port(void *p, int starting_state) {
-	struct v37 *vp = p;
-	int i;
+  struct v37 *vp = p;
+  int i;
 
-	if (p == NULL)
-		return -1;
-	for (i = 0; i < 64; i++)
-		vp->metrics1.w[i] = 63;
+  if (p == NULL)
+    return -1;
+  for (i = 0; i < 64; i++)
+    vp->metrics1.w[i] = 63;
 
-	vp->old_metrics = &vp->metrics1;
-	vp->new_metrics = &vp->metrics2;
-	vp->dp = vp->decisions;
-	if (starting_state != -1) {
-		vp->old_metrics->w[starting_state & 255] = 0; /* Bias known start state */
-	}
-	return 0;
+  vp->old_metrics = &vp->metrics1;
+  vp->new_metrics = &vp->metrics2;
+  vp->dp = vp->decisions;
+  if (starting_state != -1) {
+    vp->old_metrics->w[starting_state & 255] = 0; /* Bias known start state */
+  }
+  return 0;
 }
 
 void set_viterbi37_polynomial_port(int polys[3]) {
-	int state;
+  int state;
 
-	for (state = 0; state < 32; state++) {
-		Branchtab37[0].c[state] =
-				(polys[0] < 0) ^ parity((2 * state) & abs(polys[0])) ? 255 : 0;
-		Branchtab37[1].c[state] =
-				(polys[1] < 0) ^ parity((2 * state) & abs(polys[1])) ? 255 : 0;
-		Branchtab37[2].c[state] =
-				(polys[2] < 0) ^ parity((2 * state) & abs(polys[2])) ? 255 : 0;
-	}
+  for (state = 0; state < 32; state++) {
+    Branchtab37[0].c[state] =
+        (polys[0] < 0) ^ parity((2 * state) & abs(polys[0])) ? 255 : 0;
+    Branchtab37[1].c[state] =
+        (polys[1] < 0) ^ parity((2 * state) & abs(polys[1])) ? 255 : 0;
+    Branchtab37[2].c[state] =
+        (polys[2] < 0) ^ parity((2 * state) & abs(polys[2])) ? 255 : 0;
+  }
 }
 
 /* Create a new instance of a Viterbi decoder */
 void *create_viterbi37_port(int polys[3], int len) {
-	struct v37 *vp;
+  struct v37 *vp;
 
-	set_viterbi37_polynomial_port(polys);
+  set_viterbi37_polynomial_port(polys);
 
-	if ((vp = (struct v37 *) malloc(sizeof(struct v37))) == NULL)
-		return NULL ;
+  if ((vp = (struct v37 *) malloc(sizeof(struct v37))) == NULL)
+    return NULL ;
 
-	if ((vp->decisions = (decision_t *) malloc((len + 6) * sizeof(decision_t)))
-			== NULL) {
-		free(vp);
-		return NULL ;
-	}
-	init_viterbi37_port(vp, 0);
+  if ((vp->decisions = (decision_t *) malloc((len + 6) * sizeof(decision_t)))
+      == NULL) {
+    free(vp);
+    return NULL ;
+  }
+  init_viterbi37_port(vp, 0);
 
-	return vp;
+  return vp;
 }
 
 /* Viterbi chainback */
 int chainback_viterbi37_port(void *p, char *data, /* Decoded output data */
-		unsigned int nbits, /* Number of data bits */
-		unsigned int endstate) { /* Terminal encoder state */
-	struct v37 *vp = p;
-	decision_t *d;
+    unsigned int nbits, /* Number of data bits */
+    unsigned int endstate) { /* Terminal encoder state */
+  struct v37 *vp = p;
+  decision_t *d;
 
-	if (p == NULL)
-		return -1;
+  if (p == NULL)
+    return -1;
 
-	d = vp->decisions;
+  d = vp->decisions;
 
-	/* Make room beyond the end of the encoder register so we can
-	 * accumulate a full byte of decoded data
-	 */
-	endstate %= 64;
-	endstate <<= 2;
+  /* Make room beyond the end of the encoder register so we can
+   * accumulate a full byte of decoded data
+   */
+  endstate %= 64;
+  endstate <<= 2;
 
-	/* The store into data[] only needs to be done every 8 bits.
-	 * But this avoids a conditional branch, and the writes will
-	 * combine in the cache anyway
-	 */
-	d += 6; /* Look past tail */
-	while (nbits-- != 0) {
-		int k;
+  /* The store into data[] only needs to be done every 8 bits.
+   * But this avoids a conditional branch, and the writes will
+   * combine in the cache anyway
+   */
+  d += 6; /* Look past tail */
+  while (nbits-- != 0) {
+    int k;
 
-		k = (d[nbits].w[(endstate >> 2) / 32] >> ((endstate >> 2) % 32)) & 1;
-		endstate = (endstate >> 1) | (k << 7);
-		data[nbits] = k;
-	}
-	return 0;
+    k = (d[nbits].w[(endstate >> 2) / 32] >> ((endstate >> 2) % 32)) & 1;
+    endstate = (endstate >> 1) | (k << 7);
+    data[nbits] = k;
+  }
+  return 0;
 }
 
 /* Delete instance of a Viterbi decoder */
 void delete_viterbi37_port(void *p) {
-	struct v37 *vp = p;
+  struct v37 *vp = p;
 
-	if (vp != NULL) {
-		free(vp->decisions);
-		free(vp);
-	}
+  if (vp != NULL) {
+    free(vp->decisions);
+    free(vp);
+  }
 }
 
 /* C-language butterfly */
@@ -146,44 +146,44 @@ unsigned int metric,m0,m1,decision;\
  */
 
 int update_viterbi37_blk_port(void *p, unsigned char *syms, int nbits, int *best_state) {
-	struct v37 *vp = p;
-	decision_t *d;
+  struct v37 *vp = p;
+  decision_t *d;
 
-	if (p == NULL)
-		return -1;
-	int k=0;
-	d = (decision_t *) vp->dp;
-	while (nbits--) {
-		void *tmp;
-		unsigned char sym0, sym1, sym2;
-		int i;
+  if (p == NULL)
+    return -1;
+  int k=0;
+  d = (decision_t *) vp->dp;
+  while (nbits--) {
+    void *tmp;
+    unsigned char sym0, sym1, sym2;
+    int i;
 
-		d->w[0] = d->w[1] = 0;
+    d->w[0] = d->w[1] = 0;
 
-		sym0 = *syms++;
-		sym1 = *syms++;
-		sym2 = *syms++;
+    sym0 = *syms++;
+    sym1 = *syms++;
+    sym2 = *syms++;
 
-		k++;
-		for (i = 0; i < 32; i++)
-			BFLY(i);
+    k++;
+    for (i = 0; i < 32; i++)
+      BFLY(i);
 
-		d++;
-		tmp = vp->old_metrics;
-		vp->old_metrics = vp->new_metrics;
-		vp->new_metrics = tmp;
-	}
-	if (best_state) {
-		int i, bst=0;
-		unsigned int minmetric=UINT_MAX;
-		for (i=0;i<64;i++) {
-			if (vp->old_metrics->w[i] < minmetric) {
-				bst = i;
-				minmetric = vp->old_metrics->w[i];
-			}
-		}
-		*best_state = bst;
-	}
-	vp->dp = d;
-	return 0;
+    d++;
+    tmp = vp->old_metrics;
+    vp->old_metrics = vp->new_metrics;
+    vp->new_metrics = tmp;
+  }
+  if (best_state) {
+    int i, bst=0;
+    unsigned int minmetric=UINT_MAX;
+    for (i=0;i<64;i++) {
+      if (vp->old_metrics->w[i] < minmetric) {
+        bst = i;
+        minmetric = vp->old_metrics->w[i];
+      }
+    }
+    *best_state = bst;
+  }
+  vp->dp = d;
+  return 0;
 }

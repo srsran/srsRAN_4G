@@ -29,6 +29,7 @@
 #define TURBODECODER_
 
 #include "lte/fec/tc_interl.h"
+#include "lte/config.h"
 
 #define RATE 3
 #define TOTALTAIL 12
@@ -48,31 +49,32 @@
 
 typedef float llr_t;
 
-typedef struct {
-	int max_long_cb;
-	llr_t *beta;
-}map_gen_t;
+typedef struct LIBLTE_API {
+  int max_long_cb;
+  llr_t *beta;
+} map_gen_t;
 
-typedef struct {
-	int max_long_cb;
+typedef struct LIBLTE_API {
+  int max_long_cb;
 
-	map_gen_t dec;
+  map_gen_t dec;
 
-	llr_t *llr1;
-	llr_t *llr2;
-	llr_t *w;
-	llr_t *syst;
-	llr_t *parity;
+  llr_t *llr1;
+  llr_t *llr2;
+  llr_t *w;
+  llr_t *syst;
+  llr_t *parity;
 
-	tc_interl_t interleaver;
-}tdec_t;
+  tc_interl_t interleaver;
+} tdec_t;
 
-int tdec_init(tdec_t *h, int max_long_cb);
-void tdec_free(tdec_t *h);
+LIBLTE_API int tdec_init(tdec_t *h, int max_long_cb);
+LIBLTE_API void tdec_free(tdec_t *h);
 
-int tdec_reset(tdec_t *h, int long_cb);
-void tdec_iteration(tdec_t *h, llr_t *input, int long_cb);
-void tdec_decision(tdec_t *h, char *output, int long_cb);
-void tdec_run_all(tdec_t *h, llr_t *input, char *output, int nof_iterations, int long_cb);
+LIBLTE_API int tdec_reset(tdec_t *h, int long_cb);
+LIBLTE_API void tdec_iteration(tdec_t *h, llr_t *input, int long_cb);
+LIBLTE_API void tdec_decision(tdec_t *h, char *output, int long_cb);
+LIBLTE_API void tdec_run_all(tdec_t *h, llr_t *input, char *output, int nof_iterations,
+    int long_cb);
 
 #endif

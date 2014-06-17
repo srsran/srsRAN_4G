@@ -25,7 +25,6 @@
  *
  */
 
-
 #ifndef PRECODING_H_
 #define PRECODING_H_
 
@@ -38,19 +37,18 @@ typedef _Complex float cf_t;
 
 /* Generates the vector "y" from the input vector "x"
  */
-int precoding_single(cf_t *x, cf_t *y, int nof_symbols);
-int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports, int nof_symbols);
-int precoding_type(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_layers, int nof_ports,
-		int nof_symbols, lte_mimo_type_t type);
-
+LIBLTE_API int precoding_single(cf_t *x, cf_t *y, int nof_symbols);
+LIBLTE_API int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports,
+    int nof_symbols);
+LIBLTE_API int precoding_type(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_layers,
+    int nof_ports, int nof_symbols, lte_mimo_type_t type);
 
 /* Estimates the vector "x" based on the received signal "y" and the channel estimates "ce"
  */
-int predecoding_single_zf(cf_t *y, cf_t *ce, cf_t *x, int nof_symbols);
-int predecoding_diversity_zf(cf_t *y, cf_t *ce[MAX_PORTS],
-		cf_t *x[MAX_LAYERS], int nof_ports, int nof_symbols);
-int predecoding_type(cf_t *y, cf_t *ce[MAX_PORTS],
-		cf_t *x[MAX_LAYERS], int nof_ports, int nof_layers, int nof_symbols,
-		lte_mimo_type_t type);
+LIBLTE_API int predecoding_single_zf(cf_t *y, cf_t *ce, cf_t *x, int nof_symbols);
+LIBLTE_API int predecoding_diversity_zf(cf_t *y, cf_t *ce[MAX_PORTS], cf_t *x[MAX_LAYERS],
+    int nof_ports, int nof_symbols);
+LIBLTE_API int predecoding_type(cf_t *y, cf_t *ce[MAX_PORTS], cf_t *x[MAX_LAYERS],
+    int nof_ports, int nof_layers, int nof_symbols, lte_mimo_type_t type);
 
 #endif /* PRECODING_H_ */

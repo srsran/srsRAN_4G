@@ -29,6 +29,7 @@
 #ifndef PDSCH_
 #define PDSCH_
 
+#include "lte/config.h"
 #include "lte/common/base.h"
 #include "lte/mimo/precoding.h"
 #include "lte/mimo/layermap.h"
@@ -47,7 +48,7 @@
 typedef _Complex float cf_t;
 
 /* PDSCH object */
-typedef struct {
+typedef struct LIBLTE_API {
 	int cell_id;
 	lte_cp_t cp;
 	int nof_prb;
@@ -77,13 +78,13 @@ typedef struct {
 	crc_t crc_cb;
 }pdsch_t;
 
-int pdsch_init(pdsch_t *q, unsigned short user_rnti, int nof_prb,
+LIBLTE_API int pdsch_init(pdsch_t *q, unsigned short user_rnti, int nof_prb,
 		int nof_ports, int cell_id, lte_cp_t cp);
-void pdsch_free(pdsch_t *q);
+LIBLTE_API void pdsch_free(pdsch_t *q);
 
-int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS],
+LIBLTE_API int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS],
 		int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
-int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
+LIBLTE_API int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
 		char *data, int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
 
 

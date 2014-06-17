@@ -34,16 +34,16 @@
  * 36.211 6.6.1
  */
 int sequence_pbch(sequence_t *seq, lte_cp_t cp, int cell_id) {
-	bzero(seq, sizeof(sequence_t));
-	return sequence_LTEPRS(seq, CP_ISNORM(cp)?1920:1728, cell_id);
+  bzero(seq, sizeof(sequence_t));
+  return sequence_LTEPRS(seq, CP_ISNORM(cp)?1920:1728, cell_id);
 }
 
 /**
  * 36.211 6.7.1
  */
 int sequence_pcfich(sequence_t *seq, int nslot, int cell_id) {
-	bzero(seq, sizeof(sequence_t));
-	return sequence_LTEPRS(seq, 32, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
+  bzero(seq, sizeof(sequence_t));
+  return sequence_LTEPRS(seq, 32, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
 }
 
 
@@ -51,16 +51,16 @@ int sequence_pcfich(sequence_t *seq, int nslot, int cell_id) {
  * 36.211 6.9.1
  */
 int sequence_phich(sequence_t *seq, int nslot, int cell_id) {
-	bzero(seq, sizeof(sequence_t));
-	return sequence_LTEPRS(seq, 12, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
+  bzero(seq, sizeof(sequence_t));
+  return sequence_LTEPRS(seq, 12, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
 }
 
 /**
  * 36.211 6.8.2
  */
 int sequence_pdcch(sequence_t *seq, int nslot, int cell_id, int len) {
-	bzero(seq, sizeof(sequence_t));
-	return sequence_LTEPRS(seq, len, (nslot/2) * 512 + cell_id);
+  bzero(seq, sizeof(sequence_t));
+  return sequence_LTEPRS(seq, len, (nslot/2) * 512 + cell_id);
 }
 
 /**

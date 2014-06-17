@@ -36,84 +36,84 @@
 
 #include "lte.h"
 
-#define MAX_MSE	0.1
+#define MAX_MSE  0.1
 
 float freq = 0;
 int num_samples = 1000;
 
 void usage(char *prog) {
-	printf("Usage: %s -f freq -n num_samples\n", prog);
+  printf("Usage: %s -f freq -n num_samples\n", prog);
 }
 
 void parse_args(int argc, char **argv) {
-	int opt;
-	while ((opt = getopt(argc, argv, "nf")) != -1) {
-		switch (opt) {
-		case 'n':
-			num_samples = atoi(argv[optind]);
-			break;
-		case 'f':
-			freq = atof(argv[optind]);
-			break;
-		default:
-			usage(argv[0]);
-			exit(-1);
-		}
-	}
+  int opt;
+  while ((opt = getopt(argc, argv, "nf")) != -1) {
+    switch (opt) {
+    case 'n':
+      num_samples = atoi(argv[optind]);
+      break;
+    case 'f':
+      freq = atof(argv[optind]);
+      break;
+    default:
+      usage(argv[0]);
+      exit(-1);
+    }
+  }
 }
 
 int main(int argc, char **argv) {
-	int i;
-	cf_t *input, *output;
-	cfo_t cfocorr;
-	float mse;
+  int i;
+  cf_t *input, *output;
+  cfo_t cfocorr;
+  float mse;
 
-	if (argc < 5) {
-		usage(argv[0]);
-		exit(-1);
-	}
+  if (argc < 5) {
+    usage(argv[0]);
+    exit(-1);
+  }
 
-	parse_args(argc, argv);
+  parse_args(argc, argv);
 
-	input = malloc(sizeof(cf_t) * num_samples);
-	if (!input) {
-		perror("malloc");
-		exit(-1);
-	}
-	output = malloc(sizeof(cf_t) * num_samples);
-	if (!output) {
-		perror("malloc");
-		exit(-1);
-	}
+  input = malloc(sizeof(cf_t) * num_samples);
+  if (!input) {
+    perror("malloc");
+    exit(-1);
+  }
+  output = malloc(sizeof(cf_t) * num_samples);
+  if (!output) {
+    perror("malloc");
+    exit(-1);
+  }
 
-	for (i=0;i<num_samples;i++) {
-		input[i] = 100 * (rand()/RAND_MAX + I*rand()/RAND_MAX);
-		output[i] = input[i];
-	}
+  for (i=0;i<num_samples;i++) {
+    input[i] = 100 * (rand()/RAND_MAX + I*rand()/RAND_MAX);
+    output[i] = input[i];
+  }
 
-	if (cfo_init(&cfocorr, num_samples)) {
-		fprintf(stderr, "Error initiating CFO\n");
-		return -1;
-	}
+  if (cfo_init(&cfocorr, num_samples)) {
+    fprintf(stderr, "Error initiating CFO\n");
+    return -1;
+  }
 
-	cfo_correct(&cfocorr, output, freq);
-	cfo_correct(&cfocorr, output, -freq);
+  cfo_correct(&cfocorr, output, freq);
+  cfo_correct(&cfocorr, output, -freq);
 
-	mse = 0;
-	for (i=0;i<num_samples;i++) {
-		mse += cabsf(input[i] - output[i]) / num_samples;
-	}
+  mse = 0;
+  for (i=0;i<num_samples;i++) {
+    mse += cabsf(input[i] - output[i]) / num_samples;
+  }
 
-	cfo_free(&cfocorr);
-	free(input);
-	free(output);
+  cfo_free(&cfocorr);
+  free(input);
+  free(output);
 
-	printf("MSE: %f\n", mse);
-	if (mse > MAX_MSE) {
-		printf("MSE too large\n");
-		exit(-1);
-	} else {
-		printf("Ok\n");
-		exit(0);
-	}
+  printf("MSE: %f\n", mse);
+  if (mse > MAX_MSE) {
+    printf("MSE too large\n");
+    exit(-1);
+  } else {
+    printf("Ok\n");
+    exit(0);
+  }
 }

@@ -67,7 +67,7 @@ IF(QT4_FOUND AND QWT_FOUND AND QWT_MAJOR_VERSION EQUAL 6)
 
   INCLUDE_DIRECTORIES(common complexplot realplot scatterplot waterfallplot ${Boost_INCLUDE_DIRS}) 
   
-  ADD_LIBRARY(graphics ${eventwraps} ${lineplotwraps} ${pointplotwraps} ${spectrogramplotwraps} ${complex} ${real} ${scatter} ${waterfall} ${SOURCES_ALL} )
+  ADD_LIBRARY(graphics SHARED ${eventwraps} ${lineplotwraps} ${pointplotwraps} ${spectrogramplotwraps} ${complex} ${real} ${scatter} ${waterfall} ${SOURCES_ALL} )
   TARGET_LINK_LIBRARIES(graphics pthread ${QT_LIBRARIES} ${QWT_LIBRARIES})
   INSTALL(TARGETS graphics DESTINATION ${LIBRARY_DIR})
   LIBLTE_SET_PIC(graphics)
@@ -75,10 +75,10 @@ IF(QT4_FOUND AND QWT_FOUND AND QWT_MAJOR_VERSION EQUAL 6)
   APPEND_INTERNAL_LIST(OPTIONAL_LIBS graphics)
 
 
-  ADD_SUBDIRECTORY(complexplot/test)
-  ADD_SUBDIRECTORY(realplot/test)
-  ADD_SUBDIRECTORY(scatterplot/test)
-  ADD_SUBDIRECTORY(waterfallplot/test)
+  #ADD_SUBDIRECTORY(complexplot/test)
+  #ADD_SUBDIRECTORY(realplot/test)
+  #ADD_SUBDIRECTORY(scatterplot/test)
+  #ADD_SUBDIRECTORY(waterfallplot/test)
 
   MESSAGE(STATUS "   GRAPHICS library will be installed.")
   

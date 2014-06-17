@@ -29,6 +29,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "lte/utils/bit.h"
+
 void bit_pack(uint32_t value, char **bits, int nof_bits)
 {
     int i;
@@ -45,31 +47,31 @@ uint32_t bit_unpack(char **bits, int nof_bits)
     unsigned int value=0;
 
     for(i=0; i<nof_bits; i++) {
-    	value |= (*bits)[i] << (nof_bits-i-1);
+      value |= (*bits)[i] << (nof_bits-i-1);
     }
     *bits += nof_bits;
     return value;
 }
 
 void bit_fprint(FILE *stream, char *bits, int nof_bits) {
-	int i;
+  int i;
 
-	fprintf(stream,"[");
-	for (i=0;i<nof_bits-1;i++) {
-		fprintf(stream,"%d,",bits[i]);
-	}
-	fprintf(stream,"%d]\n",bits[i]);
+  fprintf(stream,"[");
+  for (i=0;i<nof_bits-1;i++) {
+    fprintf(stream,"%d,",bits[i]);
+  }
+  fprintf(stream,"%d]\n",bits[i]);
 }
 
 unsigned int bit_diff(char *x, char *y, int nbits) {
-	unsigned int errors=0;
-	for (int i=0;i<nbits;i++) {
-		if (x[i] != y[i]) {
-			//printf("%d, ",i);
-			errors++;
-		}
-	}
-	return errors;
+  unsigned int errors=0;
+  for (int i=0;i<nbits;i++) {
+    if (x[i] != y[i]) {
+      //printf("%d, ",i);
+      errors++;
+    }
+  }
+  return errors;
 }
 
 // Counts the number of ones in a word. K&R book exercise 2.9

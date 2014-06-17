@@ -41,144 +41,144 @@ enum modem_std modulation;
 bool soft_output = false, soft_exact = false;
 
 void usage(char *prog) {
-	printf("Usage: %s [nmse]\n", prog);
-	printf("\t-n num_bits [Default %d]\n", num_bits);
-	printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
-	printf("\t-s soft outputs [Default hard]\n");
-	printf("\t-e soft outputs exact algorithm [Default approx]\n");
+  printf("Usage: %s [nmse]\n", prog);
+  printf("\t-n num_bits [Default %d]\n", num_bits);
+  printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
+  printf("\t-s soft outputs [Default hard]\n");
+  printf("\t-e soft outputs exact algorithm [Default approx]\n");
 }
 
 void parse_args(int argc, char **argv) {
-	int opt;
-	while ((opt = getopt(argc, argv, "nmse")) != -1) {
-		switch (opt) {
-		case 'n':
-			num_bits = atoi(argv[optind]);
-			break;
-		case 's':
-			soft_output = true;
-			break;
-		case 'e':
-			soft_exact = true;
-			break;
-		case 'm':
-			switch(atoi(argv[optind])) {
-			case 1:
-				modulation = LTE_BPSK;
-				break;
-			case 2:
-				modulation = LTE_QPSK;
-				break;
-			case 4:
-				modulation = LTE_QAM16;
-				break;
-			case 6:
-				modulation = LTE_QAM64;
-				break;
-			default:
-				fprintf(stderr, "Invalid modulation %d. Possible values: "
-						"(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n", atoi(argv[optind]));
-				break;
-			}
-			break;
-		default:
-			usage(argv[0]);
-			exit(-1);
-		}
-	}
+  int opt;
+  while ((opt = getopt(argc, argv, "nmse")) != -1) {
+    switch (opt) {
+    case 'n':
+      num_bits = atoi(argv[optind]);
+      break;
+    case 's':
+      soft_output = true;
+      break;
+    case 'e':
+      soft_exact = true;
+      break;
+    case 'm':
+      switch(atoi(argv[optind])) {
+      case 1:
+        modulation = LTE_BPSK;
+        break;
+      case 2:
+        modulation = LTE_QPSK;
+        break;
+      case 4:
+        modulation = LTE_QAM16;
+        break;
+      case 6:
+        modulation = LTE_QAM64;
+        break;
+      default:
+        fprintf(stderr, "Invalid modulation %d. Possible values: "
+            "(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n", atoi(argv[optind]));
+        break;
+      }
+      break;
+    default:
+      usage(argv[0]);
+      exit(-1);
+    }
+  }
 }
 
 
 int main(int argc, char **argv) {
-	int i;
-	modem_table_t mod;
-	demod_hard_t demod_hard;
-	demod_soft_t demod_soft;
-	char *input, *output;
-	cf_t *symbols;
-	float *llr;
+  int i;
+  modem_table_t mod;
+  demod_hard_t demod_hard;
+  demod_soft_t demod_soft;
+  char *input, *output;
+  cf_t *symbols;
+  float *llr;
 
-	parse_args(argc, argv);
+  parse_args(argc, argv);
 
-	/* initialize objects */
-	if (modem_table_std(&mod, modulation, soft_output)) {
-		fprintf(stderr, "Error initializing modem table\n");
-		exit(-1);
-	}
+  /* initialize objects */
+  if (modem_table_std(&mod, modulation, soft_output)) {
+    fprintf(stderr, "Error initializing modem table\n");
+    exit(-1);
+  }
 
-	/* check that num_bits is multiple of num_bits x symbol */
-	if (num_bits % mod.nbits_x_symbol) {
-		fprintf(stderr, "Error num_bits must be multiple of %d\n", mod.nbits_x_symbol);
-		exit(-1);
-	}
+  /* check that num_bits is multiple of num_bits x symbol */
+  if (num_bits % mod.nbits_x_symbol) {
+    fprintf(stderr, "Error num_bits must be multiple of %d\n", mod.nbits_x_symbol);
+    exit(-1);
+  }
 
-	if (soft_output) {
-		demod_soft_init(&demod_soft);
-		demod_soft_table_set(&demod_soft, &mod);
-		demod_soft_alg_set(&demod_soft, soft_exact?EXACT:APPROX);
-	} else {
-		demod_hard_init(&demod_hard);
-		demod_hard_table_set(&demod_hard, modulation);
-	}
+  if (soft_output) {
+    demod_soft_init(&demod_soft);
+    demod_soft_table_set(&demod_soft, &mod);
+    demod_soft_alg_set(&demod_soft, soft_exact?EXACT:APPROX);
+  } else {
+    demod_hard_init(&demod_hard);
+    demod_hard_table_set(&demod_hard, modulation);
+  }
 
-	/* allocate buffers */
-	input = malloc(sizeof(char) * num_bits);
-	if (!input) {
-		perror("malloc");
-		exit(-1);
-	}
-	output = malloc(sizeof(char) * num_bits);
-	if (!output) {
-		perror("malloc");
-		exit(-1);
-	}
-	symbols = malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
-	if (!symbols) {
-		perror("malloc");
-		exit(-1);
-	}
+  /* allocate buffers */
+  input = malloc(sizeof(char) * num_bits);
+  if (!input) {
+    perror("malloc");
+    exit(-1);
+  }
+  output = malloc(sizeof(char) * num_bits);
+  if (!output) {
+    perror("malloc");
+    exit(-1);
+  }
+  symbols = malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
+  if (!symbols) {
+    perror("malloc");
+    exit(-1);
+  }
 
-	llr = malloc(sizeof(float) * num_bits);
-	if (!llr) {
-		perror("malloc");
-		exit(-1);
-	}
+  llr = malloc(sizeof(float) * num_bits);
+  if (!llr) {
+    perror("malloc");
+    exit(-1);
+  }
 
 
-	/* generate random data */
-	srand(time(NULL));
-	for (i=0;i<num_bits;i++) {
-		input[i] = rand()%2;
-	}
+  /* generate random data */
+  srand(time(NULL));
+  for (i=0;i<num_bits;i++) {
+    input[i] = rand()%2;
+  }
 
-	/* modulate */
-	mod_modulate(&mod, input, symbols, num_bits);
+  /* modulate */
+  mod_modulate(&mod, input, symbols, num_bits);
 
-	/* demodulate */
-	if (soft_output) {
-		demod_soft_demodulate(&demod_soft, symbols, llr, num_bits / mod.nbits_x_symbol);
-		for (i=0;i<num_bits;i++) {
-			output[i] = llr[i]>=0 ? 1 : 0;
-		}
-	} else {
-		demod_hard_demodulate(&demod_hard, symbols, output, num_bits / mod.nbits_x_symbol);
-	}
+  /* demodulate */
+  if (soft_output) {
+    demod_soft_demodulate(&demod_soft, symbols, llr, num_bits / mod.nbits_x_symbol);
+    for (i=0;i<num_bits;i++) {
+      output[i] = llr[i]>=0 ? 1 : 0;
+    }
+  } else {
+    demod_hard_demodulate(&demod_hard, symbols, output, num_bits / mod.nbits_x_symbol);
+  }
 
-	/* check errors */
-	for (i=0;i<num_bits;i++) {
-		if (input[i] != output[i]) {
-			fprintf(stderr, "Error in bit %d\n", i);
-			exit(-1);
-		}
-	}
+  /* check errors */
+  for (i=0;i<num_bits;i++) {
+    if (input[i] != output[i]) {
+      fprintf(stderr, "Error in bit %d\n", i);
+      exit(-1);
+    }
+  }
 
-	free(llr);
-	free(symbols);
-	free(output);
-	free(input);
+  free(llr);
+  free(symbols);
+  free(output);
+  free(input);
 
-	modem_table_free(&mod);
+  modem_table_free(&mod);
 
-	printf("Ok\n");
-	exit(0);
+  printf("Ok\n");
+  exit(0);
 }

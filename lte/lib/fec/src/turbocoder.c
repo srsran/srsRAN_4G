@@ -33,113 +33,114 @@
 
 int tcod_init(tcod_t *h, int max_long_cb) {
 
-	if (tc_interl_init(&h->interl, max_long_cb)) {
-		return -1;
-	}
-	h->max_long_cb = max_long_cb;
-	return 0;
+  if (tc_interl_init(&h->interl, max_long_cb)) {
+    return -1;
+  }
+  h->max_long_cb = max_long_cb;
+  return 0;
 }
 
 void tcod_free(tcod_t *h) {
-	tc_interl_free(&h->interl);
-	h->max_long_cb = 0;
+  tc_interl_free(&h->interl);
+  h->max_long_cb = 0;
 }
 
 int tcod_encode(tcod_t *h, char *input, char *output, int long_cb) {
-	
-	char reg1_0,reg1_1,reg1_2, reg2_0,reg2_1,reg2_2;
-	int i,k=0,j;
-	char bit;
-	char in,out;
-	int *per;
 
-	if (long_cb > h->max_long_cb) {
-		fprintf(stderr, "Turbo coder initiated for max_long_cb=%d\n", h->max_long_cb);
-		return -1;
-	}
+  char reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
+  int i, k = 0, j;
+  char bit;
+  char in, out;
+  int *per;
 
-	if (tc_interl_LTE_gen(&h->interl, long_cb)) {
-		fprintf(stderr, "Error initiating TC interleaver\n");
-		return -1;
-	}
+  if (long_cb > h->max_long_cb) {
+    fprintf(stderr, "Turbo coder initiated for max_long_cb=%d\n",
+        h->max_long_cb);
+    return -1;
+  }
 
-	per=h->interl.forward;
-	
-	reg1_0=0;
-	reg1_1=0;
-	reg1_2=0;
-	
-	reg2_0=0;
-	reg2_1=0;
-	reg2_2=0;
-	
-	k=0;
-	for (i=0;i<long_cb;i++) {
-		bit=input[i];
-		
-		output[k]=bit;
-		k++;
-		
-		in=bit^(reg1_2^reg1_1);
-		out=reg1_2^(reg1_0^in);
+  if (tc_interl_LTE_gen(&h->interl, long_cb)) {
+    fprintf(stderr, "Error initiating TC interleaver\n");
+    return -1;
+  }
 
-		reg1_2=reg1_1;
-		reg1_1=reg1_0;
-		reg1_0=in;
-		
-		output[k]=out;
-		k++;
-		
-		bit=input[per[i]];
-		
-		in=bit^(reg2_2^reg2_1);
-		out=reg2_2^(reg2_0^in);
+  per = h->interl.forward;
 
-		reg2_2=reg2_1;
-		reg2_1=reg2_0;
-		reg2_0=in;
-		
-		output[k]=out;
-		k++;
-	}
-	
-	k=3*long_cb;
-	
-	/* TAILING CODER #1 */
-	for (j=0;j<NOF_REGS;j++) {
-		bit=reg1_2^reg1_1;
-		
-		output[k]=bit;
-		k++;
-		
-		in=bit^(reg1_2^reg1_1);
-		out=reg1_2^(reg1_0^in);
+  reg1_0 = 0;
+  reg1_1 = 0;
+  reg1_2 = 0;
 
-		reg1_2=reg1_1;
-		reg1_1=reg1_0;
-		reg1_0=in;
-		
-		output[k]=out;
-		k++;
-	}
-	
-	/* TAILING CODER #2 */
-	for (j=0;j<NOF_REGS;j++) {
-		bit=reg2_2^reg2_1;
-		
-		output[k]=bit;
-		k++;
-			
-		in=bit^(reg2_2^reg2_1);
-		out=reg2_2^(reg2_0^in);
+  reg2_0 = 0;
+  reg2_1 = 0;
+  reg2_2 = 0;
 
-		reg2_2=reg2_1;
-		reg2_1=reg2_0;
-		reg2_0=in;
-		
-		output[k]=out;
-		k++;
-	}
-	return 0;
+  k = 0;
+  for (i = 0; i < long_cb; i++) {
+    bit = input[i];
+
+    output[k] = bit;
+    k++;
+
+    in = bit ^ (reg1_2 ^ reg1_1);
+    out = reg1_2 ^ (reg1_0 ^ in);
+
+    reg1_2 = reg1_1;
+    reg1_1 = reg1_0;
+    reg1_0 = in;
+
+    output[k] = out;
+    k++;
+
+    bit = input[per[i]];
+
+    in = bit ^ (reg2_2 ^ reg2_1);
+    out = reg2_2 ^ (reg2_0 ^ in);
+
+    reg2_2 = reg2_1;
+    reg2_1 = reg2_0;
+    reg2_0 = in;
+
+    output[k] = out;
+    k++;
+  }
+
+  k = 3 * long_cb;
+
+  /* TAILING CODER #1 */
+  for (j = 0; j < NOF_REGS; j++) {
+    bit = reg1_2 ^ reg1_1;
+
+    output[k] = bit;
+    k++;
+
+    in = bit ^ (reg1_2 ^ reg1_1);
+    out = reg1_2 ^ (reg1_0 ^ in);
+
+    reg1_2 = reg1_1;
+    reg1_1 = reg1_0;
+    reg1_0 = in;
+
+    output[k] = out;
+    k++;
+  }
+
+  /* TAILING CODER #2 */
+  for (j = 0; j < NOF_REGS; j++) {
+    bit = reg2_2 ^ reg2_1;
+
+    output[k] = bit;
+    k++;
+
+    in = bit ^ (reg2_2 ^ reg2_1);
+    out = reg2_2 ^ (reg2_0 ^ in);
+
+    reg2_2 = reg2_1;
+    reg2_1 = reg2_0;
+    reg2_0 = in;
+
+    output[k] = out;
+    k++;
+  }
+  return 0;
 }
 

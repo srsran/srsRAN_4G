@@ -30,7 +30,7 @@
 void *create_viterbi39_port(int polys[3], int len);
 int init_viterbi39_port(void *p, int starting_state);
 int chainback_viterbi39_port(void *p, char *data, /* Decoded output data */
-		unsigned int nbits, /* Number of data bits */
-		unsigned int endstate);
+    unsigned int nbits, /* Number of data bits */
+    unsigned int endstate);
 void delete_viterbi39_port(void *p);
 int update_viterbi39_blk_port(void *p, unsigned char *syms, int nbits);

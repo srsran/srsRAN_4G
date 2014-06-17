@@ -29,54 +29,55 @@
 #ifndef SCRAMBLING_
 #define SCRAMBLING_
 
+#include "lte/config.h"
 #include "lte/common/sequence.h"
 #include "lte/common/base.h"
 
 typedef _Complex float cf_t;
 
 /* Scrambling has no state */
-void scrambling_b(sequence_t *s, char *data);
-void scrambling_b_offset(sequence_t *s, char *data, int offset, int len);
+LIBLTE_API void scrambling_b(sequence_t *s, char *data);
+LIBLTE_API void scrambling_b_offset(sequence_t *s, char *data, int offset, int len);
 
-void scrambling_f(sequence_t *s, float *data);
-void scrambling_f_offset(sequence_t *s, float *data, int offset, int len);
+LIBLTE_API void scrambling_f(sequence_t *s, float *data);
+LIBLTE_API void scrambling_f_offset(sequence_t *s, float *data, int offset, int len);
 
-void scrambling_c(sequence_t *s, cf_t *data);
-void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len);
+LIBLTE_API void scrambling_c(sequence_t *s, cf_t *data);
+LIBLTE_API void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len);
 
 
 /* High-level API */
 
 /* channel integer values */
-#define SCRAMBLING_PDSCH			0	/* also PUSCH */
-#define SCRAMBLING_PCFICH			1
-#define SCRAMBLING_PDCCH			2
-#define SCRAMBLING_PBCH			3
-#define SCRAMBLING_PMCH			4
-#define SCRAMBLING_PUCCH			5
+#define SCRAMBLING_PDSCH      0  /* also PUSCH */
+#define SCRAMBLING_PCFICH      1
+#define SCRAMBLING_PDCCH      2
+#define SCRAMBLING_PBCH      3
+#define SCRAMBLING_PMCH      4
+#define SCRAMBLING_PUCCH      5
 
-typedef struct {
-	sequence_t seq[NSUBFRAMES_X_FRAME];
+typedef struct LIBLTE_API {
+  sequence_t seq[NSUBFRAMES_X_FRAME];
 }scrambling_t;
 
-typedef struct {
-	scrambling_t obj;
-	struct scrambling_init {
-		int hard;
-		int q;
-		int cell_id;
-		int nrnti;
-		int nMBSFN;
-		int channel;
-		int nof_symbols;	// 7 normal 6 extended
-	} init;
-	void *input;			// input type may be char or float depending on hard
-	int in_len;
-	struct scrambling_ctrl_in {
-		int subframe;
-	} ctrl_in;
-	void *output;
-	int out_len;
+typedef struct LIBLTE_API {
+  scrambling_t obj;
+  struct scrambling_init {
+    int hard;
+    int q;
+    int cell_id;
+    int nrnti;
+    int nMBSFN;
+    int channel;
+    int nof_symbols;  // 7 normal 6 extended
+  } init;
+  void *input;      // input type may be char or float depending on hard
+  int in_len;
+  struct scrambling_ctrl_in {
+    int subframe;
+  } ctrl_in;
+  void *output;
+  int out_len;
 }scrambling_hl;
 
-#endif
+#endif // SCRAMBLING_

@@ -28,16 +28,18 @@
 #ifndef _TC_INTERL_H
 #define _TC_INTERL_H
 
-typedef struct {
-	int *forward;
-	int *reverse;
-	int max_long_cb;
-}tc_interl_t;
+#include "lte/config.h"
 
-int tc_interl_LTE_gen(tc_interl_t *h, int long_cb);
-int tc_interl_UMTS_gen(tc_interl_t *h, int long_cb);
+typedef struct LIBLTE_API {
+  int *forward;
+  int *reverse;
+  int max_long_cb;
+} tc_interl_t;
 
-int tc_interl_init(tc_interl_t *h, int max_long_cb);
-void tc_interl_free(tc_interl_t *h);
+LIBLTE_API int tc_interl_LTE_gen(tc_interl_t *h, int long_cb);
+LIBLTE_API int tc_interl_UMTS_gen(tc_interl_t *h, int long_cb);
+
+LIBLTE_API int tc_interl_init(tc_interl_t *h, int max_long_cb);
+LIBLTE_API void tc_interl_free(tc_interl_t *h);
 
 #endif

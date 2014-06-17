@@ -35,58 +35,58 @@
 
 
 void demod_soft_init(demod_soft_t *q) {
-	bzero((void*)q,sizeof(demod_soft_t));
+  bzero((void*)q,sizeof(demod_soft_t));
 }
 
 void demod_soft_table_set(demod_soft_t *q, modem_table_t *table) {
-	q->table = table;
+  q->table = table;
 }
 
 void demod_soft_alg_set(demod_soft_t *q, enum alg alg_type) {
-	q->alg_type = alg_type;
+  q->alg_type = alg_type;
 }
 
 void demod_soft_sigma_set(demod_soft_t *q, float sigma) {
-	q->sigma = 2*sigma;
+  q->sigma = 2*sigma;
 }
 
 int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int nsymbols) {
-	switch(q->alg_type) {
-	case EXACT:
-		llr_exact(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
-				q->table->symbol_table, q->table->soft_table.idx, q->sigma);
-		break;
-	case APPROX:
-		llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
-				q->table->symbol_table, q->table->soft_table.idx, q->sigma);
-		break;
-	}
-	return nsymbols*q->table->nbits_x_symbol;
+  switch(q->alg_type) {
+  case EXACT:
+    llr_exact(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
+        q->table->symbol_table, q->table->soft_table.idx, q->sigma);
+    break;
+  case APPROX:
+    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
+        q->table->symbol_table, q->table->soft_table.idx, q->sigma);
+    break;
+  }
+  return nsymbols*q->table->nbits_x_symbol;
 }
 
 
 
 /* High-Level API */
 int demod_soft_initialize(demod_soft_hl* hl) {
-	modem_table_init(&hl->table);
-	if (modem_table_std(&hl->table,hl->init.std,true)) {
-		return -1;
-	}
-	demod_soft_init(&hl->obj);
-	hl->obj.table = &hl->table;
+  modem_table_init(&hl->table);
+  if (modem_table_std(&hl->table,hl->init.std,true)) {
+    return -1;
+  }
+  demod_soft_init(&hl->obj);
+  hl->obj.table = &hl->table;
 
-	return 0;
+  return 0;
 }
 
 int demod_soft_work(demod_soft_hl* hl) {
-	hl->obj.sigma = hl->ctrl_in.sigma;
-	hl->obj.alg_type = hl->ctrl_in.alg_type;
-	int ret = demod_soft_demodulate(&hl->obj,hl->input,hl->output,hl->in_len);
-	hl->out_len = ret;
-	return 0;
+  hl->obj.sigma = hl->ctrl_in.sigma;
+  hl->obj.alg_type = hl->ctrl_in.alg_type;
+  int ret = demod_soft_demodulate(&hl->obj,hl->input,hl->output,hl->in_len);
+  hl->out_len = ret;
+  return 0;
 }
 
 int demod_soft_stop(demod_soft_hl* hl) {
-	modem_table_free(&hl->table);
-	return 0;
+  modem_table_free(&hl->table);
+  return 0;
 }

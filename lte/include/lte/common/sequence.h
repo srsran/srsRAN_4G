@@ -25,26 +25,26 @@
  *
  */
 
-
 #ifndef LTESEQ_
 #define LTESEQ_
 
 #include "lte/common/base.h"
 
-typedef struct {
-	char *c;
-	int len;
-}sequence_t;
+typedef struct LIBLTE_API {
+  char *c;
+  int len;
+} sequence_t;
 
-int sequence_init(sequence_t *q, int len);
-void sequence_free(sequence_t *q);
+LIBLTE_API int sequence_init(sequence_t *q, int len);
+LIBLTE_API void sequence_free(sequence_t *q);
 
-int sequence_LTEPRS(sequence_t *q, int len, int seed);
+LIBLTE_API int sequence_LTEPRS(sequence_t *q, int len, int seed);
 
-int sequence_pbch(sequence_t *seq, lte_cp_t cp, int cell_id);
-int sequence_pcfich(sequence_t *seq, int nslot, int cell_id);
-int sequence_phich(sequence_t *seq, int nslot, int cell_id);
-int sequence_pdcch(sequence_t *seq, int nslot, int cell_id, int len);
-int sequence_pdsch(sequence_t *seq, unsigned short rnti, int q, int nslot, int cell_id, int len);
+LIBLTE_API int sequence_pbch(sequence_t *seq, lte_cp_t cp, int cell_id);
+LIBLTE_API int sequence_pcfich(sequence_t *seq, int nslot, int cell_id);
+LIBLTE_API int sequence_phich(sequence_t *seq, int nslot, int cell_id);
+LIBLTE_API int sequence_pdcch(sequence_t *seq, int nslot, int cell_id, int len);
+LIBLTE_API int sequence_pdsch(sequence_t *seq, unsigned short rnti, int q,
+    int nslot, int cell_id, int len);
 
 #endif
