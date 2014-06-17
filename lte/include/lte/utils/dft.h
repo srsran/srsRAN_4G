@@ -33,10 +33,10 @@
 #include "lte/config.h"
 
 
-/* dft is a frontend to the fftw3 library. It facilitates the computation of complex or real DFT,
- * power spectral density, normalization, etc.
- * It also supports the creation of multiple FFT plans for different FFT sizes or options, selecting
- * a different one at runtime.
+/* dft is a frontend to the fftw3 library. It facilitates the computation of
+ * complex or real DFT, power spectral density, normalization, etc.
+ * It also supports the creation of multiple FFT plans for different FFT sizes
+ * or options, selecting a different one at runtime.
  */
 
 

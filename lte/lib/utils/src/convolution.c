@@ -38,7 +38,7 @@ int conv_fft_cc_init(conv_fft_cc_t *state, int input_len, int filter_len) {
 	state->input_len = input_len;
 	state->filter_len = filter_len;
 	state->output_len = input_len+filter_len-1;
-	state->input_fft = vec_malloc(sizeof(_Complex float)*state->output_len);
+  state->input_fft = vec_malloc(sizeof(_Complex float)*state->output_len);
 	state->filter_fft = vec_malloc(sizeof(_Complex float)*state->output_len);
 	state->output_fft = vec_malloc(sizeof(_Complex float)*state->output_len);
 	if (!state->input_fft || !state->filter_fft || !state->output_fft) {
