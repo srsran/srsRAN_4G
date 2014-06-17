@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
 	}
 
 	/* predecoding / equalization */
-	if (predecoding_type(r, h, xr, nof_ports, nof_layers, nof_symbols * nof_layers, type) < 0) {
+	if (predecoding_type(r[0], h, xr, nof_ports, nof_layers, nof_symbols * nof_layers, type) < 0) {
 		fprintf(stderr, "Error layer mapper encoder\n");
 		exit(-1);
 	}

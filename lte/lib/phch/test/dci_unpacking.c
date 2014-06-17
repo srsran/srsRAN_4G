@@ -40,7 +40,6 @@ void usage(char *prog) {
 int main(int argc, char **argv) {
 	dci_msg_t msg;
 	ra_pdsch_t ra_dl;
-	ra_pdsch_t ra_ul;
 	int len, rlen;
 	int nof_prb;
 	int nwords;

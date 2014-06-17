@@ -83,12 +83,20 @@ int compute_sequences(scrambling_hl* h) {
 		return sequence_pbch(&h->obj.seq[0], h->init.nof_symbols == CPNORM_NSYMB?CPNORM:CPEXT,
 				h->init.cell_id);
 	case SCRAMBLING_PDSCH:
+		for (int ns=0;ns<NSUBFRAMES_X_FRAME;ns++) {
+			sequence_pdsch(&h->obj.seq[ns], h->init.nrnti, 0, 2*ns, h->init.cell_id, LTE_NSOFT_BITS);
+		}
+		return 0;
 	case SCRAMBLING_PCFICH:
 		for (int ns=0;ns<NSUBFRAMES_X_FRAME;ns++) {
 			sequence_pcfich(&h->obj.seq[ns], 2*ns, h->init.cell_id);
 		}
 		return 0;
 	case SCRAMBLING_PDCCH:
+		for (int ns=0;ns<NSUBFRAMES_X_FRAME;ns++) {
+			sequence_pdcch(&h->obj.seq[ns], 2*ns, h->init.cell_id, LTE_NSOFT_BITS);
+		}
+		return 0;
 	case SCRAMBLING_PMCH:
 	case SCRAMBLING_PUCCH:
 		fprintf(stderr, "Not implemented\n");

@@ -25,33 +25,43 @@
  *
  */
 
-
-#include "lte/fec/tc_interl.h"
 #include "lte/fec/turbocoder.h"
+
+#include <stdio.h>
 
 #define NOF_REGS 3
 
-int tcod_init(tcod_t *h, int long_cb) {
+int tcod_init(tcod_t *h, int max_long_cb) {
 
-	if (tc_interl_LTE_init(&h->interl, long_cb)) {
+	if (tc_interl_init(&h->interl, max_long_cb)) {
 		return -1;
 	}
-	h->long_cb = long_cb;
+	h->max_long_cb = max_long_cb;
 	return 0;
 }
 
 void tcod_free(tcod_t *h) {
 	tc_interl_free(&h->interl);
-	h->long_cb = 0;
+	h->max_long_cb = 0;
 }
 
-void tcod_encode(tcod_t *h, char *input, char *output) {
+int tcod_encode(tcod_t *h, char *input, char *output, int long_cb) {
 	
 	char reg1_0,reg1_1,reg1_2, reg2_0,reg2_1,reg2_2;
 	int i,k=0,j;
 	char bit;
 	char in,out;
 	int *per;
+
+	if (long_cb > h->max_long_cb) {
+		fprintf(stderr, "Turbo coder initiated for max_long_cb=%d\n", h->max_long_cb);
+		return -1;
+	}
+
+	if (tc_interl_LTE_gen(&h->interl, long_cb)) {
+		fprintf(stderr, "Error initiating TC interleaver\n");
+		return -1;
+	}
 
 	per=h->interl.forward;
 	
@@ -64,7 +74,7 @@ void tcod_encode(tcod_t *h, char *input, char *output) {
 	reg2_2=0;
 	
 	k=0;
-	for (i=0;i<h->long_cb;i++) {
+	for (i=0;i<long_cb;i++) {
 		bit=input[i];
 		
 		output[k]=bit;
@@ -93,7 +103,7 @@ void tcod_encode(tcod_t *h, char *input, char *output) {
 		k++;
 	}
 	
-	k=3*h->long_cb;
+	k=3*long_cb;
 	
 	/* TAILING CODER #1 */
 	for (j=0;j<NOF_REGS;j++) {
@@ -130,5 +140,6 @@ void tcod_encode(tcod_t *h, char *input, char *output) {
 		output[k]=out;
 		k++;
 	}
+	return 0;
 }
 

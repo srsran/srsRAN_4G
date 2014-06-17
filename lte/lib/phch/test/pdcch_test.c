@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
 	int i, j;
 	cf_t *ce[MAX_PORTS_CTRL];
 	int nof_re;
-	cf_t *slot1_symbols[MAX_PORTS_CTRL];
+	cf_t *slot_symbols[MAX_PORTS_CTRL];
 	int nof_dcis;
 	int ret = -1;
 
@@ -135,8 +135,8 @@ int main(int argc, char **argv) {
 		for (j=0;j<nof_re;j++) {
 			ce[i][j] = 1;
 		}
-		slot1_symbols[i] = 	malloc(sizeof(cf_t) * nof_re);
-		if (!slot1_symbols[i]) {
+		slot_symbols[i] = 	malloc(sizeof(cf_t) * nof_re);
+		if (!slot_symbols[i]) {
 			perror("malloc");
 			exit(-1);
 		}
@@ -176,19 +176,19 @@ int main(int argc, char **argv) {
 	dci_msg_candidate_set(&dci_tx.msg[1], 0, 1, 1234);
 	dci_tx.nof_dcis++;
 
-	pdcch_encode(&pdcch, &dci_tx, slot1_symbols, 0);
+	pdcch_encode(&pdcch, &dci_tx, slot_symbols, 0);
 
 	/* combine outputs */
 	for (i=1;i<nof_ports;i++) {
 		for (j=0;j<nof_re;j++) {
-			slot1_symbols[0][j] += slot1_symbols[i][j];
+			slot_symbols[0][j] += slot_symbols[i][j];
 		}
 	}
 
 	pdcch_init_search_ue(&pdcch, 1234);
 
 	dci_init(&dci_rx, 2);
-	nof_dcis = pdcch_decode(&pdcch, slot1_symbols[0], ce, &dci_rx, 0, 1);
+	nof_dcis = pdcch_decode(&pdcch, slot_symbols[0], ce, &dci_rx, 0, 1);
 	if (nof_dcis < 0) {
 		printf("Error decoding\n");
 	} else if (nof_dcis == dci_tx.nof_dcis) {
@@ -221,7 +221,7 @@ quit:
 
 	for (i=0;i<MAX_PORTS_CTRL;i++) {
 		free(ce[i]);
-		free(slot1_symbols[i]);
+		free(slot_symbols[i]);
 	}
 	if (ret) {
 		printf("Error\n");

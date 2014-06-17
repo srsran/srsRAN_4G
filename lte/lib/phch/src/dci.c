@@ -555,6 +555,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, int nof_prb, bool crc
 		fprintf(stderr, "Invalid message length for format 1A\n");
 		return -1;
 	}
+
 	if (*y++ != 1) {
 		fprintf(stderr, "Invalid format differentiation field value. This is Format0\n");
 		return -1;
@@ -602,7 +603,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, int nof_prb, bool crc
 		y++;
 	} else {
 		y++; // MSB of TPC is reserved
-		*y++ = data->type2_alloc.n_prb1a; // LSB indicates N_prb_1a for TBS
+		data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
 	}
 	data->mcs.tbs_idx = data->mcs.mcs_idx;
 	int n_prb;

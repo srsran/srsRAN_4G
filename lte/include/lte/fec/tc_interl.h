@@ -25,17 +25,19 @@
  *
  */
 
-#ifndef _PERMUTE_H
-#define _PERMUTE_H
+#ifndef _TC_INTERL_H
+#define _TC_INTERL_H
 
 typedef struct {
 	int *forward;
 	int *reverse;
+	int max_long_cb;
 }tc_interl_t;
 
-int tc_interl_LTE_init(tc_interl_t *h, int long_cb);
-int tc_interl_UMTS_init(tc_interl_t *h, int long_cb);
+int tc_interl_LTE_gen(tc_interl_t *h, int long_cb);
+int tc_interl_UMTS_gen(tc_interl_t *h, int long_cb);
 
+int tc_interl_init(tc_interl_t *h, int max_long_cb);
 void tc_interl_free(tc_interl_t *h);
 
 #endif

@@ -34,13 +34,12 @@
 #endif
 
 #ifndef TX_NULL
-#define TX_NULL 80
+#define TX_NULL 100
 #endif
 
 typedef struct {
 	int buffer_len;
 	char *buffer;
-	int *d2_perm;
 } rm_turbo_t;
 
 int rm_turbo_init(rm_turbo_t *q, int max_codeblock_len);

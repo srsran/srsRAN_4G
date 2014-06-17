@@ -143,7 +143,6 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
 	int i, j;
 	cf_t *x[MAX_LAYERS];
 	cf_t *ce_precoding[MAX_PORTS];
-	cf_t *symbols_precoding[MAX_PORTS];
 
 	DEBUG("Decoding PHICH Ngroup: %d, Nseq: %d\n", ngroup, nseq);
 
@@ -174,7 +173,6 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
 	}
 	for (i = 0; i < MAX_PORTS; i++) {
 		ce_precoding[i] = q->ce[i];
-		symbols_precoding[i] = q->phich_symbols[i];
 	}
 
 	/* extract symbols */
@@ -200,7 +198,7 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
 		predecoding_single_zf(q->phich_symbols[0], q->ce[0], q->phich_d0,
 		PHICH_MAX_NSYMB);
 	} else {
-		predecoding_diversity_zf(symbols_precoding, ce_precoding, x,
+		predecoding_diversity_zf(q->phich_symbols[0], ce_precoding, x,
 				q->nof_tx_ports, PHICH_MAX_NSYMB);
 		layerdemap_diversity(x, q->phich_d0, q->nof_tx_ports,
 		PHICH_MAX_NSYMB / q->nof_tx_ports);
@@ -349,14 +347,15 @@ int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
 	}
 
 	DEBUG("d0: ",0);
-	if (VERBOSE_ISDEBUG()) vec_fprint_c(stdout, q->phich_d0, PHICH_MAX_NSYMB);
+	if (VERBOSE_ISDEBUG())
+		vec_fprint_c(stdout, q->phich_d0, PHICH_MAX_NSYMB);
 
 
 	/* layer mapping & precoding */
 	if (q->nof_tx_ports > 1) {
 		layermap_diversity(q->phich_d0, x, q->nof_tx_ports, PHICH_MAX_NSYMB);
 		precoding_diversity(x, symbols_precoding, q->nof_tx_ports,
-		PHICH_MAX_NSYMB / q->nof_tx_ports);
+				PHICH_MAX_NSYMB / q->nof_tx_ports);
 		/**FIXME: According to 6.9.2, Precoding for 4 tx ports is different! */
 	} else {
 		memcpy(q->phich_symbols[0], q->phich_d0, PHICH_MAX_NSYMB * sizeof(cf_t));

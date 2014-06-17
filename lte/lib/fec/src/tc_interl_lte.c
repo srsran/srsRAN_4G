@@ -66,26 +66,18 @@ const int f2_list[NOF_TC_CB_SIZES] = { 10, 12, 42, 16, 18, 20, 22, 24, 26, 84, 9
 		158, 80, 96, 902, 166, 336, 170, 86, 174, 176, 178, 120, 182, 184, 186,
 		94, 190, 480 };
 
-int tc_interl_LTE_init(tc_interl_t *h, int long_cb) {
+int tc_interl_LTE_gen(tc_interl_t *h, int long_cb) {
 	int cb_table_idx, f1, f2;
 	unsigned long long i, j;
+
+	if (long_cb > h->max_long_cb) {
+		fprintf(stderr, "Interleaver initiated for max_long_cb=%d\n",h->max_long_cb);
+		return -1;
+	}
 
 	cb_table_idx = lte_find_cb_index(long_cb);
 	if (cb_table_idx == -1) {
 		fprintf(stderr, "Can't find long_cb=%d in valid TC CB table\n", long_cb);
-		return -1;
-	}
-
-	h->forward = h->reverse = NULL;
-	h->forward = malloc(sizeof(int) * (long_cb));
-	if (!h->forward) {
-		return -1;
-	}
-	h->reverse = malloc(sizeof(int) * (long_cb));
-	if (!h->reverse) {
-		perror("malloc");
-		free(h->forward);
-		h->forward = h->reverse = NULL;
 		return -1;
 	}
 

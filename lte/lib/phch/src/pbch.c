@@ -469,7 +469,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float 
 			/* no need for layer demapping */
 			predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d, q->nof_symbols);
 		} else {
-			predecoding_diversity_zf(q->pbch_symbols, q->ce, x, nant, q->nof_symbols);
+			predecoding_diversity_zf(q->pbch_symbols[0], q->ce, x, nant, q->nof_symbols);
 			layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols/nant);
 		}
 

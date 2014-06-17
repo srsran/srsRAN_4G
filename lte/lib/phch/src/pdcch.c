@@ -330,13 +330,6 @@ unsigned short dci_decode(pdcch_t *q, float *e, char *data, int E,
 
 	assert(nof_bits < DCI_MAX_BITS);
 
-/*	char a[] = {1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0,1,1,1,1,1,0,1,1,1,0,1,1,1,1,0,0,1,1,0,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,0,1,0,1,1,0,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,1,1,0,0,0,0,0,1,1,0,0,0,0,1,0,0,1,0,0,0,0};
-
-	float *b = malloc(sizeof(E));
-	for (int i=0;i<E;i++) {
-		b[i] = a[i]?1:-1;
-	}
-*/
 	/* unrate matching */
 	rm_conv_rx(e, E, tmp, 3 * (nof_bits + 16));
 
@@ -379,7 +372,7 @@ int pdcch_decode_candidate(pdcch_t *q, float *llr, dci_candidate_t *c,
 	return 0;
 }
 
-int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
+int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
 		float *llr, int nsubframe, float ebno) {
 
 	/* Set pointers for layermapping & precoding */
@@ -403,7 +396,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
 	memset(&x[q->nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->nof_ports));
 
 	/* extract symbols */
-	int n = regs_pdcch_get(q->regs, slot1_symbols, q->pdcch_symbols[0]);
+	int n = regs_pdcch_get(q->regs, slot_symbols, q->pdcch_symbols[0]);
 	if (q->nof_symbols != n) {
 		fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", q->nof_symbols, n);
 		return -1;
@@ -424,7 +417,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
 		predecoding_single_zf(q->pdcch_symbols[0], q->ce[0], q->pdcch_d,
 				q->nof_symbols);
 	} else {
-		predecoding_diversity_zf(q->pdcch_symbols, q->ce, x, q->nof_ports,
+		predecoding_diversity_zf(q->pdcch_symbols[0], q->ce, x, q->nof_ports,
 				q->nof_symbols);
 		layerdemap_diversity(x, q->pdcch_d, q->nof_ports,
 				q->nof_symbols / q->nof_ports);
@@ -490,10 +483,10 @@ int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, int nsubframe) {
  *
  * Returns number of messages stored in dci
  */
-int pdcch_decode(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
+int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
 		dci_t *dci, int nsubframe, float ebno) {
 
-	if (pdcch_extract_llr(q, slot1_symbols, ce, q->pdcch_llr, nsubframe,
+	if (pdcch_extract_llr(q, slot_symbols, ce, q->pdcch_llr, nsubframe,
 			ebno)) {
 		return -1;
 	}
@@ -546,9 +539,9 @@ void dci_encode(pdcch_t *q, char *data, char *e, int nof_bits, int E, unsigned s
 	rm_conv_tx(tmp, 3 * (nof_bits + 16), e, E);
 }
 
-/** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
+/** Converts the set of DCI messages to symbols mapped to the slot ready for transmission
  */
-int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL],
+int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS_CTRL],
 		int nsubframe) {
 	int i;
 	/* Set pointers for layermapping & precoding */
@@ -601,7 +594,7 @@ int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL],
 
 	/* mapping to resource elements */
 	for (i = 0; i < q->nof_ports; i++) {
-		regs_pdcch_put(q->regs, q->pdcch_symbols[i], slot1_symbols[i]);
+		regs_pdcch_put(q->regs, q->pdcch_symbols[i], slot_symbols[i]);
 	}
 	return 0;
 }

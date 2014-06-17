@@ -26,57 +26,65 @@
  */
 
 
-#ifndef PCFICH_
-#define PCFICH_
+#ifndef PDSCH_
+#define PDSCH_
 
 #include "lte/common/base.h"
 #include "lte/mimo/precoding.h"
 #include "lte/mimo/layermap.h"
 #include "lte/modem/mod.h"
-#include "lte/modem/demod_hard.h"
+#include "lte/modem/demod_soft.h"
 #include "lte/scrambling/scrambling.h"
+#include "lte/fec/rm_turbo.h"
+#include "lte/fec/turbocoder.h"
+#include "lte/fec/turbodecoder.h"
+#include "lte/fec/crc.h"
+#include "lte/phch/dci.h"
 #include "lte/phch/regs.h"
 
-#define PCFICH_CFI_LEN		32
-#define PCFICH_RE			PCFICH_CFI_LEN/2
-#define PCFICH_MAX_DISTANCE	5
+#define TDEC_ITERATIONS	1
 
 typedef _Complex float cf_t;
 
-/* PCFICH object */
+/* PDSCH object */
 typedef struct {
 	int cell_id;
 	lte_cp_t cp;
-	int nof_symbols;
 	int nof_prb;
 	int nof_ports;
-
-	/* handler to REGs resource mapper */
-	regs_t *regs;
+	int max_symbols;
+	unsigned short rnti;
 
 	/* buffers */
-	cf_t ce[MAX_PORTS_CTRL][PCFICH_RE];
-	cf_t pcfich_symbols[MAX_PORTS_CTRL][PCFICH_RE];
-	cf_t pcfich_x[MAX_PORTS_CTRL][PCFICH_RE];
-	cf_t pcfich_d[PCFICH_RE];
-
-	/* bit message */
-	char data[PCFICH_CFI_LEN];
+	cf_t *ce[MAX_PORTS];
+	cf_t *pdsch_symbols[MAX_PORTS];
+	cf_t *pdsch_x[MAX_PORTS];
+	cf_t *pdsch_d;
+	char *pdsch_e_bits;
+	char *cb_in_b;
+	char *cb_out_b;
+	float *pdsch_llr;
+	float *pdsch_rm_f;
 
 	/* tx & rx objects */
-	modem_table_t mod;
-	demod_hard_t demod;
-	sequence_t seq_pcfich[NSUBFRAMES_X_FRAME];
+	modem_table_t mod[4];
+	demod_soft_t demod;
+	sequence_t seq_pdsch[NSUBFRAMES_X_FRAME];
+	tcod_t encoder;
+	tdec_t decoder;
+	rm_turbo_t rm_turbo;
+	crc_t crc_tb;
+	crc_t crc_cb;
+}pdsch_t;
 
-}pcfich_t;
+int pdsch_init(pdsch_t *q, unsigned short user_rnti, int nof_prb,
+		int nof_ports, int cell_id, lte_cp_t cp);
+void pdsch_free(pdsch_t *q);
 
-int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_ports, lte_cp_t cp);
-void pcfich_free(pcfich_t *q);
-int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL], int nsubframe, int *cfi, int *distance);
-int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL], int nsubframe);
+int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS],
+		int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
+int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
+		char *data, int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
 
-bool pcfich_exists(int nframe, int nslot);
-int pcfich_put(regs_t *h, cf_t *pcfich, cf_t *slot_data);
-int pcfich_get(regs_t *h, cf_t *pcfich, cf_t *slot_data);
 
 #endif

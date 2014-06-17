@@ -32,6 +32,10 @@
 #define NSUBFRAMES_X_FRAME	10
 #define NSLOTS_X_FRAME (2*NSUBFRAMES_X_FRAME)
 
+#define LTE_NSOFT_BITS	250368 // Soft buffer size for Category 1 UE
+
+#define LTE_NULL_BIT	0
+#define LTE_NULL_SYMBOL	2
 #define LTE_NIL_SYMBOL	2
 
 #define MAX_PORTS		4
@@ -81,6 +85,8 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define SLOT_IDX_CPNORM(idx, symbol_sz) (idx==0?(CP(symbol_sz, CPNORM_0_LEN)):(CP(symbol_sz, CPNORM_0_LEN)+idx*(symbol_sz+CP(symbol_sz, CPNORM_LEN))))
 #define SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
 
+#define SAMPLE_IDX(nof_prb, symbol_idx, sample_idx) (symbol_idx*nof_prb*RE_X_RB + sample_idx)
+
 #define MAX_PRB		110
 #define RE_X_RB		12
 
@@ -88,7 +94,6 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define GUARD_RE(nof_prb)	((lte_symbol_sz(nof_prb)-nof_prb*RE_X_RB)/2)
 
-#define SAMPLE_IDX(nof_prb, symbol_idx, sample_idx) (symbol_idx*nof_prb*RE_X_RB + sample_idx)
 
 const int lte_symbol_sz(int nof_prb);
 int lte_re_x_prb(int ns, int symbol, int nof_ports, int nof_symbols);

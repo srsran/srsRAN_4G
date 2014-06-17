@@ -233,7 +233,7 @@ int main(int argc, char **argv) {
 					symbols[j] = known_data_encoded[j];
 				}
 			} else {
-				tcod_encode(&tcod, data_tx, symbols);
+				tcod_encode(&tcod, data_tx, symbols, frame_length);
 			}
 
 			for (j = 0; j < coded_length; j++) {
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
 			ch_awgn_f(llr, llr, var[i], coded_length);
 
 			/* decoder */
-			tdec_reset(&tdec);
+			tdec_reset(&tdec, frame_length);
 
 			int t;
 			if (nof_iterations == -1) {
@@ -254,8 +254,8 @@ int main(int argc, char **argv) {
 			for (j=0;j<t;j++) {
 
 				if (!j) gettimeofday(&tdata[1],NULL); // Only measure 1 iteration
-				tdec_iteration(&tdec, llr);
-				tdec_decision(&tdec, data_rx);
+				tdec_iteration(&tdec, llr, frame_length);
+				tdec_decision(&tdec, data_rx, frame_length);
 				if (!j) gettimeofday(&tdata[2],NULL);
 				if (!j) get_time_interval(tdata);
 				if (!j) mean_usec = (float) mean_usec*0.9+(float) tdata[0].tv_usec*0.1;

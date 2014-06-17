@@ -68,6 +68,13 @@ void prb_cp(cf_t **input, cf_t **output, int nof_prb) {
 	*output += nof_prb * RE_X_RB;
 }
 
+
+void prb_cp_half(cf_t **input, cf_t **output, int nof_prb) {
+	memcpy(*output, *input, sizeof(cf_t) * RE_X_RB * nof_prb / 2);
+	*input += nof_prb * RE_X_RB / 2;
+	*output += nof_prb * RE_X_RB / 2;
+}
+
 void prb_put_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
 		int nof_prb) {
 	prb_cp_ref(input, output, offset, nof_refs, nof_prb, false);

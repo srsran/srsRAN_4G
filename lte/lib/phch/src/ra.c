@@ -26,6 +26,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <strings.h>
 #include <math.h>
 #include "lte/common/base.h"
@@ -38,6 +39,90 @@
 #include "tbs_tables.h"
 
 #define min(a,b) (a<b?a:b)
+
+/* Returns the number of RE in a PRB in a slot and subframe */
+int ra_re_x_prb(int nsubframe, int nslot, int prb_idx, int nof_prb, int nof_ports,
+		int nof_ctrl_symbols, lte_cp_t cp) {
+
+	int re;
+	bool skip_refs = false;
+
+	if (nslot == 0) {
+		re = (CP_NSYMB(cp) - nof_ctrl_symbols) * RE_X_RB;
+	} else {
+		re = CP_NSYMB(cp) * RE_X_RB;
+	}
+
+	/* if it's the prb in the middle, there are less RE due to PBCH and PSS/SSS */
+	if ((nsubframe == 0 || nsubframe == 5) &&
+			(prb_idx >= nof_prb/2-3 && prb_idx <= nof_prb/2+3)) {
+		if (nsubframe == 0) {
+			if (nslot == 0) {
+				re = (CP_NSYMB(cp) - nof_ctrl_symbols - 2) * RE_X_RB;
+			} else {
+				if (CP_ISEXT(cp)) {
+					re = (CP_NSYMB(cp) - 4) * RE_X_RB;
+					skip_refs = true;
+				} else {
+					re = (CP_NSYMB(cp) - 4) * RE_X_RB + 2*nof_ports;
+				}
+			}
+		} else if (nsubframe == 5) {
+			if (nslot == 0) {
+				re = (CP_NSYMB(cp) - nof_ctrl_symbols - 2) * RE_X_RB;
+			}
+		}
+		if ((nof_prb%2) && (prb_idx == nof_prb/2-3 || prb_idx == nof_prb/2+3)) {
+			if (nslot == 0) {
+				re += 2 * RE_X_RB / 2;
+			} else if (nsubframe == 0) {
+				re += 4 * RE_X_RB / 2 - nof_ports;
+				if (CP_ISEXT(cp)) {
+					re -= nof_ports>2?2:nof_ports;
+				}
+			}
+		}
+	}
+
+	// remove references
+	if (!skip_refs) {
+		switch(nof_ports) {
+		case 1:
+		case 2:
+			re -= 2 * (nslot + 1) * nof_ports;
+			break;
+		case 4:
+			if (nslot == 1) {
+				re -= 12;
+			} else {
+				re -= 4;
+				if (nof_ctrl_symbols == 1) {
+					re -= 4;
+				}
+			}
+			break;
+		}
+	}
+
+	return re;
+}
+
+/* Computes the number of RE for each PRB in the prb_dist structure */
+void ra_prb_get_re(ra_prb_t *prb_dist, int nof_prb, int nof_ports, int nof_ctrl_symbols, lte_cp_t cp) {
+	int i, j, s;
+
+	/* Set start symbol according to Section 7.1.6.4 in 36.213 */
+	prb_dist->lstart = nof_ctrl_symbols;
+	// Compute number of RE per subframe
+	for (i=0;i<NSUBFRAMES_X_FRAME;i++) {
+		for (s=0;s<2;s++) {
+			for (j=0;j<prb_dist->slot[s].nof_prb;j++) {
+				prb_dist->re_sf[i] += ra_re_x_prb(i, s, prb_dist->slot[s].prb_idx[j], nof_prb,
+						nof_ports, nof_ctrl_symbols, cp);
+			}
+		}
+	}
+}
 
 
 void ra_prb_fprint(FILE *f, ra_prb_slot_t *prb) {
@@ -65,34 +150,31 @@ int ra_prb_get_ul(ra_prb_slot_t *prb, ra_pusch_t *ra, int nof_prb) {
 	return 0;
 }
 
+
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
 int ra_prb_get_dl(ra_prb_t *prb_dist, ra_pdsch_t *ra, int nof_prb) {
 	int i, j;
 	uint32_t bitmask;
 	int P = ra_type0_P(nof_prb);
-	ra_prb_slot_t *prb;
+	int n_rb_rbg_subset, n_rb_type1;
 
 	bzero(prb_dist, sizeof(ra_prb_t));
 	switch(ra->alloc_type) {
 	case alloc_type0:
-		prb = &prb_dist->slot1;
-		prb_dist->is_dist = false;
 		bitmask = ra->type0_alloc.rbg_bitmask;
 		int nb = (int) ceilf((float)nof_prb/P);
 		for (i=0;i<nb;i++) {
 			if (bitmask & (1<<(nb-i-1))) {
 				for (j=0;j<P;j++) {
-					prb->prb_idx[prb->nof_prb] = i*P+j;
-					prb->nof_prb++;
+					prb_dist->slot[0].prb_idx[prb_dist->slot[0].nof_prb] = i*P+j;
+					prb_dist->slot[0].nof_prb++;
 				}
 			}
 		}
+		memcpy(&prb_dist->slot[1], &prb_dist->slot[0], sizeof(ra_prb_slot_t));
 		break;
 	case alloc_type1:
-		prb = &prb_dist->slot1;
-		prb_dist->is_dist = false;
-		int n_rb_type1 = ra_type1_N_rb(nof_prb);
-		int n_rb_rbg_subset;
+		n_rb_type1 = ra_type1_N_rb(nof_prb);
 		if (ra->type1_alloc.rbg_subset < (nof_prb/P) % P) {
 			n_rb_rbg_subset = ((nof_prb-1)/(P*P)) * P + P;
 		} else if (ra->type1_alloc.rbg_subset == ((nof_prb/P) % P)) {
@@ -104,25 +186,24 @@ int ra_prb_get_dl(ra_prb_t *prb_dist, ra_pdsch_t *ra, int nof_prb) {
 		bitmask = ra->type1_alloc.vrb_bitmask;
 		for (i=0;i<n_rb_type1;i++) {
 			if (bitmask & (1<<(n_rb_type1-i-1))) {
-				prb->prb_idx[prb->nof_prb] = ((i+shift)/P)*P*P+
+				prb_dist->slot[0].prb_idx[prb_dist->slot[0].nof_prb] = ((i+shift)/P)*P*P+
 						ra->type1_alloc.rbg_subset*P+(i+shift)%P;
-				prb->nof_prb++;
+				prb_dist->slot[0].nof_prb++;
 			}
 		}
+		memcpy(&prb_dist->slot[1], &prb_dist->slot[0], sizeof(ra_prb_slot_t));
 		break;
 	case alloc_type2:
 		if (ra->type2_alloc.mode == t2_loc) {
-			prb = &prb_dist->slot1;
-			prb_dist->is_dist = false;
 			for (i=0;i<ra->type2_alloc.L_crb;i++) {
-				prb->prb_idx[i] = i+ra->type2_alloc.RB_start;
-				prb->nof_prb++;
+				prb_dist->slot[0].prb_idx[i] = i+ra->type2_alloc.RB_start;
+				prb_dist->slot[0].nof_prb++;
 			}
+			memcpy(&prb_dist->slot[1], &prb_dist->slot[0], sizeof(ra_prb_slot_t));
 		} else {
 			/* Mapping of Virtual to Physical RB for distributed type is defined in
 			 * 6.2.3.2 of 36.211
 			 */
-			prb_dist->is_dist = true;
 			int N_gap, N_tilde_vrb, n_tilde_vrb, n_tilde_prb, n_tilde2_prb, N_null, N_row, n_vrb;
 			int n_tilde_prb_odd, n_tilde_prb_even;
 			if (ra->type2_alloc.n_gap == t2_ng1) {
@@ -152,23 +233,24 @@ int ra_prb_get_dl(ra_prb_t *prb_dist, ra_pdsch_t *ra, int nof_prb) {
 				n_tilde_prb_even = (n_tilde_prb_odd+N_tilde_vrb/2)%N_tilde_vrb+N_tilde_vrb*(n_vrb/N_tilde_vrb);
 
 				if (n_tilde_prb_odd < N_tilde_vrb/2) {
-					prb_dist->slot1.prb_idx[i] = n_tilde_prb_odd;
+					prb_dist->slot[0].prb_idx[i] = n_tilde_prb_odd;
 				} else {
-					prb_dist->slot1.prb_idx[i] = n_tilde_prb_odd+N_gap-N_tilde_vrb/2;
+					prb_dist->slot[0].prb_idx[i] = n_tilde_prb_odd+N_gap-N_tilde_vrb/2;
 				}
-				prb_dist->slot1.nof_prb++;
+				prb_dist->slot[0].nof_prb++;
 				if (n_tilde_prb_even < N_tilde_vrb/2) {
-					prb_dist->slot2.prb_idx[i] = n_tilde_prb_even;
+					prb_dist->slot[1].prb_idx[i] = n_tilde_prb_even;
 				} else {
-					prb_dist->slot2.prb_idx[i] = n_tilde_prb_even+N_gap-N_tilde_vrb/2;
+					prb_dist->slot[1].prb_idx[i] = n_tilde_prb_even+N_gap-N_tilde_vrb/2;
 				}
-				prb_dist->slot2.nof_prb++;
+				prb_dist->slot[1].nof_prb++;
 			}
 		}
 		break;
 	default:
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -496,14 +578,9 @@ void ra_pdsch_fprint(FILE *f, ra_pdsch_t *ra, int nof_prb) {
 
 	ra_prb_t alloc;
 	ra_prb_get_dl(&alloc, ra, nof_prb);
-	if (alloc.is_dist) {
-		fprintf(f, " - PRB Bitmap Assignment 1st slot:\n");
-		ra_prb_fprint(f, &alloc.slot1);
-		fprintf(f, " - PRB Bitmap Assignment 2nd slot:\n");
-		ra_prb_fprint(f, &alloc.slot2);
-	} else {
-		fprintf(f, " - PRB Bitmap Assignment:\n");
-		ra_prb_fprint(f, &alloc.slot1);
+	for (int s=0;s<2;s++) {
+		fprintf(f, " - PRB Bitmap Assignment %dst slot:\n", s);
+		ra_prb_fprint(f, &alloc.slot[s]);
 	}
 
 	fprintf(f, " - Number of PRBs:\t\t\t%d\n", ra_nprb_dl(ra, nof_prb));

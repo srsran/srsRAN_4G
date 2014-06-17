@@ -47,9 +47,9 @@ int precoding_type(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_layers, int 
 /* Estimates the vector "x" based on the received signal "y" and the channel estimates "ce"
  */
 int predecoding_single_zf(cf_t *y, cf_t *ce, cf_t *x, int nof_symbols);
-int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
+int predecoding_diversity_zf(cf_t *y, cf_t *ce[MAX_PORTS],
 		cf_t *x[MAX_LAYERS], int nof_ports, int nof_symbols);
-int predecoding_type(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
+int predecoding_type(cf_t *y, cf_t *ce[MAX_PORTS],
 		cf_t *x[MAX_LAYERS], int nof_ports, int nof_layers, int nof_symbols,
 		lte_mimo_type_t type);
 

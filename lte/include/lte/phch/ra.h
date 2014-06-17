@@ -36,7 +36,7 @@
  */
 
 typedef enum {
-	MOD_NULL = 0, BPSK = 1, QPSK = 2, QAM16 = 4, QAM64 = 16
+	MOD_NULL = 0, BPSK = 1, QPSK = 2, QAM16 = 3, QAM64 = 4
 } ra_mod_t;
 
 typedef struct {
@@ -113,17 +113,22 @@ typedef struct {
 }ra_prb_slot_t;
 
 typedef struct {
-	ra_prb_slot_t slot1;
-	ra_prb_slot_t slot2;
-	bool is_dist;
+	ra_prb_slot_t slot[2];
+	int lstart;
+	int re_sf[NSUBFRAMES_X_FRAME];
 }ra_prb_t;
 
 
 void ra_prb_fprint(FILE *f, ra_prb_slot_t *prb);
+
 int ra_prb_get_dl(ra_prb_t *prb, ra_pdsch_t *ra, int nof_prb);
 int ra_prb_get_ul(ra_prb_slot_t *prb, ra_pusch_t *ra, int nof_prb);
+void ra_prb_get_re(ra_prb_t *prb_dist, int nof_prb, int nof_ports, int nof_ctrl_symbols, lte_cp_t cp);
+
 int ra_nprb_dl(ra_pdsch_t *ra, int nof_prb);
 int ra_nprb_ul(ra_pusch_t *ra, int nof_prb);
+int ra_re_x_prb(int nsubframe, int nslot, int prb_idx, int nof_prb, int nof_ports,
+		int nof_ctrl_symbols, lte_cp_t cp);
 
 uint8_t ra_mcs_to_table_idx(ra_mcs_t *mcs);
 int ra_mcs_from_idx_dl(uint8_t idx, ra_mcs_t *mcs);

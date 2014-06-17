@@ -72,8 +72,8 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output, int out_le
 	K_p = nrows * NCOLS;
 	if (3 * K_p > q->buffer_len) {
 		fprintf(stderr,
-				"Input too large. Max input length including dummy bits is %d\n",
-				q->buffer_len);
+				"Input too large. Max input length including dummy bits is %d (3x%dx32, in_len %d)\n",
+				q->buffer_len, nrows, in_len);
 		return -1;
 	}
 
@@ -146,8 +146,8 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_
 	K_p = nrows * NCOLS;
 	if (3 * K_p > q->buffer_len) {
 		fprintf(stderr,
-				"Input too large. Max input length including dummy bits is %d\n",
-				q->buffer_len);
+				"Input too large. Max output length including dummy bits is %d (3x%dx32, in_len %d)\n",
+				q->buffer_len, nrows, out_len);
 		return -1;
 	}
 

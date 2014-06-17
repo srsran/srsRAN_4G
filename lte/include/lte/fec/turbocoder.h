@@ -25,6 +25,10 @@
  *
  */
 
+#ifndef TURBOCODER_
+#define TURBOCODER_
+
+#include "lte/fec/tc_interl.h"
 
 #define NUMREGS     3
 
@@ -32,14 +36,14 @@
 #define TOTALTAIL 12
 
 typedef struct {
-	int long_cb;
+	int max_long_cb;
 	tc_interl_t interl;
 
 }tcod_t;
 
-int tcod_init(tcod_t *h, int long_cb);
+int tcod_init(tcod_t *h, int max_long_cb);
 void tcod_free(tcod_t *h);
-void tcod_encode(tcod_t *h, char *input, char *output);
+int tcod_encode(tcod_t *h, char *input, char *output, int long_cb);
 
-
+#endif
 

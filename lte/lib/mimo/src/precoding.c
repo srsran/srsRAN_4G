@@ -127,7 +127,7 @@ int predecoding_single_zf(cf_t *y, cf_t *ce, cf_t *x, int nof_symbols) {
 }
 
 /* ZF detector */
-int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
+int predecoding_diversity_zf(cf_t *y, cf_t *ce[MAX_PORTS],
 		cf_t *x[MAX_LAYERS], int nof_ports, int nof_symbols) {
 	int i;
 	cf_t h0, h1, h2, h3, r0, r1, r2, r3;
@@ -139,8 +139,8 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 			h1 = ce[1][2*i];
 			hh = crealf(h0)*crealf(h0)+cimagf(h0)*cimagf(h0)+
 					crealf(h1)*crealf(h1)+cimagf(h1)*cimagf(h1);
-			r0 = y[0][2*i];
-			r1 = y[0][2*i+1];
+			r0 = y[2*i];
+			r1 = y[2*i+1];
 			x[0][i] = (conjf(h0)*r0 + h1*conjf(r1))/hh * sqrt(2);
 			x[1][i] = (-h1*conj(r0) + conj(h0)*r1)/hh * sqrt(2);
 		}
@@ -157,10 +157,10 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 						+ crealf(h2)*crealf(h2)+cimagf(h2)*cimagf(h2);
 			hh13 = crealf(h1)*crealf(h1)+cimagf(h1)*cimagf(h1)
 					+ crealf(h3)*crealf(h3)+cimagf(h3)*cimagf(h3);
-			r0 = y[0][4*i];
-			r1 = y[0][4*i+1];
-			r2 = y[0][4*i+2];
-			r3 = y[0][4*i+3];
+			r0 = y[4*i];
+			r1 = y[4*i+1];
+			r2 = y[4*i+2];
+			r3 = y[4*i+3];
 
 			x[0][i] = (conjf(h0)*r0 + h2*conjf(r1))/hh02 * sqrt(2);
 			x[1][i] = (-h2*conjf(r0) + conjf(h0)*r1)/hh02 * sqrt(2);
@@ -176,7 +176,7 @@ int predecoding_diversity_zf(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 }
 
 /* 36.211 v10.3.0 Section 6.3.4 */
-int predecoding_type(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
+int predecoding_type(cf_t *y, cf_t *ce[MAX_PORTS],
 		cf_t *x[MAX_LAYERS], int nof_ports, int nof_layers, int nof_symbols, lte_mimo_type_t type) {
 
 	if (nof_ports > MAX_PORTS) {
@@ -192,7 +192,7 @@ int predecoding_type(cf_t *y[MAX_PORTS], cf_t *ce[MAX_PORTS],
 	switch(type) {
 	case SINGLE_ANTENNA:
 		if (nof_ports == 1 && nof_layers == 1) {
-			return predecoding_single_zf(y[0], ce[0], x[0], nof_symbols);
+			return predecoding_single_zf(y, ce[0], x[0], nof_symbols);
 		} else{
 			fprintf(stderr, "Number of ports and layers must be 1 for transmission on single antenna ports\n");
 			return -1;

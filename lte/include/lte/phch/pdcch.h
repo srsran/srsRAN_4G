@@ -95,7 +95,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports, int cell_id
 void pdcch_free(pdcch_t *q);
 
 /* Encoding functions */
-int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nsubframe);
+int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS_CTRL], int nsubframe);
 
 
 /* Decoding functions */
@@ -105,9 +105,9 @@ int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORTS_CTRL], in
  * b) call pdcch_extract_llr() and then call pdcch_decode_si/ue/ra
  */
 
-int pdcch_decode(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
+int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
 		dci_t *dci, int nsubframe, float ebno);
-int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float *llr,
+int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL], float *llr,
 		int nsubframe, float ebno);
 
 void pdcch_init_search_si(pdcch_t *q);
