@@ -31,9 +31,9 @@
 #include <stdio.h>
 #include "lte/config.h"
 
-#define VERBOSE_DEBUG 	2
-#define VERBOSE_INFO	1
-#define VERBOSE_NONE	0
+#define VERBOSE_DEBUG   2
+#define VERBOSE_INFO  1
+#define VERBOSE_NONE  0
 
 #include <sys/time.h>
 LIBLTE_API void get_time_interval(struct timeval * tdata);
@@ -50,10 +50,10 @@ LIBLTE_API extern int verbose;
 #define PRINT_NONE verbose=VERBOSE_NONE
 
 #define DEBUG(_fmt, ...) if (verbose >= VERBOSE_DEBUG) \
-	fprintf(stdout, "[DEBUG]: " _fmt, __VA_ARGS__)
+  fprintf(stdout, "[DEBUG]: " _fmt, __VA_ARGS__)
 
 #define INFO(_fmt, ...) if (verbose >= VERBOSE_INFO) \
-	fprintf(stdout, "[INFO]:  " _fmt, __VA_ARGS__)
+  fprintf(stdout, "[INFO]:  " _fmt, __VA_ARGS__)
 
 #else // DEBUG_DISABLED
 

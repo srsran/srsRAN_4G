@@ -40,9 +40,9 @@
 #endif
 
 typedef struct LIBLTE_API {
-	int buffer_len;
-	char *buffer;
-	int *d2_perm;
+  int buffer_len;
+  char *buffer;
+  int *d2_perm;
 } rm_turbo_t;
 
 LIBLTE_API int rm_turbo_init(rm_turbo_t *q, int max_codeblock_len);
@@ -53,19 +53,19 @@ LIBLTE_API int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *outpu
 
 /* High-level API */
 typedef struct LIBLTE_API {
-	rm_turbo_t q;
-	struct rm_turbo_init {
-		int direction;
-	} init;
-	void *input;			// input type may be char or float depending on hard
-	int in_len;
-	struct rm_turbo_ctrl_in {
-		int E;
-		int S;
-		int rv_idx;
-	} ctrl_in;
-	void *output;
-	int out_len;
+  rm_turbo_t q;
+  struct rm_turbo_init {
+    int direction;
+  } init;
+  void *input;      // input type may be char or float depending on hard
+  int in_len;
+  struct rm_turbo_ctrl_in {
+    int E;
+    int S;
+    int rv_idx;
+  } ctrl_in;
+  void *output;
+  int out_len;
 }rm_turbo_hl;
 
 LIBLTE_API int rm_turbo_initialize(rm_turbo_hl* h);

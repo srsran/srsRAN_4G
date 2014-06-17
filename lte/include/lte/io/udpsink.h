@@ -40,9 +40,9 @@
 
 /* Low-level API */
 typedef struct LIBLTE_API {
-	int sockfd;
-	struct sockaddr_in servaddr;
-	data_type_t type;
+  int sockfd;
+  struct sockaddr_in servaddr;
+  data_type_t type;
 }udpsink_t;
 
 LIBLTE_API int udpsink_init(udpsink_t *q, char *address, int port, data_type_t type);
@@ -53,19 +53,19 @@ LIBLTE_API int udpsink_write(udpsink_t *q, void *buffer, int nsamples);
 
 /* High-level API */
 typedef struct LIBLTE_API {
-	udpsink_t obj;
-	struct udpsink_init {
-		char *address;
-		int port;
-		int block_length;
-		int data_type;
-	} init;
-	void* input;
-	int in_len;
+  udpsink_t obj;
+  struct udpsink_init {
+    char *address;
+    int port;
+    int block_length;
+    int data_type;
+  } init;
+  void* input;
+  int in_len;
 }udpsink_hl;
 
 LIBLTE_API int udpsink_initialize(udpsink_hl* h);
-LIBLTE_API int udpsink_work(	udpsink_hl* hl);
+LIBLTE_API int udpsink_work(  udpsink_hl* hl);
 LIBLTE_API int udpsink_stop(udpsink_hl* h);
 
 #endif // UDPSINK_

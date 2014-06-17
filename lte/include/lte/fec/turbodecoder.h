@@ -22,22 +22,22 @@
 typedef float llr_t;
 
 typedef struct LIBLTE_API{
-	int long_cb;
-	llr_t *beta;
+  int long_cb;
+  llr_t *beta;
 }map_gen_t;
 
 typedef struct LIBLTE_API{
-	int long_cb;
+  int long_cb;
 
-	map_gen_t dec;
+  map_gen_t dec;
 
-	llr_t *llr1;
-	llr_t *llr2;
-	llr_t *w;
-	llr_t *syst;
-	llr_t *parity;
+  llr_t *llr1;
+  llr_t *llr2;
+  llr_t *w;
+  llr_t *syst;
+  llr_t *parity;
 
-	tc_interl_t interleaver;
+  tc_interl_t interleaver;
 }tdec_t;
 
 LIBLTE_API int tdec_init(tdec_t *h, int long_cb);

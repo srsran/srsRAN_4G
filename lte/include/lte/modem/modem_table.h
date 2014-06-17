@@ -38,20 +38,20 @@
 
 typedef _Complex float cf_t;
 typedef struct LIBLTE_API {
-	int idx[2][6][32];
+  int idx[2][6][32];
 }soft_table_t;
 
 typedef struct LIBLTE_API {
-	cf_t* symbol_table; 		// bit-to-symbol mapping
-	soft_table_t soft_table; 	// symbol-to-bit mapping (used in soft demodulating)
-	int nsymbols;				// number of modulation symbols
-	int nbits_x_symbol;			// number of bits per symbol
+  cf_t* symbol_table;     // bit-to-symbol mapping
+  soft_table_t soft_table;   // symbol-to-bit mapping (used in soft demodulating)
+  int nsymbols;        // number of modulation symbols
+  int nbits_x_symbol;      // number of bits per symbol
 }modem_table_t;
 
 
 // Modulation standards
 enum modem_std {
-	LTE_BPSK = 1, LTE_QPSK = 2, LTE_QAM16 = 4, LTE_QAM64 = 6
+  LTE_BPSK = 1, LTE_QPSK = 2, LTE_QAM16 = 4, LTE_QAM64 = 6
 };
 
 LIBLTE_API void modem_table_init(modem_table_t* q);

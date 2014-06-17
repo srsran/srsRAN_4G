@@ -30,10 +30,10 @@
 /* Assume perfect amplitude and phase alignment.
  *  Check threshold values for real case
  *  or implement dynamic threshold adjustent as a function of received symbol amplitudes */
-#define QAM16_THRESHOLD		2/sqrt(10)
-#define QAM64_THRESHOLD_1	2/sqrt(42)
-#define QAM64_THRESHOLD_2	4/sqrt(42)
-#define QAM64_THRESHOLD_3	6/sqrt(42)
+#define QAM16_THRESHOLD    2/sqrt(10)
+#define QAM64_THRESHOLD_1  2/sqrt(42)
+#define QAM64_THRESHOLD_2  4/sqrt(42)
+#define QAM64_THRESHOLD_3  6/sqrt(42)
 
 void hard_bpsk_demod(const cf_t* in, char* out, int N);
 void hard_qpsk_demod(const cf_t* in, char* out, int N);

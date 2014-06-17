@@ -38,12 +38,12 @@
 typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API{
-	int sztime; // Output signal size in the time domain
-	int szfreq;	// Output signal size in the freq domain
-	int ntime;	// 2-D Filter size in time domain
-	int nfreq;	// 2-D Filter size in frequency domain
-	float **taps;	// 2-D filter coefficients
-	cf_t *output; // Output signal
+  int sztime; // Output signal size in the time domain
+  int szfreq;  // Output signal size in the freq domain
+  int ntime;  // 2-D Filter size in time domain
+  int nfreq;  // 2-D Filter size in frequency domain
+  float **taps;  // 2-D filter coefficients
+  cf_t *output; // Output signal
 } filter2d_t;
 
 LIBLTE_API int filter2d_init (filter2d_t* q, float **taps, int ntime, int nfreq, int sztime, int szfreq);

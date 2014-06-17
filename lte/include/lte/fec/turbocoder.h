@@ -36,8 +36,8 @@
 #define TOTALTAIL 12
 
 typedef struct LIBLTE_API{
-	int long_cb;
-	tc_interl_t interl;
+  int long_cb;
+  tc_interl_t interl;
 
 }tcod_t;
 

@@ -45,10 +45,10 @@
 
 typedef _Complex float cf_t;
 
-#define PDCCH_NOF_SEARCH_MODES	3
+#define PDCCH_NOF_SEARCH_MODES  3
 
 typedef enum {
-	SEARCH_NONE=3, SEARCH_SI=0, SEARCH_RA=1, SEARCH_UE=2
+  SEARCH_NONE=3, SEARCH_SI=0, SEARCH_RA=1, SEARCH_UE=2
 }pdcch_search_mode_t;
 
 /*
@@ -56,40 +56,40 @@ typedef enum {
  * DCI messages as defined in Section 7.1 of 36.213
  */
 typedef struct LIBLTE_API {
-	int nof_candidates;
-	dci_candidate_t *candidates[NSUBFRAMES_X_FRAME];
+  int nof_candidates;
+  dci_candidate_t *candidates[NSUBFRAMES_X_FRAME];
 }pdcch_search_t;
 
 /* PDCCH object */
 typedef struct LIBLTE_API {
-	int cell_id;
-	lte_cp_t cp;
-	int nof_prb;
-	int nof_bits;
-	int nof_symbols;
-	int nof_ports;
-	int nof_regs;
-	int nof_cce;
+  int cell_id;
+  lte_cp_t cp;
+  int nof_prb;
+  int nof_bits;
+  int nof_symbols;
+  int nof_ports;
+  int nof_regs;
+  int nof_cce;
 
-	pdcch_search_t search_mode[PDCCH_NOF_SEARCH_MODES];
-	pdcch_search_mode_t current_search_mode;
+  pdcch_search_t search_mode[PDCCH_NOF_SEARCH_MODES];
+  pdcch_search_mode_t current_search_mode;
 
-	regs_t *regs;
+  regs_t *regs;
 
-	/* buffers */
-	cf_t *ce[MAX_PORTS_CTRL];
-	cf_t *pdcch_symbols[MAX_PORTS_CTRL];
-	cf_t *pdcch_x[MAX_PORTS_CTRL];
-	cf_t *pdcch_d;
-	char *pdcch_e;
-	float *pdcch_llr;
+  /* buffers */
+  cf_t *ce[MAX_PORTS_CTRL];
+  cf_t *pdcch_symbols[MAX_PORTS_CTRL];
+  cf_t *pdcch_x[MAX_PORTS_CTRL];
+  cf_t *pdcch_d;
+  char *pdcch_e;
+  float *pdcch_llr;
 
-	/* tx & rx objects */
-	modem_table_t mod;
-	demod_soft_t demod;
-	sequence_t seq_pdcch[NSUBFRAMES_X_FRAME];
-	viterbi_t decoder;
-	crc_t crc;
+  /* tx & rx objects */
+  modem_table_t mod;
+  demod_soft_t demod;
+  sequence_t seq_pdcch[NSUBFRAMES_X_FRAME];
+  viterbi_t decoder;
+  crc_t crc;
 }pdcch_t;
 
 LIBLTE_API int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports, int cell_id, lte_cp_t cp);
@@ -107,9 +107,9 @@ LIBLTE_API int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot1_symbols[MAX_PORT
  */
 
 LIBLTE_API int pdcch_decode(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
-		dci_t *dci, int nsubframe, float ebno);
+    dci_t *dci, int nsubframe, float ebno);
 LIBLTE_API int pdcch_extract_llr(pdcch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float *llr,
-		int nsubframe, float ebno);
+    int nsubframe, float ebno);
 
 LIBLTE_API void pdcch_init_search_si(pdcch_t *q);
 LIBLTE_API void pdcch_set_search_si(pdcch_t *q);

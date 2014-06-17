@@ -41,16 +41,16 @@ LIBLTE_API int mod_modulate(modem_table_t* table, const char *bits, cf_t* symbol
 
 /* High-level API */
 typedef struct LIBLTE_API {
-	modem_table_t obj;
-	struct mod_init {
-		enum modem_std std;	// symbol mapping standard (see modem_table.h)
-	} init;
+  modem_table_t obj;
+  struct mod_init {
+    enum modem_std std;  // symbol mapping standard (see modem_table.h)
+  } init;
 
-	const char* input;
-	int in_len;
+  const char* input;
+  int in_len;
 
-	cf_t* output;
-	int out_len;
+  cf_t* output;
+  int out_len;
 }mod_hl;
 
 LIBLTE_API int mod_initialize(mod_hl* hl);

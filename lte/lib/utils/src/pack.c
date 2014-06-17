@@ -43,7 +43,7 @@ unsigned int unpack_bits(char **bits, int nof_bits)
     unsigned int value=0;
 
     for(i=0; i<nof_bits; i++) {
-    	value |= (*bits)[i] << (nof_bits-i-1);
+      value |= (*bits)[i] << (nof_bits-i-1);
     }
     *bits += nof_bits;
     return value;

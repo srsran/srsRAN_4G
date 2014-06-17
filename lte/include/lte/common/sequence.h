@@ -33,8 +33,8 @@
 #include "lte/common/base.h"
 
 typedef struct LIBLTE_API{
-	char *c;
-	int len;
+  char *c;
+  int len;
 }sequence_t;
 
 LIBLTE_API int sequence_init(sequence_t *q, int len);

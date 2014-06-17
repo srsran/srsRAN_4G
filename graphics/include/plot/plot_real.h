@@ -41,7 +41,7 @@ typedef void* plot_real_t;
 LIBLTE_API int plot_real_init(plot_real_t *h);
 LIBLTE_API void plot_real_setTitle(plot_real_t *h, char *title);
 LIBLTE_API void plot_real_setNewData(plot_real_t *h, float *data,
-		int num_points);
+    int num_points);
 LIBLTE_API void plot_real_setXAxisAutoScale(plot_real_t *h, bool on);
 LIBLTE_API void plot_real_setYAxisAutoScale(plot_real_t *h, bool on);
 LIBLTE_API void plot_real_setXAxisScale(plot_real_t *h, double xMin, double xMax);

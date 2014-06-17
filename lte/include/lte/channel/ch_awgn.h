@@ -40,14 +40,14 @@ LIBLTE_API void ch_awgn_f(const float* x, float* y, float variance, int buff_sz)
 /* High-level API */
 
 typedef struct LIBLTE_API{
-	const cf_t* input;
-	int in_len;
-	struct ch_awgn_ctrl_in {
-		float variance;			// Noise variance
-	} ctrl_in;
+  const cf_t* input;
+  int in_len;
+  struct ch_awgn_ctrl_in {
+    float variance;      // Noise variance
+  } ctrl_in;
 
-	cf_t* output;
-	int out_len;
+  cf_t* output;
+  int out_len;
 }ch_awgn_hl;
 
 LIBLTE_API int ch_awgn_initialize(ch_awgn_hl* hl);

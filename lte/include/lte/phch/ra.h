@@ -38,86 +38,86 @@
  */
 
 typedef enum {
-	MOD_NULL = 0, BPSK = 1, QPSK = 2, QAM16 = 4, QAM64 = 16
+  MOD_NULL = 0, BPSK = 1, QPSK = 2, QAM16 = 4, QAM64 = 16
 } ra_mod_t;
 
 typedef struct LIBLTE_API {
-	ra_mod_t mod; // By default, mod = MOD_NULL and the mcs_idx value is taken by the packing functions
-				// otherwise mod + tbs values are used to generate the mcs_idx automatically.
-	uint8_t tbs_idx;
-	uint8_t mcs_idx;
-	int tbs;	// If tbs<=0, the tbs_idx value is taken by the packing functions to generate the DCI
-			// message. Otherwise the tbs_idx corresponding to the lower nearest TBS is taken.
+  ra_mod_t mod; // By default, mod = MOD_NULL and the mcs_idx value is taken by the packing functions
+        // otherwise mod + tbs values are used to generate the mcs_idx automatically.
+  uint8_t tbs_idx;
+  uint8_t mcs_idx;
+  int tbs;  // If tbs<=0, the tbs_idx value is taken by the packing functions to generate the DCI
+      // message. Otherwise the tbs_idx corresponding to the lower nearest TBS is taken.
 }ra_mcs_t;
 
 
 typedef enum {
-	alloc_type0 = 0, alloc_type1 = 1, alloc_type2 = 2
+  alloc_type0 = 0, alloc_type1 = 1, alloc_type2 = 2
 }ra_type_t;
 
 typedef struct LIBLTE_API {
-	uint32_t rbg_bitmask;
+  uint32_t rbg_bitmask;
 }ra_type0_t;
 
 typedef struct LIBLTE_API {
-	uint32_t vrb_bitmask;
-	uint8_t rbg_subset;
-	bool shift;
+  uint32_t vrb_bitmask;
+  uint8_t rbg_subset;
+  bool shift;
 }ra_type1_t;
 
 typedef struct LIBLTE_API {
-	uint32_t riv;  // if L_crb==0, DCI message packer will take this value directly
-	uint16_t L_crb;
-	uint16_t RB_start;
-	enum {nprb1a_2 = 0, nprb1a_3 = 1} n_prb1a;
-	enum {t2_ng1 = 0, t2_ng2 = 1} n_gap;
-	enum {t2_loc = 0, t2_dist = 1} mode;
+  uint32_t riv;  // if L_crb==0, DCI message packer will take this value directly
+  uint16_t L_crb;
+  uint16_t RB_start;
+  enum {nprb1a_2 = 0, nprb1a_3 = 1} n_prb1a;
+  enum {t2_ng1 = 0, t2_ng2 = 1} n_gap;
+  enum {t2_loc = 0, t2_dist = 1} mode;
 }ra_type2_t;
 
 typedef struct LIBLTE_API {
-	unsigned short rnti;
-	ra_type_t alloc_type;
-	union {
-		ra_type0_t type0_alloc;
-		ra_type1_t type1_alloc;
-		ra_type2_t type2_alloc;
-	};
-	ra_mcs_t mcs;
-	uint8_t harq_process;
-	uint8_t rv_idx;
-	bool ndi;
+  unsigned short rnti;
+  ra_type_t alloc_type;
+  union {
+    ra_type0_t type0_alloc;
+    ra_type1_t type1_alloc;
+    ra_type2_t type2_alloc;
+  };
+  ra_mcs_t mcs;
+  uint8_t harq_process;
+  uint8_t rv_idx;
+  bool ndi;
 } ra_pdsch_t;
 
 typedef struct LIBLTE_API {
-	/* 36.213 Table 8.4-2: hop_half is 0 for < 10 Mhz and 10 for > 10 Mh.
-	 * hop_quart is 00 for > 10 Mhz and hop_quart_neg is 01 for > 10 Mhz.
-	 */
-	enum {
-		hop_disabled = -1,
-		hop_quart = 0,
-		hop_quart_neg = 1,
-		hop_half = 2,
-		hop_type_2 = 3
-	} freq_hop_fl;
+  /* 36.213 Table 8.4-2: hop_half is 0 for < 10 Mhz and 10 for > 10 Mh.
+   * hop_quart is 00 for > 10 Mhz and hop_quart_neg is 01 for > 10 Mhz.
+   */
+  enum {
+    hop_disabled = -1,
+    hop_quart = 0,
+    hop_quart_neg = 1,
+    hop_half = 2,
+    hop_type_2 = 3
+  } freq_hop_fl;
 
-	ra_type2_t type2_alloc;
-	ra_mcs_t mcs;
-	uint8_t rv_idx; 	// If set to non-zero, a retransmission is requested with the same modulation
-				// than before (Format0 message, see also 8.6.1 in 36.2313).
-	bool ndi;
-	bool cqi_request;
+  ra_type2_t type2_alloc;
+  ra_mcs_t mcs;
+  uint8_t rv_idx;   // If set to non-zero, a retransmission is requested with the same modulation
+        // than before (Format0 message, see also 8.6.1 in 36.2313).
+  bool ndi;
+  bool cqi_request;
 
 } ra_pusch_t;
 
 typedef struct LIBLTE_API {
-	uint8_t prb_idx[110];
-	int nof_prb;
+  uint8_t prb_idx[110];
+  int nof_prb;
 }ra_prb_slot_t;
 
 typedef struct LIBLTE_API {
-	ra_prb_slot_t slot1;
-	ra_prb_slot_t slot2;
-	bool is_dist;
+  ra_prb_slot_t slot1;
+  ra_prb_slot_t slot2;
+  bool is_dist;
 }ra_prb_t;
 
 

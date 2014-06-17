@@ -43,113 +43,113 @@
 #define idx(a, b) ((a)*(q->szfreq)+b)
 
 int filter2d_init(filter2d_t* q, float **taps, int ntime, int nfreq, int sztime,
-		int szfreq) {
+    int szfreq) {
 
-	int ret = -1;
-	bzero(q, sizeof(filter2d_t));
+  int ret = -1;
+  bzero(q, sizeof(filter2d_t));
 
-	if (matrix_init((void***)&q->taps, ntime, nfreq, sizeof(float))) {
-		goto free_and_exit;
-	}
+  if (matrix_init((void***)&q->taps, ntime, nfreq, sizeof(float))) {
+    goto free_and_exit;
+  }
 
-	matrix_copy((void**) q->taps, (void**) taps, ntime, nfreq, sizeof(float));
+  matrix_copy((void**) q->taps, (void**) taps, ntime, nfreq, sizeof(float));
 
-	q->output = vec_malloc((ntime+sztime)*(szfreq)*sizeof(cf_t));
-	if (!q->output) {
-		goto free_and_exit;
-	}
+  q->output = vec_malloc((ntime+sztime)*(szfreq)*sizeof(cf_t));
+  if (!q->output) {
+    goto free_and_exit;
+  }
 
-	bzero(q->output, (ntime+sztime)*(szfreq)*sizeof(cf_t));
+  bzero(q->output, (ntime+sztime)*(szfreq)*sizeof(cf_t));
 
-	q->nfreq = nfreq;
-	q->ntime = ntime;
-	q->szfreq = szfreq;
-	q->sztime = sztime;
+  q->nfreq = nfreq;
+  q->ntime = ntime;
+  q->szfreq = szfreq;
+  q->sztime = sztime;
 
-	ret = 0;
+  ret = 0;
 
-	free_and_exit: if (ret == -1) {
-		filter2d_free(q);
-	}
-	return ret;
+  free_and_exit: if (ret == -1) {
+    filter2d_free(q);
+  }
+  return ret;
 }
 
 void filter2d_free(filter2d_t *q) {
 
-	matrix_free((void**) q->taps, q->ntime);
-	if (q->output) {
-		free(q->output);
-	}
-	bzero(q, sizeof(filter2d_t));
+  matrix_free((void**) q->taps, q->ntime);
+  if (q->output) {
+    free(q->output);
+  }
+  bzero(q, sizeof(filter2d_t));
 }
 
 int filter2d_init_default(filter2d_t* q, int ntime, int nfreq, int sztime,
-		int szfreq) {
+    int szfreq) {
 
-	int i, j;
-	int ret = -1;
-	float **taps;
+  int i, j;
+  int ret = -1;
+  float **taps;
 
-	if (matrix_init((void***) &taps, ntime, nfreq, sizeof(float))) {
-		goto free_and_exit;
-	}
+  if (matrix_init((void***) &taps, ntime, nfreq, sizeof(float))) {
+    goto free_and_exit;
+  }
 
-	/* Compute the default 2-D interpolation mesh */
-	for (i = 0; i < ntime; i++) {
-		for (j = 0; j < nfreq; j++) {
-			if (j < nfreq / 2)
-				taps[i][j] = (j + 1.0) / (2.0 * intceil(nfreq, 2));
+  /* Compute the default 2-D interpolation mesh */
+  for (i = 0; i < ntime; i++) {
+    for (j = 0; j < nfreq; j++) {
+      if (j < nfreq / 2)
+        taps[i][j] = (j + 1.0) / (2.0 * intceil(nfreq, 2));
 
-			else if (j == nfreq / 2)
-				taps[i][j] = 0.5;
+      else if (j == nfreq / 2)
+        taps[i][j] = 0.5;
 
-			else if (j > nfreq / 2)
-				taps[i][j] = (nfreq - j) / (2.0 * intceil(nfreq, 2));
-		}
-	}
+      else if (j > nfreq / 2)
+        taps[i][j] = (nfreq - j) / (2.0 * intceil(nfreq, 2));
+    }
+  }
 
-	INFO("Using default interpolation matrix of size %dx%d\n", ntime, nfreq);
-	if (verbose >= VERBOSE_DEBUG) {
-		matrix_fprintf_f(stdout, taps, ntime, nfreq);
-	}
+  INFO("Using default interpolation matrix of size %dx%d\n", ntime, nfreq);
+  if (verbose >= VERBOSE_DEBUG) {
+    matrix_fprintf_f(stdout, taps, ntime, nfreq);
+  }
 
-	if (filter2d_init(q, taps, ntime, nfreq, sztime, szfreq)) {
-		goto free_and_exit;
-	}
+  if (filter2d_init(q, taps, ntime, nfreq, sztime, szfreq)) {
+    goto free_and_exit;
+  }
 
-	ret = 0;
+  ret = 0;
 free_and_exit:
-	matrix_free((void**) taps, ntime);
-	return ret;
+  matrix_free((void**) taps, ntime);
+  return ret;
 }
 
 /* Moves the last ntime symbols to the start and clears the remaining of the output.
  * Should be called, for instance, before filtering each OFDM frame.
  */
 void filter2d_reset(filter2d_t *q) {
-	int i;
+  int i;
 
-	for (i = 0; i < q->ntime; i++) {
-		memcpy(&q->output[idx(i,0)], &q->output[idx(q->sztime + i,0)],
-				sizeof(cf_t) * (q->szfreq));
-	}
-	for (; i < q->ntime + q->sztime; i++) {
-		memset(&q->output[idx(i,0)], 0, sizeof(cf_t) * (q->szfreq));
-	}
+  for (i = 0; i < q->ntime; i++) {
+    memcpy(&q->output[idx(i,0)], &q->output[idx(q->sztime + i,0)],
+        sizeof(cf_t) * (q->szfreq));
+  }
+  for (; i < q->ntime + q->sztime; i++) {
+    memset(&q->output[idx(i,0)], 0, sizeof(cf_t) * (q->szfreq));
+  }
 }
 
 /** Adds samples x to the from the given time/freq indexes to the filter
  * and computes the output.
  */
 void filter2d_add(filter2d_t *q, cf_t x, int time_idx, int freq_idx) {
-	int i, j;
+  int i, j;
 
-	int ntime = q->ntime;
-	int nfreq = q->nfreq;
+  int ntime = q->ntime;
+  int nfreq = q->nfreq;
 
-	for (i = 0; i < ntime; i++) {
-		for (j = 0; j < nfreq; j++) {
-			q->output[idx(i+time_idx, j+freq_idx - nfreq/2)] += x * (cf_t)(q->taps[i][j]);
-		}
-	}
+  for (i = 0; i < ntime; i++) {
+    for (j = 0; j < nfreq; j++) {
+      q->output[idx(i+time_idx, j+freq_idx - nfreq/2)] += x * (cf_t)(q->taps[i][j]);
+    }
+  }
 }

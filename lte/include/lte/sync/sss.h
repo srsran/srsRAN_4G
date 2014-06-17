@@ -43,40 +43,40 @@ typedef _Complex float cf_t; /* this is only a shortcut */
  * symbol_sz is the OFDM symbol size (including CP), e.g. 137 for the 1.9 MHz
  */
 #define SSS_SYMBOL_ST(subframe_sz, symbol_sz) (subframe_sz/2-2*symbol_sz)
-#define SSS_POS_SYMBOL	33
+#define SSS_POS_SYMBOL  33
 
 #define SSS_DFT_LEN 128
-#define N_SSS 		31
-#define SSS_LEN		2*N_SSS
+#define N_SSS     31
+#define SSS_LEN    2*N_SSS
 
 struct sss_tables{
-	int z1[N_SSS][N_SSS];
-	int c[2][N_SSS];
-	int s[N_SSS][N_SSS];
-	int N_id_2;
+  int z1[N_SSS][N_SSS];
+  int c[2][N_SSS];
+  int s[N_SSS][N_SSS];
+  int N_id_2;
 };
 
 /* Allocate 32 complex to make it multiple of 32-byte AVX instructions alignment requirement.
  * Should use vect_malloc() to make it platform agnostic.
  */
 struct fc_tables{
-	cf_t z1[N_SSS+1][N_SSS+1];
-	cf_t c[2][N_SSS+1];
-	cf_t s[N_SSS+1][N_SSS+1];
+  cf_t z1[N_SSS+1][N_SSS+1];
+  cf_t c[2][N_SSS+1];
+  cf_t s[N_SSS+1][N_SSS+1];
 };
 
 
 /* Low-level API */
 typedef struct LIBLTE_API {
 
-	dft_plan_t dftp_input;
+  dft_plan_t dftp_input;
 
-	float corr_peak_threshold;
-	int symbol_sz;
-	int subframe_sz;
+  float corr_peak_threshold;
+  int symbol_sz;
+  int subframe_sz;
 
-	int N_id_1_table[30][30];
-	struct fc_tables fc_tables;
+  int N_id_1_table[30][30];
+  struct fc_tables fc_tables;
 
 }sss_synch_t;
 
@@ -90,7 +90,7 @@ LIBLTE_API void sss_put_slot(float *sss, cf_t *symbol, int nof_prb, lte_cp_t cp)
 LIBLTE_API int sss_synch_set_N_id_2(sss_synch_t *q, int N_id_2);
 
 LIBLTE_API void sss_synch_m0m1(sss_synch_t *q, cf_t *input, int *m0, float *m0_value,
-		int *m1, float *m1_value);
+    int *m1, float *m1_value);
 LIBLTE_API int sss_synch_subframe(int m0, int m1);
 LIBLTE_API int sss_synch_N_id_1(sss_synch_t *q, int m0, int m1);
 
@@ -103,24 +103,24 @@ LIBLTE_API void sss_synch_set_subframe_sz(sss_synch_t *q, int subframe_sz);
 /* High-level API */
 
 typedef struct LIBLTE_API {
-	sss_synch_t obj;
-	struct sss_synch_init {
-		int N_id_2;
-	} init;
-	cf_t *input;
-	int in_len;
-	struct sss_synch_ctrl_in {
-		int symbol_sz;
-		int subframe_sz;
-		int correlation_threshold;
-	} ctrl_in;
-	struct sss_synch_ctrl_out {
-		int subframe_idx;
-		int N_id_1;
-	} ctrl_out;
+  sss_synch_t obj;
+  struct sss_synch_init {
+    int N_id_2;
+  } init;
+  cf_t *input;
+  int in_len;
+  struct sss_synch_ctrl_in {
+    int symbol_sz;
+    int subframe_sz;
+    int correlation_threshold;
+  } ctrl_in;
+  struct sss_synch_ctrl_out {
+    int subframe_idx;
+    int N_id_1;
+  } ctrl_out;
 }sss_synch_hl;
 
-#define DEFAULT_FRAME_SIZE		2048
+#define DEFAULT_FRAME_SIZE    2048
 
 LIBLTE_API int sss_synch_initialize(sss_synch_hl* h);
 LIBLTE_API int sss_synch_work(sss_synch_hl* hl);

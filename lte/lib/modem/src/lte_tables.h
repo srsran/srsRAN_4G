@@ -30,15 +30,15 @@
 
 #define QPSK_LEVEL      1/sqrt(2)
 
-#define QAM16_LEVEL_1	1/sqrt(10)
-#define QAM16_LEVEL_2	3/sqrt(10)
+#define QAM16_LEVEL_1  1/sqrt(10)
+#define QAM16_LEVEL_2  3/sqrt(10)
 
-#define QAM64_LEVEL_1	1/sqrt(42)
-#define QAM64_LEVEL_2	3/sqrt(42)
-#define QAM64_LEVEL_3	5/sqrt(42)
-#define QAM64_LEVEL_4	7/sqrt(42)
+#define QAM64_LEVEL_1  1/sqrt(42)
+#define QAM64_LEVEL_2  3/sqrt(42)
+#define QAM64_LEVEL_3  5/sqrt(42)
+#define QAM64_LEVEL_4  7/sqrt(42)
 
-#define QAM64_LEVEL_x	2/sqrt(42)
+#define QAM64_LEVEL_x  2/sqrt(42)
 /* this is not an QAM64 level, but, rather, an auxiliary value that can be used for computing the
  * symbol from the bit sequence */
 

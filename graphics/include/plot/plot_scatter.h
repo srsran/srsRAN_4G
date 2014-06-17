@@ -41,7 +41,7 @@ typedef void* plot_scatter_t;
 LIBLTE_API int plot_scatter_init(plot_scatter_t *h);
 LIBLTE_API void plot_scatter_setTitle(plot_scatter_t *h, char *title);
 LIBLTE_API void plot_scatter_setNewData(plot_scatter_t *h, _Complex float *data,
-		int num_points);
+    int num_points);
 LIBLTE_API void plot_scatter_setXAxisAutoScale(plot_scatter_t *h, bool on);
 LIBLTE_API void plot_scatter_setYAxisAutoScale(plot_scatter_t *h, bool on);
 LIBLTE_API void plot_scatter_setXAxisScale(plot_scatter_t *h, double xMin, double xMax);

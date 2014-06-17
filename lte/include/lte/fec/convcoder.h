@@ -34,10 +34,10 @@
 #include "lte/config.h"
 
 typedef struct LIBLTE_API {
-	int R;
-	int K;
-	int poly[3];
-	bool tail_biting;
+  int R;
+  int K;
+  int poly[3];
+  bool tail_biting;
 }convcoder_t;
 
 LIBLTE_API int convcoder_encode(convcoder_t *q, char *input, char *output, int frame_length);
@@ -45,20 +45,20 @@ LIBLTE_API int convcoder_encode(convcoder_t *q, char *input, char *output, int f
 
 /* High-level API */
 typedef struct LIBLTE_API {
-	convcoder_t obj;
-	struct convcoder_ctrl_in {
-		int rate;
-		int constraint_length;
-		int tail_bitting;
-		int generator_0;
-		int generator_1;
-		int generator_2;
-		int frame_length;
-	} ctrl_in;
-	char *input;
-	int in_len;
-	char *output;
-	int out_len;
+  convcoder_t obj;
+  struct convcoder_ctrl_in {
+    int rate;
+    int constraint_length;
+    int tail_bitting;
+    int generator_0;
+    int generator_1;
+    int generator_2;
+    int frame_length;
+  } ctrl_in;
+  char *input;
+  int in_len;
+  char *output;
+  int out_len;
 }convcoder_hl;
 
 LIBLTE_API int convcoder_initialize(convcoder_hl* h);

@@ -33,11 +33,11 @@
 typedef -typeinput- input_t;
 typedef -typeoutput- output_t;
 
-#define INPUT_MAX_SAMPLES 	-sizeinput-
-#define OUTPUT_MAX_SAMPLES 	-sizeoutput-
+#define INPUT_MAX_SAMPLES   -sizeinput-
+#define OUTPUT_MAX_SAMPLES   -sizeoutput-
 
-#define NOF_INPUT_ITF		-numinputs-
-#define NOF_OUTPUT_ITF		-numoutputs-
+#define NOF_INPUT_ITF    -numinputs-
+#define NOF_OUTPUT_ITF    -numoutputs-
 
 #endif
 /**@} */
