@@ -28,7 +28,7 @@
 
 
 
-#include "plot/plot_waterfall.h"
+#include "liblte/graphics/plot/plot_waterfall.h"
 #include "Waterfallplot.h"
 #include <complex.h>
 

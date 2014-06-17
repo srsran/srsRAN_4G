@@ -27,7 +27,7 @@
 
 
 
-#include "plot/plot_real.h"
+#include "liblte/graphics/plot/plot_real.h"
 #include "Realplot.h"
 #include <complex.h>
 

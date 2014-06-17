@@ -20,17 +20,9 @@
 #
 
 ########################################################################
-# Install headers
-########################################################################
-ADD_SUBDIRECTORY(include)
-INSTALL(DIRECTORY include/ DESTINATION "${INCLUDE_DIR}" 
-    FILES_MATCHING     PATTERN "*.h"
-            PATTERN ".svn" EXCLUDE
-)
-
-########################################################################
 # Add the subdirectories
 ########################################################################
-
-ADD_SUBDIRECTORY(lib)
-
+ADD_SUBDIRECTORY(phy)
+ADD_SUBDIRECTORY(mac)
+ADD_SUBDIRECTORY(rlc)
+ADD_SUBDIRECTORY(pdcp)

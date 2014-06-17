@@ -26,7 +26,7 @@
  */
 
 
-#include "plot.h"
+#include "liblte/graphics/plot.h"
 #include <stdio.h>
 #include <QApplication>
 #include <QMainWindow>
