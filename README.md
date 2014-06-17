@@ -42,7 +42,7 @@ make
 
 The library can also be installed using the command ```sudo make install```. 
 
-Examples
+PHY Examples
 ==========
 
 * eNodeB and UE PBCH example
@@ -50,12 +50,12 @@ Examples
 Setup one or two computers connected to two USRP or UHD-compatible hardware. From the eNodeB, type
 
 ```
-examples/pbch_enodeb -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
+lte/phy/examples/pbch_enodeb -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
 ```
 
 From the UE, type 
 ```
-examples/pbch_ue -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
+lte/phy/examples/pbch_ue -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
 ```
 
 And the output should look something like the following video. In this example, we removed the transmitter and receiver antennas in the middle of the demonstration, showing how reception is still possible (despite with some erros). 
@@ -70,12 +70,12 @@ If you don't have a pair of USRP, you can also test the demo by writing the samp
 From the eNodeB, type
 
 ```
-examples/pbch_enodeb -o [output_file] -c [cell_id] [-h for more commands]
+lte/phy/examples/pbch_enodeb -o [output_file] -c [cell_id] [-h for more commands]
 ```
 
 From the UE, type 
 ```
-examples/pbch_ue -i [input_file] -c [cell_id] [-h for more commands]
+lte/phy/examples/pbch_ue -i [input_file] -c [cell_id] [-h for more commands]
 ```
 
 
@@ -85,7 +85,7 @@ This program uses any hardware supported by the UHD driver to scan an LTE band f
 
 For instance, the command:
 
-``` examples/scan_mib -b 3 ```
+``` lte/phy/examples/scan_mib -b 3 ```
 
 
 Scans the LTE band 3 (1805 to 1880 MHz). Note that you need a hardware supporting these frequencies (e.g. SBX daughterboard for USRP). For more command arguments, type ``` examples/mib_scan_usrp -h ```

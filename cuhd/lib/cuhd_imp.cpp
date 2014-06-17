@@ -32,7 +32,7 @@
 #include <uhd/utils/msg.hpp>
 
 #include "cuhd_handler.hpp"
-#include "cuhd.h"
+#include "liblte/cuhd/cuhd.h"
 
 
 void my_handler(uhd::msg::type_t type, const std::string &msg){
