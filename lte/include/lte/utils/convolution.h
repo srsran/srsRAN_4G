@@ -33,16 +33,16 @@
 #include "lte/utils/dft.h"
 
 typedef struct LIBLTE_API {
-	_Complex float *input_fft;
-	_Complex float *filter_fft;
-	_Complex float *output_fft;
-	_Complex float *output_fft2;
-	int input_len;
-	int filter_len;
-	int output_len;
-	dft_plan_t input_plan;
-	dft_plan_t filter_plan;
-	dft_plan_t output_plan;
+  _Complex float *input_fft;
+  _Complex float *filter_fft;
+  _Complex float *output_fft;
+  _Complex float *output_fft2;
+  int input_len;
+  int filter_len;
+  int output_len;
+  dft_plan_t input_plan;
+  dft_plan_t filter_plan;
+  dft_plan_t output_plan;
 }conv_fft_cc_t;
 
 LIBLTE_API int conv_fft_cc_init(conv_fft_cc_t *state, int input_len, int filter_len);

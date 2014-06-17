@@ -41,47 +41,47 @@
 #include "lte/fec/viterbi.h"
 #include "lte/fec/crc.h"
 
-#define PBCH_RE_CPNORM		240
-#define PBCH_RE_CPEXT		216
+#define PBCH_RE_CPNORM    240
+#define PBCH_RE_CPEXT    216
 
 typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API {
-	int nof_ports;
-	int nof_prb;
-	int sfn;
-	phich_length_t phich_length;
-	phich_resources_t phich_resources;
+  int nof_ports;
+  int nof_prb;
+  int sfn;
+  phich_length_t phich_length;
+  phich_resources_t phich_resources;
 }pbch_mib_t;
 
 /* PBCH object */
 typedef struct LIBLTE_API {
-	int cell_id;
-	lte_cp_t cp;
-	int nof_prb;
-	int nof_symbols;
+  int cell_id;
+  lte_cp_t cp;
+  int nof_prb;
+  int nof_symbols;
 
-	/* buffers */
-	cf_t *ce[MAX_PORTS_CTRL];
-	cf_t *pbch_symbols[MAX_PORTS_CTRL];
-	cf_t *pbch_x[MAX_PORTS_CTRL];
-	cf_t *pbch_d;
-	float *pbch_llr;
-	float *temp;
-	float *pbch_rm_f;
-	char *pbch_rm_b;
-	char *data;
-	char *data_enc;
+  /* buffers */
+  cf_t *ce[MAX_PORTS_CTRL];
+  cf_t *pbch_symbols[MAX_PORTS_CTRL];
+  cf_t *pbch_x[MAX_PORTS_CTRL];
+  cf_t *pbch_d;
+  float *pbch_llr;
+  float *temp;
+  float *pbch_rm_f;
+  char *pbch_rm_b;
+  char *data;
+  char *data_enc;
 
-	int frame_idx;
+  int frame_idx;
 
-	/* tx & rx objects */
-	modem_table_t mod;
-	demod_soft_t demod;
-	sequence_t seq_pbch;
-	viterbi_t decoder;
-	crc_t crc;
-	convcoder_t encoder;
+  /* tx & rx objects */
+  modem_table_t mod;
+  demod_soft_t demod;
+  sequence_t seq_pbch;
+  viterbi_t decoder;
+  crc_t crc;
+  convcoder_t encoder;
 
 }pbch_t;
 

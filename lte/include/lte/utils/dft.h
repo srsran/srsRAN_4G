@@ -41,30 +41,30 @@
 
 
 typedef enum {
-	COMPLEX_2_COMPLEX, REAL_2_REAL, COMPLEX_2_REAL
+  COMPLEX_2_COMPLEX, REAL_2_REAL, COMPLEX_2_REAL
 }dft_mode_t;
 
 typedef enum {
-	FORWARD, BACKWARD
+  FORWARD, BACKWARD
 }dft_dir_t;
 
 
-#define DFT_MIRROR_PRE	1
-#define DFT_PSD			2
-#define DFT_OUT_DB		4
-#define DFT_MIRROR_POS	8
+#define DFT_MIRROR_PRE  1
+#define DFT_PSD      2
+#define DFT_OUT_DB    4
+#define DFT_MIRROR_POS  8
 #define DFT_NORMALIZE   16
 #define DFT_DC_OFFSET   32
 
 typedef struct LIBLTE_API {
-	int size;
-	int sign;
-	void *in;
-	void *out;
-	void *p;
-	int options;
-	dft_dir_t dir;
-	dft_mode_t mode;
+  int size;
+  int sign;
+  void *in;
+  void *out;
+  void *p;
+  int options;
+  dft_dir_t dir;
+  dft_mode_t mode;
 }dft_plan_t;
 
 typedef _Complex float dft_c_t;

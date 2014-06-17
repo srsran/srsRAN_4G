@@ -43,40 +43,40 @@ typedef _Complex float cf_t;
  */
 
 
-#define DCI_MAX_BITS	57
+#define DCI_MAX_BITS  57
 
 typedef enum {
-	Format0, Format1, Format1A, Format1C
+  Format0, Format1, Format1A, Format1C
 } dci_format_t;
 
 // Each type is for a different interface to packing/unpacking functions
 typedef struct LIBLTE_API {
-	enum {
-		PUSCH_SCHED, PDSCH_SCHED, MCCH_CHANGE, TPC_COMMAND, RA_PROC_PDCCH
-	} type;
-	dci_format_t format;
+  enum {
+    PUSCH_SCHED, PDSCH_SCHED, MCCH_CHANGE, TPC_COMMAND, RA_PROC_PDCCH
+  } type;
+  dci_format_t format;
 }dci_msg_type_t;
 
 typedef enum {
-	DCI_COMMON = 0, DCI_UE = 1
+  DCI_COMMON = 0, DCI_UE = 1
 } dci_spec_t;
 
 typedef struct LIBLTE_API {
-	unsigned char nof_bits;
-	unsigned char L; // Aggregation level
-	unsigned char ncce; // Position of first CCE of the dci
-	unsigned short rnti;
+  unsigned char nof_bits;
+  unsigned char L; // Aggregation level
+  unsigned char ncce; // Position of first CCE of the dci
+  unsigned short rnti;
 } dci_candidate_t;
 
 typedef struct LIBLTE_API {
-	char data[DCI_MAX_BITS];
-	dci_candidate_t location;
+  char data[DCI_MAX_BITS];
+  dci_candidate_t location;
 } dci_msg_t;
 
 typedef struct LIBLTE_API {
-	dci_msg_t *msg;
-	int nof_dcis;
-	int max_dcis;
+  dci_msg_t *msg;
+  int nof_dcis;
+  int max_dcis;
 } dci_t;
 
 LIBLTE_API int dci_init(dci_t *q, int max_dci);

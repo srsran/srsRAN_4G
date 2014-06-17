@@ -51,12 +51,12 @@ typedef void (*interpolate_fnc_t) (cf_t *input, cf_t *output, int M, int len, in
 
 /* Low-level API */
 typedef struct LIBLTE_API{
-	int nof_ports;
-	int nof_symbols;
-	int nof_prb;
-	lte_cp_t cp;
-	refsignal_t refsignal[MAX_PORTS][NSLOTS_X_FRAME];
-	interpolate_fnc_t interp;
+  int nof_ports;
+  int nof_symbols;
+  int nof_prb;
+  lte_cp_t cp;
+  refsignal_t refsignal[MAX_PORTS][NSLOTS_X_FRAME];
+  interpolate_fnc_t interp;
 }chest_t;
 
 LIBLTE_API int chest_init(chest_t *q, chest_interp_t interp, lte_cp_t cp, int nof_prb, int nof_ports);
@@ -81,24 +81,24 @@ LIBLTE_API int chest_ref_symbols(chest_t *q, int port_id, int nslot, int l[2]);
 /** TODO: The high-level API has N interfaces, one for each port */
 
 typedef struct LIBLTE_API{
-	chest_t obj;
-	struct chest_init {
-		int nof_symbols; 		// 7 for normal cp, 6 for extended
-		int nof_ports;
-		int nof_prb;
-		int cell_id;	// set to -1 to init at runtime
-	} init;
-	cf_t *input;
-	int in_len;
-	struct chest_ctrl_in {
-		int slot_id;	// slot id in the 10ms frame
-		int cell_id;
-	} ctrl_in;
-	cf_t *output[MAX_PORTS];
-	int out_len[MAX_PORTS];
+  chest_t obj;
+  struct chest_init {
+    int nof_symbols;     // 7 for normal cp, 6 for extended
+    int nof_ports;
+    int nof_prb;
+    int cell_id;  // set to -1 to init at runtime
+  } init;
+  cf_t *input;
+  int in_len;
+  struct chest_ctrl_in {
+    int slot_id;  // slot id in the 10ms frame
+    int cell_id;
+  } ctrl_in;
+  cf_t *output[MAX_PORTS];
+  int out_len[MAX_PORTS];
 }chest_hl;
 
-#define DEFAULT_FRAME_SIZE		2048
+#define DEFAULT_FRAME_SIZE    2048
 
 LIBLTE_API int chest_initialize(chest_hl* h);
 LIBLTE_API int chest_work(chest_hl* hl);

@@ -35,11 +35,11 @@
 
 /* Low-level API */
 typedef struct LIBLTE_API{
-	unsigned int seed;
-	uint32_t *seq_buff;
-	int seq_buff_nwords;
-	int seq_cache_nbits;
-	int seq_cache_rp;
+  unsigned int seed;
+  uint32_t *seq_buff;
+  int seq_buff_nwords;
+  int seq_cache_nbits;
+  int seq_cache_rp;
 }binsource_t;
 
 LIBLTE_API void binsource_init(binsource_t* q);
@@ -52,20 +52,20 @@ LIBLTE_API int binsource_generate(binsource_t* q, char *bits, int nbits);
 
 /* High-level API */
 typedef struct LIBLTE_API {
-	binsource_t obj;
-	struct binsource_init {
-		int cache_seq_nbits; 	// If non-zero, generates random bits on init
-		unsigned int seed;		// If non-zero, uses as random seed, otherwise local time is used.
-	} init;
-	struct binsource_ctrl_in {
-		int nbits;				// Number of bits to generate
-	} ctrl_in;
-	char* output;
-	int out_len;
+  binsource_t obj;
+  struct binsource_init {
+    int cache_seq_nbits;   // If non-zero, generates random bits on init
+    unsigned int seed;    // If non-zero, uses as random seed, otherwise local time is used.
+  } init;
+  struct binsource_ctrl_in {
+    int nbits;        // Number of bits to generate
+  } ctrl_in;
+  char* output;
+  int out_len;
 }binsource_hl;
 
 LIBLTE_API int binsource_initialize(binsource_hl* h);
-LIBLTE_API int binsource_work(	binsource_hl* hl);
+LIBLTE_API int binsource_work(  binsource_hl* hl);
 LIBLTE_API int binsource_stop(binsource_hl* hl);
 
 #endif // BINSOURCE_

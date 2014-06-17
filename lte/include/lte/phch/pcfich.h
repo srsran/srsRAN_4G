@@ -38,36 +38,36 @@
 #include "lte/scrambling/scrambling.h"
 #include "lte/phch/regs.h"
 
-#define PCFICH_CFI_LEN		32
-#define PCFICH_RE			PCFICH_CFI_LEN/2
-#define PCFICH_MAX_DISTANCE	5
+#define PCFICH_CFI_LEN    32
+#define PCFICH_RE      PCFICH_CFI_LEN/2
+#define PCFICH_MAX_DISTANCE  5
 
 typedef _Complex float cf_t;
 
 /* PCFICH object */
 typedef struct LIBLTE_API {
-	int cell_id;
-	lte_cp_t cp;
-	int nof_symbols;
-	int nof_prb;
-	int nof_tx_ports;
+  int cell_id;
+  lte_cp_t cp;
+  int nof_symbols;
+  int nof_prb;
+  int nof_tx_ports;
 
-	/* handler to REGs resource mapper */
-	regs_t *regs;
+  /* handler to REGs resource mapper */
+  regs_t *regs;
 
-	/* buffers */
-	cf_t ce[MAX_PORTS_CTRL][PCFICH_RE];
-	cf_t pcfich_symbols[MAX_PORTS_CTRL][PCFICH_RE];
-	cf_t pcfich_x[MAX_PORTS_CTRL][PCFICH_RE];
-	cf_t pcfich_d[PCFICH_RE];
+  /* buffers */
+  cf_t ce[MAX_PORTS_CTRL][PCFICH_RE];
+  cf_t pcfich_symbols[MAX_PORTS_CTRL][PCFICH_RE];
+  cf_t pcfich_x[MAX_PORTS_CTRL][PCFICH_RE];
+  cf_t pcfich_d[PCFICH_RE];
 
-	/* bit message */
-	char data[PCFICH_CFI_LEN];
+  /* bit message */
+  char data[PCFICH_CFI_LEN];
 
-	/* tx & rx objects */
-	modem_table_t mod;
-	demod_hard_t demod;
-	sequence_t seq_pcfich[NSUBFRAMES_X_FRAME];
+  /* tx & rx objects */
+  modem_table_t mod;
+  demod_hard_t demod;
+  sequence_t seq_pcfich[NSUBFRAMES_X_FRAME];
 
 }pcfich_t;
 

@@ -41,11 +41,11 @@ typedef _Complex float cf_t;
 #define CFO_CEXPTAB_SIZE 4096
 
 typedef struct LIBLTE_API {
-	float last_freq;
-	float tol;
-	int nsamples;
-	cexptab_t tab;
-	cf_t *cur_cexp;
+  float last_freq;
+  float tol;
+  int nsamples;
+  cexptab_t tab;
+  cf_t *cur_cexp;
 }cfo_t;
 
 LIBLTE_API int cfo_init(cfo_t *h, int nsamples);

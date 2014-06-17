@@ -38,9 +38,9 @@
 enum alg { EXACT, APPROX };
 
 typedef struct LIBLTE_API {
-	float sigma;			// noise power
-	enum alg alg_type;		// soft demapping algorithm (EXACT or APPROX)
-	modem_table_t *table;	// symbol mapping table (see modem_table.h)
+  float sigma;      // noise power
+  enum alg alg_type;    // soft demapping algorithm (EXACT or APPROX)
+  modem_table_t *table;  // symbol mapping table (see modem_table.h)
 }demod_soft_t;
 
 LIBLTE_API void demod_soft_init(demod_soft_t *q);
@@ -52,23 +52,23 @@ LIBLTE_API int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float
 
 /* High-level API */
 typedef struct LIBLTE_API {
-	demod_soft_t obj;
-	modem_table_t table;
+  demod_soft_t obj;
+  modem_table_t table;
 
   struct demod_soft_init{
-		enum modem_std std;		// symbol mapping standard (see modem_table.h)
-	} init;
+    enum modem_std std;    // symbol mapping standard (see modem_table.h)
+  } init;
 
-	const cf_t* input;
-	int in_len;
+  const cf_t* input;
+  int in_len;
 
-	struct demod_soft_ctrl_in {
-		float sigma;			// Estimated noise variance
-		enum alg alg_type;		// soft demapping algorithm (EXACT or APPROX)
-	}ctrl_in;
+  struct demod_soft_ctrl_in {
+    float sigma;      // Estimated noise variance
+    enum alg alg_type;    // soft demapping algorithm (EXACT or APPROX)
+  }ctrl_in;
 
-	float* output;
-	int out_len;
+  float* output;
+  int out_len;
 
 }demod_soft_hl;
 

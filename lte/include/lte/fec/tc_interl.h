@@ -31,8 +31,8 @@
 #include "lte/config.h"
 
 typedef struct LIBLTE_API{
-	int *forward;
-	int *reverse;
+  int *forward;
+  int *reverse;
 }tc_interl_t;
 
 LIBLTE_API int tc_interl_LTE_init(tc_interl_t *h, int long_cb);

@@ -50,19 +50,19 @@
 enum sync_pss_det { ABSOLUTE, PEAK_MEAN};
 
 typedef struct LIBLTE_API {
-	pss_synch_t pss[3]; // One for each N_id_2
-	sss_synch_t sss[3]; // One for each N_id_2
-	enum sync_pss_det pss_mode;
-	float threshold;
-	float peak_to_avg;
-	int force_N_id_2;
-	int N_id_2;
-	int N_id_1;
-	int slot_id;
-	float cfo;
-	lte_cp_t cp;
-	bool detect_cp;
-	bool sss_en;
+  pss_synch_t pss[3]; // One for each N_id_2
+  sss_synch_t sss[3]; // One for each N_id_2
+  enum sync_pss_det pss_mode;
+  float threshold;
+  float peak_to_avg;
+  int force_N_id_2;
+  int N_id_2;
+  int N_id_1;
+  int slot_id;
+  float cfo;
+  lte_cp_t cp;
+  bool detect_cp;
+  bool sss_en;
 }sync_t;
 
 

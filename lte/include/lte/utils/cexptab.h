@@ -35,8 +35,8 @@
 typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API {
-	int size;
-	cf_t *tab;
+  int size;
+  cf_t *tab;
 }cexptab_t;
 
 LIBLTE_API int cexptab_init(cexptab_t *nco, int size);

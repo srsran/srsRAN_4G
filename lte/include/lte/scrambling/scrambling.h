@@ -49,35 +49,35 @@ LIBLTE_API void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int l
 /* High-level API */
 
 /* channel integer values */
-#define SCRAMBLING_PDSCH			0	/* also PUSCH */
-#define SCRAMBLING_PCFICH			1
-#define SCRAMBLING_PDCCH			2
-#define SCRAMBLING_PBCH			3
-#define SCRAMBLING_PMCH			4
-#define SCRAMBLING_PUCCH			5
+#define SCRAMBLING_PDSCH      0  /* also PUSCH */
+#define SCRAMBLING_PCFICH      1
+#define SCRAMBLING_PDCCH      2
+#define SCRAMBLING_PBCH      3
+#define SCRAMBLING_PMCH      4
+#define SCRAMBLING_PUCCH      5
 
 typedef struct LIBLTE_API {
-	sequence_t seq[NSUBFRAMES_X_FRAME];
+  sequence_t seq[NSUBFRAMES_X_FRAME];
 }scrambling_t;
 
 typedef struct LIBLTE_API {
-	scrambling_t obj;
-	struct scrambling_init {
-		int hard;
-		int q;
-		int cell_id;
-		int nrnti;
-		int nMBSFN;
-		int channel;
-		int nof_symbols;	// 7 normal 6 extended
-	} init;
-	void *input;			// input type may be char or float depending on hard
-	int in_len;
-	struct scrambling_ctrl_in {
-		int subframe;
-	} ctrl_in;
-	void *output;
-	int out_len;
+  scrambling_t obj;
+  struct scrambling_init {
+    int hard;
+    int q;
+    int cell_id;
+    int nrnti;
+    int nMBSFN;
+    int channel;
+    int nof_symbols;  // 7 normal 6 extended
+  } init;
+  void *input;      // input type may be char or float depending on hard
+  int in_len;
+  struct scrambling_ctrl_in {
+    int subframe;
+  } ctrl_in;
+  void *output;
+  int out_len;
 }scrambling_hl;
 
 #endif // SCRAMBLING_

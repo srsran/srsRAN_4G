@@ -34,36 +34,36 @@
 #include "lte/channel/ch_awgn.h"
 
 void ch_awgn_c(const cf_t* x, cf_t* y, float variance, int buff_sz) {
-	_Complex float tmp;
-	int i;
+  _Complex float tmp;
+  int i;
 
-	for (i=0;i<buff_sz;i++) {
-		__real__ tmp = rand_gauss();
-		__imag__ tmp = rand_gauss();
-		tmp *= variance;
-		y[i] = tmp + x[i];
-	}
+  for (i=0;i<buff_sz;i++) {
+    __real__ tmp = rand_gauss();
+    __imag__ tmp = rand_gauss();
+    tmp *= variance;
+    y[i] = tmp + x[i];
+  }
 }
 void ch_awgn_f(const float* x, float* y, float variance, int buff_sz) {
-	int i;
+  int i;
 
-	for (i=0;i<buff_sz;i++) {
-		y[i] = x[i] + variance * rand_gauss();
-	}
+  for (i=0;i<buff_sz;i++) {
+    y[i] = x[i] + variance * rand_gauss();
+  }
 }
 
 /* High-level API */
 int ch_awgn_initialize(ch_awgn_hl* hl) {
 
-	return 0;
+  return 0;
 }
 
 int ch_awgn_work(ch_awgn_hl* hl) {
-	ch_awgn_c(hl->input,hl->output,hl->ctrl_in.variance,hl->in_len);
-	hl->out_len = hl->in_len;
-	return 0;
+  ch_awgn_c(hl->input,hl->output,hl->ctrl_in.variance,hl->in_len);
+  hl->out_len = hl->in_len;
+  return 0;
 }
 
 int ch_awgn_stop(ch_awgn_hl* hl) {
-	return 0;
+  return 0;
 }

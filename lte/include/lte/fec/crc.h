@@ -32,14 +32,14 @@
 #include "lte/config.h"
 
 typedef struct LIBLTE_API {
-	unsigned long table[256];
-	unsigned char byte;
-	int polynom;
-	int order;
-	unsigned long crcinit; 
-	unsigned long crcmask;
-	unsigned long crchighbit;
-	unsigned int crc_out;
+  unsigned long table[256];
+  unsigned char byte;
+  int polynom;
+  int order;
+  unsigned long crcinit; 
+  unsigned long crcmask;
+  unsigned long crchighbit;
+  unsigned int crc_out;
 } crc_t;
 
 LIBLTE_API int crc_init(crc_t *h, unsigned int crc_poly, int crc_order);
