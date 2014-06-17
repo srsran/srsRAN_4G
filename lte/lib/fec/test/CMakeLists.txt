@@ -32,6 +32,11 @@ TARGET_LINK_LIBRARIES(rm_turbo_test lte)
 
 ADD_TEST(rm_conv_test_1 rm_conv_test -t 480 -r 1920) 
 ADD_TEST(rm_conv_test_2 rm_conv_test -t 1920 -r 480) 
+
+ADD_TEST(rm_turbo_test_1 rm_turbo_test -t 480 -r 1920 -i 0) 
+ADD_TEST(rm_turbo_test_2 rm_turbo_test -t 1920 -r 480 -i 1) 
+ADD_TEST(rm_turbo_test_1 rm_turbo_test -t 480 -r 1920 -i 2) 
+ADD_TEST(rm_turbo_test_2 rm_turbo_test -t 1920 -r 480 -i 3) 
  
 
 ########################################################################

@@ -25,7 +25,6 @@
  *
  */
 
-
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,18 +42,16 @@
 #include "lte/utils/debug.h"
 
 const char crc_mask[4][16] = {
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1}
-};
-
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0 }, { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 } };
 
 bool pbch_exists(int nframe, int nslot) {
   return (!(nframe % 5) && nslot == 1);
 }
 
-int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id, bool put) {
+int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id,
+    bool put) {
   int i;
   cf_t *ptr;
   assert(cell_id >= 0);
@@ -67,17 +64,17 @@ int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id, bo
   }
 
   /* symbol 0 & 1 */
-  for (i=0;i<2;i++) {
-    prb_cp_ref(&input, &output, cell_id%3, 4, 6, put);
+  for (i = 0; i < 2; i++) {
+    prb_cp_ref(&input, &output, cell_id % 3, 4, 6, put);
   }
   /* symbols 2 & 3 */
   if (CP_ISNORM(cp)) {
-    for (i=0;i<2;i++) {
+    for (i = 0; i < 2; i++) {
       prb_cp(&input, &output, 6);
     }
   } else {
     prb_cp(&input, &output, 6);
-    prb_cp_ref(&input, &output, cell_id%3, 4, 6, put);
+    prb_cp_ref(&input, &output, cell_id % 3, 4, 6, put);
   }
   if (put) {
     return input - ptr;
@@ -93,7 +90,8 @@ int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id, bo
  *
  * 36.211 10.3 section 6.6.4
  */
-int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id) {
+int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp,
+    int cell_id) {
   return pbch_cp(pbch, slot1_data, nof_prb, cp, cell_id, true);
 }
 
@@ -104,7 +102,8 @@ int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id
  *
  * 36.211 10.3 section 6.6.4
  */
-int pbch_get(cf_t *slot1_data, cf_t *pbch, int nof_prb, lte_cp_t cp, int cell_id) {
+int pbch_get(cf_t *slot1_data, cf_t *pbch, int nof_prb, lte_cp_t cp,
+    int cell_id) {
   return pbch_cp(slot1_data, pbch, nof_prb, cp, cell_id, false);
 }
 
@@ -129,7 +128,7 @@ int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp) {
     goto clean;
   }
 
-  int poly[3] = {0x6D, 0x4F, 0x57};
+  int poly[3] = { 0x6D, 0x4F, 0x57 };
   if (viterbi_init(&q->decoder, viterbi_37, poly, 40, true)) {
     goto clean;
   }
@@ -141,14 +140,14 @@ int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp) {
   q->encoder.tail_biting = true;
   memcpy(q->encoder.poly, poly, 3 * sizeof(int));
 
-  q->nof_symbols = (CP_ISNORM(q->cp)) ? PBCH_RE_CPNORM: PBCH_RE_CPEXT;
+  q->nof_symbols = (CP_ISNORM(q->cp)) ? PBCH_RE_CPNORM : PBCH_RE_CPEXT;
 
   q->pbch_d = malloc(sizeof(cf_t) * q->nof_symbols);
   if (!q->pbch_d) {
     goto clean;
   }
   int i;
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS_CTRL; i++) {
     q->ce[i] = malloc(sizeof(cf_t) * q->nof_symbols);
     if (!q->ce[i]) {
       goto clean;
@@ -188,8 +187,7 @@ int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp) {
   }
 
   ret = 0;
-clean:
-  if (ret == -1) {
+  clean: if (ret == -1) {
     pbch_free(q);
   }
   return ret;
@@ -200,7 +198,7 @@ void pbch_free(pbch_t *q) {
     free(q->pbch_d);
   }
   int i;
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS_CTRL; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -241,7 +239,7 @@ void pbch_mib_unpack(char *msg, pbch_mib_t *mib) {
   int bw, phich_res;
 
   bw = bit_unpack(&msg, 3);
-  switch(bw) {
+  switch (bw) {
   case 0:
     mib->nof_prb = 6;
     break;
@@ -249,7 +247,7 @@ void pbch_mib_unpack(char *msg, pbch_mib_t *mib) {
     mib->nof_prb = 15;
     break;
   default:
-    mib->nof_prb = (bw-1)*25;
+    mib->nof_prb = (bw - 1) * 25;
     break;
   }
   if (*msg) {
@@ -260,7 +258,7 @@ void pbch_mib_unpack(char *msg, pbch_mib_t *mib) {
   msg++;
 
   phich_res = bit_unpack(&msg, 2);
-  switch(phich_res) {
+  switch (phich_res) {
   case 0:
     mib->phich_resources = R_1_6;
     break;
@@ -277,28 +275,27 @@ void pbch_mib_unpack(char *msg, pbch_mib_t *mib) {
   mib->sfn = bit_unpack(&msg, 8) << 2;
 }
 
-
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
 void pbch_mib_pack(pbch_mib_t *mib, char *msg) {
-  int bw, phich_res=0;
+  int bw, phich_res = 0;
 
   bzero(msg, 24);
 
-  if (mib->nof_prb<=6) {
+  if (mib->nof_prb <= 6) {
     bw = 0;
   } else if (mib->nof_prb <= 15) {
     bw = 1;
   } else {
-    bw = 1 + mib->nof_prb/25;
+    bw = 1 + mib->nof_prb / 25;
   }
   bit_pack(bw, &msg, 3);
 
   *msg = mib->phich_length == PHICH_EXT;
   msg++;
 
-  switch(mib->phich_resources) {
+  switch (mib->phich_resources) {
   case R_1_6:
     phich_res = 0;
     break;
@@ -319,9 +316,10 @@ void pbch_mib_pack(pbch_mib_t *mib, char *msg) {
 void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib) {
   printf(" - Nof ports:       %d\n", mib->nof_ports);
   printf(" - PRB:             %d\n", mib->nof_prb);
-  printf(" - PHICH Length:    %s\n", mib->phich_length==PHICH_EXT?"Extended":"Normal");
+  printf(" - PHICH Length:    %s\n",
+      mib->phich_length == PHICH_EXT ? "Extended" : "Normal");
   printf(" - PHICH Resources: ");
-  switch(mib->phich_resources) {
+  switch (mib->phich_resources) {
   case R_1_6:
     printf("1/6");
     break;
@@ -343,15 +341,13 @@ void pbch_decode_reset(pbch_t *q) {
   q->frame_idx = 0;
 }
 
-
 void crc_set_mask(char *data, int nof_ports) {
   int i;
-  for (i=0;i<16;i++) {
-    data[24+i] = (data[24+i] + crc_mask[nof_ports-1][i]) % 2;
+  for (i = 0; i < 16; i++) {
+    data[24 + i] = (data[24 + i] + crc_mask[nof_ports - 1][i]) % 2;
   }
 
 }
-
 
 /* Checks CRC after applying the mask for the given number of ports.
  *
@@ -366,18 +362,21 @@ int pbch_crc_check(pbch_t *q, char *bits, int nof_ports) {
   return crc_checksum(&q->crc, data, 40);
 }
 
-int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int nof_bits, int nof_ports) {
+int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n,
+    int nof_bits, int nof_ports) {
   int j;
 
-  memcpy(&q->temp[dst*nof_bits], &q->pbch_llr[src*nof_bits], n*nof_bits*sizeof(float));
+  memcpy(&q->temp[dst * nof_bits], &q->pbch_llr[src * nof_bits],
+      n * nof_bits * sizeof(float));
 
   /* descramble */
-  scrambling_f_offset(&q->seq_pbch, &q->temp[dst*nof_bits], dst*nof_bits, n*nof_bits);
+  scrambling_f_offset(&q->seq_pbch, &q->temp[dst * nof_bits], dst * nof_bits,
+      n * nof_bits);
 
-  for (j=0;j<dst*nof_bits;j++) {
+  for (j = 0; j < dst * nof_bits; j++) {
     q->temp[j] = RX_NULL;
   }
-  for (j=(dst+n)*nof_bits;j<4*nof_bits;j++) {
+  for (j = (dst + n) * nof_bits; j < 4 * nof_bits; j++) {
     q->temp[j] = RX_NULL;
   }
 
@@ -385,7 +384,7 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
   rm_conv_rx(q->temp, 4 * nof_bits, q->pbch_rm_f, 120);
 
   /* FIXME: If channel estimates are zero, received LLR are NaN. Check and return error */
-  for (j=0;j<120;j++) {
+  for (j = 0; j < 120; j++) {
     if (isnan(q->pbch_rm_f[j]) || isinf(q->pbch_rm_f[j])) {
       return 0;
     }
@@ -394,12 +393,12 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
   /* decode */
   viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data, 40);
 
-  int c=0;
-  for (j=0;j<40;j++) {
-    c+=q->data[j];
+  int c = 0;
+  for (j = 0; j < 40; j++) {
+    c += q->data[j];
   }
   if (!c) {
-    c=1;
+    c = 1;
   }
 
   if (!pbch_crc_check(q, q->data, nof_ports)) {
@@ -407,7 +406,7 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
     pbch_mib_unpack(q->data, mib);
 
     mib->nof_ports = nof_ports;
-    mib->sfn += dst-src;
+    mib->sfn += dst - src;
 
     return 1;
   } else {
@@ -423,9 +422,10 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n, int n
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float ebno, pbch_mib_t *mib) {
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
+    float ebno, pbch_mib_t *mib) {
   int src, dst, res, nb;
-  int nant_[3] = {1, 2, 4};
+  int nant_[3] = { 1, 2, 4 };
   int na, nant;
 
   /* Set pointers for layermapping & precoding */
@@ -434,22 +434,23 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float 
   cf_t *x[MAX_LAYERS];
 
   /* number of layers equals number of ports */
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS_CTRL; i++) {
     x[i] = q->pbch_x[i];
   }
   memset(&x[MAX_PORTS_CTRL], 0, sizeof(cf_t*) * (MAX_LAYERS - MAX_PORTS_CTRL));
 
   /* extract symbols */
-  if (q->nof_symbols != pbch_get(slot1_symbols, q->pbch_symbols[0], q->nof_prb,
-      q->cp, q->cell_id)) {
+  if (q->nof_symbols
+      != pbch_get(slot1_symbols, q->pbch_symbols[0], q->nof_prb, q->cp,
+          q->cell_id)) {
     fprintf(stderr, "There was an error getting the PBCH symbols\n");
     return -1;
   }
 
   /* extract channel estimates */
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
-    if (q->nof_symbols != pbch_get(ce[i], q->ce[i], q->nof_prb,
-        q->cp, q->cell_id)) {
+  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+    if (q->nof_symbols
+        != pbch_get(ce[i], q->ce[i], q->nof_prb, q->cp, q->cell_id)) {
       fprintf(stderr, "There was an error getting the PBCH symbols\n");
       return -1;
     }
@@ -459,7 +460,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float 
   res = 0;
 
   /* Try decoding for 1 to 4 antennas */
-  for (na=0;na<3 && !res;na++) {
+  for (na = 0; na < 3 && !res; na++) {
     nant = nant_[na];
 
     INFO("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
@@ -467,10 +468,12 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float 
     /* in conctrol channels, only diversity is supported */
     if (nant == 1) {
       /* no need for layer demapping */
-      predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d, q->nof_symbols);
+      predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d,
+          q->nof_symbols);
     } else {
-      predecoding_diversity_zf(q->pbch_symbols, q->ce, x, nant, q->nof_symbols);
-      layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols/nant);
+      predecoding_diversity_zf(q->pbch_symbols[0], q->ce, x, nant,
+          q->nof_symbols);
+      layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
     }
 
     /* demodulate symbols */
@@ -485,11 +488,12 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float 
      * FIXME: There are unnecessary checks because 2,3,4 have already been processed in the previous
      * calls.
      */
-    for (nb=0;nb<q->frame_idx && !res;nb++) {
-      for (dst=0;(dst<4-nb) && !res;dst++) {
-        for (src=0;src<q->frame_idx-nb && !res;src++) {
-          DEBUG("Trying %d blocks at offset %d as subframe mod4 number %d\n", nb+1, src, dst);
-          res = pbch_decode_frame(q, mib, src, dst, nb+1, nof_bits, nant);
+    for (nb = 0; nb < q->frame_idx && !res; nb++) {
+      for (dst = 0; (dst < 4 - nb) && !res; dst++) {
+        for (src = 0; src < q->frame_idx - nb && !res; src++) {
+          DEBUG("Trying %d blocks at offset %d as subframe mod4 number %d\n",
+              nb + 1, src, dst);
+          res = pbch_decode_frame(q, mib, src, dst, nb + 1, nof_bits, nant);
         }
       }
     }
@@ -503,10 +507,10 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float 
   return res;
 }
 
-
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports) {
+void pbch_encode(pbch_t *q, pbch_mib_t *mib,
+    cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports) {
   int i;
   int nof_bits = 2 * q->nof_symbols;
 
@@ -516,7 +520,7 @@ void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL]
   cf_t *x[MAX_LAYERS];
 
   /* number of layers equals number of ports */
-  for (i=0;i<nof_ports;i++) {
+  for (i = 0; i < nof_ports; i++) {
     x[i] = q->pbch_x[i];
   }
   memset(&x[nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - nof_ports));
@@ -537,27 +541,26 @@ void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL]
 
   scrambling_b_offset(&q->seq_pbch, &q->pbch_rm_b[q->frame_idx * nof_bits],
       q->frame_idx * nof_bits, nof_bits);
-  mod_modulate(&q->mod, &q->pbch_rm_b[q->frame_idx * nof_bits], q->pbch_d, nof_bits);
-
+  mod_modulate(&q->mod, &q->pbch_rm_b[q->frame_idx * nof_bits], q->pbch_d,
+      nof_bits);
 
   /* layer mapping & precoding */
   if (nof_ports > 1) {
     layermap_diversity(q->pbch_d, x, nof_ports, q->nof_symbols);
-    precoding_diversity(x, q->pbch_symbols, nof_ports, q->nof_symbols/nof_ports);
+    precoding_diversity(x, q->pbch_symbols, nof_ports,
+        q->nof_symbols / nof_ports);
   } else {
     memcpy(q->pbch_symbols[0], q->pbch_d, q->nof_symbols * sizeof(cf_t));
   }
 
-
   /* mapping to resource elements */
-  for (i=0;i<nof_ports;i++) {
-    pbch_put(q->pbch_symbols[i], slot1_symbols[i], q->nof_prb, q->cp, q->cell_id);
+  for (i = 0; i < nof_ports; i++) {
+    pbch_put(q->pbch_symbols[i], slot1_symbols[i], q->nof_prb, q->cp,
+        q->cell_id);
   }
   q->frame_idx++;
   if (q->frame_idx == 4) {
     q->frame_idx = 0;
   }
 }
-
-
 

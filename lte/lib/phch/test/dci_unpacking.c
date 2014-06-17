@@ -40,7 +40,6 @@ void usage(char *prog) {
 int main(int argc, char **argv) {
   dci_msg_t msg;
   ra_pdsch_t ra_dl;
-  ra_pdsch_t ra_ul;
   int len, rlen;
   int nof_prb;
   int nwords;
@@ -55,7 +54,7 @@ int main(int argc, char **argv) {
   nof_prb = atoi(argv[1]);
   len = atoi(argv[2]);
 
-  nwords = (len-1)/32+1;
+  nwords = (len - 1) / 32 + 1;
 
   if (argc < 3 + nwords) {
     usage(argv[0]);
@@ -65,9 +64,9 @@ int main(int argc, char **argv) {
   y = msg.data;
   rlen = 0;
   unsigned int x;
-  for (i=0;i<nwords;i++) {
-    x = strtoul(argv[i+3],NULL,16);
-    if (len-rlen < 32) {
+  for (i = 0; i < nwords; i++) {
+    x = strtoul(argv[i + 3], NULL, 16);
+    if (len - rlen < 32) {
       bit_pack(x, &y, len - rlen);
     } else {
       bit_pack(x, &y, 32);
@@ -75,8 +74,8 @@ int main(int argc, char **argv) {
 
   }
 
-  printf("DCI message len %d:\n",len);
-  for (i=0;i<len;i++) {
+  printf("DCI message len %d:\n", len);
+  for (i = 0; i < len; i++) {
     printf("%d, ", msg.data[i]);
   }
   printf("\n");
@@ -91,7 +90,7 @@ int main(int argc, char **argv) {
   printf("\n");
   printf("Message type:");
   dci_msg_type_fprint(stdout, dci_type);
-  switch(dci_type.type) {
+  switch (dci_type.type) {
   case PDSCH_SCHED:
     bzero(&ra_dl, sizeof(ra_pdsch_t));
     dci_msg_unpack_pdsch(&msg, &ra_dl, nof_prb, false);

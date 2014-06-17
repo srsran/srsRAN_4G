@@ -50,7 +50,7 @@ void usage(char *prog) {
 void parse_args(int argc, char **argv) {
   int opt;
   while ((opt = getopt(argc, argv, "cpnfv")) != -1) {
-    switch(opt) {
+    switch (opt) {
     case 'p':
       nof_ports = atoi(argv[optind]);
       break;
@@ -73,33 +73,27 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-
 int test_dci_payload_size() {
   int i, j;
   int x[4];
-  const dci_format_t formats[4] = {Format0, Format1, Format1A, Format1C};
-  const int prb[6]={6, 15, 25, 50, 75, 100};
-  const int dci_sz[6][5] = {
-      {21, 19, 21, 8},
-      {22, 23, 22, 10},
-      {25, 27, 25, 12},
-      {27, 31, 27, 13},
-      {27, 33, 27, 14},
-      {28, 39, 28, 15}
-  };
+  const dci_format_t formats[4] = { Format0, Format1, Format1A, Format1C };
+  const int prb[6] = { 6, 15, 25, 50, 75, 100 };
+  const int dci_sz[6][5] = { { 21, 19, 21, 8 }, { 22, 23, 22, 10 }, { 25, 27,
+      25, 12 }, { 27, 31, 27, 13 }, { 27, 33, 27, 14 }, { 28, 39, 28, 15 } };
 
   printf("Testing DCI payload sizes...\n");
   printf("  PRB\t0\t1\t1A\t1C\n");
-  for (i=0;i<6;i++) {
-    int n=prb[i];
-    for (j=0;j<4;j++) {
+  for (i = 0; i < 6; i++) {
+    int n = prb[i];
+    for (j = 0; j < 4; j++) {
       x[j] = dci_format_sizeof(formats[j], n);
       if (x[j] != dci_sz[i][j]) {
-        fprintf(stderr, "Invalid DCI payload size for %s\n", dci_format_string(formats[j]));
+        fprintf(stderr, "Invalid DCI payload size for %s\n",
+            dci_format_string(formats[j]));
         return -1;
       }
     }
-    printf("  %2d:\t%2d\t%2d\t%2d\t%2d\n",n,x[0],x[1],x[2],x[3]);
+    printf("  %2d:\t%2d\t%2d\t%2d\t%2d\n", n, x[0], x[1], x[2], x[3]);
   }
   printf("Ok\n");
   return 0;
@@ -113,11 +107,11 @@ int main(int argc, char **argv) {
   int i, j;
   cf_t *ce[MAX_PORTS_CTRL];
   int nof_re;
-  cf_t *slot1_symbols[MAX_PORTS_CTRL];
+  cf_t *slot_symbols[MAX_PORTS_CTRL];
   int nof_dcis;
   int ret = -1;
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   nof_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
 
@@ -126,17 +120,17 @@ int main(int argc, char **argv) {
   }
 
   /* init memory */
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS_CTRL; i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
       exit(-1);
     }
-    for (j=0;j<nof_re;j++) {
+    for (j = 0; j < nof_re; j++) {
       ce[i][j] = 1;
     }
-    slot1_symbols[i] =   malloc(sizeof(cf_t) * nof_re);
-    if (!slot1_symbols[i]) {
+    slot_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    if (!slot_symbols[i]) {
       perror("malloc");
       exit(-1);
     }
@@ -176,23 +170,23 @@ int main(int argc, char **argv) {
   dci_msg_candidate_set(&dci_tx.msg[1], 0, 1, 1234);
   dci_tx.nof_dcis++;
 
-  pdcch_encode(&pdcch, &dci_tx, slot1_symbols, 0);
+  pdcch_encode(&pdcch, &dci_tx, slot_symbols, 0);
 
   /* combine outputs */
-  for (i=1;i<nof_ports;i++) {
-    for (j=0;j<nof_re;j++) {
-      slot1_symbols[0][j] += slot1_symbols[i][j];
+  for (i = 1; i < nof_ports; i++) {
+    for (j = 0; j < nof_re; j++) {
+      slot_symbols[0][j] += slot_symbols[i][j];
     }
   }
 
   pdcch_init_search_ue(&pdcch, 1234);
 
   dci_init(&dci_rx, 2);
-  nof_dcis = pdcch_decode(&pdcch, slot1_symbols[0], ce, &dci_rx, 0, 1);
+  nof_dcis = pdcch_decode(&pdcch, slot_symbols[0], ce, &dci_rx, 0, 1);
   if (nof_dcis < 0) {
     printf("Error decoding\n");
   } else if (nof_dcis == dci_tx.nof_dcis) {
-    for (i=0;i<nof_dcis;i++) {
+    for (i = 0; i < nof_dcis; i++) {
       if (dci_tx.msg[i].location.L != dci_rx.msg[i].location.L
           || dci_tx.msg[i].location.ncce != dci_rx.msg[i].location.ncce
           || dci_tx.msg[i].location.nof_bits != dci_rx.msg[i].location.nof_bits
@@ -203,7 +197,8 @@ int main(int argc, char **argv) {
         goto quit;
       }
 
-      if (memcmp(dci_tx.msg[i].data, dci_rx.msg[i].data, dci_tx.msg[i].location.nof_bits)) {
+      if (memcmp(dci_tx.msg[i].data, dci_rx.msg[i].data,
+          dci_tx.msg[i].location.nof_bits)) {
         printf("Error in DCI %d: Received data does not match\n", i);
         goto quit;
       }
@@ -213,15 +208,14 @@ int main(int argc, char **argv) {
     goto quit;
   }
   ret = 0;
-quit:
-  pdcch_free(&pdcch);
+  quit: pdcch_free(&pdcch);
   regs_free(&regs);
   dci_free(&dci_tx);
   dci_free(&dci_rx);
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS_CTRL; i++) {
     free(ce[i]);
-    free(slot1_symbols[i]);
+    free(slot_symbols[i]);
   }
   if (ret) {
     printf("Error\n");

@@ -50,6 +50,9 @@ const int tc_cb_sizes[NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 
     4800, 4864, 4928, 4992, 5056, 5120, 5184, 5248, 5312, 5376, 5440, 5504,
     5568, 5632, 5696, 5760, 5824, 5888, 5952, 6016, 6080, 6144 };
 
+/*
+ * Returns Turbo coder interleaver size for Table 5.1.3-3 (36.212) index
+ */
 int lte_cb_size(int index) {
   if (index >= 0 && index < NOF_TC_CB_SIZES) {
     return tc_cb_sizes[index];
@@ -58,6 +61,9 @@ int lte_cb_size(int index) {
   }
 }
 
+/*
+ * Finds index of minimum K>=long_cb in Table 5.1.3-3 of 36.212
+ */
 int lte_find_cb_index(int long_cb) {
   int j = 0;
   while (j < NOF_TC_CB_SIZES && tc_cb_sizes[j] < long_cb) {

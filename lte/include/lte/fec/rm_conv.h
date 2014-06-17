@@ -25,7 +25,6 @@
  *
  */
 
-
 #ifndef RM_CONV_
 #define RM_CONV_
 
@@ -34,28 +33,27 @@
 #define RX_NULL 10000
 #define TX_NULL 80
 
-
 LIBLTE_API int rm_conv_tx(char *input, int in_len, char *output, int out_len);
 LIBLTE_API int rm_conv_rx(float *input, int in_len, float *output, int out_len);
 
-
 /* High-level API */
-typedef struct LIBLTE_API {
-  struct rm_conv_init {
-    int direction;
-  } init;
-  void *input;      // input type may be char or float depending on hard
-  int in_len;
-  struct rm_conv_ctrl_in {
-    int E;
-    int S;
-  } ctrl_in;
-  void *output;
-  int out_len;
-}rm_conv_hl;
+typedef struct
+  LIBLTE_API {
+    struct rm_conv_init {
+      int direction;
+    } init;
+    void *input;      // input type may be char or float depending on hard
+    int in_len;
+    struct rm_conv_ctrl_in {
+      int E;
+      int S;
+    } ctrl_in;
+    void *output;
+    int out_len;
+  } rm_conv_hl;
 
-LIBLTE_API int rm_conv_initialize(rm_conv_hl* h);
-LIBLTE_API int rm_conv_work(rm_conv_hl* hl);
-LIBLTE_API int rm_conv_stop(rm_conv_hl* hl);
+  LIBLTE_API int rm_conv_initialize(rm_conv_hl* h);
+  LIBLTE_API int rm_conv_work(rm_conv_hl* hl);
+  LIBLTE_API int rm_conv_stop(rm_conv_hl* hl);
 
 #endif

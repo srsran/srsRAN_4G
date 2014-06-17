@@ -25,7 +25,6 @@
  *
  */
 
-
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,23 +41,22 @@
 #include "lte/utils/vector.h"
 #include "lte/utils/debug.h"
 
-
 // Table 5.3.4-1
-static char cfi_table[4][PCFICH_CFI_LEN] = {
-    {0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1},
-    {1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0},
-    {1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} // reserved
+static char cfi_table[4][PCFICH_CFI_LEN] = { { 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,
+    1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1 }, { 1, 0, 1,
+    1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
+    0, 1, 1, 0 }, { 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
+    0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } // reserved
 };
-
-
 
 bool pcfich_exists(int nframe, int nslot) {
   return true;
 }
 
 /** Initializes the pcfich channel receiver */
-int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_ports, lte_cp_t cp) {
+int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb,
+    int nof_ports, lte_cp_t cp) {
   int ret = -1;
   if (cell_id < 0) {
     return -1;
@@ -68,7 +66,7 @@ int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_
   q->cp = cp;
   q->regs = regs;
   q->nof_prb = nof_prb;
-  q->nof_tx_ports = nof_tx_ports;
+  q->nof_ports = nof_ports;
 
   if (modem_table_std(&q->mod, LTE_QPSK, false)) {
     goto clean;
@@ -77,8 +75,8 @@ int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_
   demod_hard_init(&q->demod);
   demod_hard_table_set(&q->demod, LTE_QPSK);
 
-  for (int nsf=0;nsf<NSUBFRAMES_X_FRAME;nsf++) {
-    if (sequence_pcfich(&q->seq_pcfich[nsf], 2*nsf, q->cell_id)) {
+  for (int nsf = 0; nsf < NSUBFRAMES_X_FRAME; nsf++) {
+    if (sequence_pcfich(&q->seq_pcfich[nsf], 2 * nsf, q->cell_id)) {
       goto clean;
     }
   }
@@ -86,15 +84,14 @@ int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_
   q->nof_symbols = PCFICH_RE;
 
   ret = 0;
-clean:
-  if (ret == -1) {
+  clean: if (ret == -1) {
     pcfich_free(q);
   }
   return ret;
 }
 
 void pcfich_free(pcfich_t *q) {
-  for (int ns=0;ns<NSUBFRAMES_X_FRAME;ns++) {
+  for (int ns = 0; ns < NSUBFRAMES_X_FRAME; ns++) {
     sequence_free(&q->seq_pcfich[ns]);
   }
   modem_table_free(&q->mod);
@@ -105,12 +102,12 @@ void pcfich_free(pcfich_t *q) {
  */
 int pcfich_cfi_decode(char bits[PCFICH_CFI_LEN], int *cfi) {
   int i, j;
-  int distance, index=-1;
+  int distance, index = -1;
   int min = 32;
 
-  for (i=0;i<3;i++) {
+  for (i = 0; i < 3; i++) {
     distance = 0;
-    for (j=0;j<PCFICH_CFI_LEN;j++) {
+    for (j = 0; j < PCFICH_CFI_LEN; j++) {
       distance += (bits[j] ^ cfi_table[i][j]);
     }
     DEBUG("CFI=%d, distance:%d\n", i, distance);
@@ -120,12 +117,11 @@ int pcfich_cfi_decode(char bits[PCFICH_CFI_LEN], int *cfi) {
     }
   }
   if (cfi) {
-    *cfi = index+1;
+    *cfi = index + 1;
   }
   return min;
 
 }
-
 
 /** Encodes the CFI producing a vector of 32 bits.
  *  36.211 10.3 section 5.3.4
@@ -135,23 +131,22 @@ int pcfich_cfi_encode(int cfi, char bits[PCFICH_CFI_LEN]) {
     fprintf(stderr, "Invalid CFI %d\n", cfi);
     return -1;
   }
-  memcpy(bits, cfi_table[cfi-1], PCFICH_CFI_LEN * sizeof(char));
+  memcpy(bits, cfi_table[cfi - 1], PCFICH_CFI_LEN * sizeof(char));
   return 0;
 }
-
 
 /* Decodes the PCFICH channel and saves the CFI in the cfi pointer.
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL], int nsubframe, int *cfi, int *distance) {
+int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
+    int nsubframe, int *cfi, int *distance) {
   int dist;
 
   /* Set pointers for layermapping & precoding */
   int i;
   cf_t *x[MAX_LAYERS];
   cf_t *ce_precoding[MAX_PORTS];
-  cf_t *symbols_precoding[MAX_PORTS];
 
   if (nsubframe < 0 || nsubframe > NSUBFRAMES_X_FRAME) {
     fprintf(stderr, "Invalid nslot %d\n", nsubframe);
@@ -159,22 +154,22 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL], int
   }
 
   /* number of layers equals number of ports */
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS_CTRL; i++) {
     x[i] = q->pcfich_x[i];
   }
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     ce_precoding[i] = q->ce[i];
-    symbols_precoding[i] = q->pcfich_symbols[i];
   }
 
   /* extract symbols */
-  if (q->nof_symbols != regs_pcfich_get(q->regs, slot_symbols, q->pcfich_symbols[0])) {
+  if (q->nof_symbols
+      != regs_pcfich_get(q->regs, slot_symbols, q->pcfich_symbols[0])) {
     fprintf(stderr, "There was an error getting the PCFICH symbols\n");
     return -1;
   }
 
   /* extract channel estimates */
-  for (i=0;i<q->nof_tx_ports;i++) {
+  for (i = 0; i < q->nof_ports; i++) {
     if (q->nof_symbols != regs_pcfich_get(q->regs, ce[i], q->ce[i])) {
       fprintf(stderr, "There was an error getting the PCFICH symbols\n");
       return -1;
@@ -182,12 +177,15 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL], int
   }
 
   /* in control channels, only diversity is supported */
-  if (q->nof_tx_ports == 1) {
+  if (q->nof_ports == 1) {
     /* no need for layer demapping */
-    predecoding_single_zf(q->pcfich_symbols[0], q->ce[0], q->pcfich_d, q->nof_symbols);
+    predecoding_single_zf(q->pcfich_symbols[0], q->ce[0], q->pcfich_d,
+        q->nof_symbols);
   } else {
-    predecoding_diversity_zf(symbols_precoding, ce_precoding, x, q->nof_tx_ports, q->nof_symbols);
-    layerdemap_diversity(x, q->pcfich_d, q->nof_tx_ports, q->nof_symbols/q->nof_tx_ports);
+    predecoding_diversity_zf(q->pcfich_symbols[0], ce_precoding, x,
+        q->nof_ports, q->nof_symbols);
+    layerdemap_diversity(x, q->pcfich_d, q->nof_ports,
+        q->nof_symbols / q->nof_ports);
   }
 
   /* demodulate symbols */
@@ -208,10 +206,10 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL], int
   }
 }
 
-
 /** Encodes CFI and maps symbols to the slot
  */
-int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL], int nsubframe) {
+int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL],
+    int nsubframe) {
   int i;
 
   if (nsubframe < 0 || nsubframe > NSUBFRAMES_X_FRAME) {
@@ -224,10 +222,10 @@ int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL], int 
   cf_t *symbols_precoding[MAX_PORTS];
 
   /* number of layers equals number of ports */
-  for (i=0;i<q->nof_tx_ports;i++) {
+  for (i = 0; i < q->nof_ports; i++) {
     x[i] = q->pcfich_x[i];
   }
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     symbols_precoding[i] = q->pcfich_symbols[i];
   }
 
@@ -240,15 +238,16 @@ int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL], int 
   mod_modulate(&q->mod, q->data, q->pcfich_d, PCFICH_CFI_LEN);
 
   /* layer mapping & precoding */
-  if (q->nof_tx_ports > 1) {
-    layermap_diversity(q->pcfich_d, x, q->nof_tx_ports, q->nof_symbols);
-    precoding_diversity(x, symbols_precoding, q->nof_tx_ports, q->nof_symbols/q->nof_tx_ports);
+  if (q->nof_ports > 1) {
+    layermap_diversity(q->pcfich_d, x, q->nof_ports, q->nof_symbols);
+    precoding_diversity(x, symbols_precoding, q->nof_ports,
+        q->nof_symbols / q->nof_ports);
   } else {
     memcpy(q->pcfich_symbols[0], q->pcfich_d, q->nof_symbols * sizeof(cf_t));
   }
 
   /* mapping to resource elements */
-  for (i=0;i<q->nof_tx_ports;i++) {
+  for (i = 0; i < q->nof_ports; i++) {
     if (regs_pcfich_put(q->regs, q->pcfich_symbols[i], slot_symbols[i]) < 0) {
       fprintf(stderr, "Error putting PCHICH resource elements\n");
       return -1;
@@ -257,5 +256,4 @@ int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL], int 
 
   return 0;
 }
-
 

@@ -85,6 +85,7 @@
 #include "lte/phch/regs.h"
 #include "lte/phch/dci.h"
 #include "lte/phch/pdcch.h"
+#include "lte/phch/pdsch.h"
 #include "lte/phch/pbch.h"
 #include "lte/phch/pcfich.h"
 #include "lte/phch/phich.h"
