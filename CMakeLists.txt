@@ -23,11 +23,9 @@
 ########################################################################
 # Prevent in-tree builds
 ########################################################################
-
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "Prevented in-tree build. This is bad practice.")
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-
 
 
 ########################################################################
@@ -66,12 +64,23 @@ SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 ########################################################################
 # Compiler specific setup
 ########################################################################
+macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
+    include(CheckCXXCompilerFlag)
+    CHECK_CXX_COMPILER_FLAG(${flag} ${have})
+    if(${have})
+        add_definitions(${flag})
+    endif(${have})
+endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
+
 IF(CMAKE_COMPILER_IS_GNUCXX)
-# do something
+    #Any additional flags for CXX
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 IF(CMAKE_COMPILER_IS_GNUCC)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE")
+    IF(NOT WIN32)
+        ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
+    ENDIF(NOT WIN32)
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
 IF(MSVC)

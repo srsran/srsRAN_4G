@@ -29,6 +29,8 @@
 #ifndef RM_TURBO_
 #define RM_TURBO_
 
+#include "lte/config.h"
+
 #ifndef RX_NULL
 #define RX_NULL 10000
 #endif
@@ -37,37 +39,37 @@
 #define TX_NULL 80
 #endif
 
-typedef struct {
-	int buffer_len;
-	char *buffer;
-	int *d2_perm;
+typedef struct LIBLTE_API {
+  int buffer_len;
+  char *buffer;
+  int *d2_perm;
 } rm_turbo_t;
 
-int rm_turbo_init(rm_turbo_t *q, int max_codeblock_len);
-void rm_turbo_free(rm_turbo_t *q);
-int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output, int out_len, int rv_idx);
-int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_len, int rv_idx);
+LIBLTE_API int rm_turbo_init(rm_turbo_t *q, int max_codeblock_len);
+LIBLTE_API void rm_turbo_free(rm_turbo_t *q);
+LIBLTE_API int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output, int out_len, int rv_idx);
+LIBLTE_API int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output, int out_len, int rv_idx);
 
 
 /* High-level API */
-typedef struct {
-	rm_turbo_t q;
-	struct rm_turbo_init {
-		int direction;
-	} init;
-	void *input;			// input type may be char or float depending on hard
-	int in_len;
-	struct rm_turbo_ctrl_in {
-		int E;
-		int S;
-		int rv_idx;
-	} ctrl_in;
-	void *output;
-	int out_len;
+typedef struct LIBLTE_API {
+  rm_turbo_t q;
+  struct rm_turbo_init {
+    int direction;
+  } init;
+  void *input;      // input type may be char or float depending on hard
+  int in_len;
+  struct rm_turbo_ctrl_in {
+    int E;
+    int S;
+    int rv_idx;
+  } ctrl_in;
+  void *output;
+  int out_len;
 }rm_turbo_hl;
 
-int rm_turbo_initialize(rm_turbo_hl* h);
-int rm_turbo_work(rm_turbo_hl* hl);
-int rm_turbo_stop(rm_turbo_hl* hl);
+LIBLTE_API int rm_turbo_initialize(rm_turbo_hl* h);
+LIBLTE_API int rm_turbo_work(rm_turbo_hl* hl);
+LIBLTE_API int rm_turbo_stop(rm_turbo_hl* hl);
 
 #endif

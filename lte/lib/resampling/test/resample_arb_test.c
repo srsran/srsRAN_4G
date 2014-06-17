@@ -59,5 +59,5 @@ int main(int argc, char **argv) {
   }
 
   printf("Ok\n");
-	exit(0);
+  exit(0);
 }

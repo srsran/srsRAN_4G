@@ -75,10 +75,10 @@ IF(QT4_FOUND AND QWT_FOUND AND QWT_MAJOR_VERSION EQUAL 6)
   APPEND_INTERNAL_LIST(OPTIONAL_LIBS graphics)
 
 
-  ADD_SUBDIRECTORY(complexplot/test)
-  ADD_SUBDIRECTORY(realplot/test)
-  ADD_SUBDIRECTORY(scatterplot/test)
-  ADD_SUBDIRECTORY(waterfallplot/test)
+  #ADD_SUBDIRECTORY(complexplot/test)
+  #ADD_SUBDIRECTORY(realplot/test)
+  #ADD_SUBDIRECTORY(scatterplot/test)
+  #ADD_SUBDIRECTORY(waterfallplot/test)
 
   MESSAGE(STATUS "   GRAPHICS library will be installed.")
   

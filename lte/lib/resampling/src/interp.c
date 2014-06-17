@@ -32,48 +32,48 @@
 
 /* Performs 1st order linear interpolation with out-of-bound interpolation */
 void interp_linear_offset(cf_t *input, cf_t *output, int M, int len, int off_st, int off_end) {
-	int i, j;
-	float mag0=0, mag1=0, arg0=0, arg1=0, mag=0, arg=0;
+  int i, j;
+  float mag0=0, mag1=0, arg0=0, arg1=0, mag=0, arg=0;
 
-	for (i=0;i<len-1;i++) {
-		mag0 = cabsf(input[i]);
-		mag1 = cabsf(input[i+1]);
-		arg0 = cargf(input[i]);
-		arg1 = cargf(input[i+1]);
-		if (i==0) {
-			for (j=0;j<off_st;j++) {
-				mag = mag0 - (j+1)*(mag1-mag0)/M;
-				arg = arg0 - (j+1)*(arg1-arg0)/M;
-				output[j] = mag * cexpf(I * arg);
-			}
-		}
-		for (j=0;j<M;j++) {
-			mag = mag0 + j*(mag1-mag0)/M;
-			arg = arg0 + j*(arg1-arg0)/M;
-			output[i*M+j+off_st] = mag * cexpf(I * arg);
-		}
-	}
-	if (len > 1) {
-		for (j=0;j<off_end;j++) {
-			mag = mag1 + j*(mag1-mag0)/M;
-			arg = arg1 + j*(arg1-arg0)/M;
-			output[i*M+j+off_st] = mag * cexpf(I * arg);
-		}
-	}
+  for (i=0;i<len-1;i++) {
+    mag0 = cabsf(input[i]);
+    mag1 = cabsf(input[i+1]);
+    arg0 = cargf(input[i]);
+    arg1 = cargf(input[i+1]);
+    if (i==0) {
+      for (j=0;j<off_st;j++) {
+        mag = mag0 - (j+1)*(mag1-mag0)/M;
+        arg = arg0 - (j+1)*(arg1-arg0)/M;
+        output[j] = mag * cexpf(I * arg);
+      }
+    }
+    for (j=0;j<M;j++) {
+      mag = mag0 + j*(mag1-mag0)/M;
+      arg = arg0 + j*(arg1-arg0)/M;
+      output[i*M+j+off_st] = mag * cexpf(I * arg);
+    }
+  }
+  if (len > 1) {
+    for (j=0;j<off_end;j++) {
+      mag = mag1 + j*(mag1-mag0)/M;
+      arg = arg1 + j*(arg1-arg0)/M;
+      output[i*M+j+off_st] = mag * cexpf(I * arg);
+    }
+  }
 }
 
 /* Performs 1st order linear interpolation */
 void interp_linear(cf_t *input, cf_t *output, int M, int len) {
-	interp_linear_offset(input, output, M, len, 0, 0);
+  interp_linear_offset(input, output, M, len, 0, 0);
 }
 
 
 /* Performs 1st order integer linear interpolation */
 void interp_linear_f(float *input, float *output, int M, int len) {
-	int i, j;
-	for (i=0;i<len-1;i++) {
-		for (j=0;j<M;j++) {
-			output[i*M+j] = input[i] + j * (input[i+1]-input[i]) / M;
-		}
-	}
+  int i, j;
+  for (i=0;i<len-1;i++) {
+    for (j=0;j<M;j++) {
+      output[i*M+j] = input[i] + j * (input[i+1]-input[i]) / M;
+    }
+  }
 }

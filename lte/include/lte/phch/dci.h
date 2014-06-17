@@ -28,8 +28,10 @@
 #ifndef DCI_
 #define DCI_
 
-#include "lte/common/base.h"
 #include <stdint.h>
+
+#include "lte/config.h"
+#include "lte/common/base.h"
 #include "lte/phch/ra.h"
 
 typedef _Complex float cf_t;
@@ -41,60 +43,60 @@ typedef _Complex float cf_t;
  */
 
 
-#define DCI_MAX_BITS	57
+#define DCI_MAX_BITS  57
 
 typedef enum {
-	Format0, Format1, Format1A, Format1C
+  Format0, Format1, Format1A, Format1C
 } dci_format_t;
 
 // Each type is for a different interface to packing/unpacking functions
-typedef struct {
-	enum {
-		PUSCH_SCHED, PDSCH_SCHED, MCCH_CHANGE, TPC_COMMAND, RA_PROC_PDCCH
-	} type;
-	dci_format_t format;
+typedef struct LIBLTE_API {
+  enum {
+    PUSCH_SCHED, PDSCH_SCHED, MCCH_CHANGE, TPC_COMMAND, RA_PROC_PDCCH
+  } type;
+  dci_format_t format;
 }dci_msg_type_t;
 
 typedef enum {
-	DCI_COMMON = 0, DCI_UE = 1
+  DCI_COMMON = 0, DCI_UE = 1
 } dci_spec_t;
 
-typedef struct {
-	unsigned char nof_bits;
-	unsigned char L; // Aggregation level
-	unsigned char ncce; // Position of first CCE of the dci
-	unsigned short rnti;
+typedef struct LIBLTE_API {
+  unsigned char nof_bits;
+  unsigned char L; // Aggregation level
+  unsigned char ncce; // Position of first CCE of the dci
+  unsigned short rnti;
 } dci_candidate_t;
 
-typedef struct {
-	char data[DCI_MAX_BITS];
-	dci_candidate_t location;
+typedef struct LIBLTE_API {
+  char data[DCI_MAX_BITS];
+  dci_candidate_t location;
 } dci_msg_t;
 
-typedef struct {
-	dci_msg_t *msg;
-	int nof_dcis;
-	int max_dcis;
+typedef struct LIBLTE_API {
+  dci_msg_t *msg;
+  int nof_dcis;
+  int max_dcis;
 } dci_t;
 
-int dci_init(dci_t *q, int max_dci);
-void dci_free(dci_t *q);
-char* dci_format_string(dci_format_t format);
+LIBLTE_API int dci_init(dci_t *q, int max_dci);
+LIBLTE_API void dci_free(dci_t *q);
+LIBLTE_API char* dci_format_string(dci_format_t format);
 
-int dci_msg_candidate_set(dci_msg_t *msg, int L, int nCCE, unsigned short rnti);
-void dci_candidate_fprint(FILE *f, dci_candidate_t *q);
+LIBLTE_API int dci_msg_candidate_set(dci_msg_t *msg, int L, int nCCE, unsigned short rnti);
+LIBLTE_API void dci_candidate_fprint(FILE *f, dci_candidate_t *q);
 
-int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, int nof_prb, unsigned short crnti);
-void dci_msg_type_fprint(FILE *f, dci_msg_type_t type);
+LIBLTE_API int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, int nof_prb, unsigned short crnti);
+LIBLTE_API void dci_msg_type_fprint(FILE *f, dci_msg_type_t type);
 
 // For dci_msg_type_t = PUSCH_SCHED
-int dci_msg_pack_pusch(ra_pusch_t *data, dci_msg_t *msg, int nof_prb);
-int dci_msg_unpack_pusch(dci_msg_t *msg, ra_pusch_t *data, int nof_prb);
+LIBLTE_API int dci_msg_pack_pusch(ra_pusch_t *data, dci_msg_t *msg, int nof_prb);
+LIBLTE_API int dci_msg_unpack_pusch(dci_msg_t *msg, ra_pusch_t *data, int nof_prb);
 
 // For dci_msg_type_t = PDSCH_SCHED
-int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format, int nof_prb, bool crc_is_crnti);
-int dci_msg_unpack_pdsch(dci_msg_t *msg, ra_pdsch_t *data, int nof_prb, bool crc_is_crnti);
+LIBLTE_API int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format, int nof_prb, bool crc_is_crnti);
+LIBLTE_API int dci_msg_unpack_pdsch(dci_msg_t *msg, ra_pdsch_t *data, int nof_prb, bool crc_is_crnti);
 
-int dci_format_sizeof(dci_format_t format, int nof_prb);
+LIBLTE_API int dci_format_sizeof(dci_format_t format, int nof_prb);
 
-#endif
+#endif // DCI_

@@ -36,41 +36,41 @@
 
 
 int layermap_single(cf_t *d, cf_t *x, int nof_symbols) {
-	memcpy(x, d, sizeof(cf_t) * nof_symbols);
-	return nof_symbols;
+  memcpy(x, d, sizeof(cf_t) * nof_symbols);
+  return nof_symbols;
 }
 
 int layermap_diversity(cf_t *d, cf_t *x[MAX_LAYERS], int nof_layers, int nof_symbols) {
-	int i, j;
-	for (i=0;i<nof_symbols/nof_layers;i++) {
-		for (j=0;j<nof_layers;j++) {
-			x[j][i] = d[nof_layers*i+j];
-		}
-	}
-	return i;
+  int i, j;
+  for (i=0;i<nof_symbols/nof_layers;i++) {
+    for (j=0;j<nof_layers;j++) {
+      x[j][i] = d[nof_layers*i+j];
+    }
+  }
+  return i;
 }
 
 int layermap_multiplex(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
-		int nof_symbols[MAX_CODEWORDS]) {
-	if (nof_cw == 1) {
-		return layermap_diversity(d[0], x, nof_layers, nof_symbols[0]);
-	} else {
-		int n[2];
-		n[0] = nof_layers / nof_cw;
-		n[1] = nof_layers - n[0];
-		if (nof_symbols[0] / n[0] == nof_symbols[1] / n[1]) {
+    int nof_symbols[MAX_CODEWORDS]) {
+  if (nof_cw == 1) {
+    return layermap_diversity(d[0], x, nof_layers, nof_symbols[0]);
+  } else {
+    int n[2];
+    n[0] = nof_layers / nof_cw;
+    n[1] = nof_layers - n[0];
+    if (nof_symbols[0] / n[0] == nof_symbols[1] / n[1]) {
 
-			layermap_diversity(d[0], x, 		n[0], nof_symbols[0]);
-			layermap_diversity(d[1], &x[n[0]], n[1], nof_symbols[1]);
-			return nof_symbols[0] / n[0];
+      layermap_diversity(d[0], x,     n[0], nof_symbols[0]);
+      layermap_diversity(d[1], &x[n[0]], n[1], nof_symbols[1]);
+      return nof_symbols[0] / n[0];
 
-		} else {
-			fprintf(stderr, "Number of symbols in codewords 0 and 1 is not consistent (%d, %d)\n",
-					nof_symbols[0], nof_symbols[1]);
-			return -1;
-		}
-	}
-	return 0;
+    } else {
+      fprintf(stderr, "Number of symbols in codewords 0 and 1 is not consistent (%d, %d)\n",
+          nof_symbols[0], nof_symbols[1]);
+      return -1;
+    }
+  }
+  return 0;
 }
 
 /* Layer mapping generates the vector of layer-mapped symbols "x" based on the vector of data symbols "d"
@@ -78,48 +78,48 @@ int layermap_multiplex(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, 
  * Returns the number of symbols per layer (M_symb^layer in the specs)
  */
 int layermap_type(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
-		int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type) {
+    int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type) {
 
-	if (nof_cw > MAX_CODEWORDS) {
-		fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", MAX_CODEWORDS, nof_cw);
-		return -1;
-	}
-	if (nof_layers > MAX_LAYERS) {
-		fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n", MAX_LAYERS, nof_layers);
-		return -1;
-	}
-	if (nof_layers < nof_cw) {
-		fprintf(stderr, "Number of codewords must be lower or equal than number of layers\n");
-		return -1;
-	}
+  if (nof_cw > MAX_CODEWORDS) {
+    fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", MAX_CODEWORDS, nof_cw);
+    return -1;
+  }
+  if (nof_layers > MAX_LAYERS) {
+    fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n", MAX_LAYERS, nof_layers);
+    return -1;
+  }
+  if (nof_layers < nof_cw) {
+    fprintf(stderr, "Number of codewords must be lower or equal than number of layers\n");
+    return -1;
+  }
 
-	switch(type) {
-	case SINGLE_ANTENNA:
-		if (nof_cw == 1 && nof_layers == 1) {
-			return layermap_single(x[0], d[0], nof_symbols[0]);
-		} else {
-			fprintf(stderr, "Number of codewords and layers must be 1 for transmission on single antenna ports\n");
-			return -1;
-		}
-		break;
-	case TX_DIVERSITY:
-		if (nof_cw == 1) {
-			if (nof_layers == 2 || nof_layers == 4) {
-				return layermap_diversity(d[0], x, nof_layers, nof_symbols[0]);
-			} else {
-				fprintf(stderr, "Number of layers must be 2 or 4 for transmit diversity\n");
-				return -1;
-			}
-		} else {
-			fprintf(stderr, "Number of codewords must be 1 for transmit diversity\n");
-			return -1;
-		}
-		break;
-	case SPATIAL_MULTIPLEX:
-		return layermap_multiplex(d, x, nof_cw, nof_layers, nof_symbols);
-		break;
-	}
-	return 0;
+  switch(type) {
+  case SINGLE_ANTENNA:
+    if (nof_cw == 1 && nof_layers == 1) {
+      return layermap_single(x[0], d[0], nof_symbols[0]);
+    } else {
+      fprintf(stderr, "Number of codewords and layers must be 1 for transmission on single antenna ports\n");
+      return -1;
+    }
+    break;
+  case TX_DIVERSITY:
+    if (nof_cw == 1) {
+      if (nof_layers == 2 || nof_layers == 4) {
+        return layermap_diversity(d[0], x, nof_layers, nof_symbols[0]);
+      } else {
+        fprintf(stderr, "Number of layers must be 2 or 4 for transmit diversity\n");
+        return -1;
+      }
+    } else {
+      fprintf(stderr, "Number of codewords must be 1 for transmit diversity\n");
+      return -1;
+    }
+    break;
+  case SPATIAL_MULTIPLEX:
+    return layermap_multiplex(d, x, nof_cw, nof_layers, nof_symbols);
+    break;
+  }
+  return 0;
 }
 
 
@@ -131,34 +131,34 @@ int layermap_type(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int n
 
 
 int layerdemap_single(cf_t *x, cf_t *d, int nof_symbols) {
-	memcpy(d, x, sizeof(cf_t) * nof_symbols);
-	return nof_symbols;
+  memcpy(d, x, sizeof(cf_t) * nof_symbols);
+  return nof_symbols;
 }
 int layerdemap_diversity(cf_t *x[MAX_LAYERS], cf_t *d, int nof_layers, int nof_layer_symbols) {
-	int i, j;
-	for (i=0;i<nof_layer_symbols;i++) {
-		for (j=0;j<nof_layers;j++) {
-			d[nof_layers*i+j] = x[j][i];
-		}
-	}
-	return nof_layer_symbols * nof_layers;
+  int i, j;
+  for (i=0;i<nof_layer_symbols;i++) {
+    for (j=0;j<nof_layers;j++) {
+      d[nof_layers*i+j] = x[j][i];
+    }
+  }
+  return nof_layer_symbols * nof_layers;
 }
 
 int layerdemap_multiplex(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
-		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS]) {
-	if (nof_cw == 1) {
-		return layerdemap_diversity(x, d[0], nof_layers, nof_layer_symbols);
-	} else {
-		int n[2];
-		n[0] = nof_layers / nof_cw;
-		n[1] = nof_layers - n[0];
-		nof_symbols[0] = n[0] * nof_layer_symbols;
-		nof_symbols[1] = n[1] * nof_layer_symbols;
+    int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS]) {
+  if (nof_cw == 1) {
+    return layerdemap_diversity(x, d[0], nof_layers, nof_layer_symbols);
+  } else {
+    int n[2];
+    n[0] = nof_layers / nof_cw;
+    n[1] = nof_layers - n[0];
+    nof_symbols[0] = n[0] * nof_layer_symbols;
+    nof_symbols[1] = n[1] * nof_layer_symbols;
 
-		nof_symbols[0] = layerdemap_diversity(x, 	   d[0], n[0], nof_layer_symbols);
-		nof_symbols[1] = layerdemap_diversity(&x[n[0]], d[1], n[1], nof_layer_symbols);
-	}
-	return 0;
+    nof_symbols[0] = layerdemap_diversity(x,      d[0], n[0], nof_layer_symbols);
+    nof_symbols[1] = layerdemap_diversity(&x[n[0]], d[1], n[1], nof_layer_symbols);
+  }
+  return 0;
 }
 
 /* Generates the vector of data symbols "d" based on the vector of layer-mapped symbols "x"
@@ -167,48 +167,48 @@ int layerdemap_multiplex(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_la
  * nof_symbols. Returns -1 on error
  */
 int layerdemap_type(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
-		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type) {
+    int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type) {
 
-	if (nof_cw > MAX_CODEWORDS) {
-		fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", MAX_CODEWORDS, nof_cw);
-		return -1;
-	}
-	if (nof_layers > MAX_LAYERS) {
-		fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n", MAX_LAYERS, nof_layers);
-		return -1;
-	}
-	if (nof_layers < nof_cw) {
-		fprintf(stderr, "Number of codewords must be lower or equal than number of layers\n");
-		return -1;
-	}
+  if (nof_cw > MAX_CODEWORDS) {
+    fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", MAX_CODEWORDS, nof_cw);
+    return -1;
+  }
+  if (nof_layers > MAX_LAYERS) {
+    fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n", MAX_LAYERS, nof_layers);
+    return -1;
+  }
+  if (nof_layers < nof_cw) {
+    fprintf(stderr, "Number of codewords must be lower or equal than number of layers\n");
+    return -1;
+  }
 
-	switch(type) {
-	case SINGLE_ANTENNA:
-		if (nof_cw == 1 && nof_layers == 1) {
-			nof_symbols[0] = layerdemap_single(x[0], d[0], nof_layer_symbols);
-			nof_symbols[1] = 0;
-		} else {
-			fprintf(stderr, "Number of codewords and layers must be 1 for transmission on single antenna ports\n");
-			return -1;
-		}
-		break;
-	case TX_DIVERSITY:
-		if (nof_cw == 1) {
-			if (nof_layers == 2 || nof_layers == 4) {
-				nof_symbols[0] = layerdemap_diversity(x, d[0], nof_layers, nof_layer_symbols);
-				nof_symbols[1] = 0;
-			} else {
-				fprintf(stderr, "Number of layers must be 2 or 4 for transmit diversity\n");
-				return -1;
-			}
-		} else {
-			fprintf(stderr, "Number of codewords must be 1 for transmit diversity\n");
-			return -1;
-		}
-		break;
-	case SPATIAL_MULTIPLEX:
-		return layerdemap_multiplex(x, d, nof_layers, nof_cw, nof_layer_symbols, nof_symbols);
-		break;
-	}
-	return 0;
+  switch(type) {
+  case SINGLE_ANTENNA:
+    if (nof_cw == 1 && nof_layers == 1) {
+      nof_symbols[0] = layerdemap_single(x[0], d[0], nof_layer_symbols);
+      nof_symbols[1] = 0;
+    } else {
+      fprintf(stderr, "Number of codewords and layers must be 1 for transmission on single antenna ports\n");
+      return -1;
+    }
+    break;
+  case TX_DIVERSITY:
+    if (nof_cw == 1) {
+      if (nof_layers == 2 || nof_layers == 4) {
+        nof_symbols[0] = layerdemap_diversity(x, d[0], nof_layers, nof_layer_symbols);
+        nof_symbols[1] = 0;
+      } else {
+        fprintf(stderr, "Number of layers must be 2 or 4 for transmit diversity\n");
+        return -1;
+      }
+    } else {
+      fprintf(stderr, "Number of codewords must be 1 for transmit diversity\n");
+      return -1;
+    }
+    break;
+  case SPATIAL_MULTIPLEX:
+    return layerdemap_multiplex(x, d, nof_layers, nof_cw, nof_layer_symbols, nof_symbols);
+    break;
+  }
+  return 0;
 }

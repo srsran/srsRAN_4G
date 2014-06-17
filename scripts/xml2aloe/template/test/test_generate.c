@@ -49,35 +49,35 @@ int offset=0;
  */
 int generate_input_signal(void *in, int *lengths)
 {
-	int i;
-	input_t *input = in;
-	int block_length;
-	pmid_t blen_id;
+  int i;
+  input_t *input = in;
+  int block_length;
+  pmid_t blen_id;
 
-	blen_id = param_id("block_length");
-	if (!blen_id) {
-		moderror("Parameter block_length not found\n");
-		return -1;
-	}
-	if (!param_get_int(blen_id,&block_length)) {
-		moderror("Getting integer parameter block_length\n");
-		return -1;
-	}
+  blen_id = param_id("block_length");
+  if (!blen_id) {
+    moderror("Parameter block_length not found\n");
+    return -1;
+  }
+  if (!param_get_int(blen_id,&block_length)) {
+    moderror("Getting integer parameter block_length\n");
+    return -1;
+  }
 
-	modinfo_msg("Parameter block_length is %d\n",block_length);
+  modinfo_msg("Parameter block_length is %d\n",block_length);
 
 
-	/** HERE INDICATE THE LENGTH OF THE SIGNAL */
-	lengths[0] = block_length;
+  /** HERE INDICATE THE LENGTH OF THE SIGNAL */
+  lengths[0] = block_length;
 
-	for (i=0;i<block_length;i++) {
+  for (i=0;i<block_length;i++) {
 #ifdef GENERATE_COMPLEX
-		__real__ input[i] = (float) ((i+offset)%(block_length));
-		__imag__ input[i] = (float) ((block_length-i-1+offset)%(block_length));
+    __real__ input[i] = (float) ((i+offset)%(block_length));
+    __imag__ input[i] = (float) ((block_length-i-1+offset)%(block_length));
 #else
-		input[i] = (i+offset)%(block_length);
+    input[i] = (i+offset)%(block_length);
 #endif
-	}
-	offset++;
-	return 0;
+  }
+  offset++;
+  return 0;
 }

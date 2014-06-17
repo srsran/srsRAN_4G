@@ -33,6 +33,6 @@ int main(int argc, char **argv) {
 
   free(in);
   free(out);
-	printf("Done\n");
-	exit(0);
+  printf("Done\n");
+  exit(0);
 }

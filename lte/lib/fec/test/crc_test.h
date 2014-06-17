@@ -30,42 +30,42 @@
 #include "lte/fec/crc.h"
 
 typedef struct {
-	int n;
-	int l;
-	unsigned int p;
-	unsigned int s;
-	unsigned int word;
+  int n;
+  int l;
+  unsigned int p;
+  unsigned int s;
+  unsigned int word;
 }expected_word_t;
 
 
 static expected_word_t expected_words[] = {
 
-		{5001, 24, LTE_CRC24A, 1, 0x1C5C97},		// LTE CRC24A (36.212 Sec 5.1.1)
-		{5001, 24, LTE_CRC24B, 1, 0x36D1F0},		// LTE CRC24B
-		{5001, 16, LTE_CRC16, 1, 0x7FF4},  		// LTE CRC16: 0x7FF4
-		{5001, 8, LTE_CRC8, 1,  0xF0},			// LTE CRC8 0xF8
+    {5001, 24, LTE_CRC24A, 1, 0x1C5C97},    // LTE CRC24A (36.212 Sec 5.1.1)
+    {5001, 24, LTE_CRC24B, 1, 0x36D1F0},    // LTE CRC24B
+    {5001, 16, LTE_CRC16, 1, 0x7FF4},      // LTE CRC16: 0x7FF4
+    {5001, 8, LTE_CRC8, 1,  0xF0},      // LTE CRC8 0xF8
 
-		{-1, -1, 0, 0, 0}
+    {-1, -1, 0, 0, 0}
 };
 
 int get_expected_word(int n, int l, unsigned int p, unsigned int s, unsigned int *word) {
-	int i;
-	i=0;
-	while(expected_words[i].n != -1) {
-		if (expected_words[i].l == l
-			&& expected_words[i].p == p
-			&& expected_words[i].s == s) {
-			break;
-		} else {
-			i++;
-		}
-	}
-	if (expected_words[i].n == -1) {
-		return -1;
-	} else {
-		if (word) {
-			*word = expected_words[i].word;
-		}
-		return 0;
-	}
+  int i;
+  i=0;
+  while(expected_words[i].n != -1) {
+    if (expected_words[i].l == l
+      && expected_words[i].p == p
+      && expected_words[i].s == s) {
+      break;
+    } else {
+      i++;
+    }
+  }
+  if (expected_words[i].n == -1) {
+    return -1;
+  } else {
+    if (word) {
+      *word = expected_words[i].word;
+    }
+    return 0;
+  }
 }

@@ -26,8 +26,8 @@
  */
 
 
-#ifndef udpsource_
-#define udpsource_
+#ifndef UDPSOURCE_
+#define UDPSOURCE_
 
 
 #include <sys/socket.h>
@@ -36,38 +36,39 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "lte/config.h"
 #include "lte/io/format.h"
 
 /* Low-level API */
-typedef struct {
-	int sockfd;
-	struct sockaddr_in servaddr;
-	data_type_t type;
+typedef struct LIBLTE_API {
+  int sockfd;
+  struct sockaddr_in servaddr;
+  data_type_t type;
 }udpsource_t;
 
-int udpsource_init(udpsource_t *q, char *address, int port, data_type_t type);
-void udpsource_free(udpsource_t *q);
+LIBLTE_API int udpsource_init(udpsource_t *q, char *address, int port, data_type_t type);
+LIBLTE_API void udpsource_free(udpsource_t *q);
 
-int udpsource_read(udpsource_t *q, void *buffer, int nsamples);
+LIBLTE_API int udpsource_read(udpsource_t *q, void *buffer, int nsamples);
 
 
 /* High-level API */
-typedef struct {
-	udpsource_t obj;
-	struct udpsource_init {
-		char *address;
-		int port;
-		int data_type;
-	} init;
-	struct udpsource_ctrl_in {
-		int nsamples;				// Number of samples to read
-	} ctrl_in;
-	void* output;
-	int out_len;
+typedef struct LIBLTE_API {
+  udpsource_t obj;
+  struct udpsource_init {
+    char *address;
+    int port;
+    int data_type;
+  } init;
+  struct udpsource_ctrl_in {
+    int nsamples;        // Number of samples to read
+  } ctrl_in;
+  void* output;
+  int out_len;
 }udpsource_hl;
 
-int udpsource_initialize(udpsource_hl* h);
-int udpsource_work(	udpsource_hl* hl);
-int udpsource_stop(udpsource_hl* h);
+LIBLTE_API int udpsource_initialize(udpsource_hl* h);
+LIBLTE_API int udpsource_work(  udpsource_hl* hl);
+LIBLTE_API int udpsource_stop(udpsource_hl* h);
 
-#endif
+#endif // UDPSOURCE_

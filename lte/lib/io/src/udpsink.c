@@ -38,65 +38,65 @@
 #include "lte/io/udpsink.h"
 
 int udpsink_init(udpsink_t *q, char *address, int port, data_type_t type) {
-	bzero(q, sizeof(udpsink_t));
+  bzero(q, sizeof(udpsink_t));
 
-	q->sockfd=socket(AF_INET,SOCK_DGRAM,0);
+  q->sockfd=socket(AF_INET,SOCK_DGRAM,0);
 
-	q->servaddr.sin_family = AF_INET;
-	q->servaddr.sin_addr.s_addr=inet_addr(address);
-	q->servaddr.sin_port=htons(port);
+  q->servaddr.sin_family = AF_INET;
+  q->servaddr.sin_addr.s_addr=inet_addr(address);
+  q->servaddr.sin_port=htons(port);
 
-	q->type = type;
-	return 0;
+  q->type = type;
+  return 0;
 }
 
 void udpsink_free(udpsink_t *q) {
-	if (q->sockfd) {
-		close(q->sockfd);
-	}
-	bzero(q, sizeof(udpsink_t));
+  if (q->sockfd) {
+    close(q->sockfd);
+  }
+  bzero(q, sizeof(udpsink_t));
 }
 
 int udpsink_write(udpsink_t *q, void *buffer, int nsamples) {
-	int size;
+  int size;
 
-	switch(q->type) {
-	case FLOAT:
-	case COMPLEX_FLOAT:
-	case COMPLEX_SHORT:
-		fprintf(stderr, "Not implemented\n");
-		return -1;
-	case FLOAT_BIN:
-	case COMPLEX_FLOAT_BIN:
-	case COMPLEX_SHORT_BIN:
-		if (q->type == FLOAT_BIN) {
-			size = sizeof(float);
-		} else if (q->type == COMPLEX_FLOAT_BIN) {
-			size = sizeof(_Complex float);
-		} else if (q->type == COMPLEX_SHORT_BIN) {
-			size = sizeof(_Complex short);
-		}
-		return sendto(q->sockfd, buffer, nsamples * size, 0,
-				&q->servaddr, sizeof(struct sockaddr_in));
-		break;
-	}
-	return -1;
+  switch(q->type) {
+  case FLOAT:
+  case COMPLEX_FLOAT:
+  case COMPLEX_SHORT:
+    fprintf(stderr, "Not implemented\n");
+    return -1;
+  case FLOAT_BIN:
+  case COMPLEX_FLOAT_BIN:
+  case COMPLEX_SHORT_BIN:
+    if (q->type == FLOAT_BIN) {
+      size = sizeof(float);
+    } else if (q->type == COMPLEX_FLOAT_BIN) {
+      size = sizeof(_Complex float);
+    } else if (q->type == COMPLEX_SHORT_BIN) {
+      size = sizeof(_Complex short);
+    }
+    return sendto(q->sockfd, buffer, nsamples * size, 0,
+        &q->servaddr, sizeof(struct sockaddr_in));
+    break;
+  }
+  return -1;
 }
 
 
 
 int udpsink_initialize(udpsink_hl* h) {
-	return udpsink_init(&h->obj, h->init.address, h->init.port, h->init.data_type);
+  return udpsink_init(&h->obj, h->init.address, h->init.port, h->init.data_type);
 }
 
 int udpsink_work(udpsink_hl* h) {
-	if (udpsink_write(&h->obj, h->input, h->in_len)<0) {
-		return -1;
-	}
-	return 0;
+  if (udpsink_write(&h->obj, h->input, h->in_len)<0) {
+    return -1;
+  }
+  return 0;
 }
 
 int udpsink_stop(udpsink_hl* h) {
-	udpsink_free(&h->obj);
-	return 0;
+  udpsink_free(&h->obj);
+  return 0;
 }

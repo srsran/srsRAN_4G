@@ -26,10 +26,12 @@
  */
 
 
-#ifndef _cfo_
-#define _cfo_
+#ifndef CFO_
+#define CFO_
 
 #include <complex.h>
+
+#include "lte/config.h"
 
 typedef _Complex float cf_t;
 
@@ -38,18 +40,18 @@ typedef _Complex float cf_t;
 
 #define CFO_CEXPTAB_SIZE 4096
 
-typedef struct {
-	float last_freq;
-	float tol;
-	int nsamples;
-	cexptab_t tab;
-	cf_t *cur_cexp;
+typedef struct LIBLTE_API {
+  float last_freq;
+  float tol;
+  int nsamples;
+  cexptab_t tab;
+  cf_t *cur_cexp;
 }cfo_t;
 
-int cfo_init(cfo_t *h, int nsamples);
-void cfo_free(cfo_t *h);
+LIBLTE_API int cfo_init(cfo_t *h, int nsamples);
+LIBLTE_API void cfo_free(cfo_t *h);
 
-void cfo_set_tol(cfo_t *h, float tol);
-void cfo_correct(cfo_t *h, cf_t *x, float freq);
+LIBLTE_API void cfo_set_tol(cfo_t *h, float tol);
+LIBLTE_API void cfo_correct(cfo_t *h, cf_t *x, float freq);
 
-#endif
+#endif // CFO_

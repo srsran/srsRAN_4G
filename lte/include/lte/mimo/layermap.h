@@ -29,25 +29,27 @@
 #ifndef LAYERMAP_H_
 #define LAYERMAP_H_
 
+#include "lte/config.h"
+
 typedef _Complex float cf_t;
 
 /* Generates the vector of layer-mapped symbols "x" based on the vector of data symbols "d"
  */
-int layermap_single(cf_t *d, cf_t *x, int nof_symbols);
-int layermap_diversity(cf_t *d, cf_t *x[MAX_LAYERS], int nof_layers, int nof_symbols);
-int layermap_multiplex(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
-		int nof_symbols[MAX_CODEWORDS]);
-int layermap_type(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
-		int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type);
+LIBLTE_API int layermap_single(cf_t *d, cf_t *x, int nof_symbols);
+LIBLTE_API int layermap_diversity(cf_t *d, cf_t *x[MAX_LAYERS], int nof_layers, int nof_symbols);
+LIBLTE_API int layermap_multiplex(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
+    int nof_symbols[MAX_CODEWORDS]);
+LIBLTE_API int layermap_type(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
+    int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type);
 
 
 /* Generates the vector of data symbols "d" based on the vector of layer-mapped symbols "x"
  */
-int layerdemap_single(cf_t *x, cf_t *d, int nof_symbols);
-int layerdemap_diversity(cf_t *x[MAX_LAYERS], cf_t *d, int nof_layers, int nof_layer_symbols);
-int layerdemap_multiplex(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
-		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS]);
-int layerdemap_type(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
-		int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type);
+LIBLTE_API int layerdemap_single(cf_t *x, cf_t *d, int nof_symbols);
+LIBLTE_API int layerdemap_diversity(cf_t *x[MAX_LAYERS], cf_t *d, int nof_layers, int nof_layer_symbols);
+LIBLTE_API int layerdemap_multiplex(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
+    int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS]);
+LIBLTE_API int layerdemap_type(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
+    int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type);
 
-#endif
+#endif // LAYERMAP_H_

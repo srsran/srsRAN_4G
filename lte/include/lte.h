@@ -36,6 +36,8 @@
     extern "C" {
 #endif
 
+#include "lte/config.h"
+
 #include "lte/utils/bit.h"
 #include "lte/utils/convolution.h"
 #include "lte/utils/debug.h"

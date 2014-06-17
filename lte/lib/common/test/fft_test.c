@@ -38,104 +38,104 @@ int nof_prb = -1;
 lte_cp_t cp = CPNORM;
 
 void usage(char *prog) {
-	printf("Usage: %s\n", prog);
-	printf("\t-n nof_prb [Default All]\n");
-	printf("\t-e extended cyclic prefix [Default Normal]\n");
+  printf("Usage: %s\n", prog);
+  printf("\t-n nof_prb [Default All]\n");
+  printf("\t-e extended cyclic prefix [Default Normal]\n");
 }
 
 void parse_args(int argc, char **argv) {
-	int opt;
-	while ((opt = getopt(argc, argv, "ne")) != -1) {
-		switch (opt) {
-		case 'n':
-			nof_prb = atoi(argv[optind]);
-			break;
-		case 'e':
-			cp = CPEXT;
-			break;
-		default:
-			usage(argv[0]);
-			exit(-1);
-		}
-	}
+  int opt;
+  while ((opt = getopt(argc, argv, "ne")) != -1) {
+    switch (opt) {
+    case 'n':
+      nof_prb = atoi(argv[optind]);
+      break;
+    case 'e':
+      cp = CPEXT;
+      break;
+    default:
+      usage(argv[0]);
+      exit(-1);
+    }
+  }
 }
 
 
 int main(int argc, char **argv) {
-	lte_fft_t fft, ifft;
-	cf_t *input, *outfft, *outifft;
-	float mse;
-	int n_prb, max_prb, n_re;
-	int i;
+  lte_fft_t fft, ifft;
+  cf_t *input, *outfft, *outifft;
+  float mse;
+  int n_prb, max_prb, n_re;
+  int i;
 
-	parse_args(argc, argv);
+  parse_args(argc, argv);
 
-	if (nof_prb == -1) {
-		n_prb = 6;
-		max_prb = 100;
-	} else {
-		n_prb = nof_prb;
-		max_prb = nof_prb;
-	}
-	while(n_prb <= max_prb) {
-		n_re = CP_NSYMB(cp) * n_prb * RE_X_RB;
+  if (nof_prb == -1) {
+    n_prb = 6;
+    max_prb = 100;
+  } else {
+    n_prb = nof_prb;
+    max_prb = nof_prb;
+  }
+  while(n_prb <= max_prb) {
+    n_re = CP_NSYMB(cp) * n_prb * RE_X_RB;
 
-		printf("Running test for %d PRB, %d RE... ", n_prb, n_re);fflush(stdout);
+    printf("Running test for %d PRB, %d RE... ", n_prb, n_re);fflush(stdout);
 
-		input = malloc(sizeof(cf_t) * n_re);
-		if (!input) {
-			perror("malloc");
-			exit(-1);
-		}
-		outfft = malloc(sizeof(cf_t) * SLOT_LEN_CPNORM(lte_symbol_sz(n_prb)));
-		if (!outfft) {
-			perror("malloc");
-			exit(-1);
-		}
-		outifft = malloc(sizeof(cf_t) * n_re);
-		if (!outifft) {
-			perror("malloc");
-			exit(-1);
-		}
+    input = malloc(sizeof(cf_t) * n_re);
+    if (!input) {
+      perror("malloc");
+      exit(-1);
+    }
+    outfft = malloc(sizeof(cf_t) * SLOT_LEN_CPNORM(lte_symbol_sz(n_prb)));
+    if (!outfft) {
+      perror("malloc");
+      exit(-1);
+    }
+    outifft = malloc(sizeof(cf_t) * n_re);
+    if (!outifft) {
+      perror("malloc");
+      exit(-1);
+    }
 
-		if (lte_fft_init(&fft, cp, n_prb)) {
-			fprintf(stderr, "Error initializing FFT\n");
-			exit(-1);
-		}
-		if (lte_ifft_init(&ifft, cp, n_prb)) {
-			fprintf(stderr, "Error initializing iFFT\n");
-			exit(-1);
-		}
+    if (lte_fft_init(&fft, cp, n_prb)) {
+      fprintf(stderr, "Error initializing FFT\n");
+      exit(-1);
+    }
+    if (lte_ifft_init(&ifft, cp, n_prb)) {
+      fprintf(stderr, "Error initializing iFFT\n");
+      exit(-1);
+    }
 
-		for (i=0;i<n_re;i++) {
-			input[i] = 100 * ((float) rand()/RAND_MAX + (float) I*rand()/RAND_MAX);
-		}
+    for (i=0;i<n_re;i++) {
+      input[i] = 100 * ((float) rand()/RAND_MAX + (float) I*rand()/RAND_MAX);
+    }
 
-		lte_ifft_run(&ifft, input, outfft);
-		lte_fft_run(&fft, outfft, outifft);
+    lte_ifft_run(&ifft, input, outfft);
+    lte_fft_run(&fft, outfft, outifft);
 
-		/* compute MSE */
+    /* compute MSE */
 
-		mse = 0;
-		for (i=0;i<n_re;i++) {
-			mse += cabsf(input[i] - outifft[i]);
-		}
-		printf("MSE=%f\n", mse);
+    mse = 0;
+    for (i=0;i<n_re;i++) {
+      mse += cabsf(input[i] - outifft[i]);
+    }
+    printf("MSE=%f\n", mse);
 
-		if (mse >= 0.07) {
-			printf("MSE too large\n");
-			exit(-1);
-		}
+    if (mse >= 0.07) {
+      printf("MSE too large\n");
+      exit(-1);
+    }
 
-		lte_fft_free(&fft);
-		lte_ifft_free(&ifft);
+    lte_fft_free(&fft);
+    lte_ifft_free(&ifft);
 
-		free(input);
-		free(outfft);
-		free(outifft);
+    free(input);
+    free(outfft);
+    free(outifft);
 
-		n_prb++;
-	}
-	fftwf_cleanup();
-	exit(0);
+    n_prb++;
+  }
+  fftwf_cleanup();
+  exit(0);
 }

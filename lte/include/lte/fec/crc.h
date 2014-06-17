@@ -29,20 +29,22 @@
 #ifndef CRC_
 #define CRC_
 
-typedef struct {
-	unsigned long table[256];
-	unsigned char byte;
-	int polynom;
-	int order;
-	unsigned long crcinit; 
-	unsigned long crcmask;
-	unsigned long crchighbit;
-	unsigned int crc_out;
+#include "lte/config.h"
+
+typedef struct LIBLTE_API {
+  unsigned long table[256];
+  unsigned char byte;
+  int polynom;
+  int order;
+  unsigned long crcinit; 
+  unsigned long crcmask;
+  unsigned long crchighbit;
+  unsigned int crc_out;
 } crc_t;
 
-int crc_init(crc_t *h, unsigned int crc_poly, int crc_order);
-int crc_set_init(crc_t *h, unsigned long crc_init_value);
-void crc_attach(crc_t *h, char *data, int len);
-unsigned int crc_checksum(crc_t *h, char *data, int len);
+LIBLTE_API int crc_init(crc_t *h, unsigned int crc_poly, int crc_order);
+LIBLTE_API int crc_set_init(crc_t *h, unsigned long crc_init_value);
+LIBLTE_API void crc_attach(crc_t *h, char *data, int len);
+LIBLTE_API unsigned int crc_checksum(crc_t *h, char *data, int len);
 
 #endif

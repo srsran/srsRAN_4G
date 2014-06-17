@@ -32,38 +32,39 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "lte/config.h"
 #include "lte/io/format.h"
 
 /* Low-level API */
-typedef struct {
-	FILE *f;
-	data_type_t type;
+typedef struct LIBLTE_API {
+  FILE *f;
+  data_type_t type;
 }filesource_t;
 
-int filesource_init(filesource_t *q, char *filename, data_type_t type);
-void filesource_free(filesource_t *q);
+LIBLTE_API int filesource_init(filesource_t *q, char *filename, data_type_t type);
+LIBLTE_API void filesource_free(filesource_t *q);
 
-void filesource_seek(filesource_t *q, int pos);
-int filesource_read(filesource_t *q, void *buffer, int nsamples);
+LIBLTE_API void filesource_seek(filesource_t *q, int pos);
+LIBLTE_API int filesource_read(filesource_t *q, void *buffer, int nsamples);
 
 
 /* High-level API */
-typedef struct {
-	filesource_t obj;
-	struct filesource_init {
-		char *file_name;
-		int block_length;
-		int data_type;
-	} init;
-	struct filesource_ctrl_in {
-		int nsamples;				// Number of samples to read
-	} ctrl_in;
-	void* output;
-	int out_len;
+typedef struct LIBLTE_API {
+  filesource_t obj;
+  struct filesource_init {
+    char *file_name;
+    int block_length;
+    int data_type;
+  } init;
+  struct filesource_ctrl_in {
+    int nsamples;        // Number of samples to read
+  } ctrl_in;
+  void* output;
+  int out_len;
 }filesource_hl;
 
-int filesource_initialize(filesource_hl* h);
-int filesource_work(	filesource_hl* hl);
-int filesource_stop(filesource_hl* h);
+LIBLTE_API int filesource_initialize(filesource_hl* h);
+LIBLTE_API int filesource_work(  filesource_hl* hl);
+LIBLTE_API int filesource_stop(filesource_hl* h);
 
-#endif
+#endif // FILESOURCE_

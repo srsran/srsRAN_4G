@@ -29,7 +29,9 @@
 #ifndef SFO_
 #define SFO_
 
-float sfo_estimate(int *t0, int len, float period);
-float sfo_estimate_period(int *t0, int *t, int len, float period);
+#include "lte/config.h"
 
-#endif
+LIBLTE_API float sfo_estimate(int *t0, int len, float period);
+LIBLTE_API float sfo_estimate_period(int *t0, int *t, int len, float period);
+
+#endif // SFO_

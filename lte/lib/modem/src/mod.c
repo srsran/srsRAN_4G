@@ -36,38 +36,38 @@
 /** Low-level API */
 
 int mod_modulate(modem_table_t* q, const char *bits, cf_t* symbols, int nbits) {
-	int i,j,idx;
-	char *b_ptr=(char*) bits;
-	j=0;
-	for (i=0;i<nbits;i+=q->nbits_x_symbol) {
-		idx = bit_unpack(&b_ptr,q->nbits_x_symbol);
-		assert(idx >= 0 && idx < q->nsymbols);
-		symbols[j] = q->symbol_table[idx];
-		j++;
-	}
-	return j;
+  int i,j,idx;
+  char *b_ptr=(char*) bits;
+  j=0;
+  for (i=0;i<nbits;i+=q->nbits_x_symbol) {
+    idx = bit_unpack(&b_ptr,q->nbits_x_symbol);
+    assert(idx >= 0 && idx < q->nsymbols);
+    symbols[j] = q->symbol_table[idx];
+    j++;
+  }
+  return j;
 }
 
 
 /* High-Level API */
 int mod_initialize(mod_hl* hl) {
-	modem_table_init(&hl->obj);
-	if (modem_table_std(&hl->obj,hl->init.std,false)) {
-		return -1;
-	}
+  modem_table_init(&hl->obj);
+  if (modem_table_std(&hl->obj,hl->init.std,false)) {
+    return -1;
+  }
 
-	return 0;
+  return 0;
 }
 
 int mod_work(mod_hl* hl) {
-	int ret = mod_modulate(&hl->obj,hl->input,hl->output,hl->in_len);
-	hl->out_len = ret;
-	return 0;
+  int ret = mod_modulate(&hl->obj,hl->input,hl->output,hl->in_len);
+  hl->out_len = ret;
+  return 0;
 }
 
 int mod_stop(mod_hl* hl) {
-	modem_table_free(&hl->obj);
-	return 0;
+  modem_table_free(&hl->obj);
+  return 0;
 }
 
 

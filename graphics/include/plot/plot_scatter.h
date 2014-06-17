@@ -34,18 +34,19 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include "lte/config.h"
 
 typedef void* plot_scatter_t;
 
-int plot_scatter_init(plot_scatter_t *h);
-void plot_scatter_setTitle(plot_scatter_t *h, char *title);
-void plot_scatter_setNewData(plot_scatter_t *h, _Complex float *data,
-		int num_points);
-void plot_scatter_setXAxisAutoScale(plot_scatter_t *h, bool on);
-void plot_scatter_setYAxisAutoScale(plot_scatter_t *h, bool on);
-void plot_scatter_setXAxisScale(plot_scatter_t *h, double xMin, double xMax);
-void plot_scatter_setYAxisScale(plot_scatter_t *h, double yMin, double yMax);
-void plot_scatter_setAxisLabels(plot_scatter_t *h, char *xLabel, char *yLabel);
+LIBLTE_API int plot_scatter_init(plot_scatter_t *h);
+LIBLTE_API void plot_scatter_setTitle(plot_scatter_t *h, char *title);
+LIBLTE_API void plot_scatter_setNewData(plot_scatter_t *h, _Complex float *data,
+    int num_points);
+LIBLTE_API void plot_scatter_setXAxisAutoScale(plot_scatter_t *h, bool on);
+LIBLTE_API void plot_scatter_setYAxisAutoScale(plot_scatter_t *h, bool on);
+LIBLTE_API void plot_scatter_setXAxisScale(plot_scatter_t *h, double xMin, double xMax);
+LIBLTE_API void plot_scatter_setYAxisScale(plot_scatter_t *h, double yMin, double yMax);
+LIBLTE_API void plot_scatter_setAxisLabels(plot_scatter_t *h, char *xLabel, char *yLabel);
 
 #ifdef __cplusplus
 }

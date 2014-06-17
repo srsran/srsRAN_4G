@@ -25,45 +25,31 @@
  *
  */
 
+#ifndef CONFIG_H
+#define CONFIG_H
 
-#include <complex.h>
-#include <stdlib.h>
-#include <strings.h>
+// Generic helper definitions for shared library support
+#if defined _WIN32 || defined __CYGWIN__
+  #define LIBLTE_IMPORT __declspec(dllimport)
+  #define LIBLTE_EXPORT __declspec(dllexport)
+  #define LIBLTE_LOCAL
+#else
+  #if __GNUC__ >= 4
+    #define LIBLTE_IMPORT __attribute__ ((visibility ("default")))
+    #define LIBLTE_EXPORT __attribute__ ((visibility ("default")))
+  #else
+    #define LIBLTE_IMPORT
+    #define LIBLTE_EXPORT
+    #define LIBLTE_LOCAL
+  #endif
+#endif
 
-#include "gauss.h"
-#include "lte/channel/ch_awgn.h"
+// Define LIBLTE_API
+// LIBLTE_API is used for the public API symbols.
+#ifdef LIBLTE_DLL_EXPORTS // defined if we are building the LIBLTE DLL (instead of using it)
+  #define LIBLTE_API LIBLTE_EXPORT
+#else
+  #define LIBLTE_API LIBLTE_IMPORT
+#endif
 
-void ch_awgn_c(const cf_t* x, cf_t* y, float variance, int buff_sz) {
-  _Complex float tmp;
-  int i;
-
-  for (i=0;i<buff_sz;i++) {
-    __real__ tmp = rand_gauss();
-    __imag__ tmp = rand_gauss();
-    tmp *= variance;
-    y[i] = tmp + x[i];
-  }
-}
-void ch_awgn_f(const float* x, float* y, float variance, int buff_sz) {
-  int i;
-
-  for (i=0;i<buff_sz;i++) {
-    y[i] = x[i] + variance * rand_gauss();
-  }
-}
-
-/* High-level API */
-int ch_awgn_initialize(ch_awgn_hl* hl) {
-
-  return 0;
-}
-
-int ch_awgn_work(ch_awgn_hl* hl) {
-  ch_awgn_c(hl->input,hl->output,hl->ctrl_in.variance,hl->in_len);
-  hl->out_len = hl->in_len;
-  return 0;
-}
-
-int ch_awgn_stop(ch_awgn_hl* hl) {
-  return 0;
-}
+#endif // CONFIG_H

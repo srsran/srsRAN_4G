@@ -29,7 +29,9 @@
 #ifndef PACK_
 #define PACK_
 
-unsigned int unpack_bits(char **bits, int nof_bits);
-void pack_bits(unsigned int value, char **bits, int nof_bits);
+#include "lte/config.h"
 
-#endif
+LIBLTE_API unsigned int unpack_bits(char **bits, int nof_bits);
+LIBLTE_API void pack_bits(unsigned int value, char **bits, int nof_bits);
+
+#endif // PACK_
