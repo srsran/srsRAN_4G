@@ -44,13 +44,13 @@ int conv_fft_cc_init(conv_fft_cc_t *state, int input_len, int filter_len) {
   if (!state->input_fft || !state->filter_fft || !state->output_fft) {
     return -1;
   }
-  if (dft_plan(&state->input_plan,state->output_len,COMPLEX_2_COMPLEX,FORWARD)) {
+  if (dft_plan(&state->input_plan,state->output_len,FORWARD,COMPLEX)) {
     return -2;
   }
-  if (dft_plan(&state->filter_plan,state->output_len,COMPLEX_2_COMPLEX,FORWARD)) {
+  if (dft_plan(&state->filter_plan,state->output_len,FORWARD,COMPLEX)) {
     return -3;
   }
-  if (dft_plan(&state->output_plan,state->output_len,COMPLEX_2_COMPLEX,BACKWARD)) {
+  if (dft_plan(&state->output_plan,state->output_len,BACKWARD,COMPLEX)) {
     return -4;
   }
   return 0;
@@ -73,12 +73,12 @@ void conv_fft_cc_free(conv_fft_cc_t *state) {
 
 int conv_fft_cc_run(conv_fft_cc_t *state, _Complex float *input, _Complex float *filter, _Complex float *output) {
 
-  dft_run_c2c(&state->input_plan, input, state->input_fft);
-  dft_run_c2c(&state->filter_plan, filter, state->filter_fft);
+  dft_run_c(&state->input_plan, input, state->input_fft);
+  dft_run_c(&state->filter_plan, filter, state->filter_fft);
 
   vec_prod_ccc(state->input_fft,state->filter_fft,state->output_fft,state->output_len);
 
-  dft_run_c2c(&state->output_plan, state->output_fft, output);
+  dft_run_c(&state->output_plan, state->output_fft, output);
 
   return state->output_len;
 

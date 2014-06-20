@@ -212,7 +212,6 @@ int main(int argc, char **argv) {
   n = pbch_decode(&pbch, fft_buffer, ce, 1, &mib);
 
   base_free();
-  fftwf_cleanup();
 
   if (n < 0) {
     fprintf(stderr, "Error decoding PBCH\n");

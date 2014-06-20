@@ -29,42 +29,42 @@
 #ifndef DFT_H_
 #define DFT_H_
  
-#include <fftw3.h>
+#include <stdbool.h>
 #include "liblte/config.h"
 
 
-/* dft is a frontend to the fftw3 library. It facilitates the computation of
- * complex or real DFT, power spectral density, normalization, etc.
- * It also supports the creation of multiple FFT plans for different FFT sizes
- * or options, selecting a different one at runtime.
+/* Generic DFT module.
+ * Supports one-dimensional complex and real transforms. Options are set
+ * using the dft_plan_set_x functions.
+ *
+ * Options (default is false):
+ * mirror - Rearranges negative and positive frequency bins. Swaps after
+ *            transform for FORWARD, swaps before transform for BACKWARD.
+ * db     - Provides output in dB (10*log10(x)).
+ * norm   - Normalizes output (by sqrt(len) for complex, len for real).
+ * dc     - Handles insertion and removal of null DC carrier internally.
  */
 
-
 typedef enum {
-  COMPLEX_2_COMPLEX, REAL_2_REAL, COMPLEX_2_REAL
+  COMPLEX, REAL
 }dft_mode_t;
 
 typedef enum {
   FORWARD, BACKWARD
 }dft_dir_t;
 
-
-#define DFT_MIRROR_PRE  1
-#define DFT_PSD      2
-#define DFT_OUT_DB    4
-#define DFT_MIRROR_POS  8
-#define DFT_NORMALIZE   16
-#define DFT_DC_OFFSET   32
-
 typedef struct LIBLTE_API {
-  int size;
-  int sign;
-  void *in;
-  void *out;
-  void *p;
-  int options;
-  dft_dir_t dir;
-  dft_mode_t mode;
+  int size;           // DFT length
+  void *in;           // Input buffer
+  void *out;          // Output buffer
+  void *p;            // DFT plan
+  bool forward;       // Forward transform?
+  bool mirror;        // Shift negative and positive frequencies?
+  bool db;            // Provide output in dB?
+  bool norm;          // Normalize output?
+  bool dc;            // Handle insertion/removal of null DC carrier internally?
+  dft_dir_t dir;     // Forward/Backward
+  dft_mode_t mode;   // Complex/Real
 }dft_plan_t;
 
 typedef _Complex float dft_c_t;
@@ -72,32 +72,24 @@ typedef float dft_r_t;
 
 /* Create DFT plans */
 
-LIBLTE_API int dft_plan(dft_plan_t *plan, const int dft_points,
-                        dft_mode_t mode, dft_dir_t dir);
-LIBLTE_API int dft_plan_c2c(dft_plan_t *plan, const int dft_points, dft_dir_t dir);
-LIBLTE_API int dft_plan_r2r(dft_plan_t *plan, const int dft_points, dft_dir_t dir);
-LIBLTE_API int dft_plan_c2r(dft_plan_t *plan, const int dft_points, dft_dir_t dir);
+LIBLTE_API int dft_plan(dft_plan_t *plan, const int dft_points, dft_dir_t dir,
+                         dft_mode_t type);
+LIBLTE_API int dft_plan_c(dft_plan_t *plan, const int dft_points, dft_dir_t dir);
+LIBLTE_API int dft_plan_r(dft_plan_t *plan, const int dft_points, dft_dir_t dir);
 LIBLTE_API void dft_plan_free(dft_plan_t *plan);
 
+/* Set options */
 
-/* Create a vector of DFT plans */
-
-LIBLTE_API int dft_plan_vector(dft_plan_t *plans, const int *dft_points,
-                               dft_mode_t *modes, dft_dir_t *dirs, int nof_plans);
-LIBLTE_API int dft_plan_multi_c2c(dft_plan_t *plans, const int *dft_points,
-                                  dft_dir_t dir, int nof_plans);
-LIBLTE_API int dft_plan_multi_c2r(dft_plan_t *plans, const int *dft_points,
-                                  dft_dir_t dir, int nof_plans);
-LIBLTE_API int dft_plan_multi_r2r(dft_plan_t *plans, const int *dft_points,
-                                  dft_dir_t dir, int nof_plans);
-LIBLTE_API void dft_plan_free_vector(dft_plan_t *plans, int nof_plans);
+LIBLTE_API void dft_plan_set_mirror(dft_plan_t *plan, bool val);
+LIBLTE_API void dft_plan_set_db(dft_plan_t *plan, bool val);
+LIBLTE_API void dft_plan_set_norm(dft_plan_t *plan, bool val);
+LIBLTE_API void dft_plan_set_dc(dft_plan_t *plan, bool val);
 
 /* Compute DFT */
 
 LIBLTE_API void dft_run(dft_plan_t *plan, void *in, void *out);
-LIBLTE_API void dft_run_c2c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out);
-LIBLTE_API void dft_run_r2r(dft_plan_t *plan, dft_r_t *in, dft_r_t *out);
-LIBLTE_API void dft_run_c2r(dft_plan_t *plan, dft_c_t *in, dft_r_t *out);
+LIBLTE_API void dft_run_c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out);
+LIBLTE_API void dft_run_r(dft_plan_t *plan, dft_r_t *in, dft_r_t *out);
 
 #endif // DFT_H_
 

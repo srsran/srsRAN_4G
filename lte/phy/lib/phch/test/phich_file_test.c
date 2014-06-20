@@ -272,7 +272,6 @@ int main(int argc, char **argv) {
   }
 
   base_free();
-  fftwf_cleanup();
 
   if (n < 0) {
     fprintf(stderr, "Error decoding phich\n");

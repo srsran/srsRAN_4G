@@ -69,7 +69,7 @@ void sss_synch_m0m1(sss_synch_t *q, cf_t *input, int *m0, float *m0_value,
 
   int i;
 
-  dft_run_c2c(&q->dftp_input, input, input_fft);
+  dft_run_c(&q->dftp_input, input, input_fft);
 
   for (i = 0; i < N_SSS; i++) {
     y[0][i] = input_fft[SSS_POS_SYMBOL + 2 * i];

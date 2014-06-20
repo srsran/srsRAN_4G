@@ -42,7 +42,7 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp_type, int nof_prb, dft_dir_t dir) {
     fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
     return -1;
   }
-  if (dft_plan_c2c(&q->fft_plan, symbol_sz, dir)) {
+  if (dft_plan_c(&q->fft_plan, symbol_sz, dir)) {
     fprintf(stderr, "Error: Creating DFT plan\n");
     return -1;
   }
@@ -52,12 +52,10 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp_type, int nof_prb, dft_dir_t dir) {
     return -1;
   }
 
-  q->fft_plan.options = DFT_NORMALIZE;
-  if (dir==FORWARD) {
-    q->fft_plan.options |= DFT_DC_OFFSET | DFT_MIRROR_POS;
-  } else {
-    q->fft_plan.options |= DFT_DC_OFFSET | DFT_MIRROR_PRE;
-  }
+  dft_plan_set_mirror(&q->fft_plan, true);
+  dft_plan_set_norm(&q->fft_plan, true);
+  dft_plan_set_dc(&q->fft_plan, true);
+
   q->symbol_sz = symbol_sz;
   q->nof_symbols = CP_NSYMB(cp_type);
   q->cp_type = cp_type;
@@ -109,7 +107,7 @@ void lte_fft_run(lte_fft_t *q, cf_t *input, cf_t *output) {
   int i;
   for (i=0;i<q->nof_symbols;i++) {
     input += CP_ISNORM(q->cp_type)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
-    dft_run_c2c(&q->fft_plan, input, q->tmp);
+    dft_run_c(&q->fft_plan, input, q->tmp);
     memcpy(output, &q->tmp[q->nof_guards], q->nof_re * sizeof(cf_t));
     input += q->symbol_sz;
     output += q->nof_re;
@@ -124,7 +122,7 @@ void lte_ifft_run(lte_fft_t *q, cf_t *input, cf_t *output) {
   for (i=0;i<q->nof_symbols;i++) {
     cp_len = CP_ISNORM(q->cp_type)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
     memcpy(&q->tmp[q->nof_guards], input, q->nof_re * sizeof(cf_t));
-    dft_run_c2c(&q->fft_plan, q->tmp, &output[cp_len]);
+    dft_run_c(&q->fft_plan, q->tmp, &output[cp_len]);
     input += q->nof_re;
     /* add CP */
     memcpy(output, &output[q->symbol_sz], cp_len * sizeof(cf_t));

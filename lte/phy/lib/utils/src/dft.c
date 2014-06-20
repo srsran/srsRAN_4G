@@ -33,73 +33,15 @@
 
 #include "liblte/phy/utils/dft.h"
 
-#define div(a,b) ((a-1)/b+1)
+#define dft_ceil(a,b) ((a-1)/b+1)
+#define dft_floor(a,b) (a/b)
 
-
-int dft_plan_vector(dft_plan_t *plans, const int *dft_points,
-                    dft_mode_t *modes, dft_dir_t *dirs, int nof_plans) {
-  int i;
-  for (i=0;i<nof_plans;i++) {
-    if (dft_plan(&plans[i], dft_points[i],modes[i],dirs[i])) {
-      return -1;
-    }
-  }
-  return 0;
-}
-
-int dft_plan_multi_c2c(dft_plan_t *plans, const int *dft_points,
-                       dft_dir_t dir, int nof_plans) {
-  int i;
-  for (i=0;i<nof_plans;i++) {
-    if (dft_plan(&plans[i],dft_points[i],COMPLEX_2_COMPLEX,dir)) {
-      return -1;
-    }
-  }
-  return 0;
-}
-
-int dft_plan_multi_c2r(dft_plan_t *plans, const int *dft_points,
-                       dft_dir_t dir, int nof_plans) {
-  int i;
-  for (i=0;i<nof_plans;i++) {
-    if (dft_plan(&plans[i], dft_points[i],COMPLEX_2_REAL,dir)) {
-      return -1;
-    }
-  }
-  return 0;
-}
-
-int dft_plan_multi_r2r(dft_plan_t *plans, const int *dft_points,
-                       dft_dir_t dir, int nof_plans) {
-  int i;
-  for (i=0;i<nof_plans;i++) {
-    if (dft_plan(&plans[i], dft_points[i],REAL_2_REAL,dir)) {
-      return -1;
-    }
-  }
-  return 0;
-}
-
-
-int dft_plan(dft_plan_t *plan, const int dft_points,
-             dft_mode_t mode, dft_dir_t dir) {
-
-  switch(mode) {
-  case COMPLEX_2_COMPLEX:
-    if (dft_plan_c2c(plan,dft_points,dir)) {
-      return -1;
-    }
-    break;
-  case REAL_2_REAL:
-    if (dft_plan_r2r(plan,dft_points,dir)) {
-      return -1;
-    }
-    break;
-  case COMPLEX_2_REAL:
-    if (dft_plan_c2r(plan,dft_points,dir)) {
-      return -1;
-    }
-    break;
+int dft_plan(dft_plan_t *plan, const int dft_points, dft_dir_t dir,
+             dft_mode_t mode) {
+  if(mode == COMPLEX){
+    return dft_plan_c(plan,dft_points,dir);
+  } else {
+    return dft_plan_r(plan,dft_points,dir);
   }
   return 0;
 }
@@ -109,165 +51,133 @@ static void allocate(dft_plan_t *plan, int size_in, int size_out, int len) {
   plan->out = fftwf_malloc(size_out*len);
 }
 
-int dft_plan_c2c(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
-  int sign;
-  sign = (dir == FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
+int dft_plan_c(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
   allocate(plan,sizeof(fftwf_complex),sizeof(fftwf_complex), dft_points);
-
+  int sign = (dir == FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
   plan->p = fftwf_plan_dft_1d(dft_points, plan->in, plan->out, sign, 0U);
   if (!plan->p) {
     return -1;
   }
-
   plan->size = dft_points;
-  plan->mode = COMPLEX_2_COMPLEX;
+  plan->mode = COMPLEX;
+  plan->dir = dir;
+  plan->forward = (dir==FORWARD)?true:false;
+  plan->mirror = false;
+  plan->db = false;
+  plan->norm = false;
 
   return 0;
 }
 
-int dft_plan_r2r(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
-  int sign;
-  sign = (dir == FORWARD) ? FFTW_R2HC : FFTW_HC2R;
-
+int dft_plan_r(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
   allocate(plan,sizeof(float),sizeof(float), dft_points);
-
+  int sign = (dir == FORWARD) ? FFTW_R2HC : FFTW_HC2R;
   plan->p = fftwf_plan_r2r_1d(dft_points, plan->in, plan->out, sign, 0U);
   if (!plan->p) {
     return -1;
   }
-
   plan->size = dft_points;
-  plan->mode = REAL_2_REAL;
+  plan->mode = REAL;
+  plan->dir = dir;
+  plan->forward = (dir==FORWARD)?true:false;
+  plan->mirror = false;
+  plan->db = false;
+  plan->norm = false;
 
   return 0;
 }
 
-int dft_plan_c2r(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
-  if (dft_plan_c2c(plan, dft_points, dir)) {
-    return -1;
-  }
-  plan->mode = COMPLEX_2_REAL;
-  return 0;
+void dft_plan_set_mirror(dft_plan_t *plan, bool val){
+  plan->mirror = val;
+}
+void dft_plan_set_db(dft_plan_t *plan, bool val){
+  plan->db = val;
+}
+void dft_plan_set_norm(dft_plan_t *plan, bool val){
+  plan->norm = val;
+}
+void dft_plan_set_dc(dft_plan_t *plan, bool val){
+  plan->dc = val;
 }
 
-static void copy(char *dst, char *src, int size_d, int len, int mirror, int dc_offset) {
-  int offset=dc_offset?1:0;
-  int hlen;
-  if (mirror == DFT_MIRROR_PRE) {
-    hlen = div(len,2);
+static void copy_pre(char *dst, char *src, int size_d, int len,
+                     bool forward, bool mirror, bool dc) {
+  int offset = dc?1:0;
+  if(mirror && !forward){
+    int hlen = dft_floor(len,2);
     memset(dst,0,size_d*offset);
-    memcpy(&dst[offset*size_d], &src[size_d*hlen], size_d*(hlen-offset));
-    memcpy(&dst[hlen*size_d], src, size_d*(len - hlen));
-  } else if (mirror == DFT_MIRROR_POS) {
-    hlen = div(len,2);
-    memcpy(dst, &src[size_d*hlen], size_d*hlen);
-    memcpy(&dst[hlen*size_d], &src[size_d*offset], size_d*(len - hlen));
+    memcpy(&dst[size_d*offset], &src[size_d*hlen], size_d*(len-hlen-offset));
+    memcpy(&dst[(len-hlen)*size_d], src, size_d*hlen);
+  } else {
+    memcpy(dst,src,size_d*len);
+  }
+}
+
+static void copy_post(char *dst, char *src, int size_d, int len,
+                      bool forward, bool mirror, bool dc) {
+  int offset = dc?1:0;
+  if(mirror && forward){
+    int hlen = dft_ceil(len,2);
+    memcpy(dst, &src[size_d*hlen], size_d*(len-hlen));
+    memcpy(&dst[(len-hlen)*size_d], &src[size_d*offset], size_d*(hlen-offset));
   } else {
     memcpy(dst,src,size_d*len);
   }
 }
 
 void dft_run(dft_plan_t *plan, void *in, void *out) {
-  switch(plan->mode) {
-  case COMPLEX_2_COMPLEX:
-    dft_run_c2c(plan,in,out);
-    break;
-  case REAL_2_REAL:
-    dft_run_r2r(plan,in,out);
-    break;
-  case COMPLEX_2_REAL:
-    dft_run_c2r(plan,in,out);
-    break;
+  if(plan->mode == COMPLEX) {
+    dft_run_c(plan,in,out);
+  } else {
+    dft_run_r(plan,in,out);
   }
 }
 
-void dft_run_c2c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out) {
+void dft_run_c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out) {
   float norm;
   int i;
   fftwf_complex *f_out = plan->out;
 
-  copy((char*) plan->in,(char*) in,sizeof(dft_c_t),plan->size,plan->options & DFT_MIRROR_PRE,
-      plan->options & DFT_DC_OFFSET);
-
+  copy_pre((char*)plan->in, (char*)in, sizeof(dft_c_t), plan->size,
+           plan->forward, plan->mirror, plan->dc);
   fftwf_execute(plan->p);
-
-  if (plan->options & DFT_NORMALIZE) {
+  if (plan->norm) {
     /**FIXME: Use VOLK */
     norm = sqrtf(plan->size);
     for (i=0;i<plan->size;i++) {
       f_out[i] /= norm;
     }
   }
-  if (plan->options & DFT_OUT_DB) {
+  if (plan->db) {
     for (i=0;i<plan->size;i++) {
       f_out[i] = 10*log10(f_out[i]);
     }
   }
-  copy((char*) out,(char*) plan->out,sizeof(dft_c_t),plan->size,plan->options & DFT_MIRROR_POS,
-      plan->options & DFT_DC_OFFSET);
+  copy_post((char*)out, (char*)plan->out, sizeof(dft_c_t), plan->size,
+            plan->forward, plan->mirror, plan->dc);
 }
 
-void dft_run_r2r(dft_plan_t *plan, dft_r_t *in, dft_r_t *out) {
+void dft_run_r(dft_plan_t *plan, dft_r_t *in, dft_r_t *out) {
   float norm;
   int i;
   int len = plan->size;
   float *f_out = plan->out;
 
-  copy((char*) plan->in,(char*) in,sizeof(dft_r_t),plan->size,plan->options & DFT_MIRROR_PRE,
-      plan->options & DFT_DC_OFFSET);
-
+  memcpy(plan->in,in,sizeof(dft_r_t)*plan->size);
   fftwf_execute(plan->p);
-
-  if (plan->options & DFT_NORMALIZE) {
+  if (plan->norm) {
     norm = plan->size;
     for (i=0;i<len;i++) {
       f_out[i] /= norm;
     }
   }
-  if (plan->options & DFT_PSD) {
-    for (i=0;i<(len+1)/2-1;i++) {
-      out[i] = sqrtf(f_out[i]*f_out[i]+f_out[len-i-1]*f_out[len-i-1]);
-    }
-  }
-  if (plan->options & DFT_OUT_DB) {
+  if (plan->db) {
     for (i=0;i<len;i++) {
-      out[i] = 10*log10(out[i]);
+      f_out[i] = 10*log10(f_out[i]);
     }
   }
+  memcpy(out,plan->out,sizeof(dft_r_t)*plan->size);
 }
-
-void dft_run_c2r(dft_plan_t *plan, dft_c_t *in, dft_r_t *out) {
-  int i;
-  float norm;
-  float *f_out = plan->out;
-
-  copy((char*) plan->in,(char*) in,sizeof(dft_r_t),plan->size,plan->options & DFT_MIRROR_PRE,
-      plan->options & DFT_DC_OFFSET);
-
-  fftwf_execute(plan->p);
-
-  if (plan->options & DFT_NORMALIZE) {
-    norm = plan->size;
-    for (i=0;i<plan->size;i++) {
-      f_out[i] /= norm;
-    }
-  }
-  if (plan->options & DFT_PSD) {
-    for (i=0;i<plan->size;i++) {
-      out[i] = (__real__ f_out[i])*(__real__ f_out[i])+
-           (__imag__ f_out[i])*(__imag__ f_out[i]);
-      if (!(plan->options & DFT_OUT_DB)) {
-        out[i] = sqrtf(out[i]);
-      }
-    }
-  }
-  if (plan->options & DFT_OUT_DB) {
-    for (i=0;i<plan->size;i++) {
-      out[i] = 10*log10(out[i]);
-    }
-  }
-}
-
 
 void dft_plan_free(dft_plan_t *plan) {
   if (!plan) return;
@@ -276,13 +186,6 @@ void dft_plan_free(dft_plan_t *plan) {
   if (plan->out) fftwf_free(plan->out);
   if (plan->p) fftwf_destroy_plan(plan->p);
   bzero(plan, sizeof(dft_plan_t));
-}
-
-void dft_plan_free_vector(dft_plan_t *plan, int nof_plans) {
-  int i;
-  for (i=0;i<nof_plans;i++) {
-    dft_plan_free(&plan[i]);
-  }
 }
 
 

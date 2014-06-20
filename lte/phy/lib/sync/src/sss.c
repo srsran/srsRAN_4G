@@ -29,6 +29,7 @@
 #include <strings.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
 #include "liblte/phy/sync/sss.h"
@@ -42,11 +43,12 @@ void generate_N_id_1_table(int table[30][30]);
 int sss_synch_init(sss_synch_t *q) {
   bzero(q, sizeof(sss_synch_t));
 
-  if (dft_plan(&q->dftp_input, SSS_DFT_LEN, COMPLEX_2_COMPLEX, FORWARD)) {
+  if (dft_plan(&q->dftp_input, SSS_DFT_LEN, FORWARD, COMPLEX)) {
     return -1;
   }
   generate_N_id_1_table(q->N_id_1_table);
-  q->dftp_input.options = DFT_MIRROR_POS | DFT_DC_OFFSET;
+  dft_plan_set_mirror(&q->dftp_input, true);
+  dft_plan_set_dc(&q->dftp_input, true);
   return 0;
 }
 
