@@ -136,6 +136,5 @@ int main(int argc, char **argv) {
 
     n_prb++;
   }
-  fftwf_cleanup();
   exit(0);
 }

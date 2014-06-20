@@ -158,8 +158,6 @@ int main(int argc, char **argv) {
   sync_free(&sync);
   lte_ifft_free(&ifft);
 
-  fftwf_cleanup();
-
   printf("Ok\n");
   exit(0);
 }

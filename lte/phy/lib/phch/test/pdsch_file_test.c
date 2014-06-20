@@ -328,7 +328,6 @@ int main(int argc, char **argv) {
 	} while (nof_frames <= max_frames);
 
 goout:
-	base_free();
-	fftwf_cleanup();
+  base_free();
 	exit(ret);
 }

@@ -183,12 +183,13 @@ int pss_synch_set_N_id_2(pss_synch_t *q, int N_id_2) {
   memset(q->pss_signal_freq, 0, PSS_LEN_FREQ * sizeof(cf_t));
   memcpy(&pss_signal_pad[33], pss_signal_time, PSS_LEN * sizeof(cf_t));
 
-  if (dft_plan(&plan, PSS_LEN_FREQ - 1, COMPLEX_2_COMPLEX, BACKWARD)) {
+  if (dft_plan(&plan, PSS_LEN_FREQ - 1, BACKWARD, COMPLEX)) {
     return -1;
   }
-  plan.options = DFT_MIRROR_PRE | DFT_DC_OFFSET;
+  dft_plan_set_mirror(&plan, true);
+  dft_plan_set_dc(&plan, true);
 
-  dft_run_c2c(&plan, pss_signal_pad, q->pss_signal_freq);
+  dft_run_c(&plan, pss_signal_pad, q->pss_signal_freq);
 
   vec_sc_prod_cfc(q->pss_signal_freq, (float) 1 / (PSS_LEN_FREQ - 1),
       pss_signal_pad, PSS_LEN_FREQ);

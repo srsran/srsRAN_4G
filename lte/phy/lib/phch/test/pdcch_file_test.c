@@ -304,6 +304,5 @@ int main(int argc, char **argv) {
   } while (nof_frames <= max_frames);
 
   base_free();
-  fftwf_cleanup();
   exit(ret);
 }

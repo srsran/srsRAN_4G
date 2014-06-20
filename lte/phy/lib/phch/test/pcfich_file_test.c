@@ -233,7 +233,6 @@ int main(int argc, char **argv) {
   printf("cfi: %d, distance: %d\n", cfi, distance);
 
   base_free();
-  fftwf_cleanup();
 
   if (n < 0) {
     fprintf(stderr, "Error decoding PCFICH\n");
