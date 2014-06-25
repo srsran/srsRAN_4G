@@ -36,7 +36,9 @@
 #include "liblte/phy/utils/dft.h"
 
 typedef _Complex float cf_t;
-#define PRACH_DETECT_THRESH 0.3 // Should be a value in [0,1]
+
+//PRACH detection threshold is PRACH_DETECT_FACTOR*average
+#define PRACH_DETECT_FACTOR 10
 
 /** Generation and detection of RACH signals for uplink.
  *  Currently only supports preamble formats 0-3.

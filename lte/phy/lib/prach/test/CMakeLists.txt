@@ -50,5 +50,12 @@ ADD_TEST(prach_zc0 prach_test -z 0)
 ADD_TEST(prach_zc2 prach_test -z 2)
 ADD_TEST(prach_zc3 prach_test -z 3)
  
+ADD_EXECUTABLE(prach_test_multi prach_test_multi.c)
+TARGET_LINK_LIBRARIES(prach_test_multi lte_phy)
 
+ADD_TEST(prach_test_multi prach_test_multi)
 
+ADD_TEST(prach_test_multi_n32 prach_test_multi -n 32)
+ADD_TEST(prach_test_multi_n16 prach_test_multi -n 16)
+ADD_TEST(prach_test_multi_n8 prach_test_multi -n 8)
+ADD_TEST(prach_test_multi_n4 prach_test_multi -n 4)

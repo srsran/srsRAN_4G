@@ -182,7 +182,7 @@ int prach_gen_seqs(prach_t *p)
 {
   uint32_t u = 0;
   uint32_t v = 1;
-  uint32_t v_max = 0;
+  int v_max = 0;
   uint32_t p_ = 0;
   uint32_t d_u = 0;
   uint32_t d_start = 0;
@@ -238,7 +238,9 @@ int prach_gen_seqs(prach_t *p)
                 N_neg_shift = N_shift;
         }
         v_max = N_shift*N_group + N_neg_shift - 1;
-
+        if(v_max < 0){
+          v_max = 0;
+        }
       }else{
         // Normal cell
         if(0 == p->N_cs){
@@ -253,7 +255,11 @@ int prach_gen_seqs(prach_t *p)
 
     // Shift root and add to set
     if(p->hs){
-      C_v = d_start*floor(v/N_shift) + (v % N_shift)*p->N_cs;
+      if(N_shift==0){
+        C_v = 0;
+      }else{
+        C_v = d_start*floor(v/N_shift) + (v % N_shift)*p->N_cs;
+      }
     }else{
       C_v = v*p->N_cs;
     }
@@ -439,6 +445,7 @@ int prach_detect(prach_t *p,
       memset(p->corr_spec, 0, sizeof(cf_t)*p->N_zc);
       memset(p->corr, 0, sizeof(float)*p->N_zc);
       float corr_max = 0;
+      float corr_ave = 0;
 
       cf_t *root_spec = p->dft_seqs[p->root_seqs_idx[i]];
 
@@ -451,7 +458,9 @@ int prach_detect(prach_t *p,
       float norm = sqrtf(p->N_zc);
       for(int j=0;j<p->N_zc;j++){
         p->corr[j] = cabsf(p->corr_spec[j])/norm;
+        corr_ave += p->corr[j];
       }
+      corr_ave /= p->N_zc;
 
       uint32_t winsize = 0;
       if(p->N_cs != 0){
@@ -469,7 +478,7 @@ int prach_detect(prach_t *p,
             corr_max = p->corr[k];
           }
         }
-        if(corr_max > PRACH_DETECT_THRESH){
+        if(corr_max > PRACH_DETECT_FACTOR*corr_ave){
           indices[*n_indices] = (i*n_wins)+j;
           (*n_indices)++;
         }
