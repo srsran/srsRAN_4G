@@ -35,7 +35,7 @@
 #include "liblte/config.h"
 #include "liblte/phy/ch_estimation/refsignal.h"
 #include "liblte/phy/filter/filter2d.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 
 typedef _Complex float cf_t; /* this is only a shortcut */
 

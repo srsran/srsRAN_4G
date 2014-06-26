@@ -30,7 +30,7 @@
 #include <strings.h>
 
 #include "liblte/phy/utils/debug.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/sync/sync.h"
 
 int sync_init(sync_t *q, int frame_size) {

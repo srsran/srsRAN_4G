@@ -29,7 +29,7 @@
 #define LTESEQ_
 
 #include "liblte/config.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 
 typedef struct LIBLTE_API {
   char *c;

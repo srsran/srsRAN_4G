@@ -36,7 +36,7 @@
 
 #include "prb.h"
 #include "liblte/phy/phch/pbch.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/bit.h"
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/debug.h"
