@@ -31,7 +31,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/mimo/precoding.h"
 #include "liblte/phy/utils/vector.h"
 

@@ -27,8 +27,7 @@
 
 #include <math.h>
 #include <string.h>
-#include "liblte/error.h"
-#include "liblte/phy/prach/prach.h"
+#include "liblte/phy/phch/prach.h"
 #include "liblte/phy/utils/debug.h"
 
 #define   N_SEQS        64    // Number of prach sequences available
@@ -279,7 +278,7 @@ int prach_init(prach_t *p,
                bool high_speed_flag,
                uint32_t zero_corr_zone_config)
 {
-  LIBLTE_ERROR_ENUM ret = LIBLTE_ERROR;
+  int ret = LIBLTE_ERROR;
   if(p                      != NULL      &&
      N_ifft_ul              <  2049      &&
      preamble_format        <  4         && // Currently supporting formats 0-3
@@ -372,7 +371,7 @@ int prach_gen(prach_t *p,
               uint32_t freq_offset,
               cf_t *signal)
 {
-  LIBLTE_ERROR_ENUM ret = LIBLTE_ERROR;
+  int ret = LIBLTE_ERROR;
   if(p          != NULL   &&
      seq_index  <  N_SEQS &&
      signal     != NULL)
@@ -414,7 +413,7 @@ int prach_detect(prach_t *p,
                  uint32_t *indices,
                  uint32_t *n_indices)
 {
-  LIBLTE_ERROR_ENUM ret = LIBLTE_ERROR;
+  int ret = LIBLTE_ERROR;
   if(p       != NULL &&
      signal  != NULL &&
      sig_len > 0     &&

@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 
 const int tc_cb_sizes[NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120,
     128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232,

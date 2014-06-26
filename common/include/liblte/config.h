@@ -52,4 +52,10 @@
   #define LIBLTE_API LIBLTE_IMPORT
 #endif
 
+
+// Common error codes
+#define LIBLTE_SUCCESS                0
+#define LIBLTE_ERROR                  -1
+#define LIBLTE_ERROR_INVALID_INPUTS   -2
+
 #endif // CONFIG_H

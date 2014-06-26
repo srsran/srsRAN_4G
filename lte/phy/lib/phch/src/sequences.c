@@ -27,7 +27,7 @@
 
 
 #include <strings.h>
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/common/sequence.h"
 
 /**

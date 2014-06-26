@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/phch/regs.h"
 #include "liblte/phy/utils/debug.h"
 

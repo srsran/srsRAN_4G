@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <complex.h>
 
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/ch_estimation/refsignal.h"
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/debug.h"
