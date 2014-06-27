@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "prb.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 
 void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
     int nof_intervals, bool advance_output) {

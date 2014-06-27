@@ -33,7 +33,7 @@
 #include <stdbool.h>
 
 #include "liblte/config.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/dft.h"
 
 typedef _Complex float cf_t; /* this is only a shortcut */

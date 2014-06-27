@@ -118,5 +118,41 @@ ADD_TEST(phich_file_test phich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SO
 ADD_TEST(pdcch_file_test pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat) 
 ADD_TEST(pdsch_file_test pdsch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat) 
 
+########################################################################
+# PRACH TEST  
+########################################################################
 
+ADD_EXECUTABLE(prach_test prach_test.c)
+TARGET_LINK_LIBRARIES(prach_test lte_phy)
+
+ADD_TEST(prach prach_test)
+
+ADD_TEST(prach_256 prach_test -N 256)
+ADD_TEST(prach_512 prach_test -N 512)
+ADD_TEST(prach_1024 prach_test -N 1024)
+ADD_TEST(prach_1536 prach_test -N 1536)
+ADD_TEST(prach_2048 prach_test -N 2048)
+
+ADD_TEST(prach_f0 prach_test -f 0)
+ADD_TEST(prach_f1 prach_test -f 1)
+ADD_TEST(prach_f2 prach_test -f 2)
+ADD_TEST(prach_f3 prach_test -f 3)
+
+ADD_TEST(prach_rs1 prach_test -r 1)
+ADD_TEST(prach_rs2 prach_test -r 2)
+ADD_TEST(prach_rs3 prach_test -r 3)
+
+ADD_TEST(prach_zc0 prach_test -z 0)
+ADD_TEST(prach_zc2 prach_test -z 2)
+ADD_TEST(prach_zc3 prach_test -z 3)
+ 
+ADD_EXECUTABLE(prach_test_multi prach_test_multi.c)
+TARGET_LINK_LIBRARIES(prach_test_multi lte_phy)
+
+ADD_TEST(prach_test_multi prach_test_multi)
+
+ADD_TEST(prach_test_multi_n32 prach_test_multi -n 32)
+ADD_TEST(prach_test_multi_n16 prach_test_multi -n 16)
+ADD_TEST(prach_test_multi_n8 prach_test_multi -n 8)
+ADD_TEST(prach_test_multi_n4 prach_test_multi -n 4)
  

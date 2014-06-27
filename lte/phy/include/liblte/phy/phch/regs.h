@@ -31,7 +31,7 @@
 
 #include <stdbool.h>
 #include "liblte/config.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 
 #define REGS_PHICH_NSYM      12
 #define REGS_PHICH_REGS_X_GROUP  3

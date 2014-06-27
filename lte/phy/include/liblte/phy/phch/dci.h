@@ -31,7 +31,7 @@
 #include <stdint.h>
 
 #include "liblte/config.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/phch/ra.h"
 
 typedef _Complex float cf_t;

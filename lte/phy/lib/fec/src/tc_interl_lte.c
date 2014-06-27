@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/fec/tc_interl.h"
 #include "liblte/phy/fec/turbocoder.h"
 #include "liblte/phy/utils/debug.h"

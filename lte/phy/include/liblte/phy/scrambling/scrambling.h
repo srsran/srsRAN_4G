@@ -31,7 +31,7 @@
 
 #include "liblte/config.h"
 #include "liblte/phy/common/sequence.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 
 typedef _Complex float cf_t;
 

@@ -30,7 +30,7 @@
 #define PHICH_
 
 #include "liblte/config.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/mimo/precoding.h"
 #include "liblte/phy/mimo/layermap.h"
 #include "liblte/phy/modem/mod.h"

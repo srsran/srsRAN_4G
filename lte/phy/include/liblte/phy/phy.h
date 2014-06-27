@@ -48,7 +48,7 @@
 #include "liblte/phy/utils/pack.h"
 #include "liblte/phy/utils/vector.h"
 
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/common/fft.h"
 #include "liblte/phy/common/sequence.h"
 

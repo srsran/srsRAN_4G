@@ -35,7 +35,7 @@
 #include <math.h>
 
 #include "liblte/phy/phch/dci.h"
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/bit.h"
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/debug.h"

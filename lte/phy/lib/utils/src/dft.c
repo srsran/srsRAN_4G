@@ -65,6 +65,7 @@ int dft_plan_c(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
   plan->mirror = false;
   plan->db = false;
   plan->norm = false;
+  plan->dc = false;
 
   return 0;
 }
@@ -83,6 +84,7 @@ int dft_plan_r(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
   plan->mirror = false;
   plan->db = false;
   plan->norm = false;
+  plan->dc = false;
 
   return 0;
 }

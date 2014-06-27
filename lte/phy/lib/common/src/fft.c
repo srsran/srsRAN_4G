@@ -29,7 +29,7 @@
 #include <strings.h>
 #include <stdlib.h>
 
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/dft.h"
 #include "liblte/phy/common/fft.h"
 #include "liblte/phy/utils/debug.h"

@@ -30,7 +30,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "liblte/phy/common/base.h"
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/mimo/layermap.h"
 
 
