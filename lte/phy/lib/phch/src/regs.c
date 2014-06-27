@@ -122,12 +122,6 @@ int regs_pdcch_init(regs_t *h) {
     h->pdcch[cfi].nof_regs = (h->pdcch[cfi].nof_regs/9)*9;
     free(tmp);
     tmp = NULL;
-    if (VERBOSE_ISINFO() && cfi == 1) {
-      for (i=0;i<h->pdcch[cfi].nof_regs;i++) {
-        INFO("Logical PDCCH REG#%d:%d (%d,%d)\n", i%9,i/9,
-            h->pdcch[cfi].regs[i]->k0, h->pdcch[cfi].regs[i]->l);
-      }
-    }
   }
 
   ret = 0;
@@ -141,12 +135,12 @@ clean_and_exit:
   return ret;
 }
 
-int regs_pdcch_nregs(regs_t *h) {
-  if (h->cfi == -1) {
-    fprintf(stderr, "Must call regs_set_cfi() first\n");
+int regs_pdcch_nregs(regs_t *h, int cfi) {
+  if (cfi < 1 || cfi > 3) {
+    fprintf(stderr, "Invalid CFI=%d\n", cfi);
     return -1;
   } else {
-    return h->pdcch[h->cfi].nof_regs;
+    return h->pdcch[cfi-1].nof_regs;
   }
 }
 
@@ -671,8 +665,9 @@ int regs_init(regs_t *h, int cell_id, int nof_prb, int nof_ports,
         fprintf(stderr, "Error initializing REGs\n");
         goto clean_and_exit;
       }
-      DEBUG("Available REG #%3d: l=%d, prb=%d, nreg=%d (k0=%d)\n", k, i, prb, j[i],
+      /*DEBUG("Available REG #%3d: l=%d, prb=%d, nreg=%d (k0=%d)\n", k, i, prb, j[i],
           h->regs[k].k0);
+      */
       j[i]++;
       k++;
     }
@@ -718,7 +713,6 @@ clean_and_exit:
 int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb) {
   int i;
   for (i = 0; i < REGS_RE_X_REG; i++) {
-    DEBUG("PUT REG: i=%d, (k=%d,l=%d)\n", i, REG_IDX(reg, i, nof_prb),reg->l);
     slot_symbols[REG_IDX(reg, i, nof_prb)] = reg_data[i];
   }
   return REGS_RE_X_REG;
@@ -732,9 +726,6 @@ int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_pr
   int i;
   for (i = 0; i < REGS_RE_X_REG; i++) {
     slot_symbols[REG_IDX(reg, i, nof_prb)] += reg_data[i];
-    DEBUG("ADD REG: i=%d, (k=%d,l=%d): %.1f+%.1fi\n", i, REG_IDX(reg, i, nof_prb),reg->l,
-        __real__ slot_symbols[REG_IDX(reg, i, nof_prb)],
-        __imag__ slot_symbols[REG_IDX(reg, i, nof_prb)]);
   }
   return REGS_RE_X_REG;
 }
@@ -746,7 +737,6 @@ int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_pr
 int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, int nof_prb) {
   int i;
   for (i = 0; i < REGS_RE_X_REG; i++) {
-    DEBUG("RESET REG: i=%d, (k=%d,l=%d)\n", i, REG_IDX(reg, i, nof_prb),reg->l);
     slot_symbols[REG_IDX(reg, i, nof_prb)] = 0;
   }
   return REGS_RE_X_REG;
@@ -759,8 +749,6 @@ int regs_get_reg(regs_reg_t *reg, cf_t *slot_symbols, cf_t *reg_data, int nof_pr
   int i;
   for (i = 0; i < REGS_RE_X_REG; i++) {
     reg_data[i] = slot_symbols[REG_IDX(reg, i, nof_prb)];
-    //DEBUG("GET REG: i=%d, (k=%d,l=%d): %.1f+%.1fi\n", i, REG_IDX(reg, i, nof_prb),reg->l,
-      //  __real__ reg_data[i], __imag__ reg_data[i]);
   }
   return REGS_RE_X_REG;
 }

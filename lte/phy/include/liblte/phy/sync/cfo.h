@@ -32,6 +32,7 @@
 #include <complex.h>
 
 #include "liblte/config.h"
+#include "liblte/phy/utils/cexptab.h"
 
 typedef _Complex float cf_t;
 

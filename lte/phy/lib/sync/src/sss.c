@@ -41,6 +41,9 @@ void convert_tables(struct fc_tables *fc_tables, struct sss_tables *in);
 void generate_N_id_1_table(int table[30][30]);
 
 int sss_synch_init(sss_synch_t *q) {
+  int N_id_2;
+  struct sss_tables sss_tables;
+
   bzero(q, sizeof(sss_synch_t));
 
   if (dft_plan(&q->dftp_input, SSS_DFT_LEN, FORWARD, COMPLEX)) {
@@ -49,6 +52,11 @@ int sss_synch_init(sss_synch_t *q) {
   generate_N_id_1_table(q->N_id_1_table);
   dft_plan_set_mirror(&q->dftp_input, true);
   dft_plan_set_dc(&q->dftp_input, true);
+  for (N_id_2=0;N_id_2<3;N_id_2++) {
+    generate_sss_all_tables(&sss_tables, N_id_2);
+    convert_tables(&q->fc_tables[N_id_2], &sss_tables);
+  }
+  q->N_id_2 = 0;
   return 0;
 }
 
@@ -57,18 +65,15 @@ void sss_synch_free(sss_synch_t *q) {
   bzero(q, sizeof(sss_synch_t));
 }
 
-/** Initializes the SSS sequences for the given N_id_2 */
+/** Sets the N_id_2 to search for */
 int sss_synch_set_N_id_2(sss_synch_t *q, int N_id_2) {
   if (N_id_2 < 0 || N_id_2 > 2) {
     fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
     return -1;
+  } else {
+    q->N_id_2 = N_id_2;
+    return 0;
   }
-
-  struct sss_tables sss_tables;
-  generate_sss_all_tables(&sss_tables, N_id_2);
-  convert_tables(&q->fc_tables, &sss_tables);
-
-  return 0;
 }
 
 /** 36.211 10.3 section 6.11.2.2

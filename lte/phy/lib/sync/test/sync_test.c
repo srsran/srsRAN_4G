@@ -107,7 +107,6 @@ int main(int argc, char **argv) {
   }
 
   sync_set_threshold(&sync, 20);
-  sync_force_N_id_2(&sync, -1);
 
   if (cell_id == -1) {
     cid = 0;
@@ -130,9 +129,9 @@ int main(int argc, char **argv) {
 
       /* Transform to OFDM symbols */
       memset(fft_buffer, 0, sizeof(cf_t) * 2 * FLEN);
-      lte_ifft_run(&ifft, buffer, &fft_buffer[offset]);
+      lte_ifft_run_slot(&ifft, buffer, &fft_buffer[offset]);
 
-      find_idx = sync_run(&sync, fft_buffer);
+      find_idx = sync_find(&sync, fft_buffer);
       find_ns = sync_get_slot_id(&sync);
       printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
           ns, find_ns);

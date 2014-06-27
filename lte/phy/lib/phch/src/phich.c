@@ -57,9 +57,9 @@ int phich_ngroups(phich_t *q) {
   return regs_phich_ngroups(q->regs);
 }
 
-void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS_CTRL]) {
+void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS]) {
   int i;
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     regs_phich_reset(q->regs, slot_symbols[i]);
   }
 }
@@ -136,7 +136,7 @@ void phich_ack_encode(char ack, char bits[PHICH_NBITS]) {
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
+int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
     int ngroup, int nseq, int nsubframe, char *ack, int *distance) {
 
   /* Set pointers for layermapping & precoding */
@@ -168,7 +168,7 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
   }
 
   /* number of layers equals number of ports */
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     x[i] = q->phich_x[i];
   }
   for (i = 0; i < MAX_PORTS; i++) {
@@ -264,7 +264,7 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
  * The parameter ack is an array of phich_ngroups() pointers to buffers of nof_sequences chars
  */
 int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
-    cf_t *slot_symbols[MAX_PORTS_CTRL]) {
+    cf_t *slot_symbols[MAX_PORTS]) {
   int i;
 
   if (nsubframe < 0 || nsubframe > NSUBFRAMES_X_FRAME) {

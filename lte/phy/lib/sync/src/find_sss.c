@@ -76,25 +76,25 @@ void sss_synch_m0m1(sss_synch_t *q, cf_t *input, int *m0, float *m0_value,
     y[1][i] = input_fft[SSS_POS_SYMBOL + 2 * i + 1];
   }
 
-  vec_prod_ccc(y[0], q->fc_tables.c[0], z, N_SSS);
+  vec_prod_ccc(y[0], q->fc_tables[q->N_id_2].c[0], z, N_SSS);
   memcpy(zdelay, &z[1], (N_SSS - 1) * sizeof(cf_t));
   vec_conj_cc(z, zconj, N_SSS - 1);
   vec_prod_ccc(zdelay, zconj, zprod, N_SSS - 1);
 
-  corr_all_zs(zprod, q->fc_tables.s, tmp);
+  corr_all_zs(zprod, q->fc_tables[q->N_id_2].s, tmp);
   vec_abs_cf(tmp, tmp_real, N_SSS);
   *m0 = vec_max_fi(tmp_real, N_SSS);
   if (m0_value) {
     *m0_value = tmp_real[*m0];
   }
 
-  vec_prod_ccc(y[1], q->fc_tables.c[1], tmp, N_SSS);
-  vec_prod_ccc(tmp, q->fc_tables.z1[*m0], z, N_SSS);
+  vec_prod_ccc(y[1], q->fc_tables[q->N_id_2].c[1], tmp, N_SSS);
+  vec_prod_ccc(tmp, q->fc_tables[q->N_id_2].z1[*m0], z, N_SSS);
   memcpy(zdelay, &z[1], (N_SSS - 1) * sizeof(cf_t));
   vec_conj_cc(z, zconj, N_SSS - 1);
   vec_prod_ccc(zdelay, zconj, zprod, N_SSS - 1);
 
-  corr_all_zs(zprod, q->fc_tables.s, tmp);
+  corr_all_zs(zprod, q->fc_tables[q->N_id_2].s, tmp);
   vec_abs_cf(tmp, tmp_real, N_SSS);
   *m1 = vec_max_fi(tmp_real, N_SSS);
   if (m1_value) {

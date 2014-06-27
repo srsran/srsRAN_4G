@@ -44,7 +44,8 @@
 
 typedef _Complex float cf_t;
 
-#define PDCCH_NOF_SEARCH_MODES	3
+#define PDCCH_NOF_SEARCH_MODES  3
+#define MAX_CANDIDATES  32
 
 typedef enum LIBLTE_API {
   SEARCH_NONE = 3, SEARCH_SI = 0, SEARCH_RA = 1, SEARCH_UE = 2
@@ -56,7 +57,7 @@ typedef enum LIBLTE_API {
  */
 typedef struct LIBLTE_API {
   int nof_candidates;
-  dci_candidate_t *candidates[NSUBFRAMES_X_FRAME];
+  dci_candidate_t candidates[NSUBFRAMES_X_FRAME][MAX_CANDIDATES];
 } pdcch_search_t;
 
 /* PDCCH object */
@@ -76,9 +77,9 @@ typedef struct LIBLTE_API {
   regs_t *regs;
 
   /* buffers */
-  cf_t *ce[MAX_PORTS_CTRL];
-  cf_t *pdcch_symbols[MAX_PORTS_CTRL];
-  cf_t *pdcch_x[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
+  cf_t *pdcch_symbols[MAX_PORTS];
+  cf_t *pdcch_x[MAX_PORTS];
   cf_t *pdcch_d;
   char *pdcch_e;
   float *pdcch_llr;
@@ -95,8 +96,10 @@ LIBLTE_API int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
     int cell_id, lte_cp_t cp);
 LIBLTE_API void pdcch_free(pdcch_t *q);
 
+LIBLTE_API int pdcch_set_cfi(pdcch_t *q, int cfi);
+
 /* Encoding functions */
-LIBLTE_API int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS_CTRL],
+LIBLTE_API int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS],
     int nsubframe);
 
 /* Decoding functions */
@@ -106,10 +109,10 @@ LIBLTE_API int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS
  * b) call pdcch_extract_llr() and then call pdcch_decode_si/ue/ra
  */
 
-LIBLTE_API int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
-    dci_t *dci, int nsubframe, float ebno);
-LIBLTE_API int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
-    float *llr, int nsubframe, float ebno);
+LIBLTE_API int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
+    dci_t *dci, int nsubframe);
+LIBLTE_API int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
+    float *llr, int nsubframe);
 
 LIBLTE_API void pdcch_init_search_si(pdcch_t *q);
 LIBLTE_API void pdcch_set_search_si(pdcch_t *q);

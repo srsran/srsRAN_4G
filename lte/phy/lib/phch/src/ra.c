@@ -117,6 +117,7 @@ void ra_prb_get_re(ra_prb_t *prb_dist, int nof_prb, int nof_ports,
   prb_dist->lstart = nof_ctrl_symbols;
   // Compute number of RE per subframe
   for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
+    prb_dist->re_sf[i] = 0;
     for (s = 0; s < 2; s++) {
       for (j = 0; j < prb_dist->slot[s].nof_prb; j++) {
         prb_dist->re_sf[i] += ra_re_x_prb(i, s, prb_dist->slot[s].prb_idx[j],
@@ -166,8 +167,10 @@ int ra_prb_get_dl(ra_prb_t *prb_dist, ra_pdsch_t *ra, int nof_prb) {
     for (i = 0; i < nb; i++) {
       if (bitmask & (1 << (nb - i - 1))) {
         for (j = 0; j < P; j++) {
-          prb_dist->slot[0].prb_idx[prb_dist->slot[0].nof_prb] = i * P + j;
-          prb_dist->slot[0].nof_prb++;
+          if (i*P+j < nof_prb) {
+            prb_dist->slot[0].prb_idx[prb_dist->slot[0].nof_prb] = i * P + j;
+            prb_dist->slot[0].nof_prb++;
+          }
         }
       }
     }
@@ -278,9 +281,7 @@ int ra_nprb_dl(ra_pdsch_t *ra, int nof_prb) {
     nof_rbg = bit_count(ra->type0_alloc.rbg_bitmask & 0xFFFFFFFE);
     P = ra_type0_P(nof_prb);
     if (nof_rbg > (int) ceilf((float) nof_prb / P)) {
-      fprintf(stderr, "Number of RGB (%d) can not exceed %d\n", nof_prb,
-          (int) ceilf((float) nof_prb / P));
-      return -1;
+      nof_rbg = (int) ceilf((float) nof_prb / P) - 1;
     }
     nprb = nof_rbg * P;
 
@@ -547,6 +548,7 @@ void ra_pdsch_set_mcs_index(ra_pdsch_t *ra, uint8_t mcs_idx) {
 void ra_pdsch_set_mcs(ra_pdsch_t *ra, ra_mod_t mod, uint8_t tbs_idx) {
   ra->mcs.mod = mod;
   ra->mcs.tbs_idx = tbs_idx;
+  ra->mcs.tbs = 0;
 }
 
 void ra_pdsch_fprint(FILE *f, ra_pdsch_t *ra, int nof_prb) {

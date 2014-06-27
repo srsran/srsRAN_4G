@@ -49,43 +49,46 @@ typedef _Complex float cf_t;
 
 /* PDSCH object */
 typedef struct LIBLTE_API {
-	int cell_id;
-	lte_cp_t cp;
-	int nof_prb;
-	int nof_ports;
-	int max_symbols;
-	unsigned short rnti;
+  int cell_id;
+  lte_cp_t cp;
+  int nof_prb;
+  int nof_ports;
+  int max_symbols;
+  unsigned short rnti;
 
-	/* buffers */
-	cf_t *ce[MAX_PORTS];
-	cf_t *pdsch_symbols[MAX_PORTS];
-	cf_t *pdsch_x[MAX_PORTS];
-	cf_t *pdsch_d;
-	char *pdsch_e_bits;
-	char *cb_in_b;
-	char *cb_out_b;
-	float *pdsch_llr;
-	float *pdsch_rm_f;
+  /* buffers */
+  cf_t *ce[MAX_PORTS];
+  cf_t *pdsch_symbols[MAX_PORTS];
+  cf_t *pdsch_x[MAX_PORTS];
+  cf_t *pdsch_d;
+  char *pdsch_e_bits;
+  char *cb_in_b;
+  char *cb_out_b;
+  float *pdsch_llr;
+  float *pdsch_rm_f;
 
-	/* tx & rx objects */
-	modem_table_t mod[4];
-	demod_soft_t demod;
-	sequence_t seq_pdsch[NSUBFRAMES_X_FRAME];
-	tcod_t encoder;
-	tdec_t decoder;
-	rm_turbo_t rm_turbo;
-	crc_t crc_tb;
-	crc_t crc_cb;
+  /* tx & rx objects */
+  modem_table_t mod[4];
+  demod_soft_t demod;
+  sequence_t seq_pdsch[NSUBFRAMES_X_FRAME];
+  tcod_t encoder;
+  tdec_t decoder;
+  rm_turbo_t rm_turbo;
+  crc_t crc_tb;
+  crc_t crc_cb;
 }pdsch_t;
 
-LIBLTE_API int pdsch_init(pdsch_t *q, unsigned short user_rnti, int nof_prb,
-		int nof_ports, int cell_id, lte_cp_t cp);
+LIBLTE_API int pdsch_init(pdsch_t *q, unsigned short user_rnti, int nof_prb, 
+                          int nof_ports, int cell_id, lte_cp_t cp);
 LIBLTE_API void pdsch_free(pdsch_t *q);
 
 LIBLTE_API int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS],
-		int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
+                            int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
 LIBLTE_API int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
-		char *data, int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
-
+                            char *data, int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
+LIBLTE_API int pdsch_get(pdsch_t *q, cf_t *sf_symbols, cf_t *pdsch_symbols,
+    ra_prb_t *prb_alloc, int nsubframe);
+LIBLTE_API int pdsch_put(pdsch_t *q, cf_t *pdsch_symbols, cf_t *sf_symbols,
+    ra_prb_t *prb_alloc, int nsubframe);
 
 #endif

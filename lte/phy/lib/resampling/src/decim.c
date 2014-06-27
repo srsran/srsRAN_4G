@@ -25,14 +25,25 @@
  *
  */
 
+#include <complex.h>
+#include <math.h>
+#include "liblte/phy/resampling/decim.h"
+#include "liblte/phy/utils/debug.h"
 
-typedef _Complex float cf_t;
 
-void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_intervals, bool advance_input);
-void prb_cp(cf_t **input, cf_t **output, int nof_prb);
-void prb_cp_half(cf_t **input, cf_t **output, int nof_prb);
-void prb_put_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_intervals);
-void phch_get_prb_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_intervals);
+/* Performs integer linear decimation by a factor of M */
+void decim_c(cf_t *input, cf_t *output, int M, int len) {
+  int i;
+  for (i=0;i<len/M;i++) {
+    output[i] = input[i*M];
+  }
+}
+
+
+/* Performs integer linear decimation by a factor of M */
+void decim_f(float *input, float *output, int M, int len) {
+  int i;
+  for (i=0;i<len/M;i++) {
+    output[i] = input[i*M];
+  }
+}

@@ -46,16 +46,19 @@ typedef struct LIBLTE_API{
   int symbol_sz;
   int nof_guards;
   int nof_re;
-  lte_cp_t cp_type;
+  int slot_sz;
+  lte_cp_t cp;
   cf_t *tmp; // for removing zero padding
 }lte_fft_t;
 
 LIBLTE_API int lte_fft_init(lte_fft_t *q, lte_cp_t cp_type, int nof_prb);
 LIBLTE_API void lte_fft_free(lte_fft_t *q);
-LIBLTE_API void lte_fft_run(lte_fft_t *q, cf_t *input, cf_t *output);
+LIBLTE_API void lte_fft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output);
+LIBLTE_API void lte_fft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output);
 
 LIBLTE_API int lte_ifft_init(lte_fft_t *q, lte_cp_t cp_type, int nof_prb);
 LIBLTE_API void lte_ifft_free(lte_fft_t *q);
-LIBLTE_API void lte_ifft_run(lte_fft_t *q, cf_t *input, cf_t *output);
+LIBLTE_API void lte_ifft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output);
+LIBLTE_API void lte_ifft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output);
 
 #endif

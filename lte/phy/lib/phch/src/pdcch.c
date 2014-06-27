@@ -89,8 +89,6 @@ int gen_ue_search(dci_candidate_t *c, int nof_cce, int nof_bits,
   if (!subframe) {
     INFO("UE-specific candidates for RNTI: 0x%x, NofBits: %d, NofCCE: %d\n",
         rnti, nof_bits, nof_cce);
-    if (VERBOSE_ISINFO())
-      printf("[INFO]: ");
   }
   for (l = 3; l >= 0; l--) {
     L = (1 << l);
@@ -103,39 +101,31 @@ int gen_ue_search(dci_candidate_t *c, int nof_cce, int nof_bits,
         Yk = (39827 * Yk) % 65537;
       }
       c[k].ncce = L * ((Yk + i) % (nof_cce / L));
-      if (!subframe) {
-        if (VERBOSE_ISINFO()) {
-          printf("(%d, %d), ", c[k].ncce, c[k].L);
-        }
+      if (VERBOSE_ISDEBUG()) {
+        printf("sf %d - (%d, %d), ", subframe, c[k].ncce, c[k].L);
       }
       k++;
     }
   }
-  if (!subframe) {
-    if (VERBOSE_ISINFO())
-      printf("\n");
+  if (VERBOSE_ISDEBUG()) {
+    printf("\n");
   }
   return k;
 }
 
 void pdcch_init_common(pdcch_t *q, pdcch_search_t *s, unsigned short rnti) {
   int k, i;
-  s->nof_candidates = NOF_COMMON_FORMATS
-      * (MIN(q->nof_cce,16) / 4 + MIN(q->nof_cce,16) / 8);
-  if (s->nof_candidates) {
-    s->candidates[0] = malloc(sizeof(dci_candidate_t) * s->nof_candidates);
-    dci_candidate_t *c = s->candidates[0];
-    s->nof_candidates = 0;
-    if (c) {
-      // Format 1A and 1C L=4 and L=8, 4 and 2 candidates, only if nof_cce > 16
-      k = 0;
-      for (i = 0; i < NOF_COMMON_FORMATS; i++) {
-        k += gen_common_search(&c[k], q->nof_cce,
-            dci_format_sizeof(common_formats[i], q->nof_prb), SIRNTI);
-        s->nof_candidates++;
-      }
-    }
+  dci_candidate_t *c = s->candidates[0];
+  s->nof_candidates = 0;
+  // Format 1A and 1C L=4 and L=8, 4 and 2 candidates, only if nof_cce > 16
+  k = 0;
+  for (i = 0; i < NOF_COMMON_FORMATS && k < MAX_CANDIDATES; i++) {
+    k += gen_common_search(&c[k], q->nof_cce,
+        dci_format_sizeof(common_formats[i], q->nof_prb), SIRNTI);
   }
+  s->nof_candidates=k;
+  INFO("Initiated %d candidate(s) in the Common search space for RNTI: 0x%x\n",
+      s->nof_candidates, rnti);
 }
 
 /** 36.213 v9.3 Table 7.1-1: System Information DCI messages
@@ -151,30 +141,23 @@ void pdcch_init_search_si(pdcch_t *q) {
  * DCI Format 1A and 1 + PUSCH scheduling format 0
  */
 void pdcch_init_search_ue(pdcch_t *q, unsigned short c_rnti) {
-  int l, n, k, i;
+  int n, k, i;
   pdcch_search_t *s = &q->search_mode[SEARCH_UE];
-  s->nof_candidates = 0;
-  for (l = 0; l < 3; l++) {
-    s->nof_candidates += NOF_UE_FORMATS * (MIN(q->nof_cce,16) / (1 << l));
-  }
-  INFO(
-      "Initiating %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n",
-      s->nof_candidates, c_rnti);
-  if (s->nof_candidates) {
-    for (n = 0; n < NSUBFRAMES_X_FRAME; n++) {
-      s->candidates[n] = malloc(sizeof(dci_candidate_t) * s->nof_candidates);
-      dci_candidate_t *c = s->candidates[n];
+  for (n = 0; n < NSUBFRAMES_X_FRAME; n++) {
+    dci_candidate_t *c = s->candidates[n];
 
-      if (c) {
-        // Expect Formats 1, 1A, 0
-        k = 0;
-        for (i = 0; i < NOF_UE_FORMATS; i++) {
-          k += gen_ue_search(&c[k], q->nof_cce,
-              dci_format_sizeof(ue_formats[i], q->nof_prb), c_rnti, n);
-        }
-      }
+    if (!n) s->nof_candidates = 0;
+
+    // Expect Formats 1, 1A, 0
+    k = 0;
+    for (i = 0; i < NOF_UE_FORMATS && k < MAX_CANDIDATES; i++) {
+      k += gen_ue_search(&c[k], q->nof_cce,
+          dci_format_sizeof(ue_formats[i], q->nof_prb), c_rnti, n);      
     }
+    s->nof_candidates = k;
   }
+  INFO("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n",
+      s->nof_candidates, c_rnti);
   q->current_search_mode = SEARCH_UE;
 }
 
@@ -196,6 +179,24 @@ void pdcch_set_search_ra(pdcch_t *q) {
   q->current_search_mode = SEARCH_RA;
 }
 
+int pdcch_set_cfi(pdcch_t *q, int cfi) {
+  if (cfi == -1) {
+    q->nof_bits = -1;
+    q->nof_symbols = -1;
+    q->nof_cce = -1;
+    q->nof_regs = -1;
+    return 0;
+  } else if (cfi < 4 && cfi > 0) {
+    q->nof_regs = (regs_pdcch_nregs(q->regs, cfi) / 9) * 9;
+    q->nof_cce = q->nof_regs / 9;
+    q->nof_symbols = 4 * q->nof_regs;
+    q->nof_bits = 2 * q->nof_symbols;    
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
 /** Initializes the PDCCH transmitter and receiver */
 int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
     int cell_id, lte_cp_t cp) {
@@ -205,7 +206,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
   if (cell_id < 0) {
     return -1;
   }
-  if (nof_ports > MAX_PORTS_CTRL) {
+  if (nof_ports > MAX_PORTS) {
     fprintf(stderr, "Invalid number of ports %d\n", nof_ports);
     return -1;
   }
@@ -217,10 +218,10 @@ int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
   q->nof_prb = nof_prb;
   q->current_search_mode = SEARCH_NONE;
 
-  q->nof_regs = (regs_pdcch_nregs(q->regs) / 9) * 9;
-  q->nof_cce = q->nof_regs / 9;
-  q->nof_symbols = 4 * q->nof_regs;
-  q->nof_bits = 2 * q->nof_symbols;
+  /* Now allocate memory for the maximum number of REGs (CFI=2), then can 
+   * be changed at runtime
+   */
+  pdcch_set_cfi(q, 3);
 
   INFO("Init PDCCH: %d CCEs (%d REGs), %d bits, %d symbols, %d ports\n",
       q->nof_cce, q->nof_regs, q->nof_bits, q->nof_symbols, q->nof_ports);
@@ -262,7 +263,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
     goto clean;
   }
 
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     q->ce[i] = malloc(sizeof(cf_t) * q->nof_symbols);
     if (!q->ce[i]) {
       goto clean;
@@ -276,6 +277,10 @@ int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
       goto clean;
     }
   }
+
+  /* Reset CFI to make sure we return error if new CFI is not set */
+  pdcch_set_cfi(q, -1);
+
   ret = 0;
   clean: if (ret == -1) {
     pdcch_free(q);
@@ -284,15 +289,8 @@ int pdcch_init(pdcch_t *q, regs_t *regs, int nof_prb, int nof_ports,
 }
 
 void pdcch_free(pdcch_t *q) {
-  int i, j;
+  int i;
 
-  for (i = 0; i < PDCCH_NOF_SEARCH_MODES; i++) {
-    for (j = 0; j < NSUBFRAMES_X_FRAME; j++) {
-      if (q->search_mode[i].candidates[j]) {
-        free(q->search_mode[i].candidates[j]);
-      }
-    }
-  }
   if (q->pdcch_e) {
     free(q->pdcch_e);
   }
@@ -302,7 +300,7 @@ void pdcch_free(pdcch_t *q) {
   if (q->pdcch_d) {
     free(q->pdcch_d);
   }
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -362,7 +360,7 @@ unsigned short dci_decode(pdcch_t *q, float *e, char *data, int E, int nof_bits)
 int pdcch_decode_candidate(pdcch_t *q, float *llr, dci_candidate_t *c,
     dci_msg_t *msg) {
   unsigned short crc_res;
-  DEBUG("Trying Candidate: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+  INFO("Trying Candidate: Nbits: %d, E: %3d, nCCE: %d, L: %d, RNTI: 0x%x\n",
       c->nof_bits, PDCCH_FORMAT_NOF_BITS(c->L), c->ncce, c->L, c->rnti);
   crc_res = dci_decode(q, &llr[72 * c->ncce], msg->data,
       PDCCH_FORMAT_NOF_BITS(c->L), c->nof_bits);
@@ -376,20 +374,20 @@ int pdcch_decode_candidate(pdcch_t *q, float *llr, dci_candidate_t *c,
   return 0;
 }
 
-int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
-    float *llr, int nsubframe, float ebno) {
+int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
+    float *llr, int nsubframe) {
 
   /* Set pointers for layermapping & precoding */
   int i;
   cf_t *x[MAX_LAYERS];
 
-  if (nsubframe < 0 || nsubframe > NSUBFRAMES_X_FRAME) {
-    fprintf(stderr, "Invalid subframe %d\n", nsubframe);
+  if (q->nof_bits == -1 || q->nof_cce == -1 || q->nof_regs == -1) {
+    fprintf(stderr, "Must call pdcch_set_cfi() first to set the CFI\n");
     return -1;
   }
 
-  if (ebno == 0.0) {
-    fprintf(stderr, "EbNo is Zero\n");
+  if (nsubframe < 0 || nsubframe > NSUBFRAMES_X_FRAME) {
+    fprintf(stderr, "Invalid subframe %d\n", nsubframe);
     return -1;
   }
 
@@ -435,7 +433,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
   }
 
   /* demodulate symbols */
-  demod_soft_sigma_set(&q->demod, ebno);
+  demod_soft_sigma_set(&q->demod, 1.0);
   demod_soft_demodulate(&q->demod, q->pdcch_d, q->pdcch_llr, q->nof_symbols);
 
   DEBUG("llr: ", 0);
@@ -489,10 +487,15 @@ int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, int nsubframe) {
  *
  * Returns number of messages stored in dci
  */
-int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
-    dci_t *dci, int nsubframe, float ebno) {
+int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
+    dci_t *dci, int nsubframe) {
 
-  if (pdcch_extract_llr(q, slot_symbols, ce, q->pdcch_llr, nsubframe, ebno)) {
+  if (q->nof_bits == -1 || q->nof_cce == -1 || q->nof_regs == -1) {
+    fprintf(stderr, "Must call pdcch_set_cfi() first to set the CFI\n");
+    return -1;
+  }
+
+  if (pdcch_extract_llr(q, slot_symbols, ce, q->pdcch_llr, nsubframe)) {
     return -1;
   }
 
@@ -547,12 +550,16 @@ void dci_encode(pdcch_t *q, char *data, char *e, int nof_bits, int E,
 
 /** Converts the set of DCI messages to symbols mapped to the slot ready for transmission
  */
-int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS_CTRL],
+int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS],
     int nsubframe) {
   int i;
   /* Set pointers for layermapping & precoding */
   cf_t *x[MAX_LAYERS];
 
+  if (q->nof_bits == -1 || q->nof_cce == -1 || q->nof_regs == -1) {
+    fprintf(stderr, "Must call pdcch_set_cfi() first to set the CFI\n");
+    return -1;
+  }
   if (nsubframe < 0 || nsubframe > NSUBFRAMES_X_FRAME) {
     fprintf(stderr, "Invalid subframe %d\n", nsubframe);
     return -1;

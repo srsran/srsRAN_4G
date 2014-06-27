@@ -44,10 +44,7 @@
 const enum modem_std modulations[4] =
     { LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64 };
 
-#define MAX_PDSCH_RE(cp) (2 * (CP_NSYMB(cp) - 1) * 12 - 6)
-#define HAS_REF(l, cp, nof_ports) ((l == 1 && nof_ports == 4) \
-							|| l == 0 \
-							|| l == CP_NSYMB(cp) - 3)
+#define MAX_PDSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
 
 int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
     int nsubframe, bool put) {
@@ -56,9 +53,9 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
   cf_t *in_ptr = input, *out_ptr = output;
   int offset;
 
-assert(q->cell_id >= 0);
+  assert(q->cell_id >= 0);
 
-	  INFO("%s %d RE from %d PRB\n", put ? "Putting" : "Getting",
+  INFO("%s %d RE from %d PRB\n", put ? "Putting" : "Getting",
       prb_alloc->re_sf[nsubframe], prb_alloc->slot[0].nof_prb);
 
   if (q->nof_ports == 1) {
@@ -68,14 +65,14 @@ assert(q->cell_id >= 0);
   }
 
   for (s = 0; s < 2; s++) {
-    if (s == 0) {
-      lstart = prb_alloc->lstart;
-    } else {
-      lstart = 0;
-    }
 
-    for (l = lstart; l < CP_NSYMB(q->cp); l++) {
+    for (l = 0; l < CP_NSYMB(q->cp); l++) {
       for (n = 0; n < prb_alloc->slot[s].nof_prb; n++) {
+        if (s == 0) {
+          lstart = prb_alloc->lstart;
+        } else {
+          lstart = 0;
+        }
         lend = CP_NSYMB(q->cp);
         is_pbch = is_sss = false;
 
@@ -103,31 +100,36 @@ assert(q->cell_id >= 0);
           in_ptr = &input[(lp * q->nof_prb + prb_alloc->slot[s].prb_idx[n])
               * RE_X_RB];
         }
-
-        if (is_pbch && (q->nof_prb % 2)
-            && (prb_alloc->slot[s].prb_idx[n] == q->nof_prb / 2 - 3
-                && prb_alloc->slot[s].prb_idx[n] == q->nof_prb / 2 + 3)) {
-          if (l < lstart) {
-            prb_cp_half(&in_ptr, &out_ptr, 1);
-          }
-        }
         if (l >= lstart && l < lend) {
-          if (HAS_REF(l, q->cp, q->nof_ports)) {
+          if (SYMBOL_HAS_REF(l, q->cp, q->nof_ports)) {
             if (nof_refs == 2 && l != 0) {
               offset = q->cell_id % 3 + 3;
             } else {
               offset = q->cell_id % 3;
             }
-            prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, 1, put);
+            prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs, put);
           } else {
             prb_cp(&in_ptr, &out_ptr, 1);
           }
         }
-        if (is_sss && (q->nof_prb % 2)
-            && (prb_alloc->slot[s].prb_idx[n] == q->nof_prb / 2 - 3
-                && prb_alloc->slot[s].prb_idx[n] == q->nof_prb / 2 + 3)) {
-          if (l >= lend) {
-            prb_cp_half(&in_ptr, &out_ptr, 1);
+        if ((q->nof_prb % 2) && ((is_pbch && l < lstart) || (is_sss && l >= lend))) {
+          if (prb_alloc->slot[s].prb_idx[n] == q->nof_prb / 2 - 3) {
+            if (SYMBOL_HAS_REF(l, q->cp, q->nof_ports)) {
+              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
+            } else {
+              prb_cp_half(&in_ptr, &out_ptr, 1);
+            }
+          } else if (prb_alloc->slot[s].prb_idx[n] == q->nof_prb / 2 + 3) {
+            if (put) {
+              out_ptr += 6;
+            } else {
+              in_ptr += 6;
+            }
+            if (SYMBOL_HAS_REF(l, q->cp, q->nof_ports)) {
+              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
+            } else {
+              prb_cp_half(&in_ptr, &out_ptr, 1);
+            }
           }
         }
       }
@@ -135,9 +137,9 @@ assert(q->cell_id >= 0);
   }
 
   if (put) {
-    return (int) (input - in_ptr);
+    return abs((int) (input - in_ptr));
   } else {
-    return (int) (output - out_ptr);
+    return abs((int) (output - out_ptr));
   }
 }
 
@@ -421,11 +423,6 @@ int pdsch_decode_tb(pdsch_t *q, char *data, int tbs, int nb_e, int rv_idx) {
       //crc_attach(&q->crc_cb, q->pdsch_b[wp], cb_len);
     }
 
-    if (VERBOSE_ISDEBUG()) {
-      DEBUG("CB#%d Len=%d: ", i, cb_len);
-      vec_fprint_b(stdout, q->cb_in_b, cb_len);
-    }
-
     /* Copy data to another buffer, removing the Codeblock CRC */
     if (i < cbs.C - 1) {
       memcpy(&data[wp], &q->cb_in_b[F], (rlen - F) * sizeof(char));
@@ -450,13 +447,6 @@ int pdsch_decode_tb(pdsch_t *q, char *data, int tbs, int nb_e, int rv_idx) {
   // check parity bits
   par_tx = bit_unpack(&p_parity, 24);
 
-  if (VERBOSE_ISDEBUG()) {
-    DEBUG("DATA: ", 0);
-    vec_fprint_b(stdout, data, tbs);
-    DEBUG("PARITY: ", 0);
-    vec_fprint_b(stdout, parity, 24);
-  }
-
   if (!par_rx) {
     printf("\n\tCAUTION!! Received all-zero transport block\n\n");
   }
@@ -470,7 +460,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data,
     int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
 
   /* Set pointers for layermapping & precoding */
-  int i;
+  int i, n;
   cf_t *x[MAX_LAYERS];
   int nof_symbols, nof_bits, nof_bits_e;
 
@@ -490,8 +480,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data,
     return -1;
   }
 
-  INFO(
-      "Decoding PDSCH SF: %d, Mod %d, NofBits: %d, NofSymbols: %d, NofBitsE: %d\n",
+  INFO("Decoding PDSCH SF: %d, Mod %d, NofBits: %d, NofSymbols: %d, NofBitsE: %d\n",
       nsubframe, mcs.mod, nof_bits, nof_symbols, nof_bits_e);
 
   if (nsubframe < 0 || nsubframe > NSUBFRAMES_X_FRAME) {
@@ -504,15 +493,23 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data,
     x[i] = q->pdsch_x[i];
   }
   memset(&x[q->nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->nof_ports));
-
+    
   /* extract symbols */
-  pdsch_get(q, sf_symbols, q->pdsch_symbols[0], prb_alloc, nsubframe);
+  n = pdsch_get(q, sf_symbols, q->pdsch_symbols[0], prb_alloc, nsubframe);
+  if (n != nof_symbols) {
+    fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
+    return -1;
+  }
 
   /* extract channel estimates */
   for (i = 0; i < q->nof_ports; i++) {
-    pdsch_get(q, ce[i], q->ce[i], prb_alloc, nsubframe);
+    n = pdsch_get(q, ce[i], q->ce[i], prb_alloc, nsubframe);
+    if (n != nof_symbols) {
+      fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
+      return -1;
+    }
   }
-
+    
   /* TODO: only diversity is supported */
   if (q->nof_ports == 1) {
     /* no need for layer demapping */
@@ -524,7 +521,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data,
     layerdemap_diversity(x, q->pdsch_d, q->nof_ports,
         nof_symbols / q->nof_ports);
   }
-
+  
   /* demodulate symbols */
   demod_soft_sigma_set(&q->demod, 2.0 / q->mod[mcs.mod - 1].nbits_x_symbol);
   demod_soft_table_set(&q->demod, &q->mod[mcs.mod - 1]);

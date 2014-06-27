@@ -105,9 +105,9 @@ int main(int argc, char **argv) {
   ra_pdsch_t ra_dl;
   regs_t regs;
   int i, j;
-  cf_t *ce[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
   int nof_re;
-  cf_t *slot_symbols[MAX_PORTS_CTRL];
+  cf_t *slot_symbols[MAX_PORTS];
   int nof_dcis;
   int ret = -1;
 
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   }
 
   /* init memory */
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -150,6 +150,11 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
+  if (pdcch_set_cfi(&pdcch, cfi)) {
+    fprintf(stderr, "Error setting CFI %d\n", cfi);
+    return -1;    
+  }
+
 
   dci_init(&dci_tx, 2);
   bzero(&ra_dl, sizeof(ra_pdsch_t));
@@ -182,7 +187,7 @@ int main(int argc, char **argv) {
   pdcch_init_search_ue(&pdcch, 1234);
 
   dci_init(&dci_rx, 2);
-  nof_dcis = pdcch_decode(&pdcch, slot_symbols[0], ce, &dci_rx, 0, 1);
+  nof_dcis = pdcch_decode(&pdcch, slot_symbols[0], ce, &dci_rx, 0);
   if (nof_dcis < 0) {
     printf("Error decoding\n");
   } else if (nof_dcis == dci_tx.nof_dcis) {
@@ -213,7 +218,7 @@ int main(int argc, char **argv) {
   dci_free(&dci_tx);
   dci_free(&dci_rx);
 
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     free(ce[i]);
     free(slot_symbols[i]);
   }

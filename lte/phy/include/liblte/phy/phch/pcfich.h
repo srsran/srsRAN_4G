@@ -55,9 +55,9 @@ typedef struct LIBLTE_API {
   regs_t *regs;
 
   /* buffers */
-  cf_t ce[MAX_PORTS_CTRL][PCFICH_RE];
-  cf_t pcfich_symbols[MAX_PORTS_CTRL][PCFICH_RE];
-  cf_t pcfich_x[MAX_PORTS_CTRL][PCFICH_RE];
+  cf_t ce[MAX_PORTS][PCFICH_RE];
+  cf_t pcfich_symbols[MAX_PORTS][PCFICH_RE];
+  cf_t pcfich_x[MAX_PORTS][PCFICH_RE];
   cf_t pcfich_d[PCFICH_RE];
 
   /* bit message */
@@ -73,9 +73,9 @@ typedef struct LIBLTE_API {
 LIBLTE_API int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb,
     int nof_tx_ports, lte_cp_t cp);
 LIBLTE_API void pcfich_free(pcfich_t *q);
-LIBLTE_API int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
+LIBLTE_API int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
     int nsubframe, int *cfi, int *distance);
-LIBLTE_API int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL],
+LIBLTE_API int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS],
     int nsubframe);
 
 LIBLTE_API bool pcfich_exists(int nframe, int nslot);

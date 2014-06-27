@@ -74,16 +74,16 @@ int main(int argc, char **argv) {
   pbch_t pbch;
   pbch_mib_t mib_tx, mib_rx;
   int i, j;
-  cf_t *ce[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
   int nof_re;
-  cf_t *slot1_symbols[MAX_PORTS_CTRL];
+  cf_t *slot1_symbols[MAX_PORTS];
 
   parse_args(argc,argv);
 
   nof_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
 
   /* init memory */
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -120,14 +120,14 @@ int main(int argc, char **argv) {
   }
 
   pbch_decode_reset(&pbch);
-  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, 1, &mib_rx)) {
+  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, &mib_rx)) {
     printf("Error decoding\n");
     exit(-1);
   }
 
   pbch_free(&pbch);
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
     free(slot1_symbols[i]);
   }

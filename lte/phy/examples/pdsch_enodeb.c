@@ -34,26 +34,29 @@
 #include "liblte/phy/phy.h"
 
 #ifndef DISABLE_UHD
-  #include "liblte/cuhd/cuhd.h"
-  void *uhd;
+#include "liblte/cuhd/cuhd.h"
+void *uhd;
 #endif
 
 char *output_file_name = NULL;
-int nof_frames=-1;
+int nof_frames = -1;
 int cell_id = 1;
 int nof_prb = 6;
 char *uhd_args = "";
+int cfi=1;
 
-float uhd_amp=0.25, uhd_gain=10.0, uhd_freq=2400000000;
+float uhd_amp = 0.25, uhd_gain = 10.0, uhd_freq = 2400000000;
 
 filesink_t fsink;
 lte_fft_t ifft;
 pbch_t pbch;
+pcfich_t pcfich;
+pdcch_t pdcch;
+pdsch_t pdsch;
+regs_t regs;
 
 cf_t *sf_buffer = NULL, *output_buffer = NULL;
-int slot_n_re, slot_n_samples;
-
-#define UHD_SAMP_FREQ  1920000
+int sf_n_re, sf_n_samples;
 
 void usage(char *prog) {
   printf("Usage: %s [agmfoncvp]\n", prog);
@@ -61,7 +64,7 @@ void usage(char *prog) {
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-g UHD TX gain [Default %.2f dB]\n", uhd_gain);
   printf("\t-m UHD signal amplitude [Default %.2f]\n", uhd_amp);
-  printf("\t-f UHD TX frequency [Default %.1f MHz]\n", uhd_freq/1000000);
+  printf("\t-f UHD TX frequency [Default %.1f MHz]\n", uhd_freq / 1000000);
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
@@ -75,7 +78,7 @@ void usage(char *prog) {
 void parse_args(int argc, char **argv) {
   int opt;
   while ((opt = getopt(argc, argv, "agfmoncpv")) != -1) {
-    switch(opt) {
+    switch (opt) {
     case 'a':
       uhd_args = argv[optind];
       break;
@@ -118,12 +121,12 @@ void parse_args(int argc, char **argv) {
 
 void base_init() {
   /* init memory */
-  sf_buffer = malloc(sizeof(cf_t) * slot_n_re);
+  sf_buffer = malloc(sizeof(cf_t) * sf_n_re);
   if (!sf_buffer) {
     perror("malloc");
     exit(-1);
   }
-  output_buffer = malloc(sizeof(cf_t) * slot_n_samples);
+  output_buffer = malloc(sizeof(cf_t) * sf_n_samples);
   if (!output_buffer) {
     perror("malloc");
     exit(-1);
@@ -137,7 +140,7 @@ void base_init() {
   } else {
 #ifndef DISABLE_UHD
     printf("Opening UHD device...\n");
-    if (cuhd_open(uhd_args,&uhd)) {
+    if (cuhd_open(uhd_args, &uhd)) {
       fprintf(stderr, "Error opening uhd\n");
       exit(-1);
     }
@@ -152,14 +155,42 @@ void base_init() {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
-  if (pbch_init(&pbch, 6, cell_id, CPNORM)) {
+  if (pbch_init(&pbch, nof_prb, cell_id, CPNORM)) {
     fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
+
+  if (regs_init(&regs, cell_id, nof_prb, 1, R_1, PHICH_NORM, CPNORM)) {
+    fprintf(stderr, "Error initiating regs\n");
+    exit(-1);
+  }
+
+  if (pcfich_init(&pcfich, &regs, cell_id, nof_prb, 1, CPNORM)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
+
+  if (regs_set_cfi(&regs, cfi)) {
+    fprintf(stderr, "Error setting CFI\n");
+    exit(-1);
+  }
+
+  if (pdcch_init(&pdcch, &regs, nof_prb, 1, cell_id, CPNORM)) {
+    fprintf(stderr, "Error creating PDCCH object\n");
+    exit(-1);
+  }
+
+  if (pdsch_init(&pdsch, 1234, nof_prb, 1, cell_id, CPNORM)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
 }
 
 void base_free() {
 
+  pdsch_free(&pdsch);
+  pdcch_free(&pdcch);
+  regs_free(&regs);
   pbch_free(&pbch);
 
   lte_ifft_free(&ifft);
@@ -180,15 +211,19 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  int nf, ns, N_id_2;
+  int nf, sf_idx, N_id_2;
   cf_t pss_signal[PSS_LEN];
   float sss_signal0[SSS_LEN]; // for subframe 0
   float sss_signal5[SSS_LEN]; // for subframe 5
   pbch_mib_t mib;
+  ra_pdsch_t ra_dl;
+  ra_prb_t prb_alloc;
   refsignal_t refs[NSLOTS_X_FRAME];
-  int i;
+  int i, n;
+  char *data;
+  cf_t *sf_symbols[MAX_PORTS];
   cf_t *slot1_symbols[MAX_PORTS];
-
+  dci_t dci_tx;
 
 #ifdef DISABLE_UHD
   if (argc < 3) {
@@ -197,11 +232,11 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
-  N_id_2 = cell_id%3;
-  slot_n_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
-  slot_n_samples = SLOT_LEN_CPNORM(lte_symbol_sz(nof_prb));
+  N_id_2 = cell_id % 3;
+  sf_n_re = 2 * CPNORM_NSYMB * nof_prb * RE_X_RB;
+  sf_n_samples = 2 * SLOT_LEN_CPNORM(lte_symbol_sz(nof_prb));
 
   /* this *must* be called after setting slot_len_* */
   base_init();
@@ -211,7 +246,7 @@ int main(int argc, char **argv) {
   sss_generate(sss_signal0, sss_signal5, cell_id);
 
   /* Generate CRS signals */
-  for (i=0;i<NSLOTS_X_FRAME;i++) {
+  for (i = 0; i < NSLOTS_X_FRAME; i++) {
     if (refsignal_init_LTEDL(&refs[i], 0, i, cell_id, CPNORM, nof_prb)) {
       fprintf(stderr, "Error initiating CRS slot=%d\n", i);
       return -1;
@@ -219,60 +254,107 @@ int main(int argc, char **argv) {
   }
 
   mib.nof_ports = 1;
-  mib.nof_prb = 6;
+  mib.nof_prb = nof_prb;
   mib.phich_length = PHICH_NORM;
   mib.phich_resources = R_1;
   mib.sfn = 0;
 
-  for (i=0;i<MAX_PORTS;i++) { // now there's only 1 port
-    slot1_symbols[i] = sf_buffer;
+  for (i = 0; i < MAX_PORTS; i++) { // now there's only 1 port
+    sf_symbols[i] = sf_buffer;
+    slot1_symbols[i] = &sf_buffer[sf_n_re/2];
   }
 
 #ifndef DISABLE_UHD
   if (!output_file_name) {
-    printf("Set TX rate: %.2f MHz\n", cuhd_set_tx_srate(uhd, UHD_SAMP_FREQ)/1000000);
+    printf("Set TX rate: %.2f MHz\n",
+        cuhd_set_tx_srate(uhd, lte_sampling_freq_hz(nof_prb)) / 1000000);
     printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
-    printf("Set TX freq: %.2f MHz\n", cuhd_set_tx_freq(uhd, uhd_freq)/1000000);
+    printf("Set TX freq: %.2f MHz\n",
+        cuhd_set_tx_freq(uhd, uhd_freq) / 1000000);
   }
 #endif
 
+  dci_init(&dci_tx, 1);
+  bzero(&ra_dl, sizeof(ra_pdsch_t));
+  ra_dl.harq_process = 0;
+  ra_pdsch_set_mcs(&ra_dl, QPSK, 5);
+  ra_dl.ndi = 0;
+  ra_dl.rv_idx = 0;
+  ra_dl.alloc_type = alloc_type0;
+  ra_dl.type0_alloc.rbg_bitmask = 0xffffffff;
+  
+  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, nof_prb, false);
+  dci_tx.nof_dcis++;
+  
+  if (pdcch_set_cfi(&pdcch, cfi)) {
+    fprintf(stderr, "Error setting CFI\n");
+    return -1;
+  }
+
+  pdcch_init_search_ue(&pdcch, 1234);
+
+  ra_prb_get_dl(&prb_alloc, &ra_dl, nof_prb);
+  ra_prb_get_re(&prb_alloc, nof_prb, 1, nof_prb<10?(cfi+1):cfi, CPNORM);
+  ra_dl.mcs.tbs = ra_tbs_from_idx(ra_dl.mcs.tbs_idx, nof_prb);
+
+  ra_pdsch_fprint(stdout, &ra_dl, nof_prb);
+
+  data = malloc(sizeof(char) * ra_dl.mcs.tbs);
+  if (!data) {
+    perror("malloc");
+    exit(-1);
+  }  
+    
   nf = 0;
 
-  while(nf<nof_frames || nof_frames == -1) {
-    for (ns=0;ns<NSLOTS_X_FRAME;ns++) {
-      bzero(sf_buffer, sizeof(cf_t) * slot_n_re);
+  while (nf < nof_frames || nof_frames == -1) {
+    for (sf_idx = 0; sf_idx < NSUBFRAMES_X_FRAME; sf_idx++) {
+      bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
-      switch(ns) {
-      case 0: // tx pss/sss
-      case 10: // tx pss/sss
+      if (sf_idx == 0 || sf_idx == 5) {
         pss_put_slot(pss_signal, sf_buffer, nof_prb, CPNORM);
-        sss_put_slot(ns?sss_signal5:sss_signal0, sf_buffer, nof_prb, CPNORM);
-        break;
-      case 1: // tx pbch
+        sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, nof_prb,
+            CPNORM);
+      }
+      
+      if (sf_idx == 0) {
         pbch_encode(&pbch, &mib, slot1_symbols, 1);
-        break;
-      default: // transmit zeros
-        break;
+      }
+    
+      for (n=0;n<2;n++) {
+        refsignal_put(&refs[2*sf_idx+n], &sf_buffer[n*sf_n_re/2]);
       }
 
-      refsignal_put(&refs[ns], sf_buffer);
+      pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
+
+      INFO("SF: %d, Generating %d random bits\n", sf_idx, ra_dl.mcs.tbs);
+      for (i=0;i<ra_dl.mcs.tbs;i++) {
+        data[i] = rand()%2;
+      }
+      dci_msg_candidate_set(&dci_tx.msg[0], pdcch.search_mode[2].candidates[0][sf_idx].L, 
+                            pdcch.search_mode[2].candidates[0][sf_idx].ncce, 1234);
+      INFO("Setting DCI candidate L: %d nCCE: %d\n", pdcch.search_mode[2].candidates[0][sf_idx].L,
+        pdcch.search_mode[2].candidates[0][sf_idx].ncce);
+      pdcch_encode(&pdcch, &dci_tx, sf_symbols, sf_idx);  
+      pdsch_encode(&pdsch, data, sf_symbols, sf_idx, ra_dl.mcs, &prb_alloc);        
 
       /* Transform to OFDM symbols */
-      lte_ifft_run_slot(&ifft, sf_buffer, output_buffer);
-
+      lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
+      
       /* send to file or usrp */
       if (output_file_name) {
-        filesink_write(&fsink, output_buffer, slot_n_samples);
+        filesink_write(&fsink, output_buffer, sf_n_samples);
         usleep(5000);
       } else {
 #ifndef DISABLE_UHD
-        vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, slot_n_samples);
-        cuhd_send(uhd, output_buffer, slot_n_samples, 1);
+        vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);
+        cuhd_send(uhd, output_buffer, sf_n_samples, 1);
 #endif
       }
     }
-    mib.sfn=(mib.sfn+1)%1024;
-    printf("SFN: %4d\r", mib.sfn);fflush(stdout);
+    mib.sfn = (mib.sfn + 1) % 1024;
+    printf("SFN: %4d\r", mib.sfn);
+    fflush(stdout);
     nf++;
   }
 
@@ -281,3 +363,5 @@ int main(int argc, char **argv) {
   printf("Done\n");
   exit(0);
 }
+
+

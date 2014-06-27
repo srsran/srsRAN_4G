@@ -46,6 +46,15 @@ void chest_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
   chest_ce_fprint(q, stream, nslot, port_id);
 }
 
+/* Sets the number of ports to estimate. nof_ports must be smaler than nof_ports
+ * used during the call to chest_init(). 
+ */
+void chest_set_nof_ports(chest_t *q, int nof_ports) {
+  if (nof_ports < q->nof_ports && nof_ports > 0) {
+    q->nof_ports = nof_ports;
+  }
+}
+
 void chest_ref_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
   int i;
   fprintf(stream, "refs%d=[",port_id);
@@ -149,8 +158,18 @@ void chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, int nslot, int port_i
   }
 }
 
-/* Computes channel estimates for each reference in a slot.
- * Saves the result for the p-th port to the pointer ce[p]
+
+/* Computes channel estimates for each reference in a subframe and port id.
+ */
+void chest_ce_sf_port(chest_t *q, cf_t *input, cf_t *ce, int sf_idx, int port_id) {
+  int n, slotsz;
+  slotsz = CP_NSYMB(q->cp)*q->nof_prb*RE_X_RB;
+  for (n=0;n<2;n++) {
+    chest_ce_slot_port(q, &input[n*slotsz], &ce[n*slotsz], 2*sf_idx+n, port_id);
+  }
+}
+
+/* Computes channel estimates for each reference in a slot for all ports.
  */
 void chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, int nslot) {
   int p;
@@ -159,6 +178,17 @@ void chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, int nslot) {
   }
 }
 
+/* Computes channel estimates for each reference in a subframe for all ports.
+ */
+void chest_ce_sf(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], int sf_idx) {
+  int p, n, slotsz;
+  slotsz = CP_NSYMB(q->cp)*q->nof_prb*RE_X_RB;
+  for (p=0;p<q->nof_ports;p++) {
+    for (n=0;n<2;n++) {
+      chest_ce_slot_port(q, &input[n*slotsz], &ce[p][n*slotsz], 2*sf_idx+n, p);
+    }
+  }
+}
 int chest_init(chest_t *q, chest_interp_t interp, lte_cp_t cp, int nof_prb, int nof_ports) {
 
   if (nof_ports > MAX_PORTS) {

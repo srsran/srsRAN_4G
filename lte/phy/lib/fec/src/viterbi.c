@@ -185,7 +185,9 @@ int viterbi_init(viterbi_t *q, viterbi_type_t type, int poly[3],
 }
 
 void viterbi_free(viterbi_t *q) {
-  q->free(q);
+  if (q->free) {
+    q->free(q);    
+  }
 }
 
 /* symbols are real-valued */

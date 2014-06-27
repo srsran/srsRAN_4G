@@ -63,7 +63,7 @@ void interp_linear_offset(cf_t *input, cf_t *output, int M, int len, int off_st,
 }
 
 /* Performs 1st order linear interpolation */
-void interp_linear(cf_t *input, cf_t *output, int M, int len) {
+void interp_linear_c(cf_t *input, cf_t *output, int M, int len) {
   interp_linear_offset(input, output, M, len, 0, 0);
 }
 

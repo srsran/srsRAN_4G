@@ -73,9 +73,9 @@ int main(int argc, char **argv) {
   pcfich_t pcfich;
   regs_t regs;
   int i, j;
-  cf_t *ce[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
   int nof_re;
-  cf_t *slot_symbols[MAX_PORTS_CTRL];
+  cf_t *slot_symbols[MAX_PORTS];
   int cfi, cfi_rx, nsf, distance;
   int cid, max_cid;
 
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
   nof_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
 
   /* init memory */
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
     cid++;
   }
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
     free(slot_symbols[i]);
   }

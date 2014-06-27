@@ -364,6 +364,7 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, int nof_prb) {
           ra_nprb_dl(data, nof_prb));
     }
     mcs = ra_mcs_to_table_idx(&data->mcs);
+    data->mcs.mcs_idx = mcs;
   }
   bit_pack(mcs, &y, 5);
 
@@ -425,7 +426,7 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, int nof_prb) {
     return -1;
 
   }
-  /* pack MCS according to 7.1.7 of 36.213 */
+  /* unpack MCS according to 7.1.7 of 36.213 */
   uint32_t mcs = bit_unpack(&y, 5);
   data->mcs.mcs_idx = mcs;
   ra_mcs_from_idx_dl(mcs, &data->mcs);

@@ -69,20 +69,25 @@ typedef struct LIBLTE_API {
 
   int frame_size;
   int N_id_2;
-  float current_cfo;
-  bool cfo_auto;          // default true
-  int nof_nosync_frames;
-  int nosync_timeout_frames;    // default 5
-  float correlation_threshold;   // default 10000
-  int frame_start_idx;
-  int fb_wp;
 
-  cf_t *pss_signal_freq;
+  cf_t *pss_signal_freq[3]; // One sequence for each N_id_2
   cf_t *tmp_input;
   float *conv_abs;
-  cf_t *frame_buffer;
   cf_t *conv_output;
+  
+#ifdef ENABLE_HL
+  cf_t *frame_buffer;
   cf_t *tmp_nco;
+  float current_cfo;
+  bool cfo_auto;          
+  int nof_nosync_frames;
+  int nosync_timeout_frames;   
+  float correlation_threshold;  
+  int frame_start_idx;
+  int fb_wp;
+#endif
+  
+  
 }pss_synch_t;
 
 typedef enum { PSS_TX, PSS_RX } pss_direction_t;

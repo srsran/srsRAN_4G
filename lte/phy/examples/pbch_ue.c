@@ -39,15 +39,15 @@
 #include "liblte/phy/phy.h"
 
 #ifndef DISABLE_UHD
-  #include "liblte/cuhd/cuhd.h"
-  void *uhd;
+#include "liblte/cuhd/cuhd.h"
+void *uhd;
 #endif
 
 #ifndef DISABLE_GRAPHICS
-  #include "liblte/graphics/plot.h"
-  plot_real_t poutfft;
-  plot_complex_t pce;
-  plot_scatter_t pscatrecv, pscatequal;
+#include "liblte/graphics/plot.h"
+plot_real_t poutfft;
+plot_complex_t pce;
+plot_scatter_t pscatrecv, pscatequal;
 #endif
 
 #define MHZ       1000000
@@ -57,27 +57,28 @@
 
 #define NOF_PORTS 2
 
-float find_threshold = 20.0, track_threshold = 10.0;
+float find_threshold = 20.0;
 int max_track_lost = 20, nof_frames = -1;
-int track_len=300;
+int track_len = 300;
 char *input_file_name = NULL;
 int disable_plots = 0;
 
-int go_exit=0;
+int go_exit = 0;
 
 float uhd_freq = 2600000000.0, uhd_gain = 20.0;
 char *uhd_args = "";
 
 filesource_t fsrc;
-cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS_CTRL];
+cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 pbch_t pbch;
 lte_fft_t fft;
 chest_t chest;
-sync_t sfind, strack;
+sync_t ssync;
 cfo_t cfocorr;
 
-
-enum sync_state {FIND, TRACK};
+enum sync_state {
+  FIND, TRACK
+};
 
 void usage(char *prog) {
   printf("Usage: %s [iagfndvp]\n", prog);
@@ -85,7 +86,7 @@ void usage(char *prog) {
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", uhd_gain);
-  printf("\t-f UHD RX frequency [Default %.1f MHz]\n", uhd_freq/1000000);
+  printf("\t-f UHD RX frequency [Default %.1f MHz]\n", uhd_freq / 1000000);
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
@@ -102,7 +103,7 @@ void usage(char *prog) {
 void parse_args(int argc, char **argv) {
   int opt;
   while ((opt = getopt(argc, argv, "iagfndvp")) != -1) {
-    switch(opt) {
+    switch (opt) {
     case 'i':
       input_file_name = argv[optind];
       break;
@@ -181,16 +182,16 @@ int base_init(int frame_length) {
     }
   } else {
     /* open UHD device */
-  #ifndef DISABLE_UHD
+#ifndef DISABLE_UHD
     printf("Opening UHD device...\n");
-    if (cuhd_open(uhd_args,&uhd)) {
+    if (cuhd_open(uhd_args, &uhd)) {
       fprintf(stderr, "Error opening uhd\n");
       return -1;
     }
-  #else
+#else
     printf("Error UHD not available. Select an input file\n");
     return -1;
-  #endif
+#endif
   }
 
   input_buffer = (cf_t*) malloc(frame_length * sizeof(cf_t));
@@ -204,19 +205,14 @@ int base_init(int frame_length) {
     perror("malloc");
     return -1;
   }
-
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     ce[i] = (cf_t*) malloc(CPNORM_NSYMB * 72 * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
     }
   }
-  if (sync_init(&sfind, FLEN)) {
-    fprintf(stderr, "Error initiating PSS/SSS\n");
-    return -1;
-  }
-  if (sync_init(&strack, track_len)) {
+  if (sync_init(&ssync, FLEN)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
@@ -229,7 +225,6 @@ int base_init(int frame_length) {
     fprintf(stderr, "Error initiating CFO\n");
     return -1;
   }
-
   if (lte_fft_init(&fft, CPNORM, 6)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
@@ -244,28 +239,26 @@ void base_free() {
   if (input_file_name) {
     filesource_free(&fsrc);
   } else {
-  #ifndef DISABLE_UHD
+#ifndef DISABLE_UHD
     cuhd_close(uhd);
-  #endif
+#endif
   }
 
 #ifndef DISABLE_GRAPHICS
   plot_exit();
 #endif
 
-  sync_free(&sfind);
-  sync_free(&strack);
+  sync_free(&ssync);
   lte_fft_free(&fft);
   chest_free(&chest);
   cfo_free(&cfocorr);
 
   free(input_buffer);
   free(fft_buffer);
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     free(ce[i]);
   }
 }
-
 
 int mib_decoder_init(int cell_id) {
 
@@ -284,25 +277,28 @@ int mib_decoder_init(int cell_id) {
 
 int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
   int i, n;
-  lte_fft_run(&fft, input, fft_buffer);
+  lte_fft_run_slot(&fft, input, fft_buffer);
 
   /* Get channel estimates for each port */
-  for (i=0;i<NOF_PORTS;i++) {
+  for (i = 0; i < NOF_PORTS; i++) {
     chest_ce_slot_port(&chest, fft_buffer, ce[i], 1, i);
   }
 
   DEBUG("Decoding PBCH\n", 0);
-  n = pbch_decode(&pbch, fft_buffer, ce, 1, mib);
-
+  n = pbch_decode(&pbch, fft_buffer, ce, mib);
 
 #ifndef DISABLE_GRAPHICS
-  float tmp[72*7];
+  float tmp[72 * 7];
   if (!disable_plots) {
-    for (i=0;i<72*7;i++) {
-      tmp[i] = 10*log10f(cabsf(fft_buffer[i]));
+    for (i = 0; i < 72 * 7; i++) {
+      tmp[i] = 10 * log10f(cabsf(fft_buffer[i]));
+      if (isinf(tmp[i])) {
+        tmp[i] = -80;
+      }
     }
-    plot_real_setNewData(&poutfft, tmp, 72*7);
-    plot_complex_setNewData(&pce, ce[0], 72*7);
+
+    plot_real_setNewData(&poutfft, tmp, 72 * 7);
+    plot_complex_setNewData(&pce, ce[0], 72 * 7);
     plot_scatter_setNewData(&pscatrecv, pbch.pbch_symbols[0], pbch.nof_symbols);
     if (n) {
       plot_scatter_setNewData(&pscatequal, pbch.pbch_d, pbch.nof_symbols);
@@ -313,9 +309,8 @@ int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
   return n;
 }
 
-void sigintHandler(int sig_num)
-{
-  go_exit=1;
+void sigintHandler(int sig_num) {
+  go_exit = 1;
 }
 
 int main(int argc, char **argv) {
@@ -337,29 +332,28 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   if (base_init(FLEN)) {
     fprintf(stderr, "Error initializing memory\n");
     exit(-1);
   }
 
-  sync_pss_det_peak_to_avg(&sfind);
-  sync_pss_det_peak_to_avg(&strack);
+  sync_pss_det_peak_to_avg(&ssync);
 
   if (!input_file_name) {
-  #ifndef DISABLE_UHD
+#ifndef DISABLE_UHD
     INFO("Setting sampling frequency %.2f MHz\n", (float) SAMP_FREQ/MHZ);
     cuhd_set_rx_srate(uhd, SAMP_FREQ);
     cuhd_set_rx_gain(uhd, uhd_gain);
     /* set uhd_freq */
     cuhd_set_rx_freq(uhd, (double) uhd_freq);
     cuhd_rx_wait_lo_locked(uhd);
-    DEBUG("Set uhd_freq to %.3f MHz\n", (double) uhd_freq);
+    DEBUG("Set uhd_freq to %.3f MHz\n", (double ) uhd_freq);
 
-    DEBUG("Starting receiver...\n",0);
+    DEBUG("Starting receiver...\n", 0);
     cuhd_start_rx_stream(uhd);
-  #endif
+#endif
   }
 
   printf("\n --- Press Ctrl+C to exit --- \n");
@@ -372,10 +366,9 @@ int main(int argc, char **argv) {
   mib.sfn = -1;
   frame_cnt = 0;
   last_found = 0;
-  sync_set_threshold(&sfind, find_threshold);
-  sync_force_N_id_2(&sfind, -1);
+  sync_set_threshold(&ssync, find_threshold);
 
-  while(!go_exit && (frame_cnt < nof_frames || nof_frames==-1)) {
+  while (!go_exit && (frame_cnt < nof_frames || nof_frames == -1)) {
     INFO(" -----   RECEIVING %d SAMPLES ---- \n", FLEN);
     if (input_file_name) {
       n = filesource_read(&fsrc, input_buffer, FLEN);
@@ -387,29 +380,26 @@ int main(int argc, char **argv) {
         filesource_read(&fsrc, input_buffer, FLEN);
       }
     } else {
-    #ifndef DISABLE_UHD
+#ifndef DISABLE_UHD
       cuhd_recv(uhd, input_buffer, FLEN, 1);
-    #endif
+#endif
     }
 
-    switch(state) {
+    switch (state) {
     case FIND:
       /* find peak in all frame */
-      find_idx = sync_run(&sfind, input_buffer);
-      INFO("FIND %3d:\tPAR=%.2f\n", frame_cnt, sync_get_peak_to_avg(&sfind));
+      find_idx = sync_find(&ssync, input_buffer);
+      INFO("FIND %3d:\tPAR=%.2f\n", frame_cnt, sync_get_peak_to_avg(&ssync));
       if (find_idx != -1) {
         /* if found peak, go to track and set track threshold */
-        cell_id = sync_get_cell_id(&sfind);
+        cell_id = sync_get_cell_id(&ssync);
         if (cell_id != -1) {
           frame_cnt = -1;
           last_found = 0;
-          sync_set_threshold(&strack, track_threshold);
-          sync_force_N_id_2(&strack, sync_get_N_id_2(&sfind));
-          sync_force_cp(&strack, sync_get_cp(&sfind));
           mib_decoder_init(cell_id);
           nof_found_mib = 0;
-          nslot = sync_get_slot_id(&sfind);
-          nslot=(nslot+10)%20;
+          nslot = sync_get_slot_id(&ssync);
+          nslot = (nslot + 10) % 20;
           cfo = 0;
           timeoffset = 0;
           printf("\n");
@@ -419,31 +409,26 @@ int main(int argc, char **argv) {
         }
       }
       if (verbose == VERBOSE_NONE) {
-        printf("Finding PSS... PAR=%.2f\r", sync_get_peak_to_avg(&sfind));
+        printf("Finding PSS... PAR=%.2f\r", sync_get_peak_to_avg(&ssync));
       }
       break;
     case TRACK:
       /* Find peak around known position find_idx */
-      INFO("TRACK %3d: PSS find_idx %d offset %d\n", frame_cnt, find_idx, find_idx - track_len);
-      track_idx = sync_run(&strack, &input_buffer[find_idx - track_len]);
+      INFO("TRACK %3d: PSS find_idx %d offset %d\n", frame_cnt, find_idx,
+          find_idx - track_len);
+      track_idx = sync_track(&ssync, &input_buffer[find_idx - track_len]);
 
       if (track_idx != -1) {
         /* compute cumulative moving average CFO */
-        cfo = (sync_get_cfo(&strack) + frame_cnt * cfo) / (frame_cnt + 1);
+        cfo = (sync_get_cfo(&ssync) + frame_cnt * cfo) / (frame_cnt + 1);
         /* compute cumulative moving average time offset */
-        timeoffset = (float) (track_idx-track_len + timeoffset * frame_cnt) / (frame_cnt + 1);
+        timeoffset = (float) (track_idx - track_len + timeoffset * frame_cnt)
+            / (frame_cnt + 1);
         last_found = frame_cnt;
-        find_idx = (find_idx + track_idx - track_len)%FLEN;
-        if (nslot != sync_get_slot_id(&strack)) {
-          INFO("Expected slot %d but got %d\n", nslot, sync_get_slot_id(&strack));
-          printf("\r\n");
-          fflush(stdout);
-          printf("\r\n");
-          state = FIND;
-        }
+        find_idx = (find_idx + track_idx - track_len) % FLEN;
       } else {
         /* if sync not found, adjust time offset with the averaged value */
-        find_idx = (find_idx + (int) timeoffset)%FLEN;
+        find_idx = (find_idx + (int) timeoffset) % FLEN;
       }
 
       /* if we missed too many PSS go back to FIND */
@@ -458,7 +443,7 @@ int main(int argc, char **argv) {
       // Correct CFO
       INFO("Correcting CFO=%.4f\n", cfo);
 
-      cfo_correct(&cfocorr, input_buffer, -cfo/128);
+      cfo_correct(&cfocorr, input_buffer, -cfo / 128);
 
       if (nslot == 0 && find_idx + 960 < FLEN) {
         INFO("Finding MIB at idx %d\n", find_idx);
@@ -475,19 +460,21 @@ int main(int argc, char **argv) {
           }
           nof_found_mib++;
         } else {
-          INFO("MIB not found attempt %d\n",frame_cnt);
+          INFO("MIB not found attempt %d\n", frame_cnt);
         }
         if (frame_cnt) {
-          printf("SFN: %4d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, ErrorRate: %.1e\r", mib.sfn,
-              cfo*15, timeoffset/5, find_idx, frame_cnt-2*(nof_found_mib-1), frame_cnt,
-              (float) (frame_cnt-2*(nof_found_mib-1))/frame_cnt);
+          printf(
+              "SFN: %4d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, ErrorRate: %.1e\r",
+              mib.sfn, cfo * 15, timeoffset / 5, find_idx,
+              frame_cnt - 2 * (nof_found_mib - 1), frame_cnt,
+              (float) (frame_cnt - 2 * (nof_found_mib - 1)) / frame_cnt);
           fflush(stdout);
         }
       }
       if (input_file_name) {
         usleep(5000);
       }
-      nslot = (nslot+10)%20;
+      nslot = (nslot + 10) % 20;
       break;
     }
     frame_cnt++;

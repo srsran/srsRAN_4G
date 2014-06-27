@@ -94,7 +94,7 @@ LIBLTE_API int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[
 LIBLTE_API int regs_phich_ngroups(regs_t *h);
 LIBLTE_API int regs_phich_reset(regs_t *h, cf_t *slot_symbols);
 
-LIBLTE_API int regs_pdcch_nregs(regs_t *h);
+LIBLTE_API int regs_pdcch_nregs(regs_t *h, int cfi);
 LIBLTE_API int regs_pdcch_put(regs_t *h, cf_t *pdcch_symbols, cf_t *slot_symbols);
 LIBLTE_API int regs_pdcch_get(regs_t *h, cf_t *slot_symbols, cf_t *pdcch_symbols);
 

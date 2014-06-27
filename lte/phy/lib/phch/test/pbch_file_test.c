@@ -45,7 +45,7 @@ FILE *fmatlab = NULL;
 #define FLEN  9600
 
 filesource_t fsrc;
-cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS_CTRL];
+cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 pbch_t pbch;
 lte_fft_t fft;
 chest_t chest;
@@ -118,7 +118,7 @@ int base_init() {
     return -1;
   }
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     ce[i] = malloc(CP_NSYMB(cp) * nof_prb * RE_X_RB * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
@@ -162,7 +162,7 @@ void base_free() {
   free(fft_buffer);
 
   filesource_free(&fsrc);
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
   }
   chest_free(&chest);
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
 
   n = filesource_read(&fsrc, input_buffer, FLEN);
 
-  lte_fft_run(&fft, &input_buffer[960], fft_buffer);
+  lte_fft_run_slot(&fft, &input_buffer[960], fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "outfft=");
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
 
   INFO("Decoding PBCH\n", 0);
 
-  n = pbch_decode(&pbch, fft_buffer, ce, 1, &mib);
+  n = pbch_decode(&pbch, fft_buffer, ce, &mib);
 
   base_free();
 

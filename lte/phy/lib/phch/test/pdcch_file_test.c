@@ -47,7 +47,7 @@ FILE *fmatlab = NULL;
 
 filesource_t fsrc;
 pdcch_t pdcch;
-cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS_CTRL];
+cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 regs_t regs;
 lte_fft_t fft;
 chest_t chest;
@@ -143,7 +143,7 @@ int base_init() {
     return -1;
   }
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     ce[i] = malloc(CP_NSYMB(cp) * nof_prb * RE_X_RB * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
@@ -175,11 +175,15 @@ int base_init() {
     fprintf(stderr, "Error setting CFI %d\n", cfi);
     return -1;
   }
-
   if (pdcch_init(&pdcch, &regs, nof_prb, nof_ports, cell_id, cp)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
+  if (pdcch_set_cfi(&pdcch, cfi)) {
+    fprintf(stderr, "Error setting CFI %d\n", cfi);
+    return -1;    
+  }
+
   dci_init(&dci_rx, 10);
 
   DEBUG("Memory init OK\n",0);
@@ -198,7 +202,7 @@ void base_free() {
   free(fft_buffer);
 
   filesource_free(&fsrc);
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
   }
   chest_free(&chest);
@@ -242,7 +246,7 @@ int main(int argc, char **argv) {
     if (nof_frames == 5) {
       INFO("Reading %d samples sub-frame %d\n", flen, nof_frames);
 
-      lte_fft_run(&fft, input_buffer, fft_buffer);
+      lte_fft_run_slot(&fft, input_buffer, fft_buffer);
 
       if (fmatlab) {
         fprintf(fmatlab, "infft%d=", nof_frames);
@@ -264,7 +268,7 @@ int main(int argc, char **argv) {
         }
       }
 
-      nof_dcis = pdcch_decode(&pdcch, fft_buffer, ce, &dci_rx, nof_frames%10, 1);
+      nof_dcis = pdcch_decode(&pdcch, fft_buffer, ce, &dci_rx, nof_frames%10);
 
       INFO("Received %d DCI messages\n", nof_dcis);
 

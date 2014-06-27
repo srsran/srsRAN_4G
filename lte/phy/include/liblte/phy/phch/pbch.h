@@ -62,9 +62,9 @@ typedef struct LIBLTE_API {
   int nof_symbols;
 
   /* buffers */
-  cf_t *ce[MAX_PORTS_CTRL];
-  cf_t *pbch_symbols[MAX_PORTS_CTRL];
-  cf_t *pbch_x[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
+  cf_t *pbch_symbols[MAX_PORTS];
+  cf_t *pbch_x[MAX_PORTS];
   cf_t *pbch_d;
   float *pbch_llr;
   float *temp;
@@ -87,13 +87,10 @@ typedef struct LIBLTE_API {
 
 LIBLTE_API int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp);
 LIBLTE_API void pbch_free(pbch_t *q);
-LIBLTE_API int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float ebno, pbch_mib_t *mib);
-LIBLTE_API void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports);
+LIBLTE_API int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mib);
+LIBLTE_API void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS], int nof_ports);
 LIBLTE_API void pbch_decode_reset(pbch_t *q);
 
 LIBLTE_API void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib);
-LIBLTE_API bool pbch_exists(int nframe, int nslot);
-LIBLTE_API int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id);
-LIBLTE_API int pbch_get(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id);
 
 #endif // PBCH_

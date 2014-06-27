@@ -34,7 +34,7 @@ typedef _Complex float cf_t;
 
 
 LIBLTE_API void interp_linear_offset(cf_t *input, cf_t *output, int M, int len, int off_st, int off_end);
-LIBLTE_API void interp_linear(cf_t *input, cf_t *output, int M, int len);
+LIBLTE_API void interp_linear_c(cf_t *input, cf_t *output, int M, int len);
 LIBLTE_API void interp_linear_f(float *input, float *output, int M, int len);
 
 #endif // INTERP_H

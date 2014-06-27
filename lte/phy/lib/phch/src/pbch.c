@@ -55,6 +55,7 @@ int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id,
   int i;
   cf_t *ptr;
   assert(cell_id >= 0);
+
   if (put) {
     ptr = input;
     output += nof_prb * RE_X_RB / 2 - 36;
@@ -62,19 +63,34 @@ int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id,
     ptr = output;
     input += nof_prb * RE_X_RB / 2 - 36;
   }
-
+  
   /* symbol 0 & 1 */
   for (i = 0; i < 2; i++) {
-    prb_cp_ref(&input, &output, cell_id % 3, 4, 6, put);
+    prb_cp_ref(&input, &output, cell_id % 3, 4, 4*6, put);
+    if (put) {
+      output += nof_prb * RE_X_RB - 2*36;
+    } else {
+      input += nof_prb * RE_X_RB - 2*36;
+    }
   }
   /* symbols 2 & 3 */
   if (CP_ISNORM(cp)) {
     for (i = 0; i < 2; i++) {
       prb_cp(&input, &output, 6);
+      if (put) {
+        output += nof_prb * RE_X_RB - 2*36;
+      } else {
+        input += nof_prb * RE_X_RB - 2*36;
+      }
     }
   } else {
     prb_cp(&input, &output, 6);
-    prb_cp_ref(&input, &output, cell_id % 3, 4, 6, put);
+    if (put) {
+      output += nof_prb * RE_X_RB - 2*36;
+    } else {
+      input += nof_prb * RE_X_RB - 2*36;
+    }
+    prb_cp_ref(&input, &output, cell_id % 3, 4, 4*6, put);
   }
   if (put) {
     return input - ptr;
@@ -147,7 +163,7 @@ int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp) {
     goto clean;
   }
   int i;
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     q->ce[i] = malloc(sizeof(cf_t) * q->nof_symbols);
     if (!q->ce[i]) {
       goto clean;
@@ -198,7 +214,7 @@ void pbch_free(pbch_t *q) {
     free(q->pbch_d);
   }
   int i;
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -422,8 +438,7 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n,
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
-    float ebno, pbch_mib_t *mib) {
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mib) {
   int src, dst, res, nb;
   int nant_[3] = { 1, 2, 4 };
   int na, nant;
@@ -434,10 +449,10 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
   cf_t *x[MAX_LAYERS];
 
   /* number of layers equals number of ports */
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     x[i] = q->pbch_x[i];
   }
-  memset(&x[MAX_PORTS_CTRL], 0, sizeof(cf_t*) * (MAX_LAYERS - MAX_PORTS_CTRL));
+  memset(&x[MAX_PORTS], 0, sizeof(cf_t*) * (MAX_LAYERS - MAX_PORTS));
 
   /* extract symbols */
   if (q->nof_symbols
@@ -448,7 +463,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
   }
 
   /* extract channel estimates */
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     if (q->nof_symbols
         != pbch_get(ce[i], q->ce[i], q->nof_prb, q->cp, q->cell_id)) {
       fprintf(stderr, "There was an error getting the PBCH symbols\n");
@@ -477,7 +492,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
     }
 
     /* demodulate symbols */
-    demod_soft_sigma_set(&q->demod, ebno);
+    demod_soft_sigma_set(&q->demod, 1.0);
     demod_soft_demodulate(&q->demod, q->pbch_d,
         &q->pbch_llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
 
@@ -510,11 +525,11 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
 void pbch_encode(pbch_t *q, pbch_mib_t *mib,
-    cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports) {
+    cf_t *slot1_symbols[MAX_PORTS], int nof_ports) {
   int i;
   int nof_bits = 2 * q->nof_symbols;
 
-  assert(nof_ports <= MAX_PORTS_CTRL);
+  assert(nof_ports <= MAX_PORTS);
 
   /* Set pointers for layermapping & precoding */
   cf_t *x[MAX_LAYERS];

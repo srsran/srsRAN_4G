@@ -39,18 +39,50 @@
 
 #define NOT_SYNC  0xF0F0F0F0
 
+
+int pss_synch_init_N_id_2(pss_synch_t *q, int N_id_2) {
+  q->N_id_2 = N_id_2;
+
+  dft_plan_t plan;
+  cf_t pss_signal_pad[PSS_LEN_FREQ];
+  cf_t pss_signal_time[PSS_LEN];
+
+  if (N_id_2 < 0 || N_id_2 > 2) {
+    fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
+    return -1;
+  }
+
+  pss_generate(pss_signal_time, N_id_2);
+
+  memset(pss_signal_pad, 0, PSS_LEN_FREQ * sizeof(cf_t));
+  memset(q->pss_signal_freq[N_id_2], 0, PSS_LEN_FREQ * sizeof(cf_t));
+  memcpy(&pss_signal_pad[33], pss_signal_time, PSS_LEN * sizeof(cf_t));
+
+  if (dft_plan(&plan, PSS_LEN_FREQ - 1, BACKWARD, COMPLEX)) {
+    return -1;
+  }
+  dft_plan_set_mirror(&plan, true);
+  dft_plan_set_dc(&plan, true);
+  dft_run_c(&plan, pss_signal_pad, q->pss_signal_freq[q->N_id_2]);
+
+  vec_sc_prod_cfc(q->pss_signal_freq[q->N_id_2], (float) 1 / (PSS_LEN_FREQ - 1),
+      pss_signal_pad, PSS_LEN_FREQ);
+
+  vec_conj_cc(pss_signal_pad, q->pss_signal_freq[q->N_id_2], PSS_LEN_FREQ);
+
+  dft_plan_free(&plan);
+
+  return 0;
+}
+
 /* Initializes the object. subframe_size is the size, in samples, of the 1ms subframe
  *
  */
 int pss_synch_init(pss_synch_t *q, int frame_size) {
   int ret = -1;
+  int N_id_2; 
   bzero(q, sizeof(pss_synch_t));
 
-  q->pss_signal_freq = vec_malloc((PSS_LEN_FREQ + frame_size) * sizeof(cf_t));
-  if (!q->pss_signal_freq) {
-    fprintf(stderr, "Error allocating memory\n");
-    goto clean_and_exit;
-  }
   q->conv_abs = vec_malloc((PSS_LEN_FREQ + frame_size) * sizeof(float));
   if (!q->conv_abs) {
     fprintf(stderr, "Error allocating memory\n");
@@ -61,16 +93,35 @@ int pss_synch_init(pss_synch_t *q, int frame_size) {
     fprintf(stderr, "Error allocating memory\n");
     goto clean_and_exit;
   }
-  q->frame_buffer = vec_malloc(4 * frame_size * sizeof(cf_t));
-  if (!q->frame_buffer) {
-    fprintf(stderr, "Error allocating memory\n");
-    goto clean_and_exit;
-  }
   q->conv_output = vec_malloc((PSS_LEN_FREQ + frame_size) * sizeof(cf_t));
   if (!q->conv_output) {
     fprintf(stderr, "Error allocating memory\n");
     goto clean_and_exit;
   }
+  for (N_id_2=0;N_id_2<3;N_id_2++) {
+    q->pss_signal_freq[N_id_2] = vec_malloc((PSS_LEN_FREQ + frame_size) * sizeof(cf_t));
+    if (!q->pss_signal_freq[N_id_2]) {
+      fprintf(stderr, "Error allocating memory\n");
+      goto clean_and_exit;
+    }
+    if (pss_synch_init_N_id_2(q, N_id_2)) {
+      fprintf(stderr, "Error initiating PSS detector for N_id_2=%d\n", N_id_2);
+      goto clean_and_exit;
+    }
+  }
+
+#ifdef ENABLE_SF
+  q->frame_buffer = vec_malloc(4 * frame_size * sizeof(cf_t));
+  if (!q->frame_buffer) {
+    fprintf(stderr, "Error allocating memory\n");
+    goto clean_and_exit;
+  }
+  q->correlation_threshold = DEFAULT_CORRELATION_TH;
+  q->nosync_timeout_frames = DEFAULT_NOSYNC_TIMEOUT;
+  q->cfo_auto = true;
+  q->frame_start_idx = NOT_SYNC;
+  q->fb_wp = 0;
+#endif
 
 #ifdef CONVOLUTION_FFT
   if (conv_fft_cc_init(&q->conv_fft, frame_size, PSS_LEN_FREQ)) {
@@ -79,13 +130,8 @@ int pss_synch_init(pss_synch_t *q, int frame_size) {
   }
 #endif
 
-  q->correlation_threshold = DEFAULT_CORRELATION_TH;
-  q->nosync_timeout_frames = DEFAULT_NOSYNC_TIMEOUT;
-  q->cfo_auto = true;
   q->N_id_2 = -1;
   q->frame_size = frame_size;
-  q->frame_start_idx = NOT_SYNC;
-  q->fb_wp = 0;
 
   ret = 0;
   clean_and_exit: if (ret == -1) {
@@ -95,8 +141,11 @@ int pss_synch_init(pss_synch_t *q, int frame_size) {
 }
 
 void pss_synch_free(pss_synch_t *q) {
-  if (q->pss_signal_freq) {
-    free(q->pss_signal_freq);
+  int i;
+  for (i=0;i<3;i++) {
+    if (q->pss_signal_freq[i]) {
+      free(q->pss_signal_freq[i]);
+    }
   }
   if (q->conv_abs) {
     free(q->conv_abs);
@@ -104,12 +153,15 @@ void pss_synch_free(pss_synch_t *q) {
   if (q->tmp_input) {
     free(q->tmp_input);
   }
-  if (q->frame_buffer) {
-    free(q->frame_buffer);
-  }
   if (q->conv_output) {
     free(q->conv_output);
   }
+
+#ifdef ENABLE_SF
+  if (q->frame_buffer) {
+    free(q->frame_buffer);
+  }
+#endif
 
 #ifdef CONVOLUTION_FFT
   conv_fft_cc_free(&q->conv_fft);
@@ -162,46 +214,19 @@ void pss_put_slot(cf_t *pss_signal, cf_t *slot, int nof_prb, lte_cp_t cp) {
   memset(&slot[k + PSS_LEN], 0, 5 * sizeof(cf_t));
 }
 
-/** Sets the current N_id_2 value. Initializes the object for this PSS sequence
- * Returns -1 on error, 0 otherwise
+
+/** Sets the current N_id_2 value. Returns -1 on error, 0 otherwise
  */
 int pss_synch_set_N_id_2(pss_synch_t *q, int N_id_2) {
-  q->N_id_2 = N_id_2;
-
-  dft_plan_t plan;
-  cf_t pss_signal_pad[PSS_LEN_FREQ];
-  cf_t pss_signal_time[PSS_LEN];
-
-  if (N_id_2 < 0 || N_id_2 > 2) {
+    if (N_id_2 < 0 || N_id_2 > 2) {
     fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
     return -1;
+  } else {
+    q->N_id_2 = N_id_2;
+    return 0;
   }
-
-  pss_generate(pss_signal_time, N_id_2);
-
-  memset(pss_signal_pad, 0, PSS_LEN_FREQ * sizeof(cf_t));
-  memset(q->pss_signal_freq, 0, PSS_LEN_FREQ * sizeof(cf_t));
-  memcpy(&pss_signal_pad[33], pss_signal_time, PSS_LEN * sizeof(cf_t));
-
-  if (dft_plan(&plan, PSS_LEN_FREQ - 1, BACKWARD, COMPLEX)) {
-    return -1;
-  }
-  dft_plan_set_mirror(&plan, true);
-  dft_plan_set_dc(&plan, true);
-
-  dft_run_c(&plan, pss_signal_pad, q->pss_signal_freq);
-
-  vec_sc_prod_cfc(q->pss_signal_freq, (float) 1 / (PSS_LEN_FREQ - 1),
-      pss_signal_pad, PSS_LEN_FREQ);
-
-  vec_conj_cc(pss_signal_pad, q->pss_signal_freq, PSS_LEN_FREQ);
-
-  q->N_id_2 = N_id_2;
-
-  dft_plan_free(&plan);
-
-  return 0;
 }
+
 
 /** Returns the index of the PSS correlation peak in a subframe.
  * The frame starts at corr_peak_pos-subframe_size/2.
@@ -214,15 +239,15 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value,
   int corr_peak_pos;
   int conv_output_len;
 
-  memset(&q->pss_signal_freq[PSS_LEN_FREQ], 0, q->frame_size * sizeof(cf_t));
+  memset(&q->pss_signal_freq[q->N_id_2][PSS_LEN_FREQ], 0, q->frame_size * sizeof(cf_t));
   memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
   memset(&q->tmp_input[q->frame_size], 0, PSS_LEN_FREQ * sizeof(cf_t));
 
 #ifdef CONVOLUTION_FFT
   conv_output_len = conv_fft_cc_run(&q->conv_fft, q->tmp_input,
-      q->pss_signal_freq, q->conv_output);
+      q->pss_signal_freq[q->N_id_2], q->conv_output);
 #else
-  conv_output_len = conv_cc(input, q->pss_signal_freq, q->conv_output, q->frame_size, PSS_LEN_FREQ);
+  conv_output_len = conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, PSS_LEN_FREQ);
 #endif
 
   vec_abs_cf(q->conv_output, q->conv_abs, conv_output_len);
@@ -247,13 +272,35 @@ float pss_synch_cfo_compute(pss_synch_t* q, cf_t *pss_recv) {
   cf_t y0, y1, yr;
   cf_t y[PSS_LEN_FREQ - 1];
 
-  vec_prod_ccc_unalign(q->pss_signal_freq, pss_recv, y, PSS_LEN_FREQ - 1);
+  vec_prod_ccc_unalign(q->pss_signal_freq[q->N_id_2], pss_recv, y, PSS_LEN_FREQ - 1);
 
   y0 = vec_acc_cc(y, (PSS_LEN_FREQ - 1) / 2);
   y1 = vec_acc_cc(&y[(PSS_LEN_FREQ - 1) / 2], (PSS_LEN_FREQ - 1) / 2);
   yr = conjf(y0) * y1;
 
   return atan2f(__imag__ yr, __real__ yr) / M_PI;
+}
+
+#ifdef ENABLE_SF
+
+void pss_synch_set_timeout(pss_synch_t *q, int nof_frames) {
+  q->nosync_timeout_frames = nof_frames;
+}
+
+void pss_synch_set_threshold(pss_synch_t *q, float threshold) {
+  q->correlation_threshold = threshold;
+}
+
+void pss_synch_set_cfo_mode(pss_synch_t *q, bool cfo_auto) {
+  q->cfo_auto = cfo_auto;
+}
+
+float pss_synch_get_cfo(pss_synch_t *q) {
+  return q->current_cfo;
+}
+
+int pss_synch_get_frame_start_idx(pss_synch_t *q) {
+  return q->frame_start_idx;
 }
 
 /** This function is designed to be called periodically on a subframe basis.
@@ -338,26 +385,6 @@ int pss_synch_frame(pss_synch_t *q, cf_t *input, cf_t *output, int nsamples) {
   return retval;
 }
 
-void pss_synch_set_timeout(pss_synch_t *q, int nof_frames) {
-  q->nosync_timeout_frames = nof_frames;
-}
-
-void pss_synch_set_threshold(pss_synch_t *q, float threshold) {
-  q->correlation_threshold = threshold;
-}
-
-void pss_synch_set_cfo_mode(pss_synch_t *q, bool cfo_auto) {
-  q->cfo_auto = cfo_auto;
-}
-
-float pss_synch_get_cfo(pss_synch_t *q) {
-  return q->current_cfo;
-}
-
-int pss_synch_get_frame_start_idx(pss_synch_t *q) {
-  return q->frame_start_idx;
-}
-
 /** High-level API */
 
 int pss_synch_initialize(pss_synch_hl* h) {
@@ -396,4 +423,6 @@ int pss_synch_stop(pss_synch_hl* hl) {
   pss_synch_free(&hl->obj);
   return 0;
 }
+
+#endif
 

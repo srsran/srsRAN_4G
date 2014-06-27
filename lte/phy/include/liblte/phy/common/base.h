@@ -41,7 +41,6 @@
 #define LTE_NIL_SYMBOL  2
 
 #define MAX_PORTS   4
-#define MAX_PORTS_CTRL  4
 #define MAX_LAYERS    8
 #define MAX_CODEWORDS 2
 
@@ -82,7 +81,7 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define SF_LEN_CPNORM(symbol_sz) 2*SLOT_LEN_CPNORM(symbol_sz)
 #define SF_LEN_CPEXT(symbol_sz) 2*SLOT_LEN_CPEXT(symbol_sz)
-#define SF_LEN(symbol_sz, cp) 2*SLOT_LEN(cp, symbol_sz)
+#define SF_LEN(symbol_sz, cp) (2*SLOT_LEN(symbol_sz, cp))
 
 #define SLOT_IDX_CPNORM(idx, symbol_sz) (idx==0?(CP(symbol_sz, CPNORM_0_LEN)):(CP(symbol_sz, CPNORM_0_LEN)+idx*(symbol_sz+CP(symbol_sz, CPNORM_LEN))))
 #define SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
@@ -96,14 +95,26 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define GUARD_RE(nof_prb) ((lte_symbol_sz(nof_prb)-nof_prb*RE_X_RB)/2)
 
+#define SYMBOL_HAS_REF(l, cp, nof_ports) ((l == 1 && nof_ports == 4) \
+        || l == 0 \
+        || l == CP_NSYMB(cp) - 3)
+
 
 LIBLTE_API const int lte_symbol_sz(int nof_prb);
+LIBLTE_API const int lte_sampling_freq_hz(int nof_prb);
 LIBLTE_API int lte_re_x_prb(int ns, int symbol, int nof_ports, int nof_symbols);
 LIBLTE_API int lte_voffset(int symbol_id, int cell_id, int nof_ports);
 
 #define NOF_LTE_BANDS 29
 
 #define NOF_TC_CB_SIZES 188
+
+typedef struct LIBLTE_API {
+  int nof_prb;
+  int nof_ports; 
+  int cell_id;
+  lte_cp_t cp;
+}lte_cell_t;
 
 
 typedef enum LIBLTE_API {

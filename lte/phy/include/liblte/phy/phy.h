@@ -93,11 +93,14 @@
 #include "liblte/phy/scrambling/scrambling.h"
 
 #include "liblte/phy/resampling/interp.h"
+#include "liblte/phy/resampling/decim.h"
+#include "liblte/phy/resampling/resample_arb.h"
 
 #include "liblte/phy/sync/pss.h"
 #include "liblte/phy/sync/sfo.h"
 #include "liblte/phy/sync/sss.h"
 #include "liblte/phy/sync/sync.h"
+#include "liblte/phy/sync/sync_frame.h"
 #include "liblte/phy/sync/cfo.h"
 
 #ifdef __cplusplus

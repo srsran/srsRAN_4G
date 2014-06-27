@@ -53,7 +53,6 @@ struct sss_tables{
   int z1[N_SSS][N_SSS];
   int c[2][N_SSS];
   int s[N_SSS][N_SSS];
-  int N_id_2;
 };
 
 /* Allocate 32 complex to make it multiple of 32-byte AVX instructions alignment requirement.
@@ -74,9 +73,10 @@ typedef struct LIBLTE_API {
   float corr_peak_threshold;
   int symbol_sz;
   int subframe_sz;
+  int N_id_2;
 
   int N_id_1_table[30][30];
-  struct fc_tables fc_tables;
+  struct fc_tables fc_tables[3]; // one for each N_id_2
 
 }sss_synch_t;
 

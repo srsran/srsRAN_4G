@@ -77,6 +77,9 @@ int lte_find_cb_index(int long_cb) {
   }
 }
 
+const int lte_sampling_freq_hz(int nof_prb) {
+    return 15000 * lte_symbol_sz(nof_prb); 
+}
 const int lte_symbol_sz(int nof_prb) {
   if (nof_prb<=0) {
     return -1;

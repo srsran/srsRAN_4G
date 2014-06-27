@@ -48,7 +48,7 @@ int numsubframe = 0;
 FILE *fmatlab = NULL;
 
 filesource_t fsrc;
-cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS_CTRL];
+cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 phich_t phich;
 regs_t regs;
 lte_fft_t fft;
@@ -154,7 +154,7 @@ int base_init() {
     return -1;
   }
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     ce[i] = malloc(CP_NSYMB(cp) * nof_prb * RE_X_RB * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
@@ -203,7 +203,7 @@ void base_free() {
   free(fft_buffer);
 
   filesource_free(&fsrc);
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
   }
   chest_free(&chest);
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 
   n = filesource_read(&fsrc, input_buffer, flen);
 
-  lte_fft_run(&fft, input_buffer, fft_buffer);
+  lte_fft_run_slot(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");

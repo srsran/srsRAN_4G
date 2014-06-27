@@ -41,63 +41,75 @@ const int test_re_ports[N_TESTS] = {1, 1, 1, 2, 4, 4, 1, 4, 1, 4};
 const int test_re_csymb[N_TESTS] = {2, 1, 3, 3, 1, 3, 2, 2, 1, 2};
 const int test_re_prb[N_TESTS] = {6, 15, 15, 15, 15, 15, 6, 6, 15, 15};
 const int test_re_num[N_TESTS][3] = {
-		{408, 684, 828 }, // sf 0, 5 and the rest
-		{1830, 2106, 2250},
-		{1470, 1746, 1890},
-		{1392, 1656, 1800},
-		{1656, 1896, 2040},
-		{1356, 1596, 1740},
-		{276, 540, 684},
-		{264, 480, 624},
-		{1482, 1746, 1890},
-		{1200, 1416, 1560}
+    {408, 684, 828 }, // sf 0, 5 and the rest
+    {1830, 2106, 2250},
+    {1470, 1746, 1890},
+    {1392, 1656, 1800},
+    {1656, 1896, 2040},
+    {1356, 1596, 1740},
+    {276, 540, 684},
+    {264, 480, 624},
+    {1482, 1746, 1890},
+    {1200, 1416, 1560}
 };
 
+cf_t in[200000], out[200000];
+
 int main(int argc, char **argv) {
-	int i, n, np;
-	ra_prb_t prb_alloc;
-	int ret = -1;
+  int i, n, np, r;
+  ra_prb_t prb_alloc;
+  int ret = -1;
+  pdsch_t pdsch; 
+  
+  while (getopt(argc, argv, "v") == 'v') {
+    verbose++;
+  }
 
-	while (getopt(argc, argv, "v") == 'v') {
-		verbose++;
-	}
+  for (i=0;i<110;i++) {
+    prb_alloc.slot[0].prb_idx[i] = i;
+    prb_alloc.slot[1].prb_idx[i] = i;
+  }
 
-	for (i=0;i<110;i++) {
-		prb_alloc.slot[0].prb_idx[i] = i;
-		prb_alloc.slot[1].prb_idx[i] = i;
-	}
+  for (i=0;i<N_TESTS;i++) {
+  
+    pdsch_init(&pdsch, 0, test_re_prb[i], test_re_ports[i], 0, test_re_cp[i]);
 
-	for (i=0;i<N_TESTS;i++) {
-		memset(prb_alloc.re_sf, 0, sizeof(int) * 10);
-		prb_alloc.slot[0].nof_prb = test_re_prb[i];
-		prb_alloc.slot[1].nof_prb = test_re_prb[i];
-		ra_prb_get_re(&prb_alloc, test_re_prb[i], test_re_ports[i], test_re_csymb[i], test_re_cp[i]);
-		for (n=0;n<10;n++) {
-			switch(n) {
-			case 0:
-				np = 0;
-				break;
-			case 5:
-				np = 1;
-				break;
-			default:
-				np = 2;
-				break;
-			}
-			if (prb_alloc.re_sf[n] != test_re_num[i][np]) {
-				goto go_out;
-			}
-		}
-	}
-	ret = 0;
+    memset(prb_alloc.re_sf, 0, sizeof(int) * 10);
+    prb_alloc.slot[0].nof_prb = test_re_prb[i];
+    prb_alloc.slot[1].nof_prb = test_re_prb[i];
+    ra_prb_get_re(&prb_alloc, test_re_prb[i], test_re_ports[i], test_re_csymb[i], test_re_cp[i]);
+    for (n=0;n<10;n++) {
+      switch(n) {
+      case 0:
+        np = 0;
+        break;
+      case 5:
+        np = 1;
+        break;
+      default:
+        np = 2;
+        break;
+      }
+      r = pdsch_get(&pdsch, in, out, &prb_alloc, n);
+      
+      if (prb_alloc.re_sf[n] != test_re_num[i][np]) {
+        goto go_out;
+      }
+      if (r != prb_alloc.re_sf[n]) {
+        goto go_out;
+      }
+    }
+    pdsch_free(&pdsch);
+  }
+  ret = 0;
 go_out:
-	if (ret) {
-		printf("Error in SF %d test %d. %d PRB, %d ports, RE is %d and should be %d\n",
-				n, i, test_re_prb[i], test_re_ports[i], prb_alloc.re_sf[n], test_re_num[i][np]);
-	} else {
-		printf("Ok\n");
-	}
-	exit(ret);
+  if (ret) {
+    printf("Error in SF %d test %d. %d PRB, %d ports, RE is %d, get %d and should be %d\n",
+        n, i, test_re_prb[i], test_re_ports[i], prb_alloc.re_sf[n], r, test_re_num[i][np]);
+  } else {
+    printf("Ok\n");
+  }
+  exit(ret);
 }
 
 

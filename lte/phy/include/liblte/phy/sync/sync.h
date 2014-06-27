@@ -32,13 +32,13 @@
 #include <stdbool.h>
 
 #include "liblte/config.h"
-#include "pss.h"
-#include "sss.h"
-#include "sfo.h"
+#include "liblte/phy/sync/pss.h"
+#include "liblte/phy/sync/sss.h"
 
 /**
  *
  * This object performs time and frequency synchronization using the PSS and SSS signals.
+ * 
  * The object is designed to work with signals sampled at 1.92 Mhz centered at the carrier frequency.
  * Thus, downsampling is required if the signal is sampled at higher frequencies.
  *
@@ -49,28 +49,36 @@
 
 enum sync_pss_det { ABSOLUTE, PEAK_MEAN};
 
+#define TRACK_THRESHOLD  10.0
+#define TRACK_LEN        300
+
 typedef struct LIBLTE_API {
-  pss_synch_t pss[3]; // One for each N_id_2
-  sss_synch_t sss[3]; // One for each N_id_2
+  pss_synch_t pss; 
+  pss_synch_t pss_track; 
+  sss_synch_t sss;
   enum sync_pss_det pss_mode;
   float threshold;
   float peak_to_avg;
-  int force_N_id_2;
   int N_id_2;
   int N_id_1;
   int slot_id;
   float cfo;
-  lte_cp_t cp;
   bool detect_cp;
   bool sss_en;
+  lte_cp_t cp;
 }sync_t;
 
 
 LIBLTE_API int sync_init(sync_t *q, int frame_size);
 LIBLTE_API void sync_free(sync_t *q);
 
-/* Runs the synchronization algorithm. input signal must be sampled at 1.92 MHz and should be frame_size long at least */
-LIBLTE_API int sync_run(sync_t *q, cf_t *input);
+/* Finds a correlation peak in the input signal. The signal must be sampled at 1.92 MHz and should be 
+ subframe_size long at least */
+LIBLTE_API int sync_find(sync_t *q, cf_t *input);
+
+/* Tracks the correlation peak in the input signal. The signal must be sampled at 1.92 MHz and should be 
+ TRACK_LEN long at least */
+LIBLTE_API int sync_track(sync_t *q, cf_t *input);
 
 /* Sets the threshold for peak comparison */
 LIBLTE_API void sync_set_threshold(sync_t *q, float threshold);
@@ -78,14 +86,6 @@ LIBLTE_API void sync_set_threshold(sync_t *q, float threshold);
 LIBLTE_API void sync_pss_det_absolute(sync_t *q);
 /* Set peak comparison to relative to the mean */
 LIBLTE_API void sync_pss_det_peak_to_avg(sync_t *q);
-
-/* Forces the synchronizer to check one N_id_2 PSS sequence only (useful for tracking mode) */
-LIBLTE_API void sync_force_N_id_2(sync_t *q, int force_N_id_2);
-/* Forces the synchronizer to skip CP detection (useful for tracking mode) */
-LIBLTE_API void sync_force_cp(sync_t *q, lte_cp_t cp);
-/* Enables/Disables SSS detection (useful for tracking mode) */
-LIBLTE_API void sync_sss_en(sync_t *q, bool enabled);
-
 
 /* Gets the slot id (0 or 10) */
 LIBLTE_API int sync_get_slot_id(sync_t *q);
@@ -101,6 +101,10 @@ LIBLTE_API int sync_get_cell_id(sync_t *q);
 LIBLTE_API float sync_get_cfo(sync_t *q);
 /* Gets the CP length estimation from the last call to synch_run() */
 LIBLTE_API lte_cp_t sync_get_cp(sync_t *q);
+/* Enables/Disables SSS detection  */
+LIBLTE_API void sync_sss_en(sync_t *q, bool enabled);
+/* Enables/Disables CP detection  */
+LIBLTE_API void sync_cp_en(sync_t *q, bool enabled);
 
 #endif // SYNC_
 

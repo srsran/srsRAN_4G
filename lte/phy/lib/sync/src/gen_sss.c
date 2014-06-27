@@ -123,7 +123,6 @@ void generate_sss_all_tables(struct sss_tables *tables, int N_id_2) {
   for (i = 0; i < 2; i++) {
     generate_c(tables->c[i], c_t, N_id_2, i);
   }
-  tables->N_id_2 = N_id_2;
 }
 
 void sss_generate(float *signal0, float *signal5, int cell_id) {

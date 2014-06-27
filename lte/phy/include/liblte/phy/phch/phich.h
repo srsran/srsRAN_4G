@@ -63,9 +63,9 @@ typedef struct LIBLTE_API {
   regs_t *regs;
 
   /* buffers */
-  cf_t ce[MAX_PORTS_CTRL][PHICH_MAX_NSYMB];
-  cf_t phich_symbols[MAX_PORTS_CTRL][PHICH_MAX_NSYMB];
-  cf_t phich_x[MAX_PORTS_CTRL][PHICH_MAX_NSYMB];
+  cf_t ce[MAX_PORTS][PHICH_MAX_NSYMB];
+  cf_t phich_symbols[MAX_PORTS][PHICH_MAX_NSYMB];
+  cf_t phich_x[MAX_PORTS][PHICH_MAX_NSYMB];
   cf_t phich_d[PHICH_MAX_NSYMB];
   cf_t phich_d0[PHICH_MAX_NSYMB];
   cf_t phich_z[PHICH_NBITS];
@@ -82,13 +82,13 @@ typedef struct LIBLTE_API {
 
 LIBLTE_API int phich_init(phich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_ports, lte_cp_t cp);
 LIBLTE_API void phich_free(phich_t *q);
-LIBLTE_API int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
+LIBLTE_API int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
     int ngroup, int nseq, int nsubframe, char *ack, int *distance);
 LIBLTE_API int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
-    cf_t *slot_symbols[MAX_PORTS_CTRL]);
+    cf_t *slot_symbols[MAX_PORTS]);
 
 
-LIBLTE_API void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS_CTRL]);
+LIBLTE_API void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS]);
 LIBLTE_API int phich_ngroups(phich_t *q);
 LIBLTE_API bool phich_exists(int nframe, int nslot);
 LIBLTE_API int phich_put(regs_t *h, cf_t *phich, cf_t *slot_data);

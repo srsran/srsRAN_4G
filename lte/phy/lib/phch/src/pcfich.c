@@ -139,7 +139,7 @@ int pcfich_cfi_encode(int cfi, char bits[PCFICH_CFI_LEN]) {
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
+int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
     int nsubframe, int *cfi, int *distance) {
   int dist;
 
@@ -154,7 +154,7 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
   }
 
   /* number of layers equals number of ports */
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     x[i] = q->pcfich_x[i];
   }
   for (i = 0; i < MAX_PORTS; i++) {
@@ -208,7 +208,7 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
 
 /** Encodes CFI and maps symbols to the slot
  */
-int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL],
+int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS],
     int nsubframe) {
   int i;
 
@@ -229,7 +229,7 @@ int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL],
     symbols_precoding[i] = q->pcfich_symbols[i];
   }
 
-  /* pack MIB */
+  /* pack CFI */
   pcfich_cfi_encode(cfi, q->data);
 
   /* scramble for slot sequence nslot */
