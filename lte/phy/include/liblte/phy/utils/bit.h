@@ -38,7 +38,7 @@ LIBLTE_API uint32_t bit_unpack(char **bits, int nof_bits);
 LIBLTE_API void bit_pack(uint32_t value, char **bits, int nof_bits);
 LIBLTE_API void bit_fprint(FILE *stream, char *bits, int nof_bits);
 LIBLTE_API unsigned int bit_diff(char *x, char *y, int nbits);
-LIBLTE_API int bit_count(unsigned int n);
+LIBLTE_API uint8_t bit_count(uint32_t n);
 
 #endif // BIT_
 

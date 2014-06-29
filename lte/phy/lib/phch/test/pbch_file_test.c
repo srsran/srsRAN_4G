@@ -117,14 +117,14 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+  fft_buffer = malloc(2 * CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
-  for (i=0;i<MAX_PORTS;i++) {
-    ce[i] = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+  for (i=0;i<cell.nof_ports;i++) {
+    ce[i] = malloc(2 * CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
@@ -146,7 +146,7 @@ int base_init() {
     return -1;
   }
 
-  if (pbch_init(&pbch, cell.nof_prb, cell.id, cell.cp)) {
+  if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error initiating PBCH\n");
     return -1;
   }
@@ -167,7 +167,7 @@ void base_free() {
   free(fft_buffer);
 
   filesource_free(&fsrc);
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
   }
   chest_free(&chest);
@@ -178,7 +178,7 @@ void base_free() {
 
 int main(int argc, char **argv) {
   pbch_mib_t mib;
-  int i, n;
+  int n;
 
   if (argc < 3) {
     usage(argv[0]);
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 
   n = filesource_read(&fsrc, input_buffer, FLEN);
 
-  lte_fft_run_slot(&fft, &input_buffer[960], fft_buffer);
+  lte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "outfft=");
@@ -205,12 +205,7 @@ int main(int argc, char **argv) {
   }
 
   /* Get channel estimates for each port */
-  for (i=0;i<cell.nof_ports;i++) {
-    chest_ce_slot_port(&chest, fft_buffer, ce[i], 1, i);
-    if (fmatlab) {
-      chest_fprint(&chest, fmatlab, 1, i);
-    }
-  }
+  chest_ce_sf(&chest, fft_buffer, ce, 0);
 
   INFO("Decoding PBCH\n", 0);
 

@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
   }
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
-  ra_prb_get_re(&prb_alloc, cell.nof_prb, cell.nof_ports, 2, CPNORM);
+  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, 2, CPNORM);
 
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {

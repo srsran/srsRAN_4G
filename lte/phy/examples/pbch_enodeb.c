@@ -38,10 +38,16 @@
   void *uhd;
 #endif
 
+  
+lte_cell_t cell = {
+  6,            // nof_prb
+  1,            // nof_ports
+  1,            // cell_id
+  CPNORM        // cyclic prefix
+};
+  
 char *output_file_name = NULL;
 int nof_frames=-1;
-int cell_id = 1;
-int nof_prb = 6;
 char *uhd_args = "";
 
 float uhd_amp=0.25, uhd_gain=10.0, uhd_freq=2400000000;
@@ -51,7 +57,7 @@ lte_fft_t ifft;
 pbch_t pbch;
 
 cf_t *sf_buffer = NULL, *output_buffer = NULL;
-int slot_n_re, slot_n_samples;
+int sf_n_re, sf_n_samples;
 
 #define UHD_SAMP_FREQ  1920000
 
@@ -67,8 +73,8 @@ void usage(char *prog) {
 #endif
   printf("\t-o output_file [Default USRP]\n");
   printf("\t-n number of frames [Default %d]\n", nof_frames);
-  printf("\t-c cell id [Default %d]\n", cell_id);
-  printf("\t-p nof_prb [Default %d]\n", nof_prb);
+  printf("\t-c cell id [Default %d]\n", cell.id);
+  printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -95,10 +101,10 @@ void parse_args(int argc, char **argv) {
       nof_frames = atoi(argv[optind]);
       break;
     case 'p':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'v':
       verbose++;
@@ -118,12 +124,12 @@ void parse_args(int argc, char **argv) {
 
 void base_init() {
   /* init memory */
-  sf_buffer = malloc(sizeof(cf_t) * slot_n_re);
+  sf_buffer = malloc(sizeof(cf_t) * sf_n_re);
   if (!sf_buffer) {
     perror("malloc");
     exit(-1);
   }
-  output_buffer = malloc(sizeof(cf_t) * slot_n_samples);
+  output_buffer = malloc(sizeof(cf_t) * sf_n_samples);
   if (!output_buffer) {
     perror("malloc");
     exit(-1);
@@ -148,11 +154,11 @@ void base_init() {
   }
 
   /* create ifft object */
-  if (lte_ifft_init(&ifft, CPNORM, nof_prb)) {
+  if (lte_ifft_init(&ifft, CPNORM, cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
-  if (pbch_init(&pbch, 6, cell_id, CPNORM)) {
+  if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
@@ -180,14 +186,14 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  int nf, ns, N_id_2;
+  int nf, sf_idx, N_id_2;
   cf_t pss_signal[PSS_LEN];
   float sss_signal0[SSS_LEN]; // for subframe 0
   float sss_signal5[SSS_LEN]; // for subframe 5
   pbch_mib_t mib;
   refsignal_t refs[NSLOTS_X_FRAME];
-  int i;
-  cf_t *slot1_symbols[MAX_PORTS];
+  int i, n;
+  cf_t *sf_symbols[MAX_PORTS];
 
 
 #ifdef DISABLE_UHD
@@ -199,20 +205,20 @@ int main(int argc, char **argv) {
 
   parse_args(argc,argv);
 
-  N_id_2 = cell_id%3;
-  slot_n_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
-  slot_n_samples = SLOT_LEN_CPNORM(lte_symbol_sz(nof_prb));
+  N_id_2 = cell.id%3;
+  sf_n_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  sf_n_samples = 2 * SLOT_LEN_CPNORM(lte_symbol_sz(cell.nof_prb));
 
   /* this *must* be called after setting slot_len_* */
   base_init();
 
   /* Generate PSS/SSS signals */
   pss_generate(pss_signal, N_id_2);
-  sss_generate(sss_signal0, sss_signal5, cell_id);
+  sss_generate(sss_signal0, sss_signal5, cell.id);
 
   /* Generate CRS signals */
   lte_cell_t cell;
-  cell.id = cell_id;
+  cell.id = cell.id;
   cell.nof_prb = 6;
   cell.cp = CPNORM;
   cell.nof_ports = 1;
@@ -224,14 +230,14 @@ int main(int argc, char **argv) {
     }
   }
 
-  mib.nof_ports = 1;
-  mib.nof_prb = 6;
+  mib.nof_ports = cell.nof_ports;
+  mib.nof_prb = cell.nof_prb;
   mib.phich_length = PHICH_NORM;
   mib.phich_resources = R_1;
   mib.sfn = 0;
 
   for (i=0;i<MAX_PORTS;i++) { // now there's only 1 port
-    slot1_symbols[i] = sf_buffer;
+    sf_symbols[i] = sf_buffer;
   }
 
 #ifndef DISABLE_UHD
@@ -245,35 +251,33 @@ int main(int argc, char **argv) {
   nf = 0;
 
   while(nf<nof_frames || nof_frames == -1) {
-    for (ns=0;ns<NSLOTS_X_FRAME;ns++) {
-      bzero(sf_buffer, sizeof(cf_t) * slot_n_re);
+    for (sf_idx=0;sf_idx<NSUBFRAMES_X_FRAME;sf_idx++) {
+      bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
-      switch(ns) {
-      case 0: // tx pss/sss
-      case 10: // tx pss/sss
-        pss_put_slot(pss_signal, sf_buffer, nof_prb, CPNORM);
-        sss_put_slot(ns?sss_signal5:sss_signal0, sf_buffer, nof_prb, CPNORM);
-        break;
-      case 1: // tx pbch
-        pbch_encode(&pbch, &mib, slot1_symbols, 1);
-        break;
-      default: // transmit zeros
-        break;
+      if (sf_idx == 0 || sf_idx == 5) {
+        pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, CPNORM);
+        sss_put_slot(sf_idx?sss_signal5:sss_signal0, sf_buffer, cell.nof_prb, CPNORM);
+      }
+      
+      if (sf_idx == 0) {
+        pbch_encode(&pbch, &mib, sf_symbols);
+      }
+      
+      for (n=0;n<2;n++) {
+        refsignal_put(&refs[2*sf_idx+n], &sf_buffer[n*sf_n_re/2]);
       }
 
-      refsignal_put(&refs[ns], sf_buffer);
-
       /* Transform to OFDM symbols */
-      lte_ifft_run_slot(&ifft, sf_buffer, output_buffer);
+      lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
 
       /* send to file or usrp */
       if (output_file_name) {
-        filesink_write(&fsink, output_buffer, slot_n_samples);
+        filesink_write(&fsink, output_buffer, sf_n_samples);
         usleep(5000);
       } else {
 #ifndef DISABLE_UHD
-        vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, slot_n_samples);
-        cuhd_send(uhd, output_buffer, slot_n_samples, 1);
+        vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);
+        cuhd_send(uhd, output_buffer, sf_n_samples, 1);
 #endif
       }
     }

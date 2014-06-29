@@ -39,12 +39,18 @@ void *uhd;
 #endif
 
 char *output_file_name = NULL;
-int nof_frames = -1;
-int cell_id = 1;
-int nof_prb = 6;
-char *uhd_args = "";
-uint8_t cfi=1;
 
+lte_cell_t cell = {
+  6,            // nof_prb
+  1,            // nof_ports
+  1,            // cell_id
+  CPNORM        // cyclic prefix
+};
+  
+uint8_t cfi=1;
+int nof_frames = -1;
+
+char *uhd_args = "";
 float uhd_amp = 0.25, uhd_gain = 10.0, uhd_freq = 2400000000;
 
 filesink_t fsink;
@@ -70,8 +76,8 @@ void usage(char *prog) {
 #endif
   printf("\t-o output_file [Default USRP]\n");
   printf("\t-n number of frames [Default %d]\n", nof_frames);
-  printf("\t-c cell id [Default %d]\n", cell_id);
-  printf("\t-p nof_prb [Default %d]\n", nof_prb);
+  printf("\t-c cell id [Default %d]\n", cell.id);
+  printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -98,10 +104,10 @@ void parse_args(int argc, char **argv) {
       nof_frames = atoi(argv[optind]);
       break;
     case 'p':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'v':
       verbose++;
@@ -120,12 +126,6 @@ void parse_args(int argc, char **argv) {
 }
 
 void base_init() {
-  lte_cell_t cell;
-  
-  cell.id = cell_id;
-  cell.nof_ports = 1;
-  cell.nof_prb = nof_prb;
-  cell.cp = CPNORM;
   
   /* init memory */
   sf_buffer = malloc(sizeof(cf_t) * sf_n_re);
@@ -158,11 +158,11 @@ void base_init() {
   }
 
   /* create ifft object */
-  if (lte_ifft_init(&ifft, CPNORM, nof_prb)) {
+  if (lte_ifft_init(&ifft, CPNORM, cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
-  if (pbch_init(&pbch, nof_prb, cell_id, CPNORM)) {
+  if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
@@ -229,7 +229,6 @@ int main(int argc, char **argv) {
   int i, n;
   char *data;
   cf_t *sf_symbols[MAX_PORTS];
-  cf_t *slot1_symbols[MAX_PORTS];
   dci_t dci_tx;
 
 #ifdef DISABLE_UHD
@@ -241,24 +240,17 @@ int main(int argc, char **argv) {
 
   parse_args(argc, argv);
 
-  N_id_2 = cell_id % 3;
-  sf_n_re = 2 * CPNORM_NSYMB * nof_prb * RE_X_RB;
-  sf_n_samples = 2 * SLOT_LEN_CPNORM(lte_symbol_sz(nof_prb));
+  N_id_2 = cell.id % 3;
+  sf_n_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  sf_n_samples = 2 * SLOT_LEN_CPNORM(lte_symbol_sz(cell.nof_prb));
 
   /* this *must* be called after setting slot_len_* */
   base_init();
 
   /* Generate PSS/SSS signals */
   pss_generate(pss_signal, N_id_2);
-  sss_generate(sss_signal0, sss_signal5, cell_id);
+  sss_generate(sss_signal0, sss_signal5, cell.id);
   
-  lte_cell_t cell;
-  
-  cell.id = cell_id;
-  cell.nof_ports = 1;
-  cell.nof_prb = nof_prb;
-  cell.cp = CPNORM;
-
   /* Generate CRS signals */
   for (i = 0; i < NSLOTS_X_FRAME; i++) {
     if (refsignal_init_LTEDL(&refs[i], 0, i, cell)) {
@@ -267,21 +259,20 @@ int main(int argc, char **argv) {
     }
   }
 
-  mib.nof_ports = 1;
-  mib.nof_prb = nof_prb;
+  mib.nof_ports = cell.nof_ports;
+  mib.nof_prb = cell.nof_prb;
   mib.phich_length = PHICH_NORM;
   mib.phich_resources = R_1;
   mib.sfn = 0;
 
   for (i = 0; i < MAX_PORTS; i++) { // now there's only 1 port
     sf_symbols[i] = sf_buffer;
-    slot1_symbols[i] = &sf_buffer[sf_n_re/2];
   }
 
 #ifndef DISABLE_UHD
   if (!output_file_name) {
     printf("Set TX rate: %.2f MHz\n",
-        cuhd_set_tx_srate(uhd, lte_sampling_freq_hz(nof_prb)) / 1000000);
+        cuhd_set_tx_srate(uhd, lte_sampling_freq_hz(cell.nof_prb)) / 1000000);
     printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
     printf("Set TX freq: %.2f MHz\n",
         cuhd_set_tx_freq(uhd, uhd_freq) / 1000000);
@@ -297,16 +288,16 @@ int main(int argc, char **argv) {
   ra_dl.alloc_type = alloc_type0;
   ra_dl.type0_alloc.rbg_bitmask = 0xffffffff;
   
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, nof_prb, false);
+  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, cell.nof_prb, false);
   dci_tx.nof_dcis++;
   
   pdcch_init_search_ue(&pdcch, 1234, cfi);
 
-  ra_prb_get_dl(&prb_alloc, &ra_dl, nof_prb);
-  ra_prb_get_re(&prb_alloc, nof_prb, 1, nof_prb<10?(cfi+1):cfi, CPNORM);
-  ra_dl.mcs.tbs = ra_tbs_from_idx(ra_dl.mcs.tbs_idx, nof_prb);
+  ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb);
+  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
+  ra_dl.mcs.tbs = ra_tbs_from_idx(ra_dl.mcs.tbs_idx, cell.nof_prb);
 
-  ra_pdsch_fprint(stdout, &ra_dl, nof_prb);
+  ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
 
   data = malloc(sizeof(char) * ra_dl.mcs.tbs);
   if (!data) {
@@ -321,13 +312,13 @@ int main(int argc, char **argv) {
       bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
       if (sf_idx == 0 || sf_idx == 5) {
-        pss_put_slot(pss_signal, sf_buffer, nof_prb, CPNORM);
-        sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, nof_prb,
+        pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, CPNORM);
+        sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
             CPNORM);
       }
       
       if (sf_idx == 0) {
-        pbch_encode(&pbch, &mib, slot1_symbols, 1);
+        pbch_encode(&pbch, &mib, sf_symbols);
       }
     
       for (n=0;n<2;n++) {

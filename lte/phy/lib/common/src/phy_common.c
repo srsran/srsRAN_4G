@@ -53,11 +53,11 @@ const int tc_cb_sizes[NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 
 /* Returns true if the structure pointed by cell has valid parameters
  */
 bool lte_cell_isvalid(lte_cell_t *cell) {
-  if (cell->id          < 504   &&
-      cell->nof_ports   > 0     &&
-      cell->nof_ports   < 5     &&
-      cell->nof_prb     > 5     &&
-      cell->nof_prb     < 111
+  if (cell->id          < 504           &&
+      cell->nof_ports   > 0             &&
+      cell->nof_ports   < MAX_PORTS+1   &&
+      cell->nof_prb     > 5             &&
+      cell->nof_prb     < MAX_PRB+1
   ) {
     return true;
   } else {

@@ -46,7 +46,7 @@ typedef struct LIBLTE_API {
   // otherwise mod + tbs values are used to generate the mcs_idx automatically.
   uint8_t tbs_idx;
   uint8_t mcs_idx;
-  int tbs;// If tbs<=0, the tbs_idx value is taken by the packing functions to generate the DCI
+  uint32_t tbs;// If tbs<=0, the tbs_idx value is taken by the packing functions to generate the DCI
   // message. Otherwise the tbs_idx corresponding to the lower nearest TBS is taken.
 } ra_mcs_t;
 
@@ -64,9 +64,9 @@ typedef struct LIBLTE_API {
 } ra_type1_t;
 
 typedef struct LIBLTE_API {
-  uint32_t riv; // if L_crb==0, DCI message packer will take this value directly
-  uint16_t L_crb;
-  uint16_t RB_start;
+  uint16_t riv; // if L_crb==0, DCI message packer will take this value directly
+  uint8_t L_crb;
+  uint8_t RB_start;
   enum {
     nprb1a_2 = 0, nprb1a_3 = 1
   } n_prb1a;
@@ -79,7 +79,7 @@ typedef struct LIBLTE_API {
 } ra_type2_t;
 
 typedef struct LIBLTE_API {
-  unsigned short rnti;
+  uint16_t rnti;
   ra_type_t alloc_type;
   union {
     ra_type0_t type0_alloc;
@@ -88,7 +88,8 @@ typedef struct LIBLTE_API {
   };
   ra_mcs_t mcs;
   uint8_t harq_process;
-  uint8_t rv_idx;bool ndi;
+  uint8_t rv_idx;
+  bool ndi;
 } ra_pdsch_t;
 
 typedef struct LIBLTE_API {
@@ -107,60 +108,108 @@ typedef struct LIBLTE_API {
   ra_mcs_t mcs;
   uint8_t rv_idx; // If set to non-zero, a retransmission is requested with the same modulation
   // than before (Format0 message, see also 8.6.1 in 36.2313).
-  bool ndi;bool cqi_request;
+  bool ndi;
+  bool cqi_request;
 
 } ra_pusch_t;
 
 typedef struct LIBLTE_API {
-  uint8_t prb_idx[110];
-  int nof_prb;
+  uint8_t prb_idx[MAX_PRB];
+  uint8_t nof_prb;
 } ra_prb_slot_t;
 
 typedef struct LIBLTE_API {
   ra_prb_slot_t slot[2];
-  int lstart;
-  int re_sf[NSUBFRAMES_X_FRAME];
+  uint8_t lstart;
+  uint16_t re_sf[NSUBFRAMES_X_FRAME];
 } ra_prb_t;
 
-LIBLTE_API void ra_prb_fprint(FILE *f, ra_prb_slot_t *prb);
+LIBLTE_API void ra_prb_fprint(FILE *f, 
+                              ra_prb_slot_t *prb);
 
-LIBLTE_API int ra_prb_get_dl(ra_prb_t *prb, ra_pdsch_t *ra, int nof_prb);
-LIBLTE_API int ra_prb_get_ul(ra_prb_slot_t *prb, ra_pusch_t *ra, int nof_prb);
-LIBLTE_API void ra_prb_get_re(ra_prb_t *prb_dist, int nof_prb, int nof_ports,
-    int nof_ctrl_symbols, lte_cp_t cp);
+LIBLTE_API int ra_prb_get_dl(ra_prb_t *prb, 
+                             ra_pdsch_t *ra, 
+                             uint8_t nof_prb);
 
-LIBLTE_API int ra_nprb_dl(ra_pdsch_t *ra, int nof_prb);
-LIBLTE_API int ra_nprb_ul(ra_pusch_t *ra, int nof_prb);
-LIBLTE_API int ra_re_x_prb(int nsubframe, int nslot, int prb_idx, int nof_prb,
-    int nof_ports, int nof_ctrl_symbols, lte_cp_t cp);
+LIBLTE_API int ra_prb_get_ul(ra_prb_slot_t *prb, 
+                             ra_pusch_t *ra, 
+                             uint8_t nof_prb);
+
+LIBLTE_API void ra_prb_get_re_dl(ra_prb_t *prb_dist, 
+                              uint8_t nof_prb, 
+                              uint8_t nof_ports,
+                              uint8_t nof_ctrl_symbols, 
+                              lte_cp_t cp);
+
+LIBLTE_API uint16_t ra_nprb_dl(ra_pdsch_t *ra, 
+                          uint8_t nof_prb);
+
+LIBLTE_API uint16_t ra_nprb_ul(ra_pusch_t *ra, 
+                          uint8_t nof_prb);
 
 LIBLTE_API uint8_t ra_mcs_to_table_idx(ra_mcs_t *mcs);
-LIBLTE_API int ra_mcs_from_idx_dl(uint8_t idx, ra_mcs_t *mcs);
-LIBLTE_API int ra_mcs_from_idx_ul(uint8_t idx, ra_mcs_t *mcs);
+
+LIBLTE_API int ra_mcs_from_idx_dl(uint8_t idx, 
+                                  ra_mcs_t *mcs);
+
+LIBLTE_API int ra_mcs_from_idx_ul(uint8_t idx, 
+                                  ra_mcs_t *mcs);
+
 LIBLTE_API int ra_tbs_from_idx_format1c(uint8_t tbs_idx);
-LIBLTE_API int ra_tbs_to_table_idx_format1c(int tbs);
-LIBLTE_API int ra_tbs_from_idx(uint8_t tbs_idx, int n_prb);
-LIBLTE_API int ra_tbs_to_table_idx(int tbs, int n_prb);
+
+LIBLTE_API int ra_tbs_to_table_idx_format1c(uint32_t tbs);
+
+LIBLTE_API int ra_tbs_from_idx(uint8_t tbs_idx, 
+                               uint8_t n_prb);
+
+LIBLTE_API int ra_tbs_to_table_idx(uint32_t tbs, 
+                                   uint8_t n_prb);
 
 LIBLTE_API uint8_t ra_mcs_to_table_idx(ra_mcs_t *mcs);
-LIBLTE_API int ra_mcs_from_idx_dl(uint8_t idx, ra_mcs_t *mcs);
-LIBLTE_API int ra_mcs_from_idx_ul(uint8_t idx, ra_mcs_t *mcs);
+
+LIBLTE_API int ra_mcs_from_idx_dl(uint8_t idx, 
+                                  ra_mcs_t *mcs);
+
+LIBLTE_API int ra_mcs_from_idx_ul(uint8_t idx, 
+                                  ra_mcs_t *mcs);
 
 LIBLTE_API char *ra_mod_string(ra_mod_t mod);
 
-LIBLTE_API int ra_type0_P(int nof_prb);
+LIBLTE_API uint8_t ra_type0_P(uint8_t nof_prb);
 
-LIBLTE_API uint32_t ra_type2_to_riv(uint16_t L_crb, uint16_t RB_start, int nof_prb);
-LIBLTE_API void ra_type2_from_riv(uint32_t riv, uint16_t *L_crb, uint16_t *RB_start,
-    int nof_prb, int nof_vrb);
-LIBLTE_API int ra_type2_n_vrb_dl(int nof_prb, bool ngap_is_1);
-LIBLTE_API int ra_type2_n_rb_step(int nof_prb);
-LIBLTE_API int ra_type2_ngap(int nof_prb, bool ngap_is_1);
-LIBLTE_API int ra_type1_N_rb(int nof_prb);
+LIBLTE_API uint16_t ra_type2_to_riv(uint8_t L_crb, 
+                                    uint8_t RB_start, 
+                                    uint8_t nof_prb);
 
-LIBLTE_API void ra_pdsch_set_mcs_index(ra_pdsch_t *ra, uint8_t mcs_idx);
-LIBLTE_API void ra_pdsch_set_mcs(ra_pdsch_t *ra, ra_mod_t mod, uint8_t tbs_idx);
-LIBLTE_API void ra_pdsch_fprint(FILE *f, ra_pdsch_t *ra, int nof_prb);
-LIBLTE_API void ra_pusch_fprint(FILE *f, ra_pusch_t *ra, int nof_prb);
+LIBLTE_API void ra_type2_from_riv(uint16_t riv, 
+                                  uint8_t *L_crb, 
+                                  uint8_t *RB_start,
+                                  uint8_t nof_prb, 
+                                  uint8_t nof_vrb);
+
+LIBLTE_API uint8_t ra_type2_n_vrb_dl(uint8_t nof_prb, 
+                                 bool ngap_is_1);
+
+LIBLTE_API uint8_t ra_type2_n_rb_step(uint8_t nof_prb);
+
+LIBLTE_API uint8_t ra_type2_ngap(uint8_t nof_prb, 
+                             bool ngap_is_1);
+
+LIBLTE_API uint8_t ra_type1_N_rb(uint8_t nof_prb);
+
+LIBLTE_API void ra_pdsch_set_mcs_index(ra_pdsch_t *ra, 
+                                       uint8_t mcs_idx);
+
+LIBLTE_API void ra_pdsch_set_mcs(ra_pdsch_t *ra, 
+                                 ra_mod_t mod, 
+                                 uint8_t tbs_idx);
+
+LIBLTE_API void ra_pdsch_fprint(FILE *f, 
+                                ra_pdsch_t *ra, 
+                                uint8_t nof_prb);
+
+LIBLTE_API void ra_pusch_fprint(FILE *f, 
+                                ra_pusch_t *ra, 
+                                uint8_t nof_prb);
 
 #endif /* RB_ALLOC_H_ */

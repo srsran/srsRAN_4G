@@ -314,7 +314,7 @@ int mib_decoder_init(int cell_id) {
   lte_cell_t cell;
   cell.id = cell_id;
   cell.nof_prb = 6;
-  cell.nof_ports = MAX_PORTS;
+  cell.nof_ports = 2;
   cell.cp = CPNORM;
   
   if (chest_ref_LTEDL(&chest, cell)) {
@@ -322,7 +322,7 @@ int mib_decoder_init(int cell_id) {
     return -1;
   }
 
-  if (pbch_init(&pbch, 6, cell_id, CPNORM)) {
+  if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error initiating PBCH\n");
     return -1;
   }

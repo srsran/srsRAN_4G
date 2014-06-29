@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
           fprintf(stderr, "Error computing resource allocation\n");
           goto goout;
         }
-        ra_prb_get_re(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+        ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
 
         if (pdsch_decode(&pdsch, fft_buffer, ce, data, nof_frames%10, ra_dl.mcs, &prb_alloc)) {
           fprintf(stderr, "Error decoding PDSCH\n");

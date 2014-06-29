@@ -83,7 +83,7 @@ uint8_t riv_nbits(uint8_t nof_prb) {
   return (uint8_t) ceilf(log2f((float) nof_prb * ((float) nof_prb + 1) / 2));
 }
 
-const int ambiguous_sizes[10] = { 12, 14, 16, 20, 24, 26, 32, 40, 44, 56 };
+const uint8_t ambiguous_sizes[10] = { 12, 14, 16, 20, 24, 26, 32, 40, 44, 56 };
 
 bool is_ambiguous_size(uint8_t size) {
   int i;
@@ -115,7 +115,7 @@ uint8_t dci_format1A_sizeof(uint8_t nof_prb) {
 }
 
 uint8_t dci_format0_sizeof(uint8_t nof_prb) {
-  int n = dci_format0_sizeof_(nof_prb);
+  uint8_t n = dci_format0_sizeof_(nof_prb);
   while (n < dci_format1A_sizeof(nof_prb)) {
     n++;
   }
@@ -137,9 +137,9 @@ uint8_t dci_format1_sizeof(uint8_t nof_prb) {
 }
 
 uint8_t dci_format1C_sizeof(uint8_t nof_prb) {
-  int n_vrb_dl_gap1 = ra_type2_n_vrb_dl(nof_prb, true);
-  int n_step = ra_type2_n_rb_step(nof_prb);
-  uint8_t n = +riv_nbits((uint8_t) n_vrb_dl_gap1 / n_step) + 5;
+  uint8_t n_vrb_dl_gap1 = ra_type2_n_vrb_dl(nof_prb, true);
+  uint8_t n_step = ra_type2_n_rb_step(nof_prb);
+  uint8_t n = riv_nbits((uint8_t) n_vrb_dl_gap1 / n_step) + 5;
   if (nof_prb >= 50) {
     n++;
   }
@@ -174,7 +174,7 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
 
   /* pack bits */
   char *y = msg->data;
-  int n_ul_hop;
+  uint8_t n_ul_hop;
 
   *y++ = 0; // format differentiation
   if (data->freq_hop_fl == hop_disabled) { // frequency hopping
@@ -193,17 +193,17 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
   }
 
   /* pack RIV according to 8.1 of 36.213 */
-  uint32_t riv;
+  uint16_t riv;
   if (data->type2_alloc.L_crb) {
     riv = ra_type2_to_riv(data->type2_alloc.L_crb, data->type2_alloc.RB_start,
         nof_prb);
   } else {
     riv = data->type2_alloc.riv;
   }
-  bit_pack(riv, &y, riv_nbits(nof_prb) - n_ul_hop);
+  bit_pack((uint32_t) riv, &y, riv_nbits(nof_prb) - n_ul_hop);
 
   /* pack MCS according to 8.6.1 of 36.213 */
-  uint32_t mcs;
+  uint8_t mcs;
   if (data->cqi_request) {
     mcs = 29;
   } else {
@@ -224,7 +224,7 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
     }
   }
 
-  bit_pack(mcs, &y, 5);
+  bit_pack((uint32_t) mcs, &y, 5);
 
   *y++ = data->ndi;
 
@@ -241,7 +241,7 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
   *y++ = data->cqi_request;
 
   // Padding with zeros
-  int n = dci_format0_sizeof(nof_prb);
+  uint8_t n = dci_format0_sizeof(nof_prb);
   while (y - msg->data < n) {
     *y++ = 0;
   }
@@ -257,7 +257,7 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint8_t nof_prb) {
 
   /* pack bits */
   char *y = msg->data;
-  int n_ul_hop;
+  uint8_t n_ul_hop;
 
   /* Make sure it's a Format0 message */
   if (msg->location.nof_bits != dci_format_sizeof(Format0, nof_prb)) {
@@ -283,14 +283,14 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint8_t nof_prb) {
     }
   }
   /* unpack RIV according to 8.1 of 36.213 */
-  uint32_t riv = bit_unpack(&y, riv_nbits(nof_prb) - n_ul_hop);
+  uint16_t riv = bit_unpack(&y, riv_nbits(nof_prb) - n_ul_hop);
   ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
       nof_prb, nof_prb);
-  bit_pack(riv, &y, riv_nbits(nof_prb) - n_ul_hop);
+  bit_pack((uint32_t) riv, &y, riv_nbits(nof_prb) - n_ul_hop);
   data->type2_alloc.riv = riv;
 
   /* unpack MCS according to 8.6 of 36.213 */
-  uint32_t mcs = bit_unpack(&y, 5);
+  uint8_t mcs = bit_unpack(&y, 5);
 
   data->ndi = *y++ ? true : false;
 
@@ -336,16 +336,16 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
   }
 
   /* Resource allocation: type0 or type 1 */
-  int P = ra_type0_P(nof_prb);
-  int alloc_size = (int) ceilf((float) nof_prb / P);
+  uint8_t P = ra_type0_P(nof_prb);
+  uint8_t alloc_size = (uint8_t) ceilf((float) nof_prb / P);
   switch (data->alloc_type) {
   case alloc_type0:
-    bit_pack(data->type0_alloc.rbg_bitmask, &y, alloc_size);
+    bit_pack((uint32_t) data->type0_alloc.rbg_bitmask, &y, alloc_size);
     break;
   case alloc_type1:
-    bit_pack(data->type1_alloc.rbg_subset, &y, (int) ceilf(log2f(P)));
+    bit_pack((uint32_t) data->type1_alloc.rbg_subset, &y, (int) ceilf(log2f(P)));
     *y++ = data->type1_alloc.shift ? 1 : 0;
-    bit_pack(data->type1_alloc.vrb_bitmask, &y,
+    bit_pack((uint32_t) data->type1_alloc.vrb_bitmask, &y,
         alloc_size - (int) ceilf(log2f(P)) - 1);
     break;
   default:
@@ -355,7 +355,7 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
 
   }
   /* pack MCS according to 7.1.7 of 36.213 */
-  uint32_t mcs;
+  uint8_t mcs;
   if (data->mcs.mod == MOD_NULL) {
     mcs = data->mcs.mcs_idx;
   } else {
@@ -366,22 +366,22 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
     mcs = ra_mcs_to_table_idx(&data->mcs);
     data->mcs.mcs_idx = mcs;
   }
-  bit_pack(mcs, &y, 5);
+  bit_pack((uint32_t) mcs, &y, 5);
 
   /* harq process number */
-  bit_pack(data->harq_process, &y, 3);
+  bit_pack((uint32_t) data->harq_process, &y, 3);
 
   *y++ = data->ndi;
 
   // rv version
-  bit_pack(data->rv_idx, &y, 2);
+  bit_pack((uint32_t) data->rv_idx, &y, 2);
 
   // TPC not implemented
   *y++ = 0;
   *y++ = 0;
 
   // Padding with zeros
-  int n = dci_format1_sizeof(nof_prb);
+  uint8_t n = dci_format1_sizeof(nof_prb);
   while (y - msg->data < n) {
     *y++ = 0;
   }
@@ -409,7 +409,7 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint8_t nof_prb) {
 
   /* Resource allocation: type0 or type 1 */
   uint8_t P = ra_type0_P(nof_prb);
-  int alloc_size = (int) ceilf((float) nof_prb / P);
+  uint8_t alloc_size = (uint8_t) ceilf((float) nof_prb / P);
   switch (data->alloc_type) {
   case alloc_type0:
     data->type0_alloc.rbg_bitmask = bit_unpack(&y, alloc_size);
@@ -421,16 +421,24 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint8_t nof_prb) {
         alloc_size - (int) ceilf(log2f(P)) - 1);
     break;
   default:
-    fprintf(stderr,
-        "Format 1 accepts type0 or type1 resource allocation only\n");
+    fprintf(stderr, "Format 1 accepts type0 or type1 resource allocation only\n");
     return LIBLTE_ERROR;
 
   }
   /* unpack MCS according to 7.1.7 of 36.213 */
-  uint32_t mcs = bit_unpack(&y, 5);
+  uint8_t mcs = bit_unpack(&y, 5);
   data->mcs.mcs_idx = mcs;
-  ra_mcs_from_idx_dl(mcs, &data->mcs);
-  data->mcs.tbs = ra_tbs_from_idx(data->mcs.tbs_idx, ra_nprb_dl(data, nof_prb));
+  if (ra_mcs_from_idx_dl(mcs, &data->mcs)) {
+    fprintf(stderr, "Error getting MCS\n");
+    return LIBLTE_ERROR;
+  }
+  
+  int t = ra_tbs_from_idx(data->mcs.tbs_idx, ra_nprb_dl(data, nof_prb));
+  if (t < 0) {
+    fprintf(stderr, "Error getting TBS\n");
+    return LIBLTE_ERROR;
+  }
+  data->mcs.tbs = (uint32_t) t;
 
   /* harq process number */
   data->harq_process = bit_unpack(&y, 3);
@@ -471,7 +479,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb,
       return LIBLTE_ERROR;
     }
   } else {
-    int n_vrb_dl;
+    uint8_t n_vrb_dl;
     if (crc_is_crnti && nof_prb > 50) {
       n_vrb_dl = 16;
     } else {
@@ -485,28 +493,28 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb,
     }
   }
   /* pack RIV according to 7.1.6.3 of 36.213 */
-  uint32_t riv;
+  uint16_t riv;
   if (data->type2_alloc.L_crb) {
     riv = ra_type2_to_riv(data->type2_alloc.L_crb, data->type2_alloc.RB_start,
         nof_prb);
   } else {
     riv = data->type2_alloc.riv;
   }
-  int nb_gap = 0;
+  uint8_t nb_gap = 0;
   if (crc_is_crnti && data->type2_alloc.mode == t2_dist && nof_prb >= 50) {
     nb_gap = 1;
     *y++ = data->type2_alloc.n_gap;
   }
-  bit_pack(riv, &y, riv_nbits(nof_prb) - nb_gap);
+  bit_pack((uint32_t) riv, &y, riv_nbits(nof_prb) - nb_gap);
 
   // in format1A, MCS = TBS according to 7.1.7.2 of 36.213
-  uint32_t mcs;
+  uint8_t mcs;
   if (data->mcs.mod == MOD_NULL) {
     mcs = data->mcs.mcs_idx;
   } else {
     if (data->mcs.tbs) {
       // In format 1A, n_prb_1a is 2 or 3 if crc is not scrambled with C-RNTI
-      int n_prb;
+      uint8_t n_prb;
       if (!crc_is_crnti) {
         n_prb = ra_nprb_dl(data, nof_prb);
       } else {
@@ -516,9 +524,9 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb,
     }
     mcs = data->mcs.tbs_idx;
   }
-  bit_pack(mcs, &y, 5);
+  bit_pack((uint32_t) mcs, &y, 5);
 
-  bit_pack(data->harq_process, &y, 3);
+  bit_pack((uint32_t) data->harq_process, &y, 3);
 
   if (!crc_is_crnti && nof_prb >= 50 && data->type2_alloc.mode == t2_dist) {
     *y++ = data->type2_alloc.n_gap;
@@ -527,7 +535,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb,
   }
 
   // rv version
-  bit_pack(data->rv_idx, &y, 2);
+  bit_pack((uint32_t) data->rv_idx, &y, 2);
 
   if (crc_is_crnti) {
     // TPC not implemented
@@ -539,7 +547,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb,
   }
 
   // Padding with zeros
-  int n = dci_format1A_sizeof(nof_prb);
+  uint8_t n = dci_format1A_sizeof(nof_prb);
   while (y - msg->data < n) {
     *y++ = 0;
   }
@@ -564,8 +572,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint8_t nof_prb,
   }
 
   if (*y++ != 1) {
-    fprintf(stderr,
-        "Invalid format differentiation field value. This is Format0\n");
+    fprintf(stderr, "Invalid format differentiation field value. This is Format0\n");
     return LIBLTE_ERROR;
   }
 
@@ -576,18 +583,18 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint8_t nof_prb,
   data->type2_alloc.n_gap = t2_ng1;
 
   /* unpack RIV according to 7.1.6.3 of 36.213 */
-  int nb_gap = 0;
+  uint8_t nb_gap = 0;
   if (crc_is_crnti && data->type2_alloc.mode == t2_dist && nof_prb >= 50) {
     nb_gap = 1;
     data->type2_alloc.n_gap = *y++;
   }
-  int nof_vrb;
+  uint8_t nof_vrb;
   if (data->type2_alloc.mode == t2_loc) {
     nof_vrb = nof_prb;
   } else {
     nof_vrb = ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == t2_ng1);
   }
-  uint32_t riv = bit_unpack(&y, riv_nbits(nof_prb) - nb_gap);
+  uint16_t riv = bit_unpack(&y, riv_nbits(nof_prb) - nb_gap);
   ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
       nof_prb, nof_vrb);
   data->type2_alloc.riv = riv;
@@ -604,7 +611,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint8_t nof_prb,
   }
 
   // rv version
-  bit_pack(data->rv_idx, &y, 2);
+  bit_pack((uint32_t) data->rv_idx, &y, 2);
 
   if (crc_is_crnti) {
     // TPC not implemented
@@ -615,7 +622,8 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint8_t nof_prb,
     data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
   data->mcs.tbs_idx = data->mcs.mcs_idx;
-  int n_prb;
+  
+  uint8_t n_prb;
   if (crc_is_crnti) {
     n_prb = ra_nprb_dl(data, nof_prb);
   } else {
@@ -644,13 +652,12 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
   if (nof_prb >= 50) {
     *y++ = data->type2_alloc.n_gap;
   }
-  int n_step = ra_type2_n_rb_step(nof_prb);
-  int n_vrb_dl = ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == t2_ng1);
+  uint8_t n_step = ra_type2_n_rb_step(nof_prb);
+  uint8_t n_vrb_dl = ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == t2_ng1);
 
-  if (data->type2_alloc.L_crb > ((int) n_vrb_dl / n_step) * n_step) {
-    fprintf(stderr,
-        "L_CRB=%d can not exceed N_vrb_dl=%d for distributed type2\n",
-        data->type2_alloc.L_crb, ((int) n_vrb_dl / n_step) * n_step);
+  if (data->type2_alloc.L_crb > ((uint8_t) n_vrb_dl / n_step) * n_step) {
+    fprintf(stderr, "L_CRB=%d can not exceed N_vrb_dl=%d for distributed type2\n",
+        data->type2_alloc.L_crb, ((uint8_t) n_vrb_dl / n_step) * n_step);
     return LIBLTE_ERROR;
   }
   if (data->type2_alloc.L_crb % n_step) {
@@ -661,20 +668,20 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
     fprintf(stderr, "RB_start must be multiple of n_step\n");
     return LIBLTE_ERROR;
   }
-  int L_p = data->type2_alloc.L_crb / n_step;
-  int RB_p = data->type2_alloc.RB_start / n_step;
-  int n_vrb_p = (int) n_vrb_dl / n_step;
+  uint8_t L_p = data->type2_alloc.L_crb / n_step;
+  uint8_t RB_p = data->type2_alloc.RB_start / n_step;
+  uint8_t n_vrb_p = (int) n_vrb_dl / n_step;
 
-  uint32_t riv;
+  uint16_t riv;
   if (data->type2_alloc.L_crb) {
     riv = ra_type2_to_riv(L_p, RB_p, n_vrb_p);
   } else {
     riv = data->type2_alloc.riv;
   }
-  bit_pack(riv, &y, riv_nbits((int) n_vrb_dl / n_step));
+  bit_pack((uint32_t) riv, &y, riv_nbits((int) n_vrb_dl / n_step));
 
   // in format1C, MCS = TBS according to 7.1.7.2 of 36.213
-  uint32_t mcs;
+  uint8_t mcs;
   if (data->mcs.mod == MOD_NULL) {
     mcs = data->mcs.mcs_idx;
   } else {
@@ -683,7 +690,7 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
     }
     mcs = data->mcs.tbs_idx;
   }
-  bit_pack(mcs, &y, 5);
+  bit_pack((uint32_t) mcs, &y, 5);
 
   msg->location.nof_bits = (y - msg->data);
 
@@ -691,7 +698,7 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint8_t nof_prb) {
 }
 
 int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint8_t nof_prb) {
-  uint16_t L_p, RB_p;
+  uint8_t L_p, RB_p;
 
   /* pack bits */
   char *y = msg->data;
@@ -705,11 +712,11 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint8_t nof_prb) {
   if (nof_prb >= 50) {
     data->type2_alloc.n_gap = *y++;
   }
-  int n_step = ra_type2_n_rb_step(nof_prb);
-  int n_vrb_dl = ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == t2_ng1);
+  uint8_t n_step = ra_type2_n_rb_step(nof_prb);
+  uint8_t n_vrb_dl = ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == t2_ng1);
 
-  uint32_t riv = bit_unpack(&y, riv_nbits((int) n_vrb_dl / n_step));
-  int n_vrb_p = (int) n_vrb_dl / n_step;
+  uint16_t riv = bit_unpack(&y, riv_nbits((int) n_vrb_dl / n_step));
+  uint8_t n_vrb_p = (uint8_t) n_vrb_dl / n_step;
 
   ra_type2_from_riv(riv, &L_p, &RB_p, n_vrb_p, n_vrb_p);
   data->type2_alloc.L_crb = L_p * n_step;
@@ -800,7 +807,7 @@ void dci_msg_type_fprint(FILE *f, dci_msg_type_t type) {
 }
 
 int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint8_t nof_prb,
-    unsigned short crnti) {
+    uint16_t crnti) {
   if (msg->location.nof_bits == dci_format_sizeof(Format0, nof_prb)
       && !msg->data[0]) {
     type->type = PUSCH_SCHED;

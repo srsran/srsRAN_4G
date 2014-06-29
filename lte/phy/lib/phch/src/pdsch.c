@@ -61,10 +61,10 @@ struct cb_segm {
 
 int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
     uint8_t nsubframe, bool put) {
-  int s, n, l, lp, lstart, lend, nof_refs;
+  uint8_t s, n, l, lp, lstart, lend, nof_refs;
   bool is_pbch, is_sss;
   cf_t *in_ptr = input, *out_ptr = output;
-  int offset;
+  uint8_t offset;
 
   INFO("%s %d RE from %d PRB\n", put ? "Putting" : "Getting",
       prb_alloc->re_sf[nsubframe], prb_alloc->slot[0].nof_prb);
@@ -76,7 +76,6 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
   }
 
   for (s = 0; s < 2; s++) {
-
     for (l = 0; l < CP_NSYMB(q->cell.cp); l++) {
       for (n = 0; n < prb_alloc->slot[s].nof_prb; n++) {
         if (s == 0) {

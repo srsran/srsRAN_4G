@@ -57,7 +57,7 @@ plot_scatter_t pscatrecv, pscatequal;
 
 #define NOF_PORTS 2
 
-float find_threshold = 20.0;
+float find_threshold = 9.0;
 int max_track_lost = 20, nof_frames = -1;
 int track_len = 300;
 char *input_file_name = NULL;
@@ -81,7 +81,7 @@ enum sync_state {
 };
 
 void usage(char *prog) {
-  printf("Usage: %s [iagfndvp]\n", prog);
+  printf("Usage: %s [iagfndvt]\n", prog);
   printf("\t-i input_file [Default use USRP]\n");
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", uhd_args);
@@ -90,8 +90,9 @@ void usage(char *prog) {
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
+
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
-  printf("\t-p PSS threshold [Default %f]\n", find_threshold);
+  printf("\t-t PSS threshold [Default %f]\n", find_threshold);
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
 #else
@@ -102,7 +103,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "iagfndvp")) != -1) {
+  while ((opt = getopt(argc, argv, "iagfndvt")) != -1) {
     switch (opt) {
     case 'i':
       input_file_name = argv[optind];
@@ -116,7 +117,7 @@ void parse_args(int argc, char **argv) {
     case 'f':
       uhd_freq = atof(argv[optind]);
       break;
-    case 'p':
+    case 't':
       find_threshold = atof(argv[optind]);
       break;
     case 'n':
@@ -274,11 +275,11 @@ int mib_decoder_init(int cell_id) {
     return -1;
   }
 
-  if (pbch_init(&pbch, 6, cell_id, CPNORM)) {
+  if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error initiating PBCH\n");
     return -1;
   }
-  DEBUG("PBCH initiated cell_id=%d\n", cell_id);
+  DEBUG("PBCH initiated cell_id=%d\n", cell.id);
   return 0;
 }
 

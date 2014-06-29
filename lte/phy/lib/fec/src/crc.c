@@ -114,7 +114,7 @@ int crc_init(crc_t *h, unsigned int crc_poly, int crc_order) {
   return 0;
 }
 
-unsigned int crc_checksum(crc_t *h, char *data, int len) {
+uint32_t crc_checksum(crc_t *h, char *data, int len) {
   int i, k, len8, res8, a = 0;
   unsigned int crc = 0;
   char *pter;

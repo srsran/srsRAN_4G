@@ -55,7 +55,7 @@ plot_scatter_t pscatrecv, pscatequal;
 
 #define NOF_PORTS 2
 
-float find_threshold = 10.0;
+float find_threshold = 9.0;
 int nof_frames = -1;
 int pdsch_errors = 0, pdsch_total = 0;
 int frame_cnt;
@@ -362,7 +362,7 @@ int cell_id_init(int nof_prb, int cell_id) {
   
   cell.id = cell_id;
   cell.nof_prb = 6;
-  cell.nof_ports = MAX_PORTS;
+  cell.nof_ports = 2;
   cell.cp = CPNORM;
   
   if (chest_ref_LTEDL(&chest, cell)) {
@@ -370,7 +370,7 @@ int cell_id_init(int nof_prb, int cell_id) {
     return -1;
   }
 
-  if (pbch_init(&pbch, nof_prb, cell_id, CPNORM)) {
+  if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error initiating PBCH\n");
     return -1;
   }
@@ -447,7 +447,7 @@ int rx_run(cf_t *input, int sf_idx) {
           fprintf(stderr, "Error computing resource allocation\n");
           break;
         }
-        ra_prb_get_re(&prb_alloc, cell.nof_prb, cell.nof_ports, 
+        ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, 
                       cell.nof_prb<10?(cfi+1):cfi, CPNORM);
 
         if (pdsch_decode(&pdsch, fft_buffer, ce, data, sf_idx, ra_dl.mcs, &prb_alloc)) {
@@ -482,19 +482,13 @@ int rx_run(cf_t *input, int sf_idx) {
 }
 
 int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
-  int i, n;
-
-  lte_fft_run_slot(&fft, input, fft_buffer);
+  lte_fft_run_sf(&fft, input, fft_buffer);
   
   /* Get channel estimates for each port */
-  for (i = 0; i < NOF_PORTS; i++) {
-    chest_ce_slot_port(&chest, fft_buffer, ce[i], 1, i);
-  }
+  chest_ce_sf(&chest, fft_buffer, ce, 0);
 
   DEBUG("Decoding PBCH\n", 0);
-  n = pbch_decode(&pbch, fft_buffer, ce, mib);
-
-  return n;
+  return pbch_decode(&pbch, fft_buffer, ce, mib);
 }
 
 int run_receiver(cf_t *input, int cell_id, int sf_idx) {
@@ -506,7 +500,7 @@ int run_receiver(cf_t *input, int cell_id, int sf_idx) {
   if (!cell.nof_prb) {
     
     if (!sf_idx) {
-      if (mib_decoder_run(&input[sf_n_samples/2], &mib)) {
+      if (mib_decoder_run(input, &mib)) {
         INFO("MIB decoded!\n", 0);
         cell.id = cell_id;
         cell.cp = CPNORM;
