@@ -51,12 +51,6 @@ LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
 # These two can be compiled without UHD or graphics support
 #################################################################
 
-add_executable(pbch_ue pbch_ue.c)
-target_link_libraries(pbch_ue lte_phy)
-
-add_executable(pbch_enodeb pbch_enodeb.c)
-target_link_libraries(pbch_enodeb lte_phy)
-
 add_executable(pdsch_ue pdsch_ue.c)
 target_link_libraries(pdsch_ue lte_phy)
 
@@ -64,25 +58,17 @@ add_executable(pdsch_enodeb pdsch_enodeb.c)
 target_link_libraries(pdsch_enodeb lte_phy)
 
 IF(${CUHD_FIND} EQUAL -1)
-  SET_TARGET_PROPERTIES(pbch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
-  SET_TARGET_PROPERTIES(pbch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
   SET_TARGET_PROPERTIES(pdsch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
 ELSE(${CUHD_FIND} EQUAL -1)
-  target_link_libraries(pbch_ue cuhd)
-  target_link_libraries(pbch_enodeb cuhd)
   target_link_libraries(pdsch_ue cuhd)
   target_link_libraries(pdsch_enodeb cuhd)
 ENDIF(${CUHD_FIND} EQUAL -1)
 
 IF(${GRAPHICS_FIND} EQUAL -1)
-  SET_TARGET_PROPERTIES(pbch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-  SET_TARGET_PROPERTIES(pbch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
   SET_TARGET_PROPERTIES(pdsch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
 ELSE(${GRAPHICS_FIND} EQUAL -1)
-  target_link_libraries(pbch_ue graphics)
-  target_link_libraries(pbch_enodeb graphics)
   target_link_libraries(pdsch_ue graphics)
   target_link_libraries(pdsch_enodeb graphics)
 ENDIF(${GRAPHICS_FIND} EQUAL -1)

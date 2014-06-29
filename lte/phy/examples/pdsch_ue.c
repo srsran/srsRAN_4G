@@ -57,7 +57,7 @@ plot_scatter_t pscatrecv, pscatequal;
 
 float find_threshold = 9.0;
 int nof_frames = -1;
-int pdsch_errors = 0, pdsch_total = 0;
+int pkt_errors = 0, pkts_total = 0;
 int frame_cnt;
 char *input_file_name = NULL;
 int disable_plots = 0;
@@ -71,7 +71,9 @@ int sf_n_samples;
 lte_cell_t cell;
 
 int cell_id_initated = 0, mib_initiated = 0;
-int subframe_number; 
+int frame_number; 
+
+bool pbch_only = false; 
 
 int go_exit = 0;
 
@@ -96,7 +98,7 @@ sync_frame_t sframe;
 #define DOWNSAMPLE_FACTOR(x, y) lte_symbol_sz(x) / lte_symbol_sz(y)
 
 void usage(char *prog) {
-  printf("Usage: %s [iagfndvtp]\n", prog);
+  printf("Usage: %s [iagfndvtpb]\n", prog);
   printf("\t-i input_file [Default use USRP]\n");
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", uhd_args);
@@ -105,6 +107,7 @@ void usage(char *prog) {
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
+  printf("\t-b Decode PBCH only [Default All]\n");
   printf("\t-p sampling_nof_prb [Default %d]\n", sampling_nof_prb);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-t PSS threshold [Default %f]\n", find_threshold);
@@ -118,7 +121,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "iagfndvtp")) != -1) {
+  while ((opt = getopt(argc, argv, "iagfndvtpb")) != -1) {
     switch (opt) {
     case 'i':
       input_file_name = argv[optind];
@@ -131,6 +134,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'f':
       uhd_freq = atof(argv[optind]);
+      break;
+    case 'b':
+      pbch_only = true;
       break;
     case 't':
       find_threshold = atof(argv[optind]);
@@ -230,13 +236,13 @@ int base_init(int nof_prb) {
     perror("malloc");
     return -1;
   }
+  
   input_decim_buffer = (cf_t*) malloc(sf_n_samples * sizeof(cf_t));
   if (!input_decim_buffer) {
     perror("malloc");
     return -1;
   }
   
-
   /* This buffer is the aligned version of input_buffer */
   sf_buffer = (cf_t*) malloc(sf_n_samples * sizeof(cf_t));
   if (!sf_buffer) {
@@ -438,7 +444,7 @@ int rx_run(cf_t *input, int sf_idx) {
           fprintf(stderr, "Can't unpack PDSCH message\n");
           break;
         }
-        if (VERBOSE_ISINFO() || !pdsch_total) {
+        if (VERBOSE_ISINFO() || !pkts_total) {
           printf("\n");
           ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);        
           printf("\n");
@@ -451,9 +457,9 @@ int rx_run(cf_t *input, int sf_idx) {
                       cell.nof_prb<10?(cfi+1):cfi, CPNORM);
 
         if (pdsch_decode(&pdsch, fft_buffer, ce, data, sf_idx, ra_dl.mcs, &prb_alloc)) {
-          pdsch_errors++;
+          pkt_errors++;
         }
-        pdsch_total++;
+        pkts_total++;
         break;
       default:
         fprintf(stderr, "Unsupported message type\n");
@@ -497,7 +503,7 @@ int run_receiver(cf_t *input, int cell_id, int sf_idx) {
   if (!cell_id_initated) {
     cell_id_init(sampling_nof_prb, cell_id);
   }
-  if (!cell.nof_prb) {
+  if (!cell.nof_prb || pbch_only) {
     
     if (!sf_idx) {
       if (mib_decoder_run(input, &mib)) {
@@ -506,7 +512,7 @@ int run_receiver(cf_t *input, int cell_id, int sf_idx) {
         cell.cp = CPNORM;
         cell.nof_ports = mib.nof_ports;
         cell.nof_prb = mib.nof_prb;
-        subframe_number = mib.sfn; 
+        frame_number = mib.sfn; 
         
         if (!mib_initiated) {
           if (mib_init(mib.phich_resources, mib.phich_length)) {
@@ -518,10 +524,31 @@ int run_receiver(cf_t *input, int cell_id, int sf_idx) {
           printf(" - Phy. CellId:\t    %d\n", cell_id);
           pbch_mib_fprint(stdout, &mib);                  
         }
+      } else if (pbch_only) {
+        pkt_errors++;
+      }
+      if (pbch_only) {
+        #ifndef DISABLE_GRAPHICS
+        if (!disable_plots) {
+          int i;
+          int n_re = 2 * RE_X_RB * CPNORM_NSYMB * sampling_nof_prb;
+          for (i = 0; i < n_re; i++) {
+            tmp_plot[i] = 10 * log10f(cabsf(fft_buffer[i]));
+            if (isinf(tmp_plot[i])) {
+              tmp_plot[i] = -80;
+            }
+          }
+          plot_real_setNewData(&poutfft, tmp_plot, n_re);
+          plot_complex_setNewData(&pce, ce[0], n_re);
+          plot_scatter_setNewData(&pscatrecv, pbch.pbch_symbols[0], pbch.nof_symbols);
+          plot_scatter_setNewData(&pscatequal, pbch.pbch_d, pbch.nof_symbols);    
+        }
+        #endif
+        pkts_total++;
       }
     }    
   } 
-  if (cell.nof_prb) {
+  if (cell.nof_prb && !pbch_only) {
     if (rx_run(input, sf_idx)) {
       return -1;
     }
@@ -597,11 +624,12 @@ int main(int argc, char **argv) {
   }
 
   printf("\n --- Press Ctrl+C to exit --- \n");
+  
   signal(SIGINT, sigintHandler);
 
   /* Initialize variables */
   frame_cnt = 0;
-  subframe_number = -1;
+  frame_number = -1;
   
   /* The number of samples read from the USRP or file corresponds to 1 ms (subframe) */
   sf_n_samples = 1920 * lte_symbol_sz(sampling_nof_prb)/128;
@@ -617,19 +645,23 @@ int main(int argc, char **argv) {
         /* not yet synched */
         break;
       case 1:
+        /* sf_buffer is aligned to the subframe */
+        
         if (!(frame_cnt%10)) {
-          subframe_number++;
+          frame_number++;
         }
+        
         /* synch'd and tracking */
         if (run_receiver(sf_buffer, sync_frame_cell_id(&sframe), sync_frame_sfidx(&sframe))) {
           exit(-1);
         }
+        
         if (!(frame_cnt % 10)) {
           printf(
               "SFN: %4d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
-              subframe_number, sframe.cur_cfo * 15, sframe.timeoffset / 5, sframe.peak_idx,
-              pdsch_errors, pdsch_total,
-              (float) pdsch_errors / pdsch_total);
+              frame_number, sframe.cur_cfo * 15, sframe.timeoffset / 5, sframe.peak_idx,
+              pkt_errors, pkts_total,
+              (float) pkt_errors / pkts_total);
           fflush(stdout);          
         }
 
