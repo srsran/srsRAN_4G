@@ -68,7 +68,10 @@ int sampling_nof_prb = 6;
 /* Number of samples in a subframe */
 int sf_n_samples;
 
+lte_cell_t cell;
+
 int cell_id_initated = 0, mib_initiated = 0;
+int subframe_number; 
 
 int go_exit = 0;
 
@@ -79,7 +82,6 @@ filesource_t fsrc;
 cf_t *input_buffer, *sf_buffer, *fft_buffer, *input_decim_buffer, *ce[MAX_PORTS];
 float *tmp_plot;
 pbch_t pbch;
-pbch_mib_t mib;
 pcfich_t pcfich;
 pdcch_t pdcch;
 dci_t dci_set;
@@ -257,14 +259,12 @@ int base_init(int nof_prb) {
     }
   }
   
-  bzero(&mib, sizeof(pbch_mib_t));
-  
   if (sync_frame_init(&sframe, DOWNSAMPLE_FACTOR(nof_prb,6))) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
 
-  if (chest_init(&chest, LINEAR, CPNORM, nof_prb, NOF_PORTS)) {
+  if (chest_init(&chest, LINEAR, nof_prb * RE_X_RB, CPNORM_NSYMB, NOF_PORTS)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -315,46 +315,57 @@ void base_free() {
   }
 }
 
-int mib_init(int cell_id) {
+int mib_init(phich_resources_t phich_resources, phich_length_t phich_length) {
 
-  if (mib.nof_prb > sampling_nof_prb) {
+  if (!lte_cell_isvalid(&cell)) {
+    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
+            cell.id, cell.nof_ports, cell.nof_prb);
+    return -1;
+  }
+  if (cell.nof_prb > sampling_nof_prb) {
     fprintf(stderr, "Error sampling frequency is %.2f Mhz but captured signal has %d PRB\n", 
-      (float) lte_sampling_freq_hz(sampling_nof_prb)/MHZ, mib.nof_prb);
+      (float) lte_sampling_freq_hz(sampling_nof_prb)/MHZ, cell.nof_prb);
     return -1;
   }
-  if (regs_init(&regs, cell_id, mib.nof_prb, mib.nof_ports, 
-    mib.phich_resources, mib.phich_length, CPNORM)) {
-    fprintf(stderr, "Error initiating regs\n");
+  if (regs_init(&regs, phich_resources, phich_length, cell)) {
+    fprintf(stderr, "Error initiating REGs\n");
     return -1;
   }
 
-  if (pcfich_init(&pcfich, &regs, cell_id, mib.nof_prb, mib.nof_ports, CPNORM)) {
+  if (pcfich_init(&pcfich, &regs, cell)) {
     fprintf(stderr, "Error creating PCFICH object\n");
     return -1;
   }
 
-  if (pdcch_init(&pdcch, &regs, mib.nof_prb, mib.nof_ports, cell_id, CPNORM)) {
+  if (pdcch_init(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     return -1;
   }
 
-  if (pdsch_init(&pdsch, 1234, mib.nof_prb, mib.nof_ports, cell_id, CPNORM)) {
+  if (pdsch_init(&pdsch, 1234, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     return -1;
   }
   
-  chest_set_nof_ports(&chest, mib.nof_ports);
+  chest_set_nof_ports(&chest, cell.nof_ports);
   
   mib_initiated = 1;
   
-  DEBUG("Receiver initiated cell_id=%d nof_prb=%d\n", cell_id, mib.nof_prb);
+  DEBUG("Receiver initiated cell.id=%d nof_prb=%d\n", cell.id, cell.nof_prb);
   
   return 0;
 }
 
 int cell_id_init(int nof_prb, int cell_id) {
 
-  if (chest_ref_LTEDL(&chest, cell_id)) {
+  lte_cell_t cell;
+  
+  cell.id = cell_id;
+  cell.nof_prb = 6;
+  cell.nof_ports = MAX_PORTS;
+  cell.cp = CPNORM;
+  
+  if (chest_ref_LTEDL(&chest, cell)) {
     fprintf(stderr, "Error initializing reference signal\n");
     return -1;
   }
@@ -373,14 +384,15 @@ int cell_id_init(int nof_prb, int cell_id) {
 char data[10000];
 
 int rx_run(cf_t *input, int sf_idx) {
-  int cfi, i, cfi_distance, nof_dcis;
+  uint8_t cfi, cfi_distance;
+  int i, nof_dcis;
   cf_t *input_decim;
   ra_pdsch_t ra_dl;
   ra_prb_t prb_alloc;
   
   /* Downsample if the signal bandwith is shorter */
-  if (sampling_nof_prb > mib.nof_prb) {
-    decim_c(input, input_decim_buffer, sf_n_samples, DOWNSAMPLE_FACTOR(sampling_nof_prb, mib.nof_prb));
+  if (sampling_nof_prb > cell.nof_prb) {
+    decim_c(input, input_decim_buffer, sf_n_samples, DOWNSAMPLE_FACTOR(sampling_nof_prb, cell.nof_prb));
     input_decim = input_decim_buffer;
   } else {
     input_decim = input;
@@ -402,18 +414,15 @@ int rx_run(cf_t *input, int sf_idx) {
     fprintf(stderr, "Error setting CFI\n");
     return -1;
   }
-  if (pdcch_set_cfi(&pdcch, cfi)) {
-    fprintf(stderr, "Error setting CFI\n");
-    return -1;
-  }
-  pdcch_init_search_ue(&pdcch, 1234);
+
+  pdcch_init_search_ue(&pdcch, 1234, cfi);
 
   dci_set.nof_dcis = 0;
-  nof_dcis = pdcch_decode(&pdcch, fft_buffer, ce, &dci_set, sf_idx);
+  nof_dcis = pdcch_decode(&pdcch, fft_buffer, ce, &dci_set, sf_idx, cfi);
   INFO("Received %d DCIs\n", nof_dcis);
   for (i=0;i<nof_dcis;i++) {
     dci_msg_type_t type;
-    if (dci_msg_get_type(&dci_set.msg[i], &type, mib.nof_prb, 1234)) {
+    if (dci_msg_get_type(&dci_set.msg[i], &type, cell.nof_prb, 1234)) {
       fprintf(stderr, "Can't get DCI message type\n");      
     } else {      
       INFO("MSG %d: L: %d nCCE: %d Nbits: %d. ",i,dci_set.msg[i].location.L,
@@ -424,22 +433,22 @@ int rx_run(cf_t *input, int sf_idx) {
       switch(type.type) {
       case PDSCH_SCHED:
         bzero(&ra_dl, sizeof(ra_pdsch_t));
-        if (dci_msg_unpack_pdsch(&dci_set.msg[i], &ra_dl, mib.nof_prb, 
+        if (dci_msg_unpack_pdsch(&dci_set.msg[i], &ra_dl, cell.nof_prb, 
             false)) {
           fprintf(stderr, "Can't unpack PDSCH message\n");
           break;
         }
         if (VERBOSE_ISINFO() || !pdsch_total) {
           printf("\n");
-          ra_pdsch_fprint(stdout, &ra_dl, mib.nof_prb);        
+          ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);        
           printf("\n");
         }
-        if (ra_prb_get_dl(&prb_alloc, &ra_dl, mib.nof_prb)) {
+        if (ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb)) {
           fprintf(stderr, "Error computing resource allocation\n");
           break;
         }
-        ra_prb_get_re(&prb_alloc, mib.nof_prb, mib.nof_ports, 
-                      mib.nof_prb<10?(cfi+1):cfi, CPNORM);
+        ra_prb_get_re(&prb_alloc, cell.nof_prb, cell.nof_ports, 
+                      cell.nof_prb<10?(cfi+1):cfi, CPNORM);
 
         if (pdsch_decode(&pdsch, fft_buffer, ce, data, sf_idx, ra_dl.mcs, &prb_alloc)) {
           pdsch_errors++;
@@ -455,7 +464,7 @@ int rx_run(cf_t *input, int sf_idx) {
 
   #ifndef DISABLE_GRAPHICS
   if (!disable_plots && nof_dcis > 0) {
-    int n_re = 2 * RE_X_RB * CPNORM_NSYMB * mib.nof_prb;
+    int n_re = 2 * RE_X_RB * CPNORM_NSYMB * cell.nof_prb;
     for (i = 0; i < n_re; i++) {
       tmp_plot[i] = 10 * log10f(cabsf(fft_buffer[i]));
       if (isinf(tmp_plot[i])) {
@@ -472,7 +481,7 @@ int rx_run(cf_t *input, int sf_idx) {
   return 0;
 }
 
-int mib_decoder_run(cf_t *input) {
+int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
   int i, n;
 
   lte_fft_run_slot(&fft, input, fft_buffer);
@@ -483,23 +492,30 @@ int mib_decoder_run(cf_t *input) {
   }
 
   DEBUG("Decoding PBCH\n", 0);
-  n = pbch_decode(&pbch, fft_buffer, ce, &mib);
+  n = pbch_decode(&pbch, fft_buffer, ce, mib);
 
   return n;
 }
 
 int run_receiver(cf_t *input, int cell_id, int sf_idx) {
-
+  pbch_mib_t mib;
+  
   if (!cell_id_initated) {
     cell_id_init(sampling_nof_prb, cell_id);
   }
-  if (!mib.nof_prb) {
+  if (!cell.nof_prb) {
     
     if (!sf_idx) {
-      if (mib_decoder_run(&input[sf_n_samples/2])) {
+      if (mib_decoder_run(&input[sf_n_samples/2], &mib)) {
         INFO("MIB decoded!\n", 0);
+        cell.id = cell_id;
+        cell.cp = CPNORM;
+        cell.nof_ports = mib.nof_ports;
+        cell.nof_prb = mib.nof_prb;
+        subframe_number = mib.sfn; 
+        
         if (!mib_initiated) {
-          if (mib_init(cell_id)) {
+          if (mib_init(mib.phich_resources, mib.phich_length)) {
             return -1;
           }
         }
@@ -511,7 +527,7 @@ int run_receiver(cf_t *input, int cell_id, int sf_idx) {
       }
     }    
   } 
-  if (mib.nof_prb) {
+  if (cell.nof_prb) {
     if (rx_run(input, sf_idx)) {
       return -1;
     }
@@ -566,7 +582,7 @@ void read_io(cf_t *buffer, int nsamples) {
 }
 
 int main(int argc, char **argv) {
-
+  
 #ifdef DISABLE_UHD
   if (argc < 3) {
     usage(argv[0]);
@@ -590,8 +606,8 @@ int main(int argc, char **argv) {
   signal(SIGINT, sigintHandler);
 
   /* Initialize variables */
-  mib.sfn = -1;
   frame_cnt = 0;
+  subframe_number = -1;
   
   /* The number of samples read from the USRP or file corresponds to 1 ms (subframe) */
   sf_n_samples = 1920 * lte_symbol_sz(sampling_nof_prb)/128;
@@ -608,7 +624,7 @@ int main(int argc, char **argv) {
         break;
       case 1:
         if (!(frame_cnt%10)) {
-          mib.sfn++;
+          subframe_number++;
         }
         /* synch'd and tracking */
         if (run_receiver(sf_buffer, sync_frame_cell_id(&sframe), sync_frame_sfidx(&sframe))) {
@@ -617,7 +633,7 @@ int main(int argc, char **argv) {
         if (!(frame_cnt % 10)) {
           printf(
               "SFN: %4d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
-              mib.sfn, sframe.cur_cfo * 15, sframe.timeoffset / 5, sframe.peak_idx,
+              subframe_number, sframe.cur_cfo * 15, sframe.timeoffset / 5, sframe.peak_idx,
               pdsch_errors, pdsch_total,
               (float) pdsch_errors / pdsch_total);
           fflush(stdout);          

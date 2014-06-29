@@ -33,19 +33,39 @@
 
 typedef struct LIBLTE_API {
   char *c;
-  int len;
+  uint32_t len;
 } sequence_t;
 
-LIBLTE_API int sequence_init(sequence_t *q, int len);
+LIBLTE_API int sequence_init(sequence_t *q, uint32_t len);
+
 LIBLTE_API void sequence_free(sequence_t *q);
 
-LIBLTE_API int sequence_LTEPRS(sequence_t *q, int len, int seed);
+LIBLTE_API int sequence_LTEPRS(sequence_t *q, 
+                               uint32_t len, 
+                               uint32_t seed);
 
-LIBLTE_API int sequence_pbch(sequence_t *seq, lte_cp_t cp, int cell_id);
-LIBLTE_API int sequence_pcfich(sequence_t *seq, int nslot, int cell_id);
-LIBLTE_API int sequence_phich(sequence_t *seq, int nslot, int cell_id);
-LIBLTE_API int sequence_pdcch(sequence_t *seq, int nslot, int cell_id, int len);
-LIBLTE_API int sequence_pdsch(sequence_t *seq, unsigned short rnti, int q,
-    int nslot, int cell_id, int len);
+LIBLTE_API int sequence_pbch(sequence_t *seq, 
+                             lte_cp_t cp, 
+                             uint16_t cell_id);
+
+LIBLTE_API int sequence_pcfich(sequence_t *seq, 
+                               uint8_t nslot, 
+                               uint16_t cell_id);
+
+LIBLTE_API int sequence_phich(sequence_t *seq, 
+                              uint8_t nslot, 
+                              uint16_t cell_id);
+
+LIBLTE_API int sequence_pdcch(sequence_t *seq, 
+                              uint8_t nslot, 
+                              uint16_t cell_id, 
+                              uint32_t len);
+
+LIBLTE_API int sequence_pdsch(sequence_t *seq, 
+                              unsigned short rnti, 
+                              int q,
+                              uint8_t nslot, 
+                              uint16_t cell_id, 
+                              uint32_t len);
 
 #endif

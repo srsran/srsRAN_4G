@@ -262,7 +262,14 @@ void base_free() {
 
 int mib_decoder_init(int cell_id) {
 
-  if (chest_ref_LTEDL(&chest, cell_id)) {
+  lte_cell_t cell; 
+  
+  cell.id = cell_id;
+  cell.nof_ports = MAX_PORTS;
+  cell.nof_prb = 6;
+  cell.cp = CPNORM;
+  
+  if (chest_ref_LTEDL(&chest, cell)) {
     fprintf(stderr, "Error initializing reference signal\n");
     return -1;
   }

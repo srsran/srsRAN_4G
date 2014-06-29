@@ -30,6 +30,7 @@
 #include <strings.h>
 
 #include "liblte/phy/resampling/decim.h"
+#include "liblte/phy/resampling/resample_arb.h"
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/sync/sync_frame.h"
 
@@ -59,6 +60,8 @@ int sync_frame_init(sync_frame_t *q, int downsampling) {
     perror("malloc");
     goto clean_exit;
   }
+
+  resample_arb_init(&q->resample, (float) 1/downsampling);  
   
   q->downsampling = downsampling;
   sync_frame_reset(q);
@@ -78,6 +81,7 @@ void sync_frame_free(sync_frame_t *q) {
   if (q->input_downsampled) {
     free(q->input_downsampled);
   }
+
   cfo_free(&q->cfocorr);
   sync_free(&q->s);
 }
@@ -183,6 +187,7 @@ int sync_frame_push(sync_frame_t *q, cf_t *input, cf_t *output) {
   if (q->downsampling == 1) {
     input_ds = input;
   } else {
+    //resample_arb_compute(&q->resample, input, q->input_downsampled, SYNC_SF_LEN * q->downsampling);
     decim_c(input, q->input_downsampled, q->downsampling, SYNC_SF_LEN * q->downsampling);
     input_ds = q->input_downsampled;
   }

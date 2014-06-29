@@ -311,7 +311,13 @@ int rssi_scan() {
 
 int mib_decoder_init(int cell_id) {
 
-  if (chest_ref_LTEDL(&chest, cell_id)) {
+  lte_cell_t cell;
+  cell.id = cell_id;
+  cell.nof_prb = 6;
+  cell.nof_ports = MAX_PORTS;
+  cell.cp = CPNORM;
+  
+  if (chest_ref_LTEDL(&chest, cell)) {
     fprintf(stderr, "Error initializing reference signal\n");
     return -1;
   }

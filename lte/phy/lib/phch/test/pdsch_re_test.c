@@ -36,6 +36,7 @@
 
 #define N_TESTS 10
 
+
 const lte_cp_t test_re_cp[N_TESTS] = {CPNORM, CPNORM, CPNORM, CPNORM, CPNORM, CPNORM, CPEXT, CPEXT, CPEXT, CPEXT};
 const int test_re_ports[N_TESTS] = {1, 1, 1, 2, 4, 4, 1, 4, 1, 4};
 const int test_re_csymb[N_TESTS] = {2, 1, 3, 3, 1, 3, 2, 2, 1, 2};
@@ -59,7 +60,8 @@ int main(int argc, char **argv) {
   int i, n, np, r;
   ra_prb_t prb_alloc;
   int ret = -1;
-  pdsch_t pdsch; 
+  pdsch_t pdsch;
+  lte_cell_t cell;
   
   while (getopt(argc, argv, "v") == 'v') {
     verbose++;
@@ -71,8 +73,12 @@ int main(int argc, char **argv) {
   }
 
   for (i=0;i<N_TESTS;i++) {
-  
-    pdsch_init(&pdsch, 0, test_re_prb[i], test_re_ports[i], 0, test_re_cp[i]);
+    cell.id = 0;
+    cell.nof_prb = test_re_prb[i];
+    cell.nof_ports = test_re_ports[i];
+    cell.cp = test_re_cp[i];
+
+    pdsch_init(&pdsch, 0, cell);
 
     memset(prb_alloc.re_sf, 0, sizeof(int) * 10);
     prb_alloc.slot[0].nof_prb = test_re_prb[i];

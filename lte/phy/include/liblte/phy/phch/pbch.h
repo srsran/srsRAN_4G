@@ -85,12 +85,25 @@ typedef struct LIBLTE_API {
 
 }pbch_t;
 
-LIBLTE_API int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp);
+LIBLTE_API int pbch_init(pbch_t *q, 
+                         int nof_prb, 
+                         int cell_id, 
+                         lte_cp_t cp);
+
 LIBLTE_API void pbch_free(pbch_t *q);
-LIBLTE_API int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mib);
-LIBLTE_API void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS], int nof_ports);
+LIBLTE_API int pbch_decode(pbch_t *q, 
+                           cf_t *slot1_symbols, 
+                           cf_t *ce[MAX_PORTS], 
+                           pbch_mib_t *mib);
+
+LIBLTE_API void pbch_encode(pbch_t *q, 
+                            pbch_mib_t *mib, 
+                            cf_t *slot1_symbols[MAX_PORTS], 
+                            int nof_ports);
+
 LIBLTE_API void pbch_decode_reset(pbch_t *q);
 
-LIBLTE_API void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib);
+LIBLTE_API void pbch_mib_fprint(FILE *stream, 
+                                pbch_mib_t *mib);
 
 #endif // PBCH_

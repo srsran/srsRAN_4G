@@ -34,28 +34,32 @@
 
 #include "liblte/phy/phy.h"
 
-int cell_id = 1;
-int nof_prb = 6;
-int nof_ports = 1;
-int cfi = 1;
-int tbs = -1;
-int subframe = 1;
+lte_cell_t cell = {
+  6,            // nof_prb
+  1,            // nof_ports
+  1,            // cell_id
+  CPNORM        // cyclic prefix
+};
+
+uint8_t cfi = 1;
+uint16_t tbs = -1;
+uint8_t subframe = 1;
 ra_mod_t modulation = BPSK;
 
 void usage(char *prog) {
-  printf("Usage: %s [cpnfvmt] -l TBS \n", prog);
+  printf("Usage: %s [cell.cpnfvmt] -l TBS \n", prog);
   printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
-  printf("\t-c cell id [Default %d]\n", cell_id);
+  printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
   printf("\t-f cfi [Default %d]\n", cfi);
-  printf("\t-p nof_ports [Default %d]\n", nof_ports);
-  printf("\t-n nof_prb [Default %d]\n", nof_prb);
+  printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
+  printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lcpnfvmts")) != -1) {
+  while ((opt = getopt(argc, argv, "lcell.cpnfvmts")) != -1) {
     switch(opt) {
     case 'm':
       switch(atoi(argv[optind])) {
@@ -84,13 +88,13 @@ void parse_args(int argc, char **argv) {
       tbs = atoi(argv[optind]);
       break;
     case 'p':
-      nof_ports = atoi(argv[optind]);
+      cell.nof_ports = atoi(argv[optind]);
       break;
     case 'n':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'v':
       verbose++;
@@ -120,20 +124,20 @@ int main(int argc, char **argv) {
 
   parse_args(argc,argv);
 
-  nof_re = 2 * CPNORM_NSYMB * nof_prb * RE_X_RB;
+  nof_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   mcs.tbs = tbs;
   mcs.mod = modulation;
-  prb_alloc.slot[0].nof_prb = nof_prb;
+  prb_alloc.slot[0].nof_prb = cell.nof_prb;
   for (i=0;i<prb_alloc.slot[0].nof_prb;i++) {
     prb_alloc.slot[0].prb_idx[i] = i;
   }
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
-  ra_prb_get_re(&prb_alloc, nof_prb, nof_ports, 2, CPNORM);
+  ra_prb_get_re(&prb_alloc, cell.nof_prb, cell.nof_ports, 2, CPNORM);
 
   /* init memory */
-  for (i=0;i<nof_ports;i++) {
+  for (i=0;i<cell.nof_ports;i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -155,7 +159,7 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  if (pdsch_init(&pdsch, 1234, nof_prb, nof_ports, cell_id, CPNORM)) {
+  if (pdsch_init(&pdsch, 1234, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
@@ -167,7 +171,7 @@ int main(int argc, char **argv) {
   pdsch_encode(&pdsch, data, slot_symbols, subframe, mcs, &prb_alloc);
 
   /* combine outputs */
-  for (i=0;i<nof_ports;i++) {
+  for (i=0;i<cell.nof_ports;i++) {
     for (j=0;j<nof_re;j++) {
       if (i > 0) {
         slot_symbols[0][j] += slot_symbols[i][j];
@@ -190,7 +194,7 @@ int main(int argc, char **argv) {
 quit:
   pdsch_free(&pdsch);
 
-  for (i=0;i<nof_ports;i++) {
+  for (i=0;i<cell.nof_ports;i++) {
     if (ce[i]) {
       free(ce[i]);
     }

@@ -40,7 +40,12 @@
 typedef _Complex float cf_t; /* this is only a shortcut */
 
 typedef enum {LINEAR} chest_interp_t;
-typedef void (*interpolate_fnc_t) (cf_t *input, cf_t *output, int M, int len, int off_st, int off_end);
+typedef void (*interpolate_fnc_t) (cf_t *input, 
+                                   cf_t *output, 
+                                   int M, 
+                                   int len, 
+                                   int off_st, 
+                                   int off_end);
 
 /** This is an OFDM channel estimator.
  * It works with any reference signal pattern, provided by the object
@@ -50,34 +55,94 @@ typedef void (*interpolate_fnc_t) (cf_t *input, cf_t *output, int M, int len, in
  */
 
 /* Low-level API */
-typedef struct LIBLTE_API{
-  int nof_ports;
-  int nof_symbols;
-  int nof_prb;
-  lte_cp_t cp;
+typedef struct LIBLTE_API {
+  uint8_t nof_ports;
+  uint16_t nof_re;
+  uint8_t nof_symbols;
+  
   refsignal_t refsignal[MAX_PORTS][NSLOTS_X_FRAME];
   interpolate_fnc_t interp;
 }chest_t;
 
-LIBLTE_API int chest_init(chest_t *q, chest_interp_t interp, lte_cp_t cp, int nof_prb, int nof_ports);
+LIBLTE_API int chest_init(chest_t *q, 
+                          chest_interp_t interp, 
+                          uint16_t nof_re, 
+                          uint8_t nof_symbols, 
+                          uint8_t nof_ports);
+
 LIBLTE_API void chest_free(chest_t *q);
-LIBLTE_API void chest_set_nof_ports(chest_t *q, int nof_ports);
 
-LIBLTE_API int chest_ref_LTEDL_slot_port(chest_t *q, int port, int nslot, int cell_id);
-LIBLTE_API int chest_ref_LTEDL_slot(chest_t *q, int nslot, int cell_id);
-LIBLTE_API int chest_ref_LTEDL(chest_t *q, int cell_id);
+LIBLTE_API int chest_set_nof_ports(chest_t *q, 
+                                    uint8_t nof_ports);
 
-LIBLTE_API void chest_ce_ref(chest_t *q, cf_t *input, int nslot, int port_id, int nref);
-LIBLTE_API void chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, int nslot, int port_id);
-LIBLTE_API void chest_ce_sf_port(chest_t *q, cf_t *input, cf_t *ce, int sf_idx, int port_id);
-LIBLTE_API void chest_ce_slot(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], int nslot);
-LIBLTE_API void chest_ce_sf(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], int sf_idx);
+LIBLTE_API int chest_init_LTEDL(chest_t *q, 
+                                chest_interp_t interp, 
+                                lte_cell_t cell);
 
-LIBLTE_API void chest_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
-LIBLTE_API void chest_ref_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
-LIBLTE_API void chest_recvsig_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
-LIBLTE_API void chest_ce_fprint(chest_t *q, FILE *stream, int nslot, int port_id);
-LIBLTE_API int chest_ref_symbols(chest_t *q, int port_id, int nslot, int l[2]);
+LIBLTE_API int chest_ref_LTEDL_slot_port(chest_t *q, 
+                                         uint8_t nslot, 
+                                         uint8_t port_id, 
+                                         lte_cell_t cell);
+
+LIBLTE_API int chest_ref_LTEDL_slot(chest_t *q, 
+                                    uint8_t nslot, 
+                                    lte_cell_t cell);
+
+LIBLTE_API int chest_ref_LTEDL(chest_t *q, 
+                               lte_cell_t cell);
+
+LIBLTE_API int chest_ce_ref(chest_t *q, 
+                             cf_t *input, 
+                             uint8_t nslot, 
+                             uint8_t port_id, 
+                             uint16_t nref);
+
+LIBLTE_API int chest_ce_slot_port(chest_t *q, 
+                                   cf_t *input, 
+                                   cf_t *ce, 
+                                   uint8_t nslot, 
+                                   uint8_t port_id);
+
+LIBLTE_API int chest_ce_sf_port(chest_t *q, 
+                                 cf_t *input, 
+                                 cf_t *ce, 
+                                 uint8_t sf_idx, 
+                                 uint8_t port_id);
+
+LIBLTE_API int chest_ce_slot(chest_t *q, 
+                              cf_t *input, 
+                              cf_t *ce[MAX_PORTS], 
+                              uint8_t nslot);
+
+LIBLTE_API int chest_ce_sf(chest_t *q, 
+                            cf_t *input, 
+                            cf_t *ce[MAX_PORTS], 
+                            uint8_t sf_idx);
+
+LIBLTE_API void chest_fprint(chest_t *q, 
+                             FILE *stream, 
+                             uint8_t nslot, 
+                             uint8_t port_id);
+
+LIBLTE_API void chest_ref_fprint(chest_t *q, 
+                                 FILE *stream, 
+                                 uint8_t nslot, 
+                                 uint8_t port_id);
+
+LIBLTE_API void chest_recvsig_fprint(chest_t *q, 
+                                     FILE *stream, 
+                                     uint8_t nslot, 
+                                     uint8_t port_id);
+
+LIBLTE_API void chest_ce_fprint(chest_t *q, 
+                                FILE *stream, 
+                                uint8_t nslot, 
+                                uint8_t port_id);
+
+LIBLTE_API int chest_ref_symbols(chest_t *q, 
+                                 uint8_t port_id, 
+                                 uint8_t nslot, 
+                                 uint8_t l[2]);
 
 /* High-level API */
 
@@ -94,8 +159,7 @@ typedef struct LIBLTE_API{
   cf_t *input;
   int in_len;
   struct chest_ctrl_in {
-    int slot_id;  // slot id in the 10ms frame
-    int cell_id;
+    int sf_idx;  // subframe id in the 10ms frame
   } ctrl_in;
   cf_t *output[MAX_PORTS];
   int out_len[MAX_PORTS];
@@ -108,3 +172,11 @@ LIBLTE_API int chest_work(chest_hl* hl);
 LIBLTE_API int chest_stop(chest_hl* hl);
 
 #endif
+
+
+
+
+
+
+
+

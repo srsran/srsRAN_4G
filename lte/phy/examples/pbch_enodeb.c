@@ -211,8 +211,14 @@ int main(int argc, char **argv) {
   sss_generate(sss_signal0, sss_signal5, cell_id);
 
   /* Generate CRS signals */
+  lte_cell_t cell;
+  cell.id = cell_id;
+  cell.nof_prb = 6;
+  cell.cp = CPNORM;
+  cell.nof_ports = 1;
+  
   for (i=0;i<NSLOTS_X_FRAME;i++) {
-    if (refsignal_init_LTEDL(&refs[i], 0, i, cell_id, CPNORM, nof_prb)) {
+    if (refsignal_init_LTEDL(&refs[i], 0, i, cell)) {
       fprintf(stderr, "Error initiating CRS slot=%d\n", i);
       return -1;
     }

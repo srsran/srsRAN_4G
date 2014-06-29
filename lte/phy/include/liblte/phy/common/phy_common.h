@@ -29,6 +29,8 @@
 #ifndef _LTEBASE_
 #define _LTEBASE_
 
+#include <stdint.h>
+#include <stdbool.h>
 #include "liblte/config.h"
 
 #define NSUBFRAMES_X_FRAME  10
@@ -100,22 +102,16 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
         || l == CP_NSYMB(cp) - 3)
 
 
-LIBLTE_API const int lte_symbol_sz(int nof_prb);
-LIBLTE_API const int lte_sampling_freq_hz(int nof_prb);
-LIBLTE_API int lte_re_x_prb(int ns, int symbol, int nof_ports, int nof_symbols);
-LIBLTE_API int lte_voffset(int symbol_id, int cell_id, int nof_ports);
-
 #define NOF_LTE_BANDS 29
 
 #define NOF_TC_CB_SIZES 188
 
 typedef struct LIBLTE_API {
-  int nof_prb;
-  int nof_ports; 
-  int cell_id;
+  uint8_t nof_prb;
+  uint8_t nof_ports; 
+  uint16_t id;
   lte_cp_t cp;
 }lte_cell_t;
-
 
 typedef enum LIBLTE_API {
   SINGLE_ANTENNA,TX_DIVERSITY, SPATIAL_MULTIPLEX
@@ -134,16 +130,46 @@ LIBLTE_API enum band_geographical_area {
   ALL, NAR, APAC, EMEA, JAPAN, CALA, NA
 };
 
+LIBLTE_API bool lte_cell_isvalid(lte_cell_t *cell);
+
+LIBLTE_API const int lte_symbol_sz(int nof_prb);
+
+LIBLTE_API const int lte_sampling_freq_hz(int nof_prb);
+
+LIBLTE_API int lte_re_x_prb(int ns, 
+                            int symbol, 
+                            int nof_ports, 
+                            int nof_symbols);
+
+LIBLTE_API int lte_voffset(int symbol_id, 
+                           int cell_id, 
+                           int nof_ports);
+
 LIBLTE_API int lte_cb_size(int index);
+
 LIBLTE_API int lte_find_cb_index(int long_cb);
 
 LIBLTE_API float lte_band_fd(int earfcn);
-LIBLTE_API int lte_band_get_fd_band(int band, lte_earfcn_t *earfcn, int earfcn_start, int earfcn_end, int max_elems);
-LIBLTE_API int lte_band_get_fd_band_all(int band, lte_earfcn_t *earfcn, int max_nelems);
-LIBLTE_API int lte_band_get_fd_region(enum band_geographical_area region, lte_earfcn_t *earfcn, int max_elems);
 
-LIBLTE_API int lte_str2mimotype(char *mimo_type_str, lte_mimo_type_t *type);
+LIBLTE_API int lte_band_get_fd_band(int band, 
+                                    lte_earfcn_t *earfcn, 
+                                    int earfcn_start, 
+                                    int earfcn_end, 
+                                    int max_elems);
+
+LIBLTE_API int lte_band_get_fd_band_all(int band, 
+                                        lte_earfcn_t *earfcn, 
+                                        int max_nelems);
+
+LIBLTE_API int lte_band_get_fd_region(enum band_geographical_area region, 
+                                      lte_earfcn_t *earfcn, 
+                                      int max_elems);
+
+LIBLTE_API int lte_str2mimotype(char *mimo_type_str, 
+                                lte_mimo_type_t *type);
+
 LIBLTE_API char *lte_mimotype2str(lte_mimo_type_t type);
+
 
 
 #endif

@@ -50,7 +50,6 @@
 
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/common/fft.h"
-#include "liblte/phy/common/sequence.h"
 
 #include "liblte/phy/ch_estimation/chest.h"
 #include "liblte/phy/ch_estimation/refsignal.h"

@@ -33,35 +33,39 @@
 
 #include "liblte/phy/phy.h"
 
-int cell_id = 1;
-int nof_prb = 6;
-int nof_ports = 1;
-int cfi = 1;
+lte_cell_t cell = {
+  6,            // nof_prb
+  1,            // nof_ports
+  1,            // cell_id
+  CPNORM        // cyclic prefix
+};
+
+uint8_t cfi = 1;
 
 void usage(char *prog) {
-  printf("Usage: %s [cpv]\n", prog);
-  printf("\t-c cell id [Default %d]\n", cell_id);
+  printf("Usage: %s [cell.cpv]\n", prog);
+  printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-f cfi [Default %d]\n", cfi);
-  printf("\t-p nof_ports [Default %d]\n", nof_ports);
-  printf("\t-n nof_prb [Default %d]\n", nof_prb);
+  printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
+  printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "cpnfv")) != -1) {
+  while ((opt = getopt(argc, argv, "cell.cpnfv")) != -1) {
     switch (opt) {
     case 'p':
-      nof_ports = atoi(argv[optind]);
+      cell.nof_ports = atoi(argv[optind]);
       break;
     case 'f':
       cfi = atoi(argv[optind]);
       break;
     case 'n':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'v':
       verbose++;
@@ -113,7 +117,7 @@ int main(int argc, char **argv) {
 
   parse_args(argc, argv);
 
-  nof_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
+  nof_re = CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   if (test_dci_payload_size()) {
     exit(-1);
@@ -136,7 +140,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (regs_init(&regs, cell_id, nof_prb, nof_ports, R_1, PHICH_NORM, CPNORM)) {
+  if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     exit(-1);
   }
@@ -146,15 +150,10 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (pdcch_init(&pdcch, &regs, nof_prb, nof_ports, cell_id, CPNORM)) {
+  if (pdcch_init(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
-  if (pdcch_set_cfi(&pdcch, cfi)) {
-    fprintf(stderr, "Error setting CFI %d\n", cfi);
-    return -1;    
-  }
-
 
   dci_init(&dci_tx, 2);
   bzero(&ra_dl, sizeof(ra_pdsch_t));
@@ -166,28 +165,28 @@ int main(int argc, char **argv) {
   ra_dl.alloc_type = alloc_type0;
   ra_dl.type0_alloc.rbg_bitmask = 0x5;
 
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, nof_prb, false);
+  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, cell.nof_prb, false);
   dci_msg_candidate_set(&dci_tx.msg[0], 0, 0, 1234);
   dci_tx.nof_dcis++;
 
   ra_pdsch_set_mcs(&ra_dl, QAM16, 15);
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[1], Format1, nof_prb, false);
+  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[1], Format1, cell.nof_prb, false);
   dci_msg_candidate_set(&dci_tx.msg[1], 0, 1, 1234);
   dci_tx.nof_dcis++;
 
-  pdcch_encode(&pdcch, &dci_tx, slot_symbols, 0);
+  pdcch_encode(&pdcch, &dci_tx, slot_symbols, 0, cfi);
 
   /* combine outputs */
-  for (i = 1; i < nof_ports; i++) {
+  for (i = 1; i < cell.nof_ports; i++) {
     for (j = 0; j < nof_re; j++) {
       slot_symbols[0][j] += slot_symbols[i][j];
     }
   }
 
-  pdcch_init_search_ue(&pdcch, 1234);
+  pdcch_init_search_ue(&pdcch, 1234, cfi);
 
   dci_init(&dci_rx, 2);
-  nof_dcis = pdcch_decode(&pdcch, slot_symbols[0], ce, &dci_rx, 0);
+  nof_dcis = pdcch_decode(&pdcch, slot_symbols[0], ce, &dci_rx, 0, cfi);
   if (nof_dcis < 0) {
     printf("Error decoding\n");
   } else if (nof_dcis == dci_tx.nof_dcis) {

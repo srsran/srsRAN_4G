@@ -49,12 +49,10 @@ typedef _Complex float cf_t;
 
 /* PDSCH object */
 typedef struct LIBLTE_API {
-  int cell_id;
-  lte_cp_t cp;
-  int nof_prb;
-  int nof_ports;
-  int max_symbols;
-  unsigned short rnti;
+  lte_cell_t cell;
+  
+  uint16_t max_symbols;
+  uint16_t rnti;
 
   /* buffers */
   cf_t *ce[MAX_PORTS];
@@ -78,17 +76,31 @@ typedef struct LIBLTE_API {
   crc_t crc_cb;
 }pdsch_t;
 
-LIBLTE_API int pdsch_init(pdsch_t *q, unsigned short user_rnti, int nof_prb, 
-                          int nof_ports, int cell_id, lte_cp_t cp);
+LIBLTE_API int pdsch_init(pdsch_t *q, 
+                          uint16_t user_rnti, 
+                          lte_cell_t cell);
+
 LIBLTE_API void pdsch_free(pdsch_t *q);
 
-LIBLTE_API int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS],
-                            int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
-LIBLTE_API int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
-                            char *data, int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
-LIBLTE_API int pdsch_get(pdsch_t *q, cf_t *sf_symbols, cf_t *pdsch_symbols,
-    ra_prb_t *prb_alloc, int nsubframe);
-LIBLTE_API int pdsch_put(pdsch_t *q, cf_t *pdsch_symbols, cf_t *sf_symbols,
-    ra_prb_t *prb_alloc, int nsubframe);
+LIBLTE_API int pdsch_encode(pdsch_t *q, 
+                            char *data, 
+                            cf_t *sf_symbols[MAX_PORTS],
+                            uint8_t nsubframe, 
+                            ra_mcs_t mcs, 
+                            ra_prb_t *prb_alloc);
+
+LIBLTE_API int pdsch_decode(pdsch_t *q, 
+                            cf_t *sf_symbols, 
+                            cf_t *ce[MAX_PORTS],
+                            char *data, 
+                            uint8_t nsubframe, 
+                            ra_mcs_t mcs, 
+                            ra_prb_t *prb_alloc);
+
+LIBLTE_API int pdsch_get(pdsch_t *q, 
+                         cf_t *sf_symbols, 
+                         cf_t *pdsch_symbols,
+                         ra_prb_t *prb_alloc, 
+                         uint8_t subframe);
 
 #endif

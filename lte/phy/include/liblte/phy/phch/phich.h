@@ -55,10 +55,8 @@ typedef _Complex float cf_t;
 
 /* phich object */
 typedef struct LIBLTE_API {
-  lte_cp_t cp;
-  int nof_prb;
-  int nof_tx_ports;
-
+  lte_cell_t cell;
+  
   /* handler to REGs resource mapper */
   regs_t *regs;
 
@@ -80,18 +78,31 @@ typedef struct LIBLTE_API {
 
 }phich_t;
 
-LIBLTE_API int phich_init(phich_t *q, regs_t *regs, int cell_id, int nof_prb, int nof_tx_ports, lte_cp_t cp);
+LIBLTE_API int phich_init(phich_t *q, 
+                          regs_t *regs, 
+                          lte_cell_t cell);
+
 LIBLTE_API void phich_free(phich_t *q);
-LIBLTE_API int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
-    int ngroup, int nseq, int nsubframe, char *ack, int *distance);
-LIBLTE_API int phich_encode(phich_t *q, char ack, int ngroup, int nseq, int nsubframe,
-    cf_t *slot_symbols[MAX_PORTS]);
 
+LIBLTE_API int phich_decode(phich_t *q, 
+                            cf_t *slot_symbols, 
+                            cf_t *ce[MAX_PORTS],
+                            uint8_t ngroup, 
+                            uint8_t nseq, 
+                            uint8_t nsubframe, 
+                            char *ack, 
+                            uint8_t *distance);
 
-LIBLTE_API void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS]);
-LIBLTE_API int phich_ngroups(phich_t *q);
-LIBLTE_API bool phich_exists(int nframe, int nslot);
-LIBLTE_API int phich_put(regs_t *h, cf_t *phich, cf_t *slot_data);
-LIBLTE_API int phich_get(regs_t *h, cf_t *phich, cf_t *slot_data);
+LIBLTE_API int phich_encode(phich_t *q, 
+                            char ack, 
+                            uint8_t ngroup, 
+                            uint8_t nseq, 
+                            uint8_t nsubframe,
+                            cf_t *slot_symbols[MAX_PORTS]);
+
+LIBLTE_API void phich_reset(phich_t *q, 
+                            cf_t *slot_symbols[MAX_PORTS]);
+
+LIBLTE_API uint8_t phich_ngroups(phich_t *q);
 
 #endif // PHICH_

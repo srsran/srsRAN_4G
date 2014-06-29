@@ -29,7 +29,6 @@
 #include <strings.h>
 #include <string.h>
 #include <complex.h>
-#include <assert.h>
 #include <math.h>
 
 #include "liblte/phy/ch_estimation/chest.h"
@@ -40,7 +39,7 @@
 #define SLOT_SZ(q) (q->nof_symbols * q->symbol_sz)
 #define SF_SZ(q) (2 * SLOT_SZ(q))
 
-void chest_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
+void chest_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
   chest_ref_fprint(q, stream, nslot, port_id);
   chest_recvsig_fprint(q, stream, nslot, port_id);
   chest_ce_fprint(q, stream, nslot, port_id);
@@ -49,13 +48,16 @@ void chest_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
 /* Sets the number of ports to estimate. nof_ports must be smaler than nof_ports
  * used during the call to chest_init(). 
  */
-void chest_set_nof_ports(chest_t *q, int nof_ports) {
-  if (nof_ports < q->nof_ports && nof_ports > 0) {
+int chest_set_nof_ports(chest_t *q, uint8_t nof_ports) {
+  if (nof_ports < q->nof_ports) {
     q->nof_ports = nof_ports;
+    return LIBLTE_SUCCESS;
+  } else {
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
 }
 
-void chest_ref_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
+void chest_ref_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
   int i;
   fprintf(stream, "refs%d=[",port_id);
   for (i=0;i<q->refsignal[port_id][nslot].nof_refs;i++) {
@@ -65,7 +67,7 @@ void chest_ref_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
   fprintf(stream, "];\n");
 }
 
-void chest_recvsig_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
+void chest_recvsig_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
   int i;
   fprintf(stream, "recvsig%d=[",port_id);
   for (i=0;i<q->refsignal[port_id][nslot].nof_refs;i++) {
@@ -75,7 +77,7 @@ void chest_recvsig_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
   fprintf(stream, "];\n");
 }
 
-void chest_ce_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
+void chest_ce_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
   int i;
   fprintf(stream, "mag%d=[",port_id);
   for (i=0;i<q->refsignal[port_id][nslot].nof_refs;i++) {
@@ -89,164 +91,206 @@ void chest_ce_fprint(chest_t *q, FILE *stream, int nslot, int port_id) {
   fprintf(stream, "];\n");
 }
 
-void chest_ce_ref(chest_t *q, cf_t *input, int nslot, int port_id, int nref) {
+int chest_ce_ref(chest_t *q, cf_t *input, uint8_t nslot, uint8_t port_id, uint16_t nref) {
   int fidx, tidx;
   cf_t known_ref, channel_ref;
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q         != NULL            &&
+      input     != NULL            &&
+      nslot     <  NSLOTS_X_FRAME  &&
+      port_id   <  q->nof_ports) 
+  {
+    if (nref < q->refsignal[port_id][nslot].nof_refs) {
+      fidx = q->refsignal[port_id][nslot].refs[nref].freq_idx; // reference frequency index
+      tidx = q->refsignal[port_id][nslot].refs[nref].time_idx; // reference time index
+      known_ref = q->refsignal[port_id][nslot].refs[nref].simbol;
+      channel_ref = input[tidx * q->nof_re + fidx];
+      q->refsignal[port_id][nslot].refs[nref].recv_simbol = channel_ref;
 
-  fidx = q->refsignal[port_id][nslot].refs[nref].freq_idx; // reference frequency index
-  tidx = q->refsignal[port_id][nslot].refs[nref].time_idx; // reference time index
-  known_ref = q->refsignal[port_id][nslot].refs[nref].simbol;
-  channel_ref = input[SAMPLE_IDX(q->nof_prb, tidx, fidx)];
-  q->refsignal[port_id][nslot].refs[nref].recv_simbol = channel_ref;
+      DEBUG("Reference %2d pos (%2d,%2d)=%3d %.2f dB %.2f/%.2f=%.2f\n", nref, tidx, fidx, tidx * q->nof_re + fidx,          
+            10*log10f(cabsf(channel_ref/known_ref)),          
+            cargf(channel_ref)/M_PI,cargf(known_ref)/M_PI,
+            cargf(channel_ref/known_ref)/M_PI);
 
-  DEBUG("Reference %2d pos (%2d,%2d)=%3d %.2f dB %.2f/%.2f=%.2f\n", nref, tidx, fidx, SAMPLE_IDX(q->nof_prb, tidx, fidx),
-      10*log10f(cabsf(channel_ref/known_ref)),
-      cargf(channel_ref)/M_PI,cargf(known_ref)/M_PI,cargf(channel_ref/known_ref)/M_PI);
-
-  /* FIXME: compare with threshold */
-  if (channel_ref != 0) {
-    q->refsignal[port_id][nslot].ch_est[nref] = channel_ref/known_ref;
-  } else {
-    q->refsignal[port_id][nslot].ch_est[nref] = 0;
+      /* FIXME: compare with threshold */
+      if (channel_ref != 0) {
+        q->refsignal[port_id][nslot].ch_est[nref] = channel_ref/known_ref;
+      } else {
+        q->refsignal[port_id][nslot].ch_est[nref] = 0;
+      }
+      ret = LIBLTE_SUCCESS;
+    }
   }
+  return ret;
 }
 
 /* Computes channel estimates for each reference in a slot and port.
  * Saves the nof_prb * 12 * nof_symbols channel estimates in the array ce
  */
-void chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, int nslot, int port_id) {
+int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint8_t nslot, uint8_t port_id) {
   int i, j;
   cf_t x[2], y[MAX_NSYMB];
 
-  assert(nslot >= 0 && nslot < NSLOTS_X_FRAME);
-  assert(port_id >= 0 && port_id < q->nof_ports);
-  assert(q->refsignal[port_id][nslot].nsymbols <= 2);
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q         != NULL            &&
+      input     != NULL            &&
+      nslot     <  NSLOTS_X_FRAME  &&
+      port_id   <  q->nof_ports) 
+  {
+    if (q->refsignal[port_id][nslot].nsymbols <= 2) {
+      refsignal_t *r = &q->refsignal[port_id][nslot];
 
-  refsignal_t *r = &q->refsignal[port_id][nslot];
+      INFO("Estimating channel slot=%d port=%d using %d reference signals\n",
+          nslot, port_id, r->nof_refs);
 
-  INFO("Estimating channel slot=%d port=%d using %d reference signals\n",
-      nslot, port_id, r->nof_refs);
-
-  for (i=0;i<r->nof_refs;i++) {
-    chest_ce_ref(q, input, nslot, port_id, i);
-  }
-
-  /* interpolate the symbols with references
-   * in the freq domain */
-  for (i=0;i<r->nsymbols;i++) {
-    interp_linear_offset(&r->ch_est[i * r->nof_refs/2],
-        &ce[r->symbols_ref[i] * q->nof_prb * RE_X_RB], RE_X_RB/2,
-        r->nof_refs/2, r->voffset, RE_X_RB/2-r->voffset);
-
-  }
-  /* now interpolate in the time domain */
-  for (i=0;i<q->nof_prb * RE_X_RB; i++) {
-    if (r->nsymbols > 1) {
-      for (j=0;j<r->nsymbols;j++) {
-        x[j] = ce[r->symbols_ref[j] * q->nof_prb * RE_X_RB + i];
+      for (i=0;i<r->nof_refs;i++) {
+        chest_ce_ref(q, input, nslot, port_id, i);
       }
-      interp_linear_offset(x, y, r->symbols_ref[1]-r->symbols_ref[0],
-          2, r->symbols_ref[0], 3);
-    } else {
-      for (j=0;j<MAX_NSYMB;j++) {
-        y[j] = ce[r->symbols_ref[0] * q->nof_prb * RE_X_RB + i];
+
+      /* interpolate the symbols with references
+      * in the freq domain */
+      for (i=0;i<r->nsymbols;i++) {
+        interp_linear_offset(&r->ch_est[i * r->nof_refs/2],
+            &ce[r->symbols_ref[i] * q->nof_re], RE_X_RB/2,
+            r->nof_refs/2, r->voffset, RE_X_RB/2-r->voffset);
+
       }
-    }
-    for (j=0;j<q->nof_symbols;j++) {
-      ce[j * q->nof_prb * RE_X_RB + i] = y[j];
+      /* now interpolate in the time domain */
+      for (i=0;i<q->nof_re; i++) {
+        if (r->nsymbols > 1) {
+          for (j=0;j<r->nsymbols;j++) {
+            x[j] = ce[r->symbols_ref[j] * q->nof_re + i];
+          }
+          interp_linear_offset(x, y, r->symbols_ref[1]-r->symbols_ref[0],
+              2, r->symbols_ref[0], 3);
+        } else {
+          for (j=0;j<MAX_NSYMB;j++) {
+            y[j] = ce[r->symbols_ref[0] * q->nof_re + i];
+          }
+        }
+        for (j=0;j<q->nof_symbols;j++) {
+          ce[j * q->nof_re + i] = y[j];
+        }
+      }
+      ret = LIBLTE_SUCCESS;
     }
   }
+  return ret;
 }
 
 
 /* Computes channel estimates for each reference in a subframe and port id.
  */
-void chest_ce_sf_port(chest_t *q, cf_t *input, cf_t *ce, int sf_idx, int port_id) {
-  int n, slotsz;
-  slotsz = CP_NSYMB(q->cp)*q->nof_prb*RE_X_RB;
+int chest_ce_sf_port(chest_t *q, cf_t *input, cf_t *ce, uint8_t sf_idx, uint8_t port_id) {
+  int n, slotsz, ret;
+  slotsz = q->nof_symbols*q->nof_re;
   for (n=0;n<2;n++) {
-    chest_ce_slot_port(q, &input[n*slotsz], &ce[n*slotsz], 2*sf_idx+n, port_id);
+    ret = chest_ce_slot_port(q, &input[n*slotsz], &ce[n*slotsz], 2*sf_idx+n, port_id);
+    if (ret != LIBLTE_SUCCESS) {
+      return ret;
+    }
   }
+  return LIBLTE_SUCCESS;
 }
 
 /* Computes channel estimates for each reference in a slot for all ports.
  */
-void chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, int nslot) {
-  int p;
+int chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, uint8_t nslot) {
+  int p, ret;
   for (p=0;p<q->nof_ports;p++) {
-    chest_ce_slot_port(q, input, ce[p], nslot, p);
+    ret = chest_ce_slot_port(q, input, ce[p], nslot, p);
+    if (ret != LIBLTE_SUCCESS) {
+      return ret;
+    }
   }
+  return LIBLTE_SUCCESS;
 }
 
 /* Computes channel estimates for each reference in a subframe for all ports.
  */
-void chest_ce_sf(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], int sf_idx) {
-  int p, n, slotsz;
-  slotsz = CP_NSYMB(q->cp)*q->nof_prb*RE_X_RB;
+int chest_ce_sf(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], uint8_t sf_idx) {
+  int p, n, slotsz, ret;
+  slotsz = q->nof_symbols*q->nof_re;
   for (p=0;p<q->nof_ports;p++) {
     for (n=0;n<2;n++) {
-      chest_ce_slot_port(q, &input[n*slotsz], &ce[p][n*slotsz], 2*sf_idx+n, p);
+      ret = chest_ce_slot_port(q, &input[n*slotsz], &ce[p][n*slotsz], 2*sf_idx+n, p);
+      if (ret != LIBLTE_SUCCESS) {
+        return ret;
+      }
     }
   }
-}
-int chest_init(chest_t *q, chest_interp_t interp, lte_cp_t cp, int nof_prb, int nof_ports) {
-
-  if (nof_ports > MAX_PORTS) {
-    fprintf(stderr, "Error: Maximum ports %d\n", MAX_PORTS);
-    return -1;
-  }
-  bzero(q, sizeof(chest_t));
-
-  q->nof_ports = nof_ports;
-  q->nof_symbols = CP_NSYMB(cp);
-  q->cp = cp;
-  q->nof_prb = nof_prb;
-
-  switch(interp) {
-  case LINEAR:
-    q->interp = interp_linear_offset;
-  }
-
-  INFO("Initializing channel estimator size %dx%d, nof_ports=%d\n",
-      q->nof_symbols, nof_prb, nof_ports);
-
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
-int chest_ref_LTEDL_slot_port(chest_t *q, int port, int nslot, int cell_id) {
-  if (port < 0 || port > q->nof_ports) {
-    return -1;
-  }
-  if (nslot < 0 || nslot > NSLOTS_X_FRAME) {
-    return -1;
-  }
+int chest_init(chest_t *q, chest_interp_t interp, uint16_t nof_re, uint8_t nof_symbols, uint8_t nof_ports) {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q         != NULL &&
+      nof_ports <  MAX_PORTS)
+  {
+    bzero(q, sizeof(chest_t));
 
-  if (refsignal_init_LTEDL(&q->refsignal[port][nslot], port, nslot, cell_id, q->cp, q->nof_prb)) {
-    fprintf(stderr, "Error initiating CRS port=%d, slot=%d\n", port, nslot);
-    return -1;
-  }
+    q->nof_ports = nof_ports;
+    q->nof_symbols = nof_symbols;
+    q->nof_re = nof_re;
+    
+    switch(interp) {
+    case LINEAR:
+      q->interp = interp_linear_offset;
+    }
 
-  return 0;
+    INFO("Initializing channel estimator size %dx%d, nof_ports=%d\n",
+        q->nof_symbols, q->nof_re, nof_ports);
+
+    ret = LIBLTE_SUCCESS;
+  }
+  return ret;
 }
 
-int chest_ref_LTEDL_slot(chest_t *q, int nslot, int cell_id) {
-  int p;
+int chest_init_LTEDL(chest_t *q, chest_interp_t interp, lte_cell_t cell) {
+  int ret; 
+  ret = chest_init(q, interp, cell.nof_prb * RE_X_RB, CP_NSYMB(cell.cp), cell.nof_ports);
+  if (ret != LIBLTE_SUCCESS) {
+    return ret;
+  } else {
+    return chest_ref_LTEDL(q, cell);    
+  }
+}
+
+int chest_ref_LTEDL_slot_port(chest_t *q, uint8_t nslot, uint8_t port_id, lte_cell_t cell) {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q         != NULL         && 
+      port_id      < MAX_PORTS     &&
+      nslot     < NSLOTS_X_FRAME)
+  {
+    ret = refsignal_init_LTEDL(&q->refsignal[port_id][nslot], port_id, nslot, cell);
+  }
+  return ret;
+}
+
+int chest_ref_LTEDL_slot(chest_t *q, uint8_t nslot, lte_cell_t cell) {
+  int p, ret;
   for (p=0;p<q->nof_ports;p++) {
-    if (chest_ref_LTEDL_slot_port(q, p, nslot, cell_id)) {
-      return -1;
+    ret = chest_ref_LTEDL_slot_port(q, nslot, p, cell);
+    if (ret != LIBLTE_SUCCESS) {
+      return ret;
     }
   }
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
-int chest_ref_LTEDL(chest_t *q, int cell_id) {
-  int n;
+int chest_ref_LTEDL(chest_t *q, lte_cell_t cell) {
+  int n, ret;
   for (n=0;n<NSLOTS_X_FRAME;n++) {
-    if (chest_ref_LTEDL_slot(q, n, cell_id)) {
-      return -1;
+    ret = chest_ref_LTEDL_slot(q, n, cell);
+    if (ret != LIBLTE_SUCCESS) {
+      return ret;
     }
   }
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
 void chest_free(chest_t *q) {
@@ -262,18 +306,25 @@ void chest_free(chest_t *q) {
 /* Fills l[2] with the symbols in the slot nslot that contain references.
  * returns the number of symbols with references (in the slot)
  */
-int chest_ref_symbols(chest_t *q, int port_id, int nslot, int l[2]) {
-  if (nslot < 0 || nslot > NSLOTS_X_FRAME) {
-    return -1;
+int chest_ref_symbols(chest_t *q, uint8_t port_id, uint8_t nslot, uint8_t l[2]) {
+  
+  if (q         != NULL          && 
+      port_id   <  MAX_PORTS     &&
+      nslot     <  NSLOTS_X_FRAME)
+  {
+    memcpy(l, q->refsignal[port_id][nslot].symbols_ref, sizeof(uint8_t) * q->refsignal[port_id][nslot].nsymbols);
+    return q->refsignal[port_id][nslot].nsymbols;
+  } else {
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
-  memcpy(l, q->refsignal[port_id][nslot].symbols_ref, sizeof(int) * q->refsignal[port_id][nslot].nsymbols);
-  return q->refsignal[port_id][nslot].nsymbols;
 }
 
 
 /** High-level API
 */
 int chest_initialize(chest_hl* h) {
+
+  lte_cell_t cell;
 
   if (!h->init.nof_symbols) {
     h->init.nof_symbols = CPNORM_NSYMB; // Normal CP
@@ -282,37 +333,23 @@ int chest_initialize(chest_hl* h) {
     h->init.nof_prb = 6;
   }
 
-  if (chest_init(&h->obj, LINEAR, (h->init.nof_symbols==CPNORM_NSYMB)?CPNORM:CPEXT,
-      h->init.nof_prb, h->init.nof_ports)) {
+  cell.id = h->init.cell_id; 
+  cell.nof_ports = h->init.nof_ports;
+  cell.nof_prb = h->init.nof_prb;
+  cell.cp = h->init.nof_symbols == CPNORM_NSYMB ? CPNORM : CPEXT;
+  
+  if (chest_init_LTEDL(&h->obj, LINEAR, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
-  }
-  if (h->init.cell_id != -1) {
-    if (chest_ref_LTEDL(&h->obj, h->init.cell_id)) {
-      fprintf(stderr, "Error initializing reference signal\n");
-      return -1;
-    }
   }
 
   return 0;
 }
 
-/** This function must be called in an slot basis (0.5ms) for LTE */
+/** This function must be called in an subframe basis (1ms) for LTE */
 int chest_work(chest_hl* hl) {
-  int i;
   chest_t *q = &hl->obj;
-
-  if (hl->init.cell_id != hl->ctrl_in.cell_id) {
-    if (chest_ref_LTEDL(q, hl->init.cell_id)) {
-      fprintf(stderr, "Error initializing reference signal\n");
-      return -1;
-    }
-  }
-
-  for (i=0;i<hl->init.nof_ports;i++) {
-    chest_ce_slot_port(q, hl->input, hl->output[i], 1, 0);
-    hl->out_len[i] = hl->in_len;
-  }
+  chest_ce_sf(q, hl->input, hl->output, hl->ctrl_in.sf_idx);
   return 0;
 }
 

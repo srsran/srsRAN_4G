@@ -50,6 +50,21 @@ const int tc_cb_sizes[NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 
     4800, 4864, 4928, 4992, 5056, 5120, 5184, 5248, 5312, 5376, 5440, 5504,
     5568, 5632, 5696, 5760, 5824, 5888, 5952, 6016, 6080, 6144 };
 
+/* Returns true if the structure pointed by cell has valid parameters
+ */
+bool lte_cell_isvalid(lte_cell_t *cell) {
+  if (cell->id          < 504   &&
+      cell->nof_ports   > 0     &&
+      cell->nof_ports   < 5     &&
+      cell->nof_prb     > 5     &&
+      cell->nof_prb     < 111
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+    
 /*
  * Returns Turbo coder interleaver size for Table 5.1.3-3 (36.212) index
  */

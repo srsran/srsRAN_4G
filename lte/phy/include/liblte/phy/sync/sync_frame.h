@@ -56,6 +56,7 @@ typedef struct LIBLTE_API {
   sync_t s;
   enum sync_frame_state state;
   int downsampling; 
+  resample_arb_t resample;
   unsigned long frame_cnt;
   bool fb_wp; 
   int frame_size; 

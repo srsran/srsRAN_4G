@@ -34,7 +34,23 @@
 #include "liblte/phy/phch/regs.h"
 #include "liblte/phy/utils/debug.h"
 
-regs_reg_t *regs_find_reg(regs_t *h, int k, int l);
+regs_reg_t *regs_find_reg(regs_t *h, uint16_t k, uint8_t l);
+int regs_put_reg(regs_reg_t *reg, 
+                            cf_t *reg_data, 
+                            cf_t *slot_symbols, 
+                            uint8_t nof_prb);
+
+int regs_add_reg(regs_reg_t *reg, 
+                            cf_t *reg_data, 
+                            cf_t *slot_symbols, 
+                            uint8_t nof_prb);
+
+int regs_get_reg(regs_reg_t *reg, 
+                            cf_t *slot_symbols, 
+                            cf_t *reg_data, 
+                            uint8_t nof_prb);
+
+int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, uint8_t nof_prb);
 
 
 /***************************************************************
@@ -62,14 +78,14 @@ const unsigned char PDCCH_PERM[PDCCH_NCOLS] =
  */
 int regs_pdcch_init(regs_t *h) {
   int i, m, cfi, nof_ctrl_symbols;
-  int ret = -1;
+  int ret = LIBLTE_ERROR;
   int nrows, ndummy, j, k, kp;
   regs_reg_t **tmp = NULL;
 
   bzero(&h->pdcch, sizeof(regs_ch_t));
 
   for (cfi=0;cfi<3;cfi++) {
-    if (h->nof_prb < 10) {
+    if (h->cell.nof_prb < 10) {
       nof_ctrl_symbols = cfi+2;
     } else {
       nof_ctrl_symbols = cfi+1;
@@ -110,7 +126,7 @@ int regs_pdcch_init(regs_t *h) {
       for (i = 0; i < nrows; i++) {
         if (i*PDCCH_NCOLS + PDCCH_PERM[j] >= ndummy) {
           m = i*PDCCH_NCOLS + PDCCH_PERM[j]-ndummy;
-          kp = (k-h->cell_id)%h->pdcch[cfi].nof_regs;
+          kp = (k-h->cell.id)%h->pdcch[cfi].nof_regs;
           if (kp < 0) {
             kp += h->pdcch[cfi].nof_regs;
           }
@@ -124,23 +140,23 @@ int regs_pdcch_init(regs_t *h) {
     tmp = NULL;
   }
 
-  ret = 0;
+  ret = LIBLTE_SUCCESS;
 clean_and_exit:
   if (tmp) {
     free(tmp);
   }
-  if (ret == -1) {
+  if (ret == LIBLTE_ERROR) {
     regs_pdcch_free(h);
   }
   return ret;
 }
 
-int regs_pdcch_nregs(regs_t *h, int cfi) {
+int regs_pdcch_nregs(regs_t *h, uint8_t cfi) {
   if (cfi < 1 || cfi > 3) {
     fprintf(stderr, "Invalid CFI=%d\n", cfi);
-    return -1;
+    return LIBLTE_ERROR;
   } else {
-    return h->pdcch[cfi-1].nof_regs;
+    return (int) h->pdcch[cfi-1].nof_regs;
   }
 }
 
@@ -148,25 +164,25 @@ int regs_pdcch_nregs(regs_t *h, int cfi) {
  * second part of 6.8.5 in 36.211
  */
 int regs_pdcch_put(regs_t *h, cf_t *pdcch_symbols, cf_t *slot_symbols) {
-  if (h->cfi == -1) {
+  if (!h->cfi_initiated) {
     fprintf(stderr, "Must call regs_set_cfi() first\n");
-    return -1;
+    return LIBLTE_ERROR;
   }
   int i;
   for (i=0;i<h->pdcch[h->cfi].nof_regs;i++) {
-    regs_put_reg(h->pdcch[h->cfi].regs[i], &pdcch_symbols[i*4], slot_symbols, h->nof_prb);
+    regs_put_reg(h->pdcch[h->cfi].regs[i], &pdcch_symbols[i*4], slot_symbols, h->cell.nof_prb);
   }
   return h->pdcch[h->cfi].nof_regs*4;
 }
 
 int regs_pdcch_get(regs_t *h, cf_t *slot_symbols, cf_t *pdcch_symbols) {
-  if (h->cfi == -1) {
+  if (!h->cfi_initiated) {
     fprintf(stderr, "Must call regs_set_cfi() first\n");
-    return -1;
+    return LIBLTE_ERROR;
   }
   int i;
   for (i=0;i<h->pdcch[h->cfi].nof_regs;i++) {
-    regs_get_reg(h->pdcch[h->cfi].regs[i], slot_symbols, &pdcch_symbols[i*4], h->nof_prb);
+    regs_get_reg(h->pdcch[h->cfi].regs[i], slot_symbols, &pdcch_symbols[i*4], h->cell.nof_prb);
   }
   return h->pdcch[h->cfi].nof_regs*4;
 }
@@ -187,7 +203,7 @@ int regs_phich_init(regs_t *h) {
   float ng;
   int i,ni,li,n[3],nreg,mi;
   regs_reg_t **regs_phich[3];
-  int ret = -1;
+  int ret = LIBLTE_ERROR;
 
   switch(h->phich_res) {
   case R_1_6:
@@ -206,7 +222,7 @@ int regs_phich_init(regs_t *h) {
     ng = 0;
     break;
   }
-  h->ngroups_phich = (int) ceilf(ng * ((float) h->nof_prb/8));
+  h->ngroups_phich = (int) ceilf(ng * ((float) h->cell.nof_prb/8));
   h->phich = malloc(sizeof(regs_ch_t) * h->ngroups_phich);
   if (!h->phich) {
     perror("malloc");
@@ -255,7 +271,7 @@ int regs_phich_init(regs_t *h) {
   for (mi=0;mi<h->ngroups_phich;mi++) { // here ngroups is the number of mapping units
     for (i=0;i<3;i++) {
       li=h->phich_len==PHICH_EXT?i:0; // Step 7
-      ni=((h->cell_id*n[li]/n[0])+mi+i*n[li]/3) % n[li]; // Step 8
+      ni=((h->cell.id*n[li]/n[0])+mi+i*n[li]/3) % n[li]; // Step 8
       h->phich[mi].regs[i] = regs_phich[li][ni];
       h->phich[mi].regs[i]->assigned = true;
       INFO("Assigned PHICH REG#%d (%d,%d)\n",nreg,h->phich[mi].regs[i]->k0,li);
@@ -265,13 +281,13 @@ int regs_phich_init(regs_t *h) {
 
   // now the number of mapping units = number of groups for normal cp. For extended cp
   // ngroups = 2 * number mapping units
-  if (CP_ISEXT(h->cp)) {
+  if (CP_ISEXT(h->cell.cp)) {
     h->ngroups_phich *= 2;
   }
-  ret = 0;
+  ret = LIBLTE_SUCCESS;
 
 clean_and_exit:
-  if (ret == -1) {
+  if (ret == LIBLTE_ERROR) {
     if (h->phich) {
       for (i=0;i<h->ngroups_phich;i++) {
         if (h->phich[i].regs) {
@@ -292,7 +308,7 @@ clean_and_exit:
 void regs_phich_free(regs_t *h) {
   int i;
   if (h->phich) {
-    if (CP_ISEXT(h->cp)) {
+    if (CP_ISEXT(h->cell.cp)) {
       h->ngroups_phich /= 2;
     }
     for (i=0;i<h->ngroups_phich;i++) {
@@ -304,8 +320,9 @@ void regs_phich_free(regs_t *h) {
   }
 }
 
-int regs_phich_nregs(regs_t *h) {
-  int i, n;
+u_int16_t regs_phich_nregs(regs_t *h) {
+  int i;
+  u_int16_t n;
   n=0;
   for (i=0;i<h->ngroups_phich;i++) {
     n += h->phich[i].nof_regs;
@@ -314,7 +331,7 @@ int regs_phich_nregs(regs_t *h) {
 }
 
 
-int regs_phich_ngroups(regs_t *h) {
+u_int8_t regs_phich_ngroups(regs_t *h) {
   return h->ngroups_phich;
 }
 
@@ -325,18 +342,18 @@ int regs_phich_ngroups(regs_t *h) {
  *
  * Returns the number of written symbols, or -1 on error
  */
-int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup, cf_t *slot_symbols) {
+int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], u_int8_t ngroup, cf_t *slot_symbols) {
   int i;
-  if (ngroup < 0 || ngroup > h->ngroups_phich) {
+  if (ngroup >= h->ngroups_phich) {
     fprintf(stderr, "Error invalid ngroup %d\n", ngroup);
-    return -1;
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
-  if (CP_ISEXT(h->cp)) {
+  if (CP_ISEXT(h->cell.cp)) {
     ngroup /= 2;
   }
   regs_ch_t *rch = &h->phich[ngroup];
   for (i = 0; i < rch->nof_regs && i*REGS_RE_X_REG < REGS_PHICH_NSYM; i++) {
-    regs_add_reg(rch->regs[i], &phich_symbols[i*REGS_RE_X_REG], slot_symbols, h->nof_prb);
+    regs_add_reg(rch->regs[i], &phich_symbols[i*REGS_RE_X_REG], slot_symbols, h->cell.nof_prb);
   }
   return i*REGS_RE_X_REG;
 }
@@ -348,19 +365,19 @@ int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup, c
  */
 int regs_phich_reset(regs_t *h, cf_t *slot_symbols) {
   int i;
-  int ngroup, ng;
-  for (ngroup = 0;ngroup < h->ngroups_phich;CP_ISEXT(h->cp)?ngroup+=2:ngroup++) {
-    if (CP_ISEXT(h->cp)) {
+  u_int8_t ngroup, ng;
+  for (ngroup = 0;ngroup < h->ngroups_phich;CP_ISEXT(h->cell.cp)?ngroup+=2:ngroup++) {
+    if (CP_ISEXT(h->cell.cp)) {
       ng = ngroup/2;
     } else {
       ng = ngroup;
     }
     regs_ch_t *rch = &h->phich[ng];
     for (i = 0; i < rch->nof_regs && i*REGS_RE_X_REG < REGS_PHICH_NSYM; i++) {
-      regs_reset_reg(rch->regs[i], slot_symbols, h->nof_prb);
+      regs_reset_reg(rch->regs[i], slot_symbols, h->cell.nof_prb);
     }
   }
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
 /**
@@ -368,18 +385,18 @@ int regs_phich_reset(regs_t *h, cf_t *slot_symbols) {
  *
  * Returns the number of written symbols, or -1 on error
  */
-int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_NSYM], int ngroup) {
+int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_NSYM], u_int8_t ngroup) {
   int i;
-  if (ngroup < 0 || ngroup > h->ngroups_phich) {
+  if (ngroup >= h->ngroups_phich) {
     fprintf(stderr, "Error invalid ngroup %d\n", ngroup);
-    return -1;
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
-  if (CP_ISEXT(h->cp)) {
+  if (CP_ISEXT(h->cell.cp)) {
     ngroup /= 2;
   }
   regs_ch_t *rch = &h->phich[ngroup];
   for (i = 0; i < rch->nof_regs && i*REGS_RE_X_REG < REGS_PHICH_NSYM; i++) {
-    regs_get_reg(rch->regs[i], slot_symbols, &phich_symbols[i*REGS_RE_X_REG], h->nof_prb);
+    regs_get_reg(rch->regs[i], slot_symbols, &phich_symbols[i*REGS_RE_X_REG], h->cell.nof_prb);
   }
   return i*REGS_RE_X_REG;
 }
@@ -404,39 +421,40 @@ int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_
  * 36.211 10.3 section 6.7.4
  */
 int regs_pcfich_init(regs_t *h) {
-  int i, k_hat, k;
+  int i; 
+  uint16_t k_hat, k;
   regs_ch_t *ch = &h->pcfich;
 
   ch->regs = malloc(sizeof(regs_reg_t*) * REGS_PCFICH_NREGS);
   if (!ch->regs) {
     perror("malloc");
-    return -1;
+    return LIBLTE_ERROR;
   }
   ch->nof_regs = REGS_PCFICH_NREGS;
 
-  INFO("PCFICH allocating %d regs. CellID: %d, PRB: %d\n", ch->nof_regs, h->cell_id, h->nof_prb);
+  INFO("PCFICH allocating %d regs. CellID: %d, PRB: %d\n", ch->nof_regs, h->cell.id, h->cell.nof_prb);
 
-  k_hat = (RE_X_RB / 2) * (h->cell_id % (2 * h->nof_prb));
+  k_hat = (RE_X_RB / 2) * (h->cell.id % (2 * h->cell.nof_prb));
   for (i = 0; i < REGS_PCFICH_NREGS; i++) {
 
-    k = (k_hat + (i * h->nof_prb / 2) * (RE_X_RB / 2))
-        % (h->nof_prb * RE_X_RB);
+    k = (k_hat + (i * h->cell.nof_prb / 2) * (RE_X_RB / 2))
+        % (h->cell.nof_prb * RE_X_RB);
     ch->regs[i] = regs_find_reg(h, k, 0);
     if (!ch->regs[i]) {
       fprintf(stderr, "Error allocating PCFICH: REG (%d,0) not found\n",
           k);
-      return -1;
+      return LIBLTE_ERROR;
     } else if (ch->regs[i]->assigned) {
       fprintf(stderr,
           "Error allocating PCFICH: REG (%d,0) already allocated\n",
           k);
-      return -1;
+      return LIBLTE_ERROR;
     } else {
       ch->regs[i]->assigned = true;
       INFO("Assigned PCFICH REG#%d (%d,0)\n", i, k);
     }
   }
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
 void regs_pcfich_free(regs_t *h) {
@@ -445,7 +463,7 @@ void regs_pcfich_free(regs_t *h) {
   }
 }
 
-int regs_pcfich_nregs(regs_t *h) {
+uint16_t regs_pcfich_nregs(regs_t *h) {
   return h->pcfich.nof_regs;
 }
 
@@ -459,7 +477,7 @@ int regs_pcfich_put(regs_t *h, cf_t pcfich_symbols[REGS_PCFICH_NSYM], cf_t *slot
 
   int i;
   for (i = 0; i < rch->nof_regs && i*REGS_RE_X_REG < REGS_PCFICH_NSYM; i++) {
-    regs_put_reg(rch->regs[i], &pcfich_symbols[i*REGS_RE_X_REG], slot_symbols, h->nof_prb);
+    regs_put_reg(rch->regs[i], &pcfich_symbols[i*REGS_RE_X_REG], slot_symbols, h->cell.nof_prb);
   }
   return i*REGS_RE_X_REG;
 }
@@ -473,7 +491,7 @@ int regs_pcfich_get(regs_t *h, cf_t *slot_symbols, cf_t ch_data[REGS_PCFICH_NSYM
   regs_ch_t *rch = &h->pcfich;
   int i;
   for (i = 0; i < rch->nof_regs && i*REGS_RE_X_REG < REGS_PCFICH_NSYM; i++) {
-    regs_get_reg(rch->regs[i], slot_symbols, &ch_data[i*REGS_RE_X_REG], h->nof_prb);
+    regs_get_reg(rch->regs[i], slot_symbols, &ch_data[i*REGS_RE_X_REG], h->cell.nof_prb);
   }
   return i*REGS_RE_X_REG;
 }
@@ -497,7 +515,7 @@ int regs_pcfich_get(regs_t *h, cf_t *slot_symbols, cf_t ch_data[REGS_PCFICH_NSYM
  *
  ***************************************************************/
 
-regs_reg_t *regs_find_reg(regs_t *h, int k, int l) {
+regs_reg_t *regs_find_reg(regs_t *h, uint16_t k, uint8_t l) {
   int i;
   for (i=0;i<h->nof_regs;i++) {
     if (h->regs[i].l == l && h->regs[i].k0 == k) {
@@ -511,7 +529,7 @@ regs_reg_t *regs_find_reg(regs_t *h, int k, int l) {
  * Returns the number of REGs in a PRB
  * 36.211 Section 6.2.4
  */
-int regs_num_x_symbol(int symbol, int nof_port, lte_cp_t cp) {
+int regs_num_x_symbol(uint8_t symbol, uint8_t nof_port, lte_cp_t cp) {
 
   switch (symbol) {
   case 0:
@@ -524,7 +542,7 @@ int regs_num_x_symbol(int symbol, int nof_port, lte_cp_t cp) {
     case 4:
       return 2;
     default:
-      return -1;
+      return LIBLTE_ERROR;
     }
     break;
   case 2:
@@ -536,7 +554,7 @@ int regs_num_x_symbol(int symbol, int nof_port, lte_cp_t cp) {
       return 2;
     }
   default:
-    return -1;
+    return LIBLTE_ERROR;
   }
 }
 
@@ -544,7 +562,7 @@ int regs_num_x_symbol(int symbol, int nof_port, lte_cp_t cp) {
  * Initializes the indices of a REG
  * 36.211 Section 6.2.4
  */
-int regs_reg_init(regs_reg_t *reg, int symbol, int nreg, int k0, int maxreg, int vo) {
+int regs_reg_init(regs_reg_t *reg, uint8_t symbol, uint16_t nreg, uint16_t k0, uint8_t maxreg, uint8_t vo) {
   int i, j, z;
 
   reg->l = symbol;
@@ -570,7 +588,7 @@ int regs_reg_init(regs_reg_t *reg, int symbol, int nreg, int k0, int maxreg, int
     }
     if (j != 4) {
       fprintf(stderr, "Something went wrong: expected 2 references\n");
-      return -1;
+      return LIBLTE_ERROR;
     }
     break;
 
@@ -583,9 +601,9 @@ int regs_reg_init(regs_reg_t *reg, int symbol, int nreg, int k0, int maxreg, int
     break;
   default:
     fprintf(stderr, "Invalid number of REGs per PRB: %d\n", maxreg);
-    return -1;
+    return LIBLTE_ERROR;
   }
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
 void regs_free(regs_t *h) {
@@ -601,19 +619,20 @@ void regs_free(regs_t *h) {
 
 /** Sets the CFI value for this subframe (CFI must be in the range 1..3).
  */
-int regs_set_cfi(regs_t *h, int cfi) {
+int regs_set_cfi(regs_t *h, uint8_t cfi) {  
   if (cfi > 0 && cfi <= 3) {
     if (h->phich_len == PHICH_EXT &&
-        ((h->nof_prb < 10 && cfi < 2) || (h->nof_prb >= 10 && cfi < 3))) {
+        ((h->cell.nof_prb < 10 && cfi < 2) || (h->cell.nof_prb >= 10 && cfi < 3))) {
       fprintf(stderr, "PHICH length is extended. The number of control symbols should be at least 3.\n");
-      return -1;
+      return LIBLTE_ERROR_INVALID_INPUTS;
     } else {
+      h->cfi_initiated = true;
       h->cfi = cfi - 1;
-      return 0;
+      return LIBLTE_SUCCESS;
     }
   } else {
     fprintf(stderr, "Invalid CFI %d\n", cfi);
-    return -1;
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -622,84 +641,87 @@ int regs_set_cfi(regs_t *h, int cfi) {
  * Sets all REG indices and initializes PCFICH, PHICH and PDCCH REGs
  * Returns 0 if OK, -1 on error
  */
-int regs_init(regs_t *h, int cell_id, int nof_prb, int nof_ports,
-    phich_resources_t phich_res, phich_length_t phich_len, lte_cp_t cp) {
-  int ret = -1;
-  int i, j[4], jmax, n[4], prb, k;
-  int vo = cell_id % 3;
-  int max_ctrl_symbols = nof_prb<10?4:3;
+int regs_init(regs_t *h, phich_resources_t phich_res, phich_length_t phich_len, lte_cell_t cell) {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int i, k;
+  uint16_t j[4], jmax, prb;
+  uint8_t n[4], vo;
+  int max_ctrl_symbols;
 
-  bzero(h, sizeof(regs_t));
+  if (h != NULL &&
+      lte_cell_isvalid(&cell))
+  {
+    bzero(h, sizeof(regs_t));
+    ret = LIBLTE_ERROR;
+    
+    max_ctrl_symbols = cell.nof_prb<10?4:3;
+    vo = cell.id % 3;
+    h->cell = cell;
+    h->max_ctrl_symbols = max_ctrl_symbols;
+    h->cfi_initiated = false;
+    h->phich_res = phich_res;
+    h->phich_len = phich_len;
 
-  h->cell_id = cell_id;
-  h->nof_prb = nof_prb;
-  h->max_ctrl_symbols = max_ctrl_symbols;
-  h->cfi = -1; // not yet initialized
-  h->phich_res = phich_res;
-  h->phich_len = phich_len;
-  h->cp = cp;
-  h->nof_ports = nof_ports;
-
-  h->nof_regs = 0;
-  for (i = 0; i < max_ctrl_symbols; i++) {
-    n[i] = regs_num_x_symbol(i, nof_ports, cp);
-    if (n[i] == -1) {
-      return -1;
-    }
-    h->nof_regs += nof_prb * n[i];
-  }
-  INFO("Indexing %d REGs. CellId: %d, %d PRB, CP: %s\n", h->nof_regs, h->cell_id, h->nof_prb,
-      CP_ISNORM(cp)?"Normal":"Extended");
-  h->regs = malloc(sizeof(regs_reg_t) * h->nof_regs);
-  if (!h->regs) {
-    perror("malloc");
-    goto clean_and_exit;
-  }
-
-  /* Sort REGs according to PDCCH mapping, beggining from the lowest l index then k */
-  bzero(j, sizeof(int) * 4);
-  k = i = prb = jmax = 0;
-  while (k < h->nof_regs) {
-    if (n[i] == 3 || (n[i] == 2 && jmax != 1)) {
-      if (regs_reg_init(&h->regs[k], i, j[i], prb * RE_X_RB, n[i], vo)) {
-        fprintf(stderr, "Error initializing REGs\n");
-        goto clean_and_exit;
+    h->nof_regs = 0;
+    for (i = 0; i < max_ctrl_symbols; i++) {
+      n[i] = regs_num_x_symbol(i, h->cell.nof_ports, h->cell.cp);
+      if (n[i] == -1) {
+        return -1;
       }
-      /*DEBUG("Available REG #%3d: l=%d, prb=%d, nreg=%d (k0=%d)\n", k, i, prb, j[i],
-          h->regs[k].k0);
-      */
-      j[i]++;
-      k++;
+      h->nof_regs += h->cell.nof_prb * n[i];
     }
-    i++;
-    if (i == max_ctrl_symbols) {
-      i = 0;
-      jmax++;
+    INFO("Indexing %d REGs. CellId: %d, %d PRB, CP: %s\n", h->nof_regs, h->cell.id, h->cell.nof_prb,
+        CP_ISNORM(h->cell.cp)?"Normal":"Extended");
+    h->regs = malloc(sizeof(regs_reg_t) * h->nof_regs);
+    if (!h->regs) {
+      perror("malloc");
+      goto clean_and_exit;
     }
-    if (jmax == 3) {
-      prb++;
-      bzero(j, sizeof(int) * 4);
-      jmax = 0;
+
+    /* Sort REGs according to PDCCH mapping, beggining from the lowest l index then k */
+    bzero(j, sizeof(int) * 4);
+    k = i = prb = jmax = 0;
+    while (k < h->nof_regs) {
+      if (n[i] == 3 || (n[i] == 2 && jmax != 1)) {
+        if (regs_reg_init(&h->regs[k], i, j[i], prb * RE_X_RB, n[i], vo)) {
+          fprintf(stderr, "Error initializing REGs\n");
+          goto clean_and_exit;
+        }
+        /*DEBUG("Available REG #%3d: l=%d, prb=%d, nreg=%d (k0=%d)\n", k, i, prb, j[i],
+            h->regs[k].k0);
+        */
+        j[i]++;
+        k++;
+      }
+      i++;
+      if (i == max_ctrl_symbols) {
+        i = 0;
+        jmax++;
+      }
+      if (jmax == 3) {
+        prb++;
+        bzero(j, sizeof(int) * 4);
+        jmax = 0;
+      }
     }
-  }
-  if (regs_pcfich_init(h)) {
-    fprintf(stderr, "Error initializing PCFICH REGs\n");
-    goto clean_and_exit;
-  }
+    if (regs_pcfich_init(h)) {
+      fprintf(stderr, "Error initializing PCFICH REGs\n");
+      goto clean_and_exit;
+    }
 
-  if (regs_phich_init(h)) {
-    fprintf(stderr, "Error initializing PHICH REGs\n");
-    goto clean_and_exit;
-  }
-  if (regs_pdcch_init(h)) {
-    fprintf(stderr, "Error initializing PDCCH REGs\n");
-    goto clean_and_exit;
-  }
+    if (regs_phich_init(h)) {
+      fprintf(stderr, "Error initializing PHICH REGs\n");
+      goto clean_and_exit;
+    }
+    if (regs_pdcch_init(h)) {
+      fprintf(stderr, "Error initializing PDCCH REGs\n");
+      goto clean_and_exit;
+    }
 
-  ret = 0;
-
+    ret = LIBLTE_SUCCESS;
+  }
 clean_and_exit:
-  if (ret == -1) {
+  if (ret == LIBLTE_ERROR) {
     regs_free(h);
   }
   return ret;
@@ -710,7 +732,7 @@ clean_and_exit:
 /**
  * Puts one REG data (4 symbols) in the slot symbols array
  */
-int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb) {
+int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, uint8_t nof_prb) {
   int i;
   for (i = 0; i < REGS_RE_X_REG; i++) {
     slot_symbols[REG_IDX(reg, i, nof_prb)] = reg_data[i];
@@ -722,7 +744,7 @@ int regs_put_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_pr
  * Adds one REG data (4 symbols) in the slot symbols array
  * Used by PHICH
  */
-int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_prb) {
+int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, uint8_t nof_prb) {
   int i;
   for (i = 0; i < REGS_RE_X_REG; i++) {
     slot_symbols[REG_IDX(reg, i, nof_prb)] += reg_data[i];
@@ -734,7 +756,7 @@ int regs_add_reg(regs_reg_t *reg, cf_t *reg_data, cf_t *slot_symbols, int nof_pr
 /**
  * Reset REG data (4 symbols) in the slot symbols array
  */
-int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, int nof_prb) {
+int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, uint8_t nof_prb) {
   int i;
   for (i = 0; i < REGS_RE_X_REG; i++) {
     slot_symbols[REG_IDX(reg, i, nof_prb)] = 0;
@@ -745,11 +767,12 @@ int regs_reset_reg(regs_reg_t *reg, cf_t *slot_symbols, int nof_prb) {
 /**
  * Gets one REG data (4 symbols) from the slot symbols array
  */
-int regs_get_reg(regs_reg_t *reg, cf_t *slot_symbols, cf_t *reg_data, int nof_prb) {
+int regs_get_reg(regs_reg_t *reg, cf_t *slot_symbols, cf_t *reg_data, uint8_t nof_prb) {
   int i;
   for (i = 0; i < REGS_RE_X_REG; i++) {
     reg_data[i] = slot_symbols[REG_IDX(reg, i, nof_prb)];
   }
   return REGS_RE_X_REG;
 }
+
 

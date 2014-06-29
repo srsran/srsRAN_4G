@@ -35,13 +35,16 @@
 
 char *input_file_name = NULL;
 char *matlab_file_name = NULL;
-int cell_id = 150;
-lte_cp_t cp = CPNORM;
-int nof_prb = 6;
 
 FILE *fmatlab = NULL;
 
-#define NOF_PORTS 2
+lte_cell_t cell = {
+  6,            // nof_prb
+  2,            // nof_ports
+  150,          // cell_id
+  CPNORM        // cyclic prefix
+};
+
 #define FLEN  9600
 
 filesource_t fsrc;
@@ -53,20 +56,22 @@ chest_t chest;
 void usage(char *prog) {
   printf("Usage: %s [vcoe] -i input_file\n", prog);
   printf("\t-o output matlab file name [Default Disabled]\n");
-  printf("\t-c cell_id [Default %d]\n", cell_id);
+  printf("\t-c cell_id [Default %d]\n", cell.id);
+  printf("\t-n nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e Set extended prefix [Default Normal]\n");
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
+
   while ((opt = getopt(argc, argv, "iovce")) != -1) {
     switch(opt) {
     case 'i':
       input_file_name = argv[optind];
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'o':
       matlab_file_name = argv[optind];
@@ -75,7 +80,7 @@ void parse_args(int argc, char **argv) {
       verbose++;
       break;
     case 'e':
-      cp = CPEXT;
+      cell.cp = CPEXT;
       break;
     default:
       usage(argv[0]);
@@ -112,36 +117,36 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(CP_NSYMB(cp) * nof_prb * RE_X_RB * sizeof(cf_t));
+  fft_buffer = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<MAX_PORTS;i++) {
-    ce[i] = malloc(CP_NSYMB(cp) * nof_prb * RE_X_RB * sizeof(cf_t));
+    ce[i] = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
     }
   }
+  
+  if (!lte_cell_isvalid(&cell)) {
+    fprintf(stderr, "Invalid cell properties\n");
+    return -1;
+  }
 
-  if (chest_init(&chest, LINEAR, cp, nof_prb, NOF_PORTS)) {
+  if (chest_init_LTEDL(&chest, LINEAR, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
 
-  if (chest_ref_LTEDL(&chest, cell_id)) {
-    fprintf(stderr, "Error initializing reference signal\n");
-    return -1;
-  }
-
-  if (lte_fft_init(&fft, cp, nof_prb)) {
+  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
 
-  if (pbch_init(&pbch, nof_prb, cell_id, cp)) {
+  if (pbch_init(&pbch, cell.nof_prb, cell.id, cell.cp)) {
     fprintf(stderr, "Error initiating PBCH\n");
     return -1;
   }
@@ -183,7 +188,7 @@ int main(int argc, char **argv) {
   parse_args(argc,argv);
 
   if (base_init()) {
-    fprintf(stderr, "Error initializing memory\n");
+    fprintf(stderr, "Error initializing receiver\n");
     exit(-1);
   }
 
@@ -193,14 +198,14 @@ int main(int argc, char **argv) {
 
   if (fmatlab) {
     fprintf(fmatlab, "outfft=");
-    vec_sc_prod_cfc(fft_buffer, 1000.0, fft_buffer, CP_NSYMB(cp) * nof_prb * RE_X_RB);
-    vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cp) * nof_prb * RE_X_RB);
+    vec_sc_prod_cfc(fft_buffer, 1000.0, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
+    vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
     fprintf(fmatlab, ";\n");
-    vec_sc_prod_cfc(fft_buffer, 0.001, fft_buffer,   CP_NSYMB(cp) * nof_prb * RE_X_RB);
+    vec_sc_prod_cfc(fft_buffer, 0.001, fft_buffer,   CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
   }
 
   /* Get channel estimates for each port */
-  for (i=0;i<NOF_PORTS;i++) {
+  for (i=0;i<cell.nof_ports;i++) {
     chest_ce_slot_port(&chest, fft_buffer, ce[i], 1, i);
     if (fmatlab) {
       chest_fprint(&chest, fmatlab, 1, i);

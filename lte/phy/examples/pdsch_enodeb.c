@@ -43,7 +43,7 @@ int nof_frames = -1;
 int cell_id = 1;
 int nof_prb = 6;
 char *uhd_args = "";
-int cfi=1;
+uint8_t cfi=1;
 
 float uhd_amp = 0.25, uhd_gain = 10.0, uhd_freq = 2400000000;
 
@@ -120,6 +120,13 @@ void parse_args(int argc, char **argv) {
 }
 
 void base_init() {
+  lte_cell_t cell;
+  
+  cell.id = cell_id;
+  cell.nof_ports = 1;
+  cell.nof_prb = nof_prb;
+  cell.cp = CPNORM;
+  
   /* init memory */
   sf_buffer = malloc(sizeof(cf_t) * sf_n_re);
   if (!sf_buffer) {
@@ -160,12 +167,12 @@ void base_init() {
     exit(-1);
   }
 
-  if (regs_init(&regs, cell_id, nof_prb, 1, R_1, PHICH_NORM, CPNORM)) {
+  if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     exit(-1);
   }
 
-  if (pcfich_init(&pcfich, &regs, cell_id, nof_prb, 1, CPNORM)) {
+  if (pcfich_init(&pcfich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
@@ -175,12 +182,12 @@ void base_init() {
     exit(-1);
   }
 
-  if (pdcch_init(&pdcch, &regs, nof_prb, 1, cell_id, CPNORM)) {
+  if (pdcch_init(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
 
-  if (pdsch_init(&pdsch, 1234, nof_prb, 1, cell_id, CPNORM)) {
+  if (pdsch_init(&pdsch, 1234, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
@@ -244,10 +251,17 @@ int main(int argc, char **argv) {
   /* Generate PSS/SSS signals */
   pss_generate(pss_signal, N_id_2);
   sss_generate(sss_signal0, sss_signal5, cell_id);
+  
+  lte_cell_t cell;
+  
+  cell.id = cell_id;
+  cell.nof_ports = 1;
+  cell.nof_prb = nof_prb;
+  cell.cp = CPNORM;
 
   /* Generate CRS signals */
   for (i = 0; i < NSLOTS_X_FRAME; i++) {
-    if (refsignal_init_LTEDL(&refs[i], 0, i, cell_id, CPNORM, nof_prb)) {
+    if (refsignal_init_LTEDL(&refs[i], 0, i, cell)) {
       fprintf(stderr, "Error initiating CRS slot=%d\n", i);
       return -1;
     }
@@ -286,12 +300,7 @@ int main(int argc, char **argv) {
   dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, nof_prb, false);
   dci_tx.nof_dcis++;
   
-  if (pdcch_set_cfi(&pdcch, cfi)) {
-    fprintf(stderr, "Error setting CFI\n");
-    return -1;
-  }
-
-  pdcch_init_search_ue(&pdcch, 1234);
+  pdcch_init_search_ue(&pdcch, 1234, cfi);
 
   ra_prb_get_dl(&prb_alloc, &ra_dl, nof_prb);
   ra_prb_get_re(&prb_alloc, nof_prb, 1, nof_prb<10?(cfi+1):cfi, CPNORM);
@@ -335,7 +344,7 @@ int main(int argc, char **argv) {
                             pdcch.search_mode[2].candidates[0][sf_idx].ncce, 1234);
       INFO("Setting DCI candidate L: %d nCCE: %d\n", pdcch.search_mode[2].candidates[0][sf_idx].L,
         pdcch.search_mode[2].candidates[0][sf_idx].ncce);
-      pdcch_encode(&pdcch, &dci_tx, sf_symbols, sf_idx);  
+      pdcch_encode(&pdcch, &dci_tx, sf_symbols, sf_idx, cfi);  
       pdsch_encode(&pdsch, data, sf_symbols, sf_idx, ra_dl.mcs, &prb_alloc);        
 
       /* Transform to OFDM symbols */
