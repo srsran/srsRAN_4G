@@ -40,7 +40,7 @@
 
 #define idx(x, y) (l*nof_refs_x_symbol+i)
 
-int refsignal_v(uint8_t port_id, uint8_t ns, uint8_t symbol_id) {
+int refsignal_v(uint32_t port_id, uint32_t ns, uint32_t symbol_id) {
   int v=-1;
   switch(port_id) {
   case 0:
@@ -67,13 +67,13 @@ int refsignal_v(uint8_t port_id, uint8_t ns, uint8_t symbol_id) {
   return v;
 }
 
-int refsignal_k(int m, int v, uint16_t cell_id) {
+int refsignal_k(int m, int v, uint32_t cell_id) {
   return 6*m+((v+(cell_id%6))%6);
 }
 
 int refsignal_put(refsignal_t *q, cf_t *slot_symbols) {
   int i;
-  uint16_t fidx, tidx;
+  uint32_t fidx, tidx;
   if (q                 != NULL &&
       slot_symbols      != NULL) 
   {
@@ -91,18 +91,18 @@ int refsignal_put(refsignal_t *q, cf_t *slot_symbols) {
 /** Initializes refsignal_t object according to 3GPP 36.211 6.10.1
  *
  */
-int refsignal_init_LTEDL(refsignal_t *q, uint8_t port_id, uint8_t nslot,
+int refsignal_init_LTEDL(refsignal_t *q, uint32_t port_id, uint32_t nslot,
     lte_cell_t cell) {
 
   uint32_t c_init;
-  uint8_t ns, l, lp[2];
+  uint32_t ns, l, lp[2];
   int N_cp;
   int i;
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   sequence_t seq;
   int v;
   int mp;
-  uint8_t nof_refs_x_symbol, nof_ref_symbols;
+  uint32_t nof_refs_x_symbol, nof_ref_symbols;
 
   if (q         != NULL          && 
       port_id   < MAX_PORTS      && 
@@ -134,13 +134,13 @@ int refsignal_init_LTEDL(refsignal_t *q, uint8_t port_id, uint8_t nslot,
     q->voffset = cell.id%6;
     q->nof_prb = cell.nof_prb;
 
-    q->symbols_ref = malloc(sizeof(uint8_t) * nof_ref_symbols);
+    q->symbols_ref = malloc(sizeof(uint32_t) * nof_ref_symbols);
     if (!q->symbols_ref) {
       perror("malloc");
       goto free_and_exit;
     }
 
-    memcpy(q->symbols_ref, lp, sizeof(uint8_t) * nof_ref_symbols);
+    memcpy(q->symbols_ref, lp, sizeof(uint32_t) * nof_ref_symbols);
 
     q->refs = vec_malloc(q->nof_refs * sizeof(ref_t));
     if (!q->refs) {

@@ -76,13 +76,13 @@ LIBLTE_API void pcfich_free(pcfich_t *q);
 LIBLTE_API int pcfich_decode(pcfich_t *q, 
                              cf_t *sf_symbols, 
                              cf_t *ce[MAX_PORTS],
-                             uint8_t subframe, 
-                             uint8_t *cfi, 
-                             uint8_t *distance);
+                             uint32_t subframe, 
+                             uint32_t *cfi, 
+                             uint32_t *distance);
 
 LIBLTE_API int pcfich_encode(pcfich_t *q, 
-                             uint8_t cfi, 
+                             uint32_t cfi, 
                              cf_t *sf_symbols[MAX_PORTS],
-                             uint8_t subframe);
+                             uint32_t subframe);
 
 #endif

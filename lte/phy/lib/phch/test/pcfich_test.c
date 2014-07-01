@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
   cf_t *ce[MAX_PORTS];
   int nof_re;
   cf_t *slot_symbols[MAX_PORTS];
-  uint8_t cfi, cfi_rx, nsf, distance;
+  uint32_t cfi, cfi_rx, nsf, distance;
   int cid, max_cid;
 
   parse_args(argc,argv);

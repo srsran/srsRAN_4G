@@ -43,25 +43,25 @@
 typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API{
-  uint8_t time_idx;
-  uint16_t freq_idx;
+  uint32_t time_idx;
+  uint32_t freq_idx;
   cf_t simbol;
   cf_t recv_simbol;
 }ref_t;
 
 typedef struct LIBLTE_API{
-  uint16_t nof_refs;    // number of reference signals
-  uint8_t *symbols_ref;   // symbols with at least one reference
-  uint8_t nsymbols;    // number of symbols with at least one reference
-  uint8_t voffset;    // offset of the first reference in the freq domain
-  uint16_t nof_prb;
+  uint32_t nof_refs;    // number of reference signals
+  uint32_t *symbols_ref;   // symbols with at least one reference
+  uint32_t nsymbols;    // number of symbols with at least one reference
+  uint32_t voffset;    // offset of the first reference in the freq domain
+  uint32_t nof_prb;
   ref_t *refs;
   cf_t *ch_est;
 } refsignal_t;
 
 LIBLTE_API int refsignal_init_LTEDL(refsignal_t *q, 
-                                    uint8_t port_id, 
-                                    uint8_t nslot,
+                                    uint32_t port_id, 
+                                    uint32_t nslot,
                                     lte_cell_t cell);
 
 LIBLTE_API void refsignal_free(refsignal_t *q);

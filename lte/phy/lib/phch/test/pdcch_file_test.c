@@ -44,7 +44,7 @@ lte_cell_t cell = {
   CPNORM        // cyclic prefix
 };
 
-uint8_t cfi = 2;
+uint32_t cfi = 2;
 int flen;
 uint16_t rnti = SIRNTI;
 int max_frames = 10;

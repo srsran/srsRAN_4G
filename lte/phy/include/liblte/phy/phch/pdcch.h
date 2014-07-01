@@ -56,18 +56,18 @@ typedef enum LIBLTE_API {
  * DCI messages as defined in Section 7.1 of 36.213
  */
 typedef struct LIBLTE_API {
-  uint8_t nof_candidates;
+  uint32_t nof_candidates;
   dci_candidate_t candidates[NSUBFRAMES_X_FRAME][MAX_CANDIDATES];
 } pdcch_search_t;
 
 /* PDCCH object */
 typedef struct LIBLTE_API {
   lte_cell_t cell;
-  uint16_t nof_bits;
-  uint16_t nof_symbols;
-  uint16_t nof_regs;
-  uint16_t nof_cce;
-  uint16_t max_bits;
+  uint32_t nof_bits;
+  uint32_t nof_symbols;
+  uint32_t nof_regs;
+  uint32_t nof_cce;
+  uint32_t max_bits;
 
   pdcch_search_t search_mode[PDCCH_NOF_SEARCH_MODES];
   pdcch_search_mode_t current_search_mode;
@@ -101,8 +101,8 @@ LIBLTE_API void pdcch_free(pdcch_t *q);
 LIBLTE_API int pdcch_encode(pdcch_t *q, 
                             dci_t *dci, 
                             cf_t *slot_symbols[MAX_PORTS],
-                            uint8_t nsubframe, 
-                            uint8_t cfi);
+                            uint32_t nsubframe, 
+                            uint32_t cfi);
 
 /* Decoding functions */
 
@@ -115,18 +115,18 @@ LIBLTE_API int pdcch_decode(pdcch_t *q,
                             cf_t *slot_symbols, 
                             cf_t *ce[MAX_PORTS],
                             dci_t *dci, 
-                            uint8_t nsubframe, 
-                            uint8_t cfi);
+                            uint32_t nsubframe, 
+                            uint32_t cfi);
 
 LIBLTE_API int pdcch_extract_llr(pdcch_t *q, 
                                  cf_t *slot_symbols, 
                                  cf_t *ce[MAX_PORTS],
                                  float *llr, 
-                                 uint8_t nsubframe,
-                                 uint8_t cfi);
+                                 uint32_t nsubframe,
+                                 uint32_t cfi);
 
 LIBLTE_API int pdcch_init_search_si(pdcch_t *q,
-                                    uint8_t cfi);
+                                    uint32_t cfi);
 
 LIBLTE_API void pdcch_set_search_si(pdcch_t *q);
 
@@ -136,18 +136,18 @@ LIBLTE_API int pdcch_decode_si(pdcch_t *q,
 
 LIBLTE_API int pdcch_init_search_ue(pdcch_t *q, 
                                      uint16_t c_rnti,
-                                     uint8_t cfi);
+                                     uint32_t cfi);
 
 LIBLTE_API void pdcch_set_search_ue(pdcch_t *q);
 
 LIBLTE_API int pdcch_decode_ue(pdcch_t *q, 
                                float *llr, 
                                dci_t *dci, 
-                               uint8_t nsubframe);
+                               uint32_t nsubframe);
 
 LIBLTE_API int pdcch_init_search_ra(pdcch_t *q, 
                                      uint16_t ra_rnti,
-                                     uint8_t cfi);
+                                     uint32_t cfi);
 
 LIBLTE_API void pdcch_set_search_ra(pdcch_t *q);
 

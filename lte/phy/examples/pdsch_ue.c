@@ -70,6 +70,8 @@ int sf_n_samples;
 
 lte_cell_t cell;
 
+uint32_t cell_id_file = 1;
+
 int cell_id_initated = 0, mib_initiated = 0;
 int frame_number; 
 
@@ -98,8 +100,9 @@ sync_frame_t sframe;
 #define DOWNSAMPLE_FACTOR(x, y) lte_symbol_sz(x) / lte_symbol_sz(y)
 
 void usage(char *prog) {
-  printf("Usage: %s [iagfndvtpb]\n", prog);
+  printf("Usage: %s [icagfndvtpb]\n", prog);
   printf("\t-i input_file [Default use USRP]\n");
+  printf("\t-c cell_id if reading from file [Default %d]\n", cell_id_file);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", uhd_gain);
@@ -121,10 +124,13 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "iagfndvtpb")) != -1) {
+  while ((opt = getopt(argc, argv, "icagfndvtpb")) != -1) {
     switch (opt) {
     case 'i':
       input_file_name = argv[optind];
+      break;
+    case 'c':
+      cell_id_file = atoi(argv[optind]);
       break;
     case 'a':
       uhd_args = argv[optind];
@@ -367,7 +373,7 @@ int cell_id_init(int nof_prb, int cell_id) {
   lte_cell_t cell;
   
   cell.id = cell_id;
-  cell.nof_prb = 6;
+  cell.nof_prb = nof_prb;
   cell.nof_ports = 2;
   cell.cp = CPNORM;
   
@@ -390,7 +396,7 @@ int cell_id_init(int nof_prb, int cell_id) {
 char data[10000];
 
 int rx_run(cf_t *input, int sf_idx) {
-  uint8_t cfi, cfi_distance;
+  uint32_t cfi, cfi_distance;
   int i, nof_dcis;
   cf_t *input_decim;
   ra_pdsch_t ra_dl;
@@ -497,7 +503,7 @@ int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
   return pbch_decode(&pbch, fft_buffer, ce, mib);
 }
 
-int run_receiver(cf_t *input, int cell_id, int sf_idx) {
+int run_receiver(cf_t *input, uint32_t cell_id, uint32_t sf_idx) {
   pbch_mib_t mib;
   
   if (!cell_id_initated) {
@@ -603,6 +609,10 @@ void read_io(cf_t *buffer, int nsamples) {
 }
 
 int main(int argc, char **argv) {
+  int ret; 
+  uint32_t sf_idx; 
+  uint32_t cell_id;
+  cf_t *in_ptr; 
   
 #ifdef DISABLE_UHD
   if (argc < 3) {
@@ -640,7 +650,16 @@ int main(int argc, char **argv) {
 
     read_io(input_buffer, sf_n_samples);
 
-    switch(sync_frame_push(&sframe, input_buffer, sf_buffer)) {
+    if (input_file_name) {
+      ret = 1;
+      sf_idx = 0;
+      cell_id = cell_id_file;
+      in_ptr = input_buffer;
+    } else {
+      ret = sync_frame_push(&sframe, input_buffer, sf_buffer);
+      in_ptr = sf_buffer;
+    }
+    switch(ret ) {
       case 0:
         /* not yet synched */
         break;
@@ -651,14 +670,18 @@ int main(int argc, char **argv) {
           frame_number++;
         }
         
+        if (!input_file_name) {
+          sf_idx = sync_frame_sfidx(&sframe);
+          cell_id = sync_frame_cell_id(&sframe);
+        }
+        
         /* synch'd and tracking */
-        if (run_receiver(sf_buffer, sync_frame_cell_id(&sframe), sync_frame_sfidx(&sframe))) {
+        if (run_receiver(in_ptr, cell_id, sf_idx)) {
           exit(-1);
         }
         
         if (!(frame_cnt % 10)) {
-          printf(
-              "SFN: %4d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
+          printf("SFN: %4d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
               frame_number, sframe.cur_cfo * 15, sframe.timeoffset / 5, sframe.peak_idx,
               pkt_errors, pkts_total,
               (float) pkt_errors / pkts_total);

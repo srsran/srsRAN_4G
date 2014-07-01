@@ -56,9 +56,9 @@ typedef void (*interpolate_fnc_t) (cf_t *input,
 
 /* Low-level API */
 typedef struct LIBLTE_API {
-  uint8_t nof_ports;
-  uint16_t nof_re;
-  uint8_t nof_symbols;
+  uint32_t nof_ports;
+  uint32_t nof_re;
+  uint32_t nof_symbols;
   
   refsignal_t refsignal[MAX_PORTS][NSLOTS_X_FRAME];
   interpolate_fnc_t interp;
@@ -66,26 +66,26 @@ typedef struct LIBLTE_API {
 
 LIBLTE_API int chest_init(chest_t *q, 
                           chest_interp_t interp, 
-                          uint16_t nof_re, 
-                          uint8_t nof_symbols, 
-                          uint8_t nof_ports);
+                          uint32_t nof_re, 
+                          uint32_t nof_symbols, 
+                          uint32_t nof_ports);
 
 LIBLTE_API void chest_free(chest_t *q);
 
 LIBLTE_API int chest_set_nof_ports(chest_t *q, 
-                                    uint8_t nof_ports);
+                                    uint32_t nof_ports);
 
 LIBLTE_API int chest_init_LTEDL(chest_t *q, 
                                 chest_interp_t interp, 
                                 lte_cell_t cell);
 
 LIBLTE_API int chest_ref_LTEDL_slot_port(chest_t *q, 
-                                         uint8_t nslot, 
-                                         uint8_t port_id, 
+                                         uint32_t nslot, 
+                                         uint32_t port_id, 
                                          lte_cell_t cell);
 
 LIBLTE_API int chest_ref_LTEDL_slot(chest_t *q, 
-                                    uint8_t nslot, 
+                                    uint32_t nslot, 
                                     lte_cell_t cell);
 
 LIBLTE_API int chest_ref_LTEDL(chest_t *q, 
@@ -93,56 +93,56 @@ LIBLTE_API int chest_ref_LTEDL(chest_t *q,
 
 LIBLTE_API int chest_ce_ref(chest_t *q, 
                              cf_t *input, 
-                             uint8_t nslot, 
-                             uint8_t port_id, 
-                             uint16_t nref);
+                             uint32_t nslot, 
+                             uint32_t port_id, 
+                             uint32_t nref);
 
 LIBLTE_API int chest_ce_slot_port(chest_t *q, 
                                    cf_t *input, 
                                    cf_t *ce, 
-                                   uint8_t nslot, 
-                                   uint8_t port_id);
+                                   uint32_t nslot, 
+                                   uint32_t port_id);
 
 LIBLTE_API int chest_ce_sf_port(chest_t *q, 
                                  cf_t *input, 
                                  cf_t *ce, 
-                                 uint8_t sf_idx, 
-                                 uint8_t port_id);
+                                 uint32_t sf_idx, 
+                                 uint32_t port_id);
 
 LIBLTE_API int chest_ce_slot(chest_t *q, 
                               cf_t *input, 
                               cf_t *ce[MAX_PORTS], 
-                              uint8_t nslot);
+                              uint32_t nslot);
 
 LIBLTE_API int chest_ce_sf(chest_t *q, 
                             cf_t *input, 
                             cf_t *ce[MAX_PORTS], 
-                            uint8_t sf_idx);
+                            uint32_t sf_idx);
 
 LIBLTE_API void chest_fprint(chest_t *q, 
                              FILE *stream, 
-                             uint8_t nslot, 
-                             uint8_t port_id);
+                             uint32_t nslot, 
+                             uint32_t port_id);
 
 LIBLTE_API void chest_ref_fprint(chest_t *q, 
                                  FILE *stream, 
-                                 uint8_t nslot, 
-                                 uint8_t port_id);
+                                 uint32_t nslot, 
+                                 uint32_t port_id);
 
 LIBLTE_API void chest_recvsig_fprint(chest_t *q, 
                                      FILE *stream, 
-                                     uint8_t nslot, 
-                                     uint8_t port_id);
+                                     uint32_t nslot, 
+                                     uint32_t port_id);
 
 LIBLTE_API void chest_ce_fprint(chest_t *q, 
                                 FILE *stream, 
-                                uint8_t nslot, 
-                                uint8_t port_id);
+                                uint32_t nslot, 
+                                uint32_t port_id);
 
 LIBLTE_API int chest_ref_symbols(chest_t *q, 
-                                 uint8_t port_id, 
-                                 uint8_t nslot, 
-                                 uint8_t l[2]);
+                                 uint32_t port_id, 
+                                 uint32_t nslot, 
+                                 uint32_t l[2]);
 
 /* High-level API */
 

@@ -55,36 +55,38 @@ enum sync_frame_state { SF_FIND, SF_TRACK };
 typedef struct LIBLTE_API {
   sync_t s;
   enum sync_frame_state state;
-  int downsampling; 
+  uint32_t downsampling; 
   resample_arb_t resample;
   unsigned long frame_cnt;
   bool fb_wp; 
-  int frame_size; 
+  uint32_t frame_size; 
   cf_t *input_buffer; 
   cf_t *input_downsampled;
   cfo_t cfocorr;
   float cur_cfo;
-  int peak_idx;
-  int cell_id;
+  uint32_t peak_idx;
+  uint32_t cell_id;
   float timeoffset; 
-  int last_found;
-  int sf_idx;
+  uint32_t last_found;
+  uint32_t sf_idx;
 }sync_frame_t;
 
 
 /* Initializes the automatic tracker, setting the downsampling ratio for the input signal. 
- * upsampled is the ratio of the provided signal sampling frequency to 1.92 Mhz. E.g. if input is sampled at 3.84 Mhz, 
- * upsampled should be 2.
+ * downsampling is the ratio of the provided signal sampling frequency to 1.92 Mhz. E.g. if input is sampled at 3.84 Mhz, 
+ * downsampling should be 2.
 */
-LIBLTE_API int sync_frame_init(sync_frame_t *q, int upsampled);
+LIBLTE_API int sync_frame_init(sync_frame_t *q, 
+                               uint32_t downsampling);
 
 LIBLTE_API void sync_frame_free(sync_frame_t *q);
 
-LIBLTE_API void sync_frame_set_threshold(sync_frame_t *q, float threshold);
+LIBLTE_API void sync_frame_set_threshold(sync_frame_t *q, 
+                                         float threshold);
 
-LIBLTE_API int sync_frame_cell_id(sync_frame_t *q);
+LIBLTE_API uint32_t sync_frame_cell_id(sync_frame_t *q);
 
-LIBLTE_API int sync_frame_sfidx(sync_frame_t *q);
+LIBLTE_API uint32_t sync_frame_sfidx(sync_frame_t *q);
 
 /* Automatically time/freq synchronizes the input signal. Returns 1 if the signal is synched and locked, 
  * and fills the output buffer with the time and frequency aligned version of the signal.
@@ -95,7 +97,9 @@ LIBLTE_API int sync_frame_sfidx(sync_frame_t *q);
  * 
  * The buffer input must have subframe_size samples (used in sync_init)
  */
-LIBLTE_API int sync_frame_push(sync_frame_t *q, cf_t *input, cf_t *output);
+LIBLTE_API int sync_frame_push(sync_frame_t *q, 
+                               cf_t *input, 
+                               cf_t *output);
 
 /* Resets the automatic tracker */
 LIBLTE_API void sync_frame_reset(sync_frame_t *q);

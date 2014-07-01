@@ -54,12 +54,12 @@ const dci_format_t ue_formats[NOF_UE_FORMATS] = { Format0, Format1 }; // 1A has 
 
 #define MIN(a,b) ((a>b)?b:a)
 
-void set_cfi(pdcch_t *q, uint8_t cfi);
+void set_cfi(pdcch_t *q, uint32_t cfi);
 
 /**
  * 36.213 9.1
  */
-int gen_common_search(dci_candidate_t *c, uint16_t nof_cce, uint16_t nof_bits,
+int gen_common_search(dci_candidate_t *c, uint32_t nof_cce, uint32_t nof_bits,
     uint16_t rnti) {
   int i, l, L, k;
   k = 0;
@@ -81,8 +81,8 @@ int gen_common_search(dci_candidate_t *c, uint16_t nof_cce, uint16_t nof_bits,
 /**
  * 36.213 9.1
  */
-int gen_ue_search(dci_candidate_t *c, uint16_t nof_cce, uint8_t nof_bits,
-    uint16_t rnti, uint8_t subframe) {
+int gen_ue_search(dci_candidate_t *c, uint32_t nof_cce, uint32_t nof_bits,
+    uint16_t rnti, uint32_t subframe) {
   int i, l, L, k, m;
   unsigned int Yk;
   const int S[4] = { 6, 12, 8, 16 };
@@ -124,9 +124,9 @@ int gen_ue_search(dci_candidate_t *c, uint16_t nof_cce, uint8_t nof_bits,
  * user-specific search space. Currently supported transmission Mode 1:
  * DCI Format 1A and 1 + PUSCH scheduling format 0
  */
-int pdcch_init_search_ue(pdcch_t *q, uint16_t c_rnti, uint8_t cfi) {
+int pdcch_init_search_ue(pdcch_t *q, uint16_t c_rnti, uint32_t cfi) {
   int k, i, r;
-  uint8_t n; 
+  uint32_t n; 
 
   set_cfi(q, cfi);
 
@@ -181,7 +181,7 @@ int pdcch_init_common(pdcch_t *q, pdcch_search_t *s, uint16_t rnti) {
 /** 36.213 v9.3 Table 7.1-1: System Information DCI messages
  * Expect DCI formats 1C and 1A in the common search space
  */
-int pdcch_init_search_si(pdcch_t *q, uint8_t cfi) {
+int pdcch_init_search_si(pdcch_t *q, uint32_t cfi) {
   set_cfi(q, cfi);
   int r = pdcch_init_common(q, &q->search_mode[SEARCH_SI], SIRNTI);
   if (r >= 0) {
@@ -193,7 +193,7 @@ int pdcch_init_search_si(pdcch_t *q, uint8_t cfi) {
 /** 36.213 v9.3 Table 7.1-3
  * Expect DCI formats 1C and 1A in the common search space
  */
-int pdcch_init_search_ra(pdcch_t *q, uint16_t ra_rnti, uint8_t cfi) {
+int pdcch_init_search_ra(pdcch_t *q, uint16_t ra_rnti, uint32_t cfi) {
   set_cfi(q, cfi);
   int r = pdcch_init_common(q, &q->search_mode[SEARCH_RA], ra_rnti);
   if (r >= 0) {
@@ -212,7 +212,7 @@ void pdcch_set_search_ra(pdcch_t *q) {
   q->current_search_mode = SEARCH_RA;
 }
 
-void set_cfi(pdcch_t *q, uint8_t cfi) {
+void set_cfi(pdcch_t *q, uint32_t cfi) {
   if (cfi > 0 && cfi < 4) {
     q->nof_regs = (regs_pdcch_nregs(q->regs, cfi) / 9) * 9;
     q->nof_cce = q->nof_regs / 9;
@@ -343,7 +343,7 @@ void pdcch_free(pdcch_t *q) {
  *
  * TODO: UE transmit antenna selection CRC mask
  */
-int dci_decode(pdcch_t *q, float *e, char *data, uint16_t E, uint16_t nof_bits, uint16_t *crc) {
+int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
 
   float tmp[3 * (DCI_MAX_BITS + 16)];
   uint16_t p_bits, crc_res;
@@ -406,7 +406,7 @@ int pdcch_decode_candidate(pdcch_t *q, float *llr, dci_candidate_t *c,
 }
 
 int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
-    float *llr, uint8_t nsubframe, uint8_t cfi) {
+    float *llr, uint32_t nsubframe, uint32_t cfi) {
 
   /* Set pointers for layermapping & precoding */
   int i;
@@ -480,7 +480,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
   }
 }
 
-int pdcch_decode_current_mode(pdcch_t *q, float *llr, dci_t *dci, uint8_t subframe) {
+int pdcch_decode_current_mode(pdcch_t *q, float *llr, dci_t *dci, uint32_t subframe) {
   int k, i;
   int ret; 
   
@@ -513,7 +513,7 @@ int pdcch_decode_ra(pdcch_t *q, float *llr, dci_t *dci) {
   pdcch_set_search_ra(q);
   return pdcch_decode_current_mode(q, llr, dci, 0);
 }
-int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, uint8_t nsubframe) {
+int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, uint32_t nsubframe) {
   pdcch_set_search_ue(q);
   return pdcch_decode_current_mode(q, llr, dci, nsubframe);
 }
@@ -525,7 +525,7 @@ int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, uint8_t nsubframe) {
  * Returns number of messages stored in dci
  */
 int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
-    dci_t *dci, uint8_t subframe, uint8_t cfi) {
+    dci_t *dci, uint32_t subframe, uint32_t cfi) {
   
   if (q                 != NULL && 
       dci               != NULL && 
@@ -564,7 +564,7 @@ void crc_set_mask_rnti(char *crc, uint16_t rnti) {
 /** 36.212 5.3.3.2 to 5.3.3.4
  * TODO: UE transmit antenna selection CRC mask
  */
-int dci_encode(pdcch_t *q, char *data, char *e, uint16_t nof_bits, uint16_t E,
+int dci_encode(pdcch_t *q, char *data, char *e, uint32_t nof_bits, uint32_t E,
     uint16_t rnti) {
   convcoder_t encoder;
   char tmp[3 * (DCI_MAX_BITS + 16)];
@@ -603,7 +603,7 @@ int dci_encode(pdcch_t *q, char *data, char *e, uint16_t nof_bits, uint16_t E,
 /** Converts the set of DCI messages to symbols mapped to the slot ready for transmission
  */
 int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS],
-    uint8_t nsubframe, uint8_t cfi) {
+    uint32_t nsubframe, uint32_t cfi) {
   int i;
   /* Set pointers for layermapping & precoding */
   cf_t *x[MAX_LAYERS];

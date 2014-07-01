@@ -39,7 +39,7 @@
 #define SLOT_SZ(q) (q->nof_symbols * q->symbol_sz)
 #define SF_SZ(q) (2 * SLOT_SZ(q))
 
-void chest_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
+void chest_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id) {
   chest_ref_fprint(q, stream, nslot, port_id);
   chest_recvsig_fprint(q, stream, nslot, port_id);
   chest_ce_fprint(q, stream, nslot, port_id);
@@ -48,7 +48,7 @@ void chest_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
 /* Sets the number of ports to estimate. nof_ports must be smaler than nof_ports
  * used during the call to chest_init(). 
  */
-int chest_set_nof_ports(chest_t *q, uint8_t nof_ports) {
+int chest_set_nof_ports(chest_t *q, uint32_t nof_ports) {
   if (nof_ports < q->nof_ports) {
     q->nof_ports = nof_ports;
     return LIBLTE_SUCCESS;
@@ -57,7 +57,7 @@ int chest_set_nof_ports(chest_t *q, uint8_t nof_ports) {
   }
 }
 
-void chest_ref_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
+void chest_ref_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id) {
   int i;
   fprintf(stream, "refs%d=[",port_id);
   for (i=0;i<q->refsignal[port_id][nslot].nof_refs;i++) {
@@ -67,7 +67,7 @@ void chest_ref_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) 
   fprintf(stream, "];\n");
 }
 
-void chest_recvsig_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
+void chest_recvsig_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id) {
   int i;
   fprintf(stream, "recvsig%d=[",port_id);
   for (i=0;i<q->refsignal[port_id][nslot].nof_refs;i++) {
@@ -77,7 +77,7 @@ void chest_recvsig_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_
   fprintf(stream, "];\n");
 }
 
-void chest_ce_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
+void chest_ce_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id) {
   int i;
   fprintf(stream, "mag%d=[",port_id);
   for (i=0;i<q->refsignal[port_id][nslot].nof_refs;i++) {
@@ -91,7 +91,7 @@ void chest_ce_fprint(chest_t *q, FILE *stream, uint8_t nslot, uint8_t port_id) {
   fprintf(stream, "];\n");
 }
 
-int chest_ce_ref(chest_t *q, cf_t *input, uint8_t nslot, uint8_t port_id, uint16_t nref) {
+int chest_ce_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint32_t nref) {
   int fidx, tidx;
   cf_t known_ref, channel_ref;
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
@@ -128,7 +128,7 @@ int chest_ce_ref(chest_t *q, cf_t *input, uint8_t nslot, uint8_t port_id, uint16
 /* Computes channel estimates for each reference in a slot and port.
  * Saves the nof_prb * 12 * nof_symbols channel estimates in the array ce
  */
-int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint8_t nslot, uint8_t port_id) {
+int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32_t port_id) {
   int i, j;
   cf_t x[2], y[MAX_NSYMB];
 
@@ -183,7 +183,7 @@ int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint8_t nslot, uint8_t
 
 /* Computes channel estimates for each reference in a subframe and port id.
  */
-int chest_ce_sf_port(chest_t *q, cf_t *input, cf_t *ce, uint8_t sf_idx, uint8_t port_id) {
+int chest_ce_sf_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id) {
   int n, slotsz, ret;
   slotsz = q->nof_symbols*q->nof_re;
   for (n=0;n<2;n++) {
@@ -197,7 +197,7 @@ int chest_ce_sf_port(chest_t *q, cf_t *input, cf_t *ce, uint8_t sf_idx, uint8_t 
 
 /* Computes channel estimates for each reference in a slot for all ports.
  */
-int chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, uint8_t nslot) {
+int chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, uint32_t nslot) {
   int p, ret;
   for (p=0;p<q->nof_ports;p++) {
     ret = chest_ce_slot_port(q, input, ce[p], nslot, p);
@@ -210,7 +210,7 @@ int chest_ce_slot(chest_t *q, cf_t *input, cf_t **ce, uint8_t nslot) {
 
 /* Computes channel estimates for each reference in a subframe for all ports.
  */
-int chest_ce_sf(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], uint8_t sf_idx) {
+int chest_ce_sf(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], uint32_t sf_idx) {
   int p, n, slotsz, ret;
   slotsz = q->nof_symbols*q->nof_re;
   for (p=0;p<q->nof_ports;p++) {
@@ -224,7 +224,7 @@ int chest_ce_sf(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], uint8_t sf_idx) {
   return LIBLTE_SUCCESS;
 }
 
-int chest_init(chest_t *q, chest_interp_t interp, uint16_t nof_re, uint8_t nof_symbols, uint8_t nof_ports) {
+int chest_init(chest_t *q, chest_interp_t interp, uint32_t nof_re, uint32_t nof_symbols, uint32_t nof_ports) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (q         != NULL &&
@@ -259,7 +259,7 @@ int chest_init_LTEDL(chest_t *q, chest_interp_t interp, lte_cell_t cell) {
   }
 }
 
-int chest_ref_LTEDL_slot_port(chest_t *q, uint8_t nslot, uint8_t port_id, lte_cell_t cell) {
+int chest_ref_LTEDL_slot_port(chest_t *q, uint32_t nslot, uint32_t port_id, lte_cell_t cell) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (q         != NULL         && 
@@ -271,7 +271,7 @@ int chest_ref_LTEDL_slot_port(chest_t *q, uint8_t nslot, uint8_t port_id, lte_ce
   return ret;
 }
 
-int chest_ref_LTEDL_slot(chest_t *q, uint8_t nslot, lte_cell_t cell) {
+int chest_ref_LTEDL_slot(chest_t *q, uint32_t nslot, lte_cell_t cell) {
   int p, ret;
   for (p=0;p<q->nof_ports;p++) {
     ret = chest_ref_LTEDL_slot_port(q, nslot, p, cell);
@@ -306,13 +306,13 @@ void chest_free(chest_t *q) {
 /* Fills l[2] with the symbols in the slot nslot that contain references.
  * returns the number of symbols with references (in the slot)
  */
-int chest_ref_symbols(chest_t *q, uint8_t port_id, uint8_t nslot, uint8_t l[2]) {
+int chest_ref_symbols(chest_t *q, uint32_t port_id, uint32_t nslot, uint32_t l[2]) {
   
   if (q         != NULL          && 
       port_id   <  MAX_PORTS     &&
       nslot     <  NSLOTS_X_FRAME)
   {
-    memcpy(l, q->refsignal[port_id][nslot].symbols_ref, sizeof(uint8_t) * q->refsignal[port_id][nslot].nsymbols);
+    memcpy(l, q->refsignal[port_id][nslot].symbols_ref, sizeof(uint32_t) * q->refsignal[port_id][nslot].nsymbols);
     return q->refsignal[port_id][nslot].nsymbols;
   } else {
     return LIBLTE_ERROR_INVALID_INPUTS;

@@ -60,11 +60,11 @@ struct cb_segm {
 };
 
 int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
-    uint8_t nsubframe, bool put) {
-  uint8_t s, n, l, lp, lstart, lend, nof_refs;
+    uint32_t nsubframe, bool put) {
+  uint32_t s, n, l, lp, lstart, lend, nof_refs;
   bool is_pbch, is_sss;
   cf_t *in_ptr = input, *out_ptr = output;
-  uint8_t offset;
+  uint32_t offset;
 
   INFO("%s %d RE from %d PRB\n", put ? "Putting" : "Getting",
       prb_alloc->re_sf[nsubframe], prb_alloc->slot[0].nof_prb);
@@ -161,7 +161,7 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
  * 36.211 10.3 section 6.3.5
  */
 int pdsch_put(pdsch_t *q, cf_t *pdsch_symbols, cf_t *sf_symbols,
-    ra_prb_t *prb_alloc, uint8_t subframe) {
+    ra_prb_t *prb_alloc, uint32_t subframe) {
   return pdsch_cp(q, pdsch_symbols, sf_symbols, prb_alloc, subframe, true);
 }
 
@@ -173,7 +173,7 @@ int pdsch_put(pdsch_t *q, cf_t *pdsch_symbols, cf_t *sf_symbols,
  * 36.211 10.3 section 6.3.5
  */
 int pdsch_get(pdsch_t *q, cf_t *sf_symbols, cf_t *pdsch_symbols,
-    ra_prb_t *prb_alloc, uint8_t subframe) {
+    ra_prb_t *prb_alloc, uint32_t subframe) {
   return pdsch_cp(q, sf_symbols, pdsch_symbols, prb_alloc, subframe, false);
 }
 
@@ -364,7 +364,7 @@ void codeblock_segmentation(struct cb_segm *s, int tbs) {
 /* Decode a transport block according to 36.212 5.3.2
  *
  */
-int pdsch_decode_tb(pdsch_t *q, char *data, uint16_t tbs, uint16_t nb_e, uint8_t rv_idx) {
+int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e, uint32_t rv_idx) {
   char parity[24];
   char *p_parity = parity;
   uint32_t par_rx, par_tx;
@@ -464,7 +464,7 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint16_t tbs, uint16_t nb_e, uint8_t
 /** Decodes the PDSCH from the received symbols
  */
 int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data,
-    uint8_t subframe, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
+    uint32_t subframe, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
 
   /* Set pointers for layermapping & precoding */
   int i, n;
@@ -548,7 +548,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data,
 /* Encode a transport block according to 36.212 5.3.2
  *
  */
-int pdsch_encode_tb(pdsch_t *q, char *data, uint16_t tbs, uint16_t nb_e, uint8_t rv_idx) {
+int pdsch_encode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e, uint32_t rv_idx) {
   char parity[24];
   char *p_parity = parity;
   unsigned int par;
@@ -656,9 +656,9 @@ int pdsch_encode_tb(pdsch_t *q, char *data, uint16_t tbs, uint16_t nb_e, uint8_t
 /** Converts the PDSCH data bits to symbols mapped to the slot ready for transmission
  */
 int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS],
-    uint8_t subframe, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
+    uint32_t subframe, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
   int i;
-  uint16_t nof_symbols, nof_bits, nof_bits_e;
+  uint32_t nof_symbols, nof_bits, nof_bits_e;
   /* Set pointers for layermapping & precoding */
   cf_t *x[MAX_LAYERS];
 

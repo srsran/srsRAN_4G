@@ -47,8 +47,8 @@
 typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API {
-  uint8_t nof_ports;
-  uint8_t nof_prb;
+  uint32_t nof_ports;
+  uint32_t nof_prb;
   uint32_t sfn;
   phich_length_t phich_length;
   phich_resources_t phich_resources;
@@ -58,7 +58,7 @@ typedef struct LIBLTE_API {
 typedef struct LIBLTE_API {
   lte_cell_t cell;
   
-  uint8_t nof_symbols;
+  uint32_t nof_symbols;
 
   /* buffers */
   cf_t *ce[MAX_PORTS];
@@ -72,7 +72,7 @@ typedef struct LIBLTE_API {
   char *data;
   char *data_enc;
 
-  uint8_t frame_idx;
+  uint32_t frame_idx;
 
   /* tx & rx objects */
   modem_table_t mod;

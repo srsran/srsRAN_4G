@@ -87,22 +87,22 @@ LIBLTE_API void phich_free(phich_t *q);
 LIBLTE_API int phich_decode(phich_t *q, 
                             cf_t *slot_symbols, 
                             cf_t *ce[MAX_PORTS],
-                            uint8_t ngroup, 
-                            uint8_t nseq, 
-                            uint8_t nsubframe, 
+                            uint32_t ngroup, 
+                            uint32_t nseq, 
+                            uint32_t nsubframe, 
                             char *ack, 
-                            uint8_t *distance);
+                            uint32_t *distance);
 
 LIBLTE_API int phich_encode(phich_t *q, 
                             char ack, 
-                            uint8_t ngroup, 
-                            uint8_t nseq, 
-                            uint8_t nsubframe,
+                            uint32_t ngroup, 
+                            uint32_t nseq, 
+                            uint32_t nsubframe,
                             cf_t *slot_symbols[MAX_PORTS]);
 
 LIBLTE_API void phich_reset(phich_t *q, 
                             cf_t *slot_symbols[MAX_PORTS]);
 
-LIBLTE_API uint8_t phich_ngroups(phich_t *q);
+LIBLTE_API uint32_t phich_ngroups(phich_t *q);
 
 #endif // PHICH_

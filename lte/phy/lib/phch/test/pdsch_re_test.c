@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 
     pdsch_init(&pdsch, 0, cell);
 
-    memset(prb_alloc.re_sf, 0, sizeof(uint16_t) * 10);
+    memset(prb_alloc.re_sf, 0, sizeof(uint32_t) * 10);
     prb_alloc.slot[0].nof_prb = test_re_prb[i];
     prb_alloc.slot[1].nof_prb = test_re_prb[i];
     ra_prb_get_re_dl(&prb_alloc, test_re_prb[i], test_re_ports[i], test_re_csymb[i], test_re_cp[i]);

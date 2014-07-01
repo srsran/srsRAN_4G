@@ -46,26 +46,26 @@ LIBLTE_API int sequence_LTEPRS(sequence_t *q,
 
 LIBLTE_API int sequence_pbch(sequence_t *seq, 
                              lte_cp_t cp, 
-                             uint16_t cell_id);
+                             uint32_t cell_id);
 
 LIBLTE_API int sequence_pcfich(sequence_t *seq, 
-                               uint8_t nslot, 
-                               uint16_t cell_id);
+                               uint32_t nslot, 
+                               uint32_t cell_id);
 
 LIBLTE_API int sequence_phich(sequence_t *seq, 
-                              uint8_t nslot, 
-                              uint16_t cell_id);
+                              uint32_t nslot, 
+                              uint32_t cell_id);
 
 LIBLTE_API int sequence_pdcch(sequence_t *seq, 
-                              uint8_t nslot, 
-                              uint16_t cell_id, 
+                              uint32_t nslot, 
+                              uint32_t cell_id, 
                               uint32_t len);
 
 LIBLTE_API int sequence_pdsch(sequence_t *seq, 
                               unsigned short rnti, 
                               int q,
-                              uint8_t nslot, 
-                              uint16_t cell_id, 
+                              uint32_t nslot, 
+                              uint32_t cell_id, 
                               uint32_t len);
 
 #endif

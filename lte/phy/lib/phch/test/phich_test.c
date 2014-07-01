@@ -106,9 +106,9 @@ int main(int argc, char **argv) {
   int nof_re;
   cf_t *slot_symbols[MAX_PORTS];
   char ack[50][PHICH_NORM_NSEQUENCES], ack_rx;
-  uint8_t nsf, distance;
+  uint32_t nsf, distance;
   int cid, max_cid;
-  uint8_t ngroup, nseq, max_nseq;
+  uint32_t ngroup, nseq, max_nseq;
 
   parse_args(argc,argv);
 

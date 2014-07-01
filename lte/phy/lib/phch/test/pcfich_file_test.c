@@ -188,7 +188,7 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  uint8_t cfi, distance;
+  uint32_t cfi, distance;
   int i, n;
 
   if (argc < 3) {

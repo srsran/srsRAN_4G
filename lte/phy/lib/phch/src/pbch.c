@@ -372,15 +372,15 @@ void crc_set_mask(char *data, int nof_ports) {
  *
  * Returns 0 if the data is correct, -1 otherwise
  */
-uint32_t pbch_crc_check(pbch_t *q, char *bits, uint8_t nof_ports) {
+uint32_t pbch_crc_check(pbch_t *q, char *bits, uint32_t nof_ports) {
   char data[40];
   memcpy(data, bits, 40 * sizeof(char));
   crc_set_mask(data, nof_ports);
   return crc_checksum(&q->crc, data, 40);
 }
 
-int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint8_t src, uint8_t dst, uint8_t n,
-    uint16_t nof_bits, uint8_t nof_ports) {
+int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint32_t src, uint32_t dst, uint32_t n,
+    uint32_t nof_bits, uint32_t nof_ports) {
   int j;
 
   memcpy(&q->temp[dst * nof_bits], &q->pbch_llr[src * nof_bits],
@@ -440,9 +440,9 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint8_t src, uint8_t dst, uint
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
 int pbch_decode(pbch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mib) {
-  uint8_t src, dst, nb;
-  uint8_t nant_[3] = { 1, 2, 4 };
-  uint8_t na, nant;
+  uint32_t src, dst, nb;
+  uint32_t nant_[3] = { 1, 2, 4 };
+  uint32_t na, nant;
   cf_t *slot1_symbols;
   int i;
   int nof_bits;

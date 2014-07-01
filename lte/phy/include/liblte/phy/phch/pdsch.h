@@ -51,7 +51,7 @@ typedef _Complex float cf_t;
 typedef struct LIBLTE_API {
   lte_cell_t cell;
   
-  uint16_t max_symbols;
+  uint32_t max_symbols;
   uint16_t rnti;
 
   /* buffers */
@@ -85,7 +85,7 @@ LIBLTE_API void pdsch_free(pdsch_t *q);
 LIBLTE_API int pdsch_encode(pdsch_t *q, 
                             char *data, 
                             cf_t *sf_symbols[MAX_PORTS],
-                            uint8_t nsubframe, 
+                            uint32_t nsubframe, 
                             ra_mcs_t mcs, 
                             ra_prb_t *prb_alloc);
 
@@ -93,7 +93,7 @@ LIBLTE_API int pdsch_decode(pdsch_t *q,
                             cf_t *sf_symbols, 
                             cf_t *ce[MAX_PORTS],
                             char *data, 
-                            uint8_t nsubframe, 
+                            uint32_t nsubframe, 
                             ra_mcs_t mcs, 
                             ra_prb_t *prb_alloc);
 
@@ -101,6 +101,6 @@ LIBLTE_API int pdsch_get(pdsch_t *q,
                          cf_t *sf_symbols, 
                          cf_t *pdsch_symbols,
                          ra_prb_t *prb_alloc, 
-                         uint8_t subframe);
+                         uint32_t subframe);
 
 #endif

@@ -35,7 +35,7 @@
 #include "liblte/phy/sync/sync_frame.h"
 
 
-int sync_frame_init(sync_frame_t *q, int downsampling) {
+int sync_frame_init(sync_frame_t *q, uint32_t downsampling) {
   int ret = -1;
   bzero(q, sizeof(sync_frame_t));
 
@@ -87,7 +87,7 @@ void sync_frame_free(sync_frame_t *q) {
 }
 
 void sync_frame_run(sync_frame_t *q, cf_t *input) {
-  int track_idx; 
+  uint32_t track_idx; 
   
   switch (q->state) {
     
@@ -152,7 +152,7 @@ void sync_frame_run(sync_frame_t *q, cf_t *input) {
       }
     } else {
       /* if sync not found, adjust time offset with the averaged value */
-      q->peak_idx = (q->peak_idx + (int) q->timeoffset) % SYNC_SF_LEN;
+      q->peak_idx = (q->peak_idx + (uint32_t) q->timeoffset) % SYNC_SF_LEN;
 
       /* if we missed too many PSS go back to FIND */
       if (q->frame_cnt - q->last_found > TRACK_MAX_LOST) {
@@ -169,11 +169,11 @@ void sync_frame_set_threshold(sync_frame_t *q, float threshold) {
   sync_set_threshold(&q->s, threshold);
 }
 
-int sync_frame_cell_id(sync_frame_t *q) {
+uint32_t sync_frame_cell_id(sync_frame_t *q) {
   return q->cell_id;
 }
 
-int sync_frame_sfidx(sync_frame_t *q) {
+uint32_t sync_frame_sfidx(sync_frame_t *q) {
   return q->sf_idx;
 }
 
@@ -182,7 +182,7 @@ int sync_frame_push(sync_frame_t *q, cf_t *input, cf_t *output) {
   int retval = 0; 
   int frame_start;
   cf_t *input_ds;
-  int sf_len; 
+  uint32_t sf_len; 
   
   if (q->downsampling == 1) {
     input_ds = input;

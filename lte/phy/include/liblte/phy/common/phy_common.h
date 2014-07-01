@@ -107,9 +107,9 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define NOF_TC_CB_SIZES 188
 
 typedef struct LIBLTE_API {
-  uint8_t nof_prb;
-  uint8_t nof_ports; 
-  uint16_t id;
+  uint32_t nof_prb;
+  uint32_t nof_ports; 
+  uint32_t id;
   lte_cp_t cp;
 }lte_cell_t;
 

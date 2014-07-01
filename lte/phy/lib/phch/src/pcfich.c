@@ -105,7 +105,7 @@ void pcfich_free(pcfich_t *q) {
 /** Finds the CFI with minimum distance with the vector of received 32 bits.
  * Saves the CFI value in the cfi pointer and returns the distance.
  */
-int pcfich_cfi_decode(char bits[PCFICH_CFI_LEN], uint8_t *cfi) {
+int pcfich_cfi_decode(char bits[PCFICH_CFI_LEN], uint32_t *cfi) {
   int i, j;
   int distance, index = -1;
   int min = 32;
@@ -144,7 +144,7 @@ int pcfich_cfi_encode(int cfi, char bits[PCFICH_CFI_LEN]) {
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
 int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
-    uint8_t nsubframe, uint8_t *cfi, uint8_t *distance) {
+    uint32_t nsubframe, uint32_t *cfi, uint32_t *distance) {
   int dist;
 
   /* Set pointers for layermapping & precoding */
@@ -216,8 +216,8 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
 
 /** Encodes CFI and maps symbols to the slot
  */
-int pcfich_encode(pcfich_t *q, uint8_t cfi, cf_t *slot_symbols[MAX_PORTS],
-    uint8_t subframe) {
+int pcfich_encode(pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[MAX_PORTS],
+    uint32_t subframe) {
   int i;
 
   if (q                 != NULL                 && 

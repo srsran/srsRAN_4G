@@ -47,7 +47,7 @@ lte_cell_t cell = {
   CPNORM        // cyclic prefix
 };
   
-uint8_t cfi=1;
+uint32_t cfi=1;
 int nof_frames = -1;
 
 char *uhd_args = "";

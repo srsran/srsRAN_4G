@@ -41,9 +41,9 @@ lte_cell_t cell = {
   CPNORM        // cyclic prefix
 };
 
-uint8_t cfi = 1;
-uint16_t tbs = -1;
-uint8_t subframe = 1;
+uint32_t cfi = 1;
+uint32_t tbs = -1;
+uint32_t subframe = 1;
 ra_mod_t modulation = BPSK;
 
 void usage(char *prog) {

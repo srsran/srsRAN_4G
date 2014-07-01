@@ -40,7 +40,7 @@ lte_cell_t cell = {
   CPNORM        // cyclic prefix
 };
 
-uint8_t cfi = 1;
+uint32_t cfi = 1;
 
 void usage(char *prog) {
   printf("Usage: %s [cell.cpv]\n", prog);
