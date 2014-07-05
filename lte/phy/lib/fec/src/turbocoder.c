@@ -26,12 +26,14 @@
  */
 
 
-#include "liblte/phy/fec/turbocoder.h"
 #include <stdio.h>
+#include <stdint.h>
+
+#include "liblte/phy/fec/turbocoder.h"
 
 #define NOF_REGS 3
 
-int tcod_init(tcod_t *h, int max_long_cb) {
+int tcod_init(tcod_t *h, uint32_t max_long_cb) {
 
   if (tc_interl_init(&h->interl, max_long_cb)) {
     return -1;
@@ -45,13 +47,13 @@ void tcod_free(tcod_t *h) {
   h->max_long_cb = 0;
 }
 
-int tcod_encode(tcod_t *h, char *input, char *output, int long_cb) {
+int tcod_encode(tcod_t *h, char *input, char *output, uint32_t long_cb) {
 
   char reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
-  int i, k = 0, j;
+  uint32_t i, k = 0, j;
   char bit;
   char in, out;
-  int *per;
+  uint32_t *per;
 
   if (long_cb > h->max_long_cb) {
     fprintf(stderr, "Turbo coder initiated for max_long_cb=%d\n",

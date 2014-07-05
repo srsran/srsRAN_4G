@@ -68,13 +68,25 @@ typedef struct LIBLTE_API {
   tc_interl_t interleaver;
 } tdec_t;
 
-LIBLTE_API int tdec_init(tdec_t *h, int max_long_cb);
-LIBLTE_API void tdec_free(tdec_t *h);
+LIBLTE_API int tdec_init(tdec_t * h, 
+                         uint32_t max_long_cb);
 
-LIBLTE_API int tdec_reset(tdec_t *h, int long_cb);
-LIBLTE_API void tdec_iteration(tdec_t *h, llr_t *input, int long_cb);
-LIBLTE_API void tdec_decision(tdec_t *h, char *output, int long_cb);
-LIBLTE_API void tdec_run_all(tdec_t *h, llr_t *input, char *output, int nof_iterations,
-    int long_cb);
+LIBLTE_API void tdec_free(tdec_t * h);
+
+LIBLTE_API int tdec_reset(tdec_t * h, uint32_t long_cb);
+
+LIBLTE_API void tdec_iteration(tdec_t * h, 
+                               llr_t * input, 
+                               uint32_t long_cb);
+
+LIBLTE_API void tdec_decision(tdec_t * h, 
+                              char *output, 
+                              uint32_t long_cb);
+
+LIBLTE_API void tdec_run_all(tdec_t * h, 
+                             llr_t * input, 
+                             char *output,
+                             uint32_t nof_iterations, 
+                             uint32_t long_cb);
 
 #endif

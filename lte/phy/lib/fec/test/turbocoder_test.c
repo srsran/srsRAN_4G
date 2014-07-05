@@ -41,9 +41,9 @@
 
 typedef _Complex float cf_t;
 
-int frame_length = 1000, nof_frames = 100;
+uint32_t frame_length = 1000, nof_frames = 100;
 float ebno_db = 100.0;
-unsigned int seed = 0;
+uint32_t seed = 0;
 int K = -1;
 
 #define MAX_ITERATIONS	4
@@ -51,9 +51,9 @@ int nof_iterations = MAX_ITERATIONS;
 int test_known_data = 0;
 int test_errors = 0;
 
-#define SNR_POINTS	8
-#define SNR_MIN		0.0
-#define SNR_MAX		4.0
+#define SNR_POINTS      8
+#define SNR_MIN         0.0
+#define SNR_MAX         4.0
 
 void usage(char *prog) {
   printf("Usage: %s [nlesv]\n", prog);
@@ -127,16 +127,16 @@ void output_matlab(float ber[MAX_ITERATIONS][SNR_POINTS], int snr_points) {
 }
 
 int main(int argc, char **argv) {
-  int frame_cnt;
+  uint32_t frame_cnt;
   float *llr;
   unsigned char *llr_c;
   char *data_tx, *data_rx, *symbols;
-  int i, j;
+  uint32_t i, j;
   float var[SNR_POINTS];
-  int snr_points;
+  uint32_t snr_points;
   float ber[MAX_ITERATIONS][SNR_POINTS];
-  unsigned int errors[100];
-  int coded_length;
+  uint32_t errors[100];
+  uint32_t coded_length;
   struct timeval tdata[3];
   float mean_usec;
   tdec_t tdec;
@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
       /* decoder */
       tdec_reset(&tdec, frame_length);
 
-      int t;
+      uint32_t t;
       if (nof_iterations == -1) {
         t = MAX_ITERATIONS;
       } else {

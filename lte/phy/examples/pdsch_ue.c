@@ -88,7 +88,6 @@ float *tmp_plot;
 pbch_t pbch;
 pcfich_t pcfich;
 pdcch_t pdcch;
-dci_t dci_set;
 pdsch_t pdsch;
 regs_t regs;
 lte_fft_t fft;
@@ -285,8 +284,6 @@ int base_init(int nof_prb) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
-  
-  dci_init(&dci_set, 10);
 
   return 0;
 }
@@ -401,6 +398,9 @@ int rx_run(cf_t *input, int sf_idx) {
   cf_t *input_decim;
   ra_pdsch_t ra_dl;
   ra_prb_t prb_alloc;
+  dci_location_t locations[10];
+  dci_msg_t dci_msg;
+  uint32_t nof_locations;
   
   /* Downsample if the signal bandwith is shorter */
   if (sampling_nof_prb > cell.nof_prb) {
@@ -426,26 +426,33 @@ int rx_run(cf_t *input, int sf_idx) {
     fprintf(stderr, "Error setting CFI\n");
     return -1;
   }
+  
+  /* Search only UE-specific locations */
+  nof_locations = pdcch_ue_locations(&pdcch, locations, 10, sf_idx, cfi, 1234);
 
-  pdcch_init_search_ue(&pdcch, 1234, cfi);
+  pdcch_extract_llr(&pdcch, fft_buffer, ce, nof_frames, cfi);
+  
+  
+  nof_dcis = pdcch_decode_msg(&pdcch, &dci_msg, locations, nof_locations, Format1, 1234);
+  if (nof_dcis < 0) {
+    fprintf(stderr, "Error decoding DCI messages\n");
+    return -1;
+  }
 
-  dci_set.nof_dcis = 0;
-  nof_dcis = pdcch_decode(&pdcch, fft_buffer, ce, &dci_set, sf_idx, cfi);
-  INFO("Received %d DCIs\n", nof_dcis);
-  for (i=0;i<nof_dcis;i++) {
+  INFO("Received %d DCI messages\n", nof_dcis);
+
+  if (nof_dcis == 1) {
     dci_msg_type_t type;
-    if (dci_msg_get_type(&dci_set.msg[i], &type, cell.nof_prb, 1234)) {
+    if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, 1234, 1234)) {
       fprintf(stderr, "Can't get DCI message type\n");      
     } else {      
-      INFO("MSG %d: L: %d nCCE: %d Nbits: %d. ",i,dci_set.msg[i].location.L,
-             dci_set.msg[i].location.ncce, dci_set.msg[i].location.nof_bits);
       if (VERBOSE_ISINFO()) {
         dci_msg_type_fprint(stdout, type);        
       }
       switch(type.type) {
       case PDSCH_SCHED:
         bzero(&ra_dl, sizeof(ra_pdsch_t));
-        if (dci_msg_unpack_pdsch(&dci_set.msg[i], &ra_dl, cell.nof_prb, 
+        if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb,
             false)) {
           fprintf(stderr, "Can't unpack PDSCH message\n");
           break;

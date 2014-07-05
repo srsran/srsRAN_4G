@@ -34,13 +34,13 @@
 #include "liblte/config.h"
 
 typedef struct LIBLTE_API {
-  int R;
-  int K;
-  int poly[3];
+  uint32_t R;
+  uint32_t K;
+  uint32_t poly[3];
   bool tail_biting;
 }convcoder_t;
 
-LIBLTE_API int convcoder_encode(convcoder_t *q, char *input, char *output, int frame_length);
+LIBLTE_API int convcoder_encode(convcoder_t *q, char *input, char *output, uint32_t frame_length);
 
 
 /* High-level API */

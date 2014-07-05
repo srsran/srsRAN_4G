@@ -4,6 +4,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <memory.h>
 #include "viterbi39.h"
 #include "parity.h"
@@ -29,9 +30,9 @@ struct v39 {
 };
 
 /* Initialize Viterbi decoder for start of new frame */
-int init_viterbi39_port(void *p, int starting_state) {
+int init_viterbi39_port(void *p, uint32_t starting_state) {
   struct v39 *vp = p;
-  int i;
+  uint32_t i;
 
   if (p == NULL)
     return -1;
@@ -45,8 +46,8 @@ int init_viterbi39_port(void *p, int starting_state) {
   return 0;
 }
 
-void set_viterbi39_polynomial_port(int polys[3]) {
-  int state;
+void set_viterbi39_polynomial_port(uint32_t polys[3]) {
+  uint32_t state;
 
   for (state = 0; state < 128; state++) {
     Branchtab39[0].c[state] =
@@ -59,7 +60,7 @@ void set_viterbi39_polynomial_port(int polys[3]) {
 }
 
 /* Create a new instance of a Viterbi decoder */
-void *create_viterbi39_port(int polys[3], int len) {
+void *create_viterbi39_port(uint32_t polys[3], uint32_t len) {
   struct v39 *vp;
 
   set_viterbi39_polynomial_port(polys);
@@ -79,8 +80,8 @@ void *create_viterbi39_port(int polys[3], int len) {
 
 /* Viterbi chainback */
 int chainback_viterbi39_port(void *p, char *data, /* Decoded output data */
-    unsigned int nbits, /* Number of data bits */
-    unsigned int endstate) { /* Terminal encoder state */
+    uint32_t nbits, /* Number of data bits */
+    uint32_t endstate) { /* Terminal encoder state */
   struct v39 *vp = p;
   decision_t *d;
 
@@ -140,7 +141,7 @@ unsigned int metric,m0,m1,decision;\
  * of symbols!
  */
 
-int update_viterbi39_blk_port(void *p, unsigned char *syms, int nbits) {
+int update_viterbi39_blk_port(void *p, uint8_t *syms, uint32_t nbits) {
   struct v39 *vp = p;
   decision_t *d;
 
@@ -150,8 +151,8 @@ int update_viterbi39_blk_port(void *p, unsigned char *syms, int nbits) {
   d = (decision_t *) vp->dp;
   while (nbits--) {
     void *tmp;
-    unsigned char sym0, sym1, sym2;
-    int i;
+    uint8_t sym0, sym1, sym2;
+    uint32_t i;
 
     for (i = 0; i < 8; i++)
       d->w[i] = 0;

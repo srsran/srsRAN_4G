@@ -46,173 +46,11 @@
 #define PDCCH_FORMAT_NOF_REGS(i)        ((1<<i)*9)
 #define PDCCH_FORMAT_NOF_BITS(i)        ((1<<i)*72)
 
-#define NOF_COMMON_FORMATS      2
-const dci_format_t common_formats[NOF_COMMON_FORMATS] = { Format1A, Format1C };
-
-#define NOF_UE_FORMATS          2
-const dci_format_t ue_formats[NOF_UE_FORMATS] = { Format0, Format1 }; // 1A has the same payload as 0
 
 #define MIN(a,b) ((a>b)?b:a)
 
-void set_cfi(pdcch_t *q, uint32_t cfi);
 
-/**
- * 36.213 9.1
- */
-int gen_common_search(dci_candidate_t *c, uint32_t nof_cce, uint32_t nof_bits,
-    uint16_t rnti) {
-  int i, l, L, k;
-  k = 0;
-  for (l = 3; l > 1; l--) {
-    L = (1 << l);
-    for (i = 0; i < MIN(nof_cce,16) / (L); i++) {
-      c[k].L = l;
-      c[k].nof_bits = nof_bits;
-      c[k].rnti = rnti;
-      c[k].ncce = (L) * (i % (nof_cce / (L)));
-      INFO("Common SS Candidate %d: RNTI: 0x%x, nCCE: %d, Nbits: %d, L: %d\n",
-          k, c[k].rnti, c[k].ncce, c[k].nof_bits, c[k].L);
-      k++;
-    }
-  }
-  return k;
-}
-
-/**
- * 36.213 9.1
- */
-int gen_ue_search(dci_candidate_t *c, uint32_t nof_cce, uint32_t nof_bits,
-    uint16_t rnti, uint32_t subframe) {
-  int i, l, L, k, m;
-  unsigned int Yk;
-  const int S[4] = { 6, 12, 8, 16 };
-  k = 0;
-
-  if (VERBOSE_ISDEBUG()) {
-    printf("NofBits=%d, RNTI: 0x%x, SF=%d (n, L): ", nof_bits, rnti, subframe);
-  }
-  for (l = 3; l >= 0; l--) {
-    L = (1 << l);
-    for (i = 0; i < MIN(nof_cce / L, 16 / S[l]); i++) {
-      c[k].L = l;
-      c[k].nof_bits = nof_bits;
-      c[k].rnti = rnti;
-      Yk = rnti;
-      for (m = 0; m < subframe; m++) {
-        Yk = (39827 * Yk) % 65537;
-      }
-      c[k].ncce = L * ((Yk + i) % (nof_cce / L));
-      if (VERBOSE_ISDEBUG()) {
-        printf("(%d, %d), ", c[k].ncce, c[k].L);
-      }
-      if (c[k].ncce + PDCCH_FORMAT_NOF_CCE(c[k].L) > nof_cce    || 
-          nof_bits > DCI_MAX_BITS) {
-        fprintf(stderr, "Illegal DCI message\n");
-        return LIBLTE_ERROR;
-      }
-      k++;
-    }
-  }
-  if (VERBOSE_ISDEBUG()) {
-    printf("\n");
-  }
-  return k;
-}
-
-
-/** 36.213 v9.3 Table 7.1-5
- * user-specific search space. Currently supported transmission Mode 1:
- * DCI Format 1A and 1 + PUSCH scheduling format 0
- */
-int pdcch_init_search_ue(pdcch_t *q, uint16_t c_rnti, uint32_t cfi) {
-  int k, i, r;
-  uint32_t n; 
-
-  set_cfi(q, cfi);
-
-  pdcch_search_t *s = &q->search_mode[SEARCH_UE];
-  for (n = 0; n < NSUBFRAMES_X_FRAME; n++) {
-    dci_candidate_t *c = s->candidates[n];
-
-    if (!n) s->nof_candidates = 0;
-
-    // Expect Formats 1, 1A, 0
-    k = 0;
-    for (i = 0; i < NOF_UE_FORMATS && k < MAX_CANDIDATES; i++) {
-      r = gen_ue_search(&c[k], q->nof_cce,
-          dci_format_sizeof(ue_formats[i], q->cell.nof_prb), c_rnti, n);
-      if (r < 0) {
-        fprintf(stderr, "Error generating UE-specific search space\n");
-        return r;
-      }
-      k += r;
-    }
-    s->nof_candidates = k;
-  }
-  INFO("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n",
-      s->nof_candidates, c_rnti);
-  q->current_search_mode = SEARCH_UE;
- 
-  return LIBLTE_SUCCESS; 
-}
-
-
-int pdcch_init_common(pdcch_t *q, pdcch_search_t *s, uint16_t rnti) {
-  int k, r, i;
-  dci_candidate_t *c = s->candidates[0];
-  s->nof_candidates = 0;
-  // Format 1A and 1C L=4 and L=8, 4 and 2 candidates, only if nof_cce > 16
-  k = 0;
-  for (i = 0; i < NOF_COMMON_FORMATS && k < MAX_CANDIDATES; i++) {
-    r = gen_common_search(&c[k], q->nof_cce,
-        dci_format_sizeof(common_formats[i], q->cell.nof_prb), SIRNTI);
-    if (r < 0) {
-      return r;
-    }
-    k += r;
-  }
-  s->nof_candidates=k;
-  INFO("Initiated %d candidate(s) in the Common search space for RNTI: 0x%x\n",
-      s->nof_candidates, rnti);
-  
-  return LIBLTE_SUCCESS;
-}
-
-/** 36.213 v9.3 Table 7.1-1: System Information DCI messages
- * Expect DCI formats 1C and 1A in the common search space
- */
-int pdcch_init_search_si(pdcch_t *q, uint32_t cfi) {
-  set_cfi(q, cfi);
-  int r = pdcch_init_common(q, &q->search_mode[SEARCH_SI], SIRNTI);
-  if (r >= 0) {
-    q->current_search_mode = SEARCH_SI;    
-  }
-  return r;
-}
-
-/** 36.213 v9.3 Table 7.1-3
- * Expect DCI formats 1C and 1A in the common search space
- */
-int pdcch_init_search_ra(pdcch_t *q, uint16_t ra_rnti, uint32_t cfi) {
-  set_cfi(q, cfi);
-  int r = pdcch_init_common(q, &q->search_mode[SEARCH_RA], ra_rnti);
-  if (r >= 0) {
-    q->current_search_mode = SEARCH_RA;    
-  }
-  return r;
-}
-
-void pdcch_set_search_si(pdcch_t *q) {
-  q->current_search_mode = SEARCH_SI;
-}
-void pdcch_set_search_ue(pdcch_t *q) {
-  q->current_search_mode = SEARCH_UE;
-}
-void pdcch_set_search_ra(pdcch_t *q) {
-  q->current_search_mode = SEARCH_RA;
-}
-
-void set_cfi(pdcch_t *q, uint32_t cfi) {
+static void set_cfi(pdcch_t *q, uint32_t cfi) {
   if (cfi > 0 && cfi < 4) {
     q->nof_regs = (regs_pdcch_nregs(q->regs, cfi) / 9) * 9;
     q->nof_cce = q->nof_regs / 9;
@@ -220,6 +58,7 @@ void set_cfi(pdcch_t *q, uint32_t cfi) {
     q->nof_bits = 2 * q->nof_symbols;    
   } 
 }
+
 
 /** Initializes the PDCCH transmitter and receiver */
 int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
@@ -234,7 +73,6 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
     bzero(q, sizeof(pdcch_t));
     q->cell = cell;
     q->regs = regs;
-    q->current_search_mode = SEARCH_NONE;
 
     /* Now allocate memory for the maximum number of REGs (CFI=3)
     */
@@ -261,7 +99,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
       }
     }
 
-    int poly[3] = { 0x6D, 0x4F, 0x57 };
+    uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
     if (viterbi_init(&q->decoder, viterbi_37, poly, DCI_MAX_BITS + 16, true)) {
       goto clean;
     }
@@ -337,13 +175,97 @@ void pdcch_free(pdcch_t *q) {
   viterbi_free(&q->decoder);
 }
 
+/** 36.213 v9.1.1 
+ * Computes up to max_candidates UE-specific candidates for DCI messages and saves them 
+ * in the structure pointed by c.
+ * Returns the number of candidates saved in the array c.   
+ */
+uint32_t pdcch_ue_locations(pdcch_t *q, dci_location_t *c, uint32_t max_candidates,
+                        uint32_t nsubframe, uint32_t cfi, uint16_t rnti) {
+  
+  uint32_t i, k, l, L, m; 
+  uint32_t Yk, ncce;
+  const int S[4] = { 6, 12, 8, 16 };
+
+  set_cfi(q, cfi);
+
+  // Compute Yk for this subframe
+  Yk = rnti;
+  for (m = 0; m < nsubframe; m++) {
+    Yk = (39827 * Yk) % 65537;
+  }
+
+  k = 0;
+  // All aggregation levels from 8 to 1
+  for (l = 3; l >= 0; l--) {
+    L = (1 << l);
+    // For all possible ncce offset
+    for (i = 0; i < MIN(q->nof_cce / L, 16 / S[l]); i++) {
+      ncce = L * ((Yk + i) % (q->nof_cce / L));      
+      if (k                              < max_candidates     &&
+          ncce + PDCCH_FORMAT_NOF_CCE(L) < q->nof_cce) 
+      {            
+        c[k].L = l;
+        c[k].ncce = ncce;
+        
+        DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
+            k, c[k].ncce, c[k].L);            
+
+        k++;          
+      } 
+    }
+  }
+
+  INFO("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", k, rnti);
+  
+  return k; 
+}
+
+
+
+/**
+ * 36.213 9.1.1
+ * Computes up to max_candidates candidates in the common search space 
+ * for DCI messages and saves them in the structure pointed by c.  
+ * Returns the number of candidates saved in the array c.   
+ */
+uint32_t pdcch_common_locations(pdcch_t *q, dci_location_t *c, uint32_t max_candidates, 
+                                 uint32_t cfi) {
+  uint32_t i, l, L, k;
+
+  set_cfi(q, cfi);
+
+  k = 0;
+  for (l = 3; l > 1; l--) {
+    L = (1 << l);
+    for (i = 0; i < MIN(q->nof_cce, 16) / (L); i++) {
+      if (k < max_candidates) {
+        c[k].L = l;
+        c[k].ncce = (L) * (i % (q->nof_cce / (L)));
+        DEBUG("Common SS Candidate %d: nCCE: %d, L: %d\n",
+            k, c[k].ncce, c[k].L);
+        k++;          
+      }
+    }
+  }
+  
+  INFO("Initiated %d candidate(s) in the Common search space\n", k);
+  
+  return k;
+}
+
+
+
+
+
+
 /** 36.212 5.3.3.2 to 5.3.3.4
  *
  * Returns XOR between parity and remainder bits
  *
  * TODO: UE transmit antenna selection CRC mask
  */
-int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
+static int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
 
   float tmp[3 * (DCI_MAX_BITS + 16)];
   uint16_t p_bits, crc_res;
@@ -354,6 +276,10 @@ int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof_bits, 
       E         < q->max_bits   && 
       nof_bits  < DCI_MAX_BITS)
   {
+
+    if (VERBOSE_ISDEBUG()) {
+      vec_fprint_f(stdout, e, E);
+    }
 
     /* unrate matching */
     rm_conv_rx(e, E, tmp, 3 * (nof_bits + 16));
@@ -385,36 +311,63 @@ int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof_bits, 
   }
 }
 
-int pdcch_decode_candidate(pdcch_t *q, float *llr, dci_candidate_t *c,
-    dci_msg_t *msg) {
-  uint16_t crc_res;
-  INFO("Trying Candidate: Nbits: %d, E: %3d, nCCE: %d, L: %d, RNTI: 0x%x\n",
-      c->nof_bits, PDCCH_FORMAT_NOF_BITS(c->L), c->ncce, c->L, c->rnti);
-   
-  if (dci_decode(q, &llr[72 * c->ncce], msg->data,
-      PDCCH_FORMAT_NOF_BITS(c->L), c->nof_bits, &crc_res)) {
-    return LIBLTE_ERROR;
+/** Tries to decode a DCI message from the LLRs stored in the pdcch_t structure by the function 
+ * pdcch_extract_llr(). This function can be called multiple times. 
+ * The decoded message is stored in msg. Up to nof_locations are tried from the array of dci_locations_t
+ * pointed by locations. The CRC is checked agains the RNTI parameter. 
+ * 
+ * Returns 1 if the message is correctly decoded, 0 if not and -1 on error.  
+ */
+int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, 
+                     dci_location_t *locations, uint32_t nof_locations,
+                     dci_format_t format, uint16_t rnti) 
+{
+  if (q                 != NULL && 
+      msg               != NULL && 
+      locations         != NULL && 
+      nof_locations     >  0)
+  {
+    uint16_t crc_res;
+    uint32_t nof_bits = dci_format_sizeof(format, q->cell.nof_prb);
+    uint32_t i;
+    
+    i = 0;
+    do {
+      INFO("Trying Candidate: Nbits: %d, E: %3d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+          nof_bits, PDCCH_FORMAT_NOF_BITS(locations[i].L), locations[i].ncce, locations[i].L, rnti);    
+      
+      if (dci_decode(q, &q->pdcch_llr[72 * locations[i].ncce], msg->data,
+          PDCCH_FORMAT_NOF_BITS(locations[i].L), nof_bits, &crc_res) != LIBLTE_SUCCESS) {
+        return LIBLTE_ERROR;
+      }
+      if (crc_res != rnti) {
+        i++;
+      }
+    } while(i < nof_locations && crc_res != rnti);
+    
+    if (rnti == crc_res) {
+      msg->nof_bits = nof_bits;
+      INFO("FOUND Candidate: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+          nof_bits, PDCCH_FORMAT_NOF_BITS(locations[i].L), locations[i].ncce, locations[i].L, rnti);
+      return 1;
+    } else {
+      return LIBLTE_SUCCESS;      
+    }    
   }
-
-  if (c->rnti == crc_res) {
-    memcpy(&msg->location, c, sizeof(dci_candidate_t));
-    INFO("FOUND Candidate: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
-        c->nof_bits, PDCCH_FORMAT_NOF_BITS(c->L), c->ncce, c->L, c->rnti);
-    return 1;
-  }
-  return LIBLTE_SUCCESS;
+  return LIBLTE_ERROR_INVALID_INPUTS;
 }
 
-int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
-    float *llr, uint32_t nsubframe, uint32_t cfi) {
+/** Extracts the LLRs from the subframe symbols (demodulation) and stores them in the pdcch_t structure. 
+ * DCI messages can be extracted calling the function pdcch_decode_msg(). 
+ * Every time this function is called, the last demodulated symbols are overwritten. 
+ */
+int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], uint32_t nsubframe, uint32_t cfi) {
 
   /* Set pointers for layermapping & precoding */
-  int i;
+  uint32_t i;
   cf_t *x[MAX_LAYERS];
 
   if (q                 != NULL && 
-      llr               != NULL && 
-      slot_symbols      != NULL && 
       nsubframe         <  10   &&
       cfi               >  0    &&
       cfi               <  4)
@@ -428,7 +381,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
     memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
 
     /* extract symbols */
-    int n = regs_pdcch_get(q->regs, slot_symbols, q->pdcch_symbols[0]);
+    int n = regs_pdcch_get(q->regs, sf_symbols, q->pdcch_symbols[0]);
     if (q->nof_symbols != n) {
       fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n",
           q->nof_symbols, n);
@@ -472,84 +425,18 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
     }
 
     /* descramble */
-    scrambling_f_offset(&q->seq_pdcch[nsubframe], llr, 0, q->nof_bits);
+    scrambling_f_offset(&q->seq_pdcch[nsubframe], q->pdcch_llr, 0, q->nof_bits);
 
     return LIBLTE_SUCCESS;
-  } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
-  }
+  } 
+  return LIBLTE_ERROR_INVALID_INPUTS;  
 }
 
-int pdcch_decode_current_mode(pdcch_t *q, float *llr, dci_t *dci, uint32_t subframe) {
-  int k, i;
-  int ret; 
-  
-  if (q->current_search_mode == SEARCH_UE) {
-    k = subframe;
-  } else {
-    k = 0;
-  }
 
-  for (i = 0;
-      i < q->search_mode[q->current_search_mode].nof_candidates
-          && dci->nof_dcis < dci->max_dcis; i++) {
-    ret = pdcch_decode_candidate(q, q->pdcch_llr,
-        &q->search_mode[q->current_search_mode].candidates[k][i],
-        &dci->msg[dci->nof_dcis]);
-    if (ret == 1) {
-      dci->nof_dcis++;
-    } else if (ret == -1) {
-      return LIBLTE_ERROR;
-    }
-  }
-  return dci->nof_dcis;
-}
 
-int pdcch_decode_si(pdcch_t *q, float *llr, dci_t *dci) {
-  pdcch_set_search_si(q);
-  return pdcch_decode_current_mode(q, llr, dci, 0);
-}
-int pdcch_decode_ra(pdcch_t *q, float *llr, dci_t *dci) {
-  pdcch_set_search_ra(q);
-  return pdcch_decode_current_mode(q, llr, dci, 0);
-}
-int pdcch_decode_ue(pdcch_t *q, float *llr, dci_t *dci, uint32_t nsubframe) {
-  pdcch_set_search_ue(q);
-  return pdcch_decode_current_mode(q, llr, dci, nsubframe);
-}
 
-/* Decodes PDCCH channels
- *
- * dci->nof_dcis is the size of the dci->msg buffer (ie max number of messages)
- *
- * Returns number of messages stored in dci
- */
-int pdcch_decode(pdcch_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
-    dci_t *dci, uint32_t subframe, uint32_t cfi) {
-  
-  if (q                 != NULL && 
-      dci               != NULL && 
-      slot_symbols      != NULL && 
-      subframe         <  10   &&
-      cfi               >  0    &&
-      cfi               <  4)
-  {
-    if (pdcch_extract_llr(q, slot_symbols, ce, q->pdcch_llr, subframe, cfi)) {
-      return LIBLTE_ERROR;
-    }
-
-    if (q->current_search_mode != SEARCH_NONE) {
-      return pdcch_decode_current_mode(q, q->pdcch_llr, dci, subframe);
-    }
-
-    return LIBLTE_SUCCESS;    
-  } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
-  }
-}
-
-void crc_set_mask_rnti(char *crc, uint16_t rnti) {
-  int i;
+static void crc_set_mask_rnti(char *crc, uint16_t rnti) {
+  uint32_t i;
   char mask[16];
   char *r = mask;
 
@@ -564,7 +451,7 @@ void crc_set_mask_rnti(char *crc, uint16_t rnti) {
 /** 36.212 5.3.3.2 to 5.3.3.4
  * TODO: UE transmit antenna selection CRC mask
  */
-int dci_encode(pdcch_t *q, char *data, char *e, uint32_t nof_bits, uint32_t E,
+static int dci_encode(pdcch_t *q, char *data, char *e, uint32_t nof_bits, uint32_t E,
     uint16_t rnti) {
   convcoder_t encoder;
   char tmp[3 * (DCI_MAX_BITS + 16)];
@@ -600,16 +487,57 @@ int dci_encode(pdcch_t *q, char *data, char *e, uint32_t nof_bits, uint32_t E,
   }
 }
 
-/** Converts the set of DCI messages to symbols mapped to the slot ready for transmission
+void pdcch_reset(pdcch_t *q) {
+    /* should add <NIL> elements? Or maybe random bits to facilitate power estimation */
+    bzero(q->pdcch_e, q->nof_bits);
+}
+
+/** Encodes ONE DCI message and allocates the encoded bits to the dci_location_t indicated by 
+ * the parameter location. The CRC is scrambled with the RNTI parameter. 
+ * This function can be called multiple times and encoded DCI messages will be stored in the 
+ * pdcch_t structure. A final call to the function pdcch_gen_symbols() will generate and map the 
+ * symbols to the subframe for transmission. 
+ * If the same location is provided in multiple messages, the encoded bits will be overwritten. 
+ * 
+ * @TODO: Use a bitmask and CFI to ensure message locations are valid and old messages are not overwritten. 
  */
-int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS],
-    uint32_t nsubframe, uint32_t cfi) {
+int pdcch_encode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t rnti) {
+
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q != NULL) {
+    ret = LIBLTE_ERROR;
+    
+    if (location.L < 4       &&
+        msg->nof_bits < DCI_MAX_BITS) 
+    {      
+      INFO("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+          msg->nof_bits,
+          PDCCH_FORMAT_NOF_BITS(location.L),
+          location.ncce, location.L, rnti);
+
+      dci_encode(q, msg->data, &q->pdcch_e[72 * location.ncce], msg->nof_bits, 
+                 PDCCH_FORMAT_NOF_BITS(location.L), rnti);
+    
+      ret = LIBLTE_SUCCESS;
+      
+    } else {
+        fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d\n", 
+                location.ncce, location.L, q->nof_cce);
+    }
+  } 
+  return ret;
+}
+
+/** Converts the set of DCI messages encoded using the function pdcch_encode_msg() 
+ * to symbols mapped to the subframe ready for transmission
+ */
+int pdcch_gen_symbols(pdcch_t *q, cf_t *slot_symbols[MAX_PORTS], uint32_t nsubframe, uint32_t cfi) {
   int i;
   /* Set pointers for layermapping & precoding */
   cf_t *x[MAX_LAYERS];
   
   if (q                 != NULL && 
-      dci               != NULL && 
       slot_symbols      != NULL && 
       nsubframe         <  10   &&
       cfi               >  0    &&
@@ -622,31 +550,6 @@ int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS],
       x[i] = q->pdcch_x[i];
     }
     memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
-
-    /* should add <NIL> elements? Or maybe random bits to facilitate power estimation */
-    bzero(q->pdcch_e, q->nof_bits);
-
-    /* Encode DCIs */
-    for (i = 0; i < dci->nof_dcis; i++) {
-      /* do some checks */
-      if (dci->msg[i].location.ncce + PDCCH_FORMAT_NOF_CCE(dci->msg[i].location.L)
-          > q->nof_cce || dci->msg[i].location.L > 3
-          || dci->msg[i].location.nof_bits > DCI_MAX_BITS) {
-        fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d\n", 
-                dci->msg[i].location.ncce, dci->msg[i].location.L, q->nof_cce);
-        return LIBLTE_ERROR;
-      }
-      INFO("Encoding DCI %d: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n", i,
-          dci->msg[i].location.nof_bits,
-          PDCCH_FORMAT_NOF_BITS(dci->msg[i].location.L),
-          dci->msg[i].location.ncce, dci->msg[i].location.L,
-          dci->msg[i].location.rnti);
-
-      dci_encode(q, dci->msg[i].data, &q->pdcch_e[72 * dci->msg[i].location.ncce],
-          dci->msg[i].location.nof_bits,
-          PDCCH_FORMAT_NOF_BITS(dci->msg[i].location.L),
-          dci->msg[i].location.rnti);
-    }
 
     scrambling_b_offset(&q->seq_pdcch[nsubframe], q->pdcch_e, 0, q->nof_bits);
 
@@ -670,4 +573,5 @@ int pdcch_encode(pdcch_t *q, dci_t *dci, cf_t *slot_symbols[MAX_PORTS],
     return LIBLTE_ERROR_INVALID_INPUTS;
   }
 }
+
 

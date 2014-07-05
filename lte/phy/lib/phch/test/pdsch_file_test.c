@@ -58,7 +58,6 @@ cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 regs_t regs;
 lte_fft_t fft;
 chest_t chest;
-dci_t dci_rx;
 
 void usage(char *prog) {
   printf("Usage: %s [vcfoe] -i input_file\n", prog);
@@ -183,8 +182,6 @@ int base_init() {
     exit(-1);
   }
 
-  dci_init(&dci_rx, 10);
-
   if (pdsch_init(&pdsch, rnti, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
@@ -212,7 +209,6 @@ void base_free() {
   chest_free(&chest);
   lte_fft_free(&fft);
 
-  dci_free(&dci_rx);
   pdcch_free(&pdcch);
   pdsch_free(&pdsch);
   regs_free(&regs);
@@ -226,7 +222,10 @@ int main(int argc, char **argv) {
   int nof_frames;
   int ret;
   char *data;
-
+  dci_location_t locations[10];
+  uint32_t nof_locations;
+  dci_msg_t dci_msg; 
+  
   data = malloc(10000);
 
   if (argc < 3) {
@@ -243,11 +242,13 @@ int main(int argc, char **argv) {
 
   if (rnti == SIRNTI) {
     INFO("Initializing common search space for SI-RNTI\n",0);
-    pdcch_init_search_si(&pdcch, cfi);
+    nof_locations = pdcch_common_locations(&pdcch, locations, 10, cfi);
   } else {
+    // For ue-specific, generate locations for subframe 5
     INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
-    pdcch_init_search_ue(&pdcch, rnti, cfi);
+    nof_locations = pdcch_ue_locations(&pdcch, locations, 10, 5, cfi, rnti); 
   }
+  
   ret = -1;
   nof_frames = 0;
   do {
@@ -278,14 +279,20 @@ int main(int argc, char **argv) {
           chest_fprint(&chest, fmatlab, 2*nof_frames+1, i);
         }
       }
+      
+      pdcch_extract_llr(&pdcch, fft_buffer, ce, nof_frames, cfi);
 
-      nof_dcis = pdcch_decode(&pdcch, fft_buffer, ce, &dci_rx, nof_frames%10, cfi);
+      nof_dcis = pdcch_decode_msg(&pdcch, &dci_msg, locations, nof_locations, Format1A, rnti);
+      if (nof_dcis < 0) {
+        fprintf(stderr, "Error decoding DCI messages\n");
+        return -1;
+      }
 
       INFO("Received %d DCI messages\n", nof_dcis);
 
-      for (i=0;i<nof_dcis;i++) {
+      if (nof_dcis == 1) {
         dci_msg_type_t type;
-        if (dci_msg_get_type(&dci_rx.msg[i], &type, cell.nof_prb, 1234)) {
+        if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti, 1234)) {
           fprintf(stderr, "Can't get DCI message type\n");
           goto goout;
         }
@@ -294,7 +301,7 @@ int main(int argc, char **argv) {
         switch(type.type) {
         case PDSCH_SCHED:
           bzero(&ra_dl, sizeof(ra_pdsch_t));
-          if (dci_msg_unpack_pdsch(&dci_rx.msg[i], &ra_dl, cell.nof_prb, rnti != SIRNTI)) {
+          if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SIRNTI)) {
             fprintf(stderr, "Can't unpack PDSCH message\n");
           } else {
             ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);

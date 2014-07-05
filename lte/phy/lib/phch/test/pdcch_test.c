@@ -105,14 +105,16 @@ int test_dci_payload_size() {
 
 int main(int argc, char **argv) {
   pdcch_t pdcch;
-  dci_t dci_tx, dci_rx;
+  dci_msg_t dci_tx[2], dci_rx[2];
+  dci_location_t dci_locations[2];
   ra_pdsch_t ra_dl;
   regs_t regs;
   int i, j;
   cf_t *ce[MAX_PORTS];
   int nof_re;
   cf_t *slot_symbols[MAX_PORTS];
-  int nof_dcis;
+  int nof_dcis; 
+
   int ret = -1;
 
   parse_args(argc, argv);
@@ -155,26 +157,32 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  dci_init(&dci_tx, 2);
+  nof_dcis = 2;
   bzero(&ra_dl, sizeof(ra_pdsch_t));
   ra_dl.harq_process = 0;
-  //ra_pdsch_set_mcs_index(&ra_dl, 6);
   ra_pdsch_set_mcs(&ra_dl, QAM16, 5);
   ra_dl.ndi = 0;
   ra_dl.rv_idx = 0;
   ra_dl.alloc_type = alloc_type0;
   ra_dl.type0_alloc.rbg_bitmask = 0x5;
 
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, cell.nof_prb, false);
-  dci_msg_candidate_set(&dci_tx.msg[0], 0, 0, 1234);
-  dci_tx.nof_dcis++;
+  dci_msg_pack_pdsch(&ra_dl, &dci_tx[0], Format1, cell.nof_prb, false);
+  dci_location_set(&dci_locations[0], 0, 0);
 
   ra_pdsch_set_mcs(&ra_dl, QAM16, 15);
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[1], Format1, cell.nof_prb, false);
-  dci_msg_candidate_set(&dci_tx.msg[1], 0, 1, 1234);
-  dci_tx.nof_dcis++;
-
-  pdcch_encode(&pdcch, &dci_tx, slot_symbols, 0, cfi);
+  dci_msg_pack_pdsch(&ra_dl, &dci_tx[1], Format1, cell.nof_prb, false);
+  dci_location_set(&dci_locations[1], 0, 1);
+  
+  pdcch_reset(&pdcch);
+  
+  for (i=0;i<nof_dcis;i++) {
+    if (pdcch_encode_msg(&pdcch, &dci_tx[i], dci_locations[i], 1234+i)) {
+      goto quit;
+    }
+  }
+  if (pdcch_gen_symbols(&pdcch, slot_symbols, 0, cfi)) {
+    goto quit;
+  }
 
   /* combine outputs */
   for (i = 1; i < cell.nof_ports; i++) {
@@ -183,39 +191,26 @@ int main(int argc, char **argv) {
     }
   }
 
-  pdcch_init_search_ue(&pdcch, 1234, cfi);
-
-  dci_init(&dci_rx, 2);
-  nof_dcis = pdcch_decode(&pdcch, slot_symbols[0], ce, &dci_rx, 0, cfi);
-  if (nof_dcis < 0) {
-    printf("Error decoding\n");
-  } else if (nof_dcis == dci_tx.nof_dcis) {
-    for (i = 0; i < nof_dcis; i++) {
-      if (dci_tx.msg[i].location.L != dci_rx.msg[i].location.L
-          || dci_tx.msg[i].location.ncce != dci_rx.msg[i].location.ncce
-          || dci_tx.msg[i].location.nof_bits != dci_rx.msg[i].location.nof_bits
-          || dci_tx.msg[i].location.rnti != dci_rx.msg[i].location.rnti) {
-        printf("Error in DCI %d: Received location does not match\n", i);
-        dci_candidate_fprint(stdout, &dci_tx.msg[i].location);
-        dci_candidate_fprint(stdout, &dci_rx.msg[i].location);
-        goto quit;
-      }
-
-      if (memcmp(dci_tx.msg[i].data, dci_rx.msg[i].data,
-          dci_tx.msg[i].location.nof_bits)) {
-        printf("Error in DCI %d: Received data does not match\n", i);
-        goto quit;
-      }
-    }
-  } else {
-    printf("Transmitted %d DCIs but got %d\n", dci_tx.nof_dcis, nof_dcis);
+  if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, 0, cfi)) {
     goto quit;
   }
+  
+  for (i=0;i<nof_dcis;i++) {
+    if (pdcch_decode_msg(&pdcch, &dci_rx[i], dci_locations, 2, Format1, 1234+i) < 0) {
+      goto quit;
+    }
+  }
+  for (i = 0; i < nof_dcis; i++) {
+    if (memcmp(dci_tx[i].data, dci_rx[i].data, dci_tx[i].nof_bits)) {
+      printf("Error in DCI %d: Received data does not match\n", i);
+      goto quit;
+    }
+  }
   ret = 0;
-  quit: pdcch_free(&pdcch);
+
+quit: 
+  pdcch_free(&pdcch);
   regs_free(&regs);
-  dci_free(&dci_tx);
-  dci_free(&dci_rx);
 
   for (i = 0; i < MAX_PORTS; i++) {
     free(ce[i]);

@@ -229,7 +229,8 @@ int main(int argc, char **argv) {
   int i, n;
   char *data;
   cf_t *sf_symbols[MAX_PORTS];
-  dci_t dci_tx;
+  dci_msg_t dci_msg;
+  dci_location_t locations[NSUBFRAMES_X_FRAME][10];
 
 #ifdef DISABLE_UHD
   if (argc < 3) {
@@ -279,7 +280,6 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  dci_init(&dci_tx, 1);
   bzero(&ra_dl, sizeof(ra_pdsch_t));
   ra_dl.harq_process = 0;
   ra_pdsch_set_mcs(&ra_dl, QPSK, 5);
@@ -288,16 +288,18 @@ int main(int argc, char **argv) {
   ra_dl.alloc_type = alloc_type0;
   ra_dl.type0_alloc.rbg_bitmask = 0xffffffff;
   
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, cell.nof_prb, false);
-  dci_tx.nof_dcis++;
+  dci_msg_pack_pdsch(&ra_dl, &dci_msg, Format1, cell.nof_prb, false);
   
-  pdcch_init_search_ue(&pdcch, 1234, cfi);
-
   ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb);
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
   ra_dl.mcs.tbs = ra_tbs_from_idx(ra_dl.mcs.tbs_idx, cell.nof_prb);
 
   ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
+  
+  /* Initiate valid DCI locations */
+  for (i=0;i<NSUBFRAMES_X_FRAME;i++) {
+    pdcch_ue_locations(&pdcch, locations[i], 10, i, cfi, 1234);
+  }
 
   data = malloc(sizeof(char) * ra_dl.mcs.tbs);
   if (!data) {
@@ -331,11 +333,14 @@ int main(int argc, char **argv) {
       for (i=0;i<ra_dl.mcs.tbs;i++) {
         data[i] = rand()%2;
       }
-      dci_msg_candidate_set(&dci_tx.msg[0], pdcch.search_mode[2].candidates[0][sf_idx].L, 
-                            pdcch.search_mode[2].candidates[0][sf_idx].ncce, 1234);
-      INFO("Setting DCI candidate L: %d nCCE: %d\n", pdcch.search_mode[2].candidates[0][sf_idx].L,
-        pdcch.search_mode[2].candidates[0][sf_idx].ncce);
-      pdcch_encode(&pdcch, &dci_tx, sf_symbols, sf_idx, cfi);  
+      
+      if (pdcch_encode_msg(&pdcch, &dci_msg, locations[sf_idx][0], 1234)) {
+        fprintf(stderr, "Error encoding DCI message\n");
+        exit(-1);
+      }
+      
+      pdcch_gen_symbols(&pdcch, sf_symbols, sf_idx, cfi);
+      
       pdsch_encode(&pdsch, data, sf_symbols, sf_idx, ra_dl.mcs, &prb_alloc);        
 
       /* Transform to OFDM symbols */

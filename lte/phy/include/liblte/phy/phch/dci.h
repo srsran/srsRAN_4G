@@ -62,41 +62,26 @@ typedef enum {
 } dci_spec_t;
 
 typedef struct LIBLTE_API {
-  uint32_t nof_bits;
-  uint32_t L; // Aggregation level
+  uint32_t L;    // Aggregation level
   uint32_t ncce; // Position of first CCE of the dci
-  uint16_t rnti;
-} dci_candidate_t;
+} dci_location_t;
 
 typedef struct LIBLTE_API {
   char data[DCI_MAX_BITS];
-  dci_candidate_t location;
+  uint32_t nof_bits;
 } dci_msg_t;
 
-typedef struct LIBLTE_API {
-  dci_msg_t *msg;
-  uint32_t nof_dcis;
-  uint32_t max_dcis;
-} dci_t;
-
-LIBLTE_API int dci_init(dci_t *q, 
-                        uint32_t max_dci);
-
-LIBLTE_API void dci_free(dci_t *q);
 
 LIBLTE_API char* dci_format_string(dci_format_t format);
 
-LIBLTE_API int dci_msg_candidate_set(dci_msg_t *msg, 
-                                     uint32_t L, 
-                                     uint32_t nCCE, 
-                                     uint16_t rnti);
-
-LIBLTE_API void dci_candidate_fprint(FILE *f, 
-                                     dci_candidate_t *q);
+LIBLTE_API int dci_location_set(dci_location_t *c, 
+                                uint32_t L, 
+                                uint32_t nCCE);
 
 LIBLTE_API int dci_msg_get_type(dci_msg_t *msg, 
                                 dci_msg_type_t *type, 
                                 uint32_t nof_prb, 
+                                uint16_t msg_rnti, 
                                 uint16_t crnti);
 
 LIBLTE_API void dci_msg_type_fprint(FILE *f, 

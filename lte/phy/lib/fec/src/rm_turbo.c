@@ -30,16 +30,17 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "liblte/phy/fec/rm_turbo.h"
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
 
-unsigned char RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
+uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
     6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31 };
 
-int rm_turbo_init(rm_turbo_t *q, int buffer_len) {
+int rm_turbo_init(rm_turbo_t *q, uint32_t buffer_len) {
   q->buffer_len = buffer_len;
   q->buffer = malloc(buffer_len * sizeof(float));
   if (!q->buffer) {
@@ -60,15 +61,16 @@ void rm_turbo_free(rm_turbo_t *q) {
  *
  * TODO: Soft buffer size limitation according to UE category
  */
-int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output,
-    int out_len, int rv_idx) {
+int rm_turbo_tx(rm_turbo_t *q, char *input, uint32_t in_len, char *output,
+    uint32_t out_len, uint32_t rv_idx) {
 
   char *tmp = (char*) q->buffer;
-  int nrows, ndummy, K_p;
+  int ndummy, kidx; 
+  int nrows, K_p;
 
-  int i, j, k, s, kidx, N_cb, k0;
+  int i, j, k, s, N_cb, k0;
 
-  nrows = (int) (in_len / 3 - 1) / NCOLS + 1;
+  nrows = (uint32_t) (in_len / 3 - 1) / NCOLS + 1;
   K_p = nrows * NCOLS;
   if (3 * K_p > q->buffer_len) {
     fprintf(stderr,
@@ -113,10 +115,10 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output,
   }
 
   /* Bit selection and transmission 5.1.4.1.2 */
-  N_cb = 3 * K_p;	// TODO: Soft buffer size limitation
+  N_cb = 3 * K_p;       // TODO: Soft buffer size limitation
 
   k0 = nrows
-      * (2 * (int) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
+      * (2 * (uint32_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
   k = 0;
   j = 0;
 
@@ -133,8 +135,8 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, int in_len, char *output,
 /* Undoes Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1
  */
-int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output,
-    int out_len, int rv_idx) {
+int rm_turbo_rx(rm_turbo_t *q, float *input, uint32_t in_len, float *output,
+    uint32_t out_len, uint32_t rv_idx) {
 
   int nrows, ndummy, K_p, k0, N_cb, jp, kidx;
   int i, j, k;
@@ -143,7 +145,7 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output,
 
   float *tmp = (float*) q->buffer;
 
-  nrows = (int) (out_len / 3 - 1) / NCOLS + 1;
+  nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
   K_p = nrows * NCOLS;
   if (3 * K_p > q->buffer_len) {
     fprintf(stderr,
@@ -164,7 +166,7 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output,
   /* Undo bit collection. Account for dummy bits */
   N_cb = 3 * K_p;	// TODO: Soft buffer size limitation
   k0 = nrows
-      * (2 * (int) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
+      * (2 * (uint32_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
 
   k = 0;
   j = 0;
@@ -185,7 +187,7 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, int in_len, float *output,
         isdummy = true;
       }
     } else {
-      int jpp = (jp - K_p - 1) / 2;
+      uint32_t jpp = (jp - K_p - 1) / 2;
       kidx = (RM_PERM_TC[jpp / nrows] + NCOLS * (jpp % nrows) + 1) % K_p;
       if ((kidx - ndummy) < 0) {
         isdummy = true;

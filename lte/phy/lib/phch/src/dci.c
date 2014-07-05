@@ -40,42 +40,20 @@
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/debug.h"
 
-int dci_init(dci_t *q, uint32_t max_dcis) {
-  q->msg = calloc(sizeof(dci_msg_t), max_dcis);
-  if (!q->msg) {
-    perror("malloc");
-    return LIBLTE_ERROR;
-  }
-  q->nof_dcis = 0;
-  q->max_dcis = max_dcis;
-  return LIBLTE_SUCCESS;
-}
 
-void dci_free(dci_t *q) {
-  if (q->msg) {
-    free(q->msg);
-  }
-}
-
-void dci_candidate_fprint(FILE *f, dci_candidate_t *q) {
-  fprintf(f, "L: %d, nCCE: %d, RNTI: 0x%x, nBits: %d\n", q->L, q->ncce, q->rnti,
-      q->nof_bits);
-}
-
-int dci_msg_candidate_set(dci_msg_t *msg, uint32_t L, uint32_t nCCE, uint16_t rnti) {
-  if (L >= 0 && L <= 3) {
-    msg->location.L = L;
+int dci_location_set(dci_location_t *c, uint32_t L, uint32_t nCCE) {
+  if (L <= 3) {
+    c->L = L;
   } else {
     fprintf(stderr, "Invalid L %d\n", L);
     return LIBLTE_ERROR;
   }
-  if (nCCE >= 0 && nCCE <= 87) {
-    msg->location.ncce = nCCE;
+  if (nCCE <= 87) {
+    c->ncce = nCCE;
   } else {
     fprintf(stderr, "Invalid nCCE %d\n", nCCE);
     return LIBLTE_ERROR;
   }
-  msg->location.rnti = rnti;
   return LIBLTE_SUCCESS;
 }
 
@@ -245,7 +223,7 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   while (y - msg->data < n) {
     *y++ = 0;
   }
-  msg->location.nof_bits = (y - msg->data);
+  msg->nof_bits = (y - msg->data);
   return LIBLTE_SUCCESS;
 }
 /* Unpacks DCI format 0 data and store result in msg according
@@ -260,7 +238,7 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
   uint32_t n_ul_hop;
 
   /* Make sure it's a Format0 message */
-  if (msg->location.nof_bits != dci_format_sizeof(Format0, nof_prb)) {
+  if (msg->nof_bits != dci_format_sizeof(Format0, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 0\n");
     return LIBLTE_ERROR;
   }
@@ -385,7 +363,7 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   while (y - msg->data < n) {
     *y++ = 0;
   }
-  msg->location.nof_bits = (y - msg->data);
+  msg->nof_bits = (y - msg->data);
 
   return LIBLTE_SUCCESS;
 }
@@ -396,7 +374,7 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
   char *y = msg->data;
 
   /* Make sure it's a Format1 message */
-  if (msg->location.nof_bits != dci_format_sizeof(Format1, nof_prb)) {
+  if (msg->nof_bits != dci_format_sizeof(Format1, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1\n");
     return LIBLTE_ERROR;
   }
@@ -551,7 +529,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
   while (y - msg->data < n) {
     *y++ = 0;
   }
-  msg->location.nof_bits = (y - msg->data);
+  msg->nof_bits = (y - msg->data);
 
   return LIBLTE_SUCCESS;
 }
@@ -566,7 +544,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   char *y = msg->data;
 
   /* Make sure it's a Format0 message */
-  if (msg->location.nof_bits != dci_format_sizeof(Format1A, nof_prb)) {
+  if (msg->nof_bits != dci_format_sizeof(Format1A, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1A\n");
     return LIBLTE_ERROR;
   }
@@ -692,7 +670,7 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   }
   bit_pack((uint32_t) mcs, &y, 5);
 
-  msg->location.nof_bits = (y - msg->data);
+  msg->nof_bits = (y - msg->data);
 
   return LIBLTE_SUCCESS;
 }
@@ -703,7 +681,7 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
   /* pack bits */
   char *y = msg->data;
 
-  if (msg->location.nof_bits != dci_format_sizeof(Format1C, nof_prb)) {
+  if (msg->nof_bits != dci_format_sizeof(Format1C, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1C\n");
     return LIBLTE_ERROR;
   }
@@ -728,7 +706,7 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
   data->mcs.tbs = ra_tbs_from_idx_format1c(data->mcs.tbs_idx);
   data->mcs.mod = QPSK;
 
-  msg->location.nof_bits = (y - msg->data);
+  msg->nof_bits = (y - msg->data);
 
   return LIBLTE_SUCCESS;
 }
@@ -751,11 +729,11 @@ int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format,
 
 int dci_msg_unpack_pdsch(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
     bool crc_is_crnti) {
-  if (msg->location.nof_bits == dci_format_sizeof(Format1, nof_prb)) {
+  if (msg->nof_bits == dci_format_sizeof(Format1, nof_prb)) {
     return dci_format1_unpack(msg, data, nof_prb);
-  } else if (msg->location.nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
+  } else if (msg->nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
     return dci_format1As_unpack(msg, data, nof_prb, crc_is_crnti);
-  } else if (msg->location.nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
+  } else if (msg->nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
     return dci_format1Cs_unpack(msg, data, nof_prb);
   } else {
     return LIBLTE_ERROR;
@@ -807,18 +785,18 @@ void dci_msg_type_fprint(FILE *f, dci_msg_type_t type) {
 }
 
 int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
-    uint16_t crnti) {
-  if (msg->location.nof_bits == dci_format_sizeof(Format0, nof_prb)
+    uint16_t msg_rnti, uint16_t crnti) {
+  if (msg->nof_bits == dci_format_sizeof(Format0, nof_prb)
       && !msg->data[0]) {
     type->type = PUSCH_SCHED;
     type->format = Format0;
     return LIBLTE_SUCCESS;
-  } else if (msg->location.nof_bits == dci_format_sizeof(Format1, nof_prb)) {
+  } else if (msg->nof_bits == dci_format_sizeof(Format1, nof_prb)) {
     type->type = PDSCH_SCHED; // only these 2 types supported
     type->format = Format1;
     return LIBLTE_SUCCESS;
-  } else if (msg->location.nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
-    if (msg->location.rnti == crnti) {
+  } else if (msg->nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
+    if (msg_rnti == crnti) {
       type->type = RA_PROC_PDCCH;
       type->format = Format1A;
     } else {
@@ -826,8 +804,8 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
       type->format = Format1A;
     }
     return LIBLTE_SUCCESS;
-  } else if (msg->location.nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
-    if (msg->location.rnti == MRNTI) {
+  } else if (msg->nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
+    if (msg_rnti == MRNTI) {
       type->type = MCCH_CHANGE;
       type->format = Format1C;
     } else {

@@ -144,7 +144,7 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
       goto clean;
     }
 
-    int poly[3] = { 0x6D, 0x4F, 0x57 };
+    uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
     if (viterbi_init(&q->decoder, viterbi_37, poly, 40, true)) {
       goto clean;
     }

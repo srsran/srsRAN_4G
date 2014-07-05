@@ -81,9 +81,8 @@ int main(int argc, char **argv) {
   printf("\n");
 
   dci_msg_type_t dci_type;
-  msg.location.rnti = SIRNTI;
-  msg.location.nof_bits = len;
-  if (dci_msg_get_type(&msg, &dci_type, nof_prb, 1234)) {
+  msg.nof_bits = len;
+  if (dci_msg_get_type(&msg, &dci_type, nof_prb, SIRNTI, 1234)) {
     fprintf(stderr, "Can't obtain DCI message type\n");
     exit(-1);
   }

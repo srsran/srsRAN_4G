@@ -44,21 +44,17 @@
 
 typedef _Complex float cf_t;
 
-#define PDCCH_NOF_SEARCH_MODES  3
-#define MAX_CANDIDATES  32
+#define NOF_COMMON_FORMATS      2
+const dci_format_t common_formats[NOF_COMMON_FORMATS] = { Format1A, Format1C };
+
+#define NOF_UE_FORMATS          2
+const dci_format_t ue_formats[NOF_UE_FORMATS] = { Format0, Format1 }; // 1A has the same payload as 0
+
 
 typedef enum LIBLTE_API {
-  SEARCH_NONE = 3, SEARCH_SI = 0, SEARCH_RA = 1, SEARCH_UE = 2
+  SEARCH_UE, SEARCH_COMMON
 } pdcch_search_mode_t;
 
-/*
- * A search mode is indicated by higher layers to look for SI/C/RA-RNTI
- * DCI messages as defined in Section 7.1 of 36.213
- */
-typedef struct LIBLTE_API {
-  uint32_t nof_candidates;
-  dci_candidate_t candidates[NSUBFRAMES_X_FRAME][MAX_CANDIDATES];
-} pdcch_search_t;
 
 /* PDCCH object */
 typedef struct LIBLTE_API {
@@ -68,9 +64,6 @@ typedef struct LIBLTE_API {
   uint32_t nof_regs;
   uint32_t nof_cce;
   uint32_t max_bits;
-
-  pdcch_search_t search_mode[PDCCH_NOF_SEARCH_MODES];
-  pdcch_search_mode_t current_search_mode;
 
   regs_t *regs;
 
@@ -97,62 +90,47 @@ LIBLTE_API int pdcch_init(pdcch_t *q,
 LIBLTE_API void pdcch_free(pdcch_t *q);
 
 
-/* Encoding functions */
-LIBLTE_API int pdcch_encode(pdcch_t *q, 
-                            dci_t *dci, 
-                            cf_t *slot_symbols[MAX_PORTS],
-                            uint32_t nsubframe, 
-                            uint32_t cfi);
+/* Encoding function */
+LIBLTE_API void pdcch_reset(pdcch_t *q);
 
-/* Decoding functions */
+LIBLTE_API int pdcch_encode_msg(pdcch_t *q, 
+                                dci_msg_t *msg,
+                                dci_location_t location,
+                                uint16_t rnti);
 
-/* There are two ways to decode the DCI messages:
- * a) call pdcch_set_search_si/ue/ra and then call pdcch_decode()
- * b) call pdcch_extract_llr() and then call pdcch_decode_si/ue/ra
- */
-
-LIBLTE_API int pdcch_decode(pdcch_t *q, 
-                            cf_t *slot_symbols, 
-                            cf_t *ce[MAX_PORTS],
-                            dci_t *dci, 
-                            uint32_t nsubframe, 
-                            uint32_t cfi);
-
-LIBLTE_API int pdcch_extract_llr(pdcch_t *q, 
-                                 cf_t *slot_symbols, 
-                                 cf_t *ce[MAX_PORTS],
-                                 float *llr, 
-                                 uint32_t nsubframe,
+LIBLTE_API int pdcch_gen_symbols(pdcch_t *q, 
+                                 cf_t *sf_symbols[MAX_PORTS],
+                                 uint32_t nsubframe, 
                                  uint32_t cfi);
 
-LIBLTE_API int pdcch_init_search_si(pdcch_t *q,
-                                    uint32_t cfi);
 
-LIBLTE_API void pdcch_set_search_si(pdcch_t *q);
+/* Decoding functions: Extract the LLRs and save them in the pdcch_t object */
+LIBLTE_API int pdcch_extract_llr(pdcch_t *q, 
+                                 cf_t *sf_symbols, 
+                                 cf_t *ce[MAX_PORTS],
+                                 uint32_t nsubframe, 
+                                 uint32_t cfi);
 
-LIBLTE_API int pdcch_decode_si(pdcch_t *q, 
-                               float *llr, 
-                               dci_t *dci);
+/* Decoding functions: Try to decode a DCI message after calling pdcch_extract_llr */
+LIBLTE_API int pdcch_decode_msg(pdcch_t *q, 
+                                dci_msg_t *msg, 
+                                dci_location_t *locations,
+                                uint32_t nof_locations,
+                                dci_format_t format,
+                                uint16_t rnti);
 
-LIBLTE_API int pdcch_init_search_ue(pdcch_t *q, 
-                                     uint16_t c_rnti,
-                                     uint32_t cfi);
+/* Function for generation of UE-specific search space DCI locations */
+LIBLTE_API uint32_t pdcch_ue_locations(pdcch_t *q, 
+                                       dci_location_t *locations, 
+                                       uint32_t max_locations,
+                                       uint32_t nsubframe, 
+                                       uint32_t cfi,
+                                       uint16_t rnti);
 
-LIBLTE_API void pdcch_set_search_ue(pdcch_t *q);
-
-LIBLTE_API int pdcch_decode_ue(pdcch_t *q, 
-                               float *llr, 
-                               dci_t *dci, 
-                               uint32_t nsubframe);
-
-LIBLTE_API int pdcch_init_search_ra(pdcch_t *q, 
-                                     uint16_t ra_rnti,
-                                     uint32_t cfi);
-
-LIBLTE_API void pdcch_set_search_ra(pdcch_t *q);
-
-LIBLTE_API int pdcch_decode_ra(pdcch_t *q, 
-                               float *llr, 
-                               dci_t *dci);
+/* Function for generation of common search space DCI locations */
+LIBLTE_API uint32_t pdcch_common_locations(pdcch_t *q, 
+                                           dci_location_t *locations, 
+                                           uint32_t max_locations,
+                                           uint32_t cfi);
 
 #endif

@@ -28,15 +28,16 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <math.h>
 
 #include "liblte/phy/fec/convcoder.h"
 #include "parity.h"
 
-int convcoder_encode(convcoder_t *q, char *input, char *output, int frame_length) {
-  unsigned int sr;
-  int i,j;
-  int len = q->tail_biting ? frame_length : (frame_length + q->K - 1);
+int convcoder_encode(convcoder_t *q, char *input, char *output, uint32_t frame_length) {
+  uint32_t sr;
+  uint32_t i,j;
+  uint32_t len = q->tail_biting ? frame_length : (frame_length + q->K - 1);
 
   if (q->tail_biting) {
     sr = 0;
