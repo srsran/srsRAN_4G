@@ -64,7 +64,7 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
   uint32_t s, n, l, lp, lstart, lend, nof_refs;
   bool is_pbch, is_sss;
   cf_t *in_ptr = input, *out_ptr = output;
-  uint32_t offset;
+  uint32_t offset = 0;
 
   INFO("%s %d RE from %d PRB\n", put ? "Putting" : "Getting",
       prb_alloc->re_sf[nsubframe], prb_alloc->slot[0].nof_prb);
