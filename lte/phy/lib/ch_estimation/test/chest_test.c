@@ -123,9 +123,7 @@ int main(int argc, char **argv) {
   int max_cid;
   FILE *fmatlab = NULL;
   float mse_mag, mse_phase;
-  lte_cell_t cell;
   
-  cell.nof_ports = 1;
   parse_args(argc,argv);
 
   if (output_matlab) {
@@ -161,7 +159,7 @@ int main(int argc, char **argv) {
     cid = cell.id;
     max_cid = cell.id;
   }
-  
+
   while(cid <= max_cid) {
     cell.id = cid; 
     if (chest_init_LTEDL(&eq, LINEAR, cell)) {
@@ -171,6 +169,11 @@ int main(int argc, char **argv) {
 
     for (n_slot=0;n_slot<NSLOTS_X_FRAME;n_slot++) {
       for (n_port=0;n_port<cell.nof_ports;n_port++) {
+
+        if (refsignal_init_LTEDL(&refs, n_port, n_slot, cell)) {
+          fprintf(stderr, "Error initiating CRS slot=%d\n", i);
+          return -1;
+        }
 
         bzero(input, sizeof(cf_t) * num_re);
         for (i=0;i<num_re;i++) {

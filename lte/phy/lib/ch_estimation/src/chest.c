@@ -104,6 +104,7 @@ int chest_ce_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint
     if (nref < q->refsignal[port_id][nslot].nof_refs) {
       fidx = q->refsignal[port_id][nslot].refs[nref].freq_idx; // reference frequency index
       tidx = q->refsignal[port_id][nslot].refs[nref].time_idx; // reference time index
+
       known_ref = q->refsignal[port_id][nslot].refs[nref].simbol;
       channel_ref = input[tidx * q->nof_re + fidx];
       q->refsignal[port_id][nslot].refs[nref].recv_simbol = channel_ref;
@@ -129,7 +130,7 @@ int chest_ce_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint
  * Saves the nof_prb * 12 * nof_symbols channel estimates in the array ce
  */
 int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32_t port_id) {
-  int i, j;
+  uint32_t i, j;
   cf_t x[2], y[MAX_NSYMB];
 
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
@@ -228,7 +229,7 @@ int chest_init(chest_t *q, chest_interp_t interp, uint32_t nof_re, uint32_t nof_
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (q         != NULL &&
-      nof_ports <  MAX_PORTS)
+      nof_ports <=  MAX_PORTS)
   {
     bzero(q, sizeof(chest_t));
 
@@ -263,7 +264,7 @@ int chest_ref_LTEDL_slot_port(chest_t *q, uint32_t nslot, uint32_t port_id, lte_
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (q         != NULL         && 
-      port_id      < MAX_PORTS     &&
+      port_id   < MAX_PORTS     &&
       nslot     < NSLOTS_X_FRAME)
   {
     ret = refsignal_init_LTEDL(&q->refsignal[port_id][nslot], port_id, nslot, cell);
