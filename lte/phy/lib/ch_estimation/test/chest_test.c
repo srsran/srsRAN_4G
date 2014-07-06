@@ -125,6 +125,7 @@ int main(int argc, char **argv) {
   float mse_mag, mse_phase;
   lte_cell_t cell;
   
+  cell.nof_ports = 1;
   parse_args(argc,argv);
 
   if (output_matlab) {

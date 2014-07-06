@@ -647,7 +647,7 @@ int main(int argc, char **argv) {
   /* Initialize variables */
   frame_cnt = 0;
   frame_number = -1;
-  
+    
   /* The number of samples read from the USRP or file corresponds to 1 ms (subframe) */
   sf_n_samples = 1920 * lte_symbol_sz(sampling_nof_prb)/128;
   
@@ -665,6 +665,8 @@ int main(int argc, char **argv) {
     } else {
       ret = sync_frame_push(&sframe, input_buffer, sf_buffer);
       in_ptr = sf_buffer;
+      cell_id = 0;
+      sf_idx = 0;
     }
     switch(ret ) {
       case 0:
