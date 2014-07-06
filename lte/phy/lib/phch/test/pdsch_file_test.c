@@ -218,7 +218,6 @@ int main(int argc, char **argv) {
   ra_pdsch_t ra_dl;
   ra_prb_t prb_alloc;
   int i;
-  int nof_dcis;
   int nof_frames;
   int ret;
   char *data;
@@ -280,17 +279,20 @@ int main(int argc, char **argv) {
         }
       }
       
-      pdcch_extract_llr(&pdcch, fft_buffer, ce, nof_frames, cfi);
-
-      nof_dcis = pdcch_decode_msg(&pdcch, &dci_msg, locations, nof_locations, Format1A, rnti);
-      if (nof_dcis < 0) {
-        fprintf(stderr, "Error decoding DCI messages\n");
-        return -1;
+      
+      uint16_t crc_rem = 0;
+      for (i=0;i<nof_locations && crc_rem != rnti;i++) {
+        if (pdcch_extract_llr(&pdcch, fft_buffer, ce, locations[i], nof_frames, cfi)) {
+          fprintf(stderr, "Error extracting LLRs\n");
+          return -1;
+        }
+        if (pdcch_decode_msg(&pdcch, &dci_msg, Format1A, &crc_rem)) {
+          fprintf(stderr, "Error decoding DCI msg\n");
+          return -1;
+        }
       }
-
-      INFO("Received %d DCI messages\n", nof_dcis);
-
-      if (nof_dcis == 1) {
+      
+      if (crc_rem == rnti) {
         dci_msg_type_t type;
         if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti, 1234)) {
           fprintf(stderr, "Can't get DCI message type\n");

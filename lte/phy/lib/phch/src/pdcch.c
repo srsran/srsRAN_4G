@@ -54,8 +54,6 @@ static void set_cfi(pdcch_t *q, uint32_t cfi) {
   if (cfi > 0 && cfi < 4) {
     q->nof_regs = (regs_pdcch_nregs(q->regs, cfi) / 9) * 9;
     q->nof_cce = q->nof_regs / 9;
-    q->nof_symbols = 4 * q->nof_regs;
-    q->nof_bits = 2 * q->nof_symbols;    
   } 
 }
 
@@ -63,7 +61,7 @@ static void set_cfi(pdcch_t *q, uint32_t cfi) {
 /** Initializes the PDCCH transmitter and receiver */
 int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
-  int i;
+  uint32_t i;
 
   if (q                         != NULL &&
       regs                      != NULL &&
@@ -74,13 +72,10 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
     q->cell = cell;
     q->regs = regs;
 
-    /* Now allocate memory for the maximum number of REGs (CFI=3)
-    */
-    set_cfi(q, 3);
-    q->max_bits = q->nof_bits;
+    /* Allocate memory for the largest aggregation level L=3 */
+    q->max_bits = PDCCH_FORMAT_NOF_BITS(3);
 
-    INFO("Init PDCCH: %d CCEs (%d REGs), %d bits, %d symbols, %d ports\n",
-        q->nof_cce, q->nof_regs, q->nof_bits, q->nof_symbols, q->cell.nof_ports);
+    INFO("Init PDCCH: %d bits, %d symbols, %d ports\n", q->max_bits, q->max_bits/2, q->cell.nof_ports);
 
     if (modem_table_std(&q->mod, LTE_QPSK, true)) {
       goto clean;
@@ -94,7 +89,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
     demod_soft_alg_set(&q->demod, APPROX);
 
     for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
-      if (sequence_pdcch(&q->seq_pdcch[i], 2 * i, q->cell.id, q->nof_bits)) {
+      if (sequence_pdcch(&q->seq_pdcch[i], 2 * i, q->cell.id, q->max_bits)) {
         goto clean;
       }
     }
@@ -104,31 +99,31 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
       goto clean;
     }
 
-    q->pdcch_e = malloc(sizeof(char) * q->nof_bits);
+    q->pdcch_e = malloc(sizeof(char) * q->max_bits);
     if (!q->pdcch_e) {
       goto clean;
     }
 
-    q->pdcch_llr = malloc(sizeof(float) * q->nof_bits);
+    q->pdcch_llr = malloc(sizeof(float) * q->max_bits);
     if (!q->pdcch_llr) {
       goto clean;
     }
 
-    q->pdcch_d = malloc(sizeof(cf_t) * q->nof_symbols);
+    q->pdcch_d = malloc(sizeof(cf_t) * q->max_bits / 2);
     if (!q->pdcch_d) {
       goto clean;
     }
 
     for (i = 0; i < MAX_PORTS; i++) {
-      q->ce[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->ce[i] = malloc(sizeof(cf_t) * q->max_bits / 2);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->pdcch_x[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->pdcch_x[i] = malloc(sizeof(cf_t) * q->max_bits / 2);
       if (!q->pdcch_x[i]) {
         goto clean;
       }
-      q->pdcch_symbols[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->pdcch_symbols[i] = malloc(sizeof(cf_t) * q->max_bits / 2);
       if (!q->pdcch_symbols[i]) {
         goto clean;
       }
@@ -277,10 +272,6 @@ static int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof
       nof_bits  < DCI_MAX_BITS)
   {
 
-    if (VERBOSE_ISDEBUG()) {
-      vec_fprint_f(stdout, e, E);
-    }
-
     /* unrate matching */
     rm_conv_rx(e, E, tmp, 3 * (nof_bits + 16));
 
@@ -299,7 +290,7 @@ static int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof
     x = &data[nof_bits];
     p_bits = (uint16_t) bit_unpack(&x, 16);
     crc_res = ((uint16_t) crc_checksum(&q->crc, data, nof_bits) & 0xffff);
-    DEBUG("p_bits: 0x%x, crc_res: 0x%x, tot: 0x%x\n", p_bits, crc_res,
+    DEBUG("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
         p_bits ^ crc_res);
     
     if (crc) {
@@ -313,123 +304,113 @@ static int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof
 
 /** Tries to decode a DCI message from the LLRs stored in the pdcch_t structure by the function 
  * pdcch_extract_llr(). This function can be called multiple times. 
- * The decoded message is stored in msg. Up to nof_locations are tried from the array of dci_locations_t
- * pointed by locations. The CRC is checked agains the RNTI parameter. 
+ * The decoded message is stored in msg and the CRC remainder in crc_rem pointer
  * 
- * Returns 1 if the message is correctly decoded, 0 if not and -1 on error.  
  */
-int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, 
-                     dci_location_t *locations, uint32_t nof_locations,
-                     dci_format_t format, uint16_t rnti) 
+int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_format_t format, uint16_t *crc_rem) 
 {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
   if (q                 != NULL && 
       msg               != NULL && 
-      locations         != NULL && 
-      nof_locations     >  0)
+      crc_rem           != NULL)
   {
-    uint16_t crc_res;
     uint32_t nof_bits = dci_format_sizeof(format, q->cell.nof_prb);
-    uint32_t i;
     
-    i = 0;
-    do {
-      INFO("Trying Candidate: Nbits: %d, E: %3d, nCCE: %d, L: %d, RNTI: 0x%x\n",
-          nof_bits, PDCCH_FORMAT_NOF_BITS(locations[i].L), locations[i].ncce, locations[i].L, rnti);    
-      
-      if (dci_decode(q, &q->pdcch_llr[72 * locations[i].ncce], msg->data,
-          PDCCH_FORMAT_NOF_BITS(locations[i].L), nof_bits, &crc_res) != LIBLTE_SUCCESS) {
-        return LIBLTE_ERROR;
-      }
-      if (crc_res != rnti) {
-        i++;
-      }
-    } while(i < nof_locations && crc_res != rnti);
-    
-    if (rnti == crc_res) {
+    ret = dci_decode(q, q->pdcch_llr, msg->data, q->e_bits, nof_bits, crc_rem);
+    if (ret == LIBLTE_SUCCESS) {
       msg->nof_bits = nof_bits;
-      INFO("FOUND Candidate: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
-          nof_bits, PDCCH_FORMAT_NOF_BITS(locations[i].L), locations[i].ncce, locations[i].L, rnti);
-      return 1;
-    } else {
-      return LIBLTE_SUCCESS;      
-    }    
+    }
   }
-  return LIBLTE_ERROR_INVALID_INPUTS;
+  return ret;
 }
 
-/** Extracts the LLRs from the subframe symbols (demodulation) and stores them in the pdcch_t structure. 
- * DCI messages can be extracted calling the function pdcch_decode_msg(). 
- * Every time this function is called, the last demodulated symbols are overwritten. 
+/** Extracts the LLRs from dci_location_t location of the subframe and stores them in the pdcch_t structure. 
+ * DCI messages can be extracted from this location calling the function pdcch_decode_msg(). 
+ * Every time this function is called (with a different location), the last demodulated symbols are overwritten and
+ * new messages from other locations can be decoded 
  */
-int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], uint32_t nsubframe, uint32_t cfi) {
+int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], 
+                      dci_location_t location, uint32_t nsubframe, uint32_t cfi) {
 
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
   /* Set pointers for layermapping & precoding */
-  uint32_t i;
+  uint32_t i, nof_symbols;
   cf_t *x[MAX_LAYERS];
 
   if (q                 != NULL && 
       nsubframe         <  10   &&
       cfi               >  0    &&
-      cfi               <  4)
+      cfi               <  4    &&
+     dci_location_isvalid(&location))
   {
     set_cfi(q, cfi);
     
-    /* number of layers equals number of ports */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      x[i] = q->pdcch_x[i];
-    }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+    q->e_bits = PDCCH_FORMAT_NOF_BITS(location.L);
+    nof_symbols = q->e_bits/2;
+    ret = LIBLTE_ERROR;
+    
+    if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce) {  
+      
+      INFO("Extracting LLRs: E: %d, nCCE: %d, L: %d\n",
+          q->e_bits, location.ncce, location.L);
 
-    /* extract symbols */
-    int n = regs_pdcch_get(q->regs, sf_symbols, q->pdcch_symbols[0]);
-    if (q->nof_symbols != n) {
-      fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n",
-          q->nof_symbols, n);
-      return LIBLTE_ERROR;
-    }
-
-    /* extract channel estimates */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      n = regs_pdcch_get(q->regs, ce[i], q->ce[i]);
-      if (q->nof_symbols != n) {
-        fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n",
-            q->nof_symbols, n);
-        return LIBLTE_ERROR;
+      /* number of layers equals number of ports */
+      for (i = 0; i < q->cell.nof_ports; i++) {
+        x[i] = q->pdcch_x[i];
       }
-    }
+      memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
 
-    /* in control channels, only diversity is supported */
-    if (q->cell.nof_ports == 1) {
-      /* no need for layer demapping */
-      predecoding_single_zf(q->pdcch_symbols[0], q->ce[0], q->pdcch_d,
-          q->nof_symbols);
+      /* extract symbols */
+      int n = regs_pdcch_get_offset(q->regs, sf_symbols, q->pdcch_symbols[0], 
+                                    location.ncce * 9, PDCCH_FORMAT_NOF_REGS(location.L));
+      if (nof_symbols != n) {
+        fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
+        return ret;
+      }
+
+      /* extract channel estimates */
+      for (i = 0; i < q->cell.nof_ports; i++) {
+        n = regs_pdcch_get_offset(q->regs, ce[i], q->ce[i], 
+                                  location.ncce * 9, PDCCH_FORMAT_NOF_REGS(location.L));
+        if (nof_symbols != n) {
+          fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
+          return ret;
+        }
+      }
+
+      /* in control channels, only diversity is supported */
+      if (q->cell.nof_ports == 1) {
+        /* no need for layer demapping */
+        predecoding_single_zf(q->pdcch_symbols[0], q->ce[0], q->pdcch_d, nof_symbols);
+      } else {
+        predecoding_diversity_zf(q->pdcch_symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols);
+        layerdemap_diversity(x, q->pdcch_d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
+      }
+
+      DEBUG("pdcch d symbols: ", 0);
+      if (VERBOSE_ISDEBUG()) {
+        vec_fprint_c(stdout, q->pdcch_d, nof_symbols);
+      }
+
+      /* demodulate symbols */
+      demod_soft_sigma_set(&q->demod, 1.0);
+      demod_soft_demodulate(&q->demod, q->pdcch_d, q->pdcch_llr, nof_symbols);
+
+      DEBUG("llr: ", 0);
+      if (VERBOSE_ISDEBUG()) {
+        vec_fprint_f(stdout, q->pdcch_llr, q->e_bits);
+      }
+
+      /* descramble */
+      scrambling_f_offset(&q->seq_pdcch[nsubframe], q->pdcch_llr, 72 * location.ncce, q->e_bits);
+
+      ret = LIBLTE_SUCCESS;
     } else {
-      predecoding_diversity_zf(q->pdcch_symbols[0], q->ce, x, q->cell.nof_ports,
-          q->nof_symbols);
-      layerdemap_diversity(x, q->pdcch_d, q->cell.nof_ports,
-          q->nof_symbols / q->cell.nof_ports);
+        fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d\n",  location.ncce, location.L, q->nof_cce);
     }
-
-    DEBUG("pdcch d symbols: ", 0);
-    if (VERBOSE_ISDEBUG()) {
-      vec_fprint_c(stdout, q->pdcch_d, q->nof_symbols);
-    }
-
-    /* demodulate symbols */
-    demod_soft_sigma_set(&q->demod, 1.0);
-    demod_soft_demodulate(&q->demod, q->pdcch_d, q->pdcch_llr, q->nof_symbols);
-
-    DEBUG("llr: ", 0);
-    if (VERBOSE_ISDEBUG()) {
-      vec_fprint_f(stdout, q->pdcch_llr, q->nof_bits);
-    }
-
-    /* descramble */
-    scrambling_f_offset(&q->seq_pdcch[nsubframe], q->pdcch_llr, 0, q->nof_bits);
-
-    return LIBLTE_SUCCESS;
   } 
-  return LIBLTE_ERROR_INVALID_INPUTS;  
+  return ret;  
 }
 
 
@@ -487,91 +468,79 @@ static int dci_encode(pdcch_t *q, char *data, char *e, uint32_t nof_bits, uint32
   }
 }
 
-void pdcch_reset(pdcch_t *q) {
-    /* should add <NIL> elements? Or maybe random bits to facilitate power estimation */
-    bzero(q->pdcch_e, q->nof_bits);
-}
-
 /** Encodes ONE DCI message and allocates the encoded bits to the dci_location_t indicated by 
  * the parameter location. The CRC is scrambled with the RNTI parameter. 
- * This function can be called multiple times and encoded DCI messages will be stored in the 
- * pdcch_t structure. A final call to the function pdcch_gen_symbols() will generate and map the 
- * symbols to the subframe for transmission. 
+ * This function can be called multiple times and encoded DCI messages will be allocated to the 
+ * sf_symbols buffer ready for transmission. 
  * If the same location is provided in multiple messages, the encoded bits will be overwritten. 
  * 
  * @TODO: Use a bitmask and CFI to ensure message locations are valid and old messages are not overwritten. 
  */
-int pdcch_encode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t rnti) {
+int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t rnti, 
+                 cf_t *sf_symbols[MAX_PORTS], uint32_t nsubframe, uint32_t cfi) {
 
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  uint32_t i;
+  cf_t *x[MAX_LAYERS];
+  uint32_t nof_symbols;
   
-  if (q != NULL) {
+  if (q                 != NULL &&
+      sf_symbols        != NULL && 
+      nsubframe         <  10   &&
+      cfi               >  0    &&
+      cfi               <  4    && 
+      dci_location_isvalid(&location))
+  {
+
+    set_cfi(q, cfi);
+
+    q->e_bits = PDCCH_FORMAT_NOF_BITS(location.L);
+    nof_symbols = q->e_bits/2;
     ret = LIBLTE_ERROR;
     
-    if (location.L < 4       &&
+    if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce && 
         msg->nof_bits < DCI_MAX_BITS) 
     {      
       INFO("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
-          msg->nof_bits,
-          PDCCH_FORMAT_NOF_BITS(location.L),
-          location.ncce, location.L, rnti);
+          msg->nof_bits, q->e_bits, location.ncce, location.L, rnti);
 
-      dci_encode(q, msg->data, &q->pdcch_e[72 * location.ncce], msg->nof_bits, 
-                 PDCCH_FORMAT_NOF_BITS(location.L), rnti);
+      dci_encode(q, msg->data, q->pdcch_e, msg->nof_bits, q->e_bits, rnti);
     
+      /* number of layers equals number of ports */
+      for (i = 0; i < q->cell.nof_ports; i++) {
+        x[i] = q->pdcch_x[i];
+      }
+      memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+
+      scrambling_b_offset(&q->seq_pdcch[nsubframe], q->pdcch_e, 72 * location.ncce, q->e_bits);
+      
+      DEBUG("Scrambling output: ", 0);
+      if (VERBOSE_ISDEBUG()) {        
+        vec_fprint_b(stdout, q->pdcch_e, q->e_bits);
+      }
+
+      mod_modulate(&q->mod, q->pdcch_e, q->pdcch_d, q->e_bits);
+
+      /* layer mapping & precoding */
+      if (q->cell.nof_ports > 1) {
+        layermap_diversity(q->pdcch_d, x, q->cell.nof_ports, nof_symbols);
+        precoding_diversity(x, q->pdcch_symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
+      } else {
+        memcpy(q->pdcch_symbols[0], q->pdcch_d, nof_symbols * sizeof(cf_t));
+      }
+      
+      /* mapping to resource elements */
+      for (i = 0; i < q->cell.nof_ports; i++) {
+        regs_pdcch_put_offset(q->regs, q->pdcch_symbols[i], sf_symbols[i], 
+                              location.ncce * 9, PDCCH_FORMAT_NOF_REGS(location.L));
+      }
+      
       ret = LIBLTE_SUCCESS;
       
     } else {
-        fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d\n", 
-                location.ncce, location.L, q->nof_cce);
+        fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d\n", location.ncce, location.L, q->nof_cce);
     }
   } 
   return ret;
 }
-
-/** Converts the set of DCI messages encoded using the function pdcch_encode_msg() 
- * to symbols mapped to the subframe ready for transmission
- */
-int pdcch_gen_symbols(pdcch_t *q, cf_t *slot_symbols[MAX_PORTS], uint32_t nsubframe, uint32_t cfi) {
-  int i;
-  /* Set pointers for layermapping & precoding */
-  cf_t *x[MAX_LAYERS];
-  
-  if (q                 != NULL && 
-      slot_symbols      != NULL && 
-      nsubframe         <  10   &&
-      cfi               >  0    &&
-      cfi               <  4)
-  {
-    set_cfi(q, cfi);
-
-    /* number of layers equals number of ports */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      x[i] = q->pdcch_x[i];
-    }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
-
-    scrambling_b_offset(&q->seq_pdcch[nsubframe], q->pdcch_e, 0, q->nof_bits);
-
-    mod_modulate(&q->mod, q->pdcch_e, q->pdcch_d, q->nof_bits);
-
-    /* layer mapping & precoding */
-    if (q->cell.nof_ports > 1) {
-      layermap_diversity(q->pdcch_d, x, q->cell.nof_ports, q->nof_symbols);
-      precoding_diversity(x, q->pdcch_symbols, q->cell.nof_ports,
-          q->nof_symbols / q->cell.nof_ports);
-    } else {
-      memcpy(q->pdcch_symbols[0], q->pdcch_d, q->nof_symbols * sizeof(cf_t));
-    }
-
-    /* mapping to resource elements */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      regs_pdcch_put(q->regs, q->pdcch_symbols[i], slot_symbols[i]);
-    }
-    return LIBLTE_SUCCESS;
-  } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
-  }
-}
-
 

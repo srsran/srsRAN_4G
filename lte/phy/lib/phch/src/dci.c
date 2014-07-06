@@ -57,6 +57,14 @@ int dci_location_set(dci_location_t *c, uint32_t L, uint32_t nCCE) {
   return LIBLTE_SUCCESS;
 }
 
+bool dci_location_isvalid(dci_location_t *c) {
+  if (c->L <= 3 && c->ncce <= 87) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 uint32_t riv_nbits(uint32_t nof_prb) {
   return (uint32_t) ceilf(log2f((float) nof_prb * ((float) nof_prb + 1) / 2));
 }
@@ -785,7 +793,9 @@ void dci_msg_type_fprint(FILE *f, dci_msg_type_t type) {
 }
 
 int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
-    uint16_t msg_rnti, uint16_t crnti) {
+    uint16_t msg_rnti, uint16_t crnti) 
+{
+  DEBUG("Get message type: nof_bits=%d, msg_rnti=0x%x, crnti=0x%x\n", msg->nof_bits, msg_rnti, crnti);
   if (msg->nof_bits == dci_format_sizeof(Format0, nof_prb)
       && !msg->data[0]) {
     type->type = PUSCH_SCHED;

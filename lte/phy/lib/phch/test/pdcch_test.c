@@ -105,7 +105,7 @@ int test_dci_payload_size() {
 
 int main(int argc, char **argv) {
   pdcch_t pdcch;
-  dci_msg_t dci_tx[2], dci_rx[2];
+  dci_msg_t dci_tx[2], dci_rx[2], dci_tmp;
   dci_location_t dci_locations[2];
   ra_pdsch_t ra_dl;
   regs_t regs;
@@ -173,15 +173,11 @@ int main(int argc, char **argv) {
   dci_msg_pack_pdsch(&ra_dl, &dci_tx[1], Format1, cell.nof_prb, false);
   dci_location_set(&dci_locations[1], 0, 1);
   
-  pdcch_reset(&pdcch);
-  
   for (i=0;i<nof_dcis;i++) {
-    if (pdcch_encode_msg(&pdcch, &dci_tx[i], dci_locations[i], 1234+i)) {
+    if (pdcch_encode(&pdcch, &dci_tx[i], dci_locations[i], 1234+i, slot_symbols, 0, cfi)) {
+      fprintf(stderr, "Error encoding DCI message\n");
       goto quit;
     }
-  }
-  if (pdcch_gen_symbols(&pdcch, slot_symbols, 0, cfi)) {
-    goto quit;
   }
 
   /* combine outputs */
@@ -191,12 +187,21 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, 0, cfi)) {
-    goto quit;
-  }
-  
-  for (i=0;i<nof_dcis;i++) {
-    if (pdcch_decode_msg(&pdcch, &dci_rx[i], dci_locations, 2, Format1, 1234+i) < 0) {
+  for (i=0;i<2;i++) {
+    if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, dci_locations[i], 0, cfi)) {
+      fprintf(stderr, "Error extracting LLRs\n");
+      goto quit;
+    }
+    uint16_t crc_rem; 
+    if (pdcch_decode_msg(&pdcch, &dci_tmp, Format1, &crc_rem)) {
+      fprintf(stderr, "Error decoding DCI message\n");
+      goto quit;
+    }      
+    if (crc_rem >= 1234 && crc_rem < 1234 + nof_dcis) {
+      crc_rem -= 1234;
+        memcpy(&dci_rx[crc_rem], &dci_tmp, sizeof(dci_msg_t));
+    } else {
+      printf("Received invalid DCI CRC 0x%x\n", crc_rem);
       goto quit;
     }
   }

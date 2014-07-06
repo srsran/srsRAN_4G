@@ -42,18 +42,18 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 /* This is common for both directions */
 typedef struct LIBLTE_API{
   dft_plan_t fft_plan;
-  int nof_symbols;
-  int symbol_sz;
-  int nof_guards;
-  int nof_re;
-  int slot_sz;
+  uint32_t nof_symbols;
+  uint32_t symbol_sz;
+  uint32_t nof_guards;
+  uint32_t nof_re;
+  uint32_t slot_sz;
   lte_cp_t cp;
   cf_t *tmp; // for removing zero padding
 }lte_fft_t;
 
 LIBLTE_API int lte_fft_init(lte_fft_t *q, 
                             lte_cp_t cp_type, 
-                            int nof_prb);
+                            uint32_t nof_prb);
 
 LIBLTE_API void lte_fft_free(lte_fft_t *q);
 
@@ -67,7 +67,7 @@ LIBLTE_API void lte_fft_run_sf(lte_fft_t *q,
 
 LIBLTE_API int lte_ifft_init(lte_fft_t *q, 
                              lte_cp_t cp_type, 
-                             int nof_prb);
+                             uint32_t nof_prb);
 
 LIBLTE_API void lte_ifft_free(lte_fft_t *q);
 

@@ -67,12 +67,12 @@ int refsignal_v(uint32_t port_id, uint32_t ns, uint32_t symbol_id) {
   return v;
 }
 
-int refsignal_k(int m, int v, uint32_t cell_id) {
+uint32_t refsignal_k(uint32_t m, uint32_t v, uint32_t cell_id) {
   return 6*m+((v+(cell_id%6))%6);
 }
 
 int refsignal_put(refsignal_t *q, cf_t *slot_symbols) {
-  int i;
+  uint32_t i;
   uint32_t fidx, tidx;
   if (q                 != NULL &&
       slot_symbols      != NULL) 
@@ -96,12 +96,12 @@ int refsignal_init_LTEDL(refsignal_t *q, uint32_t port_id, uint32_t nslot,
 
   uint32_t c_init;
   uint32_t ns, l, lp[2];
-  int N_cp;
-  int i;
+  uint32_t N_cp;
+  uint32_t i;
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   sequence_t seq;
   int v;
-  int mp;
+  uint32_t mp;
   uint32_t nof_refs_x_symbol, nof_ref_symbols;
 
   if (q         != NULL          && 
@@ -171,7 +171,7 @@ int refsignal_init_LTEDL(refsignal_t *q, uint32_t port_id, uint32_t nslot,
         __imag__ q->refs[idx(l,i)].simbol = (1 - 2 * (float) seq.c[2 * mp + 1]) / sqrt(2);
 
         /* mapping to resource elements */
-        q->refs[idx(l,i)].freq_idx = refsignal_k(i, v, cell.id);
+        q->refs[idx(l,i)].freq_idx = refsignal_k(i, (uint32_t) v, cell.id);
         q->refs[idx(l,i)].time_idx = lp[l];
       }
     }

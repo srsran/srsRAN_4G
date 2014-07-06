@@ -334,12 +334,10 @@ int main(int argc, char **argv) {
         data[i] = rand()%2;
       }
       
-      if (pdcch_encode_msg(&pdcch, &dci_msg, locations[sf_idx][0], 1234)) {
+      if (pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
         fprintf(stderr, "Error encoding DCI message\n");
         exit(-1);
       }
-      
-      pdcch_gen_symbols(&pdcch, sf_symbols, sf_idx, cfi);
       
       pdsch_encode(&pdsch, data, sf_symbols, sf_idx, ra_dl.mcs, &prb_alloc);        
 

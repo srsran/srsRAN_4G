@@ -393,8 +393,7 @@ int cell_id_init(int nof_prb, int cell_id) {
 char data[10000];
 
 int rx_run(cf_t *input, int sf_idx) {
-  uint32_t cfi, cfi_distance;
-  int i, nof_dcis;
+  uint32_t cfi, cfi_distance, i;
   cf_t *input_decim;
   ra_pdsch_t ra_dl;
   ra_prb_t prb_alloc;
@@ -430,18 +429,19 @@ int rx_run(cf_t *input, int sf_idx) {
   /* Search only UE-specific locations */
   nof_locations = pdcch_ue_locations(&pdcch, locations, 10, sf_idx, cfi, 1234);
 
-  pdcch_extract_llr(&pdcch, fft_buffer, ce, nof_frames, cfi);
-  
-  
-  nof_dcis = pdcch_decode_msg(&pdcch, &dci_msg, locations, nof_locations, Format1, 1234);
-  if (nof_dcis < 0) {
-    fprintf(stderr, "Error decoding DCI messages\n");
-    return -1;
+  uint16_t crc_rem = 0;
+  for (i=0;i<nof_locations && crc_rem != 1234;i++) {
+    if (pdcch_extract_llr(&pdcch, fft_buffer, ce, locations[i], sf_idx, cfi)) {
+      fprintf(stderr, "Error extracting LLRs\n");
+      return -1;
+    }
+    if (pdcch_decode_msg(&pdcch, &dci_msg, Format1A, &crc_rem)) {
+      fprintf(stderr, "Error decoding DCI msg\n");
+      return -1;
+    }
   }
-
-  INFO("Received %d DCI messages\n", nof_dcis);
-
-  if (nof_dcis == 1) {
+  
+  if (crc_rem == 1234) {
     dci_msg_type_t type;
     if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, 1234, 1234)) {
       fprintf(stderr, "Can't get DCI message type\n");      
@@ -482,7 +482,7 @@ int rx_run(cf_t *input, int sf_idx) {
   }
 
   #ifndef DISABLE_GRAPHICS
-  if (!disable_plots && nof_dcis > 0) {
+  if (!disable_plots && crc_rem == 1234) {
     int n_re = 2 * RE_X_RB * CPNORM_NSYMB * cell.nof_prb;
     for (i = 0; i < n_re; i++) {
       tmp_plot[i] = 10 * log10f(cabsf(fft_buffer[i]));

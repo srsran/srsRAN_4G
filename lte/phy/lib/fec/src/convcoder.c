@@ -39,23 +39,30 @@ int convcoder_encode(convcoder_t *q, char *input, char *output, uint32_t frame_l
   uint32_t i,j;
   uint32_t len = q->tail_biting ? frame_length : (frame_length + q->K - 1);
 
-  if (q->tail_biting) {
-    sr = 0;
-    for (i=frame_length - q->K + 1; i<frame_length; i++) {
-      sr = (sr << 1) | (input[i] & 1);
+  if (q                 != NULL    &&
+      input             != NULL    &&
+      output            != NULL    &&
+      frame_length      > q->K + 1)
+  {
+    if (q->tail_biting) {
+      sr = 0;
+      for (i=frame_length - q->K + 1; i<frame_length; i++) {
+        sr = (sr << 1) | (input[i] & 1);
+      }
+    } else {
+      sr = 0;
     }
+    for (i = 0; i < len; i++) {
+      char bit = (i < frame_length) ? (input[i] & 1) : 0;
+      sr = (sr << 1) | bit;
+      for (j=0;j<q->R;j++) {
+        output[q->R * i + j] = parity(sr & q->poly[j]);
+      }
+    }
+    return q->R*len;
   } else {
-    sr = 0;
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
-  for (i = 0; i < len; i++) {
-    int bit = (i < frame_length) ? (input[i] & 1) : 0;
-    sr = (sr << 1) | bit;
-    for (j=0;j<q->R;j++) {
-      output[q->R * i + j] = parity(sr & q->poly[j]);
-    }
-  }
-
-  return q->R*len;
 }
 
 

@@ -59,8 +59,7 @@ typedef enum LIBLTE_API {
 /* PDCCH object */
 typedef struct LIBLTE_API {
   lte_cell_t cell;
-  uint32_t nof_bits;
-  uint32_t nof_symbols;
+  uint32_t e_bits;
   uint32_t nof_regs;
   uint32_t nof_cce;
   uint32_t max_bits;
@@ -91,33 +90,27 @@ LIBLTE_API void pdcch_free(pdcch_t *q);
 
 
 /* Encoding function */
-LIBLTE_API void pdcch_reset(pdcch_t *q);
-
-LIBLTE_API int pdcch_encode_msg(pdcch_t *q, 
+LIBLTE_API int pdcch_encode(pdcch_t *q, 
                                 dci_msg_t *msg,
                                 dci_location_t location,
-                                uint16_t rnti);
-
-LIBLTE_API int pdcch_gen_symbols(pdcch_t *q, 
-                                 cf_t *sf_symbols[MAX_PORTS],
-                                 uint32_t nsubframe, 
-                                 uint32_t cfi);
-
+                                uint16_t rnti,
+                                cf_t *sf_symbols[MAX_PORTS],
+                                uint32_t nsubframe, 
+                                uint32_t cfi);
 
 /* Decoding functions: Extract the LLRs and save them in the pdcch_t object */
 LIBLTE_API int pdcch_extract_llr(pdcch_t *q, 
                                  cf_t *sf_symbols, 
                                  cf_t *ce[MAX_PORTS],
+                                 dci_location_t location,
                                  uint32_t nsubframe, 
                                  uint32_t cfi);
 
 /* Decoding functions: Try to decode a DCI message after calling pdcch_extract_llr */
 LIBLTE_API int pdcch_decode_msg(pdcch_t *q, 
                                 dci_msg_t *msg, 
-                                dci_location_t *locations,
-                                uint32_t nof_locations,
                                 dci_format_t format,
-                                uint16_t rnti);
+                                uint16_t *crc_rem);
 
 /* Function for generation of UE-specific search space DCI locations */
 LIBLTE_API uint32_t pdcch_ue_locations(pdcch_t *q, 

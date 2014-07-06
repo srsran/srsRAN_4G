@@ -114,9 +114,21 @@ LIBLTE_API int regs_pdcch_put(regs_t *h,
                               cf_t *pdcch_symbols, 
                               cf_t *slot_symbols);
 
+LIBLTE_API int regs_pdcch_put_offset(regs_t *h, 
+                                     cf_t *pdcch_symbols, 
+                                     cf_t *slot_symbols, 
+                                     uint32_t start_reg, 
+                                     uint32_t nof_regs);
+
 LIBLTE_API int regs_pdcch_get(regs_t *h, 
                               cf_t *slot_symbols, 
                               cf_t *pdcch_symbols);
+
+LIBLTE_API int regs_pdcch_get_offset(regs_t *h, 
+                                     cf_t *slot_symbols, 
+                                     cf_t *pdcch_symbols, 
+                                     uint32_t start_reg, 
+                                     uint32_t nof_regs);
 
 #endif // REGS_H_
 

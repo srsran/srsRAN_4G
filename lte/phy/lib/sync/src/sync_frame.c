@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <assert.h>
 
 #include "liblte/phy/resampling/decim.h"
 #include "liblte/phy/resampling/resample_arb.h"
@@ -120,6 +121,8 @@ void sync_frame_run(sync_frame_t *q, cf_t *input) {
       break;
     }
         
+    assert(q->peak_idx < TRACK_LEN);
+    
     track_idx = sync_track(&q->s, &input[q->peak_idx - TRACK_LEN]);
 
     INFO("TRACK %3d: SF=%d. Previous idx is %d New Offset is %d\n", 
@@ -140,7 +143,7 @@ void sync_frame_run(sync_frame_t *q, cf_t *input) {
       q->cur_cfo = (sync_get_cfo(&q->s) + q->frame_cnt * q->cur_cfo) / (q->frame_cnt + 1);
       
       /* compute cumulative moving average time offset */
-      q->timeoffset = (float) (track_idx - TRACK_LEN + q->timeoffset * q->frame_cnt)
+      q->timeoffset = (float) ((float) track_idx - TRACK_LEN + q->timeoffset * q->frame_cnt)
           / (q->frame_cnt + 1);
       
       q->last_found = q->frame_cnt;

@@ -78,6 +78,8 @@ LIBLTE_API int dci_location_set(dci_location_t *c,
                                 uint32_t L, 
                                 uint32_t nCCE);
 
+LIBLTE_API bool dci_location_isvalid(dci_location_t *c);
+
 LIBLTE_API int dci_msg_get_type(dci_msg_t *msg, 
                                 dci_msg_type_t *type, 
                                 uint32_t nof_prb, 
