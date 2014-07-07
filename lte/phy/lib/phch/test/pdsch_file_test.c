@@ -54,6 +54,7 @@ FILE *fmatlab = NULL;
 filesource_t fsrc;
 pdcch_t pdcch;
 pdsch_t pdsch;
+pdsch_harq_t harq_process;
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 regs_t regs;
 lte_fft_t fft;
@@ -186,6 +187,11 @@ int base_init() {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
+  
+  if (pdsch_harq_init(&harq_process, &pdsch)) {
+    fprintf(stderr, "Error initiating HARQ process\n");
+    exit(-1);
+  }
 
   DEBUG("Memory init OK\n",0);
   return 0;
@@ -211,6 +217,7 @@ void base_free() {
 
   pdcch_free(&pdcch);
   pdsch_free(&pdsch);
+  pdsch_harq_free(&harq_process);
   regs_free(&regs);
 }
 
@@ -298,7 +305,7 @@ int main(int argc, char **argv) {
           fprintf(stderr, "Can't get DCI message type\n");
           goto goout;
         }
-        printf("MSG %d: ",i);
+        
         dci_msg_type_fprint(stdout, type);
         switch(type.type) {
         case PDSCH_SCHED:
@@ -325,7 +332,11 @@ int main(int argc, char **argv) {
         }
         ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
 
-        if (pdsch_decode(&pdsch, fft_buffer, ce, data, nof_frames%10, ra_dl.mcs, &prb_alloc)) {
+        if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
+          fprintf(stderr, "Error configuring HARQ process\n");
+          goto goout;
+        }
+        if (pdsch_decode(&pdsch, fft_buffer, ce, data, nof_frames%10, &harq_process, ra_dl.rv_idx)) {
           fprintf(stderr, "Error decoding PDSCH\n");
           goto goout;
         } else {

@@ -59,6 +59,7 @@ pbch_t pbch;
 pcfich_t pcfich;
 pdcch_t pdcch;
 pdsch_t pdsch;
+pdsch_harq_t harq_process;
 regs_t regs;
 
 cf_t *sf_buffer = NULL, *output_buffer = NULL;
@@ -191,10 +192,16 @@ void base_init() {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
+  
+  if (pdsch_harq_init(&harq_process, &pdsch)) {
+    fprintf(stderr, "Error initiating HARQ process\n");
+    exit(-1);
+  }
 }
 
 void base_free() {
 
+  pdsch_harq_free(&harq_process);
   pdsch_free(&pdsch);
   pdcch_free(&pdcch);
   regs_free(&regs);
@@ -308,6 +315,11 @@ int main(int argc, char **argv) {
   }  
     
   nf = 0;
+  
+  if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
+    fprintf(stderr, "Error configuring HARQ process\n");
+    exit(-1);
+  }
 
   while (nf < nof_frames || nof_frames == -1) {
     for (sf_idx = 0; sf_idx < NSUBFRAMES_X_FRAME; sf_idx++) {
@@ -339,7 +351,7 @@ int main(int argc, char **argv) {
         exit(-1);
       }
       
-      pdsch_encode(&pdsch, data, sf_symbols, sf_idx, ra_dl.mcs, &prb_alloc);        
+      pdsch_encode(&pdsch, data, sf_symbols, sf_idx, &harq_process, ra_dl.rv_idx);        
 
       /* Transform to OFDM symbols */
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);

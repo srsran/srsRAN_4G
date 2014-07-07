@@ -147,6 +147,8 @@ LIBLTE_API uint32_t ra_nprb_dl(ra_pdsch_t *ra,
 LIBLTE_API uint32_t ra_nprb_ul(ra_pusch_t *ra, 
                           uint32_t nof_prb);
 
+LIBLTE_API uint32_t ra_mod_bits_x_symbol(ra_mod_t mod);
+
 LIBLTE_API uint32_t ra_mcs_to_table_idx(ra_mcs_t *mcs);
 
 LIBLTE_API int ra_mcs_from_idx_dl(uint32_t idx, 

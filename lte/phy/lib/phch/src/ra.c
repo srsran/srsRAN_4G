@@ -405,6 +405,23 @@ uint32_t ra_mcs_to_table_idx(ra_mcs_t *mcs) {
   }
 }
 
+uint32_t ra_mod_bits_x_symbol(ra_mod_t mod) {
+  switch(mod) {
+    case BPSK:
+      return 1;
+    case QPSK:
+      return 2;
+    case QAM16:
+      return 4;
+    case QAM64:
+      return 6;
+    default: 
+      return 0;
+  }
+  return 0;
+}
+
+
 /* Converts MCS index to ra_mcs_t structure for Downlink as defined inTable 7.1.7.1-1 on 36.213 */
 int ra_mcs_from_idx_dl(uint32_t idx, ra_mcs_t *mcs) {
   if (idx < 10) {

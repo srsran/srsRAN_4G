@@ -42,15 +42,17 @@ lte_cell_t cell = {
 };
 
 uint32_t cfi = 1;
-uint32_t tbs = -1;
+uint32_t tbs = 0;
 uint32_t subframe = 1;
 ra_mod_t modulation = BPSK;
+uint32_t rv_idx = 0;
 
 void usage(char *prog) {
-  printf("Usage: %s [cell.cpnfvmt] -l TBS \n", prog);
+  printf("Usage: %s [cpsrnfvmt] -l TBS \n", prog);
   printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
+  printf("\t-r rv_idx [Default %d]\n", rv_idx);
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
@@ -59,7 +61,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lcell.cpnfvmts")) != -1) {
+  while ((opt = getopt(argc, argv, "lcpnfvmtsr")) != -1) {
     switch(opt) {
     case 'm':
       switch(atoi(argv[optind])) {
@@ -84,6 +86,9 @@ void parse_args(int argc, char **argv) {
     case 's':
       subframe = atoi(argv[optind]);
       break;
+    case 'r':
+      rv_idx = atoi(argv[optind]);
+      break;
     case 'l':
       tbs = atoi(argv[optind]);
       break;
@@ -104,7 +109,7 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-  if (tbs == -1) {
+  if (tbs == 0) {
     usage(argv[0]);
     exit(-1);
   }
@@ -112,15 +117,17 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   pdsch_t pdsch;
-  int i, j;
+  uint32_t i, j;
   char *data = NULL;
   cf_t *ce[MAX_PORTS];
-  int nof_re;
+  uint32_t nof_re;
   cf_t *slot_symbols[MAX_PORTS];
   int ret = -1;
   struct timeval t[3];
   ra_mcs_t mcs;
   ra_prb_t prb_alloc;
+  pdsch_harq_t harq_process;
+  uint32_t rv;
 
   parse_args(argc,argv);
 
@@ -163,32 +170,50 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
+  
+  if (pdsch_harq_init(&harq_process, &pdsch)) {
+    fprintf(stderr, "Error initiating HARQ process\n");
+    goto quit;
+  }
+  
+  if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
+    fprintf(stderr, "Error configuring HARQ process\n");
+    goto quit;
+  }
 
   for (i=0;i<mcs.tbs;i++) {
     data[i] = rand()%2;
   }
 
-  pdsch_encode(&pdsch, data, slot_symbols, subframe, mcs, &prb_alloc);
-
-  /* combine outputs */
-  for (i=0;i<cell.nof_ports;i++) {
-    for (j=0;j<nof_re;j++) {
-      if (i > 0) {
-        slot_symbols[0][j] += slot_symbols[i][j];
-      }
-      ce[i][j] = 1;
+  for (rv=0;rv<=rv_idx;rv++) {
+    printf("Encoding rv_idx=%d\n",rv);
+    if (pdsch_encode(&pdsch, data, slot_symbols, subframe, &harq_process, rv)) {
+      fprintf(stderr, "Error encoding PDSCH\n");
+      goto quit;
     }
-  }
-  
-  gettimeofday(&t[1], NULL);
-  int r = pdsch_decode(&pdsch, slot_symbols[0], ce, data, subframe, mcs, &prb_alloc);
-  gettimeofday(&t[2], NULL);
-  get_time_interval(t);
-  if (r) {
-    printf("Error decoding\n");
-    ret = -1;
-  } else {
-    printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);
+
+    /* combine outputs */
+    for (i=0;i<cell.nof_ports;i++) {
+      for (j=0;j<nof_re;j++) {
+        if (i > 0) {
+          slot_symbols[0][j] += slot_symbols[i][j];
+        }
+        ce[i][j] = 1;
+      }
+    }
+    
+    gettimeofday(&t[1], NULL);
+    int r = pdsch_decode(&pdsch, slot_symbols[0], ce, data, subframe, &harq_process, rv);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    if (r) {
+      printf("Error decoding\n");
+      ret = -1;
+      goto quit;
+    } else {
+      printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);
+    }
+    
   }
   ret = 0;
 quit:

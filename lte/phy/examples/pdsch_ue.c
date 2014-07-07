@@ -89,6 +89,7 @@ pbch_t pbch;
 pcfich_t pcfich;
 pdcch_t pdcch;
 pdsch_t pdsch;
+pdsch_harq_t harq_process;
 regs_t regs;
 lte_fft_t fft;
 chest_t chest;
@@ -356,6 +357,11 @@ int mib_init(phich_resources_t phich_resources, phich_length_t phich_length) {
     return -1;
   }
   
+  if (pdsch_harq_init(&harq_process, &pdsch)) {
+    fprintf(stderr, "Error initiating HARQ process\n");
+    return -1;
+  }
+  
   chest_set_nof_ports(&chest, cell.nof_ports);
   
   mib_initiated = 1;
@@ -469,7 +475,13 @@ int rx_run(cf_t *input, int sf_idx) {
         ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, 
                       cell.nof_prb<10?(cfi+1):cfi, CPNORM);
 
-        if (pdsch_decode(&pdsch, fft_buffer, ce, data, sf_idx, ra_dl.mcs, &prb_alloc)) {
+        
+        if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
+          fprintf(stderr, "Error configuring HARQ process\n");
+          break;
+        }
+        
+        if (pdsch_decode(&pdsch, fft_buffer, ce, data, sf_idx, &harq_process, ra_dl.rv_idx)) {
           pkt_errors++;
         }
         pkts_total++;

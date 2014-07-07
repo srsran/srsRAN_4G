@@ -40,31 +40,22 @@
 uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
     6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31 };
 
-int rm_turbo_init(rm_turbo_t *q, uint32_t buffer_len) {
-  q->buffer_len = buffer_len;
-  q->buffer = malloc(buffer_len * sizeof(float));
-  if (!q->buffer) {
-    perror("malloc");
-    return -1;
-  }
-  return 0;
-}
-
-void rm_turbo_free(rm_turbo_t *q) {
-  if (q->buffer) {
-    free(q->buffer);
-  }
-}
 
 /* Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1
  *
+ * If rv_idx==0, the circular buffer w_buff is filled with all redundancy versions and 
+ * the corresponding version of length out_len is saved in the output buffer.  
+ * Otherwise, the corresponding version is directly obtained from w_buff and saved into output. 
+ * 
+ * Note that calling this function with rv_idx!=0 without having called it first with rv_idx=0
+ * will produce unwanted results. 
+ * 
  * TODO: Soft buffer size limitation according to UE category
  */
-int rm_turbo_tx(rm_turbo_t *q, char *input, uint32_t in_len, char *output,
+int rm_turbo_tx(char *w_buff, uint32_t w_buff_len, char *input, uint32_t in_len, char *output,
     uint32_t out_len, uint32_t rv_idx) {
 
-  char *tmp = (char*) q->buffer;
   int ndummy, kidx; 
   int nrows, K_p;
 
@@ -72,10 +63,10 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, uint32_t in_len, char *output,
 
   nrows = (uint32_t) (in_len / 3 - 1) / NCOLS + 1;
   K_p = nrows * NCOLS;
-  if (3 * K_p > q->buffer_len) {
+  if (3 * K_p > w_buff_len) {
     fprintf(stderr,
         "Input too large. Max input length including dummy bits is %d (3x%dx32, in_len %d)\n",
-        q->buffer_len, nrows, in_len);
+        w_buff_len, nrows, in_len);
     return -1;
   }
 
@@ -84,33 +75,35 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, uint32_t in_len, char *output,
     ndummy = 0;
   }
 
-  /* Sub-block interleaver (5.1.4.1.1) and bit collection */
-  k = 0;
-  for (s = 0; s < 2; s++) {
-    for (j = 0; j < NCOLS; j++) {
-      for (i = 0; i < nrows; i++) {
-        if (s == 0) {
-          kidx = k % K_p;
-        } else {
-          kidx = K_p + 2 * (k % K_p);
+  if (rv_idx == 0) {
+    /* Sub-block interleaver (5.1.4.1.1) and bit collection */
+    k = 0;
+    for (s = 0; s < 2; s++) {
+      for (j = 0; j < NCOLS; j++) {
+        for (i = 0; i < nrows; i++) {
+          if (s == 0) {
+            kidx = k % K_p;
+          } else {
+            kidx = K_p + 2 * (k % K_p);
+          }
+          if (i * NCOLS + RM_PERM_TC[j] < ndummy) {
+            w_buff[kidx] = TX_NULL;
+          } else {
+            w_buff[kidx] = input[(i * NCOLS + RM_PERM_TC[j] - ndummy) * 3 + s];
+          }
+          k++;
         }
-        if (i * NCOLS + RM_PERM_TC[j] < ndummy) {
-          tmp[kidx] = TX_NULL;
-        } else {
-          tmp[kidx] = input[(i * NCOLS + RM_PERM_TC[j] - ndummy) * 3 + s];
-        }
-        k++;
       }
     }
-  }
 
-  // d_k^(2) goes through special permutation
-  for (k = 0; k < K_p; k++) {
-    kidx = (RM_PERM_TC[k / nrows] + NCOLS * (k % nrows) + 1) % K_p;
-    if ((kidx - ndummy) < 0) {
-      tmp[K_p + 2 * k + 1] = TX_NULL;
-    } else {
-      tmp[K_p + 2 * k + 1] = input[3 * (kidx - ndummy) + 2];
+    // d_k^(2) goes through special permutation
+    for (k = 0; k < K_p; k++) {
+      kidx = (RM_PERM_TC[k / nrows] + NCOLS * (k % nrows) + 1) % K_p;
+      if ((kidx - ndummy) < 0) {
+        w_buff[K_p + 2 * k + 1] = TX_NULL;
+      } else {
+        w_buff[K_p + 2 * k + 1] = input[3 * (kidx - ndummy) + 2];
+      }
     }
   }
 
@@ -123,8 +116,8 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, uint32_t in_len, char *output,
   j = 0;
 
   while (k < out_len) {
-    if (tmp[(k0 + j) % N_cb] != TX_NULL) {
-      output[k] = tmp[(k0 + j) % N_cb];
+    if (w_buff[(k0 + j) % N_cb] != TX_NULL) {
+      output[k] = w_buff[(k0 + j) % N_cb];
       k++;
     }
     j++;
@@ -134,8 +127,11 @@ int rm_turbo_tx(rm_turbo_t *q, char *input, uint32_t in_len, char *output,
 
 /* Undoes Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1
+ * 
+ * If rv_idx==0, the w_buff circular buffer is initialized. Every subsequent call 
+ * with rv_idx!=0 will soft-combine the LLRs from input with w_buff
  */
-int rm_turbo_rx(rm_turbo_t *q, float *input, uint32_t in_len, float *output,
+int rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_t in_len, float *output,
     uint32_t out_len, uint32_t rv_idx) {
 
   int nrows, ndummy, K_p, k0, N_cb, jp, kidx;
@@ -143,14 +139,12 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, uint32_t in_len, float *output,
   int d_i, d_j;
   bool isdummy;
 
-  float *tmp = (float*) q->buffer;
-
   nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
   K_p = nrows * NCOLS;
-  if (3 * K_p > q->buffer_len) {
+  if (3 * K_p > w_buff_len) {
     fprintf(stderr,
         "Input too large. Max output length including dummy bits is %d (3x%dx32, in_len %d)\n",
-        q->buffer_len, nrows, out_len);
+        w_buff_len, nrows, out_len);
     return -1;
   }
 
@@ -159,12 +153,14 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, uint32_t in_len, float *output,
     ndummy = 0;
   }
 
-  for (i = 0; i < 3 * K_p; i++) {
-    tmp[i] = RX_NULL;
+  if (rv_idx == 0) {
+    for (i = 0; i < 3 * K_p; i++) {
+      w_buff[i] = RX_NULL;
+    }    
   }
 
   /* Undo bit collection. Account for dummy bits */
-  N_cb = 3 * K_p;	// TODO: Soft buffer size limitation
+  N_cb = 3 * K_p;       // TODO: Soft buffer size limitation
   k0 = nrows
       * (2 * (uint32_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
 
@@ -197,10 +193,10 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, uint32_t in_len, float *output,
     }
 
     if (!isdummy) {
-      if (tmp[jp] == RX_NULL) {
-        tmp[jp] = input[k];
+      if (w_buff[jp] == RX_NULL) {
+        w_buff[jp] = input[k];
       } else if (input[k] != RX_NULL) {
-        tmp[jp] += input[k]; /* soft combine LLRs */
+        w_buff[jp] += input[k]; /* soft combine LLRs */
       }
       k++;
     }
@@ -215,15 +211,14 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, uint32_t in_len, float *output,
       if (j != 2) {
         kidx = K_p * j + (j + 1) * (RM_PERM_TC[d_j] * nrows + d_i);
       } else {
-
         k = (i + ndummy - 1) % K_p;
         if (k < 0)
           k += K_p;
         kidx = (k / NCOLS + nrows * RM_PERM_TC[k % NCOLS]) % K_p;
         kidx = 2 * kidx + K_p + 1;
       }
-      if (tmp[kidx] != RX_NULL) {
-        output[i * 3 + j] = tmp[kidx];
+      if (w_buff[kidx] != RX_NULL) {
+        output[i * 3 + j] = w_buff[kidx];
       } else {
         output[i * 3 + j] = 0;
       }
@@ -235,25 +230,15 @@ int rm_turbo_rx(rm_turbo_t *q, float *input, uint32_t in_len, float *output,
 /** High-level API */
 
 int rm_turbo_initialize(rm_turbo_hl* h) {
-  return rm_turbo_init(&h->q, 7000);
+  return 0;
 }
 
 /** This function can be called in a subframe (1ms) basis */
 int rm_turbo_work(rm_turbo_hl* hl) {
-  if (hl->init.direction) {
-    rm_turbo_tx(&hl->q, hl->input, hl->in_len, hl->output, hl->ctrl_in.E,
-        hl->ctrl_in.rv_idx);
-    hl->out_len = hl->ctrl_in.E;
-  } else {
-    rm_turbo_rx(&hl->q, hl->input, hl->in_len, hl->output, hl->ctrl_in.S,
-        hl->ctrl_in.rv_idx);
-    hl->out_len = hl->ctrl_in.S;
-  }
   return 0;
 }
 
 int rm_turbo_stop(rm_turbo_hl* hl) {
-  rm_turbo_free(&hl->q);
   return 0;
 }
 

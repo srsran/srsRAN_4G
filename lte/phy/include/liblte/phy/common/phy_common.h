@@ -132,38 +132,38 @@ LIBLTE_API enum band_geographical_area {
 
 LIBLTE_API bool lte_cell_isvalid(lte_cell_t *cell);
 
-LIBLTE_API const int lte_symbol_sz(int nof_prb);
+LIBLTE_API int lte_symbol_sz(uint32_t nof_prb);
 
-LIBLTE_API const int lte_sampling_freq_hz(int nof_prb);
+LIBLTE_API int lte_sampling_freq_hz(uint32_t nof_prb);
 
-LIBLTE_API int lte_re_x_prb(int ns, 
-                            int symbol, 
-                            int nof_ports, 
-                            int nof_symbols);
+LIBLTE_API uint32_t lte_re_x_prb(uint32_t ns, 
+                            uint32_t symbol, 
+                            uint32_t nof_ports, 
+                            uint32_t nof_symbols);
 
-LIBLTE_API int lte_voffset(int symbol_id, 
-                           int cell_id, 
-                           int nof_ports);
+LIBLTE_API uint32_t lte_voffset(uint32_t symbol_id, 
+                           uint32_t cell_id, 
+                           uint32_t nof_ports);
 
-LIBLTE_API int lte_cb_size(int index);
+LIBLTE_API int lte_cb_size(uint32_t index);
 
-LIBLTE_API int lte_find_cb_index(int long_cb);
+LIBLTE_API int lte_find_cb_index(uint32_t long_cb);
 
-LIBLTE_API float lte_band_fd(int earfcn);
+LIBLTE_API float lte_band_fd(uint32_t earfcn);
 
-LIBLTE_API int lte_band_get_fd_band(int band, 
+LIBLTE_API int lte_band_get_fd_band(uint32_t band, 
                                     lte_earfcn_t *earfcn, 
                                     int earfcn_start, 
                                     int earfcn_end, 
-                                    int max_elems);
+                                    uint32_t max_elems);
 
-LIBLTE_API int lte_band_get_fd_band_all(int band, 
+LIBLTE_API int lte_band_get_fd_band_all(uint32_t band, 
                                         lte_earfcn_t *earfcn, 
-                                        int max_nelems);
+                                        uint32_t max_nelems);
 
 LIBLTE_API int lte_band_get_fd_region(enum band_geographical_area region, 
                                       lte_earfcn_t *earfcn, 
-                                      int max_elems);
+                                      uint32_t max_elems);
 
 LIBLTE_API int lte_str2mimotype(char *mimo_type_str, 
                                 lte_mimo_type_t *type);
