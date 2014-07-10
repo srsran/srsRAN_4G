@@ -38,13 +38,13 @@
 typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API {
-  enum modem_std table; /* In this implementation, mapping table is hard-coded */
+  lte_mod_t mod; /* In this implementation, mapping table is hard-coded */
 }demod_hard_t;
 
 
 LIBLTE_API void demod_hard_init(demod_hard_t* q);
-LIBLTE_API void demod_hard_table_set(demod_hard_t* q, enum modem_std table);
-LIBLTE_API int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits, int nsymbols);
+LIBLTE_API void demod_hard_table_set(demod_hard_t* q, lte_mod_t mod);
+LIBLTE_API int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits, uint32_t nsymbols);
 
 
 
@@ -52,7 +52,7 @@ LIBLTE_API int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits,
 typedef struct LIBLTE_API {
   demod_hard_t obj;
   struct demod_hard_init {
-    enum modem_std std;    // Symbol mapping standard (see modem_table.h)
+    lte_mod_t std;    // Symbol mapping standard (see modem_table.h)
   } init;
 
   cf_t* input;

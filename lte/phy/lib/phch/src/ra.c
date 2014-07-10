@@ -391,79 +391,44 @@ uint32_t ra_type2_n_vrb_dl(uint32_t nof_prb, bool ngap_is_1) {
   }
 }
 
-/* Converts ra_mcs_t structure to MCS index for both Uplink and Downlink */
-uint32_t ra_mcs_to_table_idx(ra_mcs_t *mcs) {
-  switch (mcs->mod) {
-  case QPSK:
-    return mcs->tbs_idx;
-  case QAM16:
-    return mcs->tbs_idx + 1;
-  case QAM64:
-    return mcs->tbs_idx + 2;
-  default:
-    return LIBLTE_SUCCESS;
-  }
-}
-
-uint32_t ra_mod_bits_x_symbol(ra_mod_t mod) {
-  switch(mod) {
-    case BPSK:
-      return 1;
-    case QPSK:
-      return 2;
-    case QAM16:
-      return 4;
-    case QAM64:
-      return 6;
-    default: 
-      return 0;
-  }
-  return 0;
-}
-
-
 /* Converts MCS index to ra_mcs_t structure for Downlink as defined inTable 7.1.7.1-1 on 36.213 */
-int ra_mcs_from_idx_dl(uint32_t idx, ra_mcs_t *mcs) {
-  if (idx < 10) {
-    mcs->mod = QPSK;
-    mcs->tbs_idx = idx;
-  } else if (idx < 17) {
-    mcs->mod = QAM16;
-    mcs->tbs_idx = idx - 1;
-  } else if (idx < 29) {
-    mcs->mod = QAM64;
-    mcs->tbs_idx = idx - 2;
-  } else if (idx == 29) {
-    mcs->mod = QPSK;
-    mcs->tbs_idx = 0;
-  } else if (idx == 30) {
-    mcs->mod = QAM16;
-    mcs->tbs_idx = 0;
-  } else if (idx == 31) {
-    mcs->mod = QAM64;
-    mcs->tbs_idx = 0;
+int ra_mcs_from_idx_dl(uint32_t mcs_idx, uint32_t nof_prb, ra_mcs_t *mcs) {
+  if (mcs_idx < 10) {
+    mcs->mod = LTE_QPSK;
+    mcs->tbs = ra_tbs_from_idx(mcs_idx, nof_prb);
+  } else if (mcs_idx < 17) {
+    mcs->mod = LTE_QAM16;
+    mcs->tbs = ra_tbs_from_idx(mcs_idx - 1, nof_prb);
+  } else if (mcs_idx < 29) {
+    mcs->mod = LTE_QAM64;
+    mcs->tbs = ra_tbs_from_idx(mcs_idx - 2, nof_prb);
+  } else if (mcs_idx == 29) {
+    mcs->mod = LTE_QPSK;
+    mcs->tbs = 0;
+  } else if (mcs_idx == 30) {
+    mcs->mod = LTE_QAM16;
+    mcs->tbs = 0;
+  } else if (mcs_idx == 31) {
+    mcs->mod = LTE_QAM64;
+    mcs->tbs = 0;
   } else {
-    mcs->mod = MOD_NULL;
-    mcs->tbs_idx = 0;
     return LIBLTE_ERROR;
   }
   return LIBLTE_SUCCESS;
 }
 
 /* Converts MCS index to ra_mcs_t structure for Uplink as defined in Table 8.6.1-1 on 36.213 */
-int ra_mcs_from_idx_ul(uint32_t idx, ra_mcs_t *mcs) {
-  if (idx < 11) {
-    mcs->mod = QPSK;
-    mcs->tbs_idx = idx;
-  } else if (idx < 21) {
-    mcs->mod = QAM16;
-    mcs->tbs_idx = idx - 1;
-  } else if (idx < 29) {
-    mcs->mod = QAM64;
-    mcs->tbs_idx = idx - 2;
+int ra_mcs_from_idx_ul(uint32_t mcs_idx, uint32_t nof_prb, ra_mcs_t *mcs) {
+  if (mcs_idx < 11) {
+    mcs->mod = LTE_QPSK;
+    mcs->tbs = ra_tbs_from_idx(mcs_idx, nof_prb);
+  } else if (mcs_idx < 21) {
+    mcs->mod = LTE_QAM16;
+    mcs->tbs = ra_tbs_from_idx(mcs_idx - 1, nof_prb);
+  } else if (mcs_idx < 29) {
+    mcs->mod = LTE_QAM64;
+    mcs->tbs = ra_tbs_from_idx(mcs_idx - 2, nof_prb);
   } else {
-    mcs->mod = MOD_NULL;
-    mcs->tbs_idx = 0;
     return LIBLTE_ERROR;
   }
   return LIBLTE_SUCCESS;
@@ -476,22 +441,6 @@ int ra_tbs_from_idx_format1c(uint32_t tbs_idx) {
   } else {
     return LIBLTE_ERROR;
   }
-}
-
-/* Returns lowest nearest index of TBS value in table 7.1.7.2.2-1 on 36.213
- * or -1 if the TBS value is not within the valid TBS values
- */
-int ra_tbs_to_table_idx_format1c(uint32_t tbs) {
-  int idx;
-  if (tbs < tbs_format1c_table[0]) {
-    return LIBLTE_ERROR;
-  }
-  for (idx = 1; idx < 32; idx++) {
-    if (tbs_format1c_table[idx - 1] <= tbs && tbs_format1c_table[idx] >= tbs) {
-      return idx;
-    }
-  }
-  return LIBLTE_ERROR;
 }
 
 /* Downlink Transport Block size determination as defined in 7.1.7.2 on 36.213 */
@@ -507,7 +456,7 @@ int ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
  * or -1 if the TBS value is not within the valid TBS values
  */
 int ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
-  int idx;
+  uint32_t idx;
   if (n_prb > 0 && n_prb <= MAX_PRB) {
     return LIBLTE_ERROR;
   }
@@ -520,19 +469,6 @@ int ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
     }
   }
   return LIBLTE_ERROR;
-}
-
-char *ra_mod_string(ra_mod_t mod) {
-  switch (mod) {
-  case QPSK:
-    return "QPSK";
-  case QAM16:
-    return "QAM16";
-  case QAM64:
-    return "QAM64";
-  default:
-    return "N/A";
-  }
 }
 
 void ra_pusch_fprint(FILE *f, ra_pusch_t *ra, uint32_t nof_prb) {
@@ -558,15 +494,6 @@ char *ra_type_string(ra_type_t alloc_type) {
   }
 }
 
-void ra_pdsch_set_mcs_index(ra_pdsch_t *ra, uint32_t mcs_idx) {
-  ra->mcs.mod = MOD_NULL;
-  ra->mcs.mcs_idx = mcs_idx;
-}
-void ra_pdsch_set_mcs(ra_pdsch_t *ra, ra_mod_t mod, uint32_t tbs_idx) {
-  ra->mcs.mod = mod;
-  ra->mcs.tbs_idx = tbs_idx;
-  ra->mcs.tbs = 0;
-}
 
 void ra_pdsch_fprint(FILE *f, ra_pdsch_t *ra, uint32_t nof_prb) {
   fprintf(f, " - Resource Allocation Type:\t\t%s\n",
@@ -609,8 +536,8 @@ void ra_pdsch_fprint(FILE *f, ra_pdsch_t *ra, uint32_t nof_prb) {
   }
 
   fprintf(f, " - Number of PRBs:\t\t\t%d\n", ra_nprb_dl(ra, nof_prb));
-  fprintf(f, " - Modulation and coding scheme index:\t%d\n", ra->mcs.mcs_idx);
-  fprintf(f, " - Modulation type:\t\t\t%s\n", ra_mod_string(ra->mcs.mod));
+  fprintf(f, " - Modulation and coding scheme index:\t%d\n", ra->mcs_idx);
+  fprintf(f, " - Modulation type:\t\t\t%s\n", lte_mod_string(ra->mcs.mod));
   fprintf(f, " - Transport block size:\t\t%d\n", ra->mcs.tbs);
   fprintf(f, " - HARQ process:\t\t\t%d\n", ra->harq_process);
   fprintf(f, " - New data indicator:\t\t\t%s\n", ra->ndi ? "Yes" : "No");

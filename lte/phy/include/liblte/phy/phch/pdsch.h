@@ -57,7 +57,6 @@ typedef struct LIBLTE_API {
   float **pdsch_w_buff_f;  
   char **pdsch_w_buff_c;  
 
-  
   struct cb_segm {
     uint32_t F;
     uint32_t C;
@@ -82,8 +81,8 @@ typedef struct LIBLTE_API {
   cf_t *pdsch_symbols[MAX_PORTS];
   cf_t *pdsch_x[MAX_PORTS];
   cf_t *pdsch_d;
-  void *cb_in; 
-  char *cb_out;  
+  char *cb_in; 
+  void *cb_out;  
   void *pdsch_e;
 
   /* tx & rx objects */

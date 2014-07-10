@@ -48,6 +48,7 @@ lte_cell_t cell = {
 };
   
 uint32_t cfi=1;
+uint32_t mcs_idx = 12;
 int nof_frames = -1;
 
 char *uhd_args = "";
@@ -70,12 +71,12 @@ void usage(char *prog) {
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-g UHD TX gain [Default %.2f dB]\n", uhd_gain);
-  printf("\t-m UHD signal amplitude [Default %.2f]\n", uhd_amp);
   printf("\t-f UHD TX frequency [Default %.1f MHz]\n", uhd_freq / 1000000);
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
   printf("\t-o output_file [Default USRP]\n");
+  printf("\t-m MCS index [Default %d]\n", mcs_idx);
   printf("\t-n number of frames [Default %d]\n", nof_frames);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
@@ -92,14 +93,14 @@ void parse_args(int argc, char **argv) {
     case 'g':
       uhd_gain = atof(argv[optind]);
       break;
-    case 'm':
-      uhd_amp = atof(argv[optind]);
-      break;
     case 'f':
       uhd_freq = atof(argv[optind]);
       break;
     case 'o':
       output_file_name = argv[optind];
+      break;
+    case 'm':
+      mcs_idx = atoi(argv[optind]);
       break;
     case 'n':
       nof_frames = atoi(argv[optind]);
@@ -289,7 +290,7 @@ int main(int argc, char **argv) {
 
   bzero(&ra_dl, sizeof(ra_pdsch_t));
   ra_dl.harq_process = 0;
-  ra_pdsch_set_mcs(&ra_dl, QPSK, 5);
+  ra_dl.mcs_idx = mcs_idx;
   ra_dl.ndi = 0;
   ra_dl.rv_idx = 0;
   ra_dl.alloc_type = alloc_type0;
@@ -299,7 +300,7 @@ int main(int argc, char **argv) {
   
   ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb);
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
-  ra_dl.mcs.tbs = ra_tbs_from_idx(ra_dl.mcs.tbs_idx, cell.nof_prb);
+  ra_mcs_from_idx_dl(mcs_idx, cell.nof_prb, &ra_dl.mcs);
 
   ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   
@@ -322,7 +323,7 @@ int main(int argc, char **argv) {
   }
 
   while (nf < nof_frames || nof_frames == -1) {
-    for (sf_idx = 0; sf_idx < NSUBFRAMES_X_FRAME; sf_idx++) {
+    for (sf_idx = 0; sf_idx < NSUBFRAMES_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
       bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
       if (sf_idx == 0 || sf_idx == 5) {
@@ -346,6 +347,7 @@ int main(int argc, char **argv) {
         data[i] = rand()%2;
       }
       
+      INFO("Puttting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
       if (pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
         fprintf(stderr, "Error encoding DCI message\n");
         exit(-1);
@@ -366,11 +368,11 @@ int main(int argc, char **argv) {
         cuhd_send(uhd, output_buffer, sf_n_samples, 1);
 #endif
       }
+      nf++;
     }
     mib.sfn = (mib.sfn + 1) % 1024;
     printf("SFN: %4d\r", mib.sfn);
     fflush(stdout);
-    nf++;
   }
 
   base_free();

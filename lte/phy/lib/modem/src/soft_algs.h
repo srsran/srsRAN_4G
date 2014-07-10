@@ -26,8 +26,20 @@
  */
 
 
-void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
-  _Complex float *symbols, int (*S)[6][32], float sigma2);
+void llr_approx(const _Complex float *in, 
+                float *out, 
+                int N, 
+                int M, 
+                int B,
+                _Complex float *symbols, 
+                uint32_t (*S)[6][32], 
+                float sigma2);
 
-void llr_exact(const _Complex float *in, float *out, int N, int M, int B,
-  _Complex float *symbols, int (*S)[6][32], float sigma2);
+void llr_exact(const _Complex float *in, 
+               float *out, 
+               int N, 
+               int M, 
+               int B,
+               _Complex float *symbols, 
+               uint32_t (*S)[6][32], 
+               float sigma2);

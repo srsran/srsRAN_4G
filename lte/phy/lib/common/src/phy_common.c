@@ -76,6 +76,36 @@ int lte_cb_size(uint32_t index) {
   }
 }
 
+char *lte_mod_string(lte_mod_t mod) {
+  switch (mod) {
+  case LTE_BPSK:
+    return "BPSK";
+  case LTE_QPSK:
+    return "QPSK";
+  case LTE_QAM16:
+    return "QAM16";
+  case LTE_QAM64:
+    return "QAM64";
+  default:
+    return "N/A";
+  } 
+}
+
+uint32_t lte_mod_bits_x_symbol(lte_mod_t mod) {
+  switch (mod) {
+  case LTE_BPSK:
+    return 1;
+  case LTE_QPSK:
+    return 2;
+  case LTE_QAM16:
+    return 4;
+  case LTE_QAM64:
+    return 6;
+  default:
+    return 0;
+  }   
+}
+
 /*
  * Finds index of minimum K>=long_cb in Table 5.1.3-3 of 36.212
  */

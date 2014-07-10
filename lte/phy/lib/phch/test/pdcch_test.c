@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
   nof_dcis = 2;
   bzero(&ra_dl, sizeof(ra_pdsch_t));
   ra_dl.harq_process = 0;
-  ra_pdsch_set_mcs(&ra_dl, QAM16, 5);
+  ra_dl.mcs_idx = 5;
   ra_dl.ndi = 0;
   ra_dl.rv_idx = 0;
   ra_dl.alloc_type = alloc_type0;
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
   dci_msg_pack_pdsch(&ra_dl, &dci_tx[0], Format1, cell.nof_prb, false);
   dci_location_set(&dci_locations[0], 0, 0);
 
-  ra_pdsch_set_mcs(&ra_dl, QAM16, 15);
+  ra_dl.mcs_idx = 15;
   dci_msg_pack_pdsch(&ra_dl, &dci_tx[1], Format1, cell.nof_prb, false);
   dci_location_set(&dci_locations[1], 0, 1);
   

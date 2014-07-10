@@ -77,7 +77,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
 
     INFO("Init PDCCH: %d bits, %d symbols, %d ports\n", q->max_bits, q->max_bits/2, q->cell.nof_ports);
 
-    if (modem_table_std(&q->mod, LTE_QPSK, true)) {
+    if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
       goto clean;
     }
     if (crc_init(&q->crc, LTE_CRC16, 16)) {
@@ -89,7 +89,9 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
     demod_soft_alg_set(&q->demod, APPROX);
 
     for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
-      if (sequence_pdcch(&q->seq_pdcch[i], 2 * i, q->cell.id, q->max_bits)) {
+      // we need to pregenerate the sequence for the maximum number of bits, which is 8 times 
+      // the maximum number of REGs (for CFI=3)
+      if (sequence_pdcch(&q->seq_pdcch[i], 2 * i, q->cell.id, 8*regs_pdcch_nregs(q->regs, 3))) {
         goto clean;
       }
     }
@@ -178,7 +180,8 @@ void pdcch_free(pdcch_t *q) {
 uint32_t pdcch_ue_locations(pdcch_t *q, dci_location_t *c, uint32_t max_candidates,
                         uint32_t nsubframe, uint32_t cfi, uint16_t rnti) {
   
-  uint32_t i, k, l, L, m; 
+  int l; // this must be int because of the for(;;--) loop
+  uint32_t i, k, L, m; 
   uint32_t Yk, ncce;
   const int S[4] = { 6, 12, 8, 16 };
 
@@ -198,7 +201,7 @@ uint32_t pdcch_ue_locations(pdcch_t *q, dci_location_t *c, uint32_t max_candidat
     for (i = 0; i < MIN(q->nof_cce / L, 16 / S[l]); i++) {
       ncce = L * ((Yk + i) % (q->nof_cce / L));      
       if (k                              < max_candidates     &&
-          ncce + PDCCH_FORMAT_NOF_CCE(L) < q->nof_cce) 
+          ncce + PDCCH_FORMAT_NOF_CCE(l) <= q->nof_cce) 
       {            
         c[k].L = l;
         c[k].ncce = ncce;
@@ -352,8 +355,8 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
     
     if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce) {  
       
-      INFO("Extracting LLRs: E: %d, nCCE: %d, L: %d\n",
-          q->e_bits, location.ncce, location.L);
+      INFO("Extracting LLRs: E: %d, nCCE: %d, L: %d, SF: %d, CFI: %d\n",
+          q->e_bits, location.ncce, location.L, nsubframe, cfi);
 
       /* number of layers equals number of ports */
       for (i = 0; i < q->cell.nof_ports; i++) {
@@ -518,7 +521,7 @@ int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t r
       if (VERBOSE_ISDEBUG()) {        
         vec_fprint_b(stdout, q->pdcch_e, q->e_bits);
       }
-
+      
       mod_modulate(&q->mod, q->pdcch_e, q->pdcch_d, q->e_bits);
 
       /* layer mapping & precoding */

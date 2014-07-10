@@ -41,6 +41,54 @@
 #include "liblte/phy/utils/debug.h"
 
 
+int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti, 
+                     lte_cell_t cell, uint32_t cfi,
+                     ra_pdsch_t *ra_dl) 
+{
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (msg               !=  NULL   &&
+      ra_dl             !=  NULL   &&
+      lte_cell_isvalid(&cell)      && 
+      cfi               >   0      &&
+      cfi               <   4)
+  {
+    ret = LIBLTE_ERROR;
+    
+    dci_msg_type_t type;
+    if (dci_msg_get_type(msg, &type, cell.nof_prb, msg_rnti, c_rnti)) {
+      fprintf(stderr, "Can't get DCI message type\n");
+      return ret; 
+    }
+    
+    if (VERBOSE_ISINFO()) {
+      dci_msg_type_fprint(stdout, type);    
+    }
+    if (type.type == PDSCH_SCHED) {
+      bzero(ra_dl, sizeof(ra_pdsch_t));
+      
+      if (dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, msg_rnti != SIRNTI)) {
+        fprintf(stderr, "Can't unpack PDSCH message\n");
+        return ret;
+      } 
+      
+      if (VERBOSE_ISINFO()) {
+        ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
+      }
+      
+      if (ra_prb_get_dl(&ra_dl->prb_alloc, ra_dl, cell.nof_prb)) {
+        fprintf(stderr, "Error computing resource allocation\n");
+        return ret;
+      }
+      
+      ra_prb_get_re_dl(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+            
+      ret = LIBLTE_SUCCESS;
+    }    
+  }
+  return ret;
+}
+
 int dci_location_set(dci_location_t *c, uint32_t L, uint32_t nCCE) {
   if (L <= 3) {
     c->L = L;
@@ -186,31 +234,10 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   } else {
     riv = data->type2_alloc.riv;
   }
-  bit_pack((uint32_t) riv, &y, riv_nbits(nof_prb) - n_ul_hop);
+  bit_pack(riv, &y, riv_nbits(nof_prb) - n_ul_hop);
 
   /* pack MCS according to 8.6.1 of 36.213 */
-  uint32_t mcs;
-  if (data->cqi_request) {
-    mcs = 29;
-  } else {
-    if (data->rv_idx) {
-      mcs = 28 + data->rv_idx;
-    } else {
-      if (data->mcs.mod == MOD_NULL) {
-        mcs = data->mcs.mcs_idx;
-      } else {
-        if (data->mcs.tbs) {
-          if (data->mcs.tbs) {
-            data->mcs.tbs_idx = ra_tbs_to_table_idx(data->mcs.tbs,
-                ra_nprb_ul(data, nof_prb));
-          }
-        }
-        mcs = ra_mcs_to_table_idx(&data->mcs);
-      }
-    }
-  }
-
-  bit_pack((uint32_t) mcs, &y, 5);
+  bit_pack(data->mcs_idx, &y, 5);
 
   *y++ = data->ndi;
 
@@ -276,7 +303,7 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
   data->type2_alloc.riv = riv;
 
   /* unpack MCS according to 8.6 of 36.213 */
-  uint32_t mcs = bit_unpack(&y, 5);
+  data->mcs_idx = bit_unpack(&y, 5);
 
   data->ndi = *y++ ? true : false;
 
@@ -287,20 +314,16 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
   data->cqi_request = *y++ ? true : false;
 
   // 8.6.2 First paragraph
-  if (mcs <= 28) {
-    ra_mcs_from_idx_ul(mcs, &data->mcs);
-    data->mcs.tbs = ra_tbs_from_idx(data->mcs.tbs_idx,
-        ra_nprb_ul(data, nof_prb));
-  }
-
-  // 8.6.1 and 8.6.2 36.213 second paragraph
-  if (mcs == 29 && data->cqi_request && ra_nprb_ul(data, nof_prb) <= 4) {
-    data->mcs.mod = QPSK;
-  }
-  if (mcs > 29) {
-    // Else leave MOD_NULL and use the previously used PUSCH modulation
-    data->mcs.mod = MOD_NULL;
-    data->rv_idx = mcs - 28;
+  if (data->mcs_idx <= 28) {
+    ra_mcs_from_idx_ul(data->mcs_idx, ra_nprb_ul(data, nof_prb), &data->mcs);
+  } else if (data->mcs_idx == 29 && data->cqi_request && ra_nprb_ul(data, nof_prb) <= 4) {
+    // 8.6.1 and 8.6.2 36.213 second paragraph
+    data->mcs.mod = LTE_QPSK;
+    data->mcs.tbs = 0;
+  } else if (data->mcs_idx >= 29) {
+    // Else leave TBS and use the previously used PUSCH modulation
+    data->mcs.tbs = 0;
+    data->rv_idx = data->mcs_idx - 28;
   }
 
   return LIBLTE_SUCCESS;
@@ -340,27 +363,16 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
     return LIBLTE_ERROR;
 
   }
-  /* pack MCS according to 7.1.7 of 36.213 */
-  uint32_t mcs;
-  if (data->mcs.mod == MOD_NULL) {
-    mcs = data->mcs.mcs_idx;
-  } else {
-    if (data->mcs.tbs) {
-      data->mcs.tbs_idx = ra_tbs_to_table_idx(data->mcs.tbs,
-          ra_nprb_dl(data, nof_prb));
-    }
-    mcs = ra_mcs_to_table_idx(&data->mcs);
-    data->mcs.mcs_idx = mcs;
-  }
-  bit_pack((uint32_t) mcs, &y, 5);
+  /* pack MCS */
+  bit_pack(data->mcs_idx, &y, 5);
 
   /* harq process number */
-  bit_pack((uint32_t) data->harq_process, &y, 3);
+  bit_pack(data->harq_process, &y, 3);
 
   *y++ = data->ndi;
 
   // rv version
-  bit_pack((uint32_t) data->rv_idx, &y, 2);
+  bit_pack(data->rv_idx, &y, 2);
 
   // TPC not implemented
   *y++ = 0;
@@ -412,20 +424,12 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
 
   }
   /* unpack MCS according to 7.1.7 of 36.213 */
-  uint32_t mcs = bit_unpack(&y, 5);
-  data->mcs.mcs_idx = mcs;
-  if (ra_mcs_from_idx_dl(mcs, &data->mcs)) {
+  data->mcs_idx = bit_unpack(&y, 5);
+  if (ra_mcs_from_idx_dl(data->mcs_idx, ra_nprb_dl(data, nof_prb), &data->mcs)) {
     fprintf(stderr, "Error getting MCS\n");
     return LIBLTE_ERROR;
   }
   
-  int t = ra_tbs_from_idx(data->mcs.tbs_idx, ra_nprb_dl(data, nof_prb));
-  if (t < 0) {
-    fprintf(stderr, "Error getting TBS\n");
-    return LIBLTE_ERROR;
-  }
-  data->mcs.tbs = (uint32_t) t;
-
   /* harq process number */
   data->harq_process = bit_unpack(&y, 3);
 
@@ -491,28 +495,12 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
     nb_gap = 1;
     *y++ = data->type2_alloc.n_gap;
   }
-  bit_pack((uint32_t) riv, &y, riv_nbits(nof_prb) - nb_gap);
+  bit_pack(riv, &y, riv_nbits(nof_prb) - nb_gap);
 
   // in format1A, MCS = TBS according to 7.1.7.2 of 36.213
-  uint32_t mcs;
-  if (data->mcs.mod == MOD_NULL) {
-    mcs = data->mcs.mcs_idx;
-  } else {
-    if (data->mcs.tbs) {
-      // In format 1A, n_prb_1a is 2 or 3 if crc is not scrambled with C-RNTI
-      uint32_t n_prb;
-      if (!crc_is_crnti) {
-        n_prb = ra_nprb_dl(data, nof_prb);
-      } else {
-        n_prb = data->type2_alloc.n_prb1a == nprb1a_2 ? 2 : 3;
-      }
-      data->mcs.tbs_idx = ra_tbs_to_table_idx(data->mcs.tbs, n_prb);
-    }
-    mcs = data->mcs.tbs_idx;
-  }
-  bit_pack((uint32_t) mcs, &y, 5);
+  bit_pack(data->mcs_idx, &y, 5);
 
-  bit_pack((uint32_t) data->harq_process, &y, 3);
+  bit_pack(data->harq_process, &y, 3);
 
   if (!crc_is_crnti && nof_prb >= 50 && data->type2_alloc.mode == t2_dist) {
     *y++ = data->type2_alloc.n_gap;
@@ -521,7 +509,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
   }
 
   // rv version
-  bit_pack((uint32_t) data->rv_idx, &y, 2);
+  bit_pack(data->rv_idx, &y, 2);
 
   if (crc_is_crnti) {
     // TPC not implemented
@@ -586,7 +574,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   data->type2_alloc.riv = riv;
 
   // unpack MCS
-  data->mcs.mcs_idx = bit_unpack(&y, 5);
+  data->mcs_idx = bit_unpack(&y, 5);
 
   data->harq_process = bit_unpack(&y, 3);
 
@@ -597,7 +585,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   }
 
   // rv version
-  bit_pack((uint32_t) data->rv_idx, &y, 2);
+  bit_pack(data->rv_idx, &y, 2);
 
   if (crc_is_crnti) {
     // TPC not implemented
@@ -607,7 +595,6 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
     y++; // MSB of TPC is reserved
     data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
-  data->mcs.tbs_idx = data->mcs.mcs_idx;
   
   uint32_t n_prb;
   if (crc_is_crnti) {
@@ -615,8 +602,8 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   } else {
     n_prb = data->type2_alloc.n_prb1a == nprb1a_2 ? 2 : 3;
   }
-  data->mcs.tbs = ra_tbs_from_idx(data->mcs.tbs_idx, n_prb);
-  data->mcs.mod = QPSK;
+  data->mcs.tbs = ra_tbs_from_idx(data->mcs_idx, n_prb);
+  data->mcs.mod = LTE_QPSK;
 
   return LIBLTE_SUCCESS;
 }
@@ -664,19 +651,10 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   } else {
     riv = data->type2_alloc.riv;
   }
-  bit_pack((uint32_t) riv, &y, riv_nbits((int) n_vrb_dl / n_step));
+  bit_pack(riv, &y, riv_nbits((int) n_vrb_dl / n_step));
 
   // in format1C, MCS = TBS according to 7.1.7.2 of 36.213
-  uint32_t mcs;
-  if (data->mcs.mod == MOD_NULL) {
-    mcs = data->mcs.mcs_idx;
-  } else {
-    if (data->mcs.tbs) {
-      data->mcs.tbs_idx = ra_tbs_to_table_idx_format1c(data->mcs.tbs);
-    }
-    mcs = data->mcs.tbs_idx;
-  }
-  bit_pack((uint32_t) mcs, &y, 5);
+  bit_pack(data->mcs_idx, &y, 5);
 
   msg->nof_bits = (y - msg->data);
 
@@ -709,10 +687,9 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
   data->type2_alloc.RB_start = RB_p * n_step;
   data->type2_alloc.riv = riv;
 
-  data->mcs.mcs_idx = bit_unpack(&y, 5);
-  data->mcs.tbs_idx = data->mcs.mcs_idx;
-  data->mcs.tbs = ra_tbs_from_idx_format1c(data->mcs.tbs_idx);
-  data->mcs.mod = QPSK;
+  data->mcs_idx = bit_unpack(&y, 5);
+  data->mcs.tbs = ra_tbs_from_idx_format1c(data->mcs_idx);
+  data->mcs.mod = LTE_QPSK;
 
   msg->nof_bits = (y - msg->data);
 

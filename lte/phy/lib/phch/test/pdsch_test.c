@@ -44,7 +44,7 @@ lte_cell_t cell = {
 uint32_t cfi = 1;
 uint32_t tbs = 0;
 uint32_t subframe = 1;
-ra_mod_t modulation = BPSK;
+lte_mod_t modulation = LTE_BPSK;
 uint32_t rv_idx = 0;
 
 void usage(char *prog) {
@@ -66,16 +66,16 @@ void parse_args(int argc, char **argv) {
     case 'm':
       switch(atoi(argv[optind])) {
       case 1:
-        modulation = BPSK;
+        modulation = LTE_BPSK;
         break;
       case 2:
-        modulation = QPSK;
+        modulation = LTE_QPSK;
         break;
       case 4:
-        modulation = QAM16;
+        modulation = LTE_QAM16;
         break;
       case 6:
-        modulation = QAM64;
+        modulation = LTE_QAM64;
         break;
       default:
         fprintf(stderr, "Invalid modulation %d. Possible values: "

@@ -34,40 +34,40 @@
 #include "liblte/config.h"
 
 #define NSUBFRAMES_X_FRAME  10
-#define NSLOTS_X_FRAME (2*NSUBFRAMES_X_FRAME)
+#define NSLOTS_X_FRAME      (2*NSUBFRAMES_X_FRAME)
 
 #define LTE_NSOFT_BITS  250368 // Soft buffer size for Category 1 UE
 
-#define LTE_NULL_BIT  0
+#define LTE_NULL_BIT    0
 #define LTE_NULL_SYMBOL 2
 #define LTE_NIL_SYMBOL  2
 
-#define MAX_PORTS   4
+#define MAX_PORTS     4
 #define MAX_LAYERS    8
 #define MAX_CODEWORDS 2
 
 #define LTE_CRC24A  0x1864CFB
 #define LTE_CRC24B  0X1800063
-#define LTE_CRC16 0x11021
-#define LTE_CRC8  0x19B
+#define LTE_CRC16   0x11021
+#define LTE_CRC8    0x19B
 
 typedef enum {CPNORM, CPEXT} lte_cp_t;
 
-#define SIRNTI    0xFFFF
+#define SIRNTI  0xFFFF
 #define PRNTI   0xFFFE
 #define MRNTI   0xFFFD
 
-#define MAX_NSYMB   7
+#define MAX_NSYMB     7
 
-#define CPNORM_NSYMB  7
+#define CPNORM_NSYMB    7
 #define CPNORM_SF_NSYMB 2*CPNORM_NSYMB
-#define CPNORM_0_LEN  160
-#define CPNORM_LEN    144
+#define CPNORM_0_LEN    160
+#define CPNORM_LEN      144
 
-#define CPEXT_NSYMB   6
+#define CPEXT_NSYMB     6
 #define CPEXT_SF_NSYMB  2*CPEXT_NSYMB
-#define CPEXT_LEN   512
-#define CPEXT_7_5_LEN 1024
+#define CPEXT_LEN       512
+#define CPEXT_7_5_LEN   1024
 
 #define CP_ISNORM(cp) (cp==CPNORM)
 #define CP_ISEXT(cp) (cp==CPEXT)
@@ -120,6 +120,10 @@ typedef enum LIBLTE_API {
 typedef enum LIBLTE_API { PHICH_NORM, PHICH_EXT} phich_length_t;
 typedef enum LIBLTE_API { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
 
+typedef enum LIBLTE_API {
+  LTE_BPSK = 1, LTE_QPSK = 2, LTE_QAM16 = 4, LTE_QAM64 = 6
+} lte_mod_t;
+
 
 typedef struct LIBLTE_API {
   int id;
@@ -146,6 +150,10 @@ LIBLTE_API uint32_t lte_voffset(uint32_t symbol_id,
                            uint32_t nof_ports);
 
 LIBLTE_API int lte_cb_size(uint32_t index);
+
+LIBLTE_API char *lte_mod_string(lte_mod_t mod);
+
+LIBLTE_API uint32_t lte_mod_bits_x_symbol(lte_mod_t mod);
 
 LIBLTE_API int lte_find_cb_index(uint32_t long_cb);
 

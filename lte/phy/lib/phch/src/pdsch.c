@@ -46,7 +46,7 @@
 
 
 
-const enum modem_std modulations[4] =
+const lte_mod_t modulations[4] =
     { LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64 };
     
     
@@ -191,7 +191,7 @@ int pdsch_init(pdsch_t *q, uint16_t user_rnti, lte_cell_t cell) {
         q->cell.nof_prb, q->max_symbols);
 
     for (i = 0; i < 4; i++) {
-      if (modem_table_std(&q->mod[i], modulations[i], true)) {
+      if (modem_table_lte(&q->mod[i], modulations[i], true)) {
         goto clean;
       }
     }
@@ -220,12 +220,12 @@ int pdsch_init(pdsch_t *q, uint16_t user_rnti, lte_cell_t cell) {
     }
 
     // Allocate floats for reception (LLRs)
-    q->cb_in = malloc(sizeof(float) * MAX_LONG_CB);
+    q->cb_in = malloc(sizeof(char) * MAX_LONG_CB);
     if (!q->cb_in) {
       goto clean;
     }
     
-    q->cb_out = malloc(sizeof(char) * (3 * MAX_LONG_CB + 12));
+    q->cb_out = malloc(sizeof(float) * (3 * MAX_LONG_CB + 12));
     if (!q->cb_out) {
       goto clean;
     }
@@ -417,8 +417,7 @@ int pdsch_harq_setup(pdsch_harq_t *p, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (p                 != NULL         &&
-      mcs.tbs            > 0            && 
-      mcs.mod            != MOD_NULL)
+      mcs.tbs            > 0)
   {
     uint32_t nof_bits, nof_bits_e, nof_symbols;
     
@@ -429,7 +428,7 @@ int pdsch_harq_setup(pdsch_harq_t *p, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
     
     nof_bits = mcs.tbs;
     nof_symbols = prb_alloc->re_sf[1]; // Any subframe except 0 and 5 has maximum RE
-    nof_bits_e = nof_symbols * ra_mod_bits_x_symbol(mcs.mod);
+    nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(mcs.mod);
     
     if (nof_bits > nof_bits_e) {
       fprintf(stderr, "Invalid code rate %.2f\n", (float) nof_bits / nof_bits_e);
@@ -506,18 +505,18 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
       /* Rate Unmatching */
       if (rm_turbo_rx(harq_process->pdsch_w_buff_f[i], harq_process->w_buff_size,  
                   &e_bits[rp], n_e, 
-                  (float*) q->cb_in, 3 * cb_len + 12, rv_idx)) {
+                  (float*) q->cb_out, 3 * cb_len + 12, rv_idx)) {
         fprintf(stderr, "Error in rate matching\n");
         return LIBLTE_ERROR;
       }
 
       /* Turbo Decoding */
-      tdec_run_all(&q->decoder, (float*) q->cb_in, q->cb_out, TDEC_ITERATIONS,
+      tdec_run_all(&q->decoder, (float*) q->cb_out, q->cb_in, TDEC_ITERATIONS,
           cb_len);
 
       if (harq_process->cb_segm.C > 1) {
         /* Check Codeblock CRC and stop early if incorrect */
-        if (crc_checksum(&q->crc_cb, q->cb_out, cb_len)) {
+        if (crc_checksum(&q->crc_cb, q->cb_in, cb_len)) {
           INFO("Error in CB#%d\n",i);
           return LIBLTE_ERROR;
         }
@@ -525,13 +524,13 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
 
       /* Copy data to another buffer, removing the Codeblock CRC */
       if (i < harq_process->cb_segm.C - 1) {
-        memcpy(&data[wp], &q->cb_out[F], (rlen - F) * sizeof(char));
+        memcpy(&data[wp], &q->cb_in[F], (rlen - F) * sizeof(char));
       } else {
         INFO("Last CB, appending parity: %d to %d from %d and 24 from %d\n",
             rlen - F - 24, wp, F, rlen - 24);
         /* Append Transport Block parity bits to the last CB */
-        memcpy(&data[wp], &q->cb_out[F], (rlen - F - 24) * sizeof(char));
-        memcpy(parity, &q->cb_out[rlen - 24], 24 * sizeof(char));
+        memcpy(&data[wp], &q->cb_in[F], (rlen - F - 24) * sizeof(char));
+        memcpy(parity, &q->cb_in[rlen - 24], 24 * sizeof(char));
       }
 
       /* Set read/write pointers */
@@ -552,8 +551,10 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
     }
 
     if (par_rx == par_tx) {
+      INFO("TB decoded OK\n",i);
       return LIBLTE_SUCCESS;
     } else {
+      INFO("Error in TB parity\n",i);
       return LIBLTE_ERROR;
     }
   } else {
@@ -649,7 +650,6 @@ int pdsch_encode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
   uint32_t par;
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
-  char *cb_in = q->cb_in;
   char *e_bits = q->pdsch_e;
   
   if (q             != NULL &&
@@ -673,7 +673,7 @@ int pdsch_encode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
 
       /* Add filler bits to the new data buffer */
       for (i = 0; i < harq_process->cb_segm.F; i++) {
-        cb_in[i] = LTE_NULL_BIT;
+        q->cb_in[i] = LTE_NULL_BIT;
       }
     }
     
@@ -710,29 +710,29 @@ int pdsch_encode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
       if (rv_idx == 0) {
         /* Copy data to another buffer, making space for the Codeblock CRC */
         if (i < harq_process->cb_segm.C - 1) {
-          memcpy(&cb_in[F], &data[rp], (rlen - F) * sizeof(char));
+          memcpy(&q->cb_in[F], &data[rp], (rlen - F) * sizeof(char));
         } else {
           INFO("Last CB, appending parity: %d from %d and 24 to %d\n",
               rlen - F - 24, rp, rlen - 24);
           /* Append Transport Block parity bits to the last CB */
-          memcpy(&cb_in[F], &data[rp], (rlen - F - 24) * sizeof(char));
-          memcpy(&cb_in[rlen - 24], parity, 24 * sizeof(char));
+          memcpy(&q->cb_in[F], &data[rp], (rlen - F - 24) * sizeof(char));
+          memcpy(&q->cb_in[rlen - 24], parity, 24 * sizeof(char));
         }        
         if (harq_process->cb_segm.C > 1) {
           /* Attach Codeblock CRC */
-          crc_attach(&q->crc_cb, cb_in, rlen);
+          crc_attach(&q->crc_cb, q->cb_in, rlen);
         }
         if (VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d Len=%d: ", i, cb_len);
-          vec_fprint_b(stdout, cb_in, cb_len);
+          vec_fprint_b(stdout, q->cb_in, cb_len);
         }
         /* Turbo Encoding */
-        tcod_encode(&q->encoder, cb_in, q->cb_out, cb_len);
+        tcod_encode(&q->encoder, q->cb_in, (char*) q->cb_out, cb_len);
       }
       
       /* Rate matching */
       if (rm_turbo_tx(harq_process->pdsch_w_buff_c[i], harq_process->w_buff_size, 
-                  q->cb_out, 3 * cb_len + 12,
+                  (char*) q->cb_out, 3 * cb_len + 12,
                   &e_bits[wp], n_e, rv_idx))
       {
         fprintf(stderr, "Error in rate matching\n");
@@ -778,7 +778,7 @@ int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS], uint32_t s
     nof_symbols = harq_process->prb_alloc.re_sf[subframe];
     nof_bits_e = nof_symbols * q->mod[harq_process->mcs.mod - 1].nbits_x_symbol;
 
-    if (harq_process->mcs.mod == MOD_NULL) {
+    if (harq_process->mcs.tbs == 0) {
       return LIBLTE_ERROR_INVALID_INPUTS;      
     }
     
@@ -807,6 +807,7 @@ int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS], uint32_t s
       fprintf(stderr, "Error encoding TB\n");
       return LIBLTE_ERROR;
     }
+    
 
     scrambling_b_offset(&q->seq_pdsch[subframe], (char*) q->pdsch_e, 0, nof_bits_e);
 

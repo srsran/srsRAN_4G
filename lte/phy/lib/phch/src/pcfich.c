@@ -70,7 +70,7 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
     q->cell = cell;
     q->regs = regs;
 
-    if (modem_table_std(&q->mod, LTE_QPSK, false)) {
+    if (modem_table_lte(&q->mod, LTE_QPSK, false)) {
       goto clean;
     }
 

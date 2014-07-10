@@ -223,7 +223,6 @@ void base_free() {
 
 int main(int argc, char **argv) {
   ra_pdsch_t ra_dl;
-  ra_prb_t prb_alloc;
   int i;
   int nof_frames;
   int ret;
@@ -300,39 +299,11 @@ int main(int argc, char **argv) {
       }
       
       if (crc_rem == rnti) {
-        dci_msg_type_t type;
-        if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti, 1234)) {
-          fprintf(stderr, "Can't get DCI message type\n");
+        if (dci_msg_to_ra_dl(&dci_msg, rnti, 1234, cell, cfi, &ra_dl)) {
+          fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
           goto goout;
         }
-        
-        dci_msg_type_fprint(stdout, type);
-        switch(type.type) {
-        case PDSCH_SCHED:
-          bzero(&ra_dl, sizeof(ra_pdsch_t));
-          if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SIRNTI)) {
-            fprintf(stderr, "Can't unpack PDSCH message\n");
-          } else {
-            ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
-            if (ra_dl.alloc_type == alloc_type2 && ra_dl.type2_alloc.mode == t2_loc
-                && ra_dl.type2_alloc.riv == 11 && ra_dl.rv_idx == 0
-                && ra_dl.harq_process == 0 && ra_dl.mcs.mcs_idx == 2) {
-              printf("This is the file signal.1.92M.amar.dat\n");
-              ret = 0;
-            }
-          }
-          break;
-        default:
-          fprintf(stderr, "Unsupported message type\n");
-          break;
-        }
-        if (ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb)) {
-          fprintf(stderr, "Error computing resource allocation\n");
-          goto goout;
-        }
-        ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
-
-        if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
+        if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &ra_dl.prb_alloc)) {
           fprintf(stderr, "Error configuring HARQ process\n");
           goto goout;
         }
@@ -347,6 +318,8 @@ int main(int argc, char **argv) {
 
     nof_frames++;
   } while (nof_frames <= max_frames);
+
+  ret = 0;
 
 goout:
   base_free();

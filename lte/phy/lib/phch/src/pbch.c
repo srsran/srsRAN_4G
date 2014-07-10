@@ -134,7 +134,7 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     bzero(q, sizeof(pbch_t));
     q->cell = cell;
 
-    if (modem_table_std(&q->mod, LTE_QPSK, true)) {
+    if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
       goto clean;
     }
     demod_soft_init(&q->demod);

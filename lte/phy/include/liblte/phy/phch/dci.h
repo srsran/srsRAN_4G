@@ -71,7 +71,24 @@ typedef struct LIBLTE_API {
   uint32_t nof_bits;
 } dci_msg_t;
 
+/* Converts a received PDSCH DL scheduling DCI message 
+ * to ra structures ready to be passed to the harq setup function
+ */
+LIBLTE_API int dci_msg_to_ra_dl(dci_msg_t *msg, 
+                                uint16_t msg_rnti, 
+                                uint16_t c_rnti, 
+                                lte_cell_t cell,
+                                uint32_t cfi,
+                                ra_pdsch_t *ra_dl);
 
+/* TODO
+LIBLTE_API int dci_msg_to_ra_ul(dci_msg_t *msg, 
+                                uint16_t msg_rnti, 
+                                uint16_t c_rnti, 
+                                lte_cell_t cell,
+                                uint32_t cfi,
+                                ra_pusch_t *ra_ul);
+*/
 LIBLTE_API char* dci_format_string(dci_format_t format);
 
 LIBLTE_API int dci_location_set(dci_location_t *c, 

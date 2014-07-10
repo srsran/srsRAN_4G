@@ -37,14 +37,14 @@ void demod_hard_init(demod_hard_t* q) {
   bzero((void*) q, sizeof(demod_hard_t));
 }
 
-void demod_hard_table_set(demod_hard_t* q, enum modem_std table) {
-  q->table = table;
+void demod_hard_table_set(demod_hard_t* q, lte_mod_t mod) {
+  q->mod = mod;
 }
 
-int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits, int nsymbols) {
+int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits, uint32_t nsymbols) {
 
   int nbits=-1;
-  switch(q->table) {
+  switch(q->mod) {
   case LTE_BPSK:
     hard_bpsk_demod(symbols,bits,nsymbols);
     nbits=nsymbols;

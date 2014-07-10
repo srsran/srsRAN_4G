@@ -398,11 +398,10 @@ int cell_id_init(int nof_prb, int cell_id) {
 
 char data[10000];
 
-int rx_run(cf_t *input, int sf_idx) {
+int pdsch_run(cf_t *input, uint32_t sf_idx) {
   uint32_t cfi, cfi_distance, i;
   cf_t *input_decim;
   ra_pdsch_t ra_dl;
-  ra_prb_t prb_alloc;
   dci_location_t locations[10];
   dci_msg_t dci_msg;
   uint32_t nof_locations;
@@ -422,6 +421,7 @@ int rx_run(cf_t *input, int sf_idx) {
   
   /* First decode PCFICH and obtain CFI */
   if (pcfich_decode(&pcfich, fft_buffer, ce, sf_idx, &cfi, &cfi_distance)<0) {
+    fprintf(stderr, "Error decoding PCFICH\n");
     return -1;
   }
   
@@ -441,56 +441,27 @@ int rx_run(cf_t *input, int sf_idx) {
       fprintf(stderr, "Error extracting LLRs\n");
       return -1;
     }
-    if (pdcch_decode_msg(&pdcch, &dci_msg, Format1A, &crc_rem)) {
+    if (pdcch_decode_msg(&pdcch, &dci_msg, Format1, &crc_rem)) {
       fprintf(stderr, "Error decoding DCI msg\n");
       return -1;
     }
   }
   
   if (crc_rem == 1234) {
-    dci_msg_type_t type;
-    if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, 1234, 1234)) {
-      fprintf(stderr, "Can't get DCI message type\n");      
-    } else {      
-      if (VERBOSE_ISINFO()) {
-        dci_msg_type_fprint(stdout, type);        
-      }
-      switch(type.type) {
-      case PDSCH_SCHED:
-        bzero(&ra_dl, sizeof(ra_pdsch_t));
-        if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb,
-            false)) {
-          fprintf(stderr, "Can't unpack PDSCH message\n");
-          break;
-        }
-        if (VERBOSE_ISINFO() || !pkts_total) {
-          printf("\n");
-          ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);        
-          printf("\n");
-        }
-        if (ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb)) {
-          fprintf(stderr, "Error computing resource allocation\n");
-          break;
-        }
-        ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, 
-                      cell.nof_prb<10?(cfi+1):cfi, CPNORM);
-
-        
-        if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
-          fprintf(stderr, "Error configuring HARQ process\n");
-          break;
-        }
-        
-        if (pdsch_decode(&pdsch, fft_buffer, ce, data, sf_idx, &harq_process, ra_dl.rv_idx)) {
-          pkt_errors++;
-        }
-        pkts_total++;
-        break;
-      default:
-        fprintf(stderr, "Unsupported message type\n");
-        break;
-      }
+    if (dci_msg_to_ra_dl(&dci_msg, 1234, 1234, cell, cfi, &ra_dl)) {
+      fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
+      return -1;
     }
+    
+    if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &ra_dl.prb_alloc)) {
+      fprintf(stderr, "Error configuring HARQ process\n");
+      return -1;
+    }
+    
+    if (pdsch_decode(&pdsch, fft_buffer, ce, data, sf_idx, &harq_process, ra_dl.rv_idx)) {
+      pkt_errors++;
+    }
+    pkts_total++;    
   }
 
   #ifndef DISABLE_GRAPHICS
@@ -504,8 +475,8 @@ int rx_run(cf_t *input, int sf_idx) {
     }
     plot_real_setNewData(&poutfft, tmp_plot, n_re);
     plot_complex_setNewData(&pce, ce[0], n_re);
-    plot_scatter_setNewData(&pscatrecv, pdsch.pdsch_symbols[0], prb_alloc.re_sf[sf_idx]);
-    plot_scatter_setNewData(&pscatequal, pdsch.pdsch_d, prb_alloc.re_sf[sf_idx]);    
+    plot_scatter_setNewData(&pscatrecv, pdsch.pdsch_symbols[0], ra_dl.prb_alloc.re_sf[sf_idx]);
+    plot_scatter_setNewData(&pscatequal, pdsch.pdsch_d, ra_dl.prb_alloc.re_sf[sf_idx]);    
   }
 #endif
 
@@ -574,7 +545,8 @@ int run_receiver(cf_t *input, uint32_t cell_id, uint32_t sf_idx) {
     }    
   } 
   if (cell.nof_prb && !pbch_only) {
-    if (rx_run(input, sf_idx)) {
+    if (pdsch_run(input, sf_idx)) {
+      fprintf(stderr, "\nError running PDSCH decoder\n");
       return -1;
     }
   }
@@ -665,20 +637,22 @@ int main(int argc, char **argv) {
   
   sync_frame_set_threshold(&sframe, find_threshold);
 
+  sf_idx = 0;
+  cell_id = cell_id_file;
+  if (input_file_name) {
+    in_ptr = input_buffer;    
+  } else {    
+    in_ptr = sf_buffer;
+  }
+
   while (!go_exit && (frame_cnt < nof_frames || nof_frames == -1)) {
 
     read_io(input_buffer, sf_n_samples);
 
-    if (input_file_name) {
-      ret = 1;
-      sf_idx = 0;
-      cell_id = cell_id_file;
-      in_ptr = input_buffer;
-    } else {
+    if (!input_file_name) {
       ret = sync_frame_push(&sframe, input_buffer, sf_buffer);
-      in_ptr = sf_buffer;
-      cell_id = 0;
-      sf_idx = 0;
+    } else {
+      ret = 1;
     }
     switch(ret ) {
       case 0:
@@ -694,10 +668,11 @@ int main(int argc, char **argv) {
         if (!input_file_name) {
           sf_idx = sync_frame_sfidx(&sframe);
           cell_id = sync_frame_cell_id(&sframe);
-        }
+        } 
         
         /* synch'd and tracking */
         if (run_receiver(in_ptr, cell_id, sf_idx)) {
+          fprintf(stderr, "\nError running receiver\n");fflush(stdout);
           exit(-1);
         }
         
@@ -708,7 +683,9 @@ int main(int argc, char **argv) {
               (float) pkt_errors / pkts_total);
           fflush(stdout);          
         }
-
+        if (input_file_name) {
+          sf_idx++;          
+        }
         break;
       default:
         fprintf(stderr, "Error running automatic synchronization\n");

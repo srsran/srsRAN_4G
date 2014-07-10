@@ -292,7 +292,7 @@ int main(int argc, char **argv) {
             ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
             if (ra_dl.alloc_type == alloc_type2 && ra_dl.type2_alloc.mode == t2_loc
                 && ra_dl.type2_alloc.riv == 11 && ra_dl.rv_idx == 0
-                && ra_dl.harq_process == 0 && ra_dl.mcs.mcs_idx == 2) {
+                && ra_dl.harq_process == 0 && ra_dl.mcs_idx == 2) {
               printf("This is the file signal.1.92M.amar.dat\n");
               ret = 0;
             }
