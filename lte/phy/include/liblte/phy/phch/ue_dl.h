@@ -86,8 +86,9 @@ LIBLTE_API int ue_dl_init(ue_dl_t *q,
 
 LIBLTE_API void ue_dl_free(ue_dl_t *q);
 
-LIBLTE_API int ue_dl_process(ue_dl_t *q, 
+LIBLTE_API int ue_dl_receive(ue_dl_t *q, 
                              cf_t *sf_buffer, 
+                             char *data, 
                              uint32_t sf_idx, 
                              uint32_t sfn, 
                              uint16_t rnti);

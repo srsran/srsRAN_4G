@@ -60,7 +60,7 @@ typedef struct LIBLTE_API {
   enum sync_pss_det pss_mode;
   float find_threshold;
   float track_threshold;
-  float peak_to_avg;
+  float peak_value;
   uint32_t N_id_2;
   uint32_t N_id_1;
   uint32_t slot_id;
@@ -113,7 +113,7 @@ LIBLTE_API void sync_pss_det_peak_to_avg(sync_t *q);
 LIBLTE_API uint32_t sync_get_slot_id(sync_t *q);
 
 /* Gets the last peak-to-average ratio */
-LIBLTE_API float sync_get_peak_to_avg(sync_t *q);
+LIBLTE_API float sync_get_peak_value(sync_t *q);
 
 /* Gets the N_id_2 from the last call to synch_run() */
 LIBLTE_API uint32_t sync_get_N_id_2(sync_t *q);

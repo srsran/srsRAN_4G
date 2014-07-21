@@ -58,7 +58,6 @@ typedef struct {
   uint16_t rnti; 
   int nof_subframes;
   bool disable_plots;
-  bool pbch_only; 
   iodev_cfg_t io_config; 
 }prog_args_t;
 
@@ -68,7 +67,6 @@ void args_default(prog_args_t *args) {
   args->rnti = SIRNTI;
   args->nof_subframes = -1; 
   args->disable_plots = false; 
-  args->pbch_only = false; 
   args->io_config.find_threshold = -1.0; 
   args->io_config.input_file_name = NULL; 
   args->io_config.uhd_args = "";
@@ -121,10 +119,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'f':
       args->io_config.uhd_freq = atof(argv[optind]);
       break;
-    case 'b':
-      args->pbch_only = true;
-      break;
-    case 't':
+   case 't':
       args->io_config.find_threshold = atof(argv[optind]);
       break;
     case 'n':
@@ -151,6 +146,9 @@ void sigintHandler(int x) {
   go_exit = 1; 
 }
 
+/* TODO: Do something with the output data */
+char data[10000];
+
 int main(int argc, char **argv) {
   int ret; 
   cf_t *sf_buffer; 
@@ -162,6 +160,8 @@ int main(int argc, char **argv) {
   int64_t sf_cnt;
   uint32_t sf_idx;
   pbch_mib_t mib; 
+  bool printed_sib = false; 
+  uint32_t rlen; 
   
   parse_args(&prog_args, argc, argv);
   
@@ -215,14 +215,21 @@ int main(int argc, char **argv) {
         if (iodev_isUSRP(&iodev)) {
           sf_idx = ue_sync_get_sfidx(&iodev.sframe);
         } 
-        if (ue_dl_process(&ue_dl, sf_buffer, sf_idx, ue_sync_get_mib(&iodev.sframe).sfn, prog_args.rnti)) {
+        rlen = ue_dl_receive(&ue_dl, sf_buffer, data, sf_idx, ue_sync_get_mib(&iodev.sframe).sfn, prog_args.rnti);
+        if (rlen < 0) {
           fprintf(stderr, "\nError running receiver\n");fflush(stdout);
           exit(-1);
         }
+        if (prog_args.rnti == SIRNTI && !printed_sib && rlen > 0) {
+          printf("\n\nDecoded SIB1 Message: ");
+          vec_fprint_hex(stdout, data, rlen);
+          printf("\n");fflush(stdout);
+          printed_sib = true; 
+        }
         if (!(sf_cnt % 10)) {         
-          printf("Cell ID: %3d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d/%d, BLER: %.1e\r",
-              cell.id, iodev.sframe.cur_cfo * 15, iodev.sframe.mean_time_offset / 5, iodev.sframe.peak_idx,
-              (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (int) ue_dl.nof_trials, (float) ue_dl.pkt_errors / ue_dl.pkts_total);
+          printf("Cell ID: %3d, RSSI: %+.2f dBm, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
+              cell.id, 20*log10f(agc_get_rssi(&iodev.sframe.agc)), iodev.sframe.cur_cfo * 15, iodev.sframe.mean_time_offset / 5, iodev.sframe.peak_idx,
+              (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total);
           fflush(stdout);       
           if (VERBOSE_ISINFO()) {
             printf("\n");
@@ -277,24 +284,24 @@ void init_plots() {
   plot_real_init(&poutfft);
   plot_real_setTitle(&poutfft, "Output FFT - Magnitude");
   plot_real_setLabels(&poutfft, "Index", "dB");
-  plot_real_setYAxisScale(&poutfft, -60, 0);
+  plot_real_setYAxisScale(&poutfft, -30, 20);
 
   plot_complex_init(&pce);
   plot_complex_setTitle(&pce, "Channel Estimates");
-  plot_complex_setYAxisScale(&pce, Ip, -0.01, 0.01);
-  plot_complex_setYAxisScale(&pce, Q, -0.01, 0.01);
-  plot_complex_setYAxisScale(&pce, Magnitude, 0, 0.01);
+  plot_complex_setYAxisScale(&pce, Ip, -3, 3);
+  plot_complex_setYAxisScale(&pce, Q, -3, 3);
+  plot_complex_setYAxisScale(&pce, Magnitude, 0, 4);
   plot_complex_setYAxisScale(&pce, Phase, -M_PI, M_PI);
 
   plot_scatter_init(&pscatrecv);
   plot_scatter_setTitle(&pscatrecv, "Received Symbols");
-  plot_scatter_setXAxisScale(&pscatrecv, -0.01, 0.01);
-  plot_scatter_setYAxisScale(&pscatrecv, -0.01, 0.01);
+  plot_scatter_setXAxisScale(&pscatrecv, -4, 4);
+  plot_scatter_setYAxisScale(&pscatrecv, -4, 4);
 
   plot_scatter_init(&pscatequal);
   plot_scatter_setTitle(&pscatequal, "Equalized Symbols");
-  plot_scatter_setXAxisScale(&pscatequal, -1, 1);
-  plot_scatter_setYAxisScale(&pscatequal, -1, 1);
+  plot_scatter_setXAxisScale(&pscatequal, -2, 2);
+  plot_scatter_setYAxisScale(&pscatequal, -2, 2);
 }
 
 void do_plots(ue_dl_t *q, uint32_t sf_idx) {

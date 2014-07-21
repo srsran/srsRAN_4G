@@ -88,11 +88,15 @@ int ue_sync_init(ue_sync_t *q,
     INFO("Setting sampling frequency 1.92 MHz\n",0);
     q->set_rate_callback(q->stream, 1920000.0);
     
+    if (agc_init(&q->agc)) {
+      goto clean_exit;
+    }
+    
     if(sync_init(&q->s, CURRENT_SFLEN, CURRENT_FFTSIZE, CURRENT_FFTSIZE)) {
       goto clean_exit;
     }
     
-    sync_pss_det_peak_to_avg(&q->s);
+    sync_pss_det_absolute(&q->s);
     
     if (cfo_init(&q->cfocorr, MAXIMUM_SFLEN)) {
       fprintf(stderr, "Error initiating CFO\n");
@@ -101,6 +105,12 @@ int ue_sync_init(ue_sync_t *q,
    
     q->input_buffer = vec_malloc(3 * MAXIMUM_SFLEN * sizeof(cf_t));
     if (!q->input_buffer) {
+      perror("malloc");
+      goto clean_exit;
+    }
+   
+    q->receive_buffer = vec_malloc(3 * MAXIMUM_SFLEN * sizeof(cf_t));
+    if (!q->receive_buffer) {
       perror("malloc");
       goto clean_exit;
     }
@@ -118,8 +128,7 @@ int ue_sync_init(ue_sync_t *q,
       }
     }
    
-    //float th = PAR_THRESHOLD_FIND * (1+(float) CURRENT_FFTSIZE/128/10);
-    sync_set_threshold(&q->s, PAR_THRESHOLD_FIND, PAR_THRESHOLD_FIND/4);
+    sync_set_threshold(&q->s, PSS_THRESHOLD, PSS_THRESHOLD);
     
     ret = LIBLTE_SUCCESS;
   }
@@ -135,6 +144,9 @@ void ue_sync_free(ue_sync_t *q) {
   if (q->input_buffer) {
     free(q->input_buffer);
   }
+  if (q->receive_buffer) {
+    free(q->receive_buffer);
+  }
   if (q->sf_symbols) {
     free(q->sf_symbols);
   }
@@ -146,6 +158,7 @@ void ue_sync_free(ue_sync_t *q) {
   mib_decoder_free(q);
   cfo_free(&q->cfocorr);
   sync_free(&q->s);
+  agc_free(&q->agc);
 }
 
 void ue_sync_set_threshold(ue_sync_t *q, float threshold) {
@@ -398,10 +411,10 @@ static int receive_samples(ue_sync_t *q) {
     q->time_offset = -q->time_offset;
   } 
   /* copy last part of the last subframe (use move since there could be overlapping) */
-  memmove(q->input_buffer, &q->input_buffer[CURRENT_SFLEN-q->time_offset], q->time_offset*sizeof(cf_t));
+  memcpy(q->receive_buffer, &q->input_buffer[CURRENT_SFLEN-q->time_offset], q->time_offset*sizeof(cf_t));
 
   /* Get 1 subframe from the USRP getting more samples and keeping the previous samples, if any */  
-  if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], CURRENT_SFLEN - q->time_offset) < 0) {
+  if (q->recv_callback(q->stream, &q->receive_buffer[q->time_offset], CURRENT_SFLEN - q->time_offset) < 0) {
     return LIBLTE_ERROR;
   }
   
@@ -426,6 +439,8 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
       return -1;
     }
     
+    agc_push(&q->agc, q->receive_buffer, q->input_buffer, CURRENT_SFLEN);
+    
     switch (q->state) {
       case SF_FIND:
         q->s.sss_en = true; 
@@ -437,7 +452,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
           return -1;
         }
         
-        DEBUG("Find PAR=%.2f\n", sync_get_peak_to_avg(&q->s));
+        DEBUG("Find PAR=%.2f\n", sync_get_peak_value(&q->s));
         
         if (ret == 1) {
           ret = find_peak_ok(q);

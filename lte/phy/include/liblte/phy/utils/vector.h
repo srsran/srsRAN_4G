@@ -76,7 +76,12 @@ LIBLTE_API void vec_prod_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 /* vector product (element-wise) */
 LIBLTE_API void vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len);
 
+/* conjugate vector product (element-wise) */
+LIBLTE_API void vec_prod_conj_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
+
+/* Dot-product */
 LIBLTE_API cf_t vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len);
+LIBLTE_API cf_t vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len);
 LIBLTE_API float vec_dot_prod_fff(float *x, float *y, uint32_t len);
 
 /* z=x/y vector division (element-wise) */

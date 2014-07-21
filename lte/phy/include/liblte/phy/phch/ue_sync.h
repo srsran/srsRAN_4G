@@ -36,6 +36,7 @@
 #include "liblte/phy/ch_estimation/chest.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/fft.h"
+#include "liblte/phy/agc/agc.h"
 
 /**************************************************************
  *
@@ -66,7 +67,7 @@ typedef enum LIBLTE_API { SF_FIND, SF_TRACK} ue_sync_state_t;
 #define SYNC_PBCH_NOF_PORTS     2
 
 #define TRACK_MAX_LOST          10
-#define PAR_THRESHOLD_FIND      20    
+#define PSS_THRESHOLD           1
 
 #define NOF_MIB_DECODES         10
 
@@ -82,6 +83,7 @@ typedef struct LIBLTE_API {
   ue_sync_state_t state;
   
   cf_t *input_buffer; 
+  cf_t *receive_buffer; 
   cf_t *sf_symbols; 
   cf_t *ce[SYNC_PBCH_NOF_PORTS];
   
@@ -100,6 +102,7 @@ typedef struct LIBLTE_API {
   float cur_cfo;
   
   /* Variables for PBCH decoding */
+  agc_t agc;
   pbch_mib_t mib; 
   lte_fft_t fft; 
   chest_t chest; 

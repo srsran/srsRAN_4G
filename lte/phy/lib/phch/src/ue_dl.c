@@ -53,6 +53,7 @@ int ue_dl_init(ue_dl_t *q,
     q->user_rnti = user_rnti; 
     q->pkt_errors = 0;
     q->pkts_total = 0; 
+    q->nof_trials = 0;
     
     if (lte_fft_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -135,10 +136,7 @@ void ue_dl_free(ue_dl_t *q) {
   }
 }
 
-/* TODO: Do something with the output data */
-char data[10000];
-
-int ue_dl_process(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t sfn, uint16_t rnti) 
+int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t sfn, uint16_t rnti) 
 {
   uint32_t cfi, cfi_distance, i;
   ra_pdsch_t ra_dl;
@@ -185,11 +183,11 @@ int ue_dl_process(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t sfn, uint16
     for (i=0;i<nof_locations && crc_rem != rnti;i++) {
       if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, locations[i], sf_idx, cfi)) {
         fprintf(stderr, "Error extracting LLRs\n");
-        return -1;
+        return LIBLTE_ERROR;
       }
       if (pdcch_decode_msg(&q->pdcch, &dci_msg, format, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
-        return -1;
+        return LIBLTE_ERROR;
       }
       INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
     }
@@ -198,7 +196,7 @@ int ue_dl_process(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t sfn, uint16
     if (crc_rem == rnti) {
       if (dci_msg_to_ra_dl(&dci_msg, rnti, q->user_rnti, q->cell, cfi, &ra_dl)) {
         fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-        return -1;
+        return LIBLTE_ERROR;
       }
 
       uint32_t rvidx; 
@@ -224,7 +222,7 @@ int ue_dl_process(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t sfn, uint16
       if (rvidx == 0) {
         if (pdsch_harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
           fprintf(stderr, "Error configuring HARQ process\n");
-          return -1;
+          return LIBLTE_ERROR;
         }
       }
       if (q->harq_process[0].mcs.mod > 0) {
@@ -251,5 +249,9 @@ int ue_dl_process(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t sfn, uint16
     }
   }
   
-  return 0;
+  if (crc_rem == rnti) {        
+    return ra_dl.mcs.tbs;    
+  } else {
+    return 0;
+  }
 }

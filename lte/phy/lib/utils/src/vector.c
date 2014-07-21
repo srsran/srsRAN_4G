@@ -281,6 +281,18 @@ void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #endif
 }
 
+
+void vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
+#ifndef HAVE_VOLK_MULT2_CONJ_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]*conjf(y[i]);
+  }
+#else
+  volk_32fc_x2_multiply_conjugate_32fc(z,x,y,len);
+#endif
+}
+
 void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
   int i;
   for (i=0;i<len;i++) {
@@ -313,6 +325,22 @@ cf_t vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len) {
   return res;
 #endif
 }
+
+cf_t vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len) {
+#ifdef HAVE_VOLK_DOTPROD_CONJ_FC_FUNCTION
+  cf_t res;
+  volk_32fc_x2_conjugate_dot_prod_32fc(&res, x, y, len);
+  return res; 
+#else 
+  uint32_t i;
+  cf_t res = 0;
+  for (i=0;i<len;i++) {
+    res += x[i]*conjf(y[i]);
+  }
+  return res;
+#endif
+}
+
 
 float vec_dot_prod_fff(float *x, float *y, uint32_t len) {
 #ifdef HAVE_VOLK_DOTPROD_F_FUNCTION

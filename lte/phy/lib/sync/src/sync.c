@@ -176,8 +176,8 @@ float sync_get_cfo(sync_t *q) {
   return q->cfo;
 }
 
-float sync_get_peak_to_avg(sync_t *q) {
-  return q->peak_to_avg;
+float sync_get_peak_value(sync_t *q) {
+  return q->peak_value;
 }
 
 void sync_cp_en(sync_t *q, bool enabled) {
@@ -278,7 +278,6 @@ int sync_track(sync_t *q, cf_t *input, uint32_t offset, uint32_t *peak_position)
       fft_size_isvalid(q->fft_size))
   {
     float peak_value, mean_value, *mean_ptr;
-    bool peak_detected;
     uint32_t peak_pos;
 
     pss_synch_set_N_id_2(&q->pss_track, q->N_id_2);
@@ -291,20 +290,16 @@ int sync_track(sync_t *q, cf_t *input, uint32_t offset, uint32_t *peak_position)
     
     peak_pos = pss_synch_find_pss(&q->pss_track, &input[offset], &peak_value, mean_ptr);
 
-    peak_detected = false;
     if (q->pss_mode == ABSOLUTE) {
-      if (peak_value > q->track_threshold) {
-        peak_detected = true;
-      }
+      q->peak_value = peak_value; 
     } else {
-      q->peak_to_avg = peak_value / mean_value;
-      if (q->peak_to_avg  > q->track_threshold) {
-        peak_detected = true;
-      }
+      q->peak_value = peak_value / mean_value;
     }
-    DEBUG("PSS possible tracking peak pos=%d peak=%.2f par=%.2f threshold=%.2f\n",
-          peak_pos, peak_value, q->peak_to_avg, q->track_threshold);
-    if (peak_detected) {
+    
+    DEBUG("PSS possible tracking peak pos=%d peak=%.2f threshold=%.2f\n",
+          peak_pos, peak_value, q->track_threshold);
+    
+    if (peak_value > q->track_threshold) {
       q->cfo = pss_synch_cfo_compute(&q->pss_track, &input[offset+peak_pos-q->fft_size]);
 
       if (q->sss_en) {
@@ -332,11 +327,16 @@ int sync_find(sync_t *q, cf_t *input, uint32_t *peak_position) {
   float max=-999;
   uint32_t i;
   int ret; 
-  bool peak_detected;
-
+  float *mean_ptr; 
+  
   for (N_id_2=0;N_id_2<3;N_id_2++) {
+     if (q->pss_mode == ABSOLUTE) {
+      mean_ptr = NULL;
+    } else {
+      mean_ptr = &mean_value[N_id_2];
+    }
     pss_synch_set_N_id_2(&q->pss_find, N_id_2);
-    ret = pss_synch_find_pss(&q->pss_find, input, &peak_value[N_id_2], &mean_value[N_id_2]);
+    ret = pss_synch_find_pss(&q->pss_find, input, &peak_value[N_id_2], mean_ptr);
     if (ret < 0) {
       fprintf(stderr, "Error finding PSS for N_id_2=%d\n", N_id_2);
       return LIBLTE_ERROR;
@@ -351,32 +351,25 @@ int sync_find(sync_t *q, cf_t *input, uint32_t *peak_position) {
     }
   }
 
-  q->peak_to_avg = peak_value[N_id_2] / mean_value[N_id_2];
-
-  DEBUG("PSS possible peak N_id_2=%d, pos=%d peak=%.2f par=%.2f threshold=%.2f\n",
-      N_id_2, peak_pos[N_id_2], peak_value[N_id_2], q->peak_to_avg, q->find_threshold);
-
-  /* If peak detected */
-  peak_detected = false;
   if (peak_pos[N_id_2] > q->fft_size) {
     if (q->pss_mode == ABSOLUTE) {
-      if (peak_value[N_id_2] > q->find_threshold) {
-        peak_detected = true;
-      }
+      q->peak_value = peak_value[N_id_2];
     } else {
-      if (q->peak_to_avg  > q->find_threshold) {
-        peak_detected = true;
-      }
+      q->peak_value = peak_value[N_id_2] / mean_value[N_id_2];
     }
   }
   
-  if (peak_detected) {
+  DEBUG("PSS possible peak N_id_2=%d, pos=%d peak=%.2f threshold=%.2f\n",
+      N_id_2, peak_pos[N_id_2], peak_value[N_id_2], q->find_threshold);
+
+  /* If peak detected */
+  if (q->peak_value > q->find_threshold) {
     q->N_id_2 = N_id_2;
     pss_synch_set_N_id_2(&q->pss_find, q->N_id_2);
     q->cfo = pss_synch_cfo_compute(&q->pss_find, &input[peak_pos[N_id_2]-q->fft_size]);
     
     DEBUG("PSS peak detected N_id_2=%d, pos=%d peak=%.2f par=%.2f th=%.2f cfo=%.4f\n", N_id_2,
-        peak_pos[N_id_2], peak_value[N_id_2], q->peak_to_avg, q->find_threshold, q->cfo);
+        peak_pos[N_id_2], peak_value[N_id_2], q->peak_value, q->find_threshold, q->cfo);
 
     if (q->sss_en) {     
       if (sync_sss(q, input, peak_pos[q->N_id_2], q->detect_cp) < 0) {

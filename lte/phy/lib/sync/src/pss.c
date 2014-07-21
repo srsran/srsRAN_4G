@@ -262,7 +262,7 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input,
     vec_abs_cf(q->conv_output, q->conv_abs, conv_output_len);
     corr_peak_pos = vec_max_fi(q->conv_abs, conv_output_len);
     if (corr_peak_value) {
-      *corr_peak_value = q->conv_abs[corr_peak_pos];
+      *corr_peak_value = q->conv_abs[corr_peak_pos] / conv_output_len;
     }
     if (corr_mean_value) {
       *corr_mean_value = vec_acc_ff(q->conv_abs, conv_output_len)
