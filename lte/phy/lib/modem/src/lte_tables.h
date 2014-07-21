@@ -45,7 +45,18 @@
 
 
 
-void set_BPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod);
-void set_QPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod);
-void set_16QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod);
-void set_64QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod);
+void set_BPSKtable(cf_t* table, 
+                   soft_table_t *soft_table, 
+                   bool compute_soft_demod);
+
+void set_QPSKtable(cf_t* table, 
+                   soft_table_t *soft_table, 
+                   bool compute_soft_demod);
+
+void set_16QAMtable(cf_t* table, 
+                    soft_table_t *soft_table, 
+                    bool compute_soft_demod);
+
+void set_64QAMtable(cf_t* table, 
+                    soft_table_t *soft_table, 
+                    bool compute_soft_demod);

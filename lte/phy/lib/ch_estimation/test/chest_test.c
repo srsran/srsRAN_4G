@@ -33,19 +33,22 @@
 
 #include "liblte/phy/phy.h"
 
-int cell_id = -1;
-int nof_prb = 6;
-lte_cp_t cp = CPNORM;
+lte_cell_t cell = {
+  6,            // nof_prb
+  MAX_PORTS,    // nof_ports
+  1000,         // cell_id
+  CPNORM        // cyclic prefix
+};
 
 char *output_matlab = NULL;
 
 void usage(char *prog) {
   printf("Usage: %s [recov]\n", prog);
 
-  printf("\t-r nof_prb [Default %d]\n", nof_prb);
+  printf("\t-r nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e extended cyclic prefix [Default normal]\n");
 
-  printf("\t-c cell_id (-1 tests all). [Default %d]\n", cell_id);
+  printf("\t-c cell_id (1000 tests all). [Default %d]\n", cell.id);
 
   printf("\t-o output matlab file [Default %s]\n",output_matlab?output_matlab:"None");
   printf("\t-v increase verbosity\n");
@@ -56,13 +59,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "recov")) != -1) {
     switch(opt) {
     case 'r':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'e':
-      cp = CPEXT;
+      cell.cp = CPEXT;
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'o':
       output_matlab = argv[optind];
@@ -120,7 +123,7 @@ int main(int argc, char **argv) {
   int max_cid;
   FILE *fmatlab = NULL;
   float mse_mag, mse_phase;
-
+  
   parse_args(argc,argv);
 
   if (output_matlab) {
@@ -131,7 +134,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  num_re = nof_prb * RE_X_RB * CP_NSYMB(cp);
+  num_re = cell.nof_prb * RE_X_RB * CP_NSYMB(cell.cp);
 
   input = malloc(num_re * sizeof(cf_t));
   if (!input) {
@@ -149,28 +152,25 @@ int main(int argc, char **argv) {
     goto do_exit;
   }
 
-  if (cell_id == -1) {
+  if (cell.id == 1000) {
     cid = 0;
     max_cid = 504;
   } else {
-    cid = cell_id;
-    max_cid = cell_id;
+    cid = cell.id;
+    max_cid = cell.id;
   }
+
   while(cid <= max_cid) {
-    if (chest_init(&eq, LINEAR, cp, nof_prb, MAX_PORTS)) {
+    cell.id = cid; 
+    if (chest_init_LTEDL(&eq, cell)) {
       fprintf(stderr, "Error initializing equalizer\n");
       goto do_exit;
     }
 
-    if (chest_ref_LTEDL(&eq, cid)) {
-      fprintf(stderr, "Error initializing reference signal\n");
-      goto do_exit;
-    }
-
     for (n_slot=0;n_slot<NSLOTS_X_FRAME;n_slot++) {
-      for (n_port=0;n_port<MAX_PORTS;n_port++) {
+      for (n_port=0;n_port<cell.nof_ports;n_port++) {
 
-        if (refsignal_init_LTEDL(&refs, n_port, n_slot, cid, cp, nof_prb)) {
+        if (refsignal_init_LTEDL(&refs, n_port, n_slot, cell)) {
           fprintf(stderr, "Error initiating CRS slot=%d\n", i);
           return -1;
         }
@@ -185,13 +185,11 @@ int main(int argc, char **argv) {
 
         refsignal_put(&refs, input);
 
-        refsignal_free(&refs);
-
-        for (i=0;i<CP_NSYMB(cp);i++) {
-          for (j=0;j<nof_prb * RE_X_RB;j++) {
-            float x = -1+(float) i/CP_NSYMB(cp) + cosf(2 * M_PI * (float) j/nof_prb/RE_X_RB);
-            h[i*nof_prb * RE_X_RB+j] = (3+x) * cexpf(I * x);
-            input[i*nof_prb * RE_X_RB+j] *= h[i*nof_prb * RE_X_RB+j];
+        for (i=0;i<CP_NSYMB(cell.cp);i++) {
+          for (j=0;j<cell.nof_prb * RE_X_RB;j++) {
+            float x = -1+(float) i/CP_NSYMB(cell.cp) + cosf(2 * M_PI * (float) j/cell.nof_prb/RE_X_RB);
+            h[i*cell.nof_prb * RE_X_RB+j] = (3+x) * cexpf(I * x);
+            input[i*cell.nof_prb * RE_X_RB+j] *= h[i*cell.nof_prb * RE_X_RB+j];
           }
         }
 

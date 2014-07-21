@@ -69,7 +69,7 @@ int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int 
 /* High-Level API */
 int demod_soft_initialize(demod_soft_hl* hl) {
   modem_table_init(&hl->table);
-  if (modem_table_std(&hl->table,hl->init.std,true)) {
+  if (modem_table_lte(&hl->table,hl->init.std,true)) {
     return -1;
   }
   demod_soft_init(&hl->obj);

@@ -33,8 +33,15 @@
 #define RX_NULL 10000
 #define TX_NULL 80
 
-LIBLTE_API int rm_conv_tx(char *input, int in_len, char *output, int out_len);
-LIBLTE_API int rm_conv_rx(float *input, int in_len, float *output, int out_len);
+LIBLTE_API int rm_conv_tx(char *input, 
+                          uint32_t in_len, 
+                          char *output, 
+                          uint32_t out_len);
+
+LIBLTE_API int rm_conv_rx(float *input, 
+                          uint32_t in_len, 
+                          float *output, 
+                          uint32_t out_len);
 
 /* High-level API */
 typedef struct

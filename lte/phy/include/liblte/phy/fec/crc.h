@@ -30,6 +30,7 @@
 #define CRC_
 
 #include "liblte/config.h"
+#include <stdint.h>
 
 typedef struct LIBLTE_API {
   unsigned long table[256];
@@ -45,6 +46,6 @@ typedef struct LIBLTE_API {
 LIBLTE_API int crc_init(crc_t *h, unsigned int crc_poly, int crc_order);
 LIBLTE_API int crc_set_init(crc_t *h, unsigned long crc_init_value);
 LIBLTE_API void crc_attach(crc_t *h, char *data, int len);
-LIBLTE_API unsigned int crc_checksum(crc_t *h, char *data, int len);
+LIBLTE_API uint32_t crc_checksum(crc_t *h, char *data, int len);
 
 #endif

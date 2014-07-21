@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/fec/tc_interl.h"
@@ -39,7 +40,7 @@
  *
  ************************************************/
 
-const int f1_list[NOF_TC_CB_SIZES] = { 3, 7, 19, 7, 7, 11, 5, 11, 7, 41, 103,
+const uint32_t f1_list[NOF_TC_CB_SIZES] = { 3, 7, 19, 7, 7, 11, 5, 11, 7, 41, 103,
     15, 9, 17, 9, 21, 101, 21, 57, 23, 13, 27, 11, 27, 85, 29, 33, 15, 17, 33,
     103, 19, 19, 37, 19, 21, 21, 115, 193, 21, 133, 81, 45, 23, 243, 151, 155,
     25, 51, 47, 91, 29, 29, 247, 29, 89, 91, 157, 55, 31, 17, 35, 227, 65, 19,
@@ -52,7 +53,7 @@ const int f1_list[NOF_TC_CB_SIZES] = { 3, 7, 19, 7, 7, 11, 5, 11, 7, 41, 103,
     39, 127, 39, 39, 31, 113, 41, 251, 43, 21, 43, 45, 45, 161, 89, 323, 47, 23,
     47, 263 };
 
-const int f2_list[NOF_TC_CB_SIZES] = { 10, 12, 42, 16, 18, 20, 22, 24, 26, 84,
+const uint32_t f2_list[NOF_TC_CB_SIZES] = { 10, 12, 42, 16, 18, 20, 22, 24, 26, 84,
     90, 32, 34, 108, 38, 120, 84, 44, 46, 48, 50, 52, 36, 56, 58, 60, 62, 32,
     198, 68, 210, 36, 74, 76, 78, 120, 82, 84, 86, 44, 90, 46, 94, 48, 98, 40,
     102, 52, 106, 72, 110, 168, 114, 58, 118, 180, 122, 62, 84, 64, 66, 68, 420,
@@ -65,9 +66,9 @@ const int f2_list[NOF_TC_CB_SIZES] = { 10, 12, 42, 16, 18, 20, 22, 24, 26, 84,
     280, 142, 480, 146, 444, 120, 152, 462, 234, 158, 80, 96, 902, 166, 336,
     170, 86, 174, 176, 178, 120, 182, 184, 186, 94, 190, 480 };
 
-int tc_interl_LTE_gen(tc_interl_t *h, int long_cb) {
-  int cb_table_idx, f1, f2;
-  unsigned long long i, j;
+int tc_interl_LTE_gen(tc_interl_t *h, uint32_t long_cb) {
+  uint32_t cb_table_idx, f1, f2;
+  uint64_t i, j;
 
   if (long_cb > h->max_long_cb) {
     fprintf(stderr, "Interleaver initiated for max_long_cb=%d\n",
@@ -90,8 +91,8 @@ int tc_interl_LTE_gen(tc_interl_t *h, int long_cb) {
   h->reverse[0] = 0;
   for (i = 1; i < long_cb; i++) {
     j = (f1 * i + f2 * i * i) % (long_cb);
-    h->forward[i] = j;
-    h->reverse[j] = i;
+    h->forward[i] = (uint32_t) j;
+    h->reverse[j] = (uint32_t) i;
   }
   return 0;
 

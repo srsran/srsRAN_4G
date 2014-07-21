@@ -46,7 +46,7 @@ typedef _Complex float cf_t;
  *  Based on 3GPP TS 36.211 version 10.7.0 Release 10.
  */
 
-typedef struct LIBLTE_API{
+typedef struct LIBLTE_API {
   // Parameters from higher layers (extracted from SIB2)
   uint32_t f;               // preamble format
   uint32_t rsi;             // rootSequenceIndex

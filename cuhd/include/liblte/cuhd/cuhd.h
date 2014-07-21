@@ -31,26 +31,63 @@
 extern "C" {
 #endif
 #include <stdbool.h>
-
+#include <stdint.h>
+  
 #include "liblte/config.h"
 #include "liblte/cuhd/cuhd_utils.h"
 
-LIBLTE_API int cuhd_open(char *args, void **handler);
+LIBLTE_API int cuhd_open(char *args, 
+                         void **handler);
+
 LIBLTE_API int cuhd_close(void *h);
 
 LIBLTE_API int cuhd_start_rx_stream(void *h);
-LIBLTE_API int cuhd_start_rx_stream_nsamples(void *h, int nsamples);
-LIBLTE_API int cuhd_stop_rx_stream(void *h);
-LIBLTE_API bool cuhd_rx_wait_lo_locked(void *h);
-LIBLTE_API double cuhd_set_rx_srate(void *h, double freq);
-LIBLTE_API double cuhd_set_rx_gain(void *h, double gain);
-LIBLTE_API double cuhd_set_rx_freq(void *h, double freq);
-LIBLTE_API int cuhd_recv(void *h, void *data, int nsamples, int blocking);
 
-LIBLTE_API double cuhd_set_tx_srate(void *h, double freq);
-LIBLTE_API double cuhd_set_tx_gain(void *h, double gain);
-LIBLTE_API double cuhd_set_tx_freq(void *h, double freq);
-LIBLTE_API int cuhd_send(void *h, void *data, int nsamples, int blocking);
+LIBLTE_API int cuhd_start_rx_stream_nsamples(void *h, 
+                                             uint32_t nsamples);
+
+LIBLTE_API int cuhd_stop_rx_stream(void *h);
+
+LIBLTE_API bool cuhd_rx_wait_lo_locked(void *h);
+
+LIBLTE_API double cuhd_set_rx_srate(void *h, 
+                                    double freq);
+
+LIBLTE_API double cuhd_set_rx_gain(void *h, 
+                                   double gain);
+
+LIBLTE_API double cuhd_set_rx_freq(void *h, 
+                                   double freq);
+
+LIBLTE_API double cuhd_set_rx_freq_offset(void *h, 
+                                          double freq, 
+                                          double off);
+
+LIBLTE_API int cuhd_recv(void *h, 
+                         void *data, 
+                         uint32_t nsamples, 
+                         bool blocking);
+
+LIBLTE_API int cuhd_recv_timed(void *h,
+                    void *data,
+                    uint32_t nsamples,
+                    bool blocking,
+                    time_t *secs,
+                    double *frac_secs);
+
+LIBLTE_API double cuhd_set_tx_srate(void *h, 
+                                    double freq);
+
+LIBLTE_API double cuhd_set_tx_gain(void *h, 
+                                   double gain);
+
+LIBLTE_API double cuhd_set_tx_freq(void *h,
+                                   double freq);
+
+LIBLTE_API int cuhd_send(void *h, 
+                         void *data, 
+                         uint32_t nsamples, 
+                         bool blocking);
 
 
 #ifdef __cplusplus

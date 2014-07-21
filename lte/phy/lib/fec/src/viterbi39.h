@@ -27,10 +27,19 @@
 
 #include <stdbool.h>
 
-void *create_viterbi39_port(int polys[3], int len);
-int init_viterbi39_port(void *p, int starting_state);
-int chainback_viterbi39_port(void *p, char *data, /* Decoded output data */
-    unsigned int nbits, /* Number of data bits */
-    unsigned int endstate);
+void *create_viterbi39_port(uint32_t polys[3], 
+                            uint32_t len);
+
+int init_viterbi39_port(void *p, 
+                        uint32_t starting_state);
+
+int chainback_viterbi39_port(void *p, 
+                             char *data, /* Decoded output data */
+                             uint32_t nbits, /* Number of data bits */
+                             uint32_t endstate);
+
 void delete_viterbi39_port(void *p);
-int update_viterbi39_blk_port(void *p, unsigned char *syms, int nbits);
+
+int update_viterbi39_blk_port(void *p, 
+                              uint8_t *syms, 
+                              uint32_t nbits);

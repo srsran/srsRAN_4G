@@ -34,8 +34,16 @@
 
 typedef _Complex float cf_t;
 
-LIBLTE_API void ch_awgn_c(const cf_t* input, cf_t* output, float variance, int buff_sz);
-LIBLTE_API void ch_awgn_f(const float* x, float* y, float variance, int buff_sz);
+LIBLTE_API void ch_awgn_c(const cf_t* input, 
+                          cf_t* output, 
+                          float variance, 
+                          int buff_sz);
+
+LIBLTE_API void ch_awgn_f(const float* x, 
+                          float* y, 
+                          float variance, 
+                          int buff_sz);
+
 
 /* High-level API */
 

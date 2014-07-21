@@ -59,7 +59,7 @@ void set_BPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demo
  * Set the QPSK modulation table */
 void set_QPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod)
 {
-  int i,j;
+  uint32_t i,j;
 
   // LTE-QPSK constellation:
   //     Q
@@ -97,7 +97,7 @@ void set_QPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demo
  * Set the 16QAM modulation table */
 void set_16QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod)
 {
-  int i,j;
+  uint32_t i,j;
   // LTE-16QAM constellation:
   //                Q
   //  1011  1001  |   0001  0011
@@ -162,7 +162,7 @@ void set_16QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_dem
  * Set the 64QAM modulation table */
 void set_64QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod)
 {
-  int i,j;
+  uint32_t i,j;
   // LTE-64QAM constellation:
   // see [3GPP TS 36.211 version 10.5.0 Release 10, Section 7.1.4]
   table[0] = QAM64_LEVEL_2 + QAM64_LEVEL_2*_Complex_I;

@@ -4,6 +4,8 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+
 #include <memory.h>
 #include "viterbi37.h"
 #include "parity.h"
@@ -30,9 +32,9 @@ struct v37 {
 };
 
 /* Initialize Viterbi decoder for start of new frame */
-int init_viterbi37_port(void *p, int starting_state) {
+int init_viterbi37_port(void *p, uint32_t starting_state) {
   struct v37 *vp = p;
-  int i;
+  uint32_t i;
 
   if (p == NULL)
     return -1;
@@ -48,8 +50,8 @@ int init_viterbi37_port(void *p, int starting_state) {
   return 0;
 }
 
-void set_viterbi37_polynomial_port(int polys[3]) {
-  int state;
+void set_viterbi37_polynomial_port(uint32_t polys[3]) {
+  uint32_t state;
 
   for (state = 0; state < 32; state++) {
     Branchtab37[0].c[state] =
@@ -62,7 +64,7 @@ void set_viterbi37_polynomial_port(int polys[3]) {
 }
 
 /* Create a new instance of a Viterbi decoder */
-void *create_viterbi37_port(int polys[3], int len) {
+void *create_viterbi37_port(uint32_t polys[3], uint32_t len) {
   struct v37 *vp;
 
   set_viterbi37_polynomial_port(polys);
@@ -82,8 +84,8 @@ void *create_viterbi37_port(int polys[3], int len) {
 
 /* Viterbi chainback */
 int chainback_viterbi37_port(void *p, char *data, /* Decoded output data */
-    unsigned int nbits, /* Number of data bits */
-    unsigned int endstate) { /* Terminal encoder state */
+    uint32_t nbits, /* Number of data bits */
+    uint32_t endstate) { /* Terminal encoder state */
   struct v37 *vp = p;
   decision_t *d;
 
@@ -145,18 +147,18 @@ unsigned int metric,m0,m1,decision;\
  * of symbols!
  */
 
-int update_viterbi37_blk_port(void *p, unsigned char *syms, int nbits, int *best_state) {
+int update_viterbi37_blk_port(void *p, uint8_t *syms, uint32_t nbits, uint32_t *best_state) {
   struct v37 *vp = p;
   decision_t *d;
 
   if (p == NULL)
     return -1;
-  int k=0;
+  uint32_t k=0;
   d = (decision_t *) vp->dp;
   while (nbits--) {
     void *tmp;
-    unsigned char sym0, sym1, sym2;
-    int i;
+    uint8_t sym0, sym1, sym2;
+    uint32_t i;
 
     d->w[0] = d->w[1] = 0;
 
@@ -174,8 +176,8 @@ int update_viterbi37_blk_port(void *p, unsigned char *syms, int nbits, int *best
     vp->new_metrics = tmp;
   }
   if (best_state) {
-    int i, bst=0;
-    unsigned int minmetric=UINT_MAX;
+    uint32_t i, bst=0;
+    uint32_t minmetric=UINT_MAX;
     for (i=0;i<64;i++) {
       if (vp->old_metrics->w[i] < minmetric) {
         bst = i;

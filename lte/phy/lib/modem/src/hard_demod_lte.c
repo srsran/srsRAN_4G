@@ -33,6 +33,7 @@
 #include "liblte/phy/modem/demod_hard.h"
 #include "hard_demod_lte.h"
 
+
 /**
  * @ingroup Hard BPSK demodulator
  *
@@ -46,9 +47,9 @@
  * \param N Number of input symbols
  * \param modulation Modulation type
  */
-inline void hard_bpsk_demod(const cf_t* in, char* out, int N)
+inline void hard_bpsk_demod(const cf_t* in, char* out, uint32_t N)
 {
-  int s;
+  uint32_t s;
 
   for (s=0; s<N; s++) {    /* received symbols */
     if (__real__ in[s] > 0) {
@@ -81,9 +82,9 @@ inline void hard_bpsk_demod(const cf_t* in, char* out, int N)
  * \param N Number of input symbols
  * \param modulation Modulation type
  */
-inline void hard_qpsk_demod(const cf_t* in, char* out, int N)
+inline void hard_qpsk_demod(const cf_t* in, char* out, uint32_t N)
 {
-  int s;
+  uint32_t s;
 
   for (s=0; s<N; s++) {
     if (__real__ in[s] > 0) {
@@ -115,9 +116,9 @@ inline void hard_qpsk_demod(const cf_t* in, char* out, int N)
  * \param N Number of input symbols
  * \param modulation Modulation type
  */
-inline void hard_qam16_demod(const cf_t* in, char* out, int N)
+inline void hard_qam16_demod(const cf_t* in, char* out, uint32_t N)
 {
-  int s;
+  uint32_t s;
 
   for (s=0; s<N; s++) {
     if (__real__ in[s] > 0) {
@@ -157,9 +158,9 @@ inline void hard_qam16_demod(const cf_t* in, char* out, int N)
  * \param N Number of input symbols
  * \param modulation Modulation type
  */
-inline void hard_qam64_demod(const cf_t* in, char* out, int N)
+inline void hard_qam64_demod(const cf_t* in, char* out, uint32_t N)
 {
-  int s;
+  uint32_t s;
 
   for (s=0; s<N; s++) {
     /* bits associated with/obtained from in-phase component: b0, b2, b4 */

@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <strings.h>
 
@@ -38,13 +39,13 @@
  *  Decoder
  *
  ************************************************/
-void map_gen_beta(map_gen_t *s, llr_t *input, llr_t *parity, int long_cb) {
+void map_gen_beta(map_gen_t *s, llr_t *input, llr_t *parity, uint32_t long_cb) {
   llr_t m_b[8], new[8], old[8];
   llr_t x, y, xy;
   int k;
-  int end = long_cb + RATE;
+  uint32_t end = long_cb + RATE;
   llr_t *beta = s->beta;
-  int i;
+  uint32_t i;
 
   for (i = 0; i < 8; i++) {
     old[i] = beta[8 * (end) + i];
@@ -84,15 +85,15 @@ void map_gen_beta(map_gen_t *s, llr_t *input, llr_t *parity, int long_cb) {
 }
 
 void map_gen_alpha(map_gen_t *s, llr_t *input, llr_t *parity, llr_t *output,
-    int long_cb) {
+    uint32_t long_cb) {
   llr_t m_b[8], new[8], old[8], max1[8], max0[8];
   llr_t m1, m0;
   llr_t x, y, xy;
   llr_t out;
-  int k;
-  int end = long_cb;
+  uint32_t k;
+  uint32_t end = long_cb;
   llr_t *beta = s->beta;
-  int i;
+  uint32_t i;
 
   old[0] = 0;
   for (i = 1; i < 8; i++) {
@@ -168,8 +169,8 @@ void map_gen_free(map_gen_t *h) {
 }
 
 void map_gen_dec(map_gen_t *h, llr_t *input, llr_t *parity, llr_t *output,
-    int long_cb) {
-  int k;
+    uint32_t long_cb) {
+  uint32_t k;
 
   h->beta[(long_cb + TAIL) * NUMSTATES] = 0;
   for (k = 1; k < NUMSTATES; k++)
@@ -184,10 +185,10 @@ void map_gen_dec(map_gen_t *h, llr_t *input, llr_t *parity, llr_t *output,
  *  TURBO DECODER INTERFACE
  *
  ************************************************/
-int tdec_init(tdec_t *h, int max_long_cb) {
+int tdec_init(tdec_t *h, uint32_t max_long_cb) {
   int ret = -1;
   bzero(h, sizeof(tdec_t));
-  int len = max_long_cb + TOTALTAIL;
+  uint32_t len = max_long_cb + TOTALTAIL;
 
   h->max_long_cb = max_long_cb;
 
@@ -256,8 +257,8 @@ void tdec_free(tdec_t *h) {
   bzero(h, sizeof(tdec_t));
 }
 
-void tdec_iteration(tdec_t *h, llr_t *input, int long_cb) {
-  int i;
+void tdec_iteration(tdec_t *h, llr_t *input, uint32_t long_cb) {
+  uint32_t i;
 
   // Prepare systematic and parity bits for MAP DEC #1
   for (i = 0; i < long_cb; i++) {
@@ -295,7 +296,7 @@ void tdec_iteration(tdec_t *h, llr_t *input, int long_cb) {
 
 }
 
-int tdec_reset(tdec_t *h, int long_cb) {
+int tdec_reset(tdec_t *h, uint32_t long_cb) {
   memset(h->w, 0, sizeof(llr_t) * long_cb);
   if (long_cb > h->max_long_cb) {
     fprintf(stderr, "TDEC was initialized for max_long_cb=%d\n",
@@ -305,16 +306,16 @@ int tdec_reset(tdec_t *h, int long_cb) {
   return tc_interl_LTE_gen(&h->interleaver, long_cb);
 }
 
-void tdec_decision(tdec_t *h, char *output, int long_cb) {
-  int i;
+void tdec_decision(tdec_t *h, char *output, uint32_t long_cb) {
+  uint32_t i;
   for (i = 0; i < long_cb; i++) {
     output[i] = (h->llr2[h->interleaver.reverse[i]] > 0) ? 1 : 0;
   }
 }
 
-void tdec_run_all(tdec_t *h, llr_t *input, char *output, int nof_iterations,
-    int long_cb) {
-  int iter = 0;
+void tdec_run_all(tdec_t *h, llr_t *input, char *output, uint32_t nof_iterations,
+    uint32_t long_cb) {
+  uint32_t iter = 0;
 
   tdec_reset(h, long_cb);
 

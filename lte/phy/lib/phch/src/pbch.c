@@ -50,31 +50,45 @@ bool pbch_exists(int nframe, int nslot) {
   return (!(nframe % 5) && nslot == 1);
 }
 
-int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id,
-    bool put) {
+int pbch_cp(cf_t *input, cf_t *output, lte_cell_t cell, bool put) {
   int i;
   cf_t *ptr;
-  assert(cell_id >= 0);
+
   if (put) {
     ptr = input;
-    output += nof_prb * RE_X_RB / 2 - 36;
+    output += cell.nof_prb * RE_X_RB / 2 - 36;
   } else {
     ptr = output;
-    input += nof_prb * RE_X_RB / 2 - 36;
+    input += cell.nof_prb * RE_X_RB / 2 - 36;
   }
-
+  
   /* symbol 0 & 1 */
   for (i = 0; i < 2; i++) {
-    prb_cp_ref(&input, &output, cell_id % 3, 4, 6, put);
+    prb_cp_ref(&input, &output, cell.id % 3, 4, 4*6, put);
+    if (put) {
+      output += cell.nof_prb * RE_X_RB - 2*36;
+    } else {
+      input += cell.nof_prb * RE_X_RB - 2*36;
+    }
   }
   /* symbols 2 & 3 */
-  if (CP_ISNORM(cp)) {
+  if (CP_ISNORM(cell.cp)) {
     for (i = 0; i < 2; i++) {
       prb_cp(&input, &output, 6);
+      if (put) {
+        output += cell.nof_prb * RE_X_RB - 2*36;
+      } else {
+        input += cell.nof_prb * RE_X_RB - 2*36;
+      }
     }
   } else {
     prb_cp(&input, &output, 6);
-    prb_cp_ref(&input, &output, cell_id % 3, 4, 6, put);
+    if (put) {
+      output += cell.nof_prb * RE_X_RB - 2*36;
+    } else {
+      input += cell.nof_prb * RE_X_RB - 2*36;
+    }
+    prb_cp_ref(&input, &output, cell.id % 3, 4, 4*6, put);
   }
   if (put) {
     return input - ptr;
@@ -90,9 +104,8 @@ int pbch_cp(cf_t *input, cf_t *output, int nof_prb, lte_cp_t cp, int cell_id,
  *
  * 36.211 10.3 section 6.6.4
  */
-int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp,
-    int cell_id) {
-  return pbch_cp(pbch, slot1_data, nof_prb, cp, cell_id, true);
+int pbch_put(cf_t *pbch, cf_t *slot1_data, lte_cell_t cell) {
+  return pbch_cp(pbch, slot1_data, cell, true);
 }
 
 /**
@@ -102,92 +115,96 @@ int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp,
  *
  * 36.211 10.3 section 6.6.4
  */
-int pbch_get(cf_t *slot1_data, cf_t *pbch, int nof_prb, lte_cp_t cp,
-    int cell_id) {
-  return pbch_cp(slot1_data, pbch, nof_prb, cp, cell_id, false);
+int pbch_get(cf_t *slot1_data, cf_t *pbch, lte_cell_t cell) {
+  return pbch_cp(slot1_data, pbch, cell, false);
 }
 
-/** Initializes the PBCH transmitter and receiver */
-int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp) {
-  int ret = -1;
-  if (cell_id < 0) {
-    return -1;
-  }
-  bzero(q, sizeof(pbch_t));
-  q->cell_id = cell_id;
-  q->cp = cp;
-  q->nof_prb = nof_prb;
+/** Initializes the PBCH transmitter and receiver. 
+ * At the receiver, the field nof_ports in the cell structure indicates the 
+ * maximum number of BS transmitter ports to look for.  
+ */
+int pbch_init(pbch_t *q, lte_cell_t cell) {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
 
-  if (modem_table_std(&q->mod, LTE_QPSK, true)) {
-    goto clean;
-  }
-  demod_soft_init(&q->demod);
-  demod_soft_table_set(&q->demod, &q->mod);
-  demod_soft_alg_set(&q->demod, APPROX);
-  if (sequence_pbch(&q->seq_pbch, q->cp, q->cell_id)) {
-    goto clean;
-  }
+  if (q                       != NULL &&
+      lte_cell_isvalid(&cell))
+  {
+    ret = LIBLTE_ERROR;
 
-  int poly[3] = { 0x6D, 0x4F, 0x57 };
-  if (viterbi_init(&q->decoder, viterbi_37, poly, 40, true)) {
-    goto clean;
-  }
-  if (crc_init(&q->crc, LTE_CRC16, 16)) {
-    goto clean;
-  }
-  q->encoder.K = 7;
-  q->encoder.R = 3;
-  q->encoder.tail_biting = true;
-  memcpy(q->encoder.poly, poly, 3 * sizeof(int));
+    bzero(q, sizeof(pbch_t));
+    q->cell = cell;
 
-  q->nof_symbols = (CP_ISNORM(q->cp)) ? PBCH_RE_CPNORM : PBCH_RE_CPEXT;
-
-  q->pbch_d = malloc(sizeof(cf_t) * q->nof_symbols);
-  if (!q->pbch_d) {
-    goto clean;
-  }
-  int i;
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
-    q->ce[i] = malloc(sizeof(cf_t) * q->nof_symbols);
-    if (!q->ce[i]) {
+    if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
       goto clean;
     }
-    q->pbch_x[i] = malloc(sizeof(cf_t) * q->nof_symbols);
-    if (!q->pbch_x[i]) {
+    demod_soft_init(&q->demod);
+    demod_soft_table_set(&q->demod, &q->mod);
+    demod_soft_alg_set(&q->demod, APPROX);
+    if (sequence_pbch(&q->seq_pbch, q->cell.cp, q->cell.id)) {
       goto clean;
     }
-    q->pbch_symbols[i] = malloc(sizeof(cf_t) * q->nof_symbols);
-    if (!q->pbch_symbols[i]) {
-      goto clean;
-    }
-  }
-  q->pbch_llr = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
-  if (!q->pbch_llr) {
-    goto clean;
-  }
-  q->temp = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
-  if (!q->temp) {
-    goto clean;
-  }
-  q->pbch_rm_f = malloc(sizeof(float) * 120);
-  if (!q->pbch_rm_f) {
-    goto clean;
-  }
-  q->pbch_rm_b = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
-  if (!q->pbch_rm_b) {
-    goto clean;
-  }
-  q->data = malloc(sizeof(char) * 40);
-  if (!q->data) {
-    goto clean;
-  }
-  q->data_enc = malloc(sizeof(char) * 120);
-  if (!q->data_enc) {
-    goto clean;
-  }
 
-  ret = 0;
-  clean: if (ret == -1) {
+    uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
+    if (viterbi_init(&q->decoder, viterbi_37, poly, 40, true)) {
+      goto clean;
+    }
+    if (crc_init(&q->crc, LTE_CRC16, 16)) {
+      goto clean;
+    }
+    q->encoder.K = 7;
+    q->encoder.R = 3;
+    q->encoder.tail_biting = true;
+    memcpy(q->encoder.poly, poly, 3 * sizeof(int));
+
+    q->nof_symbols = (CP_ISNORM(q->cell.cp)) ? PBCH_RE_CPNORM : PBCH_RE_CPEXT;
+
+    q->pbch_d = malloc(sizeof(cf_t) * q->nof_symbols);
+    if (!q->pbch_d) {
+      goto clean;
+    }
+    int i;
+    for (i = 0; i < q->cell.nof_ports; i++) {
+      q->ce[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      if (!q->ce[i]) {
+        goto clean;
+      }
+      q->pbch_x[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      if (!q->pbch_x[i]) {
+        goto clean;
+      }
+      q->pbch_symbols[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      if (!q->pbch_symbols[i]) {
+        goto clean;
+      }
+    }
+    q->pbch_llr = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    if (!q->pbch_llr) {
+      goto clean;
+    }
+    q->temp = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    if (!q->temp) {
+      goto clean;
+    }
+    q->pbch_rm_f = malloc(sizeof(float) * 120);
+    if (!q->pbch_rm_f) {
+      goto clean;
+    }
+    q->pbch_rm_b = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    if (!q->pbch_rm_b) {
+      goto clean;
+    }
+    q->data = malloc(sizeof(char) * 40);
+    if (!q->data) {
+      goto clean;
+    }
+    q->data_enc = malloc(sizeof(char) * 120);
+    if (!q->data_enc) {
+      goto clean;
+    }
+    ret = LIBLTE_SUCCESS;
+  }
+clean: 
+  if (ret == LIBLTE_ERROR) {
     pbch_free(q);
   }
   return ret;
@@ -198,7 +215,7 @@ void pbch_free(pbch_t *q) {
     free(q->pbch_d);
   }
   int i;
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < q->cell.nof_ports; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -355,15 +372,15 @@ void crc_set_mask(char *data, int nof_ports) {
  *
  * Returns 0 if the data is correct, -1 otherwise
  */
-int pbch_crc_check(pbch_t *q, char *bits, int nof_ports) {
+uint32_t pbch_crc_check(pbch_t *q, char *bits, uint32_t nof_ports) {
   char data[40];
   memcpy(data, bits, 40 * sizeof(char));
   crc_set_mask(data, nof_ports);
   return crc_checksum(&q->crc, data, 40);
 }
 
-int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n,
-    int nof_bits, int nof_ports) {
+int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint32_t src, uint32_t dst, uint32_t n,
+    uint32_t nof_bits, uint32_t nof_ports) {
   int j;
 
   memcpy(&q->temp[dst * nof_bits], &q->pbch_llr[src * nof_bits],
@@ -417,150 +434,178 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, int src, int dst, int n,
 /* Decodes the PBCH channel
  *
  * The PBCH spans in 40 ms. This function is called every 10 ms. It tries to decode the MIB
- * given the symbols of the slot #1 of each radio frame. Successive calls will use more frames
+ * given the symbols of a subframe (1 ms). Successive calls will use more subframes
  * to help the decoding process.
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL],
-    float ebno, pbch_mib_t *mib) {
-  int src, dst, res, nb;
-  int nant_[3] = { 1, 2, 4 };
-  int na, nant;
-
-  /* Set pointers for layermapping & precoding */
+int pbch_decode(pbch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mib) {
+  uint32_t src, dst, nb;
+  uint32_t nant_[3] = { 1, 2, 4 };
+  uint32_t na, nant;
+  cf_t *slot1_symbols;
   int i;
-  int nof_bits = 2 * q->nof_symbols;
+  int nof_bits;
   cf_t *x[MAX_LAYERS];
+  cf_t *ce_slot[MAX_PORTS];
+  
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q                 != NULL &&
+      sf_symbols        != NULL && 
+      mib               != NULL)
+  {
+    for (i=0;i<q->cell.nof_ports;i++) {
+      if (ce[i] == NULL) {
+        return LIBLTE_ERROR_INVALID_INPUTS;
+      } else {
+        ce_slot[i] = &ce[i][q->cell.nof_prb * RE_X_RB * CP_NSYMB(q->cell.cp)];
+      }
+    }
+    slot1_symbols = &sf_symbols[q->cell.nof_prb * RE_X_RB * CP_NSYMB(q->cell.cp)];
 
-  /* number of layers equals number of ports */
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
-    x[i] = q->pbch_x[i];
-  }
-  memset(&x[MAX_PORTS_CTRL], 0, sizeof(cf_t*) * (MAX_LAYERS - MAX_PORTS_CTRL));
+    /* Set pointers for layermapping & precoding */
+    nof_bits = 2 * q->nof_symbols;
 
-  /* extract symbols */
-  if (q->nof_symbols
-      != pbch_get(slot1_symbols, q->pbch_symbols[0], q->nof_prb, q->cp,
-          q->cell_id)) {
-    fprintf(stderr, "There was an error getting the PBCH symbols\n");
-    return -1;
-  }
-
-  /* extract channel estimates */
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
-    if (q->nof_symbols
-        != pbch_get(ce[i], q->ce[i], q->nof_prb, q->cp, q->cell_id)) {
+    /* number of layers equals number of ports */
+    for (i = 0; i < MAX_PORTS; i++) {
+      x[i] = q->pbch_x[i];
+    }
+    memset(&x[MAX_PORTS], 0, sizeof(cf_t*) * (MAX_LAYERS - MAX_PORTS));
+    
+    /* extract symbols */
+    if (q->nof_symbols != pbch_get(slot1_symbols, q->pbch_symbols[0], q->cell)) {
       fprintf(stderr, "There was an error getting the PBCH symbols\n");
-      return -1;
-    }
-  }
-
-  q->frame_idx++;
-  res = 0;
-
-  /* Try decoding for 1 to 4 antennas */
-  for (na = 0; na < 3 && !res; na++) {
-    nant = nant_[na];
-
-    INFO("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
-
-    /* in conctrol channels, only diversity is supported */
-    if (nant == 1) {
-      /* no need for layer demapping */
-      predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d,
-          q->nof_symbols);
-    } else {
-      predecoding_diversity_zf(q->pbch_symbols[0], q->ce, x, nant,
-          q->nof_symbols);
-      layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
+      return LIBLTE_ERROR;
     }
 
-    /* demodulate symbols */
-    demod_soft_sigma_set(&q->demod, ebno);
-    demod_soft_demodulate(&q->demod, q->pbch_d,
-        &q->pbch_llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
+    /* extract channel estimates */
+    for (i = 0; i < q->cell.nof_ports; i++) {
+      if (q->nof_symbols != pbch_get(ce_slot[i], q->ce[i], q->cell)) {
+        fprintf(stderr, "There was an error getting the PBCH symbols\n");
+        return LIBLTE_ERROR;
+      }
+    }
 
-    /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
-     * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
-     * We know they are ordered.
-     *
-     * FIXME: There are unnecessary checks because 2,3,4 have already been processed in the previous
-     * calls.
-     */
-    for (nb = 0; nb < q->frame_idx && !res; nb++) {
-      for (dst = 0; (dst < 4 - nb) && !res; dst++) {
-        for (src = 0; src < q->frame_idx - nb && !res; src++) {
-          DEBUG("Trying %d blocks at offset %d as subframe mod4 number %d\n",
-              nb + 1, src, dst);
-          res = pbch_decode_frame(q, mib, src, dst, nb + 1, nof_bits, nant);
+    q->frame_idx++;
+    ret = 0;
+
+    /* Try decoding for 1 to cell.nof_ports antennas */
+    for (na = 0; na < q->cell.nof_ports && !ret; na++) {
+      nant = nant_[na];
+
+      INFO("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
+
+      /* in conctrol channels, only diversity is supported */
+      if (nant == 1) {
+        /* no need for layer demapping */
+        predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d,
+            q->nof_symbols);
+      } else {
+        predecoding_diversity_zf(q->pbch_symbols[0], q->ce, x, nant,
+            q->nof_symbols);
+        layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
+      }
+
+      /* demodulate symbols */
+      demod_soft_sigma_set(&q->demod, 1.0);
+      demod_soft_demodulate(&q->demod, q->pbch_d,
+          &q->pbch_llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
+
+      /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
+      * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
+      * We know they are ordered.
+      *
+      * FIXME: There are unnecessary checks because 2,3,4 have already been processed in the previous
+      * calls.
+      */
+      for (nb = 0; nb < q->frame_idx && !ret; nb++) {
+        for (dst = 0; (dst < 4 - nb) && !ret; dst++) {
+          for (src = 0; src < q->frame_idx - nb && !ret; src++) {
+            DEBUG("Trying %d blocks at offset %d as subframe mod4 number %d\n",
+                nb + 1, src, dst);
+            ret = pbch_decode_frame(q, mib, src, dst, nb + 1, nof_bits, nant);
+            
+          }
         }
       }
     }
-  }
 
-  /* If not found, make room for the next packet of radio frame symbols */
-  if (q->frame_idx == 4) {
-    memmove(q->pbch_llr, &q->pbch_llr[nof_bits], nof_bits * 3 * sizeof(float));
-    q->frame_idx = 3;
+    /* If not found, make room for the next packet of radio frame symbols */
+    if (q->frame_idx == 4) {
+      memmove(q->pbch_llr, &q->pbch_llr[nof_bits], nof_bits * 3 * sizeof(float));
+      q->frame_idx = 3;
+    }
   }
-  return res;
+  return ret;
 }
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-void pbch_encode(pbch_t *q, pbch_mib_t *mib,
-    cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports) {
+int pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *sf_symbols[MAX_PORTS]) {
   int i;
-  int nof_bits = 2 * q->nof_symbols;
-
-  assert(nof_ports <= MAX_PORTS_CTRL);
-
-  /* Set pointers for layermapping & precoding */
+  int nof_bits;
+  cf_t *slot1_symbols[MAX_PORTS];
   cf_t *x[MAX_LAYERS];
+  
+  if (q                 != NULL &&
+      mib               != NULL)
+  {
+    for (i=0;i<q->cell.nof_ports;i++) {
+      if (sf_symbols[i] == NULL) {
+        return LIBLTE_ERROR_INVALID_INPUTS;
+      } else {
+        slot1_symbols[i] = &sf_symbols[i][q->cell.nof_prb * RE_X_RB * CP_NSYMB(q->cell.cp)];
+      }
+    }
+    /* Set pointers for layermapping & precoding */
+    nof_bits = 2 * q->nof_symbols;
 
-  /* number of layers equals number of ports */
-  for (i = 0; i < nof_ports; i++) {
-    x[i] = q->pbch_x[i];
-  }
-  memset(&x[nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - nof_ports));
+    /* number of layers equals number of ports */
+    for (i = 0; i < q->cell.nof_ports; i++) {
+      x[i] = q->pbch_x[i];
+    }
+    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+    
+    if (q->frame_idx == 0) {
+      /* pack MIB */
+      pbch_mib_pack(mib, q->data);
 
-  if (q->frame_idx == 0) {
-    /* pack MIB */
-    pbch_mib_pack(mib, q->data);
+      /* encode & modulate */
+      crc_attach(&q->crc, q->data, 24);
+      crc_set_mask(q->data, q->cell.nof_ports);
 
-    /* encode & modulate */
-    crc_attach(&q->crc, q->data, 24);
-    crc_set_mask(q->data, nof_ports);
+      convcoder_encode(&q->encoder, q->data, q->data_enc, 40);
 
-    convcoder_encode(&q->encoder, q->data, q->data_enc, 40);
+      rm_conv_tx(q->data_enc, 120, q->pbch_rm_b, 4 * nof_bits);
 
-    rm_conv_tx(q->data_enc, 120, q->pbch_rm_b, 4 * nof_bits);
+    }
 
-  }
+    scrambling_b_offset(&q->seq_pbch, &q->pbch_rm_b[q->frame_idx * nof_bits],
+        q->frame_idx * nof_bits, nof_bits);
+    mod_modulate(&q->mod, &q->pbch_rm_b[q->frame_idx * nof_bits], q->pbch_d,
+        nof_bits);
 
-  scrambling_b_offset(&q->seq_pbch, &q->pbch_rm_b[q->frame_idx * nof_bits],
-      q->frame_idx * nof_bits, nof_bits);
-  mod_modulate(&q->mod, &q->pbch_rm_b[q->frame_idx * nof_bits], q->pbch_d,
-      nof_bits);
+    /* layer mapping & precoding */
+    if (q->cell.nof_ports > 1) {
+      layermap_diversity(q->pbch_d, x, q->cell.nof_ports, q->nof_symbols);
+      precoding_diversity(x, q->pbch_symbols, q->cell.nof_ports,
+          q->nof_symbols / q->cell.nof_ports);
+    } else {
+      memcpy(q->pbch_symbols[0], q->pbch_d, q->nof_symbols * sizeof(cf_t));
+    }
 
-  /* layer mapping & precoding */
-  if (nof_ports > 1) {
-    layermap_diversity(q->pbch_d, x, nof_ports, q->nof_symbols);
-    precoding_diversity(x, q->pbch_symbols, nof_ports,
-        q->nof_symbols / nof_ports);
+    /* mapping to resource elements */
+    for (i = 0; i < q->cell.nof_ports; i++) {
+      pbch_put(q->pbch_symbols[i], slot1_symbols[i], q->cell);
+    }
+    q->frame_idx++;
+    if (q->frame_idx == 4) {
+      q->frame_idx = 0;
+    }
+    return LIBLTE_SUCCESS;
   } else {
-    memcpy(q->pbch_symbols[0], q->pbch_d, q->nof_symbols * sizeof(cf_t));
-  }
-
-  /* mapping to resource elements */
-  for (i = 0; i < nof_ports; i++) {
-    pbch_put(q->pbch_symbols[i], slot1_symbols[i], q->nof_prb, q->cp,
-        q->cell_id);
-  }
-  q->frame_idx++;
-  if (q->frame_idx == 4) {
-    q->frame_idx = 0;
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
 }
 

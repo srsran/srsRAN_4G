@@ -50,10 +50,13 @@
 
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/common/fft.h"
-#include "liblte/phy/common/sequence.h"
-
+            
 #include "liblte/phy/ch_estimation/chest.h"
 #include "liblte/phy/ch_estimation/refsignal.h"
+
+#include "liblte/phy/resampling/interp.h"
+#include "liblte/phy/resampling/decim.h"
+#include "liblte/phy/resampling/resample_arb.h"
 
 #include "liblte/phy/channel/ch_awgn.h"
 
@@ -89,10 +92,10 @@
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/phch/pcfich.h"
 #include "liblte/phy/phch/phich.h"
+#include "liblte/phy/phch/ue_sync.h"
+#include "liblte/phy/phch/ue_dl.h"
 
 #include "liblte/phy/scrambling/scrambling.h"
-
-#include "liblte/phy/resampling/interp.h"
 
 #include "liblte/phy/sync/pss.h"
 #include "liblte/phy/sync/sfo.h"

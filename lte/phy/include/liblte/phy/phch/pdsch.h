@@ -43,49 +43,95 @@
 #include "liblte/phy/phch/dci.h"
 #include "liblte/phy/phch/regs.h"
 
-#define TDEC_ITERATIONS	1
+#define TDEC_ITERATIONS         6
 
 typedef _Complex float cf_t;
 
+typedef struct LIBLTE_API {
+  ra_mcs_t mcs;
+  ra_prb_t prb_alloc;
+  lte_cell_t cell;
+  
+  uint32_t max_cb;
+  uint32_t w_buff_size;
+  float **pdsch_w_buff_f;  
+  char **pdsch_w_buff_c;  
+
+  struct cb_segm {
+    uint32_t F;
+    uint32_t C;
+    uint32_t K1;
+    uint32_t K2;
+    uint32_t C1;
+    uint32_t C2;
+  } cb_segm;
+  
+} pdsch_harq_t;
+
 /* PDSCH object */
 typedef struct LIBLTE_API {
-	int cell_id;
-	lte_cp_t cp;
-	int nof_prb;
-	int nof_ports;
-	int max_symbols;
-	unsigned short rnti;
+  lte_cell_t cell;
+  
+  uint32_t max_symbols;
+  bool rnti_is_set; 
+  uint16_t rnti; 
+  
+  /* buffers */
+  // void buffers are shared for tx and rx
+  cf_t *ce[MAX_PORTS];
+  cf_t *pdsch_symbols[MAX_PORTS];
+  cf_t *pdsch_x[MAX_PORTS];
+  cf_t *pdsch_d;
+  char *cb_in; 
+  void *cb_out;  
+  void *pdsch_e;
 
-	/* buffers */
-	cf_t *ce[MAX_PORTS];
-	cf_t *pdsch_symbols[MAX_PORTS];
-	cf_t *pdsch_x[MAX_PORTS];
-	cf_t *pdsch_d;
-	char *pdsch_e_bits;
-	char *cb_in_b;
-	char *cb_out_b;
-	float *pdsch_llr;
-	float *pdsch_rm_f;
-
-	/* tx & rx objects */
-	modem_table_t mod[4];
-	demod_soft_t demod;
-	sequence_t seq_pdsch[NSUBFRAMES_X_FRAME];
-	tcod_t encoder;
-	tdec_t decoder;
-	rm_turbo_t rm_turbo;
-	crc_t crc_tb;
-	crc_t crc_cb;
+  /* tx & rx objects */
+  modem_table_t mod[4];
+  demod_soft_t demod;
+  sequence_t seq_pdsch[NSUBFRAMES_X_FRAME];
+  tcod_t encoder;
+  tdec_t decoder;  
+  crc_t crc_tb;
+  crc_t crc_cb;
 }pdsch_t;
 
-LIBLTE_API int pdsch_init(pdsch_t *q, unsigned short user_rnti, int nof_prb,
-		int nof_ports, int cell_id, lte_cp_t cp);
+LIBLTE_API int pdsch_init(pdsch_t *q, 
+                          lte_cell_t cell);
+
 LIBLTE_API void pdsch_free(pdsch_t *q);
 
-LIBLTE_API int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS],
-		int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
-LIBLTE_API int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
-		char *data, int nsubframe, ra_mcs_t mcs, ra_prb_t *prb_alloc);
+LIBLTE_API int pdsch_set_rnti(pdsch_t *q, 
+                               uint16_t rnti);
 
+LIBLTE_API int pdsch_harq_init(pdsch_harq_t *p, 
+                               pdsch_t *pdsch);
+
+LIBLTE_API int pdsch_harq_setup(pdsch_harq_t *p, 
+                                ra_mcs_t mcs,
+                                ra_prb_t *prb_alloc);
+
+LIBLTE_API void pdsch_harq_free(pdsch_harq_t *p);
+
+LIBLTE_API int pdsch_encode(pdsch_t *q, 
+                            char *data, 
+                            cf_t *sf_symbols[MAX_PORTS],
+                            uint32_t nsubframe,
+                            pdsch_harq_t *harq_process, 
+                            uint32_t rv_idx);
+
+LIBLTE_API int pdsch_decode(pdsch_t *q, 
+                            cf_t *sf_symbols, 
+                            cf_t *ce[MAX_PORTS],
+                            char *data, 
+                            uint32_t nsubframe,
+                            pdsch_harq_t *harq_process, 
+                            uint32_t rv_idx);
+
+LIBLTE_API int pdsch_get(pdsch_t *q, 
+                         cf_t *sf_symbols, 
+                         cf_t *pdsch_symbols,
+                         ra_prb_t *prb_alloc, 
+                         uint32_t subframe);
 
 #endif

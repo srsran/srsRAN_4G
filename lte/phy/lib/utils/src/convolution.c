@@ -34,61 +34,61 @@
 #include "liblte/phy/utils/convolution.h"
 
 
-int conv_fft_cc_init(conv_fft_cc_t *state, int input_len, int filter_len) {
-  state->input_len = input_len;
-  state->filter_len = filter_len;
-  state->output_len = input_len+filter_len-1;
-  state->input_fft = vec_malloc(sizeof(_Complex float)*state->output_len);
-  state->filter_fft = vec_malloc(sizeof(_Complex float)*state->output_len);
-  state->output_fft = vec_malloc(sizeof(_Complex float)*state->output_len);
-  if (!state->input_fft || !state->filter_fft || !state->output_fft) {
-    return -1;
+int conv_fft_cc_init(conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {
+  q->input_len = input_len;
+  q->filter_len = filter_len;
+  q->output_len = input_len+filter_len;
+  q->input_fft = vec_malloc(sizeof(cf_t)*q->output_len);
+  q->filter_fft = vec_malloc(sizeof(cf_t)*q->output_len);
+  q->output_fft = vec_malloc(sizeof(cf_t)*q->output_len);
+  if (!q->input_fft || !q->filter_fft || !q->output_fft) {
+    return LIBLTE_ERROR;
   }
-  if (dft_plan(&state->input_plan,state->output_len,FORWARD,COMPLEX)) {
-    return -2;
+  if (dft_plan(&q->input_plan,q->output_len,FORWARD,COMPLEX)) {
+    return LIBLTE_ERROR;
   }
-  if (dft_plan(&state->filter_plan,state->output_len,FORWARD,COMPLEX)) {
-    return -3;
+  if (dft_plan(&q->filter_plan,q->output_len,FORWARD,COMPLEX)) {
+    return LIBLTE_ERROR;
   }
-  if (dft_plan(&state->output_plan,state->output_len,BACKWARD,COMPLEX)) {
-    return -4;
+  if (dft_plan(&q->output_plan,q->output_len,BACKWARD,COMPLEX)) {
+    return LIBLTE_ERROR;
   }
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
-void conv_fft_cc_free(conv_fft_cc_t *state) {
-  if (state->input_fft) {
-    free(state->input_fft);
+void conv_fft_cc_free(conv_fft_cc_t *q) {
+  if (q->input_fft) {
+    free(q->input_fft);
   }
-  if (state->filter_fft) {
-    free(state->filter_fft);
+  if (q->filter_fft) {
+    free(q->filter_fft);
   }
-  if (state->output_fft) {
-    free(state->output_fft);
+  if (q->output_fft) {
+    free(q->output_fft);
   }
-  dft_plan_free(&state->input_plan);
-  dft_plan_free(&state->filter_plan);
-  dft_plan_free(&state->output_plan);
+  dft_plan_free(&q->input_plan);
+  dft_plan_free(&q->filter_plan);
+  dft_plan_free(&q->output_plan);
 }
 
-int conv_fft_cc_run(conv_fft_cc_t *state, _Complex float *input, _Complex float *filter, _Complex float *output) {
+uint32_t conv_fft_cc_run(conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *output) {
 
-  dft_run_c(&state->input_plan, input, state->input_fft);
-  dft_run_c(&state->filter_plan, filter, state->filter_fft);
+  dft_run_c(&q->input_plan, input, q->input_fft);
+  dft_run_c(&q->filter_plan, filter, q->filter_fft);
 
-  vec_prod_ccc(state->input_fft,state->filter_fft,state->output_fft,state->output_len);
+  vec_prod_ccc(q->input_fft,q->filter_fft,q->output_fft,q->output_len);
 
-  dft_run_c(&state->output_plan, state->output_fft, output);
+  dft_run_c(&q->output_plan, q->output_fft, output);
 
-  return state->output_len;
+  return q->output_len;
 
 }
 
-int conv_cc(_Complex float *input, _Complex float *filter, _Complex float *output, int input_len, int filter_len) {
-  int i,j;
-  int output_len;
+uint32_t conv_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
+  uint32_t i,j;
+  uint32_t output_len;
   output_len=input_len+filter_len-1;
-  memset(output,0,output_len*sizeof(_Complex float));
+  memset(output,0,output_len*sizeof(cf_t));
   for (i=0;i<input_len;i++) {
     for (j=0;j<filter_len;j++) {
       output[i+j]+=input[i]*filter[j];

@@ -31,5 +31,7 @@ TARGET_LINK_LIBRARIES(resample_arb_bench lte_phy)
 
 ADD_TEST(resample resample_arb_test)
  
+ADD_EXECUTABLE(interp_test_volk interp_test_volk.c)
+TARGET_LINK_LIBRARIES(interp_test_volk lte_phy)
 
 

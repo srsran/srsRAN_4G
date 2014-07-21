@@ -53,7 +53,7 @@
 #define IS_SIGNAL(i) (10*log10f(rssi[i]) + 30 > rssi_threshold)
 
 int band, earfcn=-1;
-float find_threshold = 10.0, track_threshold = 8.0;
+float find_threshold = 10.0;
 int earfcn_start=-1, earfcn_end = -1;
 float rssi_threshold = -45.0;
 int max_track_lost=9;
@@ -64,7 +64,7 @@ cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 pbch_t pbch;
 lte_fft_t fft;
 chest_t chest;
-sync_t sfind, strack;
+sync_t ssync;
 cfo_t cfocorr;
 
 float *cfo_v;
@@ -86,7 +86,7 @@ enum sync_state {INIT, FIND, TRACK, MIB, DONE};
 
 
 void usage(char *prog) {
-  printf("Usage: %s [seRrFfTtgv] -b band\n", prog);
+  printf("Usage: %s [seRrFfTgv] -b band\n", prog);
   printf("\t-s earfcn_start [Default All]\n");
   printf("\t-e earfcn_end [Default All]\n");
   printf("\t-R rssi_nof_samples [Default %d]\n", nof_samples_rssi);
@@ -94,7 +94,6 @@ void usage(char *prog) {
   printf("\t-F pss_find_nof_frames [Default %d]\n", nof_frames_find);
   printf("\t-f pss_find_threshold [Default %.2f]\n", find_threshold);
   printf("\t-T pss_track_nof_frames [Default %d]\n", nof_frames_track);
-  printf("\t-t pss_track_threshold [Default %.2f]\n", track_threshold);
   printf("\t-l pss_track_len [Default %d]\n", track_len);
   printf("\t-g gain [Default %.2f dB]\n", uhd_gain);
   printf("\t-v [set verbose to debug, default none]\n");
@@ -102,7 +101,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "bseRrFfTtgv")) != -1) {
+  while ((opt = getopt(argc, argv, "bseRrFfTgv")) != -1) {
     switch(opt) {
     case 'b':
       band = atoi(argv[optind]);
@@ -127,9 +126,6 @@ void parse_args(int argc, char **argv) {
       break;
     case 'T':
       nof_frames_track = atoi(argv[optind]);
-      break;
-    case 't':
-      track_threshold = atof(argv[optind]);
       break;
     case 'g':
       uhd_gain = atof(argv[optind]);
@@ -166,15 +162,11 @@ int base_init(int frame_length) {
       return -1;
     }
   }
-  if (sync_init(&sfind, FLEN)) {
+  if (sync_init(&ssync, FLEN, 128, 128)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
-  if (sync_init(&strack, track_len)) {
-    fprintf(stderr, "Error initiating PSS/SSS\n");
-    return -1;
-  }
-  if (chest_init(&chest, LINEAR, CPNORM, 6, MAX_PORTS)) {
+  if (chest_init(&chest, CPNORM, 6, MAX_PORTS)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -235,8 +227,7 @@ void base_free() {
   cuhd_close(uhd);
 #endif
 
-  sync_free(&sfind);
-  sync_free(&strack);
+  sync_free(&ssync);
   lte_fft_free(&fft);
   chest_free(&chest);
   cfo_free(&cfocorr);
@@ -320,12 +311,18 @@ int rssi_scan() {
 
 int mib_decoder_init(int cell_id) {
 
-  if (chest_ref_LTEDL(&chest, cell_id)) {
+  lte_cell_t cell;
+  cell.id = cell_id;
+  cell.nof_prb = 6;
+  cell.nof_ports = 2;
+  cell.cp = CPNORM;
+  
+  if (chest_ref_LTEDL(&chest, cell)) {
     fprintf(stderr, "Error initializing reference signal\n");
     return -1;
   }
 
-  if (pbch_init(&pbch, 6, cell_id, CPNORM)) {
+  if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error initiating PBCH\n");
     return -1;
   }
@@ -335,7 +332,7 @@ int mib_decoder_init(int cell_id) {
 
 int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
   int i;
-  lte_fft_run(&fft, input, fft_buffer);
+  lte_fft_run_slot(&fft, input, fft_buffer);
 
   /* Get channel estimates for each port */
   for (i=0;i<MAX_PORTS;i++) {
@@ -343,7 +340,7 @@ int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
   }
 
   DEBUG("Decoding PBCH\n", 0);
-  return pbch_decode(&pbch, fft_buffer, ce, 1, mib);
+  return pbch_decode(&pbch, fft_buffer, ce, mib);
 }
 
 int main(int argc, char **argv) {
@@ -352,13 +349,15 @@ int main(int argc, char **argv) {
   int cell_id;
   float max_peak_to_avg;
   float sfo;
-  int find_idx, track_idx, last_found;
+  uint32_t track_idx, find_idx; 
+  int last_found;
   enum sync_state state;
   int n;
   int mib_attempts;
   int nslot;
   pbch_mib_t mib;
-
+  int ret;
+  
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
@@ -371,8 +370,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  sync_pss_det_peak_to_avg(&sfind);
-  sync_pss_det_peak_to_avg(&strack);
+  sync_pss_det_peak_to_avg(&ssync);
 
   nof_bands = lte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
   printf("RSSI scan: %d freqs in band %d, RSSI threshold %.2f dBm\n", nof_bands, band, rssi_threshold);
@@ -438,27 +436,24 @@ int main(int argc, char **argv) {
         cuhd_recv(uhd, input_buffer, FLEN, 1);
 #endif
         /* set find_threshold and go to FIND state */
-        sync_set_threshold(&sfind, find_threshold);
-        sync_force_N_id_2(&sfind, -1);
+        sync_set_threshold(&ssync, find_threshold, find_threshold/2);
         state = FIND;
         break;
       case FIND:
         /* find peak in all frame */
-        find_idx = sync_run(&sfind, &input_buffer[FLEN]);
-        DEBUG("[%3d/%d]: PAR=%.2f\n", freq, nof_bands, sync_get_peak_to_avg(&sfind));
-        if (find_idx != -1) {
+        ret = sync_find(&ssync, &input_buffer[FLEN], &find_idx);
+        DEBUG("[%3d/%d]: PAR=%.2f\n", freq, nof_bands, sync_get_peak_value(&ssync));
+        if (ret == 1) {
           /* if found peak, go to track and set lower threshold */
           frame_cnt = -1;
           last_found = 0;
           max_peak_to_avg = -1;
-          sync_set_threshold(&strack, track_threshold);
-          sync_force_N_id_2(&strack, sync_get_N_id_2(&sfind));
-          cell_id = sync_get_cell_id(&sfind);
+          cell_id = sync_get_cell_id(&ssync);
 
           state = TRACK;
           INFO("[%3d/%d]: EARFCN %d Freq. %.2f MHz PSS found PAR %.2f dB\n", freq, nof_bands,
                         channels[freq].id, channels[freq].fd,
-                        10*log10f(sync_get_peak_to_avg(&sfind)));
+                        10*log10f(sync_get_peak_value(&ssync)));
         } else {
           if (frame_cnt >= nof_frames_find) {
             state = INIT;
@@ -469,20 +464,20 @@ int main(int argc, char **argv) {
       case TRACK:
         INFO("Tracking PSS find_idx %d offset %d\n", find_idx, find_idx - track_len);
 
-        track_idx = sync_run(&strack, &input_buffer[FLEN + find_idx - track_len]);
-        p2a_v[frame_cnt] = sync_get_peak_to_avg(&strack);
+        ret = sync_track(&ssync, input_buffer, FLEN + find_idx - track_len, &track_idx);
+        p2a_v[frame_cnt] = sync_get_peak_value(&ssync);
 
         /* save cell id for the best peak-to-avg */
         if (p2a_v[frame_cnt] > max_peak_to_avg) {
           max_peak_to_avg = p2a_v[frame_cnt];
-          cell_id = sync_get_cell_id(&strack);
+          cell_id = sync_get_cell_id(&ssync);
         }
-        if (track_idx != -1) {
-          cfo_v[frame_cnt] = sync_get_cfo(&strack);
+        if (ret == 1) {
+          cfo_v[frame_cnt] = sync_get_cfo(&ssync);
           last_found = frame_cnt;
           find_idx += track_idx - track_len;
           idx_v[frame_cnt] = find_idx;
-          nslot = sync_get_slot_id(&strack);
+          nslot = sync_get_slot_id(&ssync);
         } else {
           idx_v[frame_cnt] = -1;
           cfo_v[frame_cnt] = 0.0;
@@ -513,7 +508,7 @@ int main(int argc, char **argv) {
 
         // Correct CFO
         INFO("Correcting CFO=%.4f\n", cfo[freq]);
-        cfo_correct(&cfocorr, &input_buffer[FLEN], (-cfo[freq])/128);
+        cfo_correct(&cfocorr, &input_buffer[FLEN], &input_buffer[FLEN], (-cfo[freq])/128);
 
         if (nslot == 0) {
           if (mib_decoder_run(&input_buffer[FLEN+find_idx], &mib)) {

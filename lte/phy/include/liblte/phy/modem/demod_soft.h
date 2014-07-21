@@ -56,7 +56,7 @@ typedef struct LIBLTE_API {
   modem_table_t table;
 
   struct demod_soft_init{
-    enum modem_std std;    // symbol mapping standard (see modem_table.h)
+    lte_mod_t std;    // symbol mapping standard (see modem_table.h)
   } init;
 
   const cf_t* input;

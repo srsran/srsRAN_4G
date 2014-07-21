@@ -37,7 +37,7 @@
 #include "liblte/phy/phy.h"
 
 int num_bits = 1000;
-enum modem_std modulation;
+lte_mod_t modulation;
 bool soft_output = false, soft_exact = false;
 
 void usage(char *prog) {
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   /* initialize objects */
-  if (modem_table_std(&mod, modulation, soft_output)) {
+  if (modem_table_lte(&mod, modulation, soft_output)) {
     fprintf(stderr, "Error initializing modem table\n");
     exit(-1);
   }

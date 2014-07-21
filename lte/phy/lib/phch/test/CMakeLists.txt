@@ -20,6 +20,23 @@
 #
 
 ########################################################################
+# UE SYNC TEST (Only compiled if CUHD is available)
+########################################################################
+LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
+LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
+IF(${CUHD_FIND} GREATER -1)
+  ADD_EXECUTABLE(ue_sync_usrp ue_sync_usrp.c)
+  TARGET_LINK_LIBRARIES(ue_sync_usrp lte_phy cuhd)
+ENDIF(${CUHD_FIND} GREATER -1)
+
+IF(${GRAPHICS_FIND} EQUAL -1)
+  SET_TARGET_PROPERTIES(ue_sync_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
+ELSE(${GRAPHICS_FIND} EQUAL -1)
+  target_link_libraries(ue_sync_usrp graphics)
+ENDIF(${GRAPHICS_FIND} EQUAL -1)
+
+
+########################################################################
 # PBCH TEST  
 ########################################################################
 
@@ -92,6 +109,7 @@ TARGET_LINK_LIBRARIES(pdsch_re_test lte_phy)
 
 ADD_TEST(pdsch_re_test pdsch_re_test) 
 ADD_TEST(pdsch_test pdsch_test -l 50000 -m 4 -n 110)
+ADD_TEST(pdsch_test pdsch_test -l 500 -m 2 -n 50 -r 2)
 
 ########################################################################
 # FILE TEST  

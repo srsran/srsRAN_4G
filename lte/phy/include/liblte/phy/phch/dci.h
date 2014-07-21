@@ -62,41 +62,72 @@ typedef enum {
 } dci_spec_t;
 
 typedef struct LIBLTE_API {
-  unsigned char nof_bits;
-  unsigned char L; // Aggregation level
-  unsigned char ncce; // Position of first CCE of the dci
-  unsigned short rnti;
-} dci_candidate_t;
+  uint32_t L;    // Aggregation level
+  uint32_t ncce; // Position of first CCE of the dci
+} dci_location_t;
 
 typedef struct LIBLTE_API {
   char data[DCI_MAX_BITS];
-  dci_candidate_t location;
+  uint32_t nof_bits;
 } dci_msg_t;
 
-typedef struct LIBLTE_API {
-  dci_msg_t *msg;
-  int nof_dcis;
-  int max_dcis;
-} dci_t;
+/* Converts a received PDSCH DL scheduling DCI message 
+ * to ra structures ready to be passed to the harq setup function
+ */
+LIBLTE_API int dci_msg_to_ra_dl(dci_msg_t *msg, 
+                                uint16_t msg_rnti, 
+                                uint16_t c_rnti, 
+                                lte_cell_t cell,
+                                uint32_t cfi,
+                                ra_pdsch_t *ra_dl);
 
-LIBLTE_API int dci_init(dci_t *q, int max_dci);
-LIBLTE_API void dci_free(dci_t *q);
+/* TODO
+LIBLTE_API int dci_msg_to_ra_ul(dci_msg_t *msg, 
+                                uint16_t msg_rnti, 
+                                uint16_t c_rnti, 
+                                lte_cell_t cell,
+                                uint32_t cfi,
+                                ra_pusch_t *ra_ul);
+*/
 LIBLTE_API char* dci_format_string(dci_format_t format);
 
-LIBLTE_API int dci_msg_candidate_set(dci_msg_t *msg, int L, int nCCE, unsigned short rnti);
-LIBLTE_API void dci_candidate_fprint(FILE *f, dci_candidate_t *q);
+LIBLTE_API int dci_location_set(dci_location_t *c, 
+                                uint32_t L, 
+                                uint32_t nCCE);
 
-LIBLTE_API int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, int nof_prb, unsigned short crnti);
-LIBLTE_API void dci_msg_type_fprint(FILE *f, dci_msg_type_t type);
+LIBLTE_API bool dci_location_isvalid(dci_location_t *c);
+
+LIBLTE_API int dci_msg_get_type(dci_msg_t *msg, 
+                                dci_msg_type_t *type, 
+                                uint32_t nof_prb, 
+                                uint16_t msg_rnti, 
+                                uint16_t crnti);
+
+LIBLTE_API void dci_msg_type_fprint(FILE *f, 
+                                    dci_msg_type_t type);
 
 // For dci_msg_type_t = PUSCH_SCHED
-LIBLTE_API int dci_msg_pack_pusch(ra_pusch_t *data, dci_msg_t *msg, int nof_prb);
-LIBLTE_API int dci_msg_unpack_pusch(dci_msg_t *msg, ra_pusch_t *data, int nof_prb);
+LIBLTE_API int dci_msg_pack_pusch(ra_pusch_t *data, 
+                                  dci_msg_t *msg, 
+                                  uint32_t nof_prb);
+
+LIBLTE_API int dci_msg_unpack_pusch(dci_msg_t *msg, 
+                                    ra_pusch_t *data, 
+                                    uint32_t nof_prb);
 
 // For dci_msg_type_t = PDSCH_SCHED
-LIBLTE_API int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format, int nof_prb, bool crc_is_crnti);
-LIBLTE_API int dci_msg_unpack_pdsch(dci_msg_t *msg, ra_pdsch_t *data, int nof_prb, bool crc_is_crnti);
+LIBLTE_API int dci_msg_pack_pdsch(ra_pdsch_t *data, 
+                                  dci_msg_t *msg, 
+                                  dci_format_t format, 
+                                  uint32_t nof_prb, 
+                                  bool crc_is_crnti);
 
-LIBLTE_API int dci_format_sizeof(dci_format_t format, int nof_prb);
+LIBLTE_API int dci_msg_unpack_pdsch(dci_msg_t *msg, 
+                                    ra_pdsch_t *data, 
+                                    uint32_t nof_prb, 
+                                    bool crc_is_crnti);
+
+LIBLTE_API uint32_t dci_format_sizeof(dci_format_t format, 
+                                 uint32_t nof_prb);
 
 #endif // DCI_

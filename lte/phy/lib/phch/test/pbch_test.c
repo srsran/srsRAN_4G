@@ -33,16 +33,18 @@
 
 #include "liblte/phy/phy.h"
 
-int cell_id = 1;
-int nof_prb = 6;
-int nof_ports = 1;
-
+lte_cell_t cell = {
+  6,            // nof_prb
+  1,            // nof_ports
+  1,            // cell_id
+  CPNORM        // cyclic prefix
+};
 
 void usage(char *prog) {
   printf("Usage: %s [cpv]\n", prog);
-  printf("\t-c cell id [Default %d]\n", cell_id);
-  printf("\t-p nof_ports [Default %d]\n", nof_ports);
-  printf("\t-n nof_prb [Default %d]\n", nof_prb);
+  printf("\t-c cell id [Default %d]\n", cell.id);
+  printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
+  printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -51,13 +53,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "cpnv")) != -1) {
     switch(opt) {
     case 'p':
-      nof_ports = atoi(argv[optind]);
+      cell.nof_ports = atoi(argv[optind]);
       break;
     case 'n':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'v':
       verbose++;
@@ -74,16 +76,16 @@ int main(int argc, char **argv) {
   pbch_t pbch;
   pbch_mib_t mib_tx, mib_rx;
   int i, j;
-  cf_t *ce[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
   int nof_re;
-  cf_t *slot1_symbols[MAX_PORTS_CTRL];
+  cf_t *sf_symbols[MAX_PORTS];
 
   parse_args(argc,argv);
 
-  nof_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
+  nof_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   /* init memory */
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<cell.nof_ports;i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -92,44 +94,44 @@ int main(int argc, char **argv) {
     for (j=0;j<nof_re;j++) {
       ce[i][j] = 1;
     }
-    slot1_symbols[i] =   malloc(sizeof(cf_t) * nof_re);
-    if (!slot1_symbols[i]) {
+    sf_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    if (!sf_symbols[i]) {
       perror("malloc");
       exit(-1);
     }
 
   }
-  if (pbch_init(&pbch, nof_prb, cell_id, CPNORM)) {
+  if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
 
-  mib_tx.nof_ports = nof_ports;
+  mib_tx.nof_ports = cell.nof_ports;
   mib_tx.nof_prb = 50;
   mib_tx.phich_length = PHICH_EXT;
   mib_tx.phich_resources = R_1_6;
   mib_tx.sfn = 124;
 
-  pbch_encode(&pbch, &mib_tx, slot1_symbols, nof_ports);
+  pbch_encode(&pbch, &mib_tx, sf_symbols);
 
   /* combine outputs */
-  for (i=1;i<nof_ports;i++) {
+  for (i=1;i<cell.nof_ports;i++) {
     for (j=0;j<nof_re;j++) {
-      slot1_symbols[0][j] += slot1_symbols[i][j];
+      sf_symbols[0][j] += sf_symbols[i][j];
     }
   }
 
   pbch_decode_reset(&pbch);
-  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, 1, &mib_rx)) {
+  if (1 != pbch_decode(&pbch, sf_symbols[0], ce, &mib_rx)) {
     printf("Error decoding\n");
     exit(-1);
   }
 
   pbch_free(&pbch);
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
-    free(slot1_symbols[i]);
+    free(sf_symbols[i]);
   }
 
   if (!memcmp(&mib_tx, &mib_rx, sizeof(pbch_mib_t))) {

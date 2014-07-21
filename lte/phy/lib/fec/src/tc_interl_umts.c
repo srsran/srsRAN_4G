@@ -28,13 +28,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <stdint.h>
 
 #include "liblte/phy/fec/tc_interl.h"
 #include "liblte/phy/fec/turbocoder.h"
 
 #define TURBO_RATE 	3
 
-int mcd(int x, int y);
+uint32_t mcd(uint32_t x, uint32_t y);
 
 /************************************************
  *
@@ -53,14 +54,14 @@ const unsigned char table_v[52] = { 3, 2, 2, 3, 2, 5, 2, 3, 2, 6, 3, 5, 2, 2, 2,
     2, 7, 5, 3, 2, 3, 5, 2, 5, 2, 6, 3, 3, 2, 3, 2, 2, 6, 5, 2, 5, 2, 2, 2, 19,
     5, 2, 3, 2, 3, 2, 6, 3, 7, 7, 6, 3 };
 
-int tc_interl_init(tc_interl_t *h, int max_long_cb) {
+int tc_interl_init(tc_interl_t *h, uint32_t max_long_cb) {
   int ret = -1;
-  h->forward = malloc(sizeof(int) * max_long_cb);
+  h->forward = malloc(sizeof(uint32_t) * max_long_cb);
   if (!h->forward) {
     perror("malloc");
     goto clean_exit;
   }
-  h->reverse = malloc(sizeof(int) * max_long_cb);
+  h->reverse = malloc(sizeof(uint32_t) * max_long_cb);
   if (!h->reverse) {
     perror("malloc");
     goto clean_exit;
@@ -83,17 +84,17 @@ void tc_interl_free(tc_interl_t *h) {
   bzero(h, sizeof(tc_interl_t));
 }
 
-int tc_interl_UMTS_gen(tc_interl_t *h, int long_cb) {
+int tc_interl_UMTS_gen(tc_interl_t *h, uint32_t long_cb) {
 
-  int i, j;
-  int res, prim, aux;
-  int kp, k;
-  int *per, *desper;
-  unsigned char v;
-  unsigned short p;
-  unsigned short s[MAX_COLS], q[MAX_ROWS], r[MAX_ROWS], T[MAX_ROWS];
-  unsigned short U[MAX_COLS * MAX_ROWS];
-  int M_Rows, M_Cols, M_long;
+  uint32_t i, j;
+  uint32_t res, prim, aux;
+  uint32_t kp, k;
+  uint32_t *per, *desper;
+  uint8_t v;
+  uint16_t p;
+  uint16_t s[MAX_COLS], q[MAX_ROWS], r[MAX_ROWS], T[MAX_ROWS];
+  uint16_t U[MAX_COLS * MAX_ROWS];
+  uint32_t M_Rows, M_Cols, M_long;
 
   M_long = long_cb;
 
@@ -260,8 +261,8 @@ int tc_interl_UMTS_gen(tc_interl_t *h, int long_cb) {
 
 }
 
-int mcd(int x, int y) {
-  int r = 1;
+uint32_t mcd(uint32_t x, uint32_t y) {
+  uint32_t r = 1;
 
   while (r) {
     r = x % y;
