@@ -81,12 +81,6 @@ ENDIF(${GRAPHICS_FIND} EQUAL -1)
 
 IF(${CUHD_FIND} GREATER -1)
 
-  add_executable(scan_rssi scan_rssi.c)
-  target_link_libraries(scan_rssi lte_phy cuhd )
-
-  add_executable(scan_pss scan_pss.c)
-  target_link_libraries(scan_pss lte_phy cuhd )
-
   add_executable(scan_mib scan_mib.c)
   target_link_libraries(scan_mib lte_phy cuhd )
 
