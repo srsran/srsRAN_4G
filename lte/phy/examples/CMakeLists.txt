@@ -51,7 +51,7 @@ LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
 # These two can be compiled without UHD or graphics support
 #################################################################
 
-add_executable(pdsch_ue pdsch_ue.c)
+add_executable(pdsch_ue pdsch_ue.c iodev.c)
 target_link_libraries(pdsch_ue lte_phy)
 
 add_executable(pdsch_enodeb pdsch_enodeb.c)

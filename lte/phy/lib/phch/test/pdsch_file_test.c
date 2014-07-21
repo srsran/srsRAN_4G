@@ -158,7 +158,7 @@ int base_init() {
     }
   }
 
-  if (chest_init_LTEDL(&chest, LINEAR, cell)) {
+  if (chest_init_LTEDL(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -183,10 +183,11 @@ int base_init() {
     exit(-1);
   }
 
-  if (pdsch_init(&pdsch, rnti, cell)) {
+  if (pdsch_init(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
+  pdsch_set_rnti(&pdsch, rnti);
   
   if (pdsch_harq_init(&harq_process, &pdsch)) {
     fprintf(stderr, "Error initiating HARQ process\n");

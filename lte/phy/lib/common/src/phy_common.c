@@ -64,7 +64,24 @@ bool lte_cell_isvalid(lte_cell_t *cell) {
     return false;
   }
 }
-    
+
+bool lte_N_id_2_isvalid(uint32_t N_id_2) {
+  if (N_id_2 < 3) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool lte_N_id_1_isvalid(uint32_t N_id_1) {
+  if (N_id_1 < 169) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
 /*
  * Returns Turbo coder interleaver size for Table 5.1.3-3 (36.212) index
  */
@@ -106,6 +123,14 @@ uint32_t lte_mod_bits_x_symbol(lte_mod_t mod) {
   }   
 }
 
+char *lte_cp_string(lte_cp_t cp) {
+  if (cp == CPNORM) {
+    return "Normal";
+  } else {
+    return "Extended";
+  }
+}
+
 /*
  * Finds index of minimum K>=long_cb in Table 5.1.3-3 of 36.212
  */
@@ -130,6 +155,7 @@ int lte_sampling_freq_hz(uint32_t nof_prb) {
       return 15000 * n;
     }
 }
+
 int lte_symbol_sz(uint32_t nof_prb) {
   if (nof_prb<=0) {
     return LIBLTE_ERROR;
@@ -148,6 +174,18 @@ int lte_symbol_sz(uint32_t nof_prb) {
     return 2048;
   }
   return LIBLTE_ERROR;
+}
+
+bool lte_symbol_sz_isvalid(uint32_t symbol_sz) {
+  if (symbol_sz == 128  || 
+      symbol_sz == 256  ||
+      symbol_sz == 512  ||
+      symbol_sz == 1024 ||
+      symbol_sz == 2048) {
+    return true;
+  } else {
+    return false; 
+  }
 }
 
 uint32_t lte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports) {

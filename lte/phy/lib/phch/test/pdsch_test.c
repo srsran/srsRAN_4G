@@ -166,10 +166,12 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  if (pdsch_init(&pdsch, 1234, cell)) {
+  if (pdsch_init(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
+  
+  pdsch_set_rnti(&pdsch, 1234);
   
   if (pdsch_harq_init(&harq_process, &pdsch)) {
     fprintf(stderr, "Error initiating HARQ process\n");

@@ -61,7 +61,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
       return ret; 
     }
     
-    if (VERBOSE_ISINFO()) {
+    if (VERBOSE_ISDEBUG()) {
       dci_msg_type_fprint(stdout, type);    
     }
     if (type.type == PDSCH_SCHED) {
@@ -72,7 +72,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
         return ret;
       } 
       
-      if (VERBOSE_ISINFO()) {
+      if (VERBOSE_ISDEBUG()) {
         ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
       }
       

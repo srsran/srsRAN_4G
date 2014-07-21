@@ -32,12 +32,13 @@
 #include <math.h>
 
 #include "liblte/phy/ch_estimation/chest.h"
-#include "liblte/phy/resampling/interp.h"
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/debug.h"
 
 #define SLOT_SZ(q) (q->nof_symbols * q->symbol_sz)
 #define SF_SZ(q) (2 * SLOT_SZ(q))
+
+//#define VOLK_INTERP
 
 void chest_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id) {
   chest_ref_fprint(q, stream, nslot, port_id);
@@ -102,6 +103,7 @@ int chest_ce_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint
       port_id   <  q->nof_ports) 
   {
     if (nref < q->refsignal[port_id][nslot].nof_refs) {
+
       fidx = q->refsignal[port_id][nslot].refs[nref].freq_idx; // reference frequency index
       tidx = q->refsignal[port_id][nslot].refs[nref].time_idx; // reference time index
 
@@ -153,10 +155,15 @@ int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32
       /* interpolate the symbols with references
       * in the freq domain */
       for (i=0;i<r->nsymbols;i++) {
+#ifdef VOLK_INTERP
+        interp_run_offset(&q->interp_freq[port_id], 
+                          &r->ch_est[i * r->nof_refs/2], &ce[r->symbols_ref[i] * q->nof_re], 
+                          r->voffset, RE_X_RB/2-r->voffset);
+#else
         interp_linear_offset(&r->ch_est[i * r->nof_refs/2],
             &ce[r->symbols_ref[i] * q->nof_re], RE_X_RB/2,
             r->nof_refs/2, r->voffset, RE_X_RB/2-r->voffset);
-
+#endif
       }
       /* now interpolate in the time domain */
       for (i=0;i<q->nof_re; i++) {
@@ -164,8 +171,13 @@ int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32
           for (j=0;j<r->nsymbols;j++) {
             x[j] = ce[r->symbols_ref[j] * q->nof_re + i];
           }
+#ifdef VOLK_INTERP
+          interp_run_offset(&q->interp_time[port_id], x, y, 
+                            r->symbols_ref[0], 3);
+#else
           interp_linear_offset(x, y, r->symbols_ref[1]-r->symbols_ref[0],
               2, r->symbols_ref[0], 3);
+#endif
         } else {
           for (j=0;j<MAX_NSYMB;j++) {
             y[j] = ce[r->symbols_ref[0] * q->nof_re + i];
@@ -225,7 +237,7 @@ int chest_ce_sf(chest_t *q, cf_t *input, cf_t *ce[MAX_PORTS], uint32_t sf_idx) {
   return LIBLTE_SUCCESS;
 }
 
-int chest_init(chest_t *q, chest_interp_t interp, uint32_t nof_re, uint32_t nof_symbols, uint32_t nof_ports) {
+int chest_init(chest_t *q, uint32_t nof_re, uint32_t nof_symbols, uint32_t nof_ports) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (q         != NULL &&
@@ -236,12 +248,7 @@ int chest_init(chest_t *q, chest_interp_t interp, uint32_t nof_re, uint32_t nof_
     q->nof_ports = nof_ports;
     q->nof_symbols = nof_symbols;
     q->nof_re = nof_re;
-    
-    switch(interp) {
-    case LINEAR:
-      q->interp = interp_linear_offset;
-    }
-
+      
     INFO("Initializing channel estimator size %dx%d, nof_ports=%d\n",
         q->nof_symbols, q->nof_re, nof_ports);
 
@@ -250,9 +257,9 @@ int chest_init(chest_t *q, chest_interp_t interp, uint32_t nof_re, uint32_t nof_
   return ret;
 }
 
-int chest_init_LTEDL(chest_t *q, chest_interp_t interp, lte_cell_t cell) {
+int chest_init_LTEDL(chest_t *q, lte_cell_t cell) {
   int ret; 
-  ret = chest_init(q, interp, cell.nof_prb * RE_X_RB, CP_NSYMB(cell.cp), cell.nof_ports);
+  ret = chest_init(q, cell.nof_prb * RE_X_RB, CP_NSYMB(cell.cp), cell.nof_ports);
   if (ret != LIBLTE_SUCCESS) {
     return ret;
   } else {
@@ -268,6 +275,16 @@ int chest_ref_LTEDL_slot_port(chest_t *q, uint32_t nslot, uint32_t port_id, lte_
       nslot     < NSLOTS_X_FRAME)
   {
     ret = refsignal_init_LTEDL(&q->refsignal[port_id][nslot], port_id, nslot, cell);
+    
+    if (ret == LIBLTE_SUCCESS) {
+      if (nslot == 0) {
+        ret = interp_init(&q->interp_freq[port_id], LINEAR, q->refsignal[port_id][nslot].nof_refs/2, RE_X_RB/2);
+        if (ret == LIBLTE_SUCCESS) {
+          ret = interp_init(&q->interp_time[port_id], LINEAR, 2, 
+                    q->refsignal[port_id][nslot].symbols_ref[1] - q->refsignal[port_id][nslot].symbols_ref[0]);
+        }
+      }
+    }
   }
   return ret;
 }
@@ -339,7 +356,7 @@ int chest_initialize(chest_hl* h) {
   cell.nof_prb = h->init.nof_prb;
   cell.cp = h->init.nof_symbols == CPNORM_NSYMB ? CPNORM : CPEXT;
   
-  if (chest_init_LTEDL(&h->obj, LINEAR, cell)) {
+  if (chest_init_LTEDL(&h->obj, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }

@@ -162,11 +162,11 @@ int base_init(int frame_length) {
       return -1;
     }
   }
-  if (sync_init(&ssync, FLEN)) {
+  if (sync_init(&ssync, FLEN, 128, 128)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
-  if (chest_init(&chest, LINEAR, CPNORM, 6, MAX_PORTS)) {
+  if (chest_init(&chest, CPNORM, 6, MAX_PORTS)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -349,13 +349,15 @@ int main(int argc, char **argv) {
   int cell_id;
   float max_peak_to_avg;
   float sfo;
-  int find_idx, track_idx, last_found;
+  uint32_t track_idx, find_idx; 
+  int last_found;
   enum sync_state state;
   int n;
   int mib_attempts;
   int nslot;
   pbch_mib_t mib;
-
+  int ret;
+  
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
@@ -434,14 +436,14 @@ int main(int argc, char **argv) {
         cuhd_recv(uhd, input_buffer, FLEN, 1);
 #endif
         /* set find_threshold and go to FIND state */
-        sync_set_threshold(&ssync, find_threshold);
+        sync_set_threshold(&ssync, find_threshold, find_threshold/2);
         state = FIND;
         break;
       case FIND:
         /* find peak in all frame */
-        find_idx = sync_find(&ssync, &input_buffer[FLEN]);
+        ret = sync_find(&ssync, &input_buffer[FLEN], &find_idx);
         DEBUG("[%3d/%d]: PAR=%.2f\n", freq, nof_bands, sync_get_peak_to_avg(&ssync));
-        if (find_idx != -1) {
+        if (ret == 1) {
           /* if found peak, go to track and set lower threshold */
           frame_cnt = -1;
           last_found = 0;
@@ -462,7 +464,7 @@ int main(int argc, char **argv) {
       case TRACK:
         INFO("Tracking PSS find_idx %d offset %d\n", find_idx, find_idx - track_len);
 
-        track_idx = sync_track(&ssync, &input_buffer[FLEN + find_idx - track_len]);
+        ret = sync_track(&ssync, input_buffer, FLEN + find_idx - track_len, &track_idx);
         p2a_v[frame_cnt] = sync_get_peak_to_avg(&ssync);
 
         /* save cell id for the best peak-to-avg */
@@ -470,7 +472,7 @@ int main(int argc, char **argv) {
           max_peak_to_avg = p2a_v[frame_cnt];
           cell_id = sync_get_cell_id(&ssync);
         }
-        if (track_idx != -1) {
+        if (ret == 1) {
           cfo_v[frame_cnt] = sync_get_cfo(&ssync);
           last_found = frame_cnt;
           find_idx += track_idx - track_len;
@@ -506,7 +508,7 @@ int main(int argc, char **argv) {
 
         // Correct CFO
         INFO("Correcting CFO=%.4f\n", cfo[freq]);
-        cfo_correct(&cfocorr, &input_buffer[FLEN], (-cfo[freq])/128);
+        cfo_correct(&cfocorr, &input_buffer[FLEN], &input_buffer[FLEN], (-cfo[freq])/128);
 
         if (nslot == 0) {
           if (mib_decoder_run(&input_buffer[FLEN+find_idx], &mib)) {

@@ -59,6 +59,11 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define MAX_NSYMB     7
 
+#define MAX_PRB   110
+#define RE_X_RB   12
+
+#define SYMBOL_SZ_MAX   2048
+
 #define CPNORM_NSYMB    7
 #define CPNORM_SF_NSYMB 2*CPNORM_NSYMB
 #define CPNORM_0_LEN    160
@@ -79,19 +84,20 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define SLOT_LEN_CPNORM(symbol_sz) (symbol_sz+CP(symbol_sz,CPNORM_0_LEN)+(CPNORM_NSYMB-1)*(symbol_sz+CP(symbol_sz,CPNORM_LEN)))
 #define SLOT_LEN_CPEXT(symbol_sz) (CPEXT_NSYMB*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
-#define SLOT_LEN(symbol_sz, cp) CP_ISNORM(cp)?SLOT_LEN_CPNORM(symbol_sz):SLOT_LEN_CPEXT(symbol_sz)
+#define SLOT_LEN(symbol_sz, cp) (CP_ISNORM(cp)?SLOT_LEN_CPNORM(symbol_sz):SLOT_LEN_CPEXT(symbol_sz))
 
-#define SF_LEN_CPNORM(symbol_sz) 2*SLOT_LEN_CPNORM(symbol_sz)
-#define SF_LEN_CPEXT(symbol_sz) 2*SLOT_LEN_CPEXT(symbol_sz)
+#define SF_LEN_CPNORM(symbol_sz) (2*SLOT_LEN_CPNORM(symbol_sz))
+#define SF_LEN_CPEXT(symbol_sz) (2*SLOT_LEN_CPEXT(symbol_sz))
 #define SF_LEN(symbol_sz, cp) (2*SLOT_LEN(symbol_sz, cp))
+#define SF_LEN_MAX      SF_LEN(SYMBOL_SZ_MAX, CPNORM)
+
+#define SLOT_LEN_RE(nof_prb, cp) (nof_prb*RE_X_RB*CP_NSYMB(cp))
+#define SF_LEN_RE(nof_prb, cp) (2*SLOT_LEN_RE(nof_prb, cp))
 
 #define SLOT_IDX_CPNORM(idx, symbol_sz) (idx==0?(CP(symbol_sz, CPNORM_0_LEN)):(CP(symbol_sz, CPNORM_0_LEN)+idx*(symbol_sz+CP(symbol_sz, CPNORM_LEN))))
 #define SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
 
 #define SAMPLE_IDX(nof_prb, symbol_idx, sample_idx) (symbol_idx*nof_prb*RE_X_RB + sample_idx)
-
-#define MAX_PRB   110
-#define RE_X_RB   12
 
 #define RS_VSHIFT(cell_id) (cell_id%6)
 
@@ -136,7 +142,14 @@ LIBLTE_API enum band_geographical_area {
 
 LIBLTE_API bool lte_cell_isvalid(lte_cell_t *cell);
 
+LIBLTE_API bool lte_N_id_2_isvalid(uint32_t N_id_2);
+
+LIBLTE_API bool lte_N_id_1_isvalid(uint32_t N_id_1);
+
+LIBLTE_API bool lte_symbol_sz_isvalid(uint32_t symbol_sz); 
+
 LIBLTE_API int lte_symbol_sz(uint32_t nof_prb);
+
 
 LIBLTE_API int lte_sampling_freq_hz(uint32_t nof_prb);
 
@@ -150,6 +163,8 @@ LIBLTE_API uint32_t lte_voffset(uint32_t symbol_id,
                            uint32_t nof_ports);
 
 LIBLTE_API int lte_cb_size(uint32_t index);
+
+LIBLTE_API char *lte_cp_string(lte_cp_t cp); 
 
 LIBLTE_API char *lte_mod_string(lte_mod_t mod);
 

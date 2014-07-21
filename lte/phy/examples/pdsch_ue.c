@@ -37,83 +37,59 @@
 #include <signal.h>
 
 #include "liblte/phy/phy.h"
-
-#ifndef DISABLE_UHD
-#include "liblte/cuhd/cuhd.h"
-void *uhd;
-#endif
+#include "iodev.h"
 
 #ifndef DISABLE_GRAPHICS
-#include "liblte/graphics/plot.h"
-plot_real_t poutfft;
-plot_complex_t pce;
-plot_scatter_t pscatrecv, pscatequal;
+void init_plots();
+void do_plots(ue_dl_t *q, uint32_t sf_idx);
 #endif
-
-#define MHZ         1000000
-#define SAMP_FREQ   1920000
-
-#define NOF_PORTS 2
-
-float find_threshold = 9.0;
-int nof_frames = -1;
-int pkt_errors = 0, pkts_total = 0;
-int frame_cnt;
-char *input_file_name = NULL;
-int disable_plots = 0;
-
-/* These are the number of PRBs used during the SYNC procedure */
-int sampling_nof_prb = 6;
-
-/* Number of samples in a subframe */
-int sf_n_samples;
-
-lte_cell_t cell;
-
-uint32_t cell_id_file = 1;
-
-int cell_id_initated = 0, mib_initiated = 0;
-int frame_number; 
-
-bool pbch_only = false; 
 
 int go_exit = 0;
 
-float uhd_freq = 2600000000.0, uhd_gain = 20.0;
-char *uhd_args = "";
+/* Local function definitions */
+void init_plots();
 
-filesource_t fsrc;
-cf_t *input_buffer, *sf_buffer, *fft_buffer, *input_decim_buffer, *ce[MAX_PORTS];
-float *tmp_plot;
-pbch_t pbch;
-pcfich_t pcfich;
-pdcch_t pdcch;
-pdsch_t pdsch;
-pdsch_harq_t harq_process;
-regs_t regs;
-lte_fft_t fft;
-chest_t chest;
-sync_frame_t sframe;
+/**********************************************************************
+ *  Program arguments processing
+ ***********************************************************************/
+typedef struct {
+  uint32_t cell_id_file;
+  uint32_t nof_prb_file; 
+  uint16_t rnti; 
+  int nof_subframes;
+  bool disable_plots;
+  bool pbch_only; 
+  iodev_cfg_t io_config; 
+}prog_args_t;
 
-#define CLRSTDOUT printf("\r\n"); fflush(stdout); printf("\r\n")
+void args_default(prog_args_t *args) {
+  args->cell_id_file = 1; 
+  args->nof_prb_file = 6;
+  args->rnti = SIRNTI;
+  args->nof_subframes = -1; 
+  args->disable_plots = false; 
+  args->pbch_only = false; 
+  args->io_config.find_threshold = -1.0; 
+  args->io_config.input_file_name = NULL; 
+  args->io_config.uhd_args = "";
+  args->io_config.uhd_freq = -1.0;
+  args->io_config.uhd_gain = 20.0; 
+}
 
-#define DOWNSAMPLE_FACTOR(x, y) lte_symbol_sz(x) / lte_symbol_sz(y)
-
-void usage(char *prog) {
-  printf("Usage: %s [icagfndvtpb]\n", prog);
-  printf("\t-i input_file [Default use USRP]\n");
-  printf("\t-c cell_id if reading from file [Default %d]\n", cell_id_file);
+void usage(prog_args_t *args, char *prog) {
+  printf("Usage: %s [cargfndvtb] [-i input_file | -f rx_frequency (in Hz)]\n", prog);
+  printf("\t-c cell_id if reading from file [Default %d]\n", args->cell_id_file);
+  printf("\t-p nof_prb if reading from file [Default %d]\n", args->nof_prb_file);
+  printf("\t-r RNTI to look for [Default 0x%x]\n", args->rnti);
 #ifndef DISABLE_UHD
-  printf("\t-a UHD args [Default %s]\n", uhd_args);
-  printf("\t-g UHD RX gain [Default %.2f dB]\n", uhd_gain);
-  printf("\t-f UHD RX frequency [Default %.1f MHz]\n", uhd_freq / 1000000);
+  printf("\t-a UHD args [Default %s]\n", args->io_config.uhd_args);
+  printf("\t-g UHD RX gain [Default %.2f dB]\n", args->io_config.uhd_gain);
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
-  printf("\t-b Decode PBCH only [Default All]\n");
-  printf("\t-p sampling_nof_prb [Default %d]\n", sampling_nof_prb);
-  printf("\t-n nof_frames [Default %d]\n", nof_frames);
-  printf("\t-t PSS threshold [Default %f]\n", find_threshold);
+  printf("\t-b Decode PBCH only [Default All channels]\n");
+  printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
+  printf("\t-t PSS threshold [Default %f]\n", args->io_config.find_threshold);
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
 #else
@@ -122,51 +98,179 @@ void usage(char *prog) {
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "icagfndvtpb")) != -1) {
+  args_default(args);
+  while ((opt = getopt(argc, argv, "icagfndvtbp")) != -1) {
     switch (opt) {
     case 'i':
-      input_file_name = argv[optind];
+      args->io_config.input_file_name = argv[optind];
       break;
     case 'c':
-      cell_id_file = atoi(argv[optind]);
-      break;
-    case 'a':
-      uhd_args = argv[optind];
-      break;
-    case 'g':
-      uhd_gain = atof(argv[optind]);
-      break;
-    case 'f':
-      uhd_freq = atof(argv[optind]);
-      break;
-    case 'b':
-      pbch_only = true;
-      break;
-    case 't':
-      find_threshold = atof(argv[optind]);
+      args->cell_id_file = atoi(argv[optind]);
       break;
     case 'p':
-      sampling_nof_prb = atof(argv[optind]);
+      args->nof_prb_file = atoi(argv[optind]);
+      break;
+    case 'a':
+      args->io_config.uhd_args = argv[optind];
+      break;
+    case 'g':
+      args->io_config.uhd_gain = atof(argv[optind]);
+      break;
+    case 'f':
+      args->io_config.uhd_freq = atof(argv[optind]);
+      break;
+    case 'b':
+      args->pbch_only = true;
+      break;
+    case 't':
+      args->io_config.find_threshold = atof(argv[optind]);
       break;
     case 'n':
-      nof_frames = atoi(argv[optind]);
+      args->nof_subframes = atoi(argv[optind]);
       break;
     case 'd':
-      disable_plots = 1;
+      args->disable_plots = true;
       break;
     case 'v':
       verbose++;
       break;
     default:
-      usage(argv[0]);
+      usage(args, argv[0]);
       exit(-1);
     }
   }
+  if (args->io_config.uhd_freq < 0 && args->io_config.input_file_name == NULL) {
+    usage(args, argv[0]);
+  }
+}
+/**********************************************************************/
+
+void sigintHandler(int x) {
+  go_exit = 1; 
 }
 
+int main(int argc, char **argv) {
+  int ret; 
+  cf_t *sf_buffer; 
+  iodev_t iodev; 
+  prog_args_t prog_args; 
+  lte_cell_t cell; 
+  ue_dl_t ue_dl; 
+  bool ue_dl_initiated = false; 
+  int64_t sf_cnt;
+  uint32_t sf_idx;
+  pbch_mib_t mib; 
+  
+  parse_args(&prog_args, argc, argv);
+  
+  if (iodev_init(&iodev, &prog_args.io_config)) {
+    fprintf(stderr, "Error initiating input device\n");
+    exit(-1);
+  }
+  
+  if (!prog_args.disable_plots) {
+    init_plots();    
+  }
+  
+  /* Setup SIGINT handler */
+  printf("\n --- Press Ctrl+C to exit --- \n");
+  signal(SIGINT, sigintHandler);
+
+  /* Initialize frame and subframe counters */
+  sf_cnt = 0;
+  sf_idx = 0; 
+  
+  /* Main loop */
+  while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
+
+    ret = iodev_receive(&iodev, &sf_buffer);
+    if (ret < 0) {
+      fprintf(stderr, "Error reading from input device (%d)\n", ret);
+      break;
+    }
+    
+    /* iodev_receive returns 1 if successfully read 1 aligned subframe */
+    if (ret == 1) {
+      if (!ue_dl_initiated) {
+        if (iodev_isUSRP(&iodev)) {
+          cell = ue_sync_get_cell(&iodev.sframe);
+          mib = ue_sync_get_mib(&iodev.sframe);
+        } else {
+          cell.id = prog_args.cell_id_file;
+          cell.cp = CPNORM; 
+          cell.nof_ports = 1; // TODO: Use prog_args 
+          cell.nof_prb = prog_args.nof_prb_file; 
+          mib.phich_resources = R_1; 
+          mib.phich_length = PHICH_NORM;
+        }        
+        if (ue_dl_init(&ue_dl, cell, mib.phich_resources, mib.phich_length, 1234)) { 
+          fprintf(stderr, "Error initiating UE downlink processing module\n");
+          exit(-1);
+        }
+        pdsch_set_rnti(&ue_dl.pdsch, prog_args.rnti);
+        ue_dl_initiated = true; 
+      } else {
+        if (iodev_isUSRP(&iodev)) {
+          sf_idx = ue_sync_get_sfidx(&iodev.sframe);
+        } 
+        if (ue_dl_process(&ue_dl, sf_buffer, sf_idx, ue_sync_get_mib(&iodev.sframe).sfn, prog_args.rnti)) {
+          fprintf(stderr, "\nError running receiver\n");fflush(stdout);
+          exit(-1);
+        }
+        if (!(sf_cnt % 10)) {         
+          printf("Cell ID: %3d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d/%d, BLER: %.1e\r",
+              cell.id, iodev.sframe.cur_cfo * 15, iodev.sframe.mean_time_offset / 5, iodev.sframe.peak_idx,
+              (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (int) ue_dl.nof_trials, (float) ue_dl.pkt_errors / ue_dl.pkts_total);
+          fflush(stdout);       
+          if (VERBOSE_ISINFO()) {
+            printf("\n");
+          }
+        }  
+        if (!prog_args.disable_plots && sf_idx == 5) {
+          do_plots(&ue_dl, sf_idx);          
+        }
+      }
+      if (iodev_isfile(&iodev)) {
+        sf_idx++;       
+        if (sf_idx == NSUBFRAMES_X_FRAME) {
+          sf_idx = 0;
+        }        
+      }
+    }
+    if (prog_args.nof_subframes > 0) {
+      sf_cnt++;      
+    }    
+    if (iodev_isfile(&iodev)) {
+      usleep(5000);
+    }
+  }
+
+  if (ue_dl_initiated) {
+    ue_dl_free(&ue_dl);    
+  }
+  iodev_free(&iodev);
+
+  printf("\nBye\n");
+  exit(0);
+}
+
+
+
+
+/**********************************************************************
+ *  Plotting Functions
+ ***********************************************************************/
 #ifndef DISABLE_GRAPHICS
+
+
+#include "liblte/graphics/plot.h"
+plot_real_t poutfft;
+plot_complex_t pce;
+plot_scatter_t pscatrecv, pscatequal;
+
+float tmp_plot[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 
 void init_plots() {
   plot_init();
@@ -174,7 +278,6 @@ void init_plots() {
   plot_real_setTitle(&poutfft, "Output FFT - Magnitude");
   plot_real_setLabels(&poutfft, "Index", "dB");
   plot_real_setYAxisScale(&poutfft, -60, 0);
-  plot_real_setXAxisScale(&poutfft, 1, 504);
 
   plot_complex_init(&pce);
   plot_complex_setTitle(&pce, "Channel Estimates");
@@ -194,513 +297,20 @@ void init_plots() {
   plot_scatter_setYAxisScale(&pscatequal, -1, 1);
 }
 
-#endif
-
-
-/* This function initializes the objects defined as global variables */
-int base_init(int nof_prb) {
+void do_plots(ue_dl_t *q, uint32_t sf_idx) {
   int i;
-  
-  int sf_n_re = 2 * CPNORM_NSYMB * nof_prb * RE_X_RB;
-  int sf_n_samples = 2 * SLOT_LEN_CPNORM(lte_symbol_sz(nof_prb));
-
-
-#ifndef DISABLE_GRAPHICS
-  if (!disable_plots) {
-    tmp_plot = malloc(sizeof(cf_t) * sf_n_re);
-    if (!tmp_plot) {
-      perror("malloc");
-      return -1;
+  uint32_t nof_re = SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp);
+  uint32_t nof_symbols = q->harq_process[0].prb_alloc.re_sf[sf_idx];
+  for (i = 0; i < nof_re; i++) {
+    tmp_plot[i] = 10 * log10f(cabsf(q->sf_symbols[i]));
+    if (isinf(tmp_plot[i])) {
+      tmp_plot[i] = -80;
     }
-    init_plots();
   }
-#else
-  printf("-- PLOTS are disabled. Graphics library not available --\n\n");
+  plot_real_setNewData(&poutfft, tmp_plot, nof_re);        
+  plot_complex_setNewData(&pce, q->ce[0], nof_re);
+  plot_scatter_setNewData(&pscatrecv, q->pdsch.pdsch_symbols[0], nof_symbols);
+  plot_scatter_setNewData(&pscatequal, q->pdsch.pdsch_d, nof_symbols);
+}
+
 #endif
-
-  if (input_file_name) {
-    if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
-      return -1;
-    }
-  } else {
-    /* open UHD device */
-#ifndef DISABLE_UHD
-    printf("Opening UHD device...\n");
-    if (cuhd_open(uhd_args, &uhd)) {
-      fprintf(stderr, "Error opening uhd\n");
-      return -1;
-    }
-#else
-    printf("Error UHD not available. Select an input file\n");
-    return -1;
-#endif
-  }
-
-  /* For the input buffer, we allocate space for 1 ms of samples */
-  input_buffer = (cf_t*) malloc(sf_n_samples * sizeof(cf_t));
-  if (!input_buffer) {
-    perror("malloc");
-    return -1;
-  }
-  
-  input_decim_buffer = (cf_t*) malloc(sf_n_samples * sizeof(cf_t));
-  if (!input_decim_buffer) {
-    perror("malloc");
-    return -1;
-  }
-  
-  /* This buffer is the aligned version of input_buffer */
-  sf_buffer = (cf_t*) malloc(sf_n_samples * sizeof(cf_t));
-  if (!sf_buffer) {
-    perror("malloc");
-    return -1;
-  }
-
-  /* For the rest of the buffers, we allocate for the number of RE in one subframe */
-  fft_buffer = (cf_t*) malloc(sf_n_re * sizeof(cf_t));
-  if (!fft_buffer) {
-    perror("malloc");
-    return -1;
-  }
-
-  for (i = 0; i < MAX_PORTS; i++) {
-    ce[i] = (cf_t*) malloc(sf_n_re * sizeof(cf_t));
-    if (!ce[i]) {
-      perror("malloc");
-      return -1;
-    }
-  }
-  
-  if (sync_frame_init(&sframe, DOWNSAMPLE_FACTOR(nof_prb,6))) {
-    fprintf(stderr, "Error initiating PSS/SSS\n");
-    return -1;
-  }
-
-  if (chest_init(&chest, LINEAR, nof_prb * RE_X_RB, CPNORM_NSYMB, NOF_PORTS)) {
-    fprintf(stderr, "Error initializing equalizer\n");
-    return -1;
-  }
-
-  if (lte_fft_init(&fft, CPNORM, nof_prb)) {
-    fprintf(stderr, "Error initializing FFT\n");
-    return -1;
-  }
-
-  return 0;
-}
-
-void base_free() {
-  int i;
-
-  if (input_file_name) {
-    filesource_free(&fsrc);
-  } else {
-#ifndef DISABLE_UHD
-    cuhd_close(uhd);
-#endif
-  }
-
-#ifndef DISABLE_GRAPHICS
-  if (!disable_plots) {
-    if (tmp_plot) {
-      free(tmp_plot);      
-    }
-    plot_exit();
-  }
-#endif
-
-  pbch_free(&pbch);
-  pdsch_free(&pdsch);
-  pdcch_free(&pdcch);
-  regs_free(&regs);
-  sync_frame_free(&sframe);
-  lte_fft_free(&fft);
-  chest_free(&chest);
-
-  free(input_buffer);
-  free(input_decim_buffer);
-  free(fft_buffer);
-  for (i = 0; i < MAX_PORTS; i++) {
-    free(ce[i]);
-  }
-}
-
-int mib_init(phich_resources_t phich_resources, phich_length_t phich_length) {
-
-  if (!lte_cell_isvalid(&cell)) {
-    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
-            cell.id, cell.nof_ports, cell.nof_prb);
-    return -1;
-  }
-  if (cell.nof_prb > sampling_nof_prb) {
-    fprintf(stderr, "Error sampling frequency is %.2f Mhz but captured signal has %d PRB\n", 
-      (float) lte_sampling_freq_hz(sampling_nof_prb)/MHZ, cell.nof_prb);
-    return -1;
-  }
-  if (regs_init(&regs, phich_resources, phich_length, cell)) {
-    fprintf(stderr, "Error initiating REGs\n");
-    return -1;
-  }
-
-  if (pcfich_init(&pcfich, &regs, cell)) {
-    fprintf(stderr, "Error creating PCFICH object\n");
-    return -1;
-  }
-
-  if (pdcch_init(&pdcch, &regs, cell)) {
-    fprintf(stderr, "Error creating PDCCH object\n");
-    return -1;
-  }
-
-  if (pdsch_init(&pdsch, 1234, cell)) {
-    fprintf(stderr, "Error creating PDSCH object\n");
-    return -1;
-  }
-  
-  if (pdsch_harq_init(&harq_process, &pdsch)) {
-    fprintf(stderr, "Error initiating HARQ process\n");
-    return -1;
-  }
-  
-  chest_set_nof_ports(&chest, cell.nof_ports);
-  
-  mib_initiated = 1;
-  
-  DEBUG("Receiver initiated cell.id=%d nof_prb=%d\n", cell.id, cell.nof_prb);
-  
-  return 0;
-}
-
-int cell_id_init(int nof_prb, int cell_id) {
-
-  lte_cell_t cell;
-  
-  cell.id = cell_id;
-  cell.nof_prb = nof_prb;
-  cell.nof_ports = 2;
-  cell.cp = CPNORM;
-  
-  if (chest_ref_LTEDL(&chest, cell)) {
-    fprintf(stderr, "Error initializing reference signal\n");
-    return -1;
-  }
-
-  if (pbch_init(&pbch, cell)) {
-    fprintf(stderr, "Error initiating PBCH\n");
-    return -1;
-  }
-  
-  cell_id_initated = 1;
-  DEBUG("PBCH initiated cell_id=%d\n", cell_id);
-  
-  return 0;
-}
-
-char data[10000];
-
-int pdsch_run(cf_t *input, uint32_t sf_idx) {
-  uint32_t cfi, cfi_distance, i;
-  cf_t *input_decim;
-  ra_pdsch_t ra_dl;
-  dci_location_t locations[10];
-  dci_msg_t dci_msg;
-  uint32_t nof_locations;
-  
-  /* Downsample if the signal bandwith is shorter */
-  if (sampling_nof_prb > cell.nof_prb) {
-    decim_c(input, input_decim_buffer, sf_n_samples, DOWNSAMPLE_FACTOR(sampling_nof_prb, cell.nof_prb));
-    input_decim = input_decim_buffer;
-  } else {
-    input_decim = input;
-  }
-  
-  lte_fft_run_sf(&fft, input_decim, fft_buffer);
-
-  /* Get channel estimates for each port */
-  chest_ce_sf(&chest, fft_buffer, ce, sf_idx);
-  
-  /* First decode PCFICH and obtain CFI */
-  if (pcfich_decode(&pcfich, fft_buffer, ce, sf_idx, &cfi, &cfi_distance)<0) {
-    fprintf(stderr, "Error decoding PCFICH\n");
-    return -1;
-  }
-  
-  INFO("Decoded CFI=%d with distance %d\n", cfi, cfi_distance);
-
-  if (regs_set_cfi(&regs, cfi)) {
-    fprintf(stderr, "Error setting CFI\n");
-    return -1;
-  }
-  
-  /* Search only UE-specific locations */
-  nof_locations = pdcch_ue_locations(&pdcch, locations, 10, sf_idx, cfi, 1234);
-
-  uint16_t crc_rem = 0;
-  for (i=0;i<nof_locations && crc_rem != 1234;i++) {
-    if (pdcch_extract_llr(&pdcch, fft_buffer, ce, locations[i], sf_idx, cfi)) {
-      fprintf(stderr, "Error extracting LLRs\n");
-      return -1;
-    }
-    if (pdcch_decode_msg(&pdcch, &dci_msg, Format1, &crc_rem)) {
-      fprintf(stderr, "Error decoding DCI msg\n");
-      return -1;
-    }
-  }
-  
-  if (crc_rem == 1234) {
-    if (dci_msg_to_ra_dl(&dci_msg, 1234, 1234, cell, cfi, &ra_dl)) {
-      fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-      return -1;
-    }
-    
-    if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &ra_dl.prb_alloc)) {
-      fprintf(stderr, "Error configuring HARQ process\n");
-      return -1;
-    }
-    
-    if (pdsch_decode(&pdsch, fft_buffer, ce, data, sf_idx, &harq_process, ra_dl.rv_idx)) {
-      pkt_errors++;
-    }
-    pkts_total++;    
-  }
-
-  #ifndef DISABLE_GRAPHICS
-  if (!disable_plots && crc_rem == 1234) {
-    int n_re = 2 * RE_X_RB * CPNORM_NSYMB * cell.nof_prb;
-    for (i = 0; i < n_re; i++) {
-      tmp_plot[i] = 10 * log10f(cabsf(fft_buffer[i]));
-      if (isinf(tmp_plot[i])) {
-        tmp_plot[i] = -80;
-      }
-    }
-    plot_real_setNewData(&poutfft, tmp_plot, n_re);
-    plot_complex_setNewData(&pce, ce[0], n_re);
-    plot_scatter_setNewData(&pscatrecv, pdsch.pdsch_symbols[0], ra_dl.prb_alloc.re_sf[sf_idx]);
-    plot_scatter_setNewData(&pscatequal, pdsch.pdsch_d, ra_dl.prb_alloc.re_sf[sf_idx]);    
-  }
-#endif
-
-  return 0;
-}
-
-int mib_decoder_run(cf_t *input, pbch_mib_t *mib) {
-  lte_fft_run_sf(&fft, input, fft_buffer);
-  
-  /* Get channel estimates for each port */
-  chest_ce_sf(&chest, fft_buffer, ce, 0);
-
-  DEBUG("Decoding PBCH\n", 0);
-  return pbch_decode(&pbch, fft_buffer, ce, mib);
-}
-
-int run_receiver(cf_t *input, uint32_t cell_id, uint32_t sf_idx) {
-  pbch_mib_t mib;
-  
-  if (!cell_id_initated) {
-    cell_id_init(sampling_nof_prb, cell_id);
-  }
-  if (!cell.nof_prb || pbch_only) {
-    
-    if (!sf_idx) {
-      if (mib_decoder_run(input, &mib)) {
-        INFO("MIB decoded!\n", 0);
-        cell.id = cell_id;
-        cell.cp = CPNORM;
-        cell.nof_ports = mib.nof_ports;
-        cell.nof_prb = mib.nof_prb;
-        frame_number = mib.sfn; 
-        
-        if (!mib_initiated) {
-          if (mib_init(mib.phich_resources, mib.phich_length)) {
-            return -1;
-          }
-        }
-        if (VERBOSE_ISINFO() || !frame_cnt) {
-          CLRSTDOUT;
-          printf(" - Phy. CellId:\t    %d\n", cell_id);
-          pbch_mib_fprint(stdout, &mib);                  
-        }
-      } else if (pbch_only) {
-        pkt_errors++;
-      }
-      if (pbch_only) {
-        #ifndef DISABLE_GRAPHICS
-        if (!disable_plots) {
-          int i;
-          int n_re = 2 * RE_X_RB * CPNORM_NSYMB * sampling_nof_prb;
-          for (i = 0; i < n_re; i++) {
-            tmp_plot[i] = 10 * log10f(cabsf(fft_buffer[i]));
-            if (isinf(tmp_plot[i])) {
-              tmp_plot[i] = -80;
-            }
-          }
-          plot_real_setNewData(&poutfft, tmp_plot, n_re);
-          plot_complex_setNewData(&pce, ce[0], n_re);
-          plot_scatter_setNewData(&pscatrecv, pbch.pbch_symbols[0], pbch.nof_symbols);
-          plot_scatter_setNewData(&pscatequal, pbch.pbch_d, pbch.nof_symbols);    
-        }
-        #endif
-        pkts_total++;
-      }
-    }    
-  } 
-  if (cell.nof_prb && !pbch_only) {
-    if (pdsch_run(input, sf_idx)) {
-      fprintf(stderr, "\nError running PDSCH decoder\n");
-      return -1;
-    }
-  }
-  return 0;
-}
-
-void sigintHandler(int sig_num) {
-  go_exit = 1;
-}
-
-void setup_uhd() {
-  double samp_freq; 
-
-#ifndef DISABLE_UHD
-  /* Get the sampling rate from the number of PRB */
-  samp_freq = lte_sampling_freq_hz(sampling_nof_prb);
-
-  INFO("Setting sampling frequency %.2f MHz\n", (float) samp_freq/MHZ);
-  cuhd_set_rx_srate(uhd, samp_freq);
-  cuhd_set_rx_gain(uhd, uhd_gain);
-  
-  /* set uhd_freq */
-  cuhd_set_rx_freq(uhd, (double) uhd_freq);
-  cuhd_rx_wait_lo_locked(uhd);
-  DEBUG("Set uhd_freq to %.3f MHz\n", (double ) uhd_freq);
-
-  DEBUG("Starting receiver...\n", 0);
-  cuhd_start_rx_stream(uhd);
-#endif
-}
-
-void read_io(cf_t *buffer, int nsamples) {
-  int n; 
-  DEBUG(" -----   RECEIVING %d SAMPLES ---- \n", nsamples);
-  if (input_file_name) {
-    n = filesource_read(&fsrc, buffer, nsamples);
-    if (n == -1) {
-      fprintf(stderr, "Error reading file\n");
-      exit(-1);
-      /* wrap file if arrive to end */
-    } else if (n < nsamples) {
-      DEBUG("Read %d from file. Seeking to 0\n",n);
-      filesource_seek(&fsrc, 0);
-      filesource_read(&fsrc, buffer, nsamples);
-    }
-  } else {
-#ifndef DISABLE_UHD
-    cuhd_recv(uhd, buffer, nsamples, 1);
-#endif
-  }
-}
-
-int main(int argc, char **argv) {
-  int ret; 
-  uint32_t sf_idx; 
-  uint32_t cell_id;
-  cf_t *in_ptr; 
-  
-#ifdef DISABLE_UHD
-  if (argc < 3) {
-    usage(argv[0]);
-    exit(-1);
-  }
-#endif
-
-  parse_args(argc, argv);
-
-  if (base_init(sampling_nof_prb)) {
-    fprintf(stderr, "Error initializing memory\n");
-    exit(-1);
-  }
-
-  /* If input_file_name is NULL, we read from the USRP */
-  if (!input_file_name) {
-    setup_uhd();
-  }
-
-  printf("\n --- Press Ctrl+C to exit --- \n");
-  
-  signal(SIGINT, sigintHandler);
-
-  /* Initialize variables */
-  frame_cnt = 0;
-  frame_number = -1;
-    
-  /* The number of samples read from the USRP or file corresponds to 1 ms (subframe) */
-  sf_n_samples = 1920 * lte_symbol_sz(sampling_nof_prb)/128;
-  
-  sync_frame_set_threshold(&sframe, find_threshold);
-
-  sf_idx = 0;
-  cell_id = cell_id_file;
-  if (input_file_name) {
-    in_ptr = input_buffer;    
-  } else {    
-    in_ptr = sf_buffer;
-  }
-
-  while (!go_exit && (frame_cnt < nof_frames || nof_frames == -1)) {
-
-    read_io(input_buffer, sf_n_samples);
-
-    if (!input_file_name) {
-      ret = sync_frame_push(&sframe, input_buffer, sf_buffer);
-    } else {
-      ret = 1;
-    }
-    switch(ret ) {
-      case 0:
-        /* not yet synched */
-        break;
-      case 1:
-        /* sf_buffer is aligned to the subframe */
-        
-        if (!(frame_cnt%10)) {
-          frame_number++;
-        }
-        
-        if (!input_file_name) {
-          sf_idx = sync_frame_sfidx(&sframe);
-          cell_id = sync_frame_cell_id(&sframe);
-        } 
-        
-        /* synch'd and tracking */
-        if (run_receiver(in_ptr, cell_id, sf_idx)) {
-          fprintf(stderr, "\nError running receiver\n");fflush(stdout);
-          exit(-1);
-        }
-        
-        if (!(frame_cnt % 10)) {
-          printf("SFN: %4d, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
-              frame_number, sframe.cur_cfo * 15, sframe.timeoffset / 5, sframe.peak_idx,
-              pkt_errors, pkts_total,
-              (float) pkt_errors / pkts_total);
-          fflush(stdout);          
-        }
-        if (input_file_name) {
-          sf_idx++;          
-        }
-        break;
-      default:
-        fprintf(stderr, "Error running automatic synchronization\n");
-        exit(-1);
-    }
-
-    frame_cnt++;
-    if (input_file_name) {
-      usleep(5000);
-    }
-  }
-
-  base_free();
-
-  printf("\nBye\n");
-  exit(0);
-}
-

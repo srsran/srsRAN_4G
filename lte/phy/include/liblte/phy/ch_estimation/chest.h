@@ -33,19 +33,19 @@
 #include <stdio.h>
 
 #include "liblte/config.h"
+
+#include "liblte/phy/resampling/interp.h"
 #include "liblte/phy/ch_estimation/refsignal.h"
-#include "liblte/phy/filter/filter2d.h"
 #include "liblte/phy/common/phy_common.h"
 
 typedef _Complex float cf_t; /* this is only a shortcut */
 
-typedef enum {LINEAR} chest_interp_t;
 typedef void (*interpolate_fnc_t) (cf_t *input, 
                                    cf_t *output, 
-                                   int M, 
-                                   int len, 
-                                   int off_st, 
-                                   int off_end);
+                                   uint32_t M, 
+                                   uint32_t len, 
+                                   uint32_t off_st, 
+                                   uint32_t off_end);
 
 /** This is an OFDM channel estimator.
  * It works with any reference signal pattern, provided by the object
@@ -61,11 +61,12 @@ typedef struct LIBLTE_API {
   uint32_t nof_symbols;
   
   refsignal_t refsignal[MAX_PORTS][NSLOTS_X_FRAME];
-  interpolate_fnc_t interp;
+  interp_t interp_time[MAX_PORTS]; 
+  interp_t interp_freq[MAX_PORTS]; 
+  
 }chest_t;
 
 LIBLTE_API int chest_init(chest_t *q, 
-                          chest_interp_t interp, 
                           uint32_t nof_re, 
                           uint32_t nof_symbols, 
                           uint32_t nof_ports);
@@ -76,7 +77,6 @@ LIBLTE_API int chest_set_nof_ports(chest_t *q,
                                     uint32_t nof_ports);
 
 LIBLTE_API int chest_init_LTEDL(chest_t *q, 
-                                chest_interp_t interp, 
                                 lte_cell_t cell);
 
 LIBLTE_API int chest_ref_LTEDL_slot_port(chest_t *q, 

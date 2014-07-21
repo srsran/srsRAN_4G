@@ -35,29 +35,58 @@
 #include "liblte/phy/sync/sss.h"
 #include "liblte/phy/utils/dft.h"
 #include "liblte/phy/utils/convolution.h"
+#include "liblte/phy/utils/vector.h"
 
-void generate_sss_all_tables(struct sss_tables *tables, int N_id_2);
+void generate_sss_all_tables(struct sss_tables *tables, uint32_t N_id_2);
 void convert_tables(struct fc_tables *fc_tables, struct sss_tables *in);
-void generate_N_id_1_table(int table[30][30]);
+void generate_N_id_1_table(uint32_t table[30][30]);
 
-int sss_synch_init(sss_synch_t *q) {
-  int N_id_2;
-  struct sss_tables sss_tables;
+int sss_synch_init(sss_synch_t *q, uint32_t fft_size) {
+  
+  if (q                 != NULL  &&
+      fft_size          < 2048)
+  {
+    uint32_t N_id_2;
+    struct sss_tables sss_tables;
 
-  bzero(q, sizeof(sss_synch_t));
+    bzero(q, sizeof(sss_synch_t));
+    
+    if (dft_plan(&q->dftp_input, fft_size, FORWARD, COMPLEX)) {
+      sss_synch_free(q);
+      return LIBLTE_ERROR;
+    }
+    q->fft_size = fft_size; 
+    
+    generate_N_id_1_table(q->N_id_1_table);
+    dft_plan_set_mirror(&q->dftp_input, true);
+    dft_plan_set_dc(&q->dftp_input, true);
+    
+    for (N_id_2=0;N_id_2<3;N_id_2++) {
+      generate_sss_all_tables(&sss_tables, N_id_2);
+      convert_tables(&q->fc_tables[N_id_2], &sss_tables);
+    }
+    q->N_id_2 = 0;
+    return LIBLTE_SUCCESS;
+  } 
+  return LIBLTE_ERROR_INVALID_INPUTS;
+}
 
-  if (dft_plan(&q->dftp_input, SSS_DFT_LEN, FORWARD, COMPLEX)) {
-    return -1;
+int sss_synch_realloc(sss_synch_t *q, uint32_t fft_size) {
+  if (q                 != NULL  &&
+      fft_size          < 2048)
+  {
+    dft_plan_free(&q->dftp_input);
+    if (dft_plan(&q->dftp_input, fft_size, FORWARD, COMPLEX)) {
+      sss_synch_free(q);
+      return LIBLTE_ERROR;
+    }
+    dft_plan_set_mirror(&q->dftp_input, true);
+    dft_plan_set_dc(&q->dftp_input, true);
+    
+    q->fft_size = fft_size;
+    return LIBLTE_SUCCESS;
   }
-  generate_N_id_1_table(q->N_id_1_table);
-  dft_plan_set_mirror(&q->dftp_input, true);
-  dft_plan_set_dc(&q->dftp_input, true);
-  for (N_id_2=0;N_id_2<3;N_id_2++) {
-    generate_sss_all_tables(&sss_tables, N_id_2);
-    convert_tables(&q->fc_tables[N_id_2], &sss_tables);
-  }
-  q->N_id_2 = 0;
-  return 0;
+  return LIBLTE_ERROR_INVALID_INPUTS;
 }
 
 void sss_synch_free(sss_synch_t *q) {
@@ -66,71 +95,31 @@ void sss_synch_free(sss_synch_t *q) {
 }
 
 /** Sets the N_id_2 to search for */
-int sss_synch_set_N_id_2(sss_synch_t *q, int N_id_2) {
-  if (N_id_2 < 0 || N_id_2 > 2) {
+int sss_synch_set_N_id_2(sss_synch_t *q, uint32_t N_id_2) {
+  if (!lte_N_id_2_isvalid(N_id_2)) {
     fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
-    return -1;
+    return LIBLTE_ERROR;
   } else {
     q->N_id_2 = N_id_2;
-    return 0;
+    return LIBLTE_SUCCESS;
   }
 }
 
 /** 36.211 10.3 section 6.11.2.2
  */
-void sss_put_slot(float *sss, cf_t *slot, int nof_prb, lte_cp_t cp) {
-  int i, k;
+void sss_put_slot(float *sss, cf_t *slot, uint32_t nof_prb, lte_cp_t cp) {
+  uint32_t i, k;
 
   k = (CP_NSYMB(cp) - 2) * nof_prb * RE_X_RB + nof_prb * RE_X_RB / 2 - 31;
-  memset(&slot[k - 5], 0, 5 * sizeof(cf_t));
-  for (i = 0; i < SSS_LEN; i++) {
-    __real__ slot[k + i] = sss[i];
-    __imag__ slot[k + i] = 0;
-  }
-  memset(&slot[k + SSS_LEN], 0, 5 * sizeof(cf_t));
-}
-
-/* In this function, input points to the beginning of the subframe. Saves result in subframe_idx and N_id_1
- * Return 1 if the sequence was found, 0 if the peak is not found, -1 if the subframe_sz or symbol_sz are
- * invalid or not configured.
- * Before calling this function, the correlation threshold and symbol size duration need to be set
- * using sss_synch_set_threshold() and sss_synch_set_symbol_sz().
- */
-int sss_synch_frame(sss_synch_t *q, cf_t *input, int *subframe_idx, int *N_id_1) {
-  int m0, m1;
-  float m0_value, m1_value;
-
-  if (q->subframe_sz <= 0 || q->symbol_sz <= 0) {
-    return -1;
-  }
-
-  sss_synch_m0m1(q, &input[SSS_SYMBOL_ST(q->subframe_sz, q->symbol_sz)], &m0,
-      &m0_value, &m1, &m1_value);
-
-  if (m0_value > q->corr_peak_threshold
-      && m1_value > q->corr_peak_threshold) {
-    if (subframe_idx) {
-      *subframe_idx = sss_synch_subframe(m0, m1);
+  
+  if (k > 5) {
+    memset(&slot[k - 5], 0, 5 * sizeof(cf_t));
+    for (i = 0; i < SSS_LEN; i++) {
+      __real__ slot[k + i] = sss[i];
+      __imag__ slot[k + i] = 0;
     }
-    if (N_id_1) {
-      *N_id_1 = sss_synch_N_id_1(q, m0, m1);
-    }
-    return 1;
-  } else {
-    return 0;
+    memset(&slot[k + SSS_LEN], 0, 5 * sizeof(cf_t));
   }
-}
-
-/** Used by sss_synch_frame() to compute the beginning of the SSS symbol
- * symbol_sz MUST INCLUDE THE CYCLIC PREFIX SIZE
- */
-void sss_synch_set_symbol_sz(sss_synch_t *q, int symbol_sz) {
-  q->symbol_sz = symbol_sz;
-}
-
-/** Used by sss_synch_frame() to compute the beginning of the SSS symbol */
-void sss_synch_set_subframe_sz(sss_synch_t *q, int subframe_sz) {
-  q->subframe_sz = subframe_sz;
 }
 
 /** Sets the SSS correlation peak detection threshold */
@@ -139,7 +128,7 @@ void sss_synch_set_threshold(sss_synch_t *q, float threshold) {
 }
 
 /** Returns the subframe index based on the m0 and m1 values */
-int sss_synch_subframe(int m0, int m1) {
+uint32_t sss_synch_subframe(uint32_t m0, uint32_t m1) {
   if (m1 > m0) {
     return 0;
   } else {
@@ -148,27 +137,27 @@ int sss_synch_subframe(int m0, int m1) {
 }
 
 /** Returns the N_id_1 value based on the m0 and m1 values */
-int sss_synch_N_id_1(sss_synch_t *q, int m0, int m1) {
-  if (m0 < 0 || m0 > 29 || m1 < 0 || m1 > 29) {
-    return -1;
+int sss_synch_N_id_1(sss_synch_t *q, uint32_t m0, uint32_t m1) {
+  if (m0==m1 || m0 > 29 || m1 > 29) {
+    return LIBLTE_ERROR;
   }
   if (m1 > m0) {
     return q->N_id_1_table[m0][m1 - 1];
   } else {
     return q->N_id_1_table[m1][m0 - 1];
-  }
+  } 
 }
 
 /** High-level API */
 
 int sss_synch_initialize(sss_synch_hl* h) {
 
-  if (sss_synch_init(&h->obj)) {
-    return -1;
+  if (sss_synch_init(&h->obj, 128)) {
+    return LIBLTE_ERROR;
   }
   sss_synch_set_N_id_2(&h->obj, h->init.N_id_2);
 
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
 int sss_synch_work(sss_synch_hl* hl) {
@@ -176,20 +165,12 @@ int sss_synch_work(sss_synch_hl* hl) {
   if (hl->ctrl_in.correlation_threshold) {
     sss_synch_set_threshold(&hl->obj, hl->ctrl_in.correlation_threshold);
   }
-  if (hl->ctrl_in.subframe_sz) {
-    sss_synch_set_subframe_sz(&hl->obj, hl->ctrl_in.subframe_sz);
-  }
-  if (hl->ctrl_in.symbol_sz) {
-    sss_synch_set_symbol_sz(&hl->obj, hl->ctrl_in.symbol_sz);
-  }
-  sss_synch_frame(&hl->obj, hl->input, &hl->ctrl_out.subframe_idx,
-      &hl->ctrl_out.N_id_1);
-
-  return 0;
+ 
+  return LIBLTE_SUCCESS;
 }
 
 int sss_synch_stop(sss_synch_hl* hl) {
   sss_synch_free(&hl->obj);
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 

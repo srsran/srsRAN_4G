@@ -78,7 +78,8 @@ int main(int argc, char **argv) {
   cf_t pss_signal[PSS_LEN];
   float sss_signal0[SSS_LEN]; // for subframe 0
   float sss_signal5[SSS_LEN]; // for subframe 5
-  int cid, max_cid, find_idx;
+  int cid, max_cid; 
+  uint32_t find_idx;
   sync_t sync;
   lte_fft_t ifft;
 
@@ -101,12 +102,12 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (sync_init(&sync, FLEN)) {
+  if (sync_init(&sync, FLEN, 128, 128)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
 
-  sync_set_threshold(&sync, 20);
+  sync_set_threshold(&sync, 20, 10);
 
   if (cell_id == -1) {
     cid = 0;
@@ -131,7 +132,7 @@ int main(int argc, char **argv) {
       memset(fft_buffer, 0, sizeof(cf_t) * 2 * FLEN);
       lte_ifft_run_slot(&ifft, buffer, &fft_buffer[offset]);
 
-      find_idx = sync_find(&sync, fft_buffer);
+      sync_find(&sync, fft_buffer, &find_idx);
       find_ns = sync_get_slot_id(&sync);
       printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
           ns, find_ns);

@@ -50,6 +50,13 @@
 #define MIN(a,b) ((a>b)?b:a)
 
 
+#define NOF_COMMON_FORMATS      2
+const dci_format_t common_formats[NOF_COMMON_FORMATS] = { Format1A, Format1C };
+
+#define NOF_UE_FORMATS          2
+const dci_format_t ue_formats[NOF_UE_FORMATS] = { Format0, Format1 }; // 1A has the same payload as 0
+
+
 static void set_cfi(pdcch_t *q, uint32_t cfi) {
   if (cfi > 0 && cfi < 4) {
     q->nof_regs = (regs_pdcch_nregs(q->regs, cfi) / 9) * 9;
@@ -228,7 +235,8 @@ uint32_t pdcch_ue_locations(pdcch_t *q, dci_location_t *c, uint32_t max_candidat
  * Returns the number of candidates saved in the array c.   
  */
 uint32_t pdcch_common_locations(pdcch_t *q, dci_location_t *c, uint32_t max_candidates, 
-                                 uint32_t cfi) {
+                                uint32_t cfi) 
+{
   uint32_t i, l, L, k;
 
   set_cfi(q, cfi);
@@ -271,8 +279,8 @@ static int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof
 
   if (q         != NULL         &&
       data      != NULL         &&
-      E         < q->max_bits   && 
-      nof_bits  < DCI_MAX_BITS)
+      E         <= q->max_bits   && 
+      nof_bits  <= DCI_MAX_BITS)
   {
 
     /* unrate matching */
@@ -301,6 +309,7 @@ static int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof
     }
     return LIBLTE_SUCCESS;
   } else {
+    fprintf(stderr, "Invalid parameters: E: %d, max_bits: %d, nof_bits: %d\n", E, q->max_bits, nof_bits);
     return LIBLTE_ERROR_INVALID_INPUTS;
   }
 }

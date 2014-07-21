@@ -44,12 +44,6 @@
 
 typedef _Complex float cf_t;
 
-#define NOF_COMMON_FORMATS      2
-const dci_format_t common_formats[NOF_COMMON_FORMATS] = { Format1A, Format1C };
-
-#define NOF_UE_FORMATS          2
-const dci_format_t ue_formats[NOF_UE_FORMATS] = { Format0, Format1 }; // 1A has the same payload as 0
-
 
 typedef enum LIBLTE_API {
   SEARCH_UE, SEARCH_COMMON

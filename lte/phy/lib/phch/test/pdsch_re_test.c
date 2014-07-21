@@ -78,7 +78,8 @@ int main(int argc, char **argv) {
     cell.nof_ports = test_re_ports[i];
     cell.cp = test_re_cp[i];
 
-    pdsch_init(&pdsch, 0, cell);
+    pdsch_init(&pdsch, cell);
+    pdsch_set_rnti(&pdsch, 0);
 
     memset(prb_alloc.re_sf, 0, sizeof(uint32_t) * 10);
     prb_alloc.slot[0].nof_prb = test_re_prb[i];

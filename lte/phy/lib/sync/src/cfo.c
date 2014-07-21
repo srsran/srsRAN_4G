@@ -34,14 +34,14 @@
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/debug.h"
 
-int cfo_init(cfo_t *h, int nsamples) {
-  int ret = -1;
+int cfo_init(cfo_t *h, uint32_t nsamples) {
+  int ret = LIBLTE_ERROR;
   bzero(h, sizeof(cfo_t));
 
   if (cexptab_init(&h->tab, CFO_CEXPTAB_SIZE)) {
     goto clean;
   }
-  h->cur_cexp = malloc(sizeof(cf_t) * nsamples);
+  h->cur_cexp = vec_malloc(sizeof(cf_t) * nsamples);
   if (!h->cur_cexp) {
     goto clean;
   }
@@ -50,9 +50,9 @@ int cfo_init(cfo_t *h, int nsamples) {
   h->nsamples = nsamples;
   cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
 
-  ret = 0;
+  ret = LIBLTE_SUCCESS;
 clean:
-  if (ret == -1) {
+  if (ret == LIBLTE_ERROR) {
     cfo_free(h);
   }
   return ret;
@@ -70,11 +70,23 @@ void cfo_set_tol(cfo_t *h, float tol) {
   h->tol = tol;
 }
 
-void cfo_correct(cfo_t *h, cf_t *x, float freq) {
+int cfo_realloc(cfo_t *h, uint32_t samples) {
+  h->cur_cexp = realloc(h->cur_cexp, sizeof(cf_t) * samples); 
+  if (!h->cur_cexp) {
+    perror("realloc");
+    return LIBLTE_ERROR;
+  }
+  cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, samples);
+  h->nsamples = samples;
+  
+  return LIBLTE_SUCCESS;
+}
+
+void cfo_correct(cfo_t *h, cf_t *input, cf_t *output, float freq) {
   if (fabs(h->last_freq - freq) > h->tol) {
     h->last_freq = freq;
     cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
-    INFO("CFO generating new table for frequency %.4f\n", freq);
+    DEBUG("CFO generating new table for frequency %.4f\n", freq);
   }
-  vec_prod_ccc(h->cur_cexp, x, x, h->nsamples);
+  vec_prod_ccc(h->cur_cexp, input, output, h->nsamples);
 }

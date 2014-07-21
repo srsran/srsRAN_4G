@@ -33,8 +33,8 @@
 
 #include "liblte/phy/utils/cexptab.h"
 
-int cexptab_init(cexptab_t *h, int size) {
-  int i;
+int cexptab_init(cexptab_t *h, uint32_t size) {
+  uint32_t i;
 
   h->size = size;
   h->tab = malloc(sizeof(cf_t) * size);
@@ -42,9 +42,9 @@ int cexptab_init(cexptab_t *h, int size) {
     for (i = 0; i < size; i++) {
       h->tab[i] = cexpf(_Complex_I * 2 * M_PI * (float) i / size);
     }
-    return 0;
+    return LIBLTE_SUCCESS;
   } else {
-    return -1;
+    return LIBLTE_ERROR;
   }
 }
 
@@ -55,9 +55,9 @@ void cexptab_free(cexptab_t *h) {
   bzero(h, sizeof(cexptab_t));
 }
 
-void cexptab_gen(cexptab_t *h, cf_t *x, float freq, int len) {
-  int i;
-  unsigned int idx;
+void cexptab_gen(cexptab_t *h, cf_t *x, float freq, uint32_t len) {
+  uint32_t i;
+  uint32_t idx;
   float phase_inc = freq * h->size;
   float phase=0;
 
@@ -68,15 +68,15 @@ void cexptab_gen(cexptab_t *h, cf_t *x, float freq, int len) {
     while (phase < 0) {
       phase += (float) h->size;
     }
-    idx = (unsigned int) phase;
+    idx = (uint32_t) phase;
     x[i] = h->tab[idx];
     phase += phase_inc;
 
   }
 }
 
-void cexptab_gen_direct(cf_t *x, float freq, int len) {
-  int i;
+void cexptab_gen_direct(cf_t *x, float freq, uint32_t len) {
+  uint32_t i;
   for (i = 0; i < len; i++) {
     x[i] = cexpf(_Complex_I * 2 * M_PI * freq * i);
   }

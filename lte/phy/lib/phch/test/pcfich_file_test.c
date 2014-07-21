@@ -141,7 +141,7 @@ int base_init() {
     }
   }
   
-  if (chest_init_LTEDL(&chest, LINEAR, cell)) {
+  if (chest_init_LTEDL(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }

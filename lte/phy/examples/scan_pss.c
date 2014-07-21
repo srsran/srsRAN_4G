@@ -261,10 +261,12 @@ int main(int argc, char **argv) {
   sync_t sfind, strack;
   float max_peak_to_avg;
   float sfo;
-  int find_idx, track_idx, last_found;
+  uint32_t find_idx, track_idx; 
+  int last_found;
   enum sync_state state;
   int n;
   filesink_t fs;
+  int ret; 
 
   if (argc < 3) {
     usage(argv[0]);
@@ -278,13 +280,13 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (sync_init(&sfind, FLEN)) {
+  if (sync_init(&sfind, FLEN, 128, 128)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     exit(-1);
   }
   sync_pss_det_peak_to_avg(&sfind);
 
-  if (sync_init(&strack, track_len)) {
+  if (sync_init(&strack, track_len, 128, 128)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     exit(-1);
   }
@@ -315,6 +317,9 @@ int main(int argc, char **argv) {
   max_peak_to_avg = 0;
   last_found = 0;
   frame_cnt = 0;
+
+  sync_set_threshold(&sfind, find_threshold, track_threshold);
+
   while(freq<nof_bands) {
     /* scan only bands above rssi_threshold */
     if (!IS_SIGNAL(freq)) {
@@ -346,19 +351,16 @@ int main(int argc, char **argv) {
         /* receive first frame */
         cuhd_recv(uhd, input_buffer, FLEN, 1);
 
-        /* set find_threshold and go to FIND state */
-        sync_set_threshold(&sfind, find_threshold);
         state = FIND;
         break;
       case FIND:
         /* find peak in all frame */
-        find_idx = sync_find(&sfind, &input_buffer[FLEN]);
+        ret = sync_find(&sfind, &input_buffer[FLEN], &find_idx);
         DEBUG("[%3d/%d]: PAR=%.2f\n", freq, nof_bands, sync_get_peak_to_avg(&sfind));
-        if (find_idx != -1) {
+        if (ret == 1) {
           /* if found peak, go to track and set lower threshold */
           frame_cnt = -1;
           last_found = 0;
-          sync_set_threshold(&strack, track_threshold);
           state = TRACK;
           INFO("[%3d/%d]: EARFCN %d Freq. %.2f MHz PSS found PAR %.2f dB\n", freq, nof_bands,
                         channels[freq].id, channels[freq].fd,
@@ -380,7 +382,7 @@ int main(int argc, char **argv) {
 
         filesink_write(&fs, &input_buffer[FLEN+find_idx+track_len], track_len);
 
-        track_idx = sync_find(&strack, &input_buffer[FLEN + find_idx - track_len]);
+        ret = sync_find(&strack, &input_buffer[FLEN + find_idx - track_len], &track_idx);
         p2a_v[frame_cnt] = sync_get_peak_to_avg(&strack);
 
         /* save cell id for the best peak-to-avg */
@@ -388,7 +390,7 @@ int main(int argc, char **argv) {
           max_peak_to_avg = p2a_v[frame_cnt];
           cell_id = sync_get_cell_id(&strack);
         }
-        if (track_idx != -1) {
+        if (ret == 1) {
           cfo_v[frame_cnt] = sync_get_cfo(&strack);
           last_found = frame_cnt;
           find_idx += track_idx - track_len;

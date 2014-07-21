@@ -26,16 +26,19 @@
  */
 
 
-#include "liblte/phy/utils/vector.h"
 #include <float.h>
 #include <complex.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "liblte/phy/utils/vector.h"
+#include "liblte/phy/utils/bit.h"
 
 #ifdef HAVE_VOLK
 #include "volk/volk.h"
 #endif
 
-int vec_acc_ii(int *x, int len) {
+int vec_acc_ii(int *x, uint32_t len) {
   int i;
   int z=0;
   for (i=0;i<len;i++) {
@@ -44,10 +47,10 @@ int vec_acc_ii(int *x, int len) {
   return z;
 }
 
-float vec_acc_ff(float *x, int len) {
+float vec_acc_ff(float *x, uint32_t len) {
 #ifdef HAVE_VOLK_ACC_FUNCTION
   float result;
-  volk_32f_accumulator_s32f_u(&result,x,(unsigned int) len);
+  volk_32f_accumulator_s32f(&result,x,len);
   return result;
 #else
   int i;
@@ -59,7 +62,7 @@ float vec_acc_ff(float *x, int len) {
 #endif
 }
 
-cf_t vec_acc_cc(cf_t *x, int len) {
+cf_t vec_acc_cc(cf_t *x, uint32_t len) {
   int i;
   cf_t z=0;
   for (i=0;i<len;i++) {
@@ -68,21 +71,43 @@ cf_t vec_acc_cc(cf_t *x, int len) {
   return z;
 }
 
-void vec_sum_ccc(cf_t *z, cf_t *x, cf_t *y, int len) {
+void vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
+#ifndef HAVE_VOLK_SUB_FLOAT_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]-y[i];
+  }
+#else
+  volk_32f_x2_subtract_32f(z,x,y,len);
+#endif 
+}
+
+void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]+y[i];
   }
 }
 
-void vec_sum_bbb(char *z, char *x, char *y, int len) {
+void vec_sum_bbb(char *x, char *y, char *z, uint32_t len) {
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]+y[i];
   }
 }
 
-void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len) {
+void vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
+#ifndef HAVE_VOLK_MULT_FLOAT_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]*h;
+  }
+#else
+  volk_32f_s32f_multiply_32f(z,x,h,len);
+#endif
+}
+
+void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT_FUNCTION
   int i;
   for (i=0;i<len;i++) {
@@ -92,29 +117,50 @@ void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, int len) {
   cf_t hh;
   __real__ hh = h;
   __imag__ hh = 0;
-  volk_32fc_s32fc_multiply_32fc_u(z,x,hh,(unsigned int) len);
+  volk_32fc_s32fc_multiply_32fc(z,x,hh,len);
 #endif
 }
 
-void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, int len) {
+void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT_FUNCTION
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*h;
   }
 #else
-  volk_32fc_s32fc_multiply_32fc_u(z,x,h,(unsigned int) len);
+  volk_32fc_s32fc_multiply_32fc(z,x,h,len);
 #endif
 }
 
+void vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
+#ifdef HAVE_VOLK_CONVERT_FI_FUNCTION
+  volk_32f_s32f_convert_16i(z, x, scale, len);
+#else 
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = (int16_t) (x[i]*scale);
+  }
+#endif
+}
 
+void vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len) {
+ #ifdef HAVE_VOLK_DEINTERLEAVE_FUNCTION
+  volk_32fc_deinterleave_32f_x2(real, imag, x, len);
+#else 
+  int i;
+  for (i=0;i<len;i++) {
+    real[i] = __real__ x[i];
+    imag[i] = __imag__ x[i];
+  }
+#endif 
+}
 
-void *vec_malloc(int size) {
+void *vec_malloc(uint32_t size) {
 #ifndef HAVE_VOLK
   return malloc(size);
 #else
   void *ptr;
-  if (posix_memalign(&ptr,64,size)) {
+  if (posix_memalign(&ptr,volk_get_alignment(),size)) {
     return NULL;
   } else {
     return ptr;
@@ -122,18 +168,32 @@ void *vec_malloc(int size) {
 #endif
 }
 
-void vec_fprint_c(FILE *stream, cf_t *x, int len) {
+void *vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
+#ifndef HAVE_VOLK
+  return realloc(ptr, new_size);
+#else
+  void *new_ptr;
+  if (posix_memalign(&new_ptr,volk_get_alignment(),new_size)) {
+    return NULL;
+  } else {
+    memcpy(new_ptr, ptr, old_size);
+    free(ptr);
+    return new_ptr;
+  }
+#endif
+}
+
+
+void vec_fprint_c(FILE *stream, cf_t *x, uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
     fprintf(stream, "%+2.2f%+2.2fi, ", __real__ x[i], __imag__ x[i]);
-    //if (!((i+1)%10))
-    //  fprintf(stream, "\n");
   }
   fprintf(stream, "];\n");
 }
 
-void vec_fprint_f(FILE *stream, float *x, int len) {
+void vec_fprint_f(FILE *stream, float *x, uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -143,7 +203,7 @@ void vec_fprint_f(FILE *stream, float *x, int len) {
 }
 
 
-void vec_fprint_b(FILE *stream, char *x, int len) {
+void vec_fprint_b(FILE *stream, char *x, uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -152,7 +212,7 @@ void vec_fprint_b(FILE *stream, char *x, int len) {
   fprintf(stream, "];\n");
 }
 
-void vec_fprint_i(FILE *stream, int *x, int len) {
+void vec_fprint_i(FILE *stream, int *x, uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -161,36 +221,116 @@ void vec_fprint_i(FILE *stream, int *x, int len) {
   fprintf(stream, "];\n");
 }
 
-void vec_conj_cc(cf_t *x, cf_t *y, int len) {
+void vec_fprint_hex(FILE *stream, char *x, uint32_t len) {
+  uint32_t i, nbytes, byte;
+  nbytes = len/8;
+  fprintf(stream, "[", len);
+  for (i=0;i<nbytes;i++) {
+    byte = bit_unpack(&x, 8);
+    fprintf(stream, "%02x ", byte);
+  }
+  if (len%8) {
+    byte = bit_unpack(&x, len%8);
+    fprintf(stream, "%02x ", byte);
+  }
+  fprintf(stream, "];\n");
+}
+
+void vec_save_file(char *filename, void *buffer, uint32_t len) {
+  FILE *f; 
+  f = fopen(filename, "w");
+  if (f) {
+    fwrite(buffer, len, 1, f);
+    fclose(f);
+  } else {
+    perror("fopen");
+  }  
+}
+
+void vec_conj_cc(cf_t *x, cf_t *y, uint32_t len) {
 #ifndef HAVE_VOLK_CONJ_FUNCTION
   int i;
   for (i=0;i<len;i++) {
     y[i] = conjf(x[i]);
   }
 #else
-  volk_32fc_conjugate_32fc_u(y,x,(unsigned int) len);
+  volk_32fc_conjugate_32fc(y,x,len);
 #endif
 }
 
-void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, int len) {
+void vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
+#ifndef HAVE_VOLK_MULT_REAL_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]*y[i];
+  }
+#else
+  volk_32fc_32f_multiply_32fc(z,x,y,len);
+#endif
+}
+
+
+void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT2_FUNCTION
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*y[i];
   }
 #else
-  volk_32fc_x2_multiply_32fc_u(z,x,y,(unsigned int) len);
+  volk_32fc_x2_multiply_32fc(z,x,y,len);
 #endif
 }
 
-void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, int len) {
+void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i] / y[i];
   }
 }
 
-float vec_avg_power_cf(cf_t *x, int len) {
+void vec_div_fff(float *x, float *y, float *z, uint32_t len) {
+#ifdef HAVE_VOLK_DIVIDE_FUNCTION
+  volk_32f_x2_divide_32f(z, x, y, len);
+#else
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i] / y[i];
+  }
+#endif
+}
+
+cf_t vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len) {
+#ifdef HAVE_VOLK_DOTPROD_FC_FUNCTION
+  cf_t res;
+  volk_32fc_x2_dot_prod_32fc(&res, x, y, len);
+  return res; 
+#else 
+  uint32_t i;
+  cf_t res = 0;
+  for (i=0;i<len;i++) {
+    res += x[i]*y[i];
+  }
+  return res;
+#endif
+}
+
+float vec_dot_prod_fff(float *x, float *y, uint32_t len) {
+#ifdef HAVE_VOLK_DOTPROD_F_FUNCTION
+  float res;
+  volk_32f_x2_dot_prod_32f(&res, x, y, len);
+  return res; 
+#else 
+  uint32_t i;
+  float res = 0;
+  for (i=0;i<len;i++) {
+    res += x[i]*y[i];
+  }
+  return res;
+#endif  
+}
+
+
+float vec_avg_power_cf(cf_t *x, uint32_t len) {
   int j;
   float power = 0;
   for (j=0;j<len;j++) {
@@ -200,40 +340,42 @@ float vec_avg_power_cf(cf_t *x, int len) {
   return power / len;
 }
 
-void vec_prod_ccc_unalign(cf_t *x,cf_t *y, cf_t *z, int len) {
-#ifndef HAVE_VOLK_MULT_FUNCTION
-  int i;
-  for (i=0;i<len;i++) {
-    z[i] = x[i]*y[i];
-  }
-#else
-  volk_32fc_x2_multiply_32fc_u(z,x,y,(unsigned int) len);
-#endif
-}
-
-void vec_abs_cf(cf_t *x, float *abs, int len) {
+void vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
 #ifndef HAVE_VOLK_MAG_FUNCTION
   int i;
   for (i=0;i<len;i++) {
     abs[i] = cabsf(x[i]);
   }
 #else
-  volk_32fc_magnitude_32f_u(abs,x,(unsigned int) len);
+  volk_32fc_magnitude_32f(abs,x,len);
 
 #endif
 
 }
 
-int vec_max_fi(float *x, int len) {
+void vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
+#ifndef HAVE_VOLK_ATAN_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    arg[i] = cargf(x[i]);
+  }
+#else
+  volk_32fc_s32f_atan2_32f(arg,x,1,len);
+
+#endif
+
+}
+
+uint32_t vec_max_fi(float *x, uint32_t len) {
 #ifdef HAVE_VOLK_MAX_FUNCTION
-  unsigned int target=0;
-  volk_32f_index_max_16u_u(&target,x,(unsigned int) len);
-  return (int) target;
+  uint32_t target=0;
+  volk_32f_index_max_16u(&target,x,len);
+  return target;
 
 #else
-  int i;
+  uint32_t i;
   float m=-FLT_MAX;
-  int p=0;
+  uint32_t p=0;
   for (i=0;i<len;i++) {
     if (x[i]>m) {
       m=x[i];
@@ -244,7 +386,7 @@ int vec_max_fi(float *x, int len) {
 #endif
 }
 
-void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, int len) {
+void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len) {
   int i;
   int tmp;
   for (i=0;i<len;i++) {

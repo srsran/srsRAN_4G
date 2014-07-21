@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
 
   while(cid <= max_cid) {
     cell.id = cid; 
-    if (chest_init_LTEDL(&eq, LINEAR, cell)) {
+    if (chest_init_LTEDL(&eq, cell)) {
       fprintf(stderr, "Error initializing equalizer\n");
       goto do_exit;
     }

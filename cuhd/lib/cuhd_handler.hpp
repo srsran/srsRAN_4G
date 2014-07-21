@@ -30,9 +30,9 @@
 
 class cuhd_handler {
 public:
-	uhd::usrp::multi_usrp::sptr usrp;
-	uhd::rx_streamer::sptr rx_stream;
-	bool rx_stream_enable;
-	uhd::tx_streamer::sptr tx_stream;
+  uhd::usrp::multi_usrp::sptr usrp;
+  uhd::rx_streamer::sptr rx_stream;
+  bool rx_stream_enable;
+  uhd::tx_streamer::sptr tx_stream;
 
 };

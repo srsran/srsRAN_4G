@@ -32,23 +32,36 @@
 #include "liblte/config.h"
 #include "liblte/phy/utils/dft.h"
 
+typedef _Complex float cf_t;
+
 typedef struct LIBLTE_API {
-  _Complex float *input_fft;
-  _Complex float *filter_fft;
-  _Complex float *output_fft;
-  _Complex float *output_fft2;
-  int input_len;
-  int filter_len;
-  int output_len;
+  cf_t *input_fft;
+  cf_t *filter_fft;
+  cf_t *output_fft;
+  cf_t *output_fft2;
+  uint32_t input_len;
+  uint32_t filter_len;
+  uint32_t output_len;
   dft_plan_t input_plan;
   dft_plan_t filter_plan;
   dft_plan_t output_plan;
 }conv_fft_cc_t;
 
-LIBLTE_API int conv_fft_cc_init(conv_fft_cc_t *state, int input_len, int filter_len);
-LIBLTE_API void conv_fft_cc_free(conv_fft_cc_t *state);
-LIBLTE_API int conv_fft_cc_run(conv_fft_cc_t *state, _Complex float *input, _Complex float *filter, _Complex float *output);
+LIBLTE_API int conv_fft_cc_init(conv_fft_cc_t *q, 
+                                uint32_t input_len, 
+                                uint32_t filter_len);
 
-LIBLTE_API int conv_cc(_Complex float *input, _Complex float *filter, _Complex float *output, int input_len, int filter_len);
+LIBLTE_API void conv_fft_cc_free(conv_fft_cc_t *q);
+
+LIBLTE_API uint32_t conv_fft_cc_run(conv_fft_cc_t *q, 
+                               cf_t *input, 
+                               cf_t *filter, 
+                               cf_t *output);
+
+LIBLTE_API uint32_t conv_cc(cf_t *input, 
+                       cf_t *filter, 
+                       cf_t *output, 
+                       uint32_t input_len, 
+                       uint32_t filter_len);
 
 #endif // CONVOLUTION_H_

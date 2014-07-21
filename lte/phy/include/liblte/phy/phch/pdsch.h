@@ -43,7 +43,7 @@
 #include "liblte/phy/phch/dci.h"
 #include "liblte/phy/phch/regs.h"
 
-#define TDEC_ITERATIONS         1
+#define TDEC_ITERATIONS         6
 
 typedef _Complex float cf_t;
 
@@ -73,8 +73,9 @@ typedef struct LIBLTE_API {
   lte_cell_t cell;
   
   uint32_t max_symbols;
-  uint16_t rnti;
-
+  bool rnti_is_set; 
+  uint16_t rnti; 
+  
   /* buffers */
   // void buffers are shared for tx and rx
   cf_t *ce[MAX_PORTS];
@@ -96,10 +97,12 @@ typedef struct LIBLTE_API {
 }pdsch_t;
 
 LIBLTE_API int pdsch_init(pdsch_t *q, 
-                          uint16_t user_rnti, 
                           lte_cell_t cell);
 
 LIBLTE_API void pdsch_free(pdsch_t *q);
+
+LIBLTE_API int pdsch_set_rnti(pdsch_t *q, 
+                               uint16_t rnti);
 
 LIBLTE_API int pdsch_harq_init(pdsch_harq_t *p, 
                                pdsch_t *pdsch);

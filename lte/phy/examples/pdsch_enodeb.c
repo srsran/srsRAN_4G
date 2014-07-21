@@ -189,10 +189,12 @@ void base_init() {
     exit(-1);
   }
 
-  if (pdsch_init(&pdsch, 1234, cell)) {
+  if (pdsch_init(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
+  
+  pdsch_set_rnti(&pdsch, 1234);
   
   if (pdsch_harq_init(&harq_process, &pdsch)) {
     fprintf(stderr, "Error initiating HARQ process\n");
@@ -365,7 +367,7 @@ int main(int argc, char **argv) {
       } else {
 #ifndef DISABLE_UHD
         vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);
-        cuhd_send(uhd, output_buffer, sf_n_samples, 1);
+        cuhd_send(uhd, output_buffer, sf_n_samples, true);
 #endif
       }
       nf++;
