@@ -34,6 +34,7 @@
 #include "cuhd_handler.hpp"
 #include "liblte/cuhd/cuhd.h"
 
+//#define METADATA_VERBOSE
 
 void my_handler(uhd::msg::type_t type, const std::string & msg)
 {
@@ -174,9 +175,11 @@ int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
         return -1;
       }
       n += p;
+#ifdef METADATA_VERBOSE
       if (md.error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {
         std::cout << "\nError code: " << md.to_pp_string() << "\n\n";
       }
+#endif
     } while (n < nsamples);
     return nsamples;
   } else {
