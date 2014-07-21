@@ -34,6 +34,7 @@
 #include "cuhd_handler.hpp"
 #include "liblte/cuhd/cuhd.h"
 
+//#define METADATA_VERBOSE
 
 void my_handler(uhd::msg::type_t type, const std::string & msg)
 {
@@ -109,7 +110,7 @@ int cuhd_open(char *args, void **h)
 {
   cuhd_handler *handler = new cuhd_handler();
   std::string _args = std::string(args);
-  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000");
+  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000" + ", num_recv_frames=512");
 
   handler->usrp->set_clock_source("internal");
 
@@ -174,9 +175,11 @@ int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
         return -1;
       }
       n += p;
+#ifdef METADATA_VERBOSE
       if (md.error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {
         std::cout << "\nError code: " << md.to_pp_string() << "\n\n";
       }
+#endif
     } while (n < nsamples);
     return nsamples;
   } else {
