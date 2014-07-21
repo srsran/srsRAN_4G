@@ -11,15 +11,15 @@ Current Status
 ===============
 
 The following parts are available:
- * Physical Broadcast channel (PBCH) eNodeB and UE part. The UE supports multi-antenna transmitters
+ * Physical Channels: PBCH, PCFICH, PDCCH, PHICH, PDSCH eNodeB and UE side
  * Synchronization and CFO estimation/correction
  * Equalization
- * UE receiver verified with live LTE signals
+ * UE receiver (MIB + SIB1 decoding) verified with live LTE signals
 
 Hardware
 ========
 
-The library currently uses Ettus Universal Hardware Driver (UHD). Thus, any hardware supported by UHD can be used. There is no sampling rate conversion, therefore the hardware should support 30.72 MHz clock in order to work correctly with LTE sampling frequencies and decode signals from live LTE base stations. 
+The library currently uses Ettus Universal Hardware Driver (UHD). Thus, any hardware supported by UHD can be used. There is no sampling rate conversion, therefore the hardware should support 30.72 MHz clock in order to work correctly with LTE sampling frequencies and decode signals from live LTE base stations. We are using the B210 USRP. 
 
 
 Download & Install Instructions
@@ -50,12 +50,12 @@ PHY Examples
 Setup one or two computers connected to two USRP or UHD-compatible hardware. From the eNodeB, type
 
 ```
-lte/phy/examples/pbch_enodeb -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
+lte/phy/examples/pdsch_enodeb -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
 ```
 
 From the UE, type 
 ```
-lte/phy/examples/pbch_ue -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
+lte/phy/examples/pdsch_ue -f [frequency_in_Hz] [-a [UHD args]] [-h for more commands]
 ```
 
 And the output should look something like the following video. In this example, we removed the transmitter and receiver antennas in the middle of the demonstration, showing how reception is still possible (despite with some erros). 
@@ -65,17 +65,26 @@ https://www.dropbox.com/s/txh1nuzdb0igq5n/demo_pbch.ogv
 ![Screenshopt of the PBCH example output](pbch_capture.png "Screenshopt of the PBCH example output")
 
 
+The SIB1 message is decoded and shown on the console, for example: 
+
+```
+Decoded SIB1 Message: [40 48 50 03 02 0b 14 4a 30 18 28 20 90 81 84 79 a0 00 ];
+```
+
+Then, you can use any ASN.1 SIB decoder to read the message. This site http://www.marben-products.com/asn.1/services/decoder-asn1-lte.html is a good example. 
+
+
 If you don't have a pair of USRP, you can also test the demo by writing the samples to a file and then reading them: 
 
 From the eNodeB, type
 
 ```
-lte/phy/examples/pbch_enodeb -o [output_file] -c [cell_id] [-h for more commands]
+lte/phy/examples/pdsch_enodeb -o [output_file] -c [cell_id] [-h for more commands]
 ```
 
 From the UE, type 
 ```
-lte/phy/examples/pbch_ue -i [input_file] -c [cell_id] [-h for more commands]
+lte/phy/examples/pdsch_ue -i [input_file] -c [cell_id] [-h for more commands]
 ```
 
 
