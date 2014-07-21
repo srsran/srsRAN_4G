@@ -170,9 +170,11 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
+#ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
     init_plots();    
   }
+#endif
   
   /* Setup SIGINT handler */
   printf("\n --- Press Ctrl+C to exit --- \n");
@@ -235,9 +237,11 @@ int main(int argc, char **argv) {
             printf("\n");
           }
         }  
+        #ifndef DISABLE_GRAPHICS
         if (!prog_args.disable_plots && sf_idx == 5) {
           do_plots(&ue_dl, sf_idx);          
         }
+        #endif
       }
       if (iodev_isfile(&iodev)) {
         sf_idx++;       
