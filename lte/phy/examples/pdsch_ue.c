@@ -99,7 +99,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "icagfndvtbp")) != -1) {
+  while ((opt = getopt(argc, argv, "icagfndvtbpr")) != -1) {
     switch (opt) {
     case 'i':
       args->io_config.input_file_name = argv[optind];
@@ -124,6 +124,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'n':
       args->nof_subframes = atoi(argv[optind]);
+      break;
+    case 'r':
+      args->rnti= atoi(argv[optind]);
       break;
     case 'd':
       args->disable_plots = true;
@@ -201,8 +204,9 @@ int main(int argc, char **argv) {
     
     /* iodev_receive returns 1 if successfully read 1 aligned subframe */
     if (ret == 0) {
-    printf("Finding PSS... Peak: %8.1f, Output level: %+.2f dB\r", 
-             sync_get_peak_value(&iodev.sframe.s), 10*log10f(agc_get_gain(&iodev.sframe.agc)));      
+      printf("Finding PSS... Peak: %8.1f, Output level: %+.2f dB FrameCnt: %d, State: %d\r", 
+             sync_get_peak_value(&iodev.sframe.s), 20*log10f(agc_get_output_level(&iodev.sframe.agc)), 
+             iodev.sframe.frame_total_cnt, iodev.sframe.state);      
     } else if (ret == 1) {
       if (!ue_dl_initiated) {
         if (iodev_isUSRP(&iodev)) {

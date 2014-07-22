@@ -43,7 +43,7 @@
 #include "liblte/phy/phch/dci.h"
 #include "liblte/phy/phch/regs.h"
 
-#define TDEC_ITERATIONS         6
+#define TDEC_ITERATIONS         3
 
 typedef _Complex float cf_t;
 

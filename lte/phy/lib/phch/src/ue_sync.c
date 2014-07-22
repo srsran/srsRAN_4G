@@ -60,19 +60,19 @@ static void update_threshold(ue_sync_t *q) {
   if (symbol_sz > 0) {
     switch (symbol_sz) {
       case 128:
-        sync_set_threshold(&q->s, 20000, 2000);
+        sync_set_threshold(&q->s, 10000, 1000);
         break;
       case 256:
-        sync_set_threshold(&q->s, 25000, 2500);
+        sync_set_threshold(&q->s, 20000, 2000);
         break;
       case 512:
-        sync_set_threshold(&q->s, 38000, 3800);
+        sync_set_threshold(&q->s, 30000, 3000);
         break;
       case 1024:
-        sync_set_threshold(&q->s, 50000, 5000);
+        sync_set_threshold(&q->s, 40000, 4000);
         break;
       case 2048:
-        sync_set_threshold(&q->s, 80000, 4000);
+        sync_set_threshold(&q->s, 50000, 5000);
     }  
   }
 }
@@ -318,13 +318,16 @@ static int mib_decoder_run(ue_sync_t *q) {
   if (pbch_decode(&q->pbch, q->sf_symbols, q->ce, &q->mib) == 1) {        
     q->frame_number = q->mib.sfn; 
     q->cell.nof_ports = q->mib.nof_ports;
-    q->cell.nof_prb = q->mib.nof_prb;
     
     if (!q->pbch_decoded) {
       printf("\n\nMIB decoded:\n");
       pbch_mib_fprint(stdout, &q->mib, q->cell.id);
-      if (q->change_srate) {
-        ret = update_srate(q);        
+      
+      if (q->cell.nof_prb != q->mib.nof_prb) {
+        q->cell.nof_prb = q->mib.nof_prb;
+        if (q->change_srate) {
+          ret = update_srate(q);        
+        }
       }
     } else { 
       INFO("MIB decoded #%d SFN: %d\n", q->pbch_decoded, q->mib.sfn);

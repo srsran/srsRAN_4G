@@ -112,6 +112,7 @@ int cuhd_open(char *args, void **h)
   std::string _args = std::string(args);
   handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000" + ", num_recv_frames=512");
 
+//  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=50000000" + ", num_recv_frames=512");
   handler->usrp->set_clock_source("internal");
 
   std::string otw, cpu;

@@ -52,7 +52,7 @@ uint32_t mcs_idx = 12;
 int nof_frames = -1;
 
 char *uhd_args = "";
-float uhd_amp = 0.25, uhd_gain = 10.0, uhd_freq = 2400000000;
+float uhd_amp = 0.01, uhd_gain = 10.0, uhd_freq = 2400000000;
 
 filesink_t fsink;
 lte_fft_t ifft;
@@ -70,6 +70,7 @@ void usage(char *prog) {
   printf("Usage: %s [agmfoncvp]\n", prog);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", uhd_args);
+  printf("\t-l UHD amplitude [Default %.2f]\n", uhd_amp);
   printf("\t-g UHD TX gain [Default %.2f dB]\n", uhd_gain);
   printf("\t-f UHD TX frequency [Default %.1f MHz]\n", uhd_freq / 1000000);
 #else
@@ -85,13 +86,16 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "agfmoncpv")) != -1) {
+  while ((opt = getopt(argc, argv, "aglfmoncpv")) != -1) {
     switch (opt) {
     case 'a':
       uhd_args = argv[optind];
       break;
     case 'g':
       uhd_gain = atof(argv[optind]);
+      break;
+    case 'l':
+      uhd_amp = atof(argv[optind]);
       break;
     case 'f':
       uhd_freq = atof(argv[optind]);
