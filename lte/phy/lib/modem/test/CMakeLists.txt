@@ -36,5 +36,13 @@ ADD_TEST(modem_qpsk_soft modem_test -n 1020 -m 2 -s)
 ADD_TEST(modem_qam16_soft modem_test -n 1020 -m 4 -s)
 ADD_TEST(modem_qam64_soft modem_test -n 1020 -m 6 -s)
  
+ADD_EXECUTABLE(soft_demod_test soft_demod_test.c)
+TARGET_LINK_LIBRARIES(soft_demod_test lte_phy)
+
+ADD_TEST(modem_bpsk_soft modem_test -n 1020 -m 1) 
+ADD_TEST(modem_qpsk_soft modem_test -n 1020 -m 2)
+ADD_TEST(modem_qam16_soft modem_test -n 1020 -m 4)
+ADD_TEST(modem_qam64_soft modem_test -n 1020 -m 6)
+ 
 
 

@@ -29,25 +29,31 @@
 #include <complex.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <math.h>
 
 #include "gauss.h"
 #include "liblte/phy/channel/ch_awgn.h"
 
-void ch_awgn_c(const cf_t* x, cf_t* y, float variance, int buff_sz) {
-  _Complex float tmp;
-  int i;
+float ch_awgn_get_variance(float ebno_db, float rate) {
+  float esno_db = ebno_db + 10 * log10f(rate);
+  return sqrtf(1 / (powf(10, esno_db / 10)));
+}
 
-  for (i=0;i<buff_sz;i++) {
+void ch_awgn_c(const cf_t* x, cf_t* y, float variance, uint32_t len) {
+  cf_t tmp;
+  uint32_t i;
+
+  for (i=0;i<len;i++) {
     __real__ tmp = rand_gauss();
     __imag__ tmp = rand_gauss();
     tmp *= variance;
     y[i] = tmp + x[i];
   }
 }
-void ch_awgn_f(const float* x, float* y, float variance, int buff_sz) {
-  int i;
+void ch_awgn_f(const float* x, float* y, float variance, uint32_t len) {
+  uint32_t i;
 
-  for (i=0;i<buff_sz;i++) {
+  for (i=0;i<len;i++) {
     y[i] = x[i] + variance * rand_gauss();
   }
 }
