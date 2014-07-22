@@ -173,13 +173,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
-  if (threshold > 0.0) {
-    ue_sync_set_threshold(&s, threshold);
-  }
-  
   ue_sync_pbch_enable(&s, true);
-//  ue_sync_pbch_always(&s, true);
-//  ue_sync_decode_sss_on_track(&s, true);
   
   signal_detected = true;
   frame_cnt = 0;

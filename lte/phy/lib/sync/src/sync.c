@@ -299,24 +299,27 @@ int sync_track(sync_t *q, cf_t *input, uint32_t offset, uint32_t *peak_position)
     DEBUG("PSS possible tracking peak pos=%d peak=%.2f threshold=%.2f\n",
           peak_pos, peak_value, q->track_threshold);
     
-    if (peak_value > q->track_threshold) {
-      q->cfo = pss_synch_cfo_compute(&q->pss_track, &input[offset+peak_pos-q->fft_size]);
-
-      if (q->sss_en) {
-        if (sync_sss(q, input, offset + peak_pos, false) < 0) {
-          fprintf(stderr, "Error synchronizing with SSS\n");
-          return LIBLTE_ERROR;
-        }
+    if (q->peak_value           > q->track_threshold) {
+      if (offset + peak_pos       > q->fft_size) {
+        q->cfo = pss_synch_cfo_compute(&q->pss_track, &input[offset+peak_pos-q->fft_size]);
+        if (q->sss_en) {
+          if (sync_sss(q, input, offset + peak_pos, false) < 0) {
+            fprintf(stderr, "Error synchronizing with SSS\n");
+            return LIBLTE_ERROR;
+          }
+        } 
+      } else {
+        printf("Warning: no space for CFO computation\n");
       }
-    
       if (peak_position) {
         *peak_position = peak_pos;
       }
-      ret = 1;      
+      ret = 1;
     } else {
       ret = LIBLTE_SUCCESS;
     }
   }
+  
   return ret; 
 }
 
@@ -351,33 +354,39 @@ int sync_find(sync_t *q, cf_t *input, uint32_t *peak_position) {
     }
   }
 
-  if (peak_pos[N_id_2] > q->fft_size) {
-    if (q->pss_mode == ABSOLUTE) {
-      q->peak_value = peak_value[N_id_2];
-    } else {
-      q->peak_value = peak_value[N_id_2] / mean_value[N_id_2];
-    }
+  if (q->pss_mode == ABSOLUTE) {
+    q->peak_value = peak_value[N_id_2];
+  } else {
+    q->peak_value = peak_value[N_id_2] / mean_value[N_id_2];
   }
-  
+ 
+  if (peak_position) {
+    *peak_position = 0;
+  }
+
   DEBUG("PSS possible peak N_id_2=%d, pos=%d peak=%.2f threshold=%.2f\n",
       N_id_2, peak_pos[N_id_2], peak_value[N_id_2], q->find_threshold);
 
   /* If peak detected */
-  if (q->peak_value > q->find_threshold) {
-    q->N_id_2 = N_id_2;
-    pss_synch_set_N_id_2(&q->pss_find, q->N_id_2);
-    q->cfo = pss_synch_cfo_compute(&q->pss_find, &input[peak_pos[N_id_2]-q->fft_size]);
-    
-    DEBUG("PSS peak detected N_id_2=%d, pos=%d peak=%.2f par=%.2f th=%.2f cfo=%.4f\n", N_id_2,
-        peak_pos[N_id_2], peak_value[N_id_2], q->peak_value, q->find_threshold, q->cfo);
+  if (q->peak_value                   > q->find_threshold) {
+    if (peak_pos[N_id_2]                > q->fft_size             && 
+        peak_pos[N_id_2] + q->fft_size  < q->find_frame_size) 
+    {
+      q->N_id_2 = N_id_2;
+      pss_synch_set_N_id_2(&q->pss_find, q->N_id_2);
+      q->cfo = pss_synch_cfo_compute(&q->pss_find, &input[peak_pos[N_id_2]-q->fft_size]);
+      
+      DEBUG("PSS peak detected N_id_2=%d, pos=%d peak=%.2f par=%.2f th=%.2f cfo=%.4f\n", N_id_2,
+          peak_pos[N_id_2], peak_value[N_id_2], q->peak_value, q->find_threshold, q->cfo);
 
-    if (q->sss_en) {     
-      if (sync_sss(q, input, peak_pos[q->N_id_2], q->detect_cp) < 0) {
-        fprintf(stderr, "Error synchronizing with SSS\n");
-        return LIBLTE_ERROR;
+      if (q->sss_en) {     
+        if (sync_sss(q, input, peak_pos[q->N_id_2], q->detect_cp) < 0) {
+          fprintf(stderr, "Error synchronizing with SSS\n");
+          return LIBLTE_ERROR;
+        }
       }
-    }
-    
+    } 
+
     if (peak_position) {
       *peak_position = peak_pos[N_id_2];
     }

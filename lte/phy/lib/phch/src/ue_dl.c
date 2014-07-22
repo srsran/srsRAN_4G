@@ -145,6 +145,7 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
   uint32_t nof_locations;
   uint16_t crc_rem; 
   dci_format_t format; 
+  int ret = LIBLTE_ERROR; 
   
   /* If we are looking for SI Blocks, search only in appropiate places */
   if ((rnti == SIRNTI && (sfn % 2) == 0 && sf_idx == 5) ||
@@ -226,14 +227,18 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
         }
       }
       if (q->harq_process[0].mcs.mod > 0) {
-        if (pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, data, sf_idx, 
-            &q->harq_process[0], rvidx)) {
+        ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, data, sf_idx, 
+            &q->harq_process[0], rvidx);
+        if (ret == LIBLTE_ERROR) {
           if (rnti == SIRNTI && rvidx == 1) {
             q->pkt_errors++;
-          } else {
+          } else if (rnti != SIRNTI) {
             q->pkt_errors++;                
           }            
-        } else {
+        } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
+          fprintf(stderr, "Error calling pdsch_decode()\n");
+          return LIBLTE_ERROR; 
+        } else if (ret == LIBLTE_SUCCESS) {
           if (VERBOSE_ISINFO()) {
             INFO("Decoded Message: ", 0);
             vec_fprint_hex(stdout, data, ra_dl.mcs.tbs);
@@ -241,6 +246,8 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
         }
         if (rnti == SIRNTI && rvidx == 1) {
           q->pkts_total++;                      
+        } else if (rnti != SIRNTI) {
+          q->pkts_total++;                                
         }
       }
     }
@@ -249,7 +256,7 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
     }
   }
   
-  if (crc_rem == rnti) {        
+  if (crc_rem == rnti && ret == LIBLTE_SUCCESS) {        
     return ra_dl.mcs.tbs;    
   } else {
     return 0;

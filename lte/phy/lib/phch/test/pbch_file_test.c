@@ -222,11 +222,11 @@ int main(int argc, char **argv) {
   } else {
     if (mib.nof_ports == 2 && mib.nof_prb == 50 && mib.phich_length == PHICH_NORM
         && mib.phich_resources == R_1 && mib.sfn == 28) {
-      pbch_mib_fprint(stdout, &mib);
+      pbch_mib_fprint(stdout, &mib, cell.id);
       printf("This is the signal.1.92M.dat file\n");
       exit(0);
     } else {
-      pbch_mib_fprint(stdout, &mib);
+      pbch_mib_fprint(stdout, &mib, cell.id);
       printf("This is an unknown file\n");
       exit(-1);
     }

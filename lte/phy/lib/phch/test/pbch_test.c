@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
     printf("OK\n");
     exit(0);
   } else {
-    pbch_mib_fprint(stdout, &mib_rx);
+    pbch_mib_fprint(stdout, &mib_rx, cell.id);
     exit(-1);
   }
 }

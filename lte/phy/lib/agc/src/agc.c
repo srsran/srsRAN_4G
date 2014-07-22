@@ -41,15 +41,20 @@
 
 int agc_init (agc_t *q) {
   bzero(q, sizeof(agc_t));
-  q->bandwidth = AGC_DEFAULT_BW;
-  q->lock = false; 
-  q->gain = 1.0;
-  q->y_out = 1.0; 
+  agc_reset(q);
   return LIBLTE_SUCCESS;
 }
 
 void agc_free(agc_t *q) {
   bzero(q, sizeof(agc_t));
+}
+
+void agc_reset(agc_t *q) {
+  q->bandwidth = AGC_DEFAULT_BW;
+  q->lock = false; 
+  q->gain = 1.0;
+  q->y_out = 1.0; 
+  q->isfirst = true; 
 }
 
 void agc_set_bandwidth(agc_t *q, float bandwidth) {
@@ -60,11 +65,20 @@ float agc_get_rssi(agc_t *q) {
   return 1.0/q->gain;
 }
 
+float agc_get_output_level(agc_t *q) {
+  return q->y_out;
+}
+
+float agc_get_gain(agc_t *q) {
+  return q->gain;
+}
+
+
 void agc_lock(agc_t *q, bool enable) {
   q->lock = enable;
 }
 
-void agc_push(agc_t *q, cf_t *input, cf_t *output, uint32_t len) {
+void agc_process(agc_t *q, cf_t *input, cf_t *output, uint32_t len) {
   
   // Apply current gain to input signal 
   vec_sc_prod_cfc(input, q->gain, output, len);
@@ -72,8 +86,15 @@ void agc_push(agc_t *q, cf_t *input, cf_t *output, uint32_t len) {
   // compute output energy estimate
   float y = sqrtf(crealf(vec_dot_prod_conj_ccc(output, output, len))/len);
   
-  q->y_out = (1-q->bandwidth) * q->y_out + q->bandwidth * y;
-  if (!q->lock) {
-    q->gain *= expf(-0.5*q->bandwidth*logf(q->y_out));
+  if (q->isfirst) {
+    q->y_out = y; 
+    q->gain = 1/y;
+    q->isfirst = false; 
+  } else {
+    q->y_out = (1-q->bandwidth) * q->y_out + q->bandwidth * y;
+    if (!q->lock) {
+      q->gain *= expf(-0.5*q->bandwidth*logf(q->y_out));
+    }    
   }
+  DEBUG("AGC gain: %.3f y_out=%.3f, y=%.3f\n", q->gain, q->y_out, y);
 }

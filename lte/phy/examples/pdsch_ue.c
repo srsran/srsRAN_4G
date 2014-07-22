@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
   uint32_t sf_idx;
   pbch_mib_t mib; 
   bool printed_sib = false; 
-  uint32_t rlen; 
+  int rlen; 
   
   parse_args(&prog_args, argc, argv);
   
@@ -183,6 +183,12 @@ int main(int argc, char **argv) {
   /* Initialize frame and subframe counters */
   sf_cnt = 0;
   sf_idx = 0; 
+
+  /* Decodes the SSS signal during the tracking phase. Extra overhead, but makes sure we are in the correct subframe */  
+  ue_sync_decode_sss_on_track(&iodev.sframe, true);
+  
+  /* Decodes the PBCH on each frame. Around 10% more overhead, but makes sure we are in the current System Frame Number (SFN) */
+  ue_sync_pbch_always(&iodev.sframe, false);
   
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -194,7 +200,10 @@ int main(int argc, char **argv) {
     }
     
     /* iodev_receive returns 1 if successfully read 1 aligned subframe */
-    if (ret == 1) {
+    if (ret == 0) {
+    printf("Finding PSS... Peak: %8.1f, Output level: %+.2f dB\r", 
+             sync_get_peak_value(&iodev.sframe.s), 10*log10f(agc_get_gain(&iodev.sframe.agc)));      
+    } else if (ret == 1) {
       if (!ue_dl_initiated) {
         if (iodev_isUSRP(&iodev)) {
           cell = ue_sync_get_cell(&iodev.sframe);
@@ -228,10 +237,12 @@ int main(int argc, char **argv) {
           printf("\n");fflush(stdout);
           printed_sib = true; 
         }
-        if (!(sf_cnt % 10)) {         
-          printf("Cell ID: %3d, RSSI: %+.2f dBm, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
-              cell.id, 20*log10f(agc_get_rssi(&iodev.sframe.agc)), iodev.sframe.cur_cfo * 15, iodev.sframe.mean_time_offset / 5, iodev.sframe.peak_idx,
-              (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total);
+        if (!(sf_cnt % 10)) {       
+          printf("RSSI: %+.2f dBm, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
+                 20*log10f(agc_get_rssi(&iodev.sframe.agc))+30, 
+                 ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, iodev.sframe.peak_idx,
+                 (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total);
+          
           fflush(stdout);       
           if (VERBOSE_ISINFO()) {
             printf("\n");
@@ -250,6 +261,7 @@ int main(int argc, char **argv) {
         }        
       }
     }
+
     if (prog_args.nof_subframes > 0) {
       sf_cnt++;      
     }    

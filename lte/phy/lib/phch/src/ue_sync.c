@@ -54,6 +54,29 @@ cf_t dummy[MAX_TIME_OFFSET];
 static int mib_decoder_initialize(ue_sync_t *q);
 static void mib_decoder_free(ue_sync_t *q);
 
+
+static void update_threshold(ue_sync_t *q) {
+  int symbol_sz = lte_symbol_sz(q->cell.nof_prb);
+  if (symbol_sz > 0) {
+    switch (symbol_sz) {
+      case 128:
+        sync_set_threshold(&q->s, 20000, 2000);
+        break;
+      case 256:
+        sync_set_threshold(&q->s, 25000, 2500);
+        break;
+      case 512:
+        sync_set_threshold(&q->s, 38000, 3800);
+        break;
+      case 1024:
+        sync_set_threshold(&q->s, 50000, 5000);
+        break;
+      case 2048:
+        sync_set_threshold(&q->s, 80000, 4000);
+    }  
+  }
+}
+
 int ue_sync_init(ue_sync_t *q, 
                     double (set_rate_callback)(void*, double),
                     int (recv_callback)(void*, void*, uint32_t),
@@ -61,8 +84,10 @@ int ue_sync_init(ue_sync_t *q,
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
-  if (q                   != NULL && 
-      stream_handler      != NULL)
+  if (q                    != NULL && 
+      stream_handler       != NULL && 
+      set_rate_callback    != NULL &&
+      recv_callback        != NULL)
   {
     ret = LIBLTE_ERROR;
     
@@ -80,7 +105,8 @@ int ue_sync_init(ue_sync_t *q,
     q->pbch_decoder_enabled = true; 
     q->pbch_decode_always = false; 
     q->decode_sss_on_track = false; 
-    
+    q->change_srate = true; 
+    q->nof_mib_decodes = DEFAULT_NOF_MIB_DECODES;
     q->stream = stream_handler;
     q->recv_callback = recv_callback;
     q->set_rate_callback = set_rate_callback;
@@ -128,7 +154,7 @@ int ue_sync_init(ue_sync_t *q,
       }
     }
    
-    sync_set_threshold(&q->s, PSS_THRESHOLD, PSS_THRESHOLD);
+    update_threshold(q);
     
     ret = LIBLTE_SUCCESS;
   }
@@ -161,10 +187,6 @@ void ue_sync_free(ue_sync_t *q) {
   agc_free(&q->agc);
 }
 
-void ue_sync_set_threshold(ue_sync_t *q, float threshold) {
-  sync_set_threshold(&q->s, threshold, threshold/2);
-}
-
 lte_cell_t ue_sync_get_cell(ue_sync_t *q) {
   return q->cell;
 }
@@ -181,6 +203,10 @@ ue_sync_state_t ue_sync_get_state(ue_sync_t *q) {
   return q->state;
 }
 
+void ue_sync_change_srate(ue_sync_t *q, bool enabled) {
+  q->change_srate = enabled; 
+}
+
 static int update_srate(ue_sync_t *q) {
   struct timeval t[3];
     
@@ -192,7 +218,7 @@ static int update_srate(ue_sync_t *q) {
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   
-  if (NOF_MIB_DECODES > 1) {
+  if (q->nof_mib_decodes > 1) {
     mib_decoder_free(q);  
     if (mib_decoder_initialize(q)) {
       fprintf(stderr, "Error reinitializing MIB decoder\n");
@@ -203,10 +229,12 @@ static int update_srate(ue_sync_t *q) {
   // Finally set the new sampling rate
   q->set_rate_callback(q->stream, (float) lte_sampling_freq_hz(q->cell.nof_prb));
  
+  update_threshold(q);
+   
   ue_sync_reset(q);
-  printf("Set sampling rate %.2f MHz, fft_size=%d, sf_len=%d Texec=%d us\n", 
+  INFO("Set sampling rate %.2f MHz, fft_size=%d, sf_len=%d Threshold=%.2f/%.2f Texec=%d us\n", 
        (float) lte_sampling_freq_hz(q->cell.nof_prb)/1000000, 
-       CURRENT_FFTSIZE, CURRENT_SFLEN, (int) t[0].tv_usec);
+       CURRENT_FFTSIZE, CURRENT_SFLEN, q->s.find_threshold, q->s.track_threshold, (int) t[0].tv_usec);
   
   return LIBLTE_SUCCESS;
 }
@@ -237,6 +265,10 @@ void ue_sync_pbch_always(ue_sync_t *q, bool enabled) {
 
 void ue_sync_decode_sss_on_track(ue_sync_t *q, bool enabled) {
   q->decode_sss_on_track = enabled; 
+}
+
+void ue_sync_set_nof_pbch_decodes(ue_sync_t *q, uint32_t nof_pbch_decodes) {
+  q->nof_mib_decodes = nof_pbch_decodes;
 }
 
 static int mib_decoder_initialize(ue_sync_t *q) {
@@ -289,9 +321,11 @@ static int mib_decoder_run(ue_sync_t *q) {
     q->cell.nof_prb = q->mib.nof_prb;
     
     if (!q->pbch_decoded) {
-      printf("MIB decoded:\n");
-      pbch_mib_fprint(stdout, &q->mib);
-      ret = update_srate(q);
+      printf("\n\nMIB decoded:\n");
+      pbch_mib_fprint(stdout, &q->mib, q->cell.id);
+      if (q->change_srate) {
+        ret = update_srate(q);        
+      }
     } else { 
       INFO("MIB decoded #%d SFN: %d\n", q->pbch_decoded, q->mib.sfn);
     }
@@ -300,7 +334,7 @@ static int mib_decoder_run(ue_sync_t *q) {
     pbch_decode_reset(&q->pbch);
 
   } else {
-    INFO("MIB not decoded: %d\n", q->frame_total_cnt);
+    INFO("MIB not decoded: %d\n", q->frame_total_cnt/2);
     q->pbch_last_trial = q->frame_total_cnt;
   }
   
@@ -336,8 +370,8 @@ static int find_peak_ok(ue_sync_t *q) {
     q->state = SF_TRACK;      
     ret = LIBLTE_SUCCESS;
   
-    INFO("Found peak %d, SF_idx: %d, Cell_id: %d CP: %s\n", 
-        q->peak_idx, q->sf_idx, q->cell.id, lte_cp_string(q->cell.cp));       
+    INFO("Found peak at %d, value %.3f, SF_idx: %d, Cell_id: %d CP: %s\n", 
+        q->peak_idx, sync_get_peak_value(&q->s), q->sf_idx, q->cell.id, lte_cp_string(q->cell.cp));       
     
     if (q->peak_idx < CURRENT_SFLEN) {
       q->sf_idx++;
@@ -355,7 +389,7 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
   
    /* Make sure subframe idx is what we expect */
   if ((q->sf_idx != sync_get_slot_id(&q->s)/2) && q->decode_sss_on_track) {
-    printf("\nWarning: Expected SF idx %d but got %d!\n", 
+    INFO("\nWarning: Expected SF idx %d but got %d!\n", 
           q->sf_idx, sync_get_slot_id(&q->s)/2);
     q->sf_idx = sync_get_slot_id(&q->s)/2;
   } else {
@@ -396,7 +430,7 @@ int track_peak_no(ue_sync_t *q) {
     printf("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
     q->state = SF_FIND;
   } else {
-    INFO("Tracking peak not found, %d lost\n", (int) q->frame_no_cnt);    
+    INFO("Tracking peak not found. Peak %.3f, %d lost\n", sync_get_peak_value(&q->s), (int) q->frame_no_cnt);    
   }
 
   return LIBLTE_SUCCESS;
@@ -404,24 +438,28 @@ int track_peak_no(ue_sync_t *q) {
 
 static int receive_samples(ue_sync_t *q) {
   
-  /* A negative time offset means there are samples in our buffer for the next subframe, 
-   because we are sampling too fast. 
-  */
-  if (q->time_offset < 0) {
-    q->time_offset = -q->time_offset;
-  } 
-  /* copy last part of the last subframe (use move since there could be overlapping) */
-  memcpy(q->receive_buffer, &q->input_buffer[CURRENT_SFLEN-q->time_offset], q->time_offset*sizeof(cf_t));
+  if (q->cell.nof_prb >= 6 && q->cell.nof_prb <= 100) {
+    /* A negative time offset means there are samples in our buffer for the next subframe, 
+    because we are sampling too fast. 
+    */
+    if (q->time_offset < 0) {
+      q->time_offset = -q->time_offset;
+    } 
+    /* copy last part of the last subframe (use move since there could be overlapping) */
+    memcpy(q->receive_buffer, &q->input_buffer[CURRENT_SFLEN-q->time_offset], q->time_offset*sizeof(cf_t));
 
-  /* Get 1 subframe from the USRP getting more samples and keeping the previous samples, if any */  
-  if (q->recv_callback(q->stream, &q->receive_buffer[q->time_offset], CURRENT_SFLEN - q->time_offset) < 0) {
-    return LIBLTE_ERROR;
+    /* Get 1 subframe from the USRP getting more samples and keeping the previous samples, if any */  
+    if (q->recv_callback(q->stream, &q->receive_buffer[q->time_offset], CURRENT_SFLEN - q->time_offset) < 0) {
+      return LIBLTE_ERROR;
+    }
+    
+    /* reset time offset */
+    q->time_offset = 0;
+
+    return LIBLTE_SUCCESS; 
+  } else {
+    return LIBLTE_ERROR_INVALID_INPUTS;
   }
-  
-  /* reset time offset */
-  q->time_offset = 0;
-
-  return LIBLTE_SUCCESS; 
 }
 
 int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
@@ -439,9 +477,17 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
       return -1;
     }
     
-    agc_push(&q->agc, q->receive_buffer, q->input_buffer, CURRENT_SFLEN);
+    agc_process(&q->agc, q->receive_buffer, q->input_buffer, CURRENT_SFLEN);
     
     switch (q->state) {
+      case SF_AGC: 
+        q->frame_total_cnt++;
+        if (q->frame_total_cnt >= AGC_NOF_FRAMES) {
+          q->state = SF_FIND; 
+          q->frame_total_cnt = 0; 
+        }
+        ret = 0;
+        break;
       case SF_FIND:
         q->s.sss_en = true; 
         
@@ -469,7 +515,17 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
               fprintf(stderr, "Error processing find peak \n");
             }
           }
-        } 
+        } else if (q->peak_idx != 0) {
+          uint32_t rlen; 
+          if (q->peak_idx < CURRENT_SFLEN/2) {
+            rlen = CURRENT_SFLEN/2-q->peak_idx;
+          } else {
+            rlen = q->peak_idx;
+          }
+          if (q->recv_callback(q->stream, q->receive_buffer, rlen) < 0) {
+            return LIBLTE_ERROR;
+          }
+        }
       break;
       case SF_TRACK:
         ret = LIBLTE_SUCCESS;
@@ -508,14 +564,14 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
             ret = track_peak_no(q); 
           }
           
-          INFO("TRACK %3d: SF=%d Track_idx=%d Offset=%d CFO: %f\n", 
-                (int) q->frame_total_cnt, q->sf_idx, track_idx, q->time_offset, sync_get_cfo(&q->s));
+          INFO("TRACK %3d: Value=%.3f SF=%d Track_idx=%d Offset=%d CFO: %f\n", 
+                (int) q->frame_total_cnt, sync_get_peak_value(&q->s), q->sf_idx, track_idx, q->time_offset, sync_get_cfo(&q->s));
           
           q->frame_total_cnt++; 
           
           if (ret == LIBLTE_ERROR) {
             fprintf(stderr, "Error processing tracking peak\n");
-            ue_sync_reset(q);
+            q->state = SF_FIND; 
             return LIBLTE_SUCCESS;
           } 
         }
@@ -527,7 +583,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
         /* At subframe 0, try to decode PBCH if not yet decoded */
         if (q->sf_idx == 0) {
           if(q->pbch_decoder_enabled                     &&
-            (q->pbch_decoded < NOF_MIB_DECODES || q->pbch_decode_always)) 
+            (q->pbch_decoded < q->nof_mib_decodes || q->pbch_decode_always)) 
           {
             mib_decoder_run(q);
           } else {
@@ -537,7 +593,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
 
         if (ret == LIBLTE_SUCCESS) {
           if (q->pbch_decoder_enabled) {
-            if (q->pbch_decoded >= NOF_MIB_DECODES) {
+            if (q->pbch_decoded >= q->nof_mib_decodes) {
               ret = 1; 
             } else {
               ret = 0;
@@ -554,7 +610,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
 }
 
 void ue_sync_reset(ue_sync_t *q) {
-  q->state = SF_FIND;
+  q->state = SF_AGC;
     
   q->pbch_last_trial = 0; 
   q->frame_ok_cnt = 0;
@@ -566,5 +622,7 @@ void ue_sync_reset(ue_sync_t *q) {
   #ifdef MEASURE_EXEC_TIME
   q->mean_exec_time = 0;
   #endif
+  
+  pbch_decode_reset(&q->pbch);
 }
 
