@@ -183,7 +183,7 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     ret = LIBLTE_ERROR;
     
     q->cell = cell;
-    
+    q->average_nof_iterations_n = 0; 
     q->max_symbols = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
 
     INFO("Init PDSCH: %d ports %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
@@ -459,6 +459,15 @@ int pdsch_harq_setup(pdsch_harq_t *p, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
 }
 
 
+float pdsch_average_noi(pdsch_t *q) {
+  return q->average_nof_iterations; 
+}
+
+uint32_t pdsch_last_noi(pdsch_t *q) {
+  return q->nof_iterations;
+}
+
+
 /* Decode a transport block according to 36.212 5.3.2
  *
  */
@@ -516,17 +525,42 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
         return LIBLTE_ERROR;
       }
 
-      /* Turbo Decoding */
-      tdec_run_all(&q->decoder, (float*) q->cb_out, q->cb_in, TDEC_ITERATIONS,
-          cb_len);
-
-      if (harq_process->cb_segm.C > 1) {
-        /* Check Codeblock CRC and stop early if incorrect */
-        if (crc_checksum(&q->crc_cb, q->cb_in, cb_len)) {
-          INFO("Error in CB#%d\n",i);
-          return LIBLTE_ERROR;
+      /* Turbo Decoding with CRC-based early stopping */
+      q->nof_iterations = 0; 
+      bool early_stop = false;
+      uint32_t len_crc; 
+      char *cb_in_ptr; 
+      crc_t *crc_ptr; 
+      tdec_reset(&q->decoder, cb_len);
+      
+      do {
+        
+        tdec_iteration(&q->decoder, (float*) q->cb_out, cb_len); 
+        q->nof_iterations++;
+        
+        if (harq_process->cb_segm.C > 1) {
+          len_crc = cb_len; 
+          cb_in_ptr = q->cb_in; 
+          crc_ptr = &q->crc_cb; 
+        } else {
+          len_crc = tbs+24; 
+          cb_in_ptr = &q->cb_in[F];
+          crc_ptr = &q->crc_tb; 
         }
-      }
+        
+        /* Check Codeblock CRC and stop early if incorrect */
+        if (!crc_checksum(crc_ptr, cb_in_ptr, len_crc)) {
+          early_stop = true;           
+        }
+        
+      } while (q->nof_iterations < TDEC_MAX_ITERATIONS && !early_stop);
+      
+      tdec_decision(&q->decoder, q->cb_in, cb_len);
+      
+      q->average_nof_iterations = EXPAVERAGE((float) q->nof_iterations, 
+                                             q->average_nof_iterations, 
+                                             q->average_nof_iterations_n);
+      q->average_nof_iterations_n++;
 
       /* Copy data to another buffer, removing the Codeblock CRC */
       if (i < harq_process->cb_segm.C - 1) {
@@ -534,6 +568,7 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
       } else {
         DEBUG("Last CB, appending parity: %d to %d from %d and 24 from %d\n",
             rlen - F - 24, wp, F, rlen - 24);
+        
         /* Append Transport Block parity bits to the last CB */
         memcpy(&data[wp], &q->cb_in[F], (rlen - F - 24) * sizeof(char));
         memcpy(parity, &q->cb_in[rlen - 24], 24 * sizeof(char));
@@ -553,6 +588,7 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
     par_tx = bit_unpack(&p_parity, 24);
 
     if (!par_rx) {
+      vec_fprint_hex(stdout, data, tbs);
       printf("\n\tCAUTION!! Received all-zero transport block\n\n");
     }
 

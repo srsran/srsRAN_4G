@@ -165,11 +165,18 @@ int main(int argc, char **argv) {
   pbch_mib_t mib; 
   bool printed_sib = false; 
   int rlen; 
+  int symbol_sz; 
   
   parse_args(&prog_args, argc, argv);
   
-  if (iodev_init(&iodev, &prog_args.io_config)) {
-    fprintf(stderr, "Error initiating input device\n");
+  symbol_sz = lte_symbol_sz(prog_args.nof_prb_file);
+  if (symbol_sz > 0) {
+    if (iodev_init(&iodev, &prog_args.io_config, SF_LEN(symbol_sz, CPNORM))) {
+      fprintf(stderr, "Error initiating input device\n");
+      exit(-1);
+    }    
+  } else {
+    fprintf(stderr, "Invalid number of PRB %d\n", prog_args.nof_prb_file);
     exit(-1);
   }
   
@@ -242,9 +249,10 @@ int main(int argc, char **argv) {
           printed_sib = true; 
         }
         if (!(sf_cnt % 10)) {       
-          printf("RSSI: %+.2f dBm, CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Errors: %4d/%4d, BLER: %.1e\r",
+          printf("RSSI: %+.2f dBm, CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d, BLER: %.1e\r",
                  20*log10f(agc_get_rssi(&iodev.sframe.agc))+30, 
-                 ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, iodev.sframe.peak_idx,
+                 ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, 
+                 pdsch_average_noi(&ue_dl.pdsch),
                  (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total);
           
           fflush(stdout);       

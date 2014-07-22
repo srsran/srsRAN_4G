@@ -74,7 +74,8 @@ typedef struct LIBLTE_API {
 
 
 LIBLTE_API int iodev_init(iodev_t *q, 
-                          iodev_cfg_t *config);
+                          iodev_cfg_t *config, 
+                          uint32_t file_sf_len);
 
 LIBLTE_API void iodev_free(iodev_t *q);
 

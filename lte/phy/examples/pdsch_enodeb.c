@@ -359,7 +359,10 @@ int main(int argc, char **argv) {
         exit(-1);
       }
       
-      pdsch_encode(&pdsch, data, sf_symbols, sf_idx, &harq_process, ra_dl.rv_idx);        
+      if (pdsch_encode(&pdsch, data, sf_symbols, sf_idx, &harq_process, ra_dl.rv_idx)) {
+        fprintf(stderr, "Error encoding PDSCH\n");
+        exit(-1);
+      }
 
       /* Transform to OFDM symbols */
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);

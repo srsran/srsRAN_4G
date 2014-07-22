@@ -48,7 +48,7 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
 }
 
 /* Setup USRP or input file */
-int iodev_init(iodev_t *q, iodev_cfg_t *config) {
+int iodev_init(iodev_t *q, iodev_cfg_t *config, uint32_t file_sf_len) {
   
   if (config->input_file_name) {
     if (filesource_init(&q->fsrc, config->input_file_name, COMPLEX_FLOAT_BIN)) {
@@ -61,7 +61,7 @@ int iodev_init(iodev_t *q, iodev_cfg_t *config) {
     }
 
     q->mode = FILESOURCE;
-    q->sf_len = 1920;
+    q->sf_len = file_sf_len;
     
   } else {
 #ifndef DISABLE_UHD

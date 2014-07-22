@@ -43,7 +43,7 @@
 #include "liblte/phy/phch/dci.h"
 #include "liblte/phy/phch/regs.h"
 
-#define TDEC_ITERATIONS         3
+#define TDEC_MAX_ITERATIONS         6
 
 typedef _Complex float cf_t;
 
@@ -75,6 +75,9 @@ typedef struct LIBLTE_API {
   uint32_t max_symbols;
   bool rnti_is_set; 
   uint16_t rnti; 
+  uint32_t nof_iterations; 
+  uint64_t average_nof_iterations_n; 
+  float average_nof_iterations; 
   
   /* buffers */
   // void buffers are shared for tx and rx
@@ -127,6 +130,10 @@ LIBLTE_API int pdsch_decode(pdsch_t *q,
                             uint32_t nsubframe,
                             pdsch_harq_t *harq_process, 
                             uint32_t rv_idx);
+
+LIBLTE_API float pdsch_average_noi(pdsch_t *q); 
+
+LIBLTE_API uint32_t pdsch_last_noi(pdsch_t *q); 
 
 LIBLTE_API int pdsch_get(pdsch_t *q, 
                          cf_t *sf_symbols, 
