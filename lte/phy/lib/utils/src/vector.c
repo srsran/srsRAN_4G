@@ -362,8 +362,7 @@ float vec_avg_power_cf(cf_t *x, uint32_t len) {
   int j;
   float power = 0;
   for (j=0;j<len;j++) {
-    power += (__real__ x[j]) * (__real__ x[j]) +
-        (__imag__ x[j]) * (__imag__ x[j]);
+    power += crealf(x[j]*conjf(x[j]));
   }
   return power / len;
 }

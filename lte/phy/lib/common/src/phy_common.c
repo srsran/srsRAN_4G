@@ -295,7 +295,7 @@ char *lte_mimotype2str(lte_mimo_type_t type) {
 }
 
 float get_fd(struct lte_band *band, uint32_t earfcn) {
-  if (earfcn > band->earfcn_offset) {
+  if (earfcn >= band->earfcn_offset) {
     return band->fd_low_mhz + 0.1*(earfcn - band->earfcn_offset);    
   } else {
     return 0.0;

@@ -330,7 +330,8 @@ void pbch_mib_pack(pbch_mib_t *mib, char *msg) {
   bit_pack(mib->sfn >> 2, &msg, 8);
 }
 
-void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib) {
+void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib, uint32_t cell_id) {
+  printf(" - Cell ID:         %d\n", cell_id);
   printf(" - Nof ports:       %d\n", mib->nof_ports);
   printf(" - PRB:             %d\n", mib->nof_prb);
   printf(" - PHICH Length:    %s\n",
@@ -376,7 +377,20 @@ uint32_t pbch_crc_check(pbch_t *q, char *bits, uint32_t nof_ports) {
   char data[40];
   memcpy(data, bits, 40 * sizeof(char));
   crc_set_mask(data, nof_ports);
-  return crc_checksum(&q->crc, data, 40);
+  int ret = crc_checksum(&q->crc, data, 40);
+  if (ret == 0) {
+    uint32_t chkzeros=0;
+    for (int i=0;i<24 && !chkzeros;i++) {
+      chkzeros += data[i];
+    }
+    if (chkzeros) {
+      return 0;
+    } else {
+      return -1;
+    }
+  } else {
+    return ret; 
+  }
 }
 
 int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint32_t src, uint32_t dst, uint32_t n,
@@ -522,8 +536,6 @@ int pbch_decode(pbch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mi
       for (nb = 0; nb < q->frame_idx && !ret; nb++) {
         for (dst = 0; (dst < 4 - nb) && !ret; dst++) {
           for (src = 0; src < q->frame_idx - nb && !ret; src++) {
-            DEBUG("Trying %d blocks at offset %d as subframe mod4 number %d\n",
-                nb + 1, src, dst);
             ret = pbch_decode_frame(q, mib, src, dst, nb + 1, nof_bits, nant);
             
           }

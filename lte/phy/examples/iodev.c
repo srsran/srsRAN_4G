@@ -80,10 +80,6 @@ int iodev_init(iodev_t *q, iodev_cfg_t *config) {
 
     DEBUG("Starting receiver...\n", 0);
     cuhd_start_rx_stream(q->uhd);
-    
-    if (config->find_threshold > 0.0) {
-      ue_sync_set_threshold(&q->sframe, config->find_threshold);
-    }
         
     ue_sync_init(&q->sframe, cuhd_set_rx_srate, cuhd_recv_wrapper, q->uhd);
 

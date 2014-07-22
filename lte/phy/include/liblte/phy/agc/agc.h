@@ -41,27 +41,35 @@
  */
 typedef _Complex float cf_t;
 
-#define AGC_DEFAULT_BW  (1e-2f)
+#define AGC_DEFAULT_BW  (5e-2)
 
 typedef struct LIBLTE_API{
   float bandwidth;
   float gain; 
   float y_out;
   bool lock;
+  bool isfirst; 
 } agc_t;
 
 LIBLTE_API int agc_init (agc_t *q);
 
 LIBLTE_API void agc_free(agc_t *q);
 
+LIBLTE_API void agc_reset(agc_t *q);
+
 LIBLTE_API void agc_set_bandwidth(agc_t *q, 
                                   float bandwidth);
 
 LIBLTE_API float agc_get_rssi(agc_t *q);
 
-LIBLTE_API void agc_lock(agc_t *q, bool enable);
+LIBLTE_API float agc_get_output_level(agc_t *q); 
 
-LIBLTE_API void agc_push(agc_t *q, 
+LIBLTE_API float agc_get_gain(agc_t *q);
+
+LIBLTE_API void agc_lock(agc_t *q, 
+                         bool enable);
+
+LIBLTE_API void agc_process(agc_t *q, 
                          cf_t *input,
                          cf_t *output, 
                          uint32_t len);

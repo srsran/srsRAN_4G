@@ -100,6 +100,7 @@ LIBLTE_API int pbch_encode(pbch_t *q,
 LIBLTE_API void pbch_decode_reset(pbch_t *q);
 
 LIBLTE_API void pbch_mib_fprint(FILE *stream, 
-                                pbch_mib_t *mib);
+                                pbch_mib_t *mib,
+                                uint32_t cell_id);
 
 #endif // PBCH_

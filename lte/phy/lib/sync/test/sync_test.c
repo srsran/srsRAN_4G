@@ -107,11 +107,11 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  sync_set_threshold(&sync, 20, 10);
+  sync_set_threshold(&sync, 1, 1);
 
   if (cell_id == -1) {
     cid = 0;
-    max_cid = 149;
+    max_cid = 49;
   } else {
     cid = cell_id;
     max_cid = cell_id;

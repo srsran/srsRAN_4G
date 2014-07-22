@@ -61,15 +61,16 @@
  * 
  *************************************************************/
 
-typedef enum LIBLTE_API { SF_FIND, SF_TRACK} ue_sync_state_t;
+typedef enum LIBLTE_API { SF_AGC, SF_FIND, SF_TRACK} ue_sync_state_t;
 
 #define SYNC_PBCH_NOF_PRB       6
 #define SYNC_PBCH_NOF_PORTS     2
 
 #define TRACK_MAX_LOST          10
-#define PSS_THRESHOLD           1
 
-#define NOF_MIB_DECODES         10
+#define DEFAULT_NOF_MIB_DECODES 10
+
+#define AGC_NOF_FRAMES          100
 
 #define MEASURE_EXEC_TIME 
 
@@ -112,6 +113,8 @@ typedef struct LIBLTE_API {
   bool pbch_decode_always; 
   bool pbch_decoder_enabled;
   uint32_t pbch_last_trial;
+  bool change_srate; 
+  uint32_t nof_mib_decodes; 
   
   bool decode_sss_on_track; 
   
@@ -134,23 +137,27 @@ LIBLTE_API void ue_sync_free(ue_sync_t *q);
 LIBLTE_API int ue_sync_get_buffer(ue_sync_t *q, 
                                   cf_t **sf_symbols);
 
+LIBLTE_API void ue_sync_set_nof_pbch_decodes(ue_sync_t *q, 
+                                             uint32_t nof_pbch_decodes);
+
 
 LIBLTE_API void ue_sync_reset(ue_sync_t *q);
 
-LIBLTE_API void ue_sync_decode_sss_on_track(ue_sync_t *q, bool enabled);
+LIBLTE_API void ue_sync_decode_sss_on_track(ue_sync_t *q, 
+                                            bool enabled);
 
-LIBLTE_API void ue_sync_pbch_enable(ue_sync_t *q, bool enabled); 
+LIBLTE_API void ue_sync_pbch_enable(ue_sync_t *q, 
+                                    bool enabled); 
 
-LIBLTE_API void ue_sync_pbch_always(ue_sync_t *q, bool enabled); 
+LIBLTE_API void ue_sync_change_srate(ue_sync_t *q, 
+                                     bool enabled);
 
-LIBLTE_API void ue_sync_set_threshold(ue_sync_t *q, 
-                                      float threshold);
+LIBLTE_API void ue_sync_pbch_always(ue_sync_t *q, 
+                                    bool enabled); 
 
 LIBLTE_API ue_sync_state_t ue_sync_get_state(ue_sync_t *q);
 
 LIBLTE_API uint32_t ue_sync_get_sfidx(ue_sync_t *q);
-
-LIBLTE_API uint32_t ue_sync_get_peak_idx(ue_sync_t *q);
 
 LIBLTE_API lte_cell_t ue_sync_get_cell(ue_sync_t *q);
 
