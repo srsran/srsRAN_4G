@@ -35,6 +35,9 @@
 
 typedef _Complex float cf_t;
 
+#define EXPAVERAGE(data, average, nframes) ((data + average * nframes) / (nframes + 1))  
+
+
 /** Return the sum of all the elements */
 LIBLTE_API int vec_acc_ii(int *x, uint32_t len);
 LIBLTE_API float vec_acc_ff(float *x, uint32_t len);

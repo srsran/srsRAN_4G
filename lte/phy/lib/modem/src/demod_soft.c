@@ -36,6 +36,7 @@
 
 void demod_soft_init(demod_soft_t *q) {
   bzero((void*)q,sizeof(demod_soft_t));
+  q->sigma = 1.0; 
 }
 
 void demod_soft_table_set(demod_soft_t *q, modem_table_t *table) {

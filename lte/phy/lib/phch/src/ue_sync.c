@@ -40,8 +40,6 @@
 #define MAX_TIME_OFFSET 128
 cf_t dummy[MAX_TIME_OFFSET];
 
-#define EXPAVERAGE(data, average, nframes) ((data + average * nframes) / (nframes + 1))  
-
 #define CURRENT_FFTSIZE   lte_symbol_sz(q->cell.nof_prb)
 #define CURRENT_SFLEN     SF_LEN(CURRENT_FFTSIZE, q->cell.cp)
 
