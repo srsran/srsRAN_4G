@@ -100,7 +100,7 @@ float mse_threshold() {
     case LTE_QAM16: 
       return 0.11; 
     case LTE_QAM64:
-      return 0.18;
+      return 0.19;
     default:
       return -1.0;
   }
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
   }
 
   /* generate random data */
-  srand(time(NULL));
+  srand(0);
   
   int ret = -1;
   double mse;
@@ -187,7 +187,9 @@ int main(int argc, char **argv) {
     get_time_interval(t);
     
     /* compute exponentially averaged execution time */
-    mean_texec = EXPAVERAGE((float) t[0].tv_usec, mean_texec, n);
+    if (n > 0) {
+      mean_texec = EXPAVERAGE((float) t[0].tv_usec, mean_texec, n-1);      
+    }
     
     /* check MSE */
     mse = 0.0;

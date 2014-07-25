@@ -35,7 +35,7 @@
 
 typedef _Complex float cf_t;
 
-#define EXPAVERAGE(data, average, nframes) ((data + average * nframes) / (nframes + 1))  
+#define EXPAVERAGE(data, average, nframes) (((data) + (average) * (nframes)) / ((nframes) + 1))  
 
 
 /** Return the sum of all the elements */
@@ -63,6 +63,9 @@ LIBLTE_API void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 
 /* substract two vectors z=x-y */
 LIBLTE_API void vec_sub_fff(float *x, float *y, float *z, uint32_t len); 
+
+/* Square distance */
+LIBLTE_API void vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoints);
 
 /* scalar product */
 LIBLTE_API void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len);
