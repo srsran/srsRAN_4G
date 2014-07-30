@@ -155,6 +155,17 @@ void vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len) {
 #endif 
 }
 
+void vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
+#ifdef HAVE_VOLK_DEINTERLEAVE_REAL_FUNCTION
+  volk_32fc_deinterleave_real_32f(real, x, len);
+#else 
+  int i;
+  for (i=0;i<len;i++) {
+    real[i] = __real__ x[i];
+  }
+#endif  
+}
+
 void *vec_malloc(uint32_t size) {
 #ifndef HAVE_VOLK
   return malloc(size);

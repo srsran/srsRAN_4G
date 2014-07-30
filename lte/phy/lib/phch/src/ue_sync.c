@@ -120,8 +120,6 @@ int ue_sync_init(ue_sync_t *q,
       goto clean_exit;
     }
     
-    sync_pss_det_absolute(&q->s);
-    
     if (cfo_init(&q->cfocorr, MAXIMUM_SFLEN)) {
       fprintf(stderr, "Error initiating CFO\n");
       goto clean_exit;

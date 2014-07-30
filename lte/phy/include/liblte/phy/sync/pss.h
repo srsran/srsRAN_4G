@@ -72,7 +72,7 @@ typedef struct LIBLTE_API {
 
   cf_t *pss_signal_freq[3]; // One sequence for each N_id_2
   cf_t *tmp_input;
-  float *conv_abs;
+  float *conv_real;
   cf_t *conv_output;
     
 }pss_synch_t;
@@ -102,8 +102,7 @@ LIBLTE_API int pss_synch_set_N_id_2(pss_synch_t *q,
 
 LIBLTE_API int pss_synch_find_pss(pss_synch_t *q, 
                                   cf_t *input, 
-                                  float *corr_peak_value, 
-                                  float *corr_mean_value);
+                                  float *corr_peak_value);
 
 LIBLTE_API float pss_synch_cfo_compute(pss_synch_t* q, 
                                        cf_t *pss_recv);

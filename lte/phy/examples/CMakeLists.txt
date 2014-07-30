@@ -81,8 +81,8 @@ ENDIF(${GRAPHICS_FIND} EQUAL -1)
 
 IF(${CUHD_FIND} GREATER -1)
 
-  add_executable(scan_mib scan_mib.c)
-  target_link_libraries(scan_mib lte_phy cuhd )
+  add_executable(cell_search cell_search.c)
+  target_link_libraries(cell_search lte_phy cuhd )
 
   MESSAGE(STATUS "   UHD examples will be installed.")
 

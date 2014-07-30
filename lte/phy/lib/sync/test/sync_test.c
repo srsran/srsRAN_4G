@@ -32,18 +32,21 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+
 #include <stdbool.h>
 
 #include "liblte/phy/phy.h"
 
 int cell_id = -1, offset = 0;
 lte_cp_t cp = CPNORM;
+uint32_t nof_prb=6; 
 
-#define FLEN  9600
+#define FLEN  SF_LEN(fft_size, cp)
 
 void usage(char *prog) {
-  printf("Usage: %s [coev]\n", prog);
+  printf("Usage: %s [cpoev]\n", prog);
   printf("\t-c cell_id [Default check for all]\n");
+  printf("\t-p nof_prb [Default %d]\n", nof_prb);
   printf("\t-o offset [Default %d]\n", offset);
   printf("\t-e extended CP [Default normal]\n");
   printf("\t-v verbose\n");
@@ -51,10 +54,13 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "coev")) != -1) {
+  while ((opt = getopt(argc, argv, "cpoev")) != -1) {
     switch (opt) {
     case 'c':
       cell_id = atoi(argv[optind]);
+      break;
+    case 'p':
+      nof_prb = atoi(argv[optind]);
       break;
     case 'o':
       offset = atoi(argv[optind]);
@@ -82,8 +88,15 @@ int main(int argc, char **argv) {
   uint32_t find_idx;
   sync_t sync;
   lte_fft_t ifft;
-
+  int fft_size; 
+  
   parse_args(argc, argv);
+
+  fft_size = lte_symbol_sz(nof_prb);
+  if (fft_size < 0) {
+    fprintf(stderr, "Invalid nof_prb=%d\n", nof_prb);
+    exit(-1);
+  }
 
   buffer = malloc(sizeof(cf_t) * FLEN);
   if (!buffer) {
@@ -91,23 +104,24 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  fft_buffer = malloc(sizeof(cf_t) * 2 * FLEN);
+  fft_buffer = malloc(sizeof(cf_t) * FLEN);
   if (!fft_buffer) {
     perror("malloc");
     exit(-1);
   }
-
-  if (lte_ifft_init(&ifft, cp, 6)) {
+  
+  if (lte_ifft_init(&ifft, cp, nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
 
-  if (sync_init(&sync, FLEN, 128, 128)) {
+  if (sync_init(&sync, FLEN, fft_size, fft_size)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
 
-  sync_set_threshold(&sync, 1, 1);
+  /* Set a very high threshold to make sure the correlation is ok */
+  sync_set_threshold(&sync, 0.99, 0.99);
 
   if (cell_id == -1) {
     cid = 0;
@@ -125,19 +139,21 @@ int main(int argc, char **argv) {
 
     for (ns=0;ns<2;ns++) {
       memset(buffer, 0, sizeof(cf_t) * FLEN);
-      pss_put_slot(pss_signal, buffer, 6, cp);
-      sss_put_slot(ns?sss_signal5:sss_signal0, buffer, 6, cp);
+      pss_put_slot(pss_signal, buffer, nof_prb, cp);
+      sss_put_slot(ns?sss_signal5:sss_signal0, buffer, nof_prb, cp);
 
       /* Transform to OFDM symbols */
-      memset(fft_buffer, 0, sizeof(cf_t) * 2 * FLEN);
+      memset(fft_buffer, 0, sizeof(cf_t) * FLEN);
       lte_ifft_run_slot(&ifft, buffer, &fft_buffer[offset]);
+      
+      vec_save_file("input", fft_buffer, sizeof(cf_t) * FLEN);
 
       sync_find(&sync, fft_buffer, &find_idx);
       find_ns = sync_get_slot_id(&sync);
       printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
           ns, find_ns);
-      if (find_idx != offset + 960) {
-        printf("offset != find_offset: %d != %d\n", find_idx, offset + 960);
+      if (find_idx != offset + FLEN/2) {
+        printf("offset != find_offset: %d != %d\n", find_idx, offset + FLEN/2);
         exit(-1);
       }
       if (ns*10 != find_ns) {

@@ -51,13 +51,10 @@
  * functions sync_pss_det_absolute() and sync_pss_det_peakmean().
  */
 
-enum sync_pss_det { ABSOLUTE, PEAK_MEAN};
-
 typedef struct LIBLTE_API {
   pss_synch_t pss_find; 
   pss_synch_t pss_track; 
   sss_synch_t sss;
-  enum sync_pss_det pss_mode;
   float find_threshold;
   float track_threshold;
   float peak_value;
@@ -102,12 +99,6 @@ LIBLTE_API int sync_track(sync_t *q,
 LIBLTE_API void sync_set_threshold(sync_t *q, 
                                    float find_threshold,
                                    float track_threshold);
-
-/* Set peak comparison to absolute value */
-LIBLTE_API void sync_pss_det_absolute(sync_t *q);
-
-/* Set peak comparison to relative to the mean */
-LIBLTE_API void sync_pss_det_peak_to_avg(sync_t *q);
 
 /* Gets the slot id (0 or 10) */
 LIBLTE_API uint32_t sync_get_slot_id(sync_t *q);

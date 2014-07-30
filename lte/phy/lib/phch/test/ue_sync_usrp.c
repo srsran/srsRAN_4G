@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
       }
     #endif
       
-      pos = pss_synch_find_pss(&pss, input_buffer, &peak, NULL);      
+      pos = pss_synch_find_pss(&pss, input_buffer, &peak);      
       /*if (pos > 962 || pos < 958) {
         unaligned++;
       }

@@ -31,7 +31,12 @@ ADD_TEST(sync_test_100 sync_test -o 100)
 ADD_TEST(sync_test_400 sync_test -o 400) 
 ADD_TEST(sync_test_100_e sync_test -o 100 -e) 
 ADD_TEST(sync_test_400_e sync_test -o 400 -e) 
- 
+
+ADD_TEST(sync_test_100 sync_test -o 100 -p 50) 
+ADD_TEST(sync_test_400 sync_test -o 400 -p 50) 
+ADD_TEST(sync_test_100_e sync_test -o 100 -e -p 50) 
+ADD_TEST(sync_test_400_e sync_test -o 400 -e -p 50) 
+
 ########################################################################
 # CFO TEST  
 ########################################################################
