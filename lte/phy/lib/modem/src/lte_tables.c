@@ -34,6 +34,8 @@
 #include "liblte/phy/modem/modem_table.h"
 #include "lte_tables.h"
 
+void LLR_approx_params(const cf_t* table, soft_table_t *soft_table, int B);
+
 /**
  * Set the BPSK modulation table */
 void set_BPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod)
@@ -53,6 +55,18 @@ void set_BPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demo
   /* BSPK symbols containing a '0' and a '1' (only two symbols, 1 bit) */
   soft_table->idx[0][0][0] = 0;
   soft_table->idx[1][0][0] = 1;
+
+  /* set two matrices for LLR approx. calculation */
+  soft_table->min_idx[0][0][0] = 0; 
+  soft_table->min_idx[0][1][0] = 0;
+  soft_table->min_idx[1][0][0] = 1;
+  soft_table->min_idx[1][1][0] = 1;
+
+  soft_table->d_idx[0][0] = 0; 
+  soft_table->d_idx[0][1] = 1;
+  soft_table->d_idx[1][0] = 0; 
+  soft_table->d_idx[1][1] = 1;
+
 }
 
 /**
@@ -91,6 +105,8 @@ void set_QPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demo
   soft_table->idx[1][0][1] = 3;
   soft_table->idx[1][1][0] = 1;
   soft_table->idx[1][1][1] = 3;
+
+  LLR_approx_params(table, soft_table, 2);	/* last param indicating B (bits per symbol) */
 }
 
 /**
@@ -156,6 +172,8 @@ void set_16QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_dem
     soft_table->idx[0][3][i] = 2*i;
     soft_table->idx[1][3][i] = 2*i+1;
   }
+
+  LLR_approx_params(table, soft_table, 4);	/* last param indication B (bits per symbol) */
 }
 
 /**
@@ -277,4 +295,96 @@ void set_64QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_dem
     soft_table->idx[0][5][i] = 2*i;
     soft_table->idx[1][5][i] = 2*i+1;
   }
+
+  LLR_approx_params(table, soft_table, 6);	/* last param indication modulation */
 }
+
+/* Precompute two tables for calculating the distances based on the received symbol location relative to the constellation points */
+void LLR_approx_params(const cf_t* table, soft_table_t *soft_table, int B) {
+
+	int i, j, b, k;
+	float x, y, d0, d1, min_d0, min_d1;
+	int M, D;
+	uint32_t min_idx0[64][6], min_idx1[64][6];
+	uint32_t count;
+	int flag;
+
+
+	D = B+1;	/* number of different distances to be computed */
+	//M = pow(2,B);	/* number of constellation points */
+	switch (B) {
+		case 1: 	{M = 2; break;}		/* BPSK */
+		case 2: 	{M = 4; break;}		/* QPSK */
+		case 4: 	{M = 16; break;}	/* 16QAM */
+		case 6: 	{M = 64; break;}	/* 64QAM */
+		default:	{M = 4; break;}		/* QPSK */
+	}
+
+	for (i=0;i<M;i++) {	/* constellation points */
+	        for (b=0;b<B;b++) { /* bits per symbol */
+	        	min_d0 = 100;
+	        	min_d1 = 100;
+
+	        	for (j=0;j<M/2;j++) {	/* half the symbols have a '0', the other half a '1' at any bit position of modulation symbol */
+	        	    x = __real__ table[i] - __real__ table[soft_table->idx[0][b][j]];
+	        	    y = __imag__ table[i] - __imag__ table[soft_table->idx[0][b][j]];
+	        	    d0 = x*x + y*y;
+	        	    if (d0 < min_d0) {
+	        		    min_d0 = d0;
+	        		    min_idx0[i][b] = soft_table->idx[0][b][j];
+	        	    }
+
+	        	    x = __real__ table[i] - __real__ table[soft_table->idx[1][b][j]];
+	        	    y = __imag__ table[i] - __imag__ table[soft_table->idx[1][b][j]];
+	        	    d1 = x*x + y*y;
+	        	    if (d1 < min_d1) {
+	        		    min_d1 = d1;
+	        		    min_idx1[i][b] = soft_table->idx[1][b][j];
+	        	    }
+	        	}
+	        }
+	}
+
+	for (i=0;i<M;i++) {
+		for (j=0;j<D;j++) {
+			soft_table->d_idx[i][j] = -1;   /* intialization */
+		}
+	}
+
+	for (i=0;i<M;i++) {
+		count = 0;
+		for (b=0;b<B;b++) {	/* bit(b) = 0 */
+			flag = 0;
+			for (k=0;k<count;k++) {
+				if (min_idx0[i][b] == soft_table->d_idx[i][k]) {
+					soft_table->min_idx[0][i][b] = k;
+					flag = 1;   /* no new entry to idxdx */
+					break;
+				}
+			}
+
+			if (flag == 0) { /* new entry to min and d_idx */
+				soft_table->d_idx[i][count] = min_idx0[i][b];
+				soft_table->min_idx[0][i][b] = count;
+				count++;
+			}
+		}
+		for (b=0;b<B;b++) {	/* bit(b) = 1 */
+			flag = 0;
+			for (k=0;k<count;k++) {
+				if (min_idx1[i][b] == soft_table->d_idx[i][k]) {
+					soft_table->min_idx[1][i][b] = k;
+					flag = 1;   /* no new entry to d_idx */
+					break;
+				}
+			}
+
+			if (flag == 0) { /* new entry to min and d_idx */
+				soft_table->d_idx[i][count] = min_idx1[i][b];
+				soft_table->min_idx[1][i][b] = count;
+				count++;
+			}
+		}
+	}
+}
+

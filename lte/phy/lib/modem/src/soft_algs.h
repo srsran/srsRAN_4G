@@ -26,13 +26,24 @@
  */
 
 
-void llr_approx(const _Complex float *in, 
+/*void llr_approx(const _Complex float *in, 
                 float *out, 
                 int N, 
                 int M, 
                 int B,
                 _Complex float *symbols, 
                 uint32_t (*S)[6][32], 
+                float sigma2);
+*/
+void llr_approx(const _Complex float *in, 
+                float *out, 
+                int N, 
+                int M, 
+                int B,
+                _Complex float *symbols, 
+		uint32_t (*S)[6][32], 
+                uint32_t (*idx)[7],	/*64x7 table of integers [0..63], indices to 7 distances to be computed */
+		uint32_t (*min)[64][6],	/*2x64x6 table of integers [0..6], indices to 2x6 nearest symbols */
                 float sigma2);
 
 void llr_exact(const _Complex float *in, 
@@ -43,3 +54,4 @@ void llr_exact(const _Complex float *in,
                _Complex float *symbols, 
                uint32_t (*S)[6][32], 
                float sigma2);
+

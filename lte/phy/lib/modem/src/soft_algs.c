@@ -31,15 +31,467 @@
 #include <math.h>
 #include <complex.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "soft_algs.h"
 #include "liblte/phy/utils/vector.h"
 
-#define LLR_APPROX_USE_VOLK
+#define QAM16_THRESHOLD		2/sqrt(10)
+#define QAM64_THRESHOLD_1	2/sqrt(42)
+#define QAM64_THRESHOLD_2	4/sqrt(42)
+#define QAM64_THRESHOLD_3	6/sqrt(42)
 
-#ifdef LLR_APPROX_USE_VOLK
 
 typedef _Complex float cf_t; 
+
+//#define LLR_APPROX_USE_VOLK
+#define LLR_APPROX_OPT
+
+#ifdef LLR_APPROX_OPT
+
+float dd[10000][7];	////// NUEVO: 7 distances that are needed to compute LLR approx for 64QAM 
+uint32_t zone[10000];	////// NUEVO: zone of received symbol with respect to grid of QAM constellation diagram
+
+
+
+/**
+ * @ingroup Received modulation symbol zone
+ * Determine location of received modulation symbol
+ *
+ * \param in input symbol (_Complex float)
+ * \param z associated zone in constellation diagram (int)
+ * \param N number of symbols
+ */
+static void zone_QPSK(const cf_t *in, uint32_t *z, int N) {
+
+	int s;
+	float re, im;
+
+	for (s=0;s<N;s++) {
+
+	    re = __real__ in[s];
+	    im = __imag__ in[s];
+
+	    if (re > 0) {
+		if (im > 0) { 	/* 1st Quadrand (upper-right) */
+			z[s] = 0;
+		} else {	/* 4th Quadrand (lower-right) */
+			z[s] = 1;
+		}
+	    } else {
+		if (im > 0) {	/* 2nd Quadrand (upper-left) */
+			z[s] = 2;
+		} else {	/* 3rd Quadrand (lower-left) */
+			z[s] = 3;
+		}
+	    }
+	}
+}
+
+/**
+ * @ingroup Received modulation symbol zone
+ * Determine location of received modulation symbol
+ *
+ * \param in input symbol (_Complex float)
+ * \param z associated zone in constellation diagram (int)
+ * \param N number of symbols
+ */
+static void zone_QAM16(const cf_t *in, uint32_t *z, int N) {
+
+	int s;
+	float re, im;
+
+	for (s=0;s<N;s++) {
+
+	    re = __real__ in[s];
+	    im = __imag__ in[s];
+
+	    if (re > 0) {
+		if (im > 0) { 	/* 1st Quadrand (upper-right) */
+			if (re > QAM16_THRESHOLD) {
+				if (im > QAM16_THRESHOLD) {
+					z[s] = 3;
+				} else {
+					z[s] = 2;
+				}
+			} else {
+				if (im > QAM16_THRESHOLD) {
+					z[s] = 1;
+				} else {
+					z[s] = 0;
+				}
+			}
+		} else {	/* 4th Quadrand (lower-right) */
+			if (re > QAM16_THRESHOLD) {
+				if (im < -QAM16_THRESHOLD) {
+					z[s] = 7;
+				} else {
+					z[s] = 6;
+				}
+			} else {
+				if (im < -QAM16_THRESHOLD) {
+					z[s] = 5;
+				} else {
+					z[s] = 4;
+				}
+			}
+		}
+	    } else {
+		if (im > 0) {	/* 2nd Quadrand (upper-left) */
+			if (re < -QAM16_THRESHOLD) {
+				if (im > QAM16_THRESHOLD) {
+					z[s] = 11;
+				} else {
+					z[s] = 10;
+				}
+			} else {
+				if (im > QAM16_THRESHOLD) {
+					z[s] = 9;
+				} else {
+					z[s] = 8;
+				}
+			}
+		} else {	/* 3rd Quadrand (lower-left) */
+			if (re < -QAM16_THRESHOLD) {
+				if (im < -QAM16_THRESHOLD) {
+					z[s] = 15;
+				} else {
+					z[s] = 14;
+				}
+			} else {
+				if (im < -QAM16_THRESHOLD) {
+					z[s] = 13;
+				} else {
+					z[s] = 12;
+				}
+			}
+		}
+	    }
+	}
+}
+
+/**
+ * @ingroup Received modulation symbol zone
+ * Determine location of received modulation symbol
+ *
+ * \param in input symbol (_Complex float)
+ * \param z associated zone in constellation diagram (int)
+ * \param N number of symbols
+ */
+
+static void zone_QAM64(const cf_t *in, uint32_t *z, int N) {
+
+	int s;
+	float re, im;
+
+	for (s=0;s<N;s++) {
+
+  	    re = __real__ in[s];
+	    im = __imag__ in[s];
+
+	    if (re > 0) {
+
+		if (im > 0) {
+
+			if (re > QAM64_THRESHOLD_2) {
+
+				if (re > QAM64_THRESHOLD_3) {
+
+					if (im > QAM64_THRESHOLD_2) {
+						if (im > QAM64_THRESHOLD_3) {
+							z[s] = 15;
+						} else {
+							z[s] = 14;
+						}
+					} else if (im > QAM64_THRESHOLD_1) {
+						z[s] = 10;
+					} else {
+						z[s] = 11;
+					}
+
+				} else {
+
+					if (im > QAM64_THRESHOLD_2) {
+						if (im > QAM64_THRESHOLD_3) {
+							z[s] = 13;
+						} else {
+							z[s] = 12;
+						}
+					} else if (im > QAM64_THRESHOLD_1) {
+						z[s] = 8;
+					} else {
+						z[s] = 9;
+					}
+				}
+
+			} else if (re > QAM64_THRESHOLD_1) {
+
+				if (im > QAM64_THRESHOLD_2) {
+					if (im > QAM64_THRESHOLD_3) {
+						z[s] = 5;
+					} else {
+						z[s] = 4;
+					}
+				} else if (im > QAM64_THRESHOLD_1) {
+					z[s] = 0;
+				} else {
+					z[s] = 1;
+				}
+
+			} else {
+				if (im > QAM64_THRESHOLD_2) {
+					if (im > QAM64_THRESHOLD_3) {
+						z[s] = 7;
+					} else {
+						z[s] = 6;
+					}
+				} else if (im > QAM64_THRESHOLD_1) {
+					z[s] = 2;
+				} else {
+					z[s] = 3;
+				}
+			}
+
+		} else { /* forth quadrant (lower-right) */
+
+			if (re > QAM64_THRESHOLD_2) {
+
+				if (re > QAM64_THRESHOLD_3) {
+
+					if (im < -QAM64_THRESHOLD_2) {
+						if (im < -QAM64_THRESHOLD_3) {
+							z[s] = 31;
+						} else {
+							z[s] = 30;
+						}
+					} else if (im < -QAM64_THRESHOLD_1) {
+						z[s] = 26;
+					} else {
+						z[s] = 27;
+					}
+
+				} else {
+
+					if (im < -QAM64_THRESHOLD_2) {
+						if (im < -QAM64_THRESHOLD_3) {
+							z[s] = 29;
+						} else {
+							z[s] = 28;
+						}
+					} else if (im < -QAM64_THRESHOLD_1) {
+						z[s] = 24;
+					} else {
+						z[s] = 25;
+					}
+				}
+
+			} else if (re > QAM64_THRESHOLD_1) {
+
+				if (im < -QAM64_THRESHOLD_2) {
+					if (im < -QAM64_THRESHOLD_3) {
+						z[s] = 21;
+					} else {
+						z[s] = 20;
+					}
+				} else if (im < -QAM64_THRESHOLD_1) {
+					z[s] = 16;
+				} else {
+					z[s] = 17;
+				}
+
+			} else {
+				if (im < -QAM64_THRESHOLD_2) {
+					if (im < -QAM64_THRESHOLD_3) {
+						z[s] = 23;
+					} else {
+						z[s] = 22;
+					}
+				} else if (im < -QAM64_THRESHOLD_1) {
+					z[s] = 18;
+				} else {
+					z[s] = 19;
+				}
+			}
+		}
+
+	    } else { /* re < 0 */
+
+		if (im > 0) { /* second quadrant (upper-left) */
+
+			if (re < -QAM64_THRESHOLD_2) {
+
+				if (re < -QAM64_THRESHOLD_3) {
+
+					if (im > QAM64_THRESHOLD_2) {
+						if (im > QAM64_THRESHOLD_3) {
+							z[s] = 47;
+						} else {
+							z[s] = 46;
+						}
+					} else if (im > QAM64_THRESHOLD_1) {
+						z[s] = 42;
+					} else {
+						z[s] = 43;
+					}
+
+				} else {
+
+					if (im > QAM64_THRESHOLD_2) {
+						if (im > QAM64_THRESHOLD_3) {
+							z[s] = 45;
+						} else {
+							z[s] = 44;
+						}
+					} else if (im > QAM64_THRESHOLD_1) {
+						z[s] = 40;
+					} else {
+						z[s] = 41;
+					}
+				}
+
+			} else if (re < -QAM64_THRESHOLD_1) {
+
+				if (im > QAM64_THRESHOLD_2) {
+					if (im > QAM64_THRESHOLD_3) {
+						z[s] = 37;
+					} else {
+						z[s] = 36;
+					}
+				} else if (im > QAM64_THRESHOLD_1) {
+					z[s] = 32;
+				} else {
+					z[s] = 33;
+				}
+
+			} else {
+				if (im > QAM64_THRESHOLD_2) {
+					if (im > QAM64_THRESHOLD_3) {
+						z[s] = 39;
+					} else {
+						z[s] = 38;
+					}
+				} else if (im > QAM64_THRESHOLD_1) {
+					z[s] = 34;
+				} else {
+					z[s] = 35;
+				}
+			}
+		} else { /* third quadrant (lower-left) */
+			if (re < -QAM64_THRESHOLD_2) {
+
+				if (re < -QAM64_THRESHOLD_3) {
+
+					if (im < -QAM64_THRESHOLD_2) {
+						if (im < -QAM64_THRESHOLD_3) {
+							z[s] = 63;
+						} else {
+							z[s] = 62;
+						}
+					} else if (im < -QAM64_THRESHOLD_1) {
+						z[s] = 58;
+					} else {
+						z[s] = 59;
+					}
+
+				} else {
+
+					if (im < -QAM64_THRESHOLD_2) {
+						if (im < -QAM64_THRESHOLD_3) {
+							z[s] = 61;
+						} else {
+							z[s] = 60;
+						}
+					} else if (im < -QAM64_THRESHOLD_1) {
+						z[s] = 56;
+					} else {
+						z[s] = 57;
+					}
+				}
+
+			} else if (re < -QAM64_THRESHOLD_1) {
+
+				if (im < -QAM64_THRESHOLD_2) {
+					if (im < -QAM64_THRESHOLD_3) {
+						z[s] = 53;
+					} else {
+						z[s] = 52;
+					}
+				} else if (im < -QAM64_THRESHOLD_1) {
+					z[s] = 48;
+				} else {
+					z[s] = 49;
+				}
+
+			} else {
+				if (im < -QAM64_THRESHOLD_2) {
+					if (im < -QAM64_THRESHOLD_3) {
+						z[s] = 55;
+					} else {
+						z[s] = 54;
+					}
+				} else if (im < -QAM64_THRESHOLD_1) {
+					z[s] = 50;
+				} else {
+					z[s] = 51;
+				}
+			}
+
+		}
+	    }
+	}
+}
+
+static void compute_zone(const cf_t *in, uint32_t *z, int N, int B)
+{
+    switch(B) {
+	case 1:	{memset(zone, 0, N*sizeof(int)); break;}/* BPSK */
+	case 2: {zone_QPSK(in, z, N); break;}		/* QPSK */
+	case 4: {zone_QAM16(in, z, N); break;}		/* 16QAM */
+	case 6: {zone_QAM64(in, z, N); break;}		/* 64QAM */
+    }
+}
+
+static void compute_square_dist(const cf_t *in, cf_t *symbols, uint32_t (*idx)[7], int N, int B) {
+  int s, b;
+  float *d_ptr;
+	float x, y;
+  cf_t symbols_extract[7];
+
+  for (s=0;s<N;s++) {	/* N: number of received symbols */
+    d_ptr = dd[s];
+    for (b=0;b<B+1;b++) {
+	symbols_extract[b] = symbols[idx[zone[s]][b]];	/* only subset of distances to constellation points needed for LLR approx */
+	//x = __real__ in[s] - __real__ symbols[idx[zone[s]][b]];
+	//y = __imag__ in[s] - __imag__ symbols[idx[zone[s]][b]];
+	//dd[s][b] = x*x + y*y;
+	//printf("\n%f + j %f", __real__ symbols_extract[b], __imag__ symbols_extract[b]);
+    }
+    vec_square_dist(in[s], symbols_extract, d_ptr, B+1);/* B+1 distances to be computed */
+  }
+}
+
+static void compute_llr(int N, int B, uint32_t (*min)[64][6], float sigma2, float *out) {
+  int s, b;
+  for (s = 0; s < N; s++) {     
+    for (b = 0; b < B; b++) {   /* bits per symbol */
+      out[s * B + b] = (dd[s][min[0][zone[s]][b]] - dd[s][min[1][zone[s]][b]]) / sigma2;
+    }
+  }
+}
+
+void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
+           _Complex float *symbols, uint32_t(*S)[6][32], uint32_t (*idx)[7], uint32_t (*min)[64][6], float sigma2)
+{
+  if ((M == 2) || (M == 4) || (M == 16) || (M == 64)) {
+	compute_zone(in, zone, N, B);
+    	compute_square_dist(in, symbols, idx, N, B);
+    	compute_llr(N, B, min, sigma2, out);
+  }
+}
+
+#endif 
+
+#ifdef LLR_APPROX_USE_VOLK
 
 float d[10000][64];
 float num[10000], den[10000];
@@ -76,14 +528,14 @@ static void compute_min_dist(uint32_t (*S)[6][32], int N, int B, int M) {
 static void compute_llr(int N, int B, float sigma2, float *out) {
   int s, b;
   for (s = 0; s < N; s++) {     
-    for (b = 0; b < B; b++) {   /* bits per symbol */
+    for (b = 0; b < B; b++) {  /* bits per symbol */
       out[s * B + b] = (num[s * B + b]-den[s * B + b]) / sigma2;
     }
   }
 }
 
 void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
-           _Complex float *symbols, uint32_t(*S)[6][32], float sigma2)
+           _Complex float *symbols, uint32_t(*S)[6][32], uint32_t (*idx)[7], uint32_t (*min)[64][6], float sigma2)
 {
   
   if (M <= 64) {
@@ -95,7 +547,9 @@ void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
   }
 }
 
-#else 
+#endif
+
+#ifdef LLR_APPROX_OLD
 
 /**
  * @ingroup Soft Modulation Demapping based on the approximate
@@ -113,9 +567,8 @@ void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
  * \param S Soft demapping auxiliary matrix
  * \param sigma2 Noise vatiance
  */
-void
-llr_approx(const _Complex float *in, float *out, int N, int M, int B,
-           _Complex float *symbols, uint32_t(*S)[6][32], float sigma2)
+void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
+           _Complex float *symbols, uint32_t(*S)[6][32], uint32_t (*idx)[7], uint32_t (*min)[64][6], float sigma2)
 {
   int i, s, b;
   float num, den;
@@ -150,9 +603,9 @@ llr_approx(const _Complex float *in, float *out, int N, int M, int B,
        * with '1' are closer.
        * Change sign if mapping negative to '0' and positive to '1' */
       out[s * B + b] = change_sign * (den - num) / sigma2;
-      if (s<10)
+/*      if (s<10)
         printf("out[%d]=%f=%f/%f\n",s*B+b,out[s*B+b], num,den);
-    }
+  */  }
   }
 
 }

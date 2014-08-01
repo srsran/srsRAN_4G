@@ -36,6 +36,9 @@
 
 #include "liblte/phy/phy.h"
 
+time_t start, finish;
+struct timeval x, y;
+
 int num_bits = 1000;
 lte_mod_t modulation;
 bool soft_output = false, soft_exact = false;
@@ -98,6 +101,10 @@ int main(int argc, char **argv) {
   cf_t *symbols;
   float *llr;
 
+//  unsigned long strt, fin;
+//  strt = x->tv_usec;
+//  fin = y->tv_usec;
+  
   parse_args(argc, argv);
 
   /* initialize objects */
@@ -156,7 +163,12 @@ int main(int argc, char **argv) {
 
   /* demodulate */
   if (soft_output) {
+
+    gettimeofday(&x, NULL);
     demod_soft_demodulate(&demod_soft, symbols, llr, num_bits / mod.nbits_x_symbol);
+    gettimeofday(&y, NULL);
+    printf("\nElapsed time [ns]: %u\n", y.tv_usec - x.tv_usec);
+    
     for (i=0;i<num_bits;i++) {
       output[i] = llr[i]>=0 ? 1 : 0;
     }
