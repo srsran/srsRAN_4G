@@ -42,7 +42,7 @@
  * This object scans a signal for LTE cells using the known PSS 
  * and SSS sequences. 
  * 
- * The function ue_cellsearch_scan() shall be called multiple times, 
+ * The function ue_celldetect_scan() shall be called multiple times, 
  * each passing a number of samples multiple of 4800, sampled at 960 KHz
  * (that is, 5 ms of samples). 
  * 
@@ -74,7 +74,7 @@ typedef struct LIBLTE_API {
   lte_cp_t cp; 
   float peak; 
   uint32_t mode; 
-} ue_cellsearch_result_t;
+} ue_celldetect_result_t;
 
 
 typedef struct LIBLTE_API {
@@ -92,35 +92,35 @@ typedef struct LIBLTE_API {
   uint32_t *mode_ntimes;
   char *mode_counted; 
   
-  ue_cellsearch_result_t *candidates; 
-} ue_cellsearch_t;
+  ue_celldetect_result_t *candidates; 
+} ue_celldetect_t;
 
 
-LIBLTE_API int ue_cellsearch_init(ue_cellsearch_t *q);
+LIBLTE_API int ue_celldetect_init(ue_celldetect_t *q);
 
-LIBLTE_API int ue_cellsearch_init_max(ue_cellsearch_t *q, 
+LIBLTE_API int ue_celldetect_init_max(ue_celldetect_t *q, 
                                       uint32_t max_frames_total, 
                                       uint32_t max_frames_detected);
 
-LIBLTE_API void ue_cellsearch_free(ue_cellsearch_t *q);
+LIBLTE_API void ue_celldetect_free(ue_celldetect_t *q);
 
-LIBLTE_API void ue_cellsearch_reset(ue_cellsearch_t *q);
+LIBLTE_API void ue_celldetect_reset(ue_celldetect_t *q);
 
-LIBLTE_API int ue_cellsearch_scan(ue_cellsearch_t *q,
+LIBLTE_API int ue_celldetect_scan(ue_celldetect_t *q,
                                   cf_t *signal, 
                                   uint32_t nsamples,
-                                  ue_cellsearch_result_t *found_cell);
+                                  ue_celldetect_result_t *found_cell);
 
-LIBLTE_API int ue_cellsearch_set_nof_frames_total(ue_cellsearch_t *q, 
+LIBLTE_API int ue_celldetect_set_nof_frames_total(ue_celldetect_t *q, 
                                                    uint32_t nof_frames);
 
-LIBLTE_API int ue_cellsearch_set_nof_frames_detected(ue_cellsearch_t *q, 
+LIBLTE_API int ue_celldetect_set_nof_frames_detected(ue_celldetect_t *q, 
                                                       uint32_t nof_frames);
 
-LIBLTE_API void ue_cellsearch_set_threshold(ue_cellsearch_t *q, 
+LIBLTE_API void ue_celldetect_set_threshold(ue_celldetect_t *q, 
                                             float threshold); 
 
-LIBLTE_API void ue_cellsearch_reset(ue_cellsearch_t *q);
+LIBLTE_API void ue_celldetect_reset(ue_celldetect_t *q);
 
 
 

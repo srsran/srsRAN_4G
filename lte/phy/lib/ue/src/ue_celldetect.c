@@ -31,7 +31,7 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "liblte/phy/ue/ue_cellsearch.h"
+#include "liblte/phy/ue/ue_celldetect.h"
 
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
@@ -39,19 +39,19 @@
 #define FIND_FFTSIZE   64
 #define FIND_SFLEN     5*SF_LEN(FIND_FFTSIZE)
 
-int ue_cellsearch_init(ue_cellsearch_t * q) {
-  return ue_cellsearch_init_max(q, CS_DEFAULT_MAXFRAMES_TOTAL, CS_DEFAULT_MAXFRAMES_DETECTED); 
+int ue_celldetect_init(ue_celldetect_t * q) {
+  return ue_celldetect_init_max(q, CS_DEFAULT_MAXFRAMES_TOTAL, CS_DEFAULT_MAXFRAMES_DETECTED); 
 }
 
-int ue_cellsearch_init_max(ue_cellsearch_t * q, uint32_t max_frames_total, uint32_t max_frames_detected) {
+int ue_celldetect_init_max(ue_celldetect_t * q, uint32_t max_frames_total, uint32_t max_frames_detected) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
     ret = LIBLTE_ERROR;
 
-    bzero(q, sizeof(ue_cellsearch_t));
+    bzero(q, sizeof(ue_celldetect_t));
 
-    q->candidates = malloc(sizeof(ue_cellsearch_result_t) * max_frames_detected);
+    q->candidates = malloc(sizeof(ue_celldetect_result_t) * max_frames_detected);
     if (!q->candidates) {
       perror("malloc");
       goto clean_exit; 
@@ -78,19 +78,19 @@ int ue_cellsearch_init_max(ue_cellsearch_t * q, uint32_t max_frames_total, uint3
     q->nof_frames_total = CS_DEFAULT_NOFFRAMES_TOTAL; 
     q->nof_frames_detected = CS_DEFAULT_NOFFRAMES_DETECTED; 
 
-    ue_cellsearch_reset(q);
+    ue_celldetect_reset(q);
     
     ret = LIBLTE_SUCCESS;
   }
 
 clean_exit:
   if (ret == LIBLTE_ERROR) {
-    ue_cellsearch_free(q);
+    ue_celldetect_free(q);
   }
   return ret;
 }
 
-void ue_cellsearch_free(ue_cellsearch_t * q)
+void ue_celldetect_free(ue_celldetect_t * q)
 {
   if (q->candidates) {
     free(q->candidates);
@@ -105,21 +105,21 @@ void ue_cellsearch_free(ue_cellsearch_t * q)
 }
 
 
-void ue_cellsearch_reset(ue_cellsearch_t * q)
+void ue_celldetect_reset(ue_celldetect_t * q)
 {
   q->current_nof_detected = 0; 
   q->current_nof_total = 0; 
   q->current_N_id_2 = 0; 
 }
 
-void ue_cellsearch_set_threshold(ue_cellsearch_t * q, float threshold)
+void ue_celldetect_set_threshold(ue_celldetect_t * q, float threshold)
 {
   sync_set_threshold(&q->sfind, threshold);
 }
 
-int ue_cellsearch_set_nof_frames_total(ue_cellsearch_t * q, uint32_t nof_frames)
+int ue_celldetect_set_nof_frames_total(ue_celldetect_t * q, uint32_t nof_frames)
 {
-  if (nof_frames > q->max_frames_total) {
+  if (nof_frames <= q->max_frames_total) {
     q->nof_frames_total = nof_frames;    
     return LIBLTE_SUCCESS; 
   } else {
@@ -127,9 +127,9 @@ int ue_cellsearch_set_nof_frames_total(ue_cellsearch_t * q, uint32_t nof_frames)
   }
 }
 
-int ue_cellsearch_set_nof_frames_detected(ue_cellsearch_t * q, uint32_t nof_frames)
+int ue_celldetect_set_nof_frames_detected(ue_celldetect_t * q, uint32_t nof_frames)
 {
-  if (nof_frames > q->max_frames_detected) {
+  if (nof_frames <= q->max_frames_detected) {
     q->nof_frames_detected = nof_frames;    
     return LIBLTE_SUCCESS; 
   } else {
@@ -138,7 +138,7 @@ int ue_cellsearch_set_nof_frames_detected(ue_cellsearch_t * q, uint32_t nof_fram
 }
 
 /* Decide the most likely cell based on the mode */
-void decide_cell(ue_cellsearch_t * q, ue_cellsearch_result_t *found_cell)
+void decide_cell(ue_celldetect_t * q, ue_celldetect_result_t *found_cell)
 {
   uint32_t i, j;
   
@@ -186,10 +186,10 @@ void decide_cell(ue_cellsearch_t * q, ue_cellsearch_result_t *found_cell)
   found_cell->mode = q->mode_ntimes[mode_pos];  
 }
 
-int ue_cellsearch_scan(ue_cellsearch_t * q, 
+int ue_celldetect_scan(ue_celldetect_t * q, 
                        cf_t *signal, 
                        uint32_t nsamples,
-                       ue_cellsearch_result_t *found_cell)
+                       ue_celldetect_result_t *found_cell)
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   uint32_t peak_idx;

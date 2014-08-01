@@ -31,40 +31,27 @@
 #include <strings.h>
 #include <unistd.h>
 #include <math.h>
+#include <complex.h>
 #include <sys/time.h>
-
 #include <unistd.h>
+#include <assert.h>
+#include <signal.h>
 
 #include "liblte/phy/phy.h"
 
-#ifndef DISABLE_UHD
 #include "liblte/cuhd/cuhd.h"
-#endif
 
-#define MHZ             1000000
-#define SAMP_FREQ       1920000
-#define FLEN            9600
-#define FLEN_PERIOD     0.005
-
-#define MAX_EARFCN 1000
-
-
-int band = -1;
-int earfcn_start=-1, earfcn_end = -1;
-int nof_frames_total = 50;
-int nof_frames_detected = 10;
+int nof_frames_total = CS_DEFAULT_NOFFRAMES_TOTAL;
+int nof_frames_detected = CS_DEFAULT_NOFFRAMES_DETECTED;
 float threshold = -1; 
 
-
-float uhd_gain = 60.0;
-char *uhd_args=""; 
+float uhd_freq = 0.0, uhd_gain = 20.0;
+char *uhd_args = "";
 
 void usage(char *prog) {
-  printf("Usage: %s [agsendtvb] -b band\n", prog);
+  printf("Usage: %s [agntdv] -f uhd_freq\n", prog);
   printf("\t-a UHD args [Default %s]\n", uhd_args);
-  printf("\t-g UHD gain [Default %.2f dB]\n", uhd_gain);
-  printf("\t-s earfcn_start [Default All]\n");
-  printf("\t-e earfcn_end [Default All]\n");
+  printf("\t-g UHD RX gain [Default %.2f dB]\n", uhd_gain);
   printf("\t-n nof_frames_total [Default 100]\n");
   printf("\t-d nof_frames_detected [Default 10]\n");
   printf("\t-t threshold [Default %.2f]\n",threshold);
@@ -73,31 +60,25 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "agsendtvb")) != -1) {
-    switch(opt) {
-    case 'a':
-      uhd_args = argv[optind];
-      break;
-    case 'b':
-      band = atoi(argv[optind]);
-      break;
-    case 's':
-      earfcn_start = atoi(argv[optind]);
-      break;
-    case 'e':
-      earfcn_end = atoi(argv[optind]);
-      break;
+  while ((opt = getopt(argc, argv, "agndtvf")) != -1) {
+    switch (opt) {
     case 'n':
       nof_frames_total = atoi(argv[optind]);
       break;
     case 'd':
       nof_frames_detected = atoi(argv[optind]);
       break;
-    case 't':
-      threshold = atof(argv[optind]);
+    case 'a':
+      uhd_args = argv[optind];
       break;
     case 'g':
       uhd_gain = atof(argv[optind]);
+      break;
+    case 'f':
+      uhd_freq = atof(argv[optind]);
+      break;
+    case 't':
+      threshold = atof(argv[optind]);
       break;
     case 'v':
       verbose++;
@@ -107,7 +88,7 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-  if (band == -1) {
+  if (uhd_freq == 0.0) {
     usage(argv[0]);
     exit(-1);
   }
@@ -118,8 +99,6 @@ int decode_pbch(void *uhd, cf_t *buffer, ue_celldetect_result_t *found_cell)
   ue_mib_t uemib;
   pbch_mib_t mib; 
   int n; 
-  
-  bzero(&mib, sizeof(pbch_mib_t));
   
   uint32_t nof_frames = 0;
   uint32_t flen = MIB_FRAME_SIZE;
@@ -155,7 +134,7 @@ int decode_pbch(void *uhd, cf_t *buffer, ue_celldetect_result_t *found_cell)
       }
     }
     nof_frames++;
-  } while (n != MIB_FOUND && nof_frames < 2*nof_frames_total);
+  } while (n != MIB_FOUND && nof_frames < nof_frames_total);
   if (n == MIB_FOUND) {
     printf("\n\nMIB decoded in %d ms (%d half frames)\n", nof_frames*5, nof_frames);
     pbch_mib_fprint(stdout, &mib, found_cell->cell_id);
@@ -201,11 +180,10 @@ int find_cell(void *uhd, ue_celldetect_t *s, cf_t *buffer, ue_celldetect_result_
         return LIBLTE_ERROR; 
       case CS_CELL_DETECTED:
         if (found_cell->peak > 0) {
-          printf("\n\tCELL ID: %d, CP: %s, Peak: %.2f, Mode: %d/%d\n", 
+          printf("\tCELL ID: %d, CP: %s, Peak: %.2f, Mode: %d/%d\n", 
                 found_cell->cell_id, lte_cp_string(found_cell->cp), 
                 found_cell->peak, found_cell->mode, s->nof_frames_detected);                      
-        }
-        
+        }        
         nof_scanned_cells++;
         break;
       case CS_CELL_NOT_DETECTED:
@@ -231,9 +209,6 @@ int main(int argc, char **argv) {
   ue_celldetect_t s;
   ue_celldetect_result_t found_cell; 
   cf_t *buffer; 
-  int nof_freqs; 
-  lte_earfcn_t channels[MAX_EARFCN];
-  uint32_t freq;
 
   parse_args(argc, argv);
     
@@ -244,12 +219,11 @@ int main(int argc, char **argv) {
   }  
   cuhd_set_rx_gain(uhd, uhd_gain);
   
-  nof_freqs = lte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
-  if (nof_freqs < 0) {
-    fprintf(stderr, "Error getting EARFCN list\n");
-    exit(-1);
-  }
-    
+  /* set uhd_freq */
+  cuhd_set_rx_freq(uhd, (double) uhd_freq);
+  cuhd_rx_wait_lo_locked(uhd);
+  DEBUG("Set uhd_freq to %.3f MHz\n", (double ) uhd_freq/1000000);
+  
   buffer = vec_malloc(sizeof(cf_t) * 96000);
   if (!buffer) {
     perror("malloc");
@@ -271,32 +245,16 @@ int main(int argc, char **argv) {
     ue_celldetect_set_nof_frames_detected(&s, nof_frames_detected);
   }
 
-  for (freq=0;freq<nof_freqs;freq+=10) {
-  
-    /* set uhd_freq */
-    cuhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
-    cuhd_rx_wait_lo_locked(uhd);
-    usleep(10000);
-    INFO("Set uhd_freq to %.3f MHz\n", (double) channels[freq].fd * MHZ/1000000);
-    
-    printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS. \r", freq, nof_freqs,
-                      channels[freq].id, channels[freq].fd);fflush(stdout);
-    
-    if (VERBOSE_ISINFO()) {
-      printf("\n");
-    }
-    
-    n = find_cell(uhd, &s, buffer, &found_cell);
-    if (n < 0) {
-      fprintf(stderr, "Error searching cell\n");
+  n = find_cell(uhd, &s, buffer, &found_cell);
+  if (n < 0) {
+    fprintf(stderr, "Error searching cell\n");
+    exit(-1);
+  }
+  if (n == CS_CELL_DETECTED) {
+    if (decode_pbch(uhd, buffer, &found_cell)) {
+      fprintf(stderr, "Error decoding PBCH\n");
       exit(-1);
     }
-    if (n == CS_CELL_DETECTED) {
-      if (decode_pbch(uhd, buffer, &found_cell)) {
-        fprintf(stderr, "Error decoding PBCH\n");
-        exit(-1);
-      }
-    }    
   }
     
   ue_celldetect_free(&s);

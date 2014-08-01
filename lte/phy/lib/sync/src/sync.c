@@ -143,83 +143,43 @@ lte_cp_t sync_get_cp(sync_t *q) {
   return q->cp;
 }
 
+static lte_cp_t detect_cp(cf_t *input, uint32_t peak_pos) 
+{
+  return CPNORM;
+}
+
 int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   uint32_t m0, m1;
-  int sss_idx_n, sss_idx_e, ret;
-  float m0_value_e, m1_value_e,m0_value_n, m1_value_n;
-  uint32_t sf_idx_e, N_id_1_e, sf_idx_n, N_id_1_n;
+  int sss_idx, ret;
+  float m0_value, m1_value;
 
   sss_synch_set_N_id_2(&q->sss, q->N_id_2);
-      
-  /* Make sure we have enough room to find SSS sequence */
-  sss_idx_n = (int) peak_pos - 2*(q->fft_size + CP(q->fft_size, CPNORM_LEN));
-  sss_idx_e = (int) peak_pos - 2*(q->fft_size + CP(q->fft_size, CPEXT_LEN));
 
   if (q->detect_cp) {
-    if (sss_idx_n < 0 || sss_idx_e < 0) {
-      INFO("Not enough room to decode SSS (%d, %d)\n", sss_idx_n, sss_idx_e);
-      return LIBLTE_SUCCESS;
-    }
-  } else {
-    if (CP_ISNORM(q->cp)) {
-      if (sss_idx_n < 0) {
-        INFO("Not enough room to decode normal CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx_n, peak_pos);
-        return LIBLTE_SUCCESS;
-      }
-    } else {
-      if (sss_idx_e < 0) {
-        INFO("Not enough room to decode extended CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx_e, peak_pos);
-        return LIBLTE_SUCCESS;
-      }
-    }
+    q->cp = detect_cp(input, peak_pos);
+  }
+  
+  /* Make sure we have enough room to find SSS sequence */
+  sss_idx = (int) peak_pos - 2*(q->fft_size + CP(q->fft_size, q->cp));
+
+  if (sss_idx < 0) {
+    INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
+    return LIBLTE_SUCCESS;
   }
       
-  sf_idx_n = 0;
-  sf_idx_e = 0;
-  N_id_1_n = 0;
-  N_id_1_e = 0;
-  
   /* try Normal CP length */
-  if (q->detect_cp || CP_ISNORM(q->cp)) {
-    sss_synch_m0m1(&q->sss, &input[sss_idx_n], &m0, &m0_value_n, &m1, &m1_value_n);
+  sss_synch_m0m1(&q->sss, &input[sss_idx], &m0, &m0_value, &m1, &m1_value);
 
-    sf_idx_n = sss_synch_subframe(m0, m1);
-    ret = sss_synch_N_id_1(&q->sss, m0, m1);
-    if (ret >= 0) {
-      N_id_1_n = (uint32_t) ret;
-    } else {
-      N_id_1_n = 1000;
-    }
-  }
-
-  if (q->detect_cp || CP_ISEXT(q->cp)) {
-    /* Now try Extended CP length */
-    sss_synch_m0m1(&q->sss, &input[sss_idx_e], &m0, &m0_value_e, &m1, &m1_value_e);
-
-    sf_idx_e = sss_synch_subframe(m0, m1);
-    ret = sss_synch_N_id_1(&q->sss, m0, m1);
-    if (ret >= 0) {
-      N_id_1_e = (uint32_t) ret;
-    } else {
-      N_id_1_e = 1000;
-    }
-  }
-  
-  /* Correlation with extended CP hypoteshis is greater than with normal? */
-  if ((q->detect_cp && m0_value_e * m1_value_e > m0_value_n * m1_value_n)
-      || CP_ISEXT(q->cp)) {
-    q->cp = CPEXT;
-    q->sf_idx = sf_idx_e;
-    q->N_id_1 = N_id_1_e;
-  /* otherwise is normal CP */
+  q->sf_idx = sss_synch_subframe(m0, m1);
+  ret = sss_synch_N_id_1(&q->sss, m0, m1);
+  if (ret >= 0) {
+    q->N_id_1 = (uint32_t) ret;
   } else {
-    q->cp = CPNORM;
-    q->sf_idx = sf_idx_n;
-    q->N_id_1 = N_id_1_n;
+    q->N_id_1 = 1000;
   }
-  
-  DEBUG("SSS detected N_id_1=%d, sf_idx=%d, position=%d/%d %s CP\n",
-    q->N_id_1, q->sf_idx, sss_idx_n, sss_idx_e, CP_ISNORM(q->cp)?"Normal":"Extended");
+    
+  DEBUG("SSS detected N_id_1=%d, sf_idx=%d, %s CP\n",
+    q->N_id_1, q->sf_idx, CP_ISNORM(q->cp)?"Normal":"Extended");
 
   return 1;
 }
@@ -276,7 +236,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
           }
         } 
       } else {
-        printf("Warning: no space for CFO computation\n");
+        INFO("Warning: no space for CFO computation\n",0);
       }
       
       if (peak_position) {
