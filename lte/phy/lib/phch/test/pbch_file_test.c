@@ -117,14 +117,14 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(2 * CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+  fft_buffer = malloc(SLOT_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = malloc(2 * CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+    ce[i] = malloc(SLOT_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 
   n = filesource_read(&fsrc, input_buffer, FLEN);
 
-  lte_fft_run_sf(&fft, input_buffer, fft_buffer);
+  lte_fft_run_slot(&fft, &input_buffer[960], fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "outfft=");
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
   }
 
   /* Get channel estimates for each port */
-  chest_ce_sf(&chest, fft_buffer, ce, 0);
+  chest_ce_slot(&chest, fft_buffer, ce, 1);
 
   INFO("Decoding PBCH\n", 0);
 

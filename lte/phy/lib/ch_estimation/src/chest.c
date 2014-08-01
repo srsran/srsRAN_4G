@@ -145,7 +145,7 @@ int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32
     if (q->refsignal[port_id][nslot].nsymbols <= 2) {
       refsignal_t *r = &q->refsignal[port_id][nslot];
 
-      INFO("Estimating channel slot=%d port=%d using %d reference signals\n",
+      DEBUG("Estimating channel slot=%d port=%d using %d reference signals\n",
           nslot, port_id, r->nof_refs);
 
       for (i=0;i<r->nof_refs;i++) {
@@ -276,6 +276,7 @@ int chest_ref_LTEDL_slot_port(chest_t *q, uint32_t nslot, uint32_t port_id, lte_
   {
     ret = refsignal_init_LTEDL(&q->refsignal[port_id][nslot], port_id, nslot, cell);
     
+#ifdef VOLK_INTERP
     if (ret == LIBLTE_SUCCESS) {
       if (nslot == 0) {
         ret = interp_init(&q->interp_freq[port_id], LINEAR, q->refsignal[port_id][nslot].nof_refs/2, RE_X_RB/2);
@@ -285,6 +286,7 @@ int chest_ref_LTEDL_slot_port(chest_t *q, uint32_t nslot, uint32_t port_id, lte_
         }
       }
     }
+#endif
   }
   return ret;
 }
@@ -318,6 +320,10 @@ void chest_free(chest_t *q) {
       refsignal_free(&q->refsignal[p][n]);
     }
   }
+#ifdef VOLK_INTERP
+  interp_free(&q->interp_freq);
+  interp_free(&q->interp_time);
+#endif
   bzero(q, sizeof(chest_t));
 }
 

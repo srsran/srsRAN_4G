@@ -167,13 +167,16 @@ int main(int argc, char **argv) {
   #endif
   
   input_init();
+  
+  cell.cp = CPNORM;
+  cell.id = 1;
+  cell.nof_ports = 1;
+  cell.nof_prb = 6;
         
-  if (ue_sync_init(&s, cuhd_set_rx_srate, cuhd_recv_wrapper, uhd)) {
+  if (ue_sync_init(&s, cell, cuhd_recv_wrapper, uhd)) {
     fprintf(stderr, "Error initiating UE sync module\n");
     exit(-1);
   }
-  
-  ue_sync_pbch_enable(&s, true);
   
   signal_detected = true;
   frame_cnt = 0;
@@ -191,9 +194,8 @@ int main(int argc, char **argv) {
     if (n == 1 && ue_sync_get_sfidx(&s) == 0) {
 
       if (signal_detected) {
-        cell = ue_sync_get_cell(&s);
         pss_synch_init_fft(&pss, 
-                          SF_LEN(lte_symbol_sz(cell.nof_prb), cell.cp), 
+                          SF_LEN(lte_symbol_sz(cell.nof_prb)), 
                           lte_symbol_sz(cell.nof_prb));
         pss_synch_set_N_id_2(&pss, cell.id%3);
         

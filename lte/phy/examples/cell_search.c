@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <sys/time.h>
+
 #include <unistd.h>
 
 #include "liblte/phy/phy.h"
@@ -118,6 +119,7 @@ int main(int argc, char **argv) {
   ue_sync_t uesync; 
   void *uhd;
   cf_t *buffer; 
+  lte_cell_t cell; 
   
   if (argc < 3) {
     usage(argv[0]);
@@ -148,13 +150,12 @@ int main(int argc, char **argv) {
     cuhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
     cuhd_rx_wait_lo_locked(uhd);
         
-    if (ue_sync_init(&uesync, cuhd_set_rx_srate, cuhd_recv_wrapper, uhd)) {
+    if (ue_sync_init(&uesync, cell, cuhd_recv_wrapper, uhd)) {
       fprintf(stderr, "Error initiating UE sync\n");
       exit(-1);
     }
-    ue_sync_set_nof_pbch_decodes(&uesync, 1);
+    
     ue_sync_decode_sss_on_track(&uesync, true);
-    ue_sync_change_srate(&uesync, false);
 
     DEBUG("Starting receiver...\n",0);
     cuhd_start_rx_stream(uhd);
@@ -165,7 +166,6 @@ int main(int argc, char **argv) {
     frame_cnt = 0; 
     ret = 0;
     ue_sync_reset(&uesync);
-    agc_reset(&uesync.agc);
 
     while(frame_cnt < nof_frames_find && ret == 0) {
       ret = ue_sync_get_buffer(&uesync, &buffer);
@@ -174,8 +174,8 @@ int main(int argc, char **argv) {
         exit(-1);
       }
       frame_cnt++;
-      printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS. RSSI: %+2.2f dB...\r", freq, nof_freqs,
-                      channels[freq].id, channels[freq].fd, 20*log10f(agc_get_rssi(&uesync.agc)));fflush(stdout);
+      printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS. \r", freq, nof_freqs,
+                      channels[freq].id, channels[freq].fd);fflush(stdout);
       if (VERBOSE_ISINFO()) {
         printf("\n");
       }
@@ -185,8 +185,7 @@ int main(int argc, char **argv) {
         printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz FOUND MIB ", freq, nof_freqs,
                     channels[freq].id, channels[freq].fd);
       }
-      printf("RSSI: %+.2f dBm, CFO: %+.4f KHz\n",
-             20*log10f(agc_get_rssi(&uesync.agc)), ue_sync_get_cfo(&uesync));
+      printf("CFO: %+.4f KHz\n", ue_sync_get_cfo(&uesync));
       printf("\n");fflush(stdout); 
     }
     

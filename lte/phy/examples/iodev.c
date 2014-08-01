@@ -33,7 +33,7 @@
 #include "iodev.h"
 
 #include "liblte/phy/io/filesource.h"
-#include "liblte/phy/phch/ue_sync.h"
+#include "liblte/phy/ue/ue_sync.h"
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
 
@@ -80,8 +80,9 @@ int iodev_init(iodev_t *q, iodev_cfg_t *config, uint32_t file_sf_len) {
 
     DEBUG("Starting receiver...\n", 0);
     cuhd_start_rx_stream(q->uhd);
-        
-    ue_sync_init(&q->sframe, cuhd_set_rx_srate, cuhd_recv_wrapper, q->uhd);
+    
+    lte_cell_t cell; 
+    ue_sync_init(&q->sframe, cell, cuhd_recv_wrapper, q->uhd);
 
     // Here, the subframe length and input buffer is managed by ue_sync
     q->mode = UHD; 

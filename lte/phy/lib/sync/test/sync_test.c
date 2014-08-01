@@ -41,7 +41,7 @@ int cell_id = -1, offset = 0;
 lte_cp_t cp = CPNORM;
 uint32_t nof_prb=6; 
 
-#define FLEN  SF_LEN(fft_size, cp)
+#define FLEN  SF_LEN(fft_size)
 
 void usage(char *prog) {
   printf("Usage: %s [cpoev]\n", prog);
@@ -115,13 +115,13 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (sync_init(&sync, FLEN, fft_size, fft_size)) {
+  if (sync_init(&sync, FLEN, fft_size)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
 
   /* Set a very high threshold to make sure the correlation is ok */
-  sync_set_threshold(&sync, 0.99, 0.99);
+  sync_set_threshold(&sync, 1.4);
 
   if (cell_id == -1) {
     cid = 0;
@@ -137,6 +137,8 @@ int main(int argc, char **argv) {
     pss_generate(pss_signal, N_id_2);
     sss_generate(sss_signal0, sss_signal5, cid);
 
+    sync_set_N_id_2(&sync, N_id_2);
+    
     for (ns=0;ns<2;ns++) {
       memset(buffer, 0, sizeof(cf_t) * FLEN);
       pss_put_slot(pss_signal, buffer, nof_prb, cp);
@@ -148,8 +150,11 @@ int main(int argc, char **argv) {
       
       vec_save_file("input", fft_buffer, sizeof(cf_t) * FLEN);
 
-      sync_find(&sync, fft_buffer, &find_idx);
-      find_ns = sync_get_slot_id(&sync);
+      if (sync_find(&sync, fft_buffer, 0, &find_idx) < 0) {
+        fprintf(stderr, "Error running sync_find\n");
+        exit(-1);
+      }
+      find_ns = 2*sync_get_sf_idx(&sync);
       printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
           ns, find_ns);
       if (find_idx != offset + FLEN/2) {

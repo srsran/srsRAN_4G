@@ -453,30 +453,25 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint32_t src, uint32_t dst, ui
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mib) {
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], pbch_mib_t *mib) {
   uint32_t src, dst, nb;
   uint32_t nant_[3] = { 1, 2, 4 };
   uint32_t na, nant;
-  cf_t *slot1_symbols;
   int i;
   int nof_bits;
   cf_t *x[MAX_LAYERS];
-  cf_t *ce_slot[MAX_PORTS];
   
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (q                 != NULL &&
-      sf_symbols        != NULL && 
+      slot1_symbols        != NULL && 
       mib               != NULL)
   {
     for (i=0;i<q->cell.nof_ports;i++) {
-      if (ce[i] == NULL) {
+      if (ce_slot1[i] == NULL) {
         return LIBLTE_ERROR_INVALID_INPUTS;
-      } else {
-        ce_slot[i] = &ce[i][q->cell.nof_prb * RE_X_RB * CP_NSYMB(q->cell.cp)];
-      }
+      } 
     }
-    slot1_symbols = &sf_symbols[q->cell.nof_prb * RE_X_RB * CP_NSYMB(q->cell.cp)];
 
     /* Set pointers for layermapping & precoding */
     nof_bits = 2 * q->nof_symbols;
@@ -495,7 +490,7 @@ int pbch_decode(pbch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mi
 
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      if (q->nof_symbols != pbch_get(ce_slot[i], q->ce[i], q->cell)) {
+      if (q->nof_symbols != pbch_get(ce_slot1[i], q->ce[i], q->cell)) {
         fprintf(stderr, "There was an error getting the PBCH symbols\n");
         return LIBLTE_ERROR;
       }
@@ -508,7 +503,7 @@ int pbch_decode(pbch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mi
     for (na = 0; na < q->cell.nof_ports && !ret; na++) {
       nant = nant_[na];
 
-      INFO("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
+      DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
 
       /* in conctrol channels, only diversity is supported */
       if (nant == 1) {
@@ -554,21 +549,18 @@ int pbch_decode(pbch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], pbch_mib_t *mi
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-int pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *sf_symbols[MAX_PORTS]) {
+int pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS]) {
   int i;
   int nof_bits;
-  cf_t *slot1_symbols[MAX_PORTS];
   cf_t *x[MAX_LAYERS];
   
   if (q                 != NULL &&
       mib               != NULL)
   {
     for (i=0;i<q->cell.nof_ports;i++) {
-      if (sf_symbols[i] == NULL) {
+      if (slot1_symbols[i] == NULL) {
         return LIBLTE_ERROR_INVALID_INPUTS;
-      } else {
-        slot1_symbols[i] = &sf_symbols[i][q->cell.nof_prb * RE_X_RB * CP_NSYMB(q->cell.cp)];
-      }
+      } 
     }
     /* Set pointers for layermapping & precoding */
     nof_bits = 2 * q->nof_symbols;

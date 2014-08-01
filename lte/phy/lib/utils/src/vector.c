@@ -424,6 +424,29 @@ uint32_t vec_max_fi(float *x, uint32_t len) {
 #endif
 }
 
+
+uint32_t vec_max_abs_ci(cf_t *x, uint32_t len) {
+#ifdef HAVE_VOLK_MAX_ABS_FUNCTION
+  uint32_t target=0;
+  volk_32fc_index_max_16u(&target,x,len);
+  return target;
+
+#else
+  uint32_t i;
+  float m=-FLT_MAX;
+  uint32_t p=0;
+  float tmp;
+  for (i=0;i<len;i++) {
+    tmp = crealf(x[i])*crealf(x[i]) + cimagf(x[i])*cimagf(x[i]);
+    if (tmp>m) {
+      m=tmp;
+      p=i;
+    }
+  }
+  return p;
+#endif
+}
+
 void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len) {
   int i;
   int tmp;

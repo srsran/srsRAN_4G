@@ -19,6 +19,15 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+########################################################################
+# PROGRAM TO DEBUG PSS FROM USRP  
+########################################################################
+
+LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
+IF(${CUHD_FIND} GREATER -1)
+  ADD_EXECUTABLE(pss_usrp pss_usrp.c)
+  TARGET_LINK_LIBRARIES(pss_usrp lte_phy cuhd)
+ENDIF(${CUHD_FIND} GREATER -1)
 
 ########################################################################
 # SYNC TEST  
@@ -27,15 +36,15 @@
 ADD_EXECUTABLE(sync_test sync_test.c)
 TARGET_LINK_LIBRARIES(sync_test lte_phy)
 
-ADD_TEST(sync_test_100 sync_test -o 100) 
-ADD_TEST(sync_test_400 sync_test -o 400) 
-ADD_TEST(sync_test_100_e sync_test -o 100 -e) 
-ADD_TEST(sync_test_400_e sync_test -o 400 -e) 
+ADD_TEST(sync_test_100 sync_test -o 100 -c 501) 
+ADD_TEST(sync_test_400 sync_test -o 400 -c 2) 
+ADD_TEST(sync_test_100_e sync_test -o 100 -e -c 150) 
+ADD_TEST(sync_test_400_e sync_test -o 400 -e -c 151) 
 
-ADD_TEST(sync_test_100 sync_test -o 100 -p 50) 
-ADD_TEST(sync_test_400 sync_test -o 400 -p 50) 
-ADD_TEST(sync_test_100_e sync_test -o 100 -e -p 50) 
-ADD_TEST(sync_test_400_e sync_test -o 400 -e -p 50) 
+ADD_TEST(sync_test_100 sync_test -o 100 -p 50 -c 501) 
+ADD_TEST(sync_test_400 sync_test -o 400 -p 50 -c 500) 
+ADD_TEST(sync_test_100_e sync_test -o 100 -e -p 50 -c 133) 
+ADD_TEST(sync_test_400_e sync_test -o 400 -e -p 50 -c 123) 
 
 ########################################################################
 # CFO TEST  

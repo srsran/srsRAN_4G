@@ -92,8 +92,11 @@
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/phch/pcfich.h"
 #include "liblte/phy/phch/phich.h"
-#include "liblte/phy/phch/ue_sync.h"
-#include "liblte/phy/phch/ue_dl.h"
+      
+#include "liblte/phy/ue/ue_sync.h"
+#include "liblte/phy/ue/ue_mib.h"
+#include "liblte/phy/ue/ue_cellsearch.h"
+#include "liblte/phy/ue/ue_dl.h"
 
 #include "liblte/phy/scrambling/scrambling.h"
 

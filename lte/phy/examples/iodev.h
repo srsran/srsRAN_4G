@@ -30,7 +30,7 @@
 
 #include "liblte/config.h"
 
-#include "liblte/phy/phch/ue_sync.h"
+#include "liblte/phy/ue/ue_sync.h"
 #include "liblte/phy/io/filesource.h"
 
 #ifndef DISABLE_UHD

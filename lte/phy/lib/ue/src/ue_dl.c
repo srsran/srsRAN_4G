@@ -25,7 +25,7 @@
  *
  */
 
-#include "liblte/phy/phch/ue_dl.h"
+#include "liblte/phy/ue/ue_dl.h"
 
 
 #define EXPAVERAGE(data, average, nframes) ((data + average * nframes) / (nframes + 1))  

@@ -99,6 +99,7 @@ LIBLTE_API float vec_avg_power_cf(cf_t *x, uint32_t len);
 
 /* return the index of the maximum value in the vector */
 LIBLTE_API uint32_t vec_max_fi(float *x, uint32_t len);
+LIBLTE_API uint32_t vec_max_abs_ci(cf_t *x, uint32_t len);
 
 /* quantify vector of floats and convert to unsigned char */
 LIBLTE_API void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len);

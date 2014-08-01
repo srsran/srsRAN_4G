@@ -89,13 +89,13 @@ LIBLTE_API int pbch_init(pbch_t *q,
 
 LIBLTE_API void pbch_free(pbch_t *q);
 LIBLTE_API int pbch_decode(pbch_t *q, 
-                           cf_t *sf_symbols, 
-                           cf_t *ce[MAX_PORTS], 
+                           cf_t *slot1_symbols, 
+                           cf_t *ce_slot1[MAX_PORTS], 
                            pbch_mib_t *mib);
 
 LIBLTE_API int pbch_encode(pbch_t *q, 
                             pbch_mib_t *mib, 
-                            cf_t *sf_symbols[MAX_PORTS]);
+                            cf_t *slot1_symbols[MAX_PORTS]);
 
 LIBLTE_API void pbch_decode_reset(pbch_t *q);
 

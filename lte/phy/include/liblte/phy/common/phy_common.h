@@ -82,17 +82,12 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define CP_NORM(symbol, symbol_sz) (symbol==0)?CP(symbol_sz,CPNORM_0_LEN):CP(symbol_sz,CPNORM_LEN)
 #define CP_EXT(symbol_sz) CP(symbol_sz,CPEXT_LEN)
 
-#define SLOT_LEN_CPNORM(symbol_sz) (symbol_sz+CP(symbol_sz,CPNORM_0_LEN)+(CPNORM_NSYMB-1)*(symbol_sz+CP(symbol_sz,CPNORM_LEN)))
-#define SLOT_LEN_CPEXT(symbol_sz) (CPEXT_NSYMB*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
-#define SLOT_LEN(symbol_sz, cp) (CP_ISNORM(cp)?SLOT_LEN_CPNORM(symbol_sz):SLOT_LEN_CPEXT(symbol_sz))
+#define SLOT_LEN(symbol_sz)     (480*((symbol_sz)/64))
+#define SF_LEN(symbol_sz)       (2*SLOT_LEN(symbol_sz))
+#define SF_LEN_MAX              SF_LEN(SYMBOL_SZ_MAX)
 
-#define SF_LEN_CPNORM(symbol_sz) (2*SLOT_LEN_CPNORM(symbol_sz))
-#define SF_LEN_CPEXT(symbol_sz) (2*SLOT_LEN_CPEXT(symbol_sz))
-#define SF_LEN(symbol_sz, cp) (2*SLOT_LEN(symbol_sz, cp))
-#define SF_LEN_MAX      SF_LEN(SYMBOL_SZ_MAX, CPNORM)
-
-#define SLOT_LEN_RE(nof_prb, cp) (nof_prb*RE_X_RB*CP_NSYMB(cp))
-#define SF_LEN_RE(nof_prb, cp) (2*SLOT_LEN_RE(nof_prb, cp))
+#define SLOT_LEN_RE(nof_prb, cp)        (nof_prb*RE_X_RB*CP_NSYMB(cp))
+#define SF_LEN_RE(nof_prb, cp)          (2*SLOT_LEN_RE(nof_prb, cp))
 
 #define SLOT_IDX_CPNORM(idx, symbol_sz) (idx==0?(CP(symbol_sz, CPNORM_0_LEN)):(CP(symbol_sz, CPNORM_0_LEN)+idx*(symbol_sz+CP(symbol_sz, CPNORM_LEN))))
 #define SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))

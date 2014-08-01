@@ -144,7 +144,7 @@ int base_init() {
     fmatlab = NULL;
   }
 
-  flen = SLOT_LEN(lte_symbol_sz(cell.nof_prb), cell.cp);
+  flen = SLOT_LEN(lte_symbol_sz(cell.nof_prb));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {

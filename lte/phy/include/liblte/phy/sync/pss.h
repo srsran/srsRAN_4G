@@ -72,7 +72,6 @@ typedef struct LIBLTE_API {
 
   cf_t *pss_signal_freq[3]; // One sequence for each N_id_2
   cf_t *tmp_input;
-  float *conv_real;
   cf_t *conv_output;
     
 }pss_synch_t;
