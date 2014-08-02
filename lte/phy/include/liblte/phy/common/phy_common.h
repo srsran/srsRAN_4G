@@ -65,12 +65,12 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define SYMBOL_SZ_MAX   2048
 
 #define CPNORM_NSYMB    7
-#define CPNORM_SF_NSYMB 2*CPNORM_NSYMB
+#define CPNORM_SF_NSYMB (2*CPNORM_NSYMB)
 #define CPNORM_0_LEN    160
 #define CPNORM_LEN      144
 
 #define CPEXT_NSYMB     6
-#define CPEXT_SF_NSYMB  2*CPEXT_NSYMB
+#define CPEXT_SF_NSYMB  (2*CPEXT_NSYMB)
 #define CPEXT_LEN       512
 #define CPEXT_7_5_LEN   1024
 
@@ -78,13 +78,13 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define CP_ISEXT(cp) (cp==CPEXT)
 #define CP_NSYMB(cp) (CP_ISNORM(cp)?CPNORM_NSYMB:CPEXT_NSYMB)
 
-#define CP(symbol_sz, c) (c*symbol_sz/2048)
-#define CP_NORM(symbol, symbol_sz) (symbol==0)?CP(symbol_sz,CPNORM_0_LEN):CP(symbol_sz,CPNORM_LEN)
-#define CP_EXT(symbol_sz) CP(symbol_sz,CPEXT_LEN)
+#define CP(symbol_sz, c) ((c*symbol_sz)/2048)
+#define CP_NORM(symbol, symbol_sz) ((symbol==0)?CP((symbol_sz),CPNORM_0_LEN):CP((symbol_sz),CPNORM_LEN))
+#define CP_EXT(symbol_sz) (CP((symbol_sz),CPEXT_LEN))
 
 #define SLOT_LEN(symbol_sz)     (480*((symbol_sz)/64))
 #define SF_LEN(symbol_sz)       (2*SLOT_LEN(symbol_sz))
-#define SF_LEN_MAX              SF_LEN(SYMBOL_SZ_MAX)
+#define SF_LEN_MAX              (SF_LEN(SYMBOL_SZ_MAX))
 
 #define SLOT_LEN_RE(nof_prb, cp)        (nof_prb*RE_X_RB*CP_NSYMB(cp))
 #define SF_LEN_RE(nof_prb, cp)          (2*SLOT_LEN_RE(nof_prb, cp))

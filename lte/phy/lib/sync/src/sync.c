@@ -143,9 +143,41 @@ lte_cp_t sync_get_cp(sync_t *q) {
   return q->cp;
 }
 
-static lte_cp_t detect_cp(cf_t *input, uint32_t peak_pos) 
+/* CP detection algorithm taken from: 
+ * "SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver"
+ * by Jung-In Kim et al. 
+ */
+static lte_cp_t detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos) 
 {
-  return CPNORM;
+  float R_norm, R_ext, C_norm, C_ext; 
+  float M_norm, M_ext; 
+  
+  R_norm = crealf(vec_dot_prod_conj_ccc(&input[peak_pos-q->fft_size-CP_NORM(7, q->fft_size)], 
+                                        &input[peak_pos-CP_NORM(7, q->fft_size)], 
+                                        CP_NORM(7, q->fft_size)));    
+  C_norm = cabsf(vec_dot_prod_conj_ccc(&input[peak_pos-q->fft_size-CP_NORM(7, q->fft_size)], 
+                                       &input[peak_pos-q->fft_size-CP_NORM(7, q->fft_size)], 
+                                       CP_NORM(7, q->fft_size)));
+  R_ext  = crealf(vec_dot_prod_conj_ccc(&input[peak_pos-q->fft_size-CP_EXT(q->fft_size)], 
+                                        &input[peak_pos-CP_EXT(q->fft_size)], 
+                                        CP_EXT(q->fft_size)));
+  C_ext  = cabsf(vec_dot_prod_conj_ccc(&input[peak_pos-q->fft_size-CP_EXT(q->fft_size)], 
+                                       &input[peak_pos-q->fft_size-CP_EXT(q->fft_size)], 
+                                       CP_EXT(q->fft_size)));
+  M_norm = R_norm/C_norm;
+  M_ext = R_ext/C_ext;
+
+  if (M_norm > M_ext) {
+    return CPNORM;    
+  } else if (M_norm < M_ext) {
+    return CPEXT;
+  } else {
+    if (R_norm > R_ext) {
+      return CPNORM;
+    } else {
+      return CPEXT;
+    }
+  }
 }
 
 int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
@@ -156,7 +188,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   sss_synch_set_N_id_2(&q->sss, q->N_id_2);
 
   if (q->detect_cp) {
-    q->cp = detect_cp(input, peak_pos);
+    q->cp = detect_cp(q, input, peak_pos);
   }
   
   /* Make sure we have enough room to find SSS sequence */
@@ -184,7 +216,8 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   return 1;
 }
 
-int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_position) {
+int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_position) 
+{
   
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
   

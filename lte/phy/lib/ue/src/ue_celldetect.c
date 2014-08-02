@@ -211,7 +211,7 @@ int ue_celldetect_scan(ue_celldetect_t * q,
     for (uint32_t nf=0;nf<nof_input_frames;nf++) {
       sync_set_N_id_2(&q->sfind, q->current_N_id_2);
 
-      DEBUG("[%3d/%3d]: Searching cells with N_id_2=%d. %d frames\n", 
+      printf("[%3d/%3d]: Searching cells with N_id_2=%d. %d frames\n", 
            q->current_nof_detected, q->current_nof_total, q->current_N_id_2, nof_input_frames);
 
       /* Find peak and cell id */
