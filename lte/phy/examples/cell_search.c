@@ -53,7 +53,7 @@ int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 int nof_frames_total = 50;
 int nof_frames_detected = 10;
-float threshold = -1; 
+float threshold = CS_FIND_THRESHOLD; 
 
 
 float uhd_gain = 60.0;
@@ -171,7 +171,7 @@ int decode_pbch(void *uhd, cf_t *buffer, ue_celldetect_result_t *found_cell)
   return LIBLTE_SUCCESS; 
 }
 
-int find_cell(void *uhd, ue_celldetect_t *s, cf_t *buffer, ue_celldetect_result_t *found_cell) 
+int find_cell(void *uhd, ue_celldetect_t *s, cf_t *buffer, ue_celldetect_result_t found_cell[3]) 
 {  
   int n; 
 
@@ -190,7 +190,7 @@ int find_cell(void *uhd, ue_celldetect_t *s, cf_t *buffer, ue_celldetect_result_
       return LIBLTE_ERROR;
     }
     
-    n = ue_celldetect_scan(s, buffer, flen, found_cell);
+    n = ue_celldetect_scan(s, buffer, flen, &found_cell[nof_scanned_cells]);
     switch(n) {
       case CS_FRAME_UNALIGNED:
         printf("Realigning frame\n");
@@ -200,10 +200,12 @@ int find_cell(void *uhd, ue_celldetect_t *s, cf_t *buffer, ue_celldetect_result_
         }
         return LIBLTE_ERROR; 
       case CS_CELL_DETECTED:
-        if (found_cell->peak > 0) {
+        if (found_cell[nof_scanned_cells].peak > 0) {
           printf("\n\tCELL ID: %d, CP: %s, Peak: %.2f, Mode: %d/%d\n", 
-                found_cell->cell_id, lte_cp_string(found_cell->cp), 
-                found_cell->peak, found_cell->mode, s->nof_frames_detected);                      
+                found_cell[nof_scanned_cells].cell_id, 
+                lte_cp_string(found_cell[nof_scanned_cells].cp), 
+                found_cell[nof_scanned_cells].peak, found_cell[nof_scanned_cells].mode, 
+                s->nof_frames_detected);                      
         }
         
         nof_scanned_cells++;
@@ -216,7 +218,7 @@ int find_cell(void *uhd, ue_celldetect_t *s, cf_t *buffer, ue_celldetect_result_
         fprintf(stderr, "Error calling cellsearch_scan()\n");
         return LIBLTE_ERROR;         
     }
-  } while(nof_scanned_cells < 3 && n != CS_CELL_DETECTED);
+  } while(nof_scanned_cells < 3);
 
   INFO("Stopping receiver...\n", 0);
   cuhd_stop_rx_stream(uhd); 
@@ -229,7 +231,7 @@ int main(int argc, char **argv) {
   int n; 
   void *uhd;
   ue_celldetect_t s;
-  ue_celldetect_result_t found_cell; 
+  ue_celldetect_result_t found_cells[3]; 
   cf_t *buffer; 
   int nof_freqs; 
   lte_earfcn_t channels[MAX_EARFCN];
@@ -286,15 +288,19 @@ int main(int argc, char **argv) {
       printf("\n");
     }
     
-    n = find_cell(uhd, &s, buffer, &found_cell);
+    n = find_cell(uhd, &s, buffer, found_cells);
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
     }
     if (n == CS_CELL_DETECTED) {
-      if (decode_pbch(uhd, buffer, &found_cell)) {
-        fprintf(stderr, "Error decoding PBCH\n");
-        exit(-1);
+      for (int i=0;i<3;i++) {
+        if (found_cells[i].peak > threshold/2) {
+          if (decode_pbch(uhd, buffer, &found_cells[i])) {
+            fprintf(stderr, "Error decoding PBCH\n");
+            exit(-1);
+          }          
+        }
       }
     }    
   }

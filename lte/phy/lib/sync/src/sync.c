@@ -280,8 +280,8 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       ret = LIBLTE_SUCCESS;
     }
 
-    INFO("SYNC ret=%d pos=%d peak=%.2f energy=%.3f threshold=%.2f sf_idx=%d\n",
-          ret, peak_pos, q->peak_value, energy, q->threshold, q->sf_idx);
+    INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f energy=%.3f threshold=%.2f sf_idx=%d\n",
+          ret, q->N_id_2, peak_pos, q->peak_value, energy, q->threshold, q->sf_idx);
 
   } else if (lte_N_id_2_isvalid(q->N_id_2)) {
     fprintf(stderr, "Must call sync_set_N_id_2() first!\n");
