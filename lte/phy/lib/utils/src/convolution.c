@@ -53,6 +53,9 @@ int conv_fft_cc_init(conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) 
   if (dft_plan(&q->output_plan,q->output_len,BACKWARD,COMPLEX)) {
     return LIBLTE_ERROR;
   }
+  dft_plan_set_norm(&q->input_plan, true);
+  dft_plan_set_norm(&q->filter_plan, true);
+  dft_plan_set_norm(&q->output_plan, false);
   return LIBLTE_SUCCESS;
 }
 
@@ -80,7 +83,7 @@ uint32_t conv_fft_cc_run(conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *outp
 
   dft_run_c(&q->output_plan, q->output_fft, output);
 
-  return q->output_len;
+  return q->output_len-1;
 
 }
 

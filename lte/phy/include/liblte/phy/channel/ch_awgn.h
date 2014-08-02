@@ -27,6 +27,8 @@
 
 
 #include <complex.h>
+#include <stdint.h>
+
 #include "liblte/config.h"
 
 #ifndef CH_AWGN_
@@ -37,13 +39,15 @@ typedef _Complex float cf_t;
 LIBLTE_API void ch_awgn_c(const cf_t* input, 
                           cf_t* output, 
                           float variance, 
-                          int buff_sz);
+                          uint32_t len);
 
 LIBLTE_API void ch_awgn_f(const float* x, 
                           float* y, 
                           float variance, 
-                          int buff_sz);
+                          uint32_t len);
 
+LIBLTE_API float ch_awgn_get_variance(float ebno_db, 
+                                      float rate);
 
 /* High-level API */
 

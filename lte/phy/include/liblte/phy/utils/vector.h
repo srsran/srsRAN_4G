@@ -35,6 +35,9 @@
 
 typedef _Complex float cf_t;
 
+#define EXPAVERAGE(data, average, nframes) ((data + average * nframes) / (nframes + 1))  
+
+
 /** Return the sum of all the elements */
 LIBLTE_API int vec_acc_ii(int *x, uint32_t len);
 LIBLTE_API float vec_acc_ff(float *x, uint32_t len);
@@ -69,6 +72,7 @@ LIBLTE_API void vec_sc_prod_fff(float *x, float h, float *z, uint32_t len);
 LIBLTE_API void vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len);
 
 LIBLTE_API void vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len); 
+LIBLTE_API void vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len);
 
 /* vector product (element-wise) */
 LIBLTE_API void vec_prod_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
@@ -95,6 +99,7 @@ LIBLTE_API float vec_avg_power_cf(cf_t *x, uint32_t len);
 
 /* return the index of the maximum value in the vector */
 LIBLTE_API uint32_t vec_max_fi(float *x, uint32_t len);
+LIBLTE_API uint32_t vec_max_abs_ci(cf_t *x, uint32_t len);
 
 /* quantify vector of floats and convert to unsigned char */
 LIBLTE_API void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len);

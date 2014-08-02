@@ -95,6 +95,15 @@ int cuhd_stop_rx_stream(void *h)
   return 0;
 }
 
+void cuhd_flush_buffer(void *h)
+{
+  int n; 
+  _Complex float tmp[1024];
+  do {
+    n = cuhd_recv(h, tmp, 1024, 0);
+  } while (n > 0);  
+}
+
 int cuhd_start_rx_stream_nsamples(void *h, uint32_t nsamples)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
@@ -112,6 +121,7 @@ int cuhd_open(char *args, void **h)
   std::string _args = std::string(args);
   handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000" + ", num_recv_frames=512");
 
+//  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=50000000" + ", num_recv_frames=512");
   handler->usrp->set_clock_source("internal");
 
   std::string otw, cpu;

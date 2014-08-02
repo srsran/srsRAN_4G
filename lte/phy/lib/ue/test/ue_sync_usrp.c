@@ -49,16 +49,19 @@ plot_real_t poutfft;
 
 int nof_frames = -1;
 float threshold = -1.0; 
+int N_id_2 = -1;
+uint32_t nof_prb = 6; 
 
 float uhd_freq = 0.0, uhd_gain = 20.0;
 char *uhd_args = "";
 int disable_plots = 0;
 
 void usage(char *prog) {
-  printf("Usage: %s [agntdv] -f uhd_freq\n", prog);
+  printf("Usage: %s [agntdpv] -f uhd_freq -i N_id_2\n", prog);
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", uhd_gain);
   printf("\t-n nof_frames [Default infinite]\n");
+  printf("\t-p nof_prb [Default %d]\n", nof_prb);
   printf("\t-t threshold [Default %.2f]\n",threshold);
   
 #ifndef DISABLE_GRAPHICS
@@ -69,8 +72,14 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "agntdvf")) != -1) {
+  while ((opt = getopt(argc, argv, "agntdvfip")) != -1) {
     switch (opt) {
+    case 'i':
+      N_id_2 = atoi(argv[optind]);
+      break;
+    case 'p':
+      nof_prb = atoi(argv[optind]);
+      break;
     case 'n':
       nof_frames = atoi(argv[optind]);
       break;
@@ -97,7 +106,7 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-  if (uhd_freq == 0.0) {
+  if (uhd_freq == 0.0 || N_id_2 == -1) {
     usage(argv[0]);
     exit(-1);
   }
@@ -117,6 +126,12 @@ void input_init() {
   cuhd_rx_wait_lo_locked(uhd);
   DEBUG("Set uhd_freq to %.3f MHz\n", (double ) uhd_freq/1000000);
 
+  int srate = lte_sampling_freq_hz(nof_prb);
+  if (srate > 0) {
+    cuhd_set_rx_srate(uhd, (double) srate);    
+  } else {
+    fprintf(stderr, "Error invalid nof_prb=%d\n",nof_prb);
+  }
   DEBUG("Starting receiver...\n", 0);
   cuhd_start_rx_stream(uhd);
 
@@ -152,7 +167,6 @@ int main(int argc, char **argv) {
   float peak;
   struct timeval t[3];
   float mean_ce_time=0;
-  bool signal_detected; 
   lte_fft_t fft; 
   lte_cell_t cell; 
   
@@ -167,15 +181,28 @@ int main(int argc, char **argv) {
   #endif
   
   input_init();
+  
+  cell.cp = CPNORM;
+  cell.id = N_id_2;
+  cell.nof_ports = 1;
+  cell.nof_prb = nof_prb;
         
-  if (ue_sync_init(&s, cuhd_set_rx_srate, cuhd_recv_wrapper, uhd)) {
+  if (ue_sync_init(&s, cell, cuhd_recv_wrapper, uhd)) {
     fprintf(stderr, "Error initiating UE sync module\n");
     exit(-1);
   }
-  
-  ue_sync_pbch_enable(&s, true);
-  
-  signal_detected = true;
+
+  pss_synch_init_fft(&pss, 
+                    SF_LEN(lte_symbol_sz(cell.nof_prb)), 
+                    lte_symbol_sz(cell.nof_prb));
+  pss_synch_set_N_id_2(&pss, cell.id%3);
+  sf_symbols = vec_malloc(SLOT_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  if (!sf_symbols) {
+    perror("malloc");
+    exit(-1);
+  }
+  lte_fft_init(&fft, cell.cp, cell.nof_prb);
+
   frame_cnt = 0;
   mean_ce_time=0;
   uint32_t valid_frames=0;
@@ -190,22 +217,6 @@ int main(int argc, char **argv) {
     
     if (n == 1 && ue_sync_get_sfidx(&s) == 0) {
 
-      if (signal_detected) {
-        cell = ue_sync_get_cell(&s);
-        pss_synch_init_fft(&pss, 
-                          SF_LEN(lte_symbol_sz(cell.nof_prb), cell.cp), 
-                          lte_symbol_sz(cell.nof_prb));
-        pss_synch_set_N_id_2(&pss, cell.id%3);
-        
-        sf_symbols = vec_malloc(SLOT_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
-        if (!sf_symbols) {
-          perror("malloc");
-          exit(-1);
-        }
-        lte_fft_init(&fft, cell.cp, cell.nof_prb);
-        signal_detected = false; 
-      }
-      
       mean_ce_time = (float) (mean_ce_time + (float) t[0].tv_usec * valid_frames) / (valid_frames+1);
       valid_frames++;
       
@@ -227,13 +238,9 @@ int main(int argc, char **argv) {
       }
     #endif
       
-      pos = pss_synch_find_pss(&pss, input_buffer, &peak, NULL);      
-      /*if (pos > 962 || pos < 958) {
-        unaligned++;
-      }
-      */
+      pos = pss_synch_find_pss(&pss, input_buffer, &peak);      
       printf("CELL_ID: %3d CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Exec: %3.2f\r",
-              cell.id, ue_sync_get_cfo(&s)/1000, ue_sync_get_sfo(&s)/1000, pos, 
+              sync_get_cell_id(&s.sfind), ue_sync_get_cfo(&s)/1000, ue_sync_get_sfo(&s)/1000, pos, 
              s.mean_exec_time);
           fflush(stdout);
       if (VERBOSE_ISINFO()) {

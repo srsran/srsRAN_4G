@@ -155,6 +155,17 @@ void vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len) {
 #endif 
 }
 
+void vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
+#ifdef HAVE_VOLK_DEINTERLEAVE_REAL_FUNCTION
+  volk_32fc_deinterleave_real_32f(real, x, len);
+#else 
+  int i;
+  for (i=0;i<len;i++) {
+    real[i] = __real__ x[i];
+  }
+#endif  
+}
+
 void *vec_malloc(uint32_t size) {
 #ifndef HAVE_VOLK
   return malloc(size);
@@ -406,6 +417,29 @@ uint32_t vec_max_fi(float *x, uint32_t len) {
   for (i=0;i<len;i++) {
     if (x[i]>m) {
       m=x[i];
+      p=i;
+    }
+  }
+  return p;
+#endif
+}
+
+
+uint32_t vec_max_abs_ci(cf_t *x, uint32_t len) {
+#ifdef HAVE_VOLK_MAX_ABS_FUNCTION
+  uint32_t target=0;
+  volk_32fc_index_max_16u(&target,x,len);
+  return target;
+
+#else
+  uint32_t i;
+  float m=-FLT_MAX;
+  uint32_t p=0;
+  float tmp;
+  for (i=0;i<len;i++) {
+    tmp = crealf(x[i])*crealf(x[i]) + cimagf(x[i])*cimagf(x[i]);
+    if (tmp>m) {
+      m=tmp;
       p=i;
     }
   }

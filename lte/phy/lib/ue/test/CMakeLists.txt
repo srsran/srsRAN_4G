@@ -20,29 +20,22 @@
 #
 
 ########################################################################
-# MODEM TEST  
+# UE SYNC TEST (Only compiled if CUHD is available)
 ########################################################################
+LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
+LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
 
-ADD_EXECUTABLE(modem_test modem_test.c)
-TARGET_LINK_LIBRARIES(modem_test lte_phy)
+IF(${CUHD_FIND} GREATER -1)
+  ADD_EXECUTABLE(ue_sync_usrp ue_sync_usrp.c)
+  TARGET_LINK_LIBRARIES(ue_sync_usrp lte_phy cuhd)
 
-ADD_TEST(modem_bpsk modem_test -n 1020 -m 1) 
-ADD_TEST(modem_qpsk modem_test -n 1020 -m 2)
-ADD_TEST(modem_qam16 modem_test -n 1020 -m 4)
-ADD_TEST(modem_qam64 modem_test -n 1020 -m 6)
+  ADD_EXECUTABLE(ue_celldetect_mib_test ue_celldetect_mib_test.c)
+  TARGET_LINK_LIBRARIES(ue_celldetect_mib_test lte_phy cuhd)
+ENDIF(${CUHD_FIND} GREATER -1)
 
-ADD_TEST(modem_bpsk_soft modem_test -n 1020 -m 1 -s) 
-ADD_TEST(modem_qpsk_soft modem_test -n 1020 -m 2 -s)
-ADD_TEST(modem_qam16_soft modem_test -n 1020 -m 4 -s)
-ADD_TEST(modem_qam64_soft modem_test -n 1020 -m 6 -s)
- 
-ADD_EXECUTABLE(soft_demod_test soft_demod_test.c)
-TARGET_LINK_LIBRARIES(soft_demod_test lte_phy)
-
-ADD_TEST(modem_bpsk_soft_approx soft_demod_test -n 1020 -m 1) 
-ADD_TEST(modem_qpsk_soft_approx soft_demod_test -n 1020 -m 2)
-ADD_TEST(modem_qam16_soft_approx soft_demod_test -n 1020 -m 4)
-ADD_TEST(modem_qam64_soft_approx soft_demod_test -n 1020 -m 6)
- 
-
+IF(${GRAPHICS_FIND} EQUAL -1)
+  SET_TARGET_PROPERTIES(ue_sync_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
+ELSE(${GRAPHICS_FIND} EQUAL -1)
+  target_link_libraries(ue_sync_usrp graphics)
+ENDIF(${GRAPHICS_FIND} EQUAL -1)
 

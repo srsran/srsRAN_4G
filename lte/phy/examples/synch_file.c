@@ -109,7 +109,6 @@ int main(int argc, char **argv) {
   int peak_pos[3];
   float *cfo;
   float peak_value[3];
-  float mean_value[3];
   int frame_cnt;
   cf_t *input;
   uint32_t m0, m1;
@@ -201,10 +200,10 @@ int main(int argc, char **argv) {
 
     if (force_N_id_2 != -1) {
       N_id_2 = force_N_id_2;
-      peak_pos[N_id_2] = pss_synch_find_pss(&pss[N_id_2], input, &peak_value[N_id_2], &mean_value[N_id_2]);
+      peak_pos[N_id_2] = pss_synch_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
     } else {
       for (N_id_2=0;N_id_2<3;N_id_2++) {
-        peak_pos[N_id_2] = pss_synch_find_pss(&pss[N_id_2], input, &peak_value[N_id_2], &mean_value[N_id_2]);
+        peak_pos[N_id_2] = pss_synch_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
       }
       float max_value=-99999;
       N_id_2=-1;
@@ -218,7 +217,7 @@ int main(int argc, char **argv) {
     }
 
     /* If peak detected */
-    if (peak_value[N_id_2]/mean_value[N_id_2] > corr_peak_threshold) {
+    if (peak_value[N_id_2] > corr_peak_threshold) {
 
       sss_idx = peak_pos[N_id_2]-2*(symbol_sz+CP(symbol_sz,CPNORM_LEN));
       if (sss_idx >= 0) {
@@ -228,7 +227,7 @@ int main(int argc, char **argv) {
         cfo[frame_cnt] = pss_synch_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2]-128]);
         printf("\t%d\t%d\t%d\t%d\t%.3f\t\t%3d\t%d\t%d\t%.3f\n",
             frame_cnt,N_id_2, sss_synch_N_id_1(&sss[N_id_2], m0, m1),
-            sss_synch_subframe(m0, m1), peak_value[N_id_2]/mean_value[N_id_2],
+            sss_synch_subframe(m0, m1), peak_value[N_id_2],
             peak_pos[N_id_2], m0, m1,
             cfo[frame_cnt]);
       }

@@ -25,8 +25,10 @@
  *
  */
 
-#include "liblte/phy/phch/ue_dl.h"
+#include "liblte/phy/ue/ue_dl.h"
 
+#include <complex.h>
+#include <math.h>
 
 #define EXPAVERAGE(data, average, nframes) ((data + average * nframes) / (nframes + 1))  
 
@@ -54,6 +56,8 @@ int ue_dl_init(ue_dl_t *q,
     q->pkt_errors = 0;
     q->pkts_total = 0; 
     q->nof_trials = 0;
+    q->sfn = 0; 
+    q->pbch_decoded = false; 
     
     if (lte_fft_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -67,7 +71,10 @@ int ue_dl_init(ue_dl_t *q,
       fprintf(stderr, "Error initiating REGs\n");
       goto clean_exit;
     }
-
+    if (pbch_init(&q->pbch, q->cell)) {
+      fprintf(stderr, "Error creating PBCH object\n");
+      goto clean_exit; 
+    }
     if (pcfich_init(&q->pcfich, &q->regs, q->cell)) {
       fprintf(stderr, "Error creating PCFICH object\n");
       goto clean_exit;
@@ -119,6 +126,7 @@ void ue_dl_free(ue_dl_t *q) {
     lte_fft_free(&q->fft);
     chest_free(&q->chest);
     regs_free(&q->regs);
+    pbch_free(&q->pbch);
     pcfich_free(&q->pcfich);
     pdcch_free(&q->pdcch);
     pdsch_free(&q->pdsch);
@@ -136,7 +144,10 @@ void ue_dl_free(ue_dl_t *q) {
   }
 }
 
-int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t sfn, uint16_t rnti) 
+LIBLTE_API float mean_exec_time=0; 
+int frame_cnt=0;
+
+int ue_dl_decode(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint16_t rnti) 
 {
   uint32_t cfi, cfi_distance, i;
   ra_pdsch_t ra_dl;
@@ -145,18 +156,48 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
   uint32_t nof_locations;
   uint16_t crc_rem; 
   dci_format_t format; 
+  pbch_mib_t mib; 
   int ret = LIBLTE_ERROR; 
-  
-  /* If we are looking for SI Blocks, search only in appropiate places */
-  if ((rnti == SIRNTI && (sfn % 2) == 0 && sf_idx == 5) ||
-       rnti != SIRNTI)
-  {
-    
-    /* Run FFT for all subframe data */
-    lte_fft_run_sf(&q->fft, input, q->sf_symbols);
+  cf_t *ce_slot1[MAX_PORTS];
+  struct timeval t[3]; 
 
-    /* Get channel estimates for each port */
-    chest_ce_sf(&q->chest, q->sf_symbols, q->ce, sf_idx);
+  /* Run FFT for all subframe data */
+  lte_fft_run_sf(&q->fft, input, q->sf_symbols);
+
+  gettimeofday(&t[1], NULL);
+
+  /* Get channel estimates for each port */
+  chest_ce_sf(&q->chest, q->sf_symbols, q->ce, sf_idx);
+ 
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  mean_exec_time = (float) EXPAVERAGE((float) t[0].tv_usec, mean_exec_time, frame_cnt);
+  frame_cnt++;
+  
+  for (int i=0;i<MAX_PORTS;i++) {
+    ce_slot1[i] = &q->ce[i][SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
+  }
+
+  /* Decode PBCH if not yet decoded to obtain the System Frame Number (SFN) */
+  if (sf_idx == 0) {
+    // FIXME: There is no need to do this every frame!
+    pbch_decode_reset(&q->pbch);
+    if (pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)], ce_slot1, &mib) == 1) {
+      q->sfn = mib.sfn;
+      q->pbch_decoded = true;
+      INFO("Decoded SFN: %d\n", q->sfn);
+    } else {
+      INFO("Not decoded MIB (SFN: %d)\n", q->sfn);
+      q->sfn++; 
+      if (q->sfn == 1024) {
+        q->sfn = 0; 
+      }
+    }
+  }
+  /* If we are looking for SI Blocks, search only in appropiate places */
+  if (((rnti == SIRNTI && (q->sfn % 2) == 0 && sf_idx == 5) ||
+       rnti != SIRNTI))
+  {
     
     /* First decode PCFICH and obtain CFI */
     if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, sf_idx, &cfi, &cfi_distance)<0) {
@@ -180,6 +221,7 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
       format = Format1;
     }
 
+
     crc_rem = 0;
     for (i=0;i<nof_locations && crc_rem != rnti;i++) {
       if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, locations[i], sf_idx, cfi)) {
@@ -192,8 +234,7 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
       }
       INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
     }
-
-    
+      
     if (crc_rem == rnti) {
       if (dci_msg_to_ra_dl(&dci_msg, rnti, q->user_rnti, q->cell, cfi, &ra_dl)) {
         fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
@@ -202,7 +243,7 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
 
       uint32_t rvidx; 
       if (rnti == SIRNTI) {
-        switch((sfn%8)/2) {
+        switch((q->sfn%8)/2) {
           case 0: 
             rvidx = 0; 
             break;
@@ -251,11 +292,11 @@ int ue_dl_receive(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint32_t
         }
       }
     }
-    if (rnti == SIRNTI && (sfn%8) == 0) {
+    if (rnti == SIRNTI && (q->sfn%8) == 0) {
       q->nof_trials++;      
     }
   }
-  
+
   if (crc_rem == rnti && ret == LIBLTE_SUCCESS) {        
     return ra_dl.mcs.tbs;    
   } else {
