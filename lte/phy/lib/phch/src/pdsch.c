@@ -517,6 +517,7 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
       DEBUG("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,
           cb_len, rlen - F, wp, rp, F, n_e);
 
+      
       /* Rate Unmatching */
       if (rm_turbo_rx(harq_process->pdsch_w_buff_f[i], harq_process->w_buff_size,  
                   &e_bits[rp], n_e, 
@@ -532,7 +533,7 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
       char *cb_in_ptr; 
       crc_t *crc_ptr; 
       tdec_reset(&q->decoder, cb_len);
-      
+            
       do {
         
         tdec_iteration(&q->decoder, (float*) q->cb_out, cb_len); 
@@ -544,19 +545,20 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
           crc_ptr = &q->crc_cb; 
         } else {
           len_crc = tbs+24; 
+          bzero(q->cb_in, F*sizeof(char));
           cb_in_ptr = &q->cb_in[F];
           crc_ptr = &q->crc_tb; 
         }
-        
+
+        tdec_decision(&q->decoder, q->cb_in, cb_len);
+  
         /* Check Codeblock CRC and stop early if incorrect */
         if (!crc_checksum(crc_ptr, cb_in_ptr, len_crc)) {
           early_stop = true;           
         }
         
       } while (q->nof_iterations < TDEC_MAX_ITERATIONS && !early_stop);
-      
-      tdec_decision(&q->decoder, q->cb_in, cb_len);
-      
+            
       q->average_nof_iterations = EXPAVERAGE((float) q->nof_iterations, 
                                              q->average_nof_iterations, 
                                              q->average_nof_iterations_n);
@@ -588,7 +590,6 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
     par_tx = bit_unpack(&p_parity, 24);
 
     if (!par_rx) {
-      vec_fprint_hex(stdout, data, tbs);
       printf("\n\tCAUTION!! Received all-zero transport block\n\n");
     }
 
@@ -672,10 +673,23 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data, 
     demod_soft_sigma_set(&q->demod, 2.0 / q->mod[harq_process->mcs.mod - 1].nbits_x_symbol);
     demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod - 1]);
     demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, nof_symbols);
+ 
+    /*
+    for (int j=0;j<nof_symbols;j++) {
+      if (isnan(crealf(q->pdsch_d[j])) || isnan(cimagf(q->pdsch_d[j]))) {
+        printf("\nerror in d[%d]=%f+%f symbols:%f+%f ce0:%f+%f ce1:%f+%f\n",j,
+               crealf(q->pdsch_d[j]), cimagf(q->pdsch_d[j]), 
+               crealf(q->pdsch_symbols[0][j]), cimagf(q->pdsch_symbols[0][j]), 
+               crealf(q->ce[0][j]), cimagf(q->ce[0][j]), 
+               crealf(q->ce[1][j]), cimagf(q->ce[1][j])
+              );
+      }
+    }
+    */
 
     /* descramble */
     scrambling_f_offset(&q->seq_pdsch[subframe], q->pdsch_e, 0, nof_bits_e);
-
+    
     return pdsch_decode_tb(q, data, nof_bits, nof_bits_e, harq_process, rv_idx);
   } else {
     return LIBLTE_ERROR_INVALID_INPUTS;

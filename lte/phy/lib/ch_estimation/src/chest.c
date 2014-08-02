@@ -38,7 +38,7 @@
 #define SLOT_SZ(q) (q->nof_symbols * q->symbol_sz)
 #define SF_SZ(q) (2 * SLOT_SZ(q))
 
-//#define VOLK_INTERP
+#define VOLK_INTERP
 
 void chest_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id) {
   chest_ref_fprint(q, stream, nslot, port_id);
@@ -111,16 +111,18 @@ int chest_ce_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint
       channel_ref = input[tidx * q->nof_re + fidx];
       q->refsignal[port_id][nslot].refs[nref].recv_simbol = channel_ref;
 
+      
       DEBUG("Reference %2d pos (%2d,%2d)=%3d %.2f dB %.2f/%.2f=%.2f\n", nref, tidx, fidx, tidx * q->nof_re + fidx,          
             10*log10f(cabsf(channel_ref/known_ref)),          
             cargf(channel_ref)/M_PI,cargf(known_ref)/M_PI,
             cargf(channel_ref/known_ref)/M_PI);
-
+      
+      
       /* FIXME: compare with threshold */
       if (channel_ref != 0) {
         q->refsignal[port_id][nslot].ch_est[nref] = channel_ref/known_ref;
       } else {
-        q->refsignal[port_id][nslot].ch_est[nref] = 0;
+        q->refsignal[port_id][nslot].ch_est[nref] = 1e-6;
       }
       ret = LIBLTE_SUCCESS;
     }
@@ -182,7 +184,7 @@ int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32
           for (j=0;j<MAX_NSYMB;j++) {
             y[j] = ce[r->symbols_ref[0] * q->nof_re + i];
           }
-        }
+        }       
         for (j=0;j<q->nof_symbols;j++) {
           ce[j * q->nof_re + i] = y[j];
         }
@@ -321,8 +323,10 @@ void chest_free(chest_t *q) {
     }
   }
 #ifdef VOLK_INTERP
-  interp_free(&q->interp_freq);
-  interp_free(&q->interp_time);
+  for (p=0;p<MAX_PORTS;p++) {
+    interp_free(&q->interp_freq[p]);
+    interp_free(&q->interp_time[p]);    
+  }
 #endif
   bzero(q, sizeof(chest_t));
 }

@@ -73,7 +73,9 @@ int sync_init(sync_t *q, uint32_t frame_size, uint32_t fft_size) {
     DEBUG("SYNC init with frame_size=%d and fft_size=%d\n", frame_size, fft_size);
     
     ret = LIBLTE_SUCCESS;
-  }  
+  }  else {
+    fprintf(stderr, "Invalid parameters frame_size: %d, fft_size: %d\n", frame_size, fft_size);
+  }
   return ret;
 }
 
@@ -238,9 +240,8 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
   
     peak_pos = pss_synch_find_pss(&q->pss, &input[find_offset], &peak_unnormalized);
     
-    if (q->normalize_en                                        && 
-        peak_pos + find_offset               >= q->fft_size    && 
-        peak_pos + find_offset + q->fft_size <= q->frame_size) 
+    if (q->normalize_en        && 
+        peak_pos + find_offset >= q->fft_size) 
     {
       /* Compute the energy of the received PSS sequence to normalize */
       cf_t *pss_ptr = &input[find_offset+peak_pos-q->fft_size];

@@ -53,8 +53,6 @@ void init_plots();
  *  Program arguments processing
  ***********************************************************************/
 typedef struct {
-  uint32_t cell_id_file;
-  uint32_t nof_prb_file; 
   uint16_t rnti; 
   int nof_subframes;
   bool disable_plots;
@@ -62,8 +60,9 @@ typedef struct {
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
-  args->cell_id_file = 1; 
-  args->nof_prb_file = 6;
+  args->io_config.cell_id_file = 195; 
+  args->io_config.nof_prb_file = 50;
+  args->io_config.nof_ports_file = 2; 
   args->rnti = SIRNTI;
   args->nof_subframes = -1; 
   args->disable_plots = false; 
@@ -71,13 +70,14 @@ void args_default(prog_args_t *args) {
   args->io_config.input_file_name = NULL; 
   args->io_config.uhd_args = "";
   args->io_config.uhd_freq = -1.0;
-  args->io_config.uhd_gain = 20.0; 
+  args->io_config.uhd_gain = 60.0; 
 }
 
 void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [cargfndvtb] [-i input_file | -f rx_frequency (in Hz)]\n", prog);
-  printf("\t-c cell_id if reading from file [Default %d]\n", args->cell_id_file);
-  printf("\t-p nof_prb if reading from file [Default %d]\n", args->nof_prb_file);
+  printf("\t-c cell_id if reading from file [Default %d]\n", args->io_config.cell_id_file);
+  printf("\t-p nof_prb if reading from file [Default %d]\n", args->io_config.nof_prb_file);
+  printf("\t-o nof_ports if reading from file [Default %d]\n", args->io_config.nof_ports_file);
   printf("\t-r RNTI to look for [Default 0x%x]\n", args->rnti);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->io_config.uhd_args);
@@ -99,16 +99,19 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "icagfndvtbpr")) != -1) {
+  while ((opt = getopt(argc, argv, "icagfndvtbpro")) != -1) {
     switch (opt) {
     case 'i':
       args->io_config.input_file_name = argv[optind];
       break;
     case 'c':
-      args->cell_id_file = atoi(argv[optind]);
+      args->io_config.cell_id_file = atoi(argv[optind]);
       break;
     case 'p':
-      args->nof_prb_file = atoi(argv[optind]);
+      args->io_config.nof_prb_file = atoi(argv[optind]);
+      break;
+    case 'o':
+      args->io_config.nof_ports_file = atoi(argv[optind]);
       break;
     case 'a':
       args->io_config.uhd_args = argv[optind];
@@ -152,6 +155,8 @@ void sigintHandler(int x) {
 /* TODO: Do something with the output data */
 char data[10000];
 
+extern float mean_exec_time; 
+
 int main(int argc, char **argv) {
   int ret; 
   cf_t *sf_buffer; 
@@ -159,26 +164,12 @@ int main(int argc, char **argv) {
   prog_args_t prog_args; 
   lte_cell_t cell; 
   ue_dl_t ue_dl; 
-  bool ue_dl_initiated = false; 
   int64_t sf_cnt;
-  uint32_t sf_idx;
   pbch_mib_t mib; 
   bool printed_sib = false; 
   int rlen; 
-  int symbol_sz; 
   
   parse_args(&prog_args, argc, argv);
-  
-  symbol_sz = lte_symbol_sz(prog_args.nof_prb_file);
-  if (symbol_sz > 0) {
-    if (iodev_init(&iodev, &prog_args.io_config, SF_LEN(symbol_sz))) {
-      fprintf(stderr, "Error initiating input device\n");
-      exit(-1);
-    }    
-  } else {
-    fprintf(stderr, "Invalid number of PRB %d\n", prog_args.nof_prb_file);
-    exit(-1);
-  }
   
 #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
@@ -190,16 +181,22 @@ int main(int argc, char **argv) {
   printf("\n --- Press Ctrl+C to exit --- \n");
   signal(SIGINT, sigintHandler);
 
-  /* Initialize frame and subframe counters */
+  /* Initialize subframe counter */
   sf_cnt = 0;
-  sf_idx = 0; 
 
-  /* Decodes the SSS signal during the tracking phase. Extra overhead, but makes sure we are in the correct subframe */  
-  ue_sync_decode_sss_on_track(&iodev.sframe, true);
+  if (iodev_init(&iodev, &prog_args.io_config, &cell, &mib)) {
+    exit(-1);
+  }
+
+  if (ue_dl_init(&ue_dl, cell, mib.phich_resources, mib.phich_length, 1234)) { 
+    fprintf(stderr, "Error initiating UE downlink processing module\n");
+    exit(-1);
+  }
+  pdsch_set_rnti(&ue_dl.pdsch, prog_args.rnti);
   
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
-
+    
     ret = iodev_receive(&iodev, &sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error reading from input device (%d)\n", ret);
@@ -207,81 +204,41 @@ int main(int argc, char **argv) {
     }
     
     /* iodev_receive returns 1 if successfully read 1 aligned subframe */
-    if (ret == 0) {
-      printf("Finding PSS... Peak: %8.1f, Output level: %+.2f dB FrameCnt: %d, State: %d\r", 
-             sync_get_peak_value(&iodev.sframe.sfind), 
-             iodev.sframe.frame_total_cnt, iodev.sframe.state);      
-    } else if (ret == 1) {
-      if (!ue_dl_initiated) {
-        if (iodev_isUSRP(&iodev)) {
-          //cell = ue_sync_get_cell(&iodev.sframe);
-          //mib = ue_sync_get_mib(&iodev.sframe);
-        } else {
-          cell.id = prog_args.cell_id_file;
-          cell.cp = CPNORM; 
-          cell.nof_ports = 1; // TODO: Use prog_args 
-          cell.nof_prb = prog_args.nof_prb_file; 
-          mib.phich_resources = R_1; 
-          mib.phich_length = PHICH_NORM;
-        }        
-        if (ue_dl_init(&ue_dl, cell, mib.phich_resources, mib.phich_length, 1234)) { 
-          fprintf(stderr, "Error initiating UE downlink processing module\n");
-          exit(-1);
-        }
-        pdsch_set_rnti(&ue_dl.pdsch, prog_args.rnti);
-        ue_dl_initiated = true; 
-      } else {
-        if (iodev_isUSRP(&iodev)) {
-          sf_idx = ue_sync_get_sfidx(&iodev.sframe);
-        } 
-        //rlen = ue_dl_receive(&ue_dl, sf_buffer, data, sf_idx, ue_sync_get_mib(&iodev.sframe).sfn, prog_args.rnti);
-        rlen=-1;
-        if (rlen < 0) {
-          fprintf(stderr, "\nError running receiver\n");fflush(stdout);
-          exit(-1);
-        }
-        if (prog_args.rnti == SIRNTI && !printed_sib && rlen > 0) {
-          printf("\n\nDecoded SIB1 Message: ");
-          vec_fprint_hex(stdout, data, rlen);
-          printf("\n");fflush(stdout);
-          printed_sib = true; 
-        }
-        if (!(sf_cnt % 10)) {       
-          printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d, BLER: %.1e\r",
-                 ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, 
-                 pdsch_average_noi(&ue_dl.pdsch),
-                 (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total);
-          
-          fflush(stdout);       
-          if (VERBOSE_ISINFO()) {
-            printf("\n");
-          }
-        }  
-        #ifndef DISABLE_GRAPHICS
-        if (!prog_args.disable_plots && sf_idx == 5) {
-          do_plots(&ue_dl, sf_idx);          
-        }
-        #endif
+    if (ret == 1) {
+      rlen = ue_dl_decode(&ue_dl, sf_buffer, data, iodev_get_sfidx(&iodev), prog_args.rnti);
+      if (rlen < 0) {
+        fprintf(stderr, "\nError running receiver\n");fflush(stdout);
+        exit(-1);
       }
-      if (iodev_isfile(&iodev)) {
-        sf_idx++;       
-        if (sf_idx == NSUBFRAMES_X_FRAME) {
-          sf_idx = 0;
-        }        
+      if (prog_args.rnti == SIRNTI && !printed_sib && rlen > 0) {
+        printf("\n\nDecoded SIB1 Message: ");
+        vec_fprint_hex(stdout, data, rlen);
+        printf("\n");fflush(stdout);
+        printed_sib = true; 
       }
-    }
 
-    if (prog_args.nof_subframes > 0) {
-      sf_cnt++;      
-    }    
-    if (iodev_isfile(&iodev)) {
-      usleep(5000);
+      // Plot and Printf
+      if (!(sf_cnt % 10)) {       
+        printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d, BLER: %.1e, Texec: %.2f\r",
+                ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, 
+                pdsch_average_noi(&ue_dl.pdsch),
+                (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total, 
+               mean_exec_time);                
+      }      
+      #ifndef DISABLE_GRAPHICS
+      if (!prog_args.disable_plots && iodev_get_sfidx(&iodev) == 5) {
+        do_plots(&ue_dl, 5);          
+      }
+      #endif
+    } else if (ret == 0) {
+      printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
+        sync_get_peak_value(&iodev.sframe.sfind), 
+        iodev.sframe.frame_total_cnt, iodev.sframe.state);      
     }
-  }
+    sf_cnt++;                  
+  } // Main loop
 
-  if (ue_dl_initiated) {
-    ue_dl_free(&ue_dl);    
-  }
+  ue_dl_free(&ue_dl);    
   iodev_free(&iodev);
 
   printf("\nBye\n");

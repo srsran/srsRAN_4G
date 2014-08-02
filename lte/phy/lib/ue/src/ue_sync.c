@@ -71,20 +71,27 @@ int ue_sync_init(ue_sync_t *q,
     q->decode_sss_on_track = false; 
     q->stream = stream_handler;
     q->recv_callback = recv_callback;
+    q->cell = cell;
     
-    if(sync_init(&q->sfind, 5 * CURRENT_SFLEN, CURRENT_FFTSIZE)) {
+    if(sync_init(&q->sfind, CURRENT_SFLEN, CURRENT_FFTSIZE)) {
+      fprintf(stderr, "Error initiating sync find\n");
       goto clean_exit;
     }
     if(sync_init(&q->strack, CURRENT_FFTSIZE, CURRENT_FFTSIZE)) {
+      fprintf(stderr, "Error initiating sync track\n");
       goto clean_exit;
     }
     
     sync_set_N_id_2(&q->sfind, cell.id%3);
     sync_set_threshold(&q->sfind, FIND_THRESHOLD);
+    q->sfind.cp = cell.cp;
+    sync_cp_en(&q->sfind, false);
 
     sync_set_N_id_2(&q->strack, cell.id%3);
     sync_set_threshold(&q->strack, TRACK_THRESHOLD);
-    
+    q->strack.cp = cell.cp;
+    sync_cp_en(&q->strack, false);
+
     if (cfo_init(&q->cfocorr, CURRENT_SFLEN)) {
       fprintf(stderr, "Error initiating CFO\n");
       goto clean_exit;
@@ -140,18 +147,16 @@ void ue_sync_decode_sss_on_track(ue_sync_t *q, bool enabled) {
 
 
 static int find_peak_ok(ue_sync_t *q) {
-  int ret; 
-  
-  if (q->peak_idx < CURRENT_SFLEN) {
-    /* Receive the rest of the next subframe */
-    if (q->recv_callback(q->stream, &q->input_buffer[CURRENT_SFLEN], q->peak_idx+CURRENT_SFLEN/2) < 0) {
-      return LIBLTE_ERROR;
-    }
+
+  /* Receive the rest of the next subframe */
+  if (q->recv_callback(q->stream, q->input_buffer, q->peak_idx+CURRENT_SFLEN/2) < 0) {
+    return LIBLTE_ERROR;
   }
   
   if (sync_sss_detected(&q->sfind)) {
+    
     /* Get the subframe index (0 or 5) */
-    q->sf_idx = sync_get_sf_idx(&q->sfind);
+    q->sf_idx = sync_get_sf_idx(&q->sfind) + 1;
    
     /* Reset variables */ 
     q->frame_ok_cnt = 0;
@@ -160,39 +165,35 @@ static int find_peak_ok(ue_sync_t *q) {
 
     /* Goto Tracking state */
     q->state = SF_TRACK;      
-    ret = LIBLTE_SUCCESS;
-  
+    
     INFO("Found peak at %d, value %.3f, SF_idx: %d, Cell_id: %d CP: %s\n", 
         q->peak_idx, sync_get_peak_value(&q->sfind), q->sf_idx, q->cell.id, lte_cp_string(q->cell.cp));       
     
-    if (q->peak_idx < CURRENT_SFLEN) {
-      q->sf_idx++;
-    }    
   } else {
     INFO("Found peak at %d, SSS not detected\n", q->peak_idx);
-    ret = 0;
   }
-  return ret;
+  return 0;
 }
 
 int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
-  int ret = LIBLTE_SUCCESS; 
   
    /* Make sure subframe idx is what we expect */
   if ((q->sf_idx != sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track) {
-    INFO("\nWarning: Expected SF idx %d but got %d!\n", 
+    INFO("Warning: Expected SF idx %d but got %d!\n", 
           q->sf_idx, sync_get_sf_idx(&q->strack));
     q->sf_idx = sync_get_sf_idx(&q->strack);
+    q->state = SF_TRACK; 
   } else {
     q->time_offset = ((int) track_idx - (int) CURRENT_FFTSIZE); 
-
+    
     /* If the PSS peak is beyond the frame (we sample too slowly), 
       discard the offseted samples to align next frame */
     if (q->time_offset > 0 && q->time_offset < MAX_TIME_OFFSET) {
-      ret = q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset);        
-    } else {
-      ret = LIBLTE_SUCCESS;
-    }
+      if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset) < 0) {
+        fprintf(stderr, "Error receiving from USRP\n");
+        return LIBLTE_ERROR; 
+      }
+    } 
     
     /* compute cumulative moving average CFO */
     q->cur_cfo = EXPAVERAGE(sync_get_cfo(&q->strack), q->cur_cfo, q->frame_ok_cnt);
@@ -202,15 +203,10 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
 
     q->peak_idx = CURRENT_SFLEN/2 + q->time_offset;  
     q->frame_ok_cnt++;
-    q->frame_no_cnt = 0;
-    
-    
-    if (ret >= LIBLTE_SUCCESS) {
-      ret = LIBLTE_SUCCESS; 
-    }
+    q->frame_no_cnt = 0;    
   }
   
-  return ret;
+  return 1;
 }
 
 int track_peak_no(ue_sync_t *q) {
@@ -225,11 +221,10 @@ int track_peak_no(ue_sync_t *q) {
          sync_get_peak_value(&q->strack), (int) q->frame_no_cnt);    
   }
 
-  return LIBLTE_SUCCESS;
+  return 1;
 }
 
 static int receive_samples(ue_sync_t *q) {
-  uint32_t read_len; 
   
   /* A negative time offset means there are samples in our buffer for the next subframe, 
   because we are sampling too fast. 
@@ -237,18 +232,12 @@ static int receive_samples(ue_sync_t *q) {
   if (q->time_offset < 0) {
     q->time_offset = -q->time_offset;
   }
-  
-  if (q->state == SF_FIND) {
-    read_len = 5 * CURRENT_SFLEN; 
-  } else {
-    read_len = CURRENT_SFLEN; 
-  }
 
   /* copy last part of the last subframe (use move since there could be overlapping) */
-  memcpy(q->input_buffer, &q->input_buffer[read_len-q->time_offset], q->time_offset*sizeof(cf_t));
+  //memcpy(q->input_buffer, &q->input_buffer[CURRENT_SFLEN-q->time_offset], q->time_offset*sizeof(cf_t));
   
   /* Get 1 subframe from the USRP getting more samples and keeping the previous samples, if any */  
-  if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], read_len - q->time_offset) < 0) {
+  if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], CURRENT_SFLEN - q->time_offset) < 0) {
     return LIBLTE_ERROR;
   }
   
@@ -281,8 +270,6 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
           return -1;
         }
         
-        DEBUG("Find PAR=%.2f\n", sync_get_last_peak_value(&q->sfind));
-        
         if (ret == 1) {
           ret = find_peak_ok(q);
         } else if (q->peak_idx != 0) {
@@ -298,14 +285,12 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
         }
       break;
       case SF_TRACK:
-        ret = LIBLTE_SUCCESS;
+        ret = 1;
         
         q->strack.sss_en = q->decode_sss_on_track; 
         
         q->sf_idx = (q->sf_idx + 1) % 10;
 
-        DEBUG("TRACK: SF=%d FrameCNT: %d\n", q->sf_idx, q->frame_total_cnt);
-        
         /* Every SF idx 0 and 5, find peak around known position q->peak_idx */
         if (q->sf_idx == 0 || q->sf_idx == 5) {
 
@@ -333,31 +318,22 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
           } else {
             ret = track_peak_no(q); 
           }
-          
-          INFO("TRACK %3d: Value=%.3f SF=%d Track_idx=%d Offset=%d CFO: %f\n", 
-                (int) q->frame_total_cnt, sync_get_peak_value(&q->strack), 
-               q->sf_idx, track_idx, q->time_offset, sync_get_cfo(&q->strack));
-          
-          q->frame_total_cnt++; 
-          
           if (ret == LIBLTE_ERROR) {
             fprintf(stderr, "Error processing tracking peak\n");
             q->state = SF_FIND; 
             return LIBLTE_SUCCESS;
           } 
+                    
+          q->frame_total_cnt++;           
         }
         
         /* Do CFO Correction and deliver the frame */
         cfo_correct(&q->cfocorr, q->input_buffer, q->input_buffer, -q->cur_cfo / CURRENT_FFTSIZE);         
         *sf_symbols = q->input_buffer;
         
-        if (ret == LIBLTE_SUCCESS) {
-          ret = 1;
-        }
       break;
     }
   }  
-  DEBUG("UE SYNC returns %d\n", ret);
   return ret; 
 }
 
