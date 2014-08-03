@@ -67,7 +67,7 @@
 
 #define CS_FRAME_UNALIGNED     -3
 #define CS_CELL_DETECTED        2
-#define CS_CELL_NOT_DETECTED    1
+#define CS_CELL_NOT_DETECTED    3
 
 typedef struct LIBLTE_API {
   uint32_t cell_id; 
