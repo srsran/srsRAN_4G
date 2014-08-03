@@ -590,7 +590,7 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
     par_tx = bit_unpack(&p_parity, 24);
 
     if (!par_rx) {
-      printf("\n\tCAUTION!! Received all-zero transport block\n\n");
+      INFO("\n\tCAUTION!! Received all-zero transport block\n\n", 0);
     }
 
     if (par_rx == par_tx) {
