@@ -61,7 +61,7 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
   q->cp = cp;
   q->nof_re = nof_prb * RE_X_RB;
   q->nof_guards = ((symbol_sz - q->nof_re) / 2);
-  q->slot_sz = SLOT_LEN(symbol_sz, cp);
+  q->slot_sz = SLOT_LEN(symbol_sz);
   
   DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
       dir==FORWARD?"FFT":"iFFT", q->symbol_sz, q->nof_symbols,

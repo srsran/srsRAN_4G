@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
 
   N_id_2 = cell.id % 3;
   sf_n_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
-  sf_n_samples = 2 * SLOT_LEN_CPNORM(lte_symbol_sz(cell.nof_prb));
+  sf_n_samples = 2 * SLOT_LEN(lte_symbol_sz(cell.nof_prb));
 
   /* this *must* be called after setting slot_len_* */
   base_init();

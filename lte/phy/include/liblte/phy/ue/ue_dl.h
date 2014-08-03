@@ -57,6 +57,7 @@
 #define NOF_HARQ_PROCESSES 8
 
 typedef struct LIBLTE_API {
+  pbch_t pbch; 
   pcfich_t pcfich;
   pdcch_t pdcch;
   pdsch_t pdsch;
@@ -74,6 +75,9 @@ typedef struct LIBLTE_API {
   uint64_t pkts_total;
   uint64_t nof_trials;
 
+  uint32_t sfn; 
+  bool pbch_decoded; 
+  
   uint16_t user_rnti; 
 }ue_dl_t;
 
@@ -86,11 +90,10 @@ LIBLTE_API int ue_dl_init(ue_dl_t *q,
 
 LIBLTE_API void ue_dl_free(ue_dl_t *q);
 
-LIBLTE_API int ue_dl_receive(ue_dl_t *q, 
+LIBLTE_API int ue_dl_decode(ue_dl_t *q, 
                              cf_t *sf_buffer, 
                              char *data, 
-                             uint32_t sf_idx, 
-                             uint32_t sfn, 
+                             uint32_t sf_idx,
                              uint16_t rnti);
 
 #endif

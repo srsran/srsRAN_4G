@@ -78,11 +78,11 @@ int main(int argc, char **argv) {
   int i, j;
   cf_t *ce[MAX_PORTS];
   int nof_re;
-  cf_t *sf_symbols[MAX_PORTS];
+  cf_t *slot1_symbols[MAX_PORTS];
 
   parse_args(argc,argv);
 
-  nof_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  nof_re = SLOT_LEN_RE(cell.nof_prb, CPNORM); 
 
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {
@@ -94,8 +94,8 @@ int main(int argc, char **argv) {
     for (j=0;j<nof_re;j++) {
       ce[i][j] = 1;
     }
-    sf_symbols[i] = malloc(sizeof(cf_t) * nof_re);
-    if (!sf_symbols[i]) {
+    slot1_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    if (!slot1_symbols[i]) {
       perror("malloc");
       exit(-1);
     }
@@ -112,17 +112,17 @@ int main(int argc, char **argv) {
   mib_tx.phich_resources = R_1_6;
   mib_tx.sfn = 124;
 
-  pbch_encode(&pbch, &mib_tx, sf_symbols);
+  pbch_encode(&pbch, &mib_tx, slot1_symbols);
 
   /* combine outputs */
   for (i=1;i<cell.nof_ports;i++) {
     for (j=0;j<nof_re;j++) {
-      sf_symbols[0][j] += sf_symbols[i][j];
+      slot1_symbols[0][j] += slot1_symbols[i][j];
     }
   }
 
   pbch_decode_reset(&pbch);
-  if (1 != pbch_decode(&pbch, sf_symbols[0], ce, &mib_rx)) {
+  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, &mib_rx)) {
     printf("Error decoding\n");
     exit(-1);
   }
@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
 
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
-    free(sf_symbols[i]);
+    free(slot1_symbols[i]);
   }
 
   if (!memcmp(&mib_tx, &mib_rx, sizeof(pbch_mib_t))) {

@@ -48,6 +48,8 @@ LIBLTE_API int cuhd_start_rx_stream_nsamples(void *h,
 
 LIBLTE_API int cuhd_stop_rx_stream(void *h);
 
+LIBLTE_API void cuhd_flush_buffer(void *h);
+
 LIBLTE_API bool cuhd_rx_wait_lo_locked(void *h);
 
 LIBLTE_API double cuhd_set_rx_srate(void *h, 

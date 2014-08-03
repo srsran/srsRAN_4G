@@ -36,6 +36,7 @@
 #include "liblte/phy/utils/dft.h"
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/convolution.h"
+#include "liblte/phy/utils/debug.h"
 
 
 int pss_synch_init_N_id_2(cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_size) {
@@ -45,7 +46,7 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_s
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (lte_N_id_2_isvalid(N_id_2)    && 
-      fft_size                  < 2048) 
+      fft_size                  <= 2048) 
   {
     
     pss_generate(pss_signal_time, N_id_2);
@@ -60,10 +61,11 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_s
     
     dft_plan_set_mirror(&plan, true);
     dft_plan_set_dc(&plan, true);
+    dft_plan_set_norm(&plan, true);
     dft_run_c(&plan, pss_signal_pad, pss_signal_freq);
 
-    vec_sc_prod_cfc(pss_signal_freq, (float) 1 / (fft_size), pss_signal_pad, fft_size);
-    vec_conj_cc(pss_signal_pad, pss_signal_freq, fft_size);
+    vec_conj_cc(pss_signal_freq, pss_signal_freq, fft_size);
+    vec_sc_prod_cfc(pss_signal_freq, 1.0/62.0, pss_signal_freq, fft_size);
 
     dft_plan_free(&plan);
     
@@ -97,11 +99,6 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
     
     buffer_size = fft_size + frame_size + 1;
     
-    q->conv_abs = vec_malloc(buffer_size * sizeof(float));
-    if (!q->conv_abs) {
-      fprintf(stderr, "Error allocating memory\n");
-      goto clean_and_exit;
-    }
     q->tmp_input = vec_malloc(buffer_size * sizeof(cf_t));
     if (!q->tmp_input) {
       fprintf(stderr, "Error allocating memory\n");
@@ -159,9 +156,6 @@ void pss_synch_free(pss_synch_t *q) {
     }
     if (q->conv_output) {
       free(q->conv_output);
-    }
-    if (q->conv_abs) {
-      free(q->conv_abs);
     }
 
     bzero(q, sizeof(pss_synch_t));    
@@ -231,8 +225,7 @@ int pss_synch_set_N_id_2(pss_synch_t *q, uint32_t N_id_2) {
  *
  * Input buffer must be subframe_size long.
  */
-int pss_synch_find_pss(pss_synch_t *q, cf_t *input, 
-                       float *corr_peak_value, float *corr_mean_value) 
+int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
@@ -252,6 +245,7 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input,
     memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
     bzero(&q->tmp_input[q->frame_size], q->fft_size * sizeof(cf_t));
 
+    /* Correlate input with PSS sequence */
   #ifdef CONVOLUTION_FFT
     conv_output_len = conv_fft_cc_run(&q->conv_fft, q->tmp_input,
         q->pss_signal_freq[q->N_id_2], q->conv_output);
@@ -259,16 +253,11 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input,
     conv_output_len = conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
   #endif
 
-    vec_abs_cf(q->conv_output, q->conv_abs, conv_output_len);
-    corr_peak_pos = vec_max_fi(q->conv_abs, conv_output_len);
+    /* Find maximum of the absolute value of the correlation */
+    corr_peak_pos = vec_max_abs_ci(q->conv_output, conv_output_len);
     if (corr_peak_value) {
-      *corr_peak_value = q->conv_abs[corr_peak_pos];
+      *corr_peak_value = cabsf(q->conv_output[corr_peak_pos]);
     }
-    if (corr_mean_value) {
-      *corr_mean_value = vec_acc_ff(q->conv_abs, conv_output_len)
-          / conv_output_len;
-    }
-
     ret = (int) corr_peak_pos;          
   } 
   return ret;

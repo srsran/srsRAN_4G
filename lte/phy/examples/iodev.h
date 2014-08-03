@@ -30,7 +30,7 @@
 
 #include "liblte/config.h"
 
-#include "liblte/phy/phch/ue_sync.h"
+#include "liblte/phy/ue/ue_sync.h"
 #include "liblte/phy/io/filesource.h"
 
 #ifndef DISABLE_UHD
@@ -54,6 +54,10 @@ typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API {
   char *input_file_name;
+  uint32_t cell_id_file;
+  uint32_t nof_prb_file;
+  uint32_t nof_ports_file; 
+
   float uhd_freq;
   float uhd_gain;
   char *uhd_args;
@@ -66,6 +70,7 @@ typedef struct LIBLTE_API {
   ue_sync_t sframe;
   #endif
   uint32_t sf_len; 
+  uint32_t sf_idx;
   cf_t *input_buffer_file; // for UHD mode, the input buffer is managed by sync_frame_t
   filesource_t fsrc;  
   iodev_cfg_t config; 
@@ -75,7 +80,8 @@ typedef struct LIBLTE_API {
 
 LIBLTE_API int iodev_init(iodev_t *q, 
                           iodev_cfg_t *config, 
-                          uint32_t file_sf_len);
+                          lte_cell_t *cell, 
+                          pbch_mib_t *mib);
 
 LIBLTE_API void iodev_free(iodev_t *q);
 
@@ -83,6 +89,8 @@ LIBLTE_API int iodev_receive(iodev_t *q,
                              cf_t **buffer);
 
 LIBLTE_API void* iodev_get_cuhd(iodev_t *q);
+
+LIBLTE_API uint32_t iodev_get_sfidx(iodev_t *q);
 
 LIBLTE_API bool iodev_isfile(iodev_t *q); 
 

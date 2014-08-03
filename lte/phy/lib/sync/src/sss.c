@@ -44,7 +44,7 @@ void generate_N_id_1_table(uint32_t table[30][30]);
 int sss_synch_init(sss_synch_t *q, uint32_t fft_size) {
   
   if (q                 != NULL  &&
-      fft_size          < 2048)
+      fft_size          <= 2048)
   {
     uint32_t N_id_2;
     struct sss_tables sss_tables;
@@ -73,7 +73,7 @@ int sss_synch_init(sss_synch_t *q, uint32_t fft_size) {
 
 int sss_synch_realloc(sss_synch_t *q, uint32_t fft_size) {
   if (q                 != NULL  &&
-      fft_size          < 2048)
+      fft_size          <= 2048)
   {
     dft_plan_free(&q->dftp_input);
     if (dft_plan(&q->dftp_input, fft_size, FORWARD, COMPLEX)) {

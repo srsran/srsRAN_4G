@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
       perror("malloc");
       exit(-1);
     }
-    outfft = malloc(sizeof(cf_t) * SLOT_LEN_CPNORM(lte_symbol_sz(n_prb)));
+    outfft = malloc(sizeof(cf_t) * SLOT_LEN(lte_symbol_sz(n_prb)));
     if (!outfft) {
       perror("malloc");
       exit(-1);
