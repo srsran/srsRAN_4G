@@ -219,10 +219,11 @@ int main(int argc, char **argv) {
 
       // Plot and Printf
       if (!(sf_cnt % 10)) {       
-        printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d, BLER: %.1e, Texec: %.2f\r",
+        printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d/%4d, BLER: %.1e, Texec: %.2f\r",
                 ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, 
                 pdsch_average_noi(&ue_dl.pdsch),
-                (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total, 
+                (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (int) ue_dl.nof_trials, 
+               (float) ue_dl.pkt_errors / ue_dl.pkts_total, 
                mean_exec_time);                
       }      
       #ifndef DISABLE_GRAPHICS
