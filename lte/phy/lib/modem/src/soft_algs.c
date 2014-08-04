@@ -36,10 +36,10 @@
 #include "soft_algs.h"
 #include "liblte/phy/utils/vector.h"
 
-#define QAM16_THRESHOLD		2/sqrt(10)
-#define QAM64_THRESHOLD_1	2/sqrt(42)
-#define QAM64_THRESHOLD_2	4/sqrt(42)
-#define QAM64_THRESHOLD_3	6/sqrt(42)
+#define QAM16_THRESHOLD         2/sqrt(10)
+#define QAM64_THRESHOLD_1       2/sqrt(42)
+#define QAM64_THRESHOLD_2       4/sqrt(42)
+#define QAM64_THRESHOLD_3       6/sqrt(42)
 
 
 typedef _Complex float cf_t;
