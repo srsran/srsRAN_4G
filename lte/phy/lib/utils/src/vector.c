@@ -39,7 +39,7 @@
 #endif
 
 int vec_acc_ii(int *x, uint32_t len) {
-  uint32_t i;
+  int i;
   int z=0;
   for (i=0;i<len;i++) {
     z+=x[i];
@@ -53,7 +53,7 @@ float vec_acc_ff(float *x, uint32_t len) {
   volk_32f_accumulator_s32f(&result,x,len);
   return result;
 #else
-  uint32_t i;
+  int i;
   float z=0;
   for (i=0;i<len;i++) {
     z+=x[i];
@@ -63,7 +63,7 @@ float vec_acc_ff(float *x, uint32_t len) {
 }
 
 cf_t vec_acc_cc(cf_t *x, uint32_t len) {
-  uint32_t i;
+  int i;
   cf_t z=0;
   for (i=0;i<len;i++) {
     z+=x[i];
@@ -86,7 +86,7 @@ void vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoint
 
 void vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 #ifndef HAVE_VOLK_SUB_FLOAT_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]-y[i];
   }
@@ -96,14 +96,14 @@ void vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]+y[i];
   }
 }
 
 void vec_sum_bbb(char *x, char *y, char *z, uint32_t len) {
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]+y[i];
   }
@@ -111,7 +111,7 @@ void vec_sum_bbb(char *x, char *y, char *z, uint32_t len) {
 
 void vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT_FLOAT_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*h;
   }
@@ -122,7 +122,7 @@ void vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
 
 void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*h;
   }
@@ -136,7 +136,7 @@ void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
 
 void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*h;
   }
@@ -149,7 +149,7 @@ void vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
 #ifdef HAVE_VOLK_CONVERT_FI_FUNCTION
   volk_32f_s32f_convert_16i(z, x, scale, len);
 #else 
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = (int16_t) (x[i]*scale);
   }
@@ -160,7 +160,7 @@ void vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len) {
  #ifdef HAVE_VOLK_DEINTERLEAVE_FUNCTION
   volk_32fc_deinterleave_32f_x2(real, imag, x, len);
 #else 
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     real[i] = __real__ x[i];
     imag[i] = __imag__ x[i];
@@ -209,7 +209,7 @@ void *vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
 
 
 void vec_fprint_c(FILE *stream, cf_t *x, uint32_t len) {
-  uint32_t i;
+  int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
     fprintf(stream, "%+2.2f%+2.2fi, ", __real__ x[i], __imag__ x[i]);
@@ -218,7 +218,7 @@ void vec_fprint_c(FILE *stream, cf_t *x, uint32_t len) {
 }
 
 void vec_fprint_f(FILE *stream, float *x, uint32_t len) {
-  uint32_t i;
+  int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
     fprintf(stream, "%+2.2f, ", x[i]);
@@ -228,7 +228,7 @@ void vec_fprint_f(FILE *stream, float *x, uint32_t len) {
 
 
 void vec_fprint_b(FILE *stream, char *x, uint32_t len) {
-  uint32_t i;
+  int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
     fprintf(stream, "%d, ", x[i]);
@@ -237,7 +237,7 @@ void vec_fprint_b(FILE *stream, char *x, uint32_t len) {
 }
 
 void vec_fprint_i(FILE *stream, int *x, uint32_t len) {
-  uint32_t i;
+  int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
     fprintf(stream, "%d, ", x[i]);
@@ -273,7 +273,7 @@ void vec_save_file(char *filename, void *buffer, uint32_t len) {
 
 void vec_conj_cc(cf_t *x, cf_t *y, uint32_t len) {
 #ifndef HAVE_VOLK_CONJ_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     y[i] = conjf(x[i]);
   }
@@ -284,7 +284,7 @@ void vec_conj_cc(cf_t *x, cf_t *y, uint32_t len) {
 
 void vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT_REAL_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*y[i];
   }
@@ -296,7 +296,7 @@ void vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
 
 void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT2_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*y[i];
   }
@@ -308,7 +308,7 @@ void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 
 void vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT2_CONJ_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*conjf(y[i]);
   }
@@ -318,7 +318,7 @@ void vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 }
 
 void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i] / y[i];
   }
@@ -328,7 +328,7 @@ void vec_div_fff(float *x, float *y, float *z, uint32_t len) {
 #ifdef HAVE_VOLK_DIVIDE_FUNCTION
   volk_32f_x2_divide_32f(z, x, y, len);
 #else
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     z[i] = x[i] / y[i];
   }
@@ -383,7 +383,7 @@ float vec_dot_prod_fff(float *x, float *y, uint32_t len) {
 
 
 float vec_avg_power_cf(cf_t *x, uint32_t len) {
-  uint32_t j;
+  int j;
   float power = 0;
   for (j=0;j<len;j++) {
     power += crealf(x[j]*conjf(x[j]));
@@ -393,7 +393,7 @@ float vec_avg_power_cf(cf_t *x, uint32_t len) {
 
 void vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
 #ifndef HAVE_VOLK_MAG_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     abs[i] = cabsf(x[i]);
   }
@@ -406,7 +406,7 @@ void vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
 
 void vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
 #ifndef HAVE_VOLK_ATAN_FUNCTION
-  uint32_t i;
+  int i;
   for (i=0;i<len;i++) {
     arg[i] = cargf(x[i]);
   }
@@ -461,10 +461,10 @@ uint32_t vec_max_abs_ci(cf_t *x, uint32_t len) {
 }
 
 void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len) {
-  uint32_t i;
-  uint32_t tmp;
+  int i;
+  int tmp;
   for (i=0;i<len;i++) {
-    tmp = (uint32_t) (offset + gain * in[i]);
+    tmp = (int) (offset + gain * in[i]);
     if (tmp < 0)
       tmp = 0;
     if (tmp > clip)
