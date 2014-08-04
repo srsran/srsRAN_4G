@@ -71,6 +71,19 @@ cf_t vec_acc_cc(cf_t *x, uint32_t len) {
   return z;
 }
 
+void vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoints) {
+#ifndef HAVE_VOLK_SQUARE_DIST_FUNCTION
+  uint32_t i;
+  cf_t diff; 
+  for (i=0;i<npoints;i++) {
+    diff = symbol - points[i];
+    distance[i] = crealf(diff) * crealf(diff) + cimagf(diff) * cimagf(diff);
+  }
+#else
+  volk_32fc_x2_square_dist_32f(distance,&symbol,points,npoints);
+#endif 
+}
+
 void vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 #ifndef HAVE_VOLK_SUB_FLOAT_FUNCTION
   int i;

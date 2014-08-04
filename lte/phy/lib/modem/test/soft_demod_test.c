@@ -100,7 +100,7 @@ float mse_threshold() {
     case LTE_QAM16: 
       return 0.11; 
     case LTE_QAM64:
-      return 0.18;
+      return 0.19;
     default:
       return -1.0;
   }
@@ -128,6 +128,7 @@ int main(int argc, char **argv) {
   demod_soft_init(&demod_soft);
   demod_soft_table_set(&demod_soft, &mod);
   demod_soft_sigma_set(&demod_soft, 2.0 / mod.nbits_x_symbol);
+
 
   /* allocate buffers */
   input = malloc(sizeof(char) * num_bits);
@@ -159,7 +160,7 @@ int main(int argc, char **argv) {
   }
 
   /* generate random data */
-  srand(time(NULL));
+  srand(0);
   
   int ret = -1;
   double mse;
@@ -187,7 +188,9 @@ int main(int argc, char **argv) {
     get_time_interval(t);
     
     /* compute exponentially averaged execution time */
-    mean_texec = EXPAVERAGE((float) t[0].tv_usec, mean_texec, n);
+    if (n > 0) {
+      mean_texec = EXPAVERAGE((float) t[0].tv_usec, mean_texec, n-1);      
+    }
     
     /* check MSE */
     mse = 0.0;
