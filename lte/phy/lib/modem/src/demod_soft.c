@@ -58,8 +58,10 @@ int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int 
         q->table->symbol_table, q->table->soft_table.idx, q->sigma);
     break;
   case APPROX:
-    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
+/*    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
         q->table->symbol_table, q->table->soft_table.idx, q->sigma);
+*/    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
+        q->table->symbol_table, q->table->soft_table.idx, q->table->soft_table.d_idx, q->table->soft_table.min_idx, q->sigma);
     break;
   }
   return nsymbols*q->table->nbits_x_symbol;

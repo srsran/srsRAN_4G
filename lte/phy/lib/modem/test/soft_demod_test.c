@@ -129,6 +129,7 @@ int main(int argc, char **argv) {
   demod_soft_table_set(&demod_soft, &mod);
   demod_soft_sigma_set(&demod_soft, 2.0 / mod.nbits_x_symbol);
 
+
   /* allocate buffers */
   input = malloc(sizeof(char) * num_bits);
   if (!input) {
