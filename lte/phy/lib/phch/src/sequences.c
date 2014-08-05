@@ -35,7 +35,7 @@
  */
 int sequence_pbch(sequence_t *seq, lte_cp_t cp, uint32_t cell_id) {
   bzero(seq, sizeof(sequence_t));
-  return sequence_LTEPRS(seq, CP_ISNORM(cp)?1920:1728, cell_id);
+  return sequence_LTE_pr(seq, CP_ISNORM(cp)?1920:1728, cell_id);
 }
 
 /**
@@ -43,7 +43,7 @@ int sequence_pbch(sequence_t *seq, lte_cp_t cp, uint32_t cell_id) {
  */
 int sequence_pcfich(sequence_t *seq, uint32_t nslot, uint32_t cell_id) {
   bzero(seq, sizeof(sequence_t));
-  return sequence_LTEPRS(seq, 32, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
+  return sequence_LTE_pr(seq, 32, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
 }
 
 
@@ -52,7 +52,7 @@ int sequence_pcfich(sequence_t *seq, uint32_t nslot, uint32_t cell_id) {
  */
 int sequence_phich(sequence_t *seq, uint32_t nslot, uint32_t cell_id) {
   bzero(seq, sizeof(sequence_t));
-  return sequence_LTEPRS(seq, 12, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
+  return sequence_LTE_pr(seq, 12, (nslot/2+1) * (2*cell_id + 1) * 512 + cell_id);
 }
 
 /**
@@ -60,7 +60,7 @@ int sequence_phich(sequence_t *seq, uint32_t nslot, uint32_t cell_id) {
  */
 int sequence_pdcch(sequence_t *seq, uint32_t nslot, uint32_t cell_id, uint32_t len) {
   bzero(seq, sizeof(sequence_t));
-  return sequence_LTEPRS(seq, len, (nslot/2) * 512 + cell_id);
+  return sequence_LTE_pr(seq, len, (nslot/2) * 512 + cell_id);
 }
 
 /**
@@ -68,5 +68,5 @@ int sequence_pdcch(sequence_t *seq, uint32_t nslot, uint32_t cell_id, uint32_t l
  */
 int sequence_pdsch(sequence_t *seq, unsigned short rnti, int q, uint32_t nslot, uint32_t cell_id, uint32_t len) {
   bzero(seq, sizeof(sequence_t));
-  return sequence_LTEPRS(seq, len, (rnti<<14) + (q<<13) + ((nslot/2)<<9) + cell_id);
+  return sequence_LTE_pr(seq, len, (rnti<<14) + (q<<13) + ((nslot/2)<<9) + cell_id);
 }

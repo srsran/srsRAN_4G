@@ -259,17 +259,58 @@ int chest_init(chest_t *q, uint32_t nof_re, uint32_t nof_symbols, uint32_t nof_p
   return ret;
 }
 
+void chest_free(chest_t *q) {
+  int p, n;
+  for (p=0;p<q->nof_ports;p++) {
+    for (n=0;n<NSLOTS_X_FRAME;n++) {
+      refsignal_free(&q->refsignal[p][n]);
+    }
+  }
+#ifdef VOLK_INTERP
+  for (p=0;p<MAX_PORTS;p++) {
+    interp_free(&q->interp_freq[p]);
+    interp_free(&q->interp_time[p]);    
+  }
+#endif
+  bzero(q, sizeof(chest_t));
+}
+
+/* Fills l[2] with the symbols in the slot nslot that contain references.
+ * returns the number of symbols with references (in the slot)
+ */
+int chest_ref_get_symbols(chest_t *q, uint32_t port_id, uint32_t nslot, uint32_t l[2]) {
+  
+  if (q         != NULL          && 
+      port_id   <  MAX_PORTS     &&
+      nslot     <  NSLOTS_X_FRAME)
+  {
+    memcpy(l, q->refsignal[port_id][nslot].symbols_ref, sizeof(uint32_t) * q->refsignal[port_id][nslot].nsymbols);
+    return q->refsignal[port_id][nslot].nsymbols;
+  } else {
+    return LIBLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
+
+
+
+
+/*********************************************************************
+ * 
+ * Downlink Channel estimator
+ * 
+ *********************************************************************/ 
 int chest_init_LTEDL(chest_t *q, lte_cell_t cell) {
   int ret; 
   ret = chest_init(q, cell.nof_prb * RE_X_RB, CP_NSYMB(cell.cp), cell.nof_ports);
   if (ret != LIBLTE_SUCCESS) {
     return ret;
   } else {
-    return chest_ref_LTEDL(q, cell);    
+    return chest_ref_set_LTEDL(q, cell);    
   }
 }
 
-int chest_ref_LTEDL_slot_port(chest_t *q, uint32_t nslot, uint32_t port_id, lte_cell_t cell) {
+int chest_ref_set_LTEDL_slot_port(chest_t *q, uint32_t nslot, uint32_t port_id, lte_cell_t cell) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (q         != NULL         && 
@@ -293,10 +334,10 @@ int chest_ref_LTEDL_slot_port(chest_t *q, uint32_t nslot, uint32_t port_id, lte_
   return ret;
 }
 
-int chest_ref_LTEDL_slot(chest_t *q, uint32_t nslot, lte_cell_t cell) {
+int chest_ref_set_LTEDL_slot(chest_t *q, uint32_t nslot, lte_cell_t cell) {
   int p, ret;
   for (p=0;p<q->nof_ports;p++) {
-    ret = chest_ref_LTEDL_slot_port(q, nslot, p, cell);
+    ret = chest_ref_set_LTEDL_slot_port(q, nslot, p, cell);
     if (ret != LIBLTE_SUCCESS) {
       return ret;
     }
@@ -304,10 +345,10 @@ int chest_ref_LTEDL_slot(chest_t *q, uint32_t nslot, lte_cell_t cell) {
   return LIBLTE_SUCCESS;
 }
 
-int chest_ref_LTEDL(chest_t *q, lte_cell_t cell) {
+int chest_ref_set_LTEDL(chest_t *q, lte_cell_t cell) {
   int n, ret;
   for (n=0;n<NSLOTS_X_FRAME;n++) {
-    ret = chest_ref_LTEDL_slot(q, n, cell);
+    ret = chest_ref_set_LTEDL_slot(q, n, cell);
     if (ret != LIBLTE_SUCCESS) {
       return ret;
     }
@@ -315,37 +356,32 @@ int chest_ref_LTEDL(chest_t *q, lte_cell_t cell) {
   return LIBLTE_SUCCESS;
 }
 
-void chest_free(chest_t *q) {
-  int p, n;
-  for (p=0;p<q->nof_ports;p++) {
-    for (n=0;n<NSLOTS_X_FRAME;n++) {
-      refsignal_free(&q->refsignal[p][n]);
-    }
-  }
-#ifdef VOLK_INTERP
-  for (p=0;p<MAX_PORTS;p++) {
-    interp_free(&q->interp_freq[p]);
-    interp_free(&q->interp_time[p]);    
-  }
-#endif
-  bzero(q, sizeof(chest_t));
-}
 
-/* Fills l[2] with the symbols in the slot nslot that contain references.
- * returns the number of symbols with references (in the slot)
- */
-int chest_ref_symbols(chest_t *q, uint32_t port_id, uint32_t nslot, uint32_t l[2]) {
-  
-  if (q         != NULL          && 
-      port_id   <  MAX_PORTS     &&
-      nslot     <  NSLOTS_X_FRAME)
-  {
-    memcpy(l, q->refsignal[port_id][nslot].symbols_ref, sizeof(uint32_t) * q->refsignal[port_id][nslot].nsymbols);
-    return q->refsignal[port_id][nslot].nsymbols;
-  } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
-  }
-}
+
+
+/*********************************************************************
+ * 
+ * TODO: Uplink Channel estimator
+ * 
+ * 
+ *********************************************************************/ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /** High-level API

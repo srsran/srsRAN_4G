@@ -59,10 +59,30 @@ typedef struct LIBLTE_API{
   cf_t *ch_est;
 } refsignal_t;
 
+
+typedef struct LIBLTE_API {
+  float beta;                     // amplitude scaling
+  uint32_t delta_ss;              // Set to 0 for PUCCH
+  uint32_t cyclic_shift;
+  uint32_t cyclic_shift_for_drms; /* From DCI 0. Set to 0 if no PDCCH with DCI 0 for the same TB
+                                    or if the initial PUSCH is semi-persisently scheduled or 
+                                    if the initial PUSCH is scheduled by the RA response grant */                                  
+  bool group_hopping_en;
+  bool sequence_hopping_en; 
+} refsignal_ul_cfg_t;
+
+
 LIBLTE_API int refsignal_init_LTEDL(refsignal_t *q, 
                                     uint32_t port_id, 
                                     uint32_t nslot,
                                     lte_cell_t cell);
+
+LIBLTE_API int refsignal_init_LTEUL_drms_pusch(refsignal_t *q, 
+                                               uint32_t nof_prb, 
+                                               uint32_t prb_start, 
+                                               uint32_t nslot,
+                                               lte_cell_t cell, 
+                                               refsignal_ul_cfg_t *drms_cfg);
 
 LIBLTE_API void refsignal_free(refsignal_t *q);
 

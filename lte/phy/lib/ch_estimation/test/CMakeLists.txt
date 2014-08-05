@@ -20,13 +20,26 @@
 #
 
 ########################################################################
-# Channel Estimation TEST  
+# Downlink Channel Estimation TEST  
 ########################################################################
 
-ADD_EXECUTABLE(chest_test chest_test.c)
-TARGET_LINK_LIBRARIES(chest_test lte_phy)
+ADD_EXECUTABLE(chest_test_dl chest_test_dl.c)
+TARGET_LINK_LIBRARIES(chest_test_dl lte_phy)
 
-ADD_TEST(chest_test_all_cellids chest_test) 
-ADD_TEST(chest_test_cellid chest_test -c 1) 
+ADD_TEST(chest_test_dl_cellid0 chest_dl_test -c 0) 
+ADD_TEST(chest_test_dl_cellid1 chest_dl_test -c 1) 
+ADD_TEST(chest_test_dl_cellid2 chest_dl_test -c 2) 
+
+########################################################################
+# Uplink Channel Estimation TEST  
+########################################################################
+
+ADD_EXECUTABLE(chest_test_ul chest_test_ul.c)
+TARGET_LINK_LIBRARIES(chest_test_ul lte_phy)
+
+#ADD_TEST(chest_test_ul_cellid0 chest_ul_test -c 0) 
+#ADD_TEST(chest_test_ul_cellid1 chest_ul_test -c 1) 
+#ADD_TEST(chest_test_ul_cellid2 chest_ul_test -c 2) 
+
 
 
