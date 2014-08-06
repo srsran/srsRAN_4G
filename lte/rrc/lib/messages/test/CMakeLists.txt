@@ -26,9 +26,16 @@
 ADD_EXECUTABLE(bcch_bch_test bcch_bch_test.c)
 TARGET_LINK_LIBRARIES(bcch_bch_test lte_rrc)
 
-ADD_TEST(bcch_bch_test_1 bcch_bch_test) 
+  ADD_EXECUTABLE(ue_celldetect_mib_test ue_celldetect_mib_test.c)
+  TARGET_LINK_LIBRARIES(ue_celldetect_mib_test lte_phy cuhd)
 
-ADD_EXECUTABLE(bcch_dlsch_test bcch_dlsch_test.c)
-TARGET_LINK_LIBRARIES(bcch_dlsch_test lte_rrc lte_phy)
+  IF(${GRAPHICS_FIND} EQUAL -1)
+    SET_TARGET_PROPERTIES(ue_sync_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
+  ELSE(${GRAPHICS_FIND} EQUAL -1)
+    target_link_libraries(ue_sync_usrp graphics)
+  ENDIF(${GRAPHICS_FIND} EQUAL -1)
+
+ENDIF(${CUHD_FIND} GREATER -1)
+
 
 ADD_TEST(bcch_dlsch_test_1 bcch_dlsch_test) 
