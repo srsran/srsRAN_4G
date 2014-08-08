@@ -218,13 +218,22 @@ int main(int argc, char **argv) {
       }
 
       // Plot and Printf
-      if (!(sf_cnt % 10)) {       
+      if (!(sf_cnt % 10)) {
+#ifndef DISABLE_UHD
         printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d/%4d, BLER: %.1e, Texec: %.2f\r",
                 ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, 
                 pdsch_average_noi(&ue_dl.pdsch),
                 (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (int) ue_dl.nof_trials, 
                (float) ue_dl.pkt_errors / ue_dl.pkts_total, 
-               mean_exec_time);                
+               mean_exec_time);
+#else
+        printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d/%4d, BLER: %.1e, Texec: %.2f\r",
+                0.0, 0.0,
+                pdsch_average_noi(&ue_dl.pdsch),
+                (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (int) ue_dl.nof_trials,
+               (float) ue_dl.pkt_errors / ue_dl.pkts_total,
+               mean_exec_time);
+#endif
       }      
       #ifndef DISABLE_GRAPHICS
       if (!prog_args.disable_plots && iodev_get_sfidx(&iodev) == 5) {
@@ -232,9 +241,11 @@ int main(int argc, char **argv) {
       }
       #endif
     } else if (ret == 0) {
+#ifndef DISABLE_UHD
       printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
         sync_get_peak_value(&iodev.sframe.sfind), 
-        iodev.sframe.frame_total_cnt, iodev.sframe.state);      
+        iodev.sframe.frame_total_cnt, iodev.sframe.state);
+#endif
     }
     sf_cnt++;                  
   } // Main loop
