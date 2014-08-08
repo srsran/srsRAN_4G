@@ -44,11 +44,12 @@
 
 #include "cell_search_utils.h"
 
-
+#ifndef DISABLE_UHD
 int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
 }
+#endif
 
 /* Setup USRP or input file */
 int iodev_init(iodev_t *q, iodev_cfg_t *config, lte_cell_t *cell, pbch_mib_t *mib) {
@@ -178,7 +179,6 @@ int iodev_init(iodev_t *q, iodev_cfg_t *config, lte_cell_t *cell, pbch_mib_t *mi
 
 
 void iodev_free(iodev_t *q) {
-  
   if (q->mode == FILESOURCE) {
     filesource_free(&q->fsrc);
   } else {
@@ -187,9 +187,10 @@ void iodev_free(iodev_t *q) {
 #endif
   }
 }
+
 /* Receive samples from the USRP or read from file */
 int iodev_receive(iodev_t *q, cf_t **buffer) {
-  int n; 
+  int n=0;
   if (q->mode == FILESOURCE) {
     INFO(" -----   READING %d SAMPLES ---- \n", q->sf_len);
     n = filesource_read(&q->fsrc, q->input_buffer_file, q->sf_len);
@@ -229,10 +230,12 @@ int iodev_receive(iodev_t *q, cf_t **buffer) {
 
 void* iodev_get_cuhd(iodev_t *q) {
   if (q->mode == UHD) {
+#ifndef DISABLE_UHD
     return q->uhd; 
-  } else {
-    return NULL; 
+#endif
   }
+  return NULL;
+
 }
 
 bool iodev_isfile(iodev_t *q) {
@@ -244,11 +247,12 @@ bool iodev_isUSRP(iodev_t *q) {
 }
 
 uint32_t iodev_get_sfidx(iodev_t *q) {
-  if (iodev_isfile(q)) {
-    return q->sf_idx;
-  } else {
+  if (iodev_isUSRP(q)) {
+#ifndef DISABLE_UHD
     return ue_sync_get_sfidx(&q->sframe);
+#endif
   }
+  return q->sf_idx;
 }
 
 
