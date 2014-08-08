@@ -31,15 +31,15 @@
 #include "liblte/config.h"
 
 typedef struct LIBLTE_API {
-  int *forward;
-  int *reverse;
-  int max_long_cb;
+  uint32_t *forward;
+  uint32_t *reverse;
+  uint32_t max_long_cb;
 } tc_interl_t;
 
-LIBLTE_API int tc_interl_LTE_gen(tc_interl_t *h, int long_cb);
-LIBLTE_API int tc_interl_UMTS_gen(tc_interl_t *h, int long_cb);
+LIBLTE_API int tc_interl_LTE_gen(tc_interl_t *h, uint32_t long_cb);
+LIBLTE_API int tc_interl_UMTS_gen(tc_interl_t *h, uint32_t long_cb);
 
-LIBLTE_API int tc_interl_init(tc_interl_t *h, int max_long_cb);
+LIBLTE_API int tc_interl_init(tc_interl_t *h, uint32_t max_long_cb);
 LIBLTE_API void tc_interl_free(tc_interl_t *h);
 
 #endif

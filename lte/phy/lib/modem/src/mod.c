@@ -35,14 +35,17 @@
 
 /** Low-level API */
 
-int mod_modulate(modem_table_t* q, const char *bits, cf_t* symbols, int nbits) {
-  int i,j,idx;
+int mod_modulate(modem_table_t* q, const char *bits, cf_t* symbols, uint32_t nbits) {
+  uint32_t i,j,idx;
   char *b_ptr=(char*) bits;
   j=0;
   for (i=0;i<nbits;i+=q->nbits_x_symbol) {
     idx = bit_unpack(&b_ptr,q->nbits_x_symbol);
-    assert(idx >= 0 && idx < q->nsymbols);
-    symbols[j] = q->symbol_table[idx];
+    if (idx < q->nsymbols) {
+      symbols[j] = q->symbol_table[idx];      
+    } else {
+      return LIBLTE_ERROR;
+    }
     j++;
   }
   return j;
@@ -52,7 +55,7 @@ int mod_modulate(modem_table_t* q, const char *bits, cf_t* symbols, int nbits) {
 /* High-Level API */
 int mod_initialize(mod_hl* hl) {
   modem_table_init(&hl->obj);
-  if (modem_table_std(&hl->obj,hl->init.std,false)) {
+  if (modem_table_lte(&hl->obj,hl->init.std,false)) {
     return -1;
   }
 

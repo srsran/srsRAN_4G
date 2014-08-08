@@ -35,10 +35,10 @@
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
 
-int lte_fft_init_(lte_fft_t *q, lte_cp_t cp_type, int nof_prb, dft_dir_t dir) {
+int lte_fft_init_(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
   int symbol_sz = lte_symbol_sz(nof_prb);
 
-  if (symbol_sz == -1) {
+  if (symbol_sz < 0) {
     fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
     return -1;
   }
@@ -46,7 +46,7 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp_type, int nof_prb, dft_dir_t dir) {
     fprintf(stderr, "Error: Creating DFT plan\n");
     return -1;
   }
-  q->tmp = malloc(symbol_sz * sizeof(cf_t));
+  q->tmp = malloc((uint32_t) symbol_sz * sizeof(cf_t));
   if (!q->tmp) {
     perror("malloc");
     return -1;
@@ -56,15 +56,18 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp_type, int nof_prb, dft_dir_t dir) {
   dft_plan_set_norm(&q->fft_plan, true);
   dft_plan_set_dc(&q->fft_plan, true);
 
-  q->symbol_sz = symbol_sz;
-  q->nof_symbols = CP_NSYMB(cp_type);
-  q->cp_type = cp_type;
+  q->symbol_sz = (uint32_t) symbol_sz;
+  q->nof_symbols = CP_NSYMB(cp);
+  q->cp = cp;
   q->nof_re = nof_prb * RE_X_RB;
   q->nof_guards = ((symbol_sz - q->nof_re) / 2);
-  DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp_type=%s, nof_re=%d, nof_guards=%d\n",
+  q->slot_sz = SLOT_LEN(symbol_sz);
+  
+  DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
       dir==FORWARD?"FFT":"iFFT", q->symbol_sz, q->nof_symbols,
-          q->cp_type==CPNORM?"Normal":"Extended", q->nof_re, q->nof_guards);
-  return 0;
+          q->cp==CPNORM?"Normal":"Extended", q->nof_re, q->nof_guards);
+
+  return LIBLTE_SUCCESS;
 }
 
 void lte_fft_free_(lte_fft_t *q) {
@@ -75,25 +78,28 @@ void lte_fft_free_(lte_fft_t *q) {
   bzero(q, sizeof(lte_fft_t));
 }
 
-int lte_fft_init(lte_fft_t *q, lte_cp_t cp_type, int nof_prb) {
-  return lte_fft_init_(q, cp_type, nof_prb, FORWARD);
+int lte_fft_init(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb) {
+  return lte_fft_init_(q, cp, nof_prb, FORWARD);
 }
 
 void lte_fft_free(lte_fft_t *q) {
   lte_fft_free_(q);
 }
 
-int lte_ifft_init(lte_fft_t *q, lte_cp_t cp_type, int nof_prb) {
-  int i;
-  if (lte_fft_init_(q, cp_type, nof_prb, BACKWARD)) {
-    return -1;
+int lte_ifft_init(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb) {
+  uint32_t i;
+  int ret;
+  
+  ret = lte_fft_init_(q, cp, nof_prb, BACKWARD); 
+  
+  if (ret == LIBLTE_SUCCESS) {
+    /* set now zeros at CP */
+    for (i=0;i<q->nof_symbols;i++) {
+      bzero(q->tmp, q->nof_guards * sizeof(cf_t));
+      bzero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards * sizeof(cf_t));
+    }
   }
-  /* set now zeros at CP */
-  for (i=0;i<q->nof_symbols;i++) {
-    bzero(q->tmp, q->nof_guards * sizeof(cf_t));
-    bzero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards * sizeof(cf_t));
-  }
-  return 0;
+  return ret;
 }
 
 void lte_ifft_free(lte_fft_t *q) {
@@ -103,10 +109,10 @@ void lte_ifft_free(lte_fft_t *q) {
 /* Transforms input samples into output OFDM symbols.
  * Performs FFT on a each symbol and removes CP.
  */
-void lte_fft_run(lte_fft_t *q, cf_t *input, cf_t *output) {
-  int i;
+void lte_fft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output) {
+  uint32_t i;
   for (i=0;i<q->nof_symbols;i++) {
-    input += CP_ISNORM(q->cp_type)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
+    input += CP_ISNORM(q->cp)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
     dft_run_c(&q->fft_plan, input, q->tmp);
     memcpy(output, &q->tmp[q->nof_guards], q->nof_re * sizeof(cf_t));
     input += q->symbol_sz;
@@ -114,13 +120,20 @@ void lte_fft_run(lte_fft_t *q, cf_t *input, cf_t *output) {
   }
 }
 
+void lte_fft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output) {
+  uint32_t n; 
+  for (n=0;n<2;n++) {
+    lte_fft_run_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
+  }
+}
+
 /* Transforms input OFDM symbols into output samples.
  * Performs FFT on a each symbol and adds CP.
  */
-void lte_ifft_run(lte_fft_t *q, cf_t *input, cf_t *output) {
-  int i, cp_len;
+void lte_ifft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output) {
+  uint32_t i, cp_len;
   for (i=0;i<q->nof_symbols;i++) {
-    cp_len = CP_ISNORM(q->cp_type)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
+    cp_len = CP_ISNORM(q->cp)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
     memcpy(&q->tmp[q->nof_guards], input, q->nof_re * sizeof(cf_t));
     dft_run_c(&q->fft_plan, q->tmp, &output[cp_len]);
     input += q->nof_re;
@@ -130,3 +143,9 @@ void lte_ifft_run(lte_fft_t *q, cf_t *input, cf_t *output) {
   }
 }
 
+void lte_ifft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output) {
+  uint32_t n; 
+  for (n=0;n<2;n++) {
+    lte_ifft_run_slot(q, &input[n*q->nof_re*q->nof_symbols], &output[n*q->slot_sz]);
+  }
+}

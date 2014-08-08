@@ -33,18 +33,22 @@
 
 #include "liblte/phy/phy.h"
 
-int cell_id = -1;
-int nof_prb = 6;
-int nof_ports = 1;
-lte_cp_t cp = CPNORM;
+
+lte_cell_t cell = {
+  6,            // nof_prb
+  1,            // nof_ports
+  1000,         // cell_id
+  CPNORM        // cyclic prefix
+};
+
 phich_resources_t phich_res = R_1;
 phich_length_t phich_length = PHICH_NORM;
 
 void usage(char *prog) {
   printf("Usage: %s [cpvgel]\n", prog);
-  printf("\t-c cell id [Default %d]\n", cell_id);
-  printf("\t-p nof_ports [Default %d]\n", nof_ports);
-  printf("\t-n nof_prb [Default %d]\n", nof_prb);
+  printf("\t-c cell id [Default %d]\n", cell.id);
+  printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
+  printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-g phich ng factor: 1/6, 1/2, 1, 2 [Default 1]\n");
   printf("\t-e phich extended length [Default normal]\n");
   printf("\t-l extended cyclic prefix [Default normal]\n");
@@ -56,13 +60,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "cpnvgel")) != -1) {
     switch(opt) {
     case 'p':
-      nof_ports = atoi(argv[optind]);
+      cell.nof_ports = atoi(argv[optind]);
       break;
     case 'n':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'g':
       if (!strcmp(argv[optind], "1/6")) {
@@ -81,7 +85,7 @@ void parse_args(int argc, char **argv) {
       phich_length = PHICH_EXT;
       break;
     case 'l':
-      cp = CPEXT;
+      cell.cp = CPEXT;
       break;
     case 'v':
       verbose++;
@@ -98,22 +102,22 @@ int main(int argc, char **argv) {
   phich_t phich;
   regs_t regs;
   int i, j;
-  cf_t *ce[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
   int nof_re;
-  cf_t *slot_symbols[MAX_PORTS_CTRL];
+  cf_t *slot_symbols[MAX_PORTS];
   char ack[50][PHICH_NORM_NSEQUENCES], ack_rx;
-  int nsf, distance;
+  uint32_t nsf, distance;
   int cid, max_cid;
-  int ngroup, nseq, max_nseq;
+  uint32_t ngroup, nseq, max_nseq;
 
   parse_args(argc,argv);
 
-  max_nseq = CP_ISNORM(cp)?PHICH_NORM_NSEQUENCES:PHICH_EXT_NSEQUENCES;
+  max_nseq = CP_ISNORM(cell.cp)?PHICH_NORM_NSEQUENCES:PHICH_EXT_NSEQUENCES;
 
-  nof_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
+  nof_re = CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   /* init memory */
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -129,23 +133,24 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (cell_id == -1) {
+  if (cell.id == 1000) {
     cid = 0;
     max_cid = 503;
   } else {
-    cid = cell_id;
-    max_cid = cell_id;
+    cid = cell.id;
+    max_cid = cell.id;
   }
   while(cid <= max_cid) {
-
+    cell.id = cid;
+    
     printf("Testing CellID=%d...\n", cid);
 
-    if (regs_init(&regs, cid, nof_prb, nof_ports, phich_res, phich_length, cp)) {
+    if (regs_init(&regs, phich_res, phich_length, cell)) {
       fprintf(stderr, "Error initiating regs\n");
       exit(-1);
     }
 
-    if (phich_init(&phich, &regs, cid, nof_prb, nof_ports, cp)) {
+    if (phich_init(&phich, &regs, cell)) {
       fprintf(stderr, "Error creating PBCH object\n");
       exit(-1);
     }
@@ -164,7 +169,7 @@ int main(int argc, char **argv) {
         }
       }
       /* combine outputs */
-      for (i=1;i<nof_ports;i++) {
+      for (i=1;i<cell.nof_ports;i++) {
         for (j=0;j<nof_re;j++) {
           slot_symbols[0][j] += slot_symbols[i][j];
         }
@@ -196,7 +201,7 @@ int main(int argc, char **argv) {
     cid++;
   }
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
     free(slot_symbols[i]);
   }

@@ -38,6 +38,14 @@
 #define QAM64_LEVEL_3  5/sqrt(42)
 #define QAM64_LEVEL_4  7/sqrt(42)
 
+//////////////// NUEVO //////////////////////
+/* HARD DEMODULATION Thresholds, necessary for obtaining the zone of received symbol for optimized LLR approx implementation */
+#define QAM16_THRESHOLD		2/sqrt(10)
+#define QAM64_THRESHOLD_1	2/sqrt(42)
+#define QAM64_THRESHOLD_2	4/sqrt(42)
+#define QAM64_THRESHOLD_3	6/sqrt(42)
+//=========================================//
+
 #define QAM64_LEVEL_x  2/sqrt(42)
 /* this is not an QAM64 level, but, rather, an auxiliary value that can be used for computing the
  * symbol from the bit sequence */
@@ -45,7 +53,18 @@
 
 
 
-void set_BPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod);
-void set_QPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod);
-void set_16QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod);
-void set_64QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod);
+void set_BPSKtable(cf_t* table, 
+                   soft_table_t *soft_table, 
+                   bool compute_soft_demod);
+
+void set_QPSKtable(cf_t* table, 
+                   soft_table_t *soft_table, 
+                   bool compute_soft_demod);
+
+void set_16QAMtable(cf_t* table, 
+                    soft_table_t *soft_table, 
+                    bool compute_soft_demod);
+
+void set_64QAMtable(cf_t* table, 
+                    soft_table_t *soft_table, 
+                    bool compute_soft_demod);

@@ -96,8 +96,8 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  cfo_correct(&cfocorr, output, freq);
-  cfo_correct(&cfocorr, output, -freq);
+  cfo_correct(&cfocorr, output, output, freq);
+  cfo_correct(&cfocorr, output, output, -freq);
 
   mse = 0;
   for (i=0;i<num_samples;i++) {

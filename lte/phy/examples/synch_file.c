@@ -109,13 +109,12 @@ int main(int argc, char **argv) {
   int peak_pos[3];
   float *cfo;
   float peak_value[3];
-  float mean_value[3];
   int frame_cnt;
   cf_t *input;
-  int m0, m1;
+  uint32_t m0, m1;
   float m0_value, m1_value;
-  int N_id_2;
-  int sss_idx;
+  uint32_t N_id_2;
+  uint32_t sss_idx;
   struct timeval tdata[3];
   int *exec_time;
 
@@ -173,7 +172,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error initializing N_id_2\n");
       exit(-1);
     }
-    if (sss_synch_init(&sss[N_id_2])) {
+    if (sss_synch_init(&sss[N_id_2], 128)) {
       fprintf(stderr, "Error initializing SSS object\n");
       exit(-1);
     }
@@ -196,15 +195,15 @@ int main(int argc, char **argv) {
 
     gettimeofday(&tdata[1], NULL);
     if (force_cfo != CFO_AUTO) {
-      cfo_correct(&cfocorr, input, -force_cfo/128);
+      cfo_correct(&cfocorr, input, input, -force_cfo/128);
     }
 
     if (force_N_id_2 != -1) {
       N_id_2 = force_N_id_2;
-      peak_pos[N_id_2] = pss_synch_find_pss(&pss[N_id_2], input, &peak_value[N_id_2], &mean_value[N_id_2]);
+      peak_pos[N_id_2] = pss_synch_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
     } else {
       for (N_id_2=0;N_id_2<3;N_id_2++) {
-        peak_pos[N_id_2] = pss_synch_find_pss(&pss[N_id_2], input, &peak_value[N_id_2], &mean_value[N_id_2]);
+        peak_pos[N_id_2] = pss_synch_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
       }
       float max_value=-99999;
       N_id_2=-1;
@@ -218,7 +217,7 @@ int main(int argc, char **argv) {
     }
 
     /* If peak detected */
-    if (peak_value[N_id_2]/mean_value[N_id_2] > corr_peak_threshold) {
+    if (peak_value[N_id_2] > corr_peak_threshold) {
 
       sss_idx = peak_pos[N_id_2]-2*(symbol_sz+CP(symbol_sz,CPNORM_LEN));
       if (sss_idx >= 0) {
@@ -228,7 +227,7 @@ int main(int argc, char **argv) {
         cfo[frame_cnt] = pss_synch_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2]-128]);
         printf("\t%d\t%d\t%d\t%d\t%.3f\t\t%3d\t%d\t%d\t%.3f\n",
             frame_cnt,N_id_2, sss_synch_N_id_1(&sss[N_id_2], m0, m1),
-            sss_synch_subframe(m0, m1), peak_value[N_id_2]/mean_value[N_id_2],
+            sss_synch_subframe(m0, m1), peak_value[N_id_2],
             peak_pos[N_id_2], m0, m1,
             cfo[frame_cnt]);
       }

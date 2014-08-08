@@ -36,7 +36,7 @@ void scrambling_f(sequence_t *s, float *data) {
 }
 
 void scrambling_f_offset(sequence_t *s, float *data, int offset, int len) {
-  int i;
+  int i;  
   assert (len + offset <= s->len);
 
   for (i = 0; i < len; i++) {

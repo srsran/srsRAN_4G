@@ -38,21 +38,34 @@ typedef enum {
 
 typedef struct LIBLTE_API{
   void *ptr;
-  int R;
-  int K;
+  uint32_t R;
+  uint32_t K;
   unsigned int framebits;
   bool tail_biting;
-  int poly[3];
-  int (*decode) (void*, unsigned char*, char*, int);
+  uint32_t poly[3];
+  int (*decode) (void*, uint8_t*, char*, uint32_t);
   void (*free) (void*);
   unsigned char *tmp;
   unsigned char *symbols_uc;
 }viterbi_t;
 
-LIBLTE_API int viterbi_init(viterbi_t *q, viterbi_type_t type, int poly[3], int max_frame_length, bool tail_bitting);
+LIBLTE_API int viterbi_init(viterbi_t *q, 
+                            viterbi_type_t type, 
+                            uint32_t poly[3], 
+                            uint32_t max_frame_length, 
+                            bool tail_bitting);
+
 LIBLTE_API void viterbi_free(viterbi_t *q);
-LIBLTE_API int viterbi_decode_f(viterbi_t *q, float *symbols, char *data, int frame_length);
-LIBLTE_API int viterbi_decode_uc(viterbi_t *q, unsigned char *symbols, char *data, int frame_length);
+
+LIBLTE_API int viterbi_decode_f(viterbi_t *q, 
+                                float *symbols, 
+                                char *data, 
+                                uint32_t frame_length);
+
+LIBLTE_API int viterbi_decode_uc(viterbi_t *q, 
+                                 uint8_t *symbols, 
+                                 char *data, 
+                                 uint32_t frame_length);
 
 
 /* High-level API */

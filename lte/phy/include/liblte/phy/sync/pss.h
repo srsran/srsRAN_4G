@@ -42,8 +42,7 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 #define DEFAULT_CORRELATION_TH 10000
 #define DEFAULT_NOSYNC_TIMEOUT  5
 
-#define PSS_LEN_FREQ   129    // FFT-based convolution removes 1 leaving it in 128
-#define PSS_LEN      62
+#define PSS_LEN     62
 #define PSS_RE      6*12
 
 
@@ -67,45 +66,45 @@ typedef struct LIBLTE_API {
   conv_fft_cc_t conv_fft;
 #endif
 
-  int frame_size;
-  int N_id_2;
-  float current_cfo;
-  bool cfo_auto;          // default true
-  int nof_nosync_frames;
-  int nosync_timeout_frames;    // default 5
-  float correlation_threshold;   // default 10000
-  int frame_start_idx;
-  int fb_wp;
+  uint32_t frame_size;
+  uint32_t N_id_2;
+  uint32_t fft_size;
 
-  cf_t *pss_signal_freq;
+  cf_t *pss_signal_freq[3]; // One sequence for each N_id_2
   cf_t *tmp_input;
-  float *conv_abs;
-  cf_t *frame_buffer;
   cf_t *conv_output;
-  cf_t *tmp_nco;
+    
 }pss_synch_t;
 
 typedef enum { PSS_TX, PSS_RX } pss_direction_t;
 
 /* Basic functionality */
-LIBLTE_API int pss_synch_init(pss_synch_t *q, int frame_size);
+LIBLTE_API int pss_synch_init_fft(pss_synch_t *q, 
+                                  uint32_t frame_size, 
+                                  uint32_t fft_size);
+
+LIBLTE_API int pss_synch_init(pss_synch_t *q, 
+                              uint32_t frame_size);
+
 LIBLTE_API void pss_synch_free(pss_synch_t *q);
-LIBLTE_API int pss_generate(cf_t *signal, int N_id_2);
-LIBLTE_API void pss_put_slot(cf_t *pss_signal, cf_t *slot, int nof_prb, lte_cp_t cp);
 
-LIBLTE_API int pss_synch_set_N_id_2(pss_synch_t *q, int N_id_2);
-LIBLTE_API int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value, float *corr_mean_value);
-LIBLTE_API float pss_synch_cfo_compute(pss_synch_t* q, cf_t *pss_recv);
+LIBLTE_API int pss_generate(cf_t *signal, 
+                            uint32_t N_id_2);
 
+LIBLTE_API void pss_put_slot(cf_t *pss_signal, 
+                             cf_t *slot, 
+                             uint32_t nof_prb, 
+                             lte_cp_t cp);
 
-/* Automatic frame management functions (for periodic calling) */
-LIBLTE_API int pss_synch_periodic(pss_synch_t *q, cf_t *input, cf_t *output, int nsamples);
-LIBLTE_API void pss_synch_set_timeout(pss_synch_t *q, int nof_frames);
-LIBLTE_API void pss_synch_set_threshold(pss_synch_t *q, float threshold);
-LIBLTE_API void pss_synch_set_cfo_mode(pss_synch_t *q, bool cfo_auto);
-LIBLTE_API float pss_synch_get_cfo(pss_synch_t *q);
-LIBLTE_API int pss_synch_get_frame_start_idx(pss_synch_t *q);
+LIBLTE_API int pss_synch_set_N_id_2(pss_synch_t *q, 
+                                    uint32_t N_id_2);
 
+LIBLTE_API int pss_synch_find_pss(pss_synch_t *q, 
+                                  cf_t *input, 
+                                  float *corr_peak_value);
+
+LIBLTE_API float pss_synch_cfo_compute(pss_synch_t* q, 
+                                       cf_t *pss_recv);
 
 
 /* High-level API */

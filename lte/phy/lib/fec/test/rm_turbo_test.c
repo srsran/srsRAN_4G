@@ -73,15 +73,19 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   int i;
-  char *bits, *rm_bits;
-  float *rm_symbols, *unrm_symbols;
+  char *bits, *rm_bits, *w_buff_c;
+  float *rm_symbols, *unrm_symbols, *w_buff_f;
   int nof_errors;
-  rm_turbo_t rm_turbo;
 
   parse_args(argc, argv);
 
   bits = malloc(sizeof(char) * nof_tx_bits);
   if (!bits) {
+    perror("malloc");
+    exit(-1);
+  }
+  w_buff_c = malloc(sizeof(char) * nof_tx_bits * 10);
+  if (!w_buff_c) {
     perror("malloc");
     exit(-1);
   }
@@ -95,6 +99,11 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
+  w_buff_f = malloc(sizeof(float) * nof_rx_bits * 10);
+  if (!w_buff_c) {
+    perror("malloc");
+    exit(-1);
+  }
   unrm_symbols = malloc(sizeof(float) * nof_tx_bits);
   if (!unrm_symbols) {
     perror("malloc");
@@ -105,15 +114,13 @@ int main(int argc, char **argv) {
     bits[i] = rand() % 2;
   }
 
-  rm_turbo_init(&rm_turbo, 2000);
-
-  rm_turbo_tx(&rm_turbo, bits, nof_tx_bits, rm_bits, nof_rx_bits, rv_idx);
+  rm_turbo_tx(w_buff_c, nof_tx_bits * 10, bits, nof_tx_bits, rm_bits, nof_rx_bits, rv_idx);
 
   for (i = 0; i < nof_rx_bits; i++) {
     rm_symbols[i] = (float) rm_bits[i] ? 1 : -1;
   }
 
-  rm_turbo_rx(&rm_turbo, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits,
+  rm_turbo_rx(w_buff_f, nof_rx_bits * 10, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits,
       rv_idx);
 
   nof_errors = 0;
@@ -122,8 +129,6 @@ int main(int argc, char **argv) {
       nof_errors++;
     }
   }
-
-  rm_turbo_free(&rm_turbo);
 
   free(bits);
   free(rm_bits);

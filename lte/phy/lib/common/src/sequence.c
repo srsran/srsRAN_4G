@@ -41,17 +41,16 @@
  * It follows the 3GPP Release 8 (LTE) 36.211
  * Section 7.2
  */
-void generate_prs_c(sequence_t *q, unsigned int seed) {
+void generate_prs_c(sequence_t *q, uint32_t seed) {
   int n;
-  unsigned int *x1;
-  unsigned int *x2;
+  uint32_t *x1, *x2;
 
-  x1 = calloc(Nc + q->len + 31, sizeof(unsigned int));
+  x1 = calloc(Nc + q->len + 31, sizeof(uint32_t));
   if (!x1) {
     perror("calloc");
     return;
   }
-  x2 = calloc(Nc + q->len + 31, sizeof(unsigned int));
+  x2 = calloc(Nc + q->len + 31, sizeof(uint32_t));
   if (!x2) {
     free(x1);
     perror("calloc");
@@ -76,26 +75,26 @@ void generate_prs_c(sequence_t *q, unsigned int seed) {
   free(x2);
 }
 
-int sequence_LTEPRS(sequence_t *q, int len, int seed) {
+int sequence_LTEPRS(sequence_t *q, uint32_t len, uint32_t seed) {
   if (sequence_init(q, len)) {
-    return -1;
+    return LIBLTE_ERROR;
   }
   q->len = len;
   generate_prs_c(q, seed);
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
-int sequence_init(sequence_t *q, int len) {
+int sequence_init(sequence_t *q, uint32_t len) {
   if (q->c && (q->len != len)) {
     free(q->c);
   }
   if (!q->c) {
     q->c = malloc(len * sizeof(char));
     if (!q->c) {
-      return -1;
+      return LIBLTE_ERROR;
     }
   }
-  return 0;
+  return LIBLTE_SUCCESS;
 }
 
 void sequence_free(sequence_t *q) {

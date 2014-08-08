@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
       perror("malloc");
       exit(-1);
     }
-    outfft = malloc(sizeof(cf_t) * SLOT_LEN_CPNORM(lte_symbol_sz(n_prb)));
+    outfft = malloc(sizeof(cf_t) * SLOT_LEN(lte_symbol_sz(n_prb)));
     if (!outfft) {
       perror("malloc");
       exit(-1);
@@ -111,8 +111,8 @@ int main(int argc, char **argv) {
       input[i] = 100 * ((float) rand()/RAND_MAX + (float) I*rand()/RAND_MAX);
     }
 
-    lte_ifft_run(&ifft, input, outfft);
-    lte_fft_run(&fft, outfft, outifft);
+    lte_ifft_run_slot(&ifft, input, outfft);
+    lte_fft_run_slot(&fft, outfft, outifft);
 
     /* compute MSE */
 

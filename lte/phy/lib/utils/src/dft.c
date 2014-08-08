@@ -32,6 +32,7 @@
 #include <string.h>
 
 #include "liblte/phy/utils/dft.h"
+#include "liblte/phy/utils/vector.h"
 
 #define dft_ceil(a,b) ((a-1)/b+1)
 #define dft_floor(a,b) (a/b)
@@ -144,11 +145,8 @@ void dft_run_c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out) {
            plan->forward, plan->mirror, plan->dc);
   fftwf_execute(plan->p);
   if (plan->norm) {
-    /**FIXME: Use VOLK */
-    norm = sqrtf(plan->size);
-    for (i=0;i<plan->size;i++) {
-      f_out[i] /= norm;
-    }
+    norm = 1.0/sqrtf(plan->size);
+    vec_sc_prod_cfc(f_out, norm, f_out, plan->size);    
   }
   if (plan->db) {
     for (i=0;i<plan->size;i++) {
@@ -168,10 +166,8 @@ void dft_run_r(dft_plan_t *plan, dft_r_t *in, dft_r_t *out) {
   memcpy(plan->in,in,sizeof(dft_r_t)*plan->size);
   fftwf_execute(plan->p);
   if (plan->norm) {
-    norm = plan->size;
-    for (i=0;i<len;i++) {
-      f_out[i] /= norm;
-    }
+    norm = 1.0/plan->size;
+    vec_sc_prod_fff(f_out, norm, f_out, plan->size);    
   }
   if (plan->db) {
     for (i=0;i<len;i++) {

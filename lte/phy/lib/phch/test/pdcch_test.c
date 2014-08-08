@@ -33,35 +33,39 @@
 
 #include "liblte/phy/phy.h"
 
-int cell_id = 1;
-int nof_prb = 6;
-int nof_ports = 1;
-int cfi = 1;
+lte_cell_t cell = {
+  6,            // nof_prb
+  1,            // nof_ports
+  1,            // cell_id
+  CPNORM        // cyclic prefix
+};
+
+uint32_t cfi = 1;
 
 void usage(char *prog) {
-  printf("Usage: %s [cpv]\n", prog);
-  printf("\t-c cell id [Default %d]\n", cell_id);
+  printf("Usage: %s [cell.cpv]\n", prog);
+  printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-f cfi [Default %d]\n", cfi);
-  printf("\t-p nof_ports [Default %d]\n", nof_ports);
-  printf("\t-n nof_prb [Default %d]\n", nof_prb);
+  printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
+  printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "cpnfv")) != -1) {
+  while ((opt = getopt(argc, argv, "cell.cpnfv")) != -1) {
     switch (opt) {
     case 'p':
-      nof_ports = atoi(argv[optind]);
+      cell.nof_ports = atoi(argv[optind]);
       break;
     case 'f':
       cfi = atoi(argv[optind]);
       break;
     case 'n':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'v':
       verbose++;
@@ -101,26 +105,28 @@ int test_dci_payload_size() {
 
 int main(int argc, char **argv) {
   pdcch_t pdcch;
-  dci_t dci_tx, dci_rx;
+  dci_msg_t dci_tx[2], dci_rx[2], dci_tmp;
+  dci_location_t dci_locations[2];
   ra_pdsch_t ra_dl;
   regs_t regs;
   int i, j;
-  cf_t *ce[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
   int nof_re;
-  cf_t *slot_symbols[MAX_PORTS_CTRL];
-  int nof_dcis;
+  cf_t *slot_symbols[MAX_PORTS];
+  int nof_dcis; 
+
   int ret = -1;
 
   parse_args(argc, argv);
 
-  nof_re = CPNORM_NSYMB * nof_prb * RE_X_RB;
+  nof_re = CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   if (test_dci_payload_size()) {
     exit(-1);
   }
 
   /* init memory */
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+  for (i = 0; i < MAX_PORTS; i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -136,7 +142,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (regs_init(&regs, cell_id, nof_prb, nof_ports, R_1, PHICH_NORM, CPNORM)) {
+  if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     exit(-1);
   }
@@ -146,74 +152,72 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (pdcch_init(&pdcch, &regs, nof_prb, nof_ports, cell_id, CPNORM)) {
+  if (pdcch_init(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
 
-  dci_init(&dci_tx, 2);
+  nof_dcis = 2;
   bzero(&ra_dl, sizeof(ra_pdsch_t));
   ra_dl.harq_process = 0;
-  //ra_pdsch_set_mcs_index(&ra_dl, 6);
-  ra_pdsch_set_mcs(&ra_dl, QAM16, 5);
+  ra_dl.mcs_idx = 5;
   ra_dl.ndi = 0;
   ra_dl.rv_idx = 0;
   ra_dl.alloc_type = alloc_type0;
   ra_dl.type0_alloc.rbg_bitmask = 0x5;
 
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[0], Format1, nof_prb, false);
-  dci_msg_candidate_set(&dci_tx.msg[0], 0, 0, 1234);
-  dci_tx.nof_dcis++;
+  dci_msg_pack_pdsch(&ra_dl, &dci_tx[0], Format1, cell.nof_prb, false);
+  dci_location_set(&dci_locations[0], 0, 0);
 
-  ra_pdsch_set_mcs(&ra_dl, QAM16, 15);
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx.msg[1], Format1, nof_prb, false);
-  dci_msg_candidate_set(&dci_tx.msg[1], 0, 1, 1234);
-  dci_tx.nof_dcis++;
-
-  pdcch_encode(&pdcch, &dci_tx, slot_symbols, 0);
+  ra_dl.mcs_idx = 15;
+  dci_msg_pack_pdsch(&ra_dl, &dci_tx[1], Format1, cell.nof_prb, false);
+  dci_location_set(&dci_locations[1], 0, 1);
+  
+  for (i=0;i<nof_dcis;i++) {
+    if (pdcch_encode(&pdcch, &dci_tx[i], dci_locations[i], 1234+i, slot_symbols, 0, cfi)) {
+      fprintf(stderr, "Error encoding DCI message\n");
+      goto quit;
+    }
+  }
 
   /* combine outputs */
-  for (i = 1; i < nof_ports; i++) {
+  for (i = 1; i < cell.nof_ports; i++) {
     for (j = 0; j < nof_re; j++) {
       slot_symbols[0][j] += slot_symbols[i][j];
     }
   }
 
-  pdcch_init_search_ue(&pdcch, 1234);
-
-  dci_init(&dci_rx, 2);
-  nof_dcis = pdcch_decode(&pdcch, slot_symbols[0], ce, &dci_rx, 0, 1);
-  if (nof_dcis < 0) {
-    printf("Error decoding\n");
-  } else if (nof_dcis == dci_tx.nof_dcis) {
-    for (i = 0; i < nof_dcis; i++) {
-      if (dci_tx.msg[i].location.L != dci_rx.msg[i].location.L
-          || dci_tx.msg[i].location.ncce != dci_rx.msg[i].location.ncce
-          || dci_tx.msg[i].location.nof_bits != dci_rx.msg[i].location.nof_bits
-          || dci_tx.msg[i].location.rnti != dci_rx.msg[i].location.rnti) {
-        printf("Error in DCI %d: Received location does not match\n", i);
-        dci_candidate_fprint(stdout, &dci_tx.msg[i].location);
-        dci_candidate_fprint(stdout, &dci_rx.msg[i].location);
-        goto quit;
-      }
-
-      if (memcmp(dci_tx.msg[i].data, dci_rx.msg[i].data,
-          dci_tx.msg[i].location.nof_bits)) {
-        printf("Error in DCI %d: Received data does not match\n", i);
-        goto quit;
-      }
+  for (i=0;i<2;i++) {
+    if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, dci_locations[i], 0, cfi)) {
+      fprintf(stderr, "Error extracting LLRs\n");
+      goto quit;
     }
-  } else {
-    printf("Transmitted %d DCIs but got %d\n", dci_tx.nof_dcis, nof_dcis);
-    goto quit;
+    uint16_t crc_rem; 
+    if (pdcch_decode_msg(&pdcch, &dci_tmp, Format1, &crc_rem)) {
+      fprintf(stderr, "Error decoding DCI message\n");
+      goto quit;
+    }      
+    if (crc_rem >= 1234 && crc_rem < 1234 + nof_dcis) {
+      crc_rem -= 1234;
+        memcpy(&dci_rx[crc_rem], &dci_tmp, sizeof(dci_msg_t));
+    } else {
+      printf("Received invalid DCI CRC 0x%x\n", crc_rem);
+      goto quit;
+    }
+  }
+  for (i = 0; i < nof_dcis; i++) {
+    if (memcmp(dci_tx[i].data, dci_rx[i].data, dci_tx[i].nof_bits)) {
+      printf("Error in DCI %d: Received data does not match\n", i);
+      goto quit;
+    }
   }
   ret = 0;
-  quit: pdcch_free(&pdcch);
-  regs_free(&regs);
-  dci_free(&dci_tx);
-  dci_free(&dci_rx);
 
-  for (i = 0; i < MAX_PORTS_CTRL; i++) {
+quit: 
+  pdcch_free(&pdcch);
+  regs_free(&regs);
+
+  for (i = 0; i < MAX_PORTS; i++) {
     free(ce[i]);
     free(slot_symbols[i]);
   }

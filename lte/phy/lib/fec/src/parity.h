@@ -10,16 +10,16 @@
 
 /* Determine parity of argument: 1 = odd, 0 = even */
 #ifdef __i386__
-static inline int parityb(unsigned char x){
+static inline uint32_t parityb(uint8_t x){
   __asm__ __volatile__ ("test %1,%1;setpo %0" : "=qhm" (x) : "qh" (x));
   return x;
 }
 #else
 void partab_init();
 
-static inline int parityb(unsigned char x){
-  extern unsigned char Partab[256];
-  extern int P_init;
+static inline uint32_t parityb(uint8_t x){
+  extern uint8_t Partab[256];
+  extern uint32_t P_init;
   if(!P_init){
     partab_init();
   }
@@ -28,7 +28,7 @@ static inline int parityb(unsigned char x){
 #endif
 
 
-static inline int parity(int x){
+static inline uint32_t parity(int x){
   /* Fold down to one byte */
   x ^= (x >> 16);
   x ^= (x >> 8);

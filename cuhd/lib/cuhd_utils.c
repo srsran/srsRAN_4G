@@ -46,7 +46,7 @@ int cuhd_rssi_scan(void *uhd, float *freqs, float *rssi, int nof_bands, double f
     goto free_and_exit;
   }
 
-  cuhd_set_rx_gain(uhd, 0.0);
+  cuhd_set_rx_gain(uhd, 20.0);
   cuhd_set_rx_srate(uhd, fs);
 
   for (i=0;i<nof_bands;i++) {
@@ -55,7 +55,7 @@ int cuhd_rssi_scan(void *uhd, float *freqs, float *rssi, int nof_bands, double f
     f = (double) freqs[i];
     cuhd_set_rx_freq(uhd, f);
     cuhd_rx_wait_lo_locked(uhd);
-
+    usleep(10000);
     cuhd_start_rx_stream(uhd);
 
     /* discard first samples */

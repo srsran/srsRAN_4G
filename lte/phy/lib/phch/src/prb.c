@@ -33,14 +33,14 @@
 #include "liblte/phy/common/phy_common.h"
 
 void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_prb, bool advance_output) {
+    int nof_intervals, bool advance_output) {
   int i;
 
   int ref_interval = ((RE_X_RB / nof_refs) - 1);
   memcpy(*output, *input, offset * sizeof(cf_t));
   *input += offset;
   *output += offset;
-  for (i = 0; i < nof_refs * nof_prb - 1; i++) {
+  for (i = 0; i < nof_intervals - 1; i++) {
     if (advance_output) {
       (*output)++;
     } else {
@@ -70,18 +70,18 @@ void prb_cp(cf_t **input, cf_t **output, int nof_prb) {
 
 
 void prb_cp_half(cf_t **input, cf_t **output, int nof_prb) {
-	memcpy(*output, *input, sizeof(cf_t) * RE_X_RB * nof_prb / 2);
-	*input += nof_prb * RE_X_RB / 2;
-	*output += nof_prb * RE_X_RB / 2;
+  memcpy(*output, *input, sizeof(cf_t) * RE_X_RB * nof_prb / 2);
+  *input += nof_prb * RE_X_RB / 2;
+  *output += nof_prb * RE_X_RB / 2;
 }
 
 void prb_put_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_prb) {
-  prb_cp_ref(input, output, offset, nof_refs, nof_prb, false);
+    int nof_intervals) {
+  prb_cp_ref(input, output, offset, nof_refs, nof_intervals, false);
 }
 
 void prb_get_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_prb) {
-  prb_cp_ref(input, output, offset, nof_refs, nof_prb, true);
+    int nof_intervals) {
+  prb_cp_ref(input, output, offset, nof_refs, nof_intervals, true);
 }
 

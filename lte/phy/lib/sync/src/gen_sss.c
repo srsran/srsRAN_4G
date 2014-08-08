@@ -58,19 +58,19 @@ void generate_zsc_tilde(int *z_tilde, int *s_tilde, int *c_tilde) {
     z_tilde[i] = 1 - 2 * x[i];
 }
 
-void generate_m0m1(int N_id_1, int *m0, int *m1) {
-  int q_prime = N_id_1 / (N_SSS - 1);
-  int q = (N_id_1 + (q_prime * (q_prime + 1) / 2)) / (N_SSS - 1);
-  int m_prime = N_id_1 + (q * (q + 1) / 2);
+void generate_m0m1(uint32_t N_id_1, uint32_t *m0, uint32_t *m1) {
+  uint32_t q_prime = N_id_1 / (N_SSS - 1);
+  uint32_t q = (N_id_1 + (q_prime * (q_prime + 1) / 2)) / (N_SSS - 1);
+  uint32_t m_prime = N_id_1 + (q * (q + 1) / 2);
   *m0 = m_prime % N_SSS;
   *m1 = (*m0 + m_prime / N_SSS + 1) % N_SSS;
 }
 
 
 /* table[m0][m1-1]=N_id_1 */
-void generate_N_id_1_table(int table[30][30]) {
-  int m0, m1;
-  int N_id_1;
+void generate_N_id_1_table(uint32_t table[30][30]) {
+  uint32_t m0, m1;
+  uint32_t N_id_1;
   for (N_id_1=0;N_id_1<168;N_id_1++) {
     generate_m0m1(N_id_1, &m0, &m1);
     table[m0][m1-1] = N_id_1;
@@ -78,61 +78,60 @@ void generate_N_id_1_table(int table[30][30]) {
 }
 
 
-void generate_s(int *s, int *s_tilde, int m0_m1) {
-  int i;
+void generate_s(int *s, int *s_tilde, uint32_t m0_m1) {
+  uint32_t i;
   for (i = 0; i < N_SSS; i++) {
     s[i] = s_tilde[(i + m0_m1) % N_SSS];
   }
 }
 
 void generate_s_all(int s[N_SSS][N_SSS], int *s_tilde) {
-  int i;
+  uint32_t i;
   for (i = 0; i < N_SSS; i++) {
     generate_s(s[i], s_tilde, i);
   }
 }
 
-void generate_c(int *c, int *c_tilde, int N_id_2, int is_c0) {
-  int i;
+void generate_c(int *c, int *c_tilde, uint32_t N_id_2, bool is_c0) {
+  uint32_t i;
   for (i = 0; i < N_SSS; i++) {
-    c[i] = c_tilde[(i + N_id_2 + (is_c0 > 0 ? 3 : 0)) % N_SSS];
+    c[i] = c_tilde[(i + N_id_2 + (is_c0 ? 3 : 0)) % N_SSS];
   }
 }
 
-void generate_z(int *z, int *z_tilde, int m0_m1) {
-  int i;
+void generate_z(int *z, int *z_tilde, uint32_t m0_m1) {
+  uint32_t i;
   for (i = 0; i < N_SSS; i++) {
     z[i] = z_tilde[(i + (m0_m1 % 8)) % N_SSS];
   }
 }
 
 void generate_z_all(int z[N_SSS][N_SSS], int *z_tilde) {
-  int i;
+  uint32_t i;
   for (i = 0; i < N_SSS; i++) {
     generate_z(z[i], z_tilde, i);
   }
 }
 
-void generate_sss_all_tables(struct sss_tables *tables, int N_id_2) {
-  int i;
+void generate_sss_all_tables(struct sss_tables *tables, uint32_t N_id_2) {
+  uint32_t i;
   int s_t[N_SSS], c_t[N_SSS], z_t[N_SSS];
 
   generate_zsc_tilde(z_t, s_t, c_t);
   generate_s_all(tables->s, s_t);
   generate_z_all(tables->z1, z_t);
   for (i = 0; i < 2; i++) {
-    generate_c(tables->c[i], c_t, N_id_2, i);
+    generate_c(tables->c[i], c_t, N_id_2, i > 0);
   }
-  tables->N_id_2 = N_id_2;
 }
 
-void sss_generate(float *signal0, float *signal5, int cell_id) {
+void sss_generate(float *signal0, float *signal5, uint32_t cell_id) {
 
-  int i;
-  int id1 = cell_id / 3;
-  int id2 = cell_id % 3;
-  int m0;
-  int m1;
+  uint32_t i;
+  uint32_t id1 = cell_id / 3;
+  uint32_t id2 = cell_id % 3;
+  uint32_t m0;
+  uint32_t m1;
   int s_t[N_SSS], c_t[N_SSS], z_t[N_SSS];
   int s0[N_SSS], s1[N_SSS], c0[N_SSS], c1[N_SSS], z1_0[N_SSS], z1_1[N_SSS];
 

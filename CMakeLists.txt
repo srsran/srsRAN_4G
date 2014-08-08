@@ -36,7 +36,7 @@ PROJECT (LIBLTE)
 
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
-INCLUDE(libLTEPackage)	#setup cpack
+INCLUDE(libLTEPackage) #setup cpack
 
 include(CTest)
 set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
@@ -78,6 +78,9 @@ ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 IF(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE")
+   # IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+   #   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wno-error=implicit-function-declaration -Wno-error=unused-but-set-variable")
+   # ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     IF(NOT WIN32)
         ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
     ENDIF(NOT WIN32)

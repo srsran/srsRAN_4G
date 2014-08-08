@@ -30,15 +30,19 @@
 #define SYNC_
 
 #include <stdbool.h>
+#include <math.h>
 
 #include "liblte/config.h"
-#include "pss.h"
-#include "sss.h"
-#include "sfo.h"
+#include "liblte/phy/sync/pss.h"
+#include "liblte/phy/sync/sss.h"
+
+#define FFT_SIZE_MIN    64
+#define FFT_SIZE_MAX    2048
 
 /**
  *
  * This object performs time and frequency synchronization using the PSS and SSS signals.
+ * 
  * The object is designed to work with signals sampled at 1.92 Mhz centered at the carrier frequency.
  * Thus, downsampling is required if the signal is sampled at higher frequencies.
  *
@@ -47,60 +51,83 @@
  * functions sync_pss_det_absolute() and sync_pss_det_peakmean().
  */
 
-enum sync_pss_det { ABSOLUTE, PEAK_MEAN};
-
 typedef struct LIBLTE_API {
-  pss_synch_t pss[3]; // One for each N_id_2
-  sss_synch_t sss[3]; // One for each N_id_2
-  enum sync_pss_det pss_mode;
+  pss_synch_t pss; 
+  sss_synch_t sss;
   float threshold;
-  float peak_to_avg;
-  int force_N_id_2;
-  int N_id_2;
-  int N_id_1;
-  int slot_id;
+  float mean_energy; 
+  float peak_value;
+  float mean_peak_value;
+  uint32_t N_id_2;
+  uint32_t N_id_1;
+  uint32_t sf_idx;
+  uint32_t fft_size;
+  uint32_t frame_size;
+  uint64_t frame_cnt; 
   float cfo;
-  lte_cp_t cp;
   bool detect_cp;
   bool sss_en;
+  bool normalize_en; 
+  lte_cp_t cp;
 }sync_t;
 
 
-LIBLTE_API int sync_init(sync_t *q, int frame_size);
+LIBLTE_API int sync_init(sync_t *q, 
+                         uint32_t frame_size, 
+                         uint32_t fft_size);
+
 LIBLTE_API void sync_free(sync_t *q);
 
-/* Runs the synchronization algorithm. input signal must be sampled at 1.92 MHz and should be frame_size long at least */
-LIBLTE_API int sync_run(sync_t *q, cf_t *input);
+LIBLTE_API void sync_reset(sync_t *q); 
+
+/* Finds a correlation peak in the input signal around position find_offset */
+LIBLTE_API int sync_find(sync_t *q, 
+                         cf_t *input,
+                         uint32_t find_offset,
+                         uint32_t *peak_position);
 
 /* Sets the threshold for peak comparison */
-LIBLTE_API void sync_set_threshold(sync_t *q, float threshold);
-/* Set peak comparison to absolute value */
-LIBLTE_API void sync_pss_det_absolute(sync_t *q);
-/* Set peak comparison to relative to the mean */
-LIBLTE_API void sync_pss_det_peak_to_avg(sync_t *q);
+LIBLTE_API void sync_set_threshold(sync_t *q, 
+                                   float threshold);
 
-/* Forces the synchronizer to check one N_id_2 PSS sequence only (useful for tracking mode) */
-LIBLTE_API void sync_force_N_id_2(sync_t *q, int force_N_id_2);
-/* Forces the synchronizer to skip CP detection (useful for tracking mode) */
-LIBLTE_API void sync_force_cp(sync_t *q, lte_cp_t cp);
-/* Enables/Disables SSS detection (useful for tracking mode) */
-LIBLTE_API void sync_sss_en(sync_t *q, bool enabled);
+/* Gets the subframe idx (0 or 5) */
+LIBLTE_API uint32_t sync_get_sf_idx(sync_t *q);
 
+/* Gets the last peak value */
+LIBLTE_API float sync_get_last_peak_value(sync_t *q);
 
-/* Gets the slot id (0 or 10) */
-LIBLTE_API int sync_get_slot_id(sync_t *q);
-/* Gets the last peak-to-average ratio */
-LIBLTE_API float sync_get_peak_to_avg(sync_t *q);
-/* Gets the N_id_2 from the last call to synch_run() */
-LIBLTE_API int sync_get_N_id_2(sync_t *q);
-/* Gets the N_id_1 from the last call to synch_run() */
-LIBLTE_API int sync_get_N_id_1(sync_t *q);
+/* Gets the mean peak value */
+LIBLTE_API float sync_get_peak_value(sync_t *q);
+
+/* Gets the last input signal energy estimation value */
+LIBLTE_API float sync_get_input_energy(sync_t *q);
+
+/* Sets the N_id_2 to search for */
+LIBLTE_API int sync_set_N_id_2(sync_t *q, 
+                                    uint32_t N_id_2);
+
 /* Gets the Physical CellId from the last call to synch_run() */
 LIBLTE_API int sync_get_cell_id(sync_t *q);
+
 /* Gets the CFO estimation from the last call to synch_run() */
 LIBLTE_API float sync_get_cfo(sync_t *q);
+
 /* Gets the CP length estimation from the last call to synch_run() */
 LIBLTE_API lte_cp_t sync_get_cp(sync_t *q);
+
+/* Enables/Disables energy normalization every frame. If disabled, uses the mean */
+LIBLTE_API void sync_normalize_en(sync_t *q, 
+                                  bool enable);
+
+/* Enables/Disables SSS detection  */
+LIBLTE_API void sync_sss_en(sync_t *q, 
+                            bool enabled);
+
+LIBLTE_API bool sync_sss_detected(sync_t *q);
+
+/* Enables/Disables CP detection  */
+LIBLTE_API void sync_cp_en(sync_t *q, 
+                           bool enabled);
 
 #endif // SYNC_
 

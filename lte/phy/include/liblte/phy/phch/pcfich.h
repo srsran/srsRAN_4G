@@ -45,19 +45,16 @@ typedef _Complex float cf_t;
 
 /* PCFICH object */
 typedef struct LIBLTE_API {
-  int cell_id;
-  lte_cp_t cp;
+  lte_cell_t cell;
   int nof_symbols;
-  int nof_prb;
-  int nof_ports;
 
   /* handler to REGs resource mapper */
   regs_t *regs;
 
   /* buffers */
-  cf_t ce[MAX_PORTS_CTRL][PCFICH_RE];
-  cf_t pcfich_symbols[MAX_PORTS_CTRL][PCFICH_RE];
-  cf_t pcfich_x[MAX_PORTS_CTRL][PCFICH_RE];
+  cf_t ce[MAX_PORTS][PCFICH_RE];
+  cf_t pcfich_symbols[MAX_PORTS][PCFICH_RE];
+  cf_t pcfich_x[MAX_PORTS][PCFICH_RE];
   cf_t pcfich_d[PCFICH_RE];
 
   /* bit message */
@@ -70,16 +67,22 @@ typedef struct LIBLTE_API {
 
 } pcfich_t;
 
-LIBLTE_API int pcfich_init(pcfich_t *q, regs_t *regs, int cell_id, int nof_prb,
-    int nof_tx_ports, lte_cp_t cp);
-LIBLTE_API void pcfich_free(pcfich_t *q);
-LIBLTE_API int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS_CTRL],
-    int nsubframe, int *cfi, int *distance);
-LIBLTE_API int pcfich_encode(pcfich_t *q, int cfi, cf_t *slot_symbols[MAX_PORTS_CTRL],
-    int nsubframe);
+LIBLTE_API int pcfich_init(pcfich_t *q, 
+                           regs_t *regs, 
+                           lte_cell_t cell);
 
-LIBLTE_API bool pcfich_exists(int nframe, int nslot);
-LIBLTE_API int pcfich_put(regs_t *h, cf_t *pcfich, cf_t *slot_data);
-LIBLTE_API int pcfich_get(regs_t *h, cf_t *pcfich, cf_t *slot_data);
+LIBLTE_API void pcfich_free(pcfich_t *q);
+
+LIBLTE_API int pcfich_decode(pcfich_t *q, 
+                             cf_t *sf_symbols, 
+                             cf_t *ce[MAX_PORTS],
+                             uint32_t subframe, 
+                             uint32_t *cfi, 
+                             uint32_t *distance);
+
+LIBLTE_API int pcfich_encode(pcfich_t *q, 
+                             uint32_t cfi, 
+                             cf_t *sf_symbols[MAX_PORTS],
+                             uint32_t subframe);
 
 #endif

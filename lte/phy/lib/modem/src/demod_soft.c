@@ -36,6 +36,7 @@
 
 void demod_soft_init(demod_soft_t *q) {
   bzero((void*)q,sizeof(demod_soft_t));
+  q->sigma = 1.0; 
 }
 
 void demod_soft_table_set(demod_soft_t *q, modem_table_t *table) {
@@ -57,8 +58,10 @@ int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int 
         q->table->symbol_table, q->table->soft_table.idx, q->sigma);
     break;
   case APPROX:
-    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
+/*    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
         q->table->symbol_table, q->table->soft_table.idx, q->sigma);
+*/    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
+        q->table->symbol_table, q->table->soft_table.idx, q->table->soft_table.d_idx, q->table->soft_table.min_idx, q->sigma);
     break;
   }
   return nsymbols*q->table->nbits_x_symbol;
@@ -69,7 +72,7 @@ int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int 
 /* High-Level API */
 int demod_soft_initialize(demod_soft_hl* hl) {
   modem_table_init(&hl->table);
-  if (modem_table_std(&hl->table,hl->init.std,true)) {
+  if (modem_table_lte(&hl->table,hl->init.std,true)) {
     return -1;
   }
   demod_soft_init(&hl->obj);

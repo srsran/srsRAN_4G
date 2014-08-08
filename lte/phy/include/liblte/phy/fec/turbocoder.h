@@ -37,13 +37,13 @@
 #define TOTALTAIL 12
 
 typedef struct LIBLTE_API {
-  int max_long_cb;
+  uint32_t max_long_cb;
   tc_interl_t interl;
 } tcod_t;
 
-LIBLTE_API int tcod_init(tcod_t *h, int max_long_cb);
+LIBLTE_API int tcod_init(tcod_t *h, uint32_t max_long_cb);
 LIBLTE_API void tcod_free(tcod_t *h);
-LIBLTE_API int tcod_encode(tcod_t *h, char *input, char *output, int long_cb);
+LIBLTE_API int tcod_encode(tcod_t *h, char *input, char *output, uint32_t long_cb);
 
 #endif
 

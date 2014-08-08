@@ -47,24 +47,23 @@
 typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API {
-  int nof_ports;
-  int nof_prb;
-  int sfn;
+  uint32_t nof_ports;
+  uint32_t nof_prb;
+  uint32_t sfn;
   phich_length_t phich_length;
   phich_resources_t phich_resources;
 }pbch_mib_t;
 
 /* PBCH object */
 typedef struct LIBLTE_API {
-  int cell_id;
-  lte_cp_t cp;
-  int nof_prb;
-  int nof_symbols;
+  lte_cell_t cell;
+  
+  uint32_t nof_symbols;
 
   /* buffers */
-  cf_t *ce[MAX_PORTS_CTRL];
-  cf_t *pbch_symbols[MAX_PORTS_CTRL];
-  cf_t *pbch_x[MAX_PORTS_CTRL];
+  cf_t *ce[MAX_PORTS];
+  cf_t *pbch_symbols[MAX_PORTS];
+  cf_t *pbch_x[MAX_PORTS];
   cf_t *pbch_d;
   float *pbch_llr;
   float *temp;
@@ -73,7 +72,7 @@ typedef struct LIBLTE_API {
   char *data;
   char *data_enc;
 
-  int frame_idx;
+  uint32_t frame_idx;
 
   /* tx & rx objects */
   modem_table_t mod;
@@ -83,17 +82,25 @@ typedef struct LIBLTE_API {
   crc_t crc;
   convcoder_t encoder;
 
-}pbch_t;
+} pbch_t;
 
-LIBLTE_API int pbch_init(pbch_t *q, int nof_prb, int cell_id, lte_cp_t cp);
+LIBLTE_API int pbch_init(pbch_t *q,
+                         lte_cell_t cell);
+
 LIBLTE_API void pbch_free(pbch_t *q);
-LIBLTE_API int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce[MAX_PORTS_CTRL], float ebno, pbch_mib_t *mib);
-LIBLTE_API void pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS_CTRL], int nof_ports);
+LIBLTE_API int pbch_decode(pbch_t *q, 
+                           cf_t *slot1_symbols, 
+                           cf_t *ce_slot1[MAX_PORTS], 
+                           pbch_mib_t *mib);
+
+LIBLTE_API int pbch_encode(pbch_t *q, 
+                            pbch_mib_t *mib, 
+                            cf_t *slot1_symbols[MAX_PORTS]);
+
 LIBLTE_API void pbch_decode_reset(pbch_t *q);
 
-LIBLTE_API void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib);
-LIBLTE_API bool pbch_exists(int nframe, int nslot);
-LIBLTE_API int pbch_put(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id);
-LIBLTE_API int pbch_get(cf_t *pbch, cf_t *slot1_data, int nof_prb, lte_cp_t cp, int cell_id);
+LIBLTE_API void pbch_mib_fprint(FILE *stream, 
+                                pbch_mib_t *mib,
+                                uint32_t cell_id);
 
 #endif // PBCH_

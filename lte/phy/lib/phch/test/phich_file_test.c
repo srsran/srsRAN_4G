@@ -35,10 +35,14 @@
 
 char *input_file_name = NULL;
 char *matlab_file_name = NULL;
-int cell_id = 150;
-lte_cp_t cp = CPNORM;
-int nof_prb = 50;
-int nof_ports = 2;
+
+lte_cell_t cell = {
+  50,           // cell.nof_prb
+  2,            // cell.nof_ports
+  150,          // cell.id
+  CPNORM        // cyclic prefix
+};
+
 int flen;
 int nof_ctrl_symbols = 1;
 phich_resources_t phich_res = R_1;
@@ -48,7 +52,7 @@ int numsubframe = 0;
 FILE *fmatlab = NULL;
 
 filesource_t fsrc;
-cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS_CTRL];
+cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 phich_t phich;
 regs_t regs;
 lte_fft_t fft;
@@ -57,9 +61,9 @@ chest_t chest;
 void usage(char *prog) {
   printf("Usage: %s [vcoe] -i input_file\n", prog);
   printf("\t-o output matlab file name [Default Disabled]\n");
-  printf("\t-c cell_id [Default %d]\n", cell_id);
-  printf("\t-p nof_ports [Default %d]\n", nof_ports);
-  printf("\t-n nof_prb [Default %d]\n", nof_prb);
+  printf("\t-c cell.id [Default %d]\n", cell.id);
+  printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
+  printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-f nof control symbols [Default %d]\n", nof_ctrl_symbols);
   printf("\t-g phich ng factor: 1/6, 1/2, 1, 2 [Default 1]\n");
   printf("\t-e phich extended length [Default normal]\n");
@@ -78,7 +82,7 @@ void parse_args(int argc, char **argv) {
       matlab_file_name = argv[optind];
       break;
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell.id = atoi(argv[optind]);
       break;
     case 'f':
       nof_ctrl_symbols = atoi(argv[optind]);
@@ -100,16 +104,16 @@ void parse_args(int argc, char **argv) {
       phich_length = PHICH_EXT;
       break;
     case 'n':
-      nof_prb = atoi(argv[optind]);
+      cell.nof_prb = atoi(argv[optind]);
       break;
     case 'p':
-      nof_ports = atoi(argv[optind]);
+      cell.nof_ports = atoi(argv[optind]);
       break;
     case 'v':
       verbose++;
       break;
     case 'l':
-      cp = CPEXT;
+      cell.cp = CPEXT;
       break;
     default:
       usage(argv[0]);
@@ -140,7 +144,7 @@ int base_init() {
     fmatlab = NULL;
   }
 
-  flen = SLOT_LEN(lte_symbol_sz(nof_prb), cp);
+  flen = SLOT_LEN(lte_symbol_sz(cell.nof_prb));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -148,41 +152,36 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(CP_NSYMB(cp) * nof_prb * RE_X_RB * sizeof(cf_t));
+  fft_buffer = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
-    ce[i] = malloc(CP_NSYMB(cp) * nof_prb * RE_X_RB * sizeof(cf_t));
+  for (i=0;i<MAX_PORTS;i++) {
+    ce[i] = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
     }
   }
 
-  if (chest_init(&chest, LINEAR, cp, nof_prb, nof_ports)) {
+  if (chest_init_LTEDL(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
 
-  if (chest_ref_LTEDL(&chest, cell_id)) {
-    fprintf(stderr, "Error initializing reference signal\n");
-    return -1;
-  }
-
-  if (lte_fft_init(&fft, cp, nof_prb)) {
+  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
 
-  if (regs_init(&regs, cell_id, nof_prb, nof_ports, phich_res, phich_length, cp)) {
+  if (regs_init(&regs, phich_res, phich_length, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     return -1;
   }
 
-  if (phich_init(&phich, &regs, cell_id, nof_prb, nof_ports, cp)) {
+  if (phich_init(&phich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     return -1;
   }
@@ -203,7 +202,7 @@ void base_free() {
   free(fft_buffer);
 
   filesource_free(&fsrc);
-  for (i=0;i<MAX_PORTS_CTRL;i++) {
+  for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
   }
   chest_free(&chest);
@@ -214,9 +213,9 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  int distance;
+  uint32_t distance;
   int i, n;
-  int ngroup, nseq, max_nseq;
+  uint32_t ngroup, nseq, max_nseq;
   char ack_rx;
 
   if (argc < 3) {
@@ -226,7 +225,7 @@ int main(int argc, char **argv) {
 
   parse_args(argc,argv);
 
-  max_nseq = CP_ISNORM(cp)?PHICH_NORM_NSEQUENCES:PHICH_EXT_NSEQUENCES;
+  max_nseq = CP_ISNORM(cell.cp)?PHICH_NORM_NSEQUENCES:PHICH_EXT_NSEQUENCES;
 
   if (base_init()) {
     fprintf(stderr, "Error initializing memory\n");
@@ -235,7 +234,7 @@ int main(int argc, char **argv) {
 
   n = filesource_read(&fsrc, input_buffer, flen);
 
-  lte_fft_run(&fft, input_buffer, fft_buffer);
+  lte_fft_run_slot(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");
@@ -243,12 +242,12 @@ int main(int argc, char **argv) {
     fprintf(fmatlab, ";\n");
 
     fprintf(fmatlab, "outfft=");
-    vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cp) * nof_prb * RE_X_RB);
+    vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
     fprintf(fmatlab, ";\n");
   }
 
   /* Get channel estimates for each port */
-  for (i=0;i<nof_ports;i++) {
+  for (i=0;i<cell.nof_ports;i++) {
     chest_ce_slot_port(&chest, fft_buffer, ce[i], 0, i);
     if (fmatlab) {
       chest_fprint(&chest, fmatlab, 0, i);

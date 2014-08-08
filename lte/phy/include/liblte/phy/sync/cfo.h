@@ -32,6 +32,7 @@
 #include <complex.h>
 
 #include "liblte/config.h"
+#include "liblte/phy/utils/cexptab.h"
 
 typedef _Complex float cf_t;
 
@@ -48,10 +49,20 @@ typedef struct LIBLTE_API {
   cf_t *cur_cexp;
 }cfo_t;
 
-LIBLTE_API int cfo_init(cfo_t *h, int nsamples);
+LIBLTE_API int cfo_init(cfo_t *h, 
+                        uint32_t nsamples);
+
 LIBLTE_API void cfo_free(cfo_t *h);
 
-LIBLTE_API void cfo_set_tol(cfo_t *h, float tol);
-LIBLTE_API void cfo_correct(cfo_t *h, cf_t *x, float freq);
+LIBLTE_API int cfo_realloc(cfo_t *h, 
+                           uint32_t samples);
+
+LIBLTE_API void cfo_set_tol(cfo_t *h, 
+                            float tol);
+
+LIBLTE_API void cfo_correct(cfo_t *h, 
+                            cf_t *input,
+                            cf_t *output,
+                            float freq);
 
 #endif // CFO_

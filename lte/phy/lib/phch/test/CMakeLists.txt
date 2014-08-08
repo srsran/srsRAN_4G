@@ -92,6 +92,7 @@ TARGET_LINK_LIBRARIES(pdsch_re_test lte_phy)
 
 ADD_TEST(pdsch_re_test pdsch_re_test) 
 ADD_TEST(pdsch_test pdsch_test -l 50000 -m 4 -n 110)
+ADD_TEST(pdsch_test pdsch_test -l 500 -m 2 -n 50 -r 2)
 
 ########################################################################
 # FILE TEST  
