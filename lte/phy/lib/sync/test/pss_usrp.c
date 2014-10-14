@@ -220,7 +220,9 @@ int main(int argc, char **argv) {
         
     mean_peak = VEC_CMA(peak_value, mean_peak, frame_cnt);
     
-    if (peak_value >= threshold) {
+    mean_peak = VEC_CMA(x, mean_peak, frame_cnt);
+    
+    if (x >= threshold) {
       nof_det++;
         
       if (peak_idx >= fft_size) {

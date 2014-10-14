@@ -59,8 +59,8 @@ int sync_init(sync_t *q, uint32_t frame_size, uint32_t fft_size) {
     
     bzero(q, sizeof(sync_t));
     q->detect_cp = true;
-    q->cp = CPNORM;
-    q->mean_peak_value = 0.0;
+    q->normalize_en = true; 
+    q->mean_energy = 1.0;
     q->sss_en = true;
     q->correct_cfo = true; 
     q->mean_cfo = 0; 
@@ -175,10 +175,6 @@ void sync_set_cp(sync_t *q, lte_cp_t cp) {
   q->cp = cp;
 }
 
-void sync_set_sss_algorithm(sync_t *q, sss_alg_t alg) {
-  q->sss_alg = alg; 
-}
-
 /* CP detection algorithm taken from: 
  * "SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver"
  * by Jung-In Kim et al. 
@@ -227,33 +223,20 @@ lte_cp_t sync_detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos)
   }
 }
 
-/* Returns 1 if the SSS is found, 0 if not and -1 if there is not enough space 
- * to correlate
- */
-int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, lte_cp_t cp) {
+int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   int sss_idx, ret;
 
   sss_synch_set_N_id_2(&q->sss, q->N_id_2);
 
   /* Make sure we have enough room to find SSS sequence */
-  sss_idx = (int) peak_pos-2*q->fft_size-CP(q->fft_size, (CP_ISNORM(q->cp)?CPNORM_LEN:CPEXT_LEN));
+  sss_idx = (int) peak_pos - 2*(q->fft_size + CP(q->fft_size, q->cp));
   if (sss_idx < 0) {
     INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
     return LIBLTE_ERROR;
   }
   DEBUG("Searching SSS around sss_idx: %d, peak_pos: %d\n", sss_idx, peak_pos);
       
-  switch(q->sss_alg) {
-    case SSS_DIFF:
-      sss_synch_m0m1_diff(&q->sss, &input[sss_idx], &q->m0, &q->m0_value, &q->m1, &q->m1_value);
-      break;
-    case SSS_PARTIAL_3:
-      sss_synch_m0m1_partial(&q->sss, &input[sss_idx], 3, NULL, &q->m0, &q->m0_value, &q->m1, &q->m1_value);
-      break;
-    case SSS_FULL:
-      sss_synch_m0m1_partial(&q->sss, &input[sss_idx], 1, NULL, &q->m0, &q->m0_value, &q->m1, &q->m1_value);
-      break;
-  }
+  sss_synch_m0m1(&q->sss, &input[sss_idx], &q->m0, &q->m0_value, &q->m1, &q->m1_value);
 
   q->sf_idx = sss_synch_subframe(q->m0, q->m1);
   ret = sss_synch_N_id_1(&q->sss, q->m0, q->m1);
@@ -281,6 +264,8 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
   
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
   
+  float peak_unnormalized=0, energy=1;
+  
   if (q                 != NULL     &&
       input             != NULL     &&
       lte_N_id_2_isvalid(q->N_id_2) && 
@@ -288,68 +273,63 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
   {
     int peak_pos;
     
-    ret = LIBLTE_SUCCESS; 
-    
     if (peak_position) {
       *peak_position = 0; 
     }
 
     pss_synch_set_N_id_2(&q->pss, q->N_id_2);
   
-    peak_pos = pss_synch_find_pss(&q->pss, &input[find_offset], &q->peak_value);
+    peak_pos = pss_synch_find_pss(&q->pss, &input[find_offset], &peak_unnormalized);
     if (peak_pos < 0) {
       fprintf(stderr, "Error calling finding PSS sequence\n");
       return LIBLTE_ERROR; 
     }
+    if (q->normalize_en        && 
+        peak_pos + find_offset >= q->fft_size) 
+    {
+      /* Compute the energy of the received PSS sequence to normalize */
+      cf_t *pss_ptr = &input[find_offset+peak_pos-q->fft_size];
+      energy = sqrtf(crealf(vec_dot_prod_conj_ccc(pss_ptr, pss_ptr, q->fft_size)) / (q->fft_size));
+      q->mean_energy = VEC_CMA(energy, q->mean_energy, q->frame_cnt);
+    } else {     
+      if (q->mean_energy == 0.0) {
+        q->mean_energy = 1.0;
+      }
+      energy = q->mean_energy;
+    }
     q->mean_peak_value = VEC_EMA(q->peak_value, q->mean_peak_value, MEANPEAK_EMA_ALPHA);
 
-    if (peak_position) {
-      *peak_position = (uint32_t) peak_pos;
-    }
+    /* Normalize and compute mean peak value */
+    q->peak_value = peak_unnormalized/energy;
+    q->mean_peak_value = VEC_CMA(q->peak_value, q->mean_peak_value, q->frame_cnt);
+    q->frame_cnt++;
     
     /* If peak is over threshold, compute CFO and SSS */
-    if (q->peak_value >= q->threshold) {
-      
-      // Make sure we have enough space to estimate CFO
-      if (peak_pos + find_offset >= q->fft_size) {
-        float cfo = pss_synch_cfo_compute(&q->pss, &input[find_offset+peak_pos-q->fft_size]);
-
-        /* compute cumulative moving average CFO */
-        q->mean_cfo = VEC_EMA(cfo, q->mean_cfo, CFO_EMA_ALPHA);
+    if (q->peak_value                  >= q->threshold) {
+      if (find_offset + peak_pos       >= q->fft_size) {
+        q->cfo = pss_synch_cfo_compute(&q->pss, &input[find_offset+peak_pos-q->fft_size]);
+        if (q->sss_en) {
+          ret = sync_sss(q, input, find_offset + peak_pos); 
+          if (ret < 0) {
+            fprintf(stderr, "Error synchronizing with SSS\n");
+            return LIBLTE_ERROR;
+          } 
+        } else {
+          ret = 1;
+        }
       } else {
         INFO("No space for CFO computation. Frame starts at \n",peak_pos);
       }
-
-      if (q->detect_cp) {
-        if (peak_pos + find_offset >= 2*(q->fft_size + CP_EXT(q->fft_size))) {
-          q->cp = sync_detect_cp(q, input, peak_pos + find_offset);
-        } else {
-          INFO("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
-        }
+      
+      if (peak_position) {
+        *peak_position = (uint32_t) peak_pos;
       }
-  
-      // Try to detect SSS 
-      if (q->sss_en) {
-        /* Correct CFO with the averaged CFO estimation */
-        if (q->mean_cfo && q->correct_cfo) {
-          cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                 
-        }
-        
-        // Set an invalid N_id_1 indicating SSS is yet to be detected
-        q->N_id_1 = 1000; 
-        
-        if (sync_sss(q, input, find_offset + peak_pos, q->cp) < 0) {
-          INFO("No space for SSS processing. Frame starts at %d\n", peak_pos);
-        }
-      }
-      // Return 1 (peak detected) even if we couldn't estimate CFO and SSS
-      ret = 1;
     } else {
       ret = 0;
     }
     
-    INFO("SYNC ret=%d N_id_2=%d find_offset=%d pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
-         ret, q->N_id_2, find_offset, peak_pos, q->peak_value, q->threshold, q->sf_idx, 15*q->mean_cfo);
+    INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f threshold=%.2f sf_idx=%d offset=%d\n",
+          ret, q->N_id_2, peak_pos, peak_unnormalized,energy,q->peak_value, q->threshold, q->sf_idx, find_offset);
 
   } else if (lte_N_id_2_isvalid(q->N_id_2)) {
     fprintf(stderr, "Must call sync_set_N_id_2() first!\n");

@@ -192,7 +192,12 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
   gettimeofday(&t[1], NULL);
 
   /* Get channel estimates for each port */
-  chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
+  chest_ce_sf(&q->chest, q->sf_symbols, q->ce, sf_idx);
+ 
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, mean_exec_time, frame_cnt);
+  frame_cnt++;
   
   /* First decode PCFICH and obtain CFI */
   if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 

@@ -30,17 +30,6 @@ ADD_TEST(chest_test_dl_cellid0 chest_test_dl -c 0)
 ADD_TEST(chest_test_dl_cellid1 chest_test_dl -c 1) 
 ADD_TEST(chest_test_dl_cellid2 chest_test_dl -c 2) 
 
-ADD_TEST(chest_test_dl_cellid0 chest_test_dl -c 0 -r 50) 
-ADD_TEST(chest_test_dl_cellid1 chest_test_dl -c 1 -r 50) 
-ADD_TEST(chest_test_dl_cellid2 chest_test_dl -c 2 -r 50) 
-
-########################################################################
-# Downlink MEX libs  
-########################################################################
-
-BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES lte_phy)
-
-
 ########################################################################
 # Uplink Channel Estimation TEST  
 ########################################################################
@@ -51,12 +40,6 @@ BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES lte_phy)
 #ADD_TEST(chest_test_ul_cellid0 chest_ul_test -c 0) 
 #ADD_TEST(chest_test_ul_cellid1 chest_ul_test -c 1) 
 #ADD_TEST(chest_test_ul_cellid2 chest_ul_test -c 2) 
-
-
-
-
-
-
 
 
 

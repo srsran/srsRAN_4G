@@ -76,9 +76,6 @@ typedef struct LIBLTE_API {
   uint32_t m1;
   float m0_value;
   float m1_value;
-  float M_norm_avg; 
-  float M_ext_avg; 
-
 }sync_t;
 
 
@@ -137,6 +134,10 @@ LIBLTE_API lte_cp_t sync_get_cp(sync_t *q);
 
 /* Sets the CP length estimation (must do it if disabled) */
 LIBLTE_API void sync_set_cp(sync_t *q, lte_cp_t cp);
+
+/* Enables/Disables energy normalization every frame. If disabled, uses the mean */
+LIBLTE_API void sync_normalize_en(sync_t *q, 
+                                  bool enable);
 
 /* Enables/Disables SSS detection  */
 LIBLTE_API void sync_sss_en(sync_t *q, 

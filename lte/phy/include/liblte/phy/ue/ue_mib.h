@@ -56,9 +56,10 @@
 #include "liblte/phy/common/fft.h"
 
 
-#define MIB_MAX_PORTS            4
-#define MIB_NOF_PRB              6
+#define MIB_NOF_PORTS           2
+#define MIB_FRAME_SIZE          9600
 
+#define MIB_FRAME_UNALIGNED     -3
 #define MIB_FOUND                1
 #define MIB_NOTFOUND             0
 

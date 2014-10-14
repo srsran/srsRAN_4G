@@ -613,8 +613,11 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
         }
         
       } while (q->nof_iterations < TDEC_MAX_ITERATIONS && !early_stop);
-      q->average_nof_iterations = VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
-      
+            
+      q->average_nof_iterations = VEC_CMA((float) q->nof_iterations, 
+                                             q->average_nof_iterations, 
+                                             q->average_nof_iterations_n);
+      q->average_nof_iterations_n++;
 
       /* Copy data to another buffer, removing the Codeblock CRC */
       if (i < harq_process->cb_segm.C - 1) {
