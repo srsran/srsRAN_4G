@@ -76,11 +76,42 @@ LIBLTE_API void chest_free(chest_t *q);
 LIBLTE_API int chest_set_nof_ports(chest_t *q, 
                                     uint32_t nof_ports);
 
-LIBLTE_API int chest_ce_ref(chest_t *q, 
+
+LIBLTE_API float chest_rsrp(chest_t *q, 
+                            uint32_t nslot, 
+                            uint32_t port_id);
+
+LIBLTE_API float chest_rsrp_sf(chest_t *q, 
+                               uint32_t sf_idx);
+
+LIBLTE_API float chest_rssi(chest_t *q, 
+                            cf_t *input);
+
+LIBLTE_API float chest_rssi_sf(chest_t *q, 
+                               cf_t *input);
+
+LIBLTE_API float chest_rsrq(chest_t *q, 
+                            cf_t *input, 
+                            uint32_t nslot, 
+                            uint32_t port_id);
+
+LIBLTE_API float chest_rsrq_sf(chest_t *q, 
+                               cf_t *input, 
+                               uint32_t sf_idx);
+
+LIBLTE_API int chest_measure_ref(chest_t *q, 
                              cf_t *input, 
                              uint32_t nslot, 
                              uint32_t port_id, 
                              uint32_t nref);
+
+LIBLTE_API void chest_measure_slot(chest_t *q, 
+                                   cf_t *input, 
+                                   uint32_t nslot);
+
+LIBLTE_API void chest_measure_sf(chest_t *q, 
+                                 cf_t *input, 
+                                 uint32_t sf_idx);
 
 LIBLTE_API int chest_ce_slot_port(chest_t *q, 
                                    cf_t *input, 

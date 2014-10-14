@@ -55,10 +55,8 @@
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/fft.h"
 
-#define MIB_FIND_THRESHOLD          0.6
 
 #define MIB_NOF_PORTS           2
-
 #define MIB_FRAME_SIZE          9600
 
 #define MIB_FRAME_UNALIGNED     -3

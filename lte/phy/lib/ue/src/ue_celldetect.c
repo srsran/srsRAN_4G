@@ -109,7 +109,6 @@ void ue_celldetect_reset(ue_celldetect_t * q)
 {
   q->current_nof_detected = 0; 
   q->current_nof_total = 0; 
-  q->current_N_id_2 = 0; 
 }
 
 void ue_celldetect_set_threshold(ue_celldetect_t * q, float threshold)
@@ -189,7 +188,8 @@ void decide_cell(ue_celldetect_t * q, ue_celldetect_result_t *found_cell)
 int ue_celldetect_scan(ue_celldetect_t * q, 
                        cf_t *signal, 
                        uint32_t nsamples,
-                       ue_celldetect_result_t *found_cell)
+                       ue_celldetect_result_t *found_cell, 
+                       uint32_t N_id_2)
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   uint32_t peak_idx;
@@ -198,7 +198,8 @@ int ue_celldetect_scan(ue_celldetect_t * q,
 
   if (q                 != NULL &&
       signal            != NULL && 
-      nsamples          >= 4800) 
+      nsamples          >= 4800 && 
+      lte_N_id_2_isvalid(N_id_2)) 
   {
     ret = LIBLTE_SUCCESS; 
     
@@ -209,16 +210,18 @@ int ue_celldetect_scan(ue_celldetect_t * q,
     nof_input_frames = nsamples/4800; 
     
     for (uint32_t nf=0;nf<nof_input_frames;nf++) {
-      sync_set_N_id_2(&q->sfind, q->current_N_id_2);
+      if (sync_set_N_id_2(&q->sfind, N_id_2)) {
+        return LIBLTE_ERROR;
+      }
 
       INFO("[%3d/%3d]: Searching cells with N_id_2=%d. %d frames\n", 
-           q->current_nof_detected, q->current_nof_total, q->current_N_id_2, nof_input_frames);
+           q->current_nof_detected, q->current_nof_total, N_id_2, nof_input_frames);
 
       /* Find peak and cell id */
       ret = sync_find(&q->sfind, &signal[nf*4800], 0, &peak_idx);
       if (ret < 0) {
         fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
-        return -1;
+        return LIBLTE_ERROR;
       }
 
       /* If peak position does not allow to read SSS, return error -3 */
@@ -249,17 +252,13 @@ int ue_celldetect_scan(ue_celldetect_t * q,
       /* Decide cell ID and CP if we detected up to nof_frames_detected */
       if (q->current_nof_detected == q->nof_frames_detected) {
         decide_cell(q, found_cell);
-        q->current_N_id_2++;
         q->current_nof_detected = q->current_nof_total = 0; 
         ret = CS_CELL_DETECTED;
-      /* Or go to the next N_id_2 if we didn't detect the cell */
       } else if (q->current_nof_total == q->nof_frames_total) {
-        q->current_N_id_2++; 
         q->current_nof_detected = q->current_nof_total = 0; 
         ret = CS_CELL_NOT_DETECTED; 
-      }    
-      if (q->current_N_id_2 == 3) {
-        q->current_N_id_2 = 0; 
+      } else {
+        ret = 0;
       }
     } 
   }

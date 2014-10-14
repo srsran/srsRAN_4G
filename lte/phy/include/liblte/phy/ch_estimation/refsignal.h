@@ -45,8 +45,7 @@ typedef _Complex float cf_t;
 typedef struct LIBLTE_API{
   uint32_t time_idx;
   uint32_t freq_idx;
-  cf_t simbol;
-  cf_t recv_simbol;
+  cf_t symbol;
 }ref_t;
 
 typedef struct LIBLTE_API{
@@ -57,6 +56,7 @@ typedef struct LIBLTE_API{
   uint32_t nof_prb;
   ref_t *refs;
   cf_t *ch_est;
+  cf_t *recv_symbol;
 } refsignal_t;
 
 

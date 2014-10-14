@@ -57,6 +57,7 @@ typedef struct LIBLTE_API {
   uint32_t cell_id_file;
   uint32_t nof_prb_file;
   uint32_t nof_ports_file; 
+  int force_N_id_2;
 
   float uhd_freq;
   float uhd_gain;

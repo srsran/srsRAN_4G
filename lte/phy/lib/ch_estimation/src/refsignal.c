@@ -83,7 +83,7 @@ int refsignal_put(refsignal_t * q, cf_t * slot_symbols)
     for (i = 0; i < q->nof_refs; i++) {
       fidx = q->refs[i].freq_idx;       // reference frequency index
       tidx = q->refs[i].time_idx;       // reference time index
-      slot_symbols[SAMPLE_IDX(q->nof_prb, tidx, fidx)] = q->refs[i].simbol;
+      slot_symbols[SAMPLE_IDX(q->nof_prb, tidx, fidx)] = q->refs[i].symbol;
     }
     return LIBLTE_SUCCESS;
   } else {
@@ -153,6 +153,11 @@ int refsignal_init_LTEDL(refsignal_t * q, uint32_t port_id, uint32_t nslot,
       goto free_and_exit;
     }
 
+    q->recv_symbol = vec_malloc(q->nof_refs * sizeof(cf_t));
+    if (!q->recv_symbol) {
+      goto free_and_exit;
+    }
+
     ns = nslot;
     for (l = 0; l < nof_ref_symbols; l++) {
 
@@ -169,9 +174,9 @@ int refsignal_init_LTEDL(refsignal_t * q, uint32_t port_id, uint32_t nslot,
         mp = i + MAX_PRB - cell.nof_prb;
 
         /* generate signal */
-        __real__ q->refs[idx(l, i)].simbol =
+        __real__ q->refs[idx(l, i)].symbol =
           (1 - 2 * (float) seq.c[2 * mp]) / sqrt(2);
-        __imag__ q->refs[idx(l, i)].simbol =
+        __imag__ q->refs[idx(l, i)].symbol =
           (1 - 2 * (float) seq.c[2 * mp + 1]) / sqrt(2);
 
         /* mapping to resource elements */
@@ -259,17 +264,17 @@ int rs_sequence(ref_t * refs, uint32_t len, float alpha, uint32_t ns, uint32_t c
         cexpf(-I * M_PI * (float) q * (float) i * ((float) i + 1) / n_sz);
     }
     for (i = 0; i < len; i++) {
-      refs[i].simbol = cfg->beta * cexpf(I * alpha * i) * x_q[i % n_sz];
+      refs[i].symbol = cfg->beta * cexpf(I * alpha * i) * x_q[i % n_sz];
     }
     free(x_q);
   } else {
     if (len == RE_X_RB) {
       for (i = 0; i < len; i++) {
-        refs[i].simbol = cfg->beta * cexpf(I * (phi_M_sc_12[u][i] * M_PI / 4 + alpha * i));
+        refs[i].symbol = cfg->beta * cexpf(I * (phi_M_sc_12[u][i] * M_PI / 4 + alpha * i));
       }
     } else {
       for (i = 0; i < len; i++) {
-        refs[i].simbol = cfg->beta * cexpf(I * (phi_M_sc_24[u][i] * M_PI / 4 + alpha * i));
+        refs[i].symbol = cfg->beta * cexpf(I * (phi_M_sc_24[u][i] * M_PI / 4 + alpha * i));
       }
     }
   }

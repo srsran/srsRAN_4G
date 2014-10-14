@@ -29,12 +29,18 @@
 #include "liblte/phy/phy.h"
 
 int decode_pbch(void *uhd, 
-                cf_t *buffer, 
                 ue_celldetect_result_t *found_cell, 
                 uint32_t nof_frames_total, 
                 pbch_mib_t *mib);
 
+int find_all_cells(void *uhd, 
+                   ue_celldetect_result_t found_cell[3]);
+
 int find_cell(void *uhd, 
-              ue_celldetect_t *s, 
-              cf_t *buffer, 
-              ue_celldetect_result_t found_cell[3]);
+               ue_celldetect_result_t *found_cell, 
+               uint32_t N_id_2);
+
+int cell_search(void *uhd, 
+                int force_N_id_2, 
+                lte_cell_t *cell, 
+                pbch_mib_t *mib);

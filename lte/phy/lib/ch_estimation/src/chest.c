@@ -38,7 +38,7 @@
 #define SLOT_SZ(q) (q->nof_symbols * q->symbol_sz)
 #define SF_SZ(q) (2 * SLOT_SZ(q))
 
-#define VOLK_INTERP
+//#define VOLK_INTERP
 
 void chest_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id) {
   chest_ref_fprint(q, stream, nslot, port_id);
@@ -62,8 +62,8 @@ void chest_ref_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id
   int i;
   fprintf(stream, "refs%d=[",port_id);
   for (i=0;i<q->refsignal[port_id][nslot].nof_refs;i++) {
-    fprintf(stream, "%3.3f%+3.3fi, ", __real__ q->refsignal[port_id][nslot].refs[i].simbol,
-        __imag__ q->refsignal[port_id][nslot].refs[i].simbol);
+    fprintf(stream, "%3.3f%+3.3fi, ", __real__ q->refsignal[port_id][nslot].refs[i].symbol,
+        __imag__ q->refsignal[port_id][nslot].refs[i].symbol);
   }
   fprintf(stream, "];\n");
 }
@@ -72,8 +72,8 @@ void chest_recvsig_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t por
   int i;
   fprintf(stream, "recvsig%d=[",port_id);
   for (i=0;i<q->refsignal[port_id][nslot].nof_refs;i++) {
-    fprintf(stream, "%3.3f%+3.3fi, ", __real__ q->refsignal[port_id][nslot].refs[i].recv_simbol,
-        __imag__ q->refsignal[port_id][nslot].refs[i].recv_simbol);
+    fprintf(stream, "%3.3f%+3.3fi, ", __real__ q->refsignal[port_id][nslot].recv_symbol[i],
+        __imag__ q->refsignal[port_id][nslot].recv_symbol[i]);
   }
   fprintf(stream, "];\n");
 }
@@ -92,7 +92,59 @@ void chest_ce_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id)
   fprintf(stream, "];\n");
 }
 
-int chest_ce_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint32_t nref) {
+float chest_rsrp(chest_t *q, uint32_t nslot, uint32_t port_id) {
+  int nof_refs = q->refsignal[port_id][nslot].nof_refs;
+  cf_t *ch_est = q->refsignal[port_id][nslot].ch_est;
+  return crealf(vec_dot_prod_conj_ccc(ch_est, ch_est, nof_refs))/nof_refs;
+}
+
+float chest_rsrp_sf(chest_t *q, uint32_t sf_idx) {
+  int n,p;
+  float rsrp=0;
+  for (p=0;p<q->nof_ports;p++) {
+    for (n=0;n<2;n++) {
+      rsrp+=chest_rsrp(q, 2*sf_idx+n, p)/(2*q->nof_ports);
+    }    
+  }
+  return rsrp;
+}
+
+float chest_rssi(chest_t *q, cf_t *input) {
+  float rssi = 0;
+  int i;
+  int l[2];
+  if (q->nof_symbols == CPNORM_NSYMB) {
+    l[0] = 0; l[1] = 4;
+  } else {
+    l[0] = 0; l[1] = 3;
+  }
+
+  for (i=0;i<2;i++) {
+    cf_t *tmp = &input[l[i]*q->nof_re];
+    rssi += crealf(vec_dot_prod_conj_ccc(tmp, tmp, q->nof_re));
+  }
+  return rssi; 
+}
+
+float chest_rssi_sf(chest_t *q, cf_t *input) {
+  int n;
+  int slotsz = q->nof_symbols*q->nof_re;
+  float rssi=0;
+  for (n=0;n<2;n++) {
+    rssi += chest_rssi(q, &input[n*slotsz]);
+  }
+  return rssi;
+}
+
+float chest_rsrq(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id) {
+  return (q->nof_re/RE_X_RB) * chest_rsrp(q, nslot, port_id) / chest_rssi(q, input);
+}
+
+float chest_rsrq_sf(chest_t *q, cf_t *input, uint32_t sf_idx) {
+  return (4*q->nof_ports*q->nof_re/RE_X_RB) * chest_rsrp_sf(q, sf_idx) / chest_rssi_sf(q, input);
+}
+
+int chest_measure_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint32_t nref) {
   int fidx, tidx;
   cf_t known_ref, channel_ref;
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
@@ -107,10 +159,9 @@ int chest_ce_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint
       fidx = q->refsignal[port_id][nslot].refs[nref].freq_idx; // reference frequency index
       tidx = q->refsignal[port_id][nslot].refs[nref].time_idx; // reference time index
 
-      known_ref = q->refsignal[port_id][nslot].refs[nref].simbol;
+      known_ref = q->refsignal[port_id][nslot].refs[nref].symbol;
       channel_ref = input[tidx * q->nof_re + fidx];
-      q->refsignal[port_id][nslot].refs[nref].recv_simbol = channel_ref;
-
+      q->refsignal[port_id][nslot].recv_symbol[nref] = channel_ref;
       
       DEBUG("Reference %2d pos (%2d,%2d)=%3d %.2f dB %.2f/%.2f=%.2f\n", nref, tidx, fidx, tidx * q->nof_re + fidx,          
             10*log10f(cabsf(channel_ref/known_ref)),          
@@ -130,10 +181,42 @@ int chest_ce_ref(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id, uint
   return ret;
 }
 
+void chest_measure_slot_port(chest_t *q, cf_t *input, uint32_t nslot, uint32_t port_id) 
+{
+  int i;
+  refsignal_t *r = &q->refsignal[port_id][nslot];
+  
+  DEBUG("Estimating channel slot=%d port=%d using %d reference signals\n",
+          nslot, port_id, r->nof_refs);
+
+  for (i=0;i<r->nof_refs;i++) {
+    chest_measure_ref(q, input, nslot, port_id, i);
+  }
+}
+
+void chest_measure_slot(chest_t *q, cf_t *input, uint32_t nslot) {
+  int p;
+  for (p=0;p<q->nof_ports;p++) {
+    chest_measure_slot_port(q, input, nslot, p);
+  }
+}
+
+void chest_measure_sf(chest_t *q, cf_t *input, uint32_t sf_idx) {
+  int p, n, slotsz;
+  slotsz = q->nof_symbols*q->nof_re;
+  for (p=0;p<q->nof_ports;p++) {
+    for (n=0;n<2;n++) {
+      chest_measure_slot_port(q, &input[n*slotsz], 2*sf_idx+n, p);
+    }
+  }
+}
+
+
 /* Computes channel estimates for each reference in a slot and port.
  * Saves the nof_prb * 12 * nof_symbols channel estimates in the array ce
  */
-int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32_t port_id) {
+int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32_t port_id) 
+{
   uint32_t i, j;
   cf_t x[2], y[MAX_NSYMB];
 
@@ -147,13 +230,8 @@ int chest_ce_slot_port(chest_t *q, cf_t *input, cf_t *ce, uint32_t nslot, uint32
     if (q->refsignal[port_id][nslot].nsymbols <= 2) {
       refsignal_t *r = &q->refsignal[port_id][nslot];
 
-      DEBUG("Estimating channel slot=%d port=%d using %d reference signals\n",
-          nslot, port_id, r->nof_refs);
-
-      for (i=0;i<r->nof_refs;i++) {
-        chest_ce_ref(q, input, nslot, port_id, i);
-      }
-
+      chest_measure_slot_port(q, input, nslot, port_id);
+      
       /* interpolate the symbols with references
       * in the freq domain */
       for (i=0;i<r->nsymbols;i++) {

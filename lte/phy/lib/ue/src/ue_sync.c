@@ -46,7 +46,7 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define FIND_THRESHOLD          1.0
+#define FIND_THRESHOLD          1.2
 #define TRACK_THRESHOLD         0.2
 
 
@@ -138,7 +138,7 @@ float ue_sync_get_cfo(ue_sync_t *q) {
 }
 
 float ue_sync_get_sfo(ue_sync_t *q) {
-  return 1000*q->mean_time_offset/5;
+  return 1000*q->mean_time_offset;
 }
 
 void ue_sync_decode_sss_on_track(ue_sync_t *q, bool enabled) {
@@ -179,8 +179,9 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
   
    /* Make sure subframe idx is what we expect */
   if ((q->sf_idx != sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track) {
-    INFO("Warning: Expected SF idx %d but got %d!\n", 
-          q->sf_idx, sync_get_sf_idx(&q->strack));
+    INFO("Warning: Expected SF idx %d but got %d (%d,%g - %d,%g)!\n", 
+          q->sf_idx, sync_get_sf_idx(&q->strack), q->strack.m0, q->strack.m1, q->strack.m0_value, q->strack.m1_value);
+    /* FIXME: What should we do in this case? */
     q->sf_idx = sync_get_sf_idx(&q->strack);
     q->state = SF_TRACK; 
   } else {
@@ -196,10 +197,9 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
     } 
     
     /* compute cumulative moving average CFO */
-    q->cur_cfo = EXPAVERAGE(sync_get_cfo(&q->strack), q->cur_cfo, q->frame_ok_cnt);
-    
+    q->cur_cfo = VEC_CMA(sync_get_cfo(&q->strack), q->cur_cfo, q->frame_ok_cnt);
     /* compute cumulative moving average time offset */
-    q->mean_time_offset = (float) EXPAVERAGE((float) q->time_offset, q->mean_time_offset, q->frame_ok_cnt);
+    q->mean_time_offset = (float) VEC_CMA((float) q->time_offset, q->mean_time_offset, q->frame_ok_cnt);
 
     q->peak_idx = CURRENT_SFLEN/2 + q->time_offset;  
     q->frame_ok_cnt++;
@@ -310,7 +310,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
           #ifdef MEASURE_EXEC_TIME
           gettimeofday(&t[2], NULL);
           get_time_interval(t);
-          q->mean_exec_time = (float) EXPAVERAGE((float) t[0].tv_usec, q->mean_exec_time, q->frame_total_cnt);
+          q->mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, q->mean_exec_time, q->frame_total_cnt);
           #endif
 
           if (ret == 1) {

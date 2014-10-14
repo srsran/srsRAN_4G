@@ -57,8 +57,8 @@
  * TODO: Check also peak offset 
  */
 
-#define CS_DEFAULT_MAXFRAMES_TOTAL      300
-#define CS_DEFAULT_MAXFRAMES_DETECTED   30
+#define CS_DEFAULT_MAXFRAMES_TOTAL      500
+#define CS_DEFAULT_MAXFRAMES_DETECTED   50
 
 #define CS_DEFAULT_NOFFRAMES_TOTAL      100
 #define CS_DEFAULT_NOFFRAMES_DETECTED   10
@@ -87,8 +87,6 @@ typedef struct LIBLTE_API {
   uint32_t current_nof_detected; 
   uint32_t current_nof_total; 
   
-  uint32_t current_N_id_2;
-
   uint32_t *mode_ntimes;
   char *mode_counted; 
   
@@ -109,7 +107,8 @@ LIBLTE_API void ue_celldetect_reset(ue_celldetect_t *q);
 LIBLTE_API int ue_celldetect_scan(ue_celldetect_t *q,
                                   cf_t *signal, 
                                   uint32_t nsamples,
-                                  ue_celldetect_result_t *found_cell);
+                                  ue_celldetect_result_t *found_cell,
+                                  uint32_t N_id_2);
 
 LIBLTE_API int ue_celldetect_set_nof_frames_total(ue_celldetect_t *q, 
                                                    uint32_t nof_frames);
