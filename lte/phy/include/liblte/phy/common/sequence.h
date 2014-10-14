@@ -40,7 +40,7 @@ LIBLTE_API int sequence_init(sequence_t *q, uint32_t len);
 
 LIBLTE_API void sequence_free(sequence_t *q);
 
-LIBLTE_API int sequence_LTEPRS(sequence_t *q, 
+LIBLTE_API int sequence_LTE_pr(sequence_t *q, 
                                uint32_t len, 
                                uint32_t seed);
 

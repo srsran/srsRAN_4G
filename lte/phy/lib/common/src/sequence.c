@@ -25,13 +25,12 @@
  *
  */
 
-
-#include "liblte/phy/common/sequence.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <strings.h>
 #include <assert.h>
+
+#include "liblte/phy/common/sequence.h"
 
 #define Nc 1600
 
@@ -75,7 +74,7 @@ void generate_prs_c(sequence_t *q, uint32_t seed) {
   free(x2);
 }
 
-int sequence_LTEPRS(sequence_t *q, uint32_t len, uint32_t seed) {
+int sequence_LTE_pr(sequence_t *q, uint32_t len, uint32_t seed) {
   if (sequence_init(q, len)) {
     return LIBLTE_ERROR;
   }

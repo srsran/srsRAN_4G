@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
     
     /* compute exponentially averaged execution time */
     if (n > 0) {
-      mean_texec = EXPAVERAGE((float) t[0].tv_usec, mean_texec, n-1);      
+      mean_texec = VEC_CMA((float) t[0].tv_usec, mean_texec, n-1);      
     }
     
     /* check MSE */

@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
                                                  fft_size);
     float x = peak_value/y;
     
-    mean_peak = EXPAVERAGE(x, mean_peak, frame_cnt);
+    mean_peak = VEC_CMA(x, mean_peak, frame_cnt);
     
     if (x >= threshold) {
       nof_det++;

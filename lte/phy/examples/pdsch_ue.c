@@ -68,13 +68,14 @@ void args_default(prog_args_t *args) {
   args->disable_plots = false; 
   args->io_config.find_threshold = -1.0; 
   args->io_config.input_file_name = NULL; 
+  args->io_config.force_N_id_2 = -1; // Pick the best
   args->io_config.uhd_args = "";
   args->io_config.uhd_freq = -1.0;
   args->io_config.uhd_gain = 60.0; 
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [cargfndvtb] [-i input_file | -f rx_frequency (in Hz)]\n", prog);
+  printf("Usage: %s [cargndvtbl] [-i input_file | -f rx_frequency (in Hz)]\n", prog);
   printf("\t-c cell_id if reading from file [Default %d]\n", args->io_config.cell_id_file);
   printf("\t-p nof_prb if reading from file [Default %d]\n", args->io_config.nof_prb_file);
   printf("\t-o nof_ports if reading from file [Default %d]\n", args->io_config.nof_ports_file);
@@ -85,6 +86,7 @@ void usage(prog_args_t *args, char *prog) {
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
+  printf("\t-l Force N_id_2 [Default best]\n");
   printf("\t-b Decode PBCH only [Default All channels]\n");
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
   printf("\t-t PSS threshold [Default %f]\n", args->io_config.find_threshold);
@@ -99,7 +101,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "icagfndvtbpro")) != -1) {
+  while ((opt = getopt(argc, argv, "icagfndvtbprol")) != -1) {
     switch (opt) {
     case 'i':
       args->io_config.input_file_name = argv[optind];
@@ -128,6 +130,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'n':
       args->nof_subframes = atoi(argv[optind]);
       break;
+    case 'l':
+      args->io_config.force_N_id_2 = atoi(argv[optind]);
+      break;
     case 'r':
       args->rnti= atoi(argv[optind]);
       break;
@@ -144,6 +149,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
   }
   if (args->io_config.uhd_freq < 0 && args->io_config.input_file_name == NULL) {
     usage(args, argv[0]);
+    exit(-1);
   }
 }
 /**********************************************************************/
@@ -177,10 +183,6 @@ int main(int argc, char **argv) {
   }
 #endif
   
-  /* Setup SIGINT handler */
-  printf("\n --- Press Ctrl+C to exit --- \n");
-  signal(SIGINT, sigintHandler);
-
   /* Initialize subframe counter */
   sf_cnt = 0;
 

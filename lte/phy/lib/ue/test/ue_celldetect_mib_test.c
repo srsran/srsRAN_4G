@@ -169,7 +169,7 @@ int find_cell(void *uhd, ue_celldetect_t *s, cf_t *buffer, ue_celldetect_result_
       return LIBLTE_ERROR;
     }
     
-    n = ue_celldetect_scan(s, buffer, flen, found_cell);
+    n = ue_celldetect_scan(s, buffer, flen, found_cell, nof_scanned_cells);
     switch(n) {
       case CS_FRAME_UNALIGNED:
         printf("Realigning frame\n");

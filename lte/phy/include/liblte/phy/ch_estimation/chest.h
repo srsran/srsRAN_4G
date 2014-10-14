@@ -76,26 +76,42 @@ LIBLTE_API void chest_free(chest_t *q);
 LIBLTE_API int chest_set_nof_ports(chest_t *q, 
                                     uint32_t nof_ports);
 
-LIBLTE_API int chest_init_LTEDL(chest_t *q, 
-                                lte_cell_t cell);
 
-LIBLTE_API int chest_ref_LTEDL_slot_port(chest_t *q, 
-                                         uint32_t nslot, 
-                                         uint32_t port_id, 
-                                         lte_cell_t cell);
+LIBLTE_API float chest_rsrp(chest_t *q, 
+                            uint32_t nslot, 
+                            uint32_t port_id);
 
-LIBLTE_API int chest_ref_LTEDL_slot(chest_t *q, 
-                                    uint32_t nslot, 
-                                    lte_cell_t cell);
+LIBLTE_API float chest_rsrp_sf(chest_t *q, 
+                               uint32_t sf_idx);
 
-LIBLTE_API int chest_ref_LTEDL(chest_t *q, 
-                               lte_cell_t cell);
+LIBLTE_API float chest_rssi(chest_t *q, 
+                            cf_t *input);
 
-LIBLTE_API int chest_ce_ref(chest_t *q, 
+LIBLTE_API float chest_rssi_sf(chest_t *q, 
+                               cf_t *input);
+
+LIBLTE_API float chest_rsrq(chest_t *q, 
+                            cf_t *input, 
+                            uint32_t nslot, 
+                            uint32_t port_id);
+
+LIBLTE_API float chest_rsrq_sf(chest_t *q, 
+                               cf_t *input, 
+                               uint32_t sf_idx);
+
+LIBLTE_API int chest_measure_ref(chest_t *q, 
                              cf_t *input, 
                              uint32_t nslot, 
                              uint32_t port_id, 
                              uint32_t nref);
+
+LIBLTE_API void chest_measure_slot(chest_t *q, 
+                                   cf_t *input, 
+                                   uint32_t nslot);
+
+LIBLTE_API void chest_measure_sf(chest_t *q, 
+                                 cf_t *input, 
+                                 uint32_t sf_idx);
 
 LIBLTE_API int chest_ce_slot_port(chest_t *q, 
                                    cf_t *input, 
@@ -139,10 +155,50 @@ LIBLTE_API void chest_ce_fprint(chest_t *q,
                                 uint32_t nslot, 
                                 uint32_t port_id);
 
-LIBLTE_API int chest_ref_symbols(chest_t *q, 
-                                 uint32_t port_id, 
-                                 uint32_t nslot, 
-                                 uint32_t l[2]);
+LIBLTE_API int chest_ref_get_symbols(chest_t *q, 
+                                     uint32_t port_id, 
+                                     uint32_t nslot, 
+                                     uint32_t l[2]);
+
+
+
+
+/*********************************************************
+ * 
+ * Downlink Channel Estimator 
+ * 
+ *********************************************************/
+LIBLTE_API int chest_init_LTEDL(chest_t *q, 
+                                lte_cell_t cell);
+
+LIBLTE_API int chest_ref_set_LTEDL_slot_port(chest_t *q, 
+                                             uint32_t nslot, 
+                                             uint32_t port_id, 
+                                             lte_cell_t cell);
+
+LIBLTE_API int chest_ref_set_LTEDL_slot(chest_t *q, 
+                                        uint32_t nslot, 
+                                        lte_cell_t cell);
+
+LIBLTE_API int chest_ref_set_LTEDL(chest_t *q, 
+                                   lte_cell_t cell);
+
+
+/*********************************************************
+ * 
+ * Uplink Channel Estimator 
+ * 
+ *********************************************************/
+LIBLTE_API int chest_init_LTEUL(chest_t *q, 
+                                lte_cell_t cell);
+
+LIBLTE_API int chest_ref_set_LTEUL_slot(chest_t *q, 
+                                        uint32_t nslot, 
+                                        lte_cell_t cell);
+
+LIBLTE_API int chest_ref_set_LTEUL(chest_t *q, 
+                                   lte_cell_t cell);
+
 
 /* High-level API */
 

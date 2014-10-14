@@ -121,7 +121,6 @@ int main(int argc, char **argv) {
   void *uhd;
   ue_celldetect_t s;
   ue_celldetect_result_t found_cells[3]; 
-  cf_t *buffer; 
   int nof_freqs; 
   lte_earfcn_t channels[MAX_EARFCN];
   uint32_t freq;
@@ -142,12 +141,6 @@ int main(int argc, char **argv) {
     exit(-1);
   }
     
-  buffer = vec_malloc(sizeof(cf_t) * 96000);
-  if (!buffer) {
-    perror("malloc");
-    return LIBLTE_ERROR;
-  }
-  
   if (ue_celldetect_init(&s)) {
     fprintf(stderr, "Error initiating UE sync module\n");
     exit(-1);
@@ -178,7 +171,7 @@ int main(int argc, char **argv) {
       printf("\n");
     }
     
-    n = find_cell(uhd, &s, buffer, found_cells);
+    n = find_all_cells(uhd, found_cells);
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
@@ -186,7 +179,7 @@ int main(int argc, char **argv) {
     if (n == CS_CELL_DETECTED) {
       for (int i=0;i<3;i++) {
         if (found_cells[i].peak > threshold/2) {
-          if (decode_pbch(uhd, buffer, &found_cells[i], nof_frames_total, &mib)) {
+          if (decode_pbch(uhd, &found_cells[i], nof_frames_total, &mib)) {
             fprintf(stderr, "Error decoding PBCH\n");
             exit(-1);
           }          
@@ -194,6 +187,8 @@ int main(int argc, char **argv) {
       }
     }    
   }
+  
+  printf("\nBye\n");
     
   ue_celldetect_free(&s);
   cuhd_close(uhd);
