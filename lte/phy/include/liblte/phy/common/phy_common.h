@@ -107,19 +107,21 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define NOF_TC_CB_SIZES 188
 
+typedef enum LIBLTE_API { PHICH_NORM, PHICH_EXT} phich_length_t;
+typedef enum LIBLTE_API { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
+
 typedef struct LIBLTE_API {
   uint32_t nof_prb;
   uint32_t nof_ports; 
   uint32_t id;
   lte_cp_t cp;
+  phich_length_t phich_length;
+  phich_resources_t phich_resources;
 }lte_cell_t;
 
 typedef enum LIBLTE_API {
   SINGLE_ANTENNA,TX_DIVERSITY, SPATIAL_MULTIPLEX
 } lte_mimo_type_t;
-
-typedef enum LIBLTE_API { PHICH_NORM, PHICH_EXT} phich_length_t;
-typedef enum LIBLTE_API { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
 
 typedef enum LIBLTE_API {
   LTE_BPSK = 1, LTE_QPSK = 2, LTE_QAM16 = 4, LTE_QAM64 = 6
