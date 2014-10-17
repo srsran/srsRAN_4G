@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
   demod_soft_work(&demod_s);
 
   /* hard decision for soft demodulation */
-  char* tmp = malloc(nbits);
+  uint8_t* tmp = malloc(nbits);
   for (int i=0;i<nbits;i++) {
     tmp[i] = demod_s.output[i]>0?1:0;
   }

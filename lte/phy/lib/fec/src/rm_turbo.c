@@ -53,7 +53,7 @@ uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
  * 
  * TODO: Soft buffer size limitation according to UE category
  */
-int rm_turbo_tx(char *w_buff, uint32_t w_buff_len, char *input, uint32_t in_len, char *output,
+int rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uint32_t in_len, uint8_t *output,
     uint32_t out_len, uint32_t rv_idx) {
 
   int ndummy, kidx; 

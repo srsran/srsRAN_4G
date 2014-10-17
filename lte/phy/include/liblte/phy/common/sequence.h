@@ -32,7 +32,7 @@
 #include "liblte/phy/common/phy_common.h"
 
 typedef struct LIBLTE_API {
-  char *c;
+  uint8_t *c;
   uint32_t len;
 } sequence_t;
 

@@ -90,7 +90,7 @@ void parse_args(int argc, char **argv) {
       ebno_db = atof(argv[optind]);
       break;
     case 's':
-      seed = (unsigned int) strtoul(argv[optind], NULL, 0);
+      seed = (uint32_t) strtoul(argv[optind], NULL, 0);
       break;
     case 'v':
       verbose++;
@@ -129,8 +129,8 @@ void output_matlab(float ber[MAX_ITERATIONS][SNR_POINTS], int snr_points) {
 int main(int argc, char **argv) {
   uint32_t frame_cnt;
   float *llr;
-  unsigned char *llr_c;
-  char *data_tx, *data_rx, *symbols;
+  uint8_t *llr_c;
+  uint8_t *data_tx, *data_rx, *symbols;
   uint32_t i, j;
   float var[SNR_POINTS];
   uint32_t snr_points;
@@ -162,19 +162,19 @@ int main(int argc, char **argv) {
     printf("  EbNo: %.2f\n", ebno_db);
   }
 
-  data_tx = malloc(frame_length * sizeof(char));
+  data_tx = malloc(frame_length * sizeof(uint8_t));
   if (!data_tx) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx = malloc(frame_length * sizeof(char));
+  data_rx = malloc(frame_length * sizeof(uint8_t));
   if (!data_rx) {
     perror("malloc");
     exit(-1);
   }
 
-  symbols = malloc(coded_length * sizeof(char));
+  symbols = malloc(coded_length * sizeof(uint8_t));
   if (!symbols) {
     perror("malloc");
     exit(-1);
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
-  llr_c = malloc(coded_length * sizeof(char));
+  llr_c = malloc(coded_length * sizeof(uint8_t));
   if (!llr_c) {
     perror("malloc");
     exit(-1);

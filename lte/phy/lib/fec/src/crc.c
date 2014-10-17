@@ -54,14 +54,14 @@ unsigned long crctable(crc_t *h) {
   // Polynom order 8, 16, 24 or 32 only.
   int ord = h->order - 8;
   unsigned long crc = h->crcinit;
-  unsigned char byte = h->byte;
+  uint8_t byte = h->byte;
 
   crc = (crc << 8) ^ h->table[((crc >> (ord)) & 0xff) ^ byte];
   h->crcinit = crc;
   return (crc  & h->crcmask);
 }
 
-unsigned long reversecrcbit(unsigned int crc, int nbits, crc_t *h) {
+unsigned long reversecrcbit(uint32_t crc, int nbits, crc_t *h) {
 
   unsigned long m, rmask = 0x1;
 
@@ -84,7 +84,7 @@ int crc_set_init(crc_t *crc_par, unsigned long crc_init_value) {
   return 0;
 }
 
-int crc_init(crc_t *h, unsigned int crc_poly, int crc_order) {
+int crc_init(crc_t *h, uint32_t crc_poly, int crc_order) {
 
   // Set crc working default parameters   
   h->polynom = crc_poly;
@@ -114,10 +114,10 @@ int crc_init(crc_t *h, unsigned int crc_poly, int crc_order) {
   return 0;
 }
 
-uint32_t crc_checksum(crc_t *h, char *data, int len) {
+uint32_t crc_checksum(crc_t *h, uint8_t *data, int len) {
   int i, k, len8, res8, a = 0;
-  unsigned int crc = 0;
-  char *pter;
+  uint32_t crc = 0;
+  uint8_t *pter;
 
   crc_set_init(h, 0);
 
@@ -130,14 +130,14 @@ uint32_t crc_checksum(crc_t *h, char *data, int len) {
 
   // Calculate CRC
   for (i = 0; i < len8 + a; i++) {
-    pter = (char *) (data + 8 * i);
+    pter = (uint8_t *) (data + 8 * i);
     if (i == len8) {
       h->byte = 0x00;
       for (k = 0; k < res8; k++) {
-        h->byte |= ((unsigned char) *(pter + k)) << (7 - k);
+        h->byte |= ((uint8_t) *(pter + k)) << (7 - k);
       }
     } else {
-      h->byte = (unsigned char) (unpack_bits(&pter, 8) & 0xFF);
+      h->byte = (uint8_t) (unpack_bits(&pter, 8) & 0xFF);
     }
     crc = crctable(h);
   }
@@ -155,11 +155,11 @@ uint32_t crc_checksum(crc_t *h, char *data, int len) {
 /** Appends crc_order checksum bits to the buffer data.
  * The buffer data must be len + crc_order bytes
  */
-void crc_attach(crc_t *h, char *data, int len) {
-  unsigned int checksum = crc_checksum(h, data, len);
+void crc_attach(crc_t *h, uint8_t *data, int len) {
+  uint32_t checksum = crc_checksum(h, data, len);
 
   // Add CRC
-  char *ptr = &data[len];
+  uint8_t *ptr = &data[len];
   pack_bits(checksum, &ptr, h->order);
 }
 

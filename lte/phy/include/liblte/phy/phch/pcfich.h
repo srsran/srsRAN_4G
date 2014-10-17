@@ -58,7 +58,7 @@ typedef struct LIBLTE_API {
   cf_t pcfich_d[PCFICH_RE];
 
   /* bit message */
-  char data[PCFICH_CFI_LEN];
+  uint8_t data[PCFICH_CFI_LEN];
 
   /* tx & rx objects */
   modem_table_t mod;

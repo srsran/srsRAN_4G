@@ -32,9 +32,9 @@
 typedef struct {
   int n;
   int l;
-  unsigned int p;
-  unsigned int s;
-  unsigned int word;
+  uint32_t p;
+  uint32_t s;
+  uint32_t word;
 }expected_word_t;
 
 
@@ -48,7 +48,7 @@ static expected_word_t expected_words[] = {
     {-1, -1, 0, 0, 0}
 };
 
-int get_expected_word(int n, int l, unsigned int p, unsigned int s, unsigned int *word) {
+int get_expected_word(int n, int l, uint32_t p, unsigned int s, unsigned int *word) {
   int i;
   i=0;
   while(expected_words[i].n != -1) {

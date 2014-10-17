@@ -159,7 +159,7 @@ void sigintHandler(int x) {
 }
 
 /* TODO: Do something with the output data */
-char data[10000];
+uint8_t data[10000];
 
 extern float mean_exec_time; 
 

@@ -103,7 +103,7 @@ void dft_plan_set_dc(dft_plan_t *plan, bool val){
   plan->dc = val;
 }
 
-static void copy_pre(char *dst, char *src, int size_d, int len,
+static void copy_pre(uint8_t *dst, uint8_t *src, int size_d, int len,
                      bool forward, bool mirror, bool dc) {
   int offset = dc?1:0;
   if(mirror && !forward){
@@ -116,7 +116,7 @@ static void copy_pre(char *dst, char *src, int size_d, int len,
   }
 }
 
-static void copy_post(char *dst, char *src, int size_d, int len,
+static void copy_post(uint8_t *dst, uint8_t *src, int size_d, int len,
                       bool forward, bool mirror, bool dc) {
   int offset = dc?1:0;
   if(mirror && forward){
@@ -141,7 +141,7 @@ void dft_run_c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out) {
   int i;
   fftwf_complex *f_out = plan->out;
 
-  copy_pre((char*)plan->in, (char*)in, sizeof(dft_c_t), plan->size,
+  copy_pre((uint8_t*)plan->in, (uint8_t*)in, sizeof(dft_c_t), plan->size,
            plan->forward, plan->mirror, plan->dc);
   fftwf_execute(plan->p);
   if (plan->norm) {
@@ -153,7 +153,7 @@ void dft_run_c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out) {
       f_out[i] = 10*log10(f_out[i]);
     }
   }
-  copy_post((char*)out, (char*)plan->out, sizeof(dft_c_t), plan->size,
+  copy_post((uint8_t*)out, (uint8_t*)plan->out, sizeof(dft_c_t), plan->size,
             plan->forward, plan->mirror, plan->dc);
 }
 

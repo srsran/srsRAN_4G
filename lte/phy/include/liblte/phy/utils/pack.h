@@ -30,8 +30,13 @@
 #define PACK_
 
 #include "liblte/config.h"
+#include <stdint.h>
 
-LIBLTE_API unsigned int unpack_bits(char **bits, int nof_bits);
-LIBLTE_API void pack_bits(unsigned int value, char **bits, int nof_bits);
+LIBLTE_API uint32_t unpack_bits(uint8_t **bits, 
+                                int nof_bits);
+
+LIBLTE_API void pack_bits(uint32_t value, 
+                          uint8_t **bits, 
+                          int nof_bits);
 
 #endif // PACK_

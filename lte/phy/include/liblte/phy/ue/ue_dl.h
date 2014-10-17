@@ -92,7 +92,7 @@ LIBLTE_API void ue_dl_free(ue_dl_t *q);
 
 LIBLTE_API int ue_dl_decode(ue_dl_t *q, 
                              cf_t *sf_buffer, 
-                             char *data, 
+                             uint8_t *data, 
                              uint32_t sf_idx,
                              uint16_t rnti);
 

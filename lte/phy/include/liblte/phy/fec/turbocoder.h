@@ -43,7 +43,7 @@ typedef struct LIBLTE_API {
 
 LIBLTE_API int tcod_init(tcod_t *h, uint32_t max_long_cb);
 LIBLTE_API void tcod_free(tcod_t *h);
-LIBLTE_API int tcod_encode(tcod_t *h, char *input, char *output, uint32_t long_cb);
+LIBLTE_API int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb);
 
 #endif
 

@@ -57,7 +57,7 @@ void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len) {
   }
 }
 
-void scrambling_b(sequence_t *s, char *data) {
+void scrambling_b(sequence_t *s, uint8_t *data) {
   int i;
 
   for (i = 0; i < s->len; i++) {
@@ -65,7 +65,7 @@ void scrambling_b(sequence_t *s, char *data) {
   }
 }
 
-void scrambling_b_offset(sequence_t *s, char *data, int offset, int len) {
+void scrambling_b_offset(sequence_t *s, uint8_t *data, int offset, int len) {
   int i;
   assert (len + offset <= s->len);
   for (i = 0; i < len; i++) {
@@ -125,7 +125,7 @@ int scrambling_work(scrambling_hl* hl) {
   sequence_t *seq = &hl->obj.seq[sf];
 
   if (hl->init.hard) {
-    memcpy(hl->output, hl->input, sizeof(char) * hl->in_len);
+    memcpy(hl->output, hl->input, sizeof(uint8_t) * hl->in_len);
     scrambling_b(seq, hl->output);
   } else {
     memcpy(hl->output, hl->input, sizeof(float) * hl->in_len);

@@ -33,9 +33,9 @@
 #define RX_NULL 10000
 #define TX_NULL 80
 
-LIBLTE_API int rm_conv_tx(char *input, 
+LIBLTE_API int rm_conv_tx(uint8_t *input, 
                           uint32_t in_len, 
-                          char *output, 
+                          uint8_t *output, 
                           uint32_t out_len);
 
 LIBLTE_API int rm_conv_rx(float *input, 
@@ -49,7 +49,7 @@ typedef struct
     struct rm_conv_init {
       int direction;
     } init;
-    void *input;      // input type may be char or float depending on hard
+    void *input;      // input type may be uint8_t or float depending on hard
     int in_len;
     struct rm_conv_ctrl_in {
       int E;

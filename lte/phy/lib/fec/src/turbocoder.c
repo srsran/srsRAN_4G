@@ -47,12 +47,12 @@ void tcod_free(tcod_t *h) {
   h->max_long_cb = 0;
 }
 
-int tcod_encode(tcod_t *h, char *input, char *output, uint32_t long_cb) {
+int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
 
-  char reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
+  uint8_t reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
   uint32_t i, k = 0, j;
-  char bit;
-  char in, out;
+  uint8_t bit;
+  uint8_t in, out;
   uint32_t *per;
 
   if (long_cb > h->max_long_cb) {

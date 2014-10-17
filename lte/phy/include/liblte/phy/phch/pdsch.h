@@ -55,7 +55,7 @@ typedef struct LIBLTE_API {
   uint32_t max_cb;
   uint32_t w_buff_size;
   float **pdsch_w_buff_f;  
-  char **pdsch_w_buff_c;  
+  uint8_t **pdsch_w_buff_c;  
 
   struct cb_segm {
     uint32_t F;
@@ -85,7 +85,7 @@ typedef struct LIBLTE_API {
   cf_t *pdsch_symbols[MAX_PORTS];
   cf_t *pdsch_x[MAX_PORTS];
   cf_t *pdsch_d;
-  char *cb_in; 
+  uint8_t *cb_in; 
   void *cb_out;  
   void *pdsch_e;
 
@@ -117,7 +117,7 @@ LIBLTE_API int pdsch_harq_setup(pdsch_harq_t *p,
 LIBLTE_API void pdsch_harq_free(pdsch_harq_t *p);
 
 LIBLTE_API int pdsch_encode(pdsch_t *q, 
-                            char *data, 
+                            uint8_t *data, 
                             cf_t *sf_symbols[MAX_PORTS],
                             uint32_t nsubframe,
                             pdsch_harq_t *harq_process, 
@@ -126,7 +126,7 @@ LIBLTE_API int pdsch_encode(pdsch_t *q,
 LIBLTE_API int pdsch_decode(pdsch_t *q, 
                             cf_t *sf_symbols, 
                             cf_t *ce[MAX_PORTS],
-                            char *data, 
+                            uint8_t *data, 
                             uint32_t nsubframe,
                             pdsch_harq_t *harq_process, 
                             uint32_t rv_idx);

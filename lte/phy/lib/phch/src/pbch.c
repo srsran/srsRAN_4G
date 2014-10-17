@@ -41,7 +41,7 @@
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/debug.h"
 
-const char crc_mask[4][16] = {
+const uint8_t crc_mask[4][16] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0 }, { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 } };
@@ -193,11 +193,11 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     if (!q->pbch_rm_b) {
       goto clean;
     }
-    q->data = malloc(sizeof(char) * 40);
+    q->data = malloc(sizeof(uint8_t) * 40);
     if (!q->data) {
       goto clean;
     }
-    q->data_enc = malloc(sizeof(char) * 120);
+    q->data_enc = malloc(sizeof(uint8_t) * 120);
     if (!q->data_enc) {
       goto clean;
     }
@@ -252,7 +252,7 @@ void pbch_free(pbch_t *q) {
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
-void pbch_mib_unpack(char *msg, pbch_mib_t *mib) {
+void pbch_mib_unpack(uint8_t *msg, pbch_mib_t *mib) {
   int bw, phich_res;
 
   bw = bit_unpack(&msg, 3);
@@ -295,7 +295,7 @@ void pbch_mib_unpack(char *msg, pbch_mib_t *mib) {
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
-void pbch_mib_pack(pbch_mib_t *mib, char *msg) {
+void pbch_mib_pack(pbch_mib_t *mib, uint8_t *msg) {
   int bw, phich_res = 0;
 
   bzero(msg, 24);
@@ -359,7 +359,7 @@ void pbch_decode_reset(pbch_t *q) {
   q->frame_idx = 0;
 }
 
-void crc_set_mask(char *data, int nof_ports) {
+void crc_set_mask(uint8_t *data, int nof_ports) {
   int i;
   for (i = 0; i < 16; i++) {
     data[24 + i] = (data[24 + i] + crc_mask[nof_ports - 1][i]) % 2;
@@ -373,9 +373,9 @@ void crc_set_mask(char *data, int nof_ports) {
  *
  * Returns 0 if the data is correct, -1 otherwise
  */
-uint32_t pbch_crc_check(pbch_t *q, char *bits, uint32_t nof_ports) {
-  char data[40];
-  memcpy(data, bits, 40 * sizeof(char));
+uint32_t pbch_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
+  uint8_t data[40];
+  memcpy(data, bits, 40 * sizeof(uint8_t));
   crc_set_mask(data, nof_ports);
   int ret = crc_checksum(&q->crc, data, 40);
   if (ret == 0) {

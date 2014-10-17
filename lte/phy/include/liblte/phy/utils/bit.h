@@ -34,10 +34,10 @@
 
 #include "liblte/config.h"
 
-LIBLTE_API uint32_t bit_unpack(char **bits, int nof_bits);
-LIBLTE_API void bit_pack(uint32_t value, char **bits, int nof_bits);
-LIBLTE_API void bit_fprint(FILE *stream, char *bits, int nof_bits);
-LIBLTE_API unsigned int bit_diff(char *x, char *y, int nbits);
+LIBLTE_API uint32_t bit_unpack(uint8_t **bits, int nof_bits);
+LIBLTE_API void bit_pack(uint32_t value, uint8_t **bits, int nof_bits);
+LIBLTE_API void bit_fprint(FILE *stream, uint8_t *bits, int nof_bits);
+LIBLTE_API uint32_t bit_diff(uint8_t *x, uint8_t *y, int nbits);
 LIBLTE_API uint32_t bit_count(uint32_t n);
 
 #endif // BIT_

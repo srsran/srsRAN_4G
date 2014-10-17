@@ -67,7 +67,7 @@ typedef struct LIBLTE_API {
 } dci_location_t;
 
 typedef struct LIBLTE_API {
-  char data[DCI_MAX_BITS];
+  uint8_t data[DCI_MAX_BITS];
   uint32_t nof_bits;
 } dci_msg_t;
 

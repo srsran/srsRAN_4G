@@ -118,7 +118,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   pdsch_t pdsch;
   uint32_t i, j;
-  char *data = NULL;
+  uint8_t *data = NULL;
   cf_t *ce[MAX_PORTS];
   uint32_t nof_re;
   cf_t *slot_symbols[MAX_PORTS];
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  data = malloc(sizeof(char) * mcs.tbs);
+  data = malloc(sizeof(uint8_t) * mcs.tbs);
   if (!data) {
     perror("malloc");
     goto quit;

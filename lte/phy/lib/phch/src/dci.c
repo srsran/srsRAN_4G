@@ -207,7 +207,7 @@ uint32_t dci_format_sizeof(dci_format_t format, uint32_t nof_prb) {
 int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
   uint32_t n_ul_hop;
 
   *y++ = 0; // format differentiation
@@ -269,7 +269,7 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
   uint32_t n_ul_hop;
 
   /* Make sure it's a Format0 message */
@@ -338,7 +338,7 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
 int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   if (nof_prb > 10) {
     *y++ = data->alloc_type;
@@ -391,7 +391,7 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   /* Make sure it's a Format1 message */
   if (msg->nof_bits != dci_format_sizeof(Format1, nof_prb)) {
@@ -451,7 +451,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
     bool crc_is_crnti) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   *y++ = 1; // format differentiation
 
@@ -537,7 +537,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
     bool crc_is_crnti) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   /* Make sure it's a Format0 message */
   if (msg->nof_bits != dci_format_sizeof(Format1A, nof_prb)) {
@@ -614,7 +614,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
 int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   if (data->alloc_type != alloc_type2 || data->type2_alloc.mode != t2_dist) {
     fprintf(stderr,
@@ -665,7 +665,7 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
   uint32_t L_p, RB_p;
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   if (msg->nof_bits != dci_format_sizeof(Format1C, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1C\n");

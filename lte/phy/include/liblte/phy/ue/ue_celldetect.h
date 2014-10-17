@@ -88,7 +88,7 @@ typedef struct LIBLTE_API {
   uint32_t current_nof_total; 
   
   uint32_t *mode_ntimes;
-  char *mode_counted; 
+  uint8_t *mode_counted; 
   
   ue_celldetect_result_t *candidates; 
 } ue_celldetect_t;

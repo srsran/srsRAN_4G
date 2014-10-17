@@ -91,7 +91,7 @@ int init_sequence(sequence_t *seq, char *name) {
 int main(int argc, char **argv) {
   int i;
   sequence_t seq;
-  char *input_b, *scrambled_b;
+  uint8_t *input_b, *scrambled_b;
   float *input_f, *scrambled_f;
 
   parse_args(argc, argv);
@@ -102,12 +102,12 @@ int main(int argc, char **argv) {
   }
 
   if (!do_floats) {
-    input_b = malloc(sizeof(char) * seq.len);
+    input_b = malloc(sizeof(uint8_t) * seq.len);
     if (!input_b) {
       perror("malloc");
       exit(-1);
     }
-    scrambled_b = malloc(sizeof(char) * seq.len);
+    scrambled_b = malloc(sizeof(uint8_t) * seq.len);
     if (!scrambled_b) {
       perror("malloc");
       exit(-1);

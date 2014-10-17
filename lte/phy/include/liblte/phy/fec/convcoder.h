@@ -40,7 +40,7 @@ typedef struct LIBLTE_API {
   bool tail_biting;
 }convcoder_t;
 
-LIBLTE_API int convcoder_encode(convcoder_t *q, char *input, char *output, uint32_t frame_length);
+LIBLTE_API int convcoder_encode(convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length);
 
 
 /* High-level API */
@@ -55,9 +55,9 @@ typedef struct LIBLTE_API {
     int generator_2;
     int frame_length;
   } ctrl_in;
-  char *input;
+  uint8_t *input;
   int in_len;
-  char *output;
+  uint8_t *output;
   int out_len;
 }convcoder_hl;
 

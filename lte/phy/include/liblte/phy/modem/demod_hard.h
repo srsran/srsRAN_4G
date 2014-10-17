@@ -44,7 +44,7 @@ typedef struct LIBLTE_API {
 
 LIBLTE_API void demod_hard_init(demod_hard_t* q);
 LIBLTE_API void demod_hard_table_set(demod_hard_t* q, lte_mod_t mod);
-LIBLTE_API int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits, uint32_t nsymbols);
+LIBLTE_API int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, uint8_t *bits, uint32_t nsymbols);
 
 
 
@@ -58,7 +58,7 @@ typedef struct LIBLTE_API {
   cf_t* input;
   int in_len;
 
-  char* output;
+  uint8_t* output;
   int out_len;
 }demod_hard_hl;
 

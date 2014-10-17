@@ -36,8 +36,8 @@
 typedef _Complex float cf_t;
 
 /* Scrambling has no state */
-LIBLTE_API void scrambling_b(sequence_t *s, char *data);
-LIBLTE_API void scrambling_b_offset(sequence_t *s, char *data, int offset, int len);
+LIBLTE_API void scrambling_b(sequence_t *s, uint8_t *data);
+LIBLTE_API void scrambling_b_offset(sequence_t *s, uint8_t *data, int offset, int len);
 
 LIBLTE_API void scrambling_f(sequence_t *s, float *data);
 LIBLTE_API void scrambling_f_offset(sequence_t *s, float *data, int offset, int len);
@@ -71,7 +71,7 @@ typedef struct LIBLTE_API {
     int channel;
     int nof_symbols;  // 7 normal 6 extended
   } init;
-  void *input;      // input type may be char or float depending on hard
+  void *input;      // input type may be uint8_t or float depending on hard
   int in_len;
   struct scrambling_ctrl_in {
     int subframe;

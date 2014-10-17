@@ -69,7 +69,7 @@ typedef struct LIBLTE_API {
   cf_t phich_z[PHICH_NBITS];
 
   /* bit message */
-  char data[PHICH_NBITS];
+  uint8_t data[PHICH_NBITS];
 
   /* tx & rx objects */
   modem_table_t mod;
@@ -90,11 +90,11 @@ LIBLTE_API int phich_decode(phich_t *q,
                             uint32_t ngroup, 
                             uint32_t nseq, 
                             uint32_t nsubframe, 
-                            char *ack, 
+                            uint8_t *ack, 
                             uint32_t *distance);
 
 LIBLTE_API int phich_encode(phich_t *q, 
-                            char ack, 
+                            uint8_t ack, 
                             uint32_t ngroup, 
                             uint32_t nseq, 
                             uint32_t nsubframe,

@@ -180,7 +180,7 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
    /* Make sure subframe idx is what we expect */
   if ((q->sf_idx != sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track) {
     INFO("Warning: Expected SF idx %d but got %d (%d,%g - %d,%g)!\n", 
-          q->sf_idx, sync_get_sf_idx(&q->strack), q->strack.m0, q->strack.m1, q->strack.m0_value, q->strack.m1_value);
+          q->sf_idx, sync_get_sf_idx(&q->strack), q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
     /* FIXME: What should we do in this case? */
     q->sf_idx = sync_get_sf_idx(&q->strack);
     q->state = SF_TRACK; 

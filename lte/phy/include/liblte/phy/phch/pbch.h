@@ -68,9 +68,9 @@ typedef struct LIBLTE_API {
   float *pbch_llr;
   float *temp;
   float *pbch_rm_f;
-  char *pbch_rm_b;
-  char *data;
-  char *data_enc;
+  uint8_t *pbch_rm_b;
+  uint8_t *data;
+  uint8_t *data_enc;
 
   uint32_t frame_idx;
 

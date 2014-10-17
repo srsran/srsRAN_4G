@@ -33,7 +33,7 @@
 
 int main(int argc, char **argv) {
   binsource_t bs;
-  char* output;
+  uint8_t* output;
 
   binsource_init(&bs);
   binsource_seed_time(&bs);

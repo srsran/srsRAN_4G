@@ -307,7 +307,7 @@ INTEGER_st_prealloc(INTEGER_t *st, int min_size) {
 static enum xer_pbd_rval
 INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_buf, size_t chunk_size) {
 	INTEGER_t *st = (INTEGER_t *)sptr;
-	long dec_value;
+	long dec_value=0;
 	long hex_value = 0;
 	const char *lp;
 	const char *lstart = (const char *)chunk_buf;

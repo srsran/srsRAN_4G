@@ -317,7 +317,7 @@ int tdec_reset(tdec_t * h, uint32_t long_cb)
   return tc_interl_LTE_gen(&h->interleaver, long_cb);
 }
 
-void tdec_decision(tdec_t * h, char *output, uint32_t long_cb)
+void tdec_decision(tdec_t * h, uint8_t *output, uint32_t long_cb)
 {
   uint32_t i;
   for (i = 0; i < long_cb; i++) {
@@ -325,7 +325,7 @@ void tdec_decision(tdec_t * h, char *output, uint32_t long_cb)
   }
 }
 
-void tdec_run_all(tdec_t * h, llr_t * input, char *output,
+void tdec_run_all(tdec_t * h, llr_t * input, uint8_t *output,
                   uint32_t nof_iterations, uint32_t long_cb)
 {
   uint32_t iter = 0;

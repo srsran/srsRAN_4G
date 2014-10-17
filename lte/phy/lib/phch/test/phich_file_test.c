@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
   uint32_t distance;
   int i, n;
   uint32_t ngroup, nseq, max_nseq;
-  char ack_rx;
+  uint8_t ack_rx;
 
   if (argc < 3) {
     usage(argv[0]);

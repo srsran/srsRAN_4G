@@ -88,7 +88,7 @@ int sequence_init(sequence_t *q, uint32_t len) {
     free(q->c);
   }
   if (!q->c) {
-    q->c = malloc(len * sizeof(char));
+    q->c = malloc(len * sizeof(uint8_t));
     if (!q->c) {
       return LIBLTE_ERROR;
     }

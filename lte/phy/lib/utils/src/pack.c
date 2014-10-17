@@ -25,9 +25,9 @@
  *
  */
 
+#include "liblte/phy/utils/bit.h"
 
-
-void pack_bits(unsigned int value, char **bits, int nof_bits)
+void pack_bits(uint32_t value, uint8_t **bits, int nof_bits)
 {
     int i;
 
@@ -37,10 +37,10 @@ void pack_bits(unsigned int value, char **bits, int nof_bits)
     *bits += nof_bits;
 }
 
-unsigned int unpack_bits(char **bits, int nof_bits)
+uint32_t unpack_bits(uint8_t **bits, int nof_bits)
 {
     int i;
-    unsigned int value=0;
+    uint32_t value=0;
 
     for(i=0; i<nof_bits; i++) {
       value |= (*bits)[i] << (nof_bits-i-1);

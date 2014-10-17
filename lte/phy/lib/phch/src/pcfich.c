@@ -42,7 +42,7 @@
 #include "liblte/phy/utils/debug.h"
 
 // Table 5.3.4-1
-static char cfi_table[4][PCFICH_CFI_LEN] = { { 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,
+static uint8_t cfi_table[4][PCFICH_CFI_LEN] = { { 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,
     1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1 }, { 1, 0, 1,
     1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
     0, 1, 1, 0 }, { 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
@@ -105,7 +105,7 @@ void pcfich_free(pcfich_t *q) {
 /** Finds the CFI with minimum distance with the vector of received 32 bits.
  * Saves the CFI value in the cfi pointer and returns the distance.
  */
-int pcfich_cfi_decode(char bits[PCFICH_CFI_LEN], uint32_t *cfi) {
+int pcfich_cfi_decode(uint8_t bits[PCFICH_CFI_LEN], uint32_t *cfi) {
   int i, j;
   int distance, index = -1;
   int min = 32;
@@ -130,11 +130,11 @@ int pcfich_cfi_decode(char bits[PCFICH_CFI_LEN], uint32_t *cfi) {
 /** Encodes the CFI producing a vector of 32 bits.
  *  36.211 10.3 section 5.3.4
  */
-int pcfich_cfi_encode(int cfi, char bits[PCFICH_CFI_LEN]) {
+int pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
   if (cfi < 1 || cfi > 3) {
     return LIBLTE_ERROR_INVALID_INPUTS;
   } else{
-    memcpy(bits, cfi_table[cfi - 1], PCFICH_CFI_LEN * sizeof(char));
+    memcpy(bits, cfi_table[cfi - 1], PCFICH_CFI_LEN * sizeof(uint8_t));
     return LIBLTE_SUCCESS;    
   }
 }

@@ -34,7 +34,7 @@ int init_viterbi39_port(void *p,
                         uint32_t starting_state);
 
 int chainback_viterbi39_port(void *p, 
-                             char *data, /* Decoded output data */
+                             uint8_t *data, /* Decoded output data */
                              uint32_t nbits, /* Number of data bits */
                              uint32_t endstate);
 

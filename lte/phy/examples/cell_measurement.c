@@ -105,7 +105,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-char data[10000];
+uint8_t data[10000];
 
 int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
   
   int sf_re = SF_LEN_RE(cell.nof_prb, cell.cp);
   cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
-  unsigned int nframes=0;
+  uint32_t nframes=0;
   
   /* Main loop */
   while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {

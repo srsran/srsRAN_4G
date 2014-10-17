@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   int nof_prb;
   int nwords;
   int i;
-  char *y;
+  uint8_t *y;
 
   if (argc < 3) {
     usage(argv[0]);
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 
   y = msg.data;
   rlen = 0;
-  unsigned int x;
+  uint32_t x;
   for (i = 0; i < nwords; i++) {
     x = strtoul(argv[i + 3], NULL, 16);
     if (len - rlen < 32) {

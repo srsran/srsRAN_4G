@@ -72,7 +72,7 @@ void regs_pdcch_free(regs_t *h) {
 }
 
 #define PDCCH_NCOLS  32
-const unsigned char PDCCH_PERM[PDCCH_NCOLS] =
+const uint8_t PDCCH_PERM[PDCCH_NCOLS] =
     { 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31, 0, 16, 8,
         24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30 };
 

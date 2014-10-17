@@ -108,7 +108,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
       goto clean;
     }
 
-    q->pdcch_e = malloc(sizeof(char) * q->max_bits);
+    q->pdcch_e = malloc(sizeof(uint8_t) * q->max_bits);
     if (!q->pdcch_e) {
       goto clean;
     }
@@ -271,11 +271,11 @@ uint32_t pdcch_common_locations(pdcch_t *q, dci_location_t *c, uint32_t max_cand
  *
  * TODO: UE transmit antenna selection CRC mask
  */
-static int dci_decode(pdcch_t *q, float *e, char *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
+static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
 
   float tmp[3 * (DCI_MAX_BITS + 16)];
   uint16_t p_bits, crc_res;
-  char *x;
+  uint8_t *x;
 
   if (q         != NULL         &&
       data      != NULL         &&
@@ -428,10 +428,10 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
 
 
 
-static void crc_set_mask_rnti(char *crc, uint16_t rnti) {
+static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   uint32_t i;
-  char mask[16];
-  char *r = mask;
+  uint8_t mask[16];
+  uint8_t *r = mask;
 
   INFO("Mask CRC with RNTI 0x%x\n", rnti);
 
@@ -444,10 +444,10 @@ static void crc_set_mask_rnti(char *crc, uint16_t rnti) {
 /** 36.212 5.3.3.2 to 5.3.3.4
  * TODO: UE transmit antenna selection CRC mask
  */
-static int dci_encode(pdcch_t *q, char *data, char *e, uint32_t nof_bits, uint32_t E,
+static int dci_encode(pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, uint32_t E,
     uint16_t rnti) {
   convcoder_t encoder;
-  char tmp[3 * (DCI_MAX_BITS + 16)];
+  uint8_t tmp[3 * (DCI_MAX_BITS + 16)];
   
   if (q                 != NULL        && 
       data              != NULL        && 

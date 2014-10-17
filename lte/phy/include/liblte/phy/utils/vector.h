@@ -53,15 +53,15 @@ LIBLTE_API void *vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size);
 /* print vectors */
 LIBLTE_API void vec_fprint_c(FILE *stream, cf_t *x, uint32_t len);
 LIBLTE_API void vec_fprint_f(FILE *stream, float *x, uint32_t len);
-LIBLTE_API void vec_fprint_b(FILE *stream, char *x, uint32_t len);
+LIBLTE_API void vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len);
 LIBLTE_API void vec_fprint_i(FILE *stream, int *x, uint32_t len);
-LIBLTE_API void vec_fprint_hex(FILE *stream, char *x, uint32_t len);
+LIBLTE_API void vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len);
 
 /* Saves a vector to a file */
 LIBLTE_API void vec_save_file(char *filename, void *buffer, uint32_t len);
 
 /* sum two vectors */
-LIBLTE_API void vec_sum_ch(char *x, char *y, char *z, uint32_t len);
+LIBLTE_API void vec_sum_ch(uint8_t *x, uint8_t *y, char *z, uint32_t len);
 LIBLTE_API void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 
 /* substract two vectors z=x-y */
@@ -107,8 +107,8 @@ LIBLTE_API float vec_avg_power_cf(cf_t *x, uint32_t len);
 LIBLTE_API uint32_t vec_max_fi(float *x, uint32_t len);
 LIBLTE_API uint32_t vec_max_abs_ci(cf_t *x, uint32_t len);
 
-/* quantify vector of floats and convert to unsigned char */
-LIBLTE_API void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len);
+/* quantify vector of floats and convert to uint8_t */
+LIBLTE_API void vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len);
 
 /* magnitude of each vector element */
 LIBLTE_API void vec_abs_cf(cf_t *x, float *abs, uint32_t len);

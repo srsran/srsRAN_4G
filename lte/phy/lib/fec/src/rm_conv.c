@@ -40,9 +40,9 @@ uint8_t RM_PERM_CC_INV[NCOLS] =
     { 16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26, 10, 22, 6, 30, 14, 17, 1, 25, 9,
         21, 5, 29, 13, 19, 3, 27, 11, 23, 7, 31, 15 };
 
-int rm_conv_tx(char *input, uint32_t in_len, char *output, uint32_t out_len) {
+int rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t out_len) {
 
-  char tmp[3 * NCOLS * NROWS_MAX];
+  uint8_t tmp[3 * NCOLS * NROWS_MAX];
   int nrows, ndummy, K_p;
 
   int i, j, k, s;

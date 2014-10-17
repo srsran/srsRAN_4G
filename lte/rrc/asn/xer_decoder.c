@@ -222,7 +222,7 @@ xer_decode_general(asn_codec_ctx_t *opt_codec_ctx,
 	 */
 	if(ctx->phase > 1) RETURN(RC_FAIL);
 	for(;;) {
-		pxer_chunk_type_e ch_type;	/* XER chunk type */
+		pxer_chunk_type_e ch_type=0;	/* XER chunk type */
 		ssize_t ch_size;		/* Chunk size */
 		xer_check_tag_e tcv;		/* Tag check value */
 

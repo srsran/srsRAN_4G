@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
   cf_t *ce[MAX_PORTS];
   int nof_re;
   cf_t *slot_symbols[MAX_PORTS];
-  char ack[50][PHICH_NORM_NSEQUENCES], ack_rx;
+  uint8_t ack[50][PHICH_NORM_NSEQUENCES], ack_rx;
   uint32_t nsf, distance;
   int cid, max_cid;
   uint32_t ngroup, nseq, max_nseq;

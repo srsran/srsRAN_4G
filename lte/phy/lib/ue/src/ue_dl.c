@@ -145,7 +145,7 @@ void ue_dl_free(ue_dl_t *q) {
 LIBLTE_API float mean_exec_time=0; 
 int frame_cnt=0;
 
-int ue_dl_decode(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint16_t rnti) 
+int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti) 
 {
   uint32_t cfi, cfi_distance, i;
   ra_pdsch_t ra_dl;

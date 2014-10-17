@@ -43,11 +43,11 @@
  *---------> I
  *1  |
  * \param in input symbols (_Complex float)
- * \param out output symbols (chars)
+ * \param out output symbols (uint8_ts)
  * \param N Number of input symbols
  * \param modulation Modulation type
  */
-inline void hard_bpsk_demod(const cf_t* in, char* out, uint32_t N)
+inline void hard_bpsk_demod(const cf_t* in, uint8_t* out, uint32_t N)
 {
   uint32_t s;
 
@@ -78,11 +78,11 @@ inline void hard_bpsk_demod(const cf_t* in, char* out, uint32_t N)
  *11  |  01
  *
  * \param in input symbols (_Complex float)
- * \param out output symbols (chars)
+ * \param out output symbols (uint8_ts)
  * \param N Number of input symbols
  * \param modulation Modulation type
  */
-inline void hard_qpsk_demod(const cf_t* in, char* out, uint32_t N)
+inline void hard_qpsk_demod(const cf_t* in, uint8_t* out, uint32_t N)
 {
   uint32_t s;
 
@@ -112,11 +112,11 @@ inline void hard_qpsk_demod(const cf_t* in, char* out, uint32_t N)
  *  1111    1101  |  0101    0111
  *
  * \param in input symbols (_Complex float)
- * \param out output symbols (chars)
+ * \param out output symbols (uint8_ts)
  * \param N Number of input symbols
  * \param modulation Modulation type
  */
-inline void hard_qam16_demod(const cf_t* in, char* out, uint32_t N)
+inline void hard_qam16_demod(const cf_t* in, uint8_t* out, uint32_t N)
 {
   uint32_t s;
 
@@ -154,11 +154,11 @@ inline void hard_qam16_demod(const cf_t* in, char* out, uint32_t N)
  * see [3GPP TS 36.211 version 10.5.0 Release 10, Section 7.1.4]
  *
  * \param in input symbols (_Complex float)
- * \param out output symbols (chars)
+ * \param out output symbols (uint8_ts)
  * \param N Number of input symbols
  * \param modulation Modulation type
  */
-inline void hard_qam64_demod(const cf_t* in, char* out, uint32_t N)
+inline void hard_qam64_demod(const cf_t* in, uint8_t* out, uint32_t N)
 {
   uint32_t s;
 

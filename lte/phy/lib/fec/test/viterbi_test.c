@@ -41,7 +41,7 @@ typedef _Complex float cf_t;
 
 int frame_length = 1000, nof_frames = 128;
 float ebno_db = 100.0;
-unsigned int seed = 0;
+uint32_t seed = 0;
 bool tail_biting = false;
 int K = -1;
 
@@ -76,7 +76,7 @@ void parse_args(int argc, char **argv) {
       ebno_db = atof(argv[optind]);
       break;
     case 's':
-      seed = (unsigned int) strtoul(argv[optind], NULL, 0);
+      seed = (uint32_t) strtoul(argv[optind], NULL, 0);
       break;
     case 't':
       tail_biting = true;
@@ -122,13 +122,13 @@ void output_matlab(float ber[NTYPES][SNR_POINTS], int snr_points,
 int main(int argc, char **argv) {
   int frame_cnt;
   float *llr;
-  unsigned char *llr_c;
-  char *data_tx, *data_rx[NTYPES], *symbols;
+  uint8_t *llr_c;
+  uint8_t *data_tx, *data_rx[NTYPES], *symbols;
   int i, j;
   float var[SNR_POINTS], varunc[SNR_POINTS];
   int snr_points;
   float ber[NTYPES][SNR_POINTS];
-  unsigned int errors[NTYPES];
+  uint32_t errors[NTYPES];
   viterbi_type_t viterbi_type[NCODS];
   viterbi_t dec[NCODS];
   convcoder_t cod[NCODS];
@@ -200,21 +200,21 @@ int main(int argc, char **argv) {
     printf("  EbNo: %.2f\n", ebno_db);
   }
 
-  data_tx = malloc(frame_length * sizeof(char));
+  data_tx = malloc(frame_length * sizeof(uint8_t));
   if (!data_tx) {
     perror("malloc");
     exit(-1);
   }
 
   for (i = 0; i < NTYPES; i++) {
-    data_rx[i] = malloc(frame_length * sizeof(char));
+    data_rx[i] = malloc(frame_length * sizeof(uint8_t));
     if (!data_rx[i]) {
       perror("malloc");
       exit(-1);
     }
   }
 
-  symbols = malloc(max_coded_length * sizeof(char));
+  symbols = malloc(max_coded_length * sizeof(uint8_t));
   if (!symbols) {
     perror("malloc");
     exit(-1);
@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
-  llr_c = malloc(2 * max_coded_length * sizeof(char));
+  llr_c = malloc(2 * max_coded_length * sizeof(uint8_t));
   if (!llr_c) {
     perror("malloc");
     exit(-1);

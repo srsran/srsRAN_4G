@@ -69,18 +69,18 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   int i;
-  char *bits, *rm_bits;
+  uint8_t *bits, *rm_bits;
   float *rm_symbols, *unrm_symbols;
   int nof_errors;
 
   parse_args(argc, argv);
 
-  bits = malloc(sizeof(char) * nof_tx_bits);
+  bits = malloc(sizeof(uint8_t) * nof_tx_bits);
   if (!bits) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits = malloc(sizeof(char) * nof_rx_bits);
+  rm_bits = malloc(sizeof(uint8_t) * nof_rx_bits);
   if (!rm_bits) {
     perror("malloc");
     exit(-1);

@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
   int i;
   int nof_frames;
   int ret;
-  char *data;
+  uint8_t *data;
   dci_location_t locations[10];
   uint32_t nof_locations;
   dci_msg_t dci_msg; 

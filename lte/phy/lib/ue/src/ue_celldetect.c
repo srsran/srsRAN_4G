@@ -64,7 +64,7 @@ int ue_celldetect_init_max(ue_celldetect_t * q, uint32_t max_frames_total, uint3
       perror("malloc");
       goto clean_exit;  
     }
-    q->mode_counted = malloc(sizeof(char) * max_frames_detected);
+    q->mode_counted = malloc(sizeof(uint8_t) * max_frames_detected);
     if (!q->mode_counted) {
       perror("malloc");
       goto clean_exit;  

@@ -107,7 +107,7 @@ void phich_free(phich_t *q) {
 /* Decodes ACK
  *
  */
-char phich_ack_decode(char bits[PHICH_NBITS], uint32_t *distance) {
+uint8_t phich_ack_decode(uint8_t bits[PHICH_NBITS], uint32_t *distance) {
   int i, n;
 
   n = 0;
@@ -131,8 +131,8 @@ char phich_ack_decode(char bits[PHICH_NBITS], uint32_t *distance) {
 /** Encodes the ACK
  *  36.212
  */
-void phich_ack_encode(char ack, char bits[PHICH_NBITS]) {
-  memset(bits, ack, 3 * sizeof(char));
+void phich_ack_encode(uint8_t ack, uint8_t bits[PHICH_NBITS]) {
+  memset(bits, ack, 3 * sizeof(uint8_t));
 }
 
 /* Decodes the phich channel and saves the CFI in the cfi pointer.
@@ -140,7 +140,7 @@ void phich_ack_encode(char ack, char bits[PHICH_NBITS]) {
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
 int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
-    uint32_t ngroup, uint32_t nseq, uint32_t subframe, char *ack, uint32_t *distance) {
+    uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, uint32_t *distance) {
 
   /* Set pointers for layermapping & precoding */
   int i, j;
@@ -268,9 +268,9 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
 }
 
 /** Encodes ACK/NACK bits, modulates and inserts into resource.
- * The parameter ack is an array of phich_ngroups() pointers to buffers of nof_sequences chars
+ * The parameter ack is an array of phich_ngroups() pointers to buffers of nof_sequences uint8_ts
  */
-int phich_encode(phich_t *q, char ack, uint32_t ngroup, uint32_t nseq, uint32_t subframe,
+int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32_t subframe,
     cf_t *slot_symbols[MAX_PORTS]) {
   int i;
 

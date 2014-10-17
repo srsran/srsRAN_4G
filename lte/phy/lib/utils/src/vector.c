@@ -102,7 +102,7 @@ void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
   }
 }
 
-void vec_sum_bbb(char *x, char *y, char *z, uint32_t len) {
+void vec_sum_bbb(uint8_t *x, uint8_t *y, uint8_t *z, uint32_t len) {
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]+y[i];
@@ -227,7 +227,7 @@ void vec_fprint_f(FILE *stream, float *x, uint32_t len) {
 }
 
 
-void vec_fprint_b(FILE *stream, char *x, uint32_t len) {
+void vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
@@ -245,7 +245,7 @@ void vec_fprint_i(FILE *stream, int *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void vec_fprint_hex(FILE *stream, char *x, uint32_t len) {
+void vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
   uint32_t i, nbytes, byte;
   nbytes = len/8;
   fprintf(stream, "[", len);
@@ -460,7 +460,7 @@ uint32_t vec_max_abs_ci(cf_t *x, uint32_t len) {
 #endif
 }
 
-void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len) {
+void vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len) {
   int i;
   int tmp;
   for (i=0;i<len;i++) {
@@ -469,7 +469,7 @@ void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, floa
       tmp = 0;
     if (tmp > clip)
       tmp = clip;
-    out[i] = (unsigned char) tmp;
+    out[i] = (uint8_t) tmp;
   }
 
 }

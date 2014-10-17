@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
   ra_prb_t prb_alloc;
   refsignal_t refs[NSLOTS_X_FRAME];
   int i, n;
-  char *data;
+  uint8_t *data;
   cf_t *sf_symbols[MAX_PORTS];
   dci_msg_t dci_msg;
   dci_location_t locations[NSUBFRAMES_X_FRAME][10];
@@ -315,7 +315,7 @@ int main(int argc, char **argv) {
     pdcch_ue_locations(&pdcch, locations[i], 10, i, cfi, 1234);
   }
 
-  data = malloc(sizeof(char) * ra_dl.mcs.tbs);
+  data = malloc(sizeof(uint8_t) * ra_dl.mcs.tbs);
   if (!data) {
     perror("malloc");
     exit(-1);

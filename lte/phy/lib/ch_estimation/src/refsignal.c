@@ -238,7 +238,7 @@ int rs_sequence(ref_t * refs, uint32_t len, float alpha, uint32_t ns, uint32_t c
     }
   }
   if (len >= 3 * RE_X_RB) {
-    uint32_t n_sz;
+    uint32_t n_sz=0;
     uint32_t q;
     float q_hat;
     /* get largest prime n_zc<len */

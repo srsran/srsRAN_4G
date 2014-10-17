@@ -34,13 +34,13 @@ int init_viterbi37_port(void *p,
                         uint32_t starting_state);
 
 int chainback_viterbi37_port(void *p, 
-                             char *data, 
+                             uint8_t *data, 
                              uint32_t nbits, 
                              uint32_t endstate);
 
 void delete_viterbi37_port(void *p);
 
 int update_viterbi37_blk_port(void *p, 
-                              unsigned char *syms, 
+                              uint8_t *syms, 
                               uint32_t nbits, 
                               uint32_t *best_state);
