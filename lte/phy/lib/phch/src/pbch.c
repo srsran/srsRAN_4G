@@ -185,20 +185,8 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     if (!q->temp) {
       goto clean;
     }
-    q->pbch_rm_f = malloc(sizeof(float) * 120);
-    if (!q->pbch_rm_f) {
-      goto clean;
-    }
     q->pbch_rm_b = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
     if (!q->pbch_rm_b) {
-      goto clean;
-    }
-    q->data = malloc(sizeof(uint8_t) * 40);
-    if (!q->data) {
-      goto clean;
-    }
-    q->data_enc = malloc(sizeof(uint8_t) * 120);
-    if (!q->data_enc) {
       goto clean;
     }
     ret = LIBLTE_SUCCESS;
@@ -232,127 +220,12 @@ void pbch_free(pbch_t *q) {
   if (q->temp) {
     free(q->temp);
   }
-  if (q->pbch_rm_f) {
-    free(q->pbch_rm_f);
-  }
   if (q->pbch_rm_b) {
     free(q->pbch_rm_b);
-  }
-  if (q->data_enc) {
-    free(q->data_enc);
-  }
-  if (q->data) {
-    free(q->data);
   }
   sequence_free(&q->seq_pbch);
   modem_table_free(&q->mod);
   viterbi_free(&q->decoder);
-}
-
-/** Unpacks MIB from PBCH message.
- * msg buffer must be 24 byte length at least
- */
-void pbch_mib_unpack(uint8_t *msg, pbch_mib_t *mib) {
-  int bw, phich_res;
-
-  bw = bit_unpack(&msg, 3);
-  switch (bw) {
-  case 0:
-    mib->nof_prb = 6;
-    break;
-  case 1:
-    mib->nof_prb = 15;
-    break;
-  default:
-    mib->nof_prb = (bw - 1) * 25;
-    break;
-  }
-  if (*msg) {
-    mib->phich_length = PHICH_EXT;
-  } else {
-    mib->phich_length = PHICH_NORM;
-  }
-  msg++;
-
-  phich_res = bit_unpack(&msg, 2);
-  switch (phich_res) {
-  case 0:
-    mib->phich_resources = R_1_6;
-    break;
-  case 1:
-    mib->phich_resources = R_1_2;
-    break;
-  case 2:
-    mib->phich_resources = R_1;
-    break;
-  case 3:
-    mib->phich_resources = R_2;
-    break;
-  }
-  mib->sfn = bit_unpack(&msg, 8) << 2;
-}
-
-/** Unpacks MIB from PBCH message.
- * msg buffer must be 24 byte length at least
- */
-void pbch_mib_pack(pbch_mib_t *mib, uint8_t *msg) {
-  int bw, phich_res = 0;
-
-  bzero(msg, 24);
-
-  if (mib->nof_prb <= 6) {
-    bw = 0;
-  } else if (mib->nof_prb <= 15) {
-    bw = 1;
-  } else {
-    bw = 1 + mib->nof_prb / 25;
-  }
-  bit_pack(bw, &msg, 3);
-
-  *msg = mib->phich_length == PHICH_EXT;
-  msg++;
-
-  switch (mib->phich_resources) {
-  case R_1_6:
-    phich_res = 0;
-    break;
-  case R_1_2:
-    phich_res = 1;
-    break;
-  case R_1:
-    phich_res = 2;
-    break;
-  case R_2:
-    phich_res = 3;
-    break;
-  }
-  bit_pack(phich_res, &msg, 2);
-  bit_pack(mib->sfn >> 2, &msg, 8);
-}
-
-void pbch_mib_fprint(FILE *stream, pbch_mib_t *mib, uint32_t cell_id) {
-  printf(" - Cell ID:         %d\n", cell_id);
-  printf(" - Nof ports:       %d\n", mib->nof_ports);
-  printf(" - PRB:             %d\n", mib->nof_prb);
-  printf(" - PHICH Length:    %s\n",
-      mib->phich_length == PHICH_EXT ? "Extended" : "Normal");
-  printf(" - PHICH Resources: ");
-  switch (mib->phich_resources) {
-  case R_1_6:
-    printf("1/6");
-    break;
-  case R_1_2:
-    printf("1/2");
-    break;
-  case R_1:
-    printf("1");
-    break;
-  case R_2:
-    printf("2");
-    break;
-  }
-  printf("\n");
-  printf(" - SFN:             %d\n", mib->sfn);
 }
 
 void pbch_decode_reset(pbch_t *q) {
@@ -362,7 +235,7 @@ void pbch_decode_reset(pbch_t *q) {
 void crc_set_mask(uint8_t *data, int nof_ports) {
   int i;
   for (i = 0; i < 16; i++) {
-    data[24 + i] = (data[24 + i] + crc_mask[nof_ports - 1][i]) % 2;
+    data[BCH_PAYLOAD_LEN + i] = (data[BCH_PAYLOAD_LEN + i] + crc_mask[nof_ports - 1][i]) % 2;
   }
 
 }
@@ -374,13 +247,13 @@ void crc_set_mask(uint8_t *data, int nof_ports) {
  * Returns 0 if the data is correct, -1 otherwise
  */
 uint32_t pbch_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
-  uint8_t data[40];
-  memcpy(data, bits, 40 * sizeof(uint8_t));
+  uint8_t data[BCH_PAYLOADCRC_LEN];
+  memcpy(data, bits, BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
   crc_set_mask(data, nof_ports);
-  int ret = crc_checksum(&q->crc, data, 40);
+  int ret = crc_checksum(&q->crc, data, BCH_PAYLOADCRC_LEN);
   if (ret == 0) {
     uint32_t chkzeros=0;
-    for (int i=0;i<24 && !chkzeros;i++) {
+    for (int i=0;i<BCH_PAYLOAD_LEN && !chkzeros;i++) {
       chkzeros += data[i];
     }
     if (chkzeros) {
@@ -393,7 +266,7 @@ uint32_t pbch_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
   }
 }
 
-int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint32_t src, uint32_t dst, uint32_t n,
+int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
     uint32_t nof_bits, uint32_t nof_ports) {
   int j;
 
@@ -412,36 +285,22 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint32_t src, uint32_t dst, ui
   }
 
   /* unrate matching */
-  rm_conv_rx(q->temp, 4 * nof_bits, q->pbch_rm_f, 120);
+  rm_conv_rx(q->temp, 4 * nof_bits, q->pbch_rm_f, BCH_ENCODED_LEN);
 
   /* FIXME: If channel estimates are zero, received LLR are NaN. Check and return error */
-  for (j = 0; j < 120; j++) {
+  for (j = 0; j < BCH_ENCODED_LEN; j++) {
     if (isnan(q->pbch_rm_f[j]) || isinf(q->pbch_rm_f[j])) {
       return 0;
     }
   }
 
   /* decode */
-  viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data, 40);
+  viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data, BCH_PAYLOADCRC_LEN);
 
-  int c = 0;
-  for (j = 0; j < 40; j++) {
-    c += q->data[j];
-  }
-  if (!c) {
-    c = 1;
-  }
-
-  if (!pbch_crc_check(q, q->data, nof_ports)) {
-    /* unpack MIB */
-    pbch_mib_unpack(q->data, mib);
-
-    mib->nof_ports = nof_ports;
-    mib->sfn += dst - src;
-
+ if (!pbch_crc_check(q, q->data, nof_ports)) {
     return 1;
   } else {
-    return 0;
+    return LIBLTE_SUCCESS;
   }
 }
 
@@ -453,7 +312,9 @@ int pbch_decode_frame(pbch_t *q, pbch_mib_t *mib, uint32_t src, uint32_t dst, ui
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], pbch_mib_t *mib) {
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], 
+                 uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
+{
   uint32_t src, dst, nb;
   uint32_t nant_[3] = { 1, 2, 4 };
   uint32_t na, nant;
@@ -464,8 +325,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], pbch_
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (q                 != NULL &&
-      slot1_symbols        != NULL && 
-      mib               != NULL)
+      slot1_symbols     != NULL)
   {
     for (i=0;i<q->cell.nof_ports;i++) {
       if (ce_slot1[i] == NULL) {
@@ -531,8 +391,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], pbch_
       for (nb = 0; nb < q->frame_idx && !ret; nb++) {
         for (dst = 0; (dst < 4 - nb) && !ret; dst++) {
           for (src = 0; src < q->frame_idx - nb && !ret; src++) {
-            ret = pbch_decode_frame(q, mib, src, dst, nb + 1, nof_bits, nant);
-            
+            ret = pbch_decode_frame(q, src, dst, nb + 1, nof_bits, nant);            
           }
         }
       }
@@ -544,18 +403,29 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], pbch_
       q->frame_idx = 3;
     }
   }
+  if (ret == 1) {
+    if (sfn_offset) {
+      *sfn_offset = dst - src;
+    }
+    if (nof_tx_ports) {
+      *nof_tx_ports = nant; 
+    }
+    if (bch_payload) {
+      memcpy(bch_payload, q->data, sizeof(uint8_t) * BCH_PAYLOAD_LEN);      
+    }
+  }
   return ret;
 }
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-int pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS]) {
+int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_symbols[MAX_PORTS]) {
   int i;
   int nof_bits;
   cf_t *x[MAX_LAYERS];
   
   if (q                 != NULL &&
-      mib               != NULL)
+      bch_payload               != NULL)
   {
     for (i=0;i<q->cell.nof_ports;i++) {
       if (slot1_symbols[i] == NULL) {
@@ -572,16 +442,15 @@ int pbch_encode(pbch_t *q, pbch_mib_t *mib, cf_t *slot1_symbols[MAX_PORTS]) {
     memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
     
     if (q->frame_idx == 0) {
-      /* pack MIB */
-      pbch_mib_pack(mib, q->data);
+      memcpy(q->data, bch_payload, sizeof(uint8_t) * BCH_PAYLOAD_LEN);
 
       /* encode & modulate */
-      crc_attach(&q->crc, q->data, 24);
+      crc_attach(&q->crc, q->data, BCH_PAYLOAD_LEN);
       crc_set_mask(q->data, q->cell.nof_ports);
+      
+      convcoder_encode(&q->encoder, q->data, q->data_enc, BCH_PAYLOADCRC_LEN);
 
-      convcoder_encode(&q->encoder, q->data, q->data_enc, 40);
-
-      rm_conv_tx(q->data_enc, 120, q->pbch_rm_b, 4 * nof_bits);
+      rm_conv_tx(q->data_enc, BCH_ENCODED_LEN, q->pbch_rm_b, 4 * nof_bits);
 
     }
 

@@ -31,7 +31,9 @@
 int decode_pbch(void *uhd, 
                 ue_celldetect_result_t *found_cell, 
                 uint32_t nof_frames_total, 
-                pbch_mib_t *mib);
+                uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                uint32_t *nof_tx_ports, 
+                uint32_t *sfn_offset);
 
 int find_all_cells(void *uhd, 
                    ue_celldetect_result_t found_cell[3]);
@@ -42,5 +44,4 @@ int find_cell(void *uhd,
 
 int cell_search(void *uhd, 
                 int force_N_id_2, 
-                lte_cell_t *cell, 
-                pbch_mib_t *mib);
+                lte_cell_t *cell);

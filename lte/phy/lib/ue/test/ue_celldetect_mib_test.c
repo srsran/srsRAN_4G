@@ -97,8 +97,9 @@ void parse_args(int argc, char **argv) {
 int decode_pbch(void *uhd, cf_t *buffer, ue_celldetect_result_t *found_cell) 
 {
   ue_mib_t uemib;
-  pbch_mib_t mib; 
+  uint8_t bch_payload[BCH_PAYLOAD_LEN]; 
   int n; 
+  uint32_t nof_tx_ports; 
   
   uint32_t nof_frames = 0;
   uint32_t flen = MIB_FRAME_SIZE;
@@ -121,7 +122,7 @@ int decode_pbch(void *uhd, cf_t *buffer, ue_celldetect_result_t *found_cell)
     
     INFO("Calling ue_mib_decode() %d/%d\n", nof_frames, nof_frames_total);
     
-    n = ue_mib_decode(&uemib, buffer, flen, &mib);
+    n = ue_mib_decode(&uemib, buffer, flen, bch_payload, &nof_tx_ports, NULL);
     if (n == LIBLTE_ERROR || n == LIBLTE_ERROR_INVALID_INPUTS) {
       fprintf(stderr, "Error calling ue_mib_decode()\n");
       return LIBLTE_ERROR;
@@ -136,8 +137,8 @@ int decode_pbch(void *uhd, cf_t *buffer, ue_celldetect_result_t *found_cell)
     nof_frames++;
   } while (n != MIB_FOUND && nof_frames < nof_frames_total);
   if (n == MIB_FOUND) {
-    printf("\n\nMIB decoded in %d ms (%d half frames)\n", nof_frames*5, nof_frames);
-    pbch_mib_fprint(stdout, &mib, found_cell->cell_id);
+    printf("\n\nMIB decoded in %d ms (%d half frames). %d TX ports\n", nof_frames*5, nof_frames, nof_tx_ports);
+    vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
   } else {
     printf("\nCould not decode MIB\n");
   }

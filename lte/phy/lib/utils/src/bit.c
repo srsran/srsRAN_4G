@@ -31,6 +31,19 @@
 
 #include "liblte/phy/utils/bit.h"
 
+
+void bit_pack_vector(uint8_t *bit_unpacked, uint8_t *bits_packed, int nof_bits)
+{
+  uint32_t i, nbytes;
+  nbytes = nof_bits/8;
+  for (i=0;i<nbytes;i++) {
+    bit_pack(bits_packed[i], &bits_packed, 8);
+  }
+  if (nof_bits%8) {
+    bit_pack(bits_packed[i], &bits_packed, nof_bits%8);
+  }
+}
+
 void bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
 {
     int i;
@@ -39,6 +52,18 @@ void bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
         (*bits)[i] = (value >> (nof_bits-i-1)) & 0x1;
     }
     *bits += nof_bits;
+}
+
+void bit_unpack_vector(uint8_t *bits_packed, uint8_t *bit_unpacked, int nof_bits)
+{
+  uint32_t i, nbytes;
+  nbytes = nof_bits/8;
+  for (i=0;i<nbytes;i++) {
+    bits_packed[i] = bit_unpack(&bit_unpacked, 8);
+  }
+  if (nof_bits%8) {
+    bits_packed[i] = bit_unpack(&bit_unpacked, nof_bits%8);
+  }
 }
 
 uint32_t bit_unpack(uint8_t **bits, int nof_bits)

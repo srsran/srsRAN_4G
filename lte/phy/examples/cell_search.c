@@ -124,8 +124,9 @@ int main(int argc, char **argv) {
   int nof_freqs; 
   lte_earfcn_t channels[MAX_EARFCN];
   uint32_t freq;
-  pbch_mib_t mib; 
-
+  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint32_t nof_tx_ports; 
+  
   parse_args(argc, argv);
     
   printf("Opening UHD device...\n");
@@ -179,10 +180,13 @@ int main(int argc, char **argv) {
     if (n == CS_CELL_DETECTED) {
       for (int i=0;i<3;i++) {
         if (found_cells[i].peak > threshold/2) {
-          if (decode_pbch(uhd, &found_cells[i], nof_frames_total, &mib)) {
+          if (decode_pbch(uhd, &found_cells[i], nof_frames_total, bch_payload, &nof_tx_ports, NULL)) {
             fprintf(stderr, "Error decoding PBCH\n");
             exit(-1);
-          }          
+          } else {
+            printf("Cell found with %d ports. Decoded MIB: \n", nof_tx_ports);
+            vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
+          }
         }
       }
     }    

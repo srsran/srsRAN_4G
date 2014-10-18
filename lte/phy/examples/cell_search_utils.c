@@ -36,11 +36,13 @@
 #include <unistd.h>
 
 #include "liblte/phy/phy.h"
+#include "liblte/rrc/rrc.h"
 
 #ifndef DISABLE_UHD
 #include "liblte/cuhd/cuhd.h"
 
-int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_frames_total, pbch_mib_t *mib) 
+int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_frames_total, 
+                uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
 {
   ue_mib_t uemib;
   int n; 
@@ -54,8 +56,6 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
     perror("malloc");
     goto free_and_exit;
   }
-  
-  bzero(mib, sizeof(pbch_mib_t));
   
   if (ue_mib_init(&uemib, found_cell->cell_id, found_cell->cp)) {
     fprintf(stderr, "Error initiating PBCH decoder\n");
@@ -75,7 +75,7 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
     
     DEBUG("Calling ue_mib_decode() %d/%d\n", nof_frames, nof_frames_total);
     
-    n = ue_mib_decode(&uemib, buffer, flen, mib);
+    n = ue_mib_decode(&uemib, buffer, flen, bch_payload, nof_tx_ports, sfn_offset);
     if (n == LIBLTE_ERROR || n == LIBLTE_ERROR_INVALID_INPUTS) {
       fprintf(stderr, "Error calling ue_mib_decode()\n");
       goto free_and_exit;
@@ -93,7 +93,6 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
   
   if (n == MIB_FOUND) {
     printf("\n\nMIB decoded in %d ms (%d half frames)\n", nof_frames*5, nof_frames);
-    pbch_mib_fprint(stdout, mib, found_cell->cell_id);
     ret = LIBLTE_SUCCESS;
   } else {
     ret = LIBLTE_ERROR;
@@ -211,9 +210,11 @@ int find_all_cells(void *uhd, ue_celldetect_result_t found_cell[3])
   return nof_detected_cells;
 }
 
-int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell, pbch_mib_t *mib) 
+int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell) 
 {
   int ret; 
+  uint32_t nof_tx_ports; 
+  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN];
   
   ue_celldetect_result_t found_cells[3];
   bzero(found_cells, 3*sizeof(ue_celldetect_result_t));
@@ -243,7 +244,7 @@ int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell, pbch_mib_t *mib)
     }
     
     printf("Decoding PBCH for cell %d (N_id_2=%d)\n", found_cells[max_peak_cell].cell_id, max_peak_cell);
-    if (decode_pbch(uhd, &found_cells[max_peak_cell], 400, mib)) {
+    if (decode_pbch(uhd, &found_cells[max_peak_cell], 400, bch_payload, &nof_tx_ports, NULL)) {
       fprintf(stderr, "Could not decode PBCH from CELL ID %d\n", found_cells[max_peak_cell].cell_id);
       return LIBLTE_ERROR;
     }
@@ -254,8 +255,10 @@ int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell, pbch_mib_t *mib)
   
   cell->cp = found_cells[max_peak_cell].cp;
   cell->id = found_cells[max_peak_cell].cell_id;
-  cell->nof_prb = mib->nof_prb;
-  cell->nof_ports = mib->nof_ports; 
+  cell->nof_ports = nof_tx_ports; 
+  
+  bit_pack_vector(bch_payload, bch_payload_packed, BCH_PAYLOAD_LEN);
+  bcch_bch_mib_unpack(bch_payload_packed, BCH_PAYLOAD_LEN, cell, NULL);  
   
   /* set sampling frequency */
   int srate = lte_sampling_freq_hz(cell->nof_prb);

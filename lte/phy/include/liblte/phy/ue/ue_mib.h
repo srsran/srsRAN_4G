@@ -91,7 +91,9 @@ LIBLTE_API void ue_mib_reset(ue_mib_t *q);
 LIBLTE_API int ue_mib_decode(ue_mib_t *q,
                              cf_t *signal, 
                              uint32_t nsamples,
-                             pbch_mib_t *mib);
+                             uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                             uint32_t *nof_tx_ports,
+                             uint32_t *sfn_offset);
 
 LIBLTE_API void ue_mib_set_threshold(ue_mib_t *q, 
                                             float threshold); 

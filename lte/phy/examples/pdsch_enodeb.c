@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include "liblte/phy/phy.h"
+#include "liblte/rrc/rrc.h"
 
 #ifndef DISABLE_UHD
 #include "liblte/cuhd/cuhd.h"
@@ -44,7 +45,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
   
 uint32_t cfi=1;
@@ -173,7 +176,7 @@ void base_init() {
     exit(-1);
   }
 
-  if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
+  if (regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     exit(-1);
   }
@@ -236,7 +239,7 @@ int main(int argc, char **argv) {
   cf_t pss_signal[PSS_LEN];
   float sss_signal0[SSS_LEN]; // for subframe 0
   float sss_signal5[SSS_LEN]; // for subframe 5
-  pbch_mib_t mib;
+  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN/8];
   ra_pdsch_t ra_dl;
   ra_prb_t prb_alloc;
   refsignal_t refs[NSLOTS_X_FRAME];
@@ -245,7 +248,8 @@ int main(int argc, char **argv) {
   cf_t *sf_symbols[MAX_PORTS];
   dci_msg_t dci_msg;
   dci_location_t locations[NSUBFRAMES_X_FRAME][10];
-
+  uint32_t sfn; 
+  
 #ifdef DISABLE_UHD
   if (argc < 3) {
     usage(argv[0]);
@@ -274,11 +278,9 @@ int main(int argc, char **argv) {
     }
   }
 
-  mib.nof_ports = cell.nof_ports;
-  mib.nof_prb = cell.nof_prb;
-  mib.phich_length = PHICH_NORM;
-  mib.phich_resources = R_1;
-  mib.sfn = 0;
+  cell.phich_length = PHICH_NORM;
+  cell.phich_resources = R_1;
+  sfn = 0;
 
   for (i = 0; i < MAX_PORTS; i++) { // now there's only 1 port
     sf_symbols[i] = sf_buffer;
@@ -338,8 +340,10 @@ int main(int argc, char **argv) {
             CPNORM);
       }
       
+      bcch_bch_mib_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
+      bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
       if (sf_idx == 0) {
-        pbch_encode(&pbch, &mib, sf_symbols);
+        pbch_encode(&pbch, bch_payload, sf_symbols);
       }
     
       for (n=0;n<2;n++) {
@@ -379,8 +383,8 @@ int main(int argc, char **argv) {
       }
       nf++;
     }
-    mib.sfn = (mib.sfn + 1) % 1024;
-    printf("SFN: %4d\r", mib.sfn);
+    sfn = (sfn + 1) % 1024;
+    printf("SFN: %4d\r", sfn);
     fflush(stdout);
   }
 

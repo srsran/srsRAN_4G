@@ -41,18 +41,14 @@
 #include "liblte/phy/fec/viterbi.h"
 #include "liblte/phy/fec/crc.h"
 
+#define BCH_PAYLOAD_LEN   24
+#define BCH_PAYLOADCRC_LEN  (BCH_PAYLOAD_LEN+16)
+#define BCH_ENCODED_LEN   3*(BCH_PAYLOADCRC_LEN)
+
 #define PBCH_RE_CPNORM    240
-#define PBCH_RE_CPEXT    216
+#define PBCH_RE_CPEXT     216
 
 typedef _Complex float cf_t;
-
-typedef struct LIBLTE_API {
-  uint32_t nof_ports;
-  uint32_t nof_prb;
-  uint32_t sfn;
-  phich_length_t phich_length;
-  phich_resources_t phich_resources;
-}pbch_mib_t;
 
 /* PBCH object */
 typedef struct LIBLTE_API {
@@ -67,10 +63,10 @@ typedef struct LIBLTE_API {
   cf_t *pbch_d;
   float *pbch_llr;
   float *temp;
-  float *pbch_rm_f;
+  float pbch_rm_f[BCH_ENCODED_LEN];
   uint8_t *pbch_rm_b;
-  uint8_t *data;
-  uint8_t *data_enc;
+  uint8_t data[BCH_PAYLOADCRC_LEN];
+  uint8_t data_enc[BCH_ENCODED_LEN];
 
   uint32_t frame_idx;
 
@@ -91,16 +87,14 @@ LIBLTE_API void pbch_free(pbch_t *q);
 LIBLTE_API int pbch_decode(pbch_t *q, 
                            cf_t *slot1_symbols, 
                            cf_t *ce_slot1[MAX_PORTS], 
-                           pbch_mib_t *mib);
+                           uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                           uint32_t *nof_tx_ports,
+                           uint32_t *sfn_offset);
 
 LIBLTE_API int pbch_encode(pbch_t *q, 
-                            pbch_mib_t *mib, 
-                            cf_t *slot1_symbols[MAX_PORTS]);
+                           uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                           cf_t *slot1_symbols[MAX_PORTS]);
 
 LIBLTE_API void pbch_decode_reset(pbch_t *q);
-
-LIBLTE_API void pbch_mib_fprint(FILE *stream, 
-                                pbch_mib_t *mib,
-                                uint32_t cell_id);
 
 #endif // PBCH_

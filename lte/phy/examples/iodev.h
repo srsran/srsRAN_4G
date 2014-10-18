@@ -81,8 +81,7 @@ typedef struct LIBLTE_API {
 
 LIBLTE_API int iodev_init(iodev_t *q, 
                           iodev_cfg_t *config, 
-                          lte_cell_t *cell, 
-                          pbch_mib_t *mib);
+                          lte_cell_t *cell);
 
 LIBLTE_API void iodev_free(iodev_t *q);
 

@@ -42,8 +42,12 @@ lte_cell_t cell = {
   6,            // nof_prb
   2,            // nof_ports
   150,          // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
+
+uint8_t bch_payload_file[BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 #define FLEN  9600
 
@@ -177,9 +181,10 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  pbch_mib_t mib;
+  uint8_t bch_payload[BCH_PAYLOAD_LEN];
   int n;
-
+  uint32_t nof_tx_ports, sfn_offset; 
+  
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
@@ -209,10 +214,9 @@ int main(int argc, char **argv) {
 
   INFO("Decoding PBCH\n", 0);
 
-  n = pbch_decode(&pbch, fft_buffer, ce, &mib);
+  n = pbch_decode(&pbch, fft_buffer, ce, bch_payload, &nof_tx_ports, &sfn_offset);
 
   base_free();
-
   if (n < 0) {
     fprintf(stderr, "Error decoding PBCH\n");
     exit(-1);
@@ -220,13 +224,12 @@ int main(int argc, char **argv) {
     printf("Could not decode PBCH\n");
     exit(-1);
   } else {
-    if (mib.nof_ports == 2 && mib.nof_prb == 50 && mib.phich_length == PHICH_NORM
-        && mib.phich_resources == R_1 && mib.sfn == 28) {
-      pbch_mib_fprint(stdout, &mib, cell.id);
+    printf("MIB decoded OK. Nof ports: %d. SFN offset: %d Payload: ", nof_tx_ports, sfn_offset);    
+    vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
+    if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, BCH_PAYLOAD_LEN)) {
       printf("This is the signal.1.92M.dat file\n");
       exit(0);
     } else {
-      pbch_mib_fprint(stdout, &mib, cell.id);
       printf("This is an unknown file\n");
       exit(-1);
     }

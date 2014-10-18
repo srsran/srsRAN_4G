@@ -76,8 +76,6 @@ typedef struct LIBLTE_API {
 }regs_t;
 
 LIBLTE_API int regs_init(regs_t *h,                          
-                         phich_resources_t phich_res, 
-                         phich_length_t phich_len, 
                          lte_cell_t cell);
 
 LIBLTE_API void regs_free(regs_t *h);

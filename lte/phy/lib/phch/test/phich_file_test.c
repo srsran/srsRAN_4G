@@ -40,13 +40,13 @@ lte_cell_t cell = {
   50,           // cell.nof_prb
   2,            // cell.nof_ports
   150,          // cell.id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 int flen;
 int nof_ctrl_symbols = 1;
-phich_resources_t phich_res = R_1;
-phich_length_t phich_length = PHICH_NORM;
 int numsubframe = 0;
 
 FILE *fmatlab = NULL;
@@ -89,19 +89,19 @@ void parse_args(int argc, char **argv) {
       break;
     case 'g':
       if (!strcmp(argv[optind], "1/6")) {
-        phich_res = R_1_6;
+        cell.phich_resources = R_1_6;
       } else if (!strcmp(argv[optind], "1/2")) {
-        phich_res = R_1_2;
+        cell.phich_resources = R_1_2;
       } else if (!strcmp(argv[optind], "1")) {
-        phich_res = R_1;
+        cell.phich_resources = R_1;
       } else if (!strcmp(argv[optind], "2")) {
-        phich_res = R_2;
+        cell.phich_resources = R_2;
       } else {
         fprintf(stderr, "Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
       }
       break;
     case 'e':
-      phich_length = PHICH_EXT;
+      cell.phich_length = PHICH_EXT;
       break;
     case 'n':
       cell.nof_prb = atoi(argv[optind]);
@@ -176,7 +176,7 @@ int base_init() {
     return -1;
   }
 
-  if (regs_init(&regs, phich_res, phich_length, cell)) {
+  if (regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     return -1;
   }

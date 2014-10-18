@@ -38,7 +38,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 uint32_t cfi = 1;

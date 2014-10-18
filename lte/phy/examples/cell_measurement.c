@@ -119,7 +119,6 @@ int main(int argc, char **argv) {
   prog_args_t prog_args; 
   lte_cell_t cell;  
   int64_t sf_cnt;
-  pbch_mib_t mib;
   ue_sync_t ue_sync; 
   void *uhd; 
   
@@ -138,7 +137,7 @@ int main(int argc, char **argv) {
   cuhd_rx_wait_lo_locked(uhd);
   printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
 
-  if (cell_search(uhd, prog_args.force_N_id_2, &cell, &mib)) {
+  if (cell_search(uhd, prog_args.force_N_id_2, &cell)) {
     fprintf(stderr, "Cell not found\n");
     exit(-1); 
   }

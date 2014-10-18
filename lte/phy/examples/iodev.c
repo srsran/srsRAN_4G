@@ -51,12 +51,12 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
 }
 
 /* Setup USRP or input file */
-int iodev_init(iodev_t *q, iodev_cfg_t *config, lte_cell_t *cell, pbch_mib_t *mib) {
+int iodev_init(iodev_t *q, iodev_cfg_t *config, lte_cell_t *cell) {
   
   if (config->input_file_name) {
     
-    mib->phich_resources = R_1; 
-    mib->phich_length = PHICH_NORM;
+    cell->phich_resources = R_1; 
+    cell->phich_length = PHICH_NORM;
     
     cell->id = config->cell_id_file;
     cell->cp = CPNORM; 
@@ -99,7 +99,7 @@ int iodev_init(iodev_t *q, iodev_cfg_t *config, lte_cell_t *cell, pbch_mib_t *mi
     cuhd_rx_wait_lo_locked(q->uhd);
     DEBUG("Set uhd_freq to %.3f MHz\n", (double ) config->uhd_freq);
 
-    if (cell_search(q->uhd, config->force_N_id_2, cell, mib)) {
+    if (cell_search(q->uhd, config->force_N_id_2, cell)) {
       fprintf(stderr, "Cell not found\n");
       return LIBLTE_ERROR; 
     }

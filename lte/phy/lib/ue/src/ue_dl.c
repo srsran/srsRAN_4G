@@ -39,7 +39,6 @@
 
 int ue_dl_init(ue_dl_t *q, 
                lte_cell_t cell,  
-               phich_resources_t phich_resources, phich_length_t phich_length, 
                uint16_t user_rnti) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
@@ -65,7 +64,7 @@ int ue_dl_init(ue_dl_t *q,
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit;
     }
-    if (regs_init(&q->regs, phich_resources, phich_length, q->cell)) {
+    if (regs_init(&q->regs, q->cell)) {
       fprintf(stderr, "Error initiating REGs\n");
       goto clean_exit;
     }
@@ -154,7 +153,6 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16
   uint32_t nof_locations;
   uint16_t crc_rem; 
   dci_format_t format; 
-  pbch_mib_t mib; 
   int ret = LIBLTE_ERROR; 
   cf_t *ce_slot1[MAX_PORTS];
   struct timeval t[3]; 
@@ -180,14 +178,13 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16
   if (sf_idx == 0) {
     // FIXME: There is no need to do this every frame!
     pbch_decode_reset(&q->pbch);
-    if (pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)], ce_slot1, &mib) == 1) {
-      q->sfn = mib.sfn;
+    if (pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)], ce_slot1, NULL, NULL, &q->sfn) == 1) {
       q->pbch_decoded = true;
       INFO("Decoded SFN: %d\n", q->sfn);
     } else {
       INFO("Not decoded MIB (SFN: %d)\n", q->sfn);
       q->sfn++; 
-      if (q->sfn == 1024) {
+      if (q->sfn == 4) {
         q->sfn = 0; 
       }
     }

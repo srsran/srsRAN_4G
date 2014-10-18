@@ -171,7 +171,6 @@ int main(int argc, char **argv) {
   lte_cell_t cell; 
   ue_dl_t ue_dl; 
   int64_t sf_cnt;
-  pbch_mib_t mib; 
   bool printed_sib = false; 
   int rlen; 
   
@@ -186,11 +185,11 @@ int main(int argc, char **argv) {
   /* Initialize subframe counter */
   sf_cnt = 0;
 
-  if (iodev_init(&iodev, &prog_args.io_config, &cell, &mib)) {
+  if (iodev_init(&iodev, &prog_args.io_config, &cell)) {
     exit(-1);
   }
 
-  if (ue_dl_init(&ue_dl, cell, mib.phich_resources, mib.phich_length, 1234)) { 
+  if (ue_dl_init(&ue_dl, cell, 1234)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }

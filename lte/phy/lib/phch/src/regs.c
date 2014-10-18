@@ -672,7 +672,7 @@ int regs_set_cfi(regs_t *h, uint32_t cfi) {
  * Sets all REG indices and initializes PCFICH, PHICH and PDCCH REGs
  * Returns 0 if OK, -1 on error
  */
-int regs_init(regs_t *h, phich_resources_t phich_res, phich_length_t phich_len, lte_cell_t cell) {
+int regs_init(regs_t *h, lte_cell_t cell) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   uint32_t i, k;
   uint32_t j[4], jmax, prb;
@@ -690,8 +690,8 @@ int regs_init(regs_t *h, phich_resources_t phich_res, phich_length_t phich_len, 
     h->cell = cell;
     h->max_ctrl_symbols = max_ctrl_symbols;
     h->cfi_initiated = false;
-    h->phich_res = phich_res;
-    h->phich_len = phich_len;
+    h->phich_res = cell.phich_resources;
+    h->phich_len = cell.phich_length;
 
     h->nof_regs = 0;
     for (i = 0; i < max_ctrl_symbols; i++) {

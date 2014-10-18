@@ -40,7 +40,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   0,            // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 int flen;
@@ -168,7 +170,7 @@ int base_init() {
     return -1;
   }
 
-  if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
+  if (regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     return -1;
   }

@@ -52,10 +52,10 @@ LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
 #################################################################
 
 add_executable(pdsch_ue pdsch_ue.c iodev.c cell_search_utils.c)
-target_link_libraries(pdsch_ue lte_phy)
+target_link_libraries(pdsch_ue lte_rrc lte_phy)
 
 add_executable(pdsch_enodeb pdsch_enodeb.c)
-target_link_libraries(pdsch_enodeb lte_phy)
+target_link_libraries(pdsch_enodeb lte_rrc lte_phy)
 
 IF(${CUHD_FIND} EQUAL -1)
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
@@ -82,10 +82,10 @@ ENDIF(${GRAPHICS_FIND} EQUAL -1)
 IF(${CUHD_FIND} GREATER -1)
 
   add_executable(cell_search cell_search.c cell_search_utils.c)
-  target_link_libraries(cell_search lte_phy cuhd )
+  target_link_libraries(cell_search lte_rrc lte_phy cuhd )
 
   add_executable(cell_measurement cell_measurement.c cell_search_utils.c)
-  target_link_libraries(cell_measurement cuhd lte_phy)
+  target_link_libraries(cell_measurement cuhd lte_rrc lte_phy)
 
   MESSAGE(STATUS "   UHD examples will be installed.")
 

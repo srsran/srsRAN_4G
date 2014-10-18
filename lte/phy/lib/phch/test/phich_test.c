@@ -38,7 +38,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1000,         // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 phich_resources_t phich_res = R_1;
@@ -145,7 +147,7 @@ int main(int argc, char **argv) {
     
     printf("Testing CellID=%d...\n", cid);
 
-    if (regs_init(&regs, phich_res, phich_length, cell)) {
+    if (regs_init(&regs, cell)) {
       fprintf(stderr, "Error initiating regs\n");
       exit(-1);
     }

@@ -139,7 +139,8 @@ void ue_mib_set_threshold(ue_mib_t * q, float threshold)
   sync_set_threshold(&q->sfind, threshold);
 }
 
-static int mib_decoder_run(ue_mib_t * q, cf_t *input, pbch_mib_t *mib)
+static int mib_decoder_run(ue_mib_t * q, cf_t *input, 
+                           uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
 {
   int ret = LIBLTE_SUCCESS;
 
@@ -162,7 +163,7 @@ static int mib_decoder_run(ue_mib_t * q, cf_t *input, pbch_mib_t *mib)
   }
   
   /* Decode PBCH */
-  ret = pbch_decode(&q->pbch, q->slot1_symbols, q->ce, mib);
+  ret = pbch_decode(&q->pbch, q->slot1_symbols, q->ce, bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH\n");      
   } else if (ret == 1) {
@@ -181,7 +182,9 @@ int counter1=0,counter2=0,counter3=0,counter4=0;
 int ue_mib_decode(ue_mib_t * q, 
                   cf_t *signal, 
                   uint32_t nsamples,
-                  pbch_mib_t *mib)
+                  uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                  uint32_t *nof_tx_ports,
+                  uint32_t *sfn_offset)
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   uint32_t peak_idx=0;
@@ -226,7 +229,7 @@ int ue_mib_decode(ue_mib_t * q,
           sync_get_sf_idx(&q->sfind)             == 0) 
       {
         INFO("Trying to decode MIB\n",0);
-        ret = mib_decoder_run(q, &signal[nf*MIB_FRAME_SIZE+peak_idx], mib);
+        ret = mib_decoder_run(q, &signal[nf*MIB_FRAME_SIZE+peak_idx], bch_payload, nof_tx_ports, sfn_offset);
         counter3++;
       } else if ((ret == LIBLTE_SUCCESS && peak_idx != 0)   || 
                  (ret == 1              && nf*MIB_FRAME_SIZE + peak_idx + 960 > nsamples)) 
