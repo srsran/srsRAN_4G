@@ -117,19 +117,19 @@ int bcch_bch_mib_unpack(uint8_t *buffer, uint32_t msg_nof_bits, lte_cell_t *cell
 
   switch(req->dl_Bandwidth) {
     case dl_Bandwidth_n6:
-      cell->nof_ports = 6;
+      cell->nof_prb = 6;
       break;
     case dl_Bandwidth_n15:
-      cell->nof_ports = 15;
+      cell->nof_prb = 15;
       break;
     case dl_Bandwidth_n25:
-      cell->nof_ports = 25;
+      cell->nof_prb = 25;
       break;
     case dl_Bandwidth_n50:
-      cell->nof_ports = 50;
+      cell->nof_prb = 50;
       break;
     case dl_Bandwidth_n75:
-      cell->nof_ports = 75;
+      cell->nof_prb = 75;
       break;
   } 
   if (req->phich_Config.phich_Duration == phich_Duration_normal) {

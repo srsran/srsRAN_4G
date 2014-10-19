@@ -328,7 +328,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
         }
         
         /* Do CFO Correction and deliver the frame */
-        cfo_correct(&q->cfocorr, q->input_buffer, q->input_buffer, -q->cur_cfo / CURRENT_FFTSIZE);         
+        cfo_correct(&q->cfocorr, q->input_buffer, q->input_buffer, q->cur_cfo / CURRENT_FFTSIZE);         
         *sf_symbols = q->input_buffer;
         
       break;

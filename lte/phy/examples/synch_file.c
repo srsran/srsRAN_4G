@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
 
     gettimeofday(&tdata[1], NULL);
     if (force_cfo != CFO_AUTO) {
-      cfo_correct(&cfocorr, input, input, -force_cfo/128);
+      cfo_correct(&cfocorr, input, input, force_cfo/128);
     }
 
     if (force_N_id_2 != -1) {
