@@ -253,13 +253,13 @@ uint32_t pbch_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
   int ret = crc_checksum(&q->crc, data, BCH_PAYLOADCRC_LEN);
   if (ret == 0) {
     uint32_t chkzeros=0;
-    for (int i=0;i<BCH_PAYLOAD_LEN && !chkzeros;i++) {
+    for (int i=0;i<BCH_PAYLOAD_LEN;i++) {
       chkzeros += data[i];
     }
     if (chkzeros) {
       return 0;
     } else {
-      return -1;
+      return LIBLTE_ERROR;
     }
   } else {
     return ret; 
@@ -290,10 +290,10 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
   /* FIXME: If channel estimates are zero, received LLR are NaN. Check and return error */
   for (j = 0; j < BCH_ENCODED_LEN; j++) {
     if (isnan(q->pbch_rm_f[j]) || isinf(q->pbch_rm_f[j])) {
-      return 0;
+      return LIBLTE_ERROR;
     }
   }
-
+  
   /* decode */
   viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data, BCH_PAYLOADCRC_LEN);
 
@@ -412,6 +412,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS],
     }
     if (bch_payload) {
       memcpy(bch_payload, q->data, sizeof(uint8_t) * BCH_PAYLOAD_LEN);      
+      vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
     }
   }
   return ret;

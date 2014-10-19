@@ -30,6 +30,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "liblte/phy/phy.h"
 
@@ -109,6 +110,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  srand(time(NULL));
   for (i=0;i<BCH_PAYLOAD_LEN;i++) {
     bch_payload_tx[i] = rand()%2;
   }
@@ -134,17 +136,17 @@ int main(int argc, char **argv) {
     free(ce[i]);
     free(slot1_symbols[i]);
   }
+  printf("Tx ports: %d - Rx ports: %d\n", cell.nof_ports, nof_rx_ports);
+  printf("Tx payload: ");
+  vec_fprint_hex(stdout, bch_payload_tx, BCH_PAYLOAD_LEN);
+  printf("Rx payload: ");
+  vec_fprint_hex(stdout, bch_payload_rx, BCH_PAYLOAD_LEN);
 
   if (nof_rx_ports == cell.nof_ports && !memcmp(bch_payload_rx, bch_payload_tx, sizeof(uint8_t) * BCH_PAYLOAD_LEN)) {
     printf("OK\n");
     exit(0);
   } else {
     printf("Error\n");
-    printf("Tx ports: %d - Rx ports: %d\n", cell.nof_ports, nof_rx_ports);
-    printf("Tx payload: ");
-    vec_fprint_hex(stdout, bch_payload_tx, BCH_PAYLOAD_LEN);
-    printf("Rx payload: ");
-    vec_fprint_hex(stdout, bch_payload_rx, BCH_PAYLOAD_LEN);
     exit(-1);
   }
 }

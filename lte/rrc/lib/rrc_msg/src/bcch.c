@@ -92,9 +92,7 @@ int bcch_bch_mib_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *buffer, uint32_t 
     printf("Encoding failed.\n");
     printf("Failed to encode element %s\n", n.failed_type ? n.failed_type->name : "");
     return LIBLTE_ERROR;
-  } else {
-    printf("Encoding ok\n");
-  }
+  } 
   asn_fprint(stdout, &asn_DEF_MasterInformationBlock, &req); 
   return LIBLTE_SUCCESS;
 }
@@ -106,13 +104,12 @@ int bcch_bch_mib_unpack(uint8_t *buffer, uint32_t msg_nof_bits, lte_cell_t *cell
     perror("calloc");
     return LIBLTE_ERROR; 
   }
-  asn_dec_rval_t n = uper_decode(opt_codec_ctx, &asn_DEF_MasterInformationBlock, (void**) &req, &buffer, msg_nof_bits/8,0,msg_nof_bits%8);
+  asn_dec_rval_t n = uper_decode(opt_codec_ctx, &asn_DEF_MasterInformationBlock, 
+                                 (void**) &req, buffer, msg_nof_bits/8,0,msg_nof_bits%8);
   if (n.consumed == -1) {
     printf("Decoding failed.\n");
     return LIBLTE_ERROR;
-  } else {
-    printf("Decoding ok\n");
-  }
+  } 
   asn_fprint(stdout, &asn_DEF_MasterInformationBlock, req); 
 
   switch(req->dl_Bandwidth) {

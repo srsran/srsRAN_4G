@@ -214,7 +214,7 @@ int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell)
 {
   int ret; 
   uint32_t nof_tx_ports; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   
   ue_celldetect_result_t found_cells[3];
   bzero(found_cells, 3*sizeof(ue_celldetect_result_t));
@@ -256,9 +256,9 @@ int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell)
   cell->cp = found_cells[max_peak_cell].cp;
   cell->id = found_cells[max_peak_cell].cell_id;
   cell->nof_ports = nof_tx_ports; 
-  
-  bit_pack_vector(bch_payload, bch_payload_packed, BCH_PAYLOAD_LEN);
-  bcch_bch_mib_unpack(bch_payload_packed, BCH_PAYLOAD_LEN, cell, NULL);  
+
+  bit_unpack_vector(bch_payload, bch_payload_unpacked, BCH_PAYLOAD_LEN);
+  bcch_bch_mib_unpack(bch_payload_unpacked, BCH_PAYLOAD_LEN, cell, NULL);  
   
   /* set sampling frequency */
   int srate = lte_sampling_freq_hz(cell->nof_prb);
