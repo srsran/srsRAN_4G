@@ -48,3 +48,4 @@ int main(int argc, char **argv) {
   cell.phich_resources = 1;
   bcch_bch_mib_pack(&cell, 123, buffer, 1024);
 }
+

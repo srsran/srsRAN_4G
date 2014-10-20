@@ -28,5 +28,6 @@
 #define EMIT_ASN_DEBUG 1
 
 #include "MasterInformationBlock.h"
+#include "SystemInformationBlockType1.h"
 #include "per_encoder.h"
 #include "xer_encoder.h"

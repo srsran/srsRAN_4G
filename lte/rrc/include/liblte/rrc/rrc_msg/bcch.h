@@ -45,4 +45,9 @@ LIBLTE_API int bcch_bch_mib_unpack(uint8_t *buffer,
                                    lte_cell_t *cell, 
                                    uint32_t *sfn);
 
+LIBLTE_API int bcch_dlsch_sib1_pack(uint8_t *buffer, 
+                                    uint32_t buffer_size_bytes); 
+
+LIBLTE_API int bcch_dlsch_sib1_unpack(uint8_t *buffer, 
+                                      uint32_t msg_nof_bits);
 #endif // AGC_

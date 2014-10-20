@@ -24,6 +24,11 @@
 ########################################################################
 
 ADD_EXECUTABLE(bcch_bch_test bcch_bch_test.c)
-TARGET_LINK_LIBRARIES(bcch_bch_test lte_rrc)
+TARGET_LINK_LIBRARIES(bcch_bch_test lte_rrc rrc_asn )
 
 ADD_TEST(bcch_bch_test_1 bcch_bch_test) 
+
+ADD_EXECUTABLE(bcch_dlsch_test bcch_dlsch_test.c)
+TARGET_LINK_LIBRARIES(bcch_dlsch_test lte_rrc rrc_asn )
+
+ADD_TEST(bcch_dlsch_test_1 bcch_dlsch_test) 

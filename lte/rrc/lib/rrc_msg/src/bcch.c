@@ -31,6 +31,7 @@
 #include "liblte/rrc/rrc_msg/bcch.h"
 #include "liblte/phy/utils/bit.h"
 #include "rrc_asn.h"
+#include "sib.h"
 
 
 int bcch_bch_mib_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *buffer, uint32_t buffer_size_bytes) {
@@ -153,5 +154,45 @@ int bcch_bch_mib_unpack(uint8_t *buffer, uint32_t msg_nof_bits, lte_cell_t *cell
   if (sfn) {
     *sfn=(sfn_i<<2);    
   }
+  return LIBLTE_SUCCESS;
+}
+
+
+int bcch_dlsch_sib1_pack(uint8_t *buffer, uint32_t buffer_size_bytes) {
+  SystemInformationBlockType1_t req; 
+  
+  MCC_MNC_Digit_t mcc[3] = {1,0,1};
+  MCC_MNC_Digit_t mnc[2] = {2,3};
+  uint8_t tac_val[2] = {0x10,0x20};
+  uint8_t cid_val[4] = {0x3,0x4,0x5,0x6};
+  printf("calling create\n");
+  sib1_create_default(&req, mcc, mnc, tac_val, cid_val, 6);
+  printf("calling encode\n");
+  asn_enc_rval_t n = uper_encode_to_buffer(&asn_DEF_SystemInformationBlockType1, (void*) &req, buffer, 200);
+  if (n.encoded == -1) {
+    printf("Encoding failed.\n");
+    printf("Failed to encode element %s\n", n.failed_type ? n.failed_type->name : "");
+    return LIBLTE_ERROR;
+  } 
+  asn_fprint(stdout, &asn_DEF_MasterInformationBlock, &req); 
+  return LIBLTE_SUCCESS;
+}
+
+int bcch_dlsch_sib1_unpack(uint8_t *buffer, uint32_t msg_nof_bits) {
+  SystemInformationBlockType1_t *req = calloc(1, sizeof(SystemInformationBlockType1_t));
+  if (!req) {
+    perror("calloc");
+    return LIBLTE_ERROR; 
+  }
+  asn_dec_rval_t n = uper_decode(NULL, &asn_DEF_SystemInformationBlockType1, 
+                                 (void**) &req, buffer, msg_nof_bits/8,0,msg_nof_bits%8);
+  if (n.consumed == -1) {
+    printf("Decoding failed.\n");
+    return LIBLTE_ERROR;
+  } else {
+    printf("Decoding OK consumed: %d bits\n", n.consumed);
+  }
+  asn_fprint(stdout, &asn_DEF_SystemInformationBlockType1, req); 
+
   return LIBLTE_SUCCESS;
 }

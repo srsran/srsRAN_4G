@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <signal.h>
 
+#include "liblte/rrc/rrc.h"
 #include "liblte/phy/phy.h"
 #include "liblte/cuhd/cuhd.h"
 #include "cell_search_utils.h"
@@ -105,7 +106,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-uint8_t data[10000];
+uint8_t data[10000], data_unpacked[1000];
 
 int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
@@ -121,7 +122,8 @@ int main(int argc, char **argv) {
   int64_t sf_cnt;
   ue_sync_t ue_sync; 
   void *uhd; 
-  
+  ue_dl_t ue_dl; 
+
   parse_args(&prog_args, argc, argv);
 
   printf("Opening UHD device...\n");
@@ -148,7 +150,12 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
-  
+  if (ue_dl_init(&ue_dl, cell, 1234)) { 
+    fprintf(stderr, "Error initiating UE downlink processing module\n");
+    exit(-1);
+  }
+  pdsch_set_rnti(&ue_dl.pdsch, SIRNTI);
+
   /* Initialize subframe counter */
   sf_cnt = 0;
     
@@ -168,6 +175,9 @@ int main(int argc, char **argv) {
   cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
   uint32_t nframes=0;
   
+  bool sib1_decoded = false; 
+  int n; 
+  
   /* Main loop */
   while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
     
@@ -181,24 +191,38 @@ int main(int argc, char **argv) {
     /* iodev_receive returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
 
+      if (!sib1_decoded) {
+        n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), SIRNTI);
+        if (n < 0) {
+          fprintf(stderr, "\nError running receiver\n");fflush(stdout);
+          exit(-1);
+        } else if (n > 0) {
+          printf("\n\nDecoded SIB1 Message Len %d: ",n);
+          vec_fprint_hex(stdout, data, n);          
+          bit_unpack_vector(data, data_unpacked, n);
+          bcch_dlsch_sib1_unpack(data_unpacked, n);
+          printf("\n");fflush(stdout);
+          sib1_decoded = true; 
+        }
+      } else {
       /* Run FFT for all subframe data */
-      lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
-
-      chest_measure_sf(&chest, sf_symbols, ue_sync_get_sfidx(&ue_sync));
-      rssi = VEC_CMA(chest_rssi_sf(&chest, sf_symbols),rssi,nframes);
-      rsrq = VEC_CMA(chest_rsrq_sf(&chest, sf_symbols, ue_sync_get_sfidx(&ue_sync)),rsrq,nframes);
-      rsrp = VEC_CMA(chest_rsrp_sf(&chest, ue_sync_get_sfidx(&ue_sync)),rsrp,nframes);      
-      nframes++;
-      
-      // Plot and Printf
-      if ((nframes%10) == 0) {
-        printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, RSSI: %+5.2f dBm, RSRP: %+4.2f dBm, RSRQ: %4.2f dB\r",
-              ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
-              10*log10(rssi*1000/4/cell.nof_prb/12/2)-prog_args.uhd_gain, 
-              10*log10(rsrp*1000)-prog_args.uhd_gain, 
-             10*log10(rsrq));                
-      }
+        lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
         
+        chest_measure_sf(&chest, sf_symbols, ue_sync_get_sfidx(&ue_sync));
+        rssi = VEC_CMA(chest_rssi_sf(&chest, sf_symbols),rssi,nframes);
+        rsrq = VEC_CMA(chest_rsrq_sf(&chest, sf_symbols, ue_sync_get_sfidx(&ue_sync)),rsrq,nframes);
+        rsrp = VEC_CMA(chest_rsrp_sf(&chest, ue_sync_get_sfidx(&ue_sync)),rsrp,nframes);      
+        nframes++;
+        
+        // Plot and Printf
+        if ((nframes%10) == 0) {
+          printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, RSSI: %+5.2f dBm, RSRP: %+4.2f dBm, RSRQ: %4.2f dB\r",
+                ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
+                10*log10(rssi*1000/4/cell.nof_prb/12/2)-prog_args.uhd_gain, 
+                10*log10(rsrp*1000)-prog_args.uhd_gain, 
+              10*log10(rsrq));                
+        }
+      }     
     } else if (ret == 0) {
       printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
         sync_get_peak_value(&ue_sync.sfind), 

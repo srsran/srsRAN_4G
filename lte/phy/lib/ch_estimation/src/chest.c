@@ -38,7 +38,7 @@
 #define SLOT_SZ(q) (q->nof_symbols * q->symbol_sz)
 #define SF_SZ(q) (2 * SLOT_SZ(q))
 
-//#define VOLK_INTERP
+#define VOLK_INTERP
 
 void chest_fprint(chest_t *q, FILE *stream, uint32_t nslot, uint32_t port_id) {
   chest_ref_fprint(q, stream, nslot, port_id);
