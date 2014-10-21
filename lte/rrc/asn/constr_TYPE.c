@@ -4,7 +4,6 @@
  */
 #include <asn_internal.h>
 #include <constr_TYPE.h>
-#include <errno.h>
 
 /*
  * Version of the ASN.1 infrastructure shipped with compiler.
@@ -17,7 +16,7 @@ static asn_app_consume_bytes_f _print2fp;
  * Return the outmost tag of the type.
  */
 ber_tlv_tag_t
-asn_TYPE_outmost_tag(const asn_TYPE_descriptor_t *type_descriptor,
+asn_TYPE_outmost_tag(asn_TYPE_descriptor_t *type_descriptor,
 		const void *struct_ptr, int tag_mode, ber_tlv_tag_t tag) {
 
 	if(tag_mode)
@@ -75,3 +74,4 @@ void ASN_DEBUG_f(const char *fmt, ...) {
 	fprintf(stderr, "\n");
 	va_end(ap);
 }
+

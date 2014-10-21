@@ -25,8 +25,8 @@
  *
  */
 
-#define EMIT_ASN_DEBUG 1
-
+#include "BCCH-BCH-Message.h"
+#include "BCCH-DL-SCH-Message.h"
 #include "MasterInformationBlock.h"
 #include "SystemInformationBlockType1.h"
 #include "per_encoder.h"

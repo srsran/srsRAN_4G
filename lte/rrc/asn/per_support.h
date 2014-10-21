@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2014 Lev Walkin <vlm@lionet.info>.
+ * Copyright (c) 2005, 2006, 2007 Lev Walkin <vlm@lionet.info>.
  * All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
@@ -15,7 +15,7 @@ extern "C" {
 /*
  * Pre-computed PER constraints.
  */
-typedef const struct asn_per_constraint_s {
+typedef struct asn_per_constraint_s {
 	enum asn_per_constraint_flags {
 		APC_UNCONSTRAINED	= 0x0,	/* No PER visible constraints */
 		APC_SEMI_CONSTRAINED	= 0x1,	/* Constrained at "lb" */
@@ -27,9 +27,9 @@ typedef const struct asn_per_constraint_s {
 	long lower_bound;		/* "lb" value */
 	long upper_bound;		/* "ub" value */
 } asn_per_constraint_t;
-typedef const struct asn_per_constraints_s {
-	struct asn_per_constraint_s value;
-	struct asn_per_constraint_s size;
+typedef struct asn_per_constraints_s {
+	asn_per_constraint_t value;
+	asn_per_constraint_t size;
 	int (*value2code)(unsigned int value);
 	int (*code2value)(unsigned int code);
 } asn_per_constraints_t;
@@ -81,9 +81,6 @@ ssize_t uper_get_nslength(asn_per_data_t *pd);
  */
 ssize_t uper_get_nsnnwn(asn_per_data_t *pd);
 
-/* X.691-2008/11, #11.5.6 */
-int uper_get_constrained_whole_number(asn_per_data_t *pd, unsigned long *v, int nbits);
-
 /* Non-thread-safe debugging function, don't use it */
 char *per_data_string(asn_per_data_t *pd);
 
@@ -105,10 +102,6 @@ int per_put_few_bits(asn_per_outp_t *per_data, uint32_t bits, int obits);
 
 /* Output a large number of bits */
 int per_put_many_bits(asn_per_outp_t *po, const uint8_t *src, int put_nbits);
-
-/* X.691-2008/11, #11.5 */
-int uper_put_constrained_whole_number_s(asn_per_outp_t *po, long v, int nbits);
-int uper_put_constrained_whole_number_u(asn_per_outp_t *po, unsigned long v, int nbits);
 
 /*
  * Put the length "n" to the Unaligned PER stream.

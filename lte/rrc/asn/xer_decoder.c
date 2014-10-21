@@ -109,8 +109,7 @@ xer_check_tag(const void *buf_ptr, int size, const char *need_tag) {
 
 	if(size < 2 || buf[0] != LANGLE || buf[size-1] != RANGLE) {
 		if(size >= 2)
-			ASN_DEBUG("Broken XML tag: \"%c...%c\"",
-			buf[0], buf[size - 1]);
+		ASN_DEBUG("Broken XML tag: \"%c...%c\"", buf[0], buf[size - 1]);
 		return XCT_BROKEN;
 	}
 
@@ -222,7 +221,7 @@ xer_decode_general(asn_codec_ctx_t *opt_codec_ctx,
 	 */
 	if(ctx->phase > 1) RETURN(RC_FAIL);
 	for(;;) {
-		pxer_chunk_type_e ch_type=0;	/* XER chunk type */
+		pxer_chunk_type_e ch_type;	/* XER chunk type */
 		ssize_t ch_size;		/* Chunk size */
 		xer_check_tag_e tcv;		/* Tag check value */
 
@@ -316,8 +315,8 @@ xer_decode_general(asn_codec_ctx_t *opt_codec_ctx,
 }
 
 
-size_t
-xer_whitespace_span(const void *chunk_buf, size_t chunk_size) {
+int
+xer_is_whitespace(const void *chunk_buf, size_t chunk_size) {
 	const char *p = (const char *)chunk_buf;
 	const char *pend = p + chunk_size;
 
@@ -330,13 +329,12 @@ xer_whitespace_span(const void *chunk_buf, size_t chunk_size) {
 		 * SPACE (32)
 		 */
 		case 0x09: case 0x0a: case 0x0d: case 0x20:
-			continue;
-		default:
 			break;
+		default:
+			return 0;
 		}
-		break;
 	}
-	return (p - (const char *)chunk_buf);
+	return 1;       /* All whitespace */
 }
 
 /*

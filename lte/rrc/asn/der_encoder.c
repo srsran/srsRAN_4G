@@ -3,7 +3,6 @@
  * Redistribution and modifications are permitted subject to BSD license.
  */
 #include <asn_internal.h>
-#include <errno.h>
 
 static ssize_t der_write_TL(ber_tlv_tag_t tag, ber_tlv_len_t len,
 	asn_app_consume_bytes_f *cb, void *app_key, int constructed);
@@ -80,10 +79,12 @@ der_write_tags(asn_TYPE_descriptor_t *sd,
 		ber_tlv_tag_t tag,	/* EXPLICIT or IMPLICIT tag */
 		asn_app_consume_bytes_f *cb,
 		void *app_key) {
-	const ber_tlv_tag_t *tags;	/* Copy of tags stream */
-	int tags_count;			/* Number of tags */
+	ber_tlv_tag_t *tags;	/* Copy of tags stream */
+	ber_tlv_tag_t tags_array[8];
+	int tags_count;		/* Number of tags */
 	size_t overall_length;
 	ssize_t *lens;
+	ssize_t lens_array[8];
 	int i;
 
 	ASN_DEBUG("Writing tags (%s, tm=%d, tc=%d, tag=%s, mtc=%d)",
@@ -102,21 +103,28 @@ der_write_tags(asn_TYPE_descriptor_t *sd,
 		 * and initialize it appropriately.
 		 */
 		int stag_offset;
-		ber_tlv_tag_t *tags_buf;
-		tags_buf = (ber_tlv_tag_t *)alloca((sd->tags_count + 1) * sizeof(ber_tlv_tag_t));
-		if(!tags_buf) {	/* Can fail on !x86 */
-			errno = ENOMEM;
-			return -1;
+		//tags = (ber_tlv_tag_t *)alloca((sd->tags_count + 1) * sizeof(ber_tlv_tag_t));
+		tags = &(tags_array[0]);
+		if ((sd->tags_count + 1)>=8) {
+#ifdef USER_MODE
+		  printf("der_encoder.c: ERROR tags array too small. Increase size!\n");
+		  exit(-1);
+#endif
+		  errno = ENOMEM;
+		  return -1;
+		}
+		if(!tags) {	/* Can fail on !x86 */
+		  errno = ENOMEM;
+		  return -1;
 		}
 		tags_count = sd->tags_count
 			+ 1	/* EXPLICIT or IMPLICIT tag is given */
 			- ((tag_mode == -1) && sd->tags_count);
 		/* Copy tags over */
-		tags_buf[0] = tag;
+		tags[0] = tag;
 		stag_offset = -1 + ((tag_mode == -1) && sd->tags_count);
 		for(i = 1; i < tags_count; i++)
-			tags_buf[i] = sd->tags[i + stag_offset];
-		tags = tags_buf;
+			tags[i] = sd->tags[i + stag_offset];
 	} else {
 		tags = sd->tags;
 		tags_count = sd->tags_count;
@@ -126,12 +134,19 @@ der_write_tags(asn_TYPE_descriptor_t *sd,
 	if(tags_count == 0)
 		return 0;
 
-	lens = (ssize_t *)alloca(tags_count * sizeof(lens[0]));
-	if(!lens) {
-		errno = ENOMEM;
-		return -1;
+	//lens = (ssize_t *)alloca(tags_count * sizeof(lens[0]));
+	lens = &(lens_array[0]);
+	if (tags_count>=8) {
+          printf("der_encoder.c: ERROR lens array too small. Increase size!\n");
+	  exit(-1);
+	  errno = ENOMEM;
+	  return -1;
 	}
-
+	if(!lens) {
+	  errno = ENOMEM;
+	  return -1;
+	}
+	
 	/*
 	 * Array of tags is initialized.
 	 * Now, compute the size of the TLV pairs, from right to left.

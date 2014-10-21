@@ -198,11 +198,15 @@ int main(int argc, char **argv) {
           exit(-1);
         } else if (n > 0) {
           printf("\n\nDecoded SIB1 Message Len %d: ",n);
-          vec_fprint_hex(stdout, data, n);          
           bit_unpack_vector(data, data_unpacked, n);
-          bcch_dlsch_sib1_unpack(data_unpacked, n);
-          printf("\n");fflush(stdout);
-          sib1_decoded = true; 
+          void *dlsch_msg = bcch_dlsch_unpack(data_unpacked, n);
+          if (dlsch_msg) {
+            printf("\n");fflush(stdout);
+            sib1_decoded = true;      
+            cell_access_info_t cell_info; 
+            bcch_dlsch_sib1_get_cell_access_info(dlsch_msg, &cell_info);
+            printf("Cell ID: 0x%x\n", cell_info.cell_id);
+          }
         }
       } else {
       /* Run FFT for all subframe data */

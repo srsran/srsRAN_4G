@@ -5,8 +5,6 @@
 #ifndef	_PER_ENCODER_H_
 #define	_PER_ENCODER_H_
 
-#include "liblte/config.h"
-
 #include <asn_application.h>
 #include <per_support.h>
 
@@ -22,7 +20,7 @@ struct asn_TYPE_descriptor_s;	/* Forward declaration */
  * field of the return value. Use the following formula to convert to bytes:
  * 	bytes = ((.encoded + 7) / 8)
  */
-asn_enc_rval_t uper_encode(struct asn_TYPE_descriptor_s *type_descriptor,
+LIBLTE_API asn_enc_rval_t uper_encode(struct asn_TYPE_descriptor_s *type_descriptor,
 	void *struct_ptr,	/* Structure to be encoded */
 	asn_app_consume_bytes_f *consume_bytes_cb,	/* Data collector */
 	void *app_key		/* Arbitrary callback argument */

@@ -340,7 +340,7 @@ int main(int argc, char **argv) {
             CPNORM);
       }
       
-      bcch_bch_mib_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
+      bcch_bch_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
       bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
       if (sf_idx == 0) {
         pbch_encode(&pbch, bch_payload, sf_symbols);

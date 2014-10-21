@@ -15,7 +15,7 @@
 /*
  * NativeEnumerated basic type description.
  */
-static const ber_tlv_tag_t asn_DEF_NativeEnumerated_tags[] = {
+static ber_tlv_tag_t asn_DEF_NativeEnumerated_tags[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (10 << 2))
 };
 asn_TYPE_descriptor_t asn_DEF_NativeEnumerated = {
@@ -46,6 +46,7 @@ NativeEnumerated_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
                 asn_app_consume_bytes_f *cb, void *app_key) {
 	asn_INTEGER_specifics_t *specs=(asn_INTEGER_specifics_t *)td->specifics;
         asn_enc_rval_t er;
+	char scratch[128];
         const long *native = (const long *)sptr;
 	const asn_INTEGER_enum_map_t *el;
 
@@ -57,7 +58,7 @@ NativeEnumerated_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 	el = INTEGER_map_value2enum(specs, *native);
 	if(el) {
 		size_t srcsize = el->enum_len + 5;
-		char *src = (char *)alloca(srcsize);
+		char *src = (char *)scratch; //alloca(srcsize);
 
 		er.encoded = snprintf(src, srcsize, "<%s/>", el->enum_name);
 		assert(er.encoded > 0 && (size_t)er.encoded < srcsize);
@@ -145,7 +146,7 @@ NativeEnumerated_encode_uper(asn_TYPE_descriptor_t *td,
 	asn_per_constraint_t *ct;
 	int inext = 0;
 	asn_INTEGER_enum_map_t key;
-	const asn_INTEGER_enum_map_t *kf;
+	asn_INTEGER_enum_map_t *kf;
 
 	if(!sptr) _ASN_ENCODE_FAILED;
 	if(!specs) _ASN_ENCODE_FAILED;

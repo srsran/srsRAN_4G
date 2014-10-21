@@ -12,8 +12,6 @@
 #ifndef	_CONSTR_TYPE_H_
 #define	_CONSTR_TYPE_H_
 
-#include "liblte/config.h"
-
 #include <ber_tlv_length.h>
 #include <ber_tlv_tag.h>
 
@@ -75,7 +73,7 @@ typedef int (asn_struct_print_f)(
  * Do not use it in your application.
  */
 typedef ber_tlv_tag_t (asn_outmost_tag_f)(
-		const struct asn_TYPE_descriptor_s *type_descriptor,
+		struct asn_TYPE_descriptor_s *type_descriptor,
 		const void *struct_ptr, int tag_mode, ber_tlv_tag_t tag);
 /* The instance of the above function type; used internally. */
 asn_outmost_tag_f asn_TYPE_outmost_tag;
@@ -85,8 +83,8 @@ asn_outmost_tag_f asn_TYPE_outmost_tag;
  * The definitive description of the destination language's structure.
  */
 typedef struct asn_TYPE_descriptor_s {
-	const char *name;	/* A name of the ASN.1 type. "" in some cases. */
-	const char *xml_tag;	/* Name used in XML tag */
+	char *name;	/* A name of the ASN.1 type. "" in some cases. */
+	char *xml_tag;	/* Name used in XML tag */
 
 	/*
 	 * Generalized functions for dealing with the specific type.
@@ -110,10 +108,10 @@ typedef struct asn_TYPE_descriptor_s {
 	 * Tags that are expected to occur.
 	 */
 	asn_outmost_tag_f  *outmost_tag;	/* <optional, internal> */
-	const ber_tlv_tag_t *tags;	/* Effective tags sequence for this type */
-	int tags_count;			/* Number of tags which are expected */
-	const ber_tlv_tag_t *all_tags;	/* Every tag for BER/containment */
-	int all_tags_count;		/* Number of tags */
+	ber_tlv_tag_t *tags;	/* Effective tags sequence for this type */
+	int tags_count;		/* Number of tags which are expected */
+	ber_tlv_tag_t *all_tags;/* Every tag for BER/containment */
+	int all_tags_count;	/* Number of tags */
 
 	asn_per_constraints_t *per_constraints;	/* PER compiled constraints */
 
@@ -127,7 +125,7 @@ typedef struct asn_TYPE_descriptor_s {
 	 * Additional information describing the type, used by appropriate
 	 * functions above.
 	 */
-	const void *specifics;
+	void *specifics;
 } asn_TYPE_descriptor_t;
 
 /*
@@ -149,7 +147,7 @@ typedef struct asn_TYPE_member_s {
 	asn_constr_check_f *memb_constraints;	/* Constraints validator */
 	asn_per_constraints_t *per_constraints;	/* PER compiled constraints */
 	int (*default_value)(int setval, void **sptr);	/* DEFAULT <value> */
-	const char *name;			/* ASN.1 identifier of the element */
+	char *name;			/* ASN.1 identifier of the element */
 } asn_TYPE_member_t;
 
 /*

@@ -9,7 +9,7 @@
 /*
  * BOOLEAN basic type description.
  */
-static const ber_tlv_tag_t asn_DEF_BOOLEAN_tags[] = {
+static ber_tlv_tag_t asn_DEF_BOOLEAN_tags[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (1 << 2))
 };
 asn_TYPE_descriptor_t asn_DEF_BOOLEAN = {
@@ -161,7 +161,10 @@ BOOLEAN__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 		}
 		return XPBD_BODY_CONSUMED;
 	} else {
-		return XPBD_BROKEN_ENCODING;
+		if(xer_is_whitespace(chunk_buf, chunk_size))
+			return XPBD_NOT_BODY_IGNORE;
+		else
+			return XPBD_BROKEN_ENCODING;
 	}
 }
 
@@ -269,14 +272,13 @@ asn_enc_rval_t
 BOOLEAN_encode_uper(asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
 	const BOOLEAN_t *st = (const BOOLEAN_t *)sptr;
-	asn_enc_rval_t er = { 0, 0, 0 };
+	asn_enc_rval_t er;
 
 	(void)constraints;
 
 	if(!st) _ASN_ENCODE_FAILED;
 
-	if(per_put_few_bits(po, *st ? 1 : 0, 1))
-		_ASN_ENCODE_FAILED;
+	per_put_few_bits(po, *st ? 1 : 0, 1);
 
 	_ASN_ENCODED_OK(er);
 }

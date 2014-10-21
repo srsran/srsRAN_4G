@@ -54,6 +54,7 @@ LIBLTE_API void *vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size);
 LIBLTE_API void vec_fprint_c(FILE *stream, cf_t *x, uint32_t len);
 LIBLTE_API void vec_fprint_f(FILE *stream, float *x, uint32_t len);
 LIBLTE_API void vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len);
+LIBLTE_API void vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len);
 LIBLTE_API void vec_fprint_i(FILE *stream, int *x, uint32_t len);
 LIBLTE_API void vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len);
 

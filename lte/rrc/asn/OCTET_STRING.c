@@ -6,20 +6,19 @@
 #include <asn_internal.h>
 #include <OCTET_STRING.h>
 #include <BIT_STRING.h>	/* for .bits_unused member */
-#include <errno.h>
 
 /*
  * OCTET STRING basic type description.
  */
-static const ber_tlv_tag_t asn_DEF_OCTET_STRING_tags[] = {
+static ber_tlv_tag_t asn_DEF_OCTET_STRING_tags[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (4 << 2))
 };
-static const asn_OCTET_STRING_specifics_t asn_DEF_OCTET_STRING_specs = {
+static asn_OCTET_STRING_specifics_t asn_DEF_OCTET_STRING_specs = {
 	sizeof(OCTET_STRING_t),
 	offsetof(OCTET_STRING_t, _asn_ctx),
 	ASN_OSUBV_STR
 };
-static const asn_per_constraints_t asn_DEF_OCTET_STRING_constraints = {
+static asn_per_constraints_t asn_DEF_OCTET_STRING_constraints = {
 	{ APC_CONSTRAINED, 8, 8, 0, 255 },
 	{ APC_SEMI_CONSTRAINED, -1, -1, 0, 0 },
 	0, 0
@@ -580,7 +579,7 @@ asn_enc_rval_t
 OCTET_STRING_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 	int ilevel, enum xer_encoder_flags_e flags,
 		asn_app_consume_bytes_f *cb, void *app_key) {
-	const char * const h2c = "0123456789ABCDEF";
+	static const char *h2c = "0123456789ABCDEF";
 	const OCTET_STRING_t *st = (const OCTET_STRING_t *)sptr;
 	asn_enc_rval_t er;
 	char scratch[16 * 3 + 4];
@@ -639,8 +638,8 @@ cb_failed:
 	_ASN_ENCODE_FAILED;
 }
 
-static const struct OCTET_STRING__xer_escape_table_s {
-	const char *string;
+static struct OCTET_STRING__xer_escape_table_s {
+	char *string;
 	int size;
 } OCTET_STRING__xer_escape_table[] = {
 #define	OSXET(s)	{ s, sizeof(s) - 1 }
@@ -702,7 +701,7 @@ OS__check_escaped_control_char(const void *buf, int size) {
 	 * nested table lookups).
 	 */
 	for(i = 0; i < 32 /* Don't spend time on the bottom half */; i++) {
-		const struct OCTET_STRING__xer_escape_table_s *el;
+		struct OCTET_STRING__xer_escape_table_s *el;
 		el = &OCTET_STRING__xer_escape_table[i];
 		if(el->size == size && memcmp(buf, el->string, size) == 0)
 			return i;
@@ -1571,7 +1570,7 @@ OCTET_STRING_encode_uper(asn_TYPE_descriptor_t *td,
 		csiz->lower_bound, csiz->upper_bound,
 		csiz->effective_bits, ct_extensible ? " EXT" : "");
 
-	/* Figure out whether size lies within PER visible constraint */
+	/* Figure out wheter size lies within PER visible constraint */
 
 	if(csiz->effective_bits >= 0) {
 		if((int)sizeinunits < csiz->lower_bound
@@ -1655,7 +1654,7 @@ OCTET_STRING_encode_uper(asn_TYPE_descriptor_t *td,
 int
 OCTET_STRING_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 	asn_app_consume_bytes_f *cb, void *app_key) {
-	const char * const h2c = "0123456789ABCDEF";
+	static const char *h2c = "0123456789ABCDEF";
 	const OCTET_STRING_t *st = (const OCTET_STRING_t *)sptr;
 	char scratch[16 * 3 + 4];
 	char *p = scratch;

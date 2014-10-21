@@ -3,8 +3,8 @@
  * Redistribution and modifications are permitted subject to BSD license.
  */
 #include <asn_internal.h>
-#include <stdio.h>
-#include <errno.h>
+//#include <stdio.h>
+//#include <errno.h>
 
 /*
  * The XER encoder of any type. May be invoked by the application.

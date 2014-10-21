@@ -5,8 +5,6 @@
 #ifndef	_PER_DECODER_H_
 #define	_PER_DECODER_H_
 
-#include "liblte/config.h"
-
 #include <asn_application.h>
 #include <per_support.h>
 
@@ -20,7 +18,7 @@ struct asn_TYPE_descriptor_s;	/* Forward declaration */
  * Unaligned PER decoder of a "complete encoding" as per X.691#10.1.
  * On success, this call always returns (.consumed >= 1), as per X.691#10.1.3.
  */
- LIBLTE_API asn_dec_rval_t uper_decode_complete(struct asn_codec_ctx_s *opt_codec_ctx,
+asn_dec_rval_t uper_decode_complete(struct asn_codec_ctx_s *opt_codec_ctx,
 	struct asn_TYPE_descriptor_s *type_descriptor,	/* Type to decode */
 	void **struct_ptr,	/* Pointer to a target structure's pointer */
 	const void *buffer,	/* Data to be decoded */

@@ -1,17 +1,16 @@
 /*-
- * Copyright (c) 2003-2014 Lev Walkin <vlm@lionet.info>.
+ * Copyright (c) 2003, 2004, 2005, 2006, 2007 Lev Walkin <vlm@lionet.info>.
  * All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
 #include <asn_internal.h>
 #include <INTEGER.h>
 #include <asn_codecs_prim.h>	/* Encoder and decoder of a primitive type */
-#include <errno.h>
 
 /*
  * INTEGER basic type description.
  */
-static const ber_tlv_tag_t asn_DEF_INTEGER_tags[] = {
+static ber_tlv_tag_t asn_DEF_INTEGER_tags[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (2 << 2))
 };
 asn_TYPE_descriptor_t asn_DEF_INTEGER = {
@@ -24,13 +23,8 @@ asn_TYPE_descriptor_t asn_DEF_INTEGER = {
 	INTEGER_encode_der,
 	INTEGER_decode_xer,
 	INTEGER_encode_xer,
-#ifdef	ASN_DISABLE_PER_SUPPORT
-	0,
-	0,
-#else
 	INTEGER_decode_uper,	/* Unaligned PER decoder */
 	INTEGER_encode_uper,	/* Unaligned PER encoder */
-#endif	/* ASN_DISABLE_PER_SUPPORT */
 	0, /* Use generic outmost tag fetcher */
 	asn_DEF_INTEGER_tags,
 	sizeof(asn_DEF_INTEGER_tags) / sizeof(asn_DEF_INTEGER_tags[0]),
@@ -106,35 +100,56 @@ static const asn_INTEGER_enum_map_t *INTEGER_map_enum2value(asn_INTEGER_specific
  * INTEGER specific human-readable output.
  */
 static ssize_t
-INTEGER__dump(const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_consume_bytes_f *cb, void *app_key, int plainOrXER) {
+INTEGER__dump(asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_consume_bytes_f *cb, void *app_key, int plainOrXER) {
 	asn_INTEGER_specifics_t *specs=(asn_INTEGER_specifics_t *)td->specifics;
-	char scratch[32];	/* Enough for 64-bit integer */
+	char scratch[128];	
 	uint8_t *buf = st->buf;
 	uint8_t *buf_end = st->buf + st->size;
-	signed long value;
+	signed long accum;
 	ssize_t wrote = 0;
 	char *p;
 	int ret;
 
-	if(specs && specs->field_unsigned)
-		ret = asn_INTEGER2ulong(st, (unsigned long *)&value);
-	else
-		ret = asn_INTEGER2long(st, &value);
+	/*
+	 * Advance buf pointer until the start of the value's body.
+	 * This will make us able to process large integers using simple case,
+	 * when the actual value is small
+	 * (0x0000000000abcdef would yield a fine 0x00abcdef)
+	 */
+	/* Skip the insignificant leading bytes */
+	for(; buf < buf_end-1; buf++) {
+		switch(*buf) {
+		case 0x00: if((buf[1] & 0x80) == 0) continue; break;
+		case 0xff: if((buf[1] & 0x80) != 0) continue; break;
+		}
+		break;
+	}
 
 	/* Simple case: the integer size is small */
-	if(ret == 0) {
+	if((size_t)(buf_end - buf) <= sizeof(accum)) {
 		const asn_INTEGER_enum_map_t *el;
 		size_t scrsize;
 		char *scr;
 
-		el = (value >= 0 || !specs || !specs->field_unsigned)
-			? INTEGER_map_value2enum(specs, value) : 0;
+		if(buf == buf_end) {
+			accum = 0;
+		} else {
+			accum = (*buf & 0x80) ? -1 : 0;
+			for(; buf < buf_end; buf++)
+				accum = (accum << 8) | *buf;
+		}
+
+		el = INTEGER_map_value2enum(specs, accum);
 		if(el) {
+			scrsize = sizeof(scratch);
+			scr = scratch;
+			/* cannot use alloca in kernel
 			scrsize = el->enum_len + 32;
 			scr = (char *)alloca(scrsize);
+			*/
 			if(plainOrXER == 0)
 				ret = snprintf(scr, scrsize,
-					"%ld (%s)", value, el->enum_name);
+					"%ld (%s)", accum, el->enum_name);
 			else
 				ret = snprintf(scr, scrsize,
 					"<%s/>", el->enum_name);
@@ -148,7 +163,7 @@ INTEGER__dump(const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_cons
 			scr = scratch;
 			ret = snprintf(scr, scrsize,
 				(specs && specs->field_unsigned)
-				?"%lu":"%ld", value);
+				?"%lu":"%ld", accum);
 		}
 		assert(ret > 0 && (size_t)ret < scrsize);
 		return (cb(scr, ret, app_key) < 0) ? -1 : ret;
@@ -166,7 +181,7 @@ INTEGER__dump(const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_cons
 	/* Output in the long xx:yy:zz... format */
 	/* TODO: replace with generic algorithm (Knuth TAOCP Vol 2, 4.3.1) */
 	for(p = scratch; buf < buf_end; buf++) {
-		const char * const h2c = "0123456789ABCDEF";
+		static const char *h2c = "0123456789ABCDEF";
 		if((p - scratch) >= (ssize_t)(sizeof(scratch) - 4)) {
 			/* Flush buffer */
 			if(cb(scratch, p - scratch, app_key) < 0)
@@ -208,8 +223,8 @@ INTEGER_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 struct e2v_key {
 	const char *start;
 	const char *stop;
-	const asn_INTEGER_enum_map_t *vemap;
-	const unsigned int *evmap;
+	asn_INTEGER_enum_map_t *vemap;
+	unsigned int *evmap;
 };
 static int
 INTEGER__compar_enum2value(const void *kp, const void *am) {
@@ -232,7 +247,7 @@ INTEGER__compar_enum2value(const void *kp, const void *am) {
 
 static const asn_INTEGER_enum_map_t *
 INTEGER_map_enum2value(asn_INTEGER_specifics_t *specs, const char *lstart, const char *lstop) {
-	const asn_INTEGER_enum_map_t *el_found;
+	asn_INTEGER_enum_map_t *el_found;
 	int count = specs ? specs->map_count : 0;
 	struct e2v_key key;
 	const char *lp;
@@ -307,71 +322,57 @@ INTEGER_st_prealloc(INTEGER_t *st, int min_size) {
 static enum xer_pbd_rval
 INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_buf, size_t chunk_size) {
 	INTEGER_t *st = (INTEGER_t *)sptr;
-	long dec_value=0;
-	long hex_value = 0;
+	long sign = 1;
+	long value;
 	const char *lp;
 	const char *lstart = (const char *)chunk_buf;
 	const char *lstop = lstart + chunk_size;
 	enum {
-		ST_LEADSPACE,
+		ST_SKIPSPACE,
 		ST_SKIPSPHEX,
 		ST_WAITDIGITS,
 		ST_DIGITS,
-		ST_DIGITS_TRAILSPACE,
 		ST_HEXDIGIT1,
 		ST_HEXDIGIT2,
-		ST_HEXDIGITS_TRAILSPACE,
 		ST_HEXCOLON,
-		ST_END_ENUM,
-		ST_UNEXPECTED
-	} state = ST_LEADSPACE;
-	const char *dec_value_start = 0; /* INVARIANT: always !0 in ST_DIGITS */
-	const char *dec_value_end = 0;
+		ST_EXTRASTUFF
+	} state = ST_SKIPSPACE;
 
 	if(chunk_size)
 		ASN_DEBUG("INTEGER body %ld 0x%2x..0x%2x",
 			(long)chunk_size, *lstart, lstop[-1]);
 
-	if(INTEGER_st_prealloc(st, (chunk_size/3) + 1))
-		return XPBD_SYSTEM_FAILURE;
-
 	/*
 	 * We may have received a tag here. It will be processed inline.
 	 * Use strtoul()-like code and serialize the result.
 	 */
-	for(lp = lstart; lp < lstop; lp++) {
+	for(value = 0, lp = lstart; lp < lstop; lp++) {
 		int lv = *lp;
 		switch(lv) {
 		case 0x09: case 0x0a: case 0x0d: case 0x20:
 			switch(state) {
-			case ST_LEADSPACE:
-			case ST_DIGITS_TRAILSPACE:
-			case ST_HEXDIGITS_TRAILSPACE:
+			case ST_SKIPSPACE:
 			case ST_SKIPSPHEX:
 				continue;
-			case ST_DIGITS:
-				dec_value_end = lp;
-				state = ST_DIGITS_TRAILSPACE;
-				continue;
 			case ST_HEXCOLON:
-				state = ST_HEXDIGITS_TRAILSPACE;
-				continue;
+				if(xer_is_whitespace(lp, lstop - lp)) {
+					lp = lstop - 1;
+					continue;
+				}
+				break;
 			default:
 				break;
 			}
 			break;
 		case 0x2d:	/* '-' */
-			if(state == ST_LEADSPACE) {
-				dec_value = 0;
-				dec_value_start = lp;
+			if(state == ST_SKIPSPACE) {
+				sign = -1;
 				state = ST_WAITDIGITS;
 				continue;
 			}
 			break;
 		case 0x2b:	/* '+' */
-			if(state == ST_LEADSPACE) {
-				dec_value = 0;
-				dec_value_start = lp;
+			if(state == ST_SKIPSPACE) {
 				state = ST_WAITDIGITS;
 				continue;
 			}
@@ -379,32 +380,48 @@ INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34:
 		case 0x35: case 0x36: case 0x37: case 0x38: case 0x39:
 			switch(state) {
-			case ST_DIGITS: continue;
+			case ST_DIGITS: break;
 			case ST_SKIPSPHEX:	/* Fall through */
 			case ST_HEXDIGIT1:
-				hex_value = (lv - 0x30) << 4;
+				value = (lv - 0x30) << 4;
 				state = ST_HEXDIGIT2;
 				continue;
 			case ST_HEXDIGIT2:
-				hex_value += (lv - 0x30);
+				value += (lv - 0x30);
 				state = ST_HEXCOLON;
-				st->buf[st->size++] = (uint8_t)hex_value;
+				st->buf[st->size++] = (uint8_t)value;
 				continue;
 			case ST_HEXCOLON:
 				return XPBD_BROKEN_ENCODING;
-			case ST_LEADSPACE:
-				dec_value = 0;
-				dec_value_start = lp;
-				/* FALL THROUGH */
-			case ST_WAITDIGITS:
-				state = ST_DIGITS;
-				continue;
 			default:
+				state = ST_DIGITS;
 				break;
 			}
-			break;
-		case 0x3c:	/* '<', start of XML encoded enumeration */
-			if(state == ST_LEADSPACE) {
+
+		    {
+			long new_value = value * 10;
+
+			if(new_value / 10 != value)
+				/* Overflow */
+				return XPBD_DECODER_LIMIT;
+
+			value = new_value + (lv - 0x30);
+			/* Check for two's complement overflow */
+			if(value < 0) {
+				/* Check whether it is a LONG_MIN */
+				if(sign == -1
+				&& (unsigned long)value
+						== ~((unsigned long)-1 >> 1)) {
+					sign = 1;
+				} else {
+					/* Overflow */
+					return XPBD_DECODER_LIMIT;
+				}
+			}
+		    }
+			continue;
+		case 0x3c:	/* '<' */
+			if(state == ST_SKIPSPACE) {
 				const asn_INTEGER_enum_map_t *el;
 				el = INTEGER_map_enum2value(
 					(asn_INTEGER_specifics_t *)
@@ -412,8 +429,8 @@ INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 				if(el) {
 					ASN_DEBUG("Found \"%s\" => %ld",
 						el->enum_name, el->nat_value);
-					dec_value = el->nat_value;
-					state = ST_END_ENUM;
+					state = ST_DIGITS;
+					value = el->nat_value;
 					lp = lstop - 1;
 					continue;
 				}
@@ -431,12 +448,13 @@ INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 				 * places as a decimal value.
 				 * Switch decoding mode. */
 				ASN_DEBUG("INTEGER re-evaluate as hex form");
+				if(INTEGER_st_prealloc(st, (chunk_size/3) + 1))
+					return XPBD_SYSTEM_FAILURE;
 				state = ST_SKIPSPHEX;
-				dec_value_start = 0;
 				lp = lstart - 1;
 				continue;
 			} else {
-				ASN_DEBUG("state %d at %ld", state, (long)(lp - lstart));
+				ASN_DEBUG("state %d at %d", state, lp - lstart);
 				break;
 			}
 		/* [A-Fa-f] */
@@ -444,23 +462,24 @@ INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 		case 0x61:case 0x62:case 0x63:case 0x64:case 0x65:case 0x66:
 			switch(state) {
 			case ST_SKIPSPHEX:
-			case ST_LEADSPACE: /* Fall through */
+			case ST_SKIPSPACE: /* Fall through */
 			case ST_HEXDIGIT1:
-				hex_value = lv - ((lv < 0x61) ? 0x41 : 0x61);
-				hex_value += 10;
-				hex_value <<= 4;
+				value = lv - ((lv < 0x61) ? 0x41 : 0x61);
+				value += 10;
+				value <<= 4;
 				state = ST_HEXDIGIT2;
 				continue;
 			case ST_HEXDIGIT2:
-				hex_value += lv - ((lv < 0x61) ? 0x41 : 0x61);
-				hex_value += 10;
-				st->buf[st->size++] = (uint8_t)hex_value;
+				value += lv - ((lv < 0x61) ? 0x41 : 0x61);
+				value += 10;
+				st->buf[st->size++] = (uint8_t)value;
 				state = ST_HEXCOLON;
 				continue;
 			case ST_DIGITS:
 				ASN_DEBUG("INTEGER re-evaluate as hex form");
+				if(INTEGER_st_prealloc(st, (chunk_size/3) + 1))
+					return XPBD_SYSTEM_FAILURE;
 				state = ST_SKIPSPHEX;
-				dec_value_start = 0;
 				lp = lstart - 1;
 				continue;
 			default:
@@ -470,54 +489,39 @@ INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 		}
 
 		/* Found extra non-numeric stuff */
-		ASN_DEBUG("INTEGER :: Found non-numeric 0x%2x at %ld",
-			lv, (long)(lp - lstart));
-		state = ST_UNEXPECTED;
+		ASN_DEBUG("Found non-numeric 0x%2x at %d",
+			lv, lp - lstart);
+		state = ST_EXTRASTUFF;
 		break;
 	}
 
 	switch(state) {
-	case ST_END_ENUM:
-		/* Got a complete and valid enumeration encoded as a tag. */
-		break;
 	case ST_DIGITS:
-		dec_value_end = lstop;
-		/* FALL THROUGH */
-	case ST_DIGITS_TRAILSPACE:
-		/* The last symbol encountered was a digit. */
-		switch(asn_strtol_lim(dec_value_start, &dec_value_end, &dec_value)) {
-		case ASN_STRTOL_OK:
-			break;
-		case ASN_STRTOL_ERROR_RANGE:
-			return XPBD_DECODER_LIMIT;
-		case ASN_STRTOL_ERROR_INVAL:
-		case ASN_STRTOL_EXPECT_MORE:
-		case ASN_STRTOL_EXTRA_DATA:
-			return XPBD_BROKEN_ENCODING;
-		}
+		/* Everything is cool */
 		break;
 	case ST_HEXCOLON:
-	case ST_HEXDIGITS_TRAILSPACE:
 		st->buf[st->size] = 0;	/* Just in case termination */
 		return XPBD_BODY_CONSUMED;
 	case ST_HEXDIGIT1:
 	case ST_HEXDIGIT2:
 	case ST_SKIPSPHEX:
 		return XPBD_BROKEN_ENCODING;
-	case ST_LEADSPACE:
-		/* Content not found */
-		return XPBD_NOT_BODY_IGNORE;
-	case ST_WAITDIGITS:
-	case ST_UNEXPECTED:
-		ASN_DEBUG("INTEGER: No useful digits (state %d)", state);
-		return XPBD_BROKEN_ENCODING;	/* No digits */
+	default:
+		if(xer_is_whitespace(lp, lstop - lp)) {
+			if(state != ST_EXTRASTUFF)
+				return XPBD_NOT_BODY_IGNORE;
+			break;
+		} else {
+			ASN_DEBUG("INTEGER: No useful digits (state %d)",
+				state);
+			return XPBD_BROKEN_ENCODING;	/* No digits */
+		}
+		break;
 	}
 
-	/*
-	 * Convert the result of parsing of enumeration or a straight
-	 * decimal value into a BER representation.
-	 */
-	if(asn_long2INTEGER(st, dec_value))
+	value *= sign;	/* Change sign, if needed */
+
+	if(asn_long2INTEGER(st, value))
 		return XPBD_SYSTEM_FAILURE;
 
 	return XPBD_BODY_CONSUMED;
@@ -551,8 +555,6 @@ INTEGER_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 
 	_ASN_ENCODED_OK(er);
 }
-
-#ifndef	ASN_DISABLE_PER_SUPPORT
 
 asn_dec_rval_t
 INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
@@ -595,35 +597,30 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		}
 	}
 
-	/* X.691-2008/11, #13.2.2, constrained whole number */
+	/* X.691, #12.2.2 */
 	if(ct && ct->flags != APC_UNCONSTRAINED) {
-		/* #11.5.6 */
+		/* #10.5.6 */
 		ASN_DEBUG("Integer with range %d bits", ct->range_bits);
 		if(ct->range_bits >= 0) {
-			if((size_t)ct->range_bits > 8 * sizeof(unsigned long))
-				_ASN_DECODE_FAILED;
-
-			if(specs && specs->field_unsigned) {
-				unsigned long uvalue;
-				if(uper_get_constrained_whole_number(pd,
-					&uvalue, ct->range_bits))
-					_ASN_DECODE_STARVED;
-				ASN_DEBUG("Got value %lu + low %ld",
-					uvalue, ct->lower_bound);
-				uvalue += ct->lower_bound;
-				if(asn_ulong2INTEGER(st, uvalue))
-					_ASN_DECODE_FAILED;
+			long value;
+			if(ct->range_bits == 32) {
+				long lhalf;
+				value = per_get_few_bits(pd, 16);
+				if(value < 0) _ASN_DECODE_STARVED;
+				lhalf = per_get_few_bits(pd, 16);
+				if(lhalf < 0) _ASN_DECODE_STARVED;
+				value = (value << 16) | lhalf;
 			} else {
-				unsigned long svalue;
-				if(uper_get_constrained_whole_number(pd,
-					&svalue, ct->range_bits))
-					_ASN_DECODE_STARVED;
-				ASN_DEBUG("Got value %ld + low %ld",
-					svalue, ct->lower_bound);
-				svalue += ct->lower_bound;
-				if(asn_long2INTEGER(st, svalue))
-					_ASN_DECODE_FAILED;
+				value = per_get_few_bits(pd, ct->range_bits);
+				if(value < 0) _ASN_DECODE_STARVED;
 			}
+			ASN_DEBUG("Got value %ld + low %ld",
+				value, ct->lower_bound);
+			value += ct->lower_bound;
+			if((specs && specs->field_unsigned)
+				? asn_ulong2INTEGER(st, value)
+				: asn_long2INTEGER(st, value))
+				_ASN_DECODE_FAILED;
 			return rval;
 		}
 	} else {
@@ -730,14 +727,22 @@ INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
 	}
 
 
-	/* X.691-11/2008, #13.2.2, test if constrained whole number */
+	/* X.691, #12.2.2 */
 	if(ct && ct->range_bits >= 0) {
-		/* #11.5.6 -> #11.3 */
-		ASN_DEBUG("Encoding integer %ld (%lu) with range %d bits",
-			value, value - ct->lower_bound, ct->range_bits);
-		unsigned long v = value - ct->lower_bound;
-		if(uper_put_constrained_whole_number_u(po, v, ct->range_bits))
-			_ASN_ENCODE_FAILED;
+		/* #10.5.6 */
+		ASN_DEBUG("Encoding integer with range %d bits",
+			ct->range_bits);
+		if(ct->range_bits == 32) {
+			/* TODO: extend to >32 bits */
+			long v = value - ct->lower_bound;
+			if(per_put_few_bits(po, v >> 1, 31)
+			|| per_put_few_bits(po, v, 1))
+				_ASN_ENCODE_FAILED;
+		} else {
+			if(per_put_few_bits(po, value - ct->lower_bound,
+				ct->range_bits))
+				_ASN_ENCODE_FAILED;
+		}
 		_ASN_ENCODED_OK(er);
 	}
 
@@ -758,8 +763,6 @@ INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
 
 	_ASN_ENCODED_OK(er);
 }
-
-#endif	/* ASN_DISABLE_PER_SUPPORT */
 
 int
 asn_INTEGER2long(const INTEGER_t *iptr, long *lptr) {
@@ -932,92 +935,3 @@ asn_long2INTEGER(INTEGER_t *st, long value) {
 
 	return 0;
 }
-
-/*
- * This function is going to be DEPRECATED soon.
- */
-enum asn_strtol_result_e
-asn_strtol(const char *str, const char *end, long *lp) {
-    const char *endp = end;
-
-    switch(asn_strtol_lim(str, &endp, lp)) {
-    case ASN_STRTOL_ERROR_RANGE:
-        return ASN_STRTOL_ERROR_RANGE;
-    case ASN_STRTOL_ERROR_INVAL:
-        return ASN_STRTOL_ERROR_INVAL;
-    case ASN_STRTOL_EXPECT_MORE:
-        return ASN_STRTOL_ERROR_INVAL;  /* Retain old behavior */
-    case ASN_STRTOL_OK:
-        return ASN_STRTOL_OK;
-    case ASN_STRTOL_EXTRA_DATA:
-        return ASN_STRTOL_ERROR_INVAL;  /* Retain old behavior */
-    }
-
-    return ASN_STRTOL_ERROR_INVAL;  /* Retain old behavior */
-}
-
-/*
- * Parse the number in the given string until the given *end position,
- * returning the position after the last parsed character back using the
- * same (*end) pointer.
- * WARNING: This behavior is different from the standard strtol(3).
- */
-enum asn_strtol_result_e
-asn_strtol_lim(const char *str, const char **end, long *lp) {
-	int sign = 1;
-	long l;
-
-	const long upper_boundary = LONG_MAX / 10;
-	long last_digit_max = LONG_MAX % 10;
-
-	if(str >= *end) return ASN_STRTOL_ERROR_INVAL;
-
-	switch(*str) {
-	case '-':
-		last_digit_max++;
-		sign = -1;
-	case '+':
-		str++;
-		if(str >= *end) {
-			*end = str;
-			return ASN_STRTOL_EXPECT_MORE;
-		}
-	}
-
-	for(l = 0; str < (*end); str++) {
-		switch(*str) {
-		case 0x30: case 0x31: case 0x32: case 0x33: case 0x34:
-		case 0x35: case 0x36: case 0x37: case 0x38: case 0x39: {
-			int d = *str - '0';
-			if(l < upper_boundary) {
-				l = l * 10 + d;
-			} else if(l == upper_boundary) {
-				if(d <= last_digit_max) {
-					if(sign > 0) {
-						l = l * 10 + d;
-					} else {
-						sign = 1;
-						l = -l * 10 - d;
-					}
-				} else {
-					*end = str;
-					return ASN_STRTOL_ERROR_RANGE;
-				}
-			} else {
-				*end = str;
-				return ASN_STRTOL_ERROR_RANGE;
-			}
-		    }
-		    continue;
-		default:
-		    *end = str;
-		    *lp = sign * l;
-		    return ASN_STRTOL_EXTRA_DATA;
-		}
-	}
-
-	*end = str;
-	*lp = sign * l;
-	return ASN_STRTOL_OK;
-}
-

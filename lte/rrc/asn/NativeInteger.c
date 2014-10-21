@@ -16,7 +16,7 @@
 /*
  * NativeInteger basic type description.
  */
-static const ber_tlv_tag_t asn_DEF_NativeInteger_tags[] = {
+static ber_tlv_tag_t asn_DEF_NativeInteger_tags[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (2 << 2))
 };
 asn_TYPE_descriptor_t asn_DEF_NativeInteger = {
@@ -107,7 +107,7 @@ NativeInteger_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 		tmp.size = length;
 
 		if((specs&&specs->field_unsigned)
-			? asn_INTEGER2ulong(&tmp, (unsigned long *)&l) /* sic */
+			? asn_INTEGER2ulong(&tmp, &l)
 			: asn_INTEGER2long(&tmp, &l)) {
 			rval.code = RC_FAIL;
 			rval.consumed = 0;
@@ -187,7 +187,7 @@ NativeInteger_decode_xer(asn_codec_ctx_t *opt_codec_ctx,
 	if(rval.code == RC_OK) {
 		long l;
 		if((specs&&specs->field_unsigned)
-			? asn_INTEGER2ulong(&st, (unsigned long *)&l) /* sic */
+			? asn_INTEGER2ulong(&st, &l)
 			: asn_INTEGER2long(&st, &l)) {
 			rval.code = RC_FAIL;
 			rval.consumed = 0;
@@ -255,7 +255,7 @@ NativeInteger_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
 				   &tmpintptr, pd);
 	if(rval.code == RC_OK) {
 		if((specs&&specs->field_unsigned)
-			? asn_INTEGER2ulong(&tmpint, (unsigned long *)native)
+			? asn_INTEGER2ulong(&tmpint, native)
 			: asn_INTEGER2long(&tmpint, native))
 			rval.code = RC_FAIL;
 		else

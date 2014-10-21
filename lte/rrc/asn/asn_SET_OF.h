@@ -39,7 +39,7 @@ LIBLTE_API int  asn_set_add(void *asn_set_of_x, void *ptr);
  * If _do_free is given AND the (*free) is initialized, the element
  * will be freed using the custom (*free) function as well.
  */
-void asn_set_del(void *asn_set_of_x, int number, int _do_free);
+LIBLTE_API void asn_set_del(void *asn_set_of_x, int number, int _do_free);
 
 /*
  * Empty the contents of the set. Will free the elements, if (*free) is given.

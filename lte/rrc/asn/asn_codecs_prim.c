@@ -4,7 +4,6 @@
  */
 #include <asn_internal.h>
 #include <asn_codecs_prim.h>
-#include <errno.h>
 
 /*
  * Decode an always-primitive type.
@@ -15,7 +14,7 @@ ber_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
 	void **sptr, const void *buf_ptr, size_t size, int tag_mode) {
 	ASN__PRIMITIVE_TYPE_t *st = (ASN__PRIMITIVE_TYPE_t *)*sptr;
 	asn_dec_rval_t rval;
-	ber_tlv_len_t length = 0; // =0 to avoid [incorrect] warning.
+	ber_tlv_len_t length;
 
 	/*
 	 * If the structure is not there, allocate it.
@@ -143,26 +142,20 @@ struct xdp_arg_s {
 	int want_more;
 };
 
-/*
- * Since some kinds of primitive values can be encoded using value-specific
- * tags (<MINUS-INFINITY>, <enum-element>, etc), the primitive decoder must
- * be supplied with such tags to parse them as needed.
- */
+
 static int
 xer_decode__unexpected_tag(void *key, const void *chunk_buf, size_t chunk_size) {
 	struct xdp_arg_s *arg = (struct xdp_arg_s *)key;
 	enum xer_pbd_rval bret;
 
-	/*
-	 * The chunk_buf is guaranteed to start at '<'.
-	 */
-	assert(chunk_size && ((const char *)chunk_buf)[0] == 0x3c);
-
-	/*
-	 * Decoding was performed once already. Prohibit doing it again.
-	 */
-	if(arg->decoded_something)
+	if(arg->decoded_something) {
+		if(xer_is_whitespace(chunk_buf, chunk_size))
+			return 0;	/* Skip it. */
+		/*
+		 * Decoding was done once already. Prohibit doing it again.
+		 */
 		return -1;
+	}
 
 	bret = arg->prim_body_decoder(arg->type_descriptor,
 		arg->struct_key, chunk_buf, chunk_size);
@@ -183,20 +176,13 @@ xer_decode__unexpected_tag(void *key, const void *chunk_buf, size_t chunk_size) 
 }
 
 static ssize_t
-xer_decode__primitive_body(void *key, const void *chunk_buf, size_t chunk_size, int have_more) {
+xer_decode__body(void *key, const void *chunk_buf, size_t chunk_size, int have_more) {
 	struct xdp_arg_s *arg = (struct xdp_arg_s *)key;
 	enum xer_pbd_rval bret;
-	size_t lead_wsp_size;
 
 	if(arg->decoded_something) {
-		if(xer_whitespace_span(chunk_buf, chunk_size) == chunk_size) {
-			/*
-			 * Example:
-			 * "<INTEGER>123<!--/--> </INTEGER>"
-			 *                      ^- chunk_buf position.
-			 */
+		if(xer_is_whitespace(chunk_buf, chunk_size))
 			return chunk_size;
-		}
 		/*
 		 * Decoding was done once already. Prohibit doing it again.
 		 */
@@ -216,10 +202,6 @@ xer_decode__primitive_body(void *key, const void *chunk_buf, size_t chunk_size, 
 		return -1;
 	}
 
-	lead_wsp_size = xer_whitespace_span(chunk_buf, chunk_size);
-	chunk_buf = (const char *)chunk_buf + lead_wsp_size;
-	chunk_size -= lead_wsp_size;
-
 	bret = arg->prim_body_decoder(arg->type_descriptor,
 		arg->struct_key, chunk_buf, chunk_size);
 	switch(bret) {
@@ -232,7 +214,7 @@ xer_decode__primitive_body(void *key, const void *chunk_buf, size_t chunk_size, 
 		arg->decoded_something = 1;
 		/* Fall through */
 	case XPBD_NOT_BODY_IGNORE:	/* Safe to proceed further */
-		return lead_wsp_size + chunk_size;
+		return chunk_size;
 	}
 
 	return -1;
@@ -270,7 +252,7 @@ xer_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
 
 	rc = xer_decode_general(opt_codec_ctx, &s_ctx, &s_arg,
 		xml_tag, buf_ptr, size,
-		xer_decode__unexpected_tag, xer_decode__primitive_body);
+		xer_decode__unexpected_tag, xer_decode__body);
 	switch(rc.code) {
 	case RC_OK:
 		if(!s_arg.decoded_something) {

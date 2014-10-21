@@ -206,7 +206,7 @@ ber_check_tags(asn_codec_ctx_t *opt_codec_ctx,
 		 */
 		len_len = ber_fetch_length(tlv_constr,
 			(const char *)ptr + tag_len, size - tag_len, &tlv_len);
-		ASN_DEBUG("Fetching len = %ld", (long)len_len);
+		ASN_DEBUG("Fetchinig len = %ld", (long)len_len);
 		switch(len_len) {
 		case -1: RETURN(RC_FAIL);
 		case 0: RETURN(RC_WMORE);

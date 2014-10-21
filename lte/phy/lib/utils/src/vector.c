@@ -236,6 +236,15 @@ void vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
+void vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len) {
+  int i;
+  fprintf(stream, "[");
+  for (i=0;i<len;i++) {
+    fprintf(stream, "%02x ", x[i]);
+  }
+  fprintf(stream, "];\n");
+}
+
 void vec_fprint_i(FILE *stream, int *x, uint32_t len) {
   int i;
   fprintf(stream, "[");
@@ -246,15 +255,16 @@ void vec_fprint_i(FILE *stream, int *x, uint32_t len) {
 }
 
 void vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
-  uint32_t i, nbytes, byte;
+  uint32_t i, nbytes; 
+  uint8_t byte;
   nbytes = len/8;
   fprintf(stream, "[", len);
   for (i=0;i<nbytes;i++) {
-    byte = bit_unpack(&x, 8);
+    byte = (uint8_t) bit_unpack(&x, 8);
     fprintf(stream, "%02x ", byte);
   }
   if (len%8) {
-    byte = bit_unpack(&x, len%8);
+    byte = (uint8_t) bit_unpack(&x, len%8);
     fprintf(stream, "%02x ", byte);
   }
   fprintf(stream, "];\n");

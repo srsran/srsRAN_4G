@@ -4,7 +4,6 @@
  */
 #include <asn_internal.h>
 #include <asn_SET_OF.h>
-#include <errno.h>
 
 /*
  * Add another element into the set.
@@ -21,6 +20,8 @@ asn_set_add(void *asn_set_of_x, void *ptr) {
 	/*
 	 * Make sure there's enough space to insert an element.
 	 */
+	ASN_DEBUG("SET ADD: count %d, size %d",as->count,as->size);
+
 	if(as->count == as->size) {
 		int _newsize = as->size ? (as->size << 1) : 4;
 		void *_new_arr;

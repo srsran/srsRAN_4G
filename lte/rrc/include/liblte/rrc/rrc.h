@@ -38,8 +38,10 @@
 
 #include "liblte/config.h"
 
-#include "liblte/rrc/rrc_msg/bcch.h"
-
+#include "liblte/rrc/messages/bcch.h"
+#include "liblte/rrc/messages/sib1.h"
+#include "liblte/rrc/common/rrc_common.h"
+      
 #ifdef __cplusplus
 }
 #endif

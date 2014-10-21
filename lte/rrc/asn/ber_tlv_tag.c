@@ -4,7 +4,6 @@
  */
 #include <asn_internal.h>
 #include <ber_tlv_tag.h>
-#include <errno.h>
 
 ssize_t
 ber_fetch_tag(const void *ptr, size_t size, ber_tlv_tag_t *tag_r) {
@@ -56,7 +55,6 @@ ber_fetch_tag(const void *ptr, size_t size, ber_tlv_tag_t *tag_r) {
 
 	return 0;	/* Want more */
 }
-
 
 ssize_t
 ber_tlv_tag_fwrite(ber_tlv_tag_t tag, FILE *f) {
