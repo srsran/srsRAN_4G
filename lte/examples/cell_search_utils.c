@@ -75,7 +75,7 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
     
     DEBUG("Calling ue_mib_decode() %d/%d\n", nof_frames, nof_frames_total);
     
-    n = ue_mib_decode(&uemib, buffer, flen, bch_payload, nof_tx_ports, sfn_offset);
+    n = ue_mib_decode(&uemib, buffer, flen);
     if (n == LIBLTE_ERROR || n == LIBLTE_ERROR_INVALID_INPUTS) {
       fprintf(stderr, "Error calling ue_mib_decode()\n");
       goto free_and_exit;
@@ -93,6 +93,7 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
   
   if (n == MIB_FOUND) {
     printf("\n\nMIB decoded in %d ms (%d half frames)\n", nof_frames*5, nof_frames);
+    ue_mib_get_payload(&uemib, bch_payload, nof_tx_ports, sfn_offset);
     ret = LIBLTE_SUCCESS;
   } else {
     ret = LIBLTE_ERROR;
