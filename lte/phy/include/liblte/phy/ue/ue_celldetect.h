@@ -106,9 +106,13 @@ LIBLTE_API void ue_celldetect_reset(ue_celldetect_t *q);
 
 LIBLTE_API int ue_celldetect_scan(ue_celldetect_t *q,
                                   cf_t *signal, 
-                                  uint32_t nsamples,
-                                  ue_celldetect_result_t *found_cell,
-                                  uint32_t N_id_2);
+                                  uint32_t nsamples);
+
+LIBLTE_API int ue_celldetect_set_N_id_2(ue_celldetect_t *q, 
+                                        uint32_t N_id_2);
+
+LIBLTE_API void ue_celldetect_get_cell(ue_celldetect_t * q, 
+                                       ue_celldetect_result_t *found_cell); 
 
 LIBLTE_API int ue_celldetect_set_nof_frames_total(ue_celldetect_t *q, 
                                                    uint32_t nof_frames);

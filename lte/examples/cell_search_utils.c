@@ -137,6 +137,8 @@ int find_cell(void *uhd, ue_celldetect_result_t *found_cell, uint32_t N_id_2)
   uint32_t flen = 4800; 
   int n; 
   
+  ue_celldetect_set_N_id_2(&cd, N_id_2);
+  
   do {
     if (cuhd_recv(uhd, buffer, flen, 1)<0) {
       fprintf(stderr, "Error receiving from USRP\n");
@@ -145,7 +147,7 @@ int find_cell(void *uhd, ue_celldetect_result_t *found_cell, uint32_t N_id_2)
 
     DEBUG("Scanning cell at N_id_2=%d\n",N_id_2);
     
-    n = ue_celldetect_scan(&cd, buffer, flen, found_cell, N_id_2);
+    n = ue_celldetect_scan(&cd, buffer, flen);
     switch(n) {
       case CS_FRAME_UNALIGNED:
         printf("Realigning frame\n");
@@ -157,6 +159,7 @@ int find_cell(void *uhd, ue_celldetect_result_t *found_cell, uint32_t N_id_2)
         ret = -1;
         goto free_and_exit;
       case CS_CELL_DETECTED:
+        ue_celldetect_get_cell(&cd, found_cell);
         if (found_cell->peak > 0) {
           printf("\n\tCELL ID: %d, CP: %s, Peak: %.2f, Mode: %d/%d\n", 
                 found_cell->cell_id, 

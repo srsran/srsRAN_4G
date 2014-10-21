@@ -28,9 +28,6 @@ LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
 IF(${CUHD_FIND} GREATER -1)
   ADD_EXECUTABLE(ue_sync_usrp ue_sync_usrp.c)
   TARGET_LINK_LIBRARIES(ue_sync_usrp lte_phy cuhd)
-
-  ADD_EXECUTABLE(ue_celldetect_mib_test ue_celldetect_mib_test.c)
-  TARGET_LINK_LIBRARIES(ue_celldetect_mib_test lte_phy cuhd)
 ENDIF(${CUHD_FIND} GREATER -1)
 
 IF(${GRAPHICS_FIND} EQUAL -1)
