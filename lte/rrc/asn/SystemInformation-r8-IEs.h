@@ -54,33 +54,35 @@ typedef enum SystemInformation_r8_IEs__sib_TypeAndInfo__Member_PR {
 /* Forward declarations */
 struct SystemInformation_v8a0_IEs;
 
+struct SystemInformation_r8_IEs__sib_TypeAndInfo__Member {
+        SystemInformation_r8_IEs__sib_TypeAndInfo__Member_PR present;
+        union SystemInformation_r8_IEs__sib_TypeAndInfo__Member_u {
+                SystemInformationBlockType2_t    sib2;
+                SystemInformationBlockType3_t    sib3;
+                SystemInformationBlockType4_t    sib4;
+                SystemInformationBlockType5_t    sib5;
+                SystemInformationBlockType6_t    sib6;
+                SystemInformationBlockType7_t    sib7;
+                SystemInformationBlockType8_t    sib8;
+                SystemInformationBlockType9_t    sib9;
+                SystemInformationBlockType10_t   sib10;
+                SystemInformationBlockType11_t   sib11;
+                /*
+                  * This type is extensible,
+                  * possible extensions are below.
+                  */
+                SystemInformationBlockType12_r9_t        sib12_v920;
+                SystemInformationBlockType13_r9_t        sib13_v920;
+        } choice;
+        
+        /* Context for parsing across buffer boundaries */
+        asn_struct_ctx_t _asn_ctx;
+};
+
 /* SystemInformation-r8-IEs */
 typedef struct SystemInformation_r8_IEs {
 	struct SystemInformation_r8_IEs__sib_TypeAndInfo {
-		A_SEQUENCE_OF(struct SystemInformation_r8_IEs__sib_TypeAndInfo__Member {
-			SystemInformation_r8_IEs__sib_TypeAndInfo__Member_PR present;
-			union SystemInformation_r8_IEs__sib_TypeAndInfo__Member_u {
-				SystemInformationBlockType2_t	 sib2;
-				SystemInformationBlockType3_t	 sib3;
-				SystemInformationBlockType4_t	 sib4;
-				SystemInformationBlockType5_t	 sib5;
-				SystemInformationBlockType6_t	 sib6;
-				SystemInformationBlockType7_t	 sib7;
-				SystemInformationBlockType8_t	 sib8;
-				SystemInformationBlockType9_t	 sib9;
-				SystemInformationBlockType10_t	 sib10;
-				SystemInformationBlockType11_t	 sib11;
-				/*
-				 * This type is extensible,
-				 * possible extensions are below.
-				 */
-				SystemInformationBlockType12_r9_t	 sib12_v920;
-				SystemInformationBlockType13_r9_t	 sib13_v920;
-			} choice;
-			
-			/* Context for parsing across buffer boundaries */
-			asn_struct_ctx_t _asn_ctx;
-		} ) list;
+		A_SEQUENCE_OF(struct SystemInformation_r8_IEs__sib_TypeAndInfo__Member) list;
 		
 		/* Context for parsing across buffer boundaries */
 		asn_struct_ctx_t _asn_ctx;
