@@ -73,11 +73,7 @@ typedef struct LIBLTE_API {
   
   uint64_t pkt_errors; 
   uint64_t pkts_total;
-  uint64_t nof_trials;
 
-  uint32_t sfn; 
-  bool pbch_decoded; 
-  
   uint16_t user_rnti; 
 }ue_dl_t;
 
@@ -92,6 +88,7 @@ LIBLTE_API int ue_dl_decode(ue_dl_t *q,
                              cf_t *sf_buffer, 
                              uint8_t *data, 
                              uint32_t sf_idx,
+                             uint32_t sfn, 
                              uint16_t rnti);
 
 #endif

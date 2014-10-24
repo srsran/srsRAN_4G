@@ -113,6 +113,9 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
   return cuhd_recv(h, data, nsamples, 1);
 }
 
+extern float mean_exec_time;
+
+enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state; 
 
 int main(int argc, char **argv) {
   int ret; 
@@ -121,8 +124,18 @@ int main(int argc, char **argv) {
   lte_cell_t cell;  
   int64_t sf_cnt;
   ue_sync_t ue_sync; 
+  ue_mib_t ue_mib; 
   void *uhd; 
   ue_dl_t ue_dl; 
+  lte_fft_t fft; 
+  chest_t chest; 
+  uint32_t nframes=0;
+  uint32_t nof_trials = 0; 
+  uint32_t sfn = 0; // system frame number
+  int n; 
+  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
+  uint32_t sfn_offset; 
+  float rssi=0, rsrp=0, rsrq=0;
 
   parse_args(&prog_args, argc, argv);
 
@@ -154,14 +167,15 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
+  if (ue_mib_init_known_cell(&ue_mib, cell, false)) {
+    fprintf(stderr, "Error initaiting UE MIB decoder\n");
+    exit(-1);
+  }
   pdsch_set_rnti(&ue_dl.pdsch, SIRNTI);
 
   /* Initialize subframe counter */
   sf_cnt = 0;
     
-  lte_fft_t fft; 
-  chest_t chest; 
-  
   if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initiating FFT\n");
     return -1;
@@ -172,12 +186,9 @@ int main(int argc, char **argv) {
   }
   
   int sf_re = SF_LEN_RE(cell.nof_prb, cell.cp);
+  printf("%d RE allocated\n", sf_re);
   cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
-  uint32_t nframes=0;
-  
-  bool sib1_decoded = false; 
-  int n; 
-  
+
   /* Main loop */
   while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
     
@@ -185,31 +196,59 @@ int main(int argc, char **argv) {
     if (ret < 0) {
       fprintf(stderr, "Error calling ue_sync_work()\n");
     }
-    
-    float rssi=0, rsrp=0, rsrq=0;
-    
+        
     /* iodev_receive returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
-
-      if (!sib1_decoded) {
-        n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), SIRNTI);
-        if (n < 0) {
-          fprintf(stderr, "\nError running receiver\n");fflush(stdout);
-          exit(-1);
-        } else if (n > 0) {
-          printf("\n\nDecoded SIB1 Message Len %d: ",n);
-          bit_unpack_vector(data, data_unpacked, n);
-          void *dlsch_msg = bcch_dlsch_unpack(data_unpacked, n);
-          if (dlsch_msg) {
-            printf("\n");fflush(stdout);
-            sib1_decoded = true;      
-            cell_access_info_t cell_info; 
-            bcch_dlsch_sib1_get_cell_access_info(dlsch_msg, &cell_info);
-            printf("Cell ID: 0x%x\n", cell_info.cell_id);
+      switch (state) {
+        case DECODE_MIB:
+          if (ue_sync_get_sfidx(&ue_sync) == 0) {
+            pbch_decode_reset(&ue_mib.pbch);
+            n = ue_mib_decode_aligned_frame(&ue_mib, &sf_buffer[ue_sync_sf_len(&ue_sync)/2], bch_payload_unpacked, NULL, &sfn_offset);
+            if (n < 0) {
+              fprintf(stderr, "Error decoding UE MIB\n");
+              exit(-1);
+            } else if (n == MIB_FOUND) {
+              bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
+              bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
+              printf("MIB found SFN: %d, offset: %d\n", sfn, sfn_offset);
+              sfn = (sfn<<2) + sfn_offset; 
+              state = DECODE_SIB; 
+            }
           }
-        }
-      } else {
-      /* Run FFT for all subframe data */
+          break;
+        case DECODE_SIB:
+          sfn=0;
+          /* If we are looking for SI Blocks, search only in appropiate places */
+          if ((sfn % 2) == 0 && (ue_sync_get_sfidx(&ue_sync) == 5)) {
+            n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, SIRNTI);
+            if (n < 0) {
+              fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
+              exit(-1);
+            } else if (n == 0) {
+              // Printf
+//              if (!(sf_cnt%20)) {
+                printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, ExecTime: %5.1f us, NOI: %.2f, Nof Trials: %4d, Nof Error:  %4d\r",
+                      ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
+                      mean_exec_time, pdsch_average_noi(&ue_dl.pdsch),
+                      (int) nof_trials, (int) ue_dl.pkt_errors);                
+ //             }
+              nof_trials++; 
+            } else {
+              printf("\n\nDecoded SIB1 Message Len %d: ",n);
+              bit_unpack_vector(data, data_unpacked, n);
+              void *dlsch_msg = bcch_dlsch_unpack(data_unpacked, n);
+              if (dlsch_msg) {
+                printf("\n");fflush(stdout);
+                cell_access_info_t cell_info; 
+                bcch_dlsch_sib1_get_cell_access_info(dlsch_msg, &cell_info);
+                printf("Cell ID: 0x%x\n", cell_info.cell_id);
+              }
+              state = MEASURE; 
+            }
+          }
+        break;
+      case MEASURE:
+        /* Run FFT for all subframe data */
         lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
         
         chest_measure_sf(&chest, sf_symbols, ue_sync_get_sfidx(&ue_sync));
@@ -226,12 +265,21 @@ int main(int argc, char **argv) {
                 10*log10(rsrp*1000)-prog_args.uhd_gain, 
               10*log10(rsrq));                
         }
-      }     
+        break;
+      }
+      if (ue_sync_get_sfidx(&ue_sync) == 0) {
+        sfn++; 
+        if (sfn == 1024) {
+          sfn = 0; 
+        }
+      }
     } else if (ret == 0) {
       printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
         sync_get_peak_value(&ue_sync.sfind), 
         ue_sync.frame_total_cnt, ue_sync.state);      
     }
+   
+        
     sf_cnt++;                  
   } // Main loop
 

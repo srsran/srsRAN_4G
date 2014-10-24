@@ -49,7 +49,7 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
   int ret = LIBLTE_ERROR; 
 
   uint32_t nof_frames = 0;
-  uint32_t flen = MIB_FRAME_SIZE;
+  uint32_t flen = MIB_FRAME_SIZE_SEARCH;
 
   cf_t *buffer = vec_malloc(sizeof(cf_t) * flen);
   if (!buffer) {
@@ -75,7 +75,7 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
     
     DEBUG("Calling ue_mib_decode() %d/%d\n", nof_frames, nof_frames_total);
     
-    n = ue_mib_decode(&uemib, buffer, flen);
+    n = ue_mib_sync_and_decode(&uemib, buffer, flen);
     if (n == LIBLTE_ERROR || n == LIBLTE_ERROR_INVALID_INPUTS) {
       fprintf(stderr, "Error calling ue_mib_decode()\n");
       goto free_and_exit;

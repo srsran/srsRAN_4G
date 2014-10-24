@@ -36,56 +36,61 @@
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
 
-#define FIND_FFTSIZE   128
-#define FIND_SFLEN     5*SF_LEN(FIND_FFTSIZE)
-
 #define MIB_FIND_THRESHOLD          0.0
 
 int ue_mib_init(ue_mib_t * q, 
                 uint32_t cell_id, 
                 lte_cp_t cp) 
 {
+  lte_cell_t cell; 
+  cell.nof_ports = MIB_MAX_PORTS;
+  cell.nof_prb = 6; 
+  cell.id = cell_id; 
+  cell.cp = cp; 
+  return ue_mib_init_known_cell(q, cell, true);
+}
+
+  int ue_mib_init_known_cell(ue_mib_t * q, 
+                             lte_cell_t cell, 
+                             bool do_sync) 
+{
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
 
-  if (q != NULL) {
+  if (q != NULL && 
+      cell.nof_ports <= MIB_MAX_PORTS) 
+  {
 
     ret = LIBLTE_ERROR;
-
-    lte_cell_t cell; 
-    cell.nof_ports = MIB_NOF_PORTS;
-    cell.nof_prb = 6; 
-    cell.id = cell_id; 
-    cell.cp = cp; 
-    
-    q->cell_id = cell_id; 
     
     bzero(q, sizeof(ue_mib_t));
     
-    q->slot1_symbols = malloc(SLOT_LEN_RE(6, cp) * sizeof(cf_t));
+    q->slot1_symbols = vec_malloc(SLOT_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!q->slot1_symbols) {
       perror("malloc");
       goto clean_exit;
     }
     
-    for (int i=0;i<MIB_NOF_PORTS;i++) {
-      q->ce[i] = malloc(SLOT_LEN_RE(6, cp) * sizeof(cf_t));
+    for (int i=0;i<cell.nof_ports;i++) {
+      q->ce[i] = vec_malloc(SLOT_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
       if (!q->ce[i]) {
         perror("malloc");
         goto clean_exit;
       }
     }
 
-    if (sync_init(&q->sfind, FIND_SFLEN, FIND_FFTSIZE)) {
-      goto clean_exit;
+    if (do_sync) {
+      if (sync_init(&q->sfind, 5*SF_LEN_PRB(cell.nof_prb), lte_symbol_sz(cell.nof_prb))) {
+        goto clean_exit;
+      }
+      
+      sync_set_threshold(&q->sfind, MIB_FIND_THRESHOLD);
+      sync_sss_en(&q->sfind, true);
+      sync_set_N_id_2(&q->sfind, cell.id % 3);
+      sync_cp_en(&q->sfind, false);
+      sync_set_cp(&q->sfind, cell.cp);
     }
     
-    sync_set_threshold(&q->sfind, MIB_FIND_THRESHOLD);
-    sync_sss_en(&q->sfind, true);
-    sync_set_N_id_2(&q->sfind, cell_id % 3);
-    sync_cp_en(&q->sfind, false);
-    sync_set_cp(&q->sfind, cp);
-
-    if (lte_fft_init(&q->fft, cp, cell.nof_prb)) {
+    if (lte_fft_init(&q->fft, cell.cp, cell.nof_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       goto clean_exit;
     }
@@ -114,7 +119,7 @@ void ue_mib_free(ue_mib_t * q)
   if (q->slot1_symbols) {
     free(q->slot1_symbols);
   }
-  for (int i=0;i<MIB_NOF_PORTS;i++) {
+  for (int i=0;i<MIB_MAX_PORTS;i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -139,13 +144,14 @@ void ue_mib_set_threshold(ue_mib_t * q, float threshold)
   sync_set_threshold(&q->sfind, threshold);
 }
 
-static int mib_decoder_run(ue_mib_t * q, cf_t *input)
+int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input, 
+                                uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
 {
   int ret = LIBLTE_SUCCESS;
 
   /* Run FFT for the slot symbols */
   lte_fft_run_slot(&q->fft, input, q->slot1_symbols);
-
+            
   /* Get channel estimates of slot #1 for each port */
   ret = chest_ce_slot(&q->chest, q->slot1_symbols, q->ce, 1);
   if (ret < 0) {
@@ -162,9 +168,9 @@ static int mib_decoder_run(ue_mib_t * q, cf_t *input)
   }
   
   /* Decode PBCH */
-  ret = pbch_decode(&q->pbch, q->slot1_symbols, q->ce, q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
+  ret = pbch_decode(&q->pbch, q->slot1_symbols, q->ce, bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
-    fprintf(stderr, "Error decoding PBCH\n");      
+    fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
   } else if (ret == 1) {
     INFO("MIB decoded: %u\n", q->frame_cnt/2);
     ue_mib_reset(q);
@@ -176,6 +182,7 @@ static int mib_decoder_run(ue_mib_t * q, cf_t *input)
   }    
   return ret;
 }
+
 int counter1=0,counter2=0,counter3=0,counter4=0;
 
 void ue_mib_get_payload(ue_mib_t *q,
@@ -192,9 +199,9 @@ void ue_mib_get_payload(ue_mib_t *q,
   }
 }
 
-int ue_mib_decode(ue_mib_t * q, 
-                  cf_t *signal, 
-                  uint32_t nsamples)
+int ue_mib_sync_and_decode(ue_mib_t * q, 
+                           cf_t *signal, 
+                           uint32_t nsamples)
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   uint32_t peak_idx=0;
@@ -204,23 +211,23 @@ int ue_mib_decode(ue_mib_t * q,
   if (q                 != NULL &&
       signal            != NULL) 
   {
-    if (nsamples < MIB_FRAME_SIZE) {
-      fprintf(stderr, "Error: nsamples must be greater than %d\n", MIB_FRAME_SIZE);
+    if (nsamples < MIB_FRAME_SIZE_SEARCH) {
+      fprintf(stderr, "Error: nsamples must be greater than %d\n", MIB_FRAME_SIZE_SEARCH);
       return LIBLTE_ERROR;
     }
     
     ret = LIBLTE_SUCCESS; 
     
-    if (nsamples % MIB_FRAME_SIZE) {
-      printf("Warning: nsamples must be a multiple of %d. Some samples will be ignored\n", MIB_FRAME_SIZE);
-      nsamples = (nsamples/MIB_FRAME_SIZE) * MIB_FRAME_SIZE;
+    if (nsamples % MIB_FRAME_SIZE_SEARCH) {
+      printf("Warning: nsamples must be a multiple of %d. Some samples will be ignored\n", MIB_FRAME_SIZE_SEARCH);
+      nsamples = (nsamples/MIB_FRAME_SIZE_SEARCH) * MIB_FRAME_SIZE_SEARCH;
     }
-    nof_input_frames = nsamples/MIB_FRAME_SIZE; 
+    nof_input_frames = nsamples/MIB_FRAME_SIZE_SEARCH; 
     
     for (uint32_t nf=0;nf<nof_input_frames;nf++) {
 
       /* Find peak and cell id */
-      ret = sync_find(&q->sfind, signal, nf*MIB_FRAME_SIZE, &peak_idx);
+      ret = sync_find(&q->sfind, signal, nf*MIB_FRAME_SIZE_SEARCH, &peak_idx);
       if (ret < 0) {
         fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
         return -1;
@@ -234,15 +241,15 @@ int ue_mib_decode(ue_mib_t * q,
       
       /* Check if we have space for reading the MIB and we are in Subframe #0 */
       if (ret                                    == 1        && 
-          nf*MIB_FRAME_SIZE + peak_idx + 960     <= nsamples &&
+          nf*MIB_FRAME_SIZE_SEARCH + peak_idx + MIB_FRAME_SIZE_SEARCH/10     <= nsamples &&
           sync_sss_detected(&q->sfind)                       && 
           sync_get_sf_idx(&q->sfind)             == 0) 
       {
         INFO("Trying to decode MIB\n",0);
-        ret = mib_decoder_run(q, &signal[nf*MIB_FRAME_SIZE+peak_idx]);
+        ret = ue_mib_decode_aligned_frame(q, &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx], q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
         counter3++;
       } else if ((ret == LIBLTE_SUCCESS && peak_idx != 0)   || 
-                 (ret == 1              && nf*MIB_FRAME_SIZE + peak_idx + 960 > nsamples)) 
+                 (ret == 1              && nf*MIB_FRAME_SIZE_SEARCH + peak_idx + MIB_FRAME_SIZE_SEARCH/10 > nsamples)) 
       {
         printf("Not enough space for PBCH\n",0);
         ret = MIB_FRAME_UNALIGNED; 

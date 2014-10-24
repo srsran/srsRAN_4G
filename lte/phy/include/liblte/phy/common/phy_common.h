@@ -29,6 +29,7 @@
 #ifndef _LTEBASE_
 #define _LTEBASE_
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include "liblte/config.h"
@@ -86,6 +87,9 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define SF_LEN(symbol_sz)       (2*SLOT_LEN(symbol_sz))
 #define SF_LEN_MAX              (SF_LEN(SYMBOL_SZ_MAX))
 
+#define SLOT_LEN_PRB(nof_prb)   (SLOT_LEN(lte_symbol_sz(nof_prb)))
+#define SF_LEN_PRB(nof_prb)     (SF_LEN(lte_symbol_sz(nof_prb)))
+
 #define SLOT_LEN_RE(nof_prb, cp)        (nof_prb*RE_X_RB*CP_NSYMB(cp))
 #define SF_LEN_RE(nof_prb, cp)          (2*SLOT_LEN_RE(nof_prb, cp))
 
@@ -138,6 +142,9 @@ LIBLTE_API enum band_geographical_area {
 };
 
 LIBLTE_API bool lte_cell_isvalid(lte_cell_t *cell);
+
+LIBLTE_API void lte_cell_fprint(FILE *stream, 
+                                lte_cell_t *cell); 
 
 LIBLTE_API bool lte_N_id_2_isvalid(uint32_t N_id_2);
 

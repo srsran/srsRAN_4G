@@ -232,6 +232,8 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
   {
     int peak_pos;
     
+    ret = LIBLTE_ERROR; 
+    
     if (peak_position) {
       *peak_position = 0; 
     }

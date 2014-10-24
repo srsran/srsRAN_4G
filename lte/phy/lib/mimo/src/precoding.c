@@ -77,7 +77,7 @@ int precoding_diversity(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports,
     }
     return 4 * i;
   } else {
-    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity\n");
+    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
     return -1;
   }
 }
@@ -180,7 +180,7 @@ int predecoding_diversity_zf(cf_t *y, cf_t *ce[MAX_PORTS], cf_t *x[MAX_LAYERS],
     }
     return i;
   } else {
-    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity\n");
+    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
     return -1;
   }
 }

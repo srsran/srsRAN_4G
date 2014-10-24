@@ -48,13 +48,12 @@ int ue_dl_init(ue_dl_t *q,
   {
     ret = LIBLTE_ERROR;
     
+    bzero(q, sizeof(ue_dl_t));
+    
     q->cell = cell; 
     q->user_rnti = user_rnti; 
     q->pkt_errors = 0;
-    q->pkts_total = 0; 
-    q->nof_trials = 0;
-    q->sfn = 0; 
-    q->pbch_decoded = false; 
+    q->pkts_total = 0;
     
     if (lte_fft_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -144,7 +143,7 @@ void ue_dl_free(ue_dl_t *q) {
 LIBLTE_API float mean_exec_time=0; 
 int frame_cnt=0;
 
-int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti) 
+int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32_t sfn, uint16_t rnti) 
 {
   uint32_t cfi, cfi_distance, i;
   ra_pdsch_t ra_dl;
@@ -154,7 +153,6 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16
   uint16_t crc_rem; 
   dci_format_t format; 
   int ret = LIBLTE_ERROR; 
-  cf_t *ce_slot1[MAX_PORTS];
   struct timeval t[3]; 
 
   /* Run FFT for all subframe data */
@@ -164,134 +162,108 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16
 
   /* Get channel estimates for each port */
   chest_ce_sf(&q->chest, q->sf_symbols, q->ce, sf_idx);
- 
+  
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, mean_exec_time, frame_cnt);
+
   frame_cnt++;
   
-  for (int i=0;i<MAX_PORTS;i++) {
-    ce_slot1[i] = &q->ce[i][SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
+  
+  /* First decode PCFICH and obtain CFI */
+  if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, sf_idx, &cfi, &cfi_distance)<0) {
+    fprintf(stderr, "Error decoding PCFICH\n");
+    return LIBLTE_ERROR;
   }
 
-  /* Decode PBCH if not yet decoded to obtain the System Frame Number (SFN) */
-  if (sf_idx == 0) {
-    // FIXME: There is no need to do this every frame!
-    pbch_decode_reset(&q->pbch);
-    if (pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)], ce_slot1, NULL, NULL, &q->sfn) == 1) {
-      q->pbch_decoded = true;
-      INFO("Decoded SFN: %d\n", q->sfn);
-    } else {
-      INFO("Not decoded MIB (SFN: %d)\n", q->sfn);
-      q->sfn++; 
-      if (q->sfn == 4) {
-        q->sfn = 0; 
-      }
-    }
+  INFO("Decoded CFI=%d with distance %d\n", cfi, cfi_distance);
+
+  if (regs_set_cfi(&q->regs, cfi)) {
+    fprintf(stderr, "Error setting CFI\n");
+    return LIBLTE_ERROR;
   }
-  /* If we are looking for SI Blocks, search only in appropiate places */
-  if (((rnti == SIRNTI && (q->sfn % 2) == 0 && sf_idx == 5) ||
-       rnti != SIRNTI))
-  {
+  
+  /* Generate PDCCH candidates */
+  if (rnti == SIRNTI) {
+    nof_locations = pdcch_common_locations(&q->pdcch, locations, 10, cfi);
+    format = Format1A; 
+  } else {
+    nof_locations = pdcch_ue_locations(&q->pdcch, locations, 10, sf_idx, cfi, q->user_rnti);    
+    format = Format1;
+  }
+
+  crc_rem = 0;
+  for (i=0;i<nof_locations && crc_rem != rnti;i++) {
+    if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, locations[i], sf_idx, cfi)) {
+      fprintf(stderr, "Error extracting LLRs\n");
+      return LIBLTE_ERROR;
+    }
+    if (pdcch_decode_msg(&q->pdcch, &dci_msg, format, &crc_rem)) {
+      fprintf(stderr, "Error decoding DCI msg\n");
+      return LIBLTE_ERROR;
+    }
+    INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
+  }
     
-    /* First decode PCFICH and obtain CFI */
-    if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, sf_idx, &cfi, &cfi_distance)<0) {
-      fprintf(stderr, "Error decoding PCFICH\n");
+  if (crc_rem == rnti) {
+    printf("Hem trobat\n");
+    if (dci_msg_to_ra_dl(&dci_msg, rnti, q->user_rnti, q->cell, cfi, &ra_dl)) {
+      fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
       return LIBLTE_ERROR;
     }
 
-    INFO("Decoded CFI=%d with distance %d\n", cfi, cfi_distance);
-
-    if (regs_set_cfi(&q->regs, cfi)) {
-      fprintf(stderr, "Error setting CFI\n");
-      return LIBLTE_ERROR;
-    }
-    
-    /* Generate PDCCH candidates */
+    uint32_t rvidx; 
     if (rnti == SIRNTI) {
-      nof_locations = pdcch_common_locations(&q->pdcch, locations, 10, cfi);
-      format = Format1A; 
+      switch((sfn%8)/2) {
+        case 0: 
+          rvidx = 0; 
+          break;
+        case 1:
+          rvidx = 2;
+          break;
+        case 2:
+          rvidx = 3;
+          break;
+        case 3:
+          rvidx = 1; 
+          break;
+      }
     } else {
-      nof_locations = pdcch_ue_locations(&q->pdcch, locations, 10, sf_idx, cfi, q->user_rnti);    
-      format = Format1;
+      rvidx = ra_dl.rv_idx;
     }
-
-
-    crc_rem = 0;
-    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, locations[i], sf_idx, cfi)) {
-        fprintf(stderr, "Error extracting LLRs\n");
+    
+    if (rvidx == 0) {
+      if (pdsch_harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
+        fprintf(stderr, "Error configuring HARQ process\n");
         return LIBLTE_ERROR;
       }
-      if (pdcch_decode_msg(&q->pdcch, &dci_msg, format, &crc_rem)) {
-        fprintf(stderr, "Error decoding DCI msg\n");
-        return LIBLTE_ERROR;
-      }
-      INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
     }
-      
-    if (crc_rem == rnti) {
-      if (dci_msg_to_ra_dl(&dci_msg, rnti, q->user_rnti, q->cell, cfi, &ra_dl)) {
-        fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-        return LIBLTE_ERROR;
-      }
-
-      uint32_t rvidx; 
-      if (rnti == SIRNTI) {
-        switch((q->sfn%8)/2) {
-          case 0: 
-            rvidx = 0; 
-            break;
-          case 1:
-            rvidx = 2;
-            break;
-          case 2:
-            rvidx = 3;
-            break;
-          case 3:
-            rvidx = 1; 
-            break;
-        }
-      } else {
-        rvidx = ra_dl.rv_idx;
-      }
-      
-      if (rvidx == 0) {
-        if (pdsch_harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
-          fprintf(stderr, "Error configuring HARQ process\n");
-          return LIBLTE_ERROR;
-        }
-      }
-      if (q->harq_process[0].mcs.mod > 0) {
-        ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, data, sf_idx, 
-            &q->harq_process[0], rvidx);
-        if (ret == LIBLTE_ERROR) {
-          if (rnti == SIRNTI && rvidx == 1) {
-            q->pkt_errors++;
-          } else if (rnti != SIRNTI) {
-            q->pkt_errors++;                
-          }            
-        } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
-          fprintf(stderr, "Error calling pdsch_decode()\n");
-          return LIBLTE_ERROR; 
-        } else if (ret == LIBLTE_SUCCESS) {
-          if (VERBOSE_ISINFO()) {
-            INFO("Decoded Message: ", 0);
-            vec_fprint_hex(stdout, data, ra_dl.mcs.tbs);
-          }
-        }
+    if (q->harq_process[0].mcs.mod > 0) {
+      ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, data, sf_idx, 
+          &q->harq_process[0], rvidx);
+      if (ret == LIBLTE_ERROR) {
         if (rnti == SIRNTI && rvidx == 1) {
-          q->pkts_total++;                      
+          q->pkt_errors++;
         } else if (rnti != SIRNTI) {
-          q->pkts_total++;                                
+          q->pkt_errors++;                
+        }            
+      } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
+        fprintf(stderr, "Error calling pdsch_decode()\n");
+        return LIBLTE_ERROR; 
+      } else if (ret == LIBLTE_SUCCESS) {
+        if (VERBOSE_ISINFO()) {
+          INFO("Decoded Message: ", 0);
+          vec_fprint_hex(stdout, data, ra_dl.mcs.tbs);
         }
       }
-    }
-    if (rnti == SIRNTI && (q->sfn%8) == 0) {
-      q->nof_trials++;      
+      if (rnti == SIRNTI && rvidx == 1) {
+        q->pkts_total++;                      
+      } else if (rnti != SIRNTI) {
+        q->pkts_total++;                                
+      }
     }
   }
-
+  
   if (crc_rem == rnti && ret == LIBLTE_SUCCESS) {        
     return ra_dl.mcs.tbs;    
   } else {

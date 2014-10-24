@@ -204,9 +204,12 @@ int main(int argc, char **argv) {
       break;
     }
     
+    fprintf(stderr, "Change in ue_dl API\n");
+    exit(-1);
+    
     /* iodev_receive returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
-      rlen = ue_dl_decode(&ue_dl, sf_buffer, data, iodev_get_sfidx(&iodev), prog_args.rnti);
+      rlen = ue_dl_decode(&ue_dl, sf_buffer, data, iodev_get_sfidx(&iodev), 0, prog_args.rnti);
       if (rlen < 0) {
         fprintf(stderr, "\nError running receiver\n");fflush(stdout);
         exit(-1);
@@ -220,11 +223,10 @@ int main(int argc, char **argv) {
 
       // Plot and Printf
       if (!(sf_cnt % 10)) {       
-        printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d/%4d, BLER: %.1e, Texec: %.2f\r",
+        printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d, BLER: %.1e, Texec: %.2f\r",
                 ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, 
                 pdsch_average_noi(&ue_dl.pdsch),
-                (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (int) ue_dl.nof_trials, 
-               (float) ue_dl.pkt_errors / ue_dl.pkts_total, 
+                (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total, 
                mean_exec_time);                
         
       }      

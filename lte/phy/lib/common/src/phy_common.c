@@ -65,6 +65,10 @@ bool lte_cell_isvalid(lte_cell_t *cell) {
   }
 }
 
+void lte_cell_fprint(FILE *stream, lte_cell_t *cell) {
+  fprintf(stream, "PCI: %d, CP: %s, PRB: %d, Ports: %d\n", cell->id, lte_cp_string(cell->cp), cell->nof_prb, cell->nof_ports);
+}
+
 bool lte_N_id_2_isvalid(uint32_t N_id_2) {
   if (N_id_2 < 3) {
     return true;

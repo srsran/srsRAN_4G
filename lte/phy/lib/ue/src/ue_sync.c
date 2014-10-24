@@ -68,7 +68,7 @@ int ue_sync_init(ue_sync_t *q,
 
     ue_sync_reset(q);
     
-    q->decode_sss_on_track = false; 
+    q->decode_sss_on_track = true; 
     q->stream = stream_handler;
     q->recv_callback = recv_callback;
     q->cell = cell;
@@ -111,6 +111,10 @@ clean_exit:
     ue_sync_free(q);
   }
   return ret; 
+}
+
+uint32_t ue_sync_sf_len(ue_sync_t *q) {
+  return CURRENT_SFLEN;
 }
 
 void ue_sync_free(ue_sync_t *q) {

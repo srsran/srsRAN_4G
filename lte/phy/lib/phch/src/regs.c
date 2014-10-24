@@ -573,6 +573,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, lte_cp_t cp) {
     case 4:
       return 2;
     default:
+      fprintf(stderr, "Invalid number of ports %d\n", nof_port);
       return LIBLTE_ERROR;
     }
     break;
@@ -585,6 +586,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, lte_cp_t cp) {
       return 2;
     }
   default:
+      fprintf(stderr, "Invalid symbol %d\n", symbol);
     return LIBLTE_ERROR;
   }
 }
@@ -697,7 +699,7 @@ int regs_init(regs_t *h, lte_cell_t cell) {
     for (i = 0; i < max_ctrl_symbols; i++) {
       n[i] = regs_num_x_symbol(i, h->cell.nof_ports, h->cell.cp);
       if (n[i] == -1) {
-        return -1;
+        goto clean_and_exit;
       }
       h->nof_regs += h->cell.nof_prb * n[i];
     }
@@ -752,7 +754,7 @@ int regs_init(regs_t *h, lte_cell_t cell) {
     ret = LIBLTE_SUCCESS;
   }
 clean_and_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret != LIBLTE_SUCCESS) {
     regs_free(h);
   }
   return ret;

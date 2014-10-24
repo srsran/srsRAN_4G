@@ -269,6 +269,8 @@ uint32_t pbch_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
 int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
     uint32_t nof_bits, uint32_t nof_ports) {
   int j;
+  
+  INFO("Trying to decode PBCH %d bits, %d ports, src: %d, dst: %d, n=%d\n", nof_bits, nof_ports, src, dst, n);
 
   memcpy(&q->temp[dst * nof_bits], &q->pbch_llr[src * nof_bits],
       n * nof_bits * sizeof(float));
@@ -290,6 +292,7 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
   /* FIXME: If channel estimates are zero, received LLR are NaN. Check and return error */
   for (j = 0; j < BCH_ENCODED_LEN; j++) {
     if (isnan(q->pbch_rm_f[j]) || isinf(q->pbch_rm_f[j])) {
+      printf("Some CE are NaN or Inf!\n");
       return LIBLTE_ERROR;
     }
   }
@@ -316,8 +319,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS],
                  uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
 {
   uint32_t src, dst, nb;
-  uint32_t nant_[3] = { 1, 2, 4 };
-  uint32_t na, nant;
+  uint32_t nant;
   int i;
   int nof_bits;
   cf_t *x[MAX_LAYERS];
@@ -360,38 +362,50 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS],
     ret = 0;
 
     /* Try decoding for 1 to cell.nof_ports antennas */
-    for (na = 0; na < q->cell.nof_ports && !ret; na++) {
-      nant = nant_[na];
+    for (nant = 1; nant <= q->cell.nof_ports && !ret; nant++) {
+      if (nant != 3) {
+        DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
 
-      DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
+        /* in conctrol channels, only diversity is supported */
+        if (nant == 1) {
+          /* no need for layer demapping */
+          predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d,
+              q->nof_symbols);
+        } else {
+          predecoding_diversity_zf(q->pbch_symbols[0], q->ce, x, nant,
+              q->nof_symbols);
+          layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
+        }
 
-      /* in conctrol channels, only diversity is supported */
-      if (nant == 1) {
-        /* no need for layer demapping */
-        predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d,
-            q->nof_symbols);
-      } else {
-        predecoding_diversity_zf(q->pbch_symbols[0], q->ce, x, nant,
-            q->nof_symbols);
-        layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
-      }
+        /* demodulate symbols */
+        demod_soft_sigma_set(&q->demod, 1.0);
+        demod_soft_demodulate(&q->demod, q->pbch_d,
+            &q->pbch_llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
 
-      /* demodulate symbols */
-      demod_soft_sigma_set(&q->demod, 1.0);
-      demod_soft_demodulate(&q->demod, q->pbch_d,
-          &q->pbch_llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
-
-      /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
-      * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
-      * We know they are ordered.
-      *
-      * FIXME: There are unnecessary checks because 2,3,4 have already been processed in the previous
-      * calls.
-      */
-      for (nb = 0; nb < q->frame_idx && !ret; nb++) {
-        for (dst = 0; (dst < 4 - nb) && !ret; dst++) {
-          for (src = 0; src < q->frame_idx - nb && !ret; src++) {
-            ret = pbch_decode_frame(q, src, dst, nb + 1, nof_bits, nant);            
+        /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
+        * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
+        * We know they are ordered.
+        *
+        * FIXME: There are unnecessary checks because 2,3,4 have already been processed in the previous
+        * calls.
+        */
+        for (nb = 0; nb < q->frame_idx && !ret; nb++) {
+          for (dst = 0; (dst < 4 - nb) && !ret; dst++) {
+            for (src = 0; src < q->frame_idx - nb && !ret; src++) {
+              ret = pbch_decode_frame(q, src, dst, nb + 1, nof_bits, nant);     
+              if (ret == 1) {
+                if (sfn_offset) {
+                  *sfn_offset = dst - src;
+                }
+                if (nof_tx_ports) {
+                  *nof_tx_ports = nant; 
+                }
+                if (bch_payload) {
+                  memcpy(bch_payload, q->data, sizeof(uint8_t) * BCH_PAYLOAD_LEN);      
+                  vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
+                }
+              }
+            }
           }
         }
       }
@@ -401,18 +415,6 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS],
     if (q->frame_idx == 4) {
       memmove(q->pbch_llr, &q->pbch_llr[nof_bits], nof_bits * 3 * sizeof(float));
       q->frame_idx = 3;
-    }
-  }
-  if (ret == 1) {
-    if (sfn_offset) {
-      *sfn_offset = dst - src;
-    }
-    if (nof_tx_ports) {
-      *nof_tx_ports = nant; 
-    }
-    if (bch_payload) {
-      memcpy(bch_payload, q->data, sizeof(uint8_t) * BCH_PAYLOAD_LEN);      
-      vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
     }
   }
   return ret;

@@ -56,8 +56,8 @@
 #include "liblte/phy/common/fft.h"
 
 
-#define MIB_NOF_PORTS           2
-#define MIB_FRAME_SIZE          9600
+#define MIB_MAX_PORTS            4
+#define MIB_FRAME_SIZE_SEARCH   9600
 
 #define MIB_FRAME_UNALIGNED     -3
 #define MIB_FOUND                1
@@ -65,11 +65,9 @@
 
 typedef struct LIBLTE_API {
   sync_t sfind;
-  
-  uint32_t cell_id; 
-  
+ 
   cf_t *slot1_symbols;
-  cf_t *ce[MIB_NOF_PORTS];
+  cf_t *ce[MIB_MAX_PORTS];
   
   lte_fft_t fft;
   chest_t chest; 
@@ -88,13 +86,23 @@ LIBLTE_API int ue_mib_init(ue_mib_t *q,
                            uint32_t cell_id, 
                            lte_cp_t cp);
 
+LIBLTE_API int ue_mib_init_known_cell(ue_mib_t *q, 
+                                      lte_cell_t cell, 
+                                      bool do_sync);
+
 LIBLTE_API void ue_mib_free(ue_mib_t *q);
 
 LIBLTE_API void ue_mib_reset(ue_mib_t *q);
 
-LIBLTE_API int ue_mib_decode(ue_mib_t *q,
-                             cf_t *signal, 
-                             uint32_t nsamples);
+LIBLTE_API int ue_mib_sync_and_decode(ue_mib_t *q,
+                                      cf_t *signal, 
+                                      uint32_t nsamples);
+
+LIBLTE_API int ue_mib_decode_aligned_frame(ue_mib_t * q, 
+                                           cf_t *input, 
+                                           uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                                           uint32_t *nof_tx_ports, 
+                                           uint32_t *sfn_offset); 
 
 LIBLTE_API void ue_mib_get_payload(ue_mib_t *q,
                                    uint8_t bch_payload[BCH_PAYLOAD_LEN], 

@@ -99,6 +99,8 @@ LIBLTE_API int ue_sync_init(ue_sync_t *q,
 
 LIBLTE_API void ue_sync_free(ue_sync_t *q);
 
+LIBLTE_API uint32_t ue_sync_sf_len(ue_sync_t *q); 
+
 LIBLTE_API int ue_sync_get_buffer(ue_sync_t *q, 
                                   cf_t **sf_symbols);
 
