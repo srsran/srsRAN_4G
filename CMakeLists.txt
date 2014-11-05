@@ -37,6 +37,7 @@ PROJECT (LIBLTE)
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
 INCLUDE(libLTEPackage) #setup cpack
+INCLUDE(BuildMex)
 
 include(CTest)
 set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
@@ -139,7 +140,6 @@ MACRO (APPEND_INTERNAL_LIST  LIST_NAME  VALUE)
       SET (${LIST_NAME} "${VALUE}" CACHE INTERNAL "Internal variable")
    ENDIF (${LIST_NAME})
 ENDMACRO (APPEND_INTERNAL_LIST)
-
 
 ########################################################################
 # Print summary

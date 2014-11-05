@@ -122,6 +122,9 @@ int precoding_type(cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_layers,
   return 0;
 }
 
+
+float y_mod[110*12*14];
+
 /* ZF detector */
 int predecoding_single_zf(cf_t *y, cf_t *ce, cf_t *x, int nof_symbols) {
   for (int i=0;i<nof_symbols;i++) {
@@ -129,7 +132,7 @@ int predecoding_single_zf(cf_t *y, cf_t *ce, cf_t *x, int nof_symbols) {
       ce[i] = 0.01;
     }
   }
-  vec_div_ccc(y, ce, x, nof_symbols);
+  vec_div_ccc(y, ce, y_mod, x, nof_symbols);
   return nof_symbols;
 }
 

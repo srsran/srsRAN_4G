@@ -96,7 +96,10 @@ LIBLTE_API cf_t vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len);
 LIBLTE_API float vec_dot_prod_fff(float *x, float *y, uint32_t len);
 
 /* z=x/y vector division (element-wise) */
-LIBLTE_API void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
+LIBLTE_API void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, uint32_t len);
+
+/* z=x/y vector division with mod(y)=1 (element-wise) */
+LIBLTE_API void vec_div_ccc_mod1(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 
 /* conjugate */
 LIBLTE_API void vec_conj_cc(cf_t *x, cf_t *y, uint32_t len);
@@ -113,6 +116,7 @@ LIBLTE_API void vec_quant_fuc(float *in, uint8_t *out, float gain, float offset,
 
 /* magnitude of each vector element */
 LIBLTE_API void vec_abs_cf(cf_t *x, float *abs, uint32_t len);
+LIBLTE_API void vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len);
 
 /* argument of each vector element */
 LIBLTE_API void vec_arg_cf(cf_t *x, float *arg, uint32_t len);

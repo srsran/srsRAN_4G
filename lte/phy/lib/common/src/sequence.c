@@ -40,7 +40,7 @@
  * It follows the 3GPP Release 8 (LTE) 36.211
  * Section 7.2
  */
-void generate_prs_c(sequence_t *q, uint32_t seed) {
+void sequence_set_LTE_pr(sequence_t *q, uint32_t seed) {
   int n;
   uint32_t *x1, *x2;
 
@@ -79,7 +79,7 @@ int sequence_LTE_pr(sequence_t *q, uint32_t len, uint32_t seed) {
     return LIBLTE_ERROR;
   }
   q->len = len;
-  generate_prs_c(q, seed);
+  sequence_set_LTE_pr(q, seed);
   return LIBLTE_SUCCESS;
 }
 
@@ -92,6 +92,7 @@ int sequence_init(sequence_t *q, uint32_t len) {
     if (!q->c) {
       return LIBLTE_ERROR;
     }
+    q->len = len;
   }
   return LIBLTE_SUCCESS;
 }

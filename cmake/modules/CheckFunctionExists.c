@@ -1,13 +1,13 @@
 #ifdef CHECK_FUNCTION_EXISTS
 
-uint8_t CHECK_FUNCTION_EXISTS();
+char CHECK_FUNCTION_EXISTS();
 #ifdef __CLASSIC_C__
 int main(){
   int ac;
-  uint8_t*av[];
+  char*av[];
 #else
-int main(int ac, uint8_t*av[]){
-
+int main(int ac, char*av[]){
+  
 #endif
   float ac2 = sqrtf(rand());
   CHECK_FUNCTION_EXISTS();

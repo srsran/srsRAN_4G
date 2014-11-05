@@ -48,7 +48,7 @@
 int interp_init(interp_t *q, interp_type_t type, uint32_t len, uint32_t M) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
   
-  if (q != NULL) {
+  if (q != NULL && len > 0 && M > 0) {
     ret = LIBLTE_ERROR; 
     
     q->in_arg = vec_malloc(len * sizeof(float));
@@ -189,6 +189,28 @@ void interp_run_offset(interp_t *q, cf_t *input, cf_t *output, uint32_t off_st, 
 
 void interp_run(interp_t *q, cf_t *input, cf_t *output) {
     interp_run_offset(q, input, output, 0, 1);
+}
+
+cf_t interp_linear_onesample(cf_t *input) {
+  float mag0=0, mag1=0, arg0=0, arg1=0, mag=0, arg=0;
+  mag0 = cabsf(input[0]);
+  mag1 = cabsf(input[1]);
+  arg0 = cargf(input[0]);
+  arg1 = cargf(input[1]);
+  mag = 2*mag1 -mag0;
+  arg = 2*arg1-arg0;
+  return mag * cexpf(I * arg);
+}
+
+cf_t interp_linear_onesample2(cf_t *input) {
+  float re0=0, im0=0, re1=0, im1=0, re=0, im=0;
+  re0 = crealf(input[0]);
+  im0 = cimagf(input[1]);
+  re1 = crealf(input[0]);
+  im1 = cimagf(input[1]);
+  re = 2*re1-re0;
+  im = 2*im1-im0;
+  return (re+im*_Complex_I);
 }
 
 /* Performs 1st order linear interpolation with out-of-bound interpolation */

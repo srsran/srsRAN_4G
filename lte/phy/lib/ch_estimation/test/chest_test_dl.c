@@ -35,7 +35,7 @@
 
 lte_cell_t cell = {
   6,            // nof_prb
-  MAX_PORTS,    // nof_ports
+  1,    // nof_ports
   1000,         // cell_id
   CPNORM        // cyclic prefix
 };
@@ -115,10 +115,9 @@ int check_mse(float mod, float arg, int n_port) {
 }
 
 int main(int argc, char **argv) {
-  chest_t eq;
+  chest_dl_t eq;
   cf_t *input = NULL, *ce = NULL, *h = NULL;
-  refsignal_t refs;
-  int i, j, n_port, n_slot, cid, num_re;
+  int i, j, n_port, sf_idx, cid, num_re;
   int ret = -1;
   int max_cid;
   FILE *fmatlab = NULL;
@@ -134,7 +133,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  num_re = cell.nof_prb * RE_X_RB * CP_NSYMB(cell.cp);
+  num_re = 2 * cell.nof_prb * RE_X_RB * CP_NSYMB(cell.cp);
 
   input = malloc(num_re * sizeof(cf_t));
   if (!input) {
@@ -162,18 +161,13 @@ int main(int argc, char **argv) {
 
   while(cid <= max_cid) {
     cell.id = cid; 
-    if (chest_init_LTEDL(&eq, cell)) {
+    if (chest_dl_init(&eq, cell)) {
       fprintf(stderr, "Error initializing equalizer\n");
       goto do_exit;
     }
 
-    for (n_slot=0;n_slot<NSLOTS_X_FRAME;n_slot++) {
+    for (sf_idx=0;sf_idx<NSUBFRAMES_X_FRAME;sf_idx++) {
       for (n_port=0;n_port<cell.nof_ports;n_port++) {
-
-        if (refsignal_init_LTEDL(&refs, n_port, n_slot, cell)) {
-          fprintf(stderr, "Error initiating CRS slot=%d\n", i);
-          return -1;
-        }
 
         bzero(input, sizeof(cf_t) * num_re);
         for (i=0;i<num_re;i++) {
@@ -183,27 +177,28 @@ int main(int argc, char **argv) {
         bzero(ce, sizeof(cf_t) * num_re);
         bzero(h, sizeof(cf_t) * num_re);
 
-        refsignal_put(&refs, input);
+        refsignal_cs_put_sf(cell, n_port, sf_idx, eq.csr_signal.pilots[sf_idx], input);
 
-        for (i=0;i<CP_NSYMB(cell.cp);i++) {
+        for (i=0;i<2*CP_NSYMB(cell.cp);i++) {
           for (j=0;j<cell.nof_prb * RE_X_RB;j++) {
             float x = -1+(float) i/CP_NSYMB(cell.cp) + cosf(2 * M_PI * (float) j/cell.nof_prb/RE_X_RB);
             h[i*cell.nof_prb * RE_X_RB+j] = (3+x) * cexpf(I * x);
-            input[i*cell.nof_prb * RE_X_RB+j] *= h[i*cell.nof_prb * RE_X_RB+j];
+            input[i*cell.nof_prb * RE_X_RB+j] *= h[i*cell.nof_prb * RE_X_RB+j];            
           }
         }
 
-        chest_ce_slot_port(&eq, input, ce, n_slot, n_port);
-
+        chest_dl_estimate_port(&eq, input, ce, sf_idx, n_port);
+        
         mse_mag = mse_phase = 0;
         for (i=0;i<num_re;i++) {
           mse_mag += (cabsf(h[i]) - cabsf(ce[i])) * (cabsf(h[i]) - cabsf(ce[i])) / num_re;
           mse_phase += (cargf(h[i]) - cargf(ce[i])) * (cargf(h[i]) - cargf(ce[i])) / num_re;
         }
 
-        if (check_mse(mse_mag, mse_phase, n_port)) {
+        /*if (check_mse(mse_mag, mse_phase, n_port)) {
+          chest_dl_free(&eq);
           goto do_exit;
-        }
+        }*/
 
         if (fmatlab) {
           fprintf(fmatlab, "input=");
@@ -215,11 +210,10 @@ int main(int argc, char **argv) {
           fprintf(fmatlab, "ce=");
           vec_fprint_c(fmatlab, ce, num_re);
           fprintf(fmatlab, ";\n");
-          chest_fprint(&eq, fmatlab, n_slot, n_port);
         }
       }
     }
-    chest_free(&eq);
+    chest_dl_free(&eq);
     cid+=10;
     INFO("cid=%d\n", cid);
   }
@@ -242,7 +236,7 @@ do_exit:
   if (!ret) {
     printf("OK\n");
   } else {
-    printf("Error at cid=%d, slot=%d, port=%d\n",cid, n_slot, n_port);
+    printf("Error at cid=%d, slot=%d, port=%d\n",cid, sf_idx, n_port);
   }
 
   exit(ret);

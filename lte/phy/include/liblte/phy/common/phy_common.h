@@ -146,6 +146,14 @@ LIBLTE_API bool lte_cell_isvalid(lte_cell_t *cell);
 LIBLTE_API void lte_cell_fprint(FILE *stream, 
                                 lte_cell_t *cell); 
 
+LIBLTE_API bool lte_cellid_isvalid(uint32_t cell_id);
+
+LIBLTE_API bool lte_nofprb_isvalid(uint32_t nof_prb);
+
+LIBLTE_API bool lte_sfidx_isvalid(uint32_t sf_idx);
+
+LIBLTE_API bool lte_portid_isvalid(uint32_t port_id);
+
 LIBLTE_API bool lte_N_id_2_isvalid(uint32_t N_id_2);
 
 LIBLTE_API bool lte_N_id_1_isvalid(uint32_t N_id_1);

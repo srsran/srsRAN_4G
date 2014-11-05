@@ -52,7 +52,9 @@
 #include "liblte/phy/common/fft.h"
             
 #include "liblte/phy/ch_estimation/chest.h"
+#include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/ch_estimation/refsignal.h"
+#include "liblte/phy/ch_estimation/refsignal_dl.h"
 
 #include "liblte/phy/resampling/interp.h"
 #include "liblte/phy/resampling/decim.h"

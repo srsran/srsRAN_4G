@@ -31,6 +31,7 @@
 #define FILTER2D_
 
 #include "liblte/config.h"
+#include <stdint.h>
 
 /* 2-D real filter of complex input
  *
@@ -38,18 +39,42 @@
 typedef _Complex float cf_t;
 
 typedef struct LIBLTE_API{
-  int sztime; // Output signal size in the time domain
-  int szfreq;  // Output signal size in the freq domain
-  int ntime;  // 2-D Filter size in time domain
-  int nfreq;  // 2-D Filter size in frequency domain
+  uint32_t sztime; // Output signal size in the time domain
+  uint32_t szfreq;  // Output signal size in the freq domain
+  uint32_t ntime;  // 2-D Filter size in time domain
+  uint32_t nfreq;  // 2-D Filter size in frequency domain
   float **taps;  // 2-D filter coefficients
+  float norm; //normalization factor
   cf_t *output; // Output signal
 } filter2d_t;
 
-LIBLTE_API int filter2d_init (filter2d_t* q, float **taps, int ntime, int nfreq, int sztime, int szfreq);
-LIBLTE_API int filter2d_init_default (filter2d_t* q, int ntime, int nfreq, int sztime, int szfreq);
-LIBLTE_API void filter2d_free(filter2d_t *q);
-LIBLTE_API void filter2d_reset(filter2d_t *q);
-LIBLTE_API void filter2d_add(filter2d_t *q, cf_t h, int time_idx, int freq_idx);
+LIBLTE_API int filter2d_init (filter2d_t* q, 
+                              float **taps, 
+                              uint32_t ntime, 
+                              uint32_t nfreq, 
+                              uint32_t sztime, 
+                              uint32_t szfreq);
 
+LIBLTE_API int filter2d_init_ones (filter2d_t* q, 
+                                      uint32_t ntime, 
+                                      uint32_t nfreq, 
+                                      uint32_t sztime, 
+                                      uint32_t szfreq);
+
+LIBLTE_API void filter2d_free(filter2d_t *q);
+
+LIBLTE_API void filter2d_step(filter2d_t *q); 
+
+LIBLTE_API void filter2d_reset(filter2d_t *q);
+
+LIBLTE_API void filter2d_add(filter2d_t *q, 
+                             cf_t h, 
+                             uint32_t time_idx, 
+                             uint32_t freq_idx);
+
+LIBLTE_API void filter2d_add_out(filter2d_t *q, cf_t x, int time_idx, int freq_idx);
+
+LIBLTE_API void filter2d_get_symbol(filter2d_t *q, 
+                                    uint32_t nsymbol, 
+                                    cf_t *output);
 #endif // FILTER2D_

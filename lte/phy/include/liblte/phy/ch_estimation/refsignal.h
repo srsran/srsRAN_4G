@@ -87,6 +87,6 @@ LIBLTE_API int refsignal_init_LTEUL_drms_pusch(refsignal_t *q,
 LIBLTE_API void refsignal_free(refsignal_t *q);
 
 LIBLTE_API int refsignal_put(refsignal_t *q, 
-                              cf_t *slot_symbols);
+                             cf_t *slot_symbols);
 
 #endif

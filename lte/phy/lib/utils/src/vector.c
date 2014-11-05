@@ -327,11 +327,19 @@ void vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #endif
 }
 
-void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+/* Complex division is conjugate multiplication + real division */
+void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, uint32_t len) {
+  vec_prod_conj_ccc(x,y,z,len);
+  vec_abs_square_cf(y,y_mod,len);
   int i;
   for (i=0;i<len;i++) {
-    z[i] = x[i] / y[i];
+    z[i] = z[i] / y_mod[i];
   }
+}
+
+/** If mod(y)==1, division reduces to conjugate multiplication */
+void vec_div_ccc_mod1(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+  vec_prod_conj_ccc(x,y,z,len);
 }
 
 void vec_div_fff(float *x, float *y, float *z, uint32_t len) {
@@ -409,10 +417,19 @@ void vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
   }
 #else
   volk_32fc_magnitude_32f(abs,x,len);
-
 #endif
-
 }
+void vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len) {
+#ifndef HAVE_VOLK_MAG_SQUARE_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    abs_square[i] = cabsf(x[i]) * cabsf(x[i]);
+  }
+#else
+  volk_32fc_magnitude_squared_32f(abs_square,x,len);
+#endif
+}
+
 
 void vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
 #ifndef HAVE_VOLK_ATAN_FUNCTION

@@ -78,6 +78,10 @@ LIBLTE_API void interp_run_offset(interp_t *q,
                                   uint32_t off_st, 
                                   uint32_t off_end);
 
+LIBLTE_API cf_t interp_linear_onesample(cf_t *input); 
+
+LIBLTE_API cf_t interp_linear_onesample2(cf_t *input); 
+
 LIBLTE_API void interp_linear_offset(cf_t *input, 
                                      cf_t *output, 
                                      uint32_t M, 

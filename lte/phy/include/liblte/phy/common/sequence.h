@@ -44,6 +44,9 @@ LIBLTE_API int sequence_LTE_pr(sequence_t *q,
                                uint32_t len, 
                                uint32_t seed);
 
+LIBLTE_API void sequence_set_LTE_pr(sequence_t *q, 
+                                    uint32_t seed); 
+
 LIBLTE_API int sequence_pbch(sequence_t *seq, 
                              lte_cp_t cp, 
                              uint32_t cell_id);
