@@ -64,4 +64,16 @@ LIBLTE_API uint32_t conv_cc(cf_t *input,
                        uint32_t input_len, 
                        uint32_t filter_len);
 
+LIBLTE_API uint32_t conv_same_cf(cf_t *input, 
+                                 float *filter, 
+                                 cf_t *output, 
+                                 uint32_t input_len, 
+                                 uint32_t filter_len);
+
+LIBLTE_API uint32_t conv_same_cc(cf_t *input, 
+                                 cf_t *filter, 
+                                 cf_t *output, 
+                                 uint32_t input_len, 
+                                 uint32_t filter_len);
+
 #endif // CONVOLUTION_H_

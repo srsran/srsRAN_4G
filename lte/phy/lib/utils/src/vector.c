@@ -95,11 +95,23 @@ void vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 #endif 
 }
 
-void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+void vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+  return vec_sub_fff((float*) x,(float*) y,(float*) z,2*len);
+}
+
+void vec_sum_fff(float *x, float *y, float *z, uint32_t len) {
+#ifndef HAVE_VOLK_ADD_FLOAT_FUNCTION
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]+y[i];
   }
+#else
+  volk_32f_x2_add_32f(z,x,y,len);
+#endif
+}
+
+void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+  vec_sum_fff((float*) x,(float*) y,(float*) z,2*len);
 }
 
 void vec_sum_bbb(uint8_t *x, uint8_t *y, uint8_t *z, uint32_t len) {
@@ -337,11 +349,6 @@ void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, uint32_t len) {
   }
 }
 
-/** If mod(y)==1, division reduces to conjugate multiplication */
-void vec_div_ccc_mod1(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
-  vec_prod_conj_ccc(x,y,z,len);
-}
-
 void vec_div_fff(float *x, float *y, float *z, uint32_t len) {
 #ifdef HAVE_VOLK_DIVIDE_FUNCTION
   volk_32f_x2_divide_32f(z, x, y, len);
@@ -359,6 +366,21 @@ cf_t vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len) {
   volk_32fc_x2_dot_prod_32fc(&res, x, y, len);
   return res; 
 #else 
+  uint32_t i;
+  cf_t res = 0;
+  for (i=0;i<len;i++) {
+    res += x[i]*y[i];
+  }
+  return res;
+#endif
+}
+
+cf_t vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len) {
+#ifdef HAVE_VOLK_DOTPROD_CFC_FUNCTION
+  cf_t res;
+  volk_32fc_32f_dot_prod_32fc(&res, x, y, len);
+  return res; 
+#else  
   uint32_t i;
   cf_t res = 0;
   for (i=0;i<len;i++) {

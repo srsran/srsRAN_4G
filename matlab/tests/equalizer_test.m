@@ -4,7 +4,7 @@
 
 clear
 
-SNR_values_db=15;%linspace(5,20,8);
+SNR_values_db=20;%linspace(5,20,8);
 Nrealizations=1;
 
 preEVM = zeros(length(SNR_values_db),Nrealizations);
@@ -53,7 +53,7 @@ cec2.InterpType = 'Linear';         % Cubic interpolation
 cec2.PilotAverage = 'UserDefined'; % Pilot averaging method
 cec2.InterpWinSize = 3;            % Interpolate up to 3 subframes 
                                   % simultaneously
-cec2.InterpWindow = 'Centered';     % Interpolation windowing method
+cec2.InterpWindow = 'Causal';     % Interpolation windowing method
 
 %% Subframe Resource Grid Size
 
@@ -137,11 +137,13 @@ rxWaveform = lteFadingChannel(cfg,txWaveform);
 % Calculate noise gain
 N0 = 1/(sqrt(2.0*enb.CellRefP*double(info.Nfft))*SNR);
 
+realNoise(snr_idx)=N0;
+
 % Create additive white Gaussian noise
 noise = N0*complex(randn(size(rxWaveform)),randn(size(rxWaveform)));   
 
 % Add noise to the received time domain waveform
-%rxWaveform = rxWaveform + noise;
+rxWaveform = rxWaveform + noise;
 
 %% Synchronization
 
@@ -155,15 +157,16 @@ rxGrid = lteOFDMDemodulate(enb,rxWaveform);
 addpath('../../debug/lte/phy/lib/ch_estimation/test')
 %% Channel Estimation
 [estChannel, noiseEst, avg_ref1, noavg_ref1] = lteDLChannelEstimate2(enb,cec2,rxGrid);
-[dumm, refs] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid);
-%estChannel2=reshape(estChannel2,72,[]);
-[estChannel2] = lteDLChannelEstimate3(enb,cec2,rxGrid,refs);
+[estChannel2, refs, noiseEst2] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid,[0.15 0.7 0.15],[0.1 0.9]);
+estChannel2=reshape(estChannel2,size(estChannel));
+noiseEstimation(snr_idx)=noiseEst;
+noiseEstimation2(snr_idx)=noiseEst2;
 
 %error(snr_idx,nreal) = mean(mean(abs(avg_ref-transpose(refs)),2));
 
 %% MMSE Equalization
 eqGrid_mmse = lteEqualizeMMSE(rxGrid, estChannel, noiseEst);
-eqGrid_mmse2 = lteEqualizeMMSE(rxGrid, estChannel2, noiseEst);
+eqGrid_mmse2 = lteEqualizeMMSE(rxGrid, estChannel2, noiseEst2);
 
 eqGrid_zf = lteEqualizeZF(rxGrid, estChannel);
 eqGrid_zf2 = lteEqualizeZF(rxGrid, estChannel2);
@@ -201,7 +204,8 @@ postEVM_zf2(snr_idx,nreal) = postEqualisedEVM_zf2.RMS;
 end
 end
 
-
+% plot(SNR_values_db,20*log10(1/sqrt(2.0*enb.CellRefP*double(info.Nfft))./realNoise),SNR_values_db,20*log10(1/sqrt(2.0*enb.CellRefP*double(info.Nfft))./noiseEstimation),SNR_values_db,20*log10(1/sqrt(2.0*enb.CellRefP*double(info.Nfft))./noiseEstimation2))
+% legend('real','seu','meu')
 plot(SNR_values_db, mean(preEVM,2), ...
     SNR_values_db, mean(postEVM_mmse,2), ...
     SNR_values_db, mean(postEVM_mmse2,2), ...

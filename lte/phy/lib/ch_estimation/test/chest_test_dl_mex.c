@@ -41,11 +41,13 @@
 #define INPUT   prhs[2]
 #define NOF_INPUTS 3
 #define SFIDX   prhs[3]
+#define FREQ_FILTER   prhs[3]
+#define TIME_FILTER   prhs[4]
 
 void help()
 {
   mexErrMsgTxt
-    ("[estChannel] = liblte_chest(cell_id, nof_ports, inputSignal,[sf_idx])\n\n"
+    ("[estChannel] = liblte_chest(cell_id, nof_ports, inputSignal,[sf_idx|freq_filter], [time_filter])\n\n"
      " Returns a matrix of size equal to the inputSignal matrix with the channel estimates\n "
      "for each resource element in inputSignal. The inputSignal matrix is the received Grid\n"
      "of size nof_resource_elements x nof_ofdm_symbols.\n"
@@ -62,7 +64,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cf_t *input_signal; 
   cf_t *ce[MAX_PORTS]; 
   double *outr0, *outi0, *outr1, *outi1;
-
+  float noiseAverage[10];
+  
   if (nrhs < NOF_INPUTS) {
     help();
     return;
@@ -83,6 +86,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } else if ((mxGetN(INPUT)%12)!=0) {
     cell.cp = CPEXT;
   } else {
+    mexErrMsgTxt("Invalid number of symbols\n");
     help();
     return;
   }
@@ -91,7 +95,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error initiating channel estimator\n");
     return;
   }
-
+  
   int nsubframes;
   if (cell.cp == CPNORM) {
     nsubframes = mxGetN(INPUT)/14;
@@ -102,12 +106,38 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   uint32_t sf_idx=0; 
   if (nsubframes == 1) {
     if (nrhs != NOF_INPUTS+1) {
+      mexErrMsgTxt("Received 1 subframe. Need to provide subframe index.\n");
       help();
       return;
     }
     sf_idx = (uint32_t) *((double*) mxGetPr(SFIDX));
   }
   
+  uint32_t filter_len = 0;
+  float *filter; 
+  double *f; 
+  
+  if (nrhs > NOF_INPUTS && nsubframes == 10) {
+    if (nrhs >= NOF_INPUTS + 1) {
+      filter_len = mxGetNumberOfElements(FREQ_FILTER);
+      filter = malloc(sizeof(float) * filter_len);
+      f = (double*) mxGetPr(FREQ_FILTER);
+      for (i=0;i<filter_len;i++) {
+        filter[i] = (float) f[i];
+      }
+      chest_dl_set_filter_freq(&chest, filter, filter_len);
+    }
+    if (nrhs >= NOF_INPUTS + 2) {
+      filter_len = mxGetNumberOfElements(TIME_FILTER);
+      filter = malloc(sizeof(float) * filter_len);
+      f = (double*) mxGetPr(TIME_FILTER);
+      for (i=0;i<filter_len;i++) {
+        filter[i] = (float) f[i];
+      }
+      chest_dl_set_filter_time(&chest, filter, filter_len);
+    }
+  }
+
   double *inr=(double *)mxGetPr(INPUT);
   double *ini=(double *)mxGetPi(INPUT);
   
@@ -124,7 +154,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     outr0 = mxGetPr(plhs[0]);
     outi0 = mxGetPi(plhs[0]);
   }  
-  if (nlhs == 2) {
+  if (nlhs >= 2) {
     plhs[1] = mxCreateDoubleMatrix(REFSIGNAL_MAX_NUM_SF(cell.nof_prb)*nsubframes, cell.nof_ports, mxCOMPLEX);
     outr1 = mxGetPr(plhs[1]);
     outi1 = mxGetPi(plhs[1]);
@@ -150,6 +180,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexErrMsgTxt("Error running channel estimator\n");
       return;
     }
+    
+    noiseAverage[sf]=chest_dl_get_noise_estimate(&chest);
+    
     if (nlhs >= 1) { 
       for (i=0;i<nof_re;i++) {      
         *outr0 = (double) crealf(ce[0][i]);
@@ -160,18 +193,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         outi0++;
       } 
     }
-    if (nlhs == 2) {    
+    if (nlhs >= 2) {    
       for (int j=0;j<cell.nof_ports;j++) {
         for (i=0;i<REFSIGNAL_NUM_SF(cell.nof_prb,j);i++) {
-          *outr1 = (double) crealf(chest.pilot_estimates[j][i]);
+          *outr1 = (double) crealf(chest.pilot_estimates_average[j][i]);
           if (outi1) {
-            *outi1 = (double) cimagf(chest.pilot_estimates[j][i]);
+            *outi1 = (double) cimagf(chest.pilot_estimates_average[j][i]);
           }
           outr1++;
           outi1++;
         }
       }    
     }
+  }
+  
+  if (nlhs >= 3) {
+    plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    outr1 = mxGetPr(plhs[2]);
+    *outr1 = vec_acc_ff(noiseAverage,10)/10;
   }
     
  

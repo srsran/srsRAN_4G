@@ -242,8 +242,8 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN/8];
   ra_pdsch_t ra_dl;
   ra_prb_t prb_alloc;
-  refsignal_t refs[NSLOTS_X_FRAME];
-  int i, n;
+  refsignal_cs_t csr_signal;
+  int i;
   uint8_t *data;
   cf_t *sf_symbols[MAX_PORTS];
   dci_msg_t dci_msg;
@@ -271,12 +271,7 @@ int main(int argc, char **argv) {
   sss_generate(sss_signal0, sss_signal5, cell.id);
   
   /* Generate CRS signals */
-  for (i = 0; i < NSLOTS_X_FRAME; i++) {
-    if (refsignal_init_LTEDL(&refs[i], 0, i, cell)) {
-      fprintf(stderr, "Error initiating CRS slot=%d\n", i);
-      return -1;
-    }
-  }
+  refsignal_cs_generate(&csr_signal, cell);
 
   cell.phich_length = PHICH_NORM;
   cell.phich_resources = R_1;
@@ -346,9 +341,7 @@ int main(int argc, char **argv) {
         pbch_encode(&pbch, bch_payload, sf_symbols);
       }
     
-      for (n=0;n<2;n++) {
-        refsignal_put(&refs[2*sf_idx+n], &sf_buffer[n*sf_n_re/2]);
-      }
+      refsignal_cs_put_sf(cell, 0, csr_signal.pilots[0][sf_idx], sf_buffer);
 
       pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
 

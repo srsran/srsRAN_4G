@@ -41,13 +41,13 @@ typedef _Complex float cf_t;
 #define REFSIGNAL_NUM_SF(nof_prb, port_id)     (((port_id)<2?8:4)*(nof_prb))
 #define REFSIGNAL_MAX_NUM_SF(nof_prb)     REFSIGNAL_NUM_SF(nof_prb, 0)
 
-#define REFSIGNAL_PILOT_IDX(i,l,ns,cell) (2*cell.nof_prb*((l)+2*((ns)%2))+(i))
+#define REFSIGNAL_PILOT_IDX(i,l,cell) (2*cell.nof_prb*(l)+(i))
 
 
 /** Cell-Specific Reference Signal */
 typedef struct LIBLTE_API {
   lte_cell_t cell; 
-  cf_t *pilots[NSUBFRAMES_X_FRAME]; // save 2 reference symbols per slot
+  cf_t *pilots[2][NSUBFRAMES_X_FRAME]; // Saves the reference signal per subframe for ports 0,1 and ports 2,3
 } refsignal_cs_t;
 
 
@@ -58,29 +58,25 @@ LIBLTE_API void refsignal_cs_free(refsignal_cs_t *q);
 
 LIBLTE_API int refsignal_cs_put_sf(lte_cell_t cell, 
                                    uint32_t port_id, 
-                                   uint32_t sf_idx,
                                    cf_t *pilots,
                                    cf_t *sf_symbols);
 
 LIBLTE_API int refsignal_cs_get_sf(lte_cell_t cell, 
                                    uint32_t port_id, 
-                                   uint32_t sf_idx, 
                                    cf_t *sf_symbols, 
                                    cf_t *pilots);
 
 LIBLTE_API uint32_t refsignal_fidx(lte_cell_t cell, 
-                                   uint32_t ns, 
                                    uint32_t l, 
                                    uint32_t port_id, 
                                    uint32_t m);
 
-LIBLTE_API uint32_t refsignal_nsymbol(lte_cell_t cell, 
-                                      uint32_t ns, 
-                                      uint32_t l);
+LIBLTE_API uint32_t refsignal_nsymbol(uint32_t l, 
+                                      lte_cp_t cp, 
+                                      uint32_t port_id);
 
 LIBLTE_API uint32_t refsignal_cs_v(uint32_t port_id, 
-                                   uint32_t ns, 
-                                   uint32_t symbol_id); 
+                                   uint32_t ref_symbol_idx); 
 
 LIBLTE_API uint32_t refsignal_cs_nof_symbols(uint32_t port_id);
 

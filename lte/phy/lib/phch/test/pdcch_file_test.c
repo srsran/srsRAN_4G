@@ -57,7 +57,7 @@ pdcch_t pdcch;
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 regs_t regs;
 lte_fft_t fft;
-chest_t chest;
+chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcfoe] -i input_file\n", prog);
@@ -143,21 +143,21 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+  fft_buffer = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<MAX_PORTS;i++) {
-    ce[i] = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+    ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
     }
   }
 
-  if (chest_init_LTEDL(&chest, cell)) {
+  if (chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -200,7 +200,7 @@ void base_free() {
   for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
   }
-  chest_free(&chest);
+  chest_dl_free(&chest);
   lte_fft_free(&fft);
 
   pdcch_free(&pdcch);
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
     if (nof_frames == 5) {
       INFO("Reading %d samples sub-frame %d\n", flen, nof_frames);
 
-      lte_fft_run_slot(&fft, input_buffer, fft_buffer);
+      lte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
       if (fmatlab) {
         fprintf(fmatlab, "infft%d=", nof_frames);
@@ -258,12 +258,7 @@ int main(int argc, char **argv) {
       }
 
       /* Get channel estimates for each port */
-      for (i=0;i<cell.nof_ports;i++) {
-        chest_ce_slot_port(&chest, fft_buffer, ce[i], 2*nof_frames, i);
-        if (fmatlab) {
-          chest_fprint(&chest, fmatlab, 2*nof_frames, i);
-        }
-      }
+      chest_dl_estimate(&chest, fft_buffer, ce, nof_frames);
       
       uint16_t crc_rem = 0;
       for (i=0;i<nof_locations && crc_rem != rnti;i++) {

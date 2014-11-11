@@ -36,7 +36,7 @@
 
 
 
-#include "liblte/phy/ch_estimation/chest.h"
+#include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/common/fft.h"
 #include "liblte/phy/common/phy_common.h"
 
@@ -64,7 +64,7 @@ typedef struct LIBLTE_API {
   pdsch_harq_t harq_process[NOF_HARQ_PROCESSES];
   regs_t regs;
   lte_fft_t fft;
-  chest_t chest;
+  chest_dl_t chest;
   
   lte_cell_t cell;
 

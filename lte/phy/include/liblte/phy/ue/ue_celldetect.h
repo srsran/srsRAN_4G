@@ -33,7 +33,7 @@
 #include "liblte/config.h"
 #include "liblte/phy/sync/sync.h"
 #include "liblte/phy/sync/cfo.h"
-#include "liblte/phy/ch_estimation/chest.h"
+#include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/fft.h"
 

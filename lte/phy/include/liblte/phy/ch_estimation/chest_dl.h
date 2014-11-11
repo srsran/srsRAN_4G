@@ -39,11 +39,6 @@
 #include "liblte/phy/ch_estimation/refsignal_dl.h"
 #include "liblte/phy/common/phy_common.h"
 
-#define CHEST_RS_AVERAGE_TIME   0
-#define CHEST_RS_AVERAGE_FREQ   3
-
-
-
 /** 3GPP LTE Downlink channel estimator and equalizer. 
  * Estimates the channel in the resource elements transmitting references and interpolates for the rest
  * of the resource grid. 
@@ -53,19 +48,30 @@
  * This object depends on the refsignal_t object for creating the LTE CSR signal.  
 */
 
+#define CHEST_MAX_FILTER_FREQ_LEN    10
+#define CHEST_MAX_FILTER_TIME_LEN    4
+
 typedef struct {
   lte_cell_t cell; 
   refsignal_cs_t csr_signal;
   cf_t *pilot_estimates[MAX_PORTS];
+  cf_t *pilot_estimates_average[MAX_PORTS];
   cf_t *pilot_recv_signal[MAX_PORTS];
-  cf_t *pilot_symbol_avg;
+ 
+  uint32_t filter_freq_len;
+  float filter_freq[CHEST_MAX_FILTER_FREQ_LEN];
+  uint32_t filter_time_len;
+  float filter_time[CHEST_MAX_FILTER_TIME_LEN];
   
-  interp_t interp_time[MAX_PORTS]; 
-  interp_t interp_freq[MAX_PORTS]; 
-
+  cf_t *tmp_freqavg;
+  cf_t *tmp_timeavg[CHEST_MAX_FILTER_TIME_LEN];
+  
+  interp_linvec_t interp_linvec; 
+  interp_lin_t interp_lin; 
+  
   float rssi; 
-  float rsrq; 
-  float rsrp; 
+  float rsrp[MAX_PORTS]; 
+  float noise_estimate[MAX_PORTS];
 } chest_dl_t;
 
 
@@ -73,6 +79,14 @@ LIBLTE_API int chest_dl_init(chest_dl_t *q,
                              lte_cell_t cell);
 
 LIBLTE_API void chest_dl_free(chest_dl_t *q); 
+
+LIBLTE_API int chest_dl_set_filter_freq(chest_dl_t *q, 
+                                        float *filter, 
+                                        uint32_t filter_len);
+
+LIBLTE_API int chest_dl_set_filter_time(chest_dl_t *q, 
+                                        float *filter, 
+                                        uint32_t filter_len);
 
 LIBLTE_API int chest_dl_estimate(chest_dl_t *q, 
                                  cf_t *input,
@@ -85,16 +99,7 @@ LIBLTE_API int chest_dl_estimate_port(chest_dl_t *q,
                                       uint32_t sf_idx, 
                                       uint32_t port_id);
 
-LIBLTE_API int chest_dl_equalize_zf(chest_dl_t *q, 
-                                    cf_t *input,
-                                    cf_t *ce[MAX_PORTS],
-                                    cf_t *output);
-
-LIBLTE_API int chest_dl_equalize_mmse(chest_dl_t *q, 
-                                      cf_t *input,
-                                      cf_t *ce[MAX_PORTS],
-                                      float *noise_estimate,
-                                      cf_t *output);
+LIBLTE_API float chest_dl_get_noise_estimate(chest_dl_t *q); 
 
 LIBLTE_API float chest_dl_get_rssi(chest_dl_t *q);
 

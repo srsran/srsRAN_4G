@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
         bzero(ce, sizeof(cf_t) * num_re);
         bzero(h, sizeof(cf_t) * num_re);
 
-        refsignal_cs_put_sf(cell, n_port, sf_idx, eq.csr_signal.pilots[sf_idx], input);
+        refsignal_cs_put_sf(cell, n_port, eq.csr_signal.pilots[n_port/2][sf_idx], input);
 
         for (i=0;i<2*CP_NSYMB(cell.cp);i++) {
           for (j=0;j<cell.nof_prb * RE_X_RB;j++) {
@@ -187,7 +187,14 @@ int main(int argc, char **argv) {
           }
         }
 
-        chest_dl_estimate_port(&eq, input, ce, sf_idx, n_port);
+        struct timeval t[3];
+        gettimeofday(&t[1], NULL);
+        for (int j=0;j<1000;j++) {
+          chest_dl_estimate_port(&eq, input, ce, sf_idx, n_port);          
+        }
+        gettimeofday(&t[2], NULL);
+        get_time_interval(t);
+        printf("%f us\n", (float) t[0].tv_usec/1000);
         
         mse_mag = mse_phase = 0;
         for (i=0;i<num_re;i++) {

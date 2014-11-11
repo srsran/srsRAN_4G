@@ -64,14 +64,14 @@ int ue_mib_init(ue_mib_t * q,
     
     bzero(q, sizeof(ue_mib_t));
     
-    q->slot1_symbols = vec_malloc(SLOT_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
-    if (!q->slot1_symbols) {
+    q->sf_symbols = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit;
     }
     
     for (int i=0;i<cell.nof_ports;i++) {
-      q->ce[i] = vec_malloc(SLOT_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+      q->ce[i] = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
       if (!q->ce[i]) {
         perror("malloc");
         goto clean_exit;
@@ -94,7 +94,7 @@ int ue_mib_init(ue_mib_t * q,
       fprintf(stderr, "Error initializing FFT\n");
       goto clean_exit;
     }
-    if (chest_init_LTEDL(&q->chest, cell)) {
+    if (chest_dl_init(&q->chest, cell)) {
       fprintf(stderr, "Error initializing reference signal\n");
       goto clean_exit;
     }
@@ -116,8 +116,8 @@ clean_exit:
 
 void ue_mib_free(ue_mib_t * q)
 {
-  if (q->slot1_symbols) {
-    free(q->slot1_symbols);
+  if (q->sf_symbols) {
+    free(q->sf_symbols);
   }
   for (int i=0;i<MIB_MAX_PORTS;i++) {
     if (q->ce[i]) {
@@ -125,7 +125,7 @@ void ue_mib_free(ue_mib_t * q)
     }
   }
   sync_free(&q->sfind);
-  chest_free(&q->chest);
+  chest_dl_free(&q->chest);
   pbch_free(&q->pbch);
   lte_fft_free(&q->fft);
 }
@@ -148,12 +148,13 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
                                 uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
 {
   int ret = LIBLTE_SUCCESS;
+  cf_t *ce_slot1[MAX_PORTS]; 
 
   /* Run FFT for the slot symbols */
-  lte_fft_run_slot(&q->fft, input, q->slot1_symbols);
+  lte_fft_run_sf(&q->fft, input, q->sf_symbols);
             
   /* Get channel estimates of slot #1 for each port */
-  ret = chest_ce_slot(&q->chest, q->slot1_symbols, q->ce, 1);
+  ret = chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, 0);
   if (ret < 0) {
     return LIBLTE_ERROR;
   }
@@ -167,8 +168,12 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
     ue_mib_reset(q);
   }
   
+  for (int i=0;i<MAX_PORTS;i++) {
+    ce_slot1[i] = &q->ce[i][SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)];
+  }
+  
   /* Decode PBCH */
-  ret = pbch_decode(&q->pbch, q->slot1_symbols, q->ce, bch_payload, nof_tx_ports, sfn_offset);
+  ret = pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], ce_slot1, bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
   } else if (ret == 1) {
@@ -246,7 +251,9 @@ int ue_mib_sync_and_decode(ue_mib_t * q,
           sync_get_sf_idx(&q->sfind)             == 0) 
       {
         INFO("Trying to decode MIB\n",0);
-        ret = ue_mib_decode_aligned_frame(q, &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx], q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
+        printf("caution here should pass begining of frame \n");
+        exit(-1);
+        ret = ue_mib_decode_aligned_frame(q, &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-960], q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
         counter3++;
       } else if ((ret == LIBLTE_SUCCESS && peak_idx != 0)   || 
                  (ret == 1              && nf*MIB_FRAME_SIZE_SEARCH + peak_idx + MIB_FRAME_SIZE_SEARCH/10 > nsamples)) 

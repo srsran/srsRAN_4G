@@ -59,7 +59,7 @@ int ue_dl_init(ue_dl_t *q,
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
-    if (chest_init_LTEDL(&q->chest, cell)) {
+    if (chest_dl_init(&q->chest, cell)) {
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit;
     }
@@ -120,7 +120,7 @@ clean_exit:
 void ue_dl_free(ue_dl_t *q) {
   if (q) {
     lte_fft_free(&q->fft);
-    chest_free(&q->chest);
+    chest_dl_free(&q->chest);
     regs_free(&q->regs);
     pbch_free(&q->pbch);
     pcfich_free(&q->pcfich);
@@ -161,7 +161,7 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
   gettimeofday(&t[1], NULL);
 
   /* Get channel estimates for each port */
-  chest_ce_sf(&q->chest, q->sf_symbols, q->ce, sf_idx);
+  chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
   
   gettimeofday(&t[2], NULL);
   get_time_interval(t);

@@ -51,7 +51,7 @@
 #include "liblte/config.h"
 #include "liblte/phy/sync/sync.h"
 #include "liblte/phy/sync/cfo.h"
-#include "liblte/phy/ch_estimation/chest.h"
+#include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/fft.h"
 
@@ -66,11 +66,11 @@
 typedef struct LIBLTE_API {
   sync_t sfind;
  
-  cf_t *slot1_symbols;
+  cf_t *sf_symbols;
   cf_t *ce[MIB_MAX_PORTS];
   
   lte_fft_t fft;
-  chest_t chest; 
+  chest_dl_t chest; 
   pbch_t pbch;
   
   uint8_t bch_payload[BCH_PAYLOAD_LEN];

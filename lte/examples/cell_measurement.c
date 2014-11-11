@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
   void *uhd; 
   ue_dl_t ue_dl; 
   lte_fft_t fft; 
-  chest_t chest; 
+  chest_dl_t chest; 
   uint32_t nframes=0;
   uint32_t nof_trials = 0; 
   uint32_t sfn = 0; // system frame number
@@ -136,6 +136,11 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
   float rssi=0, rsrp=0, rsrq=0;
+  cf_t *nullce[MAX_PORTS]; 
+  
+  for (int i=0;i<MAX_PORTS;i++) {
+    nullce[i] = NULL;
+  }
 
   parse_args(&prog_args, argc, argv);
 
@@ -180,7 +185,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating FFT\n");
     return -1;
   }
-  if (chest_init_LTEDL(&chest, cell)) {
+  if (chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initiating channel estimator\n");
     return -1;
   }
@@ -251,10 +256,11 @@ int main(int argc, char **argv) {
         /* Run FFT for all subframe data */
         lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
         
-        chest_measure_sf(&chest, sf_symbols, ue_sync_get_sfidx(&ue_sync));
-        rssi = VEC_CMA(chest_rssi_sf(&chest, sf_symbols),rssi,nframes);
-        rsrq = VEC_CMA(chest_rsrq_sf(&chest, sf_symbols, ue_sync_get_sfidx(&ue_sync)),rsrq,nframes);
-        rsrp = VEC_CMA(chest_rsrp_sf(&chest, ue_sync_get_sfidx(&ue_sync)),rsrp,nframes);      
+        chest_dl_estimate(&chest, sf_symbols, nullce, ue_sync_get_sfidx(&ue_sync));
+        
+        rssi = VEC_CMA(chest_dl_get_rssi(&chest),rssi,nframes);
+        rsrq = VEC_CMA(chest_dl_get_rsrq(&chest),rsrq,nframes);
+        rsrp = VEC_CMA(chest_dl_get_rsrp(&chest),rsrp,nframes);      
         nframes++;
         
         // Plot and Printf
