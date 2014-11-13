@@ -30,6 +30,10 @@ ADD_TEST(chest_test_dl_cellid0 chest_test_dl -c 0)
 ADD_TEST(chest_test_dl_cellid1 chest_test_dl -c 1) 
 ADD_TEST(chest_test_dl_cellid2 chest_test_dl -c 2) 
 
+ADD_TEST(chest_test_dl_cellid0 chest_test_dl -c 0 -r 50) 
+ADD_TEST(chest_test_dl_cellid1 chest_test_dl -c 1 -r 50) 
+ADD_TEST(chest_test_dl_cellid2 chest_test_dl -c 2 -r 50) 
+
 ########################################################################
 # Downlink MEX libs  
 ########################################################################

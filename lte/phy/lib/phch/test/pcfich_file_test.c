@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
 
   INFO("Decoding PCFICH\n", 0);
 
-  n = pcfich_decode(&pcfich, fft_buffer, ce, 0, &cfi, &distance);
+  n = pcfich_decode(&pcfich, fft_buffer, ce, chest_dl_get_noise_estimate(&chest),  0, &cfi, &distance);
   printf("cfi: %d, distance: %d\n", cfi, distance);
 
   base_free();

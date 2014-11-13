@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
             slot_symbols[0][j] += slot_symbols[i][j];
           }
         }
-        if (pcfich_decode(&pcfich, slot_symbols[0], ce, nsf, &cfi_rx, &distance)<0) {
+        if (pcfich_decode(&pcfich, slot_symbols[0], ce, 0, nsf, &cfi_rx, &distance)<0) {
           exit(-1);
         }
         INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %d\n",

@@ -77,7 +77,8 @@ typedef struct LIBLTE_API {
   viterbi_t decoder;
   crc_t crc;
   convcoder_t encoder;
-
+  precoding_t precoding; 
+  
 } pbch_t;
 
 LIBLTE_API int pbch_init(pbch_t *q,
@@ -87,6 +88,7 @@ LIBLTE_API void pbch_free(pbch_t *q);
 LIBLTE_API int pbch_decode(pbch_t *q, 
                            cf_t *slot1_symbols, 
                            cf_t *ce_slot1[MAX_PORTS], 
+                           float noise_estimate, 
                            uint8_t bch_payload[BCH_PAYLOAD_LEN], 
                            uint32_t *nof_tx_ports,
                            uint32_t *sfn_offset);

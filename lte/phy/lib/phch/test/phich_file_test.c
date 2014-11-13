@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
   for (ngroup=0;ngroup<phich_ngroups(&phich);ngroup++) {
     for (nseq=0;nseq<max_nseq;nseq++) {
 
-      if (phich_decode(&phich, fft_buffer, ce, ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
+      if (phich_decode(&phich, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
         printf("Error decoding ACK\n");
         exit(-1);
       }

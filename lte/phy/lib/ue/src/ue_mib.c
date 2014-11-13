@@ -128,6 +128,9 @@ void ue_mib_free(ue_mib_t * q)
   chest_dl_free(&q->chest);
   pbch_free(&q->pbch);
   lte_fft_free(&q->fft);
+    
+  bzero(q, sizeof(ue_mib_t));
+    
 }
 
 
@@ -173,7 +176,9 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
   }
   
   /* Decode PBCH */
-  ret = pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], ce_slot1, bch_payload, nof_tx_ports, sfn_offset);
+  ret = pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
+                    ce_slot1, chest_dl_get_noise_estimate(&q->chest), 
+                    bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
   } else if (ret == 1) {

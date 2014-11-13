@@ -125,6 +125,9 @@ void interp_linear_vector_free(interp_linvec_t *q) {
   if (q->diff_vec) {
     free(q->diff_vec);
   }
+
+  bzero(q, sizeof(interp_linvec_t));
+
 }
 
 void interp_linear_vector(interp_linvec_t *q, cf_t *in0, cf_t *in1, cf_t *between, uint32_t M) 
@@ -179,6 +182,15 @@ void interp_linear_free(interp_lin_t *q) {
   if (q->diff_vec) {
     free(q->diff_vec);
   }
+  if (q->diff_vec2) {
+    free(q->diff_vec2);
+  }
+  if (q->ramp) {
+    free(q->ramp);
+  }
+
+  bzero(q, sizeof(interp_lin_t));
+
 }
 
 void interp_linear_offset(interp_lin_t *q, cf_t *input, cf_t *output, 

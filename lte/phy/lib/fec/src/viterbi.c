@@ -190,6 +190,7 @@ void viterbi_free(viterbi_t *q) {
   if (q->free) {
     q->free(q);    
   }
+  bzero(q, sizeof(viterbi_t));
 }
 
 /* symbols are real-valued */

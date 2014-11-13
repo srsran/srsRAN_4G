@@ -64,6 +64,7 @@ typedef struct LIBLTE_API {
   modem_table_t mod;
   demod_hard_t demod;
   sequence_t seq_pcfich[NSUBFRAMES_X_FRAME];
+  precoding_t precoding; 
 
 } pcfich_t;
 
@@ -76,6 +77,7 @@ LIBLTE_API void pcfich_free(pcfich_t *q);
 LIBLTE_API int pcfich_decode(pcfich_t *q, 
                              cf_t *sf_symbols, 
                              cf_t *ce[MAX_PORTS],
+                             float noise_estimate, 
                              uint32_t subframe, 
                              uint32_t *cfi, 
                              uint32_t *distance);

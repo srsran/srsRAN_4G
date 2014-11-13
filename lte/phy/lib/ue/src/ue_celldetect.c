@@ -102,6 +102,9 @@ void ue_celldetect_free(ue_celldetect_t * q)
     free(q->mode_ntimes);
   }
   sync_free(&q->sfind);
+  
+  bzero(q, sizeof(ue_celldetect_t));
+
 }
 
 

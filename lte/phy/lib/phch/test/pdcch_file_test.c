@@ -262,7 +262,7 @@ int main(int argc, char **argv) {
       
       uint16_t crc_rem = 0;
       for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-        if (pdcch_extract_llr(&pdcch, fft_buffer, ce, locations[i], nof_frames, cfi)) {
+        if (pdcch_extract_llr(&pdcch, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), locations[i], nof_frames, cfi)) {
           fprintf(stderr, "Error extracting LLRs\n");
           return -1;
         }

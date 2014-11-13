@@ -283,7 +283,7 @@ int main(int argc, char **argv) {
       
       uint16_t crc_rem = 0;
       for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-        if (pdcch_extract_llr(&pdcch, fft_buffer, ce, locations[i], nof_frames, cfi)) {
+        if (pdcch_extract_llr(&pdcch, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), locations[i], nof_frames, cfi)) {
           fprintf(stderr, "Error extracting LLRs\n");
           return -1;
         }
@@ -302,7 +302,7 @@ int main(int argc, char **argv) {
           fprintf(stderr, "Error configuring HARQ process\n");
           goto goout;
         }
-        if (pdsch_decode(&pdsch, fft_buffer, ce, data, nof_frames%10, &harq_process, ra_dl.rv_idx)) {
+        if (pdsch_decode(&pdsch, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), data, nof_frames%10, &harq_process, ra_dl.rv_idx)) {
           fprintf(stderr, "Error decoding PDSCH\n");
           goto goout;
         } else {

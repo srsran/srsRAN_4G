@@ -82,7 +82,8 @@ int main(int argc, char **argv) {
   cf_t *x[MAX_LAYERS], *r[MAX_PORTS], *y[MAX_PORTS], *h[MAX_PORTS],
       *xr[MAX_LAYERS];
   lte_mimo_type_t type;
-
+  precoding_t precoding; 
+  
   parse_args(argc, argv);
 
   if (nof_ports > MAX_PORTS || nof_layers > MAX_LAYERS) {
@@ -135,9 +136,14 @@ int main(int argc, char **argv) {
           * ((float) rand() / RAND_MAX + (float) I * rand() / RAND_MAX);
     }
   }
+  
+  if (precoding_init(&precoding, nof_symbols)) {
+    fprintf(stderr, "Error initializing precoding\n");
+    exit(-1);
+  }
 
   /* precoding */
-  if (precoding_type(x, y, nof_layers, nof_ports, nof_symbols, type) < 0) {
+  if (precoding_type(&precoding, x, y, nof_layers, nof_ports, nof_symbols, type) < 0) {
     fprintf(stderr, "Error layer mapper encoder\n");
     exit(-1);
   }
@@ -163,7 +169,7 @@ int main(int argc, char **argv) {
   }
 
   /* predecoding / equalization */
-  if (predecoding_type(r[0], h, xr, nof_ports, nof_layers,
+  if (predecoding_type(&precoding, r[0], h, xr, nof_ports, nof_layers,
       nof_symbols * nof_layers, type) < 0) {
     fprintf(stderr, "Error layer mapper encoder\n");
     exit(-1);
@@ -187,6 +193,8 @@ int main(int argc, char **argv) {
   }
 
   free(r[0]);
+  
+  precoding_free(&precoding);
 
   if (mse > MSE_THRESHOLD) {
     printf("MSE: %f\n", mse);

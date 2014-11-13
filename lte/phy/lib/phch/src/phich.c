@@ -75,6 +75,10 @@ int phich_init(phich_t *q, regs_t *regs, lte_cell_t cell) {
     
     q->cell = cell;
     q->regs = regs;
+    
+    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+      fprintf(stderr, "Error initializing precoding\n");
+    }
 
     if (modem_table_lte(&q->mod, LTE_BPSK, false)) {
       goto clean;
@@ -102,6 +106,10 @@ void phich_free(phich_t *q) {
     sequence_free(&q->seq_phich[ns]);
   }
   modem_table_free(&q->mod);
+  precoding_free(&q->precoding);
+
+  bzero(q, sizeof(phich_t));
+
 }
 
 /* Decodes ACK
@@ -139,7 +147,7 @@ void phich_ack_encode(uint8_t ack, uint8_t bits[PHICH_NBITS]) {
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
+int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float noise_estimate,
     uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, uint32_t *distance) {
 
   /* Set pointers for layermapping & precoding */
@@ -200,10 +208,10 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
   /* in control channels, only diversity is supported */
   if (q->cell.nof_ports == 1) {
     /* no need for layer demapping */
-    predecoding_single_zf(q->phich_symbols[0], q->ce[0], q->phich_d0,
-    PHICH_MAX_NSYMB);
+    predecoding_single_mmse(&q->precoding, q->phich_symbols[0], q->ce[0], q->phich_d0,
+    PHICH_MAX_NSYMB, noise_estimate);
   } else {
-    predecoding_diversity_zf(q->phich_symbols[0], ce_precoding, x,
+    predecoding_diversity_zf(&q->precoding, q->phich_symbols[0], ce_precoding, x,
         q->cell.nof_ports, PHICH_MAX_NSYMB);
     layerdemap_diversity(x, q->phich_d0, q->cell.nof_ports,
     PHICH_MAX_NSYMB / q->cell.nof_ports);
@@ -368,7 +376,7 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
   /* layer mapping & precoding */
   if (q->cell.nof_ports > 1) {
     layermap_diversity(q->phich_d0, x, q->cell.nof_ports, PHICH_MAX_NSYMB);
-    precoding_diversity(x, symbols_precoding, q->cell.nof_ports,
+    precoding_diversity(&q->precoding, x, symbols_precoding, q->cell.nof_ports,
     PHICH_MAX_NSYMB / q->cell.nof_ports);
     /**FIXME: According to 6.9.2, Precoding for 4 tx ports is different! */
   } else {

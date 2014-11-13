@@ -137,6 +137,9 @@ void ue_dl_free(ue_dl_t *q) {
         free(q->ce[i]);
       }
     }
+
+    bzero(q, sizeof(ue_dl_t));
+
   }
 }
 
@@ -171,7 +174,7 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
   
   
   /* First decode PCFICH and obtain CFI */
-  if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, sf_idx, &cfi, &cfi_distance)<0) {
+  if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), sf_idx, &cfi, &cfi_distance)<0) {
     fprintf(stderr, "Error decoding PCFICH\n");
     return LIBLTE_ERROR;
   }
@@ -194,7 +197,7 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
 
   crc_rem = 0;
   for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-    if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, locations[i], sf_idx, cfi)) {
+    if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), locations[i], sf_idx, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       return LIBLTE_ERROR;
     }
@@ -239,7 +242,7 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
       }
     }
     if (q->harq_process[0].mcs.mod > 0) {
-      ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, data, sf_idx, 
+      ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), data, sf_idx, 
           &q->harq_process[0], rvidx);
       if (ret == LIBLTE_ERROR) {
         if (rnti == SIRNTI && rvidx == 1) {

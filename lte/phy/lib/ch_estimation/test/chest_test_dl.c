@@ -80,48 +80,15 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int check_mse(float mod, float arg, int n_port) {
-  INFO("mod=%.4f, arg=%.4f, n_port=%d\n", mod, arg, n_port);
-  switch(n_port) {
-  case 0:
-    if (mod > 0.029) {
-      return -1;
-    }
-    if (arg > 0.029) {
-      return -1;
-    }
-    break;
-  case 1:
-    if (mod > 0.012) {
-      return -1;
-    }
-    if (arg > 0.012) {
-      return -1;
-    }
-    break;
-  case 2:
-  case 3:
-    if (mod > 3.33) {
-      return -1;
-    }
-    if (arg > 0.63) {
-      return -1;
-    }
-    break;
-  default:
-    return -1;
-  }
-  return 0;
-}
 
 int main(int argc, char **argv) {
-  chest_dl_t eq;
-  cf_t *input = NULL, *ce = NULL, *h = NULL;
+  chest_dl_t est;
+  precoding_t cheq; 
+  cf_t *input = NULL, *ce = NULL, *h = NULL, *output = NULL;
   int i, j, n_port, sf_idx, cid, num_re;
   int ret = -1;
   int max_cid;
   FILE *fmatlab = NULL;
-  float mse_mag, mse_phase;
   
   parse_args(argc,argv);
 
@@ -137,6 +104,11 @@ int main(int argc, char **argv) {
 
   input = malloc(num_re * sizeof(cf_t));
   if (!input) {
+    perror("malloc");
+    goto do_exit;
+  }
+  output = malloc(num_re * sizeof(cf_t));
+  if (!output) {
     perror("malloc");
     goto do_exit;
   }
@@ -158,15 +130,17 @@ int main(int argc, char **argv) {
     cid = cell.id;
     max_cid = cell.id;
   }
+  
+  precoding_init(&cheq, num_re);
 
   while(cid <= max_cid) {
     cell.id = cid; 
-    if (chest_dl_init(&eq, cell)) {
+    if (chest_dl_init(&est, cell)) {
       fprintf(stderr, "Error initializing equalizer\n");
       goto do_exit;
     }
 
-    for (sf_idx=0;sf_idx<NSUBFRAMES_X_FRAME;sf_idx++) {
+    for (sf_idx=0;sf_idx<1;sf_idx++) {
       for (n_port=0;n_port<cell.nof_ports;n_port++) {
 
         bzero(input, sizeof(cf_t) * num_re);
@@ -177,7 +151,8 @@ int main(int argc, char **argv) {
         bzero(ce, sizeof(cf_t) * num_re);
         bzero(h, sizeof(cf_t) * num_re);
 
-        refsignal_cs_put_sf(cell, n_port, eq.csr_signal.pilots[n_port/2][sf_idx], input);
+        refsignal_cs_put_sf(cell, n_port, 
+                            est.csr_signal.pilots[n_port/2][sf_idx], input);
 
         for (i=0;i<2*CP_NSYMB(cell.cp);i++) {
           for (j=0;j<cell.nof_prb * RE_X_RB;j++) {
@@ -189,24 +164,47 @@ int main(int argc, char **argv) {
 
         struct timeval t[3];
         gettimeofday(&t[1], NULL);
-        for (int j=0;j<1000;j++) {
-          chest_dl_estimate_port(&eq, input, ce, sf_idx, n_port);          
+        for (int j=0;j<100;j++) {
+          chest_dl_estimate_port(&est, input, ce, sf_idx, n_port);          
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
-        printf("%f us\n", (float) t[0].tv_usec/1000);
+        printf("CHEST: %f us\n", (float) t[0].tv_usec/100);
         
-        mse_mag = mse_phase = 0;
-        for (i=0;i<num_re;i++) {
-          mse_mag += (cabsf(h[i]) - cabsf(ce[i])) * (cabsf(h[i]) - cabsf(ce[i])) / num_re;
-          mse_phase += (cargf(h[i]) - cargf(ce[i])) * (cargf(h[i]) - cargf(ce[i])) / num_re;
+        gettimeofday(&t[1], NULL);
+        for (int j=0;j<100;j++) {
+          predecoding_single_zf(&cheq, input, ce, output, num_re);
         }
+        gettimeofday(&t[2], NULL);
+        get_time_interval(t);
+        printf("CHEQ-ZF: %f us\n", (float) t[0].tv_usec/100);
 
-        /*if (check_mse(mse_mag, mse_phase, n_port)) {
-          chest_dl_free(&eq);
+        float mse = 0;
+        for (i=0;i<num_re;i++) {
+          mse += cabsf(input[i]-output[i]);
+        }
+        mse /= num_re;
+        printf("MSE: %f\n", mse);
+
+        gettimeofday(&t[1], NULL);
+        for (int j=0;j<100;j++) {
+          predecoding_single_mmse(&cheq, input, ce, output, num_re, chest_dl_get_noise_estimate(&est));
+        }
+        gettimeofday(&t[2], NULL);
+        get_time_interval(t);
+        printf("CHEQ-MMSE: %f us\n", (float) t[0].tv_usec/100);
+        
+        mse = 0;
+        for (i=0;i<num_re;i++) {
+          mse += cabsf(input[i]-output[i]);
+        }
+        mse /= num_re;
+        printf("MSE: %f\n", mse);
+
+        if (mse > 1.7) {
           goto do_exit;
-        }*/
-
+        }
+        
         if (fmatlab) {
           fprintf(fmatlab, "input=");
           vec_fprint_c(fmatlab, input, num_re);
@@ -220,7 +218,7 @@ int main(int argc, char **argv) {
         }
       }
     }
-    chest_dl_free(&eq);
+    chest_dl_free(&est);
     cid+=10;
     INFO("cid=%d\n", cid);
   }
@@ -230,6 +228,11 @@ int main(int argc, char **argv) {
 
 do_exit:
 
+  precoding_free(&cheq);
+
+  if (output) {
+    free(output);
+  }
   if (ce) {
     free(ce);
   }

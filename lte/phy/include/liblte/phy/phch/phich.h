@@ -75,6 +75,7 @@ typedef struct LIBLTE_API {
   modem_table_t mod;
   demod_hard_t demod;
   sequence_t seq_phich[NSUBFRAMES_X_FRAME];
+  precoding_t precoding; 
 
 }phich_t;
 
@@ -87,6 +88,7 @@ LIBLTE_API void phich_free(phich_t *q);
 LIBLTE_API int phich_decode(phich_t *q, 
                             cf_t *slot_symbols, 
                             cf_t *ce[MAX_PORTS],
+                            float noise_estimate, 
                             uint32_t ngroup, 
                             uint32_t nseq, 
                             uint32_t nsubframe, 

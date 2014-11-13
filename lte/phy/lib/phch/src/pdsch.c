@@ -189,6 +189,10 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     INFO("Init PDSCH: %d ports %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
         q->cell.nof_prb, q->max_symbols);
 
+    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+      fprintf(stderr, "Error initializing precoding\n");
+    }
+
     for (i = 0; i < 4; i++) {
       if (modem_table_lte(&q->mod[i], modulations[i], true)) {
         goto clean;
@@ -295,6 +299,9 @@ void pdsch_free(pdsch_t *q) {
   }
   tdec_free(&q->decoder);
   tcod_free(&q->encoder);
+  precoding_free(&q->precoding);
+
+  bzero(q, sizeof(pdsch_t));
 
 }
 
@@ -607,7 +614,7 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
 
 /** Decodes the PDSCH from the received symbols
  */
-int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], uint8_t *data, uint32_t subframe, 
+int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, uint8_t *data, uint32_t subframe, 
                  pdsch_harq_t *harq_process, uint32_t rv_idx) 
 {
 
@@ -657,10 +664,10 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], uint8_t *dat
     /* TODO: only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      predecoding_single_zf(q->pdsch_symbols[0], q->ce[0], q->pdsch_d,
-          nof_symbols);
+      predecoding_single_mmse(&q->precoding, q->pdsch_symbols[0], q->ce[0], q->pdsch_d,
+          nof_symbols, noise_estimate);
     } else {
-      predecoding_diversity_zf(q->pdsch_symbols[0], q->ce, x, q->cell.nof_ports,
+      predecoding_diversity_zf(&q->precoding, q->pdsch_symbols[0], q->ce, x, q->cell.nof_ports,
           nof_symbols);
       layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
           nof_symbols / q->cell.nof_ports);
@@ -878,7 +885,7 @@ int pdsch_encode(pdsch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_
       /* TODO: only diversity supported */
       if (q->cell.nof_ports > 1) {
         layermap_diversity(q->pdsch_d, x, q->cell.nof_ports, nof_symbols);
-        precoding_diversity(x, q->pdsch_symbols, q->cell.nof_ports,
+        precoding_diversity(&q->precoding, x, q->pdsch_symbols, q->cell.nof_ports,
             nof_symbols / q->cell.nof_ports);
       } else {
         memcpy(q->pdsch_symbols[0], q->pdsch_d, nof_symbols * sizeof(cf_t));

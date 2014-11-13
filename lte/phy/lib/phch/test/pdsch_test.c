@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
     }
     
     gettimeofday(&t[1], NULL);
-    int r = pdsch_decode(&pdsch, slot_symbols[0], ce, data, subframe, &harq_process, rv);
+    int r = pdsch_decode(&pdsch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     if (r) {

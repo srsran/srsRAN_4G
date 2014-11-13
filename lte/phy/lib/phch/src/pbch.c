@@ -133,6 +133,10 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
 
     bzero(q, sizeof(pbch_t));
     q->cell = cell;
+    
+    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+      fprintf(stderr, "Error initializing precoding\n");
+    }
 
     if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
       goto clean;
@@ -223,9 +227,13 @@ void pbch_free(pbch_t *q) {
   if (q->pbch_rm_b) {
     free(q->pbch_rm_b);
   }
+  precoding_free(&q->precoding);
   sequence_free(&q->seq_pbch);
   modem_table_free(&q->mod);
   viterbi_free(&q->decoder);
+
+  bzero(q, sizeof(pbch_t));
+
 }
 
 void pbch_decode_reset(pbch_t *q) {
@@ -315,7 +323,7 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], 
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float noise_estimate, 
                  uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
 {
   uint32_t src, dst, nb;
@@ -369,10 +377,10 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS],
         /* in conctrol channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
-          predecoding_single_zf(q->pbch_symbols[0], q->ce[0], q->pbch_d,
-              q->nof_symbols);
+          predecoding_single_mmse(&q->precoding, q->pbch_symbols[0], q->ce[0], q->pbch_d,
+              q->nof_symbols, noise_estimate);
         } else {
-          predecoding_diversity_zf(q->pbch_symbols[0], q->ce, x, nant,
+          predecoding_diversity_zf(&q->precoding, q->pbch_symbols[0], q->ce, x, nant,
               q->nof_symbols);
           layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
         }
@@ -465,7 +473,7 @@ int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_sym
     /* layer mapping & precoding */
     if (q->cell.nof_ports > 1) {
       layermap_diversity(q->pbch_d, x, q->cell.nof_ports, q->nof_symbols);
-      precoding_diversity(x, q->pbch_symbols, q->cell.nof_ports,
+      precoding_diversity(&q->precoding, x, q->pbch_symbols, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     } else {
       memcpy(q->pbch_symbols[0], q->pbch_d, q->nof_symbols * sizeof(cf_t));

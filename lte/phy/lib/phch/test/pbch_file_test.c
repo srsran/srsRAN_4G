@@ -219,7 +219,9 @@ int main(int argc, char **argv) {
     ce_slot1[i] = &ce[i][SLOT_LEN_RE(cell.nof_prb, cell.cp)];
   }
 
-  n = pbch_decode(&pbch, &fft_buffer[SLOT_LEN_RE(cell.nof_prb, cell.cp)], ce_slot1, bch_payload, &nof_tx_ports, &sfn_offset);
+  n = pbch_decode(&pbch, &fft_buffer[SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
+                  ce_slot1, chest_dl_get_noise_estimate(&chest), 
+                  bch_payload, &nof_tx_ports, &sfn_offset);
 
   base_free();
   if (n < 0) {

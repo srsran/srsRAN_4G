@@ -25,15 +25,6 @@
 
 
 /** MEX function to be called from MATLAB to test the channel estimator 
- * 
- * [estChannel] = liblte_chest(cell_id, nof_ports, inputSignal, (optional) sf_idx)
- * 
- * Returns a matrix of size equal to the inputSignal matrix with the channel estimates 
- * for each resource element in inputSignal. The inputSignal matrix is the received Grid
- * of size nof_resource_elements x nof_ofdm_symbols_in_subframe. 
- * 
- * The sf_idx is the subframe index only used if inputSignal is 1 subframe length. 
- * 
  */
 
 #define CELLID  prhs[0]
@@ -47,11 +38,14 @@
 void help()
 {
   mexErrMsgTxt
-    ("[estChannel] = liblte_chest(cell_id, nof_ports, inputSignal,[sf_idx|freq_filter], [time_filter])\n\n"
+    ("[estChannel, avg_refs, output] = liblte_chest(cell_id, nof_ports, inputSignal,[sf_idx|freq_filter],"
+     "[time_filter])\n\n"
      " Returns a matrix of size equal to the inputSignal matrix with the channel estimates\n "
      "for each resource element in inputSignal. The inputSignal matrix is the received Grid\n"
      "of size nof_resource_elements x nof_ofdm_symbols.\n"
-     "The sf_idx is the subframe index only used if inputSignal is 1 subframe length.\n");
+     "The sf_idx is the subframe index only used if inputSignal is 1 subframe length.\n"
+     "Returns the averaged references and output signal after ZF/MMSE equalization\n"
+    );
 }
 
 /* the gateway function */
@@ -61,10 +55,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int i;
   lte_cell_t cell; 
   chest_dl_t chest;
-  cf_t *input_signal; 
+  precoding_t cheq; 
+  cf_t *input_signal = NULL, *output_signal = NULL; 
   cf_t *ce[MAX_PORTS]; 
-  double *outr0, *outi0, *outr1, *outi1;
-  float noiseAverage[10];
+  double *outr0=NULL, *outi0=NULL;
+  double *outr1=NULL, *outi1=NULL;
+  double *outr2=NULL, *outi2=NULL;
   
   if (nrhs < NOF_INPUTS) {
     help();
@@ -147,7 +143,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ce[i] = vec_malloc(nof_re * sizeof(cf_t));
   }
   input_signal = vec_malloc(nof_re * sizeof(cf_t));
+  output_signal = vec_malloc(nof_re * sizeof(cf_t));
    
+  
+  precoding_init(&cheq, nof_re);
+  
   /* Create output values */
   if (nlhs >= 1) {
     plhs[0] = mxCreateDoubleMatrix(1,nof_re * nsubframes, mxCOMPLEX);
@@ -158,6 +158,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[1] = mxCreateDoubleMatrix(REFSIGNAL_MAX_NUM_SF(cell.nof_prb)*nsubframes, cell.nof_ports, mxCOMPLEX);
     outr1 = mxGetPr(plhs[1]);
     outi1 = mxGetPi(plhs[1]);
+  }
+  if (nlhs >= 3) {
+    plhs[2] = mxCreateDoubleMatrix(1,nof_re * nsubframes, mxCOMPLEX);
+    outr2 = mxGetPr(plhs[2]);
+    outi2 = mxGetPi(plhs[2]);
   }
   
   for (int sf=0;sf<nsubframes;sf++) {
@@ -176,12 +181,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     
     /* Loop through the 10 subframes */
-    if (chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
+      if (chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
       mexErrMsgTxt("Error running channel estimator\n");
       return;
-    }
-    
-    noiseAverage[sf]=chest_dl_get_noise_estimate(&chest);
+    }    
+    //predecoding_single_zf(&cheq, input_signal, ce[0], output_signal, nof_re);
+    predecoding_single_mmse(&cheq, input_signal, ce[0], output_signal, nof_re, chest_dl_get_noise_estimate(&chest));
     
     if (nlhs >= 1) { 
       for (i=0;i<nof_re;i++) {      
@@ -205,15 +210,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
       }    
     }
+    if (nlhs >= 3) {
+      for (i=0;i<nof_re;i++) {      
+        *outr2 = (double) crealf(output_signal[i]);
+        if (outi2) {
+          *outi2 = (double) cimagf(output_signal[i]);
+        }
+        outr2++;
+        outi2++;
+      }
+    }
   }
-  
-  if (nlhs >= 3) {
-    plhs[2] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    outr1 = mxGetPr(plhs[2]);
-    *outr1 = vec_acc_ff(noiseAverage,10)/10;
-  }
-    
- 
+   
   return;
 }
 

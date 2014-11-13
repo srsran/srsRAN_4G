@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
   }
 
   for (i=0;i<2;i++) {
-    if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, dci_locations[i], 0, cfi)) {
+    if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, 0, dci_locations[i], 0, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       goto quit;
     }

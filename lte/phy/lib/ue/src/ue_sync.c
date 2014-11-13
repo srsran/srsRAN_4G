@@ -124,6 +124,8 @@ void ue_sync_free(ue_sync_t *q) {
   cfo_free(&q->cfocorr);
   sync_free(&q->sfind);
   sync_free(&q->strack);
+  
+  bzero(q, sizeof(ue_sync_t));
 }
 
 uint32_t ue_sync_peak_idx(ue_sync_t *q) {

@@ -4,14 +4,13 @@
 
 clear
 
-SNR_values_db=20;%linspace(5,20,8);
+SNR_values_db=linspace(0,20,8);
 Nrealizations=1;
 
 preEVM = zeros(length(SNR_values_db),Nrealizations);
 postEVM_mmse = zeros(length(SNR_values_db),Nrealizations);
-postEVM_mmse2 = zeros(length(SNR_values_db),Nrealizations);
-postEVM_zf = zeros(length(SNR_values_db),Nrealizations);
-postEVM_zf2 = zeros(length(SNR_values_db),Nrealizations);
+postEVM_mmse_lin = zeros(length(SNR_values_db),Nrealizations);
+postEVM_liblte = zeros(length(SNR_values_db),Nrealizations);
 
 
 enb.NDLRB = 6;                 % Number of resource blocks
@@ -137,8 +136,6 @@ rxWaveform = lteFadingChannel(cfg,txWaveform);
 % Calculate noise gain
 N0 = 1/(sqrt(2.0*enb.CellRefP*double(info.Nfft))*SNR);
 
-realNoise(snr_idx)=N0;
-
 % Create additive white Gaussian noise
 noise = N0*complex(randn(size(rxWaveform)),randn(size(rxWaveform)));   
 
@@ -152,24 +149,18 @@ rxWaveform = rxWaveform(1+offset:end,:);
 
 %% OFDM Demodulation
 rxGrid = lteOFDMDemodulate(enb,rxWaveform);
-%rxGrid = txGrid;
 
 addpath('../../debug/lte/phy/lib/ch_estimation/test')
 %% Channel Estimation
-[estChannel, noiseEst, avg_ref1, noavg_ref1] = lteDLChannelEstimate2(enb,cec2,rxGrid);
-[estChannel2, refs, noiseEst2] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid,[0.15 0.7 0.15],[0.1 0.9]);
-estChannel2=reshape(estChannel2,size(estChannel));
-noiseEstimation(snr_idx)=noiseEst;
-noiseEstimation2(snr_idx)=noiseEst2;
-
-%error(snr_idx,nreal) = mean(mean(abs(avg_ref-transpose(refs)),2));
+[estChannel, noiseEst] = lteDLChannelEstimate(enb,cec,rxGrid);
+[estChannel_lin, noiseEst_lin] = lteDLChannelEstimate(enb,cec2,rxGrid);
+[d, a, output] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid,[0.15 0.7 0.15],[0.1 0.9]);
 
 %% MMSE Equalization
 eqGrid_mmse = lteEqualizeMMSE(rxGrid, estChannel, noiseEst);
-eqGrid_mmse2 = lteEqualizeMMSE(rxGrid, estChannel2, noiseEst2);
+eqGrid_mmse_lin = lteEqualizeMMSE(rxGrid, estChannel_lin, noiseEst_lin);
 
-eqGrid_zf = lteEqualizeZF(rxGrid, estChannel);
-eqGrid_zf2 = lteEqualizeZF(rxGrid, estChannel2);
+eqGrid_liblte = reshape(output,size(eqGrid_mmse));
 
 %% Analysis
 
@@ -183,23 +174,19 @@ fprintf('%d-%d: Pre-EQ: %0.3f%%\n', ...
 postEqualisedEVM_mmse = lteEVM(txGrid,eqGrid_mmse);
 fprintf('%d-%d: MMSE: %0.3f%%\n', ...
         snr_idx,nreal,postEqualisedEVM_mmse.RMS*100); 
-postEqualisedEVM_mmse2 = lteEVM(txGrid,eqGrid_mmse2);
-fprintf('%d-%d: MMSE-lin: %0.3f%%\n', ...
-        snr_idx,nreal,postEqualisedEVM_mmse2.RMS*100); 
-
     
-postEqualisedEVM_zf = lteEVM(txGrid,eqGrid_zf);
-fprintf('%d-%d: zf: %0.3f%%\n', ...
-        snr_idx,nreal,postEqualisedEVM_zf.RMS*100); 
-postEqualisedEVM_zf2 = lteEVM(txGrid,eqGrid_zf2);
-fprintf('%d-%d: zf-linear: %0.3f%%\n', ...
-        snr_idx,nreal,postEqualisedEVM_zf2.RMS*100); 
+postEqualisedEVM_mmse_lin = lteEVM(txGrid,eqGrid_mmse_lin);
+fprintf('%d-%d: MMSE-LIN: %0.3f%%\n', ...
+        snr_idx,nreal,postEqualisedEVM_mmse_lin.RMS*100); 
+
+postEqualisedEVM_liblte = lteEVM(txGrid,eqGrid_liblte);
+fprintf('%d-%d: liblte: %0.3f%%\n', ...
+        snr_idx,nreal,postEqualisedEVM_liblte.RMS*100); 
 
 preEVM(snr_idx,nreal) =preEqualisedEVM.RMS;
 postEVM_mmse(snr_idx,nreal) = postEqualisedEVM_mmse.RMS;
-postEVM_mmse2(snr_idx,nreal) = postEqualisedEVM_mmse2.RMS;
-postEVM_zf(snr_idx,nreal) = postEqualisedEVM_zf.RMS;
-postEVM_zf2(snr_idx,nreal) = postEqualisedEVM_zf2.RMS;
+postEVM_mmse_lin(snr_idx,nreal) = postEqualisedEVM_mmse_lin.RMS;
+postEVM_liblte(snr_idx,nreal) = postEqualisedEVM_liblte.RMS;
     
 end
 end
@@ -208,10 +195,8 @@ end
 % legend('real','seu','meu')
 plot(SNR_values_db, mean(preEVM,2), ...
     SNR_values_db, mean(postEVM_mmse,2), ...
-    SNR_values_db, mean(postEVM_mmse2,2), ...
-    SNR_values_db, mean(postEVM_zf,2), ...
-    SNR_values_db, mean(postEVM_zf2,2))
-legend('No Eq','MMSE','MMSE-linear','ZF','ZF-linear')
-%plot(SNR_values_db, mean(error,2))
+    SNR_values_db, mean(postEVM_mmse_lin,2), ...
+    SNR_values_db, mean(postEVM_liblte,2))
+legend('No Eq','MMSE-cubic','MMSE-lin','MMSE-liblte')
 grid on
 

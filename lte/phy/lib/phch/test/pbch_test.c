@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
   }
   
   pbch_decode_reset(&pbch);
-  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, bch_payload_rx, &nof_rx_ports, NULL)) {
+  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, 0, bch_payload_rx, &nof_rx_ports, NULL)) {
     printf("Error decoding\n");
     exit(-1);
   }

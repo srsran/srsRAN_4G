@@ -97,6 +97,8 @@ typedef struct LIBLTE_API {
   tdec_t decoder;  
   crc_t crc_tb;
   crc_t crc_cb;
+  precoding_t precoding; 
+
 }pdsch_t;
 
 LIBLTE_API int pdsch_init(pdsch_t *q, 
@@ -126,6 +128,7 @@ LIBLTE_API int pdsch_encode(pdsch_t *q,
 LIBLTE_API int pdsch_decode(pdsch_t *q, 
                             cf_t *sf_symbols, 
                             cf_t *ce[MAX_PORTS],
+                            float noise_estimate, 
                             uint8_t *data, 
                             uint32_t nsubframe,
                             pdsch_harq_t *harq_process, 

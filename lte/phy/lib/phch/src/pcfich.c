@@ -69,6 +69,10 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
     bzero(q, sizeof(pcfich_t));
     q->cell = cell;
     q->regs = regs;
+    
+    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+      fprintf(stderr, "Error initializing precoding\n");
+    }
 
     if (modem_table_lte(&q->mod, LTE_QPSK, false)) {
       goto clean;
@@ -100,6 +104,9 @@ void pcfich_free(pcfich_t *q) {
     sequence_free(&q->seq_pcfich[ns]);
   }
   modem_table_free(&q->mod);
+  precoding_free(&q->precoding); 
+
+  bzero(q, sizeof(pcfich_t));
 }
 
 /** Finds the CFI with minimum distance with the vector of received 32 bits.
@@ -143,7 +150,7 @@ int pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
+int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float noise_estimate,
     uint32_t nsubframe, uint32_t *cfi, uint32_t *distance) {
   int dist;
 
@@ -183,10 +190,10 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS],
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      predecoding_single_zf(q->pcfich_symbols[0], q->ce[0], q->pcfich_d,
-          q->nof_symbols);
+      predecoding_single_mmse(&q->precoding, q->pcfich_symbols[0], q->ce[0], q->pcfich_d,
+          q->nof_symbols, noise_estimate);
     } else {
-      predecoding_diversity_zf(q->pcfich_symbols[0], ce_precoding, x,
+      predecoding_diversity_zf(&q->precoding, q->pcfich_symbols[0], ce_precoding, x,
           q->cell.nof_ports, q->nof_symbols);
       layerdemap_diversity(x, q->pcfich_d, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
@@ -249,7 +256,7 @@ int pcfich_encode(pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[MAX_PORTS],
     /* layer mapping & precoding */
     if (q->cell.nof_ports > 1) {
       layermap_diversity(q->pcfich_d, x, q->cell.nof_ports, q->nof_symbols);
-      precoding_diversity(x, symbols_precoding, q->cell.nof_ports,
+      precoding_diversity(&q->precoding, x, symbols_precoding, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     } else {
       memcpy(q->pcfich_symbols[0], q->pcfich_d, q->nof_symbols * sizeof(cf_t));

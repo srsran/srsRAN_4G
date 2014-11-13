@@ -69,6 +69,9 @@ void regs_pdcch_free(regs_t *h) {
       free(h->pdcch[i].regs);
     }
   }
+
+  bzero(h, sizeof(regs_t));
+
 }
 
 #define PDCCH_NCOLS  32
@@ -349,6 +352,9 @@ void regs_phich_free(regs_t *h) {
     }
     free(h->phich);
   }
+
+  bzero(h, sizeof(regs_t));
+
 }
 
 uint32_t regs_phich_nregs(regs_t *h) {
@@ -492,6 +498,9 @@ void regs_pcfich_free(regs_t *h) {
   if (h->pcfich.regs) {
     free(h->pcfich.regs);
   }
+
+  bzero(h, sizeof(regs_t));
+
 }
 
 uint32_t regs_pcfich_nregs(regs_t *h) {

@@ -74,6 +74,8 @@ typedef struct LIBLTE_API {
   sequence_t seq_pdcch[NSUBFRAMES_X_FRAME];
   viterbi_t decoder;
   crc_t crc;
+  precoding_t precoding; 
+
 } pdcch_t;
 
 LIBLTE_API int pdcch_init(pdcch_t *q, 
@@ -96,6 +98,7 @@ LIBLTE_API int pdcch_encode(pdcch_t *q,
 LIBLTE_API int pdcch_extract_llr(pdcch_t *q, 
                                  cf_t *sf_symbols, 
                                  cf_t *ce[MAX_PORTS],
+                                 float noise_estimate, 
                                  dci_location_t location,
                                  uint32_t nsubframe, 
                                  uint32_t cfi);

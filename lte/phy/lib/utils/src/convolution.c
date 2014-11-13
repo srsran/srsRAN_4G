@@ -72,6 +72,9 @@ void conv_fft_cc_free(conv_fft_cc_t *q) {
   dft_plan_free(&q->input_plan);
   dft_plan_free(&q->filter_plan);
   dft_plan_free(&q->output_plan);
+  
+  bzero(q, sizeof(conv_fft_cc_t));
+
 }
 
 uint32_t conv_fft_cc_run(conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *output) {

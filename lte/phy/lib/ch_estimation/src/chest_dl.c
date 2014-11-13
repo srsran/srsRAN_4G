@@ -82,17 +82,17 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
     }
     
     for (int i=0;i<cell.nof_ports;i++) {
-      q->pilot_estimates[i] = vec_malloc(sizeof(cf_t) * REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+      q->pilot_estimates[i] = vec_malloc(sizeof(cf_t) * REFSIGNAL_NUM_SF(cell.nof_prb, i));
       if (!q->pilot_estimates[i]) {
         perror("malloc");
         goto clean_exit;
       }      
-      q->pilot_estimates_average[i] = vec_malloc(sizeof(cf_t) * REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+      q->pilot_estimates_average[i] = vec_malloc(sizeof(cf_t) * REFSIGNAL_NUM_SF(cell.nof_prb, i));
       if (!q->pilot_estimates_average[i]) {
         perror("malloc");
         goto clean_exit;
       }      
-      q->pilot_recv_signal[i] = vec_malloc(sizeof(cf_t) * REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+      q->pilot_recv_signal[i] = vec_malloc(sizeof(cf_t) * REFSIGNAL_NUM_SF(cell.nof_prb, i));
       if (!q->pilot_recv_signal[i]) {
         perror("malloc");
         goto clean_exit;
@@ -135,7 +135,11 @@ void chest_dl_free(chest_dl_t *q)
   if (q->tmp_freqavg) {
     free(q->tmp_freqavg);
   }
-  
+  for (int i=0;i<CHEST_MAX_FILTER_TIME_LEN;i++) {
+    if (q->tmp_timeavg[i]) {
+      free(q->tmp_timeavg[i]);
+    }
+  }
   interp_linear_vector_free(&q->interp_linvec);
   interp_linear_free(&q->interp_lin);
   
@@ -143,10 +147,14 @@ void chest_dl_free(chest_dl_t *q)
     if (q->pilot_estimates[i]) {
       free(q->pilot_estimates[i]);
     }      
+    if (q->pilot_estimates_average[i]) {
+      free(q->pilot_estimates_average[i]);
+    }      
     if (q->pilot_recv_signal[i]) {
       free(q->pilot_recv_signal[i]);
     }
   }
+  bzero(q, sizeof(chest_dl_t));
 }
 
 int chest_dl_set_filter_freq(chest_dl_t *q, float *filter, uint32_t filter_len) {
@@ -219,9 +227,10 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
 
 static float estimate_noise_port(chest_dl_t *q, uint32_t port_id) {
   /* Use difference between averaged and noisy LS pilot estimates */
-  vec_sub_fff((float*) q->pilot_estimates_average[port_id], (float*) q->pilot_estimates[port_id],
-              (float*) q->pilot_estimates[port_id], 2*REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
+  vec_sub_ccc(q->pilot_estimates_average[port_id], q->pilot_estimates[port_id],
+              q->pilot_estimates[port_id], REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
   /* compute noise power */
+  
   float noiseEst = vec_dot_prod_conj_ccc(q->pilot_estimates[port_id],
                                q->pilot_estimates[port_id], 
                                REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));

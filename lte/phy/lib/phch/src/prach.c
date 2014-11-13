@@ -503,6 +503,8 @@ int prach_free(prach_t *p){
   dft_plan_free(p->zc_ifft);
   free(p->zc_ifft);
 
+  bzero(p, sizeof(prach_t));
+
   return 0;
 }
 

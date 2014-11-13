@@ -78,6 +78,10 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
     bzero(q, sizeof(pdcch_t));
     q->cell = cell;
     q->regs = regs;
+    
+    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+      fprintf(stderr, "Error initializing precoding\n");
+    }
 
     /* Allocate memory for the largest aggregation level L=3 */
     q->max_bits = PDCCH_FORMAT_NOF_BITS(3);
@@ -175,8 +179,12 @@ void pdcch_free(pdcch_t *q) {
     sequence_free(&q->seq_pdcch[i]);
   }
 
+  precoding_free(&q->precoding);
   modem_table_free(&q->mod);
   viterbi_free(&q->decoder);
+
+  bzero(q, sizeof(pdcch_t));
+
 }
 
 /** 36.213 v9.1.1 
@@ -341,7 +349,7 @@ int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_format_t format, uint16_t *
  * Every time this function is called (with a different location), the last demodulated symbols are overwritten and
  * new messages from other locations can be decoded 
  */
-int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], 
+int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, 
                       dci_location_t location, uint32_t nsubframe, uint32_t cfi) {
 
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
@@ -394,9 +402,9 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS],
       /* in control channels, only diversity is supported */
       if (q->cell.nof_ports == 1) {
         /* no need for layer demapping */
-        predecoding_single_zf(q->pdcch_symbols[0], q->ce[0], q->pdcch_d, nof_symbols);
+        predecoding_single_mmse(&q->precoding, q->pdcch_symbols[0], q->ce[0], q->pdcch_d, nof_symbols, noise_estimate);
       } else {
-        predecoding_diversity_zf(q->pdcch_symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols);
+        predecoding_diversity_zf(&q->precoding, q->pdcch_symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols);
         layerdemap_diversity(x, q->pdcch_d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
       }
 
@@ -536,7 +544,7 @@ int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t r
       /* layer mapping & precoding */
       if (q->cell.nof_ports > 1) {
         layermap_diversity(q->pdcch_d, x, q->cell.nof_ports, nof_symbols);
-        precoding_diversity(x, q->pdcch_symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
+        precoding_diversity(&q->precoding, x, q->pdcch_symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
       } else {
         memcpy(q->pdcch_symbols[0], q->pdcch_d, nof_symbols * sizeof(cf_t));
       }

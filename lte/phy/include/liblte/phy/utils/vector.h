@@ -73,6 +73,11 @@ LIBLTE_API void vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 /* Square distance */
 LIBLTE_API void vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoints);
 
+/* scalar addition */
+LIBLTE_API void vec_sc_add_fff(float *x, float h, float *z, uint32_t len); 
+LIBLTE_API void vec_sc_add_cfc(cf_t *x, float h, cf_t *z, uint32_t len); 
+LIBLTE_API void vec_sc_add_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len); 
+
 /* scalar product */
 LIBLTE_API void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len);
 LIBLTE_API void vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len);
@@ -82,6 +87,8 @@ LIBLTE_API void vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len);
 
 LIBLTE_API void vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len); 
 LIBLTE_API void vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len);
+
+LIBLTE_API void vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len);
 
 /* vector product (element-wise) */
 LIBLTE_API void vec_prod_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
@@ -99,7 +106,8 @@ LIBLTE_API cf_t vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len);
 LIBLTE_API float vec_dot_prod_fff(float *x, float *y, uint32_t len);
 
 /* z=x/y vector division (element-wise) */
-LIBLTE_API void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, uint32_t len);
+LIBLTE_API void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *z_imag, uint32_t len);
+LIBLTE_API void vec_div_fff(float *x, float *y, float *z, uint32_t len);
 
 /* conjugate */
 LIBLTE_API void vec_conj_cc(cf_t *x, cf_t *y, uint32_t len);
