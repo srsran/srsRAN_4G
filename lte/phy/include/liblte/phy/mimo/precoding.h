@@ -40,6 +40,9 @@ typedef _Complex float cf_t;
 
 typedef struct {
   cf_t *h_mod; 
+  cf_t *tmp1; 
+  cf_t *tmp2; 
+  cf_t *tmp3; 
   float *y_mod; 
   float *z_real; 
   float *z_imag; 
@@ -74,25 +77,20 @@ LIBLTE_API int precoding_type(precoding_t *q,
 
 /* Estimates the vector "x" based on the received signal "y" and the channel estimates "h"
  */
-LIBLTE_API int predecoding_single_zf(precoding_t *q, 
+LIBLTE_API int predecoding_single(precoding_t *q, 
+                                  cf_t *y, 
+                                  cf_t *h, 
+                                  cf_t *x, 
+                                  int nof_symbols, 
+                                  float noise_estimate);
+
+LIBLTE_API int predecoding_diversity(precoding_t *q, 
                                      cf_t *y, 
-                                     cf_t *h, 
-                                     cf_t *x, 
-                                     int nof_symbols);
-
-LIBLTE_API int predecoding_single_mmse(precoding_t *q, 
-                                       cf_t *y, 
-                                       cf_t *h, 
-                                       cf_t *x, 
-                                       int nof_symbols, 
-                                       float noise_estimate);
-
-LIBLTE_API int predecoding_diversity_zf(precoding_t *q, 
-                                        cf_t *y, 
-                                        cf_t *h[MAX_PORTS], 
-                                        cf_t *x[MAX_LAYERS],    
-                                        int nof_ports, 
-                                        int nof_symbols);
+                                     cf_t *h[MAX_PORTS], 
+                                     cf_t *x[MAX_LAYERS],    
+                                     int nof_ports, 
+                                     int nof_symbols, 
+                                     float noise_estimate);
 
 LIBLTE_API int predecoding_type(precoding_t *q, 
                                 cf_t *y, 
@@ -101,6 +99,7 @@ LIBLTE_API int predecoding_type(precoding_t *q,
                                 int nof_ports, 
                                 int nof_layers, 
                                 int nof_symbols, 
-                                lte_mimo_type_t type);
+                                lte_mimo_type_t type, 
+                                float noise_estimate);
 
 #endif /* PRECODING_H_ */

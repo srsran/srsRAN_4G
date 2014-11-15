@@ -402,9 +402,9 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float n
       /* in control channels, only diversity is supported */
       if (q->cell.nof_ports == 1) {
         /* no need for layer demapping */
-        predecoding_single_mmse(&q->precoding, q->pdcch_symbols[0], q->ce[0], q->pdcch_d, nof_symbols, noise_estimate);
+        predecoding_single(&q->precoding, q->pdcch_symbols[0], q->ce[0], q->pdcch_d, nof_symbols, noise_estimate);
       } else {
-        predecoding_diversity_zf(&q->precoding, q->pdcch_symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols);
+        predecoding_diversity(&q->precoding, q->pdcch_symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols, noise_estimate);
         layerdemap_diversity(x, q->pdcch_d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
       }
 

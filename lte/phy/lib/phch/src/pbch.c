@@ -377,11 +377,11 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float
         /* in conctrol channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
-          predecoding_single_mmse(&q->precoding, q->pbch_symbols[0], q->ce[0], q->pbch_d,
+          predecoding_single(&q->precoding, q->pbch_symbols[0], q->ce[0], q->pbch_d,
               q->nof_symbols, noise_estimate);
         } else {
-          predecoding_diversity_zf(&q->precoding, q->pbch_symbols[0], q->ce, x, nant,
-              q->nof_symbols);
+          predecoding_diversity(&q->precoding, q->pbch_symbols[0], q->ce, x, nant,
+              q->nof_symbols, noise_estimate);
           layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
         }
 

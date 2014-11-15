@@ -125,11 +125,7 @@ int find_cell(void *uhd, ue_celldetect_result_t *found_cell, uint32_t N_id_2)
     fprintf(stderr, "Error initiating UE cell detect\n");
     goto free_and_exit;
   }
-  
-  ue_celldetect_set_nof_frames_detected(&cd, 50);
-
-  ue_celldetect_set_nof_frames_total(&cd, 500);
-  
+    
   INFO("Setting sampling frequency 960 KHz for PSS search\n", 0);
   cuhd_set_rx_srate(uhd, 960000.0);
   INFO("Starting receiver...\n", 0);
@@ -222,6 +218,10 @@ int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell)
   
   ue_celldetect_result_t found_cells[3];
   bzero(found_cells, 3*sizeof(ue_celldetect_result_t));
+  
+  ue_celldetect_set_nof_frames_detected(&cd, 50);
+
+  ue_celldetect_set_nof_frames_total(&cd, 500);
 
   if (force_N_id_2 >= 0) {
     ret = find_cell(uhd, &found_cells[force_N_id_2], force_N_id_2);

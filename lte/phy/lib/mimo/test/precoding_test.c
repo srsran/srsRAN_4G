@@ -97,47 +97,46 @@ int main(int argc, char **argv) {
   }
 
   for (i = 0; i < nof_layers; i++) {
-    x[i] = malloc(sizeof(cf_t) * nof_symbols);
+    x[i] = vec_malloc(sizeof(cf_t) * nof_symbols);
     if (!x[i]) {
-      perror("malloc");
+      perror("vec_malloc");
       exit(-1);
     }
-    xr[i] = malloc(sizeof(cf_t) * nof_symbols);
+    xr[i] = calloc(1,sizeof(cf_t) * nof_symbols);
     if (!xr[i]) {
-      perror("malloc");
+      perror("vec_malloc");
       exit(-1);
     }
   }
   for (i = 0; i < nof_ports; i++) {
-    y[i] = malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+    y[i] = vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
     // TODO: The number of symbols per port is different in spatial multiplexing.
     if (!y[i]) {
-      perror("malloc");
+      perror("vec_malloc");
       exit(-1);
     }
-    h[i] = malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+    h[i] = vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
     if (!h[i]) {
-      perror("malloc");
+      perror("vec_malloc");
       exit(-1);
     }
   }
 
   /* only 1 receiver antenna supported now */
-  r[0] = malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+  r[0] = vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
   if (!r[0]) {
-    perror("malloc");
+    perror("vec_malloc");
     exit(-1);
   }
 
   /* generate random data */
   for (i = 0; i < nof_layers; i++) {
     for (j = 0; j < nof_symbols; j++) {
-      x[i][j] = 100
-          * ((float) rand() / RAND_MAX + (float) I * rand() / RAND_MAX);
+      x[i][j] = (float) rand()/RAND_MAX+((float) rand()/RAND_MAX)*_Complex_I;
     }
   }
   
-  if (precoding_init(&precoding, nof_symbols)) {
+  if (precoding_init(&precoding, nof_symbols * nof_layers)) {
     fprintf(stderr, "Error initializing precoding\n");
     exit(-1);
   }
@@ -150,9 +149,12 @@ int main(int argc, char **argv) {
 
   /* generate channel */
   for (i = 0; i < nof_ports; i++) {
-    for (j = 0; j < nof_symbols * nof_layers; j++) {
-      float hc = -1 + (float) i / nof_ports;
-      h[i][j] = (3 + hc) * cexpf(I * hc);
+    for (j = 0; j < nof_symbols; j++) {
+      h[i][nof_layers*j] = (float) rand()/RAND_MAX+((float) rand()/RAND_MAX)*_Complex_I;
+      // assume the channel is time-invariant in nlayer consecutive symbols
+      for (int k=0;k<nof_layers;k++) {
+        h[i][nof_layers*j+k] = h[i][nof_layers*j];
+      }
     }
   }
 
@@ -167,20 +169,34 @@ int main(int argc, char **argv) {
       r[0][j] += y[i][j] * h[i][j];
     }
   }
-
+  
+  float noise_estimate[2] = {0, 0.0000001};
+  const char *algs[2] = {"ZF", "MMSE"};
+  
   /* predecoding / equalization */
-  if (predecoding_type(&precoding, r[0], h, xr, nof_ports, nof_layers,
-      nof_symbols * nof_layers, type) < 0) {
-    fprintf(stderr, "Error layer mapper encoder\n");
-    exit(-1);
-  }
-
-  /* check errors */
-  mse = 0;
-  for (i = 0; i < nof_layers; i++) {
-    for (j = 0; j < nof_symbols; j++) {
-      mse += cabsf(xr[i][j] - x[i][j]) / nof_layers / nof_symbols;
+  struct timeval t[3];
+  for (int a=0;a<2;a++) {
+    gettimeofday(&t[1], NULL);
+    if (predecoding_type(&precoding, r[0], h, xr, nof_ports, nof_layers,
+        nof_symbols * nof_layers, type, noise_estimate[a]) < 0) {
+      fprintf(stderr, "Error layer mapper encoder\n");
+      exit(-1);
     }
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    printf("Execution Time %s: %d us\n", algs[a], t[0].tv_usec);
+    
+    /* check errors */
+    mse = 0;
+    for (i = 0; i < nof_layers; i++) {
+      for (j = 0; j < nof_symbols; j++) {
+        mse += cabsf(xr[i][j] - x[i][j]);
+      }
+    }
+    printf("MSE %s: %f\n", algs[a], mse);
+    if (mse / nof_layers / nof_symbols > MSE_THRESHOLD) {
+      exit(-1);
+    } 
   }
 
   for (i = 0; i < nof_layers; i++) {
@@ -195,12 +211,7 @@ int main(int argc, char **argv) {
   free(r[0]);
   
   precoding_free(&precoding);
-
-  if (mse > MSE_THRESHOLD) {
-    printf("MSE: %f\n", mse);
-    exit(-1);
-  } else {
-    printf("Ok\n");
-    exit(0);
-  }
+  
+  printf("Ok\n");
+  exit(0); 
 }

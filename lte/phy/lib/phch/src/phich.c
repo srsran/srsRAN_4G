@@ -208,11 +208,11 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float nois
   /* in control channels, only diversity is supported */
   if (q->cell.nof_ports == 1) {
     /* no need for layer demapping */
-    predecoding_single_mmse(&q->precoding, q->phich_symbols[0], q->ce[0], q->phich_d0,
+    predecoding_single(&q->precoding, q->phich_symbols[0], q->ce[0], q->phich_d0,
     PHICH_MAX_NSYMB, noise_estimate);
   } else {
-    predecoding_diversity_zf(&q->precoding, q->phich_symbols[0], ce_precoding, x,
-        q->cell.nof_ports, PHICH_MAX_NSYMB);
+    predecoding_diversity(&q->precoding, q->phich_symbols[0], ce_precoding, x,
+        q->cell.nof_ports, PHICH_MAX_NSYMB, noise_estimate);
     layerdemap_diversity(x, q->phich_d0, q->cell.nof_ports,
     PHICH_MAX_NSYMB / q->cell.nof_ports);
   }

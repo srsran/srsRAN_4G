@@ -4,7 +4,7 @@
 
 clear
 
-SNR_values_db=linspace(0,20,8);
+SNR_values_db=[0 1 2];%15;%[5 10 15];%linspace(0,20,8);
 Nrealizations=1;
 
 preEVM = zeros(length(SNR_values_db),Nrealizations);
@@ -22,10 +22,10 @@ enb.DuplexMode = 'FDD';         % FDD
 %% Channel Model Configuration
 rng(1);         % Configure random number generators
 
-cfg.Seed = 1;                  % Random channel seed
+cfg.Seed = 2;                  % Random channel seed
 cfg.NRxAnts = 1;               % 1 receive antenna
 cfg.DelayProfile = 'EVA';      % EVA delay spread
-cfg.DopplerFreq = 120;         % 120Hz Doppler frequency
+cfg.DopplerFreq = 5;         % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
 cfg.InitTime = 0;              % Initialize at time zero
 cfg.NTerms = 16;               % Oscillators used in fading model
@@ -35,24 +35,13 @@ cfg.NormalizePathGains = 'On'; % Normalize delay profile power
 cfg.NormalizeTxAnts = 'On';    % Normalize for transmit antennas
 
 %% Channel Estimator Configuration
-
-cec.FreqWindow = 9;               % Frequency averaging window in 
-                                  % Resource Elements (REs)
-cec.TimeWindow = 9;               % Time averaging window in REs
-cec.InterpType = 'Cubic';         % Cubic interpolation
-cec.PilotAverage = 'UserDefined'; % Pilot averaging method
-cec.InterpWinSize = 3;            % Interpolate up to 3 subframes 
-                                  % simultaneously
-cec.InterpWindow = 'Centred';     % Interpolation windowing method
-
-cec2.FreqWindow = 9;               % Frequency averaging window in 
-                                  % Resource Elements (REs)
-cec2.TimeWindow = 9;               % Time averaging window in REs
-cec2.InterpType = 'Linear';         % Cubic interpolation
-cec2.PilotAverage = 'UserDefined'; % Pilot averaging method
-cec2.InterpWinSize = 3;            % Interpolate up to 3 subframes 
-                                  % simultaneously
-cec2.InterpWindow = 'Causal';     % Interpolation windowing method
+cec = struct;                        % Channel estimation config structure
+cec.PilotAverage = 'UserDefined';    % Type of pilot symbol averaging
+cec.FreqWindow = 9;                 % Frequency window size
+cec.TimeWindow = 9;                 % Time window size
+cec.InterpType = 'Linear';            % 2D interpolation type
+cec.InterpWindow = 'Centered';       % Interpolation window type
+cec.InterpWinSize = 1;               % Interpolation window size
 
 %% Subframe Resource Grid Size
 
@@ -151,14 +140,16 @@ rxWaveform = rxWaveform(1+offset:end,:);
 rxGrid = lteOFDMDemodulate(enb,rxWaveform);
 
 addpath('../../debug/lte/phy/lib/ch_estimation/test')
+
 %% Channel Estimation
 [estChannel, noiseEst] = lteDLChannelEstimate(enb,cec,rxGrid);
-[estChannel_lin, noiseEst_lin] = lteDLChannelEstimate(enb,cec2,rxGrid);
-[d, a, output] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid,[0.15 0.7 0.15],[0.1 0.9]);
-
+output=[];
+for i=0:9
+    [d, a, out] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid(:,i*14+1:(i+1)*14),[0.15 0.7 0.15],[0.1 0.9],i);
+    output = [output out];
+end
 %% MMSE Equalization
 eqGrid_mmse = lteEqualizeMMSE(rxGrid, estChannel, noiseEst);
-eqGrid_mmse_lin = lteEqualizeMMSE(rxGrid, estChannel_lin, noiseEst_lin);
 
 eqGrid_liblte = reshape(output,size(eqGrid_mmse));
 
@@ -169,25 +160,20 @@ eqGrid_liblte = reshape(output,size(eqGrid_mmse));
 preEqualisedEVM = lteEVM(txGrid,rxGrid);
 fprintf('%d-%d: Pre-EQ: %0.3f%%\n', ...
         snr_idx,nreal,preEqualisedEVM.RMS*100); 
-    
+
+
 %EVM of post-equalized receive signal
-postEqualisedEVM_mmse = lteEVM(txGrid,eqGrid_mmse);
+postEqualisedEVM_mmse = lteEVM(txGrid,reshape(eqGrid_mmse,size(txGrid)));
 fprintf('%d-%d: MMSE: %0.3f%%\n', ...
         snr_idx,nreal,postEqualisedEVM_mmse.RMS*100); 
-    
-postEqualisedEVM_mmse_lin = lteEVM(txGrid,eqGrid_mmse_lin);
-fprintf('%d-%d: MMSE-LIN: %0.3f%%\n', ...
-        snr_idx,nreal,postEqualisedEVM_mmse_lin.RMS*100); 
 
-postEqualisedEVM_liblte = lteEVM(txGrid,eqGrid_liblte);
+postEqualisedEVM_liblte = lteEVM(txGrid,reshape(eqGrid_liblte,size(txGrid)));
 fprintf('%d-%d: liblte: %0.3f%%\n', ...
         snr_idx,nreal,postEqualisedEVM_liblte.RMS*100); 
 
-preEVM(snr_idx,nreal) =preEqualisedEVM.RMS;
-postEVM_mmse(snr_idx,nreal) = postEqualisedEVM_mmse.RMS;
-postEVM_mmse_lin(snr_idx,nreal) = postEqualisedEVM_mmse_lin.RMS;
-postEVM_liblte(snr_idx,nreal) = postEqualisedEVM_liblte.RMS;
-    
+preEVM(snr_idx,nreal) = preEqualisedEVM.RMS;
+postEVM_mmse(snr_idx,nreal) = mean([postEqualisedEVM_mmse.RMS]);
+postEVM_liblte(snr_idx,nreal) = mean([postEqualisedEVM_liblte.RMS]);
 end
 end
 
@@ -195,7 +181,6 @@ end
 % legend('real','seu','meu')
 plot(SNR_values_db, mean(preEVM,2), ...
     SNR_values_db, mean(postEVM_mmse,2), ...
-    SNR_values_db, mean(postEVM_mmse_lin,2), ...
     SNR_values_db, mean(postEVM_liblte,2))
 legend('No Eq','MMSE-cubic','MMSE-lin','MMSE-liblte')
 grid on

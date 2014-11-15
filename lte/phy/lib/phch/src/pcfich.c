@@ -190,11 +190,11 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float no
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      predecoding_single_mmse(&q->precoding, q->pcfich_symbols[0], q->ce[0], q->pcfich_d,
+      predecoding_single(&q->precoding, q->pcfich_symbols[0], q->ce[0], q->pcfich_d,
           q->nof_symbols, noise_estimate);
     } else {
-      predecoding_diversity_zf(&q->precoding, q->pcfich_symbols[0], ce_precoding, x,
-          q->cell.nof_ports, q->nof_symbols);
+      predecoding_diversity(&q->precoding, q->pcfich_symbols[0], ce_precoding, x,
+          q->cell.nof_ports, q->nof_symbols, noise_estimate);
       layerdemap_diversity(x, q->pcfich_d, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     }

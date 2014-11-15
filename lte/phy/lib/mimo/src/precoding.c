@@ -51,6 +51,21 @@ int precoding_init(precoding_t *q, uint32_t max_frame_len) {
       perror("malloc");
       goto clean_exit; 
     }
+    q->tmp1 = vec_malloc(sizeof(cf_t) * max_frame_len);
+    if (!q->tmp1) {
+      perror("malloc");
+      goto clean_exit; 
+    }
+    q->tmp2 = vec_malloc(sizeof(cf_t) * max_frame_len);
+    if (!q->tmp2) {
+      perror("malloc");
+      goto clean_exit; 
+    }
+    q->tmp3 = vec_malloc(sizeof(cf_t) * max_frame_len);
+    if (!q->tmp3) {
+      perror("malloc");
+      goto clean_exit; 
+    }
     q->y_mod = vec_malloc(sizeof(float) * max_frame_len);
     if (!q->y_mod) {
       perror("malloc");
@@ -77,6 +92,16 @@ clean_exit:
 }
 
 void precoding_free(precoding_t *q) {
+  
+  if (q->tmp1) {
+    free(q->tmp1);
+  }
+  if (q->tmp2) {
+    free(q->tmp2);
+  }
+  if (q->tmp3) {
+    free(q->tmp3);
+  }
   if (q->h_mod) {
     free(q->h_mod);
   }
@@ -92,54 +117,83 @@ void precoding_free(precoding_t *q) {
   bzero(q, sizeof(precoding_t));
 }
 
-
-/* ZF SISO equalizer: x=y/h */
-int predecoding_single_zf(precoding_t *q, cf_t *y, cf_t *h, cf_t *x, int nof_symbols) {
+/* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
+int predecoding_single(precoding_t *q, cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate) {
   if (nof_symbols <= q->max_frame_len) {
-    vec_div_ccc(y, h, q->y_mod, x, q->z_real, q->z_imag, nof_symbols);    
-    return nof_symbols;
-  } else {
-    return LIBLTE_ERROR; 
-  }
-}
-
-/* MMSE SISO equalizer x=y*h'/(h*h'+no) */
-int predecoding_single_mmse(precoding_t *q, cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate) {
-  if (nof_symbols <= q->max_frame_len) {
-    // h*h'
-    vec_prod_conj_ccc(h, h, q->h_mod, nof_symbols);
-    // real(h*h')
-    vec_deinterleave_real_cf(q->h_mod, q->y_mod, nof_symbols);
-    // (h*h' + n0)
-    vec_sc_add_fff(q->y_mod, noise_estimate, q->y_mod, nof_symbols);
+    // h'h
+    vec_abs_square_cf(h, q->y_mod, nof_symbols);
+    if (noise_estimate > 0.0) {
+      // (h'h + n0)
+      vec_sc_add_fff(q->y_mod, noise_estimate, q->y_mod, nof_symbols);      
+    }
     // y*h'
     vec_prod_conj_ccc(y, h, x, nof_symbols);
-    // decompose real/imag parts
-    vec_deinterleave_cf(x, q->z_real, q->z_imag, nof_symbols);
-    // real and imag division
-    vec_div_fff(q->z_real, q->y_mod, q->z_real, nof_symbols);
-    vec_div_fff(q->z_imag, q->y_mod, q->z_imag, nof_symbols);
-    // interleave again 
-    vec_interleave_cf(q->z_real, q->z_imag, x, nof_symbols);
+    // divide by (h'h+no)
+    vec_div_cfc(x,q->y_mod,x,q->z_real,q->z_imag, nof_symbols);
     return nof_symbols;
   } else {
     return LIBLTE_ERROR; 
   }
 }
 
-/* ZF STBC equalizer */
-int predecoding_diversity_zf(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LAYERS],
-    int nof_ports, int nof_symbols) {
+/* ZF/MMSE STBC equalizer x=y(H'H+n0·I)^(-1)H' (ZF is n0=0.0) 
+ */
+int predecoding_diversity(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LAYERS], int nof_ports, int nof_symbols, float noise_estimate) {
   int i;
+  if (nof_ports == 2) {
+  
+#define new 
+#ifdef new
+    
+    // reuse buffers 
+    cf_t *r0 = q->tmp3; 
+    cf_t *r1 = &q->tmp3[nof_symbols/2];
+    cf_t *h0 = q->h_mod; 
+    cf_t *h1 = &q->h_mod[nof_symbols/2];
+    
+    float *modhh = q->y_mod; 
+    float *modh0 = q->z_real; 
+    float *modh1 = q->z_imag;
+    
+    // prepare buffers 
+    for (i=0;i<nof_symbols/2;i++) {
+      h0[i] = h[0][2*i]; // h0
+      h1[i] = h[1][2*i+1]; // h1
+      r0[i] = y[2*i]; // r0
+      r1[i] = y[2*i+1]; // r1
+    }
+    
+    // Compute common dividend and store in y_mod 
+    vec_abs_square_cf(h0, modh0, nof_symbols/2);
+    vec_abs_square_cf(h1, modh1, nof_symbols/2);
+    vec_sum_fff(modh0, modh1, modhh, nof_symbols/2);
+    if (noise_estimate > 0.0) {
+      // (H'H + n0)
+      vec_sc_add_fff(modhh, noise_estimate, modhh, nof_symbols/2);
+    }
+    vec_sc_prod_fff(modhh, 1.0/sqrt(2), modhh, nof_symbols/2);
+
+    // x[0] = r0·h0*/(|h0|+|h1|)+r1*·h1/(|h0|+|h1|)
+    vec_prod_conj_ccc(r0,h0,q->tmp1, nof_symbols/2);
+    vec_prod_conj_ccc(h1,r1,q->tmp2, nof_symbols/2);
+    vec_sum_ccc(q->tmp1, q->tmp2, x[0], nof_symbols/2);
+    vec_div_cfc(x[0], modhh, x[0], q->z_real, q->z_imag, nof_symbols/2);
+
+    // x[1] = r1·h0*/(|h0|+|h1|)-r0*·h1/(|h0|+|h1|)
+    vec_prod_conj_ccc(r1,h0,q->tmp1, nof_symbols/2);
+    vec_prod_conj_ccc(h1,r0,q->tmp2, nof_symbols/2);
+    vec_sub_ccc(q->tmp1, q->tmp2, x[1], nof_symbols/2);
+    vec_div_cfc(x[1], modhh, x[1], q->z_real, q->z_imag, nof_symbols/2);
+
+#else
   cf_t h0, h1, h2, h3, r0, r1, r2, r3;
   float hh, hh02, hh13;
-  if (nof_ports == 2) {
-    /* TODO: Use VOLK here */
+
     for (i = 0; i < nof_symbols / 2; i++) {
       h0 = h[0][2 * i];
       h1 = h[1][2 * i];
       hh = crealf(h0) * crealf(h0) + cimagf(h0) * cimagf(h0)
-          + crealf(h1) * crealf(h1) + cimagf(h1) * cimagf(h1);
+          + crealf(h1) * crealf(h1) + cimagf(h1) * cimagf(h1) + noise_estimate;
       r0 = y[2 * i];
       r1 = y[2 * i + 1];
       if (hh == 0) {
@@ -148,8 +202,11 @@ int predecoding_diversity_zf(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *
       x[0][i] = (conjf(h0) * r0 + h1 * conjf(r1)) / hh * sqrt(2);
       x[1][i] = (-h1 * conj(r0) + conj(h0) * r1) / hh * sqrt(2);
     }
+#endif
     return i;
   } else if (nof_ports == 4) {
+    cf_t h0, h1, h2, h3, r0, r1, r2, r3;
+    float hh02, hh13;
 
     int m_ap = (nof_symbols % 4) ? ((nof_symbols - 2) / 4) : nof_symbols / 4;
     for (i = 0; i < m_ap; i++) {
@@ -181,7 +238,7 @@ int predecoding_diversity_zf(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *
 
 /* 36.211 v10.3.0 Section 6.3.4 */
 int predecoding_type(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LAYERS],
-    int nof_ports, int nof_layers, int nof_symbols, lte_mimo_type_t type) {
+    int nof_ports, int nof_layers, int nof_symbols, lte_mimo_type_t type, float noise_estimate) {
 
   if (nof_ports > MAX_PORTS) {
     fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", MAX_PORTS,
@@ -197,7 +254,7 @@ int predecoding_type(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LA
   switch (type) {
   case SINGLE_ANTENNA:
     if (nof_ports == 1 && nof_layers == 1) {
-      return predecoding_single_zf(q, y, h[0], x[0], nof_symbols);
+      return predecoding_single(q, y, h[0], x[0], nof_symbols, noise_estimate);              
     } else {
       fprintf(stderr,
           "Number of ports and layers must be 1 for transmission on single antenna ports\n");
@@ -206,7 +263,7 @@ int predecoding_type(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LA
     break;
   case TX_DIVERSITY:
     if (nof_ports == nof_layers) {
-      return predecoding_diversity_zf(q, y, h, x, nof_ports, nof_symbols);
+      return predecoding_diversity(q, y, h, x, nof_ports, nof_symbols, noise_estimate);
     } else {
       fprintf(stderr,
           "Error number of layers must equal number of ports in transmit diversity\n");
@@ -239,13 +296,15 @@ int precoding_diversity(precoding_t *q, cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS],
     int nof_symbols) {
   int i;
   if (nof_ports == 2) {
-    /* FIXME: Use VOLK here */
     for (i = 0; i < nof_symbols; i++) {
-      y[0][2 * i] = x[0][i] / sqrtf(2);
-      y[1][2 * i] = -conjf(x[1][i]) / sqrtf(2);
-      y[0][2 * i + 1] = x[1][i] / sqrtf(2);
-      y[1][2 * i + 1] = conjf(x[0][i]) / sqrtf(2);
+      y[0][2 * i] = x[0][i];
+      y[1][2 * i] = -conjf(x[1][i]);
+      y[0][2 * i + 1] = x[1][i];
+      y[1][2 * i + 1] = conjf(x[0][i]);
     }
+    // normalize
+    vec_sc_prod_cfc(y[0], 1.0/sqrtf(2), y[0], 2*nof_symbols);
+    vec_sc_prod_cfc(y[1], 1.0/sqrtf(2), y[1], 2*nof_symbols);
     return 2 * i;
   } else if (nof_ports == 4) {
     //int m_ap = (nof_symbols%4)?(nof_symbols*4-2):nof_symbols*4;

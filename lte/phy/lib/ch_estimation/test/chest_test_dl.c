@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
         
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          predecoding_single_zf(&cheq, input, ce, output, num_re);
+          predecoding_single(&cheq, input, ce, output, num_re, 0);
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          predecoding_single_mmse(&cheq, input, ce, output, num_re, chest_dl_get_noise_estimate(&est));
+          predecoding_single(&cheq, input, ce, output, num_re, chest_dl_get_noise_estimate(&est));
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);

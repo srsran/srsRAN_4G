@@ -30,10 +30,10 @@
 #define CELLID  prhs[0]
 #define PORTS   prhs[1]
 #define INPUT   prhs[2]
-#define NOF_INPUTS 3
-#define SFIDX   prhs[3]
 #define FREQ_FILTER   prhs[3]
 #define TIME_FILTER   prhs[4]
+#define NOF_INPUTS 5
+#define SFIDX   prhs[5]
 
 void help()
 {
@@ -56,7 +56,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   lte_cell_t cell; 
   chest_dl_t chest;
   precoding_t cheq; 
-  cf_t *input_signal = NULL, *output_signal = NULL; 
+  cf_t *input_signal = NULL, *output_signal[MAX_LAYERS]; 
+  cf_t *output_signal2 = NULL;
   cf_t *ce[MAX_PORTS]; 
   double *outr0=NULL, *outi0=NULL;
   double *outr1=NULL, *outi1=NULL;
@@ -107,32 +108,37 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
     sf_idx = (uint32_t) *((double*) mxGetPr(SFIDX));
+  } else {
+    if (nrhs != NOF_INPUTS) {
+      help();
+      return;
+    }
   }
+  
+  
   
   uint32_t filter_len = 0;
   float *filter; 
   double *f; 
   
-  if (nrhs > NOF_INPUTS && nsubframes == 10) {
-    if (nrhs >= NOF_INPUTS + 1) {
-      filter_len = mxGetNumberOfElements(FREQ_FILTER);
-      filter = malloc(sizeof(float) * filter_len);
-      f = (double*) mxGetPr(FREQ_FILTER);
-      for (i=0;i<filter_len;i++) {
-        filter[i] = (float) f[i];
-      }
-      chest_dl_set_filter_freq(&chest, filter, filter_len);
-    }
-    if (nrhs >= NOF_INPUTS + 2) {
-      filter_len = mxGetNumberOfElements(TIME_FILTER);
-      filter = malloc(sizeof(float) * filter_len);
-      f = (double*) mxGetPr(TIME_FILTER);
-      for (i=0;i<filter_len;i++) {
-        filter[i] = (float) f[i];
-      }
-      chest_dl_set_filter_time(&chest, filter, filter_len);
-    }
+  filter_len = mxGetNumberOfElements(FREQ_FILTER);
+  filter = malloc(sizeof(float) * filter_len);
+  f = (double*) mxGetPr(FREQ_FILTER);
+  for (i=0;i<filter_len;i++) {
+    filter[i] = (float) f[i];
   }
+
+  chest_dl_set_filter_freq(&chest, filter, filter_len);
+
+  filter_len = mxGetNumberOfElements(TIME_FILTER);
+  filter = malloc(sizeof(float) * filter_len);
+  f = (double*) mxGetPr(TIME_FILTER);
+  for (i=0;i<filter_len;i++) {
+    filter[i] = (float) f[i];
+  }
+  chest_dl_set_filter_time(&chest, filter, filter_len);
+  
+
 
   double *inr=(double *)mxGetPr(INPUT);
   double *ini=(double *)mxGetPi(INPUT);
@@ -143,14 +149,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ce[i] = vec_malloc(nof_re * sizeof(cf_t));
   }
   input_signal = vec_malloc(nof_re * sizeof(cf_t));
-  output_signal = vec_malloc(nof_re * sizeof(cf_t));
-   
+  for (i=0;i<MAX_PORTS;i++) {
+    output_signal[i] = vec_malloc(nof_re * sizeof(cf_t));
+  }
+  output_signal2 = vec_malloc(nof_re * sizeof(cf_t));
   
   precoding_init(&cheq, nof_re);
   
   /* Create output values */
   if (nlhs >= 1) {
-    plhs[0] = mxCreateDoubleMatrix(1,nof_re * nsubframes, mxCOMPLEX);
+    plhs[0] = mxCreateDoubleMatrix(nof_re * nsubframes, cell.nof_ports, mxCOMPLEX);
     outr0 = mxGetPr(plhs[0]);
     outi0 = mxGetPi(plhs[0]);
   }  
@@ -160,7 +168,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     outi1 = mxGetPi(plhs[1]);
   }
   if (nlhs >= 3) {
-    plhs[2] = mxCreateDoubleMatrix(1,nof_re * nsubframes, mxCOMPLEX);
+    plhs[2] = mxCreateDoubleMatrix(nof_re * nsubframes, 1,  mxCOMPLEX);
     outr2 = mxGetPr(plhs[2]);
     outi2 = mxGetPi(plhs[2]);
   }
@@ -185,18 +193,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexErrMsgTxt("Error running channel estimator\n");
       return;
     }    
-    //predecoding_single_zf(&cheq, input_signal, ce[0], output_signal, nof_re);
-    predecoding_single_mmse(&cheq, input_signal, ce[0], output_signal, nof_re, chest_dl_get_noise_estimate(&chest));
+    if (cell.nof_ports == 1) {
+      predecoding_single(&cheq, input_signal, ce[0], output_signal2, nof_re, chest_dl_get_noise_estimate(&chest));            
+    } else {
+      predecoding_diversity(&cheq, input_signal, ce, output_signal, cell.nof_ports, nof_re, chest_dl_get_noise_estimate(&chest));
+      layerdemap_diversity(output_signal, output_signal2, cell.nof_ports, nof_re/cell.nof_ports);
+    }
     
     if (nlhs >= 1) { 
-      for (i=0;i<nof_re;i++) {      
-        *outr0 = (double) crealf(ce[0][i]);
-        if (outi0) {
-          *outi0 = (double) cimagf(ce[0][i]);
-        }
-        outr0++;
-        outi0++;
-      } 
+      for (int j=0;j<cell.nof_ports;j++) {
+        for (i=0;i<nof_re;i++) {      
+          *outr0 = (double) crealf(ce[j][i]);
+          if (outi0) {
+            *outi0 = (double) cimagf(ce[j][i]);
+          }
+          outr0++;
+          outi0++;
+        } 
+      }
     }
     if (nlhs >= 2) {    
       for (int j=0;j<cell.nof_ports;j++) {
@@ -212,9 +226,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     if (nlhs >= 3) {
       for (i=0;i<nof_re;i++) {      
-        *outr2 = (double) crealf(output_signal[i]);
+        *outr2 = (double) crealf(output_signal2[i]);
         if (outi2) {
-          *outi2 = (double) cimagf(output_signal[i]);
+          *outi2 = (double) cimagf(output_signal2[i]);
         }
         outr2++;
         outi2++;

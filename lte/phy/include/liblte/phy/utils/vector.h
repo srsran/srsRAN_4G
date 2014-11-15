@@ -107,6 +107,7 @@ LIBLTE_API float vec_dot_prod_fff(float *x, float *y, uint32_t len);
 
 /* z=x/y vector division (element-wise) */
 LIBLTE_API void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *z_imag, uint32_t len);
+void vec_div_cfc(cf_t *x, float *y, cf_t *z, float *z_real, float *z_imag, uint32_t len);
 LIBLTE_API void vec_div_fff(float *x, float *y, float *z, uint32_t len);
 
 /* conjugate */

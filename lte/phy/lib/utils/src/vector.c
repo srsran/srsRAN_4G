@@ -377,11 +377,23 @@ void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *
 #ifdef DIV_USE_VEC
   vec_prod_conj_ccc(x,y,z,len);
   vec_abs_square_cf(y,y_mod,len);
-  vec_deinterleave_cf(z, z_real, z_imag, len);
-  vec_div_fff(z_real, y_mod, z_real, len);
-  vec_div_fff(z_imag, y_mod, z_imag, len);
-  vec_interleave_cf(z_real, z_imag, z, len);
+  vec_div_cfc(z,y_mod,z,z_real,z_imag,len);  
 #else 
+  int i; 
+  for (i=0;i<len;i++) {
+    z[i] = x[i] / y[i]; 
+  }
+#endif
+}
+
+/* Complex division by float z=x/y */
+void vec_div_cfc(cf_t *x, float *y, cf_t *z, float *z_real, float *z_imag, uint32_t len) {
+#ifdef DIV_USE_VEC
+  vec_deinterleave_cf(x, z_real, z_imag, len);
+  vec_div_fff(z_real, y, z_real, len);
+  vec_div_fff(z_imag, y, z_imag, len);
+  vec_interleave_cf(z_real, z_imag, z, len);
+#else
   int i; 
   for (i=0;i<len;i++) {
     z[i] = x[i] / y[i]; 
