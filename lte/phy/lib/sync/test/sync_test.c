@@ -148,8 +148,6 @@ int main(int argc, char **argv) {
       memset(fft_buffer, 0, sizeof(cf_t) * FLEN);
       lte_ifft_run_slot(&ifft, buffer, &fft_buffer[offset]);
       
-      vec_save_file("input", fft_buffer, sizeof(cf_t) * FLEN);
-
       if (sync_find(&sync, fft_buffer, 0, &find_idx) < 0) {
         fprintf(stderr, "Error running sync_find\n");
         exit(-1);

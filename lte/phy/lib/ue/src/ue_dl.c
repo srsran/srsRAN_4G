@@ -174,15 +174,11 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
   /* Get channel estimates for each port */
   chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
   
-  gettimeofday(&t[2], NULL);
-  get_time_interval(t);
-  mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, mean_exec_time, frame_cnt);
-  
-  frame_cnt++;
   
   
   /* First decode PCFICH and obtain CFI */
-  if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), sf_idx, &cfi, &cfi_distance)<0) {
+  if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
+                    chest_dl_get_noise_estimate(&q->chest), sf_idx, &cfi, &cfi_distance)<0) {
     fprintf(stderr, "Error decoding PCFICH\n");
     return LIBLTE_ERROR;
   }
@@ -231,20 +227,8 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
 
     uint32_t rvidx; 
     if (rnti == SIRNTI) {
-      switch((sfn%8)/2) {
-        case 0: 
-          rvidx = 0; 
-          break;
-        case 1:
-          rvidx = 2;
-          break;
-        case 2:
-          rvidx = 3;
-          break;
-        case 3:
-          rvidx = 1; 
-          break;
-      }
+      int k = ((sfn)/2)%4;
+      rvidx = ((int) ceilf((float)3*k/2))%4;
     } else {
       rvidx = ra_dl.rv_idx;
     }
@@ -259,11 +243,7 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
       ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), data, sf_idx, 
           &q->harq_process[0], rvidx);
       if (ret == LIBLTE_ERROR) {
-        if (rnti == SIRNTI && rvidx == 1) {
-          q->pkt_errors++;
-        } else if (rnti != SIRNTI) {
-          q->pkt_errors++;                
-        }     
+        q->pkt_errors++;
       } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
         fprintf(stderr, "Error calling pdsch_decode()\n");
         return LIBLTE_ERROR; 
@@ -273,13 +253,16 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
           vec_fprint_hex(stdout, data, ra_dl.mcs.tbs);
         }
       }
-      if (rnti == SIRNTI && rvidx == 1) {
-        q->pkts_total++;                      
-      } else if (rnti != SIRNTI) {
-        q->pkts_total++;                                
-      }
+      q->pkts_total++;
     }
   }
+  
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, mean_exec_time, frame_cnt);
+  
+  frame_cnt++;
+ 
   
   if (crc_rem == rnti && ret == LIBLTE_SUCCESS) {        
     return ra_dl.mcs.tbs;    

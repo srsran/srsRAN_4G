@@ -547,8 +547,6 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
         return LIBLTE_ERROR;
       }
       
-      vec_save_file("tdec_in.dat",q->cb_out, sizeof(float) * (3 * cb_len + 12));
-
       /* Turbo Decoding with CRC-based early stopping */
       q->nof_iterations = 0; 
       bool early_stop = false;
@@ -688,8 +686,6 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
           nof_symbols / q->cell.nof_ports);
     }
 
-    vec_save_file("pdsch_after.dat",q->pdsch_d,sizeof(cf_t)*nof_symbols);
-
     /* demodulate symbols 
      * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
      * thus we don't need tot set it in the LLRs normalization
@@ -700,8 +696,6 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
 
     /* descramble */
     scrambling_f_offset(&q->seq_pdsch[subframe], q->pdsch_e, 0, nof_bits_e);
-
-    vec_save_file("pdsch_llr.dat",q->pdsch_e,sizeof(float)*nof_bits_e);
 
     return pdsch_decode_tb(q, data, nof_bits, nof_bits_e, harq_process, rv_idx);
   } else {

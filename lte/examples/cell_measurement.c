@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
-  float rssi=0, rsrp=0, rsrq=0;
+  float rssi=0, rsrp=0, rsrq=0, snr=0;
   cf_t *nullce[MAX_PORTS]; 
   
   for (int i=0;i<MAX_PORTS;i++) {
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
           }
           break;
         case DECODE_SIB:
-          sfn=0;
+          sfn=0; // FIXME: Use correct SFN!! 
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
             n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, SIRNTI);
@@ -267,15 +267,18 @@ int main(int argc, char **argv) {
         rssi = VEC_CMA(chest_dl_get_rssi(&chest),rssi,nframes);
         rsrq = VEC_CMA(chest_dl_get_rsrq(&chest),rsrq,nframes);
         rsrp = VEC_CMA(chest_dl_get_rsrp(&chest),rsrp,nframes);      
+        float noise = chest_dl_get_noise_estimate(&chest);
+        snr = VEC_CMA(rssi/(noise*noise*2*cell.nof_ports*fft.symbol_sz),snr,nframes);      
         nframes++;
         
         // Plot and Printf
         if ((nframes%10) == 0) {
-          printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, RSSI: %+5.2f dBm, RSRP: %+4.2f dBm, RSRQ: %4.2f dB\r",
+          printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, RSSI: %+5.1f dBm, "
+                 "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %5.1f dB\r",
                 ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
                 10*log10(rssi*1000/4/cell.nof_prb/12/2)-prog_args.uhd_gain, 
                 10*log10(rsrp*1000)-prog_args.uhd_gain, 
-              10*log10(rsrq));                
+              10*log10(rsrq), 10*log10(snr));                
         }
         break;
       }

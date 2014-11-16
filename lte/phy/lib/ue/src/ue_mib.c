@@ -235,7 +235,7 @@ int ue_mib_sync_and_decode(ue_mib_t * q,
     }
     nof_input_frames = nsamples/MIB_FRAME_SIZE_SEARCH; 
     
-    for (uint32_t nf=0;nf<nof_input_frames;nf++) {
+    for (int nf=0;nf<nof_input_frames;nf++) {
 
       /* Find peak and cell id */
       ret = sync_find(&q->sfind, signal, nf*MIB_FRAME_SIZE_SEARCH, &peak_idx);
@@ -249,26 +249,25 @@ int ue_mib_sync_and_decode(ue_mib_t * q,
       } else if (ret == 1) {
         counter4++;
       }
-      
+      int peak_idx_i = (int) peak_idx;
       /* Check if we have space for reading the MIB and we are in Subframe #0 */
-      if (ret                                    == 1        && 
-          nf*MIB_FRAME_SIZE_SEARCH + peak_idx + MIB_FRAME_SIZE_SEARCH/10     <= nsamples &&
-          sync_sss_detected(&q->sfind)                       && 
-          sync_get_sf_idx(&q->sfind)             == 0) 
+      if (ret                                                                      == 1    && 
+          nf*MIB_FRAME_SIZE_SEARCH + peak_idx_i + MIB_FRAME_SIZE_SEARCH/10     <= nsamples &&
+          nf*MIB_FRAME_SIZE_SEARCH + peak_idx_i - MIB_FRAME_SIZE_SEARCH/10     >=  0       &&
+          sync_sss_detected(&q->sfind)                                                     && 
+          sync_get_sf_idx(&q->sfind)                                               == 0) 
       {
         INFO("Trying to decode MIB\n",0);
         ret = ue_mib_decode_aligned_frame(q, 
                                           &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-MIB_FRAME_SIZE_SEARCH/10], 
                                           q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
         counter3++;
-      } else if ((ret == LIBLTE_SUCCESS && peak_idx != 0)   || 
-                 (ret == 1              && nf*MIB_FRAME_SIZE_SEARCH + peak_idx + MIB_FRAME_SIZE_SEARCH/10 > nsamples)) 
-      {
-        printf("Not enough space for PBCH\n",0);
-        ret = MIB_FRAME_UNALIGNED; 
-      } else {
+      } else if (ret == 1 && !sync_sss_detected(&q->sfind)) {
         INFO("SSS not detected\n",0);
         ret = 0; 
+      } else {
+        printf("Not enough space for PBCH\n",0);
+        ret = MIB_FRAME_UNALIGNED; 
       }
       
       counter1++;

@@ -62,6 +62,9 @@ LIBLTE_API int bcch_bch_unpack(uint8_t *buffer,
                                    lte_cell_t *cell, 
                                    uint32_t *sfn);
 
+LIBLTE_API void bcch_bch_fprint(void *bcch_dlsch_msg, 
+                                FILE *stream); 
+
 LIBLTE_API int bcch_dlsch_pack(void *bcch_dlsch_msg, 
                                uint8_t *buffer, 
                                uint32_t buffer_size_bytes); 

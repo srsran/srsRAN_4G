@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
   int ret;
   uint8_t *data;
   dci_location_t locations[MAX_CANDIDATES];
-  uint32_t nof_locations;
+  uint32_t nof_locations = 0;
   dci_msg_t dci_msg; 
   
   data = malloc(100000);

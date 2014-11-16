@@ -113,7 +113,6 @@ int bcch_bch_unpack(uint8_t *buffer, uint32_t msg_nof_bits, lte_cell_t *cell, ui
     printf("Decoding failed.\n");
     return LIBLTE_ERROR;
   } 
-  asn_fprint(stdout, &asn_DEF_MasterInformationBlock, req); 
 
   switch(req->dl_Bandwidth) {
     case MasterInformationBlock__dl_Bandwidth_n6:

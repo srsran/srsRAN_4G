@@ -410,7 +410,6 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float
                 }
                 if (bch_payload) {
                   memcpy(bch_payload, q->data, sizeof(uint8_t) * BCH_PAYLOAD_LEN);      
-                  vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
                 }
               }
             }

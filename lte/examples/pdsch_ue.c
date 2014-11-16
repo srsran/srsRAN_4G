@@ -36,105 +36,76 @@
 #include <assert.h>
 #include <signal.h>
 
+#include "liblte/rrc/rrc.h"
 #include "liblte/phy/phy.h"
-#include "iodev.h"
+#include "liblte/cuhd/cuhd.h"
+#include "cell_search_utils.h"
 
 #ifndef DISABLE_GRAPHICS
 void init_plots();
 void do_plots(ue_dl_t *q, uint32_t sf_idx);
 #endif
 
-int go_exit = 0;
 
-/* Local function definitions */
-void init_plots();
+cell_detect_cfg_t cell_detect_config = {
+  500, // nof_frames_total 
+  50,  // nof_frames_detected
+  CS_FIND_THRESHOLD // threshold
+};
 
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
 typedef struct {
-  uint16_t rnti; 
   int nof_subframes;
   bool disable_plots;
-  iodev_cfg_t io_config; 
+  int force_N_id_2;
+  char *uhd_args; 
+  float uhd_freq; 
+  float uhd_gain;
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
-  args->io_config.cell_id_file = 195; 
-  args->io_config.nof_prb_file = 50;
-  args->io_config.nof_ports_file = 2; 
-  args->rnti = SIRNTI;
   args->nof_subframes = -1; 
-  args->disable_plots = false; 
-  args->io_config.find_threshold = -1.0; 
-  args->io_config.input_file_name = NULL; 
-  args->io_config.force_N_id_2 = -1; // Pick the best
-  args->io_config.uhd_args = "";
-  args->io_config.uhd_freq = -1.0;
-  args->io_config.uhd_gain = 60.0; 
+  args->force_N_id_2 = -1; // Pick the best
+  args->uhd_args = "";
+  args->uhd_freq = -1.0;
+  args->uhd_gain = 60.0; 
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [cargndvtbl] [-i input_file | -f rx_frequency (in Hz)]\n", prog);
-  printf("\t-c cell_id if reading from file [Default %d]\n", args->io_config.cell_id_file);
-  printf("\t-p nof_prb if reading from file [Default %d]\n", args->io_config.nof_prb_file);
-  printf("\t-o nof_ports if reading from file [Default %d]\n", args->io_config.nof_ports_file);
-  printf("\t-r RNTI to look for [Default 0x%x]\n", args->rnti);
-#ifndef DISABLE_UHD
-  printf("\t-a UHD args [Default %s]\n", args->io_config.uhd_args);
-  printf("\t-g UHD RX gain [Default %.2f dB]\n", args->io_config.uhd_gain);
-#else
-  printf("\t   UHD is disabled. CUHD library not available\n");
-#endif
+  printf("Usage: %s [agldnv] -f rx_frequency (in Hz)\n", prog);
+  printf("\t-a UHD args [Default %s]\n", args->uhd_args);
+  printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
   printf("\t-l Force N_id_2 [Default best]\n");
-  printf("\t-b Decode PBCH only [Default All channels]\n");
-  printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
-  printf("\t-t PSS threshold [Default %f]\n", args->io_config.find_threshold);
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
 #else
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
+  printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "icagfndvtbprol")) != -1) {
+  while ((opt = getopt(argc, argv, "agldnvf")) != -1) {
     switch (opt) {
-    case 'i':
-      args->io_config.input_file_name = argv[optind];
-      break;
-    case 'c':
-      args->io_config.cell_id_file = atoi(argv[optind]);
-      break;
-    case 'p':
-      args->io_config.nof_prb_file = atoi(argv[optind]);
-      break;
-    case 'o':
-      args->io_config.nof_ports_file = atoi(argv[optind]);
-      break;
     case 'a':
-      args->io_config.uhd_args = argv[optind];
+      args->uhd_args = argv[optind];
       break;
     case 'g':
-      args->io_config.uhd_gain = atof(argv[optind]);
+      args->uhd_gain = atof(argv[optind]);
       break;
     case 'f':
-      args->io_config.uhd_freq = atof(argv[optind]);
-      break;
-   case 't':
-      args->io_config.find_threshold = atof(argv[optind]);
+      args->uhd_freq = atof(argv[optind]);
       break;
     case 'n':
       args->nof_subframes = atoi(argv[optind]);
       break;
     case 'l':
-      args->io_config.force_N_id_2 = atoi(argv[optind]);
-      break;
-    case 'r':
-      args->rnti= atoi(argv[optind]);
+      args->force_N_id_2 = atoi(argv[optind]);
       break;
     case 'd':
       args->disable_plots = true;
@@ -147,111 +118,170 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       exit(-1);
     }
   }
-  if (args->io_config.uhd_freq < 0 && args->io_config.input_file_name == NULL) {
+  if (args->uhd_freq < 0) {
     usage(args, argv[0]);
     exit(-1);
   }
 }
 /**********************************************************************/
 
-void sigintHandler(int x) {
-  go_exit = 1; 
+/* TODO: Do something with the output data */
+uint8_t data[10000], data_unpacked[1000];
+
+int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
+  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  return cuhd_recv(h, data, nsamples, 1);
 }
 
-/* TODO: Do something with the output data */
-uint8_t data[10000];
-
-extern float mean_exec_time; 
+extern float mean_exec_time;
 
 int main(int argc, char **argv) {
   int ret; 
   cf_t *sf_buffer; 
-  iodev_t iodev; 
   prog_args_t prog_args; 
-  lte_cell_t cell; 
-  ue_dl_t ue_dl; 
+  lte_cell_t cell;  
   int64_t sf_cnt;
-  bool printed_sib = false; 
-  int rlen; 
+  ue_sync_t ue_sync; 
+  ue_mib_t ue_mib; 
+  void *uhd; 
+  ue_dl_t ue_dl; 
+  lte_fft_t fft; 
+  chest_dl_t chest; 
+  uint32_t nof_trials = 0; 
+  uint32_t sfn = 0; // system frame number
+  int n; 
+  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
+  uint32_t sfn_offset; 
   
   parse_args(&prog_args, argc, argv);
-  
-#ifndef DISABLE_GRAPHICS
+
+  #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
     init_plots();    
   }
-#endif
-  
-  /* Initialize subframe counter */
-  sf_cnt = 0;
+  #endif
 
-  if (iodev_init(&iodev, &prog_args.io_config, &cell)) {
+  printf("Opening UHD device...\n");
+  if (cuhd_open(prog_args.uhd_args, &uhd)) {
+    fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
+  /* Set receiver gain */
+  cuhd_set_rx_gain(uhd, prog_args.uhd_gain);
 
+  /* set receiver frequency */
+  cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
+  cuhd_rx_wait_lo_locked(uhd);
+  printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
+
+  if (detect_and_decode_cell(&cell_detect_config, uhd, prog_args.force_N_id_2, &cell)) {
+    fprintf(stderr, "Cell not found\n");
+    exit(-1); 
+  }
+  
+  cuhd_start_rx_stream(uhd);
+  
+  if (ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
+    fprintf(stderr, "Error initiating ue_sync\n");
+    exit(-1); 
+  }
   if (ue_dl_init(&ue_dl, cell, 1234)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
-  pdsch_set_rnti(&ue_dl.pdsch, prog_args.rnti);
+  if (ue_mib_init_known_cell(&ue_mib, cell, false)) {
+    fprintf(stderr, "Error initaiting UE MIB decoder\n");
+    exit(-1);
+  }
+  pdsch_set_rnti(&ue_dl.pdsch, SIRNTI);
+
+  /* Initialize subframe counter */
+  sf_cnt = 0;
+    
+  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+    fprintf(stderr, "Error initiating FFT\n");
+    return -1;
+  }
+  if (chest_dl_init(&chest, cell)) {
+    fprintf(stderr, "Error initiating channel estimator\n");
+    return -1;
+  }
   
   /* Main loop */
-  while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
+  while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
     
-    ret = iodev_receive(&iodev, &sf_buffer);
+    ret = ue_sync_get_buffer(&ue_sync, &sf_buffer);
     if (ret < 0) {
-      fprintf(stderr, "Error reading from input device (%d)\n", ret);
-      break;
+      fprintf(stderr, "Error calling ue_sync_work()\n");
     }
-    
-    fprintf(stderr, "Change in ue_dl API\n");
-    exit(-1);
-    
-    /* iodev_receive returns 1 if successfully read 1 aligned subframe */
-    if (ret == 1) {
-      rlen = ue_dl_decode(&ue_dl, sf_buffer, data, iodev_get_sfidx(&iodev), 0, prog_args.rnti);
-      if (rlen < 0) {
-        fprintf(stderr, "\nError running receiver\n");fflush(stdout);
-        exit(-1);
-      }
-      if (prog_args.rnti == SIRNTI && !printed_sib && rlen > 0) {
-        printf("\n\nDecoded SIB1 Message: ");
-        vec_fprint_hex(stdout, data, rlen);
-        printf("\n");fflush(stdout);
-        printed_sib = true; 
-      }
 
-      // Plot and Printf
-      if (!(sf_cnt % 10)) {       
-        printf("CFO: %+.4f KHz, SFO: %+.4f Khz, NOI: %.2f Errors: %4d/%4d, BLER: %.1e, Texec: %.2f\r",
-                ue_sync_get_cfo(&iodev.sframe)/1000, ue_sync_get_sfo(&iodev.sframe)/1000, 
-                pdsch_average_noi(&ue_dl.pdsch),
-                (int) ue_dl.pkt_errors, (int) ue_dl.pkts_total, (float) ue_dl.pkt_errors / ue_dl.pkts_total, 
-               mean_exec_time);                
-        
-      }      
+    /* ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
+    if (ret == 1) {
+        if (ue_sync_get_sfidx(&ue_sync) == 0) {
+          pbch_decode_reset(&ue_mib.pbch);
+          n = ue_mib_decode_aligned_frame(&ue_mib,
+                                          sf_buffer, bch_payload_unpacked, 
+                                          NULL, &sfn_offset);
+          if (n < 0) {
+            fprintf(stderr, "Error decoding UE MIB\n");
+            exit(-1);
+          } else if (n == MIB_FOUND) {
+            bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
+            bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
+            sfn = (sfn + sfn_offset)%1024; 
+          }
+        }
+        /* We are looking for SI Blocks, search only in appropiate places */
+        if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+          n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, SIRNTI);
+          if (n < 0) {
+            fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
+            exit(-1);
+          } else if (n == 0) {
+            printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, ExecTime: %6.1f us, NOI: %.2f,"
+            "PDCCH-Det: %.3f, PDSCH-BLER: %.3f\r",
+                    ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
+                    mean_exec_time, pdsch_average_noi(&ue_dl.pdsch),
+                    (float) ue_dl.nof_pdcch_detected/nof_trials,
+                    (float) ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials);                         
+            
+          }
+          nof_trials++;             
+        }
+      } else if (ret == 0) {
+        /*printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
+          sync_get_peak_value(&ue_sync.sfind), 
+          ue_sync.frame_total_cnt, ue_sync.state);      
+          */
+      }
+      if (ue_sync_get_sfidx(&ue_sync) == 9) {
+        sfn++; 
+        if (sfn == 1024) {
+          sfn = 0; 
+        }
+      }
       #ifndef DISABLE_GRAPHICS
-      if (!prog_args.disable_plots && iodev_get_sfidx(&iodev) == 5) {
+      if (!prog_args.disable_plots && ue_sync_get_sfidx(&ue_sync) == 5) {
         do_plots(&ue_dl, 5);          
       }
       #endif
-    } else if (ret == 0) {
-      printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
-        sync_get_peak_value(&iodev.sframe.sfind), 
-        iodev.sframe.frame_total_cnt, iodev.sframe.state);      
-    }
+
+   
     sf_cnt++;                  
   } // Main loop
 
-  ue_dl_free(&ue_dl);    
-  iodev_free(&iodev);
-
+  ue_sync_free(&ue_sync);
+  cuhd_close(uhd);
   printf("\nBye\n");
   exit(0);
 }
 
 
 
+
+
+
+  
 
 /**********************************************************************
  *  Plotting Functions
