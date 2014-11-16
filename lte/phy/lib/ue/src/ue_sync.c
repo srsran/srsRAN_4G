@@ -189,7 +189,7 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
           q->sf_idx, sync_get_sf_idx(&q->strack), q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
     /* FIXME: What should we do in this case? */
     q->sf_idx = sync_get_sf_idx(&q->strack);
-    q->state = SF_TRACK; 
+    q->state = SF_FIND; 
   } else {
     q->time_offset = ((int) track_idx - (int) CURRENT_FFTSIZE); 
     

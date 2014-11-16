@@ -33,8 +33,9 @@
 
 #include "liblte/phy/phy.h"
 
+#define MAX_CANDIDATES 64
+
 char *input_file_name = NULL;
-char *matlab_file_name = NULL;
 
 lte_cell_t cell = {
   6,            // nof_prb
@@ -51,8 +52,9 @@ uint32_t cfi = 2;
 uint16_t rnti = SIRNTI;
 
 int max_frames = 10;
-FILE *fmatlab = NULL;
+uint32_t sf_idx = 0;
 
+dci_format_t dci_format = Format1A;
 filesource_t fsrc;
 pdcch_t pdcch;
 pdsch_t pdsch;
@@ -63,11 +65,12 @@ lte_fft_t fft;
 chest_dl_t chest;
 
 void usage(char *prog) {
-  printf("Usage: %s [vcfoe] -i input_file\n", prog);
-  printf("\t-o output matlab file name [Default Disabled]\n");
+  printf("Usage: %s [rovfcenmps] -i input_file\n", prog);
+  printf("\t-o DCI format [Default %s]\n", dci_format_string(dci_format));
   printf("\t-c cell.id [Default %d]\n", cell.id);
+  printf("\t-s Start subframe_idx [Default %d]\n", sf_idx);
   printf("\t-f cfi [Default %d]\n", cfi);
-  printf("\t-r rnti [Default SI-RNTI]\n");
+  printf("\t-r rnti [Default 0x%x]\n",rnti);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-m max_frames [Default %d]\n", max_frames);
@@ -77,13 +80,16 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "irovfcenmp")) != -1) {
+  while ((opt = getopt(argc, argv, "irovfcenmps")) != -1) {
     switch(opt) {
     case 'i':
       input_file_name = argv[optind];
       break;
     case 'c':
       cell.id = atoi(argv[optind]);
+      break;
+    case 's':
+      sf_idx = atoi(argv[optind]);
       break;
     case 'r':
       rnti = strtoul(argv[optind], NULL, 0);
@@ -101,7 +107,11 @@ void parse_args(int argc, char **argv) {
       cell.nof_ports = atoi(argv[optind]);
       break;
     case 'o':
-      matlab_file_name = argv[optind];
+      dci_format = dci_format_from_string(argv[optind]);
+      if (dci_format == FormatError) {
+        fprintf(stderr, "Error unsupported format %s\n", argv[optind]);
+        exit(-1);
+      }
       break;
     case 'v':
       verbose++;
@@ -126,16 +136,6 @@ int base_init() {
   if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
     exit(-1);
-  }
-
-  if (matlab_file_name) {
-    fmatlab = fopen(matlab_file_name, "w");
-    if (!fmatlab) {
-      perror("fopen");
-      return -1;
-    }
-  } else {
-    fmatlab = NULL;
   }
 
   flen = 2 * (SLOT_LEN(lte_symbol_sz(cell.nof_prb)));
@@ -204,9 +204,6 @@ void base_free() {
   int i;
 
   filesource_free(&fsrc);
-  if (fmatlab) {
-    fclose(fmatlab);
-  }
 
   free(input_buffer);
   free(fft_buffer);
@@ -225,16 +222,16 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  ra_pdsch_t ra_dl;
+  ra_pdsch_t ra_dl;  
   int i;
   int nof_frames;
   int ret;
   uint8_t *data;
-  dci_location_t locations[10];
+  dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations;
   dci_msg_t dci_msg; 
   
-  data = malloc(10000);
+  data = malloc(100000);
 
   if (argc < 3) {
     usage(argv[0]);
@@ -250,65 +247,58 @@ int main(int argc, char **argv) {
 
   if (rnti == SIRNTI) {
     INFO("Initializing common search space for SI-RNTI\n",0);
-    nof_locations = pdcch_common_locations(&pdcch, locations, 10, cfi);
-  } else {
-    // For ue-specific, generate locations for subframe 5
-    INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
-    nof_locations = pdcch_ue_locations(&pdcch, locations, 10, 5, cfi, rnti); 
-  }
+    nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
+  } 
   
   ret = -1;
   nof_frames = 0;
   do {
     filesource_read(&fsrc, input_buffer, flen);
-    if (nof_frames == 5) {
-      INFO("Reading %d samples sub-frame %d\n", flen, nof_frames);
+    INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
 
-      lte_fft_run_sf(&fft, input_buffer, fft_buffer);
+    lte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
-      if (fmatlab) {
-        fprintf(fmatlab, "infft%d=", nof_frames);
-        vec_fprint_c(fmatlab, input_buffer, flen);
-        fprintf(fmatlab, ";\n");
-
-        fprintf(fmatlab, "outfft%d=", nof_frames);
-        vec_sc_prod_cfc(fft_buffer, 1000.0, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
-        vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
-        fprintf(fmatlab, ";\n");
-        vec_sc_prod_cfc(fft_buffer, 0.001, fft_buffer,  CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
+    /* Get channel estimates for each port */
+    chest_dl_estimate(&chest, fft_buffer, ce, sf_idx);
+    
+    if (rnti != SIRNTI) {
+      INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
+      nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
+    }
+    
+    uint16_t crc_rem = 0;
+    if (pdcch_extract_llr(&pdcch, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), sf_idx, cfi)) {
+      fprintf(stderr, "Error extracting LLRs\n");
+      return -1;
+    }
+    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
+      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
+        fprintf(stderr, "Error decoding DCI msg\n");
+        return -1;
       }
-
-      /* Get channel estimates for each port */
-      chest_dl_estimate(&chest, fft_buffer, ce, nof_frames);
-      
-      uint16_t crc_rem = 0;
-      for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-        if (pdcch_extract_llr(&pdcch, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), locations[i], nof_frames, cfi)) {
-          fprintf(stderr, "Error extracting LLRs\n");
-          return -1;
-        }
-        if (pdcch_decode_msg(&pdcch, &dci_msg, Format1A, &crc_rem)) {
-          fprintf(stderr, "Error decoding DCI msg\n");
-          return -1;
-        }
+    }
+    
+    if (crc_rem == rnti) {
+      if (dci_msg_to_ra_dl(&dci_msg, rnti, 1234, cell, cfi, &ra_dl)) {
+        fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
+        goto goout;
       }
-      
-      if (crc_rem == rnti) {
-        if (dci_msg_to_ra_dl(&dci_msg, rnti, 1234, cell, cfi, &ra_dl)) {
-          fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-          goto goout;
-        }
+      if (ra_dl.mcs.tbs > 0) {
         if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &ra_dl.prb_alloc)) {
           fprintf(stderr, "Error configuring HARQ process\n");
           goto goout;
         }
-        if (pdsch_decode(&pdsch, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), data, nof_frames%10, &harq_process, ra_dl.rv_idx)) {
+        if (pdsch_decode(&pdsch, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), 
+              data, sf_idx, &harq_process, ra_dl.rv_idx)) {
           fprintf(stderr, "Error decoding PDSCH\n");
           goto goout;
         } else {
           printf("PDSCH Decoded OK!\n");
         }
+      } else {
+        printf("Received DCI with no resource allocation\n");
       }
+      sf_idx = (sf_idx+1)%10;
     }
 
     nof_frames++;

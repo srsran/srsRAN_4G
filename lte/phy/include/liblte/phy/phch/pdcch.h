@@ -53,7 +53,6 @@ typedef enum LIBLTE_API {
 /* PDCCH object */
 typedef struct LIBLTE_API {
   lte_cell_t cell;
-  uint32_t e_bits;
   uint32_t nof_regs;
   uint32_t nof_cce;
   uint32_t max_bits;
@@ -99,13 +98,13 @@ LIBLTE_API int pdcch_extract_llr(pdcch_t *q,
                                  cf_t *sf_symbols, 
                                  cf_t *ce[MAX_PORTS],
                                  float noise_estimate, 
-                                 dci_location_t location,
                                  uint32_t nsubframe, 
                                  uint32_t cfi);
 
 /* Decoding functions: Try to decode a DCI message after calling pdcch_extract_llr */
 LIBLTE_API int pdcch_decode_msg(pdcch_t *q, 
                                 dci_msg_t *msg, 
+                                dci_location_t *location,
                                 dci_format_t format,
                                 uint16_t *crc_rem);
 

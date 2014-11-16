@@ -54,9 +54,8 @@
 
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
-int nof_frames_total = 50;
-int nof_frames_detected = 10;
-float threshold = CS_FIND_THRESHOLD; 
+
+cell_detect_cfg_t config = {50, 10, CS_FIND_THRESHOLD}; 
 
 
 float uhd_gain = 60.0;
@@ -70,7 +69,7 @@ void usage(char *prog) {
   printf("\t-e earfcn_end [Default All]\n");
   printf("\t-n nof_frames_total [Default 100]\n");
   printf("\t-d nof_frames_detected [Default 10]\n");
-  printf("\t-t threshold [Default %.2f]\n",threshold);
+  printf("\t-t threshold [Default %.2f]\n",config.threshold);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -91,13 +90,13 @@ void parse_args(int argc, char **argv) {
       earfcn_end = atoi(argv[optind]);
       break;
     case 'n':
-      nof_frames_total = atoi(argv[optind]);
+      config.nof_frames_total = atoi(argv[optind]);
       break;
     case 'd':
-      nof_frames_detected = atoi(argv[optind]);
+      config.nof_frames_detected = atoi(argv[optind]);
       break;
     case 't':
-      threshold = atof(argv[optind]);
+      config.threshold = atof(argv[optind]);
       break;
     case 'g':
       uhd_gain = atof(argv[optind]);
@@ -119,7 +118,6 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int n; 
   void *uhd;
-  ue_celldetect_t s;
   ue_celldetect_result_t found_cells[3]; 
   int nof_freqs; 
   lte_earfcn_t channels[MAX_EARFCN];
@@ -142,21 +140,6 @@ int main(int argc, char **argv) {
     exit(-1);
   }
     
-  if (ue_celldetect_init(&s)) {
-    fprintf(stderr, "Error initiating UE sync module\n");
-    exit(-1);
-  }
-  if (threshold > 0) {
-    ue_celldetect_set_threshold(&s, threshold);    
-  }
-  
-  if (nof_frames_total > 0) {
-    ue_celldetect_set_nof_frames_total(&s, nof_frames_total);
-  }
-  if (nof_frames_detected > 0) {
-    ue_celldetect_set_nof_frames_detected(&s, nof_frames_detected);
-  }
-
   for (freq=0;freq<nof_freqs;freq+=10) {
   
     /* set uhd_freq */
@@ -172,15 +155,15 @@ int main(int argc, char **argv) {
       printf("\n");
     }
     
-    n = find_all_cells(uhd, found_cells);
+    n = detect_all_cells(&config, uhd, found_cells);
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
     }
     if (n == CS_CELL_DETECTED) {
       for (int i=0;i<3;i++) {
-        if (found_cells[i].peak > threshold/2) {
-          if (decode_pbch(uhd, &found_cells[i], nof_frames_total, bch_payload, &nof_tx_ports, NULL)) {
+        if (found_cells[i].peak > config.threshold/2) {
+          if (decode_pbch(uhd, &found_cells[i], config.nof_frames_total, bch_payload, &nof_tx_ports, NULL)) {
             fprintf(stderr, "Error decoding PBCH\n");
             exit(-1);
           } else {
@@ -194,7 +177,6 @@ int main(int argc, char **argv) {
   
   printf("\nBye\n");
     
-  ue_celldetect_free(&s);
   cuhd_close(uhd);
   exit(0);
 }

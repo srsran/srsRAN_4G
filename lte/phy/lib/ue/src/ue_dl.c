@@ -36,6 +36,7 @@
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
+#define MAX_CANDIDATES  64
 
 int ue_dl_init(ue_dl_t *q, 
                lte_cell_t cell,  
@@ -146,17 +147,24 @@ void ue_dl_free(ue_dl_t *q) {
 LIBLTE_API float mean_exec_time=0; 
 int frame_cnt=0;
 
+dci_format_t ue_formats[] = {Format1A,Format1}; // Format1B should go here also
+const uint32_t nof_ue_formats = 2; 
+
+dci_format_t common_formats[] = {Format1A,Format1C};
+const uint32_t nof_common_formats = 2; 
+
 int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32_t sfn, uint16_t rnti) 
 {
   uint32_t cfi, cfi_distance, i;
   ra_pdsch_t ra_dl;
-  dci_location_t locations[10];
+  dci_location_t locations[MAX_CANDIDATES];
   dci_msg_t dci_msg;
   uint32_t nof_locations;
   uint16_t crc_rem; 
-  dci_format_t format; 
   int ret = LIBLTE_ERROR; 
   struct timeval t[3]; 
+  uint32_t nof_formats; 
+  dci_format_t *formats = NULL; 
 
   /* Run FFT for all subframe data */
   lte_fft_run_sf(&q->fft, input, q->sf_symbols);
@@ -169,7 +177,7 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, mean_exec_time, frame_cnt);
-
+  
   frame_cnt++;
   
   
@@ -188,28 +196,34 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
   
   /* Generate PDCCH candidates */
   if (rnti == SIRNTI) {
-    nof_locations = pdcch_common_locations(&q->pdcch, locations, 10, cfi);
-    format = Format1A; 
+    nof_locations = pdcch_common_locations(&q->pdcch, locations, MAX_CANDIDATES, cfi);
+    formats = common_formats;
+    nof_formats = nof_common_formats;
   } else {
-    nof_locations = pdcch_ue_locations(&q->pdcch, locations, 10, sf_idx, cfi, q->user_rnti);    
-    format = Format1;
+    nof_locations = pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, q->user_rnti);    
+    formats = ue_formats; 
+    nof_formats = nof_ue_formats;
   }
 
+  /* Extract all PDCCH symbols and get LLRs */
+  if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
+    fprintf(stderr, "Error extracting LLRs\n");
+    return LIBLTE_ERROR;
+  }
+  /* For all possible locations, try to decode a DCI message */
   crc_rem = 0;
-  for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-    if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), locations[i], sf_idx, cfi)) {
-      fprintf(stderr, "Error extracting LLRs\n");
-      return LIBLTE_ERROR;
+  for (int f=0;f<nof_formats;f++) {
+    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
+      if (pdcch_decode_msg(&q->pdcch, &dci_msg, &locations[i], formats[f], &crc_rem)) {
+        fprintf(stderr, "Error decoding DCI msg\n");
+        return LIBLTE_ERROR;
+      }
+      INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
     }
-    if (pdcch_decode_msg(&q->pdcch, &dci_msg, format, &crc_rem)) {
-      fprintf(stderr, "Error decoding DCI msg\n");
-      return LIBLTE_ERROR;
-    }
-    INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
   }
     
   if (crc_rem == rnti) {
-    printf("Hem trobat\n");
+    q->nof_pdcch_detected++;
     if (dci_msg_to_ra_dl(&dci_msg, rnti, q->user_rnti, q->cell, cfi, &ra_dl)) {
       fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
       return LIBLTE_ERROR;
@@ -249,7 +263,7 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
           q->pkt_errors++;
         } else if (rnti != SIRNTI) {
           q->pkt_errors++;                
-        }            
+        }     
       } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
         fprintf(stderr, "Error calling pdsch_decode()\n");
         return LIBLTE_ERROR; 

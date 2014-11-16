@@ -98,7 +98,7 @@ int rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out_len) {
   int d_i, d_j;
 
   float tmp[3 * NCOLS * NROWS_MAX];
-
+  
   nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
     fprintf(stderr, "Output too large. Max output length is %d\n",

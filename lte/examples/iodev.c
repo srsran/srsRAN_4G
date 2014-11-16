@@ -98,8 +98,11 @@ int iodev_init(iodev_t *q, iodev_cfg_t *config, lte_cell_t *cell) {
     cuhd_set_rx_freq(q->uhd, (double) config->uhd_freq);
     cuhd_rx_wait_lo_locked(q->uhd);
     DEBUG("Set uhd_freq to %.3f MHz\n", (double ) config->uhd_freq);
+    
+    cell_detect_cfg_t detect_config; 
+    bzero(&detect_config, sizeof(cell_detect_cfg_t));
 
-    if (cell_search(q->uhd, config->force_N_id_2, cell)) {
+    if (detect_and_decode_cell(&detect_config, q->uhd, config->force_N_id_2, cell)) {
       fprintf(stderr, "Cell not found\n");
       return LIBLTE_ERROR; 
     }

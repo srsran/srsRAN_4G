@@ -73,6 +73,7 @@ typedef struct LIBLTE_API {
   
   uint64_t pkt_errors; 
   uint64_t pkts_total;
+  uint64_t nof_pdcch_detected; 
 
   uint16_t user_rnti; 
 }ue_dl_t;

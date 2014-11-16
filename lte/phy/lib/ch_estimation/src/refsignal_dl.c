@@ -210,10 +210,7 @@ int refsignal_cs_put_sf(lte_cell_t cell, uint32_t port_id, cf_t *pilots, cf_t *s
       fidx = ((refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6); 
       for (i = 0; i < 2*cell.nof_prb; i++) {
         sf_symbols[SAMPLE_IDX(cell.nof_prb, nsymbol, fidx)] = pilots[REFSIGNAL_PILOT_IDX(i,l,cell)];
-        fidx += 6;       // 1 reference every 6 RE
-        DEBUG("Putting %d to %d (fidx: %d, lp:%d)\n",
-              REFSIGNAL_PILOT_IDX(i,l,cell), SAMPLE_IDX(cell.nof_prb, nsymbol, fidx),
-                fidx, nsymbol);
+        fidx += 6;       // 1 reference every 6 RE        
       }    
     }
     return LIBLTE_SUCCESS;      
@@ -242,9 +239,6 @@ int refsignal_cs_get_sf(lte_cell_t cell, uint32_t port_id, cf_t *sf_symbols, cf_
       fidx = ((refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6); 
       for (i = 0; i < 2*cell.nof_prb; i++) {
         pilots[REFSIGNAL_PILOT_IDX(i,l,cell)] = sf_symbols[SAMPLE_IDX(cell.nof_prb, nsymbol, fidx)];
-        DEBUG("Getting %d from %d (fidx: %d, lp:%d)\n",REFSIGNAL_PILOT_IDX(i,l,cell), 
-              SAMPLE_IDX(cell.nof_prb, nsymbol, fidx),
-                fidx, nsymbol);
         fidx += RE_X_RB/2;       // 2 references per PRB
       }
     }

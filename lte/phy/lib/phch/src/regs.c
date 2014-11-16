@@ -67,11 +67,9 @@ void regs_pdcch_free(regs_t *h) {
   for (i=0;i<3;i++) {
     if (h->pdcch[i].regs) {
       free(h->pdcch[i].regs);
+      h->pdcch[i].regs = NULL; 
     }
   }
-
-  bzero(h, sizeof(regs_t));
-
 }
 
 #define PDCCH_NCOLS  32
@@ -114,7 +112,7 @@ int regs_pdcch_init(regs_t *h) {
     }
 
     h->pdcch[cfi].nof_regs = m;
-
+    
     h->pdcch[cfi].regs = malloc(sizeof(regs_reg_t*) * h->pdcch[cfi].nof_regs);
     if (!h->pdcch[cfi].regs) {
       perror("malloc");
@@ -144,6 +142,8 @@ int regs_pdcch_init(regs_t *h) {
       }
     }
     h->pdcch[cfi].nof_regs = (h->pdcch[cfi].nof_regs/9)*9;
+    INFO("Init PDCCH REG space CFI %d. %d useful REGs (%d CCEs)\n",cfi+1, 
+         h->pdcch[cfi].nof_regs, h->pdcch[cfi].nof_regs/9);
     free(tmp);
     tmp = NULL;
   }
@@ -348,13 +348,12 @@ void regs_phich_free(regs_t *h) {
     for (i=0;i<h->ngroups_phich;i++) {
       if (h->phich[i].regs) {
         free(h->phich[i].regs);
+        h->phich[i].regs = NULL;
       }
     }
     free(h->phich);
+    h->phich = NULL; 
   }
-
-  bzero(h, sizeof(regs_t));
-
 }
 
 uint32_t regs_phich_nregs(regs_t *h) {
@@ -487,7 +486,7 @@ int regs_pcfich_init(regs_t *h) {
           k);
       return LIBLTE_ERROR;
     } else {
-      ch->regs[i]->assigned = true;
+      ch->regs[i]->assigned = true;     
       INFO("Assigned PCFICH REG#%d (%d,0)\n", i, k);
     }
   }
@@ -497,10 +496,8 @@ int regs_pcfich_init(regs_t *h) {
 void regs_pcfich_free(regs_t *h) {
   if (h->pcfich.regs) {
     free(h->pcfich.regs);
+    h->pcfich.regs = NULL; 
   }
-
-  bzero(h, sizeof(regs_t));
-
 }
 
 uint32_t regs_pcfich_nregs(regs_t *h) {

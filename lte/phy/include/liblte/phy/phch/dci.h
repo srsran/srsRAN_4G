@@ -46,7 +46,7 @@ typedef _Complex float cf_t;
 #define DCI_MAX_BITS  57
 
 typedef enum {
-  Format0, Format1, Format1A, Format1C
+  Format0, Format1, Format1A, Format1C, FormatError
 } dci_format_t;
 
 // Each type is for a different interface to packing/unpacking functions
@@ -89,6 +89,8 @@ LIBLTE_API int dci_msg_to_ra_ul(dci_msg_t *msg,
                                 uint32_t cfi,
                                 ra_pusch_t *ra_ul);
 */
+LIBLTE_API dci_format_t dci_format_from_string(char *str);
+
 LIBLTE_API char* dci_format_string(dci_format_t format);
 
 LIBLTE_API int dci_location_set(dci_location_t *c, 

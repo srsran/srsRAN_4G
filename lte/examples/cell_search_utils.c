@@ -37,6 +37,8 @@
 
 #include "liblte/phy/phy.h"
 #include "liblte/rrc/rrc.h"
+#include "cell_search_utils.h"
+
 
 #ifndef DISABLE_UHD
 #include "liblte/cuhd/cuhd.h"
@@ -82,6 +84,7 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
     }
     if (n == MIB_FRAME_UNALIGNED) {
       printf("Realigning frame\n");
+      // Receive some randon number of samples to try to resynchronise the frame.
       if (cuhd_recv(uhd, buffer, 1500, 1)<0) {
         fprintf(stderr, "Error receiving from USRP\n");
         goto free_and_exit;
@@ -110,7 +113,7 @@ free_and_exit:
   return ret; 
 }
 
-int find_cell(void *uhd, ue_celldetect_result_t *found_cell, uint32_t N_id_2) 
+int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *found_cell, uint32_t N_id_2) 
 {  
   int ret = LIBLTE_ERROR; 
   ue_celldetect_t cd;
@@ -124,6 +127,16 @@ int find_cell(void *uhd, ue_celldetect_result_t *found_cell, uint32_t N_id_2)
   if (ue_celldetect_init(&cd)) {
     fprintf(stderr, "Error initiating UE cell detect\n");
     goto free_and_exit;
+  }
+  
+  if (config->nof_frames_detected) {
+    ue_celldetect_set_nof_frames_detected(&cd, config->nof_frames_detected);
+  }
+  if (config->nof_frames_total) {
+    ue_celldetect_set_nof_frames_total(&cd, config->nof_frames_total);
+  }
+  if (config->threshold) {
+    ue_celldetect_set_threshold(&cd, config->threshold);
   }
     
   INFO("Setting sampling frequency 960 KHz for PSS search\n", 0);
@@ -192,7 +205,7 @@ free_and_exit:
 }
 
 
-int find_all_cells(void *uhd, ue_celldetect_result_t found_cell[3]) 
+int detect_all_cells(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t found_cell[3]) 
 {
 
   uint32_t N_id_2; 
@@ -200,7 +213,7 @@ int find_all_cells(void *uhd, ue_celldetect_result_t found_cell[3])
   int nof_detected_cells = 0;
   
   for (N_id_2=0;N_id_2<3;N_id_2++) {
-    ret = find_cell(uhd, &found_cell[N_id_2], N_id_2);    
+    ret = detect_cell(config, uhd, &found_cell[N_id_2], N_id_2);    
     if (ret == 1) {
       nof_detected_cells++;
     } else if (ret == LIBLTE_ERROR) {
@@ -210,7 +223,7 @@ int find_all_cells(void *uhd, ue_celldetect_result_t found_cell[3])
   return nof_detected_cells;
 }
 
-int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell) 
+int detect_and_decode_cell(cell_detect_cfg_t *config, void *uhd, int force_N_id_2, lte_cell_t *cell) 
 {
   int ret; 
   uint32_t nof_tx_ports; 
@@ -219,14 +232,10 @@ int cell_search(void *uhd, int force_N_id_2, lte_cell_t *cell)
   ue_celldetect_result_t found_cells[3];
   bzero(found_cells, 3*sizeof(ue_celldetect_result_t));
   
-  ue_celldetect_set_nof_frames_detected(&cd, 50);
-
-  ue_celldetect_set_nof_frames_total(&cd, 500);
-
   if (force_N_id_2 >= 0) {
-    ret = find_cell(uhd, &found_cells[force_N_id_2], force_N_id_2);
+    ret = detect_cell(config, uhd, &found_cells[force_N_id_2], force_N_id_2);
   } else {
-    ret = find_all_cells(uhd, found_cells);      
+    ret = detect_all_cells(config, uhd, found_cells);      
   }
   if (ret < 0) {
     fprintf(stderr, "Error searching cell\n");

@@ -49,8 +49,11 @@
 const lte_mod_t modulations[4] =
     { LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64 };
     
-    
+//#define DEBUG_IDX
 
+#ifdef DEBUG_IDX    
+cf_t *offset_original=NULL;
+#endif
 
 int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
     uint32_t nsubframe, bool put) {
@@ -62,6 +65,10 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
   INFO("%s %d RE from %d PRB\n", put ? "Putting" : "Getting",
       prb_alloc->re_sf[nsubframe], prb_alloc->slot[0].nof_prb);
 
+#ifdef DEBUG_IDX    
+  offset_original = input; 
+#endif
+  
   if (q->cell.nof_ports == 1) {
     nof_refs = 2;
   } else {
@@ -70,72 +77,79 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
 
   for (s = 0; s < 2; s++) {
     for (l = 0; l < CP_NSYMB(q->cell.cp); l++) {
-      for (n = 0; n < prb_alloc->slot[s].nof_prb; n++) {
-        if (s == 0) {
-          lstart = prb_alloc->lstart;
-        } else {
-          lstart = 0;
-        }
-        lend = CP_NSYMB(q->cell.cp);
-        is_pbch = is_sss = false;
+      for (n = 0; n < q->cell.nof_prb; n++) {
 
-        // Skip PSS/SSS signals
-        if (s == 0 && (nsubframe == 0 || nsubframe == 5)) {
-          if (prb_alloc->slot[s].prb_idx[n] >= q->cell.nof_prb / 2 - 3
-              && prb_alloc->slot[s].prb_idx[n] <= q->cell.nof_prb / 2 + 3) {
-            lend = CP_NSYMB(q->cell.cp) - 2;
-            is_sss = true;
-          }
-        }
-        // Skip PBCH
-        if (s == 1 && nsubframe == 0) {
-          if (prb_alloc->slot[s].prb_idx[n] >= q->cell.nof_prb / 2 - 3
-              && prb_alloc->slot[s].prb_idx[n] <= q->cell.nof_prb / 2 + 3) {
-            lstart = 4;
-            is_pbch = true;
-          }
-        }
-        lp = l + s * CP_NSYMB(q->cell.cp);
-        if (put) {
-          out_ptr = &output[(lp * q->cell.nof_prb + prb_alloc->slot[s].prb_idx[n])
-              * RE_X_RB];
-        } else {
-          in_ptr = &input[(lp * q->cell.nof_prb + prb_alloc->slot[s].prb_idx[n])
-              * RE_X_RB];
-        }
-        if (l >= lstart && l < lend) {
-          if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-            if (nof_refs == 2 && l != 0) {
-              offset = q->cell.id % 3 + 3;
-            } else {
-              offset = q->cell.id % 3;
-            }
-            prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs, put);
+        // If this PRB is assigned
+        if (prb_alloc->slot[s].prb_idx[n]) {
+          if (s == 0) {
+            lstart = prb_alloc->lstart;
           } else {
-            prb_cp(&in_ptr, &out_ptr, 1);
+            lstart = 0;
           }
-        }
-        if ((q->cell.nof_prb % 2) && ((is_pbch && l < lstart) || (is_sss && l >= lend))) {
-          if (prb_alloc->slot[s].prb_idx[n] == q->cell.nof_prb / 2 - 3) {
-            if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
-            } else {
-              prb_cp_half(&in_ptr, &out_ptr, 1);
-            }
-          } else if (prb_alloc->slot[s].prb_idx[n] == q->cell.nof_prb / 2 + 3) {
-            if (put) {
-              out_ptr += 6;
-            } else {
-              in_ptr += 6;
-            }
-            if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
-            } else {
-              prb_cp_half(&in_ptr, &out_ptr, 1);
+          lend = CP_NSYMB(q->cell.cp);
+          is_pbch = is_sss = false;
+
+          // Skip PSS/SSS signals
+          if (s == 0 && (nsubframe == 0 || nsubframe == 5)) {
+            if (n >= q->cell.nof_prb / 2 - 3
+                && n < q->cell.nof_prb / 2 + 3) {
+              lend = CP_NSYMB(q->cell.cp) - 2;
+              is_sss = true;
             }
           }
+          // Skip PBCH
+          if (s == 1 && nsubframe == 0) {
+            if (n >= q->cell.nof_prb / 2 - 3
+                && n < q->cell.nof_prb / 2 + 3) {
+              lstart = 4;
+              is_pbch = true;
+            }
+          }
+          lp = l + s * CP_NSYMB(q->cell.cp);
+          if (put) {
+            out_ptr = &output[(lp * q->cell.nof_prb + n)
+                * RE_X_RB];
+          } else {
+            in_ptr = &input[(lp * q->cell.nof_prb + n)
+                * RE_X_RB];
+          }
+          // This is a symbol in a normal PRB with or without references
+          if (l >= lstart && l < lend) {
+            if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+              if (nof_refs == 2 && l == 0) {
+                offset = q->cell.id % 3 + 3;
+              } else {
+                offset = q->cell.id % 3;
+              }
+              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs, put);
+            } else {
+              prb_cp(&in_ptr, &out_ptr, 1);
+            }
+          }
+          // This is a symbol in a PRB with PBCH or Synch signals (SS). 
+          // If the number or total PRB is odd, half of the the PBCH or SS will fall into the symbol
+          if ((q->cell.nof_prb % 2) && ((is_pbch && l < lstart) || (is_sss && l >= lend))) {
+            if (n == q->cell.nof_prb / 2 - 3) {
+              if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+                prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
+              } else {
+                prb_cp_half(&in_ptr, &out_ptr, 1);
+              }
+            } else if (n == q->cell.nof_prb / 2 + 3) {
+              if (put) {
+                out_ptr += 6;
+              } else {
+                in_ptr += 6;
+              }
+              if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+                prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
+              } else {
+                prb_cp_half(&in_ptr, &out_ptr, 1);
+              }
+            }
+          }
         }
-      }
+      }      
     }
   }
 
@@ -532,6 +546,8 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
         fprintf(stderr, "Error in rate matching\n");
         return LIBLTE_ERROR;
       }
+      
+      vec_save_file("tdec_in.dat",q->cb_out, sizeof(float) * (3 * cb_len + 12));
 
       /* Turbo Decoding with CRC-based early stopping */
       q->nof_iterations = 0; 
@@ -542,7 +558,6 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
       tdec_reset(&q->decoder, cb_len);
             
       do {
-        
         tdec_iteration(&q->decoder, (float*) q->cb_out, cb_len); 
         q->nof_iterations++;
         
@@ -651,7 +666,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
       return LIBLTE_ERROR;
     }
-
+    
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
       n = pdsch_get(q, ce[i], q->ce[i], &harq_process->prb_alloc, subframe);
@@ -660,7 +675,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
         return LIBLTE_ERROR;
       }
     }
-      
+
     /* TODO: only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
@@ -672,31 +687,22 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
           nof_symbols / q->cell.nof_ports);
     }
-    
+
+    vec_save_file("pdsch_after.dat",q->pdsch_d,sizeof(cf_t)*nof_symbols);
+
     /* demodulate symbols 
      * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
      * thus we don't need tot set it in the LLRs normalization
      */
-    demod_soft_sigma_set(&q->demod, 2.0 / q->mod[harq_process->mcs.mod - 1].nbits_x_symbol);
+    demod_soft_sigma_set(&q->demod, 1);//q->mod[harq_process->mcs.mod - 1].nbits_x_symbol);
     demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod - 1]);
     demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, nof_symbols);
- 
-    /*
-    for (int j=0;j<nof_symbols;j++) {
-      if (isnan(crealf(q->pdsch_d[j])) || isnan(cimagf(q->pdsch_d[j]))) {
-        printf("\nerror in d[%d]=%f+%f symbols:%f+%f ce0:%f+%f ce1:%f+%f\n",j,
-               crealf(q->pdsch_d[j]), cimagf(q->pdsch_d[j]), 
-               crealf(q->pdsch_symbols[0][j]), cimagf(q->pdsch_symbols[0][j]), 
-               crealf(q->ce[0][j]), cimagf(q->ce[0][j]), 
-               crealf(q->ce[1][j]), cimagf(q->ce[1][j])
-              );
-      }
-    }
-    */
 
     /* descramble */
     scrambling_f_offset(&q->seq_pdsch[subframe], q->pdsch_e, 0, nof_bits_e);
-    
+
+    vec_save_file("pdsch_llr.dat",q->pdsch_e,sizeof(float)*nof_bits_e);
+
     return pdsch_decode_tb(q, data, nof_bits, nof_bits_e, harq_process, rv_idx);
   } else {
     return LIBLTE_ERROR_INVALID_INPUTS;

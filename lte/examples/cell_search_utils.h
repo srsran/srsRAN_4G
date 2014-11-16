@@ -28,6 +28,12 @@
 
 #include "liblte/phy/phy.h"
 
+typedef struct LIBLTE_API {
+  uint32_t nof_frames_total;
+  uint32_t nof_frames_detected;
+  float threshold;
+}cell_detect_cfg_t;
+
 int decode_pbch(void *uhd, 
                 ue_celldetect_result_t *found_cell, 
                 uint32_t nof_frames_total, 
@@ -35,13 +41,16 @@ int decode_pbch(void *uhd,
                 uint32_t *nof_tx_ports, 
                 uint32_t *sfn_offset);
 
-int find_all_cells(void *uhd, 
-                   ue_celldetect_result_t found_cell[3]);
+int detect_all_cells(cell_detect_cfg_t *config, 
+                     void *uhd, 
+                     ue_celldetect_result_t found_cell[3]);
 
-int find_cell(void *uhd, 
-               ue_celldetect_result_t *found_cell, 
-               uint32_t N_id_2);
+int detect_cell(cell_detect_cfg_t *config, 
+                void *uhd, 
+                ue_celldetect_result_t *found_cell, 
+                uint32_t N_id_2);
 
-int cell_search(void *uhd, 
-                int force_N_id_2, 
-                lte_cell_t *cell);
+int detect_and_decode_cell(cell_detect_cfg_t *config, 
+                           void *uhd, 
+                           int force_N_id_2, 
+                           lte_cell_t *cell);

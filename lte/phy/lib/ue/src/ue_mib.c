@@ -161,7 +161,8 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
   if (ret < 0) {
     return LIBLTE_ERROR;
   }
-
+  INFO("Channel estimated for %d ports, Noise: %f\n", q->chest.cell.nof_ports,
+       chest_dl_get_noise_estimate(&q->chest));
   /* Reset decoder if we missed a frame */
   if ((q->last_frame_trial && (abs(q->frame_cnt - q->last_frame_trial) > 2)) || 
       q->frame_cnt > 16) 
@@ -177,7 +178,7 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
   
   /* Decode PBCH */
   ret = pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
-                    ce_slot1, chest_dl_get_noise_estimate(&q->chest), 
+                    ce_slot1, chest_dl_get_noise_estimate(&q->chest),
                     bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
@@ -256,9 +257,9 @@ int ue_mib_sync_and_decode(ue_mib_t * q,
           sync_get_sf_idx(&q->sfind)             == 0) 
       {
         INFO("Trying to decode MIB\n",0);
-        printf("caution here should pass begining of frame \n");
-        exit(-1);
-        ret = ue_mib_decode_aligned_frame(q, &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-960], q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
+        ret = ue_mib_decode_aligned_frame(q, 
+                                          &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-MIB_FRAME_SIZE_SEARCH/10], 
+                                          q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
         counter3++;
       } else if ((ret == LIBLTE_SUCCESS && peak_idx != 0)   || 
                  (ret == 1              && nf*MIB_FRAME_SIZE_SEARCH + peak_idx + MIB_FRAME_SIZE_SEARCH/10 > nsamples)) 

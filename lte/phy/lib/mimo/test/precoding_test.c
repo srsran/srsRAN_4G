@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
   /* generate random data */
   for (i = 0; i < nof_layers; i++) {
     for (j = 0; j < nof_symbols; j++) {
-      x[i][j] = (float) rand()/RAND_MAX+((float) rand()/RAND_MAX)*_Complex_I;
+      x[i][j] = (2*(rand()%2)-1+(2*(rand()%2)-1)*_Complex_I)/sqrt(2);
     }
   }
   
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
       h[i][nof_layers*j] = (float) rand()/RAND_MAX+((float) rand()/RAND_MAX)*_Complex_I;
       // assume the channel is time-invariant in nlayer consecutive symbols
       for (int k=0;k<nof_layers;k++) {
-        h[i][nof_layers*j+k] = h[i][nof_layers*j];
+        h[i][nof_layers*j+k] = h[i][nof_layers*j];      
       }
     }
   }
@@ -170,34 +170,30 @@ int main(int argc, char **argv) {
     }
   }
   
-  float noise_estimate[2] = {0, 0.0000001};
-  const char *algs[2] = {"ZF", "MMSE"};
-  
   /* predecoding / equalization */
   struct timeval t[3];
-  for (int a=0;a<2;a++) {
-    gettimeofday(&t[1], NULL);
-    if (predecoding_type(&precoding, r[0], h, xr, nof_ports, nof_layers,
-        nof_symbols * nof_layers, type, noise_estimate[a]) < 0) {
-      fprintf(stderr, "Error layer mapper encoder\n");
-      exit(-1);
-    }
-    gettimeofday(&t[2], NULL);
-    get_time_interval(t);
-    printf("Execution Time %s: %d us\n", algs[a], t[0].tv_usec);
-    
-    /* check errors */
-    mse = 0;
-    for (i = 0; i < nof_layers; i++) {
-      for (j = 0; j < nof_symbols; j++) {
-        mse += cabsf(xr[i][j] - x[i][j]);
-      }
-    }
-    printf("MSE %s: %f\n", algs[a], mse);
-    if (mse / nof_layers / nof_symbols > MSE_THRESHOLD) {
-      exit(-1);
-    } 
+  gettimeofday(&t[1], NULL);
+  if (predecoding_type(&precoding, r[0], h, xr, nof_ports, nof_layers,
+      nof_symbols * nof_layers, type, 0) < 0) {
+    fprintf(stderr, "Error layer mapper encoder\n");
+    exit(-1);
   }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("Execution Time: %d us\n", t[0].tv_usec);
+  
+  /* check errors */
+  mse = 0;
+  for (i = 0; i < nof_layers; i++) {
+    for (j = 0; j < nof_symbols; j++) {
+      printf("%f - %f\n", crealf(xr[i][j]), crealf(x[i][j]));
+      mse += cabsf(xr[i][j] - x[i][j]);
+    }
+  }
+  printf("MSE: %f\n", mse/ nof_layers / nof_symbols );
+  if (mse / nof_layers / nof_symbols > MSE_THRESHOLD) {
+    exit(-1);
+  } 
 
   for (i = 0; i < nof_layers; i++) {
     free(x[i]);

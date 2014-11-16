@@ -61,7 +61,8 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
       return ret; 
     }
     
-    if (VERBOSE_ISDEBUG()) {
+    if (VERBOSE_ISINFO()) {
+      INFO("",0);
       dci_msg_type_fprint(stdout, type);    
     }
     if (type.type == PDSCH_SCHED) {
@@ -72,7 +73,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
         return ret;
       } 
       
-      if (VERBOSE_ISDEBUG()) {
+      if (VERBOSE_ISINFO()) {
         ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
       }
       
@@ -731,6 +732,20 @@ int dci_msg_pack_pusch(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
 int dci_msg_unpack_pusch(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
   return dci_format0_unpack(msg, data, nof_prb);
+}
+
+dci_format_t dci_format_from_string(char *str) {
+  if (!strcmp(str, "Format0")) {
+    return Format0;
+  } else if (!strcmp(str, "Format1")) {
+    return Format1; 
+  } else if (!strcmp(str, "Format1A")) {
+    return Format1A; 
+  } else if (!strcmp(str, "Format1C")) {
+    return Format1C; 
+  } else {
+    return FormatError;
+  }
 }
 
 char* dci_format_string(dci_format_t format) {

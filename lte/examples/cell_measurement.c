@@ -41,6 +41,12 @@
 #include "liblte/cuhd/cuhd.h"
 #include "cell_search_utils.h"
 
+cell_detect_cfg_t cell_detect_config = {
+  500, // nof_frames_total 
+  50,  // nof_frames_detected
+  CS_FIND_THRESHOLD // threshold
+};
+
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
@@ -157,7 +163,7 @@ int main(int argc, char **argv) {
   cuhd_rx_wait_lo_locked(uhd);
   printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
 
-  if (cell_search(uhd, prog_args.force_N_id_2, &cell)) {
+  if (detect_and_decode_cell(&cell_detect_config, uhd, prog_args.force_N_id_2, &cell)) {
     fprintf(stderr, "Cell not found\n");
     exit(-1); 
   }
@@ -191,7 +197,7 @@ int main(int argc, char **argv) {
   }
   
   int sf_re = SF_LEN_RE(cell.nof_prb, cell.cp);
-  printf("%d RE allocated\n", sf_re);
+
   cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
 
   /* Main loop */
@@ -201,14 +207,17 @@ int main(int argc, char **argv) {
     if (ret < 0) {
       fprintf(stderr, "Error calling ue_sync_work()\n");
     }
+
         
-    /* iodev_receive returns 1 if successfully read 1 aligned subframe */
+    /* ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
       switch (state) {
         case DECODE_MIB:
           if (ue_sync_get_sfidx(&ue_sync) == 0) {
             pbch_decode_reset(&ue_mib.pbch);
-            n = ue_mib_decode_aligned_frame(&ue_mib, &sf_buffer[ue_sync_sf_len(&ue_sync)/2], bch_payload_unpacked, NULL, &sfn_offset);
+            n = ue_mib_decode_aligned_frame(&ue_mib,
+                                            sf_buffer, bch_payload_unpacked, 
+                                            NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);
@@ -223,20 +232,17 @@ int main(int argc, char **argv) {
           break;
         case DECODE_SIB:
           sfn=0;
-          /* If we are looking for SI Blocks, search only in appropiate places */
-          if ((sfn % 2) == 0 && (ue_sync_get_sfidx(&ue_sync) == 5)) {
+          /* We are looking for SI Blocks, search only in appropiate places */
+          if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
             n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, SIRNTI);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               exit(-1);
             } else if (n == 0) {
-              // Printf
-//              if (!(sf_cnt%20)) {
-                printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, ExecTime: %5.1f us, NOI: %.2f, Nof Trials: %4d, Nof Error:  %4d\r",
+              printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, ExecTime: %5.1f us, NOI: %.2f, PDCCH-Det: %.3f\r",
                       ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
                       mean_exec_time, pdsch_average_noi(&ue_dl.pdsch),
-                      (int) nof_trials, (int) ue_dl.pkt_errors);                
- //             }
+                      (float) ue_dl.nof_pdcch_detected/nof_trials);                
               nof_trials++; 
             } else {
               printf("\n\nDecoded SIB1 Message Len %d: ",n);
