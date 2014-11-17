@@ -194,8 +194,6 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
   return ret;
 }
 
-int counter1=0,counter2=0,counter3=0,counter4=0;
-
 void ue_mib_get_payload(ue_mib_t *q,
                         uint8_t bch_payload[BCH_PAYLOAD_LEN], 
                         uint32_t *nof_tx_ports,
@@ -244,35 +242,37 @@ int ue_mib_sync_and_decode(ue_mib_t * q,
         return -1;
       }
       
-      if (ret == 0) {
-        counter2++;
-      } else if (ret == 1) {
-        counter4++;
-      }
-      int peak_idx_i = (int) peak_idx;
       /* Check if we have space for reading the MIB and we are in Subframe #0 */
-      if (ret                                                                      == 1    && 
-          nf*MIB_FRAME_SIZE_SEARCH + peak_idx_i + MIB_FRAME_SIZE_SEARCH/10     <= nsamples &&
-          nf*MIB_FRAME_SIZE_SEARCH + peak_idx_i - MIB_FRAME_SIZE_SEARCH/10     >=  0       &&
-          sync_sss_detected(&q->sfind)                                                     && 
-          sync_get_sf_idx(&q->sfind)                                               == 0) 
+      if (ret == 1)
       {
-        INFO("Trying to decode MIB\n",0);
-        ret = ue_mib_decode_aligned_frame(q, 
-                                          &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-MIB_FRAME_SIZE_SEARCH/10], 
-                                          q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
-        counter3++;
-      } else if (ret == 1 && !sync_sss_detected(&q->sfind)) {
-        INFO("SSS not detected\n",0);
-        ret = 0; 
+        if (sync_sss_detected(&q->sfind)) 
+        {
+          if (sync_get_sf_idx(&q->sfind) == 0) 
+          {
+            if (nf*MIB_FRAME_SIZE_SEARCH + peak_idx + MIB_FRAME_SIZE_SEARCH/10 <= nsamples &&
+                nf*MIB_FRAME_SIZE_SEARCH + peak_idx                             >  MIB_FRAME_SIZE_SEARCH/10)
+            {
+              // PSS and SSS detected and we have space to decode the PBCH. 
+              INFO("Trying to decode PBCH\n",0);
+              ret = ue_mib_decode_aligned_frame(q, 
+                                                &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-MIB_FRAME_SIZE_SEARCH/10], 
+                                                q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
+            } else {
+              printf("Not enough space for PBCH: PSS signal is at offset %d\n",peak_idx);
+              ret = MIB_FRAME_UNALIGNED; 
+            }
+          } else {
+            // Wait for subframe 0
+            ret = 0; 
+          }
+        } else {
+          INFO("SSS not detected\n",0);
+          ret = 0; // wait to detect it
+        }
       } else {
-        printf("Not enough space for PBCH\n",0);
-        ret = MIB_FRAME_UNALIGNED; 
+        INFO("PSS not detected\n",0);
+        ret = 0; // wait to detect it? 
       }
-      
-      counter1++;
-      INFO("Total: %3d - Sync0: %3d - Sync1: %3d - Tried: %3d - Peak: %4d - Ret: %d\n",counter1,counter2,counter4, counter3, peak_idx, ret);
-      
       q->frame_cnt++;
     } 
   }

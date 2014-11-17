@@ -578,7 +578,6 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
         }
         
       } while (q->nof_iterations < TDEC_MAX_ITERATIONS && !early_stop);
-            
       q->average_nof_iterations = VEC_CMA((float) q->nof_iterations, 
                                              q->average_nof_iterations, 
                                              q->average_nof_iterations_n);

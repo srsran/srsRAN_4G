@@ -46,8 +46,9 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define FIND_THRESHOLD          1.2
-#define TRACK_THRESHOLD         0.2
+#define FIND_THRESHOLD          1.0
+#define TRACK_THRESHOLD         0.4
+#define TRACK_MAX_LOST          5
 
 
 int ue_sync_init(ue_sync_t *q, 
@@ -186,10 +187,12 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
    /* Make sure subframe idx is what we expect */
   if ((q->sf_idx != sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track) {
     INFO("Warning: Expected SF idx %d but got %d (%d,%g - %d,%g)!\n", 
-          q->sf_idx, sync_get_sf_idx(&q->strack), q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
+          q->sf_idx, sync_get_sf_idx(&q->strack), 
+         q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
+
     /* FIXME: What should we do in this case? */
     q->sf_idx = sync_get_sf_idx(&q->strack);
-    q->state = SF_FIND; 
+    //q->state = SF_FIND; 
   } else {
     q->time_offset = ((int) track_idx - (int) CURRENT_FFTSIZE); 
     
@@ -220,7 +223,7 @@ int track_peak_no(ue_sync_t *q) {
   /* if we missed too many PSS go back to FIND */
   q->frame_no_cnt++; 
   if (q->frame_no_cnt >= TRACK_MAX_LOST) {
-    printf("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
+    INFO("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
     q->state = SF_FIND;
   } else {
     INFO("Tracking peak not found. Peak %.3f, %d lost\n", 
@@ -256,8 +259,7 @@ static int receive_samples(ue_sync_t *q) {
 int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
   uint32_t track_idx; 
-  struct timeval t[3];
-
+  
   if (q               != NULL   &&
       sf_symbols      != NULL   &&
       q->input_buffer != NULL)
@@ -273,7 +275,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
         ret = sync_find(&q->sfind, q->input_buffer, 0, &q->peak_idx);
         if (ret < 0) {
           fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
-          return -1;
+          return LIBLTE_ERROR;
         }
         
         if (ret == 1) {
@@ -286,6 +288,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
             rlen = q->peak_idx;
           }
           if (q->recv_callback(q->stream, q->input_buffer, rlen) < 0) {
+            fprintf(stderr, "Error calling recv callback function\n");
             return LIBLTE_ERROR;
           }
         }
@@ -301,6 +304,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
         if (q->sf_idx == 0 || q->sf_idx == 5) {
 
           #ifdef MEASURE_EXEC_TIME
+          struct timeval t[3];
           gettimeofday(&t[1], NULL);
           #endif
           
@@ -310,7 +314,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
           ret = sync_find(&q->strack, q->input_buffer, CURRENT_SFLEN/2-CURRENT_FFTSIZE, &track_idx);
           if (ret < 0) {
             fprintf(stderr, "Error tracking correlation peak\n");
-            return -1;
+            return LIBLTE_ERROR;
           }
           
           #ifdef MEASURE_EXEC_TIME

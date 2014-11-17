@@ -296,14 +296,6 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
 
   /* unrate matching */
   rm_conv_rx(q->temp, 4 * nof_bits, q->pbch_rm_f, BCH_ENCODED_LEN);
-
-  /* FIXME: If channel estimates are zero, received LLR are NaN. Check and return error */
-  for (j = 0; j < BCH_ENCODED_LEN; j++) {
-    if (isnan(q->pbch_rm_f[j]) || isinf(q->pbch_rm_f[j])) {
-      printf("Some CE are NaN or Inf!\n");
-      return LIBLTE_ERROR;
-    }
-  }
   
   /* decode */
   viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data, BCH_PAYLOADCRC_LEN);

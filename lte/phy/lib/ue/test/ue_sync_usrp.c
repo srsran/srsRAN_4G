@@ -239,9 +239,8 @@ int main(int argc, char **argv) {
     #endif
       
       pos = pss_synch_find_pss(&pss, input_buffer, &peak);      
-      printf("CELL_ID: %3d CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d, Exec: %3.2f\r",
-              sync_get_cell_id(&s.sfind), ue_sync_get_cfo(&s)/1000, ue_sync_get_sfo(&s)/1000, pos, 
-             s.mean_exec_time);
+      printf("CELL_ID: %3d CFO: %+.4f KHz, SFO: %+.4f Khz, TimeOffset: %4d\r",
+              sync_get_cell_id(&s.sfind), ue_sync_get_cfo(&s)/1000, ue_sync_get_sfo(&s)/1000, pos);
           fflush(stdout);
       if (VERBOSE_ISINFO()) {
         printf("\n");

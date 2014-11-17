@@ -232,7 +232,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
   {
     int peak_pos;
     
-    ret = LIBLTE_ERROR; 
+    ret = LIBLTE_SUCCESS; 
     
     if (peak_position) {
       *peak_position = 0; 
@@ -266,7 +266,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
     
     /* If peak is over threshold, compute CFO and SSS */
     if (q->peak_value                  >= q->threshold) {
-      if (find_offset + peak_pos       >= q->fft_size) {
+      if (find_offset + peak_pos       >= q->fft_size + CP_EXT(q->fft_size)) {
         q->cfo = pss_synch_cfo_compute(&q->pss, &input[find_offset+peak_pos-q->fft_size]);
         if (q->sss_en) {
           ret = sync_sss(q, input, find_offset + peak_pos); 
@@ -278,15 +278,13 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
           ret = 1;
         }
       } else {
-        INFO("Warning: no space for CFO computation\n",0);
+        INFO("No space for CFO computation: frame starts at \n",peak_pos);
       }
       
       if (peak_position) {
         *peak_position = (uint32_t) peak_pos;
       }
-    } else {
-      ret = LIBLTE_SUCCESS;
-    }
+    } 
     
     INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f threshold=%.2f sf_idx=%d offset=%d\n",
           ret, q->N_id_2, peak_pos, peak_unnormalized,energy,q->peak_value, q->threshold, q->sf_idx, find_offset);

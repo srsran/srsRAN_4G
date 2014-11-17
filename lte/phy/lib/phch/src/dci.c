@@ -85,7 +85,10 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
       ra_prb_get_re_dl(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
             
       ret = LIBLTE_SUCCESS;
-    }    
+    } else {
+      fprintf(stderr, "Unsupported message type: "); 
+      dci_msg_type_fprint(stderr, type);
+    }
   }
   return ret;
 }

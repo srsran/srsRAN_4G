@@ -331,6 +331,15 @@ float chest_dl_get_noise_estimate(chest_dl_t *q) {
   return vec_acc_ff(q->noise_estimate, q->cell.nof_ports)/q->cell.nof_ports;
 }
 
+float chest_dl_get_snr(chest_dl_t *q) {
+  float noise = chest_dl_get_noise_estimate(q);
+  if (noise) {
+    return chest_dl_get_rssi(q)/(noise*2*q->cell.nof_ports*lte_symbol_sz(q->cell.nof_prb));    
+  } else {
+    return 0.0;
+  }
+}
+
 float chest_dl_get_rssi(chest_dl_t *q) {
   return q->rssi; 
 }

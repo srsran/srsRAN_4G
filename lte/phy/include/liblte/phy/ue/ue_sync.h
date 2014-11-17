@@ -53,8 +53,7 @@
 
 typedef enum LIBLTE_API { SF_FIND, SF_TRACK} ue_sync_state_t;
 
-#define TRACK_MAX_LOST          10
-#define MEASURE_EXEC_TIME 
+//#define MEASURE_EXEC_TIME 
 
 typedef struct LIBLTE_API {
   sync_t sfind;

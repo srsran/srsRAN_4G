@@ -60,13 +60,15 @@ typedef struct {
   int nof_subframes;
   bool disable_plots;
   int force_N_id_2;
+  uint16_t rnti;
   char *uhd_args; 
   float uhd_freq; 
   float uhd_gain;
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
-  args->nof_subframes = -1; 
+  args->nof_subframes = -1;
+  args->rnti = SIRNTI;
   args->force_N_id_2 = -1; // Pick the best
   args->uhd_args = "";
   args->uhd_freq = -1.0;
@@ -74,9 +76,10 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agldnv] -f rx_frequency (in Hz)\n", prog);
+  printf("Usage: %s [agldnrv] -f rx_frequency (in Hz)\n", prog);
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
+  printf("\t-r RNTI [Default 0x%x]\n",args->rnti);
   printf("\t-l Force N_id_2 [Default best]\n");
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
@@ -90,7 +93,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "agldnvf")) != -1) {
+  while ((opt = getopt(argc, argv, "agldnvrf")) != -1) {
     switch (opt) {
     case 'a':
       args->uhd_args = argv[optind];
@@ -103,6 +106,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'n':
       args->nof_subframes = atoi(argv[optind]);
+      break;
+    case 'r':
+      args->rnti = atoi(argv[optind]);
       break;
     case 'l':
       args->force_N_id_2 = atoi(argv[optind]);
@@ -128,6 +134,15 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 /* TODO: Do something with the output data */
 uint8_t data[10000], data_unpacked[1000];
 
+bool go_exit = false; 
+
+void sig_int_handler(int signo)
+{
+  if (signo == SIGINT) {
+    go_exit = true;
+  }
+}
+
 int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
@@ -145,14 +160,12 @@ int main(int argc, char **argv) {
   ue_mib_t ue_mib; 
   void *uhd; 
   ue_dl_t ue_dl; 
-  lte_fft_t fft; 
-  chest_dl_t chest; 
   uint32_t nof_trials = 0; 
   uint32_t sfn = 0; // system frame number
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
-  
+  float snr = 0; 
   parse_args(&prog_args, argc, argv);
 
   #ifndef DISABLE_GRAPHICS
@@ -160,7 +173,7 @@ int main(int argc, char **argv) {
     init_plots();    
   }
   #endif
-
+  
   printf("Opening UHD device...\n");
   if (cuhd_open(prog_args.uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
@@ -185,7 +198,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
-  if (ue_dl_init(&ue_dl, cell, 1234)) { 
+  if (ue_dl_init(&ue_dl, cell, 1234)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
@@ -193,83 +206,75 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }
-  pdsch_set_rnti(&ue_dl.pdsch, SIRNTI);
 
   /* Initialize subframe counter */
   sf_cnt = 0;
-    
-  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
-    fprintf(stderr, "Error initiating FFT\n");
-    return -1;
-  }
-  if (chest_dl_init(&chest, cell)) {
-    fprintf(stderr, "Error initiating channel estimator\n");
-    return -1;
-  }
+
+  // Register Ctrl+C handler
+  signal(SIGINT, sig_int_handler);
   
   /* Main loop */
-  while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
+  while (go_exit == false        && 
+    (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) 
+  {
     
     ret = ue_sync_get_buffer(&ue_sync, &sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling ue_sync_work()\n");
+      go_exit=true;
     }
 
     /* ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
-        if (ue_sync_get_sfidx(&ue_sync) == 0) {
-          pbch_decode_reset(&ue_mib.pbch);
-          n = ue_mib_decode_aligned_frame(&ue_mib,
-                                          sf_buffer, bch_payload_unpacked, 
-                                          NULL, &sfn_offset);
-          if (n < 0) {
-            fprintf(stderr, "Error decoding UE MIB\n");
-            exit(-1);
-          } else if (n == MIB_FOUND) {
-            bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
-            bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
-            sfn = (sfn + sfn_offset)%1024; 
-          }
-        }
-        /* We are looking for SI Blocks, search only in appropiate places */
-        if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-          n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, SIRNTI);
-          if (n < 0) {
-            fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
-            exit(-1);
-          } else if (n == 0) {
-            printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, ExecTime: %6.1f us, NOI: %.2f,"
-            "PDCCH-Det: %.3f, PDSCH-BLER: %.3f\r",
-                    ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
-                    mean_exec_time, pdsch_average_noi(&ue_dl.pdsch),
-                    (float) ue_dl.nof_pdcch_detected/nof_trials,
-                    (float) ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials);                         
-            
-          }
-          nof_trials++;             
-        }
-      } else if (ret == 0) {
-        /*printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
-          sync_get_peak_value(&ue_sync.sfind), 
-          ue_sync.frame_total_cnt, ue_sync.state);      
-          */
-      }
-      if (ue_sync_get_sfidx(&ue_sync) == 9) {
-        sfn++; 
-        if (sfn == 1024) {
-          sfn = 0; 
+      if (ue_sync_get_sfidx(&ue_sync) == 0) {
+        pbch_decode_reset(&ue_mib.pbch);
+        n = ue_mib_decode_aligned_frame(&ue_mib,
+                                        sf_buffer, bch_payload_unpacked, 
+                                        NULL, &sfn_offset);
+        if (n < 0) {
+          fprintf(stderr, "Error decoding UE MIB\n");
+          go_exit=true;
+        } else if (n == MIB_FOUND) {
+          bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
+          bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
+          sfn = (sfn + sfn_offset)%1024; 
         }
       }
-      #ifndef DISABLE_GRAPHICS
-      if (!prog_args.disable_plots && ue_sync_get_sfidx(&ue_sync) == 5) {
-        do_plots(&ue_dl, 5);          
+      /* We are looking for SI Blocks, search only in appropiate places */
+      if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+        n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, prog_args.rnti);
+        if (n < 0) {
+          fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
+        } 
+        nof_trials++;             
       }
-      #endif
-
-   
+      snr = VEC_CMA(chest_dl_get_snr(&ue_dl.chest),snr,sf_cnt);      
+    } 
+    if (ue_sync_get_sfidx(&ue_sync) == 9) {
+      sfn++; 
+      if (sfn == 1024) {
+        sfn = 0; 
+      }
+    }
+    #ifndef DISABLE_GRAPHICS
+    if (!prog_args.disable_plots && ue_sync_get_sfidx(&ue_sync) == 5) {
+      do_plots(&ue_dl, 5);          
+    }
+    #endif
+  
+    if ((sf_cnt%10)==0) {
+      printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, SNR: %5.1f dB, NOI: %.2f, "
+            "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
+            ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
+            10*log10f(snr), pdsch_average_noi(&ue_dl.pdsch),
+            100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
+            (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                                 
+    }
     sf_cnt++;                  
   } // Main loop
 
+  ue_dl_free(&ue_dl);
+  ue_mib_free(&ue_mib);
   ue_sync_free(&ue_sync);
   cuhd_close(uhd);
   printf("\nBye\n");
@@ -291,24 +296,23 @@ int main(int argc, char **argv) {
 
 #include "liblte/graphics/plot.h"
 plot_real_t poutfft;
-plot_complex_t pce;
+plot_real_t pce;
 plot_scatter_t pscatrecv, pscatequal;
 
 float tmp_plot[SLOT_LEN_RE(MAX_PRB, CPNORM)];
+float tmp_plot2[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 
 void init_plots() {
   plot_init();
   plot_real_init(&poutfft);
   plot_real_setTitle(&poutfft, "Output FFT - Magnitude");
   plot_real_setLabels(&poutfft, "Index", "dB");
-  plot_real_setYAxisScale(&poutfft, -30, 20);
+  plot_real_setYAxisScale(&poutfft, -60, 0);
 
-  plot_complex_init(&pce);
-  plot_complex_setTitle(&pce, "Channel Estimates");
-  plot_complex_setYAxisScale(&pce, Ip, -3, 3);
-  plot_complex_setYAxisScale(&pce, Q, -3, 3);
-  plot_complex_setYAxisScale(&pce, Magnitude, 0, 4);
-  plot_complex_setYAxisScale(&pce, Phase, -M_PI, M_PI);
+  plot_real_init(&pce);
+  plot_real_setTitle(&pce, "Channel Response - Magnitude");
+  plot_real_setLabels(&pce, "Index", "dB");
+  plot_real_setYAxisScale(&pce, -60, 0);
 
   plot_scatter_init(&pscatrecv);
   plot_scatter_setTitle(&pscatrecv, "Received Symbols");
@@ -326,13 +330,19 @@ void do_plots(ue_dl_t *q, uint32_t sf_idx) {
   uint32_t nof_re = SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp);
   uint32_t nof_symbols = q->harq_process[0].prb_alloc.re_sf[sf_idx];
   for (i = 0; i < nof_re; i++) {
-    tmp_plot[i] = 10 * log10f(cabsf(q->sf_symbols[i]));
+    tmp_plot[i] = 20 * log10f(cabsf(q->sf_symbols[i]));
     if (isinf(tmp_plot[i])) {
       tmp_plot[i] = -80;
     }
   }
+  for (i = 0; i < REFSIGNAL_NUM_SF(q->cell.nof_prb,0); i++) {
+    tmp_plot2[i] = 20 * log10f(cabsf(q->chest.pilot_estimates_average[0][i]));
+    if (isinf(tmp_plot2[i])) {
+      tmp_plot2[i] = -80;
+    }
+  }
   plot_real_setNewData(&poutfft, tmp_plot, nof_re);        
-  plot_complex_setNewData(&pce, q->ce[0], nof_re);
+  plot_real_setNewData(&pce, tmp_plot2, REFSIGNAL_NUM_SF(q->cell.nof_prb,0));        
   plot_scatter_setNewData(&pscatrecv, q->pdsch.pdsch_symbols[0], nof_symbols);
   plot_scatter_setNewData(&pscatequal, q->pdsch.pdsch_d, nof_symbols);
 }

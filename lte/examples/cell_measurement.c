@@ -267,8 +267,7 @@ int main(int argc, char **argv) {
         rssi = VEC_CMA(chest_dl_get_rssi(&chest),rssi,nframes);
         rsrq = VEC_CMA(chest_dl_get_rsrq(&chest),rsrq,nframes);
         rsrp = VEC_CMA(chest_dl_get_rsrp(&chest),rsrp,nframes);      
-        float noise = chest_dl_get_noise_estimate(&chest);
-        snr = VEC_CMA(rssi/(noise*noise*2*cell.nof_ports*fft.symbol_sz),snr,nframes);      
+        snr = VEC_CMA(chest_dl_get_snr(&chest),snr,nframes);      
         nframes++;
         
         // Plot and Printf

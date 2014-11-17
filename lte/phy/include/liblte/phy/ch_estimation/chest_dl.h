@@ -99,6 +99,8 @@ LIBLTE_API int chest_dl_estimate_port(chest_dl_t *q,
                                       uint32_t sf_idx, 
                                       uint32_t port_id);
 
+LIBLTE_API float chest_dl_get_snr(chest_dl_t *q); 
+
 LIBLTE_API float chest_dl_get_noise_estimate(chest_dl_t *q); 
 
 LIBLTE_API float chest_dl_get_rssi(chest_dl_t *q);

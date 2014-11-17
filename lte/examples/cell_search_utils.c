@@ -165,9 +165,6 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
           fprintf(stderr, "Error receiving from USRP\n");
           goto free_and_exit;
         }
-        /* FIXME: What should we do here?? */
-        ret = -1;
-        goto free_and_exit;
       case CS_CELL_DETECTED:
         ue_celldetect_get_cell(&cd, found_cell);
         if (found_cell->peak > 0) {
