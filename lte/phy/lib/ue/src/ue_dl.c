@@ -241,8 +241,6 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
     }
     if (q->harq_process[0].mcs.mod > 0) {
 
-      pdsch_set_rnti(&q->pdsch, rnti);
-
       ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), data, sf_idx, 
           &q->harq_process[0], rvidx);
       if (ret == LIBLTE_ERROR) {

@@ -206,6 +206,10 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }
+  
+  pdsch_set_rnti(&ue_dl.pdsch, prog_args.rnti); // This is the RNTI we want to look for
+
+
 
   /* Initialize subframe counter */
   sf_cnt = 0;
