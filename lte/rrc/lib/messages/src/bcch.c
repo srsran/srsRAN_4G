@@ -85,6 +85,7 @@ int bcch_bch_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *buffer, uint32_t buff
   sfn=(sfn>>2);
   req.systemFrameNumber.buf = (uint8_t*) &sfn;
   req.systemFrameNumber.size = 1;
+  req.systemFrameNumber.bits_unused= 0;
   int spare = 0;
   req.spare.buf = (uint8_t*) &spare;
   req.spare.size = 2;
@@ -96,7 +97,7 @@ int bcch_bch_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *buffer, uint32_t buff
     printf("Failed to encode element %s\n", n.failed_type ? n.failed_type->name : "");
     return LIBLTE_ERROR;
   } 
-  asn_fprint(stdout, &asn_DEF_MasterInformationBlock, &req); 
+
   return LIBLTE_SUCCESS;
 }
 

@@ -55,7 +55,7 @@ uint32_t mcs_idx = 12;
 int nof_frames = -1;
 
 char *uhd_args = "";
-float uhd_amp = 0.01, uhd_gain = 10.0, uhd_freq = 2400000000;
+float uhd_amp = 0.1, uhd_gain = 40.0, uhd_freq = 2400000000;
 
 filesink_t fsink;
 lte_fft_t ifft;
@@ -324,6 +324,9 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error configuring HARQ process\n");
     exit(-1);
   }
+  
+  bcch_bch_pack(&cell, 0, bch_payload_packed, BCH_PAYLOAD_LEN/8);
+  bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
 
   while (nf < nof_frames || nof_frames == -1) {
     for (sf_idx = 0; sf_idx < NSUBFRAMES_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
@@ -336,7 +339,6 @@ int main(int argc, char **argv) {
       }
       
       bcch_bch_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
-      bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
       if (sf_idx == 0) {
         pbch_encode(&pbch, bch_payload, sf_symbols);
       }
