@@ -214,6 +214,8 @@ int main(int argc, char **argv) {
 
   // Register Ctrl+C handler
   signal(SIGINT, sig_int_handler);
+
+  bool pbch_decoded = false; 
   
   /* Main loop */
   while (go_exit == false        && 
@@ -240,22 +242,27 @@ int main(int argc, char **argv) {
           bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
           bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
           sfn = (sfn + sfn_offset)%1024; 
+          pbch_decoded = true;
         }
       }
-      /* We are looking for SI Blocks, search only in appropiate places */
-      if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-        n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, prog_args.rnti);
-        if (n < 0) {
-          fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
-        } 
-        nof_trials++;             
+      if (pbch_decoded) {
+        /* We are looking for SI Blocks, search only in appropiate places */
+        if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+          n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, prog_args.rnti);
+          if (n < 0) {
+            fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
+          } 
+          nof_trials++;             
+        }
+        snr = VEC_EMA(chest_dl_get_snr(&ue_dl.chest), snr, 0.01);              
       }
-      snr = VEC_CMA(chest_dl_get_snr(&ue_dl.chest),snr,sf_cnt);      
     } 
     if (ue_sync_get_sfidx(&ue_sync) == 9) {
-      sfn++; 
-      if (sfn == 1024) {
-        sfn = 0; 
+      if (pbch_decoded) {
+        sfn++; 
+        if (sfn == 1024) {
+          sfn = 0; 
+        }        
       }
     }
     #ifndef DISABLE_GRAPHICS
@@ -271,6 +278,7 @@ int main(int argc, char **argv) {
             10*log10f(snr), pdsch_average_noi(&ue_dl.pdsch),
             100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
             (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                                 
+            
     }
     sf_cnt++;                  
   } // Main loop
