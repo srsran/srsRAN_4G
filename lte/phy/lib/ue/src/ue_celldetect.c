@@ -226,11 +226,6 @@ int ue_celldetect_scan(ue_celldetect_t * q,
         return LIBLTE_ERROR;
       }
 
-      /* If peak position does not allow to read SSS, return error -3 */
-      if (ret == LIBLTE_SUCCESS && peak_idx != 0) {
-        return CS_FRAME_UNALIGNED; 
-      }
-
       /* Process the peak result */
       if (ret == 1) {
         if (sync_sss_detected(&q->sfind)) {
@@ -247,6 +242,9 @@ int ue_celldetect_scan(ue_celldetect_t * q,
               q->candidates[q->current_nof_detected].peak, q->candidates[q->current_nof_detected].cell_id,
               lte_cp_string(q->candidates[q->current_nof_detected].cp));
           q->current_nof_detected++;
+        } else {
+          /* If peak position does not allow to read SSS, return error -3 */
+          return CS_FRAME_UNALIGNED; 
         }
       }
       q->current_nof_total++; 

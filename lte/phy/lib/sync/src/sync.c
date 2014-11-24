@@ -186,6 +186,9 @@ static lte_cp_t detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos)
   }
 }
 
+/* Returns 1 if the SSS is found, 0 if not and -1 if there is not enough space 
+ * to correlate
+ */
 int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   int sss_idx, ret;
 
@@ -199,7 +202,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   sss_idx = (int) peak_pos - 2*(q->fft_size + CP(q->fft_size, q->cp));
   if (sss_idx < 0) {
     INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
-    return LIBLTE_SUCCESS;
+    return LIBLTE_ERROR;
   }
       
   sss_synch_m0m1(&q->sss, &input[sss_idx], &q->m0, &q->m0_value, &q->m1, &q->m1_value);
@@ -208,16 +211,23 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   ret = sss_synch_N_id_1(&q->sss, q->m0, q->m1);
   if (ret >= 0) {
     q->N_id_1 = (uint32_t) ret;
+    DEBUG("SSS detected N_id_1=%d, sf_idx=%d, %s CP\n",
+      q->N_id_1, q->sf_idx, CP_ISNORM(q->cp)?"Normal":"Extended");
+    return 1;
   } else {
     q->N_id_1 = 1000;
+    return LIBLTE_SUCCESS;
   }
-    
-  DEBUG("SSS detected N_id_1=%d, sf_idx=%d, %s CP\n",
-    q->N_id_1, q->sf_idx, CP_ISNORM(q->cp)?"Normal":"Extended");
-
-  return 1;
 }
 
+
+/** Finds the PSS sequence previously defined by a call to sync_set_N_id_2()
+ * around the position find_offset in the buffer input. 
+ * Returns 1 if the correlation peak exceeds the threshold set by sync_set_threshold() 
+ * or 0 otherwise. Returns a negative number on error (if N_id_2 has not been set) 
+ * 
+ * The maximum of the correlation peak is always stored in *peak_position
+ */
 int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_position) 
 {
   
@@ -249,8 +259,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
         peak_pos + find_offset >= q->fft_size) 
     {
       /* Compute the energy of the received PSS sequence to normalize */
-      cf_t *pss_ptr = &input[find_offset+peak_pos-q->fft_size];
-      energy = sqrtf(crealf(vec_dot_prod_conj_ccc(pss_ptr, pss_ptr, q->fft_size)) / (q->fft_size));
+      energy = sqrtf(vec_avg_power_cf(&input[find_offset+peak_pos-q->fft_size], q->fft_size));
       q->mean_energy = VEC_CMA(energy, q->mean_energy, q->frame_cnt);
     } else {     
       if (q->mean_energy == 0.0) {
@@ -263,28 +272,34 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
     q->peak_value = peak_unnormalized/energy;
     q->mean_peak_value = VEC_CMA(q->peak_value, q->mean_peak_value, q->frame_cnt);
     q->frame_cnt++;
+
+    if (peak_position) {
+      *peak_position = (uint32_t) peak_pos;
+    }
     
     /* If peak is over threshold, compute CFO and SSS */
     if (q->peak_value                  >= q->threshold) {
-      if (find_offset + peak_pos       >= q->fft_size + CP_EXT(q->fft_size)) {
-        q->cfo = pss_synch_cfo_compute(&q->pss, &input[find_offset+peak_pos-q->fft_size]);
-        if (q->sss_en) {
-          ret = sync_sss(q, input, find_offset + peak_pos); 
-          if (ret < 0) {
-            fprintf(stderr, "Error synchronizing with SSS\n");
-            return LIBLTE_ERROR;
-          } 
-        } else {
-          ret = 1;
-        }
-      } else {
-        INFO("No space for CFO computation: frame starts at \n",peak_pos);
-      }
       
-      if (peak_position) {
-        *peak_position = (uint32_t) peak_pos;
+      // Set an invalid N_id_1 indicating SSS is yet to be detected
+      q->N_id_1 = 1000; 
+      
+      // Try to detect SSS 
+      if (q->sss_en) {
+        if (sync_sss(q, input, find_offset + peak_pos) < 0) {
+          INFO("No space for SSS processing. Frame starts at %d\n", peak_pos);
+        }
       }
-    } 
+      // Make sure we have enough space to estimate CFO
+      if (find_offset + peak_pos >= q->fft_size + CP_EXT(q->fft_size)) {
+        q->cfo = pss_synch_cfo_compute(&q->pss, &input[find_offset+peak_pos-q->fft_size]);
+      } else {
+        INFO("No space for CFO computation. Frame starts at \n",peak_pos);
+      }
+      // Return 1 (peak detected) even if we couldn't estimate CFO and SSS
+      ret = 1;
+    } else {
+      ret = 0;
+    }
     
     INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f threshold=%.2f sf_idx=%d offset=%d\n",
           ret, q->N_id_2, peak_pos, peak_unnormalized,energy,q->peak_value, q->threshold, q->sf_idx, find_offset);
