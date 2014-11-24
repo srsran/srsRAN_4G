@@ -90,6 +90,12 @@ int ue_mib_init(ue_mib_t * q,
       sync_set_cp(&q->sfind, cell.cp);
     }
     
+    if (cfo_init(&q->cfocorr, 5*SF_LEN_PRB(cell.nof_prb))) {
+      fprintf(stderr, "Error initiating CFO\n");
+      goto clean_exit;
+    }
+
+    
     if (lte_fft_init(&q->fft, cell.cp, cell.nof_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       goto clean_exit;
@@ -124,6 +130,7 @@ void ue_mib_free(ue_mib_t * q)
       free(q->ce[i]);
     }
   }
+  cfo_free(&q->cfocorr);
   sync_free(&q->sfind);
   chest_dl_free(&q->chest);
   pbch_free(&q->pbch);
@@ -161,6 +168,7 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
   if (ret < 0) {
     return LIBLTE_ERROR;
   }
+    
   INFO("Channel estimated for %d ports, Noise: %f\n", q->chest.cell.nof_ports,
        chest_dl_get_noise_estimate(&q->chest));
   /* Reset decoder if we missed a frame */
@@ -253,6 +261,13 @@ int ue_mib_sync_and_decode(ue_mib_t * q,
                 nf*MIB_FRAME_SIZE_SEARCH + peak_idx                             >  MIB_FRAME_SIZE_SEARCH/10)
             {
               // PSS and SSS detected and we have space to decode the PBCH. 
+              
+              // Apply CFO correction 
+              INFO("Correcting CFO: %f\n", sync_get_cfo(&q->sfind));
+              cfo_correct(&q->cfocorr, &signal[nf*MIB_FRAME_SIZE_SEARCH], &signal[nf*MIB_FRAME_SIZE_SEARCH], 
+                          -sync_get_cfo(&q->sfind) / MIB_FFT_SIZE);         
+
+              
               INFO("Trying to decode PBCH\n",0);
               ret = ue_mib_decode_aligned_frame(q, 
                                                 &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-MIB_FRAME_SIZE_SEARCH/10], 

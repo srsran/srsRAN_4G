@@ -58,6 +58,7 @@
 
 #define MIB_MAX_PORTS            4
 #define MIB_FRAME_SIZE_SEARCH   9600
+#define MIB_FFT_SIZE            128
 
 #define MIB_FRAME_UNALIGNED     -3
 #define MIB_FOUND                1
@@ -69,6 +70,7 @@ typedef struct LIBLTE_API {
   cf_t *sf_symbols;
   cf_t *ce[MIB_MAX_PORTS];
   
+  cfo_t cfocorr; 
   lte_fft_t fft;
   chest_dl_t chest; 
   pbch_t pbch;

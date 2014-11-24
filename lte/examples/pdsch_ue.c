@@ -206,10 +206,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }
-  
-  pdsch_set_rnti(&ue_dl.pdsch, prog_args.rnti); // This is the RNTI we want to look for
 
-
+  pdsch_set_rnti(&ue_dl.pdsch, prog_args.rnti);
 
   /* Initialize subframe counter */
   sf_cnt = 0;
@@ -301,7 +299,7 @@ int main(int argc, char **argv) {
 #include "liblte/graphics/plot.h"
 plot_real_t poutfft;
 plot_real_t pce;
-plot_scatter_t pscatrecv, pscatequal;
+plot_scatter_t pscatrecv, pscatequal, pscatequal_pdcch;
 
 float tmp_plot[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 float tmp_plot2[SLOT_LEN_RE(MAX_PRB, CPNORM)];
@@ -324,9 +322,15 @@ void init_plots() {
   plot_scatter_setYAxisScale(&pscatrecv, -4, 4);
 
   plot_scatter_init(&pscatequal);
-  plot_scatter_setTitle(&pscatequal, "Equalized Symbols");
+  plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
   plot_scatter_setXAxisScale(&pscatequal, -2, 2);
   plot_scatter_setYAxisScale(&pscatequal, -2, 2);
+
+  plot_scatter_init(&pscatequal_pdcch);
+  plot_scatter_setTitle(&pscatequal_pdcch, "PDCCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pscatequal_pdcch, -2, 2);
+  plot_scatter_setYAxisScale(&pscatequal_pdcch, -2, 2);
+
 }
 
 void do_plots(ue_dl_t *q, uint32_t sf_idx) {
@@ -349,6 +353,7 @@ void do_plots(ue_dl_t *q, uint32_t sf_idx) {
   plot_real_setNewData(&pce, tmp_plot2, REFSIGNAL_NUM_SF(q->cell.nof_prb,0));        
   plot_scatter_setNewData(&pscatrecv, q->pdsch.pdsch_symbols[0], nof_symbols);
   plot_scatter_setNewData(&pscatequal, q->pdsch.pdsch_d, nof_symbols);
+  plot_scatter_setNewData(&pscatequal_pdcch, q->pdcch.pdcch_d, 36*q->pdcch.nof_cce);
 }
 
 #endif

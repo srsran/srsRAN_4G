@@ -249,6 +249,7 @@ int main(int argc, char **argv) {
   dci_msg_t dci_msg;
   dci_location_t locations[NSUBFRAMES_X_FRAME][10];
   uint32_t sfn; 
+  chest_dl_t est; 
   
 #ifdef DISABLE_UHD
   if (argc < 3) {
@@ -263,6 +264,10 @@ int main(int argc, char **argv) {
   sf_n_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
   sf_n_samples = 2 * SLOT_LEN(lte_symbol_sz(cell.nof_prb));
 
+  cell.phich_length = PHICH_NORM;
+  cell.phich_resources = R_1;
+  sfn = 0;
+
   /* this *must* be called after setting slot_len_* */
   base_init();
 
@@ -270,12 +275,14 @@ int main(int argc, char **argv) {
   pss_generate(pss_signal, N_id_2);
   sss_generate(sss_signal0, sss_signal5, cell.id);
   
-  /* Generate CRS signals */
-  refsignal_cs_generate(&csr_signal, cell);
+  //refsignal_cs_generate(&csr_signal, cell);
 
-  cell.phich_length = PHICH_NORM;
-  cell.phich_resources = R_1;
-  sfn = 0;
+  /* Generate CRS signals */
+  if (chest_dl_init(&est, cell)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    exit(-1);
+  }
+
 
   for (i = 0; i < MAX_PORTS; i++) { // now there's only 1 port
     sf_symbols[i] = sf_buffer;
@@ -324,9 +331,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error configuring HARQ process\n");
     exit(-1);
   }
-  
-  bcch_bch_pack(&cell, 0, bch_payload_packed, BCH_PAYLOAD_LEN/8);
-  bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
 
   while (nf < nof_frames || nof_frames == -1) {
     for (sf_idx = 0; sf_idx < NSUBFRAMES_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
@@ -337,13 +341,14 @@ int main(int argc, char **argv) {
         sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
             CPNORM);
       }
+      refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);
       
       bcch_bch_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
+      bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
       if (sf_idx == 0) {
         pbch_encode(&pbch, bch_payload, sf_symbols);
       }
     
-      refsignal_cs_put_sf(cell, 0, csr_signal.pilots[0][sf_idx], sf_buffer);
 
       pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
 
@@ -362,7 +367,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Error encoding PDSCH\n");
         exit(-1);
       }
-
+      
       /* Transform to OFDM symbols */
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
       

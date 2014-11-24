@@ -85,7 +85,7 @@ int bcch_bch_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *buffer, uint32_t buff
   sfn=(sfn>>2);
   req.systemFrameNumber.buf = (uint8_t*) &sfn;
   req.systemFrameNumber.size = 1;
-  req.systemFrameNumber.bits_unused= 0;
+  req.systemFrameNumber.bits_unused = 0;
   int spare = 0;
   req.spare.buf = (uint8_t*) &spare;
   req.spare.size = 2;
@@ -97,7 +97,6 @@ int bcch_bch_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *buffer, uint32_t buff
     printf("Failed to encode element %s\n", n.failed_type ? n.failed_type->name : "");
     return LIBLTE_ERROR;
   } 
-
   return LIBLTE_SUCCESS;
 }
 
@@ -131,6 +130,9 @@ int bcch_bch_unpack(uint8_t *buffer, uint32_t msg_nof_bits, lte_cell_t *cell, ui
     case MasterInformationBlock__dl_Bandwidth_n75:
       cell->nof_prb = 75;
       break;
+    case MasterInformationBlock__dl_Bandwidth_n100:
+      cell->nof_prb = 100;
+      break;
   } 
   if (req->phich_Config.phich_Duration == PHICH_Config__phich_Duration_normal) {
     cell->phich_length = PHICH_NORM;    
@@ -155,6 +157,8 @@ int bcch_bch_unpack(uint8_t *buffer, uint32_t msg_nof_bits, lte_cell_t *cell, ui
   memcpy(&sfn_i, req->systemFrameNumber.buf, req->systemFrameNumber.size);
   if (sfn) {
     *sfn=(sfn_i<<2);    
+  } else {
+      asn_fprint(stdout, &asn_DEF_MasterInformationBlock, req); 
   }
   return LIBLTE_SUCCESS;
 }

@@ -174,8 +174,6 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
   /* Get channel estimates for each port */
   chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
   
-  
-  
   /* First decode PCFICH and obtain CFI */
   if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
                     chest_dl_get_noise_estimate(&q->chest), sf_idx, &cfi, &cfi_distance)<0) {
@@ -240,7 +238,6 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
       }
     }
     if (q->harq_process[0].mcs.mod > 0) {
-
       ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), data, sf_idx, 
           &q->harq_process[0], rvidx);
       if (ret == LIBLTE_ERROR) {
