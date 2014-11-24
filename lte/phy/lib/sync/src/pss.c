@@ -237,7 +237,7 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     uint32_t conv_output_len;
     
     if (!lte_N_id_2_isvalid(q->N_id_2)) {
-      fprintf(stderr, "Error finding PSS peak, N_id_2 not set\n");
+      fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
       return LIBLTE_ERROR;
     }
     

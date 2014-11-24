@@ -197,7 +197,6 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     ret = LIBLTE_ERROR;
     
     q->cell = cell;
-    q->average_nof_iterations_n = 0; 
     q->max_symbols = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
 
     INFO("Init PDSCH: %d ports %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
@@ -578,10 +577,8 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
         }
         
       } while (q->nof_iterations < TDEC_MAX_ITERATIONS && !early_stop);
-      q->average_nof_iterations = VEC_CMA((float) q->nof_iterations, 
-                                             q->average_nof_iterations, 
-                                             q->average_nof_iterations_n);
-      q->average_nof_iterations_n++;
+      q->average_nof_iterations = VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
+      
 
       /* Copy data to another buffer, removing the Codeblock CRC */
       if (i < harq_process->cb_segm.C - 1) {

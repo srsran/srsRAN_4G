@@ -84,21 +84,21 @@ typedef struct LIBLTE_API {
 } ue_mib_t;
 
 
-LIBLTE_API int ue_mib_init(ue_mib_t *q, 
+LIBLTE_API int ue_mib_init_1_92(ue_mib_t *q, 
                            uint32_t cell_id, 
                            lte_cp_t cp);
 
-LIBLTE_API int ue_mib_init_known_cell(ue_mib_t *q, 
-                                      lte_cell_t cell, 
-                                      bool do_sync);
+LIBLTE_API int ue_mib_init(ue_mib_t *q, 
+                           lte_cell_t cell, 
+                           bool do_sync);
 
 LIBLTE_API void ue_mib_free(ue_mib_t *q);
 
 LIBLTE_API void ue_mib_reset(ue_mib_t *q);
 
-LIBLTE_API int ue_mib_sync_and_decode(ue_mib_t *q,
-                                      cf_t *signal, 
-                                      uint32_t nsamples);
+LIBLTE_API int ue_mib_sync_and_decode_1_92(ue_mib_t *q,
+                                           cf_t *signal, 
+                                           uint32_t nsamples);
 
 LIBLTE_API int ue_mib_decode_aligned_frame(ue_mib_t * q, 
                                            cf_t *input, 

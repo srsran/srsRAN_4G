@@ -145,7 +145,6 @@ void ue_dl_free(ue_dl_t *q) {
 }
 
 LIBLTE_API float mean_exec_time=0; 
-int frame_cnt=0;
 
 dci_format_t ue_formats[] = {Format1A,Format1}; // Format1B should go here also
 const uint32_t nof_ue_formats = 2; 
@@ -173,6 +172,8 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
 
   /* Get channel estimates for each port */
   chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
+  
+  
   
   /* First decode PCFICH and obtain CFI */
   if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
@@ -230,7 +231,6 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
     } else {
       rvidx = ra_dl.rv_idx;
     }
-    
     if (rvidx == 0) {
       if (pdsch_harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
         fprintf(stderr, "Error configuring HARQ process\n");
@@ -254,12 +254,9 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32
       q->pkts_total++;
     }
   }
-  
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-  mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, mean_exec_time, frame_cnt);
-  
-  frame_cnt++;
+  mean_exec_time = (float) VEC_EMA((float) t[0].tv_usec, mean_exec_time, 0.01);
  
   
   if (crc_rem == rnti && ret == LIBLTE_SUCCESS) {        

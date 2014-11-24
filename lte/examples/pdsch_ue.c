@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
-  if (ue_mib_init_known_cell(&ue_mib, cell, false)) {
+  if (ue_mib_init(&ue_mib, cell, false)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }

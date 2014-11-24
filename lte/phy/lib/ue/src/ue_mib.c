@@ -38,7 +38,7 @@
 
 #define MIB_FIND_THRESHOLD          0.0
 
-int ue_mib_init(ue_mib_t * q, 
+int ue_mib_init_1_92(ue_mib_t * q, 
                 uint32_t cell_id, 
                 lte_cp_t cp) 
 {
@@ -47,12 +47,12 @@ int ue_mib_init(ue_mib_t * q,
   cell.nof_prb = 6; 
   cell.id = cell_id; 
   cell.cp = cp; 
-  return ue_mib_init_known_cell(q, cell, true);
+  return ue_mib_init(q, cell, true);
 }
 
-  int ue_mib_init_known_cell(ue_mib_t * q, 
-                             lte_cell_t cell, 
-                             bool do_sync) 
+  int ue_mib_init(ue_mib_t * q, 
+                  lte_cell_t cell, 
+                  bool do_sync) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -95,7 +95,6 @@ int ue_mib_init(ue_mib_t * q,
       goto clean_exit;
     }
 
-    
     if (lte_fft_init(&q->fft, cell.cp, cell.nof_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       goto clean_exit;
@@ -168,7 +167,6 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
   if (ret < 0) {
     return LIBLTE_ERROR;
   }
-    
   INFO("Channel estimated for %d ports, Noise: %f\n", q->chest.cell.nof_ports,
        chest_dl_get_noise_estimate(&q->chest));
   /* Reset decoder if we missed a frame */
@@ -216,7 +214,7 @@ void ue_mib_get_payload(ue_mib_t *q,
   }
 }
 
-int ue_mib_sync_and_decode(ue_mib_t * q, 
+int ue_mib_sync_and_decode_1_92(ue_mib_t * q, 
                            cf_t *signal, 
                            uint32_t nsamples)
 {

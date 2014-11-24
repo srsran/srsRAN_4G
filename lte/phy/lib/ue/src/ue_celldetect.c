@@ -36,6 +36,7 @@
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
 
+
 #define FIND_FFTSIZE   64
 #define FIND_SFLEN     5*SF_LEN(FIND_FFTSIZE)
 
@@ -51,7 +52,7 @@ int ue_celldetect_init_max(ue_celldetect_t * q, uint32_t max_frames_total, uint3
 
     bzero(q, sizeof(ue_celldetect_t));
 
-    q->candidates = malloc(sizeof(ue_celldetect_result_t) * max_frames_detected);
+    q->candidates = calloc(sizeof(ue_celldetect_result_t), max_frames_detected);
     if (!q->candidates) {
       perror("malloc");
       goto clean_exit; 
@@ -59,12 +60,12 @@ int ue_celldetect_init_max(ue_celldetect_t * q, uint32_t max_frames_total, uint3
     if (sync_init(&q->sfind, FIND_SFLEN, FIND_FFTSIZE)) {
       goto clean_exit;
     }
-    q->mode_ntimes = malloc(sizeof(uint32_t) * max_frames_detected);
+    q->mode_ntimes = calloc(sizeof(uint32_t), max_frames_detected);
     if (!q->mode_ntimes) {
       perror("malloc");
       goto clean_exit;  
     }
-    q->mode_counted = malloc(sizeof(uint8_t) * max_frames_detected);
+    q->mode_counted = calloc(sizeof(uint8_t), max_frames_detected);
     if (!q->mode_counted) {
       perror("malloc");
       goto clean_exit;  
@@ -160,9 +161,6 @@ void ue_celldetect_get_cell(ue_celldetect_t * q, ue_celldetect_result_t *found_c
   }
   uint32_t max_times=0, mode_pos=0; 
   for (i=0;i<q->nof_frames_detected;i++) {
-    if (q->mode_ntimes[i] > 0) {
-      DEBUG("ntimes[%d]=%d (CID: %d)\n",i,q->mode_ntimes[i],q->candidates[i].cell_id);      
-    }
     if (q->mode_ntimes[i] > max_times) {
       max_times = q->mode_ntimes[i];
       mode_pos = i;
@@ -177,7 +175,9 @@ void ue_celldetect_get_cell(ue_celldetect_t * q, ue_celldetect_result_t *found_c
       if (CP_ISNORM(q->candidates[i].cp)) {
         nof_normal++;
       } 
-      found_cell->peak += q->candidates[i].peak/q->mode_ntimes[mode_pos];
+      if (q->mode_ntimes[mode_pos]) {
+      found_cell->peak += q->candidates[i].peak/q->mode_ntimes[mode_pos];        
+      }
     }
   }
   if (nof_normal > q->mode_ntimes[mode_pos]/2) {

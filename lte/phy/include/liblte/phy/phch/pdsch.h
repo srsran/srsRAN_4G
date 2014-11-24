@@ -76,7 +76,6 @@ typedef struct LIBLTE_API {
   bool rnti_is_set; 
   uint16_t rnti; 
   uint32_t nof_iterations; 
-  uint64_t average_nof_iterations_n; 
   float average_nof_iterations; 
   
   /* buffers */

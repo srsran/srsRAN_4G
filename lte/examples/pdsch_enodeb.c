@@ -242,7 +242,6 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN/8];
   ra_pdsch_t ra_dl;
   ra_prb_t prb_alloc;
-  refsignal_cs_t csr_signal;
   int i;
   uint8_t *data;
   cf_t *sf_symbols[MAX_PORTS];

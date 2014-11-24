@@ -59,7 +59,7 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
     goto free_and_exit;
   }
   
-  if (ue_mib_init(&uemib, found_cell->cell_id, found_cell->cp)) {
+  if (ue_mib_init_1_92(&uemib, found_cell->cell_id, found_cell->cp)) {
     fprintf(stderr, "Error initiating PBCH decoder\n");
     goto free_and_exit;
   }
@@ -77,13 +77,13 @@ int decode_pbch(void *uhd, ue_celldetect_result_t *found_cell, uint32_t nof_fram
     
     DEBUG("Calling ue_mib_decode() %d/%d\n", nof_frames, nof_frames_total);
     
-    n = ue_mib_sync_and_decode(&uemib, buffer, flen);
+    n = ue_mib_sync_and_decode_1_92(&uemib, buffer, flen);
     if (n == LIBLTE_ERROR || n == LIBLTE_ERROR_INVALID_INPUTS) {
       fprintf(stderr, "Error calling ue_mib_decode()\n");
       goto free_and_exit;
     }
     if (n == MIB_FRAME_UNALIGNED) {
-      printf("Realigning frame\n");
+      INFO("Realigning frame\n",0);
       // Receive some randon number of samples to try to resynchronise the frame.
       if (cuhd_recv(uhd, buffer, 1500, 1)<0) {
         fprintf(stderr, "Error receiving from USRP\n");
@@ -147,6 +147,8 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
   uint32_t flen = 4800; 
   int n; 
   
+  bzero(found_cell, sizeof(ue_celldetect_result_t));
+  
   ue_celldetect_set_N_id_2(&cd, N_id_2);
   
   do {
@@ -160,11 +162,12 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
     n = ue_celldetect_scan(&cd, buffer, flen);
     switch(n) {
       case CS_FRAME_UNALIGNED:
-        printf("Realigning frame\n");
+        INFO("Realigning frame\n",0);
         if (cuhd_recv(uhd, buffer, flen/2, 1)<0) {
           fprintf(stderr, "Error receiving from USRP\n");
           goto free_and_exit;
         }
+        break;
       case CS_CELL_DETECTED:
         ue_celldetect_get_cell(&cd, found_cell);
         if (found_cell->peak > 0) {
@@ -189,7 +192,7 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
         goto free_and_exit;       
     }
     
-  } while(n == 0);
+  } while(n == 0 || n == CS_FRAME_UNALIGNED);
   
 free_and_exit:
   free(buffer);
