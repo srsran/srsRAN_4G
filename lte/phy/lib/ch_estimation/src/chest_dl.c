@@ -255,17 +255,29 @@ static void interpolate_pilots(chest_dl_t *q, cf_t *ce, uint32_t port_id)
   }
   
   /* Now interpolate in the time domain between symbols */
-  if (nsymbols == 4) {
-    interp_linear_vector(&q->interp_linvec, &cesymb(0), &cesymb(4), &cesymb(1), 3);
-    interp_linear_vector(&q->interp_linvec, &cesymb(4), &cesymb(7), &cesymb(5), 2);
-    interp_linear_vector(&q->interp_linvec, &cesymb(7), &cesymb(11), &cesymb(8), 3);
-    interp_linear_vector(&q->interp_linvec, &cesymb(7), &cesymb(11), &cesymb(12), 2);
+  if (CP_ISNORM(q->cell.cp)) {
+    if (nsymbols == 4) {
+      interp_linear_vector(&q->interp_linvec, &cesymb(0), &cesymb(4), &cesymb(1), 3);
+      interp_linear_vector(&q->interp_linvec, &cesymb(4), &cesymb(7), &cesymb(5), 2);
+      interp_linear_vector(&q->interp_linvec, &cesymb(7), &cesymb(11), &cesymb(8), 3);
+      interp_linear_vector(&q->interp_linvec, &cesymb(7), &cesymb(11), &cesymb(12), 2);
+    } else {
+      interp_linear_vector(&q->interp_linvec, &cesymb(8), &cesymb(1), &cesymb(0), 1);
+      interp_linear_vector(&q->interp_linvec, &cesymb(1), &cesymb(8), &cesymb(2), 6);
+      interp_linear_vector(&q->interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 5);
+    }    
   } else {
-    interp_linear_vector(&q->interp_linvec, &cesymb(8), &cesymb(1), &cesymb(0), 1);
-    interp_linear_vector(&q->interp_linvec, &cesymb(1), &cesymb(8), &cesymb(2), 6);
-    interp_linear_vector(&q->interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 5);
+    if (nsymbols == 4) {
+      interp_linear_vector(&q->interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 2);
+      interp_linear_vector(&q->interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 2);
+      interp_linear_vector(&q->interp_linvec, &cesymb(6), &cesymb(9), &cesymb(7), 2);
+      interp_linear_vector(&q->interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), 2);
+    } else {
+      interp_linear_vector(&q->interp_linvec, &cesymb(7), &cesymb(1), &cesymb(0), 1);
+      interp_linear_vector(&q->interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 5);
+      interp_linear_vector(&q->interp_linvec, &cesymb(1), &cesymb(7), &cesymb(8), 4);
+    }    
   }
-    
 }
 
 float chest_dl_rssi(lte_cell_t cell, cf_t *input) {

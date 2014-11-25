@@ -301,7 +301,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       ret = 0;
     }
     
-    INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f threshold=%.2f sf_idx=%d offset=%d\n",
+    printf("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f threshold=%.2f sf_idx=%d offset=%d\n",
           ret, q->N_id_2, peak_pos, peak_unnormalized,energy,q->peak_value, q->threshold, q->sf_idx, find_offset);
 
   } else if (lte_N_id_2_isvalid(q->N_id_2)) {
