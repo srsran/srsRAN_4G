@@ -273,10 +273,10 @@ int main(int argc, char **argv) {
   
     if ((sf_cnt%10)==0) {
       printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, SNR: %5.1f dB, NOI: %.2f, "
-            "PDCCH-Miss: %d/%d, PDSCH-BLER: %5.2f%% (%d blocks)\r",
+            "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
             ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
             10*log10f(snr), pdsch_average_noi(&ue_dl.pdsch),
-            nof_trials-ue_dl.nof_pdcch_detected, nof_trials,
+            100*(1-(float) nof_trials/ue_dl.nof_pdcch_detected),
             (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                                 
             
     }
