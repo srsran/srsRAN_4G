@@ -256,8 +256,6 @@ int detect_and_decode_cell(cell_detect_cfg_t *config, void *uhd, int force_N_id_
       }        
     }
     
-    found_cells[max_peak_cell].cp = CPEXT;
-    
     printf("Decoding PBCH for cell %d (N_id_2=%d)\n", found_cells[max_peak_cell].cell_id, max_peak_cell);
     if (decode_pbch(uhd, &found_cells[max_peak_cell], 400, bch_payload, &nof_tx_ports, NULL)) {
       fprintf(stderr, "Could not decode PBCH from CELL ID %d\n", found_cells[max_peak_cell].cell_id);
