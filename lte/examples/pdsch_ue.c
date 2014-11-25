@@ -276,7 +276,7 @@ int main(int argc, char **argv) {
             "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
             ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
             10*log10f(snr), pdsch_average_noi(&ue_dl.pdsch),
-            100*(1-(float) nof_trials/ue_dl.nof_pdcch_detected),
+            100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
             (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                                 
             
     }
