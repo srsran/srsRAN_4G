@@ -46,9 +46,9 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define FIND_THRESHOLD          1.0
-#define TRACK_THRESHOLD         0.4
-#define TRACK_MAX_LOST          5
+#define FIND_THRESHOLD          1.4
+#define TRACK_THRESHOLD         0.7
+#define TRACK_MAX_LOST          10
 
 
 int ue_sync_init(ue_sync_t *q, 
@@ -190,7 +190,10 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
           q->sf_idx, sync_get_sf_idx(&q->strack), 
          q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
 
-    /* FIXME: What should we do in this case? */
+    /* FIXME: What should we do in this case? 
+     * If the threshold is high enough, an OK peak means it is likely to be true
+     * Otherwise, maybe we should not trust the new sf_idx. 
+     */
     q->sf_idx = sync_get_sf_idx(&q->strack);
     //q->state = SF_FIND; 
   } else {
@@ -223,7 +226,7 @@ int track_peak_no(ue_sync_t *q) {
   /* if we missed too many PSS go back to FIND */
   q->frame_no_cnt++; 
   if (q->frame_no_cnt >= TRACK_MAX_LOST) {
-    INFO("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
+    printf("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
     q->state = SF_FIND;
   } else {
     INFO("Tracking peak not found. Peak %.3f, %d lost\n", 

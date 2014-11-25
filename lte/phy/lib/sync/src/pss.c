@@ -255,17 +255,10 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
 
     /* Find maximum of the absolute value of the correlation */
     corr_peak_pos = vec_max_abs_ci(q->conv_output, conv_output_len-1);
-    if (corr_peak_pos <= q->frame_size) {
-      if (corr_peak_value) {
-        *corr_peak_value = cabsf(q->conv_output[corr_peak_pos]);
-      }
-      ret = (int) corr_peak_pos;                
-    } else {
-      ret = q->frame_size; 
-      if (corr_peak_value) {
-        *corr_peak_value = 0.0; 
-      }
+    if (corr_peak_value) {
+      *corr_peak_value = cabsf(q->conv_output[corr_peak_pos]);
     }
+    ret = (int) corr_peak_pos;                
   } 
   return ret;
 }

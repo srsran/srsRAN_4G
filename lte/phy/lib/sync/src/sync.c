@@ -195,7 +195,12 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   sss_synch_set_N_id_2(&q->sss, q->N_id_2);
 
   if (q->detect_cp) {
-    q->cp = detect_cp(q, input, peak_pos);
+    if (peak_pos - q->fft_size - CP_EXT(q->fft_size)) {
+      q->cp = detect_cp(q, input, peak_pos);
+    } else {
+      INFO("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
+      return LIBLTE_ERROR; 
+    }
   }
   
   /* Make sure we have enough room to find SSS sequence */
@@ -255,8 +260,9 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       fprintf(stderr, "Error calling finding PSS sequence\n");
       return LIBLTE_ERROR; 
     }
-    if (q->normalize_en        && 
-        peak_pos + find_offset >= q->fft_size) 
+    if (q->normalize_en                         && 
+        peak_pos               <  q->frame_size && 
+        peak_pos + find_offset >= q->fft_size ) 
     {
       /* Compute the energy of the received PSS sequence to normalize */
       energy = sqrtf(vec_avg_power_cf(&input[find_offset+peak_pos-q->fft_size], q->fft_size));
@@ -290,7 +296,9 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
         }
       }
       // Make sure we have enough space to estimate CFO
-      if (find_offset + peak_pos >= q->fft_size + CP_EXT(q->fft_size)) {
+      if (peak_pos               <  q->frame_size && 
+          peak_pos + find_offset >= q->fft_size) 
+      {
         q->cfo = pss_synch_cfo_compute(&q->pss, &input[find_offset+peak_pos-q->fft_size]);
       } else {
         INFO("No space for CFO computation. Frame starts at \n",peak_pos);
@@ -301,7 +309,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       ret = 0;
     }
     
-    printf("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f threshold=%.2f sf_idx=%d offset=%d\n",
+    INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f threshold=%.2f sf_idx=%d offset=%d\n",
           ret, q->N_id_2, peak_pos, peak_unnormalized,energy,q->peak_value, q->threshold, q->sf_idx, find_offset);
 
   } else if (lte_N_id_2_isvalid(q->N_id_2)) {
