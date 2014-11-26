@@ -46,9 +46,11 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define FIND_THRESHOLD          1.4
-#define TRACK_THRESHOLD         0.7
+#define FIND_THRESHOLD          1.5
+#define TRACK_THRESHOLD         0.8
 #define TRACK_MAX_LOST          10
+
+#define CFO_EMA_ALPHA           0.01
 
 
 int ue_sync_init(ue_sync_t *q, 
@@ -145,7 +147,7 @@ float ue_sync_get_cfo(ue_sync_t *q) {
 }
 
 float ue_sync_get_sfo(ue_sync_t *q) {
-  return 1000*q->mean_time_offset;
+  return 5000*q->mean_time_offset;
 }
 
 void ue_sync_decode_sss_on_track(ue_sync_t *q, bool enabled) {
@@ -209,9 +211,9 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
     } 
     
     /* compute cumulative moving average CFO */
-    q->cur_cfo = VEC_CMA(sync_get_cfo(&q->strack), q->cur_cfo, q->frame_ok_cnt);
+    q->cur_cfo = VEC_EMA(sync_get_cfo(&q->strack), q->cur_cfo, CFO_EMA_ALPHA);
     /* compute cumulative moving average time offset */
-    q->mean_time_offset = (float) VEC_CMA((float) q->time_offset, q->mean_time_offset, q->frame_ok_cnt);
+    q->mean_time_offset = (float) VEC_CMA((float) q->time_offset, q->mean_time_offset, q->frame_total_cnt);
 
     q->peak_idx = CURRENT_SFLEN/2 + q->time_offset;  
     q->frame_ok_cnt++;
@@ -356,8 +358,8 @@ void ue_sync_reset(ue_sync_t *q) {
   q->frame_ok_cnt = 0;
   q->frame_no_cnt = 0;
   q->frame_total_cnt = 0; 
-  q->cur_cfo = 0;
-  q->mean_time_offset = 0;
+  q->cur_cfo = 0.0;
+  q->mean_time_offset = 0.0;
   q->time_offset = 0;
   #ifdef MEASURE_EXEC_TIME
   q->mean_exec_time = 0;

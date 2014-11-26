@@ -280,26 +280,21 @@ static void interpolate_pilots(chest_dl_t *q, cf_t *ce, uint32_t port_id)
   }
 }
 
-float chest_dl_rssi(lte_cell_t cell, cf_t *input) {
-  float rssi = 0;
-  uint32_t l, p;
-  uint32_t loop_ports = cell.nof_ports>2?2:1;
+float chest_dl_rssi(chest_dl_t *q, cf_t *input, uint32_t port_id) {
+  uint32_t l;
   
-  for (p=0;p<loop_ports;p++) {
-    uint32_t nsymbols = refsignal_cs_nof_symbols(2*p);   
-    for (l=0;l<nsymbols;l++) {
-      cf_t *tmp = &input[refsignal_nsymbol(l,cell.cp, 2*p) * cell.nof_prb * RE_X_RB];
-      rssi += crealf(vec_dot_prod_conj_ccc(tmp, tmp, cell.nof_prb * RE_X_RB));    
-    }    
-  }
-  return rssi; 
+  float rssi = 0;
+  uint32_t nsymbols = refsignal_cs_nof_symbols(port_id);   
+  for (l=0;l<nsymbols;l++) {
+    cf_t *tmp = &input[refsignal_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB];
+    rssi += vec_dot_prod_conj_ccc(tmp,tmp,q->cell.nof_prb * RE_X_RB);    
+  }    
+  return rssi/nsymbols; 
 }
 
 float chest_dl_rsrp(chest_dl_t *q, uint32_t port_id) {
-  return crealf(vec_dot_prod_conj_ccc(q->pilot_estimates_average[port_id], 
-                                q->pilot_estimates_average[port_id], 
-                                REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)))
-                                / REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
+  return vec_avg_power_cf(q->pilot_recv_signal[port_id], 
+                          REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
 }
 
 int chest_dl_estimate_port(chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id) 
@@ -307,16 +302,23 @@ int chest_dl_estimate_port(chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx
   /* Get references from the input signal */
   refsignal_cs_get_sf(q->cell, port_id, input, q->pilot_recv_signal[port_id]);
   
+  /* Compute RSRP for the references in this port */
+  if (port_id == 0) {
+    q->rsrp[port_id] = chest_dl_rsrp(q, port_id);     
+  }
+
+  /* compute rssi */
+  if (port_id == 0) {
+    q->rssi[port_id] = chest_dl_rssi(q, input, port_id);     
+  }
+
   /* Use the known CSR signal to compute Least-squares estimates */
   vec_prod_conj_ccc(q->pilot_recv_signal[port_id], q->csr_signal.pilots[port_id/2][sf_idx], 
               q->pilot_estimates[port_id], REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
   
   /* Average pilot estimates */
   average_pilots(q, port_id);
-  
-  /* Compute RSRP for the references in this port */
-  q->rsrp[port_id] = chest_dl_rsrp(q, port_id); 
-  
+    
   /* Interpolate to create channel estimates for all resource grid */
   if (ce != NULL) {
     interpolate_pilots(q, ce, port_id);    
@@ -334,8 +336,6 @@ int chest_dl_estimate(chest_dl_t *q, cf_t *input, cf_t *ce[MAX_PORTS], uint32_t 
   for (port_id=0;port_id<q->cell.nof_ports;port_id++) {
     chest_dl_estimate_port(q, input, ce[port_id], sf_idx, port_id);
   }
-  /* compute rssi */
-  q->rssi = chest_dl_rssi(q->cell, input); 
   return LIBLTE_SUCCESS;
 }
 
@@ -346,21 +346,28 @@ float chest_dl_get_noise_estimate(chest_dl_t *q) {
 float chest_dl_get_snr(chest_dl_t *q) {
   float noise = chest_dl_get_noise_estimate(q);
   if (noise) {
-    return chest_dl_get_rssi(q)/(noise*2*q->cell.nof_ports*lte_symbol_sz(q->cell.nof_prb));    
+    return chest_dl_get_rssi(q)/(noise);//*2*q->cell.nof_ports*lte_symbol_sz(q->cell.nof_prb));    
   } else {
     return 0.0;
   }
 }
 
 float chest_dl_get_rssi(chest_dl_t *q) {
-  return q->rssi; 
+  return 4*q->rssi[0]/q->cell.nof_prb/RE_X_RB; 
 }
 
+/* q->rssi[0] is the average power in all RE in all symbol containing references for port 0 . q->rssi[0]/q->cell.nof_prb is the average power per PRB 
+ * q->rsrp[0] is the average power of RE containing references only (for port 0). 
+*/ 
 float chest_dl_get_rsrq(chest_dl_t *q) {
-  return (4*q->cell.nof_ports*q->cell.nof_prb) * chest_dl_get_rsrp(q) / q->rssi;
+  return q->cell.nof_prb*q->rsrp[0] / q->rssi[0];
 }
 
 float chest_dl_get_rsrp(chest_dl_t *q) {
-  return vec_acc_ff(q->rsrp, q->cell.nof_ports)/q->cell.nof_ports; 
+  // return linear average from port 0 only 
+  return q->rsrp[0]; 
+  
+  // return linear average from all ports
+  //return vec_acc_ff(q->rsrp, q->cell.nof_ports)/q->cell.nof_ports; 
 }
 

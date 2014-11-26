@@ -475,12 +475,7 @@ float vec_dot_prod_fff(float *x, float *y, uint32_t len) {
 
 
 float vec_avg_power_cf(cf_t *x, uint32_t len) {
-  int j;
-  float power = 0;
-  for (j=0;j<len;j++) {
-    power += crealf(x[j]*conjf(x[j]));
-  }
-  return power / len;
+  return crealf(vec_dot_prod_conj_ccc(x,x,len)) / len;
 }
 
 void vec_abs_cf(cf_t *x, float *abs, uint32_t len) {

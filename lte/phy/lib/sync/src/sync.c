@@ -34,6 +34,9 @@
 #include "liblte/phy/sync/sync.h"
 #include "liblte/phy/utils/vector.h"
 
+#define MEANENERGY_EMA_ALPHA    0.5
+#define MEANPEAK_EMA_ALPHA      0.2
+
 
 static bool fft_size_isvalid(uint32_t fft_size) {
   if (fft_size >= FFT_SIZE_MIN && fft_size <= FFT_SIZE_MAX && (fft_size%64) == 0) {
@@ -55,7 +58,8 @@ int sync_init(sync_t *q, uint32_t frame_size, uint32_t fft_size) {
     bzero(q, sizeof(sync_t));
     q->detect_cp = true;
     q->normalize_en = true; 
-    q->mean_energy = 1.0;
+    q->mean_energy = 0.0;
+    q->mean_peak_value = 0.0;
     q->sss_en = true;
     q->N_id_2 = 1000; 
     q->N_id_1 = 1000;
@@ -261,22 +265,26 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       return LIBLTE_ERROR; 
     }
     if (q->normalize_en                         && 
-        peak_pos               <  q->frame_size && 
         peak_pos + find_offset >= q->fft_size ) 
     {
       /* Compute the energy of the received PSS sequence to normalize */
       energy = sqrtf(vec_avg_power_cf(&input[find_offset+peak_pos-q->fft_size], q->fft_size));
-      q->mean_energy = VEC_CMA(energy, q->mean_energy, q->frame_cnt);
+      q->mean_energy = VEC_EMA(energy, q->mean_energy, MEANENERGY_EMA_ALPHA);
     } else {     
       if (q->mean_energy == 0.0) {
-        q->mean_energy = 1.0;
+        energy = 1.0;
+      } else {
+        energy = q->mean_energy;        
       }
-      energy = q->mean_energy;
     }
 
     /* Normalize and compute mean peak value */
-    q->peak_value = peak_unnormalized/energy;
-    q->mean_peak_value = VEC_CMA(q->peak_value, q->mean_peak_value, q->frame_cnt);
+    if (q->mean_energy) {
+      q->peak_value = peak_unnormalized/q->mean_energy;      
+    } else {
+      q->peak_value = peak_unnormalized/energy;
+    }
+    q->mean_peak_value = VEC_EMA(q->peak_value, q->mean_peak_value, MEANPEAK_EMA_ALPHA);
     q->frame_cnt++;
 
     if (peak_position) {
@@ -284,7 +292,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
     }
     
     /* If peak is over threshold, compute CFO and SSS */
-    if (q->peak_value                  >= q->threshold) {
+    if (q->peak_value >= q->threshold) {
       
       // Set an invalid N_id_1 indicating SSS is yet to be detected
       q->N_id_1 = 1000; 
@@ -296,9 +304,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
         }
       }
       // Make sure we have enough space to estimate CFO
-      if (peak_pos               <  q->frame_size && 
-          peak_pos + find_offset >= q->fft_size) 
-      {
+      if (peak_pos + find_offset >= q->fft_size) {
         q->cfo = pss_synch_cfo_compute(&q->pss, &input[find_offset+peak_pos-q->fft_size]);
       } else {
         INFO("No space for CFO computation. Frame starts at \n",peak_pos);
@@ -309,8 +315,9 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       ret = 0;
     }
     
-    INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f threshold=%.2f sf_idx=%d offset=%d\n",
-          ret, q->N_id_2, peak_pos, peak_unnormalized,energy,q->peak_value, q->threshold, q->sf_idx, find_offset);
+    INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f mean_energy=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
+          ret, q->N_id_2, peak_pos, peak_unnormalized*1000,energy*1000,q->peak_value, q->mean_energy*1000, 
+         q->threshold, q->sf_idx, 15*q->cfo);
 
   } else if (lte_N_id_2_isvalid(q->N_id_2)) {
     fprintf(stderr, "Must call sync_set_N_id_2() first!\n");

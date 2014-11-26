@@ -69,7 +69,7 @@ typedef struct {
   interp_linvec_t interp_linvec; 
   interp_lin_t interp_lin; 
   
-  float rssi; 
+  float rssi[MAX_PORTS]; 
   float rsrp[MAX_PORTS]; 
   float noise_estimate[MAX_PORTS];
 } chest_dl_t;

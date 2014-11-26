@@ -41,6 +41,11 @@
 #include "liblte/cuhd/cuhd.h"
 #include "cell_search_utils.h"
 
+#define B210_DEFAULT_GAIN         40.0
+#define B210_DEFAULT_GAIN_CORREC  76.0 // Gain of the Rx chain when the gain is set to 40
+
+float gain_offset = B210_DEFAULT_GAIN_CORREC;
+
 cell_detect_cfg_t cell_detect_config = {
   500, // nof_frames_total 
   50,  // nof_frames_detected
@@ -64,7 +69,7 @@ void args_default(prog_args_t *args) {
   args->force_N_id_2 = -1; // Pick the best
   args->uhd_args = "";
   args->uhd_freq = -1.0;
-  args->uhd_gain = 60.0; 
+  args->uhd_gain = B210_DEFAULT_GAIN; 
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -141,7 +146,7 @@ int main(int argc, char **argv) {
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
-  float rssi=0, rsrp=0, rsrq=0, snr=0;
+  float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
   cf_t *nullce[MAX_PORTS]; 
   
   for (int i=0;i<MAX_PORTS;i++) {
@@ -264,19 +269,22 @@ int main(int argc, char **argv) {
         
         chest_dl_estimate(&chest, sf_symbols, nullce, ue_sync_get_sfidx(&ue_sync));
         
-        rssi = VEC_CMA(chest_dl_get_rssi(&chest),rssi,nframes);
-        rsrq = VEC_CMA(chest_dl_get_rsrq(&chest),rsrq,nframes);
+        
+        rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SF_LEN(lte_symbol_sz(cell.nof_prb))),rssi,nframes);
+        rssi_utra = VEC_CMA(chest_dl_get_rssi(&chest),rssi_utra,nframes);
+        rsrq = VEC_EMA(chest_dl_get_rsrq(&chest),rsrq,0.001);
         rsrp = VEC_CMA(chest_dl_get_rsrp(&chest),rsrp,nframes);      
         snr = VEC_CMA(chest_dl_get_snr(&chest),snr,nframes);      
         nframes++;
         
         // Plot and Printf
         if ((nframes%10) == 0) {
-          printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, RSSI: %+5.1f dBm, "
+          printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %5.1f dB\r",
                 ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
-                10*log10(rssi*1000/4/cell.nof_prb/12/2)-prog_args.uhd_gain, 
-                10*log10(rsrp*1000)-prog_args.uhd_gain, 
+                10*log10(rssi*1000)-gain_offset, 
+                10*log10(rssi_utra*1000)-gain_offset, 
+                10*log10(rsrp*1000)-gain_offset, 
               10*log10(rsrq), 10*log10(snr));                
         }
         break;

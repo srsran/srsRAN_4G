@@ -253,8 +253,8 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
           } 
           nof_trials++;             
+          snr = VEC_CMA(chest_dl_get_snr(&ue_dl.chest), snr, nof_trials);              
         }
-        snr = VEC_EMA(chest_dl_get_snr(&ue_dl.chest), snr, 0.01);              
       }
     } 
     if (ue_sync_get_sfidx(&ue_sync) == 9) {
