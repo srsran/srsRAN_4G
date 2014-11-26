@@ -49,7 +49,7 @@ float gain_offset = B210_DEFAULT_GAIN_CORREC;
 cell_detect_cfg_t cell_detect_config = {
   500, // nof_frames_total 
   50,  // nof_frames_detected
-  CS_FIND_THRESHOLD // threshold
+  0.4 // threshold
 };
 
 /**********************************************************************

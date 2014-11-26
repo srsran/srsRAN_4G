@@ -199,7 +199,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
   sss_synch_set_N_id_2(&q->sss, q->N_id_2);
 
   if (q->detect_cp) {
-    if (peak_pos - q->fft_size - CP_EXT(q->fft_size)) {
+    if (peak_pos - q->fft_size - CP_EXT(q->fft_size) > 0) {
       q->cp = detect_cp(q, input, peak_pos);
     } else {
       INFO("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
