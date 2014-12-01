@@ -65,6 +65,7 @@ typedef struct LIBLTE_API {
   cf_t *pdcch_x[MAX_PORTS];
   cf_t *pdcch_d;
   uint8_t *pdcch_e;
+  float pdcch_rm_f[3 * (DCI_MAX_BITS + 16)];
   float *pdcch_llr;
 
   /* tx & rx objects */

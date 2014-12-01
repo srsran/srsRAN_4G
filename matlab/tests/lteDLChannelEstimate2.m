@@ -428,7 +428,7 @@ function [H_EST, NoisePowerEst, AvgEstimates, Estimates] = lteDLChannelEstimate2
     % The mean of the noise power across all the transmit/receive antenna
     % pairs is used as the estimate of the noise power
     NoisePowerEst = mean(mean(noiseVec));
-        
+        %NoisePowerEst = noiseVec(2);
 end
 
 % GetPilotEstimates Obtain the least squares estimates of the reference

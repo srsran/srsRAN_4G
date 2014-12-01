@@ -158,7 +158,7 @@ int bcch_bch_unpack(uint8_t *buffer, uint32_t msg_nof_bits, lte_cell_t *cell, ui
   if (sfn) {
     *sfn=(sfn_i<<2);    
   } else {
-      asn_fprint(stdout, &asn_DEF_MasterInformationBlock, req); 
+    asn_fprint(stdout, &asn_DEF_MasterInformationBlock, req); 
   }
   return LIBLTE_SUCCESS;
 }

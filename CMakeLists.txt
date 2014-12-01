@@ -155,6 +155,7 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lte/phy/include/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lte/rrc/include/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lte/rrc/asn/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/cuhd/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/mex/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/graphics/include)
 
 ########################################################################
@@ -164,4 +165,4 @@ ADD_SUBDIRECTORY(common)
 ADD_SUBDIRECTORY(cuhd)
 ADD_SUBDIRECTORY(graphics)
 ADD_SUBDIRECTORY(lte)
-
+add_subdirectory(mex)

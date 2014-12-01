@@ -42,7 +42,7 @@
 #include "cell_search_utils.h"
 
 #define B210_DEFAULT_GAIN         40.0
-#define B210_DEFAULT_GAIN_CORREC  76.0 // Gain of the Rx chain when the gain is set to 40
+#define B210_DEFAULT_GAIN_CORREC  80.0 // Gain of the Rx chain when the gain is set to 40
 
 float gain_offset = B210_DEFAULT_GAIN_CORREC;
 
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);
-            } else if (n == MIB_FOUND) {
+            } else if (n == MIB_FOUND) {             
               bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
               bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
               printf("MIB found SFN: %d, offset: %d\n", sfn, sfn_offset);

@@ -63,6 +63,7 @@ typedef struct {
   uint32_t filter_time_len;
   float filter_time[CHEST_MAX_FILTER_TIME_LEN];
   
+  cf_t *tmp_noise; 
   cf_t *tmp_freqavg;
   cf_t *tmp_timeavg[CHEST_MAX_FILTER_TIME_LEN];
   

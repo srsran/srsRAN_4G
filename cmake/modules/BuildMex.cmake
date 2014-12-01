@@ -4,6 +4,7 @@
 
 include(CMakeParseArguments)
 
+
 if(NOT MATLAB_FOUND)
   find_package(MATLAB)
 endif()
@@ -21,12 +22,6 @@ if(NOT MATLAB_MEX_PATH)
     DOC "The mex program path"
     )
 endif()
-
-IF (MATLAB_FOUND)
-  message(STATUS "Found MATLAB in ${MATLAB_ROOT}")
-ELSE(MATLAB_FOUND)
-  message(STATUS "Could NOT find MATLAB. MEX files won't be compiled")
-ENDIF(MATLAB_FOUND)
 
 #
 # BuildMex -- arguments

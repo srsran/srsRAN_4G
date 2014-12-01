@@ -276,7 +276,6 @@ uint32_t pdcch_common_locations(pdcch_t *q, dci_location_t *c, uint32_t max_cand
  */
 static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
 
-  float tmp[3 * (DCI_MAX_BITS + 16)];
   uint16_t p_bits, crc_res;
   uint8_t *x;
 
@@ -292,15 +291,15 @@ static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t 
     }
 
     /* unrate matching */
-    rm_conv_rx(e, E, tmp, 3 * (nof_bits + 16));
+    rm_conv_rx(e, E, q->pdcch_rm_f, 3 * (nof_bits + 16));
 
     DEBUG("Viterbi input: ", 0);
     if (VERBOSE_ISDEBUG()) {
-      vec_fprint_f(stdout, tmp, 3 * (nof_bits + 16));
+      vec_fprint_f(stdout, q->pdcch_rm_f, 3 * (nof_bits + 16));
     }
 
     /* viterbi decoder */
-    viterbi_decode_f(&q->decoder, tmp, data, nof_bits + 16);
+    viterbi_decode_f(&q->decoder, q->pdcch_rm_f, data, nof_bits + 16);
 
     if (VERBOSE_ISDEBUG()) {
       bit_fprint(stdout, data, nof_bits + 16);
@@ -421,7 +420,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float n
     }
 
     /* demodulate symbols */
-    demod_soft_sigma_set(&q->demod, 1);
+    demod_soft_sigma_set(&q->demod, sqrtf(2/q->cell.nof_ports));
     demod_soft_demodulate(&q->demod, q->pdcch_d, q->pdcch_llr, nof_symbols);
 
     /* descramble */

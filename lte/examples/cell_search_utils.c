@@ -271,6 +271,8 @@ int detect_and_decode_cell(cell_detect_cfg_t *config, void *uhd, int force_N_id_
   cell->nof_ports = nof_tx_ports; 
 
   bit_unpack_vector(bch_payload, bch_payload_unpacked, BCH_PAYLOAD_LEN);
+  printf("nof_bits: %d\n", BCH_PAYLOAD_LEN);
+  vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
   bcch_bch_unpack(bch_payload_unpacked, BCH_PAYLOAD_LEN, cell, NULL);  
   
   /* set sampling frequency */

@@ -147,8 +147,14 @@ int cuhd_close(void *h)
 double cuhd_set_rx_srate(void *h, double freq)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  handler->usrp->set_rx_rate(freq);
+  handler->usrp->set_rx_rate(freq);  
   double ret = handler->usrp->get_rx_rate();
+  if ((int) ret != (int) freq) {
+    printf("Got %f!=%f. setting master clock rate to %f\n",ret, freq, freq);
+    handler->usrp->set_master_clock_rate(freq);
+    handler->usrp->set_rx_rate(freq);  
+    double ret = handler->usrp->get_rx_rate();    
+  }
   return ret;
 }
 

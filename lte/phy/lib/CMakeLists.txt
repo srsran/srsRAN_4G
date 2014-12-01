@@ -46,7 +46,7 @@ SET(SOURCES_ALL "")
 FOREACH (_module ${modules})
   IF(IS_DIRECTORY ${_module})
     FILE(GLOB_RECURSE tmp "${_module}/src/*.c")
-    LIST(APPEND SOURCES_ALL ${tmp})		
+    LIST(APPEND SOURCES_ALL ${tmp})
   ENDIF(IS_DIRECTORY ${_module})
 ENDFOREACH()
 
@@ -57,13 +57,12 @@ LIBLTE_SET_PIC(lte_phy)
 
 IF(VOLK_FOUND)
   INCLUDE_DIRECTORIES(${VOLK_INCLUDE_DIRS})
-  SET_TARGET_PROPERTIES(lte_phy PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")
+  SET_TARGET_PROPERTIES(lte_phy PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")    
   TARGET_LINK_LIBRARIES(lte_phy ${VOLK_LIBRARIES})
   MESSAGE(STATUS "   Compiling with VOLK SIMD library.")	
 ELSE(VOLK_FOUND)
   MESSAGE(STATUS "   VOLK SIMD library NOT found. Using generic implementation.")
 ENDIF(VOLK_FOUND)
-
 
 ########################################################################
 # Recurse subdirectories and find all directories with a CMakeLists.txt file in it  

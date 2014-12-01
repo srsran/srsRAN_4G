@@ -67,8 +67,13 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
       goto clean_exit;
     }
     
-    q->tmp_freqavg = vec_malloc(sizeof(cf_t) * 2*cell.nof_prb);
+    q->tmp_freqavg = vec_malloc(sizeof(cf_t) * REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
     if (!q->tmp_freqavg) {
+      perror("malloc");
+      goto clean_exit;
+    }
+    q->tmp_noise = vec_malloc(sizeof(cf_t) * REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+    if (!q->tmp_noise) {
       perror("malloc");
       goto clean_exit;
     }
@@ -135,6 +140,9 @@ void chest_dl_free(chest_dl_t *q)
   if (q->tmp_freqavg) {
     free(q->tmp_freqavg);
   }
+  if (q->tmp_noise) {
+    free(q->tmp_noise);
+  }
   for (int i=0;i<CHEST_MAX_FILTER_TIME_LEN;i++) {
     if (q->tmp_timeavg[i]) {
       free(q->tmp_timeavg[i]);
@@ -181,8 +189,22 @@ int chest_dl_set_filter_time(chest_dl_t *q, float *filter, uint32_t filter_len) 
   }  
 }
 
+
+static float estimate_noise_port(chest_dl_t *q, uint32_t port_id, cf_t *avg_pilots) {
+  /* Use difference between averaged and noisy LS pilot estimates */
+  vec_sub_ccc(avg_pilots, q->pilot_estimates[port_id],
+              q->tmp_noise, REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
+
+  float noise_var = vec_avg_power_cf(q->tmp_noise, REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
+
+  /* compute noise power. Correction factor obtained through simulations */  
+  return 0.75 * sqrtf((float) q->filter_freq_len) * noise_var / sqrt(q->cell.nof_prb);
+}
+
+
 #define pilot_est(idx) q->pilot_estimates[port_id][REFSIGNAL_PILOT_IDX(idx,l,q->cell)]
 #define pilot_avg(idx) q->pilot_estimates_average[port_id][REFSIGNAL_PILOT_IDX(idx,l,q->cell)]
+#define pilot_tmp(idx) q->tmp_freqavg[REFSIGNAL_PILOT_IDX(idx,l,q->cell)]
 
 static void average_pilots(chest_dl_t *q, uint32_t port_id) 
 {
@@ -193,17 +215,24 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
   for (l=0;l<refsignal_cs_nof_symbols(port_id);l++) {
     if (q->filter_freq_len > 0) {
       /* Filter pilot estimates in frequency */
-      conv_same_cf(&pilot_est(0), q->filter_freq, q->tmp_freqavg, nref, q->filter_freq_len);
+      conv_same_cf(&pilot_est(0), q->filter_freq, &pilot_tmp(0), nref, q->filter_freq_len);
       
       /* Adjust extremes using linear interpolation */
-      q->tmp_freqavg[0] += interp_linear_onesample(pilot_est(1), pilot_est(0)) 
+      pilot_tmp(0) += interp_linear_onesample(pilot_est(1), pilot_est(0)) 
                         * q->filter_freq[q->filter_freq_len/2-1];
-      q->tmp_freqavg[nref-1] += interp_linear_onesample(pilot_est(nref-2), pilot_est(nref-1)) 
+      pilot_tmp(nref-1) += interp_linear_onesample(pilot_est(nref-2), pilot_est(nref-1)) 
                         * q->filter_freq[q->filter_freq_len/2+1];        
     } else {
-      memcpy(q->tmp_freqavg, &pilot_est(0), nref * sizeof(cf_t));
+      memcpy(&pilot_tmp(0), &pilot_est(0), nref * sizeof(cf_t));
     }
+  }
+  
+  /* Compute noise estimation before time averaging. 
+    * FIXME: Apparently the noise estimation performance is better with frequency averaging only 
+    */
+  q->noise_estimate[port_id] = estimate_noise_port(q, port_id, q->tmp_freqavg);
     
+  for (l=0;l<refsignal_cs_nof_symbols(port_id);l++) {
     /* Filter in time domain. */
     if (q->filter_time_len > 0) {
       /* Move last symbols */
@@ -211,7 +240,7 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
         memcpy(q->tmp_timeavg[i], q->tmp_timeavg[i+1], nref*sizeof(cf_t));                      
       }
       /* Put last symbol to buffer */
-      memcpy(q->tmp_timeavg[i], q->tmp_freqavg, nref*sizeof(cf_t));            
+      memcpy(q->tmp_timeavg[i], &pilot_tmp(0), nref*sizeof(cf_t));            
 
       /* Multiply all symbols by filter and add them  */
       bzero(&pilot_avg(0), nref * sizeof(cf_t));
@@ -220,22 +249,9 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
         vec_sum_ccc(q->tmp_timeavg[i], &pilot_avg(0), &pilot_avg(0), nref);            
       }
     } else {
-      memcpy(&pilot_avg(0), q->tmp_freqavg, nref * sizeof(cf_t));        
+      memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));        
     }
   }
-}
-
-static float estimate_noise_port(chest_dl_t *q, uint32_t port_id) {
-  /* Use difference between averaged and noisy LS pilot estimates */
-  vec_sub_ccc(q->pilot_estimates_average[port_id], q->pilot_estimates[port_id],
-              q->pilot_estimates[port_id], REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
-  /* compute noise power */
-  
-  float noiseEst = vec_dot_prod_conj_ccc(q->pilot_estimates[port_id],
-                               q->pilot_estimates[port_id], 
-                               REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
-                               
-  return noiseEst * sqrtf((float) q->filter_freq_len) / REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);                           
 }
 
 #define cesymb(i) ce[SAMPLE_IDX(q->cell.nof_prb,i,0)]
@@ -303,12 +319,9 @@ int chest_dl_estimate_port(chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx
   refsignal_cs_get_sf(q->cell, port_id, input, q->pilot_recv_signal[port_id]);
   
   /* Compute RSRP for the references in this port */
+  q->rsrp[port_id] = chest_dl_rsrp(q, port_id);     
   if (port_id == 0) {
-    q->rsrp[port_id] = chest_dl_rsrp(q, port_id);     
-  }
-
-  /* compute rssi */
-  if (port_id == 0) {
+    /* compute rssi only for port 0 */
     q->rssi[port_id] = chest_dl_rssi(q, input, port_id);     
   }
 
@@ -324,8 +337,6 @@ int chest_dl_estimate_port(chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx
     interpolate_pilots(q, ce, port_id);    
   }
 
-  q->noise_estimate[port_id] = estimate_noise_port(q, port_id);
-    
   return 0;
 }
 
@@ -344,12 +355,13 @@ float chest_dl_get_noise_estimate(chest_dl_t *q) {
 }
 
 float chest_dl_get_snr(chest_dl_t *q) {
-  float noise = chest_dl_get_noise_estimate(q);
-  if (noise) {
-    return chest_dl_get_rssi(q)/(noise);//*2*q->cell.nof_ports*lte_symbol_sz(q->cell.nof_prb));    
-  } else {
-    return 0.0;
+  float snr = 0.0; 
+  for (int i=0;i<q->cell.nof_ports;i++) {
+    if (q->noise_estimate[i]) {
+      snr += q->rsrp[i]/(q->noise_estimate[i]*sqrtf(2*q->cell.nof_ports*lte_symbol_sz(q->cell.nof_prb)));    
+    }
   }
+  return snr/q->cell.nof_ports;
 }
 
 float chest_dl_get_rssi(chest_dl_t *q) {

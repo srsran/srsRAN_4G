@@ -114,9 +114,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
   }
-  
-  
-  
+    
   uint32_t filter_len = 0;
   float *filter; 
   double *f; 
@@ -172,7 +170,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     outr2 = mxGetPr(plhs[2]);
     outi2 = mxGetPi(plhs[2]);
   }
-  
+    
   for (int sf=0;sf<nsubframes;sf++) {
     /* Convert input to C complex type */
     for (i=0;i<nof_re;i++) {
@@ -235,7 +233,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
     }
   }
-   
+
+  if (nlhs >= 4) {
+    plhs[3] = mxCreateDoubleScalar(chest_dl_get_snr(&chest));
+  }
+
   return;
 }
 

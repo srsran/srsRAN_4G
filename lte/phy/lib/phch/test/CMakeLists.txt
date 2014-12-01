@@ -80,6 +80,8 @@ ADD_TEST(pdcch_test pdcch_test)
 ADD_EXECUTABLE(dci_unpacking dci_unpacking.c)
 TARGET_LINK_LIBRARIES(dci_unpacking lte_phy)
 
+BuildMex(MEXNAME pdcch SOURCES pdcch_test_mex.c LIBRARIES lte_phy liblte_mex)
+
 ########################################################################
 # PDSCH TEST  
 ########################################################################
