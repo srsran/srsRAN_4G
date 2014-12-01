@@ -29,6 +29,8 @@ IF(${CUHD_FIND} GREATER -1)
   TARGET_LINK_LIBRARIES(pss_usrp lte_phy cuhd)
 ENDIF(${CUHD_FIND} GREATER -1)
 
+BuildMex(MEXNAME pss SOURCES pss_mex.c LIBRARIES lte_phy liblte_mex)
+
 ########################################################################
 # SYNC TEST  
 ########################################################################
