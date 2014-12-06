@@ -24,12 +24,21 @@
 ########################################################################
 
 LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
-IF(${CUHD_FIND} GREATER -1)
+LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
+  IF(${CUHD_FIND} GREATER -1)
   ADD_EXECUTABLE(pss_usrp pss_usrp.c)
   TARGET_LINK_LIBRARIES(pss_usrp lte_phy cuhd)
 ENDIF(${CUHD_FIND} GREATER -1)
 
+IF(${GRAPHICS_FIND} EQUAL -1)
+  SET_TARGET_PROPERTIES(pss_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
+ELSE(${GRAPHICS_FIND} EQUAL -1)
+  target_link_libraries(pss_usrp graphics)
+ENDIF(${GRAPHICS_FIND} EQUAL -1)
+
+
 BuildMex(MEXNAME pss SOURCES pss_mex.c LIBRARIES lte_phy liblte_mex)
+BuildMex(MEXNAME sss SOURCES sss_mex.c LIBRARIES lte_phy liblte_mex)
 
 ########################################################################
 # SYNC TEST  

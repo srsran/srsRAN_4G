@@ -254,7 +254,7 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
   }
 }
 
-#define cesymb(i) ce[SAMPLE_IDX(q->cell.nof_prb,i,0)]
+#define cesymb(i) ce[RE_IDX(q->cell.nof_prb,i,0)]
 
 static void interpolate_pilots(chest_dl_t *q, cf_t *ce, uint32_t port_id) 
 {

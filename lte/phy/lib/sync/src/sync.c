@@ -214,7 +214,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
     return LIBLTE_ERROR;
   }
       
-  sss_synch_m0m1(&q->sss, &input[sss_idx], &q->m0, &q->m0_value, &q->m1, &q->m1_value);
+  sss_synch_m0m1_diff(&q->sss, &input[sss_idx], &q->m0, &q->m0_value, &q->m1, &q->m1_value);
 
   q->sf_idx = sss_synch_subframe(q->m0, q->m1);
   ret = sss_synch_N_id_1(&q->sss, q->m0, q->m1);
@@ -315,8 +315,9 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       ret = 0;
     }
     
-    INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f mean_energy=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
-          ret, q->N_id_2, peak_pos, peak_unnormalized*1000,energy*1000,q->peak_value, q->mean_energy*1000, 
+    INFO("SYNC ret=%d N_id_2=%d pos=%d peak=%.2f/%.2f=%.2f mean_energy=%.2f"
+         "threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
+         ret, q->N_id_2, peak_pos, peak_unnormalized*1000,energy*1000,q->peak_value, q->mean_energy*1000, 
          q->threshold, q->sf_idx, 15*q->cfo);
 
   } else if (lte_N_id_2_isvalid(q->N_id_2)) {
@@ -328,4 +329,5 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
 
 void sync_reset(sync_t *q) {
   q->frame_cnt = 0;
+  pss_synch_reset(&q->pss);
 }

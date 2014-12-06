@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
 
       sss_idx = peak_pos[N_id_2]-2*(symbol_sz+CP(symbol_sz,CPNORM_LEN));
       if (sss_idx >= 0) {
-        sss_synch_m0m1(&sss[N_id_2], &input[sss_idx],
+        sss_synch_m0m1_diff(&sss[N_id_2], &input[sss_idx],
             &m0, &m0_value, &m1, &m1_value);
 
         cfo[frame_cnt] = pss_synch_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2]-128]);

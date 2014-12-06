@@ -39,10 +39,9 @@
 #include "liblte/phy/utils/debug.h"
 
 
-int pss_synch_init_N_id_2(cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_size) {
+int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_size) {
   dft_plan_t plan;
   cf_t pss_signal_pad[2048];
-  cf_t pss_signal_time[PSS_LEN];
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (lte_N_id_2_isvalid(N_id_2)    && 
@@ -65,7 +64,7 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_s
     dft_run_c(&plan, pss_signal_pad, pss_signal_freq);
 
     vec_conj_cc(pss_signal_freq, pss_signal_freq, fft_size);
-    vec_sc_prod_cfc(pss_signal_freq, 1.0/62.0, pss_signal_freq, fft_size);
+    vec_sc_prod_cfc(pss_signal_freq, 1.0/PSS_LEN, pss_signal_freq, fft_size);
 
     dft_plan_free(&plan);
     
@@ -99,16 +98,39 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
     
     buffer_size = fft_size + frame_size + 1;
     
+    
+    if (dft_plan(&q->dftp_input, fft_size, FORWARD, COMPLEX)) {
+      fprintf(stderr, "Error creating DFT plan \n");
+      goto clean_and_exit;
+    }
+    dft_plan_set_mirror(&q->dftp_input, true);
+    dft_plan_set_dc(&q->dftp_input, true);
+
     q->tmp_input = vec_malloc(buffer_size * sizeof(cf_t));
     if (!q->tmp_input) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
+
+    bzero(&q->tmp_input[q->frame_size], q->fft_size * sizeof(cf_t));
+
     q->conv_output = vec_malloc(buffer_size * sizeof(cf_t));
     if (!q->conv_output) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
+    q->conv_output_avg = vec_malloc(buffer_size * sizeof(float));
+    if (!q->conv_output_avg) {
+      fprintf(stderr, "Error allocating memory\n");
+      goto clean_and_exit;
+    }
+#ifdef PSS_ACCUMULATE_ABS
+    q->conv_output_abs = vec_malloc(buffer_size * sizeof(float));
+    if (!q->conv_output_abs) {
+      fprintf(stderr, "Error allocating memory\n");
+      goto clean_and_exit;
+    }
+#endif
     for (N_id_2=0;N_id_2<3;N_id_2++) {
       q->pss_signal_freq[N_id_2] = vec_malloc(buffer_size * sizeof(cf_t));
       if (!q->pss_signal_freq[N_id_2]) {
@@ -116,10 +138,12 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
         goto clean_and_exit;
       }
       /* The PSS is translated into the frequency domain for each N_id_2  */
-      if (pss_synch_init_N_id_2(q->pss_signal_freq[N_id_2], N_id_2, fft_size)) {
+      if (pss_synch_init_N_id_2(q->pss_signal_time[N_id_2], q->pss_signal_freq[N_id_2], N_id_2, fft_size)) {
         fprintf(stderr, "Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
         goto clean_and_exit;
       }      
+      bzero(&q->pss_signal_freq[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
+
     }    
     #ifdef CONVOLUTION_FFT
     if (conv_fft_cc_init(&q->conv_fft, frame_size, fft_size)) {
@@ -127,6 +151,8 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
       goto clean_and_exit;
     }
     #endif
+    
+    pss_synch_reset(q);
     
     ret = LIBLTE_SUCCESS;
   }
@@ -157,9 +183,25 @@ void pss_synch_free(pss_synch_t *q) {
     if (q->conv_output) {
       free(q->conv_output);
     }
+#ifdef PSS_ACCUMULATE_ABS
+    if (q->conv_output_abs) {
+      free(q->conv_output_abs);
+    }
+#endif
+    if (q->conv_output_avg) {
+      free(q->conv_output_avg);
+    }
 
     bzero(q, sizeof(pss_synch_t));    
   }
+}
+
+void pss_synch_reset(pss_synch_t *q) {
+#ifdef PSS_ACCUMULATE_ABS
+  uint32_t buffer_size = q->fft_size + q->frame_size + 1;
+  bzero(q->conv_output_avg, sizeof(cf_t) * buffer_size);
+#endif
+  
 }
 
 /**
@@ -219,7 +261,8 @@ int pss_synch_set_N_id_2(pss_synch_t *q, uint32_t N_id_2) {
   }
 }
 
-/** Returns the index of the PSS correlation peak in a subframe.
+/** Performs time-domain PSS correlation. 
+ * Returns the index of the PSS correlation peak in a subframe.
  * The frame starts at corr_peak_pos-subframe_size/2.
  * The value of the correlation is stored in corr_peak_value.
  *
@@ -241,9 +284,7 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
       return LIBLTE_ERROR;
     }
     
-    bzero(&q->pss_signal_freq[q->N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
     memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
-    bzero(&q->tmp_input[q->frame_size], q->fft_size * sizeof(cf_t));
 
     /* Correlate input with PSS sequence */
   #ifdef CONVOLUTION_FFT
@@ -253,14 +294,83 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     conv_output_len = conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
   #endif
 
+   
+#ifdef PSS_ACCUMULATE_ABS
+#ifdef PSS_ABS_SQUARE
+    vec_abs_square_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
+#else
+    vec_abs_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
+#endif
     /* Find maximum of the absolute value of the correlation */
-    corr_peak_pos = vec_max_abs_ci(q->conv_output, conv_output_len-1);
+    corr_peak_pos = vec_max_fi(q->conv_output_abs, conv_output_len-1);
+    
+    // Normalize correlation output
+    vec_sc_prod_fff(q->conv_output_abs, 1/q->conv_output_abs[corr_peak_pos], q->conv_output_abs, conv_output_len-1);
+    
+    vec_sum_fff(q->conv_output_abs, q->conv_output_avg, q->conv_output_avg, conv_output_len-1);
+#else
+
+#ifdef PSS_ABS_SQUARE
+    vec_abs_square_cf(q->conv_output, q->conv_output_avg, conv_output_len-1);
+#else
+    vec_abs_cf(q->conv_output, q->conv_output_avg, conv_output_len-1);
+#endif
+
+#endif
+    
+    /* Find maximum of the absolute value of the correlation */
+    corr_peak_pos = vec_max_fi(q->conv_output_avg, conv_output_len-1);
+    
+#ifdef PSS_RETURN_PSR    
+    // Find second side lobe
+    float tmp = q->conv_output_avg[corr_peak_pos];
+    q->conv_output_avg[corr_peak_pos] = 0; 
+    int side_lobe_pos = vec_max_fi(q->conv_output_avg, conv_output_len-1);
+    q->conv_output_avg[corr_peak_pos] = tmp;
     if (corr_peak_value) {
-      *corr_peak_value = cabsf(q->conv_output[corr_peak_pos]);
+      *corr_peak_value = tmp/q->conv_output_avg[side_lobe_pos];
     }
+#else
+    if (corr_peak_value) {
+      *corr_peak_value = q->conv_output_avg[corr_peak_pos];
+    }
+#endif
+
     ret = (int) corr_peak_pos;                
   } 
   return ret;
+}
+
+LIBLTE_API cf_t *tmp2; 
+
+/* Computes frequency-domain channel estimation of the PSS symbol 
+ * input signal is in the time-domain. 
+ * ce is the returned frequency-domain channel estimates. 
+ */
+int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  cf_t input_fft[SYMBOL_SZ_MAX];
+
+  if (q                 != NULL  && 
+      input             != NULL)
+  {
+
+    if (!lte_N_id_2_isvalid(q->N_id_2)) {
+      fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
+      return LIBLTE_ERROR;
+    }
+    
+    tmp2 = input_fft; 
+    
+    /* Transform to frequency-domain */
+    dft_run_c(&q->dftp_input, input, input_fft);
+    
+    /* Compute channel estimate taking the PSS sequence as reference */
+    vec_prod_conj_ccc(q->pss_signal_time[q->N_id_2], &input_fft[(q->fft_size-PSS_LEN)/2], ce, PSS_LEN);
+      
+    ret = LIBLTE_SUCCESS;
+  }
+  return ret; 
 }
 
 /* Returns the CFO estimation given a PSS received sequence

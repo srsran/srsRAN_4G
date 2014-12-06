@@ -55,11 +55,12 @@ int sss_synch_init(sss_synch_t *q, uint32_t fft_size) {
       sss_synch_free(q);
       return LIBLTE_ERROR;
     }
+    dft_plan_set_mirror(&q->dftp_input, true);
+    dft_plan_set_dc(&q->dftp_input, true);
+
     q->fft_size = fft_size; 
     
     generate_N_id_1_table(q->N_id_1_table);
-    dft_plan_set_mirror(&q->dftp_input, true);
-    dft_plan_set_dc(&q->dftp_input, true);
     
     for (N_id_2=0;N_id_2<3;N_id_2++) {
       generate_sss_all_tables(&sss_tables, N_id_2);
@@ -81,6 +82,7 @@ int sss_synch_realloc(sss_synch_t *q, uint32_t fft_size) {
       return LIBLTE_ERROR;
     }
     dft_plan_set_mirror(&q->dftp_input, true);
+    dft_plan_set_norm(&q->dftp_input, true);
     dft_plan_set_dc(&q->dftp_input, true);
     
     q->fft_size = fft_size;

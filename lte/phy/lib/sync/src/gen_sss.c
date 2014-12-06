@@ -121,7 +121,7 @@ void generate_sss_all_tables(struct sss_tables *tables, uint32_t N_id_2) {
   generate_s_all(tables->s, s_t);
   generate_z_all(tables->z1, z_t);
   for (i = 0; i < 2; i++) {
-    generate_c(tables->c[i], c_t, N_id_2, i > 0);
+    generate_c(tables->c[i], c_t, N_id_2, i != 0);
   }
 }
 
