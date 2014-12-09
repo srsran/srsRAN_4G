@@ -74,14 +74,19 @@ void bcch_dlsch_sib1_get_cell_access_info(void *bcch_dlsch_msg, cell_access_info
 }
 
 uint32_t get_si_period(long int period) {
-  return 8<<period;
+  return 8<<(period);     
 }
 
-bcch_dlsch_sib_type_t get_si_type(SIB_Type_t *type) {
+sib_type_t get_si_type(SIB_Type_t *type) {
   switch(*type) {
-    case SIB_Type_sibType3: return BCCH_DLSCH_SIB3;
-    case SIB_Type_sibType6: return BCCH_DLSCH_SIB6;
-    default: return BCCH_DLSCH_UNKNOWN;
+    case SIB_Type_sibType3: return SIB3;
+    case SIB_Type_sibType4: return SIB4;
+    case SIB_Type_sibType5: return SIB5;
+    case SIB_Type_sibType6: return SIB6;
+    case SIB_Type_sibType7: return SIB7;
+    case SIB_Type_sibType8: return SIB8;
+    case SIB_Type_sibType9: return SIB9;
+    default: return SIB_ERROR;
   }
 }
 
@@ -97,21 +102,40 @@ uint32_t get_window(long int window_length) {
     default: return 0; 
   }
 }
-
-void bcch_dlsch_sib1_get_si_scheduling(void *bcch_dlsch_msg, bcch_si_scheduling_t *si_sched) {
+int bcch_dlsch_sib1_get_scheduling_info(void *bcch_dlsch_msg, 
+                                        uint32_t *si_window_length,
+                                        scheduling_info_t *info, 
+                                        uint32_t max_elems) 
+{
   BCCH_DL_SCH_Message_t *msg = (BCCH_DL_SCH_Message_t*) bcch_dlsch_msg; 
   SystemInformationBlockType1_t *sib1 = &(msg->message.choice.c1.choice.systemInformationBlockType1);
-
-  si_sched->nof_periods = MIN(SI_PERIODS, sib1->schedulingInfoList.list.count);
-  for (int i=0;i<si_sched->nof_periods;i++) {
-    SchedulingInfo_t *s = sib1->schedulingInfoList.list.array[0];
-    si_sched->si_period_list[i].period = get_si_period(s->si_Periodicity);
-    int jmax = MIN(SI_X_PERIOD, s->sib_MappingInfo.list.count);
-    for (int j=0;j<jmax;j++) {
-      si_sched->si_period_list[i].type[j] = get_si_type(s->sib_MappingInfo.list.array[j]);
+  
+  uint32_t nelems = 0; 
+  
+  if (max_elems > 0 && info != NULL) {
+    /* First is always SIB2 */
+    info[0].type = SIB2; 
+    info[0].n = 0; 
+    info[0].period = get_si_period(sib1->schedulingInfoList.list.array[0]->si_Periodicity);
+    nelems++; 
+    for (int i=0;i<sib1->schedulingInfoList.list.count;i++) {
+      SchedulingInfo_t *s = sib1->schedulingInfoList.list.array[i];
+      
+      for (int j=0;j<s->sib_MappingInfo.list.count;j++) {
+        if (nelems < max_elems) {
+          info[nelems].type = get_si_type(s->sib_MappingInfo.list.array[j]);
+          info[nelems].n = i;
+          info[nelems].period = get_si_period(s->si_Periodicity);
+          nelems++;
+        }
+      }      
     }
+    
   }
-  si_sched->window_length_ms = get_window(sib1->si_WindowLength);
+  if (si_window_length) {
+    *si_window_length = get_window(sib1->si_WindowLength);    
+  }
+  return nelems;
 }
 
 MCC_MNC_Digit_t *dup_digit(MCC_MNC_Digit_t value) {

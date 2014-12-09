@@ -76,10 +76,7 @@ typedef struct LIBLTE_API {
   
   lte_cell_t cell; 
   uint32_t sf_idx;
-  
-  cfo_t cfocorr;
-  float cur_cfo;
-    
+      
   bool decode_sss_on_track; 
   
   uint32_t peak_idx;

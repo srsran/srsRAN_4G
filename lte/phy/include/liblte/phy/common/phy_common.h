@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
+
 #include "liblte/config.h"
 
 #define NSUBFRAMES_X_FRAME  10
@@ -79,7 +81,7 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define CP_ISEXT(cp) (cp==CPEXT)
 #define CP_NSYMB(cp) (CP_ISNORM(cp)?CPNORM_NSYMB:CPEXT_NSYMB)
 
-#define CP(symbol_sz, c) ((c*symbol_sz)/2048)
+#define CP(symbol_sz, c) ((int) ceil((((float) (c)*(symbol_sz))/2048)))
 #define CP_NORM(symbol, symbol_sz) ((symbol==0)?CP((symbol_sz),CPNORM_0_LEN):CP((symbol_sz),CPNORM_LEN))
 #define CP_EXT(symbol_sz) (CP((symbol_sz),CPEXT_LEN))
 

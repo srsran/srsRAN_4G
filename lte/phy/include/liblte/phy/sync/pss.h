@@ -48,7 +48,7 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 
 /* PSS processing options */
 
-//#define PSS_ACCUMULATE_ABS   // If enabled, accumulates the correlation absolute value on consecutive calls to pss_synch_find_pss
+#define PSS_ACCUMULATE_ABS   // If enabled, accumulates the correlation absolute value on consecutive calls to pss_synch_find_pss
 
 #define PSS_ABS_SQUARE   // If enabled, compute abs square, otherwise computes absolute value only 
 
@@ -83,9 +83,8 @@ typedef struct LIBLTE_API {
   cf_t *pss_signal_freq[3]; // One sequence for each N_id_2
   cf_t *tmp_input;
   cf_t *conv_output;
-#ifdef PSS_ACCUMULATE_ABS
   float *conv_output_abs;
-#endif
+  float ema_alpha; 
   float *conv_output_avg;
 }pss_synch_t;
 
@@ -110,6 +109,9 @@ LIBLTE_API void pss_put_slot(cf_t *pss_signal,
                              cf_t *slot, 
                              uint32_t nof_prb, 
                              lte_cp_t cp);
+
+LIBLTE_API void pss_synch_set_ema_alpha(pss_synch_t *q, 
+                                        float alpha); 
 
 LIBLTE_API int pss_synch_set_N_id_2(pss_synch_t *q, 
                                     uint32_t N_id_2);

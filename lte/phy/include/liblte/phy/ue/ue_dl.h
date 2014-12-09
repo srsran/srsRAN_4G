@@ -76,6 +76,7 @@ typedef struct LIBLTE_API {
   uint64_t nof_pdcch_detected; 
 
   uint16_t user_rnti; 
+  uint16_t current_rnti;
 }ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
@@ -85,11 +86,20 @@ LIBLTE_API int ue_dl_init(ue_dl_t *q,
 
 LIBLTE_API void ue_dl_free(ue_dl_t *q);
 
-LIBLTE_API int ue_dl_decode(ue_dl_t *q, 
-                             cf_t *sf_buffer, 
-                             uint8_t *data, 
-                             uint32_t sf_idx,
-                             uint32_t sfn, 
-                             uint16_t rnti);
+LIBLTE_API int ue_dl_decode(ue_dl_t * q, 
+                            cf_t *input, 
+                            uint8_t *data,
+                            uint32_t sf_idx);
+
+LIBLTE_API int ue_dl_decode_sib(ue_dl_t * q, 
+                                cf_t *input, 
+                                uint8_t * data,
+                                uint32_t sf_idx, 
+                                uint32_t rvidx); 
+
+LIBLTE_API void ue_dl_reset(ue_dl_t *q);
+
+LIBLTE_API void ue_dl_set_rnti(ue_dl_t *q, 
+                               uint16_t rnti);
 
 #endif

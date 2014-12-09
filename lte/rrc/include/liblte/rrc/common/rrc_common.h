@@ -32,6 +32,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+typedef enum {SIB1=1, SIB2=2, SIB3=3, SIB4=4, SIB5=5, SIB6=6, SIB7=7, SIB8=8, SIB9=9, SIB_ERROR=0} sib_type_t; 
+
 typedef struct {
   uint32_t mcc; // 3 digits in Decimal value
   uint32_t mnc; // 2 digits
@@ -44,5 +46,11 @@ typedef struct {
   bool cellBarred; 
   bool intraFreqReselection;
 } cell_access_info_t;
+
+typedef struct {
+  sib_type_t type; 
+  uint32_t n; // Order of entry in scheduling info list
+  uint32_t period; 
+} scheduling_info_t;
 
 #endif

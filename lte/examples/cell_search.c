@@ -55,7 +55,7 @@
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 
-cell_detect_cfg_t config = {50, 10, CS_FIND_THRESHOLD}; 
+cell_detect_cfg_t config = {50, 1.1}; 
 
 
 float uhd_gain = 60.0;
@@ -68,7 +68,6 @@ void usage(char *prog) {
   printf("\t-s earfcn_start [Default All]\n");
   printf("\t-e earfcn_end [Default All]\n");
   printf("\t-n nof_frames_total [Default 100]\n");
-  printf("\t-d nof_frames_detected [Default 10]\n");
   printf("\t-t threshold [Default %.2f]\n",config.threshold);
   printf("\t-v [set verbose to debug, default none]\n");
 }
@@ -91,9 +90,6 @@ void parse_args(int argc, char **argv) {
       break;
     case 'n':
       config.nof_frames_total = atoi(argv[optind]);
-      break;
-    case 'd':
-      config.nof_frames_detected = atoi(argv[optind]);
       break;
     case 't':
       config.threshold = atof(argv[optind]);

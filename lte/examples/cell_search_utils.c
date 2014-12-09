@@ -118,7 +118,7 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
   int ret = LIBLTE_ERROR; 
   ue_celldetect_t cd;
   
-  cf_t *buffer = vec_malloc(sizeof(cf_t) * 96000);
+  cf_t *buffer = vec_malloc(sizeof(cf_t) * CS_FLEN);
   if (!buffer) {
     perror("malloc");
     goto free_and_exit;
@@ -129,9 +129,6 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
     goto free_and_exit;
   }
   
-  if (config->nof_frames_detected) {
-    ue_celldetect_set_nof_frames_detected(&cd, config->nof_frames_detected);
-  }
   if (config->nof_frames_total) {
     ue_celldetect_set_nof_frames_total(&cd, config->nof_frames_total);
   }
@@ -139,12 +136,12 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
     ue_celldetect_set_threshold(&cd, config->threshold);
   }
     
-  INFO("Setting sampling frequency 960 KHz for PSS search\n", 0);
-  cuhd_set_rx_srate(uhd, 960000.0);
+  INFO("Setting sampling frequency %.2f MHz for PSS search\n", CS_SAMP_FREQ/1000);
+  cuhd_set_rx_srate(uhd, CS_SAMP_FREQ);
   INFO("Starting receiver...\n", 0);
   cuhd_start_rx_stream(uhd);
 
-  uint32_t flen = 4800; 
+  uint32_t flen = CS_FLEN; 
   int n; 
   
   bzero(found_cell, sizeof(ue_celldetect_result_t));
@@ -171,11 +168,10 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
       case CS_CELL_DETECTED:
         ue_celldetect_get_cell(&cd, found_cell);
         if (found_cell->peak > 0) {
-          printf("\n\tCELL ID: %d, CP: %s, Peak: %.2f, Mode: %d/%d\n", 
+          printf("\n\tCELL ID: %d, CP: %s, Peak: %.2f, Mode: %.0f%%\n", 
                 found_cell->cell_id, 
                 lte_cp_string(found_cell->cp), 
-                found_cell->peak, found_cell->mode, 
-                cd.nof_frames_detected);                      
+                found_cell->peak, found_cell->mode*100);
         }
         
         ret = 1;
@@ -183,7 +179,7 @@ int detect_cell(cell_detect_cfg_t *config, void *uhd, ue_celldetect_result_t *fo
         break;
       case CS_CELL_NOT_DETECTED:
         ret = 0; 
-        DEBUG("No cell found at N_id_2=%d\n",N_id_2);
+        printf("No cell found at N_id_2=%d. Mean PSR: %.2f\n",N_id_2, sync_get_peak_value(&cd.sfind));
         break;
       case LIBLTE_ERROR:
       case LIBLTE_ERROR_INVALID_INPUTS: 
@@ -271,8 +267,6 @@ int detect_and_decode_cell(cell_detect_cfg_t *config, void *uhd, int force_N_id_
   cell->nof_ports = nof_tx_ports; 
 
   bit_unpack_vector(bch_payload, bch_payload_unpacked, BCH_PAYLOAD_LEN);
-  printf("nof_bits: %d\n", BCH_PAYLOAD_LEN);
-  vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
   bcch_bch_unpack(bch_payload_unpacked, BCH_PAYLOAD_LEN, cell, NULL);  
   
   /* set sampling frequency */

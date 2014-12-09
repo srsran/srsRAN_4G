@@ -399,12 +399,12 @@ int pdsch_harq_init(pdsch_harq_t *p, pdsch_t *pdsch) {
       // FIXME: Use HARQ buffer limitation based on UE category
       p->w_buff_size = p->cell.nof_prb * MAX_PDSCH_RE(p->cell.cp) * 6 * 2 / p->max_cb;
       for (i=0;i<p->max_cb;i++) {
-        p->pdsch_w_buff_f[i] = malloc(sizeof(float) * p->w_buff_size);
+        p->pdsch_w_buff_f[i] = vec_malloc(sizeof(float) * p->w_buff_size);
         if (!p->pdsch_w_buff_f[i]) {
           perror("malloc");
           return LIBLTE_ERROR;
         }
-        p->pdsch_w_buff_c[i] = malloc(sizeof(uint8_t) * p->w_buff_size);
+        p->pdsch_w_buff_c[i] = vec_malloc(sizeof(uint8_t) * p->w_buff_size);
         if (!p->pdsch_w_buff_c[i]) {
           perror("malloc");
           return LIBLTE_ERROR;
@@ -437,6 +437,27 @@ void pdsch_harq_free(pdsch_harq_t *p) {
     }
     bzero(p, sizeof(pdsch_harq_t));
   }
+}
+
+void pdsch_harq_reset(pdsch_harq_t *p) {
+  int i; 
+  if (p->pdsch_w_buff_f) {
+    for (i=0;i<p->max_cb;i++) {
+      if (p->pdsch_w_buff_f[i]) {
+        bzero(p->pdsch_w_buff_f[i], sizeof(float) * p->w_buff_size);
+      }
+    }
+  }
+  if (p->pdsch_w_buff_c) {
+    for (i=0;i<p->max_cb;i++) {
+      if (p->pdsch_w_buff_c[i]) {
+        bzero(p->pdsch_w_buff_c[i], sizeof(uint8_t) * p->w_buff_size);
+      }
+    }
+  }
+  bzero(&p->mcs, sizeof(ra_mcs_t));
+  bzero(&p->cb_segm, sizeof(struct cb_segm));
+  bzero(&p->prb_alloc, sizeof(ra_prb_t));
 }
 
 int pdsch_harq_setup(pdsch_harq_t *p, ra_mcs_t mcs, ra_prb_t *prb_alloc) {

@@ -47,10 +47,15 @@ void do_plots(ue_dl_t *q, uint32_t sf_idx);
 #endif
 
 
+#define B210_DEFAULT_GAIN         40.0
+#define B210_DEFAULT_GAIN_CORREC  80.0 // Gain of the Rx chain when the gain is set to 40
+
+float gain_offset = B210_DEFAULT_GAIN_CORREC;
+
+
 cell_detect_cfg_t cell_detect_config = {
-  500, // nof_frames_total 
-  50,  // nof_frames_detected
-  CS_FIND_THRESHOLD // threshold
+  100, // nof_frames_total 
+  4.0 // threshold
 };
 
 /**********************************************************************
@@ -150,6 +155,9 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
 
 extern float mean_exec_time;
 
+enum receiver_state { DECODE_MIB, DECODE_SIB} state; 
+
+
 int main(int argc, char **argv) {
   int ret; 
   cf_t *sf_buffer; 
@@ -165,7 +173,6 @@ int main(int argc, char **argv) {
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
-  float snr = 0; 
   parse_args(&prog_args, argc, argv);
 
   #ifndef DISABLE_GRAPHICS
@@ -191,8 +198,10 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Cell not found\n");
     exit(-1); 
   }
-  
-  cuhd_start_rx_stream(uhd);
+
+  INFO("Stopping UHD and flushing buffer...\r",0);
+  cuhd_stop_rx_stream(uhd);
+  cuhd_flush_buffer(uhd);
   
   if (ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
     fprintf(stderr, "Error initiating ue_sync\n");
@@ -207,7 +216,8 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  pdsch_set_rnti(&ue_dl.pdsch, prog_args.rnti);
+  /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
+  ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
 
   /* Initialize subframe counter */
   sf_cnt = 0;
@@ -215,74 +225,91 @@ int main(int argc, char **argv) {
   // Register Ctrl+C handler
   signal(SIGINT, sig_int_handler);
 
-  bool pbch_decoded = false; 
+  cuhd_start_rx_stream(uhd);
   
+  // Variables for measurements 
+  uint32_t nframes=0;
+  float rsrp=0, rsrq=0, snr=0;
+
   /* Main loop */
-  while (go_exit == false        && 
-    (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) 
-  {
+  while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     
     ret = ue_sync_get_buffer(&ue_sync, &sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling ue_sync_work()\n");
-      go_exit=true;
     }
-
+        
     /* ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
-      if (ue_sync_get_sfidx(&ue_sync) == 0) {
-        pbch_decode_reset(&ue_mib.pbch);
-        n = ue_mib_decode_aligned_frame(&ue_mib,
-                                        sf_buffer, bch_payload_unpacked, 
-                                        NULL, &sfn_offset);
-        if (n < 0) {
-          fprintf(stderr, "Error decoding UE MIB\n");
-          go_exit=true;
-        } else if (n == MIB_FOUND) {
-          bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
-          bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
-          sfn = (sfn + sfn_offset)%1024; 
-          pbch_decoded = true;
-        }
+      switch (state) {
+        case DECODE_MIB:
+          if (ue_sync_get_sfidx(&ue_sync) == 0) {
+            pbch_decode_reset(&ue_mib.pbch);
+            n = ue_mib_decode_aligned_frame(&ue_mib,
+                                            sf_buffer, bch_payload_unpacked, 
+                                            NULL, &sfn_offset);
+            if (n < 0) {
+              fprintf(stderr, "Error decoding UE MIB\n");
+              exit(-1);
+            } else if (n == MIB_FOUND) {             
+              bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
+              bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
+              printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
+              sfn = (sfn + sfn_offset)%1024; 
+              state = DECODE_SIB; 
+            }
+          }
+          break;
+        case DECODE_SIB:
+          /* We are looking for SI Blocks, search only in appropiate places */
+          if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
+                                 ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
+            if (n < 0) {
+              fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
+              exit(-1);
+            } 
+            nof_trials++; 
+          }
+
+          rsrq = VEC_EMA(chest_dl_get_rsrq(&ue_dl.chest),rsrq,0.001);
+          rsrp = VEC_CMA(chest_dl_get_rsrp(&ue_dl.chest),rsrp,nframes);      
+          snr = VEC_CMA(chest_dl_get_snr(&ue_dl.chest),snr,nframes);      
+          nframes++;
+          
+          // Plot and Printf
+          if (ue_sync_get_sfidx(&ue_sync) == 0) {
+            printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, "
+                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %4.1f dB, "
+                  "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
+                  ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
+                  10*log10(rsrp*1000)-gain_offset, 
+                10*log10(rsrq), 10*log10(snr), 
+                100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
+                (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                
+          }
+          break;
       }
-      if (pbch_decoded) {
-        /* We are looking for SI Blocks, search only in appropiate places */
-        if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-          n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, prog_args.rnti);
-          if (n < 0) {
-            fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
-          } 
-          nof_trials++;             
-          snr = VEC_CMA(chest_dl_get_snr(&ue_dl.chest), snr, nof_trials);              
-        }
-      }
-    } 
-    if (ue_sync_get_sfidx(&ue_sync) == 9) {
-      if (pbch_decoded) {
+      if (ue_sync_get_sfidx(&ue_sync) == 9) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
-        }        
+        }
       }
+      #ifndef DISABLE_GRAPHICS
+      if (!prog_args.disable_plots && ue_sync_get_sfidx(&ue_sync) == 5) {
+        do_plots(&ue_dl, 5);          
+      }
+      #endif
+    } else if (ret == 0) {
+      printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
+        sync_get_peak_value(&ue_sync.sfind), 
+        ue_sync.frame_total_cnt, ue_sync.state);      
     }
-    #ifndef DISABLE_GRAPHICS
-    if (!prog_args.disable_plots && ue_sync_get_sfidx(&ue_sync) == 5) {
-      do_plots(&ue_dl, 5);          
-    }
-    #endif
-  
-    if ((sf_cnt%10)==0) {
-      printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, SNR: %5.1f dB, NOI: %.2f, "
-            "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
-            ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
-            10*log10f(snr), pdsch_average_noi(&ue_dl.pdsch),
-            100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
-            (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                                 
-            
-    }
+        
     sf_cnt++;                  
   } // Main loop
-
+  
   ue_dl_free(&ue_dl);
   ue_mib_free(&ue_mib);
   ue_sync_free(&ue_sync);

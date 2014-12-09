@@ -31,10 +31,8 @@
 #include "liblte/rrc/messages/sib1.h"
 #include "liblte/rrc/messages/bcch.h"
 #include "liblte/phy/utils/bit.h"
+#include "liblte/phy/utils/debug.h"
 #include "rrc_asn.h"
-
-
-
 
 int bcch_bch_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *buffer, uint32_t buffer_size_bytes) {
   
@@ -201,18 +199,17 @@ void* bcch_dlsch_unpack(uint8_t *buffer, uint32_t msg_nof_bits) {
     fprintf(stderr, "Decoding failed.\n");
     return NULL;
   } else {
-    bcch_dlsch_fprint(msg, stdout);        
     return msg;
   }
 }
 
-bcch_dlsch_sib_type_t bcch_dlsch_get_type(void *bcch_dlsch_msg) {
+sib_type_t bcch_dlsch_get_type(void *bcch_dlsch_msg) {
   BCCH_DL_SCH_Message_t *msg = (BCCH_DL_SCH_Message_t*) bcch_dlsch_msg; 
   switch(msg->message.present) {
     case BCCH_DL_SCH_MessageType_PR_c1:
       switch (msg->message.choice.c1.present) {
         case BCCH_DL_SCH_MessageType__c1_PR_systemInformationBlockType1: 
-          return BCCH_DLSCH_SIB1;
+          return SIB1;
         break;
         default: 
           fprintf(stderr, "Message type not supported\n");
@@ -224,7 +221,7 @@ bcch_dlsch_sib_type_t bcch_dlsch_get_type(void *bcch_dlsch_msg) {
       bcch_dlsch_fprint(bcch_dlsch_msg, stderr);
     break;
   }
-  return BCCH_DLSCH_UNKNOWN;
+  return SIB_ERROR;
 }
 
 void bcch_dlsch_fprint(void *bcch_dlsch_msg, FILE *stream) {

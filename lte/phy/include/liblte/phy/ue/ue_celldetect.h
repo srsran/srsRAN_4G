@@ -63,26 +63,28 @@
 #define CS_DEFAULT_NOFFRAMES_TOTAL      100
 #define CS_DEFAULT_NOFFRAMES_DETECTED   10
 
-#define CS_FIND_THRESHOLD          0.6
-
 #define CS_FRAME_UNALIGNED     -3
 #define CS_CELL_DETECTED        2
 #define CS_CELL_NOT_DETECTED    3
+
+#define CS_FFTSIZE   128
+#define CS_SAMP_FREQ    (960000*(CS_FFTSIZE/64))
+#define CS_FLEN      (4800*(CS_FFTSIZE/64))
 
 typedef struct LIBLTE_API {
   uint32_t cell_id; 
   lte_cp_t cp; 
   float peak; 
-  uint32_t mode; 
+  float mode; 
 } ue_celldetect_result_t;
 
 
 typedef struct LIBLTE_API {
   sync_t sfind;
+  
   uint32_t max_frames_total;
-  uint32_t max_frames_detected;
-  uint32_t nof_frames_total;
-  uint32_t nof_frames_detected;
+  uint32_t nof_frames_total;  // number of 5 ms frames to scan 
+  float detect_threshold; // early-stops scan if mean PSR above this threshold
   
   uint32_t current_nof_detected; 
   uint32_t current_nof_total; 
@@ -97,8 +99,7 @@ typedef struct LIBLTE_API {
 LIBLTE_API int ue_celldetect_init(ue_celldetect_t *q);
 
 LIBLTE_API int ue_celldetect_init_max(ue_celldetect_t *q, 
-                                      uint32_t max_frames_total, 
-                                      uint32_t max_frames_detected);
+                                      uint32_t max_frames_total);
 
 LIBLTE_API void ue_celldetect_free(ue_celldetect_t *q);
 
@@ -116,9 +117,6 @@ LIBLTE_API void ue_celldetect_get_cell(ue_celldetect_t * q,
 
 LIBLTE_API int ue_celldetect_set_nof_frames_total(ue_celldetect_t *q, 
                                                    uint32_t nof_frames);
-
-LIBLTE_API int ue_celldetect_set_nof_frames_detected(ue_celldetect_t *q, 
-                                                      uint32_t nof_frames);
 
 LIBLTE_API void ue_celldetect_set_threshold(ue_celldetect_t *q, 
                                             float threshold); 

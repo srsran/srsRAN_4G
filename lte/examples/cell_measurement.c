@@ -47,9 +47,8 @@
 float gain_offset = B210_DEFAULT_GAIN_CORREC;
 
 cell_detect_cfg_t cell_detect_config = {
-  500, // nof_frames_total 
-  50,  // nof_frames_detected
-  0.4 // threshold
+  100, // nof_frames_total 
+  3.0 // early-stops cell detection if mean PSR is above this value 
 };
 
 /**********************************************************************
@@ -126,7 +125,10 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
 
 extern float mean_exec_time;
 
-enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state; 
+enum receiver_state { DECODE_MIB, DECODE_SIB, DECODE_SIB4, MEASURE} state; 
+
+#define MAX_SINFO 10
+#define MAX_NEIGHBOUR_CELLS     128
 
 int main(int argc, char **argv) {
   int ret; 
@@ -148,6 +150,11 @@ int main(int argc, char **argv) {
   uint32_t sfn_offset; 
   float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
   cf_t *nullce[MAX_PORTS]; 
+  uint32_t si_window_length; 
+  scheduling_info_t sinfo[MAX_SINFO];
+  scheduling_info_t *sinfo_sib4 = NULL;
+  uint32_t neighbour_cell_ids[MAX_NEIGHBOUR_CELLS]; 
+  
   
   for (int i=0;i<MAX_PORTS;i++) {
     nullce[i] = NULL;
@@ -173,7 +180,9 @@ int main(int argc, char **argv) {
     exit(-1); 
   }
   
-  cuhd_start_rx_stream(uhd);
+  INFO("Stopping UHD and flushing buffer...\n",0);
+  cuhd_stop_rx_stream(uhd);
+  cuhd_flush_buffer(uhd);
   
   if (ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
     fprintf(stderr, "Error initiating ue_sync\n");
@@ -187,7 +196,9 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }
-  pdsch_set_rnti(&ue_dl.pdsch, SIRNTI);
+  
+  /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
+  ue_dl_set_rnti(&ue_dl, SIRNTI); 
 
   /* Initialize subframe counter */
   sf_cnt = 0;
@@ -204,7 +215,12 @@ int main(int argc, char **argv) {
   int sf_re = SF_LEN_RE(cell.nof_prb, cell.cp);
 
   cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
+  
+  cuhd_start_rx_stream(uhd);
 
+  bool sib4_window_start = false;
+  uint32_t sib4_window_cnt = 0; 
+  
   /* Main loop */
   while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
     
@@ -229,17 +245,17 @@ int main(int argc, char **argv) {
             } else if (n == MIB_FOUND) {             
               bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
               bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
-              printf("MIB found SFN: %d, offset: %d\n", sfn, sfn_offset);
-              sfn = (sfn<<2) + sfn_offset; 
+              printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
+              sfn = (sfn + sfn_offset)%1024; 
               state = DECODE_SIB; 
             }
           }
           break;
         case DECODE_SIB:
-          sfn=0; // FIXME: Use correct SFN!! 
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = ue_dl_decode(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), sfn, SIRNTI);
+            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
+                                 ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               exit(-1);
@@ -250,17 +266,74 @@ int main(int argc, char **argv) {
                       (float) ue_dl.nof_pdcch_detected/nof_trials);                
               nof_trials++; 
             } else {
-              printf("\n\nDecoded SIB1 Message Len %d: ",n);
               bit_unpack_vector(data, data_unpacked, n);
               void *dlsch_msg = bcch_dlsch_unpack(data_unpacked, n);
               if (dlsch_msg) {
                 printf("\n");fflush(stdout);
                 cell_access_info_t cell_info; 
                 bcch_dlsch_sib1_get_cell_access_info(dlsch_msg, &cell_info);
-                printf("Cell ID: 0x%x\n", cell_info.cell_id);
+                printf("Decoded SIB1. Cell ID: 0x%x\n", cell_info.cell_id);
+                bcch_dlsch_fprint(dlsch_msg, stdout);        
+                /* Get SIB4 scheduling */
+                int nsinfo = bcch_dlsch_sib1_get_scheduling_info(dlsch_msg, &si_window_length, sinfo, MAX_SINFO);
+                /* find SIB4 */
+                for (int i=0;i<nsinfo && !sinfo_sib4;i++) {
+                  if (sinfo[i].type == SIB4) {
+                    sinfo_sib4 = &sinfo[i];
+                  }
+                }
+                ue_dl.nof_pdcch_detected = nof_trials = 0;
+                sib4_window_start = false; 
+                bzero(data, sizeof(data));
+                ue_dl_reset(&ue_dl);
               }
+              if (sinfo_sib4) {
+                state = DECODE_SIB4;                 
+              } else {
+                state = MEASURE;
+              }
+            }
+          }
+        break;
+        case DECODE_SIB4:
+          
+          if (!sib4_window_start && 
+            ((sfn%sinfo_sib4->period) == sinfo_sib4->n*si_window_length/10) && 
+            ue_sync_get_sfidx(&ue_sync) == (sinfo_sib4->n*si_window_length%10)) {
+            sib4_window_start = true; 
+            sib4_window_cnt = 0; 
+          }
+          
+          /* We are looking for SI Blocks, search only in appropiate places */
+          if (sib4_window_start && !(ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0))
+          {
+/*            printf("[%d/%d]: Trying SIB4 in SF: %d, SFN: %d\n", sib4_window_cnt, si_window_length, 
+                   ue_sync_get_sfidx(&ue_sync), sfn);
+*/            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
+                                   ((int) ceilf((float)3*sib4_window_cnt/2))%4);
+            if (n < 0) {
+              fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
+              exit(-1);
+            } else if (n == 0) {
+              nof_trials++; 
+            } else {
+              bit_unpack_vector(data, data_unpacked, n);
+              void *dlsch_msg = bcch_dlsch_unpack(data_unpacked, n);              
+              int nof_cell = bcch_dlsch_sib4_get_neighbour_cells(dlsch_msg, neighbour_cell_ids, MAX_NEIGHBOUR_CELLS);
+ 
+              printf("Decoded SIB4. Neighbour cell list (PhyIDs): ");
+              for (int i=0;i<nof_cell;i++) {
+                printf("%d, ", neighbour_cell_ids[i]);
+              }
+              printf("\n");
               state = MEASURE; 
             }
+            sib4_window_cnt++;
+            if (sib4_window_cnt == si_window_length) {
+              sib4_window_start = false;
+              exit(-1);
+            }
+
           }
         break;
       case MEASURE:
@@ -268,8 +341,7 @@ int main(int argc, char **argv) {
         lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
         
         chest_dl_estimate(&chest, sf_symbols, nullce, ue_sync_get_sfidx(&ue_sync));
-        
-        
+                
         rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SF_LEN(lte_symbol_sz(cell.nof_prb))),rssi,nframes);
         rssi_utra = VEC_CMA(chest_dl_get_rssi(&chest),rssi_utra,nframes);
         rsrq = VEC_EMA(chest_dl_get_rsrq(&chest),rsrq,0.001);
@@ -289,7 +361,7 @@ int main(int argc, char **argv) {
         }
         break;
       }
-      if (ue_sync_get_sfidx(&ue_sync) == 0) {
+      if (ue_sync_get_sfidx(&ue_sync) == 9) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 

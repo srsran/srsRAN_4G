@@ -53,12 +53,14 @@ float uhd_gain=40.0, uhd_freq=-1.0;
 int nof_frames = -1;
 uint32_t fft_size=64;
 float threshold = 0.4; 
+int N_id_2_sync = -1; 
 
 void usage(char *prog) {
   printf("Usage: %s [adgtvnp] -f rx_frequency_hz -i cell_id\n", prog);
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-g UHD Gain [Default %.2f dB]\n", uhd_gain);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
+  printf("\t-l N_id_2 to sync [Default use cell_id]\n");
   printf("\t-s symbol_sz [Default %d]\n", fft_size);
   printf("\t-t threshold [Default %.2f]\n", threshold);
 #ifndef DISABLE_GRAPHICS
@@ -71,7 +73,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "adgtvsfi")) != -1) {
+  while ((opt = getopt(argc, argv, "adgtvsfil")) != -1) {
     switch (opt) {
     case 'a':
       uhd_args = argv[optind];
@@ -87,6 +89,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'i':
       cell_id = atoi(argv[optind]);
+      break;
+    case 'l':
+      N_id_2_sync = atoi(argv[optind]);
       break;
     case 's':
       fft_size = atoi(argv[optind]);
@@ -117,7 +122,7 @@ int main(int argc, char **argv) {
   int frame_cnt, n; 
   void *uhd;
   pss_synch_t pss; 
-  cfo_t cfocorr; 
+  cfo_t cfocorr, cfocorr64; 
   sss_synch_t sss; 
   int32_t flen; 
   int peak_idx, last_peak;
@@ -128,6 +133,9 @@ int main(int argc, char **argv) {
   
   parse_args(argc, argv);
 
+  if (N_id_2_sync == -1) {
+    N_id_2_sync = cell_id%3;
+  }
   uint32_t N_id_2 = cell_id%3;
   uint32_t N_id_1 = cell_id/3;
   
@@ -146,12 +154,13 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating PSS\n");
     exit(-1);
   }
-  if (pss_synch_set_N_id_2(&pss, N_id_2)) {
-    fprintf(stderr, "Error setting N_id_2=%d\n",N_id_2);
+  if (pss_synch_set_N_id_2(&pss, N_id_2_sync)) {
+    fprintf(stderr, "Error setting N_id_2=%d\n",N_id_2_sync);
     exit(-1);
   }
   
   cfo_init(&cfocorr, flen); 
+  cfo_init(&cfocorr64, flen); 
  
   if (sss_synch_init(&sss, fft_size)) {
     fprintf(stderr, "Error initializing SSS object\n");
@@ -184,6 +193,11 @@ int main(int argc, char **argv) {
   float mean_cfo = 0; 
   uint32_t m0, m1; 
   uint32_t sss_error1 = 0, sss_error2 = 0, sss_error3 = 0; 
+  uint32_t cp_is_norm = 0; 
+  
+  sync_t ssync; 
+  bzero(&ssync, sizeof(sync_t));
+  ssync.fft_size = fft_size;
   
   while(frame_cnt < nof_frames || nof_frames == -1) {
     n = cuhd_recv(uhd, buffer, flen - peak_offset, 1);
@@ -197,7 +211,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error finding PSS peak\n");
       exit(-1);
     }
-    
+        
     mean_peak = VEC_CMA(peak_value, mean_peak, frame_cnt);
     
     if (peak_value >= threshold) {
@@ -219,15 +233,15 @@ int main(int argc, char **argv) {
         }
         
         // Find SSS 
-        int sss_idx = peak_idx-flen/10+SLOT_IDX_CPNORM(5,fft_size);             
+        int sss_idx = peak_idx-2*fft_size-CP(fft_size, CPNORM_LEN);             
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
-          sss_synch_m0m1_diff(&sss, &buffer[sss_idx], &m0, &m0_value, &m1, &m1_value);
-          if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
-            sss_error3++;            
-          }
           sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);
           if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error2++;            
+          }
+          sss_synch_m0m1_diff(&sss, &buffer[sss_idx], &m0, &m0_value, &m1, &m1_value);
+          if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
+            sss_error3++;            
           }
           sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
           if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
@@ -235,6 +249,13 @@ int main(int argc, char **argv) {
           }
         }
         
+        // Estimate CP 
+        if (peak_idx > 2*(fft_size + CP_EXT(fft_size))) {
+          lte_cp_t cp = sync_detect_cp(&ssync, buffer, peak_idx);
+          if (CP_ISNORM(cp)) {
+            cp_is_norm++; 
+          }          
+        }
         
       } else {
         INFO("No space for CFO computation. Frame starts at \n",peak_idx);
@@ -248,7 +269,7 @@ int main(int argc, char **argv) {
     }
 
     if (frame_cnt > 100) {
-      if (abs(last_peak-peak_idx) > 10) {
+      if (abs(last_peak-peak_idx) > 4) {
         if (peak_value >= threshold) {
           nof_nopeakdet++;
         } 
@@ -258,15 +279,15 @@ int main(int argc, char **argv) {
     
     frame_cnt++;
    
-    printf("[%5d]: Pos: %5d, PSR: %6.3f MeanPSR: %6.3f, Pdet: %6.3f, Pmiss: %.3f, "
-           "FP: %d, FPThres: %d, CFO: %+4.1f KHz SSSmiss: %.3f/%.3f/%.3f\r",
+    printf("[%5d]: Pos: %5d, PSR: %4.1f (~%4.1f) Pdet: %4.2f, "
+           "FA: %4.2f, CFO: %+4.1f KHz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f\%\r", 
            frame_cnt, 
            peak_idx, 
            peak_value, mean_peak,
-           (float) nof_det/frame_cnt, (float) nof_nodet/frame_cnt, 
-           nof_nopeak, nof_nopeakdet, mean_cfo*15, 
-           (float) sss_error1/nof_det,(float) sss_error2/nof_det,(float) sss_error3/nof_det
-          );
+           (float) nof_det/frame_cnt, 
+           (float) nof_nopeakdet/frame_cnt, mean_cfo*15, 
+           (float) sss_error1/nof_det,(float) sss_error2/nof_det,(float) sss_error3/nof_det,
+           (float) cp_is_norm/nof_det * 100);
     
     if (VERBOSE_ISINFO()) {
       printf("\n");

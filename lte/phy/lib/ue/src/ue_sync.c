@@ -46,11 +46,9 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define FIND_THRESHOLD          1.5
-#define TRACK_THRESHOLD         0.8
+#define FIND_THRESHOLD          4.0
+#define TRACK_THRESHOLD         2.0
 #define TRACK_MAX_LOST          10
-
-#define CFO_EMA_ALPHA           0.01
 
 
 int ue_sync_init(ue_sync_t *q, 
@@ -69,9 +67,7 @@ int ue_sync_init(ue_sync_t *q,
     
     bzero(q, sizeof(ue_sync_t));
 
-    ue_sync_reset(q);
-    
-    q->decode_sss_on_track = true; 
+    q->decode_sss_on_track = false; 
     q->stream = stream_handler;
     q->recv_callback = recv_callback;
     q->cell = cell;
@@ -89,22 +85,22 @@ int ue_sync_init(ue_sync_t *q,
     sync_set_threshold(&q->sfind, FIND_THRESHOLD);
     q->sfind.cp = cell.cp;
     sync_cp_en(&q->sfind, false);
+    sync_correct_cfo(&q->sfind, true);
+    sync_set_em_alpha(&q->sfind, 1);
 
     sync_set_N_id_2(&q->strack, cell.id%3);
     sync_set_threshold(&q->strack, TRACK_THRESHOLD);
     q->strack.cp = cell.cp;
     sync_cp_en(&q->strack, false);
-
-    if (cfo_init(&q->cfocorr, CURRENT_SFLEN)) {
-      fprintf(stderr, "Error initiating CFO\n");
-      goto clean_exit;
-    }
-   
+    sync_correct_cfo(&q->strack, false); 
+  
     q->input_buffer = vec_malloc(5 * CURRENT_SFLEN * sizeof(cf_t));
     if (!q->input_buffer) {
       perror("malloc");
       goto clean_exit;
     }
+    
+    ue_sync_reset(q);
     
     ret = LIBLTE_SUCCESS;
   }
@@ -124,7 +120,6 @@ void ue_sync_free(ue_sync_t *q) {
   if (q->input_buffer) {
     free(q->input_buffer);
   }
-  cfo_free(&q->cfocorr);
   sync_free(&q->sfind);
   sync_free(&q->strack);
   
@@ -143,7 +138,7 @@ uint32_t ue_sync_get_sfidx(ue_sync_t *q) {
 }
 
 float ue_sync_get_cfo(ue_sync_t *q) {
-  return 15000 * q->cur_cfo;
+  return 15000 * sync_get_cfo(&q->strack);
 }
 
 float ue_sync_get_sfo(ue_sync_t *q) {
@@ -176,7 +171,7 @@ static int find_peak_ok(ue_sync_t *q) {
     q->state = SF_TRACK;      
     
     INFO("Found peak at %d, value %.3f, SF_idx: %d, Cell_id: %d CP: %s\n", 
-        q->peak_idx, sync_get_peak_value(&q->sfind), q->sf_idx, q->cell.id, lte_cp_string(q->cell.cp));       
+        q->peak_idx, sync_get_last_peak_value(&q->sfind), q->sf_idx, q->cell.id, lte_cp_string(q->cell.cp));       
     
   } else {
     INFO("Found peak at %d, SSS not detected\n", q->peak_idx);
@@ -188,16 +183,12 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
   
    /* Make sure subframe idx is what we expect */
   if ((q->sf_idx != sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track) {
-    INFO("Warning: Expected SF idx %d but got %d (%d,%g - %d,%g)!\n", 
-          q->sf_idx, sync_get_sf_idx(&q->strack), 
+    if (sync_get_cell_id(&q->strack) == q->cell.id) {
+      INFO("Warning: Expected SF idx %d but got %d (%d,%g - %d,%g)!\n", 
+         q->sf_idx, sync_get_sf_idx(&q->strack), 
          q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
-
-    /* FIXME: What should we do in this case? 
-     * If the threshold is high enough, an OK peak means it is likely to be true
-     * Otherwise, maybe we should not trust the new sf_idx. 
-     */
-    q->sf_idx = sync_get_sf_idx(&q->strack);
-    //q->state = SF_FIND; 
+      q->sf_idx = sync_get_sf_idx(&q->strack);      
+    }
   } else {
     q->time_offset = ((int) track_idx - (int) CURRENT_FFTSIZE); 
     
@@ -210,8 +201,6 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
       }
     } 
     
-    /* compute cumulative moving average CFO */
-    q->cur_cfo = VEC_EMA(sync_get_cfo(&q->strack), q->cur_cfo, CFO_EMA_ALPHA);
     /* compute cumulative moving average time offset */
     q->mean_time_offset = (float) VEC_CMA((float) q->time_offset, q->mean_time_offset, q->frame_total_cnt);
 
@@ -232,7 +221,7 @@ int track_peak_no(ue_sync_t *q) {
     q->state = SF_FIND;
   } else {
     INFO("Tracking peak not found. Peak %.3f, %d lost\n", 
-         sync_get_peak_value(&q->strack), (int) q->frame_no_cnt);    
+         sync_get_last_peak_value(&q->strack), (int) q->frame_no_cnt);    
   }
 
   return 1;
@@ -301,7 +290,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
       case SF_TRACK:
         ret = 1;
         
-        q->strack.sss_en = q->decode_sss_on_track; 
+        sync_sss_en(&q->strack, q->decode_sss_on_track);
         
         q->sf_idx = (q->sf_idx + 1) % 10;
 
@@ -343,7 +332,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
         }
         
         /* Do CFO Correction and deliver the frame */
-        cfo_correct(&q->cfocorr, q->input_buffer, q->input_buffer, -q->cur_cfo / CURRENT_FFTSIZE);         
+        cfo_correct(&q->sfind.cfocorr, q->input_buffer, q->input_buffer, -sync_get_cfo(&q->strack) / CURRENT_FFTSIZE);     
         *sf_symbols = q->input_buffer;
         
       break;
@@ -354,11 +343,10 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
 
 void ue_sync_reset(ue_sync_t *q) {
   q->state = SF_FIND;
-    
+  sync_reset(&q->strack);
   q->frame_ok_cnt = 0;
   q->frame_no_cnt = 0;
   q->frame_total_cnt = 0; 
-  q->cur_cfo = 0.0;
   q->mean_time_offset = 0.0;
   q->time_offset = 0;
   #ifdef MEASURE_EXEC_TIME

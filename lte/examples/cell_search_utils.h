@@ -29,9 +29,8 @@
 #include "liblte/phy/phy.h"
 
 typedef struct LIBLTE_API {
-  uint32_t nof_frames_total;
-  uint32_t nof_frames_detected;
-  float threshold;
+  uint32_t nof_frames_total; // maximum number of 5ms frames to capture 
+  float threshold;   // early-stops cell detection if mean PSR is above this value 
 }cell_detect_cfg_t;
 
 int decode_pbch(void *uhd, 

@@ -67,7 +67,7 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t
     vec_sc_prod_cfc(pss_signal_freq, 1.0/PSS_LEN, pss_signal_freq, fft_size);
 
     dft_plan_free(&plan);
-    
+        
     ret = LIBLTE_SUCCESS;
   }
   return ret;
@@ -95,7 +95,8 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
     q->N_id_2 = 10;
     q->fft_size = fft_size;
     q->frame_size = frame_size;
-    
+    q->ema_alpha = 0.1; 
+
     buffer_size = fft_size + frame_size + 1;
     
     
@@ -105,6 +106,7 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
     }
     dft_plan_set_mirror(&q->dftp_input, true);
     dft_plan_set_dc(&q->dftp_input, true);
+    dft_plan_set_norm(&q->dftp_input, true);
 
     q->tmp_input = vec_malloc(buffer_size * sizeof(cf_t));
     if (!q->tmp_input) {
@@ -183,11 +185,9 @@ void pss_synch_free(pss_synch_t *q) {
     if (q->conv_output) {
       free(q->conv_output);
     }
-#ifdef PSS_ACCUMULATE_ABS
     if (q->conv_output_abs) {
       free(q->conv_output_abs);
     }
-#endif
     if (q->conv_output_avg) {
       free(q->conv_output_avg);
     }
@@ -197,11 +197,8 @@ void pss_synch_free(pss_synch_t *q) {
 }
 
 void pss_synch_reset(pss_synch_t *q) {
-#ifdef PSS_ACCUMULATE_ABS
   uint32_t buffer_size = q->fft_size + q->frame_size + 1;
-  bzero(q->conv_output_avg, sizeof(cf_t) * buffer_size);
-#endif
-  
+  bzero(q->conv_output_avg, sizeof(float) * buffer_size);
 }
 
 /**
@@ -261,6 +258,12 @@ int pss_synch_set_N_id_2(pss_synch_t *q, uint32_t N_id_2) {
   }
 }
 
+/* Sets the weight factor alpha for the exponential moving average of the PSS correlation output
+ */
+void pss_synch_set_ema_alpha(pss_synch_t *q, float alpha) {
+  q->ema_alpha = alpha; 
+}
+
 /** Performs time-domain PSS correlation. 
  * Returns the index of the PSS correlation peak in a subframe.
  * The frame starts at corr_peak_pos-subframe_size/2.
@@ -295,40 +298,39 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
   #endif
 
    
-#ifdef PSS_ACCUMULATE_ABS
 #ifdef PSS_ABS_SQUARE
     vec_abs_square_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
 #else
     vec_abs_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
 #endif
-    /* Find maximum of the absolute value of the correlation */
-    corr_peak_pos = vec_max_fi(q->conv_output_abs, conv_output_len-1);
-    
-    // Normalize correlation output
-    vec_sc_prod_fff(q->conv_output_abs, 1/q->conv_output_abs[corr_peak_pos], q->conv_output_abs, conv_output_len-1);
-    
+
+    vec_sc_prod_fff(q->conv_output_abs, q->ema_alpha, q->conv_output_abs, conv_output_len-1);    
+    vec_sc_prod_fff(q->conv_output_avg, 1-q->ema_alpha, q->conv_output_avg, conv_output_len-1);    
+
     vec_sum_fff(q->conv_output_abs, q->conv_output_avg, q->conv_output_avg, conv_output_len-1);
-#else
-
-#ifdef PSS_ABS_SQUARE
-    vec_abs_square_cf(q->conv_output, q->conv_output_avg, conv_output_len-1);
-#else
-    vec_abs_cf(q->conv_output, q->conv_output_avg, conv_output_len-1);
-#endif
-
-#endif
     
     /* Find maximum of the absolute value of the correlation */
     corr_peak_pos = vec_max_fi(q->conv_output_avg, conv_output_len-1);
     
 #ifdef PSS_RETURN_PSR    
     // Find second side lobe
-    float tmp = q->conv_output_avg[corr_peak_pos];
-    q->conv_output_avg[corr_peak_pos] = 0; 
-    int side_lobe_pos = vec_max_fi(q->conv_output_avg, conv_output_len-1);
-    q->conv_output_avg[corr_peak_pos] = tmp;
+    
+    // Find end of peak lobe to the right
+    int pl_ub = corr_peak_pos+1;
+    while(q->conv_output_avg[pl_ub+1] <= q->conv_output_avg[pl_ub] && pl_ub < conv_output_len) {
+      pl_ub ++; 
+    }
+    // Find end of peak lobe to the left
+    int pl_lb = corr_peak_pos-1;
+    while(q->conv_output_avg[pl_lb-1] <= q->conv_output_avg[pl_lb] && pl_lb > 1) {
+      pl_lb --; 
+    }
+    
+    int sl_right = pl_ub+vec_max_fi(&q->conv_output_avg[pl_ub], conv_output_len-1 - pl_ub);
+    int sl_left = vec_max_fi(q->conv_output_avg, pl_lb);    
+    float side_lobe_value = MAX(q->conv_output_avg[sl_right], q->conv_output_avg[sl_left]);    
     if (corr_peak_value) {
-      *corr_peak_value = tmp/q->conv_output_avg[side_lobe_pos];
+      *corr_peak_value = q->conv_output_avg[corr_peak_pos]/side_lobe_value;
     }
 #else
     if (corr_peak_value) {
@@ -366,7 +368,7 @@ int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
     dft_run_c(&q->dftp_input, input, input_fft);
     
     /* Compute channel estimate taking the PSS sequence as reference */
-    vec_prod_conj_ccc(q->pss_signal_time[q->N_id_2], &input_fft[(q->fft_size-PSS_LEN)/2], ce, PSS_LEN);
+    vec_prod_conj_ccc(&input_fft[(q->fft_size-PSS_LEN)/2], q->pss_signal_time[q->N_id_2], ce, PSS_LEN);
       
     ret = LIBLTE_SUCCESS;
   }

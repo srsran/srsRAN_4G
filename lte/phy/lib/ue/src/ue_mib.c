@@ -36,8 +36,6 @@
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
 
-#define MIB_FIND_THRESHOLD          0.0
-
 int ue_mib_init_1_92(ue_mib_t * q, 
                 uint32_t cell_id, 
                 lte_cp_t cp) 
@@ -83,7 +81,7 @@ int ue_mib_init_1_92(ue_mib_t * q,
         goto clean_exit;
       }
       
-      sync_set_threshold(&q->sfind, MIB_FIND_THRESHOLD);
+      sync_set_threshold(&q->sfind, 1.0); // Because we are capturing 5 ms frames and there is always peak
       sync_sss_en(&q->sfind, true);
       sync_set_N_id_2(&q->sfind, cell.id % 3);
       sync_cp_en(&q->sfind, false);
@@ -167,8 +165,6 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
   if (ret < 0) {
     return LIBLTE_ERROR;
   }
-  INFO("Channel estimated for %d ports, Noise: %f\n", q->chest.cell.nof_ports,
-       chest_dl_get_noise_estimate(&q->chest));
   /* Reset decoder if we missed a frame */
   if ((q->last_frame_trial && (abs(q->frame_cnt - q->last_frame_trial) > 2)) || 
       q->frame_cnt > 16) 
@@ -259,13 +255,6 @@ int ue_mib_sync_and_decode_1_92(ue_mib_t * q,
                 nf*MIB_FRAME_SIZE_SEARCH + peak_idx                             >  MIB_FRAME_SIZE_SEARCH/10)
             {
               // PSS and SSS detected and we have space to decode the PBCH. 
-              
-              // Apply CFO correction 
-              INFO("Correcting CFO: %f\n", sync_get_cfo(&q->sfind));
-              cfo_correct(&q->cfocorr, &signal[nf*MIB_FRAME_SIZE_SEARCH], &signal[nf*MIB_FRAME_SIZE_SEARCH], 
-                          -sync_get_cfo(&q->sfind) / MIB_FFT_SIZE);         
-
-              
               INFO("Trying to decode PBCH\n",0);
               ret = ue_mib_decode_aligned_frame(q, 
                                                 &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-MIB_FRAME_SIZE_SEARCH/10], 

@@ -72,8 +72,7 @@ static void corr_all_sz_partial(cf_t z[N_SSS], float s[N_SSS][N_SSS], uint32_t M
 static void extract_pair_sss(sss_synch_t *q, cf_t *input, cf_t *ce, cf_t y[2][N_SSS]) {
   cf_t input_fft[SYMBOL_SZ_MAX];
 
-  
-  dft_run_c(&q->dftp_input, &input[CP_NORM(5, q->fft_size)], input_fft);
+  dft_run_c(&q->dftp_input, input, input_fft);
   
   if (ce) {
     vec_prod_conj_ccc(&input_fft[q->fft_size/2-N_SSS], ce, &input_fft[q->fft_size/2-N_SSS], 2*N_SSS);
@@ -90,7 +89,8 @@ static void extract_pair_sss(sss_synch_t *q, cf_t *input, cf_t *ce, cf_t y[2][N_
 }    
 
 int sss_synch_m0m1_diff(sss_synch_t *q, cf_t *input, uint32_t *m0, float *m0_value,
-    uint32_t *m1, float *m1_value) {
+    uint32_t *m1, float *m1_value) 
+{
   return sss_synch_m0m1_diff_coh(q, input, NULL, m0, m0_value, m1, m1_value);
 }
 
@@ -161,7 +161,7 @@ int sss_synch_m0m1_partial(sss_synch_t *q, cf_t *input, uint32_t M, cf_t ce[2*N_
     
     extract_pair_sss(q, input, ce, y);
     
-    corr_all_sz_partial(y[0], q->fc_tables[q->N_id_2].s, M, q->corr_output_m0);
+    corr_all_sz_partial(y[0], q->fc_tables[q->N_id_2].s, M, q->corr_output_m0);    
     *m0 = vec_max_fi(q->corr_output_m0, N_SSS);
     if (m0_value) {
       *m0_value = q->corr_output_m0[*m0];

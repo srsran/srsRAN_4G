@@ -47,6 +47,11 @@ LIBLTE_API void bcch_dlsch_sib1_get_plmns(void *bcch_dlsch_msg,
 LIBLTE_API void bcch_dlsch_sib1_get_cell_access_info(void *bcch_dlsch_msg, 
                                                      cell_access_info_t *info); 
 
+LIBLTE_API int bcch_dlsch_sib1_get_scheduling_info(void *bcch_dlsch_msg, 
+                                                    uint32_t *si_window_length,
+                                                    scheduling_info_t *info, 
+                                                    uint32_t max_elems);
+
 void bcch_dlsch_sib1(BCCH_DL_SCH_Message_t *sib1, 
                      MCC_MNC_Digit_t mcc_val[3], 
                      MCC_MNC_Digit_t mnc_val[2], 

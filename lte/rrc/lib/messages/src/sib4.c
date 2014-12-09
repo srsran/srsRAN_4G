@@ -25,26 +25,32 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <complex.h>
-#include <math.h>
-
-#ifndef _LTE_RRC_
-#define _LTE_RRC_
-
-#ifdef __cplusplus
-    extern "C" {
-#endif
-
-#include "liblte/config.h"
-
-#include "liblte/rrc/messages/bcch.h"
-#include "liblte/rrc/messages/sib1.h"
-#include "liblte/rrc/messages/sib4.h"
 #include "liblte/rrc/common/rrc_common.h"
-      
-#ifdef __cplusplus
-}
-#endif
+#include "liblte/rrc/messages/bcch.h"
+#include "liblte/rrc/messages/sib4.h"
+#include "liblte/phy/utils/bit.h"
+#include "rrc_asn.h"
+#include <BCCH-DL-SCH-MessageType.h>
 
-#endif
+
+int bcch_dlsch_sib4_get_neighbour_cells(void *bcch_dlsch_msg, uint32_t *neighbour_cell_ids, uint32_t max_elems)
+{
+  int i = 0; 
+  BCCH_DL_SCH_Message_t *msg = (BCCH_DL_SCH_Message_t*) bcch_dlsch_msg; 
+  SystemInformationBlockType4_t *sib4 = 
+  &(msg->message.choice.c1.choice.systemInformation.criticalExtensions.choice.systemInformation_r8.sib_TypeAndInfo.list.array[0]->choice.sib4);
+ 
+  if (sib4->intraFreqNeighCellList) {
+    for (i=0;i<sib4->intraFreqNeighCellList->list.count && i<max_elems;i++) {
+      IntraFreqNeighCellInfo_t *cellInfo = sib4->intraFreqNeighCellList->list.array[i]; 
+      neighbour_cell_ids[i] = cellInfo->physCellId;
+    }    
+  }
+  
+  return i; 
+}
+
+

@@ -7,15 +7,15 @@ m1=10;
 %m0=26;
 %m1=21;
 
-recordedWaveform = signal;
+recordedWaveform = x;
 if (~isempty(recordedWaveform))
-    Npackets = floor(length(signal)/19200)-1;
+    Npackets = floor(length(recordedWaveform)/19200)-1;
     SNR_values = 0;
 end
 
 error = zeros(6,length(SNR_values));
 
-enb = struct('NCellID',196,'NSubframe',0,'NDLRB',6,'CellRefP',1,'CyclicPrefix','Normal','DuplexMode','FDD');
+enb = struct('NCellID',2,'NSubframe',0,'NDLRB',6,'CellRefP',1,'CyclicPrefix','Normal','DuplexMode','FDD');
 sss=lteSSS(enb);
 
 cfg.Seed = 2;                  % Random channel seed
@@ -68,6 +68,7 @@ for snr_idx=1:length(SNR_values)
         end
         
         offset = lteDLFrameOffset(enb,rxWaveform);
+        offsetVec(i)=offset;
         rxWaveform = [rxWaveform(1+offset:end,:); zeros(offset,1)];
 
         subframe_rx = lteOFDMDemodulate(enb,rxWaveform,1);
@@ -111,7 +112,7 @@ for snr_idx=1:length(SNR_values)
         error(3,snr_idx) = error(3,snr_idx) + ((idx ~= m0 && idx ~= m1));
         
         % libLTE results
-        [n,sf_idx,lt_corr0,lt_corr1,lt_sss0,lt_sss1]=liblte_sss(enb,rxWaveform,'full');
+        [n,sf_idx,lt_corr0]=liblte_sss(enb,rxWaveform,'full');
         [m, idx]=max(lt_corr0);
         error(4,snr_idx) = error(4,snr_idx) + ((idx ~= m0 && idx ~= m1));
 

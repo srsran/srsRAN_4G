@@ -35,22 +35,6 @@
 
 #include <stdint.h>
 
-#define SI_PERIODS  10
-#define SI_X_PERIOD 10
-
-typedef enum {BCCH_DLSCH_SIB1, BCCH_DLSCH_SIB2, BCCH_DLSCH_SIB3, BCCH_DLSCH_SIB6, BCCH_DLSCH_UNKNOWN} bcch_dlsch_sib_type_t; 
-
-typedef struct {
-  bcch_dlsch_sib_type_t type[SI_X_PERIOD]; 
-  uint32_t period; 
-} bcch_si_scheduling_info_t;
-
-typedef struct {
-  uint32_t window_length_ms; 
-  uint32_t nof_periods; 
-  bcch_si_scheduling_info_t si_period_list[SI_PERIODS]; 
-} bcch_si_scheduling_t; 
-
 
 LIBLTE_API int bcch_bch_pack(lte_cell_t *cell, 
                                  uint32_t sfn, 
@@ -71,8 +55,6 @@ LIBLTE_API int bcch_dlsch_pack(void *bcch_dlsch_msg,
 
 LIBLTE_API void* bcch_dlsch_unpack(uint8_t *buffer, 
                                    uint32_t msg_nof_bits);
-
-LIBLTE_API bcch_dlsch_sib_type_t bcch_dlsch_get_type(void *bcch_dlsch_msg);
 
 LIBLTE_API void bcch_dlsch_fprint(void *bcch_dlsch_msg, 
                                   FILE *stream);

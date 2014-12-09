@@ -278,7 +278,7 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
     uint32_t nof_bits, uint32_t nof_ports) {
   int j;
   
-  INFO("Trying to decode PBCH %d bits, %d ports, src: %d, dst: %d, n=%d\n", nof_bits, nof_ports, src, dst, n);
+  DEBUG("Trying to decode PBCH %d bits, %d ports, src: %d, dst: %d, n=%d\n", nof_bits, nof_ports, src, dst, n);
 
   memcpy(&q->temp[dst * nof_bits], &q->pbch_llr[src * nof_bits],
       n * nof_bits * sizeof(float));
@@ -381,7 +381,11 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float
         demod_soft_sigma_set(&q->demod, 1.0);
         demod_soft_demodulate(&q->demod, q->pbch_d,
             &q->pbch_llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
-
+        
+        if (nant == 2) {
+          vec_save_file("d",q->pbch_d, q->nof_symbols*sizeof(cf_t));
+        }
+        
         /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
         * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
         * We know they are ordered.

@@ -115,6 +115,8 @@ LIBLTE_API int pdsch_harq_setup(pdsch_harq_t *p,
                                 ra_mcs_t mcs,
                                 ra_prb_t *prb_alloc);
 
+LIBLTE_API void pdsch_harq_reset(pdsch_harq_t *p); 
+
 LIBLTE_API void pdsch_harq_free(pdsch_harq_t *p);
 
 LIBLTE_API int pdsch_encode(pdsch_t *q, 

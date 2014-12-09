@@ -35,6 +35,9 @@
 
 typedef _Complex float cf_t;
 
+
+#define MAX(a,b) ((a)>(b)?(a):(b))
+
 // Cumulative moving average
 #define VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n)+1)) 
 
