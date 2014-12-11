@@ -91,15 +91,17 @@ uint32_t conv_fft_cc_run(conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *outp
 }
 
 uint32_t conv_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
-  uint32_t i,j;
-  uint32_t output_len;
-  output_len=input_len+filter_len-1;
-  for (i=0;i<input_len;i++) {
-    for (j=0;j<filter_len;j++) {
-      output[i+j]+=input[i]*filter[j];
-    }
+  uint32_t i;
+  uint32_t M = filter_len; 
+  uint32_t N = input_len; 
+
+  for (i=0;i<M;i++) {
+    output[i]=vec_dot_prod_ccc(&input[i],&filter[i],i);
   }
-  return output_len;
+  for (;i<M+N-1;i++) {
+    output[i] = vec_dot_prod_ccc(&input[i-M], filter, M);
+  }
+  return M+N-1;
 }
 
 /* Centered convolution. Returns the same number of input elements. Equivalent to conv(x,h,'same') in matlab. 

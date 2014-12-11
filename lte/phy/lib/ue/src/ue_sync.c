@@ -49,6 +49,7 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define FIND_THRESHOLD          4.0
 #define TRACK_THRESHOLD         2.0
 #define TRACK_MAX_LOST          10
+#define TRACK_FRAME_SIZE        32
 
 
 int ue_sync_init(ue_sync_t *q, 
@@ -76,7 +77,7 @@ int ue_sync_init(ue_sync_t *q,
       fprintf(stderr, "Error initiating sync find\n");
       goto clean_exit;
     }
-    if(sync_init(&q->strack, CURRENT_FFTSIZE, CURRENT_FFTSIZE)) {
+    if(sync_init(&q->strack, TRACK_FRAME_SIZE, CURRENT_FFTSIZE)) {
       fprintf(stderr, "Error initiating sync track\n");
       goto clean_exit;
     }
@@ -190,7 +191,7 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
       q->sf_idx = sync_get_sf_idx(&q->strack);      
     }
   } else {
-    q->time_offset = ((int) track_idx - (int) CURRENT_FFTSIZE); 
+    q->time_offset = ((int) track_idx - (int) q->strack.frame_size/2); 
     
     /* If the PSS peak is beyond the frame (we sample too slowly), 
       discard the offseted samples to align next frame */
@@ -305,7 +306,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
           track_idx = 0; 
           
           /* track pss around the middle of the subframe, where the PSS is */
-          ret = sync_find(&q->strack, q->input_buffer, CURRENT_SFLEN/2-CURRENT_FFTSIZE, &track_idx);
+          ret = sync_find(&q->strack, q->input_buffer, CURRENT_SFLEN/2-CURRENT_FFTSIZE-q->strack.frame_size/2, &track_idx);
           if (ret < 0) {
             fprintf(stderr, "Error tracking correlation peak\n");
             return LIBLTE_ERROR;

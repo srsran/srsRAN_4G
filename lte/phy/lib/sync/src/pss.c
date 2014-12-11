@@ -290,20 +290,27 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
 
     /* Correlate input with PSS sequence */
-  #ifdef CONVOLUTION_FFT
-    conv_output_len = conv_fft_cc_run(&q->conv_fft, q->tmp_input,
-        q->pss_signal_freq[q->N_id_2], q->conv_output);
-  #else
-    conv_output_len = conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
-  #endif
+    if (q->frame_size >= q->fft_size) {
+    #ifdef CONVOLUTION_FFT
+      conv_output_len = conv_fft_cc_run(&q->conv_fft, q->tmp_input,
+          q->pss_signal_freq[q->N_id_2], q->conv_output);
+    #else
+      conv_output_len = conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
+    #endif
+    } else {
+        for (int i=0;i<q->frame_size;i++) {
+          q->conv_output[i] = vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], &input[i], q->fft_size);
+        }
+        conv_output_len = q->frame_size; 
+    }
 
    
-#ifdef PSS_ABS_SQUARE
-    vec_abs_square_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
-#else
-    vec_abs_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
-#endif
-
+  #ifdef PSS_ABS_SQUARE
+      vec_abs_square_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
+  #else
+      vec_abs_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
+  #endif
+    
     vec_sc_prod_fff(q->conv_output_abs, q->ema_alpha, q->conv_output_abs, conv_output_len-1);    
     vec_sc_prod_fff(q->conv_output_avg, 1-q->ema_alpha, q->conv_output_avg, conv_output_len-1);    
 
@@ -321,16 +328,35 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
       pl_ub ++; 
     }
     // Find end of peak lobe to the left
-    int pl_lb = corr_peak_pos-1;
-    while(q->conv_output_avg[pl_lb-1] <= q->conv_output_avg[pl_lb] && pl_lb > 1) {
-      pl_lb --; 
+    int pl_lb; 
+    if (corr_peak_pos > 0) {
+      pl_lb = corr_peak_pos-1;
+      while(q->conv_output_avg[pl_lb-1] <= q->conv_output_avg[pl_lb] && pl_lb > 1) {
+        pl_lb --; 
+      }      
+    } else {
+      pl_lb = 0; 
     }
+
+    int sl_distance_right = conv_output_len-1-pl_ub; 
+    if (sl_distance_right < 0) {
+      sl_distance_right = 0; 
+    }
+    int sl_distance_left = pl_lb; 
     
-    int sl_right = pl_ub+vec_max_fi(&q->conv_output_avg[pl_ub], conv_output_len-1 - pl_ub);
-    int sl_left = vec_max_fi(q->conv_output_avg, pl_lb);    
+    int sl_right = pl_ub+vec_max_fi(&q->conv_output_avg[pl_ub], sl_distance_right);
+    int sl_left = vec_max_fi(q->conv_output_avg, sl_distance_left);    
     float side_lobe_value = MAX(q->conv_output_avg[sl_right], q->conv_output_avg[sl_left]);    
     if (corr_peak_value) {
       *corr_peak_value = q->conv_output_avg[corr_peak_pos]/side_lobe_value;
+      
+      if (*corr_peak_value < 2.0) {
+        INFO("pl_ub=%d, pl_lb=%d, sl_right: %d (%.2f), sl_left: %d (%.2f), PSR: %.2f/%.2f=%.2f\n", pl_ub, pl_lb, 
+             sl_right, 1000000*q->conv_output_avg[sl_right], 
+             sl_left, 1000000*q->conv_output_avg[sl_left], 
+          1000000*q->conv_output_avg[corr_peak_pos], 1000000*side_lobe_value,*corr_peak_value
+        );
+      }
     }
 #else
     if (corr_peak_value) {

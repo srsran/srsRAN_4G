@@ -52,7 +52,6 @@ int sync_init(sync_t *q, uint32_t frame_size, uint32_t fft_size) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
   
   if (q                 != NULL         &&
-      frame_size        >= fft_size     &&
       frame_size        <= 307200       &&
       fft_size_isvalid(fft_size))
   {

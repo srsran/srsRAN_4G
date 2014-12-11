@@ -373,6 +373,7 @@ float chest_dl_get_rssi(chest_dl_t *q) {
 */ 
 float chest_dl_get_rsrq(chest_dl_t *q) {
   return q->cell.nof_prb*q->rsrp[0] / q->rssi[0];
+  
 }
 
 float chest_dl_get_rsrp(chest_dl_t *q) {

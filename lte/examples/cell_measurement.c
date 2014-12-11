@@ -48,7 +48,7 @@ float gain_offset = B210_DEFAULT_GAIN_CORREC;
 
 cell_detect_cfg_t cell_detect_config = {
   100, // nof_frames_total 
-  3.0 // early-stops cell detection if mean PSR is above this value 
+  6.0 // early-stops cell detection if mean PSR is above this value 
 };
 
 /**********************************************************************
@@ -149,16 +149,11 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
   float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
-  cf_t *nullce[MAX_PORTS]; 
   uint32_t si_window_length; 
   scheduling_info_t sinfo[MAX_SINFO];
   scheduling_info_t *sinfo_sib4 = NULL;
   uint32_t neighbour_cell_ids[MAX_NEIGHBOUR_CELLS]; 
-  
-  
-  for (int i=0;i<MAX_PORTS;i++) {
-    nullce[i] = NULL;
-  }
+  cf_t *ce[MAX_PORTS];
 
   parse_args(&prog_args, argc, argv);
 
@@ -174,6 +169,10 @@ int main(int argc, char **argv) {
   cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
   cuhd_rx_wait_lo_locked(uhd);
   printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
+  
+  
+  
+
 
   if (detect_and_decode_cell(&cell_detect_config, uhd, prog_args.force_N_id_2, &cell)) {
     fprintf(stderr, "Cell not found\n");
@@ -215,11 +214,16 @@ int main(int argc, char **argv) {
   int sf_re = SF_LEN_RE(cell.nof_prb, cell.cp);
 
   cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
+
+  for (int i=0;i<MAX_PORTS;i++) {
+    ce[i] = vec_malloc(sizeof(cf_t) * sf_re);
+  }
   
   cuhd_start_rx_stream(uhd);
 
   bool sib4_window_start = false;
   uint32_t sib4_window_cnt = 0; 
+  
   
   /* Main loop */
   while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
@@ -307,9 +311,7 @@ int main(int argc, char **argv) {
           /* We are looking for SI Blocks, search only in appropiate places */
           if (sib4_window_start && !(ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0))
           {
-/*            printf("[%d/%d]: Trying SIB4 in SF: %d, SFN: %d\n", sib4_window_cnt, si_window_length, 
-                   ue_sync_get_sfidx(&ue_sync), sfn);
-*/            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
+            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
                                    ((int) ceilf((float)3*sib4_window_cnt/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
@@ -340,7 +342,7 @@ int main(int argc, char **argv) {
         /* Run FFT for all subframe data */
         lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
         
-        chest_dl_estimate(&chest, sf_symbols, nullce, ue_sync_get_sfidx(&ue_sync));
+        chest_dl_estimate(&chest, sf_symbols, ce, ue_sync_get_sfidx(&ue_sync));
                 
         rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SF_LEN(lte_symbol_sz(cell.nof_prb))),rssi,nframes);
         rssi_utra = VEC_CMA(chest_dl_get_rssi(&chest),rssi_utra,nframes);
@@ -357,7 +359,10 @@ int main(int argc, char **argv) {
                 10*log10(rssi*1000)-gain_offset, 
                 10*log10(rssi_utra*1000)-gain_offset, 
                 10*log10(rsrp*1000)-gain_offset, 
-              10*log10(rsrq), 10*log10(snr));                
+                10*log10(rsrq), 10*log10(snr));                
+          if (verbose != VERBOSE_NONE) {
+            printf("\n");
+          }
         }
         break;
       }

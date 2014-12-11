@@ -39,8 +39,6 @@
 typedef _Complex float cf_t; /* this is only a shortcut */
 
 #define CONVOLUTION_FFT
-#define DEFAULT_CORRELATION_TH 10000
-#define DEFAULT_NOSYNC_TIMEOUT  5
 
 #define PSS_LEN     62
 #define PSS_RE      6*12

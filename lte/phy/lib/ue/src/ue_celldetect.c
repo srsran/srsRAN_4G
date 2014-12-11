@@ -75,6 +75,7 @@ int ue_celldetect_init_max(ue_celldetect_t * q, uint32_t max_frames_total) {
     sync_set_threshold(&q->sfind, 1.0);
     sync_sss_en(&q->sfind, true);
     sync_set_sss_algorithm(&q->sfind, SSS_PARTIAL_3);
+    sync_set_em_alpha(&q->sfind, 0.01);
     
     q->max_frames_total = max_frames_total;
     q->nof_frames_total = CS_DEFAULT_NOFFRAMES_TOTAL; 

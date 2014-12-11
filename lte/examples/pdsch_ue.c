@@ -43,7 +43,7 @@
 
 #ifndef DISABLE_GRAPHICS
 void init_plots();
-void do_plots(ue_dl_t *q, uint32_t sf_idx);
+void do_plots(ue_dl_t *q, uint32_t sf_idx, ue_sync_t *qs);
 #endif
 
 
@@ -175,12 +175,6 @@ int main(int argc, char **argv) {
   uint32_t sfn_offset; 
   parse_args(&prog_args, argc, argv);
 
-  #ifndef DISABLE_GRAPHICS
-  if (!prog_args.disable_plots) {
-    init_plots();    
-  }
-  #endif
-  
   printf("Opening UHD device...\n");
   if (cuhd_open(prog_args.uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
@@ -225,11 +219,19 @@ int main(int argc, char **argv) {
   // Register Ctrl+C handler
   signal(SIGINT, sig_int_handler);
 
+  #ifndef DISABLE_GRAPHICS
+  if (!prog_args.disable_plots) {
+    init_plots();    
+  }
+  #endif
+  
+
+  
   cuhd_start_rx_stream(uhd);
   
   // Variables for measurements 
   uint32_t nframes=0;
-  float rsrp=0, rsrq=0, snr=0;
+  float rsrp=1.0, rsrq=1.0, snr=1.0;
 
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -276,6 +278,10 @@ int main(int argc, char **argv) {
           rsrp = VEC_CMA(chest_dl_get_rsrp(&ue_dl.chest),rsrp,nframes);      
           snr = VEC_CMA(chest_dl_get_snr(&ue_dl.chest),snr,nframes);      
           nframes++;
+
+          if (isnan(rsrq)) {
+            rsrq = 0; 
+          }
           
           // Plot and Printf
           if (ue_sync_get_sfidx(&ue_sync) == 0) {
@@ -298,7 +304,7 @@ int main(int argc, char **argv) {
       }
       #ifndef DISABLE_GRAPHICS
       if (!prog_args.disable_plots && ue_sync_get_sfidx(&ue_sync) == 5) {
-        do_plots(&ue_dl, 5);          
+        do_plots(&ue_dl, 5, &ue_sync);          
       }
       #endif
     } else if (ret == 0) {
@@ -332,12 +338,13 @@ int main(int argc, char **argv) {
 
 
 #include "liblte/graphics/plot.h"
-plot_real_t poutfft;
+plot_real_t poutfft, p_sync;
 plot_real_t pce;
-plot_scatter_t pscatrecv, pscatequal, pscatequal_pdcch;
+plot_scatter_t  pscatequal, pscatequal_pdcch;
 
 float tmp_plot[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 float tmp_plot2[SLOT_LEN_RE(MAX_PRB, CPNORM)];
+float tmp_plot3[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 
 void init_plots() {
   plot_init();
@@ -351,10 +358,9 @@ void init_plots() {
   plot_real_setLabels(&pce, "Index", "dB");
   plot_real_setYAxisScale(&pce, -60, 0);
 
-  plot_scatter_init(&pscatrecv);
-  plot_scatter_setTitle(&pscatrecv, "Received Symbols");
-  plot_scatter_setXAxisScale(&pscatrecv, -4, 4);
-  plot_scatter_setYAxisScale(&pscatrecv, -4, 4);
+  plot_real_init(&p_sync);
+  plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
+  plot_real_setYAxisScale(&p_sync, 0, 1);
 
   plot_scatter_init(&pscatequal);
   plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
@@ -368,7 +374,7 @@ void init_plots() {
 
 }
 
-void do_plots(ue_dl_t *q, uint32_t sf_idx) {
+void do_plots(ue_dl_t *q, uint32_t sf_idx, ue_sync_t *qs) {
   int i;
   uint32_t nof_re = SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp);
   uint32_t nof_symbols = q->harq_process[0].prb_alloc.re_sf[sf_idx];
@@ -386,7 +392,10 @@ void do_plots(ue_dl_t *q, uint32_t sf_idx) {
   }
   plot_real_setNewData(&poutfft, tmp_plot, nof_re);        
   plot_real_setNewData(&pce, tmp_plot2, REFSIGNAL_NUM_SF(q->cell.nof_prb,0));        
-  plot_scatter_setNewData(&pscatrecv, q->pdsch.pdsch_symbols[0], nof_symbols);
+  int max = vec_max_fi(qs->strack.pss.conv_output_avg, qs->strack.pss.frame_size+qs->strack.pss.fft_size-1);
+  vec_sc_prod_fff(qs->strack.pss.conv_output_avg, 1/qs->strack.pss.conv_output_avg[max], tmp_plot2, qs->strack.pss.frame_size+qs->strack.pss.fft_size-1);        
+  plot_real_setNewData(&p_sync, tmp_plot2, qs->strack.pss.frame_size);        
+  
   plot_scatter_setNewData(&pscatequal, q->pdsch.pdsch_d, nof_symbols);
   plot_scatter_setNewData(&pscatequal_pdcch, q->pdcch.pdcch_d, 36*q->pdcch.nof_cce);
 }

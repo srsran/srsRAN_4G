@@ -53,14 +53,16 @@ float uhd_gain=40.0, uhd_freq=-1.0;
 int nof_frames = -1;
 uint32_t fft_size=64;
 float threshold = 0.4; 
-int N_id_2_sync = -1; 
+int N_id_2_sync = -1;
+lte_cp_t cp=CPNORM;
 
 void usage(char *prog) {
-  printf("Usage: %s [adgtvnp] -f rx_frequency_hz -i cell_id\n", prog);
+  printf("Usage: %s [aedgtvnp] -f rx_frequency_hz -i cell_id\n", prog);
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-g UHD Gain [Default %.2f dB]\n", uhd_gain);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-l N_id_2 to sync [Default use cell_id]\n");
+  printf("\t-e Extended CP [Default Normal]\n", fft_size);
   printf("\t-s symbol_sz [Default %d]\n", fft_size);
   printf("\t-t threshold [Default %.2f]\n", threshold);
 #ifndef DISABLE_GRAPHICS
@@ -73,7 +75,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "adgtvsfil")) != -1) {
+  while ((opt = getopt(argc, argv, "adgetvsfil")) != -1) {
     switch (opt) {
     case 'a':
       uhd_args = argv[optind];
@@ -86,6 +88,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 't':
       threshold = atof(argv[optind]);
+      break;
+    case 'e':
+      cp = CPEXT;
       break;
     case 'i':
       cell_id = atoi(argv[optind]);
@@ -154,6 +159,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating PSS\n");
     exit(-1);
   }
+
   if (pss_synch_set_N_id_2(&pss, N_id_2_sync)) {
     fprintf(stderr, "Error setting N_id_2=%d\n",N_id_2_sync);
     exit(-1);
@@ -233,7 +239,7 @@ int main(int argc, char **argv) {
         }
         
         // Find SSS 
-        int sss_idx = peak_idx-2*fft_size-CP(fft_size, CPNORM_LEN);             
+        int sss_idx = peak_idx-2*fft_size-(CP_ISNORM(cp)?CP(fft_size, CPNORM_LEN):CP(fft_size, CPEXT_LEN));             
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
           sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);
           if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
