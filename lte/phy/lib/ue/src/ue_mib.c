@@ -36,21 +36,8 @@
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
 
-int ue_mib_init_1_92(ue_mib_t * q, 
-                uint32_t cell_id, 
-                lte_cp_t cp) 
-{
-  lte_cell_t cell; 
-  cell.nof_ports = MIB_MAX_PORTS;
-  cell.nof_prb = 6; 
-  cell.id = cell_id; 
-  cell.cp = cp; 
-  return ue_mib_init(q, cell, true);
-}
-
-  int ue_mib_init(ue_mib_t * q, 
-                  lte_cell_t cell, 
-                  bool do_sync) 
+int ue_mib_init(ue_mib_t * q, 
+                lte_cell_t cell) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -58,8 +45,7 @@ int ue_mib_init_1_92(ue_mib_t * q,
       cell.nof_ports <= MIB_MAX_PORTS) 
   {
 
-    ret = LIBLTE_ERROR;
-    
+    ret = LIBLTE_ERROR;    
     bzero(q, sizeof(ue_mib_t));
     
     q->sf_symbols = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
@@ -74,23 +60,6 @@ int ue_mib_init_1_92(ue_mib_t * q,
         perror("malloc");
         goto clean_exit;
       }
-    }
-
-    if (do_sync) {
-      if (sync_init(&q->sfind, 5*SF_LEN_PRB(cell.nof_prb), lte_symbol_sz(cell.nof_prb))) {
-        goto clean_exit;
-      }
-      
-      sync_set_threshold(&q->sfind, 1.0); // Because we are capturing 5 ms frames and there is always peak
-      sync_sss_en(&q->sfind, true);
-      sync_set_N_id_2(&q->sfind, cell.id % 3);
-      sync_cp_en(&q->sfind, false);
-      sync_set_cp(&q->sfind, cell.cp);
-    }
-    
-    if (cfo_init(&q->cfocorr, 5*SF_LEN_PRB(cell.nof_prb))) {
-      fprintf(stderr, "Error initiating CFO\n");
-      goto clean_exit;
     }
 
     if (lte_fft_init(&q->fft, cell.cp, cell.nof_prb)) {
@@ -127,7 +96,6 @@ void ue_mib_free(ue_mib_t * q)
       free(q->ce[i]);
     }
   }
-  cfo_free(&q->cfocorr);
   sync_free(&q->sfind);
   chest_dl_free(&q->chest);
   pbch_free(&q->pbch);
@@ -140,19 +108,12 @@ void ue_mib_free(ue_mib_t * q)
 
 void ue_mib_reset(ue_mib_t * q)
 {
-  q->frame_cnt = 0; 
-  q->last_frame_trial = 0;
-  
+  q->frame_cnt = 0;   
   pbch_decode_reset(&q->pbch);
 }
 
-void ue_mib_set_threshold(ue_mib_t * q, float threshold)
-{
-  sync_set_threshold(&q->sfind, threshold);
-}
-
-int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input, 
-                                uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
+int ue_mib_decode(ue_mib_t * q, cf_t *input, 
+                  uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
 {
   int ret = LIBLTE_SUCCESS;
   cf_t *ce_slot1[MAX_PORTS]; 
@@ -166,11 +127,8 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
     return LIBLTE_ERROR;
   }
   /* Reset decoder if we missed a frame */
-  if ((q->last_frame_trial && (abs(q->frame_cnt - q->last_frame_trial) > 2)) || 
-      q->frame_cnt > 16) 
-  {
-    INFO("Resetting PBCH decoder: last trial %u, now is %u\n",
-        q->last_frame_trial, q->frame_cnt);
+  if (q->frame_cnt > 16) {
+    INFO("Resetting PBCH decoder after %d frames\n", q->frame_cnt);
     ue_mib_reset(q);
   }
   
@@ -185,102 +143,90 @@ int ue_mib_decode_aligned_frame(ue_mib_t * q, cf_t *input,
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
   } else if (ret == 1) {
-    INFO("MIB decoded: %u\n", q->frame_cnt/2);
+    INFO("MIB decoded: %u\n", q->frame_cnt);
     ue_mib_reset(q);
     ret = MIB_FOUND; 
   } else {
-    INFO("MIB not decoded: %u\n", q->frame_cnt / 2);
-    q->last_frame_trial = q->frame_cnt;
-    ret = LIBLTE_SUCCESS;
+    INFO("MIB not decoded: %u\n", q->frame_cnt);
+    q->frame_cnt++;
+    ret = MIB_NOTFOUND;
   }    
   return ret;
 }
 
-void ue_mib_get_payload(ue_mib_t *q,
-                        uint8_t bch_payload[BCH_PAYLOAD_LEN], 
-                        uint32_t *nof_tx_ports,
-                        uint32_t *sfn_offset) 
+
+
+int ue_mib_sync_init(ue_mib_sync_t *q, 
+                     uint32_t cell_id, 
+                     lte_cp_t cp, 
+                     int (recv_callback)(void*, void*, uint32_t),                             
+                     void *stream_handler) 
 {
-  memcpy(bch_payload, q->bch_payload, sizeof(uint8_t) * BCH_PAYLOAD_LEN);
-  if (nof_tx_ports) {
-    *nof_tx_ports = q->nof_tx_ports;    
+  lte_cell_t cell; 
+  cell.nof_ports = MIB_MAX_PORTS; 
+  cell.id = cell_id; 
+  cell.cp = cp; 
+  cell.nof_prb = MIB_NOF_PRB; 
+  
+  if (ue_mib_init(&q->ue_mib, cell)) {
+    fprintf(stderr, "Error initiating ue_mib\n");
+    return LIBLTE_ERROR;
   }
-  if (sfn_offset) {
-    *sfn_offset = q->sfn_offset;
+  if (ue_sync_init(&q->ue_sync, cell, recv_callback, stream_handler)) {
+    fprintf(stderr, "Error initiating ue_sync\n");
+    ue_mib_free(&q->ue_mib);
+    return LIBLTE_ERROR;
   }
+  ue_sync_decode_sss_on_track(&q->ue_sync, true);
+  return LIBLTE_SUCCESS;
 }
 
-int ue_mib_sync_and_decode_1_92(ue_mib_t * q, 
-                           cf_t *signal, 
-                           uint32_t nsamples)
+void ue_mib_sync_free(ue_mib_sync_t *q) {
+  ue_mib_free(&q->ue_mib);
+  ue_sync_free(&q->ue_sync);
+}
+
+void ue_mib_sync_reset(ue_mib_sync_t * q) {
+  ue_mib_reset(&q->ue_mib);
+  ue_sync_reset(&q->ue_sync);
+}
+
+int ue_mib_sync_decode(ue_mib_sync_t * q, 
+                       uint32_t max_frames_timeout,
+                       uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                       uint32_t *nof_tx_ports, 
+                       uint32_t *sfn_offset) 
 {
+  
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
-  uint32_t peak_idx=0;
-  uint32_t nof_input_frames; 
+  cf_t *sf_buffer = NULL; 
+  uint32_t nof_frames = 0; 
+    int mib_ret; 
 
-
-  if (q                 != NULL &&
-      signal            != NULL) 
+  if (q != NULL) 
   {
-    if (nsamples < MIB_FRAME_SIZE_SEARCH) {
-      fprintf(stderr, "Error: nsamples must be greater than %d\n", MIB_FRAME_SIZE_SEARCH);
-      return LIBLTE_ERROR;
-    }
-    
-    ret = LIBLTE_SUCCESS; 
-    
-    if (nsamples % MIB_FRAME_SIZE_SEARCH) {
-      printf("Warning: nsamples must be a multiple of %d. Some samples will be ignored\n", MIB_FRAME_SIZE_SEARCH);
-      nsamples = (nsamples/MIB_FRAME_SIZE_SEARCH) * MIB_FRAME_SIZE_SEARCH;
-    }
-    nof_input_frames = nsamples/MIB_FRAME_SIZE_SEARCH; 
-    
-    for (int nf=0;nf<nof_input_frames;nf++) {
-
-      /* Find peak and cell id */
-      ret = sync_find(&q->sfind, signal, nf*MIB_FRAME_SIZE_SEARCH, &peak_idx);
+    ret = LIBLTE_SUCCESS;     
+    do {
+      mib_ret = MIB_NOTFOUND; 
+      ret = ue_sync_get_buffer(&q->ue_sync, &sf_buffer);
       if (ret < 0) {
-        fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
-        return -1;
-      }
-      
-      /* Check if we have space for reading the MIB and we are in Subframe #0 */
-      if (ret == 1)
-      {
-        if (sync_sss_detected(&q->sfind)) 
-        {
-          if (sync_get_sf_idx(&q->sfind) == 0) 
-          {
-            if (nf*MIB_FRAME_SIZE_SEARCH + peak_idx + MIB_FRAME_SIZE_SEARCH/10 <= nsamples &&
-                nf*MIB_FRAME_SIZE_SEARCH + peak_idx                             >  MIB_FRAME_SIZE_SEARCH/10)
-            {
-              // PSS and SSS detected and we have space to decode the PBCH. 
-              INFO("Trying to decode PBCH\n",0);
-              ret = ue_mib_decode_aligned_frame(q, 
-                                                &signal[nf*MIB_FRAME_SIZE_SEARCH+peak_idx-MIB_FRAME_SIZE_SEARCH/10], 
-                                                q->bch_payload, &q->nof_tx_ports, &q->sfn_offset);
-            } else {
-              printf("Not enough space for PBCH: PSS signal is at offset %d\n",peak_idx);
-              ret = MIB_FRAME_UNALIGNED; 
-            }
-          } else {
-            // Wait for subframe 0
-            ret = 0; 
-          }
+        fprintf(stderr, "Error calling ue_sync_work()\n");       
+        break; 
+      } else if (ue_sync_get_sfidx(&q->ue_sync) == 0) {
+        if (ret == 1) {
+          mib_ret = ue_mib_decode(&q->ue_mib, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);          
         } else {
-          INFO("SSS not detected\n",0);
-          ret = 0; // wait to detect it
+          INFO("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
+          ue_mib_reset(&q->ue_mib);
         }
-      } else {
-        INFO("PSS not detected\n",0);
-        ret = 0; // wait to detect it? 
+        nof_frames++;
       }
-      q->frame_cnt++;
-    } 
+    } while (mib_ret == MIB_NOTFOUND && ret >= 0 && nof_frames < max_frames_timeout);
+    if (mib_ret < 0) {
+      ret = mib_ret; 
+    }
   }
-  return ret;
+  return mib_ret;  
 }
-
-
 
 

@@ -31,25 +31,20 @@
 typedef struct LIBLTE_API {
   uint32_t nof_frames_total; // maximum number of 5ms frames to capture 
   float threshold;   // early-stops cell detection if mean PSR is above this value 
-}cell_detect_cfg_t;
+}cell_search_cfg_t;
 
-int decode_pbch(void *uhd, 
-                ue_celldetect_result_t *found_cell, 
-                uint32_t nof_frames_total, 
-                uint8_t bch_payload[BCH_PAYLOAD_LEN], 
-                uint32_t *nof_tx_ports, 
-                uint32_t *sfn_offset);
+int cuhd_mib_decoder(void *uhd, 
+                     uint32_t max_nof_frames, 
+                     lte_cell_t *cell);
 
-int detect_all_cells(cell_detect_cfg_t *config, 
-                     void *uhd, 
-                     ue_celldetect_result_t found_cell[3]);
+int cuhd_cell_search(void *uhd, 
+                     cell_search_cfg_t *config, 
+                     int force_N_id_2, 
+                     lte_cell_t *cell);
 
-int detect_cell(cell_detect_cfg_t *config, 
-                void *uhd, 
-                ue_celldetect_result_t *found_cell, 
-                uint32_t N_id_2);
+int cuhd_search_and_decode_mib(void *uhd, 
+                               cell_search_cfg_t *config, 
+                               int force_N_id_2, 
+                               lte_cell_t *cell);
 
-int detect_and_decode_cell(cell_detect_cfg_t *config, 
-                           void *uhd, 
-                           int force_N_id_2, 
-                           lte_cell_t *cell);
+

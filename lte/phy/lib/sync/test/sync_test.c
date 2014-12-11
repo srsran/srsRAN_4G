@@ -121,7 +121,8 @@ int main(int argc, char **argv) {
   }
 
   /* Set a very high threshold to make sure the correlation is ok */
-  sync_set_threshold(&sync, 1.4);
+  sync_set_threshold(&sync, 5.0);
+  sync_set_sss_algorithm(&sync, SSS_PARTIAL_3);
 
   if (cell_id == -1) {
     cid = 0;

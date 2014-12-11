@@ -59,9 +59,11 @@ int sync_init(sync_t *q, uint32_t frame_size, uint32_t fft_size) {
     
     bzero(q, sizeof(sync_t));
     q->detect_cp = true;
+    q->cp = CPNORM;
     q->mean_peak_value = 0.0;
     q->sss_en = true;
     q->correct_cfo = true; 
+    q->mean_cfo = 0; 
     q->N_id_2 = 1000; 
     q->N_id_1 = 1000;
     q->fft_size = fft_size;
@@ -120,8 +122,7 @@ int sync_get_cell_id(sync_t *q) {
   if (lte_N_id_2_isvalid(q->N_id_2) && lte_N_id_1_isvalid(q->N_id_1)) {
     return q->N_id_1*3 + q->N_id_2;      
   } else {
-    fprintf(stderr, "Error getting cell_id, invalid N_id_1 or N_id_2\n");
-    return LIBLTE_ERROR;
+    return -1; 
   }
 }
 
@@ -200,16 +201,18 @@ lte_cp_t sync_detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos)
     M_norm += R_norm/C_norm;
   }
   
-  q->M_norm_avg = VEC_EMA(M_norm, q->M_norm_avg, CP_EMA_ALPHA);
+  q->M_norm_avg = VEC_EMA(M_norm/2, q->M_norm_avg, CP_EMA_ALPHA);
   
   for (int i=0;i<2;i++) {
     R_ext  = crealf(vec_dot_prod_conj_ccc(&input_cp_ext[q->fft_size], input_cp_ext, cp_ext_len));
     C_ext  = cp_ext_len * vec_avg_power_cf(input_cp_ext, cp_ext_len);
     input_cp_ext += q->fft_size+cp_ext_len;
-    M_ext += R_ext/C_ext;
+    if (C_ext > 0) {
+      M_ext += R_ext/C_ext;      
+    }
   }
 
-  q->M_ext_avg = VEC_EMA(M_ext, q->M_ext_avg, CP_EMA_ALPHA);
+  q->M_ext_avg = VEC_EMA(M_ext/2, q->M_ext_avg, CP_EMA_ALPHA);
 
   if (q->M_norm_avg > q->M_ext_avg) {
     return CPNORM;    
@@ -227,26 +230,18 @@ lte_cp_t sync_detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos)
 /* Returns 1 if the SSS is found, 0 if not and -1 if there is not enough space 
  * to correlate
  */
-int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos) {
+int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, lte_cp_t cp) {
   int sss_idx, ret;
 
   sss_synch_set_N_id_2(&q->sss, q->N_id_2);
 
-  if (q->detect_cp) {
-    if (peak_pos >= 2*(q->fft_size + CP_EXT(q->fft_size))) {
-      q->cp = sync_detect_cp(q, input, peak_pos);
-    } else {
-      INFO("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
-      return LIBLTE_ERROR; 
-    }
-  }
-  
   /* Make sure we have enough room to find SSS sequence */
   sss_idx = (int) peak_pos-2*q->fft_size-CP(q->fft_size, (CP_ISNORM(q->cp)?CPNORM_LEN:CPEXT_LEN));
   if (sss_idx < 0) {
     INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
     return LIBLTE_ERROR;
   }
+  DEBUG("Searching SSS around sss_idx: %d, peak_pos: %d\n", sss_idx, peak_pos);
       
   switch(q->sss_alg) {
     case SSS_DIFF:
@@ -325,7 +320,15 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       } else {
         INFO("No space for CFO computation. Frame starts at \n",peak_pos);
       }
-      
+
+      if (q->detect_cp) {
+        if (peak_pos + find_offset >= 2*(q->fft_size + CP_EXT(q->fft_size))) {
+          q->cp = sync_detect_cp(q, input, peak_pos + find_offset);
+        } else {
+          INFO("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
+        }
+      }
+  
       // Try to detect SSS 
       if (q->sss_en) {
         /* Correct CFO with the averaged CFO estimation */
@@ -336,7 +339,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
         // Set an invalid N_id_1 indicating SSS is yet to be detected
         q->N_id_1 = 1000; 
         
-        if (sync_sss(q, input, find_offset + peak_pos) < 0) {
+        if (sync_sss(q, input, find_offset + peak_pos, q->cp) < 0) {
           INFO("No space for SSS processing. Frame starts at %d\n", peak_pos);
         }
       }
@@ -346,8 +349,8 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       ret = 0;
     }
     
-    INFO("SYNC ret=%d N_id_2=%d frame_size=%d pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
-         ret, q->N_id_2, q->frame_size, peak_pos, q->peak_value, q->threshold, q->sf_idx, 15*q->mean_cfo);
+    INFO("SYNC ret=%d N_id_2=%d find_offset=%d pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
+         ret, q->N_id_2, find_offset, peak_pos, q->peak_value, q->threshold, q->sf_idx, 15*q->mean_cfo);
 
   } else if (lte_N_id_2_isvalid(q->N_id_2)) {
     fprintf(stderr, "Must call sync_set_N_id_2() first!\n");

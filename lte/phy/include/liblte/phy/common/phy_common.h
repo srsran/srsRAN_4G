@@ -60,6 +60,8 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define PRNTI   0xFFFE
 #define MRNTI   0xFFFD
 
+#define CELL_ID_UNKNOWN         1000
+
 #define MAX_NSYMB     7
 
 #define MAX_PRB   110

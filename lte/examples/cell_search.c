@@ -37,7 +37,7 @@
 
 #include "liblte/phy/phy.h"
 
-#include "cell_search_utils.h"
+#include "cuhd_utils.h"
 
 
 #ifndef DISABLE_UHD
@@ -55,7 +55,7 @@
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 
-cell_detect_cfg_t config = {50, 1.1}; 
+cell_search_cfg_t config = {50, 1.1}; 
 
 
 float uhd_gain = 60.0;
@@ -111,15 +111,19 @@ void parse_args(int argc, char **argv) {
   }
 }
 
+int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
+  DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
+  return cuhd_recv(h, data, nsamples, 1);
+}
+
 int main(int argc, char **argv) {
   int n; 
   void *uhd;
-  ue_celldetect_result_t found_cells[3]; 
+  ue_cell_search_t cs; 
+  ue_cell_search_result_t found_cells[3]; 
   int nof_freqs; 
   lte_earfcn_t channels[MAX_EARFCN];
   uint32_t freq;
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
-  uint32_t nof_tx_ports; 
   
   parse_args(argc, argv);
     
@@ -150,21 +154,44 @@ int main(int argc, char **argv) {
     if (VERBOSE_ISINFO()) {
       printf("\n");
     }
+      
+    bzero(found_cells, 3*sizeof(ue_cell_search_result_t));
+      
+    if (ue_cell_search_init(&cs, cuhd_recv_wrapper, uhd)) {
+      fprintf(stderr, "Error initiating UE cell detect\n");
+      exit(-1);
+    }
     
-    n = detect_all_cells(&config, uhd, found_cells);
+    if (config.nof_frames_total) {
+      ue_cell_search_set_nof_frames_to_scan(&cs, config.nof_frames_total);
+    }
+    if (config.threshold) {
+      ue_cell_search_set_threshold(&cs, config.threshold);
+    }
+
+    INFO("Setting sampling frequency %.2f MHz for PSS search\n", CS_SAMP_FREQ/1000);
+    cuhd_set_rx_srate(uhd, CS_SAMP_FREQ);
+    INFO("Starting receiver...\n", 0);
+    cuhd_start_rx_stream(uhd);
+    
+    n = ue_cell_search_scan(&cs, found_cells, NULL); 
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
-    }
-    if (n == CS_CELL_DETECTED) {
+    } else if (n == 1) {
       for (int i=0;i<3;i++) {
         if (found_cells[i].peak > config.threshold/2) {
-          if (decode_pbch(uhd, &found_cells[i], config.nof_frames_total, bch_payload, &nof_tx_ports, NULL)) {
-            fprintf(stderr, "Error decoding PBCH\n");
+          lte_cell_t cell; 
+          cell.id = found_cells[i].cell_id; 
+          cell.cp = found_cells[i].cp; 
+          int ret = cuhd_mib_decoder(uhd, 100, &cell);
+          if (ret < 0) {
+            fprintf(stderr, "Error decoding MIB\n");
             exit(-1);
-          } else {
-            printf("Cell found with %d ports. Decoded MIB: \n", nof_tx_ports);
-            vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
+          }
+          if (ret == MIB_FOUND) {
+            printf("Found CELL ID %d. %d PRB, %d ports\n", 
+                 cell.id, cell.nof_prb, cell.nof_ports);
           }
         }
       }

@@ -702,12 +702,12 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
           nof_symbols / q->cell.nof_ports);
     }
-
+    
     /* demodulate symbols 
      * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
      * thus we don't need tot set it in the LLRs normalization
      */
-    demod_soft_sigma_set(&q->demod, 1);//q->mod[harq_process->mcs.mod - 1].nbits_x_symbol);
+    demod_soft_sigma_set(&q->demod, sqrt(q->mod[harq_process->mcs.mod - 1].nbits_x_symbol/2));
     demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod - 1]);
     demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, nof_symbols);
 

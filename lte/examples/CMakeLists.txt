@@ -51,7 +51,7 @@ LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
 # These two can be compiled without UHD or graphics support
 #################################################################
 
-add_executable(pdsch_ue pdsch_ue.c cell_search_utils.c)
+add_executable(pdsch_ue pdsch_ue.c cuhd_utils.c)
 target_link_libraries(pdsch_ue lte_rrc lte_phy)
 
 add_executable(pdsch_enodeb pdsch_enodeb.c)
@@ -81,10 +81,10 @@ ENDIF(${GRAPHICS_FIND} EQUAL -1)
 
 IF(${CUHD_FIND} GREATER -1)
 
-  add_executable(cell_search cell_search.c cell_search_utils.c)
+  add_executable(cell_search cell_search.c cuhd_utils.c)
   target_link_libraries(cell_search lte_rrc lte_phy cuhd )
 
-  add_executable(cell_measurement cell_measurement.c cell_search_utils.c)
+  add_executable(cell_measurement cell_measurement.c cuhd_utils.c)
   target_link_libraries(cell_measurement cuhd lte_rrc lte_phy)
 
   MESSAGE(STATUS "   UHD examples will be installed.")

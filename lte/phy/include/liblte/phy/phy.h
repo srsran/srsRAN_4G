@@ -95,7 +95,7 @@
       
 #include "liblte/phy/ue/ue_sync.h"
 #include "liblte/phy/ue/ue_mib.h"
-#include "liblte/phy/ue/ue_celldetect.h"
+#include "liblte/phy/ue/ue_cell_search.h"
 #include "liblte/phy/ue/ue_dl.h"
 
 #include "liblte/phy/scrambling/scrambling.h"

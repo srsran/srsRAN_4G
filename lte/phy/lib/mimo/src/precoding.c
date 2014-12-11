@@ -138,7 +138,9 @@ int predecoding_single(precoding_t *q, cf_t *y, cf_t *h, cf_t *x, int nof_symbol
 
 /* ZF/MMSE STBC equalizer x=y(H'H+n0·I)^(-1)H' (ZF is n0=0.0) 
  */
-int predecoding_diversity(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LAYERS], int nof_ports, int nof_symbols, float noise_estimate) {
+int predecoding_diversity(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LAYERS], 
+                          int nof_ports, int nof_symbols, float noise_estimate) 
+{
   int i;
   if (nof_ports == 2) {
   
@@ -171,8 +173,7 @@ int predecoding_diversity(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[M
       // (H'H + n0)
       vec_sc_add_fff(modhh, noise_estimate, modhh, nof_symbols/2);
     }
-    //vec_sc_prod_fff(modhh, 1.0/sqrt(2), modhh, nof_symbols/2);
-
+    
     // x[0] = r0·h0*/(|h0|+|h1|)+r1*·h1/(|h0|+|h1|)
     vec_prod_conj_ccc(r0,h0,q->tmp1, nof_symbols/2);
     vec_prod_conj_ccc(h1,r1,q->tmp2, nof_symbols/2);

@@ -39,16 +39,16 @@
 #include "liblte/rrc/rrc.h"
 #include "liblte/phy/phy.h"
 #include "liblte/cuhd/cuhd.h"
-#include "cell_search_utils.h"
+#include "cuhd_utils.h"
 
 #define B210_DEFAULT_GAIN         40.0
 #define B210_DEFAULT_GAIN_CORREC  80.0 // Gain of the Rx chain when the gain is set to 40
 
 float gain_offset = B210_DEFAULT_GAIN_CORREC;
 
-cell_detect_cfg_t cell_detect_config = {
-  100, // nof_frames_total 
-  6.0 // early-stops cell detection if mean PSR is above this value 
+cell_search_cfg_t cell_detect_config = {
+  50, // nof_frames_total 
+  9.0 // early-stops cell detection if mean PSR is above this value 
 };
 
 /**********************************************************************
@@ -170,15 +170,24 @@ int main(int argc, char **argv) {
   cuhd_rx_wait_lo_locked(uhd);
   printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
   
-  
-  
-
-
-  if (detect_and_decode_cell(&cell_detect_config, uhd, prog_args.force_N_id_2, &cell)) {
-    fprintf(stderr, "Cell not found\n");
+  ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
+  if (ret < 0) {
+    fprintf(stderr, "Error searching cell\n");
     exit(-1); 
+  } else if (ret == 0) {
+    printf("Cell not found\n");
+    exit(0);
   }
   
+  /* set sampling frequency */
+  int srate = lte_sampling_freq_hz(cell.nof_prb);
+  if (srate != -1) {  
+    cuhd_set_rx_srate(uhd, (double) srate);      
+  } else {
+    fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
+    return LIBLTE_ERROR;
+  }
+
   INFO("Stopping UHD and flushing buffer...\n",0);
   cuhd_stop_rx_stream(uhd);
   cuhd_flush_buffer(uhd);
@@ -191,7 +200,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
-  if (ue_mib_init(&ue_mib, cell, false)) {
+  if (ue_mib_init(&ue_mib, cell)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
   }
@@ -240,9 +249,7 @@ int main(int argc, char **argv) {
         case DECODE_MIB:
           if (ue_sync_get_sfidx(&ue_sync) == 0) {
             pbch_decode_reset(&ue_mib.pbch);
-            n = ue_mib_decode_aligned_frame(&ue_mib,
-                                            sf_buffer, bch_payload_unpacked, 
-                                            NULL, &sfn_offset);
+            n = ue_mib_decode(&ue_mib, sf_buffer, bch_payload_unpacked, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);

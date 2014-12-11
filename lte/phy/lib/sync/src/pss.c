@@ -121,18 +121,22 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
+    bzero(q->conv_output, sizeof(cf_t) * buffer_size);
     q->conv_output_avg = vec_malloc(buffer_size * sizeof(float));
     if (!q->conv_output_avg) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
+    bzero(q->conv_output_avg, sizeof(float) * buffer_size);
 #ifdef PSS_ACCUMULATE_ABS
     q->conv_output_abs = vec_malloc(buffer_size * sizeof(float));
     if (!q->conv_output_abs) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
+    bzero(q->conv_output_abs, sizeof(float) * buffer_size);
 #endif
+    
     for (N_id_2=0;N_id_2<3;N_id_2++) {
       q->pss_signal_freq[N_id_2] = vec_malloc(buffer_size * sizeof(cf_t));
       if (!q->pss_signal_freq[N_id_2]) {
@@ -286,22 +290,22 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
       fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
       return LIBLTE_ERROR;
     }
-    
-    memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
 
     /* Correlate input with PSS sequence */
     if (q->frame_size >= q->fft_size) {
     #ifdef CONVOLUTION_FFT
+      memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
+            
       conv_output_len = conv_fft_cc_run(&q->conv_fft, q->tmp_input,
           q->pss_signal_freq[q->N_id_2], q->conv_output);
     #else
       conv_output_len = conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
     #endif
     } else {
-        for (int i=0;i<q->frame_size;i++) {
-          q->conv_output[i] = vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], &input[i], q->fft_size);
-        }
-        conv_output_len = q->frame_size; 
+      for (int i=q->fft_size;i<q->fft_size+q->frame_size-1;i++) {
+        q->conv_output[i] = vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], &input[i-q->fft_size], q->fft_size);
+      }
+      conv_output_len = q->fft_size+q->frame_size-1; 
     }
 
    
@@ -351,7 +355,7 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
       *corr_peak_value = q->conv_output_avg[corr_peak_pos]/side_lobe_value;
       
       if (*corr_peak_value < 2.0) {
-        INFO("pl_ub=%d, pl_lb=%d, sl_right: %d (%.2f), sl_left: %d (%.2f), PSR: %.2f/%.2f=%.2f\n", pl_ub, pl_lb, 
+        DEBUG("pl_ub=%d, pl_lb=%d, sl_right: %d (%.2f), sl_left: %d (%.2f), PSR: %.2f/%.2f=%.2f\n", pl_ub, pl_lb, 
              sl_right, 1000000*q->conv_output_avg[sl_right], 
              sl_left, 1000000*q->conv_output_avg[sl_left], 
           1000000*q->conv_output_avg[corr_peak_pos], 1000000*side_lobe_value,*corr_peak_value

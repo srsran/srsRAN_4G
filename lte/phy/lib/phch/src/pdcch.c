@@ -46,9 +46,6 @@
 #define PDCCH_FORMAT_NOF_REGS(i)        ((1<<i)*9)
 #define PDCCH_FORMAT_NOF_BITS(i)        ((1<<i)*72)
 
-
-#define MIN(a,b) ((a>b)?b:a)
-
 static void set_cfi(pdcch_t *q, uint32_t cfi) {
   if (cfi > 0 && cfi < 4) {
     q->nof_regs = (regs_pdcch_nregs(q->regs, cfi) / 9) * 9;
@@ -420,7 +417,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float n
     }
 
     /* demodulate symbols */
-    demod_soft_sigma_set(&q->demod, sqrtf(2/q->cell.nof_ports));
+    demod_soft_sigma_set(&q->demod, 1.0);
     demod_soft_demodulate(&q->demod, q->pdcch_d, q->pdcch_llr, nof_symbols);
 
     /* descramble */

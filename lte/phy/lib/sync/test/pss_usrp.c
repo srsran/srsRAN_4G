@@ -245,14 +245,17 @@ int main(int argc, char **argv) {
           if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error2++;            
           }
+          INFO("Partial N_id_1: %d\n", sss_synch_N_id_1(&sss, m0, m1));
           sss_synch_m0m1_diff(&sss, &buffer[sss_idx], &m0, &m0_value, &m1, &m1_value);
           if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error3++;            
           }
+          INFO("Diff N_id_1: %d\n", sss_synch_N_id_1(&sss, m0, m1));
           sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
           if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error1++;            
           }
+          INFO("Full N_id_1: %d\n", sss_synch_N_id_1(&sss, m0, m1));
         }
         
         // Estimate CP 
