@@ -116,6 +116,8 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define NOF_TC_CB_SIZES 188
 
+typedef _Complex float cf_t; 
+
 typedef enum LIBLTE_API { PHICH_NORM, PHICH_EXT} phich_length_t;
 typedef enum LIBLTE_API { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
 

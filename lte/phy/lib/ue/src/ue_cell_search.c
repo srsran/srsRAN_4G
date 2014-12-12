@@ -154,20 +154,27 @@ static void get_cell(ue_cell_search_t * q, uint32_t nof_detected_frames, ue_cell
   found_cell->cell_id = q->candidates[mode_pos].cell_id;
   /* Now in all these cell IDs, find most frequent CP */
   uint32_t nof_normal = 0;
+  found_cell->peak = 0; 
   for (i=0;i<nof_detected_frames;i++) {
     if (q->candidates[i].cell_id == found_cell->cell_id) {
       if (CP_ISNORM(q->candidates[i].cp)) {
         nof_normal++;
       } 
     }
+    // average absolute peak value 
+    found_cell->peak += q->candidates[i].peak; 
   }
+  found_cell->peak /= nof_detected_frames;
+  
   if (nof_normal > q->mode_ntimes[mode_pos]/2) {
     found_cell->cp = CPNORM;
   } else {
     found_cell->cp = CPEXT; 
   }
   found_cell->mode = (float) q->mode_ntimes[mode_pos]/nof_detected_frames;  
-  found_cell->peak = q->candidates[nof_detected_frames-1].peak; 
+  
+  // PSR is already averaged so take the last value 
+  found_cell->psr = q->candidates[nof_detected_frames-1].psr;
 }
 
 /** Finds up to 3 cells, one per each N_id_2=0,1,2 and stores ID and CP in the structure pointed by found_cell.
@@ -212,7 +219,7 @@ int ue_cell_search_scan_N_id_2(ue_cell_search_t * q, uint32_t N_id_2, ue_cell_se
     ret = LIBLTE_SUCCESS; 
     
     ue_sync_set_N_id_2(&q->ue_sync, N_id_2);
-
+    ue_sync_reset(&q->ue_sync);
     do {
       
       ret = ue_sync_get_buffer(&q->ue_sync, &sf_buffer);
@@ -226,7 +233,8 @@ int ue_cell_search_scan_N_id_2(ue_cell_search_t * q, uint32_t N_id_2, ue_cell_se
           /* Save cell id, cp and peak */
           q->candidates[nof_detected_frames].cell_id = (uint32_t) ret;
           q->candidates[nof_detected_frames].cp = sync_get_cp(&q->ue_sync.strack);
-          q->candidates[nof_detected_frames].peak = sync_get_peak_value(&q->ue_sync.strack);
+          q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
+          q->candidates[nof_detected_frames].psr = sync_get_peak_value(&q->ue_sync.strack);
           INFO
             ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
               nof_detected_frames, nof_scanned_frames, q->nof_frames_to_scan,
@@ -262,9 +270,9 @@ int ue_cell_search_scan_N_id_2(ue_cell_search_t * q, uint32_t N_id_2, ue_cell_se
       ret = 1;      // A cell has been found.  
       if (found_cell) {
         get_cell(q, nof_detected_frames, found_cell);        
-        printf("Found CELL PHYID: %d, CP: %s, PSR: %.1f, Reliability: %.0f \%\n", 
+        printf("Found CELL PHYID: %d, CP: %s, PSR: %.1f, Absolute Peak: %.1f dBm, Reliability: %.0f \%\n", 
               found_cell->cell_id, lte_cp_string(found_cell->cp), 
-              found_cell->peak, 100*found_cell->mode);          
+              found_cell->psr, 10*log10(found_cell->peak*1000), 100*found_cell->mode);          
       }
     } else {
       ret = 0;      // A cell was not found. 

@@ -80,7 +80,7 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
-void parse_args(prog_args_t *args, int argc, char **argv) {
+int  parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
   while ((opt = getopt(argc, argv, "aglnvf")) != -1) {
@@ -105,13 +105,14 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     default:
       usage(args, argv[0]);
-      exit(-1);
+      return -1;
     }
   }
   if (args->uhd_freq < 0) {
     usage(args, argv[0]);
-    exit(-1);
+    return -1;
   }
+  return 0;
 }
 /**********************************************************************/
 
@@ -155,12 +156,14 @@ int main(int argc, char **argv) {
   uint32_t neighbour_cell_ids[MAX_NEIGHBOUR_CELLS]; 
   cf_t *ce[MAX_PORTS];
 
-  parse_args(&prog_args, argc, argv);
+  if (parse_args(&prog_args, argc, argv)) {
+    exit(-1);
+  }
 
   printf("Opening UHD device...\n");
   if (cuhd_open(prog_args.uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
-    exit(-1);
+    return -1;
   }
   /* Set receiver gain */
   cuhd_set_rx_gain(uhd, prog_args.uhd_gain);
@@ -173,7 +176,7 @@ int main(int argc, char **argv) {
   ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
   if (ret < 0) {
     fprintf(stderr, "Error searching cell\n");
-    exit(-1); 
+    return -1; 
   } else if (ret == 0) {
     printf("Cell not found\n");
     exit(0);
@@ -194,15 +197,15 @@ int main(int argc, char **argv) {
   
   if (ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
     fprintf(stderr, "Error initiating ue_sync\n");
-    exit(-1); 
+    return -1; 
   }
   if (ue_dl_init(&ue_dl, cell, 1234)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
-    exit(-1);
+    return -1;
   }
   if (ue_mib_init(&ue_mib, cell)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
-    exit(-1);
+    return -1;
   }
   
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
@@ -252,7 +255,7 @@ int main(int argc, char **argv) {
             n = ue_mib_decode(&ue_mib, sf_buffer, bch_payload_unpacked, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
-              exit(-1);
+              return -1;
             } else if (n == MIB_FOUND) {             
               bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
               bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
@@ -269,7 +272,7 @@ int main(int argc, char **argv) {
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
-              exit(-1);
+              return -1;
             } else if (n == 0) {
               printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, ExecTime: %5.1f us, NOI: %.2f, PDCCH-Det: %.3f\r",
                       ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
@@ -322,7 +325,7 @@ int main(int argc, char **argv) {
                                    ((int) ceilf((float)3*sib4_window_cnt/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
-              exit(-1);
+              return -1;
             } else if (n == 0) {
               nof_trials++; 
             } else {
@@ -340,7 +343,7 @@ int main(int argc, char **argv) {
             sib4_window_cnt++;
             if (sib4_window_cnt == si_window_length) {
               sib4_window_start = false;
-              exit(-1);
+              return -1;
             }
 
           }

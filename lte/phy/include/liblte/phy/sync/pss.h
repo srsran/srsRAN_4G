@@ -84,6 +84,7 @@ typedef struct LIBLTE_API {
   float *conv_output_abs;
   float ema_alpha; 
   float *conv_output_avg;
+  float peak_value;
 }pss_synch_t;
 
 typedef enum { PSS_TX, PSS_RX } pss_direction_t;

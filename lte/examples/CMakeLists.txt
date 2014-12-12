@@ -92,3 +92,5 @@ IF(${CUHD_FIND} GREATER -1)
 ELSE(${CUHD_FIND} GREATER -1)
   MESSAGE(STATUS "   UHD examples NOT INSTALLED: CUHD library not compiled.")
 ENDIF(${CUHD_FIND} GREATER -1)
+
+add_subdirectory(cell_scanner)

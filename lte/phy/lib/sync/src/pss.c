@@ -323,6 +323,9 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     /* Find maximum of the absolute value of the correlation */
     corr_peak_pos = vec_max_fi(q->conv_output_avg, conv_output_len-1);
     
+    // save absolute value 
+    q->peak_value = q->conv_output_avg[corr_peak_pos];
+    
 #ifdef PSS_RETURN_PSR    
     // Find second side lobe
     

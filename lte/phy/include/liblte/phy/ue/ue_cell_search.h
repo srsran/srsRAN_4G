@@ -67,6 +67,7 @@ typedef struct LIBLTE_API {
   lte_cp_t cp; 
   float peak; 
   float mode; 
+  float psr;
 } ue_cell_search_result_t;
 
 

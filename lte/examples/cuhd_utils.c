@@ -158,7 +158,7 @@ int cuhd_search_and_decode_mib(void *uhd, cell_search_cfg_t *config, int force_N
   ret = cuhd_cell_search(uhd, config, force_N_id_2, cell);
   if (ret > 0) {
     printf("Decoding PBCH for cell %d (N_id_2=%d)\n", cell->id, cell->id%3);        
-    ret = cuhd_mib_decoder(uhd, 50, cell);
+    ret = cuhd_mib_decoder(uhd, config->nof_frames_total, cell);
     if (ret < 0) {
       fprintf(stderr, "Could not decode PBCH from CELL ID %d\n", cell->id);
       return LIBLTE_ERROR;
