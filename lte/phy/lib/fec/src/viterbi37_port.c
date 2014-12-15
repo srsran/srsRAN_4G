@@ -77,7 +77,6 @@ void *create_viterbi37_port(uint32_t polys[3], uint32_t len) {
     free(vp);
     return NULL ;
   }
-  init_viterbi37_port(vp, 0);
 
   return vp;
 }
@@ -179,7 +178,7 @@ int update_viterbi37_blk_port(void *p, uint8_t *syms, uint32_t nbits, uint32_t *
     uint32_t i, bst=0;
     uint32_t minmetric=UINT_MAX;
     for (i=0;i<64;i++) {
-      if (vp->old_metrics->w[i] < minmetric) {
+      if (vp->old_metrics->w[i] <= minmetric) {
         bst = i;
         minmetric = vp->old_metrics->w[i];
       }

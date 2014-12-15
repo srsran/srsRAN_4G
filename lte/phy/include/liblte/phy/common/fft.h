@@ -37,6 +37,8 @@
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/dft.h"
 
+//#define LTE_FFT_NORMALIZE
+
 typedef _Complex float cf_t; /* this is only a shortcut */
 
 /* This is common for both directions */

@@ -25,6 +25,7 @@
  *
  */
 
+#include <string.h>
 #include <complex.h>
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/mex/mexutils.h"
@@ -126,3 +127,14 @@ int mexutils_write_f(float *buffer, mxArray **ptr, uint32_t nr, uint32_t nc) {
   }
 }
 
+
+int mexutils_write_uint8(uint8_t *buffer, mxArray **ptr, uint32_t nr, uint32_t nc) {
+  *ptr = mxCreateNumericMatrix(nr, nc, mxUINT8_CLASS, mxREAL); 
+  if (*ptr) {
+    uint8_t *outr = (uint8_t*) mxGetPr(*ptr);
+    memcpy(outr, buffer, nr*nc*sizeof(uint8_t));
+    return nc*nr;
+  } else {
+    return -1;
+  }
+}

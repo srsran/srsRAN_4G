@@ -33,6 +33,8 @@ ADD_TEST(pbch_test_50 pbch_test -p 1 -n 50 -c 50)
 ADD_TEST(pbch_test_502 pbch_test -p 2 -n 50 -c 50) 
 ADD_TEST(pbch_test_504 pbch_test -p 4 -n 50 -c 50) 
  
+ BuildMex(MEXNAME pbch SOURCES pbch_test_mex.c LIBRARIES lte_phy liblte_mex)
+
 
 ########################################################################
 # PCFICH TEST  

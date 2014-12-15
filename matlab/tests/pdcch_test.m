@@ -3,8 +3,8 @@
 %% Cell-Wide Settings
 % A structure |enbConfig| is used to configure the eNodeB.
 
-Npackets = 50;
-SNR_values =linspace(-5,3,8);
+Npackets = 1;
+SNR_values =20;%linspace(-5,3,8);
 
 enbConfig.NDLRB = 15;                % No of Downlink RBs in total BW
 enbConfig.CyclicPrefix = 'Normal';  % CP length
@@ -67,7 +67,7 @@ subframe_tx(pdcchIndices) = pdcchSymbols;
 
 addpath('../../debug/lte/phy/lib/phch/test')
 
-parfor snr_idx=1:length(SNR_values)
+for snr_idx=1:length(SNR_values)
     SNRdB = SNR_values(snr_idx);
     for i=1:Npackets
 

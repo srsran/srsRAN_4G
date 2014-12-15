@@ -119,6 +119,7 @@ int init37(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
+  q->gain_quant = 32; 
   q->tail_biting = tail_biting;
   q->decode = decode37;
   q->free = free37;
@@ -152,6 +153,7 @@ int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   q->R = 3;
   q->framebits = framebits;
   q->tail_biting = tail_biting;
+  q->gain_quant = 32; 
   q->decode = decode39;
   q->free = free39;
   if (q->tail_biting) {
@@ -171,6 +173,10 @@ int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   } else {
     return 0;
   }
+}
+
+void viterbi_set_gain_quant(viterbi_t *q, float gain_quant) {
+  q->gain_quant = gain_quant;
 }
 
 int viterbi_init(viterbi_t *q, viterbi_type_t type, uint32_t poly[3],
@@ -206,7 +212,7 @@ int viterbi_decode_f(viterbi_t *q, float *symbols, uint8_t *data, uint32_t frame
   } else {
     len = 3 * (frame_length + q->K - 1);
   }
-  vec_quant_fuc(symbols, q->symbols_uc, 32, 127.5, 255, len);
+  vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);
   return q->decode(q, q->symbols_uc, data, frame_length);
 }
 

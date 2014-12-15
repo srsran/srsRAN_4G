@@ -42,6 +42,7 @@ typedef struct LIBLTE_API{
   uint32_t K;
   uint32_t framebits;
   bool tail_biting;
+  float gain_quant; 
   uint32_t poly[3];
   int (*decode) (void*, uint8_t*, uint8_t*, uint32_t);
   void (*free) (void*);
@@ -54,6 +55,9 @@ LIBLTE_API int viterbi_init(viterbi_t *q,
                             uint32_t poly[3], 
                             uint32_t max_frame_length, 
                             bool tail_bitting);
+
+LIBLTE_API void viterbi_set_gain_quant(viterbi_t *q, 
+                                       float gain_quant); 
 
 LIBLTE_API void viterbi_free(viterbi_t *q);
 

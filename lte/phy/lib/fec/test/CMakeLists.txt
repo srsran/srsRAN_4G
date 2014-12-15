@@ -67,6 +67,8 @@ ADD_TEST(viterbi_1000_2 viterbi_test -n 100 -s 1 -l 1000 -k 7 -t -e 2.0)
 ADD_TEST(viterbi_1000_3 viterbi_test -n 100 -s 1 -l 1000 -k 7 -t -e 3.0)
 ADD_TEST(viterbi_1000_4 viterbi_test -n 100 -s 1 -l 1000 -k 7 -t -e 4.5)
 
+BuildMex(MEXNAME viterbi SOURCES viterbi_test_mex.c LIBRARIES lte_phy liblte_mex)
+
 ########################################################################
 # CRC TEST  
 ########################################################################

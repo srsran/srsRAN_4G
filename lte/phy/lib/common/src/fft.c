@@ -53,8 +53,10 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
   }
 
   dft_plan_set_mirror(&q->fft_plan, true);
-  dft_plan_set_norm(&q->fft_plan, true);
   dft_plan_set_dc(&q->fft_plan, true);
+#ifdef LTE_FFT_NORMALIZE
+  dft_plan_set_norm(&q->fft_plan, true);
+#endif
 
   q->symbol_sz = (uint32_t) symbol_sz;
   q->nof_symbols = CP_NSYMB(cp);
