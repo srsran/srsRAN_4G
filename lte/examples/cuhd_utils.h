@@ -29,7 +29,8 @@
 #include "liblte/phy/phy.h"
 
 typedef struct LIBLTE_API {
-  uint32_t nof_frames_total; // maximum number of 5ms frames to capture 
+  uint32_t max_frames_pbch; // maximum number of 5ms frames to capture for MIB decoding
+  uint32_t max_frames_pss; // maximum number of 5ms frames to capture for PSS correlation
   float threshold;   // early-stops cell detection if mean PSR is above this value 
 }cell_search_cfg_t;
 

@@ -127,7 +127,7 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
     return LIBLTE_ERROR;
   }
   /* Reset decoder if we missed a frame */
-  if (q->frame_cnt > 16) {
+  if (q->frame_cnt > 8) {
     INFO("Resetting PBCH decoder after %d frames\n", q->frame_cnt);
     ue_mib_reset(q);
   }

@@ -103,8 +103,8 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
     return LIBLTE_ERROR; 
   }
   
-  if (config->nof_frames_total) {
-    ue_cell_search_set_nof_frames_to_scan(&cs, config->nof_frames_total);
+  if (config->max_frames_pss) {
+    ue_cell_search_set_nof_frames_to_scan(&cs, config->max_frames_pss);
   }
   if (config->threshold) {
     ue_cell_search_set_threshold(&cs, config->threshold);
@@ -158,7 +158,7 @@ int cuhd_search_and_decode_mib(void *uhd, cell_search_cfg_t *config, int force_N
   ret = cuhd_cell_search(uhd, config, force_N_id_2, cell);
   if (ret > 0) {
     printf("Decoding PBCH for cell %d (N_id_2=%d)\n", cell->id, cell->id%3);        
-    ret = cuhd_mib_decoder(uhd, config->nof_frames_total, cell);
+    ret = cuhd_mib_decoder(uhd, config->max_frames_pbch, cell);
     if (ret < 0) {
       fprintf(stderr, "Could not decode PBCH from CELL ID %d\n", cell->id);
       return LIBLTE_ERROR;

@@ -55,7 +55,7 @@
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 
-cell_search_cfg_t config = {50, 1.1}; 
+cell_search_cfg_t config = {500, 50, 1.1}; 
 
 
 float uhd_gain = 60.0;
@@ -89,7 +89,7 @@ void parse_args(int argc, char **argv) {
       earfcn_end = atoi(argv[optind]);
       break;
     case 'n':
-      config.nof_frames_total = atoi(argv[optind]);
+      config.max_frames_pss = atoi(argv[optind]);
       break;
     case 't':
       config.threshold = atof(argv[optind]);
@@ -162,8 +162,8 @@ int main(int argc, char **argv) {
       exit(-1);
     }
     
-    if (config.nof_frames_total) {
-      ue_cell_search_set_nof_frames_to_scan(&cs, config.nof_frames_total);
+    if (config.max_frames_pss) {
+      ue_cell_search_set_nof_frames_to_scan(&cs, config.max_frames_pss);
     }
     if (config.threshold) {
       ue_cell_search_set_threshold(&cs, config.threshold);

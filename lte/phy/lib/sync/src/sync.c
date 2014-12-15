@@ -316,7 +316,6 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
 
         /* compute cumulative moving average CFO */
         q->mean_cfo = VEC_EMA(cfo, q->mean_cfo, CFO_EMA_ALPHA);
-
       } else {
         INFO("No space for CFO computation. Frame starts at \n",peak_pos);
       }

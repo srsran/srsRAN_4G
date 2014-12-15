@@ -28,7 +28,8 @@
 #include "liblte/phy/phy.h"
 
 typedef struct {
-  int cell_detect_max_frames;
+  int pss_max_frames;
+  int pbch_max_frames;
   float cell_detect_early_stop_threshold;
   int measure_avg_nof_frames; 
   char *uhd_args; 

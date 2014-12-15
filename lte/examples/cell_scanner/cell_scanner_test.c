@@ -111,7 +111,11 @@ int main(int argc, char **argv) {
   cfg.cell_detect_early_stop_threshold = 20.0; // This is a normal value. 
   // maximum 5 ms frames that will be scanned maximum in the case the threshold is not exceed
   // ie for bad cells 
-  cfg.cell_detect_max_frames = 50; // this is 250 ms
+  cfg.pss_max_frames = 50; // this is 250 ms
+
+  // maximum 5 ms frames that will be received to decode the PBCH 
+  // ie for bad cells 
+  cfg.pbch_max_frames = 500; // this is 2500 ms
   
   // Number of 1 ms subframes that will be used to compute rsrp, rsrq, snr, etc average
   cfg.measure_avg_nof_frames = 1000; // 1 sec 

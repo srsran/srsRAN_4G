@@ -106,7 +106,8 @@ int cell_scanner_cell(cell_scanner_t *q, float frequency, int N_id_2, cell_scann
   printf("Tunning receiver to %.3f MHz\n", (double ) frequency/1000000);
 
   cell_search_cfg_t cfg; 
-  cfg.nof_frames_total = q->config.cell_detect_max_frames;
+  cfg.max_frames_pss = q->config.pss_max_frames;
+  cfg.max_frames_pbch = q->config.pbch_max_frames;
   cfg.threshold = q->config.cell_detect_early_stop_threshold;
   
   ret = cuhd_search_and_decode_mib(q->uhd, &cfg, N_id_2, &cell);

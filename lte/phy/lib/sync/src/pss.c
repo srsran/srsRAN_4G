@@ -302,10 +302,10 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
       conv_output_len = conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
     #endif
     } else {
-      for (int i=q->fft_size;i<q->fft_size+q->frame_size-1;i++) {
-        q->conv_output[i] = vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], &input[i-q->fft_size], q->fft_size);
+      for (int i=0;i<q->frame_size-1;i++) {
+        q->conv_output[i] = vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], &input[i], q->fft_size);
       }
-      conv_output_len = q->fft_size+q->frame_size-1; 
+      conv_output_len = q->frame_size-1; 
     }
 
    
@@ -364,6 +364,13 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
           1000000*q->conv_output_avg[corr_peak_pos], 1000000*side_lobe_value,*corr_peak_value
         );
       }
+      
+      if (isnan(*corr_peak_value) || isinf(*corr_peak_value)) {
+        int i=0;
+        vec_save_file("corrout", q->conv_output_avg, conv_output_len*sizeof(float));
+        exit(-1);
+      }
+      
     }
 #else
     if (corr_peak_value) {
@@ -371,7 +378,11 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     }
 #endif
 
-    ret = (int) corr_peak_pos;                
+    if (q->frame_size >= q->fft_size) {
+      ret = (int) corr_peak_pos;                
+    } else {
+      ret = (int) corr_peak_pos + q->fft_size;
+    }
   } 
   return ret;
 }

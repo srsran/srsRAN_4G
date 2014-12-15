@@ -217,6 +217,9 @@ static int find_peak_ok(ue_sync_t *q) {
     q->frame_no_cnt = 0;
     q->frame_total_cnt = 0;       
     q->frame_find_cnt = 0; 
+    
+    /* Set tracking CFO average to find CFO */
+    q->strack.mean_cfo = q->sfind.mean_cfo;
 
     /* Goto Tracking state */
     q->state = SF_TRACK;            
@@ -269,7 +272,7 @@ int track_peak_no(ue_sync_t *q) {
   /* if we missed too many PSS go back to FIND */
   q->frame_no_cnt++; 
   if (q->frame_no_cnt >= TRACK_MAX_LOST) {
-    INFO("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
+    printf("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
     q->state = SF_FIND;
   } else {
     INFO("Tracking peak not found. Peak %.3f, %d lost\n", 
@@ -375,7 +378,10 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
         
         /* Do CFO Correction if not done in track and deliver the frame */
         if (!q->strack.correct_cfo) {
-          cfo_correct(&q->sfind.cfocorr, q->input_buffer, q->input_buffer, -sync_get_cfo(&q->strack) / q->fft_size);               
+          cfo_correct(&q->sfind.cfocorr, 
+                      q->input_buffer, 
+                      q->input_buffer, 
+                      -sync_get_cfo(&q->strack) / q->fft_size);               
         }
         *sf_symbols = q->input_buffer;
         
