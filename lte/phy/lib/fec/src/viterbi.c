@@ -96,6 +96,7 @@ int decode39(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
   return q->framebits;
 }
 
+
 void free37(void *o) {
   viterbi_t *q = o;
   if (q->symbols_uc) {
@@ -123,6 +124,7 @@ int init37(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   q->tail_biting = tail_biting;
   q->decode = decode37;
   q->free = free37;
+  q->decode_f = NULL;
   q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
   if (!q->symbols_uc) {
     perror("malloc");
@@ -145,7 +147,7 @@ int init37(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
     return -1;
   } else {
     return 0;
-  }
+  }     
 }
 
 int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
@@ -156,6 +158,7 @@ int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   q->gain_quant = 32; 
   q->decode = decode39;
   q->free = free39;
+  q->decode_f = NULL;
   if (q->tail_biting) {
     fprintf(stderr,
         "Error: Tailbitting not supported in 1/3 K=9 decoder\n");
@@ -174,6 +177,8 @@ int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
     return 0;
   }
 }
+
+
 
 void viterbi_set_gain_quant(viterbi_t *q, float gain_quant) {
   q->gain_quant = gain_quant;
@@ -212,8 +217,14 @@ int viterbi_decode_f(viterbi_t *q, float *symbols, uint8_t *data, uint32_t frame
   } else {
     len = 3 * (frame_length + q->K - 1);
   }
-  vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);
-  return q->decode(q, q->symbols_uc, data, frame_length);
+  if (!q->decode_f) {
+    vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);
+    return q->decode(q, q->symbols_uc, data, frame_length);    
+  } else {
+    return q->decode_f(q, symbols, data, frame_length);
+  }
+  
+  
 }
 
 int viterbi_decode_uc(viterbi_t *q, uint8_t *symbols, uint8_t *data,

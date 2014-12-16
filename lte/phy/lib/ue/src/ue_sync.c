@@ -119,7 +119,7 @@ int ue_sync_init(ue_sync_t *q,
       sync_set_em_alpha(&q->sfind, 1);
       q->nof_avg_find_frames = 1; 
       sync_set_threshold(&q->sfind, 2.0);
-      sync_set_threshold(&q->strack, 6.0);
+      sync_set_threshold(&q->strack, 1.4);
 
       /* Correct CFO in the find state but not in the track state, since is called only 
        * 1 every 5 subframes. Will do it in the ue_sync_get_buffer() function. 
