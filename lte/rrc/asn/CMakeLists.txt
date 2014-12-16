@@ -19,7 +19,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-
 FILE(GLOB RRC_ASN_SOURCES *.c) 
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/../include/liblte/rrc/asn/")
 ADD_LIBRARY(rrc_asn SHARED ${RRC_ASN_SOURCES})
