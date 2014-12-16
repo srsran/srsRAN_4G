@@ -48,12 +48,13 @@ void do_plots(ue_dl_t *q, uint32_t sf_idx, ue_sync_t *qs);
 
 
 #define B210_DEFAULT_GAIN         40.0
-#define B210_DEFAULT_GAIN_CORREC  80.0 // Gain of the Rx chain when the gain is set to 40
+#define B210_DEFAULT_GAIN_CORREC  110.0 // Gain of the Rx chain when the gain is set to 40
 
 float gain_offset = B210_DEFAULT_GAIN_CORREC;
 
 
 cell_search_cfg_t cell_detect_config = {
+  5000,
   100, // nof_frames_total 
   4.0 // threshold
 };

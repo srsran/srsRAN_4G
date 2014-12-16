@@ -42,7 +42,7 @@ cf_t dummy[MAX_TIME_OFFSET];
 
 #define TRACK_MAX_LOST          10
 #define TRACK_FRAME_SIZE        32
-#define FIND_NOF_AVG_FRAMES     4
+#define FIND_NOF_AVG_FRAMES     2
 
 int ue_sync_init(ue_sync_t *q, 
                  lte_cell_t cell,
@@ -119,7 +119,7 @@ int ue_sync_init(ue_sync_t *q,
       sync_set_em_alpha(&q->sfind, 1);
       q->nof_avg_find_frames = 1; 
       sync_set_threshold(&q->sfind, 2.0);
-      sync_set_threshold(&q->strack, 1.4);
+      sync_set_threshold(&q->strack, 1.2);
 
       /* Correct CFO in the find state but not in the track state, since is called only 
        * 1 every 5 subframes. Will do it in the ue_sync_get_buffer() function. 

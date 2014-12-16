@@ -214,7 +214,9 @@ int ue_mib_sync_decode(ue_mib_sync_t * q,
         break; 
       } else if (ue_sync_get_sfidx(&q->ue_sync) == 0) {
         if (ret == 1) {
+          ue_mib_reset(&q->ue_mib);
           mib_ret = ue_mib_decode(&q->ue_mib, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);          
+          
         } else {
           INFO("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
           ue_mib_reset(&q->ue_mib);
