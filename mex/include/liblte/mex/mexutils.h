@@ -66,6 +66,11 @@ LIBLTE_API int mexutils_write_uint8(uint8_t *buffer,
                                     uint32_t nr, 
                                     uint32_t nc);
 
+LIBLTE_API int mexutils_write_int(int *buffer, 
+                                  mxArray **ptr, 
+                                  uint32_t nr, 
+                                  uint32_t nc);
+
 LIBLTE_API int mexutils_read_f(const mxArray *ptr, 
                                float **buffer);
 

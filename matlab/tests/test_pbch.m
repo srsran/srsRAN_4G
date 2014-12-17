@@ -3,8 +3,9 @@ rmc = lteRMCDL('R.10');
 
 NofPortsTx=2;
 
-SNR_values_db=1;%linspace(-6,5,8);
-Nrealizations=1;
+SNR_values_db=linspace(-6,0,4);
+Nrealizations=50;
+enb = struct('NCellID',0,'NDLRB',50,'CellRefP',NofPortsTx,'CyclicPrefix','Normal','DuplexMode','FDD','NSubframe',0);
 
 
 cfg.Seed = 8;                  % Random channel seed
@@ -42,22 +43,20 @@ for snr_idx=1:length(SNR_values_db)
     errorReal = zeros(Nrealizations,2);
     for i=1:Nrealizations
 
-        enb = struct('NCellID',311,'NDLRB',6,'CellRefP',NofPortsTx,'CyclicPrefix','Normal','DuplexMode','FDD','NSubframe',0);
         griddims = lteResourceGridSize(enb); % Resource grid dimensions
         L = griddims(2);    
         
-        %rxWaveform = lteFadingChannel(cfg,waveform(:,1));
-        %rxWaveform = waveform(:,1);
+        rxWaveform = lteFadingChannel(cfg,waveform(:,1));
 
         %% Additive Noise
-        %N0 = 1/(sqrt(2.0*double(enb.CellRefP)*double(info.Nfft))*SNR);
+        N0 = 1/(sqrt(2.0*double(enb.CellRefP)*double(info.Nfft))*SNR);
 
         % Create additive white Gaussian noise
-        %noise = N0*complex(randn(size(rxWaveform)),randn(size(rxWaveform)));   
+        noise = N0*complex(randn(size(rxWaveform)),randn(size(rxWaveform)));   
 
-        %rxWaveform = noise + rxWaveform;
+        rxWaveform = noise + rxWaveform;
         
-        rxWaveform = downsampled; 
+       % rxWaveform = downsampled; 
         
         % Number of OFDM symbols in a subframe
         % OFDM demodulate signal
@@ -71,17 +70,16 @@ for snr_idx=1:length(SNR_values_db)
             pbchIndices, rxgrid(:,1:L,:), hest(:,1:L,:,:));
 
         % Decode PBCH
-        [bchBits, pbchSymbols, nfmod4, mib, enb.CellRefP] = ltePBCHDecode( ...
+        [bchBits, pbchSymbols, nfmod4, mib, nof_ports] = ltePBCHDecode( ...
             enb, pbchRx, pbchHest, nest);
 
-        % Parse MIB bits
-        enb = lteMIB(mib, enb);
-        if (enb.CellRefP ~= NofPortsTx)
+        if (nof_ports ~= NofPortsTx)
             errorReal(i,1)=1;
         end
-        enb = struct('NCellID',311,'NDLRB',6,'CellRefP',NofPortsTx,'CyclicPrefix','Normal','DuplexMode','FDD','NSubframe',0);
-        [nof_ports, pbchSymbols2, pbchBits, ce, ce2]=liblte_pbch(enb, rxWaveform);
-        if (nof_ports ~= NofPortsTx)
+        
+        [nof_ports2, pbchSymbols2, pbchBits, ce, ce2, pbchRx2, pbchHest2,indices]=...
+            liblte_pbch(enb, rxWaveform, hest, nest);
+        if (nof_ports2 ~= NofPortsTx)
             errorReal(i,2)=1;
         end
 %         if (errorReal(i,1) ~= errorReal(i,2))

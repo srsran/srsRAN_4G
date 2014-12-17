@@ -350,17 +350,20 @@ int main(int argc, char **argv) {
           }
         break;
       case MEASURE:
-        /* Run FFT for all subframe data */
-        lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
         
-        chest_dl_estimate(&chest, sf_symbols, ce, ue_sync_get_sfidx(&ue_sync));
-                
-        rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SF_LEN(lte_symbol_sz(cell.nof_prb))),rssi,nframes);
-        rssi_utra = VEC_CMA(chest_dl_get_rssi(&chest),rssi_utra,nframes);
-        rsrq = VEC_EMA(chest_dl_get_rsrq(&chest),rsrq,0.001);
-        rsrp = VEC_CMA(chest_dl_get_rsrp(&chest),rsrp,nframes);      
-        snr = VEC_CMA(chest_dl_get_snr(&chest),snr,nframes);      
-        nframes++;
+        if (ue_sync_get_sfidx(&ue_sync) == 5) {
+          /* Run FFT for all subframe data */
+          lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
+          
+          chest_dl_estimate(&chest, sf_symbols, ce, ue_sync_get_sfidx(&ue_sync));
+                  
+          rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SF_LEN(lte_symbol_sz(cell.nof_prb))),rssi,nframes);
+          rssi_utra = VEC_CMA(chest_dl_get_rssi(&chest),rssi_utra,nframes);
+          rsrq = VEC_EMA(chest_dl_get_rsrq(&chest),rsrq,0.001);
+          rsrp = VEC_EMA(chest_dl_get_rsrp(&chest),rsrp,0.001);      
+          snr = VEC_EMA(chest_dl_get_snr(&chest),snr,0.001);      
+          nframes++;          
+        }        
         
         // Plot and Printf
         if ((nframes%10) == 0) {

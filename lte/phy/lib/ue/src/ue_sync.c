@@ -103,7 +103,7 @@ int ue_sync_init(ue_sync_t *q,
       sync_set_threshold(&q->sfind, 1.1);
       sync_set_em_alpha(&q->sfind, 0.01);
       q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES; 
-      sync_set_threshold(&q->strack, 2.0);
+      sync_set_threshold(&q->strack, 1.2);
       
     } else {
       sync_set_N_id_2(&q->sfind, cell.id%3);

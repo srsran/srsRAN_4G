@@ -241,7 +241,7 @@ int cell_scanner_cell(cell_scanner_t *q, float frequency, int N_id_2, cell_scann
                             result->rssi,nframes_measure);
       result->rsrq = VEC_EMA(chest_dl_get_rsrq(chest_ptr),result->rsrq,0.01);
       result->rsrp = VEC_CMA(chest_dl_get_rsrp(chest_ptr),result->rsrp,nframes_measure);      
-      result->snr = VEC_CMA(chest_dl_get_snr(chest_ptr),result->snr,nframes_measure);      
+      result->snr = VEC_EMA(chest_dl_get_snr(chest_ptr),result->snr,0.01);      
       nframes_measure++;
       
       // Plot and Printf

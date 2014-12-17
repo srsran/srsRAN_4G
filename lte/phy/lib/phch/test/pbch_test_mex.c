@@ -27,6 +27,7 @@
 #define INPUT   prhs[1]
 #define NOF_INPUTS 2
 
+extern int indices[2048];
 
 void help()
 {
@@ -47,7 +48,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int nof_re; 
   cf_t *ce[MAX_PORTS], *ce_slot[MAX_PORTS];
 
-  if (nrhs != NOF_INPUTS) {
+  if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
@@ -84,15 +85,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   lte_fft_run_sf(&fft, input_symbols, input_fft);
-  chest_dl_estimate(&chest, input_fft, ce, 0);
-
+  
+  if (nrhs > NOF_INPUTS) {
+    cf_t *cearray; 
+    mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
+    for (i=0;i<cell.nof_ports;i++) {
+      for (int j=0;j<nof_re;j++) {
+        ce[i][j] = *cearray;
+        cearray++;
+      }
+    }
+  } else {
+    chest_dl_estimate(&chest, input_fft, ce, 0);    
+  }
+  float noise_power;
+  if (nrhs > NOF_INPUTS + 1) {
+    noise_power = mxGetScalar(prhs[NOF_INPUTS+1]);
+  } else {
+    noise_power = chest_dl_get_noise_estimate(&chest);
+  }
+  
   for (int i=0;i<MAX_PORTS;i++) {
     ce_slot[i] = &ce[i][SLOT_LEN_RE(cell.nof_prb, cell.cp)];
   }
 
   uint32_t nof_ports; 
   int n = pbch_decode(&pbch, &input_fft[SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
-                  ce_slot, chest_dl_get_noise_estimate(&chest), 
+                  ce_slot, noise_power, 
                   NULL, &nof_ports, NULL);
   
   if (nlhs >= 1) { 
@@ -113,6 +132,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   if (nlhs >= 5) {
     mexutils_write_cf(ce[1], &plhs[4], SF_LEN_RE(cell.nof_prb,cell.cp)/14, 14);  
+  }
+  if (nlhs >= 6) {
+    mexutils_write_cf(pbch.pbch_symbols[0], &plhs[5], pbch.nof_symbols, 1);  
+  }
+  if (nlhs >= 7) {
+    mexutils_write_cf(pbch.ce[0], &plhs[6], pbch.nof_symbols, 1);  
+  }
+  if (nlhs >= 7) {
+    mexutils_write_int(indices, &plhs[7], 2048, 1);  
   }
   
   chest_dl_free(&chest);

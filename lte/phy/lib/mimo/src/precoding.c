@@ -169,10 +169,10 @@ int predecoding_diversity(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[M
     vec_abs_square_cf(h0, modh0, nof_symbols/2);
     vec_abs_square_cf(h1, modh1, nof_symbols/2);
     vec_sum_fff(modh0, modh1, modhh, nof_symbols/2);
-    if (noise_estimate > 0.0) {
+    //if (noise_estimate > 0.0) {
       // (H'H + n0)
-      vec_sc_add_fff(modhh, noise_estimate, modhh, nof_symbols/2);
-    }
+      //vec_sc_add_fff(modhh, noise_estimate, modhh, nof_symbols/2);
+    //}
     
     vec_sc_prod_fff(modhh, 1/sqrt(2), modhh, nof_symbols/2);
     

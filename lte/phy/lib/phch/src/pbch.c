@@ -50,10 +50,14 @@ bool pbch_exists(int nframe, int nslot) {
   return (!(nframe % 5) && nslot == 1);
 }
 
+cf_t *offset_original;
+
 int pbch_cp(cf_t *input, cf_t *output, lte_cell_t cell, bool put) {
   int i;
   cf_t *ptr;
-
+  
+  offset_original = input; 
+  
   if (put) {
     ptr = input;
     output += cell.nof_prb * RE_X_RB / 2 - 36;
@@ -66,9 +70,9 @@ int pbch_cp(cf_t *input, cf_t *output, lte_cell_t cell, bool put) {
   for (i = 0; i < 2; i++) {
     prb_cp_ref(&input, &output, cell.id % 3, 4, 4*6, put);
     if (put) {
-      output += cell.nof_prb * RE_X_RB - 2*36;
+      output += cell.nof_prb * RE_X_RB - 2*36 + (cell.id%3==2?1:0);      
     } else {
-      input += cell.nof_prb * RE_X_RB - 2*36;
+      input += cell.nof_prb * RE_X_RB - 2*36 + (cell.id%3==2?1:0);
     }
   }
   /* symbols 2 & 3 */

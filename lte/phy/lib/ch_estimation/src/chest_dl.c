@@ -359,7 +359,8 @@ float chest_dl_get_snr(chest_dl_t *q) {
   float snr = 0.0; 
   for (int i=0;i<q->cell.nof_ports;i++) {
     if (q->noise_estimate[i]) {
-      snr += q->rsrp[i]/(q->noise_estimate[i]*sqrtf(2*q->cell.nof_ports*lte_symbol_sz(q->cell.nof_prb)));    
+      float snr_i = q->rsrp[i]/(q->noise_estimate[i]*sqrtf(2*q->cell.nof_ports*lte_symbol_sz(q->cell.nof_prb)));    
+      snr += snr_i;
     }
   }
   return snr/q->cell.nof_ports;

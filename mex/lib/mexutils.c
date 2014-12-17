@@ -138,3 +138,14 @@ int mexutils_write_uint8(uint8_t *buffer, mxArray **ptr, uint32_t nr, uint32_t n
     return -1;
   }
 }
+
+int mexutils_write_int(int *buffer, mxArray **ptr, uint32_t nr, uint32_t nc) {
+  *ptr = mxCreateNumericMatrix(nr, nc, mxINT32_CLASS, mxREAL); 
+  if (*ptr) {
+    int *outr = (int*) mxGetPr(*ptr);
+    memcpy(outr, buffer, nr*nc*sizeof(int));
+    return nc*nr;
+  } else {
+    return -1;
+  }
+}

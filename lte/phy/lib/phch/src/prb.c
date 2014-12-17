@@ -32,17 +32,20 @@
 #include "prb.h"
 #include "liblte/phy/common/phy_common.h"
 
-//#define DEBUG_IDX
+#define DEBUG_IDX
 
 #ifdef DEBUG_IDX
 extern cf_t *offset_original;
+LIBLTE_API int indices[2048];
+int indices_ptr=0;
 #endif
 
 void print_indexes(cf_t *offset, int len) {
 #ifdef DEBUG_IDX
   for (int i=0;i<len;i++) {
-    printf("%d, ",offset-offset_original+i);
+    indices[(i+indices_ptr)%2048]=offset-offset_original+i;
   }
+  indices_ptr+=len;
 #endif
 }
 

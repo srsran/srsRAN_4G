@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
   
   // Variables for measurements 
   uint32_t nframes=0;
-  float rsrp=1.0, rsrq=1.0, snr=1.0;
+  float rsrp=0.0, rsrq=0.0, snr=0.0;
 
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -276,6 +276,7 @@ int main(int argc, char **argv) {
           }
           break;
         case DECODE_SIB:
+          sfn=0;
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
             n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
@@ -285,19 +286,18 @@ int main(int argc, char **argv) {
               exit(-1);
             } 
             nof_trials++; 
-          }
-
-          rsrq = VEC_EMA(chest_dl_get_rsrq(&ue_dl.chest),rsrq,0.001);
-          rsrp = VEC_CMA(chest_dl_get_rsrp(&ue_dl.chest),rsrp,nframes);      
-          snr = VEC_CMA(chest_dl_get_snr(&ue_dl.chest),snr,nframes);      
-          nframes++;
-
-          if (isnan(rsrq)) {
-            rsrq = 0; 
+            
+            rsrq = VEC_EMA(chest_dl_get_rsrq(&ue_dl.chest),rsrq,0.001);
+            rsrp = VEC_EMA(chest_dl_get_rsrp(&ue_dl.chest),rsrp,0.001);      
+            snr = VEC_EMA(chest_dl_get_snr(&ue_dl.chest),snr,0.001);      
+            nframes++;
+            if (isnan(rsrq)) {
+              rsrq = 0; 
+            }
           }
           
           // Plot and Printf
-          if (ue_sync_get_sfidx(&ue_sync) == 0) {
+          if (ue_sync_get_sfidx(&ue_sync) == 5) {
             printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, "
                   "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %4.1f dB, "
                   "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
