@@ -276,7 +276,6 @@ int main(int argc, char **argv) {
           }
           break;
         case DECODE_SIB:
-          sfn=0;
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
             n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
@@ -287,9 +286,9 @@ int main(int argc, char **argv) {
             } 
             nof_trials++; 
             
-            rsrq = VEC_EMA(chest_dl_get_rsrq(&ue_dl.chest),rsrq,0.001);
-            rsrp = VEC_EMA(chest_dl_get_rsrp(&ue_dl.chest),rsrp,0.001);      
-            snr = VEC_EMA(chest_dl_get_snr(&ue_dl.chest),snr,0.001);      
+            rsrq = VEC_EMA(chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.05);
+            rsrp = VEC_EMA(chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
+            snr = VEC_EMA(chest_dl_get_snr(&ue_dl.chest), snr, 0.05);      
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -303,9 +302,9 @@ int main(int argc, char **argv) {
                   "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
                   ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
                   10*log10(rsrp*1000)-gain_offset, 
-                10*log10(rsrq), 10*log10(snr), 
-                100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
-                (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                
+                  10*log10(rsrq), 10*log10(snr), 
+                  100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                
           }
           break;
       }

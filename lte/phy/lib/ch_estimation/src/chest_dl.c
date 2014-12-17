@@ -116,8 +116,10 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
     
     /* Set default time/freq filters */
     //float f[3]={0.15, 0.7, 0.15};
-    float f[3]={0.2, 0.6, 0.2};
-    chest_dl_set_filter_freq(q, f, 3);
+    //chest_dl_set_filter_freq(q, f, 3);
+
+    float f[5]={0.05, 0.15, 0.6, 0.15, 0.05};
+    chest_dl_set_filter_freq(q, f, 5);
     
     float t[2]={0.1, 0.9};
     chest_dl_set_filter_time(q, t, 2);
@@ -196,12 +198,8 @@ static float estimate_noise_port(chest_dl_t *q, uint32_t port_id, cf_t *avg_pilo
   vec_sub_ccc(avg_pilots, q->pilot_estimates[port_id],
               q->tmp_noise, REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
 
-  float noise_var = vec_avg_power_cf(q->tmp_noise, REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
-
-  /* compute noise power. Correction factor obtained through simulations */  
-  return 0.75 * sqrtf((float) q->filter_freq_len) * noise_var / sqrt(q->cell.nof_prb);
+  return vec_avg_power_cf(q->tmp_noise, REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
 }
-
 
 #define pilot_est(idx) q->pilot_estimates[port_id][REFSIGNAL_PILOT_IDX(idx,l,q->cell)]
 #define pilot_avg(idx) q->pilot_estimates_average[port_id][REFSIGNAL_PILOT_IDX(idx,l,q->cell)]
@@ -310,8 +308,13 @@ float chest_dl_rssi(chest_dl_t *q, cf_t *input, uint32_t port_id) {
 }
 
 float chest_dl_rsrp(chest_dl_t *q, uint32_t port_id) {
-  return vec_avg_power_cf(q->pilot_recv_signal[port_id], 
+#ifdef RSRP_FROM_ESTIMATES
+  return vec_avg_power_cf(q->pilot_estimates[port_id], 
                           REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
+#else
+  return vec_avg_power_cf(q->pilot_estimates_average[port_id], 
+                          REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
+#endif
 }
 
 int chest_dl_estimate_port(chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id) 
@@ -356,14 +359,8 @@ float chest_dl_get_noise_estimate(chest_dl_t *q) {
 }
 
 float chest_dl_get_snr(chest_dl_t *q) {
-  float snr = 0.0; 
-  for (int i=0;i<q->cell.nof_ports;i++) {
-    if (q->noise_estimate[i]) {
-      float snr_i = q->rsrp[i]/(q->noise_estimate[i]*sqrtf(2*q->cell.nof_ports*lte_symbol_sz(q->cell.nof_prb)));    
-      snr += snr_i;
-    }
-  }
-  return snr/q->cell.nof_ports;
+  // Uses RSRP as an estimation of the useful signal power  
+  return chest_dl_get_rsrp(q)/chest_dl_get_noise_estimate(q);
 }
 
 float chest_dl_get_rssi(chest_dl_t *q) {
@@ -380,9 +377,9 @@ float chest_dl_get_rsrq(chest_dl_t *q) {
 
 float chest_dl_get_rsrp(chest_dl_t *q) {
   // return linear average from port 0 only 
-  return q->rsrp[0]; 
+  //return q->rsrp[0]; 
   
   // return linear average from all ports
-  //return vec_acc_ff(q->rsrp, q->cell.nof_ports)/q->cell.nof_ports; 
+  return vec_acc_ff(q->rsrp, q->cell.nof_ports)/q->cell.nof_ports; 
 }
 

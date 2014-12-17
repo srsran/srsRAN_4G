@@ -33,7 +33,7 @@ ADD_TEST(pbch_test_50 pbch_test -p 1 -n 50 -c 50)
 ADD_TEST(pbch_test_502 pbch_test -p 2 -n 50 -c 50) 
 ADD_TEST(pbch_test_504 pbch_test -p 4 -n 50 -c 50) 
  
- BuildMex(MEXNAME pbch SOURCES pbch_test_mex.c LIBRARIES lte_phy liblte_mex)
+BuildMex(MEXNAME pbch SOURCES pbch_test_mex.c LIBRARIES lte_phy liblte_mex)
 
 
 ########################################################################
@@ -49,7 +49,9 @@ ADD_TEST(pcfich_test_64 pcfich_test -p 4 -n 6)
 ADD_TEST(pcfich_test_10 pcfich_test -p 1 -n 10) 
 ADD_TEST(pcfich_test_102 pcfich_test -p 2 -n 10) 
 ADD_TEST(pcfich_test_104 pcfich_test -p 4 -n 10) 
- 
+
+BuildMex(MEXNAME pcfich SOURCES pcfich_test_mex.c LIBRARIES lte_phy liblte_mex)
+
 ########################################################################
 # PHICH TEST  
 ########################################################################

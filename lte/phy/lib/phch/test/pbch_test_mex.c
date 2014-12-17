@@ -1,19 +1,28 @@
-/* 
- * Copyright (c) 2012, Ismael Gomez-Miguelez <ismael.gomez@tsc.upc.edu>.
- * This file is part of ALOE++ (http://flexnets.upc.edu/)
- * 
- * ALOE++ is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * ALOE++ is distributed in the hope that it will be useful,
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2014 The libLTE Developers. See the
+ * COPYRIGHT file at the top-level directory of this distribution.
+ *
+ * \section LICENSE
+ *
+ * This file is part of the libLTE library.
+ *
+ * libLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * libLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public License
- * along with ALOE++.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * A copy of the GNU Lesser General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
  */
 
 #include <string.h>
@@ -32,7 +41,7 @@ extern int indices[2048];
 void help()
 {
   mexErrMsgTxt
-    ("[decoded_ok, symbols, bits] = liblte_pbch(enbConfig, inputSignal)\n\n");
+    ("[decoded_ok, symbols, bits] = liblte_pbch(enbConfig, rxWaveform)\n\n");
 }
 
 /* the gateway function */

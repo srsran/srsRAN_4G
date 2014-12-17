@@ -127,7 +127,7 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
 
 extern float mean_exec_time;
 
-enum receiver_state { DECODE_MIB, DECODE_SIB, DECODE_SIB4, MEASURE} state; 
+enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state; 
 
 #define MAX_SINFO 10
 #define MAX_NEIGHBOUR_CELLS     128
@@ -151,10 +151,6 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
   float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
-  uint32_t si_window_length; 
-  scheduling_info_t sinfo[MAX_SINFO];
-  scheduling_info_t *sinfo_sib4 = NULL;
-  uint32_t neighbour_cell_ids[MAX_NEIGHBOUR_CELLS]; 
   cf_t *ce[MAX_PORTS];
 
   if (parse_args(&prog_args, argc, argv)) {
@@ -234,10 +230,6 @@ int main(int argc, char **argv) {
   
   cuhd_start_rx_stream(uhd);
 
-  bool sib4_window_start = false;
-  uint32_t sib4_window_cnt = 0; 
-  
-  
   /* Main loop */
   while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
     
@@ -289,66 +281,12 @@ int main(int argc, char **argv) {
                 bcch_dlsch_sib1_get_cell_access_info(dlsch_msg, &cell_info);
                 printf("Decoded SIB1. Cell ID: 0x%x\n", cell_info.cell_id);
                 bcch_dlsch_fprint(dlsch_msg, stdout);        
-                /* Get SIB4 scheduling */
-                int nsinfo = bcch_dlsch_sib1_get_scheduling_info(dlsch_msg, &si_window_length, sinfo, MAX_SINFO);
-                /* find SIB4 */
-                for (int i=0;i<nsinfo && !sinfo_sib4;i++) {
-                  if (sinfo[i].type == SIB4) {
-                    sinfo_sib4 = &sinfo[i];
-                  }
-                }
-                ue_dl.nof_pdcch_detected = nof_trials = 0;
-                sib4_window_start = false; 
-                bzero(data, sizeof(data));
-                ue_dl_reset(&ue_dl);
-              }
-              if (sinfo_sib4) {
-                state = DECODE_SIB4;                 
-              } else {
                 state = MEASURE;
               }
             }
           }
         break;
-        case DECODE_SIB4:
-          
-          if (!sib4_window_start && 
-            ((sfn%sinfo_sib4->period) == sinfo_sib4->n*si_window_length/10) && 
-            ue_sync_get_sfidx(&ue_sync) == (sinfo_sib4->n*si_window_length%10)) {
-            sib4_window_start = true; 
-            sib4_window_cnt = 0; 
-          }
-          
-          /* We are looking for SI Blocks, search only in appropiate places */
-          if (sib4_window_start && !(ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0))
-          {
-            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
-                                   ((int) ceilf((float)3*sib4_window_cnt/2))%4);
-            if (n < 0) {
-              fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
-              return -1;
-            } else if (n == 0) {
-              nof_trials++; 
-            } else {
-              bit_unpack_vector(data, data_unpacked, n);
-              void *dlsch_msg = bcch_dlsch_unpack(data_unpacked, n);              
-              int nof_cell = bcch_dlsch_sib4_get_neighbour_cells(dlsch_msg, neighbour_cell_ids, MAX_NEIGHBOUR_CELLS);
- 
-              printf("Decoded SIB4. Neighbour cell list (PhyIDs): ");
-              for (int i=0;i<nof_cell;i++) {
-                printf("%d, ", neighbour_cell_ids[i]);
-              }
-              printf("\n");
-              state = MEASURE; 
-            }
-            sib4_window_cnt++;
-            if (sib4_window_cnt == si_window_length) {
-              sib4_window_start = false;
-              return -1;
-            }
-
-          }
-        break;
+        
       case MEASURE:
         
         if (ue_sync_get_sfidx(&ue_sync) == 5) {
@@ -359,9 +297,9 @@ int main(int argc, char **argv) {
                   
           rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SF_LEN(lte_symbol_sz(cell.nof_prb))),rssi,nframes);
           rssi_utra = VEC_CMA(chest_dl_get_rssi(&chest),rssi_utra,nframes);
-          rsrq = VEC_EMA(chest_dl_get_rsrq(&chest),rsrq,0.001);
-          rsrp = VEC_EMA(chest_dl_get_rsrp(&chest),rsrp,0.001);      
-          snr = VEC_EMA(chest_dl_get_snr(&chest),snr,0.001);      
+          rsrq = VEC_EMA(chest_dl_get_rsrq(&chest),rsrq,0.05);
+          rsrp = VEC_EMA(chest_dl_get_rsrp(&chest),rsrp,0.05);      
+          snr = VEC_EMA(chest_dl_get_snr(&chest),snr,0.05);      
           nframes++;          
         }        
         
