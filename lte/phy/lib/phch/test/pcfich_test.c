@@ -82,8 +82,9 @@ int main(int argc, char **argv) {
   cf_t *ce[MAX_PORTS];
   int nof_re;
   cf_t *slot_symbols[MAX_PORTS];
-  uint32_t cfi, cfi_rx, nsf, distance;
+  uint32_t cfi, cfi_rx, nsf;
   int cid, max_cid;
+  float corr_res; 
 
   parse_args(argc,argv);
 
@@ -139,16 +140,11 @@ int main(int argc, char **argv) {
             slot_symbols[0][j] += slot_symbols[i][j];
           }
         }
-        if (pcfich_decode(&pcfich, slot_symbols[0], ce, 0, nsf, &cfi_rx, &distance)<0) {
+        if (pcfich_decode(&pcfich, slot_symbols[0], ce, 0, nsf, &cfi_rx, &corr_res)<0) {
           exit(-1);
         }
-        INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %d\n",
-            cfi, cfi_rx, nsf, distance);
-
-        if (distance) {
-          printf("Error\n");
-          exit(-1);
-        }
+        INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %f\n",
+            cfi, cfi_rx, nsf, corr_res);
       }
     }
     pcfich_free(&pcfich);

@@ -70,12 +70,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (chest_dl_init(&chest, cell)) {
-    fprintf(stderr, "Error initializing equalizer\n");
+    mexErrMsgTxt("Error initializing equalizer\n");
     return;
   }
 
   if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
-    fprintf(stderr, "Error initializing FFT\n");
+    mexErrMsgTxt("Error initializing FFT\n");
     return;
   }
   
@@ -85,7 +85,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   if (pcfich_init(&pcfich, &regs, cell)) {
-    fprintf(stderr, "Error creating PBCH object\n");
+    mexErrMsgTxt("Error creating PBCH object\n");
     return;
   }
       
@@ -124,8 +124,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
     
     
-  uint32_t cfi, distance; 
-  int n = pcfich_decode(&pcfich, input_fft, ce, noise_power,  sf_idx, &cfi, &distance);
+  uint32_t cfi;
+  float corr_res; 
+  int n = pcfich_decode(&pcfich, input_fft, ce, noise_power,  sf_idx, &cfi, &corr_res);
 
   if (nlhs >= 1) { 
     if (n < 0) {      

@@ -174,7 +174,8 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx) {
 
 int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32_t rvidx) 
 {
-  uint32_t cfi, cfi_distance, i;
+  uint32_t cfi, i;
+  float cfi_corr; 
   ra_pdsch_t ra_dl;
   dci_location_t locations[MAX_CANDIDATES];
   dci_msg_t dci_msg;
@@ -195,12 +196,12 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
   
   /* First decode PCFICH and obtain CFI */
   if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
-                    chest_dl_get_noise_estimate(&q->chest), sf_idx, &cfi, &cfi_distance)<0) {
+                    chest_dl_get_noise_estimate(&q->chest), sf_idx, &cfi, &cfi_corr)<0) {
     fprintf(stderr, "Error decoding PCFICH\n");
     return LIBLTE_ERROR;
   }
 
-  INFO("Decoded CFI=%d with distance %d\n", cfi, cfi_distance);
+  INFO("Decoded CFI=%d with correlation %.2f\n", cfi, cfi_corr);
 
   if (regs_set_cfi(&q->regs, cfi)) {
     fprintf(stderr, "Error setting CFI\n");

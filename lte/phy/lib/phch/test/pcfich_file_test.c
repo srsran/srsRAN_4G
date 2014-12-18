@@ -190,7 +190,8 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  uint32_t cfi, distance;
+  uint32_t cfi;
+  float cfi_corr; 
   int n;
 
   if (argc < 3) {
@@ -226,8 +227,9 @@ int main(int argc, char **argv) {
 
   INFO("Decoding PCFICH\n", 0);
 
-  n = pcfich_decode(&pcfich, fft_buffer, ce, chest_dl_get_noise_estimate(&chest),  0, &cfi, &distance);
-  printf("cfi: %d, distance: %d\n", cfi, distance);
+  
+  n = pcfich_decode(&pcfich, fft_buffer, ce, chest_dl_get_noise_estimate(&chest),  0, &cfi, &cfi_corr);
+  printf("cfi: %d, distance: %f\n", cfi, cfi_corr);
 
   base_free();
 
@@ -238,7 +240,7 @@ int main(int argc, char **argv) {
     printf("Could not decode PCFICH\n");
     exit(-1);
   } else {
-    if (distance < 4 && cfi == 1) {
+    if (cfi_corr > 4 && cfi == 1) {
       exit(0);
     } else {
       exit(-1);

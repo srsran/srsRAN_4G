@@ -42,11 +42,15 @@
 #include "liblte/phy/utils/debug.h"
 
 // Table 5.3.4-1
-static uint8_t cfi_table[4][PCFICH_CFI_LEN] = { { 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,
-    1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1 }, { 1, 0, 1,
+static uint8_t cfi_table[4][PCFICH_CFI_LEN] = { 
+  { 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1,
+    1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1 }, 
+  { 1, 0, 1,
     1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
-    0, 1, 1, 0 }, { 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
-    0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 0 }, 
+  { 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1,
+    0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 }, 
+  { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } // reserved
 };
 
@@ -74,16 +78,24 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
       fprintf(stderr, "Error initializing precoding\n");
     }
 
-    if (modem_table_lte(&q->mod, LTE_QPSK, false)) {
+    if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
       goto clean;
     }
 
-    demod_hard_init(&q->demod);
-    demod_hard_table_set(&q->demod, LTE_QPSK);
+    demod_soft_init(&q->demod);
+    demod_soft_table_set(&q->demod, &q->mod);
+    demod_soft_alg_set(&q->demod, APPROX);
 
     for (int nsf = 0; nsf < NSUBFRAMES_X_FRAME; nsf++) {
       if (sequence_pcfich(&q->seq_pcfich[nsf], 2 * nsf, q->cell.id)) {
         goto clean;
+      }
+    }
+    
+    /* convert cfi bit tables to floats for demodulation */
+    for (int i=0;i<3;i++) {
+      for (int j=0;j<PCFICH_CFI_LEN;j++) {
+        q->cfi_table_float[i][j] = (float) 2.0*cfi_table[i][j]-1.0; 
       }
     }
 
@@ -112,26 +124,22 @@ void pcfich_free(pcfich_t *q) {
 /** Finds the CFI with minimum distance with the vector of received 32 bits.
  * Saves the CFI value in the cfi pointer and returns the distance.
  */
-int pcfich_cfi_decode(uint8_t bits[PCFICH_CFI_LEN], uint32_t *cfi) {
-  int i, j;
-  int distance, index = -1;
-  int min = 32;
-
+float pcfich_cfi_decode(pcfich_t *q, uint32_t *cfi) {
+  int i;
+  int index = 0;
+  float max_corr = 0;
+  
   for (i = 0; i < 3; i++) {
-    distance = 0;
-    for (j = 0; j < PCFICH_CFI_LEN; j++) {
-      distance += (bits[j] ^ cfi_table[i][j]);
-    }
-    DEBUG("CFI=%d, distance:%d\n", i, distance);
-    if (distance < min) {
-      min = distance;
-      index = i;
+    float corr = vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN);
+    if (corr > max_corr) {
+      max_corr = corr; 
+      index = i; 
     }
   }
   if (cfi) {
     *cfi = index + 1;
   }
-  return min;
+  return max_corr;
 }
 
 /** Encodes the CFI producing a vector of 32 bits.
@@ -151,8 +159,8 @@ int pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
 int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float noise_estimate,
-    uint32_t nsubframe, uint32_t *cfi, uint32_t *distance) {
-  int dist;
+    uint32_t nsubframe, uint32_t *cfi, float *corr_result) 
+{
 
   /* Set pointers for layermapping & precoding */
   int i;
@@ -200,21 +208,18 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float no
     }
 
     /* demodulate symbols */
-    demod_hard_demodulate(&q->demod, q->pcfich_d, q->data, q->nof_symbols);
+    demod_soft_sigma_set(&q->demod, 1.0);
+    demod_soft_demodulate(&q->demod, q->pcfich_d, q->data_f, q->nof_symbols);
 
     /* Scramble with the sequence for slot nslot */
-    scrambling_b(&q->seq_pcfich[nsubframe], q->data);
+    scrambling_f(&q->seq_pcfich[nsubframe], q->data_f);
 
     /* decode CFI */
-    dist = pcfich_cfi_decode(q->data, cfi);
-    if (distance) {
-      *distance = dist;
+    float corr = pcfich_cfi_decode(q, cfi);
+    if (corr_result) {
+      *corr_result = corr;
     }
-    if (dist < PCFICH_MAX_DISTANCE) {
-      return 1;
-    } else {
-      return 0;
-    }
+    return 1;
   } else {
     return LIBLTE_ERROR_INVALID_INPUTS;
   }

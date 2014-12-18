@@ -148,6 +148,7 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     demod_soft_init(&q->demod);
     demod_soft_table_set(&q->demod, &q->mod);
     demod_soft_alg_set(&q->demod, APPROX);
+    
     if (sequence_pbch(&q->seq_pbch, q->cell.cp, q->cell.id)) {
       goto clean;
     }

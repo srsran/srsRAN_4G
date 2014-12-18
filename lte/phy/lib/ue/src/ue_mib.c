@@ -201,7 +201,7 @@ int ue_mib_sync_decode(ue_mib_sync_t * q,
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   cf_t *sf_buffer = NULL; 
   uint32_t nof_frames = 0; 
-    int mib_ret; 
+  int mib_ret = MIB_NOTFOUND; 
 
   if (q != NULL) 
   {
