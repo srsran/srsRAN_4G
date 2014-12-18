@@ -41,7 +41,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   0,            // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 int flen;
@@ -53,7 +55,7 @@ cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 pcfich_t pcfich;
 regs_t regs;
 lte_fft_t fft;
-chest_t chest;
+chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcoe] -i input_file\n", prog);
@@ -127,21 +129,21 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+  fft_buffer = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<MAX_PORTS;i++) {
-    ce[i] = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+    ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
     }
   }
   
-  if (chest_init_LTEDL(&chest, cell)) {
+  if (chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -151,7 +153,7 @@ int base_init() {
     return -1;
   }
 
-  if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
+  if (regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating REGs\n");
     return -1;
   }
@@ -180,7 +182,7 @@ void base_free() {
   for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
   }
-  chest_free(&chest);
+  chest_dl_free(&chest);
   lte_fft_free(&fft);
 
   pcfich_free(&pcfich);
@@ -188,8 +190,9 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  uint32_t cfi, distance;
-  int i, n;
+  uint32_t cfi;
+  float cfi_corr; 
+  int n;
 
   if (argc < 3) {
     usage(argv[0]);
@@ -205,7 +208,7 @@ int main(int argc, char **argv) {
 
   n = filesource_read(&fsrc, input_buffer, flen);
 
-  lte_fft_run_slot(&fft, input_buffer, fft_buffer);
+  lte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");
@@ -220,17 +223,13 @@ int main(int argc, char **argv) {
   }
 
   /* Get channel estimates for each port */
-  for (i=0;i<cell.nof_ports;i++) {
-    chest_ce_slot_port(&chest, fft_buffer, ce[i], 0, i);
-    if (fmatlab) {
-      chest_fprint(&chest, fmatlab, 0, i);
-    }
-  }
+  chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
   INFO("Decoding PCFICH\n", 0);
 
-  n = pcfich_decode(&pcfich, fft_buffer, ce, 0, &cfi, &distance);
-  printf("cfi: %d, distance: %d\n", cfi, distance);
+  
+  n = pcfich_decode(&pcfich, fft_buffer, ce, chest_dl_get_noise_estimate(&chest),  0, &cfi, &cfi_corr);
+  printf("cfi: %d, distance: %f\n", cfi, cfi_corr);
 
   base_free();
 
@@ -241,7 +240,7 @@ int main(int argc, char **argv) {
     printf("Could not decode PCFICH\n");
     exit(-1);
   } else {
-    if (distance < 4 && cfi == 1) {
+    if (cfi_corr > 4 && cfi == 1) {
       exit(0);
     } else {
       exit(-1);

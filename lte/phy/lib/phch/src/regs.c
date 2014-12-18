@@ -67,12 +67,13 @@ void regs_pdcch_free(regs_t *h) {
   for (i=0;i<3;i++) {
     if (h->pdcch[i].regs) {
       free(h->pdcch[i].regs);
+      h->pdcch[i].regs = NULL; 
     }
   }
 }
 
 #define PDCCH_NCOLS  32
-const unsigned char PDCCH_PERM[PDCCH_NCOLS] =
+const uint8_t PDCCH_PERM[PDCCH_NCOLS] =
     { 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31, 0, 16, 8,
         24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30 };
 
@@ -111,7 +112,7 @@ int regs_pdcch_init(regs_t *h) {
     }
 
     h->pdcch[cfi].nof_regs = m;
-
+    
     h->pdcch[cfi].regs = malloc(sizeof(regs_reg_t*) * h->pdcch[cfi].nof_regs);
     if (!h->pdcch[cfi].regs) {
       perror("malloc");
@@ -141,6 +142,8 @@ int regs_pdcch_init(regs_t *h) {
       }
     }
     h->pdcch[cfi].nof_regs = (h->pdcch[cfi].nof_regs/9)*9;
+    INFO("Init PDCCH REG space CFI %d. %d useful REGs (%d CCEs)\n",cfi+1, 
+         h->pdcch[cfi].nof_regs, h->pdcch[cfi].nof_regs/9);
     free(tmp);
     tmp = NULL;
   }
@@ -345,9 +348,11 @@ void regs_phich_free(regs_t *h) {
     for (i=0;i<h->ngroups_phich;i++) {
       if (h->phich[i].regs) {
         free(h->phich[i].regs);
+        h->phich[i].regs = NULL;
       }
     }
     free(h->phich);
+    h->phich = NULL; 
   }
 }
 
@@ -481,7 +486,7 @@ int regs_pcfich_init(regs_t *h) {
           k);
       return LIBLTE_ERROR;
     } else {
-      ch->regs[i]->assigned = true;
+      ch->regs[i]->assigned = true;     
       INFO("Assigned PCFICH REG#%d (%d,0)\n", i, k);
     }
   }
@@ -491,6 +496,7 @@ int regs_pcfich_init(regs_t *h) {
 void regs_pcfich_free(regs_t *h) {
   if (h->pcfich.regs) {
     free(h->pcfich.regs);
+    h->pcfich.regs = NULL; 
   }
 }
 
@@ -573,6 +579,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, lte_cp_t cp) {
     case 4:
       return 2;
     default:
+      fprintf(stderr, "Invalid number of ports %d\n", nof_port);
       return LIBLTE_ERROR;
     }
     break;
@@ -585,6 +592,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, lte_cp_t cp) {
       return 2;
     }
   default:
+      fprintf(stderr, "Invalid symbol %d\n", symbol);
     return LIBLTE_ERROR;
   }
 }
@@ -672,7 +680,7 @@ int regs_set_cfi(regs_t *h, uint32_t cfi) {
  * Sets all REG indices and initializes PCFICH, PHICH and PDCCH REGs
  * Returns 0 if OK, -1 on error
  */
-int regs_init(regs_t *h, phich_resources_t phich_res, phich_length_t phich_len, lte_cell_t cell) {
+int regs_init(regs_t *h, lte_cell_t cell) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   uint32_t i, k;
   uint32_t j[4], jmax, prb;
@@ -690,14 +698,14 @@ int regs_init(regs_t *h, phich_resources_t phich_res, phich_length_t phich_len, 
     h->cell = cell;
     h->max_ctrl_symbols = max_ctrl_symbols;
     h->cfi_initiated = false;
-    h->phich_res = phich_res;
-    h->phich_len = phich_len;
+    h->phich_res = cell.phich_resources;
+    h->phich_len = cell.phich_length;
 
     h->nof_regs = 0;
     for (i = 0; i < max_ctrl_symbols; i++) {
       n[i] = regs_num_x_symbol(i, h->cell.nof_ports, h->cell.cp);
       if (n[i] == -1) {
-        return -1;
+        goto clean_and_exit;
       }
       h->nof_regs += h->cell.nof_prb * n[i];
     }
@@ -752,7 +760,7 @@ int regs_init(regs_t *h, phich_resources_t phich_res, phich_length_t phich_len, 
     ret = LIBLTE_SUCCESS;
   }
 clean_and_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret != LIBLTE_SUCCESS) {
     regs_free(h);
   }
   return ret;

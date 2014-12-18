@@ -34,7 +34,7 @@
 #include "liblte/phy/fec/convcoder.h"
 #include "parity.h"
 
-int convcoder_encode(convcoder_t *q, char *input, char *output, uint32_t frame_length) {
+int convcoder_encode(convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length) {
   uint32_t sr;
   uint32_t i,j;
   uint32_t len = q->tail_biting ? frame_length : (frame_length + q->K - 1);
@@ -53,7 +53,7 @@ int convcoder_encode(convcoder_t *q, char *input, char *output, uint32_t frame_l
       sr = 0;
     }
     for (i = 0; i < len; i++) {
-      char bit = (i < frame_length) ? (input[i] & 1) : 0;
+      uint8_t bit = (i < frame_length) ? (input[i] & 1) : 0;
       sr = (sr << 1) | bit;
       for (j=0;j<q->R;j++) {
         output[q->R * i + j] = parity(sr & q->poly[j]);

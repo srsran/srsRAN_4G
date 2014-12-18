@@ -35,6 +35,7 @@
 #include "liblte/config.h"
 #include "liblte/phy/sync/pss.h"
 #include "liblte/phy/sync/sss.h"
+#include "liblte/phy/sync/cfo.h"
 
 #define FFT_SIZE_MIN    64
 #define FFT_SIZE_MAX    2048
@@ -51,11 +52,12 @@
  * functions sync_pss_det_absolute() and sync_pss_det_peakmean().
  */
 
+typedef enum {SSS_DIFF=0, SSS_PARTIAL_3=2, SSS_FULL=1} sss_alg_t; 
+
 typedef struct LIBLTE_API {
   pss_synch_t pss; 
   sss_synch_t sss;
   float threshold;
-  float mean_energy; 
   float peak_value;
   float mean_peak_value;
   uint32_t N_id_2;
@@ -63,16 +65,20 @@ typedef struct LIBLTE_API {
   uint32_t sf_idx;
   uint32_t fft_size;
   uint32_t frame_size;
-  uint64_t frame_cnt; 
-  float cfo;
+  float mean_cfo;
+  cfo_t cfocorr;
+  sss_alg_t sss_alg; 
   bool detect_cp;
   bool sss_en;
-  bool normalize_en; 
+  bool correct_cfo; 
   lte_cp_t cp;
   uint32_t m0;
   uint32_t m1;
   float m0_value;
   float m1_value;
+  float M_norm_avg; 
+  float M_ext_avg; 
+
 }sync_t;
 
 
@@ -90,6 +96,11 @@ LIBLTE_API int sync_find(sync_t *q,
                          uint32_t find_offset,
                          uint32_t *peak_position);
 
+/* Estimates the CP length */
+LIBLTE_API lte_cp_t sync_detect_cp(sync_t *q, 
+                                   cf_t *input, 
+                                   uint32_t peak_pos);
+
 /* Sets the threshold for peak comparison */
 LIBLTE_API void sync_set_threshold(sync_t *q, 
                                    float threshold);
@@ -103,12 +114,17 @@ LIBLTE_API float sync_get_last_peak_value(sync_t *q);
 /* Gets the mean peak value */
 LIBLTE_API float sync_get_peak_value(sync_t *q);
 
-/* Gets the last input signal energy estimation value */
-LIBLTE_API float sync_get_input_energy(sync_t *q);
+/* Choose SSS detection algorithm */
+LIBLTE_API void sync_set_sss_algorithm(sync_t *q, 
+                                       sss_alg_t alg); 
+
+/* Sets PSS exponential averaging alpha weight */
+LIBLTE_API void sync_set_em_alpha(sync_t *q, 
+                                  float alpha);
 
 /* Sets the N_id_2 to search for */
 LIBLTE_API int sync_set_N_id_2(sync_t *q, 
-                                    uint32_t N_id_2);
+                               uint32_t N_id_2);
 
 /* Gets the Physical CellId from the last call to synch_run() */
 LIBLTE_API int sync_get_cell_id(sync_t *q);
@@ -122,19 +138,20 @@ LIBLTE_API lte_cp_t sync_get_cp(sync_t *q);
 /* Sets the CP length estimation (must do it if disabled) */
 LIBLTE_API void sync_set_cp(sync_t *q, lte_cp_t cp);
 
-/* Enables/Disables energy normalization every frame. If disabled, uses the mean */
-LIBLTE_API void sync_normalize_en(sync_t *q, 
-                                  bool enable);
-
 /* Enables/Disables SSS detection  */
 LIBLTE_API void sync_sss_en(sync_t *q, 
                             bool enabled);
 
 LIBLTE_API bool sync_sss_detected(sync_t *q);
 
+LIBLTE_API bool sync_sss_is_en(sync_t *q); 
+
 /* Enables/Disables CP detection  */
 LIBLTE_API void sync_cp_en(sync_t *q, 
                            bool enabled);
+
+LIBLTE_API void sync_correct_cfo(sync_t *q, 
+                                 bool enabled);
 
 #endif // SYNC_
 

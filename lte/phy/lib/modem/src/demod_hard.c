@@ -41,7 +41,7 @@ void demod_hard_table_set(demod_hard_t* q, lte_mod_t mod) {
   q->mod = mod;
 }
 
-int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, char *bits, uint32_t nsymbols) {
+int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, uint8_t *bits, uint32_t nsymbols) {
 
   int nbits=-1;
   switch(q->mod) {

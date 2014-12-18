@@ -40,7 +40,7 @@
 
 #define DEB 0
 
-int decode37(void *o, uint8_t *symbols, char *data, uint32_t frame_length) {
+int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
   viterbi_t *q = o;
   uint32_t i;
 
@@ -57,7 +57,7 @@ int decode37(void *o, uint8_t *symbols, char *data, uint32_t frame_length) {
 
   /* Decode block */
   if (q->tail_biting) {
-    memcpy(q->tmp, symbols, 3 * frame_length * sizeof(char));
+    memcpy(q->tmp, symbols, 3 * frame_length * sizeof(uint8_t));
     for (i = 0; i < 3 * (q->K - 1); i++) {
       q->tmp[i + 3 * frame_length] = q->tmp[i];
     }
@@ -75,7 +75,7 @@ int decode37(void *o, uint8_t *symbols, char *data, uint32_t frame_length) {
   return q->framebits;
 }
 
-int decode39(void *o, uint8_t *symbols, char *data, uint32_t frame_length) {
+int decode39(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
   viterbi_t *q = o;
 
   if (frame_length > q->framebits) {
@@ -95,6 +95,7 @@ int decode39(void *o, uint8_t *symbols, char *data, uint32_t frame_length) {
 
   return q->framebits;
 }
+
 
 void free37(void *o) {
   viterbi_t *q = o;
@@ -119,16 +120,18 @@ int init37(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
+  q->gain_quant = 32; 
   q->tail_biting = tail_biting;
   q->decode = decode37;
   q->free = free37;
-  q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(char));
+  q->decode_f = NULL;
+  q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp = malloc(3 * (q->framebits + q->K - 1) * sizeof(char));
+    q->tmp = malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -144,7 +147,7 @@ int init37(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
     return -1;
   } else {
     return 0;
-  }
+  }     
 }
 
 int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
@@ -152,14 +155,16 @@ int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   q->R = 3;
   q->framebits = framebits;
   q->tail_biting = tail_biting;
+  q->gain_quant = 32; 
   q->decode = decode39;
   q->free = free39;
+  q->decode_f = NULL;
   if (q->tail_biting) {
     fprintf(stderr,
         "Error: Tailbitting not supported in 1/3 K=9 decoder\n");
     return -1;
   }
-  q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(char));
+  q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
@@ -171,6 +176,12 @@ int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   } else {
     return 0;
   }
+}
+
+
+
+void viterbi_set_gain_quant(viterbi_t *q, float gain_quant) {
+  q->gain_quant = gain_quant;
 }
 
 int viterbi_init(viterbi_t *q, viterbi_type_t type, uint32_t poly[3],
@@ -190,10 +201,11 @@ void viterbi_free(viterbi_t *q) {
   if (q->free) {
     q->free(q);    
   }
+  bzero(q, sizeof(viterbi_t));
 }
 
 /* symbols are real-valued */
-int viterbi_decode_f(viterbi_t *q, float *symbols, char *data, uint32_t frame_length) {
+int viterbi_decode_f(viterbi_t *q, float *symbols, uint8_t *data, uint32_t frame_length) {
   uint32_t len;
   if (frame_length > q->framebits) {
     fprintf(stderr, "Initialized decoder for max frame length %d bits\n",
@@ -205,11 +217,17 @@ int viterbi_decode_f(viterbi_t *q, float *symbols, char *data, uint32_t frame_le
   } else {
     len = 3 * (frame_length + q->K - 1);
   }
-  vec_quant_fuc(symbols, q->symbols_uc, 32, 127.5, 255, len);
-  return q->decode(q, q->symbols_uc, data, frame_length);
+  if (!q->decode_f) {
+    vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);
+    return q->decode(q, q->symbols_uc, data, frame_length);    
+  } else {
+    return q->decode_f(q, symbols, data, frame_length);
+  }
+  
+  
 }
 
-int viterbi_decode_uc(viterbi_t *q, uint8_t *symbols, char *data,
+int viterbi_decode_uc(viterbi_t *q, uint8_t *symbols, uint8_t *data,
     uint32_t frame_length) {
   return q->decode(q, symbols, data, frame_length);
 }

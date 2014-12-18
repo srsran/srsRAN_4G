@@ -35,9 +35,9 @@
 
 /** Low-level API */
 
-int mod_modulate(modem_table_t* q, const char *bits, cf_t* symbols, uint32_t nbits) {
+int mod_modulate(modem_table_t* q, const uint8_t *bits, cf_t* symbols, uint32_t nbits) {
   uint32_t i,j,idx;
-  char *b_ptr=(char*) bits;
+  uint8_t *b_ptr=(uint8_t*) bits;
   j=0;
   for (i=0;i<nbits;i+=q->nbits_x_symbol) {
     idx = bit_unpack(&b_ptr,q->nbits_x_symbol);

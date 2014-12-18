@@ -51,8 +51,8 @@
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/common/fft.h"
             
-#include "liblte/phy/ch_estimation/chest.h"
-#include "liblte/phy/ch_estimation/refsignal.h"
+#include "liblte/phy/ch_estimation/chest_dl.h"
+#include "liblte/phy/ch_estimation/refsignal_dl.h"
 
 #include "liblte/phy/resampling/interp.h"
 #include "liblte/phy/resampling/decim.h"
@@ -95,7 +95,7 @@
       
 #include "liblte/phy/ue/ue_sync.h"
 #include "liblte/phy/ue/ue_mib.h"
-#include "liblte/phy/ue/ue_celldetect.h"
+#include "liblte/phy/ue/ue_cell_search.h"
 #include "liblte/phy/ue/ue_dl.h"
 
 #include "liblte/phy/scrambling/scrambling.h"

@@ -31,7 +31,19 @@
 
 #include "liblte/phy/utils/bit.h"
 
-void bit_pack(uint32_t value, char **bits, int nof_bits)
+void bit_pack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
+{
+  uint32_t i, nbytes;
+  nbytes = nof_bits/8;
+  for (i=0;i<nbytes;i++) {
+    bit_pack(bits_unpacked[i], &bits_packed, 8);
+  }
+  if (nof_bits%8) {
+    bit_pack(bits_unpacked[i], &bits_packed, nof_bits%8);
+  }
+}
+
+void bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
 {
     int i;
 
@@ -41,10 +53,22 @@ void bit_pack(uint32_t value, char **bits, int nof_bits)
     *bits += nof_bits;
 }
 
-uint32_t bit_unpack(char **bits, int nof_bits)
+void bit_unpack_vector(uint8_t *bits_packed, uint8_t *bits_unpacked, int nof_bits)
+{
+  uint32_t i, nbytes;
+  nbytes = nof_bits/8;
+  for (i=0;i<nbytes;i++) {
+    bits_unpacked[i] = bit_unpack(&bits_packed, 8);
+  }
+  if (nof_bits%8) {
+    bits_unpacked[i] = bit_unpack(&bits_packed, nof_bits%8);
+  }
+}
+
+uint32_t bit_unpack(uint8_t **bits, int nof_bits)
 {
     int i;
-    unsigned int value=0;
+    uint32_t value=0;
 
     for(i=0; i<nof_bits; i++) {
       value |= (*bits)[i] << (nof_bits-i-1);
@@ -53,7 +77,7 @@ uint32_t bit_unpack(char **bits, int nof_bits)
     return value;
 }
 
-void bit_fprint(FILE *stream, char *bits, int nof_bits) {
+void bit_fprint(FILE *stream, uint8_t *bits, int nof_bits) {
   int i;
 
   fprintf(stream,"[");
@@ -63,8 +87,8 @@ void bit_fprint(FILE *stream, char *bits, int nof_bits) {
   fprintf(stream,"%d]\n",bits[i]);
 }
 
-unsigned int bit_diff(char *x, char *y, int nbits) {
-  unsigned int errors=0;
+uint32_t bit_diff(uint8_t *x, uint8_t *y, int nbits) {
+  uint32_t errors=0;
   for (int i=0;i<nbits;i++) {
     if (x[i] != y[i]) {
       //printf("%d, ",i);

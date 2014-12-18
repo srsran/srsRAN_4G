@@ -33,13 +33,12 @@
 #include "liblte/phy/mimo/precoding.h"
 #include "liblte/phy/mimo/layermap.h"
 #include "liblte/phy/modem/mod.h"
-#include "liblte/phy/modem/demod_hard.h"
+#include "liblte/phy/modem/demod_soft.h"
 #include "liblte/phy/scrambling/scrambling.h"
 #include "liblte/phy/phch/regs.h"
 
-#define PCFICH_CFI_LEN		32
-#define PCFICH_RE			PCFICH_CFI_LEN/2
-#define PCFICH_MAX_DISTANCE	5
+#define PCFICH_CFI_LEN  32
+#define PCFICH_RE       PCFICH_CFI_LEN/2
 
 typedef _Complex float cf_t;
 
@@ -56,14 +55,21 @@ typedef struct LIBLTE_API {
   cf_t pcfich_symbols[MAX_PORTS][PCFICH_RE];
   cf_t pcfich_x[MAX_PORTS][PCFICH_RE];
   cf_t pcfich_d[PCFICH_RE];
+  
+  // cfi table in floats 
+  float cfi_table_float[3][PCFICH_CFI_LEN];
 
   /* bit message */
-  char data[PCFICH_CFI_LEN];
+  uint8_t data[PCFICH_CFI_LEN];
+
+  /* received soft bits */
+  float data_f[PCFICH_CFI_LEN]; 
 
   /* tx & rx objects */
   modem_table_t mod;
-  demod_hard_t demod;
+  demod_soft_t demod;
   sequence_t seq_pcfich[NSUBFRAMES_X_FRAME];
+  precoding_t precoding; 
 
 } pcfich_t;
 
@@ -76,9 +82,10 @@ LIBLTE_API void pcfich_free(pcfich_t *q);
 LIBLTE_API int pcfich_decode(pcfich_t *q, 
                              cf_t *sf_symbols, 
                              cf_t *ce[MAX_PORTS],
+                             float noise_estimate, 
                              uint32_t subframe, 
                              uint32_t *cfi, 
-                             uint32_t *distance);
+                             float *corr_result);
 
 LIBLTE_API int pcfich_encode(pcfich_t *q, 
                              uint32_t cfi, 

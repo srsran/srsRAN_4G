@@ -33,6 +33,8 @@ ADD_TEST(pbch_test_50 pbch_test -p 1 -n 50 -c 50)
 ADD_TEST(pbch_test_502 pbch_test -p 2 -n 50 -c 50) 
 ADD_TEST(pbch_test_504 pbch_test -p 4 -n 50 -c 50) 
  
+BuildMex(MEXNAME pbch SOURCES pbch_test_mex.c LIBRARIES lte_phy liblte_mex)
+
 
 ########################################################################
 # PCFICH TEST  
@@ -47,7 +49,9 @@ ADD_TEST(pcfich_test_64 pcfich_test -p 4 -n 6)
 ADD_TEST(pcfich_test_10 pcfich_test -p 1 -n 10) 
 ADD_TEST(pcfich_test_102 pcfich_test -p 2 -n 10) 
 ADD_TEST(pcfich_test_104 pcfich_test -p 4 -n 10) 
- 
+
+BuildMex(MEXNAME pcfich SOURCES pcfich_test_mex.c LIBRARIES lte_phy liblte_mex)
+
 ########################################################################
 # PHICH TEST  
 ########################################################################
@@ -80,6 +84,8 @@ ADD_TEST(pdcch_test pdcch_test)
 ADD_EXECUTABLE(dci_unpacking dci_unpacking.c)
 TARGET_LINK_LIBRARIES(dci_unpacking lte_phy)
 
+BuildMex(MEXNAME pdcch SOURCES pdcch_test_mex.c LIBRARIES lte_phy liblte_mex)
+
 ########################################################################
 # PDSCH TEST  
 ########################################################################
@@ -87,10 +93,6 @@ TARGET_LINK_LIBRARIES(dci_unpacking lte_phy)
 ADD_EXECUTABLE(pdsch_test pdsch_test.c)
 TARGET_LINK_LIBRARIES(pdsch_test lte_phy)
 
-ADD_EXECUTABLE(pdsch_re_test pdsch_re_test.c)
-TARGET_LINK_LIBRARIES(pdsch_re_test lte_phy)
-
-ADD_TEST(pdsch_re_test pdsch_re_test) 
 ADD_TEST(pdsch_test pdsch_test -l 50000 -m 4 -n 110)
 ADD_TEST(pdsch_test pdsch_test -l 500 -m 2 -n 50 -r 2)
 

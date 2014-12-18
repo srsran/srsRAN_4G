@@ -121,7 +121,8 @@ int main(int argc, char **argv) {
   }
 
   /* Set a very high threshold to make sure the correlation is ok */
-  sync_set_threshold(&sync, 1.4);
+  sync_set_threshold(&sync, 5.0);
+  sync_set_sss_algorithm(&sync, SSS_PARTIAL_3);
 
   if (cell_id == -1) {
     cid = 0;
@@ -148,8 +149,6 @@ int main(int argc, char **argv) {
       memset(fft_buffer, 0, sizeof(cf_t) * FLEN);
       lte_ifft_run_slot(&ifft, buffer, &fft_buffer[offset]);
       
-      vec_save_file("input", fft_buffer, sizeof(cf_t) * FLEN);
-
       if (sync_find(&sync, fft_buffer, 0, &find_idx) < 0) {
         fprintf(stderr, "Error running sync_find\n");
         exit(-1);

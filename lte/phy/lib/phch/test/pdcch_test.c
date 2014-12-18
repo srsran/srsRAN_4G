@@ -37,7 +37,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 uint32_t cfi = 1;
@@ -142,7 +144,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
+  if (regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     exit(-1);
   }
@@ -180,6 +182,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  vec_fprint_b(stdout, dci_tx[0].data, dci_tx[0].nof_bits);
   /* combine outputs */
   for (i = 1; i < cell.nof_ports; i++) {
     for (j = 0; j < nof_re; j++) {
@@ -188,12 +191,12 @@ int main(int argc, char **argv) {
   }
 
   for (i=0;i<2;i++) {
-    if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, dci_locations[i], 0, cfi)) {
+    if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, 0, 0, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       goto quit;
     }
     uint16_t crc_rem; 
-    if (pdcch_decode_msg(&pdcch, &dci_tmp, Format1, &crc_rem)) {
+    if (pdcch_decode_msg(&pdcch, &dci_tmp, &dci_locations[i], Format1, &crc_rem)) {
       fprintf(stderr, "Error decoding DCI message\n");
       goto quit;
     }      

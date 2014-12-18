@@ -49,56 +49,73 @@
 #include <stdbool.h>
 
 #include "liblte/config.h"
-#include "liblte/phy/sync/sync.h"
+#include "liblte/phy/ue/ue_sync.h"
 #include "liblte/phy/sync/cfo.h"
-#include "liblte/phy/ch_estimation/chest.h"
+#include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/fft.h"
 
 
-#define MIB_NOF_PORTS           2
-#define MIB_FRAME_SIZE          9600
+#define MIB_MAX_PORTS            4
+#define MIB_NOF_PRB              6
 
-#define MIB_FRAME_UNALIGNED     -3
 #define MIB_FOUND                1
 #define MIB_NOTFOUND             0
 
 typedef struct LIBLTE_API {
   sync_t sfind;
-  
-  uint32_t cell_id; 
-  
-  cf_t *slot1_symbols;
-  cf_t *ce[MIB_NOF_PORTS];
+ 
+  cf_t *sf_symbols;
+  cf_t *ce[MIB_MAX_PORTS];
   
   lte_fft_t fft;
-  chest_t chest; 
-  pbch_t pbch; 
+  chest_dl_t chest; 
+  pbch_t pbch;
+  
+  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint32_t nof_tx_ports; 
+  uint32_t sfn_offset; 
   
   uint32_t frame_cnt; 
-  uint32_t last_frame_trial; 
 } ue_mib_t;
 
-
 LIBLTE_API int ue_mib_init(ue_mib_t *q, 
-                           uint32_t cell_id, 
-                           lte_cp_t cp);
+                           lte_cell_t cell);
 
 LIBLTE_API void ue_mib_free(ue_mib_t *q);
 
-LIBLTE_API void ue_mib_reset(ue_mib_t *q);
+LIBLTE_API void ue_mib_reset(ue_mib_t * q); 
 
-LIBLTE_API int ue_mib_decode(ue_mib_t *q,
-                             cf_t *signal, 
-                             uint32_t nsamples,
-                             pbch_mib_t *mib);
-
-LIBLTE_API void ue_mib_set_threshold(ue_mib_t *q, 
-                                            float threshold); 
-
-LIBLTE_API void ue_mib_reset(ue_mib_t *q);
+LIBLTE_API int ue_mib_decode(ue_mib_t * q, 
+                             cf_t *input, 
+                             uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                             uint32_t *nof_tx_ports, 
+                             uint32_t *sfn_offset); 
 
 
+/* This interface uses ue_mib and ue_sync to first get synchronized subframes 
+ * and then decode MIB
+*/
+typedef struct {
+  ue_mib_t ue_mib; 
+  ue_sync_t ue_sync; 
+} ue_mib_sync_t;
+
+LIBLTE_API int ue_mib_sync_init(ue_mib_sync_t *q, 
+                                uint32_t cell_id, 
+                                lte_cp_t cp,
+                                int (recv_callback)(void*, void*, uint32_t),                             
+                                void *stream_handler);
+
+LIBLTE_API void ue_mib_sync_free(ue_mib_sync_t *q);
+
+LIBLTE_API void ue_mib_sync_reset(ue_mib_sync_t * q); 
+
+LIBLTE_API int ue_mib_sync_decode(ue_mib_sync_t * q, 
+                                  uint32_t max_frames_timeout,
+                                  uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                                  uint32_t *nof_tx_ports, 
+                                  uint32_t *sfn_offset); 
 
 
 

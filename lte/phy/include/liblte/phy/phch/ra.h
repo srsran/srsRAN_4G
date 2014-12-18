@@ -39,7 +39,7 @@
 
 typedef struct LIBLTE_API {
   lte_mod_t mod;
-  uint32_t tbs;
+  int tbs;
 } ra_mcs_t;
 
 typedef enum LIBLTE_API {
@@ -72,7 +72,7 @@ typedef struct LIBLTE_API {
 } ra_type2_t;
 
 typedef struct LIBLTE_API {
-  uint32_t prb_idx[MAX_PRB];
+  bool prb_idx[MAX_PRB];
   uint32_t nof_prb;
 } ra_prb_slot_t;
 
@@ -123,7 +123,8 @@ typedef struct LIBLTE_API {
 } ra_pusch_t;
 
 LIBLTE_API void ra_prb_fprint(FILE *f, 
-                              ra_prb_slot_t *prb);
+                              ra_prb_slot_t *prb, 
+                              uint32_t nof_prb);
 
 LIBLTE_API int ra_prb_get_dl(ra_prb_t *prb, 
                              ra_pdsch_t *ra, 

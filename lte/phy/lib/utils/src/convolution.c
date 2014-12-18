@@ -72,6 +72,9 @@ void conv_fft_cc_free(conv_fft_cc_t *q) {
   dft_plan_free(&q->input_plan);
   dft_plan_free(&q->filter_plan);
   dft_plan_free(&q->output_plan);
+  
+  bzero(q, sizeof(conv_fft_cc_t));
+
 }
 
 uint32_t conv_fft_cc_run(conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *output) {
@@ -88,14 +91,53 @@ uint32_t conv_fft_cc_run(conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *outp
 }
 
 uint32_t conv_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
-  uint32_t i,j;
-  uint32_t output_len;
-  output_len=input_len+filter_len-1;
-  memset(output,0,output_len*sizeof(cf_t));
-  for (i=0;i<input_len;i++) {
-    for (j=0;j<filter_len;j++) {
-      output[i+j]+=input[i]*filter[j];
-    }
+  uint32_t i;
+  uint32_t M = filter_len; 
+  uint32_t N = input_len; 
+
+  for (i=0;i<M;i++) {
+    output[i]=vec_dot_prod_ccc(&input[i],&filter[i],i);
   }
-  return output_len;
+  for (;i<M+N-1;i++) {
+    output[i] = vec_dot_prod_ccc(&input[i-M], filter, M);
+  }
+  return M+N-1;
+}
+
+/* Centered convolution. Returns the same number of input elements. Equivalent to conv(x,h,'same') in matlab. 
+ * y(n)=sum_i x(n+i-M/2)*h(i) for n=1..N with N input samples and M filter len 
+ */
+uint32_t conv_same_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
+  uint32_t i;
+  uint32_t M = filter_len; 
+  uint32_t N = input_len; 
+  
+  for (i=0;i<M/2;i++) {
+    output[i]=vec_dot_prod_ccc(&input[i],&filter[M/2-i],M-M/2+i);
+  }
+  for (;i<N-M/2;i++) {
+    output[i]=vec_dot_prod_ccc(&input[i-M/2],filter,M);
+  }
+  for (;i<N;i++) {
+    output[i]=vec_dot_prod_ccc(&input[i-M/2],filter,N-i+M/2);    
+  }
+  return N;
+}
+
+uint32_t conv_same_cf(cf_t *input, float *filter, cf_t *output, 
+                      uint32_t input_len, uint32_t filter_len) {
+  uint32_t i;
+  uint32_t M = filter_len; 
+  uint32_t N = input_len; 
+  
+  for (i=0;i<M/2;i++) {
+    output[i]=vec_dot_prod_cfc(&input[i],&filter[M/2-i],M-M/2+i);
+  }
+  for (;i<N-M/2;i++) {
+    output[i]=vec_dot_prod_cfc(&input[i-M/2],filter,M);
+  }
+  for (;i<N;i++) {
+    output[i]=vec_dot_prod_cfc(&input[i-M/2],filter,N-i+M/2);    
+  }
+  return N;
 }

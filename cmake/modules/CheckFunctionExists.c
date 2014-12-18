@@ -7,7 +7,7 @@ int main(){
   char*av[];
 #else
 int main(int ac, char*av[]){
-
+  
 #endif
   float ac2 = sqrtf(rand());
   CHECK_FUNCTION_EXISTS();

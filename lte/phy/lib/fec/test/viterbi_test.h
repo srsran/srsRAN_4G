@@ -29,7 +29,7 @@
 
 typedef struct {
   int n;
-  unsigned int s;
+  uint32_t s;
   int len;
   int k;
   bool tail;
@@ -52,7 +52,7 @@ static expected_errors_t expected_errors[] = {
     {-1, -1, -1, -1, true, -1.0, -1}
 };
 
-int get_expected_errors(int n, unsigned int s, int len, int k, bool tail, float ebno) {
+int get_expected_errors(int n, uint32_t s, int len, int k, bool tail, float ebno) {
   int i;
   i=0;
   while(expected_errors[i].n != -1) {

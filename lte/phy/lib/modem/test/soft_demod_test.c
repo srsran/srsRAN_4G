@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
   int i;
   modem_table_t mod;
   demod_soft_t demod_soft;
-  char *input, *output;
+  uint8_t *input, *output;
   cf_t *symbols;
   float *llr_exact, *llr_approx;
 
@@ -131,12 +131,12 @@ int main(int argc, char **argv) {
 
 
   /* allocate buffers */
-  input = malloc(sizeof(char) * num_bits);
+  input = malloc(sizeof(uint8_t) * num_bits);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  output = malloc(sizeof(char) * num_bits);
+  output = malloc(sizeof(uint8_t) * num_bits);
   if (!output) {
     perror("malloc");
     exit(-1);

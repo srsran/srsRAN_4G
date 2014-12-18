@@ -36,10 +36,10 @@
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
+#define MAX_CANDIDATES  64
 
 int ue_dl_init(ue_dl_t *q, 
                lte_cell_t cell,  
-               phich_resources_t phich_resources, phich_length_t phich_length, 
                uint16_t user_rnti) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
@@ -49,23 +49,22 @@ int ue_dl_init(ue_dl_t *q,
   {
     ret = LIBLTE_ERROR;
     
+    bzero(q, sizeof(ue_dl_t));
+    
     q->cell = cell; 
     q->user_rnti = user_rnti; 
     q->pkt_errors = 0;
-    q->pkts_total = 0; 
-    q->nof_trials = 0;
-    q->sfn = 0; 
-    q->pbch_decoded = false; 
+    q->pkts_total = 0;
     
     if (lte_fft_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
-    if (chest_init_LTEDL(&q->chest, cell)) {
+    if (chest_dl_init(&q->chest, cell)) {
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit;
     }
-    if (regs_init(&q->regs, phich_resources, phich_length, q->cell)) {
+    if (regs_init(&q->regs, q->cell)) {
       fprintf(stderr, "Error initiating REGs\n");
       goto clean_exit;
     }
@@ -122,7 +121,7 @@ clean_exit:
 void ue_dl_free(ue_dl_t *q) {
   if (q) {
     lte_fft_free(&q->fft);
-    chest_free(&q->chest);
+    chest_dl_free(&q->chest);
     regs_free(&q->regs);
     pbch_free(&q->pbch);
     pcfich_free(&q->pcfich);
@@ -139,25 +138,53 @@ void ue_dl_free(ue_dl_t *q) {
         free(q->ce[i]);
       }
     }
+
+    bzero(q, sizeof(ue_dl_t));
+
   }
 }
 
-LIBLTE_API float mean_exec_time=0; 
-int frame_cnt=0;
+void ue_dl_set_rnti(ue_dl_t *q, uint16_t rnti) {
+  q->current_rnti = rnti; 
+  pdsch_set_rnti(&q->pdsch, SIRNTI);
+}
 
-int ue_dl_decode(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint16_t rnti) 
+void ue_dl_reset(ue_dl_t *q) {
+  pdsch_harq_reset(&q->harq_process[0]);
+}
+
+LIBLTE_API float mean_exec_time=0; 
+
+dci_format_t ue_formats[] = {Format1A,Format1}; // Format1B should go here also
+const uint32_t nof_ue_formats = 2; 
+
+dci_format_t common_formats[] = {Format1A,Format1C};
+const uint32_t nof_common_formats = 2; 
+
+/** Applies the following operations to a subframe of synchronized samples: 
+ *    - OFDM demodulation
+ *    - Channel estimation 
+ *    - PCFICH decoding
+ *    - PDCCH decoding: Find DCI for RNTI given by previous call to ue_dl_set_rnti()
+ *    - PDSCH decoding: Decode TB scrambling with RNTI given by ue_dl_set_rnti()
+ */
+int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx) {
+  return ue_dl_decode_sib(q, input, data, sf_idx, 0);
+}
+
+int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32_t rvidx) 
 {
-  uint32_t cfi, cfi_distance, i;
+  uint32_t cfi, i;
+  float cfi_corr; 
   ra_pdsch_t ra_dl;
-  dci_location_t locations[10];
+  dci_location_t locations[MAX_CANDIDATES];
   dci_msg_t dci_msg;
   uint32_t nof_locations;
   uint16_t crc_rem; 
-  dci_format_t format; 
-  pbch_mib_t mib; 
   int ret = LIBLTE_ERROR; 
-  cf_t *ce_slot1[MAX_PORTS];
   struct timeval t[3]; 
+  uint32_t nof_formats; 
+  dci_format_t *formats = NULL; 
 
   /* Run FFT for all subframe data */
   lte_fft_run_sf(&q->fft, input, q->sf_symbols);
@@ -165,137 +192,93 @@ int ue_dl_decode(ue_dl_t *q, cf_t *input, char *data, uint32_t sf_idx, uint16_t 
   gettimeofday(&t[1], NULL);
 
   /* Get channel estimates for each port */
-  chest_ce_sf(&q->chest, q->sf_symbols, q->ce, sf_idx);
- 
-  gettimeofday(&t[2], NULL);
-  get_time_interval(t);
-  mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, mean_exec_time, frame_cnt);
-  frame_cnt++;
+  chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
   
-  for (int i=0;i<MAX_PORTS;i++) {
-    ce_slot1[i] = &q->ce[i][SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
+  /* First decode PCFICH and obtain CFI */
+  if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
+                    chest_dl_get_noise_estimate(&q->chest), sf_idx, &cfi, &cfi_corr)<0) {
+    fprintf(stderr, "Error decoding PCFICH\n");
+    return LIBLTE_ERROR;
   }
 
-  /* Decode PBCH if not yet decoded to obtain the System Frame Number (SFN) */
-  if (sf_idx == 0) {
-    // FIXME: There is no need to do this every frame!
-    pbch_decode_reset(&q->pbch);
-    if (pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)], ce_slot1, &mib) == 1) {
-      q->sfn = mib.sfn;
-      q->pbch_decoded = true;
-      INFO("Decoded SFN: %d\n", q->sfn);
-    } else {
-      INFO("Not decoded MIB (SFN: %d)\n", q->sfn);
-      q->sfn++; 
-      if (q->sfn == 1024) {
-        q->sfn = 0; 
-      }
-    }
+  INFO("Decoded CFI=%d with correlation %.2f\n", cfi, cfi_corr);
+
+  if (regs_set_cfi(&q->regs, cfi)) {
+    fprintf(stderr, "Error setting CFI\n");
+    return LIBLTE_ERROR;
   }
-  /* If we are looking for SI Blocks, search only in appropiate places */
-  if (((rnti == SIRNTI && (q->sfn % 2) == 0 && sf_idx == 5) ||
-       rnti != SIRNTI))
-  {
-    
-    /* First decode PCFICH and obtain CFI */
-    if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, sf_idx, &cfi, &cfi_distance)<0) {
-      fprintf(stderr, "Error decoding PCFICH\n");
-      return LIBLTE_ERROR;
-    }
+  
+  /* Generate PDCCH candidates */
+  if (q->current_rnti == SIRNTI) {
+    nof_locations = pdcch_common_locations(&q->pdcch, locations, MAX_CANDIDATES, cfi);
+    formats = common_formats;
+    nof_formats = nof_common_formats;
+  } else {
+    nof_locations = pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, q->current_rnti);    
+    formats = ue_formats; 
+    nof_formats = nof_ue_formats;
+  }
 
-    INFO("Decoded CFI=%d with distance %d\n", cfi, cfi_distance);
-
-    if (regs_set_cfi(&q->regs, cfi)) {
-      fprintf(stderr, "Error setting CFI\n");
-      return LIBLTE_ERROR;
-    }
-    
-    /* Generate PDCCH candidates */
-    if (rnti == SIRNTI) {
-      nof_locations = pdcch_common_locations(&q->pdcch, locations, 10, cfi);
-      format = Format1A; 
-    } else {
-      nof_locations = pdcch_ue_locations(&q->pdcch, locations, 10, sf_idx, cfi, q->user_rnti);    
-      format = Format1;
-    }
-
-
-    crc_rem = 0;
-    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, locations[i], sf_idx, cfi)) {
-        fprintf(stderr, "Error extracting LLRs\n");
-        return LIBLTE_ERROR;
-      }
-      if (pdcch_decode_msg(&q->pdcch, &dci_msg, format, &crc_rem)) {
+  /* Extract all PDCCH symbols and get LLRs */
+  if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
+    fprintf(stderr, "Error extracting LLRs\n");
+    return LIBLTE_ERROR;
+  }
+  /* For all possible locations, try to decode a DCI message */
+  crc_rem = 0;
+  uint32_t found_dci = 0; 
+  for (int f=0;f<nof_formats && !found_dci;f++) {
+    for (i=0;i<nof_locations && !found_dci;i++) {
+      if (pdcch_decode_msg(&q->pdcch, &dci_msg, &locations[i], formats[f], &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return LIBLTE_ERROR;
       }
       INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
-    }
       
-    if (crc_rem == rnti) {
-      if (dci_msg_to_ra_dl(&dci_msg, rnti, q->user_rnti, q->cell, cfi, &ra_dl)) {
-        fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-        return LIBLTE_ERROR;
-      }
-
-      uint32_t rvidx; 
-      if (rnti == SIRNTI) {
-        switch((q->sfn%8)/2) {
-          case 0: 
-            rvidx = 0; 
-            break;
-          case 1:
-            rvidx = 2;
-            break;
-          case 2:
-            rvidx = 3;
-            break;
-          case 3:
-            rvidx = 1; 
-            break;
-        }
-      } else {
-        rvidx = ra_dl.rv_idx;
-      }
-      
-      if (rvidx == 0) {
-        if (pdsch_harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
-          fprintf(stderr, "Error configuring HARQ process\n");
+      if (crc_rem == q->current_rnti) {
+        found_dci++;
+        q->nof_pdcch_detected++;
+        if (dci_msg_to_ra_dl(&dci_msg, q->current_rnti, q->user_rnti, q->cell, cfi, &ra_dl)) {
+          fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
           return LIBLTE_ERROR;
         }
-      }
-      if (q->harq_process[0].mcs.mod > 0) {
-        ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, data, sf_idx, 
-            &q->harq_process[0], rvidx);
-        if (ret == LIBLTE_ERROR) {
-          if (rnti == SIRNTI && rvidx == 1) {
-            q->pkt_errors++;
-          } else if (rnti != SIRNTI) {
-            q->pkt_errors++;                
-          }            
-        } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
-          fprintf(stderr, "Error calling pdsch_decode()\n");
-          return LIBLTE_ERROR; 
-        } else if (ret == LIBLTE_SUCCESS) {
-          if (VERBOSE_ISINFO()) {
-            INFO("Decoded Message: ", 0);
-            vec_fprint_hex(stdout, data, ra_dl.mcs.tbs);
+
+        if (q->current_rnti != SIRNTI) {
+          rvidx = ra_dl.rv_idx;
+        }
+        if (rvidx == 0) {
+          if (pdsch_harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
+            fprintf(stderr, "Error configuring HARQ process\n");
+            return LIBLTE_ERROR;
           }
         }
-        if (rnti == SIRNTI && rvidx == 1) {
-          q->pkts_total++;                      
-        } else if (rnti != SIRNTI) {
-          q->pkts_total++;                                
+        if (q->harq_process[0].mcs.mod > 0) {
+          ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), data, sf_idx, 
+              &q->harq_process[0], rvidx);
+          if (ret == LIBLTE_ERROR) {
+            q->pkt_errors++;
+          } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
+            fprintf(stderr, "Error calling pdsch_decode()\n");
+            return LIBLTE_ERROR; 
+          } else if (ret == LIBLTE_SUCCESS) {
+            if (VERBOSE_ISINFO()) {
+              INFO("Decoded Message: ", 0);
+              vec_fprint_hex(stdout, data, ra_dl.mcs.tbs);
+            }
+          }
+          q->pkts_total++;
         }
       }
     }
-    if (rnti == SIRNTI && (q->sfn%8) == 0) {
-      q->nof_trials++;      
-    }
   }
+    
 
-  if (crc_rem == rnti && ret == LIBLTE_SUCCESS) {        
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  mean_exec_time = (float) VEC_EMA((float) t[0].tv_usec, mean_exec_time, 0.01);
+ 
+  
+  if (found_dci > 0 && ret == LIBLTE_SUCCESS) {        
     return ra_dl.mcs.tbs;    
   } else {
     return 0;

@@ -61,7 +61,8 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
       return ret; 
     }
     
-    if (VERBOSE_ISDEBUG()) {
+    if (VERBOSE_ISINFO()) {
+      INFO("",0);
       dci_msg_type_fprint(stdout, type);    
     }
     if (type.type == PDSCH_SCHED) {
@@ -72,7 +73,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
         return ret;
       } 
       
-      if (VERBOSE_ISDEBUG()) {
+      if (VERBOSE_ISINFO()) {
         ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
       }
       
@@ -84,7 +85,10 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
       ra_prb_get_re_dl(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
             
       ret = LIBLTE_SUCCESS;
-    }    
+    } else {
+      fprintf(stderr, "Unsupported message type: "); 
+      dci_msg_type_fprint(stderr, type);
+    }
   }
   return ret;
 }
@@ -207,7 +211,7 @@ uint32_t dci_format_sizeof(dci_format_t format, uint32_t nof_prb) {
 int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
   uint32_t n_ul_hop;
 
   *y++ = 0; // format differentiation
@@ -269,7 +273,7 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
   uint32_t n_ul_hop;
 
   /* Make sure it's a Format0 message */
@@ -338,7 +342,7 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
 int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   if (nof_prb > 10) {
     *y++ = data->alloc_type;
@@ -391,7 +395,7 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   /* Make sure it's a Format1 message */
   if (msg->nof_bits != dci_format_sizeof(Format1, nof_prb)) {
@@ -451,7 +455,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
     bool crc_is_crnti) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   *y++ = 1; // format differentiation
 
@@ -537,7 +541,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
     bool crc_is_crnti) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   /* Make sure it's a Format0 message */
   if (msg->nof_bits != dci_format_sizeof(Format1A, nof_prb)) {
@@ -614,7 +618,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
 int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   if (data->alloc_type != alloc_type2 || data->type2_alloc.mode != t2_dist) {
     fprintf(stderr,
@@ -665,7 +669,7 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
   uint32_t L_p, RB_p;
 
   /* pack bits */
-  char *y = msg->data;
+  uint8_t *y = msg->data;
 
   if (msg->nof_bits != dci_format_sizeof(Format1C, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1C\n");
@@ -731,6 +735,20 @@ int dci_msg_pack_pusch(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
 int dci_msg_unpack_pusch(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
   return dci_format0_unpack(msg, data, nof_prb);
+}
+
+dci_format_t dci_format_from_string(char *str) {
+  if (!strcmp(str, "Format0")) {
+    return Format0;
+  } else if (!strcmp(str, "Format1")) {
+    return Format1; 
+  } else if (!strcmp(str, "Format1A")) {
+    return Format1A; 
+  } else if (!strcmp(str, "Format1C")) {
+    return Format1C; 
+  } else {
+    return FormatError;
+  }
 }
 
 char* dci_format_string(dci_format_t format) {

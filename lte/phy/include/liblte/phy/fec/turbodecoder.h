@@ -80,12 +80,12 @@ LIBLTE_API void tdec_iteration(tdec_t * h,
                                uint32_t long_cb);
 
 LIBLTE_API void tdec_decision(tdec_t * h, 
-                              char *output, 
+                              uint8_t *output, 
                               uint32_t long_cb);
 
 LIBLTE_API void tdec_run_all(tdec_t * h, 
                              llr_t * input, 
-                             char *output,
+                             uint8_t *output,
                              uint32_t nof_iterations, 
                              uint32_t long_cb);
 

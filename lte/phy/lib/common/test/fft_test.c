@@ -102,10 +102,13 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error initializing FFT\n");
       exit(-1);
     }
+    dft_plan_set_norm(&fft.fft_plan, true);
+
     if (lte_ifft_init(&ifft, cp, n_prb)) {
       fprintf(stderr, "Error initializing iFFT\n");
       exit(-1);
     }
+    dft_plan_set_norm(&ifft.fft_plan, true);
 
     for (i=0;i<n_re;i++) {
       input[i] = 100 * ((float) rand()/RAND_MAX + (float) I*rand()/RAND_MAX);

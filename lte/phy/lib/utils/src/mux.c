@@ -27,7 +27,7 @@
 
 
 
-
+#include <stdint.h>
 #include <string.h>
 
 /**
@@ -38,8 +38,8 @@
 void mux(void **input, void *output, int *input_lengths, int *input_padding_pre, int nof_inputs,
     int sample_sz) {
   int i,r;
-  char *out = (char*) output;
-  char **in = (char**) input;
+  uint8_t *out = (uint8_t*) output;
+  uint8_t **in = (uint8_t**) input;
 
   r=0;
   for (i=0;i<nof_inputs;i++) {
@@ -57,8 +57,8 @@ void demux(void *input, void **output, int *output_lengths,
     int *output_padding_pre, int *output_padding_post, int nof_outputs,
     int sample_sz) {
   int i,r;
-  char **out = (char**) output;
-  char *in = (char*) input;
+  uint8_t **out = (uint8_t**) output;
+  uint8_t *in = (uint8_t*) input;
 
   r=0;
   for (i=0;i<nof_outputs;i++) {

@@ -29,7 +29,7 @@
 
 typedef struct {
   int n;
-  unsigned int s;
+  uint32_t s;
   int iterations;
   int len;
   float ebno;
@@ -55,7 +55,7 @@ static expected_errors_t expected_errors[] = {
 };
 
 
-int get_expected_errors(int n, unsigned int s, int iterations, int len, float ebno) {
+int get_expected_errors(int n, uint32_t s, int iterations, int len, float ebno) {
   int i;
   i = 0;
   while (expected_errors[i].n != -1) {
@@ -78,7 +78,7 @@ int get_expected_errors(int n, unsigned int s, int iterations, int len, float eb
 const int known_data_errors[4] = {47, 18, 0, 0};
 
 #define KNOWN_DATA_LEN  504
-const char known_data[KNOWN_DATA_LEN] = { 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1,
+const uint8_t known_data[KNOWN_DATA_LEN] = { 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1,
     0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1,
     0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1,
     1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0,
@@ -101,7 +101,7 @@ const char known_data[KNOWN_DATA_LEN] = { 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1,
     1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0,
     0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1 };
 
-const char known_data_encoded[3 * KNOWN_DATA_LEN + 12] = { 0, 0, 0, 0, 0, 1, 1,
+const uint8_t known_data_encoded[3 * KNOWN_DATA_LEN + 12] = { 0, 0, 0, 0, 0, 1, 1,
     1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1,
     1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0,
     0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0,

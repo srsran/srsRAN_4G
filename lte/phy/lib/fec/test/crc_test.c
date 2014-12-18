@@ -37,8 +37,8 @@
 #include "crc_test.h"
 
 int num_bits = 5001, crc_length = 24;
-unsigned int crc_poly = 0x1864CFB;
-unsigned int seed = 1;
+uint32_t crc_poly = 0x1864CFB;
+uint32_t seed = 1;
 
 void usage(char *prog) {
   printf("Usage: %s [nlps]\n", prog);
@@ -59,10 +59,10 @@ void parse_args(int argc, char **argv) {
       crc_length = atoi(argv[optind]);
       break;
     case 'p':
-      crc_poly = (unsigned int) strtoul(argv[optind], NULL, 16);
+      crc_poly = (uint32_t) strtoul(argv[optind], NULL, 16);
       break;
     case 's':
-      seed = (unsigned int) strtoul(argv[optind], NULL, 0);
+      seed = (uint32_t) strtoul(argv[optind], NULL, 0);
       break;
     default:
       usage(argv[0]);
@@ -73,13 +73,13 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   int i;
-  char *data;
-  unsigned int crc_word, expected_word;
+  uint8_t *data;
+  uint32_t crc_word, expected_word;
   crc_t crc_p;
 
   parse_args(argc, argv);
 
-  data = malloc(sizeof(char) * (num_bits + crc_length * 2));
+  data = malloc(sizeof(uint8_t) * (num_bits + crc_length * 2));
   if (!data) {
     perror("malloc");
     exit(-1);

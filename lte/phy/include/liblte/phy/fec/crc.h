@@ -34,18 +34,18 @@
 
 typedef struct LIBLTE_API {
   unsigned long table[256];
-  unsigned char byte;
+  uint8_t byte;
   int polynom;
   int order;
   unsigned long crcinit; 
   unsigned long crcmask;
   unsigned long crchighbit;
-  unsigned int crc_out;
+  uint32_t crc_out;
 } crc_t;
 
-LIBLTE_API int crc_init(crc_t *h, unsigned int crc_poly, int crc_order);
+LIBLTE_API int crc_init(crc_t *h, uint32_t crc_poly, int crc_order);
 LIBLTE_API int crc_set_init(crc_t *h, unsigned long crc_init_value);
-LIBLTE_API void crc_attach(crc_t *h, char *data, int len);
-LIBLTE_API uint32_t crc_checksum(crc_t *h, char *data, int len);
+LIBLTE_API void crc_attach(crc_t *h, uint8_t *data, int len);
+LIBLTE_API uint32_t crc_checksum(crc_t *h, uint8_t *data, int len);
 
 #endif

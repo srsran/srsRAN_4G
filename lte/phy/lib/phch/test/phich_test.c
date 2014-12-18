@@ -38,7 +38,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1000,         // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 phich_resources_t phich_res = R_1;
@@ -105,7 +107,7 @@ int main(int argc, char **argv) {
   cf_t *ce[MAX_PORTS];
   int nof_re;
   cf_t *slot_symbols[MAX_PORTS];
-  char ack[50][PHICH_NORM_NSEQUENCES], ack_rx;
+  uint8_t ack[50][PHICH_NORM_NSEQUENCES], ack_rx;
   uint32_t nsf, distance;
   int cid, max_cid;
   uint32_t ngroup, nseq, max_nseq;
@@ -145,7 +147,7 @@ int main(int argc, char **argv) {
     
     printf("Testing CellID=%d...\n", cid);
 
-    if (regs_init(&regs, phich_res, phich_length, cell)) {
+    if (regs_init(&regs, cell)) {
       fprintf(stderr, "Error initiating regs\n");
       exit(-1);
     }
@@ -179,7 +181,7 @@ int main(int argc, char **argv) {
       for (ngroup=0;ngroup<phich_ngroups(&phich);ngroup++) {
         for (nseq=0;nseq<max_nseq;nseq++) {
 
-          if (phich_decode(&phich, slot_symbols[0], ce, ngroup, nseq, nsf, &ack_rx, &distance)<0) {
+          if (phich_decode(&phich, slot_symbols[0], ce, 0, ngroup, nseq, nsf, &ack_rx, &distance)<0) {
             printf("Error decoding ACK\n");
             exit(-1);
           }

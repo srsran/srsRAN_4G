@@ -38,7 +38,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 uint32_t cfi = 1;
@@ -118,7 +120,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   pdsch_t pdsch;
   uint32_t i, j;
-  char *data = NULL;
+  uint8_t *data = NULL;
   cf_t *ce[MAX_PORTS];
   uint32_t nof_re;
   cf_t *slot_symbols[MAX_PORTS];
@@ -160,7 +162,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  data = malloc(sizeof(char) * mcs.tbs);
+  data = malloc(sizeof(uint8_t) * mcs.tbs);
   if (!data) {
     perror("malloc");
     goto quit;
@@ -205,7 +207,7 @@ int main(int argc, char **argv) {
     }
     
     gettimeofday(&t[1], NULL);
-    int r = pdsch_decode(&pdsch, slot_symbols[0], ce, data, subframe, &harq_process, rv);
+    int r = pdsch_decode(&pdsch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     if (r) {

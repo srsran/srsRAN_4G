@@ -35,11 +35,15 @@
 
 typedef _Complex float cf_t;
 
+
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define MIN(a,b) ((a)<(b)?(a):(b))
+
 // Cumulative moving average
-#define VEC_CMA(data, average, n) ((data) + ((data) - (average)) / ((n)+1)) 
+#define VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n)+1)) 
 
 // Exponential moving average
-#define VEC_EMA(data, average, alpha) ((factor)*(data)+(1-alpha)*(average))
+#define VEC_EMA(data, average, alpha) (average)==0?(data):((alpha)*(data)+(1-alpha)*(average))
 
 /** Return the sum of all the elements */
 LIBLTE_API int vec_acc_ii(int *x, uint32_t len);
@@ -53,22 +57,30 @@ LIBLTE_API void *vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size);
 /* print vectors */
 LIBLTE_API void vec_fprint_c(FILE *stream, cf_t *x, uint32_t len);
 LIBLTE_API void vec_fprint_f(FILE *stream, float *x, uint32_t len);
-LIBLTE_API void vec_fprint_b(FILE *stream, char *x, uint32_t len);
+LIBLTE_API void vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len);
+LIBLTE_API void vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len);
 LIBLTE_API void vec_fprint_i(FILE *stream, int *x, uint32_t len);
-LIBLTE_API void vec_fprint_hex(FILE *stream, char *x, uint32_t len);
+LIBLTE_API void vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len);
 
 /* Saves a vector to a file */
 LIBLTE_API void vec_save_file(char *filename, void *buffer, uint32_t len);
 
 /* sum two vectors */
-LIBLTE_API void vec_sum_ch(char *x, char *y, char *z, uint32_t len);
+LIBLTE_API void vec_sum_ch(uint8_t *x, uint8_t *y, char *z, uint32_t len);
+LIBLTE_API void vec_sum_fff(float *x, float *y, float *z, uint32_t len);
 LIBLTE_API void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 
 /* substract two vectors z=x-y */
 LIBLTE_API void vec_sub_fff(float *x, float *y, float *z, uint32_t len); 
+LIBLTE_API void vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 
 /* Square distance */
 LIBLTE_API void vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoints);
+
+/* scalar addition */
+LIBLTE_API void vec_sc_add_fff(float *x, float h, float *z, uint32_t len); 
+LIBLTE_API void vec_sc_add_cfc(cf_t *x, float h, cf_t *z, uint32_t len); 
+LIBLTE_API void vec_sc_add_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len); 
 
 /* scalar product */
 LIBLTE_API void vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len);
@@ -80,6 +92,8 @@ LIBLTE_API void vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len);
 LIBLTE_API void vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len); 
 LIBLTE_API void vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len);
 
+LIBLTE_API void vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len);
+
 /* vector product (element-wise) */
 LIBLTE_API void vec_prod_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 
@@ -90,12 +104,15 @@ LIBLTE_API void vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len);
 LIBLTE_API void vec_prod_conj_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 
 /* Dot-product */
+LIBLTE_API cf_t vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len);
 LIBLTE_API cf_t vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len);
 LIBLTE_API cf_t vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len);
 LIBLTE_API float vec_dot_prod_fff(float *x, float *y, uint32_t len);
 
 /* z=x/y vector division (element-wise) */
-LIBLTE_API void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
+LIBLTE_API void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *z_imag, uint32_t len);
+void vec_div_cfc(cf_t *x, float *y, cf_t *z, float *z_real, float *z_imag, uint32_t len);
+LIBLTE_API void vec_div_fff(float *x, float *y, float *z, uint32_t len);
 
 /* conjugate */
 LIBLTE_API void vec_conj_cc(cf_t *x, cf_t *y, uint32_t len);
@@ -107,11 +124,12 @@ LIBLTE_API float vec_avg_power_cf(cf_t *x, uint32_t len);
 LIBLTE_API uint32_t vec_max_fi(float *x, uint32_t len);
 LIBLTE_API uint32_t vec_max_abs_ci(cf_t *x, uint32_t len);
 
-/* quantify vector of floats and convert to unsigned char */
-LIBLTE_API void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len);
+/* quantify vector of floats and convert to uint8_t */
+LIBLTE_API void vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len);
 
 /* magnitude of each vector element */
 LIBLTE_API void vec_abs_cf(cf_t *x, float *abs, uint32_t len);
+LIBLTE_API void vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len);
 
 /* argument of each vector element */
 LIBLTE_API void vec_arg_cf(cf_t *x, float *arg, uint32_t len);

@@ -55,11 +55,12 @@ int sss_synch_init(sss_synch_t *q, uint32_t fft_size) {
       sss_synch_free(q);
       return LIBLTE_ERROR;
     }
+    dft_plan_set_mirror(&q->dftp_input, true);
+    dft_plan_set_dc(&q->dftp_input, true);
+
     q->fft_size = fft_size; 
     
     generate_N_id_1_table(q->N_id_1_table);
-    dft_plan_set_mirror(&q->dftp_input, true);
-    dft_plan_set_dc(&q->dftp_input, true);
     
     for (N_id_2=0;N_id_2<3;N_id_2++) {
       generate_sss_all_tables(&sss_tables, N_id_2);
@@ -81,6 +82,7 @@ int sss_synch_realloc(sss_synch_t *q, uint32_t fft_size) {
       return LIBLTE_ERROR;
     }
     dft_plan_set_mirror(&q->dftp_input, true);
+    dft_plan_set_norm(&q->dftp_input, true);
     dft_plan_set_dc(&q->dftp_input, true);
     
     q->fft_size = fft_size;
@@ -141,11 +143,21 @@ int sss_synch_N_id_1(sss_synch_t *q, uint32_t m0, uint32_t m1) {
   if (m0==m1 || m0 > 29 || m1 > 29) {
     return LIBLTE_ERROR;
   }
+  int N_id_1; 
   if (m1 > m0) {
-    return q->N_id_1_table[m0][m1 - 1];
+    N_id_1 = q->N_id_1_table[m0][m1 - 1];
   } else {
-    return q->N_id_1_table[m1][m0 - 1];
+    N_id_1 = q->N_id_1_table[m1][m0 - 1];
   } 
+  if (N_id_1 == 0) {
+    if (m0 == 0 && m1 == 1) {
+      return N_id_1; 
+    } else {
+      return LIBLTE_ERROR; 
+    }
+  } else {
+    return N_id_1;
+  }
 }
 
 /** High-level API */

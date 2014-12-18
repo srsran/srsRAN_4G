@@ -38,7 +38,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1000,         // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 void usage(char *prog) {
@@ -80,8 +82,9 @@ int main(int argc, char **argv) {
   cf_t *ce[MAX_PORTS];
   int nof_re;
   cf_t *slot_symbols[MAX_PORTS];
-  uint32_t cfi, cfi_rx, nsf, distance;
+  uint32_t cfi, cfi_rx, nsf;
   int cid, max_cid;
+  float corr_res; 
 
   parse_args(argc,argv);
 
@@ -111,12 +114,13 @@ int main(int argc, char **argv) {
     cid = cell.id;
     max_cid = cell.id;
   }
+  
   while(cid <= max_cid) {
     cell.id = cid;
 
     printf("Testing CellID=%d...\n", cid);
 
-    if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
+    if (regs_init(&regs, cell)) {
       fprintf(stderr, "Error initiating regs\n");
       exit(-1);
     }
@@ -136,16 +140,11 @@ int main(int argc, char **argv) {
             slot_symbols[0][j] += slot_symbols[i][j];
           }
         }
-        if (pcfich_decode(&pcfich, slot_symbols[0], ce, nsf, &cfi_rx, &distance)<0) {
+        if (pcfich_decode(&pcfich, slot_symbols[0], ce, 0, nsf, &cfi_rx, &corr_res)<0) {
           exit(-1);
         }
-        INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %d\n",
-            cfi, cfi_rx, nsf, distance);
-
-        if (distance) {
-          printf("Error\n");
-          exit(-1);
-        }
+        INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %f\n",
+            cfi, cfi_rx, nsf, corr_res);
       }
     }
     pcfich_free(&pcfich);

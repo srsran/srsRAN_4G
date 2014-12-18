@@ -33,7 +33,7 @@
 #include "liblte/config.h"
 #include "liblte/phy/sync/sync.h"
 #include "liblte/phy/sync/cfo.h"
-#include "liblte/phy/ch_estimation/chest.h"
+#include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/fft.h"
 
@@ -53,8 +53,7 @@
 
 typedef enum LIBLTE_API { SF_FIND, SF_TRACK} ue_sync_state_t;
 
-#define TRACK_MAX_LOST          10
-#define MEASURE_EXEC_TIME 
+//#define MEASURE_EXEC_TIME 
 
 typedef struct LIBLTE_API {
   sync_t sfind;
@@ -67,6 +66,13 @@ typedef struct LIBLTE_API {
   
   cf_t *input_buffer; 
   
+  uint32_t frame_len; 
+  uint32_t fft_size;
+  uint32_t nof_recv_sf;  // Number of subframes received each call to ue_sync_get_buffer
+  uint32_t nof_avg_find_frames;
+  uint32_t frame_find_cnt;
+  uint32_t sf_len;
+
   /* These count half frames (5ms) */
   uint64_t frame_ok_cnt;
   uint32_t frame_no_cnt; 
@@ -77,15 +83,13 @@ typedef struct LIBLTE_API {
   
   lte_cell_t cell; 
   uint32_t sf_idx;
-  
-  cfo_t cfocorr;
-  float cur_cfo;
-    
+      
   bool decode_sss_on_track; 
   
   uint32_t peak_idx;
   int time_offset;
   float mean_time_offset; 
+
   #ifdef MEASURE_EXEC_TIME
   float mean_exec_time;
   #endif
@@ -93,16 +97,21 @@ typedef struct LIBLTE_API {
 
 
 LIBLTE_API int ue_sync_init(ue_sync_t *q, 
-                               lte_cell_t cell,
-                               int (recv_callback)(void*, void*, uint32_t), 
-                               void *stream_handler);
+                            lte_cell_t cell,
+                            int (recv_callback)(void*, void*, uint32_t), 
+                            void *stream_handler);
 
 LIBLTE_API void ue_sync_free(ue_sync_t *q);
+
+LIBLTE_API uint32_t ue_sync_sf_len(ue_sync_t *q); 
 
 LIBLTE_API int ue_sync_get_buffer(ue_sync_t *q, 
                                   cf_t **sf_symbols);
 
 LIBLTE_API void ue_sync_reset(ue_sync_t *q);
+
+LIBLTE_API void ue_sync_set_N_id_2(ue_sync_t *q, 
+                                   uint32_t N_id_2);
 
 LIBLTE_API void ue_sync_decode_sss_on_track(ue_sync_t *q, 
                                             bool enabled);

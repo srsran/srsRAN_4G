@@ -40,13 +40,15 @@ typedef struct LIBLTE_API{
   void *ptr;
   uint32_t R;
   uint32_t K;
-  unsigned int framebits;
+  uint32_t framebits;
   bool tail_biting;
+  float gain_quant; 
   uint32_t poly[3];
-  int (*decode) (void*, uint8_t*, char*, uint32_t);
+  int (*decode) (void*, uint8_t*, uint8_t*, uint32_t);
+  int (*decode_f) (void*, float*, uint8_t*, uint32_t);
   void (*free) (void*);
-  unsigned char *tmp;
-  unsigned char *symbols_uc;
+  uint8_t *tmp;
+  uint8_t *symbols_uc;
 }viterbi_t;
 
 LIBLTE_API int viterbi_init(viterbi_t *q, 
@@ -55,16 +57,19 @@ LIBLTE_API int viterbi_init(viterbi_t *q,
                             uint32_t max_frame_length, 
                             bool tail_bitting);
 
+LIBLTE_API void viterbi_set_gain_quant(viterbi_t *q, 
+                                       float gain_quant); 
+
 LIBLTE_API void viterbi_free(viterbi_t *q);
 
 LIBLTE_API int viterbi_decode_f(viterbi_t *q, 
                                 float *symbols, 
-                                char *data, 
+                                uint8_t *data, 
                                 uint32_t frame_length);
 
 LIBLTE_API int viterbi_decode_uc(viterbi_t *q, 
                                  uint8_t *symbols, 
-                                 char *data, 
+                                 uint8_t *data, 
                                  uint32_t frame_length);
 
 
@@ -82,7 +87,7 @@ typedef struct LIBLTE_API{
   } init;
   float *input;
   int in_len;
-  char *output;
+  uint8_t *output;
   int out_len;
 }viterbi_hl;
 

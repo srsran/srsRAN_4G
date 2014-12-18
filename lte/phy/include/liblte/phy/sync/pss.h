@@ -39,13 +39,18 @@
 typedef _Complex float cf_t; /* this is only a shortcut */
 
 #define CONVOLUTION_FFT
-#define DEFAULT_CORRELATION_TH 10000
-#define DEFAULT_NOSYNC_TIMEOUT  5
 
 #define PSS_LEN     62
 #define PSS_RE      6*12
 
 
+/* PSS processing options */
+
+#define PSS_ACCUMULATE_ABS   // If enabled, accumulates the correlation absolute value on consecutive calls to pss_synch_find_pss
+
+#define PSS_ABS_SQUARE   // If enabled, compute abs square, otherwise computes absolute value only 
+
+#define PSS_RETURN_PSR  // If enabled returns peak to side-lobe ratio, otherwise returns absolute peak value
 
 /**
  * The pss_synch_t object provides functions for fast computation of the crosscorrelation
@@ -61,7 +66,9 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 
 /* Low-level API */
 typedef struct LIBLTE_API {
-
+  
+  dft_plan_t dftp_input; 
+  
 #ifdef CONVOLUTION_FFT
   conv_fft_cc_t conv_fft;
 #endif
@@ -70,10 +77,14 @@ typedef struct LIBLTE_API {
   uint32_t N_id_2;
   uint32_t fft_size;
 
+  cf_t pss_signal_time[3][PSS_LEN];
   cf_t *pss_signal_freq[3]; // One sequence for each N_id_2
   cf_t *tmp_input;
   cf_t *conv_output;
-    
+  float *conv_output_abs;
+  float ema_alpha; 
+  float *conv_output_avg;
+  float peak_value;
 }pss_synch_t;
 
 typedef enum { PSS_TX, PSS_RX } pss_direction_t;
@@ -88,6 +99,8 @@ LIBLTE_API int pss_synch_init(pss_synch_t *q,
 
 LIBLTE_API void pss_synch_free(pss_synch_t *q);
 
+LIBLTE_API void pss_synch_reset(pss_synch_t *q); 
+
 LIBLTE_API int pss_generate(cf_t *signal, 
                             uint32_t N_id_2);
 
@@ -96,12 +109,19 @@ LIBLTE_API void pss_put_slot(cf_t *pss_signal,
                              uint32_t nof_prb, 
                              lte_cp_t cp);
 
+LIBLTE_API void pss_synch_set_ema_alpha(pss_synch_t *q, 
+                                        float alpha); 
+
 LIBLTE_API int pss_synch_set_N_id_2(pss_synch_t *q, 
                                     uint32_t N_id_2);
 
 LIBLTE_API int pss_synch_find_pss(pss_synch_t *q, 
                                   cf_t *input, 
                                   float *corr_peak_value);
+
+LIBLTE_API int pss_synch_chest(pss_synch_t *q, 
+                               cf_t *input, 
+                               cf_t ce[PSS_LEN]); 
 
 LIBLTE_API float pss_synch_cfo_compute(pss_synch_t* q, 
                                        cf_t *pss_recv);

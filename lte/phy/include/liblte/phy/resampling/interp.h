@@ -34,65 +34,70 @@
 
 typedef _Complex float cf_t;
 
-typedef enum LIBLTE_API {LINEAR} interp_type_t;
 
-typedef struct LIBLTE_API {
-  interp_type_t type; 
-  
-  float *in_mag; 
-  float *in_arg;
-  float *in_mag0; 
-  float *in_arg0;
-  float *in_mag1; 
-  float *in_arg1;
-  
-  float *out_mag; 
-  float *out_arg;
-  float *out_arg2;
-  int16_t *table_idx; 
-  
-  cf_t *out_cexp;
-  cf_t *out_prod;
-  
-  cf_t *cexptable; 
-  
-  uint32_t len; 
-  uint32_t M; 
-  
-}interp_t;
+/************* STATIC LINEAR INTERPOLATION FUNCTIONS */
 
-LIBLTE_API int interp_init(interp_t *q, 
-                           interp_type_t type, 
-                           uint32_t len,
-                           uint32_t M);
+LIBLTE_API cf_t interp_linear_onesample(cf_t input0, 
+                                        cf_t input1); 
 
-LIBLTE_API void interp_free(interp_t *q); 
+LIBLTE_API cf_t interp_linear_onesample_cabs(cf_t input0, 
+                                             cf_t input1); 
 
-LIBLTE_API void interp_run(interp_t *q, 
-                           cf_t *input, 
-                           cf_t *output);
-
-LIBLTE_API void interp_run_offset(interp_t *q, 
-                                  cf_t *input, 
-                                  cf_t *output, 
-                                  uint32_t off_st, 
-                                  uint32_t off_end);
-
-LIBLTE_API void interp_linear_offset(cf_t *input, 
-                                     cf_t *output, 
-                                     uint32_t M, 
-                                     uint32_t len, 
-                                     uint32_t off_st, 
-                                     uint32_t off_end);
-
-LIBLTE_API void interp_linear_c(cf_t *input, 
-                                cf_t *output, 
-                                uint32_t M, 
-                                uint32_t len);
+LIBLTE_API void interp_linear_offset_cabs(cf_t *input, 
+                                          cf_t *output, 
+                                          uint32_t M, 
+                                          uint32_t len, 
+                                          uint32_t off_st, 
+                                          uint32_t off_end);
 
 LIBLTE_API void interp_linear_f(float *input, 
                                 float *output, 
                                 uint32_t M, 
                                 uint32_t len);
+
+
+
+/* Interpolation between vectors */
+
+typedef struct {
+  cf_t *diff_vec; 
+  uint32_t vector_len; 
+} interp_linvec_t;
+
+LIBLTE_API int interp_linear_vector_init(interp_linvec_t *q, 
+                                         uint32_t vector_len);
+
+LIBLTE_API void interp_linear_vector_free(interp_linvec_t *q); 
+
+LIBLTE_API void interp_linear_vector(interp_linvec_t *q, 
+                                     cf_t *in0, 
+                                     cf_t *in1, 
+                                     cf_t *between, 
+                                     uint32_t M); 
+
+
+
+/* Interpolation within a vector */
+
+typedef struct {
+  cf_t *diff_vec; 
+  cf_t *diff_vec2;
+  float *ramp;
+  uint32_t vector_len; 
+  uint32_t M; 
+} interp_lin_t;
+
+LIBLTE_API int interp_linear_init(interp_lin_t *q, 
+                                  uint32_t vector_len, 
+                                  uint32_t M); 
+
+LIBLTE_API void interp_linear_free(interp_lin_t *q);
+
+LIBLTE_API void interp_linear_offset(interp_lin_t *q, 
+                                     cf_t *input, 
+                                     cf_t *output, 
+                                     uint32_t off_st, 
+                                     uint32_t off_end);
+
 
 #endif // INTERP_H

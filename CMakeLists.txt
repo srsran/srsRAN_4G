@@ -37,6 +37,7 @@ PROJECT (LIBLTE)
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
 INCLUDE(libLTEPackage) #setup cpack
+INCLUDE(BuildMex)
 
 include(CTest)
 set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
@@ -51,6 +52,7 @@ CONFIGURE_FILE(
 SET(RUNTIME_DIR bin)
 SET(LIBRARY_DIR lib)
 SET(INCLUDE_DIR include)
+SET(MEX_DIR mex)
 SET(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
 SET(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
@@ -77,7 +79,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 IF(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g")
    # IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
    #   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wno-error=implicit-function-declaration -Wno-error=unused-but-set-variable")
    # ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
@@ -140,7 +142,6 @@ MACRO (APPEND_INTERNAL_LIST  LIST_NAME  VALUE)
    ENDIF (${LIST_NAME})
 ENDMACRO (APPEND_INTERNAL_LIST)
 
-
 ########################################################################
 # Print summary
 ########################################################################
@@ -152,7 +153,10 @@ MESSAGE(STATUS "Building for version: ${VERSION}")
 ########################################################################
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/common/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lte/phy/include/)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lte/rrc/include/)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/lte/rrc/include/liblte/rrc/asn)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/cuhd/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/mex/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/graphics/include)
 
 ########################################################################
@@ -162,4 +166,4 @@ ADD_SUBDIRECTORY(common)
 ADD_SUBDIRECTORY(cuhd)
 ADD_SUBDIRECTORY(graphics)
 ADD_SUBDIRECTORY(lte)
-
+add_subdirectory(mex)

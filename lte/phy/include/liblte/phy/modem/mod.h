@@ -37,7 +37,7 @@
 
 typedef _Complex float cf_t;
 
-LIBLTE_API int mod_modulate(modem_table_t* table, const char *bits, cf_t* symbols, uint32_t nbits);
+LIBLTE_API int mod_modulate(modem_table_t* table, const uint8_t *bits, cf_t* symbols, uint32_t nbits);
 
 /* High-level API */
 typedef struct LIBLTE_API {
@@ -46,7 +46,7 @@ typedef struct LIBLTE_API {
     lte_mod_t std;  // symbol mapping standard (see modem_table.h)
   } init;
 
-  const char* input;
+  const uint8_t* input;
   int in_len;
 
   cf_t* output;

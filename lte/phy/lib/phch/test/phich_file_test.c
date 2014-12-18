@@ -40,13 +40,13 @@ lte_cell_t cell = {
   50,           // cell.nof_prb
   2,            // cell.nof_ports
   150,          // cell.id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 int flen;
 int nof_ctrl_symbols = 1;
-phich_resources_t phich_res = R_1;
-phich_length_t phich_length = PHICH_NORM;
 int numsubframe = 0;
 
 FILE *fmatlab = NULL;
@@ -56,7 +56,7 @@ cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 phich_t phich;
 regs_t regs;
 lte_fft_t fft;
-chest_t chest;
+chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcoe] -i input_file\n", prog);
@@ -89,19 +89,19 @@ void parse_args(int argc, char **argv) {
       break;
     case 'g':
       if (!strcmp(argv[optind], "1/6")) {
-        phich_res = R_1_6;
+        cell.phich_resources = R_1_6;
       } else if (!strcmp(argv[optind], "1/2")) {
-        phich_res = R_1_2;
+        cell.phich_resources = R_1_2;
       } else if (!strcmp(argv[optind], "1")) {
-        phich_res = R_1;
+        cell.phich_resources = R_1;
       } else if (!strcmp(argv[optind], "2")) {
-        phich_res = R_2;
+        cell.phich_resources = R_2;
       } else {
         fprintf(stderr, "Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
       }
       break;
     case 'e':
-      phich_length = PHICH_EXT;
+      cell.phich_length = PHICH_EXT;
       break;
     case 'n':
       cell.nof_prb = atoi(argv[optind]);
@@ -152,21 +152,21 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+  fft_buffer = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<MAX_PORTS;i++) {
-    ce[i] = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+    ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
     }
   }
 
-  if (chest_init_LTEDL(&chest, cell)) {
+  if (chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -176,7 +176,7 @@ int base_init() {
     return -1;
   }
 
-  if (regs_init(&regs, phich_res, phich_length, cell)) {
+  if (regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     return -1;
   }
@@ -205,7 +205,7 @@ void base_free() {
   for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
   }
-  chest_free(&chest);
+  chest_dl_free(&chest);
   lte_fft_free(&fft);
 
   phich_free(&phich);
@@ -214,9 +214,9 @@ void base_free() {
 
 int main(int argc, char **argv) {
   uint32_t distance;
-  int i, n;
+  int n;
   uint32_t ngroup, nseq, max_nseq;
-  char ack_rx;
+  uint8_t ack_rx;
 
   if (argc < 3) {
     usage(argv[0]);
@@ -234,7 +234,7 @@ int main(int argc, char **argv) {
 
   n = filesource_read(&fsrc, input_buffer, flen);
 
-  lte_fft_run_slot(&fft, input_buffer, fft_buffer);
+  lte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");
@@ -247,12 +247,7 @@ int main(int argc, char **argv) {
   }
 
   /* Get channel estimates for each port */
-  for (i=0;i<cell.nof_ports;i++) {
-    chest_ce_slot_port(&chest, fft_buffer, ce[i], 0, i);
-    if (fmatlab) {
-      chest_fprint(&chest, fmatlab, 0, i);
-    }
-  }
+  chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
   INFO("Decoding PHICH\n", 0);
 
@@ -260,7 +255,7 @@ int main(int argc, char **argv) {
   for (ngroup=0;ngroup<phich_ngroups(&phich);ngroup++) {
     for (nseq=0;nseq<max_nseq;nseq++) {
 
-      if (phich_decode(&phich, fft_buffer, ce, ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
+      if (phich_decode(&phich, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
         printf("Error decoding ACK\n");
         exit(-1);
       }

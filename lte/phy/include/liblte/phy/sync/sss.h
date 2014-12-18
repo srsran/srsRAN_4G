@@ -42,8 +42,6 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 #define N_SSS      31
 #define SSS_LEN    2*N_SSS
 
-#define SSS_MAX_FFT_LEN 2048
-
 struct sss_tables{
   int z1[N_SSS][N_SSS];
   int c[2][N_SSS];
@@ -54,9 +52,10 @@ struct sss_tables{
  * Should use vec_malloc() to make it platform agnostic.
  */
 struct fc_tables{
-  cf_t z1[N_SSS+1][N_SSS+1];
-  cf_t c[2][N_SSS+1];
-  cf_t s[N_SSS+1][N_SSS+1];
+  float z1[N_SSS][N_SSS];
+  float c[2][N_SSS];
+  float s[N_SSS][N_SSS];
+  float sd[N_SSS][N_SSS-1];
 };
 
 
@@ -74,6 +73,9 @@ typedef struct LIBLTE_API {
   
   uint32_t N_id_1_table[30][30];
   struct fc_tables fc_tables[3]; // one for each N_id_2
+
+  float corr_output_m0[N_SSS];
+  float corr_output_m1[N_SSS];
 
 }sss_synch_t;
 
@@ -99,12 +101,30 @@ LIBLTE_API void sss_put_slot(float *sss,
 LIBLTE_API int sss_synch_set_N_id_2(sss_synch_t *q, 
                                     uint32_t N_id_2);
 
-LIBLTE_API int sss_synch_m0m1(sss_synch_t *q, 
-                              cf_t *input, 
-                              uint32_t *m0, 
-                              float *m0_value, 
-                              uint32_t *m1, 
-                              float *m1_value);
+LIBLTE_API int sss_synch_m0m1_partial(sss_synch_t *q, 
+                                      cf_t *input, 
+                                      uint32_t M, 
+                                      cf_t ce[2*N_SSS],
+                                      uint32_t *m0, 
+                                      float *m0_value, 
+                                      uint32_t *m1, 
+                                      float *m1_value);
+
+LIBLTE_API int sss_synch_m0m1_diff_coh(sss_synch_t *q, 
+                                       cf_t *input, 
+                                       cf_t ce[2*N_SSS],
+                                       uint32_t *m0, 
+                                       float *m0_value, 
+                                       uint32_t *m1, 
+                                       float *m1_value);
+
+LIBLTE_API int sss_synch_m0m1_diff(sss_synch_t *q, 
+                                   cf_t *input, 
+                                   uint32_t *m0, 
+                                   float *m0_value, 
+                                   uint32_t *m1, 
+                                   float *m1_value);
+
 
 LIBLTE_API uint32_t sss_synch_subframe(uint32_t m0, 
                                        uint32_t m1);

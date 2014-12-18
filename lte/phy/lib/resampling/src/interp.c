@@ -28,171 +28,53 @@
 #include <complex.h>
 #include <math.h>
 #include <stdlib.h>
+#include <strings.h> 
 
 #include "liblte/phy/resampling/interp.h"
 #include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/debug.h"
 
-#define TABLE_SIZE      1024
+/*************** STATIC FUNCTIONS ***********************/
 
-
-#ifdef TABLE_SIZE
-  #define ARG2IDX(arg) ((uint32_t) ((1+(arg)/M_PI)*TABLE_SIZE/2))
-  #define MYCEXP(arg) q->cexptable[ARG2IDX(arg)]
-#else
-  #define MYCEXP(arg) (cosf(arg) + I*sinf(arg))
-#endif
-
-#define MAX_OFFSET      64
-
-int interp_init(interp_t *q, interp_type_t type, uint32_t len, uint32_t M) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
-  
-  if (q != NULL) {
-    ret = LIBLTE_ERROR; 
-    
-    q->in_arg = vec_malloc(len * sizeof(float));
-    if (!q->in_arg) {
-      goto clean_and_exit;
-    }
-    q->in_mag = vec_malloc(len * sizeof(float));
-    if (!q->in_mag) {
-      goto clean_and_exit;
-    }
-    q->out_arg = vec_malloc((MAX_OFFSET + M * len) * sizeof(float));
-    if (!q->out_arg) {
-      goto clean_and_exit;
-    }
-    q->out_arg2 = vec_malloc((MAX_OFFSET + M * len) * sizeof(float));
-    if (!q->out_arg2) {
-      goto clean_and_exit;
-    }
-    q->table_idx = vec_malloc((MAX_OFFSET + M * len) * sizeof(int16_t));
-    if (!q->table_idx) {
-      goto clean_and_exit;
-    }
-    q->out_mag = vec_malloc((MAX_OFFSET + M * len) * sizeof(float));
-    if (!q->out_mag) {
-      goto clean_and_exit;
-    }
-    q->out_cexp = vec_malloc((MAX_OFFSET + M * len) * sizeof(cf_t));
-    if (!q->out_cexp) {
-      goto clean_and_exit;
-    }
-    q->out_prod = vec_malloc((MAX_OFFSET + M * len) * sizeof(cf_t));
-    if (!q->out_prod) {
-      goto clean_and_exit;
-    }
-#ifdef TABLE_SIZE
-    q->cexptable = vec_malloc(TABLE_SIZE * sizeof(cf_t));
-    uint32_t i;
-    for (i=0;i<TABLE_SIZE;i++) {
-      q->cexptable[i] = cexpf(I*M_PI*(2*((float) i/TABLE_SIZE) - 1));
-    }
-#endif
-    q->M = M; 
-    q->len = len; 
-    ret = LIBLTE_SUCCESS;
-  }
-  
-clean_and_exit:
-  if (ret == LIBLTE_ERROR) {
-    interp_free(q);
-  }
-  return ret; 
+cf_t interp_linear_onesample(cf_t input0, cf_t input1) {
+  float mag0=0, mag1=0, arg0=0, arg1=0, mag=0, arg=0;
+  mag0 = cabsf(input0);
+  mag1 = cabsf(input1);
+  arg0 = cargf(input0);
+  arg1 = cargf(input1);
+  mag = 2*mag1 -mag0;
+  arg = 2*arg1-arg0;
+  return mag * cexpf(I * arg);
 }
 
-void interp_free(interp_t *q) {
-  if (q) {
-    if (q->in_arg) {
-      free(q->in_arg);
+cf_t interp_linear_onesample_cabs(cf_t input0, cf_t input1) {
+  float re0=0, im0=0, re1=0, im1=0, re=0, im=0;
+  re0 = crealf(input0);
+  im0 = cimagf(input1);
+  re1 = crealf(input0);
+  im1 = cimagf(input1);
+  re = 2*re1-re0;
+  im = 2*im1-im0;
+  return (re+im*_Complex_I);
+}
+
+
+/* Performs 1st order integer linear interpolation */
+void interp_linear_f(float *input, float *output, uint32_t M, uint32_t len) {
+  uint32_t i, j;
+  for (i=0;i<len-1;i++) {
+    for (j=0;j<M;j++) {
+      output[i*M+j] = input[i] + j * (input[i+1]-input[i]) / M;
     }
-    if (q->in_mag) {
-      free(q->in_mag);
-    }
-    if (q->out_arg) {
-      free(q->out_arg);
-    }
-    if (q->out_cexp) {
-      free(q->out_cexp);
-    }
-    if (q->out_mag) {
-      free(q->out_mag);
-    }
-    
-    if (q->out_prod) {
-      free(q->out_prod);
-    }
-#ifdef TABLE_SIZE
-    if (q->cexptable) {
-      free(q->cexptable);
-    }
-#endif
   }
 }
 
-void interp_run_offset(interp_t *q, cf_t *input, cf_t *output, uint32_t off_st, uint32_t off_end) {
-  uint32_t i, j, n;
-  float mag0=0, mag1=0, arg0=0, arg1=0;
-  float dmag, darg; 
-  uint32_t M = q->M; 
-  uint32_t len1 = q->len-1;
-  
-  if (off_st + off_end < MAX_OFFSET) {
-    vec_abs_cf(input, q->in_mag, q->len);
-    vec_arg_cf(input, q->in_arg, q->len);   
-    
-    mag0 = q->in_mag[0];
-    mag1 = q->in_mag[1];
-    arg0 = q->in_arg[0];
-    arg1 = q->in_arg[1];
-    dmag=(mag1-mag0)/M;
-    darg=(arg1-arg0)/M; 
-    for (j=0;j<off_st;j++) {
-      q->out_mag[j] = mag0 - (j+1)*dmag;
-      q->out_arg[j] = arg0 - (j+1)*darg;
-    }
-    
-    for (i=0;i<len1;i++) {
-      mag0 = q->in_mag[i];
-      mag1 = q->in_mag[i+1];
-      arg0 = q->in_arg[i];
-      arg1 = q->in_arg[i+1];
-      dmag=(mag1-mag0)/M;
-      darg=(arg1-arg0)/M;
-      for (j=0;j<M;j++) {
-        q->out_mag[i*M+j+off_st] = mag0 + j*dmag;
-        q->out_arg[i*M+j+off_st] = arg0 + j*darg;
-      }
-    }
-    if (q->len > 1) {
-      for (j=0;j<off_end;j++) {
-        q->out_mag[i*M+j+off_st] = mag1 + j*dmag;
-        q->out_arg[i*M+j+off_st] = arg1 + j*darg;
-      }
-    }
-    uint32_t len=i*M+j+off_st;
-#ifdef TABLE_SIZE
-    vec_convert_fi(q->out_arg, q->table_idx, (float) TABLE_SIZE/2/M_PI, len);
-    for (n=0;n<len;n++) {
-      q->out_cexp[n] = q->cexptable[q->table_idx[n]+TABLE_SIZE/2];
-    }
-#else
-    for (n=0;n<len;n++) {
-      q->out_cexp[n] = MYCEXP(q->out_arg[n]);
-    }
-#endif
-    vec_prod_cfc(q->out_cexp, q->out_mag, output, len);
-  }
-
-}
-
-void interp_run(interp_t *q, cf_t *input, cf_t *output) {
-    interp_run_offset(q, input, output, 0, 1);
-}
 
 /* Performs 1st order linear interpolation with out-of-bound interpolation */
-void interp_linear_offset(cf_t *input, cf_t *output, uint32_t M, uint32_t len, uint32_t off_st, uint32_t off_end) {
+void interp_linear_offset_cabs(cf_t *input, cf_t *output, 
+                               uint32_t M, uint32_t len, 
+                               uint32_t off_st, uint32_t off_end) 
+{
   uint32_t i, j;
   float mag0=0, mag1=0, arg0=0, arg1=0, mag=0, arg=0;
 
@@ -223,18 +105,120 @@ void interp_linear_offset(cf_t *input, cf_t *output, uint32_t M, uint32_t len, u
   }
 }
 
-/* Performs 1st order linear interpolation */
-void interp_linear_c(cf_t *input, cf_t *output, uint32_t M, uint32_t len) {
-  interp_linear_offset(input, output, M, len, 0, 1);
+int interp_linear_vector_init(interp_linvec_t *q, uint32_t vector_len) 
+{
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  if (q) {
+    bzero(q, sizeof(interp_linvec_t));
+    ret = LIBLTE_SUCCESS;
+    q->diff_vec = vec_malloc(vector_len * sizeof(cf_t));
+    if (!q->diff_vec) {
+      perror("malloc");
+      return LIBLTE_ERROR; 
+    }    
+    q->vector_len = vector_len; 
+  }
+  return ret; 
 }
 
+void interp_linear_vector_free(interp_linvec_t *q) {
+  if (q->diff_vec) {
+    free(q->diff_vec);
+  }
 
-/* Performs 1st order uint32_teger linear interpolation */
-void interp_linear_f(float *input, float *output, uint32_t M, uint32_t len) {
+  bzero(q, sizeof(interp_linvec_t));
+
+}
+
+void interp_linear_vector(interp_linvec_t *q, cf_t *in0, cf_t *in1, cf_t *between, uint32_t M) 
+{
+  uint32_t i;
+  
+  vec_sub_ccc(in1, in0, q->diff_vec, q->vector_len);
+  vec_sc_prod_cfc(q->diff_vec, (float) 1/M, q->diff_vec, q->vector_len);
+  vec_sum_ccc(in0, q->diff_vec, between, q->vector_len);
+  for (i=0;i<M-1;i++) {
+    vec_sum_ccc(between, q->diff_vec, &between[q->vector_len], q->vector_len);
+    between += q->vector_len;
+  }
+}
+
+int interp_linear_init(interp_lin_t *q, uint32_t vector_len, uint32_t M) 
+{
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  if (q) {
+    bzero(q, sizeof(interp_lin_t));
+    ret = LIBLTE_SUCCESS;
+    q->diff_vec = vec_malloc(vector_len * sizeof(cf_t));
+    if (!q->diff_vec) {
+      perror("malloc");
+      return LIBLTE_ERROR; 
+    }    
+    q->diff_vec2 = vec_malloc(M * vector_len * sizeof(cf_t));
+    if (!q->diff_vec2) {
+      perror("malloc");
+      free(q->diff_vec);
+      return LIBLTE_ERROR; 
+    }    
+    q->ramp = vec_malloc(M * sizeof(float));
+    if (!q->ramp) {
+      perror("malloc");
+      free(q->ramp);
+      free(q->diff_vec);
+      return LIBLTE_ERROR; 
+    }    
+    
+    for (int i=0;i<M;i++) {
+      q->ramp[i] = (float) i; 
+    }
+
+    q->vector_len = vector_len; 
+    q->M = M; 
+  }
+  return ret; 
+}
+
+void interp_linear_free(interp_lin_t *q) {
+  if (q->diff_vec) {
+    free(q->diff_vec);
+  }
+  if (q->diff_vec2) {
+    free(q->diff_vec2);
+  }
+  if (q->ramp) {
+    free(q->ramp);
+  }
+
+  bzero(q, sizeof(interp_lin_t));
+
+}
+
+void interp_linear_offset(interp_lin_t *q, cf_t *input, cf_t *output, 
+                          uint32_t off_st, uint32_t off_end) 
+{
   uint32_t i, j;
-  for (i=0;i<len-1;i++) {
-    for (j=0;j<M;j++) {
-      output[i*M+j] = input[i] + j * (input[i+1]-input[i]) / M;
+  cf_t diff; 
+  
+  i=0;
+  for (j=0;j<off_st;j++) {
+    output[j] = input[i] + (j+1) * (input[i+1]-input[i]) / q->M;
+  }
+  vec_sub_ccc(&input[1], input, q->diff_vec, (q->vector_len-1));
+  vec_sc_prod_cfc(q->diff_vec, (float) 1/q->M, q->diff_vec, q->vector_len-1);
+  for (i=0;i<q->vector_len-1;i++) {
+    for (j=0;j<q->M;j++) {
+      output[i*q->M+j+off_st] = input[i];  
+      q->diff_vec2[i*q->M+j] = q->diff_vec[i];
+    }
+    vec_prod_cfc(&q->diff_vec2[i*q->M],q->ramp,&q->diff_vec2[i*q->M],q->M);
+  }
+  vec_sum_ccc(&output[off_st], q->diff_vec2, &output[off_st], q->M*(q->vector_len-1));
+  
+  if (q->vector_len > 1) {
+    diff = input[q->vector_len-1]-input[q->vector_len-2];
+    for (j=0;j<off_end;j++) {
+      output[i*q->M+j+off_st] = input[i] + j * diff / q->M;  
     }
   }
 }
+

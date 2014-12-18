@@ -10,14 +10,14 @@
 #include "parity.h"
 
 typedef union {
-  unsigned int w[256];
+  uint32_t w[256];
 } metric_t;
 typedef union {
   unsigned long w[8];
 } decision_t;
 
 static union {
-  unsigned char c[128];
+  uint8_t c[128];
 } Branchtab39[3];
 
 /* State info for instance of Viterbi decoder */
@@ -79,7 +79,7 @@ void *create_viterbi39_port(uint32_t polys[3], uint32_t len) {
 }
 
 /* Viterbi chainback */
-int chainback_viterbi39_port(void *p, char *data, /* Decoded output data */
+int chainback_viterbi39_port(void *p, uint8_t *data, /* Decoded output data */
     uint32_t nbits, /* Number of data bits */
     uint32_t endstate) { /* Terminal encoder state */
   struct v39 *vp = p;
@@ -121,7 +121,7 @@ void delete_viterbi39_port(void *p) {
 
 /* C-language butterfly */
 #define BFLY(i) {\
-unsigned int metric,m0,m1,decision;\
+uint32_t metric,m0,m1,decision;\
     metric = (Branchtab39[0].c[i] ^ sym0) + (Branchtab39[1].c[i] ^ sym1) + \
      (Branchtab39[2].c[i] ^ sym2);\
     m0 = vp->old_metrics->w[i] + metric;\

@@ -68,7 +68,7 @@ bool cuhd_rx_wait_lo_locked(void *h)
 {
 
   double report = 0.0;
-  while (isLocked(h) && report < 3.0) {
+  while (isLocked(h) && report < 3000.0) {
     report += 0.1;
     usleep(1000);
   }
@@ -139,7 +139,7 @@ int cuhd_open(char *args, void **h)
 int cuhd_close(void *h)
 {
   cuhd_stop_rx_stream(h);
-        /** Something else to close the USRP?? */
+  /** Something else to close the USRP?? */
   return 0;
 }
 
@@ -147,9 +147,17 @@ int cuhd_close(void *h)
 double cuhd_set_rx_srate(void *h, double freq)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  handler->usrp->set_rx_rate(freq);
-  double ret = handler->usrp->get_rx_rate();
-  return ret;
+  printf("Changing sampling freq now to %.2f MHz\n", freq/1000000);
+  handler->usrp->set_rx_rate(freq);  
+  printf("Done\n");
+  /*
+  if ((int) ret != (int) freq) {
+    printf("Got %f!=%f. setting master clock rate to %f\n",ret, freq, freq);
+    handler->usrp->set_master_clock_rate(freq);
+    handler->usrp->set_rx_rate(freq);  
+  }
+  */
+  return freq;
 }
 
 double cuhd_set_rx_gain(void *h, double gain)
@@ -162,8 +170,10 @@ double cuhd_set_rx_gain(void *h, double gain)
 double cuhd_set_rx_freq(void *h, double freq)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  printf("Tunning receiver to %.3f MHz\n", (double ) freq/1000000);
   handler->usrp->set_rx_freq(freq);
-  return handler->usrp->get_rx_freq();
+  printf("Done\n");
+  return freq;
 }
 
 double cuhd_set_rx_freq_offset(void *h, double freq, double off) {
@@ -176,6 +186,7 @@ int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   uhd::rx_metadata_t md;
+  uint32_t nof_packets = 0; 
   if (blocking) {
     int n = 0, p;
     complex_t *data_c = (complex_t *) data;
@@ -190,7 +201,10 @@ int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
         std::cout << "\nError code: " << md.to_pp_string() << "\n\n";
       }
 #endif
-    } while (n < nsamples);
+      nof_packets++;
+    } while (n < nsamples                                              && 
+             md.error_code == uhd::rx_metadata_t::ERROR_CODE_NONE      && 
+             nof_packets < 10);
     return nsamples;
   } else {
     return handler->rx_stream->recv(data, nsamples, md, 0.0);

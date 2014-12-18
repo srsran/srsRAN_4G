@@ -95,17 +95,50 @@ void vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 #endif 
 }
 
+void vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+  return vec_sub_fff((float*) x,(float*) y,(float*) z,2*len);
+}
+
+void vec_sum_fff(float *x, float *y, float *z, uint32_t len) {
+#ifndef HAVE_VOLK_ADD_FLOAT_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]+y[i];
+  }
+#else
+  volk_32f_x2_add_32f(z,x,y,len);
+#endif
+}
+
 void vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
+  vec_sum_fff((float*) x,(float*) y,(float*) z,2*len);
+}
+
+void vec_sum_bbb(uint8_t *x, uint8_t *y, uint8_t *z, uint32_t len) {
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]+y[i];
   }
 }
 
-void vec_sum_bbb(char *x, char *y, char *z, uint32_t len) {
-  int i;
+void vec_sc_add_fff(float *x, float h, float *z, uint32_t len) {
+  int i; 
   for (i=0;i<len;i++) {
-    z[i] = x[i]+y[i];
+    z[i] += h;
+  }
+}
+
+void vec_sc_add_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
+  int i; 
+  for (i=0;i<len;i++) {
+    z[i] += h;
+  }
+}
+
+void vec_sc_add_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
+  int i; 
+  for (i=0;i<len;i++) {
+    z[i] += h;
   }
 }
 
@@ -154,6 +187,17 @@ void vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
     z[i] = (int16_t) (x[i]*scale);
   }
 #endif
+}
+
+void vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len) {
+ #ifdef HAVE_VOLK_INTERLEAVE_FUNCTION
+  volk_32f_x2_interleave_32fc(x, real, imag, len);
+#else 
+  int i;
+  for (i=0;i<len;i++) {
+    x[i] = real[i] + _Complex_I*imag[i];
+  }
+#endif 
 }
 
 void vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len) {
@@ -227,11 +271,20 @@ void vec_fprint_f(FILE *stream, float *x, uint32_t len) {
 }
 
 
-void vec_fprint_b(FILE *stream, char *x, uint32_t len) {
+void vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
     fprintf(stream, "%d, ", x[i]);
+  }
+  fprintf(stream, "];\n");
+}
+
+void vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len) {
+  int i;
+  fprintf(stream, "[");
+  for (i=0;i<len;i++) {
+    fprintf(stream, "%02x ", x[i]);
   }
   fprintf(stream, "];\n");
 }
@@ -245,16 +298,17 @@ void vec_fprint_i(FILE *stream, int *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
-void vec_fprint_hex(FILE *stream, char *x, uint32_t len) {
-  uint32_t i, nbytes, byte;
+void vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
+  uint32_t i, nbytes; 
+  uint8_t byte;
   nbytes = len/8;
   fprintf(stream, "[", len);
   for (i=0;i<nbytes;i++) {
-    byte = bit_unpack(&x, 8);
+    byte = (uint8_t) bit_unpack(&x, 8);
     fprintf(stream, "%02x ", byte);
   }
   if (len%8) {
-    byte = bit_unpack(&x, len%8);
+    byte = (uint8_t) bit_unpack(&x, len%8);
     fprintf(stream, "%02x ", byte);
   }
   fprintf(stream, "];\n");
@@ -293,7 +347,6 @@ void vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
 #endif
 }
 
-
 void vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT2_FUNCTION
   int i;
@@ -317,11 +370,35 @@ void vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #endif
 }
 
-void vec_div_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
-  int i;
+#define DIV_USE_VEC
+
+/* Complex division is conjugate multiplication + real division */
+void vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *z_imag, uint32_t len) {
+#ifdef DIV_USE_VEC
+  vec_prod_conj_ccc(x,y,z,len);
+  vec_abs_square_cf(y,y_mod,len);
+  vec_div_cfc(z,y_mod,z,z_real,z_imag,len);  
+#else 
+  int i; 
   for (i=0;i<len;i++) {
-    z[i] = x[i] / y[i];
+    z[i] = x[i] / y[i]; 
   }
+#endif
+}
+
+/* Complex division by float z=x/y */
+void vec_div_cfc(cf_t *x, float *y, cf_t *z, float *z_real, float *z_imag, uint32_t len) {
+#ifdef DIV_USE_VEC
+  vec_deinterleave_cf(x, z_real, z_imag, len);
+  vec_div_fff(z_real, y, z_real, len);
+  vec_div_fff(z_imag, y, z_imag, len);
+  vec_interleave_cf(z_real, z_imag, z, len);
+#else
+  int i; 
+  for (i=0;i<len;i++) {
+    z[i] = x[i] / y[i]; 
+  }
+#endif
 }
 
 void vec_div_fff(float *x, float *y, float *z, uint32_t len) {
@@ -341,6 +418,21 @@ cf_t vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len) {
   volk_32fc_x2_dot_prod_32fc(&res, x, y, len);
   return res; 
 #else 
+  uint32_t i;
+  cf_t res = 0;
+  for (i=0;i<len;i++) {
+    res += x[i]*y[i];
+  }
+  return res;
+#endif
+}
+
+cf_t vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len) {
+#ifdef HAVE_VOLK_DOTPROD_CFC_FUNCTION
+  cf_t res;
+  volk_32fc_32f_dot_prod_32fc(&res, x, y, len);
+  return res; 
+#else  
   uint32_t i;
   cf_t res = 0;
   for (i=0;i<len;i++) {
@@ -383,12 +475,7 @@ float vec_dot_prod_fff(float *x, float *y, uint32_t len) {
 
 
 float vec_avg_power_cf(cf_t *x, uint32_t len) {
-  int j;
-  float power = 0;
-  for (j=0;j<len;j++) {
-    power += crealf(x[j]*conjf(x[j]));
-  }
-  return power / len;
+  return crealf(vec_dot_prod_conj_ccc(x,x,len)) / len;
 }
 
 void vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
@@ -399,10 +486,19 @@ void vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
   }
 #else
   volk_32fc_magnitude_32f(abs,x,len);
-
 #endif
-
 }
+void vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len) {
+#ifndef HAVE_VOLK_MAG_SQUARE_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    abs_square[i] = crealf(x[i])*crealf(x[i])+cimagf(x[i]*cimagf(x[i]));
+  }
+#else
+  volk_32fc_magnitude_squared_32f(abs_square,x,len);
+#endif
+}
+
 
 void vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
 #ifndef HAVE_VOLK_ATAN_FUNCTION
@@ -460,7 +556,7 @@ uint32_t vec_max_abs_ci(cf_t *x, uint32_t len) {
 #endif
 }
 
-void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, float clip, uint32_t len) {
+void vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len) {
   int i;
   int tmp;
   for (i=0;i<len;i++) {
@@ -469,7 +565,7 @@ void vec_quant_fuc(float *in, unsigned char *out, float gain, float offset, floa
       tmp = 0;
     if (tmp > clip)
       tmp = clip;
-    out[i] = (unsigned char) tmp;
+    out[i] = (uint8_t) tmp;
   }
 
 }

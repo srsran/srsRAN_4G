@@ -40,7 +40,7 @@ lte_cell_t cell = {
   CPNORM        // cyclic prefix
 };
 
-char *output_matlab = NULL;
+uint8_t *output_matlab = NULL;
 
 void usage(char *prog) {
   printf("Usage: %s [recov]\n", prog);

@@ -53,7 +53,6 @@ typedef enum LIBLTE_API {
 /* PDCCH object */
 typedef struct LIBLTE_API {
   lte_cell_t cell;
-  uint32_t e_bits;
   uint32_t nof_regs;
   uint32_t nof_cce;
   uint32_t max_bits;
@@ -65,7 +64,8 @@ typedef struct LIBLTE_API {
   cf_t *pdcch_symbols[MAX_PORTS];
   cf_t *pdcch_x[MAX_PORTS];
   cf_t *pdcch_d;
-  char *pdcch_e;
+  uint8_t *pdcch_e;
+  float pdcch_rm_f[3 * (DCI_MAX_BITS + 16)];
   float *pdcch_llr;
 
   /* tx & rx objects */
@@ -74,6 +74,8 @@ typedef struct LIBLTE_API {
   sequence_t seq_pdcch[NSUBFRAMES_X_FRAME];
   viterbi_t decoder;
   crc_t crc;
+  precoding_t precoding; 
+
 } pdcch_t;
 
 LIBLTE_API int pdcch_init(pdcch_t *q, 
@@ -96,13 +98,14 @@ LIBLTE_API int pdcch_encode(pdcch_t *q,
 LIBLTE_API int pdcch_extract_llr(pdcch_t *q, 
                                  cf_t *sf_symbols, 
                                  cf_t *ce[MAX_PORTS],
-                                 dci_location_t location,
+                                 float noise_estimate, 
                                  uint32_t nsubframe, 
                                  uint32_t cfi);
 
 /* Decoding functions: Try to decode a DCI message after calling pdcch_extract_llr */
 LIBLTE_API int pdcch_decode_msg(pdcch_t *q, 
                                 dci_msg_t *msg, 
+                                dci_location_t *location,
                                 dci_format_t format,
                                 uint16_t *crc_rem);
 

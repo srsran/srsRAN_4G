@@ -49,8 +49,11 @@
 const lte_mod_t modulations[4] =
     { LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64 };
     
-    
+//#define DEBUG_IDX
 
+#ifdef DEBUG_IDX    
+cf_t *offset_original=NULL;
+#endif
 
 int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
     uint32_t nsubframe, bool put) {
@@ -62,6 +65,10 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
   INFO("%s %d RE from %d PRB\n", put ? "Putting" : "Getting",
       prb_alloc->re_sf[nsubframe], prb_alloc->slot[0].nof_prb);
 
+#ifdef DEBUG_IDX    
+  offset_original = input; 
+#endif
+  
   if (q->cell.nof_ports == 1) {
     nof_refs = 2;
   } else {
@@ -70,72 +77,79 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
 
   for (s = 0; s < 2; s++) {
     for (l = 0; l < CP_NSYMB(q->cell.cp); l++) {
-      for (n = 0; n < prb_alloc->slot[s].nof_prb; n++) {
-        if (s == 0) {
-          lstart = prb_alloc->lstart;
-        } else {
-          lstart = 0;
-        }
-        lend = CP_NSYMB(q->cell.cp);
-        is_pbch = is_sss = false;
+      for (n = 0; n < q->cell.nof_prb; n++) {
 
-        // Skip PSS/SSS signals
-        if (s == 0 && (nsubframe == 0 || nsubframe == 5)) {
-          if (prb_alloc->slot[s].prb_idx[n] >= q->cell.nof_prb / 2 - 3
-              && prb_alloc->slot[s].prb_idx[n] <= q->cell.nof_prb / 2 + 3) {
-            lend = CP_NSYMB(q->cell.cp) - 2;
-            is_sss = true;
-          }
-        }
-        // Skip PBCH
-        if (s == 1 && nsubframe == 0) {
-          if (prb_alloc->slot[s].prb_idx[n] >= q->cell.nof_prb / 2 - 3
-              && prb_alloc->slot[s].prb_idx[n] <= q->cell.nof_prb / 2 + 3) {
-            lstart = 4;
-            is_pbch = true;
-          }
-        }
-        lp = l + s * CP_NSYMB(q->cell.cp);
-        if (put) {
-          out_ptr = &output[(lp * q->cell.nof_prb + prb_alloc->slot[s].prb_idx[n])
-              * RE_X_RB];
-        } else {
-          in_ptr = &input[(lp * q->cell.nof_prb + prb_alloc->slot[s].prb_idx[n])
-              * RE_X_RB];
-        }
-        if (l >= lstart && l < lend) {
-          if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-            if (nof_refs == 2 && l != 0) {
-              offset = q->cell.id % 3 + 3;
-            } else {
-              offset = q->cell.id % 3;
-            }
-            prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs, put);
+        // If this PRB is assigned
+        if (prb_alloc->slot[s].prb_idx[n]) {
+          if (s == 0) {
+            lstart = prb_alloc->lstart;
           } else {
-            prb_cp(&in_ptr, &out_ptr, 1);
+            lstart = 0;
           }
-        }
-        if ((q->cell.nof_prb % 2) && ((is_pbch && l < lstart) || (is_sss && l >= lend))) {
-          if (prb_alloc->slot[s].prb_idx[n] == q->cell.nof_prb / 2 - 3) {
-            if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
-            } else {
-              prb_cp_half(&in_ptr, &out_ptr, 1);
-            }
-          } else if (prb_alloc->slot[s].prb_idx[n] == q->cell.nof_prb / 2 + 3) {
-            if (put) {
-              out_ptr += 6;
-            } else {
-              in_ptr += 6;
-            }
-            if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
-            } else {
-              prb_cp_half(&in_ptr, &out_ptr, 1);
+          lend = CP_NSYMB(q->cell.cp);
+          is_pbch = is_sss = false;
+
+          // Skip PSS/SSS signals
+          if (s == 0 && (nsubframe == 0 || nsubframe == 5)) {
+            if (n >= q->cell.nof_prb / 2 - 3
+                && n < q->cell.nof_prb / 2 + 3) {
+              lend = CP_NSYMB(q->cell.cp) - 2;
+              is_sss = true;
             }
           }
+          // Skip PBCH
+          if (s == 1 && nsubframe == 0) {
+            if (n >= q->cell.nof_prb / 2 - 3
+                && n < q->cell.nof_prb / 2 + 3) {
+              lstart = 4;
+              is_pbch = true;
+            }
+          }
+          lp = l + s * CP_NSYMB(q->cell.cp);
+          if (put) {
+            out_ptr = &output[(lp * q->cell.nof_prb + n)
+                * RE_X_RB];
+          } else {
+            in_ptr = &input[(lp * q->cell.nof_prb + n)
+                * RE_X_RB];
+          }
+          // This is a symbol in a normal PRB with or without references
+          if (l >= lstart && l < lend) {
+            if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+              if (nof_refs == 2 && l == 0) {
+                offset = q->cell.id % 3 + 3;
+              } else {
+                offset = q->cell.id % 3;
+              }
+              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs, put);
+            } else {
+              prb_cp(&in_ptr, &out_ptr, 1);
+            }
+          }
+          // This is a symbol in a PRB with PBCH or Synch signals (SS). 
+          // If the number or total PRB is odd, half of the the PBCH or SS will fall into the symbol
+          if ((q->cell.nof_prb % 2) && ((is_pbch && l < lstart) || (is_sss && l >= lend))) {
+            if (n == q->cell.nof_prb / 2 - 3) {
+              if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+                prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
+              } else {
+                prb_cp_half(&in_ptr, &out_ptr, 1);
+              }
+            } else if (n == q->cell.nof_prb / 2 + 3) {
+              if (put) {
+                out_ptr += 6;
+              } else {
+                in_ptr += 6;
+              }
+              if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+                prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
+              } else {
+                prb_cp_half(&in_ptr, &out_ptr, 1);
+              }
+            }
+          }
         }
-      }
+      }      
     }
   }
 
@@ -183,11 +197,14 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     ret = LIBLTE_ERROR;
     
     q->cell = cell;
-    q->average_nof_iterations_n = 0; 
     q->max_symbols = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
 
     INFO("Init PDSCH: %d ports %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
         q->cell.nof_prb, q->max_symbols);
+
+    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+      fprintf(stderr, "Error initializing precoding\n");
+    }
 
     for (i = 0; i < 4; i++) {
       if (modem_table_lte(&q->mod[i], modulations[i], true)) {
@@ -214,7 +231,7 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     }
 
     // Allocate floats for reception (LLRs)
-    q->cb_in = malloc(sizeof(char) * MAX_LONG_CB);
+    q->cb_in = malloc(sizeof(uint8_t) * MAX_LONG_CB);
     if (!q->cb_in) {
       goto clean;
     }
@@ -295,6 +312,9 @@ void pdsch_free(pdsch_t *q) {
   }
   tdec_free(&q->decoder);
   tcod_free(&q->encoder);
+  precoding_free(&q->precoding);
+
+  bzero(q, sizeof(pdsch_t));
 
 }
 
@@ -369,7 +389,7 @@ int pdsch_harq_init(pdsch_harq_t *p, pdsch_t *pdsch) {
         return LIBLTE_ERROR;
       }
       
-      p->pdsch_w_buff_c = malloc(sizeof(char*) * p->max_cb);
+      p->pdsch_w_buff_c = malloc(sizeof(uint8_t*) * p->max_cb);
       if (!p->pdsch_w_buff_c) {
         perror("malloc");
         return LIBLTE_ERROR;
@@ -379,12 +399,12 @@ int pdsch_harq_init(pdsch_harq_t *p, pdsch_t *pdsch) {
       // FIXME: Use HARQ buffer limitation based on UE category
       p->w_buff_size = p->cell.nof_prb * MAX_PDSCH_RE(p->cell.cp) * 6 * 2 / p->max_cb;
       for (i=0;i<p->max_cb;i++) {
-        p->pdsch_w_buff_f[i] = malloc(sizeof(float) * p->w_buff_size);
+        p->pdsch_w_buff_f[i] = vec_malloc(sizeof(float) * p->w_buff_size);
         if (!p->pdsch_w_buff_f[i]) {
           perror("malloc");
           return LIBLTE_ERROR;
         }
-        p->pdsch_w_buff_c[i] = malloc(sizeof(char) * p->w_buff_size);
+        p->pdsch_w_buff_c[i] = vec_malloc(sizeof(uint8_t) * p->w_buff_size);
         if (!p->pdsch_w_buff_c[i]) {
           perror("malloc");
           return LIBLTE_ERROR;
@@ -417,6 +437,27 @@ void pdsch_harq_free(pdsch_harq_t *p) {
     }
     bzero(p, sizeof(pdsch_harq_t));
   }
+}
+
+void pdsch_harq_reset(pdsch_harq_t *p) {
+  int i; 
+  if (p->pdsch_w_buff_f) {
+    for (i=0;i<p->max_cb;i++) {
+      if (p->pdsch_w_buff_f[i]) {
+        bzero(p->pdsch_w_buff_f[i], sizeof(float) * p->w_buff_size);
+      }
+    }
+  }
+  if (p->pdsch_w_buff_c) {
+    for (i=0;i<p->max_cb;i++) {
+      if (p->pdsch_w_buff_c[i]) {
+        bzero(p->pdsch_w_buff_c[i], sizeof(uint8_t) * p->w_buff_size);
+      }
+    }
+  }
+  bzero(&p->mcs, sizeof(ra_mcs_t));
+  bzero(&p->cb_segm, sizeof(struct cb_segm));
+  bzero(&p->prb_alloc, sizeof(ra_prb_t));
 }
 
 int pdsch_harq_setup(pdsch_harq_t *p, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
@@ -471,11 +512,11 @@ uint32_t pdsch_last_noi(pdsch_t *q) {
 /* Decode a transport block according to 36.212 5.3.2
  *
  */
-int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e, 
+int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e, 
                     pdsch_harq_t *harq_process, uint32_t rv_idx) 
 {
-  char parity[24];
-  char *p_parity = parity;
+  uint8_t parity[24];
+  uint8_t *p_parity = parity;
   uint32_t par_rx, par_tx;
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
@@ -525,17 +566,16 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
         fprintf(stderr, "Error in rate matching\n");
         return LIBLTE_ERROR;
       }
-
+      
       /* Turbo Decoding with CRC-based early stopping */
       q->nof_iterations = 0; 
       bool early_stop = false;
       uint32_t len_crc; 
-      char *cb_in_ptr; 
+      uint8_t *cb_in_ptr; 
       crc_t *crc_ptr; 
       tdec_reset(&q->decoder, cb_len);
             
       do {
-        
         tdec_iteration(&q->decoder, (float*) q->cb_out, cb_len); 
         q->nof_iterations++;
         
@@ -545,7 +585,7 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
           crc_ptr = &q->crc_cb; 
         } else {
           len_crc = tbs+24; 
-          bzero(q->cb_in, F*sizeof(char));
+          bzero(q->cb_in, F*sizeof(uint8_t));
           cb_in_ptr = &q->cb_in[F];
           crc_ptr = &q->crc_tb; 
         }
@@ -558,22 +598,19 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
         }
         
       } while (q->nof_iterations < TDEC_MAX_ITERATIONS && !early_stop);
-            
-      q->average_nof_iterations = VEC_CMA((float) q->nof_iterations, 
-                                             q->average_nof_iterations, 
-                                             q->average_nof_iterations_n);
-      q->average_nof_iterations_n++;
+      q->average_nof_iterations = VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
+      
 
       /* Copy data to another buffer, removing the Codeblock CRC */
       if (i < harq_process->cb_segm.C - 1) {
-        memcpy(&data[wp], &q->cb_in[F], (rlen - F) * sizeof(char));
+        memcpy(&data[wp], &q->cb_in[F], (rlen - F) * sizeof(uint8_t));
       } else {
         DEBUG("Last CB, appending parity: %d to %d from %d and 24 from %d\n",
             rlen - F - 24, wp, F, rlen - 24);
         
         /* Append Transport Block parity bits to the last CB */
-        memcpy(&data[wp], &q->cb_in[F], (rlen - F - 24) * sizeof(char));
-        memcpy(parity, &q->cb_in[rlen - 24], 24 * sizeof(char));
+        memcpy(&data[wp], &q->cb_in[F], (rlen - F - 24) * sizeof(uint8_t));
+        memcpy(parity, &q->cb_in[rlen - 24], 24 * sizeof(uint8_t));
       }
 
       /* Set read/write pointers */
@@ -607,7 +644,7 @@ int pdsch_decode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
 
 /** Decodes the PDSCH from the received symbols
  */
-int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data, uint32_t subframe, 
+int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, uint8_t *data, uint32_t subframe, 
                  pdsch_harq_t *harq_process, uint32_t rv_idx) 
 {
 
@@ -644,7 +681,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data, 
       fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
       return LIBLTE_ERROR;
     }
-
+    
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
       n = pdsch_get(q, ce[i], q->ce[i], &harq_process->prb_alloc, subframe);
@@ -653,15 +690,15 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data, 
         return LIBLTE_ERROR;
       }
     }
-      
+
     /* TODO: only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      predecoding_single_zf(q->pdsch_symbols[0], q->ce[0], q->pdsch_d,
-          nof_symbols);
+      predecoding_single(&q->precoding, q->pdsch_symbols[0], q->ce[0], q->pdsch_d,
+          nof_symbols, noise_estimate);
     } else {
-      predecoding_diversity_zf(q->pdsch_symbols[0], q->ce, x, q->cell.nof_ports,
-          nof_symbols);
+      predecoding_diversity(&q->precoding, q->pdsch_symbols[0], q->ce, x, q->cell.nof_ports,
+          nof_symbols, noise_estimate);
       layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
           nof_symbols / q->cell.nof_ports);
     }
@@ -670,26 +707,13 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data, 
      * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
      * thus we don't need tot set it in the LLRs normalization
      */
-    demod_soft_sigma_set(&q->demod, 2.0 / q->mod[harq_process->mcs.mod - 1].nbits_x_symbol);
+    demod_soft_sigma_set(&q->demod, sqrt(q->mod[harq_process->mcs.mod - 1].nbits_x_symbol/2));
     demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod - 1]);
     demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, nof_symbols);
- 
-    /*
-    for (int j=0;j<nof_symbols;j++) {
-      if (isnan(crealf(q->pdsch_d[j])) || isnan(cimagf(q->pdsch_d[j]))) {
-        printf("\nerror in d[%d]=%f+%f symbols:%f+%f ce0:%f+%f ce1:%f+%f\n",j,
-               crealf(q->pdsch_d[j]), cimagf(q->pdsch_d[j]), 
-               crealf(q->pdsch_symbols[0][j]), cimagf(q->pdsch_symbols[0][j]), 
-               crealf(q->ce[0][j]), cimagf(q->ce[0][j]), 
-               crealf(q->ce[1][j]), cimagf(q->ce[1][j])
-              );
-      }
-    }
-    */
 
     /* descramble */
     scrambling_f_offset(&q->seq_pdsch[subframe], q->pdsch_e, 0, nof_bits_e);
-    
+
     return pdsch_decode_tb(q, data, nof_bits, nof_bits_e, harq_process, rv_idx);
   } else {
     return LIBLTE_ERROR_INVALID_INPUTS;
@@ -699,15 +723,15 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], char *data, 
 /* Encode a transport block according to 36.212 5.3.2
  *
  */
-int pdsch_encode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e, 
+int pdsch_encode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e, 
                     pdsch_harq_t *harq_process, uint32_t rv_idx) 
 {
-  char parity[24];
-  char *p_parity = parity;
+  uint8_t parity[24];
+  uint8_t *p_parity = parity;
   uint32_t par;
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
-  char *e_bits = q->pdsch_e;
+  uint8_t *e_bits = q->pdsch_e;
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
   
   if (q             != NULL &&
@@ -769,13 +793,13 @@ int pdsch_encode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
         if (rv_idx == 0) {
           /* Copy data to another buffer, making space for the Codeblock CRC */
           if (i < harq_process->cb_segm.C - 1) {
-            memcpy(&q->cb_in[F], &data[rp], (rlen - F) * sizeof(char));
+            memcpy(&q->cb_in[F], &data[rp], (rlen - F) * sizeof(uint8_t));
           } else {
             INFO("Last CB, appending parity: %d from %d and 24 to %d\n",
                 rlen - F - 24, rp, rlen - 24);
             /* Append Transport Block parity bits to the last CB */
-            memcpy(&q->cb_in[F], &data[rp], (rlen - F - 24) * sizeof(char));
-            memcpy(&q->cb_in[rlen - 24], parity, 24 * sizeof(char));
+            memcpy(&q->cb_in[F], &data[rp], (rlen - F - 24) * sizeof(uint8_t));
+            memcpy(&q->cb_in[rlen - 24], parity, 24 * sizeof(uint8_t));
           }        
           if (harq_process->cb_segm.C > 1) {
             /* Attach Codeblock CRC */
@@ -786,12 +810,12 @@ int pdsch_encode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
             vec_fprint_b(stdout, q->cb_in, cb_len);
           }
           /* Turbo Encoding */
-          tcod_encode(&q->encoder, q->cb_in, (char*) q->cb_out, cb_len);
+          tcod_encode(&q->encoder, q->cb_in, (uint8_t*) q->cb_out, cb_len);
         }
         
         /* Rate matching */
         if (rm_turbo_tx(harq_process->pdsch_w_buff_c[i], harq_process->w_buff_size, 
-                    (char*) q->cb_out, 3 * cb_len + 12,
+                    (uint8_t*) q->cb_out, 3 * cb_len + 12,
                     &e_bits[wp], n_e, rv_idx))
         {
           fprintf(stderr, "Error in rate matching\n");
@@ -815,7 +839,7 @@ int pdsch_encode_tb(pdsch_t *q, char *data, uint32_t tbs, uint32_t nb_e,
 
 /** Converts the PDSCH data bits to symbols mapped to the slot ready for transmission
  */
-int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS], uint32_t subframe, 
+int pdsch_encode(pdsch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_t subframe, 
                  pdsch_harq_t *harq_process, uint32_t rv_idx) 
 {
   int i;
@@ -871,14 +895,14 @@ int pdsch_encode(pdsch_t *q, char *data, cf_t *sf_symbols[MAX_PORTS], uint32_t s
         return LIBLTE_ERROR;
       }
       
-      scrambling_b_offset(&q->seq_pdsch[subframe], (char*) q->pdsch_e, 0, nof_bits_e);
+      scrambling_b_offset(&q->seq_pdsch[subframe], (uint8_t*) q->pdsch_e, 0, nof_bits_e);
 
-      mod_modulate(&q->mod[harq_process->mcs.mod - 1], (char*) q->pdsch_e, q->pdsch_d, nof_bits_e);
+      mod_modulate(&q->mod[harq_process->mcs.mod - 1], (uint8_t*) q->pdsch_e, q->pdsch_d, nof_bits_e);
 
       /* TODO: only diversity supported */
       if (q->cell.nof_ports > 1) {
         layermap_diversity(q->pdsch_d, x, q->cell.nof_ports, nof_symbols);
-        precoding_diversity(x, q->pdsch_symbols, q->cell.nof_ports,
+        precoding_diversity(&q->precoding, x, q->pdsch_symbols, q->cell.nof_ports,
             nof_symbols / q->cell.nof_ports);
       } else {
         memcpy(q->pdsch_symbols[0], q->pdsch_d, nof_symbols * sizeof(cf_t));

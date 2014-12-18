@@ -41,11 +41,11 @@
 #include "liblte/config.h"
 
 
-LIBLTE_API int rm_turbo_tx(char *w_buff,
+LIBLTE_API int rm_turbo_tx(uint8_t *w_buff,
                            uint32_t buff_len, 
-                           char *input, 
+                           uint8_t *input, 
                            uint32_t in_len, 
-                           char *output,
+                           uint8_t *output,
                            uint32_t out_len, 
                            uint32_t rv_idx);
 
@@ -63,7 +63,7 @@ typedef struct LIBLTE_API {
   struct rm_turbo_init {
     int direction;
   } init;
-  void *input;  // input type may be char or float depending on hard
+  void *input;  // input type may be uint8_t or float depending on hard
   int in_len;
   struct rm_turbo_ctrl_in {
     int E;

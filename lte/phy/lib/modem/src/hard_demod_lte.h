@@ -35,17 +35,17 @@
 #define QAM64_THRESHOLD_3  6/sqrt(42)
 
 void hard_bpsk_demod(const cf_t* in, 
-                     char* out, 
+                     uint8_t* out, 
                      uint32_t N);
 
 void hard_qpsk_demod(const cf_t* in, 
-                     char* out, 
+                     uint8_t* out, 
                      uint32_t N);
 
 void hard_qam16_demod(const cf_t* in, 
-                                 char* out, 
+                                 uint8_t* out, 
                                  uint32_t N);
 
 void hard_qam64_demod(const cf_t* in, 
-                                 char* out, 
+                                 uint8_t* out, 
                                  uint32_t N);

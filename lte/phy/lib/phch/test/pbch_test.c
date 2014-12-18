@@ -30,6 +30,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "liblte/phy/phy.h"
 
@@ -37,7 +38,9 @@ lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 void usage(char *prog) {
@@ -74,11 +77,12 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   pbch_t pbch;
-  pbch_mib_t mib_tx, mib_rx;
+  uint8_t bch_payload_tx[BCH_PAYLOAD_LEN], bch_payload_rx[BCH_PAYLOAD_LEN];
   int i, j;
   cf_t *ce[MAX_PORTS];
   int nof_re;
   cf_t *slot1_symbols[MAX_PORTS];
+  uint32_t nof_rx_ports; 
 
   parse_args(argc,argv);
 
@@ -106,13 +110,12 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  mib_tx.nof_ports = cell.nof_ports;
-  mib_tx.nof_prb = 50;
-  mib_tx.phich_length = PHICH_EXT;
-  mib_tx.phich_resources = R_1_6;
-  mib_tx.sfn = 124;
+  srand(time(NULL));
+  for (i=0;i<BCH_PAYLOAD_LEN;i++) {
+    bch_payload_tx[i] = rand()%2;
+  }
 
-  pbch_encode(&pbch, &mib_tx, slot1_symbols);
+  pbch_encode(&pbch, bch_payload_tx, slot1_symbols);
 
   /* combine outputs */
   for (i=1;i<cell.nof_ports;i++) {
@@ -120,9 +123,9 @@ int main(int argc, char **argv) {
       slot1_symbols[0][j] += slot1_symbols[i][j];
     }
   }
-
+  
   pbch_decode_reset(&pbch);
-  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, &mib_rx)) {
+  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, 0, bch_payload_rx, &nof_rx_ports, NULL)) {
     printf("Error decoding\n");
     exit(-1);
   }
@@ -133,12 +136,17 @@ int main(int argc, char **argv) {
     free(ce[i]);
     free(slot1_symbols[i]);
   }
+  printf("Tx ports: %d - Rx ports: %d\n", cell.nof_ports, nof_rx_ports);
+  printf("Tx payload: ");
+  vec_fprint_hex(stdout, bch_payload_tx, BCH_PAYLOAD_LEN);
+  printf("Rx payload: ");
+  vec_fprint_hex(stdout, bch_payload_rx, BCH_PAYLOAD_LEN);
 
-  if (!memcmp(&mib_tx, &mib_rx, sizeof(pbch_mib_t))) {
+  if (nof_rx_ports == cell.nof_ports && !memcmp(bch_payload_rx, bch_payload_tx, sizeof(uint8_t) * BCH_PAYLOAD_LEN)) {
     printf("OK\n");
     exit(0);
   } else {
-    pbch_mib_fprint(stdout, &mib_rx, cell.id);
+    printf("Error\n");
     exit(-1);
   }
 }

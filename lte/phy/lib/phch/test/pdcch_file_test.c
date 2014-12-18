@@ -34,34 +34,36 @@
 #include "liblte/phy/phy.h"
 
 char *input_file_name = NULL;
-char *matlab_file_name = NULL;
 
+#define MAX_CANDIDATES 64
 
 lte_cell_t cell = {
   6,            // cell.cell.cell.nof_prb
   1,            // cell.cell.nof_ports
   0,            // cell.id
-  CPNORM        // cyclic prefix
+  CPNORM,       // cyclic prefix
+  R_1,          // PHICH resources      
+  PHICH_NORM    // PHICH length
 };
 
 uint32_t cfi = 2;
 int flen;
 uint16_t rnti = SIRNTI;
 int max_frames = 10;
-FILE *fmatlab = NULL;
 
+dci_format_t dci_format = Format1A;
 filesource_t fsrc;
 pdcch_t pdcch;
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 regs_t regs;
 lte_fft_t fft;
-chest_t chest;
+chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcfoe] -i input_file\n", prog);
-  printf("\t-o output matlab file name [Default Disabled]\n");
   printf("\t-c cell.id [Default %d]\n", cell.id);
   printf("\t-f cfi [Default %d]\n", cfi);
+  printf("\t-o DCI Format [Default %s]\n", dci_format_string(dci_format));
   printf("\t-r rnti [Default SI-RNTI]\n");
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
@@ -72,7 +74,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "irovfcenmp")) != -1) {
+  while ((opt = getopt(argc, argv, "irvofcenmp")) != -1) {
     switch(opt) {
     case 'i':
       input_file_name = argv[optind];
@@ -96,7 +98,11 @@ void parse_args(int argc, char **argv) {
       cell.nof_ports = atoi(argv[optind]);
       break;
     case 'o':
-      matlab_file_name = argv[optind];
+      dci_format = dci_format_from_string(argv[optind]);
+      if (dci_format == FormatError) {
+        fprintf(stderr, "Error unsupported format %s\n", argv[optind]);
+        exit(-1);
+      }
       break;
     case 'v':
       verbose++;
@@ -123,16 +129,6 @@ int base_init() {
     exit(-1);
   }
 
-  if (matlab_file_name) {
-    fmatlab = fopen(matlab_file_name, "w");
-    if (!fmatlab) {
-      perror("fopen");
-      return -1;
-    }
-  } else {
-    fmatlab = NULL;
-  }
-
   flen = 2 * (SLOT_LEN(lte_symbol_sz(cell.nof_prb)));
 
   input_buffer = malloc(flen * sizeof(cf_t));
@@ -141,21 +137,21 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+  fft_buffer = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<MAX_PORTS;i++) {
-    ce[i] = malloc(CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB * sizeof(cf_t));
+    ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
     }
   }
 
-  if (chest_init_LTEDL(&chest, cell)) {
+  if (chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -165,7 +161,7 @@ int base_init() {
     return -1;
   }
 
-  if (regs_init(&regs, R_1, PHICH_NORM, cell)) {
+  if (regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     return -1;
   }
@@ -187,9 +183,6 @@ void base_free() {
   int i;
 
   filesource_free(&fsrc);
-  if (fmatlab) {
-    fclose(fmatlab);
-  }
 
   free(input_buffer);
   free(fft_buffer);
@@ -198,7 +191,7 @@ void base_free() {
   for (i=0;i<MAX_PORTS;i++) {
     free(ce[i]);
   }
-  chest_free(&chest);
+  chest_dl_free(&chest);
   lte_fft_free(&fft);
 
   pdcch_free(&pdcch);
@@ -208,9 +201,9 @@ void base_free() {
 int main(int argc, char **argv) {
   ra_pdsch_t ra_dl;
   int i;
-  int nof_frames;
+  int frame_cnt;
   int ret;
-  dci_location_t locations[10];
+  dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations;
   dci_msg_t dci_msg; 
 
@@ -226,89 +219,72 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (rnti == SIRNTI) {
-    INFO("Initializing common search space for SI-RNTI\n",0);
-    nof_locations = pdcch_common_locations(&pdcch, locations, 10, cfi);
-  } else {
-    // For ue-specific, generate locations for subframe 5
-    INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
-    nof_locations = pdcch_ue_locations(&pdcch, locations, 10, 5, cfi, rnti); 
-  }
   ret = -1;
-  nof_frames = 0;
+  frame_cnt = 0;
   do {
     filesource_read(&fsrc, input_buffer, flen);
-    if (nof_frames == 5) {
-      INFO("Reading %d samples sub-frame %d\n", flen, nof_frames);
 
-      lte_fft_run_slot(&fft, input_buffer, fft_buffer);
+    INFO("Reading %d samples sub-frame %d\n", flen, frame_cnt);
 
-      if (fmatlab) {
-        fprintf(fmatlab, "infft%d=", nof_frames);
-        vec_fprint_c(fmatlab, input_buffer, flen);
-        fprintf(fmatlab, ";\n");
+    lte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
-        fprintf(fmatlab, "outfft%d=", nof_frames);
-        vec_sc_prod_cfc(fft_buffer, 1000.0, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
-        vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
-        fprintf(fmatlab, ";\n");
-        vec_sc_prod_cfc(fft_buffer, 0.001, fft_buffer,   CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
+    /* Get channel estimates for each port */
+    chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);
+    
+    uint16_t crc_rem = 0;
+    if (pdcch_extract_llr(&pdcch, fft_buffer, 
+                          ce, chest_dl_get_noise_estimate(&chest), 
+                          frame_cnt %10, cfi)) {
+      fprintf(stderr, "Error extracting LLRs\n");
+      return -1;
+    }
+    if (rnti == SIRNTI) {
+      INFO("Initializing common search space for SI-RNTI\n",0);
+      nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
+    } else {
+      INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
+      nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, frame_cnt %10, cfi, rnti); 
+    }
+
+    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
+      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
+        fprintf(stderr, "Error decoding DCI msg\n");
+        return -1;
       }
-
-      /* Get channel estimates for each port */
-      for (i=0;i<cell.nof_ports;i++) {
-        chest_ce_slot_port(&chest, fft_buffer, ce[i], 2*nof_frames, i);
-        if (fmatlab) {
-          chest_fprint(&chest, fmatlab, 2*nof_frames, i);
-        }
+    }
+    
+    if (crc_rem == rnti) {
+      dci_msg_type_t type;
+      if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti, 1234)) {
+        fprintf(stderr, "Can't get DCI message type\n");
+        exit(-1);
       }
-      
-      uint16_t crc_rem = 0;
-      for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-        if (pdcch_extract_llr(&pdcch, fft_buffer, ce, locations[i], nof_frames, cfi)) {
-          fprintf(stderr, "Error extracting LLRs\n");
-          return -1;
-        }
-        if (pdcch_decode_msg(&pdcch, &dci_msg, Format1A, &crc_rem)) {
-          fprintf(stderr, "Error decoding DCI msg\n");
-          return -1;
-        }
-      }
-      
-      if (crc_rem == rnti) {
-        dci_msg_type_t type;
-        if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti, 1234)) {
-          fprintf(stderr, "Can't get DCI message type\n");
-          exit(-1);
-        }
-        printf("MSG %d: ",i);
-        dci_msg_type_fprint(stdout, type);
-        switch(type.type) {
-        case PDSCH_SCHED:
-          bzero(&ra_dl, sizeof(ra_pdsch_t));
-          if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SIRNTI)) {
-            fprintf(stderr, "Can't unpack PDSCH message\n");
-          } else {
-            ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
-            if (ra_dl.alloc_type == alloc_type2 && ra_dl.type2_alloc.mode == t2_loc
-                && ra_dl.type2_alloc.riv == 11 && ra_dl.rv_idx == 0
-                && ra_dl.harq_process == 0 && ra_dl.mcs_idx == 2) {
-              printf("This is the file signal.1.92M.amar.dat\n");
-              ret = 0;
-            }
+      printf("MSG %d: ",i);
+      dci_msg_type_fprint(stdout, type);
+      switch(type.type) {
+      case PDSCH_SCHED:
+        bzero(&ra_dl, sizeof(ra_pdsch_t));
+        if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SIRNTI)) {
+          fprintf(stderr, "Can't unpack PDSCH message\n");
+        } else {
+          ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
+          if (ra_dl.alloc_type == alloc_type2 && ra_dl.type2_alloc.mode == t2_loc
+              && ra_dl.type2_alloc.riv == 11 && ra_dl.rv_idx == 0
+              && ra_dl.harq_process == 0 && ra_dl.mcs_idx == 2) {
+            printf("This is the file signal.1.92M.amar.dat\n");
+            ret = 0;
           }
-          break;
-        default:
-          fprintf(stderr, "Unsupported message type\n");
-          break;
         }
+        break;
+      default:
+        fprintf(stderr, "Unsupported message type\n");
+        break;
       }
-
 
     }
 
-    nof_frames++;
-  } while (nof_frames <= max_frames);
+    frame_cnt++;
+  } while (frame_cnt <= max_frames);
 
   base_free();
   exit(ret);
