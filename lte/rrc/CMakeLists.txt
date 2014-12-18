@@ -27,11 +27,6 @@ INSTALL(DIRECTORY include/
         FILES_MATCHING PATTERN "*.h"
         PATTERN ".svn" EXCLUDE
 )
-INSTALL(DIRECTORY asn/
-        DESTINATION "${INCLUDE_DIR}"
-        FILES_MATCHING PATTERN "*.h"
-        PATTERN ".svn" EXCLUDE
-)
 
 ########################################################################
 # Add headers to cmake project (useful for IDEs)
@@ -50,5 +45,4 @@ ADD_CUSTOM_TARGET (add_lte_rrc_headers SOURCES ${HEADERS_ALL})
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(asn)
 add_subdirectory(lib)

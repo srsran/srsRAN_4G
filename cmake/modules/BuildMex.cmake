@@ -42,7 +42,7 @@ FUNCTION(BuildMex)
       COMPILE_FLAGS "-fvisibility=default ${MATLAB_MEX_CFLAGS}"
       )
     target_link_libraries(${BuildMex_MEXNAME}-mat ${BuildMex_LIBRARIES} ${MATLAB_MEX_LIBRARY})
-    install(TARGETS ${BuildMex_MEXNAME}-mat DESTINATION mex) 
+    install(TARGETS ${BuildMex_MEXNAME}-mat DESTINATION "${MEX_DIR}/liblte/") 
   endif(MATLAB_FOUND)
   if (OCTAVE_FOUND) 
     add_library(${BuildMex_MEXNAME}-oct SHARED ${BuildMex_SOURCES})
@@ -54,7 +54,7 @@ FUNCTION(BuildMex)
       COMPILE_FLAGS "-fvisibility=default ${OCTAVE_MEX_CFLAGS} -DUNDEF_BOOL"
       )
     target_link_libraries(${BuildMex_MEXNAME}-oct ${BuildMex_LIBRARIES} ${OCTAVE_LIBRARIES})
-    install(TARGETS ${BuildMex_MEXNAME}-oct DESTINATION mex) 
+    install(TARGETS ${BuildMex_MEXNAME}-oct DESTINATION "${MEX_DIR}/liblte/") 
   endif (OCTAVE_FOUND)
 ENDFUNCTION(BuildMex)
 

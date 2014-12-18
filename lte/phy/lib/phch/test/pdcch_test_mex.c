@@ -133,7 +133,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray; 
-    mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
+    nof_re = mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
     for (i=0;i<cell.nof_ports;i++) {
       for (int j=0;j<nof_re;j++) {
         ce[i][j] = *cearray;
