@@ -118,7 +118,7 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
     //float f[3]={0.15, 0.7, 0.15};
     //chest_dl_set_filter_freq(q, f, 3);
 
-    float f[5]={0.05, 0.15, 0.6, 0.15, 0.05};
+    float f[5]={0.02, 0.18, 0.6, 0.18, 0.02};
     chest_dl_set_filter_freq(q, f, 5);
     
     float t[2]={0.1, 0.9};

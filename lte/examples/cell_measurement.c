@@ -49,7 +49,7 @@ float gain_offset = B210_DEFAULT_GAIN_CORREC;
 cell_search_cfg_t cell_detect_config = {
   5000, // maximum number of frames to receive for MIB decoding
   50, // maximum number of frames to receive for PSS correlation 
-  9.0 // early-stops cell detection if mean PSR is above this value 
+  16.0 // early-stops cell detection if mean PSR is above this value 
 };
 
 /**********************************************************************

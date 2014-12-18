@@ -186,6 +186,7 @@ int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   uhd::rx_metadata_t md;
+  uint32_t nof_packets = 0; 
   if (blocking) {
     int n = 0, p;
     complex_t *data_c = (complex_t *) data;
@@ -200,7 +201,10 @@ int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
         std::cout << "\nError code: " << md.to_pp_string() << "\n\n";
       }
 #endif
-    } while (n < nsamples && md.error_code == uhd::rx_metadata_t::ERROR_CODE_NONE);
+      nof_packets++;
+    } while (n < nsamples                                              && 
+             md.error_code == uhd::rx_metadata_t::ERROR_CODE_NONE      && 
+             nof_packets < 10);
     return nsamples;
   } else {
     return handler->rx_stream->recv(data, nsamples, md, 0.0);
