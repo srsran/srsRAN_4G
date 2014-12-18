@@ -71,22 +71,6 @@ The SIB1 message is decoded and shown on the console, for example:
 Decoded SIB1 Message: [40 48 50 03 02 0b 14 4a 30 18 28 20 90 81 84 79 a0 00 ];
 ```
 
-Then, you can use any ASN.1 SIB decoder to read the message. This site http://www.marben-products.com/asn.1/services/decoder-asn1-lte.html is a good example. 
-
-
-If you don't have a pair of USRP, you can also test the demo by writing the samples to a file and then reading them: 
-
-From the eNodeB, type
-
-```
-lte/phy/examples/pdsch_enodeb -o [output_file] -c [cell_id] [-h for more commands]
-```
-
-From the UE, type 
-```
-lte/phy/examples/pdsch_ue -i [input_file] -c [cell_id] [-h for more commands]
-```
-
 
 * Cell Search Example
 
