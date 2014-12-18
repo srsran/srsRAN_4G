@@ -115,10 +115,10 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
     }
     
     /* Set default time/freq filters */
-    //float f[3]={0.15, 0.7, 0.15};
+    //float f[3]={0.1, 0.8, 0.1};
     //chest_dl_set_filter_freq(q, f, 3);
 
-    float f[5]={0.02, 0.18, 0.6, 0.18, 0.02};
+    float f[5]={0.05, 0.15, 0.6, 0.15, 0.05};
     chest_dl_set_filter_freq(q, f, 5);
     
     float t[2]={0.1, 0.9};
