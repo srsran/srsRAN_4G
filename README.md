@@ -72,18 +72,6 @@ Decoded SIB1 Message: [40 48 50 03 02 0b 14 4a 30 18 28 20 90 81 84 79 a0 00 ];
 ```
 
 
-* Cell Search Example
-
-This program uses any hardware supported by the UHD driver to scan an LTE band for active cells. See http://niviuk.free.fr/lte_band.php for a list of available bands. The program first obtains a power spectral density of the entire band. For all frequencies with an RSSI higher than a threshold, it tries to find the LTE Primary Synchronization Signal (PSS) and then identifies the CELL ID using the Secondary Synchronization Signal (SSS). Finally, it estimates the Carrier Frequency Offset (CFO) and Sampling Frequency Offset (SFO) and decodes the Master Information Block (MIB) from the PBCH. 
-
-For instance, the command:
-
-``` lte/phy/examples/scan_mib -b 3 ```
-
-
-Scans the LTE band 3 (1805 to 1880 MHz). Note that you need a hardware supporting these frequencies (e.g. SBX daughterboard for USRP). For more command arguments, type ``` examples/mib_scan_usrp -h ```
-
-
 
 Support
 ========
