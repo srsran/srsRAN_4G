@@ -301,8 +301,8 @@ float chest_dl_rssi(chest_dl_t *q, cf_t *input, uint32_t port_id) {
   float rssi = 0;
   uint32_t nsymbols = refsignal_cs_nof_symbols(port_id);   
   for (l=0;l<nsymbols;l++) {
-    cf_t *tmp = &input[refsignal_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB];
-    rssi += vec_dot_prod_conj_ccc(tmp,tmp,q->cell.nof_prb * RE_X_RB);    
+    cf_t *tmp = &input[refsignal_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB];
+    rssi += vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * RE_X_RB);    
   }    
   return rssi/nsymbols; 
 }

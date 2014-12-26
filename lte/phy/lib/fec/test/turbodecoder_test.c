@@ -37,7 +37,7 @@
 #include <time.h>
 #include "liblte/phy/phy.h"
 
-#include "turbocoder_test.h"
+#include "turbodecoder_test.h"
 
 typedef _Complex float cf_t;
 
@@ -46,7 +46,7 @@ float ebno_db = 100.0;
 uint32_t seed = 0;
 int K = -1;
 
-#define MAX_ITERATIONS	4
+#define MAX_ITERATIONS  4
 int nof_iterations = MAX_ITERATIONS;
 int test_known_data = 0;
 int test_errors = 0;

@@ -183,6 +183,8 @@ LIBLTE_API uint32_t lte_voffset(uint32_t symbol_id,
 
 LIBLTE_API int lte_cb_size(uint32_t index);
 
+LIBLTE_API bool lte_cb_size_isvalid(uint32_t size); 
+
 LIBLTE_API char *lte_cp_string(lte_cp_t cp); 
 
 LIBLTE_API char *lte_mod_string(lte_mod_t mod);

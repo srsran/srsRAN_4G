@@ -83,7 +83,7 @@ LIBLTE_API void tdec_decision(tdec_t * h,
                               uint8_t *output, 
                               uint32_t long_cb);
 
-LIBLTE_API void tdec_run_all(tdec_t * h, 
+LIBLTE_API int tdec_run_all(tdec_t * h, 
                              llr_t * input, 
                              uint8_t *output,
                              uint32_t nof_iterations, 

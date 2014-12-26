@@ -204,6 +204,7 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
 
     if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
+      goto clean; 
     }
 
     for (i = 0; i < 4; i++) {
@@ -212,9 +213,11 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
       }
     }
     if (crc_init(&q->crc_tb, LTE_CRC24A, 24)) {
+      fprintf(stderr, "Error initiating CRC\n");
       goto clean;
     }
     if (crc_init(&q->crc_cb, LTE_CRC24B, 24)) {
+      fprintf(stderr, "Error initiating CRC\n");
       goto clean;
     }
 
@@ -224,9 +227,11 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     q->rnti_is_set = false; 
 
     if (tcod_init(&q->encoder, MAX_LONG_CB)) {
+      fprintf(stderr, "Error initiating Turbo Coder\n");
       goto clean;
     }
     if (tdec_init(&q->decoder, MAX_LONG_CB)) {
+      fprintf(stderr, "Error initiating Turbo Decoder\n");
       goto clean;
     }
 
@@ -397,7 +402,7 @@ int pdsch_harq_init(pdsch_harq_t *p, pdsch_t *pdsch) {
       
       // We add 50 % larger buffer to the maximum expected bits per subframe
       // FIXME: Use HARQ buffer limitation based on UE category
-      p->w_buff_size = p->cell.nof_prb * MAX_PDSCH_RE(p->cell.cp) * 6 * 2 / p->max_cb;
+      p->w_buff_size = p->cell.nof_prb * MAX_PDSCH_RE(p->cell.cp) * 6 * 2;
       for (i=0;i<p->max_cb;i++) {
         p->pdsch_w_buff_f[i] = vec_malloc(sizeof(float) * p->w_buff_size);
         if (!p->pdsch_w_buff_f[i]) {
@@ -851,7 +856,8 @@ int pdsch_encode(pdsch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_
    if (q             != NULL &&
        data          != NULL &&
        subframe      <  10   &&
-       harq_process  != NULL)
+       harq_process  != NULL && 
+       harq_process->mcs.mod > 0)
   {
 
     if (q->rnti_is_set) {

@@ -100,7 +100,7 @@ int ue_sync_init(ue_sync_t *q,
       sync_correct_cfo(&q->sfind, true);    
       sync_correct_cfo(&q->strack, true); 
       
-      sync_set_threshold(&q->sfind, 1.1);
+      sync_set_threshold(&q->sfind, 1.3);
       sync_set_em_alpha(&q->sfind, 0.01);
       q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES; 
       sync_set_threshold(&q->strack, 1.2);

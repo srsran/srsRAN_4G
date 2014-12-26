@@ -29,23 +29,33 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <errno.h>
 
 #include "liblte/phy/io/udpsource.h"
 
-int udpsource_init(udpsource_t *q, char *address, int port, data_type_t type) {
+int udpsource_init(udpsource_t *q, char *address, int port) {
   bzero(q, sizeof(udpsource_t));
 
   q->sockfd=socket(AF_INET,SOCK_DGRAM,0);
 
+  if (q->sockfd < 0) {
+    perror("socket");
+    return -1; 
+  }
+  
   q->servaddr.sin_family = AF_INET;
   q->servaddr.sin_addr.s_addr=inet_addr(address);
   q->servaddr.sin_port=htons(port);
-  bind(q->sockfd,(struct sockaddr *)&q->servaddr,sizeof(struct sockaddr_in));
+  
+  if (bind(q->sockfd,(struct sockaddr *)&q->servaddr,sizeof(struct sockaddr_in))) {
+    perror("bind");
+    return -1; 
+  }
 
-  q->type = type;
   return 0;
 }
 
@@ -56,34 +66,41 @@ void udpsource_free(udpsource_t *q) {
   bzero(q, sizeof(udpsource_t));
 }
 
-int udpsource_read(udpsource_t *q, void *buffer, int nsamples) {
-  int size;
-
-  switch(q->type) {
-  case FLOAT:
-  case COMPLEX_FLOAT:
-  case COMPLEX_SHORT:
-    fprintf(stderr, "Not implemented\n");
-    return -1;
-  case FLOAT_BIN:
-  case COMPLEX_FLOAT_BIN:
-  case COMPLEX_SHORT_BIN:
-    if (q->type == FLOAT_BIN) {
-      size = sizeof(float);
-    } else if (q->type == COMPLEX_FLOAT_BIN) {
-      size = sizeof(_Complex float);
-    } else if (q->type == COMPLEX_SHORT_BIN) {
-      size = sizeof(_Complex short);
+int udpsource_read(udpsource_t *q, void *buffer, int nbytes) {
+  int n = recv(q->sockfd, buffer, nbytes, 0);
+  
+  if (n == -1) {
+    if (errno == EAGAIN) {
+      return 0; 
+    } else {
+      return -1; 
     }
-    return recv(q->sockfd, buffer, size * nsamples, 0);
-    break;
+  } else {
+    return n; 
   }
-  return -1;
 }
 
+int udpsource_set_nonblocking(udpsource_t *q) {
+  if (fcntl(q->sockfd, F_SETFL, O_NONBLOCK)) {
+    perror("fcntl");
+    return -1; 
+  }
+  return 0; 
+}
+
+int udpsource_set_timeout(udpsource_t *q, uint32_t microseconds) {
+  struct timeval t; 
+  t.tv_sec = 0; 
+  t.tv_usec = microseconds; 
+  if (setsockopt(q->sockfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval))) {
+    perror("setsockopt");
+    return -1; 
+  }
+  return 0; 
+}
 
 int udpsource_initialize(udpsource_hl* h) {
-  return udpsource_init(&h->obj, h->init.address, h->init.port, h->init.data_type);
+  return udpsource_init(&h->obj, h->init.address, h->init.port);
 }
 
 int udpsource_work(udpsource_hl* h) {

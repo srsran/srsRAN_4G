@@ -146,7 +146,7 @@ void ue_dl_free(ue_dl_t *q) {
 
 void ue_dl_set_rnti(ue_dl_t *q, uint16_t rnti) {
   q->current_rnti = rnti; 
-  pdsch_set_rnti(&q->pdsch, SIRNTI);
+  pdsch_set_rnti(&q->pdsch, rnti);
 }
 
 void ue_dl_reset(ue_dl_t *q) {
@@ -155,7 +155,7 @@ void ue_dl_reset(ue_dl_t *q) {
 
 LIBLTE_API float mean_exec_time=0; 
 
-dci_format_t ue_formats[] = {Format1A,Format1}; // Format1B should go here also
+dci_format_t ue_formats[] = {Format1,Format1A}; // Format1B should go here also
 const uint32_t nof_ue_formats = 2; 
 
 dci_format_t common_formats[] = {Format1A,Format1C};
@@ -253,7 +253,9 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
           }
         }
         if (q->harq_process[0].mcs.mod > 0) {
-          ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), data, sf_idx, 
+          ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, 
+                             chest_dl_get_noise_estimate(&q->chest), 
+                             data, sf_idx, 
               &q->harq_process[0], rvidx);
           if (ret == LIBLTE_ERROR) {
             q->pkt_errors++;

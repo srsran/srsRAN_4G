@@ -123,6 +123,8 @@ int cuhd_open(char *args, void **h)
 
 //  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=50000000" + ", num_recv_frames=512");
   handler->usrp->set_clock_source("internal");
+  
+  uhd::msg::register_handler(my_handler);
 
   std::string otw, cpu;
   otw = "sc16";
@@ -147,16 +149,14 @@ int cuhd_close(void *h)
 double cuhd_set_rx_srate(void *h, double freq)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  printf("Changing sampling freq now to %.2f MHz\n", freq/1000000);
   handler->usrp->set_rx_rate(freq);  
-  printf("Done\n");
-  /*
+  
+  double ret = handler->usrp->get_rx_rate();
   if ((int) ret != (int) freq) {
-    printf("Got %f!=%f. setting master clock rate to %f\n",ret, freq, freq);
     handler->usrp->set_master_clock_rate(freq);
     handler->usrp->set_rx_rate(freq);  
   }
-  */
+  
   return freq;
 }
 
@@ -170,9 +170,7 @@ double cuhd_set_rx_gain(void *h, double gain)
 double cuhd_set_rx_freq(void *h, double freq)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  printf("Tunning receiver to %.3f MHz\n", (double ) freq/1000000);
   handler->usrp->set_rx_freq(freq);
-  printf("Done\n");
   return freq;
 }
 

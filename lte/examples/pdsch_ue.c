@@ -70,6 +70,8 @@ typedef struct {
   char *uhd_args; 
   float uhd_freq; 
   float uhd_gain;
+  int udp_port; 
+  char *udp_address; 
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
@@ -79,10 +81,12 @@ void args_default(prog_args_t *args) {
   args->uhd_args = "";
   args->uhd_freq = -1.0;
   args->uhd_gain = 60.0; 
+  args->udp_port = -1; 
+  args->udp_address = "127.0.0.1";
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agldnrv] -f rx_frequency (in Hz)\n", prog);
+  printf("Usage: %s [agldnruv] -f rx_frequency (in Hz)\n", prog);
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
   printf("\t-r RNTI [Default 0x%x]\n",args->rnti);
@@ -93,13 +97,15 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
+  printf("\t-u remote UDP port to send data (-1 does nothing with it) [Default %d]\n", args->udp_port);
+  printf("\t-U remote UDP address to send data [Default %s]\n", args->udp_address);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "agldnvrf")) != -1) {
+  while ((opt = getopt(argc, argv, "agldnvrfuU")) != -1) {
     switch (opt) {
     case 'a':
       args->uhd_args = argv[optind];
@@ -118,6 +124,12 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'l':
       args->force_N_id_2 = atoi(argv[optind]);
+      break;
+    case 'u':
+      args->udp_port = atoi(argv[optind]);
+      break;
+    case 'U':
+      args->udp_address = argv[optind];
       break;
     case 'd':
       args->disable_plots = true;
@@ -138,7 +150,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-uint8_t data[10000], data_unpacked[1000];
+uint8_t data[10000], data_packed[10000];
 
 bool go_exit = false; 
 
@@ -156,7 +168,7 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
 
 extern float mean_exec_time;
 
-enum receiver_state { DECODE_MIB, DECODE_SIB} state; 
+enum receiver_state { DECODE_MIB, DECODE_PDSCH} state; 
 
 
 int main(int argc, char **argv) {
@@ -173,9 +185,18 @@ int main(int argc, char **argv) {
   uint32_t sfn = 0; // system frame number
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
-  uint32_t sfn_offset; 
+  uint32_t sfn_offset;
+  udpsink_t udp_sink; 
+  
   parse_args(&prog_args, argc, argv);
 
+  if (prog_args.udp_port > 0) {
+    if (udpsink_init(&udp_sink, prog_args.udp_address, prog_args.udp_port)) {
+      fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.udp_address, prog_args.udp_port);
+      exit(-1);
+    }
+  }
+  
   printf("Opening UHD device...\n");
   if (cuhd_open(prog_args.uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
@@ -216,7 +237,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
-  if (ue_dl_init(&ue_dl, cell, 1234)) {  // This is the User RNTI
+  if (ue_dl_init(&ue_dl, cell, prog_args.rnti==SIRNTI?1:prog_args.rnti)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
@@ -240,14 +261,13 @@ int main(int argc, char **argv) {
   }
   #endif
   
-
-  
   cuhd_start_rx_stream(uhd);
   
   // Variables for measurements 
   uint32_t nframes=0;
   float rsrp=0.0, rsrq=0.0, snr=0.0;
-
+  bool decode_pdsch; 
+          
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     
@@ -271,19 +291,40 @@ int main(int argc, char **argv) {
               bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
               printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
               sfn = (sfn + sfn_offset)%1024; 
-              state = DECODE_SIB; 
+              state = DECODE_PDSCH; 
             }
           }
           break;
-        case DECODE_SIB:
-          /* We are looking for SI Blocks, search only in appropiate places */
-          if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
-                                 ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
+        case DECODE_PDSCH:
+          if (prog_args.rnti != SIRNTI) {
+            decode_pdsch = true; 
+          } else {
+            /* We are looking for SIB1 Blocks, search only in appropiate places */
+            if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+              decode_pdsch = true; 
+            } else {
+              decode_pdsch = false; 
+            }
+          }
+          if (decode_pdsch) {
+            if (prog_args.rnti != SIRNTI) {
+              n = ue_dl_decode(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync));
+            } else {
+              n = ue_dl_decode_sib(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), 
+                                 ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
+            }
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               exit(-1);
-            } 
+            } else if (n > 0) {
+              /* Send data if socket active */
+              if (prog_args.udp_port > 0) {
+                bit_unpack_vector(data_packed, data, n);
+                if (udpsink_write(&udp_sink, data, 1+(n-1)/8) < 0) {
+                  fprintf(stderr, "Error sending data through UDP socket\n");
+                }
+              }
+            }
             nof_trials++; 
             
             rsrq = VEC_EMA(chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.05);
@@ -363,12 +404,12 @@ void init_plots() {
   plot_real_init(&poutfft);
   plot_real_setTitle(&poutfft, "Output FFT - Magnitude");
   plot_real_setLabels(&poutfft, "Index", "dB");
-  plot_real_setYAxisScale(&poutfft, -60, 0);
+  plot_real_setYAxisScale(&poutfft, -40, 40);
 
   plot_real_init(&pce);
   plot_real_setTitle(&pce, "Channel Response - Magnitude");
   plot_real_setLabels(&pce, "Index", "dB");
-  plot_real_setYAxisScale(&pce, -60, 0);
+  plot_real_setYAxisScale(&pce, -40, 40);
 
   plot_real_init(&p_sync);
   plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
@@ -376,13 +417,13 @@ void init_plots() {
 
   plot_scatter_init(&pscatequal);
   plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&pscatequal, -2, 2);
-  plot_scatter_setYAxisScale(&pscatequal, -2, 2);
+  plot_scatter_setXAxisScale(&pscatequal, -4, 4);
+  plot_scatter_setYAxisScale(&pscatequal, -4, 4);
 
   plot_scatter_init(&pscatequal_pdcch);
   plot_scatter_setTitle(&pscatequal_pdcch, "PDCCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&pscatequal_pdcch, -2, 2);
-  plot_scatter_setYAxisScale(&pscatequal_pdcch, -2, 2);
+  plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
+  plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
 
 }
 

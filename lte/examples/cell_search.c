@@ -55,7 +55,7 @@
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 
-cell_search_cfg_t config = {500, 50, 1.1}; 
+cell_search_cfg_t config = {100, 10, 16}; 
 
 
 float uhd_gain = 60.0;
@@ -140,16 +140,15 @@ int main(int argc, char **argv) {
     exit(-1);
   }
     
-  for (freq=0;freq<nof_freqs;freq+=10) {
+  for (freq=0;freq<nof_freqs;freq++) {
   
     /* set uhd_freq */
     cuhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
     cuhd_rx_wait_lo_locked(uhd);
-    usleep(10000);
     INFO("Set uhd_freq to %.3f MHz\n", (double) channels[freq].fd * MHZ/1000000);
     
-    printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS. \r", freq, nof_freqs,
-                      channels[freq].id, channels[freq].fd);fflush(stdout);
+    printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS. \n", freq, nof_freqs,
+                      channels[freq].id, channels[freq].fd);
     
     if (VERBOSE_ISINFO()) {
       printf("\n");

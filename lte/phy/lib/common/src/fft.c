@@ -95,6 +95,8 @@ int lte_ifft_init(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb) {
   ret = lte_fft_init_(q, cp, nof_prb, BACKWARD); 
   
   if (ret == LIBLTE_SUCCESS) {
+    dft_plan_set_norm(&q->fft_plan, true);
+    
     /* set now zeros at CP */
     for (i=0;i<q->nof_symbols;i++) {
       bzero(q->tmp, q->nof_guards * sizeof(cf_t));

@@ -36,19 +36,22 @@
 #include <stdlib.h>
 
 #include "liblte/config.h"
-#include "liblte/phy/io/format.h"
 
 /* Low-level API */
 typedef struct LIBLTE_API {
   int sockfd;
   struct sockaddr_in servaddr;
-  data_type_t type;
 }udpsink_t;
 
-LIBLTE_API int udpsink_init(udpsink_t *q, char *address, int port, data_type_t type);
+LIBLTE_API int udpsink_init(udpsink_t *q, 
+                            char *address, 
+                            int port);
+
 LIBLTE_API void udpsink_free(udpsink_t *q);
 
-LIBLTE_API int udpsink_write(udpsink_t *q, void *buffer, int nsamples);
+LIBLTE_API int udpsink_write(udpsink_t *q, 
+                             void *buffer, 
+                             int nof_bytes);
 
 
 /* High-level API */

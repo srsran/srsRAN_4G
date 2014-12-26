@@ -50,13 +50,16 @@ lte_cell_t cell = {
   PHICH_NORM    // PHICH length
 };
   
+int udp_port = -1; // -1 generates random data
+
 uint32_t cfi=1;
 uint32_t mcs_idx = 12;
 int nof_frames = -1;
 
 char *uhd_args = "";
-float uhd_amp = 0.1, uhd_gain = 40.0, uhd_freq = 2400000000;
+float uhd_amp = 0.1, uhd_gain = 70.0, uhd_freq = 2400000000;
 
+udpsource_t udp_source; 
 filesink_t fsink;
 lte_fft_t ifft;
 pbch_t pbch;
@@ -70,7 +73,7 @@ cf_t *sf_buffer = NULL, *output_buffer = NULL;
 int sf_n_re, sf_n_samples;
 
 void usage(char *prog) {
-  printf("Usage: %s [agmfoncvp]\n", prog);
+  printf("Usage: %s [agmfoncvpu]\n", prog);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-l UHD amplitude [Default %.2f]\n", uhd_amp);
@@ -84,12 +87,13 @@ void usage(char *prog) {
   printf("\t-n number of frames [Default %d]\n", nof_frames);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
+  printf("\t-u listen UDP port for input data (-1 is random) [Default %d]\n", udp_port);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "aglfmoncpv")) != -1) {
+  while ((opt = getopt(argc, argv, "aglfmoncpvu")) != -1) {
     switch (opt) {
     case 'a':
       uhd_args = argv[optind];
@@ -108,6 +112,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'm':
       mcs_idx = atoi(argv[optind]);
+      break;
+    case 'u':
+      udp_port = atoi(argv[optind]);
       break;
     case 'n':
       nof_frames = atoi(argv[optind]);
@@ -164,6 +171,27 @@ void base_init() {
     printf("Error UHD not available. Select an output file\n");
     exit(-1);
 #endif
+  }
+  
+  if (udp_port > 0) {
+    if (udpsource_init(&udp_source, "0.0.0.0", udp_port)) {
+      fprintf(stderr, "Error creating input UDP socket at port %d\n", udp_port);
+      exit(-1);
+    }
+    
+    /*
+    if (udpsource_set_nonblocking(&udp_source)) {
+      fprintf(stderr, "Error setting non-blocking\n");
+      exit(-1);
+    }
+    */
+    
+    if (udpsource_set_timeout(&udp_source, 5)) {
+      fprintf(stderr, "Error setting UDP socket timeout\n");
+      exit(-1);
+    }
+    
+    printf("Opened UDP socket at port %d\n", udp_port);
   }
 
   /* create ifft object */
@@ -232,7 +260,14 @@ void base_free() {
     cuhd_close(&uhd);
 #endif
   }
+  
+  if (udp_port > 0) {
+    udpsource_free(&udp_source);
+  }
+  
 }
+
+uint8_t data[10000], data_unpacked[10000];
 
 int main(int argc, char **argv) {
   int nf, sf_idx, N_id_2;
@@ -243,8 +278,8 @@ int main(int argc, char **argv) {
   ra_pdsch_t ra_dl;
   ra_prb_t prb_alloc;
   int i;
-  uint8_t *data;
   cf_t *sf_symbols[MAX_PORTS];
+  cf_t *slot1_symbols[MAX_PORTS];
   dci_msg_t dci_msg;
   dci_location_t locations[NSUBFRAMES_X_FRAME][10];
   uint32_t sfn; 
@@ -274,17 +309,15 @@ int main(int argc, char **argv) {
   pss_generate(pss_signal, N_id_2);
   sss_generate(sss_signal0, sss_signal5, cell.id);
   
-  //refsignal_cs_generate(&csr_signal, cell);
-
   /* Generate CRS signals */
   if (chest_dl_init(&est, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     exit(-1);
   }
 
-
   for (i = 0; i < MAX_PORTS; i++) { // now there's only 1 port
     sf_symbols[i] = sf_buffer;
+    slot1_symbols[i] = &sf_buffer[SLOT_LEN_RE(cell.nof_prb, cell.cp)];
   }
 
 #ifndef DISABLE_UHD
@@ -317,12 +350,6 @@ int main(int argc, char **argv) {
   for (i=0;i<NSUBFRAMES_X_FRAME;i++) {
     pdcch_ue_locations(&pdcch, locations[i], 10, i, cfi, 1234);
   }
-
-  data = malloc(sizeof(uint8_t) * ra_dl.mcs.tbs);
-  if (!data) {
-    perror("malloc");
-    exit(-1);
-  }  
     
   nf = 0;
   
@@ -330,6 +357,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error configuring HARQ process\n");
     exit(-1);
   }
+  
+  bool send_data = false; 
 
   while (nf < nof_frames || nof_frames == -1) {
     for (sf_idx = 0; sf_idx < NSUBFRAMES_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
@@ -340,33 +369,55 @@ int main(int argc, char **argv) {
         sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
             CPNORM);
       }
-      refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);
       
       bcch_bch_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
       bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
       if (sf_idx == 0) {
-        pbch_encode(&pbch, bch_payload, sf_symbols);
+        pbch_encode(&pbch, bch_payload, slot1_symbols);
       }
-    
 
       pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
 
-      INFO("SF: %d, Generating %d random bits\n", sf_idx, ra_dl.mcs.tbs);
-      for (i=0;i<ra_dl.mcs.tbs;i++) {
-        data[i] = rand()%2;
+      
+      /* Transmit PDCCH + PDSCH only when there is data to send */
+      if (sf_idx != 0) {
+        if (udp_port > 0) {
+          int n = udpsource_read(&udp_source, data_unpacked, 1+(ra_dl.mcs.tbs-1)/8);
+          if (n > 0) {
+            bit_pack_vector(data_unpacked, data, n*8);
+            send_data = true;  
+          } else if (n == 0) {
+            send_data = false; 
+          } else {
+            fprintf(stderr, "Error receiving from UDP socket\n");
+            exit(-1);
+          }
+        } else {
+          INFO("SF: %d, Generating %d random bits\n", sf_idx, ra_dl.mcs.tbs);
+          for (i=0;i<ra_dl.mcs.tbs;i++) {
+            data[i] = rand()%2;
+          }
+          send_data = true; 
+        }        
+      } else {
+        send_data = false; 
       }
       
-      INFO("Puttting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
-      if (pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
-        fprintf(stderr, "Error encoding DCI message\n");
-        exit(-1);
+      if (send_data) {
+        INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
+        if (pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
+          fprintf(stderr, "Error encoding DCI message\n");
+          exit(-1);
+        }
+        
+        if (pdsch_encode(&pdsch, data, sf_symbols, sf_idx, &harq_process, ra_dl.rv_idx)) {
+          fprintf(stderr, "Error encoding PDSCH\n");
+          exit(-1);
+        }        
       }
-      
-      if (pdsch_encode(&pdsch, data, sf_symbols, sf_idx, &harq_process, ra_dl.rv_idx)) {
-        fprintf(stderr, "Error encoding PDSCH\n");
-        exit(-1);
-      }
-      
+
+      refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);
+
       /* Transform to OFDM symbols */
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
       

@@ -29,7 +29,7 @@
 #ifndef UDPSOURCE_
 #define UDPSOURCE_
 
-
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -37,19 +37,27 @@
 #include <stdlib.h>
 
 #include "liblte/config.h"
-#include "liblte/phy/io/format.h"
 
 /* Low-level API */
 typedef struct LIBLTE_API {
   int sockfd;
   struct sockaddr_in servaddr;
-  data_type_t type;
 }udpsource_t;
 
-LIBLTE_API int udpsource_init(udpsource_t *q, char *address, int port, data_type_t type);
+LIBLTE_API int udpsource_init(udpsource_t *q, 
+                              char *address, 
+                              int port);
+
 LIBLTE_API void udpsource_free(udpsource_t *q);
 
-LIBLTE_API int udpsource_read(udpsource_t *q, void *buffer, int nsamples);
+LIBLTE_API int udpsource_set_nonblocking(udpsource_t *q); 
+
+LIBLTE_API int udpsource_read(udpsource_t *q, 
+                              void *buffer, 
+                              int nof_bytes);
+
+LIBLTE_API int udpsource_set_timeout(udpsource_t *q, 
+                                     uint32_t microseconds); 
 
 
 /* High-level API */
