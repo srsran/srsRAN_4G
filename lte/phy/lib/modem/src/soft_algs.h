@@ -44,7 +44,9 @@ void llr_approx(const _Complex float *in,
 		uint32_t (*S)[6][32], 
                 uint32_t (*idx)[7],	/*64x7 table of integers [0..63], indices to 7 distances to be computed */
 		uint32_t (*min)[64][6],	/*2x64x6 table of integers [0..6], indices to 2x6 nearest symbols */
-                float sigma2);
+                float sigma2, 
+                uint32_t *zone, 
+                float *dd);
 
 void llr_exact(const _Complex float *in, 
                float *out, 

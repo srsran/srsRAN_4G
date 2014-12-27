@@ -85,7 +85,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
       goto clean;
     }
 
-    demod_soft_init(&q->demod);
+    demod_soft_init(&q->demod, q->max_bits / 2);
     demod_soft_table_set(&q->demod, &q->mod);
     demod_soft_alg_set(&q->demod, APPROX);
 

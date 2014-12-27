@@ -29,14 +29,18 @@
 #include <stdlib.h>
 #include <strings.h>
 
+#include "liblte/phy/utils/vector.h"
 #include "liblte/phy/utils/bit.h"
 #include "liblte/phy/modem/demod_soft.h"
 #include "soft_algs.h"
 
 
-void demod_soft_init(demod_soft_t *q) {
+void demod_soft_init(demod_soft_t *q, uint32_t max_symbols) {
   bzero((void*)q,sizeof(demod_soft_t));
   q->sigma = 1.0; 
+  q->zones = vec_malloc(sizeof(uint32_t) * max_symbols);
+  q->dd = vec_malloc(sizeof(float*) * max_symbols * 7);
+  q->max_symbols = max_symbols;
 }
 
 void demod_soft_table_set(demod_soft_t *q, modem_table_t *table) {
@@ -58,10 +62,17 @@ int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int 
         q->table->symbol_table, q->table->soft_table.idx, q->sigma);
     break;
   case APPROX:
-/*    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
-        q->table->symbol_table, q->table->soft_table.idx, q->sigma);
-*/    llr_approx(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
-        q->table->symbol_table, q->table->soft_table.idx, q->table->soft_table.d_idx, q->table->soft_table.min_idx, q->sigma);
+    if (nsymbols <= q->max_symbols) {
+      llr_approx(symbols, llr, nsymbols, q->table->nsymbols, 
+                q->table->nbits_x_symbol,
+                q->table->symbol_table, q->table->soft_table.idx, 
+                q->table->soft_table.d_idx, q->table->soft_table.min_idx, q->sigma, 
+                q->zones, q->dd);
+      
+    } else {
+      fprintf(stderr, "Too many symbols (%d>%d)\n", nsymbols, q->max_symbols);
+      return -1; 
+    }
     break;
   }
   return nsymbols*q->table->nbits_x_symbol;
@@ -75,7 +86,7 @@ int demod_soft_initialize(demod_soft_hl* hl) {
   if (modem_table_lte(&hl->table,hl->init.std,true)) {
     return -1;
   }
-  demod_soft_init(&hl->obj);
+  demod_soft_init(&hl->obj, 10000);
   hl->obj.table = &hl->table;
 
   return 0;

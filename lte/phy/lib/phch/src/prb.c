@@ -32,12 +32,12 @@
 #include "prb.h"
 #include "liblte/phy/common/phy_common.h"
 
-#define DEBUG_IDX
+//#define DEBUG_IDX
 
 #ifdef DEBUG_IDX
 extern cf_t *offset_original;
 LIBLTE_API int indices[2048];
-int indices_ptr=0;
+LIBLTE_API int indices_ptr=0;
 #endif
 
 void print_indexes(cf_t *offset, int len) {
@@ -55,7 +55,7 @@ void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
 
   int ref_interval = ((RE_X_RB / nof_refs) - 1);
   memcpy(*output, *input, offset * sizeof(cf_t));
-  print_indexes(*input, offset);
+  print_indexes(*output, offset);
   *input += offset;
   *output += offset;
   for (i = 0; i < nof_intervals - 1; i++) {
@@ -65,7 +65,7 @@ void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
       (*input)++;
     }
     memcpy(*output, *input, ref_interval * sizeof(cf_t));
-    print_indexes(*input, ref_interval);
+    print_indexes(*output, ref_interval);
     *output += ref_interval;
     *input += ref_interval;
   }
@@ -76,7 +76,7 @@ void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
       (*input)++;
     }
     memcpy(*output, *input, (ref_interval - offset) * sizeof(cf_t));
-    print_indexes(*input, ref_interval-offset);
+    print_indexes(*output, ref_interval-offset);
     *output += (ref_interval - offset);
     *input += (ref_interval - offset);
   }
@@ -84,7 +84,7 @@ void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
 
 void prb_cp(cf_t **input, cf_t **output, int nof_prb) {
   memcpy(*output, *input, sizeof(cf_t) * RE_X_RB * nof_prb);
-  print_indexes(*input, RE_X_RB);
+  print_indexes(*output, RE_X_RB);
   *input += nof_prb * RE_X_RB;
   *output += nof_prb * RE_X_RB;
 }
@@ -92,7 +92,7 @@ void prb_cp(cf_t **input, cf_t **output, int nof_prb) {
 
 void prb_cp_half(cf_t **input, cf_t **output, int nof_prb) {
   memcpy(*output, *input, sizeof(cf_t) * RE_X_RB * nof_prb / 2);
-  print_indexes(*input, RE_X_RB/2);
+  print_indexes(*output, RE_X_RB/2);
   *input += nof_prb * RE_X_RB / 2;
   *output += nof_prb * RE_X_RB / 2;
 }

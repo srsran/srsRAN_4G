@@ -137,6 +137,7 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
 
     bzero(q, sizeof(pbch_t));
     q->cell = cell;
+    q->nof_symbols = (CP_ISNORM(q->cell.cp)) ? PBCH_RE_CPNORM : PBCH_RE_CPEXT;
     
     if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
@@ -145,7 +146,7 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
       goto clean;
     }
-    demod_soft_init(&q->demod);
+    demod_soft_init(&q->demod, q->nof_symbols);
     demod_soft_table_set(&q->demod, &q->mod);
     demod_soft_alg_set(&q->demod, APPROX);
     
@@ -164,8 +165,6 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     q->encoder.R = 3;
     q->encoder.tail_biting = true;
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
-
-    q->nof_symbols = (CP_ISNORM(q->cell.cp)) ? PBCH_RE_CPNORM : PBCH_RE_CPEXT;
 
     q->pbch_d = malloc(sizeof(cf_t) * q->nof_symbols);
     if (!q->pbch_d) {

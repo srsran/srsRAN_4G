@@ -369,7 +369,9 @@ int main(int argc, char **argv) {
         sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
             CPNORM);
       }
-      
+
+      refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);
+
       bcch_bch_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
       bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
       if (sf_idx == 0) {
@@ -378,7 +380,6 @@ int main(int argc, char **argv) {
 
       pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
 
-      
       /* Transmit PDCCH + PDSCH only when there is data to send */
       if (sf_idx != 0) {
         if (udp_port > 0) {
@@ -415,8 +416,6 @@ int main(int argc, char **argv) {
           exit(-1);
         }        
       }
-
-      refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);
 
       /* Transform to OFDM symbols */
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);

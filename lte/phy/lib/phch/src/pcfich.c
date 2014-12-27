@@ -73,6 +73,7 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
     bzero(q, sizeof(pcfich_t));
     q->cell = cell;
     q->regs = regs;
+    q->nof_symbols = PCFICH_RE;
     
     if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
@@ -82,7 +83,7 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
       goto clean;
     }
 
-    demod_soft_init(&q->demod);
+    demod_soft_init(&q->demod, q->nof_symbols);
     demod_soft_table_set(&q->demod, &q->mod);
     demod_soft_alg_set(&q->demod, APPROX);
 
@@ -98,8 +99,6 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
         q->cfi_table_float[i][j] = (float) 2.0*cfi_table[i][j]-1.0; 
       }
     }
-
-    q->nof_symbols = PCFICH_RE;
 
     ret = LIBLTE_SUCCESS;
   }

@@ -49,9 +49,6 @@ typedef _Complex float cf_t;
 
 #if LLR_APPROX_IMPLEMENTATION == 1
 
-float dd[10000][7];             // 7 distances that are needed to compute LLR approx for 64QAM 
-uint32_t zone[10000];           // Zone of received symbol with respect to grid of QAM constellation diagram
-
 
 /**
  * @ingroup Received modulation symbol zone
@@ -447,7 +444,7 @@ static void compute_zone(const cf_t * in, uint32_t * z, int N, int B)
 {
   switch (B) {
     case 1:{
-        memset(zone, 0, N * sizeof(int));
+        memset(z, 0, N * sizeof(uint32_t));
         break;
       }                         /* BPSK */
     case 2:{
@@ -465,7 +462,7 @@ static void compute_zone(const cf_t * in, uint32_t * z, int N, int B)
   }
 }
 
-static void compute_square_dist(const cf_t * in, cf_t * symbols,
+static void compute_square_dist(uint32_t *zone, float *dd, const cf_t * in, cf_t * symbols,
                                 uint32_t(*idx)[7], int N, int B)
 {
   int s, b;
@@ -473,38 +470,35 @@ static void compute_square_dist(const cf_t * in, cf_t * symbols,
   cf_t symbols_extract[7];
 
   for (s = 0; s < N; s++) {     /* N: number of received symbols */
-    d_ptr = dd[s];
+    d_ptr = &dd[7*s];
     for (b = 0; b < B + 1; b++) {
-      symbols_extract[b] = symbols[idx[zone[s]][b]];    /* only subset of distances to constellation points needed for LLR approx */
-      //x = __real__ in[s] - __real__ symbols[idx[zone[s]][b]];
-      //y = __imag__ in[s] - __imag__ symbols[idx[zone[s]][b]];
-      //dd[s][b] = x*x + y*y;
-      //printf("\n%f + j %f", __real__ symbols_extract[b], __imag__ symbols_extract[b]);
+      symbols_extract[b] = symbols[idx[zone[s]][b]];    
+      /* only subset of distances to constellation points needed for LLR approx */
     }
     vec_square_dist(in[s], symbols_extract, d_ptr, B + 1);      /* B+1 distances to be computed */
   }
 }
 
-static void compute_llr(int N, int B, uint32_t(*min)[64][6], float sigma2,
+static void compute_llr(uint32_t *zone, float *dd, int N, int B, uint32_t(*min)[64][6], float sigma2,
                         float *out)
 {
   int s, b;
   for (s = 0; s < N; s++) {
     for (b = 0; b < B; b++) {   /* bits per symbol */
       out[s * B + b] =
-        (dd[s][min[0][zone[s]][b]] - dd[s][min[1][zone[s]][b]]) / sigma2;
+        (dd[7*s+min[0][zone[s]][b]] - dd[7*s+min[1][zone[s]][b]]) / sigma2;
     }
   }
 }
 
 void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
                 _Complex float *symbols, uint32_t(*S)[6][32], uint32_t(*idx)[7],
-                uint32_t(*min)[64][6], float sigma2)
+                uint32_t(*min)[64][6], float sigma2, uint32_t *zone, float *dd)
 {
-  if ((M == 2) || (M == 4) || (M == 16) || (M == 64)) {
+  if ((M == 1) || (M == 2) || (M == 4) || (M == 16) || (M == 64)) {
     compute_zone(in, zone, N, B);
-    compute_square_dist(in, symbols, idx, N, B);
-    compute_llr(N, B, min, sigma2, out);
+    compute_square_dist(zone, dd, in, symbols, idx, N, B);
+    compute_llr(zone, dd, N, B, min, sigma2, out);
   }
 }
 

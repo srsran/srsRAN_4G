@@ -41,9 +41,12 @@ typedef struct LIBLTE_API {
   float sigma;      // noise power
   enum alg alg_type;    // soft demapping algorithm (EXACT or APPROX)
   modem_table_t *table;  // symbol mapping table (see modem_table.h)
+  uint32_t *zones; 
+  float *dd; 
+  uint32_t max_symbols;
 }demod_soft_t;
 
-LIBLTE_API void demod_soft_init(demod_soft_t *q);
+LIBLTE_API void demod_soft_init(demod_soft_t *q, uint32_t max_symbols);
 LIBLTE_API void demod_soft_table_set(demod_soft_t *q, modem_table_t *table);
 LIBLTE_API void demod_soft_alg_set(demod_soft_t *q, enum alg alg_type);
 LIBLTE_API void demod_soft_sigma_set(demod_soft_t *q, float sigma);

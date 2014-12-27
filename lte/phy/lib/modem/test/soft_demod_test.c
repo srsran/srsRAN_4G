@@ -38,7 +38,7 @@
 
 int nof_frames = 10; 
 int num_bits = 1000;
-lte_mod_t modulation = 0;
+lte_mod_t modulation = 10;
 
 void usage(char *prog) {
   printf("Usage: %s [nfv] -m modulation (1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n", prog);
@@ -85,7 +85,7 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-  if (modulation == 0) {
+  if (modulation == 10) {
     usage(argv[0]);
     exit(-1);
   }
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
   /* check that num_bits is multiple of num_bits x symbol */
   num_bits = mod.nbits_x_symbol * (num_bits / mod.nbits_x_symbol);
 
-  demod_soft_init(&demod_soft);
+  demod_soft_init(&demod_soft, num_bits / mod.nbits_x_symbol);
   demod_soft_table_set(&demod_soft, &mod);
   demod_soft_sigma_set(&demod_soft, 2.0 / mod.nbits_x_symbol);
 

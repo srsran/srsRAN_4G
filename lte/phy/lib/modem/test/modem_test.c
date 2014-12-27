@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   }
 
   if (soft_output) {
-    demod_soft_init(&demod_soft);
+    demod_soft_init(&demod_soft, num_bits / mod.nbits_x_symbol);
     demod_soft_table_set(&demod_soft, &mod);
     demod_soft_alg_set(&demod_soft, soft_exact?EXACT:APPROX);
   } else {

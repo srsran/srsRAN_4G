@@ -135,7 +135,7 @@ typedef enum LIBLTE_API {
 } lte_mimo_type_t;
 
 typedef enum LIBLTE_API {
-  LTE_BPSK = 1, LTE_QPSK = 2, LTE_QAM16 = 4, LTE_QAM64 = 6
+  LTE_BPSK = 0, LTE_QPSK = 1, LTE_QAM16 = 2, LTE_QAM64 = 3
 } lte_mod_t;
 
 
