@@ -47,6 +47,9 @@ LIBLTE_API bool mexutils_isScalar(const mxArray *ptr);
 LIBLTE_API int mexutils_read_cell(const mxArray *ptr, 
                                   lte_cell_t *cell);
 
+LIBLTE_API char *mexutils_get_char_struct(const mxArray *ptr, 
+                                          const char *field_name); 
+
 LIBLTE_API int mexutils_read_uint32_struct(const mxArray *ptr, 
                                            const char *field_name, 
                                            uint32_t *value); 

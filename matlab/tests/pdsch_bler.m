@@ -4,11 +4,11 @@
 % A structure |enbConfig| is used to configure the eNodeB.
 clear
 
-Npackets = 25;
-SNR_values = linspace(1,6,4);
+Npackets = 10;
+SNR_values = linspace(2,6,4);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.12',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.11',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 Nsf = 8; 
@@ -16,7 +16,7 @@ Nsf = 8;
 %% Setup Fading channel model 
 cfg.Seed = 8;                  % Random channel seed
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EPA';      % EVA delay spread
+cfg.DelayProfile = 'EVA';      % EVA delay spread
 cfg.DopplerFreq = 5;           % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
 cfg.InitTime = 0;              % Initialize at time zero
@@ -57,7 +57,8 @@ for snr_idx=1:length(SNR_values)
         frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
 
         for sf_idx=0:Nsf
-            
+            flen=length(rxWaveform)/10;
+            subframe_waveform = rxWaveform(sf_idx*flen+1:(sf_idx+1)*flen);
             subframe_rx=frame_rx(:,sf_idx*14+1:(sf_idx+1)*14);
             rmccFgOut.NSubframe=sf_idx;
             rmccFgOut.TotSubframes=1;
@@ -73,8 +74,14 @@ for snr_idx=1:length(SNR_values)
 
 
             %% Same with libLTE
-            %[found_liblte, llr, pdcchSymbols2] = liblte_pdsch(rmccFgOut, ueConfig.RNTI, rxWaveform);
-            %decoded_liblte(snr_idx) = decoded_liblte(snr_idx)+found_liblte;
+            if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
+                [dec2, llr, pdschRx, pdschSymbols2] = liblte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
+                                                        rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
+                                                        subframe_waveform);
+            else
+                dec2 = 1;
+            end
+            decoded_liblte(snr_idx) = decoded_liblte(snr_idx)+dec2;
         end
     end
     fprintf('SNR: %.1f\n',SNRdB)

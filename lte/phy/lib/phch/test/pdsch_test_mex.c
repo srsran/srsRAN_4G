@@ -32,16 +32,16 @@
 /** MEX function to be called from MATLAB to test the channel estimator 
  */
 
-#define ENBCFG  prhs[0]
-#define RNTI    prhs[1]
-#define TBS     prhs[2]
-#define INPUT   prhs[3]
+#define ENBCFG     prhs[0]
+#define PDSCHCFG   prhs[1]
+#define TBS        prhs[2]
+#define INPUT      prhs[3]
 #define NOF_INPUTS 4
 
 void help()
 {
   mexErrMsgTxt
-    ("[decoded_ok, llr, rm, bits, symbols] = liblte_pdsch(enbConfig, RNTI, rxWaveform)\n\n");
+    ("[decoded_ok, llr, rm, bits, symbols] = liblte_pdsch(enbConfig, pdschConfig, trblklen, rxWaveform)\n\n");
 }
 
 /* the gateway function */
@@ -53,13 +53,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   chest_dl_t chest; 
   lte_fft_t fft; 
   uint32_t cfi, sf_idx; 
-  uint16_t rnti; 
   cf_t *input_fft, *input_signal;
   int nof_re; 
   ra_mcs_t mcs;
   ra_prb_t prb_alloc;
   pdsch_harq_t harq_process;
   uint32_t rv;
+  uint32_t rnti32;
 
   if (nrhs != NOF_INPUTS) {
     help();
@@ -68,6 +68,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
   if (mexutils_read_cell(ENBCFG, &cell)) {
     help();
+    return;
+  }
+  
+  if (mexutils_read_uint32_struct(PDSCHCFG, "RNTI", &rnti32)) {
+    mexErrMsgTxt("Field RNTI not found in pdsch config\n");
     return;
   }
   
@@ -80,35 +85,80 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
+  if (pdsch_init(&pdsch, cell)) {
+    mexErrMsgTxt("Error initiating PDSCH\n");
+    return;
+  }
+  pdsch_set_rnti(&pdsch, (uint16_t) (rnti32 & 0xffff));
+
+  if (pdsch_harq_init(&harq_process, &pdsch)) {
+    mexErrMsgTxt("Error initiating HARQ process\n");
+    return;
+  }
+  
   if (chest_dl_init(&chest, cell)) {
-    fprintf(stderr, "Error initializing equalizer\n");
+    mexErrMsgTxt("Error initializing equalizer\n");
     return;
   }
 
   if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
-    fprintf(stderr, "Error initializing FFT\n");
+    mexErrMsgTxt("Error initializing FFT\n");
     return;
   }
   
-  rnti = (uint16_t) mxGetScalar(RNTI);
     
   nof_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   mcs.tbs = mxGetScalar(TBS);
-  mcs.mod = modulation;
-  
-  if (mexutils_read_uint32_struct(ENBCFG, "NSubframe", &sf_idx)) {
-    help();
+  if (mcs.tbs == 0) {
+    mexErrMsgTxt("Error trblklen is zero\n");
+    return;
+  }
+
+  if (mexutils_read_uint32_struct(PDSCHCFG, "RV", &rv)) {
+    mexErrMsgTxt("Field RV not found in pdsch config\n");
     return;
   }
   
-  prb_alloc.slot[0].nof_prb = cell.nof_prb;
-  for (i=0;i<prb_alloc.slot[0].nof_prb;i++) {
-    prb_alloc.slot[0].prb_idx[i] = i;
+  char *mod_str = mexutils_get_char_struct(PDSCHCFG, "Modulation");
+  
+  if (!strcmp(mod_str, "QPSK")) {
+    mcs.mod = LTE_QPSK;
+  } else if (!strcmp(mod_str, "16QAM")) {
+    mcs.mod = LTE_QAM16;
+  } else if (!strcmp(mod_str, "64QAM")) {
+    mcs.mod = LTE_QAM64;
+  } else {
+   mexErrMsgTxt("Unknown modulation\n");
+   return;
+  }
+
+  mxFree(mod_str);
+  
+  float *prbset; 
+  mxArray *p; 
+  p = mxGetField(PDSCHCFG, 0, "PRBSet");
+  if (!p) {
+    mexErrMsgTxt("Error field PRBSet not found\n");
+    return;
+  } 
+  
+  // Only localized PRB supported 
+  prb_alloc.slot[0].nof_prb = mexutils_read_f(p, &prbset);
+
+  for (i=0;i<cell.nof_prb;i++) {
+    prb_alloc.slot[0].prb_idx[i] = false; 
+    for (int j=0;j<prb_alloc.slot[0].nof_prb && !prb_alloc.slot[0].prb_idx[i];j++) {
+      if ((int) prbset[j] == i) {
+        prb_alloc.slot[0].prb_idx[i] = true; 
+      }
+    }
   }
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, 2, CPNORM);
+  free(prbset);
+  
+  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
       
   /** Allocate input buffers */
   if (mexutils_read_cf(INPUT, &input_signal) < 0) {
@@ -143,51 +193,42 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } else {
     noise_power = chest_dl_get_noise_estimate(&chest);
   }
-    
-  pdcch_extract_llr(&pdcch, input_fft, ce, noise_power, sf_idx, cfi);
   
-  uint32_t nof_locations;
-  if (rnti == SIRNTI) {
-    nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
-    formats = common_formats;
-    nof_formats = nof_common_formats;
-  } else {
-    nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
-    formats = ue_formats; 
-    nof_formats = nof_ue_formats;
+  if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
+    mexErrMsgTxt("Error configuring HARQ process\n");
+    return;
   }
-  uint16_t crc_rem=0;   
-  dci_msg_t dci_msg; 
-  bzero(&dci_msg, sizeof(dci_msg_t));
   
-  for (int f=0;f<nof_formats;f++) {
-    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], formats[f], &crc_rem)) {
-        fprintf(stderr, "Error decoding DCI msg\n");
-        return;
-      }
-    }
-  }    
+  uint8_t *data = malloc(sizeof(uint8_t) * mcs.tbs);
+  if (!data) {
+    return;
+  }
+
+  int r = pdsch_decode(&pdsch, input_fft, ce, noise_power, data, sf_idx, &harq_process, rv);
+
   
+tbs_is_zero:
   if (nlhs >= 1) { 
-    plhs[0] = mxCreateLogicalScalar(crc_rem == rnti);
+    plhs[0] = mxCreateLogicalScalar(r == 0);
   }
-  int nof_bits = (regs_pdcch_nregs(&regs, cfi) / 9) * 72;
   if (nlhs >= 2) {
-    mexutils_write_f(pdcch.pdcch_llr, &plhs[1], nof_bits, 1);  
+    mexutils_write_uint8(data, &plhs[1], mcs.tbs, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pdcch.pdcch_symbols[0], &plhs[2], 36*pdcch.nof_cce, 1);  
+    mexutils_write_cf(pdsch.pdsch_symbols[0], &plhs[2], harq_process.prb_alloc.re_sf[sf_idx], 1);  
+  }
+  if (nlhs >= 4) {
+    mexutils_write_cf(pdsch.pdsch_d, &plhs[3], harq_process.prb_alloc.re_sf[sf_idx], 1);  
   }
   
   chest_dl_free(&chest);
   lte_fft_free(&fft);
-  pdcch_free(&pdcch);
-  regs_free(&regs);
+  pdsch_free(&pdsch);
   
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
   }
+  free(data);
   free(input_signal);
   free(input_fft);
   

@@ -30,6 +30,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <sys/select.h>
 
 #include "liblte/phy/phy.h"
 #include "liblte/rrc/rrc.h"
@@ -179,13 +180,6 @@ void base_init() {
       exit(-1);
     }
     
-    /*
-    if (udpsource_set_nonblocking(&udp_source)) {
-      fprintf(stderr, "Error setting non-blocking\n");
-      exit(-1);
-    }
-    */
-    
     if (udpsource_set_timeout(&udp_source, 5)) {
       fprintf(stderr, "Error setting UDP socket timeout\n");
       exit(-1);
@@ -267,6 +261,60 @@ void base_free() {
   
 }
 
+int update_radl(ra_pdsch_t *ra_dl) {
+  ra_prb_t prb_alloc;
+  
+  bzero(ra_dl, sizeof(ra_pdsch_t));
+  ra_dl->harq_process = 0;
+  ra_dl->mcs_idx = mcs_idx;
+  ra_dl->ndi = 0;
+  ra_dl->rv_idx = 0;
+  ra_dl->alloc_type = alloc_type0;
+  ra_dl->type0_alloc.rbg_bitmask = 0xffffffff;
+    
+  ra_prb_get_dl(&prb_alloc, ra_dl, cell.nof_prb);
+  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
+  ra_mcs_from_idx_dl(mcs_idx, cell.nof_prb, &ra_dl->mcs);
+
+  ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
+
+  if (pdsch_harq_setup(&harq_process, ra_dl->mcs, &prb_alloc)) {
+    fprintf(stderr, "Error configuring HARQ process\n");
+    return -1; 
+  }
+   
+  return 0; 
+}
+
+/* Read new MCS from stdin */
+int update_control(ra_pdsch_t *ra_dl) {
+  char input[128];
+  
+  fd_set set; 
+  FD_ZERO(&set);
+  FD_SET(0, &set);
+  
+  struct timeval to; 
+  to.tv_sec = 0; 
+  to.tv_usec = 0; 
+
+  int n = select(1, &set, NULL, NULL, &to);
+  if (n == 1) {
+    // stdin ready
+    if (fgets(input, sizeof(input), stdin)) {
+      mcs_idx = atoi(input);
+      return update_radl(ra_dl);
+    }
+    return 0; 
+  } else if (n < 0) {
+    // error
+    perror("select");
+    return -1; 
+  } else {
+    return 0; 
+  }
+}
+
 uint8_t data[10000], data_unpacked[10000];
 
 int main(int argc, char **argv) {
@@ -275,8 +323,7 @@ int main(int argc, char **argv) {
   float sss_signal0[SSS_LEN]; // for subframe 0
   float sss_signal5[SSS_LEN]; // for subframe 5
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN/8];
-  ra_pdsch_t ra_dl;
-  ra_prb_t prb_alloc;
+  ra_pdsch_t ra_dl;  
   int i;
   cf_t *sf_symbols[MAX_PORTS];
   cf_t *slot1_symbols[MAX_PORTS];
@@ -330,21 +377,9 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  bzero(&ra_dl, sizeof(ra_pdsch_t));
-  ra_dl.harq_process = 0;
-  ra_dl.mcs_idx = mcs_idx;
-  ra_dl.ndi = 0;
-  ra_dl.rv_idx = 0;
-  ra_dl.alloc_type = alloc_type0;
-  ra_dl.type0_alloc.rbg_bitmask = 0xffffffff;
-  
-  dci_msg_pack_pdsch(&ra_dl, &dci_msg, Format1, cell.nof_prb, false);
-  
-  ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb);
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
-  ra_mcs_from_idx_dl(mcs_idx, cell.nof_prb, &ra_dl.mcs);
-
-  ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
+  if (update_radl(&ra_dl)) {
+    exit(-1);
+  }
   
   /* Initiate valid DCI locations */
   for (i=0;i<NSUBFRAMES_X_FRAME;i++) {
@@ -352,11 +387,6 @@ int main(int argc, char **argv) {
   }
     
   nf = 0;
-  
-  if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
-    fprintf(stderr, "Error configuring HARQ process\n");
-    exit(-1);
-  }
   
   bool send_data = false; 
 
@@ -380,6 +410,11 @@ int main(int argc, char **argv) {
 
       pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
 
+      /* Update DL resource allocation from control port */
+      if (update_control(&ra_dl)) {
+        fprintf(stderr, "Error updating parameters from control port\n");
+      }
+      
       /* Transmit PDCCH + PDSCH only when there is data to send */
       if (sf_idx != 0) {
         if (udp_port > 0) {
@@ -405,6 +440,7 @@ int main(int argc, char **argv) {
       }
       
       if (send_data) {
+        dci_msg_pack_pdsch(&ra_dl, &dci_msg, Format1, cell.nof_prb, false);
         INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
         if (pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
           fprintf(stderr, "Error encoding DCI message\n");
@@ -433,7 +469,7 @@ int main(int argc, char **argv) {
       nf++;
     }
     sfn = (sfn + 1) % 1024;
-    printf("SFN: %4d\r", sfn);
+    printf("SFN: %4d\tType new MCS index and press Enter\r", sfn);
     fflush(stdout);
   }
 

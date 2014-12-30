@@ -137,13 +137,14 @@ int main(int argc, char **argv) {
 
   mcs.tbs = tbs;
   mcs.mod = modulation;
+  
   prb_alloc.slot[0].nof_prb = cell.nof_prb;
   for (i=0;i<prb_alloc.slot[0].nof_prb;i++) {
     prb_alloc.slot[0].prb_idx[i] = i;
   }
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, 2, CPNORM);
+  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
 
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {

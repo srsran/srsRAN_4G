@@ -675,60 +675,66 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       harq_process          != NULL)
   {
     
-    nof_bits = harq_process->mcs.tbs;
-    nof_symbols = harq_process->prb_alloc.re_sf[subframe];
-    nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process->mcs.mod);
+    if (q->rnti_is_set) {
+      nof_bits = harq_process->mcs.tbs;
+      nof_symbols = harq_process->prb_alloc.re_sf[subframe];
+      nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process->mcs.mod);
 
 
-    INFO("Decoding PDSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-        subframe, lte_mod_string(harq_process->mcs.mod), nof_bits, nof_symbols, nof_bits_e, rv_idx);
+      INFO("Decoding PDSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+          subframe, lte_mod_string(harq_process->mcs.mod), nof_bits, nof_symbols, nof_bits_e, rv_idx);
 
-    /* number of layers equals number of ports */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      x[i] = q->pdsch_x[i];
-    }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
-      
-    /* extract symbols */
-    n = pdsch_get(q, sf_symbols, q->pdsch_symbols[0], &harq_process->prb_alloc, subframe);
-    if (n != nof_symbols) {
-      fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
-      return LIBLTE_ERROR;
-    }
-    
-    /* extract channel estimates */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      n = pdsch_get(q, ce[i], q->ce[i], &harq_process->prb_alloc, subframe);
+      /* number of layers equals number of ports */
+      for (i = 0; i < q->cell.nof_ports; i++) {
+        x[i] = q->pdsch_x[i];
+      }
+      memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+        
+      /* extract symbols */
+      n = pdsch_get(q, sf_symbols, q->pdsch_symbols[0], &harq_process->prb_alloc, subframe);
       if (n != nof_symbols) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
         return LIBLTE_ERROR;
       }
-    }
+      
+      /* extract channel estimates */
+      for (i = 0; i < q->cell.nof_ports; i++) {
+        n = pdsch_get(q, ce[i], q->ce[i], &harq_process->prb_alloc, subframe);
+        if (n != nof_symbols) {
+          fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
+          return LIBLTE_ERROR;
+        }
+      }
 
-    /* TODO: only diversity is supported */
-    if (q->cell.nof_ports == 1) {
-      /* no need for layer demapping */
-      predecoding_single(&q->precoding, q->pdsch_symbols[0], q->ce[0], q->pdsch_d,
-          nof_symbols, noise_estimate);
+      /* TODO: only diversity is supported */
+      if (q->cell.nof_ports == 1) {
+        /* no need for layer demapping */
+        predecoding_single(&q->precoding, q->pdsch_symbols[0], q->ce[0], q->pdsch_d,
+            nof_symbols, noise_estimate);
+      } else {
+        predecoding_diversity(&q->precoding, q->pdsch_symbols[0], q->ce, x, q->cell.nof_ports,
+            nof_symbols, noise_estimate);
+        layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
+            nof_symbols / q->cell.nof_ports);
+      }
+      
+      /* demodulate symbols 
+      * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
+      * thus we don't need tot set it in the LLRs normalization
+      */
+      demod_soft_sigma_set(&q->demod, sqrt((float) lte_mod_bits_x_symbol(harq_process->mcs.mod)/2));
+      demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod]);
+      demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, nof_symbols);
+
+      /* descramble */
+      scrambling_f_offset(&q->seq_pdsch[subframe], q->pdsch_e, 0, nof_bits_e);
+
+      return pdsch_decode_tb(q, data, nof_bits, nof_bits_e, harq_process, rv_idx);      
     } else {
-      predecoding_diversity(&q->precoding, q->pdsch_symbols[0], q->ce, x, q->cell.nof_ports,
-          nof_symbols, noise_estimate);
-      layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
-          nof_symbols / q->cell.nof_ports);
+      fprintf(stderr, "Must call pdsch_set_rnti() before calling pdsch_decode()\n");
+      return LIBLTE_ERROR; 
     }
     
-    /* demodulate symbols 
-     * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
-     * thus we don't need tot set it in the LLRs normalization
-     */
-    demod_soft_sigma_set(&q->demod, sqrt((float) lte_mod_bits_x_symbol(harq_process->mcs.mod)/2));
-    demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod]);
-    demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, nof_symbols);
-
-    /* descramble */
-    scrambling_f_offset(&q->seq_pdsch[subframe], q->pdsch_e, 0, nof_bits_e);
-
-    return pdsch_decode_tb(q, data, nof_bits, nof_bits_e, harq_process, rv_idx);
   } else {
     return LIBLTE_ERROR_INVALID_INPUTS;
   }

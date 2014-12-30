@@ -98,6 +98,8 @@ ADD_TEST(pdsch_test_qpsk pdsch_test -l 1000 -m 2 -n 50 -r 1)
 ADD_TEST(pdsch_test_qam16 pdsch_test -l 50000 -m 4 -n 110)
 ADD_TEST(pdsch_test_qam64 pdsch_test -l 5000 -m 6 -n 50 -r 0)
 
+BuildMex(MEXNAME pdsch SOURCES pdsch_test_mex.c LIBRARIES lte_phy liblte_mex)
+
 ########################################################################
 # FILE TEST  
 ########################################################################

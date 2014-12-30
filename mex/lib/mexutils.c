@@ -36,6 +36,21 @@ bool mexutils_isScalar(const mxArray *ptr) {
   return mxGetM(ptr) == 1 && mxGetN(ptr) == 1;
 }
 
+char *mexutils_get_char_struct(const mxArray *ptr, const char *field_name) {
+  mxArray *p; 
+  p = mxGetField(ptr, 0, field_name);
+  if (!p) {
+    mexPrintf("Error field %s not found\n", field_name);
+    return NULL;
+  } 
+  
+  if (mxIsCell(p)) {
+    return mxArrayToString(mxGetCell(p,0));
+  } else {
+    return mxArrayToString(p);    
+  }  
+}
+
 int mexutils_read_uint32_struct(const mxArray *ptr, const char *field_name, uint32_t *value) 
 {
   mxArray *p; 
