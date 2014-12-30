@@ -42,10 +42,10 @@ void *uhd;
 
 char *output_file_name = NULL;
 
-#define LEFT_KEY  0x25
-#define RIGHT_KEY 0x27
-#define UP_KEY    0x26
-#define DOWN_KEY  0x28
+#define LEFT_KEY  68
+#define RIGHT_KEY 67
+#define UP_KEY    65
+#define DOWN_KEY  66
 
 lte_cell_t cell = {
   6,            // nof_prb
@@ -59,7 +59,7 @@ lte_cell_t cell = {
 int udp_port = -1; // -1 generates random data
 
 uint32_t cfi=1;
-uint32_t mcs_idx = 12;
+uint32_t mcs_idx = 12, last_mcs_idx = 12;
 int nof_frames = -1;
 
 char *uhd_args = "";
@@ -265,19 +265,28 @@ void base_free() {
   }  
 }
 
-int prbset_num = 1; 
+int prbset_num = 1, last_prbset_num = 1; 
 int prbset_orig = 0; 
+
+unsigned int
+reverse(register unsigned int x)
+{
+    x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
+    x = (((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2));
+    x = (((x & 0xf0f0f0f0) >> 4) | ((x & 0x0f0f0f0f) << 4));
+    x = (((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8));
+    return((x >> 16) | (x << 16));
+
+}
 
 uint32_t prbset_to_bitmask() {
   uint32_t mask=0;
-  int k = 0;
-  for (int i=-cell.nof_prb/2;i<cell.nof_prb/2;i++) {
-    if (i >= prbset_orig - prbset_num/2 && i < prbset_orig + prbset_num/2) {
-      mask = mask | (0x1<<k);     
+  for (int i=0;i<cell.nof_prb;i++) {
+    if (i >= prbset_orig && i < prbset_orig + prbset_num) {
+      mask = mask | (0x1<<i);     
     }
-    k++;
   }
-  return mask; 
+  return reverse(mask)>>(32-cell.nof_prb); 
 }
 
 int update_radl(ra_pdsch_t *ra_dl) {
@@ -321,24 +330,37 @@ int update_control(ra_pdsch_t *ra_dl) {
   if (n == 1) {
     // stdin ready
     if (fgets(input, sizeof(input), stdin)) {
-      switch(input[0]) {
-        case LEFT_KEY:
-          prbset_orig++;
-          break;
-        case RIGHT_KEY:
-          prbset_orig--;
-          break;
-        case UP_KEY:
-          prbset_num++;
-          break;
-        case DOWN_KEY:
-          if (prbset_num > 0)
-            prbset_num--;          
-          break;
-        default:
-          mcs_idx = atoi(input);          
+      if(input[0] == 27) {
+        switch(input[2]) {
+          case RIGHT_KEY:
+            if (prbset_orig  + prbset_num < cell.nof_prb)
+              prbset_orig++;
+            break;
+          case LEFT_KEY:
+            if (prbset_orig > 0)
+              prbset_orig--;
+            break;
+          case UP_KEY:
+            if (prbset_num < cell.nof_prb)
+              prbset_num++;
+            break;
+          case DOWN_KEY:
+            last_prbset_num = prbset_num;
+            if (prbset_num > 0)
+              prbset_num--;          
+            break;          
+        }
+      } else {
+        last_mcs_idx = mcs_idx; 
+        mcs_idx = atoi(input);          
       }
-      return update_radl(ra_dl);
+      bzero(input,sizeof(input));
+      if (update_radl(ra_dl)) {
+        printf("Trying with last known MCS index\n");
+        mcs_idx = last_mcs_idx; 
+        prbset_num = last_prbset_num; 
+        return update_radl(ra_dl);
+      }
     }
     return 0; 
   } else if (n < 0) {
@@ -451,7 +473,7 @@ int main(int argc, char **argv) {
       }
       
       /* Transmit PDCCH + PDSCH only when there is data to send */
-      if (sf_idx != 0) {
+      if (sf_idx != 0 && sf_idx != 5) {
         if (udp_port > 0) {
           int n = udpsource_read(&udp_source, data_unpacked, 1+(ra_dl.mcs.tbs-1)/8);
           if (n > 0) {
