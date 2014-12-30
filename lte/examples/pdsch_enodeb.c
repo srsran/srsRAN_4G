@@ -42,6 +42,11 @@ void *uhd;
 
 char *output_file_name = NULL;
 
+#define LEFT_KEY  0x25
+#define RIGHT_KEY 0x27
+#define UP_KEY    0x26
+#define DOWN_KEY  0x28
+
 lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
@@ -257,8 +262,22 @@ void base_free() {
   
   if (udp_port > 0) {
     udpsource_free(&udp_source);
+  }  
+}
+
+int prbset_num = 1; 
+int prbset_orig = 0; 
+
+uint32_t prbset_to_bitmask() {
+  uint32_t mask=0;
+  int k = 0;
+  for (int i=-cell.nof_prb/2;i<cell.nof_prb/2;i++) {
+    if (i >= prbset_orig - prbset_num/2 && i < prbset_orig + prbset_num/2) {
+      mask = mask | (0x1<<k);     
+    }
+    k++;
   }
-  
+  return mask; 
 }
 
 int update_radl(ra_pdsch_t *ra_dl) {
@@ -270,7 +289,7 @@ int update_radl(ra_pdsch_t *ra_dl) {
   ra_dl->ndi = 0;
   ra_dl->rv_idx = 0;
   ra_dl->alloc_type = alloc_type0;
-  ra_dl->type0_alloc.rbg_bitmask = 0xffffffff;
+  ra_dl->type0_alloc.rbg_bitmask = prbset_to_bitmask();
     
   ra_prb_get_dl(&prb_alloc, ra_dl, cell.nof_prb);
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
@@ -302,7 +321,23 @@ int update_control(ra_pdsch_t *ra_dl) {
   if (n == 1) {
     // stdin ready
     if (fgets(input, sizeof(input), stdin)) {
-      mcs_idx = atoi(input);
+      switch(input[0]) {
+        case LEFT_KEY:
+          prbset_orig++;
+          break;
+        case RIGHT_KEY:
+          prbset_orig--;
+          break;
+        case UP_KEY:
+          prbset_num++;
+          break;
+        case DOWN_KEY:
+          if (prbset_num > 0)
+            prbset_num--;          
+          break;
+        default:
+          mcs_idx = atoi(input);          
+      }
       return update_radl(ra_dl);
     }
     return 0; 
