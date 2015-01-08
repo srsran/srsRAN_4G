@@ -9,13 +9,13 @@
 #define	_RadioResourceConfigDedicated_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "MAC-MainConfig.h"
-#include <NULL.h>
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/MAC-MainConfig.h"
+#include <liblte/rrc/asn/NULL.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,14 +71,14 @@ extern asn_TYPE_descriptor_t asn_DEF_RadioResourceConfigDedicated;
 #endif
 
 /* Referred external types */
-#include "SRB-ToAddModList.h"
-#include "DRB-ToAddModList.h"
-#include "DRB-ToReleaseList.h"
-#include "SPS-Config.h"
-#include "PhysicalConfigDedicated.h"
-#include "RLF-TimersAndConstants-r9.h"
-#include "MeasSubframePatternPCell-r10.h"
-#include "SPS-RA-ConfigList-rlola.h"
+#include "liblte/rrc/asn/SRB-ToAddModList.h"
+#include "liblte/rrc/asn/DRB-ToAddModList.h"
+#include "liblte/rrc/asn/DRB-ToReleaseList.h"
+#include "liblte/rrc/asn/SPS-Config.h"
+#include "liblte/rrc/asn/PhysicalConfigDedicated.h"
+#include "liblte/rrc/asn/RLF-TimersAndConstants-r9.h"
+#include "liblte/rrc/asn/MeasSubframePatternPCell-r10.h"
+#include "liblte/rrc/asn/SPS-RA-ConfigList-rlola.h"
 
 #endif	/* _RadioResourceConfigDedicated_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PRACH-Config.h"
+#include "liblte/rrc/asn/PRACH-Config.h"
 
 static int
 memb_rootSequenceIndex_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

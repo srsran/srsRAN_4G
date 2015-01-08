@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UL-AM-RLC.h"
+#include "liblte/rrc/asn/UL-AM-RLC.h"
 
 static int
 maxRetxThreshold_5_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

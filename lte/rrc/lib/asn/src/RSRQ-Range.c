@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RSRQ-Range.h"
+#include "liblte/rrc/asn/RSRQ-Range.h"
 
 int
 RSRQ_Range_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

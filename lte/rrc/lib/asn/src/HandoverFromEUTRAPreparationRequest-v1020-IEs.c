@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "HandoverFromEUTRAPreparationRequest-v1020-IEs.h"
+#include "liblte/rrc/asn/HandoverFromEUTRAPreparationRequest-v1020-IEs.h"
 
 static int
 dualRxTxRedirectIndicator_r10_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

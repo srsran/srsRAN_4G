@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "Paging-v920-IEs.h"
+#include "liblte/rrc/asn/Paging-v920-IEs.h"
 
 static int
 cmas_Indication_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

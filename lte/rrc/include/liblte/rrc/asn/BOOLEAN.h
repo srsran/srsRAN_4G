@@ -5,7 +5,7 @@
 #ifndef	_BOOLEAN_H_
 #define	_BOOLEAN_H_
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 #ifdef __cplusplus
 extern "C" {

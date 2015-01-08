@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRC-TransactionIdentifier.h"
+#include "liblte/rrc/asn/RRC-TransactionIdentifier.h"
 
 int
 RRC_TransactionIdentifier_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

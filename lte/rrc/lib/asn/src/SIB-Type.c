@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SIB-Type.h"
+#include "liblte/rrc/asn/SIB-Type.h"
 
 int
 SIB_Type_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

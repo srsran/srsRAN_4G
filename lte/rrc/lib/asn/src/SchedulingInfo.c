@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SchedulingInfo.h"
+#include "liblte/rrc/asn/SchedulingInfo.h"
 
 static int
 si_Periodicity_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

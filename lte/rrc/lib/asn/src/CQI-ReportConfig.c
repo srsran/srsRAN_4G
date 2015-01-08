@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CQI-ReportConfig.h"
+#include "liblte/rrc/asn/CQI-ReportConfig.h"
 
 static int
 memb_nomPDSCH_RS_EPRE_Offset_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -9,16 +9,16 @@
 #define	_SystemInformationBlockType8_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
-#include <OCTET_STRING.h>
-#include <BOOLEAN.h>
-#include <NativeEnumerated.h>
-#include "PreRegistrationInfoHRPD.h"
-#include <constr_SEQUENCE.h>
-#include <BIT_STRING.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include <liblte/rrc/asn/BOOLEAN.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/PreRegistrationInfoHRPD.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/BIT_STRING.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,12 +77,12 @@ extern asn_TYPE_descriptor_t asn_DEF_SystemInformationBlockType8;
 #endif
 
 /* Referred external types */
-#include "SystemTimeInfoCDMA2000.h"
-#include "CellReselectionParametersCDMA2000-v920.h"
-#include "CSFB-RegistrationParam1XRTT-v920.h"
-#include "AC-BarringConfig1XRTT-r9.h"
-#include "CellReselectionParametersCDMA2000.h"
-#include "CSFB-RegistrationParam1XRTT.h"
+#include "liblte/rrc/asn/SystemTimeInfoCDMA2000.h"
+#include "liblte/rrc/asn/CellReselectionParametersCDMA2000-v920.h"
+#include "liblte/rrc/asn/CSFB-RegistrationParam1XRTT-v920.h"
+#include "liblte/rrc/asn/AC-BarringConfig1XRTT-r9.h"
+#include "liblte/rrc/asn/CellReselectionParametersCDMA2000.h"
+#include "liblte/rrc/asn/CSFB-RegistrationParam1XRTT.h"
 
 #endif	/* _SystemInformationBlockType8_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

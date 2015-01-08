@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MobilityFromEUTRACommand-r8-IEs.h"
+#include "liblte/rrc/asn/MobilityFromEUTRACommand-r8-IEs.h"
 
 static asn_per_constraints_t asn_PER_type_purpose_constr_3 = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

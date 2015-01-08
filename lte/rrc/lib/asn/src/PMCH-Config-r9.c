@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PMCH-Config-r9.h"
+#include "liblte/rrc/asn/PMCH-Config-r9.h"
 
 static int
 mch_SchedulingPeriod_r9_4_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

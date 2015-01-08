@@ -9,10 +9,10 @@
 #define	_SIB_Type_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeEnumerated.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,4 +61,4 @@ per_type_encoder_f SIB_Type_encode_uper;
 #endif
 
 #endif	/* _SIB_Type_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

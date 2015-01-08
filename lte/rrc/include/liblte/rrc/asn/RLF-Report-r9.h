@@ -9,18 +9,18 @@
 #define	_RLF_Report_r9_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
-#include <NativeEnumerated.h>
-#include "RSRP-Range.h"
-#include "RSRQ-Range.h"
-#include <constr_SEQUENCE.h>
-#include "CellGlobalIdEUTRA.h"
-#include "PhysCellId.h"
-#include "ARFCN-ValueEUTRA.h"
-#include <constr_CHOICE.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/RSRP-Range.h"
+#include "liblte/rrc/asn/RSRQ-Range.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CellGlobalIdEUTRA.h"
+#include "liblte/rrc/asn/PhysCellId.h"
+#include "liblte/rrc/asn/ARFCN-ValueEUTRA.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,12 +98,12 @@ extern asn_TYPE_descriptor_t asn_DEF_RLF_Report_r9;
 #endif
 
 /* Referred external types */
-#include "LocationInfo-r10.h"
-#include "CellGlobalIdEUTRA.h"
-#include "MeasResultList2EUTRA-r9.h"
-#include "MeasResultList2UTRA-r9.h"
-#include "MeasResultListGERAN.h"
-#include "MeasResultList2CDMA2000-r9.h"
+#include "liblte/rrc/asn/LocationInfo-r10.h"
+#include "liblte/rrc/asn/CellGlobalIdEUTRA.h"
+#include "liblte/rrc/asn/MeasResultList2EUTRA-r9.h"
+#include "liblte/rrc/asn/MeasResultList2UTRA-r9.h"
+#include "liblte/rrc/asn/MeasResultListGERAN.h"
+#include "liblte/rrc/asn/MeasResultList2CDMA2000-r9.h"
 
 #endif	/* _RLF_Report_r9_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

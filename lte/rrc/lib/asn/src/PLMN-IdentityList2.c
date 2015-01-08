@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PLMN-IdentityList2.h"
+#include "liblte/rrc/asn/PLMN-IdentityList2.h"
 
 static asn_per_constraints_t asn_PER_type_PLMN_IdentityList2_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

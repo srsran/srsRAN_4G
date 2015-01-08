@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasResultGERAN.h"
+#include "liblte/rrc/asn/MeasResultGERAN.h"
 
 static int
 memb_routingAreaCode_constraint_4(asn_TYPE_descriptor_t *td, const void *sptr,

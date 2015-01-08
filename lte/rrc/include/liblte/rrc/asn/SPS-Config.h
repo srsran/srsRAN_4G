@@ -9,11 +9,11 @@
 #define	_SPS_Config_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "C-RNTI.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/C-RNTI.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,8 +41,8 @@ extern asn_TYPE_descriptor_t asn_DEF_SPS_Config;
 #endif
 
 /* Referred external types */
-#include "SPS-ConfigDL.h"
-#include "SPS-ConfigUL.h"
+#include "liblte/rrc/asn/SPS-ConfigDL.h"
+#include "liblte/rrc/asn/SPS-ConfigUL.h"
 
 #endif	/* _SPS_Config_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

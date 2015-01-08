@@ -8,8 +8,8 @@
 #ifndef	_ASN_APPLICATION_H_
 #define	_ASN_APPLICATION_H_
 
-#include "asn_system.h"		/* for platform-dependent types */
-#include "asn_codecs.h"		/* for ASN.1 codecs specifics */
+#include "liblte/rrc/asn/asn_system.h"		/* for platform-dependent types */
+#include "liblte/rrc/asn/asn_codecs.h"		/* for ASN.1 codecs specifics */
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +42,6 @@ typedef void (asn_app_constraint_failed_f)(void *application_specific_key,
 }
 #endif
 
-#include "constr_TYPE.h"	/* for asn_TYPE_descriptor_t */
+#include "liblte/rrc/asn/constr_TYPE.h"	/* for asn_TYPE_descriptor_t */
 
 #endif	/* _ASN_APPLICATION_H_ */

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PhyLayerParameters-v1020.h"
+#include "liblte/rrc/asn/PhyLayerParameters-v1020.h"
 
 static int
 twoAntennaPortsForPUCCH_r10_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

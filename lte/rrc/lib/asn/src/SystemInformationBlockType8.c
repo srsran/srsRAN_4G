@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType8.h"
+#include "liblte/rrc/asn/SystemInformationBlockType8.h"
 
 static int
 memb_longCodeState1XRTT_constraint_7(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "BCCH-BCH-Message.h"
+#include "liblte/rrc/asn/BCCH-BCH-Message.h"
 
 static asn_TYPE_member_t asn_MBR_BCCH_BCH_Message_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct BCCH_BCH_Message, message),

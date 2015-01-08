@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionReconfiguration-r8-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionReconfiguration-r8-IEs.h"
 
 static int
 memb_dedicatedInfoNASList_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

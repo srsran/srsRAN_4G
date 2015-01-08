@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RSTD-InterFreqInfo-r10.h"
+#include "liblte/rrc/asn/RSTD-InterFreqInfo-r10.h"
 
 static int
 memb_measPRS_Offset_r10_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

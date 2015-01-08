@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "FilterCoefficient.h"
+#include "liblte/rrc/asn/FilterCoefficient.h"
 
 int
 FilterCoefficient_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

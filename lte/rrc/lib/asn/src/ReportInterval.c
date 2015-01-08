@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReportInterval.h"
+#include "liblte/rrc/asn/ReportInterval.h"
 
 int
 ReportInterval_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

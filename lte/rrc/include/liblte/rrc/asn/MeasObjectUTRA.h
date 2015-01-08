@@ -9,17 +9,17 @@
 #define	_MeasObjectUTRA_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "ARFCN-ValueUTRA.h"
-#include "Q-OffsetRangeInterRAT.h"
-#include "CellsToAddModListUTRA-FDD.h"
-#include "CellsToAddModListUTRA-TDD.h"
-#include <constr_CHOICE.h>
-#include "PhysCellIdUTRA-FDD.h"
-#include "PhysCellIdUTRA-TDD.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ARFCN-ValueUTRA.h"
+#include "liblte/rrc/asn/Q-OffsetRangeInterRAT.h"
+#include "liblte/rrc/asn/CellsToAddModListUTRA-FDD.h"
+#include "liblte/rrc/asn/CellsToAddModListUTRA-TDD.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include "liblte/rrc/asn/PhysCellIdUTRA-FDD.h"
+#include "liblte/rrc/asn/PhysCellIdUTRA-TDD.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,8 +80,8 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasObjectUTRA;
 #endif
 
 /* Referred external types */
-#include "CellIndexList.h"
-#include "CSG-AllowedReportingCells-r9.h"
+#include "liblte/rrc/asn/CellIndexList.h"
+#include "liblte/rrc/asn/CSG-AllowedReportingCells-r9.h"
 
 #endif	/* _MeasObjectUTRA_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

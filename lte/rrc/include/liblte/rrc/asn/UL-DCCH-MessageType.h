@@ -9,27 +9,27 @@
 #define	_UL_DCCH_MessageType_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CSFBParametersRequestCDMA2000.h"
-#include "MeasurementReport.h"
-#include "RRCConnectionReconfigurationComplete.h"
-#include "RRCConnectionReestablishmentComplete.h"
-#include "RRCConnectionSetupComplete.h"
-#include "SecurityModeComplete.h"
-#include "SecurityModeFailure.h"
-#include "UECapabilityInformation.h"
-#include "ULHandoverPreparationTransfer.h"
-#include "ULInformationTransfer.h"
-#include "CounterCheckResponse.h"
-#include "UEInformationResponse-r9.h"
-#include "ProximityIndication-r9.h"
-#include "RNReconfigurationComplete-r10.h"
-#include "MBMSCountingResponse-r10.h"
-#include "InterFreqRSTDMeasurementIndication-r10.h"
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CSFBParametersRequestCDMA2000.h"
+#include "liblte/rrc/asn/MeasurementReport.h"
+#include "liblte/rrc/asn/RRCConnectionReconfigurationComplete.h"
+#include "liblte/rrc/asn/RRCConnectionReestablishmentComplete.h"
+#include "liblte/rrc/asn/RRCConnectionSetupComplete.h"
+#include "liblte/rrc/asn/SecurityModeComplete.h"
+#include "liblte/rrc/asn/SecurityModeFailure.h"
+#include "liblte/rrc/asn/UECapabilityInformation.h"
+#include "liblte/rrc/asn/ULHandoverPreparationTransfer.h"
+#include "liblte/rrc/asn/ULInformationTransfer.h"
+#include "liblte/rrc/asn/CounterCheckResponse.h"
+#include "liblte/rrc/asn/UEInformationResponse-r9.h"
+#include "liblte/rrc/asn/ProximityIndication-r9.h"
+#include "liblte/rrc/asn/RNReconfigurationComplete-r10.h"
+#include "liblte/rrc/asn/MBMSCountingResponse-r10.h"
+#include "liblte/rrc/asn/InterFreqRSTDMeasurementIndication-r10.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -108,4 +108,4 @@ extern asn_TYPE_descriptor_t asn_DEF_UL_DCCH_MessageType;
 #endif
 
 #endif	/* _UL_DCCH_MessageType_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

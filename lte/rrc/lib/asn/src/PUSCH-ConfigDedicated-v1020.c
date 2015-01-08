@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PUSCH-ConfigDedicated-v1020.h"
+#include "liblte/rrc/asn/PUSCH-ConfigDedicated-v1020.h"
 
 static int
 memb_betaOffset_ACK_Index_MC_r10_constraint_2(asn_TYPE_descriptor_t *td, const void *sptr,

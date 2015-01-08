@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SN-FieldLength.h"
+#include "liblte/rrc/asn/SN-FieldLength.h"
 
 int
 SN_FieldLength_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

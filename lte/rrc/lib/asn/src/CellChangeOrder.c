@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CellChangeOrder.h"
+#include "liblte/rrc/asn/CellChangeOrder.h"
 
 static int
 t304_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -9,13 +9,13 @@
 #define	_HandoverFromEUTRAPreparationRequest_r8_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CDMA2000-Type.h"
-#include "RAND-CDMA2000.h"
-#include "MobilityParametersCDMA2000.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CDMA2000-Type.h"
+#include "liblte/rrc/asn/RAND-CDMA2000.h"
+#include "liblte/rrc/asn/MobilityParametersCDMA2000.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,7 +43,7 @@ extern asn_TYPE_descriptor_t asn_DEF_HandoverFromEUTRAPreparationRequest_r8_IEs;
 #endif
 
 /* Referred external types */
-#include "HandoverFromEUTRAPreparationRequest-v890-IEs.h"
+#include "liblte/rrc/asn/HandoverFromEUTRAPreparationRequest-v890-IEs.h"
 
 #endif	/* _HandoverFromEUTRAPreparationRequest_r8_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CellInfoUTRA-TDD-r9.h"
+#include "liblte/rrc/asn/CellInfoUTRA-TDD-r9.h"
 
 static asn_TYPE_member_t asn_MBR_CellInfoUTRA_TDD_r9_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct CellInfoUTRA_TDD_r9, physCellId_r9),

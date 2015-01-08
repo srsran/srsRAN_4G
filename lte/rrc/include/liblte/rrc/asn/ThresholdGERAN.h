@@ -9,10 +9,10 @@
 #define	_ThresholdGERAN_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
+#include <liblte/rrc/asn/NativeInteger.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,4 +38,4 @@ per_type_encoder_f ThresholdGERAN_encode_uper;
 #endif
 
 #endif	/* _ThresholdGERAN_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

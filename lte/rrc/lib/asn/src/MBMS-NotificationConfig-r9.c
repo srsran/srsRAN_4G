@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MBMS-NotificationConfig-r9.h"
+#include "liblte/rrc/asn/MBMS-NotificationConfig-r9.h"
 
 static int
 notificationRepetitionCoeff_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

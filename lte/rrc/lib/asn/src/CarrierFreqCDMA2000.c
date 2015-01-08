@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CarrierFreqCDMA2000.h"
+#include "liblte/rrc/asn/CarrierFreqCDMA2000.h"
 
 static asn_TYPE_member_t asn_MBR_CarrierFreqCDMA2000_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct CarrierFreqCDMA2000, bandClass),

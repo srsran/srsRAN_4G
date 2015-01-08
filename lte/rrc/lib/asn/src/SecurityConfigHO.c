@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SecurityConfigHO.h"
+#include "liblte/rrc/asn/SecurityConfigHO.h"
 
 static int
 memb_nas_SecurityParamToEUTRA_constraint_7(asn_TYPE_descriptor_t *td, const void *sptr,

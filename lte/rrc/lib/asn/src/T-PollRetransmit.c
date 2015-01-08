@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "T-PollRetransmit.h"
+#include "liblte/rrc/asn/T-PollRetransmit.h"
 
 int
 T_PollRetransmit_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

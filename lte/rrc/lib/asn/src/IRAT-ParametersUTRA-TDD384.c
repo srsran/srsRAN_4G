@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "IRAT-ParametersUTRA-TDD384.h"
+#include "liblte/rrc/asn/IRAT-ParametersUTRA-TDD384.h"
 
 static asn_TYPE_member_t asn_MBR_IRAT_ParametersUTRA_TDD384_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct IRAT_ParametersUTRA_TDD384, supportedBandListUTRA_TDD384),

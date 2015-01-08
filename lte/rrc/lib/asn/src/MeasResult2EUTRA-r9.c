@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasResult2EUTRA-r9.h"
+#include "liblte/rrc/asn/MeasResult2EUTRA-r9.h"
 
 static asn_TYPE_member_t asn_MBR_MeasResult2EUTRA_r9_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct MeasResult2EUTRA_r9, carrierFreq_r9),

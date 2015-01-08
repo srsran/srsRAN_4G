@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "Hysteresis.h"
+#include "liblte/rrc/asn/Hysteresis.h"
 
 int
 Hysteresis_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

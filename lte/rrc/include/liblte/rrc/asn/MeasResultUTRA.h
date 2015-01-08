@@ -9,16 +9,16 @@
 #define	_MeasResultUTRA_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "PhysCellIdUTRA-FDD.h"
-#include "PhysCellIdUTRA-TDD.h"
-#include <constr_CHOICE.h>
-#include "CellGlobalIdUTRA.h"
-#include <BIT_STRING.h>
-#include <constr_SEQUENCE.h>
-#include <NativeInteger.h>
+#include "liblte/rrc/asn/PhysCellIdUTRA-FDD.h"
+#include "liblte/rrc/asn/PhysCellIdUTRA-TDD.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include "liblte/rrc/asn/CellGlobalIdUTRA.h"
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeInteger.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,8 +77,8 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasResultUTRA;
 #endif
 
 /* Referred external types */
-#include "PLMN-IdentityList2.h"
-#include "AdditionalSI-Info-r9.h"
+#include "liblte/rrc/asn/PLMN-IdentityList2.h"
+#include "liblte/rrc/asn/AdditionalSI-Info-r9.h"
 
 #endif	/* _MeasResultUTRA_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

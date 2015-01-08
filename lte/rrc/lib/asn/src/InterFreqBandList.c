@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "InterFreqBandList.h"
+#include "liblte/rrc/asn/InterFreqBandList.h"
 
 static asn_per_constraints_t asn_PER_type_InterFreqBandList_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

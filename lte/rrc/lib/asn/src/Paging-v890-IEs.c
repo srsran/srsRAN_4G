@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "Paging-v890-IEs.h"
+#include "liblte/rrc/asn/Paging-v890-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_Paging_v890_IEs_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct Paging_v890_IEs, lateNonCriticalExtension),

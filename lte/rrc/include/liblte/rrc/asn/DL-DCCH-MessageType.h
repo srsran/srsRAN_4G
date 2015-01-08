@@ -9,24 +9,24 @@
 #define	_DL_DCCH_MessageType_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CSFBParametersResponseCDMA2000.h"
-#include "DLInformationTransfer.h"
-#include "HandoverFromEUTRAPreparationRequest.h"
-#include "MobilityFromEUTRACommand.h"
-#include "RRCConnectionReconfiguration.h"
-#include "RRCConnectionRelease.h"
-#include "SecurityModeCommand.h"
-#include "UECapabilityEnquiry.h"
-#include "CounterCheck.h"
-#include "UEInformationRequest-r9.h"
-#include "LoggedMeasurementConfiguration-r10.h"
-#include "RNReconfiguration-r10.h"
-#include <NULL.h>
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CSFBParametersResponseCDMA2000.h"
+#include "liblte/rrc/asn/DLInformationTransfer.h"
+#include "liblte/rrc/asn/HandoverFromEUTRAPreparationRequest.h"
+#include "liblte/rrc/asn/MobilityFromEUTRACommand.h"
+#include "liblte/rrc/asn/RRCConnectionReconfiguration.h"
+#include "liblte/rrc/asn/RRCConnectionRelease.h"
+#include "liblte/rrc/asn/SecurityModeCommand.h"
+#include "liblte/rrc/asn/UECapabilityEnquiry.h"
+#include "liblte/rrc/asn/CounterCheck.h"
+#include "liblte/rrc/asn/UEInformationRequest-r9.h"
+#include "liblte/rrc/asn/LoggedMeasurementConfiguration-r10.h"
+#include "liblte/rrc/asn/RNReconfiguration-r10.h"
+#include <liblte/rrc/asn/NULL.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -105,4 +105,4 @@ extern asn_TYPE_descriptor_t asn_DEF_DL_DCCH_MessageType;
 #endif
 
 #endif	/* _DL_DCCH_MessageType_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

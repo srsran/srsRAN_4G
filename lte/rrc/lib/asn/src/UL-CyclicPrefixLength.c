@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UL-CyclicPrefixLength.h"
+#include "liblte/rrc/asn/UL-CyclicPrefixLength.h"
 
 int
 UL_CyclicPrefixLength_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

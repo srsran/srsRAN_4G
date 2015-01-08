@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "LoggedMeasurementConfiguration-r10-IEs.h"
+#include "liblte/rrc/asn/LoggedMeasurementConfiguration-r10-IEs.h"
 
 static int
 memb_traceRecordingSessionRef_r10_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

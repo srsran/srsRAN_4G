@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "BandIndicatorGERAN.h"
+#include "liblte/rrc/asn/BandIndicatorGERAN.h"
 
 int
 BandIndicatorGERAN_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

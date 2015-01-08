@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PDSCH-ConfigDedicated.h"
+#include "liblte/rrc/asn/PDSCH-ConfigDedicated.h"
 
 static int
 p_a_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

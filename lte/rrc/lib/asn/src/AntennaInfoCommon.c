@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "AntennaInfoCommon.h"
+#include "liblte/rrc/asn/AntennaInfoCommon.h"
 
 static int
 antennaPortsCount_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

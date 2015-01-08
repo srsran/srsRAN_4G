@@ -9,11 +9,11 @@
 #define	_ThresholdUTRA_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
-#include <constr_CHOICE.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,4 +46,4 @@ extern asn_TYPE_descriptor_t asn_DEF_ThresholdUTRA;
 #endif
 
 #endif	/* _ThresholdUTRA_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

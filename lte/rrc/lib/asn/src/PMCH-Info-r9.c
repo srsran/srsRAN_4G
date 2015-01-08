@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PMCH-Info-r9.h"
+#include "liblte/rrc/asn/PMCH-Info-r9.h"
 
 static asn_TYPE_member_t asn_MBR_PMCH_Info_r9_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct PMCH_Info_r9, pmch_Config_r9),

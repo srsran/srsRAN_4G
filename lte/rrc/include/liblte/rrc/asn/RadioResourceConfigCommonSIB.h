@@ -9,20 +9,20 @@
 #define	_RadioResourceConfigCommonSIB_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "RACH-ConfigCommon.h"
-#include "BCCH-Config.h"
-#include "PCCH-Config.h"
-#include "PRACH-ConfigSIB.h"
-#include "PDSCH-ConfigCommon.h"
-#include "PUSCH-ConfigCommon.h"
-#include "PUCCH-ConfigCommon.h"
-#include "SoundingRS-UL-ConfigCommon.h"
-#include "UplinkPowerControlCommon.h"
-#include "UL-CyclicPrefixLength.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/RACH-ConfigCommon.h"
+#include "liblte/rrc/asn/BCCH-Config.h"
+#include "liblte/rrc/asn/PCCH-Config.h"
+#include "liblte/rrc/asn/PRACH-ConfigSIB.h"
+#include "liblte/rrc/asn/PDSCH-ConfigCommon.h"
+#include "liblte/rrc/asn/PUSCH-ConfigCommon.h"
+#include "liblte/rrc/asn/PUCCH-ConfigCommon.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigCommon.h"
+#include "liblte/rrc/asn/UplinkPowerControlCommon.h"
+#include "liblte/rrc/asn/UL-CyclicPrefixLength.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +57,7 @@ extern asn_TYPE_descriptor_t asn_DEF_RadioResourceConfigCommonSIB;
 #endif
 
 /* Referred external types */
-#include "UplinkPowerControlCommon-v1020.h"
+#include "liblte/rrc/asn/UplinkPowerControlCommon-v1020.h"
 
 #endif	/* _RadioResourceConfigCommonSIB_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

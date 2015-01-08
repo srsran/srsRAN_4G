@@ -4,7 +4,7 @@
  * 	found in "EUTRA-InterNodeDefinitions.asn"
  */
 
-#include "Key-eNodeB-Star.h"
+#include "liblte/rrc/asn/Key-eNodeB-Star.h"
 
 int
 Key_eNodeB_Star_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

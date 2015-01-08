@@ -4,7 +4,7 @@
  * 	found in "EUTRA-UE-Variables.asn"
  */
 
-#include "VarMeasConfig.h"
+#include "liblte/rrc/asn/VarMeasConfig.h"
 
 static asn_per_constraints_t asn_PER_type_speedStatePars_constr_7 GCC_NOTUSED = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

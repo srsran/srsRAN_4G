@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionRelease-v1020-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionRelease-v1020-IEs.h"
 
 static int
 memb_extendedWaitTime_r10_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

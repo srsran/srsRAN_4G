@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "DRB-ToAddMod.h"
+#include "liblte/rrc/asn/DRB-ToAddMod.h"
 
 static int
 memb_eps_BearerIdentity_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasResultList2CDMA2000-r9.h"
+#include "liblte/rrc/asn/MeasResultList2CDMA2000-r9.h"
 
 static asn_per_constraints_t asn_PER_type_MeasResultList2CDMA2000_r9_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

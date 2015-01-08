@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MBMSCountingRequest-r10.h"
+#include "liblte/rrc/asn/MBMSCountingRequest-r10.h"
 
 static ber_tlv_tag_t asn_DEF_nonCriticalExtension_tags_4[] = {
 	(ASN_TAG_CLASS_CONTEXT | (2 << 2)),

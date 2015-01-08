@@ -9,15 +9,15 @@
 #define	_LogMeasReport_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "AbsoluteTimeInfo-r10.h"
-#include "TraceReference-r10.h"
-#include <OCTET_STRING.h>
-#include "LogMeasInfoList-r10.h"
-#include <NativeEnumerated.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/AbsoluteTimeInfo-r10.h"
+#include "liblte/rrc/asn/TraceReference-r10.h"
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include "liblte/rrc/asn/LogMeasInfoList-r10.h"
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,4 +54,4 @@ extern asn_TYPE_descriptor_t asn_DEF_LogMeasReport_r10;
 #endif
 
 #endif	/* _LogMeasReport_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

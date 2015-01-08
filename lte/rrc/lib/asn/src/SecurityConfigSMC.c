@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SecurityConfigSMC.h"
+#include "liblte/rrc/asn/SecurityConfigSMC.h"
 
 static asn_TYPE_member_t asn_MBR_SecurityConfigSMC_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct SecurityConfigSMC, securityAlgorithmConfig),

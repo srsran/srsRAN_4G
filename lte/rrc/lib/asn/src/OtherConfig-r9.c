@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "OtherConfig-r9.h"
+#include "liblte/rrc/asn/OtherConfig-r9.h"
 
 static asn_TYPE_member_t asn_MBR_OtherConfig_r9_1[] = {
 	{ ATF_POINTER, 1, offsetof(struct OtherConfig_r9, reportProximityConfig_r9),

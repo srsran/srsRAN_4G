@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UE-CapabilityRAT-ContainerList.h"
+#include "liblte/rrc/asn/UE-CapabilityRAT-ContainerList.h"
 
 static asn_per_constraints_t asn_PER_type_UE_CapabilityRAT_ContainerList_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

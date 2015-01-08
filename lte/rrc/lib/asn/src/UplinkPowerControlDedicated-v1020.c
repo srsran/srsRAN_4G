@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UplinkPowerControlDedicated-v1020.h"
+#include "liblte/rrc/asn/UplinkPowerControlDedicated-v1020.h"
 
 static int
 memb_pSRS_OffsetAp_r10_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

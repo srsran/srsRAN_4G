@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CellIndexList.h"
+#include "liblte/rrc/asn/CellIndexList.h"
 
 static asn_per_constraints_t asn_PER_type_CellIndexList_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

@@ -8,10 +8,10 @@
 #define	_Key_eNodeB_Star_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <BIT_STRING.h>
+#include <liblte/rrc/asn/BIT_STRING.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,4 +37,4 @@ per_type_encoder_f Key_eNodeB_Star_encode_uper;
 #endif
 
 #endif	/* _Key_eNodeB_Star_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

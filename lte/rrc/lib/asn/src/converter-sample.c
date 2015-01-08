@@ -18,8 +18,8 @@
 #include <sysexits.h>	/* for EX_* exit codes */
 #include <errno.h>	/* for errno */
 
-#include <asn_application.h>
-#include <asn_internal.h>	/* for _ASN_DEFAULT_STACK_MAX */
+#include <liblte/rrc/asn/asn_application.h>
+#include <liblte/rrc/asn/asn_internal.h>	/* for _ASN_DEFAULT_STACK_MAX */
 
 /* Convert "Type" defined by -DPDU into "asn_DEF_Type" */
 #define	ASN_DEF_PDU(t)	asn_DEF_ ## t

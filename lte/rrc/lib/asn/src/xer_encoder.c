@@ -2,9 +2,9 @@
  * Copyright (c) 2003, 2004 Lev Walkin <vlm@lionet.info>. All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_internal.h>
-//#include <stdio.h>
-//#include <errno.h>
+#include <liblte/rrc/asn/asn_internal.h>
+//#include <liblte/rrc/asn/stdio.h>
+//#include <liblte/rrc/asn/errno.h>
 
 /*
  * The XER encoder of any type. May be invoked by the application.

@@ -1,6 +1,6 @@
-#include <asn_application.h>
-#include <asn_internal.h>
-#include <per_decoder.h>
+#include <liblte/rrc/asn/asn_application.h>
+#include <liblte/rrc/asn/asn_internal.h>
+#include <liblte/rrc/asn/per_decoder.h>
 
 /*
  * Decode a "Production of a complete encoding", X.691#10.1.

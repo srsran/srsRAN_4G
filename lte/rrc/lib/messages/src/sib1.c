@@ -32,7 +32,7 @@
 #include "liblte/rrc/messages/bcch.h"
 #include "liblte/rrc/messages/sib1.h"
 #include "liblte/phy/utils/bit.h"
-#include "rrc_asn.h"
+#include "liblte/rrc/asn/rrc_asn.h"
 
 void read_plmn(PLMN_IdentityInfo_t *msg, plmn_identity_t *plmn) {
   MCC_t *mcc = msg->plmn_Identity.mcc;

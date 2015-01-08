@@ -2,10 +2,10 @@
  * Copyright (c) 2007 Lev Walkin <vlm@lionet.info>. All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_internal.h>
-#include <per_support.h>
-#include <constr_TYPE.h>
-#include <per_opentype.h>
+#include <liblte/rrc/asn/asn_internal.h>
+#include <liblte/rrc/asn/per_support.h>
+#include <liblte/rrc/asn/constr_TYPE.h>
+#include <liblte/rrc/asn/per_opentype.h>
 
 typedef struct uper_ugot_key {
 	asn_per_data_t oldpd;	/* Old per data source */

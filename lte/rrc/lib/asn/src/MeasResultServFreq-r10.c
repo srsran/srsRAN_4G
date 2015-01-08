@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasResultServFreq-r10.h"
+#include "liblte/rrc/asn/MeasResultServFreq-r10.h"
 
 static asn_TYPE_member_t asn_MBR_measResultSCell_r10_3[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct MeasResultServFreq_r10__measResultSCell_r10, rsrpResultSCell_r10),

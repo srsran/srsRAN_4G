@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "AC-BarringConfig.h"
+#include "liblte/rrc/asn/AC-BarringConfig.h"
 
 static int
 ac_BarringFactor_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

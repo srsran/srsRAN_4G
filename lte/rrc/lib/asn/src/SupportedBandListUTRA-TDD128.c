@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SupportedBandListUTRA-TDD128.h"
+#include "liblte/rrc/asn/SupportedBandListUTRA-TDD128.h"
 
 static asn_per_constraints_t asn_PER_type_SupportedBandListUTRA_TDD128_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

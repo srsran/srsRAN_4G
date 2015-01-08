@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RadioResourceConfigCommonSIB.h"
+#include "liblte/rrc/asn/RadioResourceConfigCommonSIB.h"
 
 static asn_TYPE_member_t asn_MBR_RadioResourceConfigCommonSIB_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct RadioResourceConfigCommonSIB, rach_ConfigCommon),

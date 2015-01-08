@@ -9,14 +9,14 @@
 #define	_RadioResourceConfigCommon_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "PRACH-Config.h"
-#include "PUSCH-ConfigCommon.h"
-#include "P-Max.h"
-#include "UL-CyclicPrefixLength.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/PRACH-Config.h"
+#include "liblte/rrc/asn/PUSCH-ConfigCommon.h"
+#include "liblte/rrc/asn/P-Max.h"
+#include "liblte/rrc/asn/UL-CyclicPrefixLength.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,15 +61,15 @@ extern asn_TYPE_descriptor_t asn_DEF_RadioResourceConfigCommon;
 #endif
 
 /* Referred external types */
-#include "RACH-ConfigCommon.h"
-#include "PDSCH-ConfigCommon.h"
-#include "PHICH-Config.h"
-#include "PUCCH-ConfigCommon.h"
-#include "SoundingRS-UL-ConfigCommon.h"
-#include "UplinkPowerControlCommon.h"
-#include "AntennaInfoCommon.h"
-#include "TDD-Config.h"
-#include "UplinkPowerControlCommon-v1020.h"
+#include "liblte/rrc/asn/RACH-ConfigCommon.h"
+#include "liblte/rrc/asn/PDSCH-ConfigCommon.h"
+#include "liblte/rrc/asn/PHICH-Config.h"
+#include "liblte/rrc/asn/PUCCH-ConfigCommon.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigCommon.h"
+#include "liblte/rrc/asn/UplinkPowerControlCommon.h"
+#include "liblte/rrc/asn/AntennaInfoCommon.h"
+#include "liblte/rrc/asn/TDD-Config.h"
+#include "liblte/rrc/asn/UplinkPowerControlCommon-v1020.h"
 
 #endif	/* _RadioResourceConfigCommon_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

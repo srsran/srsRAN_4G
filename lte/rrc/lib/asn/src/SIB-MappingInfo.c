@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SIB-MappingInfo.h"
+#include "liblte/rrc/asn/SIB-MappingInfo.h"
 
 static asn_per_constraints_t asn_PER_type_SIB_MappingInfo_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

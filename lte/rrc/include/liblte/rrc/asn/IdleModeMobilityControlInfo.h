@@ -9,11 +9,11 @@
 #define	_IdleModeMobilityControlInfo_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeEnumerated.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,12 +66,12 @@ extern asn_TYPE_descriptor_t asn_DEF_IdleModeMobilityControlInfo;
 #endif
 
 /* Referred external types */
-#include "FreqPriorityListEUTRA.h"
-#include "FreqsPriorityListGERAN.h"
-#include "FreqPriorityListUTRA-FDD.h"
-#include "FreqPriorityListUTRA-TDD.h"
-#include "BandClassPriorityListHRPD.h"
-#include "BandClassPriorityList1XRTT.h"
+#include "liblte/rrc/asn/FreqPriorityListEUTRA.h"
+#include "liblte/rrc/asn/FreqsPriorityListGERAN.h"
+#include "liblte/rrc/asn/FreqPriorityListUTRA-FDD.h"
+#include "liblte/rrc/asn/FreqPriorityListUTRA-TDD.h"
+#include "liblte/rrc/asn/BandClassPriorityListHRPD.h"
+#include "liblte/rrc/asn/BandClassPriorityList1XRTT.h"
 
 #endif	/* _IdleModeMobilityControlInfo_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

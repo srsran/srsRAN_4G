@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SupportedBandUTRA-TDD384.h"
+#include "liblte/rrc/asn/SupportedBandUTRA-TDD384.h"
 
 int
 SupportedBandUTRA_TDD384_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

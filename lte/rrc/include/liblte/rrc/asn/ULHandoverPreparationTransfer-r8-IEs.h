@@ -9,13 +9,13 @@
 #define	_ULHandoverPreparationTransfer_r8_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CDMA2000-Type.h"
-#include <BIT_STRING.h>
-#include "DedicatedInfoCDMA2000.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CDMA2000-Type.h"
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include "liblte/rrc/asn/DedicatedInfoCDMA2000.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,7 +43,7 @@ extern asn_TYPE_descriptor_t asn_DEF_ULHandoverPreparationTransfer_r8_IEs;
 #endif
 
 /* Referred external types */
-#include "ULHandoverPreparationTransfer-v8a0-IEs.h"
+#include "liblte/rrc/asn/ULHandoverPreparationTransfer-v8a0-IEs.h"
 
 #endif	/* _ULHandoverPreparationTransfer_r8_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

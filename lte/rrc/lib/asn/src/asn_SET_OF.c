@@ -2,8 +2,8 @@
  * Copyright (c) 2003, 2004 Lev Walkin <vlm@lionet.info>. All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_internal.h>
-#include <asn_SET_OF.h>
+#include <liblte/rrc/asn/asn_internal.h>
+#include <liblte/rrc/asn/asn_SET_OF.h>
 
 /*
  * Add another element into the set.

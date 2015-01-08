@@ -2,9 +2,9 @@
  * Copyright (c) 2003, 2004 Lev Walkin <vlm@lionet.info>. All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_internal.h>
-#include <ber_tlv_length.h>
-#include <ber_tlv_tag.h>
+#include <liblte/rrc/asn/asn_internal.h>
+#include <liblte/rrc/asn/ber_tlv_length.h>
+#include <liblte/rrc/asn/ber_tlv_tag.h>
 
 ssize_t
 ber_fetch_length(int _is_constructed, const void *bufptr, size_t size,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PUCCH-ConfigDedicated.h"
+#include "liblte/rrc/asn/PUCCH-ConfigDedicated.h"
 
 static int
 repetitionFactor_5_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

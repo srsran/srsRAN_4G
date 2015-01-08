@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "T-Reordering.h"
+#include "liblte/rrc/asn/T-Reordering.h"
 
 int
 T_Reordering_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

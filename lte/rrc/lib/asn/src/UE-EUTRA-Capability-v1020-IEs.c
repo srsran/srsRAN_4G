@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UE-EUTRA-Capability-v1020-IEs.h"
+#include "liblte/rrc/asn/UE-EUTRA-Capability-v1020-IEs.h"
 
 static int
 memb_ue_Category_v1020_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

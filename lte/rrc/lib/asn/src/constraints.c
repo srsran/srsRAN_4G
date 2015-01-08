@@ -1,5 +1,5 @@
-#include <asn_internal.h>
-#include "constraints.h"
+#include <liblte/rrc/asn/asn_internal.h>
+#include "liblte/rrc/asn/constraints.h"
 
 int
 asn_generic_no_constraint(asn_TYPE_descriptor_t *type_descriptor,

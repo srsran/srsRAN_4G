@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UE-CapabilityRequest.h"
+#include "liblte/rrc/asn/UE-CapabilityRequest.h"
 
 static asn_per_constraints_t asn_PER_type_UE_CapabilityRequest_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

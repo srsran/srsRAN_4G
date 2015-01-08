@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RAND-CDMA2000.h"
+#include "liblte/rrc/asn/RAND-CDMA2000.h"
 
 int
 RAND_CDMA2000_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

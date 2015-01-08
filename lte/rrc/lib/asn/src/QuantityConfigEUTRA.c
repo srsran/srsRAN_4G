@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "QuantityConfigEUTRA.h"
+#include "liblte/rrc/asn/QuantityConfigEUTRA.h"
 
 static int asn_DFL_2_set_4(int set_value, void **sptr) {
 	FilterCoefficient_t *st = *sptr;

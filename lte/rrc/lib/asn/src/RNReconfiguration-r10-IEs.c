@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RNReconfiguration-r10-IEs.h"
+#include "liblte/rrc/asn/RNReconfiguration-r10-IEs.h"
 
 static ber_tlv_tag_t asn_DEF_nonCriticalExtension_tags_5[] = {
 	(ASN_TAG_CLASS_CONTEXT | (3 << 2)),

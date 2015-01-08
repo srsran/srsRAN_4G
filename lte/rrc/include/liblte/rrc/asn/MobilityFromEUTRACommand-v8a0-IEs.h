@@ -9,11 +9,11 @@
 #define	_MobilityFromEUTRACommand_v8a0_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <OCTET_STRING.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +39,7 @@ extern asn_TYPE_descriptor_t asn_DEF_MobilityFromEUTRACommand_v8a0_IEs;
 #endif
 
 /* Referred external types */
-#include "MobilityFromEUTRACommand-v8d0-IEs.h"
+#include "liblte/rrc/asn/MobilityFromEUTRACommand-v8d0-IEs.h"
 
 #endif	/* _MobilityFromEUTRACommand_v8a0_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

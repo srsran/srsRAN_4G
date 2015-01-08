@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UL-UM-RLC.h"
+#include "liblte/rrc/asn/UL-UM-RLC.h"
 
 static asn_TYPE_member_t asn_MBR_UL_UM_RLC_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct UL_UM_RLC, sn_FieldLength),

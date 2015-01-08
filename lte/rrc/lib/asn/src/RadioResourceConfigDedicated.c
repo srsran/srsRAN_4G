@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RadioResourceConfigDedicated.h"
+#include "liblte/rrc/asn/RadioResourceConfigDedicated.h"
 
 static asn_per_constraints_t asn_PER_type_mac_MainConfig_constr_5 = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

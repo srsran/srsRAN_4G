@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReportConfigEUTRA.h"
+#include "liblte/rrc/asn/ReportConfigEUTRA.h"
 
 static int
 memb_a3_Offset_constraint_9(asn_TYPE_descriptor_t *td, const void *sptr,

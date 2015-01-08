@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionReestablishment.h"
+#include "liblte/rrc/asn/RRCConnectionReestablishment.h"
 
 static asn_per_constraints_t asn_PER_type_c1_constr_4 = {
 	{ APC_CONSTRAINED,	 3,  3,  0,  7 }	/* (0..7) */,

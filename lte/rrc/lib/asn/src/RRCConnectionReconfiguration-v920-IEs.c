@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionReconfiguration-v920-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionReconfiguration-v920-IEs.h"
 
 static int
 fullConfig_r9_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

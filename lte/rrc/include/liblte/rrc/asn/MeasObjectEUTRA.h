@@ -9,17 +9,17 @@
 #define	_MeasObjectEUTRA_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "ARFCN-ValueEUTRA.h"
-#include "AllowedMeasBandwidth.h"
-#include "PresenceAntennaPort1.h"
-#include "NeighCellConfig.h"
-#include "Q-OffsetRange.h"
-#include "PhysCellId.h"
-#include "MeasCycleSCell-r10.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ARFCN-ValueEUTRA.h"
+#include "liblte/rrc/asn/AllowedMeasBandwidth.h"
+#include "liblte/rrc/asn/PresenceAntennaPort1.h"
+#include "liblte/rrc/asn/NeighCellConfig.h"
+#include "liblte/rrc/asn/Q-OffsetRange.h"
+#include "liblte/rrc/asn/PhysCellId.h"
+#include "liblte/rrc/asn/MeasCycleSCell-r10.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,10 +58,10 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasObjectEUTRA;
 #endif
 
 /* Referred external types */
-#include "CellIndexList.h"
-#include "CellsToAddModList.h"
-#include "BlackCellsToAddModList.h"
-#include "MeasSubframePatternConfigNeigh-r10.h"
+#include "liblte/rrc/asn/CellIndexList.h"
+#include "liblte/rrc/asn/CellsToAddModList.h"
+#include "liblte/rrc/asn/BlackCellsToAddModList.h"
+#include "liblte/rrc/asn/MeasSubframePatternConfigNeigh-r10.h"
 
 #endif	/* _MeasObjectEUTRA_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

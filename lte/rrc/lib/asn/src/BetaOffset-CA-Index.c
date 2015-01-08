@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "BetaOffset-CA-Index.h"
+#include "liblte/rrc/asn/BetaOffset-CA-Index.h"
 
 int
 BetaOffset_CA_Index_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

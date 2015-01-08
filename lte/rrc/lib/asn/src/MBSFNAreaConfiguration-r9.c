@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MBSFNAreaConfiguration-r9.h"
+#include "liblte/rrc/asn/MBSFNAreaConfiguration-r9.h"
 
 static int
 commonSF_AllocPeriod_r9_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

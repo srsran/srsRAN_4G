@@ -8,12 +8,12 @@
 #define	_ReestablishmentInfo_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "PhysCellId.h"
-#include "ShortMAC-I.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/PhysCellId.h"
+#include "liblte/rrc/asn/ShortMAC-I.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,7 +44,7 @@ extern asn_TYPE_descriptor_t asn_DEF_ReestablishmentInfo;
 #endif
 
 /* Referred external types */
-#include "AdditionalReestabInfoList.h"
+#include "liblte/rrc/asn/AdditionalReestabInfoList.h"
 
 #endif	/* _ReestablishmentInfo_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

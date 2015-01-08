@@ -4,7 +4,7 @@
  * 	found in "EUTRA-InterNodeDefinitions.asn"
  */
 
-#include "RRM-Config.h"
+#include "liblte/rrc/asn/RRM-Config.h"
 
 static int
 ue_InactiveTime_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

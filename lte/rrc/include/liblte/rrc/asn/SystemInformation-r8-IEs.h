@@ -9,25 +9,25 @@
 #define	_SystemInformation_r8_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <asn_SEQUENCE_OF.h>
-#include "SystemInformationBlockType2.h"
-#include "SystemInformationBlockType3.h"
-#include "SystemInformationBlockType4.h"
-#include "SystemInformationBlockType5.h"
-#include "SystemInformationBlockType6.h"
-#include "SystemInformationBlockType7.h"
-#include "SystemInformationBlockType8.h"
-#include "SystemInformationBlockType9.h"
-#include "SystemInformationBlockType10.h"
-#include "SystemInformationBlockType11.h"
-#include "SystemInformationBlockType12-r9.h"
-#include "SystemInformationBlockType13-r9.h"
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE_OF.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/asn_SEQUENCE_OF.h>
+#include "liblte/rrc/asn/SystemInformationBlockType2.h"
+#include "liblte/rrc/asn/SystemInformationBlockType3.h"
+#include "liblte/rrc/asn/SystemInformationBlockType4.h"
+#include "liblte/rrc/asn/SystemInformationBlockType5.h"
+#include "liblte/rrc/asn/SystemInformationBlockType6.h"
+#include "liblte/rrc/asn/SystemInformationBlockType7.h"
+#include "liblte/rrc/asn/SystemInformationBlockType8.h"
+#include "liblte/rrc/asn/SystemInformationBlockType9.h"
+#include "liblte/rrc/asn/SystemInformationBlockType10.h"
+#include "liblte/rrc/asn/SystemInformationBlockType11.h"
+#include "liblte/rrc/asn/SystemInformationBlockType12-r9.h"
+#include "liblte/rrc/asn/SystemInformationBlockType13-r9.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE_OF.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,7 +101,7 @@ extern asn_TYPE_descriptor_t asn_DEF_SystemInformation_r8_IEs;
 #endif
 
 /* Referred external types */
-#include "SystemInformation-v8a0-IEs.h"
+#include "liblte/rrc/asn/SystemInformation-v8a0-IEs.h"
 
 #endif	/* _SystemInformation_r8_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

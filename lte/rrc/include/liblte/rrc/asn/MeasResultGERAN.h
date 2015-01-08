@@ -9,15 +9,15 @@
 #define	_MeasResultGERAN_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CarrierFreqGERAN.h"
-#include "PhysCellIdGERAN.h"
-#include "CellGlobalIdGERAN.h"
-#include <BIT_STRING.h>
-#include <constr_SEQUENCE.h>
-#include <NativeInteger.h>
+#include "liblte/rrc/asn/CarrierFreqGERAN.h"
+#include "liblte/rrc/asn/PhysCellIdGERAN.h"
+#include "liblte/rrc/asn/CellGlobalIdGERAN.h"
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeInteger.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,4 +57,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasResultGERAN;
 #endif
 
 #endif	/* _MeasResultGERAN_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

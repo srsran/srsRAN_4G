@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SupportedBandGERAN.h"
+#include "liblte/rrc/asn/SupportedBandGERAN.h"
 
 int
 SupportedBandGERAN_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

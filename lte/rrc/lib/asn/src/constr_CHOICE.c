@@ -3,9 +3,9 @@
  * All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_internal.h>
-#include <constr_CHOICE.h>
-#include <per_opentype.h>
+#include <liblte/rrc/asn/asn_internal.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/per_opentype.h>
 
 /*
  * Number of bytes left for this structure.

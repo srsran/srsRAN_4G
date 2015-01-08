@@ -5,7 +5,7 @@
 #ifndef	ASN_TYPE_NULL_H
 #define	ASN_TYPE_NULL_H
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 #ifdef __cplusplus
 extern "C" {

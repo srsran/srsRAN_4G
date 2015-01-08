@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ShortMAC-I.h"
+#include "liblte/rrc/asn/ShortMAC-I.h"
 
 int
 ShortMAC_I_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

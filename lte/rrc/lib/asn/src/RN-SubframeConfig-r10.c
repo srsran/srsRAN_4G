@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RN-SubframeConfig-r10.h"
+#include "liblte/rrc/asn/RN-SubframeConfig-r10.h"
 
 static int
 memb_subframeConfigPatternFDD_r10_constraint_2(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReselectionThresholdQ-r9.h"
+#include "liblte/rrc/asn/ReselectionThresholdQ-r9.h"
 
 int
 ReselectionThresholdQ_r9_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

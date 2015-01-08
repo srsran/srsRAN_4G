@@ -9,12 +9,12 @@
 #define	_SystemInformationBlockType6_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "T-Reselection.h"
-#include <OCTET_STRING.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/T-Reselection.h"
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,9 +49,9 @@ extern asn_TYPE_descriptor_t asn_DEF_SystemInformationBlockType6;
 #endif
 
 /* Referred external types */
-#include "CarrierFreqListUTRA-FDD.h"
-#include "CarrierFreqListUTRA-TDD.h"
-#include "SpeedStateScaleFactors.h"
+#include "liblte/rrc/asn/CarrierFreqListUTRA-FDD.h"
+#include "liblte/rrc/asn/CarrierFreqListUTRA-TDD.h"
+#include "liblte/rrc/asn/SpeedStateScaleFactors.h"
 
 #endif	/* _SystemInformationBlockType6_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

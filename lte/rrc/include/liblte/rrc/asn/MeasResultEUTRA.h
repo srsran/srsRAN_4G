@@ -9,15 +9,15 @@
 #define	_MeasResultEUTRA_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "PhysCellId.h"
-#include "CellGlobalIdEUTRA.h"
-#include "TrackingAreaCode.h"
-#include <constr_SEQUENCE.h>
-#include "RSRP-Range.h"
-#include "RSRQ-Range.h"
+#include "liblte/rrc/asn/PhysCellId.h"
+#include "liblte/rrc/asn/CellGlobalIdEUTRA.h"
+#include "liblte/rrc/asn/TrackingAreaCode.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/RSRP-Range.h"
+#include "liblte/rrc/asn/RSRQ-Range.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,8 +59,8 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasResultEUTRA;
 #endif
 
 /* Referred external types */
-#include "PLMN-IdentityList2.h"
-#include "AdditionalSI-Info-r9.h"
+#include "liblte/rrc/asn/PLMN-IdentityList2.h"
+#include "liblte/rrc/asn/AdditionalSI-Info-r9.h"
 
 #endif	/* _MeasResultEUTRA_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

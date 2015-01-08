@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MBMSCountingResponse-r10-IEs.h"
+#include "liblte/rrc/asn/MBMSCountingResponse-r10-IEs.h"
 
 static int
 memb_mbsfn_AreaIndex_r10_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

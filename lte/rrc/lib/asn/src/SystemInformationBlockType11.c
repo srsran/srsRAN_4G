@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType11.h"
+#include "liblte/rrc/asn/SystemInformationBlockType11.h"
 
 static int
 warningMessageSegmentType_4_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

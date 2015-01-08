@@ -35,7 +35,7 @@
 #include <stdbool.h>
 
 #include "liblte/rrc/rrc.h"
-#include "rrc_asn.h"
+#include "liblte/rrc/asn/rrc_asn.h"
 
 
 

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UplinkPowerControlDedicatedSCell-r10.h"
+#include "liblte/rrc/asn/UplinkPowerControlDedicatedSCell-r10.h"
 
 static int
 deltaMCS_Enabled_r10_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

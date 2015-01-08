@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MBSFNAreaConfiguration-v930-IEs.h"
+#include "liblte/rrc/asn/MBSFNAreaConfiguration-v930-IEs.h"
 
 static ber_tlv_tag_t asn_DEF_nonCriticalExtension_tags_3[] = {
 	(ASN_TAG_CLASS_CONTEXT | (1 << 2)),

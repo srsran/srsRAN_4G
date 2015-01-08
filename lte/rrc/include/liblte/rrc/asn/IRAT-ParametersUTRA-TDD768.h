@@ -9,11 +9,11 @@
 #define	_IRAT_ParametersUTRA_TDD768_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "SupportedBandListUTRA-TDD768.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/SupportedBandListUTRA-TDD768.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,4 +35,4 @@ extern asn_TYPE_descriptor_t asn_DEF_IRAT_ParametersUTRA_TDD768;
 #endif
 
 #endif	/* _IRAT_ParametersUTRA_TDD768_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

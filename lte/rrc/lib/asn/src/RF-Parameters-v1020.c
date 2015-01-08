@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RF-Parameters-v1020.h"
+#include "liblte/rrc/asn/RF-Parameters-v1020.h"
 
 static asn_TYPE_member_t asn_MBR_RF_Parameters_v1020_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct RF_Parameters_v1020, supportedBandCombination_r10),

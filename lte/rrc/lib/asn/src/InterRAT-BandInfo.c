@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "InterRAT-BandInfo.h"
+#include "liblte/rrc/asn/InterRAT-BandInfo.h"
 
 static asn_TYPE_member_t asn_MBR_InterRAT_BandInfo_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct InterRAT_BandInfo, interRAT_NeedForGaps),

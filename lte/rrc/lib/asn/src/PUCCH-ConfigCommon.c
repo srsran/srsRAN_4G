@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PUCCH-ConfigCommon.h"
+#include "liblte/rrc/asn/PUCCH-ConfigCommon.h"
 
 static int
 deltaPUCCH_Shift_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

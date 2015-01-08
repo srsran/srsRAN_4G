@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "TimeAlignmentTimer.h"
+#include "liblte/rrc/asn/TimeAlignmentTimer.h"
 
 int
 TimeAlignmentTimer_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "InterFreqNeighCellList.h"
+#include "liblte/rrc/asn/InterFreqNeighCellList.h"
 
 static asn_per_constraints_t asn_PER_type_InterFreqNeighCellList_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

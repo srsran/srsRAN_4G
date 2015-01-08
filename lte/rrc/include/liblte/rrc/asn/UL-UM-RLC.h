@@ -9,11 +9,11 @@
 #define	_UL_UM_RLC_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "SN-FieldLength.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/SN-FieldLength.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,4 +35,4 @@ extern asn_TYPE_descriptor_t asn_DEF_UL_UM_RLC;
 #endif
 
 #endif	/* _UL_UM_RLC_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

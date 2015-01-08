@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PreRegistrationZoneIdHRPD.h"
+#include "liblte/rrc/asn/PreRegistrationZoneIdHRPD.h"
 
 int
 PreRegistrationZoneIdHRPD_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

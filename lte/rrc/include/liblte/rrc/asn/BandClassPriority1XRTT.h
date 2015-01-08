@@ -9,12 +9,12 @@
 #define	_BandClassPriority1XRTT_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "BandclassCDMA2000.h"
-#include "CellReselectionPriority.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/BandclassCDMA2000.h"
+#include "liblte/rrc/asn/CellReselectionPriority.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,4 +37,4 @@ extern asn_TYPE_descriptor_t asn_DEF_BandClassPriority1XRTT;
 #endif
 
 #endif	/* _BandClassPriority1XRTT_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

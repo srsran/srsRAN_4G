@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PDCP-Parameters.h"
+#include "liblte/rrc/asn/PDCP-Parameters.h"
 
 static int
 maxNumberROHC_ContextSessions_12_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

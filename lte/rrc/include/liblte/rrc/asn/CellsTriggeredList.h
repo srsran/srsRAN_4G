@@ -8,19 +8,19 @@
 #define	_CellsTriggeredList_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <asn_SEQUENCE_OF.h>
-#include "PhysCellId.h"
-#include "PhysCellIdCDMA2000.h"
-#include "PhysCellIdUTRA-FDD.h"
-#include "PhysCellIdUTRA-TDD.h"
-#include <constr_CHOICE.h>
-#include "CarrierFreqGERAN.h"
-#include "PhysCellIdGERAN.h"
-#include <constr_SEQUENCE.h>
-#include <constr_SEQUENCE_OF.h>
+#include <liblte/rrc/asn/asn_SEQUENCE_OF.h>
+#include "liblte/rrc/asn/PhysCellId.h"
+#include "liblte/rrc/asn/PhysCellIdCDMA2000.h"
+#include "liblte/rrc/asn/PhysCellIdUTRA-FDD.h"
+#include "liblte/rrc/asn/PhysCellIdUTRA-TDD.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include "liblte/rrc/asn/CarrierFreqGERAN.h"
+#include "liblte/rrc/asn/PhysCellIdGERAN.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE_OF.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,4 +82,4 @@ extern asn_TYPE_descriptor_t asn_DEF_CellsTriggeredList;
 #endif
 
 #endif	/* _CellsTriggeredList_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

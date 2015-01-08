@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RedirectedCarrierInfo.h"
+#include "liblte/rrc/asn/RedirectedCarrierInfo.h"
 
 static asn_per_constraints_t asn_PER_type_RedirectedCarrierInfo_constr_1 = {
 	{ APC_CONSTRAINED | APC_EXTENSIBLE,  3,  3,  0,  5 }	/* (0..5,...) */,

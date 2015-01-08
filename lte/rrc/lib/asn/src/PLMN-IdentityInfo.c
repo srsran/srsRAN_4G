@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PLMN-IdentityInfo.h"
+#include "liblte/rrc/asn/PLMN-IdentityInfo.h"
 
 static int
 cellReservedForOperatorUse_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

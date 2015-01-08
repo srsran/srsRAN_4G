@@ -9,15 +9,15 @@
 #define	_RRCConnectionRelease_v920_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CellInfoListGERAN-r9.h"
-#include "CellInfoListUTRA-FDD-r9.h"
-#include "CellInfoListUTRA-TDD-r9.h"
-#include "CellInfoListUTRA-TDD-r10.h"
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CellInfoListGERAN-r9.h"
+#include "liblte/rrc/asn/CellInfoListUTRA-FDD-r9.h"
+#include "liblte/rrc/asn/CellInfoListUTRA-TDD-r9.h"
+#include "liblte/rrc/asn/CellInfoListUTRA-TDD-r10.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,7 +68,7 @@ extern asn_TYPE_descriptor_t asn_DEF_RRCConnectionRelease_v920_IEs;
 #endif
 
 /* Referred external types */
-#include "RRCConnectionRelease-v1020-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionRelease-v1020-IEs.h"
 
 #endif	/* _RRCConnectionRelease_v920_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

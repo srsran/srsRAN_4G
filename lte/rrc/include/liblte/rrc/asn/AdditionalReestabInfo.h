@@ -8,13 +8,13 @@
 #define	_AdditionalReestabInfo_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CellIdentity.h"
-#include "Key-eNodeB-Star.h"
-#include "ShortMAC-I.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CellIdentity.h"
+#include "liblte/rrc/asn/Key-eNodeB-Star.h"
+#include "liblte/rrc/asn/ShortMAC-I.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,4 +38,4 @@ extern asn_TYPE_descriptor_t asn_DEF_AdditionalReestabInfo;
 #endif
 
 #endif	/* _AdditionalReestabInfo_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

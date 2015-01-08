@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SoundingRS-UL-ConfigCommon.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigCommon.h"
 
 static int
 srs_BandwidthConfig_4_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

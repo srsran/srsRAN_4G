@@ -9,12 +9,12 @@
 #define	_MeasSubframePatternPCell_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NULL.h>
-#include "MeasSubframePattern-r10.h"
-#include <constr_CHOICE.h>
+#include <liblte/rrc/asn/NULL.h>
+#include "liblte/rrc/asn/MeasSubframePattern-r10.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,4 +47,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasSubframePatternPCell_r10;
 #endif
 
 #endif	/* _MeasSubframePatternPCell_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

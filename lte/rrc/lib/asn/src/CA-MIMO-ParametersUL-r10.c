@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CA-MIMO-ParametersUL-r10.h"
+#include "liblte/rrc/asn/CA-MIMO-ParametersUL-r10.h"
 
 static asn_TYPE_member_t asn_MBR_CA_MIMO_ParametersUL_r10_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct CA_MIMO_ParametersUL_r10, ca_BandwidthClassUL_r10),

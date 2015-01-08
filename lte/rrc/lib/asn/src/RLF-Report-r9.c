@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RLF-Report-r9.h"
+#include "liblte/rrc/asn/RLF-Report-r9.h"
 
 static int
 connectionFailureType_r10_18_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

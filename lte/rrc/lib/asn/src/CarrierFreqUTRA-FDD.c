@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CarrierFreqUTRA-FDD.h"
+#include "liblte/rrc/asn/CarrierFreqUTRA-FDD.h"
 
 static int
 memb_q_RxLevMin_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

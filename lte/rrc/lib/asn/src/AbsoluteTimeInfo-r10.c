@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "AbsoluteTimeInfo-r10.h"
+#include "liblte/rrc/asn/AbsoluteTimeInfo-r10.h"
 
 int
 AbsoluteTimeInfo_r10_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

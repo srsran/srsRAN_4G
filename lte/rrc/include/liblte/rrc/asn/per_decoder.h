@@ -5,8 +5,8 @@
 #ifndef	_PER_DECODER_H_
 #define	_PER_DECODER_H_
 
-#include <asn_application.h>
-#include <per_support.h>
+#include <liblte/rrc/asn/asn_application.h>
+#include <liblte/rrc/asn/per_support.h>
 
 #ifdef __cplusplus
 extern "C" {

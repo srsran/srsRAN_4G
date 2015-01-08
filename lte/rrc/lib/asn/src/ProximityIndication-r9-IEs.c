@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ProximityIndication-r9-IEs.h"
+#include "liblte/rrc/asn/ProximityIndication-r9-IEs.h"
 
 static int
 type_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "FreqPriorityListEUTRA.h"
+#include "liblte/rrc/asn/FreqPriorityListEUTRA.h"
 
 static asn_per_constraints_t asn_PER_type_FreqPriorityListEUTRA_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

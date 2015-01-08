@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PagingUE-Identity.h"
+#include "liblte/rrc/asn/PagingUE-Identity.h"
 
 static asn_per_constraints_t asn_PER_type_PagingUE_Identity_constr_1 = {
 	{ APC_CONSTRAINED | APC_EXTENSIBLE,  1,  1,  0,  1 }	/* (0..1,...) */,

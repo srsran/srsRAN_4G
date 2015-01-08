@@ -9,11 +9,11 @@
 #define	_BCCH_DL_SCH_Message_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "BCCH-DL-SCH-MessageType.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/BCCH-DL-SCH-MessageType.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,4 +35,4 @@ LIBLTE_API extern asn_TYPE_descriptor_t asn_DEF_BCCH_DL_SCH_Message;
 #endif
 
 #endif	/* _BCCH_DL_SCH_Message_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

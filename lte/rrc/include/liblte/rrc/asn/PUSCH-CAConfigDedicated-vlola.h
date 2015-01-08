@@ -9,12 +9,12 @@
 #define	_PUSCH_CAConfigDedicated_vlola_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "BetaOffset-CA-Index.h"
-#include "CShift.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/BetaOffset-CA-Index.h"
+#include "liblte/rrc/asn/CShift.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,4 +37,4 @@ extern asn_TYPE_descriptor_t asn_DEF_PUSCH_CAConfigDedicated_vlola;
 #endif
 
 #endif	/* _PUSCH_CAConfigDedicated_vlola_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

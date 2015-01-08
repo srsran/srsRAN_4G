@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ARFCN-ValueUTRA.h"
+#include "liblte/rrc/asn/ARFCN-ValueUTRA.h"
 
 int
 ARFCN_ValueUTRA_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

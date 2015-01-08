@@ -9,15 +9,15 @@
 #define	_MobilityControlInfo_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "PhysCellId.h"
-#include "AdditionalSpectrumEmission.h"
-#include <NativeEnumerated.h>
-#include "C-RNTI.h"
-#include "RadioResourceConfigCommon.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/PhysCellId.h"
+#include "liblte/rrc/asn/AdditionalSpectrumEmission.h"
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/C-RNTI.h"
+#include "liblte/rrc/asn/RadioResourceConfigCommon.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,9 +68,9 @@ extern asn_TYPE_descriptor_t asn_DEF_MobilityControlInfo;
 #endif
 
 /* Referred external types */
-#include "CarrierFreqEUTRA.h"
-#include "CarrierBandwidthEUTRA.h"
-#include "RACH-ConfigDedicated.h"
+#include "liblte/rrc/asn/CarrierFreqEUTRA.h"
+#include "liblte/rrc/asn/CarrierBandwidthEUTRA.h"
+#include "liblte/rrc/asn/RACH-ConfigDedicated.h"
 
 #endif	/* _MobilityControlInfo_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

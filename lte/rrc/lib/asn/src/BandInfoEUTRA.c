@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "BandInfoEUTRA.h"
+#include "liblte/rrc/asn/BandInfoEUTRA.h"
 
 static asn_TYPE_member_t asn_MBR_BandInfoEUTRA_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct BandInfoEUTRA, interFreqBandList),

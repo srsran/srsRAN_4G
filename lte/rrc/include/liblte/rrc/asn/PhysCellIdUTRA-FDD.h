@@ -9,10 +9,10 @@
 #define	_PhysCellIdUTRA_FDD_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
+#include <liblte/rrc/asn/NativeInteger.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,4 +38,4 @@ per_type_encoder_f PhysCellIdUTRA_FDD_encode_uper;
 #endif
 
 #endif	/* _PhysCellIdUTRA_FDD_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UEInformationResponse-v930-IEs.h"
+#include "liblte/rrc/asn/UEInformationResponse-v930-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_UEInformationResponse_v930_IEs_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct UEInformationResponse_v930_IEs, lateNonCriticalExtension),

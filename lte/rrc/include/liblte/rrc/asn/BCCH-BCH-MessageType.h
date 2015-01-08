@@ -9,10 +9,10 @@
 #define	_BCCH_BCH_MessageType_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "MasterInformationBlock.h"
+#include "liblte/rrc/asn/MasterInformationBlock.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,4 +38,4 @@ per_type_encoder_f BCCH_BCH_MessageType_encode_uper;
 #endif
 
 #endif	/* _BCCH_BCH_MessageType_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

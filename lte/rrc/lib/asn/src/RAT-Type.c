@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RAT-Type.h"
+#include "liblte/rrc/asn/RAT-Type.h"
 
 int
 RAT_Type_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

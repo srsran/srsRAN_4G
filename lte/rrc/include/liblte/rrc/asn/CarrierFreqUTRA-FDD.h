@@ -9,15 +9,15 @@
 #define	_CarrierFreqUTRA_FDD_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "ARFCN-ValueUTRA.h"
-#include "CellReselectionPriority.h"
-#include "ReselectionThreshold.h"
-#include <NativeInteger.h>
-#include "ReselectionThresholdQ-r9.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ARFCN-ValueUTRA.h"
+#include "liblte/rrc/asn/CellReselectionPriority.h"
+#include "liblte/rrc/asn/ReselectionThreshold.h"
+#include <liblte/rrc/asn/NativeInteger.h>
+#include "liblte/rrc/asn/ReselectionThresholdQ-r9.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,4 +52,4 @@ extern asn_TYPE_descriptor_t asn_DEF_CarrierFreqUTRA_FDD;
 #endif
 
 #endif	/* _CarrierFreqUTRA_FDD_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

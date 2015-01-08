@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "TimeToTrigger.h"
+#include "liblte/rrc/asn/TimeToTrigger.h"
 
 int
 TimeToTrigger_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

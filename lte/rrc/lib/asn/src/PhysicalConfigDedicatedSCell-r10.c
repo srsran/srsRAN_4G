@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PhysicalConfigDedicatedSCell-r10.h"
+#include "liblte/rrc/asn/PhysicalConfigDedicatedSCell-r10.h"
 
 static asn_TYPE_member_t asn_MBR_nonUL_Configuration_r10_2[] = {
 	{ ATF_POINTER, 4, offsetof(struct PhysicalConfigDedicatedSCell_r10__nonUL_Configuration_r10, antennaInfo_r10),

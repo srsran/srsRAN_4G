@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CQI-ReportConfig-v920.h"
+#include "liblte/rrc/asn/CQI-ReportConfig-v920.h"
 
 static int
 cqi_Mask_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

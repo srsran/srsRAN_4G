@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CarrierFreqListUTRA-TDD-r10.h"
+#include "liblte/rrc/asn/CarrierFreqListUTRA-TDD-r10.h"
 
 static asn_per_constraints_t asn_PER_type_CarrierFreqListUTRA_TDD_r10_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

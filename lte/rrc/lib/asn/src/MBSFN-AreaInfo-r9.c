@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MBSFN-AreaInfo-r9.h"
+#include "liblte/rrc/asn/MBSFN-AreaInfo-r9.h"
 
 static int
 non_MBSFNregionLength_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

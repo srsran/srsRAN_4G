@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "TPC-Index.h"
+#include "liblte/rrc/asn/TPC-Index.h"
 
 static int
 memb_indexOfFormat3_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

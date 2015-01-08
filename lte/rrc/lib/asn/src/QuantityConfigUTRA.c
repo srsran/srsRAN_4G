@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "QuantityConfigUTRA.h"
+#include "liblte/rrc/asn/QuantityConfigUTRA.h"
 
 static int
 measQuantityUTRA_FDD_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "DRB-CountMSB-Info.h"
+#include "liblte/rrc/asn/DRB-CountMSB-Info.h"
 
 static int
 memb_countMSB_Uplink_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -9,13 +9,13 @@
 #define	_RRCConnectionReconfiguration_r8_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "DedicatedInfoNAS.h"
-#include <asn_SEQUENCE_OF.h>
-#include <constr_SEQUENCE_OF.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/DedicatedInfoNAS.h"
+#include <liblte/rrc/asn/asn_SEQUENCE_OF.h>
+#include <liblte/rrc/asn/constr_SEQUENCE_OF.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,11 +54,11 @@ extern asn_TYPE_descriptor_t asn_DEF_RRCConnectionReconfiguration_r8_IEs;
 #endif
 
 /* Referred external types */
-#include "MeasConfig.h"
-#include "MobilityControlInfo.h"
-#include "RadioResourceConfigDedicated.h"
-#include "SecurityConfigHO.h"
-#include "RRCConnectionReconfiguration-v890-IEs.h"
+#include "liblte/rrc/asn/MeasConfig.h"
+#include "liblte/rrc/asn/MobilityControlInfo.h"
+#include "liblte/rrc/asn/RadioResourceConfigDedicated.h"
+#include "liblte/rrc/asn/SecurityConfigHO.h"
+#include "liblte/rrc/asn/RRCConnectionReconfiguration-v890-IEs.h"
 
 #endif	/* _RRCConnectionReconfiguration_r8_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

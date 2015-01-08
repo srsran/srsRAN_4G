@@ -9,20 +9,20 @@
 #define	_ReportConfigInterRAT_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
-#include "ReportInterval.h"
-#include <NativeEnumerated.h>
-#include "Hysteresis.h"
-#include "TimeToTrigger.h"
-#include "ThresholdUTRA.h"
-#include "ThresholdGERAN.h"
-#include "ThresholdCDMA2000.h"
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
-#include "ThresholdEUTRA.h"
+#include <liblte/rrc/asn/NativeInteger.h>
+#include "liblte/rrc/asn/ReportInterval.h"
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/Hysteresis.h"
+#include "liblte/rrc/asn/TimeToTrigger.h"
+#include "liblte/rrc/asn/ThresholdUTRA.h"
+#include "liblte/rrc/asn/ThresholdGERAN.h"
+#include "liblte/rrc/asn/ThresholdCDMA2000.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ThresholdEUTRA.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -165,4 +165,4 @@ extern asn_TYPE_descriptor_t asn_DEF_ReportConfigInterRAT;
 #endif
 
 #endif	/* _ReportConfigInterRAT_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

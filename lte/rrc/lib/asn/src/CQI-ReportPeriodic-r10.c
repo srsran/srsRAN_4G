@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CQI-ReportPeriodic-r10.h"
+#include "liblte/rrc/asn/CQI-ReportPeriodic-r10.h"
 
 static int
 csi_ReportMode_r10_9_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReportConfigId.h"
+#include "liblte/rrc/asn/ReportConfigId.h"
 
 int
 ReportConfigId_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

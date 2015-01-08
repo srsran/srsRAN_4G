@@ -36,7 +36,7 @@
 #include "liblte/rrc/common/rrc_common.h"
 #include "liblte/rrc/messages/bcch.h"
 #include "liblte/phy/utils/bit.h"
-#include "rrc_asn.h"
+#include "liblte/rrc/asn/rrc_asn.h"
 
 LIBLTE_API int bcch_dlsch_sib4_get_neighbour_cells(void *bcch_dlsch_msg, 
                                                    uint32_t *neighbour_cell_ids, 

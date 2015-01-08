@@ -9,13 +9,13 @@
 #define	_MeasObjectGERAN_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CarrierFreqsGERAN.h"
-#include "Q-OffsetRangeInterRAT.h"
-#include <BIT_STRING.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CarrierFreqsGERAN.h"
+#include "liblte/rrc/asn/Q-OffsetRangeInterRAT.h"
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,7 +47,7 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasObjectGERAN;
 #endif
 
 /* Referred external types */
-#include "PhysCellIdGERAN.h"
+#include "liblte/rrc/asn/PhysCellIdGERAN.h"
 
 #endif	/* _MeasObjectGERAN_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

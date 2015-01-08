@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "AccessStratumRelease.h"
+#include "liblte/rrc/asn/AccessStratumRelease.h"
 
 int
 AccessStratumRelease_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

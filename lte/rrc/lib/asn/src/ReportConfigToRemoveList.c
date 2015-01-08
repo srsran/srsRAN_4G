@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReportConfigToRemoveList.h"
+#include "liblte/rrc/asn/ReportConfigToRemoveList.h"
 
 static asn_per_constraints_t asn_PER_type_ReportConfigToRemoveList_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

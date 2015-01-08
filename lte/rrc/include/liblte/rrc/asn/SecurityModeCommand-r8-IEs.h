@@ -9,11 +9,11 @@
 #define	_SecurityModeCommand_r8_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "SecurityConfigSMC.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/SecurityConfigSMC.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +39,7 @@ extern asn_TYPE_descriptor_t asn_DEF_SecurityModeCommand_r8_IEs;
 #endif
 
 /* Referred external types */
-#include "SecurityModeCommand-v8a0-IEs.h"
+#include "liblte/rrc/asn/SecurityModeCommand-v8a0-IEs.h"
 
 #endif	/* _SecurityModeCommand_r8_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

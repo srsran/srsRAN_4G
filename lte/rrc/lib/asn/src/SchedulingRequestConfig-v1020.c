@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SchedulingRequestConfig-v1020.h"
+#include "liblte/rrc/asn/SchedulingRequestConfig-v1020.h"
 
 static int
 memb_sr_PUCCH_ResourceIndexP1_r10_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

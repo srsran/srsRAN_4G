@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "HandoverFromEUTRAPreparationRequest-r8-IEs.h"
+#include "liblte/rrc/asn/HandoverFromEUTRAPreparationRequest-r8-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_HandoverFromEUTRAPreparationRequest_r8_IEs_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct HandoverFromEUTRAPreparationRequest_r8_IEs, cdma2000_Type),

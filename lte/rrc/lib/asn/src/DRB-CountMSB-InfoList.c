@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "DRB-CountMSB-InfoList.h"
+#include "liblte/rrc/asn/DRB-CountMSB-InfoList.h"
 
 static asn_per_constraints_t asn_PER_type_DRB_CountMSB_InfoList_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

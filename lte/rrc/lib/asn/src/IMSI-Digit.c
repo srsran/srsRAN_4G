@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "IMSI-Digit.h"
+#include "liblte/rrc/asn/IMSI-Digit.h"
 
 int
 IMSI_Digit_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

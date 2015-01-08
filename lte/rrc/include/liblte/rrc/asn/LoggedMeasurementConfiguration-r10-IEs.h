@@ -9,15 +9,15 @@
 #define	_LoggedMeasurementConfiguration_r10_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "TraceReference-r10.h"
-#include <OCTET_STRING.h>
-#include "AbsoluteTimeInfo-r10.h"
-#include "LoggingDuration-r10.h"
-#include "LoggingInterval-r10.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/TraceReference-r10.h"
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include "liblte/rrc/asn/AbsoluteTimeInfo-r10.h"
+#include "liblte/rrc/asn/LoggingDuration-r10.h"
+#include "liblte/rrc/asn/LoggingInterval-r10.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,7 +53,7 @@ extern asn_TYPE_descriptor_t asn_DEF_LoggedMeasurementConfiguration_r10_IEs;
 #endif
 
 /* Referred external types */
-#include "AreaConfiguration-r10.h"
+#include "liblte/rrc/asn/AreaConfiguration-r10.h"
 
 #endif	/* _LoggedMeasurementConfiguration_r10_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

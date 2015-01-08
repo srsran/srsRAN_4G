@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RLF-TimersAndConstants-r9.h"
+#include "liblte/rrc/asn/RLF-TimersAndConstants-r9.h"
 
 static int
 t301_r9_4_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

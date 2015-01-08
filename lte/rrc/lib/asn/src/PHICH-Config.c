@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PHICH-Config.h"
+#include "liblte/rrc/asn/PHICH-Config.h"
 
 static int
 phich_Duration_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

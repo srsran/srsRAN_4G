@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "DLInformationTransfer-r8-IEs.h"
+#include "liblte/rrc/asn/DLInformationTransfer-r8-IEs.h"
 
 static asn_per_constraints_t asn_PER_type_dedicatedInfoType_constr_2 = {
 	{ APC_CONSTRAINED,	 2,  2,  0,  2 }	/* (0..2) */,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PDCP-Config.h"
+#include "liblte/rrc/asn/PDCP-Config.h"
 
 static int
 discardTimer_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

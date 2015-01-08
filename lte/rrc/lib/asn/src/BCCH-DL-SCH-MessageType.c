@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "BCCH-DL-SCH-MessageType.h"
+#include "liblte/rrc/asn/BCCH-DL-SCH-MessageType.h"
 
 static asn_per_constraints_t asn_PER_type_c1_constr_2 = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

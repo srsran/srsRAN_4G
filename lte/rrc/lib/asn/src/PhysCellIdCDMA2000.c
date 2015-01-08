@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PhysCellIdCDMA2000.h"
+#include "liblte/rrc/asn/PhysCellIdCDMA2000.h"
 
 int
 PhysCellIdCDMA2000_constraint(asn_TYPE_descriptor_t *td, const void *sptr,
