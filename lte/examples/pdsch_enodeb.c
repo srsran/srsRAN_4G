@@ -31,6 +31,8 @@
 #include <strings.h>
 #include <unistd.h>
 #include <sys/select.h>
+#include <pthread.h>
+#include <semaphore.h>
 
 #include "liblte/phy/phy.h"
 #include "liblte/rrc/rrc.h"
@@ -56,16 +58,16 @@ lte_cell_t cell = {
   PHICH_NORM    // PHICH length
 };
   
-int udp_port = -1; // -1 generates random data
+int net_port = -1; // -1 generates random data
 
 uint32_t cfi=1;
-uint32_t mcs_idx = 12, last_mcs_idx = 12;
+uint32_t mcs_idx = 1, last_mcs_idx = 1;
 int nof_frames = -1;
 
 char *uhd_args = "";
 float uhd_amp = 0.1, uhd_gain = 70.0, uhd_freq = 2400000000;
 
-udpsource_t udp_source; 
+bool null_file_sink=false; 
 filesink_t fsink;
 lte_fft_t ifft;
 pbch_t pbch;
@@ -74,9 +76,21 @@ pdcch_t pdcch;
 pdsch_t pdsch;
 pdsch_harq_t harq_process;
 regs_t regs;
+ra_pdsch_t ra_dl;  
+
 
 cf_t *sf_buffer = NULL, *output_buffer = NULL;
 int sf_n_re, sf_n_samples;
+
+pthread_t net_thread; 
+void *net_thread_fnc(void *arg);
+sem_t net_sem;
+bool net_packet_ready = false; 
+netsource_t net_source; 
+netsink_t net_sink; 
+
+int prbset_num = 1, last_prbset_num = 1; 
+int prbset_orig = 0; 
 
 void usage(char *prog) {
   printf("Usage: %s [agmfoncvpu]\n", prog);
@@ -93,7 +107,7 @@ void usage(char *prog) {
   printf("\t-n number of frames [Default %d]\n", nof_frames);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-u listen UDP port for input data (-1 is random) [Default %d]\n", udp_port);
+  printf("\t-u listen UDP port for input data (-1 is random) [Default %d]\n", net_port);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -120,7 +134,7 @@ void parse_args(int argc, char **argv) {
       mcs_idx = atoi(argv[optind]);
       break;
     case 'u':
-      udp_port = atoi(argv[optind]);
+      net_port = atoi(argv[optind]);
       break;
     case 'n':
       nof_frames = atoi(argv[optind]);
@@ -162,9 +176,14 @@ void base_init() {
   }
   /* open file or USRP */
   if (output_file_name) {
-    if (filesink_init(&fsink, output_file_name, COMPLEX_FLOAT_BIN)) {
-      fprintf(stderr, "Error opening file %s\n", output_file_name);
-      exit(-1);
+    if (strcmp(output_file_name, "NULL")) {
+      if (filesink_init(&fsink, output_file_name, COMPLEX_FLOAT_BIN)) {
+        fprintf(stderr, "Error opening file %s\n", output_file_name);
+        exit(-1);
+      }      
+      null_file_sink = false; 
+    } else {
+      null_file_sink = true; 
     }
   } else {
 #ifndef DISABLE_UHD
@@ -179,18 +198,21 @@ void base_init() {
 #endif
   }
   
-  if (udp_port > 0) {
-    if (udpsource_init(&udp_source, "0.0.0.0", udp_port)) {
-      fprintf(stderr, "Error creating input UDP socket at port %d\n", udp_port);
+  if (net_port > 0) {
+    if (netsource_init(&net_source, "0.0.0.0", net_port, NETSOURCE_TCP)) {
+      fprintf(stderr, "Error creating input UDP socket at port %d\n", net_port);
       exit(-1);
     }
-    
-    if (udpsource_set_timeout(&udp_source, 5)) {
-      fprintf(stderr, "Error setting UDP socket timeout\n");
+    if (null_file_sink) {
+      if (netsink_init(&net_sink, "127.0.0.1", net_port+1, NETSINK_TCP)) {
+        fprintf(stderr, "Error sink\n");
+        exit(-1);
+      }      
+    }
+    if (sem_init(&net_sem, 0, 1)) {
+      perror("sem_init");
       exit(-1);
     }
-    
-    printf("Opened UDP socket at port %d\n", udp_port);
   }
 
   /* create ifft object */
@@ -253,20 +275,20 @@ void base_free() {
     free(output_buffer);
   }
   if (output_file_name) {
-    filesink_free(&fsink);
+    if (!null_file_sink) {
+      filesink_free(&fsink);      
+    }
   } else {
 #ifndef DISABLE_UHD
     cuhd_close(&uhd);
 #endif
   }
   
-  if (udp_port > 0) {
-    udpsource_free(&udp_source);
+  if (net_port > 0) {
+    netsource_free(&net_source);
+    sem_close(&net_sem);
   }  
 }
-
-int prbset_num = 1, last_prbset_num = 1; 
-int prbset_orig = 0; 
 
 unsigned int
 reverse(register unsigned int x)
@@ -289,33 +311,33 @@ uint32_t prbset_to_bitmask() {
   return reverse(mask)>>(32-cell.nof_prb); 
 }
 
-int update_radl(ra_pdsch_t *ra_dl) {
+int update_radl() {
   ra_prb_t prb_alloc;
   
-  bzero(ra_dl, sizeof(ra_pdsch_t));
-  ra_dl->harq_process = 0;
-  ra_dl->mcs_idx = mcs_idx;
-  ra_dl->ndi = 0;
-  ra_dl->rv_idx = 0;
-  ra_dl->alloc_type = alloc_type0;
-  ra_dl->type0_alloc.rbg_bitmask = prbset_to_bitmask();
+  bzero(&ra_dl, sizeof(ra_pdsch_t));
+  ra_dl.harq_process = 0;
+  ra_dl.mcs_idx = mcs_idx;
+  ra_dl.ndi = 0;
+  ra_dl.rv_idx = 0;
+  ra_dl.alloc_type = alloc_type0;
+  ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
     
-  ra_prb_get_dl(&prb_alloc, ra_dl, cell.nof_prb);
+  ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb);
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
-  ra_mcs_from_idx_dl(mcs_idx, cell.nof_prb, &ra_dl->mcs);
+  ra_mcs_from_idx_dl(mcs_idx, cell.nof_prb, &ra_dl.mcs);
 
-  ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
+  ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
 
-  if (pdsch_harq_setup(&harq_process, ra_dl->mcs, &prb_alloc)) {
+  if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
     return -1; 
   }
-   
+  
   return 0; 
 }
 
 /* Read new MCS from stdin */
-int update_control(ra_pdsch_t *ra_dl) {
+int update_control() {
   char input[128];
   
   fd_set set; 
@@ -355,11 +377,11 @@ int update_control(ra_pdsch_t *ra_dl) {
         mcs_idx = atoi(input);          
       }
       bzero(input,sizeof(input));
-      if (update_radl(ra_dl)) {
+      if (update_radl()) {
         printf("Trying with last known MCS index\n");
         mcs_idx = last_mcs_idx; 
         prbset_num = last_prbset_num; 
-        return update_radl(ra_dl);
+        return update_radl();
       }
     }
     return 0; 
@@ -372,7 +394,42 @@ int update_control(ra_pdsch_t *ra_dl) {
   }
 }
 
-uint8_t data[10000], data_unpacked[10000];
+#define DATA_BUFF_SZ    10000
+uint8_t data[DATA_BUFF_SZ], data_unpacked[DATA_BUFF_SZ];
+uint8_t data_tmp[DATA_BUFF_SZ];
+
+/** Function run in a separate thread to receive UDP data */
+void *net_thread_fnc(void *arg) {
+  int n; 
+  int rpm = 0, wpm=0; 
+  
+  do {
+    n = netsource_read(&net_source, &data_unpacked[rpm], DATA_BUFF_SZ-rpm);
+    if (n > 0) {
+      int nbytes = 1+(ra_dl.mcs.tbs-1)/8;
+      rpm += n; 
+      printf("received %d bytes. rpm=%d/%d\n",n,rpm,nbytes);
+      wpm = 0; 
+      while (rpm >= nbytes) {
+        // wait for packet to be transmitted
+        sem_wait(&net_sem);
+        bit_pack_vector(&data_unpacked[wpm], data, nbytes*8);          
+        printf("Sent %d/%d bytes ready\n", nbytes, rpm);
+        rpm -= nbytes;          
+        wpm += nbytes; 
+        net_packet_ready = true; 
+      }
+      if (wpm > 0) {
+        INFO("%d bytes left in buffer for next packet\n", rpm);
+        memcpy(data_unpacked, &data_unpacked[wpm], rpm * sizeof(uint8_t));
+      }
+    } else if (n < 0) {
+      fprintf(stderr, "Error receiving from network\n");
+      exit(-1);
+    }      
+  } while(n >= 0);
+  return NULL;
+}
 
 int main(int argc, char **argv) {
   int nf, sf_idx, N_id_2;
@@ -380,7 +437,6 @@ int main(int argc, char **argv) {
   float sss_signal0[SSS_LEN]; // for subframe 0
   float sss_signal5[SSS_LEN]; // for subframe 5
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN/8];
-  ra_pdsch_t ra_dl;  
   int i;
   cf_t *sf_symbols[MAX_PORTS];
   cf_t *slot1_symbols[MAX_PORTS];
@@ -406,6 +462,9 @@ int main(int argc, char **argv) {
   cell.phich_resources = R_1;
   sfn = 0;
 
+  prbset_num = cell.nof_prb; 
+  last_prbset_num = cell.nof_prb; 
+  
   /* this *must* be called after setting slot_len_* */
   base_init();
 
@@ -434,8 +493,15 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  if (update_radl(&ra_dl)) {
+  if (update_radl()) {
     exit(-1);
+  }
+  
+  if (net_port > 0) {
+    if (pthread_create(&net_thread, NULL, net_thread_fnc, NULL)) {
+      perror("pthread_create");
+      exit(-1);
+    }
   }
   
   /* Initiate valid DCI locations */
@@ -474,16 +540,10 @@ int main(int argc, char **argv) {
       
       /* Transmit PDCCH + PDSCH only when there is data to send */
       if (sf_idx != 0 && sf_idx != 5) {
-        if (udp_port > 0) {
-          int n = udpsource_read(&udp_source, data_unpacked, 1+(ra_dl.mcs.tbs-1)/8);
-          if (n > 0) {
-            bit_pack_vector(data_unpacked, data, n*8);
-            send_data = true;  
-          } else if (n == 0) {
-            send_data = false; 
-          } else {
-            fprintf(stderr, "Error receiving from UDP socket\n");
-            exit(-1);
+        if (net_port > 0) {
+          send_data = net_packet_ready; 
+          if (net_packet_ready) {
+            INFO("Transmitting packet\n",0);
           }
         } else {
           INFO("SF: %d, Generating %d random bits\n", sf_idx, ra_dl.mcs.tbs);
@@ -508,15 +568,27 @@ int main(int argc, char **argv) {
           fprintf(stderr, "Error encoding PDSCH\n");
           exit(-1);
         }        
+        if (net_port > 0 && net_packet_ready) {
+          if (null_file_sink) {
+            bit_unpack_vector(data, data_tmp, ra_dl.mcs.tbs);
+            if (netsink_write(&net_sink, data_tmp, 1+(ra_dl.mcs.tbs-1)/8) < 0) {
+              fprintf(stderr, "Error sending data through UDP socket\n");
+            }            
+          }
+          net_packet_ready = false; 
+          sem_post(&net_sem);
+        }
       }
-
+      
       /* Transform to OFDM symbols */
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
       
       /* send to file or usrp */
       if (output_file_name) {
-        filesink_write(&fsink, output_buffer, sf_n_samples);
-        usleep(5000);
+        if (!null_file_sink) {
+          filesink_write(&fsink, output_buffer, sf_n_samples);          
+        }
+        usleep(1000);
       } else {
 #ifndef DISABLE_UHD
         vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);

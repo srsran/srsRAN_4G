@@ -26,49 +26,63 @@
  */
 
 
-#ifndef UDPSINK_
-#define UDPSINK_
+#ifndef NETSOURCE_
+#define NETSOURCE_
 
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 #include "liblte/config.h"
 
+typedef enum {NETSOURCE_UDP, NETSOURCE_TCP} netsource_type_t; 
+
 /* Low-level API */
 typedef struct LIBLTE_API {
   int sockfd;
+  int connfd; 
   struct sockaddr_in servaddr;
-}udpsink_t;
+  netsource_type_t type; 
+  struct sockaddr_in cliaddr;  
+}netsource_t;
 
-LIBLTE_API int udpsink_init(udpsink_t *q, 
-                            char *address, 
-                            int port);
+LIBLTE_API int netsource_init(netsource_t *q, 
+                              char *address, 
+                              int port, 
+                              netsource_type_t type);
 
-LIBLTE_API void udpsink_free(udpsink_t *q);
+LIBLTE_API void netsource_free(netsource_t *q);
 
-LIBLTE_API int udpsink_write(udpsink_t *q, 
-                             void *buffer, 
-                             int nof_bytes);
+LIBLTE_API int netsource_set_nonblocking(netsource_t *q); 
+
+LIBLTE_API int netsource_read(netsource_t *q, 
+                              void *buffer, 
+                              int nof_bytes);
+
+LIBLTE_API int netsource_set_timeout(netsource_t *q, 
+                                     uint32_t microseconds); 
 
 
 /* High-level API */
 typedef struct LIBLTE_API {
-  udpsink_t obj;
-  struct udpsink_init {
+  netsource_t obj;
+  struct netsource_init {
     char *address;
     int port;
-    int block_length;
     int data_type;
   } init;
-  void* input;
-  int in_len;
-}udpsink_hl;
+  struct netsource_ctrl_in {
+    int nsamples;        // Number of samples to read
+  } ctrl_in;
+  void* output;
+  int out_len;
+}netsource_hl;
 
-LIBLTE_API int udpsink_initialize(udpsink_hl* h);
-LIBLTE_API int udpsink_work(  udpsink_hl* hl);
-LIBLTE_API int udpsink_stop(udpsink_hl* h);
+LIBLTE_API int netsource_initialize(netsource_hl* h);
+LIBLTE_API int netsource_work(  netsource_hl* hl);
+LIBLTE_API int netsource_stop(netsource_hl* h);
 
-#endif // UDPSINK_
+#endif // UDPSOURCE_

@@ -35,12 +35,12 @@
 #include <strings.h>
 
 
-#include "liblte/phy/io/udpsink.h"
+#include "liblte/phy/io/netsink.h"
 
-int udpsink_init(udpsink_t *q, char *address, int port) {
-  bzero(q, sizeof(udpsink_t));
+int netsink_init(netsink_t *q, char *address, int port, netsink_type_t type) {
+  bzero(q, sizeof(netsink_t));
 
-  q->sockfd=socket(AF_INET,SOCK_DGRAM,0);
+  q->sockfd=socket(AF_INET, type==NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);
   
   if (q->sockfd < 0) {
     perror("socket");
@@ -50,36 +50,41 @@ int udpsink_init(udpsink_t *q, char *address, int port) {
   q->servaddr.sin_family = AF_INET;
   q->servaddr.sin_addr.s_addr=inet_addr(address);
   q->servaddr.sin_port=htons(port);
+  
+  printf("Connecting to %s:%d\n", address, port);
+  if (connect(q->sockfd,&q->servaddr,sizeof(q->servaddr)) < 0) {
+    perror("connect");
+    return -1;
+  }
 
   return 0;
 }
 
-void udpsink_free(udpsink_t *q) {
+void netsink_free(netsink_t *q) {
   if (q->sockfd) {
     close(q->sockfd);
   }
-  bzero(q, sizeof(udpsink_t));
+  bzero(q, sizeof(netsink_t));
 }
 
-int udpsink_write(udpsink_t *q, void *buffer, int nof_bytes) {
-  return sendto(q->sockfd, buffer, nof_bytes, 0,
-        &q->servaddr, sizeof(struct sockaddr_in));  
+int netsink_write(netsink_t *q, void *buffer, int nof_bytes) {
+  return write(q->sockfd, buffer, nof_bytes);  
 }
 
 
 
-int udpsink_initialize(udpsink_hl* h) {
-  return udpsink_init(&h->obj, h->init.address, h->init.port);
+int netsink_initialize(netsink_hl* h) {
+  return netsink_init(&h->obj, h->init.address, h->init.port, NETSINK_UDP);
 }
 
-int udpsink_work(udpsink_hl* h) {
-  if (udpsink_write(&h->obj, h->input, h->in_len)<0) {
+int netsink_work(netsink_hl* h) {
+  if (netsink_write(&h->obj, h->input, h->in_len)<0) {
     return -1;
   }
   return 0;
 }
 
-int udpsink_stop(udpsink_hl* h) {
-  udpsink_free(&h->obj);
+int netsink_stop(netsink_hl* h) {
+  netsink_free(&h->obj);
   return 0;
 }

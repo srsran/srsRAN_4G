@@ -70,8 +70,8 @@ typedef struct {
   char *uhd_args; 
   float uhd_freq; 
   float uhd_gain;
-  int udp_port; 
-  char *udp_address; 
+  int net_port; 
+  char *net_address; 
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
@@ -81,8 +81,8 @@ void args_default(prog_args_t *args) {
   args->uhd_args = "";
   args->uhd_freq = -1.0;
   args->uhd_gain = 60.0; 
-  args->udp_port = -1; 
-  args->udp_address = "127.0.0.1";
+  args->net_port = -1; 
+  args->net_address = "127.0.0.1";
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -97,8 +97,8 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
-  printf("\t-u remote UDP port to send data (-1 does nothing with it) [Default %d]\n", args->udp_port);
-  printf("\t-U remote UDP address to send data [Default %s]\n", args->udp_address);
+  printf("\t-u remote UDP port to send data (-1 does nothing with it) [Default %d]\n", args->net_port);
+  printf("\t-U remote UDP address to send data [Default %s]\n", args->net_address);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -126,10 +126,10 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->force_N_id_2 = atoi(argv[optind]);
       break;
     case 'u':
-      args->udp_port = atoi(argv[optind]);
+      args->net_port = atoi(argv[optind]);
       break;
     case 'U':
-      args->udp_address = argv[optind];
+      args->net_address = argv[optind];
       break;
     case 'd':
       args->disable_plots = true;
@@ -186,13 +186,13 @@ int main(int argc, char **argv) {
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
-  udpsink_t udp_sink; 
+  netsink_t net_sink; 
   
   parse_args(&prog_args, argc, argv);
 
-  if (prog_args.udp_port > 0) {
-    if (udpsink_init(&udp_sink, prog_args.udp_address, prog_args.udp_port)) {
-      fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.udp_address, prog_args.udp_port);
+  if (prog_args.net_port > 0) {
+    if (netsink_init(&net_sink, prog_args.net_address, prog_args.net_port, NETSINK_TCP)) {
+      fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address, prog_args.net_port);
       exit(-1);
     }
   }
@@ -227,7 +227,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
     return LIBLTE_ERROR;
   }
-
 
   INFO("Stopping UHD and flushing buffer...\r",0);
   cuhd_stop_rx_stream(uhd);
@@ -318,9 +317,9 @@ int main(int argc, char **argv) {
               exit(-1);
             } else if (n > 0) {
               /* Send data if socket active */
-              if (prog_args.udp_port > 0) {
+              if (prog_args.net_port > 0) {
                 bit_unpack_vector(data_packed, data, n);
-                if (udpsink_write(&udp_sink, data, 1+(n-1)/8) < 0) {
+                if (netsink_write(&net_sink, data, 1+(n-1)/8) < 0) {
                   fprintf(stderr, "Error sending data through UDP socket\n");
                 }
               }

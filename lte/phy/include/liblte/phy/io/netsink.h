@@ -26,13 +26,12 @@
  */
 
 
-#ifndef UDPSOURCE_
-#define UDPSOURCE_
+#ifndef NETSINK_
+#define NETSINK_
 
-#include <stdbool.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <stdio.h>
+#include <arpa/inet.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -42,41 +41,37 @@
 typedef struct LIBLTE_API {
   int sockfd;
   struct sockaddr_in servaddr;
-}udpsource_t;
+}netsink_t;
 
-LIBLTE_API int udpsource_init(udpsource_t *q, 
-                              char *address, 
-                              int port);
+typedef enum {NETSINK_UDP, NETSINK_TCP} netsink_type_t; 
 
-LIBLTE_API void udpsource_free(udpsource_t *q);
+LIBLTE_API int netsink_init(netsink_t *q, 
+                            char *address, 
+                            int port, 
+                            netsink_type_t type);
 
-LIBLTE_API int udpsource_set_nonblocking(udpsource_t *q); 
+LIBLTE_API void netsink_free(netsink_t *q);
 
-LIBLTE_API int udpsource_read(udpsource_t *q, 
-                              void *buffer, 
-                              int nof_bytes);
-
-LIBLTE_API int udpsource_set_timeout(udpsource_t *q, 
-                                     uint32_t microseconds); 
+LIBLTE_API int netsink_write(netsink_t *q, 
+                             void *buffer, 
+                             int nof_bytes);
 
 
 /* High-level API */
 typedef struct LIBLTE_API {
-  udpsource_t obj;
-  struct udpsource_init {
+  netsink_t obj;
+  struct netsink_init {
     char *address;
     int port;
+    int block_length;
     int data_type;
   } init;
-  struct udpsource_ctrl_in {
-    int nsamples;        // Number of samples to read
-  } ctrl_in;
-  void* output;
-  int out_len;
-}udpsource_hl;
+  void* input;
+  int in_len;
+}netsink_hl;
 
-LIBLTE_API int udpsource_initialize(udpsource_hl* h);
-LIBLTE_API int udpsource_work(  udpsource_hl* hl);
-LIBLTE_API int udpsource_stop(udpsource_hl* h);
+LIBLTE_API int netsink_initialize(netsink_hl* h);
+LIBLTE_API int netsink_work(  netsink_hl* hl);
+LIBLTE_API int netsink_stop(netsink_hl* h);
 
-#endif // UDPSOURCE_
+#endif // UDPSINK_

@@ -74,8 +74,8 @@
 #include "liblte/phy/io/binsource.h"
 #include "liblte/phy/io/filesink.h"
 #include "liblte/phy/io/filesource.h"
-#include "liblte/phy/io/udpsink.h"
-#include "liblte/phy/io/udpsource.h"
+#include "liblte/phy/io/netsink.h"
+#include "liblte/phy/io/netsource.h"
 
 #include "liblte/phy/modem/demod_hard.h"
 #include "liblte/phy/modem/demod_soft.h"

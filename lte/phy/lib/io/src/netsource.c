@@ -35,17 +35,18 @@
 #include <strings.h>
 #include <errno.h>
 
-#include "liblte/phy/io/udpsource.h"
+#include "liblte/phy/io/netsource.h"
 
-int udpsource_init(udpsource_t *q, char *address, int port) {
-  bzero(q, sizeof(udpsource_t));
+int netsource_init(netsource_t *q, char *address, int port, netsource_type_t type) {
+  bzero(q, sizeof(netsource_t));
 
-  q->sockfd=socket(AF_INET,SOCK_DGRAM,0);
+  q->sockfd=socket(AF_INET,type==NETSOURCE_TCP?SOCK_STREAM:SOCK_DGRAM,0);
 
   if (q->sockfd < 0) {
     perror("socket");
     return -1; 
   }
+  q->type = type; 
   
   q->servaddr.sin_family = AF_INET;
   q->servaddr.sin_addr.s_addr=inet_addr(address);
@@ -55,32 +56,58 @@ int udpsource_init(udpsource_t *q, char *address, int port) {
     perror("bind");
     return -1; 
   }
+  q->connfd = 0; 
 
   return 0;
 }
 
-void udpsource_free(udpsource_t *q) {
+void netsource_free(netsource_t *q) {
   if (q->sockfd) {
     close(q->sockfd);
   }
-  bzero(q, sizeof(udpsource_t));
+  bzero(q, sizeof(netsource_t));
 }
 
-int udpsource_read(udpsource_t *q, void *buffer, int nbytes) {
-  int n = recv(q->sockfd, buffer, nbytes, 0);
-  
-  if (n == -1) {
-    if (errno == EAGAIN) {
-      return 0; 
+int netsource_read(netsource_t *q, void *buffer, int nbytes) {
+  if (q->type == NETSOURCE_UDP) {
+    int n = recv(q->sockfd, buffer, nbytes, 0);
+    
+    if (n == -1) {
+      if (errno == EAGAIN) {
+        return 0; 
+      } else {
+        return -1; 
+      }
     } else {
-      return -1; 
-    }
+      return n; 
+    }    
   } else {
+    if (q->connfd == 0) {
+      printf("Waiting for TCP connection\n");
+      listen(q->sockfd, 1);
+      socklen_t clilen = sizeof(q->cliaddr);
+      q->connfd = accept(q->sockfd, (struct sockaddr *)&q->cliaddr, &clilen);
+      if (q->connfd < 0) {
+          perror("accept");
+          return -1;
+      }
+    }
+    int n = read(q->connfd, buffer, nbytes);
+    if (n == -1) {
+      if (errno == ECONNRESET) {
+        printf("Connection closed\n");
+        close(q->connfd);
+        q->connfd = 0; 
+        return 0;
+      } else {
+        perror("read");
+      }
+    }
     return n; 
   }
 }
 
-int udpsource_set_nonblocking(udpsource_t *q) {
+int netsource_set_nonblocking(netsource_t *q) {
   if (fcntl(q->sockfd, F_SETFL, O_NONBLOCK)) {
     perror("fcntl");
     return -1; 
@@ -88,7 +115,7 @@ int udpsource_set_nonblocking(udpsource_t *q) {
   return 0; 
 }
 
-int udpsource_set_timeout(udpsource_t *q, uint32_t microseconds) {
+int netsource_set_timeout(netsource_t *q, uint32_t microseconds) {
   struct timeval t; 
   t.tv_sec = 0; 
   t.tv_usec = microseconds; 
@@ -99,19 +126,19 @@ int udpsource_set_timeout(udpsource_t *q, uint32_t microseconds) {
   return 0; 
 }
 
-int udpsource_initialize(udpsource_hl* h) {
-  return udpsource_init(&h->obj, h->init.address, h->init.port);
+int netsource_initialize(netsource_hl* h) {
+  return netsource_init(&h->obj, h->init.address, h->init.port, NETSOURCE_UDP);
 }
 
-int udpsource_work(udpsource_hl* h) {
-  h->out_len = udpsource_read(&h->obj, h->output, h->ctrl_in.nsamples);
+int netsource_work(netsource_hl* h) {
+  h->out_len = netsource_read(&h->obj, h->output, h->ctrl_in.nsamples);
   if (h->out_len < 0) {
     return -1;
   }
   return 0;
 }
 
-int udpsource_stop(udpsource_hl* h) {
-  udpsource_free(&h->obj);
+int netsource_stop(netsource_hl* h) {
+  netsource_free(&h->obj);
   return 0;
 }
