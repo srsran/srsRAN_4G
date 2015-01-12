@@ -162,29 +162,29 @@ int main(int argc, char **argv) {
     printf("  EbNo: %.2f\n", ebno_db);
   }
 
-  data_tx = malloc(frame_length * sizeof(uint8_t));
+  data_tx = vec_malloc(frame_length * sizeof(uint8_t));
   if (!data_tx) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx = malloc(frame_length * sizeof(uint8_t));
+  data_rx = vec_malloc(frame_length * sizeof(uint8_t));
   if (!data_rx) {
     perror("malloc");
     exit(-1);
   }
 
-  symbols = malloc(coded_length * sizeof(uint8_t));
+  symbols = vec_malloc(coded_length * sizeof(uint8_t));
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  llr = malloc(coded_length * sizeof(float));
+  llr = vec_malloc(coded_length * sizeof(float));
   if (!llr) {
     perror("malloc");
     exit(-1);
   }
-  llr_c = malloc(coded_length * sizeof(uint8_t));
+  llr_c = vec_malloc(coded_length * sizeof(uint8_t));
   if (!llr_c) {
     perror("malloc");
     exit(-1);

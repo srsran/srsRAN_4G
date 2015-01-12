@@ -533,6 +533,21 @@ uint32_t vec_max_fi(float *x, uint32_t len) {
 #endif
 }
 
+void vec_max_fff(float *x, float *y, float *z, uint32_t len) {
+#ifdef HAVE_VOLK_MAX_VEC_FUNCTION
+  volk_32f_x2_max_32f(z,x,y,len);
+#else
+  uint32_t i; 
+  for (i=0;i<len;i++) {
+    if (x[i] > y[i]) {
+      z[i] = x[i]; 
+    } else {
+      z[i] = y[i]; 
+    }
+  }
+#endif  
+}
+
 
 uint32_t vec_max_abs_ci(cf_t *x, uint32_t len) {
 #ifdef HAVE_VOLK_MAX_ABS_FUNCTION

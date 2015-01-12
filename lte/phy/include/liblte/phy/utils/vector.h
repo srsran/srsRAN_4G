@@ -124,6 +124,9 @@ LIBLTE_API float vec_avg_power_cf(cf_t *x, uint32_t len);
 LIBLTE_API uint32_t vec_max_fi(float *x, uint32_t len);
 LIBLTE_API uint32_t vec_max_abs_ci(cf_t *x, uint32_t len);
 
+/* maximum between two vectors */
+LIBLTE_API void vec_max_fff(float *x, float *y, float *z, uint32_t len);
+
 /* quantify vector of floats and convert to uint8_t */
 LIBLTE_API void vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len);
 
