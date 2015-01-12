@@ -2,16 +2,28 @@
 
 %% Cell-Wide Settings
 % A structure |enbConfig| is used to configure the eNodeB.
-clear
+%clear
 
-Npackets = 10;
-SNR_values = linspace(2,6,4);
+Npackets = 4;
+SNR_values = 1;%linspace(2,6,4);
 
 %% Choose RMC 
 [waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.11',[1;0;0;1]);
 waveform = sum(waveform,2);
 
-Nsf = 8; 
+rmccFgOut = struct('NCellID',1,'CellRefP',1,'CFI',1,'NDLRB',15,'SamplingRate',3.84e6,'Nfft',256,'DuplexMode','FDD','CyclicPrefix','Normal'); 
+rmccFgOut.PDSCH.RNTI = 1234;
+rmccFgOut.PDSCH.PRBSet = repmat(transpose(0:rmccFgOut.NDLRB-1),1,2);
+rmccFgOut.PDSCH.TxScheme = 'Port0';
+rmccFgOut.PDSCH.NLayers = 1;   
+rmccFgOut.PDSCH.NTurboDecIts = 5;
+rmccFgOut.PDSCH.Modulation = {'64QAM'};
+rmccFgOut.PDSCH.TrBlkSizes = [0 5992*ones(1,4) 0 5992*ones(1,4)];
+rmccFgOut.PDSCH.RV = 0;
+
+flen=rmccFgOut.SamplingRate/1000;
+
+Nsf = 9; 
 
 %% Setup Fading channel model 
 cfg.Seed = 8;                  % Random channel seed
@@ -52,12 +64,13 @@ for snr_idx=1:length(SNR_values)
         %% Noise Addition
         noise = N0*complex(randn(size(rxWaveform)), randn(size(rxWaveform)));  % Generate noise
         rxWaveform = rxWaveform + noise; 
+        
+        rxWaveform = x; 
        
         %% Demodulate 
         frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
 
         for sf_idx=0:Nsf
-            flen=length(rxWaveform)/10;
             subframe_waveform = rxWaveform(sf_idx*flen+1:(sf_idx+1)*flen);
             subframe_rx=frame_rx(:,sf_idx*14+1:(sf_idx+1)*14);
             rmccFgOut.NSubframe=sf_idx;
@@ -83,6 +96,8 @@ for snr_idx=1:length(SNR_values)
             end
             decoded_liblte(snr_idx) = decoded_liblte(snr_idx)+dec2;
         end
+        
+        x = x(flen*10+1:end);
     end
     fprintf('SNR: %.1f\n',SNRdB)
 end

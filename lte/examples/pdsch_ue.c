@@ -40,9 +40,12 @@
 #include "liblte/phy/phy.h"
 #include "liblte/cuhd/cuhd.h"
 #include "cuhd_utils.h"
+#include "liblte/graphics/plot/plot_waterfall.h"
+
+#define STDOUT_COMPACT
 
 #ifndef DISABLE_GRAPHICS
-void init_plots();
+void init_plots(lte_cell_t cell);
 void do_plots(ue_dl_t *q, uint32_t sf_idx, ue_sync_t *qs);
 #endif
 
@@ -72,6 +75,8 @@ typedef struct {
   float uhd_gain;
   int net_port; 
   char *net_address; 
+  int net_port_signal; 
+  char *net_address_signal; 
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
@@ -83,6 +88,8 @@ void args_default(prog_args_t *args) {
   args->uhd_gain = 60.0; 
   args->net_port = -1; 
   args->net_address = "127.0.0.1";
+  args->net_port_signal = -1; 
+  args->net_address_signal = "127.0.0.1";
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -97,6 +104,8 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
+  printf("\t-s remote UDP port to send input signal (-1 does nothing with it) [Default %d]\n", args->net_port_signal);
+  printf("\t-S remote UDP address to send input signal [Default %s]\n", args->net_address_signal);
   printf("\t-u remote UDP port to send data (-1 does nothing with it) [Default %d]\n", args->net_port);
   printf("\t-U remote UDP address to send data [Default %s]\n", args->net_address);
   printf("\t-v [set verbose to debug, default none]\n");
@@ -105,7 +114,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "agldnvrfuU")) != -1) {
+  while ((opt = getopt(argc, argv, "agldnvrfuUsS")) != -1) {
     switch (opt) {
     case 'a':
       args->uhd_args = argv[optind];
@@ -130,6 +139,12 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'U':
       args->net_address = argv[optind];
+      break;
+    case 's':
+      args->net_port_signal = atoi(argv[optind]);
+      break;
+    case 'S':
+      args->net_address_signal = argv[optind];
       break;
     case 'd':
       args->disable_plots = true;
@@ -186,7 +201,7 @@ int main(int argc, char **argv) {
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
-  netsink_t net_sink; 
+  netsink_t net_sink, net_sink_signal; 
   
   parse_args(&prog_args, argc, argv);
 
@@ -196,7 +211,12 @@ int main(int argc, char **argv) {
       exit(-1);
     }
   }
-  
+  if (prog_args.net_port_signal > 0) {
+    if (netsink_init(&net_sink_signal, prog_args.net_address_signal, prog_args.net_port_signal, NETSINK_UDP)) {
+      fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address_signal, prog_args.net_port_signal);
+      exit(-1);
+    }
+  }
   printf("Opening UHD device...\n");
   if (cuhd_open(prog_args.uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
@@ -256,7 +276,7 @@ int main(int argc, char **argv) {
 
   #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
-    init_plots();    
+    init_plots(cell);    
   }
   #endif
   
@@ -273,6 +293,13 @@ int main(int argc, char **argv) {
     ret = ue_sync_get_buffer(&ue_sync, &sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling ue_sync_work()\n");
+    }
+    
+    if (prog_args.net_port_signal > 0) {
+      if (netsink_write(&net_sink_signal, sf_buffer, ue_sync_sf_len(&ue_sync)) < 0) {
+        fprintf(stderr, "Error sending data through UDP socket\n");
+        perror("write");
+      }
     }
         
     /* ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
@@ -314,7 +341,6 @@ int main(int argc, char **argv) {
             }
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
-              exit(-1);
             } else if (n > 0) {
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
@@ -337,6 +363,11 @@ int main(int argc, char **argv) {
           
           // Plot and Printf
           if (ue_sync_get_sfidx(&ue_sync) == 5) {
+#ifdef STDOUT_COMPACT
+            printf("PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
+                  100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                
+#else
             printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, "
                   "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %4.1f dB, "
                   "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
@@ -345,6 +376,8 @@ int main(int argc, char **argv) {
                   10*log10(rsrq), 10*log10(snr), 
                   100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                
+            
+#endif            
           }
           break;
       }
@@ -355,8 +388,8 @@ int main(int argc, char **argv) {
         }
       }
       #ifndef DISABLE_GRAPHICS
-      if (!prog_args.disable_plots && ue_sync_get_sfidx(&ue_sync) == 5) {
-        do_plots(&ue_dl, 5, &ue_sync);          
+      if (!prog_args.disable_plots) {
+        do_plots(&ue_dl, ue_sync_get_sfidx(&ue_sync), &ue_sync);          
       }
       #endif
     } else if (ret == 0) {
@@ -390,20 +423,20 @@ int main(int argc, char **argv) {
 
 
 #include "liblte/graphics/plot.h"
-plot_real_t poutfft, p_sync;
-plot_real_t pce;
+plot_waterfall_t poutfft;
+plot_real_t p_sync, pce;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
 float tmp_plot[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 float tmp_plot2[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 float tmp_plot3[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 
-void init_plots() {
+void init_plots(lte_cell_t cell) {
   plot_init();
-  plot_real_init(&poutfft);
-  plot_real_setTitle(&poutfft, "Output FFT - Magnitude");
-  plot_real_setLabels(&poutfft, "Index", "dB");
-  plot_real_setYAxisScale(&poutfft, -40, 40);
+  
+  plot_waterfall_init(&poutfft, RE_X_RB * cell.nof_prb, 5000);
+  plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
+  plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
 
   plot_real_init(&pce);
   plot_real_setTitle(&pce, "Channel Response - Magnitude");
@@ -428,7 +461,7 @@ void init_plots() {
 
 void do_plots(ue_dl_t *q, uint32_t sf_idx, ue_sync_t *qs) {
   int i;
-  uint32_t nof_re = SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp);
+  uint32_t nof_re = SF_LEN_RE(q->cell.nof_prb, q->cell.cp);
   uint32_t nof_symbols = q->harq_process[0].prb_alloc.re_sf[sf_idx];
   for (i = 0; i < nof_re; i++) {
     tmp_plot[i] = 20 * log10f(cabsf(q->sf_symbols[i]));
@@ -442,7 +475,9 @@ void do_plots(ue_dl_t *q, uint32_t sf_idx, ue_sync_t *qs) {
       tmp_plot2[i] = -80;
     }
   }
-  plot_real_setNewData(&poutfft, tmp_plot, nof_re);        
+  for (i=0;i<CP_NSYMB(q->cell.cp);i++) {
+    plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*RE_X_RB*q->cell.nof_prb], RE_X_RB*q->cell.nof_prb);            
+  }
   plot_real_setNewData(&pce, tmp_plot2, REFSIGNAL_NUM_SF(q->cell.nof_prb,0));        
   int max = vec_max_fi(qs->strack.pss.conv_output_avg, qs->strack.pss.frame_size+qs->strack.pss.fft_size-1);
   vec_sc_prod_fff(qs->strack.pss.conv_output_avg, 

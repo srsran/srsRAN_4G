@@ -250,10 +250,12 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
     /* If the PSS peak is beyond the frame (we sample too slowly), 
       discard the offseted samples to align next frame */
     if (q->time_offset > 0 && q->time_offset < MAX_TIME_OFFSET) {
+      INFO("Positive time offset %d samples. Adjusting now.\n", q->time_offset);
       if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset) < 0) {
         fprintf(stderr, "Error receiving from USRP\n");
         return LIBLTE_ERROR; 
       }
+      q->time_offset = 0;
     } 
     
     /* compute cumulative moving average time offset */
@@ -291,6 +293,7 @@ static int receive_samples(ue_sync_t *q) {
     q->time_offset = -q->time_offset;
   }
 
+  INFO("Receiving %d samples\n", q->frame_len - q->time_offset);
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
   if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], q->frame_len - q->time_offset) < 0) {
     return LIBLTE_ERROR;

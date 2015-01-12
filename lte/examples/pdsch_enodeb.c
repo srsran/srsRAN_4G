@@ -394,8 +394,8 @@ int update_control() {
   }
 }
 
-#define DATA_BUFF_SZ    10000
-uint8_t data[DATA_BUFF_SZ], data_unpacked[DATA_BUFF_SZ];
+#define DATA_BUFF_SZ    1000
+uint8_t data[8*DATA_BUFF_SZ], data_unpacked[DATA_BUFF_SZ];
 uint8_t data_tmp[DATA_BUFF_SZ];
 
 /** Function run in a separate thread to receive UDP data */
@@ -414,7 +414,7 @@ void *net_thread_fnc(void *arg) {
         // wait for packet to be transmitted
         sem_wait(&net_sem);
         bit_pack_vector(&data_unpacked[wpm], data, nbytes*8);          
-        printf("Sent %d/%d bytes ready\n", nbytes, rpm);
+        INFO("Sent %d/%d bytes ready\n", nbytes, rpm);
         rpm -= nbytes;          
         wpm += nbytes; 
         net_packet_ready = true; 

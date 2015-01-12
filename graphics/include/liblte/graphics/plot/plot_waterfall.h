@@ -38,7 +38,7 @@ extern "C" {
 
 typedef void* plot_waterfall_t;
 
-LIBLTE_API int plot_waterfall_init(plot_waterfall_t *h);
+LIBLTE_API int plot_waterfall_init(plot_waterfall_t *h, int numDataPoints, int numRows);
 LIBLTE_API void plot_waterfall_setTitle(plot_waterfall_t *h, char *title);
 LIBLTE_API void plot_waterfall_appendNewData(plot_waterfall_t *h, float *data,
     int num_points);
