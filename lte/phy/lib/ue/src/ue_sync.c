@@ -34,8 +34,10 @@
 
 #include "liblte/phy/ue/ue_sync.h"
 
+#include "liblte/phy/io/filesource.h"
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
+
 
 #define MAX_TIME_OFFSET 128
 cf_t dummy[MAX_TIME_OFFSET];
@@ -43,6 +45,40 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define TRACK_MAX_LOST          10
 #define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     2
+
+int ue_sync_init_file(ue_sync_t *q, uint32_t nof_prb, char *file_name) {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q                   != NULL && 
+      file_name           != NULL && 
+      lte_nofprb_isvalid(nof_prb))
+  {
+    ret = LIBLTE_ERROR;
+    bzero(q, sizeof(ue_sync_t));
+    q->file_mode = true; 
+    q->sf_len = SF_LEN(lte_symbol_sz(nof_prb));
+
+    if (filesource_init(&q->file_source, file_name, COMPLEX_FLOAT_BIN)) {
+      fprintf(stderr, "Error opening file %s\n", file_name);
+      goto clean_exit; 
+    }
+    
+    q->input_buffer = vec_malloc(q->sf_len * sizeof(cf_t));
+    if (!q->input_buffer) {
+      perror("malloc");
+      goto clean_exit;
+    }
+    
+    ue_sync_reset(q);
+    
+    ret = LIBLTE_SUCCESS;
+  }
+clean_exit:
+  if (ret == LIBLTE_ERROR) {
+    ue_sync_free(q);
+  }
+  return ret; 
+}
 
 int ue_sync_init(ue_sync_t *q, 
                  lte_cell_t cell,
@@ -65,7 +101,8 @@ int ue_sync_init(ue_sync_t *q,
     q->cell = cell;
     q->fft_size = lte_symbol_sz(q->cell.nof_prb);
     q->sf_len = SF_LEN(q->fft_size);
-
+    q->file_mode = false; 
+    
     if (cell.id == 1000) {
       /* If the cell is unkown, decode SSS on track state */
       q->decode_sss_on_track = true;       
@@ -155,9 +192,12 @@ void ue_sync_free(ue_sync_t *q) {
   if (q->input_buffer) {
     free(q->input_buffer);
   }
-  sync_free(&q->sfind);
-  sync_free(&q->strack);
-  
+  if (!q->file_mode) {
+    sync_free(&q->sfind);
+    sync_free(&q->strack);    
+  } else {
+    filesource_free(&q->file_source);
+  }
   bzero(q, sizeof(ue_sync_t));
 }
 
@@ -185,9 +225,11 @@ void ue_sync_decode_sss_on_track(ue_sync_t *q, bool enabled) {
 }
 
 void ue_sync_set_N_id_2(ue_sync_t *q, uint32_t N_id_2) {
-  ue_sync_reset(q);
-  sync_set_N_id_2(&q->strack, N_id_2);
-  sync_set_N_id_2(&q->sfind, N_id_2);
+  if (!q->file_mode) {
+    ue_sync_reset(q);
+    sync_set_N_id_2(&q->strack, N_id_2);
+    sync_set_N_id_2(&q->sfind, N_id_2);    
+  }
 }
 
 static int find_peak_ok(ue_sync_t *q) {
@@ -229,7 +271,7 @@ static int find_peak_ok(ue_sync_t *q) {
   return 0;
 }
 
-int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
+static int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
   
    /* Make sure subframe idx is what we expect */
   if ((q->sf_idx != sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track) {
@@ -269,7 +311,7 @@ int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
   return 1;
 }
 
-int track_peak_no(ue_sync_t *q) {
+static int track_peak_no(ue_sync_t *q) {
   
   /* if we missed too many PSS go back to FIND */
   q->frame_no_cnt++; 
@@ -316,87 +358,118 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
       q->input_buffer != NULL)
   {
     
-    if (receive_samples(q)) {
-      fprintf(stderr, "Error receiving samples\n");
-      return -1;
-    }
-    
-    switch (q->state) {
-      case SF_FIND:        
-        ret = sync_find(&q->sfind, q->input_buffer, 0, &q->peak_idx);
-        if (ret < 0) {
-          fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
-          return LIBLTE_ERROR;
+    if (q->file_mode) {
+      usleep(1000);
+      int n = filesource_read(&q->file_source, q->input_buffer, q->sf_len);
+      if (n < 0) {
+        fprintf(stderr, "Error reading input file\n");
+        return LIBLTE_ERROR; 
+      }
+      if (n == 0) {
+        filesource_seek(&q->file_source, 0);
+        q->sf_idx = 9; 
+        int n = filesource_read(&q->file_source, q->input_buffer, q->sf_len);
+        if (n < 0) {
+          fprintf(stderr, "Error reading input file\n");
+          return LIBLTE_ERROR; 
         }
-        
-        if (ret == 1) {
-          ret = find_peak_ok(q);
-        } 
-      break;
-      case SF_TRACK:
-        ret = 1;
-        
-        sync_sss_en(&q->strack, q->decode_sss_on_track);
-        
-        q->sf_idx = (q->sf_idx + q->nof_recv_sf) % 10;
-
-        /* Every SF idx 0 and 5, find peak around known position q->peak_idx */
-        if (q->sf_idx == 0 || q->sf_idx == 5) {
-
-          #ifdef MEASURE_EXEC_TIME
-          struct timeval t[3];
-          gettimeofday(&t[1], NULL);
-          #endif
-          
-          track_idx = 0; 
-          
-          /* track PSS/SSS around the expected PSS position */
-          ret = sync_find(&q->strack, q->input_buffer, 
-                          q->frame_len - q->sf_len/2 - q->fft_size - q->strack.frame_size/2, 
-                          &track_idx);
+      }
+      q->sf_idx++;
+      if (q->sf_idx == 10) {
+        q->sf_idx = 0;
+      }
+      INFO("Reading %d samples. sf_idx = %d\n", q->sf_len, q->sf_idx);
+      ret = 1;
+      *sf_symbols = q->input_buffer;
+    } else {
+      if (receive_samples(q)) {
+        fprintf(stderr, "Error receiving samples\n");
+        return LIBLTE_ERROR;
+      }
+      
+      switch (q->state) {
+        case SF_FIND:        
+          ret = sync_find(&q->sfind, q->input_buffer, 0, &q->peak_idx);
           if (ret < 0) {
-            fprintf(stderr, "Error tracking correlation peak\n");
+            fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
             return LIBLTE_ERROR;
           }
           
-          #ifdef MEASURE_EXEC_TIME
-          gettimeofday(&t[2], NULL);
-          get_time_interval(t);
-          q->mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, q->mean_exec_time, q->frame_total_cnt);
-          #endif
-
           if (ret == 1) {
-            ret = track_peak_ok(q, track_idx);
-          } else {
-            ret = track_peak_no(q); 
-          }
-          if (ret == LIBLTE_ERROR) {
-            fprintf(stderr, "Error processing tracking peak\n");
-            q->state = SF_FIND; 
-            return LIBLTE_SUCCESS;
+            ret = find_peak_ok(q);
           } 
-                    
-          q->frame_total_cnt++;       
-        }
-        
-        /* Do CFO Correction if not done in track and deliver the frame */
-        if (!q->strack.correct_cfo) {
-          cfo_correct(&q->sfind.cfocorr, 
-                      q->input_buffer, 
-                      q->input_buffer, 
-                      -sync_get_cfo(&q->strack) / q->fft_size);               
-        }
-        *sf_symbols = q->input_buffer;
-        
-      break;
+        break;
+        case SF_TRACK:
+          ret = 1;
+          
+          sync_sss_en(&q->strack, q->decode_sss_on_track);
+          
+          q->sf_idx = (q->sf_idx + q->nof_recv_sf) % 10;
+
+          /* Every SF idx 0 and 5, find peak around known position q->peak_idx */
+          if (q->sf_idx == 0 || q->sf_idx == 5) {
+
+            #ifdef MEASURE_EXEC_TIME
+            struct timeval t[3];
+            gettimeofday(&t[1], NULL);
+            #endif
+            
+            track_idx = 0; 
+            
+            /* track PSS/SSS around the expected PSS position */
+            ret = sync_find(&q->strack, q->input_buffer, 
+                            q->frame_len - q->sf_len/2 - q->fft_size - q->strack.frame_size/2, 
+                            &track_idx);
+            if (ret < 0) {
+              fprintf(stderr, "Error tracking correlation peak\n");
+              return LIBLTE_ERROR;
+            }
+            
+            #ifdef MEASURE_EXEC_TIME
+            gettimeofday(&t[2], NULL);
+            get_time_interval(t);
+            q->mean_exec_time = (float) VEC_CMA((float) t[0].tv_usec, q->mean_exec_time, q->frame_total_cnt);
+            #endif
+
+            if (ret == 1) {
+              ret = track_peak_ok(q, track_idx);
+            } else {
+              ret = track_peak_no(q); 
+            }
+            if (ret == LIBLTE_ERROR) {
+              fprintf(stderr, "Error processing tracking peak\n");
+              q->state = SF_FIND; 
+              return LIBLTE_SUCCESS;
+            } 
+                      
+            q->frame_total_cnt++;       
+          }
+          
+          /* Do CFO Correction if not done in track and deliver the frame */
+          if (!q->strack.correct_cfo) {
+            cfo_correct(&q->sfind.cfocorr, 
+                        q->input_buffer, 
+                        q->input_buffer, 
+                        -sync_get_cfo(&q->strack) / q->fft_size);               
+          }
+          *sf_symbols = q->input_buffer;
+          
+        break;
+      }
+      
     }
   }  
   return ret; 
 }
 
 void ue_sync_reset(ue_sync_t *q) {
+
+  if (!q->file_mode) {
+    sync_reset(&q->strack);
+  } else {
+    q->sf_idx = 9;
+  }
   q->state = SF_FIND;
-  sync_reset(&q->strack);
   q->frame_ok_cnt = 0;
   q->frame_no_cnt = 0;
   q->frame_total_cnt = 0; 
@@ -405,6 +478,6 @@ void ue_sync_reset(ue_sync_t *q) {
   q->frame_find_cnt = 0; 
   #ifdef MEASURE_EXEC_TIME
   q->mean_exec_time = 0;
-  #endif  
+  #endif      
 }
 

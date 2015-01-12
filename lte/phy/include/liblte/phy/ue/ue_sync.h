@@ -36,6 +36,7 @@
 #include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/fft.h"
+#include "liblte/phy/io/filesource.h"
 
 /**************************************************************
  *
@@ -46,6 +47,9 @@
  * should be called regularly, returning every 1 ms. It reads from the 
  * USRP, aligns the samples to the subframe and performs time/freq synch. 
  *
+ * It is also possible to read the signal from a file using the init function 
+ * ue_sync_init_file(). The sampling frequency is derived from the number of PRB. 
+ * 
  * The function returns 1 when the signal is correctly acquired and the 
  * returned buffer is aligned with the subframe. 
  * 
@@ -62,6 +66,9 @@ typedef struct LIBLTE_API {
   void *stream; 
   int (*recv_callback)(void*, void*, uint32_t); 
 
+  filesource_t file_source; 
+  bool file_mode; 
+  
   ue_sync_state_t state;
   
   cf_t *input_buffer; 
@@ -100,6 +107,10 @@ LIBLTE_API int ue_sync_init(ue_sync_t *q,
                             lte_cell_t cell,
                             int (recv_callback)(void*, void*, uint32_t), 
                             void *stream_handler);
+
+LIBLTE_API int ue_sync_init_file(ue_sync_t *q, 
+                                 uint32_t nof_prb,
+                                 char *file_name);
 
 LIBLTE_API void ue_sync_free(ue_sync_t *q);
 

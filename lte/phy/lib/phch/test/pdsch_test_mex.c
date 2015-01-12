@@ -207,7 +207,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int r = pdsch_decode(&pdsch, input_fft, ce, noise_power, data, sf_idx, &harq_process, rv);
 
   
-tbs_is_zero:
   if (nlhs >= 1) { 
     plhs[0] = mxCreateLogicalScalar(r == 0);
   }
