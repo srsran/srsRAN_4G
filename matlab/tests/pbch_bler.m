@@ -5,11 +5,11 @@
 % R.11-2 5 MHz 2 ports
 rmc = lteRMCDL('R.10');
 
-NofPortsTx=2;
+NofPortsTx=1;
 
-SNR_values_db=linspace(-8,-2,4);
-Nrealizations=200;
-enb = struct('NCellID',0,'NDLRB',50,'CellRefP',NofPortsTx,'CyclicPrefix','Normal','DuplexMode','FDD','NSubframe',0);
+SNR_values_db=1;%linspace(-8,-2,4);
+Nrealizations=5;
+enb = struct('NCellID',1,'NDLRB',25,'CellRefP',NofPortsTx,'CyclicPrefix','Normal','DuplexMode','FDD','NSubframe',0);
 
 griddims = lteResourceGridSize(enb); % Resource grid dimensions
 L = griddims(2);    
@@ -59,7 +59,7 @@ for snr_idx=1:length(SNR_values_db)
 
         rxWaveform = noise + rxWaveform;
         
-       % rxWaveform = downsampled; 
+        rxWaveform = x((i-1)*76800+1:i*76800); 
         
         % Number of OFDM symbols in a subframe
         % OFDM demodulate signal
@@ -79,7 +79,7 @@ for snr_idx=1:length(SNR_values_db)
             errorReal(i,1)=1;
         end
         
-        [nof_ports2, pbchSymbols2, pbchBits, ce, ce2, pbchRx2, pbchHest2,indices]= liblte_pbch(enb, rxWaveform, hest, nest);
+        [nof_ports2, pbchSymbols2, pbchBits, ce, ce2, pbchRx2, pbchHest2]= liblte_pbch(enb, rxWaveform, hest, nest);
         if (nof_ports2 ~= NofPortsTx)
             errorReal(i,2)=1;
         end

@@ -34,9 +34,6 @@
 #include "liblte/phy/phy.h"
 
 char *input_file_name = NULL;
-char *matlab_file_name = NULL;
-
-FILE *fmatlab = NULL;
 
 lte_cell_t cell = {
   6,            // nof_prb
@@ -47,9 +44,11 @@ lte_cell_t cell = {
   PHICH_NORM    // PHICH length
 };
 
+int nof_frames = 1; 
+
 uint8_t bch_payload_file[BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-#define FLEN  9600
+#define FLEN  (10*SF_LEN(lte_symbol_sz(cell.nof_prb)))
 
 filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
@@ -59,17 +58,17 @@ chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcoe] -i input_file\n", prog);
-  printf("\t-o output matlab file name [Default Disabled]\n");
   printf("\t-c cell_id [Default %d]\n", cell.id);
-  printf("\t-n nof_prb [Default %d]\n", cell.nof_prb);
+  printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e Set extended prefix [Default Normal]\n");
+  printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
 
-  while ((opt = getopt(argc, argv, "iovce")) != -1) {
+  while ((opt = getopt(argc, argv, "ivcpne")) != -1) {
     switch(opt) {
     case 'i':
       input_file_name = argv[optind];
@@ -77,8 +76,11 @@ void parse_args(int argc, char **argv) {
     case 'c':
       cell.id = atoi(argv[optind]);
       break;
-    case 'o':
-      matlab_file_name = argv[optind];
+    case 'p':
+      cell.nof_prb = atoi(argv[optind]);
+      break;
+    case 'n':
+      nof_frames = atoi(argv[optind]);
       break;
     case 'v':
       verbose++;
@@ -103,16 +105,6 @@ int base_init() {
   if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
     exit(-1);
-  }
-
-  if (matlab_file_name) {
-    fmatlab = fopen(matlab_file_name, "w");
-    if (!fmatlab) {
-      perror("fopen");
-      return -1;
-    }
-  } else {
-    fmatlab = NULL;
   }
 
   input_buffer = malloc(FLEN * sizeof(cf_t));
@@ -163,9 +155,6 @@ void base_free() {
   int i;
 
   filesource_free(&fsrc);
-  if (fmatlab) {
-    fclose(fmatlab);
-  }
 
   free(input_buffer);
   free(fft_buffer);
@@ -198,47 +187,59 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  n = filesource_read(&fsrc, input_buffer, FLEN);
+  int frame_cnt = 0; 
+  int nof_decoded_mibs = 0; 
+  int nread = 0; 
+  do {
+    nread = filesource_read(&fsrc, input_buffer, FLEN);
 
-  lte_fft_run_sf(&fft, input_buffer, fft_buffer);
+    if (nread > 0) {
+      // process 1st subframe only
+      lte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
-  if (fmatlab) {
-    fprintf(fmatlab, "outfft=");
-    vec_sc_prod_cfc(fft_buffer, 1000.0, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
-    vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
-    fprintf(fmatlab, ";\n");
-    vec_sc_prod_cfc(fft_buffer, 0.001, fft_buffer,   CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
-  }
+      /* Get channel estimates for each port */
+      chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
-  /* Get channel estimates for each port */
-  chest_dl_estimate(&chest, fft_buffer, ce, 0);
+      INFO("Decoding PBCH\n", 0);
+      
+      for (int i=0;i<MAX_PORTS;i++) {
+        ce_slot1[i] = &ce[i][SLOT_LEN_RE(cell.nof_prb, cell.cp)];
+      }
 
-  INFO("Decoding PBCH\n", 0);
-  
-  for (int i=0;i<MAX_PORTS;i++) {
-    ce_slot1[i] = &ce[i][SLOT_LEN_RE(cell.nof_prb, cell.cp)];
-  }
-
-  n = pbch_decode(&pbch, &fft_buffer[SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
-                  ce_slot1, chest_dl_get_noise_estimate(&chest), 
-                  bch_payload, &nof_tx_ports, &sfn_offset);
-
-  base_free();
-  if (n < 0) {
-    fprintf(stderr, "Error decoding PBCH\n");
-    exit(-1);
-  } else if (n == 0) {
-    printf("Could not decode PBCH\n");
-    exit(-1);
-  } else {
-    printf("MIB decoded OK. Nof ports: %d. SFN offset: %d Payload: ", nof_tx_ports, sfn_offset);    
-    vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
-    if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, BCH_PAYLOAD_LEN)) {
-      printf("This is the signal.1.92M.dat file\n");
-      exit(0);
-    } else {
-      printf("This is an unknown file\n");
+      pbch_decode_reset(&pbch);
+      n = pbch_decode(&pbch, &fft_buffer[SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
+                      ce_slot1, chest_dl_get_noise_estimate(&chest), 
+                      bch_payload, &nof_tx_ports, &sfn_offset);
+      if (n == 1) {
+        nof_decoded_mibs++;
+      } else if (n < 0) {
+        fprintf(stderr, "Error decoding PBCH\n");
+        exit(-1);
+      }
+      frame_cnt++;
+    } else if (nread < 0) {
+      fprintf(stderr, "Error reading from file\n");
       exit(-1);
     }
+  } while(nread > 0 && frame_cnt < nof_frames);
+
+  base_free();
+  if (frame_cnt == 1) {
+    if (n == 0) {
+      printf("Could not decode PBCH\n");
+      exit(-1);
+    } else {
+      printf("MIB decoded OK. Nof ports: %d. SFN offset: %d Payload: ", nof_tx_ports, sfn_offset);    
+      vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
+      if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, BCH_PAYLOAD_LEN)) {
+        printf("This is the signal.1.92M.dat file\n");
+        exit(0);
+      } else {
+        printf("This is an unknown file\n");
+        exit(-1);
+      }
+    }
+  } else {
+    printf("Decoded %d/%d MIBs\n", nof_decoded_mibs, frame_cnt);
   }
 }

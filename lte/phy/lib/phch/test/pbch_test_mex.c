@@ -36,8 +36,6 @@
 #define INPUT   prhs[1]
 #define NOF_INPUTS 2
 
-extern int indices[2048];
-
 void help()
 {
   mexErrMsgTxt
@@ -147,9 +145,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   if (nlhs >= 7) {
     mexutils_write_cf(pbch.ce[0], &plhs[6], pbch.nof_symbols, 1);  
-  }
-  if (nlhs >= 7) {
-    mexutils_write_int(indices, &plhs[7], 2048, 1);  
   }
   
   chest_dl_free(&chest);
