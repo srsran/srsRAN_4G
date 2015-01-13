@@ -35,11 +35,12 @@
 #include <unistd.h>
 #include <assert.h>
 #include <signal.h>
+#include <pthread.h>
+#include <semaphore.h>
 
 #include "liblte/rrc/rrc.h"
 #include "liblte/phy/phy.h"
 
-#include "liblte/graphics/plot/plot_waterfall.h"
 
 #ifndef DISABLE_UHD
 #include "liblte/cuhd/cuhd.h"
@@ -49,8 +50,11 @@
 #define STDOUT_COMPACT
 
 #ifndef DISABLE_GRAPHICS
-void init_plots(lte_cell_t cell);
-void do_plots(ue_dl_t *q, uint32_t sf_idx, ue_sync_t *qs);
+#include "liblte/graphics/plot.h"
+void init_plots();
+pthread_t plot_thread; 
+sem_t plot_sem; 
+uint32_t plot_sf_idx;
 #endif
 
 
@@ -207,17 +211,17 @@ extern float mean_exec_time;
 
 enum receiver_state { DECODE_MIB, DECODE_PDSCH} state; 
 
+ue_dl_t ue_dl; 
+ue_sync_t ue_sync; 
+prog_args_t prog_args; 
 
 int main(int argc, char **argv) {
   int ret; 
   cf_t *sf_buffer; 
-  prog_args_t prog_args; 
   lte_cell_t cell;  
   int64_t sf_cnt;
-  ue_sync_t ue_sync; 
   ue_mib_t ue_mib; 
   void *uhd; 
-  ue_dl_t ue_dl; 
   uint32_t nof_trials = 0; 
   uint32_t sfn = 0; // system frame number
   int n; 
@@ -338,6 +342,7 @@ int main(int argc, char **argv) {
   uint32_t nframes=0;
   float rsrp=0.0, rsrq=0.0, snr=0.0;
   bool decode_pdsch; 
+  int pdcch_tx=0; 
           
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -412,12 +417,15 @@ int main(int argc, char **argv) {
               rsrq = 0; 
             }
           }
+          if (ue_sync_get_sfidx(&ue_sync) != 5 && ue_sync_get_sfidx(&ue_sync) != 0) {
+            pdcch_tx++;
+          }
           
           // Plot and Printf
           if (ue_sync_get_sfidx(&ue_sync) == 5) {
 #ifdef STDOUT_COMPACT
-            printf("PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
-                  100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
+            printf("SFN: %4d, PDCCH-Miss: %5.2f%% (%d), PDSCH-BLER: %5.2f%% (%d blocks)\r",
+                  sfn, 100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),ue_dl.nof_pdcch_detected-pdcch_tx,
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                
 #else
             printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, "
@@ -437,11 +445,12 @@ int main(int argc, char **argv) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
-        }
+        } 
       }
       #ifndef DISABLE_GRAPHICS
       if (!prog_args.disable_plots) {
-        do_plots(&ue_dl, ue_sync_get_sfidx(&ue_sync), !prog_args.input_file_name?&ue_sync:NULL);          
+        plot_sf_idx = ue_sync_get_sfidx(&ue_sync);
+        sem_post(&plot_sem);
       }
       #endif
     } else if (ret == 0) {
@@ -479,7 +488,6 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_GRAPHICS
 
 
-#include "liblte/graphics/plot.h"
 plot_waterfall_t poutfft;
 plot_real_t p_sync, pce;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
@@ -488,10 +496,53 @@ float tmp_plot[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 float tmp_plot2[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 float tmp_plot3[SLOT_LEN_RE(MAX_PRB, CPNORM)];
 
-void init_plots(lte_cell_t cell) {
+void *plot_thread_run(void *arg) {
+  int i;
+  uint32_t nof_re = SF_LEN_RE(ue_dl.cell.nof_prb, ue_dl.cell.cp);
+    
+  while(1) {
+    sem_wait(&plot_sem);
+    
+    uint32_t nof_symbols = ue_dl.harq_process[0].prb_alloc.re_sf[plot_sf_idx];
+    for (i = 0; i < nof_re; i++) {
+      tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
+      if (isinf(tmp_plot[i])) {
+        tmp_plot[i] = -80;
+      }
+    }
+    for (i = 0; i < REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0); i++) {
+      tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.chest.pilot_estimates_average[0][i]));
+      if (isinf(tmp_plot2[i])) {
+        tmp_plot2[i] = -80;
+      }
+    }
+    for (i=0;i<CP_NSYMB(ue_dl.cell.cp);i++) {
+      plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*RE_X_RB*ue_dl.cell.nof_prb], RE_X_RB*ue_dl.cell.nof_prb);            
+    }
+    plot_real_setNewData(&pce, tmp_plot2, REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
+    if (!prog_args.input_file_name) {
+      int max = vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
+      vec_sc_prod_fff(ue_sync.strack.pss.conv_output_avg, 
+                      1/ue_sync.strack.pss.conv_output_avg[max], 
+                      tmp_plot2, 
+                      ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);        
+      plot_real_setNewData(&p_sync, tmp_plot2, ue_sync.strack.pss.frame_size);        
+      
+    }
+    
+    plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.pdsch_d, nof_symbols);
+    plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.pdcch_d, 36*ue_dl.pdcch.nof_cce);
+    
+  }
+  
+  return NULL;
+}
+
+void init_plots() {
+
   plot_init();
   
-  plot_waterfall_init(&poutfft, RE_X_RB * cell.nof_prb, 5000);
+  plot_waterfall_init(&poutfft, RE_X_RB * ue_dl.cell.nof_prb, 1000);
   plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
   plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
 
@@ -514,40 +565,15 @@ void init_plots(lte_cell_t cell) {
   plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
   plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
 
-}
-
-void do_plots(ue_dl_t *q, uint32_t sf_idx, ue_sync_t *qs) {
-  int i;
-  uint32_t nof_re = SF_LEN_RE(q->cell.nof_prb, q->cell.cp);
-  uint32_t nof_symbols = q->harq_process[0].prb_alloc.re_sf[sf_idx];
-  for (i = 0; i < nof_re; i++) {
-    tmp_plot[i] = 20 * log10f(cabsf(q->sf_symbols[i]));
-    if (isinf(tmp_plot[i])) {
-      tmp_plot[i] = -80;
-    }
-  }
-  for (i = 0; i < REFSIGNAL_NUM_SF(q->cell.nof_prb,0); i++) {
-    tmp_plot2[i] = 20 * log10f(cabsf(q->chest.pilot_estimates_average[0][i]));
-    if (isinf(tmp_plot2[i])) {
-      tmp_plot2[i] = -80;
-    }
-  }
-  for (i=0;i<CP_NSYMB(q->cell.cp);i++) {
-    plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*RE_X_RB*q->cell.nof_prb], RE_X_RB*q->cell.nof_prb);            
-  }
-  plot_real_setNewData(&pce, tmp_plot2, REFSIGNAL_NUM_SF(q->cell.nof_prb,0));        
-  if (qs) {
-    int max = vec_max_fi(qs->strack.pss.conv_output_avg, qs->strack.pss.frame_size+qs->strack.pss.fft_size-1);
-    vec_sc_prod_fff(qs->strack.pss.conv_output_avg, 
-                    1/qs->strack.pss.conv_output_avg[max], 
-                    tmp_plot2, 
-                    qs->strack.pss.frame_size+qs->strack.pss.fft_size-1);        
-    plot_real_setNewData(&p_sync, tmp_plot2, qs->strack.pss.frame_size);        
-    
+  if (sem_init(&plot_sem, 0, 0)) {
+    perror("sem_init");
+    exit(-1);
   }
   
-  plot_scatter_setNewData(&pscatequal, q->pdsch.pdsch_d, nof_symbols);
-  plot_scatter_setNewData(&pscatequal_pdcch, q->pdcch.pdcch_d, 36*q->pdcch.nof_cce);
+  if (pthread_create(&plot_thread, NULL, plot_thread_run, NULL)) {
+    perror("pthread_create");
+    exit(-1);
+  }  
 }
 
 #endif

@@ -359,7 +359,6 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
   {
     
     if (q->file_mode) {
-      usleep(1000);
       int n = filesource_read(&q->file_source, q->input_buffer, q->sf_len);
       if (n < 0) {
         fprintf(stderr, "Error reading input file\n");
