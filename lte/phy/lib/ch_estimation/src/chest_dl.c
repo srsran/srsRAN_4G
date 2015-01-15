@@ -43,6 +43,8 @@
 #define CHEST_RS_AVERAGE_TIME   2
 #define CHEST_RS_AVERAGE_FREQ   3
 
+#define NOISE_POWER_USE_ESTIMATES
+
 
 /** 3GPP LTE Downlink channel estimator and equalizer. 
  * Estimates the channel in the resource elements transmitting references and interpolates for the rest
@@ -115,15 +117,14 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
     }
     
     /* Set default time/freq filters */
-    float f[3]={0.1, 0.8, 0.1};
-    chest_dl_set_filter_freq(q, f, 3);
+    //float f[3]={0.1, 0.8, 0.1};
+    //chest_dl_set_filter_freq(q, f, 3);
 
-    //float f[5]={0.05, 0.15, 0.6, 0.15, 0.05};
-    //chest_dl_set_filter_freq(q, f, 5);
+    float f[5]={0.05, 0.15, 0.6, 0.15, 0.05};
+    chest_dl_set_filter_freq(q, f, 5);
     
-    //float t[2]={0.1, 0.9};
-    float t[1] = {1.0};
-    chest_dl_set_filter_time(q, t, 1);
+    float t[2]={0.15, 0.85};
+    chest_dl_set_filter_time(q, t, 2);
     
     q->cell = cell; 
   }
@@ -194,6 +195,10 @@ int chest_dl_set_filter_time(chest_dl_t *q, float *filter, uint32_t filter_len) 
 }
 
 
+
+#ifdef NOISE_POWER_USE_ESTIMATES
+
+/* Uses the difference between the averaged and non-averaged pilot estimates */
 static float estimate_noise_port(chest_dl_t *q, uint32_t port_id, cf_t *avg_pilots) {
   /* Use difference between averaged and noisy LS pilot estimates */
   vec_sub_ccc(avg_pilots, q->pilot_estimates[port_id],
@@ -201,6 +206,22 @@ static float estimate_noise_port(chest_dl_t *q, uint32_t port_id, cf_t *avg_pilo
 
   return vec_avg_power_cf(q->tmp_noise, REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));
 }
+
+#else
+
+/* Uses the 5 empty transmitted SC before and after the SSS and PSS sequences for noise estimation */
+static float estimate_noise_empty_sc(chest_dl_t *q, cf_t *input) {
+  int k_sss = (CP_NSYMB(q->cell.cp) - 2) * q->cell.nof_prb * RE_X_RB + q->cell.nof_prb * RE_X_RB / 2 - 31;
+  float noise_power = 0; 
+  noise_power += vec_avg_power_cf(&input[k_sss-5], 5); // 5 empty SC before SSS
+  noise_power += vec_avg_power_cf(&input[k_sss+62], 5); // 5 empty SC after SSS
+  int k_pss = (CP_NSYMB(q->cell.cp) - 1) * q->cell.nof_prb * RE_X_RB + q->cell.nof_prb * RE_X_RB / 2 - 31;
+  noise_power += vec_avg_power_cf(&input[k_pss-5], 5); // 5 empty SC before PSS
+  noise_power += vec_avg_power_cf(&input[k_pss+62], 5); // 5 empty SC after PSS
+  
+  return noise_power; 
+}
+#endif
 
 #define pilot_est(idx) q->pilot_estimates[port_id][REFSIGNAL_PILOT_IDX(idx,l,q->cell)]
 #define pilot_avg(idx) q->pilot_estimates_average[port_id][REFSIGNAL_PILOT_IDX(idx,l,q->cell)]
@@ -227,11 +248,6 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
     }
   }
   
-  /* Compute noise estimation before time averaging. 
-    * FIXME: Apparently the noise estimation performance is better with frequency averaging only 
-    */
-  q->noise_estimate[port_id] = estimate_noise_port(q, port_id, q->tmp_freqavg);
-    
   for (l=0;l<refsignal_cs_nof_symbols(port_id);l++) {
     /* Filter in time domain. */
     if (q->filter_time_len > 0) {
@@ -252,6 +268,10 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
       memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));        
     }
   }
+#ifdef NOISE_POWER_USE_ESTIMATES
+  q->noise_estimate[port_id] = estimate_noise_port(q, port_id, q->pilot_estimates_average[port_id]);
+#endif
+  
 }
 
 #define cesymb(i) ce[RE_IDX(q->cell.nof_prb,i,0)]
@@ -308,6 +328,8 @@ float chest_dl_rssi(chest_dl_t *q, cf_t *input, uint32_t port_id) {
   return rssi/nsymbols; 
 }
 
+//#define RSRP_FROM_ESTIMATES
+
 float chest_dl_rsrp(chest_dl_t *q, uint32_t port_id) {
 #ifdef RSRP_FROM_ESTIMATES
   return vec_avg_power_cf(q->pilot_estimates[port_id], 
@@ -341,7 +363,10 @@ int chest_dl_estimate_port(chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx
   if (ce != NULL) {
     interpolate_pilots(q, ce, port_id);    
   }
-
+  
+#ifndef NOISE_POWER_USE_ESTIMATES
+  q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);
+#endif
   return 0;
 }
 
@@ -361,7 +386,11 @@ float chest_dl_get_noise_estimate(chest_dl_t *q) {
 
 float chest_dl_get_snr(chest_dl_t *q) {
   // Uses RSRP as an estimation of the useful signal power  
-  return chest_dl_get_rsrp(q)/chest_dl_get_noise_estimate(q);
+#ifdef NOISE_POWER_USE_ESTIMATES
+  return chest_dl_get_rsrp(q)/chest_dl_get_noise_estimate(q)/sqrt(2*lte_symbol_sz(q->cell.nof_prb));
+#else
+  return chest_dl_get_rsrp(q)/chest_dl_get_noise_estimate(q)/sqrt(2);
+#endif  
 }
 
 float chest_dl_get_rssi(chest_dl_t *q) {

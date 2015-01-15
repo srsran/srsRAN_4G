@@ -93,15 +93,14 @@ int netsource_read(netsource_t *q, void *buffer, int nbytes) {
       }
     }
     int n = read(q->connfd, buffer, nbytes);
+    if (n == 0) {
+      printf("Connection closed\n");
+      close(q->connfd);
+      q->connfd = 0;       
+      return 0;
+    }
     if (n == -1) {
-      if (errno == ECONNRESET) {
-        printf("Connection closed\n");
-        close(q->connfd);
-        q->connfd = 0; 
-        return 0;
-      } else {
-        perror("read");
-      }
+      perror("read");      
     }
     return n; 
   }

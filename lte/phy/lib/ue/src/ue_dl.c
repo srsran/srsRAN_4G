@@ -217,6 +217,10 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
     nof_locations = pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, q->current_rnti);    
     formats = ue_formats; 
     nof_formats = nof_ue_formats;
+    if (q->current_rnti == 1234) {
+      nof_locations = 1; 
+      nof_formats = 1; 
+    }
   }
 
   /* Extract all PDCCH symbols and get LLRs */
@@ -256,7 +260,7 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
           ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, 
                              chest_dl_get_noise_estimate(&q->chest), 
                              data, sf_idx, 
-              &q->harq_process[0], rvidx);
+                             &q->harq_process[0], rvidx);
           if (ret == LIBLTE_ERROR) {
             q->pkt_errors++;
           } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
@@ -280,7 +284,7 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
   mean_exec_time = (float) VEC_EMA((float) t[0].tv_usec, mean_exec_time, 0.01);
  
   
-  if (found_dci > 0 && ret == LIBLTE_SUCCESS) {        
+  if (found_dci > 0 && ret == LIBLTE_SUCCESS) { 
     return ra_dl.mcs.tbs;    
   } else {
     return 0;

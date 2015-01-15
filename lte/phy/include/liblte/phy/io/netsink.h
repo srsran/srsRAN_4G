@@ -34,16 +34,19 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "liblte/config.h"
+
+typedef enum {NETSINK_UDP, NETSINK_TCP} netsink_type_t; 
 
 /* Low-level API */
 typedef struct LIBLTE_API {
   int sockfd;
+  bool connected;
+  netsink_type_t type; 
   struct sockaddr_in servaddr;
 }netsink_t;
-
-typedef enum {NETSINK_UDP, NETSINK_TCP} netsink_type_t; 
 
 LIBLTE_API int netsink_init(netsink_t *q, 
                             char *address, 
@@ -55,6 +58,8 @@ LIBLTE_API void netsink_free(netsink_t *q);
 LIBLTE_API int netsink_write(netsink_t *q, 
                              void *buffer, 
                              int nof_bytes);
+
+LIBLTE_API int netsink_set_nonblocking(netsink_t *q); 
 
 
 /* High-level API */

@@ -435,7 +435,6 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float n
 
 
 
-
 static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   uint32_t i;
   uint8_t mask[16];

@@ -196,7 +196,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     
     /* Loop through the 10 subframes */
-      if (chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
+    if (chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
       mexErrMsgTxt("Error running channel estimator\n");
       return;
     }    
@@ -244,7 +244,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 4) {
-    plhs[3] = mxCreateDoubleScalar(chest_dl_get_snr(&chest));
+    plhs[3] = mxCreateDoubleScalar(chest_dl_get_noise_estimate(&chest));
   }
 
   return;

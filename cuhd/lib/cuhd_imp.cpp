@@ -36,6 +36,8 @@
 
 //#define METADATA_VERBOSE
 
+//#define HIDE_MESSAGES
+
 void my_handler(uhd::msg::type_t type, const std::string & msg)
 {
   //handle the message...
@@ -124,8 +126,10 @@ int cuhd_open(char *args, void **h)
 //  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=50000000" + ", num_recv_frames=512");
   handler->usrp->set_clock_source("internal");
   
+#ifdef HIDE_MESSAGES
   uhd::msg::register_handler(my_handler);
-
+#endif
+  
   std::string otw, cpu;
   otw = "sc16";
   cpu = "fc32";

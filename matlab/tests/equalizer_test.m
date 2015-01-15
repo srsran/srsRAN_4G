@@ -14,7 +14,7 @@ postEVM_liblte = zeros(length(SNR_values_db),Nrealizations);
 
 
 enb.NDLRB = 6;                 % Number of resource blocks
-enb.CellRefP = 2;               % One transmit antenna port
+enb.CellRefP = 1;               % One transmit antenna port
 enb.NCellID = 0;               % Cell ID
 enb.CyclicPrefix = 'Normal';    % Normal cyclic prefix
 enb.DuplexMode = 'FDD';         % FDD
@@ -101,6 +101,8 @@ for sf = 0:10
       
 end
 
+txGrid([1:5 68:72],6:7) = zeros(10,2);
+
 %% OFDM Modulation
 
 [txWaveform,info] = lteOFDMModulate(enb,txGrid); 
@@ -118,7 +120,7 @@ SNR = 10^(SNRdB/20);    % Linear SNR
 cfg.SamplingRate = info.SamplingRate;
 
 % Pass data through the fading channel model
-rxWaveform = lteFadingChannel(cfg,txWaveform);
+%rxWaveform = lteFadingChannel(cfg,txWaveform);
 rxWaveform = txWaveform;
 
 %% Additive Noise
@@ -149,14 +151,19 @@ addpath('../../debug/lte/phy/lib/ch_estimation/test')
 [estChannel, noiseEst(snr_idx)] = lteDLChannelEstimate(enb,cec,rxGrid);
 output=[];
 snrest = zeros(10,1);
-for i=0:9
+
+nulls = rxGrid([1:5 68:72],6:7);
+noiseEst(snr_idx) = var(nulls(:));
+
+%for i=0:9
+    i=0;
 %    if (SNR_values_db(snr_idx) < 25)
-        [d, a, out, snrest(i+1)] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid(:,i*14+1:(i+1)*14),[0.15 0.7 0.15],[],i);
+        [d, a, out, snrest(i+1)] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid(:,i*14+1:(i+1)*14),[0.1 0.8 0.1],[0.1 0.9],i);
 %    else
 %        [d, a, out, snrest(i+1)] = liblte_chest(enb.NCellID,enb.CellRefP,rxGrid(:,i*14+1:(i+1)*14),[0.05 0.9 0.05],[],i);
 %    end
     output = [output out];
-end
+%end
 SNRest(snr_idx)=mean(snrest);
 disp(10*log10(SNRest(snr_idx)))
 %% MMSE Equalization
@@ -196,8 +203,8 @@ end
 % 
 % subplot(1,2,2)
 %SNR_liblte = 1./(SNRest*sqrt(2.0*enb.CellRefP*double(info.Nfft)));
-SNR_liblte = SNRest; 
-SNR_matlab = 1./(noiseEst*sqrt(2.0*enb.CellRefP*double(info.Nfft)));
+SNR_liblte = 1./(SNRest*sqrt(2.0)); 
+SNR_matlab = 1./(noiseEst*sqrt(2.0));
 
 plot(SNR_values_db, SNR_values_db, SNR_values_db, 10*log10(SNR_liblte),SNR_values_db, 10*log10(SNR_matlab))
 %plot(SNR_values_db, 10*log10(noiseTx), SNR_values_db, 10*log10(SNRest),SNR_values_db, 10*log10(noiseEst))

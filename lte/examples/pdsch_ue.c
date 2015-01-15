@@ -47,7 +47,7 @@
 #include "cuhd_utils.h"
 #endif
 
-#define STDOUT_COMPACT
+//#define STDOUT_COMPACT
 
 #ifndef DISABLE_GRAPHICS
 #include "liblte/graphics/plot.h"
@@ -215,19 +215,20 @@ ue_dl_t ue_dl;
 ue_sync_t ue_sync; 
 prog_args_t prog_args; 
 
+uint32_t sfn = 0; // system frame number
+cf_t *sf_buffer; 
+netsink_t net_sink, net_sink_signal; 
+
 int main(int argc, char **argv) {
   int ret; 
-  cf_t *sf_buffer; 
   lte_cell_t cell;  
   int64_t sf_cnt;
   ue_mib_t ue_mib; 
   void *uhd; 
   uint32_t nof_trials = 0; 
-  uint32_t sfn = 0; // system frame number
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
-  netsink_t net_sink, net_sink_signal; 
   
   parse_args(&prog_args, argc, argv);
 
@@ -236,12 +237,14 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address, prog_args.net_port);
       exit(-1);
     }
+    netsink_set_nonblocking(&net_sink);
   }
   if (prog_args.net_port_signal > 0) {
     if (netsink_init(&net_sink_signal, prog_args.net_address_signal, prog_args.net_port_signal, NETSINK_UDP)) {
       fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address_signal, prog_args.net_port_signal);
       exit(-1);
     }
+    netsink_set_nonblocking(&net_sink_signal);
   }
   
 #ifndef DISABLE_UHD
@@ -351,14 +354,7 @@ int main(int argc, char **argv) {
     if (ret < 0) {
       fprintf(stderr, "Error calling ue_sync_work()\n");
     }
-    
-    if (prog_args.net_port_signal > 0) {
-      if (netsink_write(&net_sink_signal, sf_buffer, ue_sync_sf_len(&ue_sync)) < 0) {
-        fprintf(stderr, "Error sending data through UDP socket\n");
-        perror("write");
-      }
-    }
-        
+            
     /* ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
       switch (state) {
@@ -403,7 +399,7 @@ int main(int argc, char **argv) {
               if (prog_args.net_port > 0) {
                 bit_unpack_vector(data_packed, data, n);
                 if (netsink_write(&net_sink, data, 1+(n-1)/8) < 0) {
-                  fprintf(stderr, "Error sending data through UDP socket\n");
+                  fprintf(stderr, "Error sending data through socket\n");
                 }
               }
             }
@@ -411,31 +407,38 @@ int main(int argc, char **argv) {
             
             rsrq = VEC_EMA(chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.05);
             rsrp = VEC_EMA(chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
-            snr = VEC_EMA(chest_dl_get_snr(&ue_dl.chest), snr, 0.05);      
+            snr = VEC_EMA(chest_dl_get_snr(&ue_dl.chest), snr, 0.01);      
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
+            }
+            if (isnan(snr)) {
+              snr = 0; 
+            }
+            if (isnan(rsrp)) {
+              rsrp = 0; 
             }
           }
           if (ue_sync_get_sfidx(&ue_sync) != 5 && ue_sync_get_sfidx(&ue_sync) != 0) {
             pdcch_tx++;
           }
           
+          
           // Plot and Printf
           if (ue_sync_get_sfidx(&ue_sync) == 5) {
 #ifdef STDOUT_COMPACT
-            printf("SFN: %4d, PDCCH-Miss: %5.2f%% (%d), PDSCH-BLER: %5.2f%% (%d blocks)\r",
-                  sfn, 100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),ue_dl.nof_pdcch_detected-pdcch_tx,
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                
+            printf("SFN: %4d, PDCCH-Miss: %5.2f%% (%d missed), PDSCH-BLER: %5.2f%% (%d errors)\r",
+                  sfn, 100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),pdcch_tx-ue_dl.nof_pdcch_detected,
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,ue_dl.pkt_errors);                
 #else
             printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, "
                   "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% (%d blocks)\r",
+                  "PDCCH-Miss: %5.2f%% (%d missed), PDSCH-BLER: %5.2f%% (%d errors)\r",
                   ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
                   10*log10(rsrp*1000)-gain_offset, 
                   10*log10(rsrq), 10*log10(snr), 
-                  100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,nof_trials, ue_dl.pkts_total);                
+                  100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials), pdcch_tx-ue_dl.nof_pdcch_detected, 
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, ue_dl.pkt_errors);                
             
 #endif            
           }
@@ -447,6 +450,7 @@ int main(int argc, char **argv) {
           sfn = 0; 
         } 
       }
+      
       #ifndef DISABLE_GRAPHICS
       if (!prog_args.disable_plots) {
         plot_sf_idx = ue_sync_get_sfidx(&ue_sync);
@@ -488,7 +492,7 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_GRAPHICS
 
 
-plot_waterfall_t poutfft;
+//plot_waterfall_t poutfft;
 plot_real_t p_sync, pce;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
@@ -516,9 +520,9 @@ void *plot_thread_run(void *arg) {
         tmp_plot2[i] = -80;
       }
     }
-    for (i=0;i<CP_NSYMB(ue_dl.cell.cp);i++) {
-      plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*RE_X_RB*ue_dl.cell.nof_prb], RE_X_RB*ue_dl.cell.nof_prb);            
-    }
+    //for (i=0;i<CP_NSYMB(ue_dl.cell.cp);i++) {
+    //  plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*RE_X_RB*ue_dl.cell.nof_prb], RE_X_RB*ue_dl.cell.nof_prb);            
+    //}
     plot_real_setNewData(&pce, tmp_plot2, REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
     if (!prog_args.input_file_name) {
       int max = vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
@@ -533,6 +537,17 @@ void *plot_thread_run(void *arg) {
     plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.pdsch_d, nof_symbols);
     plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.pdcch_d, 36*ue_dl.pdcch.nof_cce);
     
+    if (plot_sf_idx == 1) {
+      if (prog_args.net_port_signal > 0) {
+        if (netsink_write(&net_sink_signal, &sf_buffer[ue_sync_sf_len(&ue_sync)/7], 
+                            ue_sync_sf_len(&ue_sync)) < 0) 
+        {
+          fprintf(stderr, "Error sending data through UDP socket\n");
+          perror("write");
+        }
+      }
+    }
+
   }
   
   return NULL;
@@ -542,9 +557,9 @@ void init_plots() {
 
   plot_init();
   
-  plot_waterfall_init(&poutfft, RE_X_RB * ue_dl.cell.nof_prb, 1000);
-  plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
-  plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
+  //plot_waterfall_init(&poutfft, RE_X_RB * ue_dl.cell.nof_prb, 1000);
+  //plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
+  //plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
 
   plot_real_init(&pce);
   plot_real_setTitle(&pce, "Channel Response - Magnitude");

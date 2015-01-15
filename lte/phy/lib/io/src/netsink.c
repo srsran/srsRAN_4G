@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <strings.h>
+#include <errno.h>
+#include <fcntl.h>
 
 
 #include "liblte/phy/io/netsink.h"
@@ -40,8 +42,7 @@
 int netsink_init(netsink_t *q, char *address, int port, netsink_type_t type) {
   bzero(q, sizeof(netsink_t));
 
-  q->sockfd=socket(AF_INET, type==NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);
-  
+  q->sockfd=socket(AF_INET, type==NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
   if (q->sockfd < 0) {
     perror("socket");
     return -1; 
@@ -50,13 +51,9 @@ int netsink_init(netsink_t *q, char *address, int port, netsink_type_t type) {
   q->servaddr.sin_family = AF_INET;
   q->servaddr.sin_addr.s_addr=inet_addr(address);
   q->servaddr.sin_port=htons(port);
+  q->connected = false; 
+  q->type = type; 
   
-  printf("Connecting to %s:%d\n", address, port);
-  if (connect(q->sockfd,&q->servaddr,sizeof(q->servaddr)) < 0) {
-    perror("connect");
-    return -1;
-  }
-
   return 0;
 }
 
@@ -67,8 +64,45 @@ void netsink_free(netsink_t *q) {
   bzero(q, sizeof(netsink_t));
 }
 
+int netsink_set_nonblocking(netsink_t *q) {
+  if (fcntl(q->sockfd, F_SETFL, O_NONBLOCK)) {
+    perror("fcntl");
+    return -1; 
+  }
+  return 0; 
+}
+
 int netsink_write(netsink_t *q, void *buffer, int nof_bytes) {
-  return write(q->sockfd, buffer, nof_bytes);  
+  if (!q->connected) {
+    if (connect(q->sockfd,&q->servaddr,sizeof(q->servaddr)) < 0) {
+      if (errno == ECONNREFUSED || errno == EINPROGRESS) {
+        return 0; 
+      } else {
+        perror("connect");
+        exit(-1);
+        return -1;        
+      }
+    } else {
+      q->connected = true; 
+    }
+  } 
+  int n = 0; 
+  if (q->connected) {
+    n = write(q->sockfd, buffer, nof_bytes);  
+    if (n < 0) {
+      if (errno == ECONNRESET) {
+        close(q->sockfd);
+        q->sockfd=socket(AF_INET, q->type==NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
+        if (q->sockfd < 0) {
+          perror("socket");
+          return -1; 
+        }
+        q->connected = false; 
+        return 0; 
+      }
+    }    
+  } 
+  return n;
 }
 
 

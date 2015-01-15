@@ -43,7 +43,7 @@ typedef _Complex float cf_t;
 #define VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n)+1)) 
 
 // Exponential moving average
-#define VEC_EMA(data, average, alpha) (average)==0?(data):((alpha)*(data)+(1-alpha)*(average))
+#define VEC_EMA(data, average, alpha) ((alpha)*(data)+(1-alpha)*(average))
 
 /** Return the sum of all the elements */
 LIBLTE_API int vec_acc_ii(int *x, uint32_t len);

@@ -60,12 +60,12 @@ lte_cell_t cell = {
   
 int net_port = -1; // -1 generates random data
 
-uint32_t cfi=1;
+uint32_t cfi=2;
 uint32_t mcs_idx = 1, last_mcs_idx = 1;
 int nof_frames = -1;
 
 char *uhd_args = "";
-float uhd_amp = 0.1, uhd_gain = 70.0, uhd_freq = 2400000000;
+float uhd_amp = 0.03, uhd_gain = 70.0, uhd_freq = 2400000000;
 
 bool null_file_sink=false; 
 filesink_t fsink;
@@ -303,12 +303,13 @@ reverse(register unsigned int x)
 
 uint32_t prbset_to_bitmask() {
   uint32_t mask=0;
-  for (int i=0;i<cell.nof_prb;i++) {
+  int nb = (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb));
+  for (int i=0;i<nb;i++) {
     if (i >= prbset_orig && i < prbset_orig + prbset_num) {
       mask = mask | (0x1<<i);     
     }
   }
-  return reverse(mask)>>(32-cell.nof_prb); 
+  return reverse(mask)>>(32-nb); 
 }
 
 int update_radl() {
@@ -324,10 +325,11 @@ int update_radl() {
     
   ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb);
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
-  ra_mcs_from_idx_dl(mcs_idx, cell.nof_prb, &ra_dl.mcs);
+  ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
 
   ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
 
+  pdsch_harq_reset(&harq_process);
   if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
     return -1; 
@@ -355,7 +357,7 @@ int update_control() {
       if(input[0] == 27) {
         switch(input[2]) {
           case RIGHT_KEY:
-            if (prbset_orig  + prbset_num < cell.nof_prb)
+            if (prbset_orig  + prbset_num < (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb)))
               prbset_orig++;
             break;
           case LEFT_KEY:
@@ -363,7 +365,7 @@ int update_control() {
               prbset_orig--;
             break;
           case UP_KEY:
-            if (prbset_num < cell.nof_prb)
+            if (prbset_num < (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb)))
               prbset_num++;
             break;
           case DOWN_KEY:
@@ -372,6 +374,7 @@ int update_control() {
               prbset_num--;          
             break;          
         }
+        printf("num: %d, orig: %d\n", prbset_num, prbset_orig);
       } else {
         last_mcs_idx = mcs_idx; 
         mcs_idx = atoi(input);          
@@ -408,7 +411,7 @@ void *net_thread_fnc(void *arg) {
     if (n > 0) {
       int nbytes = 1+(ra_dl.mcs.tbs-1)/8;
       rpm += n; 
-      printf("received %d bytes. rpm=%d/%d\n",n,rpm,nbytes);
+      INFO("received %d bytes. rpm=%d/%d\n",n,rpm,nbytes);
       wpm = 0; 
       while (rpm >= nbytes) {
         // wait for packet to be transmitted
@@ -423,7 +426,9 @@ void *net_thread_fnc(void *arg) {
         INFO("%d bytes left in buffer for next packet\n", rpm);
         memcpy(data_unpacked, &data_unpacked[wpm], rpm * sizeof(uint8_t));
       }
-    } else if (n < 0) {
+    } else if (n == 0) {
+      rpm = 0; 
+    } else {
       fprintf(stderr, "Error receiving from network\n");
       exit(-1);
     }      
@@ -441,7 +446,7 @@ int main(int argc, char **argv) {
   cf_t *sf_symbols[MAX_PORTS];
   cf_t *slot1_symbols[MAX_PORTS];
   dci_msg_t dci_msg;
-  dci_location_t locations[NSUBFRAMES_X_FRAME][10];
+  dci_location_t locations[NSUBFRAMES_X_FRAME][30];
   uint32_t sfn; 
   chest_dl_t est; 
   
@@ -462,8 +467,8 @@ int main(int argc, char **argv) {
   cell.phich_resources = R_1;
   sfn = 0;
 
-  prbset_num = cell.nof_prb; 
-  last_prbset_num = cell.nof_prb; 
+  prbset_num = (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb)); 
+  last_prbset_num = prbset_num; 
   
   /* this *must* be called after setting slot_len_* */
   base_init();
@@ -506,7 +511,8 @@ int main(int argc, char **argv) {
   
   /* Initiate valid DCI locations */
   for (i=0;i<NSUBFRAMES_X_FRAME;i++) {
-    pdcch_ue_locations(&pdcch, locations[i], 10, i, cfi, 1234);
+    pdcch_ue_locations(&pdcch, locations[i], 30, i, cfi, 1234);
+    
   }
     
   nf = 0;

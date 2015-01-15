@@ -259,6 +259,7 @@ static int find_peak_ok(ue_sync_t *q) {
     q->frame_no_cnt = 0;
     q->frame_total_cnt = 0;       
     q->frame_find_cnt = 0; 
+    q->mean_time_offset = 0; 
     
     /* Set tracking CFO average to find CFO */
     q->strack.mean_cfo = q->sfind.mean_cfo;
@@ -289,10 +290,13 @@ static int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
       INFO("Time offset adjustment: %d samples\n", q->time_offset);
     }
     
+    /* compute cumulative moving average time offset */
+    q->mean_time_offset = (float) VEC_CMA((float) q->time_offset, q->mean_time_offset, q->frame_total_cnt);
+
     /* If the PSS peak is beyond the frame (we sample too slowly), 
       discard the offseted samples to align next frame */
     if (q->time_offset > 0 && q->time_offset < MAX_TIME_OFFSET) {
-      INFO("Positive time offset %d samples. Adjusting now.\n", q->time_offset);
+      INFO("\nPositive time offset %d samples. Mean time offset %f.\n", q->time_offset, q->mean_time_offset);
       if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset) < 0) {
         fprintf(stderr, "Error receiving from USRP\n");
         return LIBLTE_ERROR; 
@@ -300,9 +304,6 @@ static int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
       q->time_offset = 0;
     } 
     
-    /* compute cumulative moving average time offset */
-    q->mean_time_offset = (float) VEC_CMA((float) q->time_offset, q->mean_time_offset, q->frame_total_cnt);
-
     q->peak_idx = q->sf_len/2 + q->time_offset;  
     q->frame_ok_cnt++;
     q->frame_no_cnt = 0;    
@@ -335,7 +336,6 @@ static int receive_samples(ue_sync_t *q) {
     q->time_offset = -q->time_offset;
   }
 
-  INFO("Receiving %d samples\n", q->frame_len - q->time_offset);
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
   if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], q->frame_len - q->time_offset) < 0) {
     return LIBLTE_ERROR;
@@ -450,6 +450,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
                         q->input_buffer, 
                         q->input_buffer, 
                         -sync_get_cfo(&q->strack) / q->fft_size);               
+                        
           }
           *sf_symbols = q->input_buffer;
           
