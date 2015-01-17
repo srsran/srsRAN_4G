@@ -84,14 +84,22 @@ else()
   if((NOT DEFINED MATLAB_ROOT)
       OR ("${MATLAB_ROOT}" STREQUAL ""))
     # get path to the Matlab root directory
+    
     execute_process(
       COMMAND which matlab
-      COMMAND xargs readlink
-      COMMAND xargs dirname
-      COMMAND xargs dirname
-      COMMAND xargs echo -n
-      OUTPUT_VARIABLE MATLAB_ROOT
-      )
+      OUTPUT_VARIABLE MATLAB_BIN_EXISTS
+    )
+    
+    IF (MATLAB_BIN_EXISTS)
+      execute_process(
+        COMMAND which matlab
+        COMMAND xargs readlink
+        COMMAND xargs dirname
+        COMMAND xargs dirname
+        COMMAND xargs echo -n
+        OUTPUT_VARIABLE MATLAB_ROOT
+        )
+    ENDIF (MATLAB_BIN_EXISTS)     
   endif()
 
   # Check if this is a Mac
