@@ -189,7 +189,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-uint8_t data[10000], data_packed[10000];
+uint8_t data[20000], data_packed[20000];
 
 bool go_exit = false; 
 
@@ -393,14 +393,12 @@ int main(int argc, char **argv) {
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {
-              fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
+             // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 bit_unpack_vector(data_packed, data, n);
-                if (netsink_write(&net_sink, data, 1+(n-1)/8) < 0) {
-                  fprintf(stderr, "Error sending data through socket\n");
-                }
+                netsink_write(&net_sink, data, 1+(n-1)/8);
               }
             }
             nof_trials++; 
@@ -539,12 +537,8 @@ void *plot_thread_run(void *arg) {
     
     if (plot_sf_idx == 1) {
       if (prog_args.net_port_signal > 0) {
-        if (netsink_write(&net_sink_signal, &sf_buffer[ue_sync_sf_len(&ue_sync)/7], 
-                            ue_sync_sf_len(&ue_sync)) < 0) 
-        {
-          fprintf(stderr, "Error sending data through UDP socket\n");
-          perror("write");
-        }
+        netsink_write(&net_sink_signal, &sf_buffer[ue_sync_sf_len(&ue_sync)/7], 
+                            ue_sync_sf_len(&ue_sync)); 
       }
     }
 
