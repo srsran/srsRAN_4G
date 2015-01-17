@@ -45,6 +45,13 @@
 #ifndef DISABLE_UHD
 #include "liblte/cuhd/cuhd.h"
 #include "cuhd_utils.h"
+
+cell_search_cfg_t cell_detect_config = {
+  5000,
+  100, // nof_frames_total 
+  16.0 // threshold
+};
+
 #endif
 
 //#define STDOUT_COMPACT
@@ -63,12 +70,6 @@ uint32_t plot_sf_idx;
 
 float gain_offset = B210_DEFAULT_GAIN_CORREC;
 
-
-cell_search_cfg_t cell_detect_config = {
-  5000,
-  100, // nof_frames_total 
-  16.0 // threshold
-};
 
 /**********************************************************************
  *  Program arguments processing
@@ -224,7 +225,9 @@ int main(int argc, char **argv) {
   lte_cell_t cell;  
   int64_t sf_cnt;
   ue_mib_t ue_mib; 
+#ifndef DISABLE_UHD
   void *uhd; 
+#endif
   uint32_t nof_trials = 0; 
   int n; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
@@ -308,11 +311,13 @@ int main(int argc, char **argv) {
     }
 
   } else {
+#ifndef DISABLE_UHD
     state = DECODE_MIB; 
     if (ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
+#endif
   }
 
   if (ue_dl_init(&ue_dl, cell, prog_args.rnti==SIRNTI?1:prog_args.rnti)) {  // This is the User RNTI
@@ -429,9 +434,9 @@ int main(int argc, char **argv) {
                   sfn, 100*(1-(float) ue_dl.nof_pdcch_detected/nof_trials),pdcch_tx-ue_dl.nof_pdcch_detected,
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,ue_dl.pkt_errors);                
 #else
-            printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, "
+            printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, "
                   "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%% (%d missed), PDSCH-BLER: %5.2f%% (%d errors)\r",
+                  "PDCCH-Miss: %5.2f%% (%d), PDSCH-BLER: %5.2f%% (%d)\r",
                   ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
                   10*log10(rsrp*1000)-gain_offset, 
                   10*log10(rsrq), 10*log10(snr), 
