@@ -4,25 +4,29 @@
 % A structure |enbConfig| is used to configure the eNodeB.
 %clear
 
+recordedSignal=[];
+
 Npackets = 4;
-SNR_values = 1;%linspace(2,6,4);
+SNR_values = linspace(5,6,4);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.11',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.4',[1;0;0;1]);
 waveform = sum(waveform,2);
 
-rmccFgOut = struct('NCellID',1,'CellRefP',1,'CFI',1,'NDLRB',15,'SamplingRate',3.84e6,'Nfft',256,'DuplexMode','FDD','CyclicPrefix','Normal'); 
-rmccFgOut.PDSCH.RNTI = 1234;
-rmccFgOut.PDSCH.PRBSet = repmat(transpose(0:rmccFgOut.NDLRB-1),1,2);
-rmccFgOut.PDSCH.TxScheme = 'Port0';
-rmccFgOut.PDSCH.NLayers = 1;   
-rmccFgOut.PDSCH.NTurboDecIts = 5;
-rmccFgOut.PDSCH.Modulation = {'64QAM'};
-rmccFgOut.PDSCH.TrBlkSizes = [0 5992*ones(1,4) 0 5992*ones(1,4)];
-rmccFgOut.PDSCH.RV = 0;
+if ~isempty(recordedSignal)
+    rmccFgOut = struct('NCellID',1,'CellRefP',1,'CFI',1,'NDLRB',15,'SamplingRate',3.84e6,'Nfft',256,'DuplexMode','FDD','CyclicPrefix','Normal'); 
+    rmccFgOut.PDSCH.RNTI = 1234;
+    rmccFgOut.PDSCH.PRBSet = repmat(transpose(0:rmccFgOut.NDLRB-1),1,2);
+    rmccFgOut.PDSCH.TxScheme = 'Port0';
+    rmccFgOut.PDSCH.NLayers = 1;   
+    rmccFgOut.PDSCH.NTurboDecIts = 5;
+    rmccFgOut.PDSCH.Modulation = {'64QAM'};
+    rmccFgOut.PDSCH.TrBlkSizes = [0 5992*ones(1,4) 0 5992*ones(1,4)];
+    rmccFgOut.PDSCH.RV = 0;
+end
 
 flen=rmccFgOut.SamplingRate/1000;
-
+    
 Nsf = 9; 
 
 %% Setup Fading channel model 
@@ -58,15 +62,19 @@ for snr_idx=1:length(SNR_values)
     N0  = 1/(sqrt(2.0*rmccFgOut.CellRefP*double(rmccFgOut.Nfft))*SNR);
     for i=1:Npackets
 
-        %% Fading
-        rxWaveform = lteFadingChannel(cfg,waveform);
+        if isempty(recordedSignal)
+
+            %% Fading
+            rxWaveform = lteFadingChannel(cfg,waveform);
+            %rxWaveform = waveform; 
+            
+            %% Noise Addition
+            noise = N0*complex(randn(size(rxWaveform)), randn(size(rxWaveform)));  % Generate noise
+            rxWaveform = rxWaveform + noise; 
+        else        
+            rxWaveform = recordedSignal; 
+        end
         
-        %% Noise Addition
-        noise = N0*complex(randn(size(rxWaveform)), randn(size(rxWaveform)));  % Generate noise
-        rxWaveform = rxWaveform + noise; 
-        
-        rxWaveform = x; 
-       
         %% Demodulate 
         frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
 
@@ -79,7 +87,7 @@ for snr_idx=1:length(SNR_values)
             % Perform channel estimation
             [hest, nest] = lteDLChannelEstimate(rmccFgOut, cec, subframe_rx);
 
-            [cws,symbols] = ltePDSCHDecode(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
+            [cws,symbols,indices,pdschSymbols,pdschHest] = ltePDSCHDecode2(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
             [trblkout,blkcrc] = lteDLSCHDecode(rmccFgOut,rmccFgOut.PDSCH, ... 
                                                     rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1),cws);
 
@@ -88,7 +96,7 @@ for snr_idx=1:length(SNR_values)
 
             %% Same with libLTE
             if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
-                [dec2, llr, pdschRx, pdschSymbols2] = liblte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
+                [dec2, data, pdschRx, pdschSymbols2, deb] = liblte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
                                                         rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
                                                         subframe_waveform);
             else
@@ -96,15 +104,17 @@ for snr_idx=1:length(SNR_values)
             end
             decoded_liblte(snr_idx) = decoded_liblte(snr_idx)+dec2;
         end
-        
-        x = x(flen*10+1:end);
+
+        if ~isempty(recordedSignal)
+            recordedSignal = recordedSignal(flen*10+1:end);
+        end
     end
-    fprintf('SNR: %.1f\n',SNRdB)
+    fprintf('SNR: %.1f. Decoded: %d-%d\n',SNRdB, decoded(snr_idx), decoded_liblte(snr_idx))
 end
 
 if (length(SNR_values)>1)
-    semilogy(SNR_values,1-decoded/Npackets/(Nsf+1),'bo-',...
-             SNR_values,1-decoded_liblte/Npackets/(Nsf+1), 'ro-')
+    semilogy(SNR_values,1-decoded/Npackets/(Nsf),'bo-',...
+             SNR_values,1-decoded_liblte/Npackets/(Nsf), 'ro-')
     grid on;
     legend('Matlab','libLTE')
     xlabel('SNR (dB)')

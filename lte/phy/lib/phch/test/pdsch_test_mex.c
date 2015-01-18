@@ -44,6 +44,8 @@ void help()
     ("[decoded_ok, llr, rm, bits, symbols] = liblte_pdsch(enbConfig, pdschConfig, trblklen, rxWaveform)\n\n");
 }
 
+//extern int indices[2048];
+
 /* the gateway function */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -61,7 +63,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   uint32_t rv;
   uint32_t rnti32;
 
-  if (nrhs != NOF_INPUTS) {
+  if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
@@ -150,7 +152,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     prb_alloc.slot[0].prb_idx[i] = false; 
     for (int j=0;j<prb_alloc.slot[0].nof_prb && !prb_alloc.slot[0].prb_idx[i];j++) {
       if ((int) prbset[j] == i) {
-        prb_alloc.slot[0].prb_idx[i] = true; 
+        prb_alloc.slot[0].prb_idx[i] = true;
       }
     }
   }
@@ -193,7 +195,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } else {
     noise_power = chest_dl_get_noise_estimate(&chest);
   }
-  
+
   if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
@@ -218,6 +220,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   if (nlhs >= 4) {
     mexutils_write_cf(pdsch.pdsch_d, &plhs[3], harq_process.prb_alloc.re_sf[sf_idx], 1);  
+  }
+  if (nlhs >= 5) {
+    mexutils_write_cf(ce[0], &plhs[4], 12*14*cell.nof_prb, 1);  
   }
   
   chest_dl_free(&chest);

@@ -240,7 +240,7 @@ int main(int argc, char **argv) {
     printf("Could not decode PCFICH\n");
     exit(-1);
   } else {
-    if (cfi_corr > 3 && cfi == 1) {
+    if (cfi_corr > 2.8 && cfi == 1) {
       exit(0);
     } else {
       exit(-1);

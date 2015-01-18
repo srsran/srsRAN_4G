@@ -2,7 +2,7 @@
 clear
 blen=1008;
 SNR_values_db=linspace(-1,0.5,6);
-Nrealizations=10000;
+Nrealizations=1000;
 
 addpath('../../debug/lte/phy/lib/fec/test')
 

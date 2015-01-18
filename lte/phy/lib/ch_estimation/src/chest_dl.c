@@ -117,13 +117,13 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
     }
     
     /* Set default time/freq filters */
-    //float f[3]={0.1, 0.8, 0.1};
-    //chest_dl_set_filter_freq(q, f, 3);
+    float f[3]={0.1, 0.8, 0.1};
+    chest_dl_set_filter_freq(q, f, 3);
 
-    float f[5]={0.05, 0.15, 0.6, 0.15, 0.05};
-    chest_dl_set_filter_freq(q, f, 5);
+    //float f[5]={0.05, 0.15, 0.6, 0.15, 0.05};
+    //chest_dl_set_filter_freq(q, f, 5);
     
-    float t[2]={0.15, 0.85};
+    float t[2]={0.1, 0.9};
     chest_dl_set_filter_time(q, t, 2);
     
     q->cell = cell; 
@@ -247,6 +247,10 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
       memcpy(&pilot_tmp(0), &pilot_est(0), nref * sizeof(cf_t));
     }
   }
+
+  #ifdef NOISE_POWER_USE_ESTIMATES
+  q->noise_estimate[port_id] = estimate_noise_port(q, port_id, q->tmp_freqavg);
+  #endif
   
   for (l=0;l<refsignal_cs_nof_symbols(port_id);l++) {
     /* Filter in time domain. */
@@ -268,9 +272,6 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
       memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));        
     }
   }
-#ifdef NOISE_POWER_USE_ESTIMATES
-  q->noise_estimate[port_id] = estimate_noise_port(q, port_id, q->pilot_estimates_average[port_id]);
-#endif
   
 }
 
@@ -345,20 +346,20 @@ int chest_dl_estimate_port(chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx
   /* Get references from the input signal */
   refsignal_cs_get_sf(q->cell, port_id, input, q->pilot_recv_signal[port_id]);
   
-  /* Compute RSRP for the references in this port */
+  /* Use the known CSR signal to compute Least-squares estimates */
+  vec_prod_conj_ccc(q->pilot_recv_signal[port_id], q->csr_signal.pilots[port_id/2][sf_idx], 
+              q->pilot_estimates[port_id], REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
+
+  /* Average pilot estimates */
+  average_pilots(q, port_id);
+
+  /* Compute RSRP for the channel estimates in this port */
   q->rsrp[port_id] = chest_dl_rsrp(q, port_id);     
   if (port_id == 0) {
     /* compute rssi only for port 0 */
     q->rssi[port_id] = chest_dl_rssi(q, input, port_id);     
   }
-
-  /* Use the known CSR signal to compute Least-squares estimates */
-  vec_prod_conj_ccc(q->pilot_recv_signal[port_id], q->csr_signal.pilots[port_id/2][sf_idx], 
-              q->pilot_estimates[port_id], REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
-  
-  /* Average pilot estimates */
-  average_pilots(q, port_id);
-    
+      
   /* Interpolate to create channel estimates for all resource grid */
   if (ce != NULL) {
     interpolate_pilots(q, ce, port_id);    
@@ -381,16 +382,18 @@ int chest_dl_estimate(chest_dl_t *q, cf_t *input, cf_t *ce[MAX_PORTS], uint32_t 
 }
 
 float chest_dl_get_noise_estimate(chest_dl_t *q) {
-  return vec_acc_ff(q->noise_estimate, q->cell.nof_ports)/q->cell.nof_ports;
+  float noise = vec_acc_ff(q->noise_estimate, q->cell.nof_ports)/q->cell.nof_ports;
+#ifdef NOISE_POWER_USE_ESTIMATES
+  return noise*sqrtf(lte_symbol_sz(q->cell.nof_prb));
+#else
+  return noise; 
+#endif
+  
 }
 
 float chest_dl_get_snr(chest_dl_t *q) {
   // Uses RSRP as an estimation of the useful signal power  
-#ifdef NOISE_POWER_USE_ESTIMATES
-  return chest_dl_get_rsrp(q)/chest_dl_get_noise_estimate(q)/sqrt(2*lte_symbol_sz(q->cell.nof_prb));
-#else
-  return chest_dl_get_rsrp(q)/chest_dl_get_noise_estimate(q)/sqrt(2);
-#endif  
+  return chest_dl_get_rsrp(q)/chest_dl_get_noise_estimate(q)/sqrt(2)/q->cell.nof_ports;
 }
 
 float chest_dl_get_rssi(chest_dl_t *q) {
@@ -406,10 +409,8 @@ float chest_dl_get_rsrq(chest_dl_t *q) {
 }
 
 float chest_dl_get_rsrp(chest_dl_t *q) {
-  // return linear average from port 0 only 
-  //return q->rsrp[0]; 
   
-  // return linear average from all ports
-  return vec_acc_ff(q->rsrp, q->cell.nof_ports)/q->cell.nof_ports; 
+  // return sum of power received from all tx ports
+  return vec_acc_ff(q->rsrp, q->cell.nof_ports); 
 }
 

@@ -195,11 +195,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       sf_idx = sf%10;
     }
     
-    /* Loop through the 10 subframes */
     if (chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
       mexErrMsgTxt("Error running channel estimator\n");
       return;
     }    
+       
     if (cell.nof_ports == 1) {
       predecoding_single(&cheq, input_signal, ce[0], output_signal2, nof_re, chest_dl_get_noise_estimate(&chest));            
     } else {
@@ -244,8 +244,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 4) {
-    plhs[3] = mxCreateDoubleScalar(chest_dl_get_noise_estimate(&chest));
+    plhs[3] = mxCreateDoubleScalar(chest_dl_get_snr(&chest));
   }
+  if (nlhs >= 5) {
+    plhs[4] = mxCreateDoubleScalar(chest_dl_get_noise_estimate(&chest));
+  }
+  if (nlhs >= 6) {
+    plhs[5] = mxCreateDoubleScalar(chest_dl_get_rsrp(&chest));
+  }
+  
+  chest_dl_free(&chest);
+  precoding_free(&cheq);
 
   return;
 }
