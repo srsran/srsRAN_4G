@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType9.h"
+#include "liblte/rrc/asn/SystemInformationBlockType9.h"
 
 static int
 memb_hnb_Name_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

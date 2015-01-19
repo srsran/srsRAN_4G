@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType10.h"
+#include "liblte/rrc/asn/SystemInformationBlockType10.h"
 
 static int
 memb_messageIdentifier_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

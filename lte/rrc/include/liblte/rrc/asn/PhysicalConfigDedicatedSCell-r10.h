@@ -9,10 +9,10 @@
 #define	_PhysicalConfigDedicatedSCell_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,17 +71,17 @@ extern asn_TYPE_descriptor_t asn_DEF_PhysicalConfigDedicatedSCell_r10;
 #endif
 
 /* Referred external types */
-#include "AntennaInfoDedicated-r10.h"
-#include "CrossCarrierSchedulingConfig-r10.h"
-#include "CSI-RS-Config-r10.h"
-#include "PDSCH-ConfigDedicated.h"
-#include "AntennaInfoUL-r10.h"
-#include "PUSCH-ConfigDedicatedSCell-r10.h"
-#include "UplinkPowerControlDedicatedSCell-r10.h"
-#include "CQI-ReportConfigSCell-r10.h"
-#include "SoundingRS-UL-ConfigDedicated.h"
-#include "SoundingRS-UL-ConfigDedicated-v1020.h"
-#include "SoundingRS-UL-ConfigDedicatedAperiodic-r10.h"
+#include "liblte/rrc/asn/AntennaInfoDedicated-r10.h"
+#include "liblte/rrc/asn/CrossCarrierSchedulingConfig-r10.h"
+#include "liblte/rrc/asn/CSI-RS-Config-r10.h"
+#include "liblte/rrc/asn/PDSCH-ConfigDedicated.h"
+#include "liblte/rrc/asn/AntennaInfoUL-r10.h"
+#include "liblte/rrc/asn/PUSCH-ConfigDedicatedSCell-r10.h"
+#include "liblte/rrc/asn/UplinkPowerControlDedicatedSCell-r10.h"
+#include "liblte/rrc/asn/CQI-ReportConfigSCell-r10.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigDedicated.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigDedicated-v1020.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigDedicatedAperiodic-r10.h"
 
 #endif	/* _PhysicalConfigDedicatedSCell_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

@@ -9,23 +9,23 @@
 #define	_SystemInformationBlockType3_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <OCTET_STRING.h>
-#include "Q-QualMin-r9.h"
-#include "ReselectionThresholdQ-r9.h"
-#include <NativeEnumerated.h>
-#include "MobilityStateParameters.h"
-#include <constr_SEQUENCE.h>
-#include "ReselectionThreshold.h"
-#include "CellReselectionPriority.h"
-#include "Q-RxLevMin.h"
-#include "P-Max.h"
-#include "AllowedMeasBandwidth.h"
-#include "PresenceAntennaPort1.h"
-#include "NeighCellConfig.h"
-#include "T-Reselection.h"
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include "liblte/rrc/asn/Q-QualMin-r9.h"
+#include "liblte/rrc/asn/ReselectionThresholdQ-r9.h"
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/MobilityStateParameters.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ReselectionThreshold.h"
+#include "liblte/rrc/asn/CellReselectionPriority.h"
+#include "liblte/rrc/asn/Q-RxLevMin.h"
+#include "liblte/rrc/asn/P-Max.h"
+#include "liblte/rrc/asn/AllowedMeasBandwidth.h"
+#include "liblte/rrc/asn/PresenceAntennaPort1.h"
+#include "liblte/rrc/asn/NeighCellConfig.h"
+#include "liblte/rrc/asn/T-Reselection.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -141,7 +141,7 @@ extern asn_TYPE_descriptor_t asn_DEF_SystemInformationBlockType3;
 #endif
 
 /* Referred external types */
-#include "SpeedStateScaleFactors.h"
+#include "liblte/rrc/asn/SpeedStateScaleFactors.h"
 
 #endif	/* _SystemInformationBlockType3_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

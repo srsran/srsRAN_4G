@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReestabUE-Identity.h"
+#include "liblte/rrc/asn/ReestabUE-Identity.h"
 
 static asn_TYPE_member_t asn_MBR_ReestabUE_Identity_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct ReestabUE_Identity, c_RNTI),

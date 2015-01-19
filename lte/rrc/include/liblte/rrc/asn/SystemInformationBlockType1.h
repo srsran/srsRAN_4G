@@ -9,20 +9,20 @@
 #define	_SystemInformationBlockType1_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "P-Max.h"
-#include <NativeInteger.h>
-#include "SchedulingInfoList.h"
-#include <NativeEnumerated.h>
-#include "PLMN-IdentityList.h"
-#include "TrackingAreaCode.h"
-#include "CellIdentity.h"
-#include <BOOLEAN.h>
-#include "CSG-Identity.h"
-#include <constr_SEQUENCE.h>
-#include "Q-RxLevMin.h"
+#include "liblte/rrc/asn/P-Max.h"
+#include <liblte/rrc/asn/NativeInteger.h>
+#include "liblte/rrc/asn/SchedulingInfoList.h"
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/PLMN-IdentityList.h"
+#include "liblte/rrc/asn/TrackingAreaCode.h"
+#include "liblte/rrc/asn/CellIdentity.h"
+#include <liblte/rrc/asn/BOOLEAN.h>
+#include "liblte/rrc/asn/CSG-Identity.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/Q-RxLevMin.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,8 +95,8 @@ LIBLTE_API extern asn_TYPE_descriptor_t asn_DEF_SystemInformationBlockType1;
 #endif
 
 /* Referred external types */
-#include "TDD-Config.h"
-#include "SystemInformationBlockType1-v890-IEs.h"
+#include "liblte/rrc/asn/TDD-Config.h"
+#include "liblte/rrc/asn/SystemInformationBlockType1-v890-IEs.h"
 
 #endif	/* _SystemInformationBlockType1_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

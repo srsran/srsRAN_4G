@@ -9,12 +9,12 @@
 #define	_PagingUE_Identity_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "S-TMSI.h"
-#include "IMSI.h"
-#include <constr_CHOICE.h>
+#include "liblte/rrc/asn/S-TMSI.h"
+#include "liblte/rrc/asn/IMSI.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,4 +53,4 @@ extern asn_TYPE_descriptor_t asn_DEF_PagingUE_Identity;
 #endif
 
 #endif	/* _PagingUE_Identity_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

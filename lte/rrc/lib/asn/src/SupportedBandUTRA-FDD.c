@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SupportedBandUTRA-FDD.h"
+#include "liblte/rrc/asn/SupportedBandUTRA-FDD.h"
 
 int
 SupportedBandUTRA_FDD_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -25,9 +25,9 @@
  *
  */
 
-#include "BCCH-BCH-Message.h"
-#include "BCCH-DL-SCH-Message.h"
-#include "MasterInformationBlock.h"
-#include "SystemInformationBlockType1.h"
-#include "per_encoder.h"
-#include "xer_encoder.h"
+#include "liblte/rrc/asn/BCCH-BCH-Message.h"
+#include "liblte/rrc/asn/BCCH-DL-SCH-Message.h"
+#include "liblte/rrc/asn/MasterInformationBlock.h"
+#include "liblte/rrc/asn/SystemInformationBlockType1.h"
+#include "liblte/rrc/asn/per_encoder.h"
+#include "liblte/rrc/asn/xer_encoder.h"

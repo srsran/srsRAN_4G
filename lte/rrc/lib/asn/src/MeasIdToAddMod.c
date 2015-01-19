@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasIdToAddMod.h"
+#include "liblte/rrc/asn/MeasIdToAddMod.h"
 
 static asn_TYPE_member_t asn_MBR_MeasIdToAddMod_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct MeasIdToAddMod, measId),

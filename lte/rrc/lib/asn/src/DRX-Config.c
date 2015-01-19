@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "DRX-Config.h"
+#include "liblte/rrc/asn/DRX-Config.h"
 
 static int
 onDurationTimer_4_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

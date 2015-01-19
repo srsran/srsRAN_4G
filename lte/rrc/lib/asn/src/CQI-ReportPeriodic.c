@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CQI-ReportPeriodic.h"
+#include "liblte/rrc/asn/CQI-ReportPeriodic.h"
 
 static int
 memb_k_constraint_8(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasResults.h"
+#include "liblte/rrc/asn/MeasResults.h"
 
 static asn_per_constraints_t asn_PER_type_measResultNeighCells_constr_6 = {
 	{ APC_CONSTRAINED | APC_EXTENSIBLE,  2,  2,  0,  3 }	/* (0..3,...) */,

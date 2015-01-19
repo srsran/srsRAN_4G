@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "Q-RxLevMin.h"
+#include "liblte/rrc/asn/Q-RxLevMin.h"
 
 int
 Q_RxLevMin_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

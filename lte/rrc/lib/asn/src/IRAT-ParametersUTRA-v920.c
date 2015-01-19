@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "IRAT-ParametersUTRA-v920.h"
+#include "liblte/rrc/asn/IRAT-ParametersUTRA-v920.h"
 
 static int
 e_RedirectionUTRA_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasResultsCDMA2000.h"
+#include "liblte/rrc/asn/MeasResultsCDMA2000.h"
 
 static asn_TYPE_member_t asn_MBR_MeasResultsCDMA2000_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct MeasResultsCDMA2000, preRegistrationStatusHRPD),

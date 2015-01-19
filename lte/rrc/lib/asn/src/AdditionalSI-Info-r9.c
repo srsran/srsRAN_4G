@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "AdditionalSI-Info-r9.h"
+#include "liblte/rrc/asn/AdditionalSI-Info-r9.h"
 
 static int
 csg_MemberStatus_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

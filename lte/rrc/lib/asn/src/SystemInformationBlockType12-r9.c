@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType12-r9.h"
+#include "liblte/rrc/asn/SystemInformationBlockType12-r9.h"
 
 static int
 warningMessageSegmentType_r9_4_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PUCCH-ConfigDedicated-v1020.h"
+#include "liblte/rrc/asn/PUCCH-ConfigDedicated-v1020.h"
 
 static int
 memb_NativeInteger_constraint_4(asn_TYPE_descriptor_t *td, const void *sptr,

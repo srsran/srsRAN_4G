@@ -9,14 +9,14 @@
 #define	_SystemInformationBlockType12_r9_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <BIT_STRING.h>
-#include <NativeEnumerated.h>
-#include <NativeInteger.h>
-#include <OCTET_STRING.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,4 +55,4 @@ extern asn_TYPE_descriptor_t asn_DEF_SystemInformationBlockType12_r9;
 #endif
 
 #endif	/* _SystemInformationBlockType12_r9_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

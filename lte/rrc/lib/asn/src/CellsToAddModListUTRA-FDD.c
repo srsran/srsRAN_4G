@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CellsToAddModListUTRA-FDD.h"
+#include "liblte/rrc/asn/CellsToAddModListUTRA-FDD.h"
 
 static asn_per_constraints_t asn_PER_type_CellsToAddModListUTRA_FDD_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

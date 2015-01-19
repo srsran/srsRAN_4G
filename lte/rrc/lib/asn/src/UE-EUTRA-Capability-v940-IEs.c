@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UE-EUTRA-Capability-v940-IEs.h"
+#include "liblte/rrc/asn/UE-EUTRA-Capability-v940-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_UE_EUTRA_Capability_v940_IEs_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct UE_EUTRA_Capability_v940_IEs, lateNonCriticalExtension),

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UECapabilityInformation-r8-IEs.h"
+#include "liblte/rrc/asn/UECapabilityInformation-r8-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_UECapabilityInformation_r8_IEs_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct UECapabilityInformation_r8_IEs, ue_CapabilityRAT_ContainerList),

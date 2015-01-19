@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "InterFreqCarrierFreqInfo.h"
+#include "liblte/rrc/asn/InterFreqCarrierFreqInfo.h"
 
 static int asn_DFL_13_set_15(int set_value, void **sptr) {
 	Q_OffsetRange_t *st = *sptr;

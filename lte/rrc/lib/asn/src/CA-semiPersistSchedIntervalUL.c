@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CA-semiPersistSchedIntervalUL.h"
+#include "liblte/rrc/asn/CA-semiPersistSchedIntervalUL.h"
 
 int
 CA_semiPersistSchedIntervalUL_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

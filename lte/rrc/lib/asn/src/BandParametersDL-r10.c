@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "BandParametersDL-r10.h"
+#include "liblte/rrc/asn/BandParametersDL-r10.h"
 
 static asn_per_constraints_t asn_PER_type_BandParametersDL_r10_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReportConfigInterRAT.h"
+#include "liblte/rrc/asn/ReportConfigInterRAT.h"
 
 static int
 purpose_20_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MCC-MNC-Digit.h"
+#include "liblte/rrc/asn/MCC-MNC-Digit.h"
 
 int
 MCC_MNC_Digit_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

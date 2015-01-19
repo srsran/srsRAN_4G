@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RACH-ConfigDedicated.h"
+#include "liblte/rrc/asn/RACH-ConfigDedicated.h"
 
 static int
 memb_ra_PreambleIndex_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

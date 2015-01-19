@@ -8,21 +8,21 @@
 #define	_AS_Config_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "MeasConfig.h"
-#include "RadioResourceConfigDedicated.h"
-#include "SecurityAlgorithmConfig.h"
-#include "C-RNTI.h"
-#include "MasterInformationBlock.h"
-#include "SystemInformationBlockType1.h"
-#include "SystemInformationBlockType2.h"
-#include "AntennaInfoCommon.h"
-#include "ARFCN-ValueEUTRA.h"
-#include <OCTET_STRING.h>
-#include "OtherConfig-r9.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/MeasConfig.h"
+#include "liblte/rrc/asn/RadioResourceConfigDedicated.h"
+#include "liblte/rrc/asn/SecurityAlgorithmConfig.h"
+#include "liblte/rrc/asn/C-RNTI.h"
+#include "liblte/rrc/asn/MasterInformationBlock.h"
+#include "liblte/rrc/asn/SystemInformationBlockType1.h"
+#include "liblte/rrc/asn/SystemInformationBlockType2.h"
+#include "liblte/rrc/asn/AntennaInfoCommon.h"
+#include "liblte/rrc/asn/ARFCN-ValueEUTRA.h"
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include "liblte/rrc/asn/OtherConfig-r9.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,4 +61,4 @@ extern asn_TYPE_descriptor_t asn_DEF_AS_Config;
 #endif
 
 #endif	/* _AS_Config_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

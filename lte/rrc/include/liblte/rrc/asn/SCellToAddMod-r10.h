@@ -9,13 +9,13 @@
 #define	_SCellToAddMod_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "SCellIndex-r10.h"
-#include "PhysCellId.h"
-#include "ARFCN-ValueEUTRA.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/SCellIndex-r10.h"
+#include "liblte/rrc/asn/PhysCellId.h"
+#include "liblte/rrc/asn/ARFCN-ValueEUTRA.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,8 +54,8 @@ extern asn_TYPE_descriptor_t asn_DEF_SCellToAddMod_r10;
 #endif
 
 /* Referred external types */
-#include "RadioResourceConfigCommonSCell-r10.h"
-#include "RadioResourceConfigDedicatedSCell-r10.h"
+#include "liblte/rrc/asn/RadioResourceConfigCommonSCell-r10.h"
+#include "liblte/rrc/asn/RadioResourceConfigDedicatedSCell-r10.h"
 
 #endif	/* _SCellToAddMod_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

@@ -3,9 +3,9 @@
  * All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_internal.h>
-#include <OCTET_STRING.h>
-#include <BIT_STRING.h>	/* for .bits_unused member */
+#include <liblte/rrc/asn/asn_internal.h>
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include <liblte/rrc/asn/BIT_STRING.h>	/* for .bits_unused member */
 
 /*
  * OCTET STRING basic type description.

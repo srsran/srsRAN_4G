@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionReestablishmentReject.h"
+#include "liblte/rrc/asn/RRCConnectionReestablishmentReject.h"
 
 static asn_per_constraints_t asn_PER_type_criticalExtensions_constr_2 = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

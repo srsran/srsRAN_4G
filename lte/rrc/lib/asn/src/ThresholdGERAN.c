@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ThresholdGERAN.h"
+#include "liblte/rrc/asn/ThresholdGERAN.h"
 
 int
 ThresholdGERAN_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

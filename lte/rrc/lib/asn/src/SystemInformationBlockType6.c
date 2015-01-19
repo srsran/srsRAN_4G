@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType6.h"
+#include "liblte/rrc/asn/SystemInformationBlockType6.h"
 
 static asn_TYPE_member_t asn_MBR_SystemInformationBlockType6_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct SystemInformationBlockType6, carrierFreqListUTRA_FDD),

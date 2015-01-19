@@ -9,12 +9,12 @@
 #define	_SystemInformationBlockType7_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "T-Reselection.h"
-#include <OCTET_STRING.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/T-Reselection.h"
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,8 +47,8 @@ extern asn_TYPE_descriptor_t asn_DEF_SystemInformationBlockType7;
 #endif
 
 /* Referred external types */
-#include "SpeedStateScaleFactors.h"
-#include "CarrierFreqsInfoListGERAN.h"
+#include "liblte/rrc/asn/SpeedStateScaleFactors.h"
+#include "liblte/rrc/asn/CarrierFreqsInfoListGERAN.h"
 
 #endif	/* _SystemInformationBlockType7_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

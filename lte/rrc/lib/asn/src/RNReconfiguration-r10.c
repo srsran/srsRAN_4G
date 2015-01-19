@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RNReconfiguration-r10.h"
+#include "liblte/rrc/asn/RNReconfiguration-r10.h"
 
 static asn_per_constraints_t asn_PER_type_c1_constr_4 = {
 	{ APC_CONSTRAINED,	 2,  2,  0,  3 }	/* (0..3) */,

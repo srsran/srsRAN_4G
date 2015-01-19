@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PUSCH-CAConfigDedicated-vlola.h"
+#include "liblte/rrc/asn/PUSCH-CAConfigDedicated-vlola.h"
 
 static asn_TYPE_member_t asn_MBR_PUSCH_CAConfigDedicated_vlola_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct PUSCH_CAConfigDedicated_vlola, betaOffset_CA_Index),

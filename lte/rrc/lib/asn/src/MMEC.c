@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MMEC.h"
+#include "liblte/rrc/asn/MMEC.h"
 
 int
 MMEC_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

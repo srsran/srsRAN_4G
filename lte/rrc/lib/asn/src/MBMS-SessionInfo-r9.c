@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MBMS-SessionInfo-r9.h"
+#include "liblte/rrc/asn/MBMS-SessionInfo-r9.h"
 
 static int
 memb_sessionId_r9_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -9,12 +9,12 @@
 #define	_MBMS_NotificationConfig_r9_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeEnumerated.h>
-#include <NativeInteger.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,4 +45,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MBMS_NotificationConfig_r9;
 #endif
 
 #endif	/* _MBMS_NotificationConfig_r9_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

@@ -9,13 +9,13 @@
 #define	_MasterInformationBlock_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeEnumerated.h>
-#include "PHICH-Config.h"
-#include <BIT_STRING.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/PHICH-Config.h"
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,4 +51,4 @@ LIBLTE_API extern asn_TYPE_descriptor_t asn_DEF_MasterInformationBlock;
 #endif
 
 #endif	/* _MasterInformationBlock_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

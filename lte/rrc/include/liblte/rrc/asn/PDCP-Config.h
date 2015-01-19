@@ -9,15 +9,15 @@
 #define	_PDCP_Config_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeEnumerated.h>
-#include <BOOLEAN.h>
-#include <constr_SEQUENCE.h>
-#include <NULL.h>
-#include <NativeInteger.h>
-#include <constr_CHOICE.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/BOOLEAN.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NULL.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,4 +112,4 @@ extern asn_TYPE_descriptor_t asn_DEF_PDCP_Config;
 #endif
 
 #endif	/* _PDCP_Config_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

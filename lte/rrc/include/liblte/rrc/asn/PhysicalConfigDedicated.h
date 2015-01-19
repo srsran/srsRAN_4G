@@ -9,15 +9,15 @@
 #define	_PhysicalConfigDedicated_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <BOOLEAN.h>
-#include "AntennaInfoDedicated.h"
-#include <NULL.h>
-#include <constr_CHOICE.h>
-#include "AntennaInfoDedicated-r10.h"
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/BOOLEAN.h>
+#include "liblte/rrc/asn/AntennaInfoDedicated.h"
+#include <liblte/rrc/asn/NULL.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include "liblte/rrc/asn/AntennaInfoDedicated-r10.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -114,26 +114,26 @@ extern asn_TYPE_descriptor_t asn_DEF_PhysicalConfigDedicated;
 #endif
 
 /* Referred external types */
-#include "PDSCH-ConfigDedicated.h"
-#include "PUCCH-ConfigDedicated.h"
-#include "PUSCH-ConfigDedicated.h"
-#include "UplinkPowerControlDedicated.h"
-#include "TPC-PDCCH-Config.h"
-#include "CQI-ReportConfig.h"
-#include "SoundingRS-UL-ConfigDedicated.h"
-#include "SchedulingRequestConfig.h"
-#include "CQI-ReportConfig-v920.h"
-#include "AntennaInfoDedicated-v920.h"
-#include "AntennaInfoUL-r10.h"
-#include "CQI-ReportConfig-r10.h"
-#include "CSI-RS-Config-r10.h"
-#include "PUCCH-ConfigDedicated-v1020.h"
-#include "PUSCH-ConfigDedicated-v1020.h"
-#include "SchedulingRequestConfig-v1020.h"
-#include "SoundingRS-UL-ConfigDedicated-v1020.h"
-#include "SoundingRS-UL-ConfigDedicatedAperiodic-r10.h"
-#include "UplinkPowerControlDedicated-v1020.h"
-#include "PUSCH-CAConfigDedicated-vlola.h"
+#include "liblte/rrc/asn/PDSCH-ConfigDedicated.h"
+#include "liblte/rrc/asn/PUCCH-ConfigDedicated.h"
+#include "liblte/rrc/asn/PUSCH-ConfigDedicated.h"
+#include "liblte/rrc/asn/UplinkPowerControlDedicated.h"
+#include "liblte/rrc/asn/TPC-PDCCH-Config.h"
+#include "liblte/rrc/asn/CQI-ReportConfig.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigDedicated.h"
+#include "liblte/rrc/asn/SchedulingRequestConfig.h"
+#include "liblte/rrc/asn/CQI-ReportConfig-v920.h"
+#include "liblte/rrc/asn/AntennaInfoDedicated-v920.h"
+#include "liblte/rrc/asn/AntennaInfoUL-r10.h"
+#include "liblte/rrc/asn/CQI-ReportConfig-r10.h"
+#include "liblte/rrc/asn/CSI-RS-Config-r10.h"
+#include "liblte/rrc/asn/PUCCH-ConfigDedicated-v1020.h"
+#include "liblte/rrc/asn/PUSCH-ConfigDedicated-v1020.h"
+#include "liblte/rrc/asn/SchedulingRequestConfig-v1020.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigDedicated-v1020.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigDedicatedAperiodic-r10.h"
+#include "liblte/rrc/asn/UplinkPowerControlDedicated-v1020.h"
+#include "liblte/rrc/asn/PUSCH-CAConfigDedicated-vlola.h"
 
 #endif	/* _PhysicalConfigDedicated_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

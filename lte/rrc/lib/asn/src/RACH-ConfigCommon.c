@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RACH-ConfigCommon.h"
+#include "liblte/rrc/asn/RACH-ConfigCommon.h"
 
 static int
 numberOfRA_Preambles_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

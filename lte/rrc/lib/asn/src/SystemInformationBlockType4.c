@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType4.h"
+#include "liblte/rrc/asn/SystemInformationBlockType4.h"
 
 static asn_TYPE_member_t asn_MBR_SystemInformationBlockType4_1[] = {
 	{ ATF_POINTER, 4, offsetof(struct SystemInformationBlockType4, intraFreqNeighCellList),

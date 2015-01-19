@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CarrierFreqEUTRA.h"
+#include "liblte/rrc/asn/CarrierFreqEUTRA.h"
 
 static asn_TYPE_member_t asn_MBR_CarrierFreqEUTRA_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct CarrierFreqEUTRA, dl_CarrierFreq),

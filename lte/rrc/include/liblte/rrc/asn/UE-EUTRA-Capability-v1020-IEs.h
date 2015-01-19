@@ -9,12 +9,12 @@
 #define	_UE_EUTRA_Capability_v1020_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
-#include <BIT_STRING.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,12 +56,12 @@ extern asn_TYPE_descriptor_t asn_DEF_UE_EUTRA_Capability_v1020_IEs;
 #endif
 
 /* Referred external types */
-#include "PhyLayerParameters-v1020.h"
-#include "RF-Parameters-v1020.h"
-#include "MeasParameters-v1020.h"
-#include "IRAT-ParametersCDMA2000-1XRTT-v1020.h"
-#include "UE-BasedNetwPerfMeasParameters-r10.h"
-#include "IRAT-ParametersUTRA-TDD-v1020.h"
+#include "liblte/rrc/asn/PhyLayerParameters-v1020.h"
+#include "liblte/rrc/asn/RF-Parameters-v1020.h"
+#include "liblte/rrc/asn/MeasParameters-v1020.h"
+#include "liblte/rrc/asn/IRAT-ParametersCDMA2000-1XRTT-v1020.h"
+#include "liblte/rrc/asn/UE-BasedNetwPerfMeasParameters-r10.h"
+#include "liblte/rrc/asn/IRAT-ParametersUTRA-TDD-v1020.h"
 
 #endif	/* _UE_EUTRA_Capability_v1020_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

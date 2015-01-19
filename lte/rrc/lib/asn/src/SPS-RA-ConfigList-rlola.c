@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SPS-RA-ConfigList-rlola.h"
+#include "liblte/rrc/asn/SPS-RA-ConfigList-rlola.h"
 
 static asn_TYPE_member_t asn_MBR_SPS_RA_ConfigList_rlola_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct SPS_RA_ConfigList_rlola, semiPersistSchedCA_RNTI),

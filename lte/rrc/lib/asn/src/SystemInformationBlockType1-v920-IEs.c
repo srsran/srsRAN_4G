@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType1-v920-IEs.h"
+#include "liblte/rrc/asn/SystemInformationBlockType1-v920-IEs.h"
 
 static int
 ims_EmergencySupport_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

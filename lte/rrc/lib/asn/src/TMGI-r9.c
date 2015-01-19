@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "TMGI-r9.h"
+#include "liblte/rrc/asn/TMGI-r9.h"
 
 static int
 memb_plmn_Index_r9_constraint_2(asn_TYPE_descriptor_t *td, const void *sptr,

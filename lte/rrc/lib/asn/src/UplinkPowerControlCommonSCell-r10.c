@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UplinkPowerControlCommonSCell-r10.h"
+#include "liblte/rrc/asn/UplinkPowerControlCommonSCell-r10.h"
 
 static int
 alpha_r10_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

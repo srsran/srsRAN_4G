@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "Q-QualMin-r9.h"
+#include "liblte/rrc/asn/Q-QualMin-r9.h"
 
 int
 Q_QualMin_r9_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

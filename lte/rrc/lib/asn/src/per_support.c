@@ -3,9 +3,9 @@
  * All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_system.h>
-#include <asn_internal.h>
-#include <per_support.h>
+#include <liblte/rrc/asn/asn_system.h>
+#include <liblte/rrc/asn/asn_internal.h>
+#include <liblte/rrc/asn/per_support.h>
 
 char *
 per_data_string(asn_per_data_t *pd) {

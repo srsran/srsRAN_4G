@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CellGlobalIdCDMA2000.h"
+#include "liblte/rrc/asn/CellGlobalIdCDMA2000.h"
 
 static int
 memb_cellGlobalId1XRTT_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

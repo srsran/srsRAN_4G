@@ -9,13 +9,13 @@
 #define	_InterFreqRSTDMeasurementIndication_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "InterFreqRSTDMeasurementIndication-r10-IEs.h"
-#include <NULL.h>
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/InterFreqRSTDMeasurementIndication-r10-IEs.h"
+#include <liblte/rrc/asn/NULL.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,4 +75,4 @@ extern asn_TYPE_descriptor_t asn_DEF_InterFreqRSTDMeasurementIndication_r10;
 #endif
 
 #endif	/* _InterFreqRSTDMeasurementIndication_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

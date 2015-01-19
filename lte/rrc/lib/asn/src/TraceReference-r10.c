@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "TraceReference-r10.h"
+#include "liblte/rrc/asn/TraceReference-r10.h"
 
 static int
 memb_traceId_r10_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

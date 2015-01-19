@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasObjectGERAN.h"
+#include "liblte/rrc/asn/MeasObjectGERAN.h"
 
 static int
 memb_ncc_Permitted_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

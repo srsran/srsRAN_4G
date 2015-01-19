@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "BandCombinationListEUTRA-r10.h"
+#include "liblte/rrc/asn/BandCombinationListEUTRA-r10.h"
 
 static asn_per_constraints_t asn_PER_type_BandCombinationListEUTRA_r10_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

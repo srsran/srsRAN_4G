@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PDSCH-ConfigCommon.h"
+#include "liblte/rrc/asn/PDSCH-ConfigCommon.h"
 
 static int
 memb_referenceSignalPower_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

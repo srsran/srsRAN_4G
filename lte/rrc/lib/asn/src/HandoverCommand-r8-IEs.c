@@ -4,7 +4,7 @@
  * 	found in "EUTRA-InterNodeDefinitions.asn"
  */
 
-#include "HandoverCommand-r8-IEs.h"
+#include "liblte/rrc/asn/HandoverCommand-r8-IEs.h"
 
 static int
 memb_handoverCommandMessage_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

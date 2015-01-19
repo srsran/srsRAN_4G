@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "IRAT-ParametersCDMA2000-1XRTT-v920.h"
+#include "liblte/rrc/asn/IRAT-ParametersCDMA2000-1XRTT-v920.h"
 
 static int
 e_CSFB_1XRTT_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

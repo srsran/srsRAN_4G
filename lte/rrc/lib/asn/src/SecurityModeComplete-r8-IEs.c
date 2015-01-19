@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SecurityModeComplete-r8-IEs.h"
+#include "liblte/rrc/asn/SecurityModeComplete-r8-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_SecurityModeComplete_r8_IEs_1[] = {
 	{ ATF_POINTER, 1, offsetof(struct SecurityModeComplete_r8_IEs, nonCriticalExtension),

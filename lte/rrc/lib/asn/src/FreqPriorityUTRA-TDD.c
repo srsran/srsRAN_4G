@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "FreqPriorityUTRA-TDD.h"
+#include "liblte/rrc/asn/FreqPriorityUTRA-TDD.h"
 
 static asn_TYPE_member_t asn_MBR_FreqPriorityUTRA_TDD_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct FreqPriorityUTRA_TDD, carrierFreq),

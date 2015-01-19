@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SoundingRS-UL-ConfigDedicatedAperiodic-r10.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigDedicatedAperiodic-r10.h"
 
 static int
 memb_srs_ConfigIndexAp_r10_constraint_3(asn_TYPE_descriptor_t *td, const void *sptr,

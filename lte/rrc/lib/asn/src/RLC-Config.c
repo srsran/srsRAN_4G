@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RLC-Config.h"
+#include "liblte/rrc/asn/RLC-Config.h"
 
 static asn_per_constraints_t asn_PER_type_RLC_Config_constr_1 = {
 	{ APC_CONSTRAINED | APC_EXTENSIBLE,  2,  2,  0,  3 }	/* (0..3,...) */,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CountingResponseInfo-r10.h"
+#include "liblte/rrc/asn/CountingResponseInfo-r10.h"
 
 static int
 memb_countingResponseService_r10_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

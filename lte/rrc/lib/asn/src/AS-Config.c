@@ -4,7 +4,7 @@
  * 	found in "EUTRA-InterNodeDefinitions.asn"
  */
 
-#include "AS-Config.h"
+#include "liblte/rrc/asn/AS-Config.h"
 
 static int
 memb_sourceSystemInformationBlockType1_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

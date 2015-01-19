@@ -9,11 +9,11 @@
 #define	_SI_OrPSI_GERAN_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "SystemInfoListGERAN.h"
-#include <constr_CHOICE.h>
+#include "liblte/rrc/asn/SystemInfoListGERAN.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,4 +46,4 @@ extern asn_TYPE_descriptor_t asn_DEF_SI_OrPSI_GERAN;
 #endif
 
 #endif	/* _SI_OrPSI_GERAN_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

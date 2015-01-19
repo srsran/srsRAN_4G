@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UEInformationResponse-r9-IEs.h"
+#include "liblte/rrc/asn/UEInformationResponse-r9-IEs.h"
 
 static int
 memb_numberOfPreamblesSent_r9_constraint_2(asn_TYPE_descriptor_t *td, const void *sptr,

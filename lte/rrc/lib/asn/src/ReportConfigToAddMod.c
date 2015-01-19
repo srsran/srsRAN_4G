@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReportConfigToAddMod.h"
+#include "liblte/rrc/asn/ReportConfigToAddMod.h"
 
 static asn_per_constraints_t asn_PER_type_reportConfig_constr_3 = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CA-BandwidthClass-r10.h"
+#include "liblte/rrc/asn/CA-BandwidthClass-r10.h"
 
 int
 CA_BandwidthClass_r10_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

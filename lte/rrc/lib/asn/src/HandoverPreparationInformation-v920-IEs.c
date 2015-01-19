@@ -4,7 +4,7 @@
  * 	found in "EUTRA-InterNodeDefinitions.asn"
  */
 
-#include "HandoverPreparationInformation-v920-IEs.h"
+#include "liblte/rrc/asn/HandoverPreparationInformation-v920-IEs.h"
 
 static int
 ue_ConfigRelease_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionRequest-r8-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionRequest-r8-IEs.h"
 
 static int
 memb_spare_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

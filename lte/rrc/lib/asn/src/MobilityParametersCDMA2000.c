@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MobilityParametersCDMA2000.h"
+#include "liblte/rrc/asn/MobilityParametersCDMA2000.h"
 
 int
 MobilityParametersCDMA2000_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

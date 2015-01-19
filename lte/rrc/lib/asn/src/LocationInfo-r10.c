@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "LocationInfo-r10.h"
+#include "liblte/rrc/asn/LocationInfo-r10.h"
 
 static asn_per_constraints_t asn_PER_type_locationCoordinates_r10_constr_2 = {
 	{ APC_CONSTRAINED | APC_EXTENSIBLE,  1,  1,  0,  1 }	/* (0..1,...) */,

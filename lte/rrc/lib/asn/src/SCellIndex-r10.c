@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SCellIndex-r10.h"
+#include "liblte/rrc/asn/SCellIndex-r10.h"
 
 int
 SCellIndex_r10_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

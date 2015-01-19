@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SchedulingRequestConfig.h"
+#include "liblte/rrc/asn/SchedulingRequestConfig.h"
 
 static int
 dsr_TransMax_6_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

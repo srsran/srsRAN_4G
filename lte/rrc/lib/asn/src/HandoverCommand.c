@@ -4,7 +4,7 @@
  * 	found in "EUTRA-InterNodeDefinitions.asn"
  */
 
-#include "HandoverCommand.h"
+#include "liblte/rrc/asn/HandoverCommand.h"
 
 static asn_per_constraints_t asn_PER_type_c1_constr_3 GCC_NOTUSED = {
 	{ APC_CONSTRAINED,	 3,  3,  0,  7 }	/* (0..7) */,

@@ -9,13 +9,13 @@
 #define	_MBSFN_AreaInfo_r9_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
-#include <NativeEnumerated.h>
-#include <BIT_STRING.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,4 +79,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MBSFN_AreaInfo_r9;
 #endif
 
 #endif	/* _MBSFN_AreaInfo_r9_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

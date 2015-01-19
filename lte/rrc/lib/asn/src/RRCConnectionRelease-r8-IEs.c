@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionRelease-r8-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionRelease-r8-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_RRCConnectionRelease_r8_IEs_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct RRCConnectionRelease_r8_IEs, releaseCause),

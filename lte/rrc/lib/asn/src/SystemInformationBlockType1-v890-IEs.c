@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType1-v890-IEs.h"
+#include "liblte/rrc/asn/SystemInformationBlockType1-v890-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_SystemInformationBlockType1_v890_IEs_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct SystemInformationBlockType1_v890_IEs, lateNonCriticalExtension),

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionReestablishment-r8-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionReestablishment-r8-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_RRCConnectionReestablishment_r8_IEs_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct RRCConnectionReestablishment_r8_IEs, radioResourceConfigDedicated),

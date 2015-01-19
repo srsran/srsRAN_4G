@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "T-Reselection.h"
+#include "liblte/rrc/asn/T-Reselection.h"
 
 int
 T_Reselection_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

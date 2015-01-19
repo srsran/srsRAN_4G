@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionReconfigurationComplete-v1020-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionReconfigurationComplete-v1020-IEs.h"
 
 static int
 rlf_InfoAvailable_r10_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

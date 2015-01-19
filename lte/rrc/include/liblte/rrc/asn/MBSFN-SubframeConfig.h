@@ -9,14 +9,14 @@
 #define	_MBSFN_SubframeConfig_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeEnumerated.h>
-#include <NativeInteger.h>
-#include <BIT_STRING.h>
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/BIT_STRING.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,4 +65,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MBSFN_SubframeConfig;
 #endif
 
 #endif	/* _MBSFN_SubframeConfig_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

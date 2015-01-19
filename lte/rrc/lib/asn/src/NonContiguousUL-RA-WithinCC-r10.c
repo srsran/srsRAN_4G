@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "NonContiguousUL-RA-WithinCC-r10.h"
+#include "liblte/rrc/asn/NonContiguousUL-RA-WithinCC-r10.h"
 
 static int
 nonContiguousUL_RA_WithinCC_Info_r10_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

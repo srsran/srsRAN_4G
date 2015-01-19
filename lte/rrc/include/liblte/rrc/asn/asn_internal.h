@@ -11,7 +11,7 @@
 
 #define EMIT_ASN_DEBUG 0
 
-#include "asn_application.h"	/* Application-visible API */
+#include "liblte/rrc/asn/asn_application.h"	/* Application-visible API */
 
 #ifndef	__NO_ASSERT_H__		/* Include assert.h only for internal use. */
 #include <assert.h>		/* for assert() macro */

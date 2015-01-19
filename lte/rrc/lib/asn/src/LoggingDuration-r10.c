@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "LoggingDuration-r10.h"
+#include "liblte/rrc/asn/LoggingDuration-r10.h"
 
 int
 LoggingDuration_r10_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

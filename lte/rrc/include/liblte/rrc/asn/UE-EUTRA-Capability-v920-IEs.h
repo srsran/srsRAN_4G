@@ -9,16 +9,16 @@
 #define	_UE_EUTRA_Capability_v920_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "PhyLayerParameters-v920.h"
-#include "IRAT-ParametersGERAN-v920.h"
-#include <NativeEnumerated.h>
-#include "CSG-ProximityIndicationParameters-r9.h"
-#include "NeighCellSI-AcquisitionParameters-r9.h"
-#include "SON-Parameters-r9.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/PhyLayerParameters-v920.h"
+#include "liblte/rrc/asn/IRAT-ParametersGERAN-v920.h"
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/CSG-ProximityIndicationParameters-r9.h"
+#include "liblte/rrc/asn/NeighCellSI-AcquisitionParameters-r9.h"
+#include "liblte/rrc/asn/SON-Parameters-r9.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,9 +59,9 @@ extern asn_TYPE_descriptor_t asn_DEF_UE_EUTRA_Capability_v920_IEs;
 #endif
 
 /* Referred external types */
-#include "IRAT-ParametersUTRA-v920.h"
-#include "IRAT-ParametersCDMA2000-1XRTT-v920.h"
-#include "UE-EUTRA-Capability-v940-IEs.h"
+#include "liblte/rrc/asn/IRAT-ParametersUTRA-v920.h"
+#include "liblte/rrc/asn/IRAT-ParametersCDMA2000-1XRTT-v920.h"
+#include "liblte/rrc/asn/UE-EUTRA-Capability-v940-IEs.h"
 
 #endif	/* _UE_EUTRA_Capability_v920_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

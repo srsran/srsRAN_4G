@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionRelease-v920-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionRelease-v920-IEs.h"
 
 static asn_per_constraints_t asn_PER_type_cellInfoList_r9_constr_2 = {
 	{ APC_CONSTRAINED | APC_EXTENSIBLE,  2,  2,  0,  2 }	/* (0..2,...) */,

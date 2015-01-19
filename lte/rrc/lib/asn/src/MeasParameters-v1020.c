@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasParameters-v1020.h"
+#include "liblte/rrc/asn/MeasParameters-v1020.h"
 
 static asn_TYPE_member_t asn_MBR_MeasParameters_v1020_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct MeasParameters_v1020, bandCombinationListEUTRA_r10),

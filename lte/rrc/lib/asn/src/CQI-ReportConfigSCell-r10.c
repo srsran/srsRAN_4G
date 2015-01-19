@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CQI-ReportConfigSCell-r10.h"
+#include "liblte/rrc/asn/CQI-ReportConfigSCell-r10.h"
 
 static int
 pmi_RI_Report_r10_5_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

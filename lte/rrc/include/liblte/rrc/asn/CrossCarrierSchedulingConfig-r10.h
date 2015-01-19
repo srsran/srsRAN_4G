@@ -9,14 +9,14 @@
 #define	_CrossCarrierSchedulingConfig_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <BOOLEAN.h>
-#include <constr_SEQUENCE.h>
-#include "ServCellIndex-r10.h"
-#include <NativeInteger.h>
-#include <constr_CHOICE.h>
+#include <liblte/rrc/asn/BOOLEAN.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ServCellIndex-r10.h"
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,4 +65,4 @@ extern asn_TYPE_descriptor_t asn_DEF_CrossCarrierSchedulingConfig_r10;
 #endif
 
 #endif	/* _CrossCarrierSchedulingConfig_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

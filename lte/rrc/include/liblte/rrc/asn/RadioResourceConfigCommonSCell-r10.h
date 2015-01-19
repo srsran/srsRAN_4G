@@ -9,21 +9,21 @@
 #define	_RadioResourceConfigCommonSCell_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeEnumerated.h>
-#include "AntennaInfoCommon.h"
-#include "PHICH-Config.h"
-#include "PDSCH-ConfigCommon.h"
-#include <constr_SEQUENCE.h>
-#include "P-Max.h"
-#include "UplinkPowerControlCommonSCell-r10.h"
-#include "SoundingRS-UL-ConfigCommon.h"
-#include "UL-CyclicPrefixLength.h"
-#include "PUSCH-ConfigCommon.h"
-#include "ARFCN-ValueEUTRA.h"
-#include "AdditionalSpectrumEmission.h"
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/AntennaInfoCommon.h"
+#include "liblte/rrc/asn/PHICH-Config.h"
+#include "liblte/rrc/asn/PDSCH-ConfigCommon.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/P-Max.h"
+#include "liblte/rrc/asn/UplinkPowerControlCommonSCell-r10.h"
+#include "liblte/rrc/asn/SoundingRS-UL-ConfigCommon.h"
+#include "liblte/rrc/asn/UL-CyclicPrefixLength.h"
+#include "liblte/rrc/asn/PUSCH-ConfigCommon.h"
+#include "liblte/rrc/asn/ARFCN-ValueEUTRA.h"
+#include "liblte/rrc/asn/AdditionalSpectrumEmission.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -103,9 +103,9 @@ extern asn_TYPE_descriptor_t asn_DEF_RadioResourceConfigCommonSCell_r10;
 #endif
 
 /* Referred external types */
-#include "MBSFN-SubframeConfigList.h"
-#include "TDD-Config.h"
-#include "PRACH-ConfigSCell-r10.h"
+#include "liblte/rrc/asn/MBSFN-SubframeConfigList.h"
+#include "liblte/rrc/asn/TDD-Config.h"
+#include "liblte/rrc/asn/PRACH-ConfigSCell-r10.h"
 
 #endif	/* _RadioResourceConfigCommonSCell_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

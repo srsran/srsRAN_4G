@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionSetupComplete-v1020-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionSetupComplete-v1020-IEs.h"
 
 static int
 gummei_Type_r10_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

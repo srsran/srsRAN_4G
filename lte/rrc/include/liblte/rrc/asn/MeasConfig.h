@@ -9,15 +9,15 @@
 #define	_MeasConfig_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "RSRP-Range.h"
-#include <NULL.h>
-#include "MobilityStateParameters.h"
-#include "SpeedStateScaleFactors.h"
-#include <constr_SEQUENCE.h>
-#include <constr_CHOICE.h>
+#include "liblte/rrc/asn/RSRP-Range.h"
+#include <liblte/rrc/asn/NULL.h>
+#include "liblte/rrc/asn/MobilityStateParameters.h"
+#include "liblte/rrc/asn/SpeedStateScaleFactors.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,15 +86,15 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasConfig;
 #endif
 
 /* Referred external types */
-#include "MeasObjectToRemoveList.h"
-#include "MeasObjectToAddModList.h"
-#include "ReportConfigToRemoveList.h"
-#include "ReportConfigToAddModList.h"
-#include "MeasIdToRemoveList.h"
-#include "MeasIdToAddModList.h"
-#include "QuantityConfig.h"
-#include "MeasGapConfig.h"
-#include "PreRegistrationInfoHRPD.h"
+#include "liblte/rrc/asn/MeasObjectToRemoveList.h"
+#include "liblte/rrc/asn/MeasObjectToAddModList.h"
+#include "liblte/rrc/asn/ReportConfigToRemoveList.h"
+#include "liblte/rrc/asn/ReportConfigToAddModList.h"
+#include "liblte/rrc/asn/MeasIdToRemoveList.h"
+#include "liblte/rrc/asn/MeasIdToAddModList.h"
+#include "liblte/rrc/asn/QuantityConfig.h"
+#include "liblte/rrc/asn/MeasGapConfig.h"
+#include "liblte/rrc/asn/PreRegistrationInfoHRPD.h"
 
 #endif	/* _MeasConfig_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

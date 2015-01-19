@@ -9,12 +9,12 @@
 #define	_MeasResult2EUTRA_r9_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "ARFCN-ValueEUTRA.h"
-#include "MeasResultListEUTRA.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ARFCN-ValueEUTRA.h"
+#include "liblte/rrc/asn/MeasResultListEUTRA.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,4 +37,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasResult2EUTRA_r9;
 #endif
 
 #endif	/* _MeasResult2EUTRA_r9_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

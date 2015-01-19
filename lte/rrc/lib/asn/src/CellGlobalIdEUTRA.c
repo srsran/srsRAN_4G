@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CellGlobalIdEUTRA.h"
+#include "liblte/rrc/asn/CellGlobalIdEUTRA.h"
 
 static asn_TYPE_member_t asn_MBR_CellGlobalIdEUTRA_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct CellGlobalIdEUTRA, plmn_Identity),

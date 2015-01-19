@@ -5,7 +5,7 @@
 #ifndef	ASN_SEQUENCE_OF_H
 #define	ASN_SEQUENCE_OF_H
 
-#include <asn_SET_OF.h>
+#include <liblte/rrc/asn/asn_SET_OF.h>
 
 #ifdef __cplusplus
 extern "C" {

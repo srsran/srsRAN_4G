@@ -9,10 +9,10 @@
 #define	_MobilityParametersCDMA2000_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <OCTET_STRING.h>
+#include <liblte/rrc/asn/OCTET_STRING.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,4 +38,4 @@ per_type_encoder_f MobilityParametersCDMA2000_encode_uper;
 #endif
 
 #endif	/* _MobilityParametersCDMA2000_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

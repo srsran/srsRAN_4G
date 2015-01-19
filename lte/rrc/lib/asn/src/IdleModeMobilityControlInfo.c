@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "IdleModeMobilityControlInfo.h"
+#include "liblte/rrc/asn/IdleModeMobilityControlInfo.h"
 
 static int
 t320_8_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

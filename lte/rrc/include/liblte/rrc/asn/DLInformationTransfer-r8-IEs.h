@@ -9,13 +9,13 @@
 #define	_DLInformationTransfer_r8_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "DedicatedInfoNAS.h"
-#include "DedicatedInfoCDMA2000.h"
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/DedicatedInfoNAS.h"
+#include "liblte/rrc/asn/DedicatedInfoCDMA2000.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,7 +59,7 @@ extern asn_TYPE_descriptor_t asn_DEF_DLInformationTransfer_r8_IEs;
 #endif
 
 /* Referred external types */
-#include "DLInformationTransfer-v8a0-IEs.h"
+#include "liblte/rrc/asn/DLInformationTransfer-v8a0-IEs.h"
 
 #endif	/* _DLInformationTransfer_r8_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

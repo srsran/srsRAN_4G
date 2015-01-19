@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "NeighCellsPerBandclassListCDMA2000-v920.h"
+#include "liblte/rrc/asn/NeighCellsPerBandclassListCDMA2000-v920.h"
 
 static asn_per_constraints_t asn_PER_type_NeighCellsPerBandclassListCDMA2000_v920_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

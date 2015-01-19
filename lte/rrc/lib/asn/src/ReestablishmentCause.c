@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ReestablishmentCause.h"
+#include "liblte/rrc/asn/ReestablishmentCause.h"
 
 int
 ReestablishmentCause_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

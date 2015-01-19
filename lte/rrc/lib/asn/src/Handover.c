@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "Handover.h"
+#include "liblte/rrc/asn/Handover.h"
 
 static int
 targetRAT_Type_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UL-CCCH-MessageType.h"
+#include "liblte/rrc/asn/UL-CCCH-MessageType.h"
 
 static asn_per_constraints_t asn_PER_type_c1_constr_2 = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

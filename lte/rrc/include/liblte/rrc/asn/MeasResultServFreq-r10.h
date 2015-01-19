@@ -9,14 +9,14 @@
 #define	_MeasResultServFreq_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "ServCellIndex-r10.h"
-#include "RSRP-Range.h"
-#include "RSRQ-Range.h"
-#include <constr_SEQUENCE.h>
-#include "PhysCellId.h"
+#include "liblte/rrc/asn/ServCellIndex-r10.h"
+#include "liblte/rrc/asn/RSRP-Range.h"
+#include "liblte/rrc/asn/RSRQ-Range.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/PhysCellId.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,4 +57,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasResultServFreq_r10;
 #endif
 
 #endif	/* _MeasResultServFreq_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

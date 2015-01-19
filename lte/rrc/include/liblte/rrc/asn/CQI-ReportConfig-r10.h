@@ -9,15 +9,15 @@
 #define	_CQI_ReportConfig_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
-#include <NativeEnumerated.h>
-#include <NULL.h>
-#include "MeasSubframePattern-r10.h"
-#include <constr_SEQUENCE.h>
-#include <constr_CHOICE.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/NULL.h>
+#include "liblte/rrc/asn/MeasSubframePattern-r10.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,8 +73,8 @@ extern asn_TYPE_descriptor_t asn_DEF_CQI_ReportConfig_r10;
 #endif
 
 /* Referred external types */
-#include "CQI-ReportAperiodic-r10.h"
-#include "CQI-ReportPeriodic-r10.h"
+#include "liblte/rrc/asn/CQI-ReportAperiodic-r10.h"
+#include "liblte/rrc/asn/CQI-ReportPeriodic-r10.h"
 
 #endif	/* _CQI_ReportConfig_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

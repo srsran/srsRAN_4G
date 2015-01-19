@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PUSCH-ConfigDedicatedSCell-r10.h"
+#include "liblte/rrc/asn/PUSCH-ConfigDedicatedSCell-r10.h"
 
 static int
 groupHoppingDisabled_r10_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

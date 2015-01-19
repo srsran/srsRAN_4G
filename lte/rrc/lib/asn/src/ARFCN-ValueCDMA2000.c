@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "ARFCN-ValueCDMA2000.h"
+#include "liblte/rrc/asn/ARFCN-ValueCDMA2000.h"
 
 int
 ARFCN_ValueCDMA2000_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

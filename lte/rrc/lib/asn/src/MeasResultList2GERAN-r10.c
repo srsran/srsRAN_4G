@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasResultList2GERAN-r10.h"
+#include "liblte/rrc/asn/MeasResultList2GERAN-r10.h"
 
 static asn_per_constraints_t asn_PER_type_MeasResultList2GERAN_r10_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "AntennaInfoDedicated-v920.h"
+#include "liblte/rrc/asn/AntennaInfoDedicated-v920.h"
 
 static int
 memb_n2TxAntenna_tm8_r9_constraint_2(asn_TYPE_descriptor_t *td, const void *sptr,

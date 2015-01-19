@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "C-RNTI.h"
+#include "liblte/rrc/asn/C-RNTI.h"
 
 int
 C_RNTI_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

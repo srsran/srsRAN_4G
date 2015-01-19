@@ -32,7 +32,7 @@
 #include "liblte/rrc/messages/bcch.h"
 #include "liblte/phy/utils/bit.h"
 #include "liblte/phy/utils/debug.h"
-#include "rrc_asn.h"
+#include "liblte/rrc/asn/rrc_asn.h"
 
 int bcch_bch_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *buffer, uint32_t buffer_size_bytes) {
   

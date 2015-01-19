@@ -4,7 +4,7 @@
  * 	found in "EUTRA-InterNodeDefinitions.asn"
  */
 
-#include "UERadioAccessCapabilityInformation-r8-IEs.h"
+#include "liblte/rrc/asn/UERadioAccessCapabilityInformation-r8-IEs.h"
 
 static int
 memb_ue_RadioAccessCapabilityInfo_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

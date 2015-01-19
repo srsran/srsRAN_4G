@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "IRAT-ParametersGERAN-v920.h"
+#include "liblte/rrc/asn/IRAT-ParametersGERAN-v920.h"
 
 static int
 dtm_r9_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

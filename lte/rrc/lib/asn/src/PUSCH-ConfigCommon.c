@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PUSCH-ConfigCommon.h"
+#include "liblte/rrc/asn/PUSCH-ConfigCommon.h"
 
 static int
 hoppingMode_4_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

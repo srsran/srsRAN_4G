@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "DL-DCCH-Message.h"
+#include "liblte/rrc/asn/DL-DCCH-Message.h"
 
 static asn_TYPE_member_t asn_MBR_DL_DCCH_Message_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct DL_DCCH_Message, message),

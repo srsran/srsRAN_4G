@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UE-EUTRA-Capability-v920-IEs.h"
+#include "liblte/rrc/asn/UE-EUTRA-Capability-v920-IEs.h"
 
 static int
 deviceType_r9_6_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

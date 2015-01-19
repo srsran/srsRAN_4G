@@ -9,18 +9,18 @@
 #define	_MeasResults_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "MeasId.h"
-#include "RSRP-Range.h"
-#include "RSRQ-Range.h"
-#include <constr_SEQUENCE.h>
-#include "MeasResultListEUTRA.h"
-#include "MeasResultListUTRA.h"
-#include "MeasResultListGERAN.h"
-#include "MeasResultsCDMA2000.h"
-#include <constr_CHOICE.h>
+#include "liblte/rrc/asn/MeasId.h"
+#include "liblte/rrc/asn/RSRP-Range.h"
+#include "liblte/rrc/asn/RSRQ-Range.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/MeasResultListEUTRA.h"
+#include "liblte/rrc/asn/MeasResultListUTRA.h"
+#include "liblte/rrc/asn/MeasResultListGERAN.h"
+#include "liblte/rrc/asn/MeasResultsCDMA2000.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,9 +84,9 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasResults;
 #endif
 
 /* Referred external types */
-#include "MeasResultForECID-r9.h"
-#include "LocationInfo-r10.h"
-#include "MeasResultServFreqList-r10.h"
+#include "liblte/rrc/asn/MeasResultForECID-r9.h"
+#include "liblte/rrc/asn/LocationInfo-r10.h"
+#include "liblte/rrc/asn/MeasResultServFreqList-r10.h"
 
 #endif	/* _MeasResults_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

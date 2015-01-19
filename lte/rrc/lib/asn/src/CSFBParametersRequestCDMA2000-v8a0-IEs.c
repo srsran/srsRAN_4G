@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CSFBParametersRequestCDMA2000-v8a0-IEs.h"
+#include "liblte/rrc/asn/CSFBParametersRequestCDMA2000-v8a0-IEs.h"
 
 static ber_tlv_tag_t asn_DEF_nonCriticalExtension_tags_3[] = {
 	(ASN_TAG_CLASS_CONTEXT | (1 << 2)),

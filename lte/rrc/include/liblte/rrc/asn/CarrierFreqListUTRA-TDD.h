@@ -9,11 +9,11 @@
 #define	_CarrierFreqListUTRA_TDD_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <asn_SEQUENCE_OF.h>
-#include <constr_SEQUENCE_OF.h>
+#include <liblte/rrc/asn/asn_SEQUENCE_OF.h>
+#include <liblte/rrc/asn/constr_SEQUENCE_OF.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +38,7 @@ extern asn_TYPE_descriptor_t asn_DEF_CarrierFreqListUTRA_TDD;
 #endif
 
 /* Referred external types */
-#include "CarrierFreqUTRA-TDD.h"
+#include "liblte/rrc/asn/CarrierFreqUTRA-TDD.h"
 
 #endif	/* _CarrierFreqListUTRA_TDD_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

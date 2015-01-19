@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MCCH-Message.h"
+#include "liblte/rrc/asn/MCCH-Message.h"
 
 static asn_TYPE_member_t asn_MBR_MCCH_Message_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct MCCH_Message, message),

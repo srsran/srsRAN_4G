@@ -8,15 +8,15 @@
 #define	_VarMeasConfig_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "RSRP-Range.h"
-#include <NULL.h>
-#include "MobilityStateParameters.h"
-#include "SpeedStateScaleFactors.h"
-#include <constr_SEQUENCE.h>
-#include <constr_CHOICE.h>
+#include "liblte/rrc/asn/RSRP-Range.h"
+#include <liblte/rrc/asn/NULL.h>
+#include "liblte/rrc/asn/MobilityStateParameters.h"
+#include "liblte/rrc/asn/SpeedStateScaleFactors.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,10 +71,10 @@ extern asn_TYPE_descriptor_t asn_DEF_VarMeasConfig;
 #endif
 
 /* Referred external types */
-#include "MeasIdToAddModList.h"
-#include "MeasObjectToAddModList.h"
-#include "ReportConfigToAddModList.h"
-#include "QuantityConfig.h"
+#include "liblte/rrc/asn/MeasIdToAddModList.h"
+#include "liblte/rrc/asn/MeasObjectToAddModList.h"
+#include "liblte/rrc/asn/ReportConfigToAddModList.h"
+#include "liblte/rrc/asn/QuantityConfig.h"
 
 #endif	/* _VarMeasConfig_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

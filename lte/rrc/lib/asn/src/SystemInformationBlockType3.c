@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType3.h"
+#include "liblte/rrc/asn/SystemInformationBlockType3.h"
 
 static int
 q_Hyst_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

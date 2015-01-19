@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UE-CapabilityRAT-Container.h"
+#include "liblte/rrc/asn/UE-CapabilityRAT-Container.h"
 
 static asn_TYPE_member_t asn_MBR_UE_CapabilityRAT_Container_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct UE_CapabilityRAT_Container, rat_Type),

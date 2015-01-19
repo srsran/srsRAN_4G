@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "TPC-PDCCH-Config.h"
+#include "liblte/rrc/asn/TPC-PDCCH-Config.h"
 
 static int
 memb_tpc_RNTI_constraint_3(asn_TYPE_descriptor_t *td, const void *sptr,

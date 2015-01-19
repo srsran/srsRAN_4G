@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CellsToAddMod.h"
+#include "liblte/rrc/asn/CellsToAddMod.h"
 
 static int
 memb_cellIndex_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

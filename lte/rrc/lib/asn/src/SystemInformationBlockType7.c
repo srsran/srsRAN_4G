@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SystemInformationBlockType7.h"
+#include "liblte/rrc/asn/SystemInformationBlockType7.h"
 
 static asn_TYPE_member_t asn_MBR_SystemInformationBlockType7_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct SystemInformationBlockType7, t_ReselectionGERAN),

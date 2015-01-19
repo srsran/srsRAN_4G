@@ -9,10 +9,10 @@
 #define	_QuantityConfig_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,11 +45,11 @@ extern asn_TYPE_descriptor_t asn_DEF_QuantityConfig;
 #endif
 
 /* Referred external types */
-#include "QuantityConfigEUTRA.h"
-#include "QuantityConfigUTRA.h"
-#include "QuantityConfigGERAN.h"
-#include "QuantityConfigCDMA2000.h"
-#include "QuantityConfigUTRA-v1020.h"
+#include "liblte/rrc/asn/QuantityConfigEUTRA.h"
+#include "liblte/rrc/asn/QuantityConfigUTRA.h"
+#include "liblte/rrc/asn/QuantityConfigGERAN.h"
+#include "liblte/rrc/asn/QuantityConfigCDMA2000.h"
+#include "liblte/rrc/asn/QuantityConfigUTRA-v1020.h"
 
 #endif	/* _QuantityConfig_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

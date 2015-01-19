@@ -9,15 +9,15 @@
 #define	_DL_CCCH_MessageType_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "RRCConnectionReestablishment.h"
-#include "RRCConnectionReestablishmentReject.h"
-#include "RRCConnectionReject.h"
-#include "RRCConnectionSetup.h"
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/RRCConnectionReestablishment.h"
+#include "liblte/rrc/asn/RRCConnectionReestablishmentReject.h"
+#include "liblte/rrc/asn/RRCConnectionReject.h"
+#include "liblte/rrc/asn/RRCConnectionSetup.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,4 +72,4 @@ extern asn_TYPE_descriptor_t asn_DEF_DL_CCCH_MessageType;
 #endif
 
 #endif	/* _DL_CCCH_MessageType_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

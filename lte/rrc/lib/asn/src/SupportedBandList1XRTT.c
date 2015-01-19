@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SupportedBandList1XRTT.h"
+#include "liblte/rrc/asn/SupportedBandList1XRTT.h"
 
 static asn_per_constraints_t asn_PER_type_SupportedBandList1XRTT_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

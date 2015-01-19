@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "QuantityConfig.h"
+#include "liblte/rrc/asn/QuantityConfig.h"
 
 static asn_TYPE_member_t asn_MBR_QuantityConfig_1[] = {
 	{ ATF_POINTER, 5, offsetof(struct QuantityConfig, quantityConfigEUTRA),

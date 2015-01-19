@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "Paging.h"
+#include "liblte/rrc/asn/Paging.h"
 
 static int
 systemInfoModification_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

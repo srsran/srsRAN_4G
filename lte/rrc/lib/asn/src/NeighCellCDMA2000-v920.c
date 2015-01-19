@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "NeighCellCDMA2000-v920.h"
+#include "liblte/rrc/asn/NeighCellCDMA2000-v920.h"
 
 static asn_TYPE_member_t asn_MBR_NeighCellCDMA2000_v920_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct NeighCellCDMA2000_v920, neighCellsPerFreqList_v920),

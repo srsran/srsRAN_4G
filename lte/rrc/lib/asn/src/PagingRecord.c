@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PagingRecord.h"
+#include "liblte/rrc/asn/PagingRecord.h"
 
 static int
 cn_Domain_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

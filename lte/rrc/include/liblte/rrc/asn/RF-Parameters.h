@@ -9,11 +9,11 @@
 #define	_RF_Parameters_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "SupportedBandListEUTRA.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/SupportedBandListEUTRA.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,4 +35,4 @@ extern asn_TYPE_descriptor_t asn_DEF_RF_Parameters;
 #endif
 
 #endif	/* _RF_Parameters_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

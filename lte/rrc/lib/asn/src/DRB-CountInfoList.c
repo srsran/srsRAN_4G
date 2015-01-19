@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "DRB-CountInfoList.h"
+#include "liblte/rrc/asn/DRB-CountInfoList.h"
 
 static asn_per_constraints_t asn_PER_type_DRB_CountInfoList_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

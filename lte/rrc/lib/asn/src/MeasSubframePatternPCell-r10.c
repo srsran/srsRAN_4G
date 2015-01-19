@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasSubframePatternPCell-r10.h"
+#include "liblte/rrc/asn/MeasSubframePatternPCell-r10.h"
 
 static asn_per_constraints_t asn_PER_type_MeasSubframePatternPCell_r10_constr_1 = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

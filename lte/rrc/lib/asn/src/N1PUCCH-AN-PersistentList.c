@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "N1PUCCH-AN-PersistentList.h"
+#include "liblte/rrc/asn/N1PUCCH-AN-PersistentList.h"
 
 static int
 memb_NativeInteger_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -4,7 +4,7 @@
  * 	found in "EUTRA-InterNodeDefinitions.asn"
  */
 
-#include "AS-Context.h"
+#include "liblte/rrc/asn/AS-Context.h"
 
 static asn_TYPE_member_t asn_MBR_AS_Context_1[] = {
 	{ ATF_POINTER, 1, offsetof(struct AS_Context, reestablishmentInfo),

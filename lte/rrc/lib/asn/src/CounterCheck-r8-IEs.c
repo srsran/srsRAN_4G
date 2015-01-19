@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CounterCheck-r8-IEs.h"
+#include "liblte/rrc/asn/CounterCheck-r8-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_CounterCheck_r8_IEs_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct CounterCheck_r8_IEs, drb_CountMSB_InfoList),

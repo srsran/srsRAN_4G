@@ -9,13 +9,13 @@
 #define	_RRCConnectionReconfigurationComplete_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "RRC-TransactionIdentifier.h"
-#include "RRCConnectionReconfigurationComplete-r8-IEs.h"
-#include <constr_SEQUENCE.h>
-#include <constr_CHOICE.h>
+#include "liblte/rrc/asn/RRC-TransactionIdentifier.h"
+#include "liblte/rrc/asn/RRCConnectionReconfigurationComplete-r8-IEs.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,4 +58,4 @@ extern asn_TYPE_descriptor_t asn_DEF_RRCConnectionReconfigurationComplete;
 #endif
 
 #endif	/* _RRCConnectionReconfigurationComplete_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasResult2CDMA2000-r9.h"
+#include "liblte/rrc/asn/MeasResult2CDMA2000-r9.h"
 
 static asn_TYPE_member_t asn_MBR_MeasResult2CDMA2000_r9_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct MeasResult2CDMA2000_r9, carrierFreq_r9),

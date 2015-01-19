@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "AllowedMeasBandwidth.h"
+#include "liblte/rrc/asn/AllowedMeasBandwidth.h"
 
 int
 AllowedMeasBandwidth_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

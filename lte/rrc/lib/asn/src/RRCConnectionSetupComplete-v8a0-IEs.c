@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionSetupComplete-v8a0-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionSetupComplete-v8a0-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_RRCConnectionSetupComplete_v8a0_IEs_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct RRCConnectionSetupComplete_v8a0_IEs, lateNonCriticalExtension),

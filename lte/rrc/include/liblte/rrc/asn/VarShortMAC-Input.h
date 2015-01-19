@@ -8,13 +8,13 @@
 #define	_VarShortMAC_Input_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "CellIdentity.h"
-#include "PhysCellId.h"
-#include "C-RNTI.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/CellIdentity.h"
+#include "liblte/rrc/asn/PhysCellId.h"
+#include "liblte/rrc/asn/C-RNTI.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,4 +38,4 @@ extern asn_TYPE_descriptor_t asn_DEF_VarShortMAC_Input;
 #endif
 
 #endif	/* _VarShortMAC_Input_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

@@ -9,16 +9,16 @@
 #define	_MeasObjectToAddMod_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "MeasObjectId.h"
-#include "MeasObjectEUTRA.h"
-#include "MeasObjectUTRA.h"
-#include "MeasObjectGERAN.h"
-#include "MeasObjectCDMA2000.h"
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/MeasObjectId.h"
+#include "liblte/rrc/asn/MeasObjectEUTRA.h"
+#include "liblte/rrc/asn/MeasObjectUTRA.h"
+#include "liblte/rrc/asn/MeasObjectGERAN.h"
+#include "liblte/rrc/asn/MeasObjectCDMA2000.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,4 +67,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasObjectToAddMod;
 #endif
 
 #endif	/* _MeasObjectToAddMod_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

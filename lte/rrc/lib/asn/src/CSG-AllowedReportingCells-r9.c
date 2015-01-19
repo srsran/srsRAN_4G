@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CSG-AllowedReportingCells-r9.h"
+#include "liblte/rrc/asn/CSG-AllowedReportingCells-r9.h"
 
 static asn_TYPE_member_t asn_MBR_CSG_AllowedReportingCells_r9_1[] = {
 	{ ATF_POINTER, 1, offsetof(struct CSG_AllowedReportingCells_r9, physCellIdRangeUTRA_FDDList_r9),

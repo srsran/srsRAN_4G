@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CellsToAddModListCDMA2000.h"
+#include "liblte/rrc/asn/CellsToAddModListCDMA2000.h"
 
 static asn_per_constraints_t asn_PER_type_CellsToAddModListCDMA2000_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

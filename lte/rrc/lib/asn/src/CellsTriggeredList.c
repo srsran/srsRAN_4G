@@ -4,7 +4,7 @@
  * 	found in "EUTRA-UE-Variables.asn"
  */
 
-#include "CellsTriggeredList.h"
+#include "liblte/rrc/asn/CellsTriggeredList.h"
 
 static asn_per_constraints_t asn_PER_type_physCellIdUTRA_constr_4 GCC_NOTUSED = {
 	{ APC_CONSTRAINED,	 1,  1,  0,  1 }	/* (0..1) */,

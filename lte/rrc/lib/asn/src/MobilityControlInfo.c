@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MobilityControlInfo.h"
+#include "liblte/rrc/asn/MobilityControlInfo.h"
 
 static int
 t304_6_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

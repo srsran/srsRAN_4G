@@ -2,10 +2,10 @@
  * Copyright (c) 2003, 2005 Lev Walkin <vlm@lionet.info>. All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_internal.h>
-#include <asn_codecs_prim.h>
-#include <NULL.h>
-#include <BOOLEAN.h>	/* Implemented in terms of BOOLEAN type */
+#include <liblte/rrc/asn/asn_internal.h>
+#include <liblte/rrc/asn/asn_codecs_prim.h>
+#include <liblte/rrc/asn/NULL.h>
+#include <liblte/rrc/asn/BOOLEAN.h>	/* Implemented in terms of BOOLEAN type */
 
 /*
  * NULL basic type description.

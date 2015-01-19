@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "SRB-ToAddMod.h"
+#include "liblte/rrc/asn/SRB-ToAddMod.h"
 
 static int
 memb_srb_Identity_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "S-TMSI.h"
+#include "liblte/rrc/asn/S-TMSI.h"
 
 static int
 memb_m_TMSI_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

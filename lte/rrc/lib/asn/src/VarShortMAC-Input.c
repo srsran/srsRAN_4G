@@ -4,7 +4,7 @@
  * 	found in "EUTRA-UE-Variables.asn"
  */
 
-#include "VarShortMAC-Input.h"
+#include "liblte/rrc/asn/VarShortMAC-Input.h"
 
 static asn_TYPE_member_t asn_MBR_VarShortMAC_Input_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct VarShortMAC_Input, cellIdentity),

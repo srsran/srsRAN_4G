@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "HandoverFromEUTRAPreparationRequest-v920-IEs.h"
+#include "liblte/rrc/asn/HandoverFromEUTRAPreparationRequest-v920-IEs.h"
 
 static asn_TYPE_member_t asn_MBR_HandoverFromEUTRAPreparationRequest_v920_IEs_1[] = {
 	{ ATF_POINTER, 2, offsetof(struct HandoverFromEUTRAPreparationRequest_v920_IEs, concurrPrepCDMA2000_HRPD_r9),

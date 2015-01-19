@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "IRAT-ParametersCDMA2000-HRPD.h"
+#include "liblte/rrc/asn/IRAT-ParametersCDMA2000-HRPD.h"
 
 static int
 tx_ConfigHRPD_3_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

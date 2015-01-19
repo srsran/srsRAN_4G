@@ -4,7 +4,7 @@
  * 	found in "EUTRA-RRC-Definitions.asn"
  */
 
-#include "N1-PUCCH-AN-PersistentList.h"
+#include "liblte/rrc/asn/N1-PUCCH-AN-PersistentList.h"
 
 static int
 memb_NativeInteger_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

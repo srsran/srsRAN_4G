@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "MeasObjectEUTRA.h"
+#include "liblte/rrc/asn/MeasObjectEUTRA.h"
 
 static int asn_DFL_6_set_15(int set_value, void **sptr) {
 	Q_OffsetRange_t *st = *sptr;

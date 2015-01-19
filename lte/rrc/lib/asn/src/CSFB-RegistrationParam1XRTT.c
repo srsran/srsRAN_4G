@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "CSFB-RegistrationParam1XRTT.h"
+#include "liblte/rrc/asn/CSFB-RegistrationParam1XRTT.h"
 
 static int
 memb_sid_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

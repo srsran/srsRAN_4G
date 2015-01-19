@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RRCConnectionReconfiguration-v1020-IEs.h"
+#include "liblte/rrc/asn/RRCConnectionReconfiguration-v1020-IEs.h"
 
 static ber_tlv_tag_t asn_DEF_nonCriticalExtension_tags_4[] = {
 	(ASN_TAG_CLASS_CONTEXT | (2 << 2)),

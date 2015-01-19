@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "InitialUE-Identity.h"
+#include "liblte/rrc/asn/InitialUE-Identity.h"
 
 static int
 memb_randomValue_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,

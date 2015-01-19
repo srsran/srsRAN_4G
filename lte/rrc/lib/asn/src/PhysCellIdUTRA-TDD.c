@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PhysCellIdUTRA-TDD.h"
+#include "liblte/rrc/asn/PhysCellIdUTRA-TDD.h"
 
 int
 PhysCellIdUTRA_TDD_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

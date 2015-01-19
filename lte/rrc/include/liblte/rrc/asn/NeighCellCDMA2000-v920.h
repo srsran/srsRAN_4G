@@ -9,11 +9,11 @@
 #define	_NeighCellCDMA2000_v920_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "NeighCellsPerBandclassListCDMA2000-v920.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/NeighCellsPerBandclassListCDMA2000-v920.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,4 +35,4 @@ extern asn_TYPE_descriptor_t asn_DEF_NeighCellCDMA2000_v920;
 #endif
 
 #endif	/* _NeighCellCDMA2000_v920_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

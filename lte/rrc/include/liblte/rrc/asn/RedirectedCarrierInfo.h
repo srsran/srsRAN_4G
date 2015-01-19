@@ -9,15 +9,15 @@
 #define	_RedirectedCarrierInfo_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "ARFCN-ValueEUTRA.h"
-#include "CarrierFreqsGERAN.h"
-#include "ARFCN-ValueUTRA.h"
-#include "CarrierFreqCDMA2000.h"
-#include "CarrierFreqListUTRA-TDD-r10.h"
-#include <constr_CHOICE.h>
+#include "liblte/rrc/asn/ARFCN-ValueEUTRA.h"
+#include "liblte/rrc/asn/CarrierFreqsGERAN.h"
+#include "liblte/rrc/asn/ARFCN-ValueUTRA.h"
+#include "liblte/rrc/asn/CarrierFreqCDMA2000.h"
+#include "liblte/rrc/asn/CarrierFreqListUTRA-TDD-r10.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,4 +65,4 @@ extern asn_TYPE_descriptor_t asn_DEF_RedirectedCarrierInfo;
 #endif
 
 #endif	/* _RedirectedCarrierInfo_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

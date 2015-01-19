@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "RadioResourceConfigDedicatedSCell-r10.h"
+#include "liblte/rrc/asn/RadioResourceConfigDedicatedSCell-r10.h"
 
 static asn_TYPE_member_t asn_MBR_RadioResourceConfigDedicatedSCell_r10_1[] = {
 	{ ATF_POINTER, 1, offsetof(struct RadioResourceConfigDedicatedSCell_r10, physicalConfigDedicatedSCell_r10),

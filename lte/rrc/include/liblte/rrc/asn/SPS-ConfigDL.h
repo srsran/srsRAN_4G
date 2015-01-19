@@ -9,15 +9,15 @@
 #define	_SPS_ConfigDL_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NULL.h>
-#include <NativeEnumerated.h>
-#include <NativeInteger.h>
-#include "N1PUCCH-AN-PersistentList.h"
-#include <constr_SEQUENCE.h>
-#include <constr_CHOICE.h>
+#include <liblte/rrc/asn/NULL.h>
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include "liblte/rrc/asn/N1PUCCH-AN-PersistentList.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include <liblte/rrc/asn/constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,4 +96,4 @@ extern asn_TYPE_descriptor_t asn_DEF_SPS_ConfigDL;
 #endif
 
 #endif	/* _SPS_ConfigDL_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

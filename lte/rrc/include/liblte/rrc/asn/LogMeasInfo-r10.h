@@ -9,14 +9,14 @@
 #define	_LogMeasInfo_r10_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <NativeInteger.h>
-#include "CellGlobalIdEUTRA.h"
-#include "RSRP-Range.h"
-#include "RSRQ-Range.h"
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/NativeInteger.h>
+#include "liblte/rrc/asn/CellGlobalIdEUTRA.h"
+#include "liblte/rrc/asn/RSRP-Range.h"
+#include "liblte/rrc/asn/RSRQ-Range.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,11 +67,11 @@ extern asn_TYPE_descriptor_t asn_DEF_LogMeasInfo_r10;
 #endif
 
 /* Referred external types */
-#include "LocationInfo-r10.h"
-#include "MeasResultList2EUTRA-r9.h"
-#include "MeasResultList2UTRA-r9.h"
-#include "MeasResultList2GERAN-r10.h"
-#include "MeasResultList2CDMA2000-r9.h"
+#include "liblte/rrc/asn/LocationInfo-r10.h"
+#include "liblte/rrc/asn/MeasResultList2EUTRA-r9.h"
+#include "liblte/rrc/asn/MeasResultList2UTRA-r9.h"
+#include "liblte/rrc/asn/MeasResultList2GERAN-r10.h"
+#include "liblte/rrc/asn/MeasResultList2CDMA2000-r9.h"
 
 #endif	/* _LogMeasInfo_r10_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

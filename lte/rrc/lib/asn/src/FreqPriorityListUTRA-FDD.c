@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "FreqPriorityListUTRA-FDD.h"
+#include "liblte/rrc/asn/FreqPriorityListUTRA-FDD.h"
 
 static asn_per_constraints_t asn_PER_type_FreqPriorityListUTRA_FDD_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

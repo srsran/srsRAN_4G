@@ -9,13 +9,13 @@
 #define	_BCCH_DL_SCH_MessageType_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "SystemInformation.h"
-#include "SystemInformationBlockType1.h"
-#include <constr_CHOICE.h>
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/SystemInformation.h"
+#include "liblte/rrc/asn/SystemInformationBlockType1.h"
+#include <liblte/rrc/asn/constr_CHOICE.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,4 +66,4 @@ extern asn_TYPE_descriptor_t asn_DEF_BCCH_DL_SCH_MessageType;
 #endif
 
 #endif	/* _BCCH_DL_SCH_MessageType_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

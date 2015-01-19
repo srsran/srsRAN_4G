@@ -9,12 +9,12 @@
 #define	_MeasResult2UTRA_r9_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "ARFCN-ValueUTRA.h"
-#include "MeasResultListUTRA.h"
-#include <constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ARFCN-ValueUTRA.h"
+#include "liblte/rrc/asn/MeasResultListUTRA.h"
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,4 +37,4 @@ extern asn_TYPE_descriptor_t asn_DEF_MeasResult2UTRA_r9;
 #endif
 
 #endif	/* _MeasResult2UTRA_r9_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

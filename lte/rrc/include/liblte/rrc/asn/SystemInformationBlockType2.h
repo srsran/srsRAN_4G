@@ -9,18 +9,18 @@
 #define	_SystemInformationBlockType2_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include "RadioResourceConfigCommonSIB.h"
-#include "UE-TimersAndConstants.h"
-#include "TimeAlignmentTimer.h"
-#include <OCTET_STRING.h>
-#include <BOOLEAN.h>
-#include <constr_SEQUENCE.h>
-#include "ARFCN-ValueEUTRA.h"
-#include <NativeEnumerated.h>
-#include "AdditionalSpectrumEmission.h"
+#include "liblte/rrc/asn/RadioResourceConfigCommonSIB.h"
+#include "liblte/rrc/asn/UE-TimersAndConstants.h"
+#include "liblte/rrc/asn/TimeAlignmentTimer.h"
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include <liblte/rrc/asn/BOOLEAN.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
+#include "liblte/rrc/asn/ARFCN-ValueEUTRA.h"
+#include <liblte/rrc/asn/NativeEnumerated.h>
+#include "liblte/rrc/asn/AdditionalSpectrumEmission.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,8 +80,8 @@ extern asn_TYPE_descriptor_t asn_DEF_SystemInformationBlockType2;
 #endif
 
 /* Referred external types */
-#include "MBSFN-SubframeConfigList.h"
-#include "AC-BarringConfig.h"
+#include "liblte/rrc/asn/MBSFN-SubframeConfigList.h"
+#include "liblte/rrc/asn/AC-BarringConfig.h"
 
 #endif	/* _SystemInformationBlockType2_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

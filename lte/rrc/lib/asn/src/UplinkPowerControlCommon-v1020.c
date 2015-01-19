@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "UplinkPowerControlCommon-v1020.h"
+#include "liblte/rrc/asn/UplinkPowerControlCommon-v1020.h"
 
 static int
 deltaF_PUCCH_Format3_r10_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

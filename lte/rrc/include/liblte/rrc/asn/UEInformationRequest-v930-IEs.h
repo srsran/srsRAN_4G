@@ -9,11 +9,11 @@
 #define	_UEInformationRequest_v930_IEs_H_
 
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 /* Including external dependencies */
-#include <OCTET_STRING.h>
-#include <constr_SEQUENCE.h>
+#include <liblte/rrc/asn/OCTET_STRING.h>
+#include <liblte/rrc/asn/constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +39,7 @@ extern asn_TYPE_descriptor_t asn_DEF_UEInformationRequest_v930_IEs;
 #endif
 
 /* Referred external types */
-#include "UEInformationRequest-v1020-IEs.h"
+#include "liblte/rrc/asn/UEInformationRequest-v1020-IEs.h"
 
 #endif	/* _UEInformationRequest_v930_IEs_H_ */
-#include <asn_internal.h>
+#include <liblte/rrc/asn/asn_internal.h>

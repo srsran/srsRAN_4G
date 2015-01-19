@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "DeltaFList-PUCCH.h"
+#include "liblte/rrc/asn/DeltaFList-PUCCH.h"
 
 static int
 deltaF_PUCCH_Format1_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

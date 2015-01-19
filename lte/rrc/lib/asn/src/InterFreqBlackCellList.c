@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "InterFreqBlackCellList.h"
+#include "liblte/rrc/asn/InterFreqBlackCellList.h"
 
 static asn_per_constraints_t asn_PER_type_InterFreqBlackCellList_constr_1 = {
 	{ APC_UNCONSTRAINED,	-1, -1,  0,  0 },

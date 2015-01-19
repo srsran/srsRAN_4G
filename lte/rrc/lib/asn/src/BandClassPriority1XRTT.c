@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "BandClassPriority1XRTT.h"
+#include "liblte/rrc/asn/BandClassPriority1XRTT.h"
 
 static asn_TYPE_member_t asn_MBR_BandClassPriority1XRTT_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct BandClassPriority1XRTT, bandClass),

@@ -5,7 +5,7 @@
  * 	`asn1c -gen-PER -fcompound-names -fnative-types`
  */
 
-#include "PCCH-Config.h"
+#include "liblte/rrc/asn/PCCH-Config.h"
 
 static int
 defaultPagingCycle_2_constraint(asn_TYPE_descriptor_t *td, const void *sptr,

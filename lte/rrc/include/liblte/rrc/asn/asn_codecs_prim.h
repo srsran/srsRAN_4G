@@ -5,7 +5,7 @@
 #ifndef	ASN_CODECS_PRIM_H
 #define	ASN_CODECS_PRIM_H
 
-#include <asn_application.h>
+#include <liblte/rrc/asn/asn_application.h>
 
 #ifdef __cplusplus
 extern "C" {
