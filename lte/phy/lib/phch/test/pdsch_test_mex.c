@@ -161,7 +161,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(prbset);
   
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
-      
+
+  if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
+    mexErrMsgTxt("Error configuring HARQ process\n");
+    return;
+  }
+
+  
+  //mexPrintf("C: %d, K1: %d, K2: %d\n", harq_process.cb_segm.C, harq_process.cb_segm.K1, harq_process.cb_segm.K2);
   /** Allocate input buffers */
   if (mexutils_read_cf(INPUT, &input_signal) < 0) {
     mexErrMsgTxt("Error reading input signal\n");
@@ -178,14 +185,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   lte_fft_run_sf(&fft, input_signal, input_fft);
 
   if (nrhs > NOF_INPUTS) {
-    cf_t *cearray; 
+    cf_t *cearray = NULL; 
     nof_re = mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
+    cf_t *cearray_ptr = cearray; 
     for (i=0;i<cell.nof_ports;i++) {
-      for (int j=0;j<nof_re;j++) {
+      for (int j=0;j<nof_re/cell.nof_ports;j++) {
         ce[i][j] = *cearray;
         cearray++;
       }
-    }
+    }    
+    if (cearray_ptr)
+      free(cearray_ptr);
   } else {
     chest_dl_estimate(&chest, input_fft, ce, sf_idx);    
   }
@@ -194,11 +204,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     noise_power = mxGetScalar(prhs[NOF_INPUTS+1]);
   } else {
     noise_power = chest_dl_get_noise_estimate(&chest);
-  }
-
-  if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
-    mexErrMsgTxt("Error configuring HARQ process\n");
-    return;
   }
   
   uint8_t *data = malloc(sizeof(uint8_t) * mcs.tbs);
@@ -222,7 +227,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(pdsch.pdsch_d, &plhs[3], harq_process.prb_alloc.re_sf[sf_idx], 1);  
   }
   if (nlhs >= 5) {
-    mexutils_write_cf(ce[0], &plhs[4], 12*14*cell.nof_prb, 1);  
+    mexutils_write_f(pdsch.pdsch_e, &plhs[4], harq_process.prb_alloc.re_sf[sf_idx]*lte_mod_bits_x_symbol(mcs.mod), 1);  
   }
   
   chest_dl_free(&chest);

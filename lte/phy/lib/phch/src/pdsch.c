@@ -354,11 +354,11 @@ static int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
   B = tbs + 24;
 
   /* Calculate CB sizes */
-  if (B < 6114) {
+  if (B < MAX_LONG_CB) {
     s->C = 1;
     Bp = B;
   } else {
-    s->C = (uint32_t) ceilf((float) B / (6114 - 24));
+    s->C = (uint32_t) ceilf((float) B / (MAX_LONG_CB - 24));
     Bp = B + 24 * s->C;
   }
   ret = lte_find_cb_index(Bp / s->C);
@@ -397,7 +397,7 @@ int pdsch_harq_init(pdsch_harq_t *p, pdsch_t *pdsch) {
     p->cell = pdsch->cell;
     ret = ra_tbs_from_idx(26, p->cell.nof_prb);
     if (ret != LIBLTE_ERROR) {
-      p->max_cb =  (uint32_t) ret / (6114 - 24) + 1; 
+      p->max_cb =  (uint32_t) ret / (MAX_LONG_CB - 24) + 1; 
       
       p->pdsch_w_buff_f = malloc(sizeof(float*) * p->max_cb);
       if (!p->pdsch_w_buff_f) {
@@ -722,7 +722,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
       * thus we don't need tot set it in the LLRs normalization
       */
-      demod_soft_sigma_set(&q->demod, sqrt((float) lte_mod_bits_x_symbol(harq_process->mcs.mod)/2));
+      demod_soft_sigma_set(&q->demod, sqrt(0.5));
       demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod]);
       demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, nof_symbols);
 

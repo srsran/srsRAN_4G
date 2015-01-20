@@ -1,8 +1,8 @@
 
 clear
-blen=1008;
-SNR_values_db=linspace(-1,0.5,6);
-Nrealizations=1000;
+blen=5184;
+SNR_values_db=linspace(-1.3,-0.7,6);
+Nrealizations=600;
 
 addpath('../../debug/lte/phy/lib/fec/test')
 
@@ -34,7 +34,8 @@ for snr_idx=1:length(SNR_values_db)
         errors2(snr_idx) = errors2(snr_idx) + any(decodedData2 ~= Data);
     end
     
-    fprintf('SNR: %.2f\n', SNR_values_db(snr_idx));
+    fprintf('SNR: %.2f BLER: %f-%f\n', SNR_values_db(snr_idx), ...
+        errors1(snr_idx)/Nrealizations, errors2(snr_idx)/Nrealizations);
 end
 
 if (length(SNR_values_db) > 1)

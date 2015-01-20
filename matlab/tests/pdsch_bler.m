@@ -7,10 +7,10 @@
 recordedSignal=[];
 
 Npackets = 4;
-SNR_values = linspace(5,6,4);
+SNR_values = linspace(10,20,4);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.4',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.7',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
@@ -78,7 +78,8 @@ for snr_idx=1:length(SNR_values)
         %% Demodulate 
         frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
 
-        for sf_idx=0:Nsf
+        %for sf_idx=0:Nsf
+        sf_idx=1;
             subframe_waveform = rxWaveform(sf_idx*flen+1:(sf_idx+1)*flen);
             subframe_rx=frame_rx(:,sf_idx*14+1:(sf_idx+1)*14);
             rmccFgOut.NSubframe=sf_idx;
@@ -87,8 +88,8 @@ for snr_idx=1:length(SNR_values)
             % Perform channel estimation
             [hest, nest] = lteDLChannelEstimate(rmccFgOut, cec, subframe_rx);
 
-            [cws,symbols,indices,pdschSymbols,pdschHest] = ltePDSCHDecode2(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
-            [trblkout,blkcrc] = lteDLSCHDecode(rmccFgOut,rmccFgOut.PDSCH, ... 
+            [cws,symbols] = ltePDSCHDecode(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
+            [trblkout,blkcrc,dstate] = lteDLSCHDecode(rmccFgOut,rmccFgOut.PDSCH, ... 
                                                     rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1),cws);
 
             decoded(snr_idx) = decoded(snr_idx) + ~blkcrc;
@@ -103,7 +104,7 @@ for snr_idx=1:length(SNR_values)
                 dec2 = 1;
             end
             decoded_liblte(snr_idx) = decoded_liblte(snr_idx)+dec2;
-        end
+        %end
 
         if ~isempty(recordedSignal)
             recordedSignal = recordedSignal(flen*10+1:end);
@@ -113,8 +114,8 @@ for snr_idx=1:length(SNR_values)
 end
 
 if (length(SNR_values)>1)
-    semilogy(SNR_values,1-decoded/Npackets/(Nsf),'bo-',...
-             SNR_values,1-decoded_liblte/Npackets/(Nsf), 'ro-')
+    semilogy(SNR_values,1-decoded/Npackets/(Nsf+1),'bo-',...
+             SNR_values,1-decoded_liblte/Npackets/(Nsf+1), 'ro-')
     grid on;
     legend('Matlab','libLTE')
     xlabel('SNR (dB)')

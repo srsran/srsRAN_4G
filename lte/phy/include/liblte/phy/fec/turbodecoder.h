@@ -44,7 +44,7 @@
 #define INF 9e4
 #define ZERO 9e-4
 
-#define MAX_LONG_CB     6114
+#define MAX_LONG_CB     6144
 #define MAX_LONG_CODED  (RATE*MAX_LONG_CB+TOTALTAIL)
 
 typedef float llr_t;
