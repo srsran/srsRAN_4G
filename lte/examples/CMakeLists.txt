@@ -86,9 +86,6 @@ IF(${CUHD_FIND} GREATER -1)
   add_executable(cell_measurement cell_measurement.c cuhd_utils.c)
   target_link_libraries(cell_measurement cuhd lte_rrc lte_phy)
 
-  add_executable(cell_measurement cell_measurement.c cell_search_utils.c)
-  target_link_libraries(cell_measurement cuhd lte_phy)
-
   MESSAGE(STATUS "   UHD examples will be installed.")
 
 ELSE(${CUHD_FIND} GREATER -1)

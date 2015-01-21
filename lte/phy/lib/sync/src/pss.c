@@ -321,7 +321,51 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     vec_sum_fff(q->conv_output_abs, q->conv_output_avg, q->conv_output_avg, conv_output_len-1);
     
     /* Find maximum of the absolute value of the correlation */
-    corr_peak_pos = vec_max_abs_ci(q->conv_output, conv_output_len-1);
+    corr_peak_pos = vec_max_fi(q->conv_output_avg, conv_output_len-1);
+    
+    // save absolute value 
+    q->peak_value = q->conv_output_avg[corr_peak_pos];
+    
+#ifdef PSS_RETURN_PSR    
+    // Find second side lobe
+    
+    // Find end of peak lobe to the right
+    int pl_ub = corr_peak_pos+1;
+    while(q->conv_output_avg[pl_ub+1] <= q->conv_output_avg[pl_ub] && pl_ub < conv_output_len) {
+      pl_ub ++; 
+    }
+    // Find end of peak lobe to the left
+    int pl_lb; 
+    if (corr_peak_pos > 0) {
+      pl_lb = corr_peak_pos-1;
+        while(q->conv_output_avg[pl_lb-1] <= q->conv_output_avg[pl_lb] && pl_lb > 1) {
+        pl_lb --; 
+      }      
+    } else {
+      pl_lb = 0; 
+    }
+
+    int sl_distance_right = conv_output_len-1-pl_ub; 
+    if (sl_distance_right < 0) {
+      sl_distance_right = 0; 
+    }
+    int sl_distance_left = pl_lb; 
+    
+    int sl_right = pl_ub+vec_max_fi(&q->conv_output_avg[pl_ub], sl_distance_right);
+    int sl_left = vec_max_fi(q->conv_output_avg, sl_distance_left);    
+    float side_lobe_value = MAX(q->conv_output_avg[sl_right], q->conv_output_avg[sl_left]);    
+    if (corr_peak_value) {
+      *corr_peak_value = q->conv_output_avg[corr_peak_pos]/side_lobe_value;
+      
+      if (*corr_peak_value < 2.0) {
+        DEBUG("pl_ub=%d, pl_lb=%d, sl_right: %d (%.2f), sl_left: %d (%.2f), PSR: %.2f/%.2f=%.2f\n", pl_ub, pl_lb, 
+             sl_right, 1000000*q->conv_output_avg[sl_right], 
+             sl_left, 1000000*q->conv_output_avg[sl_left], 
+          1000000*q->conv_output_avg[corr_peak_pos], 1000000*side_lobe_value,*corr_peak_value
+        );
+      }      
+    }
+#else
     if (corr_peak_value) {
       *corr_peak_value = q->conv_output_avg[corr_peak_pos];
     }

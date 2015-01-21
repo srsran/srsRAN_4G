@@ -101,7 +101,7 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
                                                 (symbol_idx-1)*(symbol_sz+CP(symbol_sz, CPNORM_LEN))))
 #define SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
 
-#define SAMPLE_IDX(nof_prb, symbol_idx, sample_idx) ((symbol_idx)*(nof_prb)*(RE_X_RB) + sample_idx)
+#define RE_IDX(nof_prb, symbol_idx, sample_idx) ((symbol_idx)*(nof_prb)*(RE_X_RB) + sample_idx)
 
 #define RS_VSHIFT(cell_id) (cell_id%6)
 

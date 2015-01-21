@@ -29,19 +29,22 @@
 #include <complex.h>
 #include <math.h>
 
-int decode_pbch(void *uhd, 
-                ue_celldetect_result_t *found_cell, 
-                uint32_t nof_frames_total, 
-                pbch_mib_t *mib);
+#ifndef _LTE_RRC_
+#define _LTE_RRC_
 
-int find_all_cells(void *uhd, 
-                   ue_celldetect_result_t found_cell[3]);
+#ifdef __cplusplus
+    extern "C" {
+#endif
 
-int find_cell(void *uhd, 
-               ue_celldetect_result_t *found_cell, 
-               uint32_t N_id_2);
+#include "liblte/config.h"
 
-int cell_search(void *uhd, 
-                int force_N_id_2, 
-                lte_cell_t *cell, 
-                pbch_mib_t *mib);
+#include "liblte/rrc/messages/bcch.h"
+#include "liblte/rrc/messages/sib1.h"
+#include "liblte/rrc/messages/sib4.h"
+#include "liblte/rrc/common/rrc_common.h"
+      
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -119,8 +119,8 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
 int main(int argc, char **argv) {
   int n; 
   void *uhd;
-  ue_celldetect_t s;
-  ue_celldetect_result_t found_cells[3]; 
+  ue_cell_search_t cs; 
+  ue_cell_search_result_t found_cells[3]; 
   int nof_freqs; 
   lte_earfcn_t channels[MAX_EARFCN];
   uint32_t freq;
@@ -140,22 +140,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
     
-  if (ue_celldetect_init(&s)) {
-    fprintf(stderr, "Error initiating UE sync module\n");
-    exit(-1);
-  }
-  if (threshold > 0) {
-    ue_celldetect_set_threshold(&s, threshold);    
-  }
-  
-  if (nof_frames_total > 0) {
-    ue_celldetect_set_nof_frames_total(&s, nof_frames_total);
-  }
-  if (nof_frames_detected > 0) {
-    ue_celldetect_set_nof_frames_detected(&s, nof_frames_detected);
-  }
-
-  for (freq=0;freq<nof_freqs;freq+=10) {
+  for (freq=0;freq<nof_freqs;freq++) {
   
     /* set uhd_freq */
     cuhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
@@ -176,15 +161,31 @@ int main(int argc, char **argv) {
       exit(-1);
     }
     
-    n = find_all_cells(uhd, found_cells);
+    if (config.max_frames_pss) {
+      ue_cell_search_set_nof_frames_to_scan(&cs, config.max_frames_pss);
+    }
+    if (config.threshold) {
+      ue_cell_search_set_threshold(&cs, config.threshold);
+    }
+
+    INFO("Setting sampling frequency %.2f MHz for PSS search\n", CS_SAMP_FREQ/1000);
+    cuhd_set_rx_srate(uhd, CS_SAMP_FREQ);
+    INFO("Starting receiver...\n", 0);
+    cuhd_start_rx_stream(uhd);
+    
+    n = ue_cell_search_scan(&cs, found_cells, NULL); 
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
     } else if (n == 1) {
       for (int i=0;i<3;i++) {
-        if (found_cells[i].peak > threshold/2) {
-          if (decode_pbch(uhd, &found_cells[i], nof_frames_total, &mib)) {
-            fprintf(stderr, "Error decoding PBCH\n");
+        if (found_cells[i].peak > config.threshold/2) {
+          lte_cell_t cell; 
+          cell.id = found_cells[i].cell_id; 
+          cell.cp = found_cells[i].cp; 
+          int ret = cuhd_mib_decoder(uhd, 100, &cell);
+          if (ret < 0) {
+            fprintf(stderr, "Error decoding MIB\n");
             exit(-1);
           }
           if (ret == MIB_FOUND) {
