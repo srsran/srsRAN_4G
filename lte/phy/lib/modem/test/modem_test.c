@@ -151,7 +151,6 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-
   /* generate random data */
   srand(time(NULL));
   for (i=0;i<num_bits;i++) {
@@ -190,6 +189,9 @@ int main(int argc, char **argv) {
   free(input);
 
   modem_table_free(&mod);
+  if (soft_output) {
+    demod_soft_free(&demod_soft);    
+  }
 
   printf("Ok\n");
   exit(0);

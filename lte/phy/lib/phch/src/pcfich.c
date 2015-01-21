@@ -116,6 +116,7 @@ void pcfich_free(pcfich_t *q) {
   }
   modem_table_free(&q->mod);
   precoding_free(&q->precoding); 
+  demod_soft_free(&q->demod);
 
   bzero(q, sizeof(pcfich_t));
 }

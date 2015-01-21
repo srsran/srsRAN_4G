@@ -6,11 +6,11 @@
 
 recordedSignal=[];
 
-Npackets = 4;
-SNR_values = linspace(10,20,4);
+Npackets = 1;
+SNR_values = linspace(15,20,4);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.7',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.9',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
@@ -78,8 +78,7 @@ for snr_idx=1:length(SNR_values)
         %% Demodulate 
         frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
 
-        %for sf_idx=0:Nsf
-        sf_idx=1;
+        for sf_idx=0:Nsf
             subframe_waveform = rxWaveform(sf_idx*flen+1:(sf_idx+1)*flen);
             subframe_rx=frame_rx(:,sf_idx*14+1:(sf_idx+1)*14);
             rmccFgOut.NSubframe=sf_idx;
@@ -88,7 +87,7 @@ for snr_idx=1:length(SNR_values)
             % Perform channel estimation
             [hest, nest] = lteDLChannelEstimate(rmccFgOut, cec, subframe_rx);
 
-            [cws,symbols] = ltePDSCHDecode(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
+            [cws,symbols,pdschSymbols,hestCH,indices] = ltePDSCHDecode2(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
             [trblkout,blkcrc,dstate] = lteDLSCHDecode(rmccFgOut,rmccFgOut.PDSCH, ... 
                                                     rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1),cws);
 
@@ -104,7 +103,7 @@ for snr_idx=1:length(SNR_values)
                 dec2 = 1;
             end
             decoded_liblte(snr_idx) = decoded_liblte(snr_idx)+dec2;
-        %end
+        end
 
         if ~isempty(recordedSignal)
             recordedSignal = recordedSignal(flen*10+1:end);

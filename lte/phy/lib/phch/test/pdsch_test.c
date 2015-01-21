@@ -37,13 +37,13 @@
 lte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
-  1,            // cell_id
+  0,            // cell_id
   CPNORM,       // cyclic prefix
-  R_1,          // PHICH resources      
+  R_1_6,          // PHICH resources      
   PHICH_NORM    // PHICH length
 };
 
-uint32_t cfi = 1;
+uint32_t cfi = 2;
 uint32_t tbs = 0;
 uint32_t subframe = 1;
 lte_mod_t modulation = LTE_BPSK;
@@ -140,12 +140,12 @@ int main(int argc, char **argv) {
   
   prb_alloc.slot[0].nof_prb = cell.nof_prb;
   for (i=0;i<prb_alloc.slot[0].nof_prb;i++) {
-    prb_alloc.slot[0].prb_idx[i] = i;
+    prb_alloc.slot[0].prb_idx[i] = true;
   }
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
-
+  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+  
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
@@ -223,7 +223,8 @@ int main(int argc, char **argv) {
   ret = 0;
 quit:
   pdsch_free(&pdsch);
-
+  pdsch_harq_free(&harq_process);
+  
   for (i=0;i<cell.nof_ports;i++) {
     if (ce[i]) {
       free(ce[i]);

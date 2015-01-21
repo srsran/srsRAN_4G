@@ -46,7 +46,8 @@ typedef struct LIBLTE_API {
   uint32_t max_symbols;
 }demod_soft_t;
 
-LIBLTE_API void demod_soft_init(demod_soft_t *q, uint32_t max_symbols);
+LIBLTE_API int demod_soft_init(demod_soft_t *q, uint32_t max_symbols);
+LIBLTE_API void demod_soft_free(demod_soft_t *q); 
 LIBLTE_API void demod_soft_table_set(demod_soft_t *q, modem_table_t *table);
 LIBLTE_API void demod_soft_alg_set(demod_soft_t *q, enum alg alg_type);
 LIBLTE_API void demod_soft_sigma_set(demod_soft_t *q, float sigma);

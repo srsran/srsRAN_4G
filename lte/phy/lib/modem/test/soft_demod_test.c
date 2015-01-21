@@ -222,6 +222,7 @@ clean_exit:
   free(input);
 
   modem_table_free(&mod);
+  demod_soft_free(&demod_soft);
 
   if (ret == 0) {
     printf("Ok Mean Throughput: %.2f. Mbps ExTime: %.2f us\n", num_bits/mean_texec, mean_texec);    

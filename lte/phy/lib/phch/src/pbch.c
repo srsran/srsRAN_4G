@@ -235,6 +235,7 @@ void pbch_free(pbch_t *q) {
   sequence_free(&q->seq_pbch);
   modem_table_free(&q->mod);
   viterbi_free(&q->decoder);
+  demod_soft_free(&q->demod);
 
   bzero(q, sizeof(pbch_t));
 

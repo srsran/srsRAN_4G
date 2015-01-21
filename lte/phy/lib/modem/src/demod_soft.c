@@ -35,12 +35,40 @@
 #include "soft_algs.h"
 
 
-void demod_soft_init(demod_soft_t *q, uint32_t max_symbols) {
+int demod_soft_init(demod_soft_t *q, uint32_t max_symbols) {
+  int ret = LIBLTE_ERROR; 
+  
   bzero((void*)q,sizeof(demod_soft_t));
   q->sigma = 1.0; 
   q->zones = vec_malloc(sizeof(uint32_t) * max_symbols);
+  if (!q->zones) {
+    perror("malloc");
+    goto clean_exit;
+  }
   q->dd = vec_malloc(sizeof(float*) * max_symbols * 7);
+  if (!q->dd) {
+    perror("malloc");
+    goto clean_exit;
+  }
   q->max_symbols = max_symbols;
+  
+  ret = LIBLTE_SUCCESS;
+  
+clean_exit:
+  if (ret != LIBLTE_SUCCESS) {
+    demod_soft_free(q);
+  }
+  return ret; 
+}
+
+void demod_soft_free(demod_soft_t *q) {
+  if (q->zones) {
+    free(q->zones);
+  }
+  if (q->dd) {
+    free(q->dd);
+  }
+  bzero((void*)q,sizeof(demod_soft_t));
 }
 
 void demod_soft_table_set(demod_soft_t *q, modem_table_t *table) {

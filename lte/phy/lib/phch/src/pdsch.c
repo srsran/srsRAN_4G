@@ -53,7 +53,7 @@ const lte_mod_t modulations[4] =
 
 #ifdef DEBUG_IDX    
 cf_t *offset_original=NULL;
-extern int indices[2048];
+extern int indices[100000];
 extern int indices_ptr; 
 #endif
 
@@ -326,6 +326,7 @@ void pdsch_free(pdsch_t *q) {
   for (i = 0; i < 4; i++) {
     modem_table_free(&q->mod[i]);
   }
+  demod_soft_free(&q->demod);
   tdec_free(&q->decoder);
   tcod_free(&q->encoder);
   precoding_free(&q->precoding);
@@ -380,7 +381,7 @@ static int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
         }
         s->F = s->C1 * s->K1 + s->C2 * s->K2 - Bp;
         INFO("CB Segmentation: TBS: %d, C=%d, C+=%d K+=%d, C-=%d, K-=%d, F=%d, Bp=%d\n",
-            tbs, s->C, s->C1, s->K1, s->C2, s->K2, s->F, Bp); 
+            tbs, s->C, s->C1, s->K1, s->C2, s->K2, s->F, Bp);         
       }
     }
   }  
@@ -536,16 +537,21 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
   float *e_bits = q->pdsch_e;
+  uint32_t Qm = lte_mod_bits_x_symbol(harq_process->mcs.mod);
   
-  if (q         != NULL   && 
-      data      != NULL   &&       
-      nb_e      < q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64))
+  if (q            != NULL   && 
+      data         != NULL   &&       
+      harq_process != NULL   &&
+      nb_e      < q->max_symbols * Qm)
   {
 
     rp = 0;
     rp = 0;
     wp = 0;
-    for (i = 0; i < harq_process->cb_segm.C; i++) {
+    uint32_t Gp = nb_e / Qm;
+    uint32_t gamma = Gp%harq_process->cb_segm.C;
+    bool early_stop = true;
+    for (i = 0; i < harq_process->cb_segm.C && early_stop; i++) {
 
       /* Get read/write lengths */
       if (i < harq_process->cb_segm.C - harq_process->cb_segm.C2) {
@@ -564,13 +570,13 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
         F = 0;
       }
 
-      if (i < harq_process->cb_segm.C - 1) {
-        n_e = nb_e / harq_process->cb_segm.C;
+      if (i <= harq_process->cb_segm.C - gamma - 1) {
+        n_e = Qm * (Gp/harq_process->cb_segm.C);
       } else {
-        n_e = nb_e - rp;
+        n_e = Qm * ((uint32_t) ceilf((float) Gp/harq_process->cb_segm.C));
       }
 
-      DEBUG("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,
+      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,
           cb_len, rlen - F, wp, rp, F, n_e);
 
       
@@ -584,10 +590,11 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
       
       /* Turbo Decoding with CRC-based early stopping */
       q->nof_iterations = 0; 
-      bool early_stop = false;
       uint32_t len_crc; 
       uint8_t *cb_in_ptr; 
       crc_t *crc_ptr; 
+      early_stop = false; 
+      
       tdec_reset(&q->decoder, cb_len);
             
       do {
@@ -615,6 +622,7 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
       } while (q->nof_iterations < TDEC_MAX_ITERATIONS && !early_stop);
       q->average_nof_iterations = VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
       
+      // If CB CRC is not correct, early_stop will be false and wont continue with rest of CBs
 
       /* Copy data to another buffer, removing the Codeblock CRC */
       if (i < harq_process->cb_segm.C - 1) {
@@ -633,24 +641,30 @@ int pdsch_decode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
       rp += n_e;
     }
 
-    DEBUG("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
-
-    // Compute transport block CRC
-    par_rx = crc_checksum(&q->crc_tb, data, tbs);
-
-    // check parity bits
-    par_tx = bit_unpack(&p_parity, 24);
-
-    if (!par_rx) {
-      INFO("\n\tCAUTION!! Received all-zero transport block\n\n", 0);
-    }
-
-    if (par_rx == par_tx) {
-      INFO("TB decoded OK\n",i);
-      return LIBLTE_SUCCESS;
+    if (!early_stop) {
+      INFO("CB %d failed. TB is erroneous.\n",i-1);
+      return LIBLTE_ERROR; 
     } else {
-      INFO("Error in TB parity\n",i);
-      return LIBLTE_ERROR;
+      INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
+
+      // Compute transport block CRC
+      par_rx = crc_checksum(&q->crc_tb, data, tbs);
+
+      // check parity bits
+      par_tx = bit_unpack(&p_parity, 24);
+
+      if (!par_rx) {
+        INFO("\n\tCAUTION!! Received all-zero transport block\n\n", 0);
+      }
+
+      if (par_rx == par_tx) {
+        INFO("TB decoded OK\n",i);
+        return LIBLTE_SUCCESS;
+      } else {
+        INFO("Error in TB parity\n",i);
+        return LIBLTE_ERROR;
+      }
+      
     }
   } else {
     return LIBLTE_ERROR_INVALID_INPUTS;
@@ -705,6 +719,7 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
           return LIBLTE_ERROR;
         }
       }
+      
 
       /* TODO: only diversity is supported */
       if (q->cell.nof_ports == 1) {
@@ -753,12 +768,17 @@ int pdsch_encode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
   uint32_t cb_len, rp, wp, rlen, F, n_e;
   uint8_t *e_bits = q->pdsch_e;
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  uint32_t Qm = lte_mod_bits_x_symbol(harq_process->mcs.mod);
   
   if (q             != NULL &&
       data          != NULL &&
-      nb_e          <  q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64))
+      harq_process  != NULL && 
+      nb_e          <  q->max_symbols * Qm)
   {
   
+    uint32_t Gp = nb_e / Qm;
+    uint32_t gamma = Gp%harq_process->cb_segm.C;
+
     if (q->rnti_is_set) {
       if (rv_idx == 0) {
         /* Compute transport block CRC */
@@ -800,11 +820,10 @@ int pdsch_encode_tb(pdsch_t *q, uint8_t *data, uint32_t tbs, uint32_t nb_e,
         } else {
           F = 0;
         }
-
-        if (i < harq_process->cb_segm.C - 1) {
-          n_e = nb_e / harq_process->cb_segm.C;
+        if (i <= harq_process->cb_segm.C - gamma - 1) {
+          n_e = Qm * (Gp/harq_process->cb_segm.C);
         } else {
-          n_e = nb_e - wp;
+          n_e = Qm * ((uint32_t) ceilf((float) Gp/harq_process->cb_segm.C));
         }
 
         INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,

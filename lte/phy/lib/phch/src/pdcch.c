@@ -171,6 +171,8 @@ void pdcch_free(pdcch_t *q) {
     sequence_free(&q->seq_pdcch[i]);
   }
 
+  demod_soft_free(&q->demod);
+
   precoding_free(&q->precoding);
   modem_table_free(&q->mod);
   viterbi_free(&q->decoder);

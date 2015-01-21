@@ -44,7 +44,7 @@ void help()
     ("[decoded_ok, llr, rm, bits, symbols] = liblte_pdsch(enbConfig, pdschConfig, trblklen, rxWaveform)\n\n");
 }
 
-//extern int indices[2048];
+extern int indices[2048];
 
 /* the gateway function */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -161,14 +161,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(prbset);
   
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
-
+  
   if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }
 
-  
-  //mexPrintf("C: %d, K1: %d, K2: %d\n", harq_process.cb_segm.C, harq_process.cb_segm.K1, harq_process.cb_segm.K2);
   /** Allocate input buffers */
   if (mexutils_read_cf(INPUT, &input_signal) < 0) {
     mexErrMsgTxt("Error reading input signal\n");
@@ -227,7 +225,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(pdsch.pdsch_d, &plhs[3], harq_process.prb_alloc.re_sf[sf_idx], 1);  
   }
   if (nlhs >= 5) {
-    mexutils_write_f(pdsch.pdsch_e, &plhs[4], harq_process.prb_alloc.re_sf[sf_idx]*lte_mod_bits_x_symbol(mcs.mod), 1);  
+    mexutils_write_f(pdsch.pdsch_e, &plhs[4], harq_process.prb_alloc.re_sf[sf_idx] * lte_mod_bits_x_symbol(mcs.mod), 1);  
   }
   
   chest_dl_free(&chest);
