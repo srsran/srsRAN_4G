@@ -1,38 +1,40 @@
 libLTE
 ========
 
-libLTE is a free and open-source LTE library for SDR UE and eNodeB. The library does not rely on any external dependencies or frameworks. 
+libLTE is a free and open-source LTE library for SDR UE and eNodeB. The library is highly modular with minimum inter-module or external dependencies. It is entirely written in C and, if available in the system, uses the acceleration library VOLK distributed in GNURadio. 
 
-The license is LGPLv3.
+The libLTE software license is LGPLv3.
 
-The project contains a set of Python tools for the automatic code generation of modules for popular SDR frameworks, including GNURadio, ALOE++, IRIS, and OSSIE. These tools are easy to use and adapt for generating targets for specific platforms or frameworks. 
-
-Current Status
-===============
-
-The following parts are available:
- * Physical Channels: PBCH, PCFICH, PDCCH, PHICH, PDSCH eNodeB and UE side
- * Synchronization and CFO estimation/correction
- * Equalization
- * UE receiver (MIB + SIB1 decoding) verified with live LTE signals
+Current Features: 
+ * LTE Release 8 compliant
+ * FDD configuration
+ * Tested bandwidths: 1.4, 3, 5 and 10 and 20 MHz
+ * Transmission mode 1 (single antenna) and 2 (transmit diversity) 
+ * Cell search and synchronization procedure for the UE
+ * All DL channels are supported UE/eNodeB side: PSS, SSS, PBCH, PCFICH, PHICH, PDCCH, PDSCH
+ * Some UL channels are supported UE side: PRACH, PUSCH, DM-RS
+ * HARQ DL supported at receiver UE side
+ * Frequency-based ZF and MMSE equalizer
+ * Highly optimized Turbo Decoder (up to 25 Mbps/iteration @ 3 GHz i7 1 core)
+ * MATLAB and OCTAVE MEX library generation for many components
+ * UE receiver tested and verified with Amarisoft LTE 100 eNodeB and commercial LTE networks (Telefonica Spain, Three.ie and Eircom in Ireland)
 
 Hardware
 ========
 
 The library currently uses Ettus Universal Hardware Driver (UHD). Thus, any hardware supported by UHD can be used. There is no sampling rate conversion, therefore the hardware should support 30.72 MHz clock in order to work correctly with LTE sampling frequencies and decode signals from live LTE base stations. We are using the B210 USRP. 
 
-
 Download & Install Instructions
 =================================
 
-* Requirements: Currently, the library requires libfftw, although we plan make this dependency optional in the future. Also, QT4 and Qwt6 are needed for graphics visualization. Compilation is possible without QT4, although graphics will be disabled.
+* Requirements: libfftw is the only mandatory requirement. QT4 and Qwt6 are needed for graphics visualization, but the library will compile without them. Additionally, if GNURadio is installed and the VOLK library and headers are detected, they will be used for accelerating some signal processing functions. Finnally, if MATLAB and/or OCTAVE are found by CMake, MEX files will also be generated and installed. 
 
 To install QT4, Qwt6 and libfftw use your distribution packet management system, for instance in ubuntu you can run: `sudo apt-get install libfftw3-dev libqwt-dev libqt4-dev` to install all requirements. 
 
 
 Finally, to download and build libLTE, just run: 
 ```
-git clone https://github.com/ismagom/libLTE.git
+git clone https://github.com/libLTE/libLTE.git
 cd libLTE
 mkdir build
 cd build
@@ -42,36 +44,62 @@ make
 
 The library can also be installed using the command ```sudo make install```. 
 
-PHY Examples
-==========
+Running libLTE Examples
+========================
 
-* eNodeB and UE PBCH example
+* SIB1 reception and UE measurement from commercial LTE networks: 
+```
+lte/examples/pdsch_ue -f [frequency_in_Hz]
+```
+Where -f is the LTE channel frequency. 
 
-Setup one or two computers connected to two USRP or UHD-compatible hardware. From the eNodeB, type
+* eNodeB to UE Downlink PHY test
+
+You will need to computers, each equipped with a USRP. At the transmitter side, run: 
 
 ```
-lte/phy/examples/pdsch_enodeb -f [frequency_in_Hz] -c [cell_id] [-a [UHD args]] [-h for more commands]
+lte/examples/pdsch_enodeb -f [frequency_in_Hz] [-h for more commands]
 ```
 
-From the UE, type 
+At the receiver run:
 ```
-lte/phy/examples/pdsch_ue -f [frequency_in_Hz] [-a [UHD args]] [-h for more commands]
+lte/examples/pdsch_ue -r 1234 -f [frequency_in_Hz]
 ```
 
-And the output should look something like the following video. In this example, we removed the transmitter and receiver antennas in the middle of the demonstration, showing how reception is still possible (despite with some erros). 
+At the transmitter console, it is possible to change the Modulation and Coding Scheme (MCS) by typing a new number (between 0 and 28) and pressing Enter. 
+
+
+The output at the receiver should look something similar to the following video. In this example, we removed the transmitter and receiver antennas in the middle of the demonstration, showing how reception is still possible (despite with some erros). 
 
 https://www.dropbox.com/s/txh1nuzdb0igq5n/demo_pbch.ogv
 
 ![Screenshopt of the PBCH example output](pbch_capture.png "Screenshopt of the PBCH example output")
 
+* Video over Downlink PHY (eNodeB to UE)
 
-The SIB1 message is decoded and shown on the console, for example: 
+The previous example sends random bits to the UE. It is possible to open a TCP socket and stream video over the LTE PHY DL wireless connection. At the transmitter side, run the following command:  
 
 ```
-Decoded SIB1 Message: [40 48 50 03 02 0b 14 4a 30 18 28 20 90 81 84 79 a0 00 ];
+lte/examples/pdsch_enodeb -f [frequency_in_Hz] -u 2000 [-h for more commands]
 ```
 
+The argument -u 2000 will open port 2000 for listening for TCP connections. Set a high-order MCS, like 16 by typing 16 in the eNodeB console and pressing Enter. 
 
+```
+lte/examples/pdsch_ue -r 1234 -u 2001 -U 127.0.0.1 -f [frequency_in_Hz]
+```
+
+The arguments -u 2001 -U 127.0.0.1 will forward the data that was injected at the eNodeB to address:port indicated by the argument. Once you have the system running, you can transmit some useful data, like a video stream. At the transmitter side, run:  
+
+```
+avconv -f video4linux2 -i /dev/video0 -c:v mp4 -f mpegts tcp://127.0.0.1:2000 
+```
+to stream the video captured from the webcam throught the local host port 2000. At the receiver, run: 
+
+```
+avplay tcp://127.0.0.1:2001?listen -analyzeduration 100 -loglevel verbose
+```
+to watch the video. 
 
 Support
 ========
