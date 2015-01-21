@@ -107,7 +107,7 @@ void usage(char *prog) {
   printf("\t-n number of frames [Default %d]\n", nof_frames);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-u listen UDP port for input data (-1 is random) [Default %d]\n", net_port);
+  printf("\t-u listen TCP port for input data (-1 is random) [Default %d]\n", net_port);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -328,7 +328,8 @@ int update_radl() {
   ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
 
   ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
-
+  printf("Type new MCS index and press Enter: "); fflush(stdout);
+  
   pdsch_harq_reset(&harq_process);
   if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
@@ -374,7 +375,6 @@ int update_control() {
               prbset_num--;          
             break;          
         }
-        printf("num: %d, orig: %d\n", prbset_num, prbset_orig);
       } else {
         last_mcs_idx = mcs_idx; 
         mcs_idx = atoi(input);          
@@ -604,8 +604,6 @@ int main(int argc, char **argv) {
       nf++;
     }
     sfn = (sfn + 1) % 1024;
-    printf("SFN: %4d\tType new MCS index and press Enter\r", sfn);
-    fflush(stdout);
   }
 
   base_free();

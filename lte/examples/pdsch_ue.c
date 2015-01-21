@@ -125,8 +125,8 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
   printf("\t-s remote UDP port to send input signal (-1 does nothing with it) [Default %d]\n", args->net_port_signal);
   printf("\t-S remote UDP address to send input signal [Default %s]\n", args->net_address_signal);
-  printf("\t-u remote UDP port to send data (-1 does nothing with it) [Default %d]\n", args->net_port);
-  printf("\t-U remote UDP address to send data [Default %s]\n", args->net_address);
+  printf("\t-u remote TCP port to send data (-1 does nothing with it) [Default %d]\n", args->net_port);
+  printf("\t-U remote TCP address to send data [Default %s]\n", args->net_address);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
@@ -421,6 +421,20 @@ int main(int argc, char **argv) {
             if (isnan(rsrp)) {
               rsrp = 0; 
             }
+            
+            /* Adjust channel estimator based on SNR */
+            if (10*log10(snr) < 5.0) {
+              float f_low_snr[5]={0.05, 0.15, 0.6, 0.15, 0.05};
+              chest_dl_set_filter_freq(&ue_dl.chest, f_low_snr, 5);
+            } else if (10*log10(snr) < 10.0) {
+              float f_mid_snr[3]={0.1, 0.8, 0.1};
+              chest_dl_set_filter_freq(&ue_dl.chest, f_mid_snr, 3);
+            } else {
+              float f_high_snr[3]={0.05, 0.9, 0.05};
+              chest_dl_set_filter_freq(&ue_dl.chest, f_high_snr, 3);
+            }
+              
+            
           }
           if (ue_sync_get_sfidx(&ue_sync) != 5 && ue_sync_get_sfidx(&ue_sync) != 0) {
             pdcch_tx++;

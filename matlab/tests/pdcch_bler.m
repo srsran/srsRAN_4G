@@ -5,14 +5,14 @@
 clear
 
 Npackets = 1000;
-SNR_values = linspace(-0.5,3,6);
+SNR_values = linspace(-5,0,8);
 
 txCFI = 3; 
 enbConfig.NDLRB = 15;                % No of Downlink RBs in total BW
 enbConfig.CyclicPrefix = 'Normal';  % CP length
 enbConfig.CFI = txCFI;                                                                                                                                                                                                                                                                                                                                                                                                                           ;                  % 4 PDCCH symbols as NDLRB <= 10
 enbConfig.Ng = 'Sixth';             % HICH groups
-enbConfig.CellRefP = 1;             % 1-antenna ports
+enbConfig.CellRefP = 2;             % 1-antenna ports
 enbConfig.NCellID = 0;             % Physical layer cell identity
 enbConfig.NSubframe = 5;            % Subframe number 0
 enbConfig.DuplexMode = 'FDD';       % Frame structure
