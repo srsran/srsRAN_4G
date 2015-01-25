@@ -40,7 +40,6 @@ char *mexutils_get_char_struct(const mxArray *ptr, const char *field_name) {
   mxArray *p; 
   p = mxGetField(ptr, 0, field_name);
   if (!p) {
-    mexPrintf("Error field %s not found\n", field_name);
     return NULL;
   } 
   
@@ -56,7 +55,6 @@ int mexutils_read_uint32_struct(const mxArray *ptr, const char *field_name, uint
   mxArray *p; 
   p = mxGetField(ptr, 0, field_name);
   if (!p) {
-    mexPrintf("Error field %s not found\n", field_name);
     return -1;
   } 
   *value = (uint32_t) mxGetScalar(p);

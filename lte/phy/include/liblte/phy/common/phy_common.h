@@ -138,6 +138,9 @@ typedef enum LIBLTE_API {
   LTE_BPSK = 0, LTE_QPSK = 1, LTE_QAM16 = 2, LTE_QAM64 = 3
 } lte_mod_t;
 
+typedef enum LIBLTE_API {
+  HOPPING_OFF = 0, HOPPING_GROUP = 1, HOPPING_SEQUENCE = 2
+} lte_hopping_method_t;
 
 typedef struct LIBLTE_API {
   int id;

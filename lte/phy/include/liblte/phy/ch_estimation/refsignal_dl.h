@@ -51,7 +51,7 @@ typedef struct LIBLTE_API {
 } refsignal_cs_t;
 
 
-LIBLTE_API int refsignal_cs_generate(refsignal_cs_t *q, 
+LIBLTE_API int refsignal_cs_init(refsignal_cs_t *q, 
                                      lte_cell_t cell);
 
 LIBLTE_API void refsignal_cs_free(refsignal_cs_t *q);
@@ -66,12 +66,12 @@ LIBLTE_API int refsignal_cs_get_sf(lte_cell_t cell,
                                    cf_t *sf_symbols, 
                                    cf_t *pilots);
 
-LIBLTE_API uint32_t refsignal_fidx(lte_cell_t cell, 
+LIBLTE_API uint32_t refsignal_cs_fidx(lte_cell_t cell, 
                                    uint32_t l, 
                                    uint32_t port_id, 
                                    uint32_t m);
 
-LIBLTE_API uint32_t refsignal_nsymbol(uint32_t l, 
+LIBLTE_API uint32_t refsignal_cs_nsymbol(uint32_t l, 
                                       lte_cp_t cp, 
                                       uint32_t port_id);
 

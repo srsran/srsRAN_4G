@@ -83,11 +83,11 @@ uint32_t refsignal_cs_nof_symbols(uint32_t port_id)
   }
 }
 
-inline uint32_t refsignal_fidx(lte_cell_t cell, uint32_t l, uint32_t port_id, uint32_t m) {
+inline uint32_t refsignal_cs_fidx(lte_cell_t cell, uint32_t l, uint32_t port_id, uint32_t m) {
   return 6*m + ((refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6);
 }
 
-inline uint32_t refsignal_nsymbol(uint32_t l, lte_cp_t cp, uint32_t port_id) {
+inline uint32_t refsignal_cs_nsymbol(uint32_t l, lte_cp_t cp, uint32_t port_id) {
   if (port_id < 2) {
     if (l % 2) {
         return (l/2+1)*CP_NSYMB(cp) - 3;
@@ -103,7 +103,7 @@ inline uint32_t refsignal_nsymbol(uint32_t l, lte_cp_t cp, uint32_t port_id) {
 /** Allocates and precomputes the Cell-Specific Reference (CSR) signal for 
  * the 20 slots in a subframe
  */
-int refsignal_cs_generate(refsignal_cs_t * q, lte_cell_t cell)
+int refsignal_cs_init(refsignal_cs_t * q, lte_cell_t cell)
 {
 
   uint32_t c_init;
@@ -146,7 +146,7 @@ int refsignal_cs_generate(refsignal_cs_t * q, lte_cell_t cell)
         uint32_t nsymbols = refsignal_cs_nof_symbols(2*p)/2;
         for (l = 0; l < nsymbols; l++) {
           /* Compute sequence init value */
-          uint32_t lp = refsignal_nsymbol(l, cell.cp, 2*p);
+          uint32_t lp = refsignal_cs_nsymbol(l, cell.cp, 2*p);
           c_init = 1024 * (7 * (ns + 1) + lp + 1) * (2 * cell.id + 1)
             + 2 * cell.id + N_cp;
           
@@ -205,7 +205,7 @@ int refsignal_cs_put_sf(lte_cell_t cell, uint32_t port_id, cf_t *pilots, cf_t *s
   {
     
     for (l=0;l<refsignal_cs_nof_symbols(port_id);l++) {
-      uint32_t nsymbol = refsignal_nsymbol(l, cell.cp, port_id);
+      uint32_t nsymbol = refsignal_cs_nsymbol(l, cell.cp, port_id);
       /* Compute offset frequency index */
       fidx = ((refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6); 
       for (i = 0; i < 2*cell.nof_prb; i++) {
@@ -234,7 +234,7 @@ int refsignal_cs_get_sf(lte_cell_t cell, uint32_t port_id, cf_t *sf_symbols, cf_
       sf_symbols                  != NULL) 
   {       
     for (l=0;l<refsignal_cs_nof_symbols(port_id);l++) {
-      uint32_t nsymbol = refsignal_nsymbol(l, cell.cp, port_id);
+      uint32_t nsymbol = refsignal_cs_nsymbol(l, cell.cp, port_id);
       /* Compute offset frequency index */
       fidx = ((refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6); 
       for (i = 0; i < 2*cell.nof_prb; i++) {
