@@ -99,7 +99,7 @@ static int generate_sequence_hopping_v(refsignal_ul_t *q) {
   
   for (uint32_t ns=0;ns<NSLOTS_X_FRAME;ns++) {
     for (uint32_t delta_ss=0;delta_ss<NOF_DELTA_SS;delta_ss++) {
-      if (sequence_LTE_pr(&seq, 20, ((q->cell.id / 30) << 5) + (q->cell.id%30)+delta_ss)) {
+      if (sequence_LTE_pr(&seq, 20, ((q->cell.id / 30) << 5) + ((q->cell.id%30)+delta_ss)%30)) {
         return LIBLTE_ERROR;
       }
       q->v_pusch[ns][delta_ss] = seq.c[ns];    

@@ -34,9 +34,9 @@
 #include "liblte/phy/phy.h"
 
 lte_cell_t cell = {
-  6,            // nof_prb
+  100,            // nof_prb
   MAX_PORTS,    // nof_ports
-  0,         // cell_id
+  1,         // cell_id
   CPNORM        // cyclic prefix
 };
 
@@ -74,13 +74,12 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-lte_hopping_method_t hopping_modes[3]={HOPPING_OFF, HOPPING_GROUP, HOPPING_SEQUENCE};
+lte_hopping_method_t hopping_modes[3]={HOPPING_OFF, HOPPING_SEQUENCE, HOPPING_GROUP};
 
 int main(int argc, char **argv) {
   refsignal_ul_t refs;
   refsignal_drms_pusch_cfg_t pusch_cfg;
   cf_t *signal = NULL;
-  int i, j;
   int ret = -1;
   
   parse_args(argc,argv);
@@ -98,12 +97,12 @@ int main(int argc, char **argv) {
   
   printf("Running tests for %d PRB\n", cell.nof_prb);
     
-  for (int n=3;n<cell.nof_prb;n++) {
-    for (int delta_ss=0;delta_ss<NOF_DELTA_SS;delta_ss++) {
+  for (int n=6;n<cell.nof_prb;n++) {
+    for (int delta_ss=29;delta_ss<NOF_DELTA_SS;delta_ss++) {
       for (int cshift=0;cshift<NOF_CSHIFT;cshift++) {
-        for (int h=0;h<3;h++) {
+        for (int h=1;h<3;h++) {
           for (int ns=0;ns<NSLOTS_X_FRAME;ns++) {
-            for (int cshift_drms=5;cshift_drms<NOF_CSHIFT;cshift_drms++) {
+            for (int cshift_drms=0;cshift_drms<NOF_CSHIFT;cshift_drms++) {
               pusch_cfg.beta_pusch = 1.0;
               pusch_cfg.nof_prb = n;
               pusch_cfg.common.cyclic_shift = cshift;

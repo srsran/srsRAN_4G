@@ -26,8 +26,8 @@
  */
 
 
-#ifndef PDSCH_
-#define PDSCH_
+#ifndef PUCH_
+#define PUSCH_
 
 #include "liblte/config.h"
 #include "liblte/phy/common/phy_common.h"
@@ -36,7 +36,6 @@
 #include "liblte/phy/modem/mod.h"
 #include "liblte/phy/modem/demod_soft.h"
 #include "liblte/phy/scrambling/scrambling.h"
-#include "liblte/phy/phch/dci.h"
 #include "liblte/phy/phch/regs.h"
 #include "liblte/phy/phch/sch.h"
 #include "liblte/phy/phch/harq.h"
@@ -56,37 +55,50 @@ typedef struct LIBLTE_API {
   /* buffers */
   // void buffers are shared for tx and rx
   cf_t *ce[MAX_PORTS];
-  cf_t *pdsch_symbols[MAX_PORTS];
-  cf_t *pdsch_x[MAX_PORTS];
-  cf_t *pdsch_d;
-  void *pdsch_e;
+  cf_t *pusch_symbols[MAX_PORTS];
+  cf_t *pusch_x[MAX_PORTS];
+  cf_t *pusch_d;
+  void *pusch_e;
+
+  uint8_t *pusch_q_ri;
+  uint8_t *pusch_q_ack;
 
   /* tx & rx objects */
   modem_table_t mod[4];
   demod_soft_t demod;
-  sequence_t seq_pdsch[NSUBFRAMES_X_FRAME];
-  precoding_t precoding; 
+  sequence_t seq_pusch[NSUBFRAMES_X_FRAME];
 
   sch_t dl_sch;
   
-}pdsch_t;
+}pusch_t;
 
-LIBLTE_API int pdsch_init(pdsch_t *q, 
+
+
+
+LIBLTE_API int pusch_init(pusch_t *q, 
                           lte_cell_t cell);
 
-LIBLTE_API void pdsch_free(pdsch_t *q);
+LIBLTE_API void pusch_free(pusch_t *q);
 
-LIBLTE_API int pdsch_set_rnti(pdsch_t *q, 
+LIBLTE_API int pusch_set_rnti(pusch_t *q, 
                                uint16_t rnti);
 
-LIBLTE_API int pdsch_encode(pdsch_t *q, 
+LIBLTE_API int pusch_encode(pusch_t *q, 
                             uint8_t *data, 
                             cf_t *sf_symbols[MAX_PORTS],
                             uint32_t nsubframe,
                             harq_t *harq_process, 
                             uint32_t rv_idx);
 
-LIBLTE_API int pdsch_decode(pdsch_t *q, 
+LIBLTE_API int pusch_uci_encode(pusch_t *q, 
+                                uint8_t *data, 
+                                uci_data_t uci_data, 
+                                cf_t *sf_symbols[MAX_PORTS], 
+                                uint32_t subframe, 
+                                harq_t *harq_process, 
+                                uint32_t rv_idx);
+
+LIBLTE_API int pusch_decode(pusch_t *q, 
                             cf_t *sf_symbols, 
                             cf_t *ce[MAX_PORTS],
                             float noise_estimate, 
@@ -95,13 +107,13 @@ LIBLTE_API int pdsch_decode(pdsch_t *q,
                             harq_t *harq_process, 
                             uint32_t rv_idx);
 
-LIBLTE_API float pdsch_average_noi(pdsch_t *q); 
+LIBLTE_API float pusch_average_noi(pusch_t *q); 
 
-LIBLTE_API uint32_t pdsch_last_noi(pdsch_t *q); 
+LIBLTE_API uint32_t pusch_last_noi(pusch_t *q); 
 
-LIBLTE_API int pdsch_get(pdsch_t *q, 
+LIBLTE_API int pusch_get(pusch_t *q, 
                          cf_t *sf_symbols, 
-                         cf_t *pdsch_symbols,
+                         cf_t *pusch_symbols,
                          ra_prb_t *prb_alloc, 
                          uint32_t subframe);
 

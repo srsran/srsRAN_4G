@@ -36,6 +36,10 @@
 #define RATE 3
 #define TOTALTAIL 12
 
+#ifndef TX_NULL
+#define TX_NULL 100
+#endif
+
 typedef struct LIBLTE_API {
   uint32_t max_long_cb;
   tc_interl_t interl;

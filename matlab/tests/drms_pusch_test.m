@@ -6,7 +6,7 @@ addpath('../../debug/lte/phy/lib/ch_estimation/test')
 Hopping={'Off','Sequence','Group'};
 
 k=1;
-for prb=3:6
+for prb=6:6
     for ncell=0:2
         for ns=0:9
             for h=1:3
@@ -28,7 +28,7 @@ for prb=3:6
 
                             error(k)=mean(abs(mat-lib));
                             disp(error(k))
-                            if (error(k) > 10^-4)
+                            if (error(k) > 10^-3)
                                 k=1;
                             end
                             k=k+1;

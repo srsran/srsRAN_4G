@@ -60,6 +60,11 @@ int rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uint32_t i
   int nrows, K_p;
 
   int i, j, k, s, N_cb, k0;
+  
+  if (in_len < 3) {
+    fprintf(stderr, "Error minimum input length for rate matching is 3\n");
+    return -1;
+  }
 
   nrows = (uint32_t) (in_len / 3 - 1) / NCOLS + 1;
   K_p = nrows * NCOLS;
@@ -132,7 +137,7 @@ int rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uint32_t i
  * with rv_idx!=0 will soft-combine the LLRs from input with w_buff
  */
 int rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_t in_len, float *output,
-    uint32_t out_len, uint32_t rv_idx) {
+    uint32_t out_len, uint32_t rv_idx, uint32_t nof_filler_bits) {
 
   int nrows, ndummy, K_p, k0, N_cb, jp, kidx;
   int i, j, k;
@@ -147,6 +152,12 @@ int rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_t in_le
         w_buff_len, nrows, out_len);
     return -1;
   }
+  
+  if (out_len < 3) {
+    fprintf(stderr, "Error minimum input length for rate matching is 3\n");
+    return -1;
+  }
+
 
   ndummy = K_p - out_len / 3;
   if (ndummy < 0) {
@@ -175,13 +186,17 @@ int rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_t in_le
         d_j = ((jp - K_p) / 2) % nrows;
       } else {
         d_i = jp / nrows;
-        d_j = jp % nrows;
-      }
+        d_j = jp % nrows;        
+      }      
       if (d_j * NCOLS + RM_PERM_TC[d_i] >= ndummy) {
         isdummy = false;
+        if (d_j * NCOLS + RM_PERM_TC[d_i] - ndummy < nof_filler_bits) {
+          isdummy = true;
+        } 
       } else {
         isdummy = true;
       }
+
     } else {
       uint32_t jpp = (jp - K_p - 1) / 2;
       kidx = (RM_PERM_TC[jpp / nrows] + NCOLS * (jpp % nrows) + 1) % K_p;
@@ -189,7 +204,7 @@ int rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_t in_le
         isdummy = true;
       } else {
         isdummy = false;
-      }
+      }      
     }
 
     if (!isdummy) {

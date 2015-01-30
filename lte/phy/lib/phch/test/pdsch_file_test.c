@@ -58,7 +58,7 @@ dci_format_t dci_format = Format1A;
 filesource_t fsrc;
 pdcch_t pdcch;
 pdsch_t pdsch;
-pdsch_harq_t harq_process;
+harq_t harq_process;
 cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
 regs_t regs;
 lte_fft_t fft;
@@ -191,7 +191,7 @@ int base_init() {
   }
   pdsch_set_rnti(&pdsch, rnti);
   
-  if (pdsch_harq_init(&harq_process, &pdsch)) {
+  if (harq_init(&harq_process, cell)) {
     fprintf(stderr, "Error initiating HARQ process\n");
     exit(-1);
   }
@@ -217,7 +217,7 @@ void base_free() {
 
   pdcch_free(&pdcch);
   pdsch_free(&pdsch);
-  pdsch_harq_free(&harq_process);
+  harq_free(&harq_process);
   regs_free(&regs);
 }
 
@@ -284,7 +284,7 @@ int main(int argc, char **argv) {
         goto goout;
       }
       if (ra_dl.mcs.tbs > 0) {
-        if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &ra_dl.prb_alloc)) {
+        if (harq_setup(&harq_process, ra_dl.mcs, &ra_dl.prb_alloc)) {
           fprintf(stderr, "Error configuring HARQ process\n");
           goto goout;
         }

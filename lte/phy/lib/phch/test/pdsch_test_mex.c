@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int nof_re; 
   ra_mcs_t mcs;
   ra_prb_t prb_alloc;
-  pdsch_harq_t harq_process;
+  harq_t harq_process;
   uint32_t rv;
   uint32_t rnti32;
 
@@ -93,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   pdsch_set_rnti(&pdsch, (uint16_t) (rnti32 & 0xffff));
 
-  if (pdsch_harq_init(&harq_process, &pdsch)) {
+  if (harq_init(&harq_process, cell)) {
     mexErrMsgTxt("Error initiating HARQ process\n");
     return;
   }
@@ -162,7 +162,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
   
-  if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
+  if (harq_setup(&harq_process, mcs, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }

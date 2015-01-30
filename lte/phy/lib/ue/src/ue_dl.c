@@ -87,7 +87,7 @@ int ue_dl_init(ue_dl_t *q,
       goto clean_exit;
     }
     for (uint32_t i=0;i<NOF_HARQ_PROCESSES; i++) {
-      if (pdsch_harq_init(&q->harq_process[i], &q->pdsch)) {
+      if (harq_init(&q->harq_process[i], q->cell)) {
         fprintf(stderr, "Error initiating HARQ process\n");
         goto clean_exit;
       }
@@ -128,7 +128,7 @@ void ue_dl_free(ue_dl_t *q) {
     pdcch_free(&q->pdcch);
     pdsch_free(&q->pdsch);
     for (uint32_t i=0;i<NOF_HARQ_PROCESSES; i++) {
-      pdsch_harq_free(&q->harq_process[i]);
+      harq_free(&q->harq_process[i]);
     }
     if (q->sf_symbols) {
       free(q->sf_symbols);
@@ -150,7 +150,7 @@ void ue_dl_set_rnti(ue_dl_t *q, uint16_t rnti) {
 }
 
 void ue_dl_reset(ue_dl_t *q) {
-  pdsch_harq_reset(&q->harq_process[0]);
+  harq_reset(&q->harq_process[0]);
 }
 
 LIBLTE_API float mean_exec_time=0; 
@@ -251,7 +251,7 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
           rvidx = ra_dl.rv_idx;
         }
         if (rvidx == 0) {
-          if (pdsch_harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
+          if (harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
             fprintf(stderr, "Error configuring HARQ process\n");
             return LIBLTE_ERROR;
           }

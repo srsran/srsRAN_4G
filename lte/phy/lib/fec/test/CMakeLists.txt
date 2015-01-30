@@ -38,6 +38,7 @@ ADD_TEST(rm_turbo_test_2 rm_turbo_test -t 1920 -r 480 -i 1)
 ADD_TEST(rm_turbo_test_1 rm_turbo_test -t 480 -r 1920 -i 2) 
 ADD_TEST(rm_turbo_test_2 rm_turbo_test -t 1920 -r 480 -i 3) 
  
+BuildMex(MEXNAME rm_turbo_rx SOURCES rm_turbo_rx_mex.c LIBRARIES lte_phy liblte_mex)
 
 ########################################################################
 # Turbo Coder TEST  

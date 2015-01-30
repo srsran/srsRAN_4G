@@ -93,6 +93,11 @@
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/phch/pcfich.h"
 #include "liblte/phy/phch/phich.h"
+
+#include "liblte/phy/phch/sch.h"
+
+#include "liblte/phy/phch/pusch.h"
+#include "liblte/phy/phch/uci.h"
       
 #include "liblte/phy/ue/ue_sync.h"
 #include "liblte/phy/ue/ue_mib.h"

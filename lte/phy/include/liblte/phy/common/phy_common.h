@@ -41,10 +41,6 @@
 
 #define LTE_NSOFT_BITS  250368 // Soft buffer size for Category 1 UE
 
-#define LTE_NULL_BIT    0
-#define LTE_NULL_SYMBOL 2
-#define LTE_NIL_SYMBOL  2
-
 #define MAX_PORTS     4
 #define MAX_LAYERS    8
 #define MAX_CODEWORDS 2

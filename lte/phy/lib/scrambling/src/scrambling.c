@@ -73,6 +73,23 @@ void scrambling_b_offset(sequence_t *s, uint8_t *data, int offset, int len) {
   }
 }
 
+/* As defined in 36.211 5.3.1 */
+void scrambling_b_offset_pusch(sequence_t *s, uint8_t *data, int offset, int len) {
+  int i;
+  assert (len + offset <= s->len);
+  for (i = 0; i < len; i++) {
+    if (data[i] == 'x') {
+      data[i] = 1; 
+    } else if (data[i] == 'y') {
+      if (i > 1) {
+        data[i] = data[i-1];        
+      }
+    } else {
+      data[i] = (data[i] + s->c[i + offset]) % 2;      
+    }
+  }
+}
+
 /** High-level API */
 
 int compute_sequences(scrambling_hl* h) {

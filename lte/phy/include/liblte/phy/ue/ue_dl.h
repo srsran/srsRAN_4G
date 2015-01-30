@@ -61,7 +61,7 @@ typedef struct LIBLTE_API {
   pcfich_t pcfich;
   pdcch_t pdcch;
   pdsch_t pdsch;
-  pdsch_harq_t harq_process[NOF_HARQ_PROCESSES];
+  harq_t harq_process[NOF_HARQ_PROCESSES];
   regs_t regs;
   lte_fft_t fft;
   chest_dl_t chest;

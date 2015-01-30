@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
             } else if (n == 0) {
               printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, ExecTime: %5.1f us, NOI: %.2f, PDCCH-Det: %.3f\r",
                       ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
-                      mean_exec_time, pdsch_average_noi(&ue_dl.pdsch),
+                      mean_exec_time, sch_average_noi(&ue_dl.pdsch.dl_sch),
                       (float) ue_dl.nof_pdcch_detected/nof_trials);                
               nof_trials++; 
             } else {

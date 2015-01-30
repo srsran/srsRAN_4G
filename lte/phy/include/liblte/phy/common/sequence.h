@@ -71,4 +71,10 @@ LIBLTE_API int sequence_pdsch(sequence_t *seq,
                               uint32_t cell_id, 
                               uint32_t len);
 
+LIBLTE_API int sequence_pusch(sequence_t *seq, 
+                              unsigned short rnti, 
+                              uint32_t nslot, 
+                              uint32_t cell_id, 
+                              uint32_t len);
+
 #endif

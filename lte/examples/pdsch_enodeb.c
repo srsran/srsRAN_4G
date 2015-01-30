@@ -74,7 +74,7 @@ pbch_t pbch;
 pcfich_t pcfich;
 pdcch_t pdcch;
 pdsch_t pdsch;
-pdsch_harq_t harq_process;
+harq_t harq_process;
 regs_t regs;
 ra_pdsch_t ra_dl;  
 
@@ -252,7 +252,7 @@ void base_init() {
   
   pdsch_set_rnti(&pdsch, 1234);
   
-  if (pdsch_harq_init(&harq_process, &pdsch)) {
+  if (harq_init(&harq_process, cell)) {
     fprintf(stderr, "Error initiating HARQ process\n");
     exit(-1);
   }
@@ -260,7 +260,7 @@ void base_init() {
 
 void base_free() {
 
-  pdsch_harq_free(&harq_process);
+  harq_free(&harq_process);
   pdsch_free(&pdsch);
   pdcch_free(&pdcch);
   regs_free(&regs);
@@ -330,8 +330,8 @@ int update_radl() {
   ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   printf("Type new MCS index and press Enter: "); fflush(stdout);
   
-  pdsch_harq_reset(&harq_process);
-  if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
+  harq_reset(&harq_process);
+  if (harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
     return -1; 
   }
