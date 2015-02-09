@@ -129,8 +129,8 @@ int main(int argc, char **argv) {
   ra_mcs_t mcs;
   ra_prb_t prb_alloc;
   harq_t harq_process;
-  uint32_t rv;
-
+  uint32_t rv = 0;
+  
   parse_args(argc,argv);
 
   nof_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
@@ -184,31 +184,40 @@ int main(int argc, char **argv) {
   }
 
   for (i=0;i<mcs.tbs;i++) {
-    data[i] = rand()%2;
+    data[i] = 1;
   }
 
+  printf("INPUT: ");
   vec_fprint_b(stdout, data, mcs.tbs);
 
   for (rv=0;rv<=rv_idx;rv++) {
     printf("Encoding rv_idx=%d\n",rv);
     
+    uint8_t tmp[20];
+    for (i=0;i<20;i++) {
+      tmp[i] = 1;
+    }
     uci_data_t uci_data; 
     bzero(&uci_data, sizeof(uci_data_t));
+    uci_data.beta_cqi = 2.0; 
+    uci_data.beta_ri = 2.0; 
     uci_data.beta_ack = 2.0; 
-    uci_data.uci_ack = 1;
-    uci_data.uci_ack_len = 1; 
+    uci_data.uci_cqi = tmp;
+    uci_data.uci_cqi_len = 20; 
+    uci_data.uci_ri_len = 0; 
+    uci_data.uci_ack_len = 0; 
     
     uint32_t nof_symbols = 12*harq_process.prb_alloc.slot[0].nof_prb*RE_X_RB;
     uint32_t nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process.mcs.mod);
 
-    if (ulsch_encode(&pusch.dl_sch, data, uci_data, pusch.pusch_e, nof_bits_e, 
+    if (ulsch_uci_encode(&pusch.dl_sch, data, uci_data, pusch.pusch_e, nof_bits_e, 
       pusch.pusch_q_ack, pusch.pusch_q_ri, &harq_process, rv)) 
     {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
 
-    vec_fprint_b(stdout, pusch.pusch_e, 288);
+    vec_fprint_b(stdout, pusch.pusch_e, nof_bits_e);
 
     /* combine outputs */
     for (i=0;i<cell.nof_ports;i++) {

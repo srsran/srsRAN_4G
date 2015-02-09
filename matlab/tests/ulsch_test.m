@@ -3,20 +3,20 @@ puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',0,'Modulation','QPSK',
 
 addpath('../../debug/lte/phy/lib/phch/test')
 
-TBs=104;
+TBs=99;
 error=zeros(size(TBs));
 for i=1:length(error)
-    trblkin=randi(2,TBs(i),1)-1;
-    %trblkin=ones(104,1);
-    %trblkin=[1, 0];
+    %trblkin=randi(2,TBs(i),1)-1;
+    trblkin=ones(TBs(i),1);
+    
+    puschConfig.BetaCQI = 7.0; 
+    puschConfig.BetaRI = 11.0;
+    puschConfig.BetaACK = 5.0;
 
-    puschConfig.BetaCQI = 2.0;
-    puschConfig.BetaRI = 2.0;
-    puschConfig.BetaACK = 2.0;
-
-    [mat, info]=lteULSCH(ueConfig,puschConfig,trblkin,[],[],[1],[]);
+    [mat, info]=lteULSCH(ueConfig,puschConfig,trblkin,[ones(1,20)],[1],[0],[]);
     mat(mat==-2)=2;
-    [lib]=liblte_ulsch_encode(ueConfig,puschConfig,trblkin,[],[],[1]);
+    mat(mat==-1)=3;
+    [lib]=liblte_ulsch_encode(ueConfig,puschConfig,trblkin,[ones(1,20)],[1],[0]);
     error(i)=sum(abs(double(mat)-double(lib)));
     if (length(TBs) == 1)
         disp(error(i))    

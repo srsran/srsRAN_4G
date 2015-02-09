@@ -64,6 +64,9 @@ typedef struct LIBLTE_API {
   tdec_t decoder;  
   crc_t crc_tb;
   crc_t crc_cb;
+  
+  uci_cqi_t uci_cqi; 
+  
 } sch_t;
 
 LIBLTE_API int sch_init(sch_t *q);
@@ -93,13 +96,20 @@ LIBLTE_API int dlsch_decode(sch_t *q,
 
 LIBLTE_API int ulsch_encode(sch_t *q, 
                             uint8_t *data, 
-                            uci_data_t uci_data, 
                             uint8_t *q_bits,
                             uint32_t nb_q,
-                            uint8_t *q_bits_ack, 
-                            uint8_t *q_bits_ri,
                             harq_t *harq_process, 
                             uint32_t rv_idx);
+
+LIBLTE_API int ulsch_uci_encode(sch_t *q, 
+                                uint8_t *data, 
+                                uci_data_t uci_data, 
+                                uint8_t *q_bits,
+                                uint32_t nb_q,
+                                uint8_t *q_bits_ack, 
+                                uint8_t *q_bits_ri,
+                                harq_t *harq_process, 
+                                uint32_t rv_idx);
 
 LIBLTE_API int ulsch_decode(sch_t *q, 
                             float *e_bits, 

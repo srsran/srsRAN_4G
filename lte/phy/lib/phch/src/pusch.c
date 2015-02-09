@@ -174,6 +174,12 @@ void pusch_free(pusch_t *q) {
   if (q->pusch_d) {
     free(q->pusch_d);
   }
+  if (q->pusch_q_ack) {
+    free(q->pusch_q_ack);
+  }
+  if (q->pusch_q_ri) {
+    free(q->pusch_q_ri);
+  }
   for (i = 0; i < q->cell.nof_ports; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
@@ -348,7 +354,7 @@ int pusch_uci_encode(pusch_t *q, uint8_t *data, uci_data_t uci_data,
       }
       memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
       
-      if (ulsch_encode(&q->dl_sch, data, uci_data, q->pusch_e, nof_bits_e, 
+      if (ulsch_uci_encode(&q->dl_sch, data, uci_data, q->pusch_e, nof_bits_e, 
         q->pusch_q_ack, q->pusch_q_ri, harq_process, rv_idx)) 
       {
         fprintf(stderr, "Error encoding TB\n");

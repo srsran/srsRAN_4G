@@ -32,6 +32,15 @@
 #include "liblte/config.h"
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/phch/harq.h"
+#include "liblte/phy/fec/crc.h"
+
+#define MAX_CQI_LEN     512
+
+typedef struct LIBLTE_API {
+  crc_t crc;
+  uint8_t tmp_cqi[MAX_CQI_LEN];
+  uint8_t encoded_cqi[3*MAX_CQI_LEN];
+} uci_cqi_t;
 
 typedef struct LIBLTE_API {
   uint8_t *uci_cqi;
@@ -45,16 +54,22 @@ typedef struct LIBLTE_API {
   float beta_ack;
 } uci_data_t;
 
+LIBLTE_API int uci_cqi_init(uci_cqi_t *q);
 
-LIBLTE_API int uci_encode_cqi(uint8_t *data, 
-                              uint8_t *e_bits, 
-                              uint32_t tbs, 
-                              uint32_t nb_e);
+LIBLTE_API void uci_cqi_free(uci_cqi_t *q);
+
+LIBLTE_API int uci_encode_cqi(uci_cqi_t *q, 
+                              uint8_t *cqi_data, 
+                              uint32_t cqi_len, 
+                              float beta, 
+                              uint32_t Q_prime_ri, 
+                              harq_t *harq_process, 
+                              uint8_t *q_bits);
 
 /* Encode UCI RI and HARQ ACK/NACK bits */
-LIBLTE_API uint32_t uci_encode_ri_ack(uint8_t data, 
-                                      float beta, 
-                                      uint8_t q_bits[6], 
-                                      harq_t *harq_process);
+LIBLTE_API int uci_encode_ri_ack(uint8_t data, 
+                                 float beta, 
+                                 harq_t *harq_process,
+                                 uint8_t q_bits[6]); 
 
 #endif

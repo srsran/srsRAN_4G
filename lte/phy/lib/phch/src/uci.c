@@ -36,18 +36,163 @@
 
 #include "liblte/phy/phch/uci.h"
 #include "liblte/phy/phch/harq.h"
+#include "liblte/phy/fec/convcoder.h"
+#include "liblte/phy/fec/crc.h"
+#include "liblte/phy/fec/rm_conv.h"
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/vector.h"
+#include "liblte/phy/utils/debug.h"
 
+/* Table 5.2.2.6.4-1: Basis sequence for (32, O) code */
+static uint8_t M_basis_seq[32][11]={
+                                    {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                                    {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1 },
+                                    {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1 },
+                                    {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1 },
+                                    {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1 },
+                                    {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1 },
+                                    {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1 },
+                                    {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1 },
+                                    {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1 },
+                                    {1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1 },
+                                    {1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1 },
+                                    {1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1 },
+                                    {1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1 },
+                                    {1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1 },
+                                    {1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1 },
+                                    {1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1 },
+                                    {1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0 },
+                                    {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0 },
+                                    {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0 },
+                                    {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0 },
+                                    {1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1 },
+                                    {1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1 },
+                                    {1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1 },
+                                    {1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1 },
+                                    {1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0 },
+                                    {1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1 },
+                                    {1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0 },
+                                    {1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0 },
+                                    {1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0 },
+                                    {1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0 },
+                                    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+                                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                                    };
 
-/* Encode UCI-CQI */
-int uci_encode_cqi(uint8_t *data, uint8_t *e_bits, uint32_t tbs, uint32_t nb_e)
-{
-  fprintf(stderr, "Not implemented\n");
-  return -1; 
+int uci_cqi_init(uci_cqi_t *q) {
+  printf("init\n");
+  if (crc_init(&q->crc, LTE_CRC8, 8)) {
+    return LIBLTE_ERROR;
+  }
+  return LIBLTE_SUCCESS;
 }
 
-static uint32_t Q_prime(uint32_t O, float beta, harq_t *harq_process) {
+void uci_cqi_free(uci_cqi_t *q) {
+  
+}
+
+static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, harq_t *harq_process) {
+  uint32_t M_sc = harq_process->prb_alloc.slot[0].nof_prb * RE_X_RB;
+  
+  uint32_t K = harq_process->cb_segm.C1*harq_process->cb_segm.K1 + 
+    harq_process->cb_segm.C2*harq_process->cb_segm.K2;
+  uint32_t M_sc_init = harq_process->nof_prb_pusch_init * RE_X_RB;
+  uint32_t L = (O<11)?0:8;
+  uint32_t x = (uint32_t) ceilf((float) (O+L)*M_sc_init*harq_process->N_symb_ul*beta/K);
+
+  uint32_t Q_prime = MIN(x, M_sc * harq_process->N_symb_ul - Q_prime_ri);
+
+  return Q_prime; 
+}
+
+/* Encode UCI CQI/PMI for payloads equal or lower to 11 bits (Sec 5.2.2.6.4)
+ */
+int encode_cqi_short(uci_cqi_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
+{
+  if (nof_bits          < MAX_CQI_LEN &&
+      q                 != NULL       &&
+      data              != NULL       &&
+      q_bits            != NULL) 
+  {
+    for (int i=0;i<32;i++) {
+      q->encoded_cqi[i] = 0;
+      for (int n=0;n<nof_bits;n++) {
+        q->encoded_cqi[i] += (data[n] * M_basis_seq[i][n]) % 2; 
+      }
+    }
+    
+    for (int i=0;i<Q;i++) {
+      q_bits[i] = q->encoded_cqi[i%32];
+    }
+    return LIBLTE_SUCCESS;
+  } else {
+    return LIBLTE_ERROR_INVALID_INPUTS;     
+  }
+}
+
+/* Encode UCI CQI/PMI for payloads greater than 11 bits (go through CRC, conv coder and rate match)
+ */
+int encode_cqi_long(uci_cqi_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
+{
+  convcoder_t encoder;
+
+  if (nof_bits + 8 < MAX_CQI_LEN &&
+      q            != NULL       &&
+      data         != NULL       &&
+      q_bits       != NULL) 
+  {
+
+    
+    int poly[3] = { 0x6D, 0x4F, 0x57 };
+    encoder.K = 7;
+    encoder.R = 3;
+    encoder.tail_biting = true;
+    memcpy(encoder.poly, poly, 3 * sizeof(int));
+
+    memcpy(q->tmp_cqi, data, sizeof(uint8_t) * nof_bits);
+    crc_attach(&q->crc, q->tmp_cqi, nof_bits);
+
+    convcoder_encode(&encoder, q->tmp_cqi, q->encoded_cqi, nof_bits + 8);
+
+    DEBUG("CConv output: ", 0);
+    
+    if (VERBOSE_ISDEBUG()) {
+      vec_fprint_b(stdout, q->encoded_cqi, 3 * (nof_bits + 8));
+    }
+
+    printf("rm to Q=%d\n", Q);
+    rm_conv_tx(q->encoded_cqi, 3 * (nof_bits + 8), q_bits, Q);
+    
+    return LIBLTE_SUCCESS;
+  } else {
+    return LIBLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+/* Encode UCI CQI/PMI as described in 5.2.2.6 of 36.212 
+ */
+int uci_encode_cqi(uci_cqi_t *q, uint8_t *cqi_data, uint32_t cqi_len, float beta, uint32_t Q_prime_ri, 
+                   harq_t *harq_process, uint8_t *q_bits)
+{
+  
+  uint32_t Q_prime = Q_prime_cqi(cqi_len, beta, Q_prime_ri, harq_process);
+  uint32_t Q_m = lte_mod_bits_x_symbol(harq_process->mcs.mod);
+  
+  printf("Q_prime_cqi: %d\n", Q_prime);
+  int ret = LIBLTE_ERROR;
+  if (cqi_len <= 11) {
+    ret = encode_cqi_short(q, cqi_data, cqi_len, q_bits, Q_prime*Q_m);
+  } else {
+    ret = encode_cqi_long(q, cqi_data, cqi_len, q_bits, Q_prime*Q_m);
+  }
+  if (ret) {
+    return ret;
+  } else {
+    return (int) Q_prime;
+  }
+}
+
+static uint32_t Q_prime_ri_ack(uint32_t O, float beta, harq_t *harq_process) {
   uint32_t M_sc = harq_process->prb_alloc.slot[0].nof_prb * RE_X_RB;
   
   uint32_t K = harq_process->cb_segm.C1*harq_process->cb_segm.K1 + 
@@ -56,34 +201,30 @@ static uint32_t Q_prime(uint32_t O, float beta, harq_t *harq_process) {
     
   uint32_t x = (uint32_t) ceilf((float) O*M_sc_init*harq_process->N_symb_ul*beta/K);
 
-  printf("%d=%d*%d*%d*%f/%d\n",x,O,M_sc_init,harq_process->N_symb_ul,beta,K);
-
   uint32_t Q_prime = MIN(x, 4*M_sc);
 
   return Q_prime; 
 }
 
-/* Encode UCI RI and HARQ bits 
+/* Encode UCI RI and HARQ bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit RI or 1-bit HARQ
  */
-uint32_t uci_encode_ri_ack(uint8_t data, float beta, uint8_t *q_bits, harq_t *harq_process)
+int uci_encode_ri_ack(uint8_t data, float beta, harq_t *harq_process, uint8_t *q_bits)
 {
-  uint8_t Q_m = lte_mod_bits_x_symbol(harq_process->mcs.mod);
+  uint32_t Q_m = lte_mod_bits_x_symbol(harq_process->mcs.mod);
   
   q_bits[0] = data;
   q_bits[1] = 2; 
-  for (int i=2;i<Q_m;i++) {
+  for (uint32_t i=2;i<Q_m;i++) {
     q_bits[i] = 3;
   }
   
-  uint32_t Qprime = Q_prime(1, beta, harq_process);
+  uint32_t Qprime = Q_prime_ri_ack(1, beta, harq_process);
 
-  for (int i=1;i<Qprime;i++) {
+  for (uint32_t i=1;i<Qprime;i++) {
     memcpy(&q_bits[i*Q_m], q_bits, Q_m*sizeof(uint8_t));  
   }
   
-  printf("Q_m: %d, Qprime: %d, beta: %f\n", Q_m, Qprime, beta);
-  
-  return Qprime * Q_m;
+  return (int) Qprime;
 }
 

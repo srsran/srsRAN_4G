@@ -67,6 +67,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   lte_cell_t cell;
   cell.nof_prb = 100;
   cell.id=1;
+  cell.cp=CPNORM;
   if (harq_init(&harq_process, cell)) {
     mexErrMsgTxt("Error initiating HARQ\n");
     return;
@@ -145,6 +146,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
   free(prbset);
+  
+  printf("Q_m: %d, NPRB: %d, RV: %d\n", lte_mod_bits_x_symbol(mcs.mod), prb_alloc.slot[0].nof_prb, rv);
 
   if (harq_setup(&harq_process, mcs, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
@@ -153,6 +156,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
   uint32_t nof_symbols = 12*harq_process.prb_alloc.slot[0].nof_prb*RE_X_RB;
   uint32_t nof_q_bits = nof_symbols * lte_mod_bits_x_symbol(harq_process.mcs.mod);
+  
+  printf("alloc for %d bits\n", nof_q_bits);
 
   uint8_t *q_bits = vec_malloc(nof_q_bits * sizeof(uint8_t));
   if (!q_bits) {
@@ -166,11 +171,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!q_bits_ri) {
     return;
   }
-  
-  if (ulsch_encode(&ulsch, trblkin, uci_data, q_bits, nof_q_bits, 
+
+  if (ulsch_uci_encode(&ulsch, trblkin, uci_data, q_bits, nof_q_bits, 
                    q_bits_ack, q_bits_ri, &harq_process, rv)) 
   {
-    fprintf(stderr, "Error encoding TB\n");
+    mexErrMsgTxt("Error encoding TB\n");
     return;
   }
   
@@ -181,9 +186,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   sch_free(&ulsch);
   
   free(trblkin);
-  free(q_bits);
+  free(q_bits);  
   free(q_bits_ack);
   free(q_bits_ri);
+  
+  if (uci_data.uci_cqi_len > 0) {
+    free(uci_data.uci_cqi);
+  }
   
   return;
 }
