@@ -122,12 +122,12 @@ int encode_cqi_short(uci_cqi_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_
     for (int i=0;i<32;i++) {
       q->encoded_cqi[i] = 0;
       for (int n=0;n<nof_bits;n++) {
-        q->encoded_cqi[i] += (data[n] * M_basis_seq[i][n]) % 2; 
+        q->encoded_cqi[i] += (data[n] * M_basis_seq[i][n]); 
       }
     }
     
     for (int i=0;i<Q;i++) {
-      q_bits[i] = q->encoded_cqi[i%32];
+      q_bits[i] = q->encoded_cqi[i%32]%2;
     }
     return LIBLTE_SUCCESS;
   } else {
@@ -203,7 +203,11 @@ static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, harq_t *h
   
   // If not carrying UL-SCH, get Q_prime according to 5.2.4.1
   if (K == 0) {
-    K = O_cqi+8;     
+    if (O_cqi <= 11) {
+      K = O_cqi; 
+    } else {
+      K = O_cqi+8;     
+    }
   }
     
   uint32_t M_sc_init = harq_process->nof_prb_pusch_init * RE_X_RB;

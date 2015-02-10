@@ -199,9 +199,9 @@ int main(int argc, char **argv) {
     uci_data.beta_ri = 2.0; 
     uci_data.beta_ack = 2.0; 
     uci_data.uci_cqi = tmp;
-    uci_data.uci_cqi_len = 20; 
-    uci_data.uci_ri_len = 0; 
-    uci_data.uci_ack_len = 1; 
+    uci_data.uci_cqi_len = 10; 
+    uci_data.uci_ri_len = 1; 
+    uci_data.uci_ack_len = 0; 
     
     uint32_t nof_symbols = 12*harq_process.prb_alloc.slot[0].nof_prb*RE_X_RB;
     uint32_t nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process.mcs.mod);

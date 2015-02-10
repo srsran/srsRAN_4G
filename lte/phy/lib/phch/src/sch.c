@@ -514,6 +514,7 @@ int ulsch_encode(sch_t *q, uint8_t *data, uint8_t *q_bits,
   return ulsch_uci_encode(q, data, uci_data, q_bits, NULL, NULL, harq_process, rv_idx);
 }
 
+
 int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bits, 
                  uint8_t *q_bits_ack, uint8_t *q_bits_ri, 
                  harq_t *harq_process, uint32_t rv_idx) 
