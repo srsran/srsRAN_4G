@@ -48,42 +48,48 @@
 int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
   uint32_t Bp, B, idx1;
   int ret; 
-  
-  B = tbs + 24;
 
-  /* Calculate CB sizes */
-  if (B <= MAX_LONG_CB) {
-    s->C = 1;
-    Bp = B;
+  if (tbs == 0) {
+    bzero(s, sizeof(struct cb_segm));
+    ret = LIBLTE_SUCCESS;
   } else {
-    s->C = (uint32_t) ceilf((float) B / (MAX_LONG_CB - 24));
-    Bp = B + 24 * s->C;
-  }
-  ret = lte_find_cb_index((Bp-1) / s->C + 1);
-  if (ret != LIBLTE_ERROR) {
-    idx1 = (uint32_t) ret;
-    ret = lte_cb_size(idx1);
-    if (ret != LIBLTE_ERROR) {
-      s->K1 = (uint32_t) ret;
-      if (idx1 > 0) {
-        ret = lte_cb_size(idx1 - 1);        
-      }
-      if (ret != LIBLTE_ERROR) {
-        if (s->C == 1) {
-          s->K2 = 0;
-          s->C2 = 0;
-          s->C1 = 1;
-        } else {
-          s->K2 = (uint32_t) ret;
-          s->C2 = (s->C * s->K1 - Bp) / (s->K1 - s->K2);
-          s->C1 = s->C - s->C2;
-        }
-        s->F = s->C1 * s->K1 + s->C2 * s->K2 - Bp;
-        INFO("CB Segmentation: TBS: %d, C=%d, C+=%d K+=%d, C-=%d, K-=%d, F=%d, Bp=%d\n",
-            tbs, s->C, s->C1, s->K1, s->C2, s->K2, s->F, Bp);         
-      }
+    B = tbs + 24;
+
+    /* Calculate CB sizes */
+    if (B <= MAX_LONG_CB) {
+      s->C = 1;
+      Bp = B;
+    } else {
+      s->C = (uint32_t) ceilf((float) B / (MAX_LONG_CB - 24));
+      Bp = B + 24 * s->C;
     }
-  }  
+    ret = lte_find_cb_index((Bp-1) / s->C + 1);
+    if (ret != LIBLTE_ERROR) {
+      idx1 = (uint32_t) ret;
+      ret = lte_cb_size(idx1);
+      if (ret != LIBLTE_ERROR) {
+        s->K1 = (uint32_t) ret;
+        if (idx1 > 0) {
+          ret = lte_cb_size(idx1 - 1);        
+        }
+        if (ret != LIBLTE_ERROR) {
+          if (s->C == 1) {
+            s->K2 = 0;
+            s->C2 = 0;
+            s->C1 = 1;
+          } else {
+            s->K2 = (uint32_t) ret;
+            s->C2 = (s->C * s->K1 - Bp) / (s->K1 - s->K2);
+            s->C1 = s->C - s->C2;
+          }
+          s->F = s->C1 * s->K1 + s->C2 * s->K2 - Bp;
+          INFO("CB Segmentation: TBS: %d, C=%d, C+=%d K+=%d, C-=%d, K-=%d, F=%d, Bp=%d\n",
+              tbs, s->C, s->C1, s->K1, s->C2, s->K2, s->F, Bp);         
+        }
+      }
+    }  
+    
+  }
   return ret;
 }
 
@@ -179,15 +185,14 @@ void harq_reset(harq_t *q) {
 int harq_setup(harq_t *q, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
-  if (q                 != NULL         &&
-      mcs.tbs            > 0)
+  if (q != NULL)
   {
     q->mcs = mcs;
     memcpy(&q->prb_alloc, prb_alloc, sizeof(ra_prb_t));
     
     q->N_symb_ul = 2*(CP_NSYMB(q->cell.cp)-1);
     q->nof_prb_pusch_init = q->prb_alloc.slot[0].nof_prb;
-    
+
     codeblock_segmentation(&q->cb_segm, mcs.tbs);    
     if (q->cb_segm.C > q->max_cb) {
       fprintf(stderr, "Codeblock segmentation returned more CBs (%d) than allocated (%d)\n", 

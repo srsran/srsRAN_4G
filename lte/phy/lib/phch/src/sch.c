@@ -506,15 +506,15 @@ void ulsch_interleave(uint8_t *q_bits, uint32_t nb_q,
 }
 
 
-int ulsch_encode(sch_t *q, uint8_t *data, uint8_t *q_bits, uint32_t nb_q, 
+int ulsch_encode(sch_t *q, uint8_t *data, uint8_t *q_bits, 
                  harq_t *harq_process, uint32_t rv_idx) 
 {
   uci_data_t uci_data; 
   bzero(&uci_data, sizeof(uci_data_t));
-  return ulsch_uci_encode(q, data, uci_data, q_bits, nb_q, NULL, NULL, harq_process, rv_idx);
+  return ulsch_uci_encode(q, data, uci_data, q_bits, NULL, NULL, harq_process, rv_idx);
 }
 
-int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bits, uint32_t nb_q, 
+int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bits, 
                  uint8_t *q_bits_ack, uint8_t *q_bits_ri, 
                  harq_t *harq_process, uint32_t rv_idx) 
 {
@@ -526,9 +526,16 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bi
   uint32_t Q_prime_ri = 0;
   uint32_t Q_m = lte_mod_bits_x_symbol(harq_process->mcs.mod);
   
+  uint32_t nof_symbols = 12*harq_process->prb_alloc.slot[0].nof_prb*RE_X_RB;
+  uint32_t nb_q = nof_symbols * Q_m;
+
  // Encode ACK
   if (uci_data.uci_ack_len > 0) {
-    ret = uci_encode_ri_ack(uci_data.uci_ack, uci_data.beta_ack, harq_process, q_bits_ack);
+    float beta = uci_data.beta_ack; 
+    if (harq_process->mcs.tbs == 0) {
+        beta /= uci_data.beta_cqi;
+    }
+    ret = uci_encode_ri_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq_process, q_bits_ack);
     if (ret < 0) {
       return ret; 
     }
@@ -537,7 +544,11 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bi
     
   // Encode RI
   if (uci_data.uci_ri_len > 0) {
-    ret = uci_encode_ri_ack(uci_data.uci_ri, uci_data.beta_ri, harq_process, q_bits_ri);
+    float beta = uci_data.beta_ri; 
+    if (harq_process->mcs.tbs == 0) {
+        beta /= uci_data.beta_cqi;
+    }
+    ret = uci_encode_ri_ack(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq_process, q_bits_ri);
     if (ret < 0) {
       return ret; 
     }
@@ -556,19 +567,16 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bi
   
   e_offset += Q_prime_cqi*Q_m;
 
-  uint32_t G = nb_q/Q_m - Q_prime_ri - Q_prime_cqi; 
-
-  printf("Offset: %d*%d=%d, G*Q_m=%d*%d=%d, n_bq=%d Q_prime_cq=%d\n",Q_prime_cqi, Q_m, e_offset, G, Q_m, G*Q_m, nb_q, Q_prime_cqi);
-
-  
+  printf("Q_prime_ack=%d, Q_prime_cqi=%d, Q_prime_ri=%d\n",Q_prime_ack, Q_prime_cqi, Q_prime_ri);  
   // Encode UL-SCH
-  ret = encode_tb(q, data, &q_bits[e_offset], harq_process->mcs.tbs, 
-              G*Q_m, harq_process, rv_idx);
-  if (ret) {
-    return ret; 
-  }
-
-  
+  if (harq_process->mcs.tbs > 0) {
+    uint32_t G = nb_q/Q_m - Q_prime_ri - Q_prime_cqi;     
+    ret = encode_tb(q, data, &q_bits[e_offset], harq_process->mcs.tbs, 
+                G*Q_m, harq_process, rv_idx);
+    if (ret) {
+      return ret; 
+    }    
+  } 
 
   // Multiplexing and Interleaving 
   ulsch_interleave(q_bits, nb_q/Q_m-Q_prime_ri, 

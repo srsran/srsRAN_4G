@@ -74,10 +74,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
-  if (mcs.tbs == 0) {
-    mexErrMsgTxt("Error trblklen is zero\n");
-    return;
-  }
+
   uci_data.uci_cqi_len = mexutils_read_uint8(CQI, &uci_data.uci_cqi);
   uint8_t *tmp;
   uci_data.uci_ri_len = mexutils_read_uint8(RI, &tmp);
@@ -172,7 +169,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (ulsch_uci_encode(&ulsch, trblkin, uci_data, q_bits, nof_q_bits, 
+  if (ulsch_uci_encode(&ulsch, trblkin, uci_data, q_bits,  
                    q_bits_ack, q_bits_ri, &harq_process, rv)) 
   {
     mexErrMsgTxt("Error encoding TB\n");
