@@ -61,7 +61,7 @@ cell_search_cfg_t cell_detect_config = {
 void init_plots();
 pthread_t plot_thread; 
 sem_t plot_sem; 
-uint32_t plot_sf_idx;
+uint32_t plot_sf_idx=0;
 #endif
 
 
