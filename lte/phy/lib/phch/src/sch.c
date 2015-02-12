@@ -580,7 +580,7 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t nb_q,
           printf("10 at %d is %d\n",idx, q_bits[idx]);
           //q_bits[idx] -= 10;          
         } else {          
-          printf("reading %d\n", j*C_mux*Q_m + i*Q_m + k);
+          printf("%d->%d\n", j*C_mux*Q_m + i*Q_m + k,idx);
           q_bits[idx] = g_bits[j*C_mux*Q_m + i*Q_m + k];                       
         }
         idx++;
