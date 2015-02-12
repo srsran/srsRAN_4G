@@ -403,191 +403,26 @@ int ulsch_decode(sch_t *q, float *e_bits, uint8_t *data, uint32_t tbs, uint32_t 
 }
 
 
-uint8_t ulsch_y_idx[10000];
-uint8_t ulsch_y_mat[10000];
-
 /* UL-SCH channel interleaver according to 5.5.2.8 of 36.212 */
-void ulsch_interleave2(uint8_t *q_bits, uint32_t nb_q, 
-                      uint8_t q_bits_ack[6], uint32_t Q_prime_ack, 
-                      uint8_t q_bits_ri[6], uint32_t Q_prime_ri,
-                      uint32_t Q_m, uint8_t *g_bits) 
+void ulsch_interleave(uint8_t *g_bits, uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, uint8_t *q_bits) 
 {
-  uint32_t C_mux;
-  uint32_t H_prime;
-  uint32_t H_prime_total;
-  uint32_t R_mux;
-  uint32_t R_prime_mux;
-  uint32_t i;
-  uint32_t j;
-  uint32_t k;
-  uint32_t r;
-  uint32_t idx;
-  uint32_t ri_column_set[4]  = {1, 4, 7, 10};
-  uint32_t ack_column_set[4] = {2, 3, 8, 9};
-  uint32_t C_ri;
-  uint32_t C_ack;
-  uint32_t N_pusch_symbs = 12; 
   
-  // Step 1: Define C_mux
-  C_mux = N_pusch_symbs;
-
-  // Step 2: Define R_mux and R_prime_mux
-  H_prime       = nb_q;
-  H_prime_total = H_prime + Q_prime_ri;
-  R_mux         = (H_prime_total*Q_m)/C_mux;
-  R_prime_mux   = R_mux/Q_m;
- 
-
-  // Initialize the matricies
-  printf("Cmux*R_prime=%d*%d=%d, H_prime=%d, H_prime_total=%d\n",C_mux, R_prime_mux, C_mux*R_prime_mux, H_prime, H_prime_total);
-  for(i=0; i<C_mux*R_prime_mux; i++) {
-    ulsch_y_idx[i] = 100;
-  }
-  for(i=0; i<C_mux*R_mux; i++) {
-    ulsch_y_mat[i] = 0;
-  }
-
-  // Step 3: Interleave the RI control bits
-  i = 0;
-  j = 0;
-  r = R_prime_mux-1;
-  while(i < Q_prime_ri) {
-    C_ri = ri_column_set[j];
-    ulsch_y_idx[r*C_mux + C_ri] = 1;
-    for(k=0; k<Q_m; k++) {
-      ulsch_y_mat[(C_mux*r*Q_m) + C_ri*Q_m + k] = q_bits_ri[Q_m*i+k];
-    }
-    i++;
-    r = R_prime_mux - 1 - i/4;
-    j = (j + 3) % 4;
-  }
-  printf("H_prime: %d, C_mux: %d, R_prime: %d\n", H_prime, C_mux, R_prime_mux);
+  uint32_t rows = H_prime_total/N_pusch_symbs;
+  uint32_t cols = N_pusch_symbs;
   
-  // Step 4: Interleave the data bits
-  i = 0;
-  k = 0;
-  while(k < H_prime) {
-    if(ulsch_y_idx[i] == 100) {
-      ulsch_y_idx[i] = 1;
-      for(j=0; j<Q_m; j++) {
-        ulsch_y_mat[i*Q_m + j] = q_bits[Q_m*k+j];
-      }
-      k++;
-    }
-    i++;
-  }
-
-  // Step 5: Interleave the ACK control bits
-  i = 0;
-  j = 0;
-  r = R_prime_mux-1;
-  while(i < Q_prime_ack) {
-    C_ack = ack_column_set[j];
-    ulsch_y_idx[r*C_mux + C_ack] = 2;
-    for(k=0; k<Q_m; k++) {
-      ulsch_y_mat[(C_mux*r*Q_m) + C_ack*Q_m + k] = q_bits_ack[Q_m*i+k];
-    }
-    i++;
-    r = R_prime_mux - 1 - i/4;
-    j = (j + 3) % 4;
-  }
-
-  // Step 6: Read out the bits
-  idx = 0;
-  printf("go for C_mux: %d, R_prime: %d, Q_m: %d\n", C_mux, R_prime_mux, Q_m);
-  for(i=0; i<C_mux; i++) {
-    for(j=0; j<R_prime_mux; j++) {
-      for(k=0; k<Q_m; k++) {
-        g_bits[idx++] = ulsch_y_mat[j*C_mux*Q_m + i*Q_m + k];          
-      }
-    }
-  }
-  
-}
-
-/* UL-SCH channel interleaver according to 5.5.2.8 of 36.212 */
-void ulsch_interleave(uint8_t *g_bits, uint32_t nb_q, 
-                      uint8_t g_bits_ack[6], uint32_t Q_prime_ack, 
-                      uint8_t g_bits_ri[6], uint32_t Q_prime_ri,
-                      uint32_t Q_m,
-                     uint8_t *q_bits) 
-{
-  uint32_t C_mux;
-  uint32_t H_prime;
-  uint32_t H_prime_total;
-  uint32_t R_mux;
-  uint32_t R_prime_mux;
-  uint32_t i;
-  uint32_t j;
-  uint32_t k;
-  uint32_t r;
-  uint32_t idx;
-  uint32_t ri_column_set[4]  = {1, 4, 7, 10};
-  uint32_t ack_column_set[4] = {2, 3, 8, 9};
-  uint32_t C_ri;
-  uint32_t C_ack;
-  uint32_t N_pusch_symbs = 12; 
-  
-  // Step 1: Define C_mux
-  C_mux = N_pusch_symbs;
-
-  // Step 2: Define R_mux and R_prime_mux
-  H_prime       = nb_q;
-  H_prime_total = H_prime + Q_prime_ri;
-  R_mux         = (H_prime_total*Q_m)/C_mux;
-  R_prime_mux   = R_mux/Q_m;
-
-  
-  
-  // ACK insertion can be done at uci.c 
-  
-  // Step 5: Interleave the ACK control bits
-  i = 0;
-  j = 0;
-  r = R_prime_mux-1;
-  while(i < Q_prime_ack) {
-    C_ack = ack_column_set[j];
-    for(k=0; k<Q_m; k++) {
-      g_bits[(C_mux*r*Q_m) + C_ack*Q_m + k] = g_bits_ack[Q_m*i+k];
-    }
-    i++;
-    r = R_prime_mux - 1 - i/4;
-    j = (j + 3) % 4;
-  }
-
-  // Step 3: Interleave the RI control bits
-  i = 0;
-  j = 0;
-  r = R_prime_mux-1;
-  while(i < Q_prime_ri) {
-    C_ri = ri_column_set[j];
-    ulsch_y_idx[r*C_mux + C_ri] = 1;
-    for(k=0; k<Q_m; k++) {
-      q_bits[(r*Q_m) + C_mux*C_ri*Q_m + k] = 10+g_bits_ri[Q_m*i+k];
-    }
-    i++;
-    r = R_prime_mux - 1 - i/4;
-    j = (j + 3) % 4;
-  }
-  
-  // Step 6: Read out the bits
-  idx = 0;
-  printf("go for C_mux: %d, R_prime: %d, Q_m: %d\n", C_mux, R_prime_mux, Q_m);
-  for(i=0; i<C_mux; i++) {
-    for(j=0; j<R_prime_mux; j++) {
-      for(k=0; k<Q_m; k++) {
-        if (q_bits[idx] >= 10) {
-          printf("10 at %d is %d\n",idx, q_bits[idx]);
-          //q_bits[idx] -= 10;          
-        } else {          
-          printf("%d->%d\n", j*C_mux*Q_m + i*Q_m + k,idx);
-          q_bits[idx] = g_bits[j*C_mux*Q_m + i*Q_m + k];                       
+  uint32_t idx = 0;
+  for(uint32_t j=0; j<rows; j++) {        
+    for(uint32_t i=0; i<cols; i++) {
+      for(uint32_t k=0; k<Q_m; k++) {
+        if (q_bits[j*Q_m + i*rows*Q_m + k] >= 10) {
+          q_bits[j*Q_m + i*rows*Q_m + k] -= 10;
+        } else {
+          q_bits[j*Q_m + i*rows*Q_m + k] = g_bits[idx];                                
+          idx++;                  
         }
-        idx++;
       }
     }
   }
-  
   
 }
 
@@ -596,12 +431,11 @@ int ulsch_encode(sch_t *q, uint8_t *data, uint8_t *g_bits,
 {
   uci_data_t uci_data; 
   bzero(&uci_data, sizeof(uci_data_t));
-  return ulsch_uci_encode(q, data, uci_data, g_bits, NULL, NULL, harq_process, rv_idx, q_bits);
+  return ulsch_uci_encode(q, data, uci_data, g_bits, harq_process, rv_idx, q_bits);
 }
 
 
 int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bits, 
-                 uint8_t *g_bits_ack, uint8_t *g_bits_ri, 
                  harq_t *harq_process, uint32_t rv_idx, uint8_t *q_bits) 
 {
   int ret; 
@@ -615,26 +449,15 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
   uint32_t nof_symbols = 12*harq_process->prb_alloc.slot[0].nof_prb*RE_X_RB;
   uint32_t nb_q = nof_symbols * Q_m;
 
- // Encode ACK
-  if (uci_data.uci_ack_len > 0) {
-    float beta = uci_data.beta_ack; 
-    if (harq_process->mcs.tbs == 0) {
-        beta /= uci_data.beta_cqi;
-    }
-    ret = uci_encode_ri_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq_process, g_bits_ack);
-    if (ret < 0) {
-      return ret; 
-    }
-    Q_prime_ack = (uint32_t) ret; 
-  }
-    
+  bzero(q_bits, sizeof(uint8_t) * nb_q);
+
   // Encode RI
   if (uci_data.uci_ri_len > 0) {
     float beta = uci_data.beta_ri; 
     if (harq_process->mcs.tbs == 0) {
         beta /= uci_data.beta_cqi;
     }
-    ret = uci_encode_ri_ack(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq_process, g_bits_ri);
+    ret = uci_encode_ri(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq_process, nb_q/Q_m, q_bits);
     if (ret < 0) {
       return ret; 
     }
@@ -643,6 +466,7 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
 
   // Encode CQI
   if (uci_data.uci_cqi_len > 0) {
+
     ret = uci_encode_cqi(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, uci_data.beta_cqi, 
                                  Q_prime_ri, harq_process, g_bits);
     if (ret < 0) {
@@ -652,8 +476,7 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
   }
   
   e_offset += Q_prime_cqi*Q_m;
-
-  printf("Q_prime_ack=%d, Q_prime_cqi=%d, Q_prime_ri=%d\n",Q_prime_ack, Q_prime_cqi, Q_prime_ri);  
+  
   // Encode UL-SCH
   if (harq_process->mcs.tbs > 0) {
     uint32_t G = nb_q/Q_m - Q_prime_ri - Q_prime_cqi;     
@@ -663,12 +486,24 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
       return ret; 
     }    
   } 
-
-  // Multiplexing and Interleaving 
-  ulsch_interleave(g_bits, nb_q/Q_m-Q_prime_ri, 
-                   g_bits_ack, Q_prime_ack,
-                    g_bits_ri, Q_prime_ri, 
-                   Q_m, q_bits);
+    
+  // Interleave UL-SCH (and RI and CQI)
+  ulsch_interleave(g_bits, Q_m, nb_q/Q_m, harq_process->N_symb_ul, q_bits);
+  
+   // Encode (and interleave) ACK
+  if (uci_data.uci_ack_len > 0) {
+    float beta = uci_data.beta_ack; 
+    if (harq_process->mcs.tbs == 0) {
+        beta /= uci_data.beta_cqi;
+    }
+    ret = uci_encode_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq_process, nb_q/Q_m, q_bits);
+    if (ret < 0) {
+      return ret; 
+    }
+    Q_prime_ack = (uint32_t) ret; 
+  }
+    
+  INFO("Q_prime_ack=%d, Q_prime_cqi=%d, Q_prime_ri=%d\n",Q_prime_ack, Q_prime_cqi, Q_prime_ri);  
 
 
 

@@ -60,8 +60,6 @@ typedef struct LIBLTE_API {
   cf_t *pusch_d;
 
   void *pusch_q;
-  uint8_t *pusch_g_ri;
-  uint8_t *pusch_g_ack;
   void *pusch_g;
 
   /* tx & rx objects */

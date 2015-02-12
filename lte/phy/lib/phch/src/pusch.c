@@ -131,17 +131,6 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
     if (!q->pusch_g) {
       goto clean;
     }
-
-    // Allocate buffers for q bits for coded RI and ACK bits 
-    q->pusch_g_ack = vec_malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
-    if (!q->pusch_g_ack) {
-      goto clean;
-    }
-    q->pusch_g_ri = vec_malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
-    if (!q->pusch_g_ri) {
-      goto clean;
-    }
-
     q->pusch_d = vec_malloc(sizeof(cf_t) * q->max_symbols);
     if (!q->pusch_d) {
       goto clean;
@@ -182,12 +171,6 @@ void pusch_free(pusch_t *q) {
   }
   if (q->pusch_g) {
     free(q->pusch_g);
-  }
-  if (q->pusch_g_ack) {
-    free(q->pusch_g_ack);
-  }
-  if (q->pusch_g_ri) {
-    free(q->pusch_g_ri);
   }
   for (i = 0; i < q->cell.nof_ports; i++) {
     if (q->ce[i]) {
@@ -363,8 +346,7 @@ int pusch_uci_encode(pusch_t *q, uint8_t *data, uci_data_t uci_data,
       }
       memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
       
-      if (ulsch_uci_encode(&q->dl_sch, data, uci_data, q->pusch_g, 
-        q->pusch_g_ack, q->pusch_g_ri, harq_process, rv_idx, q->pusch_q)) 
+      if (ulsch_uci_encode(&q->dl_sch, data, uci_data, q->pusch_g, harq_process, rv_idx, q->pusch_q)) 
       {
         fprintf(stderr, "Error encoding TB\n");
         return LIBLTE_ERROR;

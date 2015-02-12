@@ -66,11 +66,19 @@ LIBLTE_API int uci_encode_cqi(uci_cqi_t *q,
                               harq_t *harq_process, 
                               uint8_t *q_bits);
 
-/* Encode UCI RI and HARQ ACK/NACK bits */
-LIBLTE_API int uci_encode_ri_ack(uint8_t data,
-                                 uint32_t O_cqi,
-                                 float beta, 
-                                 harq_t *harq_process,
-                                 uint8_t q_bits[6]); 
+LIBLTE_API int uci_encode_ack(uint8_t data,
+                              uint32_t O_cqi,
+                              float beta, 
+                              harq_t *harq_process,
+                              uint32_t H_prime_total, 
+                              uint8_t *q_bits); 
+
+LIBLTE_API int uci_encode_ri(uint8_t data,
+                             uint32_t O_cqi,
+                             float beta, 
+                             harq_t *harq_process,
+                             uint32_t H_prime_total, 
+                             uint8_t *q_bits); 
+
 
 #endif

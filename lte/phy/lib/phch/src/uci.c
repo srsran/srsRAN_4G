@@ -195,6 +195,55 @@ int uci_encode_cqi(uci_cqi_t *q, uint8_t *cqi_data, uint32_t cqi_len, float beta
   }
 }
 
+/* Inserts UCI-ACK bits into the correct positions in the g buffer before interleaving */
+static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bit_idx, 
+                          uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, lte_cp_t cp,
+                          uint8_t *q_bits) {
+
+  const uint32_t ack_column_set_norm[4] = {2, 3, 8, 9};
+  const uint32_t ack_column_set_ext[4] = {1, 2, 6, 7};
+  
+  if (H_prime_total/N_pusch_symbs > 1+ack_q_bit_idx/4) {
+    uint32_t row = H_prime_total/N_pusch_symbs-1-ack_q_bit_idx/4;
+    uint32_t colidx = (3*ack_q_bit_idx)%4;
+    uint32_t col = CP_ISNORM(cp)?ack_column_set_norm[colidx]:ack_column_set_ext[colidx];
+    for(uint32_t k=0; k<Q_m; k++) {
+      q_bits[row *Q_m + 
+             (H_prime_total/N_pusch_symbs)*col*Q_m + k] = ack_coded_bits[k];
+    }    
+    return LIBLTE_SUCCESS;
+  } else {
+    fprintf(stderr, "Error interleaving UCI-ACK bit idx %d for H_prime_total=%d and N_pusch_symbs=%d\n",
+            ack_q_bit_idx, H_prime_total, N_pusch_symbs);
+    return LIBLTE_ERROR;
+  }
+}
+
+/* Inserts UCI-RI bits into the correct positions in the g buffer before interleaving */
+static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_idx, 
+                          uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, lte_cp_t cp,
+                          uint8_t *q_bits) {
+  
+  static uint32_t ri_column_set_norm[4]  = {1, 4, 7, 10};
+  static uint32_t ri_column_set_ext[4]  = {0, 3, 5, 8};
+
+  if (H_prime_total/N_pusch_symbs > 1+ri_q_bit_idx/4) {
+    uint32_t row = H_prime_total/N_pusch_symbs-1-ri_q_bit_idx/4;
+    uint32_t colidx = (3*ri_q_bit_idx)%4;
+    uint32_t col = CP_ISNORM(cp)?ri_column_set_norm[colidx]:ri_column_set_ext[colidx];
+    printf("r=%d-%d\n",H_prime_total/N_pusch_symbs,1+ri_q_bit_idx/4);
+    for(uint32_t k=0; k<Q_m; k++) {
+      q_bits[row *Q_m + (H_prime_total/N_pusch_symbs)*col*Q_m + k] = 10+ri_coded_bits[k];
+    }    
+    return LIBLTE_SUCCESS;
+  } else {
+    fprintf(stderr, "Error interleaving UCI-RI bit idx %d for H_prime_total=%d and N_pusch_symbs=%d\n",
+            ri_q_bit_idx, H_prime_total, N_pusch_symbs);
+    return LIBLTE_ERROR;
+  }
+
+}
+
 static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, harq_t *harq_process) {
   uint32_t M_sc = harq_process->prb_alloc.slot[0].nof_prb * RE_X_RB;
   
@@ -219,23 +268,46 @@ static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, harq_t *h
   return Q_prime; 
 }
 
-/* Encode UCI RI and HARQ bits as described in 5.2.2.6 of 36.212 
- *  Currently only supporting 1-bit RI or 1-bit HARQ
- */
-int uci_encode_ri_ack(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq_process, uint8_t *q_bits)
-{
-  uint32_t Q_m = lte_mod_bits_x_symbol(harq_process->mcs.mod);
-  
-  q_bits[0] = data;
-  q_bits[1] = 2; 
+static void encode_ri_ack(uint8_t data, uint8_t q_encoded_bits[6], uint8_t Q_m) {
+  q_encoded_bits[0] = data;
+  q_encoded_bits[1] = 2; 
   for (uint32_t i=2;i<Q_m;i++) {
-    q_bits[i] = 3;
+    q_encoded_bits[i] = 3;
+  }
+}
+
+/* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
+ *  Currently only supporting 1-bit HARQ
+ */
+int uci_encode_ack(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq_process, uint32_t H_prime_total, uint8_t *q_bits)
+{
+  uint32_t Q_m = lte_mod_bits_x_symbol(harq_process->mcs.mod);  
+  uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq_process);
+  uint8_t q_encoded_bits[6];
+
+  encode_ri_ack(data, q_encoded_bits, Q_m);
+  
+  for (uint32_t i=0;i<Qprime;i++) {
+    uci_ulsch_interleave_ack(q_encoded_bits, i, Q_m, H_prime_total, harq_process->N_symb_ul, harq_process->cell.cp, q_bits);
   }
   
-  uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq_process);
+  return (int) Qprime;
+}
 
-  for (uint32_t i=1;i<Qprime;i++) {
-    memcpy(&q_bits[i*Q_m], q_bits, Q_m*sizeof(uint8_t));  
+
+/* Encode UCI RI bits as described in 5.2.2.6 of 36.212 
+ *  Currently only supporting 1-bit RI
+ */
+int uci_encode_ri(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq_process, uint32_t H_prime_total, uint8_t *q_bits)
+{
+  uint32_t Q_m = lte_mod_bits_x_symbol(harq_process->mcs.mod);  
+  uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq_process);
+  uint8_t q_encoded_bits[6];
+
+  encode_ri_ack(data, q_encoded_bits, Q_m);
+  
+  for (uint32_t i=0;i<Qprime;i++) {
+    uci_ulsch_interleave_ri(q_encoded_bits, i, Q_m, H_prime_total, harq_process->N_symb_ul, harq_process->cell.cp, q_bits);
   }
   
   return (int) Qprime;
