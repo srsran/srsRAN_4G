@@ -160,17 +160,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!q_bits) {
     return;
   }
-  uint8_t *q_bits_ack = vec_malloc(nof_q_bits * sizeof(uint8_t));
-  if (!q_bits_ack) {
+  uint8_t *g_bits = vec_malloc(nof_q_bits * sizeof(uint8_t));
+  if (!g_bits) {
     return;
   }
-  uint8_t *q_bits_ri = vec_malloc(nof_q_bits * sizeof(uint8_t));
-  if (!q_bits_ri) {
+  uint8_t *g_bits_ack = vec_malloc(nof_q_bits * sizeof(uint8_t));
+  if (!g_bits_ack) {
+    return;
+  }
+  uint8_t *g_bits_ri = vec_malloc(nof_q_bits * sizeof(uint8_t));
+  if (!g_bits_ri) {
     return;
   }
 
-  if (ulsch_uci_encode(&ulsch, trblkin, uci_data, q_bits,  
-                   q_bits_ack, q_bits_ri, &harq_process, rv)) 
+  if (ulsch_uci_encode(&ulsch, trblkin, uci_data, g_bits,  
+                       g_bits_ack, g_bits_ri, &harq_process, rv, q_bits)) 
   {
     mexErrMsgTxt("Error encoding TB\n");
     return;
@@ -183,9 +187,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   sch_free(&ulsch);
   
   free(trblkin);
-  free(q_bits);  
-  free(q_bits_ack);
-  free(q_bits_ri);
+  free(g_bits);  
+  free(g_bits_ack);
+  free(g_bits_ri);
   
   if (uci_data.uci_cqi_len > 0) {
     free(uci_data.uci_cqi);

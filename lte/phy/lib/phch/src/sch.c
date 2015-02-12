@@ -410,7 +410,7 @@ uint8_t ulsch_y_mat[10000];
 void ulsch_interleave(uint8_t *q_bits, uint32_t nb_q, 
                       uint8_t q_bits_ack[6], uint32_t Q_prime_ack, 
                       uint8_t q_bits_ri[6], uint32_t Q_prime_ri,
-                      uint32_t Q_m) 
+                      uint32_t Q_m, uint8_t *g_bits) 
 {
   uint32_t C_mux;
   uint32_t H_prime;
@@ -498,26 +498,25 @@ void ulsch_interleave(uint8_t *q_bits, uint32_t nb_q,
   for(i=0; i<C_mux; i++) {
     for(j=0; j<R_prime_mux; j++) {
       for(k=0; k<Q_m; k++) {
-        q_bits[idx++] = ulsch_y_mat[j*C_mux*Q_m + i*Q_m + k];          
+        g_bits[idx++] = ulsch_y_mat[j*C_mux*Q_m + i*Q_m + k];          
       }
     }
   }
   
 }
 
-
-int ulsch_encode(sch_t *q, uint8_t *data, uint8_t *q_bits, 
-                 harq_t *harq_process, uint32_t rv_idx) 
+int ulsch_encode(sch_t *q, uint8_t *data, uint8_t *g_bits, 
+                 harq_t *harq_process, uint32_t rv_idx, uint8_t *q_bits) 
 {
   uci_data_t uci_data; 
   bzero(&uci_data, sizeof(uci_data_t));
-  return ulsch_uci_encode(q, data, uci_data, q_bits, NULL, NULL, harq_process, rv_idx);
+  return ulsch_uci_encode(q, data, uci_data, g_bits, NULL, NULL, harq_process, rv_idx, q_bits);
 }
 
 
-int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bits, 
-                 uint8_t *q_bits_ack, uint8_t *q_bits_ri, 
-                 harq_t *harq_process, uint32_t rv_idx) 
+int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bits, 
+                 uint8_t *g_bits_ack, uint8_t *g_bits_ri, 
+                 harq_t *harq_process, uint32_t rv_idx, uint8_t *q_bits) 
 {
   int ret; 
    
@@ -536,7 +535,7 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bi
     if (harq_process->mcs.tbs == 0) {
         beta /= uci_data.beta_cqi;
     }
-    ret = uci_encode_ri_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq_process, q_bits_ack);
+    ret = uci_encode_ri_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq_process, g_bits_ack);
     if (ret < 0) {
       return ret; 
     }
@@ -549,7 +548,7 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bi
     if (harq_process->mcs.tbs == 0) {
         beta /= uci_data.beta_cqi;
     }
-    ret = uci_encode_ri_ack(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq_process, q_bits_ri);
+    ret = uci_encode_ri_ack(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq_process, g_bits_ri);
     if (ret < 0) {
       return ret; 
     }
@@ -559,7 +558,7 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bi
   // Encode CQI
   if (uci_data.uci_cqi_len > 0) {
     ret = uci_encode_cqi(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, uci_data.beta_cqi, 
-                                 Q_prime_ri, harq_process, q_bits);
+                                 Q_prime_ri, harq_process, g_bits);
     if (ret < 0) {
       return ret; 
     }
@@ -572,7 +571,7 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bi
   // Encode UL-SCH
   if (harq_process->mcs.tbs > 0) {
     uint32_t G = nb_q/Q_m - Q_prime_ri - Q_prime_cqi;     
-    ret = encode_tb(q, data, &q_bits[e_offset], harq_process->mcs.tbs, 
+    ret = encode_tb(q, data, &g_bits[e_offset], harq_process->mcs.tbs, 
                 G*Q_m, harq_process, rv_idx);
     if (ret) {
       return ret; 
@@ -580,10 +579,10 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *q_bi
   } 
 
   // Multiplexing and Interleaving 
-  ulsch_interleave(q_bits, nb_q/Q_m-Q_prime_ri, 
-                   q_bits_ack, Q_prime_ack,
-                   q_bits_ri, Q_prime_ri, 
-                   Q_m);
+  ulsch_interleave(g_bits, nb_q/Q_m-Q_prime_ri, 
+                   g_bits_ack, Q_prime_ack,
+                    g_bits_ri, Q_prime_ri, 
+                   Q_m, q_bits);
 
 
 

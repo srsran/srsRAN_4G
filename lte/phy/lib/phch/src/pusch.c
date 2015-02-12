@@ -120,19 +120,25 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
     
     q->rnti_is_set = false; 
 
-    // Allocate floats for reception (LLRs)
-    q->pusch_e = malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
-    if (!q->pusch_e) {
+    // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
+    q->pusch_q = malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
+    if (!q->pusch_q) {
+      goto clean;
+    }
+
+    // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
+    q->pusch_g = malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
+    if (!q->pusch_g) {
       goto clean;
     }
 
     // Allocate buffers for q bits for coded RI and ACK bits 
-    q->pusch_q_ack = malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
-    if (!q->pusch_q_ack) {
+    q->pusch_g_ack = malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
+    if (!q->pusch_g_ack) {
       goto clean;
     }
-    q->pusch_q_ri = malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
-    if (!q->pusch_q_ri) {
+    q->pusch_g_ri = malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
+    if (!q->pusch_g_ri) {
       goto clean;
     }
 
@@ -168,17 +174,17 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
 void pusch_free(pusch_t *q) {
   int i;
 
-  if (q->pusch_e) {
-    free(q->pusch_e);
+  if (q->pusch_q) {
+    free(q->pusch_q);
   }
   if (q->pusch_d) {
     free(q->pusch_d);
   }
-  if (q->pusch_q_ack) {
-    free(q->pusch_q_ack);
+  if (q->pusch_g_ack) {
+    free(q->pusch_g_ack);
   }
-  if (q->pusch_q_ri) {
-    free(q->pusch_q_ri);
+  if (q->pusch_g_ri) {
+    free(q->pusch_g_ri);
   }
   for (i = 0; i < q->cell.nof_ports; i++) {
     if (q->ce[i]) {
@@ -276,12 +282,12 @@ int pusch_decode(pusch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       */
       demod_soft_sigma_set(&q->demod, sqrt(0.5));
       demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod]);
-      demod_soft_demodulate(&q->demod, q->pusch_d, q->pusch_e, nof_symbols);
+      demod_soft_demodulate(&q->demod, q->pusch_d, q->pusch_q, nof_symbols);
 
       /* descramble */
-      scrambling_f_offset(&q->seq_pusch[subframe], q->pusch_e, 0, nof_bits_e);
+      scrambling_f_offset(&q->seq_pusch[subframe], q->pusch_q, 0, nof_bits_e);
 
-      return ulsch_decode(&q->dl_sch, q->pusch_e, data, nof_bits, nof_bits_e, harq_process, rv_idx);      
+      return ulsch_decode(&q->dl_sch, q->pusch_q, data, nof_bits, nof_bits_e, harq_process, rv_idx);      
     } else {
       fprintf(stderr, "Must call pusch_set_rnti() before calling pusch_decode()\n");
       return LIBLTE_ERROR; 
@@ -292,7 +298,7 @@ int pusch_decode(pusch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
   }
 }
 
-int pusch_encode(pusch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_t subframe, 
+int pusch_qncode(pusch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_t subframe, 
                  harq_t *harq_process, uint32_t rv_idx) 
 {
   uci_data_t uci_data; 
@@ -354,16 +360,16 @@ int pusch_uci_encode(pusch_t *q, uint8_t *data, uci_data_t uci_data,
       }
       memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
       
-      if (ulsch_uci_encode(&q->dl_sch, data, uci_data, q->pusch_e, 
-        q->pusch_q_ack, q->pusch_q_ri, harq_process, rv_idx)) 
+      if (ulsch_uci_encode(&q->dl_sch, data, uci_data, q->pusch_g, 
+        q->pusch_g_ack, q->pusch_g_ri, harq_process, rv_idx, q->pusch_q)) 
       {
         fprintf(stderr, "Error encoding TB\n");
         return LIBLTE_ERROR;
       }
       
-      scrambling_b_offset_pusch(&q->seq_pusch[subframe], (uint8_t*) q->pusch_e, 0, nof_bits_e);
+      scrambling_b_offset_pusch(&q->seq_pusch[subframe], (uint8_t*) q->pusch_q, 0, nof_bits_e);
 
-      mod_modulate(&q->mod[harq_process->mcs.mod], (uint8_t*) q->pusch_e, q->pusch_d, nof_bits_e);
+      mod_modulate(&q->mod[harq_process->mcs.mod], (uint8_t*) q->pusch_q, q->pusch_d, nof_bits_e);
       
       /* mapping to resource elements */
       

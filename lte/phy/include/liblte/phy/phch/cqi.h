@@ -64,7 +64,7 @@ LIBLTE_API void cqi_hl_subband_pack(cqi_hl_subband_t *msg,
                                     uint8_t *buff, 
                                     uint32_t buff_len);
 
-LIBLTE_API void cqi_ue_subband_pack(cqi_hl_subband_t *msg, 
+LIBLTE_API void cqi_ue_subband_pack(cqi_ue_subband_t *msg, 
                                     uint32_t L, 
                                     uint8_t *buff, 
                                     uint32_t buff_len);

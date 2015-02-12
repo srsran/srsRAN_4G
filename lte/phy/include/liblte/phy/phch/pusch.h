@@ -58,10 +58,11 @@ typedef struct LIBLTE_API {
   cf_t *pusch_symbols[MAX_PORTS];
   cf_t *pusch_x[MAX_PORTS];
   cf_t *pusch_d;
-  void *pusch_e;
 
-  uint8_t *pusch_q_ri;
-  uint8_t *pusch_q_ack;
+  void *pusch_q;
+  uint8_t *pusch_g_ri;
+  uint8_t *pusch_g_ack;
+  void *pusch_g;
 
   /* tx & rx objects */
   modem_table_t mod[4];

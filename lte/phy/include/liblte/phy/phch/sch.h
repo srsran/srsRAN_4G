@@ -96,18 +96,20 @@ LIBLTE_API int dlsch_decode(sch_t *q,
 
 LIBLTE_API int ulsch_encode(sch_t *q, 
                             uint8_t *data, 
-                            uint8_t *q_bits,
+                            uint8_t *g_bits,
                             harq_t *harq_process, 
-                            uint32_t rv_idx);
+                            uint32_t rv_idx,
+                            uint8_t *q_bits);
 
 LIBLTE_API int ulsch_uci_encode(sch_t *q, 
                                 uint8_t *data, 
                                 uci_data_t uci_data, 
-                                uint8_t *q_bits,
-                                uint8_t *q_bits_ack, 
-                                uint8_t *q_bits_ri,
+                                uint8_t *g_bits,
+                                uint8_t *g_bits_ack, 
+                                uint8_t *g_bits_ri,
                                 harq_t *harq_process, 
-                                uint32_t rv_idx);
+                                uint32_t rv_idx, 
+                                uint8_t *q_bits);
 
 LIBLTE_API int ulsch_decode(sch_t *q, 
                             float *e_bits, 
