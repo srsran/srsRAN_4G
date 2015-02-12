@@ -144,7 +144,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   free(prbset);
   
-  printf("Q_m: %d, NPRB: %d, RV: %d\n", lte_mod_bits_x_symbol(mcs.mod), prb_alloc.slot[0].nof_prb, rv);
+  mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", lte_mod_bits_x_symbol(mcs.mod), prb_alloc.slot[0].nof_prb, rv);
 
   if (harq_setup(&harq_process, mcs, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
@@ -163,24 +163,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (ulsch_uci_encode(&ulsch, trblkin, uci_data, g_bits, &harq_process, rv, q_bits)) 
+  if (ulsch_uci_encode(&ulsch, trblkin, uci_data, g_bits, &harq_process, 0, q_bits)) 
   {
     mexErrMsgTxt("Error encoding TB\n");
     return;
+  }    
+  if (rv > 0) {
+    if (ulsch_uci_encode(&ulsch, trblkin, uci_data, g_bits, &harq_process, rv, q_bits)) 
+    {
+      mexErrMsgTxt("Error encoding TB\n");
+      return;
+    }    
   }
   
   if (nlhs >= 1) {
     mexutils_write_uint8(q_bits, &plhs[0], nof_q_bits, 1);  
   }
   
-  sch_free(&ulsch);
+  sch_free(&ulsch);  
+  harq_free(&harq_process);
   
   free(trblkin);
-  free(g_bits);  
-  
-  if (uci_data.uci_cqi_len > 0) {
-    free(uci_data.uci_cqi);
-  }
+  free(g_bits);    
+  free(q_bits);    
+  free(uci_data.uci_cqi);
   
   return;
 }

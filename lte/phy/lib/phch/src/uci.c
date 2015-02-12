@@ -203,7 +203,7 @@ static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bi
   const uint32_t ack_column_set_norm[4] = {2, 3, 8, 9};
   const uint32_t ack_column_set_ext[4] = {1, 2, 6, 7};
   
-  if (H_prime_total/N_pusch_symbs > 1+ack_q_bit_idx/4) {
+  if (H_prime_total/N_pusch_symbs >= 1+ack_q_bit_idx/4) {
     uint32_t row = H_prime_total/N_pusch_symbs-1-ack_q_bit_idx/4;
     uint32_t colidx = (3*ack_q_bit_idx)%4;
     uint32_t col = CP_ISNORM(cp)?ack_column_set_norm[colidx]:ack_column_set_ext[colidx];
@@ -227,7 +227,7 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
   static uint32_t ri_column_set_norm[4]  = {1, 4, 7, 10};
   static uint32_t ri_column_set_ext[4]  = {0, 3, 5, 8};
 
-  if (H_prime_total/N_pusch_symbs > 1+ri_q_bit_idx/4) {
+  if (H_prime_total/N_pusch_symbs >= 1+ri_q_bit_idx/4) {
     uint32_t row = H_prime_total/N_pusch_symbs-1-ri_q_bit_idx/4;
     uint32_t colidx = (3*ri_q_bit_idx)%4;
     uint32_t col = CP_ISNORM(cp)?ri_column_set_norm[colidx]:ri_column_set_ext[colidx];

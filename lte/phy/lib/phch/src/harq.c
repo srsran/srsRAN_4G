@@ -131,6 +131,7 @@ int harq_init(harq_t *q, lte_cell_t cell) {
           perror("malloc");
           return LIBLTE_ERROR;
         }
+        bzero(q->pdsch_w_buff_c[i], sizeof(uint8_t) * q->w_buff_size);
       }      
       ret = LIBLTE_SUCCESS;
     }

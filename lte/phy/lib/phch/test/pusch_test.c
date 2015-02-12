@@ -125,7 +125,6 @@ int main(int argc, char **argv) {
   ra_mcs_t mcs;
   ra_prb_t prb_alloc;
   harq_t harq_process;
-  uint32_t rv = 0;
   
   parse_args(argc,argv);
 
@@ -186,63 +185,71 @@ int main(int argc, char **argv) {
   printf("INPUT: ");
   vec_fprint_b(stdout, data, mcs.tbs);
 
-  for (rv=0;rv<=rv_idx;rv++) {
-    printf("Encoding rv_idx=%d\n",rv);
-    
-    uint8_t tmp[20];
-    for (i=0;i<20;i++) {
-      tmp[i] = 1;
-    }
-    uci_data_t uci_data; 
-    bzero(&uci_data, sizeof(uci_data_t));
-    uci_data.beta_cqi = 2.0; 
-    uci_data.beta_ri = 2.0; 
-    uci_data.beta_ack = 2.0; 
-    uci_data.uci_cqi = tmp;
-    uci_data.uci_cqi_len = 0; 
-    uci_data.uci_ri_len = 1; 
-    uci_data.uci_ri = 1; 
-    uci_data.uci_ack_len = 1; 
-    uci_data.uci_ack = 1; 
-    
-    uint32_t nof_symbols = 12*harq_process.prb_alloc.slot[0].nof_prb*RE_X_RB;
-    uint32_t nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process.mcs.mod);
+  printf("Encoding rv_idx=%d\n",rv_idx);
+  
+  uint8_t tmp[20];
+  for (i=0;i<20;i++) {
+    tmp[i] = 1;
+  }
+  uci_data_t uci_data; 
+  bzero(&uci_data, sizeof(uci_data_t));
+  uci_data.beta_cqi = 2.0; 
+  uci_data.beta_ri = 2.0; 
+  uci_data.beta_ack = 2.0; 
+  
+  uci_data.uci_cqi_len = 0; 
+  uci_data.uci_ri_len = 0; 
+  uci_data.uci_ack_len = 0; 
 
-    bzero(pusch.pusch_q, nof_bits_e*sizeof(uint8_t));
-    
+  uci_data.uci_cqi = tmp;
+  uci_data.uci_ri = 1; 
+  uci_data.uci_ack = 1; 
+  
+  uint32_t nof_symbols = 12*harq_process.prb_alloc.slot[0].nof_prb*RE_X_RB;
+  uint32_t nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process.mcs.mod);
 
-    if (ulsch_uci_encode(&pusch.dl_sch, data, uci_data, pusch.pusch_g, &harq_process, rv, pusch.pusch_q)) 
+  bzero(pusch.pusch_q, nof_bits_e*sizeof(uint8_t));
+  
+
+  if (ulsch_uci_encode(&pusch.dl_sch, data, uci_data, pusch.pusch_g, &harq_process, 0, pusch.pusch_q)) 
+  {
+    fprintf(stderr, "Error encoding TB\n");
+    exit(-1);
+  }
+
+  if (rv_idx > 0) {
+    if (ulsch_uci_encode(&pusch.dl_sch, data, uci_data, pusch.pusch_g, &harq_process, rv_idx, pusch.pusch_q)) 
     {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
 
-    vec_fprint_b(stdout, pusch.pusch_q, nof_bits_e);
-
-    /* combine outputs */
-    for (i=0;i<cell.nof_ports;i++) {
-      for (j=0;j<nof_re;j++) {
-        if (i > 0) {
-          slot_symbols[0][j] += slot_symbols[i][j];
-        }
-        ce[i][j] = 1;
-      }
-    }
-    
-    gettimeofday(&t[1], NULL);
-    //int r = pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
-    int r = 0; 
-    gettimeofday(&t[2], NULL);
-    get_time_interval(t);
-    if (r) {
-      printf("Error decoding\n");
-      ret = -1;
-      goto quit;
-    } else {
-      printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);
-    }
-    
   }
+  vec_fprint_b(stdout, pusch.pusch_q, nof_bits_e);
+
+  /* combine outputs */
+  for (i=0;i<cell.nof_ports;i++) {
+    for (j=0;j<nof_re;j++) {
+      if (i > 0) {
+        slot_symbols[0][j] += slot_symbols[i][j];
+      }
+      ce[i][j] = 1;
+    }
+  }
+  
+  gettimeofday(&t[1], NULL);
+  //int r = pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
+  int r = 0; 
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  if (r) {
+    printf("Error decoding\n");
+    ret = -1;
+    goto quit;
+  } else {
+    printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);
+  }
+  
   ret = 0;
 quit:
   pusch_free(&pusch);
