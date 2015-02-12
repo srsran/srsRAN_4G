@@ -217,7 +217,7 @@ ue_sync_t ue_sync;
 prog_args_t prog_args; 
 
 uint32_t sfn = 0; // system frame number
-cf_t *sf_buffer; 
+cf_t *sf_buffer = NULL; 
 netsink_t net_sink, net_sink_signal; 
 
 int main(int argc, char **argv) {
