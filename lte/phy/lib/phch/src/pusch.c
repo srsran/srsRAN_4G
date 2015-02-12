@@ -121,42 +121,42 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
     q->rnti_is_set = false; 
 
     // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
-    q->pusch_q = malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pusch_q = vec_malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pusch_q) {
       goto clean;
     }
 
     // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
-    q->pusch_g = malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pusch_g = vec_malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pusch_g) {
       goto clean;
     }
 
     // Allocate buffers for q bits for coded RI and ACK bits 
-    q->pusch_g_ack = malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pusch_g_ack = vec_malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pusch_g_ack) {
       goto clean;
     }
-    q->pusch_g_ri = malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pusch_g_ri = vec_malloc(sizeof(uint8_t) * 4 * q->cell.nof_prb * lte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pusch_g_ri) {
       goto clean;
     }
 
-    q->pusch_d = malloc(sizeof(cf_t) * q->max_symbols);
+    q->pusch_d = vec_malloc(sizeof(cf_t) * q->max_symbols);
     if (!q->pusch_d) {
       goto clean;
     }
 
     for (i = 0; i < q->cell.nof_ports; i++) {
-      q->ce[i] = malloc(sizeof(cf_t) * q->max_symbols);
+      q->ce[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->pusch_x[i] = malloc(sizeof(cf_t) * q->max_symbols);
+      q->pusch_x[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
       if (!q->pusch_x[i]) {
         goto clean;
       }
-      q->pusch_symbols[i] = malloc(sizeof(cf_t) * q->max_symbols);
+      q->pusch_symbols[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
       if (!q->pusch_symbols[i]) {
         goto clean;
       }
@@ -179,6 +179,9 @@ void pusch_free(pusch_t *q) {
   }
   if (q->pusch_d) {
     free(q->pusch_d);
+  }
+  if (q->pusch_g) {
+    free(q->pusch_g);
   }
   if (q->pusch_g_ack) {
     free(q->pusch_g_ack);

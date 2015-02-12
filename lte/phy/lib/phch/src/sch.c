@@ -67,12 +67,12 @@ int sch_init(sch_t *q) {
     }
 
     // Allocate floats for reception (LLRs)
-    q->cb_in = malloc(sizeof(uint8_t) * MAX_LONG_CB);
+    q->cb_in = vec_malloc(sizeof(uint8_t) * MAX_LONG_CB);
     if (!q->cb_in) {
       goto clean;
     }
     
-    q->cb_out = malloc(sizeof(float) * (3 * MAX_LONG_CB + 12));
+    q->cb_out = vec_malloc(sizeof(float) * (3 * MAX_LONG_CB + 12));
     if (!q->cb_out) {
       goto clean;
     }  
@@ -407,7 +407,7 @@ uint8_t ulsch_y_idx[10000];
 uint8_t ulsch_y_mat[10000];
 
 /* UL-SCH channel interleaver according to 5.5.2.8 of 36.212 */
-void ulsch_interleave(uint8_t *q_bits, uint32_t nb_q, 
+void ulsch_interleave2(uint8_t *q_bits, uint32_t nb_q, 
                       uint8_t q_bits_ack[6], uint32_t Q_prime_ack, 
                       uint8_t q_bits_ri[6], uint32_t Q_prime_ri,
                       uint32_t Q_m, uint8_t *g_bits) 
@@ -502,6 +502,92 @@ void ulsch_interleave(uint8_t *q_bits, uint32_t nb_q,
       }
     }
   }
+  
+}
+
+/* UL-SCH channel interleaver according to 5.5.2.8 of 36.212 */
+void ulsch_interleave(uint8_t *g_bits, uint32_t nb_q, 
+                      uint8_t g_bits_ack[6], uint32_t Q_prime_ack, 
+                      uint8_t g_bits_ri[6], uint32_t Q_prime_ri,
+                      uint32_t Q_m,
+                     uint8_t *q_bits) 
+{
+  uint32_t C_mux;
+  uint32_t H_prime;
+  uint32_t H_prime_total;
+  uint32_t R_mux;
+  uint32_t R_prime_mux;
+  uint32_t i;
+  uint32_t j;
+  uint32_t k;
+  uint32_t r;
+  uint32_t idx;
+  uint32_t ri_column_set[4]  = {1, 4, 7, 10};
+  uint32_t ack_column_set[4] = {2, 3, 8, 9};
+  uint32_t C_ri;
+  uint32_t C_ack;
+  uint32_t N_pusch_symbs = 12; 
+  
+  // Step 1: Define C_mux
+  C_mux = N_pusch_symbs;
+
+  // Step 2: Define R_mux and R_prime_mux
+  H_prime       = nb_q;
+  H_prime_total = H_prime + Q_prime_ri;
+  R_mux         = (H_prime_total*Q_m)/C_mux;
+  R_prime_mux   = R_mux/Q_m;
+
+  
+  
+  // ACK insertion can be done at uci.c 
+  
+  // Step 5: Interleave the ACK control bits
+  i = 0;
+  j = 0;
+  r = R_prime_mux-1;
+  while(i < Q_prime_ack) {
+    C_ack = ack_column_set[j];
+    for(k=0; k<Q_m; k++) {
+      g_bits[(C_mux*r*Q_m) + C_ack*Q_m + k] = g_bits_ack[Q_m*i+k];
+    }
+    i++;
+    r = R_prime_mux - 1 - i/4;
+    j = (j + 3) % 4;
+  }
+
+  // Step 3: Interleave the RI control bits
+  i = 0;
+  j = 0;
+  r = R_prime_mux-1;
+  while(i < Q_prime_ri) {
+    C_ri = ri_column_set[j];
+    ulsch_y_idx[r*C_mux + C_ri] = 1;
+    for(k=0; k<Q_m; k++) {
+      q_bits[(r*Q_m) + C_mux*C_ri*Q_m + k] = 10+g_bits_ri[Q_m*i+k];
+    }
+    i++;
+    r = R_prime_mux - 1 - i/4;
+    j = (j + 3) % 4;
+  }
+  
+  // Step 6: Read out the bits
+  idx = 0;
+  printf("go for C_mux: %d, R_prime: %d, Q_m: %d\n", C_mux, R_prime_mux, Q_m);
+  for(i=0; i<C_mux; i++) {
+    for(j=0; j<R_prime_mux; j++) {
+      for(k=0; k<Q_m; k++) {
+        if (q_bits[idx] >= 10) {
+          printf("10 at %d is %d\n",idx, q_bits[idx]);
+          //q_bits[idx] -= 10;          
+        } else {          
+          printf("reading %d\n", j*C_mux*Q_m + i*Q_m + k);
+          q_bits[idx] = g_bits[j*C_mux*Q_m + i*Q_m + k];                       
+        }
+        idx++;
+      }
+    }
+  }
+  
   
 }
 

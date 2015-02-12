@@ -166,34 +166,34 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     q->encoder.tail_biting = true;
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
 
-    q->pbch_d = malloc(sizeof(cf_t) * q->nof_symbols);
+    q->pbch_d = vec_malloc(sizeof(cf_t) * q->nof_symbols);
     if (!q->pbch_d) {
       goto clean;
     }
     int i;
     for (i = 0; i < q->cell.nof_ports; i++) {
-      q->ce[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->ce[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->pbch_x[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->pbch_x[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
       if (!q->pbch_x[i]) {
         goto clean;
       }
-      q->pbch_symbols[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->pbch_symbols[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
       if (!q->pbch_symbols[i]) {
         goto clean;
       }
     }
-    q->pbch_llr = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->pbch_llr = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
     if (!q->pbch_llr) {
       goto clean;
     }
-    q->temp = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->temp = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
     if (!q->temp) {
       goto clean;
     }
-    q->pbch_rm_b = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->pbch_rm_b = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
     if (!q->pbch_rm_b) {
       goto clean;
     }

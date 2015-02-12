@@ -33,6 +33,7 @@
 #include <math.h>
 
 #include "liblte/phy/fec/turbodecoder.h"
+#include "liblte/phy/utils/vector.h"
 
 /************************************************
  *
@@ -157,9 +158,9 @@ void map_gen_alpha(map_gen_t * s, llr_t * input, llr_t * parity, llr_t * output,
 int map_gen_init(map_gen_t * h, int max_long_cb)
 {
   bzero(h, sizeof(map_gen_t));
-  h->beta = malloc(sizeof(llr_t) * (max_long_cb + TOTALTAIL + 1) * NUMSTATES);
+  h->beta = vec_malloc(sizeof(llr_t) * (max_long_cb + TOTALTAIL + 1) * NUMSTATES);
   if (!h->beta) {
-    perror("malloc");
+    perror("vec_malloc");
     return -1;
   }
   h->max_long_cb = max_long_cb;
@@ -200,29 +201,29 @@ int tdec_init(tdec_t * h, uint32_t max_long_cb)
 
   h->max_long_cb = max_long_cb;
 
-  h->llr1 = malloc(sizeof(llr_t) * len);
+  h->llr1 = vec_malloc(sizeof(llr_t) * len);
   if (!h->llr1) {
-    perror("malloc");
+    perror("vec_malloc");
     goto clean_and_exit;
   }
-  h->llr2 = malloc(sizeof(llr_t) * len);
+  h->llr2 = vec_malloc(sizeof(llr_t) * len);
   if (!h->llr2) {
-    perror("malloc");
+    perror("vec_malloc");
     goto clean_and_exit;
   }
-  h->w = malloc(sizeof(llr_t) * len);
+  h->w = vec_malloc(sizeof(llr_t) * len);
   if (!h->w) {
-    perror("malloc");
+    perror("vec_malloc");
     goto clean_and_exit;
   }
-  h->syst = malloc(sizeof(llr_t) * len);
+  h->syst = vec_malloc(sizeof(llr_t) * len);
   if (!h->syst) {
-    perror("malloc");
+    perror("vec_malloc");
     goto clean_and_exit;
   }
-  h->parity = malloc(sizeof(llr_t) * len);
+  h->parity = vec_malloc(sizeof(llr_t) * len);
   if (!h->parity) {
-    perror("malloc");
+    perror("vec_malloc");
     goto clean_and_exit;
   }
 

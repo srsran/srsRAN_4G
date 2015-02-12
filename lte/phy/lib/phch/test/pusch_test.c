@@ -207,6 +207,9 @@ int main(int argc, char **argv) {
     uint32_t nof_symbols = 12*harq_process.prb_alloc.slot[0].nof_prb*RE_X_RB;
     uint32_t nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process.mcs.mod);
 
+    bzero(pusch.pusch_q, nof_bits_e*sizeof(uint8_t));
+    
+
     if (ulsch_uci_encode(&pusch.dl_sch, data, uci_data, pusch.pusch_g, 
       pusch.pusch_g_ack, pusch.pusch_g_ri, &harq_process, rv, pusch.pusch_q)) 
     {

@@ -232,26 +232,26 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     q->rnti_is_set = false; 
 
     // Allocate floats for reception (LLRs)
-    q->pdsch_e = malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pdsch_e = vec_malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pdsch_e) {
       goto clean;
     }
     
-    q->pdsch_d = malloc(sizeof(cf_t) * q->max_symbols);
+    q->pdsch_d = vec_malloc(sizeof(cf_t) * q->max_symbols);
     if (!q->pdsch_d) {
       goto clean;
     }
 
     for (i = 0; i < q->cell.nof_ports; i++) {
-      q->ce[i] = malloc(sizeof(cf_t) * q->max_symbols);
+      q->ce[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->pdsch_x[i] = malloc(sizeof(cf_t) * q->max_symbols);
+      q->pdsch_x[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
       if (!q->pdsch_x[i]) {
         goto clean;
       }
-      q->pdsch_symbols[i] = malloc(sizeof(cf_t) * q->max_symbols);
+      q->pdsch_symbols[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
       if (!q->pdsch_symbols[i]) {
         goto clean;
       }
