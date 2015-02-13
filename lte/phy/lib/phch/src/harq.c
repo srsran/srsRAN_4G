@@ -183,23 +183,64 @@ void harq_reset(harq_t *q) {
   bzero(&q->prb_alloc, sizeof(ra_prb_t));
 }
 
-int harq_setup(harq_t *q, ra_mcs_t mcs, ra_prb_t *prb_alloc) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
-  
-  if (q != NULL)
-  {
-    q->mcs = mcs;
-    memcpy(&q->prb_alloc, prb_alloc, sizeof(ra_prb_t));
-    
-    q->N_symb_ul = 2*(CP_NSYMB(q->cell.cp)-1);
-    q->nof_prb_pusch_init = q->prb_alloc.slot[0].nof_prb;
-
-    codeblock_segmentation(&q->cb_segm, mcs.tbs);    
+static int harq_setup_common(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_prb_t *prb_alloc) {
+  if (mcs.tbs != q->mcs.tbs) {
+    codeblock_segmentation(&q->cb_segm, mcs.tbs);          
     if (q->cb_segm.C > q->max_cb) {
       fprintf(stderr, "Codeblock segmentation returned more CBs (%d) than allocated (%d)\n", 
         q->cb_segm.C, q->max_cb);
       return LIBLTE_ERROR;
     }       
+  }
+
+  memcpy(&q->prb_alloc, prb_alloc, sizeof(ra_prb_t));
+  q->mcs = mcs;
+  q->sf_idx = sf_idx;
+  q->rv = rv;    
+  return LIBLTE_SUCCESS;
+}
+
+int harq_setup_dl(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_prb_t *prb_alloc) {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q != NULL       && 
+      rv         < 4  &&
+      sf_idx     < 10)
+  {
+    ret = harq_setup_common(q, mcs, rv, sf_idx, prb_alloc);
+    if (ret) {
+      return ret;
+    }
+    
+    // Number of symbols, RE and bits per subframe for DL
+    q->nof_re = q->prb_alloc.re_sf[q->sf_idx];
+    q->nof_symb = 2*CP_NSYMB(q->cell.cp)-q->prb_alloc.lstart;
+    q->nof_bits = q->nof_re * lte_mod_bits_x_symbol(q->mcs.mod);
+    q->nof_prb = q->prb_alloc.slot[0].nof_prb;
+
+    ret = LIBLTE_SUCCESS;    
+  }
+  return ret;
+}
+
+int harq_setup_ul(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_prb_t *prb_alloc) {
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (q != NULL       && 
+      rv         < 4  &&
+      sf_idx     < 10)
+  {
+    ret = harq_setup_common(q, mcs, rv, sf_idx, prb_alloc);
+    if (ret) {
+      return ret;
+    }
+    
+    // Number of symbols, RE and bits per subframe for UL
+    q->nof_symb = 2*(CP_NSYMB(q->cell.cp)-1);
+    q->nof_re = q->nof_symb*q->prb_alloc.slot[0].nof_prb*RE_X_RB;
+    q->nof_bits = q->nof_re * lte_mod_bits_x_symbol(q->mcs.mod);
+    q->nof_prb = q->prb_alloc.slot[0].nof_prb;
+
     ret = LIBLTE_SUCCESS;    
   }
   return ret;

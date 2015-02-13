@@ -194,17 +194,17 @@ int main(int argc, char **argv) {
     if (VERBOSE_ISNONE()) {
       printf("Decoding TBS: %d\r",mcs.tbs);
     }
-    if (harq_setup(&harq_process, mcs, &prb_alloc)) {
-      fprintf(stderr, "Error configuring HARQ process\n");
-      goto quit;
-    }
-
     for (i=0;i<mcs.tbs;i++) {
       data[i] = rand()%2;
     }
 
     for (rv=0;rv<=rv_idx;rv++) {
-      if (pdsch_encode(&pdsch, data, slot_symbols, subframe, &harq_process, rv)) {
+      if (harq_setup_dl(&harq_process, mcs, rv, subframe, &prb_alloc)) {
+        fprintf(stderr, "Error configuring HARQ process\n");
+        goto quit;
+      }
+
+      if (pdsch_encode(&pdsch, &harq_process, data, slot_symbols)) {
         fprintf(stderr, "Error encoding PDSCH\n");
         goto quit;
       }
@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
       }
       
       gettimeofday(&t[1], NULL);
-      int r = pdsch_decode(&pdsch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
+      int r = pdsch_decode(&pdsch, &harq_process, slot_symbols[0], ce, 0, data);
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
       if (r) {

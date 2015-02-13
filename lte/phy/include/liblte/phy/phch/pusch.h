@@ -49,7 +49,7 @@ typedef _Complex float cf_t;
 typedef struct LIBLTE_API {
   lte_cell_t cell;
   
-  uint32_t max_symbols;
+  uint32_t max_re;
   bool rnti_is_set; 
   uint16_t rnti; 
 
@@ -84,40 +84,28 @@ LIBLTE_API int pusch_init(pusch_t *q,
 LIBLTE_API void pusch_free(pusch_t *q);
 
 LIBLTE_API int pusch_set_rnti(pusch_t *q, 
-                               uint16_t rnti);
+                              uint16_t rnti);
 
 LIBLTE_API int pusch_encode(pusch_t *q, 
+                            harq_t *harq_process,
                             uint8_t *data, 
-                            cf_t *sf_symbols,
-                            uint32_t nsubframe,
-                            harq_t *harq_process, 
-                            uint32_t rv_idx);
+                            cf_t *sf_symbols);
 
 LIBLTE_API int pusch_uci_encode(pusch_t *q, 
+                                harq_t *harq_process,
                                 uint8_t *data, 
                                 uci_data_t uci_data, 
-                                cf_t *sf_symbols, 
-                                uint32_t subframe, 
-                                harq_t *harq_process, 
-                                uint32_t rv_idx);
+                                cf_t *sf_symbols);
 
 LIBLTE_API int pusch_decode(pusch_t *q, 
+                            harq_t *harq_process,
                             cf_t *sf_symbols, 
                             cf_t *ce,
                             float noise_estimate, 
-                            uint8_t *data, 
-                            uint32_t nsubframe,
-                            harq_t *harq_process, 
-                            uint32_t rv_idx);
+                            uint8_t *data);
 
 LIBLTE_API float pusch_average_noi(pusch_t *q); 
 
 LIBLTE_API uint32_t pusch_last_noi(pusch_t *q); 
-
-LIBLTE_API int pusch_get(pusch_t *q, 
-                         cf_t *sf_symbols, 
-                         cf_t *pusch_symbols,
-                         ra_prb_t *prb_alloc, 
-                         uint32_t subframe);
 
 #endif

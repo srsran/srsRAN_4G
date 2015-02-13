@@ -45,11 +45,15 @@
 
 typedef struct LIBLTE_API {
   ra_mcs_t mcs;
+  uint32_t rv;
+  uint32_t sf_idx;
   ra_prb_t prb_alloc;
   lte_cell_t cell;
   
-  uint32_t N_symb_ul; // Number of symbols for PUSCH transmission
-  uint32_t nof_prb_pusch_init; // Initial resource allocation for PUSCH. 
+  uint32_t nof_re;   // Number of RE per subframe 
+  uint32_t nof_bits; // Number of bits per subframe
+  uint32_t nof_symb; // Number of symbols per subframe 
+  uint32_t nof_prb;  // Number of allocated PRB per subframe. 
   
   uint32_t max_cb;
   uint32_t w_buff_size;
@@ -63,9 +67,17 @@ typedef struct LIBLTE_API {
 LIBLTE_API int harq_init(harq_t * q,
                          lte_cell_t cell);
 
-LIBLTE_API int harq_setup(harq_t *p, 
-                          ra_mcs_t mcs,
-                          ra_prb_t *prb_alloc);
+LIBLTE_API int harq_setup_dl(harq_t *p, 
+                             ra_mcs_t mcs,
+                             uint32_t rv,
+                             uint32_t sf_idx,
+                             ra_prb_t *prb_alloc);
+
+LIBLTE_API int harq_setup_ul(harq_t *p, 
+                             ra_mcs_t mcs,
+                             uint32_t rv,
+                             uint32_t sf_idx,
+                             ra_prb_t *prb_alloc);
 
 LIBLTE_API void harq_reset(harq_t *p); 
 

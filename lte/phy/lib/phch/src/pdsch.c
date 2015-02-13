@@ -208,10 +208,10 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     ret = LIBLTE_ERROR;
     
     q->cell = cell;
-    q->max_symbols = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
+    q->max_re = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
 
     INFO("Init PDSCH: %d ports %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
-        q->cell.nof_prb, q->max_symbols);
+        q->cell.nof_prb, q->max_re);
 
     if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
@@ -224,7 +224,7 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
       }
     }
 
-    demod_soft_init(&q->demod, q->max_symbols);
+    demod_soft_init(&q->demod, q->max_re);
     demod_soft_alg_set(&q->demod, APPROX);
     
     sch_init(&q->dl_sch);
@@ -232,26 +232,26 @@ int pdsch_init(pdsch_t *q, lte_cell_t cell) {
     q->rnti_is_set = false; 
 
     // Allocate floats for reception (LLRs)
-    q->pdsch_e = vec_malloc(sizeof(float) * q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pdsch_e = vec_malloc(sizeof(float) * q->max_re * lte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pdsch_e) {
       goto clean;
     }
     
-    q->pdsch_d = vec_malloc(sizeof(cf_t) * q->max_symbols);
+    q->pdsch_d = vec_malloc(sizeof(cf_t) * q->max_re);
     if (!q->pdsch_d) {
       goto clean;
     }
 
     for (i = 0; i < q->cell.nof_ports; i++) {
-      q->ce[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
+      q->ce[i] = vec_malloc(sizeof(cf_t) * q->max_re);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->pdsch_x[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
+      q->pdsch_x[i] = vec_malloc(sizeof(cf_t) * q->max_re);
       if (!q->pdsch_x[i]) {
         goto clean;
       }
-      q->pdsch_symbols[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
+      q->pdsch_symbols[i] = vec_malloc(sizeof(cf_t) * q->max_re);
       if (!q->pdsch_symbols[i]) {
         goto clean;
       }
@@ -306,7 +306,7 @@ int pdsch_set_rnti(pdsch_t *q, uint16_t rnti) {
   uint32_t i;
   for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
     if (sequence_pdsch(&q->seq_pdsch[i], rnti, 0, 2 * i, q->cell.id,
-        q->max_symbols * lte_mod_bits_x_symbol(LTE_QAM64))) {
+        q->max_re * lte_mod_bits_x_symbol(LTE_QAM64))) {
       return LIBLTE_ERROR; 
     }
   }
@@ -318,30 +318,23 @@ int pdsch_set_rnti(pdsch_t *q, uint16_t rnti) {
 
 /** Decodes the PDSCH from the received symbols
  */
-int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, uint8_t *data, uint32_t subframe, 
-                 harq_t *harq_process, uint32_t rv_idx) 
+int pdsch_decode(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, uint8_t *data) 
 {
 
   /* Set pointers for layermapping & precoding */
   uint32_t i, n;
   cf_t *x[MAX_LAYERS];
-  uint32_t nof_symbols, nof_bits, nof_bits_e;
   
   if (q                     != NULL &&
       sf_symbols            != NULL &&
-      data                  != NULL &&
-      subframe              <  10   &&
-      harq_process          != NULL)
+      data                  != NULL && 
+      harq          != NULL)
   {
     
     if (q->rnti_is_set) {
-      nof_bits = harq_process->mcs.tbs;
-      nof_symbols = harq_process->prb_alloc.re_sf[subframe];
-      nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process->mcs.mod);
 
-
-      INFO("Decoding PDSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-          subframe, lte_mod_string(harq_process->mcs.mod), nof_bits, nof_symbols, nof_bits_e, rv_idx);
+      INFO("Decoding PDSCH SF: %d, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+          harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
 
       /* number of layers equals number of ports */
       for (i = 0; i < q->cell.nof_ports; i++) {
@@ -350,17 +343,17 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
         
       /* extract symbols */
-      n = pdsch_get(q, sf_symbols, q->pdsch_symbols[0], &harq_process->prb_alloc, subframe);
-      if (n != nof_symbols) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
+      n = pdsch_get(q, sf_symbols, q->pdsch_symbols[0], &harq->prb_alloc, harq->sf_idx);
+      if (n != harq->nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
         return LIBLTE_ERROR;
       }
       
       /* extract channel estimates */
       for (i = 0; i < q->cell.nof_ports; i++) {
-        n = pdsch_get(q, ce[i], q->ce[i], &harq_process->prb_alloc, subframe);
-        if (n != nof_symbols) {
-          fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
+        n = pdsch_get(q, ce[i], q->ce[i], &harq->prb_alloc, harq->sf_idx);
+        if (n != harq->nof_re) {
+          fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
           return LIBLTE_ERROR;
         }
       }
@@ -369,12 +362,12 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       if (q->cell.nof_ports == 1) {
         /* no need for layer demapping */
         predecoding_single(&q->precoding, q->pdsch_symbols[0], q->ce[0], q->pdsch_d,
-            nof_symbols, noise_estimate);
+            harq->nof_re, noise_estimate);
       } else {
         predecoding_diversity(&q->precoding, q->pdsch_symbols[0], q->ce, x, q->cell.nof_ports,
-            nof_symbols, noise_estimate);
+            harq->nof_re, noise_estimate);
         layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
-            nof_symbols / q->cell.nof_ports);
+            harq->nof_re / q->cell.nof_ports);
       }
       
       /* demodulate symbols 
@@ -382,13 +375,13 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
       * thus we don't need tot set it in the LLRs normalization
       */
       demod_soft_sigma_set(&q->demod, sqrt(0.5));
-      demod_soft_table_set(&q->demod, &q->mod[harq_process->mcs.mod]);
-      demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, nof_symbols);
+      demod_soft_table_set(&q->demod, &q->mod[harq->mcs.mod]);
+      demod_soft_demodulate(&q->demod, q->pdsch_d, q->pdsch_e, harq->nof_re);
 
       /* descramble */
-      scrambling_f_offset(&q->seq_pdsch[subframe], q->pdsch_e, 0, nof_bits_e);
+      scrambling_f_offset(&q->seq_pdsch[harq->sf_idx], q->pdsch_e, 0, harq->nof_bits);
 
-      return dlsch_decode(&q->dl_sch, q->pdsch_e, data, nof_bits, nof_bits_e, harq_process, rv_idx);      
+      return dlsch_decode(&q->dl_sch, harq, q->pdsch_e, data);      
     } else {
       fprintf(stderr, "Must call pdsch_set_rnti() before calling pdsch_decode()\n");
       return LIBLTE_ERROR; 
@@ -402,19 +395,16 @@ int pdsch_decode(pdsch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
 
 /** Converts the PDSCH data bits to symbols mapped to the slot ready for transmission
  */
-int pdsch_encode(pdsch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_t subframe, 
-                 harq_t *harq_process, uint32_t rv_idx) 
+int pdsch_encode(pdsch_t *q, harq_t *harq, uint8_t *data, cf_t *sf_symbols[MAX_PORTS]) 
 {
   int i;
-  uint32_t nof_symbols, nof_bits, nof_bits_e;
   /* Set pointers for layermapping & precoding */
   cf_t *x[MAX_LAYERS];
-   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
    
    if (q             != NULL &&
        data          != NULL &&
-       subframe      <  10   &&
-       harq_process  != NULL)
+        harq  != NULL)
   {
 
     if (q->rnti_is_set) {
@@ -424,28 +414,24 @@ int pdsch_encode(pdsch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_
         }
       }
       
-      nof_bits = harq_process->mcs.tbs;
-      nof_symbols = harq_process->prb_alloc.re_sf[subframe];
-      nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process->mcs.mod);
-
-      if (harq_process->mcs.tbs == 0) {
+      if (harq->mcs.tbs == 0) {
         return LIBLTE_ERROR_INVALID_INPUTS;      
       }
       
-      if (nof_bits > nof_bits_e) {
-        fprintf(stderr, "Invalid code rate %.2f\n", (float) nof_bits / nof_bits_e);
+      if (harq->mcs.tbs > harq->nof_bits) {
+        fprintf(stderr, "Invalid code rate %.2f\n", (float) harq->mcs.tbs / harq->nof_bits);
         return LIBLTE_ERROR_INVALID_INPUTS;
       }
 
-      if (nof_symbols > q->max_symbols) {
+      if (harq->nof_re > q->max_re) {
         fprintf(stderr,
             "Error too many RE per subframe (%d). PDSCH configured for %d RE (%d PRB)\n",
-            nof_symbols, q->max_symbols, q->cell.nof_prb);
+            harq->nof_re, q->max_re, q->cell.nof_prb);
         return LIBLTE_ERROR_INVALID_INPUTS;
       }
 
       INFO("Encoding PDSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-          subframe, lte_mod_string(harq_process->mcs.mod), nof_bits, nof_symbols, nof_bits_e, rv_idx);
+          harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
 
       /* number of layers equals number of ports */
       for (i = 0; i < q->cell.nof_ports; i++) {
@@ -453,27 +439,27 @@ int pdsch_encode(pdsch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_
       }
       memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
 
-      if (dlsch_encode(&q->dl_sch, data, q->pdsch_e, nof_bits, nof_bits_e, harq_process, rv_idx)) {
+      if (dlsch_encode(&q->dl_sch, harq, data, q->pdsch_e)) {
         fprintf(stderr, "Error encoding TB\n");
         return LIBLTE_ERROR;
       }
       
-      scrambling_b_offset(&q->seq_pdsch[subframe], (uint8_t*) q->pdsch_e, 0, nof_bits_e);
+      scrambling_b_offset(&q->seq_pdsch[harq->sf_idx], (uint8_t*) q->pdsch_e, 0, harq->nof_bits);
 
-      mod_modulate(&q->mod[harq_process->mcs.mod], (uint8_t*) q->pdsch_e, q->pdsch_d, nof_bits_e);
+      mod_modulate(&q->mod[harq->mcs.mod], (uint8_t*) q->pdsch_e, q->pdsch_d, harq->nof_bits);
 
       /* TODO: only diversity supported */
       if (q->cell.nof_ports > 1) {
-        layermap_diversity(q->pdsch_d, x, q->cell.nof_ports, nof_symbols);
+        layermap_diversity(q->pdsch_d, x, q->cell.nof_ports, harq->nof_re);
         precoding_diversity(&q->precoding, x, q->pdsch_symbols, q->cell.nof_ports,
-            nof_symbols / q->cell.nof_ports);
+            harq->nof_re / q->cell.nof_ports);
       } else {
-        memcpy(q->pdsch_symbols[0], q->pdsch_d, nof_symbols * sizeof(cf_t));
+        memcpy(q->pdsch_symbols[0], q->pdsch_d, harq->nof_re * sizeof(cf_t));
       }
 
       /* mapping to resource elements */
       for (i = 0; i < q->cell.nof_ports; i++) {
-        pdsch_put(q, q->pdsch_symbols[i], sf_symbols[i], &harq_process->prb_alloc, subframe);
+        pdsch_put(q, q->pdsch_symbols[i], sf_symbols[i], &harq->prb_alloc, harq->sf_idx);
       }
       ret = LIBLTE_SUCCESS;
     } else {

@@ -251,16 +251,15 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
           rvidx = ra_dl.rv_idx;
         }
         if (rvidx == 0) {
-          if (harq_setup(&q->harq_process[0], ra_dl.mcs, &ra_dl.prb_alloc)) {
+          if (harq_setup_dl(&q->harq_process[0], ra_dl.mcs, rvidx, sf_idx, &ra_dl.prb_alloc)) {
             fprintf(stderr, "Error configuring HARQ process\n");
             return LIBLTE_ERROR;
           }
         }
         if (q->harq_process[0].mcs.mod > 0) {
-          ret = pdsch_decode(&q->pdsch, q->sf_symbols, q->ce, 
-                             chest_dl_get_noise_estimate(&q->chest), 
-                             data, sf_idx, 
-                             &q->harq_process[0], rvidx);
+          ret = pdsch_decode(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
+                             q->ce, chest_dl_get_noise_estimate(&q->chest), 
+                             data);
           if (ret == LIBLTE_ERROR) {
             q->pkt_errors++;
           } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {

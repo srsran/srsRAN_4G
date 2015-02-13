@@ -160,11 +160,6 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  if (harq_setup(&harq_process, mcs, &prb_alloc)) {
-    fprintf(stderr, "Error configuring HARQ process\n");
-    goto quit;
-  }
-
   for (uint32_t i=0;i<mcs.tbs;i++) {
     data[i] = 1;
   }
@@ -192,15 +187,24 @@ int main(int argc, char **argv) {
   uci_data.uci_ri = 1; 
   uci_data.uci_ack = 1; 
   
-  uint32_t nof_symbols = 12*harq_process.prb_alloc.slot[0].nof_prb*RE_X_RB;
+  if (harq_setup_ul(&harq_process, mcs, 0, subframe, &prb_alloc)) {
+    fprintf(stderr, "Error configuring HARQ process\n");
+    goto quit;
+  }
 
-  if (pusch_uci_encode(&pusch, data, uci_data, sf_symbols, subframe, &harq_process, 0)) {
+
+  if (pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
     fprintf(stderr, "Error encoding TB\n");
     exit(-1);
   }
 
   if (rv_idx > 0) {
-    if (pusch_uci_encode(&pusch, data, uci_data, sf_symbols, subframe, &harq_process, rv_idx)) {
+    if (harq_setup_ul(&harq_process, mcs, rv_idx, subframe, &prb_alloc)) {
+      fprintf(stderr, "Error configuring HARQ process\n");
+      goto quit;
+    }
+
+    if (pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }

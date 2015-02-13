@@ -162,7 +162,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
   
-  if (harq_setup(&harq_process, mcs, &prb_alloc)) {
+  if (harq_setup_dl(&harq_process, mcs, rv, sf_idx, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }
@@ -209,7 +209,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  int r = pdsch_decode(&pdsch, input_fft, ce, noise_power, data, sf_idx, &harq_process, rv);
+  int r = pdsch_decode(&pdsch, &harq_process, input_fft, ce, noise_power, data);
 
   
   if (nlhs >= 1) { 

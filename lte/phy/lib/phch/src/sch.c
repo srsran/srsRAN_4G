@@ -116,8 +116,7 @@ uint32_t sch_last_noi(sch_t *q) {
 /* Encode a transport block according to 36.212 5.3.2
  *
  */
-static int encode_tb(sch_t *q, uint8_t *data, uint8_t *e_bits, uint32_t tbs, uint32_t nb_e, 
-                    harq_t *harq_process, uint32_t rv_idx) 
+static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uint32_t nof_e_bits) 
 {
   uint8_t parity[24];
   uint8_t *p_parity = parity;
@@ -125,26 +124,26 @@ static int encode_tb(sch_t *q, uint8_t *data, uint8_t *e_bits, uint32_t tbs, uin
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
-  uint32_t Qm = lte_mod_bits_x_symbol(harq_process->mcs.mod);
+  uint32_t Qm = lte_mod_bits_x_symbol(harq->mcs.mod);
   
   if (q             != NULL &&
       data          != NULL &&
-      harq_process  != NULL)
+      harq  != NULL)
   {
   
-    uint32_t Gp = nb_e / Qm;
-    uint32_t gamma = Gp%harq_process->cb_segm.C;
+    uint32_t Gp = nof_e_bits / Qm;
+    uint32_t gamma = Gp%harq->cb_segm.C;
 
-    if (rv_idx == 0) {
+    if (harq->rv == 0) {
       /* Compute transport block CRC */
-      par = crc_checksum(&q->crc_tb, data, tbs);
+      par = crc_checksum(&q->crc_tb, data, harq->mcs.tbs);
 
       /* parity bits will be appended later */
       bit_pack(par, &p_parity, 24);
 
       if (VERBOSE_ISDEBUG()) {
         DEBUG("DATA: ", 0);
-        vec_fprint_b(stdout, data, tbs);
+        vec_fprint_b(stdout, data, harq->mcs.tbs);
         DEBUG("PARITY: ", 0);
         vec_fprint_b(stdout, parity, 24);
       }      
@@ -152,37 +151,37 @@ static int encode_tb(sch_t *q, uint8_t *data, uint8_t *e_bits, uint32_t tbs, uin
     
     wp = 0;
     rp = 0;
-    for (i = 0; i < harq_process->cb_segm.C; i++) {
+    for (i = 0; i < harq->cb_segm.C; i++) {
 
       /* Get read lengths */
-      if (i < harq_process->cb_segm.C2) {
-        cb_len = harq_process->cb_segm.K2;
+      if (i < harq->cb_segm.C2) {
+        cb_len = harq->cb_segm.K2;
       } else {
-        cb_len = harq_process->cb_segm.K1;
+        cb_len = harq->cb_segm.K1;
       }
-      if (harq_process->cb_segm.C > 1) {
+      if (harq->cb_segm.C > 1) {
         rlen = cb_len - 24;
       } else {
         rlen = cb_len;
       }
       if (i == 0) {
-        F = harq_process->cb_segm.F;
+        F = harq->cb_segm.F;
       } else {
         F = 0;
       }
-      if (i <= harq_process->cb_segm.C - gamma - 1) {
-        n_e = Qm * (Gp/harq_process->cb_segm.C);
+      if (i <= harq->cb_segm.C - gamma - 1) {
+        n_e = Qm * (Gp/harq->cb_segm.C);
       } else {
-        n_e = Qm * ((uint32_t) ceilf((float) Gp/harq_process->cb_segm.C));
+        n_e = Qm * ((uint32_t) ceilf((float) Gp/harq->cb_segm.C));
       }
 
       INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,
           cb_len, rlen - F, wp, rp, F, n_e);
 
-      if (rv_idx == 0) {
+      if (harq->rv == 0) {
 
         /* Copy data to another buffer, making space for the Codeblock CRC */
-        if (i < harq_process->cb_segm.C - 1) {
+        if (i < harq->cb_segm.C - 1) {
           // Copy data 
           memcpy(&q->cb_in[F], &data[rp], (rlen - F) * sizeof(uint8_t));
         } else {
@@ -197,7 +196,7 @@ static int encode_tb(sch_t *q, uint8_t *data, uint8_t *e_bits, uint32_t tbs, uin
           q->cb_in[j] = 0;
         }
         /* Attach Codeblock CRC */
-        if (harq_process->cb_segm.C > 1) {
+        if (harq->cb_segm.C > 1) {
           crc_attach(&q->crc_cb, q->cb_in, rlen);
         }
         /* Set the filler bits to <NULL> */
@@ -214,9 +213,9 @@ static int encode_tb(sch_t *q, uint8_t *data, uint8_t *e_bits, uint32_t tbs, uin
       }
       
       /* Rate matching */
-      if (rm_turbo_tx(harq_process->pdsch_w_buff_c[i], harq_process->w_buff_size, 
+      if (rm_turbo_tx(harq->pdsch_w_buff_c[i], harq->w_buff_size, 
                   (uint8_t*) q->cb_out, 3 * cb_len + 12,
-                  &e_bits[wp], n_e, rv_idx))
+                  &e_bits[wp], n_e, harq->rv))
       {
         fprintf(stderr, "Error in rate matching\n");
         return LIBLTE_ERROR;
@@ -236,59 +235,58 @@ static int encode_tb(sch_t *q, uint8_t *data, uint8_t *e_bits, uint32_t tbs, uin
 /* Decode a transport block according to 36.212 5.3.2
  *
  */
-static int decode_tb(sch_t *q, float *e_bits, uint8_t *data, uint32_t tbs, uint32_t nb_e, 
-                    harq_t *harq_process, uint32_t rv_idx) 
+static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint32_t nof_e_bits) 
 {
   uint8_t parity[24];
   uint8_t *p_parity = parity;
   uint32_t par_rx, par_tx;
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
-  uint32_t Qm = lte_mod_bits_x_symbol(harq_process->mcs.mod);
+  uint32_t Qm = lte_mod_bits_x_symbol(harq->mcs.mod);
   
   if (q            != NULL   && 
       data         != NULL   &&       
-      harq_process != NULL)
+      harq != NULL)
   {
 
     rp = 0;
     rp = 0;
     wp = 0;
-    uint32_t Gp = nb_e / Qm;
-    uint32_t gamma = Gp%harq_process->cb_segm.C;
+    uint32_t Gp = nof_e_bits / Qm;
+    uint32_t gamma = Gp%harq->cb_segm.C;
     bool early_stop = true;
-    for (i = 0; i < harq_process->cb_segm.C && early_stop; i++) {
+    for (i = 0; i < harq->cb_segm.C && early_stop; i++) {
 
       /* Get read/write lengths */
-      if (i < harq_process->cb_segm.C2) {
-        cb_len = harq_process->cb_segm.K2;
+      if (i < harq->cb_segm.C2) {
+        cb_len = harq->cb_segm.K2;
       } else {
-        cb_len = harq_process->cb_segm.K1;
+        cb_len = harq->cb_segm.K1;
       }
-      if (harq_process->cb_segm.C == 1) {
+      if (harq->cb_segm.C == 1) {
         rlen = cb_len;
       } else {
         rlen = cb_len - 24;
       }
       if (i == 0) {
-        F = harq_process->cb_segm.F;
+        F = harq->cb_segm.F;
       } else {
         F = 0;
       }
 
-      if (i <= harq_process->cb_segm.C - gamma - 1) {
-        n_e = Qm * (Gp/harq_process->cb_segm.C);
+      if (i <= harq->cb_segm.C - gamma - 1) {
+        n_e = Qm * (Gp/harq->cb_segm.C);
       } else {
-        n_e = Qm * ((uint32_t) ceilf((float) Gp/harq_process->cb_segm.C));
+        n_e = Qm * ((uint32_t) ceilf((float) Gp/harq->cb_segm.C));
       }
 
       INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,
           cb_len, rlen - F, wp, rp, F, n_e);
       
       /* Rate Unmatching */
-      if (rm_turbo_rx(harq_process->pdsch_w_buff_f[i], harq_process->w_buff_size,  
+      if (rm_turbo_rx(harq->pdsch_w_buff_f[i], harq->w_buff_size,  
                   &e_bits[rp], n_e, 
-                  (float*) q->cb_out, 3 * cb_len + 12, rv_idx, F)) {
+                  (float*) q->cb_out, 3 * cb_len + 12, harq->rv, F)) {
         fprintf(stderr, "Error in rate matching\n");
         return LIBLTE_ERROR;
       }
@@ -311,12 +309,12 @@ static int decode_tb(sch_t *q, float *e_bits, uint8_t *data, uint32_t tbs, uint3
         tdec_iteration(&q->decoder, (float*) q->cb_out, cb_len); 
         q->nof_iterations++;
         
-        if (harq_process->cb_segm.C > 1) {
+        if (harq->cb_segm.C > 1) {
           len_crc = cb_len; 
           cb_in_ptr = q->cb_in; 
           crc_ptr = &q->crc_cb; 
         } else {
-          len_crc = tbs+24; 
+          len_crc = harq->mcs.tbs+24; 
           cb_in_ptr = &q->cb_in[F];
           crc_ptr = &q->crc_tb; 
         }
@@ -339,7 +337,7 @@ static int decode_tb(sch_t *q, float *e_bits, uint8_t *data, uint32_t tbs, uint3
       // If CB CRC is not correct, early_stop will be false and wont continue with rest of CBs
 
       /* Copy data to another buffer, removing the Codeblock CRC */
-      if (i < harq_process->cb_segm.C - 1) {
+      if (i < harq->cb_segm.C - 1) {
         memcpy(&data[wp], &q->cb_in[F], (rlen - F) * sizeof(uint8_t));
       } else {
         DEBUG("Last CB, appending parity: %d to %d from %d and 24 from %d\n",
@@ -362,7 +360,7 @@ static int decode_tb(sch_t *q, float *e_bits, uint8_t *data, uint32_t tbs, uint3
       INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
 
       // Compute transport block CRC
-      par_rx = crc_checksum(&q->crc_tb, data, tbs);
+      par_rx = crc_checksum(&q->crc_tb, data, harq->mcs.tbs);
 
       // check parity bits
       par_tx = bit_unpack(&p_parity, 24);
@@ -385,21 +383,18 @@ static int decode_tb(sch_t *q, float *e_bits, uint8_t *data, uint32_t tbs, uint3
   }
 }
 
-int dlsch_decode(sch_t *q, float *e_bits, uint8_t *data, uint32_t tbs, uint32_t nb_e, 
-                    harq_t *harq_process, uint32_t rv_idx) 
+int dlsch_decode(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data) 
 {
-  return decode_tb(q, e_bits, data, tbs, nb_e, harq_process, rv_idx);
+  return decode_tb(q, harq, e_bits, data, harq->nof_bits);
 }
 
-int dlsch_encode(sch_t *q, uint8_t *data, uint8_t *e_bits, uint32_t tbs, uint32_t nb_e, 
-                    harq_t *harq_process, uint32_t rv_idx) {
-  return encode_tb(q, data, e_bits, tbs, nb_e, harq_process, rv_idx);
+int dlsch_encode(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits) {
+  return encode_tb(q, harq, data, e_bits, harq->nof_bits);
 }
 
-int ulsch_decode(sch_t *q, float *e_bits, uint8_t *data, uint32_t tbs, uint32_t nb_e, 
-                    harq_t *harq_process, uint32_t rv_idx) 
+int ulsch_decode(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data) 
 {
-  return decode_tb(q, e_bits, data, tbs, nb_e, harq_process, rv_idx);
+  return decode_tb(q, harq, e_bits, data, harq->nof_bits);
 }
 
 
@@ -426,17 +421,15 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Q_m, uint32_t H_prime_total, uin
   
 }
 
-int ulsch_encode(sch_t *q, uint8_t *data, uint8_t *g_bits, 
-                 harq_t *harq_process, uint32_t rv_idx, uint8_t *q_bits) 
+int ulsch_encode(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *g_bits, uint8_t *q_bits) 
 {
   uci_data_t uci_data; 
   bzero(&uci_data, sizeof(uci_data_t));
-  return ulsch_uci_encode(q, data, uci_data, g_bits, harq_process, rv_idx, q_bits);
+  return ulsch_uci_encode(q, harq, data, uci_data, g_bits, q_bits);
 }
 
 
-int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bits, 
-                 harq_t *harq_process, uint32_t rv_idx, uint8_t *q_bits) 
+int ulsch_uci_encode(sch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data, uint8_t *g_bits, uint8_t *q_bits) 
 {
   int ret; 
    
@@ -444,9 +437,9 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
   uint32_t Q_prime_cqi = 0; 
   uint32_t Q_prime_ack = 0;
   uint32_t Q_prime_ri = 0;
-  uint32_t Q_m = lte_mod_bits_x_symbol(harq_process->mcs.mod);
+  uint32_t Q_m = lte_mod_bits_x_symbol(harq->mcs.mod);
   
-  uint32_t nof_symbols = 12*harq_process->prb_alloc.slot[0].nof_prb*RE_X_RB;
+  uint32_t nof_symbols = 12*harq->prb_alloc.slot[0].nof_prb*RE_X_RB;
   uint32_t nb_q = nof_symbols * Q_m;
 
   bzero(q_bits, sizeof(uint8_t) * nb_q);
@@ -454,10 +447,10 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
   // Encode RI
   if (uci_data.uci_ri_len > 0) {
     float beta = uci_data.beta_ri; 
-    if (harq_process->mcs.tbs == 0) {
+    if (harq->mcs.tbs == 0) {
         beta /= uci_data.beta_cqi;
     }
-    ret = uci_encode_ri(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq_process, nb_q/Q_m, q_bits);
+    ret = uci_encode_ri(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq, nb_q/Q_m, q_bits);
     if (ret < 0) {
       return ret; 
     }
@@ -468,7 +461,7 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
   if (uci_data.uci_cqi_len > 0) {
 
     ret = uci_encode_cqi_pusch(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, uci_data.beta_cqi, 
-                                 Q_prime_ri, harq_process, g_bits);
+                                 Q_prime_ri, harq, g_bits);
     if (ret < 0) {
       return ret; 
     }
@@ -478,25 +471,24 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
   e_offset += Q_prime_cqi*Q_m;
   
   // Encode UL-SCH
-  if (harq_process->mcs.tbs > 0) {
+  if (harq->mcs.tbs > 0) {
     uint32_t G = nb_q/Q_m - Q_prime_ri - Q_prime_cqi;     
-    ret = encode_tb(q, data, &g_bits[e_offset], harq_process->mcs.tbs, 
-                G*Q_m, harq_process, rv_idx);
+    ret = encode_tb(q, harq, data, &g_bits[e_offset], G*Q_m);
     if (ret) {
       return ret; 
     }    
   } 
     
   // Interleave UL-SCH (and RI and CQI)
-  ulsch_interleave(g_bits, Q_m, nb_q/Q_m, harq_process->N_symb_ul, q_bits);
+  ulsch_interleave(g_bits, Q_m, nb_q/Q_m, harq->nof_symb, q_bits);
   
    // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
     float beta = uci_data.beta_ack; 
-    if (harq_process->mcs.tbs == 0) {
+    if (harq->mcs.tbs == 0) {
         beta /= uci_data.beta_cqi;
     }
-    ret = uci_encode_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq_process, nb_q/Q_m, q_bits);
+    ret = uci_encode_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq, nb_q/Q_m, q_bits);
     if (ret < 0) {
       return ret; 
     }

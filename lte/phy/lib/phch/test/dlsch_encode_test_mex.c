@@ -78,7 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field RV not found in dlsch config\n");
     return;
   }
-  
+
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");
   
   if (!strcmp(mod_str, "QPSK")) {
@@ -94,24 +94,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mxFree(mod_str);
       
-  if (harq_setup(&harq_process, mcs, &prb_alloc)) {
+  if (harq_setup_dl(&harq_process, mcs, rv, 0, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }
+  harq_process.nof_bits = mxGetScalar(OUTLEN); 
     
-  uint32_t nof_bits_e = (uint32_t) mxGetScalar(OUTLEN);  
-  uint8_t *e_bits = vec_malloc(nof_bits_e * sizeof(uint8_t));
+  uint8_t *e_bits = vec_malloc(harq_process.nof_bits* sizeof(uint8_t));
   if (!e_bits) {
     return;
   }
 
-  if (dlsch_encode(&dlsch, trblkin, e_bits, mcs.tbs, nof_bits_e, &harq_process, rv)) {
+  if (dlsch_encode(&dlsch, &harq_process, trblkin, e_bits)) {
     mexErrMsgTxt("Error encoding TB\n");
     return;
   }
   
   if (nlhs >= 1) {
-    mexutils_write_uint8(e_bits, &plhs[0], nof_bits_e, 1);  
+    mexutils_write_uint8(e_bits, &plhs[0], harq_process.nof_bits, 1);  
   }
   
   sch_free(&dlsch);

@@ -79,42 +79,31 @@ LIBLTE_API float sch_average_noi(sch_t *q);
 LIBLTE_API uint32_t sch_last_noi(sch_t *q);
 
 LIBLTE_API int dlsch_encode(sch_t *q, 
+                            harq_t *harq_process,
                             uint8_t *data, 
-                            uint8_t *e_bits,
-                            uint32_t tbs, 
-                            uint32_t nb_e, 
-                            harq_t *harq_process, 
-                            uint32_t rv_idx);
+                            uint8_t *e_bits);
 
 LIBLTE_API int dlsch_decode(sch_t *q, 
+                            harq_t *harq_process,
                             float *e_bits, 
-                            uint8_t *data, 
-                            uint32_t tbs, 
-                            uint32_t nb_e, 
-                            harq_t *harq_process, 
-                            uint32_t rv_idx);
+                            uint8_t *data);
 
 LIBLTE_API int ulsch_encode(sch_t *q, 
+                            harq_t *harq_process,
                             uint8_t *data, 
                             uint8_t *g_bits,
-                            harq_t *harq_process, 
-                            uint32_t rv_idx,
                             uint8_t *q_bits);
 
 LIBLTE_API int ulsch_uci_encode(sch_t *q, 
+                                harq_t *harq_process,
                                 uint8_t *data, 
                                 uci_data_t uci_data, 
                                 uint8_t *g_bits,
-                                harq_t *harq_process, 
-                                uint32_t rv_idx, 
                                 uint8_t *q_bits);
 
 LIBLTE_API int ulsch_decode(sch_t *q, 
+                            harq_t *harq_process,
                             float *e_bits, 
-                            uint8_t *data, 
-                            uint32_t tbs, 
-                            uint32_t nb_e, 
-                            harq_t *harq_process, 
-                            uint32_t rv_idx);
+                            uint8_t *data);
 
 #endif

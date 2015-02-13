@@ -284,12 +284,11 @@ int main(int argc, char **argv) {
         goto goout;
       }
       if (ra_dl.mcs.tbs > 0) {
-        if (harq_setup(&harq_process, ra_dl.mcs, &ra_dl.prb_alloc)) {
+        if (harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &ra_dl.prb_alloc)) {
           fprintf(stderr, "Error configuring HARQ process\n");
           goto goout;
         }
-        if (pdsch_decode(&pdsch, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), 
-              data, sf_idx, &harq_process, ra_dl.rv_idx)) {
+        if (pdsch_decode(&pdsch, &harq_process, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), data)) {
           fprintf(stderr, "Error decoding PDSCH\n");
           goto goout;
         } else {

@@ -49,7 +49,7 @@ typedef _Complex float cf_t;
 typedef struct LIBLTE_API {
   lte_cell_t cell;
   
-  uint32_t max_symbols;
+  uint32_t max_re;
   bool rnti_is_set; 
   uint16_t rnti; 
   
@@ -79,30 +79,20 @@ LIBLTE_API void pdsch_free(pdsch_t *q);
 LIBLTE_API int pdsch_set_rnti(pdsch_t *q, 
                                uint16_t rnti);
 
-LIBLTE_API int pdsch_encode(pdsch_t *q, 
+LIBLTE_API int pdsch_encode(pdsch_t *q,
+                            harq_t *harq_process,
                             uint8_t *data, 
-                            cf_t *sf_symbols[MAX_PORTS],
-                            uint32_t nsubframe,
-                            harq_t *harq_process, 
-                            uint32_t rv_idx);
+                            cf_t *sf_symbols[MAX_PORTS]);
 
 LIBLTE_API int pdsch_decode(pdsch_t *q, 
+                            harq_t *harq_process, 
                             cf_t *sf_symbols, 
                             cf_t *ce[MAX_PORTS],
                             float noise_estimate, 
-                            uint8_t *data, 
-                            uint32_t nsubframe,
-                            harq_t *harq_process, 
-                            uint32_t rv_idx);
+                            uint8_t *data);
 
 LIBLTE_API float pdsch_average_noi(pdsch_t *q); 
 
 LIBLTE_API uint32_t pdsch_last_noi(pdsch_t *q); 
-
-LIBLTE_API int pdsch_get(pdsch_t *q, 
-                         cf_t *sf_symbols, 
-                         cf_t *pdsch_symbols,
-                         ra_prb_t *prb_alloc, 
-                         uint32_t subframe);
 
 #endif
