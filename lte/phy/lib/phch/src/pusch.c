@@ -41,7 +41,7 @@
 #include "liblte/phy/utils/bit.h"
 #include "liblte/phy/utils/debug.h"
 #include "liblte/phy/utils/vector.h"
-
+#include "liblte/phy/filter/dft_precoding.h"
 
 #define MAX_PUSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
 
@@ -118,6 +118,14 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
     
     sch_init(&q->dl_sch);
     
+    dft_precoding_init(&q->dft_precoding, cell.nof_prb);
+    
+    /* This is for equalization at receiver */
+    if (precoding_init(&q->equalizer, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+      fprintf(stderr, "Error initializing precoding\n");
+      goto clean; 
+    }
+
     q->rnti_is_set = false; 
 
     // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
@@ -136,19 +144,13 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
       goto clean;
     }
 
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      q->ce[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
-      if (!q->ce[i]) {
-        goto clean;
-      }
-      q->pusch_x[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
-      if (!q->pusch_x[i]) {
-        goto clean;
-      }
-      q->pusch_symbols[i] = vec_malloc(sizeof(cf_t) * q->max_symbols);
-      if (!q->pusch_symbols[i]) {
-        goto clean;
-      }
+    q->ce = vec_malloc(sizeof(cf_t) * q->max_symbols);
+    if (!q->ce) {
+      goto clean;
+    }
+    q->pusch_z = vec_malloc(sizeof(cf_t) * q->max_symbols);
+    if (!q->pusch_z) {
+      goto clean;
     }
 
     ret = LIBLTE_SUCCESS;
@@ -172,18 +174,17 @@ void pusch_free(pusch_t *q) {
   if (q->pusch_g) {
     free(q->pusch_g);
   }
-  for (i = 0; i < q->cell.nof_ports; i++) {
-    if (q->ce[i]) {
-      free(q->ce[i]);
-    }
-    if (q->pusch_x[i]) {
-      free(q->pusch_x[i]);
-    }
-    if (q->pusch_symbols[i]) {
-      free(q->pusch_symbols[i]);
-    }
+  if (q->ce) {
+    free(q->ce);
   }
+  if (q->pusch_z) {
+    free(q->pusch_z);
+  }
+  
+  dft_precoding_free(&q->dft_precoding);
 
+  precoding_free(&q->equalizer);
+  
   for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
     sequence_free(&q->seq_pusch[i]);
   }
@@ -215,13 +216,12 @@ int pusch_set_rnti(pusch_t *q, uint16_t rnti) {
 
 /** Decodes the PUSCH from the received symbols
  */
-int pusch_decode(pusch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, uint8_t *data, uint32_t subframe, 
+int pusch_decode(pusch_t *q, cf_t *sf_symbols, cf_t *ce, float noise_estimate, uint8_t *data, uint32_t subframe, 
                  harq_t *harq_process, uint32_t rv_idx) 
 {
 
   /* Set pointers for layermapping & precoding */
-  uint32_t i, n;
-  cf_t *x[MAX_LAYERS];
+  uint32_t n;
   uint32_t nof_symbols, nof_bits, nof_bits_e;
   
   if (q                     != NULL &&
@@ -233,34 +233,31 @@ int pusch_decode(pusch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
     
     if (q->rnti_is_set) {
       nof_bits = harq_process->mcs.tbs;
-      nof_symbols = harq_process->prb_alloc.re_sf[subframe];
+      nof_symbols = 2*harq_process->prb_alloc.slot[0].nof_prb*RE_X_RB*(CP_NSYMB(q->cell.cp)-1);
       nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process->mcs.mod);
-
 
       INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
           subframe, lte_mod_string(harq_process->mcs.mod), nof_bits, nof_symbols, nof_bits_e, rv_idx);
 
-      /* number of layers equals number of ports */
-      for (i = 0; i < q->cell.nof_ports; i++) {
-        x[i] = q->pusch_x[i];
-      }
-      memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
-        
       /* extract symbols */
-      n = pusch_get(q, sf_symbols, q->pusch_symbols[0], &harq_process->prb_alloc, subframe);
+      n = pusch_get(q, sf_symbols, q->pusch_d, &harq_process->prb_alloc, subframe);
       if (n != nof_symbols) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
         return LIBLTE_ERROR;
       }
       
       /* extract channel estimates */
-      for (i = 0; i < q->cell.nof_ports; i++) {
-        n = pusch_get(q, ce[i], q->ce[i], &harq_process->prb_alloc, subframe);
-        if (n != nof_symbols) {
-          fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
-          return LIBLTE_ERROR;
-        }
+      n = pusch_get(q, ce, q->ce, &harq_process->prb_alloc, subframe);
+      if (n != nof_symbols) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", nof_symbols, n);
+        return LIBLTE_ERROR;
       }
+      
+      predecoding_single(&q->equalizer, q->pusch_d, q->ce, q->pusch_z,
+            nof_symbols, noise_estimate);
+
+      dft_predecoding(&q->dft_precoding, q->pusch_z, q->pusch_d, 
+                      harq_process->prb_alloc.slot[0].nof_prb, harq_process->N_symb_ul);
       
       /* demodulate symbols 
       * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
@@ -277,14 +274,13 @@ int pusch_decode(pusch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_
     } else {
       fprintf(stderr, "Must call pusch_set_rnti() before calling pusch_decode()\n");
       return LIBLTE_ERROR; 
-    }
-    
+    }    
   } else {
     return LIBLTE_ERROR_INVALID_INPUTS;
   }
 }
 
-int pusch_qncode(pusch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_t subframe, 
+int pusch_encode(pusch_t *q, uint8_t *data, cf_t *sf_symbols, uint32_t subframe, 
                  harq_t *harq_process, uint32_t rv_idx) 
 {
   uci_data_t uci_data; 
@@ -295,28 +291,19 @@ int pusch_qncode(pusch_t *q, uint8_t *data, cf_t *sf_symbols[MAX_PORTS], uint32_
 /** Converts the PUSCH data bits to symbols mapped to the slot ready for transmission
  */
 int pusch_uci_encode(pusch_t *q, uint8_t *data, uci_data_t uci_data, 
-                     cf_t *sf_symbols[MAX_PORTS], uint32_t subframe, 
+                     cf_t *sf_symbols, uint32_t subframe, 
                      harq_t *harq_process, uint32_t rv_idx) 
 {
-  int i;
   uint32_t nof_symbols, nof_bits_ulsch, nof_bits_e;
-  /* Set pointers for layermapping & precoding */
-  cf_t *x[MAX_LAYERS];
-   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
    
-   if (q             != NULL &&
+  if (q             != NULL &&
        data          != NULL &&
        subframe      <  10   &&
        harq_process  != NULL)
   {
 
     if (q->rnti_is_set) {
-      for (i=0;i<q->cell.nof_ports;i++) {
-        if (sf_symbols[i] == NULL) {
-          return LIBLTE_ERROR_INVALID_INPUTS;
-        }
-      }
-      
       nof_bits_ulsch = harq_process->mcs.tbs;
       nof_symbols = 2*harq_process->prb_alloc.slot[0].nof_prb*RE_X_RB*(CP_NSYMB(q->cell.cp)-1);
       nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process->mcs.mod);
@@ -339,12 +326,6 @@ int pusch_uci_encode(pusch_t *q, uint8_t *data, uci_data_t uci_data,
 
       INFO("Encoding PUSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
           subframe, lte_mod_string(harq_process->mcs.mod), nof_bits_ulsch, nof_symbols, nof_bits_e, rv_idx);
-
-      /* number of layers equals number of ports */
-      for (i = 0; i < q->cell.nof_ports; i++) {
-        x[i] = q->pusch_x[i];
-      }
-      memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
       
       if (ulsch_uci_encode(&q->dl_sch, data, uci_data, q->pusch_g, harq_process, rv_idx, q->pusch_q)) 
       {
@@ -356,11 +337,11 @@ int pusch_uci_encode(pusch_t *q, uint8_t *data, uci_data_t uci_data,
 
       mod_modulate(&q->mod[harq_process->mcs.mod], (uint8_t*) q->pusch_q, q->pusch_d, nof_bits_e);
       
-      /* mapping to resource elements */
+      dft_precoding(&q->dft_precoding, q->pusch_d, q->pusch_z, 
+                    harq_process->prb_alloc.slot[0].nof_prb, harq_process->N_symb_ul);
       
-      for (i = 0; i < q->cell.nof_ports; i++) {
-        pusch_put(q, q->pusch_symbols[i], sf_symbols[i], &harq_process->prb_alloc, subframe);
-      }
+      /* mapping to resource elements */      
+      pusch_put(q, q->pusch_z, sf_symbols, &harq_process->prb_alloc, subframe);
       
       ret = LIBLTE_SUCCESS;
     } else {

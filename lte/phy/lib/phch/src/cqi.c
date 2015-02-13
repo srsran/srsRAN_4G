@@ -41,17 +41,37 @@
 #include "liblte/phy/utils/debug.h"
 
 
-void cqi_hl_subband_pack(cqi_hl_subband_t *msg, uint32_t N, uint8_t *buff, uint32_t buff_len) 
+int cqi_hl_subband_pack(cqi_hl_subband_t *msg, uint32_t N, uint8_t *buff, uint32_t buff_len) 
 {
   uint8_t *body_ptr = buff; 
   bit_pack(msg->wideband_cqi, &body_ptr, 4);
   bit_pack(msg->subband_diff_cqi, &body_ptr, 2*N);
+  
+  return 4+2*N;
 }
 
-void cqi_ue_subband_pack(cqi_ue_subband_t *msg, uint32_t L, uint8_t *buff, uint32_t buff_len)
+int cqi_ue_subband_pack(cqi_ue_subband_t *msg, uint32_t L, uint8_t *buff, uint32_t buff_len)
 {
   uint8_t *body_ptr = buff; 
   bit_pack(msg->wideband_cqi, &body_ptr, 4);
   bit_pack(msg->subband_diff_cqi, &body_ptr, 2);  
   bit_pack(msg->subband_diff_cqi, &body_ptr, L);  
+  
+  return 4+2+L;
 }
+
+int cqi_format2_wideband_pack(cqi_format2_wideband_t *msg, uint8_t *buff, uint32_t buff_len) 
+{
+  uint8_t *body_ptr = buff; 
+  bit_pack(msg->wideband_cqi, &body_ptr, 4);  
+  return 4;  
+}
+
+int cqi_format2_subband_pack(cqi_format2_subband_t *msg, uint8_t *buff, uint32_t buff_len) 
+{
+  uint8_t *body_ptr = buff; 
+  bit_pack(msg->subband_cqi, &body_ptr, 4);  
+  bit_pack(msg->subband_label, &body_ptr, 1);  
+  return 4+1;    
+}
+

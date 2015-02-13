@@ -134,6 +134,7 @@ ADD_EXECUTABLE(pusch_test pusch_test.c)
 TARGET_LINK_LIBRARIES(pusch_test lte_phy)
 
 BuildMex(MEXNAME ulsch_encode SOURCES ulsch_encode_test_mex.c LIBRARIES lte_phy liblte_mex)
+BuildMex(MEXNAME pusch_encode SOURCES pusch_encode_test_mex.c LIBRARIES lte_phy liblte_mex)
 
 
 

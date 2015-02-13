@@ -26,7 +26,7 @@
  */
 
 
-#ifndef PUCH_
+#ifndef PUSCH_
 #define PUSCH_
 
 #include "liblte/config.h"
@@ -39,24 +39,28 @@
 #include "liblte/phy/phch/regs.h"
 #include "liblte/phy/phch/sch.h"
 #include "liblte/phy/phch/harq.h"
+#include "liblte/phy/filter/dft_precoding.h"
 
 #define TDEC_MAX_ITERATIONS         5
 
 typedef _Complex float cf_t;
 
-/* PDSCH object */
+/* PUSCH object */
 typedef struct LIBLTE_API {
   lte_cell_t cell;
   
   uint32_t max_symbols;
   bool rnti_is_set; 
   uint16_t rnti; 
+
+  dft_precoding_t dft_precoding;  
+  
+  precoding_t equalizer; 
   
   /* buffers */
   // void buffers are shared for tx and rx
-  cf_t *ce[MAX_PORTS];
-  cf_t *pusch_symbols[MAX_PORTS];
-  cf_t *pusch_x[MAX_PORTS];
+  cf_t *ce;
+  cf_t *pusch_z;
   cf_t *pusch_d;
 
   void *pusch_q;
@@ -84,7 +88,7 @@ LIBLTE_API int pusch_set_rnti(pusch_t *q,
 
 LIBLTE_API int pusch_encode(pusch_t *q, 
                             uint8_t *data, 
-                            cf_t *sf_symbols[MAX_PORTS],
+                            cf_t *sf_symbols,
                             uint32_t nsubframe,
                             harq_t *harq_process, 
                             uint32_t rv_idx);
@@ -92,14 +96,14 @@ LIBLTE_API int pusch_encode(pusch_t *q,
 LIBLTE_API int pusch_uci_encode(pusch_t *q, 
                                 uint8_t *data, 
                                 uci_data_t uci_data, 
-                                cf_t *sf_symbols[MAX_PORTS], 
+                                cf_t *sf_symbols, 
                                 uint32_t subframe, 
                                 harq_t *harq_process, 
                                 uint32_t rv_idx);
 
 LIBLTE_API int pusch_decode(pusch_t *q, 
                             cf_t *sf_symbols, 
-                            cf_t *ce[MAX_PORTS],
+                            cf_t *ce,
                             float noise_estimate, 
                             uint8_t *data, 
                             uint32_t nsubframe,

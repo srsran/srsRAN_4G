@@ -467,7 +467,7 @@ int ulsch_uci_encode(sch_t *q, uint8_t *data, uci_data_t uci_data, uint8_t *g_bi
   // Encode CQI
   if (uci_data.uci_cqi_len > 0) {
 
-    ret = uci_encode_cqi(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, uci_data.beta_cqi, 
+    ret = uci_encode_cqi_pusch(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, uci_data.beta_cqi, 
                                  Q_prime_ri, harq_process, g_bits);
     if (ret < 0) {
       return ret; 

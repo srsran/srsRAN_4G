@@ -44,7 +44,7 @@
 #include "liblte/phy/utils/debug.h"
 
 /* Table 5.2.2.6.4-1: Basis sequence for (32, O) code */
-static uint8_t M_basis_seq[32][11]={
+static uint8_t M_basis_seq_pusch[32][11]={
                                     {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
                                     {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1 },
                                     {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1 },
@@ -79,14 +79,38 @@ static uint8_t M_basis_seq[32][11]={
                                     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
                                     };
 
-int uci_cqi_init(uci_cqi_t *q) {
+
+static uint8_t M_basis_seq_pucch[20][13]={
+                                  {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0},
+                                  {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
+                                  {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1},
+                                  {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1},
+                                  {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1},
+                                  {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1},
+                                  {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1},
+                                  {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1},
+                                  {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1},
+                                  {1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1},
+                                  {1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1},
+                                  {1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1},
+                                  {1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1},
+                                  {1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1},
+                                  {1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1},
+                                  {1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1},
+                                  {1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1},
+                                  {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1},
+                                  {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
+                                  {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0},
+                                  };                                    
+                                    
+int uci_cqi_init(uci_cqi_pusch_t *q) {
   if (crc_init(&q->crc, LTE_CRC8, 8)) {
     return LIBLTE_ERROR;
   }
   return LIBLTE_SUCCESS;
 }
 
-void uci_cqi_free(uci_cqi_t *q) {
+void uci_cqi_free(uci_cqi_pusch_t *q) {
   
 }
 
@@ -112,17 +136,17 @@ static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, harq_t 
 
 /* Encode UCI CQI/PMI for payloads equal or lower to 11 bits (Sec 5.2.2.6.4)
  */
-int encode_cqi_short(uci_cqi_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
+int encode_cqi_short(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
 {
-  if (nof_bits          < MAX_CQI_LEN &&
-      q                 != NULL       &&
-      data              != NULL       &&
+  if (nof_bits          < MAX_CQI_LEN_PUSCH &&
+      q                 != NULL             &&
+      data              != NULL             &&
       q_bits            != NULL) 
   {
     for (int i=0;i<32;i++) {
       q->encoded_cqi[i] = 0;
       for (int n=0;n<nof_bits;n++) {
-        q->encoded_cqi[i] += (data[n] * M_basis_seq[i][n]); 
+        q->encoded_cqi[i] += (data[n] * M_basis_seq_pusch[i][n]); 
       }
     }
     
@@ -137,13 +161,13 @@ int encode_cqi_short(uci_cqi_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_
 
 /* Encode UCI CQI/PMI for payloads greater than 11 bits (go through CRC, conv coder and rate match)
  */
-int encode_cqi_long(uci_cqi_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
+int encode_cqi_long(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
 {
   convcoder_t encoder;
 
-  if (nof_bits + 8 < MAX_CQI_LEN &&
-      q            != NULL       &&
-      data         != NULL       &&
+  if (nof_bits + 8 < MAX_CQI_LEN_PUSCH &&
+      q            != NULL             &&
+      data         != NULL             &&
       q_bits       != NULL) 
   {
 
@@ -173,9 +197,27 @@ int encode_cqi_long(uci_cqi_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_b
   }
 }
 
+/* Encode UCI CQI/PMI as described in 5.2.3.3 of 36.212 
+ */
+int uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[CQI_CODED_PUCCH_B])
+{
+  if (cqi_len <= MAX_CQI_LEN_PUCCH) {
+    for (uint32_t i=0;i<CQI_CODED_PUCCH_B;i++) {
+      uint64_t x=0;
+      for (uint32_t n=0;n<cqi_len;n++) {
+        x += cqi_data[n]*M_basis_seq_pucch[n][i];
+      }
+      b_bits[i] = (uint8_t) (x%2);
+    }
+    return LIBLTE_SUCCESS;
+  } else {
+    return LIBLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
 /* Encode UCI CQI/PMI as described in 5.2.2.6 of 36.212 
  */
-int uci_encode_cqi(uci_cqi_t *q, uint8_t *cqi_data, uint32_t cqi_len, float beta, uint32_t Q_prime_ri, 
+int uci_encode_cqi_pusch(uci_cqi_pusch_t *q, uint8_t *cqi_data, uint32_t cqi_len, float beta, uint32_t Q_prime_ri, 
                    harq_t *harq_process, uint8_t *q_bits)
 {
   
@@ -312,4 +354,5 @@ int uci_encode_ri(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq_process
   
   return (int) Qprime;
 }
+
 

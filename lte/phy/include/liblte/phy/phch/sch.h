@@ -65,7 +65,7 @@ typedef struct LIBLTE_API {
   crc_t crc_tb;
   crc_t crc_cb;
   
-  uci_cqi_t uci_cqi; 
+  uci_cqi_pusch_t uci_cqi; 
   
 } sch_t;
 

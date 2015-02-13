@@ -50,20 +50,19 @@ lte_mod_t modulation = LTE_QPSK;
 uint32_t rv_idx = 0;
 
 void usage(char *prog) {
-  printf("Usage: %s [cpsrnfvmt] -l TBS \n", prog);
+  printf("Usage: %s [csrnfvmt] -l TBS \n", prog);
   printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
   printf("\t-r rv_idx [Default %d]\n", rv_idx);
   printf("\t-f cfi [Default %d]\n", cfi);
-  printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lcpnfvmtsr")) != -1) {
+  while ((opt = getopt(argc, argv, "lcnfvmtsr")) != -1) {
     switch(opt) {
     case 'm':
       switch(atoi(argv[optind])) {
@@ -94,9 +93,6 @@ void parse_args(int argc, char **argv) {
     case 'l':
       tbs = atoi(argv[optind]);
       break;
-    case 'p':
-      cell.nof_ports = atoi(argv[optind]);
-      break;
     case 'n':
       cell.nof_prb = atoi(argv[optind]);
       break;
@@ -115,11 +111,10 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   pusch_t pusch;
-  uint32_t i, j;
   uint8_t *data = NULL;
-  cf_t *ce[MAX_PORTS];
+  cf_t *ce;
   uint32_t nof_re;
-  cf_t *slot_symbols[MAX_PORTS];
+  cf_t *sf_symbols;
   int ret = -1;
   struct timeval t[3];
   ra_mcs_t mcs;
@@ -134,26 +129,18 @@ int main(int argc, char **argv) {
   mcs.mod = modulation;
   
   prb_alloc.slot[0].nof_prb = 1;
-  //for (i=0;i<prb_alloc.slot[0].nof_prb;i++) {
-  //  prb_alloc.slot[0].prb_idx[i] = true;
-  //}
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
   /* init memory */
-  for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = malloc(sizeof(cf_t) * nof_re);
-    if (!ce[i]) {
-      perror("malloc");
-      goto quit;
-    }
-    for (j=0;j<nof_re;j++) {
-      ce[i][j] = 1;
-    }
-    slot_symbols[i] = calloc(sizeof(cf_t) , nof_re);
-    if (!slot_symbols[i]) {
-      perror("malloc");
-      goto quit;
-    }
+  ce = malloc(sizeof(cf_t) * nof_re);
+  if (!ce) {
+    perror("malloc");
+    goto quit;
+  }
+  sf_symbols = calloc(sizeof(cf_t) , nof_re);
+  if (!sf_symbols) {
+    perror("malloc");
+    goto quit;
   }
 
   data = malloc(sizeof(uint8_t) * mcs.tbs);
@@ -178,7 +165,7 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  for (i=0;i<mcs.tbs;i++) {
+  for (uint32_t i=0;i<mcs.tbs;i++) {
     data[i] = 1;
   }
 
@@ -188,7 +175,7 @@ int main(int argc, char **argv) {
   printf("Encoding rv_idx=%d\n",rv_idx);
   
   uint8_t tmp[20];
-  for (i=0;i<20;i++) {
+  for (uint32_t i=0;i<20;i++) {
     tmp[i] = 1;
   }
   uci_data_t uci_data; 
@@ -206,37 +193,19 @@ int main(int argc, char **argv) {
   uci_data.uci_ack = 1; 
   
   uint32_t nof_symbols = 12*harq_process.prb_alloc.slot[0].nof_prb*RE_X_RB;
-  uint32_t nof_bits_e = nof_symbols * lte_mod_bits_x_symbol(harq_process.mcs.mod);
 
-  bzero(pusch.pusch_q, nof_bits_e*sizeof(uint8_t));
-  
-
-  if (ulsch_uci_encode(&pusch.dl_sch, data, uci_data, pusch.pusch_g, &harq_process, 0, pusch.pusch_q)) 
-  {
+  if (pusch_uci_encode(&pusch, data, uci_data, sf_symbols, subframe, &harq_process, 0)) {
     fprintf(stderr, "Error encoding TB\n");
     exit(-1);
   }
 
   if (rv_idx > 0) {
-    if (ulsch_uci_encode(&pusch.dl_sch, data, uci_data, pusch.pusch_g, &harq_process, rv_idx, pusch.pusch_q)) 
-    {
+    if (pusch_uci_encode(&pusch, data, uci_data, sf_symbols, subframe, &harq_process, rv_idx)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
-
   }
-  vec_fprint_b(stdout, pusch.pusch_q, nof_bits_e);
 
-  /* combine outputs */
-  for (i=0;i<cell.nof_ports;i++) {
-    for (j=0;j<nof_re;j++) {
-      if (i > 0) {
-        slot_symbols[0][j] += slot_symbols[i][j];
-      }
-      ce[i][j] = 1;
-    }
-  }
-  
   gettimeofday(&t[1], NULL);
   //int r = pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
   int r = 0; 
@@ -255,13 +224,11 @@ quit:
   pusch_free(&pusch);
   harq_free(&harq_process);
   
-  for (i=0;i<cell.nof_ports;i++) {
-    if (ce[i]) {
-      free(ce[i]);
-    }
-    if (slot_symbols[i]) {
-      free(slot_symbols[i]);
-    }
+  if (ce) {
+    free(ce);
+  }
+  if (sf_symbols) {
+    free(sf_symbols);
   }
   if (data) {
     free(data);

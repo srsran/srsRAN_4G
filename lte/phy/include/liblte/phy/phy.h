@@ -71,6 +71,7 @@
 #include "liblte/phy/fec/rm_turbo.h"
 
 #include "liblte/phy/filter/filter2d.h"
+#include "liblte/phy/filter/dft_precoding.h"
 
 #include "liblte/phy/io/binsource.h"
 #include "liblte/phy/io/filesink.h"
@@ -86,17 +87,18 @@
 #include "liblte/phy/mimo/precoding.h"
 #include "liblte/phy/mimo/layermap.h"
 
-#include "liblte/phy/phch/regs.h"
+#include "liblte/phy/phch/cqi.h"
 #include "liblte/phy/phch/dci.h"
-#include "liblte/phy/phch/pdcch.h"
-#include "liblte/phy/phch/pdsch.h"
+#include "liblte/phy/phch/harq.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/phch/pcfich.h"
+#include "liblte/phy/phch/pdcch.h"
+#include "liblte/phy/phch/pdsch.h"
 #include "liblte/phy/phch/phich.h"
-
-#include "liblte/phy/phch/sch.h"
-
 #include "liblte/phy/phch/pusch.h"
+#include "liblte/phy/phch/ra.h"
+#include "liblte/phy/phch/regs.h"
+#include "liblte/phy/phch/sch.h"
 #include "liblte/phy/phch/uci.h"
       
 #include "liblte/phy/ue/ue_sync.h"
