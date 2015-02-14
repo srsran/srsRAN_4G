@@ -29,7 +29,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "prb.h"
+#include "prb_dl.h"
 #include "liblte/phy/common/phy_common.h"
 
 //#define DEBUG_IDX

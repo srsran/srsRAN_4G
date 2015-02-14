@@ -34,7 +34,6 @@
 #include <assert.h>
 #include <math.h>
 
-#include "prb.h"
 #include "liblte/phy/phch/regs.h"
 #include "liblte/phy/phch/phich.h"
 #include "liblte/phy/common/phy_common.h"

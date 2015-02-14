@@ -143,15 +143,23 @@ void ra_prb_fprint(FILE *f, ra_prb_slot_t *prb, uint32_t nof_prb) {
 }
 
 /** Compute PRB allocation for Uplink as defined in 8.1 of 36.213 */
-int ra_prb_get_ul(ra_prb_slot_t *prb, ra_pusch_t *ra, uint32_t nof_prb) {
+int ra_prb_get_ul(ra_prb_t *prb_dist, ra_pusch_t *ra, uint32_t nof_prb) {
   int i;
   if (ra->type2_alloc.mode != t2_loc) {
     fprintf(stderr, "Uplink only accepts type2 localized scheduling\n");
     return LIBLTE_ERROR;
   }
-  for (i = 0; i < ra->type2_alloc.L_crb; i++) {
-    prb->prb_idx[i] = i + ra->type2_alloc.RB_start;
-    prb->nof_prb++;
+  bzero(prb_dist, sizeof(ra_prb_t));
+  
+  switch (ra->freq_hop_fl) {
+    case hop_disabled:
+      for (i = 0; i < ra->type2_alloc.L_crb; i++) {
+        prb_dist->slot[0].prb_idx[i + ra->type2_alloc.RB_start] = true;
+        prb_dist->slot[0].nof_prb++;
+      }
+      memcpy(&prb_dist->slot[1], &prb_dist->slot[0], sizeof(ra_prb_slot_t));    
+      break;
+   
   }
   return LIBLTE_SUCCESS;
 }

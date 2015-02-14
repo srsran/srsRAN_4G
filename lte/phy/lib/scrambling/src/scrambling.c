@@ -78,9 +78,9 @@ void scrambling_b_offset_pusch(sequence_t *s, uint8_t *data, int offset, int len
   int i;
   assert (len + offset <= s->len);
   for (i = 0; i < len; i++) {
-    if (data[i] == 'x') {
+    if (data[i] == 3) {
       data[i] = 1; 
-    } else if (data[i] == 'y') {
+    } else if (data[i] == 2) {
       if (i > 1) {
         data[i] = data[i-1];        
       }

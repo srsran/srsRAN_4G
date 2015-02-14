@@ -34,7 +34,6 @@
 #include <assert.h>
 #include <math.h>
 
-#include "prb.h"
 #include "liblte/phy/phch/pusch.h"
 #include "liblte/phy/phch/uci.h"
 #include "liblte/phy/common/phy_common.h"
@@ -50,44 +49,49 @@
 const static lte_mod_t modulations[4] =
     { LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64 };
     
-//#define DEBUG_IDX
-
-#ifdef DEBUG_IDX    
-cf_t *offset_original=NULL;
-extern int indices[100000];
-extern int indices_ptr; 
-#endif
-
-
-int pusch_cp(pusch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
-    uint32_t nsubframe, bool put) 
+int pusch_cp(pusch_t *q, ra_prb_t *prb_alloc, cf_t *input, cf_t *output, bool advance_input) 
 {
-  return -1; 
+  cf_t *in_ptr = input; 
+  cf_t *out_ptr = output; 
+  
+  uint32_t L_ref = 3;
+  if (CP_ISEXT(q->cell.cp)) {
+    L_ref = 2; 
+  }
+
+  for (uint32_t slot=0;slot<2;slot++) {
+    for (uint32_t l=0;l<CP_NSYMB(q->cell.cp);l++) {
+      if (l != L_ref) {
+        for (uint32_t n=0;n<q->cell.nof_prb;n++) {
+          if (prb_alloc->slot[slot].prb_idx[n]) {
+            uint32_t idx = RE_IDX(q->cell.nof_prb, l+slot*CP_NSYMB(q->cell.cp), n*RE_X_RB);
+            if (advance_input) {
+              out_ptr = &output[idx]; 
+            } else {
+              in_ptr = &input[idx];
+            }              
+            memcpy(out_ptr, in_ptr, RE_X_RB * sizeof(cf_t));                       
+            if (advance_input) {
+              in_ptr += RE_X_RB;
+            } else {
+              out_ptr += RE_X_RB; 
+            }
+          }
+        }
+      }
+    }        
+  }
+  return RE_X_RB*prb_alloc->slot[0].nof_prb; 
 }
 
-/**
- * Puts PUSCH in slot number 1
- *
- * Returns the number of symbols written to sf_symbols
- *
- * 36.211 10.3 section 6.3.5
- */
-int pusch_put(pusch_t *q, cf_t *pusch_symbols, cf_t *sf_symbols,
-    ra_prb_t *prb_alloc, uint32_t subframe) {
-  return pusch_cp(q, pusch_symbols, sf_symbols, prb_alloc, subframe, true);
+int pusch_put(pusch_t *q, ra_prb_t *prb_alloc, cf_t *input, cf_t *output) {
+  return pusch_cp(q, prb_alloc, input, output, true);
 }
 
-/**
- * Extracts PUSCH from slot number 1
- *
- * Returns the number of symbols written to PUSCH
- *
- * 36.211 10.3 section 6.3.5
- */
-int pusch_get(pusch_t *q, cf_t *sf_symbols, cf_t *pusch_symbols,
-    ra_prb_t *prb_alloc, uint32_t subframe) {
-  return pusch_cp(q, sf_symbols, pusch_symbols, prb_alloc, subframe, false);
+int pusch_get(pusch_t *q, ra_prb_t *prb_alloc, cf_t *input, cf_t *output) {
+  return pusch_cp(q, prb_alloc, input, output, false);
 }
+
 
 /** Initializes the PDCCH transmitter and receiver */
 int pusch_init(pusch_t *q, lte_cell_t cell) {
@@ -118,7 +122,10 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
     
     sch_init(&q->dl_sch);
     
-    dft_precoding_init(&q->dft_precoding, cell.nof_prb);
+    if (dft_precoding_init(&q->dft_precoding, cell.nof_prb)) {
+      fprintf(stderr, "Error initiating DFT transform precoding\n");
+      goto clean; 
+    }
     
     /* This is for equalization at receiver */
     if (precoding_init(&q->equalizer, SF_LEN_RE(cell.nof_prb, cell.cp))) {
@@ -232,14 +239,14 @@ int pusch_decode(pusch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noi
           harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
 
       /* extract symbols */
-      n = pusch_get(q, sf_symbols, q->pusch_d, &harq->prb_alloc, harq->sf_idx);
+      n = pusch_get(q, &harq->prb_alloc, sf_symbols, q->pusch_d);
       if (n != harq->nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
         return LIBLTE_ERROR;
       }
       
       /* extract channel estimates */
-      n = pusch_get(q, ce, q->ce, &harq->prb_alloc, harq->sf_idx);
+      n = pusch_get(q, &harq->prb_alloc, ce, q->ce);
       if (n != harq->nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
         return LIBLTE_ERROR;
@@ -291,18 +298,13 @@ int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_dat
   {
     if (q->rnti_is_set) {
 
-      if (harq->mcs.tbs == 0) {
-        return LIBLTE_ERROR_INVALID_INPUTS;      
-      }
-      
       if (harq->mcs.tbs > harq->nof_bits) {
         fprintf(stderr, "Invalid code rate %.2f\n", (float) harq->mcs.tbs / harq->nof_bits);
         return LIBLTE_ERROR_INVALID_INPUTS;
       }
 
       if (harq->nof_re > q->max_re) {
-        fprintf(stderr,
-            "Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
+        fprintf(stderr, "Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
             harq->nof_re, q->max_re, q->cell.nof_prb);
         return LIBLTE_ERROR_INVALID_INPUTS;
       }
@@ -310,8 +312,7 @@ int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_dat
       INFO("Encoding PUSCH SF: %d, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
           harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
       
-      if (ulsch_uci_encode(&q->dl_sch, harq, data, uci_data, q->pusch_g, q->pusch_q)) 
-      {
+      if (ulsch_uci_encode(&q->dl_sch, harq, data, uci_data, q->pusch_g, q->pusch_q)) {
         fprintf(stderr, "Error encoding TB\n");
         return LIBLTE_ERROR;
       }
@@ -324,7 +325,7 @@ int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_dat
                     harq->prb_alloc.slot[0].nof_prb, harq->nof_symb);
       
       /* mapping to resource elements */      
-      pusch_put(q, q->pusch_z, sf_symbols, &harq->prb_alloc, harq->sf_idx);
+      pusch_put(q, &harq->prb_alloc, q->pusch_z, sf_symbols);
       
       ret = LIBLTE_SUCCESS;
     } else {

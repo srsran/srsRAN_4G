@@ -112,9 +112,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   pusch_t pusch;
   uint8_t *data = NULL;
-  cf_t *ce;
-  uint32_t nof_re;
-  cf_t *sf_symbols;
+  cf_t *sf_symbols = NULL;
   int ret = -1;
   struct timeval t[3];
   ra_mcs_t mcs;
@@ -123,31 +121,12 @@ int main(int argc, char **argv) {
   
   parse_args(argc,argv);
 
-  nof_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
-
   mcs.tbs = tbs;
   mcs.mod = modulation;
   
-  prb_alloc.slot[0].nof_prb = 1;
+  bzero(&prb_alloc, sizeof(ra_prb_t));
+  prb_alloc.slot[0].nof_prb = 2;
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
-
-  /* init memory */
-  ce = malloc(sizeof(cf_t) * nof_re);
-  if (!ce) {
-    perror("malloc");
-    goto quit;
-  }
-  sf_symbols = calloc(sizeof(cf_t) , nof_re);
-  if (!sf_symbols) {
-    perror("malloc");
-    goto quit;
-  }
-
-  data = malloc(sizeof(uint8_t) * mcs.tbs);
-  if (!data) {
-    perror("malloc");
-    goto quit;
-  }
 
   if (pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
@@ -159,13 +138,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating HARQ process\n");
     goto quit;
   }
-
-  for (uint32_t i=0;i<mcs.tbs;i++) {
-    data[i] = 1;
-  }
-
-  printf("INPUT: ");
-  vec_fprint_b(stdout, data, mcs.tbs);
 
   printf("Encoding rv_idx=%d\n",rv_idx);
   
@@ -192,6 +164,22 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
+  uint32_t nof_re = RE_X_RB*cell.nof_prb*2*CP_NSYMB(cell.cp);
+  sf_symbols = vec_malloc(sizeof(cf_t) * nof_re);
+  if (!sf_symbols) {
+    perror("malloc");
+    goto quit;
+  }
+
+  data = malloc(sizeof(uint8_t) * mcs.tbs);
+  if (!data) {
+    perror("malloc");
+    goto quit;
+  }
+  
+  for (uint32_t i=0;i<mcs.tbs;i++) {
+    data[i] = 1;
+  }
 
   if (pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
     fprintf(stderr, "Error encoding TB\n");
@@ -209,7 +197,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
   }
-
+  
   gettimeofday(&t[1], NULL);
   //int r = pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
   int r = 0; 
@@ -228,9 +216,6 @@ quit:
   pusch_free(&pusch);
   harq_free(&harq_process);
   
-  if (ce) {
-    free(ce);
-  }
   if (sf_symbols) {
     free(sf_symbols);
   }

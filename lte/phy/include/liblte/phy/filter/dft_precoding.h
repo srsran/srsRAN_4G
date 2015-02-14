@@ -49,6 +49,8 @@ LIBLTE_API int dft_precoding_init(dft_precoding_t *q,
 
 LIBLTE_API void dft_precoding_free(dft_precoding_t *q);
 
+LIBLTE_API bool dft_precoding_valid_prb(uint32_t nof_prb); 
+
 LIBLTE_API int dft_precoding(dft_precoding_t *q, 
                              cf_t *input, 
                              cf_t *output, 

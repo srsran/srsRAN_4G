@@ -46,18 +46,21 @@ int dft_precoding_init(dft_precoding_t *q, uint32_t max_prb)
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
   bzero(q, sizeof(dft_precoding_t));
   
-  if (max_prb >= MAX_PRB) {
+  if (max_prb <= MAX_PRB) {
     ret = LIBLTE_ERROR; 
-    for (uint32_t i=0;i<max_prb;i++) {
-      if((i % 2) == 0 || (i % 3) == 0 || (i % 5) == 0) {        
+    for (uint32_t i=2;i<max_prb;i++) {
+      if(dft_precoding_valid_prb(i)) {        
+        DEBUG("Initiating DFT precoding plan for %d PRBs\n", i);
         if (dft_plan_c(&q->dft_plan[i], i*RE_X_RB, FORWARD)) {
           fprintf(stderr, "Error: Creating DFT plan %d\n",i);
           goto clean_exit;
         }
+        dft_plan_set_norm(&q->dft_plan[i], true);
         if (dft_plan_c(&q->idft_plan[i], i*RE_X_RB, BACKWARD)) {
           fprintf(stderr, "Error: Creating DFT plan %d\n",i);
           goto clean_exit;
-        }        
+        }
+        dft_plan_set_norm(&q->idft_plan[i], true);
       }
     }
     q->max_prb = max_prb;
@@ -74,8 +77,9 @@ clean_exit:
 /* Free DFT plans for transform precoding */
 void dft_precoding_free(dft_precoding_t *q) 
 {
-  for (uint32_t i=0;i<q->max_prb;i++) {
-    if((i % 2) == 0 || (i % 3) == 0 || (i % 5) == 0) {      
+  for (uint32_t i=2;i<q->max_prb;i++) {
+    if(dft_precoding_valid_prb(i)) {      
+      DEBUG("Freeing DFT precoding plan for %d PRBs\n", i);
       dft_plan_free(&q->dft_plan[i]);
       dft_plan_free(&q->idft_plan[i]);        
     }
@@ -83,11 +87,19 @@ void dft_precoding_free(dft_precoding_t *q)
   bzero(q, sizeof(dft_precoding_t));
 }
 
+bool dft_precoding_valid_prb(uint32_t nof_prb) {
+  if ((nof_prb%2) == 0 || (nof_prb%3) == 0 || (nof_prb%5) == 0) {
+    return true; 
+  } else {
+    return false; 
+  }
+}
+
 int dft_precoding(dft_precoding_t *q, cf_t *input, cf_t *output, 
                   uint32_t nof_prb, uint32_t nof_symbols) 
 {
   
-  if ((nof_prb%2) || (nof_prb%3) || (nof_prb%5)) {
+  if (!dft_precoding_valid_prb(nof_prb)) {
     fprintf(stderr, "Error invalid number of PRB (%d)\n", nof_prb);
     return LIBLTE_ERROR; 
   }
@@ -102,7 +114,7 @@ int dft_precoding(dft_precoding_t *q, cf_t *input, cf_t *output,
 int dft_predecoding(dft_precoding_t *q, cf_t *input, cf_t *output, 
                     uint32_t nof_prb, uint32_t nof_symbols)
 {
-  if ((nof_prb%2) || (nof_prb%3) || (nof_prb%5)) {
+  if (!dft_precoding_valid_prb(nof_prb)) {
     fprintf(stderr, "Error invalid number of PRB (%d)\n", nof_prb);
     return LIBLTE_ERROR; 
   }

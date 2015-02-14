@@ -34,7 +34,7 @@
 #include <assert.h>
 #include <math.h>
 
-#include "prb.h"
+#include "prb_dl.h"
 #include "liblte/phy/phch/pdsch.h"
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/bit.h"
