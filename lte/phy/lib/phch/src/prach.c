@@ -198,11 +198,11 @@ int prach_gen_seqs(prach_t *p)
     if(v > v_max){
       // Get a new root sequence
       if(4 == p->f){
-        u = prach_zc_roots_format4[p->rsi + p->N_roots];
+        u = prach_zc_roots_format4[(p->rsi + p->N_roots)%138];
       }else{
-        u = prach_zc_roots[p->rsi + p->N_roots];
+        u = prach_zc_roots[(p->rsi + p->N_roots)%838];
       }
-
+      printf("Seq#%d, u: %3d (rsi: %d, n_roots: %d\n", i, u, p->rsi, p->N_roots);
       for(int j=0;j<p->N_zc;j++){
         double phase = -M_PI*u*j*(j+1)/p->N_zc;
         root[j] = cexp(phase*I);
@@ -493,8 +493,9 @@ int prach_detect(prach_t *p,
   return ret;
 }
 
-int prach_free(prach_t *p){
+int prach_free(prach_t *p) {
   free(p->prach_bins);
+  free(p->corr_spec);
   free(p->corr);
   dft_plan_free(p->ifft);
   free(p->ifft);

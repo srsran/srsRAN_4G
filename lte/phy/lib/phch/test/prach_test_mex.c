@@ -89,7 +89,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  uint32_t nof_samples = lte_sampling_freq_hz(n_ul_rb) * 0.001;
+  uint32_t nof_samples = lte_sampling_freq_hz(n_ul_rb) * 0.003;
   
   cf_t *signal = vec_malloc(sizeof(cf_t) * nof_samples);
   if (!signal) {
@@ -106,6 +106,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nlhs >= 0) {
     mexutils_write_cf(signal, &plhs[0], nof_samples, 1);  
   }
+  
+  free(signal);
+  
+  prach_free(&prach);
   
   return;
 }
