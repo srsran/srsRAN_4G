@@ -77,12 +77,12 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
         ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
       }
       
-      if (ra_prb_get_dl(&ra_dl->prb_alloc, ra_dl, cell.nof_prb)) {
+      if (ra_dl_alloc(&ra_dl->prb_alloc, ra_dl, cell.nof_prb)) {
         fprintf(stderr, "Error computing resource allocation\n");
         return ret;
       }
       
-      ra_prb_get_re_dl(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+      ra_dl_alloc_re(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
             
       ret = LIBLTE_SUCCESS;
     } else {

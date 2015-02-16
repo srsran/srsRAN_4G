@@ -49,47 +49,113 @@
 const static lte_mod_t modulations[4] =
     { LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64 };
     
-int pusch_cp(pusch_t *q, ra_prb_t *prb_alloc, cf_t *input, cf_t *output, bool advance_input) 
+static int f_hop_sum(pusch_t *q, uint32_t i) {
+  uint32_t sum = 0;
+  for (uint32_t k=i*10+1;k<i*10+9;i++) {
+    sum += (q->seq_type2_fo.c[k]<<(k-(i*10+1)));
+  }
+  return sum; 
+}
+    
+static int f_hop(pusch_t *q, ra_ul_hopping_t *hopping, int i) {
+  if (i == -1) {
+    return 0; 
+  } else {
+    if (hopping->n_sb == 1) {
+      return 0;
+    } else if (hopping->n_sb == 2) {
+      return (f_hop(q, hopping, i-1) + f_hop_sum(q, i))%2;
+    } else {
+      return (f_hop(q, hopping, i-1) + f_hop_sum(q, i)%(hopping->n_sb-1)+1)%hopping->n_sb;   
+    }    
+  }
+}
+
+static int f_m(pusch_t *q, ra_ul_hopping_t *hopping, uint32_t i) {
+  if (hopping->n_sb == 1) {
+    if (hopping->hop_mode == hop_mode_inter_sf) {
+      return hopping->current_tx_nb%2;
+    } else {
+      return i%2;      
+    }
+  } else {
+    return q->seq_type2_fo.c[i*10];
+  }
+}
+
+int pusch_cp(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output, bool advance_input) 
 {
   cf_t *in_ptr = input; 
   cf_t *out_ptr = output; 
+  ra_ul_hopping_t *hopping = &harq->ul_hopping; 
   
   uint32_t L_ref = 3;
   if (CP_ISEXT(q->cell.cp)) {
     L_ref = 2; 
   }
-
+  INFO("PUSCH Freq hopping: %d\n", harq->ul_alloc.freq_hopping);
   for (uint32_t slot=0;slot<2;slot++) {
+    uint32_t n_prb_tilde = harq->ul_alloc.n_prb[slot]; 
+    if (harq->ul_alloc.freq_hopping == 1) {
+      if (hopping->hop_mode == hop_mode_inter_sf) {
+        n_prb_tilde = harq->ul_alloc.n_prb[hopping->current_tx_nb%2];      
+      } else {
+        n_prb_tilde = harq->ul_alloc.n_prb[slot];
+      }
+    }
+    if (harq->ul_alloc.freq_hopping == 2) {
+      /* Freq hopping type 2 as defined in 5.3.4 of 36.211 */
+      uint32_t n_vrb_tilde = harq->ul_alloc.n_prb[0];
+      if (hopping->n_sb > 1) {
+        n_vrb_tilde -= (hopping->hopping_offset-1)/2+1;
+      }
+      int i=0;
+      if (hopping->hop_mode == hop_mode_inter_sf) {
+        i = harq->sf_idx;
+      } else {
+        i = 2*harq->sf_idx+slot;
+      }
+      uint32_t n_rb_sb = q->cell.nof_prb;
+      if (hopping->n_sb > 1) {
+        n_rb_sb = (n_rb_sb-hopping->hopping_offset-hopping->hopping_offset%2)/hopping->n_sb;
+      }
+      n_prb_tilde = (n_vrb_tilde+f_hop(q, hopping, i)*n_rb_sb+
+        (n_rb_sb-1)-2*(n_vrb_tilde%n_rb_sb)*f_m(q, hopping, i))%(n_rb_sb*hopping->n_sb);
+      
+      INFO("n_prb_tilde: %d, n_vrb_tilde: %d, n_rb_sb: %d, n_sb: %d\n", n_prb_tilde, n_vrb_tilde, n_rb_sb, hopping->n_sb);
+      if (hopping->n_sb > 1) {
+        n_prb_tilde += (hopping->hopping_offset-1)/2+1;
+      }
+      
+    }
+    INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",harq->ul_alloc.L_prb, n_prb_tilde,slot);
     for (uint32_t l=0;l<CP_NSYMB(q->cell.cp);l++) {
       if (l != L_ref) {
-        for (uint32_t n=0;n<q->cell.nof_prb;n++) {
-          if (prb_alloc->slot[slot].prb_idx[n]) {
-            uint32_t idx = RE_IDX(q->cell.nof_prb, l+slot*CP_NSYMB(q->cell.cp), n*RE_X_RB);
-            if (advance_input) {
-              out_ptr = &output[idx]; 
-            } else {
-              in_ptr = &input[idx];
-            }              
-            memcpy(out_ptr, in_ptr, RE_X_RB * sizeof(cf_t));                       
-            if (advance_input) {
-              in_ptr += RE_X_RB;
-            } else {
-              out_ptr += RE_X_RB; 
-            }
-          }
+        uint32_t idx = RE_IDX(q->cell.nof_prb, l+slot*CP_NSYMB(q->cell.cp), 
+                              n_prb_tilde*RE_X_RB);
+        if (advance_input) {
+          out_ptr = &output[idx]; 
+        } else {
+          in_ptr = &input[idx];
+        }              
+        memcpy(out_ptr, in_ptr, harq->ul_alloc.L_prb * RE_X_RB * sizeof(cf_t));                       
+        if (advance_input) {
+          in_ptr += harq->ul_alloc.L_prb*RE_X_RB;
+        } else {
+          out_ptr += harq->ul_alloc.L_prb*RE_X_RB; 
         }
       }
     }        
   }
-  return RE_X_RB*prb_alloc->slot[0].nof_prb; 
+  return RE_X_RB*harq->ul_alloc.L_prb; 
 }
 
-int pusch_put(pusch_t *q, ra_prb_t *prb_alloc, cf_t *input, cf_t *output) {
-  return pusch_cp(q, prb_alloc, input, output, true);
+int pusch_put(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
+  return pusch_cp(q, harq, input, output, true);
 }
 
-int pusch_get(pusch_t *q, ra_prb_t *prb_alloc, cf_t *input, cf_t *output) {
-  return pusch_cp(q, prb_alloc, input, output, false);
+int pusch_get(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
+  return pusch_cp(q, harq, input, output, false);
 }
 
 
@@ -115,6 +181,12 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
       if (modem_table_lte(&q->mod[i], modulations[i], true)) {
         goto clean;
       }
+    }
+    
+    /* Precompute sequence for type2 frequency hopping */
+    if (sequence_LTE_pr(&q->seq_type2_fo, 210, q->cell.id)) {
+      fprintf(stderr, "Error initiating type2 frequency hopping sequence\n");
+      goto clean; 
     }
 
     demod_soft_init(&q->demod, q->max_re);
@@ -239,14 +311,14 @@ int pusch_decode(pusch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noi
           harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
 
       /* extract symbols */
-      n = pusch_get(q, &harq->prb_alloc, sf_symbols, q->pusch_d);
+      n = pusch_get(q, harq, sf_symbols, q->pusch_d);
       if (n != harq->nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
         return LIBLTE_ERROR;
       }
       
       /* extract channel estimates */
-      n = pusch_get(q, &harq->prb_alloc, ce, q->ce);
+      n = pusch_get(q, harq, ce, q->ce);
       if (n != harq->nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
         return LIBLTE_ERROR;
@@ -256,7 +328,7 @@ int pusch_decode(pusch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noi
             harq->nof_re, noise_estimate);
 
       dft_predecoding(&q->dft_precoding, q->pusch_z, q->pusch_d, 
-                      harq->prb_alloc.slot[0].nof_prb, harq->nof_symb);
+                      harq->ul_alloc.L_prb, harq->nof_symb);
       
       /* demodulate symbols 
       * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
@@ -322,10 +394,10 @@ int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_dat
       mod_modulate(&q->mod[harq->mcs.mod], (uint8_t*) q->pusch_q, q->pusch_d, harq->nof_bits);
       
       dft_precoding(&q->dft_precoding, q->pusch_d, q->pusch_z, 
-                    harq->prb_alloc.slot[0].nof_prb, harq->nof_symb);
+                    harq->ul_alloc.L_prb, harq->nof_symb);
       
       /* mapping to resource elements */      
-      pusch_put(q, &harq->prb_alloc, q->pusch_z, sf_symbols);
+      pusch_put(q, harq, q->pusch_z, sf_symbols);
       
       ret = LIBLTE_SUCCESS;
     } else {

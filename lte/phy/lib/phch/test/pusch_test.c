@@ -48,12 +48,20 @@ uint32_t tbs = 0;
 uint32_t subframe = 1;
 lte_mod_t modulation = LTE_QPSK;
 uint32_t rv_idx = 0;
+uint32_t L_prb = 2; 
+uint32_t n_prb = 0; 
+int freq_hop = -1; 
+int riv = -1; 
 
 void usage(char *prog) {
-  printf("Usage: %s [csrnfvmt] -l TBS \n", prog);
+  printf("Usage: %s [csrnfvmtLNF] -l TBS \n", prog);
   printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
+  printf("\t-L L_prb [Default %d]\n", L_prb);
+  printf("\t-N n_prb [Default %d]\n", n_prb);
+  printf("\t-F frequency hopping [Default %d]\n", freq_hop);
+  printf("\t-R RIV [Default %d]\n", riv);
   printf("\t-r rv_idx [Default %d]\n", rv_idx);
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
@@ -62,7 +70,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lcnfvmtsr")) != -1) {
+  while ((opt = getopt(argc, argv, "lcnfvmtsrLNFR")) != -1) {
     switch(opt) {
     case 'm':
       switch(atoi(argv[optind])) {
@@ -86,6 +94,18 @@ void parse_args(int argc, char **argv) {
       break;
     case 's':
       subframe = atoi(argv[optind]);
+      break;
+    case 'L':
+      L_prb = atoi(argv[optind]);
+      break;
+    case 'N':
+      n_prb = atoi(argv[optind]);
+      break;
+    case 'R':
+      riv = atoi(argv[optind]);
+      break;
+    case 'F':
+      freq_hop = atoi(argv[optind]);
       break;
     case 'r':
       rv_idx = atoi(argv[optind]);
@@ -116,7 +136,7 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   ra_mcs_t mcs;
-  ra_prb_t prb_alloc;
+  ra_ul_alloc_t prb_alloc;
   harq_t harq_process;
   
   parse_args(argc,argv);
@@ -124,10 +144,8 @@ int main(int argc, char **argv) {
   mcs.tbs = tbs;
   mcs.mod = modulation;
   
-  bzero(&prb_alloc, sizeof(ra_prb_t));
-  prb_alloc.slot[0].nof_prb = 2;
-  memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
-
+  bzero(&prb_alloc, sizeof(ra_ul_alloc_t));
+  
   if (pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
@@ -138,7 +156,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating HARQ process\n");
     goto quit;
   }
-
+  
   printf("Encoding rv_idx=%d\n",rv_idx);
   
   uint8_t tmp[20];
@@ -158,12 +176,26 @@ int main(int argc, char **argv) {
   uci_data.uci_cqi = tmp;
   uci_data.uci_ri = 1; 
   uci_data.uci_ack = 1; 
-  
+    
+  ra_pusch_t pusch_dci;
+  pusch_dci.freq_hop_fl = freq_hop;
+  if (riv < 0) {
+    pusch_dci.type2_alloc.L_crb = L_prb; 
+    pusch_dci.type2_alloc.RB_start = n_prb;    
+  } else {
+    ra_type2_from_riv((uint32_t) riv, &pusch_dci.type2_alloc.L_crb, &pusch_dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
+  }
+  ra_ul_alloc(&prb_alloc, &pusch_dci, 0, cell.nof_prb);
+
   if (harq_setup_ul(&harq_process, mcs, 0, subframe, &prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
     goto quit;
   }
-
+  harq_process.ul_hopping.n_sb = 1; 
+  harq_process.ul_hopping.hopping_offset = 0;
+  harq_process.ul_hopping.hop_mode = hop_mode_inter_sf;
+  harq_process.ul_hopping.current_tx_nb = 0;
+  
   uint32_t nof_re = RE_X_RB*cell.nof_prb*2*CP_NSYMB(cell.cp);
   sf_symbols = vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {

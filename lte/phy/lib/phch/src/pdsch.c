@@ -58,7 +58,7 @@ extern int indices_ptr;
 #endif
 
 
-int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
+int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_dl_alloc_t *prb_alloc,
     uint32_t nsubframe, bool put) {
   uint32_t s, n, l, lp, lstart, lend, nof_refs;
   bool is_pbch, is_sss;
@@ -179,7 +179,7 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_prb_t *prb_alloc,
  * 36.211 10.3 section 6.3.5
  */
 int pdsch_put(pdsch_t *q, cf_t *pdsch_symbols, cf_t *sf_symbols,
-    ra_prb_t *prb_alloc, uint32_t subframe) {
+    ra_dl_alloc_t *prb_alloc, uint32_t subframe) {
   return pdsch_cp(q, pdsch_symbols, sf_symbols, prb_alloc, subframe, true);
 }
 
@@ -191,7 +191,7 @@ int pdsch_put(pdsch_t *q, cf_t *pdsch_symbols, cf_t *sf_symbols,
  * 36.211 10.3 section 6.3.5
  */
 int pdsch_get(pdsch_t *q, cf_t *sf_symbols, cf_t *pdsch_symbols,
-    ra_prb_t *prb_alloc, uint32_t subframe) {
+    ra_dl_alloc_t *prb_alloc, uint32_t subframe) {
   return pdsch_cp(q, sf_symbols, pdsch_symbols, prb_alloc, subframe, false);
 }
 
@@ -343,7 +343,7 @@ int pdsch_decode(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[MAX_PORTS]
       memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
         
       /* extract symbols */
-      n = pdsch_get(q, sf_symbols, q->pdsch_symbols[0], &harq->prb_alloc, harq->sf_idx);
+      n = pdsch_get(q, sf_symbols, q->pdsch_symbols[0], &harq->dl_alloc, harq->sf_idx);
       if (n != harq->nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
         return LIBLTE_ERROR;
@@ -351,7 +351,7 @@ int pdsch_decode(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[MAX_PORTS]
       
       /* extract channel estimates */
       for (i = 0; i < q->cell.nof_ports; i++) {
-        n = pdsch_get(q, ce[i], q->ce[i], &harq->prb_alloc, harq->sf_idx);
+        n = pdsch_get(q, ce[i], q->ce[i], &harq->dl_alloc, harq->sf_idx);
         if (n != harq->nof_re) {
           fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
           return LIBLTE_ERROR;
@@ -459,7 +459,7 @@ int pdsch_encode(pdsch_t *q, harq_t *harq, uint8_t *data, cf_t *sf_symbols[MAX_P
 
       /* mapping to resource elements */
       for (i = 0; i < q->cell.nof_ports; i++) {
-        pdsch_put(q, q->pdsch_symbols[i], sf_symbols[i], &harq->prb_alloc, harq->sf_idx);
+        pdsch_put(q, q->pdsch_symbols[i], sf_symbols[i], &harq->dl_alloc, harq->sf_idx);
       }
       ret = LIBLTE_SUCCESS;
     } else {

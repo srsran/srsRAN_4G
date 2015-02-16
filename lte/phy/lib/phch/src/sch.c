@@ -439,7 +439,7 @@ int ulsch_uci_encode(sch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data,
   uint32_t Q_prime_ri = 0;
   uint32_t Q_m = lte_mod_bits_x_symbol(harq->mcs.mod);
   
-  uint32_t nof_symbols = 12*harq->prb_alloc.slot[0].nof_prb*RE_X_RB;
+  uint32_t nof_symbols = 12*harq->ul_alloc.L_prb*RE_X_RB;
   uint32_t nb_q = nof_symbols * Q_m;
 
   bzero(q_bits, sizeof(uint8_t) * nb_q);

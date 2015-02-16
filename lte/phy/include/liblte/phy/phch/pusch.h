@@ -70,7 +70,8 @@ typedef struct LIBLTE_API {
   modem_table_t mod[4];
   demod_soft_t demod;
   sequence_t seq_pusch[NSUBFRAMES_X_FRAME];
-
+  sequence_t seq_type2_fo; 
+  
   sch_t dl_sch;
   
 }pusch_t;

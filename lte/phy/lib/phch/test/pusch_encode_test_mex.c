@@ -109,21 +109,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   
-  ra_prb_t prb_alloc;
-  // Only localized PRB supported 
-  prb_alloc.slot[0].nof_prb = mexutils_read_f(p, &prbset);
-
-  for (uint32_t i=0;i<cell.nof_prb;i++) {
-    prb_alloc.slot[0].prb_idx[i] = false; 
-    for (uint32_t j=0;j<prb_alloc.slot[0].nof_prb && !prb_alloc.slot[0].prb_idx[i];j++) {
-      if (prbset[j] == i) {
-        prb_alloc.slot[0].prb_idx[i] = true;
-      }
-    }
-  }
-  memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
-
+  ra_ul_alloc_t prb_alloc;
+  prb_alloc.L_prb = mexutils_read_f(p, &prbset);
+  prb_alloc.n_prb[2*sf_idx] = prbset[0];
+  prb_alloc.n_prb[2*sf_idx+1] = prbset[0];
   free(prbset);
+  
+  mexPrintf("L_prb: %d, n_prb: %d\n", prb_alloc.L_prb, prb_alloc.n_prb[0]);
   
   uint8_t *trblkin = NULL;
   mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);

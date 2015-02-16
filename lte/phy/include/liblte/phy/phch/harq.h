@@ -47,8 +47,11 @@ typedef struct LIBLTE_API {
   ra_mcs_t mcs;
   uint32_t rv;
   uint32_t sf_idx;
-  ra_prb_t prb_alloc;
+  ra_dl_alloc_t dl_alloc;
+  ra_ul_alloc_t ul_alloc;
   lte_cell_t cell;
+  
+  ra_ul_hopping_t ul_hopping;
   
   uint32_t nof_re;   // Number of RE per subframe 
   uint32_t nof_bits; // Number of bits per subframe
@@ -71,13 +74,13 @@ LIBLTE_API int harq_setup_dl(harq_t *p,
                              ra_mcs_t mcs,
                              uint32_t rv,
                              uint32_t sf_idx,
-                             ra_prb_t *prb_alloc);
+                             ra_dl_alloc_t *prb_alloc);
 
 LIBLTE_API int harq_setup_ul(harq_t *p, 
                              ra_mcs_t mcs,
                              uint32_t rv,
                              uint32_t sf_idx,
-                             ra_prb_t *prb_alloc);
+                             ra_ul_alloc_t *prb_alloc);
 
 LIBLTE_API void harq_reset(harq_t *p); 
 

@@ -115,7 +115,7 @@ void uci_cqi_free(uci_cqi_pusch_t *q) {
 }
 
 static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, harq_t *harq) {
-  uint32_t M_sc = harq->prb_alloc.slot[0].nof_prb * RE_X_RB;
+  uint32_t M_sc = harq->ul_alloc.L_prb * RE_X_RB;
   
   uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
     harq->cb_segm.C2*harq->cb_segm.K2;
@@ -128,7 +128,7 @@ static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, harq_t 
 
     Q_prime = MIN(x, M_sc * harq->nof_symb - Q_prime_ri);    
   } else {
-    Q_prime = 12*harq->prb_alloc.slot[0].nof_prb*RE_X_RB - Q_prime_ri;
+    Q_prime = 12*harq->ul_alloc.L_prb*RE_X_RB - Q_prime_ri;
   }
 
   return Q_prime; 
@@ -287,7 +287,7 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
 }
 
 static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, harq_t *harq) {
-  uint32_t M_sc = harq->prb_alloc.slot[0].nof_prb * RE_X_RB;
+  uint32_t M_sc = harq->ul_alloc.L_prb * RE_X_RB;
   
   uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
     harq->cb_segm.C2*harq->cb_segm.K2;

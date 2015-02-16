@@ -313,7 +313,7 @@ uint32_t prbset_to_bitmask() {
 }
 
 int update_radl(uint32_t sf_idx) {
-  ra_prb_t prb_alloc;
+  ra_dl_alloc_t prb_alloc;
   
   bzero(&ra_dl, sizeof(ra_pdsch_t));
   ra_dl.harq_process = 0;
@@ -323,8 +323,8 @@ int update_radl(uint32_t sf_idx) {
   ra_dl.alloc_type = alloc_type0;
   ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
     
-  ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb);
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
+  ra_dl_alloc(&prb_alloc, &ra_dl, cell.nof_prb);
+  ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
   ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
 
   ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);

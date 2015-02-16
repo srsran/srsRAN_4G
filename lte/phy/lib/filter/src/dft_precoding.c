@@ -48,7 +48,7 @@ int dft_precoding_init(dft_precoding_t *q, uint32_t max_prb)
   
   if (max_prb <= MAX_PRB) {
     ret = LIBLTE_ERROR; 
-    for (uint32_t i=2;i<max_prb;i++) {
+    for (uint32_t i=1;i<max_prb;i++) {
       if(dft_precoding_valid_prb(i)) {        
         DEBUG("Initiating DFT precoding plan for %d PRBs\n", i);
         if (dft_plan_c(&q->dft_plan[i], i*RE_X_RB, FORWARD)) {
@@ -77,7 +77,7 @@ clean_exit:
 /* Free DFT plans for transform precoding */
 void dft_precoding_free(dft_precoding_t *q) 
 {
-  for (uint32_t i=2;i<q->max_prb;i++) {
+  for (uint32_t i=1;i<q->max_prb;i++) {
     if(dft_precoding_valid_prb(i)) {      
       DEBUG("Freeing DFT precoding plan for %d PRBs\n", i);
       dft_plan_free(&q->dft_plan[i]);
@@ -88,7 +88,7 @@ void dft_precoding_free(dft_precoding_t *q)
 }
 
 bool dft_precoding_valid_prb(uint32_t nof_prb) {
-  if ((nof_prb%2) == 0 || (nof_prb%3) == 0 || (nof_prb%5) == 0) {
+  if (nof_prb == 1 || (nof_prb%2) == 0 || (nof_prb%3) == 0 || (nof_prb%5) == 0) {
     return true; 
   } else {
     return false; 

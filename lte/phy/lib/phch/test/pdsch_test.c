@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   ra_mcs_t mcs;
-  ra_prb_t prb_alloc;
+  ra_dl_alloc_t prb_alloc;
   harq_t harq_process;
   uint32_t rv;
 
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
   }
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+  ra_dl_alloc_re(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
   
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {

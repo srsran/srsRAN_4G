@@ -46,11 +46,10 @@ void help()
 /* the gateway function */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int i; 
   sch_t ulsch;
   uint8_t *trblkin;
   ra_mcs_t mcs;
-  ra_prb_t prb_alloc;
+  ra_ul_alloc_t prb_alloc;
   harq_t harq_process;
   uint32_t rv;
   uci_data_t uci_data; 
@@ -131,20 +130,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   
-  prb_alloc.slot[0].nof_prb = mexutils_read_f(p, &prbset);
-  for (i=0;i<MAX_PRB;i++) {
-    prb_alloc.slot[0].prb_idx[i] = false; 
-    for (int j=0;j<prb_alloc.slot[0].nof_prb && !prb_alloc.slot[0].prb_idx[i];j++) {
-      if ((int) prbset[j] == i) {
-        prb_alloc.slot[0].prb_idx[i] = true;
-      }
-    }
-  }
-  memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
-
+  prb_alloc.L_prb = mexutils_read_f(p, &prbset);
+  prb_alloc.n_prb[0] = prbset[0];
+  prb_alloc.n_prb[1] = prbset[0];
   free(prbset);
   
-  mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", lte_mod_bits_x_symbol(mcs.mod), prb_alloc.slot[0].nof_prb, rv);
+  mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", lte_mod_bits_x_symbol(mcs.mod), prb_alloc.L_prb, rv);
 
   if (harq_setup_ul(&harq_process, mcs, 0, 0, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
