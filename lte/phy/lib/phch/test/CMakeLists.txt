@@ -177,3 +177,6 @@ ADD_TEST(prach_test_multi_n16 prach_test_multi -n 16)
 ADD_TEST(prach_test_multi_n8 prach_test_multi -n 8)
 ADD_TEST(prach_test_multi_n4 prach_test_multi -n 4)
  
+ 
+ BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES lte_phy liblte_mex)
+

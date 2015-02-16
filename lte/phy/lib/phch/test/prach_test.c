@@ -91,6 +91,6 @@ int main(int argc, char **argv) {
   prach_free(p);
   free(p);
 
-	printf("Done\n");
-	exit(0);
+  printf("Done\n");
+  exit(0);
 }

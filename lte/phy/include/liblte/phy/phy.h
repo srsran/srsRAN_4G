@@ -96,6 +96,7 @@
 #include "liblte/phy/phch/pdsch.h"
 #include "liblte/phy/phch/phich.h"
 #include "liblte/phy/phch/pusch.h"
+#include "liblte/phy/phch/prach.h"
 #include "liblte/phy/phch/ra.h"
 #include "liblte/phy/phch/regs.h"
 #include "liblte/phy/phch/sch.h"
