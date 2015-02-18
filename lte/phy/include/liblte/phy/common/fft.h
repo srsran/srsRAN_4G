@@ -37,7 +37,7 @@
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/dft.h"
 
-//#define LTE_FFT_NORMALIZE
+#define LTE_FFT_NORMALIZE
 
 typedef _Complex float cf_t; /* this is only a shortcut */
 
@@ -51,6 +51,9 @@ typedef struct LIBLTE_API{
   uint32_t slot_sz;
   lte_cp_t cp;
   cf_t *tmp; // for removing zero padding
+  
+  bool freq_shift;
+  cf_t *shift_buffer; 
 }lte_fft_t;
 
 LIBLTE_API int lte_fft_init(lte_fft_t *q, 
@@ -80,5 +83,8 @@ LIBLTE_API void lte_ifft_run_slot(lte_fft_t *q,
 LIBLTE_API void lte_ifft_run_sf(lte_fft_t *q, 
                                 cf_t *input, 
                                 cf_t *output);
+
+LIBLTE_API int lte_fft_set_freq_shift(lte_fft_t *q, 
+                                      float freq_shift); 
 
 #endif

@@ -28,6 +28,8 @@
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <complex.h>
+#include <math.h>
 
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/dft.h"
@@ -54,13 +56,11 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
 
   dft_plan_set_mirror(&q->fft_plan, true);
   dft_plan_set_dc(&q->fft_plan, true);
-#ifdef LTE_FFT_NORMALIZE
-  dft_plan_set_norm(&q->fft_plan, true);
-#endif
 
   q->symbol_sz = (uint32_t) symbol_sz;
   q->nof_symbols = CP_NSYMB(cp);
   q->cp = cp;
+  q->freq_shift = false;
   q->nof_re = nof_prb * RE_X_RB;
   q->nof_guards = ((symbol_sz - q->nof_re) / 2);
   q->slot_sz = SLOT_LEN(symbol_sz);
@@ -76,6 +76,9 @@ void lte_fft_free_(lte_fft_t *q) {
   dft_plan_free(&q->fft_plan);
   if (q->tmp) {
     free(q->tmp);
+  }
+  if (q->shift_buffer) {
+    free(q->shift_buffer);
   }
   bzero(q, sizeof(lte_fft_t));
 }
@@ -106,6 +109,35 @@ int lte_ifft_init(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb) {
   return ret;
 }
 
+/* Shifts the signal after the iFFT or before the FFT. 
+ * Freq_shift is relative to inter-carrier spacing.
+ * Caution: This function shall not be called during run-time 
+ */
+int lte_fft_set_freq_shift(lte_fft_t *q, float freq_shift) {
+  q->shift_buffer = vec_malloc(sizeof(cf_t) * SF_LEN(q->symbol_sz));
+  if (!q->shift_buffer) {
+    perror("malloc");
+    return -1; 
+  }
+  cf_t *ptr = q->shift_buffer;
+  for (uint32_t n=0;n<2;n++) {
+    for (uint32_t i=0;i<q->nof_symbols;i++) {
+      uint32_t cplen = CP_ISNORM(q->cp)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
+      for (uint32_t t=0;t<q->symbol_sz+cplen;t++) {
+        ptr[t] = cexpf(I*2*M_PI*((float) t-(float)cplen)*freq_shift/q->symbol_sz);
+      }
+      ptr += q->symbol_sz+cplen;
+    }    
+  }
+  
+  /* Disable DC carrier addition */
+  dft_plan_set_dc(&q->fft_plan, false);  
+ 
+  q->freq_shift = true;
+  
+  return LIBLTE_SUCCESS;
+}
+
 void lte_ifft_free(lte_fft_t *q) {
   lte_fft_free_(q);
 }
@@ -126,6 +158,9 @@ void lte_fft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output) {
 
 void lte_fft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output) {
   uint32_t n; 
+  if (q->freq_shift) {
+    vec_prod_ccc(input, q->shift_buffer, input, 2*q->slot_sz);
+  }
   for (n=0;n<2;n++) {
     lte_fft_run_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
   }
@@ -152,4 +187,10 @@ void lte_ifft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output) {
   for (n=0;n<2;n++) {
     lte_ifft_run_slot(q, &input[n*q->nof_re*q->nof_symbols], &output[n*q->slot_sz]);
   }
+  if (q->freq_shift) {
+    vec_prod_ccc(output, q->shift_buffer, output, 2*q->slot_sz);
+  }
+#ifdef LTE_FFT_NORMALIZE
+  vec_sc_prod_cfc(output, (float) 1.0/sqrtf(q->symbol_sz),output,2*q->slot_sz);
+#endif
 }

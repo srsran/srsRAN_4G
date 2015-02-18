@@ -1,5 +1,5 @@
 clear 
-ueConfig=struct('NCellID',3,'NULRB',6,'NSubframe',0,'RNTI',1,'CyclicPrefixUL','Normal','NTxAnts',1);
+ueConfig=struct('NCellID',3,'NULRB',25,'NSubframe',0,'RNTI',1,'CyclicPrefixUL','Normal','NTxAnts',1);
 puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',[0 1]','Modulation','QPSK','RV',0,'Shortened',0);
 
 addpath('../../debug/lte/phy/lib/phch/test')
@@ -43,8 +43,10 @@ for i=1:length(TBs)
                                 idx=ltePUSCHIndices(ueConfig,puschConfig);
                                 subframe_mat = lteULResourceGrid(ueConfig);
                                 subframe_mat(idx)=cw_mat;
-                                [subframe_lib, cwlib]=liblte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
-                                err=mean(abs(subframe_mat(:)-subframe_lib));
+                                waveform = lteSCFDMAModulate(ueConfig,subframe_mat,0);
+                               
+                                [waveform_lib, subframe_lib, cwlib]=liblte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
+                                err=mean(abs(waveform-waveform_lib));
                                 if (err > 10^-6)
                                   disp(err)    
                                   error('Error!');

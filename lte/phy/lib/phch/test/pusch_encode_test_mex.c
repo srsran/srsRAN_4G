@@ -192,17 +192,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
   }
+
+  cf_t *scfdma = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
+  bzero(scfdma, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
+  lte_fft_t fft; 
+  lte_ifft_init(&fft, CPNORM, cell.nof_prb);
+  lte_fft_set_freq_shift(&fft, 0.5);
+  lte_ifft_run_sf(&fft, sf_symbols, scfdma);
   
   if (nlhs >= 1) {
-    mexutils_write_cf(sf_symbols, &plhs[0], nof_re, 1);  
+    mexutils_write_cf(scfdma, &plhs[0], SF_LEN_PRB(cell.nof_prb), 1);  
   }
   if (nlhs >= 2) {
-    mexutils_write_cf(pusch.pusch_z, &plhs[1], harq_process.nof_re, 1);  
+    mexutils_write_cf(sf_symbols, &plhs[1], nof_re, 1);  
+  }
+  if (nlhs >= 3) {
+    mexutils_write_cf(pusch.pusch_z, &plhs[2], harq_process.nof_re, 1);  
   }
   pusch_free(&pusch);  
   free(trblkin);
   free(uci_data.uci_cqi);
   free(sf_symbols);
+  free(scfdma);
   
   return;
 }

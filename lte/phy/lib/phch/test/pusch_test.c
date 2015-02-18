@@ -230,6 +230,14 @@ int main(int argc, char **argv) {
     }
   }
   
+  
+  cf_t *scfdma = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
+  bzero(scfdma, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
+  lte_fft_t fft; 
+  lte_ifft_init(&fft, CPNORM, cell.nof_prb);
+  lte_fft_set_freq_shift(&fft, 0.5);
+  lte_ifft_run_sf(&fft, sf_symbols, scfdma);
+  
   gettimeofday(&t[1], NULL);
   //int r = pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
   int r = 0; 
