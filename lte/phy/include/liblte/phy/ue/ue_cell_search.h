@@ -86,12 +86,12 @@ typedef struct LIBLTE_API {
 
 
 LIBLTE_API int ue_cell_search_init(ue_cell_search_t *q, 
-                                  int (recv_callback)(void*, void*, uint32_t),
+                                  int (recv_callback)(void*, void*, uint32_t,timestamp_t*),
                                   void *stream_handler);
 
 LIBLTE_API int ue_cell_search_init_max(ue_cell_search_t *q, 
                                       uint32_t max_frames_total, 
-                                      int (recv_callback)(void*, void*, uint32_t),
+                                      int (recv_callback)(void*, void*, uint32_t,timestamp_t*),
                                       void *stream_handler);
 
 LIBLTE_API void ue_cell_search_free(ue_cell_search_t *q);

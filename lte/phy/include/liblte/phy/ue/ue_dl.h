@@ -81,8 +81,7 @@ typedef struct LIBLTE_API {
 
 /* This function shall be called just after the initial synchronization */
 LIBLTE_API int ue_dl_init(ue_dl_t *q, 
-                          lte_cell_t cell,
-                          uint16_t user_rnti);
+                          lte_cell_t cell);
 
 LIBLTE_API void ue_dl_free(ue_dl_t *q);
 
@@ -101,5 +100,8 @@ LIBLTE_API void ue_dl_reset(ue_dl_t *q);
 
 LIBLTE_API void ue_dl_set_rnti(ue_dl_t *q, 
                                uint16_t rnti);
+
+LIBLTE_API void ue_dl_set_user_rnti(ue_dl_t *q, 
+                                    uint16_t user_rnti);
 
 #endif

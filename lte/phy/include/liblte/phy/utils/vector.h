@@ -29,6 +29,10 @@
 #ifndef VECTOR_
 #define VECTOR_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 #include "liblte/config.h"
@@ -136,5 +140,9 @@ LIBLTE_API void vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len);
 
 /* argument of each vector element */
 LIBLTE_API void vec_arg_cf(cf_t *x, float *arg, uint32_t len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // VECTOR_

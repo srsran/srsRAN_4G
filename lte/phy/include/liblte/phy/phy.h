@@ -48,6 +48,8 @@
 #include "liblte/phy/utils/pack.h"
 #include "liblte/phy/utils/vector.h"
 
+#include "liblte/phy/common/timestamp.h"
+#include "liblte/phy/common/sequence.h"
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/common/fft.h"
             

@@ -39,8 +39,7 @@
 #define MAX_CANDIDATES  64
 
 int ue_dl_init(ue_dl_t *q, 
-               lte_cell_t cell,  
-               uint16_t user_rnti) 
+               lte_cell_t cell) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
   
@@ -52,7 +51,7 @@ int ue_dl_init(ue_dl_t *q,
     bzero(q, sizeof(ue_dl_t));
     
     q->cell = cell; 
-    q->user_rnti = user_rnti; 
+    q->user_rnti = 0; 
     q->pkt_errors = 0;
     q->pkts_total = 0;
     
@@ -144,6 +143,10 @@ void ue_dl_free(ue_dl_t *q) {
   }
 }
 
+void ue_dl_set_user_rnti(ue_dl_t *q, uint16_t user_rnti) {
+  q->user_rnti = user_rnti;
+}
+
 void ue_dl_set_rnti(ue_dl_t *q, uint16_t rnti) {
   q->current_rnti = rnti; 
   pdsch_set_rnti(&q->pdsch, rnti);
@@ -217,10 +220,6 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
     nof_locations = pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, q->current_rnti);    
     formats = ue_formats; 
     nof_formats = nof_ue_formats;
-    if (q->current_rnti == 1234) {
-      nof_locations = 1; 
-      nof_formats = 1; 
-    }
   }
 
   /* Extract all PDCCH symbols and get LLRs */

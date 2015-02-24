@@ -71,14 +71,17 @@ LIBLTE_API int cuhd_recv(void *h,
                          bool blocking);
 
 LIBLTE_API int cuhd_recv_timed(void *h,
-                    void *data,
-                    uint32_t nsamples,
-                    bool blocking,
-                    time_t *secs,
-                    double *frac_secs);
+                               void *data,
+                               uint32_t nsamples,
+                               bool blocking,
+                               time_t *secs,
+                               double *frac_secs);
 
 LIBLTE_API double cuhd_set_tx_srate(void *h, 
                                     double freq);
+
+LIBLTE_API void cuhd_set_tx_antenna(void *h, 
+                                    char *name);
 
 LIBLTE_API double cuhd_set_tx_gain(void *h, 
                                    double gain);
@@ -86,11 +89,22 @@ LIBLTE_API double cuhd_set_tx_gain(void *h,
 LIBLTE_API double cuhd_set_tx_freq(void *h,
                                    double freq);
 
+LIBLTE_API double cuhd_set_tx_freq_offset(void *h, 
+                                          double freq, 
+                                          double off); 
+
 LIBLTE_API int cuhd_send(void *h, 
                          void *data, 
                          uint32_t nsamples, 
                          bool blocking);
 
+
+LIBLTE_API int cuhd_send_timed(void *h,
+                               void *data,
+                               int nsamples,
+                               int blocking,
+                               time_t secs,
+                               double frac_secs);
 
 #ifdef __cplusplus
 }

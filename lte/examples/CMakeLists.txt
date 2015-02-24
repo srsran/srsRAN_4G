@@ -83,6 +83,9 @@ IF(${CUHD_FIND} GREATER -1)
   add_executable(cell_search cell_search.c cuhd_utils.c)
   target_link_libraries(cell_search lte_rrc lte_phy cuhd )
 
+  add_executable(prach_ue prach_ue.c cuhd_utils.c)
+  target_link_libraries(prach_ue lte_rrc lte_phy cuhd)
+
   add_executable(cell_measurement cell_measurement.c cuhd_utils.c)
   target_link_libraries(cell_measurement cuhd lte_rrc lte_phy)
 

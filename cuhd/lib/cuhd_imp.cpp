@@ -214,11 +214,12 @@ int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
 }
 
 int cuhd_recv_timed(void *h,
-                    void *data,
-                    uint32_t nsamples,
-                    int blocking,
-                    time_t *secs,
-                    double *frac_secs) {
+                               void *data,
+                               uint32_t nsamples,
+                               bool blocking,
+                               time_t *secs,
+                               double *frac_secs) 
+{
   cuhd_handler* handler = static_cast<cuhd_handler*>(h);
   uhd::rx_metadata_t md;
   *secs = -1;
@@ -247,7 +248,11 @@ int cuhd_recv_timed(void *h,
   }
 }
 
-
+void cuhd_set_tx_antenna(void *h, char *name)
+{
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  handler->usrp->set_tx_antenna(name, 0);  
+}
 double cuhd_set_tx_gain(void *h, double gain)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
@@ -269,6 +274,13 @@ double cuhd_set_tx_freq(void *h, double freq)
   return handler->usrp->get_tx_freq();
 }
 
+double cuhd_set_tx_freq_offset(void *h, double freq, double off) {
+  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
+  handler->usrp->set_tx_freq(uhd::tune_request_t(freq, off));
+  return handler->usrp->get_tx_freq();
+}
+
+
 int cuhd_send(void *h, void *data, uint32_t nsamples, bool blocking)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
@@ -283,6 +295,34 @@ int cuhd_send(void *h, void *data, uint32_t nsamples, bool blocking)
       }
       n += p;
     } while (n < nsamples);
+    return nsamples;
+  } else {
+    return handler->tx_stream->send(data, nsamples, md, 0.0);
+  }
+}
+
+
+int cuhd_send_timed(void *h,
+                    void *data,
+                    int nsamples,
+                    int blocking,
+                    time_t secs,
+                    double frac_secs) {
+  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
+  uhd::tx_metadata_t md;
+  md.has_time_spec = true;
+  md.time_spec = uhd::time_spec_t(secs, frac_secs);
+  if (blocking) {
+    int n=0,p;
+    complex_t *data_c = (complex_t*) data;
+    do {
+      p=handler->tx_stream->send(&data_c[n], nsamples-n, md);
+      md.has_time_spec = false;
+      if (p == -1) {
+        return -1;
+      }
+      n+=p;
+    } while(n<nsamples);
     return nsamples;
   } else {
     return handler->tx_stream->send(data, nsamples, md, 0.0);

@@ -107,7 +107,7 @@ void args_default(prog_args_t *args) {
 
 void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [agildnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
-#ifndef DISABLE_GRAPHICS
+#ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
 #else
@@ -202,7 +202,7 @@ void sig_int_handler(int signo)
 }
 
 #ifndef DISABLE_UHD
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
+int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
 }
@@ -320,10 +320,12 @@ int main(int argc, char **argv) {
 #endif
   }
 
-  if (ue_dl_init(&ue_dl, cell, prog_args.rnti==SIRNTI?1:prog_args.rnti)) {  // This is the User RNTI
+  if (ue_dl_init(&ue_dl, cell)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
+  
+  ue_dl_set_user_rnti(&ue_dl, prog_args.rnti==SIRNTI?1:prog_args.rnti);
 
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
   ue_dl_set_rnti(&ue_dl, prog_args.rnti); 

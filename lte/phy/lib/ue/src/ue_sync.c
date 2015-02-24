@@ -82,7 +82,7 @@ clean_exit:
 
 int ue_sync_init(ue_sync_t *q, 
                  lte_cell_t cell,
-                 int (recv_callback)(void*, void*, uint32_t),
+                 int (recv_callback)(void*, void*, uint32_t,timestamp_t*),
                  void *stream_handler) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
@@ -201,6 +201,10 @@ void ue_sync_free(ue_sync_t *q) {
   bzero(q, sizeof(ue_sync_t));
 }
 
+void ue_sync_get_last_timestamp(ue_sync_t *q, timestamp_t *timestamp) {
+  memcpy(timestamp, &q->last_timestamp, sizeof(timestamp_t));
+}
+
 uint32_t ue_sync_peak_idx(ue_sync_t *q) {
   return q->peak_idx;
 }
@@ -250,7 +254,7 @@ static int find_peak_ok(ue_sync_t *q) {
   if (q->frame_find_cnt >= q->nof_avg_find_frames || q->peak_idx < 2*q->fft_size) {
     INFO("Realigning frame, reading %d samples\n", q->peak_idx+q->sf_len/2);
     /* Receive the rest of the subframe so that we are subframe aligned*/
-    if (q->recv_callback(q->stream, q->input_buffer, q->peak_idx+q->sf_len/2) < 0) {
+    if (q->recv_callback(q->stream, q->input_buffer, q->peak_idx+q->sf_len/2, &q->last_timestamp) < 0) {
       return LIBLTE_ERROR;
     }
     
@@ -297,7 +301,7 @@ static int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
       discard the offseted samples to align next frame */
     if (q->time_offset > 0 && q->time_offset < MAX_TIME_OFFSET) {
       INFO("\nPositive time offset %d samples. Mean time offset %f.\n", q->time_offset, q->mean_time_offset);
-      if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset) < 0) {
+      if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset, &q->last_timestamp) < 0) {
         fprintf(stderr, "Error receiving from USRP\n");
         return LIBLTE_ERROR; 
       }
@@ -337,7 +341,7 @@ static int receive_samples(ue_sync_t *q) {
   }
 
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
-  if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], q->frame_len - q->time_offset) < 0) {
+  if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], q->frame_len - q->time_offset, &q->last_timestamp) < 0) {
     return LIBLTE_ERROR;
   }
   
