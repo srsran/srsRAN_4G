@@ -63,7 +63,7 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
   {
     bzero(q, sizeof(chest_dl_t));
     
-    ret = refsignal_cs_generate(&q->csr_signal, cell); 
+    ret = refsignal_cs_init(&q->csr_signal, cell); 
     if (ret != LIBLTE_SUCCESS) {
       fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
       goto clean_exit;
@@ -285,9 +285,9 @@ static void interpolate_pilots(chest_dl_t *q, cf_t *ce, uint32_t port_id)
   
   /* Interpolate in the frequency domain */
   for (l=0;l<nsymbols;l++) {
-    uint32_t fidx_offset = refsignal_fidx(q->cell, l, port_id, 0);    
+    uint32_t fidx_offset = refsignal_cs_fidx(q->cell, l, port_id, 0);    
     interp_linear_offset(&q->interp_lin, &pilot_avg(0),
-                         &ce[refsignal_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB], 
+                         &ce[refsignal_cs_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB], 
                          fidx_offset, RE_X_RB/2-fidx_offset); 
   }
   
@@ -323,7 +323,7 @@ float chest_dl_rssi(chest_dl_t *q, cf_t *input, uint32_t port_id) {
   float rssi = 0;
   uint32_t nsymbols = refsignal_cs_nof_symbols(port_id);   
   for (l=0;l<nsymbols;l++) {
-    cf_t *tmp = &input[refsignal_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB];
+    cf_t *tmp = &input[refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB];
     rssi += vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * RE_X_RB);    
   }    
   return rssi/nsymbols; 
