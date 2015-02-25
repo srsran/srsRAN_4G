@@ -424,6 +424,7 @@ int main(int argc, char **argv) {
               rsrp = 0; 
             }
             
+#ifdef adjust_estimator
             /* Adjust channel estimator based on SNR */
             if (10*log10(snr) < 5.0) {
               float f_low_snr[5]={0.05, 0.15, 0.6, 0.15, 0.05};
@@ -435,7 +436,7 @@ int main(int argc, char **argv) {
               float f_high_snr[3]={0.05, 0.9, 0.05};
               chest_dl_set_filter_freq(&ue_dl.chest, f_high_snr, 3);
             }
-              
+#endif
             
           }
           if (ue_sync_get_sfidx(&ue_sync) != 5 && ue_sync_get_sfidx(&ue_sync) != 0) {
