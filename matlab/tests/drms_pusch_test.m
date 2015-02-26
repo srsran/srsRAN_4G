@@ -1,4 +1,4 @@
-ueConfig=struct('CyclicPrefixUL','Normal','NTxAnts',1);
+ueConfig=struct('CyclicPrefixUL','Normal','NTxAnts',1,'NULRB',25);
 puschConfig=struct('NLayers',1,'OrthCover','Off');
 
 addpath('../../debug/lte/phy/lib/ch_estimation/test')
@@ -6,13 +6,13 @@ addpath('../../debug/lte/phy/lib/ch_estimation/test')
 Hopping={'Off','Sequence','Group'};
 
 k=1;
-for prb=6:6
-    for ncell=0:2
-        for ns=0:9
-            for h=1:3
-                for sg=0:29
-                    for cs=0:7
-                       for ds=0:7
+for prb=3
+    for ncell=0
+        for ns=8:9
+            for h=1
+                for sg=0
+                    for cs=0
+                       for ds=0
                            
                             ueConfig.NCellID=ncell;
                             ueConfig.NSubframe=ns;
@@ -24,9 +24,13 @@ for prb=6:6
                             puschConfig.DynCyclicShift=ds;
 
                             [mat, info]=ltePUSCHDRS(ueConfig,puschConfig);
-                            lib=liblte_refsignal_pusch(ueConfig,puschConfig);
+                            ind=ltePUSCHDRSIndices(ueConfig, puschConfig);
+                            subframe_mat = lteULResourceGrid(ueConfig);
+                            subframe_mat(ind)=mat;
+                            
+                            subframe_lib=liblte_refsignal_pusch(ueConfig,puschConfig);
 
-                            error(k)=mean(abs(mat-lib));
+                            error(k)=mean(abs(subframe_mat(:)-subframe_lib(:)));
                             disp(error(k))
                             if (error(k) > 10^-3)
                                 k=1;
@@ -42,7 +46,7 @@ end
     
 plot(error);
 disp(info)
-disp(length(mat))
-n=1:length(mat);
-plot(n,real(mat(n)),n,real(lib(n)))
+disp(length(subframe_mat))
+n=1:length(subframe_mat(:));
+plot(n,real(subframe_mat(:)),n,real(subframe_lib(:)))
 

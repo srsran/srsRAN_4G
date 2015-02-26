@@ -279,7 +279,7 @@ int main(int argc, char **argv) {
     }
     
     if (crc_rem == rnti) {
-      if (dci_msg_to_ra_dl(&dci_msg, rnti, 1234, cell, cfi, &ra_dl)) {
+      if (dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, &ra_dl)) {
         fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
         goto goout;
       }

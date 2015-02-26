@@ -524,13 +524,36 @@ int ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
 }
 
 void ra_pusch_fprint(FILE *f, ra_pusch_t *ra, uint32_t nof_prb) {
-  fprintf(f, "Frequency Hopping:\t");
+  fprintf(f, " - Resource Allocation Type 2 mode :\t%s\n",
+      ra->type2_alloc.mode == t2_loc ? "Localized" : "Distributed");
+  
+  fprintf(f, "   + Frequency Hopping:\t\t\t");
   if (ra->freq_hop_fl == hop_disabled) {
-    fprintf(f, "No");
+    fprintf(f, "No\n");
   } else {
-    fprintf(f, "Yes");
+    fprintf(f, "Yes\n");
+  }
+  fprintf(f, "   + Resource Indicator Value:\t\t%d\n", ra->type2_alloc.riv);
+  if (ra->type2_alloc.mode == t2_loc) {
+  fprintf(f, "   + VRB Assignment:\t\t\t%d VRB starting with VRB %d\n",
+    ra->type2_alloc.L_crb, ra->type2_alloc.RB_start);
+  } else {
+  fprintf(f, "   + VRB Assignment:\t\t\t%d VRB starting with VRB %d\n",
+    ra->type2_alloc.L_crb, ra->type2_alloc.RB_start);
+  fprintf(f, "   + VRB gap selection:\t\t\tGap %d\n",
+    ra->type2_alloc.n_gap == t2_ng1 ? 1 : 2);
+  fprintf(f, "   + VRB gap:\t\t\t\t%d\n",
+    ra_type2_ngap(nof_prb, ra->type2_alloc.n_gap == t2_ng1));
 
   }
+  
+  fprintf(f, " - Number of PRBs:\t\t\t%d\n", ra_nprb_ul(ra, nof_prb));
+  fprintf(f, " - Modulation and coding scheme index:\t%d\n", ra->mcs_idx);
+  fprintf(f, " - Modulation type:\t\t\t%s\n", lte_mod_string(ra->mcs.mod));
+  fprintf(f, " - Transport block size:\t\t%d\n", ra->mcs.tbs);
+  fprintf(f, " - New data indicator:\t\t\t%s\n", ra->ndi ? "Yes" : "No");
+  fprintf(f, " - Redundancy version:\t\t\t%d\n", ra->rv_idx);
+  fprintf(f, " - TPC command for PUCCH:\t\t--\n");    
 }
 
 char *ra_type_string(ra_type_t alloc_type) {

@@ -41,7 +41,7 @@
 #include "liblte/phy/utils/debug.h"
 
 
-int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti, 
+int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
                      lte_cell_t cell, uint32_t cfi,
                      ra_pdsch_t *ra_dl) 
 {
@@ -56,7 +56,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
     ret = LIBLTE_ERROR;
     
     dci_msg_type_t type;
-    if (dci_msg_get_type(msg, &type, cell.nof_prb, msg_rnti, c_rnti)) {
+    if (dci_msg_get_type(msg, &type, cell.nof_prb, msg_rnti)) {
       fprintf(stderr, "Can't get DCI message type\n");
       return ret; 
     }
@@ -68,7 +68,11 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
     if (type.type == PDSCH_SCHED) {
       bzero(ra_dl, sizeof(ra_pdsch_t));
       
-      if (dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, msg_rnti != SIRNTI)) {
+      bool crc_is_crnti = false; 
+      if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
+        crc_is_crnti = true; 
+      }
+      if (dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, crc_is_crnti)) {
         fprintf(stderr, "Can't unpack PDSCH message\n");
         return ret;
       } 
@@ -303,7 +307,6 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
   uint32_t riv = bit_unpack(&y, riv_nbits(nof_prb) - n_ul_hop);
   ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
       nof_prb, nof_prb);
-  bit_pack((uint32_t) riv, &y, riv_nbits(nof_prb) - n_ul_hop);
   data->type2_alloc.riv = riv;
 
   /* unpack MCS according to 8.6 of 36.213 */
@@ -599,7 +602,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
     y++; // MSB of TPC is reserved
     data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
-  
+
   uint32_t n_prb;
   if (crc_is_crnti) {
     n_prb = ra_nprb_dl(data, nof_prb);
@@ -788,9 +791,9 @@ void dci_msg_type_fprint(FILE *f, dci_msg_type_t type) {
 }
 
 int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
-    uint16_t msg_rnti, uint16_t crnti) 
+    uint16_t msg_rnti) 
 {
-  DEBUG("Get message type: nof_bits=%d, msg_rnti=0x%x, crnti=0x%x\n", msg->nof_bits, msg_rnti, crnti);
+  DEBUG("Get message type: nof_bits=%d, msg_rnti=0x%x\n", msg->nof_bits, msg_rnti);
   if (msg->nof_bits == dci_format_sizeof(Format0, nof_prb)
       && !msg->data[0]) {
     type->type = PUSCH_SCHED;
@@ -801,7 +804,7 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
     type->format = Format1;
     return LIBLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
-    if (msg_rnti == crnti) {
+    if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
       type->type = RA_PROC_PDCCH;
       type->format = Format1A;
     } else {

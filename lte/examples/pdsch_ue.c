@@ -325,8 +325,6 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
-  ue_dl_set_user_rnti(&ue_dl, prog_args.rnti==SIRNTI?1:prog_args.rnti);
-
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
   ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
 

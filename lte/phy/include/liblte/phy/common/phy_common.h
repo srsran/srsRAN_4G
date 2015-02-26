@@ -52,9 +52,14 @@
 
 typedef enum {CPNORM, CPEXT} lte_cp_t;
 
-#define SIRNTI  0xFFFF
-#define PRNTI   0xFFFE
-#define MRNTI   0xFFFD
+
+#define CRNTI_START  0x003D
+#define CRNTI_END    0xFFF3
+#define RARNTI_START 0x0001
+#define RARNTI_END   0x003C
+#define SIRNTI       0xFFFF
+#define PRNTI        0xFFFE
+#define MRNTI        0xFFFD
 
 #define CELL_ID_UNKNOWN         1000
 

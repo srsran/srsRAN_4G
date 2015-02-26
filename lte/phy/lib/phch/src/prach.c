@@ -384,7 +384,7 @@ int prach_gen(prach_t *p,
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);
 
-    printf("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
+    DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
     // Map dft-precoded sequence to ifft bins
     memset(p->ifft_in, 0, begin*sizeof(cf_t));
     memcpy(&p->ifft_in[begin], p->dft_seqs[seq_index], p->N_zc * sizeof(cf_t));

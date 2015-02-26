@@ -75,8 +75,7 @@ typedef struct LIBLTE_API {
  * to ra structures ready to be passed to the harq setup function
  */
 LIBLTE_API int dci_msg_to_ra_dl(dci_msg_t *msg, 
-                                uint16_t msg_rnti, 
-                                uint16_t c_rnti, 
+                                uint16_t msg_rnti,
                                 lte_cell_t cell,
                                 uint32_t cfi,
                                 ra_pdsch_t *ra_dl);
@@ -102,8 +101,7 @@ LIBLTE_API bool dci_location_isvalid(dci_location_t *c);
 LIBLTE_API int dci_msg_get_type(dci_msg_t *msg, 
                                 dci_msg_type_t *type, 
                                 uint32_t nof_prb, 
-                                uint16_t msg_rnti, 
-                                uint16_t crnti);
+                                uint16_t msg_rnti);
 
 LIBLTE_API void dci_msg_type_fprint(FILE *f, 
                                     dci_msg_type_t type);

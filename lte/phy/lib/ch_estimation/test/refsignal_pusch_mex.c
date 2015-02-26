@@ -50,7 +50,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   lte_cell_t cell; 
   refsignal_ul_t refs;
   refsignal_drms_pusch_cfg_t pusch_cfg;
-  cf_t *signal;
   uint32_t sf_idx; 
 
   if (nrhs != NOF_INPUTS) {
@@ -62,7 +61,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field NCellID not found in UE config\n");
     return;
   }
-  cell.nof_prb = 100;
+  if (mexutils_read_uint32_struct(UECFG, "NULRB", &cell.nof_prb)) {
+    mexErrMsgTxt("Field NCellID not found in UE config\n");
+    return;
+  }
   cell.cp = CPNORM;
   cell.nof_ports = 1; 
 
@@ -103,7 +105,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   pusch_cfg.nof_prb = mexutils_read_f(p, &prbset); 
-  free(prbset);
   
   if (mexutils_read_uint32_struct(PUSCHCFG, "DynCyclicShift", &pusch_cfg.common.cyclic_shift_for_drms)) {
     pusch_cfg.common.cyclic_shift_for_drms = 0; 
@@ -125,23 +126,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexPrintf("delta_ss: %d, ",pusch_cfg.common.delta_ss);
   mexPrintf("hopping_method: %d\n, ",pusch_cfg.hopping_method);
   
-  signal = vec_malloc(2*RE_X_RB*pusch_cfg.nof_prb*sizeof(cf_t));
+  cf_t *signal = vec_malloc(2*RE_X_RB*pusch_cfg.nof_prb*sizeof(cf_t));
   if (!signal) {
     perror("malloc");
     return;
   }
+  cf_t *sf_symbols = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
+  if (!sf_symbols) {
+    perror("malloc");
+    return;
+  }
+  bzero(sf_symbols, SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
   for (uint32_t i=0;i<2;i++) {
     //mexPrintf("Generating DRMS for ns=%d, nof_prb=%d\n", 2*sf_idx+i,pusch_cfg.nof_prb);
     refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, 2*sf_idx+i, &signal[i*RE_X_RB*pusch_cfg.nof_prb]);    
   }
-  
+  for (uint32_t i=0;i<2;i++) {
+    refsignal_drms_pusch_put(&refs, &pusch_cfg, &signal[i*RE_X_RB*pusch_cfg.nof_prb], i, prbset[0], sf_symbols);                
+  }
   if (nlhs >= 1) {
-    mexutils_write_cf(signal, &plhs[0], 2*RE_X_RB*pusch_cfg.nof_prb, 1);  
+    mexutils_write_cf(sf_symbols, &plhs[0], SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
   }
 
   refsignal_ul_free(&refs);  
   free(signal);
-  
+  free(prbset);
+
   return;
 }
 

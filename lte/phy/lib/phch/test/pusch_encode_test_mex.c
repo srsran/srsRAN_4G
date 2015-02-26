@@ -110,12 +110,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } 
   
   ra_ul_alloc_t prb_alloc;
+  bzero(&prb_alloc, sizeof(ra_ul_alloc_t));
   prb_alloc.L_prb = mexutils_read_f(p, &prbset);
   prb_alloc.n_prb[2*sf_idx] = prbset[0];
   prb_alloc.n_prb[2*sf_idx+1] = prbset[0];
   free(prbset);
   
-  mexPrintf("L_prb: %d, n_prb: %d\n", prb_alloc.L_prb, prb_alloc.n_prb[0]);
+  mexPrintf("L_prb: %d, n_prb: %d\n", prb_alloc.L_prb, prb_alloc.n_prb[2*sf_idx]);
   
   uint8_t *trblkin = NULL;
   mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);

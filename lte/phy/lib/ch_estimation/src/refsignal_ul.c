@@ -243,6 +243,12 @@ bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, refsignal_drms_pusch_cf
   }
 }
 
+void refsignal_drms_pusch_put(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, cf_t *r_pusch, uint32_t ns_idx, uint32_t n_prb, cf_t *sf_symbols) {
+  if (ns_idx < 2) {
+    uint32_t L = (ns_idx+1)*CP_NSYMB(q->cell.cp)-4;
+    memcpy(&sf_symbols[RE_IDX(q->cell.nof_prb, L, n_prb*RE_X_RB)], r_pusch, cfg->nof_prb*RE_X_RB*sizeof(cf_t));    
+  }
+}
 
 /* Generate DRMS for PUSCH signal according to 5.5.2.1 of 36.211 */
 int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t ns, cf_t *r_pusch) {

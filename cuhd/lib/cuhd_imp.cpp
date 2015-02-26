@@ -121,9 +121,8 @@ int cuhd_open(char *args, void **h)
 {
   cuhd_handler *handler = new cuhd_handler();
   std::string _args = std::string(args);
-  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000" + ", num_recv_frames=512");
-
-//  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=50000000" + ", num_recv_frames=512");
+  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000");
+//        "num_recv_frames=1,num_send_frames=1,recv_frame_size=15360,send_frame_size=15360");
   handler->usrp->set_clock_source("internal");
   
 #ifdef HIDE_MESSAGES
@@ -134,6 +133,7 @@ int cuhd_open(char *args, void **h)
   otw = "sc16";
   cpu = "fc32";
   uhd::stream_args_t stream_args(cpu, otw);
+  stream_args.args["spp"] = "120"; // Set the property
   handler->rx_stream = handler->usrp->get_rx_stream(stream_args);
   handler->tx_stream = handler->usrp->get_tx_stream(stream_args);
 
@@ -310,6 +310,8 @@ int cuhd_send_timed(void *h,
                     double frac_secs) {
   cuhd_handler* handler = static_cast<cuhd_handler*>(h);
   uhd::tx_metadata_t md;
+  md.start_of_burst = true;
+  md.end_of_burst = true; 
   md.has_time_spec = true;
   md.time_spec = uhd::time_spec_t(secs, frac_secs);
   if (blocking) {

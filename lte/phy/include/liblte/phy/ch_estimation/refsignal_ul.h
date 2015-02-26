@@ -88,6 +88,13 @@ LIBLTE_API void refsignal_ul_free(refsignal_ul_t *q);
 LIBLTE_API bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, 
                                                  refsignal_drms_pusch_cfg_t *cfg); 
 
+LIBLTE_API void refsignal_drms_pusch_put(refsignal_ul_t *q, 
+                                         refsignal_drms_pusch_cfg_t *cfg, 
+                                         cf_t *r_pusch, 
+                                         uint32_t ns_idx, 
+                                         uint32_t n_prb, 
+                                         cf_t *sf_symbols); 
+
 LIBLTE_API int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t ns, cf_t *r_pusch);
 
 LIBLTE_API void refsignal_dmrs_pucch_gen(refsignal_ul_t *q, refsignal_drms_pucch_cfg_t *cfg, uint32_t ns, cf_t *r_pucch);

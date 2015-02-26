@@ -75,7 +75,6 @@ typedef struct LIBLTE_API {
   uint64_t pkts_total;
   uint64_t nof_pdcch_detected; 
 
-  uint16_t user_rnti; 
   uint16_t current_rnti;
 }ue_dl_t;
 
@@ -100,8 +99,5 @@ LIBLTE_API void ue_dl_reset(ue_dl_t *q);
 
 LIBLTE_API void ue_dl_set_rnti(ue_dl_t *q, 
                                uint16_t rnti);
-
-LIBLTE_API void ue_dl_set_user_rnti(ue_dl_t *q, 
-                                    uint16_t user_rnti);
 
 #endif

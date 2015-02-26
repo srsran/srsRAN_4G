@@ -51,7 +51,6 @@ int ue_dl_init(ue_dl_t *q,
     bzero(q, sizeof(ue_dl_t));
     
     q->cell = cell; 
-    q->user_rnti = 0; 
     q->pkt_errors = 0;
     q->pkts_total = 0;
     
@@ -141,10 +140,6 @@ void ue_dl_free(ue_dl_t *q) {
     bzero(q, sizeof(ue_dl_t));
 
   }
-}
-
-void ue_dl_set_user_rnti(ue_dl_t *q, uint16_t user_rnti) {
-  q->user_rnti = user_rnti;
 }
 
 void ue_dl_set_rnti(ue_dl_t *q, uint16_t rnti) {
@@ -239,9 +234,10 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
       INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
       
       if (crc_rem == q->current_rnti) {
+
         found_dci++;
         q->nof_pdcch_detected++;
-        if (dci_msg_to_ra_dl(&dci_msg, q->current_rnti, q->user_rnti, q->cell, cfi, &ra_dl)) {
+        if (dci_msg_to_ra_dl(&dci_msg, q->current_rnti, q->cell, cfi, &ra_dl)) {
           fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
           return LIBLTE_ERROR;
         }
@@ -249,13 +245,11 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
         if (q->current_rnti != SIRNTI) {
           rvidx = ra_dl.rv_idx;
         }
-        if (rvidx == 0) {
-          if (harq_setup_dl(&q->harq_process[0], ra_dl.mcs, rvidx, sf_idx, &ra_dl.prb_alloc)) {
-            fprintf(stderr, "Error configuring HARQ process\n");
-            return LIBLTE_ERROR;
-          }
+        if (harq_setup_dl(&q->harq_process[0], ra_dl.mcs, rvidx, sf_idx, &ra_dl.prb_alloc)) {
+          fprintf(stderr, "Error configuring HARQ process\n");
+          return LIBLTE_ERROR;
         }
-        if (q->harq_process[0].mcs.mod > 0) {
+        if (q->harq_process[0].mcs.mod > 0 && q->harq_process[0].mcs.tbs >= 0) {
           ret = pdsch_decode(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
                              q->ce, chest_dl_get_noise_estimate(&q->chest), 
                              data);

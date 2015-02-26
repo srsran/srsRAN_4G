@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
     
     if (crc_rem == rnti) {
       dci_msg_type_t type;
-      if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti, 1234)) {
+      if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti)) {
         fprintf(stderr, "Can't get DCI message type\n");
         exit(-1);
       }

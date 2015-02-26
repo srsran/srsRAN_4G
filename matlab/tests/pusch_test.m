@@ -1,14 +1,20 @@
 clear 
-ueConfig=struct('NCellID',3,'NULRB',25,'NSubframe',0,'RNTI',1,'CyclicPrefixUL','Normal','NTxAnts',1);
-puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',[0 1]','Modulation','QPSK','RV',0,'Shortened',0);
+ueConfig=struct('NCellID',0,'NULRB',25,'NSubframe',4,'RNTI',82,'CyclicPrefixUL','Normal','NTxAnts',1);
+puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',[0 1 2]','Modulation','QPSK','RV',0,'Shortened',0);
 
 addpath('../../debug/lte/phy/lib/phch/test')
 
- TBs=0:13:211;
- cqilen=[0, 8, 17];
- mods={'QPSK','16QAM','64QAM'};
- rvs=0;
- betas=0:3:11;
+%  TBs=0:13:211;
+%  cqilen=[0, 8, 17];
+%  mods={'QPSK','16QAM','64QAM'};
+%  rvs=0;
+%  betas=0:3:11;
+
+TBs=56;
+cqilen=0;
+mods={'QPSK'};
+rvs=0;
+betas=0;
  
 for i=1:length(TBs)
     for m=1:length(mods)
