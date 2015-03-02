@@ -89,10 +89,17 @@ LIBLTE_API int ue_dl_decode(ue_dl_t * q,
                             uint8_t *data,
                             uint32_t sf_idx);
 
+LIBLTE_API int ue_dl_decode_rnti(ue_dl_t * q, 
+                                 cf_t *input, 
+                                 uint8_t *data,
+                                 uint16_t rnti, 
+                                 uint32_t sf_idx);
+
 LIBLTE_API int ue_dl_decode_sib(ue_dl_t * q, 
                                 cf_t *input, 
                                 uint8_t * data,
                                 uint32_t sf_idx, 
+                                uint16_t rnti, 
                                 uint32_t rvidx); 
 
 LIBLTE_API void ue_dl_reset(ue_dl_t *q);

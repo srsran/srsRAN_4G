@@ -284,13 +284,10 @@ int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg,
             u, v, alpha, N_sz, get_q(u,v,N_sz));
     }
 
-    vec_fprint_f(stdout, q->tmp_arg, RE_X_RB*cfg->nof_prb);
-    
     // Do complex exponential and adjust amplitude
     for (int i=0;i<RE_X_RB*cfg->nof_prb;i++) {
       r_pusch[i] = cfg->beta_pusch * cexpf(I*(q->tmp_arg[i] + alpha*i));
     }
-    vec_fprint_c(stdout, r_pusch, RE_X_RB*cfg->nof_prb);
     ret = 0; 
   }
   return ret; 

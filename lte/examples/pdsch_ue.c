@@ -394,7 +394,7 @@ int main(int argc, char **argv) {
             if (prog_args.rnti != SIRNTI) {
               n = ue_dl_decode(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync));
             } else {
-              n = ue_dl_decode_sib(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), 
+              n = ue_dl_decode_sib(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {

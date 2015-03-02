@@ -156,11 +156,12 @@ double cuhd_set_rx_srate(void *h, double freq)
   handler->usrp->set_rx_rate(freq);  
   
   double ret = handler->usrp->get_rx_rate();
+  /*
   if ((int) ret != (int) freq) {
     handler->usrp->set_master_clock_rate(freq);
     handler->usrp->set_rx_rate(freq);  
   }
-  
+  */
   return freq;
 }
 
@@ -213,39 +214,56 @@ int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
   }
 }
 
-int cuhd_recv_timed(void *h,
-                               void *data,
-                               uint32_t nsamples,
-                               bool blocking,
-                               time_t *secs,
-                               double *frac_secs) 
+int cuhd_recv_with_time(void *h,
+                    void *data,
+                    uint32_t nsamples,
+                    time_t *secs,
+                    double *frac_secs) 
 {
   cuhd_handler* handler = static_cast<cuhd_handler*>(h);
   uhd::rx_metadata_t md;
-  *secs = -1;
-  *frac_secs = -1;
-  int p;
-  if (blocking) {
-    int n=0;
-    complex_t *data_c = (complex_t*) data;
-    do {
-      p=handler->rx_stream->recv(&data_c[n], nsamples-n, md);
-      if (p == -1) {
-        return -1;
-      }
-      if(*secs < 0){
-        *secs = md.time_spec.get_full_secs();
-        *frac_secs = md.time_spec.get_frac_secs();
-      }
-      n+=p;
-    } while(n<nsamples);
-    return n;
-  } else {
-    p = handler->rx_stream->recv(data, nsamples, md, 0.0);
+  int p = handler->rx_stream->recv(data, nsamples, md, 0.0);
+  if (secs && frac_secs) {
     *secs = md.time_spec.get_full_secs();
-    *frac_secs = md.time_spec.get_frac_secs();
-    return p;
+    *frac_secs = md.time_spec.get_frac_secs();    
   }
+  return p;
+}
+
+int cuhd_recv_timed(void *h,
+                 void *data,
+                 uint32_t nsamples,
+                 time_t secs,
+                 double frac_secs) 
+{
+  return cuhd_recv_timed2(h, data, nsamples, secs, frac_secs, true, true); 
+}
+               
+
+int cuhd_recv_timed2(void *h,
+                 void *data,
+                 uint32_t nsamples,
+                 time_t secs,
+                 double frac_secs, 
+                 bool is_start_of_burst,
+                 bool is_end_of_burst) 
+{
+  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
+  uhd::rx_metadata_t md;
+  md.start_of_burst = is_start_of_burst;
+  md.end_of_burst = is_end_of_burst; 
+  md.has_time_spec = true;
+  md.time_spec = uhd::time_spec_t(secs, frac_secs);
+
+  return handler->rx_stream->recv(data, nsamples, md);
+}
+
+void cuhd_get_time(void *h, time_t *secs, double *frac_secs) 
+{
+  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
+  uhd::time_spec_t now = handler->usrp->get_time_now();
+  *secs = now.get_full_secs();
+  *frac_secs = now.get_frac_secs();
 }
 
 void cuhd_set_tx_antenna(void *h, char *name)
@@ -301,32 +319,28 @@ int cuhd_send(void *h, void *data, uint32_t nsamples, bool blocking)
   }
 }
 
-
 int cuhd_send_timed(void *h,
                     void *data,
                     int nsamples,
-                    int blocking,
                     time_t secs,
-                    double frac_secs) {
+                    double frac_secs) 
+{
+  return cuhd_send_timed2(h, data, nsamples, secs, frac_secs, true, true);
+}
+                    
+int cuhd_send_timed2(void *h,
+                    void *data,
+                    int nsamples,
+                    time_t secs,
+                    double frac_secs,                      
+                    bool is_start_of_burst,
+                    bool is_end_of_burst) 
+{
   cuhd_handler* handler = static_cast<cuhd_handler*>(h);
   uhd::tx_metadata_t md;
-  md.start_of_burst = true;
-  md.end_of_burst = true; 
+  md.start_of_burst = is_start_of_burst;
+  md.end_of_burst = is_end_of_burst; 
   md.has_time_spec = true;
   md.time_spec = uhd::time_spec_t(secs, frac_secs);
-  if (blocking) {
-    int n=0,p;
-    complex_t *data_c = (complex_t*) data;
-    do {
-      p=handler->tx_stream->send(&data_c[n], nsamples-n, md);
-      md.has_time_spec = false;
-      if (p == -1) {
-        return -1;
-      }
-      n+=p;
-    } while(n<nsamples);
-    return nsamples;
-  } else {
-    return handler->tx_stream->send(data, nsamples, md, 0.0);
-  }
+  return handler->tx_stream->send(data, nsamples, md);
 }

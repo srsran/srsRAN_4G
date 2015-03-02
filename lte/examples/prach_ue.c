@@ -151,7 +151,7 @@ void sig_int_handler(int signo)
 
 int cuhd_recv_wrapper_timed(void *h, void *data, uint32_t nsamples, timestamp_t *uhd_time) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return cuhd_recv_timed(h, data, nsamples, 1, &uhd_time->full_secs, &uhd_time->frac_secs);
+  return cuhd_recv_with_time(h, data, nsamples, &uhd_time->full_secs, &uhd_time->frac_secs);
 }
 
 extern float mean_exec_time;
@@ -291,7 +291,7 @@ int rar_to_ra_pusch(rar_msg_t *rar, ra_pusch_t *ra, uint32_t nof_prb) {
   }
   ra->type2_alloc.riv = riv; 
   ra->mcs_idx = rar->mcs;
-  printf("b: %d, RIV: %d\n", b, riv);
+
   ra_type2_from_riv(riv, &ra->type2_alloc.L_crb, &ra->type2_alloc.RB_start,
       nof_prb, nof_prb);
   
@@ -315,7 +315,8 @@ int main(int argc, char **argv) {
   timestamp_t uhd_time;
   timestamp_t next_tx_time;  
   const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6};
-
+  uint8_t data[100];
+  
   parse_args(&prog_args, argc, argv);
 
   printf("Opening UHD device...\n");
@@ -383,8 +384,9 @@ int main(int argc, char **argv) {
   
   refsignal_ul_t drms; 
   refsignal_drms_pusch_cfg_t pusch_cfg;
-  pusch_cfg.nof_prb = 3; 
   bzero(&pusch_cfg, sizeof(refsignal_drms_pusch_cfg_t));
+  pusch_cfg.nof_prb = 3; 
+  pusch_cfg.beta_pusch = 1.0; 
   if (refsignal_ul_init(&drms, cell)) {
     fprintf(stderr, "Error initiating refsignal_ul\n");
     exit(-1);
@@ -395,7 +397,9 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   for (uint32_t i=0;i<2;i++) {
-    refsignal_dmrs_pusch_gen(&drms, &pusch_cfg, 2*4+i, &drms_signal[i*RE_X_RB*pusch_cfg.nof_prb]);
+    if (refsignal_dmrs_pusch_gen(&drms, &pusch_cfg, 2*4+i, &drms_signal[i*RE_X_RB*pusch_cfg.nof_prb])) {
+      fprintf(stderr, "Error generating PUSCH DRMS signals\n");
+    }
   }
   
   if (pusch_init(&pusch, cell)) {
@@ -420,7 +424,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   bzero(ul_signal, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
-
+    
   cf_t *sf_symbols = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
   if (!sf_symbols) {
     perror("malloc");
@@ -444,10 +448,11 @@ int main(int argc, char **argv) {
 
   // Register Ctrl+C handler
   signal(SIGINT, sig_int_handler);
-
+            
   cuhd_start_rx_stream(uhd);    
     
   struct timeval tdata[3];
+  uint16_t ra_rnti; 
   
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -485,11 +490,10 @@ int main(int argc, char **argv) {
             timestamp_add(&next_tx_time, 0, 0.01); // send next frame (10 ms)
             printf("Send prach sfn: %d. Last frame time = %.6f, send prach time = %.6f\n", 
                    sfn, timestamp_real(&uhd_time), timestamp_real(&next_tx_time));
-            cuhd_send_timed(uhd, prach_buffers[7], prach_buffer_len, 1,
+            cuhd_send_timed(uhd, prach_buffers[7], prach_buffer_len, 
                             next_tx_time.full_secs, next_tx_time.frac_secs);
             
-            uint16_t ra_rnti = 2; 
-            ue_dl_set_rnti(&ue_dl, ra_rnti); 
+            ra_rnti = 2; 
             rar_window_start = sfn+1;
             rar_window_stop = sfn+3;
             state = RECV_RAR;
@@ -499,29 +503,32 @@ int main(int argc, char **argv) {
           if ((sfn == rar_window_start && ue_sync_get_sfidx(&ue_sync) > 3) || sfn > rar_window_start) {
             gettimeofday(&tdata[1], NULL);
             printf("Looking for RAR in sfn: %d sf_idx: %d\n", sfn, ue_sync_get_sfidx(&ue_sync));
-            n = ue_dl_decode(&ue_dl, sf_buffer, data_rx, ue_sync_get_sfidx(&ue_sync));
+            n = ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, ra_rnti, ue_sync_get_sfidx(&ue_sync));
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
-              printf("RAR received %d bits: ", n);
-              vec_fprint_hex(stdout, data_rx, n);
+
+              gettimeofday(&tdata[2], NULL);
+              get_time_interval(tdata);
+              printf("time exec DL: %d\n",tdata[0].tv_usec);
+
+              gettimeofday(&tdata[1], NULL);
+
               rar_unpack(data_rx, &rar_msg);
               rar_msg_fprint(stdout, &rar_msg);              
-              
-              pusch_set_rnti(&pusch, rar_msg.temp_c_rnti);
               
               rar_to_ra_pusch(&rar_msg, &ra_pusch, cell.nof_prb);
               ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
 
               ra_ul_alloc(&prb_alloc, &ra_pusch, 0, cell.nof_prb);
               
-              printf("Sending ConnectionRequest in sfn: %d sf_idx: %d\n", sfn, ue_sync_get_sfidx(&ue_sync));
-              verbose=VERBOSE_INFO;
               if (harq_setup_ul(&pusch_harq, ra_pusch.mcs, 0, (ue_sync_get_sfidx(&ue_sync)+6)%10, &prb_alloc)) {
                 fprintf(stderr, "Error configuring HARQ process\n");
                 exit(-1);;
               }
-              if (pusch_encode(&pusch, &pusch_harq, (uint8_t*) conn_request_msg, sf_symbols)) {
+
+              bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
+              if (pusch_encode_rnti(&pusch, &pusch_harq, data, rar_msg.temp_c_rnti, sf_symbols)) {
                 fprintf(stderr, "Error encoding TB\n");
                 exit(-1);
               }
@@ -531,16 +538,32 @@ int main(int argc, char **argv) {
               
               lte_ifft_run_sf(&fft, sf_symbols, ul_signal);
               
-              ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
-              timestamp_copy(&next_tx_time, &uhd_time);
-              timestamp_add(&next_tx_time, 0, 0.006); // send after 6 sub-frames (6 ms)
-              printf("Send PUSCH sfn: %d. Last frame time = %.6f, send PUSCH time = %.6f\n", 
-                    sfn, timestamp_real(&uhd_time), timestamp_real(&next_tx_time));
               gettimeofday(&tdata[2], NULL);
               get_time_interval(tdata);
-              printf("time exec: %d\n",tdata[0].tv_usec);
-              cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb), 1,
-                              next_tx_time.full_secs, next_tx_time.frac_secs);
+              printf("time exec UL: %d\n",tdata[0].tv_usec);
+              
+              gettimeofday(&tdata[1], NULL);
+              cuhd_stop_rx_stream(uhd);
+              cuhd_flush_buffer(uhd);
+              gettimeofday(&tdata[2], NULL);
+              get_time_interval(tdata);
+              printf("time to stop RX: %d\n",tdata[0].tv_usec);
+              
+              ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
+              
+              float time_adv_sec = ((float) rar_msg.timing_adv_cmd - 31 - 25) * 16 /(15000*2048);
+              
+              vec_sc_prod_cfc(ul_signal, 2, ul_signal, SF_LEN_PRB(cell.nof_prb));
+
+              vec_fprint_c(stdout, sf_symbols, 300);
+              
+              timestamp_copy(&next_tx_time, &uhd_time);
+              timestamp_add(&next_tx_time, 0, 0.006 + time_adv_sec); // send after 6 sub-frames (6 ms)
+              printf("Send %d samples PUSCH sfn: %d. Last frame time = %.6f, send PUSCH time = %.6f TA: %f\n", 
+                    SF_LEN_PRB(cell.nof_prb), sfn, timestamp_real(&uhd_time), timestamp_real(&next_tx_time), time_adv_sec);
+              cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb),
+                            next_tx_time.full_secs, next_tx_time.frac_secs);
+              
               go_exit = 1; 
             }
             if (sfn >= rar_window_stop) {              

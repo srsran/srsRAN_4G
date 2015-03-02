@@ -278,6 +278,9 @@ void pusch_free(pusch_t *q) {
 
 }
 
+/* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while 
+ * to execute, so shall be called once the final C-RNTI has been allocated for the session.
+ * For the connection procedure, use pusch_encode_rnti() or pusch_decode_rnti() functions */
 int pusch_set_rnti(pusch_t *q, uint16_t rnti) {
   uint32_t i;
 
@@ -291,7 +294,6 @@ int pusch_set_rnti(pusch_t *q, uint16_t rnti) {
   q->rnti = rnti; 
   return LIBLTE_SUCCESS;
 }
-
 
 /** Decodes the PUSCH from the received symbols
  */
@@ -351,16 +353,38 @@ int pusch_decode(pusch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noi
   }
 }
 
-int pusch_encode(pusch_t *q, harq_t *harq_process, uint8_t *data, cf_t *sf_symbols) 
+int pusch_encode_rnti(pusch_t *q, harq_t *harq_process, uint8_t *data, uint16_t rnti, cf_t *sf_symbols) 
 {
   uci_data_t uci_data; 
   bzero(&uci_data, sizeof(uci_data_t));
-  return pusch_uci_encode(q, harq_process, data, uci_data, sf_symbols);
+  return pusch_uci_encode_rnti(q, harq_process, data, uci_data, rnti, sf_symbols);
+}
+
+int pusch_encode(pusch_t *q, harq_t *harq_process, uint8_t *data, cf_t *sf_symbols) 
+{
+  if (q->rnti_is_set) {
+    uci_data_t uci_data; 
+    bzero(&uci_data, sizeof(uci_data_t));
+    return pusch_uci_encode_rnti(q, harq_process, data, uci_data, q->rnti, sf_symbols);    
+  } else {
+    fprintf(stderr, "Must call pusch_set_rnti() to set the encoder/decoder RNTI\n");       
+    return LIBLTE_ERROR;     
+  }
+}
+
+int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data, cf_t *sf_symbols) 
+{
+  if (q->rnti_is_set) {
+    return pusch_uci_encode_rnti(q, harq, data, uci_data, q->rnti, sf_symbols);
+  } else {
+    fprintf(stderr, "Must call pusch_set_rnti() to set the encoder/decoder RNTI\n");       
+    return LIBLTE_ERROR; 
+  }
 }
 
 /** Converts the PUSCH data bits to symbols mapped to the slot ready for transmission
  */
-int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data, cf_t *sf_symbols) 
+int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data, uint16_t rnti, cf_t *sf_symbols) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS; 
    
@@ -368,41 +392,52 @@ int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_dat
       data != NULL &&
       harq != NULL)
   {
-    if (q->rnti_is_set) {
-
-      if (harq->mcs.tbs > harq->nof_bits) {
-        fprintf(stderr, "Invalid code rate %.2f\n", (float) harq->mcs.tbs / harq->nof_bits);
-        return LIBLTE_ERROR_INVALID_INPUTS;
-      }
-
-      if (harq->nof_re > q->max_re) {
-        fprintf(stderr, "Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
-            harq->nof_re, q->max_re, q->cell.nof_prb);
-        return LIBLTE_ERROR_INVALID_INPUTS;
-      }
-
-      INFO("Encoding PUSCH SF: %d, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-          harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
-      
-      if (ulsch_uci_encode(&q->dl_sch, harq, data, uci_data, q->pusch_g, q->pusch_q)) {
-        fprintf(stderr, "Error encoding TB\n");
-        return LIBLTE_ERROR;
-      }
-      
-      scrambling_b_offset_pusch(&q->seq_pusch[harq->sf_idx], (uint8_t*) q->pusch_q, 0, harq->nof_bits);
-
-      mod_modulate(&q->mod[harq->mcs.mod], (uint8_t*) q->pusch_q, q->pusch_d, harq->nof_bits);
-      
-      dft_precoding(&q->dft_precoding, q->pusch_d, q->pusch_z, 
-                    harq->ul_alloc.L_prb, harq->nof_symb);
-      
-      /* mapping to resource elements */      
-      pusch_put(q, harq, q->pusch_z, sf_symbols);
-      
-      ret = LIBLTE_SUCCESS;
-    } else {
-     fprintf(stderr, "Must call pusch_set_rnti() to set the encoder/decoder RNTI\n");       
+    if (harq->mcs.tbs > harq->nof_bits) {
+      fprintf(stderr, "Invalid code rate %.2f\n", (float) harq->mcs.tbs / harq->nof_bits);
+      return LIBLTE_ERROR_INVALID_INPUTS;
     }
+
+    if (harq->nof_re > q->max_re) {
+      fprintf(stderr, "Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
+          harq->nof_re, q->max_re, q->cell.nof_prb);
+      return LIBLTE_ERROR_INVALID_INPUTS;
+    }
+
+    INFO("Encoding PUSCH SF: %d, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+        harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+    
+    bzero(q->pusch_q, harq->nof_bits);
+    if (ulsch_uci_encode(&q->dl_sch, harq, data, uci_data, q->pusch_g, q->pusch_q)) {
+      fprintf(stderr, "Error encoding TB\n");
+      return LIBLTE_ERROR;
+    }
+    
+    printf("before scram: "); 
+    vec_fprint_b(stdout, q->pusch_q, harq->nof_bits);
+    
+    if (rnti != q->rnti) {
+      sequence_t seq; 
+      if (sequence_pusch(&seq, rnti, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
+        return LIBLTE_ERROR; 
+      }
+      scrambling_b_offset_pusch(&seq, (uint8_t*) q->pusch_q, 0, harq->nof_bits);      
+      sequence_free(&seq);
+    } else {
+      scrambling_b_offset_pusch(&q->seq_pusch[harq->sf_idx], (uint8_t*) q->pusch_q, 0, harq->nof_bits);            
+    }
+    
+    printf("after scram: "); 
+    vec_fprint_b(stdout, q->pusch_q, harq->nof_bits);
+
+    mod_modulate(&q->mod[harq->mcs.mod], (uint8_t*) q->pusch_q, q->pusch_d, harq->nof_bits);
+    
+    dft_precoding(&q->dft_precoding, q->pusch_d, q->pusch_z, 
+                  harq->ul_alloc.L_prb, harq->nof_symb);
+    
+    /* mapping to resource elements */      
+    pusch_put(q, harq, q->pusch_z, sf_symbols);
+    
+    ret = LIBLTE_SUCCESS;
   } 
   return ret; 
 }

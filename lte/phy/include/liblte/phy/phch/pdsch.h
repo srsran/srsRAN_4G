@@ -84,12 +84,26 @@ LIBLTE_API int pdsch_encode(pdsch_t *q,
                             uint8_t *data, 
                             cf_t *sf_symbols[MAX_PORTS]);
 
+LIBLTE_API int pdsch_encode_rnti(pdsch_t *q,
+                                 harq_t *harq_process,
+                                 uint8_t *data, 
+                                 uint16_t rnti,
+                                 cf_t *sf_symbols[MAX_PORTS]);
+
 LIBLTE_API int pdsch_decode(pdsch_t *q, 
                             harq_t *harq_process, 
                             cf_t *sf_symbols, 
                             cf_t *ce[MAX_PORTS],
                             float noise_estimate, 
                             uint8_t *data);
+
+LIBLTE_API int pdsch_decode_rnti(pdsch_t *q, 
+                                 harq_t *harq_process, 
+                                 cf_t *sf_symbols, 
+                                 cf_t *ce[MAX_PORTS],
+                                 float noise_estimate, 
+                                 uint16_t rnti,
+                                 uint8_t *data);
 
 LIBLTE_API float pdsch_average_noi(pdsch_t *q); 
 

@@ -142,6 +142,10 @@ void ue_dl_free(ue_dl_t *q) {
   }
 }
 
+/* Precalculate the PDSCH scramble sequences for a given RNTI. This function takes a while 
+ * to execute, so shall be called once the final C-RNTI has been allocated for the session.
+ * For the connection procedure, use pusch_encode_rnti() or pusch_decode_rnti() functions 
+ */
 void ue_dl_set_rnti(ue_dl_t *q, uint16_t rnti) {
   q->current_rnti = rnti; 
   pdsch_set_rnti(&q->pdsch, rnti);
@@ -167,10 +171,14 @@ const uint32_t nof_common_formats = 2;
  *    - PDSCH decoding: Decode TB scrambling with RNTI given by ue_dl_set_rnti()
  */
 int ue_dl_decode(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx) {
-  return ue_dl_decode_sib(q, input, data, sf_idx, 0);
+  return ue_dl_decode_sib(q, input, data, sf_idx, q->current_rnti, 0);
 }
 
-int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint32_t rvidx) 
+int ue_dl_decode_rnti(ue_dl_t *q, cf_t *input, uint8_t *data, uint16_t rnti, uint32_t sf_idx) {
+  return ue_dl_decode_sib(q, input, data, sf_idx, rnti, 0);
+}
+
+int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
   uint32_t cfi, i;
   float cfi_corr; 
@@ -207,12 +215,12 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
   }
   
   /* Generate PDCCH candidates */
-  if (q->current_rnti == SIRNTI) {
+  if (rnti == SIRNTI) {
     nof_locations = pdcch_common_locations(&q->pdcch, locations, MAX_CANDIDATES, cfi);
     formats = common_formats;
     nof_formats = nof_common_formats;
   } else {
-    nof_locations = pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, q->current_rnti);    
+    nof_locations = pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti);    
     formats = ue_formats; 
     nof_formats = nof_ue_formats;
   }
@@ -233,16 +241,16 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
       }
       INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
       
-      if (crc_rem == q->current_rnti) {
+      if (crc_rem == rnti) {
 
         found_dci++;
         q->nof_pdcch_detected++;
-        if (dci_msg_to_ra_dl(&dci_msg, q->current_rnti, q->cell, cfi, &ra_dl)) {
+        if (dci_msg_to_ra_dl(&dci_msg, rnti, q->cell, cfi, &ra_dl)) {
           fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
           return LIBLTE_ERROR;
         }
 
-        if (q->current_rnti != SIRNTI) {
+        if (rnti != SIRNTI) {
           rvidx = ra_dl.rv_idx;
         }
         if (harq_setup_dl(&q->harq_process[0], ra_dl.mcs, rvidx, sf_idx, &ra_dl.prb_alloc)) {
@@ -250,9 +258,9 @@ int ue_dl_decode_sib(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, ui
           return LIBLTE_ERROR;
         }
         if (q->harq_process[0].mcs.mod > 0 && q->harq_process[0].mcs.tbs >= 0) {
-          ret = pdsch_decode(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
-                             q->ce, chest_dl_get_noise_estimate(&q->chest), 
-                             data);
+          ret = pdsch_decode_rnti(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
+                                  q->ce, chest_dl_get_noise_estimate(&q->chest),
+                                  rnti, data);
           if (ret == LIBLTE_ERROR) {
             q->pkt_errors++;
           } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {

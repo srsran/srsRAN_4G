@@ -35,6 +35,7 @@ for prb=3
                             if (error(k) > 10^-3)
                                 k=1;
                             end
+                            read_real
                             k=k+1;
                        end
                     end

@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
+            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);

@@ -92,11 +92,24 @@ LIBLTE_API int pusch_encode(pusch_t *q,
                             uint8_t *data, 
                             cf_t *sf_symbols);
 
+LIBLTE_API int pusch_encode_rnti(pusch_t *q, 
+                                 harq_t *harq_process, 
+                                 uint8_t *data, 
+                                 uint16_t rnti, 
+                                 cf_t *sf_symbols); 
+
 LIBLTE_API int pusch_uci_encode(pusch_t *q, 
                                 harq_t *harq_process,
                                 uint8_t *data, 
                                 uci_data_t uci_data, 
                                 cf_t *sf_symbols);
+
+LIBLTE_API int pusch_uci_encode_rnti(pusch_t *q, 
+                                     harq_t *harq, 
+                                     uint8_t *data, 
+                                     uci_data_t uci_data, 
+                                     uint16_t rnti, 
+                                     cf_t *sf_symbols); 
 
 LIBLTE_API int pusch_decode(pusch_t *q, 
                             harq_t *harq_process,
