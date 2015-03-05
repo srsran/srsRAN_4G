@@ -194,6 +194,7 @@ int main(int argc, char **argv) {
   frame_cnt = 0;
   last_peak = 0; 
   mean_peak = 0;
+  int peak_offset = 0;
   float cfo; 
   float mean_cfo = 0; 
   uint32_t m0, m1; 
@@ -204,27 +205,12 @@ int main(int argc, char **argv) {
   bzero(&ssync, sizeof(sync_t));
   ssync.fft_size = fft_size;
   
-  
-  timestamp_t cur_time; 
-  cuhd_get_time(uhd, &cur_time.full_secs, &cur_time.frac_secs);
-  
-  // wait 1 sec to start
-  timestamp_add(&cur_time, 1, 0);
-  double period = 0.005; // 5 ms 
-  double period_diff = 0; 
-  double nsamples_offset_x_sf; 
-  
-  int last_peak_idx = 0; 
-  bool is_first = true; 
   while(frame_cnt < nof_frames || nof_frames == -1) {
-    timestamp_add(&cur_time, 0, period + period_diff);
-    
-    n = cuhd_recv_timed2(uhd, buffer, flen, cur_time.full_secs, cur_time.frac_secs, is_first, false);
+    n = cuhd_recv(uhd, buffer, flen - peak_offset, 1);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
     }
-    is_first = false; 
     
     peak_idx = pss_synch_find_pss(&pss, buffer, &peak_value);
     if (peak_idx < 0) {
@@ -236,13 +222,7 @@ int main(int argc, char **argv) {
     
     if (peak_value >= threshold) {
       nof_det++;
-      
-      if (last_peak_idx) {
-        nsamples_offset_x_sf = VEC_CMA(((double) peak_idx - (double) last_peak_idx ), nsamples_offset_x_sf, frame_cnt);
-        period_diff += nsamples_offset_x_sf  / (flen*2*100);
-      }
-      last_peak_idx = peak_idx; 
-      
+        
       if (peak_idx >= fft_size) {
 
         // Estimate CFO 
@@ -273,7 +253,7 @@ int main(int argc, char **argv) {
           INFO("Diff N_id_1: %d\n", sss_synch_N_id_1(&sss, m0, m1));
           sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
           if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
-            sss_error1++;            
+            sss_error1++;     
           }
           INFO("Full N_id_1: %d\n", sss_synch_N_id_1(&sss, m0, m1));
         }
@@ -308,10 +288,10 @@ int main(int argc, char **argv) {
     
     frame_cnt++;
    
-    printf("[%5d]: Pos: %5d (%f), PSR: %4.1f (~%4.1f) Pdet: %4.2f, "
+    printf("[%5d]: Pos: %5d, PSR: %4.1f (~%4.1f) Pdet: %4.2f, "
            "FA: %4.2f, CFO: %+4.1f KHz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f\%\r", 
            frame_cnt, 
-           peak_idx, period_diff*1000000,
+           peak_idx, 
            peak_value, mean_peak,
            (float) nof_det/frame_cnt, 
            (float) nof_nopeakdet/frame_cnt, mean_cfo*15, 
@@ -408,4 +388,3 @@ void do_plots_sss(float *corr_m0, float *corr_m1) {
 }
 
 #endif
-

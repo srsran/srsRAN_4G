@@ -191,10 +191,13 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error configuring HARQ process\n");
     goto quit;
   }
-  harq_process.ul_hopping.n_sb = 1; 
-  harq_process.ul_hopping.hopping_offset = 0;
-  harq_process.ul_hopping.hop_mode = hop_mode_inter_sf;
-  harq_process.ul_hopping.current_tx_nb = 0;
+  pusch_hopping_cfg_t ul_hopping; 
+  ul_hopping.n_sb = 1; 
+  ul_hopping.hopping_offset = 0;
+  ul_hopping.hop_mode = hop_mode_inter_sf;
+  ul_hopping.current_tx_nb = 0;
+  
+  pusch_set_hopping_cfg(&pusch, &ul_hopping);
   
   uint32_t nof_re = RE_X_RB*cell.nof_prb*2*CP_NSYMB(cell.cp);
   sf_symbols = vec_malloc(sizeof(cf_t) * nof_re);

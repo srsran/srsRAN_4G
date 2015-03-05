@@ -97,6 +97,37 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
   return ret;
 }
 
+int dci_msg_to_ra_ul(dci_msg_t *msg, lte_cell_t cell, uint32_t n_rb_ho, ra_pusch_t *ra_ul) 
+{
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (msg               !=  NULL   &&
+      ra_ul             !=  NULL   &&
+      lte_cell_isvalid(&cell))
+  {
+    ret = LIBLTE_ERROR;
+    
+    bzero(ra_ul, sizeof(ra_pusch_t));
+    
+    if (dci_msg_unpack_pusch(msg, ra_ul, cell.nof_prb)) {
+      fprintf(stderr, "Can't unpack PDSCH message\n");
+      return ret;
+    } 
+    
+    if (VERBOSE_ISINFO()) {
+      ra_pusch_fprint(stdout, ra_ul, cell.nof_prb);
+    }
+    
+    if (ra_ul_alloc(&ra_ul->prb_alloc, ra_ul, n_rb_ho, cell.nof_prb)) {
+      fprintf(stderr, "Error computing resource allocation\n");
+      return ret;
+    }
+    
+    ret = LIBLTE_SUCCESS;
+  }
+  return ret;
+}
+
 int dci_location_set(dci_location_t *c, uint32_t L, uint32_t nCCE) {
   if (L <= 3) {
     c->L = L;

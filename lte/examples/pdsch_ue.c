@@ -83,6 +83,7 @@ typedef struct {
   uint32_t file_nof_prb;
   char *uhd_args; 
   float uhd_freq; 
+  float uhd_freq_offset; 
   float uhd_gain;
   int net_port; 
   char *net_address; 
@@ -98,6 +99,7 @@ void args_default(prog_args_t *args) {
   args->file_nof_prb = 6; 
   args->uhd_args = "";
   args->uhd_freq = -1.0;
+  args->uhd_freq = 8000000.0;
   args->uhd_gain = 60.0; 
   args->net_port = -1; 
   args->net_address = "127.0.0.1";
@@ -110,6 +112,7 @@ void usage(prog_args_t *args, char *prog) {
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
+  printf("\t-o UHD RX freq offset [Default %.1f MHz]\n", args->uhd_freq_offset/1000000);
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
@@ -133,7 +136,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aglipdnvrfuUsS")) != -1) {
+  while ((opt = getopt(argc, argv, "aoglipdnvrfuUsS")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -146,6 +149,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'g':
       args->uhd_gain = atof(argv[optind]);
+      break;
+    case 'o':
+      args->uhd_freq_offset = atof(argv[optind]);
       break;
     case 'f':
       args->uhd_freq = atof(argv[optind]);
@@ -261,7 +267,7 @@ int main(int argc, char **argv) {
     cuhd_set_rx_gain(uhd, prog_args.uhd_gain);
 
     /* set receiver frequency */
-    cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
+    cuhd_set_rx_freq_offset(uhd, (double) prog_args.uhd_freq, prog_args.uhd_freq_offset);
     cuhd_rx_wait_lo_locked(uhd);
     printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
 
@@ -394,7 +400,7 @@ int main(int argc, char **argv) {
             if (prog_args.rnti != SIRNTI) {
               n = ue_dl_decode(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync));
             } else {
-              n = ue_dl_decode_sib(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), SIRNTI,
+              n = ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {

@@ -108,6 +108,7 @@
 #include "liblte/phy/ue/ue_mib.h"
 #include "liblte/phy/ue/ue_cell_search.h"
 #include "liblte/phy/ue/ue_dl.h"
+#include "liblte/phy/ue/ue_ul.h"
 
 #include "liblte/phy/scrambling/scrambling.h"
 

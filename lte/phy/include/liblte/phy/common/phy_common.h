@@ -119,12 +119,13 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 typedef _Complex float cf_t; 
 
-typedef enum LIBLTE_API { PHICH_NORM, PHICH_EXT} phich_length_t;
-typedef enum LIBLTE_API { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
+typedef enum LIBLTE_API { PHICH_NORM = 0, PHICH_EXT} phich_length_t;
+typedef enum LIBLTE_API { R_1_6 = 0, R_1_2, R_1, R_2} phich_resources_t;
 
 typedef struct LIBLTE_API {
   uint32_t nof_prb;
   uint32_t nof_ports; 
+  uint32_t bw_idx; 
   uint32_t id;
   lte_cp_t cp;
   phich_length_t phich_length;

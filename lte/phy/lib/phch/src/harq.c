@@ -106,13 +106,13 @@ int harq_init(harq_t *q, lte_cell_t cell) {
     if (ret != LIBLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (MAX_LONG_CB - 24) + 1; 
       
-      q->pdsch_w_buff_f = malloc(sizeof(float*) * q->max_cb);
+      q->pdsch_w_buff_f = vec_malloc(sizeof(float*) * q->max_cb);
       if (!q->pdsch_w_buff_f) {
         perror("malloc");
         return LIBLTE_ERROR;
       }
       
-      q->pdsch_w_buff_c = malloc(sizeof(uint8_t*) * q->max_cb);
+      q->pdsch_w_buff_c = vec_malloc(sizeof(uint8_t*) * q->max_cb);
       if (!q->pdsch_w_buff_c) {
         perror("malloc");
         return LIBLTE_ERROR;

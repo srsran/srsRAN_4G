@@ -37,14 +37,7 @@
 /*************** STATIC FUNCTIONS ***********************/
 
 cf_t interp_linear_onesample(cf_t input0, cf_t input1) {
-  float mag0=0, mag1=0, arg0=0, arg1=0, mag=0, arg=0;
-  mag0 = cabsf(input0);
-  mag1 = cabsf(input1);
-  arg0 = cargf(input0);
-  arg1 = cargf(input1);
-  mag = 2*mag1 -mag0;
-  arg = 2*arg1-arg0;
-  return mag * cexpf(I * arg);
+  return 2*input1-input0;
 }
 
 cf_t interp_linear_onesample_cabs(cf_t input0, cf_t input1) {

@@ -51,8 +51,6 @@ typedef struct LIBLTE_API {
   ra_ul_alloc_t ul_alloc;
   lte_cell_t cell;
   
-  ra_ul_hopping_t ul_hopping;
-  
   uint32_t nof_re;   // Number of RE per subframe 
   uint32_t nof_bits; // Number of bits per subframe
   uint32_t nof_symb; // Number of symbols per subframe 

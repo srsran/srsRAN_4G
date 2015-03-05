@@ -45,9 +45,23 @@
 
 typedef _Complex float cf_t;
 
+
+typedef struct {
+  enum {
+    hop_mode_inter_sf = 1,
+    hop_mode_intra_sf = 0
+  } hop_mode; 
+  uint32_t current_tx_nb;
+  uint32_t hopping_offset;
+  uint32_t n_sb;
+} pusch_hopping_cfg_t;
+
+
 /* PUSCH object */
 typedef struct LIBLTE_API {
   lte_cell_t cell;
+
+  pusch_hopping_cfg_t hopping_cfg;
   
   uint32_t max_re;
   bool rnti_is_set; 
@@ -77,12 +91,13 @@ typedef struct LIBLTE_API {
 }pusch_t;
 
 
-
-
 LIBLTE_API int pusch_init(pusch_t *q, 
                           lte_cell_t cell);
 
 LIBLTE_API void pusch_free(pusch_t *q);
+
+LIBLTE_API void pusch_set_hopping_cfg(pusch_t *q, 
+                                      pusch_hopping_cfg_t *cfg); 
 
 LIBLTE_API int pusch_set_rnti(pusch_t *q, 
                               uint16_t rnti);

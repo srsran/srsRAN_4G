@@ -121,7 +121,7 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
   /* Run FFT for the slot symbols */
   lte_fft_run_sf(&q->fft, input, q->sf_symbols);
             
-  /* Get channel estimates of slot #1 for each port */
+  /* Get channel estimates of sf idx #0 for each port */
   ret = chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, 0);
   if (ret < 0) {
     return LIBLTE_ERROR;
@@ -214,9 +214,7 @@ int ue_mib_sync_decode(ue_mib_sync_t * q,
         break; 
       } else if (ue_sync_get_sfidx(&q->ue_sync) == 0) {
         if (ret == 1) {
-          ue_mib_reset(&q->ue_mib);
-          mib_ret = ue_mib_decode(&q->ue_mib, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);          
-          
+          mib_ret = ue_mib_decode(&q->ue_mib, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);                    
         } else {
           INFO("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
           ue_mib_reset(&q->ue_mib);

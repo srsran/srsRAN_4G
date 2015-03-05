@@ -42,7 +42,7 @@
 #define MAX_TIME_OFFSET 128
 cf_t dummy[MAX_TIME_OFFSET];
 
-#define TRACK_MAX_LOST          10
+#define TRACK_MAX_LOST          4
 #define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     2
 
@@ -140,7 +140,7 @@ int ue_sync_init(ue_sync_t *q,
       sync_set_threshold(&q->sfind, 1.3);
       sync_set_em_alpha(&q->sfind, 0.01);
       q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES; 
-      sync_set_threshold(&q->strack, 1.2);
+      sync_set_threshold(&q->strack, 1.0);
       
     } else {
       sync_set_N_id_2(&q->sfind, cell.id%3);
@@ -155,8 +155,8 @@ int ue_sync_init(ue_sync_t *q,
        */
       sync_set_em_alpha(&q->sfind, 1);
       q->nof_avg_find_frames = 1; 
-      sync_set_threshold(&q->sfind, 2.0);
-      sync_set_threshold(&q->strack, 1.2);
+      sync_set_threshold(&q->sfind, 4.0);
+      sync_set_threshold(&q->strack, 1.3);
 
       /* Correct CFO in the find state but not in the track state, since is called only 
        * 1 every 5 subframes. Will do it in the ue_sync_get_buffer() function. 
@@ -286,32 +286,32 @@ static int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
          q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
       q->sf_idx = sync_get_sf_idx(&q->strack);      
     }
-  } else {
-    // Adjust time offset 
-    q->time_offset = ((int) track_idx - (int) q->strack.frame_size/2 - (int) q->strack.fft_size); 
-    
-    if (q->time_offset) {
-      INFO("Time offset adjustment: %d samples\n", q->time_offset);
-    }
-    
-    /* compute cumulative moving average time offset */
-    q->mean_time_offset = (float) VEC_CMA((float) q->time_offset, q->mean_time_offset, q->frame_total_cnt);
-
-    /* If the PSS peak is beyond the frame (we sample too slowly), 
-      discard the offseted samples to align next frame */
-    if (q->time_offset > 0 && q->time_offset < MAX_TIME_OFFSET) {
-      INFO("\nPositive time offset %d samples. Mean time offset %f.\n", q->time_offset, q->mean_time_offset);
-      if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset, &q->last_timestamp) < 0) {
-        fprintf(stderr, "Error receiving from USRP\n");
-        return LIBLTE_ERROR; 
-      }
-      q->time_offset = 0;
-    } 
-    
-    q->peak_idx = q->sf_len/2 + q->time_offset;  
-    q->frame_ok_cnt++;
-    q->frame_no_cnt = 0;    
   }
+  
+  // Adjust time offset 
+  q->time_offset = ((int) track_idx - (int) q->strack.frame_size/2 - (int) q->strack.fft_size); 
+  
+  if (q->time_offset) {
+    INFO("Time offset adjustment: %d samples\n", q->time_offset);
+  }
+  
+  /* compute cumulative moving average time offset */
+  q->mean_time_offset = (float) VEC_CMA((float) q->time_offset, q->mean_time_offset, q->frame_total_cnt);
+
+  /* If the PSS peak is beyond the frame (we sample too slowly), 
+    discard the offseted samples to align next frame */
+  if (q->time_offset > 0 && q->time_offset < MAX_TIME_OFFSET) {
+    INFO("Positive time offset %d samples. Mean time offset %f.\n", q->time_offset, q->mean_time_offset);
+    if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset, &q->last_timestamp) < 0) {
+      fprintf(stderr, "Error receiving from USRP\n");
+      return LIBLTE_ERROR; 
+    }
+    q->time_offset = 0;
+  } 
+  
+  q->peak_idx = q->sf_len/2 + q->time_offset;  
+  q->frame_ok_cnt++;
+  q->frame_no_cnt = 0;    
   
   return 1;
 }
@@ -456,6 +456,13 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
                         -sync_get_cfo(&q->strack) / q->fft_size);               
                         
           }
+          /*
+          if (track_idx > q->fft_size + q->strack.frame_size/2) {
+            *sf_symbols = &q->input_buffer[track_idx - q->fft_size - q->strack.frame_size/2];            
+          } else {
+            *sf_symbols = q->input_buffer;
+          }
+          */
           *sf_symbols = q->input_buffer;
           
         break;

@@ -151,7 +151,7 @@ void sig_int_handler(int signo)
 
 int cuhd_recv_wrapper_timed(void *h, void *data, uint32_t nsamples, timestamp_t *uhd_time) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return cuhd_recv_with_time(h, data, nsamples, &uhd_time->full_secs, &uhd_time->frac_secs);
+  return cuhd_recv_with_time(h, data, nsamples, true, &uhd_time->full_secs, &uhd_time->frac_secs);
 }
 
 extern float mean_exec_time;
@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
   uint32_t rar_window_start = 0, rar_trials = 0, rar_window_stop = 0; 
   timestamp_t uhd_time;
   timestamp_t next_tx_time;  
-  const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6};
+  const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6, 0x00, 0x00, 0x00};
   uint8_t data[100];
   
   parse_args(&prog_args, argc, argv);
@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
 
   /* Set receiver gain */
   cuhd_set_rx_gain(uhd, prog_args.uhd_gain);
-  cuhd_set_tx_gain(uhd, prog_args.uhd_gain);
+  cuhd_set_tx_gain(uhd, prog_args.uhd_gain*2);
   
   //cuhd_set_tx_antenna(uhd, "TX/RX");
   
@@ -336,7 +336,6 @@ int main(int argc, char **argv) {
   cuhd_rx_wait_lo_locked(uhd);
   printf("Tunning RX receiver to %.3f MHz\n", (double ) prog_args.uhd_rx_freq/1000000);
 
-  cuhd_set_tx_freq(uhd, prog_args.uhd_tx_freq);
   cuhd_set_tx_freq_offset(uhd, prog_args.uhd_tx_freq, prog_args.uhd_tx_freq_offset);
   printf("Tunning TX receiver to %.3f MHz\n", (double ) prog_args.uhd_tx_freq/1000000);
 
@@ -383,23 +382,14 @@ int main(int argc, char **argv) {
   generate_prach_sequences();
   
   refsignal_ul_t drms; 
-  refsignal_drms_pusch_cfg_t pusch_cfg;
-  bzero(&pusch_cfg, sizeof(refsignal_drms_pusch_cfg_t));
-  pusch_cfg.nof_prb = 3; 
-  pusch_cfg.beta_pusch = 1.0; 
   if (refsignal_ul_init(&drms, cell)) {
     fprintf(stderr, "Error initiating refsignal_ul\n");
     exit(-1);
   }
-  cf_t *drms_signal = vec_malloc(2*RE_X_RB*pusch_cfg.nof_prb*sizeof(cf_t));
+  cf_t *drms_signal = vec_malloc(2*RE_X_RB*cell.nof_prb*sizeof(cf_t));
   if (!drms_signal) {
     perror("malloc");
     exit(-1);
-  }
-  for (uint32_t i=0;i<2;i++) {
-    if (refsignal_dmrs_pusch_gen(&drms, &pusch_cfg, 2*4+i, &drms_signal[i*RE_X_RB*pusch_cfg.nof_prb])) {
-      fprintf(stderr, "Error generating PUSCH DRMS signals\n");
-    }
   }
   
   if (pusch_init(&pusch, cell)) {
@@ -438,7 +428,7 @@ int main(int argc, char **argv) {
     exit(-1); 
   }
 
-  if (ue_dl_init(&ue_dl, cell)) {  // This is the User RNTI
+  if (ue_dl_init(&ue_dl, cell)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
@@ -503,7 +493,7 @@ int main(int argc, char **argv) {
           if ((sfn == rar_window_start && ue_sync_get_sfidx(&ue_sync) > 3) || sfn > rar_window_start) {
             gettimeofday(&tdata[1], NULL);
             printf("Looking for RAR in sfn: %d sf_idx: %d\n", sfn, ue_sync_get_sfidx(&ue_sync));
-            n = ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, ra_rnti, ue_sync_get_sfidx(&ue_sync));
+            n = ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, ue_sync_get_sfidx(&ue_sync), ra_rnti);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
@@ -522,7 +512,8 @@ int main(int argc, char **argv) {
 
               ra_ul_alloc(&prb_alloc, &ra_pusch, 0, cell.nof_prb);
               
-              if (harq_setup_ul(&pusch_harq, ra_pusch.mcs, 0, (ue_sync_get_sfidx(&ue_sync)+6)%10, &prb_alloc)) {
+              uint32_t ul_sf_idx = (ue_sync_get_sfidx(&ue_sync)+6)%10;
+              if (harq_setup_ul(&pusch_harq, ra_pusch.mcs, 0, ul_sf_idx, &prb_alloc)) {
                 fprintf(stderr, "Error configuring HARQ process\n");
                 exit(-1);;
               }
@@ -532,11 +523,27 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "Error encoding TB\n");
                 exit(-1);
               }
+  
+              refsignal_drms_pusch_cfg_t pusch_cfg;
+              bzero(&pusch_cfg, sizeof(refsignal_drms_pusch_cfg_t));
+              pusch_cfg.nof_prb = prb_alloc.L_prb;
+              pusch_cfg.beta_pusch = 1.0; 
+    
               for (uint32_t i=0;i<2;i++) {
-                refsignal_drms_pusch_put(&drms, &pusch_cfg, &drms_signal[i*RE_X_RB*pusch_cfg.nof_prb], i, prb_alloc.n_prb[i], sf_symbols);                
+                if (refsignal_dmrs_pusch_gen(&drms, &pusch_cfg, 2*ul_sf_idx+i, drms_signal)) {
+                  fprintf(stderr, "Error generating PUSCH DRMS signals\n");
+                  exit(-1);
+                }
+                refsignal_drms_pusch_put(&drms, &pusch_cfg, drms_signal, i, 
+                                         prb_alloc.n_prb[i], sf_symbols);                
               }
               
               lte_ifft_run_sf(&fft, sf_symbols, ul_signal);
+              
+              cfo_correct(&ue_sync.sfind.cfocorr, 
+                        ul_signal, ul_signal, 
+                        sync_get_cfo(&ue_sync.strack) / lte_symbol_sz(cell.nof_prb));               
+
               
               gettimeofday(&tdata[2], NULL);
               get_time_interval(tdata);
@@ -551,16 +558,16 @@ int main(int argc, char **argv) {
               
               ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
               
-              float time_adv_sec = ((float) rar_msg.timing_adv_cmd - 31 - 25) * 16 /(15000*2048);
-              
+              //float time_adv_sec = ((float) rar_msg.timing_adv_cmd - 31 - 25) * 16 /(15000*2048);
+              float time_adv_sec = ((float) rar_msg.timing_adv_cmd - 31) * 16 /(15000*2048);
               vec_sc_prod_cfc(ul_signal, 2, ul_signal, SF_LEN_PRB(cell.nof_prb));
 
-              vec_fprint_c(stdout, sf_symbols, 300);
-              
               timestamp_copy(&next_tx_time, &uhd_time);
               timestamp_add(&next_tx_time, 0, 0.006 + time_adv_sec); // send after 6 sub-frames (6 ms)
-              printf("Send %d samples PUSCH sfn: %d. Last frame time = %.6f, send PUSCH time = %.6f TA: %f\n", 
-                    SF_LEN_PRB(cell.nof_prb), sfn, timestamp_real(&uhd_time), timestamp_real(&next_tx_time), time_adv_sec);
+              printf("Send %d samples PUSCH sfn: %d. Last frame time = %.6f"
+                     "send PUSCH time = %.6f TA: %.1f us\n", 
+                    SF_LEN_PRB(cell.nof_prb), sfn, timestamp_real(&uhd_time), 
+                     timestamp_real(&next_tx_time), time_adv_sec*1000000);
               cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb),
                             next_tx_time.full_secs, next_tx_time.frac_secs);
               
@@ -569,7 +576,7 @@ int main(int argc, char **argv) {
             if (sfn >= rar_window_stop) {              
               state = SEND_PRACH;
               rar_trials++;
-              if (rar_trials >= 10) {
+              if (rar_trials >= 4) {
                 go_exit = 1; 
               }
             }              

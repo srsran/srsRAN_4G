@@ -57,7 +57,7 @@ static int f_hop_sum(pusch_t *q, uint32_t i) {
   return sum; 
 }
     
-static int f_hop(pusch_t *q, ra_ul_hopping_t *hopping, int i) {
+static int f_hop(pusch_t *q, pusch_hopping_cfg_t *hopping, int i) {
   if (i == -1) {
     return 0; 
   } else {
@@ -71,7 +71,7 @@ static int f_hop(pusch_t *q, ra_ul_hopping_t *hopping, int i) {
   }
 }
 
-static int f_m(pusch_t *q, ra_ul_hopping_t *hopping, uint32_t i) {
+static int f_m(pusch_t *q, pusch_hopping_cfg_t *hopping, uint32_t i) {
   if (hopping->n_sb == 1) {
     if (hopping->hop_mode == hop_mode_inter_sf) {
       return hopping->current_tx_nb%2;
@@ -87,7 +87,7 @@ int pusch_cp(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output, bool advance_i
 {
   cf_t *in_ptr = input; 
   cf_t *out_ptr = output; 
-  ra_ul_hopping_t *hopping = &harq->ul_hopping; 
+  pusch_hopping_cfg_t *hopping = &q->hopping_cfg; 
   
   uint32_t L_ref = 3;
   if (CP_ISEXT(q->cell.cp)) {
@@ -128,6 +128,7 @@ int pusch_cp(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output, bool advance_i
       }
       
     }
+    harq->ul_alloc.n_prb_tilde[slot] = n_prb_tilde; 
     INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",harq->ul_alloc.L_prb, n_prb_tilde,slot);
     for (uint32_t l=0;l<CP_NSYMB(q->cell.cp);l++) {
       if (l != L_ref) {
@@ -278,6 +279,11 @@ void pusch_free(pusch_t *q) {
 
 }
 
+void pusch_set_hopping_cfg(pusch_t *q, pusch_hopping_cfg_t *cfg)
+{
+  memcpy(&q->hopping_cfg, cfg, sizeof(pusch_hopping_cfg_t));
+}
+
 /* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while 
  * to execute, so shall be called once the final C-RNTI has been allocated for the session.
  * For the connection procedure, use pusch_encode_rnti() or pusch_decode_rnti() functions */
@@ -412,9 +418,6 @@ int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uc
       return LIBLTE_ERROR;
     }
     
-    printf("before scram: "); 
-    vec_fprint_b(stdout, q->pusch_q, harq->nof_bits);
-    
     if (rnti != q->rnti) {
       sequence_t seq; 
       if (sequence_pusch(&seq, rnti, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
@@ -426,9 +429,6 @@ int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uc
       scrambling_b_offset_pusch(&q->seq_pusch[harq->sf_idx], (uint8_t*) q->pusch_q, 0, harq->nof_bits);            
     }
     
-    printf("after scram: "); 
-    vec_fprint_b(stdout, q->pusch_q, harq->nof_bits);
-
     mod_modulate(&q->mod[harq->mcs.mod], (uint8_t*) q->pusch_q, q->pusch_d, harq->nof_bits);
     
     dft_precoding(&q->dft_precoding, q->pusch_d, q->pusch_z, 

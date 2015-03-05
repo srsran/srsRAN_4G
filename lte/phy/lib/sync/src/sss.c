@@ -149,15 +149,7 @@ int sss_synch_N_id_1(sss_synch_t *q, uint32_t m0, uint32_t m1) {
   } else {
     N_id_1 = q->N_id_1_table[m1][m0 - 1];
   } 
-  if (N_id_1 == 0) {
-    if (m0 == 0 && m1 == 1) {
-      return N_id_1; 
-    } else {
-      return LIBLTE_ERROR; 
-    }
-  } else {
-    return N_id_1;
-  }
+  return N_id_1;
 }
 
 /** High-level API */

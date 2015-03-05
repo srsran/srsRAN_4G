@@ -42,9 +42,10 @@
 #include "liblte/phy/utils/debug.h"
 
 const uint8_t crc_mask[4][16] = {
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0 }, { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 } };
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, 
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
+    { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 } };
 
 bool pbch_exists(int nframe, int nslot) {
   return (!(nframe % 5) && nslot == 1);
@@ -246,10 +247,10 @@ void pbch_free(pbch_t *q) {
  * msg buffer must be 24 byte length at least
  */
 void pbch_mib_unpack(uint8_t *msg, lte_cell_t *cell, uint32_t *sfn) {
-  int bw, phich_res;
+  int phich_res;
 
-  bw = bit_unpack(&msg, 3);
-  switch (bw) {
+  cell->bw_idx = bit_unpack(&msg, 3);
+  switch (cell->bw_idx) {
   case 0:
     cell->nof_prb = 6;
     break;
@@ -257,7 +258,7 @@ void pbch_mib_unpack(uint8_t *msg, lte_cell_t *cell, uint32_t *sfn) {
     cell->nof_prb = 15;
     break;
   default:
-    cell->nof_prb = (bw - 1) * 25;
+    cell->nof_prb = (cell->bw_idx - 1) * 25;
     break;
   }
   if (*msg) {

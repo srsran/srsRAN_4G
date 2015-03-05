@@ -84,19 +84,10 @@ typedef struct LIBLTE_API {
 
 typedef struct LIBLTE_API {
   uint32_t n_prb[2];
+  uint32_t n_prb_tilde[2];
   uint32_t L_prb;
   uint32_t freq_hopping; 
 } ra_ul_alloc_t;
-
-typedef struct {
-  enum {
-    hop_mode_inter_sf = 1,
-    hop_mode_intra_sf = 0
-  } hop_mode; 
-  uint32_t current_tx_nb;
-  uint32_t hopping_offset;
-  uint32_t n_sb;
-} ra_ul_hopping_t;
 
 typedef struct LIBLTE_API {
   uint16_t rnti;

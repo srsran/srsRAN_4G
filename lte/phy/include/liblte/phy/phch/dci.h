@@ -80,14 +80,11 @@ LIBLTE_API int dci_msg_to_ra_dl(dci_msg_t *msg,
                                 uint32_t cfi,
                                 ra_pdsch_t *ra_dl);
 
-/* TODO
 LIBLTE_API int dci_msg_to_ra_ul(dci_msg_t *msg, 
-                                uint16_t msg_rnti, 
-                                uint16_t c_rnti, 
                                 lte_cell_t cell,
-                                uint32_t cfi,
+                                uint32_t n_rb_ho, 
                                 ra_pusch_t *ra_ul);
-*/
+
 LIBLTE_API dci_format_t dci_format_from_string(char *str);
 
 LIBLTE_API char* dci_format_string(dci_format_t format);
