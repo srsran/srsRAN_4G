@@ -55,7 +55,7 @@ add_executable(pdsch_ue pdsch_ue.c cuhd_utils.c)
 target_link_libraries(pdsch_ue lte_rrc lte_phy)
 
 add_executable(pdsch_enodeb pdsch_enodeb.c)
-target_link_libraries(pdsch_enodeb lte_rrc lte_phy)
+target_link_libraries(pdsch_enodeb lte_rrc lte_phy pthread)
 
 IF(${CUHD_FIND} EQUAL -1)
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
