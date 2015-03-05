@@ -170,6 +170,31 @@ char *lte_cp_string(lte_cp_t cp) {
   }
 }
 
+/* Returns the new time advance N_ta_new as specified in Section 4.2.3 of 36.213 */
+uint32_t lte_N_ta_new(uint32_t N_ta_old, uint32_t ta) {
+  
+  ta &= 63;   
+  int n_ta_new = N_ta_old + ((float) ta - 31) * 16;
+  if (n_ta_new < 0) {
+    return 0; 
+  } else {
+    if (n_ta_new < 20512) {
+      return (uint32_t) n_ta_new;
+    } else {
+      return 20512; 
+    }
+  }
+}
+
+/* Returns the new time advance as indicated by the random access response 
+ * as specified in Section 4.2.3 of 36.213 */
+uint32_t lte_N_ta_new_rar(uint32_t ta) {
+  if (ta > 1282) {
+    ta = 1282; 
+  }
+  return ta*16; 
+}
+
 /*
  * Finds index of minimum K>=long_cb in Table 5.1.3-3 of 36.212
  */

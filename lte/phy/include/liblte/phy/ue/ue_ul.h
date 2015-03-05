@@ -35,10 +35,9 @@
  ********************************************************/
 
 
-
+#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/common/fft.h"
-#include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/ch_estimation/refsignal_ul.h"
 #include "liblte/phy/phch/pusch.h"
 #include "liblte/phy/phch/ra.h"
@@ -85,11 +84,13 @@ LIBLTE_API void ue_ul_set_pusch_cfg(ue_ul_t *q,
 LIBLTE_API int ue_ul_pusch_encode(ue_ul_t *q,
                                   ra_pusch_t *ra_ul, 
                                   uint8_t *data, 
+                                  uint32_t sf_idx, 
                                   cf_t *output_signal);
 
 LIBLTE_API int ue_ul_pusch_encode_rnti(ue_ul_t *q,
                                        ra_pusch_t *ra_ul, 
                                        uint8_t *data, 
+                                       uint32_t sf_idx, 
                                        uint16_t rnti, 
                                        cf_t *output_signal); 
 
@@ -97,12 +98,14 @@ LIBLTE_API int ue_ul_pusch_uci_encode(ue_ul_t *q,
                                       ra_pusch_t *ra_ul, 
                                       uint8_t *data, 
                                       uci_data_t uci_data, 
+                                      uint32_t sf_idx, 
                                       cf_t *output_signal);
 
 LIBLTE_API int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q,
                                            ra_pusch_t *ra_ul, 
-                                           uint8_t *data, 
+                                           uint8_t *data,
                                            uci_data_t uci_data, 
+                                           uint32_t sf_idx, 
                                            uint16_t rnti, 
                                            cf_t *output_signal); 
 

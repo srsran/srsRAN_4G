@@ -31,7 +31,7 @@
 #include <math.h>
 
 #define CURRENT_FFTSIZE   lte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN     SF_LEN(CURRENT_FFTSIZE, q->cell.cp)
+#define CURRENT_SFLEN     SF_LEN(CURRENT_FFTSIZE)
 
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)

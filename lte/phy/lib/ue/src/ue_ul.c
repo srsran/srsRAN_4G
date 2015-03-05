@@ -25,16 +25,16 @@
  *
  */
 
-#include "liblte/phy/ue/ue_ul.h"
-
 #include <complex.h>
 #include <math.h>
 
+#include "liblte/phy/ue/ue_ul.h"
+
 #define CURRENT_FFTSIZE   lte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN     SF_LEN(CURRENT_FFTSIZE, q->cell.cp)
+#define CURRENT_SFLEN     SF_LEN(CURRENT_FFTSIZE)
 
 #define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
-#define CURRENT_SFLEN_RE   SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
+#define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
 
 int ue_ul_init(ue_ul_t *q, 
@@ -108,7 +108,8 @@ void ue_ul_free(ue_ul_t *q) {
       harq_free(&q->harq_process[i]);
     }
     cfo_free(&q->cfo); 
-    refsignal_ul_free(&q>drms);
+    refsignal_ul_free(&q->drms);
+
     if (q->sf_symbols) {
       free(q->sf_symbols);
     }
@@ -148,7 +149,7 @@ int ue_ul_pusch_encode(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uint32_t sf
   return ue_ul_pusch_uci_encode_rnti(q, ra_ul, data, uci_data, sf_idx, q->current_rnti, output_signal);    
 }
 
-int ue_ul_pusch_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uint16_t rnti, uint32_t sf_idx, cf_t *output_signal)
+int ue_ul_pusch_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uint32_t sf_idx, uint16_t rnti, cf_t *output_signal)
 {
   uci_data_t uci_data;
   bzero(&uci_data, sizeof(uci_data_t));
@@ -173,10 +174,9 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
   {
     
     if (ra_ul->prb_alloc.L_prb == 0)  {
-      fprintf(stderr, "Invalid UL PRB allocation (L_prb=0)\n" ;
+      fprintf(stderr, "Invalid UL PRB allocation (L_prb=0)\n");
       return ret; 
     }      
-    }
     
     ret = LIBLTE_ERROR; 
                          
@@ -207,4 +207,8 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
     cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / lte_symbol_sz(q->cell.nof_prb));      
     
     ret = LIBLTE_SUCCESS; 
-  }        
+  } 
+  
+  return ret; 
+  
+}

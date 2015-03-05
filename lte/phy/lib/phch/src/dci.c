@@ -41,6 +41,8 @@
 #include "liblte/phy/utils/debug.h"
 
 
+/* Creates the DL PDSCH resource allocation grant from a DCI message
+ */
 int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
                      lte_cell_t cell, uint32_t cfi,
                      ra_pdsch_t *ra_dl) 
@@ -97,28 +99,56 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
   return ret;
 }
 
-int dci_msg_to_ra_ul(dci_msg_t *msg, lte_cell_t cell, uint32_t n_rb_ho, ra_pusch_t *ra_ul) 
+/* Creates the UL PUSCH resource allocation grant from the random access respone message 
+ */
+int dci_rar_to_ra_ul(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, uint32_t nof_prb, ra_pusch_t *ra) {
+  bzero(ra, sizeof(ra_pusch_t));
+  if (!hopping_flag) {
+    ra->freq_hop_fl = hop_disabled;
+  } else {
+    fprintf(stderr, "FIXME: Frequency hopping in RAR not implemented\n");
+    ra->freq_hop_fl = 1;
+  }
+  uint32_t riv = rba; 
+  // Truncate resource block assignment 
+  uint32_t b = 0;
+  if (nof_prb <= 44) {
+    b = (uint32_t) (ceilf(log2((float) nof_prb*(nof_prb+1)/2)));
+    riv = riv & ((1<<(b+1))-1); 
+  }
+  ra->type2_alloc.riv = riv; 
+  ra->mcs_idx = trunc_mcs;
+
+  ra_type2_from_riv(riv, &ra->type2_alloc.L_crb, &ra->type2_alloc.RB_start,
+      nof_prb, nof_prb);
+  
+  ra_mcs_from_idx_ul(ra->mcs_idx, ra_nprb_ul(ra, nof_prb), &ra->mcs);
+  return LIBLTE_SUCCESS;
+}
+
+/* Creates the UL PUSCH resource allocation grant from a DCI format 0 message
+ */
+int dci_msg_to_ra_ul(dci_msg_t *msg, uint32_t nof_prb, uint32_t n_rb_ho, ra_pusch_t *ra_ul) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
-      ra_ul             !=  NULL   &&
-      lte_cell_isvalid(&cell))
+      ra_ul             !=  NULL)
   {
     ret = LIBLTE_ERROR;
     
     bzero(ra_ul, sizeof(ra_pusch_t));
     
-    if (dci_msg_unpack_pusch(msg, ra_ul, cell.nof_prb)) {
+    if (dci_msg_unpack_pusch(msg, ra_ul, nof_prb)) {
       fprintf(stderr, "Can't unpack PDSCH message\n");
       return ret;
     } 
     
     if (VERBOSE_ISINFO()) {
-      ra_pusch_fprint(stdout, ra_ul, cell.nof_prb);
+      ra_pusch_fprint(stdout, ra_ul, nof_prb);
     }
     
-    if (ra_ul_alloc(&ra_ul->prb_alloc, ra_ul, n_rb_ho, cell.nof_prb)) {
+    if (ra_ul_alloc(&ra_ul->prb_alloc, ra_ul, n_rb_ho, nof_prb)) {
       fprintf(stderr, "Error computing resource allocation\n");
       return ret;
     }

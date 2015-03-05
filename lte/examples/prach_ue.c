@@ -161,11 +161,9 @@ enum receiver_state { DECODE_MIB, SEND_PRACH, RECV_RAR} state;
 #define NOF_PRACH_SEQUENCES 52
 
 ue_dl_t ue_dl; 
+ue_ul_t ue_ul; 
 ue_sync_t ue_sync; 
 prach_t prach; 
-pusch_t pusch; 
-lte_fft_t fft; 
-harq_t pusch_harq; 
 cf_t *prach_buffers[NOF_PRACH_SEQUENCES];
 int prach_buffer_len;
 
@@ -274,30 +272,6 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
     return(ret);
 }
 
-int rar_to_ra_pusch(rar_msg_t *rar, ra_pusch_t *ra, uint32_t nof_prb) {
-  bzero(ra, sizeof(ra_pusch_t));
-  if (!rar->hopping_flag) {
-    ra->freq_hop_fl = hop_disabled;
-  } else {
-    fprintf(stderr, "FIXME: Frequency hopping in RAR not implemented\n");
-    ra->freq_hop_fl = 1;
-  }
-  uint32_t riv = rar->rba; 
-  // Truncate resource block assignment 
-  uint32_t b = 0;
-  if (nof_prb <= 44) {
-    b = (uint32_t) (ceilf(log2((float) nof_prb*(nof_prb+1)/2)));
-    riv = riv & ((1<<(b+1))-1); 
-  }
-  ra->type2_alloc.riv = riv; 
-  ra->mcs_idx = rar->mcs;
-
-  ra_type2_from_riv(riv, &ra->type2_alloc.L_crb, &ra->type2_alloc.RB_start,
-      nof_prb, nof_prb);
-  
-  ra_mcs_from_idx_ul(ra->mcs_idx, ra_nprb_ul(ra, nof_prb), &ra->mcs);
-  return LIBLTE_SUCCESS;
-}
 
 int main(int argc, char **argv) {
   int ret; 
@@ -310,7 +284,6 @@ int main(int argc, char **argv) {
   uint32_t sfn_offset;
   rar_msg_t rar_msg; 
   ra_pusch_t ra_pusch; 
-  ra_ul_alloc_t prb_alloc;
   uint32_t rar_window_start = 0, rar_trials = 0, rar_window_stop = 0; 
   timestamp_t uhd_time;
   timestamp_t next_tx_time;  
@@ -380,33 +353,18 @@ int main(int argc, char **argv) {
     }
   }
   generate_prach_sequences();
-  
-  refsignal_ul_t drms; 
-  if (refsignal_ul_init(&drms, cell)) {
-    fprintf(stderr, "Error initiating refsignal_ul\n");
-    exit(-1);
-  }
-  cf_t *drms_signal = vec_malloc(2*RE_X_RB*cell.nof_prb*sizeof(cf_t));
-  if (!drms_signal) {
-    perror("malloc");
-    exit(-1);
-  }
-  
-  if (pusch_init(&pusch, cell)) {
-    fprintf(stderr, "Error initiating PUSCH\n");
-    exit(-1);
-  }
 
-  if (harq_init(&pusch_harq, cell)) {
-    fprintf(stderr, "Error initiating HARQ process\n");
+  if (ue_ul_init(&ue_ul, cell)) {
+    fprintf(stderr, "Error initiating UE UL\n");
     exit(-1);
   }
   
-  if (lte_ifft_init(&fft, cell.cp, cell.nof_prb)) {
-    fprintf(stderr, "Error initiating SC-FDMA modulator\n");
-    exit(-1);
-  }
-  lte_fft_set_freq_shift(&fft, 0.5);
+  pusch_hopping_cfg_t hop_cfg; 
+  bzero(&hop_cfg, sizeof(pusch_hopping_cfg_t));
+  refsignal_drms_pusch_cfg_t drms_cfg; 
+  bzero(&drms_cfg, sizeof(refsignal_drms_pusch_cfg_t));  
+  drms_cfg.beta_pusch = 1.0; 
+  ue_ul_set_pusch_cfg(&ue_ul, &drms_cfg, &hop_cfg);
 
   cf_t *ul_signal = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
   if (!ul_signal) {
@@ -415,13 +373,6 @@ int main(int argc, char **argv) {
   }
   bzero(ul_signal, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
     
-  cf_t *sf_symbols = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
-  if (!sf_symbols) {
-    perror("malloc");
-    exit(-1);
-  }
-  bzero(sf_symbols, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
-
   state = DECODE_MIB; 
   if (ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper_timed, uhd)) {
     fprintf(stderr, "Error initiating ue_sync\n");
@@ -507,44 +458,21 @@ int main(int argc, char **argv) {
               rar_unpack(data_rx, &rar_msg);
               rar_msg_fprint(stdout, &rar_msg);              
               
-              rar_to_ra_pusch(&rar_msg, &ra_pusch, cell.nof_prb);
+              dci_rar_to_ra_ul(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, cell.nof_prb, &ra_pusch);
               ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
 
-              ra_ul_alloc(&prb_alloc, &ra_pusch, 0, cell.nof_prb);
+              ra_ul_alloc(&ra_pusch.prb_alloc, &ra_pusch, 0, cell.nof_prb);
               
               uint32_t ul_sf_idx = (ue_sync_get_sfidx(&ue_sync)+6)%10;
-              if (harq_setup_ul(&pusch_harq, ra_pusch.mcs, 0, ul_sf_idx, &prb_alloc)) {
-                fprintf(stderr, "Error configuring HARQ process\n");
-                exit(-1);;
-              }
 
               bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
-              if (pusch_encode_rnti(&pusch, &pusch_harq, data, rar_msg.temp_c_rnti, sf_symbols)) {
-                fprintf(stderr, "Error encoding TB\n");
+              n = ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
+              if (n < 0) {
+                fprintf(stderr, "Error encoding PUSCH\n");
                 exit(-1);
               }
-  
-              refsignal_drms_pusch_cfg_t pusch_cfg;
-              bzero(&pusch_cfg, sizeof(refsignal_drms_pusch_cfg_t));
-              pusch_cfg.nof_prb = prb_alloc.L_prb;
-              pusch_cfg.beta_pusch = 1.0; 
-    
-              for (uint32_t i=0;i<2;i++) {
-                if (refsignal_dmrs_pusch_gen(&drms, &pusch_cfg, 2*ul_sf_idx+i, drms_signal)) {
-                  fprintf(stderr, "Error generating PUSCH DRMS signals\n");
-                  exit(-1);
-                }
-                refsignal_drms_pusch_put(&drms, &pusch_cfg, drms_signal, i, 
-                                         prb_alloc.n_prb[i], sf_symbols);                
-              }
-              
-              lte_ifft_run_sf(&fft, sf_symbols, ul_signal);
-              
-              cfo_correct(&ue_sync.sfind.cfocorr, 
-                        ul_signal, ul_signal, 
-                        sync_get_cfo(&ue_sync.strack) / lte_symbol_sz(cell.nof_prb));               
-
-              
+              ue_ul_set_cfo(&ue_ul, sync_get_cfo(&ue_sync.strack));
+                            
               gettimeofday(&tdata[2], NULL);
               get_time_interval(tdata);
               printf("time exec UL: %d\n",tdata[0].tv_usec);
@@ -557,13 +485,12 @@ int main(int argc, char **argv) {
               printf("time to stop RX: %d\n",tdata[0].tv_usec);
               
               ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
-              
-              //float time_adv_sec = ((float) rar_msg.timing_adv_cmd - 31 - 25) * 16 /(15000*2048);
-              float time_adv_sec = ((float) rar_msg.timing_adv_cmd - 31) * 16 /(15000*2048);
+
+              float time_adv_sec = lte_N_ta_new_rar(rar_msg.timing_adv_cmd)*LTE_TS;
               vec_sc_prod_cfc(ul_signal, 2, ul_signal, SF_LEN_PRB(cell.nof_prb));
 
               timestamp_copy(&next_tx_time, &uhd_time);
-              timestamp_add(&next_tx_time, 0, 0.006 + time_adv_sec); // send after 6 sub-frames (6 ms)
+              timestamp_add(&next_tx_time, 0, 0.006 - time_adv_sec); // send after 6 sub-frames (6 ms)
               printf("Send %d samples PUSCH sfn: %d. Last frame time = %.6f"
                      "send PUSCH time = %.6f TA: %.1f us\n", 
                     SF_LEN_PRB(cell.nof_prb), sfn, timestamp_real(&uhd_time), 

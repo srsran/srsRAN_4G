@@ -41,6 +41,8 @@
 
 #define LTE_NSOFT_BITS  250368 // Soft buffer size for Category 1 UE
 
+#define LTE_TS       (1.0/(15000.0*2048.0))
+
 #define MAX_PORTS     4
 #define MAX_LAYERS    8
 #define MAX_CODEWORDS 2
@@ -185,6 +187,11 @@ LIBLTE_API uint32_t lte_re_x_prb(uint32_t ns,
 LIBLTE_API uint32_t lte_voffset(uint32_t symbol_id, 
                            uint32_t cell_id, 
                            uint32_t nof_ports);
+
+LIBLTE_API uint32_t lte_N_ta_new_rar(uint32_t ta);
+
+LIBLTE_API uint32_t lte_N_ta_new(uint32_t N_ta_old, 
+                                 uint32_t ta);
 
 LIBLTE_API int lte_cb_size(uint32_t index);
 
