@@ -473,7 +473,12 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "Error encoding PUSCH\n");
                 exit(-1);
               }
-                            
+              
+              vec_save_file("pusch_d2.dat", ue_ul.pusch.pusch_d, sizeof(float)*ra_pusch.mcs.tbs);
+              vec_save_file("sf_symbols2.dat", ue_ul.sf_symbols, sizeof(cf_t)*SF_LEN_RE(cell.nof_prb, cell.cp));
+              vec_save_file("refsignal1_2.dat", ue_ul.refsignal, sizeof(cf_t)*12*3);
+              vec_save_file("ulsignal2.dat", ul_signal, sizeof(cf_t)*SF_LEN_PRB(cell.nof_prb));
+              
               gettimeofday(&tdata[2], NULL);
               get_time_interval(tdata);
               printf("time exec UL: %d\n",tdata[0].tv_usec);
@@ -489,11 +494,12 @@ int main(int argc, char **argv) {
 
               uint32_t n_ta = lte_N_ta_new_rar(rar_msg.timing_adv_cmd);
               printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
-              float time_adv_sec = ((float) n_ta)*LTE_TS;
+              float time_adv_sec = ((float) n_ta)*TS_PRB(cell.nof_prb);
               
               vec_sc_prod_cfc(ul_signal, 2, ul_signal, SF_LEN_PRB(cell.nof_prb));
 
               timestamp_copy(&next_tx_time, &uhd_time);
+              
               timestamp_add(&next_tx_time, 0, 0.006 - time_adv_sec); // send after 6 sub-frames (6 ms)
               printf("Send %d samples PUSCH sfn: %d. Last frame time = %.6f"
                      "send PUSCH time = %.6f TA: %.1f us\n", 
