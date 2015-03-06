@@ -300,7 +300,7 @@ int main(int argc, char **argv) {
 
   /* Set receiver gain */
   cuhd_set_rx_gain(uhd, prog_args.uhd_gain);
-  cuhd_set_tx_gain(uhd, prog_args.uhd_gain*2);
+  cuhd_set_tx_gain(uhd, prog_args.uhd_gain);
   
   //cuhd_set_tx_antenna(uhd, "TX/RX");
   
@@ -465,13 +465,14 @@ int main(int argc, char **argv) {
               
               uint32_t ul_sf_idx = (ue_sync_get_sfidx(&ue_sync)+6)%10;
 
+              //ue_ul_set_cfo(&ue_ul, sync_get_cfo(&ue_sync.strack));
+
               bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
               n = ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
               if (n < 0) {
                 fprintf(stderr, "Error encoding PUSCH\n");
                 exit(-1);
               }
-              ue_ul_set_cfo(&ue_ul, sync_get_cfo(&ue_sync.strack));
                             
               gettimeofday(&tdata[2], NULL);
               get_time_interval(tdata);
@@ -486,7 +487,10 @@ int main(int argc, char **argv) {
               
               ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
 
-              float time_adv_sec = lte_N_ta_new_rar(rar_msg.timing_adv_cmd)*LTE_TS;
+              uint32_t n_ta = lte_N_ta_new_rar(rar_msg.timing_adv_cmd);
+              printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
+              float time_adv_sec = ((float) n_ta)*LTE_TS;
+              
               vec_sc_prod_cfc(ul_signal, 2, ul_signal, SF_LEN_PRB(cell.nof_prb));
 
               timestamp_copy(&next_tx_time, &uhd_time);

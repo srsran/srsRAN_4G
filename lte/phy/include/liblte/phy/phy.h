@@ -26,15 +26,15 @@
  */
 
 
-#include <complex.h>
-#include <math.h>
-
 #ifndef _LTE_
 #define _LTE_
 
 #ifdef __cplusplus
     extern "C" {
 #endif
+
+#include <complex.h>
+#include <math.h>
 
 #include "liblte/config.h"
 

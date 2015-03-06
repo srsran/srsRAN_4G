@@ -27,6 +27,7 @@
 
 #include <complex.h>
 #include <math.h>
+#include <string.h>
 
 #include "liblte/phy/ue/ue_ul.h"
 
@@ -139,6 +140,7 @@ void ue_ul_reset(ue_ul_t *q) {
 
 void ue_ul_set_pusch_cfg(ue_ul_t *q, refsignal_drms_pusch_cfg_t *pusch_drms_cfg, pusch_hopping_cfg_t *pusch_hopping_cfg)
 {
+  memcpy(&q->pusch_drms_cfg, pusch_drms_cfg, sizeof(refsignal_drms_pucch_cfg_t));
   pusch_set_hopping_cfg(&q->pusch, pusch_hopping_cfg); 
 }
 
@@ -179,17 +181,20 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
     }      
     
     ret = LIBLTE_ERROR; 
-                         
+    
+    printf("setting harq tbs: %d, rv_idx: %d, sf_idx: %d\n", ra_ul->mcs.tbs, ra_ul->rv_idx, sf_idx);
     if (harq_setup_ul(&q->harq_process[0], ra_ul->mcs, ra_ul->rv_idx, sf_idx, &ra_ul->prb_alloc)) {
       fprintf(stderr, "Error configuring HARQ process\n");
       return ret; 
     }
 
+    printf("encode rnti: %d\n", rnti);
     if (pusch_encode_rnti(&q->pusch, &q->harq_process[0], data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 
     }
 
+    printf("drms cfg prb: %d, beta: %f\n", ra_ul->prb_alloc.L_prb, q->pusch_drms_cfg.beta_pusch);
     q->pusch_drms_cfg.nof_prb = ra_ul->prb_alloc.L_prb;
     
     for (uint32_t i=0;i<2;i++) {
@@ -198,13 +203,14 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
         fprintf(stderr, "Error generating PUSCH DRMS signals\n");
         return ret; 
       }
+      printf("n_prb_tilde[%d] = %d\n", i, ra_ul->prb_alloc.n_prb_tilde[i]);
       refsignal_drms_pusch_put(&q->drms, &q->pusch_drms_cfg, q->refsignal, i, 
                                 ra_ul->prb_alloc.n_prb_tilde[i], q->sf_symbols);                
     }
     
     lte_ifft_run_sf(&q->fft, q->sf_symbols, output_signal);
     
-    cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / lte_symbol_sz(q->cell.nof_prb));      
+   // cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / lte_symbol_sz(q->cell.nof_prb));      
     
     ret = LIBLTE_SUCCESS; 
   } 
