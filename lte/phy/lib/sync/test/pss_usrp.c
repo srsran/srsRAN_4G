@@ -143,9 +143,11 @@ int main(int argc, char **argv) {
   }
   uint32_t N_id_2 = cell_id%3;
   uint32_t N_id_1 = cell_id/3;
-  
+
+#ifndef DISABLE_GRAPHICS
   if (!disable_plots)
     init_plots();
+#endif
   
   flen = 4800*(fft_size/64);
   
@@ -270,8 +272,13 @@ int main(int argc, char **argv) {
         INFO("No space for CFO computation. Frame starts at \n",peak_idx);
       }
       
-      if (!disable_plots && sss_synch_subframe(m0,m1) == 0)
-        do_plots_sss(sss.corr_output_m0, sss.corr_output_m1);
+      if(sss_synch_subframe(m0,m1) == 0)
+      {
+#ifndef DISABLE_GRAPHICS
+          if (!disable_plots)
+            do_plots_sss(sss.corr_output_m0, sss.corr_output_m1);
+#endif
+      }
       
     } else {
       nof_nodet++;
@@ -302,9 +309,11 @@ int main(int argc, char **argv) {
       printf("\n");
     }
   
+#ifndef DISABLE_GRAPHICS
     if (!disable_plots)
       do_plots(pss.conv_output_avg, pss.conv_output_avg[peak_idx], pss.fft_size+pss.frame_size-1, ce);
-    
+#endif
+
     last_peak = peak_idx;
 
   }
