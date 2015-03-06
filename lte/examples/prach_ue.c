@@ -465,19 +465,13 @@ int main(int argc, char **argv) {
               
               uint32_t ul_sf_idx = (ue_sync_get_sfidx(&ue_sync)+6)%10;
 
-              //ue_ul_set_cfo(&ue_ul, sync_get_cfo(&ue_sync.strack));
-
+              ue_ul_set_cfo(&ue_ul, sync_get_cfo(&ue_sync.strack));
               bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
               n = ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
               if (n < 0) {
                 fprintf(stderr, "Error encoding PUSCH\n");
                 exit(-1);
               }
-              
-              vec_save_file("pusch_d2.dat", ue_ul.pusch.pusch_d, sizeof(float)*ra_pusch.mcs.tbs);
-              vec_save_file("sf_symbols2.dat", ue_ul.sf_symbols, sizeof(cf_t)*SF_LEN_RE(cell.nof_prb, cell.cp));
-              vec_save_file("refsignal1_2.dat", ue_ul.refsignal, sizeof(cf_t)*12*3);
-              vec_save_file("ulsignal2.dat", ul_signal, sizeof(cf_t)*SF_LEN_PRB(cell.nof_prb));
               
               gettimeofday(&tdata[2], NULL);
               get_time_interval(tdata);

@@ -52,7 +52,7 @@ int ue_ul_init(ue_ul_t *q,
     
     q->cell = cell; 
     
-    if (lte_fft_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+    if (lte_ifft_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
@@ -182,21 +182,17 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
     
     ret = LIBLTE_ERROR; 
     
-    printf("setting harq tbs: %d, rv_idx: %d, sf_idx: %d\n", ra_ul->mcs.tbs, ra_ul->rv_idx, sf_idx);
     if (harq_setup_ul(&q->harq_process[0], ra_ul->mcs, ra_ul->rv_idx, sf_idx, &ra_ul->prb_alloc)) {
       fprintf(stderr, "Error configuring HARQ process\n");
       return ret; 
     }
 
-    printf("encode rnti: %d\n", rnti);
     if (pusch_encode_rnti(&q->pusch, &q->harq_process[0], data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 
     }
 
-    printf("drms cfg prb: %d, beta: %f\n", ra_ul->prb_alloc.L_prb, q->pusch_drms_cfg.beta_pusch);
     q->pusch_drms_cfg.nof_prb = ra_ul->prb_alloc.L_prb;
-    
     for (uint32_t i=0;i<2;i++) {
       // FIXME: Pregenerate for all possible number of prb 
       if (refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, 2*sf_idx+i, q->refsignal)) {
