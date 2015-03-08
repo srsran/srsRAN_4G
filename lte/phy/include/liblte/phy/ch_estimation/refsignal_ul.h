@@ -52,8 +52,8 @@ typedef struct LIBLTE_API {
 typedef struct LIBLTE_API {
   refsignal_ul_cfg_t common;
   float beta_pusch;
-  lte_hopping_method_t hopping_method;
-  uint32_t nof_prb;
+  bool group_hopping_en; 
+  bool sequence_hopping_en; 
 }refsignal_drms_pusch_cfg_t;
 
 typedef struct LIBLTE_API {
@@ -86,19 +86,31 @@ LIBLTE_API int refsignal_ul_init(refsignal_ul_t *q,
 LIBLTE_API void refsignal_ul_free(refsignal_ul_t *q);
 
 LIBLTE_API bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, 
-                                                 refsignal_drms_pusch_cfg_t *cfg); 
+                                                 refsignal_drms_pusch_cfg_t *cfg, 
+                                                 uint32_t nof_prb); 
 
 LIBLTE_API void refsignal_drms_pusch_put(refsignal_ul_t *q, 
                                          refsignal_drms_pusch_cfg_t *cfg, 
                                          cf_t *r_pusch, 
                                          uint32_t ns_idx, 
+                                         uint32_t nof_prb, 
                                          uint32_t n_prb, 
                                          cf_t *sf_symbols); 
 
-LIBLTE_API int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t ns, cf_t *r_pusch);
+LIBLTE_API int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, 
+                                        refsignal_drms_pusch_cfg_t *cfg, 
+                                        uint32_t nof_prb, 
+                                        uint32_t ns, 
+                                        cf_t *r_pusch);
 
-LIBLTE_API void refsignal_dmrs_pucch_gen(refsignal_ul_t *q, refsignal_drms_pucch_cfg_t *cfg, uint32_t ns, cf_t *r_pucch);
+LIBLTE_API void refsignal_dmrs_pucch_gen(refsignal_ul_t *q, 
+                                         refsignal_drms_pucch_cfg_t *cfg, 
+                                         uint32_t ns, 
+                                         cf_t *r_pucch);
 
-LIBLTE_API void refsignal_srs_gen(refsignal_ul_t *q, refsignal_srs_cfg_t *cfg, uint32_t ns, cf_t *r_srs);
+LIBLTE_API void refsignal_srs_gen(refsignal_ul_t *q, 
+                                  refsignal_srs_cfg_t *cfg, 
+                                  uint32_t ns, 
+                                  cf_t *r_srs);
 
 #endif

@@ -76,18 +76,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   bzero(&pusch_cfg, sizeof(refsignal_drms_pusch_cfg_t));
 
 
+  pusch_cfg.group_hopping_en = false;
+  pusch_cfg.sequence_hopping_en = false;
   char *tmp = mexutils_get_char_struct(UECFG, "Hopping");
   if (tmp) {
     if (!strcmp(tmp, "Group")) {
-      pusch_cfg.hopping_method = HOPPING_GROUP;
+      pusch_cfg.group_hopping_en = true;
     } else if (!strcmp(tmp, "Sequence")) {
-      pusch_cfg.hopping_method = HOPPING_SEQUENCE;
-    } else {
-      pusch_cfg.hopping_method = HOPPING_OFF;
+      pusch_cfg.sequence_hopping_en = true;
     }
     mxFree(tmp);    
-  } else {
-    pusch_cfg.hopping_method = HOPPING_OFF;
   }
   
   
@@ -104,7 +102,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error field PRBSet not found in PUSCH config\n");
     return;
   } 
-  pusch_cfg.nof_prb = mexutils_read_f(p, &prbset); 
+  uint32_t nof_prb = mexutils_read_f(p, &prbset); 
   
   if (mexutils_read_uint32_struct(PUSCHCFG, "DynCyclicShift", &pusch_cfg.common.cyclic_shift_for_drms)) {
     pusch_cfg.common.cyclic_shift_for_drms = 0; 
@@ -120,13 +118,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  mexPrintf("nof_prb: %d, ",pusch_cfg.nof_prb);
+  mexPrintf("nof_prb: %d, ",nof_prb);
   mexPrintf("cyclic_shift: %d, ",pusch_cfg.common.cyclic_shift);
   mexPrintf("cyclic_shift_for_drms: %d, ",pusch_cfg.common.cyclic_shift_for_drms);
   mexPrintf("delta_ss: %d, ",pusch_cfg.common.delta_ss);
-  mexPrintf("hopping_method: %d\n, ",pusch_cfg.hopping_method);
   
-  cf_t *signal = vec_malloc(2*RE_X_RB*pusch_cfg.nof_prb*sizeof(cf_t));
+  cf_t *signal = vec_malloc(2*RE_X_RB*nof_prb*sizeof(cf_t));
   if (!signal) {
     perror("malloc");
     return;
@@ -139,10 +136,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   bzero(sf_symbols, SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
   for (uint32_t i=0;i<2;i++) {
     //mexPrintf("Generating DRMS for ns=%d, nof_prb=%d\n", 2*sf_idx+i,pusch_cfg.nof_prb);
-    refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, 2*sf_idx+i, &signal[i*RE_X_RB*pusch_cfg.nof_prb]);    
+    refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, 2*sf_idx+i, &signal[i*RE_X_RB*nof_prb]);    
   }
   for (uint32_t i=0;i<2;i++) {
-    refsignal_drms_pusch_put(&refs, &pusch_cfg, &signal[i*RE_X_RB*pusch_cfg.nof_prb], i, prbset[0], sf_symbols);                
+    refsignal_drms_pusch_put(&refs, &pusch_cfg, &signal[i*RE_X_RB*nof_prb], i, nof_prb, prbset[0], sf_symbols);                
   }
   if (nlhs >= 1) {
     mexutils_write_cf(sf_symbols, &plhs[0], SF_LEN_RE(cell.nof_prb, cell.cp), 1);  

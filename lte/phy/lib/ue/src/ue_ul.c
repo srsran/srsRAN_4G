@@ -140,7 +140,7 @@ void ue_ul_reset(ue_ul_t *q) {
 
 void ue_ul_set_pusch_cfg(ue_ul_t *q, refsignal_drms_pusch_cfg_t *pusch_drms_cfg, pusch_hopping_cfg_t *pusch_hopping_cfg)
 {
-  memcpy(&q->pusch_drms_cfg, pusch_drms_cfg, sizeof(refsignal_drms_pucch_cfg_t));
+  memcpy(&q->pusch_drms_cfg, pusch_drms_cfg, sizeof(refsignal_drms_pusch_cfg_t));
   pusch_set_hopping_cfg(&q->pusch, pusch_hopping_cfg); 
 }
 
@@ -186,27 +186,25 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
       fprintf(stderr, "Error configuring HARQ process\n");
       return ret; 
     }
-
+    printf("sf_idx: %d, rnti: %d\n", sf_idx, rnti);
     if (pusch_encode_rnti(&q->pusch, &q->harq_process[0], data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 
     }
 
-    q->pusch_drms_cfg.nof_prb = ra_ul->prb_alloc.L_prb;
     for (uint32_t i=0;i<2;i++) {
       // FIXME: Pregenerate for all possible number of prb 
-      if (refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, 2*sf_idx+i, q->refsignal)) {
+      if (refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, ra_ul->prb_alloc.L_prb, 2*sf_idx+i, q->refsignal)) {
         fprintf(stderr, "Error generating PUSCH DRMS signals\n");
         return ret; 
       }
-      printf("n_prb_tilde[%d] = %d\n", i, ra_ul->prb_alloc.n_prb_tilde[i]);
       refsignal_drms_pusch_put(&q->drms, &q->pusch_drms_cfg, q->refsignal, i, 
-                                ra_ul->prb_alloc.n_prb_tilde[i], q->sf_symbols);                
+                                ra_ul->prb_alloc.L_prb, ra_ul->prb_alloc.n_prb_tilde[i], q->sf_symbols);                
     }
     
     lte_ifft_run_sf(&q->fft, q->sf_symbols, output_signal);
     
-   // cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / lte_symbol_sz(q->cell.nof_prb));      
+    cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / lte_symbol_sz(q->cell.nof_prb));      
     
     ret = LIBLTE_SUCCESS; 
   } 

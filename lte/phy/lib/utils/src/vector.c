@@ -96,7 +96,7 @@ void vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
-  return vec_sub_fff((float*) x,(float*) y,(float*) z,2*len);
+  return vec_sub_fff((float*) x,(float*) y,(float*) z, 2*len);
 }
 
 void vec_sum_fff(float *x, float *y, float *z, uint32_t len) {

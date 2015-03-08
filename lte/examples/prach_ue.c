@@ -427,6 +427,10 @@ int main(int argc, char **argv) {
           if (((sfn%2) == 1) && (ue_sync_get_sfidx(&ue_sync) == 1)) {
             ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
 
+            cfo_correct(&ue_sync.sfind.cfocorr, 
+                        prach_buffers[7], prach_buffers[7], 
+                        -ue_sync_get_cfo(&ue_sync) / lte_symbol_sz(cell.nof_prb));      
+    
             timestamp_copy(&next_tx_time, &uhd_time);
             timestamp_add(&next_tx_time, 0, 0.01); // send next frame (10 ms)
             printf("Send prach sfn: %d. Last frame time = %.6f, send prach time = %.6f\n", 
@@ -490,7 +494,7 @@ int main(int argc, char **argv) {
               printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
               float time_adv_sec = ((float) n_ta)*TS_PRB(cell.nof_prb);
               
-              vec_sc_prod_cfc(ul_signal, 2, ul_signal, SF_LEN_PRB(cell.nof_prb));
+              vec_sc_prod_cfc(ul_signal, 20, ul_signal, SF_LEN_PRB(cell.nof_prb));
 
               timestamp_copy(&next_tx_time, &uhd_time);
               
@@ -501,7 +505,7 @@ int main(int argc, char **argv) {
                      timestamp_real(&next_tx_time), time_adv_sec*1000000);
               cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb),
                             next_tx_time.full_secs, next_tx_time.frac_secs);
-              
+             
               go_exit = 1; 
             }
             if (sfn >= rar_window_stop) {              

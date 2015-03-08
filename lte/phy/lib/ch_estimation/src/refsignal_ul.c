@@ -210,13 +210,13 @@ static void arg_r_uv_mprb(float *arg, uint32_t M_sc, uint32_t u, uint32_t v) {
 }
 
 /* Computes argument of r_u_v signal */
-static void compute_pusch_r_uv_arg(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t u, uint32_t v) {
-  if (cfg->nof_prb == 1) {
+static void compute_pusch_r_uv_arg(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t u, uint32_t v) {
+  if (nof_prb == 1) {
     arg_r_uv_1prb(q->tmp_arg, u);
-  } else if (cfg->nof_prb == 2) {
+  } else if (nof_prb == 2) {
     arg_r_uv_2prb(q->tmp_arg, u);
   } else {
-    arg_r_uv_mprb(q->tmp_arg, RE_X_RB*cfg->nof_prb, u, v);
+    arg_r_uv_mprb(q->tmp_arg, RE_X_RB*nof_prb, u, v);
   }
 }
 
@@ -232,11 +232,11 @@ static float get_alpha(refsignal_ul_t *q, refsignal_ul_cfg_t *cfg, uint32_t ns) 
 
 }
 
-bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg) {
+bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb) {
   if (cfg->common.cyclic_shift          < NOF_CSHIFT   && 
       cfg->common.cyclic_shift_for_drms < NOF_CSHIFT   &&
       cfg->common.delta_ss              < NOF_DELTA_SS &&
-      cfg->nof_prb                      < q->cell.nof_prb) {
+      nof_prb                           < q->cell.nof_prb) {
     return true; 
   } else {
     return false;
@@ -245,25 +245,28 @@ bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, refsignal_drms_pusch_cf
 
 void refsignal_drms_pusch_put(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, 
                               cf_t *r_pusch, 
-                              uint32_t ns_idx, uint32_t n_prb, 
+                              uint32_t ns_idx, 
+                              uint32_t nof_prb, 
+                              uint32_t n_prb, 
                               cf_t *sf_symbols) 
 {
   if (ns_idx < 2) {
+    DEBUG("Putting DRMS to n_prb: %d, L: %d, ns_idx: %d\n", n_prb, nof_prb, ns_idx);
     uint32_t L = (ns_idx+1)*CP_NSYMB(q->cell.cp)-4;
-    memcpy(&sf_symbols[RE_IDX(q->cell.nof_prb, L, n_prb*RE_X_RB)], r_pusch, cfg->nof_prb*RE_X_RB*sizeof(cf_t));    
+    memcpy(&sf_symbols[RE_IDX(q->cell.nof_prb, L, n_prb*RE_X_RB)], r_pusch, nof_prb*RE_X_RB*sizeof(cf_t));    
   }
 }
 
 /* Generate DRMS for PUSCH signal according to 5.5.2.1 of 36.211 */
-int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t ns, cf_t *r_pusch) {
+int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t ns, cf_t *r_pusch) {
 
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
-  if (refsignal_drms_pusch_cfg_isvalid(q, cfg)) {
+  if (refsignal_drms_pusch_cfg_isvalid(q, cfg, nof_prb)) {
     ret = LIBLTE_ERROR;
     
     // Get group hopping number u 
     uint32_t f_gh=0; 
-    if (cfg->hopping_method == HOPPING_GROUP) {
+    if (cfg->group_hopping_en) {
       f_gh = q->f_gh[ns];
     }
     uint32_t u = (f_gh + (q->cell.id%30)+cfg->common.delta_ss)%30;
@@ -271,25 +274,25 @@ int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg,
     
     // Get sequence hopping number v 
     uint32_t v = 0; 
-    if (cfg->nof_prb >= 6 && cfg->hopping_method == HOPPING_SEQUENCE) {
+    if (nof_prb >= 6 && cfg->sequence_hopping_en) {
       v = q->v_pusch[ns][cfg->common.delta_ss];
     }
 
     // Compute signal argument 
-    compute_pusch_r_uv_arg(q, cfg, u, v);
+    compute_pusch_r_uv_arg(q, cfg, nof_prb, u, v);
 
     // Add cyclic prefix alpha
     float alpha = get_alpha(q, &cfg->common, ns);
 
     if (verbose == VERBOSE_DEBUG) {
-      uint32_t N_sz = largest_prime_lower_than(cfg->nof_prb*RE_X_RB);
+      uint32_t N_sz = largest_prime_lower_than(nof_prb*RE_X_RB);
       DEBUG("Generating PUSCH DRMS sequence with parameters:\n",0);
-      DEBUG("\tu: %d, v: %d, alpha: %f, N_sc: %d, root q: %d\n", 
-            u, v, alpha, N_sz, get_q(u,v,N_sz));
+      DEBUG("\tnof_prb: %d, u: %d, v: %d, alpha: %f, N_sc: %d, root q: %d\n", 
+            nof_prb, u, v, alpha, N_sz, get_q(u,v,N_sz));
     }
 
     // Do complex exponential and adjust amplitude
-    for (int i=0;i<RE_X_RB*cfg->nof_prb;i++) {
+    for (int i=0;i<RE_X_RB*nof_prb;i++) {
       r_pusch[i] = cfg->beta_pusch * cexpf(I*(q->tmp_arg[i] + alpha*i));
     }
     ret = 0; 

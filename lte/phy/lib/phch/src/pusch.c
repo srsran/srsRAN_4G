@@ -409,8 +409,8 @@ int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uc
       return LIBLTE_ERROR_INVALID_INPUTS;
     }
 
-    INFO("Encoding PUSCH SF: %d, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-        harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+    INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+        harq->sf_idx, lte_mod_string(harq->mcs.mod), rnti, harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
     
     bzero(q->pusch_q, harq->nof_bits);
     if (ulsch_uci_encode(&q->dl_sch, harq, data, uci_data, q->pusch_g, q->pusch_q)) {

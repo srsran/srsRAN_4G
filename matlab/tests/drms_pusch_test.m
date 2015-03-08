@@ -35,7 +35,6 @@ for prb=3
                             if (error(k) > 10^-3)
                                 k=1;
                             end
-                            read_real
                             k=k+1;
                        end
                     end
@@ -49,5 +48,5 @@ plot(error);
 disp(info)
 disp(length(subframe_mat))
 n=1:length(subframe_mat(:));
-plot(n,real(subframe_mat(:)),n,real(subframe_lib(:)))
-
+%plot(n,real(subframe_mat(:)),n,real(subframe_lib(:)))
+plot(abs(subframe_mat(:)-subframe_lib(:)))

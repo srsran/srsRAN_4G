@@ -74,8 +74,6 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-lte_hopping_method_t hopping_modes[3]={HOPPING_OFF, HOPPING_SEQUENCE, HOPPING_GROUP};
-
 int main(int argc, char **argv) {
   refsignal_ul_t refs;
   refsignal_drms_pusch_cfg_t pusch_cfg;
@@ -100,25 +98,33 @@ int main(int argc, char **argv) {
   for (int n=6;n<cell.nof_prb;n++) {
     for (int delta_ss=29;delta_ss<NOF_DELTA_SS;delta_ss++) {
       for (int cshift=0;cshift<NOF_CSHIFT;cshift++) {
-        for (int h=1;h<3;h++) {
+        for (int h=0;h<3;h++) {
           for (int ns=0;ns<NSLOTS_X_FRAME;ns++) {
             for (int cshift_drms=0;cshift_drms<NOF_CSHIFT;cshift_drms++) {
               pusch_cfg.beta_pusch = 1.0;
-              pusch_cfg.nof_prb = n;
+              uint32_t nof_prb = n;
               pusch_cfg.common.cyclic_shift = cshift;
               pusch_cfg.common.cyclic_shift_for_drms = cshift_drms;
               pusch_cfg.common.delta_ss = delta_ss;            
-              pusch_cfg.hopping_method = hopping_modes[h];
+              if (!h) {
+                pusch_cfg.group_hopping_en = false;
+                pusch_cfg.sequence_hopping_en = false;                
+              } else if (h == 1) {
+                pusch_cfg.group_hopping_en = false;
+                pusch_cfg.sequence_hopping_en = true;                
+              } else if (h == 2) {
+                pusch_cfg.group_hopping_en = true;
+                pusch_cfg.sequence_hopping_en = false;
+              }
               pusch_cfg.common.en_drms_2 = true; 
               printf("Beta: %f, ",pusch_cfg.beta_pusch);
-              printf("nof_prb: %d, ",pusch_cfg.nof_prb);
+              printf("nof_prb: %d, ",nof_prb);
               printf("cyclic_shift: %d, ",pusch_cfg.common.cyclic_shift);
               printf("cyclic_shift_for_drms: %d, ",pusch_cfg.common.cyclic_shift_for_drms);
               printf("delta_ss: %d, ",pusch_cfg.common.delta_ss);
-              printf("hopping_method: %d, ",pusch_cfg.hopping_method);
               printf("Slot: %d\n", ns);
-              refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, ns, signal);              
-            exit(0);
+              refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, ns, signal);              
+              exit(0);
             }
           }
         }
