@@ -98,9 +98,7 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define SLOT_LEN_RE(nof_prb, cp)        (nof_prb*RE_X_RB*CP_NSYMB(cp))
 #define SF_LEN_RE(nof_prb, cp)          (2*SLOT_LEN_RE(nof_prb, cp))
 
-#define TS_SYMBOLSZ(symbol_sz)  (1.0/(15000.0*symbol_sz))
-#define TS_PRB(nof_prb)         TS_SYMBOLSZ(lte_symbol_sz(nof_prb))
-
+#define LTE_TS         1.0/(15000.0*2048)
 
 #define SLOT_IDX_CPNORM(symbol_idx, symbol_sz) (symbol_idx==0?0:(symbol_sz + CP(symbol_sz, CPNORM_0_LEN) + \
                                                 (symbol_idx-1)*(symbol_sz+CP(symbol_sz, CPNORM_LEN))))
