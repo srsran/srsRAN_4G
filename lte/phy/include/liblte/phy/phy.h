@@ -120,6 +120,7 @@
 
 #ifdef __cplusplus
 }
+#undef I // Fix complex.h #define I nastiness when using C++
 #endif
 
 #endif
