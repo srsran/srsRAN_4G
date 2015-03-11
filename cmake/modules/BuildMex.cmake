@@ -4,23 +4,24 @@
 
 include(CMakeParseArguments)
 
+if(NOT DisableMEX)
+  if(NOT MATLAB_FOUND)
+    find_package(MATLAB)
+  endif()
 
-if(NOT MATLAB_FOUND)
-  find_package(MATLAB)
-endif()
+  if(NOT OCTAVE_FOUND)
+    find_package(OCTAVE)
+  endif()
 
-if(NOT OCTAVE_FOUND)
-  find_package(OCTAVE)
-endif()
-
-# CMake 2.8.12 & earlier apparently don't define the
-# Mex script path, so find it.
-if(NOT MATLAB_MEX_PATH)
-  find_program( MATLAB_MEX_PATH mex
-    HINTS ${MATLAB_ROOT}/bin
-    PATHS ${MATLAB_ROOT}/bin
-    DOC "The mex program path"
-    )
+  # CMake 2.8.12 & earlier apparently don't define the
+  # Mex script path, so find it.
+  if(NOT MATLAB_MEX_PATH)
+    find_program( MATLAB_MEX_PATH mex
+      HINTS ${MATLAB_ROOT}/bin
+      PATHS ${MATLAB_ROOT}/bin
+      DOC "The mex program path"
+      )
+  endif()
 endif()
 
 #
