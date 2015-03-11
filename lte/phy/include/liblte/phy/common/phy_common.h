@@ -147,7 +147,7 @@ typedef struct LIBLTE_API {
   float fd;
 } lte_earfcn_t;
 
-LIBLTE_API enum band_geographical_area {
+enum band_geographical_area {
   ALL, NAR, APAC, EMEA, JAPAN, CALA, NA
 };
 
