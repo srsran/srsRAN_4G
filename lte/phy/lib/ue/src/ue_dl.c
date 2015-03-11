@@ -188,7 +188,7 @@ int ue_dl_decode_fft_estimate(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t
       return LIBLTE_ERROR;
     }
 
-    INFO("Decoded CFI=%d with correlation %.2f\n", cfi, cfi_corr);
+    INFO("Decoded CFI=%d with correlation %.2f\n", *cfi, cfi_corr);
 
     if (regs_set_cfi(&q->regs, *cfi)) {
       fprintf(stderr, "Error setting CFI\n");
@@ -285,11 +285,12 @@ int ue_dl_decode_rnti_rv(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx
     formats = ue_formats; 
     nof_formats = nof_ue_formats;
   }
-
+  
   /* For all possible locations, try to decode a DCI message */
   crc_rem = 0;
   uint32_t found_dci = 0; 
   for (int f=0;f<nof_formats && !found_dci;f++) {
+    INFO("Trying format %s\n", dci_format_string(formats[f]));
     for (i=0;i<nof_locations && !found_dci;i++) {
       if (pdcch_decode_msg(&q->pdcch, &dci_msg, &locations[i], formats[f], &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");

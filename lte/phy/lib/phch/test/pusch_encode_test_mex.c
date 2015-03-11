@@ -198,8 +198,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   bzero(scfdma, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
   lte_fft_t fft; 
   lte_ifft_init(&fft, CPNORM, cell.nof_prb);
+  lte_fft_set_normalize(&fft, true);
   lte_fft_set_freq_shift(&fft, 0.5);
   lte_ifft_run_sf(&fft, sf_symbols, scfdma);
+
+  // Matlab toolbox expects further normalization 
+  vec_sc_prod_cfc(scfdma, 1.0/sqrtf(512), scfdma, SF_LEN_PRB(cell.nof_prb));
   
   if (nlhs >= 1) {
     mexutils_write_cf(scfdma, &plhs[0], SF_LEN_PRB(cell.nof_prb), 1);  

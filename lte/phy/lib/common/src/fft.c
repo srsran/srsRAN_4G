@@ -182,6 +182,10 @@ void lte_ifft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output) {
   }
 }
 
+void lte_fft_set_normalize(lte_fft_t *q, bool normalize_enable) {
+  dft_plan_set_norm(&q->fft_plan, normalize_enable);
+}
+
 void lte_ifft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output) {
   uint32_t n; 
   for (n=0;n<2;n++) {
@@ -190,7 +194,4 @@ void lte_ifft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output) {
   if (q->freq_shift) {
     vec_prod_ccc(output, q->shift_buffer, output, 2*q->slot_sz);
   }
-#ifdef LTE_FFT_NORMALIZE
-  vec_sc_prod_cfc(output, (float) 1.0/sqrtf(q->symbol_sz),output,2*q->slot_sz);
-#endif
 }

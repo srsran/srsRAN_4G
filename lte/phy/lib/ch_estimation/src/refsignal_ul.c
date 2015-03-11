@@ -287,8 +287,8 @@ int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg,
     if (verbose == VERBOSE_DEBUG) {
       uint32_t N_sz = largest_prime_lower_than(nof_prb*RE_X_RB);
       DEBUG("Generating PUSCH DRMS sequence with parameters:\n",0);
-      DEBUG("\tnof_prb: %d, u: %d, v: %d, alpha: %f, N_sc: %d, root q: %d\n", 
-            nof_prb, u, v, alpha, N_sz, get_q(u,v,N_sz));
+      DEBUG("\tbeta: %.1f, nof_prb: %d, u: %d, v: %d, alpha: %f, N_sc: %d, root q: %d, nprs: %d\n", 
+            cfg->beta_pusch, nof_prb, u, v, alpha, N_sz, get_q(u,v,N_sz),q->n_prs_pusch[cfg->common.delta_ss][ns]);
     }
 
     // Do complex exponential and adjust amplitude

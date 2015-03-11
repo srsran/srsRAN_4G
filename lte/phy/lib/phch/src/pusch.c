@@ -122,7 +122,8 @@ int pusch_cp(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output, bool advance_i
       n_prb_tilde = (n_vrb_tilde+f_hop(q, hopping, i)*n_rb_sb+
         (n_rb_sb-1)-2*(n_vrb_tilde%n_rb_sb)*f_m(q, hopping, i))%(n_rb_sb*hopping->n_sb);
       
-      INFO("n_prb_tilde: %d, n_vrb_tilde: %d, n_rb_sb: %d, n_sb: %d\n", n_prb_tilde, n_vrb_tilde, n_rb_sb, hopping->n_sb);
+      INFO("n_prb_tilde: %d, n_vrb_tilde: %d, n_rb_sb: %d, n_sb: %d\n", 
+           n_prb_tilde, n_vrb_tilde, n_rb_sb, hopping->n_sb);
       if (hopping->n_sb > 1) {
         n_prb_tilde += (hopping->hopping_offset-1)/2+1;
       }

@@ -54,6 +54,8 @@ typedef struct LIBLTE_API {
   cfo_t cfo; 
   lte_cell_t cell;
   
+  bool normalize_en; 
+  
   float current_cfo; 
 
   refsignal_drms_pusch_cfg_t pusch_drms_cfg;
@@ -76,6 +78,9 @@ LIBLTE_API void ue_ul_free(ue_ul_t *q);
 
 LIBLTE_API void ue_ul_set_cfo(ue_ul_t *q, 
                               float cur_cfo); 
+
+LIBLTE_API void ue_ul_set_normalization(ue_ul_t *q, 
+                                        bool enabled); 
 
 LIBLTE_API void ue_ul_set_pusch_cfg(ue_ul_t *q, 
                                     refsignal_drms_pusch_cfg_t *pusch_drms_cfg, 

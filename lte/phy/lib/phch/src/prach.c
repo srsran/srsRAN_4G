@@ -399,9 +399,9 @@ int prach_gen(prach_t *p,
     for(int i=0;i<p->N_seq;i++){
       signal[p->N_cp+i] = p->ifft_out[i%p->N_ifft_prach];
     }
-    
+                
     // Normalize 
-    vec_sc_prod_cfc(signal, 1.0/sqrtf(p->N_ifft_ul), signal, (p->N_cp + p->N_seq));
+    vec_sc_prod_cfc(signal, 1.0/sqrtf(p->N_ifft_prach*2), signal, (p->N_cp + p->N_seq));
 
     ret = LIBLTE_SUCCESS;
   }

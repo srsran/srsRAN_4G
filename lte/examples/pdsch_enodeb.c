@@ -220,6 +220,7 @@ void base_init() {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
+  lte_fft_set_normalize(&ifft, true);
   if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);

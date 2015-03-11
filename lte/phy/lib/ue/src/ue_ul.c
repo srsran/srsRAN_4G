@@ -57,6 +57,9 @@ int ue_ul_init(ue_ul_t *q,
       goto clean_exit;
     }
     lte_fft_set_freq_shift(&q->fft, 0.5);
+    lte_fft_set_normalize(&q->fft, true);
+    
+    q->normalize_en = true; 
 
     if (cfo_init(&q->cfo, CURRENT_SFLEN)) {
       fprintf(stderr, "Error creating CFO object\n");
@@ -123,6 +126,11 @@ void ue_ul_free(ue_ul_t *q) {
 
 void ue_ul_set_cfo(ue_ul_t *q, float cur_cfo) {
   q->current_cfo = cur_cfo; 
+}
+
+void ue_ul_set_normalization(ue_ul_t *q, bool enabled)
+{
+  q->normalize_en = enabled;
 }
 
 /* Precalculate the PDSCH scramble sequences for a given RNTI. This function takes a while 
@@ -194,17 +202,26 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
 
     for (uint32_t i=0;i<2;i++) {
       // FIXME: Pregenerate for all possible number of prb 
-      if (refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, ra_ul->prb_alloc.L_prb, 2*sf_idx+i, q->refsignal)) {
+      if (refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, 
+        q->harq_process[0].ul_alloc.L_prb, 2*sf_idx+i, q->refsignal)) 
+      {
         fprintf(stderr, "Error generating PUSCH DRMS signals\n");
         return ret; 
       }
       refsignal_drms_pusch_put(&q->drms, &q->pusch_drms_cfg, q->refsignal, i, 
-                                ra_ul->prb_alloc.L_prb, ra_ul->prb_alloc.n_prb_tilde[i], q->sf_symbols);                
+                               q->harq_process[0].ul_alloc.L_prb, 
+                               q->harq_process[0].ul_alloc.n_prb_tilde[i], 
+                               q->sf_symbols);                
     }
     
     lte_ifft_run_sf(&q->fft, q->sf_symbols, output_signal);
     
-    cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / lte_symbol_sz(q->cell.nof_prb));      
+    //cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / lte_symbol_sz(q->cell.nof_prb));      
+    
+    if (q->normalize_en) {
+      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(q->harq_process[0].ul_alloc.L_prb);
+      vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SF_LEN_PRB(q->cell.nof_prb));
+    }
     
     ret = LIBLTE_SUCCESS; 
   } 

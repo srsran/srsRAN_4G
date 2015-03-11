@@ -6,9 +6,9 @@ addpath('../../debug/lte/phy/lib/ch_estimation/test')
 Hopping={'Off','Sequence','Group'};
 
 k=1;
-for prb=3
-    for ncell=0
-        for ns=8:9
+for prb=4
+    for ncell=1
+        for ns=4
             for h=1
                 for sg=0
                     for cs=0
@@ -20,7 +20,7 @@ for prb=3
                             ueConfig.SeqGroup=sg;
                             ueConfig.CyclicShift=cs;
 
-                            puschConfig.PRBSet=(0:(prb-1))';
+                            puschConfig.PRBSet=(19:22)';
                             puschConfig.DynCyclicShift=ds;
 
                             [mat, info]=ltePUSCHDRS(ueConfig,puschConfig);

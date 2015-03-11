@@ -130,7 +130,7 @@ float pcfich_cfi_decode(pcfich_t *q, uint32_t *cfi) {
   float max_corr = 0;
   
   for (i = 0; i < 3; i++) {
-    float corr = vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN);
+    float corr = fabsf(vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN));
     if (corr > max_corr) {
       max_corr = corr; 
       index = i; 
