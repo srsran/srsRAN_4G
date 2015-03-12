@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
     prach_gen(p,
               seq_index,
               frequency_offset,
+              0.2,
               preamble);
 
     uint32_t prach_len = p->N_seq;

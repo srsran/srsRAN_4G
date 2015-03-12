@@ -65,6 +65,9 @@ typedef struct {
   int force_N_id_2;
   uint16_t rnti;
   uint32_t file_nof_prb;
+  float beta_prach;
+  float ta_usec; 
+  float beta_pusch; 
   char *uhd_args; 
   float uhd_rx_freq; 
   float uhd_tx_freq; 
@@ -78,6 +81,9 @@ void args_default(prog_args_t *args) {
   args->rnti = SIRNTI;
   args->force_N_id_2 = -1; // Pick the best
   args->file_nof_prb = 6; 
+  args->beta_prach = 0.2;
+  args->beta_pusch = 1.5;
+  args->ta_usec = -1.0;
   args->uhd_args = "";
   args->uhd_rx_freq = 2112500000.0;
   args->uhd_tx_freq = 1922500000.0;
@@ -87,12 +93,15 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agfFrlnv]\n", prog);
+  printf("Usage: %s [agfFbrlnv]\n", prog);
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD TX/RX gain [Default %.2f dB]\n", args->uhd_rx_gain);
   printf("\t-G UHD TX/RX gain [Default %.2f dB]\n", args->uhd_tx_gain);
   printf("\t-f UHD RX freq [Default %.1f MHz]\n", args->uhd_rx_freq/1000000);
   printf("\t-F UHD TX freq [Default %.1f MHz]\n", args->uhd_tx_freq/1000000);
+  printf("\t-b beta PRACH (transmission amplitude) [Default %f]\n",args->beta_prach);
+  printf("\t-B beta PUSCH (transmission amplitude) [Default %f]\n",args->beta_pusch);
+  printf("\t-t TA usec (time advance, -1 from RAR) [Default %f]\n",args->ta_usec);
   printf("\t-r RNTI [Default 0x%x]\n",args->rnti);
   printf("\t-l Force N_id_2 [Default best]\n");
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
@@ -102,10 +111,19 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "agGfFrlnv")) != -1) {
+  while ((opt = getopt(argc, argv, "agGfFrlnvbBt")) != -1) {
     switch (opt) {
     case 'a':
       args->uhd_args = argv[optind];
+      break;
+    case 'b':
+      args->beta_prach = atof(argv[optind]);
+      break;
+    case 'B':
+      args->beta_pusch = atof(argv[optind]);
+      break;
+    case 't':
+      args->ta_usec = atof(argv[optind]);
       break;
     case 'g':
       args->uhd_rx_gain = atof(argv[optind]);
@@ -181,7 +199,7 @@ cf_t *sf_buffer = NULL;
 
 int generate_prach_sequences(){
   for(int i=0;i<NOF_PRACH_SEQUENCES;i++){
-    if(prach_gen(&prach, i, 0, prach_buffers[i])){
+    if(prach_gen(&prach, i, 0, prog_args.beta_prach, prach_buffers[i])){
       fprintf(stderr, "Error generating prach sequence\n");
       return -1;
     }
@@ -533,6 +551,9 @@ int main(int argc, char **argv) {
                 uint32_t n_ta = lte_N_ta_new_rar(rar_msg.timing_adv_cmd);
                 printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
                 float time_adv_sec = ((float) n_ta+15)/(15000.0*lte_symbol_sz(cell.nof_prb));
+                if (prog_args.ta_usec >= 0) {
+                  time_adv_sec = prog_args.ta_usec*1e-6;
+                }
 #define N_TX  5
                 const uint32_t rv[N_TX]={0,2,3,1,0};
                 for (int i=0; i<N_TX;i++) {
@@ -545,7 +566,7 @@ int main(int argc, char **argv) {
                     exit(-1);
                   }
                   
-                  vec_sc_prod_cfc(ul_signal, 1.5, ul_signal, SF_LEN_PRB(cell.nof_prb));
+                  vec_sc_prod_cfc(ul_signal, prog_args.beta_pusch, ul_signal, SF_LEN_PRB(cell.nof_prb));
                   /*
                   for (int i=0;i<7680;i++) {
                     if (i < 100) {

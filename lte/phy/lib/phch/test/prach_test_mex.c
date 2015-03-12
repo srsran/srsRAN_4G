@@ -97,7 +97,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   bzero(signal, sizeof(cf_t) * nof_samples);
-  if (prach_gen(&prach, seq_idx, frequency_offset, signal)) {
+  if (prach_gen(&prach, seq_idx, frequency_offset, 0.2, signal)) {
     mexErrMsgTxt("Error generating PRACH\n");
     return; 
   }

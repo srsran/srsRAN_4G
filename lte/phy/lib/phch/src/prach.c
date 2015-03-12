@@ -317,14 +317,14 @@ int prach_init(prach_t *p,
       return LIBLTE_ERROR;
     }
     dft_plan_set_mirror(p->zc_fft, false);
-    dft_plan_set_norm(p->zc_fft, true);
+    dft_plan_set_norm(p->zc_fft, false);
 
     p->zc_ifft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
     if(dft_plan(p->zc_ifft, p->N_zc, BACKWARD, COMPLEX)){
       return LIBLTE_ERROR;
     }
     dft_plan_set_mirror(p->zc_ifft, false);
-    dft_plan_set_norm(p->zc_ifft, true);
+    dft_plan_set_norm(p->zc_ifft, false);
 
     // Generate our 64 sequences
     p->N_roots = 0;
@@ -371,6 +371,7 @@ int prach_init(prach_t *p,
 int prach_gen(prach_t *p,
               uint32_t seq_index,
               uint32_t freq_offset,
+              float beta_prach,
               cf_t *signal)
 {
   int ret = LIBLTE_ERROR;
@@ -401,7 +402,7 @@ int prach_gen(prach_t *p,
     }
                 
     // Normalize 
-    vec_sc_prod_cfc(signal, 1.0/sqrtf(p->N_ifft_prach*2), signal, (p->N_cp + p->N_seq));
+    vec_sc_prod_cfc(signal, beta_prach, signal, (p->N_cp + p->N_seq));
 
     ret = LIBLTE_SUCCESS;
   }

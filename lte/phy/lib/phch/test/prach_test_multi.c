@@ -84,6 +84,7 @@ int main(int argc, char **argv) {
     prach_gen(p,
               seq_index,
               frequency_offset,
+              0.2,
               preamble);
 
     for(int i=0;i<p->N_cp+p->N_seq;i++)
