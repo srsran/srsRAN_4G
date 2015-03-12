@@ -128,12 +128,16 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
   
   if (q             != NULL &&
       data          != NULL &&
-      harq  != NULL)
+      harq          != NULL)
   {
   
     uint32_t Gp = nof_e_bits / Qm;
-    uint32_t gamma = Gp%harq->cb_segm.C;
-
+    
+    uint32_t gamma = Gp;
+    if (harq->cb_segm.C > 0) {
+      gamma = Gp%harq->cb_segm.C;
+    }
+    
     if (harq->rv == 0) {
       /* Compute transport block CRC */
       par = crc_checksum(&q->crc_tb, data, harq->mcs.tbs);
@@ -246,14 +250,23 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
   
   if (q            != NULL   && 
       data         != NULL   &&       
-      harq != NULL)
+      harq         != NULL)
   {
 
+    if (harq->mcs.tbs == 0 || harq->cb_segm.C == 0) {
+      return LIBLTE_SUCCESS;
+    }
+    
     rp = 0;
     rp = 0;
     wp = 0;
     uint32_t Gp = nof_e_bits / Qm;
-    uint32_t gamma = Gp%harq->cb_segm.C;
+    uint32_t gamma=Gp;
+
+    if (harq->cb_segm.C>0) {
+      gamma = Gp%harq->cb_segm.C;
+    }
+    
     bool early_stop = true;
     for (i = 0; i < harq->cb_segm.C && early_stop; i++) {
 
