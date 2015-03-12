@@ -63,8 +63,8 @@ float gain_offset = B210_DEFAULT_GAIN_CORREC;
 typedef struct {
   int nof_subframes;
   int force_N_id_2;
-  uint16_t rnti;
   uint32_t file_nof_prb;
+  uint32_t preamble_idx;
   float beta_prach;
   float ta_usec; 
   float beta_pusch; 
@@ -78,12 +78,12 @@ typedef struct {
 
 void args_default(prog_args_t *args) {
   args->nof_subframes = -1;
-  args->rnti = SIRNTI;
   args->force_N_id_2 = -1; // Pick the best
   args->file_nof_prb = 6; 
-  args->beta_prach = 0.2;
-  args->beta_pusch = 1.5;
+  args->beta_prach = 0.02;
+  args->beta_pusch = 2.0;
   args->ta_usec = -1.0;
+  args->preamble_idx = 7; 
   args->uhd_args = "";
   args->uhd_rx_freq = 2112500000.0;
   args->uhd_tx_freq = 1922500000.0;
@@ -93,7 +93,7 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agfFbrlnv]\n", prog);
+  printf("Usage: %s [agfFbrlpnv]\n", prog);
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD TX/RX gain [Default %.2f dB]\n", args->uhd_rx_gain);
   printf("\t-G UHD TX/RX gain [Default %.2f dB]\n", args->uhd_tx_gain);
@@ -102,7 +102,7 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-b beta PRACH (transmission amplitude) [Default %f]\n",args->beta_prach);
   printf("\t-B beta PUSCH (transmission amplitude) [Default %f]\n",args->beta_pusch);
   printf("\t-t TA usec (time advance, -1 from RAR) [Default %f]\n",args->ta_usec);
-  printf("\t-r RNTI [Default 0x%x]\n",args->rnti);
+  printf("\t-p PRACH preamble idx [Default %d]\n",args->preamble_idx);
   printf("\t-l Force N_id_2 [Default best]\n");
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
   printf("\t-v [set verbose to debug, default none]\n");
@@ -111,7 +111,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "agGfFrlnvbBt")) != -1) {
+  while ((opt = getopt(argc, argv, "agGfFplnvbBt")) != -1) {
     switch (opt) {
     case 'a':
       args->uhd_args = argv[optind];
@@ -140,8 +140,8 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'n':
       args->nof_subframes = atoi(argv[optind]);
       break;
-    case 'r':
-      args->rnti = atoi(argv[optind]);
+    case 'p':
+      args->preamble_idx = atoi(argv[optind]);
       break;
     case 'l':
       args->force_N_id_2 = atoi(argv[optind]);
@@ -180,7 +180,7 @@ int cuhd_recv_wrapper_timed(void *h, void *data, uint32_t nsamples, timestamp_t 
 
 extern float mean_exec_time;
 
-enum receiver_state { DECODE_MIB, SEND_PRACH, RECV_RAR} state; 
+enum receiver_state { DECODE_MIB, SEND_PRACH, RECV_RAR, RECV_CONNSETUP} state; 
 
 #define NOF_PRACH_SEQUENCES 52
 
@@ -188,7 +188,6 @@ ue_dl_t ue_dl;
 ue_ul_t ue_ul; 
 ue_sync_t ue_sync; 
 prach_t prach; 
-cf_t *prach_buffers[NOF_PRACH_SEQUENCES];
 int prach_buffer_len;
 
 prog_args_t prog_args; 
@@ -197,15 +196,6 @@ uint32_t sfn = 0; // system frame number
 cf_t *sf_buffer = NULL; 
 
 
-int generate_prach_sequences(){
-  for(int i=0;i<NOF_PRACH_SEQUENCES;i++){
-    if(prach_gen(&prach, i, 0, prog_args.beta_prach, prach_buffers[i])){
-      fprintf(stderr, "Error generating prach sequence\n");
-      return -1;
-    }
-  }
-  return 0;
-}
 
 typedef enum{
     rar_tpc_n6dB = 0,
@@ -314,8 +304,9 @@ int main(int argc, char **argv) {
   timestamp_t uhd_time;
   timestamp_t next_tx_time;  
   const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6, 0x00, 0x00, 0x00};
-  uint8_t data[500];
-  
+  uint8_t data[1000];
+  cf_t *prach_buffer;
+
   parse_args(&prog_args, argc, argv);
 
 #ifdef use_usrp
@@ -387,14 +378,15 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   prach_buffer_len = prach.N_seq + prach.N_cp;
-  for(int i=0;i<NOF_PRACH_SEQUENCES;i++){
-    prach_buffers[i] = (cf_t*)malloc(prach_buffer_len*sizeof(cf_t));
-    if(!prach_buffers[i]) {
-      perror("maloc");
-      exit(-1);
-    }
+  prach_buffer = vec_malloc(prach_buffer_len*sizeof(cf_t));
+  if(!prach_buffer) {
+    perror("maloc");
+    exit(-1);
   }
-  generate_prach_sequences();
+  if(prach_gen(&prach, prog_args.preamble_idx, 0, prog_args.beta_prach, prach_buffer)){
+    fprintf(stderr, "Error generating prach sequence\n");
+    return -1;
+  }
 
   if (ue_ul_init(&ue_ul, cell)) {
     fprintf(stderr, "Error initiating UE UL\n");
@@ -440,7 +432,8 @@ int main(int argc, char **argv) {
 #endif           
     
   uint16_t ra_rnti; 
-
+  uint32_t conn_setup_trial = 0; 
+  
 #ifdef kk
   // Register Ctrl+C handler
   signal(SIGINT, sig_int_handler);
@@ -502,7 +495,7 @@ int main(int argc, char **argv) {
               printf("Send prach sfn: %d. Last frame time = %.6f, send prach time = %.6f\n", 
                     sfn, timestamp_real(&uhd_time), timestamp_real(&next_tx_time));
 
-              cuhd_send_timed(uhd, prach_buffers[7], prach_buffer_len, 
+              cuhd_send_timed(uhd, prach_buffer, prach_buffer_len, 
                               next_tx_time.full_secs, next_tx_time.frac_secs);
               
               ra_rnti = 2; 
@@ -533,64 +526,62 @@ int main(int argc, char **argv) {
               if (n < 0) {
                 fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               } else if (n > 0) {
-                cuhd_stop_rx_stream(uhd);
-                cuhd_flush_buffer(uhd);
 
                 rar_unpack(data_rx, &rar_msg);
-                rar_msg_fprint(stdout, &rar_msg);              
-                
-                dci_rar_to_ra_ul(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, cell.nof_prb, &ra_pusch);
-                ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
-
-                ra_ul_alloc(&ra_pusch.prb_alloc, &ra_pusch, 0, cell.nof_prb);
-
-                ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
-                
-                bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
-
-                uint32_t n_ta = lte_N_ta_new_rar(rar_msg.timing_adv_cmd);
-                printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
-                float time_adv_sec = ((float) n_ta+15)/(15000.0*lte_symbol_sz(cell.nof_prb));
-                if (prog_args.ta_usec >= 0) {
-                  time_adv_sec = prog_args.ta_usec*1e-6;
-                }
-#define N_TX  5
-                const uint32_t rv[N_TX]={0,2,3,1,0};
-                for (int i=0; i<N_TX;i++) {
-                  ra_pusch.rv_idx = rv[i];
-                  uint32_t ul_sf_idx = (ue_sync_get_sfidx(&ue_sync)+6+i*8)%10;
-
-                  n = ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
-                  if (n < 0) {
-                    fprintf(stderr, "Error encoding PUSCH\n");
-                    exit(-1);
-                  }
+                if (rar_msg.RAPID != prog_args.preamble_idx) {
+                  printf("Found RAR for sequence %d\n", rar_msg.RAPID);
+                } else {
+                  cuhd_stop_rx_stream(uhd);
+                  //cuhd_flush_buffer(uhd);
+                  rar_msg_fprint(stdout, &rar_msg);              
                   
-                  vec_sc_prod_cfc(ul_signal, prog_args.beta_pusch, ul_signal, SF_LEN_PRB(cell.nof_prb));
-                  /*
-                  for (int i=0;i<7680;i++) {
-                    if (i < 100) {
-                      ul_signal[i] = 0; 
-                    } else {
-                      ul_signal[i] = 0.5*cexpf(-I*2*M_PI*0.1*(float) i);                       
+                  dci_rar_to_ra_ul(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, cell.nof_prb, &ra_pusch);
+                  ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
+
+                  ra_ul_alloc(&ra_pusch.prb_alloc, &ra_pusch, 0, cell.nof_prb);
+
+                  ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
+                  
+                  bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
+
+                  uint32_t n_ta = lte_N_ta_new_rar(rar_msg.timing_adv_cmd);
+                  printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
+                  float time_adv_sec = TA_OFFSET+((float) n_ta)*LTE_TS;
+                  if (prog_args.ta_usec >= 0) {
+                    time_adv_sec = prog_args.ta_usec*1e-6;
+                  }
+  #define N_TX  1
+                  const uint32_t rv[N_TX]={0,2,3,1,0};
+                  for (int i=0; i<N_TX;i++) {
+                    ra_pusch.rv_idx = rv[i];
+                    uint32_t ul_sf_idx = (ue_sync_get_sfidx(&ue_sync)+6+i*8)%10;
+
+                    n = ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
+                    if (n < 0) {
+                      fprintf(stderr, "Error encoding PUSCH\n");
+                      exit(-1);
                     }
+                    
+                    vec_sc_prod_cfc(ul_signal, prog_args.beta_pusch, ul_signal, SF_LEN_PRB(cell.nof_prb));
+                    
+                    timestamp_copy(&next_tx_time, &uhd_time);
+                    timestamp_add(&next_tx_time, 0, 0.006 + i*0.008 - time_adv_sec); // send after 6 sub-frames (6 ms)
+                    printf("Send %d samples PUSCH sfn: %d. RV_idx=%d, Last frame time = %.6f "
+                          "send PUSCH time = %.6f TA: %.1f us\n", 
+                          SF_LEN_PRB(cell.nof_prb), sfn, ra_pusch.rv_idx, 
+                          timestamp_real(&uhd_time), 
+                          timestamp_real(&next_tx_time), time_adv_sec*1000000);
+                    
+                    cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb),
+                                  next_tx_time.full_secs, next_tx_time.frac_secs);                
+
+                    cuhd_start_rx_stream(uhd);
+                    state = RECV_CONNSETUP;                   
+                    conn_setup_trial = 0; 
+
                   }
-                  */
-                  vec_save_file("pusch_tx", ul_signal, sizeof(cf_t)*SF_LEN_PRB(cell.nof_prb));
-                  
-                  timestamp_copy(&next_tx_time, &uhd_time);
-                  timestamp_add(&next_tx_time, 0, 0.006 + i*0.008 - time_adv_sec); // send after 6 sub-frames (6 ms)
-                  printf("Send %d samples PUSCH sfn: %d. RV_idx=%d, Last frame time = %.6f "
-                        "send PUSCH time = %.6f TA: %.1f us\n", 
-                        SF_LEN_PRB(cell.nof_prb), sfn, ra_pusch.rv_idx, 
-                         timestamp_real(&uhd_time), 
-                        timestamp_real(&next_tx_time), time_adv_sec*1000000);
-                  
-                  cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb),
-                                next_tx_time.full_secs, next_tx_time.frac_secs);                
-                  
                 }
-                go_exit = 1; 
+
               }
               if (sfn >= rar_window_stop) {              
                 state = SEND_PRACH;
@@ -635,6 +626,23 @@ int main(int argc, char **argv) {
   #endif
   #endif
 
+            break;
+            
+          case RECV_CONNSETUP: 
+            printf("Looking for ConnectionSetup in sfn: %d sf_idx: %d\n", sfn, ue_sync_get_sfidx(&ue_sync));
+            n = ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, ue_sync_get_sfidx(&ue_sync), ra_rnti);
+            if (n < 0) {
+              fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
+            } else if (n > 0) {
+              printf("Received ConnectionSetup len: %d.\n");
+              vec_fprint_hex(stdout, data_rx, n);
+            } else {
+              conn_setup_trial++;
+              if (conn_setup_trial == 20) {
+                go_exit = 1; 
+              }
+            }
+            
             break;
         }
         if (ue_sync_get_sfidx(&ue_sync) == 9) {
