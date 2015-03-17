@@ -1,5 +1,5 @@
 clear 
-ueConfig=struct('NCellID',0,'NULRB',6,'NSubframe',5,'RNTI',79,'CyclicPrefixUL','Normal','NTxAnts',1);
+ueConfig=struct('NCellID',1,'NULRB',6,'NSubframe',8,'RNTI',68,'CyclicPrefixUL','Normal','NTxAnts',1);
 puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',[1:4]','Modulation','QPSK','RV',0,'Shortened',0);
 
 addpath('../../debug/lte/phy/lib/phch/test')

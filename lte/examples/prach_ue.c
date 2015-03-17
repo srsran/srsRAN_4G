@@ -80,7 +80,7 @@ void args_default(prog_args_t *args) {
   args->nof_subframes = -1;
   args->force_N_id_2 = -1; // Pick the best
   args->file_nof_prb = 6; 
-  args->beta_prach = 0.02;
+  args->beta_prach = 0.005;
   args->beta_pusch = 2.0;
   args->ta_usec = -1.0;
   args->preamble_idx = 7; 
@@ -400,10 +400,10 @@ int main(int argc, char **argv) {
   drms_cfg.beta_pusch = 1.0; 
   drms_cfg.group_hopping_en = false; 
   drms_cfg.sequence_hopping_en = false; 
-  drms_cfg.common.delta_ss = 0;
-  drms_cfg.common.cyclic_shift = 0; 
-  drms_cfg.common.cyclic_shift_for_drms = 0; 
-  drms_cfg.common.en_drms_2 = false; 
+  drms_cfg.delta_ss = 0;
+  drms_cfg.cyclic_shift = 0; 
+  drms_cfg.cyclic_shift_for_drms = 0; 
+  drms_cfg.en_drms_2 = false; 
   ue_ul_set_pusch_cfg(&ue_ul, &drms_cfg, &hop_cfg);
 
   cf_t *ul_signal = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
@@ -433,7 +433,7 @@ int main(int argc, char **argv) {
     
   uint16_t ra_rnti; 
   uint32_t conn_setup_trial = 0; 
-  
+  uint32_t ul_sf_idx = 0; 
 #ifdef kk
   // Register Ctrl+C handler
   signal(SIGINT, sig_int_handler);
@@ -528,10 +528,10 @@ int main(int argc, char **argv) {
               } else if (n > 0) {
 
                 rar_unpack(data_rx, &rar_msg);
-                if (rar_msg.RAPID != prog_args.preamble_idx) {
-                  printf("Found RAR for sequence %d\n", rar_msg.RAPID);
-                } else {
-                  cuhd_stop_rx_stream(uhd);
+                //if (rar_msg.RAPID != prog_args.preamble_idx) {
+                //  printf("Found RAR for sequence %d\n", rar_msg.RAPID);
+                //} else {
+                  //cuhd_stop_rx_stream(uhd);
                   //cuhd_flush_buffer(uhd);
                   rar_msg_fprint(stdout, &rar_msg);              
                   
@@ -554,7 +554,7 @@ int main(int argc, char **argv) {
                   const uint32_t rv[N_TX]={0,2,3,1,0};
                   for (int i=0; i<N_TX;i++) {
                     ra_pusch.rv_idx = rv[i];
-                    uint32_t ul_sf_idx = (ue_sync_get_sfidx(&ue_sync)+6+i*8)%10;
+                    ul_sf_idx = (ue_sync_get_sfidx(&ue_sync)+6+i*8)%10;
 
                     n = ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
                     if (n < 0) {
@@ -575,11 +575,11 @@ int main(int argc, char **argv) {
                     cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb),
                                   next_tx_time.full_secs, next_tx_time.frac_secs);                
 
-                    cuhd_start_rx_stream(uhd);
+                    //cuhd_start_rx_stream(uhd);
                     state = RECV_CONNSETUP;                   
                     conn_setup_trial = 0; 
 
-                  }
+                 // }
                 }
 
               }
@@ -629,12 +629,18 @@ int main(int argc, char **argv) {
             break;
             
           case RECV_CONNSETUP: 
-            printf("Looking for ConnectionSetup in sfn: %d sf_idx: %d\n", sfn, ue_sync_get_sfidx(&ue_sync));
-            n = ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, ue_sync_get_sfidx(&ue_sync), ra_rnti);
+            if (ue_sync_get_sfidx(&ue_sync) == (ul_sf_idx+4)%10) {
+              //verbose=VERBOSE_DEBUG;
+              vec_save_file("connsetup",sf_buffer,SF_LEN_PRB(cell.nof_prb)*sizeof(cf_t));
+            } else {
+              //verbose=VERBOSE_NONE;
+            }
+            printf("Looking for ConnectionSetup in sfn: %d sf_idx: %d, RNTI: %d\n", sfn, ue_sync_get_sfidx(&ue_sync),rar_msg.temp_c_rnti);
+            n = ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, ue_sync_get_sfidx(&ue_sync), rar_msg.temp_c_rnti);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
-              printf("Received ConnectionSetup len: %d.\n");
+              printf("Received ConnectionSetup len: %d.\n", n);
               vec_fprint_hex(stdout, data_rx, n);
             } else {
               conn_setup_trial++;

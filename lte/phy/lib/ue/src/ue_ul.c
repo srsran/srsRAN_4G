@@ -85,7 +85,7 @@ int ue_ul_init(ue_ul_t *q,
       perror("malloc");
       goto clean_exit; 
     }
-    q->refsignal = vec_malloc(RE_X_RB * q->cell.nof_prb * sizeof(cf_t));
+    q->refsignal = vec_malloc(2 * RE_X_RB * q->cell.nof_prb * sizeof(cf_t));
     if (!q->refsignal) {
       perror("malloc");
       goto clean_exit; 
@@ -200,19 +200,17 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
       return ret; 
     }
 
-    for (uint32_t i=0;i<2;i++) {
-      // FIXME: Pregenerate for all possible number of prb 
-      if (refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, 
-        q->harq_process[0].ul_alloc.L_prb, 2*sf_idx+i, q->refsignal)) 
-      {
-        fprintf(stderr, "Error generating PUSCH DRMS signals\n");
-        return ret; 
-      }
-      refsignal_drms_pusch_put(&q->drms, &q->pusch_drms_cfg, q->refsignal, i, 
-                               q->harq_process[0].ul_alloc.L_prb, 
-                               q->harq_process[0].ul_alloc.n_prb_tilde[i], 
-                               q->sf_symbols);                
+    // FIXME: Pregenerate for all possible number of prb 
+    if (refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, 
+      q->harq_process[0].ul_alloc.L_prb, sf_idx, q->refsignal)) 
+    {
+      fprintf(stderr, "Error generating PUSCH DRMS signals\n");
+      return ret; 
     }
+    refsignal_drms_pusch_put(&q->drms, &q->pusch_drms_cfg, q->refsignal, 
+                              q->harq_process[0].ul_alloc.L_prb, 
+                              q->harq_process[0].ul_alloc.n_prb_tilde, 
+                              q->sf_symbols);                
     
     lte_ifft_run_sf(&q->fft, q->sf_symbols, output_signal);
     

@@ -33,6 +33,7 @@
  */
 
 #include "liblte/config.h"
+#include "liblte/phy/phch/pucch.h"
 #include "liblte/phy/common/phy_common.h"
 
 #define NOF_GROUPS_U    30
@@ -47,24 +48,12 @@ typedef struct LIBLTE_API {
   uint32_t cyclic_shift_for_drms;
   uint32_t delta_ss;  
   bool en_drms_2; 
-}refsignal_ul_cfg_t;
-
-typedef struct LIBLTE_API {
-  refsignal_ul_cfg_t common;
   float beta_pusch;
   bool group_hopping_en; 
   bool sequence_hopping_en; 
 }refsignal_drms_pusch_cfg_t;
 
 typedef struct LIBLTE_API {
-  refsignal_ul_cfg_t common;
-  float beta_pucch;
-  uint32_t nof_prb;
-}refsignal_drms_pucch_cfg_t;
-
-
-typedef struct LIBLTE_API {
-  refsignal_ul_cfg_t common;
   float beta_pucch;
   uint32_t nof_prb;
 }refsignal_srs_cfg_t;
@@ -72,6 +61,7 @@ typedef struct LIBLTE_API {
 /** Uplink DeModulation Reference Signal (DMRS) */
 typedef struct LIBLTE_API {
   lte_cell_t cell; 
+  uint32_t n_cs_cell[NSLOTS_X_FRAME][CPNORM_NSYMB]; 
   float *tmp_arg; 
   uint32_t n_prs_pusch[NOF_DELTA_SS][NSLOTS_X_FRAME]; // We precompute n_prs needed for cyclic shift alpha at refsignal_dl_init()
   uint32_t f_gh[NSLOTS_X_FRAME];
@@ -92,25 +82,25 @@ LIBLTE_API bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q,
 LIBLTE_API void refsignal_drms_pusch_put(refsignal_ul_t *q, 
                                          refsignal_drms_pusch_cfg_t *cfg, 
                                          cf_t *r_pusch, 
-                                         uint32_t ns_idx, 
                                          uint32_t nof_prb, 
-                                         uint32_t n_prb, 
+                                         uint32_t n_prb[2], 
                                          cf_t *sf_symbols); 
 
 LIBLTE_API int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, 
                                         refsignal_drms_pusch_cfg_t *cfg, 
                                         uint32_t nof_prb, 
-                                        uint32_t ns, 
+                                        uint32_t sf_idx, 
                                         cf_t *r_pusch);
 
-LIBLTE_API void refsignal_dmrs_pucch_gen(refsignal_ul_t *q, 
-                                         refsignal_drms_pucch_cfg_t *cfg, 
-                                         uint32_t ns, 
-                                         cf_t *r_pucch);
+LIBLTE_API int refsignal_dmrs_pucch_gen(refsignal_ul_t *q, 
+                                        pucch_cfg_t *cfg, 
+                                        uint32_t sf_idx, 
+                                        uint32_t n_rb, 
+                                        cf_t *r_pucch) ;
 
 LIBLTE_API void refsignal_srs_gen(refsignal_ul_t *q, 
                                   refsignal_srs_cfg_t *cfg, 
-                                  uint32_t ns, 
+                                  uint32_t sf_idx, 
                                   cf_t *r_srs);
 
 #endif

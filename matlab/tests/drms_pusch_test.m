@@ -1,4 +1,4 @@
-ueConfig=struct('CyclicPrefixUL','Normal','NTxAnts',1,'NULRB',25);
+ueConfig=struct('CyclicPrefixUL','Normal','NTxAnts',1,'NULRB',6);
 puschConfig=struct('NLayers',1,'OrthCover','Off');
 
 addpath('../../debug/lte/phy/lib/ch_estimation/test')
@@ -8,7 +8,7 @@ Hopping={'Off','Sequence','Group'};
 k=1;
 for prb=4
     for ncell=1
-        for ns=4
+        for ns=8
             for h=1
                 for sg=0
                     for cs=0
@@ -20,7 +20,7 @@ for prb=4
                             ueConfig.SeqGroup=sg;
                             ueConfig.CyclicShift=cs;
 
-                            puschConfig.PRBSet=(19:22)';
+                            puschConfig.PRBSet=(1:4)';
                             puschConfig.DynCyclicShift=ds;
 
                             [mat, info]=ltePUSCHDRS(ueConfig,puschConfig);

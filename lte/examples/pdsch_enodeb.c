@@ -590,6 +590,9 @@ int main(int argc, char **argv) {
       /* Transform to OFDM symbols */
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
       
+      float norm_factor = (float) cell.nof_prb/15/sqrtf(ra_dl.prb_alloc.slot[0].nof_prb);
+      vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SF_LEN_PRB(cell.nof_prb));
+      
       /* send to file or usrp */
       if (output_file_name) {
         if (!null_file_sink) {

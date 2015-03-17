@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   
   parse_args(argc,argv);
 
-  signal = malloc(RE_X_RB * cell.nof_prb * sizeof(cf_t));
+  signal = malloc(2 * RE_X_RB * cell.nof_prb * sizeof(cf_t));
   if (!signal) {
     perror("malloc");
     goto do_exit;
@@ -99,13 +99,13 @@ int main(int argc, char **argv) {
     for (int delta_ss=29;delta_ss<NOF_DELTA_SS;delta_ss++) {
       for (int cshift=0;cshift<NOF_CSHIFT;cshift++) {
         for (int h=0;h<3;h++) {
-          for (int ns=0;ns<NSLOTS_X_FRAME;ns++) {
+          for (int sf_idx=0;sf_idx<NSLOTS_X_FRAME;sf_idx++) {
             for (int cshift_drms=0;cshift_drms<NOF_CSHIFT;cshift_drms++) {
               pusch_cfg.beta_pusch = 1.0;
               uint32_t nof_prb = n;
-              pusch_cfg.common.cyclic_shift = cshift;
-              pusch_cfg.common.cyclic_shift_for_drms = cshift_drms;
-              pusch_cfg.common.delta_ss = delta_ss;            
+              pusch_cfg.cyclic_shift = cshift;
+              pusch_cfg.cyclic_shift_for_drms = cshift_drms;
+              pusch_cfg.delta_ss = delta_ss;            
               if (!h) {
                 pusch_cfg.group_hopping_en = false;
                 pusch_cfg.sequence_hopping_en = false;                
@@ -116,14 +116,14 @@ int main(int argc, char **argv) {
                 pusch_cfg.group_hopping_en = true;
                 pusch_cfg.sequence_hopping_en = false;
               }
-              pusch_cfg.common.en_drms_2 = true; 
+              pusch_cfg.en_drms_2 = true; 
               printf("Beta: %f, ",pusch_cfg.beta_pusch);
               printf("nof_prb: %d, ",nof_prb);
-              printf("cyclic_shift: %d, ",pusch_cfg.common.cyclic_shift);
-              printf("cyclic_shift_for_drms: %d, ",pusch_cfg.common.cyclic_shift_for_drms);
-              printf("delta_ss: %d, ",pusch_cfg.common.delta_ss);
-              printf("Slot: %d\n", ns);
-              refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, ns, signal);              
+              printf("cyclic_shift: %d, ",pusch_cfg.cyclic_shift);
+              printf("cyclic_shift_for_drms: %d, ",pusch_cfg.cyclic_shift_for_drms);
+              printf("delta_ss: %d, ",pusch_cfg.delta_ss);
+              printf("SF_idx: %d\n", sf_idx);
+              refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);              
               exit(0);
             }
           }

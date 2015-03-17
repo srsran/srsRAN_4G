@@ -865,13 +865,15 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
     type->format = Format1;
     return LIBLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
-    if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
+    /* The RNTI is not the only condition. Also some fields in the packet. 
+     * if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
       type->type = RA_PROC_PDCCH;
       type->format = Format1A;
     } else {
+      */
       type->type = PDSCH_SCHED; // only these 2 types supported
       type->format = Format1A;
-    }
+    //}
     return LIBLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
     if (msg_rnti == MRNTI) {

@@ -203,7 +203,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   lte_ifft_run_sf(&fft, sf_symbols, scfdma);
 
   // Matlab toolbox expects further normalization 
-  vec_sc_prod_cfc(scfdma, 1.0/sqrtf(512), scfdma, SF_LEN_PRB(cell.nof_prb));
+  vec_sc_prod_cfc(scfdma, 1.0/sqrtf(lte_symbol_sz(cell.nof_prb)), scfdma, SF_LEN_PRB(cell.nof_prb));
   
   if (nlhs >= 1) {
     mexutils_write_cf(scfdma, &plhs[0], SF_LEN_PRB(cell.nof_prb), 1);  
