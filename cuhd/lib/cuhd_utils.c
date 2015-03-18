@@ -31,9 +31,9 @@
 #include <unistd.h>
 
 
-#include "liblte/cuhd/cuhd.h"
-#include "liblte/phy/utils/vector.h"
-#include "liblte/phy/utils/debug.h"
+#include "srslte/cuhd/cuhd.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 int cuhd_rssi_scan(void *uhd, float *freqs, float *rssi, int nof_bands, double fs, int nsamp) {
   int i, j;
