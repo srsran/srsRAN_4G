@@ -61,14 +61,14 @@ int pdcch_init(pdcch_t *q, regs_t *regs, srslte_cell_t cell) {
 
   if (q                         != NULL &&
       regs                      != NULL &&
-      lte_cell_isvalid(&cell)) 
+      srslte_cell_isvalid(&cell)) 
   {   
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(pdcch_t));
     q->cell = cell;
     q->regs = regs;
     
-    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+    if (precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
     }
 
@@ -81,7 +81,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, srslte_cell_t cell) {
     if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
       goto clean;
     }
-    if (crc_init(&q->crc, LTE_CRC16, 16)) {
+    if (crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
       goto clean;
     }
 
@@ -366,7 +366,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], 
   
   /* Set pointers for layermapping & precoding */
   uint32_t i, nof_symbols;
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
 
   if (q                 != NULL && 
       nsubframe         <  10   &&
@@ -386,7 +386,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], 
     for (i = 0; i < q->cell.nof_ports; i++) {
       x[i] = q->pdcch_x[i];
     }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
           
     /* extract symbols */
     int n = regs_pdcch_get(q->regs, sf_symbols, q->pdcch_symbols[0]);
@@ -502,7 +502,7 @@ int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t r
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i;
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
   uint32_t nof_symbols;
   
   if (q                 != NULL &&
@@ -531,7 +531,7 @@ int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t r
       for (i = 0; i < q->cell.nof_ports; i++) {
         x[i] = q->pdcch_x[i];
       }
-      memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+      memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
 
       scrambling_b_offset(&q->seq_pdcch[nsubframe], q->pdcch_e, 72 * location.ncce, e_bits);
       

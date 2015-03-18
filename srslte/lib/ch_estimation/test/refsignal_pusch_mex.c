@@ -65,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field NCellID not found in UE config\n");
     return;
   }
-  cell.cp = CPNORM;
+  cell.cp = SRSLTE_SRSLTE_CP_NORM;
   cell.nof_ports = 1; 
 
   if (mexutils_read_uint32_struct(UECFG, "NSubframe", &sf_idx)) {
@@ -123,17 +123,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexPrintf("cyclic_shift_for_drms: %d, ",pusch_cfg.cyclic_shift_for_drms);
   mexPrintf("delta_ss: %d, ",pusch_cfg.delta_ss);
   
-  cf_t *signal = vec_malloc(2*RE_X_RB*nof_prb*sizeof(cf_t));
+  cf_t *signal = vec_malloc(2*SRSLTE_NRE*nof_prb*sizeof(cf_t));
   if (!signal) {
     perror("malloc");
     return;
   }
-  cf_t *sf_symbols = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
+  cf_t *sf_symbols = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
   if (!sf_symbols) {
     perror("malloc");
     return;
   }
-  bzero(sf_symbols, SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
+  bzero(sf_symbols, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
   //mexPrintf("Generating DRMS for ns=%d, nof_prb=%d\n", 2*sf_idx+i,pusch_cfg.nof_prb);
   srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);    
   uint32_t n_prb[2]; 
@@ -141,7 +141,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   n_prb[1] = prbset[0];
   srslte_refsignal_drms_pusch_put(&refs, &pusch_cfg, signal, nof_prb, n_prb, sf_symbols);                
   if (nlhs >= 1) {
-    mexutils_write_cf(sf_symbols, &plhs[0], SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
+    mexutils_write_cf(sf_symbols, &plhs[0], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
   }
 
   srslte_refsignal_ul_free(&refs);  

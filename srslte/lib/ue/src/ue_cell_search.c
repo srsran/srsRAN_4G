@@ -56,7 +56,7 @@ int ue_cell_search_init_max(ue_cell_search_t * q, uint32_t max_frames,
     bzero(q, sizeof(ue_cell_search_t));    
     
     bzero(&cell, sizeof(srslte_cell_t));
-    cell.id = CELL_ID_UNKNOWN; 
+    cell.id = SRSLTE_CELL_ID_UNKNOWN; 
     cell.nof_prb = CS_NOF_PRB; 
 
     if (ue_sync_init(&q->ue_sync, cell, recv_callback, stream_handler)) {
@@ -157,7 +157,7 @@ static void get_cell(ue_cell_search_t * q, uint32_t nof_detected_frames, ue_cell
   found_cell->peak = 0; 
   for (i=0;i<nof_detected_frames;i++) {
     if (q->candidates[i].cell_id == found_cell->cell_id) {
-      if (CP_ISNORM(q->candidates[i].cp)) {
+      if (SRSLTE_CP_ISNORM(q->candidates[i].cp)) {
         nof_normal++;
       } 
     }
@@ -167,9 +167,9 @@ static void get_cell(ue_cell_search_t * q, uint32_t nof_detected_frames, ue_cell
   found_cell->peak /= nof_detected_frames;
   
   if (nof_normal > q->mode_ntimes[mode_pos]/2) {
-    found_cell->cp = CPNORM;
+    found_cell->cp = SRSLTE_SRSLTE_CP_NORM;
   } else {
-    found_cell->cp = CPEXT; 
+    found_cell->cp = SRSLTE_SRSLTE_CP_EXT; 
   }
   found_cell->mode = (float) q->mode_ntimes[mode_pos]/nof_detected_frames;  
   
@@ -239,7 +239,7 @@ int ue_cell_search_scan_N_id_2(ue_cell_search_t * q, uint32_t N_id_2, ue_cell_se
             ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
               nof_detected_frames, nof_scanned_frames, q->nof_frames_to_scan,
               q->candidates[nof_detected_frames].peak, q->candidates[nof_detected_frames].cell_id,
-              lte_cp_string(q->candidates[nof_detected_frames].cp));
+              srslte_cp_string(q->candidates[nof_detected_frames].cp));
           memcpy(&tmp_pss_corr[nof_detected_frames*32], 
                 &q->ue_sync.strack.pss.conv_output_avg[128], 32*sizeof(float));
           memcpy(&tmp_sss_corr[nof_detected_frames*31], 

@@ -65,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_cell_t cell; 
   srslte_chest_dl_t chest;
   precoding_t cheq; 
-  cf_t *input_signal = NULL, *output_signal[MAX_LAYERS]; 
+  cf_t *input_signal = NULL, *output_signal[SRSLTE_MAX_LAYERS]; 
   cf_t *output_signal2 = NULL;
   cf_t *ce[SRSLTE_MAX_PORTS]; 
   double *outr0=NULL, *outi0=NULL;
@@ -85,12 +85,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   cell.id = (uint32_t) *((double*) mxGetPr(CELLID));
-  cell.nof_prb = mxGetM(INPUT)/RE_X_RB;
+  cell.nof_prb = mxGetM(INPUT)/SRSLTE_NRE;
   cell.nof_ports = (uint32_t) *((double*) mxGetPr(PORTS)); 
   if ((mxGetN(INPUT)%14) == 0) {
-    cell.cp = CPNORM;    
+    cell.cp = SRSLTE_SRSLTE_CP_NORM;    
   } else if ((mxGetN(INPUT)%12)!=0) {
-    cell.cp = CPEXT;
+    cell.cp = SRSLTE_SRSLTE_CP_EXT;
   } else {
     mexErrMsgTxt("Invalid number of symbols\n");
     help();
@@ -103,7 +103,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   int nsubframes;
-  if (cell.cp == CPNORM) {
+  if (cell.cp == SRSLTE_SRSLTE_CP_NORM) {
     nsubframes = mxGetN(INPUT)/14;
   } else {
     nsubframes = mxGetN(INPUT)/12;
@@ -151,7 +151,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double *ini=(double *)mxGetPi(INPUT);
   
   /** Allocate input buffers */
-  int nof_re = 2*CP_NSYMB(cell.cp)*cell.nof_prb*RE_X_RB;
+  int nof_re = 2*SRSLTE_CP_NSYMB(cell.cp)*cell.nof_prb*SRSLTE_NRE;
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = vec_malloc(nof_re * sizeof(cf_t));
   }

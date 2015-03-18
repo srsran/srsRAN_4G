@@ -35,7 +35,7 @@
 #include "srslte/srslte.h"
 
 int nof_prb = -1;
-srslte_cp_t cp = CPNORM;
+srslte_cp_t cp = SRSLTE_SRSLTE_CP_NORM;
 
 void usage(char *prog) {
   printf("Usage: %s\n", prog);
@@ -51,7 +51,7 @@ void parse_args(int argc, char **argv) {
       nof_prb = atoi(argv[optind]);
       break;
     case 'e':
-      cp = CPEXT;
+      cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     default:
       usage(argv[0]);
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     max_prb = nof_prb;
   }
   while(n_prb <= max_prb) {
-    n_re = CP_NSYMB(cp) * n_prb * RE_X_RB;
+    n_re = SRSLTE_CP_NSYMB(cp) * n_prb * SRSLTE_NRE;
 
     printf("Running test for %d PRB, %d RE... ", n_prb, n_re);fflush(stdout);
 
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
       perror("malloc");
       exit(-1);
     }
-    outfft = malloc(sizeof(cf_t) * SLOT_LEN(lte_symbol_sz(n_prb)));
+    outfft = malloc(sizeof(cf_t) * SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)));
     if (!outfft) {
       perror("malloc");
       exit(-1);

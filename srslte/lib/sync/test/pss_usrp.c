@@ -54,7 +54,7 @@ int nof_frames = -1;
 uint32_t fft_size=64;
 float threshold = 0.4; 
 int N_id_2_sync = -1;
-srslte_cp_t cp=CPNORM;
+srslte_cp_t cp=SRSLTE_SRSLTE_CP_NORM;
 
 void usage(char *prog) {
   printf("Usage: %s [aedgtvnp] -f rx_frequency_hz -i cell_id\n", prog);
@@ -90,7 +90,7 @@ void parse_args(int argc, char **argv) {
       threshold = atof(argv[optind]);
       break;
     case 'e':
-      cp = CPEXT;
+      cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     case 'i':
       cell_id = atoi(argv[optind]);
@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
         }
         
         // Find SSS 
-        int sss_idx = peak_idx-2*fft_size-(CP_ISNORM(cp)?CP(fft_size, CPNORM_LEN):CP(fft_size, CPEXT_LEN));             
+        int sss_idx = peak_idx-2*fft_size-(SRSLTE_CP_ISNORM(cp)?SRSLTE_CP(fft_size, SRSLTE_SRSLTE_CP_NORM_LEN):SRSLTE_CP(fft_size, SRSLTE_SRSLTE_CP_EXT_LEN));             
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
           sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);
           if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
@@ -261,9 +261,9 @@ int main(int argc, char **argv) {
         }
         
         // Estimate CP 
-        if (peak_idx > 2*(fft_size + CP_EXT(fft_size))) {
+        if (peak_idx > 2*(fft_size + SRSLTE_CP_EXT(fft_size))) {
           srslte_cp_t cp = sync_detect_cp(&ssync, buffer, peak_idx);
-          if (CP_ISNORM(cp)) {
+          if (SRSLTE_CP_ISNORM(cp)) {
             cp_is_norm++; 
           }          
         }

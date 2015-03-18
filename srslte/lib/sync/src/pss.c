@@ -44,7 +44,7 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t
   cf_t pss_signal_pad[2048];
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
-  if (lte_N_id_2_isvalid(N_id_2)    && 
+  if (srslte_N_id_2_isvalid(N_id_2)    && 
       fft_size                  <= 2048) 
   {
     
@@ -243,7 +243,7 @@ int pss_generate(cf_t *signal, uint32_t N_id_2) {
  */
 void pss_put_slot(cf_t *pss_signal, cf_t *slot, uint32_t nof_prb, srslte_cp_t cp) {
   int k;
-  k = (CP_NSYMB(cp) - 1) * nof_prb * RE_X_RB + nof_prb * RE_X_RB / 2 - 31;
+  k = (SRSLTE_CP_NSYMB(cp) - 1) * nof_prb * SRSLTE_NRE + nof_prb * SRSLTE_NRE / 2 - 31;
   memset(&slot[k - 5], 0, 5 * sizeof(cf_t));
   memcpy(&slot[k], pss_signal, PSS_LEN * sizeof(cf_t));
   memset(&slot[k + PSS_LEN], 0, 5 * sizeof(cf_t));
@@ -253,7 +253,7 @@ void pss_put_slot(cf_t *pss_signal, cf_t *slot, uint32_t nof_prb, srslte_cp_t cp
 /** Sets the current N_id_2 value. Returns -1 on error, 0 otherwise
  */
 int pss_synch_set_N_id_2(pss_synch_t *q, uint32_t N_id_2) {
-  if (!lte_N_id_2_isvalid((N_id_2))) {
+  if (!srslte_N_id_2_isvalid((N_id_2))) {
     fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
     return -1;
   } else {
@@ -286,7 +286,7 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     uint32_t corr_peak_pos;
     uint32_t conv_output_len;
     
-    if (!lte_N_id_2_isvalid(q->N_id_2)) {
+    if (!srslte_N_id_2_isvalid(q->N_id_2)) {
       fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
       return SRSLTE_ERROR;
     }
@@ -388,13 +388,13 @@ SRSLTE_API cf_t *tmp2;
  */
 int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  cf_t input_fft[SYMBOL_SZ_MAX];
+  cf_t input_fft[SRSLTE_SYMBOL_SZ_MAX];
 
   if (q                 != NULL  && 
       input             != NULL)
   {
 
-    if (!lte_N_id_2_isvalid(q->N_id_2)) {
+    if (!srslte_N_id_2_isvalid(q->N_id_2)) {
       fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
       return SRSLTE_ERROR;
     }

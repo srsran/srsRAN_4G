@@ -63,17 +63,17 @@ SRSLTE_API int precoding_single(precoding_t *q,
                                 int nof_symbols);
 
 SRSLTE_API int precoding_diversity(precoding_t *q, 
-                                   cf_t *x[MAX_LAYERS], 
+                                   cf_t *x[SRSLTE_MAX_LAYERS], 
                                    cf_t *y[SRSLTE_MAX_PORTS], 
                                    int nof_ports, int nof_symbols);
 
 SRSLTE_API int precoding_type(precoding_t *q, 
-                              cf_t *x[MAX_LAYERS], 
+                              cf_t *x[SRSLTE_MAX_LAYERS], 
                               cf_t *y[SRSLTE_MAX_PORTS], 
                               int nof_layers,
                               int nof_ports, 
                               int nof_symbols, 
-                              lte_mimo_type_t type);
+                              srslte_mimo_type_t type);
 
 /* Estimates the vector "x" based on the received signal "y" and the channel estimates "h"
  */
@@ -87,7 +87,7 @@ SRSLTE_API int predecoding_single(precoding_t *q,
 SRSLTE_API int predecoding_diversity(precoding_t *q, 
                                      cf_t *y, 
                                      cf_t *h[SRSLTE_MAX_PORTS], 
-                                     cf_t *x[MAX_LAYERS],    
+                                     cf_t *x[SRSLTE_MAX_LAYERS],    
                                      int nof_ports, 
                                      int nof_symbols, 
                                      float noise_estimate);
@@ -95,11 +95,11 @@ SRSLTE_API int predecoding_diversity(precoding_t *q,
 SRSLTE_API int predecoding_type(precoding_t *q, 
                                 cf_t *y, 
                                 cf_t *h[SRSLTE_MAX_PORTS], 
-                                cf_t *x[MAX_LAYERS],
+                                cf_t *x[SRSLTE_MAX_LAYERS],
                                 int nof_ports, 
                                 int nof_layers, 
                                 int nof_symbols, 
-                                lte_mimo_type_t type, 
+                                srslte_mimo_type_t type, 
                                 float noise_estimate);
 
 #endif /* PRECODING_H_ */

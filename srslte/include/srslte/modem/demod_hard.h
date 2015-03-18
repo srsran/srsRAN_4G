@@ -38,12 +38,12 @@
 typedef _Complex float cf_t;
 
 typedef struct SRSLTE_API {
-  lte_mod_t mod; /* In this implementation, mapping table is hard-coded */
+  srslte_mod_t mod; /* In this implementation, mapping table is hard-coded */
 }demod_hard_t;
 
 
 SRSLTE_API void demod_hard_init(demod_hard_t* q);
-SRSLTE_API void demod_hard_table_set(demod_hard_t* q, lte_mod_t mod);
+SRSLTE_API void demod_hard_table_set(demod_hard_t* q, srslte_mod_t mod);
 SRSLTE_API int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, uint8_t *bits, uint32_t nsymbols);
 
 
@@ -52,7 +52,7 @@ SRSLTE_API int demod_hard_demodulate(demod_hard_t* q, cf_t* symbols, uint8_t *bi
 typedef struct SRSLTE_API {
   demod_hard_t obj;
   struct demod_hard_init {
-    lte_mod_t std;    // Symbol mapping standard (see modem_table.h)
+    srslte_mod_t std;    // Symbol mapping standard (see modem_table.h)
   } init;
 
   cf_t* input;

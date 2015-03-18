@@ -38,7 +38,7 @@
 #include "srslte/utils/vector.h"
 
 int srslte_fft_init_(srslte_fft_t *q, srslte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
-  int symbol_sz = lte_symbol_sz(nof_prb);
+  int symbol_sz = srslte_symbol_sz(nof_prb);
 
   if (symbol_sz < 0) {
     fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
@@ -58,16 +58,16 @@ int srslte_fft_init_(srslte_fft_t *q, srslte_cp_t cp, uint32_t nof_prb, dft_dir_
   dft_plan_set_dc(&q->fft_plan, true);
 
   q->symbol_sz = (uint32_t) symbol_sz;
-  q->nof_symbols = CP_NSYMB(cp);
+  q->nof_symbols = SRSLTE_CP_NSYMB(cp);
   q->cp = cp;
   q->freq_shift = false;
-  q->nof_re = nof_prb * RE_X_RB;
+  q->nof_re = nof_prb * SRSLTE_NRE;
   q->nof_guards = ((symbol_sz - q->nof_re) / 2);
-  q->slot_sz = SLOT_LEN(symbol_sz);
+  q->slot_sz = SRSLTE_SLOT_LEN(symbol_sz);
   
   DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
       dir==FORWARD?"FFT":"iFFT", q->symbol_sz, q->nof_symbols,
-          q->cp==CPNORM?"Normal":"Extended", q->nof_re, q->nof_guards);
+          q->cp==SRSLTE_SRSLTE_CP_NORM?"Normal":"Extended", q->nof_re, q->nof_guards);
 
   return SRSLTE_SUCCESS;
 }
@@ -114,7 +114,7 @@ int lte_ifft_init(srslte_fft_t *q, srslte_cp_t cp, uint32_t nof_prb) {
  * Caution: This function shall not be called during run-time 
  */
 int srslte_fft_set_freq_shift(srslte_fft_t *q, float freq_shift) {
-  q->shift_buffer = vec_malloc(sizeof(cf_t) * SF_LEN(q->symbol_sz));
+  q->shift_buffer = vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN(q->symbol_sz));
   if (!q->shift_buffer) {
     perror("malloc");
     return -1; 
@@ -122,7 +122,7 @@ int srslte_fft_set_freq_shift(srslte_fft_t *q, float freq_shift) {
   cf_t *ptr = q->shift_buffer;
   for (uint32_t n=0;n<2;n++) {
     for (uint32_t i=0;i<q->nof_symbols;i++) {
-      uint32_t cplen = CP_ISNORM(q->cp)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
+      uint32_t cplen = SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM(i, q->symbol_sz):SRSLTE_CP_EXT(q->symbol_sz);
       for (uint32_t t=0;t<q->symbol_sz+cplen;t++) {
         ptr[t] = cexpf(I*2*M_PI*((float) t-(float)cplen)*freq_shift/q->symbol_sz);
       }
@@ -148,7 +148,7 @@ void lte_ifft_free(srslte_fft_t *q) {
 void srslte_fft_run_slot(srslte_fft_t *q, cf_t *input, cf_t *output) {
   uint32_t i;
   for (i=0;i<q->nof_symbols;i++) {
-    input += CP_ISNORM(q->cp)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
+    input += SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM(i, q->symbol_sz):SRSLTE_CP_EXT(q->symbol_sz);
     dft_run_c(&q->fft_plan, input, q->tmp);
     memcpy(output, &q->tmp[q->nof_guards], q->nof_re * sizeof(cf_t));
     input += q->symbol_sz;
@@ -172,7 +172,7 @@ void srslte_fft_run_sf(srslte_fft_t *q, cf_t *input, cf_t *output) {
 void lte_ifft_run_slot(srslte_fft_t *q, cf_t *input, cf_t *output) {
   uint32_t i, cp_len;
   for (i=0;i<q->nof_symbols;i++) {
-    cp_len = CP_ISNORM(q->cp)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
+    cp_len = SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM(i, q->symbol_sz):SRSLTE_CP_EXT(q->symbol_sz);
     memcpy(&q->tmp[q->nof_guards], input, q->nof_re * sizeof(cf_t));
     dft_run_c(&q->fft_plan, q->tmp, &output[cp_len]);
     input += q->nof_re;

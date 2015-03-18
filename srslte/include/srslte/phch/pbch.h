@@ -45,8 +45,8 @@
 #define BCH_PAYLOADCRC_LEN  (BCH_PAYLOAD_LEN+16)
 #define BCH_ENCODED_LEN   3*(BCH_PAYLOADCRC_LEN)
 
-#define PBCH_RE_CPNORM    240
-#define PBCH_RE_CPEXT     216
+#define PBCH_RE_SRSLTE_SRSLTE_CP_NORM    240
+#define PBCH_RE_SRSLTE_SRSLTE_CP_EXT     216
 
 typedef _Complex float cf_t;
 

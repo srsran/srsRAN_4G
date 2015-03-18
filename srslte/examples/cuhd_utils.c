@@ -61,7 +61,7 @@ int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
     goto clean_exit; 
   }
   
-  int srate = lte_sampling_freq_hz(MIB_NOF_PRB);
+  int srate = srslte_sampling_freq_hz(MIB_NOF_PRB);
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", (float) srate/1000000);
   cuhd_set_rx_srate(uhd, (float) srate);
   

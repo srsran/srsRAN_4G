@@ -63,8 +63,8 @@ typedef struct SRSLTE_API {
   bool cfi_initiated;
   uint32_t ngroups_phich;
   
-  phich_resources_t phich_res;
-  phich_length_t phich_len;
+  srslte_phich_resources_t phich_res;
+  srslte_phich_length_t phich_len;
   
   regs_ch_t pcfich;
   regs_ch_t *phich; // there are several phich

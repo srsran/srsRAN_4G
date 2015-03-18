@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
   if (test_known_data) {
     frame_length = KNOWN_DATA_LEN;
   } else {
-    frame_length = lte_cb_size(lte_find_cb_index(frame_length));
+    frame_length = srslte_cb_size(srslte_find_cb_index(frame_length));
   }
 
   coded_length = 3 * (frame_length) + TOTALTAIL;

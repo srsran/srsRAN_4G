@@ -66,7 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   nof_bits = (nof_symbols-12)/3;
   
-  if (!lte_cb_size_isvalid(nof_bits)) {
+  if (!srslte_cb_size_isvalid(nof_bits)) {
     mexErrMsgTxt("Invalid codeblock size\n");
     return; 
   }

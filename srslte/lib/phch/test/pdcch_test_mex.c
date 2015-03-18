@@ -121,12 +121,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error reading input signal\n");
     return; 
   }
-  input_fft = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  input_fft = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   
   // Set Channel estimates to 1.0 (ignore fading) 
   cf_t *ce[SRSLTE_MAX_PORTS];
   for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    ce[i] = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
   srslte_fft_run_sf(&fft, input_signal, input_fft);
@@ -153,7 +153,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   pdcch_extract_llr(&pdcch, input_fft, ce, noise_power, sf_idx, cfi);
   
   uint32_t nof_locations;
-  if (rnti == SIRNTI) {
+  if (rnti == SRSLTE_SIRNTI) {
     nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
     formats = common_formats;
     nof_formats = nof_common_formats;

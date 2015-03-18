@@ -68,7 +68,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Read input symbols
   mexutils_read_cf(INPUT, &input_symbols);
     
-  nof_re = SF_LEN_RE(cell.nof_prb, cell.cp);
+  nof_re = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
 
   // Allocate memory
   input_fft = vec_malloc(nof_re * sizeof(cf_t));
@@ -113,11 +113,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce_slot[i] = &ce[i][SLOT_LEN_RE(cell.nof_prb, cell.cp)];
+    ce_slot[i] = &ce[i][SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)];
   }
 
   uint32_t nof_ports; 
-  int n = pbch_decode(&pbch, &input_fft[SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
+  int n = pbch_decode(&pbch, &input_fft[SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
                   ce_slot, noise_power, 
                   NULL, &nof_ports, NULL);
   
@@ -135,10 +135,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_f(pbch.pbch_llr, &plhs[2], 2*pbch.nof_symbols, 1);  
   }
   if (nlhs >= 4) {
-    mexutils_write_cf(ce[0], &plhs[3], SF_LEN_RE(cell.nof_prb,cell.cp)/14, 14);  
+    mexutils_write_cf(ce[0], &plhs[3], SRSLTE_SF_LEN_RE(cell.nof_prb,cell.cp)/14, 14);  
   }
   if (nlhs >= 5) {
-    mexutils_write_cf(ce[1], &plhs[4], SF_LEN_RE(cell.nof_prb,cell.cp)/14, 14);  
+    mexutils_write_cf(ce[1], &plhs[4], SRSLTE_SF_LEN_RE(cell.nof_prb,cell.cp)/14, 14);  
   }
   if (nlhs >= 6) {
     mexutils_write_cf(pbch.pbch_symbols[0], &plhs[5], pbch.nof_symbols, 1);  

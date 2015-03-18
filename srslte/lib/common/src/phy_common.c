@@ -34,7 +34,7 @@
 
 #include "srslte/common/phy_common.h"
 
-const uint32_t tc_cb_sizes[NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120,
+const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120,
     128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232,
     240, 248, 256, 264, 272, 280, 288, 296, 304, 312, 320, 328, 336, 344,
     352, 360, 368, 376, 384, 392, 400, 408, 416, 424, 432, 440, 448, 456,
@@ -53,7 +53,7 @@ const uint32_t tc_cb_sizes[NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 
 /* Returns true if the structure pointed by cell has valid parameters
  */
 
-bool lte_cellid_isvalid(uint32_t cell_id) {
+bool srslte_cellid_isvalid(uint32_t cell_id) {
   if (cell_id < 504) {
     return true;
   } else {
@@ -61,25 +61,25 @@ bool lte_cellid_isvalid(uint32_t cell_id) {
   }
 }
 
-bool lte_nofprb_isvalid(uint32_t nof_prb) {
-  if (nof_prb >= 6 && nof_prb <= MAX_PRB) {
+bool srslte_nofprb_isvalid(uint32_t nof_prb) {
+  if (nof_prb >= 6 && nof_prb <= SRSLTE_MAX_PRB) {
     return true;
   } else {
     return false;
   }
 }
 
-bool lte_cell_isvalid(srslte_cell_t *cell) {
-  return lte_cellid_isvalid(cell->id)           && 
-         lte_portid_isvalid(cell->nof_ports)    &&
-         lte_nofprb_isvalid(cell->nof_prb);
+bool srslte_cell_isvalid(srslte_cell_t *cell) {
+  return srslte_cellid_isvalid(cell->id)           && 
+         srslte_portid_isvalid(cell->nof_ports)    &&
+         srslte_nofprb_isvalid(cell->nof_prb);
 }
 
-void lte_cell_fprint(FILE *stream, srslte_cell_t *cell) {
-  fprintf(stream, "PCI: %d, CP: %s, PRB: %d, Ports: %d\n", cell->id, lte_cp_string(cell->cp), cell->nof_prb, cell->nof_ports);
+void srslte_cell_fprint(FILE *stream, srslte_cell_t *cell) {
+  fprintf(stream, "PCI: %d, CP: %s, PRB: %d, Ports: %d\n", cell->id, srslte_cp_string(cell->cp), cell->nof_prb, cell->nof_ports);
 }
 
-bool lte_sfidx_isvalid(uint32_t sf_idx) {
+bool srslte_sfidx_isvalid(uint32_t sf_idx) {
   if (sf_idx <= SRSLTE_NSUBFRAMES_X_FRAME) {
     return true; 
   } else {
@@ -87,7 +87,7 @@ bool lte_sfidx_isvalid(uint32_t sf_idx) {
   }
 }
 
-bool lte_portid_isvalid(uint32_t port_id) {
+bool srslte_portid_isvalid(uint32_t port_id) {
   if (port_id <= SRSLTE_MAX_PORTS) {
     return true; 
   } else {
@@ -95,7 +95,7 @@ bool lte_portid_isvalid(uint32_t port_id) {
   }
 }
 
-bool lte_N_id_2_isvalid(uint32_t N_id_2) {
+bool srslte_N_id_2_isvalid(uint32_t N_id_2) {
   if (N_id_2 < 3) {
     return true;
   } else {
@@ -103,7 +103,7 @@ bool lte_N_id_2_isvalid(uint32_t N_id_2) {
   }
 }
 
-bool lte_N_id_1_isvalid(uint32_t N_id_1) {
+bool srslte_N_id_1_isvalid(uint32_t N_id_1) {
   if (N_id_1 < 169) {
     return true;
   } else {
@@ -115,16 +115,16 @@ bool lte_N_id_1_isvalid(uint32_t N_id_1) {
 /*
  * Returns Turbo coder interleaver size for Table 5.1.3-3 (36.212) index
  */
-int lte_cb_size(uint32_t index) {
-  if (index < NOF_TC_CB_SIZES) {
+int srslte_cb_size(uint32_t index) {
+  if (index < SRSLTE_NOF_TC_CB_SIZES) {
     return (int) tc_cb_sizes[index];
   } else {
     return SRSLTE_ERROR;
   }
 }
 
-bool lte_cb_size_isvalid(uint32_t size) {
-  for (int i=0;i<NOF_TC_CB_SIZES;i++) {
+bool srslte_cb_size_isvalid(uint32_t size) {
+  for (int i=0;i<SRSLTE_NOF_TC_CB_SIZES;i++) {
     if (tc_cb_sizes[i] == size) {
       return true; 
     }
@@ -132,7 +132,7 @@ bool lte_cb_size_isvalid(uint32_t size) {
   return false; 
 }
 
-char *lte_mod_string(lte_mod_t mod) {
+char *srslte_mod_string(srslte_mod_t mod) {
   switch (mod) {
   case LTE_BPSK:
     return "BPSK";
@@ -147,7 +147,7 @@ char *lte_mod_string(lte_mod_t mod) {
   } 
 }
 
-uint32_t lte_mod_bits_x_symbol(lte_mod_t mod) {
+uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod) {
   switch (mod) {
   case LTE_BPSK:
     return 1;
@@ -162,8 +162,8 @@ uint32_t lte_mod_bits_x_symbol(lte_mod_t mod) {
   }   
 }
 
-char *lte_cp_string(srslte_cp_t cp) {
-  if (cp == CPNORM) {
+char *srslte_cp_string(srslte_cp_t cp) {
+  if (cp == SRSLTE_SRSLTE_CP_NORM) {
     return "Normal";
   } else {
     return "Extended";
@@ -171,7 +171,7 @@ char *lte_cp_string(srslte_cp_t cp) {
 }
 
 /* Returns the new time advance N_ta_new as specified in Section 4.2.3 of 36.213 */
-uint32_t lte_N_ta_new(uint32_t N_ta_old, uint32_t ta) {
+uint32_t srslte_N_ta_new(uint32_t N_ta_old, uint32_t ta) {
   
   ta &= 63;   
   int n_ta_new = N_ta_old + ((float) ta - 31) * 16;
@@ -188,7 +188,7 @@ uint32_t lte_N_ta_new(uint32_t N_ta_old, uint32_t ta) {
 
 /* Returns the new time advance as indicated by the random access response 
  * as specified in Section 4.2.3 of 36.213 */
-uint32_t lte_N_ta_new_rar(uint32_t ta) {
+uint32_t srssrslte_N_ta_new_rar(uint32_t ta) {
   if (ta > 1282) {
     ta = 1282; 
   }
@@ -198,21 +198,21 @@ uint32_t lte_N_ta_new_rar(uint32_t ta) {
 /*
  * Finds index of minimum K>=long_cb in Table 5.1.3-3 of 36.212
  */
-int lte_find_cb_index(uint32_t long_cb) {
+int srslte_find_cb_index(uint32_t long_cb) {
   int j = 0;
-  while (j < NOF_TC_CB_SIZES && tc_cb_sizes[j] < long_cb) {
+  while (j < SRSLTE_NOF_TC_CB_SIZES && tc_cb_sizes[j] < long_cb) {
     j++;
   }
 
-  if (j == NOF_TC_CB_SIZES) {
+  if (j == SRSLTE_NOF_TC_CB_SIZES) {
     return SRSLTE_ERROR;
   } else {
     return j;
   }
 }
 
-int lte_sampling_freq_hz(uint32_t nof_prb) {
-    int n = lte_symbol_sz(nof_prb); 
+int srslte_sampling_freq_hz(uint32_t nof_prb) {
+    int n = srslte_symbol_sz(nof_prb); 
     if (n == -1) {
       return SRSLTE_ERROR;
     } else {
@@ -220,7 +220,7 @@ int lte_sampling_freq_hz(uint32_t nof_prb) {
     }
 }
 
-int lte_symbol_sz(uint32_t nof_prb) {
+int srslte_symbol_sz(uint32_t nof_prb) {
   if (nof_prb<=0) {
     return SRSLTE_ERROR;
   }
@@ -240,7 +240,7 @@ int lte_symbol_sz(uint32_t nof_prb) {
   return SRSLTE_ERROR;
 }
 
-bool lte_symbol_sz_isvalid(uint32_t symbol_sz) {
+bool srssrslte_symbol_sz_isvalid(uint32_t symbol_sz) {
   if (symbol_sz == 128  || 
       symbol_sz == 256  ||
       symbol_sz == 512  ||
@@ -252,7 +252,7 @@ bool lte_symbol_sz_isvalid(uint32_t symbol_sz) {
   }
 }
 
-uint32_t lte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports) {
+uint32_t srslte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports) {
   if (nof_ports == 1 && symbol_id==0) {
     return (cell_id+3) % 6;
   } else {
@@ -261,33 +261,33 @@ uint32_t lte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports) {
 }
 
 /* Returns the number of available RE per PRB */
-uint32_t lte_re_x_prb(uint32_t ns, uint32_t symbol, uint32_t nof_ports, uint32_t nof_symbols) {
+uint32_t srslte_re_x_prb(uint32_t ns, uint32_t symbol, uint32_t nof_ports, uint32_t nof_symbols) {
   if (symbol == 0) {
     if (((ns % 2) == 0) || (ns == 1)) {
-      return RE_X_RB - 4;
+      return SRSLTE_NRE - 4;
     } else {
       if (nof_ports == 1) {
-        return RE_X_RB - 2;
+        return SRSLTE_NRE - 2;
       } else {
-        return RE_X_RB - 4;
+        return SRSLTE_NRE - 4;
       }
     }
   } else if (symbol == 1) {
     if (ns == 1) {
-      return RE_X_RB - 4;
+      return SRSLTE_NRE - 4;
     } else if (nof_ports == 4) {
-      return RE_X_RB - 4;
+      return SRSLTE_NRE - 4;
     } else {
-      return RE_X_RB;
+      return SRSLTE_NRE;
     }
   } else if (symbol == nof_symbols - 3) {
     if (nof_ports == 1) {
-      return RE_X_RB - 2;
+      return SRSLTE_NRE - 2;
     } else {
-      return RE_X_RB - 4;
+      return SRSLTE_NRE - 4;
     }
   } else {
-    return RE_X_RB;
+    return SRSLTE_NRE;
   }
 }
 
@@ -300,7 +300,7 @@ struct lte_band {
   enum band_geographical_area area;
 };
 
-struct lte_band lte_bands[NOF_LTE_BANDS] = {
+struct lte_band lte_bands[SRSLTE_NOF_LTE_BANDS] = {
     {1, 2110, 0, 599, ALL},
     {2, 1930, 600, 1199, NAR},
     {3, 1805, 1200, 1949, ALL},
@@ -333,7 +333,7 @@ struct lte_band lte_bands[NOF_LTE_BANDS] = {
 };
 #define EOF_BAND 9919
 
-int lte_str2mimotype(char *mimo_type_str, lte_mimo_type_t *type) {
+int srslte_str2mimotype(char *mimo_type_str, srslte_mimo_type_t *type) {
   if (!strcmp(mimo_type_str, "single")) {
     *type = SINGLE_ANTENNA;
   } else if (!strcmp(mimo_type_str, "diversity")) {
@@ -346,18 +346,6 @@ int lte_str2mimotype(char *mimo_type_str, lte_mimo_type_t *type) {
   return SRSLTE_SUCCESS;
 }
 
-char *lte_mimotype2str(lte_mimo_type_t type) {
-  switch(type) {
-  case SINGLE_ANTENNA:
-    return "single";
-  case TX_DIVERSITY:
-    return "diversity";
-  case SPATIAL_MULTIPLEX:
-    return "multiplex";
-  }
-  return NULL;
-}
-
 float get_fd(struct lte_band *band, uint32_t earfcn) {
   if (earfcn >= band->earfcn_offset) {
     return band->fd_low_mhz + 0.1*(earfcn - band->earfcn_offset);    
@@ -366,31 +354,31 @@ float get_fd(struct lte_band *band, uint32_t earfcn) {
   }
 }
 
-float lte_band_fd(uint32_t earfcn) {
+float srslte_band_fd(uint32_t earfcn) {
   uint32_t i;
   i=0;
-  while(i < NOF_LTE_BANDS && lte_bands[i].earfcn_offset<earfcn) {
+  while(i < SRSLTE_NOF_LTE_BANDS && lte_bands[i].earfcn_offset<earfcn) {
     i++;
   }
-  if (i == NOF_LTE_BANDS) {
+  if (i == SRSLTE_NOF_LTE_BANDS) {
     fprintf(stderr, "Error: EARFCN %d not found\n", earfcn);
     return -1.0;
   }
   return get_fd(&lte_bands[i], earfcn);
 }
 
-int lte_band_get_fd_band_all(uint32_t band, lte_earfcn_t *earfcn, uint32_t max_elems) {
-  return lte_band_get_fd_band(band, earfcn, -1, -1, max_elems);
+int srslte_band_get_fd_band_all(uint32_t band, srslte_earfcn_t *earfcn, uint32_t max_elems) {
+  return srslte_band_get_fd_band(band, earfcn, -1, -1, max_elems);
 }
 
-int lte_band_get_fd_band(uint32_t band, lte_earfcn_t *earfcn, int start_earfcn, int end_earfcn, uint32_t max_elems) {
+int srslte_band_get_fd_band(uint32_t band, srslte_earfcn_t *earfcn, int start_earfcn, int end_earfcn, uint32_t max_elems) {
   uint32_t i, j;
   uint32_t nof_earfcn;
   i=0;
-  while(i < NOF_LTE_BANDS && lte_bands[i].band != band) {
+  while(i < SRSLTE_NOF_LTE_BANDS && lte_bands[i].band != band) {
     i++;
   }
-  if (i == NOF_LTE_BANDS) {
+  if (i == SRSLTE_NOF_LTE_BANDS) {
     fprintf(stderr, "Error: Invalid band %d\n", band);
     return SRSLTE_ERROR;
   }
@@ -422,13 +410,13 @@ int lte_band_get_fd_band(uint32_t band, lte_earfcn_t *earfcn, int start_earfcn, 
   return (int) j;
 }
 
-int lte_band_get_fd_region(enum band_geographical_area region, lte_earfcn_t *earfcn, uint32_t max_elems) {
+int srslte_band_get_fd_region(enum band_geographical_area region, srslte_earfcn_t *earfcn, uint32_t max_elems) {
   uint32_t i;
   int n;
   int nof_fd = 0;
-  for (i=0;i<NOF_LTE_BANDS && max_elems > 0;i++) {
+  for (i=0;i<SRSLTE_NOF_LTE_BANDS && max_elems > 0;i++) {
     if (lte_bands[i].area == region) {
-      n = lte_band_get_fd_band(i, &earfcn[nof_fd], -1, -1, max_elems);
+      n = srslte_band_get_fd_band(i, &earfcn[nof_fd], -1, -1, max_elems);
       if (n != -1) {
         nof_fd += n;
         max_elems -= n;

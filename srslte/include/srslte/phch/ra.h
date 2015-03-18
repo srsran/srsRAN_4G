@@ -38,7 +38,7 @@
  */
 
 typedef struct SRSLTE_API {
-  lte_mod_t mod;
+  srslte_mod_t mod;
   int tbs;
 } ra_mcs_t;
 
@@ -72,7 +72,7 @@ typedef struct SRSLTE_API {
 } ra_type2_t;
 
 typedef struct SRSLTE_API {
-  bool prb_idx[MAX_PRB];
+  bool prb_idx[SRSLTE_MAX_PRB];
   uint32_t nof_prb;
 } ra_prb_slot_t;
 

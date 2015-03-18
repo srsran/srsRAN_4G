@@ -48,14 +48,14 @@ int ue_mib_init(ue_mib_t * q,
     ret = SRSLTE_ERROR;    
     bzero(q, sizeof(ue_mib_t));
     
-    q->sf_symbols = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    q->sf_symbols = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit;
     }
     
     for (int i=0;i<cell.nof_ports;i++) {
-      q->ce[i] = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+      q->ce[i] = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
       if (!q->ce[i]) {
         perror("malloc");
         goto clean_exit;
@@ -133,11 +133,11 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
   }
   
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce_slot1[i] = &q->ce[i][SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)];
+    ce_slot1[i] = &q->ce[i][SRSLTE_SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)];
   }
   
   /* Decode PBCH */
-  ret = pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
+  ret = pbch_decode(&q->pbch, &q->sf_symbols[SRSLTE_SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
                     ce_slot1, srslte_chest_dl_get_noise_estimate(&q->chest),
                     bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {

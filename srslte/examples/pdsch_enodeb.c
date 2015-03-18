@@ -53,9 +53,9 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  CPNORM,       // cyclic prefix
-  R_1,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_R_1,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
   
 int net_port = -1; // -1 generates random data
@@ -216,7 +216,7 @@ void base_init() {
   }
 
   /* create ifft object */
-  if (lte_ifft_init(&ifft, CPNORM, cell.nof_prb)) {
+  if (lte_ifft_init(&ifft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
@@ -325,7 +325,7 @@ int update_radl(uint32_t sf_idx) {
   ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
     
   ra_dl_alloc(&prb_alloc, &ra_dl, cell.nof_prb);
-  ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
+  ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, SRSLTE_SRSLTE_CP_NORM);
   ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
 
   ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
@@ -461,11 +461,11 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   N_id_2 = cell.id % 3;
-  sf_n_re = 2 * SRSLTE_CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
-  sf_n_samples = 2 * SLOT_LEN(lte_symbol_sz(cell.nof_prb));
+  sf_n_re = 2 * SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
+  sf_n_samples = 2 * SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb));
 
-  cell.phich_length = PHICH_NORM;
-  cell.phich_resources = R_1;
+  cell.phich_length = SRSLTE_PHICH_NORM;
+  cell.phich_resources = SRSLTE_PHICH_R_1;
   sfn = 0;
 
   prbset_num = (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb)); 
@@ -486,13 +486,13 @@ int main(int argc, char **argv) {
 
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) { // now there's only 1 port
     sf_symbols[i] = sf_buffer;
-    slot1_symbols[i] = &sf_buffer[SLOT_LEN_RE(cell.nof_prb, cell.cp)];
+    slot1_symbols[i] = &sf_buffer[SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)];
   }
 
 #ifndef DISABLE_UHD
   if (!output_file_name) {
     printf("Set TX rate: %.2f MHz\n",
-        cuhd_set_tx_srate(uhd, lte_sampling_freq_hz(cell.nof_prb)) / 1000000);
+        cuhd_set_tx_srate(uhd, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
     printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
     printf("Set TX freq: %.2f MHz\n",
         cuhd_set_tx_freq(uhd, uhd_freq) / 1000000);
@@ -525,9 +525,9 @@ int main(int argc, char **argv) {
       bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
       if (sf_idx == 0 || sf_idx == 5) {
-        pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, CPNORM);
+        pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, SRSLTE_SRSLTE_CP_NORM);
         sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
-            CPNORM);
+            SRSLTE_SRSLTE_CP_NORM);
       }
 
       srslte_refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);
@@ -591,7 +591,7 @@ int main(int argc, char **argv) {
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
       
       float norm_factor = (float) cell.nof_prb/15/sqrtf(ra_dl.prb_alloc.slot[0].nof_prb);
-      vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SF_LEN_PRB(cell.nof_prb));
+      vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
       
       /* send to file or usrp */
       if (output_file_name) {

@@ -74,14 +74,14 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   int i, j, num_errors, symbols_layer;
-  cf_t *d[MAX_CODEWORDS], *x[MAX_LAYERS], *dp[MAX_CODEWORDS];
-  lte_mimo_type_t type;
-  int nof_symb_cw[MAX_CODEWORDS];
+  cf_t *d[SRSLTE_MAX_CODEWORDS], *x[SRSLTE_MAX_LAYERS], *dp[SRSLTE_MAX_CODEWORDS];
+  srslte_mimo_type_t type;
+  int nof_symb_cw[SRSLTE_MAX_CODEWORDS];
   int n[2];
 
   parse_args(argc, argv);
 
-  if (lte_str2mimotype(mimo_type_name, &type)) {
+  if (srslte_str2mimotype(mimo_type_name, &type)) {
     fprintf(stderr, "Invalid MIMO type %s\n", mimo_type_name);
     exit(-1);
   }

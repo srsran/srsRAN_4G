@@ -40,7 +40,7 @@ int layermap_single(cf_t *d, cf_t *x, int nof_symbols) {
   return nof_symbols;
 }
 
-int layermap_diversity(cf_t *d, cf_t *x[MAX_LAYERS], int nof_layers, int nof_symbols) {
+int layermap_diversity(cf_t *d, cf_t *x[SRSLTE_MAX_LAYERS], int nof_layers, int nof_symbols) {
   int i, j;
   for (i=0;i<nof_symbols/nof_layers;i++) {
     for (j=0;j<nof_layers;j++) {
@@ -50,8 +50,8 @@ int layermap_diversity(cf_t *d, cf_t *x[MAX_LAYERS], int nof_layers, int nof_sym
   return i;
 }
 
-int layermap_multiplex(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
-    int nof_symbols[MAX_CODEWORDS]) {
+int layermap_multiplex(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_cw, int nof_layers,
+    int nof_symbols[SRSLTE_MAX_CODEWORDS]) {
   if (nof_cw == 1) {
     return layermap_diversity(d[0], x, nof_layers, nof_symbols[0]);
   } else {
@@ -77,15 +77,15 @@ int layermap_multiplex(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, 
  * Based on 36.211 6.3.3
  * Returns the number of symbols per layer (M_symb^layer in the specs)
  */
-int layermap_type(cf_t *d[MAX_CODEWORDS], cf_t *x[MAX_LAYERS], int nof_cw, int nof_layers,
-    int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type) {
+int layermap_type(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_cw, int nof_layers,
+    int nof_symbols[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t type) {
 
-  if (nof_cw > MAX_CODEWORDS) {
-    fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", MAX_CODEWORDS, nof_cw);
+  if (nof_cw > SRSLTE_MAX_CODEWORDS) {
+    fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", SRSLTE_MAX_CODEWORDS, nof_cw);
     return -1;
   }
-  if (nof_layers > MAX_LAYERS) {
-    fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n", MAX_LAYERS, nof_layers);
+  if (nof_layers > SRSLTE_MAX_LAYERS) {
+    fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n", SRSLTE_MAX_LAYERS, nof_layers);
     return -1;
   }
   if (nof_layers < nof_cw) {
@@ -134,7 +134,7 @@ int layerdemap_single(cf_t *x, cf_t *d, int nof_symbols) {
   memcpy(d, x, sizeof(cf_t) * nof_symbols);
   return nof_symbols;
 }
-int layerdemap_diversity(cf_t *x[MAX_LAYERS], cf_t *d, int nof_layers, int nof_layer_symbols) {
+int layerdemap_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *d, int nof_layers, int nof_layer_symbols) {
   int i, j;
   for (i=0;i<nof_layer_symbols;i++) {
     for (j=0;j<nof_layers;j++) {
@@ -144,8 +144,8 @@ int layerdemap_diversity(cf_t *x[MAX_LAYERS], cf_t *d, int nof_layers, int nof_l
   return nof_layer_symbols * nof_layers;
 }
 
-int layerdemap_multiplex(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
-    int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS]) {
+int layerdemap_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *d[SRSLTE_MAX_CODEWORDS], int nof_layers, int nof_cw,
+    int nof_layer_symbols, int nof_symbols[SRSLTE_MAX_CODEWORDS]) {
   if (nof_cw == 1) {
     return layerdemap_diversity(x, d[0], nof_layers, nof_layer_symbols);
   } else {
@@ -166,15 +166,15 @@ int layerdemap_multiplex(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_la
  * Returns 0 on ok and saves the number of symbols per codeword (M_symb^(q) in the specs) in
  * nof_symbols. Returns -1 on error
  */
-int layerdemap_type(cf_t *x[MAX_LAYERS], cf_t *d[MAX_CODEWORDS], int nof_layers, int nof_cw,
-    int nof_layer_symbols, int nof_symbols[MAX_CODEWORDS], lte_mimo_type_t type) {
+int layerdemap_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *d[SRSLTE_MAX_CODEWORDS], int nof_layers, int nof_cw,
+    int nof_layer_symbols, int nof_symbols[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t type) {
 
-  if (nof_cw > MAX_CODEWORDS) {
-    fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", MAX_CODEWORDS, nof_cw);
+  if (nof_cw > SRSLTE_MAX_CODEWORDS) {
+    fprintf(stderr, "Maximum number of codewords is %d (nof_cw=%d)\n", SRSLTE_MAX_CODEWORDS, nof_cw);
     return -1;
   }
-  if (nof_layers > MAX_LAYERS) {
-    fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n", MAX_LAYERS, nof_layers);
+  if (nof_layers > SRSLTE_MAX_LAYERS) {
+    fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n", SRSLTE_MAX_LAYERS, nof_layers);
     return -1;
   }
   if (nof_layers < nof_cw) {

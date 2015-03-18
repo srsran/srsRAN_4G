@@ -40,9 +40,9 @@ srslte_cell_t cell = {
   50,           // cell.nof_prb
   2,            // cell.nof_ports
   150,          // cell.id
-  CPNORM,       // cyclic prefix
-  R_1,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_R_1,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
 
 int flen;
@@ -89,19 +89,19 @@ void parse_args(int argc, char **argv) {
       break;
     case 'g':
       if (!strcmp(argv[optind], "1/6")) {
-        cell.phich_resources = R_1_6;
+        cell.phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6;
       } else if (!strcmp(argv[optind], "1/2")) {
-        cell.phich_resources = R_1_2;
+        cell.phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_2;
       } else if (!strcmp(argv[optind], "1")) {
-        cell.phich_resources = R_1;
+        cell.phich_resources = SRSLTE_PHICH_R_1;
       } else if (!strcmp(argv[optind], "2")) {
-        cell.phich_resources = R_2;
+        cell.phich_resources = SRSLTE_PHICH_R_2;
       } else {
         fprintf(stderr, "Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
       }
       break;
     case 'e':
-      cell.phich_length = PHICH_EXT;
+      cell.phich_length = SRSLTE_PHICH_EXT;
       break;
     case 'n':
       cell.nof_prb = atoi(argv[optind]);
@@ -113,7 +113,7 @@ void parse_args(int argc, char **argv) {
       verbose++;
       break;
     case 'l':
-      cell.cp = CPEXT;
+      cell.cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     default:
       usage(argv[0]);
@@ -144,7 +144,7 @@ int base_init() {
     fmatlab = NULL;
   }
 
-  flen = SLOT_LEN(lte_symbol_sz(cell.nof_prb));
+  flen = SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -152,14 +152,14 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  fft_buffer = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    ce[i] = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
@@ -225,7 +225,7 @@ int main(int argc, char **argv) {
 
   parse_args(argc,argv);
 
-  max_nseq = CP_ISNORM(cell.cp)?PHICH_NORM_NSEQUENCES:PHICH_EXT_NSEQUENCES;
+  max_nseq = SRSLTE_CP_ISNORM(cell.cp)?SRSLTE_PHICH_NORM_NSEQUENCES:SRSLTE_PHICH_EXT_NSEQUENCES;
 
   if (base_init()) {
     fprintf(stderr, "Error initializing memory\n");
@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
     fprintf(fmatlab, ";\n");
 
     fprintf(fmatlab, "outfft=");
-    vec_fprint_c(fmatlab, fft_buffer, CP_NSYMB(cell.cp) * cell.nof_prb * RE_X_RB);
+    vec_fprint_c(fmatlab, fft_buffer, SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
     fprintf(fmatlab, ";\n");
   }
 

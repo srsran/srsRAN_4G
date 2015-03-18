@@ -46,17 +46,17 @@ int dft_precoding_init(dft_precoding_t *q, uint32_t max_prb)
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   bzero(q, sizeof(dft_precoding_t));
   
-  if (max_prb <= MAX_PRB) {
+  if (max_prb <= SRSLTE_MAX_PRB) {
     ret = SRSLTE_ERROR; 
     for (uint32_t i=1;i<max_prb;i++) {
       if(dft_precoding_valid_prb(i)) {        
         DEBUG("Initiating DFT precoding plan for %d PRBs\n", i);
-        if (dft_plan_c(&q->dft_plan[i], i*RE_X_RB, FORWARD)) {
+        if (dft_plan_c(&q->dft_plan[i], i*SRSLTE_NRE, FORWARD)) {
           fprintf(stderr, "Error: Creating DFT plan %d\n",i);
           goto clean_exit;
         }
         dft_plan_set_norm(&q->dft_plan[i], true);
-        if (dft_plan_c(&q->idft_plan[i], i*RE_X_RB, BACKWARD)) {
+        if (dft_plan_c(&q->idft_plan[i], i*SRSLTE_NRE, BACKWARD)) {
           fprintf(stderr, "Error: Creating DFT plan %d\n",i);
           goto clean_exit;
         }
@@ -105,7 +105,7 @@ int dft_precoding(dft_precoding_t *q, cf_t *input, cf_t *output,
   }
 
   for (uint32_t i=0;i<nof_symbols;i++) {
-    dft_run_c(&q->dft_plan[nof_prb], &input[i*RE_X_RB*nof_prb], &output[i*RE_X_RB*nof_prb]);
+    dft_run_c(&q->dft_plan[nof_prb], &input[i*SRSLTE_NRE*nof_prb], &output[i*SRSLTE_NRE*nof_prb]);
   }
   
   return SRSLTE_SUCCESS;
@@ -120,7 +120,7 @@ int dft_predecoding(dft_precoding_t *q, cf_t *input, cf_t *output,
   }
 
   for (uint32_t i=0;i<nof_symbols;i++) {
-    dft_run_c(&q->dft_plan[nof_prb], &input[i*RE_X_RB*nof_prb], &output[i*RE_X_RB*nof_prb]);
+    dft_run_c(&q->dft_plan[nof_prb], &input[i*SRSLTE_NRE*nof_prb], &output[i*SRSLTE_NRE*nof_prb]);
   }
   
   return SRSLTE_SUCCESS;

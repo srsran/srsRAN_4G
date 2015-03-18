@@ -59,7 +59,7 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q                != NULL &&
-      lte_cell_isvalid(&cell)) 
+      srslte_cell_isvalid(&cell)) 
   {
     bzero(q, sizeof(srslte_chest_dl_t));
     
@@ -112,12 +112,12 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       }
     }
     
-    if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, RE_X_RB*cell.nof_prb)) {
+    if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, SRSLTE_NRE*cell.nof_prb)) {
       fprintf(stderr, "Error initializing vector interpolator\n");
       goto clean_exit; 
     }
 
-    if (srslte_interp_linear_init(&q->srslte_interp_lin, 2*cell.nof_prb, RE_X_RB/2)) {
+    if (srslte_interp_linear_init(&q->srslte_interp_lin, 2*cell.nof_prb, SRSLTE_NRE/2)) {
       fprintf(stderr, "Error initializing interpolator\n");
       goto clean_exit; 
     }
@@ -220,11 +220,11 @@ static float estimate_noise_port(srslte_chest_dl_t *q, uint32_t port_id, cf_t *a
 
 /* Uses the 5 empty transmitted SC before and after the SSS and PSS sequences for noise estimation */
 static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
-  int k_sss = (CP_NSYMB(q->cell.cp) - 2) * q->cell.nof_prb * RE_X_RB + q->cell.nof_prb * RE_X_RB / 2 - 31;
+  int k_sss = (SRSLTE_CP_NSYMB(q->cell.cp) - 2) * q->cell.nof_prb * SRSLTE_NRE + q->cell.nof_prb * SRSLTE_NRE / 2 - 31;
   float noise_power = 0; 
   noise_power += vec_avg_power_cf(&input[k_sss-5], 5); // 5 empty SC before SSS
   noise_power += vec_avg_power_cf(&input[k_sss+62], 5); // 5 empty SC after SSS
-  int k_pss = (CP_NSYMB(q->cell.cp) - 1) * q->cell.nof_prb * RE_X_RB + q->cell.nof_prb * RE_X_RB / 2 - 31;
+  int k_pss = (SRSLTE_CP_NSYMB(q->cell.cp) - 1) * q->cell.nof_prb * SRSLTE_NRE + q->cell.nof_prb * SRSLTE_NRE / 2 - 31;
   noise_power += vec_avg_power_cf(&input[k_pss-5], 5); // 5 empty SC before PSS
   noise_power += vec_avg_power_cf(&input[k_pss+62], 5); // 5 empty SC after PSS
   
@@ -285,7 +285,7 @@ static void average_pilots(srslte_chest_dl_t *q, uint32_t port_id)
   
 }
 
-#define cesymb(i) ce[RE_IDX(q->cell.nof_prb,i,0)]
+#define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,0)]
 
 static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *ce, uint32_t port_id) 
 {
@@ -297,12 +297,12 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *ce, uint32_t port_id)
   for (l=0;l<nsymbols;l++) {
     uint32_t fidx_offset = srslte_refsignal_cs_fidx(q->cell, l, port_id, 0);    
     srslte_interp_linear_offset(&q->srslte_interp_lin, &pilot_avg(0),
-                         &ce[srslte_refsignal_cs_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB], 
-                         fidx_offset, RE_X_RB/2-fidx_offset); 
+                         &ce[srslte_refsignal_cs_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE], 
+                         fidx_offset, SRSLTE_NRE/2-fidx_offset); 
   }
   
   /* Now interpolate in the time domain between symbols */
-  if (CP_ISNORM(q->cell.cp)) {
+  if (SRSLTE_CP_ISNORM(q->cell.cp)) {
     if (nsymbols == 4) {
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(4), &cesymb(1), 3);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(4), &cesymb(7), &cesymb(5), 2);
@@ -333,8 +333,8 @@ float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) 
   float rssi = 0;
   uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id);   
   for (l=0;l<nsymbols;l++) {
-    cf_t *tmp = &input[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB];
-    rssi += vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * RE_X_RB);    
+    cf_t *tmp = &input[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE];
+    rssi += vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * SRSLTE_NRE);    
   }    
   return rssi/nsymbols; 
 }
@@ -394,7 +394,7 @@ int srslte_chest_dl_estimate(srslte_chest_dl_t *q, cf_t *input, cf_t *ce[SRSLTE_
 float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
   float noise = vec_acc_ff(q->noise_estimate, q->cell.nof_ports)/q->cell.nof_ports;
 #ifdef NOISE_POWER_USE_ESTIMATES
-  return noise*sqrtf(lte_symbol_sz(q->cell.nof_prb));
+  return noise*sqrtf(srslte_symbol_sz(q->cell.nof_prb));
 #else
   return noise; 
 #endif
@@ -407,7 +407,7 @@ float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
 }
 
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {
-  return 4*q->rssi[0]/q->cell.nof_prb/RE_X_RB; 
+  return 4*q->rssi[0]/q->cell.nof_prb/SRSLTE_NRE; 
 }
 
 /* q->rssi[0] is the average power in all RE in all symbol containing references for port 0 . q->rssi[0]/q->cell.nof_prb is the average power per PRB 

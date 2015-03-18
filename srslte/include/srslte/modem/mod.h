@@ -43,7 +43,7 @@ SRSLTE_API int mod_modulate(modem_table_t* table, const uint8_t *bits, cf_t* sym
 typedef struct SRSLTE_API {
   modem_table_t obj;
   struct mod_init {
-    lte_mod_t std;  // symbol mapping standard (see modem_table.h)
+    srslte_mod_t std;  // symbol mapping standard (see modem_table.h)
   } init;
 
   const uint8_t* input;

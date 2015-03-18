@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   }
   
   /* set sampling frequency */
-  int srate = lte_sampling_freq_hz(cell.nof_prb);
+  int srate = srslte_sampling_freq_hz(cell.nof_prb);
   if (srate != -1) {  
     cuhd_set_rx_srate(uhd, (double) srate);      
   } else {
@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
   }
   
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
-  ue_dl_set_rnti(&ue_dl, SIRNTI); 
+  ue_dl_set_rnti(&ue_dl, SRSLTE_SIRNTI); 
 
   /* Initialize subframe counter */
   sf_cnt = 0;
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
     return -1;
   }
   
-  int sf_re = SF_LEN_RE(cell.nof_prb, cell.cp);
+  int sf_re = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
 
   cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
 
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), SIRNTI,
+            n = ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
           
           srslte_chest_dl_estimate(&chest, sf_symbols, ce, ue_sync_get_sfidx(&ue_sync));
                   
-          rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SF_LEN(lte_symbol_sz(cell.nof_prb))),rssi,nframes);
+          rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))),rssi,nframes);
           rssi_utra = VEC_CMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,nframes);
           rsrq = VEC_EMA(srslte_chest_dl_get_rsrq(&chest),rsrq,0.05);
           rsrp = VEC_EMA(srslte_chest_dl_get_rsrp(&chest),rsrp,0.05);      

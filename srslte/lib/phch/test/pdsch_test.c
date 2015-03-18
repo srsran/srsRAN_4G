@@ -38,16 +38,16 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   0,            // cell_id
-  CPNORM,       // cyclic prefix
-  R_1_6,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_SRSLTE_PHICH_R_1_6,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
 
 uint32_t cfi = 2;
 uint32_t tbs = 0;
 uint32_t nof_tbs = 0; 
 uint32_t subframe = 1;
-lte_mod_t modulation = LTE_BPSK;
+srslte_mod_t modulation = LTE_BPSK;
 uint32_t rv_idx = 0;
 
 void usage(char *prog) {
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   
-  nof_re = 2 * SRSLTE_CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  nof_re = 2 * SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
   mcs.mod = modulation;
   

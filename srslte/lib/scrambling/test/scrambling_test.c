@@ -38,7 +38,7 @@
 
 char *sequence_name = NULL;
 bool do_floats = false;
-srslte_cp_t cp = CPNORM;
+srslte_cp_t cp = SRSLTE_SRSLTE_CP_NORM;
 int cell_id = -1;
 
 void usage(char *prog) {
@@ -55,7 +55,7 @@ void parse_args(int argc, char **argv) {
       cell_id = atoi(argv[optind]);
       break;
     case 'e':
-      cp = CPEXT;
+      cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     case 'f':
       do_floats = true;

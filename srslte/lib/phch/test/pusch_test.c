@@ -38,15 +38,15 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   0,            // cell_id
-  CPNORM,       // cyclic prefix
-  R_1_6,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_SRSLTE_PHICH_R_1_6,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
 
 uint32_t cfi = 2;
 uint32_t tbs = 0;
 uint32_t subframe = 1;
-lte_mod_t modulation = LTE_QPSK;
+srslte_mod_t modulation = LTE_QPSK;
 uint32_t rv_idx = 0;
 uint32_t L_prb = 2; 
 uint32_t n_prb = 0; 
@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
   
   pusch_set_hopping_cfg(&pusch, &ul_hopping);
   
-  uint32_t nof_re = RE_X_RB*cell.nof_prb*2*CP_NSYMB(cell.cp);
+  uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   sf_symbols = vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
     perror("malloc");
@@ -234,10 +234,10 @@ int main(int argc, char **argv) {
   }
   
   
-  cf_t *scfdma = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
-  bzero(scfdma, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
+  cf_t *scfdma = vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   srslte_fft_t fft; 
-  lte_ifft_init(&fft, CPNORM, cell.nof_prb);
+  lte_ifft_init(&fft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb);
   srslte_fft_set_freq_shift(&fft, 0.5);
   lte_ifft_run_sf(&fft, sf_symbols, scfdma);
   

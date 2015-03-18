@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 
   dci_msg_type_t dci_type;
   msg.nof_bits = len;
-  if (dci_msg_get_type(&msg, &dci_type, nof_prb, SIRNTI)) {
+  if (dci_msg_get_type(&msg, &dci_type, nof_prb, SRSLTE_SIRNTI)) {
     fprintf(stderr, "Can't obtain DCI message type\n");
     exit(-1);
   }

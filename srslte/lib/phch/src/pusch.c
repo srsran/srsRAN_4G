@@ -42,11 +42,11 @@
 #include "srslte/utils/vector.h"
 #include "srslte/filter/dft_precoding.h"
 
-#define MAX_PUSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
+#define MAX_PUSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
 
 
-const static lte_mod_t modulations[4] =
+const static srslte_mod_t modulations[4] =
     { LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64 };
     
 static int f_hop_sum(pusch_t *q, uint32_t i) {
@@ -90,7 +90,7 @@ int pusch_cp(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output, bool advance_i
   pusch_hopping_cfg_t *hopping = &q->hopping_cfg; 
   
   uint32_t L_ref = 3;
-  if (CP_ISEXT(q->cell.cp)) {
+  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
     L_ref = 2; 
   }
   INFO("PUSCH Freq hopping: %d\n", harq->ul_alloc.freq_hopping);
@@ -131,25 +131,25 @@ int pusch_cp(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output, bool advance_i
     }
     harq->ul_alloc.n_prb_tilde[slot] = n_prb_tilde; 
     INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",harq->ul_alloc.L_prb, n_prb_tilde,slot);
-    for (uint32_t l=0;l<CP_NSYMB(q->cell.cp);l++) {
+    for (uint32_t l=0;l<SRSLTE_CP_NSYMB(q->cell.cp);l++) {
       if (l != L_ref) {
-        uint32_t idx = RE_IDX(q->cell.nof_prb, l+slot*CP_NSYMB(q->cell.cp), 
-                              n_prb_tilde*RE_X_RB);
+        uint32_t idx = SRSLTE_RE_IDX(q->cell.nof_prb, l+slot*SRSLTE_CP_NSYMB(q->cell.cp), 
+                              n_prb_tilde*SRSLTE_NRE);
         if (advance_input) {
           out_ptr = &output[idx]; 
         } else {
           in_ptr = &input[idx];
         }              
-        memcpy(out_ptr, in_ptr, harq->ul_alloc.L_prb * RE_X_RB * sizeof(cf_t));                       
+        memcpy(out_ptr, in_ptr, harq->ul_alloc.L_prb * SRSLTE_NRE * sizeof(cf_t));                       
         if (advance_input) {
-          in_ptr += harq->ul_alloc.L_prb*RE_X_RB;
+          in_ptr += harq->ul_alloc.L_prb*SRSLTE_NRE;
         } else {
-          out_ptr += harq->ul_alloc.L_prb*RE_X_RB; 
+          out_ptr += harq->ul_alloc.L_prb*SRSLTE_NRE; 
         }
       }
     }        
   }
-  return RE_X_RB*harq->ul_alloc.L_prb; 
+  return SRSLTE_NRE*harq->ul_alloc.L_prb; 
 }
 
 int pusch_put(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
@@ -167,7 +167,7 @@ int pusch_init(pusch_t *q, srslte_cell_t cell) {
   int i;
 
  if (q                         != NULL                  &&
-     lte_cell_isvalid(&cell)) 
+     srslte_cell_isvalid(&cell)) 
   {   
     
     bzero(q, sizeof(pusch_t));
@@ -202,7 +202,7 @@ int pusch_init(pusch_t *q, srslte_cell_t cell) {
     }
     
     /* This is for equalization at receiver */
-    if (precoding_init(&q->equalizer, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+    if (precoding_init(&q->equalizer, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
       goto clean; 
     }
@@ -210,13 +210,13 @@ int pusch_init(pusch_t *q, srslte_cell_t cell) {
     q->rnti_is_set = false; 
 
     // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
-    q->pusch_q = vec_malloc(sizeof(float) * q->max_re * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pusch_q = vec_malloc(sizeof(float) * q->max_re * srslte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pusch_q) {
       goto clean;
     }
 
     // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
-    q->pusch_g = vec_malloc(sizeof(float) * q->max_re * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pusch_g = vec_malloc(sizeof(float) * q->max_re * srslte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pusch_g) {
       goto clean;
     }
@@ -293,7 +293,7 @@ int pusch_set_rnti(pusch_t *q, uint16_t rnti) {
 
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     if (sequence_pusch(&q->seq_pusch[i], rnti, 2 * i, q->cell.id,
-        q->max_re * lte_mod_bits_x_symbol(LTE_QAM64))) {
+        q->max_re * srslte_mod_bits_x_symbol(LTE_QAM64))) {
       return SRSLTE_ERROR; 
     }
   }
@@ -317,7 +317,7 @@ int pusch_decode(pusch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noi
     
     if (q->rnti_is_set) {
       INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-          harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+          harq->sf_idx, srslte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
 
       /* extract symbols */
       n = pusch_get(q, harq, sf_symbols, q->pusch_d);
@@ -411,7 +411,7 @@ int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uc
     }
 
     INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-        harq->sf_idx, lte_mod_string(harq->mcs.mod), rnti, harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+        harq->sf_idx, srslte_mod_string(harq->mcs.mod), rnti, harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
     
     bzero(q->pusch_q, harq->nof_bits);
     if (ulsch_uci_encode(&q->dl_sch, harq, data, uci_data, q->pusch_g, q->pusch_q)) {

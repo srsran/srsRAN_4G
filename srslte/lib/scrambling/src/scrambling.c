@@ -97,11 +97,11 @@ int compute_sequences(scrambling_hl* h) {
   switch (h->init.channel) {
   case SCRAMBLING_PBCH:
     return sequence_pbch(&h->obj.seq[0],
-        h->init.nof_symbols == SRSLTE_CPNORM_NSYMB ? CPNORM : CPEXT, h->init.cell_id);
+        h->init.nof_symbols == SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB ? SRSLTE_SRSLTE_CP_NORM : SRSLTE_SRSLTE_CP_EXT, h->init.cell_id);
   case SCRAMBLING_PDSCH:
     for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
       sequence_pdsch(&h->obj.seq[ns], h->init.nrnti, 0, 2 * ns, h->init.cell_id,
-          LTE_NSOFT_BITS);
+          SRSLTE_NSOFT_BITS);
     }
     return 0;
   case SCRAMBLING_PCFICH:
@@ -111,7 +111,7 @@ int compute_sequences(scrambling_hl* h) {
     return 0;
   case SCRAMBLING_PDCCH:
     for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
-      sequence_pdcch(&h->obj.seq[ns], 2 * ns, h->init.cell_id, LTE_NSOFT_BITS);
+      sequence_pdcch(&h->obj.seq[ns], 2 * ns, h->init.cell_id, SRSLTE_NSOFT_BITS);
     }
     return 0;
   case SCRAMBLING_PMCH:

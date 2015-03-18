@@ -109,7 +109,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
     
-  nof_re = 2 * SRSLTE_CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  nof_re = 2 * SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
   mcs.tbs = mxGetScalar(TBS);
   if (mcs.tbs == 0) {
@@ -172,12 +172,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error reading input signal\n");
     return; 
   }
-  input_fft = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  input_fft = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   
   // Set Channel estimates to 1.0 (ignore fading) 
   cf_t *ce[SRSLTE_MAX_PORTS];
   for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    ce[i] = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
   srslte_fft_run_sf(&fft, input_signal, input_fft);
@@ -225,7 +225,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(pdsch.pdsch_d, &plhs[3], harq_process.dl_alloc.re_sf[sf_idx], 1);  
   }
   if (nlhs >= 5) {
-    mexutils_write_f(pdsch.pdsch_e, &plhs[4], harq_process.dl_alloc.re_sf[sf_idx] * lte_mod_bits_x_symbol(mcs.mod), 1);  
+    mexutils_write_f(pdsch.pdsch_e, &plhs[4], harq_process.dl_alloc.re_sf[sf_idx] * srslte_mod_bits_x_symbol(mcs.mod), 1);  
   }
   
   srslte_chest_dl_free(&chest);

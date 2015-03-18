@@ -38,7 +38,7 @@
 
 int nof_frames = 10; 
 int num_bits = 1000;
-lte_mod_t modulation = 10;
+srslte_mod_t modulation = 10;
 
 void usage(char *prog) {
   printf("Usage: %s [nfv] -m modulation (1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n", prog);

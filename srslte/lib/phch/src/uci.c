@@ -104,7 +104,7 @@ static uint8_t M_basis_seq_pucch[20][13]={
                                   };                                    
                                     
 int uci_cqi_init(uci_cqi_pusch_t *q) {
-  if (crc_init(&q->crc, LTE_CRC8, 8)) {
+  if (crc_init(&q->crc, SRSLTE_LTE_CRC8, 8)) {
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
@@ -115,20 +115,20 @@ void uci_cqi_free(uci_cqi_pusch_t *q) {
 }
 
 static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, harq_t *harq) {
-  uint32_t M_sc = harq->ul_alloc.L_prb * RE_X_RB;
+  uint32_t M_sc = harq->ul_alloc.L_prb * SRSLTE_NRE;
   
   uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
     harq->cb_segm.C2*harq->cb_segm.K2;
     
   uint32_t Q_prime = 0;
   if (K > 0) {
-    uint32_t M_sc_init = harq->nof_prb * RE_X_RB;
+    uint32_t M_sc_init = harq->nof_prb * SRSLTE_NRE;
     uint32_t L = (O<11)?0:8;
     uint32_t x = (uint32_t) ceilf((float) (O+L)*M_sc_init*harq->nof_symb*beta/K);
 
     Q_prime = MIN(x, M_sc * harq->nof_symb - Q_prime_ri);    
   } else {
-    Q_prime = 12*harq->ul_alloc.L_prb*RE_X_RB - Q_prime_ri;
+    Q_prime = 12*harq->ul_alloc.L_prb*SRSLTE_NRE - Q_prime_ri;
   }
 
   return Q_prime; 
@@ -222,7 +222,7 @@ int uci_encode_cqi_pusch(uci_cqi_pusch_t *q, uint8_t *cqi_data, uint32_t cqi_len
 {
   
   uint32_t Q_prime = Q_prime_cqi(cqi_len, beta, Q_prime_ri, harq);
-  uint32_t Q_m = lte_mod_bits_x_symbol(harq->mcs.mod);
+  uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);
   
   int ret = SRSLTE_ERROR;
   if (cqi_len <= 11) {
@@ -248,7 +248,7 @@ static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bi
   if (H_prime_total/N_pusch_symbs >= 1+ack_q_bit_idx/4) {
     uint32_t row = H_prime_total/N_pusch_symbs-1-ack_q_bit_idx/4;
     uint32_t colidx = (3*ack_q_bit_idx)%4;
-    uint32_t col = CP_ISNORM(cp)?ack_column_set_norm[colidx]:ack_column_set_ext[colidx];
+    uint32_t col = SRSLTE_CP_ISNORM(cp)?ack_column_set_norm[colidx]:ack_column_set_ext[colidx];
     for(uint32_t k=0; k<Q_m; k++) {
       q_bits[row *Q_m + 
              (H_prime_total/N_pusch_symbs)*col*Q_m + k] = ack_coded_bits[k];
@@ -272,7 +272,7 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
   if (H_prime_total/N_pusch_symbs >= 1+ri_q_bit_idx/4) {
     uint32_t row = H_prime_total/N_pusch_symbs-1-ri_q_bit_idx/4;
     uint32_t colidx = (3*ri_q_bit_idx)%4;
-    uint32_t col = CP_ISNORM(cp)?ri_column_set_norm[colidx]:ri_column_set_ext[colidx];
+    uint32_t col = SRSLTE_CP_ISNORM(cp)?ri_column_set_norm[colidx]:ri_column_set_ext[colidx];
     printf("r=%d-%d\n",H_prime_total/N_pusch_symbs,1+ri_q_bit_idx/4);
     for(uint32_t k=0; k<Q_m; k++) {
       q_bits[row *Q_m + (H_prime_total/N_pusch_symbs)*col*Q_m + k] = 10+ri_coded_bits[k];
@@ -287,7 +287,7 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
 }
 
 static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, harq_t *harq) {
-  uint32_t M_sc = harq->ul_alloc.L_prb * RE_X_RB;
+  uint32_t M_sc = harq->ul_alloc.L_prb * SRSLTE_NRE;
   
   uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
     harq->cb_segm.C2*harq->cb_segm.K2;
@@ -301,7 +301,7 @@ static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, harq_t *h
     }
   }
     
-  uint32_t M_sc_init = harq->nof_prb * RE_X_RB;
+  uint32_t M_sc_init = harq->nof_prb * SRSLTE_NRE;
     
   uint32_t x = (uint32_t) ceilf((float) O*M_sc_init*harq->nof_symb*beta/K);
 
@@ -323,7 +323,7 @@ static void encode_ri_ack(uint8_t data, uint8_t q_encoded_bits[6], uint8_t Q_m) 
  */
 int uci_encode_ack(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq, uint32_t H_prime_total, uint8_t *q_bits)
 {
-  uint32_t Q_m = lte_mod_bits_x_symbol(harq->mcs.mod);  
+  uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);  
   uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq);
   uint8_t q_encoded_bits[6];
 
@@ -342,7 +342,7 @@ int uci_encode_ack(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq, uint3
  */
 int uci_encode_ri(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq, uint32_t H_prime_total, uint8_t *q_bits)
 {
-  uint32_t Q_m = lte_mod_bits_x_symbol(harq->mcs.mod);  
+  uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);  
   uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq);
   uint8_t q_encoded_bits[6];
 

@@ -38,9 +38,9 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1000,         // cell_id
-  CPNORM,       // cyclic prefix
-  R_1,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_R_1,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
 
 void usage(char *prog) {
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
 
   parse_args(argc,argv);
 
-  nof_re = SRSLTE_CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  nof_re = SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
   /* init memory */
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {

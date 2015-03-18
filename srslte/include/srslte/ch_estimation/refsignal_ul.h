@@ -61,7 +61,7 @@ typedef struct SRSLTE_API {
 /** Uplink DeModulation Reference Signal (DMRS) */
 typedef struct SRSLTE_API {
   srslte_cell_t cell; 
-  uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CPNORM_NSYMB]; 
+  uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB]; 
   float *tmp_arg; 
   uint32_t n_prs_pusch[SRSLTE_NOF_DELTA_SS][SRSLTE_NSLOTS_X_FRAME]; // We precompute n_prs needed for cyclic shift alpha at srslte_refsignal_dl_init()
   uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME];

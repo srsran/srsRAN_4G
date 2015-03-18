@@ -40,7 +40,7 @@ time_t start, finish;
 struct timeval x, y;
 
 int num_bits = 1000;
-lte_mod_t modulation;
+srslte_mod_t modulation;
 bool soft_output = false, soft_exact = false;
 
 void usage(char *prog) {

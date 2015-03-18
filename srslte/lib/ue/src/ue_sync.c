@@ -51,12 +51,12 @@ int ue_sync_init_file(ue_sync_t *q, uint32_t nof_prb, char *file_name) {
   
   if (q                   != NULL && 
       file_name           != NULL && 
-      lte_nofprb_isvalid(nof_prb))
+      srslte_nofprb_isvalid(nof_prb))
   {
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(ue_sync_t));
     q->file_mode = true; 
-    q->sf_len = SF_LEN(lte_symbol_sz(nof_prb));
+    q->sf_len = SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb));
 
     if (filesource_init(&q->file_source, file_name, COMPLEX_FLOAT_BIN)) {
       fprintf(stderr, "Error opening file %s\n", file_name);
@@ -89,7 +89,7 @@ int ue_sync_init(ue_sync_t *q,
   
   if (q                                 != NULL && 
       stream_handler                    != NULL && 
-      lte_nofprb_isvalid(cell.nof_prb)      &&
+      srslte_nofprb_isvalid(cell.nof_prb)      &&
       recv_callback                     != NULL)
   {
     ret = SRSLTE_ERROR;
@@ -99,8 +99,8 @@ int ue_sync_init(ue_sync_t *q,
     q->stream = stream_handler;
     q->recv_callback = recv_callback;
     q->cell = cell;
-    q->fft_size = lte_symbol_sz(q->cell.nof_prb);
-    q->sf_len = SF_LEN(q->fft_size);
+    q->fft_size = srslte_symbol_sz(q->cell.nof_prb);
+    q->sf_len = SRSLTE_SF_LEN(q->fft_size);
     q->file_mode = false; 
     
     if (cell.id == 1000) {
@@ -249,7 +249,7 @@ static int find_peak_ok(ue_sync_t *q) {
   q->frame_find_cnt++;  
   INFO("Found peak %d at %d, value %.3f, Cell_id: %d CP: %s\n", 
        q->frame_find_cnt, q->peak_idx, 
-       sync_get_last_peak_value(&q->sfind), q->cell.id, lte_cp_string(q->cell.cp));       
+       sync_get_last_peak_value(&q->sfind), q->cell.id, srslte_cp_string(q->cell.cp));       
 
   if (q->frame_find_cnt >= q->nof_avg_find_frames || q->peak_idx < 2*q->fft_size) {
     INFO("Realigning frame, reading %d samples\n", q->peak_idx+q->sf_len/2);

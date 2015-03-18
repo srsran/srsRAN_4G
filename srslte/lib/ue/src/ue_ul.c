@@ -31,11 +31,11 @@
 
 #include "srslte/ue/ue_ul.h"
 
-#define CURRENT_FFTSIZE   lte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN     SF_LEN(CURRENT_FFTSIZE)
+#define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
+#define CURRENT_SFLEN     SRSLTE_SF_LEN(CURRENT_FFTSIZE)
 
-#define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
-#define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
+#define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
+#define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
 
 int ue_ul_init(ue_ul_t *q, 
@@ -44,7 +44,7 @@ int ue_ul_init(ue_ul_t *q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q                 != NULL &&
-      lte_cell_isvalid(&cell))   
+      srslte_cell_isvalid(&cell))   
   {
     ret = SRSLTE_ERROR;
     
@@ -85,7 +85,7 @@ int ue_ul_init(ue_ul_t *q,
       perror("malloc");
       goto clean_exit; 
     }
-    q->refsignal = vec_malloc(2 * RE_X_RB * q->cell.nof_prb * sizeof(cf_t));
+    q->refsignal = vec_malloc(2 * SRSLTE_NRE * q->cell.nof_prb * sizeof(cf_t));
     if (!q->refsignal) {
       perror("malloc");
       goto clean_exit; 
@@ -214,11 +214,11 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
     
     lte_ifft_run_sf(&q->fft, q->sf_symbols, output_signal);
     
-    //cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / lte_symbol_sz(q->cell.nof_prb));      
+    //cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));      
     
     if (q->normalize_en) {
       float norm_factor = (float) q->cell.nof_prb/10/sqrtf(q->harq_process[0].ul_alloc.L_prb);
-      vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SF_LEN_PRB(q->cell.nof_prb));
+      vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     
     ret = SRSLTE_SUCCESS; 

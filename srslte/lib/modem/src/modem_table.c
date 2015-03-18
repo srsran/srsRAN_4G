@@ -71,7 +71,7 @@ int modem_table_set(modem_table_t* q, cf_t* table, soft_table_t *soft_table, uin
   return SRSLTE_SUCCESS;
 }
 
-int modem_table_lte(modem_table_t* q, lte_mod_t modulation, bool compute_soft_demod) {
+int modem_table_lte(modem_table_t* q, srslte_mod_t modulation, bool compute_soft_demod) {
   switch(modulation) {
   case LTE_BPSK:
     q->nbits_x_symbol = 1;

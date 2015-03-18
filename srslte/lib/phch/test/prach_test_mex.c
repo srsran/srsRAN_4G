@@ -56,7 +56,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field NULRB not found in UE config\n");
     return;
   }  
-  int r = lte_symbol_sz(n_ul_rb);
+  int r = srslte_symbol_sz(n_ul_rb);
   if (r < 0) {
     mexErrMsgTxt("Invalid NULRB\n");
     return;
@@ -89,7 +89,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  uint32_t nof_samples = lte_sampling_freq_hz(n_ul_rb) * 0.003;
+  uint32_t nof_samples = srslte_sampling_freq_hz(n_ul_rb) * 0.003;
   
   cf_t *signal = vec_malloc(sizeof(cf_t) * nof_samples);
   if (!signal) {

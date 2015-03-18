@@ -48,11 +48,11 @@ int sch_init(sch_t *q) {
   if (q) {    
     bzero(q, sizeof(sch_t));
     
-    if (crc_init(&q->crc_tb, LTE_CRC24A, 24)) {
+    if (crc_init(&q->crc_tb, SRSLTE_LTE_CRC24A, 24)) {
       fprintf(stderr, "Error initiating CRC\n");
       goto clean;
     }
-    if (crc_init(&q->crc_cb, LTE_CRC24B, 24)) {
+    if (crc_init(&q->crc_cb, SRSLTE_LTE_CRC24B, 24)) {
       fprintf(stderr, "Error initiating CRC\n");
       goto clean;
     }
@@ -124,7 +124,7 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-  uint32_t Qm = lte_mod_bits_x_symbol(harq->mcs.mod);
+  uint32_t Qm = srslte_mod_bits_x_symbol(harq->mcs.mod);
   
   if (q             != NULL &&
       data          != NULL &&
@@ -246,7 +246,7 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
   uint32_t par_rx, par_tx;
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
-  uint32_t Qm = lte_mod_bits_x_symbol(harq->mcs.mod);
+  uint32_t Qm = srslte_mod_bits_x_symbol(harq->mcs.mod);
   
   if (q            != NULL   && 
       data         != NULL   &&       
@@ -450,9 +450,9 @@ int ulsch_uci_encode(sch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data,
   uint32_t Q_prime_cqi = 0; 
   uint32_t Q_prime_ack = 0;
   uint32_t Q_prime_ri = 0;
-  uint32_t Q_m = lte_mod_bits_x_symbol(harq->mcs.mod);
+  uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);
   
-  uint32_t nof_symbols = 12*harq->ul_alloc.L_prb*RE_X_RB;
+  uint32_t nof_symbols = 12*harq->ul_alloc.L_prb*SRSLTE_NRE;
   uint32_t nb_q = nof_symbols * Q_m;
 
   bzero(q_bits, sizeof(uint8_t) * nb_q);

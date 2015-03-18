@@ -39,16 +39,16 @@ srslte_cell_t cell = {
   6,            // nof_prb
   2,            // nof_ports
   150,          // cell_id
-  CPNORM,       // cyclic prefix
-  R_1,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_R_1,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
 
 int nof_frames = 1; 
 
 uint8_t bch_payload_file[BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-#define FLEN  (10*SF_LEN(lte_symbol_sz(cell.nof_prb)))
+#define FLEN  (10*SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb)))
 
 filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
@@ -86,7 +86,7 @@ void parse_args(int argc, char **argv) {
       verbose++;
       break;
     case 'e':
-      cell.cp = CPEXT;
+      cell.cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     default:
       usage(argv[0]);
@@ -113,21 +113,21 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  fft_buffer = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    ce[i] = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
     }
   }
   
-  if (!lte_cell_isvalid(&cell)) {
+  if (!srslte_cell_isvalid(&cell)) {
     fprintf(stderr, "Invalid cell properties\n");
     return -1;
   }
@@ -203,11 +203,11 @@ int main(int argc, char **argv) {
       INFO("Decoding PBCH\n", 0);
       
       for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-        ce_slot1[i] = &ce[i][SLOT_LEN_RE(cell.nof_prb, cell.cp)];
+        ce_slot1[i] = &ce[i][SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)];
       }
 
       pbch_decode_reset(&pbch);
-      n = pbch_decode(&pbch, &fft_buffer[SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
+      n = pbch_decode(&pbch, &fft_buffer[SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
                       ce_slot1, srslte_chest_dl_get_noise_estimate(&chest), 
                       bch_payload, &nof_tx_ports, &sfn_offset);
       if (n == 1) {

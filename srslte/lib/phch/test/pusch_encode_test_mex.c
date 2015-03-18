@@ -131,7 +131,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  uint32_t nof_re = RE_X_RB*cell.nof_prb*2*CP_NSYMB(cell.cp);
+  uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   cf_t *sf_symbols = vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
     mexErrMsgTxt("malloc");
@@ -194,19 +194,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
   }
 
-  cf_t *scfdma = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
-  bzero(scfdma, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
+  cf_t *scfdma = vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   srslte_fft_t fft; 
-  lte_ifft_init(&fft, CPNORM, cell.nof_prb);
+  lte_ifft_init(&fft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb);
   srslte_fft_set_normalize(&fft, true);
   srslte_fft_set_freq_shift(&fft, 0.5);
   lte_ifft_run_sf(&fft, sf_symbols, scfdma);
 
   // Matlab toolbox expects further normalization 
-  vec_sc_prod_cfc(scfdma, 1.0/sqrtf(lte_symbol_sz(cell.nof_prb)), scfdma, SF_LEN_PRB(cell.nof_prb));
+  vec_sc_prod_cfc(scfdma, 1.0/sqrtf(srslte_symbol_sz(cell.nof_prb)), scfdma, SRSLTE_SF_LEN_PRB(cell.nof_prb));
   
   if (nlhs >= 1) {
-    mexutils_write_cf(scfdma, &plhs[0], SF_LEN_PRB(cell.nof_prb), 1);  
+    mexutils_write_cf(scfdma, &plhs[0], SRSLTE_SF_LEN_PRB(cell.nof_prb), 1);  
   }
   if (nlhs >= 2) {
     mexutils_write_cf(sf_symbols, &plhs[1], nof_re, 1);  

@@ -69,7 +69,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  if (pss_synch_init_fft(&pss, frame_len, lte_symbol_sz(cell.nof_prb))) {
+  if (pss_synch_init_fft(&pss, frame_len, srslte_symbol_sz(cell.nof_prb))) {
     fprintf(stderr, "Error initiating PSS\n");
     exit(-1);
   }

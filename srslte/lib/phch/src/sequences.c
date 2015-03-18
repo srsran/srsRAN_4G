@@ -35,7 +35,7 @@
  */
 int sequence_pbch(sequence_t *seq, srslte_cp_t cp, uint32_t cell_id) {
   bzero(seq, sizeof(sequence_t));
-  return sequence_LTE_pr(seq, CP_ISNORM(cp)?1920:1728, cell_id);
+  return sequence_LTE_pr(seq, SRSLTE_CP_ISNORM(cp)?1920:1728, cell_id);
 }
 
 /**

@@ -48,9 +48,9 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
   bool skip_refs = false;
 
   if (slot == 0) {
-    re = (CP_NSYMB(cp) - nof_ctrl_symbols) * RE_X_RB;
+    re = (SRSLTE_CP_NSYMB(cp) - nof_ctrl_symbols) * SRSLTE_NRE;
   } else {
-    re = CP_NSYMB(cp) * RE_X_RB;
+    re = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE;
   }
 
   /* if it's the prb in the middle, there are less RE due to PBCH and PSS/SSS */
@@ -58,27 +58,27 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
       && (prb_idx >= nof_prb / 2 - 3 && prb_idx < nof_prb / 2 + 3)) {
     if (subframe == 0) {
       if (slot == 0) {
-        re = (CP_NSYMB(cp) - nof_ctrl_symbols - 2) * RE_X_RB;
+        re = (SRSLTE_CP_NSYMB(cp) - nof_ctrl_symbols - 2) * SRSLTE_NRE;
       } else {
-        if (CP_ISEXT(cp)) {
-          re = (CP_NSYMB(cp) - 4) * RE_X_RB;
+        if (SRSLTE_CP_ISEXT(cp)) {
+          re = (SRSLTE_CP_NSYMB(cp) - 4) * SRSLTE_NRE;
           skip_refs = true;
         } else {
-          re = (CP_NSYMB(cp) - 4) * RE_X_RB + 2 * nof_ports;
+          re = (SRSLTE_CP_NSYMB(cp) - 4) * SRSLTE_NRE + 2 * nof_ports;
         }
       }
     } else if (subframe == 5) {
       if (slot == 0) {
-        re = (CP_NSYMB(cp) - nof_ctrl_symbols - 2) * RE_X_RB;
+        re = (SRSLTE_CP_NSYMB(cp) - nof_ctrl_symbols - 2) * SRSLTE_NRE;
       }
     }
     if ((nof_prb % 2)
         && (prb_idx == nof_prb / 2 - 3 || prb_idx == nof_prb / 2 + 3)) {
       if (slot == 0) {
-        re += 2 * RE_X_RB / 2;
+        re += 2 * SRSLTE_NRE / 2;
       } else if (subframe == 0) {
-        re += 4 * RE_X_RB / 2 - nof_ports;
-        if (CP_ISEXT(cp)) {
+        re += 4 * SRSLTE_NRE / 2 - nof_ports;
+        if (SRSLTE_CP_ISEXT(cp)) {
           re -= nof_ports > 2 ? 2 : nof_ports;
         }
       }
@@ -497,7 +497,7 @@ int ra_tbs_from_idx_format1c(uint32_t tbs_idx) {
 
 /* Downlink Transport Block size determination as defined in 7.1.7.2 on 36.213 */
 int ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
-  if (tbs_idx < 27 && n_prb > 0 && n_prb <= MAX_PRB) {
+  if (tbs_idx < 27 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
     return tbs_table[tbs_idx][n_prb - 1];
   } else {
     return SRSLTE_ERROR;
@@ -509,7 +509,7 @@ int ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
  */
 int ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
   uint32_t idx;
-  if (n_prb > 0 && n_prb <= MAX_PRB) {
+  if (n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
     return SRSLTE_ERROR;
   }
   if (tbs < tbs_table[0][n_prb]) {
@@ -549,7 +549,7 @@ void ra_pusch_fprint(FILE *f, ra_pusch_t *ra, uint32_t nof_prb) {
   
   fprintf(f, " - Number of PRBs:\t\t\t%d\n", ra_nprb_ul(ra, nof_prb));
   fprintf(f, " - Modulation and coding scheme index:\t%d\n", ra->mcs_idx);
-  fprintf(f, " - Modulation type:\t\t\t%s\n", lte_mod_string(ra->mcs.mod));
+  fprintf(f, " - Modulation type:\t\t\t%s\n", srslte_mod_string(ra->mcs.mod));
   fprintf(f, " - Transport block size:\t\t%d\n", ra->mcs.tbs);
   fprintf(f, " - New data indicator:\t\t\t%s\n", ra->ndi ? "Yes" : "No");
   fprintf(f, " - Redundancy version:\t\t\t%d\n", ra->rv_idx);
@@ -612,7 +612,7 @@ void ra_pdsch_fprint(FILE *f, ra_pdsch_t *ra, uint32_t nof_prb) {
 
   fprintf(f, " - Number of PRBs:\t\t\t%d\n", ra_nprb_dl(ra, nof_prb));
   fprintf(f, " - Modulation and coding scheme index:\t%d\n", ra->mcs_idx);
-  fprintf(f, " - Modulation type:\t\t\t%s\n", lte_mod_string(ra->mcs.mod));
+  fprintf(f, " - Modulation type:\t\t\t%s\n", srslte_mod_string(ra->mcs.mod));
   fprintf(f, " - Transport block size:\t\t%d\n", ra->mcs.tbs);
   fprintf(f, " - HARQ process:\t\t\t%d\n", ra->harq_process);
   fprintf(f, " - New data indicator:\t\t\t%s\n", ra->ndi ? "Yes" : "No");

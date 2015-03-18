@@ -42,7 +42,7 @@
 #include "srslte/utils/vector.h"
 #include "srslte/filter/dft_precoding.h"
 
-#define MAX_PUSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
+#define MAX_PUSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
 bool pucch_cfg_isvalid(pucch_cfg_t *cfg) {
   return true;
@@ -50,18 +50,18 @@ bool pucch_cfg_isvalid(pucch_cfg_t *cfg) {
 
 
 /* Generates n_cs_cell according to Sec 5.4 of 36.211 */
-int generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CPNORM_NSYMB]) 
+int generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB]) 
 {
   sequence_t seq; 
   bzero(&seq, sizeof(sequence_t));
 
-  sequence_LTE_pr(&seq, 8*CP_NSYMB(cell.cp)*SRSLTE_NSLOTS_X_FRAME, cell.id);
+  sequence_LTE_pr(&seq, 8*SRSLTE_CP_NSYMB(cell.cp)*SRSLTE_NSLOTS_X_FRAME, cell.id);
 
   for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {
-    for (uint32_t l=0;l<CP_NSYMB(cell.cp);l++) {
+    for (uint32_t l=0;l<SRSLTE_CP_NSYMB(cell.cp);l++) {
       n_cs_cell[ns][l] = 0; 
       for (uint32_t i=0;i<8;i++) {
-        n_cs_cell[ns][l] += seq.c[8*CP_NSYMB(cell.cp)*ns+8*l+i]<<i;
+        n_cs_cell[ns][l] += seq.c[8*SRSLTE_CP_NSYMB(cell.cp)*ns+8*l+i]<<i;
       }
     }
   }
@@ -71,13 +71,13 @@ int generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FR
 
 
 /* Calculates alpha according to 5.5.2.2.2 of 36.211 */
-float pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CPNORM_NSYMB], 
+float pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB], 
                       pucch_cfg_t *cfg, 
                       srslte_cp_t cp, bool is_drms,
                       uint32_t ns, uint32_t l, 
                       uint32_t *n_oc_ptr) 
 {
-  uint32_t c = CP_ISNORM(cp)?3:2;
+  uint32_t c = SRSLTE_CP_ISNORM(cp)?3:2;
   uint32_t N_prime = (cfg->n_pucch < c*cfg->N_cs/cfg->delta_pucch_shift)?cfg->N_cs:12;
 
   uint32_t n_prime = cfg->n_pucch;
@@ -85,17 +85,17 @@ float pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CPNORM_NS
     n_prime = (cfg->n_pucch-c*cfg->N_cs/cfg->delta_pucch_shift)%(cfg->N_cs/cfg->delta_pucch_shift);
   }
   
-  uint32_t n_oc_div = (!is_drms && CP_ISEXT(cp))?2:1;
+  uint32_t n_oc_div = (!is_drms && SRSLTE_CP_ISEXT(cp))?2:1;
 
   uint32_t n_oc = n_prime*cfg->delta_pucch_shift/N_prime;
-  if (!is_drms && CP_ISEXT(cp)) {
+  if (!is_drms && SRSLTE_CP_ISEXT(cp)) {
     n_oc *= 2; 
   }
   if (n_oc_ptr) {
     *n_oc_ptr = n_oc; 
   }
   uint32_t n_cs = 0; 
-  if (CP_ISNORM(cp)) {
+  if (SRSLTE_CP_ISNORM(cp)) {
     n_cs = (n_cs_cell[ns][l]+(n_prime*cfg->delta_pucch_shift+(n_oc%cfg->delta_pucch_shift))%N_prime)%12;
   } else {
     n_cs = (n_cs_cell[ns][l]+(n_prime*cfg->delta_pucch_shift+n_oc/n_oc_div)%N_prime)%12;    
@@ -121,7 +121,7 @@ int pucch_get(pucch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
 /** Initializes the PDCCH transmitter and receiver */
 int pucch_init(pucch_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (q != NULL && lte_cell_isvalid(&cell)) {
+  if (q != NULL && srslte_cell_isvalid(&cell)) {
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(pucch_t));
     

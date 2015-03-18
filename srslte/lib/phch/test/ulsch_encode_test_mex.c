@@ -66,7 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_cell_t cell;
   cell.nof_prb = 100;
   cell.id=1;
-  cell.cp=CPNORM;
+  cell.cp=SRSLTE_SRSLTE_CP_NORM;
   if (harq_init(&harq_process, cell)) {
     mexErrMsgTxt("Error initiating HARQ\n");
     return;
@@ -135,7 +135,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   prb_alloc.n_prb[1] = prbset[0];
   free(prbset);
   
-  mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", lte_mod_bits_x_symbol(mcs.mod), prb_alloc.L_prb, rv);
+  mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", srslte_mod_bits_x_symbol(mcs.mod), prb_alloc.L_prb, rv);
 
   if (harq_setup_ul(&harq_process, mcs, 0, 0, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");

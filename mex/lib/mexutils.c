@@ -83,9 +83,9 @@ int mexutils_read_cell(const mxArray *ptr, srslte_cell_t *cell) {
     return -1;
   }
   // TODO
-  cell->cp = CPNORM;
-  cell->phich_length = PHICH_NORM;
-  cell->phich_resources = R_1_6; 
+  cell->cp = SRSLTE_SRSLTE_CP_NORM;
+  cell->phich_length = SRSLTE_PHICH_NORM;
+  cell->phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6; 
   return 0;
 }
 

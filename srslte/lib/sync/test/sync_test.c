@@ -38,10 +38,10 @@
 #include "srslte/srslte.h"
 
 int cell_id = -1, offset = 0;
-srslte_cp_t cp = CPNORM;
+srslte_cp_t cp = SRSLTE_SRSLTE_CP_NORM;
 uint32_t nof_prb=6; 
 
-#define FLEN  SF_LEN(fft_size)
+#define FLEN  SRSLTE_SF_LEN(fft_size)
 
 void usage(char *prog) {
   printf("Usage: %s [cpoev]\n", prog);
@@ -66,7 +66,7 @@ void parse_args(int argc, char **argv) {
       offset = atoi(argv[optind]);
       break;
     case 'e':
-      cp = CPEXT;
+      cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     case 'v':
       verbose++;
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
   
   parse_args(argc, argv);
 
-  fft_size = lte_symbol_sz(nof_prb);
+  fft_size = srslte_symbol_sz(nof_prb);
   if (fft_size < 0) {
     fprintf(stderr, "Invalid nof_prb=%d\n", nof_prb);
     exit(-1);
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
         exit(-1);
       }
       if (sync_get_cp(&sync) != cp) {
-        printf("Detected CP should be %s\n", CP_ISNORM(cp)?"Normal":"Extended");
+        printf("Detected CP should be %s\n", SRSLTE_CP_ISNORM(cp)?"Normal":"Extended");
         exit(-1);
       }
     }

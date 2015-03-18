@@ -70,7 +70,7 @@ static void corr_all_sz_partial(cf_t z[N_SSS], float s[N_SSS][N_SSS], uint32_t M
 }
 
 static void extract_pair_sss(sss_synch_t *q, cf_t *input, cf_t *ce, cf_t y[2][N_SSS]) {
-  cf_t input_fft[SYMBOL_SZ_MAX];
+  cf_t input_fft[SRSLTE_SYMBOL_SZ_MAX];
 
   dft_run_c(&q->dftp_input, input, input_fft);
   

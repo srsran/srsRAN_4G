@@ -34,7 +34,7 @@
 #include "srslte/phch/regs.h"
 #include "srslte/utils/debug.h"
 
-#define REG_IDX(r, i, n) r->k[i]+r->l*n*RE_X_RB
+#define REG_IDX(r, i, n) r->k[i]+r->l*n*SRSLTE_NRE
 
 
 regs_reg_t *regs_find_reg(regs_t *h, uint32_t k, uint32_t l);
@@ -240,16 +240,16 @@ int regs_phich_init(regs_t *h) {
   int ret = SRSLTE_ERROR;
 
   switch(h->phich_res) {
-  case R_1_6:
+  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
     ng = (float) 1/6;
     break;
-  case R_1_2:
+  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
     ng = (float) 1/2;
     break;
-  case R_1:
+  case SRSLTE_PHICH_R_1:
     ng = 1;
     break;
-  case R_2:
+  case SRSLTE_PHICH_R_2:
     ng = 2;
     break;
   default:
@@ -263,7 +263,7 @@ int regs_phich_init(regs_t *h) {
     return -1;
   }
   INFO("Creating %d PHICH mapping units. %s length, Ng=%.2f\n",h->ngroups_phich,
-      h->phich_len==PHICH_EXT?"Extended":"Normal",ng);
+      h->phich_len==SRSLTE_PHICH_EXT?"Extended":"Normal",ng);
   for (i=0;i<h->ngroups_phich;i++) {
     h->phich[i].nof_regs = REGS_PHICH_REGS_X_GROUP;
     h->phich[i].regs = malloc(sizeof(regs_reg_t*) * REGS_PHICH_REGS_X_GROUP);
@@ -304,7 +304,7 @@ int regs_phich_init(regs_t *h) {
   nreg=0;
   for (mi=0;mi<h->ngroups_phich;mi++) { // here ngroups is the number of mapping units
     for (i=0;i<3;i++) {
-      li=h->phich_len==PHICH_EXT?i:0; // Step 7
+      li=h->phich_len==SRSLTE_PHICH_EXT?i:0; // Step 7
       ni=((h->cell.id*n[li]/n[0])+mi+i*n[li]/3) % n[li]; // Step 8
       h->phich[mi].regs[i] = regs_phich[li][ni];
       h->phich[mi].regs[i]->assigned = true;
@@ -315,7 +315,7 @@ int regs_phich_init(regs_t *h) {
 
   // now the number of mapping units = number of groups for normal cp. For extended cp
   // ngroups = 2 * number mapping units
-  if (CP_ISEXT(h->cell.cp)) {
+  if (SRSLTE_CP_ISEXT(h->cell.cp)) {
     h->ngroups_phich *= 2;
   }
   ret = SRSLTE_SUCCESS;
@@ -342,7 +342,7 @@ clean_and_exit:
 void regs_phich_free(regs_t *h) {
   uint32_t i;
   if (h->phich) {
-    if (CP_ISEXT(h->cell.cp)) {
+    if (SRSLTE_CP_ISEXT(h->cell.cp)) {
       h->ngroups_phich /= 2;
     }
     for (i=0;i<h->ngroups_phich;i++) {
@@ -384,7 +384,7 @@ int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], uint32_t ngro
     fprintf(stderr, "Error invalid ngroup %d\n", ngroup);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
-  if (CP_ISEXT(h->cell.cp)) {
+  if (SRSLTE_CP_ISEXT(h->cell.cp)) {
     ngroup /= 2;
   }
   regs_ch_t *rch = &h->phich[ngroup];
@@ -402,8 +402,8 @@ int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], uint32_t ngro
 int regs_phich_reset(regs_t *h, cf_t *slot_symbols) {
   uint32_t i;
   uint32_t ngroup, ng;
-  for (ngroup = 0;ngroup < h->ngroups_phich;CP_ISEXT(h->cell.cp)?ngroup+=2:ngroup++) {
-    if (CP_ISEXT(h->cell.cp)) {
+  for (ngroup = 0;ngroup < h->ngroups_phich;SRSLTE_CP_ISEXT(h->cell.cp)?ngroup+=2:ngroup++) {
+    if (SRSLTE_CP_ISEXT(h->cell.cp)) {
       ng = ngroup/2;
     } else {
       ng = ngroup;
@@ -427,7 +427,7 @@ int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_
     fprintf(stderr, "Error invalid ngroup %d\n", ngroup);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
-  if (CP_ISEXT(h->cell.cp)) {
+  if (SRSLTE_CP_ISEXT(h->cell.cp)) {
     ngroup /= 2;
   }
   regs_ch_t *rch = &h->phich[ngroup];
@@ -470,11 +470,11 @@ int regs_pcfich_init(regs_t *h) {
 
   INFO("PCFICH allocating %d regs. CellID: %d, PRB: %d\n", ch->nof_regs, h->cell.id, h->cell.nof_prb);
 
-  k_hat = (RE_X_RB / 2) * (h->cell.id % (2 * h->cell.nof_prb));
+  k_hat = (SRSLTE_NRE / 2) * (h->cell.id % (2 * h->cell.nof_prb));
   for (i = 0; i < REGS_PCFICH_NREGS; i++) {
 
-    k = (k_hat + (i * h->cell.nof_prb / 2) * (RE_X_RB / 2))
-        % (h->cell.nof_prb * RE_X_RB);
+    k = (k_hat + (i * h->cell.nof_prb / 2) * (SRSLTE_NRE / 2))
+        % (h->cell.nof_prb * SRSLTE_NRE);
     ch->regs[i] = regs_find_reg(h, k, 0);
     if (!ch->regs[i]) {
       fprintf(stderr, "Error allocating PCFICH: REG (%d,0) not found\n",
@@ -586,7 +586,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, srslte_cp_t cp) {
   case 2:
     return 3;
   case 3:
-    if (CP_ISNORM(cp)) {
+    if (SRSLTE_CP_ISNORM(cp)) {
       return 3;
     } else {
       return 2;
@@ -660,7 +660,7 @@ void regs_free(regs_t *h) {
  */
 int regs_set_cfi(regs_t *h, uint32_t cfi) {  
   if (cfi > 0 && cfi <= 3) {
-    if (h->phich_len == PHICH_EXT &&
+    if (h->phich_len == SRSLTE_PHICH_EXT &&
         ((h->cell.nof_prb < 10 && cfi < 2) || (h->cell.nof_prb >= 10 && cfi < 3))) {
       fprintf(stderr, "PHICH length is extended. The number of control symbols should be at least 3.\n");
       return SRSLTE_ERROR_INVALID_INPUTS;
@@ -688,7 +688,7 @@ int regs_init(regs_t *h, srslte_cell_t cell) {
   uint32_t max_ctrl_symbols;
 
   if (h != NULL &&
-      lte_cell_isvalid(&cell))
+      srslte_cell_isvalid(&cell))
   {
     bzero(h, sizeof(regs_t));
     ret = SRSLTE_ERROR;
@@ -710,7 +710,7 @@ int regs_init(regs_t *h, srslte_cell_t cell) {
       h->nof_regs += h->cell.nof_prb * n[i];
     }
     INFO("Indexing %d REGs. CellId: %d, %d PRB, CP: %s\n", h->nof_regs, h->cell.id, h->cell.nof_prb,
-        CP_ISNORM(h->cell.cp)?"Normal":"Extended");
+        SRSLTE_CP_ISNORM(h->cell.cp)?"Normal":"Extended");
     h->regs = malloc(sizeof(regs_reg_t) * h->nof_regs);
     if (!h->regs) {
       perror("malloc");
@@ -722,7 +722,7 @@ int regs_init(regs_t *h, srslte_cell_t cell) {
     k = i = prb = jmax = 0;
     while (k < h->nof_regs) {
       if (n[i] == 3 || (n[i] == 2 && jmax != 1)) {
-        if (regs_reg_init(&h->regs[k], i, j[i], prb * RE_X_RB, n[i], vo)) {
+        if (regs_reg_init(&h->regs[k], i, j[i], prb * SRSLTE_NRE, n[i], vo)) {
           fprintf(stderr, "Error initializing REGs\n");
           goto clean_and_exit;
         }

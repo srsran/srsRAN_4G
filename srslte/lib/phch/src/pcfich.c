@@ -66,7 +66,7 @@ int pcfich_init(pcfich_t *q, regs_t *regs, srslte_cell_t cell) {
   
   if (q                         != NULL &&
       regs                      != NULL &&
-      lte_cell_isvalid(&cell)) 
+      srslte_cell_isvalid(&cell)) 
   {   
     ret = SRSLTE_ERROR;
     
@@ -75,7 +75,7 @@ int pcfich_init(pcfich_t *q, regs_t *regs, srslte_cell_t cell) {
     q->regs = regs;
     q->nof_symbols = PCFICH_RE;
     
-    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+    if (precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
     }
 
@@ -164,7 +164,7 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], f
 
   /* Set pointers for layermapping & precoding */
   int i;
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
   cf_t *ce_precoding[SRSLTE_MAX_PORTS];
 
   if (q                 != NULL                 && 
@@ -239,7 +239,7 @@ int pcfich_encode(pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SRSLTE_MAX_PORTS
   {
 
     /* Set pointers for layermapping & precoding */
-    cf_t *x[MAX_LAYERS];
+    cf_t *x[SRSLTE_MAX_LAYERS];
     cf_t *symbols_precoding[SRSLTE_MAX_PORTS];
 
     /* number of layers equals number of ports */

@@ -59,7 +59,7 @@ int sync_init(sync_t *q, uint32_t frame_size, uint32_t fft_size) {
     
     bzero(q, sizeof(sync_t));
     q->detect_cp = true;
-    q->cp = CPNORM;
+    q->cp = SRSLTE_SRSLTE_CP_NORM;
     q->mean_peak_value = 0.0;
     q->sss_en = true;
     q->correct_cfo = true; 
@@ -115,11 +115,11 @@ void sync_sss_en(sync_t *q, bool enabled) {
 }
 
 bool sync_sss_detected(sync_t *q) {
-  return lte_N_id_1_isvalid(q->N_id_1);
+  return srslte_N_id_1_isvalid(q->N_id_1);
 }
 
 int sync_get_cell_id(sync_t *q) {
-  if (lte_N_id_2_isvalid(q->N_id_2) && lte_N_id_1_isvalid(q->N_id_1)) {
+  if (srslte_N_id_2_isvalid(q->N_id_2) && srslte_N_id_1_isvalid(q->N_id_1)) {
     return q->N_id_1*3 + q->N_id_2;      
   } else {
     return -1; 
@@ -127,7 +127,7 @@ int sync_get_cell_id(sync_t *q) {
 }
 
 int sync_set_N_id_2(sync_t *q, uint32_t N_id_2) {
-  if (lte_N_id_2_isvalid(N_id_2)) {
+  if (srslte_N_id_2_isvalid(N_id_2)) {
     q->N_id_2 = N_id_2;    
     return SRSLTE_SUCCESS;
   } else {
@@ -188,8 +188,8 @@ srslte_cp_t sync_detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos)
   float R_norm, R_ext, C_norm, C_ext; 
   float M_norm=0, M_ext=0; 
   
-  uint32_t cp_norm_len = CP_NORM(7, q->fft_size);
-  uint32_t cp_ext_len = CP_EXT(q->fft_size);
+  uint32_t cp_norm_len = SRSLTE_CP_NORM(7, q->fft_size);
+  uint32_t cp_ext_len = SRSLTE_CP_EXT(q->fft_size);
  
   cf_t *input_cp_norm = &input[peak_pos-2*(q->fft_size+cp_norm_len)]; 
   cf_t *input_cp_ext = &input[peak_pos-2*(q->fft_size+cp_ext_len)]; 
@@ -215,14 +215,14 @@ srslte_cp_t sync_detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos)
   q->M_ext_avg = VEC_EMA(M_ext/2, q->M_ext_avg, CP_EMA_ALPHA);
 
   if (q->M_norm_avg > q->M_ext_avg) {
-    return CPNORM;    
+    return SRSLTE_SRSLTE_CP_NORM;    
   } else if (q->M_norm_avg < q->M_ext_avg) {
-    return CPEXT;
+    return SRSLTE_SRSLTE_CP_EXT;
   } else {
     if (R_norm > R_ext) {
-      return CPNORM;
+      return SRSLTE_SRSLTE_CP_NORM;
     } else {
-      return CPEXT;
+      return SRSLTE_SRSLTE_CP_EXT;
     }
   }
 }
@@ -236,7 +236,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, srslte_cp_t cp) {
   sss_synch_set_N_id_2(&q->sss, q->N_id_2);
 
   /* Make sure we have enough room to find SSS sequence */
-  sss_idx = (int) peak_pos-2*q->fft_size-CP(q->fft_size, (CP_ISNORM(q->cp)?CPNORM_LEN:CPEXT_LEN));
+  sss_idx = (int) peak_pos-2*q->fft_size-SRSLTE_CP(q->fft_size, (SRSLTE_CP_ISNORM(q->cp)?SRSLTE_SRSLTE_CP_NORM_LEN:SRSLTE_SRSLTE_CP_EXT_LEN));
   if (sss_idx < 0) {
     INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
     return SRSLTE_ERROR;
@@ -260,7 +260,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, srslte_cp_t cp) {
   if (ret >= 0) {
     q->N_id_1 = (uint32_t) ret;
     DEBUG("SSS detected N_id_1=%d, sf_idx=%d, %s CP\n",
-      q->N_id_1, q->sf_idx, CP_ISNORM(q->cp)?"Normal":"Extended");
+      q->N_id_1, q->sf_idx, SRSLTE_CP_ISNORM(q->cp)?"Normal":"Extended");
     return 1;
   } else {
     q->N_id_1 = 1000;
@@ -283,7 +283,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
   
   if (q                 != NULL     &&
       input             != NULL     &&
-      lte_N_id_2_isvalid(q->N_id_2) && 
+      srslte_N_id_2_isvalid(q->N_id_2) && 
       fft_size_isvalid(q->fft_size))
   {
     int peak_pos;
@@ -321,7 +321,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
       }
 
       if (q->detect_cp) {
-        if (peak_pos + find_offset >= 2*(q->fft_size + CP_EXT(q->fft_size))) {
+        if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_EXT(q->fft_size))) {
           q->cp = sync_detect_cp(q, input, peak_pos + find_offset);
         } else {
           INFO("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
@@ -351,7 +351,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
     INFO("SYNC ret=%d N_id_2=%d find_offset=%d pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
          ret, q->N_id_2, find_offset, peak_pos, q->peak_value, q->threshold, q->sf_idx, 15*q->mean_cfo);
 
-  } else if (lte_N_id_2_isvalid(q->N_id_2)) {
+  } else if (srslte_N_id_2_isvalid(q->N_id_2)) {
     fprintf(stderr, "Must call sync_set_N_id_2() first!\n");
   }
   

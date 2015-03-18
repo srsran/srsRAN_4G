@@ -39,8 +39,8 @@ typedef _Complex float cf_t;
 typedef struct SRSLTE_API {
 
   uint32_t max_prb;  
-  srslte_dft_plan_t dft_plan[MAX_PRB];
-  srslte_dft_plan_t idft_plan[MAX_PRB];
+  srslte_dft_plan_t dft_plan[SRSLTE_MAX_PRB];
+  srslte_dft_plan_t idft_plan[SRSLTE_MAX_PRB];
     
 }dft_precoding_t;
 

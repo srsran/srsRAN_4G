@@ -93,7 +93,7 @@ typedef struct {
 
 void args_default(prog_args_t *args) {
   args->nof_subframes = -1;
-  args->rnti = SIRNTI;
+  args->rnti = SRSLTE_SIRNTI;
   args->force_N_id_2 = -1; // Pick the best
   args->input_file_name = NULL;
   args->file_nof_prb = 6; 
@@ -281,7 +281,7 @@ int main(int argc, char **argv) {
     }
     
     /* set sampling frequency */
-    int srate = lte_sampling_freq_hz(cell.nof_prb);
+    int srate = srslte_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {  
       cuhd_set_rx_srate(uhd, (double) srate);      
     } else {
@@ -305,9 +305,9 @@ int main(int argc, char **argv) {
     state = DECODE_PDSCH; 
     /* preset cell configuration */
     cell.id = 1; 
-    cell.cp = CPNORM; 
-    cell.phich_length = PHICH_NORM;
-    cell.phich_resources = R_1;
+    cell.cp = SRSLTE_SRSLTE_CP_NORM; 
+    cell.phich_length = SRSLTE_PHICH_NORM;
+    cell.phich_resources = SRSLTE_PHICH_R_1;
     cell.nof_ports = 1; 
     cell.nof_prb = prog_args.file_nof_prb; 
     
@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
           }
           break;
         case DECODE_PDSCH:
-          if (prog_args.rnti != SIRNTI) {
+          if (prog_args.rnti != SRSLTE_SIRNTI) {
             decode_pdsch = true; 
           } else {
             /* We are looking for SIB1 Blocks, search only in appropiate places */
@@ -397,10 +397,10 @@ int main(int argc, char **argv) {
             }
           }
           if (decode_pdsch) {
-            if (prog_args.rnti != SIRNTI) {
+            if (prog_args.rnti != SRSLTE_SIRNTI) {
               n = ue_dl_decode(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync));
             } else {
-              n = ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), SIRNTI,
+              n = ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {
@@ -520,13 +520,13 @@ int main(int argc, char **argv) {
 plot_real_t p_sync, pce;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
-float tmp_plot[SLOT_LEN_RE(MAX_PRB, CPNORM)];
-float tmp_plot2[SLOT_LEN_RE(MAX_PRB, CPNORM)];
-float tmp_plot3[SLOT_LEN_RE(MAX_PRB, CPNORM)];
+float tmp_plot[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
+float tmp_plot2[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
+float tmp_plot3[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
 
 void *plot_thread_run(void *arg) {
   int i;
-  uint32_t nof_re = SF_LEN_RE(ue_dl.cell.nof_prb, ue_dl.cell.cp);
+  uint32_t nof_re = SRSLTE_SF_LEN_RE(ue_dl.cell.nof_prb, ue_dl.cell.cp);
     
   while(1) {
     sem_wait(&plot_sem);
@@ -544,8 +544,8 @@ void *plot_thread_run(void *arg) {
         tmp_plot2[i] = -80;
       }
     }
-    //for (i=0;i<CP_NSYMB(ue_dl.cell.cp);i++) {
-    //  plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*RE_X_RB*ue_dl.cell.nof_prb], RE_X_RB*ue_dl.cell.nof_prb);            
+    //for (i=0;i<SRSLTE_CP_NSYMB(ue_dl.cell.cp);i++) {
+    //  plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*SRSLTE_NRE*ue_dl.cell.nof_prb], SRSLTE_NRE*ue_dl.cell.nof_prb);            
     //}
     plot_real_setNewData(&pce, tmp_plot2, SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
     if (!prog_args.input_file_name) {
@@ -577,7 +577,7 @@ void init_plots() {
 
   plot_init();
   
-  //plot_waterfall_init(&poutfft, RE_X_RB * ue_dl.cell.nof_prb, 1000);
+  //plot_waterfall_init(&poutfft, SRSLTE_NRE * ue_dl.cell.nof_prb, 1000);
   //plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
   //plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
 

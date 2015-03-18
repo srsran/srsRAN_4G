@@ -66,7 +66,7 @@ SRSLTE_API int modem_table_set(modem_table_t* q,
                                uint32_t nbits_x_symbol);
 
 SRSLTE_API int modem_table_lte(modem_table_t* q, 
-                               lte_mod_t modulation, 
+                               srslte_mod_t modulation, 
                                bool compute_soft_demod);
 
 #endif // MODEM_TABLE_

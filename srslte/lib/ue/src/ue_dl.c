@@ -30,11 +30,11 @@
 #include <complex.h>
 #include <math.h>
 
-#define CURRENT_FFTSIZE   lte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN     SF_LEN(CURRENT_FFTSIZE)
+#define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
+#define CURRENT_SFLEN     SRSLTE_SF_LEN(CURRENT_FFTSIZE)
 
-#define CURRENT_SLOTLEN_RE SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
-#define CURRENT_SFLEN_RE SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
+#define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
+#define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
 #define MAX_CANDIDATES  64
 
@@ -44,7 +44,7 @@ int ue_dl_init(ue_dl_t *q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q                 != NULL &&
-      lte_cell_isvalid(&cell))   
+      srslte_cell_isvalid(&cell))   
   {
     ret = SRSLTE_ERROR;
     
@@ -219,7 +219,7 @@ int ue_dl_decode_rnti_rv_packet(ue_dl_t *q, dci_msg_t *dci_msg, uint8_t *data,
     return SRSLTE_ERROR;
   }
 
-  if (rnti != SIRNTI) {
+  if (rnti != SRSLTE_SIRNTI) {
     rvidx = q->ra_dl.rv_idx;
   }
   if (harq_setup_dl(&q->harq_process[0], q->ra_dl.mcs, rvidx, sf_idx, &q->ra_dl.prb_alloc)) {
@@ -276,7 +276,7 @@ int ue_dl_decode_rnti_rv(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx
   }
   
   /* Generate PDCCH candidates */
-  if (rnti == SIRNTI) {
+  if (rnti == SRSLTE_SIRNTI) {
     nof_locations = pdcch_common_locations(&q->pdcch, locations, MAX_CANDIDATES, cfi);
     formats = common_formats;
     nof_formats = nof_common_formats;

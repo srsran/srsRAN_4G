@@ -41,15 +41,15 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   0,            // cell_id
-  CPNORM,       // cyclic prefix
-  R_1,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_R_1,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
 
 int flen;
 
 uint32_t cfi = 2;
-uint16_t rnti = SIRNTI;
+uint16_t rnti = SRSLTE_SIRNTI;
 
 int max_frames = 10;
 uint32_t sf_idx = 0;
@@ -117,7 +117,7 @@ void parse_args(int argc, char **argv) {
       verbose++;
       break;
     case 'e':
-      cell.cp = CPEXT;
+      cell.cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     default:
       usage(argv[0]);
@@ -138,7 +138,7 @@ int base_init() {
     exit(-1);
   }
 
-  flen = 2 * (SLOT_LEN(lte_symbol_sz(cell.nof_prb)));
+  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb)));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -146,14 +146,14 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  fft_buffer = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    ce[i] = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (rnti == SIRNTI) {
+  if (rnti == SRSLTE_SIRNTI) {
     INFO("Initializing common search space for SI-RNTI\n",0);
     nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
   } 
@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&chest, fft_buffer, ce, sf_idx);
     
-    if (rnti != SIRNTI) {
+    if (rnti != SRSLTE_SIRNTI) {
       INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
       nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
     }

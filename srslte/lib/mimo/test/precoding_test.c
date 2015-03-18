@@ -79,19 +79,19 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int i, j;
   float mse;
-  cf_t *x[MAX_LAYERS], *r[SRSLTE_MAX_PORTS], *y[SRSLTE_MAX_PORTS], *h[SRSLTE_MAX_PORTS],
-      *xr[MAX_LAYERS];
-  lte_mimo_type_t type;
+  cf_t *x[SRSLTE_MAX_LAYERS], *r[SRSLTE_MAX_PORTS], *y[SRSLTE_MAX_PORTS], *h[SRSLTE_MAX_PORTS],
+      *xr[SRSLTE_MAX_LAYERS];
+  srslte_mimo_type_t type;
   precoding_t precoding; 
   
   parse_args(argc, argv);
 
-  if (nof_ports > SRSLTE_MAX_PORTS || nof_layers > MAX_LAYERS) {
+  if (nof_ports > SRSLTE_MAX_PORTS || nof_layers > SRSLTE_MAX_LAYERS) {
     fprintf(stderr, "Invalid number of layers or ports\n");
     exit(-1);
   }
 
-  if (lte_str2mimotype(mimo_type_name, &type)) {
+  if (srslte_str2mimotype(mimo_type_name, &type)) {
     fprintf(stderr, "Invalid MIMO type %s\n", mimo_type_name);
     exit(-1);
   }

@@ -61,37 +61,37 @@ int pbch_cp(cf_t *input, cf_t *output, srslte_cell_t cell, bool put) {
   
   if (put) {
     ptr = input;
-    output += cell.nof_prb * RE_X_RB / 2 - 36;
+    output += cell.nof_prb * SRSLTE_NRE / 2 - 36;
   } else {
     ptr = output;
-    input += cell.nof_prb * RE_X_RB / 2 - 36;
+    input += cell.nof_prb * SRSLTE_NRE / 2 - 36;
   }
   
   /* symbol 0 & 1 */
   for (i = 0; i < 2; i++) {
     prb_cp_ref(&input, &output, cell.id % 3, 4, 4*6, put);
     if (put) {
-      output += cell.nof_prb * RE_X_RB - 2*36 + (cell.id%3==2?1:0);      
+      output += cell.nof_prb * SRSLTE_NRE - 2*36 + (cell.id%3==2?1:0);      
     } else {
-      input += cell.nof_prb * RE_X_RB - 2*36 + (cell.id%3==2?1:0);
+      input += cell.nof_prb * SRSLTE_NRE - 2*36 + (cell.id%3==2?1:0);
     }
   }
   /* symbols 2 & 3 */
-  if (CP_ISNORM(cell.cp)) {
+  if (SRSLTE_CP_ISNORM(cell.cp)) {
     for (i = 0; i < 2; i++) {
       prb_cp(&input, &output, 6);
       if (put) {
-        output += cell.nof_prb * RE_X_RB - 2*36;
+        output += cell.nof_prb * SRSLTE_NRE - 2*36;
       } else {
-        input += cell.nof_prb * RE_X_RB - 2*36;
+        input += cell.nof_prb * SRSLTE_NRE - 2*36;
       }
     }
   } else {
     prb_cp(&input, &output, 6);
     if (put) {
-      output += cell.nof_prb * RE_X_RB - 2*36;
+      output += cell.nof_prb * SRSLTE_NRE - 2*36;
     } else {
-      input += cell.nof_prb * RE_X_RB - 2*36;
+      input += cell.nof_prb * SRSLTE_NRE - 2*36;
     }
     prb_cp_ref(&input, &output, cell.id % 3, 4, 4*6, put);
   }
@@ -132,15 +132,15 @@ int pbch_init(pbch_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q                       != NULL &&
-      lte_cell_isvalid(&cell))
+      srslte_cell_isvalid(&cell))
   {
     ret = SRSLTE_ERROR;
 
     bzero(q, sizeof(pbch_t));
     q->cell = cell;
-    q->nof_symbols = (CP_ISNORM(q->cell.cp)) ? PBCH_RE_CPNORM : PBCH_RE_CPEXT;
+    q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_SRSLTE_SRSLTE_CP_NORM : PBCH_RE_SRSLTE_SRSLTE_CP_EXT;
     
-    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+    if (precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
     }
 
@@ -159,7 +159,7 @@ int pbch_init(pbch_t *q, srslte_cell_t cell) {
     if (viterbi_init(&q->decoder, viterbi_37, poly, 40, true)) {
       goto clean;
     }
-    if (crc_init(&q->crc, LTE_CRC16, 16)) {
+    if (crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
       goto clean;
     }
     q->encoder.K = 7;
@@ -262,25 +262,25 @@ void pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
     break;
   }
   if (*msg) {
-    cell->phich_length = PHICH_EXT;
+    cell->phich_length = SRSLTE_PHICH_EXT;
   } else {
-    cell->phich_length = PHICH_NORM;
+    cell->phich_length = SRSLTE_PHICH_NORM;
   }
   msg++;
 
   phich_res = bit_unpack(&msg, 2);
   switch (phich_res) {
   case 0:
-      cell->phich_resources = R_1_6;
+      cell->phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6;
     break;
   case 1:
-      cell->phich_resources = R_1_2;
+      cell->phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_2;
     break;
   case 2:
-      cell->phich_resources = R_1;
+      cell->phich_resources = SRSLTE_PHICH_R_1;
     break;
   case 3:
-      cell->phich_resources = R_2;
+      cell->phich_resources = SRSLTE_PHICH_R_2;
     break;
   }
   if (sfn) {
@@ -305,20 +305,20 @@ void pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   }
   bit_pack(bw, &msg, 3);
 
-  *msg = cell->phich_length == PHICH_EXT;
+  *msg = cell->phich_length == SRSLTE_PHICH_EXT;
   msg++;
 
   switch (cell->phich_resources) {
-  case R_1_6:
+  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
     phich_res = 0;
     break;
-  case R_1_2:
+  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
     phich_res = 1;
     break;
-  case R_1:
+  case SRSLTE_PHICH_R_1:
     phich_res = 2;
     break;
-  case R_2:
+  case SRSLTE_PHICH_R_2:
     phich_res = 3;
     break;
   }
@@ -331,19 +331,19 @@ void pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn, uint32_t c
   printf(" - Nof ports:       %d\n", cell->nof_ports);
   printf(" - PRB:             %d\n", cell->nof_prb);
   printf(" - PHICH Length:    %s\n",
-         cell->phich_length == PHICH_EXT ? "Extended" : "Normal");
+         cell->phich_length == SRSLTE_PHICH_EXT ? "Extended" : "Normal");
   printf(" - PHICH Resources: ");
   switch (cell->phich_resources) {
-  case R_1_6:
+  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
     printf("1/6");
     break;
-  case R_1_2:
+  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
     printf("1/2");
     break;
-  case R_1:
+  case SRSLTE_PHICH_R_1:
     printf("1");
     break;
-  case R_2:
+  case SRSLTE_PHICH_R_2:
     printf("2");
     break;
   }
@@ -438,7 +438,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
   uint32_t nant;
   int i;
   int nof_bits;
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
   
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
@@ -458,7 +458,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       x[i] = q->pbch_x[i];
     }
-    memset(&x[SRSLTE_MAX_PORTS], 0, sizeof(cf_t*) * (MAX_LAYERS - SRSLTE_MAX_PORTS));
+    memset(&x[SRSLTE_MAX_PORTS], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - SRSLTE_MAX_PORTS));
     
     /* extract symbols */
     if (q->nof_symbols != pbch_get(slot1_symbols, q->pbch_symbols[0], q->cell)) {
@@ -540,7 +540,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
 int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS]) {
   int i;
   int nof_bits;
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
   
   if (q                 != NULL &&
       bch_payload               != NULL)
@@ -557,7 +557,7 @@ int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_sym
     for (i = 0; i < q->cell.nof_ports; i++) {
       x[i] = q->pbch_x[i];
     }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
     
     if (q->frame_idx == 0) {
       memcpy(q->data, bch_payload, sizeof(uint8_t) * BCH_PAYLOAD_LEN);

@@ -73,13 +73,13 @@ static int generate_n_prs(srslte_refsignal_ul_t * q) {
     
   for (uint32_t delta_ss=0;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
     c_init = ((q->cell.id / 30) << 5) + (((q->cell.id % 30) + delta_ss) % 30);
-    if (sequence_LTE_pr(&seq, 8 * CP_NSYMB(q->cell.cp) * 20, c_init)) {
+    if (sequence_LTE_pr(&seq, 8 * SRSLTE_CP_NSYMB(q->cell.cp) * 20, c_init)) {
       return SRSLTE_ERROR;
     }
     for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {  
       uint32_t n_prs = 0;
       for (int i = 0; i < 8; i++) {
-        n_prs += (seq.c[8 * CP_NSYMB(q->cell.cp) * ns + i] << i);
+        n_prs += (seq.c[8 * SRSLTE_CP_NSYMB(q->cell.cp) * ns + i] << i);
       }
       q->n_prs_pusch[delta_ss][ns] = n_prs;
     }
@@ -135,13 +135,13 @@ int srslte_refsignal_ul_init(srslte_refsignal_ul_t * q, srslte_cell_t cell)
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q != NULL && lte_cell_isvalid(&cell)) {
+  if (q != NULL && srslte_cell_isvalid(&cell)) {
 
     bzero(q, sizeof(srslte_refsignal_ul_t));
     q->cell = cell; 
     
     // Allocate temporal buffer for computing signal argument
-    q->tmp_arg = vec_malloc(RE_X_RB * q->cell.nof_prb * sizeof(cf_t)); 
+    q->tmp_arg = vec_malloc(SRSLTE_NRE * q->cell.nof_prb * sizeof(cf_t)); 
     if (!q->tmp_arg) {
       perror("malloc");
       goto free_and_exit;
@@ -194,13 +194,13 @@ uint32_t largest_prime_lower_than(uint32_t x) {
 }
 
 static void arg_r_uv_1prb(float *arg, uint32_t u) {
-  for (int i = 0; i < RE_X_RB; i++) {
+  for (int i = 0; i < SRSLTE_NRE; i++) {
     arg[i] = phi_M_sc_12[u][i] * M_PI / 4;
   }
 }
 
 static void arg_r_uv_2prb(float *arg, uint32_t u) {
-  for (int i = 0; i < 2*RE_X_RB; i++) {
+  for (int i = 0; i < 2*SRSLTE_NRE; i++) {
     arg[i] = phi_M_sc_24[u][i] * M_PI / 4;
   }  
 }
@@ -238,7 +238,7 @@ static void compute_pusch_r_uv_arg(srslte_refsignal_ul_t *q, srslte_refsignal_dr
   } else if (nof_prb == 2) {
     arg_r_uv_2prb(q->tmp_arg, u);
   } else {
-    arg_r_uv_mprb(q->tmp_arg, RE_X_RB*nof_prb, u, v);
+    arg_r_uv_mprb(q->tmp_arg, SRSLTE_NRE*nof_prb, u, v);
   }
 }
 
@@ -273,9 +273,9 @@ void srslte_refsignal_drms_pusch_put(srslte_refsignal_ul_t *q, srslte_refsignal_
 {
   for (uint32_t ns_idx=0;ns_idx<2;ns_idx++) {
     DEBUG("Putting DRMS to n_prb: %d, L: %d, ns_idx: %d\n", n_prb[ns_idx], nof_prb, ns_idx);
-    uint32_t L = (ns_idx+1)*CP_NSYMB(q->cell.cp)-4;
-    memcpy(&sf_symbols[RE_IDX(q->cell.nof_prb, L, n_prb[ns_idx]*RE_X_RB)], 
-           &r_pusch[ns_idx*RE_X_RB*nof_prb], nof_prb*RE_X_RB*sizeof(cf_t));    
+    uint32_t L = (ns_idx+1)*SRSLTE_CP_NSYMB(q->cell.cp)-4;
+    memcpy(&sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, L, n_prb[ns_idx]*SRSLTE_NRE)], 
+           &r_pusch[ns_idx*SRSLTE_NRE*nof_prb], nof_prb*SRSLTE_NRE*sizeof(cf_t));    
   }
 }
 
@@ -308,15 +308,15 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, srslte_refsignal_d
       float alpha = pusch_get_alpha(q, cfg, ns);
 
       if (verbose == VERBOSE_DEBUG) {
-        uint32_t N_sz = largest_prime_lower_than(nof_prb*RE_X_RB);
+        uint32_t N_sz = largest_prime_lower_than(nof_prb*SRSLTE_NRE);
         DEBUG("Generating PUSCH DRMS sequence with parameters:\n",0);
         DEBUG("\tbeta: %.1f, nof_prb: %d, u: %d, v: %d, alpha: %f, N_sc: %d, root q: %d, nprs: %d\n", 
               cfg->beta_pusch, nof_prb, u, v, alpha, N_sz, get_q(u,v,N_sz),q->n_prs_pusch[cfg->delta_ss][ns]);
       }
 
       // Do complex exponential and adjust amplitude
-      for (int i=0;i<RE_X_RB*nof_prb;i++) {
-        r_pusch[(ns%2)*RE_X_RB*nof_prb+i] = cfg->beta_pusch * cexpf(I*(q->tmp_arg[i] + alpha*i));
+      for (int i=0;i<SRSLTE_NRE*nof_prb;i++) {
+        r_pusch[(ns%2)*SRSLTE_NRE*nof_prb+i] = cfg->beta_pusch * cexpf(I*(q->tmp_arg[i] + alpha*i));
       }      
     }
     ret = 0; 
@@ -337,7 +337,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, pucch_cfg_t *cfg, 
         case PUCCH_FORMAT_1:
         case PUCCH_FORMAT_1A:
         case PUCCH_FORMAT_1B:
-          if (CP_ISNORM(q->cell.cp)) {
+          if (SRSLTE_CP_ISNORM(q->cell.cp)) {
             N_rs = 3; 
             pucch_symbol=pucch_symbol_format1_cpnorm;
           } else {
@@ -346,7 +346,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, pucch_cfg_t *cfg, 
           }
           break;
         case PUCCH_FORMAT_2:
-          if (CP_ISNORM(q->cell.cp)) {
+          if (SRSLTE_CP_ISNORM(q->cell.cp)) {
             N_rs = 2; 
             pucch_symbol=pucch_symbol_format2_cpnorm;
           } else {
@@ -375,14 +375,14 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, pucch_cfg_t *cfg, 
             case PUCCH_FORMAT_1:
             case PUCCH_FORMAT_1A:
             case PUCCH_FORMAT_1B:
-              if (CP_ISNORM(q->cell.cp)) {
+              if (SRSLTE_CP_ISNORM(q->cell.cp)) {
                 w=w_arg_pucch_format1_cpnorm[n_oc];
               } else {
                 w=w_arg_pucch_format1_cpext[n_oc];
               }
               break;
             case PUCCH_FORMAT_2:
-              if (CP_ISNORM(q->cell.cp)) {
+              if (SRSLTE_CP_ISNORM(q->cell.cp)) {
                 w=w_arg_pucch_format2_cpnorm;
               } else {
                 w=w_arg_pucch_format2_cpext;
@@ -395,8 +395,8 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, pucch_cfg_t *cfg, 
           }
 
           if (w) {
-            for (uint32_t n=0;n<RE_X_RB*n_rb;n++) {
-              r_pucch[(ns%2)*RE_X_RB*n_rb*N_rs+m*RE_X_RB*n_rb+n] = cfg->beta_pucch*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
+            for (uint32_t n=0;n<SRSLTE_NRE*n_rb;n++) {
+              r_pucch[(ns%2)*SRSLTE_NRE*n_rb*N_rs+m*SRSLTE_NRE*n_rb+n] = cfg->beta_pucch*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
             }                                 
           } else {
             return SRSLTE_ERROR; 

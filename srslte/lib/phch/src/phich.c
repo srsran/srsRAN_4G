@@ -42,10 +42,10 @@
 #include "srslte/utils/debug.h"
 
 /** Table 6.9.1-2 */
-const cf_t w_normal[PHICH_NORM_NSEQUENCES][4] = { { 1, 1, 1, 1 },
+const cf_t w_normal[SRSLTE_PHICH_NORM_NSEQUENCES][4] = { { 1, 1, 1, 1 },
     { 1, -1, 1, -1 }, { 1, 1, -1, -1 }, { 1, -1, -1, 1 }, { I, I, I, I }, {
     I, -I, I, -I }, { I, I, -I, -I }, { I, -I, -I, I } };
-const cf_t w_ext[PHICH_EXT_NSEQUENCES][2] = { { 1, 1 }, { 1, -1 }, { I, I }, {
+const cf_t w_ext[SRSLTE_PHICH_EXT_NSEQUENCES][2] = { { 1, 1 }, { 1, -1 }, { I, I }, {
 I, -I } };
 
 
@@ -66,7 +66,7 @@ int phich_init(phich_t *q, regs_t *regs, srslte_cell_t cell) {
   
   if (q         != NULL &&
       regs      != NULL &&
-      lte_cell_isvalid(&cell)) 
+      srslte_cell_isvalid(&cell)) 
   {
 
     bzero(q, sizeof(phich_t));
@@ -75,7 +75,7 @@ int phich_init(phich_t *q, regs_t *regs, srslte_cell_t cell) {
     q->cell = cell;
     q->regs = regs;
     
-    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+    if (precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
     }
 
@@ -151,7 +151,7 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], flo
 
   /* Set pointers for layermapping & precoding */
   int i, j;
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
   cf_t *ce_precoding[SRSLTE_MAX_PORTS];
   
   if (q == NULL || slot_symbols == NULL) {
@@ -163,13 +163,13 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], flo
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (CP_ISEXT(q->cell.cp)) {
-    if (nseq >= PHICH_EXT_NSEQUENCES) {
+  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
+    if (nseq >= SRSLTE_PHICH_EXT_NSEQUENCES) {
       fprintf(stderr, "Invalid nseq %d\n", nseq);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
   } else {
-    if (nseq >= PHICH_NORM_NSEQUENCES) {
+    if (nseq >= SRSLTE_PHICH_NORM_NSEQUENCES) {
       fprintf(stderr, "Invalid nseq %d\n", nseq);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
@@ -190,7 +190,7 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], flo
   }
 
   /* extract symbols */
-  if (PHICH_MAX_NSYMB
+  if (PHICH_SRSLTE_MAX_NSYMB
       != regs_phich_get(q->regs, slot_symbols, q->phich_symbols[0], ngroup)) {
     fprintf(stderr, "There was an error getting the phich symbols\n");
     return SRSLTE_ERROR;
@@ -198,7 +198,7 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], flo
 
   /* extract channel estimates */
   for (i = 0; i < q->cell.nof_ports; i++) {
-    if (PHICH_MAX_NSYMB != regs_phich_get(q->regs, ce[i], q->ce[i], ngroup)) {
+    if (PHICH_SRSLTE_MAX_NSYMB != regs_phich_get(q->regs, ce[i], q->ce[i], ngroup)) {
       fprintf(stderr, "There was an error getting the phich symbols\n");
       return SRSLTE_ERROR;
     }
@@ -208,55 +208,55 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], flo
   if (q->cell.nof_ports == 1) {
     /* no need for layer demapping */
     predecoding_single(&q->precoding, q->phich_symbols[0], q->ce[0], q->phich_d0,
-    PHICH_MAX_NSYMB, noise_estimate);
+    PHICH_SRSLTE_MAX_NSYMB, noise_estimate);
   } else {
     predecoding_diversity(&q->precoding, q->phich_symbols[0], ce_precoding, x,
-        q->cell.nof_ports, PHICH_MAX_NSYMB, noise_estimate);
+        q->cell.nof_ports, PHICH_SRSLTE_MAX_NSYMB, noise_estimate);
     layerdemap_diversity(x, q->phich_d0, q->cell.nof_ports,
-    PHICH_MAX_NSYMB / q->cell.nof_ports);
+    PHICH_SRSLTE_MAX_NSYMB / q->cell.nof_ports);
   }
   DEBUG("Recv!!: \n", 0);
   DEBUG("d0: ", 0);
   if (VERBOSE_ISDEBUG())
-    vec_fprint_c(stdout, q->phich_d0, PHICH_MAX_NSYMB);
+    vec_fprint_c(stdout, q->phich_d0, PHICH_SRSLTE_MAX_NSYMB);
 
-  if (CP_ISEXT(q->cell.cp)) {
+  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
     if (ngroup % 2) {
-      for (i = 0; i < PHICH_EXT_MSYMB / 2; i++) {
+      for (i = 0; i < SRSLTE_PHICH_EXT_MSYMB / 2; i++) {
         q->phich_d[2 * i + 0] = q->phich_d0[4 * i + 2];
         q->phich_d[2 * i + 1] = q->phich_d0[4 * i + 3];
       }
     } else {
-      for (i = 0; i < PHICH_EXT_MSYMB / 2; i++) {
+      for (i = 0; i < SRSLTE_PHICH_EXT_MSYMB / 2; i++) {
         q->phich_d[2 * i + 0] = q->phich_d0[4 * i];
         q->phich_d[2 * i + 1] = q->phich_d0[4 * i + 1];
       }
     }
   } else {
-    memcpy(q->phich_d, q->phich_d0, PHICH_MAX_NSYMB * sizeof(cf_t));
+    memcpy(q->phich_d, q->phich_d0, PHICH_SRSLTE_MAX_NSYMB * sizeof(cf_t));
   }
 
   DEBUG("d: ", 0);
   if (VERBOSE_ISDEBUG())
-    vec_fprint_c(stdout, q->phich_d, PHICH_EXT_MSYMB);
+    vec_fprint_c(stdout, q->phich_d, SRSLTE_PHICH_EXT_MSYMB);
 
   scrambling_c(&q->seq_phich[subframe], q->phich_d);
 
   /* De-spreading */
-  if (CP_ISEXT(q->cell.cp)) {
+  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
     for (i = 0; i < PHICH_NBITS; i++) {
       q->phich_z[i] = 0;
-      for (j = 0; j < PHICH_EXT_NSF; j++) {
+      for (j = 0; j < SRSLTE_PHICH_EXT_NSF; j++) {
         q->phich_z[i] += conjf(w_ext[nseq][j])
-            * q->phich_d[i * PHICH_EXT_NSF + j] / PHICH_EXT_NSF;
+            * q->phich_d[i * SRSLTE_PHICH_EXT_NSF + j] / SRSLTE_PHICH_EXT_NSF;
       }
     }
   } else {
     for (i = 0; i < PHICH_NBITS; i++) {
       q->phich_z[i] = 0;
-      for (j = 0; j < PHICH_NORM_NSF; j++) {
+      for (j = 0; j < SRSLTE_PHICH_NORM_NSF; j++) {
         q->phich_z[i] += conjf(w_normal[nseq][j])
-            * q->phich_d[i * PHICH_NORM_NSF + j] / PHICH_NORM_NSF;
+            * q->phich_d[i * SRSLTE_PHICH_NORM_NSF + j] / SRSLTE_PHICH_NORM_NSF;
       }
     }
   }
@@ -290,13 +290,13 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (CP_ISEXT(q->cell.cp)) {
-    if (nseq >= PHICH_EXT_NSEQUENCES) {
+  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
+    if (nseq >= SRSLTE_PHICH_EXT_NSEQUENCES) {
       fprintf(stderr, "Invalid nseq %d\n", nseq);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
   } else {
-    if (nseq >= PHICH_NORM_NSEQUENCES) {
+    if (nseq >= SRSLTE_PHICH_NORM_NSEQUENCES) {
       fprintf(stderr, "Invalid nseq %d\n", nseq);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
@@ -308,7 +308,7 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
 
 
   /* Set pointers for layermapping & precoding */
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
   cf_t *symbols_precoding[SRSLTE_MAX_PORTS];
 
   /* number of layers equals number of ports */
@@ -329,35 +329,35 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
     vec_fprint_c(stdout, q->phich_z, PHICH_NBITS);
 
   /* Spread with w */
-  if (CP_ISEXT(q->cell.cp)) {
-    for (i = 0; i < PHICH_EXT_MSYMB; i++) {
-      q->phich_d[i] = w_ext[nseq][i % PHICH_EXT_NSF]
-          * q->phich_z[i / PHICH_EXT_NSF];
+  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
+    for (i = 0; i < SRSLTE_PHICH_EXT_MSYMB; i++) {
+      q->phich_d[i] = w_ext[nseq][i % SRSLTE_PHICH_EXT_NSF]
+          * q->phich_z[i / SRSLTE_PHICH_EXT_NSF];
     }
   } else {
-    for (i = 0; i < PHICH_NORM_MSYMB; i++) {
-      q->phich_d[i] = w_normal[nseq][i % PHICH_NORM_NSF]
-          * q->phich_z[i / PHICH_NORM_NSF];
+    for (i = 0; i < SRSLTE_PHICH_NORM_MSYMB; i++) {
+      q->phich_d[i] = w_normal[nseq][i % SRSLTE_PHICH_NORM_NSF]
+          * q->phich_z[i / SRSLTE_PHICH_NORM_NSF];
     }
   }
 
   DEBUG("d: ", 0);
   if (VERBOSE_ISDEBUG())
-    vec_fprint_c(stdout, q->phich_d, PHICH_EXT_MSYMB);
+    vec_fprint_c(stdout, q->phich_d, SRSLTE_PHICH_EXT_MSYMB);
 
   scrambling_c(&q->seq_phich[subframe], q->phich_d);
 
   /* align to REG */
-  if (CP_ISEXT(q->cell.cp)) {
+  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
     if (ngroup % 2) {
-      for (i = 0; i < PHICH_EXT_MSYMB / 2; i++) {
+      for (i = 0; i < SRSLTE_PHICH_EXT_MSYMB / 2; i++) {
         q->phich_d0[4 * i + 0] = 0;
         q->phich_d0[4 * i + 1] = 0;
         q->phich_d0[4 * i + 2] = q->phich_d[2 * i];
         q->phich_d0[4 * i + 3] = q->phich_d[2 * i + 1];
       }
     } else {
-      for (i = 0; i < PHICH_EXT_MSYMB / 2; i++) {
+      for (i = 0; i < SRSLTE_PHICH_EXT_MSYMB / 2; i++) {
         q->phich_d0[4 * i + 0] = q->phich_d[2 * i];
         q->phich_d0[4 * i + 1] = q->phich_d[2 * i + 1];
         q->phich_d0[4 * i + 2] = 0;
@@ -365,21 +365,21 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
       }
     }
   } else {
-    memcpy(q->phich_d0, q->phich_d, PHICH_MAX_NSYMB * sizeof(cf_t));
+    memcpy(q->phich_d0, q->phich_d, PHICH_SRSLTE_MAX_NSYMB * sizeof(cf_t));
   }
 
   DEBUG("d0: ", 0);
   if (VERBOSE_ISDEBUG())
-    vec_fprint_c(stdout, q->phich_d0, PHICH_MAX_NSYMB);
+    vec_fprint_c(stdout, q->phich_d0, PHICH_SRSLTE_MAX_NSYMB);
 
   /* layer mapping & precoding */
   if (q->cell.nof_ports > 1) {
-    layermap_diversity(q->phich_d0, x, q->cell.nof_ports, PHICH_MAX_NSYMB);
+    layermap_diversity(q->phich_d0, x, q->cell.nof_ports, PHICH_SRSLTE_MAX_NSYMB);
     precoding_diversity(&q->precoding, x, symbols_precoding, q->cell.nof_ports,
-    PHICH_MAX_NSYMB / q->cell.nof_ports);
+    PHICH_SRSLTE_MAX_NSYMB / q->cell.nof_ports);
     /**FIXME: According to 6.9.2, Precoding for 4 tx ports is different! */
   } else {
-    memcpy(q->phich_symbols[0], q->phich_d0, PHICH_MAX_NSYMB * sizeof(cf_t));
+    memcpy(q->phich_symbols[0], q->phich_d0, PHICH_SRSLTE_MAX_NSYMB * sizeof(cf_t));
   }
 
   /* mapping to resource elements */

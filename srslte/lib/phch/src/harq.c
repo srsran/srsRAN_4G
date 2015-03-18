@@ -42,7 +42,7 @@
 #include "srslte/utils/debug.h"
 
 
-#define MAX_PDSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
+#define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
 /* Calculate Codeblock Segmentation as in Section 5.1.2 of 36.212 */
 int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
@@ -63,14 +63,14 @@ int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
       s->C = (uint32_t) ceilf((float) B / (MAX_LONG_CB - 24));
       Bp = B + 24 * s->C;
     }
-    ret = lte_find_cb_index((Bp-1) / s->C + 1);
+    ret = srslte_find_cb_index((Bp-1) / s->C + 1);
     if (ret != SRSLTE_ERROR) {
       idx1 = (uint32_t) ret;
-      ret = lte_cb_size(idx1);
+      ret = srslte_cb_size(idx1);
       if (ret != SRSLTE_ERROR) {
         s->K1 = (uint32_t) ret;
         if (idx1 > 0) {
-          ret = lte_cb_size(idx1 - 1);        
+          ret = srslte_cb_size(idx1 - 1);        
         }
         if (ret != SRSLTE_ERROR) {
           if (s->C == 1) {
@@ -214,8 +214,8 @@ int harq_setup_dl(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_dl_a
 
     // Number of symbols, RE and bits per subframe for DL
     q->nof_re = q->dl_alloc.re_sf[q->sf_idx];
-    q->nof_symb = 2*CP_NSYMB(q->cell.cp)-q->dl_alloc.lstart;
-    q->nof_bits = q->nof_re * lte_mod_bits_x_symbol(q->mcs.mod);
+    q->nof_symb = 2*SRSLTE_CP_NSYMB(q->cell.cp)-q->dl_alloc.lstart;
+    q->nof_bits = q->nof_re * srslte_mod_bits_x_symbol(q->mcs.mod);
     q->nof_prb = q->dl_alloc.slot[0].nof_prb;
 
     ret = SRSLTE_SUCCESS;    
@@ -237,9 +237,9 @@ int harq_setup_ul(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_ul_a
     memcpy(&q->ul_alloc, ul_alloc, sizeof(ra_ul_alloc_t));
 
     // Number of symbols, RE and bits per subframe for UL
-    q->nof_symb = 2*(CP_NSYMB(q->cell.cp)-1);
-    q->nof_re = q->nof_symb*q->ul_alloc.L_prb*RE_X_RB;
-    q->nof_bits = q->nof_re * lte_mod_bits_x_symbol(q->mcs.mod);
+    q->nof_symb = 2*(SRSLTE_CP_NSYMB(q->cell.cp)-1);
+    q->nof_re = q->nof_symb*q->ul_alloc.L_prb*SRSLTE_NRE;
+    q->nof_bits = q->nof_re * srslte_mod_bits_x_symbol(q->mcs.mod);
     q->nof_prb = q->ul_alloc.L_prb;
 
     ret = SRSLTE_SUCCESS;    

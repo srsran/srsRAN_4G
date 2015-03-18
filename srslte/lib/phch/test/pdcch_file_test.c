@@ -41,14 +41,14 @@ srslte_cell_t cell = {
   6,            // cell.cell.cell.nof_prb
   1,            // cell.cell.nof_ports
   0,            // cell.id
-  CPNORM,       // cyclic prefix
-  R_1,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_R_1,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
 
 uint32_t cfi = 2;
 int flen;
-uint16_t rnti = SIRNTI;
+uint16_t rnti = SRSLTE_SIRNTI;
 int max_frames = 10;
 
 dci_format_t dci_format = Format1A;
@@ -108,7 +108,7 @@ void parse_args(int argc, char **argv) {
       verbose++;
       break;
     case 'e':
-      cell.cp = CPEXT;
+      cell.cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     default:
       usage(argv[0]);
@@ -129,7 +129,7 @@ int base_init() {
     exit(-1);
   }
 
-  flen = 2 * (SLOT_LEN(lte_symbol_sz(cell.nof_prb)));
+  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb)));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -137,14 +137,14 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  fft_buffer = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    ce[i] = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
       return -1;
@@ -238,7 +238,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error extracting LLRs\n");
       return -1;
     }
-    if (rnti == SIRNTI) {
+    if (rnti == SRSLTE_SIRNTI) {
       INFO("Initializing common search space for SI-RNTI\n",0);
       nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
     } else {
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
       switch(type.type) {
       case PDSCH_SCHED:
         bzero(&ra_dl, sizeof(ra_pdsch_t));
-        if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SIRNTI)) {
+        if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SRSLTE_SIRNTI)) {
           fprintf(stderr, "Can't unpack PDSCH message\n");
         } else {
           ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);

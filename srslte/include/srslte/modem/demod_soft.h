@@ -60,7 +60,7 @@ typedef struct SRSLTE_API {
   modem_table_t table;
 
   struct demod_soft_init{
-    lte_mod_t std;    // symbol mapping standard (see modem_table.h)
+    srslte_mod_t std;    // symbol mapping standard (see modem_table.h)
   } init;
 
   const cf_t* input;

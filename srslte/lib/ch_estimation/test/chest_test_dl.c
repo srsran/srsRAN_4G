@@ -37,7 +37,7 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,    // nof_ports
   1000,         // cell_id
-  CPNORM        // cyclic prefix
+  SRSLTE_SRSLTE_CP_NORM        // cyclic prefix
 };
 
 char *output_matlab = NULL;
@@ -62,7 +62,7 @@ void parse_args(int argc, char **argv) {
       cell.nof_prb = atoi(argv[optind]);
       break;
     case 'e':
-      cell.cp = CPEXT;
+      cell.cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     case 'c':
       cell.id = atoi(argv[optind]);
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  num_re = 2 * cell.nof_prb * RE_X_RB * CP_NSYMB(cell.cp);
+  num_re = 2 * cell.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.cp);
 
   input = malloc(num_re * sizeof(cf_t));
   if (!input) {
@@ -154,11 +154,11 @@ int main(int argc, char **argv) {
         srslte_refsignal_cs_put_sf(cell, n_port, 
                             est.csr_signal.pilots[n_port/2][sf_idx], input);
 
-        for (i=0;i<2*CP_NSYMB(cell.cp);i++) {
-          for (j=0;j<cell.nof_prb * RE_X_RB;j++) {
-            float x = -1+(float) i/CP_NSYMB(cell.cp) + cosf(2 * M_PI * (float) j/cell.nof_prb/RE_X_RB);
-            h[i*cell.nof_prb * RE_X_RB+j] = (3+x) * cexpf(I * x);
-            input[i*cell.nof_prb * RE_X_RB+j] *= h[i*cell.nof_prb * RE_X_RB+j];            
+        for (i=0;i<2*SRSLTE_CP_NSYMB(cell.cp);i++) {
+          for (j=0;j<cell.nof_prb * SRSLTE_NRE;j++) {
+            float x = -1+(float) i/SRSLTE_CP_NSYMB(cell.cp) + cosf(2 * M_PI * (float) j/cell.nof_prb/SRSLTE_NRE);
+            h[i*cell.nof_prb * SRSLTE_NRE+j] = (3+x) * cexpf(I * x);
+            input[i*cell.nof_prb * SRSLTE_NRE+j] *= h[i*cell.nof_prb * SRSLTE_NRE+j];            
           }
         }
 

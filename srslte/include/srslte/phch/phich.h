@@ -40,18 +40,18 @@
 
 typedef _Complex float cf_t;
 
-#define PHICH_NORM_NSEQUENCES  8
-#define PHICH_EXT_NSEQUENCES  4
-#define PHICH_MAX_SEQUENCES    PHICH_NORM_NSEQUENCES
+#define SRSLTE_PHICH_NORM_NSEQUENCES  8
+#define SRSLTE_PHICH_EXT_NSEQUENCES  4
+#define PHICH_MAX_SEQUENCES    SRSLTE_PHICH_NORM_NSEQUENCES
 #define PHICH_NBITS        3
 
-#define PHICH_NORM_MSYMB    PHICH_NBITS * 4
-#define PHICH_EXT_MSYMB      PHICH_NBITS * 2
-#define PHICH_MAX_NSYMB      PHICH_NORM_MSYMB
-#define PHICH_NORM_C      1
-#define PHICH_EXT_C        2
-#define PHICH_NORM_NSF      4
-#define PHICH_EXT_NSF      2
+#define SRSLTE_PHICH_NORM_MSYMB    PHICH_NBITS * 4
+#define SRSLTE_PHICH_EXT_MSYMB      PHICH_NBITS * 2
+#define PHICH_SRSLTE_MAX_NSYMB      SRSLTE_PHICH_NORM_MSYMB
+#define SRSLTE_PHICH_NORM_C      1
+#define SRSLTE_PHICH_EXT_C        2
+#define SRSLTE_PHICH_NORM_NSF      4
+#define SRSLTE_PHICH_EXT_NSF      2
 
 /* phich object */
 typedef struct SRSLTE_API {
@@ -61,11 +61,11 @@ typedef struct SRSLTE_API {
   regs_t *regs;
 
   /* buffers */
-  cf_t ce[SRSLTE_MAX_PORTS][PHICH_MAX_NSYMB];
-  cf_t phich_symbols[SRSLTE_MAX_PORTS][PHICH_MAX_NSYMB];
-  cf_t phich_x[SRSLTE_MAX_PORTS][PHICH_MAX_NSYMB];
-  cf_t phich_d[PHICH_MAX_NSYMB];
-  cf_t phich_d0[PHICH_MAX_NSYMB];
+  cf_t ce[SRSLTE_MAX_PORTS][PHICH_SRSLTE_MAX_NSYMB];
+  cf_t phich_symbols[SRSLTE_MAX_PORTS][PHICH_SRSLTE_MAX_NSYMB];
+  cf_t phich_x[SRSLTE_MAX_PORTS][PHICH_SRSLTE_MAX_NSYMB];
+  cf_t phich_d[PHICH_SRSLTE_MAX_NSYMB];
+  cf_t phich_d0[PHICH_SRSLTE_MAX_NSYMB];
   cf_t phich_z[PHICH_NBITS];
 
   /* bit message */

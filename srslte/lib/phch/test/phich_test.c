@@ -38,13 +38,13 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1000,         // cell_id
-  CPNORM,       // cyclic prefix
-  R_1,          // PHICH resources      
-  PHICH_NORM    // PHICH length
+  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_PHICH_R_1,          // PHICH resources      
+  SRSLTE_PHICH_NORM    // PHICH length
 };
 
-phich_resources_t phich_res = R_1;
-phich_length_t phich_length = PHICH_NORM;
+srslte_phich_resources_t phich_res = SRSLTE_PHICH_R_1;
+srslte_phich_length_t phich_length = SRSLTE_PHICH_NORM;
 
 void usage(char *prog) {
   printf("Usage: %s [cpvgel]\n", prog);
@@ -72,22 +72,22 @@ void parse_args(int argc, char **argv) {
       break;
     case 'g':
       if (!strcmp(argv[optind], "1/6")) {
-        phich_res = R_1_6;
+        phich_res = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6;
       } else if (!strcmp(argv[optind], "1/2")) {
-        phich_res = R_1_2;
+        phich_res = SRSLTE_PHICH_SRSLTE_PHICH_R_1_2;
       } else if (!strcmp(argv[optind], "1")) {
-        phich_res = R_1;
+        phich_res = SRSLTE_PHICH_R_1;
       } else if (!strcmp(argv[optind], "2")) {
-        phich_res = R_2;
+        phich_res = SRSLTE_PHICH_R_2;
       } else {
         fprintf(stderr, "Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
       }
       break;
     case 'e':
-      phich_length = PHICH_EXT;
+      phich_length = SRSLTE_PHICH_EXT;
       break;
     case 'l':
-      cell.cp = CPEXT;
+      cell.cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     case 'v':
       verbose++;
@@ -107,16 +107,16 @@ int main(int argc, char **argv) {
   cf_t *ce[SRSLTE_MAX_PORTS];
   int nof_re;
   cf_t *slot_symbols[SRSLTE_MAX_PORTS];
-  uint8_t ack[50][PHICH_NORM_NSEQUENCES], ack_rx;
+  uint8_t ack[50][SRSLTE_PHICH_NORM_NSEQUENCES], ack_rx;
   uint32_t nsf, distance;
   int cid, max_cid;
   uint32_t ngroup, nseq, max_nseq;
 
   parse_args(argc,argv);
 
-  max_nseq = CP_ISNORM(cell.cp)?PHICH_NORM_NSEQUENCES:PHICH_EXT_NSEQUENCES;
+  max_nseq = SRSLTE_CP_ISNORM(cell.cp)?SRSLTE_PHICH_NORM_NSEQUENCES:SRSLTE_PHICH_EXT_NSEQUENCES;
 
-  nof_re = SRSLTE_CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  nof_re = SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
   /* init memory */
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {

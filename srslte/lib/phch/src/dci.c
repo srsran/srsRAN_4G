@@ -51,7 +51,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
   
   if (msg               !=  NULL   &&
       ra_dl             !=  NULL   &&
-      lte_cell_isvalid(&cell)      && 
+      srslte_cell_isvalid(&cell)      && 
       cfi               >   0      &&
       cfi               <   4)
   {
@@ -71,7 +71,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
       bzero(ra_dl, sizeof(ra_pdsch_t));
       
       bool crc_is_crnti = false; 
-      if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
+      if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
         crc_is_crnti = true; 
       }
       if (dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, crc_is_crnti)) {
@@ -866,7 +866,7 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
     return SRSLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
     /* The RNTI is not the only condition. Also some fields in the packet. 
-     * if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
+     * if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
       type->type = RA_PROC_PDCCH;
       type->format = Format1A;
     } else {
@@ -876,7 +876,7 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
     //}
     return SRSLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
-    if (msg_rnti == MRNTI) {
+    if (msg_rnti == SRSLTE_MRNTI) {
       type->type = MCCH_CHANGE;
       type->format = Format1C;
     } else {

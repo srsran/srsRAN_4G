@@ -37,7 +37,7 @@ srslte_cell_t cell = {
   100,            // nof_prb
   SRSLTE_MAX_PORTS,    // nof_ports
   1,         // cell_id
-  CPNORM        // cyclic prefix
+  SRSLTE_SRSLTE_CP_NORM        // cyclic prefix
 };
 
 void usage(char *prog) {
@@ -59,7 +59,7 @@ void parse_args(int argc, char **argv) {
       cell.nof_prb = atoi(argv[optind]);
       break;
     case 'e':
-      cell.cp = CPEXT;
+      cell.cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     case 'c':
       cell.id = atoi(argv[optind]);
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   
   parse_args(argc,argv);
 
-  signal = malloc(2 * RE_X_RB * cell.nof_prb * sizeof(cf_t));
+  signal = malloc(2 * SRSLTE_NRE * cell.nof_prb * sizeof(cf_t));
   if (!signal) {
     perror("malloc");
     goto do_exit;

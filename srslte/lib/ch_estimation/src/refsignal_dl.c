@@ -90,12 +90,12 @@ inline uint32_t srslte_refsignal_cs_fidx(srslte_cell_t cell, uint32_t l, uint32_
 inline uint32_t srslte_refsignal_cs_nsymbol(uint32_t l, srslte_cp_t cp, uint32_t port_id) {
   if (port_id < 2) {
     if (l % 2) {
-        return (l/2+1)*CP_NSYMB(cp) - 3;
+        return (l/2+1)*SRSLTE_CP_NSYMB(cp) - 3;
     } else {
-        return (l/2)*CP_NSYMB(cp);
+        return (l/2)*SRSLTE_CP_NSYMB(cp);
     }    
   } else {
-    return 1+l*CP_NSYMB(cp);
+    return 1+l*SRSLTE_CP_NSYMB(cp);
   }
 }
 
@@ -113,17 +113,17 @@ int srslte_refsignal_cs_init(srslte_refsignal_cs_t * q, srslte_cell_t cell)
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL &&
-      lte_cell_isvalid(&cell)) 
+      srslte_cell_isvalid(&cell)) 
   {
     ret = SRSLTE_ERROR; 
     
     bzero(q, sizeof(srslte_refsignal_cs_t));
     bzero(&seq, sizeof(sequence_t));
-    if (sequence_init(&seq, 2 * 2 * MAX_PRB)) {
+    if (sequence_init(&seq, 2 * 2 * SRSLTE_MAX_PRB)) {
       goto free_and_exit;
     }
     
-    if (CP_ISNORM(cell.cp)) {
+    if (SRSLTE_CP_ISNORM(cell.cp)) {
       N_cp = 1;
     } else {
       N_cp = 0;
@@ -155,7 +155,7 @@ int srslte_refsignal_cs_init(srslte_refsignal_cs_t * q, srslte_cell_t cell)
           
           /* Compute signal */
           for (i = 0; i < 2*q->cell.nof_prb; i++) {
-            mp = i + MAX_PRB - cell.nof_prb;
+            mp = i + SRSLTE_MAX_PRB - cell.nof_prb;
             /* save signal */
             q->pilots[p][ns/2][SRSLTE_REFSIGNAL_PILOT_IDX(i,(ns%2)*nsymbols+l,q->cell)] = 
                                                   (1 - 2 * (float) seq.c[2 * mp]) / sqrt(2) +
@@ -198,8 +198,8 @@ int srslte_refsignal_cs_put_sf(srslte_cell_t cell, uint32_t port_id, cf_t *pilot
   uint32_t i, l;
   uint32_t fidx;
 
-  if (lte_cell_isvalid(&cell)             &&
-      lte_portid_isvalid(port_id)         &&
+  if (srslte_cell_isvalid(&cell)             &&
+      srslte_portid_isvalid(port_id)         &&
       pilots                      != NULL &&
       sf_symbols                  != NULL) 
   {
@@ -209,8 +209,8 @@ int srslte_refsignal_cs_put_sf(srslte_cell_t cell, uint32_t port_id, cf_t *pilot
       /* Compute offset frequency index */
       fidx = ((srslte_refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6); 
       for (i = 0; i < 2*cell.nof_prb; i++) {
-        sf_symbols[RE_IDX(cell.nof_prb, nsymbol, fidx)] = pilots[SRSLTE_REFSIGNAL_PILOT_IDX(i,l,cell)];
-        fidx += RE_X_RB/2;       // 1 reference every 6 RE        
+        sf_symbols[SRSLTE_RE_IDX(cell.nof_prb, nsymbol, fidx)] = pilots[SRSLTE_REFSIGNAL_PILOT_IDX(i,l,cell)];
+        fidx += SRSLTE_NRE/2;       // 1 reference every 6 RE        
       }    
     }
     return SRSLTE_SUCCESS;      
@@ -228,8 +228,8 @@ int srslte_refsignal_cs_get_sf(srslte_cell_t cell, uint32_t port_id, cf_t *sf_sy
   uint32_t i, l;
   uint32_t fidx;
   
-  if (lte_cell_isvalid(&cell)             &&
-      lte_portid_isvalid(port_id)         &&
+  if (srslte_cell_isvalid(&cell)             &&
+      srslte_portid_isvalid(port_id)         &&
       pilots                  != NULL && 
       sf_symbols                  != NULL) 
   {       
@@ -238,8 +238,8 @@ int srslte_refsignal_cs_get_sf(srslte_cell_t cell, uint32_t port_id, cf_t *sf_sy
       /* Compute offset frequency index */
       fidx = ((srslte_refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6); 
       for (i = 0; i < 2*cell.nof_prb; i++) {
-        pilots[SRSLTE_REFSIGNAL_PILOT_IDX(i,l,cell)] = sf_symbols[RE_IDX(cell.nof_prb, nsymbol, fidx)];
-        fidx += RE_X_RB/2;       // 2 references per PRB
+        pilots[SRSLTE_REFSIGNAL_PILOT_IDX(i,l,cell)] = sf_symbols[SRSLTE_RE_IDX(cell.nof_prb, nsymbol, fidx)];
+        fidx += SRSLTE_NRE/2;       // 2 references per PRB
       }
     }
     return SRSLTE_SUCCESS;      

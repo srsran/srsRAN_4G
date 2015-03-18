@@ -42,11 +42,11 @@
 #include "srslte/utils/vector.h"
 
 
-#define MAX_PDSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
+#define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
 
 
-const static lte_mod_t modulations[4] =
+const static srslte_mod_t modulations[4] =
     { LTE_BPSK, LTE_QPSK, LTE_QAM16, LTE_QAM64 };
     
 //#define DEBUG_IDX
@@ -84,7 +84,7 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_dl_alloc_t *prb_alloc,
   }
 
   for (s = 0; s < 2; s++) {
-    for (l = 0; l < CP_NSYMB(q->cell.cp); l++) {
+    for (l = 0; l < SRSLTE_CP_NSYMB(q->cell.cp); l++) {
       for (n = 0; n < q->cell.nof_prb; n++) {
 
         // If this PRB is assigned
@@ -94,14 +94,14 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_dl_alloc_t *prb_alloc,
           } else {
             lstart = 0;
           }
-          lend = CP_NSYMB(q->cell.cp);
+          lend = SRSLTE_CP_NSYMB(q->cell.cp);
           is_pbch = is_sss = false;
 
           // Skip PSS/SSS signals
           if (s == 0 && (nsubframe == 0 || nsubframe == 5)) {
             if (n >= q->cell.nof_prb / 2 - 3
                 && n < q->cell.nof_prb / 2 + 3) {
-              lend = CP_NSYMB(q->cell.cp) - 2;
+              lend = SRSLTE_CP_NSYMB(q->cell.cp) - 2;
               is_sss = true;
             }
           }
@@ -113,17 +113,17 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_dl_alloc_t *prb_alloc,
               is_pbch = true;
             }
           }
-          lp = l + s * CP_NSYMB(q->cell.cp);
+          lp = l + s * SRSLTE_CP_NSYMB(q->cell.cp);
           if (put) {
             out_ptr = &output[(lp * q->cell.nof_prb + n)
-                * RE_X_RB];
+                * SRSLTE_NRE];
           } else {
             in_ptr = &input[(lp * q->cell.nof_prb + n)
-                * RE_X_RB];
+                * SRSLTE_NRE];
           }
           // This is a symbol in a normal PRB with or without references
           if (l >= lstart && l < lend) {
-            if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+            if (SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
               if (nof_refs == 2 && l != 0) {    
                 offset = q->cell.id % 3 + 3;
               } else {
@@ -138,7 +138,7 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_dl_alloc_t *prb_alloc,
           // If the number or total PRB is odd, half of the the PBCH or SS will fall into the symbol
           if ((q->cell.nof_prb % 2) && ((is_pbch && l < lstart) || (is_sss && l >= lend))) {
             if (n == q->cell.nof_prb / 2 - 3) {
-              if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+              if (SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
                 prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
               } else {
                 prb_cp_half(&in_ptr, &out_ptr, 1);
@@ -149,7 +149,7 @@ int pdsch_cp(pdsch_t *q, cf_t *input, cf_t *output, ra_dl_alloc_t *prb_alloc,
               } else {
                 in_ptr += 6;
               }
-              if (SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
+              if (SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
                 prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs/2, put);
               } else {
                 prb_cp_half(&in_ptr, &out_ptr, 1);
@@ -201,7 +201,7 @@ int pdsch_init(pdsch_t *q, srslte_cell_t cell) {
   int i;
 
  if (q                         != NULL                  &&
-     lte_cell_isvalid(&cell)) 
+     srslte_cell_isvalid(&cell)) 
   {   
     
     bzero(q, sizeof(pdsch_t));
@@ -213,7 +213,7 @@ int pdsch_init(pdsch_t *q, srslte_cell_t cell) {
     INFO("Init PDSCH: %d ports %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
         q->cell.nof_prb, q->max_re);
 
-    if (precoding_init(&q->precoding, SF_LEN_RE(cell.nof_prb, cell.cp))) {
+    if (precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
       goto clean; 
     }
@@ -232,7 +232,7 @@ int pdsch_init(pdsch_t *q, srslte_cell_t cell) {
     q->rnti_is_set = false; 
 
     // Allocate floats for reception (LLRs)
-    q->pdsch_e = vec_malloc(sizeof(float) * q->max_re * lte_mod_bits_x_symbol(LTE_QAM64));
+    q->pdsch_e = vec_malloc(sizeof(float) * q->max_re * srslte_mod_bits_x_symbol(LTE_QAM64));
     if (!q->pdsch_e) {
       goto clean;
     }
@@ -310,7 +310,7 @@ int pdsch_set_rnti(pdsch_t *q, uint16_t rnti) {
   uint32_t i;
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     if (sequence_pdsch(&q->seq_pdsch[i], rnti, 0, 2 * i, q->cell.id,
-        q->max_re * lte_mod_bits_x_symbol(LTE_QAM64))) {
+        q->max_re * srslte_mod_bits_x_symbol(LTE_QAM64))) {
       return SRSLTE_ERROR; 
     }
   }
@@ -344,7 +344,7 @@ int pdsch_decode_rnti(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[SRSLT
 
   /* Set pointers for layermapping & precoding */
   uint32_t i, n;
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
   
   if (q                     != NULL &&
       sf_symbols            != NULL &&
@@ -353,13 +353,13 @@ int pdsch_decode_rnti(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[SRSLT
   {
     
     INFO("Decoding PDSCH SF: %d, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-        harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+        harq->sf_idx, srslte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {
       x[i] = q->pdsch_x[i];
     }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
       
     /* extract symbols */
     n = pdsch_get(q, sf_symbols, q->pdsch_symbols[0], &harq->dl_alloc, harq->sf_idx);
@@ -439,7 +439,7 @@ int pdsch_encode_rnti(pdsch_t *q, harq_t *harq, uint8_t *data, uint16_t rnti, cf
 {
   int i;
   /* Set pointers for layermapping & precoding */
-  cf_t *x[MAX_LAYERS];
+  cf_t *x[SRSLTE_MAX_LAYERS];
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
    
    if (q             != NULL &&
@@ -470,13 +470,13 @@ int pdsch_encode_rnti(pdsch_t *q, harq_t *harq, uint8_t *data, uint16_t rnti, cf
     }
 
     INFO("Encoding PDSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-        harq->sf_idx, lte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+        harq->sf_idx, srslte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {
       x[i] = q->pdsch_x[i];
     }
-    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (MAX_LAYERS - q->cell.nof_ports));
+    memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
 
     if (dlsch_encode(&q->dl_sch, harq, data, q->pdsch_e)) {
       fprintf(stderr, "Error encoding TB\n");

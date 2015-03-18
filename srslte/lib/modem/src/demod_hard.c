@@ -37,7 +37,7 @@ void demod_hard_init(demod_hard_t* q) {
   bzero((void*) q, sizeof(demod_hard_t));
 }
 
-void demod_hard_table_set(demod_hard_t* q, lte_mod_t mod) {
+void demod_hard_table_set(demod_hard_t* q, srslte_mod_t mod) {
   q->mod = mod;
 }
 

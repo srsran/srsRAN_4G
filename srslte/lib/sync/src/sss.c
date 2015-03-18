@@ -98,7 +98,7 @@ void sss_synch_free(sss_synch_t *q) {
 
 /** Sets the N_id_2 to search for */
 int sss_synch_set_N_id_2(sss_synch_t *q, uint32_t N_id_2) {
-  if (!lte_N_id_2_isvalid(N_id_2)) {
+  if (!srslte_N_id_2_isvalid(N_id_2)) {
     fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
     return SRSLTE_ERROR;
   } else {
@@ -112,7 +112,7 @@ int sss_synch_set_N_id_2(sss_synch_t *q, uint32_t N_id_2) {
 void sss_put_slot(float *sss, cf_t *slot, uint32_t nof_prb, srslte_cp_t cp) {
   uint32_t i, k;
 
-  k = (CP_NSYMB(cp) - 2) * nof_prb * RE_X_RB + nof_prb * RE_X_RB / 2 - 31;
+  k = (SRSLTE_CP_NSYMB(cp) - 2) * nof_prb * SRSLTE_NRE + nof_prb * SRSLTE_NRE / 2 - 31;
   
   if (k > 5) {
     memset(&slot[k - 5], 0, 5 * sizeof(cf_t));

@@ -345,15 +345,15 @@ int main(int argc, char **argv) {
   cell.id = 1; 
   cell.nof_ports = 1; 
   cell.nof_prb = 25; 
-  cell.cp = CPNORM; 
-  cell.phich_length = PHICH_NORM; 
-  cell.phich_resources = R_1; 
+  cell.cp = SRSLTE_SRSLTE_CP_NORM; 
+  cell.phich_length = SRSLTE_PHICH_NORM; 
+  cell.phich_resources = SRSLTE_PHICH_R_1; 
 #endif
 
 #ifdef use_usrp
 
   /* set sampling frequency */
-  int srate = lte_sampling_freq_hz(cell.nof_prb);
+  int srate = srslte_sampling_freq_hz(cell.nof_prb);
   if (srate != -1) {  
     cuhd_set_rx_srate(uhd, (double) srate);      
     cuhd_set_tx_srate(uhd, (double) srate);      
@@ -373,7 +373,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
-  if (prach_init(&prach, lte_symbol_sz(cell.nof_prb), 0, 0, false, 1)) {
+  if (prach_init(&prach, srslte_symbol_sz(cell.nof_prb), 0, 0, false, 1)) {
     fprintf(stderr, "Error initializing PRACH\n");
     exit(-1);
   }
@@ -406,12 +406,12 @@ int main(int argc, char **argv) {
   drms_cfg.en_drms_2 = false; 
   ue_ul_set_pusch_cfg(&ue_ul, &drms_cfg, &hop_cfg);
 
-  cf_t *ul_signal = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
+  cf_t *ul_signal = vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   if (!ul_signal) {
     perror("malloc");
     exit(-1);
   }
-  bzero(ul_signal, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
+  bzero(ul_signal, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     
   if (ue_dl_init(&ue_dl, cell)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
@@ -544,9 +544,9 @@ int main(int argc, char **argv) {
                   
                   bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
 
-                  uint32_t n_ta = lte_N_ta_new_rar(rar_msg.timing_adv_cmd);
+                  uint32_t n_ta = srssrslte_N_ta_new_rar(rar_msg.timing_adv_cmd);
                   printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
-                  float time_adv_sec = TA_OFFSET+((float) n_ta)*LTE_TS;
+                  float time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;
                   if (prog_args.ta_usec >= 0) {
                     time_adv_sec = prog_args.ta_usec*1e-6;
                   }
@@ -562,17 +562,17 @@ int main(int argc, char **argv) {
                       exit(-1);
                     }
                     
-                    vec_sc_prod_cfc(ul_signal, prog_args.beta_pusch, ul_signal, SF_LEN_PRB(cell.nof_prb));
+                    vec_sc_prod_cfc(ul_signal, prog_args.beta_pusch, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb));
                     
                     timestamp_copy(&next_tx_time, &uhd_time);
                     timestamp_add(&next_tx_time, 0, 0.006 + i*0.008 - time_adv_sec); // send after 6 sub-frames (6 ms)
                     printf("Send %d samples PUSCH sfn: %d. RV_idx=%d, Last frame time = %.6f "
                           "send PUSCH time = %.6f TA: %.1f us\n", 
-                          SF_LEN_PRB(cell.nof_prb), sfn, ra_pusch.rv_idx, 
+                          SRSLTE_SF_LEN_PRB(cell.nof_prb), sfn, ra_pusch.rv_idx, 
                           timestamp_real(&uhd_time), 
                           timestamp_real(&next_tx_time), time_adv_sec*1000000);
                     
-                    cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb),
+                    cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
                                   next_tx_time.full_secs, next_tx_time.frac_secs);                
 
                     //cuhd_start_rx_stream(uhd);
@@ -611,14 +611,14 @@ int main(int argc, char **argv) {
               exit(-1);
             }
             
-            vec_save_file("pusch_tx", ul_signal, SF_LEN_PRB(cell.nof_prb)*sizeof(cf_t));
+            vec_save_file("pusch_tx", ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb)*sizeof(cf_t));
 
   #ifdef use_usrp
             cuhd_recv_with_time(uhd, dummy, 4, 1, &uhd_time.full_secs, &uhd_time.frac_secs);
             timestamp_copy(&next_tx_time, &uhd_time);
             while(1) {
               timestamp_add(&next_tx_time, 0, 0.002); // send every 2 ms 
-              cuhd_send_timed(uhd, ul_signal, SF_LEN_PRB(cell.nof_prb),
+              cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
                             next_tx_time.full_secs, next_tx_time.frac_secs);               
             }
   #else
@@ -631,7 +631,7 @@ int main(int argc, char **argv) {
           case RECV_CONNSETUP: 
             if (ue_sync_get_sfidx(&ue_sync) == (ul_sf_idx+4)%10) {
               //verbose=VERBOSE_DEBUG;
-              vec_save_file("connsetup",sf_buffer,SF_LEN_PRB(cell.nof_prb)*sizeof(cf_t));
+              vec_save_file("connsetup",sf_buffer,SRSLTE_SF_LEN_PRB(cell.nof_prb)*sizeof(cf_t));
             } else {
               //verbose=VERBOSE_NONE;
             }

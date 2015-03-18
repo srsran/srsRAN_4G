@@ -81,7 +81,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  if (sss_synch_init(&sss, lte_symbol_sz(cell.nof_prb))) {
+  if (sss_synch_init(&sss, srslte_symbol_sz(cell.nof_prb))) {
     mexErrMsgTxt("Error initializing SSS object\n");
     return;
   }
@@ -89,7 +89,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   sss_synch_set_N_id_2(&sss, cell.id%3);
       
   // Find SSS 
-  uint32_t sss_idx = SLOT_IDX_CPNORM(5,lte_symbol_sz(cell.nof_prb));     
+  uint32_t sss_idx = SRSLTE_SLOT_IDX_CPNORM(5,srslte_symbol_sz(cell.nof_prb));     
   if (sss_idx > frame_len) {
     mexErrMsgTxt("Error too few samples provided.\n");
     return;

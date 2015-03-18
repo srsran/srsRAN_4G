@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
   ue_cell_search_t cs; 
   ue_cell_search_result_t found_cells[3]; 
   int nof_freqs; 
-  lte_earfcn_t channels[MAX_EARFCN];
+  srslte_earfcn_t channels[MAX_EARFCN];
   uint32_t freq;
   
   parse_args(argc, argv);
@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
   }  
   cuhd_set_rx_gain(uhd, uhd_gain);
   
-  nof_freqs = lte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
+  nof_freqs = srslte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
   if (nof_freqs < 0) {
     fprintf(stderr, "Error getting EARFCN list\n");
     exit(-1);

@@ -53,7 +53,7 @@ void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
     int nof_intervals, bool advance_output) {
   int i;
 
-  int ref_interval = ((RE_X_RB / nof_refs) - 1);
+  int ref_interval = ((SRSLTE_NRE / nof_refs) - 1);
   memcpy(*output, *input, offset * sizeof(cf_t));
   print_indexes(*input, offset);
   *input += offset;
@@ -83,18 +83,18 @@ void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
 }
 
 void prb_cp(cf_t **input, cf_t **output, int nof_prb) {
-  memcpy(*output, *input, sizeof(cf_t) * RE_X_RB * nof_prb);
-  print_indexes(*input, RE_X_RB);
-  *input += nof_prb * RE_X_RB;
-  *output += nof_prb * RE_X_RB;
+  memcpy(*output, *input, sizeof(cf_t) * SRSLTE_NRE * nof_prb);
+  print_indexes(*input, SRSLTE_NRE);
+  *input += nof_prb * SRSLTE_NRE;
+  *output += nof_prb * SRSLTE_NRE;
 }
 
 
 void prb_cp_half(cf_t **input, cf_t **output, int nof_prb) {
-  memcpy(*output, *input, sizeof(cf_t) * RE_X_RB * nof_prb / 2);
-  print_indexes(*input, RE_X_RB/2);
-  *input += nof_prb * RE_X_RB / 2;
-  *output += nof_prb * RE_X_RB / 2;
+  memcpy(*output, *input, sizeof(cf_t) * SRSLTE_NRE * nof_prb / 2);
+  print_indexes(*input, SRSLTE_NRE/2);
+  *input += nof_prb * SRSLTE_NRE / 2;
+  *output += nof_prb * SRSLTE_NRE / 2;
 }
 
 void prb_put_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
