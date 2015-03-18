@@ -28,7 +28,7 @@
 #include "srslte/common/timestamp.h"
 #include "math.h"
 
-int timestamp_init(timestamp_t *t, time_t full_secs, double frac_secs){
+int srslte_timestamp_init(srslte_timestamp_t *t, time_t full_secs, double frac_secs){
   int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
     t->full_secs = full_secs;
@@ -38,7 +38,7 @@ int timestamp_init(timestamp_t *t, time_t full_secs, double frac_secs){
   return ret;
 }
 
-int timestamp_copy(timestamp_t *dest, timestamp_t *src){
+int srslte_timestamp_copy(srslte_timestamp_t *dest, srslte_timestamp_t *src){
   int ret = SRSLTE_ERROR;
   if(dest != NULL && src != NULL){
     dest->full_secs = src->full_secs;
@@ -48,7 +48,7 @@ int timestamp_copy(timestamp_t *dest, timestamp_t *src){
   return ret;
 }
 
-int timestamp_add(timestamp_t *t, time_t full_secs, double frac_secs){
+int srslte_timestamp_add(srslte_timestamp_t *t, time_t full_secs, double frac_secs){
   int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
     t->frac_secs += frac_secs;
@@ -61,7 +61,7 @@ int timestamp_add(timestamp_t *t, time_t full_secs, double frac_secs){
   return ret;
 }
 
-int timestamp_sub(timestamp_t *t, time_t full_secs, double frac_secs){
+int srslte_timestamp_sub(srslte_timestamp_t *t, time_t full_secs, double frac_secs){
   int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
     t->frac_secs -= frac_secs;
@@ -77,6 +77,6 @@ int timestamp_sub(timestamp_t *t, time_t full_secs, double frac_secs){
   return ret;
 }
 
-double timestamp_real(timestamp_t *t){
+double srslte_timestamp_real(srslte_timestamp_t *t){
  return t->frac_secs + t->full_secs;
 }

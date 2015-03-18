@@ -40,7 +40,7 @@ uint8_t RM_PERM_CC_INV[NCOLS] =
     { 16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26, 10, 22, 6, 30, 14, 17, 1, 25, 9,
         21, 5, 29, 13, 19, 3, 27, 11, 23, 7, 31, 15 };
 
-int rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t out_len) {
+int srslte_rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t out_len) {
 
   uint8_t tmp[3 * NCOLS * NROWS_MAX];
   int nrows, ndummy, K_p;
@@ -64,7 +64,7 @@ int rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t out_le
     for (j = 0; j < NCOLS; j++) {
       for (i = 0; i < nrows; i++) {
         if (i * NCOLS + RM_PERM_CC[j] < ndummy) {
-          tmp[k] = TX_NULL;
+          tmp[k] = SRSLTE_TX_NULL;
         } else {
           tmp[k] = input[(i * NCOLS + RM_PERM_CC[j] - ndummy) * 3 + s];
         }
@@ -76,7 +76,7 @@ int rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t out_le
   k = 0;
   j = 0;
   while (k < out_len) {
-    if (tmp[j] != TX_NULL) {
+    if (tmp[j] != SRSLTE_TX_NULL) {
       output[k] = tmp[j];
       k++;
     }
@@ -91,7 +91,7 @@ int rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t out_le
 /* Undoes Convolutional Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.2
  */
-int rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out_len) {
+int srslte_rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out_len) {
 
   int nrows, ndummy, K_p;
   int i, j, k;
@@ -113,7 +113,7 @@ int rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out_len) {
   }
 
   for (i = 0; i < 3 * K_p; i++) {
-    tmp[i] = RX_NULL;
+    tmp[i] = SRSLTE_RX_NULL;
   }
 
   /* Undo bit collection. Account for dummy bits */
@@ -124,9 +124,9 @@ int rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out_len) {
     d_j = (j % K_p) % nrows;
 
     if (d_j * NCOLS + RM_PERM_CC[d_i] >= ndummy) {
-      if (tmp[j] == RX_NULL) {
+      if (tmp[j] == SRSLTE_RX_NULL) {
         tmp[j] = input[k];
-      } else if (input[k] != RX_NULL) {
+      } else if (input[k] != SRSLTE_RX_NULL) {
         tmp[j] += input[k]; /* soft combine LLRs */
       }
       k++;
@@ -143,7 +143,7 @@ int rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out_len) {
     d_j = (i + ndummy) % NCOLS;
     for (j = 0; j < 3; j++) {
       float o = tmp[K_p * j + RM_PERM_CC_INV[d_j] * nrows + d_i];
-      if (o != RX_NULL) {
+      if (o != SRSLTE_RX_NULL) {
         output[i * 3 + j] = o;
       } else {
         output[i * 3 + j] = 0;
@@ -155,24 +155,24 @@ int rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out_len) {
 
 /** High-level API */
 
-int rm_conv_initialize(rm_conv_hl* h) {
+int srslte_rm_conv_initialize(srslte_rm_conv_hl* h) {
 
   return 0;
 }
 
 /** This function can be called in a subframe (1ms) basis */
-int rm_conv_work(rm_conv_hl* hl) {
+int srslte_rm_conv_work(srslte_rm_conv_hl* hl) {
   if (hl->init.direction) {
-    rm_conv_tx(hl->input, hl->in_len, hl->output, hl->ctrl_in.E);
+    srslte_rm_conv_tx(hl->input, hl->in_len, hl->output, hl->ctrl_in.E);
     hl->out_len = hl->ctrl_in.E;
   } else {
-    rm_conv_rx(hl->input, hl->in_len, hl->output, hl->ctrl_in.S);
+    srslte_rm_conv_rx(hl->input, hl->in_len, hl->output, hl->ctrl_in.S);
     hl->out_len = hl->ctrl_in.S;
   }
   return 0;
 }
 
-int rm_conv_stop(rm_conv_hl* hl) {
+int srslte_rm_conv_stop(srslte_rm_conv_hl* hl) {
   return 0;
 }
 

@@ -34,7 +34,7 @@
 #include "srslte/fec/convcoder.h"
 #include "parity.h"
 
-int convcoder_encode(convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length) {
+int srslte_convcoder_encode(srslte_convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length) {
   uint32_t sr;
   uint32_t i,j;
   uint32_t len = q->tail_biting ? frame_length : (frame_length + q->K - 1);
@@ -67,11 +67,11 @@ int convcoder_encode(convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t f
 
 
 
-int convcoder_initialize(convcoder_hl* h) {
+int srslte_convcoder_initialize(srslte_convcoder_hl* h) {
   return 0;
 }
 
-int convcoder_work(convcoder_hl* hl) {
+int srslte_convcoder_work(srslte_convcoder_hl* hl) {
 
   hl->obj.K = hl->ctrl_in.constraint_length;
   hl->obj.R = hl->ctrl_in.rate;
@@ -79,10 +79,10 @@ int convcoder_work(convcoder_hl* hl) {
   hl->obj.poly[1] = hl->ctrl_in.generator_1;
   hl->obj.poly[2] = hl->ctrl_in.generator_2;
   hl->obj.tail_biting = hl->ctrl_in.tail_bitting?true:false;
-  hl->out_len = convcoder_encode(&hl->obj, hl->input, hl->output, hl->in_len);
+  hl->out_len = srslte_convcoder_encode(&hl->obj, hl->input, hl->output, hl->in_len);
   return 0;
 }
 
-int convcoder_stop(convcoder_hl* h) {
+int srslte_convcoder_stop(srslte_convcoder_hl* h) {
   return 0;
 }

@@ -55,7 +55,7 @@ int max_frames = 10;
 uint32_t sf_idx = 0;
 
 dci_format_t dci_format = Format1A;
-filesource_t fsrc;
+srslte_filesource_t fsrc;
 pdcch_t pdcch;
 pdsch_t pdsch;
 harq_t harq_process;
@@ -133,7 +133,7 @@ void parse_args(int argc, char **argv) {
 int base_init() {
   int i;
 
-  if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
+  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
     exit(-1);
   }
@@ -203,12 +203,12 @@ int base_init() {
 void base_free() {
   int i;
 
-  filesource_free(&fsrc);
+  srslte_filesource_free(&fsrc);
 
   free(input_buffer);
   free(fft_buffer);
 
-  filesource_free(&fsrc);
+  srslte_filesource_free(&fsrc);
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     free(ce[i]);
   }
@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
   ret = -1;
   nof_frames = 0;
   do {
-    filesource_read(&fsrc, input_buffer, flen);
+    srslte_filesource_read(&fsrc, input_buffer, flen);
     INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
 
     srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
@@ -266,19 +266,19 @@ int main(int argc, char **argv) {
       nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
     }
     
-    uint16_t crc_rem = 0;
+    uint16_t srslte_crc_rem = 0;
     if (pdcch_extract_llr(&pdcch, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), sf_idx, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       return -1;
     }
-    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
+    for (i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
+      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &srslte_crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return -1;
       }
     }
     
-    if (crc_rem == rnti) {
+    if (srslte_crc_rem == rnti) {
       if (dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, &ra_dl)) {
         fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
         goto goout;

@@ -50,7 +50,7 @@ uint8_t bch_payload_file[BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1,
 
 #define FLEN  (10*SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb)))
 
-filesource_t fsrc;
+srslte_filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
 pbch_t pbch;
 srslte_fft_t fft;
@@ -102,7 +102,7 @@ void parse_args(int argc, char **argv) {
 int base_init() {
   int i;
 
-  if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
+  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
     exit(-1);
   }
@@ -154,12 +154,12 @@ int base_init() {
 void base_free() {
   int i;
 
-  filesource_free(&fsrc);
+  srslte_filesource_free(&fsrc);
 
   free(input_buffer);
   free(fft_buffer);
 
-  filesource_free(&fsrc);
+  srslte_filesource_free(&fsrc);
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
   }
@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
   int nof_decoded_mibs = 0; 
   int nread = 0; 
   do {
-    nread = filesource_read(&fsrc, input_buffer, FLEN);
+    nread = srslte_filesource_read(&fsrc, input_buffer, FLEN);
 
     if (nread > 0) {
       // process 1st subframe only

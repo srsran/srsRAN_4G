@@ -38,51 +38,54 @@
 
 #include "srslte/config.h"
 
-typedef enum {NETSOURCE_UDP, NETSOURCE_TCP} netsource_type_t; 
+typedef enum {
+  SRSLTE_NETSOURCE_UDP, 
+  SRSLTE_NETSOURCE_TCP  
+} srslte_netsource_type_t; 
 
 /* Low-level API */
 typedef struct SRSLTE_API {
   int sockfd;
   int connfd; 
   struct sockaddr_in servaddr;
-  netsource_type_t type; 
+  srslte_netsource_type_t type; 
   struct sockaddr_in cliaddr;  
-}netsource_t;
+}srslte_netsource_t;
 
-SRSLTE_API int netsource_init(netsource_t *q, 
-                              char *address, 
-                              int port, 
-                              netsource_type_t type);
+SRSLTE_API int srslte_netsource_init(srslte_netsource_t *q, 
+                                     char *address, 
+                                     int port, 
+                                     srslte_netsource_type_t type);
 
-SRSLTE_API void netsource_free(netsource_t *q);
+SRSLTE_API void srslte_netsource_free(srslte_netsource_t *q);
 
-SRSLTE_API int netsource_set_nonblocking(netsource_t *q); 
+SRSLTE_API int srslte_netsource_set_nonblocking(srslte_netsource_t *q); 
 
-SRSLTE_API int netsource_read(netsource_t *q, 
-                              void *buffer, 
-                              int nof_bytes);
+SRSLTE_API int srslte_netsource_read(srslte_netsource_t *q, 
+                                     void *buffer, 
+                                     int nof_bytes);
 
-SRSLTE_API int netsource_set_timeout(netsource_t *q, 
-                                     uint32_t microseconds); 
+SRSLTE_API int srslte_netsource_set_timeout(srslte_netsource_t *q, 
+                                            uint32_t microseconds); 
 
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  netsource_t obj;
-  struct netsource_init {
+  srslte_netsource_t obj;
+  struct srslte_netsource_init {
     char *address;
     int port;
     int data_type;
   } init;
-  struct netsource_ctrl_in {
+  struct srslte_netsource_ctrl_in {
     int nsamples;        // Number of samples to read
   } ctrl_in;
   void* output;
   int out_len;
-}netsource_hl;
+}srslte_netsource_hl;
 
-SRSLTE_API int netsource_initialize(netsource_hl* h);
-SRSLTE_API int netsource_work(  netsource_hl* hl);
-SRSLTE_API int netsource_stop(netsource_hl* h);
+SRSLTE_API int srslte_netsource_initialize(srslte_netsource_hl* h);
+SRSLTE_API int srslte_netsource_work(  srslte_netsource_hl* hl);
+SRSLTE_API int srslte_netsource_stop(srslte_netsource_hl* h);
 
 #endif // UDPSOURCE_

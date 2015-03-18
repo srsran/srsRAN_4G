@@ -65,10 +65,10 @@ typedef struct SRSLTE_API {
   sync_t strack;
 
   void *stream; 
-  int (*recv_callback)(void*, void*, uint32_t, timestamp_t*); 
-  timestamp_t last_timestamp;
+  int (*recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*); 
+  srslte_timestamp_t last_timestamp;
   
-  filesource_t file_source; 
+  srslte_filesource_t file_source; 
   bool file_mode; 
   
   ue_sync_state_t state;
@@ -107,7 +107,7 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int ue_sync_init(ue_sync_t *q, 
                             srslte_cell_t cell,
-                            int (recv_callback)(void*, void*, uint32_t, timestamp_t*), 
+                            int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*), 
                             void *stream_handler);
 
 SRSLTE_API int ue_sync_init_file(ue_sync_t *q, 
@@ -138,7 +138,7 @@ SRSLTE_API float ue_sync_get_cfo(ue_sync_t *q);
 SRSLTE_API float ue_sync_get_sfo(ue_sync_t *q);
 
 SRSLTE_API void ue_sync_get_last_timestamp(ue_sync_t *q, 
-                                           timestamp_t *timestamp);
+                                           srslte_timestamp_t *timestamp);
 
 
 

@@ -71,9 +71,9 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   modem_table_t mod;
   demod_soft_t demod;
-  sequence_t seq_pdcch[SRSLTE_NSUBFRAMES_X_FRAME];
-  viterbi_t decoder;
-  crc_t crc;
+  srslte_sequence_t seq_pdcch[SRSLTE_NSUBFRAMES_X_FRAME];
+  srslte_viterbi_t decoder;
+  srslte_crc_t crc;
   precoding_t precoding; 
 
 } pdcch_t;
@@ -107,7 +107,7 @@ SRSLTE_API int pdcch_decode_msg(pdcch_t *q,
                                 dci_msg_t *msg, 
                                 dci_location_t *location,
                                 dci_format_t format,
-                                uint16_t *crc_rem);
+                                uint16_t *srslte_crc_rem);
 
 /* Function for generation of UE-specific search space DCI locations */
 SRSLTE_API uint32_t pdcch_ue_locations(pdcch_t *q, 

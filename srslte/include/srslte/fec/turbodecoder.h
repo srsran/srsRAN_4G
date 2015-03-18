@@ -31,62 +31,52 @@
 #include "srslte/config.h"
 #include "srslte/fec/tc_interl.h"
 
-#define RATE 3
-#define TOTALTAIL 12
-
-#define LOG18 -2.07944
-
-#define NUMSTATES 8
-#define NINPUTS 2
-#define TAIL 3
-#define TOTALTAIL 12
-
-#define INF 9e4
-#define ZERO 9e-4
+#define SRSLTE_TCOD_RATE 3
+#define SRSLTE_TCOD_TOTALTAIL 12
 
 #define MAX_LONG_CB     6144
-#define MAX_LONG_CODED  (RATE*MAX_LONG_CB+TOTALTAIL)
+#define MAX_LONG_CODED  (SRSLTE_TCOD_RATE*MAX_LONG_CB+SRSLTE_TCOD_TOTALTAIL)
 
-typedef float llr_t;
-
-typedef struct SRSLTE_API {
-  int max_long_cb;
-  llr_t *beta;
-} map_gen_t;
+typedef float srslte_llr_t;
 
 typedef struct SRSLTE_API {
   int max_long_cb;
+  srslte_llr_t *beta;
+} srslte_map_gen_t;
 
-  map_gen_t dec;
+typedef struct SRSLTE_API {
+  int max_long_cb;
 
-  llr_t *llr1;
-  llr_t *llr2;
-  llr_t *w;
-  llr_t *syst;
-  llr_t *parity;
+  srslte_map_gen_t dec;
 
-  tc_interl_t interleaver;
-} tdec_t;
+  srslte_llr_t *llr1;
+  srslte_llr_t *llr2;
+  srslte_llr_t *w;
+  srslte_llr_t *syst;
+  srslte_llr_t *parity;
 
-SRSLTE_API int tdec_init(tdec_t * h, 
-                         uint32_t max_long_cb);
+  srs_tc_interl_t interleaver;
+} srslte_tdec_t;
 
-SRSLTE_API void tdec_free(tdec_t * h);
+SRSLTE_API int srslte_tdec_init(srslte_tdec_t * h, 
+                                uint32_t max_long_cb);
 
-SRSLTE_API int tdec_reset(tdec_t * h, uint32_t long_cb);
+SRSLTE_API void srslte_tdec_free(srslte_tdec_t * h);
 
-SRSLTE_API void tdec_iteration(tdec_t * h, 
-                               llr_t * input, 
-                               uint32_t long_cb);
+SRSLTE_API int srslte_tdec_reset(srslte_tdec_t * h, uint32_t long_cb);
 
-SRSLTE_API void tdec_decision(tdec_t * h, 
-                              uint8_t *output, 
-                              uint32_t long_cb);
+SRSLTE_API void srslte_tdec_iteration(srslte_tdec_t * h, 
+                                      srslte_llr_t * input, 
+                                      uint32_t long_cb);
 
-SRSLTE_API int tdec_run_all(tdec_t * h, 
-                             llr_t * input, 
-                             uint8_t *output,
-                             uint32_t nof_iterations, 
-                             uint32_t long_cb);
+SRSLTE_API void srslte_tdec_decision(srslte_tdec_t * h, 
+                                     uint8_t *output, 
+                                     uint32_t long_cb);
+
+SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h, 
+                                   srslte_llr_t * input, 
+                                   uint8_t *output,
+                                   uint32_t nof_iterations, 
+                                   uint32_t long_cb);
 
 #endif

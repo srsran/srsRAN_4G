@@ -109,7 +109,7 @@ int srslte_refsignal_cs_init(srslte_refsignal_cs_t * q, srslte_cell_t cell)
   uint32_t c_init;
   uint32_t i, ns, l, p;
   uint32_t N_cp, mp;
-  sequence_t seq;
+  srslte_sequence_t seq;
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL &&
@@ -118,8 +118,8 @@ int srslte_refsignal_cs_init(srslte_refsignal_cs_t * q, srslte_cell_t cell)
     ret = SRSLTE_ERROR; 
     
     bzero(q, sizeof(srslte_refsignal_cs_t));
-    bzero(&seq, sizeof(sequence_t));
-    if (sequence_init(&seq, 2 * 2 * SRSLTE_MAX_PRB)) {
+    bzero(&seq, sizeof(srslte_sequence_t));
+    if (srslte_sequence_init(&seq, 2 * 2 * SRSLTE_MAX_PRB)) {
       goto free_and_exit;
     }
     
@@ -151,7 +151,7 @@ int srslte_refsignal_cs_init(srslte_refsignal_cs_t * q, srslte_cell_t cell)
             + 2 * cell.id + N_cp;
           
           /* generate sequence for this symbol and slot */
-          sequence_set_LTE_pr(&seq, c_init);
+          srslte_sequence_set_LTE_pr(&seq, c_init);
           
           /* Compute signal */
           for (i = 0; i < 2*q->cell.nof_prb; i++) {
@@ -165,12 +165,12 @@ int srslte_refsignal_cs_init(srslte_refsignal_cs_t * q, srslte_cell_t cell)
         
       }
     }
-    sequence_free(&seq);
+    srslte_sequence_free(&seq);
     ret = SRSLTE_SUCCESS;
   }
 free_and_exit:
   if (ret == SRSLTE_ERROR) {
-    sequence_free(&seq);
+    srslte_sequence_free(&seq);
     srslte_refsignal_cs_free(q);
   }
   return ret;

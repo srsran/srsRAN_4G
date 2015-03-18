@@ -30,53 +30,53 @@
 
 #include "srslte/config.h"
 
-#ifndef RX_NULL
-#define RX_NULL 10000
+#ifndef SRSLTE_RX_NULL
+#define SRSLTE_RX_NULL 10000
 #endif
 
-#ifndef TX_NULL
-#define TX_NULL 100
+#ifndef SRSLTE_TX_NULL
+#define SRSLTE_TX_NULL 100
 #endif
 
 #include "srslte/config.h"
 
 
-SRSLTE_API int rm_turbo_tx(uint8_t *w_buff,
-                           uint32_t buff_len, 
-                           uint8_t *input, 
-                           uint32_t in_len, 
-                           uint8_t *output,
-                           uint32_t out_len, 
-                           uint32_t rv_idx);
+SRSLTE_API int srslte_rm_turbo_tx(uint8_t *w_buff,
+                                  uint32_t buff_len, 
+                                  uint8_t *input, 
+                                  uint32_t in_len, 
+                                  uint8_t *output,
+                                  uint32_t out_len, 
+                                  uint32_t rv_idx);
 
-SRSLTE_API int rm_turbo_rx(float *w_buff,
-                           uint32_t buff_len, 
-                           float *input, 
-                           uint32_t in_len,
-                           float *output, 
-                           uint32_t out_len, 
-                           uint32_t rv_idx, 
-                           uint32_t nof_filler_bits);
+SRSLTE_API int srslte_rm_turbo_rx(float *w_buff,
+                                  uint32_t buff_len, 
+                                  float *input, 
+                                  uint32_t in_len,
+                                  float *output, 
+                                  uint32_t out_len, 
+                                  uint32_t rv_idx, 
+                                  uint32_t nof_filler_bits);
 
 /* High-level API */
 typedef struct SRSLTE_API {
   
-  struct rm_turbo_init {
+  struct srslte_rm_turbo_init {
     int direction;
   } init;
   void *input;  // input type may be uint8_t or float depending on hard
   int in_len;
-  struct rm_turbo_ctrl_in {
+  struct srslte_rm_turbo_ctrl_in {
     int E;
     int S;
     int rv_idx;
   } ctrl_in;
   void *output;
   int out_len;
-} rm_turbo_hl;
+} srslte_rm_turbo_hl;
 
-SRSLTE_API int rm_turbo_initialize(rm_turbo_hl* h);
-SRSLTE_API int rm_turbo_work(rm_turbo_hl* hl);
-SRSLTE_API int rm_turbo_stop(rm_turbo_hl* hl);
+SRSLTE_API int srslte_rm_turbo_initialize(srslte_rm_turbo_hl* h);
+SRSLTE_API int srslte_rm_turbo_work(srslte_rm_turbo_hl* hl);
+SRSLTE_API int srslte_rm_turbo_stop(srslte_rm_turbo_hl* hl);
 
 #endif

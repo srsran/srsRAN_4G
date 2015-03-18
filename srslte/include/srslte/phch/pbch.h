@@ -73,10 +73,10 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   modem_table_t mod;
   demod_soft_t demod;
-  sequence_t seq_pbch;
-  viterbi_t decoder;
-  crc_t crc;
-  convcoder_t encoder;
+  srslte_sequence_t seq_pbch;
+  srslte_viterbi_t decoder;
+  srslte_crc_t crc;
+  srslte_convcoder_t encoder;
   precoding_t precoding; 
   
 } pbch_t;

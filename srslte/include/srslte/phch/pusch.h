@@ -67,7 +67,7 @@ typedef struct SRSLTE_API {
   bool rnti_is_set; 
   uint16_t rnti; 
 
-  dft_precoding_t dft_precoding;  
+  srslte_srslte_dft_precoding_t srslte_dft_precoding;  
   
   precoding_t equalizer; 
   
@@ -83,8 +83,8 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   modem_table_t mod[4];
   demod_soft_t demod;
-  sequence_t seq_pusch[SRSLTE_NSUBFRAMES_X_FRAME];
-  sequence_t seq_type2_fo; 
+  srslte_sequence_t seq_pusch[SRSLTE_NSUBFRAMES_X_FRAME];
+  srslte_sequence_t seq_type2_fo; 
   
   sch_t dl_sch;
   

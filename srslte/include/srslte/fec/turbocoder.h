@@ -31,23 +31,25 @@
 #include "srslte/config.h"
 #include "srslte/fec/tc_interl.h"
 
-#define NUMREGS     3
 
-#define RATE 3
-#define TOTALTAIL 12
-
-#ifndef TX_NULL
-#define TX_NULL 100
+#ifndef SRSLTE_TX_NULL
+#define SRSLTE_TX_NULL 100
 #endif
 
 typedef struct SRSLTE_API {
   uint32_t max_long_cb;
-  tc_interl_t interl;
-} tcod_t;
+  srs_tc_interl_t interl;
+} srslte_tcod_t;
 
-SRSLTE_API int tcod_init(tcod_t *h, uint32_t max_long_cb);
-SRSLTE_API void tcod_free(tcod_t *h);
-SRSLTE_API int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb);
+SRSLTE_API int srslte_tcod_init(srslte_tcod_t *h, 
+                                uint32_t max_long_cb);
+
+SRSLTE_API void srslte_tcod_free(srslte_tcod_t *h);
+
+SRSLTE_API int srslte_tcod_encode(srslte_tcod_t *h, 
+                                  uint8_t *input, 
+                                  uint8_t *output, 
+                                  uint32_t long_cb);
 
 #endif
 

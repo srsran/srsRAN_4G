@@ -39,13 +39,13 @@
 float tmp_pss_corr[32*10000];
 float tmp_sss_corr[31*10000];
 
-int ue_cell_search_init(ue_cell_search_t * q, int (recv_callback)(void*, void*, uint32_t,timestamp_t*), void *stream_handler) 
+int ue_cell_search_init(ue_cell_search_t * q, int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*), void *stream_handler) 
 {
   return ue_cell_search_init_max(q, CS_DEFAULT_MAXFRAMES_TOTAL, recv_callback, stream_handler); 
 }
 
 int ue_cell_search_init_max(ue_cell_search_t * q, uint32_t max_frames, 
-                           int (recv_callback)(void*, void*, uint32_t,timestamp_t*), void *stream_handler) 
+                           int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*), void *stream_handler) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 

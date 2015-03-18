@@ -30,41 +30,43 @@
 
 #include "srslte/config.h"
 
-#ifndef RX_NULL
-#define RX_NULL 10000
+#ifndef SRSLTE_RX_NULL
+#define SRSLTE_RX_NULL 10000
 #endif
 
-#ifndef TX_NULL
-#define TX_NULL 100
+#ifndef SRSLTE_TX_NULL
+#define SRSLTE_TX_NULL 100
 #endif
-SRSLTE_API int rm_conv_tx(uint8_t *input, 
-                          uint32_t in_len, 
-                          uint8_t *output, 
-                          uint32_t out_len);
+SRSLTE_API int srslte_rm_conv_tx(uint8_t *input, 
+                                 uint32_t in_len, 
+                                 uint8_t *output, 
+                                 uint32_t out_len);
 
-SRSLTE_API int rm_conv_rx(float *input, 
-                          uint32_t in_len, 
-                          float *output, 
-                          uint32_t out_len);
+SRSLTE_API int srslte_rm_conv_rx(float *input, 
+                                 uint32_t in_len, 
+                                 float *output, 
+                                 uint32_t out_len);
 
 /* High-level API */
 typedef struct
   SRSLTE_API {
-    struct rm_conv_init {
+    struct srslte_rm_conv_init {
       int direction;
     } init;
     void *input;      // input type may be uint8_t or float depending on hard
     int in_len;
-    struct rm_conv_ctrl_in {
+    struct srslte_rm_conv_ctrl_in {
       int E;
       int S;
     } ctrl_in;
     void *output;
     int out_len;
-  } rm_conv_hl;
+  } srslte_rm_conv_hl;
 
-  SRSLTE_API int rm_conv_initialize(rm_conv_hl* h);
-  SRSLTE_API int rm_conv_work(rm_conv_hl* hl);
-  SRSLTE_API int rm_conv_stop(rm_conv_hl* hl);
+  SRSLTE_API int srslte_rm_conv_initialize(srslte_rm_conv_hl* h);
+  
+  SRSLTE_API int srslte_rm_conv_work(srslte_rm_conv_hl* hl);
+  
+  SRSLTE_API int srslte_rm_conv_stop(srslte_rm_conv_hl* hl);
 
 #endif

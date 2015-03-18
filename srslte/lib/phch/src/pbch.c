@@ -41,7 +41,7 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
-const uint8_t crc_mask[4][16] = {
+const uint8_t srslte_crc_mask[4][16] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, 
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
@@ -151,15 +151,15 @@ int pbch_init(pbch_t *q, srslte_cell_t cell) {
     demod_soft_table_set(&q->demod, &q->mod);
     demod_soft_alg_set(&q->demod, APPROX);
     
-    if (sequence_pbch(&q->seq_pbch, q->cell.cp, q->cell.id)) {
+    if (srslte_sequence_pbch(&q->seq_pbch, q->cell.cp, q->cell.id)) {
       goto clean;
     }
 
     uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
-    if (viterbi_init(&q->decoder, viterbi_37, poly, 40, true)) {
+    if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, 40, true)) {
       goto clean;
     }
-    if (crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
+    if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
       goto clean;
     }
     q->encoder.K = 7;
@@ -233,9 +233,9 @@ void pbch_free(pbch_t *q) {
     free(q->pbch_rm_b);
   }
   precoding_free(&q->precoding);
-  sequence_free(&q->seq_pbch);
+  srslte_sequence_free(&q->seq_pbch);
   modem_table_free(&q->mod);
-  viterbi_free(&q->decoder);
+  srslte_viterbi_free(&q->decoder);
   demod_soft_free(&q->demod);
 
   bzero(q, sizeof(pbch_t));
@@ -356,10 +356,10 @@ void pbch_decode_reset(pbch_t *q) {
   q->frame_idx = 0;
 }
 
-void crc_set_mask(uint8_t *data, int nof_ports) {
+void srslte_crc_set_mask(uint8_t *data, int nof_ports) {
   int i;
   for (i = 0; i < 16; i++) {
-    data[BCH_PAYLOAD_LEN + i] = (data[BCH_PAYLOAD_LEN + i] + crc_mask[nof_ports - 1][i]) % 2;
+    data[BCH_PAYLOAD_LEN + i] = (data[BCH_PAYLOAD_LEN + i] + srslte_crc_mask[nof_ports - 1][i]) % 2;
   }
 
 }
@@ -370,11 +370,11 @@ void crc_set_mask(uint8_t *data, int nof_ports) {
  *
  * Returns 0 if the data is correct, -1 otherwise
  */
-uint32_t pbch_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
+uint32_t pbch_srslte_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
   uint8_t data[BCH_PAYLOADCRC_LEN];
   memcpy(data, bits, BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
-  crc_set_mask(data, nof_ports);
-  int ret = crc_checksum(&q->crc, data, BCH_PAYLOADCRC_LEN);
+  srslte_crc_set_mask(data, nof_ports);
+  int ret = srslte_crc_checksum(&q->crc, data, BCH_PAYLOADCRC_LEN);
   if (ret == 0) {
     uint32_t chkzeros=0;
     for (int i=0;i<BCH_PAYLOAD_LEN;i++) {
@@ -404,19 +404,19 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
       n * nof_bits);
 
   for (j = 0; j < dst * nof_bits; j++) {
-    q->temp[j] = RX_NULL;
+    q->temp[j] = SRSLTE_RX_NULL;
   }
   for (j = (dst + n) * nof_bits; j < 4 * nof_bits; j++) {
-    q->temp[j] = RX_NULL;
+    q->temp[j] = SRSLTE_RX_NULL;
   }
 
   /* unrate matching */
-  rm_conv_rx(q->temp, 4 * nof_bits, q->pbch_rm_f, BCH_ENCODED_LEN);
+  srslte_rm_conv_rx(q->temp, 4 * nof_bits, q->pbch_rm_f, BCH_ENCODED_LEN);
   
   /* decode */
-  viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data, BCH_PAYLOADCRC_LEN);
+  srslte_viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data, BCH_PAYLOADCRC_LEN);
 
- if (!pbch_crc_check(q, q->data, nof_ports)) {
+ if (!pbch_srslte_crc_check(q, q->data, nof_ports)) {
     return 1;
   } else {
     return SRSLTE_SUCCESS;
@@ -490,7 +490,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
         } else {
           predecoding_diversity(&q->precoding, q->pbch_symbols[0], q->ce, x, nant,
               q->nof_symbols, noise_estimate);
-          layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
+          srslte_layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
         }
 
         /* demodulate symbols */
@@ -563,12 +563,12 @@ int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_sym
       memcpy(q->data, bch_payload, sizeof(uint8_t) * BCH_PAYLOAD_LEN);
 
       /* encode & modulate */
-      crc_attach(&q->crc, q->data, BCH_PAYLOAD_LEN);
-      crc_set_mask(q->data, q->cell.nof_ports);
+      srslte_crc_attach(&q->crc, q->data, BCH_PAYLOAD_LEN);
+      srslte_crc_set_mask(q->data, q->cell.nof_ports);
       
-      convcoder_encode(&q->encoder, q->data, q->data_enc, BCH_PAYLOADCRC_LEN);
+      srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, BCH_PAYLOADCRC_LEN);
 
-      rm_conv_tx(q->data_enc, BCH_ENCODED_LEN, q->pbch_rm_b, 4 * nof_bits);
+      srslte_rm_conv_tx(q->data_enc, BCH_ENCODED_LEN, q->pbch_rm_b, 4 * nof_bits);
 
     }
 
@@ -579,7 +579,7 @@ int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_sym
 
     /* layer mapping & precoding */
     if (q->cell.nof_ports > 1) {
-      layermap_diversity(q->pbch_d, x, q->cell.nof_ports, q->nof_symbols);
+      srslte_layermap_diversity(q->pbch_d, x, q->cell.nof_ports, q->nof_symbols);
       precoding_diversity(&q->precoding, x, q->pbch_symbols, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     } else {

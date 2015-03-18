@@ -71,7 +71,7 @@ int generate_input_signal(void *in, int *lengths)
   lengths[0] = block_length;
 
   for (i=0;i<block_length;i++) {
-#ifdef GENERATE_COMPLEX
+#ifdef GENESRSLTE_TCOD_RATE_COMPLEX
     __real__ input[i] = (float) ((i+offset)%(block_length));
     __imag__ input[i] = (float) ((block_length-i-1+offset)%(block_length));
 #else

@@ -43,11 +43,11 @@
 
 #define idx(a, b) ((a)*(q->szfreq+q->nfreq)+b)
 
-int filter2d_init(filter2d_t* q, float **taps, uint32_t ntime, uint32_t nfreq, uint32_t sztime,
+int srslte_filter2d_init(srslte_filter2d_t* q, float **taps, uint32_t ntime, uint32_t nfreq, uint32_t sztime,
     uint32_t szfreq) {
 
   int ret = -1;
-  bzero(q, sizeof(filter2d_t));
+  bzero(q, sizeof(srslte_filter2d_t));
 
   if (matrix_init((void***)&q->taps, ntime, nfreq, sizeof(float))) {
     goto free_and_exit;
@@ -76,21 +76,21 @@ int filter2d_init(filter2d_t* q, float **taps, uint32_t ntime, uint32_t nfreq, u
   ret = 0;
 
   free_and_exit: if (ret == -1) {
-    filter2d_free(q);
+    srslte_filter2d_free(q);
   }
   return ret;
 }
 
-void filter2d_free(filter2d_t *q) {
+void srslte_filter2d_free(srslte_filter2d_t *q) {
 
   matrix_free((void**) q->taps, q->ntime);
   if (q->output) {
     free(q->output);
   }
-  bzero(q, sizeof(filter2d_t));
+  bzero(q, sizeof(srslte_filter2d_t));
 }
 
-int filter2d_init_ones(filter2d_t* q, uint32_t ntime, uint32_t nfreq, uint32_t sztime,
+int srslte_filter2d_init_ones(srslte_filter2d_t* q, uint32_t ntime, uint32_t nfreq, uint32_t sztime,
     uint32_t szfreq) 
 {
 
@@ -113,7 +113,7 @@ int filter2d_init_ones(filter2d_t* q, uint32_t ntime, uint32_t nfreq, uint32_t s
     matrix_fprintf_f(stdout, taps, ntime, nfreq);
   }
 
-  if (filter2d_init(q, taps, ntime, nfreq, sztime, szfreq)) {
+  if (srslte_filter2d_init(q, taps, ntime, nfreq, sztime, szfreq)) {
     goto free_and_exit;
   }
 
@@ -126,7 +126,7 @@ free_and_exit:
 /* Moves the last ntime symbols to the start and clears the remaining of the output.
  * Should be called, for instance, before filtering each OFDM frame.
  */
-void filter2d_step(filter2d_t *q) {
+void srslte_filter2d_step(srslte_filter2d_t *q) {
   int i;
 
   for (i = 0; i < q->ntime; i++) {
@@ -139,14 +139,14 @@ void filter2d_step(filter2d_t *q) {
   }
 }
 
-void filter2d_reset(filter2d_t *q) {
+void srslte_filter2d_reset(srslte_filter2d_t *q) {
     bzero(q->output, (q->ntime+q->sztime)*(q->szfreq+q->nfreq)*sizeof(cf_t));
 }
 
 /** Adds samples x to the from the given time/freq indexes to the filter
  * and computes the output.
  */
-void filter2d_add(filter2d_t *q, cf_t x, uint32_t time_idx, uint32_t freq_idx) {
+void srslte_filter2d_add(srslte_filter2d_t *q, cf_t x, uint32_t time_idx, uint32_t freq_idx) {
   int i, j;
 
   uint32_t ntime = q->ntime;
@@ -163,7 +163,7 @@ void filter2d_add(filter2d_t *q, cf_t x, uint32_t time_idx, uint32_t freq_idx) {
   }
 }
 
-void filter2d_add_out(filter2d_t *q, cf_t x, int time_idx, int freq_idx) {
+void srslte_filter2d_add_out(srslte_filter2d_t *q, cf_t x, int time_idx, int freq_idx) {
   int i, j;
 
   uint32_t ntime = q->ntime;
@@ -189,6 +189,6 @@ void filter2d_add_out(filter2d_t *q, cf_t x, int time_idx, int freq_idx) {
   }    
 }
 
-void filter2d_get_symbol(filter2d_t *q, uint32_t nsymbol, cf_t *output) {
+void srslte_filter2d_get_symbol(srslte_filter2d_t *q, uint32_t nsymbol, cf_t *output) {
   memcpy(output, &q->output[idx(nsymbol,q->nfreq/2)], sizeof(cf_t) * (q->szfreq));
 }

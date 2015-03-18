@@ -52,10 +52,10 @@ bool pucch_cfg_isvalid(pucch_cfg_t *cfg) {
 /* Generates n_cs_cell according to Sec 5.4 of 36.211 */
 int generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB]) 
 {
-  sequence_t seq; 
-  bzero(&seq, sizeof(sequence_t));
+  srslte_sequence_t seq; 
+  bzero(&seq, sizeof(srslte_sequence_t));
 
-  sequence_LTE_pr(&seq, 8*SRSLTE_CP_NSYMB(cell.cp)*SRSLTE_NSLOTS_X_FRAME, cell.id);
+  srslte_sequence_LTE_pr(&seq, 8*SRSLTE_CP_NSYMB(cell.cp)*SRSLTE_NSLOTS_X_FRAME, cell.id);
 
   for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {
     for (uint32_t l=0;l<SRSLTE_CP_NSYMB(cell.cp);l++) {
@@ -65,7 +65,7 @@ int generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FR
       }
     }
   }
-  sequence_free(&seq);
+  srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS;
 }
 

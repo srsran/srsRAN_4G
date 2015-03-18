@@ -33,21 +33,25 @@
 
 #define NOF_REGS 3
 
-int tcod_init(tcod_t *h, uint32_t max_long_cb) {
+#define RATE 3
+#define TOTALTAIL 12
 
-  if (tc_interl_init(&h->interl, max_long_cb)) {
+
+int srslte_tcod_init(srslte_tcod_t *h, uint32_t max_long_cb) {
+
+  if (srs_tc_interl_init(&h->interl, max_long_cb)) {
     return -1;
   }
   h->max_long_cb = max_long_cb;
   return 0;
 }
 
-void tcod_free(tcod_t *h) {
-  tc_interl_free(&h->interl);
+void srslte_tcod_free(srslte_tcod_t *h) {
+  srs_tc_interl_free(&h->interl);
   h->max_long_cb = 0;
 }
 
-int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
+int srslte_tcod_encode(srslte_tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
 
   uint8_t reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
   uint32_t i, k = 0, j;
@@ -61,7 +65,7 @@ int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
     return -1;
   }
 
-  if (tc_interl_LTE_gen(&h->interl, long_cb)) {
+  if (srs_tc_interl_LTE_gen(&h->interl, long_cb)) {
     fprintf(stderr, "Error initiating TC interleaver\n");
     return -1;
   }
@@ -78,7 +82,7 @@ int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
 
   k = 0;
   for (i = 0; i < long_cb; i++) {
-    if (input[i] == TX_NULL) {
+    if (input[i] == SRSLTE_TX_NULL) {
       bit = 0;
     } else {
       bit = input[i];
@@ -94,15 +98,15 @@ int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
     reg1_1 = reg1_0;
     reg1_0 = in;
 
-    if (input[i] == TX_NULL) {
-      output[k] = TX_NULL;
+    if (input[i] == SRSLTE_TX_NULL) {
+      output[k] = SRSLTE_TX_NULL;
     } else {
       output[k] = out;
     }
     k++;
 
     bit = input[per[i]];
-    if (bit == TX_NULL) {
+    if (bit == SRSLTE_TX_NULL) {
       bit = 0; 
     }
 

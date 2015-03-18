@@ -33,8 +33,11 @@
 #include "srslte/config.h"
 
 typedef enum {
-  viterbi_27, viterbi_29, viterbi_37, viterbi_39
-}viterbi_type_t;
+  SRSLTE_VITERBI_27 = 0, 
+  SRSLTE_VITERBI_29, 
+  SRSLTE_VITERBI_37, 
+  SRSLTE_VITERBI_39
+}srslte_viterbi_type_t;
 
 typedef struct SRSLTE_API{
   void *ptr;
@@ -49,34 +52,34 @@ typedef struct SRSLTE_API{
   void (*free) (void*);
   uint8_t *tmp;
   uint8_t *symbols_uc;
-}viterbi_t;
+}srslte_viterbi_t;
 
-SRSLTE_API int viterbi_init(viterbi_t *q, 
-                            viterbi_type_t type, 
-                            uint32_t poly[3], 
-                            uint32_t max_frame_length, 
-                            bool tail_bitting);
+SRSLTE_API int srslte_viterbi_init(srslte_viterbi_t *q, 
+                                   srslte_viterbi_type_t type, 
+                                   uint32_t poly[3], 
+                                   uint32_t max_frame_length, 
+                                   bool tail_bitting);
 
-SRSLTE_API void viterbi_set_gain_quant(viterbi_t *q, 
-                                       float gain_quant); 
+SRSLTE_API void srslte_viterbi_set_gain_quant(srslte_viterbi_t *q, 
+                                              float gain_quant); 
 
-SRSLTE_API void viterbi_free(viterbi_t *q);
+SRSLTE_API void srslte_viterbi_free(srslte_viterbi_t *q);
 
-SRSLTE_API int viterbi_decode_f(viterbi_t *q, 
-                                float *symbols, 
-                                uint8_t *data, 
-                                uint32_t frame_length);
+SRSLTE_API int srslte_viterbi_decode_f(srslte_viterbi_t *q, 
+                                       float *symbols, 
+                                       uint8_t *data, 
+                                       uint32_t frame_length);
 
-SRSLTE_API int viterbi_decode_uc(viterbi_t *q, 
-                                 uint8_t *symbols, 
-                                 uint8_t *data, 
-                                 uint32_t frame_length);
+SRSLTE_API int srslte_viterbi_decode_uc(srslte_viterbi_t *q, 
+                                        uint8_t *symbols, 
+                                        uint8_t *data, 
+                                        uint32_t frame_length);
 
 
 /* High-level API */
 typedef struct SRSLTE_API{
-  viterbi_t obj;
-  struct viterbi_init {
+  srslte_viterbi_t obj;
+  struct srslte_viterbi_init {
     int rate;
     int constraint_length;
     int tail_bitting;
@@ -89,10 +92,10 @@ typedef struct SRSLTE_API{
   int in_len;
   uint8_t *output;
   int out_len;
-}viterbi_hl;
+}srslte_viterbi_hl;
 
-SRSLTE_API int viterbi_initialize(viterbi_hl* h);
-SRSLTE_API int viterbi_work(viterbi_hl* hl);
-SRSLTE_API int viterbi_stop(viterbi_hl* h);
+SRSLTE_API int srslte_viterbi_initialize(srslte_viterbi_hl* h);
+SRSLTE_API int srslte_viterbi_work(srslte_viterbi_hl* hl);
+SRSLTE_API int srslte_viterbi_stop(srslte_viterbi_hl* h);
 
 #endif

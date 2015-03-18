@@ -36,31 +36,31 @@
 typedef _Complex float cf_t;
 
 /* Scrambling has no state */
-SRSLTE_API void scrambling_b(sequence_t *s, 
+SRSLTE_API void scrambling_b(srslte_sequence_t *s, 
                              uint8_t *data);
 
-SRSLTE_API void scrambling_b_offset(sequence_t *s, 
+SRSLTE_API void scrambling_b_offset(srslte_sequence_t *s, 
                                     uint8_t *data, 
                                     int offset, 
                                     int len);
 
-SRSLTE_API void scrambling_b_offset_pusch(sequence_t *s, 
+SRSLTE_API void scrambling_b_offset_pusch(srslte_sequence_t *s, 
                                           uint8_t *data, 
                                           int offset, 
                                           int len); 
 
-SRSLTE_API void scrambling_f(sequence_t *s, 
+SRSLTE_API void scrambling_f(srslte_sequence_t *s, 
                              float *data);
 
-SRSLTE_API void scrambling_f_offset(sequence_t *s, 
+SRSLTE_API void scrambling_f_offset(srslte_sequence_t *s, 
                                     float *data, 
                                     int offset, 
                                     int len);
 
-SRSLTE_API void scrambling_c(sequence_t *s, 
+SRSLTE_API void scrambling_c(srslte_sequence_t *s, 
                              cf_t *data);
 
-SRSLTE_API void scrambling_c_offset(sequence_t *s, 
+SRSLTE_API void scrambling_c_offset(srslte_sequence_t *s, 
                                     cf_t *data, 
                                     int offset, 
                                     int len);
@@ -77,7 +77,7 @@ SRSLTE_API void scrambling_c_offset(sequence_t *s,
 #define SCRAMBLING_PUCCH      5
 
 typedef struct SRSLTE_API {
-  sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
+  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
 }scrambling_t;
 
 typedef struct SRSLTE_API {

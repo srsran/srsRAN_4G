@@ -173,7 +173,7 @@ void sig_int_handler(int signo)
   }
 }
 
-int cuhd_recv_wrapper_timed(void *h, void *data, uint32_t nsamples, timestamp_t *uhd_time) {
+int cuhd_recv_wrapper_timed(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *uhd_time) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv_with_time(h, data, nsamples, true, &uhd_time->full_secs, &uhd_time->frac_secs);
 }
@@ -301,8 +301,8 @@ int main(int argc, char **argv) {
   rar_msg_t rar_msg; 
   ra_pusch_t ra_pusch; 
   uint32_t rar_window_start = 0, rar_trials = 0, rar_window_stop = 0; 
-  timestamp_t uhd_time;
-  timestamp_t next_tx_time;  
+  srslte_timestamp_t uhd_time;
+  srslte_timestamp_t next_tx_time;  
   const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6, 0x00, 0x00, 0x00};
   uint8_t data[1000];
   cf_t *prach_buffer;
@@ -399,7 +399,7 @@ int main(int argc, char **argv) {
   bzero(&drms_cfg, sizeof(srslte_refsignal_drms_pusch_cfg_t));  
   drms_cfg.beta_pusch = 1.0; 
   drms_cfg.group_hopping_en = false; 
-  drms_cfg.sequence_hopping_en = false; 
+  drms_cfg.srslte_sequence_hopping_en = false; 
   drms_cfg.delta_ss = 0;
   drms_cfg.cyclic_shift = 0; 
   drms_cfg.cyclic_shift_for_drms = 0; 
@@ -451,7 +451,7 @@ int main(int argc, char **argv) {
     }
 #else 
   ret = 1;
-            timestamp_t rx_time, tx_time; 
+            srslte_timestamp_t rx_time, tx_time; 
             cf_t dummy[4];
 #endif  
             
@@ -490,10 +490,10 @@ int main(int argc, char **argv) {
             if (((sfn%2) == 1) && (ue_sync_get_sfidx(&ue_sync) == 1)) {
               ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
       
-              timestamp_copy(&next_tx_time, &uhd_time);
-              timestamp_add(&next_tx_time, 0, 0.01); // send next frame (10 ms)
+              srslte_timestamp_copy(&next_tx_time, &uhd_time);
+              srslte_timestamp_add(&next_tx_time, 0, 0.01); // send next frame (10 ms)
               printf("Send prach sfn: %d. Last frame time = %.6f, send prach time = %.6f\n", 
-                    sfn, timestamp_real(&uhd_time), timestamp_real(&next_tx_time));
+                    sfn, srslte_timestamp_real(&uhd_time), srslte_timestamp_real(&next_tx_time));
 
               cuhd_send_timed(uhd, prach_buffer, prach_buffer_len, 
                               next_tx_time.full_secs, next_tx_time.frac_secs);
@@ -506,11 +506,11 @@ int main(int argc, char **argv) {
   #else
               cuhd_recv_with_time(uhd, dummy, 4, 1, &rx_time.full_secs, &rx_time.frac_secs);
 
-              timestamp_copy(&tx_time, &rx_time);
+              srslte_timestamp_copy(&tx_time, &rx_time);
               printf("Transmitting PRACH...\n");
               vec_save_file("prach_tx", prach_buffers[7], prach_buffer_len*sizeof(cf_t));
               while(1) {
-                timestamp_add(&tx_time, 0, 0.001); // send every (10 ms)            
+                srslte_timestamp_add(&tx_time, 0, 0.001); // send every (10 ms)            
                 cuhd_send_timed(uhd, prach_buffers[7], prach_buffer_len, 
                               tx_time.full_secs, tx_time.frac_secs);
                 
@@ -564,13 +564,13 @@ int main(int argc, char **argv) {
                     
                     vec_sc_prod_cfc(ul_signal, prog_args.beta_pusch, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb));
                     
-                    timestamp_copy(&next_tx_time, &uhd_time);
-                    timestamp_add(&next_tx_time, 0, 0.006 + i*0.008 - time_adv_sec); // send after 6 sub-frames (6 ms)
+                    srslte_timestamp_copy(&next_tx_time, &uhd_time);
+                    srslte_timestamp_add(&next_tx_time, 0, 0.006 + i*0.008 - time_adv_sec); // send after 6 sub-frames (6 ms)
                     printf("Send %d samples PUSCH sfn: %d. RV_idx=%d, Last frame time = %.6f "
                           "send PUSCH time = %.6f TA: %.1f us\n", 
                           SRSLTE_SF_LEN_PRB(cell.nof_prb), sfn, ra_pusch.rv_idx, 
-                          timestamp_real(&uhd_time), 
-                          timestamp_real(&next_tx_time), time_adv_sec*1000000);
+                          srslte_timestamp_real(&uhd_time), 
+                          srslte_timestamp_real(&next_tx_time), time_adv_sec*1000000);
                     
                     cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
                                   next_tx_time.full_secs, next_tx_time.frac_secs);                
@@ -615,9 +615,9 @@ int main(int argc, char **argv) {
 
   #ifdef use_usrp
             cuhd_recv_with_time(uhd, dummy, 4, 1, &uhd_time.full_secs, &uhd_time.frac_secs);
-            timestamp_copy(&next_tx_time, &uhd_time);
+            srslte_timestamp_copy(&next_tx_time, &uhd_time);
             while(1) {
-              timestamp_add(&next_tx_time, 0, 0.002); // send every 2 ms 
+              srslte_timestamp_add(&next_tx_time, 0, 0.002); // send every 2 ms 
               cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
                             next_tx_time.full_secs, next_tx_time.frac_secs);               
             }

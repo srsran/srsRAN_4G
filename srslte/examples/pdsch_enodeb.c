@@ -68,7 +68,7 @@ char *uhd_args = "";
 float uhd_amp = 0.03, uhd_gain = 70.0, uhd_freq = 2400000000;
 
 bool null_file_sink=false; 
-filesink_t fsink;
+srslte_filesink_t fsink;
 srslte_fft_t ifft;
 pbch_t pbch;
 pcfich_t pcfich;
@@ -86,8 +86,8 @@ pthread_t net_thread;
 void *net_thread_fnc(void *arg);
 sem_t net_sem;
 bool net_packet_ready = false; 
-netsource_t net_source; 
-netsink_t net_sink; 
+srslte_netsource_t net_source; 
+srslte_netsink_t net_sink; 
 
 int prbset_num = 1, last_prbset_num = 1; 
 int prbset_orig = 0; 
@@ -177,7 +177,7 @@ void base_init() {
   /* open file or USRP */
   if (output_file_name) {
     if (strcmp(output_file_name, "NULL")) {
-      if (filesink_init(&fsink, output_file_name, COMPLEX_FLOAT_BIN)) {
+      if (srslte_filesink_init(&fsink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
         fprintf(stderr, "Error opening file %s\n", output_file_name);
         exit(-1);
       }      
@@ -199,12 +199,12 @@ void base_init() {
   }
   
   if (net_port > 0) {
-    if (netsource_init(&net_source, "0.0.0.0", net_port, NETSOURCE_TCP)) {
+    if (srslte_netsource_init(&net_source, "0.0.0.0", net_port, SRSLTE_NETSOURCE_TCP)) {
       fprintf(stderr, "Error creating input UDP socket at port %d\n", net_port);
       exit(-1);
     }
     if (null_file_sink) {
-      if (netsink_init(&net_sink, "127.0.0.1", net_port+1, NETSINK_TCP)) {
+      if (srslte_netsink_init(&net_sink, "127.0.0.1", net_port+1, SRSLTE_NETSINK_TCP)) {
         fprintf(stderr, "Error sink\n");
         exit(-1);
       }      
@@ -277,7 +277,7 @@ void base_free() {
   }
   if (output_file_name) {
     if (!null_file_sink) {
-      filesink_free(&fsink);      
+      srslte_filesink_free(&fsink);      
     }
   } else {
 #ifndef DISABLE_UHD
@@ -286,7 +286,7 @@ void base_free() {
   }
   
   if (net_port > 0) {
-    netsource_free(&net_source);
+    srslte_netsource_free(&net_source);
     sem_close(&net_sem);
   }  
 }
@@ -408,7 +408,7 @@ void *net_thread_fnc(void *arg) {
   int rpm = 0, wpm=0; 
   
   do {
-    n = netsource_read(&net_source, &data_unpacked[rpm], DATA_BUFF_SZ-rpm);
+    n = srslte_netsource_read(&net_source, &data_unpacked[rpm], DATA_BUFF_SZ-rpm);
     if (n > 0) {
       int nbytes = 1+(ra_dl.mcs.tbs-1)/8;
       rpm += n; 
@@ -578,7 +578,7 @@ int main(int argc, char **argv) {
         if (net_port > 0 && net_packet_ready) {
           if (null_file_sink) {
             bit_unpack_vector(data, data_tmp, ra_dl.mcs.tbs);
-            if (netsink_write(&net_sink, data_tmp, 1+(ra_dl.mcs.tbs-1)/8) < 0) {
+            if (srslte_netsink_write(&net_sink, data_tmp, 1+(ra_dl.mcs.tbs-1)/8) < 0) {
               fprintf(stderr, "Error sending data through UDP socket\n");
             }            
           }
@@ -596,7 +596,7 @@ int main(int argc, char **argv) {
       /* send to file or usrp */
       if (output_file_name) {
         if (!null_file_sink) {
-          filesink_write(&fsink, output_buffer, sf_n_samples);          
+          srslte_filesink_write(&fsink, output_buffer, sf_n_samples);          
         }
         usleep(1000);
       } else {

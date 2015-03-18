@@ -139,8 +139,8 @@ int main(int argc, char **argv) {
   uint32_t coded_length;
   struct timeval tdata[3];
   float mean_usec;
-  tdec_t tdec;
-  tcod_t tcod;
+  srslte_tdec_t tdec;
+  srslte_tcod_t tcod;
 
   parse_args(argc, argv);
 
@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
     frame_length = srslte_cb_size(srslte_find_cb_index(frame_length));
   }
 
-  coded_length = 3 * (frame_length) + TOTALTAIL;
+  coded_length = 3 * (frame_length) + SRSLTE_TCOD_TOTALTAIL;
 
   printf("  Frame length: %d\n", frame_length);
   if (ebno_db < 100.0) {
@@ -190,12 +190,12 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (tcod_init(&tcod, frame_length)) {
+  if (srslte_tcod_init(&tcod, frame_length)) {
     fprintf(stderr, "Error initiating Turbo coder\n");
     exit(-1);
   }
 
-  if (tdec_init(&tdec, frame_length)) {
+  if (srslte_tdec_init(&tdec, frame_length)) {
     fprintf(stderr, "Error initiating Turbo decoder\n");
     exit(-1);
   }
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
           symbols[j] = known_data_encoded[j];
         }
       } else {
-        tcod_encode(&tcod, data_tx, symbols, frame_length);
+        srslte_tcod_encode(&tcod, data_tx, symbols, frame_length);
       }
 
       for (j = 0; j < coded_length; j++) {
@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);
 
       /* decoder */
-      tdec_reset(&tdec, frame_length);
+      srslte_tdec_reset(&tdec, frame_length);
 
       uint32_t t;
       if (nof_iterations == -1) {
@@ -257,8 +257,8 @@ int main(int argc, char **argv) {
 
         if (!j)
           gettimeofday(&tdata[1], NULL); // Only measure 1 iteration
-        tdec_iteration(&tdec, llr, frame_length);
-        tdec_decision(&tdec, data_rx, frame_length);
+        srslte_tdec_iteration(&tdec, llr, frame_length);
+        srslte_tdec_decision(&tdec, data_rx, frame_length);
         if (!j)
           gettimeofday(&tdata[2], NULL);
         if (!j)
@@ -322,8 +322,8 @@ int main(int argc, char **argv) {
   free(llr_c);
   free(data_rx);
 
-  tdec_free(&tdec);
-  tcod_free(&tcod);
+  srslte_tdec_free(&tdec);
+  srslte_tcod_free(&tcod);
 
   printf("\n");
   output_matlab(ber, snr_points);

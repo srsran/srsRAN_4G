@@ -288,7 +288,7 @@ void pdsch_free(pdsch_t *q) {
   }
 
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-    sequence_free(&q->seq_pdsch[i]);
+    srslte_sequence_free(&q->seq_pdsch[i]);
   }
 
   for (i = 0; i < 4; i++) {
@@ -309,7 +309,7 @@ void pdsch_free(pdsch_t *q) {
 int pdsch_set_rnti(pdsch_t *q, uint16_t rnti) {
   uint32_t i;
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-    if (sequence_pdsch(&q->seq_pdsch[i], rnti, 0, 2 * i, q->cell.id,
+    if (srslte_sequence_pdsch(&q->seq_pdsch[i], rnti, 0, 2 * i, q->cell.id,
         q->max_re * srslte_mod_bits_x_symbol(LTE_QAM64))) {
       return SRSLTE_ERROR; 
     }
@@ -385,7 +385,7 @@ int pdsch_decode_rnti(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[SRSLT
     } else {
       predecoding_diversity(&q->precoding, q->pdsch_symbols[0], q->ce, x, q->cell.nof_ports,
           harq->nof_re, noise_estimate);
-      layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
+      srslte_layerdemap_diversity(x, q->pdsch_d, q->cell.nof_ports,
           harq->nof_re / q->cell.nof_ports);
     }
     
@@ -399,12 +399,12 @@ int pdsch_decode_rnti(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[SRSLT
 
     /* descramble */
     if (rnti != q->rnti) {
-      sequence_t seq; 
-      if (sequence_pdsch(&seq, rnti, 0, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
+      srslte_sequence_t seq; 
+      if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
         return SRSLTE_ERROR; 
       }
       scrambling_f_offset(&seq, q->pdsch_e, 0, harq->nof_bits);      
-      sequence_free(&seq);
+      srslte_sequence_free(&seq);
     } else {    
       scrambling_f_offset(&q->seq_pdsch[harq->sf_idx], q->pdsch_e, 0, harq->nof_bits);      
     }
@@ -484,12 +484,12 @@ int pdsch_encode_rnti(pdsch_t *q, harq_t *harq, uint8_t *data, uint16_t rnti, cf
     }
 
     if (rnti != q->rnti) {
-      sequence_t seq; 
-      if (sequence_pdsch(&seq, rnti, 0, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
+      srslte_sequence_t seq; 
+      if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
         return SRSLTE_ERROR; 
       }
       scrambling_b_offset(&seq, (uint8_t*) q->pdsch_e, 0, harq->nof_bits);
-      sequence_free(&seq);
+      srslte_sequence_free(&seq);
     } else {    
       scrambling_b_offset(&q->seq_pdsch[harq->sf_idx], (uint8_t*) q->pdsch_e, 0, harq->nof_bits);
     }
@@ -498,7 +498,7 @@ int pdsch_encode_rnti(pdsch_t *q, harq_t *harq, uint8_t *data, uint16_t rnti, cf
 
     /* TODO: only diversity supported */
     if (q->cell.nof_ports > 1) {
-      layermap_diversity(q->pdsch_d, x, q->cell.nof_ports, harq->nof_re);
+      srslte_layermap_diversity(q->pdsch_d, x, q->cell.nof_ports, harq->nof_re);
       precoding_diversity(&q->precoding, x, q->pdsch_symbols, q->cell.nof_ports,
           harq->nof_re / q->cell.nof_ports);
     } else {

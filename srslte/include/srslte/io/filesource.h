@@ -38,33 +38,40 @@
 /* Low-level API */
 typedef struct SRSLTE_API {
   FILE *f;
-  data_type_t type;
-}filesource_t;
+  srslte_datatype_t type;
+} srslte_filesource_t;
 
-SRSLTE_API int filesource_init(filesource_t *q, char *filename, data_type_t type);
-SRSLTE_API void filesource_free(filesource_t *q);
+SRSLTE_API int srslte_filesource_init(srslte_filesource_t *q, 
+                                      char *filename, 
+                                      srslte_datatype_t type);
 
-SRSLTE_API void filesource_seek(filesource_t *q, int pos);
-SRSLTE_API int filesource_read(filesource_t *q, void *buffer, int nsamples);
+SRSLTE_API void srslte_filesource_free(srslte_filesource_t *q);
+
+SRSLTE_API void srslte_filesource_seek(srslte_filesource_t *q,
+                                       int pos);
+
+SRSLTE_API int srslte_filesource_read(srslte_filesource_t *q, 
+                                      void *buffer, 
+                                      int nsamples);
 
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  filesource_t obj;
-  struct filesource_init {
+  srslte_filesource_t obj;
+  struct srslte_filesource_init {
     char *file_name;
     int block_length;
     int data_type;
   } init;
-  struct filesource_ctrl_in {
+  struct srslte_filesource_ctrl_in {
     int nsamples;        // Number of samples to read
   } ctrl_in;
   void* output;
   int out_len;
-}filesource_hl;
+}srslte_filesource_hl;
 
-SRSLTE_API int filesource_initialize(filesource_hl* h);
-SRSLTE_API int filesource_work(  filesource_hl* hl);
-SRSLTE_API int filesource_stop(filesource_hl* h);
+SRSLTE_API int srslte_filesource_initialize(srslte_filesource_hl* h);
+SRSLTE_API int srslte_filesource_work(  srslte_filesource_hl* hl);
+SRSLTE_API int srslte_filesource_stop(srslte_filesource_hl* h);
 
 #endif // FILESOURCE_

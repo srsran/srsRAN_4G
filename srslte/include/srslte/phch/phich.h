@@ -74,7 +74,7 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   modem_table_t mod;
   demod_hard_t demod;
-  sequence_t seq_phich[SRSLTE_NSUBFRAMES_X_FRAME];
+  srslte_sequence_t seq_phich[SRSLTE_NSUBFRAMES_X_FRAME];
   precoding_t precoding; 
 
 }phich_t;

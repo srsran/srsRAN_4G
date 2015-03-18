@@ -249,15 +249,15 @@ int ue_dl_find_ul_dci(ue_dl_t *q, dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_
 {
   dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations = pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti);    
-  uint16_t crc_rem = 0; 
-  for (uint32_t i=0;i<nof_locations && crc_rem != rnti;i++) {
-    if (pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], Format0, &crc_rem)) {
+  uint16_t srslte_crc_rem = 0; 
+  for (uint32_t i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
+    if (pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], Format0, &srslte_crc_rem)) {
       fprintf(stderr, "Error decoding DCI msg\n");
       return SRSLTE_ERROR;
     }
-    INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
+    INFO("Decoded DCI message RNTI: 0x%x\n", srslte_crc_rem);
   } 
-  return crc_rem == rnti; 
+  return srslte_crc_rem == rnti; 
 }
 
 int ue_dl_decode_rnti_rv(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
@@ -266,7 +266,7 @@ int ue_dl_decode_rnti_rv(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx
   dci_msg_t dci_msg;
   dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations;
-  uint16_t crc_rem; 
+  uint16_t srslte_crc_rem; 
   int ret = SRSLTE_ERROR; 
   uint32_t nof_formats; 
   dci_format_t *formats = NULL; 
@@ -287,18 +287,18 @@ int ue_dl_decode_rnti_rv(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx
   }
   
   /* For all possible locations, try to decode a DCI message */
-  crc_rem = 0;
+  srslte_crc_rem = 0;
   uint32_t found_dci = 0; 
   for (int f=0;f<nof_formats && !found_dci;f++) {
     INFO("Trying format %s\n", dci_format_string(formats[f]));
     for (i=0;i<nof_locations && !found_dci;i++) {
-      if (pdcch_decode_msg(&q->pdcch, &dci_msg, &locations[i], formats[f], &crc_rem)) {
+      if (pdcch_decode_msg(&q->pdcch, &dci_msg, &locations[i], formats[f], &srslte_crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
       }
-      INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
+      INFO("Decoded DCI message RNTI: 0x%x\n", srslte_crc_rem);
       
-      if (crc_rem == rnti) {
+      if (srslte_crc_rem == rnti) {
         found_dci++;        
         ret = ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, cfi, sf_idx, rnti, rvidx);
       }

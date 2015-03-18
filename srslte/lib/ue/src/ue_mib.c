@@ -159,7 +159,7 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
 int ue_mib_sync_init(ue_mib_sync_t *q, 
                      uint32_t cell_id, 
                      srslte_cp_t cp, 
-                     int (recv_callback)(void*, void*, uint32_t, timestamp_t*),                             
+                     int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*),                             
                      void *stream_handler) 
 {
   srslte_cell_t cell; 

@@ -111,7 +111,7 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, timestamp_t *t) {
+int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
 }

@@ -41,7 +41,7 @@
 void help()
 {
   mexErrMsgTxt
-    ("[out] = srslte_rm_turbo_rx(in, trblkin, rv)\n\n");
+    ("[out] = srslte_srslte_rm_turbo_rx(in, trblkin, rv)\n\n");
 }
 
 /* the gateway function */
@@ -81,7 +81,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // allocate memory for output bits
   output = vec_malloc(cblen * sizeof(float));
 
-  rm_turbo_rx(w_buff_f, cblen * 10, input, in_len, output, cblen,
+  srslte_rm_turbo_rx(w_buff_f, cblen * 10, input, in_len, output, cblen,
       rvidx,cbsegm.F);
 
   if (nlhs >= 1) { 

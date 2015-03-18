@@ -32,15 +32,15 @@
 #include "srslte/srslte.h"
 
 int main(int argc, char **argv) {
-  binsource_t bs;
+  srslte_binsource_t bs;
   uint8_t* output;
 
-  binsource_init(&bs);
-  binsource_seed_time(&bs);
+  srslte_binsource_init(&bs);
+  srslte_binsource_seed_time(&bs);
 
   output = malloc(100);
 
-  if (binsource_generate(&bs,output,100)) {
+  if (srslte_binsource_generate(&bs,output,100)) {
     printf("Error generating bits\n");
     exit(-1);
   }

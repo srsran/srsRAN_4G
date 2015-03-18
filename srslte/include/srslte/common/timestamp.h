@@ -42,12 +42,23 @@
 typedef struct SRSLTE_API{
   time_t full_secs;
   double frac_secs;
-}timestamp_t;
+}srslte_timestamp_t;
 
-SRSLTE_API int timestamp_init(timestamp_t *t, time_t full_secs, double frac_secs);
-SRSLTE_API int timestamp_copy(timestamp_t *dest, timestamp_t *src);
-SRSLTE_API int timestamp_add(timestamp_t *t, time_t full_secs, double frac_secs);
-SRSLTE_API int timestamp_sub(timestamp_t *t, time_t full_secs, double frac_secs);
-SRSLTE_API double timestamp_real(timestamp_t *t);
+SRSLTE_API int srslte_timestamp_init(srslte_timestamp_t *t, 
+                                     time_t full_secs, 
+                                     double frac_secs);
+
+SRSLTE_API int srslte_timestamp_copy(srslte_timestamp_t *dest, 
+                                     srslte_timestamp_t *src);
+
+SRSLTE_API int srslte_timestamp_add(srslte_timestamp_t *t, 
+                                    time_t full_secs, 
+                                    double frac_secs);
+
+SRSLTE_API int srslte_timestamp_sub(srslte_timestamp_t *t, 
+                                    time_t full_secs, 
+                                    double frac_secs);
+
+SRSLTE_API double srslte_timestamp_real(srslte_timestamp_t *t);
 
 #endif // TIMESTAMP_

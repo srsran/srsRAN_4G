@@ -58,7 +58,7 @@ int ue_sync_init_file(ue_sync_t *q, uint32_t nof_prb, char *file_name) {
     q->file_mode = true; 
     q->sf_len = SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb));
 
-    if (filesource_init(&q->file_source, file_name, COMPLEX_FLOAT_BIN)) {
+    if (srslte_filesource_init(&q->file_source, file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
       fprintf(stderr, "Error opening file %s\n", file_name);
       goto clean_exit; 
     }
@@ -82,7 +82,7 @@ clean_exit:
 
 int ue_sync_init(ue_sync_t *q, 
                  srslte_cell_t cell,
-                 int (recv_callback)(void*, void*, uint32_t,timestamp_t*),
+                 int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*),
                  void *stream_handler) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -196,13 +196,13 @@ void ue_sync_free(ue_sync_t *q) {
     sync_free(&q->sfind);
     sync_free(&q->strack);    
   } else {
-    filesource_free(&q->file_source);
+    srslte_filesource_free(&q->file_source);
   }
   bzero(q, sizeof(ue_sync_t));
 }
 
-void ue_sync_get_last_timestamp(ue_sync_t *q, timestamp_t *timestamp) {
-  memcpy(timestamp, &q->last_timestamp, sizeof(timestamp_t));
+void ue_sync_get_last_timestamp(ue_sync_t *q, srslte_timestamp_t *timestamp) {
+  memcpy(timestamp, &q->last_timestamp, sizeof(srslte_timestamp_t));
 }
 
 uint32_t ue_sync_peak_idx(ue_sync_t *q) {
@@ -363,15 +363,15 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
   {
     
     if (q->file_mode) {
-      int n = filesource_read(&q->file_source, q->input_buffer, q->sf_len);
+      int n = srslte_filesource_read(&q->file_source, q->input_buffer, q->sf_len);
       if (n < 0) {
         fprintf(stderr, "Error reading input file\n");
         return SRSLTE_ERROR; 
       }
       if (n == 0) {
-        filesource_seek(&q->file_source, 0);
+        srslte_filesource_seek(&q->file_source, 0);
         q->sf_idx = 9; 
-        int n = filesource_read(&q->file_source, q->input_buffer, q->sf_len);
+        int n = srslte_filesource_read(&q->file_source, q->input_buffer, q->sf_len);
         if (n < 0) {
           fprintf(stderr, "Error reading input file\n");
           return SRSLTE_ERROR; 

@@ -37,10 +37,10 @@
 
 #include "srslte/io/netsource.h"
 
-int netsource_init(netsource_t *q, char *address, int port, netsource_type_t type) {
-  bzero(q, sizeof(netsource_t));
+int srslte_netsource_init(srslte_netsource_t *q, char *address, int port, srslte_netsource_type_t type) {
+  bzero(q, sizeof(srslte_netsource_t));
 
-  q->sockfd=socket(AF_INET,type==NETSOURCE_TCP?SOCK_STREAM:SOCK_DGRAM,0);
+  q->sockfd=socket(AF_INET,type==SRSLTE_NETSOURCE_TCP?SOCK_STREAM:SOCK_DGRAM,0);
 
   if (q->sockfd < 0) {
     perror("socket");
@@ -61,15 +61,15 @@ int netsource_init(netsource_t *q, char *address, int port, netsource_type_t typ
   return 0;
 }
 
-void netsource_free(netsource_t *q) {
+void srslte_netsource_free(srslte_netsource_t *q) {
   if (q->sockfd) {
     close(q->sockfd);
   }
-  bzero(q, sizeof(netsource_t));
+  bzero(q, sizeof(srslte_netsource_t));
 }
 
-int netsource_read(netsource_t *q, void *buffer, int nbytes) {
-  if (q->type == NETSOURCE_UDP) {
+int srslte_netsource_read(srslte_netsource_t *q, void *buffer, int nbytes) {
+  if (q->type == SRSLTE_NETSOURCE_UDP) {
     int n = recv(q->sockfd, buffer, nbytes, 0);
     
     if (n == -1) {
@@ -106,7 +106,7 @@ int netsource_read(netsource_t *q, void *buffer, int nbytes) {
   }
 }
 
-int netsource_set_nonblocking(netsource_t *q) {
+int srslte_netsource_set_nonblocking(srslte_netsource_t *q) {
   if (fcntl(q->sockfd, F_SETFL, O_NONBLOCK)) {
     perror("fcntl");
     return -1; 
@@ -114,7 +114,7 @@ int netsource_set_nonblocking(netsource_t *q) {
   return 0; 
 }
 
-int netsource_set_timeout(netsource_t *q, uint32_t microseconds) {
+int srslte_netsource_set_timeout(srslte_netsource_t *q, uint32_t microseconds) {
   struct timeval t; 
   t.tv_sec = 0; 
   t.tv_usec = microseconds; 
@@ -125,19 +125,19 @@ int netsource_set_timeout(netsource_t *q, uint32_t microseconds) {
   return 0; 
 }
 
-int netsource_initialize(netsource_hl* h) {
-  return netsource_init(&h->obj, h->init.address, h->init.port, NETSOURCE_UDP);
+int srslte_netsource_initialize(srslte_netsource_hl* h) {
+  return srslte_netsource_init(&h->obj, h->init.address, h->init.port, SRSLTE_NETSOURCE_UDP);
 }
 
-int netsource_work(netsource_hl* h) {
-  h->out_len = netsource_read(&h->obj, h->output, h->ctrl_in.nsamples);
+int srslte_netsource_work(srslte_netsource_hl* h) {
+  h->out_len = srslte_netsource_read(&h->obj, h->output, h->ctrl_in.nsamples);
   if (h->out_len < 0) {
     return -1;
   }
   return 0;
 }
 
-int netsource_stop(netsource_hl* h) {
-  netsource_free(&h->obj);
+int srslte_netsource_stop(srslte_netsource_hl* h) {
+  srslte_netsource_free(&h->obj);
   return 0;
 }

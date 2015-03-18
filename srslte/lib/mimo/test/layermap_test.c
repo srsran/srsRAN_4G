@@ -124,13 +124,13 @@ int main(int argc, char **argv) {
   }
 
   /* layer mapping */
-  if ((symbols_layer = layermap_type(d, x, nof_cw, nof_layers, nof_symb_cw, type)) < 0) {
+  if ((symbols_layer = srslte_layermap_type(d, x, nof_cw, nof_layers, nof_symb_cw, type)) < 0) {
     fprintf(stderr, "Error layer mapper encoder\n");
     exit(-1);
   }
 
   /* layer de-mapping */
-  if (layerdemap_type(x, dp, nof_layers, nof_cw, nof_symbols/nof_layers, nof_symb_cw, type) < 0) {
+  if (srslte_layerdemap_type(x, dp, nof_layers, nof_cw, nof_symbols/nof_layers, nof_symb_cw, type) < 0) {
     fprintf(stderr, "Error layer mapper encoder\n");
     exit(-1);
   }

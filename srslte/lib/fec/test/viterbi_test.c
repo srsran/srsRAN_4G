@@ -92,9 +92,9 @@ void parse_args(int argc, char **argv) {
 }
 
 void output_matlab(float ber[NTYPES][SNR_POINTS], int snr_points,
-    convcoder_t cod[NCODS], int ncods) {
+    srslte_convcoder_t cod[NCODS], int ncods) {
   int i, j, n;
-  FILE *f = fopen("viterbi_snr.m", "w");
+  FILE *f = fopen("srslte_viterbi_snr.m", "w");
   if (!f) {
     perror("fopen");
     exit(-1);
@@ -129,9 +129,9 @@ int main(int argc, char **argv) {
   int snr_points;
   float ber[NTYPES][SNR_POINTS];
   uint32_t errors[NTYPES];
-  viterbi_type_t viterbi_type[NCODS];
-  viterbi_t dec[NCODS];
-  convcoder_t cod[NCODS];
+  srslte_viterbi_type_t srslte_viterbi_type[NCODS];
+  srslte_viterbi_t dec[NCODS];
+  srslte_convcoder_t cod[NCODS];
   int coded_length[NCODS];
   int n, ncods, max_coded_length;
 
@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
     cod[0].poly[2] = 0x127;
     cod[0].tail_biting = false;
     cod[0].K = 9;
-    viterbi_type[0] = viterbi_39;
+    srslte_viterbi_type[0] = SRSLTE_VITERBI_39;
     ncods=1;
     break;
   case 7:
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
     cod[0].poly[2] = 0x57;
     cod[0].K = 7;
     cod[0].tail_biting = tail_biting;
-    viterbi_type[0] = viterbi_37;
+    srslte_viterbi_type[0] = SRSLTE_VITERBI_37;
     ncods=1;
     break;
   default:
@@ -168,19 +168,19 @@ int main(int argc, char **argv) {
     cod[0].poly[2] = 0x127;
     cod[0].tail_biting = false;
     cod[0].K = 9;
-    viterbi_type[0] = viterbi_39;
+    srslte_viterbi_type[0] = SRSLTE_VITERBI_39;
     cod[1].poly[0] = 0x6D;
     cod[1].poly[1] = 0x4F;
     cod[1].poly[2] = 0x57;
     cod[1].tail_biting = false;
     cod[1].K = 7;
-    viterbi_type[1] = viterbi_37;
+    srslte_viterbi_type[1] = SRSLTE_VITERBI_37;
     cod[2].poly[0] = 0x6D;
     cod[2].poly[1] = 0x4F;
     cod[2].poly[2] = 0x57;
     cod[2].tail_biting = true;
     cod[2].K = 7;
-    viterbi_type[2] = viterbi_37;
+    srslte_viterbi_type[2] = SRSLTE_VITERBI_37;
     ncods=3;
   }
 
@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
     if (coded_length[i] > max_coded_length) {
       max_coded_length = coded_length[i];
     }
-    viterbi_init(&dec[i], viterbi_type[i], cod[i].poly, frame_length, cod[i].tail_biting);
+    srslte_viterbi_init(&dec[i], srslte_viterbi_type[i], cod[i].poly, frame_length, cod[i].tail_biting);
     printf("Convolutional Code 1/3 K=%d Tail bitting: %s\n", cod[i].K, cod[i].tail_biting ? "yes" : "no");
   }
 
@@ -272,7 +272,7 @@ int main(int argc, char **argv) {
 
       /* coded BER */
       for (n=0;n<ncods;n++) {
-        convcoder_encode(&cod[n], data_tx, symbols, frame_length);
+        srslte_convcoder_encode(&cod[n], data_tx, symbols, frame_length);
 
         for (j = 0; j < coded_length[n]; j++) {
           llr[j] = symbols[j] ? sqrt(2) : -sqrt(2);
@@ -282,7 +282,7 @@ int main(int argc, char **argv) {
         vec_quant_fuc(llr, llr_c, Gain, 127.5, 255, coded_length[n]);
 
         /* decoder 1 */
-        viterbi_decode_uc(&dec[n], llr_c, data_rx[1+n], frame_length);
+        srslte_viterbi_decode_uc(&dec[n], llr_c, data_rx[1+n], frame_length);
       }
 
       /* check errors */
@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
     }
   }
   for (n=0;n<ncods;n++) {
-    viterbi_free(&dec[n]);
+    srslte_viterbi_free(&dec[n]);
   }
 
   free(data_tx);

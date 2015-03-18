@@ -32,8 +32,8 @@
 
 #include "srslte/io/filesource.h"
 
-int filesource_init(filesource_t *q, char *filename, data_type_t type) {
-  bzero(q, sizeof(filesource_t));
+int srslte_filesource_init(srslte_filesource_t *q, char *filename, srslte_datatype_t type) {
+  bzero(q, sizeof(srslte_filesource_t));
   q->f = fopen(filename, "r");
   if (!q->f) {
     perror("fopen");
@@ -43,14 +43,14 @@ int filesource_init(filesource_t *q, char *filename, data_type_t type) {
   return 0;
 }
 
-void filesource_free(filesource_t *q) {
+void srslte_filesource_free(srslte_filesource_t *q) {
   if (q->f) {
     fclose(q->f);
   }
-  bzero(q, sizeof(filesource_t));
+  bzero(q, sizeof(srslte_filesource_t));
 }
 
-void filesource_seek(filesource_t *q, int pos) {
+void srslte_filesource_seek(srslte_filesource_t *q, int pos) {
   fseek(q->f, pos, SEEK_SET);
 }
 
@@ -71,7 +71,7 @@ int read_complex_f(FILE *f, _Complex float *y) {
   }
 }
 
-int filesource_read(filesource_t *q, void *buffer, int nsamples) {
+int srslte_filesource_read(srslte_filesource_t *q, void *buffer, int nsamples) {
   int i;
   float *fbuf = (float*) buffer;
   _Complex float *cbuf = (_Complex float*) buffer;
@@ -79,33 +79,33 @@ int filesource_read(filesource_t *q, void *buffer, int nsamples) {
   int size;
 
   switch(q->type) {
-  case FLOAT:
+  case SRSLTE_FLOAT:
     for (i=0;i<nsamples;i++) {
       if (EOF == fscanf(q->f,"%g\n",&fbuf[i]))
         break;
     }
     break;
-  case COMPLEX_FLOAT:
+  case SRSLTE_COMPLEX_FLOAT:
     for (i=0;i<nsamples;i++) {
       if (read_complex_f(q->f, &cbuf[i])) {
         break;
       }
     }
     break;
-  case COMPLEX_SHORT:
+  case SRSLTE_COMPLEX_SHORT:
     for (i=0;i<nsamples;i++) {
       if (EOF == fscanf(q->f,"%hd%hdi\n",&(__real__ sbuf[i]),&(__imag__ sbuf[i])))
         break;
     }
     break;
-  case FLOAT_BIN:
-  case COMPLEX_FLOAT_BIN:
-  case COMPLEX_SHORT_BIN:
-    if (q->type == FLOAT_BIN) {
+  case SRSLTE_FLOAT_BIN:
+  case SRSLTE_COMPLEX_FLOAT_BIN:
+  case SRSLTE_COMPLEX_SHORT_BIN:
+    if (q->type == SRSLTE_FLOAT_BIN) {
       size = sizeof(float);
-    } else if (q->type == COMPLEX_FLOAT_BIN) {
+    } else if (q->type == SRSLTE_COMPLEX_FLOAT_BIN) {
       size = sizeof(_Complex float);
-    } else if (q->type == COMPLEX_SHORT_BIN) {
+    } else if (q->type == SRSLTE_COMPLEX_SHORT_BIN) {
       size = sizeof(_Complex short);
     }
     return fread(buffer, size, nsamples, q->f);
@@ -118,19 +118,19 @@ int filesource_read(filesource_t *q, void *buffer, int nsamples) {
 }
 
 
-int filesource_initialize(filesource_hl* h) {
-  return filesource_init(&h->obj, h->init.file_name, h->init.data_type);
+int srslte_filesource_initialize(srslte_filesource_hl* h) {
+  return srslte_filesource_init(&h->obj, h->init.file_name, h->init.data_type);
 }
 
-int filesource_work(filesource_hl* h) {
-  h->out_len = filesource_read(&h->obj, h->output, h->ctrl_in.nsamples);
+int srslte_filesource_work(srslte_filesource_hl* h) {
+  h->out_len = srslte_filesource_read(&h->obj, h->output, h->ctrl_in.nsamples);
   if (h->out_len < 0) {
     return -1;
   }
   return 0;
 }
 
-int filesource_stop(filesource_hl* h) {
-  filesource_free(&h->obj);
+int srslte_filesource_stop(srslte_filesource_hl* h) {
+  srslte_filesource_free(&h->obj);
   return 0;
 }

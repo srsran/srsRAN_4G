@@ -40,7 +40,7 @@
 
 
 typedef struct SRSLTE_API {
-  crc_t crc;
+  srslte_crc_t crc;
   uint8_t tmp_cqi[MAX_CQI_LEN_PUSCH];
   uint8_t encoded_cqi[3*MAX_CQI_LEN_PUSCH];
 } uci_cqi_pusch_t;

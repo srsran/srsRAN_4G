@@ -38,34 +38,37 @@
 
 #include "srslte/config.h"
 
-typedef enum {NETSINK_UDP, NETSINK_TCP} netsink_type_t; 
+typedef enum {
+  SRSLTE_NETSINK_UDP, 
+  SRSLTE_NETSINK_TCP  
+} srslte_netsink_type_t; 
 
 /* Low-level API */
 typedef struct SRSLTE_API {
   int sockfd;
   bool connected;
-  netsink_type_t type; 
+  srslte_netsink_type_t type; 
   struct sockaddr_in servaddr;
-}netsink_t;
+}srslte_netsink_t;
 
-SRSLTE_API int netsink_init(netsink_t *q, 
-                            char *address, 
-                            int port, 
-                            netsink_type_t type);
+SRSLTE_API int srslte_netsink_init(srslte_netsink_t *q, 
+                                   char *address, 
+                                   int port, 
+                                   srslte_netsink_type_t type);
 
-SRSLTE_API void netsink_free(netsink_t *q);
+SRSLTE_API void srslte_netsink_free(srslte_netsink_t *q);
 
-SRSLTE_API int netsink_write(netsink_t *q, 
-                             void *buffer, 
-                             int nof_bytes);
+SRSLTE_API int srslte_netsink_write(srslte_netsink_t *q, 
+                                    void *buffer, 
+                                    int nof_bytes);
 
-SRSLTE_API int netsink_set_nonblocking(netsink_t *q); 
+SRSLTE_API int srslte_netsink_set_nonblocking(srslte_netsink_t *q); 
 
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  netsink_t obj;
-  struct netsink_init {
+  srslte_netsink_t obj;
+  struct srslte_netsink_init {
     char *address;
     int port;
     int block_length;
@@ -73,10 +76,10 @@ typedef struct SRSLTE_API {
   } init;
   void* input;
   int in_len;
-}netsink_hl;
+}srslte_netsink_hl;
 
-SRSLTE_API int netsink_initialize(netsink_hl* h);
-SRSLTE_API int netsink_work(  netsink_hl* hl);
-SRSLTE_API int netsink_stop(netsink_hl* h);
+SRSLTE_API int srslte_netsink_initialize(srslte_netsink_hl* h);
+SRSLTE_API int srslte_netsink_work(  srslte_netsink_hl* hl);
+SRSLTE_API int srslte_netsink_stop(srslte_netsink_hl* h);
 
 #endif // UDPSINK_

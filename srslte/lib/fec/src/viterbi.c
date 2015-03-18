@@ -41,7 +41,7 @@
 #define DEB 0
 
 int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
-  viterbi_t *q = o;
+  srslte_viterbi_t *q = o;
   uint32_t i;
 
   uint32_t best_state;
@@ -76,7 +76,7 @@ int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
 }
 
 int decode39(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
-  viterbi_t *q = o;
+  srslte_viterbi_t *q = o;
 
   if (frame_length > q->framebits) {
     fprintf(stderr, "Initialized decoder for max frame length %d bits\n",
@@ -98,7 +98,7 @@ int decode39(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
 
 
 void free37(void *o) {
-  viterbi_t *q = o;
+  srslte_viterbi_t *q = o;
   if (q->symbols_uc) {
     free(q->symbols_uc);
   }
@@ -109,14 +109,14 @@ void free37(void *o) {
 }
 
 void free39(void *o) {
-  viterbi_t *q = o;
+  srslte_viterbi_t *q = o;
   if (q->symbols_uc) {
     free(q->symbols_uc);
   }
   delete_viterbi39_port(q->ptr);
 }
 
-int init37(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
+int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
@@ -150,7 +150,7 @@ int init37(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
   }     
 }
 
-int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
+int init39(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
   q->K = 9;
   q->R = 3;
   q->framebits = framebits;
@@ -180,16 +180,16 @@ int init39(viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting)
 
 
 
-void viterbi_set_gain_quant(viterbi_t *q, float gain_quant) {
+void srslte_viterbi_set_gain_quant(srslte_viterbi_t *q, float gain_quant) {
   q->gain_quant = gain_quant;
 }
 
-int viterbi_init(viterbi_t *q, viterbi_type_t type, uint32_t poly[3],
+int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, uint32_t poly[3],
     uint32_t max_frame_length, bool tail_bitting) {
   switch (type) {
-  case viterbi_37:
+  case SRSLTE_VITERBI_37:
     return init37(q, poly, max_frame_length, tail_bitting);
-  case viterbi_39:
+  case SRSLTE_VITERBI_39:
     return init39(q, poly, max_frame_length, tail_bitting);
   default:
     fprintf(stderr, "Decoder not implemented\n");
@@ -197,15 +197,15 @@ int viterbi_init(viterbi_t *q, viterbi_type_t type, uint32_t poly[3],
   }
 }
 
-void viterbi_free(viterbi_t *q) {
+void srslte_viterbi_free(srslte_viterbi_t *q) {
   if (q->free) {
     q->free(q);    
   }
-  bzero(q, sizeof(viterbi_t));
+  bzero(q, sizeof(srslte_viterbi_t));
 }
 
 /* symbols are real-valued */
-int viterbi_decode_f(viterbi_t *q, float *symbols, uint8_t *data, uint32_t frame_length) {
+int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, uint32_t frame_length) {
   uint32_t len;
   if (frame_length > q->framebits) {
     fprintf(stderr, "Initialized decoder for max frame length %d bits\n",
@@ -227,19 +227,19 @@ int viterbi_decode_f(viterbi_t *q, float *symbols, uint8_t *data, uint32_t frame
   
 }
 
-int viterbi_decode_uc(viterbi_t *q, uint8_t *symbols, uint8_t *data,
+int srslte_viterbi_decode_uc(srslte_viterbi_t *q, uint8_t *symbols, uint8_t *data,
     uint32_t frame_length) {
   return q->decode(q, symbols, data, frame_length);
 }
 
-int viterbi_initialize(viterbi_hl* h) {
+int srslte_viterbi_initialize(srslte_viterbi_hl* h) {
   uint32_t poly[3];
-  viterbi_type_t type;
+  srslte_viterbi_type_t type;
   if (h->init.rate == 2) {
     if (h->init.constraint_length == 7) {
-      type = viterbi_27;
+      type = SRSLTE_VITERBI_27;
     } else if (h->init.constraint_length == 9) {
-      type = viterbi_29;
+      type = SRSLTE_VITERBI_29;
     } else {
       fprintf(stderr, "Unsupported decoder %d/%d\n", h->init.rate,
           h->init.constraint_length);
@@ -247,9 +247,9 @@ int viterbi_initialize(viterbi_hl* h) {
     }
   } else if (h->init.rate == 3) {
     if (h->init.constraint_length == 7) {
-      type = viterbi_37;
+      type = SRSLTE_VITERBI_37;
     } else if (h->init.constraint_length == 9) {
-      type = viterbi_39;
+      type = SRSLTE_VITERBI_39;
     } else {
       fprintf(stderr, "Unsupported decoder %d/%d\n", h->init.rate,
           h->init.constraint_length);
@@ -263,20 +263,20 @@ int viterbi_initialize(viterbi_hl* h) {
   poly[0] = h->init.generator_0;
   poly[1] = h->init.generator_1;
   poly[2] = h->init.generator_2;
-  return viterbi_init(&h->obj, type, poly, (uint32_t) h->init.frame_length,
+  return srslte_viterbi_init(&h->obj, type, poly, (uint32_t) h->init.frame_length,
       h->init.tail_bitting ? true : false);
 }
 
-int viterbi_work(viterbi_hl* hl) {
+int srslte_viterbi_work(srslte_viterbi_hl* hl) {
   if (hl->in_len != hl->init.frame_length) {
     fprintf(stderr, "Expected input length %d but got %d\n",
         hl->init.frame_length, hl->in_len);
     return -1;
   }
-  return viterbi_decode_f(&hl->obj, hl->input, hl->output, hl->init.frame_length);
+  return srslte_viterbi_decode_f(&hl->obj, hl->input, hl->output, hl->init.frame_length);
 }
 
-int viterbi_stop(viterbi_hl* h) {
-  viterbi_free(&h->obj);
+int srslte_viterbi_stop(srslte_viterbi_hl* h) {
+  srslte_viterbi_free(&h->obj);
   return 0;
 }

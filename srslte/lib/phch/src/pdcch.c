@@ -81,7 +81,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, srslte_cell_t cell) {
     if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
       goto clean;
     }
-    if (crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
+    if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
       goto clean;
     }
 
@@ -92,13 +92,13 @@ int pdcch_init(pdcch_t *q, regs_t *regs, srslte_cell_t cell) {
     for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
       // we need to pregenerate the sequence for the maximum number of bits, which is 8 times 
       // the maximum number of REGs (for CFI=3)
-      if (sequence_pdcch(&q->seq_pdcch[i], 2 * i, q->cell.id, 8*regs_pdcch_nregs(q->regs, 3))) {
+      if (srslte_sequence_pdcch(&q->seq_pdcch[i], 2 * i, q->cell.id, 8*regs_pdcch_nregs(q->regs, 3))) {
         goto clean;
       }
     }
 
     uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
-    if (viterbi_init(&q->decoder, viterbi_37, poly, DCI_MAX_BITS + 16, true)) {
+    if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, DCI_MAX_BITS + 16, true)) {
       goto clean;
     }
 
@@ -168,14 +168,14 @@ void pdcch_free(pdcch_t *q) {
   }
 
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-    sequence_free(&q->seq_pdcch[i]);
+    srslte_sequence_free(&q->seq_pdcch[i]);
   }
 
   demod_soft_free(&q->demod);
 
   precoding_free(&q->precoding);
   modem_table_free(&q->mod);
-  viterbi_free(&q->decoder);
+  srslte_viterbi_free(&q->decoder);
 
   bzero(q, sizeof(pdcch_t));
 
@@ -275,7 +275,7 @@ uint32_t pdcch_common_locations(pdcch_t *q, dci_location_t *c, uint32_t max_cand
  */
 static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
 
-  uint16_t p_bits, crc_res;
+  uint16_t p_bits, srslte_crc_res;
   uint8_t *x;
 
   if (q         != NULL         &&
@@ -290,7 +290,7 @@ static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t 
     }
 
     /* unrate matching */
-    rm_conv_rx(e, E, q->pdcch_rm_f, 3 * (nof_bits + 16));
+    srslte_rm_conv_rx(e, E, q->pdcch_rm_f, 3 * (nof_bits + 16));
 
     DEBUG("Viterbi input: ", 0);
     if (VERBOSE_ISDEBUG()) {
@@ -298,7 +298,7 @@ static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t 
     }
 
     /* viterbi decoder */
-    viterbi_decode_f(&q->decoder, q->pdcch_rm_f, data, nof_bits + 16);
+    srslte_viterbi_decode_f(&q->decoder, q->pdcch_rm_f, data, nof_bits + 16);
 
     if (VERBOSE_ISDEBUG()) {
       bit_fprint(stdout, data, nof_bits + 16);
@@ -306,12 +306,12 @@ static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t 
 
     x = &data[nof_bits];
     p_bits = (uint16_t) bit_unpack(&x, 16);
-    crc_res = ((uint16_t) crc_checksum(&q->crc, data, nof_bits) & 0xffff);
-    INFO("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
-        p_bits ^ crc_res);
+    srslte_crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
+    INFO("p_bits: 0x%x, srslte_crc_checksum: 0x%x, srslte_crc_rem: 0x%x\n", p_bits, srslte_crc_res,
+        p_bits ^ srslte_crc_res);
     
     if (crc) {
-      *crc = p_bits ^ crc_res; 
+      *crc = p_bits ^ srslte_crc_res; 
     }
     return SRSLTE_SUCCESS;
   } else {
@@ -322,16 +322,16 @@ static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t 
 
 /** Tries to decode a DCI message from the LLRs stored in the pdcch_t structure by the function 
  * pdcch_extract_llr(). This function can be called multiple times. 
- * The decoded message is stored in msg and the CRC remainder in crc_rem pointer
+ * The decoded message is stored in msg and the CRC remainder in srslte_crc_rem pointer
  * 
  */
-int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t *location, dci_format_t format, uint16_t *crc_rem) 
+int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t *location, dci_format_t format, uint16_t *srslte_crc_rem) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q                 != NULL       && 
       msg               != NULL       && 
       dci_location_isvalid(location)  &&
-      crc_rem           != NULL)
+      srslte_crc_rem           != NULL)
   {
     if (location->ncce * 72 + PDCCH_FORMAT_NOF_BITS(location->L) > 
       q->nof_cce*72) {
@@ -345,7 +345,7 @@ int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t *location, dci_f
             location->ncce * 72, e_bits, nof_bits, location->ncce, location->L);
       
       ret = dci_decode(q, &q->pdcch_llr[location->ncce * 72], 
-                      msg->data, e_bits, nof_bits, crc_rem);
+                      msg->data, e_bits, nof_bits, srslte_crc_rem);
       if (ret == SRSLTE_SUCCESS) {
         msg->nof_bits = nof_bits;
       }      
@@ -410,7 +410,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], 
       predecoding_single(&q->precoding, q->pdcch_symbols[0], q->ce[0], q->pdcch_d, nof_symbols, noise_estimate);
     } else {
       predecoding_diversity(&q->precoding, q->pdcch_symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols, noise_estimate);
-      layerdemap_diversity(x, q->pdcch_d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
+      srslte_layerdemap_diversity(x, q->pdcch_d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
     }
 
     DEBUG("pdcch d symbols: ", 0);
@@ -437,7 +437,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], 
 
 
 
-static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
+static void srslte_crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   uint32_t i;
   uint8_t mask[16];
   uint8_t *r = mask;
@@ -455,7 +455,7 @@ static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
  */
 static int dci_encode(pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, uint32_t E,
     uint16_t rnti) {
-  convcoder_t encoder;
+  srslte_convcoder_t encoder;
   uint8_t tmp[3 * (DCI_MAX_BITS + 16)];
   
   if (q                 != NULL        && 
@@ -471,17 +471,17 @@ static int dci_encode(pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, 
     encoder.tail_biting = true;
     memcpy(encoder.poly, poly, 3 * sizeof(int));
 
-    crc_attach(&q->crc, data, nof_bits);
-    crc_set_mask_rnti(&data[nof_bits], rnti);
+    srslte_crc_attach(&q->crc, data, nof_bits);
+    srslte_crc_set_mask_rnti(&data[nof_bits], rnti);
 
-    convcoder_encode(&encoder, data, tmp, nof_bits + 16);
+    srslte_convcoder_encode(&encoder, data, tmp, nof_bits + 16);
 
     DEBUG("CConv output: ", 0);
     if (VERBOSE_ISDEBUG()) {
       vec_fprint_b(stdout, tmp, 3 * (nof_bits + 16));
     }
 
-    rm_conv_tx(tmp, 3 * (nof_bits + 16), e, E);
+    srslte_rm_conv_tx(tmp, 3 * (nof_bits + 16), e, E);
     
     return SRSLTE_SUCCESS;
   } else {
@@ -544,7 +544,7 @@ int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t r
 
       /* layer mapping & precoding */
       if (q->cell.nof_ports > 1) {
-        layermap_diversity(q->pdcch_d, x, q->cell.nof_ports, nof_symbols);
+        srslte_layermap_diversity(q->pdcch_d, x, q->cell.nof_ports, nof_symbols);
         precoding_diversity(&q->precoding, x, q->pdcch_symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
       } else {
         memcpy(q->pdcch_symbols[0], q->pdcch_d, nof_symbols * sizeof(cf_t));

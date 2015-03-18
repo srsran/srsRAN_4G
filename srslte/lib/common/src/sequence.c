@@ -40,7 +40,7 @@
  * It follows the 3GPP Release 8 (LTE) 36.211
  * Section 7.2
  */
-void sequence_set_LTE_pr(sequence_t *q, uint32_t seed) {
+void srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t seed) {
   int n;
   uint32_t *x1, *x2;
 
@@ -74,16 +74,16 @@ void sequence_set_LTE_pr(sequence_t *q, uint32_t seed) {
   free(x2);
 }
 
-int sequence_LTE_pr(sequence_t *q, uint32_t len, uint32_t seed) {
-  if (sequence_init(q, len)) {
+int srslte_sequence_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed) {
+  if (srslte_sequence_init(q, len)) {
     return SRSLTE_ERROR;
   }
   q->len = len;
-  sequence_set_LTE_pr(q, seed);
+  srslte_sequence_set_LTE_pr(q, seed);
   return SRSLTE_SUCCESS;
 }
 
-int sequence_init(sequence_t *q, uint32_t len) {
+int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
   if (q->c && (q->len != len)) {
     free(q->c);
   }
@@ -97,11 +97,11 @@ int sequence_init(sequence_t *q, uint32_t len) {
   return SRSLTE_SUCCESS;
 }
 
-void sequence_free(sequence_t *q) {
+void srslte_sequence_free(srslte_sequence_t *q) {
   if (q->c) {
     free(q->c);
   }
-  bzero(q, sizeof(sequence_t));
+  bzero(q, sizeof(srslte_sequence_t));
 }
 
 

@@ -46,35 +46,35 @@ typedef struct SRSLTE_API{
   float **taps;  // 2-D filter coefficients
   float norm; //normalization factor
   cf_t *output; // Output signal
-} filter2d_t;
+} srslte_filter2d_t;
 
-SRSLTE_API int filter2d_init (filter2d_t* q, 
+SRSLTE_API int srslte_filter2d_init (srslte_filter2d_t* q, 
                               float **taps, 
                               uint32_t ntime, 
                               uint32_t nfreq, 
                               uint32_t sztime, 
                               uint32_t szfreq);
 
-SRSLTE_API int filter2d_init_ones (filter2d_t* q, 
+SRSLTE_API int srslte_filter2d_init_ones (srslte_filter2d_t* q, 
                                       uint32_t ntime, 
                                       uint32_t nfreq, 
                                       uint32_t sztime, 
                                       uint32_t szfreq);
 
-SRSLTE_API void filter2d_free(filter2d_t *q);
+SRSLTE_API void srslte_filter2d_free(srslte_filter2d_t *q);
 
-SRSLTE_API void filter2d_step(filter2d_t *q); 
+SRSLTE_API void srslte_filter2d_step(srslte_filter2d_t *q); 
 
-SRSLTE_API void filter2d_reset(filter2d_t *q);
+SRSLTE_API void srslte_filter2d_reset(srslte_filter2d_t *q);
 
-SRSLTE_API void filter2d_add(filter2d_t *q, 
+SRSLTE_API void srslte_filter2d_add(srslte_filter2d_t *q, 
                              cf_t h, 
                              uint32_t time_idx, 
                              uint32_t freq_idx);
 
-SRSLTE_API void filter2d_add_out(filter2d_t *q, cf_t x, int time_idx, int freq_idx);
+SRSLTE_API void srslte_filter2d_add_out(srslte_filter2d_t *q, cf_t x, int time_idx, int freq_idx);
 
-SRSLTE_API void filter2d_get_symbol(filter2d_t *q, 
+SRSLTE_API void srslte_filter2d_get_symbol(srslte_filter2d_t *q, 
                                     uint32_t nsymbol, 
                                     cf_t *output);
 #endif // FILTER2D_

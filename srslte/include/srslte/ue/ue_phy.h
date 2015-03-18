@@ -118,12 +118,12 @@ public:
   public:
     dl_tb(uint32_t max_dlsch_bits);
     uint16_t get_rnti();
-    bool     is_crc_valid();    
+    bool     is_srslte_crc_valid();    
     uint8_t* get_dlsch_payload();
   private:
     uint8_t* dlsch_buffer; 
     uint16_t rnti; 
-    bool     crc_result;
+    bool     srslte_crc_result;
   };
 
   class dl_grant : public queue::element {

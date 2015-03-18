@@ -68,12 +68,12 @@ static int generate_n_prs(srslte_refsignal_ul_t * q) {
   /* Calculate n_prs */
   uint32_t c_init; 
   
-  sequence_t seq; 
-  bzero(&seq, sizeof(sequence_t));
+  srslte_sequence_t seq; 
+  bzero(&seq, sizeof(srslte_sequence_t));
     
   for (uint32_t delta_ss=0;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
     c_init = ((q->cell.id / 30) << 5) + (((q->cell.id % 30) + delta_ss) % 30);
-    if (sequence_LTE_pr(&seq, 8 * SRSLTE_CP_NSYMB(q->cell.cp) * 20, c_init)) {
+    if (srslte_sequence_LTE_pr(&seq, 8 * SRSLTE_CP_NSYMB(q->cell.cp) * 20, c_init)) {
       return SRSLTE_ERROR;
     }
     for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {  
@@ -85,16 +85,16 @@ static int generate_n_prs(srslte_refsignal_ul_t * q) {
     }
   }
 
-  sequence_free(&seq);
+  srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS; 
 }
 
 /** Computes sequence-group pattern f_gh according to 5.5.1.3 of 36.211 */
 static int generate_group_hopping_f_gh(srslte_refsignal_ul_t *q) {
-  sequence_t seq; 
-  bzero(&seq, sizeof(sequence_t));
+  srslte_sequence_t seq; 
+  bzero(&seq, sizeof(srslte_sequence_t));
   
-  if (sequence_LTE_pr(&seq, 160, q->cell.id / 30)) {
+  if (srslte_sequence_LTE_pr(&seq, 160, q->cell.id / 30)) {
     return SRSLTE_ERROR;
   }
   
@@ -106,23 +106,23 @@ static int generate_group_hopping_f_gh(srslte_refsignal_ul_t *q) {
     q->f_gh[ns] = f_gh;    
   }
 
-  sequence_free(&seq);
+  srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS;
 }
 
-static int generate_sequence_hopping_v(srslte_refsignal_ul_t *q) {
-  sequence_t seq; 
-  bzero(&seq, sizeof(sequence_t));
+static int generate_srslte_sequence_hopping_v(srslte_refsignal_ul_t *q) {
+  srslte_sequence_t seq; 
+  bzero(&seq, sizeof(srslte_sequence_t));
   
   for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {
     for (uint32_t delta_ss=0;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
-      if (sequence_LTE_pr(&seq, 20, ((q->cell.id / 30) << 5) + ((q->cell.id%30)+delta_ss)%30)) {
+      if (srslte_sequence_LTE_pr(&seq, 20, ((q->cell.id / 30) << 5) + ((q->cell.id%30)+delta_ss)%30)) {
         return SRSLTE_ERROR;
       }
       q->v_pusch[ns][delta_ss] = seq.c[ns];    
     }
   }
-  sequence_free(&seq);
+  srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS;
 }
 
@@ -158,7 +158,7 @@ int srslte_refsignal_ul_init(srslte_refsignal_ul_t * q, srslte_cell_t cell)
     }
     
     // Precompute sequence hopping values v. Uses f_ss_pusch
-    if (generate_sequence_hopping_v(q)) {
+    if (generate_srslte_sequence_hopping_v(q)) {
       goto free_and_exit;
     }
 
@@ -297,7 +297,7 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, srslte_refsignal_d
       
       // Get sequence hopping number v 
       uint32_t v = 0; 
-      if (nof_prb >= 6 && cfg->sequence_hopping_en) {
+      if (nof_prb >= 6 && cfg->srslte_sequence_hopping_en) {
         v = q->v_pusch[ns][cfg->delta_ss];
       }
 

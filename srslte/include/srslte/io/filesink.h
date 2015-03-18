@@ -38,29 +38,34 @@
 /* Low-level API */
 typedef struct SRSLTE_API {
   FILE *f;
-  data_type_t type;
-}filesink_t;
+  srslte_datatype_t type;
+} srslte_filesink_t;
 
-SRSLTE_API int filesink_init(filesink_t *q, char *filename, data_type_t type);
-SRSLTE_API void filesink_free(filesink_t *q);
+SRSLTE_API int srslte_filesink_init(srslte_filesink_t *q, 
+                                    char *filename, 
+                                    srslte_datatype_t type);
 
-SRSLTE_API int filesink_write(filesink_t *q, void *buffer, int nsamples);
+SRSLTE_API void srslte_filesink_free(srslte_filesink_t *q);
+
+SRSLTE_API int srslte_filesink_write(srslte_filesink_t *q, 
+                                     void *buffer, 
+                                     int nsamples);
 
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  filesink_t obj;
-  struct filesink_init {
+  srslte_filesink_t obj;
+  struct srslte_filesink_init {
     char *file_name;
     int block_length;
     int data_type;
   } init;
   void* input;
   int in_len;
-}filesink_hl;
+}srslte_filesink_hl;
 
-SRSLTE_API int filesink_initialize(filesink_hl* h);
-SRSLTE_API int filesink_work(  filesink_hl* hl);
-SRSLTE_API int filesink_stop(filesink_hl* h);
+SRSLTE_API int srslte_filesink_initialize(srslte_filesink_hl* h);
+SRSLTE_API int srslte_filesink_work(  srslte_filesink_hl* hl);
+SRSLTE_API int srslte_filesink_stop(srslte_filesink_hl* h);
 
 #endif // FILESINK_

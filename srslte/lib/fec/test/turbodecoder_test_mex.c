@@ -47,7 +47,7 @@ void help()
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-  tdec_t tdec;
+  srslte_tdec_t tdec;
   float *input_llr;
   uint8_t *output_data; 
   uint32_t nof_bits; 
@@ -86,18 +86,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // allocate memory for output bits
   output_data = vec_malloc(nof_bits * sizeof(uint8_t));
 
-  if (tdec_init(&tdec, nof_bits)) {
+  if (srslte_tdec_init(&tdec, nof_bits)) {
     mexErrMsgTxt("Error initiating Turbo decoder\n");
     return;
   }
 
-  tdec_run_all(&tdec, input_llr, output_data, nof_iterations, nof_bits);
+  srslte_tdec_run_all(&tdec, input_llr, output_data, nof_iterations, nof_bits);
 
   if (nlhs >= 1) { 
     mexutils_write_uint8(output_data, &plhs[0], nof_bits, 1);  
   }
 
-  tdec_free(&tdec);
+  srslte_tdec_free(&tdec);
 
   free(input_llr);
   free(output_data);

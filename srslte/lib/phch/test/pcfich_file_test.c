@@ -50,7 +50,7 @@ int flen;
 
 FILE *fmatlab = NULL;
 
-filesource_t fsrc;
+srslte_filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
 pcfich_t pcfich;
 regs_t regs;
@@ -106,7 +106,7 @@ void parse_args(int argc, char **argv) {
 int base_init() {
   int i;
   
-  if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
+  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
     exit(-1);
   }
@@ -170,7 +170,7 @@ int base_init() {
 void base_free() {
   int i;
 
-  filesource_free(&fsrc);
+  srslte_filesource_free(&fsrc);
   if (fmatlab) {
     fclose(fmatlab);
   }
@@ -178,7 +178,7 @@ void base_free() {
   free(input_buffer);
   free(fft_buffer);
 
-  filesource_free(&fsrc);
+  srslte_filesource_free(&fsrc);
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     free(ce[i]);
   }
@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  n = filesource_read(&fsrc, input_buffer, flen);
+  n = srslte_filesource_read(&fsrc, input_buffer, flen);
 
   srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
 

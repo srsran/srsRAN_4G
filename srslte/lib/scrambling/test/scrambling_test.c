@@ -36,7 +36,7 @@
 
 #include "srslte/srslte.h"
 
-char *sequence_name = NULL;
+char *srslte_sequence_name = NULL;
 bool do_floats = false;
 srslte_cp_t cp = SRSLTE_SRSLTE_CP_NORM;
 int cell_id = -1;
@@ -61,7 +61,7 @@ void parse_args(int argc, char **argv) {
       do_floats = true;
       break;
     case 's':
-      sequence_name = argv[optind];
+      srslte_sequence_name = argv[optind];
       break;
     default:
       usage(argv[0]);
@@ -72,15 +72,15 @@ void parse_args(int argc, char **argv) {
     usage(argv[0]);
     exit(-1);
   }
-  if (!sequence_name) {
+  if (!srslte_sequence_name) {
     usage(argv[0]);
     exit(-1);
   }
 }
 
-int init_sequence(sequence_t *seq, char *name) {
+int init_sequence(srslte_sequence_t *seq, char *name) {
   if (!strcmp(name, "PBCH")) {
-    return sequence_pbch(seq, cp, cell_id);
+    return srslte_sequence_pbch(seq, cp, cell_id);
   } else {
     fprintf(stderr, "Unsupported sequence name %s\n", name);
     return -1;
@@ -90,14 +90,14 @@ int init_sequence(sequence_t *seq, char *name) {
 
 int main(int argc, char **argv) {
   int i;
-  sequence_t seq;
+  srslte_sequence_t seq;
   uint8_t *input_b, *scrambled_b;
   float *input_f, *scrambled_f;
 
   parse_args(argc, argv);
 
-  if (init_sequence(&seq, sequence_name) == -1) {
-    fprintf(stderr, "Error initiating sequence %s\n", sequence_name);
+  if (init_sequence(&seq, srslte_sequence_name) == -1) {
+    fprintf(stderr, "Error initiating sequence %s\n", srslte_sequence_name);
     exit(-1);
   }
 
@@ -160,6 +160,6 @@ int main(int argc, char **argv) {
     free(scrambled_f);
   }
   printf("Ok\n");
-  sequence_free(&seq);
+  srslte_sequence_free(&seq);
   exit(0);
 }

@@ -120,7 +120,7 @@ int  parse_args(prog_args_t *args, int argc, char **argv) {
 /* TODO: Do something with the output data */
 uint8_t data[10000], data_unpacked[1000];
 
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, timestamp_t *q) {
+int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *q) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
 }

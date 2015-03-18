@@ -104,7 +104,7 @@ static uint8_t M_basis_seq_pucch[20][13]={
                                   };                                    
                                     
 int uci_cqi_init(uci_cqi_pusch_t *q) {
-  if (crc_init(&q->crc, SRSLTE_LTE_CRC8, 8)) {
+  if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC8, 8)) {
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
@@ -163,7 +163,7 @@ int encode_cqi_short(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8
  */
 int encode_cqi_long(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
 {
-  convcoder_t encoder;
+  srslte_convcoder_t encoder;
 
   if (nof_bits + 8 < MAX_CQI_LEN_PUSCH &&
       q            != NULL             &&
@@ -179,9 +179,9 @@ int encode_cqi_long(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_
     memcpy(encoder.poly, poly, 3 * sizeof(int));
 
     memcpy(q->tmp_cqi, data, sizeof(uint8_t) * nof_bits);
-    crc_attach(&q->crc, q->tmp_cqi, nof_bits);
+    srslte_crc_attach(&q->crc, q->tmp_cqi, nof_bits);
 
-    convcoder_encode(&encoder, q->tmp_cqi, q->encoded_cqi, nof_bits + 8);
+    srslte_convcoder_encode(&encoder, q->tmp_cqi, q->encoded_cqi, nof_bits + 8);
 
     DEBUG("CConv output: ", 0);
     
@@ -189,7 +189,7 @@ int encode_cqi_long(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_
       vec_fprint_b(stdout, q->encoded_cqi, 3 * (nof_bits + 8));
     }
 
-    rm_conv_tx(q->encoded_cqi, 3 * (nof_bits + 8), q_bits, Q);
+    srslte_rm_conv_tx(q->encoded_cqi, 3 * (nof_bits + 8), q_bits, Q);
     
     return SRSLTE_SUCCESS;
   } else {

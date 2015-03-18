@@ -40,12 +40,22 @@ typedef struct SRSLTE_API {
   unsigned long crcinit; 
   unsigned long crcmask;
   unsigned long crchighbit;
-  uint32_t crc_out;
-} crc_t;
+  uint32_t srslte_crc_out;
+} srslte_crc_t;
 
-SRSLTE_API int crc_init(crc_t *h, uint32_t crc_poly, int crc_order);
-SRSLTE_API int crc_set_init(crc_t *h, unsigned long crc_init_value);
-SRSLTE_API void crc_attach(crc_t *h, uint8_t *data, int len);
-SRSLTE_API uint32_t crc_checksum(crc_t *h, uint8_t *data, int len);
+SRSLTE_API int srslte_crc_init(srslte_crc_t *h, 
+                               uint32_t srslte_crc_poly, 
+                               int srslte_crc_order);
+
+SRSLTE_API int srslte_crc_set_init(srslte_crc_t *h, 
+                                   unsigned long srslte_crc_init_value);
+
+SRSLTE_API void srslte_crc_attach(srslte_crc_t *h, 
+                                  uint8_t *data, 
+                                  int len);
+
+SRSLTE_API uint32_t srslte_crc_checksum(srslte_crc_t *h, 
+                                        uint8_t *data, 
+                                        int len);
 
 #endif

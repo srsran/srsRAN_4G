@@ -124,14 +124,14 @@ int main(int argc, char **argv) {
   }
   
   for (i=0;i<nof_filler_bits;i++) {
-    bits[3*i+0] = TX_NULL;
-    bits[3*i+1] = TX_NULL;
+    bits[3*i+0] = SRSLTE_TX_NULL;
+    bits[3*i+1] = SRSLTE_TX_NULL;
   }
   
   printf("BITS: ");
   vec_fprint_b(stdout, bits, nof_tx_bits);
 
-  rm_turbo_tx(w_buff_c, nof_tx_bits * 10, bits, nof_tx_bits, rm_bits, nof_rx_bits, rv_idx);
+  srslte_rm_turbo_tx(w_buff_c, nof_tx_bits * 10, bits, nof_tx_bits, rm_bits, nof_rx_bits, rv_idx);
 
   printf("RM: ");
   vec_fprint_b(stdout, rm_bits, nof_rx_bits);
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
     rm_symbols[i] = (float) rm_bits[i] ? 1 : -1;
   }
 
-  rm_turbo_rx(w_buff_f, nof_rx_bits * 10, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits,
+  srslte_rm_turbo_rx(w_buff_f, nof_rx_bits * 10, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits,
       rv_idx, nof_filler_bits);
 
   printf("UMRM: ");

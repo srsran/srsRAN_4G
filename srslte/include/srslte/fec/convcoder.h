@@ -38,15 +38,18 @@ typedef struct SRSLTE_API {
   uint32_t K;
   uint32_t poly[3];
   bool tail_biting;
-}convcoder_t;
+}srslte_convcoder_t;
 
-SRSLTE_API int convcoder_encode(convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length);
+SRSLTE_API int srslte_convcoder_encode(srslte_convcoder_t *q, 
+                                       uint8_t *input, 
+                                       uint8_t *output, 
+                                       uint32_t frame_length);
 
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  convcoder_t obj;
-  struct convcoder_ctrl_in {
+  srslte_convcoder_t obj;
+  struct srslte_convcoder_ctrl_in {
     int rate;
     int constraint_length;
     int tail_bitting;
@@ -59,10 +62,10 @@ typedef struct SRSLTE_API {
   int in_len;
   uint8_t *output;
   int out_len;
-}convcoder_hl;
+}srslte_convcoder_hl;
 
-SRSLTE_API int convcoder_initialize(convcoder_hl* h);
-SRSLTE_API int convcoder_work(convcoder_hl* hl);
-SRSLTE_API int convcoder_stop(convcoder_hl* h);
+SRSLTE_API int srslte_convcoder_initialize(srslte_convcoder_hl* h);
+SRSLTE_API int srslte_convcoder_work(srslte_convcoder_hl* hl);
+SRSLTE_API int srslte_convcoder_stop(srslte_convcoder_hl* h);
 
 #endif

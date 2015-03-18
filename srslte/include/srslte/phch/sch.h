@@ -41,12 +41,12 @@
 #define TDEC_MAX_ITERATIONS         5
 
 
-#ifndef RX_NULL
-#define RX_NULL 10000
+#ifndef SRSLTE_RX_NULL
+#define SRSLTE_RX_NULL 10000
 #endif
 
-#ifndef TX_NULL
-#define TX_NULL 100
+#ifndef SRSLTE_TX_NULL
+#define SRSLTE_TX_NULL 100
 #endif
 
 /* DL-SCH AND UL-SCH common functions */
@@ -60,10 +60,10 @@ typedef struct SRSLTE_API {
   void *cb_out;  
   void *pdsch_e;
   
-  tcod_t encoder;
-  tdec_t decoder;  
-  crc_t crc_tb;
-  crc_t crc_cb;
+  srslte_tcod_t encoder;
+  srslte_tdec_t decoder;  
+  srslte_crc_t srslte_crc_tb;
+  srslte_crc_t srslte_crc_cb;
   
   uci_cqi_pusch_t uci_cqi; 
   

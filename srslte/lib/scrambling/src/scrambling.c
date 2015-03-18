@@ -31,11 +31,11 @@
 #include <assert.h>
 #include "srslte/scrambling/scrambling.h"
 
-void scrambling_f(sequence_t *s, float *data) {
+void scrambling_f(srslte_sequence_t *s, float *data) {
   scrambling_f_offset(s, data, 0, s->len);
 }
 
-void scrambling_f_offset(sequence_t *s, float *data, int offset, int len) {
+void scrambling_f_offset(srslte_sequence_t *s, float *data, int offset, int len) {
   int i;  
   assert (len + offset <= s->len);
 
@@ -44,11 +44,11 @@ void scrambling_f_offset(sequence_t *s, float *data, int offset, int len) {
   }
 }
 
-void scrambling_c(sequence_t *s, cf_t *data) {
+void scrambling_c(srslte_sequence_t *s, cf_t *data) {
   scrambling_c_offset(s, data, 0, s->len);
 }
 
-void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len) {
+void scrambling_c_offset(srslte_sequence_t *s, cf_t *data, int offset, int len) {
   int i;
   assert (len + offset <= s->len);
 
@@ -57,7 +57,7 @@ void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len) {
   }
 }
 
-void scrambling_b(sequence_t *s, uint8_t *data) {
+void scrambling_b(srslte_sequence_t *s, uint8_t *data) {
   int i;
 
   for (i = 0; i < s->len; i++) {
@@ -65,7 +65,7 @@ void scrambling_b(sequence_t *s, uint8_t *data) {
   }
 }
 
-void scrambling_b_offset(sequence_t *s, uint8_t *data, int offset, int len) {
+void scrambling_b_offset(srslte_sequence_t *s, uint8_t *data, int offset, int len) {
   int i;
   assert (len + offset <= s->len);
   for (i = 0; i < len; i++) {
@@ -74,7 +74,7 @@ void scrambling_b_offset(sequence_t *s, uint8_t *data, int offset, int len) {
 }
 
 /* As defined in 36.211 5.3.1 */
-void scrambling_b_offset_pusch(sequence_t *s, uint8_t *data, int offset, int len) {
+void scrambling_b_offset_pusch(srslte_sequence_t *s, uint8_t *data, int offset, int len) {
   int i;
   assert (len + offset <= s->len);
   for (i = 0; i < len; i++) {
@@ -96,22 +96,22 @@ int compute_sequences(scrambling_hl* h) {
 
   switch (h->init.channel) {
   case SCRAMBLING_PBCH:
-    return sequence_pbch(&h->obj.seq[0],
+    return srslte_sequence_pbch(&h->obj.seq[0],
         h->init.nof_symbols == SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB ? SRSLTE_SRSLTE_CP_NORM : SRSLTE_SRSLTE_CP_EXT, h->init.cell_id);
   case SCRAMBLING_PDSCH:
     for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
-      sequence_pdsch(&h->obj.seq[ns], h->init.nrnti, 0, 2 * ns, h->init.cell_id,
+      srslte_sequence_pdsch(&h->obj.seq[ns], h->init.nrnti, 0, 2 * ns, h->init.cell_id,
           SRSLTE_NSOFT_BITS);
     }
     return 0;
   case SCRAMBLING_PCFICH:
     for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
-      sequence_pcfich(&h->obj.seq[ns], 2 * ns, h->init.cell_id);
+      srslte_sequence_pcfich(&h->obj.seq[ns], 2 * ns, h->init.cell_id);
     }
     return 0;
   case SCRAMBLING_PDCCH:
     for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
-      sequence_pdcch(&h->obj.seq[ns], 2 * ns, h->init.cell_id, SRSLTE_NSOFT_BITS);
+      srslte_sequence_pdcch(&h->obj.seq[ns], 2 * ns, h->init.cell_id, SRSLTE_NSOFT_BITS);
     }
     return 0;
   case SCRAMBLING_PMCH:
@@ -139,7 +139,7 @@ int scrambling_work(scrambling_hl* hl) {
   } else {
     sf = hl->ctrl_in.subframe;
   }
-  sequence_t *seq = &hl->obj.seq[sf];
+  srslte_sequence_t *seq = &hl->obj.seq[sf];
 
   if (hl->init.hard) {
     memcpy(hl->output, hl->input, sizeof(uint8_t) * hl->in_len);
@@ -155,7 +155,7 @@ int scrambling_work(scrambling_hl* hl) {
 int scrambling_stop(scrambling_hl* hl) {
   int i;
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-    sequence_free(&hl->obj.seq[i]);
+    srslte_sequence_free(&hl->obj.seq[i]);
   }
   return 0;
 }

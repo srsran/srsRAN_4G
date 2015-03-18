@@ -39,10 +39,10 @@
 
 #include "srslte/io/netsink.h"
 
-int netsink_init(netsink_t *q, char *address, int port, netsink_type_t type) {
-  bzero(q, sizeof(netsink_t));
+int srslte_netsink_init(srslte_netsink_t *q, char *address, int port, srslte_netsink_type_t type) {
+  bzero(q, sizeof(srslte_netsink_t));
 
-  q->sockfd=socket(AF_INET, type==NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
+  q->sockfd=socket(AF_INET, type==SRSLTE_NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
   if (q->sockfd < 0) {
     perror("socket");
     return -1; 
@@ -57,14 +57,14 @@ int netsink_init(netsink_t *q, char *address, int port, netsink_type_t type) {
   return 0;
 }
 
-void netsink_free(netsink_t *q) {
+void srslte_netsink_free(srslte_netsink_t *q) {
   if (q->sockfd) {
     close(q->sockfd);
   }
-  bzero(q, sizeof(netsink_t));
+  bzero(q, sizeof(srslte_netsink_t));
 }
 
-int netsink_set_nonblocking(netsink_t *q) {
+int srslte_netsink_set_nonblocking(srslte_netsink_t *q) {
   if (fcntl(q->sockfd, F_SETFL, O_NONBLOCK)) {
     perror("fcntl");
     return -1; 
@@ -72,7 +72,7 @@ int netsink_set_nonblocking(netsink_t *q) {
   return 0; 
 }
 
-int netsink_write(netsink_t *q, void *buffer, int nof_bytes) {
+int srslte_netsink_write(srslte_netsink_t *q, void *buffer, int nof_bytes) {
   if (!q->connected) {
     if (connect(q->sockfd,&q->servaddr,sizeof(q->servaddr)) < 0) {
       if (errno == ECONNREFUSED || errno == EINPROGRESS) {
@@ -92,7 +92,7 @@ int netsink_write(netsink_t *q, void *buffer, int nof_bytes) {
     if (n < 0) {
       if (errno == ECONNRESET) {
         close(q->sockfd);
-        q->sockfd=socket(AF_INET, q->type==NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
+        q->sockfd=socket(AF_INET, q->type==SRSLTE_NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
         if (q->sockfd < 0) {
           perror("socket");
           return -1; 
@@ -107,18 +107,18 @@ int netsink_write(netsink_t *q, void *buffer, int nof_bytes) {
 
 
 
-int netsink_initialize(netsink_hl* h) {
-  return netsink_init(&h->obj, h->init.address, h->init.port, NETSINK_UDP);
+int srslte_netsink_initialize(srslte_netsink_hl* h) {
+  return srslte_netsink_init(&h->obj, h->init.address, h->init.port, SRSLTE_NETSINK_UDP);
 }
 
-int netsink_work(netsink_hl* h) {
-  if (netsink_write(&h->obj, h->input, h->in_len)<0) {
+int srslte_netsink_work(srslte_netsink_hl* h) {
+  if (srslte_netsink_write(&h->obj, h->input, h->in_len)<0) {
     return -1;
   }
   return 0;
 }
 
-int netsink_stop(netsink_hl* h) {
-  netsink_free(&h->obj);
+int srslte_netsink_stop(srslte_netsink_hl* h) {
+  srslte_netsink_free(&h->obj);
   return 0;
 }

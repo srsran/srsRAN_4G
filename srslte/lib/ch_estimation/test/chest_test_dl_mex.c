@@ -204,7 +204,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       predecoding_single(&cheq, input_signal, ce[0], output_signal2, nof_re, srslte_chest_dl_get_noise_estimate(&chest));            
     } else {
       predecoding_diversity(&cheq, input_signal, ce, output_signal, cell.nof_ports, nof_re, srslte_chest_dl_get_noise_estimate(&chest));
-      layerdemap_diversity(output_signal, output_signal2, cell.nof_ports, nof_re/cell.nof_ports);
+      srslte_layerdemap_diversity(output_signal, output_signal2, cell.nof_ports, nof_re/cell.nof_ports);
     }
     
     if (nlhs >= 1) { 

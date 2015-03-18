@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     bits[i] = rand()%2;
   }
 
-  if (rm_conv_tx(bits, nof_tx_bits, rm_bits, nof_rx_bits)) {
+  if (srslte_rm_conv_tx(bits, nof_tx_bits, rm_bits, nof_rx_bits)) {
     exit(-1);
   }
 
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     rm_symbols[i] = rm_bits[i]?1:-1;
   }
 
-  if (rm_conv_rx(rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits)) {
+  if (srslte_rm_conv_rx(rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits)) {
     exit(-1);
   }
 

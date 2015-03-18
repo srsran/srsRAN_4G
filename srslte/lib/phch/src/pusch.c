@@ -186,7 +186,7 @@ int pusch_init(pusch_t *q, srslte_cell_t cell) {
     }
     
     /* Precompute sequence for type2 frequency hopping */
-    if (sequence_LTE_pr(&q->seq_type2_fo, 210, q->cell.id)) {
+    if (srslte_sequence_LTE_pr(&q->seq_type2_fo, 210, q->cell.id)) {
       fprintf(stderr, "Error initiating type2 frequency hopping sequence\n");
       goto clean; 
     }
@@ -196,7 +196,7 @@ int pusch_init(pusch_t *q, srslte_cell_t cell) {
     
     sch_init(&q->dl_sch);
     
-    if (dft_precoding_init(&q->dft_precoding, cell.nof_prb)) {
+    if (srslte_srslte_dft_precoding_init(&q->srslte_dft_precoding, cell.nof_prb)) {
       fprintf(stderr, "Error initiating DFT transform precoding\n");
       goto clean; 
     }
@@ -262,12 +262,12 @@ void pusch_free(pusch_t *q) {
     free(q->pusch_z);
   }
   
-  dft_precoding_free(&q->dft_precoding);
+  srslte_srslte_dft_precoding_free(&q->srslte_dft_precoding);
 
   precoding_free(&q->equalizer);
   
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-    sequence_free(&q->seq_pusch[i]);
+    srslte_sequence_free(&q->seq_pusch[i]);
   }
 
   for (i = 0; i < 4; i++) {
@@ -292,7 +292,7 @@ int pusch_set_rnti(pusch_t *q, uint16_t rnti) {
   uint32_t i;
 
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-    if (sequence_pusch(&q->seq_pusch[i], rnti, 2 * i, q->cell.id,
+    if (srslte_sequence_pusch(&q->seq_pusch[i], rnti, 2 * i, q->cell.id,
         q->max_re * srslte_mod_bits_x_symbol(LTE_QAM64))) {
       return SRSLTE_ERROR; 
     }
@@ -336,7 +336,7 @@ int pusch_decode(pusch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noi
       predecoding_single(&q->equalizer, q->pusch_d, q->ce, q->pusch_z,
             harq->nof_re, noise_estimate);
 
-      dft_predecoding(&q->dft_precoding, q->pusch_z, q->pusch_d, 
+      srslte_dft_predecoding(&q->srslte_dft_precoding, q->pusch_z, q->pusch_d, 
                       harq->ul_alloc.L_prb, harq->nof_symb);
       
       /* demodulate symbols 
@@ -420,19 +420,19 @@ int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uc
     }
     
     if (rnti != q->rnti) {
-      sequence_t seq; 
-      if (sequence_pusch(&seq, rnti, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
+      srslte_sequence_t seq; 
+      if (srslte_sequence_pusch(&seq, rnti, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
         return SRSLTE_ERROR; 
       }
       scrambling_b_offset_pusch(&seq, (uint8_t*) q->pusch_q, 0, harq->nof_bits);      
-      sequence_free(&seq);
+      srslte_sequence_free(&seq);
     } else {
       scrambling_b_offset_pusch(&q->seq_pusch[harq->sf_idx], (uint8_t*) q->pusch_q, 0, harq->nof_bits);            
     }
     
     mod_modulate(&q->mod[harq->mcs.mod], (uint8_t*) q->pusch_q, q->pusch_d, harq->nof_bits);
     
-    dft_precoding(&q->dft_precoding, q->pusch_d, q->pusch_z, 
+    srslte_dft_precoding(&q->srslte_dft_precoding, q->pusch_d, q->pusch_z, 
                   harq->ul_alloc.L_prb, harq->nof_symb);
     
     /* mapping to resource elements */      

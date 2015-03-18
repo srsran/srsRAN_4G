@@ -48,20 +48,20 @@ int sch_init(sch_t *q) {
   if (q) {    
     bzero(q, sizeof(sch_t));
     
-    if (crc_init(&q->crc_tb, SRSLTE_LTE_CRC24A, 24)) {
+    if (srslte_crc_init(&q->srslte_crc_tb, SRSLTE_LTE_CRC24A, 24)) {
       fprintf(stderr, "Error initiating CRC\n");
       goto clean;
     }
-    if (crc_init(&q->crc_cb, SRSLTE_LTE_CRC24B, 24)) {
+    if (srslte_crc_init(&q->srslte_crc_cb, SRSLTE_LTE_CRC24B, 24)) {
       fprintf(stderr, "Error initiating CRC\n");
       goto clean;
     }
 
-    if (tcod_init(&q->encoder, MAX_LONG_CB)) {
+    if (srslte_tcod_init(&q->encoder, MAX_LONG_CB)) {
       fprintf(stderr, "Error initiating Turbo Coder\n");
       goto clean;
     }
-    if (tdec_init(&q->decoder, MAX_LONG_CB)) {
+    if (srslte_tdec_init(&q->decoder, MAX_LONG_CB)) {
       fprintf(stderr, "Error initiating Turbo Decoder\n");
       goto clean;
     }
@@ -96,8 +96,8 @@ void sch_free(sch_t *q) {
   if (q->cb_out) {
     free(q->cb_out);
   }
-  tdec_free(&q->decoder);
-  tcod_free(&q->encoder);
+  srslte_tdec_free(&q->decoder);
+  srslte_tcod_free(&q->encoder);
   uci_cqi_free(&q->uci_cqi);
   bzero(q, sizeof(sch_t));
 }
@@ -140,7 +140,7 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
     
     if (harq->rv == 0) {
       /* Compute transport block CRC */
-      par = crc_checksum(&q->crc_tb, data, harq->mcs.tbs);
+      par = srslte_crc_checksum(&q->srslte_crc_tb, data, harq->mcs.tbs);
 
       /* parity bits will be appended later */
       bit_pack(par, &p_parity, 24);
@@ -201,11 +201,11 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
         }
         /* Attach Codeblock CRC */
         if (harq->cb_segm.C > 1) {
-          crc_attach(&q->crc_cb, q->cb_in, rlen);
+          srslte_crc_attach(&q->srslte_crc_cb, q->cb_in, rlen);
         }
         /* Set the filler bits to <NULL> */
         for (int j = 0; j < F; j++) {
-          q->cb_in[j] = TX_NULL;
+          q->cb_in[j] = SRSLTE_TX_NULL;
         }
         if (VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d: ", i);
@@ -213,11 +213,11 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
         }
 
         /* Turbo Encoding */
-        tcod_encode(&q->encoder, q->cb_in, (uint8_t*) q->cb_out, cb_len);
+        srslte_tcod_encode(&q->encoder, q->cb_in, (uint8_t*) q->cb_out, cb_len);
       }
       
       /* Rate matching */
-      if (rm_turbo_tx(harq->pdsch_w_buff_c[i], harq->w_buff_size, 
+      if (srslte_rm_turbo_tx(harq->pdsch_w_buff_c[i], harq->w_buff_size, 
                   (uint8_t*) q->cb_out, 3 * cb_len + 12,
                   &e_bits[wp], n_e, harq->rv))
       {
@@ -297,7 +297,7 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
           cb_len, rlen - F, wp, rp, F, n_e);
       
       /* Rate Unmatching */
-      if (rm_turbo_rx(harq->pdsch_w_buff_f[i], harq->w_buff_size,  
+      if (srslte_rm_turbo_rx(harq->pdsch_w_buff_f[i], harq->w_buff_size,  
                   &e_bits[rp], n_e, 
                   (float*) q->cb_out, 3 * cb_len + 12, harq->rv, F)) {
         fprintf(stderr, "Error in rate matching\n");
@@ -313,29 +313,29 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
       q->nof_iterations = 0; 
       uint32_t len_crc; 
       uint8_t *cb_in_ptr; 
-      crc_t *crc_ptr; 
+      srslte_crc_t *srslte_crc_ptr; 
       early_stop = false; 
 
-      tdec_reset(&q->decoder, cb_len);
+      srslte_tdec_reset(&q->decoder, cb_len);
             
       do {
-        tdec_iteration(&q->decoder, (float*) q->cb_out, cb_len); 
+        srslte_tdec_iteration(&q->decoder, (float*) q->cb_out, cb_len); 
         q->nof_iterations++;
         
         if (harq->cb_segm.C > 1) {
           len_crc = cb_len; 
           cb_in_ptr = q->cb_in; 
-          crc_ptr = &q->crc_cb; 
+          srslte_crc_ptr = &q->srslte_crc_cb; 
         } else {
           len_crc = harq->mcs.tbs+24; 
           cb_in_ptr = &q->cb_in[F];
-          crc_ptr = &q->crc_tb; 
+          srslte_crc_ptr = &q->srslte_crc_tb; 
         }
 
-        tdec_decision(&q->decoder, q->cb_in, cb_len);
+        srslte_tdec_decision(&q->decoder, q->cb_in, cb_len);
   
         /* Check Codeblock CRC and stop early if incorrect */
-        if (!crc_checksum(crc_ptr, cb_in_ptr, len_crc)) {
+        if (!srslte_crc_checksum(srslte_crc_ptr, cb_in_ptr, len_crc)) {
           early_stop = true;           
         }
         
@@ -373,7 +373,7 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
       INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
 
       // Compute transport block CRC
-      par_rx = crc_checksum(&q->crc_tb, data, harq->mcs.tbs);
+      par_rx = srslte_crc_checksum(&q->srslte_crc_tb, data, harq->mcs.tbs);
 
       // check parity bits
       par_tx = bit_unpack(&p_parity, 24);

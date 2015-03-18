@@ -87,7 +87,7 @@ int phich_init(phich_t *q, regs_t *regs, srslte_cell_t cell) {
     demod_hard_table_set(&q->demod, LTE_BPSK);
 
     for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
-      if (sequence_phich(&q->seq_phich[nsf], 2 * nsf, q->cell.id)) {
+      if (srslte_sequence_phich(&q->seq_phich[nsf], 2 * nsf, q->cell.id)) {
         goto clean;
       }
     }
@@ -102,7 +102,7 @@ int phich_init(phich_t *q, regs_t *regs, srslte_cell_t cell) {
 
 void phich_free(phich_t *q) {
   for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
-    sequence_free(&q->seq_phich[ns]);
+    srslte_sequence_free(&q->seq_phich[ns]);
   }
   modem_table_free(&q->mod);
   precoding_free(&q->precoding);
@@ -212,7 +212,7 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], flo
   } else {
     predecoding_diversity(&q->precoding, q->phich_symbols[0], ce_precoding, x,
         q->cell.nof_ports, PHICH_SRSLTE_MAX_NSYMB, noise_estimate);
-    layerdemap_diversity(x, q->phich_d0, q->cell.nof_ports,
+    srslte_layerdemap_diversity(x, q->phich_d0, q->cell.nof_ports,
     PHICH_SRSLTE_MAX_NSYMB / q->cell.nof_ports);
   }
   DEBUG("Recv!!: \n", 0);
@@ -374,7 +374,7 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
 
   /* layer mapping & precoding */
   if (q->cell.nof_ports > 1) {
-    layermap_diversity(q->phich_d0, x, q->cell.nof_ports, PHICH_SRSLTE_MAX_NSYMB);
+    srslte_layermap_diversity(q->phich_d0, x, q->cell.nof_ports, PHICH_SRSLTE_MAX_NSYMB);
     precoding_diversity(&q->precoding, x, symbols_precoding, q->cell.nof_ports,
     PHICH_SRSLTE_MAX_NSYMB / q->cell.nof_ports);
     /**FIXME: According to 6.9.2, Precoding for 4 tx ports is different! */

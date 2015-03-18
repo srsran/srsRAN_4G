@@ -101,8 +101,8 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  filesource_t fsrc;
-  filesink_t fsink;
+  srslte_filesource_t fsrc;
+  srslte_filesink_t fsink;
   pss_synch_t pss[3]; // One for each N_id_2
   sss_synch_t sss[3]; // One for each N_id_2
   cfo_t cfocorr;
@@ -128,11 +128,11 @@ int main(int argc, char **argv) {
   gettimeofday(&tdata[1], NULL);
   printf("Initializing...");fflush(stdout);
 
-  if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
+  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
     exit(-1);
   }
-  if (filesink_init(&fsink, output_file_name, COMPLEX_FLOAT_BIN)) {
+  if (srslte_filesink_init(&fsink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", output_file_name);
     exit(-1);
   }
@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
 
   /* read all file or nof_frames */
   frame_cnt = 0;
-  while (frame_length == filesource_read(&fsrc, input, frame_length)
+  while (frame_length == srslte_filesource_read(&fsrc, input, frame_length)
       && frame_cnt < nof_frames) {
 
     gettimeofday(&tdata[1], NULL);
@@ -259,8 +259,8 @@ int main(int argc, char **argv) {
     sss_synch_free(&sss[N_id_2]);
   }
 
-  filesource_free(&fsrc);
-  filesink_free(&fsink);
+  srslte_filesource_free(&fsrc);
+  srslte_filesink_free(&fsink);
 
   free(input);
   free(cfo);

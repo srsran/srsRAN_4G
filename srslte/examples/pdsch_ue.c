@@ -208,7 +208,7 @@ void sig_int_handler(int signo)
 }
 
 #ifndef DISABLE_UHD
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, timestamp_t *t) {
+int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
 }
@@ -224,7 +224,7 @@ prog_args_t prog_args;
 
 uint32_t sfn = 0; // system frame number
 cf_t *sf_buffer = NULL; 
-netsink_t net_sink, net_sink_signal; 
+srslte_netsink_t net_sink, net_sink_signal; 
 
 int main(int argc, char **argv) {
   int ret; 
@@ -242,18 +242,18 @@ int main(int argc, char **argv) {
   parse_args(&prog_args, argc, argv);
 
   if (prog_args.net_port > 0) {
-    if (netsink_init(&net_sink, prog_args.net_address, prog_args.net_port, NETSINK_TCP)) {
+    if (srslte_netsink_init(&net_sink, prog_args.net_address, prog_args.net_port, SRSLTE_NETSINK_TCP)) {
       fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address, prog_args.net_port);
       exit(-1);
     }
-    netsink_set_nonblocking(&net_sink);
+    srslte_netsink_set_nonblocking(&net_sink);
   }
   if (prog_args.net_port_signal > 0) {
-    if (netsink_init(&net_sink_signal, prog_args.net_address_signal, prog_args.net_port_signal, NETSINK_UDP)) {
+    if (srslte_netsink_init(&net_sink_signal, prog_args.net_address_signal, prog_args.net_port_signal, SRSLTE_NETSINK_UDP)) {
       fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address_signal, prog_args.net_port_signal);
       exit(-1);
     }
-    netsink_set_nonblocking(&net_sink_signal);
+    srslte_netsink_set_nonblocking(&net_sink_signal);
   }
   
 #ifndef DISABLE_UHD
@@ -409,7 +409,7 @@ int main(int argc, char **argv) {
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 bit_unpack_vector(data_packed, data, n);
-                netsink_write(&net_sink, data, 1+(n-1)/8);
+                srslte_netsink_write(&net_sink, data, 1+(n-1)/8);
               }
             }
             nof_trials++; 
@@ -563,7 +563,7 @@ void *plot_thread_run(void *arg) {
     
     if (plot_sf_idx == 1) {
       if (prog_args.net_port_signal > 0) {
-        netsink_write(&net_sink_signal, &sf_buffer[ue_sync_sf_len(&ue_sync)/7], 
+        srslte_netsink_write(&net_sink_signal, &sf_buffer[ue_sync_sf_len(&ue_sync)/7], 
                             ue_sync_sf_len(&ue_sync)); 
       }
     }

@@ -70,11 +70,11 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
     if (type.type == PDSCH_SCHED) {
       bzero(ra_dl, sizeof(ra_pdsch_t));
       
-      bool crc_is_crnti = false; 
+      bool srslte_crc_is_crnti = false; 
       if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
-        crc_is_crnti = true; 
+        srslte_crc_is_crnti = true; 
       }
-      if (dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, crc_is_crnti)) {
+      if (dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, srslte_crc_is_crnti)) {
         fprintf(stderr, "Can't unpack PDSCH message\n");
         return ret;
       } 
@@ -516,7 +516,7 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
  * TODO: RA procedure initiated by PDCCH, TPC commands
  */
 int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
-    bool crc_is_crnti) {
+    bool srslte_crc_is_crnti) {
 
   /* pack bits */
   uint8_t *y = msg->data;
@@ -538,7 +538,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
     }
   } else {
     uint32_t n_vrb_dl;
-    if (crc_is_crnti && nof_prb > 50) {
+    if (srslte_crc_is_crnti && nof_prb > 50) {
       n_vrb_dl = 16;
     } else {
       n_vrb_dl = ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == t2_ng1);
@@ -559,7 +559,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
     riv = data->type2_alloc.riv;
   }
   uint32_t nb_gap = 0;
-  if (crc_is_crnti && data->type2_alloc.mode == t2_dist && nof_prb >= 50) {
+  if (srslte_crc_is_crnti && data->type2_alloc.mode == t2_dist && nof_prb >= 50) {
     nb_gap = 1;
     *y++ = data->type2_alloc.n_gap;
   }
@@ -570,7 +570,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
 
   bit_pack(data->harq_process, &y, 3);
 
-  if (!crc_is_crnti && nof_prb >= 50 && data->type2_alloc.mode == t2_dist) {
+  if (!srslte_crc_is_crnti && nof_prb >= 50 && data->type2_alloc.mode == t2_dist) {
     *y++ = data->type2_alloc.n_gap;
   } else {
     y++; // bit reserved
@@ -579,7 +579,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
   // rv version
   bit_pack(data->rv_idx, &y, 2);
 
-  if (crc_is_crnti) {
+  if (srslte_crc_is_crnti) {
     // TPC not implemented
     *y++ = 0;
     *y++ = 0;
@@ -602,7 +602,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
  *
  */
 int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
-    bool crc_is_crnti) {
+    bool srslte_crc_is_crnti) {
 
   /* pack bits */
   uint8_t *y = msg->data;
@@ -626,7 +626,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
 
   /* unpack RIV according to 7.1.6.3 of 36.213 */
   uint32_t nb_gap = 0;
-  if (crc_is_crnti && data->type2_alloc.mode == t2_dist && nof_prb >= 50) {
+  if (srslte_crc_is_crnti && data->type2_alloc.mode == t2_dist && nof_prb >= 50) {
     nb_gap = 1;
     data->type2_alloc.n_gap = *y++;
   }
@@ -646,7 +646,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
 
   data->harq_process = bit_unpack(&y, 3);
 
-  if (!crc_is_crnti && nof_prb >= 50 && data->type2_alloc.mode == t2_dist) {
+  if (!srslte_crc_is_crnti && nof_prb >= 50 && data->type2_alloc.mode == t2_dist) {
     data->type2_alloc.n_gap = *y++;
   } else {
     y++; // bit reserved
@@ -655,7 +655,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   // rv version
   bit_pack(data->rv_idx, &y, 2);
 
-  if (crc_is_crnti) {
+  if (srslte_crc_is_crnti) {
     // TPC not implemented
     y++;
     y++;
@@ -665,7 +665,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   }
 
   uint32_t n_prb;
-  if (crc_is_crnti) {
+  if (srslte_crc_is_crnti) {
     n_prb = ra_nprb_dl(data, nof_prb);
   } else {
     n_prb = data->type2_alloc.n_prb1a == nprb1a_2 ? 2 : 3;
@@ -765,12 +765,12 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
 }
 
 int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format,
-    uint32_t nof_prb, bool crc_is_crnti) {
+    uint32_t nof_prb, bool srslte_crc_is_crnti) {
   switch (format) {
   case Format1:
     return dci_format1_pack(data, msg, nof_prb);
   case Format1A:
-    return dci_format1As_pack(data, msg, nof_prb, crc_is_crnti);
+    return dci_format1As_pack(data, msg, nof_prb, srslte_crc_is_crnti);
   case Format1C:
     return dci_format1Cs_pack(data, msg, nof_prb);
   default:
@@ -781,11 +781,11 @@ int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format,
 }
 
 int dci_msg_unpack_pdsch(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
-    bool crc_is_crnti) {
+    bool srslte_crc_is_crnti) {
   if (msg->nof_bits == dci_format_sizeof(Format1, nof_prb)) {
     return dci_format1_unpack(msg, data, nof_prb);
   } else if (msg->nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
-    return dci_format1As_unpack(msg, data, nof_prb, crc_is_crnti);
+    return dci_format1As_unpack(msg, data, nof_prb, srslte_crc_is_crnti);
   } else if (msg->nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
     return dci_format1Cs_unpack(msg, data, nof_prb);
   } else {

@@ -52,7 +52,7 @@ uint16_t rnti = SRSLTE_SIRNTI;
 int max_frames = 10;
 
 dci_format_t dci_format = Format1A;
-filesource_t fsrc;
+srslte_filesource_t fsrc;
 pdcch_t pdcch;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
 regs_t regs;
@@ -124,7 +124,7 @@ void parse_args(int argc, char **argv) {
 int base_init() {
   int i;
 
-  if (filesource_init(&fsrc, input_file_name, COMPLEX_FLOAT_BIN)) {
+  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
     exit(-1);
   }
@@ -182,12 +182,12 @@ int base_init() {
 void base_free() {
   int i;
 
-  filesource_free(&fsrc);
+  srslte_filesource_free(&fsrc);
 
   free(input_buffer);
   free(fft_buffer);
 
-  filesource_free(&fsrc);
+  srslte_filesource_free(&fsrc);
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     free(ce[i]);
   }
@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
   ret = -1;
   frame_cnt = 0;
   do {
-    filesource_read(&fsrc, input_buffer, flen);
+    srslte_filesource_read(&fsrc, input_buffer, flen);
 
     INFO("Reading %d samples sub-frame %d\n", flen, frame_cnt);
 
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);
     
-    uint16_t crc_rem = 0;
+    uint16_t srslte_crc_rem = 0;
     if (pdcch_extract_llr(&pdcch, fft_buffer, 
                           ce, srslte_chest_dl_get_noise_estimate(&chest), 
                           frame_cnt %10, cfi)) {
@@ -246,14 +246,14 @@ int main(int argc, char **argv) {
       nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, frame_cnt %10, cfi, rnti); 
     }
 
-    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
+    for (i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
+      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &srslte_crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return -1;
       }
     }
     
-    if (crc_rem == rnti) {
+    if (srslte_crc_rem == rnti) {
       dci_msg_type_t type;
       if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti)) {
         fprintf(stderr, "Can't get DCI message type\n");
