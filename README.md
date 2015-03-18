@@ -1,9 +1,9 @@
-libLTE
+srsLTE
 ========
 
-libLTE is a free and open-source LTE library for SDR UE and eNodeB. The library is highly modular with minimum inter-module or external dependencies. It is entirely written in C and, if available in the system, uses the acceleration library VOLK distributed in GNURadio. 
+srsLTE is a free and open-source LTE library for SDR UE and eNodeB. The library is highly modular with minimum inter-module or external dependencies. It is entirely written in C and, if available in the system, uses the acceleration library VOLK distributed in GNURadio. 
 
-The libLTE software license is LGPLv3.
+The srsLTE software license is LGPLv3.
 
 Current Features: 
  * LTE Release 8 compliant
@@ -44,7 +44,7 @@ make
 
 The library can also be installed using the command ```sudo make install```. 
 
-Running libLTE Examples
+Running srsLTE Examples
 ========================
 
 * SIB1 reception and UE measurement from commercial LTE networks: 
@@ -104,4 +104,4 @@ to watch the video.
 Support
 ========
 
-Mailing list: https://lists.sourceforge.net/lists/listinfo/liblte-users
+Mailing list: http://www.softwareradiosystems.com/mailman/listinfo/srslte-users
