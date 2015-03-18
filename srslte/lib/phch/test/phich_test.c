@@ -54,7 +54,7 @@ void usage(char *prog) {
   printf("\t-g phich ng factor: 1/6, 1/2, 1, 2 [Default 1]\n");
   printf("\t-e phich extended length [Default normal]\n");
   printf("\t-l extended cyclic prefix [Default normal]\n");
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -90,7 +90,7 @@ void parse_args(int argc, char **argv) {
       cell.cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -101,8 +101,8 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
-  phich_t phich;
-  regs_t regs;
+  srslte_phich_t phich;
+  srslte_regs_t regs;
   int i, j;
   cf_t *ce[SRSLTE_MAX_PORTS];
   int nof_re;
@@ -147,27 +147,27 @@ int main(int argc, char **argv) {
     
     printf("Testing CellID=%d...\n", cid);
 
-    if (regs_init(&regs, cell)) {
+    if (srslte_regs_init(&regs, cell)) {
       fprintf(stderr, "Error initiating regs\n");
       exit(-1);
     }
 
-    if (phich_init(&phich, &regs, cell)) {
+    if (srslte_phich_init(&phich, &regs, cell)) {
       fprintf(stderr, "Error creating PBCH object\n");
       exit(-1);
     }
 
     for (nsf=0;nsf<10;nsf++) {
 
-      phich_reset(&phich, slot_symbols);
+      srslte_phich_reset(&phich, slot_symbols);
 
       /* Transmit all PHICH groups and sequence numbers */
-      for (ngroup=0;ngroup<phich_ngroups(&phich);ngroup++) {
+      for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
         for (nseq=0;nseq<max_nseq;nseq++) {
 
           ack[ngroup][nseq] = rand()%2;
 
-          phich_encode(&phich, ack[ngroup][nseq], ngroup, nseq, nsf, slot_symbols);
+          srslte_phich_encode(&phich, ack[ngroup][nseq], ngroup, nseq, nsf, slot_symbols);
         }
       }
       /* combine outputs */
@@ -178,10 +178,10 @@ int main(int argc, char **argv) {
       }
 
       /* Receive all PHICH groups and sequence numbers */
-      for (ngroup=0;ngroup<phich_ngroups(&phich);ngroup++) {
+      for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
         for (nseq=0;nseq<max_nseq;nseq++) {
 
-          if (phich_decode(&phich, slot_symbols[0], ce, 0, ngroup, nseq, nsf, &ack_rx, &distance)<0) {
+          if (srslte_phich_decode(&phich, slot_symbols[0], ce, 0, ngroup, nseq, nsf, &ack_rx, &distance)<0) {
             printf("Error decoding ACK\n");
             exit(-1);
           }
@@ -198,8 +198,8 @@ int main(int argc, char **argv) {
         }
       }
     }
-    phich_free(&phich);
-    regs_free(&regs);
+    srslte_phich_free(&phich);
+    srslte_regs_free(&regs);
     cid++;
   }
 

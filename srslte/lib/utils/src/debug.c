@@ -27,7 +27,7 @@
 
 #include "srslte/utils/debug.h"
 
-int verbose = 0;
+int srslte_verbose = 0;
 
 void get_time_interval(struct timeval * tdata) {
 

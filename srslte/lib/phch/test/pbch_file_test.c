@@ -38,7 +38,8 @@ char *input_file_name = NULL;
 srslte_cell_t cell = {
   6,            // nof_prb
   2,            // nof_ports
-  150,          // cell_id
+  0,            // bw_idx
+  150,          // cell_id  
   SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
@@ -52,8 +53,8 @@ uint8_t bch_payload_file[BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1,
 
 srslte_filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
-pbch_t pbch;
-srslte_fft_t fft;
+srslte_pbch_t pbch;
+srslte_ofdm_t fft;
 srslte_chest_dl_t chest;
 
 void usage(char *prog) {
@@ -62,7 +63,7 @@ void usage(char *prog) {
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e Set extended prefix [Default Normal]\n");
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -83,7 +84,7 @@ void parse_args(int argc, char **argv) {
       nof_frames = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     case 'e':
       cell.cp = SRSLTE_SRSLTE_CP_EXT;
@@ -137,12 +138,12 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
 
-  if (pbch_init(&pbch, cell)) {
+  if (srslte_pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error initiating PBCH\n");
     return -1;
   }
@@ -164,9 +165,9 @@ void base_free() {
     free(ce[i]);
   }
   srslte_chest_dl_free(&chest);
-  srslte_fft_free(&fft);
+  srslte_ofdm_tx_free(&fft);
 
-  pbch_free(&pbch);
+  srslte_pbch_free(&pbch);
 }
 
 int main(int argc, char **argv) {
@@ -195,7 +196,7 @@ int main(int argc, char **argv) {
 
     if (nread > 0) {
       // process 1st subframe only
-      srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
+      srslte_ofdm_tx_sf(&fft, input_buffer, fft_buffer);
 
       /* Get channel estimates for each port */
       srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
@@ -206,8 +207,8 @@ int main(int argc, char **argv) {
         ce_slot1[i] = &ce[i][SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)];
       }
 
-      pbch_decode_reset(&pbch);
-      n = pbch_decode(&pbch, &fft_buffer[SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
+      srslte_pbch_decode_reset(&pbch);
+      n = srslte_pbch_decode(&pbch, &fft_buffer[SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
                       ce_slot1, srslte_chest_dl_get_noise_estimate(&chest), 
                       bch_payload, &nof_tx_ports, &sfn_offset);
       if (n == 1) {
@@ -230,7 +231,7 @@ int main(int argc, char **argv) {
       exit(-1);
     } else {
       printf("MIB decoded OK. Nof ports: %d. SFN offset: %d Payload: ", nof_tx_ports, sfn_offset);    
-      vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
+      srslte_vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
       if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, BCH_PAYLOAD_LEN)) {
         printf("This is the signal.1.92M.dat file\n");
         exit(0);

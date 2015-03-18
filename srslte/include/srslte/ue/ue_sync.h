@@ -35,7 +35,7 @@
 #include "srslte/sync/cfo.h"
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/phch/pbch.h"
-#include "srslte/common/fft.h"
+#include "srslte/dft/ofdm.h"
 #include "srslte/common/timestamp.h"
 #include "srslte/io/filesource.h"
 
@@ -43,26 +43,26 @@
  *
  * This object automatically manages the cell synchronization procedure. 
  * 
- * The main function is ue_sync_get_buffer(), which returns a pointer
+ * The main function is srslte_ue_sync_get_buffer(), which returns a pointer
  * to the aligned subframe of samples (before FFT). This function
  * should be called regularly, returning every 1 ms. It reads from the 
  * USRP, aligns the samples to the subframe and performs time/freq synch. 
  *
  * It is also possible to read the signal from a file using the init function 
- * ue_sync_init_file(). The sampling frequency is derived from the number of PRB. 
+ * srslte_ue_sync_init_file(). The sampling frequency is derived from the number of PRB. 
  * 
  * The function returns 1 when the signal is correctly acquired and the 
  * returned buffer is aligned with the subframe. 
  * 
  *************************************************************/
 
-typedef enum SRSLTE_API { SF_FIND, SF_TRACK} ue_sync_state_t;
+typedef enum SRSLTE_API { SF_FIND, SF_TRACK} srslte_ue_sync_state_t;
 
 //#define MEASURE_EXEC_TIME 
 
 typedef struct SRSLTE_API {
-  sync_t sfind;
-  sync_t strack;
+  srslte_sync_t sfind;
+  srslte_sync_t strack;
 
   void *stream; 
   int (*recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*); 
@@ -71,13 +71,13 @@ typedef struct SRSLTE_API {
   srslte_filesource_t file_source; 
   bool file_mode; 
   
-  ue_sync_state_t state;
+  srslte_ue_sync_state_t state;
   
   cf_t *input_buffer; 
   
   uint32_t frame_len; 
   uint32_t fft_size;
-  uint32_t nof_recv_sf;  // Number of subframes received each call to ue_sync_get_buffer
+  uint32_t nof_recv_sf;  // Number of subframes received each call to srslte_ue_sync_get_buffer
   uint32_t nof_avg_find_frames;
   uint32_t frame_find_cnt;
   uint32_t sf_len;
@@ -102,43 +102,43 @@ typedef struct SRSLTE_API {
   #ifdef MEASURE_EXEC_TIME
   float mean_exec_time;
   #endif
-} ue_sync_t;
+} srslte_ue_sync_t;
 
 
-SRSLTE_API int ue_sync_init(ue_sync_t *q, 
-                            srslte_cell_t cell,
-                            int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*), 
-                            void *stream_handler);
+SRSLTE_API int srslte_ue_sync_init(srslte_ue_sync_t *q, 
+                                   srslte_cell_t cell,
+                                   int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*), 
+                                   void *stream_handler);
 
-SRSLTE_API int ue_sync_init_file(ue_sync_t *q, 
-                                 uint32_t nof_prb,
-                                 char *file_name);
+SRSLTE_API int srslte_ue_sync_init_file(srslte_ue_sync_t *q, 
+                                        uint32_t nof_prb,
+                                        char *file_name);
 
-SRSLTE_API void ue_sync_free(ue_sync_t *q);
+SRSLTE_API void srslte_ue_sync_free(srslte_ue_sync_t *q);
 
-SRSLTE_API uint32_t ue_sync_sf_len(ue_sync_t *q); 
+SRSLTE_API uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q); 
 
-SRSLTE_API int ue_sync_get_buffer(ue_sync_t *q, 
-                                  cf_t **sf_symbols);
+SRSLTE_API int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, 
+                                         cf_t **sf_symbols);
 
-SRSLTE_API void ue_sync_reset(ue_sync_t *q);
+SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
 
-SRSLTE_API void ue_sync_set_N_id_2(ue_sync_t *q, 
-                                   uint32_t N_id_2);
+SRSLTE_API void ue_srslte_sync_set_N_id_2(srslte_ue_sync_t *q, 
+                                          uint32_t N_id_2);
 
-SRSLTE_API void ue_sync_decode_sss_on_track(ue_sync_t *q, 
-                                            bool enabled);
+SRSLTE_API void srslte_ue_sync_decode_sss_on_track(srslte_ue_sync_t *q, 
+                                                   bool enabled);
 
-SRSLTE_API ue_sync_state_t ue_sync_get_state(ue_sync_t *q);
+SRSLTE_API srslte_ue_sync_state_t srslte_ue_sync_get_state(srslte_ue_sync_t *q);
 
-SRSLTE_API uint32_t ue_sync_get_sfidx(ue_sync_t *q);
+SRSLTE_API uint32_t srslte_ue_sync_get_sfidx(srslte_ue_sync_t *q);
 
-SRSLTE_API float ue_sync_get_cfo(ue_sync_t *q);
+SRSLTE_API float srslte_ue_sync_get_cfo(srslte_ue_sync_t *q);
 
-SRSLTE_API float ue_sync_get_sfo(ue_sync_t *q);
+SRSLTE_API float srslte_ue_sync_get_sfo(srslte_ue_sync_t *q);
 
-SRSLTE_API void ue_sync_get_last_timestamp(ue_sync_t *q, 
-                                           srslte_timestamp_t *timestamp);
+SRSLTE_API void srslte_ue_sync_get_last_timestamp(srslte_ue_sync_t *q, 
+                                                  srslte_timestamp_t *timestamp);
 
 
 

@@ -46,7 +46,7 @@ transmission mode 8 configured without PMI/RI reporting). */
 typedef struct SRSLTE_API {
   uint8_t wideband_cqi; // 4-bit width
   uint32_t subband_diff_cqi; // 2N-bit width
-} cqi_hl_subband_t;
+} srslte_cqi_hl_subband_t;
 
 /* Table 5.2.2.6.3-1: Fields for channel quality information feedback for UE selected subband CQI
 reports
@@ -56,7 +56,7 @@ typedef struct SRSLTE_API {
   uint8_t wideband_cqi; // 4-bit width
   uint8_t subband_diff_cqi; // 2-bit width
   uint32_t position_subband; // L-bit width
-} cqi_ue_subband_t;
+} srslte_cqi_ue_subband_t;
 
 /* Table 5.2.3.3.1-1: Fields for channel quality information feedback for wideband CQI reports
 (transmission mode 1, transmission mode 2, transmission mode 3, transmission mode 7 and
@@ -65,29 +65,29 @@ This is for PUCCH Format 2 reports
 */
 typedef struct SRSLTE_API {
   uint8_t wideband_cqi; // 4-bit width
-} cqi_format2_wideband_t;
+} srslte_cqi_format2_wideband_t;
 
 typedef struct SRSLTE_API {
   uint8_t subband_cqi; // 4-bit width
   uint8_t subband_label; // 1- or 2-bit width
-} cqi_format2_subband_t;
+} srslte_cqi_format2_subband_t;
 
 
-SRSLTE_API int cqi_hl_subband_pack(cqi_hl_subband_t *msg, 
+SRSLTE_API int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, 
                                     uint32_t N, 
                                     uint8_t *buff, 
                                     uint32_t buff_len);
 
-SRSLTE_API int cqi_ue_subband_pack(cqi_ue_subband_t *msg, 
+SRSLTE_API int srslte_cqi_ue_subband_pack(srslte_cqi_ue_subband_t *msg, 
                                     uint32_t L, 
                                     uint8_t *buff, 
                                     uint32_t buff_len);
 
-SRSLTE_API int cqi_format2_wideband_pack(cqi_format2_wideband_t *msg, 
+SRSLTE_API int srslte_cqi_format2_wideband_pack(srslte_cqi_format2_wideband_t *msg, 
                                           uint8_t *buff, 
                                           uint32_t buff_len);
 
-SRSLTE_API int cqi_format2_subband_pack(cqi_format2_subband_t *msg, 
+SRSLTE_API int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, 
                                         uint8_t *buff, 
                                         uint32_t buff_len);
 

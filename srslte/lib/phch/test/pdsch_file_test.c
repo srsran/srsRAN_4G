@@ -40,6 +40,7 @@ char *input_file_name = NULL;
 srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
+  0,            // bw_idx
   0,            // cell_id
   SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
@@ -54,19 +55,19 @@ uint16_t rnti = SRSLTE_SIRNTI;
 int max_frames = 10;
 uint32_t sf_idx = 0;
 
-dci_format_t dci_format = Format1A;
+srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
 srslte_filesource_t fsrc;
-pdcch_t pdcch;
-pdsch_t pdsch;
-harq_t harq_process;
+srslte_pdcch_t pdcch;
+srslte_pdsch_t pdsch;
+srslte_harq_t harq_process;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
-regs_t regs;
-srslte_fft_t fft;
+srslte_regs_t regs;
+srslte_ofdm_t fft;
 srslte_chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [rovfcenmps] -i input_file\n", prog);
-  printf("\t-o DCI format [Default %s]\n", dci_format_string(dci_format));
+  printf("\t-o DCI format [Default %s]\n", srslte_dci_format_string(dci_format));
   printf("\t-c cell.id [Default %d]\n", cell.id);
   printf("\t-s Start subframe_idx [Default %d]\n", sf_idx);
   printf("\t-f cfi [Default %d]\n", cfi);
@@ -75,7 +76,7 @@ void usage(char *prog) {
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-m max_frames [Default %d]\n", max_frames);
   printf("\t-e Set extended prefix [Default Normal]\n");
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -107,14 +108,14 @@ void parse_args(int argc, char **argv) {
       cell.nof_ports = atoi(argv[optind]);
       break;
     case 'o':
-      dci_format = dci_format_from_string(argv[optind]);
-      if (dci_format == FormatError) {
+      dci_format = srslte_dci_format_from_string(argv[optind]);
+      if (dci_format == SRSLTE_DCI_FORMAT_ERROR) {
         fprintf(stderr, "Error unsupported format %s\n", argv[optind]);
         exit(-1);
       }
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     case 'e':
       cell.cp = SRSLTE_SRSLTE_CP_EXT;
@@ -165,33 +166,33 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
 
-  if (regs_init(&regs, cell)) {
+  if (srslte_regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     return -1;
   }
 
-  if (regs_set_cfi(&regs, cfi)) {
+  if (srslte_regs_set_cfi(&regs, cfi)) {
     fprintf(stderr, "Error setting CFI %d\n", cfi);
     return -1;
   }
 
-  if (pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
 
-  if (pdsch_init(&pdsch, cell)) {
+  if (srslte_pdsch_init(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
-  pdsch_set_rnti(&pdsch, rnti);
+  srslte_pdsch_set_rnti(&pdsch, rnti);
   
-  if (harq_init(&harq_process, cell)) {
+  if (srslte_harq_init(&harq_process, cell)) {
     fprintf(stderr, "Error initiating HARQ process\n");
     exit(-1);
   }
@@ -213,23 +214,23 @@ void base_free() {
     free(ce[i]);
   }
   srslte_chest_dl_free(&chest);
-  srslte_fft_free(&fft);
+  srslte_ofdm_tx_free(&fft);
 
-  pdcch_free(&pdcch);
-  pdsch_free(&pdsch);
-  harq_free(&harq_process);
-  regs_free(&regs);
+  srslte_pdcch_free(&pdcch);
+  srslte_pdsch_free(&pdsch);
+  srslte_harq_free(&harq_process);
+  srslte_regs_free(&regs);
 }
 
 int main(int argc, char **argv) {
-  ra_pdsch_t ra_dl;  
+  srslte_ra_pdsch_t ra_dl;  
   int i;
   int nof_frames;
   int ret;
   uint8_t *data;
-  dci_location_t locations[MAX_CANDIDATES];
+  srslte_dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations = 0;
-  dci_msg_t dci_msg; 
+  srslte_dci_msg_t dci_msg; 
   
   data = malloc(100000);
 
@@ -247,7 +248,7 @@ int main(int argc, char **argv) {
 
   if (rnti == SRSLTE_SIRNTI) {
     INFO("Initializing common search space for SI-RNTI\n",0);
-    nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
+    nof_locations = srslte_pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
   } 
   
   ret = -1;
@@ -256,39 +257,39 @@ int main(int argc, char **argv) {
     srslte_filesource_read(&fsrc, input_buffer, flen);
     INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
 
-    srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
+    srslte_ofdm_tx_sf(&fft, input_buffer, fft_buffer);
 
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&chest, fft_buffer, ce, sf_idx);
     
     if (rnti != SRSLTE_SIRNTI) {
       INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
-      nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
+      nof_locations = srslte_pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
     }
     
     uint16_t srslte_crc_rem = 0;
-    if (pdcch_extract_llr(&pdcch, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), sf_idx, cfi)) {
+    if (srslte_pdcch_extract_llr(&pdcch, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), sf_idx, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       return -1;
     }
     for (i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
-      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &srslte_crc_rem)) {
+      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &srslte_crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return -1;
       }
     }
     
     if (srslte_crc_rem == rnti) {
-      if (dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, &ra_dl)) {
+      if (srslte_dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, &ra_dl)) {
         fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
         goto goout;
       }
       if (ra_dl.mcs.tbs > 0) {
-        if (harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &ra_dl.prb_alloc)) {
+        if (srslte_harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &ra_dl.prb_alloc)) {
           fprintf(stderr, "Error configuring HARQ process\n");
           goto goout;
         }
-        if (pdsch_decode(&pdsch, &harq_process, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), data)) {
+        if (srslte_pdsch_decode(&pdsch, &harq_process, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), data)) {
           fprintf(stderr, "Error decoding PDSCH\n");
           goto goout;
         } else {

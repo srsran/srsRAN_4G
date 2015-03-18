@@ -40,6 +40,7 @@ char *matlab_file_name = NULL;
 srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
+  0,            // bw_idx
   0,            // cell_id
   SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
@@ -52,9 +53,9 @@ FILE *fmatlab = NULL;
 
 srslte_filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
-pcfich_t pcfich;
-regs_t regs;
-srslte_fft_t fft;
+srslte_pcfich_t pcfich;
+srslte_regs_t regs;
+srslte_ofdm_t fft;
 srslte_chest_dl_t chest;
 
 void usage(char *prog) {
@@ -64,7 +65,7 @@ void usage(char *prog) {
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e Set extended prefix [Default Normal]\n");
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -87,7 +88,7 @@ void parse_args(int argc, char **argv) {
       matlab_file_name = argv[optind];
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     case 'e':
       cell.cp = SRSLTE_SRSLTE_CP_EXT;
@@ -148,17 +149,17 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
 
-  if (regs_init(&regs, cell)) {
+  if (srslte_regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating REGs\n");
     return -1;
   }
 
-  if (pcfich_init(&pcfich, &regs, cell)) {
+  if (srslte_pcfich_init(&pcfich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     return -1;
   }
@@ -183,10 +184,10 @@ void base_free() {
     free(ce[i]);
   }
   srslte_chest_dl_free(&chest);
-  srslte_fft_free(&fft);
+  srslte_ofdm_tx_free(&fft);
 
-  pcfich_free(&pcfich);
-  regs_free(&regs);
+  srslte_pcfich_free(&pcfich);
+  srslte_regs_free(&regs);
 }
 
 int main(int argc, char **argv) {
@@ -208,18 +209,18 @@ int main(int argc, char **argv) {
 
   n = srslte_filesource_read(&fsrc, input_buffer, flen);
 
-  srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
+  srslte_ofdm_tx_sf(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");
-    vec_fprint_c(fmatlab, input_buffer, flen);
+    srslte_vec_fprint_c(fmatlab, input_buffer, flen);
     fprintf(fmatlab, ";\n");
 
     fprintf(fmatlab, "outfft=");
-    vec_sc_prod_cfc(fft_buffer, 1000.0, fft_buffer, SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
-    vec_fprint_c(fmatlab, fft_buffer, SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
+    srslte_vec_sc_prod_cfc(fft_buffer, 1000.0, fft_buffer, SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
+    srslte_vec_fprint_c(fmatlab, fft_buffer, SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
     fprintf(fmatlab, ";\n");
-    vec_sc_prod_cfc(fft_buffer, 0.001, fft_buffer,   SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
+    srslte_vec_sc_prod_cfc(fft_buffer, 0.001, fft_buffer,   SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
   }
 
   /* Get channel estimates for each port */
@@ -228,7 +229,7 @@ int main(int argc, char **argv) {
   INFO("Decoding PCFICH\n", 0);
 
   
-  n = pcfich_decode(&pcfich, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest),  0, &cfi, &cfi_corr);
+  n = srslte_pcfich_decode(&pcfich, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest),  0, &cfi, &cfi_corr);
   printf("cfi: %d, distance: %f\n", cfi, cfi_corr);
 
   base_free();

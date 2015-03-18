@@ -43,7 +43,7 @@
 void help()
 {
   mexErrMsgTxt
-    ("sym=srslte_pusch_encode(ue, chs, trblkin, cqi, ri, ack)\n\n");
+    ("sym=srslte_srslte_pusch_encode(ue, chs, trblkin, cqi, ri, ack)\n\n");
 }
 
 /* the gateway function */
@@ -66,8 +66,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field NULRB not found in UE config\n");
     return;
   }
-  pusch_t pusch;
-  if (pusch_init(&pusch, cell)) {
+  srslte_pusch_t pusch;
+  if (srslte_pusch_init(&pusch, cell)) {
     mexErrMsgTxt("Error initiating PUSCH\n");
     return;
   }
@@ -76,7 +76,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field RNTI not found in pusch config\n");
     return;
   }
-  pusch_set_rnti(&pusch, (uint16_t) (rnti32 & 0xffff));
+  srslte_pusch_set_rnti(&pusch, (uint16_t) (rnti32 & 0xffff));
   
   
   
@@ -86,14 +86,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field NSubframe not found in UE config\n");
     return;
   }
-  ra_mcs_t mcs;
+  srslte_ra_mcs_t mcs;
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");  
   if (!strcmp(mod_str, "QPSK")) {
-    mcs.mod = LTE_QPSK;
+    mcs.mod = SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
-    mcs.mod = LTE_QAM16;
+    mcs.mod = SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
-    mcs.mod = LTE_QAM64;
+    mcs.mod = SRSLTE_MOD_64QAM;
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
@@ -109,8 +109,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   
-  ra_ul_alloc_t prb_alloc;
-  bzero(&prb_alloc, sizeof(ra_ul_alloc_t));
+  srslte_srslte_ra_ul_alloc_t prb_alloc;
+  bzero(&prb_alloc, sizeof(srslte_srslte_ra_ul_alloc_t));
   prb_alloc.L_prb = mexutils_read_f(p, &prbset);
   prb_alloc.n_prb[0] = prbset[0];
   prb_alloc.n_prb[1] = prbset[0];
@@ -121,18 +121,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   uint8_t *trblkin = NULL;
   mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
 
-  harq_t harq_process;
-  if (harq_init(&harq_process, cell)) {
+  srslte_harq_t harq_process;
+  if (srslte_harq_init(&harq_process, cell)) {
     mexErrMsgTxt("Error initiating HARQ process\n");
     return;
   }
-  if (harq_setup_ul(&harq_process, mcs, 0, sf_idx, &prb_alloc)) {
+  if (srslte_harq_setup_ul(&harq_process, mcs, 0, sf_idx, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }
 
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
-  cf_t *sf_symbols = vec_malloc(sizeof(cf_t) * nof_re);
+  cf_t *sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
     mexErrMsgTxt("malloc");
     return;
@@ -140,8 +140,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   bzero(sf_symbols, sizeof(cf_t) * nof_re);
   
   
-  uci_data_t uci_data; 
-  bzero(&uci_data, sizeof(uci_data_t));
+  srslte_uci_data_t uci_data; 
+  bzero(&uci_data, sizeof(srslte_uci_data_t));
   uci_data.uci_cqi_len = mexutils_read_uint8(CQI, &uci_data.uci_cqi);
   uint8_t *tmp;
   uci_data.uci_ri_len = mexutils_read_uint8(RI, &tmp);
@@ -172,7 +172,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
      
 
   mexPrintf("NofRE: %d, NofBits: %d, TBS: %d\n", harq_process.nof_re, harq_process.nof_bits, harq_process.mcs.tbs);
-  int r = pusch_uci_encode(&pusch, &harq_process, trblkin, uci_data, sf_symbols);
+  int r = srslte_pusch_uci_encode(&pusch, &harq_process, trblkin, uci_data, sf_symbols);
   if (r < 0) {
     mexErrMsgTxt("Error encoding PUSCH\n");
     return;
@@ -183,27 +183,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   if (rv > 0) {
-    if (harq_setup_ul(&harq_process, mcs, rv, sf_idx, &prb_alloc)) {
+    if (srslte_harq_setup_ul(&harq_process, mcs, rv, sf_idx, &prb_alloc)) {
       mexErrMsgTxt("Error configuring HARQ process\n");
       return;
     }
-    r = pusch_uci_encode(&pusch, &harq_process, trblkin, uci_data, sf_symbols);
+    r = srslte_pusch_uci_encode(&pusch, &harq_process, trblkin, uci_data, sf_symbols);
     if (r < 0) {
       mexErrMsgTxt("Error encoding PUSCH\n");
       return;
     }
   }
 
-  cf_t *scfdma = vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  srslte_fft_t fft; 
-  lte_ifft_init(&fft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb);
-  srslte_fft_set_normalize(&fft, true);
-  srslte_fft_set_freq_shift(&fft, 0.5);
-  lte_ifft_run_sf(&fft, sf_symbols, scfdma);
+  srslte_ofdm_t fft; 
+  srslte_ofdm_rx_init(&fft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb);
+  srslte_ofdm_set_normalize(&fft, true);
+  srslte_ofdm_set_freq_shift(&fft, 0.5);
+  srslte_ofdm_rx_sf(&fft, sf_symbols, scfdma);
 
   // Matlab toolbox expects further normalization 
-  vec_sc_prod_cfc(scfdma, 1.0/sqrtf(srslte_symbol_sz(cell.nof_prb)), scfdma, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  srslte_vec_sc_prod_cfc(scfdma, 1.0/sqrtf(srslte_symbol_sz(cell.nof_prb)), scfdma, SRSLTE_SF_LEN_PRB(cell.nof_prb));
   
   if (nlhs >= 1) {
     mexutils_write_cf(scfdma, &plhs[0], SRSLTE_SF_LEN_PRB(cell.nof_prb), 1);  
@@ -212,9 +212,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(sf_symbols, &plhs[1], nof_re, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pusch.pusch_z, &plhs[2], harq_process.nof_re, 1);  
+    mexutils_write_cf(pusch.z, &plhs[2], harq_process.nof_re, 1);  
   }
-  pusch_free(&pusch);  
+  srslte_pusch_free(&pusch);  
   free(trblkin);
   free(uci_data.uci_cqi);
   free(sf_symbols);

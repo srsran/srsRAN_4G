@@ -58,34 +58,34 @@ typedef struct SRSLTE_API {
 
   /* buffers */
   cf_t *ce[SRSLTE_MAX_PORTS];
-  cf_t *pbch_symbols[SRSLTE_MAX_PORTS];
-  cf_t *pbch_x[SRSLTE_MAX_PORTS];
-  cf_t *pbch_d;
-  float *pbch_llr;
+  cf_t *symbols[SRSLTE_MAX_PORTS];
+  cf_t *x[SRSLTE_MAX_PORTS];
+  cf_t *d;
+  float *llr;
   float *temp;
-  float pbch_rm_f[BCH_ENCODED_LEN];
-  uint8_t *pbch_rm_b;
+  float rm_f[BCH_ENCODED_LEN];
+  uint8_t *rm_b;
   uint8_t data[BCH_PAYLOADCRC_LEN];
   uint8_t data_enc[BCH_ENCODED_LEN];
 
   uint32_t frame_idx;
 
   /* tx & rx objects */
-  modem_table_t mod;
-  demod_soft_t demod;
-  srslte_sequence_t seq_pbch;
+  srslte_srslte_modem_table_t mod;
+  srslte_demod_soft_t demod;
+  srslte_sequence_t seq;
   srslte_viterbi_t decoder;
   srslte_crc_t crc;
   srslte_convcoder_t encoder;
-  precoding_t precoding; 
+  srslte_precoding_t precoding; 
   
-} pbch_t;
+} srslte_pbch_t;
 
-SRSLTE_API int pbch_init(pbch_t *q,
+SRSLTE_API int srslte_pbch_init(srslte_pbch_t *q,
                          srslte_cell_t cell);
 
-SRSLTE_API void pbch_free(pbch_t *q);
-SRSLTE_API int pbch_decode(pbch_t *q, 
+SRSLTE_API void srslte_pbch_free(srslte_pbch_t *q);
+SRSLTE_API int srslte_pbch_decode(srslte_pbch_t *q, 
                            cf_t *slot1_symbols, 
                            cf_t *ce_slot1[SRSLTE_MAX_PORTS], 
                            float noise_estimate, 
@@ -93,21 +93,21 @@ SRSLTE_API int pbch_decode(pbch_t *q,
                            uint32_t *nof_tx_ports,
                            uint32_t *sfn_offset);
 
-SRSLTE_API int pbch_encode(pbch_t *q, 
+SRSLTE_API int srslte_pbch_encode(srslte_pbch_t *q, 
                            uint8_t bch_payload[BCH_PAYLOAD_LEN], 
                            cf_t *slot1_symbols[SRSLTE_MAX_PORTS]);
 
-SRSLTE_API void pbch_decode_reset(pbch_t *q);
+SRSLTE_API void srslte_pbch_decode_reset(srslte_pbch_t *q);
 
-SRSLTE_API void pbch_mib_unpack(uint8_t *msg, 
+SRSLTE_API void srslte_pbch_mib_unpack(uint8_t *msg, 
                                 srslte_cell_t *cell, 
                                 uint32_t *sfn);
 
-SRSLTE_API void pbch_mib_pack(srslte_cell_t *cell, 
+SRSLTE_API void srslte_pbch_mib_pack(srslte_cell_t *cell, 
                               uint32_t sfn, 
                               uint8_t *msg);
 
-SRSLTE_API void pbch_mib_fprint(FILE *stream, 
+SRSLTE_API void srslte_pbch_mib_fprint(FILE *stream, 
                                 srslte_cell_t *cell, 
                                 uint32_t sfn, 
                                 uint32_t cell_id);

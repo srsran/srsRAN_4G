@@ -53,15 +53,15 @@ int cuhd_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, srslte_timestam
  */
 int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
   int ret = SRSLTE_ERROR; 
-  ue_mib_sync_t ue_mib; 
+  srslte_ue_mib_sync_t ue_mib; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
 
-  if (ue_mib_sync_init(&ue_mib, cell->id, cell->cp, cuhd_recv_wrapper_cs, uhd)) {
-    fprintf(stderr, "Error initiating ue_mib_sync\n");
+  if (srslte_ue_mib_sync_init(&ue_mib, cell->id, cell->cp, cuhd_recv_wrapper_cs, uhd)) {
+    fprintf(stderr, "Error initiating srslte_ue_mib_sync\n");
     goto clean_exit; 
   }
   
-  int srate = srslte_sampling_freq_hz(MIB_NOF_PRB);
+  int srate = srslte_sampling_freq_hz(SRSLTE_UE_MIB_NOF_PRB);
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", (float) srate/1000000);
   cuhd_set_rx_srate(uhd, (float) srate);
   
@@ -69,20 +69,20 @@ int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
   cuhd_start_rx_stream(uhd);
     
   /* Find and decody MIB */
-  ret = ue_mib_sync_decode(&ue_mib, max_nof_frames, bch_payload, &cell->nof_ports, NULL); 
+  ret = srslte_ue_mib_sync_decode(&ue_mib, max_nof_frames, bch_payload, &cell->nof_ports, NULL); 
   if (ret < 0) {
     fprintf(stderr, "Error decoding MIB\n");
     goto clean_exit; 
   }
   if (ret == 1) {
-    bit_unpack_vector(bch_payload, bch_payload_unpacked, BCH_PAYLOAD_LEN);
+    srslte_bit_unpack_vector(bch_payload, bch_payload_unpacked, BCH_PAYLOAD_LEN);
     bcch_bch_unpack(bch_payload_unpacked, BCH_PAYLOAD_LEN, cell, NULL);            
   }
 
 clean_exit: 
 
   cuhd_stop_rx_stream(uhd);
-  ue_mib_sync_free(&ue_mib);
+  srslte_ue_mib_sync_free(&ue_mib);
 
   return ret; 
 }
@@ -93,25 +93,25 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
                      int force_N_id_2, srslte_cell_t *cell) 
 {
   int ret = SRSLTE_ERROR; 
-  ue_cell_search_t cs; 
-  ue_cell_search_result_t found_cells[3];
+  srslte_ue_cellsearch_t cs; 
+  srslte_ue_cellsearch_result_t found_cells[3];
 
-  bzero(found_cells, 3*sizeof(ue_cell_search_result_t));
+  bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
     
-  if (ue_cell_search_init(&cs, cuhd_recv_wrapper_cs, uhd)) {
+  if (srslte_ue_cellsearch_init(&cs, cuhd_recv_wrapper_cs, uhd)) {
     fprintf(stderr, "Error initiating UE cell detect\n");
     return SRSLTE_ERROR; 
   }
   
   if (config->max_frames_pss) {
-    ue_cell_search_set_nof_frames_to_scan(&cs, config->max_frames_pss);
+    srslte_ue_cellsearch_set_nof_frames_to_scan(&cs, config->max_frames_pss);
   }
   if (config->threshold) {
-    ue_cell_search_set_threshold(&cs, config->threshold);
+    srslte_ue_cellsearch_set_threshold(&cs, config->threshold);
   }
 
-  INFO("Setting sampling frequency %.2f MHz for PSS search\n", CS_SAMP_FREQ/1000000);
-  cuhd_set_rx_srate(uhd, CS_SAMP_FREQ);
+  INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
+  cuhd_set_rx_srate(uhd, SRSLTE_CS_SAMP_FREQ);
   
   INFO("Starting receiver...\n", 0);
   cuhd_start_rx_stream(uhd);
@@ -119,10 +119,10 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
   uint32_t max_peak_cell = 0;
   if (force_N_id_2 >= 0) {
-    ret = ue_cell_search_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
+    ret = srslte_ue_cellsearch_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
     max_peak_cell = force_N_id_2;
   } else {
-    ret = ue_cell_search_scan(&cs, found_cells, &max_peak_cell); 
+    ret = srslte_ue_cellsearch_scan(&cs, found_cells, &max_peak_cell); 
   }
   if (ret < 0) {
     fprintf(stderr, "Error searching cell\n");
@@ -139,7 +139,7 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
   }
 
   cuhd_stop_rx_stream(uhd);
-  ue_cell_search_free(&cs);
+  srslte_ue_cellsearch_free(&cs);
 
   return ret; 
 }

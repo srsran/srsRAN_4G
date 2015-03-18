@@ -35,17 +35,17 @@
 #include "soft_algs.h"
 
 
-int demod_soft_init(demod_soft_t *q, uint32_t max_symbols) {
+int srslte_demod_soft_init(srslte_demod_soft_t *q, uint32_t max_symbols) {
   int ret = SRSLTE_ERROR; 
   
-  bzero((void*)q,sizeof(demod_soft_t));
+  bzero((void*)q,sizeof(srslte_demod_soft_t));
   q->sigma = 1.0; 
-  q->zones = vec_malloc(sizeof(uint32_t) * max_symbols);
+  q->zones = srslte_vec_malloc(sizeof(uint32_t) * max_symbols);
   if (!q->zones) {
     perror("malloc");
     goto clean_exit;
   }
-  q->dd = vec_malloc(sizeof(float*) * max_symbols * 7);
+  q->dd = srslte_vec_malloc(sizeof(float*) * max_symbols * 7);
   if (!q->dd) {
     perror("malloc");
     goto clean_exit;
@@ -56,40 +56,40 @@ int demod_soft_init(demod_soft_t *q, uint32_t max_symbols) {
   
 clean_exit:
   if (ret != SRSLTE_SUCCESS) {
-    demod_soft_free(q);
+    srslte_demod_soft_free(q);
   }
   return ret; 
 }
 
-void demod_soft_free(demod_soft_t *q) {
+void srslte_demod_soft_free(srslte_demod_soft_t *q) {
   if (q->zones) {
     free(q->zones);
   }
   if (q->dd) {
     free(q->dd);
   }
-  bzero((void*)q,sizeof(demod_soft_t));
+  bzero((void*)q,sizeof(srslte_demod_soft_t));
 }
 
-void demod_soft_table_set(demod_soft_t *q, modem_table_t *table) {
+void srslte_demod_soft_table_set(srslte_demod_soft_t *q, srslte_srslte_modem_table_t *table) {
   q->table = table;
 }
 
-void demod_soft_alg_set(demod_soft_t *q, enum alg alg_type) {
+void srslte_demod_soft_alg_set(srslte_demod_soft_t *q, srslte_demod_soft_alg_t alg_type) {
   q->alg_type = alg_type;
 }
 
-void demod_soft_sigma_set(demod_soft_t *q, float sigma) {
+void srslte_demod_soft_sigma_set(srslte_demod_soft_t *q, float sigma) {
   q->sigma = 2*sigma;
 }
 
-int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int nsymbols) {
+int srslte_demod_soft_demodulate(srslte_demod_soft_t *q, const cf_t* symbols, float* llr, int nsymbols) {
   switch(q->alg_type) {
-  case EXACT:
+  case SRSLTE_DEMOD_SOFT_ALG_EXACT:
     llr_exact(symbols, llr, nsymbols, q->table->nsymbols, q->table->nbits_x_symbol,
         q->table->symbol_table, q->table->soft_table.idx, q->sigma);
     break;
-  case APPROX:
+  case SRSLTE_DEMOD_SOFT_ALG_APPROX:
     if (nsymbols <= q->max_symbols) {
       llr_approx(symbols, llr, nsymbols, q->table->nsymbols, 
                 q->table->nbits_x_symbol,
@@ -109,26 +109,26 @@ int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int 
 
 
 /* High-Level API */
-int demod_soft_initialize(demod_soft_hl* hl) {
-  modem_table_init(&hl->table);
-  if (modem_table_lte(&hl->table,hl->init.std,true)) {
+int srslte_demod_soft_initialize(srslte_demod_soft_hl* hl) {
+  srslte_modem_table_init(&hl->table);
+  if (srslte_modem_table_lte(&hl->table,hl->init.std,true)) {
     return -1;
   }
-  demod_soft_init(&hl->obj, 10000);
+  srslte_demod_soft_init(&hl->obj, 10000);
   hl->obj.table = &hl->table;
 
   return 0;
 }
 
-int demod_soft_work(demod_soft_hl* hl) {
+int srslte_demod_soft_work(srslte_demod_soft_hl* hl) {
   hl->obj.sigma = hl->ctrl_in.sigma;
   hl->obj.alg_type = hl->ctrl_in.alg_type;
-  int ret = demod_soft_demodulate(&hl->obj,hl->input,hl->output,hl->in_len);
+  int ret = srslte_demod_soft_demodulate(&hl->obj,hl->input,hl->output,hl->in_len);
   hl->out_len = ret;
   return 0;
 }
 
-int demod_soft_stop(demod_soft_hl* hl) {
-  modem_table_free(&hl->table);
+int srslte_demod_soft_stop(srslte_demod_soft_hl* hl) {
+  srslte_modem_table_free(&hl->table);
   return 0;
 }

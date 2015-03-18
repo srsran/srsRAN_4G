@@ -98,13 +98,13 @@ void srslte_interp_linear_offset_cabs(cf_t *input, cf_t *output,
   }
 }
 
-int srslte_interp_linear_vector_init(srslte_interp_linvec_t *q, uint32_t vector_len) 
+int srslte_interp_linear_vector_init(srslte_interp_linsrslte_vec_t *q, uint32_t vector_len) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q) {
-    bzero(q, sizeof(srslte_interp_linvec_t));
+    bzero(q, sizeof(srslte_interp_linsrslte_vec_t));
     ret = SRSLTE_SUCCESS;
-    q->diff_vec = vec_malloc(vector_len * sizeof(cf_t));
+    q->diff_vec = srslte_vec_malloc(vector_len * sizeof(cf_t));
     if (!q->diff_vec) {
       perror("malloc");
       return SRSLTE_ERROR; 
@@ -114,24 +114,24 @@ int srslte_interp_linear_vector_init(srslte_interp_linvec_t *q, uint32_t vector_
   return ret; 
 }
 
-void srslte_interp_linear_vector_free(srslte_interp_linvec_t *q) {
+void srslte_interp_linear_vector_free(srslte_interp_linsrslte_vec_t *q) {
   if (q->diff_vec) {
     free(q->diff_vec);
   }
 
-  bzero(q, sizeof(srslte_interp_linvec_t));
+  bzero(q, sizeof(srslte_interp_linsrslte_vec_t));
 
 }
 
-void srslte_interp_linear_vector(srslte_interp_linvec_t *q, cf_t *in0, cf_t *in1, cf_t *between, uint32_t M) 
+void srslte_interp_linear_vector(srslte_interp_linsrslte_vec_t *q, cf_t *in0, cf_t *in1, cf_t *between, uint32_t M) 
 {
   uint32_t i;
   
-  vec_sub_ccc(in1, in0, q->diff_vec, q->vector_len);
-  vec_sc_prod_cfc(q->diff_vec, (float) 1/M, q->diff_vec, q->vector_len);
-  vec_sum_ccc(in0, q->diff_vec, between, q->vector_len);
+  srslte_vec_sub_ccc(in1, in0, q->diff_vec, q->vector_len);
+  srslte_vec_sc_prod_cfc(q->diff_vec, (float) 1/M, q->diff_vec, q->vector_len);
+  srslte_vec_sum_ccc(in0, q->diff_vec, between, q->vector_len);
   for (i=0;i<M-1;i++) {
-    vec_sum_ccc(between, q->diff_vec, &between[q->vector_len], q->vector_len);
+    srslte_vec_sum_ccc(between, q->diff_vec, &between[q->vector_len], q->vector_len);
     between += q->vector_len;
   }
 }
@@ -142,18 +142,18 @@ int srslte_interp_linear_init(srslte_interp_lin_t *q, uint32_t vector_len, uint3
   if (q) {
     bzero(q, sizeof(srslte_interp_lin_t));
     ret = SRSLTE_SUCCESS;
-    q->diff_vec = vec_malloc(vector_len * sizeof(cf_t));
+    q->diff_vec = srslte_vec_malloc(vector_len * sizeof(cf_t));
     if (!q->diff_vec) {
       perror("malloc");
       return SRSLTE_ERROR; 
     }    
-    q->diff_vec2 = vec_malloc(M * vector_len * sizeof(cf_t));
+    q->diff_vec2 = srslte_vec_malloc(M * vector_len * sizeof(cf_t));
     if (!q->diff_vec2) {
       perror("malloc");
       free(q->diff_vec);
       return SRSLTE_ERROR; 
     }    
-    q->ramp = vec_malloc(M * sizeof(float));
+    q->ramp = srslte_vec_malloc(M * sizeof(float));
     if (!q->ramp) {
       perror("malloc");
       free(q->ramp);
@@ -196,16 +196,16 @@ void srslte_interp_linear_offset(srslte_interp_lin_t *q, cf_t *input, cf_t *outp
   for (j=0;j<off_st;j++) {
     output[j] = input[i] + (j+1) * (input[i+1]-input[i]) / q->M;
   }
-  vec_sub_ccc(&input[1], input, q->diff_vec, (q->vector_len-1));
-  vec_sc_prod_cfc(q->diff_vec, (float) 1/q->M, q->diff_vec, q->vector_len-1);
+  srslte_vec_sub_ccc(&input[1], input, q->diff_vec, (q->vector_len-1));
+  srslte_vec_sc_prod_cfc(q->diff_vec, (float) 1/q->M, q->diff_vec, q->vector_len-1);
   for (i=0;i<q->vector_len-1;i++) {
     for (j=0;j<q->M;j++) {
       output[i*q->M+j+off_st] = input[i];  
       q->diff_vec2[i*q->M+j] = q->diff_vec[i];
     }
-    vec_prod_cfc(&q->diff_vec2[i*q->M],q->ramp,&q->diff_vec2[i*q->M],q->M);
+    srslte_vec_prod_cfc(&q->diff_vec2[i*q->M],q->ramp,&q->diff_vec2[i*q->M],q->M);
   }
-  vec_sum_ccc(&output[off_st], q->diff_vec2, &output[off_st], q->M*(q->vector_len-1));
+  srslte_vec_sum_ccc(&output[off_st], q->diff_vec2, &output[off_st], q->M*(q->vector_len-1));
   
   if (q->vector_len > 1) {
     diff = input[q->vector_len-1]-input[q->vector_len-2];

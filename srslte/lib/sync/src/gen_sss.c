@@ -38,32 +38,32 @@
 void generate_zsc_tilde(int *z_tilde, int *s_tilde, int *c_tilde) {
 
   int i;
-  int x[N_SSS];
-  bzero(x, sizeof(int) * N_SSS);
+  int x[SRSLTE_SSS_N];
+  bzero(x, sizeof(int) * SRSLTE_SSS_N);
   x[4] = 1;
 
   for (i = 0; i < 26; i++)
     x[i + 5] = (x[i + 2] + x[i]) % 2;
-  for (i = 0; i < N_SSS; i++)
+  for (i = 0; i < SRSLTE_SSS_N; i++)
     s_tilde[i] = 1 - 2 * x[i];
 
   for (i = 0; i < 26; i++)
     x[i + 5] = (x[i + 3] + x[i]) % 2;
-  for (i = 0; i < N_SSS; i++)
+  for (i = 0; i < SRSLTE_SSS_N; i++)
     c_tilde[i] = 1 - 2 * x[i];
 
   for (i = 0; i < 26; i++)
     x[i + 5] = (x[i + 4] + x[i + 2] + x[i + 1] + x[i]) % 2;
-  for (i = 0; i < N_SSS; i++)
+  for (i = 0; i < SRSLTE_SSS_N; i++)
     z_tilde[i] = 1 - 2 * x[i];
 }
 
 void generate_m0m1(uint32_t N_id_1, uint32_t *m0, uint32_t *m1) {
-  uint32_t q_prime = N_id_1 / (N_SSS - 1);
-  uint32_t q = (N_id_1 + (q_prime * (q_prime + 1) / 2)) / (N_SSS - 1);
+  uint32_t q_prime = N_id_1 / (SRSLTE_SSS_N - 1);
+  uint32_t q = (N_id_1 + (q_prime * (q_prime + 1) / 2)) / (SRSLTE_SSS_N - 1);
   uint32_t m_prime = N_id_1 + (q * (q + 1) / 2);
-  *m0 = m_prime % N_SSS;
-  *m1 = (*m0 + m_prime / N_SSS + 1) % N_SSS;
+  *m0 = m_prime % SRSLTE_SSS_N;
+  *m1 = (*m0 + m_prime / SRSLTE_SSS_N + 1) % SRSLTE_SSS_N;
 }
 
 
@@ -80,42 +80,42 @@ void generate_N_id_1_table(uint32_t table[30][30]) {
 
 void generate_s(int *s, int *s_tilde, uint32_t m0_m1) {
   uint32_t i;
-  for (i = 0; i < N_SSS; i++) {
-    s[i] = s_tilde[(i + m0_m1) % N_SSS];
+  for (i = 0; i < SRSLTE_SSS_N; i++) {
+    s[i] = s_tilde[(i + m0_m1) % SRSLTE_SSS_N];
   }
 }
 
-void generate_s_all(int s[N_SSS][N_SSS], int *s_tilde) {
+void generate_s_all(int s[SRSLTE_SSS_N][SRSLTE_SSS_N], int *s_tilde) {
   uint32_t i;
-  for (i = 0; i < N_SSS; i++) {
+  for (i = 0; i < SRSLTE_SSS_N; i++) {
     generate_s(s[i], s_tilde, i);
   }
 }
 
 void generate_c(int *c, int *c_tilde, uint32_t N_id_2, bool is_c0) {
   uint32_t i;
-  for (i = 0; i < N_SSS; i++) {
-    c[i] = c_tilde[(i + N_id_2 + (is_c0 ? 3 : 0)) % N_SSS];
+  for (i = 0; i < SRSLTE_SSS_N; i++) {
+    c[i] = c_tilde[(i + N_id_2 + (is_c0 ? 3 : 0)) % SRSLTE_SSS_N];
   }
 }
 
 void generate_z(int *z, int *z_tilde, uint32_t m0_m1) {
   uint32_t i;
-  for (i = 0; i < N_SSS; i++) {
-    z[i] = z_tilde[(i + (m0_m1 % 8)) % N_SSS];
+  for (i = 0; i < SRSLTE_SSS_N; i++) {
+    z[i] = z_tilde[(i + (m0_m1 % 8)) % SRSLTE_SSS_N];
   }
 }
 
-void generate_z_all(int z[N_SSS][N_SSS], int *z_tilde) {
+void generate_z_all(int z[SRSLTE_SSS_N][SRSLTE_SSS_N], int *z_tilde) {
   uint32_t i;
-  for (i = 0; i < N_SSS; i++) {
+  for (i = 0; i < SRSLTE_SSS_N; i++) {
     generate_z(z[i], z_tilde, i);
   }
 }
 
-void generate_sss_all_tables(struct sss_tables *tables, uint32_t N_id_2) {
+void generate_sss_all_tables(srslte_sss_tables_t *tables, uint32_t N_id_2) {
   uint32_t i;
-  int s_t[N_SSS], c_t[N_SSS], z_t[N_SSS];
+  int s_t[SRSLTE_SSS_N], c_t[SRSLTE_SSS_N], z_t[SRSLTE_SSS_N];
 
   generate_zsc_tilde(z_t, s_t, c_t);
   generate_s_all(tables->s, s_t);
@@ -125,15 +125,15 @@ void generate_sss_all_tables(struct sss_tables *tables, uint32_t N_id_2) {
   }
 }
 
-void sss_generate(float *signal0, float *signal5, uint32_t cell_id) {
+void srslte_sss_generate(float *signal0, float *signal5, uint32_t cell_id) {
 
   uint32_t i;
   uint32_t id1 = cell_id / 3;
   uint32_t id2 = cell_id % 3;
   uint32_t m0;
   uint32_t m1;
-  int s_t[N_SSS], c_t[N_SSS], z_t[N_SSS];
-  int s0[N_SSS], s1[N_SSS], c0[N_SSS], c1[N_SSS], z1_0[N_SSS], z1_1[N_SSS];
+  int s_t[SRSLTE_SSS_N], c_t[SRSLTE_SSS_N], z_t[SRSLTE_SSS_N];
+  int s0[SRSLTE_SSS_N], s1[SRSLTE_SSS_N], c0[SRSLTE_SSS_N], c1[SRSLTE_SSS_N], z1_0[SRSLTE_SSS_N], z1_1[SRSLTE_SSS_N];
 
   generate_m0m1(id1, &m0, &m1);
   generate_zsc_tilde(z_t, s_t, c_t);
@@ -147,13 +147,13 @@ void sss_generate(float *signal0, float *signal5, uint32_t cell_id) {
   generate_z(z1_0, z_t, m0);
   generate_z(z1_1, z_t, m1);
 
-  for (i = 0; i < N_SSS; i++) {
+  for (i = 0; i < SRSLTE_SSS_N; i++) {
     /** Even Resource Elements: Sub-frame 0*/
     signal0[2 * i] = (float) (s0[i] * c0[i]);
     /** Odd Resource Elements: Sub-frame 0*/
     signal0[2 * i + 1] = (float) (s1[i] * c1[i] * z1_0[i]);
   }
-  for (i = 0; i < N_SSS; i++) {
+  for (i = 0; i < SRSLTE_SSS_N; i++) {
     /** Even Resource Elements: Sub-frame 5*/
     signal5[2 * i] = (float) (s1[i] * c0[i]);
     /** Odd Resource Elements: Sub-frame 5*/

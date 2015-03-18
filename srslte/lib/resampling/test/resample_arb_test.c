@@ -35,9 +35,9 @@ int main(int argc, char **argv) {
       in[i] = sin(i*2*M_PI/N);
 
     // Resample
-    resample_arb_t r;
-    resample_arb_init(&r, rate);
-    int n_out = resample_arb_compute(&r, in, out, N);
+    srslte_resample_arb_t r;
+    srslte_resample_arb_init(&r, rate);
+    int n_out = srslte_resample_arb_compute(&r, in, out, N);
 
     // Check interp values
     for(int i=delay+1;i<n_out;i++){

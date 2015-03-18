@@ -38,20 +38,20 @@ typedef _Complex float cf_t;
 typedef struct SRSLTE_API {
   uint32_t size;
   cf_t *tab;
-}cexptab_t;
+}srslte_cexptab_t;
 
-SRSLTE_API int cexptab_init(cexptab_t *nco, 
-                            uint32_t size);
+SRSLTE_API int srslte_cexptab_init(srslte_cexptab_t *nco, 
+                                   uint32_t size);
 
-SRSLTE_API void cexptab_free(cexptab_t *nco);
+SRSLTE_API void srslte_cexptab_free(srslte_cexptab_t *nco);
 
-SRSLTE_API void cexptab_gen(cexptab_t *nco, 
-                            cf_t *x, 
-                            float freq, 
-                            uint32_t len);
-
-SRSLTE_API void cexptab_gen_direct(cf_t *x, 
+SRSLTE_API void srslte_cexptab_gen(srslte_cexptab_t *nco, 
+                                   cf_t *x, 
                                    float freq, 
                                    uint32_t len);
+
+SRSLTE_API void srslte_cexptab_gen_direct(cf_t *x, 
+                                          float freq, 
+                                          uint32_t len);
 
 #endif // CEXPTAB_

@@ -78,7 +78,7 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
   printf("\t-l Force N_id_2 [Default best]\n");
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 int  parse_args(prog_args_t *args, int argc, char **argv) {
@@ -102,7 +102,7 @@ int  parse_args(prog_args_t *args, int argc, char **argv) {
       args->force_N_id_2 = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(args, argv[0]);
@@ -136,11 +136,11 @@ int main(int argc, char **argv) {
   prog_args_t prog_args; 
   srslte_cell_t cell;  
   int64_t sf_cnt;
-  ue_sync_t ue_sync; 
-  ue_mib_t ue_mib; 
+  srslte_ue_sync_t ue_sync; 
+  srslte_ue_mib_t ue_mib; 
   void *uhd; 
-  ue_dl_t ue_dl; 
-  srslte_fft_t fft; 
+  srs_ue_dl_t ue_dl; 
+  srslte_ofdm_t fft; 
   srslte_chest_dl_t chest; 
   uint32_t nframes=0;
   uint32_t nof_trials = 0; 
@@ -190,26 +190,26 @@ int main(int argc, char **argv) {
   cuhd_stop_rx_stream(uhd);
   cuhd_flush_buffer(uhd);
   
-  if (ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
+  if (srslte_ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
-  if (ue_dl_init(&ue_dl, cell)) { 
+  if (srs_ue_dl_init(&ue_dl, cell)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
-  if (ue_mib_init(&ue_mib, cell)) {
+  if (srslte_ue_mib_init(&ue_mib, cell)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     return -1;
   }
   
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
-  ue_dl_set_rnti(&ue_dl, SRSLTE_SIRNTI); 
+  srs_ue_dl_set_rnti(&ue_dl, SRSLTE_SIRNTI); 
 
   /* Initialize subframe counter */
   sf_cnt = 0;
     
-  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initiating FFT\n");
     return -1;
   }
@@ -220,10 +220,10 @@ int main(int argc, char **argv) {
   
   int sf_re = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
 
-  cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
+  cf_t *sf_symbols = srslte_vec_malloc(sf_re * sizeof(cf_t));
 
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = vec_malloc(sizeof(cf_t) * sf_re);
+    ce[i] = srslte_vec_malloc(sizeof(cf_t) * sf_re);
   }
   
   cuhd_start_rx_stream(uhd);
@@ -231,24 +231,24 @@ int main(int argc, char **argv) {
   /* Main loop */
   while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
     
-    ret = ue_sync_get_buffer(&ue_sync, &sf_buffer);
+    ret = srslte_ue_sync_get_buffer(&ue_sync, &sf_buffer);
     if (ret < 0) {
-      fprintf(stderr, "Error calling ue_sync_work()\n");
+      fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
 
         
-    /* ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
+    /* srslte_ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
       switch (state) {
         case DECODE_MIB:
-          if (ue_sync_get_sfidx(&ue_sync) == 0) {
-            pbch_decode_reset(&ue_mib.pbch);
-            n = ue_mib_decode(&ue_mib, sf_buffer, bch_payload_unpacked, NULL, &sfn_offset);
+          if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
+            decode_reset(&ue_mib.pbch);
+            n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload_unpacked, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               return -1;
-            } else if (n == MIB_FOUND) {             
-              bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
+            } else if (n == SRSLTE_UE_MIB_FOUND) {             
+              srslte_bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
               bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
               printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
               sfn = (sfn + sfn_offset)%1024; 
@@ -258,20 +258,20 @@ int main(int argc, char **argv) {
           break;
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
-          if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
+          if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+            n = srs_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data, srslte_ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;
             } else if (n == 0) {
               printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, NOI: %.2f, PDCCH-Det: %.3f\r",
-                      ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
-                      sch_average_noi(&ue_dl.pdsch.dl_sch),
-                      (float) ue_dl.nof_pdcch_detected/nof_trials);                
+                      srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
+                      srslte_sch_average_noi(&ue_dl.pdsch.dl_sch),
+                      (float) ue_dl.nof_detected/nof_trials);                
               nof_trials++; 
             } else {
-              bit_unpack_vector(data, data_unpacked, n);
+              srslte_bit_unpack_vector(data, data_unpacked, n);
               void *dlsch_msg = bcch_dlsch_unpack(data_unpacked, n);
               if (dlsch_msg) {
                 printf("\n");fflush(stdout);
@@ -287,17 +287,17 @@ int main(int argc, char **argv) {
         
       case MEASURE:
         
-        if (ue_sync_get_sfidx(&ue_sync) == 5) {
+        if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
           /* Run FFT for all subframe data */
-          srslte_fft_run_sf(&fft, sf_buffer, sf_symbols);
+          srslte_ofdm_tx_sf(&fft, sf_buffer, sf_symbols);
           
-          srslte_chest_dl_estimate(&chest, sf_symbols, ce, ue_sync_get_sfidx(&ue_sync));
+          srslte_chest_dl_estimate(&chest, sf_symbols, ce, srslte_ue_sync_get_sfidx(&ue_sync));
                   
-          rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))),rssi,nframes);
-          rssi_utra = VEC_CMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,nframes);
-          rsrq = VEC_EMA(srslte_chest_dl_get_rsrq(&chest),rsrq,0.05);
-          rsrp = VEC_EMA(srslte_chest_dl_get_rsrp(&chest),rsrp,0.05);      
-          snr = VEC_EMA(srslte_chest_dl_get_snr(&chest),snr,0.05);      
+          rssi = SRSLTE_VEC_CMA(srslte_vec_avg_power_cf(sf_buffer,SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))),rssi,nframes);
+          rssi_utra = SRSLTE_VEC_CMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,nframes);
+          rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&chest),rsrq,0.05);
+          rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&chest),rsrp,0.05);      
+          snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_snr(&chest),snr,0.05);      
           nframes++;          
         }        
         
@@ -305,18 +305,18 @@ int main(int argc, char **argv) {
         if ((nframes%10) == 0) {
           printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %5.1f dB\r",
-                ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
+                srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
                 10*log10(rssi*1000)-gain_offset, 
                 10*log10(rssi_utra*1000)-gain_offset, 
                 10*log10(rsrp*1000)-gain_offset, 
                 10*log10(rsrq), 10*log10(snr));                
-          if (verbose != VERBOSE_NONE) {
+          if (srslte_verbose != SRSLTE_VERBOSE_NONE) {
             printf("\n");
           }
         }
         break;
       }
-      if (ue_sync_get_sfidx(&ue_sync) == 9) {
+      if (srslte_ue_sync_get_sfidx(&ue_sync) == 9) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
@@ -324,7 +324,7 @@ int main(int argc, char **argv) {
       }
     } else if (ret == 0) {
       printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
-        sync_get_peak_value(&ue_sync.sfind), 
+        srslte_sync_get_peak_value(&ue_sync.sfind), 
         ue_sync.frame_total_cnt, ue_sync.state);      
     }
    
@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
     sf_cnt++;                  
   } // Main loop
 
-  ue_sync_free(&ue_sync);
+  srslte_ue_sync_free(&ue_sync);
   cuhd_close(uhd);
   printf("\nBye\n");
   exit(0);

@@ -16,7 +16,7 @@ for i=1:nf
 end
 
 fs=fs+960;
-[sfo sfo_v]=sfo_estimate(fs, 5/1000);
+[sfo sfo_v]=srslte_sfo_estimate(fs, 5/1000);
 
 subplot(1,3,1)
 plot(1:nf,fs)

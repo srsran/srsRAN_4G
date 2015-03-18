@@ -43,10 +43,10 @@
 #include "srslte/utils/vector.h"
 
 
-int sch_init(sch_t *q) {
+int srslte_sch_init(srslte_sch_t *q) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q) {    
-    bzero(q, sizeof(sch_t));
+    bzero(q, sizeof(srslte_sch_t));
     
     if (srslte_crc_init(&q->srslte_crc_tb, SRSLTE_LTE_CRC24A, 24)) {
       fprintf(stderr, "Error initiating CRC\n");
@@ -67,16 +67,16 @@ int sch_init(sch_t *q) {
     }
 
     // Allocate floats for reception (LLRs)
-    q->cb_in = vec_malloc(sizeof(uint8_t) * MAX_LONG_CB);
+    q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * MAX_LONG_CB);
     if (!q->cb_in) {
       goto clean;
     }
     
-    q->cb_out = vec_malloc(sizeof(float) * (3 * MAX_LONG_CB + 12));
+    q->cb_out = srslte_vec_malloc(sizeof(float) * (3 * MAX_LONG_CB + 12));
     if (!q->cb_out) {
       goto clean;
     }  
-    if (uci_cqi_init(&q->uci_cqi)) {
+    if (srslte_uci_cqi_init(&q->uci_cqi)) {
       goto clean;
     }
     
@@ -84,12 +84,12 @@ int sch_init(sch_t *q) {
   }
 clean: 
   if (ret == SRSLTE_ERROR) {
-    sch_free(q);
+    srslte_sch_free(q);
   }
   return ret; 
 }
 
-void sch_free(sch_t *q) {
+void srslte_sch_free(srslte_sch_t *q) {
   if (q->cb_in) {
     free(q->cb_in);
   }
@@ -98,16 +98,16 @@ void sch_free(sch_t *q) {
   }
   srslte_tdec_free(&q->decoder);
   srslte_tcod_free(&q->encoder);
-  uci_cqi_free(&q->uci_cqi);
-  bzero(q, sizeof(sch_t));
+  srslte_uci_cqi_free(&q->uci_cqi);
+  bzero(q, sizeof(srslte_sch_t));
 }
 
 
-float sch_average_noi(sch_t *q) {
+float srslte_sch_average_noi(srslte_sch_t *q) {
   return q->average_nof_iterations; 
 }
 
-uint32_t sch_last_noi(sch_t *q) {
+uint32_t srslte_sch_last_noi(srslte_sch_t *q) {
   return q->nof_iterations;
 }
 
@@ -116,7 +116,7 @@ uint32_t sch_last_noi(sch_t *q) {
 /* Encode a transport block according to 36.212 5.3.2
  *
  */
-static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uint32_t nof_e_bits) 
+static int encode_tb(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data, uint8_t *e_bits, uint32_t nof_e_bits) 
 {
   uint8_t parity[24];
   uint8_t *p_parity = parity;
@@ -143,13 +143,13 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
       par = srslte_crc_checksum(&q->srslte_crc_tb, data, harq->mcs.tbs);
 
       /* parity bits will be appended later */
-      bit_pack(par, &p_parity, 24);
+      srslte_bit_pack(par, &p_parity, 24);
 
-      if (VERBOSE_ISDEBUG()) {
+      if (SRSLTE_VERBOSE_ISDEBUG()) {
         DEBUG("DATA: ", 0);
-        vec_fprint_b(stdout, data, harq->mcs.tbs);
+        srslte_vec_fprint_b(stdout, data, harq->mcs.tbs);
         DEBUG("PARITY: ", 0);
-        vec_fprint_b(stdout, parity, 24);
+        srslte_vec_fprint_b(stdout, parity, 24);
       }      
     }
     
@@ -207,9 +207,9 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
         for (int j = 0; j < F; j++) {
           q->cb_in[j] = SRSLTE_TX_NULL;
         }
-        if (VERBOSE_ISDEBUG()) {
+        if (SRSLTE_VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d: ", i);
-          vec_fprint_b(stdout, q->cb_in, cb_len);
+          srslte_vec_fprint_b(stdout, q->cb_in, cb_len);
         }
 
         /* Turbo Encoding */
@@ -239,7 +239,7 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
 /* Decode a transport block according to 36.212 5.3.2
  *
  */
-static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint32_t nof_e_bits) 
+static int decode_tb(srslte_sch_t *q, srslte_harq_t *harq, float *e_bits, uint8_t *data, uint32_t nof_e_bits) 
 {
   uint8_t parity[24];
   uint8_t *p_parity = parity;
@@ -304,9 +304,9 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
         return SRSLTE_ERROR;
       }
 
-      if (VERBOSE_ISDEBUG()) {
+      if (SRSLTE_VERBOSE_ISDEBUG()) {
         DEBUG("CB#%d RMOUT: ", i);
-        vec_fprint_f(stdout, q->cb_out, 3*cb_len+12);
+        srslte_vec_fprint_f(stdout, q->cb_out, 3*cb_len+12);
       }
 
       /* Turbo Decoding with CRC-based early stopping */
@@ -339,12 +339,12 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
           early_stop = true;           
         }
         
-      } while (q->nof_iterations < TDEC_MAX_ITERATIONS && !early_stop);
-      q->average_nof_iterations = VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
+      } while (q->nof_iterations < SRSLTE_PDSCH_MAX_TDEC_ITERS && !early_stop);
+      q->average_nof_iterations = SRSLTE_VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
 
-      if (VERBOSE_ISDEBUG()) {
+      if (SRSLTE_VERBOSE_ISDEBUG()) {
         DEBUG("CB#%d IN: ", i);
-        vec_fprint_b(stdout, q->cb_in, cb_len);
+        srslte_vec_fprint_b(stdout, q->cb_in, cb_len);
       }
             
       // If CB CRC is not correct, early_stop will be false and wont continue with rest of CBs
@@ -376,7 +376,7 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
       par_rx = srslte_crc_checksum(&q->srslte_crc_tb, data, harq->mcs.tbs);
 
       // check parity bits
-      par_tx = bit_unpack(&p_parity, 24);
+      par_tx = srslte_bit_unpack(&p_parity, 24);
 
       if (!par_rx) {
         INFO("\n\tCAUTION!! Received all-zero transport block\n\n", 0);
@@ -396,16 +396,16 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
   }
 }
 
-int dlsch_decode(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data) 
+int srslte_dlsch_decode(srslte_sch_t *q, srslte_harq_t *harq, float *e_bits, uint8_t *data) 
 {
   return decode_tb(q, harq, e_bits, data, harq->nof_bits);
 }
 
-int dlsch_encode(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits) {
+int srslte_dlsch_encode(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data, uint8_t *e_bits) {
   return encode_tb(q, harq, data, e_bits, harq->nof_bits);
 }
 
-int ulsch_decode(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data) 
+int srslte_ulsch_decode(srslte_sch_t *q, srslte_harq_t *harq, float *e_bits, uint8_t *data) 
 {
   return decode_tb(q, harq, e_bits, data, harq->nof_bits);
 }
@@ -434,15 +434,15 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Q_m, uint32_t H_prime_total, uin
   
 }
 
-int ulsch_encode(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *g_bits, uint8_t *q_bits) 
+int srslte_ulsch_encode(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data, uint8_t *g_bits, uint8_t *q_bits) 
 {
-  uci_data_t uci_data; 
-  bzero(&uci_data, sizeof(uci_data_t));
-  return ulsch_uci_encode(q, harq, data, uci_data, g_bits, q_bits);
+  srslte_uci_data_t uci_data; 
+  bzero(&uci_data, sizeof(srslte_uci_data_t));
+  return srslte_ulsch_uci_encode(q, harq, data, uci_data, g_bits, q_bits);
 }
 
 
-int ulsch_uci_encode(sch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data, uint8_t *g_bits, uint8_t *q_bits) 
+int srslte_ulsch_uci_encode(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data, srslte_uci_data_t uci_data, uint8_t *g_bits, uint8_t *q_bits) 
 {
   int ret; 
    
@@ -463,7 +463,7 @@ int ulsch_uci_encode(sch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data,
     if (harq->mcs.tbs == 0) {
         beta /= uci_data.beta_cqi;
     }
-    ret = uci_encode_ri(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq, nb_q/Q_m, q_bits);
+    ret = srslte_uci_encode_ri(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq, nb_q/Q_m, q_bits);
     if (ret < 0) {
       return ret; 
     }
@@ -473,7 +473,7 @@ int ulsch_uci_encode(sch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data,
   // Encode CQI
   if (uci_data.uci_cqi_len > 0) {
 
-    ret = uci_encode_cqi_pusch(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, uci_data.beta_cqi, 
+    ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, uci_data.beta_cqi, 
                                  Q_prime_ri, harq, g_bits);
     if (ret < 0) {
       return ret; 
@@ -501,7 +501,7 @@ int ulsch_uci_encode(sch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data,
     if (harq->mcs.tbs == 0) {
         beta /= uci_data.beta_cqi;
     }
-    ret = uci_encode_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq, nb_q/Q_m, q_bits);
+    ret = srslte_uci_encode_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq, nb_q/Q_m, q_bits);
     if (ret < 0) {
       return ret; 
     }

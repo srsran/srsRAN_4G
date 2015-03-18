@@ -39,6 +39,7 @@ char *matlab_file_name = NULL;
 srslte_cell_t cell = {
   50,           // cell.nof_prb
   2,            // cell.nof_ports
+  2,            // bw_idx
   150,          // cell.id
   SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
@@ -53,9 +54,9 @@ FILE *fmatlab = NULL;
 
 srslte_filesource_t fsrc;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
-phich_t phich;
-regs_t regs;
-srslte_fft_t fft;
+srslte_phich_t phich;
+srslte_regs_t regs;
+srslte_ofdm_t fft;
 srslte_chest_dl_t chest;
 
 void usage(char *prog) {
@@ -68,7 +69,7 @@ void usage(char *prog) {
   printf("\t-g phich ng factor: 1/6, 1/2, 1, 2 [Default 1]\n");
   printf("\t-e phich extended length [Default normal]\n");
   printf("\t-l extended cyclic prefix [Default normal]\n");
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -110,7 +111,7 @@ void parse_args(int argc, char **argv) {
       cell.nof_ports = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     case 'l':
       cell.cp = SRSLTE_SRSLTE_CP_EXT;
@@ -171,17 +172,17 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
 
-  if (regs_init(&regs, cell)) {
+  if (srslte_regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     return -1;
   }
 
-  if (phich_init(&phich, &regs, cell)) {
+  if (srslte_phich_init(&phich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     return -1;
   }
@@ -206,10 +207,10 @@ void base_free() {
     free(ce[i]);
   }
   srslte_chest_dl_free(&chest);
-  srslte_fft_free(&fft);
+  srslte_ofdm_tx_free(&fft);
 
-  phich_free(&phich);
-  regs_free(&regs);
+  srslte_phich_free(&phich);
+  srslte_regs_free(&regs);
 }
 
 int main(int argc, char **argv) {
@@ -234,15 +235,15 @@ int main(int argc, char **argv) {
 
   n = srslte_filesource_read(&fsrc, input_buffer, flen);
 
-  srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
+  srslte_ofdm_tx_sf(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");
-    vec_fprint_c(fmatlab, input_buffer, flen);
+    srslte_vec_fprint_c(fmatlab, input_buffer, flen);
     fprintf(fmatlab, ";\n");
 
     fprintf(fmatlab, "outfft=");
-    vec_fprint_c(fmatlab, fft_buffer, SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
+    srslte_vec_fprint_c(fmatlab, fft_buffer, SRSLTE_CP_NSYMB(cell.cp) * cell.nof_prb * SRSLTE_NRE);
     fprintf(fmatlab, ";\n");
   }
 
@@ -252,10 +253,10 @@ int main(int argc, char **argv) {
   INFO("Decoding PHICH\n", 0);
 
   /* Receive all PHICH groups and sequence numbers */
-  for (ngroup=0;ngroup<phich_ngroups(&phich);ngroup++) {
+  for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
     for (nseq=0;nseq<max_nseq;nseq++) {
 
-      if (phich_decode(&phich, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
+      if (srslte_phich_decode(&phich, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
         printf("Error decoding ACK\n");
         exit(-1);
       }

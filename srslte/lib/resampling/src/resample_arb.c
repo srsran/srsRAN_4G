@@ -30,7 +30,7 @@
 #include "srslte/resampling/resample_arb.h"
 #include "srslte/utils/debug.h"
 
-float resample_arb_polyfilt[RESAMPLE_ARB_N][RESAMPLE_ARB_M] =
+float srslte_resample_arb_polyfilt[SRSLTE_RESAMPLE_ARB_N][SRSLTE_RESAMPLE_ARB_M] =
 {{0,0.002400347599485495,-0.006922416132556366,0.0179104136912176,0.99453086623794,-0.008521087756729117,0.0008598969867484128,0.0004992625165376107},
 {-0.001903604727400391,0.004479591950094871,-0.01525319260830623,0.04647449496926549,0.9910477342662829,-0.03275243420114668,0.008048813755373533,-0.001216900416836847},
 {-0.001750442300940216,0.006728826416921727,-0.02407540632178267,0.07708575473589654,0.9841056525667189,-0.05473739187922162,0.01460652754040275,-0.002745266140572769},
@@ -66,7 +66,7 @@ float resample_arb_polyfilt[RESAMPLE_ARB_N][RESAMPLE_ARB_M] =
 
 
 // TODO: use lte/utils/vector.h and Volk
-cf_t resample_arb_dot_prod(cf_t* x, float *y, int len)
+cf_t srslte_resample_arb_dot_prod(cf_t* x, float *y, int len)
 {
   cf_t res = 0+0*I;
   for(int i=0;i<len;i++){
@@ -76,38 +76,38 @@ cf_t resample_arb_dot_prod(cf_t* x, float *y, int len)
 }
 
 // Right-shift our window of samples
-void resample_arb_push(resample_arb_t *q, cf_t x)
+void srslte_resample_arb_push(srslte_resample_arb_t *q, cf_t x)
 {
-  memmove(&q->reg[1], &q->reg[0], (RESAMPLE_ARB_M-1)*sizeof(cf_t));
+  memmove(&q->reg[1], &q->reg[0], (SRSLTE_RESAMPLE_ARB_M-1)*sizeof(cf_t));
   q->reg[0] = x;
 }
 
 // Initialize our struct
-void resample_arb_init(resample_arb_t *q, float rate){
-  memset(q->reg, 0, RESAMPLE_ARB_M*sizeof(cf_t));
+void srslte_resample_arb_init(srslte_resample_arb_t *q, float rate){
+  memset(q->reg, 0, SRSLTE_RESAMPLE_ARB_M*sizeof(cf_t));
   q->acc = 0.0;
   q->rate = rate;
-  q->step = (1/rate)*RESAMPLE_ARB_N;
+  q->step = (1/rate)*SRSLTE_RESAMPLE_ARB_N;
 }
 
 // Resample a block of input data
-int resample_arb_compute(resample_arb_t *q, cf_t *input, cf_t *output, int n_in){
+int srslte_resample_arb_compute(srslte_resample_arb_t *q, cf_t *input, cf_t *output, int n_in){
   int cnt = 0;
   int n_out = 0;
   int idx = 0;
 
   while(cnt < n_in)
   {
-    *output = resample_arb_dot_prod(q->reg, resample_arb_polyfilt[idx], RESAMPLE_ARB_M);
+    *output = srslte_resample_arb_dot_prod(q->reg, srslte_resample_arb_polyfilt[idx], SRSLTE_RESAMPLE_ARB_M);
     output++;
     n_out++;
     q->acc += q->step;
     idx = (int)roundf(q->acc);
-    while(idx >= RESAMPLE_ARB_N){
-      q->acc -= RESAMPLE_ARB_N;
-      idx -= RESAMPLE_ARB_N;
+    while(idx >= SRSLTE_RESAMPLE_ARB_N){
+      q->acc -= SRSLTE_RESAMPLE_ARB_N;
+      idx -= SRSLTE_RESAMPLE_ARB_N;
       if(cnt < n_in)
-        resample_arb_push(q, input[cnt++]);
+        srslte_resample_arb_push(q, input[cnt++]);
     }
   }
   return n_out;

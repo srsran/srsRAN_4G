@@ -69,7 +69,7 @@ void usage(char *prog) {
   printf("\t-e earfcn_end [Default All]\n");
   printf("\t-n nof_frames_total [Default 100]\n");
   printf("\t-t threshold [Default %.2f]\n",config.threshold);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -98,7 +98,7 @@ void parse_args(int argc, char **argv) {
       uhd_gain = atof(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -119,8 +119,8 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t
 int main(int argc, char **argv) {
   int n; 
   void *uhd;
-  ue_cell_search_t cs; 
-  ue_cell_search_result_t found_cells[3]; 
+  srslte_ue_cellsearch_t cs; 
+  srslte_ue_cellsearch_result_t found_cells[3]; 
   int nof_freqs; 
   srslte_earfcn_t channels[MAX_EARFCN];
   uint32_t freq;
@@ -150,30 +150,30 @@ int main(int argc, char **argv) {
     printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS. \n", freq, nof_freqs,
                       channels[freq].id, channels[freq].fd);
     
-    if (VERBOSE_ISINFO()) {
+    if (SRSLTE_VERBOSE_ISINFO()) {
       printf("\n");
     }
       
-    bzero(found_cells, 3*sizeof(ue_cell_search_result_t));
+    bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
       
-    if (ue_cell_search_init(&cs, cuhd_recv_wrapper, uhd)) {
+    if (srslte_ue_cellsearch_init(&cs, cuhd_recv_wrapper, uhd)) {
       fprintf(stderr, "Error initiating UE cell detect\n");
       exit(-1);
     }
     
     if (config.max_frames_pss) {
-      ue_cell_search_set_nof_frames_to_scan(&cs, config.max_frames_pss);
+      srslte_ue_cellsearch_set_nof_frames_to_scan(&cs, config.max_frames_pss);
     }
     if (config.threshold) {
-      ue_cell_search_set_threshold(&cs, config.threshold);
+      srslte_ue_cellsearch_set_threshold(&cs, config.threshold);
     }
 
-    INFO("Setting sampling frequency %.2f MHz for PSS search\n", CS_SAMP_FREQ/1000);
-    cuhd_set_rx_srate(uhd, CS_SAMP_FREQ);
+    INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000);
+    cuhd_set_rx_srate(uhd, SRSLTE_CS_SAMP_FREQ);
     INFO("Starting receiver...\n", 0);
     cuhd_start_rx_stream(uhd);
     
-    n = ue_cell_search_scan(&cs, found_cells, NULL); 
+    n = srslte_ue_cellsearch_scan(&cs, found_cells, NULL); 
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Error decoding MIB\n");
             exit(-1);
           }
-          if (ret == MIB_FOUND) {
+          if (ret == SRSLTE_UE_MIB_FOUND) {
             printf("Found CELL ID %d. %d PRB, %d ports\n", 
                  cell.id, cell.nof_prb, cell.nof_ports);
           }

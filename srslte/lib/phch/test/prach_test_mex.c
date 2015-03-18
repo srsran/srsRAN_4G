@@ -83,21 +83,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   uint32_t frequency_offset = 0; 
   mexutils_read_uint32_struct(PRACHCFG, "FreqOffset", &frequency_offset);
 
-  prach_t prach; 
-  if (prach_init(&prach, N_ifft_ul, preamble_format, root_seq_idx, high_speed_flag, zero_corr_zone)) {
+  srslte_prach_t prach; 
+  if (srslte_prach_init(&prach, N_ifft_ul, preamble_format, root_seq_idx, high_speed_flag, zero_corr_zone)) {
     mexErrMsgTxt("Error initiating PRACH\n");
     return;
   }
 
   uint32_t nof_samples = srslte_sampling_freq_hz(n_ul_rb) * 0.003;
   
-  cf_t *signal = vec_malloc(sizeof(cf_t) * nof_samples);
+  cf_t *signal = srslte_vec_malloc(sizeof(cf_t) * nof_samples);
   if (!signal) {
     mexErrMsgTxt("malloc");
     return;
   }
   bzero(signal, sizeof(cf_t) * nof_samples);
-  if (prach_gen(&prach, seq_idx, frequency_offset, 0.2, signal)) {
+  if (srslte_prach_gen(&prach, seq_idx, frequency_offset, 0.2, signal)) {
     mexErrMsgTxt("Error generating PRACH\n");
     return; 
   }
@@ -109,7 +109,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   free(signal);
   
-  prach_free(&prach);
+  srslte_prach_free(&prach);
   
   return;
 }

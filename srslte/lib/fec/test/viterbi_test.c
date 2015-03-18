@@ -279,7 +279,7 @@ int main(int argc, char **argv) {
         }
 
         srslte_ch_awgn_f(llr, llr, var[i], coded_length[n]);
-        vec_quant_fuc(llr, llr_c, Gain, 127.5, 255, coded_length[n]);
+        srslte_vec_quant_fuc(llr, llr_c, Gain, 127.5, 255, coded_length[n]);
 
         /* decoder 1 */
         srslte_viterbi_decode_uc(&dec[n], llr_c, data_rx[1+n], frame_length);
@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
 
       /* check errors */
       for (j = 0; j < 1+ncods; j++) {
-        errors[j] += bit_diff(data_tx, data_rx[j], frame_length);
+        errors[j] += srslte_bit_diff(data_tx, data_rx[j], frame_length);
       }
       frame_cnt++;
       printf("Eb/No: %3.2f %10d/%d   ",

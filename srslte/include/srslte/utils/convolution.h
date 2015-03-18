@@ -30,7 +30,7 @@
 #define CONVOLUTION_H_
 
 #include "srslte/config.h"
-#include "srslte/utils/dft.h"
+#include "srslte/dft/dft.h"
 
 typedef _Complex float cf_t;
 
@@ -45,35 +45,35 @@ typedef struct SRSLTE_API {
   srslte_dft_plan_t input_plan;
   srslte_dft_plan_t filter_plan;
   srslte_dft_plan_t output_plan;
-}conv_fft_cc_t;
+}srslte_conv_fft_cc_t;
 
-SRSLTE_API int conv_fft_cc_init(conv_fft_cc_t *q, 
-                                uint32_t input_len, 
-                                uint32_t filter_len);
+SRSLTE_API int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, 
+                                       uint32_t input_len, 
+                                       uint32_t filter_len);
 
-SRSLTE_API void conv_fft_cc_free(conv_fft_cc_t *q);
+SRSLTE_API void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q);
 
-SRSLTE_API uint32_t conv_fft_cc_run(conv_fft_cc_t *q, 
-                               cf_t *input, 
-                               cf_t *filter, 
-                               cf_t *output);
+SRSLTE_API uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q, 
+                                           cf_t *input, 
+                                           cf_t *filter, 
+                                           cf_t *output);
 
-SRSLTE_API uint32_t conv_cc(cf_t *input, 
-                       cf_t *filter, 
-                       cf_t *output, 
-                       uint32_t input_len, 
-                       uint32_t filter_len);
+SRSLTE_API uint32_t srslte_conv_cc(cf_t *input, 
+                                   cf_t *filter, 
+                                   cf_t *output, 
+                                   uint32_t input_len, 
+                                   uint32_t filter_len);
 
-SRSLTE_API uint32_t conv_same_cf(cf_t *input, 
-                                 float *filter, 
-                                 cf_t *output, 
-                                 uint32_t input_len, 
-                                 uint32_t filter_len);
+SRSLTE_API uint32_t srslte_conv_same_cf(cf_t *input, 
+                                        float *filter, 
+                                        cf_t *output, 
+                                        uint32_t input_len, 
+                                        uint32_t filter_len);
 
-SRSLTE_API uint32_t conv_same_cc(cf_t *input, 
-                                 cf_t *filter, 
-                                 cf_t *output, 
-                                 uint32_t input_len, 
-                                 uint32_t filter_len);
+SRSLTE_API uint32_t srslte_conv_same_cc(cf_t *input, 
+                                        cf_t *filter, 
+                                        cf_t *output, 
+                                        uint32_t input_len, 
+                                        uint32_t filter_len);
 
 #endif // CONVOLUTION_H_

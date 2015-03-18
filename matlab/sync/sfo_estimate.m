@@ -1,4 +1,4 @@
-function [ sfo sfo_v ] = sfo_estimate( fs, T )
+function [ sfo sfo_v ] = srslte_sfo_estimate( fs, T )
 
 
 nanfs=fs(~isnan(fs));

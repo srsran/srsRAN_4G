@@ -31,6 +31,10 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
+
+//PRACH detection threshold is PRACH_DETECT_FACTOR*average
+#define PRACH_DETECT_FACTOR 10
+
 #define   N_SEQS        64    // Number of prach sequences available
 #define   N_RB_SC       12    // Number of subcarriers per resource block
 #define   DELTA_F       15000 // Normal subcarrier spacing
@@ -178,7 +182,7 @@ uint32_t prach_get_rb_ul(uint32_t N_ifft_ul)
   }
 }
 
-int prach_gen_seqs(prach_t *p)
+int srslte_prach_gen_seqs(srslte_prach_t *p)
 {
   uint32_t u = 0;
   uint32_t v = 1;
@@ -273,7 +277,7 @@ int prach_gen_seqs(prach_t *p)
   return 0;
 }
 
-int prach_init(prach_t *p,
+int srslte_prach_init(srslte_prach_t *p,
                uint32_t N_ifft_ul,
                uint32_t preamble_format,
                uint32_t root_seq_index,
@@ -307,32 +311,32 @@ int prach_init(prach_t *p,
     }
 
     // Set up containers
-    p->prach_bins = vec_malloc(sizeof(cf_t)*p->N_zc);
-    p->corr_spec = vec_malloc(sizeof(cf_t)*p->N_zc);
-    p->corr = vec_malloc(sizeof(float)*p->N_zc);
+    p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
+    p->corr_spec = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
+    p->corr = srslte_vec_malloc(sizeof(float)*p->N_zc);
 
     // Set up ZC FFTS
-    p->zc_fft = (srslte_dft_plan_t*)vec_malloc(sizeof(srslte_dft_plan_t));
-    if(dft_plan(p->zc_fft, p->N_zc, FORWARD, COMPLEX)){
+    p->zc_fft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
+    if(srslte_dft_plan(p->zc_fft, p->N_zc, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)){
       return SRSLTE_ERROR;
     }
-    dft_plan_set_mirror(p->zc_fft, false);
-    dft_plan_set_norm(p->zc_fft, false);
+    srslte_dft_plan_set_mirror(p->zc_fft, false);
+    srslte_dft_plan_set_norm(p->zc_fft, false);
 
-    p->zc_ifft = (srslte_dft_plan_t*)vec_malloc(sizeof(srslte_dft_plan_t));
-    if(dft_plan(p->zc_ifft, p->N_zc, BACKWARD, COMPLEX)){
+    p->zc_ifft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
+    if(srslte_dft_plan(p->zc_ifft, p->N_zc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)){
       return SRSLTE_ERROR;
     }
-    dft_plan_set_mirror(p->zc_ifft, false);
-    dft_plan_set_norm(p->zc_ifft, false);
+    srslte_dft_plan_set_mirror(p->zc_ifft, false);
+    srslte_dft_plan_set_norm(p->zc_ifft, false);
 
     // Generate our 64 sequences
     p->N_roots = 0;
-    prach_gen_seqs(p);
+    srslte_prach_gen_seqs(p);
 
     // Generate sequence FFTs
     for(int i=0;i<N_SEQS;i++){
-      dft_run(p->zc_fft, p->seqs[i], p->dft_seqs[i]);
+      srslte_dft_run(p->zc_fft, p->seqs[i], p->dft_seqs[i]);
     }
 
     // Create our FFT objects and buffers
@@ -343,21 +347,21 @@ int prach_init(prach_t *p,
       p->N_ifft_prach = p->N_ifft_ul * DELTA_F/DELTA_F_RA;
     }
 
-    p->ifft_in = (cf_t*)vec_malloc(p->N_ifft_prach*sizeof(cf_t));
-    p->ifft_out = (cf_t*)vec_malloc(p->N_ifft_prach*sizeof(cf_t));
-    p->ifft = (srslte_dft_plan_t*)vec_malloc(sizeof(srslte_dft_plan_t));
-    if(dft_plan(p->ifft, p->N_ifft_prach, BACKWARD, COMPLEX)){
+    p->ifft_in = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
+    p->ifft_out = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
+    p->ifft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
+    if(srslte_dft_plan(p->ifft, p->N_ifft_prach, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)){
        return -1;
     }
-    dft_plan_set_mirror(p->ifft, true);
-    dft_plan_set_norm(p->ifft, true);
+    srslte_dft_plan_set_mirror(p->ifft, true);
+    srslte_dft_plan_set_norm(p->ifft, true);
 
-    p->fft = (srslte_dft_plan_t*)vec_malloc(sizeof(srslte_dft_plan_t));
-    if(dft_plan(p->fft, p->N_ifft_prach, FORWARD, COMPLEX)){
+    p->fft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
+    if(srslte_dft_plan(p->fft, p->N_ifft_prach, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)){
        return -1;
     }
-    dft_plan_set_mirror(p->fft, true);
-    dft_plan_set_norm(p->fft, true);
+    srslte_dft_plan_set_mirror(p->fft, true);
+    srslte_dft_plan_set_norm(p->fft, true);
 
     p->N_seq = prach_Tseq[p->f]*p->N_ifft_ul/2048;
     p->N_cp = prach_Tcp[p->f]*p->N_ifft_ul/2048;
@@ -368,7 +372,7 @@ int prach_init(prach_t *p,
   return ret;
 }
 
-int prach_gen(prach_t *p,
+int srslte_prach_gen(srslte_prach_t *p,
               uint32_t seq_index,
               uint32_t freq_offset,
               float beta_prach,
@@ -391,7 +395,7 @@ int prach_gen(prach_t *p,
     memcpy(&p->ifft_in[begin], p->dft_seqs[seq_index], p->N_zc * sizeof(cf_t));
     memset(&p->ifft_in[begin+p->N_zc], 0, (p->N_ifft_prach - begin - p->N_zc) * sizeof(cf_t));
 
-    dft_run(p->ifft, p->ifft_in, p->ifft_out);
+    srslte_dft_run(p->ifft, p->ifft_in, p->ifft_out);
 
     // Copy CP into buffer
     memcpy(signal, &p->ifft_out[p->N_ifft_prach-p->N_cp], p->N_cp*sizeof(cf_t));
@@ -402,7 +406,7 @@ int prach_gen(prach_t *p,
     }
                 
     // Normalize 
-    vec_sc_prod_cfc(signal, beta_prach, signal, (p->N_cp + p->N_seq));
+    srslte_vec_sc_prod_cfc(signal, beta_prach, signal, (p->N_cp + p->N_seq));
 
     ret = SRSLTE_SUCCESS;
   }
@@ -411,7 +415,7 @@ int prach_gen(prach_t *p,
 }
 
 
-int prach_detect(prach_t *p,
+int srslte_prach_detect(srslte_prach_t *p,
                  uint32_t freq_offset,
                  cf_t *signal,
                  uint32_t sig_len,
@@ -425,12 +429,12 @@ int prach_detect(prach_t *p,
      indices != NULL)
   {
     if(sig_len != p->N_ifft_prach){
-      INFO("prach_detect: Signal is not of length %d", p->N_ifft_prach);
+      INFO("srslte_prach_detect: Signal is not of length %d", p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     // FFT incoming signal
-    dft_run(p->fft, signal, signal);
+    srslte_dft_run(p->fft, signal, signal);
 
     memset(p->prach_bins, 0, sizeof(cf_t)*p->N_zc);
     *n_indices = 0;
@@ -457,7 +461,7 @@ int prach_detect(prach_t *p,
         p->corr_spec[j] = p->prach_bins[j]*conjf(root_spec[j]);
       }
 
-      dft_run(p->zc_ifft, p->corr_spec, p->corr_spec);
+      srslte_dft_run(p->zc_ifft, p->corr_spec, p->corr_spec);
 
       float norm = sqrtf(p->N_zc);
       for(int j=0;j<p->N_zc;j++){
@@ -494,27 +498,27 @@ int prach_detect(prach_t *p,
   return ret;
 }
 
-int prach_free(prach_t *p) {
+int srslte_prach_free(srslte_prach_t *p) {
   free(p->prach_bins);
   free(p->corr_spec);
   free(p->corr);
-  dft_plan_free(p->ifft);
+  srslte_dft_plan_free(p->ifft);
   free(p->ifft);
   free(p->ifft_in);
   free(p->ifft_out);
-  dft_plan_free(p->fft);
+  srslte_dft_plan_free(p->fft);
   free(p->fft);
-  dft_plan_free(p->zc_fft);
+  srslte_dft_plan_free(p->zc_fft);
   free(p->zc_fft);
-  dft_plan_free(p->zc_ifft);
+  srslte_dft_plan_free(p->zc_ifft);
   free(p->zc_ifft);
 
-  bzero(p, sizeof(prach_t));
+  bzero(p, sizeof(srslte_prach_t));
 
   return 0;
 }
 
-int prach_print_seqs(prach_t *p)
+int srslte_prach_print_seqs(srslte_prach_t *p)
 {
   for(int i=0; i<N_SEQS;i++)
   {

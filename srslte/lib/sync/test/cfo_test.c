@@ -65,7 +65,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int i;
   cf_t *input, *output;
-  cfo_t cfocorr;
+  srslte_cfo_t cfocorr;
   float mse;
 
   if (argc < 5) {
@@ -91,20 +91,20 @@ int main(int argc, char **argv) {
     output[i] = input[i];
   }
 
-  if (cfo_init(&cfocorr, num_samples)) {
+  if (srslte_cfo_init(&cfocorr, num_samples)) {
     fprintf(stderr, "Error initiating CFO\n");
     return -1;
   }
 
-  cfo_correct(&cfocorr, output, output, freq);
-  cfo_correct(&cfocorr, output, output, -freq);
+  srslte_cfo_correct(&cfocorr, output, output, freq);
+  srslte_cfo_correct(&cfocorr, output, output, -freq);
 
   mse = 0;
   for (i=0;i<num_samples;i++) {
     mse += cabsf(input[i] - output[i]) / num_samples;
   }
 
-  cfo_free(&cfocorr);
+  srslte_cfo_free(&cfocorr);
   free(input);
   free(output);
 

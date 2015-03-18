@@ -31,19 +31,19 @@
 
 #include "srslte/utils/bit.h"
 
-void bit_pack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
+void srslte_bit_pack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits/8;
   for (i=0;i<nbytes;i++) {
-    bit_pack(bits_unpacked[i], &bits_packed, 8);
+    srslte_bit_pack(bits_unpacked[i], &bits_packed, 8);
   }
   if (nof_bits%8) {
-    bit_pack(bits_unpacked[i], &bits_packed, nof_bits%8);
+    srslte_bit_pack(bits_unpacked[i], &bits_packed, nof_bits%8);
   }
 }
 
-void bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
+void srslte_bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
 {
     int i;
 
@@ -53,19 +53,19 @@ void bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
     *bits += nof_bits;
 }
 
-void bit_unpack_vector(uint8_t *bits_packed, uint8_t *bits_unpacked, int nof_bits)
+void srslte_bit_unpack_vector(uint8_t *bits_packed, uint8_t *bits_unpacked, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits/8;
   for (i=0;i<nbytes;i++) {
-    bits_unpacked[i] = bit_unpack(&bits_packed, 8);
+    bits_unpacked[i] = srslte_bit_unpack(&bits_packed, 8);
   }
   if (nof_bits%8) {
-    bits_unpacked[i] = bit_unpack(&bits_packed, nof_bits%8);
+    bits_unpacked[i] = srslte_bit_unpack(&bits_packed, nof_bits%8);
   }
 }
 
-uint32_t bit_unpack(uint8_t **bits, int nof_bits)
+uint32_t srslte_bit_unpack(uint8_t **bits, int nof_bits)
 {
     int i;
     uint32_t value=0;
@@ -77,7 +77,7 @@ uint32_t bit_unpack(uint8_t **bits, int nof_bits)
     return value;
 }
 
-void bit_fprint(FILE *stream, uint8_t *bits, int nof_bits) {
+void srslte_bit_fprint(FILE *stream, uint8_t *bits, int nof_bits) {
   int i;
 
   fprintf(stream,"[");
@@ -87,7 +87,7 @@ void bit_fprint(FILE *stream, uint8_t *bits, int nof_bits) {
   fprintf(stream,"%d]\n",bits[i]);
 }
 
-uint32_t bit_diff(uint8_t *x, uint8_t *y, int nbits) {
+uint32_t srslte_bit_diff(uint8_t *x, uint8_t *y, int nbits) {
   uint32_t errors=0;
   for (int i=0;i<nbits;i++) {
     if (x[i] != y[i]) {
@@ -99,7 +99,7 @@ uint32_t bit_diff(uint8_t *x, uint8_t *y, int nbits) {
 }
 
 // Counts the number of ones in a word. K&R book exercise 2.9
-uint32_t bit_count(uint32_t n) {
+uint32_t srslte_bit_count(uint32_t n) {
   int c;
   for (c = 0; n; c++)
     n &= n - 1;

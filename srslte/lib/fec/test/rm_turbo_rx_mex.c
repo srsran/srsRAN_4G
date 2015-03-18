@@ -68,8 +68,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   trblklen = (uint32_t) mxGetScalar(TRBLKLEN);
   rvidx = (uint32_t) mxGetScalar(RV);
   
-  struct cb_segm cbsegm; 
-  codeblock_segmentation(&cbsegm, trblklen);
+  srslte_harq_cbsegm_t cbsegm; 
+  srslte_harq_codeblock_segmentation(&cbsegm, trblklen);
   cblen = 3*cbsegm.K1+12;
 
   w_buff_f = calloc(1,sizeof(float) * cblen * 10);
@@ -79,7 +79,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // allocate memory for output bits
-  output = vec_malloc(cblen * sizeof(float));
+  output = srslte_vec_malloc(cblen * sizeof(float));
 
   srslte_rm_turbo_rx(w_buff_f, cblen * 10, input, in_len, output, cblen,
       rvidx,cbsegm.F);

@@ -51,7 +51,7 @@ for i=1:length(TBs)
                                 subframe_mat(idx)=cw_mat;
                                 waveform = lteSCFDMAModulate(ueConfig,subframe_mat,0);
                                
-                                [waveform_lib, subframe_lib, cwlib]=liblte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
+                                [waveform_lib, subframe_lib, cwlib]=liblte_srslte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
                                 err=mean(abs(waveform-waveform_lib));
                                 if (err > 10^-6)
                                   disp(err)    

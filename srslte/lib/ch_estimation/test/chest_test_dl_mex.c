@@ -64,7 +64,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int i;
   srslte_cell_t cell; 
   srslte_chest_dl_t chest;
-  precoding_t cheq; 
+  srslte_precoding_t cheq; 
   cf_t *input_signal = NULL, *output_signal[SRSLTE_MAX_LAYERS]; 
   cf_t *output_signal2 = NULL;
   cf_t *ce[SRSLTE_MAX_PORTS]; 
@@ -153,15 +153,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /** Allocate input buffers */
   int nof_re = 2*SRSLTE_CP_NSYMB(cell.cp)*cell.nof_prb*SRSLTE_NRE;
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = vec_malloc(nof_re * sizeof(cf_t));
+    ce[i] = srslte_vec_malloc(nof_re * sizeof(cf_t));
   }
-  input_signal = vec_malloc(nof_re * sizeof(cf_t));
+  input_signal = srslte_vec_malloc(nof_re * sizeof(cf_t));
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    output_signal[i] = vec_malloc(nof_re * sizeof(cf_t));
+    output_signal[i] = srslte_vec_malloc(nof_re * sizeof(cf_t));
   }
-  output_signal2 = vec_malloc(nof_re * sizeof(cf_t));
+  output_signal2 = srslte_vec_malloc(nof_re * sizeof(cf_t));
   
-  precoding_init(&cheq, nof_re);
+  srslte_precoding_init(&cheq, nof_re);
   
   /* Create output values */
   if (nlhs >= 1) {
@@ -201,9 +201,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }    
        
     if (cell.nof_ports == 1) {
-      predecoding_single(&cheq, input_signal, ce[0], output_signal2, nof_re, srslte_chest_dl_get_noise_estimate(&chest));            
+      srslte_predecoding_single(&cheq, input_signal, ce[0], output_signal2, nof_re, srslte_chest_dl_get_noise_estimate(&chest));            
     } else {
-      predecoding_diversity(&cheq, input_signal, ce, output_signal, cell.nof_ports, nof_re, srslte_chest_dl_get_noise_estimate(&chest));
+      srslte_predecoding_diversity(&cheq, input_signal, ce, output_signal, cell.nof_ports, nof_re, srslte_chest_dl_get_noise_estimate(&chest));
       srslte_layerdemap_diversity(output_signal, output_signal2, cell.nof_ports, nof_re/cell.nof_ports);
     }
     
@@ -254,7 +254,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   srslte_chest_dl_free(&chest);
-  precoding_free(&cheq);
+  srslte_precoding_free(&cheq);
 
   return;
 }

@@ -69,14 +69,14 @@ float uhd_amp = 0.03, uhd_gain = 70.0, uhd_freq = 2400000000;
 
 bool null_file_sink=false; 
 srslte_filesink_t fsink;
-srslte_fft_t ifft;
-pbch_t pbch;
-pcfich_t pcfich;
-pdcch_t pdcch;
-pdsch_t pdsch;
-harq_t harq_process;
-regs_t regs;
-ra_pdsch_t ra_dl;  
+srslte_ofdm_t ifft;
+srslte_pbch_t pbch;
+srslte_pcfich_t pcfich;
+srslte_pdcch_t pdcch;
+srslte_pdsch_t pdsch;
+srslte_harq_t harq_process;
+srslte_regs_t regs;
+srslte_ra_pdsch_t ra_dl;  
 
 
 cf_t *sf_buffer = NULL, *output_buffer = NULL;
@@ -108,7 +108,7 @@ void usage(char *prog) {
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-u listen TCP port for input data (-1 is random) [Default %d]\n", net_port);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -146,7 +146,7 @@ void parse_args(int argc, char **argv) {
       cell.id = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -216,44 +216,44 @@ void base_init() {
   }
 
   /* create ifft object */
-  if (lte_ifft_init(&ifft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&ifft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
-  srslte_fft_set_normalize(&ifft, true);
-  if (pbch_init(&pbch, cell)) {
+  srslte_ofdm_set_normalize(&ifft, true);
+  if (srslte_pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
 
-  if (regs_init(&regs, cell)) {
+  if (srslte_regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     exit(-1);
   }
 
-  if (pcfich_init(&pcfich, &regs, cell)) {
+  if (srslte_pcfich_init(&pcfich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
 
-  if (regs_set_cfi(&regs, cfi)) {
+  if (srslte_regs_set_cfi(&regs, cfi)) {
     fprintf(stderr, "Error setting CFI\n");
     exit(-1);
   }
 
-  if (pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
 
-  if (pdsch_init(&pdsch, cell)) {
+  if (srslte_pdsrslte_sch_init(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
   
-  pdsch_set_rnti(&pdsch, 1234);
+  srslte_pdsch_set_rnti(&pdsch, 1234);
   
-  if (harq_init(&harq_process, cell)) {
+  if (srslte_harq_init(&harq_process, cell)) {
     fprintf(stderr, "Error initiating HARQ process\n");
     exit(-1);
   }
@@ -262,12 +262,12 @@ void base_init() {
 void base_free() {
 
   harq_free(&harq_process);
-  pdsch_free(&pdsch);
-  pdcch_free(&pdcch);
-  regs_free(&regs);
-  pbch_free(&pbch);
+  srslte_pdsch_free(&pdsch);
+  srslte_pdcch_free(&pdcch);
+  srslte_regs_free(&regs);
+  srslte_pbch_free(&pbch);
 
-  lte_ifft_free(&ifft);
+  srslte_ofdm_rx_free(&ifft);
 
   if (sf_buffer) {
     free(sf_buffer);
@@ -304,7 +304,7 @@ reverse(register unsigned int x)
 
 uint32_t prbset_to_bitmask() {
   uint32_t mask=0;
-  int nb = (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb));
+  int nb = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
   for (int i=0;i<nb;i++) {
     if (i >= prbset_orig && i < prbset_orig + prbset_num) {
       mask = mask | (0x1<<i);     
@@ -314,25 +314,25 @@ uint32_t prbset_to_bitmask() {
 }
 
 int update_radl(uint32_t sf_idx) {
-  ra_dl_alloc_t prb_alloc;
+  srslte_srslte_ra_dl_alloc_t prb_alloc;
   
-  bzero(&ra_dl, sizeof(ra_pdsch_t));
+  bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
   ra_dl.harq_process = 0;
   ra_dl.mcs_idx = mcs_idx;
   ra_dl.ndi = 0;
   ra_dl.rv_idx = 0;
-  ra_dl.alloc_type = alloc_type0;
+  ra_dl.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
     
-  ra_dl_alloc(&prb_alloc, &ra_dl, cell.nof_prb);
-  ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, SRSLTE_SRSLTE_CP_NORM);
-  ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
+  srslte_ra_dl_alloc(&prb_alloc, &ra_dl, cell.nof_prb);
+  srslte_ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, SRSLTE_SRSLTE_CP_NORM);
+  srslte_ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
 
-  ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
+  srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   printf("Type new MCS index and press Enter: "); fflush(stdout);
   
-  harq_reset(&harq_process);
-  if (harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &prb_alloc)) {
+  srslte_harq_reset(&harq_process);
+  if (srslte_harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
     return -1; 
   }
@@ -359,7 +359,7 @@ int update_control(uint32_t sf_idx) {
       if(input[0] == 27) {
         switch(input[2]) {
           case RIGHT_KEY:
-            if (prbset_orig  + prbset_num < (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb)))
+            if (prbset_orig  + prbset_num < (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb)))
               prbset_orig++;
             break;
           case LEFT_KEY:
@@ -367,7 +367,7 @@ int update_control(uint32_t sf_idx) {
               prbset_orig--;
             break;
           case UP_KEY:
-            if (prbset_num < (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb)))
+            if (prbset_num < (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb)))
               prbset_num++;
             break;
           case DOWN_KEY:
@@ -417,7 +417,7 @@ void *net_thread_fnc(void *arg) {
       while (rpm >= nbytes) {
         // wait for packet to be transmitted
         sem_wait(&net_sem);
-        bit_pack_vector(&data_unpacked[wpm], data, nbytes*8);          
+        srslte_bit_pack_vector(&data_unpacked[wpm], data, nbytes*8);          
         INFO("Sent %d/%d bytes ready\n", nbytes, rpm);
         rpm -= nbytes;          
         wpm += nbytes; 
@@ -439,15 +439,15 @@ void *net_thread_fnc(void *arg) {
 
 int main(int argc, char **argv) {
   int nf=0, sf_idx=0, N_id_2=0;
-  cf_t pss_signal[PSS_LEN];
-  float sss_signal0[SSS_LEN]; // for subframe 0
-  float sss_signal5[SSS_LEN]; // for subframe 5
+  cf_t pss_signal[SRSLTE_PSS_LEN];
+  float sss_signal0[SRSLTE_SSS_LEN]; // for subframe 0
+  float sss_signal5[SRSLTE_SSS_LEN]; // for subframe 5
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN/8];
   int i;
   cf_t *sf_symbols[SRSLTE_MAX_PORTS];
   cf_t *slot1_symbols[SRSLTE_MAX_PORTS];
-  dci_msg_t dci_msg;
-  dci_location_t locations[SRSLTE_NSUBFRAMES_X_FRAME][30];
+  srslte_dci_msg_t dci_msg;
+  srslte_dci_location_t locations[SRSLTE_NSUBFRAMES_X_FRAME][30];
   uint32_t sfn; 
   srslte_chest_dl_t est; 
   
@@ -468,15 +468,15 @@ int main(int argc, char **argv) {
   cell.phich_resources = SRSLTE_PHICH_R_1;
   sfn = 0;
 
-  prbset_num = (int) ceilf((float) cell.nof_prb / ra_type0_P(cell.nof_prb)); 
+  prbset_num = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb)); 
   last_prbset_num = prbset_num; 
   
   /* this *must* be called after setting slot_len_* */
   base_init();
 
   /* Generate PSS/SSS signals */
-  pss_generate(pss_signal, N_id_2);
-  sss_generate(sss_signal0, sss_signal5, cell.id);
+  srslte_pss_generate(pss_signal, N_id_2);
+  srslte_sss_generate(sss_signal0, sss_signal5, cell.id);
   
   /* Generate CRS signals */
   if (srslte_chest_dl_init(&est, cell)) {
@@ -512,7 +512,7 @@ int main(int argc, char **argv) {
   
   /* Initiate valid DCI locations */
   for (i=0;i<SRSLTE_NSUBFRAMES_X_FRAME;i++) {
-    pdcch_ue_locations(&pdcch, locations[i], 30, i, cfi, 1234);
+    srslte_pdcch_ue_locations(&pdcch, locations[i], 30, i, cfi, 1234);
     
   }
     
@@ -525,20 +525,20 @@ int main(int argc, char **argv) {
       bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
       if (sf_idx == 0 || sf_idx == 5) {
-        pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, SRSLTE_SRSLTE_CP_NORM);
-        sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
+        srslte_pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, SRSLTE_SRSLTE_CP_NORM);
+        srslte_sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
             SRSLTE_SRSLTE_CP_NORM);
       }
 
       srslte_refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);
 
       bcch_bch_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
-      bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
+      srslte_bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
       if (sf_idx == 0) {
-        pbch_encode(&pbch, bch_payload, slot1_symbols);
+        srslte_pbch_encode(&pbch, bch_payload, slot1_symbols);
       }
 
-      pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
+      srslte_pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
 
       /* Update DL resource allocation from control port */
       if (update_control(sf_idx)) {
@@ -564,20 +564,20 @@ int main(int argc, char **argv) {
       }
       
       if (send_data) {
-        dci_msg_pack_pdsch(&ra_dl, &dci_msg, Format1, cell.nof_prb, false);
+        srslte_dci_msg_pack_pdsch(&ra_dl, &dci_msg, SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
         INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
-        if (pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
+        if (encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
           fprintf(stderr, "Error encoding DCI message\n");
           exit(-1);
         }
         
-        if (pdsch_encode(&pdsch, &harq_process, data, sf_symbols)) {
+        if (srslte_pdsch_encode(&pdsch, &harq_process, data, sf_symbols)) {
           fprintf(stderr, "Error encoding PDSCH\n");
           exit(-1);
         }        
         if (net_port > 0 && net_packet_ready) {
           if (null_file_sink) {
-            bit_unpack_vector(data, data_tmp, ra_dl.mcs.tbs);
+            srslte_bit_unpack_vector(data, data_tmp, ra_dl.mcs.tbs);
             if (srslte_netsink_write(&net_sink, data_tmp, 1+(ra_dl.mcs.tbs-1)/8) < 0) {
               fprintf(stderr, "Error sending data through UDP socket\n");
             }            
@@ -588,10 +588,10 @@ int main(int argc, char **argv) {
       }
       
       /* Transform to OFDM symbols */
-      lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
+      srslte_ofdm_rx_sf(&ifft, sf_buffer, output_buffer);
       
       float norm_factor = (float) cell.nof_prb/15/sqrtf(ra_dl.prb_alloc.slot[0].nof_prb);
-      vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+      srslte_vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
       
       /* send to file or usrp */
       if (output_file_name) {
@@ -601,7 +601,7 @@ int main(int argc, char **argv) {
         usleep(1000);
       } else {
 #ifndef DISABLE_UHD
-        vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);
+        srslte_vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);
         cuhd_send(uhd, output_buffer, sf_n_samples, true);
 #endif
       }

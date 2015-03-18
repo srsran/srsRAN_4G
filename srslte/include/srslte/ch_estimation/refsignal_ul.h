@@ -86,14 +86,14 @@ SRSLTE_API void srslte_refsignal_drms_pusch_put(srslte_refsignal_ul_t *q,
                                                 uint32_t n_prb[2], 
                                                 cf_t *sf_symbols); 
 
-SRSLTE_API int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, 
+SRSLTE_API int srslte_refsignal_dmrs_gen(srslte_refsignal_ul_t *q, 
                                                srslte_refsignal_drms_pusch_cfg_t *cfg, 
                                                uint32_t nof_prb, 
                                                uint32_t sf_idx, 
                                                cf_t *r_pusch);
 
 SRSLTE_API int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, 
-                                               pucch_cfg_t *cfg, 
+                                               srslte_pucch_cfg_t *cfg, 
                                                uint32_t sf_idx, 
                                                uint32_t n_rb, 
                                                cf_t *r_pucch) ;

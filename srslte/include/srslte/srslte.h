@@ -41,17 +41,12 @@
 #include "srslte/utils/bit.h"
 #include "srslte/utils/convolution.h"
 #include "srslte/utils/debug.h"
-#include "srslte/utils/dft.h"
-#include "srslte/utils/matrix.h"
-#include "srslte/utils/mux.h"
 #include "srslte/utils/cexptab.h"
-#include "srslte/utils/pack.h"
 #include "srslte/utils/vector.h"
 
 #include "srslte/common/timestamp.h"
 #include "srslte/common/sequence.h"
 #include "srslte/common/phy_common.h"
-#include "srslte/common/fft.h"
             
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/ch_estimation/refsignal_dl.h"
@@ -72,8 +67,9 @@
 #include "srslte/fec/rm_conv.h"
 #include "srslte/fec/rm_turbo.h"
 
-#include "srslte/filter/filter2d.h"
-#include "srslte/filter/dft_precoding.h"
+#include "srslte/dft/dft_precoding.h"
+#include "srslte/dft/ofdm.h"
+#include "srslte/dft/dft.h"
 
 #include "srslte/io/binsource.h"
 #include "srslte/io/filesink.h"

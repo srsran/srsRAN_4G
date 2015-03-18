@@ -106,9 +106,9 @@ static int int_2_bits(uint32_t* src, uint8_t* dst, int nbits) {
   int n;
   n=nbits/32;
   for (int i=0;i<n;i++) {
-    bit_pack(src[i],&dst,32);
+    srslte_bit_pack(src[i],&dst,32);
   }
-  bit_pack(src[n],&dst,nbits-n*32);
+  srslte_bit_pack(src[n],&dst,nbits-n*32);
   return n;
 }
 

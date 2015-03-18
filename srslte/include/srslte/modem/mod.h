@@ -37,24 +37,27 @@
 
 typedef _Complex float cf_t;
 
-SRSLTE_API int mod_modulate(modem_table_t* table, const uint8_t *bits, cf_t* symbols, uint32_t nbits);
+SRSLTE_API int srslte_mod_modulate(srslte_srslte_modem_table_t* table, 
+                                   uint8_t *bits, 
+                                   cf_t* symbols, 
+                                   uint32_t nbits);
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  modem_table_t obj;
+  srslte_srslte_modem_table_t obj;
   struct mod_init {
     srslte_mod_t std;  // symbol mapping standard (see modem_table.h)
   } init;
 
-  const uint8_t* input;
+  uint8_t* input;
   int in_len;
 
   cf_t* output;
   int out_len;
-}mod_hl;
+}srslte_mod_hl;
 
-SRSLTE_API int mod_initialize(mod_hl* hl);
-SRSLTE_API int mod_work(mod_hl* hl);
-SRSLTE_API int mod_stop(mod_hl* hl);
+SRSLTE_API int mod_initialize(srslte_mod_hl* hl);
+SRSLTE_API int mod_work(srslte_mod_hl* hl);
+SRSLTE_API int mod_stop(srslte_mod_hl* hl);
 
 #endif // MOD_

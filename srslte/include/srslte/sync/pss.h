@@ -40,21 +40,21 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 
 #define CONVOLUTION_FFT
 
-#define PSS_LEN     62
-#define PSS_RE      6*12
+#define SRSLTE_PSS_LEN     62
+#define SRSLTE_PSS_RE      (6*12)
 
 
 /* PSS processing options */
 
-#define PSS_ACCUMULATE_ABS   // If enabled, accumulates the correlation absolute value on consecutive calls to pss_synch_find_pss
+#define SRSLTE_PSS_ACCUMULATE_ABS   // If enabled, accumulates the correlation absolute value on consecutive calls to srslte_pss_synch_find_pss
 
-#define PSS_ABS_SQUARE   // If enabled, compute abs square, otherwise computes absolute value only 
+#define SRSLTE_PSS_ABS_SQUARE   // If enabled, compute abs square, otherwise computes absolute value only 
 
-#define PSS_RETURN_PSR  // If enabled returns peak to side-lobe ratio, otherwise returns absolute peak value
+#define SRSLTE_PSS_RETURN_PSR  // If enabled returns peak to side-lobe ratio, otherwise returns absolute peak value
 
 /**
- * The pss_synch_t object provides functions for fast computation of the crosscorrelation
- * between the PSS and received signal and CFO estimation. Also, the function pss_synch_periodic() is designed
+ * The srslte_pss_synch_t object provides functions for fast computation of the crosscorrelation
+ * between the PSS and received signal and CFO estimation. Also, the function srslte_pss_synch_tperiodic() is designed
  * to be called periodically every subframe, taking care of the correct data alignment with respect
  * to the PSS sequence.
  *
@@ -70,14 +70,14 @@ typedef struct SRSLTE_API {
   srslte_dft_plan_t dftp_input; 
   
 #ifdef CONVOLUTION_FFT
-  conv_fft_cc_t conv_fft;
+  srslte_conv_fft_cc_t conv_fft;
 #endif
 
   uint32_t frame_size;
   uint32_t N_id_2;
   uint32_t fft_size;
 
-  cf_t pss_signal_time[3][PSS_LEN];
+  cf_t pss_signal_time[3][SRSLTE_PSS_LEN];
   cf_t *pss_signal_freq[3]; // One sequence for each N_id_2
   cf_t *tmp_input;
   cf_t *conv_output;
@@ -85,53 +85,53 @@ typedef struct SRSLTE_API {
   float ema_alpha; 
   float *conv_output_avg;
   float peak_value;
-}pss_synch_t;
+}srslte_pss_synch_t;
 
 typedef enum { PSS_TX, PSS_RX } pss_direction_t;
 
 /* Basic functionality */
-SRSLTE_API int pss_synch_init_fft(pss_synch_t *q, 
-                                  uint32_t frame_size, 
-                                  uint32_t fft_size);
+SRSLTE_API int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, 
+                                         uint32_t frame_size, 
+                                         uint32_t fft_size);
 
-SRSLTE_API int pss_synch_init(pss_synch_t *q, 
-                              uint32_t frame_size);
+SRSLTE_API int srslte_pss_synch_init(srslte_pss_synch_t *q, 
+                                     uint32_t frame_size);
 
-SRSLTE_API void pss_synch_free(pss_synch_t *q);
+SRSLTE_API void srslte_pss_synch_free(srslte_pss_synch_t *q);
 
-SRSLTE_API void pss_synch_reset(pss_synch_t *q); 
+SRSLTE_API void srslte_pss_synch_reset(srslte_pss_synch_t *q); 
 
-SRSLTE_API int pss_generate(cf_t *signal, 
-                            uint32_t N_id_2);
+SRSLTE_API int srslte_pss_generate(cf_t *signal, 
+                                   uint32_t N_id_2);
 
-SRSLTE_API void pss_put_slot(cf_t *pss_signal, 
-                             cf_t *slot, 
-                             uint32_t nof_prb, 
-                             srslte_cp_t cp);
+SRSLTE_API void srslte_pss_put_slot(cf_t *pss_signal, 
+                                    cf_t *slot, 
+                                    uint32_t nof_prb, 
+                                    srslte_cp_t cp);
 
-SRSLTE_API void pss_synch_set_ema_alpha(pss_synch_t *q, 
-                                        float alpha); 
+SRSLTE_API void srslte_pss_synch_set_ema_alpha(srslte_pss_synch_t *q, 
+                                               float alpha); 
 
-SRSLTE_API int pss_synch_set_N_id_2(pss_synch_t *q, 
-                                    uint32_t N_id_2);
+SRSLTE_API int srslte_pss_synch_set_N_id_2(srslte_pss_synch_t *q, 
+                                           uint32_t N_id_2);
 
-SRSLTE_API int pss_synch_find_pss(pss_synch_t *q, 
-                                  cf_t *input, 
-                                  float *corr_peak_value);
+SRSLTE_API int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, 
+                                         cf_t *input, 
+                                         float *corr_peak_value);
 
-SRSLTE_API int pss_synch_chest(pss_synch_t *q, 
-                               cf_t *input, 
-                               cf_t ce[PSS_LEN]); 
+SRSLTE_API int srslte_pss_synch_chest(srslte_pss_synch_t *q, 
+                                      cf_t *input, 
+                                      cf_t ce[SRSLTE_PSS_LEN]); 
 
-SRSLTE_API float pss_synch_cfo_compute(pss_synch_t* q, 
-                                       cf_t *pss_recv);
+SRSLTE_API float srslte_pss_synch_cfo_compute(srslte_pss_synch_t* q, 
+                                              cf_t *pss_recv);
 
 
 /* High-level API */
 
 typedef struct SRSLTE_API {
-  pss_synch_t obj;
-  struct pss_synch_init {
+  srslte_pss_synch_t obj;
+  struct srslte_pss_synch_init {
     int frame_size;        // if 0, 2048
     int unsync_nof_pkts;
     int N_id_2;
@@ -139,19 +139,19 @@ typedef struct SRSLTE_API {
   } init;
   cf_t *input;
   int in_len;
-  struct pss_synch_ctrl_in {
+  struct srslte_pss_synch_tctrl_in {
     int correlation_threshold;
     float manual_cfo;
   } ctrl_in;
   cf_t *output;
   int out_len;
-}pss_synch_hl;
+}srslte_pss_synch_hl;
 
 #define DEFAULT_FRAME_SIZE    2048
 
-SRSLTE_API int pss_synch_initialize(pss_synch_hl* h);
-SRSLTE_API int pss_synch_work(pss_synch_hl* hl);
-SRSLTE_API int pss_synch_stop(pss_synch_hl* hl);
+SRSLTE_API int srslte_pss_synch_initialize(srslte_pss_synch_hl* h);
+SRSLTE_API int srslte_pss_synch_twork(srslte_pss_synch_hl* hl);
+SRSLTE_API int srslte_pss_synch_tstop(srslte_pss_synch_hl* hl);
 
 
 #endif // PSS_

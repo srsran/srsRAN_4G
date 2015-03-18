@@ -38,26 +38,26 @@
 #include "lte_tables.h"
 
 /** Internal functions */
-static int table_create(modem_table_t* q) {
+static int table_create(srslte_srslte_modem_table_t* q) {
   q->symbol_table = malloc(q->nsymbols*sizeof(cf_t));
   return q->symbol_table==NULL;
 }
 
-void modem_table_init(modem_table_t* q) {
-  bzero((void*)q,sizeof(modem_table_t));
+void srslte_modem_table_init(srslte_srslte_modem_table_t* q) {
+  bzero((void*)q,sizeof(srslte_srslte_modem_table_t));
 }
-void modem_table_free(modem_table_t* q) {
+void srslte_modem_table_free(srslte_srslte_modem_table_t* q) {
   if (q->symbol_table) {
     free(q->symbol_table);
   }
-  bzero(q, sizeof(modem_table_t));
+  bzero(q, sizeof(srslte_srslte_modem_table_t));
 }
-void modem_table_reset(modem_table_t* q) {
-  modem_table_free(q);
-  modem_table_init(q);
+void srslte_modem_table_reset(srslte_srslte_modem_table_t* q) {
+  srslte_modem_table_free(q);
+  srslte_modem_table_init(q);
 }
 
-int modem_table_set(modem_table_t* q, cf_t* table, soft_table_t *soft_table, uint32_t nsymbols, uint32_t nbits_x_symbol) {
+int srslte_modem_table_set(srslte_srslte_modem_table_t* q, cf_t* table, srslte_soft_table_t *soft_table, uint32_t nsymbols, uint32_t nbits_x_symbol) {
   if (q->nsymbols) {
     return SRSLTE_ERROR;
   }
@@ -66,14 +66,14 @@ int modem_table_set(modem_table_t* q, cf_t* table, soft_table_t *soft_table, uin
     return SRSLTE_ERROR;
   }
   memcpy(q->symbol_table,table,q->nsymbols*sizeof(cf_t));
-  memcpy(&q->soft_table,soft_table,sizeof(soft_table_t));
+  memcpy(&q->soft_table,soft_table,sizeof(srslte_soft_table_t));
   q->nbits_x_symbol = nbits_x_symbol;
   return SRSLTE_SUCCESS;
 }
 
-int modem_table_lte(modem_table_t* q, srslte_mod_t modulation, bool compute_soft_demod) {
+int srslte_modem_table_lte(srslte_srslte_modem_table_t* q, srslte_mod_t modulation, bool compute_soft_demod) {
   switch(modulation) {
-  case LTE_BPSK:
+  case SRSLTE_MOD_BPSK:
     q->nbits_x_symbol = 1;
     q->nsymbols = 2;
     if (table_create(q)) {
@@ -81,7 +81,7 @@ int modem_table_lte(modem_table_t* q, srslte_mod_t modulation, bool compute_soft
     }
     set_BPSKtable(q->symbol_table, &q->soft_table, compute_soft_demod);
     break;
-  case LTE_QPSK:
+  case SRSLTE_MOD_QPSK:
     q->nbits_x_symbol = 2;
     q->nsymbols = 4;
     if (table_create(q)) {
@@ -89,7 +89,7 @@ int modem_table_lte(modem_table_t* q, srslte_mod_t modulation, bool compute_soft
     }
     set_QPSKtable(q->symbol_table, &q->soft_table, compute_soft_demod);
     break;
-  case LTE_QAM16:
+  case SRSLTE_MOD_16QAM:
     q->nbits_x_symbol = 4;
     q->nsymbols = 16;
     if (table_create(q)) {
@@ -97,7 +97,7 @@ int modem_table_lte(modem_table_t* q, srslte_mod_t modulation, bool compute_soft
     }
     set_16QAMtable(q->symbol_table, &q->soft_table, compute_soft_demod);
     break;
-  case LTE_QAM64:
+  case SRSLTE_MOD_64QAM:
     q->nbits_x_symbol = 6;
     q->nsymbols = 64;
     if (table_create(q)) {

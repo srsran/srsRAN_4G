@@ -40,17 +40,17 @@
 #include "srslte/utils/bit.h"
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
-#include "srslte/filter/dft_precoding.h"
+#include "srslte/dft/dft_precoding.h"
 
 #define MAX_PUSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
-bool pucch_cfg_isvalid(pucch_cfg_t *cfg) {
+bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t *cfg) {
   return true;
 }
 
 
 /* Generates n_cs_cell according to Sec 5.4 of 36.211 */
-int generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB]) 
+int srslte_generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB]) 
 {
   srslte_sequence_t seq; 
   bzero(&seq, sizeof(srslte_sequence_t));
@@ -71,8 +71,8 @@ int generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FR
 
 
 /* Calculates alpha according to 5.5.2.2.2 of 36.211 */
-float pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB], 
-                      pucch_cfg_t *cfg, 
+float srslte_pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB], 
+                      srslte_pucch_cfg_t *cfg, 
                       srslte_cp_t cp, bool is_drms,
                       uint32_t ns, uint32_t l, 
                       uint32_t *n_oc_ptr) 
@@ -104,30 +104,30 @@ float pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SR
   return 2 * M_PI * (n_cs) / 12;
 }
 
-int pucch_cp(pucch_t *q, harq_t *harq, cf_t *input, cf_t *output, bool advance_input) 
+int pucch_cp(srslte_pucch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output, bool advance_input) 
 {
   return SRSLTE_ERROR;
 }
 
-int pucch_put(pucch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
+int pucch_put(srslte_pucch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output) {
   return pucch_cp(q, harq, input, output, true);
 }
 
-int pucch_get(pucch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
+int pucch_get(srslte_pucch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output) {
   return pucch_cp(q, harq, input, output, false);
 }
 
 
 /** Initializes the PDCCH transmitter and receiver */
-int pucch_init(pucch_t *q, srslte_cell_t cell) {
+int srslte_pucch_init(srslte_pucch_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL && srslte_cell_isvalid(&cell)) {
     ret = SRSLTE_ERROR;
-    bzero(q, sizeof(pucch_t));
+    bzero(q, sizeof(srslte_pucch_t));
     
     q->cell = cell; 
     
-    if (generate_n_cs_cell(q->cell, q->n_cs_cell)) {
+    if (srslte_generate_n_cs_cell(q->cell, q->n_cs_cell)) {
       return SRSLTE_ERROR;
     }
 
@@ -136,13 +136,13 @@ int pucch_init(pucch_t *q, srslte_cell_t cell) {
   return ret;
 }
 
-void pucch_free(pucch_t *q) {
- bzero(q, sizeof(pucch_t));
+void srslte_pucch_free(srslte_pucch_t *q) {
+ bzero(q, sizeof(srslte_pucch_t));
 }
 
 /** Decodes the PUSCH from the received symbols
  */
-int pucch_decode(pucch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noise_estimate, uint8_t *data) 
+int pucch_decode(srslte_pucch_t *q, srslte_harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noise_estimate, uint8_t *data) 
 {
   return SRSLTE_ERROR_INVALID_INPUTS;
 }
@@ -171,18 +171,18 @@ static cf_t uci_encode_format1b(uint8_t bits[2]) {
   }
 }
 
-static void uci_mod_bits(pucch_t *q, pucch_cfg_t *cfg, uint8_t bits[PUCCH_MAX_BITS])
+static void uci_mod_bits(srslte_pucch_t *q, srslte_pucch_cfg_t *cfg, uint8_t bits[SRSLTE_PUCCH_MAX_BITS])
 {  
   cf_t d_0 = 0;
   uint8_t tmp[2];
   switch(cfg->format) {
-    case PUCCH_FORMAT_1:
+    case SRSLTE_PUCCH_FORMAT_1:
       d_0 = uci_encode_format1();
       break;
-    case PUCCH_FORMAT_1A:
+    case SRSLTE_PUCCH_FORMAT_1A:
       d_0 = uci_encode_format1a(bits[0]);
       break;
-    case PUCCH_FORMAT_1B:
+    case SRSLTE_PUCCH_FORMAT_1B:
       tmp[0] = bits[0];
       tmp[1] = bits[1];
       d_0 = uci_encode_format1b(tmp);
@@ -191,13 +191,13 @@ static void uci_mod_bits(pucch_t *q, pucch_cfg_t *cfg, uint8_t bits[PUCCH_MAX_BI
       return;
   }
   /*
-  for (uint32_t n=0;n<PUCCH_N_SEQ;n++) {
+  for (uint32_t n=0;n<SRSLTE_PUCCH_N_SEQ;n++) {
     q->y[n] = d_0+
   }
   */
 }
 
-int pucch_encode(pucch_t *q, pucch_cfg_t *cfg, uint8_t bits[PUCCH_MAX_BITS], cf_t *sf_symbols) 
+int srslte_pucch_encode(srslte_pucch_t *q, srslte_pucch_cfg_t *cfg, uint8_t bits[SRSLTE_PUCCH_MAX_BITS], cf_t *sf_symbols) 
 {
   uci_mod_bits(q, cfg, bits);
   return SRSLTE_ERROR;     

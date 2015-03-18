@@ -43,7 +43,7 @@ cec.InterpWinSize = 1;                % Interpolation window size
 %% DCI Message Generation
 % Generate a DCI message to be mapped to the PDCCH.
 
-dciConfig.DCIFormat = 'Format1A';   % DCI message format
+dciConfig.DCIFormat = 'SRSLTE_DCI_FORMAT1A';   % DCI message format
 dciConfig.Allocation.RIV = 26;      % Resource indication value
 
 % Create DCI message for given configuration

@@ -6,7 +6,7 @@
 #include <time.h>
 #include <complex.h>
 
-#include "srslte/utils/dft.h"
+#include "srslte/dft/dft.h"
 
 typedef _Complex float cf_t;
 
@@ -67,13 +67,13 @@ int test_dft(cf_t* in){
 
   srslte_dft_plan_t plan;
   if(forward){
-    dft_plan(&plan, N, FORWARD, COMPLEX);
+    srslte_dft_plan(&plan, N, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX);
   } else {
-    dft_plan(&plan, N, BACKWARD, COMPLEX);
+    srslte_dft_plan(&plan, N, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX);
   }
-  dft_plan_set_mirror(&plan, mirror);
-  dft_plan_set_norm(&plan, norm);
-  dft_plan_set_dc(&plan, dc);
+  srslte_dft_plan_set_mirror(&plan, mirror);
+  srslte_dft_plan_set_norm(&plan, norm);
+  srslte_dft_plan_set_dc(&plan, dc);
 
   cf_t* out1 = malloc(sizeof(cf_t)*N);
   cf_t* out2 = malloc(sizeof(cf_t)*N);
@@ -81,20 +81,20 @@ int test_dft(cf_t* in){
   bzero(out2, sizeof(cf_t)*N);
 
   print(in, N);
-  dft_run(&plan, in, out1);
+  srslte_dft_run(&plan, in, out1);
   print(out1, N);
 
   srslte_dft_plan_t plan_rev;
   if(!forward){
-    dft_plan(&plan_rev, N, FORWARD, COMPLEX);
+    srslte_dft_plan(&plan_rev, N, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX);
   } else {
-    dft_plan(&plan_rev, N, BACKWARD, COMPLEX);
+    srslte_dft_plan(&plan_rev, N, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX);
   }
-  dft_plan_set_mirror(&plan_rev, mirror);
-  dft_plan_set_norm(&plan_rev, norm);
-  dft_plan_set_dc(&plan_rev, dc);
+  srslte_dft_plan_set_mirror(&plan_rev, mirror);
+  srslte_dft_plan_set_norm(&plan_rev, norm);
+  srslte_dft_plan_set_dc(&plan_rev, dc);
 
-  dft_run(&plan_rev, out1, out2);
+  srslte_dft_run(&plan_rev, out1, out2);
   print(out2, N);
 
   if(!norm){
@@ -109,8 +109,8 @@ int test_dft(cf_t* in){
       res = -1;
   }
 
-  dft_plan_free(&plan);
-  dft_plan_free(&plan_rev);
+  srslte_dft_plan_free(&plan);
+  srslte_dft_plan_free(&plan_rev);
   free(out1);
   free(out2);
 

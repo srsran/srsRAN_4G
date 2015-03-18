@@ -23,12 +23,12 @@
 # FFT TEST  
 ########################################################################
 
-ADD_EXECUTABLE(fft_test fft_test.c)
-TARGET_LINK_LIBRARIES(fft_test lte_phy)
+ADD_EXECUTABLE(ofdm_test ofdm_test.c)
+TARGET_LINK_LIBRARIES(ofdm_test lte_phy)
 
-ADD_TEST(fft_normal fft_test) 
-ADD_TEST(fft_extended fft_test -e) 
+ADD_TEST(ofdm_normal ofdm_test) 
+ADD_TEST(ofdm_extended ofdm_test -e) 
 
-ADD_TEST(fft_normal_single fft_test -n 6) 
-ADD_TEST(fft_extended_single fft_test -e -n 6) 
+ADD_TEST(ofdm_normal_single ofdm_test -n 6) 
+ADD_TEST(ofdm_extended_single ofdm_test -e -n 6) 
 

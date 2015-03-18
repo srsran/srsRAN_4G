@@ -44,7 +44,7 @@
 #include "srslte/utils/debug.h"
 
 /* Table 5.2.2.6.4-1: Basis sequence for (32, O) code */
-static uint8_t M_basis_seq_pusch[32][11]={
+static uint8_t M_basis_seq[32][11]={
                                     {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
                                     {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1 },
                                     {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1 },
@@ -103,18 +103,18 @@ static uint8_t M_basis_seq_pucch[20][13]={
                                   {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0},
                                   };                                    
                                     
-int uci_cqi_init(uci_cqi_pusch_t *q) {
+int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q) {
   if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC8, 8)) {
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
 }
 
-void uci_cqi_free(uci_cqi_pusch_t *q) {
+void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t *q) {
   
 }
 
-static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, harq_t *harq) {
+static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, srslte_harq_t *harq) {
   uint32_t M_sc = harq->ul_alloc.L_prb * SRSLTE_NRE;
   
   uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
@@ -126,7 +126,7 @@ static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, harq_t 
     uint32_t L = (O<11)?0:8;
     uint32_t x = (uint32_t) ceilf((float) (O+L)*M_sc_init*harq->nof_symb*beta/K);
 
-    Q_prime = MIN(x, M_sc * harq->nof_symb - Q_prime_ri);    
+    Q_prime = SRSLTE_MIN(x, M_sc * harq->nof_symb - Q_prime_ri);    
   } else {
     Q_prime = 12*harq->ul_alloc.L_prb*SRSLTE_NRE - Q_prime_ri;
   }
@@ -136,9 +136,9 @@ static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, harq_t 
 
 /* Encode UCI CQI/PMI for payloads equal or lower to 11 bits (Sec 5.2.2.6.4)
  */
-int encode_cqi_short(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
+int encode_cqi_short(srslte_uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
 {
-  if (nof_bits          < MAX_CQI_LEN_PUSCH &&
+  if (nof_bits          < SRSLTE_UCI_MAX_CQI_LEN_PUSCH &&
       q                 != NULL             &&
       data              != NULL             &&
       q_bits            != NULL) 
@@ -146,7 +146,7 @@ int encode_cqi_short(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8
     for (int i=0;i<32;i++) {
       q->encoded_cqi[i] = 0;
       for (int n=0;n<nof_bits;n++) {
-        q->encoded_cqi[i] += (data[n] * M_basis_seq_pusch[i][n]); 
+        q->encoded_cqi[i] += (data[n] * M_basis_seq[i][n]); 
       }
     }
     
@@ -161,11 +161,11 @@ int encode_cqi_short(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8
 
 /* Encode UCI CQI/PMI for payloads greater than 11 bits (go through CRC, conv coder and rate match)
  */
-int encode_cqi_long(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
+int encode_cqi_long(srslte_uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
 {
   srslte_convcoder_t encoder;
 
-  if (nof_bits + 8 < MAX_CQI_LEN_PUSCH &&
+  if (nof_bits + 8 < SRSLTE_UCI_MAX_CQI_LEN_PUSCH &&
       q            != NULL             &&
       data         != NULL             &&
       q_bits       != NULL) 
@@ -185,8 +185,8 @@ int encode_cqi_long(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_
 
     DEBUG("CConv output: ", 0);
     
-    if (VERBOSE_ISDEBUG()) {
-      vec_fprint_b(stdout, q->encoded_cqi, 3 * (nof_bits + 8));
+    if (SRSLTE_VERBOSE_ISDEBUG()) {
+      srslte_vec_fprint_b(stdout, q->encoded_cqi, 3 * (nof_bits + 8));
     }
 
     srslte_rm_conv_tx(q->encoded_cqi, 3 * (nof_bits + 8), q_bits, Q);
@@ -199,10 +199,10 @@ int encode_cqi_long(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_
 
 /* Encode UCI CQI/PMI as described in 5.2.3.3 of 36.212 
  */
-int uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[CQI_CODED_PUCCH_B])
+int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
 {
-  if (cqi_len <= MAX_CQI_LEN_PUCCH) {
-    for (uint32_t i=0;i<CQI_CODED_PUCCH_B;i++) {
+  if (cqi_len <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH) {
+    for (uint32_t i=0;i<SRSLTE_UCI_CQI_CODED_PUCCH_B;i++) {
       uint64_t x=0;
       for (uint32_t n=0;n<cqi_len;n++) {
         x += cqi_data[n]*M_basis_seq_pucch[n][i];
@@ -217,8 +217,8 @@ int uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[CQI
 
 /* Encode UCI CQI/PMI as described in 5.2.2.6 of 36.212 
  */
-int uci_encode_cqi_pusch(uci_cqi_pusch_t *q, uint8_t *cqi_data, uint32_t cqi_len, float beta, uint32_t Q_prime_ri, 
-                   harq_t *harq, uint8_t *q_bits)
+int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, uint8_t *cqi_data, uint32_t cqi_len, float beta, uint32_t Q_prime_ri, 
+                   srslte_harq_t *harq, uint8_t *q_bits)
 {
   
   uint32_t Q_prime = Q_prime_cqi(cqi_len, beta, Q_prime_ri, harq);
@@ -286,7 +286,7 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
 
 }
 
-static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, harq_t *harq) {
+static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, srslte_harq_t *harq) {
   uint32_t M_sc = harq->ul_alloc.L_prb * SRSLTE_NRE;
   
   uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
@@ -305,7 +305,7 @@ static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, harq_t *h
     
   uint32_t x = (uint32_t) ceilf((float) O*M_sc_init*harq->nof_symb*beta/K);
 
-  uint32_t Q_prime = MIN(x, 4*M_sc);
+  uint32_t Q_prime = SRSLTE_MIN(x, 4*M_sc);
 
   return Q_prime; 
 }
@@ -321,7 +321,7 @@ static void encode_ri_ack(uint8_t data, uint8_t q_encoded_bits[6], uint8_t Q_m) 
 /* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit HARQ
  */
-int uci_encode_ack(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq, uint32_t H_prime_total, uint8_t *q_bits)
+int srslte_uci_encode_ack(uint8_t data, uint32_t O_cqi, float beta, srslte_harq_t *harq, uint32_t H_prime_total, uint8_t *q_bits)
 {
   uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);  
   uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq);
@@ -340,7 +340,7 @@ int uci_encode_ack(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq, uint3
 /* Encode UCI RI bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit RI
  */
-int uci_encode_ri(uint8_t data, uint32_t O_cqi, float beta, harq_t *harq, uint32_t H_prime_total, uint8_t *q_bits)
+int srslte_uci_encode_ri(uint8_t data, uint32_t O_cqi, float beta, srslte_harq_t *harq, uint32_t H_prime_total, uint8_t *q_bits)
 {
   uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);  
   uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq);

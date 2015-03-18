@@ -166,9 +166,9 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, srslte_llr_t * input, srslte_llr
 int srslte_map_gen_init(srslte_map_gen_t * h, int max_long_cb)
 {
   bzero(h, sizeof(srslte_map_gen_t));
-  h->beta = vec_malloc(sizeof(srslte_llr_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES);
+  h->beta = srslte_vec_malloc(sizeof(srslte_llr_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES);
   if (!h->beta) {
-    perror("vec_malloc");
+    perror("srslte_vec_malloc");
     return -1;
   }
   h->max_long_cb = max_long_cb;
@@ -209,29 +209,29 @@ int srslte_tdec_init(srslte_tdec_t * h, uint32_t max_long_cb)
 
   h->max_long_cb = max_long_cb;
 
-  h->llr1 = vec_malloc(sizeof(srslte_llr_t) * len);
+  h->llr1 = srslte_vec_malloc(sizeof(srslte_llr_t) * len);
   if (!h->llr1) {
-    perror("vec_malloc");
+    perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->llr2 = vec_malloc(sizeof(srslte_llr_t) * len);
+  h->llr2 = srslte_vec_malloc(sizeof(srslte_llr_t) * len);
   if (!h->llr2) {
-    perror("vec_malloc");
+    perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->w = vec_malloc(sizeof(srslte_llr_t) * len);
+  h->w = srslte_vec_malloc(sizeof(srslte_llr_t) * len);
   if (!h->w) {
-    perror("vec_malloc");
+    perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->syst = vec_malloc(sizeof(srslte_llr_t) * len);
+  h->syst = srslte_vec_malloc(sizeof(srslte_llr_t) * len);
   if (!h->syst) {
-    perror("vec_malloc");
+    perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->parity = vec_malloc(sizeof(srslte_llr_t) * len);
+  h->parity = srslte_vec_malloc(sizeof(srslte_llr_t) * len);
   if (!h->parity) {
-    perror("vec_malloc");
+    perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
 

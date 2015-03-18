@@ -47,13 +47,13 @@ const uint8_t srslte_crc_mask[4][16] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
     { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 } };
 
-bool pbch_exists(int nframe, int nslot) {
+bool srslte_pbch_exists(int nframe, int nslot) {
   return (!(nframe % 5) && nslot == 1);
 }
 
 cf_t *offset_original;
 
-int pbch_cp(cf_t *input, cf_t *output, srslte_cell_t cell, bool put) {
+int srslte_pbch_cp(cf_t *input, cf_t *output, srslte_cell_t cell, bool put) {
   int i;
   cf_t *ptr;
   
@@ -109,8 +109,8 @@ int pbch_cp(cf_t *input, cf_t *output, srslte_cell_t cell, bool put) {
  *
  * 36.211 10.3 section 6.6.4
  */
-int pbch_put(cf_t *pbch, cf_t *slot1_data, srslte_cell_t cell) {
-  return pbch_cp(pbch, slot1_data, cell, true);
+int srslte_pbch_put(cf_t *pbch, cf_t *slot1_data, srslte_cell_t cell) {
+  return srslte_pbch_cp(pbch, slot1_data, cell, true);
 }
 
 /**
@@ -120,15 +120,15 @@ int pbch_put(cf_t *pbch, cf_t *slot1_data, srslte_cell_t cell) {
  *
  * 36.211 10.3 section 6.6.4
  */
-int pbch_get(cf_t *slot1_data, cf_t *pbch, srslte_cell_t cell) {
-  return pbch_cp(slot1_data, pbch, cell, false);
+int srslte_pbch_get(cf_t *slot1_data, cf_t *pbch, srslte_cell_t cell) {
+  return srslte_pbch_cp(slot1_data, pbch, cell, false);
 }
 
 /** Initializes the PBCH transmitter and receiver. 
  * At the receiver, the field nof_ports in the cell structure indicates the 
  * maximum number of BS transmitter ports to look for.  
  */
-int pbch_init(pbch_t *q, srslte_cell_t cell) {
+int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q                       != NULL &&
@@ -136,22 +136,22 @@ int pbch_init(pbch_t *q, srslte_cell_t cell) {
   {
     ret = SRSLTE_ERROR;
 
-    bzero(q, sizeof(pbch_t));
+    bzero(q, sizeof(srslte_pbch_t));
     q->cell = cell;
     q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_SRSLTE_SRSLTE_CP_NORM : PBCH_RE_SRSLTE_SRSLTE_CP_EXT;
     
-    if (precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
+    if (srslte_precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
     }
 
-    if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
+    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK, true)) {
       goto clean;
     }
-    demod_soft_init(&q->demod, q->nof_symbols);
-    demod_soft_table_set(&q->demod, &q->mod);
-    demod_soft_alg_set(&q->demod, APPROX);
+    srslte_demod_soft_init(&q->demod, q->nof_symbols);
+    srslte_demod_soft_table_set(&q->demod, &q->mod);
+    srslte_demod_soft_alg_set(&q->demod, SRSLTE_DEMOD_SOFT_ALG_APPROX);
     
-    if (srslte_sequence_pbch(&q->seq_pbch, q->cell.cp, q->cell.id)) {
+    if (srslte_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
       goto clean;
     }
 
@@ -167,78 +167,78 @@ int pbch_init(pbch_t *q, srslte_cell_t cell) {
     q->encoder.tail_biting = true;
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
 
-    q->pbch_d = vec_malloc(sizeof(cf_t) * q->nof_symbols);
-    if (!q->pbch_d) {
+    q->d = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+    if (!q->d) {
       goto clean;
     }
     int i;
     for (i = 0; i < q->cell.nof_ports; i++) {
-      q->ce[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
+      q->ce[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->pbch_x[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
-      if (!q->pbch_x[i]) {
+      q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+      if (!q->x[i]) {
         goto clean;
       }
-      q->pbch_symbols[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
-      if (!q->pbch_symbols[i]) {
+      q->symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+      if (!q->symbols[i]) {
         goto clean;
       }
     }
-    q->pbch_llr = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
-    if (!q->pbch_llr) {
+    q->llr = srslte_vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    if (!q->llr) {
       goto clean;
     }
-    q->temp = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->temp = srslte_vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
     if (!q->temp) {
       goto clean;
     }
-    q->pbch_rm_b = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
-    if (!q->pbch_rm_b) {
+    q->rm_b = srslte_vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    if (!q->rm_b) {
       goto clean;
     }
     ret = SRSLTE_SUCCESS;
   }
 clean: 
   if (ret == SRSLTE_ERROR) {
-    pbch_free(q);
+    srslte_pbch_free(q);
   }
   return ret;
 }
 
-void pbch_free(pbch_t *q) {
-  if (q->pbch_d) {
-    free(q->pbch_d);
+void srslte_pbch_free(srslte_pbch_t *q) {
+  if (q->d) {
+    free(q->d);
   }
   int i;
   for (i = 0; i < q->cell.nof_ports; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
-    if (q->pbch_x[i]) {
-      free(q->pbch_x[i]);
+    if (q->x[i]) {
+      free(q->x[i]);
     }
-    if (q->pbch_symbols[i]) {
-      free(q->pbch_symbols[i]);
+    if (q->symbols[i]) {
+      free(q->symbols[i]);
     }
   }
-  if (q->pbch_llr) {
-    free(q->pbch_llr);
+  if (q->llr) {
+    free(q->llr);
   }
   if (q->temp) {
     free(q->temp);
   }
-  if (q->pbch_rm_b) {
-    free(q->pbch_rm_b);
+  if (q->rm_b) {
+    free(q->rm_b);
   }
-  precoding_free(&q->precoding);
-  srslte_sequence_free(&q->seq_pbch);
-  modem_table_free(&q->mod);
+  srslte_precoding_free(&q->precoding);
+  srslte_sequence_free(&q->seq);
+  srslte_modem_table_free(&q->mod);
   srslte_viterbi_free(&q->decoder);
-  demod_soft_free(&q->demod);
+  srslte_demod_soft_free(&q->demod);
 
-  bzero(q, sizeof(pbch_t));
+  bzero(q, sizeof(srslte_pbch_t));
 
 }
 
@@ -246,10 +246,10 @@ void pbch_free(pbch_t *q) {
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
-void pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
+void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   int phich_res;
 
-  cell->bw_idx = bit_unpack(&msg, 3);
+  cell->bw_idx = srslte_bit_unpack(&msg, 3);
   switch (cell->bw_idx) {
   case 0:
     cell->nof_prb = 6;
@@ -268,7 +268,7 @@ void pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   }
   msg++;
 
-  phich_res = bit_unpack(&msg, 2);
+  phich_res = srslte_bit_unpack(&msg, 2);
   switch (phich_res) {
   case 0:
       cell->phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6;
@@ -284,14 +284,14 @@ void pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
     break;
   }
   if (sfn) {
-    *sfn = bit_unpack(&msg, 8) << 2;    
+    *sfn = srslte_bit_unpack(&msg, 8) << 2;    
   }
 }
 
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
-void pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
+void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   int bw, phich_res = 0;
 
   bzero(msg, 24);
@@ -303,7 +303,7 @@ void pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   } else {
     bw = 1 + cell->nof_prb / 25;
   }
-  bit_pack(bw, &msg, 3);
+  srslte_bit_pack(bw, &msg, 3);
 
   *msg = cell->phich_length == SRSLTE_PHICH_EXT;
   msg++;
@@ -322,11 +322,11 @@ void pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
     phich_res = 3;
     break;
   }
-  bit_pack(phich_res, &msg, 2);
-  bit_pack(sfn >> 2, &msg, 8);
+  srslte_bit_pack(phich_res, &msg, 2);
+  srslte_bit_pack(sfn >> 2, &msg, 8);
 }
 
-void pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn, uint32_t cell_id) {
+void srslte_pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn, uint32_t cell_id) {
   printf(" - Cell ID:         %d\n", cell_id);
   printf(" - Nof ports:       %d\n", cell->nof_ports);
   printf(" - PRB:             %d\n", cell->nof_prb);
@@ -352,7 +352,7 @@ void pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn, uint32_t c
 }
 
 
-void pbch_decode_reset(pbch_t *q) {
+void srslte_pbch_decode_reset(srslte_pbch_t *q) {
   q->frame_idx = 0;
 }
 
@@ -370,7 +370,7 @@ void srslte_crc_set_mask(uint8_t *data, int nof_ports) {
  *
  * Returns 0 if the data is correct, -1 otherwise
  */
-uint32_t pbch_srslte_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
+uint32_t srslte_pbch_crc_check(srslte_pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
   uint8_t data[BCH_PAYLOADCRC_LEN];
   memcpy(data, bits, BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
   srslte_crc_set_mask(data, nof_ports);
@@ -390,17 +390,17 @@ uint32_t pbch_srslte_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
   }
 }
 
-int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
+int decode_frame(srslte_pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
     uint32_t nof_bits, uint32_t nof_ports) {
   int j;
   
   DEBUG("Trying to decode PBCH %d bits, %d ports, src: %d, dst: %d, n=%d\n", nof_bits, nof_ports, src, dst, n);
 
-  memcpy(&q->temp[dst * nof_bits], &q->pbch_llr[src * nof_bits],
+  memcpy(&q->temp[dst * nof_bits], &q->llr[src * nof_bits],
       n * nof_bits * sizeof(float));
 
   /* descramble */
-  scrambling_f_offset(&q->seq_pbch, &q->temp[dst * nof_bits], dst * nof_bits,
+  srslte_scrambling_f_offset(&q->seq, &q->temp[dst * nof_bits], dst * nof_bits,
       n * nof_bits);
 
   for (j = 0; j < dst * nof_bits; j++) {
@@ -411,12 +411,12 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
   }
 
   /* unrate matching */
-  srslte_rm_conv_rx(q->temp, 4 * nof_bits, q->pbch_rm_f, BCH_ENCODED_LEN);
+  srslte_rm_conv_rx(q->temp, 4 * nof_bits, q->rm_f, BCH_ENCODED_LEN);
   
   /* decode */
-  srslte_viterbi_decode_f(&q->decoder, q->pbch_rm_f, q->data, BCH_PAYLOADCRC_LEN);
+  srslte_viterbi_decode_f(&q->decoder, q->rm_f, q->data, BCH_PAYLOADCRC_LEN);
 
- if (!pbch_srslte_crc_check(q, q->data, nof_ports)) {
+ if (!srslte_pbch_crc_check(q, q->data, nof_ports)) {
     return 1;
   } else {
     return SRSLTE_SUCCESS;
@@ -431,7 +431,7 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS], float noise_estimate, 
+int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS], float noise_estimate, 
                  uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
 {
   uint32_t src, dst, nb;
@@ -456,19 +456,19 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
 
     /* number of layers equals number of ports */
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      x[i] = q->pbch_x[i];
+      x[i] = q->x[i];
     }
     memset(&x[SRSLTE_MAX_PORTS], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - SRSLTE_MAX_PORTS));
     
     /* extract symbols */
-    if (q->nof_symbols != pbch_get(slot1_symbols, q->pbch_symbols[0], q->cell)) {
+    if (q->nof_symbols != srslte_pbch_get(slot1_symbols, q->symbols[0], q->cell)) {
       fprintf(stderr, "There was an error getting the PBCH symbols\n");
       return SRSLTE_ERROR;
     }
 
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      if (q->nof_symbols != pbch_get(ce_slot1[i], q->ce[i], q->cell)) {
+      if (q->nof_symbols != srslte_pbch_get(ce_slot1[i], q->ce[i], q->cell)) {
         fprintf(stderr, "There was an error getting the PBCH symbols\n");
         return SRSLTE_ERROR;
       }
@@ -485,18 +485,18 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
         /* in conctrol channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
-          predecoding_single(&q->precoding, q->pbch_symbols[0], q->ce[0], q->pbch_d,
+          srslte_predecoding_single(&q->precoding, q->symbols[0], q->ce[0], q->d,
               q->nof_symbols, noise_estimate);
         } else {
-          predecoding_diversity(&q->precoding, q->pbch_symbols[0], q->ce, x, nant,
+          srslte_predecoding_diversity(&q->precoding, q->symbols[0], q->ce, x, nant,
               q->nof_symbols, noise_estimate);
-          srslte_layerdemap_diversity(x, q->pbch_d, nant, q->nof_symbols / nant);
+          srslte_layerdemap_diversity(x, q->d, nant, q->nof_symbols / nant);
         }
 
         /* demodulate symbols */
-        demod_soft_sigma_set(&q->demod, 1.0);
-        demod_soft_demodulate(&q->demod, q->pbch_d,
-            &q->pbch_llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
+        srslte_demod_soft_sigma_set(&q->demod, 1.0);
+        srslte_demod_soft_demodulate(&q->demod, q->d,
+            &q->llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
         
         /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
         * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
@@ -508,7 +508,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
         for (nb = 0; nb < q->frame_idx && !ret; nb++) {
           for (dst = 0; (dst < 4 - nb) && !ret; dst++) {
             for (src = 0; src < q->frame_idx - nb && !ret; src++) {
-              ret = pbch_decode_frame(q, src, dst, nb + 1, nof_bits, nant);     
+              ret = decode_frame(q, src, dst, nb + 1, nof_bits, nant);     
               if (ret == 1) {
                 if (sfn_offset) {
                   *sfn_offset = dst - src;
@@ -528,7 +528,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
 
     /* If not found, make room for the next packet of radio frame symbols */
     if (q->frame_idx == 4) {
-      memmove(q->pbch_llr, &q->pbch_llr[nof_bits], nof_bits * 3 * sizeof(float));
+      memmove(q->llr, &q->llr[nof_bits], nof_bits * 3 * sizeof(float));
       q->frame_idx = 3;
     }
   }
@@ -537,7 +537,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS]
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS]) {
+int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS]) {
   int i;
   int nof_bits;
   cf_t *x[SRSLTE_MAX_LAYERS];
@@ -555,7 +555,7 @@ int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_sym
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      x[i] = q->pbch_x[i];
+      x[i] = q->x[i];
     }
     memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
     
@@ -568,27 +568,27 @@ int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_sym
       
       srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, BCH_PAYLOADCRC_LEN);
 
-      srslte_rm_conv_tx(q->data_enc, BCH_ENCODED_LEN, q->pbch_rm_b, 4 * nof_bits);
+      srslte_rm_conv_tx(q->data_enc, BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
 
     }
 
-    scrambling_b_offset(&q->seq_pbch, &q->pbch_rm_b[q->frame_idx * nof_bits],
+    srslte_scrambling_b_offset(&q->seq, &q->rm_b[q->frame_idx * nof_bits],
         q->frame_idx * nof_bits, nof_bits);
-    mod_modulate(&q->mod, &q->pbch_rm_b[q->frame_idx * nof_bits], q->pbch_d,
+    srslte_mod_modulate(&q->mod, &q->rm_b[q->frame_idx * nof_bits], q->d,
         nof_bits);
 
     /* layer mapping & precoding */
     if (q->cell.nof_ports > 1) {
-      srslte_layermap_diversity(q->pbch_d, x, q->cell.nof_ports, q->nof_symbols);
-      precoding_diversity(&q->precoding, x, q->pbch_symbols, q->cell.nof_ports,
+      srslte_layermap_diversity(q->d, x, q->cell.nof_ports, q->nof_symbols);
+      srslte_precoding_diversity(&q->precoding, x, q->symbols, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     } else {
-      memcpy(q->pbch_symbols[0], q->pbch_d, q->nof_symbols * sizeof(cf_t));
+      memcpy(q->symbols[0], q->d, q->nof_symbols * sizeof(cf_t));
     }
 
     /* mapping to resource elements */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      pbch_put(q->pbch_symbols[i], slot1_symbols[i], q->cell);
+      srslte_pbch_put(q->symbols[i], slot1_symbols[i], q->cell);
     }
     q->frame_idx++;
     if (q->frame_idx == 4) {

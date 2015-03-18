@@ -94,7 +94,7 @@ int srslte_layermap_type(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_LAYER
   }
 
   switch(type) {
-  case SINGLE_ANTENNA:
+  case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     if (nof_cw == 1 && nof_layers == 1) {
       return srslte_layermap_single(x[0], d[0], nof_symbols[0]);
     } else {
@@ -102,7 +102,7 @@ int srslte_layermap_type(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_LAYER
       return -1;
     }
     break;
-  case TX_DIVERSITY:
+  case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
     if (nof_cw == 1) {
       if (nof_layers == 2 || nof_layers == 4) {
         return srslte_layermap_diversity(d[0], x, nof_layers, nof_symbols[0]);
@@ -115,7 +115,7 @@ int srslte_layermap_type(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_LAYER
       return -1;
     }
     break;
-  case SPATIAL_MULTIPLEX:
+  case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
     return srslte_layermap_multiplex(d, x, nof_cw, nof_layers, nof_symbols);
     break;
   }
@@ -183,7 +183,7 @@ int srslte_layerdemap_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *d[SRSLTE_MAX_CODEWO
   }
 
   switch(type) {
-  case SINGLE_ANTENNA:
+  case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     if (nof_cw == 1 && nof_layers == 1) {
       nof_symbols[0] = srslte_layerdemap_single(x[0], d[0], nof_layer_symbols);
       nof_symbols[1] = 0;
@@ -192,7 +192,7 @@ int srslte_layerdemap_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *d[SRSLTE_MAX_CODEWO
       return -1;
     }
     break;
-  case TX_DIVERSITY:
+  case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
     if (nof_cw == 1) {
       if (nof_layers == 2 || nof_layers == 4) {
         nof_symbols[0] = srslte_layerdemap_diversity(x, d[0], nof_layers, nof_layer_symbols);
@@ -206,7 +206,7 @@ int srslte_layerdemap_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *d[SRSLTE_MAX_CODEWO
       return -1;
     }
     break;
-  case SPATIAL_MULTIPLEX:
+  case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
     return srslte_layerdemap_multiplex(x, d, nof_layers, nof_cw, nof_layer_symbols, nof_symbols);
     break;
   }

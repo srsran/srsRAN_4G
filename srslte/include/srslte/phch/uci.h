@@ -34,16 +34,16 @@
 #include "srslte/phch/harq.h"
 #include "srslte/fec/crc.h"
 
-#define MAX_CQI_LEN_PUSCH       512
-#define MAX_CQI_LEN_PUCCH       13
-#define CQI_CODED_PUCCH_B       20
+#define SRSLTE_UCI_MAX_CQI_LEN_PUSCH       512
+#define SRSLTE_UCI_MAX_CQI_LEN_PUCCH       13
+#define SRSLTE_UCI_CQI_CODED_PUCCH_B       20
 
 
 typedef struct SRSLTE_API {
   srslte_crc_t crc;
-  uint8_t tmp_cqi[MAX_CQI_LEN_PUSCH];
-  uint8_t encoded_cqi[3*MAX_CQI_LEN_PUSCH];
-} uci_cqi_pusch_t;
+  uint8_t tmp_cqi[SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
+  uint8_t encoded_cqi[3*SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
+} srslte_uci_cqi_pusch_t;
 
 typedef struct SRSLTE_API {
   uint8_t *uci_cqi;
@@ -55,37 +55,37 @@ typedef struct SRSLTE_API {
   uint8_t uci_ack; // Only 1-bit supported for HARQ
   uint32_t uci_ack_len;
   float beta_ack;
-} uci_data_t;
+} srslte_uci_data_t;
 
-SRSLTE_API int uci_cqi_init(uci_cqi_pusch_t *q);
+SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q);
 
-SRSLTE_API void uci_cqi_free(uci_cqi_pusch_t *q);
+SRSLTE_API void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t *q);
 
-SRSLTE_API int uci_encode_cqi_pusch(uci_cqi_pusch_t *q, 
-                                    uint8_t *cqi_data, 
-                                    uint32_t cqi_len, 
+SRSLTE_API int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, 
+                                           uint8_t *cqi_data, 
+                                           uint32_t cqi_len, 
+                                           float beta, 
+                                           uint32_t Q_prime_ri, 
+                                           srslte_harq_t *harq_process, 
+                                           uint8_t *q_bits);
+
+SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, 
+                                           uint32_t cqi_len, 
+                                           uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
+
+SRSLTE_API int srslte_uci_encode_ack(uint8_t data,
+                                     uint32_t O_cqi,
+                                     float beta, 
+                                     srslte_harq_t *harq_process,
+                                     uint32_t H_prime_total, 
+                                     uint8_t *q_bits); 
+
+SRSLTE_API int srslte_uci_encode_ri(uint8_t data,
+                                    uint32_t O_cqi,
                                     float beta, 
-                                    uint32_t Q_prime_ri, 
-                                    harq_t *harq_process, 
-                                    uint8_t *q_bits);
-
-SRSLTE_API int uci_encode_cqi_pucch(uint8_t *cqi_data, 
-                                    uint32_t cqi_len, 
-                                    uint8_t b_bits[CQI_CODED_PUCCH_B]);
-
-SRSLTE_API int uci_encode_ack(uint8_t data,
-                              uint32_t O_cqi,
-                              float beta, 
-                              harq_t *harq_process,
-                              uint32_t H_prime_total, 
-                              uint8_t *q_bits); 
-
-SRSLTE_API int uci_encode_ri(uint8_t data,
-                             uint32_t O_cqi,
-                             float beta, 
-                             harq_t *harq_process,
-                             uint32_t H_prime_total, 
-                             uint8_t *q_bits); 
+                                    srslte_harq_t *harq_process,
+                                    uint32_t H_prime_total, 
+                                    uint8_t *q_bits); 
 
 
 #endif

@@ -47,10 +47,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int i; 
   srslte_cell_t cell; 
-  pcfich_t pcfich;
+  srslte_pcfich_t pcfich;
   srslte_chest_dl_t chest; 
-  srslte_fft_t fft; 
-  regs_t regs;
+  srslte_ofdm_t fft; 
+  srslte_regs_t regs;
   uint32_t sf_idx; 
   cf_t *input_fft, *input_signal;
   
@@ -74,17 +74,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
     mexErrMsgTxt("Error initializing FFT\n");
     return;
   }
   
-  if (regs_init(&regs, cell)) {
+  if (srslte_regs_init(&regs, cell)) {
     mexErrMsgTxt("Error initiating regs\n");
     return;
   }
   
-  if (pcfich_init(&pcfich, &regs, cell)) {
+  if (srslte_pcfich_init(&pcfich, &regs, cell)) {
     mexErrMsgTxt("Error creating PBCH object\n");
     return;
   }
@@ -94,15 +94,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error reading input signal\n");
     return; 
   }
-  input_fft = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  input_fft = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   
   // Set Channel estimates to 1.0 (ignore fading) 
   cf_t *ce[SRSLTE_MAX_PORTS];
   for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
-  srslte_fft_run_sf(&fft, input_signal, input_fft);
+  srslte_ofdm_tx_sf(&fft, input_signal, input_fft);
 
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray; 
@@ -126,7 +126,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
   uint32_t cfi;
   float corr_res; 
-  int n = pcfich_decode(&pcfich, input_fft, ce, noise_power,  sf_idx, &cfi, &corr_res);
+  int n = srslte_pcfich_decode(&pcfich, input_fft, ce, noise_power,  sf_idx, &cfi, &corr_res);
 
   if (nlhs >= 1) { 
     if (n < 0) {      
@@ -136,16 +136,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
   }
   if (nlhs >= 2) {
-    mexutils_write_cf(pcfich.pcfich_d, &plhs[1], 16, 1);  
+    mexutils_write_cf(pcfich.d, &plhs[1], 16, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pcfich.pcfich_symbols[0], &plhs[2], 16, 1);  
+    mexutils_write_cf(pcfich.symbols[0], &plhs[2], 16, 1);  
   }
   
   srslte_chest_dl_free(&chest);
-  srslte_fft_free(&fft);
-  pcfich_free(&pcfich);
-  regs_free(&regs);
+  srslte_ofdm_tx_free(&fft);
+  srslte_pcfich_free(&pcfich);
+  srslte_regs_free(&regs);
   
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);

@@ -218,7 +218,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
     len = 3 * (frame_length + q->K - 1);
   }
   if (!q->decode_f) {
-    vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);
+    srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);
     return q->decode(q, q->symbols_uc, data, frame_length);    
   } else {
     return q->decode_f(q, symbols, data, frame_length);

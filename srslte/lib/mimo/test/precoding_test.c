@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   cf_t *x[SRSLTE_MAX_LAYERS], *r[SRSLTE_MAX_PORTS], *y[SRSLTE_MAX_PORTS], *h[SRSLTE_MAX_PORTS],
       *xr[SRSLTE_MAX_LAYERS];
   srslte_mimo_type_t type;
-  precoding_t precoding; 
+  srslte_precoding_t precoding; 
   
   parse_args(argc, argv);
 
@@ -97,35 +97,35 @@ int main(int argc, char **argv) {
   }
 
   for (i = 0; i < nof_layers; i++) {
-    x[i] = vec_malloc(sizeof(cf_t) * nof_symbols);
+    x[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
     if (!x[i]) {
-      perror("vec_malloc");
+      perror("srslte_vec_malloc");
       exit(-1);
     }
     xr[i] = calloc(1,sizeof(cf_t) * nof_symbols);
     if (!xr[i]) {
-      perror("vec_malloc");
+      perror("srslte_vec_malloc");
       exit(-1);
     }
   }
   for (i = 0; i < nof_ports; i++) {
-    y[i] = vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+    y[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
     // TODO: The number of symbols per port is different in spatial multiplexing.
     if (!y[i]) {
-      perror("vec_malloc");
+      perror("srslte_vec_malloc");
       exit(-1);
     }
-    h[i] = vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+    h[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
     if (!h[i]) {
-      perror("vec_malloc");
+      perror("srslte_vec_malloc");
       exit(-1);
     }
   }
 
   /* only 1 receiver antenna supported now */
-  r[0] = vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
+  r[0] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols * nof_layers);
   if (!r[0]) {
-    perror("vec_malloc");
+    perror("srslte_vec_malloc");
     exit(-1);
   }
 
@@ -136,13 +136,13 @@ int main(int argc, char **argv) {
     }
   }
   
-  if (precoding_init(&precoding, nof_symbols * nof_layers)) {
+  if (srslte_precoding_init(&precoding, nof_symbols * nof_layers)) {
     fprintf(stderr, "Error initializing precoding\n");
     exit(-1);
   }
 
   /* precoding */
-  if (precoding_type(&precoding, x, y, nof_layers, nof_ports, nof_symbols, type) < 0) {
+  if (srslte_precoding_type(&precoding, x, y, nof_layers, nof_ports, nof_symbols, type) < 0) {
     fprintf(stderr, "Error layer mapper encoder\n");
     exit(-1);
   }
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
   /* predecoding / equalization */
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
-  if (predecoding_type(&precoding, r[0], h, xr, nof_ports, nof_layers,
+  if (srslte_predecoding_type(&precoding, r[0], h, xr, nof_ports, nof_layers,
       nof_symbols * nof_layers, type, 0) < 0) {
     fprintf(stderr, "Error layer mapper encoder\n");
     exit(-1);
@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
 
   free(r[0]);
   
-  precoding_free(&precoding);
+  srslte_precoding_free(&precoding);
   
   printf("Ok\n");
   exit(0); 

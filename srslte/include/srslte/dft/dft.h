@@ -46,12 +46,12 @@
  */
 
 typedef enum {
-  COMPLEX, REAL
-}dft_mode_t;
+  SRSLTE_DFT_COMPLEX, SRSLTE_REAL
+}srslte_dft_mode_t;
 
 typedef enum {
-  FORWARD, BACKWARD
-}dft_dir_t;
+  SRSLTE_DFT_FORWARD, SRSLTE_DFT_BACKWARD
+}srslte_dft_dir_t;
 
 typedef struct SRSLTE_API {
   int size;           // DFT length
@@ -63,33 +63,56 @@ typedef struct SRSLTE_API {
   bool db;            // Provide output in dB?
   bool norm;          // Normalize output?
   bool dc;            // Handle insertion/removal of null DC carrier internally?
-  dft_dir_t dir;     // Forward/Backward
-  dft_mode_t mode;   // Complex/Real
+  srslte_dft_dir_t dir;     // Forward/Backward
+  srslte_dft_mode_t mode;   // Complex/Real
 }srslte_dft_plan_t;
 
-typedef _Complex float dft_c_t;
-typedef float dft_r_t;
+typedef _Complex float cf_t;
 
 /* Create DFT plans */
 
-SRSLTE_API int dft_plan(srslte_dft_plan_t *plan, const int dft_points, dft_dir_t dir,
-                         dft_mode_t type);
-SRSLTE_API int dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, dft_dir_t dir);
-SRSLTE_API int dft_plan_r(srslte_dft_plan_t *plan, const int dft_points, dft_dir_t dir);
-SRSLTE_API void dft_plan_free(srslte_dft_plan_t *plan);
+SRSLTE_API int srslte_dft_plan(srslte_dft_plan_t *plan, 
+                               int dft_points, 
+                               srslte_dft_dir_t dir,                         
+                               srslte_dft_mode_t type);
+
+SRSLTE_API int srslte_dft_plan_c(srslte_dft_plan_t *plan, 
+                                 int dft_points, 
+                                 srslte_dft_dir_t dir);
+
+SRSLTE_API int srslte_dft_plan_r(srslte_dft_plan_t *plan, 
+                                 int dft_points, 
+                                 srslte_dft_dir_t dir);
+
+SRSLTE_API void srslte_dft_plan_free(srslte_dft_plan_t *plan);
 
 /* Set options */
 
-SRSLTE_API void dft_plan_set_mirror(srslte_dft_plan_t *plan, bool val);
-SRSLTE_API void dft_plan_set_db(srslte_dft_plan_t *plan, bool val);
-SRSLTE_API void dft_plan_set_norm(srslte_dft_plan_t *plan, bool val);
-SRSLTE_API void dft_plan_set_dc(srslte_dft_plan_t *plan, bool val);
+SRSLTE_API void srslte_dft_plan_set_mirror(srslte_dft_plan_t *plan, 
+                                           bool val);
+
+SRSLTE_API void srslte_dft_plan_set_db(srslte_dft_plan_t *plan, 
+                                       bool val);
+
+SRSLTE_API void srslte_dft_plan_set_norm(srslte_dft_plan_t *plan, 
+                                         bool val);
+
+SRSLTE_API void srslte_dft_plan_set_dc(srslte_dft_plan_t *plan, 
+                                       bool val);
 
 /* Compute DFT */
 
-SRSLTE_API void dft_run(srslte_dft_plan_t *plan, void *in, void *out);
-SRSLTE_API void dft_run_c(srslte_dft_plan_t *plan, dft_c_t *in, dft_c_t *out);
-SRSLTE_API void dft_run_r(srslte_dft_plan_t *plan, dft_r_t *in, dft_r_t *out);
+SRSLTE_API void srslte_dft_run(srslte_dft_plan_t *plan, 
+                               void *in, 
+                               void *out);
+
+SRSLTE_API void srslte_dft_run_c(srslte_dft_plan_t *plan, 
+                                 cf_t *in, 
+                                 cf_t *out);
+
+SRSLTE_API void srslte_dft_run_r(srslte_dft_plan_t *plan, 
+                                 float *in, 
+                                 float *out);
 
 #endif // DFT_H_
 

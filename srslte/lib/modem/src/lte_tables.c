@@ -34,11 +34,11 @@
 #include "srslte/modem/modem_table.h"
 #include "lte_tables.h"
 
-void LLR_approx_params(const cf_t* table, soft_table_t *soft_table, int B);
+void LLR_approx_params(const cf_t* table, srslte_soft_table_t *soft_table, int B);
 
 /**
  * Set the BPSK modulation table */
-void set_BPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod)
+void set_BPSKtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_soft_demod)
 {
   // LTE-BPSK constellation:
   //    Q
@@ -71,7 +71,7 @@ void set_BPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demo
 
 /**
  * Set the QPSK modulation table */
-void set_QPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod)
+void set_QPSKtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_soft_demod)
 {
   uint32_t i,j;
 
@@ -111,7 +111,7 @@ void set_QPSKtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demo
 
 /**
  * Set the 16QAM modulation table */
-void set_16QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod)
+void set_16QAMtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_soft_demod)
 {
   uint32_t i,j;
   // LTE-16QAM constellation:
@@ -178,7 +178,7 @@ void set_16QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_dem
 
 /**
  * Set the 64QAM modulation table */
-void set_64QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_demod)
+void set_64QAMtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_soft_demod)
 {
   uint32_t i,j;
   // LTE-64QAM constellation:
@@ -300,7 +300,7 @@ void set_64QAMtable(cf_t* table, soft_table_t *soft_table, bool compute_soft_dem
 }
 
 /* Precompute two tables for calculating the distances based on the received symbol location relative to the constellation points */
-void LLR_approx_params(const cf_t* table, soft_table_t *soft_table, int B) {
+void LLR_approx_params(const cf_t* table, srslte_soft_table_t *soft_table, int B) {
 
 	int i, j, b, k;
 	float x, y, d0, d1, min_d0, min_d1;

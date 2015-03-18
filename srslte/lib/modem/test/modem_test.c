@@ -67,16 +67,16 @@ void parse_args(int argc, char **argv) {
     case 'm':
       switch(atoi(argv[optind])) {
       case 1:
-        modulation = LTE_BPSK;
+        modulation = SRSLTE_MOD_BPSK;
         break;
       case 2:
-        modulation = LTE_QPSK;
+        modulation = SRSLTE_MOD_QPSK;
         break;
       case 4:
-        modulation = LTE_QAM16;
+        modulation = SRSLTE_MOD_16QAM;
         break;
       case 6:
-        modulation = LTE_QAM64;
+        modulation = SRSLTE_MOD_64QAM;
         break;
       default:
         fprintf(stderr, "Invalid modulation %d. Possible values: "
@@ -94,9 +94,9 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   int i;
-  modem_table_t mod;
-  demod_hard_t demod_hard;
-  demod_soft_t demod_soft;
+  srslte_srslte_modem_table_t mod;
+  srslte_demod_hard_t demod_hard;
+  srslte_demod_soft_t demod_soft;
   uint8_t *input, *output;
   cf_t *symbols;
   float *llr;
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   /* initialize objects */
-  if (modem_table_lte(&mod, modulation, soft_output)) {
+  if (srslte_modem_table_lte(&mod, modulation, soft_output)) {
     fprintf(stderr, "Error initializing modem table\n");
     exit(-1);
   }
@@ -120,12 +120,12 @@ int main(int argc, char **argv) {
   }
 
   if (soft_output) {
-    demod_soft_init(&demod_soft, num_bits / mod.nbits_x_symbol);
-    demod_soft_table_set(&demod_soft, &mod);
-    demod_soft_alg_set(&demod_soft, soft_exact?EXACT:APPROX);
+    srslte_demod_soft_init(&demod_soft, num_bits / mod.nbits_x_symbol);
+    srslte_demod_soft_table_set(&demod_soft, &mod);
+    srslte_demod_soft_alg_set(&demod_soft, soft_exact?SRSLTE_DEMOD_SOFT_ALG_EXACT:SRSLTE_DEMOD_SOFT_ALG_APPROX);
   } else {
-    demod_hard_init(&demod_hard);
-    demod_hard_table_set(&demod_hard, modulation);
+    srslte_demod_hard_init(&demod_hard);
+    srslte_demod_hard_table_set(&demod_hard, modulation);
   }
 
   /* allocate buffers */
@@ -158,13 +158,13 @@ int main(int argc, char **argv) {
   }
 
   /* modulate */
-  mod_modulate(&mod, input, symbols, num_bits);
+  srslte_mod_modulate(&mod, input, symbols, num_bits);
 
   /* demodulate */
   if (soft_output) {
 
     gettimeofday(&x, NULL);
-    demod_soft_demodulate(&demod_soft, symbols, llr, num_bits / mod.nbits_x_symbol);
+    srslte_demod_soft_demodulate(&demod_soft, symbols, llr, num_bits / mod.nbits_x_symbol);
     gettimeofday(&y, NULL);
     printf("\nElapsed time [ns]: %d\n", (int) y.tv_usec - (int) x.tv_usec);
     
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
       output[i] = llr[i]>=0 ? 1 : 0;
     }
   } else {
-    demod_hard_demodulate(&demod_hard, symbols, output, num_bits / mod.nbits_x_symbol);
+    srslte_demod_hard_demodulate(&demod_hard, symbols, output, num_bits / mod.nbits_x_symbol);
   }
 
   /* check errors */
@@ -188,9 +188,9 @@ int main(int argc, char **argv) {
   free(output);
   free(input);
 
-  modem_table_free(&mod);
+  srslte_modem_table_free(&mod);
   if (soft_output) {
-    demod_soft_free(&demod_soft);    
+    srslte_demod_soft_free(&demod_soft);    
   }
 
   printf("Ok\n");

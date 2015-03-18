@@ -40,26 +40,26 @@
 void help()
 {
   mexErrMsgTxt
-    ("[cwout] = srslte_pusch_encode(ue, chs, trblkin, cqi, ri, ack)\n\n");
+    ("[cwout] = srslte_srslte_pusch_encode(ue, chs, trblkin, cqi, ri, ack)\n\n");
 }
 
 /* the gateway function */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  sch_t ulsch;
+  srslte_sch_t ulsch;
   uint8_t *trblkin;
-  ra_mcs_t mcs;
-  ra_ul_alloc_t prb_alloc;
-  harq_t harq_process;
+  srslte_ra_mcs_t mcs;
+  srslte_srslte_ra_ul_alloc_t prb_alloc;
+  srslte_harq_t harq_process;
   uint32_t rv;
-  uci_data_t uci_data; 
-  bzero(&uci_data, sizeof(uci_data_t));
+  srslte_uci_data_t uci_data; 
+  bzero(&uci_data, sizeof(srslte_uci_data_t));
 
   if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
-  if (sch_init(&ulsch)) {
+  if (srslte_sch_init(&ulsch)) {
     mexErrMsgTxt("Error initiating ULSCH\n");
     return;
   }
@@ -67,7 +67,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cell.nof_prb = 100;
   cell.id=1;
   cell.cp=SRSLTE_SRSLTE_CP_NORM;
-  if (harq_init(&harq_process, cell)) {
+  if (srslte_harq_init(&harq_process, cell)) {
     mexErrMsgTxt("Error initiating HARQ\n");
     return;
   }
@@ -110,11 +110,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");
   
   if (!strcmp(mod_str, "QPSK")) {
-    mcs.mod = LTE_QPSK;
+    mcs.mod = SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
-    mcs.mod = LTE_QAM16;
+    mcs.mod = SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
-    mcs.mod = LTE_QAM64;
+    mcs.mod = SRSLTE_MOD_64QAM;
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
@@ -137,31 +137,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", srslte_mod_bits_x_symbol(mcs.mod), prb_alloc.L_prb, rv);
 
-  if (harq_setup_ul(&harq_process, mcs, 0, 0, &prb_alloc)) {
+  if (srslte_harq_setup_ul(&harq_process, mcs, 0, 0, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }
     
-  uint8_t *q_bits = vec_malloc(harq_process.nof_bits * sizeof(uint8_t));
+  uint8_t *q_bits = srslte_vec_malloc(harq_process.nof_bits * sizeof(uint8_t));
   if (!q_bits) {
     return;
   }
-  uint8_t *g_bits = vec_malloc(harq_process.nof_bits * sizeof(uint8_t));
+  uint8_t *g_bits = srslte_vec_malloc(harq_process.nof_bits * sizeof(uint8_t));
   if (!g_bits) {
     return;
   }
 
-  if (ulsch_uci_encode(&ulsch, &harq_process, trblkin, uci_data, g_bits, q_bits)) 
+  if (srslte_ulsch_uci_encode(&ulsch, &harq_process, trblkin, uci_data, g_bits, q_bits)) 
   {
     mexErrMsgTxt("Error encoding TB\n");
     return;
   }    
   if (rv > 0) {
-    if (harq_setup_ul(&harq_process, mcs, rv, 0, &prb_alloc)) {
+    if (srslte_harq_setup_ul(&harq_process, mcs, rv, 0, &prb_alloc)) {
       mexErrMsgTxt("Error configuring HARQ process\n");
       return;
     }
-    if (ulsch_uci_encode(&ulsch, &harq_process, trblkin, uci_data, g_bits, q_bits)) {
+    if (srslte_ulsch_uci_encode(&ulsch, &harq_process, trblkin, uci_data, g_bits, q_bits)) {
       mexErrMsgTxt("Error encoding TB\n");
       return;
     }    
@@ -171,8 +171,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_uint8(q_bits, &plhs[0], harq_process.nof_bits, 1);  
   }
   
-  sch_free(&ulsch);  
-  harq_free(&harq_process);
+  srslte_sch_free(&ulsch);  
+  srslte_harq_free(&harq_process);
   
   free(trblkin);
   free(g_bits);    

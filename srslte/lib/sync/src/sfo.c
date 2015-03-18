@@ -33,7 +33,7 @@
 /* Estimate SFO based on the array of time estimates t0
  * of length len. The parameter period is the time between t0 samples
  */
-float sfo_estimate(int *t0, int len, float period) {
+float srslte_sfo_estimate(int *t0, int len, float period) {
   int i;
   float sfo=0.0;
   for (i=1;i<len;i++) {
@@ -42,10 +42,10 @@ float sfo_estimate(int *t0, int len, float period) {
   return sfo;
 }
 
-/* Same as sfo_estimate but period is non-uniform.
+/* Same as srslte_sfo_estimate but period is non-uniform.
  * Vector t is the sampling time times period for each t0
  */
-float sfo_estimate_period(int *t0, int *t, int len, float period) {
+float srslte_sfo_estimate_period(int *t0, int *t, int len, float period) {
   int i;
   float sfo=0.0;
   for (i=1;i<len;i++) {

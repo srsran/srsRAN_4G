@@ -147,11 +147,16 @@ typedef struct SRSLTE_API {
 }srslte_cell_t;
 
 typedef enum SRSLTE_API {
-  SINGLE_ANTENNA,TX_DIVERSITY, SPATIAL_MULTIPLEX
+  SRSLTE_MIMO_TYPE_SINGLE_ANTENNA,
+  SRSLTE_MIMO_TYPE_TX_DIVERSITY, 
+  SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX
 } srslte_mimo_type_t;
 
 typedef enum SRSLTE_API {
-  LTE_BPSK = 0, LTE_QPSK = 1, LTE_QAM16 = 2, LTE_QAM64 = 3
+  SRSLTE_MOD_BPSK = 0, 
+  SRSLTE_MOD_QPSK, 
+  SRSLTE_MOD_16QAM, 
+  SRSLTE_MOD_64QAM
 } srslte_mod_t;
 
 typedef struct SRSLTE_API {
@@ -160,7 +165,13 @@ typedef struct SRSLTE_API {
 } srslte_earfcn_t;
 
 enum band_geographical_area {
-  ALL, NAR, APAC, EMEA, JAPAN, CALA, NA
+  SRSLTE_BAND_GEO_AREA_ALL, 
+  SRSLTE_BAND_GEO_AREA_NAR, 
+  SRSLTE_BAND_GEO_AREA_APAC, 
+  SRSLTE_BAND_GEO_AREA_EMEA, 
+  SRSLTE_BAND_GEO_AREA_JAPAN, 
+  SRSLTE_BAND_GEO_AREA_CALA, 
+  SRSLTE_BAND_GEO_AREA_NA
 };
 
 SRSLTE_API bool srslte_cell_isvalid(srslte_cell_t *cell);

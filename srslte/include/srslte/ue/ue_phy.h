@@ -33,7 +33,7 @@
 
 typedef _Complex float cf_t; 
 
-class ue_phy
+class srslte_ue_phy
 {
 public:
  
@@ -55,7 +55,7 @@ public:
     bool     is_tpc_pucch          = false; 
   };
 
-  class pdcch_dl_search : public queue::element {
+  class dl_search : public queue::element {
   public: 
     set_crnti(uint16_t rnti);
     set_crnti_ra_procedure(uint16_t rnti);
@@ -169,7 +169,7 @@ public:
   void set_param(); 
   
   pdcch_ul_search*    get_pdcch_ul_search(uint32_t tti);
-  pdcch_dl_search*    get_pdcch_dl_search(uint32_t tti);
+  dl_search*    get_dl_search(uint32_t tti);
   ul_assignment*      get_ul_assignment(uint32_t tti);
   dl_assignment*      get_dl_assignment(uint32_t tti);
   phich_assignment*   get_phich_assignment(uint32_t tti);
@@ -183,11 +183,11 @@ private:
     IDLE, MEASURE, RX_BCH, RXTX
   } phy_state; 
 
-  bool prach_initiated     = false;   
+  bool srslte_prach_initiated     = false;   
   bool prach_ready_to_send = false;   
 
   queue pdcch_ul_search; 
-  queue pdcch_dl_search; 
+  queue dl_search; 
   queue ul_assignment; 
   queue dl_assignment; 
   queue phich_assignment; 

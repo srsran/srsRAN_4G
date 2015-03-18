@@ -32,7 +32,7 @@
 
 
 /* Performs integer linear decimation by a factor of M */
-void decim_c(cf_t *input, cf_t *output, int M, int len) {
+void srslte_decim_c(cf_t *input, cf_t *output, int M, int len) {
   int i;
   for (i=0;i<len/M;i++) {
     output[i] = input[i*M];
@@ -41,7 +41,7 @@ void decim_c(cf_t *input, cf_t *output, int M, int len) {
 
 
 /* Performs integer linear decimation by a factor of M */
-void decim_f(float *input, float *output, int M, int len) {
+void srslte_decim_f(float *input, float *output, int M, int len) {
   int i;
   for (i=0;i<len/M;i++) {
     output[i] = input[i*M];

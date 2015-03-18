@@ -34,30 +34,30 @@
 
 #include "srslte/config.h"
 
-SRSLTE_API void bit_pack_vector(uint8_t *bit_unpacked, 
-                     uint8_t *bits_packed, 
-                     int nof_bits);
+SRSLTE_API void srslte_bit_pack_vector(uint8_t *srslte_bit_unpacked, 
+                                       uint8_t *bits_packed, 
+                                       int nof_bits);
 
-SRSLTE_API void bit_unpack_vector(uint8_t *bits_packed, 
-                                  uint8_t *bit_unpacked, 
+SRSLTE_API void srslte_bit_unpack_vector(uint8_t *bits_packed, 
+                                         uint8_t *srslte_bit_unpacked, 
+                                         int nof_bits);
+
+SRSLTE_API uint32_t srslte_bit_unpack(uint8_t **bits, 
+                                      int nof_bits);
+
+SRSLTE_API void srslte_bit_pack(uint32_t value, 
+                                uint8_t **bits, 
+                                int nof_bits);
+
+SRSLTE_API void srslte_bit_fprint(FILE *stream, 
+                                  uint8_t *bits, 
                                   int nof_bits);
 
-SRSLTE_API uint32_t bit_unpack(uint8_t **bits, 
-                               int nof_bits);
+SRSLTE_API uint32_t srslte_bit_diff(uint8_t *x, 
+                                    uint8_t *y, 
+                                    int nbits);
 
-SRSLTE_API void bit_pack(uint32_t value, 
-                         uint8_t **bits, 
-                         int nof_bits);
-
-SRSLTE_API void bit_fprint(FILE *stream, 
-                           uint8_t *bits, 
-                           int nof_bits);
-
-SRSLTE_API uint32_t bit_diff(uint8_t *x, 
-                             uint8_t *y, 
-                             int nbits);
-
-SRSLTE_API uint32_t bit_count(uint32_t n);
+SRSLTE_API uint32_t srslte_bit_count(uint32_t n);
 
 #endif // BIT_
 

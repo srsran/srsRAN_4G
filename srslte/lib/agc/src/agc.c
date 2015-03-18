@@ -81,10 +81,10 @@ void srslte_agc_lock(srslte_agc_t *q, bool enable) {
 void srslte_agc_process(srslte_agc_t *q, cf_t *input, cf_t *output, uint32_t len) {
   
   // Apply current gain to input signal 
-  vec_sc_prod_cfc(input, q->gain, output, len);
+  srslte_vec_sc_prod_cfc(input, q->gain, output, len);
   
   // compute output energy estimate
-  float y = sqrtf(crealf(vec_dot_prod_conj_ccc(output, output, len))/len);
+  float y = sqrtf(crealf(srslte_vec_dot_prod_conj_ccc(output, output, len))/len);
   
   if (q->isfirst) {
     q->y_out = y; 

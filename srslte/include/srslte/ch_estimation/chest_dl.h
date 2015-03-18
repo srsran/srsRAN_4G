@@ -35,7 +35,6 @@
 #include "srslte/config.h"
 
 #include "srslte/resampling/interp.h"
-#include "srslte/filter/filter2d.h"
 #include "srslte/ch_estimation/refsignal_dl.h"
 #include "srslte/common/phy_common.h"
 
@@ -68,7 +67,7 @@ typedef struct {
   cf_t *tmp_timeavg[SRSLTE_CHEST_MAX_FILTER_TIME_LEN];
   cf_t *tmp_timeavg_mult; 
 
-  srslte_interp_linvec_t srslte_interp_linvec; 
+  srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
   srslte_interp_lin_t srslte_interp_lin; 
   
   float rssi[SRSLTE_MAX_PORTS]; 

@@ -62,7 +62,7 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
-  srslte_fft_t fft, ifft;
+  srslte_ofdm_t fft, ifft;
   cf_t *input, *outfft, *outifft;
   float mse;
   int n_prb, max_prb, n_re;
@@ -98,24 +98,24 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    if (srslte_fft_init(&fft, cp, n_prb)) {
+    if (srslte_ofdm_tx_init(&fft, cp, n_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       exit(-1);
     }
-    dft_plan_set_norm(&fft.fft_plan, true);
+    srslte_dft_plan_set_norm(&fft.fft_plan, true);
 
-    if (lte_ifft_init(&ifft, cp, n_prb)) {
+    if (srslte_ofdm_rx_init(&ifft, cp, n_prb)) {
       fprintf(stderr, "Error initializing iFFT\n");
       exit(-1);
     }
-    dft_plan_set_norm(&ifft.fft_plan, true);
+    srslte_dft_plan_set_norm(&ifft.fft_plan, true);
 
     for (i=0;i<n_re;i++) {
       input[i] = 100 * ((float) rand()/RAND_MAX + (float) I*rand()/RAND_MAX);
     }
 
-    lte_ifft_run_slot(&ifft, input, outfft);
-    srslte_fft_run_slot(&fft, outfft, outifft);
+    srslte_ofdm_rx_slot(&ifft, input, outfft);
+    srslte_ofdm_tx_slot(&fft, outfft, outifft);
 
     /* compute MSE */
 
@@ -130,8 +130,8 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    srslte_fft_free(&fft);
-    lte_ifft_free(&ifft);
+    srslte_ofdm_tx_free(&fft);
+    srslte_ofdm_rx_free(&ifft);
 
     free(input);
     free(outfft);

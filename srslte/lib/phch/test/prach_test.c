@@ -50,14 +50,14 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   parse_args(argc, argv);
 
-  prach_t *p = (prach_t*)malloc(sizeof(prach_t));
+  srslte_prach_t *p = (srslte_prach_t*)malloc(sizeof(srslte_prach_t));
 
   bool high_speed_flag      = false;
 
   cf_t preamble[MAX_LEN];
   memset(preamble, 0, sizeof(cf_t)*MAX_LEN);
 
-  prach_init(p,
+  srslte_prach_init(p,
              N_ifft_ul,
              preamble_format,
              root_seq_idx,
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 
   for(seq_index=0;seq_index<64;seq_index++)
   {
-    prach_gen(p,
+    srslte_prach_gen(p,
               seq_index,
               frequency_offset,
               0.2,
@@ -83,13 +83,13 @@ int main(int argc, char **argv) {
     uint32_t prach_len = p->N_seq;
     if(preamble_format == 2 || preamble_format == 3)
       prach_len /= 2;
-    prach_detect(p, 0, &preamble[p->N_cp], prach_len, indices, &n_indices);
+    srslte_prach_detect(p, 0, &preamble[p->N_cp], prach_len, indices, &n_indices);
 
     if(n_indices != 1 || indices[0] != seq_index)
       return -1;
   }
 
-  prach_free(p);
+  srslte_prach_free(p);
   free(p);
 
   printf("Done\n");

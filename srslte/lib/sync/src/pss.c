@@ -33,13 +33,13 @@
 #include <math.h>
 
 #include "srslte/sync/pss.h"
-#include "srslte/utils/dft.h"
+#include "srslte/dft/dft.h"
 #include "srslte/utils/vector.h"
 #include "srslte/utils/convolution.h"
 #include "srslte/utils/debug.h"
 
 
-int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_size) {
+int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_size) {
   srslte_dft_plan_t plan;
   cf_t pss_signal_pad[2048];
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -48,25 +48,25 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t
       fft_size                  <= 2048) 
   {
     
-    pss_generate(pss_signal_time, N_id_2);
+    srslte_pss_generate(pss_signal_time, N_id_2);
 
     bzero(pss_signal_pad, fft_size * sizeof(cf_t));
     bzero(pss_signal_freq, fft_size * sizeof(cf_t));
-    memcpy(&pss_signal_pad[(fft_size-PSS_LEN)/2], pss_signal_time, PSS_LEN * sizeof(cf_t));
+    memcpy(&pss_signal_pad[(fft_size-SRSLTE_PSS_LEN)/2], pss_signal_time, SRSLTE_PSS_LEN * sizeof(cf_t));
 
-    if (dft_plan(&plan, fft_size, BACKWARD, COMPLEX)) {
+    if (srslte_dft_plan(&plan, fft_size, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
       return SRSLTE_ERROR;
     }
     
-    dft_plan_set_mirror(&plan, true);
-    dft_plan_set_dc(&plan, true);
-    dft_plan_set_norm(&plan, true);
-    dft_run_c(&plan, pss_signal_pad, pss_signal_freq);
+    srslte_dft_plan_set_mirror(&plan, true);
+    srslte_dft_plan_set_dc(&plan, true);
+    srslte_dft_plan_set_norm(&plan, true);
+    srslte_dft_run_c(&plan, pss_signal_pad, pss_signal_freq);
 
-    vec_conj_cc(pss_signal_freq, pss_signal_freq, fft_size);
-    vec_sc_prod_cfc(pss_signal_freq, 1.0/PSS_LEN, pss_signal_freq, fft_size);
+    srslte_vec_conj_cc(pss_signal_freq, pss_signal_freq, fft_size);
+    srslte_vec_sc_prod_cfc(pss_signal_freq, 1.0/SRSLTE_PSS_LEN, pss_signal_freq, fft_size);
 
-    dft_plan_free(&plan);
+    srslte_dft_plan_free(&plan);
         
     ret = SRSLTE_SUCCESS;
   }
@@ -75,22 +75,22 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t
 
 /* Initializes the PSS synchronization object with fft_size=128
  */
-int pss_synch_init(pss_synch_t *q, uint32_t frame_size) {
-  return pss_synch_init_fft(q, frame_size, 128);
+int srslte_pss_synch_init(srslte_pss_synch_t *q, uint32_t frame_size) {
+  return srslte_pss_synch_init_fft(q, frame_size, 128);
 }
 /* Initializes the PSS synchronization object. 
  * 
  * It correlates a signal of frame_size samples with the PSS sequence in the frequency 
  * domain. The PSS sequence is transformed using fft_size samples. 
  */
-int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
+int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
     
   if (q != NULL) {
   
     uint32_t N_id_2; 
     uint32_t buffer_size; 
-    bzero(q, sizeof(pss_synch_t));
+    bzero(q, sizeof(srslte_pss_synch_t));
     
     q->N_id_2 = 10;
     q->fft_size = fft_size;
@@ -100,15 +100,15 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
     buffer_size = fft_size + frame_size + 1;
     
     
-    if (dft_plan(&q->dftp_input, fft_size, FORWARD, COMPLEX)) {
+    if (srslte_dft_plan(&q->dftp_input, fft_size, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
       fprintf(stderr, "Error creating DFT plan \n");
       goto clean_and_exit;
     }
-    dft_plan_set_mirror(&q->dftp_input, true);
-    dft_plan_set_dc(&q->dftp_input, true);
-    dft_plan_set_norm(&q->dftp_input, true);
+    srslte_dft_plan_set_mirror(&q->dftp_input, true);
+    srslte_dft_plan_set_dc(&q->dftp_input, true);
+    srslte_dft_plan_set_norm(&q->dftp_input, true);
 
-    q->tmp_input = vec_malloc(buffer_size * sizeof(cf_t));
+    q->tmp_input = srslte_vec_malloc(buffer_size * sizeof(cf_t));
     if (!q->tmp_input) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
@@ -116,20 +116,20 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
 
     bzero(&q->tmp_input[q->frame_size], q->fft_size * sizeof(cf_t));
 
-    q->conv_output = vec_malloc(buffer_size * sizeof(cf_t));
+    q->conv_output = srslte_vec_malloc(buffer_size * sizeof(cf_t));
     if (!q->conv_output) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
     bzero(q->conv_output, sizeof(cf_t) * buffer_size);
-    q->conv_output_avg = vec_malloc(buffer_size * sizeof(float));
+    q->conv_output_avg = srslte_vec_malloc(buffer_size * sizeof(float));
     if (!q->conv_output_avg) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
     bzero(q->conv_output_avg, sizeof(float) * buffer_size);
-#ifdef PSS_ACCUMULATE_ABS
-    q->conv_output_abs = vec_malloc(buffer_size * sizeof(float));
+#ifdef SRSLTE_PSS_ACCUMULATE_ABS
+    q->conv_output_abs = srslte_vec_malloc(buffer_size * sizeof(float));
     if (!q->conv_output_abs) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
@@ -138,13 +138,13 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
 #endif
     
     for (N_id_2=0;N_id_2<3;N_id_2++) {
-      q->pss_signal_freq[N_id_2] = vec_malloc(buffer_size * sizeof(cf_t));
+      q->pss_signal_freq[N_id_2] = srslte_vec_malloc(buffer_size * sizeof(cf_t));
       if (!q->pss_signal_freq[N_id_2]) {
         fprintf(stderr, "Error allocating memory\n");
         goto clean_and_exit;
       }
       /* The PSS is translated into the frequency domain for each N_id_2  */
-      if (pss_synch_init_N_id_2(q->pss_signal_time[N_id_2], q->pss_signal_freq[N_id_2], N_id_2, fft_size)) {
+      if (srslte_pss_synch_init_N_id_2(q->pss_signal_time[N_id_2], q->pss_signal_freq[N_id_2], N_id_2, fft_size)) {
         fprintf(stderr, "Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
         goto clean_and_exit;
       }      
@@ -152,25 +152,25 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
 
     }    
     #ifdef CONVOLUTION_FFT
-    if (conv_fft_cc_init(&q->conv_fft, frame_size, fft_size)) {
+    if (srslte_conv_fft_cc_init(&q->conv_fft, frame_size, fft_size)) {
       fprintf(stderr, "Error initiating convolution FFT\n");
       goto clean_and_exit;
     }
     #endif
     
-    pss_synch_reset(q);
+    srslte_pss_synch_reset(q);
     
     ret = SRSLTE_SUCCESS;
   }
 
 clean_and_exit: 
   if (ret == SRSLTE_ERROR) {
-    pss_synch_free(q);
+    srslte_pss_synch_free(q);
   }
   return ret;
 }
 
-void pss_synch_free(pss_synch_t *q) {
+void srslte_pss_synch_free(srslte_pss_synch_t *q) {
   uint32_t i;
 
   if (q) {
@@ -180,7 +180,7 @@ void pss_synch_free(pss_synch_t *q) {
       }
     }
   #ifdef CONVOLUTION_FFT
-    conv_fft_cc_free(&q->conv_fft);
+    srslte_conv_fft_cc_free(&q->conv_fft);
     
   #endif
     if (q->tmp_input) {
@@ -196,11 +196,11 @@ void pss_synch_free(pss_synch_t *q) {
       free(q->conv_output_avg);
     }
 
-    bzero(q, sizeof(pss_synch_t));    
+    bzero(q, sizeof(srslte_pss_synch_t));    
   }
 }
 
-void pss_synch_reset(pss_synch_t *q) {
+void srslte_pss_synch_reset(srslte_pss_synch_t *q) {
   uint32_t buffer_size = q->fft_size + q->frame_size + 1;
   bzero(q->conv_output_avg, sizeof(float) * buffer_size);
 }
@@ -209,7 +209,7 @@ void pss_synch_reset(pss_synch_t *q) {
  * This function calculates the Zadoff-Chu sequence.
  * @param signal Output array.
  */
-int pss_generate(cf_t *signal, uint32_t N_id_2) {
+int srslte_pss_generate(cf_t *signal, uint32_t N_id_2) {
   int i;
   float arg;
   const float root_value[] = { 25.0, 29.0, 34.0 };
@@ -224,13 +224,13 @@ int pss_generate(cf_t *signal, uint32_t N_id_2) {
 
   root_idx = N_id_2;
 
-  for (i = 0; i < PSS_LEN / 2; i++) {
+  for (i = 0; i < SRSLTE_PSS_LEN / 2; i++) {
     arg = (float) sign * M_PI * root_value[root_idx]
         * ((float) i * ((float) i + 1.0)) / 63.0;
     __real__ signal[i] = cosf(arg);
     __imag__ signal[i] = sinf(arg);
   }
-  for (i = PSS_LEN / 2; i < PSS_LEN; i++) {
+  for (i = SRSLTE_PSS_LEN / 2; i < SRSLTE_PSS_LEN; i++) {
     arg = (float) sign * M_PI * root_value[root_idx]
         * (((float) i + 2.0) * ((float) i + 1.0)) / 63.0;
     __real__ signal[i] = cosf(arg);
@@ -241,18 +241,18 @@ int pss_generate(cf_t *signal, uint32_t N_id_2) {
 
 /** 36.211 10.3 section 6.11.1.2
  */
-void pss_put_slot(cf_t *pss_signal, cf_t *slot, uint32_t nof_prb, srslte_cp_t cp) {
+void srslte_pss_put_slot(cf_t *pss_signal, cf_t *slot, uint32_t nof_prb, srslte_cp_t cp) {
   int k;
   k = (SRSLTE_CP_NSYMB(cp) - 1) * nof_prb * SRSLTE_NRE + nof_prb * SRSLTE_NRE / 2 - 31;
   memset(&slot[k - 5], 0, 5 * sizeof(cf_t));
-  memcpy(&slot[k], pss_signal, PSS_LEN * sizeof(cf_t));
-  memset(&slot[k + PSS_LEN], 0, 5 * sizeof(cf_t));
+  memcpy(&slot[k], pss_signal, SRSLTE_PSS_LEN * sizeof(cf_t));
+  memset(&slot[k + SRSLTE_PSS_LEN], 0, 5 * sizeof(cf_t));
 }
 
 
 /** Sets the current N_id_2 value. Returns -1 on error, 0 otherwise
  */
-int pss_synch_set_N_id_2(pss_synch_t *q, uint32_t N_id_2) {
+int srslte_pss_synch_set_N_id_2(srslte_pss_synch_t *q, uint32_t N_id_2) {
   if (!srslte_N_id_2_isvalid((N_id_2))) {
     fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
     return -1;
@@ -264,7 +264,7 @@ int pss_synch_set_N_id_2(pss_synch_t *q, uint32_t N_id_2) {
 
 /* Sets the weight factor alpha for the exponential moving average of the PSS correlation output
  */
-void pss_synch_set_ema_alpha(pss_synch_t *q, float alpha) {
+void srslte_pss_synch_set_ema_alpha(srslte_pss_synch_t *q, float alpha) {
   q->ema_alpha = alpha; 
 }
 
@@ -275,7 +275,7 @@ void pss_synch_set_ema_alpha(pss_synch_t *q, float alpha) {
  *
  * Input buffer must be subframe_size long.
  */
-int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value) 
+int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_peak_value) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
@@ -296,37 +296,37 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     #ifdef CONVOLUTION_FFT
       memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
             
-      conv_output_len = conv_fft_cc_run(&q->conv_fft, q->tmp_input,
+      conv_output_len = srslte_conv_fft_cc_run(&q->conv_fft, q->tmp_input,
           q->pss_signal_freq[q->N_id_2], q->conv_output);
     #else
-      conv_output_len = conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
+      conv_output_len = srslte_conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
     #endif
     } else {
       for (int i=0;i<q->frame_size;i++) {
-        q->conv_output[i] = vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], &input[i], q->fft_size);
+        q->conv_output[i] = srslte_vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], &input[i], q->fft_size);
       }
       conv_output_len = q->frame_size; 
     }
 
    
-  #ifdef PSS_ABS_SQUARE
-      vec_abs_square_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
+  #ifdef SRSLTE_PSS_ABS_SQUARE
+      srslte_vec_abs_square_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
   #else
-      vec_abs_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
+      srslte_vec_abs_cf(q->conv_output, q->conv_output_abs, conv_output_len-1);
   #endif
     
-    vec_sc_prod_fff(q->conv_output_abs, q->ema_alpha, q->conv_output_abs, conv_output_len-1);    
-    vec_sc_prod_fff(q->conv_output_avg, 1-q->ema_alpha, q->conv_output_avg, conv_output_len-1);    
+    srslte_vec_sc_prod_fff(q->conv_output_abs, q->ema_alpha, q->conv_output_abs, conv_output_len-1);    
+    srslte_vec_sc_prod_fff(q->conv_output_avg, 1-q->ema_alpha, q->conv_output_avg, conv_output_len-1);    
 
-    vec_sum_fff(q->conv_output_abs, q->conv_output_avg, q->conv_output_avg, conv_output_len-1);
+    srslte_vec_sum_fff(q->conv_output_abs, q->conv_output_avg, q->conv_output_avg, conv_output_len-1);
     
     /* Find maximum of the absolute value of the correlation */
-    corr_peak_pos = vec_max_fi(q->conv_output_avg, conv_output_len-1);
+    corr_peak_pos = srslte_vec_max_fi(q->conv_output_avg, conv_output_len-1);
     
     // save absolute value 
     q->peak_value = q->conv_output_avg[corr_peak_pos];
     
-#ifdef PSS_RETURN_PSR    
+#ifdef SRSLTE_PSS_RETURN_PSR    
     // Find second side lobe
     
     // Find end of peak lobe to the right
@@ -351,9 +351,9 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     }
     int sl_distance_left = pl_lb; 
     
-    int sl_right = pl_ub+vec_max_fi(&q->conv_output_avg[pl_ub], sl_distance_right);
-    int sl_left = vec_max_fi(q->conv_output_avg, sl_distance_left);    
-    float side_lobe_value = MAX(q->conv_output_avg[sl_right], q->conv_output_avg[sl_left]);    
+    int sl_right = pl_ub+srslte_vec_max_fi(&q->conv_output_avg[pl_ub], sl_distance_right);
+    int sl_left = srslte_vec_max_fi(q->conv_output_avg, sl_distance_left);    
+    float side_lobe_value = SRSLTE_MAX(q->conv_output_avg[sl_right], q->conv_output_avg[sl_left]);    
     if (corr_peak_value) {
       *corr_peak_value = q->conv_output_avg[corr_peak_pos]/side_lobe_value;
       
@@ -386,7 +386,7 @@ SRSLTE_API cf_t *tmp2;
  * input signal is in the time-domain. 
  * ce is the returned frequency-domain channel estimates. 
  */
-int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
+int srslte_pss_synch_chest(srslte_pss_synch_t *q, cf_t *input, cf_t ce[SRSLTE_PSS_LEN]) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   cf_t input_fft[SRSLTE_SYMBOL_SZ_MAX];
 
@@ -402,10 +402,10 @@ int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
     tmp2 = input_fft; 
     
     /* Transform to frequency-domain */
-    dft_run_c(&q->dftp_input, input, input_fft);
+    srslte_dft_run_c(&q->dftp_input, input, input_fft);
     
     /* Compute channel estimate taking the PSS sequence as reference */
-    vec_prod_conj_ccc(&input_fft[(q->fft_size-PSS_LEN)/2], q->pss_signal_time[q->N_id_2], ce, PSS_LEN);
+    srslte_vec_prod_conj_ccc(&input_fft[(q->fft_size-SRSLTE_PSS_LEN)/2], q->pss_signal_time[q->N_id_2], ce, SRSLTE_PSS_LEN);
       
     ret = SRSLTE_SUCCESS;
   }
@@ -417,11 +417,11 @@ int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
  * Source: An Efﬁcient CFO Estimation Algorithm for the Downlink of 3GPP-LTE
  *       Feng Wang and Yu Zhu
  */
-float pss_synch_cfo_compute(pss_synch_t* q, cf_t *pss_recv) {
+float srslte_pss_synch_cfo_compute(srslte_pss_synch_t* q, cf_t *pss_recv) {
   cf_t y0, y1, yr;
 
-  y0 = vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], pss_recv, q->fft_size/2);
-  y1 = vec_dot_prod_ccc(&q->pss_signal_freq[q->N_id_2][q->fft_size/2], &pss_recv[q->fft_size/2], q->fft_size/2);
+  y0 = srslte_vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], pss_recv, q->fft_size/2);
+  y1 = srslte_vec_dot_prod_ccc(&q->pss_signal_freq[q->N_id_2][q->fft_size/2], &pss_recv[q->fft_size/2], q->fft_size/2);
   
   yr = conjf(y0) * y1;
 

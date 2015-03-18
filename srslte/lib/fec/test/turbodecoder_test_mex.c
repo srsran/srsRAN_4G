@@ -84,7 +84,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   // allocate memory for output bits
-  output_data = vec_malloc(nof_bits * sizeof(uint8_t));
+  output_data = srslte_vec_malloc(nof_bits * sizeof(uint8_t));
 
   if (srslte_tdec_init(&tdec, nof_bits)) {
     mexErrMsgTxt("Error initiating Turbo decoder\n");

@@ -31,36 +31,36 @@
 #include <stdio.h>
 #include "srslte/config.h"
 
-#define VERBOSE_DEBUG   2
-#define VERBOSE_INFO  1
-#define VERBOSE_NONE  0
+#define SRSLTE_VERBOSE_DEBUG   2
+#define SRSLTE_VERBOSE_INFO  1
+#define SRSLTE_VERBOSE_NONE  0
 
 #include <sys/time.h>
 SRSLTE_API void get_time_interval(struct timeval * tdata);
 
-#ifndef DEBUG_DISABLED
+#ifndef SRSLTE_DEBUG_DISABLED
 
-SRSLTE_API extern int verbose;
+SRSLTE_API extern int srslte_verbose;
 
-#define VERBOSE_ISINFO() (verbose>=VERBOSE_INFO)
-#define VERBOSE_ISDEBUG() (verbose>=VERBOSE_DEBUG)
-#define VERBOSE_ISNONE() (verbose==VERBOSE_NONE)
+#define SRSLTE_VERBOSE_ISINFO() (srslte_verbose>=SRSLTE_VERBOSE_INFO)
+#define SRSLTE_VERBOSE_ISDEBUG() (srslte_verbose>=SRSLTE_VERBOSE_DEBUG)
+#define SRSLTE_VERBOSE_ISNONE() (srslte_verbose==SRSLTE_VERBOSE_NONE)
 
-#define PRINT_DEBUG verbose=VERBOSE_DEBUG
-#define PRINT_INFO verbose=VERBOSE_INFO
-#define PRINT_NONE verbose=VERBOSE_NONE
+#define PRINT_DEBUG srslte_verbose=SRSLTE_VERBOSE_DEBUG
+#define PRINT_INFO srslte_verbose=SRSLTE_VERBOSE_INFO
+#define PRINT_NONE srslte_verbose=SRSLTE_VERBOSE_NONE
 
-#define DEBUG(_fmt, ...) if (verbose >= VERBOSE_DEBUG) \
+#define DEBUG(_fmt, ...) if (srslte_verbose >= SRSLTE_VERBOSE_DEBUG) \
   fprintf(stdout, "[DEBUG]: " _fmt, __VA_ARGS__)
 
-#define INFO(_fmt, ...) if (verbose >= VERBOSE_INFO) \
+#define INFO(_fmt, ...) if (srslte_verbose >= SRSLTE_VERBOSE_INFO) \
   fprintf(stdout, "[INFO]:  " _fmt, __VA_ARGS__)
 
-#else // DEBUG_DISABLED
+#else // SRSLTE_DEBUG_DISABLED
 
 #define DEBUG
 #define INFO
 
-#endif // DEBUG_DISABLED
+#endif // SRSLTE_DEBUG_DISABLED
 
 #endif // DEBUG_H

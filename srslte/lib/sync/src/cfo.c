@@ -34,59 +34,59 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
-int cfo_init(cfo_t *h, uint32_t nsamples) {
+int srslte_cfo_init(srslte_cfo_t *h, uint32_t nsamples) {
   int ret = SRSLTE_ERROR;
-  bzero(h, sizeof(cfo_t));
+  bzero(h, sizeof(srslte_cfo_t));
 
-  if (cexptab_init(&h->tab, CFO_CEXPTAB_SIZE)) {
+  if (srslte_cexptab_init(&h->tab, SRSLTE_CFO_CEXPTAB_SIZE)) {
     goto clean;
   }
-  h->cur_cexp = vec_malloc(sizeof(cf_t) * nsamples);
+  h->cur_cexp = srslte_vec_malloc(sizeof(cf_t) * nsamples);
   if (!h->cur_cexp) {
     goto clean;
   }
-  h->tol = CFO_TOLERANCE;
+  h->tol = SRSLTE_CFO_TOLERANCE;
   h->last_freq = 0;
   h->nsamples = nsamples;
-  cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
+  srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
 
   ret = SRSLTE_SUCCESS;
 clean:
   if (ret == SRSLTE_ERROR) {
-    cfo_free(h);
+    srslte_cfo_free(h);
   }
   return ret;
 }
 
-void cfo_free(cfo_t *h) {
-  cexptab_free(&h->tab);
+void srslte_cfo_free(srslte_cfo_t *h) {
+  srslte_cexptab_free(&h->tab);
   if (h->cur_cexp) {
     free(h->cur_cexp);
   }
   bzero(h, sizeof(cf_t));
 }
 
-void cfo_set_tol(cfo_t *h, float tol) {
+void srslte_cfo_set_tol(srslte_cfo_t *h, float tol) {
   h->tol = tol;
 }
 
-int cfo_realloc(cfo_t *h, uint32_t samples) {
+int srslte_cfo_realloc(srslte_cfo_t *h, uint32_t samples) {
   h->cur_cexp = realloc(h->cur_cexp, sizeof(cf_t) * samples); 
   if (!h->cur_cexp) {
     perror("realloc");
     return SRSLTE_ERROR;
   }
-  cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, samples);
+  srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, samples);
   h->nsamples = samples;
   
   return SRSLTE_SUCCESS;
 }
 
-void cfo_correct(cfo_t *h, cf_t *input, cf_t *output, float freq) {
+void srslte_cfo_correct(srslte_cfo_t *h, cf_t *input, cf_t *output, float freq) {
   if (fabs(h->last_freq - freq) > h->tol) {
     h->last_freq = freq;
-    cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
+    srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
     DEBUG("CFO generating new table for frequency %.4f\n", freq);
   }
-  vec_prod_ccc(h->cur_cexp, input, output, h->nsamples);
+  srslte_vec_prod_ccc(h->cur_cexp, input, output, h->nsamples);
 }

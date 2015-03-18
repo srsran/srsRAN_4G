@@ -33,12 +33,9 @@
 #include <complex.h>
 #include <stdbool.h>
 #include "srslte/config.h"
-#include "srslte/utils/dft.h"
+#include "srslte/dft/dft.h"
 
 typedef _Complex float cf_t;
-
-//PRACH detection threshold is PRACH_DETECT_FACTOR*average
-#define PRACH_DETECT_FACTOR 10
 
 /** Generation and detection of RACH signals for uplink.
  *  Currently only supports preamble formats 0-3.
@@ -83,30 +80,30 @@ typedef struct SRSLTE_API {
   srslte_dft_plan_t *zc_ifft;
 
 
-}prach_t;
+} srslte_prach_t;
 
-SRSLTE_API int prach_init(prach_t *p,
-                          uint32_t N_ifft_ul,
-                          uint32_t preamble_format,
-                          uint32_t root_seq_index,
-                          bool high_speed_flag,
-                          uint32_t zero_corr_zone_config);
+SRSLTE_API int srslte_prach_init(srslte_prach_t *p,
+                                 uint32_t N_ifft_ul,
+                                 uint32_t preamble_format,
+                                 uint32_t root_seq_index,
+                                 bool high_speed_flag,
+                                 uint32_t zero_corr_zone_config);
 
-SRSLTE_API int prach_gen(prach_t *p,
-                         uint32_t seq_index,
-                         uint32_t freq_offset,
-                         float beta_prach,
-                         cf_t *signal);
+SRSLTE_API int srslte_prach_gen(srslte_prach_t *p,
+                                uint32_t seq_index,
+                                uint32_t freq_offset,
+                                float beta_prach,
+                                cf_t *signal);
 
-SRSLTE_API int prach_detect(prach_t *p,
-                            uint32_t freq_offset,
-                            cf_t *signal,
-                            uint32_t sig_len,
-                            uint32_t *indices,
-                            uint32_t *ind_len);
+SRSLTE_API int srslte_prach_detect(srslte_prach_t *p,
+                                   uint32_t freq_offset,
+                                   cf_t *signal,
+                                   uint32_t sig_len,
+                                   uint32_t *indices,
+                                   uint32_t *ind_len);
 
-SRSLTE_API int prach_free(prach_t *p);
+SRSLTE_API int srslte_prach_free(srslte_prach_t *p);
 
-SRSLTE_API int prach_print_seqs(prach_t *p);
+SRSLTE_API int srslte_prach_print_seqs(srslte_prach_t *p);
 
 #endif // PRACH_

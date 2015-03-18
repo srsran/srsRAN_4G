@@ -40,6 +40,7 @@ char *input_file_name = NULL;
 srslte_cell_t cell = {
   6,            // cell.cell.cell.nof_prb
   1,            // cell.cell.nof_ports
+  0,            // bw_idx
   0,            // cell.id
   SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
@@ -51,25 +52,25 @@ int flen;
 uint16_t rnti = SRSLTE_SIRNTI;
 int max_frames = 10;
 
-dci_format_t dci_format = Format1A;
+srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
 srslte_filesource_t fsrc;
-pdcch_t pdcch;
+srslte_pdcch_t pdcch;
 cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
-regs_t regs;
-srslte_fft_t fft;
+srslte_regs_t regs;
+srslte_ofdm_t fft;
 srslte_chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcfoe] -i input_file\n", prog);
   printf("\t-c cell.id [Default %d]\n", cell.id);
   printf("\t-f cfi [Default %d]\n", cfi);
-  printf("\t-o DCI Format [Default %s]\n", dci_format_string(dci_format));
+  printf("\t-o DCI Format [Default %s]\n", srslte_dci_format_string(dci_format));
   printf("\t-r rnti [Default SI-RNTI]\n");
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-m max_frames [Default %d]\n", max_frames);
   printf("\t-e Set extended prefix [Default Normal]\n");
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -98,14 +99,14 @@ void parse_args(int argc, char **argv) {
       cell.nof_ports = atoi(argv[optind]);
       break;
     case 'o':
-      dci_format = dci_format_from_string(argv[optind]);
-      if (dci_format == FormatError) {
+      dci_format = srslte_dci_format_from_string(argv[optind]);
+      if (dci_format == SRSLTE_DCI_FORMAT_ERROR) {
         fprintf(stderr, "Error unsupported format %s\n", argv[optind]);
         exit(-1);
       }
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     case 'e':
       cell.cp = SRSLTE_SRSLTE_CP_EXT;
@@ -156,21 +157,21 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
 
-  if (regs_init(&regs, cell)) {
+  if (srslte_regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     return -1;
   }
 
-  if (regs_set_cfi(&regs, cfi)) {
+  if (srslte_regs_set_cfi(&regs, cfi)) {
     fprintf(stderr, "Error setting CFI %d\n", cfi);
     return -1;
   }
-  if (pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
@@ -192,20 +193,20 @@ void base_free() {
     free(ce[i]);
   }
   srslte_chest_dl_free(&chest);
-  srslte_fft_free(&fft);
+  srslte_ofdm_tx_free(&fft);
 
-  pdcch_free(&pdcch);
-  regs_free(&regs);
+  srslte_pdcch_free(&pdcch);
+  srslte_regs_free(&regs);
 }
 
 int main(int argc, char **argv) {
-  ra_pdsch_t ra_dl;
+  srslte_ra_pdsch_t ra_dl;
   int i;
   int frame_cnt;
   int ret;
-  dci_location_t locations[MAX_CANDIDATES];
+  srslte_dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations;
-  dci_msg_t dci_msg; 
+  srslte_dci_msg_t dci_msg; 
 
   if (argc < 3) {
     usage(argv[0]);
@@ -226,13 +227,13 @@ int main(int argc, char **argv) {
 
     INFO("Reading %d samples sub-frame %d\n", flen, frame_cnt);
 
-    srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
+    srslte_ofdm_tx_sf(&fft, input_buffer, fft_buffer);
 
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);
     
     uint16_t srslte_crc_rem = 0;
-    if (pdcch_extract_llr(&pdcch, fft_buffer, 
+    if (srslte_pdcch_extract_llr(&pdcch, fft_buffer, 
                           ce, srslte_chest_dl_get_noise_estimate(&chest), 
                           frame_cnt %10, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
@@ -240,35 +241,35 @@ int main(int argc, char **argv) {
     }
     if (rnti == SRSLTE_SIRNTI) {
       INFO("Initializing common search space for SI-RNTI\n",0);
-      nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
+      nof_locations = srslte_pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
     } else {
       INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
-      nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, frame_cnt %10, cfi, rnti); 
+      nof_locations = srslte_pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, frame_cnt %10, cfi, rnti); 
     }
 
     for (i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
-      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &srslte_crc_rem)) {
+      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &srslte_crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return -1;
       }
     }
     
     if (srslte_crc_rem == rnti) {
-      dci_msg_type_t type;
-      if (dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti)) {
+      srslte_dci_msg_type_t type;
+      if (srslte_dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti)) {
         fprintf(stderr, "Can't get DCI message type\n");
         exit(-1);
       }
       printf("MSG %d: ",i);
-      dci_msg_type_fprint(stdout, type);
+      srslte_dci_msg_type_fprint(stdout, type);
       switch(type.type) {
-      case PDSCH_SCHED:
-        bzero(&ra_dl, sizeof(ra_pdsch_t));
-        if (dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SRSLTE_SIRNTI)) {
+      case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
+        bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
+        if (srslte_dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SRSLTE_SIRNTI)) {
           fprintf(stderr, "Can't unpack PDSCH message\n");
         } else {
-          ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
-          if (ra_dl.alloc_type == alloc_type2 && ra_dl.type2_alloc.mode == t2_loc
+          srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
+          if (ra_dl.alloc_type == SRSLTE_RA_ALLOC_TYPE2 && ra_dl.type2_alloc.mode == SRSLTE_RA_TYPE2_LOC
               && ra_dl.type2_alloc.riv == 11 && ra_dl.rv_idx == 0
               && ra_dl.harq_process == 0 && ra_dl.mcs_idx == 2) {
             printf("This is the file signal.1.92M.amar.dat\n");

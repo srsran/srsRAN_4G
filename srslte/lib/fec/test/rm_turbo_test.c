@@ -129,12 +129,12 @@ int main(int argc, char **argv) {
   }
   
   printf("BITS: ");
-  vec_fprint_b(stdout, bits, nof_tx_bits);
+  srslte_vec_fprint_b(stdout, bits, nof_tx_bits);
 
   srslte_rm_turbo_tx(w_buff_c, nof_tx_bits * 10, bits, nof_tx_bits, rm_bits, nof_rx_bits, rv_idx);
 
   printf("RM: ");
-  vec_fprint_b(stdout, rm_bits, nof_rx_bits);
+  srslte_vec_fprint_b(stdout, rm_bits, nof_rx_bits);
  
   for (i = 0; i < nof_rx_bits; i++) {
     rm_symbols[i] = (float) rm_bits[i] ? 1 : -1;
@@ -144,15 +144,15 @@ int main(int argc, char **argv) {
       rv_idx, nof_filler_bits);
 
   printf("UMRM: ");
-  vec_fprint_f(stdout, unrm_symbols, nof_tx_bits);
+  srslte_vec_fprint_f(stdout, unrm_symbols, nof_tx_bits);
 
   for (i=0;i<nof_tx_bits;i++) {
     bits_out[i] = unrm_symbols[i]>0?1:0;
   }
   printf("BITS: ");
-  vec_fprint_b(stdout, bits_out, nof_tx_bits);
+  srslte_vec_fprint_b(stdout, bits_out, nof_tx_bits);
   printf("BITS: ");
-  vec_fprint_b(stdout, bits, nof_tx_bits);
+  srslte_vec_fprint_b(stdout, bits, nof_tx_bits);
 
   nof_errors = 0;
   for (i = 0; i < nof_tx_bits; i++) {

@@ -71,7 +71,7 @@ void parse_args(int argc, char **argv) {
       output_matlab = argv[optind];
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -83,7 +83,7 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   srslte_chest_dl_t est;
-  precoding_t cheq; 
+  srslte_precoding_t cheq; 
   cf_t *input = NULL, *ce = NULL, *h = NULL, *output = NULL;
   int i, j, n_port, sf_idx, cid, num_re;
   int ret = -1;
@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
     max_cid = cell.id;
   }
   
-  precoding_init(&cheq, num_re);
+  srslte_precoding_init(&cheq, num_re);
 
   while(cid <= max_cid) {
     cell.id = cid; 
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
         
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          predecoding_single(&cheq, input, ce, output, num_re, 0);
+          srslte_predecoding_single(&cheq, input, ce, output, num_re, 0);
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          predecoding_single(&cheq, input, ce, output, num_re, srslte_chest_dl_get_noise_estimate(&est));
+          srslte_predecoding_single(&cheq, input, ce, output, num_re, srslte_chest_dl_get_noise_estimate(&est));
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
@@ -207,13 +207,13 @@ int main(int argc, char **argv) {
         
         if (fmatlab) {
           fprintf(fmatlab, "input=");
-          vec_fprint_c(fmatlab, input, num_re);
+          srslte_vec_fprint_c(fmatlab, input, num_re);
           fprintf(fmatlab, ";\n");
           fprintf(fmatlab, "h=");
-          vec_fprint_c(fmatlab, h, num_re);
+          srslte_vec_fprint_c(fmatlab, h, num_re);
           fprintf(fmatlab, ";\n");
           fprintf(fmatlab, "ce=");
-          vec_fprint_c(fmatlab, ce, num_re);
+          srslte_vec_fprint_c(fmatlab, ce, num_re);
           fprintf(fmatlab, ";\n");
         }
       }
@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
 
 do_exit:
 
-  precoding_free(&cheq);
+  srslte_precoding_free(&cheq);
 
   if (output) {
     free(output);

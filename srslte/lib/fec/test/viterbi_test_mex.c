@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Read input symbols
   nof_bits = mexutils_read_f(INPUT, &input_llr);
   
-  output_data = vec_malloc(nof_bits * sizeof(uint8_t));
+  output_data = srslte_vec_malloc(nof_bits * sizeof(uint8_t));
 
   uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
   if (srslte_viterbi_init(&viterbi, SRSLTE_VITERBI_37, poly, nof_bits/3, true)) {

@@ -123,19 +123,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexPrintf("cyclic_shift_for_drms: %d, ",pusch_cfg.cyclic_shift_for_drms);
   mexPrintf("delta_ss: %d, ",pusch_cfg.delta_ss);
   
-  cf_t *signal = vec_malloc(2*SRSLTE_NRE*nof_prb*sizeof(cf_t));
+  cf_t *signal = srslte_vec_malloc(2*SRSLTE_NRE*nof_prb*sizeof(cf_t));
   if (!signal) {
     perror("malloc");
     return;
   }
-  cf_t *sf_symbols = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
+  cf_t *sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
   if (!sf_symbols) {
     perror("malloc");
     return;
   }
   bzero(sf_symbols, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
   //mexPrintf("Generating DRMS for ns=%d, nof_prb=%d\n", 2*sf_idx+i,pusch_cfg.nof_prb);
-  srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);    
+  srslte_refsignal_dmrs_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);    
   uint32_t n_prb[2]; 
   n_prb[0] = prbset[0];
   n_prb[1] = prbset[0];

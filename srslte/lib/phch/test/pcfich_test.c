@@ -48,7 +48,7 @@ void usage(char *prog) {
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -65,7 +65,7 @@ void parse_args(int argc, char **argv) {
       cell.id = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -76,8 +76,8 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
-  pcfich_t pcfich;
-  regs_t regs;
+  srslte_pcfich_t pcfich;
+  srslte_regs_t regs;
   int i, j;
   cf_t *ce[SRSLTE_MAX_PORTS];
   int nof_re;
@@ -120,19 +120,19 @@ int main(int argc, char **argv) {
 
     printf("Testing CellID=%d...\n", cid);
 
-    if (regs_init(&regs, cell)) {
+    if (srslte_regs_init(&regs, cell)) {
       fprintf(stderr, "Error initiating regs\n");
       exit(-1);
     }
 
-    if (pcfich_init(&pcfich, &regs, cell)) {
+    if (srslte_pcfich_init(&pcfich, &regs, cell)) {
       fprintf(stderr, "Error creating PBCH object\n");
       exit(-1);
     }
 
     for (nsf=0;nsf<10;nsf++) {
       for (cfi=1;cfi<4;cfi++) {
-        pcfich_encode(&pcfich, cfi, slot_symbols, nsf);
+        srslte_pcfich_encode(&pcfich, cfi, slot_symbols, nsf);
 
         /* combine outputs */
         for (i=1;i<cell.nof_ports;i++) {
@@ -140,15 +140,15 @@ int main(int argc, char **argv) {
             slot_symbols[0][j] += slot_symbols[i][j];
           }
         }
-        if (pcfich_decode(&pcfich, slot_symbols[0], ce, 0, nsf, &cfi_rx, &corr_res)<0) {
+        if (srslte_pcfich_decode(&pcfich, slot_symbols[0], ce, 0, nsf, &cfi_rx, &corr_res)<0) {
           exit(-1);
         }
         INFO("cfi_tx: %d, cfi_rx: %d, ns: %d, distance: %f\n",
             cfi, cfi_rx, nsf, corr_res);
       }
     }
-    pcfich_free(&pcfich);
-    regs_free(&regs);
+    srslte_pcfich_free(&pcfich);
+    srslte_regs_free(&regs);
     cid++;
   }
 

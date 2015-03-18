@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   printf("output: ");
-  bit_fprint(stdout,output,100);
+  srslte_bit_fprint(stdout,output,100);
   printf("Done\n");
   exit(0);
 }

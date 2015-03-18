@@ -54,14 +54,14 @@ static uint8_t cfi_table[4][PCFICH_CFI_LEN] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } // reserved
 };
 
-bool pcfich_exists(int nframe, int nslot) {
+bool srslte_pcfich_exists(int nframe, int nslot) {
   return true;
 }
 
 /** Initializes the pcfich channel receiver. 
  * On error, returns -1 and frees the structrure 
  */
-int pcfich_init(pcfich_t *q, regs_t *regs, srslte_cell_t cell) {
+int srslte_pcfich_init(srslte_pcfich_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                         != NULL &&
@@ -70,25 +70,25 @@ int pcfich_init(pcfich_t *q, regs_t *regs, srslte_cell_t cell) {
   {   
     ret = SRSLTE_ERROR;
     
-    bzero(q, sizeof(pcfich_t));
+    bzero(q, sizeof(srslte_pcfich_t));
     q->cell = cell;
     q->regs = regs;
     q->nof_symbols = PCFICH_RE;
     
-    if (precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
+    if (srslte_precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
     }
 
-    if (modem_table_lte(&q->mod, LTE_QPSK, true)) {
+    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK, true)) {
       goto clean;
     }
 
-    demod_soft_init(&q->demod, q->nof_symbols);
-    demod_soft_table_set(&q->demod, &q->mod);
-    demod_soft_alg_set(&q->demod, APPROX);
+    srslte_demod_soft_init(&q->demod, q->nof_symbols);
+    srslte_demod_soft_table_set(&q->demod, &q->mod);
+    srslte_demod_soft_alg_set(&q->demod, SRSLTE_DEMOD_SOFT_ALG_APPROX);
 
     for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
-      if (srslte_sequence_pcfich(&q->seq_pcfich[nsf], 2 * nsf, q->cell.id)) {
+      if (srslte_sequence_pcfich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
         goto clean;
       }
     }
@@ -105,32 +105,32 @@ int pcfich_init(pcfich_t *q, regs_t *regs, srslte_cell_t cell) {
   
   clean: 
   if (ret == SRSLTE_ERROR) {
-    pcfich_free(q);
+    srslte_pcfich_free(q);
   }
   return ret;
 }
 
-void pcfich_free(pcfich_t *q) {
+void srslte_pcfich_free(srslte_pcfich_t *q) {
   for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
-    srslte_sequence_free(&q->seq_pcfich[ns]);
+    srslte_sequence_free(&q->seq[ns]);
   }
-  modem_table_free(&q->mod);
-  precoding_free(&q->precoding); 
-  demod_soft_free(&q->demod);
+  srslte_modem_table_free(&q->mod);
+  srslte_precoding_free(&q->precoding); 
+  srslte_demod_soft_free(&q->demod);
 
-  bzero(q, sizeof(pcfich_t));
+  bzero(q, sizeof(srslte_pcfich_t));
 }
 
 /** Finds the CFI with minimum distance with the vector of received 32 bits.
  * Saves the CFI value in the cfi pointer and returns the distance.
  */
-float pcfich_cfi_decode(pcfich_t *q, uint32_t *cfi) {
+float srslte_pcfich_cfi_decode(srslte_pcfich_t *q, uint32_t *cfi) {
   int i;
   int index = 0;
   float max_corr = 0;
   
   for (i = 0; i < 3; i++) {
-    float corr = fabsf(vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN));
+    float corr = fabsf(srslte_vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN));
     if (corr > max_corr) {
       max_corr = corr; 
       index = i; 
@@ -145,7 +145,7 @@ float pcfich_cfi_decode(pcfich_t *q, uint32_t *cfi) {
 /** Encodes the CFI producing a vector of 32 bits.
  *  36.211 10.3 section 5.3.4
  */
-int pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
+int srslte_pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
   if (cfi < 1 || cfi > 3) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   } else{
@@ -158,7 +158,7 @@ int pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate,
+int srslte_pcfich_decode(srslte_pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate,
     uint32_t nsubframe, uint32_t *cfi, float *corr_result) 
 {
 
@@ -174,7 +174,7 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], f
 
     /* number of layers equals number of ports */
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      x[i] = q->pcfich_x[i];
+      x[i] = q->x[i];
     }
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       ce_precoding[i] = q->ce[i];
@@ -182,14 +182,14 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], f
 
     /* extract symbols */
     if (q->nof_symbols
-        != regs_pcfich_get(q->regs, slot_symbols, q->pcfich_symbols[0])) {
+        != srslte_regs_pcfich_get(q->regs, slot_symbols, q->symbols[0])) {
       fprintf(stderr, "There was an error getting the PCFICH symbols\n");
       return SRSLTE_ERROR;
     }
 
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      if (q->nof_symbols != regs_pcfich_get(q->regs, ce[i], q->ce[i])) {
+      if (q->nof_symbols != srslte_regs_pcfich_get(q->regs, ce[i], q->ce[i])) {
         fprintf(stderr, "There was an error getting the PCFICH symbols\n");
         return SRSLTE_ERROR;
       }
@@ -198,24 +198,24 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], f
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      predecoding_single(&q->precoding, q->pcfich_symbols[0], q->ce[0], q->pcfich_d,
+      srslte_predecoding_single(&q->precoding, q->symbols[0], q->ce[0], q->d,
           q->nof_symbols, noise_estimate);
     } else {
-      predecoding_diversity(&q->precoding, q->pcfich_symbols[0], ce_precoding, x,
+      srslte_predecoding_diversity(&q->precoding, q->symbols[0], ce_precoding, x,
           q->cell.nof_ports, q->nof_symbols, noise_estimate);
-      srslte_layerdemap_diversity(x, q->pcfich_d, q->cell.nof_ports,
+      srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     }
 
     /* demodulate symbols */
-    demod_soft_sigma_set(&q->demod, 1.0);
-    demod_soft_demodulate(&q->demod, q->pcfich_d, q->data_f, q->nof_symbols);
+    srslte_demod_soft_sigma_set(&q->demod, 1.0);
+    srslte_demod_soft_demodulate(&q->demod, q->d, q->data_f, q->nof_symbols);
 
     /* Scramble with the sequence for slot nslot */
-    scrambling_f(&q->seq_pcfich[nsubframe], q->data_f);
+    srslte_scrambling_f(&q->seq[nsubframe], q->data_f);
 
     /* decode CFI */
-    float corr = pcfich_cfi_decode(q, cfi);
+    float corr = srslte_pcfich_cfi_decode(q, cfi);
     if (corr_result) {
       *corr_result = corr;
     }
@@ -228,7 +228,7 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], f
 
 /** Encodes CFI and maps symbols to the slot
  */
-int pcfich_encode(pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SRSLTE_MAX_PORTS],
+int srslte_pcfich_encode(srslte_pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SRSLTE_MAX_PORTS],
     uint32_t subframe) {
   int i;
 
@@ -244,32 +244,32 @@ int pcfich_encode(pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SRSLTE_MAX_PORTS
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      x[i] = q->pcfich_x[i];
+      x[i] = q->x[i];
     }
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      symbols_precoding[i] = q->pcfich_symbols[i];
+      symbols_precoding[i] = q->symbols[i];
     }
 
     /* pack CFI */
-    pcfich_cfi_encode(cfi, q->data);
+    srslte_pcfich_cfi_encode(cfi, q->data);
 
     /* scramble for slot sequence nslot */
-    scrambling_b(&q->seq_pcfich[subframe], q->data);
+    srslte_scrambling_b(&q->seq[subframe], q->data);
 
-    mod_modulate(&q->mod, q->data, q->pcfich_d, PCFICH_CFI_LEN);
+    srslte_mod_modulate(&q->mod, q->data, q->d, PCFICH_CFI_LEN);
 
     /* layer mapping & precoding */
     if (q->cell.nof_ports > 1) {
-      srslte_layermap_diversity(q->pcfich_d, x, q->cell.nof_ports, q->nof_symbols);
-      precoding_diversity(&q->precoding, x, symbols_precoding, q->cell.nof_ports,
+      srslte_layermap_diversity(q->d, x, q->cell.nof_ports, q->nof_symbols);
+      srslte_precoding_diversity(&q->precoding, x, symbols_precoding, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     } else {
-      memcpy(q->pcfich_symbols[0], q->pcfich_d, q->nof_symbols * sizeof(cf_t));
+      memcpy(q->symbols[0], q->d, q->nof_symbols * sizeof(cf_t));
     }
 
     /* mapping to resource elements */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      if (regs_pcfich_put(q->regs, q->pcfich_symbols[i], slot_symbols[i]) < 0) {
+      if (srslte_regs_pcfich_put(q->regs, q->symbols[i], slot_symbols[i]) < 0) {
         fprintf(stderr, "Error putting PCHICH resource elements\n");
         return SRSLTE_ERROR;
       }

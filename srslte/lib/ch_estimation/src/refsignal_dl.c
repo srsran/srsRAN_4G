@@ -133,7 +133,7 @@ int srslte_refsignal_cs_init(srslte_refsignal_cs_t * q, srslte_cell_t cell)
     
     for (p=0;p<2;p++) {
       for (i=0;i<SRSLTE_NSUBFRAMES_X_FRAME;i++) {
-        q->pilots[p][i] = vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, 2*p));
+        q->pilots[p][i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, 2*p));
         if (!q->pilots[p][i]) {
           perror("malloc");
           goto free_and_exit;

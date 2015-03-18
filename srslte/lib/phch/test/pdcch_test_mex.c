@@ -40,10 +40,10 @@
 #define MAX_CANDIDATES 64
 
 
-dci_format_t ue_formats[] = {Format1A,Format1}; // Format1B should go here also
+srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
 const uint32_t nof_ue_formats = 2; 
 
-dci_format_t common_formats[] = {Format1A,Format1C};
+srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
 const uint32_t nof_common_formats = 2; 
 
 
@@ -58,17 +58,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int i; 
   srslte_cell_t cell; 
-  pdcch_t pdcch;
+  srslte_pdcch_t pdcch;
   srslte_chest_dl_t chest; 
-  srslte_fft_t fft; 
-  regs_t regs;
-  dci_location_t locations[MAX_CANDIDATES];
+  srslte_ofdm_t fft; 
+  srslte_regs_t regs;
+  srslte_dci_location_t locations[MAX_CANDIDATES];
   uint32_t cfi, sf_idx; 
   uint16_t rnti; 
   cf_t *input_fft, *input_signal;
   int nof_re; 
   uint32_t nof_formats; 
-  dci_format_t *formats = NULL; 
+  srslte_dci_format_t *formats = NULL; 
   
   if (nrhs != NOF_INPUTS) {
     help();
@@ -94,24 +94,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return;
   }
   
   rnti = (uint16_t) mxGetScalar(RNTI);
     
-  if (regs_init(&regs, cell)) {
+  if (srslte_regs_init(&regs, cell)) {
     mexErrMsgTxt("Error initiating regs\n");
     return;
   }
   
-  if (regs_set_cfi(&regs, cfi)) {
+  if (srslte_regs_set_cfi(&regs, cfi)) {
     fprintf(stderr, "Error setting CFI\n");
     exit(-1);
   }
   
-  if (pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
     mexErrMsgTxt("Error initiating channel estimator\n");
     return;
   }
@@ -121,15 +121,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error reading input signal\n");
     return; 
   }
-  input_fft = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  input_fft = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   
   // Set Channel estimates to 1.0 (ignore fading) 
   cf_t *ce[SRSLTE_MAX_PORTS];
   for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
-  srslte_fft_run_sf(&fft, input_signal, input_fft);
+  srslte_ofdm_tx_sf(&fft, input_signal, input_fft);
 
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray; 
@@ -150,25 +150,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     noise_power = srslte_chest_dl_get_noise_estimate(&chest);
   }
     
-  pdcch_extract_llr(&pdcch, input_fft, ce, noise_power, sf_idx, cfi);
+  srslte_pdcch_extract_llr(&pdcch, input_fft, ce, noise_power, sf_idx, cfi);
   
   uint32_t nof_locations;
   if (rnti == SRSLTE_SIRNTI) {
-    nof_locations = pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
+    nof_locations = srslte_pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
     formats = common_formats;
     nof_formats = nof_common_formats;
   } else {
-    nof_locations = pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
+    nof_locations = srslte_pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
     formats = ue_formats; 
     nof_formats = nof_ue_formats;
   }
   uint16_t srslte_crc_rem=0;   
-  dci_msg_t dci_msg; 
-  bzero(&dci_msg, sizeof(dci_msg_t));
+  srslte_dci_msg_t dci_msg; 
+  bzero(&dci_msg, sizeof(srslte_dci_msg_t));
   
   for (int f=0;f<nof_formats;f++) {
     for (i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
-      if (pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], formats[f], &srslte_crc_rem)) {
+      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], formats[f], &srslte_crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return;
       }
@@ -178,18 +178,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nlhs >= 1) { 
     plhs[0] = mxCreateLogicalScalar(srslte_crc_rem == rnti);
   }
-  int nof_bits = (regs_pdcch_nregs(&regs, cfi) / 9) * 72;
+  int nof_bits = (srslte_regs_pdcch_nregs(&regs, cfi) / 9) * 72;
   if (nlhs >= 2) {
-    mexutils_write_f(pdcch.pdcch_llr, &plhs[1], nof_bits, 1);  
+    mexutils_write_f(pdcch.llr, &plhs[1], nof_bits, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pdcch.pdcch_symbols[0], &plhs[2], 36*pdcch.nof_cce, 1);  
+    mexutils_write_cf(pdcch.symbols[0], &plhs[2], 36*pdcch.nof_cce, 1);  
   }
   
   srslte_chest_dl_free(&chest);
-  srslte_fft_free(&fft);
-  pdcch_free(&pdcch);
-  regs_free(&regs);
+  srslte_ofdm_tx_free(&fft);
+  srslte_pdcch_free(&pdcch);
+  srslte_regs_free(&regs);
   
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);

@@ -35,50 +35,65 @@
 #include "srslte/config.h"
 #include "modem_table.h"
 
-enum alg { EXACT, APPROX };
+typedef enum SRSLTE_API { 
+  SRSLTE_DEMOD_SOFT_ALG_EXACT, 
+  SRSLTE_DEMOD_SOFT_ALG_APPROX   
+} srslte_demod_soft_alg_t;
 
 typedef struct SRSLTE_API {
   float sigma;      // noise power
-  enum alg alg_type;    // soft demapping algorithm (EXACT or APPROX)
-  modem_table_t *table;  // symbol mapping table (see modem_table.h)
+  srslte_demod_soft_alg_t alg_type;    // soft demapping algorithm (SRSLTE_DEMOD_SOFT_ALG_EXACT or SRSLTE_DEMOD_SOFT_ALG_APPROX)
+  srslte_srslte_modem_table_t *table;  // symbol mapping table (see modem_table.h)
   uint32_t *zones; 
   float *dd; 
   uint32_t max_symbols;
-}demod_soft_t;
+} srslte_demod_soft_t;
 
-SRSLTE_API int demod_soft_init(demod_soft_t *q, uint32_t max_symbols);
-SRSLTE_API void demod_soft_free(demod_soft_t *q); 
-SRSLTE_API void demod_soft_table_set(demod_soft_t *q, modem_table_t *table);
-SRSLTE_API void demod_soft_alg_set(demod_soft_t *q, enum alg alg_type);
-SRSLTE_API void demod_soft_sigma_set(demod_soft_t *q, float sigma);
-SRSLTE_API int demod_soft_demodulate(demod_soft_t *q, const cf_t* symbols, float* llr, int nsymbols);
+SRSLTE_API int srslte_demod_soft_init(srslte_demod_soft_t *q, 
+                                      uint32_t max_symbols);
+
+SRSLTE_API void srslte_demod_soft_free(srslte_demod_soft_t *q); 
+
+SRSLTE_API void srslte_demod_soft_table_set(srslte_demod_soft_t *q, 
+                                            srslte_srslte_modem_table_t *table);
+
+SRSLTE_API void srslte_demod_soft_alg_set(srslte_demod_soft_t *q, 
+                                          srslte_demod_soft_alg_t alg_type);
+
+SRSLTE_API void srslte_demod_soft_sigma_set(srslte_demod_soft_t *q, 
+                                            float sigma);
+
+SRSLTE_API int srslte_demod_soft_demodulate(srslte_demod_soft_t *q, 
+                                            const cf_t* symbols, 
+                                            float* llr, 
+                                            int nsymbols);
 
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  demod_soft_t obj;
-  modem_table_t table;
+  srslte_demod_soft_t obj;
+  srslte_srslte_modem_table_t table;
 
-  struct demod_soft_init{
+  struct srslte_demod_soft_init{
     srslte_mod_t std;    // symbol mapping standard (see modem_table.h)
   } init;
 
   const cf_t* input;
   int in_len;
 
-  struct demod_soft_ctrl_in {
+  struct srslte_demod_soft_ctrl_in {
     float sigma;      // Estimated noise variance
-    enum alg alg_type;    // soft demapping algorithm (EXACT or APPROX)
+    srslte_demod_soft_alg_t alg_type;    // soft demapping algorithm (SRSLTE_DEMOD_SOFT_ALG_EXACT or SRSLTE_DEMOD_SOFT_ALG_APPROX)
   }ctrl_in;
 
   float* output;
   int out_len;
 
-}demod_soft_hl;
+}srslte_demod_soft_hl;
 
-SRSLTE_API int demod_soft_initialize(demod_soft_hl* hl);
-SRSLTE_API int demod_soft_work(demod_soft_hl* hl);
-SRSLTE_API int demod_soft_stop(demod_soft_hl* hl);
+SRSLTE_API int srslte_demod_soft_initialize(srslte_demod_soft_hl* hl);
+SRSLTE_API int srslte_demod_soft_work(srslte_demod_soft_hl* hl);
+SRSLTE_API int srslte_demod_soft_stop(srslte_demod_soft_hl* hl);
 
 
 #endif // DEMOD_SOFT_

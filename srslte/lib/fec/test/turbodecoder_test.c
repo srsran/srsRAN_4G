@@ -93,7 +93,7 @@ void parse_args(int argc, char **argv) {
       seed = (uint32_t) strtoul(argv[optind], NULL, 0);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -162,29 +162,29 @@ int main(int argc, char **argv) {
     printf("  EbNo: %.2f\n", ebno_db);
   }
 
-  data_tx = vec_malloc(frame_length * sizeof(uint8_t));
+  data_tx = srslte_vec_malloc(frame_length * sizeof(uint8_t));
   if (!data_tx) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx = vec_malloc(frame_length * sizeof(uint8_t));
+  data_rx = srslte_vec_malloc(frame_length * sizeof(uint8_t));
   if (!data_rx) {
     perror("malloc");
     exit(-1);
   }
 
-  symbols = vec_malloc(coded_length * sizeof(uint8_t));
+  symbols = srslte_vec_malloc(coded_length * sizeof(uint8_t));
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  llr = vec_malloc(coded_length * sizeof(float));
+  llr = srslte_vec_malloc(coded_length * sizeof(float));
   if (!llr) {
     perror("malloc");
     exit(-1);
   }
-  llr_c = vec_malloc(coded_length * sizeof(uint8_t));
+  llr_c = srslte_vec_malloc(coded_length * sizeof(uint8_t));
   if (!llr_c) {
     perror("malloc");
     exit(-1);
@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
           mean_usec = (float) mean_usec * 0.9 + (float) tdata[0].tv_usec * 0.1;
 
         /* check errors */
-        errors[j] += bit_diff(data_tx, data_rx, frame_length);
+        errors[j] += srslte_bit_diff(data_tx, data_rx, frame_length);
         if (j < MAX_ITERATIONS) {
           ber[j][i] = (float) errors[j] / (frame_cnt * frame_length);
         }

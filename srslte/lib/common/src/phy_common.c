@@ -134,13 +134,13 @@ bool srslte_cb_size_isvalid(uint32_t size) {
 
 char *srslte_mod_string(srslte_mod_t mod) {
   switch (mod) {
-  case LTE_BPSK:
+  case SRSLTE_MOD_BPSK:
     return "BPSK";
-  case LTE_QPSK:
+  case SRSLTE_MOD_QPSK:
     return "QPSK";
-  case LTE_QAM16:
+  case SRSLTE_MOD_16QAM:
     return "QAM16";
-  case LTE_QAM64:
+  case SRSLTE_MOD_64QAM:
     return "QAM64";
   default:
     return "N/A";
@@ -149,13 +149,13 @@ char *srslte_mod_string(srslte_mod_t mod) {
 
 uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod) {
   switch (mod) {
-  case LTE_BPSK:
+  case SRSLTE_MOD_BPSK:
     return 1;
-  case LTE_QPSK:
+  case SRSLTE_MOD_QPSK:
     return 2;
-  case LTE_QAM16:
+  case SRSLTE_MOD_16QAM:
     return 4;
-  case LTE_QAM64:
+  case SRSLTE_MOD_64QAM:
     return 6;
   default:
     return 0;
@@ -301,45 +301,45 @@ struct lte_band {
 };
 
 struct lte_band lte_bands[SRSLTE_NOF_LTE_BANDS] = {
-    {1, 2110, 0, 599, ALL},
-    {2, 1930, 600, 1199, NAR},
-    {3, 1805, 1200, 1949, ALL},
-    {4, 2110, 1950, 2399, NAR},
-    {5, 869, 2400, 2649, NAR},
-    {6, 875, 2650, 2749, APAC},
-    {7, 2620, 2750, 3449, EMEA},
-    {8, 925, 3450, 3799, ALL},
-    {9, 1844.9, 3800, 4149, APAC},
-    {10, 2110, 4150, 4749, NAR},
-    {11, 1475.9, 4750, 4949, JAPAN},
-    {12, 729, 5010, 5179, NAR},
-    {13, 746, 5180, 5279, NAR},
-    {14, 758, 5280, 5379, NAR},
-    {17, 734, 5730, 5849, NAR},
-    {18, 860, 5850, 5999, JAPAN},
-    {19, 875, 6000, 6149, JAPAN},
-    {20, 791, 6150, 6449, EMEA},
-    {21, 1495.9, 6450, 6599, JAPAN},
-    {22, 3500, 6600, 7399, NA},
-    {23, 2180, 7500, 7699, NAR},
-    {24, 1525, 7700, 8039, NAR},
-    {25, 1930, 8040, 8689, NAR},
-    {26, 859, 8690, 9039, NAR},
-    {27, 852, 9040, 9209, NAR},
-    {28, 758, 9210, 9659, APAC},
-    {29, 717, 9660, 9769, NAR},
-    {30, 2350, 9770, 9869, NAR},
-    {31, 462.5, 9870, 9919, CALA}
+    {1, 2110, 0, 599, SRSLTE_BAND_GEO_AREA_ALL},
+    {2, 1930, 600, 1199, SRSLTE_BAND_GEO_AREA_NAR},
+    {3, 1805, 1200, 1949, SRSLTE_BAND_GEO_AREA_ALL},
+    {4, 2110, 1950, 2399, SRSLTE_BAND_GEO_AREA_NAR},
+    {5, 869, 2400, 2649, SRSLTE_BAND_GEO_AREA_NAR},
+    {6, 875, 2650, 2749, SRSLTE_BAND_GEO_AREA_APAC},
+    {7, 2620, 2750, 3449, SRSLTE_BAND_GEO_AREA_EMEA},
+    {8, 925, 3450, 3799, SRSLTE_BAND_GEO_AREA_ALL},
+    {9, 1844.9, 3800, 4149, SRSLTE_BAND_GEO_AREA_APAC},
+    {10, 2110, 4150, 4749, SRSLTE_BAND_GEO_AREA_NAR},
+    {11, 1475.9, 4750, 4949, SRSLTE_BAND_GEO_AREA_JAPAN},
+    {12, 729, 5010, 5179, SRSLTE_BAND_GEO_AREA_NAR},
+    {13, 746, 5180, 5279, SRSLTE_BAND_GEO_AREA_NAR},
+    {14, 758, 5280, 5379, SRSLTE_BAND_GEO_AREA_NAR},
+    {17, 734, 5730, 5849, SRSLTE_BAND_GEO_AREA_NAR},
+    {18, 860, 5850, 5999, SRSLTE_BAND_GEO_AREA_JAPAN},
+    {19, 875, 6000, 6149, SRSLTE_BAND_GEO_AREA_JAPAN},
+    {20, 791, 6150, 6449, SRSLTE_BAND_GEO_AREA_EMEA},
+    {21, 1495.9, 6450, 6599, SRSLTE_BAND_GEO_AREA_JAPAN},
+    {22, 3500, 6600, 7399, SRSLTE_BAND_GEO_AREA_NA},
+    {23, 2180, 7500, 7699, SRSLTE_BAND_GEO_AREA_NAR},
+    {24, 1525, 7700, 8039, SRSLTE_BAND_GEO_AREA_NAR},
+    {25, 1930, 8040, 8689, SRSLTE_BAND_GEO_AREA_NAR},
+    {26, 859, 8690, 9039, SRSLTE_BAND_GEO_AREA_NAR},
+    {27, 852, 9040, 9209, SRSLTE_BAND_GEO_AREA_NAR},
+    {28, 758, 9210, 9659, SRSLTE_BAND_GEO_AREA_APAC},
+    {29, 717, 9660, 9769, SRSLTE_BAND_GEO_AREA_NAR},
+    {30, 2350, 9770, 9869, SRSLTE_BAND_GEO_AREA_NAR},
+    {31, 462.5, 9870, 9919, SRSLTE_BAND_GEO_AREA_CALA}
 };
 #define EOF_BAND 9919
 
 int srslte_str2mimotype(char *mimo_type_str, srslte_mimo_type_t *type) {
   if (!strcmp(mimo_type_str, "single")) {
-    *type = SINGLE_ANTENNA;
+    *type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
   } else if (!strcmp(mimo_type_str, "diversity")) {
-    *type = TX_DIVERSITY;
+    *type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
   } else if (!strcmp(mimo_type_str, "multiplex")) {
-    *type = SPATIAL_MULTIPLEX;
+    *type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
   } else {
     return SRSLTE_ERROR;
   }

@@ -31,7 +31,7 @@
 
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
-#include "srslte/utils/dft.h"
+#include "srslte/dft/dft.h"
 
 typedef _Complex float cf_t;
 
@@ -42,22 +42,22 @@ typedef struct SRSLTE_API {
   srslte_dft_plan_t dft_plan[SRSLTE_MAX_PRB];
   srslte_dft_plan_t idft_plan[SRSLTE_MAX_PRB];
     
-}srslte_srslte_dft_precoding_t;
+}srslte_dft_precoding_t;
 
-SRSLTE_API int srslte_srslte_dft_precoding_init(srslte_srslte_dft_precoding_t *q, 
+SRSLTE_API int srslte_dft_precoding_init(srslte_dft_precoding_t *q, 
                                          uint32_t max_prb);
 
-SRSLTE_API void srslte_srslte_dft_precoding_free(srslte_srslte_dft_precoding_t *q);
+SRSLTE_API void srslte_dft_precoding_free(srslte_dft_precoding_t *q);
 
-SRSLTE_API bool srslte_srslte_dft_precoding_valid_prb(uint32_t nof_prb); 
+SRSLTE_API bool srslte_dft_precoding_valid_prb(uint32_t nof_prb); 
 
-SRSLTE_API int srslte_dft_precoding(srslte_srslte_dft_precoding_t *q, 
+SRSLTE_API int srslte_dft_precoding(srslte_dft_precoding_t *q, 
                                     cf_t *input, 
                                     cf_t *output, 
                                     uint32_t nof_prb, 
                                     uint32_t nof_symbols);
 
-SRSLTE_API int srslte_dft_predecoding(srslte_srslte_dft_precoding_t *q, 
+SRSLTE_API int srslte_dft_predecoding(srslte_dft_precoding_t *q, 
                                       cf_t *input, 
                                       cf_t *output, 
                                       uint32_t nof_prb, 

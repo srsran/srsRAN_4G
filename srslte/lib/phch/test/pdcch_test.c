@@ -50,7 +50,7 @@ void usage(char *prog) {
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -70,7 +70,7 @@ void parse_args(int argc, char **argv) {
       cell.id = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -82,7 +82,7 @@ void parse_args(int argc, char **argv) {
 int test_dci_payload_size() {
   int i, j;
   int x[4];
-  const dci_format_t formats[4] = { Format0, Format1, Format1A, Format1C };
+  const srslte_dci_format_t formats[4] = { SRSLTE_DCI_FORMAT0, SRSLTE_DCI_FORMAT1, SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1C };
   const int prb[6] = { 6, 15, 25, 50, 75, 100 };
   const int dci_sz[6][5] = { { 21, 19, 21, 8 }, { 22, 23, 22, 10 }, { 25, 27,
       25, 12 }, { 27, 31, 27, 13 }, { 27, 33, 27, 14 }, { 28, 39, 28, 15 } };
@@ -92,10 +92,10 @@ int test_dci_payload_size() {
   for (i = 0; i < 6; i++) {
     int n = prb[i];
     for (j = 0; j < 4; j++) {
-      x[j] = dci_format_sizeof(formats[j], n);
+      x[j] = srslte_dci_format_sizeof(formats[j], n);
       if (x[j] != dci_sz[i][j]) {
         fprintf(stderr, "Invalid DCI payload size for %s\n",
-            dci_format_string(formats[j]));
+            srslte_dci_format_string(formats[j]));
         return -1;
       }
     }
@@ -106,11 +106,11 @@ int test_dci_payload_size() {
 }
 
 int main(int argc, char **argv) {
-  pdcch_t pdcch;
-  dci_msg_t dci_tx[2], dci_rx[2], dci_tmp;
-  dci_location_t dci_locations[2];
-  ra_pdsch_t ra_dl;
-  regs_t regs;
+  srslte_pdcch_t pdcch;
+  srslte_dci_msg_t dci_tx[2], dci_rx[2], dci_tmp;
+  srslte_dci_location_t dci_locations[2];
+  srslte_ra_pdsch_t ra_dl;
+  srslte_regs_t regs;
   int i, j;
   cf_t *ce[SRSLTE_MAX_PORTS];
   int nof_re;
@@ -144,45 +144,45 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (regs_init(&regs, cell)) {
+  if (srslte_regs_init(&regs, cell)) {
     fprintf(stderr, "Error initiating regs\n");
     exit(-1);
   }
 
-  if (regs_set_cfi(&regs, cfi)) {
+  if (srslte_regs_set_cfi(&regs, cfi)) {
     fprintf(stderr, "Error setting CFI\n");
     exit(-1);
   }
 
-  if (pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
 
   nof_dcis = 2;
-  bzero(&ra_dl, sizeof(ra_pdsch_t));
+  bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
   ra_dl.harq_process = 0;
   ra_dl.mcs_idx = 5;
   ra_dl.ndi = 0;
   ra_dl.rv_idx = 0;
-  ra_dl.alloc_type = alloc_type0;
+  ra_dl.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   ra_dl.type0_alloc.rbg_bitmask = 0x5;
 
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx[0], Format1, cell.nof_prb, false);
-  dci_location_set(&dci_locations[0], 0, 0);
+  srslte_dci_msg_pack_pdsch(&ra_dl, &dci_tx[0], SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
+  srslte_dci_location_set(&dci_locations[0], 0, 0);
 
   ra_dl.mcs_idx = 15;
-  dci_msg_pack_pdsch(&ra_dl, &dci_tx[1], Format1, cell.nof_prb, false);
-  dci_location_set(&dci_locations[1], 0, 1);
+  srslte_dci_msg_pack_pdsch(&ra_dl, &dci_tx[1], SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
+  srslte_dci_location_set(&dci_locations[1], 0, 1);
   
   for (i=0;i<nof_dcis;i++) {
-    if (pdcch_encode(&pdcch, &dci_tx[i], dci_locations[i], 1234+i, slot_symbols, 0, cfi)) {
+    if (srslte_pdcch_encode(&pdcch, &dci_tx[i], dci_locations[i], 1234+i, slot_symbols, 0, cfi)) {
       fprintf(stderr, "Error encoding DCI message\n");
       goto quit;
     }
   }
 
-  vec_fprint_b(stdout, dci_tx[0].data, dci_tx[0].nof_bits);
+  srslte_vec_fprint_b(stdout, dci_tx[0].data, dci_tx[0].nof_bits);
   /* combine outputs */
   for (i = 1; i < cell.nof_ports; i++) {
     for (j = 0; j < nof_re; j++) {
@@ -191,18 +191,18 @@ int main(int argc, char **argv) {
   }
 
   for (i=0;i<2;i++) {
-    if (pdcch_extract_llr(&pdcch, slot_symbols[0], ce, 0, 0, cfi)) {
+    if (srslte_pdcch_extract_llr(&pdcch, slot_symbols[0], ce, 0, 0, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       goto quit;
     }
     uint16_t srslte_crc_rem; 
-    if (pdcch_decode_msg(&pdcch, &dci_tmp, &dci_locations[i], Format1, &srslte_crc_rem)) {
+    if (srslte_pdcch_decode_msg(&pdcch, &dci_tmp, &dci_locations[i], SRSLTE_DCI_FORMAT1, &srslte_crc_rem)) {
       fprintf(stderr, "Error decoding DCI message\n");
       goto quit;
     }      
     if (srslte_crc_rem >= 1234 && srslte_crc_rem < 1234 + nof_dcis) {
       srslte_crc_rem -= 1234;
-        memcpy(&dci_rx[srslte_crc_rem], &dci_tmp, sizeof(dci_msg_t));
+        memcpy(&dci_rx[srslte_crc_rem], &dci_tmp, sizeof(srslte_dci_msg_t));
     } else {
       printf("Received invalid DCI CRC 0x%x\n", srslte_crc_rem);
       goto quit;
@@ -217,8 +217,8 @@ int main(int argc, char **argv) {
   ret = 0;
 
 quit: 
-  pdcch_free(&pdcch);
-  regs_free(&regs);
+  srslte_pdcch_free(&pdcch);
+  srslte_regs_free(&regs);
 
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     free(ce[i]);

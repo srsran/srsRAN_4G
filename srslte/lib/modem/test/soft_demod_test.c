@@ -44,7 +44,7 @@ void usage(char *prog) {
   printf("Usage: %s [nfv] -m modulation (1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n", prog);
   printf("\t-n num_bits [Default %d]\n", num_bits);
   printf("\t-f nof_frames [Default %d]\n", nof_frames);
-  printf("\t-v verbose [Default None]\n");
+  printf("\t-v srslte_verbose [Default None]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -58,21 +58,21 @@ void parse_args(int argc, char **argv) {
       nof_frames = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     case 'm':
       switch(atoi(argv[optind])) {
       case 1:
-        modulation = LTE_BPSK;
+        modulation = SRSLTE_MOD_BPSK;
         break;
       case 2:
-        modulation = LTE_QPSK;
+        modulation = SRSLTE_MOD_QPSK;
         break;
       case 4:
-        modulation = LTE_QAM16;
+        modulation = SRSLTE_MOD_16QAM;
         break;
       case 6:
-        modulation = LTE_QAM64;
+        modulation = SRSLTE_MOD_64QAM;
         break;
       default:
         fprintf(stderr, "Invalid modulation %d. Possible values: "
@@ -93,13 +93,13 @@ void parse_args(int argc, char **argv) {
 
 float mse_threshold() {
   switch(modulation) {
-    case LTE_BPSK: 
+    case SRSLTE_MOD_BPSK: 
       return 1.0e-6;
-    case LTE_QPSK:
+    case SRSLTE_MOD_QPSK:
       return 1.0e-6; 
-    case LTE_QAM16: 
+    case SRSLTE_MOD_16QAM: 
       return 0.11; 
-    case LTE_QAM64:
+    case SRSLTE_MOD_64QAM:
       return 0.19;
     default:
       return -1.0;
@@ -108,8 +108,8 @@ float mse_threshold() {
 
 int main(int argc, char **argv) {
   int i;
-  modem_table_t mod;
-  demod_soft_t demod_soft;
+  srslte_srslte_modem_table_t mod;
+  srslte_demod_soft_t demod_soft;
   uint8_t *input, *output;
   cf_t *symbols;
   float *llr_exact, *llr_approx;
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   /* initialize objects */
-  if (modem_table_lte(&mod, modulation, true)) {
+  if (srslte_modem_table_lte(&mod, modulation, true)) {
     fprintf(stderr, "Error initializing modem table\n");
     exit(-1);
   }
@@ -125,9 +125,9 @@ int main(int argc, char **argv) {
   /* check that num_bits is multiple of num_bits x symbol */
   num_bits = mod.nbits_x_symbol * (num_bits / mod.nbits_x_symbol);
 
-  demod_soft_init(&demod_soft, num_bits / mod.nbits_x_symbol);
-  demod_soft_table_set(&demod_soft, &mod);
-  demod_soft_sigma_set(&demod_soft, 2.0 / mod.nbits_x_symbol);
+  srslte_demod_soft_init(&demod_soft, num_bits / mod.nbits_x_symbol);
+  srslte_demod_soft_table_set(&demod_soft, &mod);
+  srslte_demod_soft_sigma_set(&demod_soft, 2.0 / mod.nbits_x_symbol);
 
 
   /* allocate buffers */
@@ -172,24 +172,24 @@ int main(int argc, char **argv) {
     }
 
     /* modulate */
-    mod_modulate(&mod, input, symbols, num_bits);
+    srslte_mod_modulate(&mod, input, symbols, num_bits);
 
     /* add noise */
     srslte_ch_awgn_c(symbols, symbols, srslte_ch_awgn_get_variance(5.0, mod.nbits_x_symbol), num_bits / mod.nbits_x_symbol);
     
     /* Compare exact with approximation algorithms */
-    demod_soft_alg_set(&demod_soft, EXACT);
-    demod_soft_demodulate(&demod_soft, symbols, llr_exact, num_bits / mod.nbits_x_symbol);
+    srslte_demod_soft_alg_set(&demod_soft, SRSLTE_DEMOD_SOFT_ALG_EXACT);
+    srslte_demod_soft_demodulate(&demod_soft, symbols, llr_exact, num_bits / mod.nbits_x_symbol);
     
-    demod_soft_alg_set(&demod_soft, APPROX);
+    srslte_demod_soft_alg_set(&demod_soft, SRSLTE_DEMOD_SOFT_ALG_APPROX);
     gettimeofday(&t[1], NULL);
-    demod_soft_demodulate(&demod_soft, symbols, llr_approx, num_bits / mod.nbits_x_symbol);
+    srslte_demod_soft_demodulate(&demod_soft, symbols, llr_approx, num_bits / mod.nbits_x_symbol);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     
     /* compute exponentially averaged execution time */
     if (n > 0) {
-      mean_texec = VEC_CMA((float) t[0].tv_usec, mean_texec, n-1);      
+      mean_texec = SRSLTE_VEC_CMA((float) t[0].tv_usec, mean_texec, n-1);      
     }
     
     /* check MSE */
@@ -200,12 +200,12 @@ int main(int argc, char **argv) {
     }
     mse/=num_bits;
 
-    if (VERBOSE_ISDEBUG()) {
+    if (SRSLTE_VERBOSE_ISDEBUG()) {
       printf("exact=");
-      vec_fprint_f(stdout, llr_exact, num_bits);
+      srslte_vec_fprint_f(stdout, llr_exact, num_bits);
 
       printf("approx=");
-      vec_fprint_f(stdout, llr_approx, num_bits);
+      srslte_vec_fprint_f(stdout, llr_approx, num_bits);
     }
     
     if (mse > mse_threshold()) {
@@ -221,8 +221,8 @@ clean_exit:
   free(output);
   free(input);
 
-  modem_table_free(&mod);
-  demod_soft_free(&demod_soft);
+  srslte_modem_table_free(&mod);
+  srslte_demod_soft_free(&demod_soft);
 
   if (ret == 0) {
     printf("Ok Mean Throughput: %.2f. Mbps ExTime: %.2f us\n", num_bits/mean_texec, mean_texec);    

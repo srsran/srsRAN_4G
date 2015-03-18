@@ -48,7 +48,7 @@ void usage(char *prog) {
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -65,7 +65,7 @@ void parse_args(int argc, char **argv) {
       cell.id = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -76,7 +76,7 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
-  pbch_t pbch;
+  srslte_pbch_t pbch;
   uint8_t bch_payload_tx[BCH_PAYLOAD_LEN], bch_payload_rx[BCH_PAYLOAD_LEN];
   int i, j;
   cf_t *ce[SRSLTE_MAX_PORTS];
@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     }
 
   }
-  if (pbch_init(&pbch, cell)) {
+  if (srslte_pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
     bch_payload_tx[i] = rand()%2;
   }
 
-  pbch_encode(&pbch, bch_payload_tx, slot1_symbols);
+  srslte_pbch_encode(&pbch, bch_payload_tx, slot1_symbols);
 
   /* combine outputs */
   for (i=1;i<cell.nof_ports;i++) {
@@ -124,13 +124,13 @@ int main(int argc, char **argv) {
     }
   }
   
-  pbch_decode_reset(&pbch);
-  if (1 != pbch_decode(&pbch, slot1_symbols[0], ce, 0, bch_payload_rx, &nof_rx_ports, NULL)) {
+  srslte_pbch_decode_reset(&pbch);
+  if (1 != srslte_pbch_decode(&pbch, slot1_symbols[0], ce, 0, bch_payload_rx, &nof_rx_ports, NULL)) {
     printf("Error decoding\n");
     exit(-1);
   }
 
-  pbch_free(&pbch);
+  srslte_pbch_free(&pbch);
 
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
@@ -138,9 +138,9 @@ int main(int argc, char **argv) {
   }
   printf("Tx ports: %d - Rx ports: %d\n", cell.nof_ports, nof_rx_ports);
   printf("Tx payload: ");
-  vec_fprint_hex(stdout, bch_payload_tx, BCH_PAYLOAD_LEN);
+  srslte_vec_fprint_hex(stdout, bch_payload_tx, BCH_PAYLOAD_LEN);
   printf("Rx payload: ");
-  vec_fprint_hex(stdout, bch_payload_rx, BCH_PAYLOAD_LEN);
+  srslte_vec_fprint_hex(stdout, bch_payload_rx, BCH_PAYLOAD_LEN);
 
   if (nof_rx_ports == cell.nof_ports && !memcmp(bch_payload_rx, bch_payload_tx, sizeof(uint8_t) * BCH_PAYLOAD_LEN)) {
     printf("OK\n");

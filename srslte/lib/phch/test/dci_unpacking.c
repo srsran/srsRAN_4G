@@ -38,8 +38,8 @@ void usage(char *prog) {
 }
 
 int main(int argc, char **argv) {
-  dci_msg_t msg;
-  ra_pdsch_t ra_dl;
+  srslte_dci_msg_t msg;
+  srslte_ra_pdsch_t ra_dl;
   int len, rlen;
   int nof_prb;
   int nwords;
@@ -67,9 +67,9 @@ int main(int argc, char **argv) {
   for (i = 0; i < nwords; i++) {
     x = strtoul(argv[i + 3], NULL, 16);
     if (len - rlen < 32) {
-      bit_pack(x, &y, len - rlen);
+      srslte_bit_pack(x, &y, len - rlen);
     } else {
-      bit_pack(x, &y, 32);
+      srslte_bit_pack(x, &y, 32);
     }
 
   }
@@ -80,20 +80,20 @@ int main(int argc, char **argv) {
   }
   printf("\n");
 
-  dci_msg_type_t dci_type;
+  srslte_dci_msg_type_t dci_type;
   msg.nof_bits = len;
-  if (dci_msg_get_type(&msg, &dci_type, nof_prb, SRSLTE_SIRNTI)) {
+  if (srslte_dci_msg_get_type(&msg, &dci_type, nof_prb, SRSLTE_SIRNTI)) {
     fprintf(stderr, "Can't obtain DCI message type\n");
     exit(-1);
   }
   printf("\n");
   printf("Message type:");
-  dci_msg_type_fprint(stdout, dci_type);
+  srslte_dci_msg_type_fprint(stdout, dci_type);
   switch (dci_type.type) {
-  case PDSCH_SCHED:
-    bzero(&ra_dl, sizeof(ra_pdsch_t));
-    dci_msg_unpack_pdsch(&msg, &ra_dl, nof_prb, false);
-    ra_pdsch_fprint(stdout, &ra_dl, nof_prb);
+  case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
+    bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
+    srslte_dci_msg_unpack_pdsch(&msg, &ra_dl, nof_prb, false);
+    srslte_ra_pdsch_fprint(stdout, &ra_dl, nof_prb);
     break;
   default:
     printf("Error expected PDSCH\n");

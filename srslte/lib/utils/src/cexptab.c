@@ -33,7 +33,7 @@
 
 #include "srslte/utils/cexptab.h"
 
-int cexptab_init(cexptab_t *h, uint32_t size) {
+int srslte_cexptab_init(srslte_cexptab_t *h, uint32_t size) {
   uint32_t i;
 
   h->size = size;
@@ -48,14 +48,14 @@ int cexptab_init(cexptab_t *h, uint32_t size) {
   }
 }
 
-void cexptab_free(cexptab_t *h) {
+void srslte_cexptab_free(srslte_cexptab_t *h) {
   if (h->tab) {
     free(h->tab);
   }
-  bzero(h, sizeof(cexptab_t));
+  bzero(h, sizeof(srslte_cexptab_t));
 }
 
-void cexptab_gen(cexptab_t *h, cf_t *x, float freq, uint32_t len) {
+void srslte_cexptab_gen(srslte_cexptab_t *h, cf_t *x, float freq, uint32_t len) {
   uint32_t i;
   uint32_t idx;
   float phase_inc = freq * h->size;
@@ -75,7 +75,7 @@ void cexptab_gen(cexptab_t *h, cf_t *x, float freq, uint32_t len) {
   }
 }
 
-void cexptab_gen_direct(cf_t *x, float freq, uint32_t len) {
+void srslte_cexptab_gen_direct(cf_t *x, float freq, uint32_t len) {
   uint32_t i;
   for (i = 0; i < len; i++) {
     x[i] = cexpf(_Complex_I * 2 * M_PI * freq * i);

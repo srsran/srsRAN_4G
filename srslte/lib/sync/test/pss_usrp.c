@@ -41,7 +41,7 @@
 
 #ifndef DISABLE_GRAPHICS
 void init_plots();
-void do_plots(float *corr, float energy, uint32_t size, cf_t ce[PSS_LEN]);
+void do_plots(float *corr, float energy, uint32_t size, cf_t ce[SRSLTE_PSS_LEN]);
 void do_plots_sss(float *corr_m0, float *corr_m1);
 #endif
 
@@ -70,7 +70,7 @@ void usage(char *prog) {
 #else
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
-  printf("\t-v verbose\n");
+  printf("\t-v srslte_verbose\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -108,7 +108,7 @@ void parse_args(int argc, char **argv) {
       disable_plots = true;
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -126,15 +126,15 @@ int main(int argc, char **argv) {
   cf_t *buffer; 
   int frame_cnt, n; 
   void *uhd;
-  pss_synch_t pss; 
-  cfo_t cfocorr, cfocorr64; 
-  sss_synch_t sss; 
+  srslte_pss_synch_t pss; 
+  srslte_cfo_t cfocorr, cfocorr64; 
+  srslte_sss_synch_t sss; 
   int32_t flen; 
   int peak_idx, last_peak;
   float peak_value; 
   float mean_peak; 
   uint32_t nof_det, nof_nodet, nof_nopeak, nof_nopeakdet;
-  cf_t ce[PSS_LEN]; 
+  cf_t ce[SRSLTE_PSS_LEN]; 
   
   parse_args(argc, argv);
 
@@ -157,25 +157,25 @@ int main(int argc, char **argv) {
     exit(-1);
   }
     
-  if (pss_synch_init_fft(&pss, flen, fft_size)) {
+  if (srslte_pss_synch_init_fft(&pss, flen, fft_size)) {
     fprintf(stderr, "Error initiating PSS\n");
     exit(-1);
   }
 
-  if (pss_synch_set_N_id_2(&pss, N_id_2_sync)) {
+  if (srslte_pss_synch_set_N_id_2(&pss, N_id_2_sync)) {
     fprintf(stderr, "Error setting N_id_2=%d\n",N_id_2_sync);
     exit(-1);
   }
   
-  cfo_init(&cfocorr, flen); 
-  cfo_init(&cfocorr64, flen); 
+  srslte_cfo_init(&cfocorr, flen); 
+  srslte_cfo_init(&cfocorr64, flen); 
  
-  if (sss_synch_init(&sss, fft_size)) {
+  if (srslte_sss_synch_init(&sss, fft_size)) {
     fprintf(stderr, "Error initializing SSS object\n");
     return SRSLTE_ERROR;
   }
 
-  sss_synch_set_N_id_2(&sss, N_id_2);
+  srslte_sss_synch_set_N_id_2(&sss, N_id_2);
 
   printf("Opening UHD device...\n");
   if (cuhd_open(uhd_args, &uhd)) {
@@ -203,8 +203,8 @@ int main(int argc, char **argv) {
   uint32_t sss_error1 = 0, sss_error2 = 0, sss_error3 = 0; 
   uint32_t cp_is_norm = 0; 
   
-  sync_t ssync; 
-  bzero(&ssync, sizeof(sync_t));
+  srslte_sync_t ssync; 
+  bzero(&ssync, sizeof(srslte_sync_t));
   ssync.fft_size = fft_size;
   
   while(frame_cnt < nof_frames || nof_frames == -1) {
@@ -214,13 +214,13 @@ int main(int argc, char **argv) {
       exit(-1);
     }
     
-    peak_idx = pss_synch_find_pss(&pss, buffer, &peak_value);
+    peak_idx = srslte_pss_synch_find_pss(&pss, buffer, &peak_value);
     if (peak_idx < 0) {
       fprintf(stderr, "Error finding PSS peak\n");
       exit(-1);
     }
         
-    mean_peak = VEC_CMA(peak_value, mean_peak, frame_cnt);
+    mean_peak = SRSLTE_VEC_CMA(peak_value, mean_peak, frame_cnt);
     
     if (peak_value >= threshold) {
       nof_det++;
@@ -228,14 +228,14 @@ int main(int argc, char **argv) {
       if (peak_idx >= fft_size) {
 
         // Estimate CFO 
-        cfo = pss_synch_cfo_compute(&pss, &buffer[peak_idx-fft_size]);
-        mean_cfo = VEC_CMA(cfo, mean_cfo, frame_cnt);        
+        cfo = srslte_pss_synch_cfo_compute(&pss, &buffer[peak_idx-fft_size]);
+        mean_cfo = SRSLTE_VEC_CMA(cfo, mean_cfo, frame_cnt);        
 
         // Correct CFO
-        cfo_correct(&cfocorr, buffer, buffer, -mean_cfo / fft_size);               
+        srslte_cfo_correct(&cfocorr, buffer, buffer, -mean_cfo / fft_size);               
 
         // Estimate channel
-        if (pss_synch_chest(&pss, &buffer[peak_idx-fft_size], ce)) {
+        if (srslte_pss_synch_chest(&pss, &buffer[peak_idx-fft_size], ce)) {
           fprintf(stderr, "Error computing channel estimation\n");
           exit(-1);
         }
@@ -243,26 +243,26 @@ int main(int argc, char **argv) {
         // Find SSS 
         int sss_idx = peak_idx-2*fft_size-(SRSLTE_CP_ISNORM(cp)?SRSLTE_CP(fft_size, SRSLTE_SRSLTE_CP_NORM_LEN):SRSLTE_CP(fft_size, SRSLTE_SRSLTE_CP_EXT_LEN));             
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
-          sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);
-          if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
+          srslte_sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);
+          if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error2++;            
           }
-          INFO("Partial N_id_1: %d\n", sss_synch_N_id_1(&sss, m0, m1));
-          sss_synch_m0m1_diff(&sss, &buffer[sss_idx], &m0, &m0_value, &m1, &m1_value);
-          if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
+          INFO("Partial N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
+          srslte_sss_synch_m0m1_diff(&sss, &buffer[sss_idx], &m0, &m0_value, &m1, &m1_value);
+          if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error3++;            
           }
-          INFO("Diff N_id_1: %d\n", sss_synch_N_id_1(&sss, m0, m1));
-          sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
-          if (sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
+          INFO("Diff N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
+          srslte_sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
+          if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error1++;     
           }
-          INFO("Full N_id_1: %d\n", sss_synch_N_id_1(&sss, m0, m1));
+          INFO("Full N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
         }
         
         // Estimate CP 
         if (peak_idx > 2*(fft_size + SRSLTE_CP_EXT(fft_size))) {
-          srslte_cp_t cp = sync_detect_cp(&ssync, buffer, peak_idx);
+          srslte_cp_t cp = srslte_sync_detect_cp(&ssync, buffer, peak_idx);
           if (SRSLTE_CP_ISNORM(cp)) {
             cp_is_norm++; 
           }          
@@ -272,7 +272,7 @@ int main(int argc, char **argv) {
         INFO("No space for CFO computation. Frame starts at \n",peak_idx);
       }
       
-      if(sss_synch_subframe(m0,m1) == 0)
+      if(srslte_sss_synch_subframe(m0,m1) == 0)
       {
 #ifndef DISABLE_GRAPHICS
           if (!disable_plots)
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
            (float) sss_error1/nof_det,(float) sss_error2/nof_det,(float) sss_error3/nof_det,
            (float) cp_is_norm/nof_det * 100);
     
-    if (VERBOSE_ISINFO()) {
+    if (SRSLTE_VERBOSE_ISINFO()) {
       printf("\n");
     }
   
@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
 
   }
   
-  pss_synch_free(&pss);
+  srslte_pss_synch_free(&pss);
   free(buffer);
   cuhd_close(uhd);
 
@@ -342,7 +342,7 @@ plot_real_t pssout;
 plot_real_t psss1;//, psss2;
 
 float tmp[100000];
-cf_t tmpce[PSS_LEN];
+cf_t tmpce[SRSLTE_PSS_LEN];
 
 
 void init_plots() {
@@ -376,24 +376,24 @@ void init_plots() {
 
 }
 
-void do_plots(float *corr, float energy, uint32_t size, cf_t ce[PSS_LEN]) {  
-  vec_sc_prod_fff(corr,1./energy,tmp, size);
+void do_plots(float *corr, float energy, uint32_t size, cf_t ce[SRSLTE_PSS_LEN]) {  
+  srslte_vec_sc_prod_fff(corr,1./energy,tmp, size);
   plot_real_setNewData(&pssout, tmp, size);        
   
-//  float norm = vec_avg_power_cf(ce, PSS_LEN);
- // vec_sc_prod_cfc(ce, 1.0/sqrt(norm), tmpce, PSS_LEN);
+//  float norm = srslte_vec_avg_power_cf(ce, SRSLTE_PSS_LEN);
+ // srslte_vec_sc_prod_cfc(ce, 1.0/sqrt(norm), tmpce, SRSLTE_PSS_LEN);
   
-  //plot_complex_setNewData(&pce, tmpce, PSS_LEN);
+  //plot_complex_setNewData(&pce, tmpce, SRSLTE_PSS_LEN);
 }
 
 void do_plots_sss(float *corr_m0, float *corr_m1) {  
   if (m0_value > 0) 
-    vec_sc_prod_fff(corr_m0,1./m0_value,corr_m0, N_SSS);
-  plot_real_setNewData(&psss1, corr_m0, N_SSS);        
+    srslte_vec_sc_prod_fff(corr_m0,1./m0_value,corr_m0, SRSLTE_SSS_N);
+  plot_real_setNewData(&psss1, corr_m0, SRSLTE_SSS_N);        
   
 //  if (m1_value > 0) 
-//    vec_sc_prod_fff(corr_m1,1./m1_value,corr_m1, N_SSS);
-//  plot_real_setNewData(&psss2, corr_m1, N_SSS);        
+//    srslte_vec_sc_prod_fff(corr_m1,1./m1_value,corr_m1, SRSLTE_SSS_N);
+//  plot_real_setNewData(&psss2, corr_m1, SRSLTE_SSS_N);        
 }
 
 #endif

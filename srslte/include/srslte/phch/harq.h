@@ -34,21 +34,21 @@
 #include "srslte/phch/ra.h"
 
 
- struct cb_segm {
+ typedef struct SRSLTE_API {
   uint32_t F;
   uint32_t C;
   uint32_t K1;
   uint32_t K2;
   uint32_t C1;
   uint32_t C2;
-};
+} srslte_harq_cbsegm_t;
 
 typedef struct SRSLTE_API {
-  ra_mcs_t mcs;
+  srslte_ra_mcs_t mcs;
   uint32_t rv;
   uint32_t sf_idx;
-  ra_dl_alloc_t dl_alloc;
-  ra_ul_alloc_t ul_alloc;
+  srslte_srslte_ra_dl_alloc_t dl_alloc;
+  srslte_srslte_ra_ul_alloc_t ul_alloc;
   srslte_cell_t cell;
   
   uint32_t nof_re;   // Number of RE per subframe 
@@ -61,31 +61,31 @@ typedef struct SRSLTE_API {
   float **pdsch_w_buff_f;  
   uint8_t **pdsch_w_buff_c;  
   
-  struct cb_segm cb_segm;
+  srslte_harq_cbsegm_t cb_segm;
 
-} harq_t;
+} srslte_harq_t;
 
-SRSLTE_API int harq_init(harq_t * q,
-                         srslte_cell_t cell);
+SRSLTE_API int srslte_harq_init(srslte_harq_t * q,
+                                srslte_cell_t cell);
 
-SRSLTE_API int harq_setup_dl(harq_t *p, 
-                             ra_mcs_t mcs,
-                             uint32_t rv,
-                             uint32_t sf_idx,
-                             ra_dl_alloc_t *prb_alloc);
+SRSLTE_API int srslte_harq_setup_dl(srslte_harq_t *p, 
+                                    srslte_ra_mcs_t mcs,
+                                    uint32_t rv,
+                                    uint32_t sf_idx,
+                                    srslte_srslte_ra_dl_alloc_t *prb_alloc);
 
-SRSLTE_API int harq_setup_ul(harq_t *p, 
-                             ra_mcs_t mcs,
-                             uint32_t rv,
-                             uint32_t sf_idx,
-                             ra_ul_alloc_t *prb_alloc);
+SRSLTE_API int srslte_harq_setup_ul(srslte_harq_t *p, 
+                                    srslte_ra_mcs_t mcs,
+                                    uint32_t rv,
+                                    uint32_t sf_idx,
+                                    srslte_srslte_ra_ul_alloc_t *prb_alloc);
 
-SRSLTE_API void harq_reset(harq_t *p); 
+SRSLTE_API void srslte_harq_reset(srslte_harq_t *p); 
 
-SRSLTE_API void harq_free(harq_t *p);
+SRSLTE_API void srslte_harq_free(srslte_harq_t *p);
 
-SRSLTE_API int codeblock_segmentation(struct cb_segm *s, 
-                                  uint32_t tbs); 
+SRSLTE_API int srslte_harq_codeblock_segmentation(srslte_harq_cbsegm_t *s, 
+                                                  uint32_t tbs); 
 
 
 #endif

@@ -37,32 +37,32 @@
 typedef _Complex float cf_t;
 
 /** If the frequency is changed more than the tolerance, a new table is generated */
-#define CFO_TOLERANCE 0.00001
+#define SRSLTE_CFO_TOLERANCE    0.00001
 
-#define CFO_CEXPTAB_SIZE 4096
+#define SRSLTE_CFO_CEXPTAB_SIZE 4096
 
 typedef struct SRSLTE_API {
   float last_freq;
   float tol;
   int nsamples;
-  cexptab_t tab;
+  srslte_cexptab_t tab;
   cf_t *cur_cexp;
-}cfo_t;
+}srslte_cfo_t;
 
-SRSLTE_API int cfo_init(cfo_t *h, 
-                        uint32_t nsamples);
+SRSLTE_API int srslte_cfo_init(srslte_cfo_t *h, 
+                               uint32_t nsamples);
 
-SRSLTE_API void cfo_free(cfo_t *h);
+SRSLTE_API void srslte_cfo_free(srslte_cfo_t *h);
 
-SRSLTE_API int cfo_realloc(cfo_t *h, 
-                           uint32_t samples);
+SRSLTE_API int srslte_cfo_realloc(srslte_cfo_t *h, 
+                                  uint32_t samples);
 
-SRSLTE_API void cfo_set_tol(cfo_t *h, 
-                            float tol);
+SRSLTE_API void srslte_cfo_set_tol(srslte_cfo_t *h, 
+                                   float tol);
 
-SRSLTE_API void cfo_correct(cfo_t *h, 
-                            cf_t *input,
-                            cf_t *output,
-                            float freq);
+SRSLTE_API void srslte_cfo_correct(srslte_cfo_t *h, 
+                                   cf_t *input,
+                                   cf_t *output,
+                                   float freq);
 
 #endif // CFO_

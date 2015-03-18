@@ -91,7 +91,7 @@ int mexutils_read_cell(const mxArray *ptr, srslte_cell_t *cell) {
 
 int mexutils_read_cf(const mxArray *ptr, cf_t **buffer) {
   int numelems = mxGetNumberOfElements(ptr);
-  cf_t *tmp = vec_malloc(numelems * sizeof(cf_t));
+  cf_t *tmp = srslte_vec_malloc(numelems * sizeof(cf_t));
   if (tmp) {
     double *inr=mxGetPr(ptr);
     double *ini=mxGetPi(ptr);
@@ -110,7 +110,7 @@ int mexutils_read_cf(const mxArray *ptr, cf_t **buffer) {
 
 int mexutils_read_f(const mxArray *ptr, float **buffer) {
   int numelems = mxGetNumberOfElements(ptr);
-  float *tmp = vec_malloc(numelems * sizeof(float));
+  float *tmp = srslte_vec_malloc(numelems * sizeof(float));
   if (tmp) {
     double *inr=mxGetPr(ptr);
     for (int i=0;i<numelems;i++) {
@@ -125,7 +125,7 @@ int mexutils_read_f(const mxArray *ptr, float **buffer) {
 
 int mexutils_read_uint8(const mxArray *ptr, uint8_t **buffer) {
   int numelems = mxGetNumberOfElements(ptr);
-  uint8_t *tmp = vec_malloc(numelems * sizeof(uint8_t));
+  uint8_t *tmp = srslte_vec_malloc(numelems * sizeof(uint8_t));
   if (tmp) {
     double *inr=mxGetPr(ptr);
     for (int i=0;i<numelems;i++) {

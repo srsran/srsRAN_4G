@@ -47,7 +47,7 @@ typedef _Complex float cf_t;
 
 typedef enum SRSLTE_API {
   SEARCH_UE, SEARCH_COMMON
-} pdcch_search_mode_t;
+} srslte_pdcch_search_mode_t;
 
 
 /* PDCCH object */
@@ -57,70 +57,70 @@ typedef struct SRSLTE_API {
   uint32_t nof_cce;
   uint32_t max_bits;
 
-  regs_t *regs;
+  srslte_regs_t *regs;
 
   /* buffers */
   cf_t *ce[SRSLTE_MAX_PORTS];
-  cf_t *pdcch_symbols[SRSLTE_MAX_PORTS];
-  cf_t *pdcch_x[SRSLTE_MAX_PORTS];
-  cf_t *pdcch_d;
-  uint8_t *pdcch_e;
-  float pdcch_rm_f[3 * (DCI_MAX_BITS + 16)];
-  float *pdcch_llr;
+  cf_t *symbols[SRSLTE_MAX_PORTS];
+  cf_t *x[SRSLTE_MAX_PORTS];
+  cf_t *d;
+  uint8_t *e;
+  float rm_f[3 * (DCI_MAX_BITS + 16)];
+  float *llr;
 
   /* tx & rx objects */
-  modem_table_t mod;
-  demod_soft_t demod;
-  srslte_sequence_t seq_pdcch[SRSLTE_NSUBFRAMES_X_FRAME];
+  srslte_srslte_modem_table_t mod;
+  srslte_demod_soft_t demod;
+  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
   srslte_viterbi_t decoder;
   srslte_crc_t crc;
-  precoding_t precoding; 
+  srslte_precoding_t precoding; 
 
-} pdcch_t;
+} srslte_pdcch_t;
 
-SRSLTE_API int pdcch_init(pdcch_t *q, 
-                          regs_t *regs, 
-                          srslte_cell_t cell);
+SRSLTE_API int srslte_pdcch_init(srslte_pdcch_t *q, 
+                                 srslte_regs_t *regs, 
+                                 srslte_cell_t cell);
 
-SRSLTE_API void pdcch_free(pdcch_t *q);
+SRSLTE_API void srslte_pdcch_free(srslte_pdcch_t *q);
 
 
 /* Encoding function */
-SRSLTE_API int pdcch_encode(pdcch_t *q, 
-                                dci_msg_t *msg,
-                                dci_location_t location,
-                                uint16_t rnti,
-                                cf_t *sf_symbols[SRSLTE_MAX_PORTS],
-                                uint32_t nsubframe, 
-                                uint32_t cfi);
+SRSLTE_API int srslte_pdcch_encode(srslte_pdcch_t *q, 
+                                   srslte_dci_msg_t *msg,
+                                   srslte_dci_location_t location,
+                                   uint16_t rnti,
+                                   cf_t *sf_symbols[SRSLTE_MAX_PORTS],
+                                   uint32_t nsubframe, 
+                                   uint32_t cfi);
 
-/* Decoding functions: Extract the LLRs and save them in the pdcch_t object */
-SRSLTE_API int pdcch_extract_llr(pdcch_t *q, 
-                                 cf_t *sf_symbols, 
-                                 cf_t *ce[SRSLTE_MAX_PORTS],
-                                 float noise_estimate, 
-                                 uint32_t nsubframe, 
-                                 uint32_t cfi);
+/* Decoding functions: Extract the LLRs and save them in the srslte_pdcch_t object */
+SRSLTE_API int srslte_pdcch_extract_llr(srslte_pdcch_t *q, 
+                                        cf_t *sf_symbols, 
+                                        cf_t *ce[SRSLTE_MAX_PORTS],
+                                        float noise_estimate, 
+                                        uint32_t nsubframe, 
+                                        uint32_t cfi);
 
-/* Decoding functions: Try to decode a DCI message after calling pdcch_extract_llr */
-SRSLTE_API int pdcch_decode_msg(pdcch_t *q, 
-                                dci_msg_t *msg, 
-                                dci_location_t *location,
-                                dci_format_t format,
-                                uint16_t *srslte_crc_rem);
+/* Decoding functions: Try to decode a DCI message after calling srslte_pdcch_extract_llr */
+SRSLTE_API int srslte_pdcch_decode_msg(srslte_pdcch_t *q, 
+                                       srslte_dci_msg_t *msg, 
+                                       srslte_dci_location_t *location,
+                                       srslte_dci_format_t format,
+                                       uint16_t *srslte_crc_rem);
 
 /* Function for generation of UE-specific search space DCI locations */
-SRSLTE_API uint32_t pdcch_ue_locations(pdcch_t *q, 
-                                       dci_location_t *locations, 
-                                       uint32_t max_locations,
-                                       uint32_t nsubframe, 
-                                       uint32_t cfi,
-                                       uint16_t rnti);
+SRSLTE_API uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, 
+                                              srslte_dci_location_t *locations, 
+                                              uint32_t max_locations,
+                                              uint32_t nsubframe, 
+                                              uint32_t cfi,
+                                              uint16_t rnti);
 
 /* Function for generation of common search space DCI locations */
-SRSLTE_API uint32_t pdcch_common_locations(pdcch_t *q, 
-                                           dci_location_t *locations, 
-                                           uint32_t max_locations,
-                                           uint32_t cfi);
+SRSLTE_API uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, 
+                                                  srslte_dci_location_t *locations, 
+                                                  uint32_t max_locations,
+                                                  uint32_t cfi);
 
 #endif

@@ -47,7 +47,7 @@ uint32_t cfi = 2;
 uint32_t tbs = 0;
 uint32_t nof_tbs = 0; 
 uint32_t subframe = 1;
-srslte_mod_t modulation = LTE_BPSK;
+srslte_mod_t modulation = SRSLTE_MOD_BPSK;
 uint32_t rv_idx = 0;
 
 void usage(char *prog) {
@@ -60,7 +60,7 @@ void usage(char *prog) {
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -70,16 +70,16 @@ void parse_args(int argc, char **argv) {
     case 'm':
       switch(atoi(argv[optind])) {
       case 1:
-        modulation = LTE_BPSK;
+        modulation = SRSLTE_MOD_BPSK;
         break;
       case 2:
-        modulation = LTE_QPSK;
+        modulation = SRSLTE_MOD_QPSK;
         break;
       case 4:
-        modulation = LTE_QAM16;
+        modulation = SRSLTE_MOD_16QAM;
         break;
       case 6:
-        modulation = LTE_QAM64;
+        modulation = SRSLTE_MOD_64QAM;
         break;
       default:
         fprintf(stderr, "Invalid modulation %d. Possible values: "
@@ -109,7 +109,7 @@ void parse_args(int argc, char **argv) {
       cell.id = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -123,7 +123,7 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  pdsch_t pdsch;
+  srslte_pdsch_t pdsch;
   uint32_t i, j;
   uint8_t *data = NULL;
   cf_t *ce[SRSLTE_MAX_PORTS];
@@ -131,15 +131,15 @@ int main(int argc, char **argv) {
   cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   int ret = -1;
   struct timeval t[3];
-  ra_mcs_t mcs;
-  ra_dl_alloc_t prb_alloc;
-  harq_t harq_process;
+  srslte_ra_mcs_t mcs;
+  srslte_srslte_ra_dl_alloc_t prb_alloc;
+  srslte_harq_t harq_process;
   uint32_t rv;
 
   parse_args(argc,argv);
 
-  bzero(&pdsch, sizeof(pdsch_t));
-  bzero(&harq_process, sizeof(harq_t));
+  bzero(&pdsch, sizeof(srslte_pdsch_t));
+  bzero(&harq_process, sizeof(srslte_harq_t));
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   
@@ -151,9 +151,9 @@ int main(int argc, char **argv) {
   for (i=0;i<prb_alloc.slot[0].nof_prb;i++) {
     prb_alloc.slot[0].prb_idx[i] = true;
   }
-  memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
+  memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(srslte_ra_prb_slot_t));
 
-  ra_dl_alloc_re(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+  srslte_ra_dl_alloc_re(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
   
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {
@@ -178,20 +178,20 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  if (pdsch_init(&pdsch, cell)) {
+  if (srslte_pdsch_init(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
   
-  pdsch_set_rnti(&pdsch, 1234);
+  srslte_pdsch_set_rnti(&pdsch, 1234);
   
-  if (harq_init(&harq_process, cell)) {
+  if (srslte_harq_init(&harq_process, cell)) {
     fprintf(stderr, "Error initiating HARQ process\n");
     goto quit;
   }
   
   for (mcs.tbs = tbs;mcs.tbs<=tbs+nof_tbs;mcs.tbs++) {
-    if (VERBOSE_ISNONE()) {
+    if (SRSLTE_VERBOSE_ISNONE()) {
       printf("Decoding TBS: %d\r",mcs.tbs);
     }
     for (i=0;i<mcs.tbs;i++) {
@@ -199,12 +199,12 @@ int main(int argc, char **argv) {
     }
 
     for (rv=0;rv<=rv_idx;rv++) {
-      if (harq_setup_dl(&harq_process, mcs, rv, subframe, &prb_alloc)) {
+      if (srslte_harq_setup_dl(&harq_process, mcs, rv, subframe, &prb_alloc)) {
         fprintf(stderr, "Error configuring HARQ process\n");
         goto quit;
       }
 
-      if (pdsch_encode(&pdsch, &harq_process, data, slot_symbols)) {
+      if (srslte_pdsch_encode(&pdsch, &harq_process, data, slot_symbols)) {
         fprintf(stderr, "Error encoding PDSCH\n");
         goto quit;
       }
@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
       }
       
       gettimeofday(&t[1], NULL);
-      int r = pdsch_decode(&pdsch, &harq_process, slot_symbols[0], ce, 0, data);
+      int r = srslte_pdsch_decode(&pdsch, &harq_process, slot_symbols[0], ce, 0, data);
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
       if (r) {
@@ -236,8 +236,8 @@ int main(int argc, char **argv) {
   }
   ret = 0;
 quit:
-  pdsch_free(&pdsch);
-  harq_free(&harq_process);
+  srslte_pdsch_free(&pdsch);
+  srslte_harq_free(&harq_process);
   
   for (i=0;i<cell.nof_ports;i++) {
     if (ce[i]) {

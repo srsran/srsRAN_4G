@@ -43,30 +43,30 @@ typedef struct SRSLTE_API {
   uint32_t min_idx[2][64][6];	/* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2x(1, 2, 4, and 6 closest constellation points) for each bit, respectively. */
   uint32_t d_idx[64][7];	/* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2, 3, 5 and 7 indices to constellation points that need to be computed for any recevied symbol modulated as BPSK, QPSK, 16QAM, and 64QAM, respectively. */
 
-}soft_table_t;
+}srslte_soft_table_t;
 
 typedef struct SRSLTE_API {
   cf_t* symbol_table;     	// bit-to-symbol mapping
-  soft_table_t soft_table;   	// symbol-to-bit mapping (used in soft demodulating)
+  srslte_soft_table_t soft_table;   	// symbol-to-bit mapping (used in soft demodulating)
   uint32_t nsymbols;        	// number of modulation symbols
   uint32_t nbits_x_symbol;      // number of bits per symbol
-}modem_table_t;
+}srslte_srslte_modem_table_t;
 
 
-SRSLTE_API void modem_table_init(modem_table_t* q);
+SRSLTE_API void srslte_modem_table_init(srslte_srslte_modem_table_t* q);
 
-SRSLTE_API void modem_table_free(modem_table_t* q);
+SRSLTE_API void srslte_modem_table_free(srslte_srslte_modem_table_t* q);
 
-SRSLTE_API void modem_table_reset(modem_table_t* q);
+SRSLTE_API void srslte_modem_table_reset(srslte_srslte_modem_table_t* q);
 
-SRSLTE_API int modem_table_set(modem_table_t* q, 
-                               cf_t* table, 
-                               soft_table_t *soft_table, 
-                               uint32_t nsymbols, 
-                               uint32_t nbits_x_symbol);
+SRSLTE_API int srslte_modem_table_set(srslte_srslte_modem_table_t* q, 
+                                      cf_t* table, 
+                                      srslte_soft_table_t *soft_table, 
+                                      uint32_t nsymbols, 
+                                      uint32_t nbits_x_symbol);
 
-SRSLTE_API int modem_table_lte(modem_table_t* q, 
-                               srslte_mod_t modulation, 
-                               bool compute_soft_demod);
+SRSLTE_API int srslte_modem_table_lte(srslte_srslte_modem_table_t* q, 
+                                      srslte_mod_t modulation, 
+                                      bool compute_soft_demod);
 
 #endif // MODEM_TABLE_

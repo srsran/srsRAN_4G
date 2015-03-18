@@ -49,7 +49,7 @@ void usage(char *prog) {
   printf("\t-p nof_prb [Default %d]\n", nof_prb);
   printf("\t-o offset [Default %d]\n", offset);
   printf("\t-e extended CP [Default normal]\n");
-  printf("\t-v verbose\n");
+  printf("\t-v srslte_verbose\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -69,7 +69,7 @@ void parse_args(int argc, char **argv) {
       cp = SRSLTE_SRSLTE_CP_EXT;
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -81,13 +81,13 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int N_id_2, ns, find_ns;
   cf_t *buffer, *fft_buffer;
-  cf_t pss_signal[PSS_LEN];
-  float sss_signal0[SSS_LEN]; // for subframe 0
-  float sss_signal5[SSS_LEN]; // for subframe 5
+  cf_t pss_signal[SRSLTE_PSS_LEN];
+  float sss_signal0[SRSLTE_SSS_LEN]; // for subframe 0
+  float sss_signal5[SRSLTE_SSS_LEN]; // for subframe 5
   int cid, max_cid; 
   uint32_t find_idx;
-  sync_t sync;
-  srslte_fft_t ifft;
+  srslte_sync_t sync;
+  srslte_ofdm_t ifft;
   int fft_size; 
   
   parse_args(argc, argv);
@@ -110,19 +110,19 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
-  if (lte_ifft_init(&ifft, cp, nof_prb)) {
+  if (srslte_ofdm_rx_init(&ifft, cp, nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
 
-  if (sync_init(&sync, FLEN, fft_size)) {
+  if (srslte_sync_init(&sync, FLEN, fft_size)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
 
   /* Set a very high threshold to make sure the correlation is ok */
-  sync_set_threshold(&sync, 5.0);
-  sync_set_sss_algorithm(&sync, SSS_PARTIAL_3);
+  srslte_sync_set_threshold(&sync, 5.0);
+  srslte_sync_set_sss_algorithm(&sync, SSS_PARTIAL_3);
 
   if (cell_id == -1) {
     cid = 0;
@@ -135,25 +135,25 @@ int main(int argc, char **argv) {
     N_id_2 = cid%3;
 
     /* Generate PSS/SSS signals */
-    pss_generate(pss_signal, N_id_2);
-    sss_generate(sss_signal0, sss_signal5, cid);
+    srslte_pss_generate(pss_signal, N_id_2);
+    srslte_sss_generate(sss_signal0, sss_signal5, cid);
 
-    sync_set_N_id_2(&sync, N_id_2);
+    srslte_sync_set_N_id_2(&sync, N_id_2);
     
     for (ns=0;ns<2;ns++) {
       memset(buffer, 0, sizeof(cf_t) * FLEN);
-      pss_put_slot(pss_signal, buffer, nof_prb, cp);
-      sss_put_slot(ns?sss_signal5:sss_signal0, buffer, nof_prb, cp);
+      srslte_pss_put_slot(pss_signal, buffer, nof_prb, cp);
+      srslte_sss_put_slot(ns?sss_signal5:sss_signal0, buffer, nof_prb, cp);
 
       /* Transform to OFDM symbols */
       memset(fft_buffer, 0, sizeof(cf_t) * FLEN);
-      lte_ifft_run_slot(&ifft, buffer, &fft_buffer[offset]);
+      srslte_ofdm_rx_slot(&ifft, buffer, &fft_buffer[offset]);
       
-      if (sync_find(&sync, fft_buffer, 0, &find_idx) < 0) {
-        fprintf(stderr, "Error running sync_find\n");
+      if (srslte_sync_find(&sync, fft_buffer, 0, &find_idx) < 0) {
+        fprintf(stderr, "Error running srslte_sync_find\n");
         exit(-1);
       }
-      find_ns = 2*sync_get_sf_idx(&sync);
+      find_ns = 2*srslte_sync_get_sf_idx(&sync);
       printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
           ns, find_ns);
       if (find_idx != offset + FLEN/2) {
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
         printf("ns != find_ns\n", 10 * ns, find_ns);
         exit(-1);
       }
-      if (sync_get_cp(&sync) != cp) {
+      if (srslte_sync_get_cp(&sync) != cp) {
         printf("Detected CP should be %s\n", SRSLTE_CP_ISNORM(cp)?"Normal":"Extended");
         exit(-1);
       }
@@ -175,8 +175,8 @@ int main(int argc, char **argv) {
   free(fft_buffer);
   free(buffer);
 
-  sync_free(&sync);
-  lte_ifft_free(&ifft);
+  srslte_sync_free(&sync);
+  srslte_ofdm_rx_free(&ifft);
 
   printf("Ok\n");
   exit(0);

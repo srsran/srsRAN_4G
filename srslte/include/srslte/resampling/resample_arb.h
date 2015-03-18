@@ -35,17 +35,22 @@
 
 typedef _Complex float cf_t;
 
-#define RESAMPLE_ARB_N    32  // Polyphase filter rows
-#define RESAMPLE_ARB_M    8   // Polyphase filter columns
+#define SRSLTE_RESAMPLE_ARB_N    32  // Polyphase filter rows
+#define SRSLTE_RESAMPLE_ARB_M    8   // Polyphase filter columns
 
 typedef struct SRSLTE_API {
   float rate;                // Resample rate
   float step;                // Step increment through filter
   float acc;                 // Index into filter
-  cf_t reg[RESAMPLE_ARB_M];  // Our window of samples
-}resample_arb_t;
+  cf_t reg[SRSLTE_RESAMPLE_ARB_M];  // Our window of samples
+} srslte_resample_arb_t;
 
-SRSLTE_API void resample_arb_init(resample_arb_t *q, float rate);
-SRSLTE_API int resample_arb_compute(resample_arb_t *q, cf_t *input, cf_t *output, int n_in);
+SRSLTE_API void srslte_resample_arb_init(srslte_resample_arb_t *q, 
+                                         float rate);
+
+SRSLTE_API int srslte_resample_arb_compute(srslte_resample_arb_t *q, 
+                                           cf_t *input, 
+                                           cf_t *output, 
+                                           int n_in);
 
 #endif //RESAMPLE_ARB_

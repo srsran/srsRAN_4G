@@ -45,9 +45,9 @@
 typedef _Complex float cf_t;
 
 // There are 3 implemenations: 1 - based on zones; 2 - using volk, 3 - straightforward C
-#define LLR_APPROX_IMPLEMENTATION 1
+#define LLR_SRSLTE_DEMOD_SOFT_ALG_APPROX_IMPLEMENTATION 1
 
-#if LLR_APPROX_IMPLEMENTATION == 1
+#if LLR_SRSLTE_DEMOD_SOFT_ALG_APPROX_IMPLEMENTATION == 1
 
 
 /**
@@ -475,7 +475,7 @@ static void compute_square_dist(uint32_t *zone, float *dd, const cf_t * in, cf_t
       symbols_extract[b] = symbols[idx[zone[s]][b]];    
       /* only subset of distances to constellation points needed for LLR approx */
     }
-    vec_square_dist(in[s], symbols_extract, d_ptr, B + 1);      /* B+1 distances to be computed */
+    srslte_vec_square_dist(in[s], symbols_extract, d_ptr, B + 1);      /* B+1 distances to be computed */
   }
 }
 
@@ -502,7 +502,7 @@ void llr_approx(const _Complex float *in, float *out, int N, int M, int B,
   }
 }
 
-#elif LLR_APPROX_IMPLEMENTATION == 2
+#elif LLR_SRSLTE_DEMOD_SOFT_ALG_APPROX_IMPLEMENTATION == 2
 
 float d[10000][64];
 float num[10000], den[10000];
@@ -513,7 +513,7 @@ static void compute_square_dist(const cf_t * in, cf_t * symbols, int N, int M)
   float *d_ptr;
   for (s = 0; s < N; s++) {
     d_ptr = d[s];
-    vec_square_dist(in[s], symbols, d_ptr, M);
+    srslte_vec_square_dist(in[s], symbols, d_ptr, M);
   }
 }
 

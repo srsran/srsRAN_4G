@@ -45,12 +45,12 @@
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
 /* Calculate Codeblock Segmentation as in Section 5.1.2 of 36.212 */
-int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
+int srslte_harq_codeblock_segmentation(srslte_harq_cbsegm_t *s, uint32_t tbs) {
   uint32_t Bp, B, idx1;
   int ret; 
 
   if (tbs == 0) {
-    bzero(s, sizeof(struct cb_segm));
+    bzero(s, sizeof(srslte_harq_cbsegm_t));
     ret = SRSLTE_SUCCESS;
   } else {
     B = tbs + 24;
@@ -93,26 +93,26 @@ int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
   return ret;
 }
 
-int harq_init(harq_t *q, srslte_cell_t cell) {
+int srslte_harq_init(srslte_harq_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL) {    
     uint32_t i;
-    bzero(q, sizeof(harq_t));
+    bzero(q, sizeof(srslte_harq_t));
     
     memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
     
-    ret = ra_tbs_from_idx(26, cell.nof_prb);
+    ret = srslte_ra_tbs_from_idx(26, cell.nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (MAX_LONG_CB - 24) + 1; 
       
-      q->pdsch_w_buff_f = vec_malloc(sizeof(float*) * q->max_cb);
+      q->pdsch_w_buff_f = srslte_vec_malloc(sizeof(float*) * q->max_cb);
       if (!q->pdsch_w_buff_f) {
         perror("malloc");
         return SRSLTE_ERROR;
       }
       
-      q->pdsch_w_buff_c = vec_malloc(sizeof(uint8_t*) * q->max_cb);
+      q->pdsch_w_buff_c = srslte_vec_malloc(sizeof(uint8_t*) * q->max_cb);
       if (!q->pdsch_w_buff_c) {
         perror("malloc");
         return SRSLTE_ERROR;
@@ -121,12 +121,12 @@ int harq_init(harq_t *q, srslte_cell_t cell) {
       // FIXME: Use HARQ buffer limitation based on UE category
       q->w_buff_size = cell.nof_prb * MAX_PDSCH_RE(cell.cp) * 6 * 10;
       for (i=0;i<q->max_cb;i++) {
-        q->pdsch_w_buff_f[i] = vec_malloc(sizeof(float) * q->w_buff_size);
+        q->pdsch_w_buff_f[i] = srslte_vec_malloc(sizeof(float) * q->w_buff_size);
         if (!q->pdsch_w_buff_f[i]) {
           perror("malloc");
           return SRSLTE_ERROR;
         }
-        q->pdsch_w_buff_c[i] = vec_malloc(sizeof(uint8_t) * q->w_buff_size);
+        q->pdsch_w_buff_c[i] = srslte_vec_malloc(sizeof(uint8_t) * q->w_buff_size);
         if (!q->pdsch_w_buff_c[i]) {
           perror("malloc");
           return SRSLTE_ERROR;
@@ -139,7 +139,7 @@ int harq_init(harq_t *q, srslte_cell_t cell) {
   return ret;
 }
 
-void harq_free(harq_t *q) {
+void srslte_harq_free(srslte_harq_t *q) {
   if (q) {
     uint32_t i;
     if (q->pdsch_w_buff_f) {
@@ -158,11 +158,11 @@ void harq_free(harq_t *q) {
       }
       free(q->pdsch_w_buff_c);
     }
-    bzero(q, sizeof(harq_t));
+    bzero(q, sizeof(srslte_harq_t));
   }
 }
 
-void harq_reset(harq_t *q) {
+void srslte_harq_reset(srslte_harq_t *q) {
   int i; 
   if (q->pdsch_w_buff_f) {
     for (i=0;i<q->max_cb;i++) {
@@ -178,14 +178,14 @@ void harq_reset(harq_t *q) {
       }
     }
   }
-  bzero(&q->mcs, sizeof(ra_mcs_t));
-  bzero(&q->cb_segm, sizeof(struct cb_segm));
-  bzero(&q->dl_alloc, sizeof(ra_dl_alloc_t));
+  bzero(&q->mcs, sizeof(srslte_ra_mcs_t));
+  bzero(&q->cb_segm, sizeof(srslte_harq_cbsegm_t));
+  bzero(&q->dl_alloc, sizeof(srslte_srslte_ra_dl_alloc_t));
 }
 
-static int harq_setup_common(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx) {
+static int harq_setup_common(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx) {
   if (mcs.tbs != q->mcs.tbs) {
-    codeblock_segmentation(&q->cb_segm, mcs.tbs);          
+    srslte_harq_codeblock_segmentation(&q->cb_segm, mcs.tbs);          
     if (q->cb_segm.C > q->max_cb) {
       fprintf(stderr, "Codeblock segmentation returned more CBs (%d) than allocated (%d)\n", 
         q->cb_segm.C, q->max_cb);
@@ -199,7 +199,7 @@ static int harq_setup_common(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_i
   return SRSLTE_SUCCESS;
 }
 
-int harq_setup_dl(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_dl_alloc_t *dl_alloc) {
+int srslte_harq_setup_dl(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, srslte_srslte_ra_dl_alloc_t *dl_alloc) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL       && 
@@ -210,7 +210,7 @@ int harq_setup_dl(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_dl_a
     if (ret) {
       return ret;
     }
-    memcpy(&q->dl_alloc, dl_alloc, sizeof(ra_dl_alloc_t));
+    memcpy(&q->dl_alloc, dl_alloc, sizeof(srslte_srslte_ra_dl_alloc_t));
 
     // Number of symbols, RE and bits per subframe for DL
     q->nof_re = q->dl_alloc.re_sf[q->sf_idx];
@@ -223,7 +223,7 @@ int harq_setup_dl(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_dl_a
   return ret;
 }
 
-int harq_setup_ul(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_ul_alloc_t *ul_alloc) {
+int srslte_harq_setup_ul(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, srslte_srslte_ra_ul_alloc_t *ul_alloc) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL       && 
@@ -234,7 +234,7 @@ int harq_setup_ul(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_ul_a
     if (ret) {
       return ret;
     }
-    memcpy(&q->ul_alloc, ul_alloc, sizeof(ra_ul_alloc_t));
+    memcpy(&q->ul_alloc, ul_alloc, sizeof(srslte_srslte_ra_ul_alloc_t));
 
     // Number of symbols, RE and bits per subframe for UL
     q->nof_symb = 2*(SRSLTE_CP_NSYMB(q->cell.cp)-1);

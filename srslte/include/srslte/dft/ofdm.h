@@ -35,7 +35,7 @@
 
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
-#include "srslte/utils/dft.h"
+#include "srslte/dft/dft.h"
 
 typedef _Complex float cf_t; /* this is only a shortcut */
 
@@ -52,40 +52,42 @@ typedef struct SRSLTE_API{
   
   bool freq_shift;
   cf_t *shift_buffer; 
-}srslte_fft_t;
+}srslte_ofdm_t;
 
-SRSLTE_API int srslte_fft_init(srslte_fft_t *q, 
+SRSLTE_API int srslte_ofdm_tx_init(srslte_ofdm_t *q, 
                                srslte_cp_t cp_type, 
                                uint32_t nof_prb);
 
-SRSLTE_API void srslte_fft_free(srslte_fft_t *q);
+SRSLTE_API void srslte_ofdm_tx_free(srslte_ofdm_t *q);
 
-SRSLTE_API void srslte_fft_run_slot(srslte_fft_t *q, 
+SRSLTE_API void srslte_ofdm_tx_slot(srslte_ofdm_t *q, 
                                     cf_t *input, 
                                     cf_t *output);
 
-SRSLTE_API void srslte_fft_run_sf(srslte_fft_t *q, 
+SRSLTE_API void srslte_ofdm_tx_sf(srslte_ofdm_t *q, 
                                   cf_t *input, 
                                   cf_t *output);
 
-SRSLTE_API int lte_ifft_init(srslte_fft_t *q, 
-                             srslte_cp_t cp_type, 
-                             uint32_t nof_prb);
 
-SRSLTE_API void lte_ifft_free(srslte_fft_t *q);
 
-SRSLTE_API void lte_ifft_run_slot(srslte_fft_t *q, 
+SRSLTE_API int srslte_ofdm_rx_init(srslte_ofdm_t *q, 
+                                    srslte_cp_t cp_type, 
+                                    uint32_t nof_prb);
+
+SRSLTE_API void srslte_ofdm_rx_free(srslte_ofdm_t *q);
+
+SRSLTE_API void srslte_ofdm_rx_slot(srslte_ofdm_t *q, 
                                   cf_t *input, 
                                   cf_t *output);
 
-SRSLTE_API void lte_ifft_run_sf(srslte_fft_t *q, 
+SRSLTE_API void srslte_ofdm_rx_sf(srslte_ofdm_t *q, 
                                 cf_t *input, 
                                 cf_t *output);
 
-SRSLTE_API int srslte_fft_set_freq_shift(srslte_fft_t *q, 
+SRSLTE_API int srslte_ofdm_set_freq_shift(srslte_ofdm_t *q, 
                                          float freq_shift); 
 
-SRSLTE_API void srslte_fft_set_normalize(srslte_fft_t *q, 
+SRSLTE_API void srslte_ofdm_set_normalize(srslte_ofdm_t *q, 
                                          bool normalize_enable); 
 
 #endif

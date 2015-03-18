@@ -46,7 +46,7 @@ srslte_cell_t cell = {
 uint32_t cfi = 2;
 uint32_t tbs = 0;
 uint32_t subframe = 1;
-srslte_mod_t modulation = LTE_QPSK;
+srslte_mod_t modulation = SRSLTE_MOD_QPSK;
 uint32_t rv_idx = 0;
 uint32_t L_prb = 2; 
 uint32_t n_prb = 0; 
@@ -65,7 +65,7 @@ void usage(char *prog) {
   printf("\t-r rv_idx [Default %d]\n", rv_idx);
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-v [set verbose to debug, default none]\n");
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -75,16 +75,16 @@ void parse_args(int argc, char **argv) {
     case 'm':
       switch(atoi(argv[optind])) {
       case 1:
-        modulation = LTE_BPSK;
+        modulation = SRSLTE_MOD_BPSK;
         break;
       case 2:
-        modulation = LTE_QPSK;
+        modulation = SRSLTE_MOD_QPSK;
         break;
       case 4:
-        modulation = LTE_QAM16;
+        modulation = SRSLTE_MOD_16QAM;
         break;
       case 6:
-        modulation = LTE_QAM64;
+        modulation = SRSLTE_MOD_64QAM;
         break;
       default:
         fprintf(stderr, "Invalid modulation %d. Possible values: "
@@ -120,7 +120,7 @@ void parse_args(int argc, char **argv) {
       cell.id = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -130,29 +130,29 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  pusch_t pusch;
+  srslte_pusch_t pusch;
   uint8_t *data = NULL;
   cf_t *sf_symbols = NULL;
   int ret = -1;
   struct timeval t[3];
-  ra_mcs_t mcs;
-  ra_ul_alloc_t prb_alloc;
-  harq_t harq_process;
+  srslte_ra_mcs_t mcs;
+  srslte_srslte_ra_ul_alloc_t prb_alloc;
+  srslte_harq_t harq_process;
   
   parse_args(argc,argv);
 
   mcs.tbs = tbs;
   mcs.mod = modulation;
   
-  bzero(&prb_alloc, sizeof(ra_ul_alloc_t));
+  bzero(&prb_alloc, sizeof(srslte_srslte_ra_ul_alloc_t));
   
-  if (pusch_init(&pusch, cell)) {
+  if (srslte_pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
-  pusch_set_rnti(&pusch, 1234);
+  srslte_pusch_set_rnti(&pusch, 1234);
   
-  if (harq_init(&harq_process, cell)) {
+  if (srslte_harq_init(&harq_process, cell)) {
     fprintf(stderr, "Error initiating HARQ process\n");
     goto quit;
   }
@@ -163,8 +163,8 @@ int main(int argc, char **argv) {
   for (uint32_t i=0;i<20;i++) {
     tmp[i] = 1;
   }
-  uci_data_t uci_data; 
-  bzero(&uci_data, sizeof(uci_data_t));
+  srslte_uci_data_t uci_data; 
+  bzero(&uci_data, sizeof(srslte_uci_data_t));
   uci_data.beta_cqi = 2.0; 
   uci_data.beta_ri = 2.0; 
   uci_data.beta_ack = 2.0; 
@@ -177,30 +177,30 @@ int main(int argc, char **argv) {
   uci_data.uci_ri = 1; 
   uci_data.uci_ack = 1; 
     
-  ra_pusch_t pusch_dci;
-  pusch_dci.freq_hop_fl = freq_hop;
+  srslte_ra_pusch_t dci;
+  dci.freq_hop_fl = freq_hop;
   if (riv < 0) {
-    pusch_dci.type2_alloc.L_crb = L_prb; 
-    pusch_dci.type2_alloc.RB_start = n_prb;    
+    dci.type2_alloc.L_crb = L_prb; 
+    dci.type2_alloc.RB_start = n_prb;    
   } else {
-    ra_type2_from_riv((uint32_t) riv, &pusch_dci.type2_alloc.L_crb, &pusch_dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
+    srslte_ra_type2_from_riv((uint32_t) riv, &dci.type2_alloc.L_crb, &dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
   }
-  ra_ul_alloc(&prb_alloc, &pusch_dci, 0, cell.nof_prb);
+  srslte_ra_ul_alloc(&prb_alloc, &dci, 0, cell.nof_prb);
 
-  if (harq_setup_ul(&harq_process, mcs, 0, subframe, &prb_alloc)) {
+  if (srslte_harq_setup_ul(&harq_process, mcs, 0, subframe, &prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
     goto quit;
   }
-  pusch_hopping_cfg_t ul_hopping; 
+  srslte_pusch_hopping_cfg_t ul_hopping; 
   ul_hopping.n_sb = 1; 
   ul_hopping.hopping_offset = 0;
-  ul_hopping.hop_mode = hop_mode_inter_sf;
+  ul_hopping.hop_mode = SRSLTE_PUSCH_HOP_MODE_INTER_SF;
   ul_hopping.current_tx_nb = 0;
   
-  pusch_set_hopping_cfg(&pusch, &ul_hopping);
+  srslte_pusch_set_hopping_cfg(&pusch, &ul_hopping);
   
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
-  sf_symbols = vec_malloc(sizeof(cf_t) * nof_re);
+  sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
     perror("malloc");
     goto quit;
@@ -216,33 +216,33 @@ int main(int argc, char **argv) {
     data[i] = 1;
   }
 
-  if (pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
+  if (srslte_pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
     fprintf(stderr, "Error encoding TB\n");
     exit(-1);
   }
 
   if (rv_idx > 0) {
-    if (harq_setup_ul(&harq_process, mcs, rv_idx, subframe, &prb_alloc)) {
+    if (srslte_harq_setup_ul(&harq_process, mcs, rv_idx, subframe, &prb_alloc)) {
       fprintf(stderr, "Error configuring HARQ process\n");
       goto quit;
     }
 
-    if (pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
+    if (srslte_pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
   }
   
   
-  cf_t *scfdma = vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  srslte_fft_t fft; 
-  lte_ifft_init(&fft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb);
-  srslte_fft_set_freq_shift(&fft, 0.5);
-  lte_ifft_run_sf(&fft, sf_symbols, scfdma);
+  srslte_ofdm_t fft; 
+  srslte_ofdm_rx_init(&fft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb);
+  srslte_ofdm_set_freq_shift(&fft, 0.5);
+  srslte_ofdm_rx_sf(&fft, sf_symbols, scfdma);
   
   gettimeofday(&t[1], NULL);
-  //int r = pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
+  //int r = srslte_pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
   int r = 0; 
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -256,8 +256,8 @@ int main(int argc, char **argv) {
   
   ret = 0;
 quit:
-  pusch_free(&pusch);
-  harq_free(&harq_process);
+  srslte_pusch_free(&pusch);
+  srslte_harq_free(&harq_process);
   
   if (sf_symbols) {
     free(sf_symbols);

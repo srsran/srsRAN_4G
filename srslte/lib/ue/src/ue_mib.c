@@ -36,33 +36,33 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
-int ue_mib_init(ue_mib_t * q, 
+int srslte_ue_mib_init(srslte_ue_mib_t * q, 
                 srslte_cell_t cell) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && 
-      cell.nof_ports <= MIB_SRSLTE_MAX_PORTS) 
+      cell.nof_ports <= SRSLTE_UE_MIB_MAX_PORTS) 
   {
 
     ret = SRSLTE_ERROR;    
-    bzero(q, sizeof(ue_mib_t));
+    bzero(q, sizeof(srslte_ue_mib_t));
     
-    q->sf_symbols = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit;
     }
     
     for (int i=0;i<cell.nof_ports;i++) {
-      q->ce[i] = vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+      q->ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
       if (!q->ce[i]) {
         perror("malloc");
         goto clean_exit;
       }
     }
 
-    if (srslte_fft_init(&q->fft, cell.cp, cell.nof_prb)) {
+    if (srslte_ofdm_tx_init(&q->fft, cell.cp, cell.nof_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       goto clean_exit;
     }
@@ -70,56 +70,56 @@ int ue_mib_init(ue_mib_t * q,
       fprintf(stderr, "Error initializing reference signal\n");
       goto clean_exit;
     }
-    if (pbch_init(&q->pbch, cell)) {
+    if (srslte_pbch_init(&q->pbch, cell)) {
       fprintf(stderr, "Error initiating PBCH\n");
       goto clean_exit;
     }
-    ue_mib_reset(q);
+    srslte_ue_mib_reset(q);
     
     ret = SRSLTE_SUCCESS;
   }
 
 clean_exit:
   if (ret == SRSLTE_ERROR) {
-    ue_mib_free(q);
+    srslte_ue_mib_free(q);
   }
   return ret;
 }
 
-void ue_mib_free(ue_mib_t * q)
+void srslte_ue_mib_free(srslte_ue_mib_t * q)
 {
   if (q->sf_symbols) {
     free(q->sf_symbols);
   }
-  for (int i=0;i<MIB_SRSLTE_MAX_PORTS;i++) {
+  for (int i=0;i<SRSLTE_UE_MIB_MAX_PORTS;i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
   }
-  sync_free(&q->sfind);
+  srslte_sync_free(&q->sfind);
   srslte_chest_dl_free(&q->chest);
-  pbch_free(&q->pbch);
-  srslte_fft_free(&q->fft);
+  srslte_pbch_free(&q->pbch);
+  srslte_ofdm_tx_free(&q->fft);
     
-  bzero(q, sizeof(ue_mib_t));
+  bzero(q, sizeof(srslte_ue_mib_t));
     
 }
 
 
-void ue_mib_reset(ue_mib_t * q)
+void srslte_ue_mib_reset(srslte_ue_mib_t * q)
 {
   q->frame_cnt = 0;   
-  pbch_decode_reset(&q->pbch);
+  srslte_pbch_decode_reset(&q->pbch);
 }
 
-int ue_mib_decode(ue_mib_t * q, cf_t *input, 
+int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input, 
                   uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
 {
   int ret = SRSLTE_SUCCESS;
   cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
 
   /* Run FFT for the slot symbols */
-  srslte_fft_run_sf(&q->fft, input, q->sf_symbols);
+  srslte_ofdm_tx_sf(&q->fft, input, q->sf_symbols);
             
   /* Get channel estimates of sf idx #0 for each port */
   ret = srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, 0);
@@ -129,7 +129,7 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
   /* Reset decoder if we missed a frame */
   if (q->frame_cnt > 8) {
     INFO("Resetting PBCH decoder after %d frames\n", q->frame_cnt);
-    ue_mib_reset(q);
+    srslte_ue_mib_reset(q);
   }
   
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
@@ -137,61 +137,61 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
   }
   
   /* Decode PBCH */
-  ret = pbch_decode(&q->pbch, &q->sf_symbols[SRSLTE_SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
+  ret = srslte_pbch_decode(&q->pbch, &q->sf_symbols[SRSLTE_SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
                     ce_slot1, srslte_chest_dl_get_noise_estimate(&q->chest),
                     bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
   } else if (ret == 1) {
     INFO("MIB decoded: %u\n", q->frame_cnt);
-    ue_mib_reset(q);
-    ret = MIB_FOUND; 
+    srslte_ue_mib_reset(q);
+    ret = SRSLTE_UE_MIB_FOUND; 
   } else {
     INFO("MIB not decoded: %u\n", q->frame_cnt);
     q->frame_cnt++;
-    ret = MIB_NOTFOUND;
+    ret = SRSLTE_UE_MIB_NOTFOUND;
   }    
   return ret;
 }
 
 
 
-int ue_mib_sync_init(ue_mib_sync_t *q, 
+int srslte_ue_mib_sync_init(srslte_ue_mib_sync_t *q, 
                      uint32_t cell_id, 
                      srslte_cp_t cp, 
                      int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*),                             
                      void *stream_handler) 
 {
   srslte_cell_t cell; 
-  cell.nof_ports = MIB_SRSLTE_MAX_PORTS; 
+  cell.nof_ports = SRSLTE_UE_MIB_MAX_PORTS; 
   cell.id = cell_id; 
   cell.cp = cp; 
-  cell.nof_prb = MIB_NOF_PRB; 
+  cell.nof_prb = SRSLTE_UE_MIB_NOF_PRB; 
   
-  if (ue_mib_init(&q->ue_mib, cell)) {
+  if (srslte_ue_mib_init(&q->ue_mib, cell)) {
     fprintf(stderr, "Error initiating ue_mib\n");
     return SRSLTE_ERROR;
   }
-  if (ue_sync_init(&q->ue_sync, cell, recv_callback, stream_handler)) {
+  if (srslte_ue_sync_init(&q->ue_sync, cell, recv_callback, stream_handler)) {
     fprintf(stderr, "Error initiating ue_sync\n");
-    ue_mib_free(&q->ue_mib);
+    srslte_ue_mib_free(&q->ue_mib);
     return SRSLTE_ERROR;
   }
-  ue_sync_decode_sss_on_track(&q->ue_sync, true);
+  srslte_ue_sync_decode_sss_on_track(&q->ue_sync, true);
   return SRSLTE_SUCCESS;
 }
 
-void ue_mib_sync_free(ue_mib_sync_t *q) {
-  ue_mib_free(&q->ue_mib);
-  ue_sync_free(&q->ue_sync);
+void srslte_ue_mib_sync_free(srslte_ue_mib_sync_t *q) {
+  srslte_ue_mib_free(&q->ue_mib);
+  srslte_ue_sync_free(&q->ue_sync);
 }
 
-void ue_mib_sync_reset(ue_mib_sync_t * q) {
-  ue_mib_reset(&q->ue_mib);
-  ue_sync_reset(&q->ue_sync);
+void srslte_ue_mib_sync_reset(srslte_ue_mib_sync_t * q) {
+  srslte_ue_mib_reset(&q->ue_mib);
+  srslte_ue_sync_reset(&q->ue_sync);
 }
 
-int ue_mib_sync_decode(ue_mib_sync_t * q, 
+int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q, 
                        uint32_t max_frames_timeout,
                        uint8_t bch_payload[BCH_PAYLOAD_LEN], 
                        uint32_t *nof_tx_ports, 
@@ -201,27 +201,27 @@ int ue_mib_sync_decode(ue_mib_sync_t * q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   cf_t *sf_buffer = NULL; 
   uint32_t nof_frames = 0; 
-  int mib_ret = MIB_NOTFOUND; 
+  int mib_ret = SRSLTE_UE_MIB_NOTFOUND; 
 
   if (q != NULL) 
   {
     ret = SRSLTE_SUCCESS;     
     do {
-      mib_ret = MIB_NOTFOUND; 
-      ret = ue_sync_get_buffer(&q->ue_sync, &sf_buffer);
+      mib_ret = SRSLTE_UE_MIB_NOTFOUND; 
+      ret = srslte_ue_sync_get_buffer(&q->ue_sync, &sf_buffer);
       if (ret < 0) {
-        fprintf(stderr, "Error calling ue_sync_work()\n");       
+        fprintf(stderr, "Error calling srslte_ue_sync_work()\n");       
         break; 
-      } else if (ue_sync_get_sfidx(&q->ue_sync) == 0) {
+      } else if (srslte_ue_sync_get_sfidx(&q->ue_sync) == 0) {
         if (ret == 1) {
-          mib_ret = ue_mib_decode(&q->ue_mib, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);                    
+          mib_ret = srslte_ue_mib_decode(&q->ue_mib, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);                    
         } else {
           INFO("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
-          ue_mib_reset(&q->ue_mib);
+          srslte_ue_mib_reset(&q->ue_mib);
         }
         nof_frames++;
       }
-    } while (mib_ret == MIB_NOTFOUND && ret >= 0 && nof_frames < max_frames_timeout);
+    } while (mib_ret == SRSLTE_UE_MIB_NOTFOUND && ret >= 0 && nof_frames < max_frames_timeout);
     if (mib_ret < 0) {
       ret = mib_ret; 
     }

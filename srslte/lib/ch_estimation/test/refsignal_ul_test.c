@@ -65,7 +65,7 @@ void parse_args(int argc, char **argv) {
       cell.id = atoi(argv[optind]);
       break;
     case 'v':
-      verbose++;
+      srslte_verbose++;
       break;
     default:
       usage(argv[0]);
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
               printf("cyclic_shift_for_drms: %d, ",pusch_cfg.cyclic_shift_for_drms);
               printf("delta_ss: %d, ",pusch_cfg.delta_ss);
               printf("SF_idx: %d\n", sf_idx);
-              srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);              
+              srslte_refsignal_dmrs_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);              
               exit(0);
             }
           }

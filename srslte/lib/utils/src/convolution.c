@@ -29,37 +29,37 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/utils/dft.h"
+#include "srslte/dft/dft.h"
 #include "srslte/utils/vector.h"
 #include "srslte/utils/convolution.h"
 
 
-int conv_fft_cc_init(conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {
+int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {
   q->input_len = input_len;
   q->filter_len = filter_len;
   q->output_len = input_len+filter_len;
-  q->input_fft = vec_malloc(sizeof(cf_t)*q->output_len);
-  q->filter_fft = vec_malloc(sizeof(cf_t)*q->output_len);
-  q->output_fft = vec_malloc(sizeof(cf_t)*q->output_len);
+  q->input_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
+  q->filter_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
+  q->output_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
   if (!q->input_fft || !q->filter_fft || !q->output_fft) {
     return SRSLTE_ERROR;
   }
-  if (dft_plan(&q->input_plan,q->output_len,FORWARD,COMPLEX)) {
+  if (srslte_dft_plan(&q->input_plan,q->output_len,SRSLTE_DFT_FORWARD,SRSLTE_DFT_COMPLEX)) {
     return SRSLTE_ERROR;
   }
-  if (dft_plan(&q->filter_plan,q->output_len,FORWARD,COMPLEX)) {
+  if (srslte_dft_plan(&q->filter_plan,q->output_len,SRSLTE_DFT_FORWARD,SRSLTE_DFT_COMPLEX)) {
     return SRSLTE_ERROR;
   }
-  if (dft_plan(&q->output_plan,q->output_len,BACKWARD,COMPLEX)) {
+  if (srslte_dft_plan(&q->output_plan,q->output_len,SRSLTE_DFT_BACKWARD,SRSLTE_DFT_COMPLEX)) {
     return SRSLTE_ERROR;
   }
-  dft_plan_set_norm(&q->input_plan, true);
-  dft_plan_set_norm(&q->filter_plan, true);
-  dft_plan_set_norm(&q->output_plan, false);
+  srslte_dft_plan_set_norm(&q->input_plan, true);
+  srslte_dft_plan_set_norm(&q->filter_plan, true);
+  srslte_dft_plan_set_norm(&q->output_plan, false);
   return SRSLTE_SUCCESS;
 }
 
-void conv_fft_cc_free(conv_fft_cc_t *q) {
+void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q) {
   if (q->input_fft) {
     free(q->input_fft);
   }
@@ -69,37 +69,37 @@ void conv_fft_cc_free(conv_fft_cc_t *q) {
   if (q->output_fft) {
     free(q->output_fft);
   }
-  dft_plan_free(&q->input_plan);
-  dft_plan_free(&q->filter_plan);
-  dft_plan_free(&q->output_plan);
+  srslte_dft_plan_free(&q->input_plan);
+  srslte_dft_plan_free(&q->filter_plan);
+  srslte_dft_plan_free(&q->output_plan);
   
-  bzero(q, sizeof(conv_fft_cc_t));
+  bzero(q, sizeof(srslte_conv_fft_cc_t));
 
 }
 
-uint32_t conv_fft_cc_run(conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *output) {
+uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *output) {
 
-  dft_run_c(&q->input_plan, input, q->input_fft);
-  dft_run_c(&q->filter_plan, filter, q->filter_fft);
+  srslte_dft_run_c(&q->input_plan, input, q->input_fft);
+  srslte_dft_run_c(&q->filter_plan, filter, q->filter_fft);
 
-  vec_prod_ccc(q->input_fft,q->filter_fft,q->output_fft,q->output_len);
+  srslte_vec_prod_ccc(q->input_fft,q->filter_fft,q->output_fft,q->output_len);
 
-  dft_run_c(&q->output_plan, q->output_fft, output);
+  srslte_dft_run_c(&q->output_plan, q->output_fft, output);
 
   return q->output_len-1;
 
 }
 
-uint32_t conv_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
+uint32_t srslte_conv_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
   uint32_t i;
   uint32_t M = filter_len; 
   uint32_t N = input_len; 
 
   for (i=0;i<M;i++) {
-    output[i]=vec_dot_prod_ccc(&input[i],&filter[i],i);
+    output[i]=srslte_vec_dot_prod_ccc(&input[i],&filter[i],i);
   }
   for (;i<M+N-1;i++) {
-    output[i] = vec_dot_prod_ccc(&input[i-M], filter, M);
+    output[i] = srslte_vec_dot_prod_ccc(&input[i-M], filter, M);
   }
   return M+N-1;
 }
@@ -107,37 +107,37 @@ uint32_t conv_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, ui
 /* Centered convolution. Returns the same number of input elements. Equivalent to conv(x,h,'same') in matlab. 
  * y(n)=sum_i x(n+i-M/2)*h(i) for n=1..N with N input samples and M filter len 
  */
-uint32_t conv_same_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
+uint32_t srslte_conv_same_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
   uint32_t i;
   uint32_t M = filter_len; 
   uint32_t N = input_len; 
   
   for (i=0;i<M/2;i++) {
-    output[i]=vec_dot_prod_ccc(&input[i],&filter[M/2-i],M-M/2+i);
+    output[i]=srslte_vec_dot_prod_ccc(&input[i],&filter[M/2-i],M-M/2+i);
   }
   for (;i<N-M/2;i++) {
-    output[i]=vec_dot_prod_ccc(&input[i-M/2],filter,M);
+    output[i]=srslte_vec_dot_prod_ccc(&input[i-M/2],filter,M);
   }
   for (;i<N;i++) {
-    output[i]=vec_dot_prod_ccc(&input[i-M/2],filter,N-i+M/2);    
+    output[i]=srslte_vec_dot_prod_ccc(&input[i-M/2],filter,N-i+M/2);    
   }
   return N;
 }
 
-uint32_t conv_same_cf(cf_t *input, float *filter, cf_t *output, 
+uint32_t srslte_conv_same_cf(cf_t *input, float *filter, cf_t *output, 
                       uint32_t input_len, uint32_t filter_len) {
   uint32_t i;
   uint32_t M = filter_len; 
   uint32_t N = input_len; 
   
   for (i=0;i<M/2;i++) {
-    output[i]=vec_dot_prod_cfc(&input[i],&filter[M/2-i],M-M/2+i);
+    output[i]=srslte_vec_dot_prod_cfc(&input[i],&filter[M/2-i],M-M/2+i);
   }
   for (;i<N-M/2;i++) {
-    output[i]=vec_dot_prod_cfc(&input[i-M/2],filter,M);
+    output[i]=srslte_vec_dot_prod_cfc(&input[i-M/2],filter,M);
   }
   for (;i<N;i++) {
-    output[i]=vec_dot_prod_cfc(&input[i-M/2],filter,N-i+M/2);    
+    output[i]=srslte_vec_dot_prod_cfc(&input[i-M/2],filter,N-i+M/2);    
   }
   return N;
 }

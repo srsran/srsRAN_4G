@@ -33,7 +33,7 @@
  * 
  * This object decodes the MIB from the PBCH of an LTE signal. 
  * 
- * The function ue_mib_decode() shall be called multiple times, 
+ * The function srslte_ue_mib_decode() shall be called multiple times, 
  * each passing a number of samples multiple of 19200, sampled at 1.92 MHz
  * (that is, 10 ms of samples). 
  * 
@@ -53,69 +53,69 @@
 #include "srslte/sync/cfo.h"
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/phch/pbch.h"
-#include "srslte/common/fft.h"
+#include "srslte/dft/ofdm.h"
 
 
-#define MIB_SRSLTE_MAX_PORTS            4
-#define MIB_NOF_PRB              6
+#define SRSLTE_UE_MIB_MAX_PORTS            4
+#define SRSLTE_UE_MIB_NOF_PRB              6
 
-#define MIB_FOUND                1
-#define MIB_NOTFOUND             0
+#define SRSLTE_UE_MIB_FOUND                1
+#define SRSLTE_UE_MIB_NOTFOUND             0
 
 typedef struct SRSLTE_API {
-  sync_t sfind;
+  srslte_sync_t sfind;
  
   cf_t *sf_symbols;
-  cf_t *ce[MIB_SRSLTE_MAX_PORTS];
+  cf_t *ce[SRSLTE_UE_MIB_MAX_PORTS];
   
-  srslte_fft_t fft;
+  srslte_ofdm_t fft;
   srslte_chest_dl_t chest; 
-  pbch_t pbch;
+  srslte_pbch_t pbch;
   
   uint8_t bch_payload[BCH_PAYLOAD_LEN];
   uint32_t nof_tx_ports; 
   uint32_t sfn_offset; 
   
   uint32_t frame_cnt; 
-} ue_mib_t;
+} srslte_ue_mib_t;
 
-SRSLTE_API int ue_mib_init(ue_mib_t *q, 
-                           srslte_cell_t cell);
+SRSLTE_API int srslte_ue_mib_init(srslte_ue_mib_t *q, 
+                                  srslte_cell_t cell);
 
-SRSLTE_API void ue_mib_free(ue_mib_t *q);
+SRSLTE_API void srslte_ue_mib_free(srslte_ue_mib_t *q);
 
-SRSLTE_API void ue_mib_reset(ue_mib_t * q); 
+SRSLTE_API void srslte_ue_mib_reset(srslte_ue_mib_t * q); 
 
-SRSLTE_API int ue_mib_decode(ue_mib_t * q, 
-                             cf_t *input, 
-                             uint8_t bch_payload[BCH_PAYLOAD_LEN], 
-                             uint32_t *nof_tx_ports, 
-                             uint32_t *sfn_offset); 
+SRSLTE_API int srslte_ue_mib_decode(srslte_ue_mib_t * q, 
+                                    cf_t *input, 
+                                    uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                                    uint32_t *nof_tx_ports, 
+                                    uint32_t *sfn_offset); 
 
 
 /* This interface uses ue_mib and ue_sync to first get synchronized subframes 
  * and then decode MIB
 */
 typedef struct {
-  ue_mib_t ue_mib; 
-  ue_sync_t ue_sync; 
-} ue_mib_sync_t;
+  srslte_ue_mib_t ue_mib; 
+  srslte_ue_sync_t ue_sync; 
+} srslte_ue_mib_sync_t;
 
-SRSLTE_API int ue_mib_sync_init(ue_mib_sync_t *q, 
-                                uint32_t cell_id, 
-                                srslte_cp_t cp,
-                                int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t *),                             
-                                void *stream_handler);
+SRSLTE_API int srslte_ue_mib_sync_init(srslte_ue_mib_sync_t *q, 
+                                       uint32_t cell_id, 
+                                       srslte_cp_t cp,
+                                       int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t *),                             
+                                       void *stream_handler);
 
-SRSLTE_API void ue_mib_sync_free(ue_mib_sync_t *q);
+SRSLTE_API void srslte_ue_mib_sync_free(srslte_ue_mib_sync_t *q);
 
-SRSLTE_API void ue_mib_sync_reset(ue_mib_sync_t * q); 
+SRSLTE_API void srslte_ue_mib_sync_reset(srslte_ue_mib_sync_t * q); 
 
-SRSLTE_API int ue_mib_sync_decode(ue_mib_sync_t * q, 
-                                  uint32_t max_frames_timeout,
-                                  uint8_t bch_payload[BCH_PAYLOAD_LEN], 
-                                  uint32_t *nof_tx_ports, 
-                                  uint32_t *sfn_offset); 
+SRSLTE_API int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q, 
+                                         uint32_t max_frames_timeout,
+                                         uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                                         uint32_t *nof_tx_ports, 
+                                         uint32_t *sfn_offset); 
 
 
 

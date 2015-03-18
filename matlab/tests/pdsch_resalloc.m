@@ -12,7 +12,7 @@ enb.NTotalSubframes=1;
 enb.DuplexMode = 'FDD';
 
 dci.NDLRB = enb.NDLRB;
-dci.DCIFormat = 'Format1C';
+dci.DCIFormat = 'SRSLTE_DCI_FORMAT1C';
 dci.AllocationType=1;
 %dci.Allocation.Bitmap='01111000011110000';
 %dci.Allocation.Subset=3;

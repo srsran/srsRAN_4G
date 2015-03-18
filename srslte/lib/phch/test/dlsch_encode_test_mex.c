@@ -44,11 +44,11 @@ void help()
 /* the gateway function */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  sch_t dlsch;
+  srslte_sch_t dlsch;
   uint8_t *trblkin;
-  ra_mcs_t mcs;
-  ra_dl_alloc_t prb_alloc;
-  harq_t harq_process;
+  srslte_ra_mcs_t mcs;
+  srslte_srslte_ra_dl_alloc_t prb_alloc;
+  srslte_harq_t harq_process;
   uint32_t rv;
 
   if (nrhs < NOF_INPUTS) {
@@ -56,14 +56,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
       
-  if (sch_init(&dlsch)) {
+  if (srslte_sch_init(&dlsch)) {
     mexErrMsgTxt("Error initiating DL-SCH\n");
     return;
   }
   srslte_cell_t cell;
   cell.nof_prb = 100;
   cell.id=1;
-  if (harq_init(&harq_process, cell)) {
+  if (srslte_harq_init(&harq_process, cell)) {
     mexErrMsgTxt("Error initiating HARQ\n");
     return;
   }
@@ -82,11 +82,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");
   
   if (!strcmp(mod_str, "QPSK")) {
-    mcs.mod = LTE_QPSK;
+    mcs.mod = SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
-    mcs.mod = LTE_QAM16;
+    mcs.mod = SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
-    mcs.mod = LTE_QAM64;
+    mcs.mod = SRSLTE_MOD_64QAM;
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
@@ -94,18 +94,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mxFree(mod_str);
       
-  if (harq_setup_dl(&harq_process, mcs, rv, 0, &prb_alloc)) {
+  if (srslte_harq_setup_dl(&harq_process, mcs, rv, 0, &prb_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }
   harq_process.nof_bits = mxGetScalar(OUTLEN); 
     
-  uint8_t *e_bits = vec_malloc(harq_process.nof_bits* sizeof(uint8_t));
+  uint8_t *e_bits = srslte_vec_malloc(harq_process.nof_bits* sizeof(uint8_t));
   if (!e_bits) {
     return;
   }
 
-  if (dlsch_encode(&dlsch, &harq_process, trblkin, e_bits)) {
+  if (srslte_dlsch_encode(&dlsch, &harq_process, trblkin, e_bits)) {
     mexErrMsgTxt("Error encoding TB\n");
     return;
   }
@@ -114,7 +114,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_uint8(e_bits, &plhs[0], harq_process.nof_bits, 1);  
   }
   
-  sch_free(&dlsch);
+  srslte_sch_free(&dlsch);
   
   free(trblkin);
   free(e_bits);

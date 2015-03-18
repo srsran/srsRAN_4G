@@ -30,7 +30,7 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-class queue
+class srslte_queue
 {
 public:
 

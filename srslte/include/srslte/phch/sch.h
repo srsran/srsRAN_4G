@@ -38,7 +38,7 @@
 #include "srslte/phch/harq.h"
 #include "srslte/phch/uci.h"
 
-#define TDEC_MAX_ITERATIONS         5
+#define SRSLTE_PDSCH_MAX_TDEC_ITERS         5
 
 
 #ifndef SRSLTE_RX_NULL
@@ -58,51 +58,51 @@ typedef struct SRSLTE_API {
   /* buffers */
   uint8_t *cb_in; 
   void *cb_out;  
-  void *pdsch_e;
+  void *e;
   
   srslte_tcod_t encoder;
   srslte_tdec_t decoder;  
   srslte_crc_t srslte_crc_tb;
   srslte_crc_t srslte_crc_cb;
   
-  uci_cqi_pusch_t uci_cqi; 
+  srslte_uci_cqi_pusch_t uci_cqi; 
   
-} sch_t;
+} srslte_sch_t;
 
-SRSLTE_API int sch_init(sch_t *q);
+SRSLTE_API int srslte_sch_init(srslte_sch_t *q);
 
-SRSLTE_API void sch_free(sch_t *q);
+SRSLTE_API void srslte_sch_free(srslte_sch_t *q);
 
 
-SRSLTE_API float sch_average_noi(sch_t *q);
+SRSLTE_API float srslte_sch_average_noi(srslte_sch_t *q);
 
-SRSLTE_API uint32_t sch_last_noi(sch_t *q);
+SRSLTE_API uint32_t srslte_sch_last_noi(srslte_sch_t *q);
 
-SRSLTE_API int dlsch_encode(sch_t *q, 
-                            harq_t *harq_process,
+SRSLTE_API int srslte_dlsch_encode(srslte_sch_t *q, 
+                            srslte_harq_t *harq_process,
                             uint8_t *data, 
                             uint8_t *e_bits);
 
-SRSLTE_API int dlsch_decode(sch_t *q, 
-                            harq_t *harq_process,
+SRSLTE_API int srslte_dlsch_decode(srslte_sch_t *q, 
+                            srslte_harq_t *harq_process,
                             float *e_bits, 
                             uint8_t *data);
 
-SRSLTE_API int ulsch_encode(sch_t *q, 
-                            harq_t *harq_process,
+SRSLTE_API int srslte_ulsch_encode(srslte_sch_t *q, 
+                            srslte_harq_t *harq_process,
                             uint8_t *data, 
                             uint8_t *g_bits,
                             uint8_t *q_bits);
 
-SRSLTE_API int ulsch_uci_encode(sch_t *q, 
-                                harq_t *harq_process,
+SRSLTE_API int srslte_ulsch_uci_encode(srslte_sch_t *q, 
+                                srslte_harq_t *harq_process,
                                 uint8_t *data, 
-                                uci_data_t uci_data, 
+                                srslte_uci_data_t uci_data, 
                                 uint8_t *g_bits,
                                 uint8_t *q_bits);
 
-SRSLTE_API int ulsch_decode(sch_t *q, 
-                            harq_t *harq_process,
+SRSLTE_API int srslte_ulsch_decode(srslte_sch_t *q, 
+                            srslte_harq_t *harq_process,
                             float *e_bits, 
                             uint8_t *data);
 

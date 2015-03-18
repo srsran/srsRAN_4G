@@ -39,10 +39,10 @@ void usage(char *arg) {
 
 int main(int argc, char **argv) {
   srslte_binsource_hl bs;
-  mod_hl mod;
+  srslte_mod_hl mod;
   srslte_ch_awgn_hl ch;
-  demod_soft_hl demod_s;
-  demod_hard_hl demod_h;
+  srslte_demod_soft_hl demod_s;
+  srslte_demod_hard_hl demod_h;
 
   bzero(&bs,sizeof(bs));
   bzero(&mod,sizeof(mod));
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   bs.output = malloc(nbits);
 
   mod.in_len = nbits;
-  mod.init.std = LTE_BPSK;
+  mod.init.std = SRSLTE_MOD_BPSK;
   mod.input = bs.output;
   mod.output = malloc(nbits*sizeof(_Complex float));
 
@@ -75,22 +75,22 @@ int main(int argc, char **argv) {
   ch.output = malloc(nbits*sizeof(_Complex float));
 
   demod_h.in_len = nbits;
-  demod_h.init.std = LTE_BPSK;
+  demod_h.init.std = SRSLTE_MOD_BPSK;
   demod_h.input = ch.output;
   demod_h.output = malloc(nbits);
 
   demod_s.in_len = nbits;
-  demod_s.init.std = LTE_BPSK;
+  demod_s.init.std = SRSLTE_MOD_BPSK;
   demod_s.input = ch.output;
   demod_s.output = malloc(sizeof(float)*nbits);
-  demod_s.ctrl_in.alg_type = APPROX;
+  demod_s.ctrl_in.alg_type = SRSLTE_DEMOD_SOFT_ALG_APPROX;
   demod_s.ctrl_in.sigma = var;
 
   if (  srslte_binsource_initialize(&bs)     ||
       mod_initialize(&mod)       ||
       srslte_ch_awgn_initialize(&ch)       ||
-      demod_hard_initialize(&demod_h) ||
-      demod_soft_initialize(&demod_s)
+      srslte_demod_hard_initialize(&demod_h) ||
+      srslte_demod_soft_initialize(&demod_s)
   ) {
     printf("Error initializing modules\n");
     exit(-1);
@@ -99,8 +99,8 @@ int main(int argc, char **argv) {
   srslte_binsource_work(&bs);
   mod_work(&mod);
   srslte_ch_awgn_work(&ch);
-  demod_hard_work(&demod_h);
-  demod_soft_work(&demod_s);
+  srslte_demod_hard_work(&demod_h);
+  srslte_demod_soft_work(&demod_s);
 
   /* hard decision for soft demodulation */
   uint8_t* tmp = malloc(nbits);
@@ -108,8 +108,8 @@ int main(int argc, char **argv) {
     tmp[i] = demod_s.output[i]>0?1:0;
   }
 
-  printf("Hard errors: %u/%d\n",bit_diff(bs.output,demod_h.output,nbits),nbits);
-  printf("Soft errors: %u/%d\n",bit_diff(bs.output,tmp,nbits),nbits);
+  printf("Hard errors: %u/%d\n",srslte_bit_diff(bs.output,demod_h.output,nbits),nbits);
+  printf("Soft errors: %u/%d\n",srslte_bit_diff(bs.output,tmp,nbits),nbits);
 
   free(bs.output);
   free(mod.output);

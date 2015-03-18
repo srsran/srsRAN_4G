@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/utils/pack.h"
+#include "srslte/utils/bit.h"
 #include "srslte/fec/crc.h"
 
 void gen_srslte_crc_table(srslte_crc_t *h) {
@@ -137,7 +137,7 @@ uint32_t srslte_crc_checksum(srslte_crc_t *h, uint8_t *data, int len) {
         h->byte |= ((uint8_t) *(pter + k)) << (7 - k);
       }
     } else {
-      h->byte = (uint8_t) (unpack_bits(&pter, 8) & 0xFF);
+      h->byte = (uint8_t) (srslte_bit_unpack(&pter, 8) & 0xFF);
     }
     crc = crctable(h);
   }
@@ -160,6 +160,6 @@ void srslte_crc_attach(srslte_crc_t *h, uint8_t *data, int len) {
 
   // Add CRC
   uint8_t *ptr = &data[len];
-  pack_bits(checksum, &ptr, h->order);
+  srslte_bit_pack(checksum, &ptr, h->order);
 }
 
