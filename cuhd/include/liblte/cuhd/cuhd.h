@@ -62,6 +62,10 @@ LIBLTE_API double cuhd_set_rx_freq(void *h,
                                    double freq);
 
 LIBLTE_API double cuhd_set_rx_freq_offset(void *h, 
+                                          double freq,  
+                                          double off); 
+
+LIBLTE_API double cuhd_set_rx_freq_offset(void *h, 
                                           double freq, 
                                           double off);
 
@@ -70,12 +74,12 @@ LIBLTE_API int cuhd_recv(void *h,
                          uint32_t nsamples, 
                          bool blocking);
 
-LIBLTE_API int cuhd_recv_timed(void *h,
-                    void *data,
-                    uint32_t nsamples,
-                    bool blocking,
-                    time_t *secs,
-                    double *frac_secs);
+LIBLTE_API int cuhd_recv_with_time(void *h,
+                                   void *data,
+                                   uint32_t nsamples,
+                                   bool blocking,
+                                   time_t *secs,
+                                   double *frac_secs);
 
 LIBLTE_API double cuhd_set_tx_srate(void *h, 
                                     double freq);
@@ -86,11 +90,35 @@ LIBLTE_API double cuhd_set_tx_gain(void *h,
 LIBLTE_API double cuhd_set_tx_freq(void *h,
                                    double freq);
 
+LIBLTE_API double cuhd_set_tx_freq_offset(void *h,
+                                          double freq, 
+                                          double offset);
+
 LIBLTE_API int cuhd_send(void *h, 
                          void *data, 
                          uint32_t nsamples, 
                          bool blocking);
 
+
+LIBLTE_API int cuhd_send(void *h, 
+                         void *data, 
+                         uint32_t nsamples, 
+                         bool blocking);
+
+
+LIBLTE_API int cuhd_send_timed(void *h,
+                               void *data,
+                               int nsamples,
+                               time_t secs,
+                               double frac_secs);
+
+LIBLTE_API int cuhd_send_timed2(void *h,
+                                void *data,
+                                int nsamples,
+                                time_t secs,
+                                double frac_secs,                      
+                                bool is_start_of_burst,
+                                bool is_end_of_burst);
 
 #ifdef __cplusplus
 }

@@ -80,7 +80,14 @@ typedef struct LIBLTE_API {
   ra_prb_slot_t slot[2];
   uint32_t lstart;
   uint32_t re_sf[NSUBFRAMES_X_FRAME];
-} ra_prb_t;
+} ra_dl_alloc_t;
+
+typedef struct LIBLTE_API {
+  uint32_t n_prb[2];
+  uint32_t n_prb_tilde[2];
+  uint32_t L_prb;
+  uint32_t freq_hopping; 
+} ra_ul_alloc_t;
 
 typedef struct LIBLTE_API {
   uint16_t rnti;
@@ -90,7 +97,7 @@ typedef struct LIBLTE_API {
     ra_type1_t type1_alloc;
     ra_type2_t type2_alloc;
   };
-  ra_prb_t prb_alloc;
+  ra_dl_alloc_t prb_alloc;
   uint32_t mcs_idx;
   ra_mcs_t mcs;
   uint32_t harq_process;
@@ -110,7 +117,7 @@ typedef struct LIBLTE_API {
     hop_type_2 = 3
   } freq_hop_fl;
 
-  ra_prb_t prb_alloc;
+  ra_ul_alloc_t prb_alloc;
   
   ra_type2_t type2_alloc;
   uint32_t mcs_idx;
@@ -126,25 +133,26 @@ LIBLTE_API void ra_prb_fprint(FILE *f,
                               ra_prb_slot_t *prb, 
                               uint32_t nof_prb);
 
-LIBLTE_API int ra_prb_get_dl(ra_prb_t *prb, 
+LIBLTE_API int ra_dl_alloc(ra_dl_alloc_t *prb, 
                              ra_pdsch_t *ra, 
                              uint32_t nof_prb);
 
-LIBLTE_API int ra_prb_get_ul(ra_prb_slot_t *prb, 
-                             ra_pusch_t *ra, 
-                             uint32_t nof_prb);
+LIBLTE_API int ra_ul_alloc(ra_ul_alloc_t *prb, 
+                           ra_pusch_t *ra, 
+                           uint32_t n_rb_ho, 
+                           uint32_t nof_prb);
 
-LIBLTE_API void ra_prb_get_re_dl(ra_prb_t *prb_dist, 
-                              uint32_t nof_prb, 
-                              uint32_t nof_ports,
-                              uint32_t nof_ctrl_symbols, 
-                              lte_cp_t cp);
+LIBLTE_API void ra_dl_alloc_re(ra_dl_alloc_t *prb_dist, 
+                               uint32_t nof_prb, 
+                               uint32_t nof_ports,
+                               uint32_t nof_ctrl_symbols, 
+                               lte_cp_t cp);
 
 LIBLTE_API uint32_t ra_nprb_dl(ra_pdsch_t *ra, 
-                          uint32_t nof_prb);
+                               uint32_t nof_prb);
 
 LIBLTE_API uint32_t ra_nprb_ul(ra_pusch_t *ra, 
-                          uint32_t nof_prb);
+                               uint32_t nof_prb);
 
 LIBLTE_API int ra_mcs_from_idx_dl(uint32_t mcs_idx, 
                                   uint32_t nof_prb, 

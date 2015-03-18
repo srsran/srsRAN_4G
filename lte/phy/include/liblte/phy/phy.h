@@ -26,15 +26,15 @@
  */
 
 
-#include <complex.h>
-#include <math.h>
-
 #ifndef _LTE_
 #define _LTE_
 
 #ifdef __cplusplus
     extern "C" {
 #endif
+
+#include <complex.h>
+#include <math.h>
 
 #include "liblte/config.h"
 
@@ -48,11 +48,14 @@
 #include "liblte/phy/utils/pack.h"
 #include "liblte/phy/utils/vector.h"
 
+#include "liblte/phy/common/timestamp.h"
+#include "liblte/phy/common/sequence.h"
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/common/fft.h"
             
 #include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/ch_estimation/refsignal_dl.h"
+#include "liblte/phy/ch_estimation/refsignal_ul.h"
 
 #include "liblte/phy/resampling/interp.h"
 #include "liblte/phy/resampling/decim.h"
@@ -70,6 +73,7 @@
 #include "liblte/phy/fec/rm_turbo.h"
 
 #include "liblte/phy/filter/filter2d.h"
+#include "liblte/phy/filter/dft_precoding.h"
 
 #include "liblte/phy/io/binsource.h"
 #include "liblte/phy/io/filesink.h"
@@ -85,18 +89,26 @@
 #include "liblte/phy/mimo/precoding.h"
 #include "liblte/phy/mimo/layermap.h"
 
-#include "liblte/phy/phch/regs.h"
+#include "liblte/phy/phch/cqi.h"
 #include "liblte/phy/phch/dci.h"
-#include "liblte/phy/phch/pdcch.h"
-#include "liblte/phy/phch/pdsch.h"
+#include "liblte/phy/phch/harq.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/phch/pcfich.h"
+#include "liblte/phy/phch/pdcch.h"
+#include "liblte/phy/phch/pdsch.h"
 #include "liblte/phy/phch/phich.h"
+#include "liblte/phy/phch/pusch.h"
+#include "liblte/phy/phch/prach.h"
+#include "liblte/phy/phch/ra.h"
+#include "liblte/phy/phch/regs.h"
+#include "liblte/phy/phch/sch.h"
+#include "liblte/phy/phch/uci.h"
       
 #include "liblte/phy/ue/ue_sync.h"
 #include "liblte/phy/ue/ue_mib.h"
 #include "liblte/phy/ue/ue_cell_search.h"
 #include "liblte/phy/ue/ue_dl.h"
+#include "liblte/phy/ue/ue_ul.h"
 
 #include "liblte/phy/scrambling/scrambling.h"
 
@@ -108,6 +120,7 @@
 
 #ifdef __cplusplus
 }
+#undef I // Fix complex.h #define I nastiness when using C++
 #endif
 
 #endif

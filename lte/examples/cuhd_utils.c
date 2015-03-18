@@ -43,7 +43,7 @@
 #ifndef DISABLE_UHD
 #include "liblte/cuhd/cuhd.h"
 
-int cuhd_recv_wrapper_cs(void *h, void *data, uint32_t nsamples) {
+int cuhd_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
 }

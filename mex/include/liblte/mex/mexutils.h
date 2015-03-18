@@ -54,6 +54,10 @@ LIBLTE_API int mexutils_read_uint32_struct(const mxArray *ptr,
                                            const char *field_name, 
                                            uint32_t *value); 
 
+LIBLTE_API int mexutils_read_float_struct(const mxArray *ptr, 
+                                          const char *field_name, 
+                                          float *value); 
+
 LIBLTE_API int mexutils_write_f(float *buffer, 
                                 mxArray **ptr, 
                                 uint32_t nr, 
@@ -73,6 +77,9 @@ LIBLTE_API int mexutils_write_int(int *buffer,
                                   mxArray **ptr, 
                                   uint32_t nr, 
                                   uint32_t nc);
+
+LIBLTE_API int mexutils_read_uint8(const mxArray *ptr, 
+                                   uint8_t **buffer);
 
 LIBLTE_API int mexutils_read_f(const mxArray *ptr, 
                                float **buffer);

@@ -36,6 +36,7 @@
 #include "liblte/phy/ch_estimation/chest_dl.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/fft.h"
+#include "liblte/phy/common/timestamp.h"
 #include "liblte/phy/io/filesource.h"
 
 /**************************************************************
@@ -64,8 +65,9 @@ typedef struct LIBLTE_API {
   sync_t strack;
 
   void *stream; 
-  int (*recv_callback)(void*, void*, uint32_t); 
-
+  int (*recv_callback)(void*, void*, uint32_t, timestamp_t*); 
+  timestamp_t last_timestamp;
+  
   filesource_t file_source; 
   bool file_mode; 
   
@@ -105,7 +107,7 @@ typedef struct LIBLTE_API {
 
 LIBLTE_API int ue_sync_init(ue_sync_t *q, 
                             lte_cell_t cell,
-                            int (recv_callback)(void*, void*, uint32_t), 
+                            int (recv_callback)(void*, void*, uint32_t, timestamp_t*), 
                             void *stream_handler);
 
 LIBLTE_API int ue_sync_init_file(ue_sync_t *q, 
@@ -135,6 +137,8 @@ LIBLTE_API float ue_sync_get_cfo(ue_sync_t *q);
 
 LIBLTE_API float ue_sync_get_sfo(ue_sync_t *q);
 
+LIBLTE_API void ue_sync_get_last_timestamp(ue_sync_t *q, 
+                                           timestamp_t *timestamp);
 
 
 

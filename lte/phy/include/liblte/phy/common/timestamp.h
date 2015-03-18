@@ -26,13 +26,28 @@
  */
 
 
-typedef _Complex float cf_t;
+#ifndef TIMESTAMP_
+#define TIMESTAMP_
 
-void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_intervals, bool advance_input);
-void prb_cp(cf_t **input, cf_t **output, int nof_prb);
-void prb_cp_half(cf_t **input, cf_t **output, int nof_prb);
-void prb_put_ref_(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_intervals);
-void phch_get_prb_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
-    int nof_intervals);
+#include <time.h>
+#include "liblte/config.h"
+
+/*!
+ * A simple timestamp struct with separate variables for full and frac seconds.
+ *
+ * Separate variables are used to avoid loss of precision in our frac seconds.
+ * Only positive timestamps are supported.
+ */
+
+typedef struct LIBLTE_API{
+  time_t full_secs;
+  double frac_secs;
+}timestamp_t;
+
+LIBLTE_API int timestamp_init(timestamp_t *t, time_t full_secs, double frac_secs);
+LIBLTE_API int timestamp_copy(timestamp_t *dest, timestamp_t *src);
+LIBLTE_API int timestamp_add(timestamp_t *t, time_t full_secs, double frac_secs);
+LIBLTE_API int timestamp_sub(timestamp_t *t, time_t full_secs, double frac_secs);
+LIBLTE_API double timestamp_real(timestamp_t *t);
+
+#endif // TIMESTAMP_

@@ -41,7 +41,9 @@
 #include "liblte/phy/utils/debug.h"
 
 
-int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti, 
+/* Creates the DL PDSCH resource allocation grant from a DCI message
+ */
+int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
                      lte_cell_t cell, uint32_t cfi,
                      ra_pdsch_t *ra_dl) 
 {
@@ -56,7 +58,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
     ret = LIBLTE_ERROR;
     
     dci_msg_type_t type;
-    if (dci_msg_get_type(msg, &type, cell.nof_prb, msg_rnti, c_rnti)) {
+    if (dci_msg_get_type(msg, &type, cell.nof_prb, msg_rnti)) {
       fprintf(stderr, "Can't get DCI message type\n");
       return ret; 
     }
@@ -68,7 +70,11 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
     if (type.type == PDSCH_SCHED) {
       bzero(ra_dl, sizeof(ra_pdsch_t));
       
-      if (dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, msg_rnti != SIRNTI)) {
+      bool crc_is_crnti = false; 
+      if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
+        crc_is_crnti = true; 
+      }
+      if (dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, crc_is_crnti)) {
         fprintf(stderr, "Can't unpack PDSCH message\n");
         return ret;
       } 
@@ -77,18 +83,77 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti, uint16_t c_rnti,
         ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
       }
       
-      if (ra_prb_get_dl(&ra_dl->prb_alloc, ra_dl, cell.nof_prb)) {
+      if (ra_dl_alloc(&ra_dl->prb_alloc, ra_dl, cell.nof_prb)) {
         fprintf(stderr, "Error computing resource allocation\n");
         return ret;
       }
       
-      ra_prb_get_re_dl(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+      ra_dl_alloc_re(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
             
       ret = LIBLTE_SUCCESS;
     } else {
       fprintf(stderr, "Unsupported message type: "); 
       dci_msg_type_fprint(stderr, type);
     }
+  }
+  return ret;
+}
+
+/* Creates the UL PUSCH resource allocation grant from the random access respone message 
+ */
+int dci_rar_to_ra_ul(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, uint32_t nof_prb, ra_pusch_t *ra) {
+  bzero(ra, sizeof(ra_pusch_t));
+  if (!hopping_flag) {
+    ra->freq_hop_fl = hop_disabled;
+  } else {
+    fprintf(stderr, "FIXME: Frequency hopping in RAR not implemented\n");
+    ra->freq_hop_fl = 1;
+  }
+  uint32_t riv = rba; 
+  // Truncate resource block assignment 
+  uint32_t b = 0;
+  if (nof_prb <= 44) {
+    b = (uint32_t) (ceilf(log2((float) nof_prb*(nof_prb+1)/2)));
+    riv = riv & ((1<<(b+1))-1); 
+  }
+  ra->type2_alloc.riv = riv; 
+  ra->mcs_idx = trunc_mcs;
+
+  ra_type2_from_riv(riv, &ra->type2_alloc.L_crb, &ra->type2_alloc.RB_start,
+      nof_prb, nof_prb);
+  
+  ra_mcs_from_idx_ul(ra->mcs_idx, ra_nprb_ul(ra, nof_prb), &ra->mcs);
+  return LIBLTE_SUCCESS;
+}
+
+/* Creates the UL PUSCH resource allocation grant from a DCI format 0 message
+ */
+int dci_msg_to_ra_ul(dci_msg_t *msg, uint32_t nof_prb, uint32_t n_rb_ho, ra_pusch_t *ra_ul) 
+{
+  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  
+  if (msg               !=  NULL   &&
+      ra_ul             !=  NULL)
+  {
+    ret = LIBLTE_ERROR;
+    
+    bzero(ra_ul, sizeof(ra_pusch_t));
+    
+    if (dci_msg_unpack_pusch(msg, ra_ul, nof_prb)) {
+      fprintf(stderr, "Can't unpack PDSCH message\n");
+      return ret;
+    } 
+    
+    if (VERBOSE_ISINFO()) {
+      ra_pusch_fprint(stdout, ra_ul, nof_prb);
+    }
+    
+    if (ra_ul_alloc(&ra_ul->prb_alloc, ra_ul, n_rb_ho, nof_prb)) {
+      fprintf(stderr, "Error computing resource allocation\n");
+      return ret;
+    }
+    
+    ret = LIBLTE_SUCCESS;
   }
   return ret;
 }
@@ -303,7 +368,6 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
   uint32_t riv = bit_unpack(&y, riv_nbits(nof_prb) - n_ul_hop);
   ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
       nof_prb, nof_prb);
-  bit_pack((uint32_t) riv, &y, riv_nbits(nof_prb) - n_ul_hop);
   data->type2_alloc.riv = riv;
 
   /* unpack MCS according to 8.6 of 36.213 */
@@ -599,7 +663,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
     y++; // MSB of TPC is reserved
     data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
-  
+
   uint32_t n_prb;
   if (crc_is_crnti) {
     n_prb = ra_nprb_dl(data, nof_prb);
@@ -788,9 +852,9 @@ void dci_msg_type_fprint(FILE *f, dci_msg_type_t type) {
 }
 
 int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
-    uint16_t msg_rnti, uint16_t crnti) 
+    uint16_t msg_rnti) 
 {
-  DEBUG("Get message type: nof_bits=%d, msg_rnti=0x%x, crnti=0x%x\n", msg->nof_bits, msg_rnti, crnti);
+  DEBUG("Get message type: nof_bits=%d, msg_rnti=0x%x\n", msg->nof_bits, msg_rnti);
   if (msg->nof_bits == dci_format_sizeof(Format0, nof_prb)
       && !msg->data[0]) {
     type->type = PUSCH_SCHED;
@@ -801,13 +865,15 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
     type->format = Format1;
     return LIBLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
-    if (msg_rnti == crnti) {
+    /* The RNTI is not the only condition. Also some fields in the packet. 
+     * if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
       type->type = RA_PROC_PDCCH;
       type->format = Format1A;
     } else {
+      */
       type->type = PDSCH_SCHED; // only these 2 types supported
       type->format = Format1A;
-    }
+    //}
     return LIBLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
     if (msg_rnti == MRNTI) {

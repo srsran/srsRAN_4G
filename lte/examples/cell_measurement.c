@@ -120,12 +120,10 @@ int  parse_args(prog_args_t *args, int argc, char **argv) {
 /* TODO: Do something with the output data */
 uint8_t data[10000], data_unpacked[1000];
 
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
+int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, timestamp_t *q) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
 }
-
-extern float mean_exec_time;
 
 enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state; 
 
@@ -196,7 +194,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
-  if (ue_dl_init(&ue_dl, cell, 1234)) { 
+  if (ue_dl_init(&ue_dl, cell)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
@@ -261,15 +259,15 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = ue_dl_decode_sib(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), 
+            n = ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data, ue_sync_get_sfidx(&ue_sync), SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;
             } else if (n == 0) {
-              printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, ExecTime: %5.1f us, NOI: %.2f, PDCCH-Det: %.3f\r",
+              printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, NOI: %.2f, PDCCH-Det: %.3f\r",
                       ue_sync_get_cfo(&ue_sync)/1000, ue_sync_get_sfo(&ue_sync)/1000, 
-                      mean_exec_time, pdsch_average_noi(&ue_dl.pdsch),
+                      sch_average_noi(&ue_dl.pdsch.dl_sch),
                       (float) ue_dl.nof_pdcch_detected/nof_trials);                
               nof_trials++; 
             } else {

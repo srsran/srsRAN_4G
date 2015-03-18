@@ -108,8 +108,83 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
   return re;
 }
 
+void ra_prb_fprint(FILE *f, ra_prb_slot_t *prb, uint32_t nof_prb) {
+  int i;
+  if (prb->nof_prb > 0) {
+    for (i=0;i<nof_prb;i++) {
+      if (prb->prb_idx[i]) {
+        fprintf(f, "%d, ", i);
+      }
+    }
+    fprintf(f, "\n");
+  }
+  
+}
+
+/** Compute PRB allocation for Uplink as defined in 8.1 and 8.4 of 36.213 */
+int ra_ul_alloc(ra_ul_alloc_t *prb_dist, ra_pusch_t *ra, uint32_t n_rb_ho, uint32_t nof_prb) {
+  
+  bzero(prb_dist, sizeof(ra_ul_alloc_t));  
+  prb_dist->L_prb = ra->type2_alloc.L_crb;
+  uint32_t n_prb_1 = ra->type2_alloc.RB_start;
+  uint32_t n_rb_pusch = 0;
+
+  if (n_rb_ho%2) {
+    n_rb_ho++;
+  }
+  
+  if (ra->freq_hop_fl == hop_disabled || ra->freq_hop_fl == hop_type_2) {
+    /* For no freq hopping or type2 freq hopping, n_prb is the same 
+     * n_prb_tilde is calculated during resource mapping
+     */
+    for (uint32_t i=0;i<2;i++) {
+      prb_dist->n_prb[i] = n_prb_1;        
+    }
+    if (ra->freq_hop_fl == hop_disabled) {
+      prb_dist->freq_hopping = 0;
+    } else {
+      prb_dist->freq_hopping = 2;      
+    }
+    INFO("prb1: %d, prb2: %d, L: %d\n", prb_dist->n_prb[0], prb_dist->n_prb[1], prb_dist->L_prb);
+  } else {
+    /* Type1 frequency hopping as defined in 8.4.1 of 36.213 
+      * frequency offset between 1st and 2nd slot is fixed. 
+      */
+    n_rb_pusch = nof_prb - n_rb_ho - (nof_prb%2);
+    
+    // starting prb idx for slot 0 is as given by resource grant
+    prb_dist->n_prb[0] = n_prb_1;
+    if (n_prb_1 < n_rb_ho/2) {
+      fprintf(stderr, "Invalid Frequency Hopping parameters. Offset: %d, n_prb_1: %d\n", n_rb_ho, n_prb_1);
+    }
+    uint32_t n_prb_1_tilde = n_prb_1;
+
+    // prb idx for slot 1 
+    switch(ra->freq_hop_fl) {
+      case hop_quart:
+        prb_dist->n_prb[1] = (n_rb_pusch/4+ n_prb_1_tilde)%n_rb_pusch;            
+        break;
+      case hop_quart_neg:
+        if (n_prb_1 < n_rb_pusch/4) {
+          prb_dist->n_prb[1] = (n_rb_pusch+ n_prb_1_tilde -n_rb_pusch/4);                                
+        } else {
+          prb_dist->n_prb[1] = (n_prb_1_tilde -n_rb_pusch/4);                      
+        }
+        break;
+      case hop_half:
+        prb_dist->n_prb[1] = (n_rb_pusch/2+ n_prb_1_tilde)%n_rb_pusch;            
+        break;
+      default:
+        break;        
+    }
+    INFO("n_rb_pusch: %d, prb1: %d, prb2: %d, L: %d\n", n_rb_pusch, prb_dist->n_prb[0], prb_dist->n_prb[1], prb_dist->L_prb);
+    prb_dist->freq_hopping = 1;
+  }
+  return LIBLTE_SUCCESS;
+}
+
 /* Computes the number of RE for each PRB in the prb_dist structure */
-void ra_prb_get_re_dl(ra_prb_t *prb_dist, uint32_t nof_prb, uint32_t nof_ports,
+void ra_dl_alloc_re(ra_dl_alloc_t *prb_dist, uint32_t nof_prb, uint32_t nof_ports,
     uint32_t nof_ctrl_symbols, lte_cp_t cp) {
   uint32_t i, j, s;
 
@@ -129,41 +204,14 @@ void ra_prb_get_re_dl(ra_prb_t *prb_dist, uint32_t nof_prb, uint32_t nof_ports,
   }
 }
 
-void ra_prb_fprint(FILE *f, ra_prb_slot_t *prb, uint32_t nof_prb) {
-  int i;
-  if (prb->nof_prb > 0) {
-    for (i=0;i<nof_prb;i++) {
-      if (prb->prb_idx[i]) {
-        fprintf(f, "%d, ", i);
-      }
-    }
-    fprintf(f, "\n");
-  }
-  
-}
-
-/** Compute PRB allocation for Uplink as defined in 8.1 of 36.213 */
-int ra_prb_get_ul(ra_prb_slot_t *prb, ra_pusch_t *ra, uint32_t nof_prb) {
-  int i;
-  if (ra->type2_alloc.mode != t2_loc) {
-    fprintf(stderr, "Uplink only accepts type2 localized scheduling\n");
-    return LIBLTE_ERROR;
-  }
-  for (i = 0; i < ra->type2_alloc.L_crb; i++) {
-    prb->prb_idx[i] = i + ra->type2_alloc.RB_start;
-    prb->nof_prb++;
-  }
-  return LIBLTE_SUCCESS;
-}
-
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
-int ra_prb_get_dl(ra_prb_t *prb_dist, ra_pdsch_t *ra, uint32_t nof_prb) {
+int ra_dl_alloc(ra_dl_alloc_t *prb_dist, ra_pdsch_t *ra, uint32_t nof_prb) {
   int i, j;
   uint32_t bitmask;
   uint32_t P = ra_type0_P(nof_prb);
   uint32_t n_rb_rbg_subset, n_rb_type1;
 
-  bzero(prb_dist, sizeof(ra_prb_t));
+  bzero(prb_dist, sizeof(ra_dl_alloc_t));
   switch (ra->alloc_type) {
   case alloc_type0:
     bitmask = ra->type0_alloc.rbg_bitmask;
@@ -476,13 +524,36 @@ int ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
 }
 
 void ra_pusch_fprint(FILE *f, ra_pusch_t *ra, uint32_t nof_prb) {
-  fprintf(f, "Frequency Hopping:\t");
+  fprintf(f, " - Resource Allocation Type 2 mode :\t%s\n",
+      ra->type2_alloc.mode == t2_loc ? "Localized" : "Distributed");
+  
+  fprintf(f, "   + Frequency Hopping:\t\t\t");
   if (ra->freq_hop_fl == hop_disabled) {
-    fprintf(f, "No");
+    fprintf(f, "No\n");
   } else {
-    fprintf(f, "Yes");
+    fprintf(f, "Yes\n");
+  }
+  fprintf(f, "   + Resource Indicator Value:\t\t%d\n", ra->type2_alloc.riv);
+  if (ra->type2_alloc.mode == t2_loc) {
+  fprintf(f, "   + VRB Assignment:\t\t\t%d VRB starting with VRB %d\n",
+    ra->type2_alloc.L_crb, ra->type2_alloc.RB_start);
+  } else {
+  fprintf(f, "   + VRB Assignment:\t\t\t%d VRB starting with VRB %d\n",
+    ra->type2_alloc.L_crb, ra->type2_alloc.RB_start);
+  fprintf(f, "   + VRB gap selection:\t\t\tGap %d\n",
+    ra->type2_alloc.n_gap == t2_ng1 ? 1 : 2);
+  fprintf(f, "   + VRB gap:\t\t\t\t%d\n",
+    ra_type2_ngap(nof_prb, ra->type2_alloc.n_gap == t2_ng1));
 
   }
+  
+  fprintf(f, " - Number of PRBs:\t\t\t%d\n", ra_nprb_ul(ra, nof_prb));
+  fprintf(f, " - Modulation and coding scheme index:\t%d\n", ra->mcs_idx);
+  fprintf(f, " - Modulation type:\t\t\t%s\n", lte_mod_string(ra->mcs.mod));
+  fprintf(f, " - Transport block size:\t\t%d\n", ra->mcs.tbs);
+  fprintf(f, " - New data indicator:\t\t\t%s\n", ra->ndi ? "Yes" : "No");
+  fprintf(f, " - Redundancy version:\t\t\t%d\n", ra->rv_idx);
+  fprintf(f, " - TPC command for PUCCH:\t\t--\n");    
 }
 
 char *ra_type_string(ra_type_t alloc_type) {
@@ -532,8 +603,8 @@ void ra_pdsch_fprint(FILE *f, ra_pdsch_t *ra, uint32_t nof_prb) {
     break;
   }
 
-  ra_prb_t alloc;
-  ra_prb_get_dl(&alloc, ra, nof_prb);
+  ra_dl_alloc_t alloc;
+  ra_dl_alloc(&alloc, ra, nof_prb);
   for (int s = 0; s < 2; s++) {
     fprintf(f, " - PRB Bitmap Assignment %dst slot:\n", s);
     ra_prb_fprint(f, &alloc.slot[s], nof_prb);

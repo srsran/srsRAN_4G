@@ -74,7 +74,7 @@ pbch_t pbch;
 pcfich_t pcfich;
 pdcch_t pdcch;
 pdsch_t pdsch;
-pdsch_harq_t harq_process;
+harq_t harq_process;
 regs_t regs;
 ra_pdsch_t ra_dl;  
 
@@ -220,6 +220,7 @@ void base_init() {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
+  lte_fft_set_normalize(&ifft, true);
   if (pbch_init(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
@@ -252,7 +253,7 @@ void base_init() {
   
   pdsch_set_rnti(&pdsch, 1234);
   
-  if (pdsch_harq_init(&harq_process, &pdsch)) {
+  if (harq_init(&harq_process, cell)) {
     fprintf(stderr, "Error initiating HARQ process\n");
     exit(-1);
   }
@@ -260,7 +261,7 @@ void base_init() {
 
 void base_free() {
 
-  pdsch_harq_free(&harq_process);
+  harq_free(&harq_process);
   pdsch_free(&pdsch);
   pdcch_free(&pdcch);
   regs_free(&regs);
@@ -312,8 +313,8 @@ uint32_t prbset_to_bitmask() {
   return reverse(mask)>>(32-nb); 
 }
 
-int update_radl() {
-  ra_prb_t prb_alloc;
+int update_radl(uint32_t sf_idx) {
+  ra_dl_alloc_t prb_alloc;
   
   bzero(&ra_dl, sizeof(ra_pdsch_t));
   ra_dl.harq_process = 0;
@@ -323,15 +324,15 @@ int update_radl() {
   ra_dl.alloc_type = alloc_type0;
   ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
     
-  ra_prb_get_dl(&prb_alloc, &ra_dl, cell.nof_prb);
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
+  ra_dl_alloc(&prb_alloc, &ra_dl, cell.nof_prb);
+  ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, CPNORM);
   ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
 
   ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   printf("Type new MCS index and press Enter: "); fflush(stdout);
   
-  pdsch_harq_reset(&harq_process);
-  if (pdsch_harq_setup(&harq_process, ra_dl.mcs, &prb_alloc)) {
+  harq_reset(&harq_process);
+  if (harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
     return -1; 
   }
@@ -340,7 +341,7 @@ int update_radl() {
 }
 
 /* Read new MCS from stdin */
-int update_control() {
+int update_control(uint32_t sf_idx) {
   char input[128];
   
   fd_set set; 
@@ -380,11 +381,11 @@ int update_control() {
         mcs_idx = atoi(input);          
       }
       bzero(input,sizeof(input));
-      if (update_radl()) {
+      if (update_radl(sf_idx)) {
         printf("Trying with last known MCS index\n");
         mcs_idx = last_mcs_idx; 
         prbset_num = last_prbset_num; 
-        return update_radl();
+        return update_radl(sf_idx);
       }
     }
     return 0; 
@@ -437,7 +438,7 @@ void *net_thread_fnc(void *arg) {
 }
 
 int main(int argc, char **argv) {
-  int nf, sf_idx, N_id_2;
+  int nf=0, sf_idx=0, N_id_2=0;
   cf_t pss_signal[PSS_LEN];
   float sss_signal0[SSS_LEN]; // for subframe 0
   float sss_signal5[SSS_LEN]; // for subframe 5
@@ -498,7 +499,7 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  if (update_radl()) {
+  if (update_radl(sf_idx)) {
     exit(-1);
   }
   
@@ -540,7 +541,7 @@ int main(int argc, char **argv) {
       pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
 
       /* Update DL resource allocation from control port */
-      if (update_control(&ra_dl)) {
+      if (update_control(sf_idx)) {
         fprintf(stderr, "Error updating parameters from control port\n");
       }
       
@@ -570,7 +571,7 @@ int main(int argc, char **argv) {
           exit(-1);
         }
         
-        if (pdsch_encode(&pdsch, data, sf_symbols, sf_idx, &harq_process, ra_dl.rv_idx)) {
+        if (pdsch_encode(&pdsch, &harq_process, data, sf_symbols)) {
           fprintf(stderr, "Error encoding PDSCH\n");
           exit(-1);
         }        
@@ -588,6 +589,9 @@ int main(int argc, char **argv) {
       
       /* Transform to OFDM symbols */
       lte_ifft_run_sf(&ifft, sf_buffer, output_buffer);
+      
+      float norm_factor = (float) cell.nof_prb/15/sqrtf(ra_dl.prb_alloc.slot[0].nof_prb);
+      vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SF_LEN_PRB(cell.nof_prb));
       
       /* send to file or usrp */
       if (output_file_name) {

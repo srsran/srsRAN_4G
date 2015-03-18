@@ -41,10 +41,6 @@
 
 #define LTE_NSOFT_BITS  250368 // Soft buffer size for Category 1 UE
 
-#define LTE_NULL_BIT    0
-#define LTE_NULL_SYMBOL 2
-#define LTE_NIL_SYMBOL  2
-
 #define MAX_PORTS     4
 #define MAX_LAYERS    8
 #define MAX_CODEWORDS 2
@@ -56,9 +52,14 @@
 
 typedef enum {CPNORM, CPEXT} lte_cp_t;
 
-#define SIRNTI  0xFFFF
-#define PRNTI   0xFFFE
-#define MRNTI   0xFFFD
+
+#define CRNTI_START  0x003D
+#define CRNTI_END    0xFFF3
+#define RARNTI_START 0x0001
+#define RARNTI_END   0x003C
+#define SIRNTI       0xFFFF
+#define PRNTI        0xFFFE
+#define MRNTI        0xFFFD
 
 #define CELL_ID_UNKNOWN         1000
 
@@ -97,6 +98,10 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 #define SLOT_LEN_RE(nof_prb, cp)        (nof_prb*RE_X_RB*CP_NSYMB(cp))
 #define SF_LEN_RE(nof_prb, cp)          (2*SLOT_LEN_RE(nof_prb, cp))
 
+#define TA_OFFSET      (10e-6)
+
+#define LTE_TS         1.0/(15000.0*2048)
+
 #define SLOT_IDX_CPNORM(symbol_idx, symbol_sz) (symbol_idx==0?0:(symbol_sz + CP(symbol_sz, CPNORM_0_LEN) + \
                                                 (symbol_idx-1)*(symbol_sz+CP(symbol_sz, CPNORM_LEN))))
 #define SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+CP(symbol_sz, CPEXT_LEN)))
@@ -118,12 +123,13 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 typedef _Complex float cf_t; 
 
-typedef enum LIBLTE_API { PHICH_NORM, PHICH_EXT} phich_length_t;
-typedef enum LIBLTE_API { R_1_6, R_1_2, R_1, R_2} phich_resources_t;
+typedef enum LIBLTE_API { PHICH_NORM = 0, PHICH_EXT} phich_length_t;
+typedef enum LIBLTE_API { R_1_6 = 0, R_1_2, R_1, R_2} phich_resources_t;
 
 typedef struct LIBLTE_API {
   uint32_t nof_prb;
   uint32_t nof_ports; 
+  uint32_t bw_idx; 
   uint32_t id;
   lte_cp_t cp;
   phich_length_t phich_length;
@@ -138,13 +144,12 @@ typedef enum LIBLTE_API {
   LTE_BPSK = 0, LTE_QPSK = 1, LTE_QAM16 = 2, LTE_QAM64 = 3
 } lte_mod_t;
 
-
 typedef struct LIBLTE_API {
   int id;
   float fd;
-}lte_earfcn_t;
+} lte_earfcn_t;
 
-LIBLTE_API enum band_geographical_area {
+enum band_geographical_area {
   ALL, NAR, APAC, EMEA, JAPAN, CALA, NA
 };
 
@@ -180,6 +185,11 @@ LIBLTE_API uint32_t lte_re_x_prb(uint32_t ns,
 LIBLTE_API uint32_t lte_voffset(uint32_t symbol_id, 
                            uint32_t cell_id, 
                            uint32_t nof_ports);
+
+LIBLTE_API uint32_t lte_N_ta_new_rar(uint32_t ta);
+
+LIBLTE_API uint32_t lte_N_ta_new(uint32_t N_ta_old, 
+                                 uint32_t ta);
 
 LIBLTE_API int lte_cb_size(uint32_t index);
 

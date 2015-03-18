@@ -78,9 +78,13 @@ int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
 
   k = 0;
   for (i = 0; i < long_cb; i++) {
-    bit = input[i];
-
-    output[k] = bit;
+    if (input[i] == TX_NULL) {
+      bit = 0;
+    } else {
+      bit = input[i];
+    }
+    output[k] = input[i];
+    
     k++;
 
     in = bit ^ (reg1_2 ^ reg1_1);
@@ -90,10 +94,17 @@ int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
     reg1_1 = reg1_0;
     reg1_0 = in;
 
-    output[k] = out;
+    if (input[i] == TX_NULL) {
+      output[k] = TX_NULL;
+    } else {
+      output[k] = out;
+    }
     k++;
 
     bit = input[per[i]];
+    if (bit == TX_NULL) {
+      bit = 0; 
+    }
 
     in = bit ^ (reg2_2 ^ reg2_1);
     out = reg2_2 ^ (reg2_0 ^ in);
@@ -104,6 +115,8 @@ int tcod_encode(tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) {
 
     output[k] = out;
     k++;
+  
+
   }
 
   k = 3 * long_cb;

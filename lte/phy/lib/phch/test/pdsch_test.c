@@ -45,12 +45,14 @@ lte_cell_t cell = {
 
 uint32_t cfi = 2;
 uint32_t tbs = 0;
+uint32_t nof_tbs = 0; 
 uint32_t subframe = 1;
 lte_mod_t modulation = LTE_BPSK;
 uint32_t rv_idx = 0;
 
 void usage(char *prog) {
-  printf("Usage: %s [cpsrnfvmt] -l TBS \n", prog);
+  printf("Usage: %s [Lcpsrnfvmt] -l TBS \n", prog);
+  printf("\t-L number of consequent TBS [Default 0]\n");
   printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
@@ -63,7 +65,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lcpnfvmtsr")) != -1) {
+  while ((opt = getopt(argc, argv, "lLcpnfvmtsr")) != -1) {
     switch(opt) {
     case 'm':
       switch(atoi(argv[optind])) {
@@ -93,6 +95,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'l':
       tbs = atoi(argv[optind]);
+      break;
+    case 'L':
+      nof_tbs = atoi(argv[optind]);
       break;
     case 'p':
       cell.nof_ports = atoi(argv[optind]);
@@ -127,15 +132,19 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   ra_mcs_t mcs;
-  ra_prb_t prb_alloc;
-  pdsch_harq_t harq_process;
+  ra_dl_alloc_t prb_alloc;
+  harq_t harq_process;
   uint32_t rv;
 
   parse_args(argc,argv);
 
+  bzero(&pdsch, sizeof(pdsch_t));
+  bzero(&harq_process, sizeof(harq_t));
+  bzero(ce, sizeof(cf_t*)*MAX_PORTS);
+  bzero(slot_symbols, sizeof(cf_t*)*MAX_PORTS);
+  
   nof_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
-  mcs.tbs = tbs;
   mcs.mod = modulation;
   
   prb_alloc.slot[0].nof_prb = cell.nof_prb;
@@ -144,7 +153,7 @@ int main(int argc, char **argv) {
   }
   memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
 
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+  ra_dl_alloc_re(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
   
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {
@@ -162,8 +171,8 @@ int main(int argc, char **argv) {
       goto quit;
     }
   }
-
-  data = malloc(sizeof(uint8_t) * mcs.tbs);
+  
+  data = malloc(sizeof(uint8_t) * (tbs+nof_tbs));
   if (!data) {
     perror("malloc");
     goto quit;
@@ -176,54 +185,59 @@ int main(int argc, char **argv) {
   
   pdsch_set_rnti(&pdsch, 1234);
   
-  if (pdsch_harq_init(&harq_process, &pdsch)) {
+  if (harq_init(&harq_process, cell)) {
     fprintf(stderr, "Error initiating HARQ process\n");
     goto quit;
   }
   
-  if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
-    fprintf(stderr, "Error configuring HARQ process\n");
-    goto quit;
-  }
-
-  for (i=0;i<mcs.tbs;i++) {
-    data[i] = rand()%2;
-  }
-
-  for (rv=0;rv<=rv_idx;rv++) {
-    printf("Encoding rv_idx=%d\n",rv);
-    if (pdsch_encode(&pdsch, data, slot_symbols, subframe, &harq_process, rv)) {
-      fprintf(stderr, "Error encoding PDSCH\n");
-      goto quit;
+  for (mcs.tbs = tbs;mcs.tbs<=tbs+nof_tbs;mcs.tbs++) {
+    if (VERBOSE_ISNONE()) {
+      printf("Decoding TBS: %d\r",mcs.tbs);
+    }
+    for (i=0;i<mcs.tbs;i++) {
+      data[i] = rand()%2;
     }
 
-    /* combine outputs */
-    for (i=0;i<cell.nof_ports;i++) {
-      for (j=0;j<nof_re;j++) {
-        if (i > 0) {
-          slot_symbols[0][j] += slot_symbols[i][j];
-        }
-        ce[i][j] = 1;
+    for (rv=0;rv<=rv_idx;rv++) {
+      if (harq_setup_dl(&harq_process, mcs, rv, subframe, &prb_alloc)) {
+        fprintf(stderr, "Error configuring HARQ process\n");
+        goto quit;
       }
-    }
-    
-    gettimeofday(&t[1], NULL);
-    int r = pdsch_decode(&pdsch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
-    gettimeofday(&t[2], NULL);
-    get_time_interval(t);
-    if (r) {
-      printf("Error decoding\n");
-      ret = -1;
-      goto quit;
-    } else {
-      printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);
-    }
-    
+
+      if (pdsch_encode(&pdsch, &harq_process, data, slot_symbols)) {
+        fprintf(stderr, "Error encoding PDSCH\n");
+        goto quit;
+      }
+
+      /* combine outputs */
+      for (i=0;i<cell.nof_ports;i++) {
+        for (j=0;j<nof_re;j++) {
+          if (i > 0) {
+            slot_symbols[0][j] += slot_symbols[i][j];
+          }
+          ce[i][j] = 1;
+        }
+      }
+      
+      gettimeofday(&t[1], NULL);
+      int r = pdsch_decode(&pdsch, &harq_process, slot_symbols[0], ce, 0, data);
+      gettimeofday(&t[2], NULL);
+      get_time_interval(t);
+      if (r) {
+        printf("Error decoding TBS: %d\n", mcs.tbs);
+        ret = -1;
+        goto quit;
+      } else {
+        if (nof_tbs == 0) {
+          printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);          
+        }
+      }
+    } 
   }
   ret = 0;
 quit:
   pdsch_free(&pdsch);
-  pdsch_harq_free(&harq_process);
+  harq_free(&harq_process);
   
   for (i=0;i<cell.nof_ports;i++) {
     if (ce[i]) {

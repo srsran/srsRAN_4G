@@ -34,7 +34,7 @@
 #include <assert.h>
 #include <math.h>
 
-#include "prb.h"
+#include "prb_dl.h"
 #include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/common/phy_common.h"
 #include "liblte/phy/utils/bit.h"
@@ -42,9 +42,10 @@
 #include "liblte/phy/utils/debug.h"
 
 const uint8_t crc_mask[4][16] = {
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, { 1, 1, 1, 1, 1, 1, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1 }, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0 }, { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 } };
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, 
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
+    { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 } };
 
 bool pbch_exists(int nframe, int nslot) {
   return (!(nframe % 5) && nslot == 1);
@@ -166,34 +167,34 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     q->encoder.tail_biting = true;
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
 
-    q->pbch_d = malloc(sizeof(cf_t) * q->nof_symbols);
+    q->pbch_d = vec_malloc(sizeof(cf_t) * q->nof_symbols);
     if (!q->pbch_d) {
       goto clean;
     }
     int i;
     for (i = 0; i < q->cell.nof_ports; i++) {
-      q->ce[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->ce[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->pbch_x[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->pbch_x[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
       if (!q->pbch_x[i]) {
         goto clean;
       }
-      q->pbch_symbols[i] = malloc(sizeof(cf_t) * q->nof_symbols);
+      q->pbch_symbols[i] = vec_malloc(sizeof(cf_t) * q->nof_symbols);
       if (!q->pbch_symbols[i]) {
         goto clean;
       }
     }
-    q->pbch_llr = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->pbch_llr = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
     if (!q->pbch_llr) {
       goto clean;
     }
-    q->temp = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->temp = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
     if (!q->temp) {
       goto clean;
     }
-    q->pbch_rm_b = malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->pbch_rm_b = vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
     if (!q->pbch_rm_b) {
       goto clean;
     }
@@ -240,6 +241,116 @@ void pbch_free(pbch_t *q) {
   bzero(q, sizeof(pbch_t));
 
 }
+
+
+/** Unpacks MIB from PBCH message.
+ * msg buffer must be 24 byte length at least
+ */
+void pbch_mib_unpack(uint8_t *msg, lte_cell_t *cell, uint32_t *sfn) {
+  int phich_res;
+
+  cell->bw_idx = bit_unpack(&msg, 3);
+  switch (cell->bw_idx) {
+  case 0:
+    cell->nof_prb = 6;
+    break;
+  case 1:
+    cell->nof_prb = 15;
+    break;
+  default:
+    cell->nof_prb = (cell->bw_idx - 1) * 25;
+    break;
+  }
+  if (*msg) {
+    cell->phich_length = PHICH_EXT;
+  } else {
+    cell->phich_length = PHICH_NORM;
+  }
+  msg++;
+
+  phich_res = bit_unpack(&msg, 2);
+  switch (phich_res) {
+  case 0:
+      cell->phich_resources = R_1_6;
+    break;
+  case 1:
+      cell->phich_resources = R_1_2;
+    break;
+  case 2:
+      cell->phich_resources = R_1;
+    break;
+  case 3:
+      cell->phich_resources = R_2;
+    break;
+  }
+  if (sfn) {
+    *sfn = bit_unpack(&msg, 8) << 2;    
+  }
+}
+
+/** Unpacks MIB from PBCH message.
+ * msg buffer must be 24 byte length at least
+ */
+void pbch_mib_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
+  int bw, phich_res = 0;
+
+  bzero(msg, 24);
+
+  if (cell->nof_prb <= 6) {
+    bw = 0;
+  } else if (cell->nof_prb <= 15) {
+    bw = 1;
+  } else {
+    bw = 1 + cell->nof_prb / 25;
+  }
+  bit_pack(bw, &msg, 3);
+
+  *msg = cell->phich_length == PHICH_EXT;
+  msg++;
+
+  switch (cell->phich_resources) {
+  case R_1_6:
+    phich_res = 0;
+    break;
+  case R_1_2:
+    phich_res = 1;
+    break;
+  case R_1:
+    phich_res = 2;
+    break;
+  case R_2:
+    phich_res = 3;
+    break;
+  }
+  bit_pack(phich_res, &msg, 2);
+  bit_pack(sfn >> 2, &msg, 8);
+}
+
+void pbch_mib_fprint(FILE *stream, lte_cell_t *cell, uint32_t sfn, uint32_t cell_id) {
+  printf(" - Cell ID:         %d\n", cell_id);
+  printf(" - Nof ports:       %d\n", cell->nof_ports);
+  printf(" - PRB:             %d\n", cell->nof_prb);
+  printf(" - PHICH Length:    %s\n",
+         cell->phich_length == PHICH_EXT ? "Extended" : "Normal");
+  printf(" - PHICH Resources: ");
+  switch (cell->phich_resources) {
+  case R_1_6:
+    printf("1/6");
+    break;
+  case R_1_2:
+    printf("1/2");
+    break;
+  case R_1:
+    printf("1");
+    break;
+  case R_2:
+    printf("2");
+    break;
+  }
+  printf("\n");
+  printf(" - SFN:             %d\n", sfn);
+}
+
 
 void pbch_decode_reset(pbch_t *q) {
   q->frame_idx = 0;

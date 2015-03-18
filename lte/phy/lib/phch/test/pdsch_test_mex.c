@@ -58,8 +58,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cf_t *input_fft, *input_signal;
   int nof_re; 
   ra_mcs_t mcs;
-  ra_prb_t prb_alloc;
-  pdsch_harq_t harq_process;
+  ra_dl_alloc_t dl_alloc;
+  harq_t harq_process;
   uint32_t rv;
   uint32_t rnti32;
 
@@ -93,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   pdsch_set_rnti(&pdsch, (uint16_t) (rnti32 & 0xffff));
 
-  if (pdsch_harq_init(&harq_process, &pdsch)) {
+  if (harq_init(&harq_process, cell)) {
     mexErrMsgTxt("Error initiating HARQ process\n");
     return;
   }
@@ -146,23 +146,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } 
   
   // Only localized PRB supported 
-  prb_alloc.slot[0].nof_prb = mexutils_read_f(p, &prbset);
+  dl_alloc.slot[0].nof_prb = mexutils_read_f(p, &prbset);
 
   for (i=0;i<cell.nof_prb;i++) {
-    prb_alloc.slot[0].prb_idx[i] = false; 
-    for (int j=0;j<prb_alloc.slot[0].nof_prb && !prb_alloc.slot[0].prb_idx[i];j++) {
+    dl_alloc.slot[0].prb_idx[i] = false; 
+    for (int j=0;j<dl_alloc.slot[0].nof_prb && !dl_alloc.slot[0].prb_idx[i];j++) {
       if ((int) prbset[j] == i) {
-        prb_alloc.slot[0].prb_idx[i] = true;
+        dl_alloc.slot[0].prb_idx[i] = true;
       }
     }
   }
-  memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(ra_prb_slot_t));
+  memcpy(&dl_alloc.slot[1], &dl_alloc.slot[0], sizeof(ra_prb_slot_t));
 
   free(prbset);
   
-  ra_prb_get_re_dl(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+  ra_dl_alloc_re(&dl_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
   
-  if (pdsch_harq_setup(&harq_process, mcs, &prb_alloc)) {
+  if (harq_setup_dl(&harq_process, mcs, rv, sf_idx, &dl_alloc)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }
@@ -209,7 +209,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  int r = pdsch_decode(&pdsch, input_fft, ce, noise_power, data, sf_idx, &harq_process, rv);
+  int r = pdsch_decode(&pdsch, &harq_process, input_fft, ce, noise_power, data);
 
   
   if (nlhs >= 1) { 
@@ -219,13 +219,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_uint8(data, &plhs[1], mcs.tbs, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pdsch.pdsch_symbols[0], &plhs[2], harq_process.prb_alloc.re_sf[sf_idx], 1);  
+    mexutils_write_cf(pdsch.pdsch_symbols[0], &plhs[2], harq_process.dl_alloc.re_sf[sf_idx], 1);  
   }
   if (nlhs >= 4) {
-    mexutils_write_cf(pdsch.pdsch_d, &plhs[3], harq_process.prb_alloc.re_sf[sf_idx], 1);  
+    mexutils_write_cf(pdsch.pdsch_d, &plhs[3], harq_process.dl_alloc.re_sf[sf_idx], 1);  
   }
   if (nlhs >= 5) {
-    mexutils_write_f(pdsch.pdsch_e, &plhs[4], harq_process.prb_alloc.re_sf[sf_idx] * lte_mod_bits_x_symbol(mcs.mod), 1);  
+    mexutils_write_f(pdsch.pdsch_e, &plhs[4], harq_process.dl_alloc.re_sf[sf_idx] * lte_mod_bits_x_symbol(mcs.mod), 1);  
   }
   
   chest_dl_free(&chest);

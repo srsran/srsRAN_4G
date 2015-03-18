@@ -41,7 +41,6 @@
 #include "liblte/phy/common/phy_common.h"
 
 #include "liblte/phy/phch/dci.h"
-#include "liblte/phy/phch/pbch.h"
 #include "liblte/phy/phch/pcfich.h"
 #include "liblte/phy/phch/pdcch.h"
 #include "liblte/phy/phch/pdsch.h"
@@ -57,15 +56,16 @@
 #define NOF_HARQ_PROCESSES 8
 
 typedef struct LIBLTE_API {
-  pbch_t pbch; 
   pcfich_t pcfich;
   pdcch_t pdcch;
   pdsch_t pdsch;
-  pdsch_harq_t harq_process[NOF_HARQ_PROCESSES];
+  harq_t harq_process[NOF_HARQ_PROCESSES];
   regs_t regs;
   lte_fft_t fft;
   chest_dl_t chest;
   
+  ra_pdsch_t ra_dl;
+
   lte_cell_t cell;
 
   cf_t *sf_symbols; 
@@ -75,27 +75,51 @@ typedef struct LIBLTE_API {
   uint64_t pkts_total;
   uint64_t nof_pdcch_detected; 
 
-  uint16_t user_rnti; 
   uint16_t current_rnti;
 }ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
 LIBLTE_API int ue_dl_init(ue_dl_t *q, 
-                          lte_cell_t cell,
-                          uint16_t user_rnti);
+                          lte_cell_t cell);
 
 LIBLTE_API void ue_dl_free(ue_dl_t *q);
+
+LIBLTE_API int ue_dl_decode_fft_estimate(ue_dl_t *q, 
+                                         cf_t *input, 
+                                         uint32_t sf_idx, 
+                                         uint32_t *cfi); 
+
+LIBLTE_API int ue_dl_decode_rnti_rv_packet(ue_dl_t *q, 
+                                           dci_msg_t *dci_msg, 
+                                           uint8_t *data, 
+                                           uint32_t cfi, 
+                                           uint32_t sf_idx, 
+                                           uint16_t rnti, 
+                                           uint32_t rvidx); 
+
+LIBLTE_API int ue_dl_find_ul_dci(ue_dl_t *q, 
+                                 dci_msg_t *dci_msg, 
+                                 uint32_t cfi, 
+                                 uint32_t sf_idx, 
+                                 uint16_t rnti); 
 
 LIBLTE_API int ue_dl_decode(ue_dl_t * q, 
                             cf_t *input, 
                             uint8_t *data,
                             uint32_t sf_idx);
 
-LIBLTE_API int ue_dl_decode_sib(ue_dl_t * q, 
-                                cf_t *input, 
-                                uint8_t * data,
-                                uint32_t sf_idx, 
-                                uint32_t rvidx); 
+LIBLTE_API int ue_dl_decode_rnti(ue_dl_t * q, 
+                                 cf_t *input, 
+                                 uint8_t *data,
+                                 uint32_t sf_idx,
+                                 uint16_t rnti);
+
+LIBLTE_API int ue_dl_decode_rnti_rv(ue_dl_t * q, 
+                                    cf_t *input, 
+                                    uint8_t * data,
+                                    uint32_t sf_idx, 
+                                    uint16_t rnti, 
+                                    uint32_t rvidx); 
 
 LIBLTE_API void ue_dl_reset(ue_dl_t *q);
 

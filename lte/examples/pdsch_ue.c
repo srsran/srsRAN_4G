@@ -83,6 +83,7 @@ typedef struct {
   uint32_t file_nof_prb;
   char *uhd_args; 
   float uhd_freq; 
+  float uhd_freq_offset; 
   float uhd_gain;
   int net_port; 
   char *net_address; 
@@ -98,6 +99,7 @@ void args_default(prog_args_t *args) {
   args->file_nof_prb = 6; 
   args->uhd_args = "";
   args->uhd_freq = -1.0;
+  args->uhd_freq = 8000000.0;
   args->uhd_gain = 60.0; 
   args->net_port = -1; 
   args->net_address = "127.0.0.1";
@@ -107,9 +109,10 @@ void args_default(prog_args_t *args) {
 
 void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [agildnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
-#ifndef DISABLE_GRAPHICS
+#ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
+  printf("\t-o UHD RX freq offset [Default %.1f MHz]\n", args->uhd_freq_offset/1000000);
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
@@ -133,7 +136,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aglipdnvrfuUsS")) != -1) {
+  while ((opt = getopt(argc, argv, "aoglipdnvrfuUsS")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -146,6 +149,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'g':
       args->uhd_gain = atof(argv[optind]);
+      break;
+    case 'o':
+      args->uhd_freq_offset = atof(argv[optind]);
       break;
     case 'f':
       args->uhd_freq = atof(argv[optind]);
@@ -202,7 +208,7 @@ void sig_int_handler(int signo)
 }
 
 #ifndef DISABLE_UHD
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples) {
+int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return cuhd_recv(h, data, nsamples, 1);
 }
@@ -261,7 +267,7 @@ int main(int argc, char **argv) {
     cuhd_set_rx_gain(uhd, prog_args.uhd_gain);
 
     /* set receiver frequency */
-    cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
+    cuhd_set_rx_freq_offset(uhd, (double) prog_args.uhd_freq, prog_args.uhd_freq_offset);
     cuhd_rx_wait_lo_locked(uhd);
     printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
 
@@ -320,11 +326,11 @@ int main(int argc, char **argv) {
 #endif
   }
 
-  if (ue_dl_init(&ue_dl, cell, prog_args.rnti==SIRNTI?1:prog_args.rnti)) {  // This is the User RNTI
+  if (ue_dl_init(&ue_dl, cell)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
-
+  
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
   ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
 
@@ -394,7 +400,7 @@ int main(int argc, char **argv) {
             if (prog_args.rnti != SIRNTI) {
               n = ue_dl_decode(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync));
             } else {
-              n = ue_dl_decode_sib(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), 
+              n = ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, ue_sync_get_sfidx(&ue_sync), SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {
@@ -422,6 +428,7 @@ int main(int argc, char **argv) {
               rsrp = 0; 
             }
             
+#ifdef adjust_estimator
             /* Adjust channel estimator based on SNR */
             if (10*log10(snr) < 5.0) {
               float f_low_snr[5]={0.05, 0.15, 0.6, 0.15, 0.05};
@@ -433,7 +440,7 @@ int main(int argc, char **argv) {
               float f_high_snr[3]={0.05, 0.9, 0.05};
               chest_dl_set_filter_freq(&ue_dl.chest, f_high_snr, 3);
             }
-              
+#endif
             
           }
           if (ue_sync_get_sfidx(&ue_sync) != 5 && ue_sync_get_sfidx(&ue_sync) != 0) {
@@ -524,7 +531,7 @@ void *plot_thread_run(void *arg) {
   while(1) {
     sem_wait(&plot_sem);
     
-    uint32_t nof_symbols = ue_dl.harq_process[0].prb_alloc.re_sf[plot_sf_idx];
+    uint32_t nof_symbols = ue_dl.harq_process[0].dl_alloc.re_sf[plot_sf_idx];
     for (i = 0; i < nof_re; i++) {
       tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
       if (isinf(tmp_plot[i])) {

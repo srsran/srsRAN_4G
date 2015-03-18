@@ -26,58 +26,81 @@
  */
 
 #ifndef REFSIGNAL_UL_
-#define REFSIGNAL_DL_
+#define REFSIGNAL_UL_
 
 /* Object to manage Downlink reference signals for channel estimation.
  *
  */
 
 #include "liblte/config.h"
+#include "liblte/phy/phch/pucch.h"
 #include "liblte/phy/common/phy_common.h"
+
+#define NOF_GROUPS_U    30
+#define NOF_SEQUENCES_U 2
+#define NOF_DELTA_SS    30
+#define NOF_CSHIFT      8
 
 typedef _Complex float cf_t;
 
-// Number of references in a subframe: there are 2 symbols for port_id=0,1 x 2 slots x 2 refs per prb
-#define REFSIGNAL_NUM_SF(nof_prb, port_id)     (((port_id)<2?8:4)*(nof_prb))
-#define REFSIGNAL_MAX_NUM_SF(nof_prb)     REFSIGNAL_NUM_SF(nof_prb, 0)
+typedef struct LIBLTE_API {
+  uint32_t cyclic_shift; 
+  uint32_t cyclic_shift_for_drms;
+  uint32_t delta_ss;  
+  bool en_drms_2; 
+  float beta_pusch;
+  bool group_hopping_en; 
+  bool sequence_hopping_en; 
+}refsignal_drms_pusch_cfg_t;
 
-#define REFSIGNAL_PILOT_IDX(i,l,cell) (2*cell.nof_prb*(l)+(i))
+typedef struct LIBLTE_API {
+  float beta_pucch;
+  uint32_t nof_prb;
+}refsignal_srs_cfg_t;
 
-
-/** Cell-Specific Reference Signal */
+/** Uplink DeModulation Reference Signal (DMRS) */
 typedef struct LIBLTE_API {
   lte_cell_t cell; 
-  cf_t *pilots[2][NSUBFRAMES_X_FRAME]; // Saves the reference signal per subframe for ports 0,1 and ports 2,3
-} refsignal_cs_t;
+  uint32_t n_cs_cell[NSLOTS_X_FRAME][CPNORM_NSYMB]; 
+  float *tmp_arg; 
+  uint32_t n_prs_pusch[NOF_DELTA_SS][NSLOTS_X_FRAME]; // We precompute n_prs needed for cyclic shift alpha at refsignal_dl_init()
+  uint32_t f_gh[NSLOTS_X_FRAME];
+  uint32_t u_pucch[NSLOTS_X_FRAME];
+  uint32_t v_pusch[NSLOTS_X_FRAME][NOF_DELTA_SS];
+} refsignal_ul_t;
 
 
-LIBLTE_API int refsignal_cs_generate(refsignal_cs_t *q, 
-                                     lte_cell_t cell);
+LIBLTE_API int refsignal_ul_init(refsignal_ul_t *q, 
+                                 lte_cell_t cell);
 
-LIBLTE_API void refsignal_cs_free(refsignal_cs_t *q);
+LIBLTE_API void refsignal_ul_free(refsignal_ul_t *q);
 
-LIBLTE_API int refsignal_cs_put_sf(lte_cell_t cell, 
-                                   uint32_t port_id, 
-                                   cf_t *pilots,
-                                   cf_t *sf_symbols);
+LIBLTE_API bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, 
+                                                 refsignal_drms_pusch_cfg_t *cfg, 
+                                                 uint32_t nof_prb); 
 
-LIBLTE_API int refsignal_cs_get_sf(lte_cell_t cell, 
-                                   uint32_t port_id, 
-                                   cf_t *sf_symbols, 
-                                   cf_t *pilots);
+LIBLTE_API void refsignal_drms_pusch_put(refsignal_ul_t *q, 
+                                         refsignal_drms_pusch_cfg_t *cfg, 
+                                         cf_t *r_pusch, 
+                                         uint32_t nof_prb, 
+                                         uint32_t n_prb[2], 
+                                         cf_t *sf_symbols); 
 
-LIBLTE_API uint32_t refsignal_fidx(lte_cell_t cell, 
-                                   uint32_t l, 
-                                   uint32_t port_id, 
-                                   uint32_t m);
+LIBLTE_API int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, 
+                                        refsignal_drms_pusch_cfg_t *cfg, 
+                                        uint32_t nof_prb, 
+                                        uint32_t sf_idx, 
+                                        cf_t *r_pusch);
 
-LIBLTE_API uint32_t refsignal_nsymbol(uint32_t l, 
-                                      lte_cp_t cp, 
-                                      uint32_t port_id);
+LIBLTE_API int refsignal_dmrs_pucch_gen(refsignal_ul_t *q, 
+                                        pucch_cfg_t *cfg, 
+                                        uint32_t sf_idx, 
+                                        uint32_t n_rb, 
+                                        cf_t *r_pucch) ;
 
-LIBLTE_API uint32_t refsignal_cs_v(uint32_t port_id, 
-                                   uint32_t ref_symbol_idx); 
-
-LIBLTE_API uint32_t refsignal_cs_nof_symbols(uint32_t port_id);
+LIBLTE_API void refsignal_srs_gen(refsignal_ul_t *q, 
+                                  refsignal_srs_cfg_t *cfg, 
+                                  uint32_t sf_idx, 
+                                  cf_t *r_srs);
 
 #endif

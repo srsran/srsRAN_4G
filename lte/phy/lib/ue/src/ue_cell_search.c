@@ -39,13 +39,13 @@
 float tmp_pss_corr[32*10000];
 float tmp_sss_corr[31*10000];
 
-int ue_cell_search_init(ue_cell_search_t * q, int (recv_callback)(void*, void*, uint32_t), void *stream_handler) 
+int ue_cell_search_init(ue_cell_search_t * q, int (recv_callback)(void*, void*, uint32_t,timestamp_t*), void *stream_handler) 
 {
   return ue_cell_search_init_max(q, CS_DEFAULT_MAXFRAMES_TOTAL, recv_callback, stream_handler); 
 }
 
 int ue_cell_search_init_max(ue_cell_search_t * q, uint32_t max_frames, 
-                           int (recv_callback)(void*, void*, uint32_t), void *stream_handler) 
+                           int (recv_callback)(void*, void*, uint32_t,timestamp_t*), void *stream_handler) 
 {
   int ret = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -270,9 +270,6 @@ int ue_cell_search_scan_N_id_2(ue_cell_search_t * q, uint32_t N_id_2, ue_cell_se
       ret = 1;      // A cell has been found.  
       if (found_cell) {
         get_cell(q, nof_detected_frames, found_cell);        
-        printf("Found CELL PHYID: %d, CP: %s, PSR: %.1f, Absolute Peak: %.1f dBm, Reliability: %.0f \%\n", 
-              found_cell->cell_id, lte_cp_string(found_cell->cp), 
-              found_cell->psr, 10*log10(found_cell->peak*1000), 100*found_cell->mode);          
       }
     } else {
       ret = 0;      // A cell was not found. 

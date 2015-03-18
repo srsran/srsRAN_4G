@@ -70,3 +70,11 @@ int sequence_pdsch(sequence_t *seq, unsigned short rnti, int q, uint32_t nslot, 
   bzero(seq, sizeof(sequence_t));
   return sequence_LTE_pr(seq, len, (rnti<<14) + (q<<13) + ((nslot/2)<<9) + cell_id);
 }
+
+/**
+ * 36.211 5.3.1
+ */
+int sequence_pusch(sequence_t *seq, unsigned short rnti, uint32_t nslot, uint32_t cell_id, uint32_t len) {
+  bzero(seq, sizeof(sequence_t));
+  return sequence_LTE_pr(seq, len, (rnti<<14) + ((nslot/2)<<9) + cell_id);
+}

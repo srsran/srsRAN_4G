@@ -104,7 +104,7 @@ typedef struct {
 LIBLTE_API int ue_mib_sync_init(ue_mib_sync_t *q, 
                                 uint32_t cell_id, 
                                 lte_cp_t cp,
-                                int (recv_callback)(void*, void*, uint32_t),                             
+                                int (recv_callback)(void*, void*, uint32_t, timestamp_t *),                             
                                 void *stream_handler);
 
 LIBLTE_API void ue_mib_sync_free(ue_mib_sync_t *q);

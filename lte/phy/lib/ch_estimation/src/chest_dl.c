@@ -63,7 +63,7 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
   {
     bzero(q, sizeof(chest_dl_t));
     
-    ret = refsignal_cs_generate(&q->csr_signal, cell); 
+    ret = refsignal_cs_init(&q->csr_signal, cell); 
     if (ret != LIBLTE_SUCCESS) {
       fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
       goto clean_exit;
@@ -87,6 +87,12 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
       }
       bzero(q->tmp_timeavg[i], sizeof(cf_t) * 2*cell.nof_prb);
     }
+    q->tmp_timeavg_mult = vec_malloc(sizeof(cf_t) * 2*cell.nof_prb);
+    if (!q->tmp_timeavg_mult) {
+      perror("malloc");
+      goto clean_exit;
+    }
+    bzero(q->tmp_timeavg_mult, sizeof(cf_t) * 2*cell.nof_prb);
     
     for (int i=0;i<cell.nof_ports;i++) {
       q->pilot_estimates[i] = vec_malloc(sizeof(cf_t) * REFSIGNAL_NUM_SF(cell.nof_prb, i));
@@ -117,14 +123,14 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
     }
     
     /* Set default time/freq filters */
-    float f[3]={0.1, 0.8, 0.1};
-    chest_dl_set_filter_freq(q, f, 3);
+    //float f[3]={0.1, 0.8, 0.1};
+    //chest_dl_set_filter_freq(q, f, 3);
 
-    //float f[5]={0.05, 0.15, 0.6, 0.15, 0.05};
-    //chest_dl_set_filter_freq(q, f, 5);
+    float f[5]={0.05, 0.2, 0.5, 0.2, 0.05};
+    chest_dl_set_filter_freq(q, f, 5);
     
     float t[2]={0.1, 0.9};
-    chest_dl_set_filter_time(q, t, 2);
+    chest_dl_set_filter_time(q, t, 0);
     
     q->cell = cell; 
   }
@@ -152,6 +158,9 @@ void chest_dl_free(chest_dl_t *q)
     if (q->tmp_timeavg[i]) {
       free(q->tmp_timeavg[i]);
     }
+  }
+  if (q->tmp_timeavg_mult) {
+    free(q->tmp_timeavg_mult);
   }
   interp_linear_vector_free(&q->interp_linvec);
   interp_linear_free(&q->interp_lin);
@@ -239,10 +248,11 @@ static void average_pilots(chest_dl_t *q, uint32_t port_id)
       conv_same_cf(&pilot_est(0), q->filter_freq, &pilot_tmp(0), nref, q->filter_freq_len);
       
       /* Adjust extremes using linear interpolation */
+      
       pilot_tmp(0) += interp_linear_onesample(pilot_est(1), pilot_est(0)) 
-                        * q->filter_freq[q->filter_freq_len/2-1];
+                        * q->filter_freq[q->filter_freq_len/2-1]*1.2;
       pilot_tmp(nref-1) += interp_linear_onesample(pilot_est(nref-2), pilot_est(nref-1)) 
-                        * q->filter_freq[q->filter_freq_len/2+1];        
+                        * q->filter_freq[q->filter_freq_len/2+1]*1.2;              
     } else {
       memcpy(&pilot_tmp(0), &pilot_est(0), nref * sizeof(cf_t));
     }
@@ -285,9 +295,9 @@ static void interpolate_pilots(chest_dl_t *q, cf_t *ce, uint32_t port_id)
   
   /* Interpolate in the frequency domain */
   for (l=0;l<nsymbols;l++) {
-    uint32_t fidx_offset = refsignal_fidx(q->cell, l, port_id, 0);    
+    uint32_t fidx_offset = refsignal_cs_fidx(q->cell, l, port_id, 0);    
     interp_linear_offset(&q->interp_lin, &pilot_avg(0),
-                         &ce[refsignal_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB], 
+                         &ce[refsignal_cs_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB], 
                          fidx_offset, RE_X_RB/2-fidx_offset); 
   }
   
@@ -323,7 +333,7 @@ float chest_dl_rssi(chest_dl_t *q, cf_t *input, uint32_t port_id) {
   float rssi = 0;
   uint32_t nsymbols = refsignal_cs_nof_symbols(port_id);   
   for (l=0;l<nsymbols;l++) {
-    cf_t *tmp = &input[refsignal_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB];
+    cf_t *tmp = &input[refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * RE_X_RB];
     rssi += vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * RE_X_RB);    
   }    
   return rssi/nsymbols; 

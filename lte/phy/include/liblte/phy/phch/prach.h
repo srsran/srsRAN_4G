@@ -95,6 +95,7 @@ LIBLTE_API int prach_init(prach_t *p,
 LIBLTE_API int prach_gen(prach_t *p,
                          uint32_t seq_index,
                          uint32_t freq_offset,
+                         float beta_prach,
                          cf_t *signal);
 
 LIBLTE_API int prach_detect(prach_t *p,

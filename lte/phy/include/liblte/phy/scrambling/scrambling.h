@@ -36,14 +36,34 @@
 typedef _Complex float cf_t;
 
 /* Scrambling has no state */
-LIBLTE_API void scrambling_b(sequence_t *s, uint8_t *data);
-LIBLTE_API void scrambling_b_offset(sequence_t *s, uint8_t *data, int offset, int len);
+LIBLTE_API void scrambling_b(sequence_t *s, 
+                             uint8_t *data);
 
-LIBLTE_API void scrambling_f(sequence_t *s, float *data);
-LIBLTE_API void scrambling_f_offset(sequence_t *s, float *data, int offset, int len);
+LIBLTE_API void scrambling_b_offset(sequence_t *s, 
+                                    uint8_t *data, 
+                                    int offset, 
+                                    int len);
 
-LIBLTE_API void scrambling_c(sequence_t *s, cf_t *data);
-LIBLTE_API void scrambling_c_offset(sequence_t *s, cf_t *data, int offset, int len);
+LIBLTE_API void scrambling_b_offset_pusch(sequence_t *s, 
+                                          uint8_t *data, 
+                                          int offset, 
+                                          int len); 
+
+LIBLTE_API void scrambling_f(sequence_t *s, 
+                             float *data);
+
+LIBLTE_API void scrambling_f_offset(sequence_t *s, 
+                                    float *data, 
+                                    int offset, 
+                                    int len);
+
+LIBLTE_API void scrambling_c(sequence_t *s, 
+                             cf_t *data);
+
+LIBLTE_API void scrambling_c_offset(sequence_t *s, 
+                                    cf_t *data, 
+                                    int offset, 
+                                    int len);
 
 
 /* High-level API */

@@ -29,6 +29,7 @@
 #include <string.h>
 #include "liblte/phy/phch/prach.h"
 #include "liblte/phy/utils/debug.h"
+#include "liblte/phy/utils/vector.h"
 
 #define   N_SEQS        64    // Number of prach sequences available
 #define   N_RB_SC       12    // Number of subcarriers per resource block
@@ -197,10 +198,11 @@ int prach_gen_seqs(prach_t *p)
     if(v > v_max){
       // Get a new root sequence
       if(4 == p->f){
-        u = prach_zc_roots_format4[p->rsi + p->N_roots];
+        u = prach_zc_roots_format4[(p->rsi + p->N_roots)%138];
       }else{
-        u = prach_zc_roots[p->rsi + p->N_roots];
+        u = prach_zc_roots[(p->rsi + p->N_roots)%838];
       }
+      printf("Seq#%d, u: %3d (rsi: %d, n_roots: %d\n", i, u, p->rsi, p->N_roots);
       for(int j=0;j<p->N_zc;j++){
         double phase = -M_PI*u*j*(j+1)/p->N_zc;
         root[j] = cexp(phase*I);
@@ -305,24 +307,24 @@ int prach_init(prach_t *p,
     }
 
     // Set up containers
-    p->prach_bins = malloc(sizeof(cf_t)*p->N_zc);
-    p->corr_spec = malloc(sizeof(cf_t)*p->N_zc);
-    p->corr = malloc(sizeof(float)*p->N_zc);
+    p->prach_bins = vec_malloc(sizeof(cf_t)*p->N_zc);
+    p->corr_spec = vec_malloc(sizeof(cf_t)*p->N_zc);
+    p->corr = vec_malloc(sizeof(float)*p->N_zc);
 
     // Set up ZC FFTS
-    p->zc_fft = (dft_plan_t*)malloc(sizeof(dft_plan_t));
+    p->zc_fft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
     if(dft_plan(p->zc_fft, p->N_zc, FORWARD, COMPLEX)){
       return LIBLTE_ERROR;
     }
-    dft_plan_set_mirror(p->zc_fft, true);
-    dft_plan_set_norm(p->zc_fft, true);
+    dft_plan_set_mirror(p->zc_fft, false);
+    dft_plan_set_norm(p->zc_fft, false);
 
-    p->zc_ifft = (dft_plan_t*)malloc(sizeof(dft_plan_t));
+    p->zc_ifft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
     if(dft_plan(p->zc_ifft, p->N_zc, BACKWARD, COMPLEX)){
       return LIBLTE_ERROR;
     }
-    dft_plan_set_mirror(p->zc_ifft, true);
-    dft_plan_set_norm(p->zc_ifft, true);
+    dft_plan_set_mirror(p->zc_ifft, false);
+    dft_plan_set_norm(p->zc_ifft, false);
 
     // Generate our 64 sequences
     p->N_roots = 0;
@@ -341,16 +343,16 @@ int prach_init(prach_t *p,
       p->N_ifft_prach = p->N_ifft_ul * DELTA_F/DELTA_F_RA;
     }
 
-    p->ifft_in = (cf_t*)malloc(p->N_ifft_prach*sizeof(cf_t));
-    p->ifft_out = (cf_t*)malloc(p->N_ifft_prach*sizeof(cf_t));
-    p->ifft = (dft_plan_t*)malloc(sizeof(dft_plan_t));
+    p->ifft_in = (cf_t*)vec_malloc(p->N_ifft_prach*sizeof(cf_t));
+    p->ifft_out = (cf_t*)vec_malloc(p->N_ifft_prach*sizeof(cf_t));
+    p->ifft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
     if(dft_plan(p->ifft, p->N_ifft_prach, BACKWARD, COMPLEX)){
        return -1;
     }
     dft_plan_set_mirror(p->ifft, true);
     dft_plan_set_norm(p->ifft, true);
 
-    p->fft = (dft_plan_t*)malloc(sizeof(dft_plan_t));
+    p->fft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
     if(dft_plan(p->fft, p->N_ifft_prach, FORWARD, COMPLEX)){
        return -1;
     }
@@ -369,6 +371,7 @@ int prach_init(prach_t *p,
 int prach_gen(prach_t *p,
               uint32_t seq_index,
               uint32_t freq_offset,
+              float beta_prach,
               cf_t *signal)
 {
   int ret = LIBLTE_ERROR;
@@ -382,22 +385,24 @@ int prach_gen(prach_t *p,
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);
 
+    DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
     // Map dft-precoded sequence to ifft bins
-    memset(p->ifft_in, 0, p->N_ifft_prach*sizeof(cf_t));
-    for(int i=0;i<p->N_zc;i++){
-      p->ifft_in[begin+i] = p->dft_seqs[seq_index][i];
-    }
+    memset(p->ifft_in, 0, begin*sizeof(cf_t));
+    memcpy(&p->ifft_in[begin], p->dft_seqs[seq_index], p->N_zc * sizeof(cf_t));
+    memset(&p->ifft_in[begin+p->N_zc], 0, (p->N_ifft_prach - begin - p->N_zc) * sizeof(cf_t));
+
     dft_run(p->ifft, p->ifft_in, p->ifft_out);
 
     // Copy CP into buffer
-    for(int i=0;i<p->N_cp;i++){
-      signal[i] = p->ifft_out[p->N_ifft_prach-p->N_cp+i];
-    }
+    memcpy(signal, &p->ifft_out[p->N_ifft_prach-p->N_cp], p->N_cp*sizeof(cf_t));
 
     // Copy preamble sequence into buffer
     for(int i=0;i<p->N_seq;i++){
       signal[p->N_cp+i] = p->ifft_out[i%p->N_ifft_prach];
     }
+                
+    // Normalize 
+    vec_sc_prod_cfc(signal, beta_prach, signal, (p->N_cp + p->N_seq));
 
     ret = LIBLTE_SUCCESS;
   }
@@ -489,8 +494,9 @@ int prach_detect(prach_t *p,
   return ret;
 }
 
-int prach_free(prach_t *p){
+int prach_free(prach_t *p) {
   free(p->prach_bins);
+  free(p->corr_spec);
   free(p->corr);
   dft_plan_free(p->ifft);
   free(p->ifft);

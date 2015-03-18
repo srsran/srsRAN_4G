@@ -40,7 +40,6 @@ char *mexutils_get_char_struct(const mxArray *ptr, const char *field_name) {
   mxArray *p; 
   p = mxGetField(ptr, 0, field_name);
   if (!p) {
-    mexPrintf("Error field %s not found\n", field_name);
     return NULL;
   } 
   
@@ -56,10 +55,20 @@ int mexutils_read_uint32_struct(const mxArray *ptr, const char *field_name, uint
   mxArray *p; 
   p = mxGetField(ptr, 0, field_name);
   if (!p) {
-    mexPrintf("Error field %s not found\n", field_name);
     return -1;
   } 
   *value = (uint32_t) mxGetScalar(p);
+  return 0;
+}
+
+int mexutils_read_float_struct(const mxArray *ptr, const char *field_name, float *value) 
+{
+  mxArray *p; 
+  p = mxGetField(ptr, 0, field_name);
+  if (!p) {
+    return -1;
+  } 
+  *value = (float) mxGetScalar(p);
   return 0;
 }
 
@@ -106,6 +115,21 @@ int mexutils_read_f(const mxArray *ptr, float **buffer) {
     double *inr=mxGetPr(ptr);
     for (int i=0;i<numelems;i++) {
       tmp[i] = (float) inr[i];       
+    }    
+    *buffer = tmp; 
+    return numelems;
+  } else {
+    return -1;
+  }
+}
+
+int mexutils_read_uint8(const mxArray *ptr, uint8_t **buffer) {
+  int numelems = mxGetNumberOfElements(ptr);
+  uint8_t *tmp = vec_malloc(numelems * sizeof(uint8_t));
+  if (tmp) {
+    double *inr=mxGetPr(ptr);
+    for (int i=0;i<numelems;i++) {
+      tmp[i] = (uint8_t) inr[i];       
     }    
     *buffer = tmp; 
     return numelems;

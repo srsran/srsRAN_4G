@@ -99,4 +99,17 @@ LIBLTE_API int pbch_encode(pbch_t *q,
 
 LIBLTE_API void pbch_decode_reset(pbch_t *q);
 
+LIBLTE_API void pbch_mib_unpack(uint8_t *msg, 
+                                lte_cell_t *cell, 
+                                uint32_t *sfn);
+
+LIBLTE_API void pbch_mib_pack(lte_cell_t *cell, 
+                              uint32_t sfn, 
+                              uint8_t *msg);
+
+LIBLTE_API void pbch_mib_fprint(FILE *stream, 
+                                lte_cell_t *cell, 
+                                uint32_t sfn, 
+                                uint32_t cell_id);
+
 #endif // PBCH_

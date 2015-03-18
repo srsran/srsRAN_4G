@@ -30,9 +30,13 @@
 
 #include "liblte/config.h"
 
+#ifndef RX_NULL
 #define RX_NULL 10000
-#define TX_NULL 80
+#endif
 
+#ifndef TX_NULL
+#define TX_NULL 100
+#endif
 LIBLTE_API int rm_conv_tx(uint8_t *input, 
                           uint32_t in_len, 
                           uint8_t *output, 

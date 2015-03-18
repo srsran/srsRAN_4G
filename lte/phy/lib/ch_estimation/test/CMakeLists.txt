@@ -45,14 +45,11 @@ BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES lte_phy)
 # Uplink Channel Estimation TEST  
 ########################################################################
 
-#ADD_EXECUTABLE(chest_test_ul chest_test_ul.c)
-#TARGET_LINK_LIBRARIES(chest_test_ul lte_phy)
-
-#ADD_TEST(chest_test_ul_cellid0 chest_ul_test -c 0) 
-#ADD_TEST(chest_test_ul_cellid1 chest_ul_test -c 1) 
-#ADD_TEST(chest_test_ul_cellid2 chest_ul_test -c 2) 
+ADD_EXECUTABLE(refsignal_ul_test_all refsignal_ul_test.c)
+TARGET_LINK_LIBRARIES(refsignal_ul_test_all lte_phy)
 
 
+BuildMex(MEXNAME refsignal_pusch SOURCES refsignal_pusch_mex.c LIBRARIES lte_phy liblte_mex)
 
 
 
