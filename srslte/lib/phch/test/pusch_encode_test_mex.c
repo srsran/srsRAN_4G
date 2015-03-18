@@ -55,8 +55,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  lte_cell_t cell;     
-  bzero(&cell, sizeof(lte_cell_t));
+  srslte_cell_t cell;     
+  bzero(&cell, sizeof(srslte_cell_t));
   cell.nof_ports = 1; 
   if (mexutils_read_uint32_struct(UECFG, "NCellID", &cell.id)) {
     mexErrMsgTxt("Field NCellID not found in UE config\n");
@@ -196,10 +196,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   cf_t *scfdma = vec_malloc(sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
   bzero(scfdma, sizeof(cf_t) * SF_LEN_PRB(cell.nof_prb));
-  lte_fft_t fft; 
+  srslte_fft_t fft; 
   lte_ifft_init(&fft, CPNORM, cell.nof_prb);
-  lte_fft_set_normalize(&fft, true);
-  lte_fft_set_freq_shift(&fft, 0.5);
+  srslte_fft_set_normalize(&fft, true);
+  srslte_fft_set_freq_shift(&fft, 0.5);
   lte_ifft_run_sf(&fft, sf_symbols, scfdma);
 
   // Matlab toolbox expects further normalization 

@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
     mod_modulate(&mod, input, symbols, num_bits);
 
     /* add noise */
-    ch_awgn_c(symbols, symbols, ch_awgn_get_variance(5.0, mod.nbits_x_symbol), num_bits / mod.nbits_x_symbol);
+    srslte_ch_awgn_c(symbols, symbols, srslte_ch_awgn_get_variance(5.0, mod.nbits_x_symbol), num_bits / mod.nbits_x_symbol);
     
     /* Compare exact with approximation algorithms */
     demod_soft_alg_set(&demod_soft, EXACT);

@@ -37,7 +37,7 @@ char *input_file_name = NULL;
 
 #define MAX_CANDIDATES 64
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   6,            // cell.cell.cell.nof_prb
   1,            // cell.cell.nof_ports
   0,            // cell.id
@@ -54,10 +54,10 @@ int max_frames = 10;
 dci_format_t dci_format = Format1A;
 filesource_t fsrc;
 pdcch_t pdcch;
-cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
+cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
 regs_t regs;
-lte_fft_t fft;
-chest_dl_t chest;
+srslte_fft_t fft;
+srslte_chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcfoe] -i input_file\n", prog);
@@ -143,7 +143,7 @@ int base_init() {
     return -1;
   }
 
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
@@ -151,12 +151,12 @@ int base_init() {
     }
   }
 
-  if (chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
 
-  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -188,11 +188,11 @@ void base_free() {
   free(fft_buffer);
 
   filesource_free(&fsrc);
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     free(ce[i]);
   }
-  chest_dl_free(&chest);
-  lte_fft_free(&fft);
+  srslte_chest_dl_free(&chest);
+  srslte_fft_free(&fft);
 
   pdcch_free(&pdcch);
   regs_free(&regs);
@@ -226,14 +226,14 @@ int main(int argc, char **argv) {
 
     INFO("Reading %d samples sub-frame %d\n", flen, frame_cnt);
 
-    lte_fft_run_sf(&fft, input_buffer, fft_buffer);
+    srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
     /* Get channel estimates for each port */
-    chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);
+    srslte_chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);
     
     uint16_t crc_rem = 0;
     if (pdcch_extract_llr(&pdcch, fft_buffer, 
-                          ce, chest_dl_get_noise_estimate(&chest), 
+                          ce, srslte_chest_dl_get_noise_estimate(&chest), 
                           frame_cnt %10, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       return -1;

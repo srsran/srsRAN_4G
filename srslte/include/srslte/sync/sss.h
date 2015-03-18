@@ -62,7 +62,7 @@ struct fc_tables{
 /* Low-level API */
 typedef struct SRSLTE_API {
 
-  dft_plan_t dftp_input;
+  srslte_dft_plan_t dftp_input;
   
   uint32_t fft_size;
 
@@ -96,7 +96,7 @@ SRSLTE_API void sss_generate(float *signal0,
 SRSLTE_API void sss_put_slot(float *sss, 
                              cf_t *symbol, 
                              uint32_t nof_prb, 
-                             lte_cp_t cp);
+                             srslte_cp_t cp);
 
 SRSLTE_API int sss_synch_set_N_id_2(sss_synch_t *q, 
                                     uint32_t N_id_2);

@@ -54,7 +54,7 @@ int nof_frames = -1;
 uint32_t fft_size=64;
 float threshold = 0.4; 
 int N_id_2_sync = -1;
-lte_cp_t cp=CPNORM;
+srslte_cp_t cp=CPNORM;
 
 void usage(char *prog) {
   printf("Usage: %s [aedgtvnp] -f rx_frequency_hz -i cell_id\n", prog);
@@ -262,7 +262,7 @@ int main(int argc, char **argv) {
         
         // Estimate CP 
         if (peak_idx > 2*(fft_size + CP_EXT(fft_size))) {
-          lte_cp_t cp = sync_detect_cp(&ssync, buffer, peak_idx);
+          srslte_cp_t cp = sync_detect_cp(&ssync, buffer, peak_idx);
           if (CP_ISNORM(cp)) {
             cp_is_norm++; 
           }          

@@ -168,10 +168,10 @@ void sync_set_em_alpha(sync_t *q, float alpha) {
   pss_synch_set_ema_alpha(&q->pss, alpha);
 }
 
-lte_cp_t sync_get_cp(sync_t *q) {
+srslte_cp_t sync_get_cp(sync_t *q) {
   return q->cp;
 }
-void sync_set_cp(sync_t *q, lte_cp_t cp) {
+void sync_set_cp(sync_t *q, srslte_cp_t cp) {
   q->cp = cp;
 }
 
@@ -183,7 +183,7 @@ void sync_set_sss_algorithm(sync_t *q, sss_alg_t alg) {
  * "SSS Detection Method for Initial Cell Search in 3GPP LTE FDD/TDD Dual Mode Receiver"
  * by Jung-In Kim et al. 
  */
-lte_cp_t sync_detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos) 
+srslte_cp_t sync_detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos) 
 {
   float R_norm, R_ext, C_norm, C_ext; 
   float M_norm=0, M_ext=0; 
@@ -230,7 +230,7 @@ lte_cp_t sync_detect_cp(sync_t *q, cf_t *input, uint32_t peak_pos)
 /* Returns 1 if the SSS is found, 0 if not and -1 if there is not enough space 
  * to correlate
  */
-int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, lte_cp_t cp) {
+int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, srslte_cp_t cp) {
   int sss_idx, ret;
 
   sss_synch_set_N_id_2(&q->sss, q->N_id_2);

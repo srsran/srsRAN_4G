@@ -53,7 +53,7 @@ bool pbch_exists(int nframe, int nslot) {
 
 cf_t *offset_original;
 
-int pbch_cp(cf_t *input, cf_t *output, lte_cell_t cell, bool put) {
+int pbch_cp(cf_t *input, cf_t *output, srslte_cell_t cell, bool put) {
   int i;
   cf_t *ptr;
   
@@ -109,7 +109,7 @@ int pbch_cp(cf_t *input, cf_t *output, lte_cell_t cell, bool put) {
  *
  * 36.211 10.3 section 6.6.4
  */
-int pbch_put(cf_t *pbch, cf_t *slot1_data, lte_cell_t cell) {
+int pbch_put(cf_t *pbch, cf_t *slot1_data, srslte_cell_t cell) {
   return pbch_cp(pbch, slot1_data, cell, true);
 }
 
@@ -120,7 +120,7 @@ int pbch_put(cf_t *pbch, cf_t *slot1_data, lte_cell_t cell) {
  *
  * 36.211 10.3 section 6.6.4
  */
-int pbch_get(cf_t *slot1_data, cf_t *pbch, lte_cell_t cell) {
+int pbch_get(cf_t *slot1_data, cf_t *pbch, srslte_cell_t cell) {
   return pbch_cp(slot1_data, pbch, cell, false);
 }
 
@@ -128,7 +128,7 @@ int pbch_get(cf_t *slot1_data, cf_t *pbch, lte_cell_t cell) {
  * At the receiver, the field nof_ports in the cell structure indicates the 
  * maximum number of BS transmitter ports to look for.  
  */
-int pbch_init(pbch_t *q, lte_cell_t cell) {
+int pbch_init(pbch_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q                       != NULL &&
@@ -246,7 +246,7 @@ void pbch_free(pbch_t *q) {
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
-void pbch_mib_unpack(uint8_t *msg, lte_cell_t *cell, uint32_t *sfn) {
+void pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   int phich_res;
 
   cell->bw_idx = bit_unpack(&msg, 3);
@@ -291,7 +291,7 @@ void pbch_mib_unpack(uint8_t *msg, lte_cell_t *cell, uint32_t *sfn) {
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
-void pbch_mib_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
+void pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   int bw, phich_res = 0;
 
   bzero(msg, 24);
@@ -326,7 +326,7 @@ void pbch_mib_pack(lte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   bit_pack(sfn >> 2, &msg, 8);
 }
 
-void pbch_mib_fprint(FILE *stream, lte_cell_t *cell, uint32_t sfn, uint32_t cell_id) {
+void pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn, uint32_t cell_id) {
   printf(" - Cell ID:         %d\n", cell_id);
   printf(" - Nof ports:       %d\n", cell->nof_ports);
   printf(" - PRB:             %d\n", cell->nof_prb);
@@ -431,7 +431,7 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float noise_estimate, 
+int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS], float noise_estimate, 
                  uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
 {
   uint32_t src, dst, nb;
@@ -455,10 +455,10 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float
     nof_bits = 2 * q->nof_symbols;
 
     /* number of layers equals number of ports */
-    for (i = 0; i < MAX_PORTS; i++) {
+    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       x[i] = q->pbch_x[i];
     }
-    memset(&x[MAX_PORTS], 0, sizeof(cf_t*) * (MAX_LAYERS - MAX_PORTS));
+    memset(&x[SRSLTE_MAX_PORTS], 0, sizeof(cf_t*) * (MAX_LAYERS - SRSLTE_MAX_PORTS));
     
     /* extract symbols */
     if (q->nof_symbols != pbch_get(slot1_symbols, q->pbch_symbols[0], q->cell)) {
@@ -537,7 +537,7 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_symbols[MAX_PORTS]) {
+int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS]) {
   int i;
   int nof_bits;
   cf_t *x[MAX_LAYERS];

@@ -42,9 +42,9 @@ typedef struct SRSLTE_API {
   uint32_t input_len;
   uint32_t filter_len;
   uint32_t output_len;
-  dft_plan_t input_plan;
-  dft_plan_t filter_plan;
-  dft_plan_t output_plan;
+  srslte_dft_plan_t input_plan;
+  srslte_dft_plan_t filter_plan;
+  srslte_dft_plan_t output_plan;
 }conv_fft_cc_t;
 
 SRSLTE_API int conv_fft_cc_init(conv_fft_cc_t *q, 

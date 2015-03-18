@@ -44,7 +44,7 @@
 /* Creates the DL PDSCH resource allocation grant from a DCI message
  */
 int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
-                     lte_cell_t cell, uint32_t cfi,
+                     srslte_cell_t cell, uint32_t cfi,
                      ra_pdsch_t *ra_dl) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;

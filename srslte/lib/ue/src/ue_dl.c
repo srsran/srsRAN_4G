@@ -39,7 +39,7 @@
 #define MAX_CANDIDATES  64
 
 int ue_dl_init(ue_dl_t *q, 
-               lte_cell_t cell) 
+               srslte_cell_t cell) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -54,11 +54,11 @@ int ue_dl_init(ue_dl_t *q,
     q->pkt_errors = 0;
     q->pkts_total = 0;
     
-    if (lte_fft_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+    if (srslte_fft_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
-    if (chest_dl_init(&q->chest, cell)) {
+    if (srslte_chest_dl_init(&q->chest, cell)) {
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit;
     }
@@ -114,8 +114,8 @@ clean_exit:
 
 void ue_dl_free(ue_dl_t *q) {
   if (q) {
-    lte_fft_free(&q->fft);
-    chest_dl_free(&q->chest);
+    srslte_fft_free(&q->fft);
+    srslte_chest_dl_free(&q->chest);
     regs_free(&q->regs);
     pcfich_free(&q->pcfich);
     pdcch_free(&q->pdcch);
@@ -173,17 +173,17 @@ int ue_dl_decode_rnti(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, u
 
 int ue_dl_decode_fft_estimate(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) {
   float cfi_corr; 
-  if (input && q && cfi && sf_idx < NSUBFRAMES_X_FRAME) {
+  if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Run FFT for all subframe data */
-    lte_fft_run_sf(&q->fft, input, q->sf_symbols);
+    srslte_fft_run_sf(&q->fft, input, q->sf_symbols);
 
     /* Get channel estimates for each port */
-    chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
+    srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
     
     /* First decode PCFICH and obtain CFI */
     if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
-                      chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi, &cfi_corr)<0) {
+                      srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi, &cfi_corr)<0) {
       fprintf(stderr, "Error decoding PCFICH\n");
       return SRSLTE_ERROR;
     }
@@ -196,7 +196,7 @@ int ue_dl_decode_fft_estimate(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t
     }
 
     /* Extract all PDCCH symbols and get LLRs */
-    if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), sf_idx, *cfi)) {
+    if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, *cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       return SRSLTE_ERROR;
     }
@@ -228,7 +228,7 @@ int ue_dl_decode_rnti_rv_packet(ue_dl_t *q, dci_msg_t *dci_msg, uint8_t *data,
   }
   if (q->harq_process[0].mcs.mod > 0 && q->harq_process[0].mcs.tbs >= 0) {
     ret = pdsch_decode_rnti(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
-                            q->ce, chest_dl_get_noise_estimate(&q->chest),
+                            q->ce, srslte_chest_dl_get_noise_estimate(&q->chest),
                             rnti, data);
     if (ret == SRSLTE_ERROR) {
       q->pkt_errors++;

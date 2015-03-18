@@ -40,7 +40,7 @@
 
 
 int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_size) {
-  dft_plan_t plan;
+  srslte_dft_plan_t plan;
   cf_t pss_signal_pad[2048];
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
@@ -241,7 +241,7 @@ int pss_generate(cf_t *signal, uint32_t N_id_2) {
 
 /** 36.211 10.3 section 6.11.1.2
  */
-void pss_put_slot(cf_t *pss_signal, cf_t *slot, uint32_t nof_prb, lte_cp_t cp) {
+void pss_put_slot(cf_t *pss_signal, cf_t *slot, uint32_t nof_prb, srslte_cp_t cp) {
   int k;
   k = (CP_NSYMB(cp) - 1) * nof_prb * RE_X_RB + nof_prb * RE_X_RB / 2 - 31;
   memset(&slot[k - 5], 0, 5 * sizeof(cf_t));

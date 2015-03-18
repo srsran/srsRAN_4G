@@ -36,7 +36,7 @@
 char *input_file_name = NULL;
 char *matlab_file_name = NULL;
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   50,           // cell.nof_prb
   2,            // cell.nof_ports
   150,          // cell.id
@@ -52,11 +52,11 @@ int numsubframe = 0;
 FILE *fmatlab = NULL;
 
 filesource_t fsrc;
-cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
+cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
 phich_t phich;
 regs_t regs;
-lte_fft_t fft;
-chest_dl_t chest;
+srslte_fft_t fft;
+srslte_chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcoe] -i input_file\n", prog);
@@ -158,7 +158,7 @@ int base_init() {
     return -1;
   }
 
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!ce[i]) {
       perror("malloc");
@@ -166,12 +166,12 @@ int base_init() {
     }
   }
 
-  if (chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
 
-  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -202,11 +202,11 @@ void base_free() {
   free(fft_buffer);
 
   filesource_free(&fsrc);
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     free(ce[i]);
   }
-  chest_dl_free(&chest);
-  lte_fft_free(&fft);
+  srslte_chest_dl_free(&chest);
+  srslte_fft_free(&fft);
 
   phich_free(&phich);
   regs_free(&regs);
@@ -234,7 +234,7 @@ int main(int argc, char **argv) {
 
   n = filesource_read(&fsrc, input_buffer, flen);
 
-  lte_fft_run_sf(&fft, input_buffer, fft_buffer);
+  srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");
@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
   }
 
   /* Get channel estimates for each port */
-  chest_dl_estimate(&chest, fft_buffer, ce, 0);
+  srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
   INFO("Decoding PHICH\n", 0);
 
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
   for (ngroup=0;ngroup<phich_ngroups(&phich);ngroup++) {
     for (nseq=0;nseq<max_nseq;nseq++) {
 
-      if (phich_decode(&phich, fft_buffer, ce, chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
+      if (phich_decode(&phich, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), ngroup, nseq, numsubframe, &ack_rx, &distance)<0) {
         printf("Error decoding ACK\n");
         exit(-1);
       }

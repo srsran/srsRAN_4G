@@ -47,7 +47,7 @@ void help()
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-  lte_cell_t cell; 
+  srslte_cell_t cell; 
   pss_synch_t pss; 
   cf_t *input_symbols;
   int frame_len; 

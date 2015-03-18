@@ -42,7 +42,7 @@
 
 /* Returns the number of RE in a PRB in a slot and subframe */
 uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_t nof_prb,
-    uint32_t nof_ports, uint32_t nof_ctrl_symbols, lte_cp_t cp) {
+    uint32_t nof_ports, uint32_t nof_ctrl_symbols, srslte_cp_t cp) {
 
   uint32_t re;
   bool skip_refs = false;
@@ -185,13 +185,13 @@ int ra_ul_alloc(ra_ul_alloc_t *prb_dist, ra_pusch_t *ra, uint32_t n_rb_ho, uint3
 
 /* Computes the number of RE for each PRB in the prb_dist structure */
 void ra_dl_alloc_re(ra_dl_alloc_t *prb_dist, uint32_t nof_prb, uint32_t nof_ports,
-    uint32_t nof_ctrl_symbols, lte_cp_t cp) {
+    uint32_t nof_ctrl_symbols, srslte_cp_t cp) {
   uint32_t i, j, s;
 
   /* Set start symbol according to Section 7.1.6.4 in 36.213 */
   prb_dist->lstart = nof_ctrl_symbols;
   // Compute number of RE per subframe
-  for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
+  for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     prb_dist->re_sf[i] = 0;
     for (s = 0; s < 2; s++) {
       for (j = 0; j < nof_prb; j++) {

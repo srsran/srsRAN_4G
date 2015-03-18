@@ -34,7 +34,7 @@
 
 #include "srslte/srslte.h"
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   0,            // cell_id
@@ -126,9 +126,9 @@ int main(int argc, char **argv) {
   pdsch_t pdsch;
   uint32_t i, j;
   uint8_t *data = NULL;
-  cf_t *ce[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
   uint32_t nof_re;
-  cf_t *slot_symbols[MAX_PORTS];
+  cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   int ret = -1;
   struct timeval t[3];
   ra_mcs_t mcs;
@@ -140,10 +140,10 @@ int main(int argc, char **argv) {
 
   bzero(&pdsch, sizeof(pdsch_t));
   bzero(&harq_process, sizeof(harq_t));
-  bzero(ce, sizeof(cf_t*)*MAX_PORTS);
-  bzero(slot_symbols, sizeof(cf_t*)*MAX_PORTS);
+  bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
+  bzero(slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   
-  nof_re = 2 * CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  nof_re = 2 * SRSLTE_CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   mcs.mod = modulation;
   

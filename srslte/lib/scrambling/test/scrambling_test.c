@@ -38,7 +38,7 @@
 
 char *sequence_name = NULL;
 bool do_floats = false;
-lte_cp_t cp = CPNORM;
+srslte_cp_t cp = CPNORM;
 int cell_id = -1;
 
 void usage(char *prog) {

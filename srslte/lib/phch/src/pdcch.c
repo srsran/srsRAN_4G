@@ -55,7 +55,7 @@ static void set_cfi(pdcch_t *q, uint32_t cfi) {
 
 
 /** Initializes the PDCCH transmitter and receiver */
-int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
+int pdcch_init(pdcch_t *q, regs_t *regs, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i;
 
@@ -89,7 +89,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
     demod_soft_table_set(&q->demod, &q->mod);
     demod_soft_alg_set(&q->demod, APPROX);
 
-    for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
+    for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
       // we need to pregenerate the sequence for the maximum number of bits, which is 8 times 
       // the maximum number of REGs (for CFI=3)
       if (sequence_pdcch(&q->seq_pdcch[i], 2 * i, q->cell.id, 8*regs_pdcch_nregs(q->regs, 3))) {
@@ -119,7 +119,7 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
       goto clean;
     }
 
-    for (i = 0; i < MAX_PORTS; i++) {
+    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       q->ce[i] = vec_malloc(sizeof(cf_t) * q->max_bits / 2);
       if (!q->ce[i]) {
         goto clean;
@@ -155,7 +155,7 @@ void pdcch_free(pdcch_t *q) {
   if (q->pdcch_d) {
     free(q->pdcch_d);
   }
-  for (i = 0; i < MAX_PORTS; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -167,7 +167,7 @@ void pdcch_free(pdcch_t *q) {
     }
   }
 
-  for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
+  for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     sequence_free(&q->seq_pdcch[i]);
   }
 
@@ -359,7 +359,7 @@ int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t *location, dci_f
  * Every time this function is called (with a different location), the last demodulated symbols are overwritten and
  * new messages from other locations can be decoded 
  */
-int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, 
+int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate, 
                       uint32_t nsubframe, uint32_t cfi) {
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -498,7 +498,7 @@ static int dci_encode(pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, 
  * @TODO: Use a bitmask and CFI to ensure message locations are valid and old messages are not overwritten. 
  */
 int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t rnti, 
-                 cf_t *sf_symbols[MAX_PORTS], uint32_t nsubframe, uint32_t cfi) {
+                 cf_t *sf_symbols[SRSLTE_MAX_PORTS], uint32_t nsubframe, uint32_t cfi) {
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i;

@@ -40,7 +40,7 @@ void usage(char *arg) {
 int main(int argc, char **argv) {
   binsource_hl bs;
   mod_hl mod;
-  ch_awgn_hl ch;
+  srslte_ch_awgn_hl ch;
   demod_soft_hl demod_s;
   demod_hard_hl demod_h;
 
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
 
   if (  binsource_initialize(&bs)     ||
       mod_initialize(&mod)       ||
-      ch_awgn_initialize(&ch)       ||
+      srslte_ch_awgn_initialize(&ch)       ||
       demod_hard_initialize(&demod_h) ||
       demod_soft_initialize(&demod_s)
   ) {
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 
   binsource_work(&bs);
   mod_work(&mod);
-  ch_awgn_work(&ch);
+  srslte_ch_awgn_work(&ch);
   demod_hard_work(&demod_h);
   demod_soft_work(&demod_s);
 

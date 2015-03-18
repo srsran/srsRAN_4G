@@ -69,18 +69,18 @@ bool lte_nofprb_isvalid(uint32_t nof_prb) {
   }
 }
 
-bool lte_cell_isvalid(lte_cell_t *cell) {
+bool lte_cell_isvalid(srslte_cell_t *cell) {
   return lte_cellid_isvalid(cell->id)           && 
          lte_portid_isvalid(cell->nof_ports)    &&
          lte_nofprb_isvalid(cell->nof_prb);
 }
 
-void lte_cell_fprint(FILE *stream, lte_cell_t *cell) {
+void lte_cell_fprint(FILE *stream, srslte_cell_t *cell) {
   fprintf(stream, "PCI: %d, CP: %s, PRB: %d, Ports: %d\n", cell->id, lte_cp_string(cell->cp), cell->nof_prb, cell->nof_ports);
 }
 
 bool lte_sfidx_isvalid(uint32_t sf_idx) {
-  if (sf_idx <= NSUBFRAMES_X_FRAME) {
+  if (sf_idx <= SRSLTE_NSUBFRAMES_X_FRAME) {
     return true; 
   } else {
     return false; 
@@ -88,7 +88,7 @@ bool lte_sfidx_isvalid(uint32_t sf_idx) {
 }
 
 bool lte_portid_isvalid(uint32_t port_id) {
-  if (port_id <= MAX_PORTS) {
+  if (port_id <= SRSLTE_MAX_PORTS) {
     return true; 
   } else {
     return false; 
@@ -162,7 +162,7 @@ uint32_t lte_mod_bits_x_symbol(lte_mod_t mod) {
   }   
 }
 
-char *lte_cp_string(lte_cp_t cp) {
+char *lte_cp_string(srslte_cp_t cp) {
   if (cp == CPNORM) {
     return "Normal";
   } else {

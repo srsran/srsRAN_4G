@@ -312,14 +312,14 @@ int prach_init(prach_t *p,
     p->corr = vec_malloc(sizeof(float)*p->N_zc);
 
     // Set up ZC FFTS
-    p->zc_fft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
+    p->zc_fft = (srslte_dft_plan_t*)vec_malloc(sizeof(srslte_dft_plan_t));
     if(dft_plan(p->zc_fft, p->N_zc, FORWARD, COMPLEX)){
       return SRSLTE_ERROR;
     }
     dft_plan_set_mirror(p->zc_fft, false);
     dft_plan_set_norm(p->zc_fft, false);
 
-    p->zc_ifft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
+    p->zc_ifft = (srslte_dft_plan_t*)vec_malloc(sizeof(srslte_dft_plan_t));
     if(dft_plan(p->zc_ifft, p->N_zc, BACKWARD, COMPLEX)){
       return SRSLTE_ERROR;
     }
@@ -345,14 +345,14 @@ int prach_init(prach_t *p,
 
     p->ifft_in = (cf_t*)vec_malloc(p->N_ifft_prach*sizeof(cf_t));
     p->ifft_out = (cf_t*)vec_malloc(p->N_ifft_prach*sizeof(cf_t));
-    p->ifft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
+    p->ifft = (srslte_dft_plan_t*)vec_malloc(sizeof(srslte_dft_plan_t));
     if(dft_plan(p->ifft, p->N_ifft_prach, BACKWARD, COMPLEX)){
        return -1;
     }
     dft_plan_set_mirror(p->ifft, true);
     dft_plan_set_norm(p->ifft, true);
 
-    p->fft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
+    p->fft = (srslte_dft_plan_t*)vec_malloc(sizeof(srslte_dft_plan_t));
     if(dft_plan(p->fft, p->N_ifft_prach, FORWARD, COMPLEX)){
        return -1;
     }

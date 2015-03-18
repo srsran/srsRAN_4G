@@ -34,12 +34,12 @@
 #include "gauss.h"
 #include "srslte/channel/ch_awgn.h"
 
-float ch_awgn_get_variance(float ebno_db, float rate) {
+float srslte_ch_awgn_get_variance(float ebno_db, float rate) {
   float esno_db = ebno_db + 10 * log10f(rate);
   return sqrtf(1 / (powf(10, esno_db / 10)));
 }
 
-void ch_awgn_c(const cf_t* x, cf_t* y, float variance, uint32_t len) {
+void srslte_ch_awgn_c(const cf_t* x, cf_t* y, float variance, uint32_t len) {
   cf_t tmp;
   uint32_t i;
 
@@ -50,7 +50,7 @@ void ch_awgn_c(const cf_t* x, cf_t* y, float variance, uint32_t len) {
     y[i] = tmp + x[i];
   }
 }
-void ch_awgn_f(const float* x, float* y, float variance, uint32_t len) {
+void srslte_ch_awgn_f(const float* x, float* y, float variance, uint32_t len) {
   uint32_t i;
 
   for (i=0;i<len;i++) {
@@ -59,17 +59,17 @@ void ch_awgn_f(const float* x, float* y, float variance, uint32_t len) {
 }
 
 /* High-level API */
-int ch_awgn_initialize(ch_awgn_hl* hl) {
+int srslte_ch_awgn_initialize(srslte_ch_awgn_hl* hl) {
 
   return 0;
 }
 
-int ch_awgn_work(ch_awgn_hl* hl) {
-  ch_awgn_c(hl->input,hl->output,hl->ctrl_in.variance,hl->in_len);
+int srslte_ch_awgn_work(srslte_ch_awgn_hl* hl) {
+  srslte_ch_awgn_c(hl->input,hl->output,hl->ctrl_in.variance,hl->in_len);
   hl->out_len = hl->in_len;
   return 0;
 }
 
-int ch_awgn_stop(ch_awgn_hl* hl) {
+int srslte_ch_awgn_stop(srslte_ch_awgn_hl* hl) {
   return 0;
 }

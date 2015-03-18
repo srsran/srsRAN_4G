@@ -37,7 +37,7 @@
 #define dft_ceil(a,b) ((a-1)/b+1)
 #define dft_floor(a,b) (a/b)
 
-int dft_plan(dft_plan_t *plan, const int dft_points, dft_dir_t dir,
+int dft_plan(srslte_dft_plan_t *plan, const int dft_points, dft_dir_t dir,
              dft_mode_t mode) {
   if(mode == COMPLEX){
     return dft_plan_c(plan,dft_points,dir);
@@ -47,12 +47,12 @@ int dft_plan(dft_plan_t *plan, const int dft_points, dft_dir_t dir,
   return 0;
 }
 
-static void allocate(dft_plan_t *plan, int size_in, int size_out, int len) {
+static void allocate(srslte_dft_plan_t *plan, int size_in, int size_out, int len) {
   plan->in = fftwf_malloc(size_in*len);
   plan->out = fftwf_malloc(size_out*len);
 }
 
-int dft_plan_c(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
+int dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
   allocate(plan,sizeof(fftwf_complex),sizeof(fftwf_complex), dft_points);
   int sign = (dir == FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
   plan->p = fftwf_plan_dft_1d(dft_points, plan->in, plan->out, sign, 0U);
@@ -71,7 +71,7 @@ int dft_plan_c(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
   return 0;
 }
 
-int dft_plan_r(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
+int dft_plan_r(srslte_dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
   allocate(plan,sizeof(float),sizeof(float), dft_points);
   int sign = (dir == FORWARD) ? FFTW_R2HC : FFTW_HC2R;
   plan->p = fftwf_plan_r2r_1d(dft_points, plan->in, plan->out, sign, 0U);
@@ -90,16 +90,16 @@ int dft_plan_r(dft_plan_t *plan, const int dft_points, dft_dir_t dir) {
   return 0;
 }
 
-void dft_plan_set_mirror(dft_plan_t *plan, bool val){
+void dft_plan_set_mirror(srslte_dft_plan_t *plan, bool val){
   plan->mirror = val;
 }
-void dft_plan_set_db(dft_plan_t *plan, bool val){
+void dft_plan_set_db(srslte_dft_plan_t *plan, bool val){
   plan->db = val;
 }
-void dft_plan_set_norm(dft_plan_t *plan, bool val){
+void dft_plan_set_norm(srslte_dft_plan_t *plan, bool val){
   plan->norm = val;
 }
-void dft_plan_set_dc(dft_plan_t *plan, bool val){
+void dft_plan_set_dc(srslte_dft_plan_t *plan, bool val){
   plan->dc = val;
 }
 
@@ -128,7 +128,7 @@ static void copy_post(uint8_t *dst, uint8_t *src, int size_d, int len,
   }
 }
 
-void dft_run(dft_plan_t *plan, void *in, void *out) {
+void dft_run(srslte_dft_plan_t *plan, void *in, void *out) {
   if(plan->mode == COMPLEX) {
     dft_run_c(plan,in,out);
   } else {
@@ -136,7 +136,7 @@ void dft_run(dft_plan_t *plan, void *in, void *out) {
   }
 }
 
-void dft_run_c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out) {
+void dft_run_c(srslte_dft_plan_t *plan, dft_c_t *in, dft_c_t *out) {
   float norm;
   int i;
   fftwf_complex *f_out = plan->out;
@@ -157,7 +157,7 @@ void dft_run_c(dft_plan_t *plan, dft_c_t *in, dft_c_t *out) {
             plan->forward, plan->mirror, plan->dc);
 }
 
-void dft_run_r(dft_plan_t *plan, dft_r_t *in, dft_r_t *out) {
+void dft_run_r(srslte_dft_plan_t *plan, dft_r_t *in, dft_r_t *out) {
   float norm;
   int i;
   int len = plan->size;
@@ -177,13 +177,13 @@ void dft_run_r(dft_plan_t *plan, dft_r_t *in, dft_r_t *out) {
   memcpy(out,plan->out,sizeof(dft_r_t)*plan->size);
 }
 
-void dft_plan_free(dft_plan_t *plan) {
+void dft_plan_free(srslte_dft_plan_t *plan) {
   if (!plan) return;
   if (!plan->size) return;
   if (plan->in) fftwf_free(plan->in);
   if (plan->out) fftwf_free(plan->out);
   if (plan->p) fftwf_destroy_plan(plan->p);
-  bzero(plan, sizeof(dft_plan_t));
+  bzero(plan, sizeof(srslte_dft_plan_t));
 }
 
 

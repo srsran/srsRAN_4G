@@ -65,7 +65,7 @@ void print(cf_t* in, int len)
 int test_dft(cf_t* in){
   int res = 0;
 
-  dft_plan_t plan;
+  srslte_dft_plan_t plan;
   if(forward){
     dft_plan(&plan, N, FORWARD, COMPLEX);
   } else {
@@ -84,7 +84,7 @@ int test_dft(cf_t* in){
   dft_run(&plan, in, out1);
   print(out1, N);
 
-  dft_plan_t plan_rev;
+  srslte_dft_plan_t plan_rev;
   if(!forward){
     dft_plan(&plan_rev, N, FORWARD, COMPLEX);
   } else {

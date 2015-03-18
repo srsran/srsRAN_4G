@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
         llr[j] = symbols[j] ? sqrt(2) : -sqrt(2);
       }
 
-      ch_awgn_f(llr, llr, var[i], coded_length);
+      srslte_ch_awgn_f(llr, llr, var[i], coded_length);
 
       /* decoder */
       tdec_reset(&tdec, frame_length);

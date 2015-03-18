@@ -44,16 +44,16 @@ typedef _Complex float cf_t;
 
 /* PCFICH object */
 typedef struct SRSLTE_API {
-  lte_cell_t cell;
+  srslte_cell_t cell;
   int nof_symbols;
 
   /* handler to REGs resource mapper */
   regs_t *regs;
 
   /* buffers */
-  cf_t ce[MAX_PORTS][PCFICH_RE];
-  cf_t pcfich_symbols[MAX_PORTS][PCFICH_RE];
-  cf_t pcfich_x[MAX_PORTS][PCFICH_RE];
+  cf_t ce[SRSLTE_MAX_PORTS][PCFICH_RE];
+  cf_t pcfich_symbols[SRSLTE_MAX_PORTS][PCFICH_RE];
+  cf_t pcfich_x[SRSLTE_MAX_PORTS][PCFICH_RE];
   cf_t pcfich_d[PCFICH_RE];
   
   // cfi table in floats 
@@ -68,20 +68,20 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   modem_table_t mod;
   demod_soft_t demod;
-  sequence_t seq_pcfich[NSUBFRAMES_X_FRAME];
+  sequence_t seq_pcfich[SRSLTE_NSUBFRAMES_X_FRAME];
   precoding_t precoding; 
 
 } pcfich_t;
 
 SRSLTE_API int pcfich_init(pcfich_t *q, 
                            regs_t *regs, 
-                           lte_cell_t cell);
+                           srslte_cell_t cell);
 
 SRSLTE_API void pcfich_free(pcfich_t *q);
 
 SRSLTE_API int pcfich_decode(pcfich_t *q, 
                              cf_t *sf_symbols, 
-                             cf_t *ce[MAX_PORTS],
+                             cf_t *ce[SRSLTE_MAX_PORTS],
                              float noise_estimate, 
                              uint32_t subframe, 
                              uint32_t *cfi, 
@@ -89,7 +89,7 @@ SRSLTE_API int pcfich_decode(pcfich_t *q,
 
 SRSLTE_API int pcfich_encode(pcfich_t *q, 
                              uint32_t cfi, 
-                             cf_t *sf_symbols[MAX_PORTS],
+                             cf_t *sf_symbols[SRSLTE_MAX_PORTS],
                              uint32_t subframe);
 
 #endif

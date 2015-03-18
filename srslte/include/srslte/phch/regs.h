@@ -57,7 +57,7 @@ typedef struct SRSLTE_API {
 }regs_ch_t;
 
 typedef struct SRSLTE_API {
-  lte_cell_t cell;
+  srslte_cell_t cell;
   uint32_t max_ctrl_symbols;
   uint32_t cfi;
   bool cfi_initiated;
@@ -76,7 +76,7 @@ typedef struct SRSLTE_API {
 }regs_t;
 
 SRSLTE_API int regs_init(regs_t *h,                          
-                         lte_cell_t cell);
+                         srslte_cell_t cell);
 
 SRSLTE_API void regs_free(regs_t *h);
 SRSLTE_API int regs_set_cfi(regs_t *h, 

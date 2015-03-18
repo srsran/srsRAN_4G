@@ -33,7 +33,7 @@
 
 #include "srslte/srslte.h"
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
@@ -112,23 +112,23 @@ int main(int argc, char **argv) {
   ra_pdsch_t ra_dl;
   regs_t regs;
   int i, j;
-  cf_t *ce[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
   int nof_re;
-  cf_t *slot_symbols[MAX_PORTS];
+  cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   int nof_dcis; 
 
   int ret = -1;
 
   parse_args(argc, argv);
 
-  nof_re = CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  nof_re = SRSLTE_CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   if (test_dci_payload_size()) {
     exit(-1);
   }
 
   /* init memory */
-  for (i = 0; i < MAX_PORTS; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -220,7 +220,7 @@ quit:
   pdcch_free(&pdcch);
   regs_free(&regs);
 
-  for (i = 0; i < MAX_PORTS; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     free(ce[i]);
     free(slot_symbols[i]);
   }

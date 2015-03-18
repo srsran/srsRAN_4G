@@ -51,11 +51,11 @@ int ue_cell_search_init_max(ue_cell_search_t * q, uint32_t max_frames,
 
   if (q != NULL) {
     ret = SRSLTE_ERROR;
-    lte_cell_t cell;
+    srslte_cell_t cell;
 
     bzero(q, sizeof(ue_cell_search_t));    
     
-    bzero(&cell, sizeof(lte_cell_t));
+    bzero(&cell, sizeof(srslte_cell_t));
     cell.id = CELL_ID_UNKNOWN; 
     cell.nof_prb = CS_NOF_PRB; 
 

@@ -49,7 +49,7 @@ typedef struct SRSLTE_API {
   uint32_t sf_idx;
   ra_dl_alloc_t dl_alloc;
   ra_ul_alloc_t ul_alloc;
-  lte_cell_t cell;
+  srslte_cell_t cell;
   
   uint32_t nof_re;   // Number of RE per subframe 
   uint32_t nof_bits; // Number of bits per subframe
@@ -66,7 +66,7 @@ typedef struct SRSLTE_API {
 } harq_t;
 
 SRSLTE_API int harq_init(harq_t * q,
-                         lte_cell_t cell);
+                         srslte_cell_t cell);
 
 SRSLTE_API int harq_setup_dl(harq_t *p, 
                              ra_mcs_t mcs,

@@ -33,9 +33,9 @@
 
 #include "srslte/srslte.h"
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   100,            // nof_prb
-  MAX_PORTS,    // nof_ports
+  SRSLTE_MAX_PORTS,    // nof_ports
   1,         // cell_id
   CPNORM        // cyclic prefix
 };
@@ -75,8 +75,8 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  refsignal_ul_t refs;
-  refsignal_drms_pusch_cfg_t pusch_cfg;
+  srslte_refsignal_ul_t refs;
+  srslte_refsignal_drms_pusch_cfg_t pusch_cfg;
   cf_t *signal = NULL;
   int ret = -1;
   
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     goto do_exit;
   }
   
-  if (refsignal_ul_init(&refs, cell)) {
+  if (srslte_refsignal_ul_init(&refs, cell)) {
     fprintf(stderr, "Error initializing UL reference signal\n");
     goto do_exit;
   }
@@ -96,11 +96,11 @@ int main(int argc, char **argv) {
   printf("Running tests for %d PRB\n", cell.nof_prb);
     
   for (int n=6;n<cell.nof_prb;n++) {
-    for (int delta_ss=29;delta_ss<NOF_DELTA_SS;delta_ss++) {
-      for (int cshift=0;cshift<NOF_CSHIFT;cshift++) {
+    for (int delta_ss=29;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
+      for (int cshift=0;cshift<SRSLTE_NOF_CSHIFT;cshift++) {
         for (int h=0;h<3;h++) {
-          for (int sf_idx=0;sf_idx<NSLOTS_X_FRAME;sf_idx++) {
-            for (int cshift_drms=0;cshift_drms<NOF_CSHIFT;cshift_drms++) {
+          for (int sf_idx=0;sf_idx<SRSLTE_NSLOTS_X_FRAME;sf_idx++) {
+            for (int cshift_drms=0;cshift_drms<SRSLTE_NOF_CSHIFT;cshift_drms++) {
               pusch_cfg.beta_pusch = 1.0;
               uint32_t nof_prb = n;
               pusch_cfg.cyclic_shift = cshift;
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
               printf("cyclic_shift_for_drms: %d, ",pusch_cfg.cyclic_shift_for_drms);
               printf("delta_ss: %d, ",pusch_cfg.delta_ss);
               printf("SF_idx: %d\n", sf_idx);
-              refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);              
+              srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);              
               exit(0);
             }
           }
@@ -140,7 +140,7 @@ do_exit:
     free(signal);
   }
 
-  refsignal_ul_free(&refs);
+  srslte_refsignal_ul_free(&refs);
   
   if (!ret) {
     printf("OK\n");

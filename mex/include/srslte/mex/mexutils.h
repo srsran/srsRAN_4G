@@ -45,7 +45,7 @@ typedef _Complex float cf_t;
 SRSLTE_API bool mexutils_isScalar(const mxArray *ptr);
 
 SRSLTE_API int mexutils_read_cell(const mxArray *ptr, 
-                                  lte_cell_t *cell);
+                                  srslte_cell_t *cell);
 
 SRSLTE_API char *mexutils_get_char_struct(const mxArray *ptr, 
                                           const char *field_name); 

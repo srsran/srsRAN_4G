@@ -56,7 +56,7 @@
 #include "srslte/common/fft.h"
 
 
-#define MIB_MAX_PORTS            4
+#define MIB_SRSLTE_MAX_PORTS            4
 #define MIB_NOF_PRB              6
 
 #define MIB_FOUND                1
@@ -66,10 +66,10 @@ typedef struct SRSLTE_API {
   sync_t sfind;
  
   cf_t *sf_symbols;
-  cf_t *ce[MIB_MAX_PORTS];
+  cf_t *ce[MIB_SRSLTE_MAX_PORTS];
   
-  lte_fft_t fft;
-  chest_dl_t chest; 
+  srslte_fft_t fft;
+  srslte_chest_dl_t chest; 
   pbch_t pbch;
   
   uint8_t bch_payload[BCH_PAYLOAD_LEN];
@@ -80,7 +80,7 @@ typedef struct SRSLTE_API {
 } ue_mib_t;
 
 SRSLTE_API int ue_mib_init(ue_mib_t *q, 
-                           lte_cell_t cell);
+                           srslte_cell_t cell);
 
 SRSLTE_API void ue_mib_free(ue_mib_t *q);
 
@@ -103,7 +103,7 @@ typedef struct {
 
 SRSLTE_API int ue_mib_sync_init(ue_mib_sync_t *q, 
                                 uint32_t cell_id, 
-                                lte_cp_t cp,
+                                srslte_cp_t cp,
                                 int (recv_callback)(void*, void*, uint32_t, timestamp_t *),                             
                                 void *stream_handler);
 

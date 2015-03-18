@@ -62,12 +62,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
   int i;
-  lte_cell_t cell; 
-  chest_dl_t chest;
+  srslte_cell_t cell; 
+  srslte_chest_dl_t chest;
   precoding_t cheq; 
   cf_t *input_signal = NULL, *output_signal[MAX_LAYERS]; 
   cf_t *output_signal2 = NULL;
-  cf_t *ce[MAX_PORTS]; 
+  cf_t *ce[SRSLTE_MAX_PORTS]; 
   double *outr0=NULL, *outi0=NULL;
   double *outr1=NULL, *outi1=NULL;
   double *outr2=NULL, *outi2=NULL;
@@ -97,7 +97,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  if (chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell)) {
     mexErrMsgTxt("Error initiating channel estimator\n");
     return;
   }
@@ -135,7 +135,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     filter[i] = (float) f[i];
   }
 
-  chest_dl_set_filter_freq(&chest, filter, filter_len);
+  srslte_chest_dl_set_filter_freq(&chest, filter, filter_len);
 
   filter_len = mxGetNumberOfElements(TIME_FILTER);
   filter = malloc(sizeof(float) * filter_len);
@@ -143,7 +143,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for (i=0;i<filter_len;i++) {
     filter[i] = (float) f[i];
   }
-  chest_dl_set_filter_time(&chest, filter, filter_len);
+  srslte_chest_dl_set_filter_time(&chest, filter, filter_len);
   
 
 
@@ -152,11 +152,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   /** Allocate input buffers */
   int nof_re = 2*CP_NSYMB(cell.cp)*cell.nof_prb*RE_X_RB;
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = vec_malloc(nof_re * sizeof(cf_t));
   }
   input_signal = vec_malloc(nof_re * sizeof(cf_t));
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     output_signal[i] = vec_malloc(nof_re * sizeof(cf_t));
   }
   output_signal2 = vec_malloc(nof_re * sizeof(cf_t));
@@ -170,7 +170,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     outi0 = mxGetPi(plhs[0]);
   }  
   if (nlhs >= 2) {
-    plhs[1] = mxCreateDoubleMatrix(REFSIGNAL_MAX_NUM_SF(cell.nof_prb)*nsubframes, cell.nof_ports, mxCOMPLEX);
+    plhs[1] = mxCreateDoubleMatrix(SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb)*nsubframes, cell.nof_ports, mxCOMPLEX);
     outr1 = mxGetPr(plhs[1]);
     outi1 = mxGetPi(plhs[1]);
   }
@@ -195,15 +195,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       sf_idx = sf%10;
     }
     
-    if (chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
+    if (srslte_chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
       mexErrMsgTxt("Error running channel estimator\n");
       return;
     }    
        
     if (cell.nof_ports == 1) {
-      predecoding_single(&cheq, input_signal, ce[0], output_signal2, nof_re, chest_dl_get_noise_estimate(&chest));            
+      predecoding_single(&cheq, input_signal, ce[0], output_signal2, nof_re, srslte_chest_dl_get_noise_estimate(&chest));            
     } else {
-      predecoding_diversity(&cheq, input_signal, ce, output_signal, cell.nof_ports, nof_re, chest_dl_get_noise_estimate(&chest));
+      predecoding_diversity(&cheq, input_signal, ce, output_signal, cell.nof_ports, nof_re, srslte_chest_dl_get_noise_estimate(&chest));
       layerdemap_diversity(output_signal, output_signal2, cell.nof_ports, nof_re/cell.nof_ports);
     }
     
@@ -221,7 +221,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     if (nlhs >= 2) {    
       for (int j=0;j<cell.nof_ports;j++) {
-        for (i=0;i<REFSIGNAL_NUM_SF(cell.nof_prb,j);i++) {
+        for (i=0;i<SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb,j);i++) {
           *outr1 = (double) crealf(chest.pilot_estimates_average[j][i]);
           if (outi1) {
             *outi1 = (double) cimagf(chest.pilot_estimates_average[j][i]);
@@ -244,16 +244,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 4) {
-    plhs[3] = mxCreateDoubleScalar(chest_dl_get_snr(&chest));
+    plhs[3] = mxCreateDoubleScalar(srslte_chest_dl_get_snr(&chest));
   }
   if (nlhs >= 5) {
-    plhs[4] = mxCreateDoubleScalar(chest_dl_get_noise_estimate(&chest));
+    plhs[4] = mxCreateDoubleScalar(srslte_chest_dl_get_noise_estimate(&chest));
   }
   if (nlhs >= 6) {
-    plhs[5] = mxCreateDoubleScalar(chest_dl_get_rsrp(&chest));
+    plhs[5] = mxCreateDoubleScalar(srslte_chest_dl_get_rsrp(&chest));
   }
   
-  chest_dl_free(&chest);
+  srslte_chest_dl_free(&chest);
   precoding_free(&cheq);
 
   return;

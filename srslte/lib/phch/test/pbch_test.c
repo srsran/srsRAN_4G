@@ -34,7 +34,7 @@
 
 #include "srslte/srslte.h"
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
@@ -79,9 +79,9 @@ int main(int argc, char **argv) {
   pbch_t pbch;
   uint8_t bch_payload_tx[BCH_PAYLOAD_LEN], bch_payload_rx[BCH_PAYLOAD_LEN];
   int i, j;
-  cf_t *ce[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
   int nof_re;
-  cf_t *slot1_symbols[MAX_PORTS];
+  cf_t *slot1_symbols[SRSLTE_MAX_PORTS];
   uint32_t nof_rx_ports; 
 
   parse_args(argc,argv);

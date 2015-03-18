@@ -28,7 +28,7 @@ for prb=4
                             subframe_mat = lteULResourceGrid(ueConfig);
                             subframe_mat(ind)=mat;
                             
-                            subframe_lib=liblte_refsignal_pusch(ueConfig,puschConfig);
+                            subframe_lib=liblte_srslte_refsignal_pusch(ueConfig,puschConfig);
 
                             error(k)=mean(abs(subframe_mat(:)-subframe_lib(:)));
                             disp(error(k))

@@ -162,7 +162,7 @@ int pusch_get(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
 
 
 /** Initializes the PDCCH transmitter and receiver */
-int pusch_init(pusch_t *q, lte_cell_t cell) {
+int pusch_init(pusch_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   int i;
 
@@ -266,7 +266,7 @@ void pusch_free(pusch_t *q) {
 
   precoding_free(&q->equalizer);
   
-  for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
+  for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     sequence_free(&q->seq_pusch[i]);
   }
 
@@ -291,7 +291,7 @@ void pusch_set_hopping_cfg(pusch_t *q, pusch_hopping_cfg_t *cfg)
 int pusch_set_rnti(pusch_t *q, uint16_t rnti) {
   uint32_t i;
 
-  for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
+  for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     if (sequence_pusch(&q->seq_pusch[i], rnti, 2 * i, q->cell.id,
         q->max_re * lte_mod_bits_x_symbol(LTE_QAM64))) {
       return SRSLTE_ERROR; 

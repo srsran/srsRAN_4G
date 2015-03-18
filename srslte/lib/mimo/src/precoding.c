@@ -138,7 +138,7 @@ int predecoding_single(precoding_t *q, cf_t *y, cf_t *h, cf_t *x, int nof_symbol
 
 /* ZF/MMSE STBC equalizer x=y(H'H+n0·I)^(-1)H' (ZF is n0=0.0) 
  */
-int predecoding_diversity(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LAYERS], 
+int predecoding_diversity(precoding_t *q, cf_t *y, cf_t *h[SRSLTE_MAX_PORTS], cf_t *x[MAX_LAYERS], 
                           int nof_ports, int nof_symbols, float noise_estimate) 
 {
   int i;
@@ -240,11 +240,11 @@ int predecoding_diversity(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[M
 }
 
 /* 36.211 v10.3.0 Section 6.3.4 */
-int predecoding_type(precoding_t *q, cf_t *y, cf_t *h[MAX_PORTS], cf_t *x[MAX_LAYERS],
+int predecoding_type(precoding_t *q, cf_t *y, cf_t *h[SRSLTE_MAX_PORTS], cf_t *x[MAX_LAYERS],
     int nof_ports, int nof_layers, int nof_symbols, lte_mimo_type_t type, float noise_estimate) {
 
-  if (nof_ports > MAX_PORTS) {
-    fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", MAX_PORTS,
+  if (nof_ports > SRSLTE_MAX_PORTS) {
+    fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,
         nof_ports);
     return -1;
   }
@@ -295,7 +295,7 @@ int precoding_single(precoding_t *q, cf_t *x, cf_t *y, int nof_symbols) {
   memcpy(y, x, nof_symbols * sizeof(cf_t));
   return nof_symbols;
 }
-int precoding_diversity(precoding_t *q, cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_ports,
+int precoding_diversity(precoding_t *q, cf_t *x[MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_ports,
     int nof_symbols) {
   int i;
   if (nof_ports == 2) {
@@ -341,11 +341,11 @@ int precoding_diversity(precoding_t *q, cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS],
 }
 
 /* 36.211 v10.3.0 Section 6.3.4 */
-int precoding_type(precoding_t *q, cf_t *x[MAX_LAYERS], cf_t *y[MAX_PORTS], int nof_layers,
+int precoding_type(precoding_t *q, cf_t *x[MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers,
     int nof_ports, int nof_symbols, lte_mimo_type_t type) {
 
-  if (nof_ports > MAX_PORTS) {
-    fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", MAX_PORTS,
+  if (nof_ports > SRSLTE_MAX_PORTS) {
+    fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,
         nof_ports);
     return -1;
   }

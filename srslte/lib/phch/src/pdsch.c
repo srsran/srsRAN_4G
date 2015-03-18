@@ -196,7 +196,7 @@ int pdsch_get(pdsch_t *q, cf_t *sf_symbols, cf_t *pdsch_symbols,
 }
 
 /** Initializes the PDCCH transmitter and receiver */
-int pdsch_init(pdsch_t *q, lte_cell_t cell) {
+int pdsch_init(pdsch_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   int i;
 
@@ -287,7 +287,7 @@ void pdsch_free(pdsch_t *q) {
     }
   }
 
-  for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
+  for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     sequence_free(&q->seq_pdsch[i]);
   }
 
@@ -308,7 +308,7 @@ void pdsch_free(pdsch_t *q) {
  */
 int pdsch_set_rnti(pdsch_t *q, uint16_t rnti) {
   uint32_t i;
-  for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
+  for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     if (sequence_pdsch(&q->seq_pdsch[i], rnti, 0, 2 * i, q->cell.id,
         q->max_re * lte_mod_bits_x_symbol(LTE_QAM64))) {
       return SRSLTE_ERROR; 
@@ -319,7 +319,7 @@ int pdsch_set_rnti(pdsch_t *q, uint16_t rnti) {
   return SRSLTE_SUCCESS;
 }
 
-int pdsch_decode(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, uint8_t *data) {
+int pdsch_decode(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate, uint8_t *data) {
   if (q                     != NULL &&
       sf_symbols            != NULL &&
       data                  != NULL && 
@@ -338,7 +338,7 @@ int pdsch_decode(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[MAX_PORTS]
 
 /** Decodes the PDSCH from the received symbols
  */
-int pdsch_decode_rnti(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], 
+int pdsch_decode_rnti(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], 
                       float noise_estimate, uint16_t rnti, uint8_t *data) 
 {
 
@@ -416,7 +416,7 @@ int pdsch_decode_rnti(pdsch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce[MAX_P
   }
 }
 
-int pdsch_encode(pdsch_t *q, harq_t *harq, uint8_t *data, cf_t *sf_symbols[MAX_PORTS]) 
+int pdsch_encode(pdsch_t *q, harq_t *harq, uint8_t *data, cf_t *sf_symbols[SRSLTE_MAX_PORTS]) 
 {
   if (q             != NULL &&
       data          != NULL &&
@@ -435,7 +435,7 @@ int pdsch_encode(pdsch_t *q, harq_t *harq, uint8_t *data, cf_t *sf_symbols[MAX_P
 
 /** Converts the PDSCH data bits to symbols mapped to the slot ready for transmission
  */
-int pdsch_encode_rnti(pdsch_t *q, harq_t *harq, uint8_t *data, uint16_t rnti, cf_t *sf_symbols[MAX_PORTS]) 
+int pdsch_encode_rnti(pdsch_t *q, harq_t *harq, uint8_t *data, uint16_t rnti, cf_t *sf_symbols[SRSLTE_MAX_PORTS]) 
 {
   int i;
   /* Set pointers for layermapping & precoding */

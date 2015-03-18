@@ -37,20 +37,20 @@ typedef _Complex float cf_t;
 
 /************* STATIC LINEAR INTERPOLATION FUNCTIONS */
 
-SRSLTE_API cf_t interp_linear_onesample(cf_t input0, 
+SRSLTE_API cf_t srslte_interp_linear_onesample(cf_t input0, 
                                         cf_t input1); 
 
-SRSLTE_API cf_t interp_linear_onesample_cabs(cf_t input0, 
+SRSLTE_API cf_t srslte_interp_linear_onesample_cabs(cf_t input0, 
                                              cf_t input1); 
 
-SRSLTE_API void interp_linear_offset_cabs(cf_t *input, 
+SRSLTE_API void srslte_interp_linear_offset_cabs(cf_t *input, 
                                           cf_t *output, 
                                           uint32_t M, 
                                           uint32_t len, 
                                           uint32_t off_st, 
                                           uint32_t off_end);
 
-SRSLTE_API void interp_linear_f(float *input, 
+SRSLTE_API void srslte_interp_linear_f(float *input, 
                                 float *output, 
                                 uint32_t M, 
                                 uint32_t len);
@@ -62,14 +62,14 @@ SRSLTE_API void interp_linear_f(float *input,
 typedef struct {
   cf_t *diff_vec; 
   uint32_t vector_len; 
-} interp_linvec_t;
+} srslte_interp_linvec_t;
 
-SRSLTE_API int interp_linear_vector_init(interp_linvec_t *q, 
+SRSLTE_API int srslte_interp_linear_vector_init(srslte_interp_linvec_t *q, 
                                          uint32_t vector_len);
 
-SRSLTE_API void interp_linear_vector_free(interp_linvec_t *q); 
+SRSLTE_API void srslte_interp_linear_vector_free(srslte_interp_linvec_t *q); 
 
-SRSLTE_API void interp_linear_vector(interp_linvec_t *q, 
+SRSLTE_API void srslte_interp_linear_vector(srslte_interp_linvec_t *q, 
                                      cf_t *in0, 
                                      cf_t *in1, 
                                      cf_t *between, 
@@ -85,15 +85,15 @@ typedef struct {
   float *ramp;
   uint32_t vector_len; 
   uint32_t M; 
-} interp_lin_t;
+} srslte_interp_lin_t;
 
-SRSLTE_API int interp_linear_init(interp_lin_t *q, 
+SRSLTE_API int srslte_interp_linear_init(srslte_interp_lin_t *q, 
                                   uint32_t vector_len, 
                                   uint32_t M); 
 
-SRSLTE_API void interp_linear_free(interp_lin_t *q);
+SRSLTE_API void srslte_interp_linear_free(srslte_interp_lin_t *q);
 
-SRSLTE_API void interp_linear_offset(interp_lin_t *q, 
+SRSLTE_API void srslte_interp_linear_offset(srslte_interp_lin_t *q, 
                                      cf_t *input, 
                                      cf_t *output, 
                                      uint32_t off_st, 

@@ -52,14 +52,14 @@ typedef _Complex float cf_t;
 
 /* PBCH object */
 typedef struct SRSLTE_API {
-  lte_cell_t cell;
+  srslte_cell_t cell;
   
   uint32_t nof_symbols;
 
   /* buffers */
-  cf_t *ce[MAX_PORTS];
-  cf_t *pbch_symbols[MAX_PORTS];
-  cf_t *pbch_x[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
+  cf_t *pbch_symbols[SRSLTE_MAX_PORTS];
+  cf_t *pbch_x[SRSLTE_MAX_PORTS];
   cf_t *pbch_d;
   float *pbch_llr;
   float *temp;
@@ -82,12 +82,12 @@ typedef struct SRSLTE_API {
 } pbch_t;
 
 SRSLTE_API int pbch_init(pbch_t *q,
-                         lte_cell_t cell);
+                         srslte_cell_t cell);
 
 SRSLTE_API void pbch_free(pbch_t *q);
 SRSLTE_API int pbch_decode(pbch_t *q, 
                            cf_t *slot1_symbols, 
-                           cf_t *ce_slot1[MAX_PORTS], 
+                           cf_t *ce_slot1[SRSLTE_MAX_PORTS], 
                            float noise_estimate, 
                            uint8_t bch_payload[BCH_PAYLOAD_LEN], 
                            uint32_t *nof_tx_ports,
@@ -95,20 +95,20 @@ SRSLTE_API int pbch_decode(pbch_t *q,
 
 SRSLTE_API int pbch_encode(pbch_t *q, 
                            uint8_t bch_payload[BCH_PAYLOAD_LEN], 
-                           cf_t *slot1_symbols[MAX_PORTS]);
+                           cf_t *slot1_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API void pbch_decode_reset(pbch_t *q);
 
 SRSLTE_API void pbch_mib_unpack(uint8_t *msg, 
-                                lte_cell_t *cell, 
+                                srslte_cell_t *cell, 
                                 uint32_t *sfn);
 
-SRSLTE_API void pbch_mib_pack(lte_cell_t *cell, 
+SRSLTE_API void pbch_mib_pack(srslte_cell_t *cell, 
                               uint32_t sfn, 
                               uint8_t *msg);
 
 SRSLTE_API void pbch_mib_fprint(FILE *stream, 
-                                lte_cell_t *cell, 
+                                srslte_cell_t *cell, 
                                 uint32_t sfn, 
                                 uint32_t cell_id);
 

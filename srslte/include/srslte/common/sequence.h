@@ -48,7 +48,7 @@ SRSLTE_API void sequence_set_LTE_pr(sequence_t *q,
                                     uint32_t seed); 
 
 SRSLTE_API int sequence_pbch(sequence_t *seq, 
-                             lte_cp_t cp, 
+                             srslte_cp_t cp, 
                              uint32_t cell_id);
 
 SRSLTE_API int sequence_pcfich(sequence_t *seq, 

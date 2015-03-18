@@ -37,7 +37,7 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
-int lte_fft_init_(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
+int srslte_fft_init_(srslte_fft_t *q, srslte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
   int symbol_sz = lte_symbol_sz(nof_prb);
 
   if (symbol_sz < 0) {
@@ -72,7 +72,7 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
   return SRSLTE_SUCCESS;
 }
 
-void lte_fft_free_(lte_fft_t *q) {
+void srslte_fft_free_(srslte_fft_t *q) {
   dft_plan_free(&q->fft_plan);
   if (q->tmp) {
     free(q->tmp);
@@ -80,22 +80,22 @@ void lte_fft_free_(lte_fft_t *q) {
   if (q->shift_buffer) {
     free(q->shift_buffer);
   }
-  bzero(q, sizeof(lte_fft_t));
+  bzero(q, sizeof(srslte_fft_t));
 }
 
-int lte_fft_init(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb) {
-  return lte_fft_init_(q, cp, nof_prb, FORWARD);
+int srslte_fft_init(srslte_fft_t *q, srslte_cp_t cp, uint32_t nof_prb) {
+  return srslte_fft_init_(q, cp, nof_prb, FORWARD);
 }
 
-void lte_fft_free(lte_fft_t *q) {
-  lte_fft_free_(q);
+void srslte_fft_free(srslte_fft_t *q) {
+  srslte_fft_free_(q);
 }
 
-int lte_ifft_init(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb) {
+int lte_ifft_init(srslte_fft_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   uint32_t i;
   int ret;
   
-  ret = lte_fft_init_(q, cp, nof_prb, BACKWARD); 
+  ret = srslte_fft_init_(q, cp, nof_prb, BACKWARD); 
   
   if (ret == SRSLTE_SUCCESS) {
     dft_plan_set_norm(&q->fft_plan, true);
@@ -113,7 +113,7 @@ int lte_ifft_init(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb) {
  * Freq_shift is relative to inter-carrier spacing.
  * Caution: This function shall not be called during run-time 
  */
-int lte_fft_set_freq_shift(lte_fft_t *q, float freq_shift) {
+int srslte_fft_set_freq_shift(srslte_fft_t *q, float freq_shift) {
   q->shift_buffer = vec_malloc(sizeof(cf_t) * SF_LEN(q->symbol_sz));
   if (!q->shift_buffer) {
     perror("malloc");
@@ -138,14 +138,14 @@ int lte_fft_set_freq_shift(lte_fft_t *q, float freq_shift) {
   return SRSLTE_SUCCESS;
 }
 
-void lte_ifft_free(lte_fft_t *q) {
-  lte_fft_free_(q);
+void lte_ifft_free(srslte_fft_t *q) {
+  srslte_fft_free_(q);
 }
 
 /* Transforms input samples into output OFDM symbols.
  * Performs FFT on a each symbol and removes CP.
  */
-void lte_fft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output) {
+void srslte_fft_run_slot(srslte_fft_t *q, cf_t *input, cf_t *output) {
   uint32_t i;
   for (i=0;i<q->nof_symbols;i++) {
     input += CP_ISNORM(q->cp)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
@@ -156,20 +156,20 @@ void lte_fft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output) {
   }
 }
 
-void lte_fft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output) {
+void srslte_fft_run_sf(srslte_fft_t *q, cf_t *input, cf_t *output) {
   uint32_t n; 
   if (q->freq_shift) {
     vec_prod_ccc(input, q->shift_buffer, input, 2*q->slot_sz);
   }
   for (n=0;n<2;n++) {
-    lte_fft_run_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
+    srslte_fft_run_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
   }
 }
 
 /* Transforms input OFDM symbols into output samples.
  * Performs FFT on a each symbol and adds CP.
  */
-void lte_ifft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output) {
+void lte_ifft_run_slot(srslte_fft_t *q, cf_t *input, cf_t *output) {
   uint32_t i, cp_len;
   for (i=0;i<q->nof_symbols;i++) {
     cp_len = CP_ISNORM(q->cp)?CP_NORM(i, q->symbol_sz):CP_EXT(q->symbol_sz);
@@ -182,11 +182,11 @@ void lte_ifft_run_slot(lte_fft_t *q, cf_t *input, cf_t *output) {
   }
 }
 
-void lte_fft_set_normalize(lte_fft_t *q, bool normalize_enable) {
+void srslte_fft_set_normalize(srslte_fft_t *q, bool normalize_enable) {
   dft_plan_set_norm(&q->fft_plan, normalize_enable);
 }
 
-void lte_ifft_run_sf(lte_fft_t *q, cf_t *input, cf_t *output) {
+void lte_ifft_run_sf(srslte_fft_t *q, cf_t *input, cf_t *output) {
   uint32_t n; 
   for (n=0;n<2;n++) {
     lte_ifft_run_slot(q, &input[n*q->nof_re*q->nof_symbols], &output[n*q->slot_sz]);

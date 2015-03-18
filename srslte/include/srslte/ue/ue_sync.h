@@ -90,7 +90,7 @@ typedef struct SRSLTE_API {
   /* this is the system frame number (SFN) */
   uint32_t frame_number; 
   
-  lte_cell_t cell; 
+  srslte_cell_t cell; 
   uint32_t sf_idx;
       
   bool decode_sss_on_track; 
@@ -106,7 +106,7 @@ typedef struct SRSLTE_API {
 
 
 SRSLTE_API int ue_sync_init(ue_sync_t *q, 
-                            lte_cell_t cell,
+                            srslte_cell_t cell,
                             int (recv_callback)(void*, void*, uint32_t, timestamp_t*), 
                             void *stream_handler);
 

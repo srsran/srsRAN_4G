@@ -35,7 +35,7 @@
 #include "srslte/srslte.h"
 
 int nof_prb = -1;
-lte_cp_t cp = CPNORM;
+srslte_cp_t cp = CPNORM;
 
 void usage(char *prog) {
   printf("Usage: %s\n", prog);
@@ -62,7 +62,7 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
-  lte_fft_t fft, ifft;
+  srslte_fft_t fft, ifft;
   cf_t *input, *outfft, *outifft;
   float mse;
   int n_prb, max_prb, n_re;
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    if (lte_fft_init(&fft, cp, n_prb)) {
+    if (srslte_fft_init(&fft, cp, n_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       exit(-1);
     }
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
     }
 
     lte_ifft_run_slot(&ifft, input, outfft);
-    lte_fft_run_slot(&fft, outfft, outifft);
+    srslte_fft_run_slot(&fft, outfft, outifft);
 
     /* compute MSE */
 
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    lte_fft_free(&fft);
+    srslte_fft_free(&fft);
     lte_ifft_free(&ifft);
 
     free(input);

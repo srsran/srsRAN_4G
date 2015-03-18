@@ -61,7 +61,7 @@ bool pcfich_exists(int nframe, int nslot) {
 /** Initializes the pcfich channel receiver. 
  * On error, returns -1 and frees the structrure 
  */
-int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
+int pcfich_init(pcfich_t *q, regs_t *regs, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                         != NULL &&
@@ -87,7 +87,7 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
     demod_soft_table_set(&q->demod, &q->mod);
     demod_soft_alg_set(&q->demod, APPROX);
 
-    for (int nsf = 0; nsf < NSUBFRAMES_X_FRAME; nsf++) {
+    for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
       if (sequence_pcfich(&q->seq_pcfich[nsf], 2 * nsf, q->cell.id)) {
         goto clean;
       }
@@ -111,7 +111,7 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
 }
 
 void pcfich_free(pcfich_t *q) {
-  for (int ns = 0; ns < NSUBFRAMES_X_FRAME; ns++) {
+  for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
     sequence_free(&q->seq_pcfich[ns]);
   }
   modem_table_free(&q->mod);
@@ -158,25 +158,25 @@ int pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float noise_estimate,
+int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate,
     uint32_t nsubframe, uint32_t *cfi, float *corr_result) 
 {
 
   /* Set pointers for layermapping & precoding */
   int i;
   cf_t *x[MAX_LAYERS];
-  cf_t *ce_precoding[MAX_PORTS];
+  cf_t *ce_precoding[SRSLTE_MAX_PORTS];
 
   if (q                 != NULL                 && 
       slot_symbols      != NULL                 && 
-      nsubframe         <  NSUBFRAMES_X_FRAME) 
+      nsubframe         <  SRSLTE_NSUBFRAMES_X_FRAME) 
   {
 
     /* number of layers equals number of ports */
-    for (i = 0; i < MAX_PORTS; i++) {
+    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       x[i] = q->pcfich_x[i];
     }
-    for (i = 0; i < MAX_PORTS; i++) {
+    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       ce_precoding[i] = q->ce[i];
     }
 
@@ -228,25 +228,25 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float no
 
 /** Encodes CFI and maps symbols to the slot
  */
-int pcfich_encode(pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[MAX_PORTS],
+int pcfich_encode(pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SRSLTE_MAX_PORTS],
     uint32_t subframe) {
   int i;
 
   if (q                 != NULL                 && 
       cfi               <  3                    &&
       slot_symbols      != NULL                 && 
-      subframe         <  NSUBFRAMES_X_FRAME) 
+      subframe         <  SRSLTE_NSUBFRAMES_X_FRAME) 
   {
 
     /* Set pointers for layermapping & precoding */
     cf_t *x[MAX_LAYERS];
-    cf_t *symbols_precoding[MAX_PORTS];
+    cf_t *symbols_precoding[SRSLTE_MAX_PORTS];
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {
       x[i] = q->pcfich_x[i];
     }
-    for (i = 0; i < MAX_PORTS; i++) {
+    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       symbols_precoding[i] = q->pcfich_symbols[i];
     }
 

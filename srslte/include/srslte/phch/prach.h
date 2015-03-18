@@ -75,12 +75,12 @@ typedef struct SRSLTE_API {
   float *corr;
 
   // PRACH IFFT
-  dft_plan_t *fft;
-  dft_plan_t *ifft;
+  srslte_dft_plan_t *fft;
+  srslte_dft_plan_t *ifft;
 
   // ZC-sequence FFT and IFFT
-  dft_plan_t *zc_fft;
-  dft_plan_t *zc_ifft;
+  srslte_dft_plan_t *zc_fft;
+  srslte_dft_plan_t *zc_ifft;
 
 
 }prach_t;

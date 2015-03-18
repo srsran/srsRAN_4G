@@ -239,7 +239,7 @@ int uci_encode_cqi_pusch(uci_cqi_pusch_t *q, uint8_t *cqi_data, uint32_t cqi_len
 
 /* Inserts UCI-ACK bits into the correct positions in the g buffer before interleaving */
 static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bit_idx, 
-                          uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, lte_cp_t cp,
+                          uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_cp_t cp,
                           uint8_t *q_bits) {
 
   const uint32_t ack_column_set_norm[4] = {2, 3, 8, 9};
@@ -263,7 +263,7 @@ static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bi
 
 /* Inserts UCI-RI bits into the correct positions in the g buffer before interleaving */
 static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_idx, 
-                          uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, lte_cp_t cp,
+                          uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_cp_t cp,
                           uint8_t *q_bits) {
   
   static uint32_t ri_column_set_norm[4]  = {1, 4, 7, 10};

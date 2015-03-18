@@ -53,15 +53,15 @@ uint32_t phich_ngroups(phich_t *q) {
   return regs_phich_ngroups(q->regs);
 }
 
-void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS]) {
+void phich_reset(phich_t *q, cf_t *slot_symbols[SRSLTE_MAX_PORTS]) {
   int i;
-  for (i = 0; i < MAX_PORTS; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     regs_phich_reset(q->regs, slot_symbols[i]);
   }
 }
 
 /** Initializes the phich channel receiver */
-int phich_init(phich_t *q, regs_t *regs, lte_cell_t cell) {
+int phich_init(phich_t *q, regs_t *regs, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q         != NULL &&
@@ -86,7 +86,7 @@ int phich_init(phich_t *q, regs_t *regs, lte_cell_t cell) {
     demod_hard_init(&q->demod);
     demod_hard_table_set(&q->demod, LTE_BPSK);
 
-    for (int nsf = 0; nsf < NSUBFRAMES_X_FRAME; nsf++) {
+    for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
       if (sequence_phich(&q->seq_phich[nsf], 2 * nsf, q->cell.id)) {
         goto clean;
       }
@@ -101,7 +101,7 @@ int phich_init(phich_t *q, regs_t *regs, lte_cell_t cell) {
 }
 
 void phich_free(phich_t *q) {
-  for (int ns = 0; ns < NSUBFRAMES_X_FRAME; ns++) {
+  for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
     sequence_free(&q->seq_phich[ns]);
   }
   modem_table_free(&q->mod);
@@ -146,19 +146,19 @@ void phich_ack_encode(uint8_t ack, uint8_t bits[PHICH_NBITS]) {
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float noise_estimate,
+int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate,
     uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, uint32_t *distance) {
 
   /* Set pointers for layermapping & precoding */
   int i, j;
   cf_t *x[MAX_LAYERS];
-  cf_t *ce_precoding[MAX_PORTS];
+  cf_t *ce_precoding[SRSLTE_MAX_PORTS];
   
   if (q == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (subframe >= NSUBFRAMES_X_FRAME) {
+  if (subframe >= SRSLTE_NSUBFRAMES_X_FRAME) {
     fprintf(stderr, "Invalid nslot %d\n", subframe);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -182,10 +182,10 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float nois
   DEBUG("Decoding PHICH Ngroup: %d, Nseq: %d\n", ngroup, nseq);
 
   /* number of layers equals number of ports */
-  for (i = 0; i < MAX_PORTS; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     x[i] = q->phich_x[i];
   }
-  for (i = 0; i < MAX_PORTS; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     ce_precoding[i] = q->ce[i];
   }
 
@@ -278,14 +278,14 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float nois
  * The parameter ack is an array of phich_ngroups() pointers to buffers of nof_sequences uint8_ts
  */
 int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32_t subframe,
-    cf_t *slot_symbols[MAX_PORTS]) {
+    cf_t *slot_symbols[SRSLTE_MAX_PORTS]) {
   int i;
 
   if (q == NULL || slot_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  if (subframe >= NSUBFRAMES_X_FRAME) {
+  if (subframe >= SRSLTE_NSUBFRAMES_X_FRAME) {
     fprintf(stderr, "Invalid nslot %d\n", subframe);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -309,13 +309,13 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
 
   /* Set pointers for layermapping & precoding */
   cf_t *x[MAX_LAYERS];
-  cf_t *symbols_precoding[MAX_PORTS];
+  cf_t *symbols_precoding[SRSLTE_MAX_PORTS];
 
   /* number of layers equals number of ports */
   for (i = 0; i < q->cell.nof_ports; i++) {
     x[i] = q->phich_x[i];
   }
-  for (i = 0; i < MAX_PORTS; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     symbols_precoding[i] = q->phich_symbols[i];
   }
 

@@ -45,70 +45,70 @@
  * 
  * The equalizer uses the channel estimates to produce an estimation of the transmitted symbol. 
  * 
- * This object depends on the refsignal_t object for creating the LTE CSR signal.  
+ * This object depends on the srslte_refsignal_t object for creating the LTE CSR signal.  
 */
 
-#define CHEST_MAX_FILTER_FREQ_LEN    10
-#define CHEST_MAX_FILTER_TIME_LEN    4
+#define SRSLTE_CHEST_MAX_FILTER_FREQ_LEN    10
+#define SRSLTE_CHEST_MAX_FILTER_TIME_LEN    4
 
 typedef struct {
-  lte_cell_t cell; 
-  refsignal_cs_t csr_signal;
-  cf_t *pilot_estimates[MAX_PORTS];
-  cf_t *pilot_estimates_average[MAX_PORTS];
-  cf_t *pilot_recv_signal[MAX_PORTS];
+  srslte_cell_t cell; 
+  srslte_refsignal_cs_t csr_signal;
+  cf_t *pilot_estimates[SRSLTE_MAX_PORTS];
+  cf_t *pilot_estimates_average[SRSLTE_MAX_PORTS];
+  cf_t *pilot_recv_signal[SRSLTE_MAX_PORTS];
  
   uint32_t filter_freq_len;
-  float filter_freq[CHEST_MAX_FILTER_FREQ_LEN];
+  float filter_freq[SRSLTE_CHEST_MAX_FILTER_FREQ_LEN];
   uint32_t filter_time_len;
-  float filter_time[CHEST_MAX_FILTER_TIME_LEN];
+  float filter_time[SRSLTE_CHEST_MAX_FILTER_TIME_LEN];
   
   cf_t *tmp_noise; 
   cf_t *tmp_freqavg;
-  cf_t *tmp_timeavg[CHEST_MAX_FILTER_TIME_LEN];
+  cf_t *tmp_timeavg[SRSLTE_CHEST_MAX_FILTER_TIME_LEN];
   cf_t *tmp_timeavg_mult; 
 
-  interp_linvec_t interp_linvec; 
-  interp_lin_t interp_lin; 
+  srslte_interp_linvec_t srslte_interp_linvec; 
+  srslte_interp_lin_t srslte_interp_lin; 
   
-  float rssi[MAX_PORTS]; 
-  float rsrp[MAX_PORTS]; 
-  float noise_estimate[MAX_PORTS];
-} chest_dl_t;
+  float rssi[SRSLTE_MAX_PORTS]; 
+  float rsrp[SRSLTE_MAX_PORTS]; 
+  float noise_estimate[SRSLTE_MAX_PORTS];
+} srslte_chest_dl_t;
 
 
-SRSLTE_API int chest_dl_init(chest_dl_t *q, 
-                             lte_cell_t cell);
+SRSLTE_API int srslte_chest_dl_init(srslte_chest_dl_t *q, 
+                                    srslte_cell_t cell);
 
-SRSLTE_API void chest_dl_free(chest_dl_t *q); 
+SRSLTE_API void srslte_chest_dl_free(srslte_chest_dl_t *q); 
 
-SRSLTE_API int chest_dl_set_filter_freq(chest_dl_t *q, 
-                                        float *filter, 
-                                        uint32_t filter_len);
+SRSLTE_API int srslte_chest_dl_set_filter_freq(srslte_chest_dl_t *q, 
+                                               float *filter, 
+                                               uint32_t filter_len);
 
-SRSLTE_API int chest_dl_set_filter_time(chest_dl_t *q, 
-                                        float *filter, 
-                                        uint32_t filter_len);
+SRSLTE_API int srslte_chest_dl_set_filter_time(srslte_chest_dl_t *q, 
+                                               float *filter, 
+                                               uint32_t filter_len);
 
-SRSLTE_API int chest_dl_estimate(chest_dl_t *q, 
-                                 cf_t *input,
-                                 cf_t *ce[MAX_PORTS],
-                                 uint32_t sf_idx);
+SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
+                                        cf_t *input,
+                                        cf_t *ce[SRSLTE_MAX_PORTS],
+                                        uint32_t sf_idx);
 
-SRSLTE_API int chest_dl_estimate_port(chest_dl_t *q, 
-                                      cf_t *input,
-                                      cf_t *ce,
-                                      uint32_t sf_idx, 
-                                      uint32_t port_id);
+SRSLTE_API int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, 
+                                             cf_t *input,
+                                             cf_t *ce,
+                                             uint32_t sf_idx, 
+                                             uint32_t port_id);
 
-SRSLTE_API float chest_dl_get_snr(chest_dl_t *q); 
+SRSLTE_API float srslte_chest_dl_get_snr(srslte_chest_dl_t *q); 
 
-SRSLTE_API float chest_dl_get_noise_estimate(chest_dl_t *q); 
+SRSLTE_API float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q); 
 
-SRSLTE_API float chest_dl_get_rssi(chest_dl_t *q);
+SRSLTE_API float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q);
 
-SRSLTE_API float chest_dl_get_rsrq(chest_dl_t *q);
+SRSLTE_API float srslte_chest_dl_get_rsrq(srslte_chest_dl_t *q);
 
-SRSLTE_API float chest_dl_get_rsrp(chest_dl_t *q);
+SRSLTE_API float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q);
 
 #endif

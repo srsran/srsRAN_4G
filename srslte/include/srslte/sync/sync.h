@@ -71,7 +71,7 @@ typedef struct SRSLTE_API {
   bool detect_cp;
   bool sss_en;
   bool correct_cfo; 
-  lte_cp_t cp;
+  srslte_cp_t cp;
   uint32_t m0;
   uint32_t m1;
   float m0_value;
@@ -97,7 +97,7 @@ SRSLTE_API int sync_find(sync_t *q,
                          uint32_t *peak_position);
 
 /* Estimates the CP length */
-SRSLTE_API lte_cp_t sync_detect_cp(sync_t *q, 
+SRSLTE_API srslte_cp_t sync_detect_cp(sync_t *q, 
                                    cf_t *input, 
                                    uint32_t peak_pos);
 
@@ -133,10 +133,10 @@ SRSLTE_API int sync_get_cell_id(sync_t *q);
 SRSLTE_API float sync_get_cfo(sync_t *q);
 
 /* Gets the CP length estimation from the last call to synch_run() */
-SRSLTE_API lte_cp_t sync_get_cp(sync_t *q);
+SRSLTE_API srslte_cp_t sync_get_cp(sync_t *q);
 
 /* Sets the CP length estimation (must do it if disabled) */
-SRSLTE_API void sync_set_cp(sync_t *q, lte_cp_t cp);
+SRSLTE_API void sync_set_cp(sync_t *q, srslte_cp_t cp);
 
 /* Enables/Disables SSS detection  */
 SRSLTE_API void sync_sss_en(sync_t *q, 

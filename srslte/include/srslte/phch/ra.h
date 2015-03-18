@@ -79,7 +79,7 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   ra_prb_slot_t slot[2];
   uint32_t lstart;
-  uint32_t re_sf[NSUBFRAMES_X_FRAME];
+  uint32_t re_sf[SRSLTE_NSUBFRAMES_X_FRAME];
 } ra_dl_alloc_t;
 
 typedef struct SRSLTE_API {
@@ -146,7 +146,7 @@ SRSLTE_API void ra_dl_alloc_re(ra_dl_alloc_t *prb_dist,
                                uint32_t nof_prb, 
                                uint32_t nof_ports,
                                uint32_t nof_ctrl_symbols, 
-                               lte_cp_t cp);
+                               srslte_cp_t cp);
 
 SRSLTE_API uint32_t ra_nprb_dl(ra_pdsch_t *ra, 
                                uint32_t nof_prb);

@@ -81,7 +81,7 @@ clean_exit:
 }
 
 int ue_sync_init(ue_sync_t *q, 
-                 lte_cell_t cell,
+                 srslte_cell_t cell,
                  int (recv_callback)(void*, void*, uint32_t,timestamp_t*),
                  void *stream_handler) 
 {

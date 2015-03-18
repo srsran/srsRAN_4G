@@ -291,7 +291,7 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
 
 int main(int argc, char **argv) {
   int ret; 
-  lte_cell_t cell;  
+  srslte_cell_t cell;  
   int64_t sf_cnt;
   ue_mib_t ue_mib; 
   void *uhd; 
@@ -395,8 +395,8 @@ int main(int argc, char **argv) {
   
   pusch_hopping_cfg_t hop_cfg; 
   bzero(&hop_cfg, sizeof(pusch_hopping_cfg_t));
-  refsignal_drms_pusch_cfg_t drms_cfg; 
-  bzero(&drms_cfg, sizeof(refsignal_drms_pusch_cfg_t));  
+  srslte_refsignal_drms_pusch_cfg_t drms_cfg; 
+  bzero(&drms_cfg, sizeof(srslte_refsignal_drms_pusch_cfg_t));  
   drms_cfg.beta_pusch = 1.0; 
   drms_cfg.group_hopping_en = false; 
   drms_cfg.sequence_hopping_en = false; 
@@ -460,10 +460,10 @@ int main(int argc, char **argv) {
     
       if (state != RECV_RAR) {
         /* Run FFT for all subframe data */
-        lte_fft_run_sf(&ue_dl.fft, sf_buffer, ue_dl.sf_symbols);
+        srslte_fft_run_sf(&ue_dl.fft, sf_buffer, ue_dl.sf_symbols);
 
         /* Get channel estimates for each port */
-        chest_dl_estimate(&ue_dl.chest, ue_dl.sf_symbols, ue_dl.ce, ue_sync_get_sfidx(&ue_sync));        
+        srslte_chest_dl_estimate(&ue_dl.chest, ue_dl.sf_symbols, ue_dl.ce, ue_sync_get_sfidx(&ue_sync));        
       }
         
       if (sf_cnt > 1000) {

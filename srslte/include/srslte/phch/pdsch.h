@@ -47,7 +47,7 @@ typedef _Complex float cf_t;
 
 /* PDSCH object */
 typedef struct SRSLTE_API {
-  lte_cell_t cell;
+  srslte_cell_t cell;
   
   uint32_t max_re;
   bool rnti_is_set; 
@@ -55,16 +55,16 @@ typedef struct SRSLTE_API {
   
   /* buffers */
   // void buffers are shared for tx and rx
-  cf_t *ce[MAX_PORTS];
-  cf_t *pdsch_symbols[MAX_PORTS];
-  cf_t *pdsch_x[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
+  cf_t *pdsch_symbols[SRSLTE_MAX_PORTS];
+  cf_t *pdsch_x[SRSLTE_MAX_PORTS];
   cf_t *pdsch_d;
   void *pdsch_e;
 
   /* tx & rx objects */
   modem_table_t mod[4];
   demod_soft_t demod;
-  sequence_t seq_pdsch[NSUBFRAMES_X_FRAME];
+  sequence_t seq_pdsch[SRSLTE_NSUBFRAMES_X_FRAME];
   precoding_t precoding; 
 
   sch_t dl_sch;
@@ -72,7 +72,7 @@ typedef struct SRSLTE_API {
 }pdsch_t;
 
 SRSLTE_API int pdsch_init(pdsch_t *q, 
-                          lte_cell_t cell);
+                          srslte_cell_t cell);
 
 SRSLTE_API void pdsch_free(pdsch_t *q);
 
@@ -82,25 +82,25 @@ SRSLTE_API int pdsch_set_rnti(pdsch_t *q,
 SRSLTE_API int pdsch_encode(pdsch_t *q,
                             harq_t *harq_process,
                             uint8_t *data, 
-                            cf_t *sf_symbols[MAX_PORTS]);
+                            cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API int pdsch_encode_rnti(pdsch_t *q,
                                  harq_t *harq_process,
                                  uint8_t *data, 
                                  uint16_t rnti,
-                                 cf_t *sf_symbols[MAX_PORTS]);
+                                 cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API int pdsch_decode(pdsch_t *q, 
                             harq_t *harq_process, 
                             cf_t *sf_symbols, 
-                            cf_t *ce[MAX_PORTS],
+                            cf_t *ce[SRSLTE_MAX_PORTS],
                             float noise_estimate, 
                             uint8_t *data);
 
 SRSLTE_API int pdsch_decode_rnti(pdsch_t *q, 
                                  harq_t *harq_process, 
                                  cf_t *sf_symbols, 
-                                 cf_t *ce[MAX_PORTS],
+                                 cf_t *ce[SRSLTE_MAX_PORTS],
                                  float noise_estimate, 
                                  uint16_t rnti,
                                  uint8_t *data);

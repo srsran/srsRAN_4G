@@ -59,7 +59,7 @@ typedef struct {
 
 /* PUSCH object */
 typedef struct SRSLTE_API {
-  lte_cell_t cell;
+  srslte_cell_t cell;
 
   pusch_hopping_cfg_t hopping_cfg;
   
@@ -83,7 +83,7 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   modem_table_t mod[4];
   demod_soft_t demod;
-  sequence_t seq_pusch[NSUBFRAMES_X_FRAME];
+  sequence_t seq_pusch[SRSLTE_NSUBFRAMES_X_FRAME];
   sequence_t seq_type2_fo; 
   
   sch_t dl_sch;
@@ -92,7 +92,7 @@ typedef struct SRSLTE_API {
 
 
 SRSLTE_API int pusch_init(pusch_t *q, 
-                          lte_cell_t cell);
+                          srslte_cell_t cell);
 
 SRSLTE_API void pusch_free(pusch_t *q);
 

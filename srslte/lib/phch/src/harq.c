@@ -93,14 +93,14 @@ int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
   return ret;
 }
 
-int harq_init(harq_t *q, lte_cell_t cell) {
+int harq_init(harq_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL) {    
     uint32_t i;
     bzero(q, sizeof(harq_t));
     
-    memcpy(&q->cell, &cell, sizeof(lte_cell_t));
+    memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
     
     ret = ra_tbs_from_idx(26, cell.nof_prb);
     if (ret != SRSLTE_ERROR) {

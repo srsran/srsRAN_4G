@@ -63,7 +63,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error initiating ULSCH\n");
     return;
   }
-  lte_cell_t cell;
+  srslte_cell_t cell;
   cell.nof_prb = 100;
   cell.id=1;
   cell.cp=CPNORM;

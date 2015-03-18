@@ -36,16 +36,16 @@ typedef struct SRSLTE_API {
 
 int cuhd_mib_decoder(void *uhd, 
                      uint32_t max_nof_frames, 
-                     lte_cell_t *cell);
+                     srslte_cell_t *cell);
 
 int cuhd_cell_search(void *uhd, 
                      cell_search_cfg_t *config, 
                      int force_N_id_2, 
-                     lte_cell_t *cell);
+                     srslte_cell_t *cell);
 
 int cuhd_search_and_decode_mib(void *uhd, 
                                cell_search_cfg_t *config, 
                                int force_N_id_2, 
-                               lte_cell_t *cell);
+                               srslte_cell_t *cell);
 
 

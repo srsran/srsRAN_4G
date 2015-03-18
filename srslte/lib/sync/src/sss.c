@@ -109,7 +109,7 @@ int sss_synch_set_N_id_2(sss_synch_t *q, uint32_t N_id_2) {
 
 /** 36.211 10.3 section 6.11.2.2
  */
-void sss_put_slot(float *sss, cf_t *slot, uint32_t nof_prb, lte_cp_t cp) {
+void sss_put_slot(float *sss, cf_t *slot, uint32_t nof_prb, srslte_cp_t cp) {
   uint32_t i, k;
 
   k = (CP_NSYMB(cp) - 2) * nof_prb * RE_X_RB + nof_prb * RE_X_RB / 2 - 31;

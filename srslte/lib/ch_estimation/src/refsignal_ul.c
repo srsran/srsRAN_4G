@@ -64,19 +64,19 @@ uint32_t pucch_symbol_format2_cpnorm[2] = {1, 5};
 uint32_t pucch_symbol_format2_cpext[1] = {3};
 
 /** Computes n_prs values used to compute alpha as defined in 5.5.2.1.1 of 36.211 */
-static int generate_n_prs(refsignal_ul_t * q) {
+static int generate_n_prs(srslte_refsignal_ul_t * q) {
   /* Calculate n_prs */
   uint32_t c_init; 
   
   sequence_t seq; 
   bzero(&seq, sizeof(sequence_t));
     
-  for (uint32_t delta_ss=0;delta_ss<NOF_DELTA_SS;delta_ss++) {
+  for (uint32_t delta_ss=0;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
     c_init = ((q->cell.id / 30) << 5) + (((q->cell.id % 30) + delta_ss) % 30);
     if (sequence_LTE_pr(&seq, 8 * CP_NSYMB(q->cell.cp) * 20, c_init)) {
       return SRSLTE_ERROR;
     }
-    for (uint32_t ns=0;ns<NSLOTS_X_FRAME;ns++) {  
+    for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {  
       uint32_t n_prs = 0;
       for (int i = 0; i < 8; i++) {
         n_prs += (seq.c[8 * CP_NSYMB(q->cell.cp) * ns + i] << i);
@@ -90,7 +90,7 @@ static int generate_n_prs(refsignal_ul_t * q) {
 }
 
 /** Computes sequence-group pattern f_gh according to 5.5.1.3 of 36.211 */
-static int generate_group_hopping_f_gh(refsignal_ul_t *q) {
+static int generate_group_hopping_f_gh(srslte_refsignal_ul_t *q) {
   sequence_t seq; 
   bzero(&seq, sizeof(sequence_t));
   
@@ -98,7 +98,7 @@ static int generate_group_hopping_f_gh(refsignal_ul_t *q) {
     return SRSLTE_ERROR;
   }
   
-  for (uint32_t ns=0;ns<NSLOTS_X_FRAME;ns++) {
+  for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {
     uint32_t f_gh = 0;
     for (int i = 0; i < 8; i++) {
       f_gh += (((uint32_t) seq.c[8 * ns + i]) << i);
@@ -110,12 +110,12 @@ static int generate_group_hopping_f_gh(refsignal_ul_t *q) {
   return SRSLTE_SUCCESS;
 }
 
-static int generate_sequence_hopping_v(refsignal_ul_t *q) {
+static int generate_sequence_hopping_v(srslte_refsignal_ul_t *q) {
   sequence_t seq; 
   bzero(&seq, sizeof(sequence_t));
   
-  for (uint32_t ns=0;ns<NSLOTS_X_FRAME;ns++) {
-    for (uint32_t delta_ss=0;delta_ss<NOF_DELTA_SS;delta_ss++) {
+  for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {
+    for (uint32_t delta_ss=0;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
       if (sequence_LTE_pr(&seq, 20, ((q->cell.id / 30) << 5) + ((q->cell.id%30)+delta_ss)%30)) {
         return SRSLTE_ERROR;
       }
@@ -127,17 +127,17 @@ static int generate_sequence_hopping_v(refsignal_ul_t *q) {
 }
 
 
-/** Initializes refsignal_ul_t object according to 3GPP 36.211 5.5
+/** Initializes srslte_refsignal_ul_t object according to 3GPP 36.211 5.5
  *
  */
-int refsignal_ul_init(refsignal_ul_t * q, lte_cell_t cell)
+int srslte_refsignal_ul_init(srslte_refsignal_ul_t * q, srslte_cell_t cell)
 {
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && lte_cell_isvalid(&cell)) {
 
-    bzero(q, sizeof(refsignal_ul_t));
+    bzero(q, sizeof(srslte_refsignal_ul_t));
     q->cell = cell; 
     
     // Allocate temporal buffer for computing signal argument
@@ -170,16 +170,16 @@ int refsignal_ul_init(refsignal_ul_t * q, lte_cell_t cell)
   }
 free_and_exit:
   if (ret == SRSLTE_ERROR) {
-    refsignal_ul_free(q);
+    srslte_refsignal_ul_free(q);
   }
   return ret;
 }
 
-void refsignal_ul_free(refsignal_ul_t * q) {
+void srslte_refsignal_ul_free(srslte_refsignal_ul_t * q) {
   if (q->tmp_arg) {
     free(q->tmp_arg);
   }
-  bzero(q, sizeof(refsignal_ul_t));
+  bzero(q, sizeof(srslte_refsignal_ul_t));
 }
 
 
@@ -232,7 +232,7 @@ static void arg_r_uv_mprb(float *arg, uint32_t M_sc, uint32_t u, uint32_t v) {
 }
 
 /* Computes argument of r_u_v signal */
-static void compute_pusch_r_uv_arg(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t u, uint32_t v) {
+static void compute_pusch_r_uv_arg(srslte_refsignal_ul_t *q, srslte_refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t u, uint32_t v) {
   if (nof_prb == 1) {
     arg_r_uv_1prb(q->tmp_arg, u);
   } else if (nof_prb == 2) {
@@ -243,7 +243,7 @@ static void compute_pusch_r_uv_arg(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t
 }
 
 /* Calculates alpha according to 5.5.2.1.1 of 36.211 */
-static float pusch_get_alpha(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t ns) {
+static float pusch_get_alpha(srslte_refsignal_ul_t *q, srslte_refsignal_drms_pusch_cfg_t *cfg, uint32_t ns) {
   uint32_t n_drms_2_val = 0; 
   if (cfg->en_drms_2) {
     n_drms_2_val = n_drms_2[cfg->cyclic_shift_for_drms];
@@ -254,10 +254,10 @@ static float pusch_get_alpha(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg,
 
 }
 
-bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb) {
-  if (cfg->cyclic_shift          < NOF_CSHIFT   && 
-      cfg->cyclic_shift_for_drms < NOF_CSHIFT   &&
-      cfg->delta_ss              < NOF_DELTA_SS &&
+bool srslte_refsignal_drms_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, srslte_refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb) {
+  if (cfg->cyclic_shift          < SRSLTE_NOF_CSHIFT   && 
+      cfg->cyclic_shift_for_drms < SRSLTE_NOF_CSHIFT   &&
+      cfg->delta_ss              < SRSLTE_NOF_DELTA_SS &&
       nof_prb                    < q->cell.nof_prb) {
     return true; 
   } else {
@@ -265,7 +265,7 @@ bool refsignal_drms_pusch_cfg_isvalid(refsignal_ul_t *q, refsignal_drms_pusch_cf
   }
 }
 
-void refsignal_drms_pusch_put(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, 
+void srslte_refsignal_drms_pusch_put(srslte_refsignal_ul_t *q, srslte_refsignal_drms_pusch_cfg_t *cfg, 
                               cf_t *r_pusch, 
                               uint32_t nof_prb, 
                               uint32_t n_prb[2], 
@@ -280,11 +280,11 @@ void refsignal_drms_pusch_put(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg
 }
 
 /* Generate DRMS for PUSCH signal according to 5.5.2.1 of 36.211 */
-int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t sf_idx, cf_t *r_pusch) 
+int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, srslte_refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t sf_idx, cf_t *r_pusch) 
 {
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (refsignal_drms_pusch_cfg_isvalid(q, cfg, nof_prb)) {
+  if (srslte_refsignal_drms_pusch_cfg_isvalid(q, cfg, nof_prb)) {
     ret = SRSLTE_ERROR;
     
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
@@ -324,7 +324,7 @@ int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg,
   return ret; 
 }
 
-int refsignal_dmrs_pucch_gen(refsignal_ul_t *q, pucch_cfg_t *cfg, uint32_t sf_idx, uint32_t n_rb, cf_t *r_pucch) 
+int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, pucch_cfg_t *cfg, uint32_t sf_idx, uint32_t n_rb, cf_t *r_pucch) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (pucch_cfg_isvalid(cfg)) {
@@ -411,7 +411,7 @@ int refsignal_dmrs_pucch_gen(refsignal_ul_t *q, pucch_cfg_t *cfg, uint32_t sf_id
   return ret;   
 }
 
-void refsignal_srs_gen(refsignal_ul_t *q, refsignal_srs_cfg_t *cfg, uint32_t ns, cf_t *r_srs) 
+void srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, srslte_refsignal_srs_cfg_t *cfg, uint32_t ns, cf_t *r_srs) 
 {
   
 }

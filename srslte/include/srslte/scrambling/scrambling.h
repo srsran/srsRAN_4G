@@ -77,7 +77,7 @@ SRSLTE_API void scrambling_c_offset(sequence_t *s,
 #define SCRAMBLING_PUCCH      5
 
 typedef struct SRSLTE_API {
-  sequence_t seq[NSUBFRAMES_X_FRAME];
+  sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
 }scrambling_t;
 
 typedef struct SRSLTE_API {

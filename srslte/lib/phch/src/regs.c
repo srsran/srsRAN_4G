@@ -566,7 +566,7 @@ regs_reg_t *regs_find_reg(regs_t *h, uint32_t k, uint32_t l) {
  * Returns the number of REGs in a PRB
  * 36.211 Section 6.2.4
  */
-int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, lte_cp_t cp) {
+int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, srslte_cp_t cp) {
 
   switch (symbol) {
   case 0:
@@ -680,7 +680,7 @@ int regs_set_cfi(regs_t *h, uint32_t cfi) {
  * Sets all REG indices and initializes PCFICH, PHICH and PDCCH REGs
  * Returns 0 if OK, -1 on error
  */
-int regs_init(regs_t *h, lte_cell_t cell) {
+int regs_init(regs_t *h, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i, k;
   uint32_t j[4], jmax, prb;

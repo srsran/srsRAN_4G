@@ -134,14 +134,14 @@ int main(int argc, char **argv) {
   int ret; 
   cf_t *sf_buffer; 
   prog_args_t prog_args; 
-  lte_cell_t cell;  
+  srslte_cell_t cell;  
   int64_t sf_cnt;
   ue_sync_t ue_sync; 
   ue_mib_t ue_mib; 
   void *uhd; 
   ue_dl_t ue_dl; 
-  lte_fft_t fft; 
-  chest_dl_t chest; 
+  srslte_fft_t fft; 
+  srslte_chest_dl_t chest; 
   uint32_t nframes=0;
   uint32_t nof_trials = 0; 
   uint32_t sfn = 0; // system frame number
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
   float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
-  cf_t *ce[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
 
   if (parse_args(&prog_args, argc, argv)) {
     exit(-1);
@@ -209,11 +209,11 @@ int main(int argc, char **argv) {
   /* Initialize subframe counter */
   sf_cnt = 0;
     
-  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initiating FFT\n");
     return -1;
   }
-  if (chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initiating channel estimator\n");
     return -1;
   }
@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
 
   cf_t *sf_symbols = vec_malloc(sf_re * sizeof(cf_t));
 
-  for (int i=0;i<MAX_PORTS;i++) {
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = vec_malloc(sizeof(cf_t) * sf_re);
   }
   
@@ -289,15 +289,15 @@ int main(int argc, char **argv) {
         
         if (ue_sync_get_sfidx(&ue_sync) == 5) {
           /* Run FFT for all subframe data */
-          lte_fft_run_sf(&fft, sf_buffer, sf_symbols);
+          srslte_fft_run_sf(&fft, sf_buffer, sf_symbols);
           
-          chest_dl_estimate(&chest, sf_symbols, ce, ue_sync_get_sfidx(&ue_sync));
+          srslte_chest_dl_estimate(&chest, sf_symbols, ce, ue_sync_get_sfidx(&ue_sync));
                   
           rssi = VEC_CMA(vec_avg_power_cf(sf_buffer,SF_LEN(lte_symbol_sz(cell.nof_prb))),rssi,nframes);
-          rssi_utra = VEC_CMA(chest_dl_get_rssi(&chest),rssi_utra,nframes);
-          rsrq = VEC_EMA(chest_dl_get_rsrq(&chest),rsrq,0.05);
-          rsrp = VEC_EMA(chest_dl_get_rsrp(&chest),rsrp,0.05);      
-          snr = VEC_EMA(chest_dl_get_snr(&chest),snr,0.05);      
+          rssi_utra = VEC_CMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,nframes);
+          rsrq = VEC_EMA(srslte_chest_dl_get_rsrq(&chest),rsrq,0.05);
+          rsrp = VEC_EMA(srslte_chest_dl_get_rsrp(&chest),rsrp,0.05);      
+          snr = VEC_EMA(srslte_chest_dl_get_snr(&chest),snr,0.05);      
           nframes++;          
         }        
         

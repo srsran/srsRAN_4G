@@ -41,51 +41,51 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 
 /* This is common for both directions */
 typedef struct SRSLTE_API{
-  dft_plan_t fft_plan;
+  srslte_dft_plan_t fft_plan;
   uint32_t nof_symbols;
   uint32_t symbol_sz;
   uint32_t nof_guards;
   uint32_t nof_re;
   uint32_t slot_sz;
-  lte_cp_t cp;
+  srslte_cp_t cp;
   cf_t *tmp; // for removing zero padding
   
   bool freq_shift;
   cf_t *shift_buffer; 
-}lte_fft_t;
+}srslte_fft_t;
 
-SRSLTE_API int lte_fft_init(lte_fft_t *q, 
-                            lte_cp_t cp_type, 
-                            uint32_t nof_prb);
+SRSLTE_API int srslte_fft_init(srslte_fft_t *q, 
+                               srslte_cp_t cp_type, 
+                               uint32_t nof_prb);
 
-SRSLTE_API void lte_fft_free(lte_fft_t *q);
+SRSLTE_API void srslte_fft_free(srslte_fft_t *q);
 
-SRSLTE_API void lte_fft_run_slot(lte_fft_t *q, 
-                                 cf_t *input, 
-                                 cf_t *output);
+SRSLTE_API void srslte_fft_run_slot(srslte_fft_t *q, 
+                                    cf_t *input, 
+                                    cf_t *output);
 
-SRSLTE_API void lte_fft_run_sf(lte_fft_t *q, 
-                               cf_t *input, 
-                               cf_t *output);
-
-SRSLTE_API int lte_ifft_init(lte_fft_t *q, 
-                             lte_cp_t cp_type, 
-                             uint32_t nof_prb);
-
-SRSLTE_API void lte_ifft_free(lte_fft_t *q);
-
-SRSLTE_API void lte_ifft_run_slot(lte_fft_t *q, 
+SRSLTE_API void srslte_fft_run_sf(srslte_fft_t *q, 
                                   cf_t *input, 
                                   cf_t *output);
 
-SRSLTE_API void lte_ifft_run_sf(lte_fft_t *q, 
+SRSLTE_API int lte_ifft_init(srslte_fft_t *q, 
+                             srslte_cp_t cp_type, 
+                             uint32_t nof_prb);
+
+SRSLTE_API void lte_ifft_free(srslte_fft_t *q);
+
+SRSLTE_API void lte_ifft_run_slot(srslte_fft_t *q, 
+                                  cf_t *input, 
+                                  cf_t *output);
+
+SRSLTE_API void lte_ifft_run_sf(srslte_fft_t *q, 
                                 cf_t *input, 
                                 cf_t *output);
 
-SRSLTE_API int lte_fft_set_freq_shift(lte_fft_t *q, 
-                                      float freq_shift); 
+SRSLTE_API int srslte_fft_set_freq_shift(srslte_fft_t *q, 
+                                         float freq_shift); 
 
-SRSLTE_API void lte_fft_set_normalize(lte_fft_t *q, 
-                                      bool normalize_enable); 
+SRSLTE_API void srslte_fft_set_normalize(srslte_fft_t *q, 
+                                         bool normalize_enable); 
 
 #endif

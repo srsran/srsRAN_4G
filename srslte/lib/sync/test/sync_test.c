@@ -38,7 +38,7 @@
 #include "srslte/srslte.h"
 
 int cell_id = -1, offset = 0;
-lte_cp_t cp = CPNORM;
+srslte_cp_t cp = CPNORM;
 uint32_t nof_prb=6; 
 
 #define FLEN  SF_LEN(fft_size)
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   int cid, max_cid; 
   uint32_t find_idx;
   sync_t sync;
-  lte_fft_t ifft;
+  srslte_fft_t ifft;
   int fft_size; 
   
   parse_args(argc, argv);

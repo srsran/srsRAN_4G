@@ -35,7 +35,7 @@
 
 char *input_file_name = NULL;
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   6,            // nof_prb
   2,            // nof_ports
   150,          // cell_id
@@ -51,10 +51,10 @@ uint8_t bch_payload_file[BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1,
 #define FLEN  (10*SF_LEN(lte_symbol_sz(cell.nof_prb)))
 
 filesource_t fsrc;
-cf_t *input_buffer, *fft_buffer, *ce[MAX_PORTS];
+cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
 pbch_t pbch;
-lte_fft_t fft;
-chest_dl_t chest;
+srslte_fft_t fft;
+srslte_chest_dl_t chest;
 
 void usage(char *prog) {
   printf("Usage: %s [vcoe] -i input_file\n", prog);
@@ -132,12 +132,12 @@ int base_init() {
     return -1;
   }
 
-  if (chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
 
-  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -163,8 +163,8 @@ void base_free() {
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
   }
-  chest_dl_free(&chest);
-  lte_fft_free(&fft);
+  srslte_chest_dl_free(&chest);
+  srslte_fft_free(&fft);
 
   pbch_free(&pbch);
 }
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[BCH_PAYLOAD_LEN];
   int n;
   uint32_t nof_tx_ports, sfn_offset; 
-  cf_t *ce_slot1[MAX_PORTS]; 
+  cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
   
   if (argc < 3) {
     usage(argv[0]);
@@ -195,20 +195,20 @@ int main(int argc, char **argv) {
 
     if (nread > 0) {
       // process 1st subframe only
-      lte_fft_run_sf(&fft, input_buffer, fft_buffer);
+      srslte_fft_run_sf(&fft, input_buffer, fft_buffer);
 
       /* Get channel estimates for each port */
-      chest_dl_estimate(&chest, fft_buffer, ce, 0);
+      srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
 
       INFO("Decoding PBCH\n", 0);
       
-      for (int i=0;i<MAX_PORTS;i++) {
+      for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
         ce_slot1[i] = &ce[i][SLOT_LEN_RE(cell.nof_prb, cell.cp)];
       }
 
       pbch_decode_reset(&pbch);
       n = pbch_decode(&pbch, &fft_buffer[SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
-                      ce_slot1, chest_dl_get_noise_estimate(&chest), 
+                      ce_slot1, srslte_chest_dl_get_noise_estimate(&chest), 
                       bch_payload, &nof_tx_ports, &sfn_offset);
       if (n == 1) {
         nof_decoded_mibs++;

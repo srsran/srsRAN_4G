@@ -52,7 +52,7 @@ typedef enum SRSLTE_API {
 
 /* PDCCH object */
 typedef struct SRSLTE_API {
-  lte_cell_t cell;
+  srslte_cell_t cell;
   uint32_t nof_regs;
   uint32_t nof_cce;
   uint32_t max_bits;
@@ -60,9 +60,9 @@ typedef struct SRSLTE_API {
   regs_t *regs;
 
   /* buffers */
-  cf_t *ce[MAX_PORTS];
-  cf_t *pdcch_symbols[MAX_PORTS];
-  cf_t *pdcch_x[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
+  cf_t *pdcch_symbols[SRSLTE_MAX_PORTS];
+  cf_t *pdcch_x[SRSLTE_MAX_PORTS];
   cf_t *pdcch_d;
   uint8_t *pdcch_e;
   float pdcch_rm_f[3 * (DCI_MAX_BITS + 16)];
@@ -71,7 +71,7 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   modem_table_t mod;
   demod_soft_t demod;
-  sequence_t seq_pdcch[NSUBFRAMES_X_FRAME];
+  sequence_t seq_pdcch[SRSLTE_NSUBFRAMES_X_FRAME];
   viterbi_t decoder;
   crc_t crc;
   precoding_t precoding; 
@@ -80,7 +80,7 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int pdcch_init(pdcch_t *q, 
                           regs_t *regs, 
-                          lte_cell_t cell);
+                          srslte_cell_t cell);
 
 SRSLTE_API void pdcch_free(pdcch_t *q);
 
@@ -90,14 +90,14 @@ SRSLTE_API int pdcch_encode(pdcch_t *q,
                                 dci_msg_t *msg,
                                 dci_location_t location,
                                 uint16_t rnti,
-                                cf_t *sf_symbols[MAX_PORTS],
+                                cf_t *sf_symbols[SRSLTE_MAX_PORTS],
                                 uint32_t nsubframe, 
                                 uint32_t cfi);
 
 /* Decoding functions: Extract the LLRs and save them in the pdcch_t object */
 SRSLTE_API int pdcch_extract_llr(pdcch_t *q, 
                                  cf_t *sf_symbols, 
-                                 cf_t *ce[MAX_PORTS],
+                                 cf_t *ce[SRSLTE_MAX_PORTS],
                                  float noise_estimate, 
                                  uint32_t nsubframe, 
                                  uint32_t cfi);

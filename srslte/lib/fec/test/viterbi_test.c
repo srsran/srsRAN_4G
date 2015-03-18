@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
       for (j = 0; j < frame_length; j++) {
         llr[j] = data_tx[j] ? sqrt(2) : -sqrt(2);
       }
-      ch_awgn_f(llr, llr, varunc[i], frame_length);
+      srslte_ch_awgn_f(llr, llr, varunc[i], frame_length);
       for (j = 0; j < frame_length; j++) {
         data_rx[0][j] = llr[j] > 0 ? 1 : 0;
       }
@@ -278,7 +278,7 @@ int main(int argc, char **argv) {
           llr[j] = symbols[j] ? sqrt(2) : -sqrt(2);
         }
 
-        ch_awgn_f(llr, llr, var[i], coded_length[n]);
+        srslte_ch_awgn_f(llr, llr, var[i], coded_length[n]);
         vec_quant_fuc(llr, llr_c, Gain, 127.5, 255, coded_length[n]);
 
         /* decoder 1 */

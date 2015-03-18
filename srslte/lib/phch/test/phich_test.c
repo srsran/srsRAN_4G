@@ -34,7 +34,7 @@
 #include "srslte/srslte.h"
 
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1000,         // cell_id
@@ -104,9 +104,9 @@ int main(int argc, char **argv) {
   phich_t phich;
   regs_t regs;
   int i, j;
-  cf_t *ce[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
   int nof_re;
-  cf_t *slot_symbols[MAX_PORTS];
+  cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   uint8_t ack[50][PHICH_NORM_NSEQUENCES], ack_rx;
   uint32_t nsf, distance;
   int cid, max_cid;
@@ -116,10 +116,10 @@ int main(int argc, char **argv) {
 
   max_nseq = CP_ISNORM(cell.cp)?PHICH_NORM_NSEQUENCES:PHICH_EXT_NSEQUENCES;
 
-  nof_re = CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
+  nof_re = SRSLTE_CPNORM_NSYMB * cell.nof_prb * RE_X_RB;
 
   /* init memory */
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = malloc(sizeof(cf_t) * nof_re);
     if (!ce[i]) {
       perror("malloc");
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
     cid++;
   }
 
-  for (i=0;i<MAX_PORTS;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     free(ce[i]);
     free(slot_symbols[i]);
   }

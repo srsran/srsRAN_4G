@@ -36,11 +36,11 @@
 
 /*************** STATIC FUNCTIONS ***********************/
 
-cf_t interp_linear_onesample(cf_t input0, cf_t input1) {
+cf_t srslte_interp_linear_onesample(cf_t input0, cf_t input1) {
   return 2*input1-input0;
 }
 
-cf_t interp_linear_onesample_cabs(cf_t input0, cf_t input1) {
+cf_t srslte_interp_linear_onesample_cabs(cf_t input0, cf_t input1) {
   float re0=0, im0=0, re1=0, im1=0, re=0, im=0;
   re0 = crealf(input0);
   im0 = cimagf(input1);
@@ -53,7 +53,7 @@ cf_t interp_linear_onesample_cabs(cf_t input0, cf_t input1) {
 
 
 /* Performs 1st order integer linear interpolation */
-void interp_linear_f(float *input, float *output, uint32_t M, uint32_t len) {
+void srslte_interp_linear_f(float *input, float *output, uint32_t M, uint32_t len) {
   uint32_t i, j;
   for (i=0;i<len-1;i++) {
     for (j=0;j<M;j++) {
@@ -64,7 +64,7 @@ void interp_linear_f(float *input, float *output, uint32_t M, uint32_t len) {
 
 
 /* Performs 1st order linear interpolation with out-of-bound interpolation */
-void interp_linear_offset_cabs(cf_t *input, cf_t *output, 
+void srslte_interp_linear_offset_cabs(cf_t *input, cf_t *output, 
                                uint32_t M, uint32_t len, 
                                uint32_t off_st, uint32_t off_end) 
 {
@@ -98,11 +98,11 @@ void interp_linear_offset_cabs(cf_t *input, cf_t *output,
   }
 }
 
-int interp_linear_vector_init(interp_linvec_t *q, uint32_t vector_len) 
+int srslte_interp_linear_vector_init(srslte_interp_linvec_t *q, uint32_t vector_len) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q) {
-    bzero(q, sizeof(interp_linvec_t));
+    bzero(q, sizeof(srslte_interp_linvec_t));
     ret = SRSLTE_SUCCESS;
     q->diff_vec = vec_malloc(vector_len * sizeof(cf_t));
     if (!q->diff_vec) {
@@ -114,16 +114,16 @@ int interp_linear_vector_init(interp_linvec_t *q, uint32_t vector_len)
   return ret; 
 }
 
-void interp_linear_vector_free(interp_linvec_t *q) {
+void srslte_interp_linear_vector_free(srslte_interp_linvec_t *q) {
   if (q->diff_vec) {
     free(q->diff_vec);
   }
 
-  bzero(q, sizeof(interp_linvec_t));
+  bzero(q, sizeof(srslte_interp_linvec_t));
 
 }
 
-void interp_linear_vector(interp_linvec_t *q, cf_t *in0, cf_t *in1, cf_t *between, uint32_t M) 
+void srslte_interp_linear_vector(srslte_interp_linvec_t *q, cf_t *in0, cf_t *in1, cf_t *between, uint32_t M) 
 {
   uint32_t i;
   
@@ -136,11 +136,11 @@ void interp_linear_vector(interp_linvec_t *q, cf_t *in0, cf_t *in1, cf_t *betwee
   }
 }
 
-int interp_linear_init(interp_lin_t *q, uint32_t vector_len, uint32_t M) 
+int srslte_interp_linear_init(srslte_interp_lin_t *q, uint32_t vector_len, uint32_t M) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q) {
-    bzero(q, sizeof(interp_lin_t));
+    bzero(q, sizeof(srslte_interp_lin_t));
     ret = SRSLTE_SUCCESS;
     q->diff_vec = vec_malloc(vector_len * sizeof(cf_t));
     if (!q->diff_vec) {
@@ -171,7 +171,7 @@ int interp_linear_init(interp_lin_t *q, uint32_t vector_len, uint32_t M)
   return ret; 
 }
 
-void interp_linear_free(interp_lin_t *q) {
+void srslte_interp_linear_free(srslte_interp_lin_t *q) {
   if (q->diff_vec) {
     free(q->diff_vec);
   }
@@ -182,11 +182,11 @@ void interp_linear_free(interp_lin_t *q) {
     free(q->ramp);
   }
 
-  bzero(q, sizeof(interp_lin_t));
+  bzero(q, sizeof(srslte_interp_lin_t));
 
 }
 
-void interp_linear_offset(interp_lin_t *q, cf_t *input, cf_t *output, 
+void srslte_interp_linear_offset(srslte_interp_lin_t *q, cf_t *input, cf_t *output, 
                           uint32_t off_st, uint32_t off_end) 
 {
   uint32_t i, j;

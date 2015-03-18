@@ -46,10 +46,10 @@ void help()
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int i; 
-  lte_cell_t cell; 
+  srslte_cell_t cell; 
   pcfich_t pcfich;
-  chest_dl_t chest; 
-  lte_fft_t fft; 
+  srslte_chest_dl_t chest; 
+  srslte_fft_t fft; 
   regs_t regs;
   uint32_t sf_idx; 
   cf_t *input_fft, *input_signal;
@@ -69,12 +69,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell)) {
     mexErrMsgTxt("Error initializing equalizer\n");
     return;
   }
 
-  if (lte_fft_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_fft_init(&fft, cell.cp, cell.nof_prb)) {
     mexErrMsgTxt("Error initializing FFT\n");
     return;
   }
@@ -97,12 +97,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   input_fft = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   
   // Set Channel estimates to 1.0 (ignore fading) 
-  cf_t *ce[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
   for (i=0;i<cell.nof_ports;i++) {
     ce[i] = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
-  lte_fft_run_sf(&fft, input_signal, input_fft);
+  srslte_fft_run_sf(&fft, input_signal, input_fft);
 
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray; 
@@ -114,13 +114,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
     }
   } else {
-    chest_dl_estimate(&chest, input_fft, ce, sf_idx);    
+    srslte_chest_dl_estimate(&chest, input_fft, ce, sf_idx);    
   }
   float noise_power;
   if (nrhs > NOF_INPUTS + 1) {
     noise_power = mxGetScalar(prhs[NOF_INPUTS+1]);
   } else {
-    noise_power = chest_dl_get_noise_estimate(&chest);
+    noise_power = srslte_chest_dl_get_noise_estimate(&chest);
   }
     
     
@@ -142,8 +142,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(pcfich.pcfich_symbols[0], &plhs[2], 16, 1);  
   }
   
-  chest_dl_free(&chest);
-  lte_fft_free(&fft);
+  srslte_chest_dl_free(&chest);
+  srslte_fft_free(&fft);
   pcfich_free(&pcfich);
   regs_free(&regs);
   

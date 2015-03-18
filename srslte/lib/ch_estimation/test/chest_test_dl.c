@@ -33,7 +33,7 @@
 
 #include "srslte/srslte.h"
 
-lte_cell_t cell = {
+srslte_cell_t cell = {
   6,            // nof_prb
   1,    // nof_ports
   1000,         // cell_id
@@ -82,7 +82,7 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
-  chest_dl_t est;
+  srslte_chest_dl_t est;
   precoding_t cheq; 
   cf_t *input = NULL, *ce = NULL, *h = NULL, *output = NULL;
   int i, j, n_port, sf_idx, cid, num_re;
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
 
   while(cid <= max_cid) {
     cell.id = cid; 
-    if (chest_dl_init(&est, cell)) {
+    if (srslte_chest_dl_init(&est, cell)) {
       fprintf(stderr, "Error initializing equalizer\n");
       goto do_exit;
     }
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
         bzero(ce, sizeof(cf_t) * num_re);
         bzero(h, sizeof(cf_t) * num_re);
 
-        refsignal_cs_put_sf(cell, n_port, 
+        srslte_refsignal_cs_put_sf(cell, n_port, 
                             est.csr_signal.pilots[n_port/2][sf_idx], input);
 
         for (i=0;i<2*CP_NSYMB(cell.cp);i++) {
@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
         struct timeval t[3];
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          chest_dl_estimate_port(&est, input, ce, sf_idx, n_port);          
+          srslte_chest_dl_estimate_port(&est, input, ce, sf_idx, n_port);          
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          predecoding_single(&cheq, input, ce, output, num_re, chest_dl_get_noise_estimate(&est));
+          predecoding_single(&cheq, input, ce, output, num_re, srslte_chest_dl_get_noise_estimate(&est));
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
         }
       }
     }
-    chest_dl_free(&est);
+    srslte_chest_dl_free(&est);
     cid+=10;
     INFO("cid=%d\n", cid);
   }

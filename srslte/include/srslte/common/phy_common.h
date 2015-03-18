@@ -36,12 +36,12 @@
 
 #include "srslte/config.h"
 
-#define NSUBFRAMES_X_FRAME  10
-#define NSLOTS_X_FRAME      (2*NSUBFRAMES_X_FRAME)
+#define SRSLTE_NSUBFRAMES_X_FRAME  10
+#define SRSLTE_NSLOTS_X_FRAME      (2*SRSLTE_NSUBFRAMES_X_FRAME)
 
 #define LTE_NSOFT_BITS  250368 // Soft buffer size for Category 1 UE
 
-#define MAX_PORTS     4
+#define SRSLTE_MAX_PORTS     4
 #define MAX_LAYERS    8
 #define MAX_CODEWORDS 2
 
@@ -50,7 +50,7 @@
 #define LTE_CRC16   0x11021
 #define LTE_CRC8    0x19B
 
-typedef enum {CPNORM, CPEXT} lte_cp_t;
+typedef enum {CPNORM, CPEXT} srslte_cp_t;
 
 
 #define CRNTI_START  0x003D
@@ -70,8 +70,8 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define SYMBOL_SZ_MAX   2048
 
-#define CPNORM_NSYMB    7
-#define CPNORM_SF_NSYMB (2*CPNORM_NSYMB)
+#define SRSLTE_CPNORM_NSYMB    7
+#define CPNORM_SF_NSYMB (2*SRSLTE_CPNORM_NSYMB)
 #define CPNORM_0_LEN    160
 #define CPNORM_LEN      144
 
@@ -82,7 +82,7 @@ typedef enum {CPNORM, CPEXT} lte_cp_t;
 
 #define CP_ISNORM(cp) (cp==CPNORM)
 #define CP_ISEXT(cp) (cp==CPEXT)
-#define CP_NSYMB(cp) (CP_ISNORM(cp)?CPNORM_NSYMB:CPEXT_NSYMB)
+#define CP_NSYMB(cp) (CP_ISNORM(cp)?SRSLTE_CPNORM_NSYMB:CPEXT_NSYMB)
 
 #define CP(symbol_sz, c) ((int) ceil((((float) (c)*(symbol_sz))/2048)))
 #define CP_NORM(symbol, symbol_sz) ((symbol==0)?CP((symbol_sz),CPNORM_0_LEN):CP((symbol_sz),CPNORM_LEN))
@@ -131,10 +131,10 @@ typedef struct SRSLTE_API {
   uint32_t nof_ports; 
   uint32_t bw_idx; 
   uint32_t id;
-  lte_cp_t cp;
+  srslte_cp_t cp;
   phich_length_t phich_length;
   phich_resources_t phich_resources;
-}lte_cell_t;
+}srslte_cell_t;
 
 typedef enum SRSLTE_API {
   SINGLE_ANTENNA,TX_DIVERSITY, SPATIAL_MULTIPLEX
@@ -153,10 +153,10 @@ enum band_geographical_area {
   ALL, NAR, APAC, EMEA, JAPAN, CALA, NA
 };
 
-SRSLTE_API bool lte_cell_isvalid(lte_cell_t *cell);
+SRSLTE_API bool lte_cell_isvalid(srslte_cell_t *cell);
 
 SRSLTE_API void lte_cell_fprint(FILE *stream, 
-                                lte_cell_t *cell); 
+                                srslte_cell_t *cell); 
 
 SRSLTE_API bool lte_cellid_isvalid(uint32_t cell_id);
 
@@ -195,7 +195,7 @@ SRSLTE_API int lte_cb_size(uint32_t index);
 
 SRSLTE_API bool lte_cb_size_isvalid(uint32_t size); 
 
-SRSLTE_API char *lte_cp_string(lte_cp_t cp); 
+SRSLTE_API char *lte_cp_string(srslte_cp_t cp); 
 
 SRSLTE_API char *lte_mod_string(lte_mod_t mod);
 

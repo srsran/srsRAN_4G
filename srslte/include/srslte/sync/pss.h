@@ -67,7 +67,7 @@ typedef _Complex float cf_t; /* this is only a shortcut */
 /* Low-level API */
 typedef struct SRSLTE_API {
   
-  dft_plan_t dftp_input; 
+  srslte_dft_plan_t dftp_input; 
   
 #ifdef CONVOLUTION_FFT
   conv_fft_cc_t conv_fft;
@@ -107,7 +107,7 @@ SRSLTE_API int pss_generate(cf_t *signal,
 SRSLTE_API void pss_put_slot(cf_t *pss_signal, 
                              cf_t *slot, 
                              uint32_t nof_prb, 
-                             lte_cp_t cp);
+                             srslte_cp_t cp);
 
 SRSLTE_API void pss_synch_set_ema_alpha(pss_synch_t *q, 
                                         float alpha); 

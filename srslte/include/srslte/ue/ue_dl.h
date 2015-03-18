@@ -61,15 +61,15 @@ typedef struct SRSLTE_API {
   pdsch_t pdsch;
   harq_t harq_process[NOF_HARQ_PROCESSES];
   regs_t regs;
-  lte_fft_t fft;
-  chest_dl_t chest;
+  srslte_fft_t fft;
+  srslte_chest_dl_t chest;
   
   ra_pdsch_t ra_dl;
 
-  lte_cell_t cell;
+  srslte_cell_t cell;
 
   cf_t *sf_symbols; 
-  cf_t *ce[MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
   
   uint64_t pkt_errors; 
   uint64_t pkts_total;
@@ -80,7 +80,7 @@ typedef struct SRSLTE_API {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int ue_dl_init(ue_dl_t *q, 
-                          lte_cell_t cell);
+                          srslte_cell_t cell);
 
 SRSLTE_API void ue_dl_free(ue_dl_t *q);
 

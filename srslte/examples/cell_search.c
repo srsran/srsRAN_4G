@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
     } else if (n == 1) {
       for (int i=0;i<3;i++) {
         if (found_cells[i].peak > config.threshold/2) {
-          lte_cell_t cell; 
+          srslte_cell_t cell; 
           cell.id = found_cells[i].cell_id; 
           cell.cp = found_cells[i].cp; 
           int ret = cuhd_mib_decoder(uhd, 100, &cell);

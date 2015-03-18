@@ -55,15 +55,15 @@ typedef _Complex float cf_t;
 
 /* phich object */
 typedef struct SRSLTE_API {
-  lte_cell_t cell;
+  srslte_cell_t cell;
   
   /* handler to REGs resource mapper */
   regs_t *regs;
 
   /* buffers */
-  cf_t ce[MAX_PORTS][PHICH_MAX_NSYMB];
-  cf_t phich_symbols[MAX_PORTS][PHICH_MAX_NSYMB];
-  cf_t phich_x[MAX_PORTS][PHICH_MAX_NSYMB];
+  cf_t ce[SRSLTE_MAX_PORTS][PHICH_MAX_NSYMB];
+  cf_t phich_symbols[SRSLTE_MAX_PORTS][PHICH_MAX_NSYMB];
+  cf_t phich_x[SRSLTE_MAX_PORTS][PHICH_MAX_NSYMB];
   cf_t phich_d[PHICH_MAX_NSYMB];
   cf_t phich_d0[PHICH_MAX_NSYMB];
   cf_t phich_z[PHICH_NBITS];
@@ -74,20 +74,20 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   modem_table_t mod;
   demod_hard_t demod;
-  sequence_t seq_phich[NSUBFRAMES_X_FRAME];
+  sequence_t seq_phich[SRSLTE_NSUBFRAMES_X_FRAME];
   precoding_t precoding; 
 
 }phich_t;
 
 SRSLTE_API int phich_init(phich_t *q, 
                           regs_t *regs, 
-                          lte_cell_t cell);
+                          srslte_cell_t cell);
 
 SRSLTE_API void phich_free(phich_t *q);
 
 SRSLTE_API int phich_decode(phich_t *q, 
                             cf_t *slot_symbols, 
-                            cf_t *ce[MAX_PORTS],
+                            cf_t *ce[SRSLTE_MAX_PORTS],
                             float noise_estimate, 
                             uint32_t ngroup, 
                             uint32_t nseq, 
@@ -100,10 +100,10 @@ SRSLTE_API int phich_encode(phich_t *q,
                             uint32_t ngroup, 
                             uint32_t nseq, 
                             uint32_t nsubframe,
-                            cf_t *slot_symbols[MAX_PORTS]);
+                            cf_t *slot_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API void phich_reset(phich_t *q, 
-                            cf_t *slot_symbols[MAX_PORTS]);
+                            cf_t *slot_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API uint32_t phich_ngroups(phich_t *q);
 

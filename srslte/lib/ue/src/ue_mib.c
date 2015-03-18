@@ -37,12 +37,12 @@
 #include "srslte/utils/vector.h"
 
 int ue_mib_init(ue_mib_t * q, 
-                lte_cell_t cell) 
+                srslte_cell_t cell) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && 
-      cell.nof_ports <= MIB_MAX_PORTS) 
+      cell.nof_ports <= MIB_SRSLTE_MAX_PORTS) 
   {
 
     ret = SRSLTE_ERROR;    
@@ -62,11 +62,11 @@ int ue_mib_init(ue_mib_t * q,
       }
     }
 
-    if (lte_fft_init(&q->fft, cell.cp, cell.nof_prb)) {
+    if (srslte_fft_init(&q->fft, cell.cp, cell.nof_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       goto clean_exit;
     }
-    if (chest_dl_init(&q->chest, cell)) {
+    if (srslte_chest_dl_init(&q->chest, cell)) {
       fprintf(stderr, "Error initializing reference signal\n");
       goto clean_exit;
     }
@@ -91,15 +91,15 @@ void ue_mib_free(ue_mib_t * q)
   if (q->sf_symbols) {
     free(q->sf_symbols);
   }
-  for (int i=0;i<MIB_MAX_PORTS;i++) {
+  for (int i=0;i<MIB_SRSLTE_MAX_PORTS;i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
   }
   sync_free(&q->sfind);
-  chest_dl_free(&q->chest);
+  srslte_chest_dl_free(&q->chest);
   pbch_free(&q->pbch);
-  lte_fft_free(&q->fft);
+  srslte_fft_free(&q->fft);
     
   bzero(q, sizeof(ue_mib_t));
     
@@ -116,13 +116,13 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
                   uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
 {
   int ret = SRSLTE_SUCCESS;
-  cf_t *ce_slot1[MAX_PORTS]; 
+  cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
 
   /* Run FFT for the slot symbols */
-  lte_fft_run_sf(&q->fft, input, q->sf_symbols);
+  srslte_fft_run_sf(&q->fft, input, q->sf_symbols);
             
   /* Get channel estimates of sf idx #0 for each port */
-  ret = chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, 0);
+  ret = srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, 0);
   if (ret < 0) {
     return SRSLTE_ERROR;
   }
@@ -132,13 +132,13 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
     ue_mib_reset(q);
   }
   
-  for (int i=0;i<MAX_PORTS;i++) {
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce_slot1[i] = &q->ce[i][SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)];
   }
   
   /* Decode PBCH */
   ret = pbch_decode(&q->pbch, &q->sf_symbols[SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
-                    ce_slot1, chest_dl_get_noise_estimate(&q->chest),
+                    ce_slot1, srslte_chest_dl_get_noise_estimate(&q->chest),
                     bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
@@ -158,12 +158,12 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
 
 int ue_mib_sync_init(ue_mib_sync_t *q, 
                      uint32_t cell_id, 
-                     lte_cp_t cp, 
+                     srslte_cp_t cp, 
                      int (recv_callback)(void*, void*, uint32_t, timestamp_t*),                             
                      void *stream_handler) 
 {
-  lte_cell_t cell; 
-  cell.nof_ports = MIB_MAX_PORTS; 
+  srslte_cell_t cell; 
+  cell.nof_ports = MIB_SRSLTE_MAX_PORTS; 
   cell.id = cell_id; 
   cell.cp = cp; 
   cell.nof_prb = MIB_NOF_PRB; 

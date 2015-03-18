@@ -72,7 +72,7 @@ int mexutils_read_float_struct(const mxArray *ptr, const char *field_name, float
   return 0;
 }
 
-int mexutils_read_cell(const mxArray *ptr, lte_cell_t *cell) {
+int mexutils_read_cell(const mxArray *ptr, srslte_cell_t *cell) {
   if (mexutils_read_uint32_struct(ptr, "NCellID", &cell->id)) {
     return -1;
   }

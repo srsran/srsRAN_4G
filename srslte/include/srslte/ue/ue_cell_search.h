@@ -64,7 +64,7 @@
 
 typedef struct SRSLTE_API {
   uint32_t cell_id;
-  lte_cp_t cp; 
+  srslte_cp_t cp; 
   float peak; 
   float mode; 
   float psr;

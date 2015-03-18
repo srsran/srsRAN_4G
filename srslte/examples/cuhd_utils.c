@@ -51,7 +51,7 @@ int cuhd_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, timestamp_t *t)
 /** This function is simply a wrapper to the ue_cell_search module for cuhd devices 
  * Return 1 if the MIB is decoded, 0 if not or -1 on error. 
  */
-int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, lte_cell_t *cell) {
+int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
   int ret = SRSLTE_ERROR; 
   ue_mib_sync_t ue_mib; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
@@ -90,7 +90,7 @@ clean_exit:
 /** This function is simply a wrapper to the ue_cell_search module for cuhd devices 
  */
 int cuhd_cell_search(void *uhd, cell_search_cfg_t *config, 
-                     int force_N_id_2, lte_cell_t *cell) 
+                     int force_N_id_2, srslte_cell_t *cell) 
 {
   int ret = SRSLTE_ERROR; 
   ue_cell_search_t cs; 
@@ -150,7 +150,7 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
  * 0 if no cell was found or MIB could not be decoded, 
  * -1 on error
  */
-int cuhd_search_and_decode_mib(void *uhd, cell_search_cfg_t *config, int force_N_id_2, lte_cell_t *cell) 
+int cuhd_search_and_decode_mib(void *uhd, cell_search_cfg_t *config, int force_N_id_2, srslte_cell_t *cell) 
 {
   int ret = SRSLTE_ERROR; 
   

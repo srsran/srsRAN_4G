@@ -50,14 +50,14 @@ bool pucch_cfg_isvalid(pucch_cfg_t *cfg) {
 
 
 /* Generates n_cs_cell according to Sec 5.4 of 36.211 */
-int generate_n_cs_cell(lte_cell_t cell, uint32_t n_cs_cell[NSLOTS_X_FRAME][CPNORM_NSYMB]) 
+int generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CPNORM_NSYMB]) 
 {
   sequence_t seq; 
   bzero(&seq, sizeof(sequence_t));
 
-  sequence_LTE_pr(&seq, 8*CP_NSYMB(cell.cp)*NSLOTS_X_FRAME, cell.id);
+  sequence_LTE_pr(&seq, 8*CP_NSYMB(cell.cp)*SRSLTE_NSLOTS_X_FRAME, cell.id);
 
-  for (uint32_t ns=0;ns<NSLOTS_X_FRAME;ns++) {
+  for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {
     for (uint32_t l=0;l<CP_NSYMB(cell.cp);l++) {
       n_cs_cell[ns][l] = 0; 
       for (uint32_t i=0;i<8;i++) {
@@ -71,9 +71,9 @@ int generate_n_cs_cell(lte_cell_t cell, uint32_t n_cs_cell[NSLOTS_X_FRAME][CPNOR
 
 
 /* Calculates alpha according to 5.5.2.2.2 of 36.211 */
-float pucch_get_alpha(uint32_t n_cs_cell[NSLOTS_X_FRAME][CPNORM_NSYMB], 
+float pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CPNORM_NSYMB], 
                       pucch_cfg_t *cfg, 
-                      lte_cp_t cp, bool is_drms,
+                      srslte_cp_t cp, bool is_drms,
                       uint32_t ns, uint32_t l, 
                       uint32_t *n_oc_ptr) 
 {
@@ -119,7 +119,7 @@ int pucch_get(pucch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
 
 
 /** Initializes the PDCCH transmitter and receiver */
-int pucch_init(pucch_t *q, lte_cell_t cell) {
+int pucch_init(pucch_t *q, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL && lte_cell_isvalid(&cell)) {
     ret = SRSLTE_ERROR;

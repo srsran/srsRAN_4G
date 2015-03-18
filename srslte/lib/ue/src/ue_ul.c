@@ -39,7 +39,7 @@
 
 
 int ue_ul_init(ue_ul_t *q, 
-               lte_cell_t cell) 
+               srslte_cell_t cell) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -56,8 +56,8 @@ int ue_ul_init(ue_ul_t *q,
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
-    lte_fft_set_freq_shift(&q->fft, 0.5);
-    lte_fft_set_normalize(&q->fft, true);
+    srslte_fft_set_freq_shift(&q->fft, 0.5);
+    srslte_fft_set_normalize(&q->fft, true);
     
     q->normalize_en = true; 
 
@@ -76,8 +76,8 @@ int ue_ul_init(ue_ul_t *q,
         goto clean_exit;
       }
     }
-    if (refsignal_ul_init(&q->drms, cell)) {
-      fprintf(stderr, "Error initiating refsignal_ul\n");
+    if (srslte_refsignal_ul_init(&q->drms, cell)) {
+      fprintf(stderr, "Error initiating srslte_refsignal_ul\n");
       goto clean_exit;
     }
     q->sf_symbols = vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
@@ -106,13 +106,13 @@ clean_exit:
 
 void ue_ul_free(ue_ul_t *q) {
   if (q) {
-    lte_fft_free(&q->fft);
+    srslte_fft_free(&q->fft);
     pusch_free(&q->pusch);
     for (uint32_t i=0;i<NOF_HARQ_PROCESSES; i++) {
       harq_free(&q->harq_process[i]);
     }
     cfo_free(&q->cfo); 
-    refsignal_ul_free(&q->drms);
+    srslte_refsignal_ul_free(&q->drms);
 
     if (q->sf_symbols) {
       free(q->sf_symbols);
@@ -146,9 +146,9 @@ void ue_ul_reset(ue_ul_t *q) {
   harq_reset(&q->harq_process[0]);
 }
 
-void ue_ul_set_pusch_cfg(ue_ul_t *q, refsignal_drms_pusch_cfg_t *pusch_drms_cfg, pusch_hopping_cfg_t *pusch_hopping_cfg)
+void ue_ul_set_pusch_cfg(ue_ul_t *q, srslte_refsignal_drms_pusch_cfg_t *pusch_drms_cfg, pusch_hopping_cfg_t *pusch_hopping_cfg)
 {
-  memcpy(&q->pusch_drms_cfg, pusch_drms_cfg, sizeof(refsignal_drms_pusch_cfg_t));
+  memcpy(&q->pusch_drms_cfg, pusch_drms_cfg, sizeof(srslte_refsignal_drms_pusch_cfg_t));
   pusch_set_hopping_cfg(&q->pusch, pusch_hopping_cfg); 
 }
 
@@ -201,13 +201,13 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
     }
 
     // FIXME: Pregenerate for all possible number of prb 
-    if (refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, 
+    if (srslte_refsignal_dmrs_pusch_gen(&q->drms, &q->pusch_drms_cfg, 
       q->harq_process[0].ul_alloc.L_prb, sf_idx, q->refsignal)) 
     {
       fprintf(stderr, "Error generating PUSCH DRMS signals\n");
       return ret; 
     }
-    refsignal_drms_pusch_put(&q->drms, &q->pusch_drms_cfg, q->refsignal, 
+    srslte_refsignal_drms_pusch_put(&q->drms, &q->pusch_drms_cfg, q->refsignal, 
                               q->harq_process[0].ul_alloc.L_prb, 
                               q->harq_process[0].ul_alloc.n_prb_tilde, 
                               q->sf_symbols);                

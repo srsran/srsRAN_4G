@@ -50,17 +50,17 @@
 #define NOF_HARQ_PROCESSES 8
 
 typedef struct SRSLTE_API {
-  lte_fft_t fft;
+  srslte_fft_t fft;
   cfo_t cfo; 
-  lte_cell_t cell;
+  srslte_cell_t cell;
   
   bool normalize_en; 
   
   float current_cfo; 
 
-  refsignal_drms_pusch_cfg_t pusch_drms_cfg;
+  srslte_refsignal_drms_pusch_cfg_t pusch_drms_cfg;
   
-  refsignal_ul_t drms; 
+  srslte_refsignal_ul_t drms; 
   harq_t harq_process[NOF_HARQ_PROCESSES];
   pusch_t pusch; 
   
@@ -72,7 +72,7 @@ typedef struct SRSLTE_API {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int ue_ul_init(ue_ul_t *q, 
-                          lte_cell_t cell);
+                          srslte_cell_t cell);
 
 SRSLTE_API void ue_ul_free(ue_ul_t *q);
 
@@ -83,7 +83,7 @@ SRSLTE_API void ue_ul_set_normalization(ue_ul_t *q,
                                         bool enabled); 
 
 SRSLTE_API void ue_ul_set_pusch_cfg(ue_ul_t *q, 
-                                    refsignal_drms_pusch_cfg_t *pusch_drms_cfg, 
+                                    srslte_refsignal_drms_pusch_cfg_t *pusch_drms_cfg, 
                                     pusch_hopping_cfg_t *pusch_hopping_cfg); 
 
 SRSLTE_API int ue_ul_pusch_encode(ue_ul_t *q,

@@ -76,7 +76,7 @@ typedef struct SRSLTE_API {
  */
 SRSLTE_API int dci_msg_to_ra_dl(dci_msg_t *msg, 
                                 uint16_t msg_rnti,
-                                lte_cell_t cell,
+                                srslte_cell_t cell,
                                 uint32_t cfi,
                                 ra_pdsch_t *ra_dl);
 

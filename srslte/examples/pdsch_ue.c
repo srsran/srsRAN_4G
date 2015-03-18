@@ -228,7 +228,7 @@ netsink_t net_sink, net_sink_signal;
 
 int main(int argc, char **argv) {
   int ret; 
-  lte_cell_t cell;  
+  srslte_cell_t cell;  
   int64_t sf_cnt;
   ue_mib_t ue_mib; 
 #ifndef DISABLE_UHD
@@ -414,9 +414,9 @@ int main(int argc, char **argv) {
             }
             nof_trials++; 
             
-            rsrq = VEC_EMA(chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.05);
-            rsrp = VEC_EMA(chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
-            snr = VEC_EMA(chest_dl_get_snr(&ue_dl.chest), snr, 0.01);      
+            rsrq = VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.05);
+            rsrp = VEC_EMA(srslte_chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
+            snr = VEC_EMA(srslte_chest_dl_get_snr(&ue_dl.chest), snr, 0.01);      
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -432,13 +432,13 @@ int main(int argc, char **argv) {
             /* Adjust channel estimator based on SNR */
             if (10*log10(snr) < 5.0) {
               float f_low_snr[5]={0.05, 0.15, 0.6, 0.15, 0.05};
-              chest_dl_set_filter_freq(&ue_dl.chest, f_low_snr, 5);
+              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_low_snr, 5);
             } else if (10*log10(snr) < 10.0) {
               float f_mid_snr[3]={0.1, 0.8, 0.1};
-              chest_dl_set_filter_freq(&ue_dl.chest, f_mid_snr, 3);
+              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_mid_snr, 3);
             } else {
               float f_high_snr[3]={0.05, 0.9, 0.05};
-              chest_dl_set_filter_freq(&ue_dl.chest, f_high_snr, 3);
+              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_high_snr, 3);
             }
 #endif
             
@@ -538,7 +538,7 @@ void *plot_thread_run(void *arg) {
         tmp_plot[i] = -80;
       }
     }
-    for (i = 0; i < REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0); i++) {
+    for (i = 0; i < SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0); i++) {
       tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.chest.pilot_estimates_average[0][i]));
       if (isinf(tmp_plot2[i])) {
         tmp_plot2[i] = -80;
@@ -547,7 +547,7 @@ void *plot_thread_run(void *arg) {
     //for (i=0;i<CP_NSYMB(ue_dl.cell.cp);i++) {
     //  plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*RE_X_RB*ue_dl.cell.nof_prb], RE_X_RB*ue_dl.cell.nof_prb);            
     //}
-    plot_real_setNewData(&pce, tmp_plot2, REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
+    plot_real_setNewData(&pce, tmp_plot2, SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
     if (!prog_args.input_file_name) {
       int max = vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
       vec_sc_prod_fff(ue_sync.strack.pss.conv_output_avg, 
