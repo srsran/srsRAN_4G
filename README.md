@@ -32,10 +32,10 @@ Download & Install Instructions
 To install QT4, Qwt6 and libfftw use your distribution packet management system, for instance in ubuntu you can run: `sudo apt-get install libfftw3-dev libqwt-dev libqt4-dev` to install all requirements. 
 
 
-Finally, to download and build libLTE, just run: 
+Finally, to download and build srsLTE, just run: 
 ```
-git clone https://github.com/libLTE/libLTE.git
-cd libLTE
+git clone https://github.com/srsLTE/srsLTE.git
+cd srsLTE
 mkdir build
 cd build
 cmake ../
