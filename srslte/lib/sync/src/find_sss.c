@@ -30,8 +30,8 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/sync/sss.h"
+#include "srslte/utils/vector.h"
+#include "srslte/sync/sss.h"
 
 #define MAX_M 3
 
@@ -106,7 +106,7 @@ int sss_synch_m0m1_diff_coh(sss_synch_t *q, cf_t *input, cf_t ce[2*N_SSS], uint3
     uint32_t *m1, float *m1_value) 
 {
 
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
 
   if (q                 != NULL   &&
       input             != NULL   &&
@@ -133,7 +133,7 @@ int sss_synch_m0m1_diff_coh(sss_synch_t *q, cf_t *input, cf_t ce[2*N_SSS], uint3
     if (m1_value) {
       *m1_value = q->corr_output_m1[*m1];
     }    
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   } 
   return ret; 
 }
@@ -149,7 +149,7 @@ int sss_synch_m0m1_partial(sss_synch_t *q, cf_t *input, uint32_t M, cf_t ce[2*N_
     uint32_t *m1, float *m1_value) 
 {
 
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
 
   if (q                 != NULL   &&
       input             != NULL   &&
@@ -172,7 +172,7 @@ int sss_synch_m0m1_partial(sss_synch_t *q, cf_t *input, uint32_t M, cf_t ce[2*N_
     if (m1_value) {
       *m1_value = q->corr_output_m1[*m1];
     }    
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   } 
   return ret; 
 }

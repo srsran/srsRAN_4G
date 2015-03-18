@@ -34,7 +34,7 @@
 #include <time.h>
 #include <stdbool.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 int nof_frames = 10; 
 int num_bits = 1000;

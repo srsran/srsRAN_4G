@@ -30,14 +30,14 @@
 #include <string.h>
 
 #include "prb_dl.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/common/phy_common.h"
 
 //#define DEBUG_IDX
 
 #ifdef DEBUG_IDX
 extern cf_t *offset_original;
-LIBLTE_API int indices[100000];
-LIBLTE_API int indices_ptr=0;
+SRSLTE_API int indices[100000];
+SRSLTE_API int indices_ptr=0;
 #endif
 
 void print_indexes(cf_t *offset, int len) {

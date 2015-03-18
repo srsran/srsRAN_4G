@@ -34,17 +34,17 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/phch/pusch.h"
-#include "srslte/phy/phch/sch.h"
-#include "srslte/phy/phch/uci.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/phch/pusch.h"
+#include "srslte/phch/sch.h"
+#include "srslte/phch/uci.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
 
 
 int sch_init(sch_t *q) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q) {    
     bzero(q, sizeof(sch_t));
     
@@ -80,10 +80,10 @@ int sch_init(sch_t *q) {
       goto clean;
     }
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 clean: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     sch_free(q);
   }
   return ret; 
@@ -123,7 +123,7 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
   uint32_t par;
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   uint32_t Qm = lte_mod_bits_x_symbol(harq->mcs.mod);
   
   if (q             != NULL &&
@@ -222,7 +222,7 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
                   &e_bits[wp], n_e, harq->rv))
       {
         fprintf(stderr, "Error in rate matching\n");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
 
       /* Set read/write pointers */
@@ -231,7 +231,7 @@ static int encode_tb(sch_t *q, harq_t *harq, uint8_t *data, uint8_t *e_bits, uin
     }
     INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
     
-    ret = LIBLTE_SUCCESS;      
+    ret = SRSLTE_SUCCESS;      
   } 
   return ret; 
 }
@@ -254,7 +254,7 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
   {
 
     if (harq->mcs.tbs == 0 || harq->cb_segm.C == 0) {
-      return LIBLTE_SUCCESS;
+      return SRSLTE_SUCCESS;
     }
     
     rp = 0;
@@ -301,7 +301,7 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
                   &e_bits[rp], n_e, 
                   (float*) q->cb_out, 3 * cb_len + 12, harq->rv, F)) {
         fprintf(stderr, "Error in rate matching\n");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
 
       if (VERBOSE_ISDEBUG()) {
@@ -368,7 +368,7 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
 
     if (!early_stop) {
       INFO("CB %d failed. TB is erroneous.\n",i-1);
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     } else {
       INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
 
@@ -384,15 +384,15 @@ static int decode_tb(sch_t *q, harq_t *harq, float *e_bits, uint8_t *data, uint3
 
       if (par_rx == par_tx) {
         INFO("TB decoded OK\n",i);
-        return LIBLTE_SUCCESS;
+        return SRSLTE_SUCCESS;
       } else {
         INFO("Error in TB parity\n",i);
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
       
     }
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -512,6 +512,6 @@ int ulsch_uci_encode(sch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data,
 
 
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 

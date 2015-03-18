@@ -33,7 +33,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 #include "crc_test.h"
 
 int num_bits = 5001, crc_length = 24;

@@ -29,8 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/utils/pack.h"
-#include "srslte/phy/fec/crc.h"
+#include "srslte/utils/pack.h"
+#include "srslte/fec/crc.h"
 
 void gen_crc_table(crc_t *h) {
 

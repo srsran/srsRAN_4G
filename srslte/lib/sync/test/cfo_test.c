@@ -34,7 +34,7 @@
 #include <time.h>
 #include <stdbool.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 #define MAX_MSE  0.1
 

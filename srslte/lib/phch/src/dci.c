@@ -34,11 +34,11 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/phch/dci.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phch/dci.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 
 /* Creates the DL PDSCH resource allocation grant from a DCI message
@@ -47,7 +47,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
                      lte_cell_t cell, uint32_t cfi,
                      ra_pdsch_t *ra_dl) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
       ra_dl             !=  NULL   &&
@@ -55,7 +55,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
       cfi               >   0      &&
       cfi               <   4)
   {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     dci_msg_type_t type;
     if (dci_msg_get_type(msg, &type, cell.nof_prb, msg_rnti)) {
@@ -90,7 +90,7 @@ int dci_msg_to_ra_dl(dci_msg_t *msg, uint16_t msg_rnti,
       
       ra_dl_alloc_re(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
             
-      ret = LIBLTE_SUCCESS;
+      ret = SRSLTE_SUCCESS;
     } else {
       fprintf(stderr, "Unsupported message type: "); 
       dci_msg_type_fprint(stderr, type);
@@ -123,19 +123,19 @@ int dci_rar_to_ra_ul(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, uint32
       nof_prb, nof_prb);
   
   ra_mcs_from_idx_ul(ra->mcs_idx, ra_nprb_ul(ra, nof_prb), &ra->mcs);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Creates the UL PUSCH resource allocation grant from a DCI format 0 message
  */
 int dci_msg_to_ra_ul(dci_msg_t *msg, uint32_t nof_prb, uint32_t n_rb_ho, ra_pusch_t *ra_ul) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
       ra_ul             !=  NULL)
   {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     bzero(ra_ul, sizeof(ra_pusch_t));
     
@@ -153,7 +153,7 @@ int dci_msg_to_ra_ul(dci_msg_t *msg, uint32_t nof_prb, uint32_t n_rb_ho, ra_pusc
       return ret;
     }
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   return ret;
 }
@@ -163,15 +163,15 @@ int dci_location_set(dci_location_t *c, uint32_t L, uint32_t nCCE) {
     c->L = L;
   } else {
     fprintf(stderr, "Invalid L %d\n", L);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (nCCE <= 87) {
     c->ncce = nCCE;
   } else {
     fprintf(stderr, "Invalid nCCE %d\n", nCCE);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 bool dci_location_isvalid(dci_location_t *c) {
@@ -260,7 +260,7 @@ uint32_t dci_format_sizeof(dci_format_t format, uint32_t nof_prb) {
   case Format1C:
     return dci_format1C_sizeof(nof_prb);
   default:
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -328,7 +328,7 @@ int dci_format0_pack(ra_pusch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
     *y++ = 0;
   }
   msg->nof_bits = (y - msg->data);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 /* Unpacks DCI format 0 data and store result in msg according
  * to 36.212 5.3.3.1.1
@@ -344,12 +344,12 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
   /* Make sure it's a Format0 message */
   if (msg->nof_bits != dci_format_sizeof(Format0, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 0\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (*y++ != 0) {
     fprintf(stderr,
         "Invalid format differentiation field value. This is Format1A\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (*y++ == 0) {
     data->freq_hop_fl = hop_disabled;
@@ -394,7 +394,7 @@ int dci_format0_unpack(dci_msg_t *msg, ra_pusch_t *data, uint32_t nof_prb) {
     data->rv_idx = data->mcs_idx - 28;
   }
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Packs DCI format 1 data to a sequence of bits and store them in msg according
@@ -428,7 +428,7 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   default:
     fprintf(stderr,
         "Format 1 accepts type0 or type1 resource allocation only\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
 
   }
   /* pack MCS */
@@ -453,7 +453,7 @@ int dci_format1_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   }
   msg->nof_bits = (y - msg->data);
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
@@ -464,7 +464,7 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
   /* Make sure it's a Format1 message */
   if (msg->nof_bits != dci_format_sizeof(Format1, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
   if (nof_prb > 10) {
@@ -488,14 +488,14 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
     break;
   default:
     fprintf(stderr, "Format 1 accepts type0 or type1 resource allocation only\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
 
   }
   /* unpack MCS according to 7.1.7 of 36.213 */
   data->mcs_idx = bit_unpack(&y, 5);
   if (ra_mcs_from_idx_dl(data->mcs_idx, ra_nprb_dl(data, nof_prb), &data->mcs)) {
     fprintf(stderr, "Error getting MCS\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   
   /* harq process number */
@@ -508,7 +508,7 @@ int dci_format1_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
 
   // TPC not implemented
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Packs DCI format 1A for compact scheduling of PDSCH words according to 36.212 5.3.3.1.3
@@ -525,7 +525,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
 
   if (data->alloc_type != alloc_type2) {
     fprintf(stderr, "Format 1A accepts type2 resource allocation only\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
   *y++ = data->type2_alloc.mode; // localized or distributed VRB assignment
@@ -534,7 +534,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
     if (data->type2_alloc.L_crb > nof_prb) {
       fprintf(stderr, "L_CRB=%d can not exceed system BW for localized type2\n",
           data->type2_alloc.L_crb);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
   } else {
     uint32_t n_vrb_dl;
@@ -547,7 +547,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
       fprintf(stderr,
           "L_CRB=%d can not exceed N_vrb_dl=%d for distributed type2\n",
           data->type2_alloc.L_crb, n_vrb_dl);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
   }
   /* pack RIV according to 7.1.6.3 of 36.213 */
@@ -595,7 +595,7 @@ int dci_format1As_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb,
   }
   msg->nof_bits = (y - msg->data);
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Unpacks DCI format 1A for compact scheduling of PDSCH words according to 36.212 5.3.3.1.3
@@ -610,12 +610,12 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   /* Make sure it's a Format0 message */
   if (msg->nof_bits != dci_format_sizeof(Format1A, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1A\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
   if (*y++ != 1) {
     fprintf(stderr, "Invalid format differentiation field value. This is Format0\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
   data->alloc_type = alloc_type2;
@@ -673,7 +673,7 @@ int dci_format1As_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   data->mcs.tbs = ra_tbs_from_idx(data->mcs_idx, n_prb);
   data->mcs.mod = LTE_QPSK;
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Format 1C for compact scheduling of PDSCH words
@@ -687,7 +687,7 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   if (data->alloc_type != alloc_type2 || data->type2_alloc.mode != t2_dist) {
     fprintf(stderr,
         "Format 1C accepts distributed type2 resource allocation only\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
   if (nof_prb >= 50) {
@@ -699,15 +699,15 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
   if (data->type2_alloc.L_crb > ((uint32_t) n_vrb_dl / n_step) * n_step) {
     fprintf(stderr, "L_CRB=%d can not exceed N_vrb_dl=%d for distributed type2\n",
         data->type2_alloc.L_crb, ((uint32_t) n_vrb_dl / n_step) * n_step);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (data->type2_alloc.L_crb % n_step) {
     fprintf(stderr, "L_crb must be multiple of n_step\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (data->type2_alloc.RB_start % n_step) {
     fprintf(stderr, "RB_start must be multiple of n_step\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   uint32_t L_p = data->type2_alloc.L_crb / n_step;
   uint32_t RB_p = data->type2_alloc.RB_start / n_step;
@@ -726,7 +726,7 @@ int dci_format1Cs_pack(ra_pdsch_t *data, dci_msg_t *msg, uint32_t nof_prb) {
 
   msg->nof_bits = (y - msg->data);
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
@@ -737,7 +737,7 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
 
   if (msg->nof_bits != dci_format_sizeof(Format1C, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1C\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   data->alloc_type = alloc_type2;
   data->type2_alloc.mode = t2_dist;
@@ -761,7 +761,7 @@ int dci_format1Cs_unpack(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb) {
 
   msg->nof_bits = (y - msg->data);
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format,
@@ -776,7 +776,7 @@ int dci_msg_pack_pdsch(ra_pdsch_t *data, dci_msg_t *msg, dci_format_t format,
   default:
     fprintf(stderr, "Invalid DCI format %s for PDSCH resource allocation\n",
         dci_format_string(format));
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -789,7 +789,7 @@ int dci_msg_unpack_pdsch(dci_msg_t *msg, ra_pdsch_t *data, uint32_t nof_prb,
   } else if (msg->nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
     return dci_format1Cs_unpack(msg, data, nof_prb);
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -859,11 +859,11 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
       && !msg->data[0]) {
     type->type = PUSCH_SCHED;
     type->format = Format0;
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1, nof_prb)) {
     type->type = PDSCH_SCHED; // only these 2 types supported
     type->format = Format1;
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1A, nof_prb)) {
     /* The RNTI is not the only condition. Also some fields in the packet. 
      * if (msg_rnti >= CRNTI_START && msg_rnti <= CRNTI_END) {
@@ -874,7 +874,7 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
       type->type = PDSCH_SCHED; // only these 2 types supported
       type->format = Format1A;
     //}
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else if (msg->nof_bits == dci_format_sizeof(Format1C, nof_prb)) {
     if (msg_rnti == MRNTI) {
       type->type = MCCH_CHANGE;
@@ -883,8 +883,8 @@ int dci_msg_get_type(dci_msg_t *msg, dci_msg_type_t *type, uint32_t nof_prb,
       type->type = PDSCH_SCHED; // only these 2 types supported
       type->format = Format1C;
     }
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   }
-  return LIBLTE_ERROR;
+  return SRSLTE_ERROR;
 }
 

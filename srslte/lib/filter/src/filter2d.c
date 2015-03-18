@@ -30,13 +30,13 @@
 #include <strings.h>
 #include <stdlib.h>
 
-#include "srslte/phy/utils/debug.h"
+#include "srslte/utils/debug.h"
 
-#include "srslte/phy/resampling/interp.h"
-#include "srslte/phy/filter/filter2d.h"
-#include "srslte/phy/utils/matrix.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/resampling/interp.h"
+#include "srslte/filter/filter2d.h"
+#include "srslte/utils/matrix.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 /* Useful macros */
 #define intceil(X, Y)  ((X-1)/Y+1)

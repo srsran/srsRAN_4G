@@ -94,7 +94,7 @@ for snr_idx=1:length(SNR_values)
             decoded(snr_idx) = decoded(snr_idx) + ~blkcrc;
 
 
-            %% Same with libLTE
+            %% Same with srsLTE
             if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
                 [dec2, data, pdschRx, pdschSymbols2, deb] = liblte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
                                                         rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
@@ -116,7 +116,7 @@ if (length(SNR_values)>1)
     semilogy(SNR_values,1-decoded/Npackets/(Nsf+1),'bo-',...
              SNR_values,1-decoded_liblte/Npackets/(Nsf+1), 'ro-')
     grid on;
-    legend('Matlab','libLTE')
+    legend('Matlab','srsLTE')
     xlabel('SNR (dB)')
     ylabel('BLER')
     axis([min(SNR_values) max(SNR_values) 1/Npackets/(Nsf+1) 1])

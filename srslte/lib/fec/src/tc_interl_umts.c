@@ -30,8 +30,8 @@
 #include <strings.h>
 #include <stdint.h>
 
-#include "srslte/phy/fec/tc_interl.h"
-#include "srslte/phy/fec/turbocoder.h"
+#include "srslte/fec/tc_interl.h"
+#include "srslte/fec/turbocoder.h"
 
 #define TURBO_RATE 	3
 

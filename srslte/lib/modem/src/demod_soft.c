@@ -29,14 +29,14 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/bit.h"
+#include "srslte/modem/demod_soft.h"
 #include "soft_algs.h"
 
 
 int demod_soft_init(demod_soft_t *q, uint32_t max_symbols) {
-  int ret = LIBLTE_ERROR; 
+  int ret = SRSLTE_ERROR; 
   
   bzero((void*)q,sizeof(demod_soft_t));
   q->sigma = 1.0; 
@@ -52,10 +52,10 @@ int demod_soft_init(demod_soft_t *q, uint32_t max_symbols) {
   }
   q->max_symbols = max_symbols;
   
-  ret = LIBLTE_SUCCESS;
+  ret = SRSLTE_SUCCESS;
   
 clean_exit:
-  if (ret != LIBLTE_SUCCESS) {
+  if (ret != SRSLTE_SUCCESS) {
     demod_soft_free(q);
   }
   return ret; 

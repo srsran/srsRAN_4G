@@ -34,11 +34,11 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/phch/cqi.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phch/cqi.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 
 int cqi_hl_subband_pack(cqi_hl_subband_t *msg, uint32_t N, uint8_t *buff, uint32_t buff_len) 

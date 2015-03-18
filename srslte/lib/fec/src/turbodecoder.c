@@ -32,8 +32,8 @@
 #include <strings.h>
 #include <math.h>
 
-#include "srslte/phy/fec/turbodecoder.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/fec/turbodecoder.h"
+#include "srslte/utils/vector.h"
 
 /************************************************
  *
@@ -332,7 +332,7 @@ int tdec_run_all(tdec_t * h, llr_t * input, uint8_t *output,
   uint32_t iter = 0;
 
   if (tdec_reset(h, long_cb)) {
-    return LIBLTE_ERROR; 
+    return SRSLTE_ERROR; 
   }
 
   do {
@@ -342,5 +342,5 @@ int tdec_run_all(tdec_t * h, llr_t * input, uint8_t *output,
 
   tdec_decision(h, output, long_cb);
   
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }

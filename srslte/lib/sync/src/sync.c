@@ -29,11 +29,11 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/sync/sync.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/sync/cfo.h"
+#include "srslte/utils/debug.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/sync/sync.h"
+#include "srslte/utils/vector.h"
+#include "srslte/sync/cfo.h"
 
 #define MEANPEAK_EMA_ALPHA      0.2
 #define CFO_EMA_ALPHA           0.01
@@ -49,13 +49,13 @@ static bool fft_size_isvalid(uint32_t fft_size) {
 
 int sync_init(sync_t *q, uint32_t frame_size, uint32_t fft_size) {
 
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q                 != NULL         &&
       frame_size        <= 307200       &&
       fft_size_isvalid(fft_size))
   {
-    ret = LIBLTE_ERROR; 
+    ret = SRSLTE_ERROR; 
     
     bzero(q, sizeof(sync_t));
     q->detect_cp = true;
@@ -86,13 +86,13 @@ int sync_init(sync_t *q, uint32_t frame_size, uint32_t fft_size) {
 
     DEBUG("SYNC init with frame_size=%d and fft_size=%d\n", frame_size, fft_size);
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }  else {
     fprintf(stderr, "Invalid parameters frame_size: %d, fft_size: %d\n", frame_size, fft_size);
   }
   
 clean_exit: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     sync_free(q);
   }
   return ret;
@@ -129,10 +129,10 @@ int sync_get_cell_id(sync_t *q) {
 int sync_set_N_id_2(sync_t *q, uint32_t N_id_2) {
   if (lte_N_id_2_isvalid(N_id_2)) {
     q->N_id_2 = N_id_2;    
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid N_id_2=%d\n", N_id_2);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -239,7 +239,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, lte_cp_t cp) {
   sss_idx = (int) peak_pos-2*q->fft_size-CP(q->fft_size, (CP_ISNORM(q->cp)?CPNORM_LEN:CPEXT_LEN));
   if (sss_idx < 0) {
     INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   DEBUG("Searching SSS around sss_idx: %d, peak_pos: %d\n", sss_idx, peak_pos);
       
@@ -264,7 +264,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, lte_cp_t cp) {
     return 1;
   } else {
     q->N_id_1 = 1000;
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   }
 }
 
@@ -279,7 +279,7 @@ int sync_sss(sync_t *q, cf_t *input, uint32_t peak_pos, lte_cp_t cp) {
 int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_position) 
 {
   
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q                 != NULL     &&
       input             != NULL     &&
@@ -288,7 +288,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
   {
     int peak_pos;
     
-    ret = LIBLTE_SUCCESS; 
+    ret = SRSLTE_SUCCESS; 
     
     if (peak_position) {
       *peak_position = 0; 
@@ -299,7 +299,7 @@ int sync_find(sync_t *q, cf_t *input, uint32_t find_offset, uint32_t *peak_posit
     peak_pos = pss_synch_find_pss(&q->pss, &input[find_offset], &q->peak_value);
     if (peak_pos < 0) {
       fprintf(stderr, "Error calling finding PSS sequence\n");
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     }
     q->mean_peak_value = VEC_EMA(q->peak_value, q->mean_peak_value, MEANPEAK_EMA_ALPHA);
 

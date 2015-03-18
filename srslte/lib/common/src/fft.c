@@ -31,11 +31,11 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/dft.h"
-#include "srslte/phy/common/fft.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/dft.h"
+#include "srslte/common/fft.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
 
 int lte_fft_init_(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
   int symbol_sz = lte_symbol_sz(nof_prb);
@@ -69,7 +69,7 @@ int lte_fft_init_(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb, dft_dir_t dir) {
       dir==FORWARD?"FFT":"iFFT", q->symbol_sz, q->nof_symbols,
           q->cp==CPNORM?"Normal":"Extended", q->nof_re, q->nof_guards);
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void lte_fft_free_(lte_fft_t *q) {
@@ -97,7 +97,7 @@ int lte_ifft_init(lte_fft_t *q, lte_cp_t cp, uint32_t nof_prb) {
   
   ret = lte_fft_init_(q, cp, nof_prb, BACKWARD); 
   
-  if (ret == LIBLTE_SUCCESS) {
+  if (ret == SRSLTE_SUCCESS) {
     dft_plan_set_norm(&q->fft_plan, true);
     
     /* set now zeros at CP */
@@ -135,7 +135,7 @@ int lte_fft_set_freq_shift(lte_fft_t *q, float freq_shift) {
  
   q->freq_shift = true;
   
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void lte_ifft_free(lte_fft_t *q) {

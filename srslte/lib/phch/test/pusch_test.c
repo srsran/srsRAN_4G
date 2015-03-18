@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 lte_cell_t cell = {
   6,            // nof_prb

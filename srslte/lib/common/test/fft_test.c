@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <math.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 int nof_prb = -1;
 lte_cp_t cp = CPNORM;

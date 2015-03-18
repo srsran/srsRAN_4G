@@ -35,11 +35,11 @@
 #include <math.h>
 
 #include "prb_dl.h"
-#include "srslte/phy/phch/pbch.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phch/pbch.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 const uint8_t crc_mask[4][16] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
@@ -129,12 +129,12 @@ int pbch_get(cf_t *slot1_data, cf_t *pbch, lte_cell_t cell) {
  * maximum number of BS transmitter ports to look for.  
  */
 int pbch_init(pbch_t *q, lte_cell_t cell) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q                       != NULL &&
       lte_cell_isvalid(&cell))
   {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
 
     bzero(q, sizeof(pbch_t));
     q->cell = cell;
@@ -198,10 +198,10 @@ int pbch_init(pbch_t *q, lte_cell_t cell) {
     if (!q->pbch_rm_b) {
       goto clean;
     }
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 clean: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     pbch_free(q);
   }
   return ret;
@@ -383,7 +383,7 @@ uint32_t pbch_crc_check(pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
     if (chkzeros) {
       return 0;
     } else {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
   } else {
     return ret; 
@@ -419,7 +419,7 @@ int pbch_decode_frame(pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
  if (!pbch_crc_check(q, q->data, nof_ports)) {
     return 1;
   } else {
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   }
 }
 
@@ -440,14 +440,14 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float
   int nof_bits;
   cf_t *x[MAX_LAYERS];
   
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                 != NULL &&
       slot1_symbols     != NULL)
   {
     for (i=0;i<q->cell.nof_ports;i++) {
       if (ce_slot1[i] == NULL) {
-        return LIBLTE_ERROR_INVALID_INPUTS;
+        return SRSLTE_ERROR_INVALID_INPUTS;
       } 
     }
 
@@ -463,14 +463,14 @@ int pbch_decode(pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[MAX_PORTS], float
     /* extract symbols */
     if (q->nof_symbols != pbch_get(slot1_symbols, q->pbch_symbols[0], q->cell)) {
       fprintf(stderr, "There was an error getting the PBCH symbols\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
 
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (q->nof_symbols != pbch_get(ce_slot1[i], q->ce[i], q->cell)) {
         fprintf(stderr, "There was an error getting the PBCH symbols\n");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
     }
 
@@ -547,7 +547,7 @@ int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_sym
   {
     for (i=0;i<q->cell.nof_ports;i++) {
       if (slot1_symbols[i] == NULL) {
-        return LIBLTE_ERROR_INVALID_INPUTS;
+        return SRSLTE_ERROR_INVALID_INPUTS;
       } 
     }
     /* Set pointers for layermapping & precoding */
@@ -594,9 +594,9 @@ int pbch_encode(pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_sym
     if (q->frame_idx == 4) {
       q->frame_idx = 0;
     }
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 

@@ -31,7 +31,7 @@
 #include <assert.h>
 #include <complex.h>
 
-#include "srslte/phy/utils/cexptab.h"
+#include "srslte/utils/cexptab.h"
 
 int cexptab_init(cexptab_t *h, uint32_t size) {
   uint32_t i;
@@ -42,9 +42,9 @@ int cexptab_init(cexptab_t *h, uint32_t size) {
     for (i = 0; i < size; i++) {
       h->tab[i] = cexpf(_Complex_I * 2 * M_PI * (float) i / size);
     }
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 

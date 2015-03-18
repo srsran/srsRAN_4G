@@ -2,19 +2,19 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The libLTE Developers. See the
+ * Copyright 2013-2014 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
  *
- * This file is part of the libLTE library.
+ * This file is part of the srsLTE library.
  *
- * libLTE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * libLTE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -32,7 +32,7 @@
 #include <math.h>
 
 #include "gauss.h"
-#include "srslte/phy/channel/ch_awgn.h"
+#include "srslte/channel/ch_awgn.h"
 
 float ch_awgn_get_variance(float ebno_db, float rate) {
   float esno_db = ebno_db + 10 * log10f(rate);

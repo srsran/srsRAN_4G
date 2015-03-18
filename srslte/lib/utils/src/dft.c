@@ -31,8 +31,8 @@
 #include <fftw3.h>
 #include <string.h>
 
-#include "srslte/phy/utils/dft.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/utils/dft.h"
+#include "srslte/utils/vector.h"
 
 #define dft_ceil(a,b) ((a-1)/b+1)
 #define dft_floor(a,b) (a/b)

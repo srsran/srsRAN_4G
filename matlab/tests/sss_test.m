@@ -111,7 +111,7 @@ for snr_idx=1:length(SNR_values)
         
         error(3,snr_idx) = error(3,snr_idx) + ((idx ~= m0 && idx ~= m1));
         
-        % libLTE results
+        % srsLTE results
         [n,sf_idx,lt_corr0]=liblte_sss(enb,rxWaveform,'full');
         [m, idx]=max(lt_corr0);
         error(4,snr_idx) = error(4,snr_idx) + ((idx ~= m0 && idx ~= m1));

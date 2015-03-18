@@ -144,7 +144,7 @@ parfor snr_idx=1:length(SNR_values)
         decoded(snr_idx) = decoded(snr_idx) + (length(rxDCI)>0);
 
         
-        %% Same with libLTE
+        %% Same with srsLTE
         [rxCFI, pcfichSymbols2, pcfichSymbolsRx2] = liblte_pcfich(enbConfigRx, rxWaveform);
         decoded_cfi_liblte(snr_idx) = decoded_cfi_liblte(snr_idx) + (rxCFI == txCFI); 
         enbConfigRx.CFI = rxCFI;
@@ -160,7 +160,7 @@ if (Npackets>1)
              SNR_values,1-decoded_liblte/Npackets, 'ro-',...
              SNR_values,1-decoded_cfi_liblte/Npackets,'rx:')
     grid on
-    legend('Matlab all','Matlab cfi', 'libLTE all', 'libLTE cfi')
+    legend('Matlab all','Matlab cfi', 'srsLTE all', 'srsLTE cfi')
     xlabel('SNR (dB)')
     ylabel('BLER')
     axis([min(SNR_values) max(SNR_values) 1/Npackets/10 1])

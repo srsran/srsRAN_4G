@@ -34,7 +34,7 @@
 #include <time.h>
 #include <stdbool.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 char *sequence_name = NULL;
 bool do_floats = false;

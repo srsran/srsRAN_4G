@@ -27,9 +27,9 @@
 
 #include <math.h>
 #include <string.h>
-#include "srslte/phy/phch/prach.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/phch/prach.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
 
 #define   N_SEQS        64    // Number of prach sequences available
 #define   N_RB_SC       12    // Number of subcarriers per resource block
@@ -280,7 +280,7 @@ int prach_init(prach_t *p,
                bool high_speed_flag,
                uint32_t zero_corr_zone_config)
 {
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   if(p                      != NULL      &&
      N_ifft_ul              <  2049      &&
      preamble_format        <  4         && // Currently supporting formats 0-3
@@ -314,14 +314,14 @@ int prach_init(prach_t *p,
     // Set up ZC FFTS
     p->zc_fft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
     if(dft_plan(p->zc_fft, p->N_zc, FORWARD, COMPLEX)){
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     dft_plan_set_mirror(p->zc_fft, false);
     dft_plan_set_norm(p->zc_fft, false);
 
     p->zc_ifft = (dft_plan_t*)vec_malloc(sizeof(dft_plan_t));
     if(dft_plan(p->zc_ifft, p->N_zc, BACKWARD, COMPLEX)){
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     dft_plan_set_mirror(p->zc_ifft, false);
     dft_plan_set_norm(p->zc_ifft, false);
@@ -362,7 +362,7 @@ int prach_init(prach_t *p,
     p->N_seq = prach_Tseq[p->f]*p->N_ifft_ul/2048;
     p->N_cp = prach_Tcp[p->f]*p->N_ifft_ul/2048;
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 
   return ret;
@@ -374,7 +374,7 @@ int prach_gen(prach_t *p,
               float beta_prach,
               cf_t *signal)
 {
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   if(p          != NULL   &&
      seq_index  <  N_SEQS &&
      signal     != NULL)
@@ -404,7 +404,7 @@ int prach_gen(prach_t *p,
     // Normalize 
     vec_sc_prod_cfc(signal, beta_prach, signal, (p->N_cp + p->N_seq));
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 
   return ret;
@@ -418,7 +418,7 @@ int prach_detect(prach_t *p,
                  uint32_t *indices,
                  uint32_t *n_indices)
 {
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   if(p       != NULL &&
      signal  != NULL &&
      sig_len > 0     &&
@@ -426,7 +426,7 @@ int prach_detect(prach_t *p,
   {
     if(sig_len != p->N_ifft_prach){
       INFO("prach_detect: Signal is not of length %d", p->N_ifft_prach);
-      return LIBLTE_ERROR_INVALID_INPUTS;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     // FFT incoming signal
@@ -489,7 +489,7 @@ int prach_detect(prach_t *p,
       }
     }
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   return ret;
 }

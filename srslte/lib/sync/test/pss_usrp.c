@@ -35,7 +35,7 @@
 
 #include <stdbool.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 #include "srslte/cuhd/cuhd.h"
 
 
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
  
   if (sss_synch_init(&sss, fft_size)) {
     fprintf(stderr, "Error initializing SSS object\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
   sss_synch_set_N_id_2(&sss, N_id_2);

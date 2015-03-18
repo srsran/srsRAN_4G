@@ -31,7 +31,7 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 #define MAX_CANDIDATES 64
 

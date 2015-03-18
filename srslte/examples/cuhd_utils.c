@@ -2,19 +2,19 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The libLTE Developers. See the
+ * Copyright 2013-2014 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
  *
- * This file is part of the libLTE library.
+ * This file is part of the srsLTE library.
  *
- * libLTE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * libLTE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -35,7 +35,7 @@
 
 #include <unistd.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 #include "srslte/rrc/rrc.h"
 #include "cuhd_utils.h"
 
@@ -52,7 +52,7 @@ int cuhd_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, timestamp_t *t)
  * Return 1 if the MIB is decoded, 0 if not or -1 on error. 
  */
 int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, lte_cell_t *cell) {
-  int ret = LIBLTE_ERROR; 
+  int ret = SRSLTE_ERROR; 
   ue_mib_sync_t ue_mib; 
   uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
 
@@ -92,7 +92,7 @@ clean_exit:
 int cuhd_cell_search(void *uhd, cell_search_cfg_t *config, 
                      int force_N_id_2, lte_cell_t *cell) 
 {
-  int ret = LIBLTE_ERROR; 
+  int ret = SRSLTE_ERROR; 
   ue_cell_search_t cs; 
   ue_cell_search_result_t found_cells[3];
 
@@ -100,7 +100,7 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
     
   if (ue_cell_search_init(&cs, cuhd_recv_wrapper_cs, uhd)) {
     fprintf(stderr, "Error initiating UE cell detect\n");
-    return LIBLTE_ERROR; 
+    return SRSLTE_ERROR; 
   }
   
   if (config->max_frames_pss) {
@@ -126,10 +126,10 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
   }
   if (ret < 0) {
     fprintf(stderr, "Error searching cell\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   } else if (ret == 0) {
     fprintf(stderr, "Could not find any cell in this frequency\n");
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   }
   
   // Save result 
@@ -152,7 +152,7 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
  */
 int cuhd_search_and_decode_mib(void *uhd, cell_search_cfg_t *config, int force_N_id_2, lte_cell_t *cell) 
 {
-  int ret = LIBLTE_ERROR; 
+  int ret = SRSLTE_ERROR; 
   
   printf("Searching for cell...\n");
   ret = cuhd_cell_search(uhd, config, force_N_id_2, cell);
@@ -161,7 +161,7 @@ int cuhd_search_and_decode_mib(void *uhd, cell_search_cfg_t *config, int force_N
     ret = cuhd_mib_decoder(uhd, config->max_frames_pbch, cell);
     if (ret < 0) {
       fprintf(stderr, "Could not decode PBCH from CELL ID %d\n", cell->id);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }    
   }
   return ret;

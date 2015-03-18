@@ -7,7 +7,7 @@
 
 class ScatterplotWrapper;
 
-class LIBLTE_API Scatterplot
+class Scatterplot
 {
 public:
   Scatterplot();
@@ -28,8 +28,7 @@ private:
   ScatterplotWrapper* plot_;
 };
 
-template<class Iterator>
-LIBLTE_API void Scatterplot::setNewData(Iterator begin, Iterator end)
+template<class Iterator> void Scatterplot::setNewData(Iterator begin, Iterator end)
 {
   int numPoints = end-begin;
   std::complex<double>* data = new std::complex<double>[numPoints];

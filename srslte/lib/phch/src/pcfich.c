@@ -34,12 +34,12 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/phch/regs.h"
-#include "srslte/phy/phch/pcfich.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phch/regs.h"
+#include "srslte/phch/pcfich.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 // Table 5.3.4-1
 static uint8_t cfi_table[4][PCFICH_CFI_LEN] = { 
@@ -62,13 +62,13 @@ bool pcfich_exists(int nframe, int nslot) {
  * On error, returns -1 and frees the structrure 
  */
 int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                         != NULL &&
       regs                      != NULL &&
       lte_cell_isvalid(&cell)) 
   {   
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(pcfich_t));
     q->cell = cell;
@@ -100,11 +100,11 @@ int pcfich_init(pcfich_t *q, regs_t *regs, lte_cell_t cell) {
       }
     }
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   
   clean: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     pcfich_free(q);
   }
   return ret;
@@ -147,10 +147,10 @@ float pcfich_cfi_decode(pcfich_t *q, uint32_t *cfi) {
  */
 int pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
   if (cfi < 1 || cfi > 3) {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   } else{
     memcpy(bits, cfi_table[cfi - 1], PCFICH_CFI_LEN * sizeof(uint8_t));
-    return LIBLTE_SUCCESS;    
+    return SRSLTE_SUCCESS;    
   }
 }
 
@@ -184,14 +184,14 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float no
     if (q->nof_symbols
         != regs_pcfich_get(q->regs, slot_symbols, q->pcfich_symbols[0])) {
       fprintf(stderr, "There was an error getting the PCFICH symbols\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
 
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (q->nof_symbols != regs_pcfich_get(q->regs, ce[i], q->ce[i])) {
         fprintf(stderr, "There was an error getting the PCFICH symbols\n");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
     }
 
@@ -221,7 +221,7 @@ int pcfich_decode(pcfich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float no
     }
     return 1;
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
   
 }
@@ -271,12 +271,12 @@ int pcfich_encode(pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[MAX_PORTS],
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (regs_pcfich_put(q->regs, q->pcfich_symbols[i], slot_symbols[i]) < 0) {
         fprintf(stderr, "Error putting PCHICH resource elements\n");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
     }
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 

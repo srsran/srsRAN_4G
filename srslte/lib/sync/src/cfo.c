@@ -29,13 +29,13 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "srslte/phy/utils/cexptab.h"
-#include "srslte/phy/sync/cfo.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/utils/cexptab.h"
+#include "srslte/sync/cfo.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 int cfo_init(cfo_t *h, uint32_t nsamples) {
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   bzero(h, sizeof(cfo_t));
 
   if (cexptab_init(&h->tab, CFO_CEXPTAB_SIZE)) {
@@ -50,9 +50,9 @@ int cfo_init(cfo_t *h, uint32_t nsamples) {
   h->nsamples = nsamples;
   cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
 
-  ret = LIBLTE_SUCCESS;
+  ret = SRSLTE_SUCCESS;
 clean:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     cfo_free(h);
   }
   return ret;
@@ -74,12 +74,12 @@ int cfo_realloc(cfo_t *h, uint32_t samples) {
   h->cur_cexp = realloc(h->cur_cexp, sizeof(cf_t) * samples); 
   if (!h->cur_cexp) {
     perror("realloc");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, samples);
   h->nsamples = samples;
   
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void cfo_correct(cfo_t *h, cf_t *input, cf_t *output, float freq) {

@@ -25,7 +25,7 @@
  *
  */
 
-#include "srslte/phy/utils/bit.h"
+#include "srslte/utils/bit.h"
 
 void pack_bits(uint32_t value, uint8_t **bits, int nof_bits)
 {

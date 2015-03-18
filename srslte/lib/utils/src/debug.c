@@ -25,7 +25,7 @@
  *
  */
 
-#include "srslte/phy/utils/debug.h"
+#include "srslte/utils/debug.h"
 
 int verbose = 0;
 

@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/utils/dft.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/convolution.h"
+#include "srslte/utils/dft.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/convolution.h"
 
 
 int conv_fft_cc_init(conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {
@@ -42,21 +42,21 @@ int conv_fft_cc_init(conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) 
   q->filter_fft = vec_malloc(sizeof(cf_t)*q->output_len);
   q->output_fft = vec_malloc(sizeof(cf_t)*q->output_len);
   if (!q->input_fft || !q->filter_fft || !q->output_fft) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (dft_plan(&q->input_plan,q->output_len,FORWARD,COMPLEX)) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (dft_plan(&q->filter_plan,q->output_len,FORWARD,COMPLEX)) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (dft_plan(&q->output_plan,q->output_len,BACKWARD,COMPLEX)) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   dft_plan_set_norm(&q->input_plan, true);
   dft_plan_set_norm(&q->filter_plan, true);
   dft_plan_set_norm(&q->output_plan, false);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void conv_fft_cc_free(conv_fft_cc_t *q) {

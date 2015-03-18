@@ -30,9 +30,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/phch/regs.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/phch/regs.h"
+#include "srslte/utils/debug.h"
 
 #define REG_IDX(r, i, n) r->k[i]+r->l*n*RE_X_RB
 
@@ -82,7 +82,7 @@ const uint8_t PDCCH_PERM[PDCCH_NCOLS] =
  */
 int regs_pdcch_init(regs_t *h) {
   int i, m, cfi, nof_ctrl_symbols;
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   int nrows, ndummy, j;
   uint32_t k, kp;
   regs_reg_t **tmp = NULL;
@@ -148,12 +148,12 @@ int regs_pdcch_init(regs_t *h) {
     tmp = NULL;
   }
 
-  ret = LIBLTE_SUCCESS;
+  ret = SRSLTE_SUCCESS;
 clean_and_exit:
   if (tmp) {
     free(tmp);
   }
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     regs_pdcch_free(h);
   }
   return ret;
@@ -162,7 +162,7 @@ clean_and_exit:
 int regs_pdcch_nregs(regs_t *h, uint32_t cfi) {
   if (cfi < 1 || cfi > 3) {
     fprintf(stderr, "Invalid CFI=%d\n", cfi);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   } else {
     return (int) h->pdcch[cfi-1].nof_regs;
   }
@@ -184,11 +184,11 @@ int regs_pdcch_put_offset(regs_t *h, cf_t *pdcch_symbols, cf_t *slot_symbols, ui
       return k;      
     } else {
       fprintf(stderr, "Out of range: start_reg + nof_reg must be lower than %d\n", h->pdcch[h->cfi].nof_regs);
-      return LIBLTE_ERROR;      
+      return SRSLTE_ERROR;      
     }       
   } else {
     fprintf(stderr, "Must call regs_set_cfi() first\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -208,11 +208,11 @@ int regs_pdcch_get_offset(regs_t *h, cf_t *slot_symbols, cf_t *pdcch_symbols, ui
       return k;    
     } else {
       fprintf(stderr, "Out of range: start_reg + nof_reg must be lower than %d\n", h->pdcch[h->cfi].nof_regs);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
   } else {
     fprintf(stderr, "Must call regs_set_cfi() first\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -237,7 +237,7 @@ int regs_phich_init(regs_t *h) {
   float ng;
   uint32_t i, ni, li, n[3], nreg, mi;
   regs_reg_t **regs_phich[3];
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
 
   switch(h->phich_res) {
   case R_1_6:
@@ -318,10 +318,10 @@ int regs_phich_init(regs_t *h) {
   if (CP_ISEXT(h->cell.cp)) {
     h->ngroups_phich *= 2;
   }
-  ret = LIBLTE_SUCCESS;
+  ret = SRSLTE_SUCCESS;
 
 clean_and_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     if (h->phich) {
       for (i=0;i<h->ngroups_phich;i++) {
         if (h->phich[i].regs) {
@@ -382,7 +382,7 @@ int regs_phich_add(regs_t *h, cf_t phich_symbols[REGS_PHICH_NSYM], uint32_t ngro
   uint32_t i;
   if (ngroup >= h->ngroups_phich) {
     fprintf(stderr, "Error invalid ngroup %d\n", ngroup);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
   if (CP_ISEXT(h->cell.cp)) {
     ngroup /= 2;
@@ -413,7 +413,7 @@ int regs_phich_reset(regs_t *h, cf_t *slot_symbols) {
       regs_reset_reg(rch->regs[i], slot_symbols, h->cell.nof_prb);
     }
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /**
@@ -425,7 +425,7 @@ int regs_phich_get(regs_t *h, cf_t *slot_symbols, cf_t phich_symbols[REGS_PHICH_
   uint32_t i;
   if (ngroup >= h->ngroups_phich) {
     fprintf(stderr, "Error invalid ngroup %d\n", ngroup);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
   if (CP_ISEXT(h->cell.cp)) {
     ngroup /= 2;
@@ -464,7 +464,7 @@ int regs_pcfich_init(regs_t *h) {
   ch->regs = malloc(sizeof(regs_reg_t*) * REGS_PCFICH_NREGS);
   if (!ch->regs) {
     perror("malloc");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   ch->nof_regs = REGS_PCFICH_NREGS;
 
@@ -479,18 +479,18 @@ int regs_pcfich_init(regs_t *h) {
     if (!ch->regs[i]) {
       fprintf(stderr, "Error allocating PCFICH: REG (%d,0) not found\n",
           k);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     } else if (ch->regs[i]->assigned) {
       fprintf(stderr,
           "Error allocating PCFICH: REG (%d,0) already allocated\n",
           k);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     } else {
       ch->regs[i]->assigned = true;     
       INFO("Assigned PCFICH REG#%d (%d,0)\n", i, k);
     }
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void regs_pcfich_free(regs_t *h) {
@@ -580,7 +580,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, lte_cp_t cp) {
       return 2;
     default:
       fprintf(stderr, "Invalid number of ports %d\n", nof_port);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     break;
   case 2:
@@ -593,7 +593,7 @@ int regs_num_x_symbol(uint32_t symbol, uint32_t nof_port, lte_cp_t cp) {
     }
   default:
       fprintf(stderr, "Invalid symbol %d\n", symbol);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -627,7 +627,7 @@ int regs_reg_init(regs_reg_t *reg, uint32_t symbol, uint32_t nreg, uint32_t k0, 
     }
     if (j != 4) {
       fprintf(stderr, "Something went wrong: expected 2 references\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     break;
 
@@ -640,9 +640,9 @@ int regs_reg_init(regs_reg_t *reg, uint32_t symbol, uint32_t nreg, uint32_t k0, 
     break;
   default:
     fprintf(stderr, "Invalid number of REGs per PRB: %d\n", maxreg);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void regs_free(regs_t *h) {
@@ -663,15 +663,15 @@ int regs_set_cfi(regs_t *h, uint32_t cfi) {
     if (h->phich_len == PHICH_EXT &&
         ((h->cell.nof_prb < 10 && cfi < 2) || (h->cell.nof_prb >= 10 && cfi < 3))) {
       fprintf(stderr, "PHICH length is extended. The number of control symbols should be at least 3.\n");
-      return LIBLTE_ERROR_INVALID_INPUTS;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     } else {
       h->cfi_initiated = true;
       h->cfi = cfi - 1;
-      return LIBLTE_SUCCESS;
+      return SRSLTE_SUCCESS;
     }
   } else {
     fprintf(stderr, "Invalid CFI %d\n", cfi);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -681,7 +681,7 @@ int regs_set_cfi(regs_t *h, uint32_t cfi) {
  * Returns 0 if OK, -1 on error
  */
 int regs_init(regs_t *h, lte_cell_t cell) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i, k;
   uint32_t j[4], jmax, prb;
   uint32_t n[4], vo;
@@ -691,7 +691,7 @@ int regs_init(regs_t *h, lte_cell_t cell) {
       lte_cell_isvalid(&cell))
   {
     bzero(h, sizeof(regs_t));
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     max_ctrl_symbols = cell.nof_prb<10?4:3;
     vo = cell.id % 3;
@@ -757,10 +757,10 @@ int regs_init(regs_t *h, lte_cell_t cell) {
       goto clean_and_exit;
     }
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 clean_and_exit:
-  if (ret != LIBLTE_SUCCESS) {
+  if (ret != SRSLTE_SUCCESS) {
     regs_free(h);
   }
   return ret;

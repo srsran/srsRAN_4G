@@ -37,7 +37,7 @@
 #include <fcntl.h>
 
 
-#include "srslte/phy/io/netsink.h"
+#include "srslte/io/netsink.h"
 
 int netsink_init(netsink_t *q, char *address, int port, netsink_type_t type) {
   bzero(q, sizeof(netsink_t));

@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "srslte/phy/modem/modem_table.h"
+#include "srslte/modem/modem_table.h"
 #include "lte_tables.h"
 
 void LLR_approx_params(const cf_t* table, soft_table_t *soft_table, int B);

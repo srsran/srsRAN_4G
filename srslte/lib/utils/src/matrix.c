@@ -32,7 +32,7 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/utils/matrix.h"
+#include "srslte/utils/matrix.h"
 
 int matrix_init(void ***q, int sz_x, int sz_y, int elem_sz) {
   int i;

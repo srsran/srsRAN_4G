@@ -31,7 +31,7 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 void usage(char *prog) {
   printf("Usage: %s nof_prb length_bits Word0 Word1 ...\n", prog);

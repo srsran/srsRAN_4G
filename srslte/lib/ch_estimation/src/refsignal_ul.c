@@ -2,19 +2,19 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The libLTE Developers. See the
+ * Copyright 2013-2014 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
  *
- * This file is part of the libLTE library.
+ * This file is part of the srsLTE library.
  *
- * libLTE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * libLTE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -31,11 +31,11 @@
 #include <stdlib.h>
 #include <complex.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/ch_estimation/refsignal_ul.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/common/sequence.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/ch_estimation/refsignal_ul.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
+#include "srslte/common/sequence.h"
 
 #include "ul_rs_tables.h"
 
@@ -74,7 +74,7 @@ static int generate_n_prs(refsignal_ul_t * q) {
   for (uint32_t delta_ss=0;delta_ss<NOF_DELTA_SS;delta_ss++) {
     c_init = ((q->cell.id / 30) << 5) + (((q->cell.id % 30) + delta_ss) % 30);
     if (sequence_LTE_pr(&seq, 8 * CP_NSYMB(q->cell.cp) * 20, c_init)) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     for (uint32_t ns=0;ns<NSLOTS_X_FRAME;ns++) {  
       uint32_t n_prs = 0;
@@ -86,7 +86,7 @@ static int generate_n_prs(refsignal_ul_t * q) {
   }
 
   sequence_free(&seq);
-  return LIBLTE_SUCCESS; 
+  return SRSLTE_SUCCESS; 
 }
 
 /** Computes sequence-group pattern f_gh according to 5.5.1.3 of 36.211 */
@@ -95,7 +95,7 @@ static int generate_group_hopping_f_gh(refsignal_ul_t *q) {
   bzero(&seq, sizeof(sequence_t));
   
   if (sequence_LTE_pr(&seq, 160, q->cell.id / 30)) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   
   for (uint32_t ns=0;ns<NSLOTS_X_FRAME;ns++) {
@@ -107,7 +107,7 @@ static int generate_group_hopping_f_gh(refsignal_ul_t *q) {
   }
 
   sequence_free(&seq);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 static int generate_sequence_hopping_v(refsignal_ul_t *q) {
@@ -117,13 +117,13 @@ static int generate_sequence_hopping_v(refsignal_ul_t *q) {
   for (uint32_t ns=0;ns<NSLOTS_X_FRAME;ns++) {
     for (uint32_t delta_ss=0;delta_ss<NOF_DELTA_SS;delta_ss++) {
       if (sequence_LTE_pr(&seq, 20, ((q->cell.id / 30) << 5) + ((q->cell.id%30)+delta_ss)%30)) {
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
       q->v_pusch[ns][delta_ss] = seq.c[ns];    
     }
   }
   sequence_free(&seq);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 
@@ -133,7 +133,7 @@ static int generate_sequence_hopping_v(refsignal_ul_t *q) {
 int refsignal_ul_init(refsignal_ul_t * q, lte_cell_t cell)
 {
 
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && lte_cell_isvalid(&cell)) {
 
@@ -166,10 +166,10 @@ int refsignal_ul_init(refsignal_ul_t * q, lte_cell_t cell)
       goto free_and_exit;
     }
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 free_and_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     refsignal_ul_free(q);
   }
   return ret;
@@ -283,9 +283,9 @@ void refsignal_drms_pusch_put(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg
 int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t sf_idx, cf_t *r_pusch) 
 {
 
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (refsignal_drms_pusch_cfg_isvalid(q, cfg, nof_prb)) {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       // Get group hopping number u 
@@ -326,9 +326,9 @@ int refsignal_dmrs_pusch_gen(refsignal_ul_t *q, refsignal_drms_pusch_cfg_t *cfg,
 
 int refsignal_dmrs_pucch_gen(refsignal_ul_t *q, pucch_cfg_t *cfg, uint32_t sf_idx, uint32_t n_rb, cf_t *r_pucch) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (pucch_cfg_isvalid(cfg)) {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       uint32_t N_rs=0; 
@@ -399,14 +399,14 @@ int refsignal_dmrs_pucch_gen(refsignal_ul_t *q, pucch_cfg_t *cfg, uint32_t sf_id
               r_pucch[(ns%2)*RE_X_RB*n_rb*N_rs+m*RE_X_RB*n_rb+n] = cfg->beta_pucch*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
             }                                 
           } else {
-            return LIBLTE_ERROR; 
+            return SRSLTE_ERROR; 
           }          
         }
       } else {
-        return LIBLTE_ERROR; 
+        return SRSLTE_ERROR; 
       }        
     }
-    ret = LIBLTE_SUCCESS; 
+    ret = SRSLTE_SUCCESS; 
   }
   return ret;   
 }

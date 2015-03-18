@@ -5,8 +5,8 @@
 #include <math.h>
 #include <time.h>
 
-#include "srslte/phy/phy.h"
-#include "srslte/phy/resampling/resample_arb.h"
+#include "srslte/srslte.h"
+#include "srslte/resampling/resample_arb.h"
 
 typedef _Complex float cf_t;
 

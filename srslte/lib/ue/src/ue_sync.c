@@ -32,11 +32,11 @@
 #include <unistd.h>
 
 
-#include "srslte/phy/ue/ue_sync.h"
+#include "srslte/ue/ue_sync.h"
 
-#include "srslte/phy/io/filesource.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/io/filesource.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
 
 
 #define MAX_TIME_OFFSET 128
@@ -47,13 +47,13 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define FIND_NOF_AVG_FRAMES     2
 
 int ue_sync_init_file(ue_sync_t *q, uint32_t nof_prb, char *file_name) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                   != NULL && 
       file_name           != NULL && 
       lte_nofprb_isvalid(nof_prb))
   {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     bzero(q, sizeof(ue_sync_t));
     q->file_mode = true; 
     q->sf_len = SF_LEN(lte_symbol_sz(nof_prb));
@@ -71,10 +71,10 @@ int ue_sync_init_file(ue_sync_t *q, uint32_t nof_prb, char *file_name) {
     
     ue_sync_reset(q);
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 clean_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     ue_sync_free(q);
   }
   return ret; 
@@ -85,14 +85,14 @@ int ue_sync_init(ue_sync_t *q,
                  int (recv_callback)(void*, void*, uint32_t,timestamp_t*),
                  void *stream_handler) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                                 != NULL && 
       stream_handler                    != NULL && 
       lte_nofprb_isvalid(cell.nof_prb)      &&
       recv_callback                     != NULL)
   {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(ue_sync_t));
 
@@ -174,11 +174,11 @@ int ue_sync_init(ue_sync_t *q,
     
     ue_sync_reset(q);
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   
 clean_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     ue_sync_free(q);
   }
   return ret; 
@@ -255,7 +255,7 @@ static int find_peak_ok(ue_sync_t *q) {
     INFO("Realigning frame, reading %d samples\n", q->peak_idx+q->sf_len/2);
     /* Receive the rest of the subframe so that we are subframe aligned*/
     if (q->recv_callback(q->stream, q->input_buffer, q->peak_idx+q->sf_len/2, &q->last_timestamp) < 0) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     
     /* Reset variables */ 
@@ -304,7 +304,7 @@ static int track_peak_ok(ue_sync_t *q, uint32_t track_idx) {
     INFO("Positive time offset %d samples. Mean time offset %f.\n", q->time_offset, q->mean_time_offset);
     if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset, &q->last_timestamp) < 0) {
       fprintf(stderr, "Error receiving from USRP\n");
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     }
     q->time_offset = 0;
   } 
@@ -342,19 +342,19 @@ static int receive_samples(ue_sync_t *q) {
 
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
   if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], q->frame_len - q->time_offset, &q->last_timestamp) < 0) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   
   /* reset time offset */
   q->time_offset = 0;
 
-  return LIBLTE_SUCCESS; 
+  return SRSLTE_SUCCESS; 
 }
 
 bool first_track = true; 
 
 int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   uint32_t track_idx; 
   
   if (q               != NULL   &&
@@ -366,7 +366,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
       int n = filesource_read(&q->file_source, q->input_buffer, q->sf_len);
       if (n < 0) {
         fprintf(stderr, "Error reading input file\n");
-        return LIBLTE_ERROR; 
+        return SRSLTE_ERROR; 
       }
       if (n == 0) {
         filesource_seek(&q->file_source, 0);
@@ -374,7 +374,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
         int n = filesource_read(&q->file_source, q->input_buffer, q->sf_len);
         if (n < 0) {
           fprintf(stderr, "Error reading input file\n");
-          return LIBLTE_ERROR; 
+          return SRSLTE_ERROR; 
         }
       }
       q->sf_idx++;
@@ -387,7 +387,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
     } else {
       if (receive_samples(q)) {
         fprintf(stderr, "Error receiving samples\n");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
       
       switch (q->state) {
@@ -395,7 +395,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
           ret = sync_find(&q->sfind, q->input_buffer, 0, &q->peak_idx);
           if (ret < 0) {
             fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
-            return LIBLTE_ERROR;
+            return SRSLTE_ERROR;
           }
           
           if (ret == 1) {
@@ -425,7 +425,7 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
                             &track_idx);
             if (ret < 0) {
               fprintf(stderr, "Error tracking correlation peak\n");
-              return LIBLTE_ERROR;
+              return SRSLTE_ERROR;
             }
             
             #ifdef MEASURE_EXEC_TIME
@@ -439,10 +439,10 @@ int ue_sync_get_buffer(ue_sync_t *q, cf_t **sf_symbols) {
             } else {
               ret = track_peak_no(q); 
             }
-            if (ret == LIBLTE_ERROR) {
+            if (ret == SRSLTE_ERROR) {
               fprintf(stderr, "Error processing tracking peak\n");
               q->state = SF_FIND; 
-              return LIBLTE_SUCCESS;
+              return SRSLTE_SUCCESS;
             } 
                       
             q->frame_total_cnt++;       

@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "srslte/phy/scrambling/scrambling.h"
+#include "srslte/scrambling/scrambling.h"
 
 void scrambling_f(sequence_t *s, float *data) {
   scrambling_f_offset(s, data, 0, s->len);

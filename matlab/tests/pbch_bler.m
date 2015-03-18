@@ -96,7 +96,7 @@ if (length(SNR_values_db) > 1)
     grid on
     xlabel('SNR (dB)');
     ylabel('BLER')
-    legend('Matlab','libLTE')
+    legend('Matlab','srsLTE')
     axis([min(SNR_values_db) max(SNR_values_db) 1/Nrealizations/10 1])
 else
     disp(error)

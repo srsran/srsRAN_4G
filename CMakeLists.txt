@@ -36,7 +36,7 @@ PROJECT (LIBLTE)
 
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
-INCLUDE(libLTEPackage) #setup cpack
+INCLUDE(srsLTEPackage) #setup cpack
 INCLUDE(BuildMex)
 
 include(CTest)
@@ -167,6 +167,6 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/graphics/include)
 ########################################################################
 ADD_SUBDIRECTORY(common)
 ADD_SUBDIRECTORY(cuhd)
-ADD_SUBDIRECTORY(graphics)
 ADD_SUBDIRECTORY(srslte)
 add_subdirectory(mex)
+ADD_SUBDIRECTORY(graphics)

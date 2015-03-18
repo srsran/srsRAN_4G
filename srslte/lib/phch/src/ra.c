@@ -29,12 +29,12 @@
 #include <string.h>
 #include <strings.h>
 #include <math.h>
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/phch/ra.h"
-#include "srslte/phy/utils/bit.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
+#include "srslte/phch/ra.h"
+#include "srslte/utils/bit.h"
 
 #include "tbs_tables.h"
 
@@ -180,7 +180,7 @@ int ra_ul_alloc(ra_ul_alloc_t *prb_dist, ra_pusch_t *ra, uint32_t n_rb_ho, uint3
     INFO("n_rb_pusch: %d, prb1: %d, prb2: %d, L: %d\n", n_rb_pusch, prb_dist->n_prb[0], prb_dist->n_prb[1], prb_dist->L_prb);
     prb_dist->freq_hopping = 1;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Computes the number of RE for each PRB in the prb_dist structure */
@@ -312,10 +312,10 @@ int ra_dl_alloc(ra_dl_alloc_t *prb_dist, ra_pdsch_t *ra, uint32_t nof_prb) {
     }
     break;
   default:
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Returns the number of allocated PRB for Uplink */
@@ -348,14 +348,14 @@ uint32_t ra_nprb_dl(ra_pdsch_t *ra, uint32_t nof_prb) {
     if (nprb > ra_type1_N_rb(nof_prb)) {
       fprintf(stderr, "Number of RB (%d) can not exceed %d\n", nprb,
           ra_type1_N_rb(nof_prb));
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     break;
   case alloc_type2:
     nprb = ra->type2_alloc.L_crb;
     break;
   default:
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   return nprb;
 }
@@ -464,9 +464,9 @@ int ra_mcs_from_idx_dl(uint32_t mcs_idx, uint32_t nof_prb, ra_mcs_t *mcs) {
     mcs->mod = LTE_QAM64;
     mcs->tbs = 0;
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Converts MCS index to ra_mcs_t structure for Uplink as defined in Table 8.6.1-1 on 36.213 */
@@ -481,9 +481,9 @@ int ra_mcs_from_idx_ul(uint32_t mcs_idx, uint32_t nof_prb, ra_mcs_t *mcs) {
     mcs->mod = LTE_QAM64;
     mcs->tbs = ra_tbs_from_idx(mcs_idx - 2, nof_prb);
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /* Downlink Transport Block size for Format 1C as defined in 7.1.7.2.2-1 on 36.213 */
@@ -491,7 +491,7 @@ int ra_tbs_from_idx_format1c(uint32_t tbs_idx) {
   if (tbs_idx < 32) {
     return tbs_format1c_table[tbs_idx];
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -500,7 +500,7 @@ int ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
   if (tbs_idx < 27 && n_prb > 0 && n_prb <= MAX_PRB) {
     return tbs_table[tbs_idx][n_prb - 1];
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -510,17 +510,17 @@ int ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
 int ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
   uint32_t idx;
   if (n_prb > 0 && n_prb <= MAX_PRB) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (tbs < tbs_table[0][n_prb]) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   for (idx = 1; idx < 28; idx++) {
     if (tbs_table[idx - 1][n_prb] <= tbs && tbs_table[idx][n_prb] >= tbs) {
       return idx;
     }
   }
-  return LIBLTE_ERROR;
+  return SRSLTE_ERROR;
 }
 
 void ra_pusch_fprint(FILE *f, ra_pusch_t *ra, uint32_t nof_prb) {

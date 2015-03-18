@@ -27,8 +27,8 @@
 
 #include <complex.h>
 #include <math.h>
-#include "srslte/phy/resampling/decim.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/resampling/decim.h"
+#include "srslte/utils/debug.h"
 
 
 /* Performs integer linear decimation by a factor of M */

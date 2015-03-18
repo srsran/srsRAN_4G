@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "srslte/phy/fec/convcoder.h"
+#include "srslte/fec/convcoder.h"
 #include "parity.h"
 
 int convcoder_encode(convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length) {
@@ -61,7 +61,7 @@ int convcoder_encode(convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t f
     }
     return q->R*len;
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 

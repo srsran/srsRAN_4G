@@ -32,10 +32,10 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "srslte/phy/sync/sss.h"
-#include "srslte/phy/utils/dft.h"
-#include "srslte/phy/utils/convolution.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/sync/sss.h"
+#include "srslte/utils/dft.h"
+#include "srslte/utils/convolution.h"
+#include "srslte/utils/vector.h"
 
 void generate_sss_all_tables(struct sss_tables *tables, uint32_t N_id_2);
 void convert_tables(struct fc_tables *fc_tables, struct sss_tables *in);
@@ -53,7 +53,7 @@ int sss_synch_init(sss_synch_t *q, uint32_t fft_size) {
     
     if (dft_plan(&q->dftp_input, fft_size, FORWARD, COMPLEX)) {
       sss_synch_free(q);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     dft_plan_set_mirror(&q->dftp_input, true);
     dft_plan_set_dc(&q->dftp_input, true);
@@ -67,9 +67,9 @@ int sss_synch_init(sss_synch_t *q, uint32_t fft_size) {
       convert_tables(&q->fc_tables[N_id_2], &sss_tables);
     }
     q->N_id_2 = 0;
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } 
-  return LIBLTE_ERROR_INVALID_INPUTS;
+  return SRSLTE_ERROR_INVALID_INPUTS;
 }
 
 int sss_synch_realloc(sss_synch_t *q, uint32_t fft_size) {
@@ -79,16 +79,16 @@ int sss_synch_realloc(sss_synch_t *q, uint32_t fft_size) {
     dft_plan_free(&q->dftp_input);
     if (dft_plan(&q->dftp_input, fft_size, FORWARD, COMPLEX)) {
       sss_synch_free(q);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     dft_plan_set_mirror(&q->dftp_input, true);
     dft_plan_set_norm(&q->dftp_input, true);
     dft_plan_set_dc(&q->dftp_input, true);
     
     q->fft_size = fft_size;
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   }
-  return LIBLTE_ERROR_INVALID_INPUTS;
+  return SRSLTE_ERROR_INVALID_INPUTS;
 }
 
 void sss_synch_free(sss_synch_t *q) {
@@ -100,10 +100,10 @@ void sss_synch_free(sss_synch_t *q) {
 int sss_synch_set_N_id_2(sss_synch_t *q, uint32_t N_id_2) {
   if (!lte_N_id_2_isvalid(N_id_2)) {
     fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   } else {
     q->N_id_2 = N_id_2;
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   }
 }
 
@@ -141,7 +141,7 @@ uint32_t sss_synch_subframe(uint32_t m0, uint32_t m1) {
 /** Returns the N_id_1 value based on the m0 and m1 values */
 int sss_synch_N_id_1(sss_synch_t *q, uint32_t m0, uint32_t m1) {
   if (m0==m1 || m0 > 29 || m1 > 29) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   int N_id_1; 
   if (m1 > m0) {
@@ -157,11 +157,11 @@ int sss_synch_N_id_1(sss_synch_t *q, uint32_t m0, uint32_t m1) {
 int sss_synch_initialize(sss_synch_hl* h) {
 
   if (sss_synch_init(&h->obj, 128)) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   sss_synch_set_N_id_2(&h->obj, h->init.N_id_2);
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int sss_synch_work(sss_synch_hl* hl) {
@@ -170,11 +170,11 @@ int sss_synch_work(sss_synch_hl* hl) {
     sss_synch_set_threshold(&hl->obj, hl->ctrl_in.correlation_threshold);
   }
  
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int sss_synch_stop(sss_synch_hl* hl) {
   sss_synch_free(&hl->obj);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 

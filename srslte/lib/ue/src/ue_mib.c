@@ -31,21 +31,21 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "srslte/phy/ue/ue_mib.h"
+#include "srslte/ue/ue_mib.h"
 
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
 
 int ue_mib_init(ue_mib_t * q, 
                 lte_cell_t cell) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && 
       cell.nof_ports <= MIB_MAX_PORTS) 
   {
 
-    ret = LIBLTE_ERROR;    
+    ret = SRSLTE_ERROR;    
     bzero(q, sizeof(ue_mib_t));
     
     q->sf_symbols = vec_malloc(SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
@@ -76,11 +76,11 @@ int ue_mib_init(ue_mib_t * q,
     }
     ue_mib_reset(q);
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 
 clean_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     ue_mib_free(q);
   }
   return ret;
@@ -115,7 +115,7 @@ void ue_mib_reset(ue_mib_t * q)
 int ue_mib_decode(ue_mib_t * q, cf_t *input, 
                   uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
 {
-  int ret = LIBLTE_SUCCESS;
+  int ret = SRSLTE_SUCCESS;
   cf_t *ce_slot1[MAX_PORTS]; 
 
   /* Run FFT for the slot symbols */
@@ -124,7 +124,7 @@ int ue_mib_decode(ue_mib_t * q, cf_t *input,
   /* Get channel estimates of sf idx #0 for each port */
   ret = chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, 0);
   if (ret < 0) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   /* Reset decoder if we missed a frame */
   if (q->frame_cnt > 8) {
@@ -170,15 +170,15 @@ int ue_mib_sync_init(ue_mib_sync_t *q,
   
   if (ue_mib_init(&q->ue_mib, cell)) {
     fprintf(stderr, "Error initiating ue_mib\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (ue_sync_init(&q->ue_sync, cell, recv_callback, stream_handler)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     ue_mib_free(&q->ue_mib);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   ue_sync_decode_sss_on_track(&q->ue_sync, true);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void ue_mib_sync_free(ue_mib_sync_t *q) {
@@ -198,14 +198,14 @@ int ue_mib_sync_decode(ue_mib_sync_t * q,
                        uint32_t *sfn_offset) 
 {
   
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   cf_t *sf_buffer = NULL; 
   uint32_t nof_frames = 0; 
   int mib_ret = MIB_NOTFOUND; 
 
   if (q != NULL) 
   {
-    ret = LIBLTE_SUCCESS;     
+    ret = SRSLTE_SUCCESS;     
     do {
       mib_ret = MIB_NOTFOUND; 
       ret = ue_sync_get_buffer(&q->ue_sync, &sf_buffer);

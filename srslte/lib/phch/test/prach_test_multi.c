@@ -6,7 +6,7 @@
 #include <time.h>
 #include <complex.h>
 
-#include "srslte/phy/phch/prach.h"
+#include "srslte/phch/prach.h"
 
 #define MAX_LEN  70176
 typedef _Complex float cf_t;

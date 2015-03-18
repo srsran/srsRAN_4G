@@ -30,7 +30,7 @@
 #include <strings.h>
 #include <assert.h>
 
-#include "srslte/phy/common/sequence.h"
+#include "srslte/common/sequence.h"
 
 #define Nc 1600
 
@@ -76,11 +76,11 @@ void sequence_set_LTE_pr(sequence_t *q, uint32_t seed) {
 
 int sequence_LTE_pr(sequence_t *q, uint32_t len, uint32_t seed) {
   if (sequence_init(q, len)) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   q->len = len;
   sequence_set_LTE_pr(q, seed);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int sequence_init(sequence_t *q, uint32_t len) {
@@ -90,11 +90,11 @@ int sequence_init(sequence_t *q, uint32_t len) {
   if (!q->c) {
     q->c = malloc(len * sizeof(uint8_t));
     if (!q->c) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     q->len = len;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void sequence_free(sequence_t *q) {

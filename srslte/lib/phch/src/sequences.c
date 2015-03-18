@@ -27,8 +27,8 @@
 
 
 #include <strings.h>
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/common/sequence.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/common/sequence.h"
 
 /**
  * 36.211 6.6.1

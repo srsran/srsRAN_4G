@@ -2,19 +2,19 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The libLTE Developers. See the
+ * Copyright 2013-2014 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
  *
- * This file is part of the libLTE library.
+ * This file is part of the srsLTE library.
  *
- * libLTE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * libLTE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -36,9 +36,9 @@
 
 #include "srslte/config.h"
 
-#include "srslte/phy/ch_estimation/chest_dl.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/convolution.h"
+#include "srslte/ch_estimation/chest_dl.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/convolution.h"
 
 #define CHEST_RS_AVERAGE_TIME   2
 #define CHEST_RS_AVERAGE_FREQ   3
@@ -57,14 +57,14 @@
 
 int chest_dl_init(chest_dl_t *q, lte_cell_t cell) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q                != NULL &&
       lte_cell_isvalid(&cell)) 
   {
     bzero(q, sizeof(chest_dl_t));
     
     ret = refsignal_cs_init(&q->csr_signal, cell); 
-    if (ret != LIBLTE_SUCCESS) {
+    if (ret != SRSLTE_SUCCESS) {
       fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
       goto clean_exit;
     }
@@ -135,10 +135,10 @@ int chest_dl_init(chest_dl_t *q, lte_cell_t cell)
     q->cell = cell; 
   }
   
-  ret = LIBLTE_SUCCESS;
+  ret = SRSLTE_SUCCESS;
   
 clean_exit:
-  if (ret != LIBLTE_SUCCESS) {
+  if (ret != SRSLTE_SUCCESS) {
       chest_dl_free(q);
   }
   return ret; 
@@ -185,9 +185,9 @@ int chest_dl_set_filter_freq(chest_dl_t *q, float *filter, uint32_t filter_len) 
     for (int i=0;i<filter_len;i++) {
       q->filter_freq[i] = filter[i];
     }
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -197,9 +197,9 @@ int chest_dl_set_filter_time(chest_dl_t *q, float *filter, uint32_t filter_len) 
     for (int i=0;i<filter_len;i++) {
       q->filter_time[i] = filter[i];
     }    
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }  
 }
 
@@ -388,7 +388,7 @@ int chest_dl_estimate(chest_dl_t *q, cf_t *input, cf_t *ce[MAX_PORTS], uint32_t 
   for (port_id=0;port_id<q->cell.nof_ports;port_id++) {
     chest_dl_estimate_port(q, input, ce[port_id], sf_idx, port_id);
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 float chest_dl_get_noise_estimate(chest_dl_t *q) {

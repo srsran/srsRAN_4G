@@ -2,19 +2,19 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The libLTE Developers. See the
+ * Copyright 2013-2014 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
  *
- * This file is part of the libLTE library.
+ * This file is part of the srsLTE library.
  *
- * libLTE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * libLTE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -32,11 +32,11 @@
 #include <stdlib.h>
 #include <complex.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/ch_estimation/refsignal_dl.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/common/sequence.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/ch_estimation/refsignal_dl.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
+#include "srslte/common/sequence.h"
 
 uint32_t refsignal_cs_v(uint32_t port_id, uint32_t ref_symbol_idx)
 {
@@ -110,12 +110,12 @@ int refsignal_cs_init(refsignal_cs_t * q, lte_cell_t cell)
   uint32_t i, ns, l, p;
   uint32_t N_cp, mp;
   sequence_t seq;
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL &&
       lte_cell_isvalid(&cell)) 
   {
-    ret = LIBLTE_ERROR; 
+    ret = SRSLTE_ERROR; 
     
     bzero(q, sizeof(refsignal_cs_t));
     bzero(&seq, sizeof(sequence_t));
@@ -166,10 +166,10 @@ int refsignal_cs_init(refsignal_cs_t * q, lte_cell_t cell)
       }
     }
     sequence_free(&seq);
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 free_and_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     sequence_free(&seq);
     refsignal_cs_free(q);
   }
@@ -213,9 +213,9 @@ int refsignal_cs_put_sf(lte_cell_t cell, uint32_t port_id, cf_t *pilots, cf_t *s
         fidx += RE_X_RB/2;       // 1 reference every 6 RE        
       }    
     }
-    return LIBLTE_SUCCESS;      
+    return SRSLTE_SUCCESS;      
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -242,9 +242,9 @@ int refsignal_cs_get_sf(lte_cell_t cell, uint32_t port_id, cf_t *sf_symbols, cf_
         fidx += RE_X_RB/2;       // 2 references per PRB
       }
     }
-    return LIBLTE_SUCCESS;      
+    return SRSLTE_SUCCESS;      
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }  
 }
 

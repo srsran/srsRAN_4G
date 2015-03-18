@@ -6,7 +6,7 @@
 #include <time.h>
 #include <complex.h>
 
-#include "srslte/phy/utils/dft.h"
+#include "srslte/utils/dft.h"
 
 typedef _Complex float cf_t;
 

@@ -25,7 +25,7 @@
  *
  */
 
-#include "srslte/phy/ue/ue_dl.h"
+#include "srslte/ue/ue_dl.h"
 
 #include <complex.h>
 #include <math.h>
@@ -41,12 +41,12 @@
 int ue_dl_init(ue_dl_t *q, 
                lte_cell_t cell) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q                 != NULL &&
       lte_cell_isvalid(&cell))   
   {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(ue_dl_t));
     
@@ -99,14 +99,14 @@ int ue_dl_init(ue_dl_t *q,
       }
     }
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
             cell.id, cell.nof_ports, cell.nof_prb);      
   }
 
 clean_exit: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     ue_dl_free(q);
   }
   return ret;
@@ -185,38 +185,38 @@ int ue_dl_decode_fft_estimate(ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t
     if (pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
                       chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi, &cfi_corr)<0) {
       fprintf(stderr, "Error decoding PCFICH\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
 
     INFO("Decoded CFI=%d with correlation %.2f\n", *cfi, cfi_corr);
 
     if (regs_set_cfi(&q->regs, *cfi)) {
       fprintf(stderr, "Error setting CFI\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
 
     /* Extract all PDCCH symbols and get LLRs */
     if (pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, chest_dl_get_noise_estimate(&q->chest), sf_idx, *cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     
     
-    return LIBLTE_SUCCESS; 
+    return SRSLTE_SUCCESS; 
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS; 
+    return SRSLTE_ERROR_INVALID_INPUTS; 
   }
 }
 
 int ue_dl_decode_rnti_rv_packet(ue_dl_t *q, dci_msg_t *dci_msg, uint8_t *data, 
                                 uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
-  int ret = LIBLTE_ERROR; 
+  int ret = SRSLTE_ERROR; 
 
   q->nof_pdcch_detected++;
   if (dci_msg_to_ra_dl(dci_msg, rnti, q->cell, cfi, &q->ra_dl)) {
     fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
   if (rnti != SIRNTI) {
@@ -224,17 +224,17 @@ int ue_dl_decode_rnti_rv_packet(ue_dl_t *q, dci_msg_t *dci_msg, uint8_t *data,
   }
   if (harq_setup_dl(&q->harq_process[0], q->ra_dl.mcs, rvidx, sf_idx, &q->ra_dl.prb_alloc)) {
     fprintf(stderr, "Error configuring HARQ process\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (q->harq_process[0].mcs.mod > 0 && q->harq_process[0].mcs.tbs >= 0) {
     ret = pdsch_decode_rnti(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
                             q->ce, chest_dl_get_noise_estimate(&q->chest),
                             rnti, data);
-    if (ret == LIBLTE_ERROR) {
+    if (ret == SRSLTE_ERROR) {
       q->pkt_errors++;
-    } else if (ret == LIBLTE_ERROR_INVALID_INPUTS) {
+    } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
       fprintf(stderr, "Error calling pdsch_decode()\n");      
-    } else if (ret == LIBLTE_SUCCESS) {
+    } else if (ret == SRSLTE_SUCCESS) {
       if (VERBOSE_ISINFO()) {
         INFO("Decoded Message: ", 0);
         vec_fprint_hex(stdout, data, q->ra_dl.mcs.tbs);
@@ -253,7 +253,7 @@ int ue_dl_find_ul_dci(ue_dl_t *q, dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_
   for (uint32_t i=0;i<nof_locations && crc_rem != rnti;i++) {
     if (pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], Format0, &crc_rem)) {
       fprintf(stderr, "Error decoding DCI msg\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
   } 
@@ -267,7 +267,7 @@ int ue_dl_decode_rnti_rv(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx
   dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations;
   uint16_t crc_rem; 
-  int ret = LIBLTE_ERROR; 
+  int ret = SRSLTE_ERROR; 
   uint32_t nof_formats; 
   dci_format_t *formats = NULL; 
 
@@ -294,7 +294,7 @@ int ue_dl_decode_rnti_rv(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx
     for (i=0;i<nof_locations && !found_dci;i++) {
       if (pdcch_decode_msg(&q->pdcch, &dci_msg, &locations[i], formats[f], &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
       INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
       
@@ -305,7 +305,7 @@ int ue_dl_decode_rnti_rv(ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx
     }
   }
  
-  if (found_dci > 0 && ret == LIBLTE_SUCCESS) { 
+  if (found_dci > 0 && ret == SRSLTE_SUCCESS) { 
     return q->ra_dl.mcs.tbs;    
   } else {
     return 0;

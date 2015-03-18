@@ -35,7 +35,7 @@
 
 #include <stdbool.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 int cell_id = -1, offset = 0;
 lte_cp_t cp = CPNORM;

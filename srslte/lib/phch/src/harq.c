@@ -34,12 +34,12 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/phch/ra.h"
-#include "srslte/phy/phch/harq.h"
-#include "srslte/phy/fec/turbodecoder.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/phch/ra.h"
+#include "srslte/phch/harq.h"
+#include "srslte/fec/turbodecoder.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 
 #define MAX_PDSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
@@ -51,7 +51,7 @@ int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
 
   if (tbs == 0) {
     bzero(s, sizeof(struct cb_segm));
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   } else {
     B = tbs + 24;
 
@@ -64,15 +64,15 @@ int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
       Bp = B + 24 * s->C;
     }
     ret = lte_find_cb_index((Bp-1) / s->C + 1);
-    if (ret != LIBLTE_ERROR) {
+    if (ret != SRSLTE_ERROR) {
       idx1 = (uint32_t) ret;
       ret = lte_cb_size(idx1);
-      if (ret != LIBLTE_ERROR) {
+      if (ret != SRSLTE_ERROR) {
         s->K1 = (uint32_t) ret;
         if (idx1 > 0) {
           ret = lte_cb_size(idx1 - 1);        
         }
-        if (ret != LIBLTE_ERROR) {
+        if (ret != SRSLTE_ERROR) {
           if (s->C == 1) {
             s->K2 = 0;
             s->C2 = 0;
@@ -94,7 +94,7 @@ int codeblock_segmentation(struct cb_segm *s, uint32_t tbs) {
 }
 
 int harq_init(harq_t *q, lte_cell_t cell) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL) {    
     uint32_t i;
@@ -103,19 +103,19 @@ int harq_init(harq_t *q, lte_cell_t cell) {
     memcpy(&q->cell, &cell, sizeof(lte_cell_t));
     
     ret = ra_tbs_from_idx(26, cell.nof_prb);
-    if (ret != LIBLTE_ERROR) {
+    if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (MAX_LONG_CB - 24) + 1; 
       
       q->pdsch_w_buff_f = vec_malloc(sizeof(float*) * q->max_cb);
       if (!q->pdsch_w_buff_f) {
         perror("malloc");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
       
       q->pdsch_w_buff_c = vec_malloc(sizeof(uint8_t*) * q->max_cb);
       if (!q->pdsch_w_buff_c) {
         perror("malloc");
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
       
       // FIXME: Use HARQ buffer limitation based on UE category
@@ -124,16 +124,16 @@ int harq_init(harq_t *q, lte_cell_t cell) {
         q->pdsch_w_buff_f[i] = vec_malloc(sizeof(float) * q->w_buff_size);
         if (!q->pdsch_w_buff_f[i]) {
           perror("malloc");
-          return LIBLTE_ERROR;
+          return SRSLTE_ERROR;
         }
         q->pdsch_w_buff_c[i] = vec_malloc(sizeof(uint8_t) * q->w_buff_size);
         if (!q->pdsch_w_buff_c[i]) {
           perror("malloc");
-          return LIBLTE_ERROR;
+          return SRSLTE_ERROR;
         }
         bzero(q->pdsch_w_buff_c[i], sizeof(uint8_t) * q->w_buff_size);
       }      
-      ret = LIBLTE_SUCCESS;
+      ret = SRSLTE_SUCCESS;
     }
   }
   return ret;
@@ -189,18 +189,18 @@ static int harq_setup_common(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_i
     if (q->cb_segm.C > q->max_cb) {
       fprintf(stderr, "Codeblock segmentation returned more CBs (%d) than allocated (%d)\n", 
         q->cb_segm.C, q->max_cb);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }       
   }
 
   q->mcs = mcs;
   q->sf_idx = sf_idx;
   q->rv = rv;    
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int harq_setup_dl(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_dl_alloc_t *dl_alloc) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL       && 
       rv         < 4  &&
@@ -218,13 +218,13 @@ int harq_setup_dl(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_dl_a
     q->nof_bits = q->nof_re * lte_mod_bits_x_symbol(q->mcs.mod);
     q->nof_prb = q->dl_alloc.slot[0].nof_prb;
 
-    ret = LIBLTE_SUCCESS;    
+    ret = SRSLTE_SUCCESS;    
   }
   return ret;
 }
 
 int harq_setup_ul(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_ul_alloc_t *ul_alloc) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL       && 
       rv         < 4  &&
@@ -242,7 +242,7 @@ int harq_setup_ul(harq_t *q, ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, ra_ul_a
     q->nof_bits = q->nof_re * lte_mod_bits_x_symbol(q->mcs.mod);
     q->nof_prb = q->ul_alloc.L_prb;
 
-    ret = LIBLTE_SUCCESS;    
+    ret = SRSLTE_SUCCESS;    
   }
   return ret;
 }

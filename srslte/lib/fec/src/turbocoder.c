@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "srslte/phy/fec/turbocoder.h"
+#include "srslte/fec/turbocoder.h"
 
 #define NOF_REGS 3
 

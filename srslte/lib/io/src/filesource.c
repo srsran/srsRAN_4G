@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/phy/io/filesource.h"
+#include "srslte/io/filesource.h"
 
 int filesource_init(filesource_t *q, char *filename, data_type_t type) {
   bzero(q, sizeof(filesource_t));

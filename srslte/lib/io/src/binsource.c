@@ -30,8 +30,8 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/phy/io/binsource.h"
-#include "srslte/phy/utils/bit.h"
+#include "srslte/io/binsource.h"
+#include "srslte/utils/bit.h"
 
 #define DIV(a,b) ((a-1)/b+1)
 

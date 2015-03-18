@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "srslte/phy/fec/rm_turbo.h"
+#include "srslte/fec/rm_turbo.h"
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS

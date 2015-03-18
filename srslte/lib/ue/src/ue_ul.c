@@ -29,7 +29,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "srslte/phy/ue/ue_ul.h"
+#include "srslte/ue/ue_ul.h"
 
 #define CURRENT_FFTSIZE   lte_symbol_sz(q->cell.nof_prb)
 #define CURRENT_SFLEN     SF_LEN(CURRENT_FFTSIZE)
@@ -41,12 +41,12 @@
 int ue_ul_init(ue_ul_t *q, 
                lte_cell_t cell) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q                 != NULL &&
       lte_cell_isvalid(&cell))   
   {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(ue_ul_t));
     
@@ -91,14 +91,14 @@ int ue_ul_init(ue_ul_t *q,
       goto clean_exit; 
     }
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
             cell.id, cell.nof_ports, cell.nof_prb);      
   }
 
 clean_exit: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     ue_ul_free(q);
   }
   return ret;
@@ -175,7 +175,7 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
                                 uint32_t sf_idx, uint16_t rnti, 
                                 cf_t *output_signal)
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q             != NULL &&
       ra_ul         != NULL &&
@@ -188,7 +188,7 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
       return ret; 
     }      
     
-    ret = LIBLTE_ERROR; 
+    ret = SRSLTE_ERROR; 
     
     if (harq_setup_ul(&q->harq_process[0], ra_ul->mcs, ra_ul->rv_idx, sf_idx, &ra_ul->prb_alloc)) {
       fprintf(stderr, "Error configuring HARQ process\n");
@@ -221,7 +221,7 @@ int ue_ul_pusch_uci_encode_rnti(ue_ul_t *q, ra_pusch_t *ra_ul, uint8_t *data, uc
       vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SF_LEN_PRB(q->cell.nof_prb));
     }
     
-    ret = LIBLTE_SUCCESS; 
+    ret = SRSLTE_SUCCESS; 
   } 
   
   return ret; 

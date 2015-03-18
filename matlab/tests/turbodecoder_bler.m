@@ -44,7 +44,7 @@ if (length(SNR_values_db) > 1)
     grid on
     xlabel('SNR (dB)')
     ylabel('BLER')
-    legend('Matlab','libLTE');
+    legend('Matlab','srsLTE');
 else
     disp(errors1);
     disp(errors2);

@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "srslte/phy/utils/bit.h"
+#include "srslte/utils/bit.h"
 
 void bit_pack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
 {

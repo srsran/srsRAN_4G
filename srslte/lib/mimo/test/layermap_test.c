@@ -34,7 +34,7 @@
 #include <time.h>
 #include <stdbool.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 int nof_symbols = 1000;
 int nof_cw = 1, nof_layers = 1;

@@ -2,19 +2,19 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The libLTE Developers. See the
+ * Copyright 2013-2014 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
  *
- * This file is part of the libLTE library.
+ * This file is part of the srsLTE library.
  *
- * libLTE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * libLTE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -30,32 +30,32 @@
 
 // Generic helper definitions for shared library support
 #if defined _WIN32 || defined __CYGWIN__
-  #define LIBLTE_IMPORT __declspec(dllimport)
-  #define LIBLTE_EXPORT __declspec(dllexport)
-  #define LIBLTE_LOCAL
+  #define SRSLTE_IMPORT __declspec(dllimport)
+  #define SRSLTE_EXPORT __declspec(dllexport)
+  #define SRSLTE_LOCAL
 #else
   #if __GNUC__ >= 4
-    #define LIBLTE_IMPORT __attribute__ ((visibility ("default")))
-    #define LIBLTE_EXPORT __attribute__ ((visibility ("default")))
+    #define SRSLTE_IMPORT __attribute__ ((visibility ("default")))
+    #define SRSLTE_EXPORT __attribute__ ((visibility ("default")))
   #else
-    #define LIBLTE_IMPORT
-    #define LIBLTE_EXPORT
-    #define LIBLTE_LOCAL
+    #define SRSLTE_IMPORT
+    #define SRSLTE_EXPORT
+    #define SRSLTE_LOCAL
   #endif
 #endif
 
-// Define LIBLTE_API
-// LIBLTE_API is used for the public API symbols.
-#ifdef LIBLTE_DLL_EXPORTS // defined if we are building the LIBLTE DLL (instead of using it)
-  #define LIBLTE_API LIBLTE_EXPORT
+// Define SRSLTE_API
+// SRSLTE_API is used for the public API symbols.
+#ifdef SRSLTE_DLL_EXPORTS // defined if we are building the SRSLTE DLL (instead of using it)
+  #define SRSLTE_API SRSLTE_EXPORT
 #else
-  #define LIBLTE_API LIBLTE_IMPORT
+  #define SRSLTE_API SRSLTE_IMPORT
 #endif
 
 
 // Common error codes
-#define LIBLTE_SUCCESS                0
-#define LIBLTE_ERROR                  -1
-#define LIBLTE_ERROR_INVALID_INPUTS   -2
+#define SRSLTE_SUCCESS                0
+#define SRSLTE_ERROR                  -1
+#define SRSLTE_ERROR_INVALID_INPUTS   -2
 
 #endif // CONFIG_H

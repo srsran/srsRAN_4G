@@ -28,7 +28,7 @@
 
 #include <strings.h>
 
-#include "srslte/phy/sync/sss.h"
+#include "srslte/sync/sss.h"
 
 /**
  * @brief Function documentation: initSSStables()

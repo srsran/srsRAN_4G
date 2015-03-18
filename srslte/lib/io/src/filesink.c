@@ -32,7 +32,7 @@
 #include <strings.h>
 
 
-#include "srslte/phy/io/filesink.h"
+#include "srslte/io/filesink.h"
 
 int filesink_init(filesink_t *q, char *filename, data_type_t type) {
   bzero(q, sizeof(filesink_t));

@@ -31,9 +31,9 @@
 #include <string.h>
 #include <math.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/mimo/precoding.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/mimo/precoding.h"
+#include "srslte/utils/vector.h"
 
 
 /************************************************
@@ -82,13 +82,13 @@ int precoding_init(precoding_t *q, uint32_t max_frame_len) {
       goto clean_exit; 
     }
     q->max_frame_len = max_frame_len; 
-    return LIBLTE_SUCCESS; 
+    return SRSLTE_SUCCESS; 
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS; 
+    return SRSLTE_ERROR_INVALID_INPUTS; 
   }
 clean_exit:
   precoding_free(q);
-  return LIBLTE_ERROR; 
+  return SRSLTE_ERROR; 
 }
 
 void precoding_free(precoding_t *q) {
@@ -132,7 +132,7 @@ int predecoding_single(precoding_t *q, cf_t *y, cf_t *h, cf_t *x, int nof_symbol
     vec_div_cfc(x,q->y_mod,x,q->z_real,q->z_imag, nof_symbols);
     return nof_symbols;
   } else {
-    return LIBLTE_ERROR; 
+    return SRSLTE_ERROR; 
   }
 }
 

@@ -26,7 +26,7 @@
  */
 
 #include <string.h>
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 #include "srslte/mex/mexutils.h"
 
 #define UECFG      prhs[0]

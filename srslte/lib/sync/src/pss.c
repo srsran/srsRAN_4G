@@ -32,17 +32,17 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/phy/sync/pss.h"
-#include "srslte/phy/utils/dft.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/convolution.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/sync/pss.h"
+#include "srslte/utils/dft.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/convolution.h"
+#include "srslte/utils/debug.h"
 
 
 int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_size) {
   dft_plan_t plan;
   cf_t pss_signal_pad[2048];
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (lte_N_id_2_isvalid(N_id_2)    && 
       fft_size                  <= 2048) 
@@ -55,7 +55,7 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t
     memcpy(&pss_signal_pad[(fft_size-PSS_LEN)/2], pss_signal_time, PSS_LEN * sizeof(cf_t));
 
     if (dft_plan(&plan, fft_size, BACKWARD, COMPLEX)) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     
     dft_plan_set_mirror(&plan, true);
@@ -68,7 +68,7 @@ int pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t
 
     dft_plan_free(&plan);
         
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   return ret;
 }
@@ -84,7 +84,7 @@ int pss_synch_init(pss_synch_t *q, uint32_t frame_size) {
  * domain. The PSS sequence is transformed using fft_size samples. 
  */
 int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
     
   if (q != NULL) {
   
@@ -160,11 +160,11 @@ int pss_synch_init_fft(pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
     
     pss_synch_reset(q);
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 
 clean_and_exit: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     pss_synch_free(q);
   }
   return ret;
@@ -277,7 +277,7 @@ void pss_synch_set_ema_alpha(pss_synch_t *q, float alpha) {
  */
 int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                 != NULL  && 
       input             != NULL)
@@ -288,7 +288,7 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
     
     if (!lte_N_id_2_isvalid(q->N_id_2)) {
       fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
 
     /* Correlate input with PSS sequence */
@@ -380,14 +380,14 @@ int pss_synch_find_pss(pss_synch_t *q, cf_t *input, float *corr_peak_value)
   return ret;
 }
 
-LIBLTE_API cf_t *tmp2; 
+SRSLTE_API cf_t *tmp2; 
 
 /* Computes frequency-domain channel estimation of the PSS symbol 
  * input signal is in the time-domain. 
  * ce is the returned frequency-domain channel estimates. 
  */
 int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   cf_t input_fft[SYMBOL_SZ_MAX];
 
   if (q                 != NULL  && 
@@ -396,7 +396,7 @@ int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
 
     if (!lte_N_id_2_isvalid(q->N_id_2)) {
       fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     
     tmp2 = input_fft; 
@@ -407,7 +407,7 @@ int pss_synch_chest(pss_synch_t *q, cf_t *input, cf_t ce[PSS_LEN]) {
     /* Compute channel estimate taking the PSS sequence as reference */
     vec_prod_conj_ccc(&input_fft[(q->fft_size-PSS_LEN)/2], q->pss_signal_time[q->N_id_2], ce, PSS_LEN);
       
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   return ret; 
 }

@@ -34,13 +34,13 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/phch/pucch.h"
-#include "srslte/phy/phch/uci.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/filter/dft_precoding.h"
+#include "srslte/phch/pucch.h"
+#include "srslte/phch/uci.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
+#include "srslte/filter/dft_precoding.h"
 
 #define MAX_PUSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
 
@@ -66,7 +66,7 @@ int generate_n_cs_cell(lte_cell_t cell, uint32_t n_cs_cell[NSLOTS_X_FRAME][CPNOR
     }
   }
   sequence_free(&seq);
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 
@@ -106,7 +106,7 @@ float pucch_get_alpha(uint32_t n_cs_cell[NSLOTS_X_FRAME][CPNORM_NSYMB],
 
 int pucch_cp(pucch_t *q, harq_t *harq, cf_t *input, cf_t *output, bool advance_input) 
 {
-  return LIBLTE_ERROR;
+  return SRSLTE_ERROR;
 }
 
 int pucch_put(pucch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
@@ -120,18 +120,18 @@ int pucch_get(pucch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
 
 /** Initializes the PDCCH transmitter and receiver */
 int pucch_init(pucch_t *q, lte_cell_t cell) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL && lte_cell_isvalid(&cell)) {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     bzero(q, sizeof(pucch_t));
     
     q->cell = cell; 
     
     if (generate_n_cs_cell(q->cell, q->n_cs_cell)) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   return ret;
 }
@@ -144,7 +144,7 @@ void pucch_free(pucch_t *q) {
  */
 int pucch_decode(pucch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noise_estimate, uint8_t *data) 
 {
-  return LIBLTE_ERROR_INVALID_INPUTS;
+  return SRSLTE_ERROR_INVALID_INPUTS;
 }
 
 static cf_t uci_encode_format1() {
@@ -200,7 +200,7 @@ static void uci_mod_bits(pucch_t *q, pucch_cfg_t *cfg, uint8_t bits[PUCCH_MAX_BI
 int pucch_encode(pucch_t *q, pucch_cfg_t *cfg, uint8_t bits[PUCCH_MAX_BITS], cf_t *sf_symbols) 
 {
   uci_mod_bits(q, cfg, bits);
-  return LIBLTE_ERROR;     
+  return SRSLTE_ERROR;     
 }
 
   

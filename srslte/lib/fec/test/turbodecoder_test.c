@@ -35,7 +35,7 @@
 
 #include <sys/time.h>
 #include <time.h>
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 #include "turbodecoder_test.h"
 

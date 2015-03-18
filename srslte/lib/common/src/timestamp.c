@@ -25,44 +25,44 @@
  *
  */
 
-#include "srslte/phy/common/timestamp.h"
+#include "srslte/common/timestamp.h"
 #include "math.h"
 
 int timestamp_init(timestamp_t *t, time_t full_secs, double frac_secs){
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
     t->full_secs = full_secs;
     t->frac_secs = frac_secs;
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   return ret;
 }
 
 int timestamp_copy(timestamp_t *dest, timestamp_t *src){
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   if(dest != NULL && src != NULL){
     dest->full_secs = src->full_secs;
     dest->frac_secs = src->frac_secs;
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   return ret;
 }
 
 int timestamp_add(timestamp_t *t, time_t full_secs, double frac_secs){
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
     t->frac_secs += frac_secs;
     t->full_secs += full_secs;
     double r = floor(t->frac_secs);
     t->full_secs += r;
     t->frac_secs -= r;
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   return ret;
 }
 
 int timestamp_sub(timestamp_t *t, time_t full_secs, double frac_secs){
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   if(t != NULL && frac_secs >= 0.0){
     t->frac_secs -= frac_secs;
     t->full_secs -= full_secs;
@@ -71,8 +71,8 @@ int timestamp_sub(timestamp_t *t, time_t full_secs, double frac_secs){
       t->full_secs--;
     }
     if(t->full_secs < 0)
-      return LIBLTE_ERROR;
-    ret = LIBLTE_SUCCESS;
+      return SRSLTE_ERROR;
+    ret = SRSLTE_SUCCESS;
   }
   return ret;
 }

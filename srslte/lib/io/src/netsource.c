@@ -35,7 +35,7 @@
 #include <strings.h>
 #include <errno.h>
 
-#include "srslte/phy/io/netsource.h"
+#include "srslte/io/netsource.h"
 
 int netsource_init(netsource_t *q, char *address, int port, netsource_type_t type) {
   bzero(q, sizeof(netsource_t));

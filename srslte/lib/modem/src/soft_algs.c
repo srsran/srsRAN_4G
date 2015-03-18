@@ -34,7 +34,7 @@
 #include <string.h>
 
 #include "soft_algs.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/utils/vector.h"
 
 #define QAM16_THRESHOLD         2/sqrt(10)
 #define QAM64_THRESHOLD_1       2/sqrt(42)

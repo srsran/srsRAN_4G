@@ -212,11 +212,11 @@ if plot_noise_estimation_only
 
     subplot(1,3,1)
     plot(SNR_values_db, SNR_values_db, SNR_values_db, 10*log10(SNR_liblte),SNR_values_db, 10*log10(SNR_matlab))
-    legend('Theory','libLTE','Matlab')
+    legend('Theory','srsLTE','Matlab')
 
     subplot(1,3,2)
     plot(SNR_values_db, 10*log10(noiseTx), SNR_values_db, 10*log10(noiseEst_liblte),SNR_values_db, 10*log10(noiseEst))
-    legend('Theory','libLTE','Matlab')
+    legend('Theory','srsLTE','Matlab')
     
     subplot(1,3,3)
     plot(1:10*length(SNR_values_db),RSRP,10*(1:length(SNR_values_db)),meanRSRP)

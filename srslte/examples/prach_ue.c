@@ -2,19 +2,19 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The libLTE Developers. See the
+ * Copyright 2013-2014 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
  *
- * This file is part of the libLTE library.
+ * This file is part of the srsLTE library.
  *
- * libLTE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * libLTE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
@@ -39,7 +39,7 @@
 #include <semaphore.h>
 
 #include "srslte/rrc/rrc.h"
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 
 #include "srslte/cuhd/cuhd.h"
@@ -255,7 +255,7 @@ void rar_msg_fprint(FILE *stream, rar_msg_t *msg)
 
 int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
 {
-    int ret = LIBLTE_ERROR;
+    int ret = SRSLTE_ERROR;
     uint8_t *ptr = buffer; 
     
     if(buffer != NULL &&
@@ -266,7 +266,7 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
       if(msg->hdr_type == rar_header_type_bi) {
         ptr += 2; 
         msg->BI = bit_unpack(&ptr, 4);
-        ret = LIBLTE_SUCCESS; 
+        ret = SRSLTE_SUCCESS; 
       } else if (msg->hdr_type == rar_header_type_rapid) {
         msg->RAPID = bit_unpack(&ptr, 6);
         ptr++;
@@ -279,7 +279,7 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
         msg->ul_delay       = *ptr++;
         msg->csi_req        = *ptr++;
         msg->temp_c_rnti    = bit_unpack(&ptr, 16);
-        ret = LIBLTE_SUCCESS;
+        ret = SRSLTE_SUCCESS;
       } 
     }
 

@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "srslte/phy/fec/rm_conv.h"
+#include "srslte/fec/rm_conv.h"
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS

@@ -31,10 +31,10 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "srslte/phy/ue/ue_cell_search.h"
+#include "srslte/ue/ue_cell_search.h"
 
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
 
 float tmp_pss_corr[32*10000];
 float tmp_sss_corr[31*10000];
@@ -47,10 +47,10 @@ int ue_cell_search_init(ue_cell_search_t * q, int (recv_callback)(void*, void*, 
 int ue_cell_search_init_max(ue_cell_search_t * q, uint32_t max_frames, 
                            int (recv_callback)(void*, void*, uint32_t,timestamp_t*), void *stream_handler) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     lte_cell_t cell;
 
     bzero(q, sizeof(ue_cell_search_t));    
@@ -83,11 +83,11 @@ int ue_cell_search_init_max(ue_cell_search_t * q, uint32_t max_frames,
     q->max_frames = max_frames;
     q->nof_frames_to_scan = CS_DEFAULT_NOFFRAMES_TOTAL; 
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 
 clean_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     ue_cell_search_free(q);
   }
   return ret;
@@ -119,9 +119,9 @@ int ue_cell_search_set_nof_frames_to_scan(ue_cell_search_t * q, uint32_t nof_fra
 {
   if (nof_frames <= q->max_frames) {
     q->nof_frames_to_scan = nof_frames;    
-    return LIBLTE_SUCCESS; 
+    return SRSLTE_SUCCESS; 
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -209,14 +209,14 @@ int ue_cell_search_scan(ue_cell_search_t * q, ue_cell_search_result_t found_cell
  */
 int ue_cell_search_scan_N_id_2(ue_cell_search_t * q, uint32_t N_id_2, ue_cell_search_result_t *found_cell)
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   cf_t *sf_buffer = NULL; 
   uint32_t nof_detected_frames = 0; 
   uint32_t nof_scanned_frames = 0; 
 
   if (q != NULL) 
   {
-    ret = LIBLTE_SUCCESS; 
+    ret = SRSLTE_SUCCESS; 
     
     ue_sync_set_N_id_2(&q->ue_sync, N_id_2);
     ue_sync_reset(&q->ue_sync);

@@ -33,13 +33,13 @@
 #include <stdbool.h>
 #include <math.h>
 
-#include "srslte/phy/phch/dci.h"
-#include "srslte/phy/phch/regs.h"
-#include "srslte/phy/phch/pdcch.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phch/dci.h"
+#include "srslte/phch/regs.h"
+#include "srslte/phch/pdcch.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 #define PDCCH_NOF_FORMATS               4
 #define PDCCH_FORMAT_NOF_CCE(i)         (1<<i)
@@ -56,14 +56,14 @@ static void set_cfi(pdcch_t *q, uint32_t cfi) {
 
 /** Initializes the PDCCH transmitter and receiver */
 int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i;
 
   if (q                         != NULL &&
       regs                      != NULL &&
       lte_cell_isvalid(&cell)) 
   {   
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     bzero(q, sizeof(pdcch_t));
     q->cell = cell;
     q->regs = regs;
@@ -134,10 +134,10 @@ int pdcch_init(pdcch_t *q, regs_t *regs, lte_cell_t cell) {
       }
     }
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   clean: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     pdcch_free(q);
   }
   return ret;
@@ -313,10 +313,10 @@ static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t 
     if (crc) {
       *crc = p_bits ^ crc_res; 
     }
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid parameters: E: %d, max_bits: %d, nof_bits: %d\n", E, q->max_bits, nof_bits);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -327,7 +327,7 @@ static int dci_decode(pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t 
  */
 int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t *location, dci_format_t format, uint16_t *crc_rem) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q                 != NULL       && 
       msg               != NULL       && 
       dci_location_isvalid(location)  &&
@@ -346,7 +346,7 @@ int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t *location, dci_f
       
       ret = dci_decode(q, &q->pdcch_llr[location->ncce * 72], 
                       msg->data, e_bits, nof_bits, crc_rem);
-      if (ret == LIBLTE_SUCCESS) {
+      if (ret == SRSLTE_SUCCESS) {
         msg->nof_bits = nof_bits;
       }      
     }
@@ -362,7 +362,7 @@ int pdcch_decode_msg(pdcch_t *q, dci_msg_t *msg, dci_location_t *location, dci_f
 int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float noise_estimate, 
                       uint32_t nsubframe, uint32_t cfi) {
 
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   /* Set pointers for layermapping & precoding */
   uint32_t i, nof_symbols;
@@ -377,7 +377,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float n
     
     uint32_t e_bits = 72*q->nof_cce;
     nof_symbols = e_bits/2;
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
         
     INFO("Extracting LLRs: E: %d, SF: %d, CFI: %d\n",
         e_bits, nsubframe, cfi);
@@ -430,7 +430,7 @@ int pdcch_extract_llr(pdcch_t *q, cf_t *sf_symbols, cf_t *ce[MAX_PORTS], float n
       vec_fprint_f(stdout, q->pdcch_llr, e_bits);
     }
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   } 
   return ret;  
 }
@@ -483,9 +483,9 @@ static int dci_encode(pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, 
 
     rm_conv_tx(tmp, 3 * (nof_bits + 16), e, E);
     
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -500,7 +500,7 @@ static int dci_encode(pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, 
 int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t rnti, 
                  cf_t *sf_symbols[MAX_PORTS], uint32_t nsubframe, uint32_t cfi) {
 
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i;
   cf_t *x[MAX_LAYERS];
   uint32_t nof_symbols;
@@ -517,7 +517,7 @@ int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t r
 
     uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(location.L);
     nof_symbols = e_bits/2;
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce && 
         msg->nof_bits < DCI_MAX_BITS) 
@@ -556,7 +556,7 @@ int pdcch_encode(pdcch_t *q, dci_msg_t *msg, dci_location_t location, uint16_t r
                               location.ncce * 9, PDCCH_FORMAT_NOF_REGS(location.L));
       }
       
-      ret = LIBLTE_SUCCESS;
+      ret = SRSLTE_SUCCESS;
       
     } else {
         fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d\n", location.ncce, location.L, q->nof_cce);

@@ -33,8 +33,8 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/modem/modem_table.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/modem/modem_table.h"
 #include "lte_tables.h"
 
 /** Internal functions */
@@ -59,16 +59,16 @@ void modem_table_reset(modem_table_t* q) {
 
 int modem_table_set(modem_table_t* q, cf_t* table, soft_table_t *soft_table, uint32_t nsymbols, uint32_t nbits_x_symbol) {
   if (q->nsymbols) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   q->nsymbols = nsymbols;
   if (table_create(q)) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   memcpy(q->symbol_table,table,q->nsymbols*sizeof(cf_t));
   memcpy(&q->soft_table,soft_table,sizeof(soft_table_t));
   q->nbits_x_symbol = nbits_x_symbol;
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int modem_table_lte(modem_table_t* q, lte_mod_t modulation, bool compute_soft_demod) {
@@ -77,7 +77,7 @@ int modem_table_lte(modem_table_t* q, lte_mod_t modulation, bool compute_soft_de
     q->nbits_x_symbol = 1;
     q->nsymbols = 2;
     if (table_create(q)) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     set_BPSKtable(q->symbol_table, &q->soft_table, compute_soft_demod);
     break;
@@ -85,7 +85,7 @@ int modem_table_lte(modem_table_t* q, lte_mod_t modulation, bool compute_soft_de
     q->nbits_x_symbol = 2;
     q->nsymbols = 4;
     if (table_create(q)) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     set_QPSKtable(q->symbol_table, &q->soft_table, compute_soft_demod);
     break;
@@ -93,7 +93,7 @@ int modem_table_lte(modem_table_t* q, lte_mod_t modulation, bool compute_soft_de
     q->nbits_x_symbol = 4;
     q->nsymbols = 16;
     if (table_create(q)) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     set_16QAMtable(q->symbol_table, &q->soft_table, compute_soft_demod);
     break;
@@ -101,10 +101,10 @@ int modem_table_lte(modem_table_t* q, lte_mod_t modulation, bool compute_soft_de
     q->nbits_x_symbol = 6;
     q->nsymbols = 64;
     if (table_create(q)) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     set_64QAMtable(q->symbol_table, &q->soft_table, compute_soft_demod);
     break;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }

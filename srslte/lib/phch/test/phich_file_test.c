@@ -31,7 +31,7 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 char *input_file_name = NULL;
 char *matlab_file_name = NULL;

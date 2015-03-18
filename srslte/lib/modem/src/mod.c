@@ -30,8 +30,8 @@
 #include <strings.h>
 #include <assert.h>
 
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/modem/mod.h"
+#include "srslte/utils/bit.h"
+#include "srslte/modem/mod.h"
 
 /** Low-level API */
 
@@ -44,7 +44,7 @@ int mod_modulate(modem_table_t* q, const uint8_t *bits, cf_t* symbols, uint32_t 
     if (idx < q->nsymbols) {
       symbols[j] = q->symbol_table[idx];      
     } else {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     j++;
   }

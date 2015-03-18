@@ -34,20 +34,20 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/dft.h"
-#include "srslte/phy/filter/dft_precoding.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/dft.h"
+#include "srslte/filter/dft_precoding.h"
 
 /* Create DFT plans for transform precoding */
 int dft_precoding_init(dft_precoding_t *q, uint32_t max_prb) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   bzero(q, sizeof(dft_precoding_t));
   
   if (max_prb <= MAX_PRB) {
-    ret = LIBLTE_ERROR; 
+    ret = SRSLTE_ERROR; 
     for (uint32_t i=1;i<max_prb;i++) {
       if(dft_precoding_valid_prb(i)) {        
         DEBUG("Initiating DFT precoding plan for %d PRBs\n", i);
@@ -64,11 +64,11 @@ int dft_precoding_init(dft_precoding_t *q, uint32_t max_prb)
       }
     }
     q->max_prb = max_prb;
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   } 
 
 clean_exit:
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     dft_precoding_free(q);
   }
   return ret; 
@@ -101,14 +101,14 @@ int dft_precoding(dft_precoding_t *q, cf_t *input, cf_t *output,
   
   if (!dft_precoding_valid_prb(nof_prb)) {
     fprintf(stderr, "Error invalid number of PRB (%d)\n", nof_prb);
-    return LIBLTE_ERROR; 
+    return SRSLTE_ERROR; 
   }
 
   for (uint32_t i=0;i<nof_symbols;i++) {
     dft_run_c(&q->dft_plan[nof_prb], &input[i*RE_X_RB*nof_prb], &output[i*RE_X_RB*nof_prb]);
   }
   
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 int dft_predecoding(dft_precoding_t *q, cf_t *input, cf_t *output, 
@@ -116,13 +116,13 @@ int dft_predecoding(dft_precoding_t *q, cf_t *input, cf_t *output,
 {
   if (!dft_precoding_valid_prb(nof_prb)) {
     fprintf(stderr, "Error invalid number of PRB (%d)\n", nof_prb);
-    return LIBLTE_ERROR; 
+    return SRSLTE_ERROR; 
   }
 
   for (uint32_t i=0;i<nof_symbols;i++) {
     dft_run_c(&q->dft_plan[nof_prb], &input[i*RE_X_RB*nof_prb], &output[i*RE_X_RB*nof_prb]);
   }
   
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
   
 }

@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/common/phy_common.h"
 
 const uint32_t tc_cb_sizes[NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120,
     128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232,
@@ -119,7 +119,7 @@ int lte_cb_size(uint32_t index) {
   if (index < NOF_TC_CB_SIZES) {
     return (int) tc_cb_sizes[index];
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -205,7 +205,7 @@ int lte_find_cb_index(uint32_t long_cb) {
   }
 
   if (j == NOF_TC_CB_SIZES) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   } else {
     return j;
   }
@@ -214,7 +214,7 @@ int lte_find_cb_index(uint32_t long_cb) {
 int lte_sampling_freq_hz(uint32_t nof_prb) {
     int n = lte_symbol_sz(nof_prb); 
     if (n == -1) {
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     } else {
       return 15000 * n;
     }
@@ -222,7 +222,7 @@ int lte_sampling_freq_hz(uint32_t nof_prb) {
 
 int lte_symbol_sz(uint32_t nof_prb) {
   if (nof_prb<=0) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (nof_prb<=6) {
     return 128;
@@ -237,7 +237,7 @@ int lte_symbol_sz(uint32_t nof_prb) {
   } else if (nof_prb<=100) {
     return 2048;
   }
-  return LIBLTE_ERROR;
+  return SRSLTE_ERROR;
 }
 
 bool lte_symbol_sz_isvalid(uint32_t symbol_sz) {
@@ -341,9 +341,9 @@ int lte_str2mimotype(char *mimo_type_str, lte_mimo_type_t *type) {
   } else if (!strcmp(mimo_type_str, "multiplex")) {
     *type = SPATIAL_MULTIPLEX;
   } else {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 char *lte_mimotype2str(lte_mimo_type_t type) {
@@ -392,14 +392,14 @@ int lte_band_get_fd_band(uint32_t band, lte_earfcn_t *earfcn, int start_earfcn, 
   }
   if (i == NOF_LTE_BANDS) {
     fprintf(stderr, "Error: Invalid band %d\n", band);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
   if (end_earfcn == -1) {
     end_earfcn = lte_bands[i].earfcn_max;
   } else {
     if (end_earfcn > lte_bands[i].earfcn_max) {
       fprintf(stderr, "Error: Invalid end earfcn %d. Max is %d\n", end_earfcn, lte_bands[i].earfcn_max);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
   }
   if (start_earfcn == -1) {
@@ -407,7 +407,7 @@ int lte_band_get_fd_band(uint32_t band, lte_earfcn_t *earfcn, int start_earfcn, 
   } else {
     if (start_earfcn < lte_bands[i].earfcn_offset) {
       fprintf(stderr, "Error: Invalid start earfcn %d. Min is %d\n", start_earfcn, lte_bands[i].earfcn_offset);
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
   }
   nof_earfcn = end_earfcn - start_earfcn;
@@ -433,7 +433,7 @@ int lte_band_get_fd_region(enum band_geographical_area region, lte_earfcn_t *ear
         nof_fd += n;
         max_elems -= n;
       } else {
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
     }
   }

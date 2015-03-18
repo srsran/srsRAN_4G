@@ -34,7 +34,7 @@
 #include <time.h>
 #include <stdbool.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 #define MSE_THRESHOLD	0.00001
 

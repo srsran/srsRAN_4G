@@ -33,7 +33,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "srslte/phy/phy.h"
+#include "srslte/srslte.h"
 
 #include "viterbi_test.h"
 

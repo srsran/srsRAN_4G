@@ -34,14 +34,14 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/phch/uci.h"
-#include "srslte/phy/phch/harq.h"
-#include "srslte/phy/fec/convcoder.h"
-#include "srslte/phy/fec/crc.h"
-#include "srslte/phy/fec/rm_conv.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phch/uci.h"
+#include "srslte/phch/harq.h"
+#include "srslte/fec/convcoder.h"
+#include "srslte/fec/crc.h"
+#include "srslte/fec/rm_conv.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 /* Table 5.2.2.6.4-1: Basis sequence for (32, O) code */
 static uint8_t M_basis_seq_pusch[32][11]={
@@ -105,9 +105,9 @@ static uint8_t M_basis_seq_pucch[20][13]={
                                     
 int uci_cqi_init(uci_cqi_pusch_t *q) {
   if (crc_init(&q->crc, LTE_CRC8, 8)) {
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 void uci_cqi_free(uci_cqi_pusch_t *q) {
@@ -153,9 +153,9 @@ int encode_cqi_short(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8
     for (int i=0;i<Q;i++) {
       q_bits[i] = q->encoded_cqi[i%32]%2;
     }
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;     
+    return SRSLTE_ERROR_INVALID_INPUTS;     
   }
 }
 
@@ -191,9 +191,9 @@ int encode_cqi_long(uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_
 
     rm_conv_tx(q->encoded_cqi, 3 * (nof_bits + 8), q_bits, Q);
     
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS; 
+    return SRSLTE_ERROR_INVALID_INPUTS; 
   }
 }
 
@@ -209,9 +209,9 @@ int uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[CQI
       }
       b_bits[i] = (uint8_t) (x%2);
     }
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -224,7 +224,7 @@ int uci_encode_cqi_pusch(uci_cqi_pusch_t *q, uint8_t *cqi_data, uint32_t cqi_len
   uint32_t Q_prime = Q_prime_cqi(cqi_len, beta, Q_prime_ri, harq);
   uint32_t Q_m = lte_mod_bits_x_symbol(harq->mcs.mod);
   
-  int ret = LIBLTE_ERROR;
+  int ret = SRSLTE_ERROR;
   if (cqi_len <= 11) {
     ret = encode_cqi_short(q, cqi_data, cqi_len, q_bits, Q_prime*Q_m);
   } else {
@@ -253,11 +253,11 @@ static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bi
       q_bits[row *Q_m + 
              (H_prime_total/N_pusch_symbs)*col*Q_m + k] = ack_coded_bits[k];
     }    
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Error interleaving UCI-ACK bit idx %d for H_prime_total=%d and N_pusch_symbs=%d\n",
             ack_q_bit_idx, H_prime_total, N_pusch_symbs);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 }
 
@@ -277,11 +277,11 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
     for(uint32_t k=0; k<Q_m; k++) {
       q_bits[row *Q_m + (H_prime_total/N_pusch_symbs)*col*Q_m + k] = 10+ri_coded_bits[k];
     }    
-    return LIBLTE_SUCCESS;
+    return SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Error interleaving UCI-RI bit idx %d for H_prime_total=%d and N_pusch_symbs=%d\n",
             ri_q_bit_idx, H_prime_total, N_pusch_symbs);
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
 }

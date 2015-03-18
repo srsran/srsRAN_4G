@@ -34,13 +34,13 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/phch/pusch.h"
-#include "srslte/phy/phch/uci.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/filter/dft_precoding.h"
+#include "srslte/phch/pusch.h"
+#include "srslte/phch/uci.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/debug.h"
+#include "srslte/utils/vector.h"
+#include "srslte/filter/dft_precoding.h"
 
 #define MAX_PUSCH_RE(cp) (2 * CP_NSYMB(cp) * 12)
 
@@ -163,7 +163,7 @@ int pusch_get(pusch_t *q, harq_t *harq, cf_t *input, cf_t *output) {
 
 /** Initializes the PDCCH transmitter and receiver */
 int pusch_init(pusch_t *q, lte_cell_t cell) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   int i;
 
  if (q                         != NULL                  &&
@@ -171,7 +171,7 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
   {   
     
     bzero(q, sizeof(pusch_t));
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     q->cell = cell;
     q->max_re = q->cell.nof_prb * MAX_PUSCH_RE(q->cell.cp);
@@ -234,10 +234,10 @@ int pusch_init(pusch_t *q, lte_cell_t cell) {
       goto clean;
     }
 
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   clean: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     pusch_free(q);
   }
   return ret;
@@ -294,12 +294,12 @@ int pusch_set_rnti(pusch_t *q, uint16_t rnti) {
   for (i = 0; i < NSUBFRAMES_X_FRAME; i++) {
     if (sequence_pusch(&q->seq_pusch[i], rnti, 2 * i, q->cell.id,
         q->max_re * lte_mod_bits_x_symbol(LTE_QAM64))) {
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     }
   }
   q->rnti_is_set = true; 
   q->rnti = rnti; 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /** Decodes the PUSCH from the received symbols
@@ -323,14 +323,14 @@ int pusch_decode(pusch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noi
       n = pusch_get(q, harq, sf_symbols, q->pusch_d);
       if (n != harq->nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
       
       /* extract channel estimates */
       n = pusch_get(q, harq, ce, q->ce);
       if (n != harq->nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
-        return LIBLTE_ERROR;
+        return SRSLTE_ERROR;
       }
       
       predecoding_single(&q->equalizer, q->pusch_d, q->ce, q->pusch_z,
@@ -353,10 +353,10 @@ int pusch_decode(pusch_t *q, harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noi
       return ulsch_decode(&q->dl_sch, harq, q->pusch_q, data);      
     } else {
       fprintf(stderr, "Must call pusch_set_rnti() before calling pusch_decode()\n");
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     }    
   } else {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
@@ -375,7 +375,7 @@ int pusch_encode(pusch_t *q, harq_t *harq_process, uint8_t *data, cf_t *sf_symbo
     return pusch_uci_encode_rnti(q, harq_process, data, uci_data, q->rnti, sf_symbols);    
   } else {
     fprintf(stderr, "Must call pusch_set_rnti() to set the encoder/decoder RNTI\n");       
-    return LIBLTE_ERROR;     
+    return SRSLTE_ERROR;     
   }
 }
 
@@ -385,7 +385,7 @@ int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_dat
     return pusch_uci_encode_rnti(q, harq, data, uci_data, q->rnti, sf_symbols);
   } else {
     fprintf(stderr, "Must call pusch_set_rnti() to set the encoder/decoder RNTI\n");       
-    return LIBLTE_ERROR; 
+    return SRSLTE_ERROR; 
   }
 }
 
@@ -393,7 +393,7 @@ int pusch_uci_encode(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_dat
  */
 int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uci_data, uint16_t rnti, cf_t *sf_symbols) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS; 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
    
   if (q    != NULL &&
       data != NULL &&
@@ -401,13 +401,13 @@ int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uc
   {
     if (harq->mcs.tbs > harq->nof_bits) {
       fprintf(stderr, "Invalid code rate %.2f\n", (float) harq->mcs.tbs / harq->nof_bits);
-      return LIBLTE_ERROR_INVALID_INPUTS;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     if (harq->nof_re > q->max_re) {
       fprintf(stderr, "Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
           harq->nof_re, q->max_re, q->cell.nof_prb);
-      return LIBLTE_ERROR_INVALID_INPUTS;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
@@ -416,13 +416,13 @@ int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uc
     bzero(q->pusch_q, harq->nof_bits);
     if (ulsch_uci_encode(&q->dl_sch, harq, data, uci_data, q->pusch_g, q->pusch_q)) {
       fprintf(stderr, "Error encoding TB\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
     
     if (rnti != q->rnti) {
       sequence_t seq; 
       if (sequence_pusch(&seq, rnti, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
-        return LIBLTE_ERROR; 
+        return SRSLTE_ERROR; 
       }
       scrambling_b_offset_pusch(&seq, (uint8_t*) q->pusch_q, 0, harq->nof_bits);      
       sequence_free(&seq);
@@ -438,7 +438,7 @@ int pusch_uci_encode_rnti(pusch_t *q, harq_t *harq, uint8_t *data, uci_data_t uc
     /* mapping to resource elements */      
     pusch_put(q, harq, q->pusch_z, sf_symbols);
     
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   } 
   return ret; 
 }

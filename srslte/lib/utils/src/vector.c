@@ -31,8 +31,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/bit.h"
 
 #ifdef HAVE_VOLK
 #include "volk/volk.h"

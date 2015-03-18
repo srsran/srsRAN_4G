@@ -30,9 +30,9 @@
 #include <stdlib.h>
 #include <strings.h> 
 
-#include "srslte/phy/resampling/interp.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/resampling/interp.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 /*************** STATIC FUNCTIONS ***********************/
 
@@ -100,14 +100,14 @@ void interp_linear_offset_cabs(cf_t *input, cf_t *output,
 
 int interp_linear_vector_init(interp_linvec_t *q, uint32_t vector_len) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q) {
     bzero(q, sizeof(interp_linvec_t));
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
     q->diff_vec = vec_malloc(vector_len * sizeof(cf_t));
     if (!q->diff_vec) {
       perror("malloc");
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     }    
     q->vector_len = vector_len; 
   }
@@ -138,27 +138,27 @@ void interp_linear_vector(interp_linvec_t *q, cf_t *in0, cf_t *in1, cf_t *betwee
 
 int interp_linear_init(interp_lin_t *q, uint32_t vector_len, uint32_t M) 
 {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q) {
     bzero(q, sizeof(interp_lin_t));
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
     q->diff_vec = vec_malloc(vector_len * sizeof(cf_t));
     if (!q->diff_vec) {
       perror("malloc");
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     }    
     q->diff_vec2 = vec_malloc(M * vector_len * sizeof(cf_t));
     if (!q->diff_vec2) {
       perror("malloc");
       free(q->diff_vec);
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     }    
     q->ramp = vec_malloc(M * sizeof(float));
     if (!q->ramp) {
       perror("malloc");
       free(q->ramp);
       free(q->diff_vec);
-      return LIBLTE_ERROR; 
+      return SRSLTE_ERROR; 
     }    
     
     for (int i=0;i<M;i++) {

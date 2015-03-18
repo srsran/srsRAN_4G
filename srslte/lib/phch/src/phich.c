@@ -34,12 +34,12 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phy/phch/regs.h"
-#include "srslte/phy/phch/phich.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phch/regs.h"
+#include "srslte/phch/phich.h"
+#include "srslte/common/phy_common.h"
+#include "srslte/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/utils/debug.h"
 
 /** Table 6.9.1-2 */
 const cf_t w_normal[PHICH_NORM_NSEQUENCES][4] = { { 1, 1, 1, 1 },
@@ -62,7 +62,7 @@ void phich_reset(phich_t *q, cf_t *slot_symbols[MAX_PORTS]) {
 
 /** Initializes the phich channel receiver */
 int phich_init(phich_t *q, regs_t *regs, lte_cell_t cell) {
-  int ret = LIBLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q         != NULL &&
       regs      != NULL &&
@@ -70,7 +70,7 @@ int phich_init(phich_t *q, regs_t *regs, lte_cell_t cell) {
   {
 
     bzero(q, sizeof(phich_t));
-    ret = LIBLTE_ERROR;
+    ret = SRSLTE_ERROR;
     
     q->cell = cell;
     q->regs = regs;
@@ -91,10 +91,10 @@ int phich_init(phich_t *q, regs_t *regs, lte_cell_t cell) {
         goto clean;
       }
     }
-    ret = LIBLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
   clean: 
-  if (ret == LIBLTE_ERROR) {
+  if (ret == SRSLTE_ERROR) {
     phich_free(q);
   }
   return ret;
@@ -155,28 +155,28 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float nois
   cf_t *ce_precoding[MAX_PORTS];
   
   if (q == NULL || slot_symbols == NULL) {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   if (subframe >= NSUBFRAMES_X_FRAME) {
     fprintf(stderr, "Invalid nslot %d\n", subframe);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   if (CP_ISEXT(q->cell.cp)) {
     if (nseq >= PHICH_EXT_NSEQUENCES) {
       fprintf(stderr, "Invalid nseq %d\n", nseq);
-      return LIBLTE_ERROR_INVALID_INPUTS;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
   } else {
     if (nseq >= PHICH_NORM_NSEQUENCES) {
       fprintf(stderr, "Invalid nseq %d\n", nseq);
-      return LIBLTE_ERROR_INVALID_INPUTS;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
   }
   if (ngroup >= regs_phich_ngroups(q->regs)) {
     fprintf(stderr, "Invalid ngroup %d\n", ngroup);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   DEBUG("Decoding PHICH Ngroup: %d, Nseq: %d\n", ngroup, nseq);
@@ -193,14 +193,14 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float nois
   if (PHICH_MAX_NSYMB
       != regs_phich_get(q->regs, slot_symbols, q->phich_symbols[0], ngroup)) {
     fprintf(stderr, "There was an error getting the phich symbols\n");
-    return LIBLTE_ERROR;
+    return SRSLTE_ERROR;
   }
 
   /* extract channel estimates */
   for (i = 0; i < q->cell.nof_ports; i++) {
     if (PHICH_MAX_NSYMB != regs_phich_get(q->regs, ce[i], q->ce[i], ngroup)) {
       fprintf(stderr, "There was an error getting the phich symbols\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
   }
 
@@ -271,7 +271,7 @@ int phich_decode(phich_t *q, cf_t *slot_symbols, cf_t *ce[MAX_PORTS], float nois
     *ack = phich_ack_decode(q->data, distance);
   }
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
 /** Encodes ACK/NACK bits, modulates and inserts into resource.
@@ -282,28 +282,28 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
   int i;
 
   if (q == NULL || slot_symbols == NULL) {
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   if (subframe >= NSUBFRAMES_X_FRAME) {
     fprintf(stderr, "Invalid nslot %d\n", subframe);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   if (CP_ISEXT(q->cell.cp)) {
     if (nseq >= PHICH_EXT_NSEQUENCES) {
       fprintf(stderr, "Invalid nseq %d\n", nseq);
-      return LIBLTE_ERROR_INVALID_INPUTS;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
   } else {
     if (nseq >= PHICH_NORM_NSEQUENCES) {
       fprintf(stderr, "Invalid nseq %d\n", nseq);
-      return LIBLTE_ERROR_INVALID_INPUTS;
+      return SRSLTE_ERROR_INVALID_INPUTS;
     }
   }
   if (ngroup >= regs_phich_ngroups(q->regs)) {
     fprintf(stderr, "Invalid ngroup %d\n", ngroup);
-    return LIBLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
 
@@ -387,10 +387,10 @@ int phich_encode(phich_t *q, uint8_t ack, uint32_t ngroup, uint32_t nseq, uint32
     if (regs_phich_add(q->regs, q->phich_symbols[i], ngroup, slot_symbols[i])
         < 0) {
       fprintf(stderr, "Error putting PCHICH resource elements\n");
-      return LIBLTE_ERROR;
+      return SRSLTE_ERROR;
     }
   }
 
-  return LIBLTE_SUCCESS;
+  return SRSLTE_SUCCESS;
 }
 
