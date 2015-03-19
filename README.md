@@ -27,12 +27,15 @@ The library currently uses Ettus Universal Hardware Driver (UHD). Thus, any hard
 Download & Install Instructions
 =================================
 
-* Requirements: libfftw is the only mandatory requirement. QT4 and Qwt6 are needed for graphics visualization, but the library will compile without them. Additionally, if GNURadio is installed and the VOLK library and headers are detected, they will be used for accelerating some signal processing functions. Finnally, if MATLAB and/or OCTAVE are found by CMake, MEX files will also be generated and installed. 
+* Mandatory dependencies: 
+  * libfftw:   mandatory.
+  
+* Optional requirements: 
+  * libsdrgui:     for real-time plotting. Download it here: https://github.com/suttonpd/libsdrgui 
+  * VOLK:          if the VOLK library and headers are detected, they will be used for accelerating some signal processing functions. 
+  * Matlab/Octave: if found by CMake, MEX files will also be generated and installed. If you find any compilation issue with MEX and you don't need them, pass -DDisableMex=ON to cmake to disable them. 
 
-To install QT4, Qwt6 and libfftw use your distribution packet management system, for instance in ubuntu you can run: `sudo apt-get install libfftw3-dev libqwt-dev libqt4-dev` to install all requirements. 
-
-
-Finally, to download and build srsLTE, just run: 
+Download and build srsLTE: 
 ```
 git clone https://github.com/srsLTE/srsLTE.git
 cd srsLTE
