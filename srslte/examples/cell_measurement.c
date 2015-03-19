@@ -36,7 +36,6 @@
 #include <assert.h>
 #include <signal.h>
 
-#include "srslte/rrc/rrc.h"
 #include "srslte/srslte.h"
 #include "srslte/cuhd/cuhd.h"
 #include "cuhd_utils.h"
@@ -118,7 +117,7 @@ int  parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-uint8_t data[10000], data_unpacked[1000];
+uint8_t data[10000];
 
 int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *q) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
@@ -146,7 +145,7 @@ int main(int argc, char **argv) {
   uint32_t nof_trials = 0; 
   uint32_t sfn = 0; // system frame number
   int n; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
   float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
   cf_t *ce[SRSLTE_MAX_PORTS];
@@ -242,14 +241,13 @@ int main(int argc, char **argv) {
       switch (state) {
         case DECODE_MIB:
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
-            decode_reset(&ue_mib.pbch);
-            n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload_unpacked, NULL, &sfn_offset);
+            srslte_pbch_decode_reset(&ue_mib.pbch);
+            n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               return -1;
-            } else if (n == SRSLTE_UE_MIB_FOUND) {             
-              srslte_bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
-              bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
+            } else if (n == SRSLTE_UE_MIB_FOUND) {   
+              srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
               printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
               sfn = (sfn + sfn_offset)%1024; 
               state = DECODE_SIB; 
@@ -271,16 +269,9 @@ int main(int argc, char **argv) {
                       (float) ue_dl.nof_detected/nof_trials);                
               nof_trials++; 
             } else {
-              srslte_bit_unpack_vector(data, data_unpacked, n);
-              void *dlsch_msg = bcch_dlsch_unpack(data_unpacked, n);
-              if (dlsch_msg) {
-                printf("\n");fflush(stdout);
-                cell_access_info_t cell_info; 
-                bcch_dlsch_sib1_get_cell_access_info(dlsch_msg, &cell_info);
-                printf("Decoded SIB1. Cell ID: 0x%x\n", cell_info.cell_id);
-                bcch_dlsch_fprint(dlsch_msg, stdout);        
-                state = MEASURE;
-              }
+              printf("Decoded SIB1. Payload: ");
+              srslte_vec_fprint_hex(stdout, data, n);;
+              state = MEASURE;
             }
           }
         break;

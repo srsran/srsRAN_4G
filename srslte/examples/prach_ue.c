@@ -38,7 +38,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "srslte/rrc/rrc.h"
 #include "srslte/srslte.h"
 
 
@@ -296,7 +295,7 @@ int main(int argc, char **argv) {
   srslte_ue_mib_t ue_mib; 
   void *uhd; 
   int n; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
   rar_msg_t rar_msg; 
   srslte_ra_pusch_t ra_pusch; 
@@ -470,14 +469,14 @@ int main(int argc, char **argv) {
           switch (state) {
           case DECODE_MIB:
             if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
-              decode_reset(&ue_mib.pbch);
-              n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload_unpacked, NULL, &sfn_offset);
+              srslte_pbch_decode_reset(&ue_mib.pbch);
+              n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload, NULL, &sfn_offset);
               if (n < 0) {
                 fprintf(stderr, "Error decoding UE MIB\n");
                 exit(-1);
-              } else if (n == SRSLTE_UE_MIB_FOUND) {             
-                srslte_bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
-                bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
+              } else if (n == SRSLTE_UE_MIB_FOUND) {       
+                srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
+                srslte_pbch_mib_fprint(stdout, &cell, sfn, cell.id);
                 printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
                 sfn = (sfn + sfn_offset)%1024; 
                 state = SEND_PRACH; 
@@ -551,7 +550,7 @@ int main(int argc, char **argv) {
                     time_adv_sec = prog_args.ta_usec*1e-6;
                   }
   #define N_TX  1
-                  const uint32_t rv[N_TX]={0,2,3,1,0};
+                  const uint32_t rv[N_TX]={0};
                   for (int i=0; i<N_TX;i++) {
                     ra_pusch.rv_idx = rv[i];
                     ul_sf_idx = (srslte_ue_sync_get_sfidx(&ue_sync)+6+i*8)%10;

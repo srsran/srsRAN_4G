@@ -35,7 +35,6 @@
 #include <semaphore.h>
 
 #include "srslte/srslte.h"
-#include "srslte/rrc/rrc.h"
 
 #ifndef DISABLE_UHD
 #include "srslte/cuhd/cuhd.h"
@@ -246,7 +245,7 @@ void base_init() {
     exit(-1);
   }
 
-  if (srslte_pdsrslte_sch_init(&pdsch, cell)) {
+  if (srslte_pdsch_init(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
@@ -261,7 +260,7 @@ void base_init() {
 
 void base_free() {
 
-  harq_free(&harq_process);
+  srslte_harq_free(&harq_process);
   srslte_pdsch_free(&pdsch);
   srslte_pdcch_free(&pdcch);
   srslte_regs_free(&regs);
@@ -442,7 +441,7 @@ int main(int argc, char **argv) {
   cf_t pss_signal[SRSLTE_PSS_LEN];
   float sss_signal0[SRSLTE_SSS_LEN]; // for subframe 0
   float sss_signal5[SRSLTE_SSS_LEN]; // for subframe 5
-  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_packed[BCH_PAYLOAD_LEN/8];
+  uint8_t bch_payload[BCH_PAYLOAD_LEN];
   int i;
   cf_t *sf_symbols[SRSLTE_MAX_PORTS];
   cf_t *slot1_symbols[SRSLTE_MAX_PORTS];
@@ -532,8 +531,7 @@ int main(int argc, char **argv) {
 
       srslte_refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);
 
-      bcch_bch_pack(&cell, sfn, bch_payload_packed, BCH_PAYLOAD_LEN/8);
-      srslte_bit_pack_vector(bch_payload_packed, bch_payload, BCH_PAYLOAD_LEN);
+      srslte_pbch_mib_pack(&cell, sfn, bch_payload);
       if (sf_idx == 0) {
         srslte_pbch_encode(&pbch, bch_payload, slot1_symbols);
       }
@@ -566,7 +564,7 @@ int main(int argc, char **argv) {
       if (send_data) {
         srslte_dci_msg_pack_pdsch(&ra_dl, &dci_msg, SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
         INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
-        if (encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
+        if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
           fprintf(stderr, "Error encoding DCI message\n");
           exit(-1);
         }

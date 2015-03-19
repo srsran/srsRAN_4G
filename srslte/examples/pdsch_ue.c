@@ -38,7 +38,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "srslte/rrc/rrc.h"
 #include "srslte/srslte.h"
 
 
@@ -57,7 +56,7 @@ cell_search_cfg_t cell_detect_config = {
 //#define STDOUT_COMPACT
 
 #ifndef DISABLE_GRAPHICS
-#include "srslte/graphics/plot.h"
+#include "libsdrgui/libsdrgui.h"
 void init_plots();
 pthread_t plot_thread; 
 sem_t plot_sem; 
@@ -236,7 +235,7 @@ int main(int argc, char **argv) {
 #endif
   uint32_t nof_trials = 0; 
   int n; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
   
   parse_args(&prog_args, argc, argv);
@@ -371,14 +370,14 @@ int main(int argc, char **argv) {
       switch (state) {
         case DECODE_MIB:
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
-            decode_reset(&ue_mib.pbch);
-            n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload_unpacked, NULL, &sfn_offset);
+            srslte_pbch_decode_reset(&ue_mib.pbch);
+            n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);
             } else if (n == SRSLTE_UE_MIB_FOUND) {             
-              srslte_bit_unpack_vector(bch_payload_unpacked, bch_payload, BCH_PAYLOAD_LEN);
-              bcch_bch_unpack(bch_payload, BCH_PAYLOAD_LEN, &cell, &sfn);
+              srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
+              srslte_pbch_mib_fprint(stdout, &cell, sfn, cell.id);
               printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
               sfn = (sfn + sfn_offset)%1024; 
               state = DECODE_PDSCH; 
@@ -575,7 +574,7 @@ void *plot_thread_run(void *arg) {
 
 void init_plots() {
 
-  plot_init();
+  sdrgui_init();
   
   //plot_waterfall_init(&poutfft, SRSLTE_NRE * ue_dl.cell.nof_prb, 1000);
   //plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");

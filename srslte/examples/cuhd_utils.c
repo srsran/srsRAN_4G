@@ -36,7 +36,6 @@
 #include <unistd.h>
 
 #include "srslte/srslte.h"
-#include "srslte/rrc/rrc.h"
 #include "cuhd_utils.h"
 
 
@@ -54,7 +53,7 @@ int cuhd_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, srslte_timestam
 int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
   int ret = SRSLTE_ERROR; 
   srslte_ue_mib_sync_t ue_mib; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN], bch_payload_unpacked[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[BCH_PAYLOAD_LEN];
 
   if (srslte_ue_mib_sync_init(&ue_mib, cell->id, cell->cp, cuhd_recv_wrapper_cs, uhd)) {
     fprintf(stderr, "Error initiating srslte_ue_mib_sync\n");
@@ -75,8 +74,7 @@ int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
     goto clean_exit; 
   }
   if (ret == 1) {
-    srslte_bit_unpack_vector(bch_payload, bch_payload_unpacked, BCH_PAYLOAD_LEN);
-    bcch_bch_unpack(bch_payload_unpacked, BCH_PAYLOAD_LEN, cell, NULL);            
+    srslte_pbch_mib_unpack(bch_payload, cell, NULL);
   }
 
 clean_exit: 

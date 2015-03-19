@@ -58,7 +58,7 @@ IF(${CUHD_FIND} EQUAL -1)
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
   SET_TARGET_PROPERTIES(pdsch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
 ELSE(${CUHD_FIND} EQUAL -1)
-  target_link_libraries(pdsch_ue cuhd)
+  target_link_libraries(pdsch_ue cuhd pthread)
   target_link_libraries(pdsch_enodeb cuhd)
 ENDIF(${CUHD_FIND} EQUAL -1)
 
