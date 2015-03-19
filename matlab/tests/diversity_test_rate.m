@@ -194,7 +194,7 @@ parfor index = 1:numel(SNRdB)
                                                          rxSubframe);
 
          addpath('../../debug/lte/phy/lib/ch_estimation/test')
-        [est, ~, output] = liblte_chest(rmc.NCellID,rmc.CellRefP,rxSubframe,[0.25 0.5 0.25],[0.1 0.9],mod(rmc.NSubframe,10));
+        [est, ~, output] = srslte_chest(rmc.NCellID,rmc.CellRefP,rxSubframe,[0.25 0.5 0.25],[0.1 0.9],mod(rmc.NSubframe,10));
         
         %estChannelGrid=reshape(est,size(estChannelGrid));
         

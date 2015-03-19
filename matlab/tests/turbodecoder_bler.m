@@ -28,7 +28,7 @@ for snr_idx=1:length(SNR_values_db)
         
         decodedData = lteTurboDecode(noisysymbols);
         interleavedSymbols = reshape(reshape(noisysymbols,[],3)',1,[]);
-        [decodedData2] = liblte_turbodecoder(interleavedSymbols);
+        [decodedData2] = srslte_turbodecoder(interleavedSymbols);
         
         errors1(snr_idx) = errors1(snr_idx) + any(decodedData ~= Data);
         errors2(snr_idx) = errors2(snr_idx) + any(decodedData2 ~= Data);

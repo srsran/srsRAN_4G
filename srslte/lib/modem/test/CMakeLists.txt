@@ -24,7 +24,7 @@
 ########################################################################
 
 ADD_EXECUTABLE(modem_test modem_test.c)
-TARGET_LINK_LIBRARIES(modem_test lte_phy)
+TARGET_LINK_LIBRARIES(modem_test srslte)
 
 ADD_TEST(modem_bpsk modem_test -n 1020 -m 1) 
 ADD_TEST(modem_qpsk modem_test -n 1020 -m 2)
@@ -37,7 +37,7 @@ ADD_TEST(modem_qam16_soft modem_test -n 1020 -m 4 -s)
 ADD_TEST(modem_qam64_soft modem_test -n 1020 -m 6 -s)
  
 ADD_EXECUTABLE(soft_demod_test soft_demod_test.c)
-TARGET_LINK_LIBRARIES(soft_demod_test lte_phy)
+TARGET_LINK_LIBRARIES(soft_demod_test srslte)
 
 ADD_TEST(modem_bpsk_soft_approx soft_demod_test -n 1020 -m 1) 
 ADD_TEST(modem_qpsk_soft_approx soft_demod_test -n 1020 -m 2)

@@ -39,7 +39,7 @@ FOREACH (_header ${headers})
     LIST(APPEND HEADERS_ALL ${tmp})
   ENDIF(IS_DIRECTORY ${_header})
 ENDFOREACH()
-ADD_CUSTOM_TARGET (add_lte_phy_headers SOURCES ${HEADERS_ALL})
+ADD_CUSTOM_TARGET (add_srslte_headers SOURCES ${HEADERS_ALL})
 
 ########################################################################
 # Add subdirectories

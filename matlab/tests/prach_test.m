@@ -24,7 +24,7 @@ for n_rb=1:length(NULRB)
                         prachConfig.HighSpeed=hs;
                         prachConfig.FreqIdx=5;
                         prachConfig.FreqOffest=5;
-                        lib=liblte_prach(ueConfig,prachConfig);
+                        lib=srslte_prach(ueConfig,prachConfig);
                         
                         [mat, info]=ltePRACH(ueConfig,prachConfig);
                         err=mean(abs(mat(:)-lib(1:length(mat))));

@@ -112,15 +112,15 @@ for snr_idx=1:length(SNR_values)
         error(3,snr_idx) = error(3,snr_idx) + ((idx ~= m0 && idx ~= m1));
         
         % srsLTE results
-        [n,sf_idx,lt_corr0]=liblte_sss(enb,rxWaveform,'full');
+        [n,sf_idx,lt_corr0]=srslte_sss(enb,rxWaveform,'full');
         [m, idx]=max(lt_corr0);
         error(4,snr_idx) = error(4,snr_idx) + ((idx ~= m0 && idx ~= m1));
 
-        [n,sf_idx,lt_corr2]=liblte_sss(enb,rxWaveform,'partial');
+        [n,sf_idx,lt_corr2]=srslte_sss(enb,rxWaveform,'partial');
         [m, idx]=max(lt_corr2);
         error(5,snr_idx) = error(5,snr_idx) + ((idx ~= m0 && idx ~= m1));
         
-        [n,sf_idx,lt_corr3]=liblte_sss(enb,rxWaveform,'diff');
+        [n,sf_idx,lt_corr3]=srslte_sss(enb,rxWaveform,'diff');
         [m, idx]=max(lt_corr3);
         error(6,snr_idx) = error(6,snr_idx) + ((idx ~= m0 && idx ~= m1));
         

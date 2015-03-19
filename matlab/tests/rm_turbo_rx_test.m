@@ -26,8 +26,8 @@ for i=1:length(trBlkLenVec)
     mat2 = reshape(reshape(mat{1},[],3)',[],1);
     out = lteTurboDecode(mat{1});
     
-    lib=liblte_srslte_rm_turbo_rx(double(codeword),trBlkLen,RV);
-    [outLib] = liblte_turbodecoder(lib);
+    lib=srslte_srslte_rm_turbo_rx(double(codeword),trBlkLen,RV);
+    [outLib] = srslte_turbodecoder(lib);
     
     if (length(trBlkLenVec) == 1)
         fprintf('Err mat: %d. Err lib: %d\n',sum(out(1+info.F:trBlkLen+info.F)~=in),sum(outLib(1+info.F:trBlkLen+info.F)~=in));

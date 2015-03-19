@@ -54,7 +54,7 @@ cec.InterpWinSize = 1;                % Interpolation window size
 addpath('../../debug/lte/phy/lib/phch/test')
 
 decoded = zeros(size(SNR_values));
-decoded_liblte = zeros(size(SNR_values));
+decoded_srslte = zeros(size(SNR_values));
 
 for snr_idx=1:length(SNR_values)
     SNRdB = SNR_values(snr_idx);
@@ -96,25 +96,25 @@ for snr_idx=1:length(SNR_values)
 
             %% Same with srsLTE
             if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
-                [dec2, data, pdschRx, pdschSymbols2, deb] = liblte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
+                [dec2, data, pdschRx, pdschSymbols2, deb] = srslte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
                                                         rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
                                                         subframe_waveform);
             else
                 dec2 = 1;
             end
-            decoded_liblte(snr_idx) = decoded_liblte(snr_idx)+dec2;
+            decoded_srslte(snr_idx) = decoded_srslte(snr_idx)+dec2;
         end
 
         if ~isempty(recordedSignal)
             recordedSignal = recordedSignal(flen*10+1:end);
         end
     end
-    fprintf('SNR: %.1f. Decoded: %d-%d\n',SNRdB, decoded(snr_idx), decoded_liblte(snr_idx))
+    fprintf('SNR: %.1f. Decoded: %d-%d\n',SNRdB, decoded(snr_idx), decoded_srslte(snr_idx))
 end
 
 if (length(SNR_values)>1)
     semilogy(SNR_values,1-decoded/Npackets/(Nsf+1),'bo-',...
-             SNR_values,1-decoded_liblte/Npackets/(Nsf+1), 'ro-')
+             SNR_values,1-decoded_srslte/Npackets/(Nsf+1), 'ro-')
     grid on;
     legend('Matlab','srsLTE')
     xlabel('SNR (dB)')
@@ -122,6 +122,6 @@ if (length(SNR_values)>1)
     axis([min(SNR_values) max(SNR_values) 1/Npackets/(Nsf+1) 1])
 else
     disp(decoded)
-    disp(decoded_liblte)
+    disp(decoded_srslte)
 end
 

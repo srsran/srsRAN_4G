@@ -26,7 +26,7 @@ for snr_idx=1:length(SNR_values)
         noise = N0*complex(randn(size(tx)), randn(size(tx)));  % Generate noise
         rx=noise+tx;
         [rx_offset(i),corr] = lteDLFrameOffset(enb,rx,corrcfg);
-        [rx_offset_lt(i),corr_lt] = liblte_pss(enb,rx);
+        [rx_offset_lt(i),corr_lt] = srslte_pss(enb,rx);
     end
     diff(snr_idx)=sum(abs(rx_offset-tx_offset));
     diff_lt(snr_idx)=sum(abs(rx_offset_lt-tx_offset));

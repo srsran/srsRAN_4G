@@ -24,7 +24,7 @@
 ########################################################################
 
 ADD_EXECUTABLE(scrambling_test scrambling_test.c)
-TARGET_LINK_LIBRARIES(scrambling_test lte_phy)
+TARGET_LINK_LIBRARIES(scrambling_test srslte)
 
 ADD_TEST(scrambling_pbch_bit scrambling_test -s PBCH -c 50) 
 ADD_TEST(scrambling_pbch_float scrambling_test -s PBCH -c 50 -f) 

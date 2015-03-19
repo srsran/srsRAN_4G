@@ -24,7 +24,7 @@
 ########################################################################
 
 ADD_EXECUTABLE(ofdm_test ofdm_test.c)
-TARGET_LINK_LIBRARIES(ofdm_test lte_phy)
+TARGET_LINK_LIBRARIES(ofdm_test srslte)
 
 ADD_TEST(ofdm_normal ofdm_test) 
 ADD_TEST(ofdm_extended ofdm_test -e) 

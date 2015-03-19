@@ -99,8 +99,8 @@ addpath('../../debug/lte/phy/lib/phch/test')
 
 decoded = zeros(size(SNR_values));
 decoded_cfi = zeros(size(SNR_values));
-decoded_liblte = zeros(size(SNR_values));
-decoded_cfi_liblte = zeros(size(SNR_values));
+decoded_srslte = zeros(size(SNR_values));
+decoded_cfi_srslte = zeros(size(SNR_values));
 
 parfor snr_idx=1:length(SNR_values)
     SNRdB = SNR_values(snr_idx);
@@ -145,11 +145,11 @@ parfor snr_idx=1:length(SNR_values)
 
         
         %% Same with srsLTE
-        [rxCFI, pcfichSymbols2, pcfichSymbolsRx2] = liblte_pcfich(enbConfigRx, rxWaveform);
-        decoded_cfi_liblte(snr_idx) = decoded_cfi_liblte(snr_idx) + (rxCFI == txCFI); 
+        [rxCFI, pcfichSymbols2, pcfichSymbolsRx2] = srslte_pcfich(enbConfigRx, rxWaveform);
+        decoded_cfi_srslte(snr_idx) = decoded_cfi_srslte(snr_idx) + (rxCFI == txCFI); 
         enbConfigRx.CFI = rxCFI;
-        [found_liblte, llr, pdcchSymbols2] = liblte_pdcch(enbConfigRx, ueConfig.RNTI, rxWaveform);
-        decoded_liblte(snr_idx) = decoded_liblte(snr_idx)+found_liblte;
+        [found_srslte, llr, pdcchSymbols2] = srslte_pdcch(enbConfigRx, ueConfig.RNTI, rxWaveform);
+        decoded_srslte(snr_idx) = decoded_srslte(snr_idx)+found_srslte;
     end
     fprintf('SNR: %.1f\n',SNRdB)
 end
@@ -157,8 +157,8 @@ end
 if (Npackets>1)
     semilogy(SNR_values,1-decoded/Npackets,'bo-',...
              SNR_values,1-decoded_cfi/Npackets,'bx:',...
-             SNR_values,1-decoded_liblte/Npackets, 'ro-',...
-             SNR_values,1-decoded_cfi_liblte/Npackets,'rx:')
+             SNR_values,1-decoded_srslte/Npackets, 'ro-',...
+             SNR_values,1-decoded_cfi_srslte/Npackets,'rx:')
     grid on
     legend('Matlab all','Matlab cfi', 'srsLTE all', 'srsLTE cfi')
     xlabel('SNR (dB)')
@@ -166,6 +166,6 @@ if (Npackets>1)
     axis([min(SNR_values) max(SNR_values) 1/Npackets/10 1])
 else
     disp(decoded)
-    disp(decoded_liblte)
+    disp(decoded_srslte)
 end
 

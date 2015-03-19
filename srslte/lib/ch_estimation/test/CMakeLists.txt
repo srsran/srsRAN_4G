@@ -24,7 +24,7 @@
 ########################################################################
 
 ADD_EXECUTABLE(chest_test_dl chest_test_dl.c)
-TARGET_LINK_LIBRARIES(chest_test_dl lte_phy)
+TARGET_LINK_LIBRARIES(chest_test_dl srslte)
 
 ADD_TEST(chest_test_dl_cellid0 chest_test_dl -c 0) 
 ADD_TEST(chest_test_dl_cellid1 chest_test_dl -c 1) 
@@ -38,7 +38,7 @@ ADD_TEST(chest_test_dl_cellid2 chest_test_dl -c 2 -r 50)
 # Downlink MEX libs  
 ########################################################################
 
-BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES lte_phy)
+BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES srslte)
 
 
 ########################################################################
@@ -46,10 +46,10 @@ BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES lte_phy)
 ########################################################################
 
 ADD_EXECUTABLE(refsignal_ul_test_all refsignal_ul_test.c)
-TARGET_LINK_LIBRARIES(refsignal_ul_test_all lte_phy)
+TARGET_LINK_LIBRARIES(refsignal_ul_test_all srslte)
 
 
-BuildMex(MEXNAME refsignal_pusch SOURCES refsignal_pusch_mex.c LIBRARIES lte_phy liblte_mex)
+BuildMex(MEXNAME refsignal_pusch SOURCES refsignal_pusch_mex.c LIBRARIES srslte srslte_mex)
 
 
 

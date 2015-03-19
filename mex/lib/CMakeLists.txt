@@ -46,9 +46,9 @@ ENDIF(OCTAVE_FOUND)
 
 
 IF (MATLAB_FOUND OR OCTAVE_FOUND)
-  ADD_LIBRARY(liblte_mex SHARED mexutils.c)
-  INSTALL(TARGETS liblte_mex DESTINATION ${LIBRARY_DIR})
-  LIBLTE_SET_PIC(liblte_mex)
+  ADD_LIBRARY(srslte_mex SHARED mexutils.c)
+  INSTALL(TARGETS srslte_mex DESTINATION ${LIBRARY_DIR})
+  LIBLTE_SET_PIC(srslte_mex)
   if (MATLAB_FOUND)
     include_directories(${MATLAB_INCLUDE_DIR})
   endif(MATLAB_FOUND)

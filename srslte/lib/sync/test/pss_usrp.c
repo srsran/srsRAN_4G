@@ -346,7 +346,7 @@ cf_t tmpce[SRSLTE_PSS_LEN];
 
 
 void init_plots() {
-  plot_init();
+  sdrgui_init();
   plot_real_init(&pssout);
   plot_real_setTitle(&pssout, "PSS xCorr");
   plot_real_setLabels(&pssout, "Index", "Absolute value");

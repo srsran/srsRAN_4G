@@ -79,7 +79,7 @@ for snr_idx=1:length(SNR_values_db)
             errorReal(i,1)=1;
         end
         
-        [nof_ports2, pbchSymbols2, pbchBits, ce, ce2, pbchRx2, pbchHest2]= liblte_pbch(enb, rxWaveform, hest, nest);
+        [nof_ports2, pbchSymbols2, pbchBits, ce, ce2, pbchRx2, pbchHest2]= srslte_pbch(enb, rxWaveform, hest, nest);
         if (nof_ports2 ~= NofPortsTx)
             errorReal(i,2)=1;
         end

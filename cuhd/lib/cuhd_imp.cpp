@@ -32,7 +32,7 @@
 #include <uhd/utils/msg.hpp>
 
 #include "cuhd_handler.hpp"
-#include "liblte/cuhd/cuhd.h"
+#include "srslte/cuhd/cuhd.h"
 
 //#define METADATA_VERBOSE
 

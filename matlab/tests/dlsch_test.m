@@ -13,7 +13,7 @@ for i=1:length(TBs)
     %trblkin=[1, 0];
     
     [mat, info]=lteDLSCH(enbConfig,pdschConfig,e_bits,trblkin);
-    lib=liblte_dlsch_encode(enbConfig,pdschConfig,e_bits,trblkin);
+    lib=srslte_dlsch_encode(enbConfig,pdschConfig,e_bits,trblkin);
     error(i)=mean(abs(double(mat)-double(lib)));    
 end
 

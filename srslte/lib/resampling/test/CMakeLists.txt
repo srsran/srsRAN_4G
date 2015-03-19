@@ -24,10 +24,10 @@
 ########################################################################
 
 ADD_EXECUTABLE(resample_arb_test resample_arb_test.c)
-TARGET_LINK_LIBRARIES(resample_arb_test lte_phy)
+TARGET_LINK_LIBRARIES(resample_arb_test srslte)
 
 ADD_EXECUTABLE(resample_arb_bench resample_arb_bench.c)
-TARGET_LINK_LIBRARIES(resample_arb_bench lte_phy)
+TARGET_LINK_LIBRARIES(resample_arb_bench srslte)
 
 ADD_TEST(resample resample_arb_test)
  

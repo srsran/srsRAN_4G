@@ -38,24 +38,24 @@ FUNCTION(BuildMex)
     #target_include_directories(${BuildMex_MEXNAME}-mat PUBLIC ${MATLAB_INCLUDE_DIR})
     set_target_properties(${BuildMex_MEXNAME}-mat PROPERTIES
       SUFFIX "${MATLAB_MEX_EXTENSION}"
-      PREFIX "liblte_"
+      PREFIX "srslte_"
       OUTPUT_NAME "${BuildMex_MEXNAME}"
       COMPILE_FLAGS "-fvisibility=default ${MATLAB_MEX_CFLAGS} -I${MATLAB_INCLUDE_DIR}"
       )
     target_link_libraries(${BuildMex_MEXNAME}-mat ${BuildMex_LIBRARIES} ${MATLAB_MEX_LIBRARY})
-    install(TARGETS ${BuildMex_MEXNAME}-mat DESTINATION "${MEX_DIR}/liblte/") 
+    install(TARGETS ${BuildMex_MEXNAME}-mat DESTINATION "${MEX_DIR}/srslte/") 
   endif(MATLAB_FOUND)
   if (OCTAVE_FOUND) 
     add_library(${BuildMex_MEXNAME}-oct SHARED ${BuildMex_SOURCES})
     #target_include_directories(${BuildMex_MEXNAME}-oct PUBLIC ${OCTAVE_INCLUDE_DIR})
     set_target_properties(${BuildMex_MEXNAME}-oct PROPERTIES
       SUFFIX ".${OCTAVE_MEXFILE_EXT}"
-      PREFIX "liblte_"
+      PREFIX "srslte_"
       OUTPUT_NAME "${BuildMex_MEXNAME}"
       COMPILE_FLAGS "-fvisibility=default ${OCTAVE_MEX_CFLAGS} -DUNDEF_BOOL -I${OCTAVE_INCLUDE_DIR}"
       )
     target_link_libraries(${BuildMex_MEXNAME}-oct ${BuildMex_LIBRARIES} ${OCTAVE_LIBRARIES})
-    install(TARGETS ${BuildMex_MEXNAME}-oct DESTINATION "${MEX_DIR}/liblte/") 
+    install(TARGETS ${BuildMex_MEXNAME}-oct DESTINATION "${MEX_DIR}/srslte/") 
   endif (OCTAVE_FOUND)
 ENDFUNCTION(BuildMex)
 

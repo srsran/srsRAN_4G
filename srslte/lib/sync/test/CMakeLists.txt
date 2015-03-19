@@ -25,11 +25,14 @@
 
 LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
 
+FIND_PACKAGE(LIBSDRGUI)
+
 IF(${CUHD_FIND} GREATER -1)
   ADD_EXECUTABLE(pss_usrp pss_usrp.c)
-  TARGET_LINK_LIBRARIES(pss_usrp lte_phy cuhd)
+  TARGET_LINK_LIBRARIES(pss_usrp srslte cuhd)
   IF(LIBSDRGUI_FOUND)
-    target_link_libraries(pss_usrp graphics)
+    include_directories(${LIBSDRGUI_INCLUDE_DIRS})
+    target_link_libraries(pss_usrp ${LIBSDRGUI_LIBRARIES})
   ELSE(LIBSDRGUI_FOUND)
     SET_TARGET_PROPERTIES(pss_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
   ENDIF(LIBSDRGUI_FOUND)
@@ -37,15 +40,15 @@ ENDIF(${CUHD_FIND} GREATER -1)
 
 
 
-BuildMex(MEXNAME pss SOURCES pss_mex.c LIBRARIES lte_phy liblte_mex)
-BuildMex(MEXNAME sss SOURCES sss_mex.c LIBRARIES lte_phy liblte_mex)
+BuildMex(MEXNAME pss SOURCES pss_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME sss SOURCES sss_mex.c LIBRARIES srslte srslte_mex)
 
 ########################################################################
 # SYNC TEST  
 ########################################################################
 
 ADD_EXECUTABLE(sync_test sync_test.c)
-TARGET_LINK_LIBRARIES(sync_test lte_phy)
+TARGET_LINK_LIBRARIES(sync_test srslte)
 
 ADD_TEST(sync_test_100 sync_test -o 100 -c 501) 
 ADD_TEST(sync_test_400 sync_test -o 400 -c 2) 
@@ -62,7 +65,7 @@ ADD_TEST(sync_test_400_e sync_test -o 400 -e -p 50 -c 123)
 ########################################################################
 
 ADD_EXECUTABLE(cfo_test cfo_test.c)
-TARGET_LINK_LIBRARIES(cfo_test lte_phy)
+TARGET_LINK_LIBRARIES(cfo_test srslte)
 
 ADD_TEST(cfo_test_1 cfo_test -f 0.12345 -n 1000) 
 ADD_TEST(cfo_test_2 cfo_test -f 0.99849 -n 1000) 

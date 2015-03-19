@@ -42,7 +42,7 @@ for i=1:length(TBs)
                                 [mat, info]=lteULSCH(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit,[]);
                                 mat(mat==-2)=2;
                                 mat(mat==-1)=3;
-                                [lib]=liblte_ulsch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
+                                [lib]=srslte_ulsch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
                                 err=sum(abs(double(mat)-double(lib)));
                                 if (err > 0)
                                   disp(err)    

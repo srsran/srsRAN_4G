@@ -25,10 +25,10 @@
 #################################################################
 
 add_executable(hl_example hl_example.c)
-target_link_libraries(hl_example lte_phy)
+target_link_libraries(hl_example srslte)
 
 add_executable(ll_example ll_example.c)
-target_link_libraries(ll_example lte_phy)
+target_link_libraries(ll_example srslte)
 
 
 #################################################################
@@ -36,27 +36,24 @@ target_link_libraries(ll_example lte_phy)
 #################################################################
 
 add_executable(synch_file synch_file.c)
-target_link_libraries(synch_file lte_phy)
+target_link_libraries(synch_file srslte)
 
 LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
 
-#################################################################
-# Check if UHD C-API and Graphics library are available
-#################################################################
 
-LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
-LIST(FIND OPTIONAL_LIBS graphics GRAPHICS_FIND)
+
 
 #################################################################
 # These two can be compiled without UHD or graphics support
 #################################################################
 
 add_executable(pdsch_ue pdsch_ue.c cuhd_utils.c)
-target_link_libraries(pdsch_ue lte_rrc lte_phy)
+target_link_libraries(pdsch_ue srslte)
 
 add_executable(pdsch_enodeb pdsch_enodeb.c)
-target_link_libraries(pdsch_enodeb lte_rrc lte_phy pthread)
+target_link_libraries(pdsch_enodeb srslte pthread)
 
+LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
 IF(${CUHD_FIND} EQUAL -1)
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
   SET_TARGET_PROPERTIES(pdsch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
@@ -65,13 +62,13 @@ ELSE(${CUHD_FIND} EQUAL -1)
   target_link_libraries(pdsch_enodeb cuhd)
 ENDIF(${CUHD_FIND} EQUAL -1)
 
-IF(${GRAPHICS_FIND} EQUAL -1)
+FIND_PACKAGE(LIBSDRGUI)
+IF(LIBSDRGUI_FOUND)
+  include_directories(${LIBSDRGUI_INCLUDE_DIRS})
+  target_link_libraries(pdsch_ue ${LIBSDRGUI_LIBRARIES})  
+ELSE(LIBSDRGUI_FOUND)
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-  SET_TARGET_PROPERTIES(pdsch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-ELSE(${GRAPHICS_FIND} EQUAL -1)
-  target_link_libraries(pdsch_ue graphics)
-  target_link_libraries(pdsch_enodeb graphics)
-ENDIF(${GRAPHICS_FIND} EQUAL -1)
+ENDIF(LIBSDRGUI_FOUND)
 
 
 #################################################################
@@ -81,13 +78,13 @@ ENDIF(${GRAPHICS_FIND} EQUAL -1)
 IF(${CUHD_FIND} GREATER -1)
 
   add_executable(cell_search cell_search.c cuhd_utils.c)
-  target_link_libraries(cell_search lte_rrc lte_phy cuhd )
+  target_link_libraries(cell_search srslte cuhd )
 
   add_executable(prach_ue prach_ue.c cuhd_utils.c)
-  target_link_libraries(prach_ue lte_rrc lte_phy cuhd)
+  target_link_libraries(prach_ue srslte cuhd)
 
   add_executable(cell_measurement cell_measurement.c cuhd_utils.c)
-  target_link_libraries(cell_measurement cuhd lte_rrc lte_phy)
+  target_link_libraries(cell_measurement cuhd srslte)
 
   MESSAGE(STATUS "   UHD examples will be installed.")
 
