@@ -9,7 +9,7 @@
 #include "srslte/phch/prach.h"
 
 #define MAX_LEN  70176
-typedef _Complex float cf_t;
+
 
 uint32_t N_ifft_ul        = 128;
 uint32_t preamble_format  = 0;

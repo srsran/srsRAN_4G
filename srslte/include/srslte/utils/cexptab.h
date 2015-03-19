@@ -33,8 +33,6 @@
 #include <stdint.h>
 #include "srslte/config.h"
 
-typedef _Complex float cf_t;
-
 typedef struct SRSLTE_API {
   uint32_t size;
   cf_t *tab;

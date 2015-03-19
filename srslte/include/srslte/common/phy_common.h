@@ -121,8 +121,6 @@ typedef enum {SRSLTE_SRSLTE_CP_NORM, SRSLTE_SRSLTE_CP_EXT} srslte_cp_t;
 
 #define SRSLTE_NOF_TC_CB_SIZES 188
 
-typedef _Complex float cf_t; 
-
 typedef enum SRSLTE_API { 
   SRSLTE_PHICH_NORM = 0, 
   SRSLTE_PHICH_EXT  

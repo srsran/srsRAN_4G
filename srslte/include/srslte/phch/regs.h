@@ -42,8 +42,6 @@
 #define REGS_RE_X_REG    4
 
 
-typedef _Complex float cf_t;
-
 typedef struct SRSLTE_API {
   uint32_t k[4];
   uint32_t k0;

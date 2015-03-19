@@ -36,8 +36,6 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/utils/convolution.h"
 
-typedef _Complex float cf_t; /* this is only a shortcut */
-
 #define CONVOLUTION_FFT
 
 #define SRSLTE_PSS_LEN     62

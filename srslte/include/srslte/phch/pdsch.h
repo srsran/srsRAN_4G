@@ -43,7 +43,7 @@
 
 #define SRSLTE_PDSCH_MAX_TDEC_ITERS         5
 
-typedef _Complex float cf_t;
+
 
 /* PDSCH object */
 typedef struct SRSLTE_API {

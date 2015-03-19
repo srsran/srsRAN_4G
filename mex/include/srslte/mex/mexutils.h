@@ -40,7 +40,7 @@
 
 #include "srslte/config.h"
 
-typedef _Complex float cf_t; 
+ 
 
 SRSLTE_API bool mexutils_isScalar(const mxArray *ptr);
 

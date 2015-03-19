@@ -34,8 +34,6 @@
 #ifndef CH_AWGN_
 #define CH_AWGN_
 
-typedef _Complex float cf_t;
-
 SRSLTE_API void srslte_ch_awgn_c(const cf_t* input, 
                                  cf_t* output, 
                                  float variance, 

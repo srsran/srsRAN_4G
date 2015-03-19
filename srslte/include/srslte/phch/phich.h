@@ -38,7 +38,7 @@
 #include "srslte/scrambling/scrambling.h"
 #include "regs.h"
 
-typedef _Complex float cf_t;
+
 
 #define SRSLTE_PHICH_NORM_NSEQUENCES  8
 #define SRSLTE_PHICH_EXT_NSEQUENCES   4

@@ -32,8 +32,6 @@
 
 #include "srslte/config.h"
 
-typedef _Complex float cf_t;
-
 
 /************* STATIC LINEAR INTERPOLATION FUNCTIONS */
 

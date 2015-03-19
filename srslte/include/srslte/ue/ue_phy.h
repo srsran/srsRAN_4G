@@ -31,7 +31,7 @@
 #ifndef UEPHY_H
 #define UEPHY_H
 
-typedef _Complex float cf_t; 
+ 
 
 class srslte_ue_phy
 {

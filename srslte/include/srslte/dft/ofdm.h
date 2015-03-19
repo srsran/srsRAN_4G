@@ -37,8 +37,6 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/dft/dft.h"
 
-typedef _Complex float cf_t; /* this is only a shortcut */
-
 /* This is common for both directions */
 typedef struct SRSLTE_API{
   srslte_dft_plan_t fft_plan;

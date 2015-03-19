@@ -41,8 +41,6 @@
 #include "srslte/phch/harq.h"
 #include "srslte/dft/dft_precoding.h"
 
-typedef _Complex float cf_t;
-
 #define SRSLTE_PUCCH_N_SEQ     12 // Only Format 1, 1a and 1b supported
 #define SRSLTE_PUCCH_MAX_BITS  2 
 #define SRSLTE_PUCCH_N_SF_MAX  4

@@ -48,8 +48,6 @@
 #define PBCH_RE_SRSLTE_SRSLTE_CP_NORM    240
 #define PBCH_RE_SRSLTE_SRSLTE_CP_EXT     216
 
-typedef _Complex float cf_t;
-
 /* PBCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;

@@ -8,7 +8,7 @@
 #include "srslte/srslte.h"
 #include "srslte/resampling/resample_arb.h"
 
-typedef _Complex float cf_t;
+
 
 int main(int argc, char **argv) {
   int N = 100;        // Number of sinwave samples

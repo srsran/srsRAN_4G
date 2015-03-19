@@ -58,4 +58,7 @@
 #define SRSLTE_ERROR                  -1
 #define SRSLTE_ERROR_INVALID_INPUTS   -2
 
+// cf_t definition
+typedef _Complex float cf_t;
+
 #endif // CONFIG_H

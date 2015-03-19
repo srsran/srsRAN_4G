@@ -67,8 +67,6 @@ typedef struct SRSLTE_API {
   srslte_dft_mode_t mode;   // Complex/Real
 }srslte_dft_plan_t;
 
-typedef _Complex float cf_t;
-
 /* Create DFT plans */
 
 SRSLTE_API int srslte_dft_plan(srslte_dft_plan_t *plan, 

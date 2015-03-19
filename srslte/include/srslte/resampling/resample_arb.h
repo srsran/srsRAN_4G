@@ -33,8 +33,6 @@
 
 #include "srslte/config.h"
 
-typedef _Complex float cf_t;
-
 #define SRSLTE_RESAMPLE_ARB_N    32  // Polyphase filter rows
 #define SRSLTE_RESAMPLE_ARB_M    8   // Polyphase filter columns
 

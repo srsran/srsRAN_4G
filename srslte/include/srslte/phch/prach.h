@@ -35,7 +35,7 @@
 #include "srslte/config.h"
 #include "srslte/dft/dft.h"
 
-typedef _Complex float cf_t;
+
 
 /** Generation and detection of RACH signals for uplink.
  *  Currently only supports preamble formats 0-3.

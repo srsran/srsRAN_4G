@@ -33,8 +33,6 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/dft/dft.h"
 
-typedef _Complex float cf_t;
-
 /* DFT-based Transform Precoding object */
 typedef struct SRSLTE_API {
 
