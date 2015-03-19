@@ -42,7 +42,7 @@
 #include "srslte/phch/dci.h"
 #include "srslte/phch/regs.h"
 
-typedef _Complex float cf_t;
+
 
 
 typedef enum SRSLTE_API {

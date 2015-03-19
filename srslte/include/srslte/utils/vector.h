@@ -37,8 +37,6 @@ extern "C" {
 #include <stdint.h>
 #include "srslte/config.h"
 
-typedef _Complex float cf_t;
-
 
 #define SRSLTE_MAX(a,b) ((a)>(b)?(a):(b))
 #define SRSLTE_MIN(a,b) ((a)<(b)?(a):(b))

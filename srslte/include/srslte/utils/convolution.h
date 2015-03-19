@@ -32,8 +32,6 @@
 #include "srslte/config.h"
 #include "srslte/dft/dft.h"
 
-typedef _Complex float cf_t;
-
 typedef struct SRSLTE_API {
   cf_t *input_fft;
   cf_t *filter_fft;

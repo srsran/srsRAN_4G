@@ -41,8 +41,6 @@
 #define SRSLTE_NOF_DELTA_SS    30
 #define SRSLTE_NOF_CSHIFT      8
 
-typedef _Complex float cf_t;
-
 typedef struct SRSLTE_API {
   uint32_t cyclic_shift; 
   uint32_t cyclic_shift_for_drms;

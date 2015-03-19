@@ -26,11 +26,9 @@
  */
 
 #ifndef DECIM_H
-#define DECIM_H_
+#define DECIM_H
 
 #include "srslte/config.h"
-
-typedef _Complex float cf_t;
 
 
 SRSLTE_API void srslte_decim_c(cf_t *input, 

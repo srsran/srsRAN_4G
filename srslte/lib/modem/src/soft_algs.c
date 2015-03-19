@@ -42,7 +42,7 @@
 #define QAM64_THRESHOLD_3       6/sqrt(42)
 
 
-typedef _Complex float cf_t;
+
 
 // There are 3 implemenations: 1 - based on zones; 2 - using volk, 3 - straightforward C
 #define LLR_SRSLTE_DEMOD_SOFT_ALG_APPROX_IMPLEMENTATION 1

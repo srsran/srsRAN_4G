@@ -32,8 +32,6 @@
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
 
-typedef _Complex float cf_t;
-
 /* Generates the vector of layer-mapped symbols "x" based on the vector of data symbols "d"
  */
 SRSLTE_API int srslte_layermap_single(cf_t *d, 

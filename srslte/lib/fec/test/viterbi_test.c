@@ -37,7 +37,7 @@
 
 #include "viterbi_test.h"
 
-typedef _Complex float cf_t;
+
 
 int frame_length = 1000, nof_frames = 128;
 float ebno_db = 100.0;

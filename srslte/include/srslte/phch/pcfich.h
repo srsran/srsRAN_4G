@@ -40,8 +40,6 @@
 #define PCFICH_CFI_LEN  32
 #define PCFICH_RE       PCFICH_CFI_LEN/2
 
-typedef _Complex float cf_t;
-
 /* PCFICH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;

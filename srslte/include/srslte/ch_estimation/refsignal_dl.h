@@ -35,8 +35,6 @@
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
 
-typedef _Complex float cf_t;
-
 // Number of references in a subframe: there are 2 symbols for port_id=0,1 x 2 slots x 2 refs per prb
 #define SRSLTE_REFSIGNAL_NUM_SF(nof_prb, port_id)     (((port_id)<2?8:4)*(nof_prb))
 #define SRSLTE_REFSIGNAL_MAX_NUM_SF(nof_prb)          SRSLTE_REFSIGNAL_NUM_SF(nof_prb, 0)

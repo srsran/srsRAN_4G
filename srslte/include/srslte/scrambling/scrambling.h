@@ -33,8 +33,6 @@
 #include "srslte/common/sequence.h"
 #include "srslte/common/phy_common.h"
 
-typedef _Complex float cf_t;
-
 /* Scrambling has no state */
 SRSLTE_API void srslte_scrambling_b(srslte_sequence_t *s, 
                                     uint8_t *data);

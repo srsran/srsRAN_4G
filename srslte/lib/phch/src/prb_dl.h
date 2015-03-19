@@ -25,8 +25,7 @@
  *
  */
 
-
-typedef _Complex float cf_t;
+#include "srslte/config.h"
 
 void prb_cp_ref(cf_t **input, cf_t **output, int offset, int nof_refs,
     int nof_intervals, bool advance_input);

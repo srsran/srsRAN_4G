@@ -35,8 +35,6 @@
 #include "srslte/config.h"
 #include "modem_table.h"
 
-typedef _Complex float cf_t;
-
 SRSLTE_API int srslte_mod_modulate(srslte_srslte_modem_table_t* table, 
                                    uint8_t *bits, 
                                    cf_t* symbols, 

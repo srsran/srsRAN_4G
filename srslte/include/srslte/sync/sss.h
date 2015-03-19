@@ -36,8 +36,6 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/dft/dft.h"
 
-typedef _Complex float cf_t; /* this is only a shortcut */
-
 
 #define SRSLTE_SSS_N      31
 #define SRSLTE_SSS_LEN    2*SRSLTE_SSS_N

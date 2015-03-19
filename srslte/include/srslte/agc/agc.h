@@ -39,7 +39,6 @@
 /* Automatic Gain Control 
  *
  */
-typedef _Complex float cf_t;
 
 #define SRSLTE_AGC_DEFAULT_BW  (5e-2)
 

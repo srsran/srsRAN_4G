@@ -37,7 +37,6 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/config.h"
 
-typedef _Complex float cf_t;
 typedef struct SRSLTE_API {
   uint32_t idx[2][6][32];
   uint32_t min_idx[2][64][6];	/* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2x(1, 2, 4, and 6 closest constellation points) for each bit, respectively. */

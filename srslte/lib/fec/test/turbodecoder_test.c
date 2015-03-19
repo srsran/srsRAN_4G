@@ -39,7 +39,7 @@
 
 #include "turbodecoder_test.h"
 
-typedef _Complex float cf_t;
+
 
 uint32_t frame_length = 1000, nof_frames = 100;
 float ebno_db = 100.0;

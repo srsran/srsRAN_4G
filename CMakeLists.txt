@@ -160,7 +160,6 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/common/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/srslte/include/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/cuhd/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/mex/include)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/graphics/include)
 
 ########################################################################
 # Add the subdirectories
@@ -169,4 +168,3 @@ ADD_SUBDIRECTORY(common)
 ADD_SUBDIRECTORY(cuhd)
 ADD_SUBDIRECTORY(srslte)
 add_subdirectory(mex)
-ADD_SUBDIRECTORY(graphics)

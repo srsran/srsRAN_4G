@@ -8,7 +8,7 @@
 
 #include "srslte/dft/dft.h"
 
-typedef _Complex float cf_t;
+
 
 int N = 256;
 bool forward = true;

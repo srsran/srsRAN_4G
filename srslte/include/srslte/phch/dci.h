@@ -34,8 +34,6 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/ra.h"
 
-typedef _Complex float cf_t;
-
 /**
  * DCI message generation according to the formats, as specified in
  * 36.212 Section 5.3.3.1

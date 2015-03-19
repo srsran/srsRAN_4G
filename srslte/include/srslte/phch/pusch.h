@@ -43,7 +43,7 @@
 
 #define SRSLTE_PUSCH_MAX_TDEC_ITERS         5
 
-typedef _Complex float cf_t;
+
 
 
 typedef struct {
