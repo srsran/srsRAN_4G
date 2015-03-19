@@ -228,7 +228,7 @@ void srslte_ue_sync_decode_sss_on_track(srslte_ue_sync_t *q, bool enabled) {
   q->decode_sss_on_track = enabled; 
 }
 
-void ue_srslte_sync_set_N_id_2(srslte_ue_sync_t *q, uint32_t N_id_2) {
+void srslte_ue_sync_set_N_id_2(srslte_ue_sync_t *q, uint32_t N_id_2) {
   if (!q->file_mode) {
     srslte_ue_sync_reset(q);
     srslte_sync_set_N_id_2(&q->strack, N_id_2);

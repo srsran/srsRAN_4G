@@ -180,7 +180,7 @@ void srslte_harq_reset(srslte_harq_t *q) {
   }
   bzero(&q->mcs, sizeof(srslte_ra_mcs_t));
   bzero(&q->cb_segm, sizeof(srslte_harq_cbsegm_t));
-  bzero(&q->dl_alloc, sizeof(srslte_srslte_ra_dl_alloc_t));
+  bzero(&q->dl_alloc, sizeof(srslte_ra_dl_alloc_t));
 }
 
 static int harq_setup_common(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx) {
@@ -199,7 +199,7 @@ static int harq_setup_common(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_harq_setup_dl(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, srslte_srslte_ra_dl_alloc_t *dl_alloc) {
+int srslte_harq_setup_dl(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, srslte_ra_dl_alloc_t *dl_alloc) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL       && 
@@ -210,7 +210,7 @@ int srslte_harq_setup_dl(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uin
     if (ret) {
       return ret;
     }
-    memcpy(&q->dl_alloc, dl_alloc, sizeof(srslte_srslte_ra_dl_alloc_t));
+    memcpy(&q->dl_alloc, dl_alloc, sizeof(srslte_ra_dl_alloc_t));
 
     // Number of symbols, RE and bits per subframe for DL
     q->nof_re = q->dl_alloc.re_sf[q->sf_idx];
@@ -223,7 +223,7 @@ int srslte_harq_setup_dl(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uin
   return ret;
 }
 
-int srslte_harq_setup_ul(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, srslte_srslte_ra_ul_alloc_t *ul_alloc) {
+int srslte_harq_setup_ul(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uint32_t sf_idx, srslte_ra_ul_alloc_t *ul_alloc) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL       && 
@@ -234,7 +234,7 @@ int srslte_harq_setup_ul(srslte_harq_t *q, srslte_ra_mcs_t mcs, uint32_t rv, uin
     if (ret) {
       return ret;
     }
-    memcpy(&q->ul_alloc, ul_alloc, sizeof(srslte_srslte_ra_ul_alloc_t));
+    memcpy(&q->ul_alloc, ul_alloc, sizeof(srslte_ra_ul_alloc_t));
 
     // Number of symbols, RE and bits per subframe for UL
     q->nof_symb = 2*(SRSLTE_CP_NSYMB(q->cell.cp)-1);

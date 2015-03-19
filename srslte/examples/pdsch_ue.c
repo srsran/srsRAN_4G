@@ -218,7 +218,7 @@ extern float mean_exec_time;
 
 enum receiver_state { DECODE_MIB, DECODE_PDSCH} state; 
 
-srs_ue_dl_t ue_dl; 
+srslte_ue_dl_t ue_dl; 
 srslte_ue_sync_t ue_sync; 
 prog_args_t prog_args; 
 
@@ -326,13 +326,13 @@ int main(int argc, char **argv) {
 #endif
   }
 
-  if (srs_ue_dl_init(&ue_dl, cell)) {  // This is the User RNTI
+  if (srslte_ue_dl_init(&ue_dl, cell)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
   
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
-  srs_ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
+  srslte_ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
 
   /* Initialize subframe counter */
   sf_cnt = 0;
@@ -398,9 +398,9 @@ int main(int argc, char **argv) {
           }
           if (decode_pdsch) {
             if (prog_args.rnti != SRSLTE_SIRNTI) {
-              n = srs_ue_dl_decode(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync));
+              n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync));
             } else {
-              n = srs_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
+              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {
@@ -490,7 +490,7 @@ int main(int argc, char **argv) {
     sf_cnt++;                  
   } // Main loop
   
-  srs_ue_dl_free(&ue_dl);
+  srslte_ue_dl_free(&ue_dl);
   srslte_ue_sync_free(&ue_sync);
   
 #ifndef DISABLE_UHD

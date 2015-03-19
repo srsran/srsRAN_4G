@@ -76,54 +76,54 @@ typedef struct SRSLTE_API {
   uint64_t nof_detected; 
 
   uint16_t current_rnti;
-}srs_ue_dl_t;
+}srslte_ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srs_ue_dl_init(srs_ue_dl_t *q, 
-                              srslte_cell_t cell);
+SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q, 
+                                 srslte_cell_t cell);
 
-SRSLTE_API void srs_ue_dl_free(srs_ue_dl_t *q);
+SRSLTE_API void srslte_ue_dl_free(srslte_ue_dl_t *q);
 
-SRSLTE_API int srs_ue_dl_decode_fft_estimate(srs_ue_dl_t *q, 
-                                             cf_t *input, 
-                                             uint32_t sf_idx, 
-                                             uint32_t *cfi); 
+SRSLTE_API int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, 
+                                                cf_t *input, 
+                                                uint32_t sf_idx, 
+                                                uint32_t *cfi); 
 
-SRSLTE_API int srs_ue_dl_decode_rnti_rv_packet(srs_ue_dl_t *q, 
-                                               srslte_dci_msg_t *dci_msg, 
-                                               uint8_t *data, 
-                                               uint32_t cfi, 
-                                               uint32_t sf_idx, 
-                                               uint16_t rnti, 
-                                               uint32_t rvidx); 
+SRSLTE_API int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, 
+                                                  srslte_dci_msg_t *dci_msg, 
+                                                  uint8_t *data, 
+                                                  uint32_t cfi, 
+                                                  uint32_t sf_idx, 
+                                                  uint16_t rnti, 
+                                                  uint32_t rvidx); 
 
-SRSLTE_API int srs_ue_dl_find_ul_dci(srs_ue_dl_t *q, 
-                                     srslte_dci_msg_t *dci_msg, 
-                                     uint32_t cfi, 
-                                     uint32_t sf_idx, 
-                                     uint16_t rnti); 
-
-SRSLTE_API int srs_ue_dl_decode(srs_ue_dl_t * q, 
-                                cf_t *input, 
-                                uint8_t *data,
-                                uint32_t sf_idx);
-
-SRSLTE_API int srs_ue_dl_decode_rnti(srs_ue_dl_t * q, 
-                                     cf_t *input, 
-                                     uint8_t *data,
-                                     uint32_t sf_idx,
-                                     uint16_t rnti);
-
-SRSLTE_API int srs_ue_dl_decode_rnti_rv(srs_ue_dl_t * q, 
-                                        cf_t *input, 
-                                        uint8_t * data,
+SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, 
+                                        srslte_dci_msg_t *dci_msg, 
+                                        uint32_t cfi, 
                                         uint32_t sf_idx, 
-                                        uint16_t rnti, 
-                                        uint32_t rvidx); 
+                                        uint16_t rnti); 
 
-SRSLTE_API void srs_ue_dl_reset(srs_ue_dl_t *q);
+SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
+                                   cf_t *input, 
+                                   uint8_t *data,
+                                   uint32_t sf_idx);
 
-SRSLTE_API void srs_ue_dl_set_rnti(srs_ue_dl_t *q, 
-                                   uint16_t rnti);
+SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q, 
+                                        cf_t *input, 
+                                        uint8_t *data,
+                                        uint32_t sf_idx,
+                                        uint16_t rnti);
+
+SRSLTE_API int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t * q, 
+                                           cf_t *input, 
+                                           uint8_t * data,
+                                           uint32_t sf_idx, 
+                                           uint16_t rnti, 
+                                           uint32_t rvidx); 
+
+SRSLTE_API void srslte_ue_dl_reset(srslte_ue_dl_t *q);
+
+SRSLTE_API void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, 
+                                      uint16_t rnti);
 
 #endif

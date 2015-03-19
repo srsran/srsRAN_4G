@@ -109,8 +109,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   
-  srslte_srslte_ra_ul_alloc_t prb_alloc;
-  bzero(&prb_alloc, sizeof(srslte_srslte_ra_ul_alloc_t));
+  srslte_ra_ul_alloc_t prb_alloc;
+  bzero(&prb_alloc, sizeof(srslte_ra_ul_alloc_t));
   prb_alloc.L_prb = mexutils_read_f(p, &prbset);
   prb_alloc.n_prb[0] = prbset[0];
   prb_alloc.n_prb[1] = prbset[0];

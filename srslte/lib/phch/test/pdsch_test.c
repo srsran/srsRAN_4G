@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   srslte_ra_mcs_t mcs;
-  srslte_srslte_ra_dl_alloc_t prb_alloc;
+  srslte_ra_dl_alloc_t prb_alloc;
   srslte_harq_t harq_process;
   uint32_t rv;
 

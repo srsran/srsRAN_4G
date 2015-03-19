@@ -38,7 +38,7 @@
 
 #define MAX_CANDIDATES  64
 
-int srs_ue_dl_init(srs_ue_dl_t *q, 
+int srslte_ue_dl_init(srslte_ue_dl_t *q, 
                srslte_cell_t cell) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -48,7 +48,7 @@ int srs_ue_dl_init(srs_ue_dl_t *q,
   {
     ret = SRSLTE_ERROR;
     
-    bzero(q, sizeof(srs_ue_dl_t));
+    bzero(q, sizeof(srslte_ue_dl_t));
     
     q->cell = cell; 
     q->pkt_errors = 0;
@@ -107,12 +107,12 @@ int srs_ue_dl_init(srs_ue_dl_t *q,
 
 clean_exit: 
   if (ret == SRSLTE_ERROR) {
-    srs_ue_dl_free(q);
+    srslte_ue_dl_free(q);
   }
   return ret;
 }
 
-void srs_ue_dl_free(srs_ue_dl_t *q) {
+void srslte_ue_dl_free(srslte_ue_dl_t *q) {
   if (q) {
     srslte_ofdm_tx_free(&q->fft);
     srslte_chest_dl_free(&q->chest);
@@ -132,7 +132,7 @@ void srs_ue_dl_free(srs_ue_dl_t *q) {
       }
     }
 
-    bzero(q, sizeof(srs_ue_dl_t));
+    bzero(q, sizeof(srslte_ue_dl_t));
 
   }
 }
@@ -141,12 +141,12 @@ void srs_ue_dl_free(srs_ue_dl_t *q) {
  * to execute, so shall be called once the final C-RNTI has been allocated for the session.
  * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
  */
-void srs_ue_dl_set_rnti(srs_ue_dl_t *q, uint16_t rnti) {
+void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
   q->current_rnti = rnti; 
   srslte_pdsch_set_rnti(&q->pdsch, rnti);
 }
 
-void srs_ue_dl_reset(srs_ue_dl_t *q) {
+void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
   srslte_harq_reset(&q->harq_process[0]);
 }
 
@@ -160,18 +160,18 @@ const uint32_t nof_common_formats = 2;
  *    - OFDM demodulation
  *    - Channel estimation 
  *    - PCFICH decoding
- *    - PDCCH decoding: Find DCI for RNTI given by previous call to srs_ue_dl_set_rnti()
- *    - PDSCH decoding: Decode TB scrambling with RNTI given by srs_ue_dl_set_rnti()
+ *    - PDCCH decoding: Find DCI for RNTI given by previous call to srslte_ue_dl_set_rnti()
+ *    - PDSCH decoding: Decode TB scrambling with RNTI given by srslte_ue_dl_set_rnti()
  */
-int srs_ue_dl_decode(srs_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx) {
-  return srs_ue_dl_decode_rnti_rv(q, input, data, sf_idx, q->current_rnti, 0);
+int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx) {
+  return srslte_ue_dl_decode_rnti_rv(q, input, data, sf_idx, q->current_rnti, 0);
 }
 
-int srs_ue_dl_decode_rnti(srs_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti) {
-  return srs_ue_dl_decode_rnti_rv(q, input, data, sf_idx, rnti, 0);
+int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti) {
+  return srslte_ue_dl_decode_rnti_rv(q, input, data, sf_idx, rnti, 0);
 }
 
-int srs_ue_dl_decode_fft_estimate(srs_ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) {
+int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) {
   float cfi_corr; 
   if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
@@ -208,7 +208,7 @@ int srs_ue_dl_decode_fft_estimate(srs_ue_dl_t *q, cf_t *input, uint32_t sf_idx, 
   }
 }
 
-int srs_ue_dl_decode_rnti_rv_packet(srs_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint8_t *data, 
+int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint8_t *data, 
                                 uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
   int ret = SRSLTE_ERROR; 
@@ -245,7 +245,7 @@ int srs_ue_dl_decode_rnti_rv_packet(srs_ue_dl_t *q, srslte_dci_msg_t *dci_msg, u
   return ret; 
 }
 
-int srs_ue_dl_find_ul_dci(srs_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
+int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
 {
   srslte_dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations = srslte_pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti);    
@@ -260,7 +260,7 @@ int srs_ue_dl_find_ul_dci(srs_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cf
   return srslte_crc_rem == rnti; 
 }
 
-int srs_ue_dl_decode_rnti_rv(srs_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
   uint32_t cfi, i;
   srslte_dci_msg_t dci_msg;
@@ -271,7 +271,7 @@ int srs_ue_dl_decode_rnti_rv(srs_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_
   uint32_t nof_formats; 
   srslte_dci_format_t *formats = NULL; 
 
-  if ((ret = srs_ue_dl_decode_fft_estimate(q, input, sf_idx, &cfi)) < 0) {
+  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &cfi)) < 0) {
     return ret; 
   }
   
@@ -300,7 +300,7 @@ int srs_ue_dl_decode_rnti_rv(srs_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_
       
       if (srslte_crc_rem == rnti) {
         found_dci++;        
-        ret = srs_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, cfi, sf_idx, rnti, rvidx);
+        ret = srslte_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, cfi, sf_idx, rnti, rvidx);
       }
     }
   }

@@ -184,7 +184,7 @@ enum receiver_state { DECODE_MIB, SEND_PRACH, RECV_RAR, RECV_CONNSETUP} state;
 
 #define NOF_PRACH_SEQUENCES 52
 
-srs_ue_dl_t ue_dl; 
+srslte_ue_dl_t ue_dl; 
 srslte_ue_ul_t ue_ul; 
 srslte_ue_sync_t ue_sync; 
 srslte_prach_t prach; 
@@ -413,7 +413,7 @@ int main(int argc, char **argv) {
   }
   bzero(ul_signal, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     
-  if (srs_ue_dl_init(&ue_dl, cell)) { 
+  if (srslte_ue_dl_init(&ue_dl, cell)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
@@ -522,7 +522,7 @@ int main(int argc, char **argv) {
 
             if ((sfn == rar_window_start && srslte_ue_sync_get_sfidx(&ue_sync) > 3) || sfn > rar_window_start) {
               printf("Looking for RAR in sfn: %d sf_idx: %d\n", sfn, srslte_ue_sync_get_sfidx(&ue_sync));
-              n = srs_ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, srslte_ue_sync_get_sfidx(&ue_sync), ra_rnti);
+              n = srslte_ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, srslte_ue_sync_get_sfidx(&ue_sync), ra_rnti);
               if (n < 0) {
                 fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               } else if (n > 0) {
@@ -636,7 +636,7 @@ int main(int argc, char **argv) {
               //srslte_verbose=SRSLTE_VERBOSE_NONE;
             }
             printf("Looking for ConnectionSetup in sfn: %d sf_idx: %d, RNTI: %d\n", sfn, srslte_ue_sync_get_sfidx(&ue_sync),rar_msg.temp_c_rnti);
-            n = srs_ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, srslte_ue_sync_get_sfidx(&ue_sync), rar_msg.temp_c_rnti);
+            n = srslte_ue_dl_decode_rnti(&ue_dl, sf_buffer, data_rx, srslte_ue_sync_get_sfidx(&ue_sync), rar_msg.temp_c_rnti);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
@@ -669,7 +669,7 @@ int main(int argc, char **argv) {
     sf_cnt++;                  
   } // Main loop
   
-  srs_ue_dl_free(&ue_dl);
+  srslte_ue_dl_free(&ue_dl);
   srslte_ue_sync_free(&ue_sync);
   
   srslte_ue_mib_free(&ue_mib);

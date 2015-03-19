@@ -314,7 +314,7 @@ uint32_t prbset_to_bitmask() {
 }
 
 int update_radl(uint32_t sf_idx) {
-  srslte_srslte_ra_dl_alloc_t prb_alloc;
+  srslte_ra_dl_alloc_t prb_alloc;
   
   bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
   ra_dl.harq_process = 0;

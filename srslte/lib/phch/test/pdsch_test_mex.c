@@ -58,7 +58,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cf_t *input_fft, *input_signal;
   int nof_re; 
   srslte_ra_mcs_t mcs;
-  srslte_srslte_ra_dl_alloc_t dl_alloc;
+  srslte_ra_dl_alloc_t dl_alloc;
   srslte_harq_t harq_process;
   uint32_t rv;
   uint32_t rnti32;

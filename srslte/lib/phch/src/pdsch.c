@@ -58,7 +58,7 @@ extern int indices_ptr;
 #endif
 
 
-int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_srslte_ra_dl_alloc_t *prb_alloc,
+int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_alloc_t *prb_alloc,
     uint32_t nsubframe, bool put) {
   uint32_t s, n, l, lp, lstart, lend, nof_refs;
   bool is_pbch, is_sss;
@@ -179,7 +179,7 @@ int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_srslte_
  * 36.211 10.3 section 6.3.5
  */
 int srslte_pdsch_put(srslte_pdsch_t *q, cf_t *symbols, cf_t *sf_symbols,
-    srslte_srslte_ra_dl_alloc_t *prb_alloc, uint32_t subframe) {
+    srslte_ra_dl_alloc_t *prb_alloc, uint32_t subframe) {
   return srslte_pdsch_cp(q, symbols, sf_symbols, prb_alloc, subframe, true);
 }
 
@@ -191,7 +191,7 @@ int srslte_pdsch_put(srslte_pdsch_t *q, cf_t *symbols, cf_t *sf_symbols,
  * 36.211 10.3 section 6.3.5
  */
 int srslte_pdsch_get(srslte_pdsch_t *q, cf_t *sf_symbols, cf_t *symbols,
-    srslte_srslte_ra_dl_alloc_t *prb_alloc, uint32_t subframe) {
+    srslte_ra_dl_alloc_t *prb_alloc, uint32_t subframe) {
   return srslte_pdsch_cp(q, sf_symbols, symbols, prb_alloc, subframe, false);
 }
 

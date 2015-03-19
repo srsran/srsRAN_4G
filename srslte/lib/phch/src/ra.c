@@ -122,9 +122,9 @@ void srslte_ra_prb_fprint(FILE *f, srslte_ra_prb_slot_t *prb, uint32_t nof_prb) 
 }
 
 /** Compute PRB allocation for Uplink as defined in 8.1 and 8.4 of 36.213 */
-int srslte_ra_ul_alloc(srslte_srslte_ra_ul_alloc_t *prb_dist, srslte_ra_pusch_t *ra, uint32_t n_rb_ho, uint32_t nof_prb) {
+int srslte_ra_ul_alloc(srslte_ra_ul_alloc_t *prb_dist, srslte_ra_pusch_t *ra, uint32_t n_rb_ho, uint32_t nof_prb) {
   
-  bzero(prb_dist, sizeof(srslte_srslte_ra_ul_alloc_t));  
+  bzero(prb_dist, sizeof(srslte_ra_ul_alloc_t));  
   prb_dist->L_prb = ra->type2_alloc.L_crb;
   uint32_t n_prb_1 = ra->type2_alloc.RB_start;
   uint32_t n_rb_pusch = 0;
@@ -184,7 +184,7 @@ int srslte_ra_ul_alloc(srslte_srslte_ra_ul_alloc_t *prb_dist, srslte_ra_pusch_t 
 }
 
 /* Computes the number of RE for each PRB in the prb_dist structure */
-void srslte_ra_dl_alloc_re(srslte_srslte_ra_dl_alloc_t *prb_dist, uint32_t nof_prb, uint32_t nof_ports,
+void srslte_ra_dl_alloc_re(srslte_ra_dl_alloc_t *prb_dist, uint32_t nof_prb, uint32_t nof_ports,
     uint32_t nof_ctrl_symbols, srslte_cp_t cp) {
   uint32_t i, j, s;
 
@@ -205,13 +205,13 @@ void srslte_ra_dl_alloc_re(srslte_srslte_ra_dl_alloc_t *prb_dist, uint32_t nof_p
 }
 
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
-int srslte_ra_dl_alloc(srslte_srslte_ra_dl_alloc_t *prb_dist, srslte_ra_pdsch_t *ra, uint32_t nof_prb) {
+int srslte_ra_dl_alloc(srslte_ra_dl_alloc_t *prb_dist, srslte_ra_pdsch_t *ra, uint32_t nof_prb) {
   int i, j;
   uint32_t bitmask;
   uint32_t P = srslte_ra_type0_P(nof_prb);
   uint32_t n_rb_rbg_subset, n_rb_type1;
 
-  bzero(prb_dist, sizeof(srslte_srslte_ra_dl_alloc_t));
+  bzero(prb_dist, sizeof(srslte_ra_dl_alloc_t));
   switch (ra->alloc_type) {
   case SRSLTE_RA_ALLOC_TYPE0:
     bitmask = ra->type0_alloc.rbg_bitmask;
@@ -487,7 +487,7 @@ int srslte_ra_mcs_from_idx_ul(uint32_t mcs_idx, uint32_t nof_prb, srslte_ra_mcs_
 }
 
 /* Downlink Transport Block size for Format 1C as defined in 7.1.7.2.2-1 on 36.213 */
-int srslte_srslte_ra_tbs_from_idx_format1c(uint32_t tbs_idx) {
+int srslte_ra_tbs_from_idx_format1c(uint32_t tbs_idx) {
   if (tbs_idx < 32) {
     return tbs_format1c_table[tbs_idx];
   } else {
@@ -603,7 +603,7 @@ void srslte_ra_pdsch_fprint(FILE *f, srslte_ra_pdsch_t *ra, uint32_t nof_prb) {
     break;
   }
 
-  srslte_srslte_ra_dl_alloc_t alloc;
+  srslte_ra_dl_alloc_t alloc;
   srslte_ra_dl_alloc(&alloc, ra, nof_prb);
   for (int s = 0; s < 2; s++) {
     fprintf(f, " - PRB Bitmap Assignment %dst slot:\n", s);

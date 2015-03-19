@@ -756,7 +756,7 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_
   data->type2_alloc.riv = riv;
 
   data->mcs_idx = srslte_bit_unpack(&y, 5);
-  data->mcs.tbs = srslte_srslte_ra_tbs_from_idx_format1c(data->mcs_idx);
+  data->mcs.tbs = srslte_ra_tbs_from_idx_format1c(data->mcs_idx);
   data->mcs.mod = SRSLTE_MOD_QPSK;
 
   msg->nof_bits = (y - msg->data);

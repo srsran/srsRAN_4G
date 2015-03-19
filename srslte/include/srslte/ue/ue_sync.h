@@ -123,7 +123,7 @@ SRSLTE_API int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q,
 
 SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
 
-SRSLTE_API void ue_srslte_sync_set_N_id_2(srslte_ue_sync_t *q, 
+SRSLTE_API void srslte_ue_sync_set_N_id_2(srslte_ue_sync_t *q, 
                                           uint32_t N_id_2);
 
 SRSLTE_API void srslte_ue_sync_decode_sss_on_track(srslte_ue_sync_t *q, 

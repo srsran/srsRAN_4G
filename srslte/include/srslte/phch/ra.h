@@ -83,14 +83,14 @@ typedef struct SRSLTE_API {
   srslte_ra_prb_slot_t slot[2];
   uint32_t lstart;
   uint32_t re_sf[SRSLTE_NSUBFRAMES_X_FRAME];
-} srslte_srslte_ra_dl_alloc_t;
+} srslte_ra_dl_alloc_t;
 
 typedef struct SRSLTE_API {
   uint32_t n_prb[2];
   uint32_t n_prb_tilde[2];
   uint32_t L_prb;
   uint32_t freq_hopping; 
-} srslte_srslte_ra_ul_alloc_t;
+} srslte_ra_ul_alloc_t;
 
 typedef struct SRSLTE_API {
   uint16_t rnti;
@@ -100,7 +100,7 @@ typedef struct SRSLTE_API {
     srslte_ra_type1_t type1_alloc;
     srslte_ra_type2_t type2_alloc;
   };
-  srslte_srslte_ra_dl_alloc_t prb_alloc;
+  srslte_ra_dl_alloc_t prb_alloc;
   uint32_t mcs_idx;
   srslte_ra_mcs_t mcs;
   uint32_t harq_process;
@@ -120,13 +120,13 @@ typedef struct SRSLTE_API {
     SRSLTE_RA_PUSCH_HOP_TYPE2 = 3
   } freq_hop_fl;
 
-  srslte_srslte_ra_ul_alloc_t prb_alloc;
+  srslte_ra_ul_alloc_t prb_alloc;
   
   srslte_ra_type2_t type2_alloc;
   uint32_t mcs_idx;
   srslte_ra_mcs_t mcs;
   uint32_t rv_idx; // If set to non-zero, a retransmission is requested with the same modulation
-  // than before (SRSLTE_DCI_FORMAT0 message, see also 8.6.1 in 36.2313).
+                   // than before (SRSLTE_DCI_FORMAT0 message, see also 8.6.1 in 36.2313).
   bool ndi;
   bool cqi_request;
 
@@ -136,16 +136,16 @@ SRSLTE_API void srslte_ra_prb_fprint(FILE *f,
                                      srslte_ra_prb_slot_t *prb, 
                                      uint32_t nof_prb);
 
-SRSLTE_API int srslte_ra_dl_alloc(srslte_srslte_ra_dl_alloc_t *prb, 
+SRSLTE_API int srslte_ra_dl_alloc(srslte_ra_dl_alloc_t *prb, 
                                   srslte_ra_pdsch_t *ra, 
                                   uint32_t nof_prb);
 
-SRSLTE_API int srslte_ra_ul_alloc(srslte_srslte_ra_ul_alloc_t *prb, 
+SRSLTE_API int srslte_ra_ul_alloc(srslte_ra_ul_alloc_t *prb, 
                                   srslte_ra_pusch_t *ra, 
                                   uint32_t n_rb_ho, 
                                   uint32_t nof_prb);
 
-SRSLTE_API void srslte_ra_dl_alloc_re(srslte_srslte_ra_dl_alloc_t *prb_dist, 
+SRSLTE_API void srslte_ra_dl_alloc_re(srslte_ra_dl_alloc_t *prb_dist, 
                                       uint32_t nof_prb, 
                                       uint32_t nof_ports,
                                       uint32_t nof_ctrl_symbols, 
@@ -165,7 +165,7 @@ SRSLTE_API int srslte_ra_mcs_from_idx_ul(uint32_t mcs_idx,
                                          uint32_t nof_prb, 
                                          srslte_ra_mcs_t *mcs);
 
-SRSLTE_API int srslte_srslte_ra_tbs_from_idx_format1c(uint32_t tbs_idx);
+SRSLTE_API int srslte_ra_tbs_from_idx_format1c(uint32_t tbs_idx);
 
 SRSLTE_API int srslte_ra_tbs_from_idx(uint32_t tbs_idx, 
                                       uint32_t n_prb);

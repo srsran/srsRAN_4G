@@ -218,7 +218,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, uint32_t N_id_2
   {
     ret = SRSLTE_SUCCESS; 
     
-    ue_srslte_sync_set_N_id_2(&q->ue_sync, N_id_2);
+    srslte_ue_sync_set_N_id_2(&q->ue_sync, N_id_2);
     srslte_ue_sync_reset(&q->ue_sync);
     do {
       

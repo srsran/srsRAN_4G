@@ -47,8 +47,8 @@ typedef struct SRSLTE_API {
   srslte_ra_mcs_t mcs;
   uint32_t rv;
   uint32_t sf_idx;
-  srslte_srslte_ra_dl_alloc_t dl_alloc;
-  srslte_srslte_ra_ul_alloc_t ul_alloc;
+  srslte_ra_dl_alloc_t dl_alloc;
+  srslte_ra_ul_alloc_t ul_alloc;
   srslte_cell_t cell;
   
   uint32_t nof_re;   // Number of RE per subframe 
@@ -72,13 +72,13 @@ SRSLTE_API int srslte_harq_setup_dl(srslte_harq_t *p,
                                     srslte_ra_mcs_t mcs,
                                     uint32_t rv,
                                     uint32_t sf_idx,
-                                    srslte_srslte_ra_dl_alloc_t *prb_alloc);
+                                    srslte_ra_dl_alloc_t *prb_alloc);
 
 SRSLTE_API int srslte_harq_setup_ul(srslte_harq_t *p, 
                                     srslte_ra_mcs_t mcs,
                                     uint32_t rv,
                                     uint32_t sf_idx,
-                                    srslte_srslte_ra_ul_alloc_t *prb_alloc);
+                                    srslte_ra_ul_alloc_t *prb_alloc);
 
 SRSLTE_API void srslte_harq_reset(srslte_harq_t *p); 
 

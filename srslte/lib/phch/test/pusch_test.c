@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   srslte_ra_mcs_t mcs;
-  srslte_srslte_ra_ul_alloc_t prb_alloc;
+  srslte_ra_ul_alloc_t prb_alloc;
   srslte_harq_t harq_process;
   
   parse_args(argc,argv);
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
   mcs.tbs = tbs;
   mcs.mod = modulation;
   
-  bzero(&prb_alloc, sizeof(srslte_srslte_ra_ul_alloc_t));
+  bzero(&prb_alloc, sizeof(srslte_ra_ul_alloc_t));
   
   if (srslte_pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");

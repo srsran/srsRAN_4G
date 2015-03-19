@@ -25,12 +25,12 @@
  *
  */
 
-#include "ue_mac_itf.h"
-
 #ifndef QUEUE_H
 #define QUEUE_H
 
-class srslte_queue
+namespace srslte {
+
+class queue
 {
 public:
 
@@ -80,5 +80,7 @@ private:
   void **buffer_of_elements; 
   
 };
+
+}
   
 #endif

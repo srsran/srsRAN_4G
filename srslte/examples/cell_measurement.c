@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   srslte_ue_sync_t ue_sync; 
   srslte_ue_mib_t ue_mib; 
   void *uhd; 
-  srs_ue_dl_t ue_dl; 
+  srslte_ue_dl_t ue_dl; 
   srslte_ofdm_t fft; 
   srslte_chest_dl_t chest; 
   uint32_t nframes=0;
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
-  if (srs_ue_dl_init(&ue_dl, cell)) { 
+  if (srslte_ue_dl_init(&ue_dl, cell)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
   }
   
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
-  srs_ue_dl_set_rnti(&ue_dl, SRSLTE_SIRNTI); 
+  srslte_ue_dl_set_rnti(&ue_dl, SRSLTE_SIRNTI); 
 
   /* Initialize subframe counter */
   sf_cnt = 0;
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = srs_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data, srslte_ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
+            n = srslte_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data, srslte_ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);

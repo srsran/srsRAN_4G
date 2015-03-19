@@ -52,6 +52,11 @@ typedef _Complex float cf_t;
 #define SRSLTE_PHICH_NORM_NSF       4
 #define SRSLTE_PHICH_EXT_NSF        2
 
+typedef struct SRSLTE_API {
+  uint32_t ngroup;
+  uint32_t nseq; 
+}srslte_phich_alloc_t;
+
 /* phich object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
