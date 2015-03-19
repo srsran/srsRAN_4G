@@ -28,8 +28,7 @@ Download & Install Instructions
 =================================
 
 * Mandatory dependencies: 
-  * libfftw:   mandatory.
-  
+  * libfftw
 * Optional requirements: 
   * libsdrgui:     for real-time plotting. Download it here: https://github.com/suttonpd/libsdrgui 
   * VOLK:          if the VOLK library and headers are detected, they will be used for accelerating some signal processing functions. 
