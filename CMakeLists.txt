@@ -1,15 +1,15 @@
 #
-# Copyright 2012-2013 The libLTE Developers. See the
+# Copyright 2012-2013 The srsLTE Developers. See the
 # COPYRIGHT file at the top-level directory of this distribution.
 #
-# This file is part of the libLTE library.
+# This file is part of the srsLTE library.
 #
-# libLTE is free software: you can redistribute it and/or modify
+# srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# libLTE is distributed in the hope that it will be useful,
+# srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -32,7 +32,7 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 # Project setup
 ########################################################################
 CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
-PROJECT (LIBLTE)
+PROJECT (SRSLTE)
 
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
