@@ -69,7 +69,7 @@ typedef struct SRSLTE_API {
   uint32_t frame_idx;
 
   /* tx & rx objects */
-  srslte_srslte_modem_table_t mod;
+  srslte_modem_table_t mod;
   srslte_demod_soft_t demod;
   srslte_sequence_t seq;
   srslte_viterbi_t decoder;

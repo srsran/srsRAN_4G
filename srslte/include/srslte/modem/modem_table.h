@@ -49,22 +49,22 @@ typedef struct SRSLTE_API {
   srslte_soft_table_t soft_table;   	// symbol-to-bit mapping (used in soft demodulating)
   uint32_t nsymbols;        	// number of modulation symbols
   uint32_t nbits_x_symbol;      // number of bits per symbol
-}srslte_srslte_modem_table_t;
+}srslte_modem_table_t;
 
 
-SRSLTE_API void srslte_modem_table_init(srslte_srslte_modem_table_t* q);
+SRSLTE_API void srslte_modem_table_init(srslte_modem_table_t* q);
 
-SRSLTE_API void srslte_modem_table_free(srslte_srslte_modem_table_t* q);
+SRSLTE_API void srslte_modem_table_free(srslte_modem_table_t* q);
 
-SRSLTE_API void srslte_modem_table_reset(srslte_srslte_modem_table_t* q);
+SRSLTE_API void srslte_modem_table_reset(srslte_modem_table_t* q);
 
-SRSLTE_API int srslte_modem_table_set(srslte_srslte_modem_table_t* q, 
+SRSLTE_API int srslte_modem_table_set(srslte_modem_table_t* q, 
                                       cf_t* table, 
                                       srslte_soft_table_t *soft_table, 
                                       uint32_t nsymbols, 
                                       uint32_t nbits_x_symbol);
 
-SRSLTE_API int srslte_modem_table_lte(srslte_srslte_modem_table_t* q, 
+SRSLTE_API int srslte_modem_table_lte(srslte_modem_table_t* q, 
                                       srslte_mod_t modulation, 
                                       bool compute_soft_demod);
 

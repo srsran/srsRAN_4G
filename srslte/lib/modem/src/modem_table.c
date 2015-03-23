@@ -38,26 +38,26 @@
 #include "lte_tables.h"
 
 /** Internal functions */
-static int table_create(srslte_srslte_modem_table_t* q) {
+static int table_create(srslte_modem_table_t* q) {
   q->symbol_table = malloc(q->nsymbols*sizeof(cf_t));
   return q->symbol_table==NULL;
 }
 
-void srslte_modem_table_init(srslte_srslte_modem_table_t* q) {
-  bzero((void*)q,sizeof(srslte_srslte_modem_table_t));
+void srslte_modem_table_init(srslte_modem_table_t* q) {
+  bzero((void*)q,sizeof(srslte_modem_table_t));
 }
-void srslte_modem_table_free(srslte_srslte_modem_table_t* q) {
+void srslte_modem_table_free(srslte_modem_table_t* q) {
   if (q->symbol_table) {
     free(q->symbol_table);
   }
-  bzero(q, sizeof(srslte_srslte_modem_table_t));
+  bzero(q, sizeof(srslte_modem_table_t));
 }
-void srslte_modem_table_reset(srslte_srslte_modem_table_t* q) {
+void srslte_modem_table_reset(srslte_modem_table_t* q) {
   srslte_modem_table_free(q);
   srslte_modem_table_init(q);
 }
 
-int srslte_modem_table_set(srslte_srslte_modem_table_t* q, cf_t* table, srslte_soft_table_t *soft_table, uint32_t nsymbols, uint32_t nbits_x_symbol) {
+int srslte_modem_table_set(srslte_modem_table_t* q, cf_t* table, srslte_soft_table_t *soft_table, uint32_t nsymbols, uint32_t nbits_x_symbol) {
   if (q->nsymbols) {
     return SRSLTE_ERROR;
   }
@@ -71,7 +71,7 @@ int srslte_modem_table_set(srslte_srslte_modem_table_t* q, cf_t* table, srslte_s
   return SRSLTE_SUCCESS;
 }
 
-int srslte_modem_table_lte(srslte_srslte_modem_table_t* q, srslte_mod_t modulation, bool compute_soft_demod) {
+int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation, bool compute_soft_demod) {
   switch(modulation) {
   case SRSLTE_MOD_BPSK:
     q->nbits_x_symbol = 1;

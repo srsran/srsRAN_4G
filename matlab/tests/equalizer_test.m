@@ -4,9 +4,9 @@
 
 clear
 
-plot_noise_estimation_only=true;
+plot_noise_estimation_only=false;
 
-SNR_values_db=linspace(0,30,8);
+SNR_values_db=20;%linspace(0,30,8);
 Nrealizations=1 ;
 
 preEVM = zeros(length(SNR_values_db),Nrealizations);
@@ -80,7 +80,7 @@ for sf = 0:10
     subframe = lteDLResourceGrid(enb);
     
     % Map input symbols to grid
-    %subframe(:) = inputSym;
+    subframe(:) = inputSym;
 
     % Generate synchronizing signals
     pssSym = ltePSS(enb);
@@ -141,13 +141,13 @@ rxWaveform = rxWaveform + noise;
 %% Synchronization
 
 offset = lteDLFrameOffset(enb,rxWaveform);
-rxWaveform = rxWaveform(1+offset:end,:);
+rxWaveform = rxWaveform(1+offset+2:end,:);
 
 %% OFDM Demodulation
 rxGrid = lteOFDMDemodulate(enb,rxWaveform);
 rxGrid = rxGrid(:,1:140);
 
-addpath('../../debug/lte/phy/lib/ch_estimation/test')
+addpath('../../debug/srslte/lib/ch_estimation/test')
 
 %% Channel Estimation
 [estChannel, noiseEst(snr_idx)] = lteDLChannelEstimate(enb,cec,rxGrid);

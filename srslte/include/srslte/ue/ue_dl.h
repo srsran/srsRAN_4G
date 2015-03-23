@@ -71,6 +71,8 @@ typedef struct SRSLTE_API {
   cf_t *sf_symbols; 
   cf_t *ce[SRSLTE_MAX_PORTS];
   
+  srslte_dci_format_t dci_format;
+  uint32_t cfi;
   uint64_t pkt_errors; 
   uint64_t pkts_total;
   uint64_t nof_detected; 

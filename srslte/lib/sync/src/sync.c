@@ -36,7 +36,7 @@
 #include "srslte/sync/cfo.h"
 
 #define MEANPEAK_EMA_ALPHA      0.2
-#define CFO_EMA_ALPHA           0.01
+#define CFO_EMA_ALPHA           0.1
 #define CP_EMA_ALPHA            0.2
 
 static bool fft_size_isvalid(uint32_t fft_size) {

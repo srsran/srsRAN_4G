@@ -92,7 +92,6 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       perror("malloc");
       goto clean_exit;
     }
-    bzero(q->tmp_timeavg_mult, sizeof(cf_t) * 2*cell.nof_prb);
     
     for (int i=0;i<cell.nof_ports;i++) {
       q->pilot_estimates[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb, i));
@@ -123,13 +122,13 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
     }
     
     /* Set default time/freq filters */
-    //float f[3]={0.1, 0.8, 0.1};
+    //float f[3]={0.2, 0.6, 0.2};
     //srslte_chest_dl_set_filter_freq(q, f, 3);
 
-    float f[5]={0.05, 0.2, 0.5, 0.2, 0.05};
+    float f[5]={0.1, 0.2, 0.4, 0.2, 0.1};
     srslte_chest_dl_set_filter_freq(q, f, 5);
-    
-    float t[2]={0.1, 0.9};
+
+    float t[2]={0.5, 0.5};
     srslte_chest_dl_set_filter_time(q, t, 0);
     
     q->cell = cell; 
@@ -269,14 +268,18 @@ static void average_pilots(srslte_chest_dl_t *q, uint32_t port_id)
       for (i=0;i<q->filter_time_len-1;i++) {
         memcpy(q->tmp_timeavg[i], q->tmp_timeavg[i+1], nref*sizeof(cf_t));                      
       }
-      /* Put last symbol to buffer */
-      memcpy(q->tmp_timeavg[i], &pilot_tmp(0), nref*sizeof(cf_t));            
-
+      /* Save last symbol to buffer */
+      memcpy(q->tmp_timeavg[q->filter_time_len-1], &pilot_tmp(0), nref*sizeof(cf_t));            
+      
       /* Multiply all symbols by filter and add them  */
-      bzero(&pilot_avg(0), nref * sizeof(cf_t));
-      for (i=0;i<q->filter_time_len;i++) {
-        srslte_vec_sc_prod_cfc(q->tmp_timeavg[i], q->filter_time[i], q->tmp_timeavg[i], nref);
-        srslte_vec_sum_ccc(q->tmp_timeavg[i], &pilot_avg(0), &pilot_avg(0), nref);            
+      if (l > 0) {
+        bzero(&pilot_avg(0), nref * sizeof(cf_t));
+        for (i=0;i<q->filter_time_len;i++) {
+          srslte_vec_sc_prod_cfc(q->tmp_timeavg[i], q->filter_time[i], q->tmp_timeavg_mult, nref);
+          srslte_vec_sum_ccc(q->tmp_timeavg_mult, &pilot_avg(0), &pilot_avg(0), nref);            
+        }        
+      } else {
+        memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));
       }
     } else {
       memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));        

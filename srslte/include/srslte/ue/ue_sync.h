@@ -94,6 +94,7 @@ typedef struct SRSLTE_API {
   uint32_t sf_idx;
       
   bool decode_sss_on_track; 
+  bool correct_cfo; 
   
   uint32_t peak_idx;
   int time_offset;

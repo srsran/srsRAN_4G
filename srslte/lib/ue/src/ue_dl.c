@@ -196,7 +196,7 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
     }
 
     /* Extract all PDCCH symbols and get LLRs */
-    if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, *cfi)) {
+    if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, 0, sf_idx, *cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       return SRSLTE_ERROR;
     }
@@ -228,7 +228,7 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
   }
   if (q->harq_process[0].mcs.mod > 0 && q->harq_process[0].mcs.tbs >= 0) {
     ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
-                            q->ce, srslte_chest_dl_get_noise_estimate(&q->chest),
+                            q->ce, 0,
                             rnti, data);
     if (ret == SRSLTE_ERROR) {
       q->pkt_errors++;
@@ -262,7 +262,7 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
 
 int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
-  uint32_t cfi, i;
+  uint32_t i;
   srslte_dci_msg_t dci_msg;
   srslte_dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations;
@@ -271,17 +271,17 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
   uint32_t nof_formats; 
   srslte_dci_format_t *formats = NULL; 
 
-  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &cfi)) < 0) {
+  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &q->cfi)) < 0) {
     return ret; 
   }
   
   /* Generate PDCCH candidates */
   if (rnti == SRSLTE_SIRNTI) {
-    nof_locations = srslte_pdcch_common_locations(&q->pdcch, locations, MAX_CANDIDATES, cfi);
+    nof_locations = srslte_pdcch_common_locations(&q->pdcch, locations, MAX_CANDIDATES, q->cfi);
     formats = common_formats;
     nof_formats = nof_common_formats;
   } else {
-    nof_locations = srslte_pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti);    
+    nof_locations = srslte_pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, q->cfi, rnti);    
     formats = ue_formats; 
     nof_formats = nof_ue_formats;
   }
@@ -299,8 +299,9 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
       INFO("Decoded DCI message RNTI: 0x%x\n", srslte_crc_rem);
       
       if (srslte_crc_rem == rnti) {
+        q->dci_format = formats[f];
         found_dci++;        
-        ret = srslte_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, cfi, sf_idx, rnti, rvidx);
+        ret = srslte_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, q->cfi, sf_idx, rnti, rvidx);
       }
     }
   }

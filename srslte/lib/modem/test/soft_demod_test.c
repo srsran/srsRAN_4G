@@ -108,7 +108,7 @@ float mse_threshold() {
 
 int main(int argc, char **argv) {
   int i;
-  srslte_srslte_modem_table_t mod;
+  srslte_modem_table_t mod;
   srslte_demod_soft_t demod_soft;
   uint8_t *input, *output;
   cf_t *symbols;

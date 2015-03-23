@@ -63,7 +63,7 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
       goto clean_exit; 
     }
     
-    q->input_buffer = srslte_vec_malloc(q->sf_len * sizeof(cf_t));
+    q->input_buffer = srslte_vec_malloc(2 * q->sf_len * sizeof(cf_t));
     if (!q->input_buffer) {
       perror("malloc");
       goto clean_exit;
@@ -102,6 +102,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
     q->fft_size = srslte_symbol_sz(q->cell.nof_prb);
     q->sf_len = SRSLTE_SF_LEN(q->fft_size);
     q->file_mode = false; 
+    q->correct_cfo = true; 
     
     if (cell.id == 1000) {
       /* If the cell is unkown, decode SSS on track state */
@@ -449,7 +450,7 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
           }
           
           /* Do CFO Correction if not done in track and deliver the frame */
-          if (!q->strack.correct_cfo) {
+          if (!q->strack.correct_cfo && q->correct_cfo) {
             srslte_cfo_correct(&q->sfind.cfocorr, 
                         q->input_buffer, 
                         q->input_buffer, 

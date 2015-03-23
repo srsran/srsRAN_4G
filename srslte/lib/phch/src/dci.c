@@ -802,13 +802,13 @@ int srslte_dci_msg_unpack_pusch(srslte_dci_msg_t *msg, srslte_ra_pusch_t *data, 
 }
 
 srslte_dci_format_t srslte_dci_format_from_string(char *str) {
-  if (!strcmp(str, "SRSLTE_DCI_FORMAT0")) {
+  if (!strcmp(str, "Format0")) {
     return SRSLTE_DCI_FORMAT0;
-  } else if (!strcmp(str, "SRSLTE_DCI_FORMAT1")) {
+  } else if (!strcmp(str, "Format1")) {
     return SRSLTE_DCI_FORMAT1; 
-  } else if (!strcmp(str, "SRSLTE_DCI_FORMAT1A")) {
+  } else if (!strcmp(str, "Format1A")) {
     return SRSLTE_DCI_FORMAT1A; 
-  } else if (!strcmp(str, "SRSLTE_DCI_FORMAT1C")) {
+  } else if (!strcmp(str, "Format1C")) {
     return SRSLTE_DCI_FORMAT1C; 
   } else {
     return SRSLTE_DCI_FORMAT_ERROR;
@@ -818,13 +818,13 @@ srslte_dci_format_t srslte_dci_format_from_string(char *str) {
 char* srslte_dci_format_string(srslte_dci_format_t format) {
   switch (format) {
   case SRSLTE_DCI_FORMAT0:
-    return "SRSLTE_DCI_FORMAT0";
+    return "Format0";
   case SRSLTE_DCI_FORMAT1:
-    return "SRSLTE_DCI_FORMAT1";
+    return "Format1";
   case SRSLTE_DCI_FORMAT1A:
-    return "SRSLTE_DCI_FORMAT1A";
+    return "Format1A";
   case SRSLTE_DCI_FORMAT1C:
-    return "SRSLTE_DCI_FORMAT1C";
+    return "Format1C";
   default:
     return "N/A"; // fatal error
   }

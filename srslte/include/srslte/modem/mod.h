@@ -35,14 +35,14 @@
 #include "srslte/config.h"
 #include "modem_table.h"
 
-SRSLTE_API int srslte_mod_modulate(srslte_srslte_modem_table_t* table, 
+SRSLTE_API int srslte_mod_modulate(srslte_modem_table_t* table, 
                                    uint8_t *bits, 
                                    cf_t* symbols, 
                                    uint32_t nbits);
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  srslte_srslte_modem_table_t obj;
+  srslte_modem_table_t obj;
   struct mod_init {
     srslte_mod_t std;  // symbol mapping standard (see modem_table.h)
   } init;
