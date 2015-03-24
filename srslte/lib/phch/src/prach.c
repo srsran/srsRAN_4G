@@ -152,6 +152,42 @@ uint32_t prach_zc_roots_format4[138] = {
   61,  78,  62,  77,  63,  76,  64,  75,  65,  74,  66,  73,
   67,  72,  68,  71,  69,  70};
 
+  
+srslte_prach_sf_config_t prach_sf_config[16] = {
+  {1, {1, 0, 0, 0, 0}},
+  {1, {4, 0, 0, 0, 0}},
+  {1, {7, 0, 0, 0, 0}},
+  {1, {1, 0, 0, 0, 0}},
+  {1, {4, 0, 0, 0, 0}},
+  {1, {7, 0, 0, 0, 0}},
+  {2, {1, 6, 0, 0, 0}},
+  {2, {2, 7, 0, 0, 0}},
+  {2, {3, 8, 0, 0, 0}},
+  {3, {1, 4, 7, 0, 0}},
+  {3, {2, 5, 8, 0, 0}},
+  {3, {3, 6, 9, 0, 0}},
+  {5, {0, 2, 4, 6, 8}},
+  {5, {1, 3, 5, 7, 9}},
+  {-1, {0, 0, 0, 0, 0}}, // this means all subframes 
+  {1, {9, 0, 0, 0, 0}}};
+
+uint32_t srslte_prach_get_preamble_format(uint32_t config_idx) {
+  return config_idx/16;
+}
+
+srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx) {
+  if ((config_idx%16)<3 || (config_idx%16)==15) {
+    return SRSLTE_PRACH_SFN_EVEN;
+  } else {
+    return SRSLTE_PRACH_SFN_ANY; 
+  }
+}
+
+void srslte_prach_sf_config(uint32_t config_idx, srslte_prach_sf_config_t *sf_config) {
+  memcpy(sf_config, &prach_sf_config[config_idx%16], sizeof(srslte_prach_sf_config_t));
+}
+  
+  
 // For debug use only
 void print(void *d, uint32_t size, uint32_t len, char* file_str)
 {
@@ -375,7 +411,6 @@ int srslte_prach_init(srslte_prach_t *p,
 int srslte_prach_gen(srslte_prach_t *p,
               uint32_t seq_index,
               uint32_t freq_offset,
-              float beta_prach,
               cf_t *signal)
 {
   int ret = SRSLTE_ERROR;
@@ -405,9 +440,6 @@ int srslte_prach_gen(srslte_prach_t *p,
       signal[p->N_cp+i] = p->ifft_out[i%p->N_ifft_prach];
     }
                 
-    // Normalize 
-    srslte_vec_sc_prod_cfc(signal, beta_prach, signal, (p->N_cp + p->N_seq));
-
     ret = SRSLTE_SUCCESS;
   }
 

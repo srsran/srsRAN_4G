@@ -108,13 +108,13 @@ int main(int argc, char **argv) {
               pusch_cfg.delta_ss = delta_ss;            
               if (!h) {
                 pusch_cfg.group_hopping_en = false;
-                pusch_cfg.srslte_sequence_hopping_en = false;                
+                pusch_cfg.sequence_hopping_en = false;                
               } else if (h == 1) {
                 pusch_cfg.group_hopping_en = false;
-                pusch_cfg.srslte_sequence_hopping_en = true;                
+                pusch_cfg.sequence_hopping_en = true;                
               } else if (h == 2) {
                 pusch_cfg.group_hopping_en = true;
-                pusch_cfg.srslte_sequence_hopping_en = false;
+                pusch_cfg.sequence_hopping_en = false;
               }
               pusch_cfg.en_drms_2 = true; 
               printf("Beta: %f, ",pusch_cfg.beta_pusch);

@@ -165,9 +165,9 @@ int main(int argc, char **argv) {
   }
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.beta_cqi = 2.0; 
-  uci_data.beta_ri = 2.0; 
-  uci_data.beta_ack = 2.0; 
+  uci_data.I_offset_cqi = 7; 
+  uci_data.I_offset_ri = 2; 
+  uci_data.I_offset_ack = 0; 
   
   uci_data.uci_cqi_len = 0; 
   uci_data.uci_ri_len = 0; 

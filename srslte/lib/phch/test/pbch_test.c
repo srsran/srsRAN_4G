@@ -77,7 +77,7 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   srslte_pbch_t pbch;
-  uint8_t bch_payload_tx[BCH_PAYLOAD_LEN], bch_payload_rx[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload_tx[SRSLTE_BCH_PAYLOAD_LEN], bch_payload_rx[SRSLTE_BCH_PAYLOAD_LEN];
   int i, j;
   cf_t *ce[SRSLTE_MAX_PORTS];
   int nof_re;
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
   }
 
   srand(time(NULL));
-  for (i=0;i<BCH_PAYLOAD_LEN;i++) {
+  for (i=0;i<SRSLTE_BCH_PAYLOAD_LEN;i++) {
     bch_payload_tx[i] = rand()%2;
   }
 
@@ -138,11 +138,11 @@ int main(int argc, char **argv) {
   }
   printf("Tx ports: %d - Rx ports: %d\n", cell.nof_ports, nof_rx_ports);
   printf("Tx payload: ");
-  srslte_vec_fprint_hex(stdout, bch_payload_tx, BCH_PAYLOAD_LEN);
+  srslte_vec_fprint_hex(stdout, bch_payload_tx, SRSLTE_BCH_PAYLOAD_LEN);
   printf("Rx payload: ");
-  srslte_vec_fprint_hex(stdout, bch_payload_rx, BCH_PAYLOAD_LEN);
+  srslte_vec_fprint_hex(stdout, bch_payload_rx, SRSLTE_BCH_PAYLOAD_LEN);
 
-  if (nof_rx_ports == cell.nof_ports && !memcmp(bch_payload_rx, bch_payload_tx, sizeof(uint8_t) * BCH_PAYLOAD_LEN)) {
+  if (nof_rx_ports == cell.nof_ports && !memcmp(bch_payload_rx, bch_payload_tx, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN)) {
     printf("OK\n");
     exit(0);
   } else {

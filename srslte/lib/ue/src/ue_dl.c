@@ -194,13 +194,6 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
       fprintf(stderr, "Error setting CFI\n");
       return SRSLTE_ERROR;
     }
-
-    /* Extract all PDCCH symbols and get LLRs */
-    if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, 0, sf_idx, *cfi)) {
-      fprintf(stderr, "Error extracting LLRs\n");
-      return SRSLTE_ERROR;
-    }
-    
     
     return SRSLTE_SUCCESS; 
   } else {
@@ -249,32 +242,24 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
 {
   srslte_dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations = srslte_pdcch_ue_locations(&q->pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti);    
-  uint16_t srslte_crc_rem = 0; 
-  for (uint32_t i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
-    if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], SRSLTE_DCI_FORMAT0, &srslte_crc_rem)) {
+  uint16_t crc_rem = 0; 
+  for (uint32_t i=0;i<nof_locations && crc_rem != rnti;i++) {
+    if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], SRSLTE_DCI_FORMAT0, &crc_rem)) {
       fprintf(stderr, "Error decoding DCI msg\n");
       return SRSLTE_ERROR;
     }
-    INFO("Decoded DCI message RNTI: 0x%x\n", srslte_crc_rem);
+    INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
   } 
-  return srslte_crc_rem == rnti; 
+  return crc_rem == rnti; 
 }
 
-int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
 {
-  uint32_t i;
-  srslte_dci_msg_t dci_msg;
   srslte_dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations;
-  uint16_t srslte_crc_rem; 
-  int ret = SRSLTE_ERROR; 
   uint32_t nof_formats; 
   srslte_dci_format_t *formats = NULL; 
 
-  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &q->cfi)) < 0) {
-    return ret; 
-  }
-  
   /* Generate PDCCH candidates */
   if (rnti == SRSLTE_SIRNTI) {
     nof_locations = srslte_pdcch_common_locations(&q->pdcch, locations, MAX_CANDIDATES, q->cfi);
@@ -285,28 +270,42 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
     formats = ue_formats; 
     nof_formats = nof_ue_formats;
   }
-  
-  /* For all possible locations, try to decode a DCI message */
-  srslte_crc_rem = 0;
-  uint32_t found_dci = 0; 
-  for (int f=0;f<nof_formats && !found_dci;f++) {
+
+  uint16_t crc_rem = 0; 
+  for (int f=0;f<nof_formats && crc_rem != rnti;f++) {
     INFO("Trying format %s\n", srslte_dci_format_string(formats[f]));
-    for (i=0;i<nof_locations && !found_dci;i++) {
-      if (srslte_pdcch_decode_msg(&q->pdcch, &dci_msg, &locations[i], formats[f], &srslte_crc_rem)) {
+    for (int i=0;i<nof_locations && crc_rem != rnti;i++) {
+      if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], formats[f], &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
       }
-      INFO("Decoded DCI message RNTI: 0x%x\n", srslte_crc_rem);
-      
-      if (srslte_crc_rem == rnti) {
-        q->dci_format = formats[f];
-        found_dci++;        
-        ret = srslte_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, q->cfi, sf_idx, rnti, rvidx);
-      }
+      INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
     }
+  } 
+  return crc_rem == rnti; 
+}
+
+
+int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+{
+  srslte_dci_msg_t dci_msg;
+  int ret = SRSLTE_ERROR; 
+  
+  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &q->cfi)) < 0) {
+    return ret; 
+  }
+  
+  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, 0, sf_idx, q->cfi)) {
+    fprintf(stderr, "Error extracting LLRs\n");
+    return SRSLTE_ERROR;
+  }
+
+  int found_dci = srslte_ue_dl_find_dl_dci(q, &dci_msg, q->cfi, sf_idx, rnti); 
+  if (found_dci == 1) {
+    ret = srslte_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, q->cfi, sf_idx, rnti, rvidx);    
   }
  
-  if (found_dci > 0 && ret == SRSLTE_SUCCESS) { 
+  if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
     return q->ra_dl.mcs.tbs;    
   } else {
     return 0;

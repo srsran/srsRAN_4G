@@ -105,6 +105,12 @@ SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q,
                                         uint32_t sf_idx, 
                                         uint16_t rnti); 
 
+SRSLTE_API int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, 
+                                        srslte_dci_msg_t *dci_msg, 
+                                        uint32_t cfi, 
+                                        uint32_t sf_idx, 
+                                        uint16_t rnti); 
+
 SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
                                    cf_t *input, 
                                    uint8_t *data,

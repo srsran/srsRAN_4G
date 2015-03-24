@@ -93,7 +93,6 @@ typedef struct SRSLTE_API {
 } srslte_ra_ul_alloc_t;
 
 typedef struct SRSLTE_API {
-  uint16_t rnti;
   srslte_ra_type_t alloc_type;
   union {
     srslte_ra_type0_t type0_alloc;

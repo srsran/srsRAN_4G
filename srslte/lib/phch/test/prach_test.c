@@ -77,7 +77,6 @@ int main(int argc, char **argv) {
     srslte_prach_gen(p,
               seq_index,
               frequency_offset,
-              0.2,
               preamble);
 
     uint32_t prach_len = p->N_seq;

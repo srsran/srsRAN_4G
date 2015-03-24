@@ -42,6 +42,18 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
+/* 36.213 Table 8.6.3-1: Mapping of HARQ-ACK offset values and the index signalled by higher layers */
+float beta_harq_offset[16] = {2.0, 2.5, 3.125, 4.0, 5.0, 6.250, 8.0, 10.0, 
+                           12.625, 15.875, 20.0, 31.0, 50.0, 80.0, 126.0, -1.0};
+                                  
+/* 36.213 Table 8.6.3-2: Mapping of RI offset values and the index signalled by higher layers */
+float beta_ri_offset[16] = {1.25, 1.625, 2.0, 2.5, 3.125, 4.0, 5.0, 6.25, 8.0, 10.0,
+                           12.625, 15.875, 20.0, -1.0, -1.0, -1.0};
+
+/* 36.213 Table 8.6.3-3: Mapping of CQI offset values and the index signalled by higher layers */
+float beta_cqi_offset[16] = {-1.0, -1.0, 1.125, 1.25, 1.375, 1.625, 1.750, 2.0, 2.25, 2.5, 2.875, 
+                             3.125, 3.5, 4.0, 5.0, 6.25};
+
 
 int srslte_sch_init(srslte_sch_t *q) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -459,9 +471,9 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data,
 
   // Encode RI
   if (uci_data.uci_ri_len > 0) {
-    float beta = uci_data.beta_ri; 
+    float beta = beta_ri_offset[uci_data.I_offset_ri]; 
     if (harq->mcs.tbs == 0) {
-        beta /= uci_data.beta_cqi;
+        beta /= beta_cqi_offset[uci_data.I_offset_cqi];
     }
     ret = srslte_uci_encode_ri(uci_data.uci_ri, uci_data.uci_cqi_len, beta, harq, nb_q/Q_m, q_bits);
     if (ret < 0) {
@@ -473,8 +485,9 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data,
   // Encode CQI
   if (uci_data.uci_cqi_len > 0) {
 
-    ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, uci_data.beta_cqi, 
-                                 Q_prime_ri, harq, g_bits);
+    ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi, uci_data.uci_cqi, uci_data.uci_cqi_len, 
+                                      beta_cqi_offset[uci_data.I_offset_cqi], 
+                                      Q_prime_ri, harq, g_bits);
     if (ret < 0) {
       return ret; 
     }
@@ -497,9 +510,9 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data,
   
    // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
-    float beta = uci_data.beta_ack; 
+    float beta = beta_harq_offset[uci_data.I_offset_ack]; 
     if (harq->mcs.tbs == 0) {
-        beta /= uci_data.beta_cqi;
+        beta /= beta_cqi_offset[uci_data.I_offset_cqi];
     }
     ret = srslte_uci_encode_ack(uci_data.uci_ack, uci_data.uci_cqi_len, beta, harq, nb_q/Q_m, q_bits);
     if (ret < 0) {

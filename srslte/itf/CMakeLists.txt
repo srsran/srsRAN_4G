@@ -20,23 +20,7 @@
 #
 
 
-#################################################################
-# EXAMPLES shown in WinnForum 2015 Tutorial
-#################################################################
-
-
-FIND_PACKAGE(LIBSDRGUI)
-
-IF(LIBSDRGUI_FOUND)
-  include_directories(${LIBSDRGUI_INCLUDE_DIRS})
-
-  add_executable(pss pss.c)
-  target_link_libraries(pss srslte cuhd ${LIBSDRGUI_LIBRARIES})
-
-  include_directories("../examples")
-  add_executable(ue_rx ue_rx.c ../examples/cuhd_utils.c)
-  target_link_libraries(ue_rx srslte cuhd ${LIBSDRGUI_LIBRARIES} pthread)
-ENDIF(LIBSDRGUI_FOUND)
-
-add_executable(simple_tx simple_tx.c)
-target_link_libraries(simple_tx srslte cuhd)
+ADD_LIBRARY(srslte++ SHARED ue_phy.cc)
+TARGET_LINK_LIBRARIES(srslte++ srslte m ${FFTW3F_LIBRARIES})
+INSTALL(TARGETS srslte++ DESTINATION ${LIBRARY_DIR})
+LIBLTE_SET_PIC(srslte++)

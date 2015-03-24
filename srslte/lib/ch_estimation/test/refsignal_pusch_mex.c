@@ -77,13 +77,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 
   pusch_cfg.group_hopping_en = false;
-  pusch_cfg.srslte_sequence_hopping_en = false;
+  pusch_cfg.sequence_hopping_en = false;
   char *tmp = mexutils_get_char_struct(UECFG, "Hopping");
   if (tmp) {
     if (!strcmp(tmp, "Group")) {
       pusch_cfg.group_hopping_en = true;
     } else if (!strcmp(tmp, "Sequence")) {
-      pusch_cfg.srslte_sequence_hopping_en = true;
+      pusch_cfg.sequence_hopping_en = true;
     }
     mxFree(tmp);    
   }

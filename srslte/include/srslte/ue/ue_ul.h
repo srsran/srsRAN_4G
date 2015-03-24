@@ -86,33 +86,33 @@ SRSLTE_API void srslte_ue_ul_set_pusch_cfg(srslte_ue_ul_t *q,
                                            srslte_refsignal_drms_pusch_cfg_t *drms_cfg, 
                                            srslte_pusch_hopping_cfg_t *pusch_hopping_cfg); 
 
-SRSLTE_API int srslte_ue_ul_srslte_pusch_encode(srslte_ue_ul_t *q,
-                                                srslte_ra_pusch_t *ra_ul, 
-                                                uint8_t *data, 
-                                                uint32_t sf_idx, 
-                                                cf_t *output_signal);
+SRSLTE_API int srslte_ue_ul_pusch_encode(srslte_ue_ul_t *q,
+                                         srslte_ra_pusch_t *ra_ul, 
+                                         uint8_t *data, 
+                                         uint32_t sf_idx, 
+                                         cf_t *output_signal);
 
-SRSLTE_API int srslte_ue_ul_srslte_pusch_encode_rnti(srslte_ue_ul_t *q,
-                                                     srslte_ra_pusch_t *ra_ul, 
-                                                     uint8_t *data, 
-                                                     uint32_t sf_idx, 
-                                                     uint16_t rnti, 
-                                                     cf_t *output_signal); 
+SRSLTE_API int srslte_ue_ul_pusch_encode_rnti(srslte_ue_ul_t *q,
+                                              srslte_ra_pusch_t *ra_ul, 
+                                              uint8_t *data, 
+                                              uint32_t sf_idx, 
+                                              uint16_t rnti, 
+                                              cf_t *output_signal); 
 
-SRSLTE_API int srslte_ue_ul_srslte_pusch_uci_encode(srslte_ue_ul_t *q,
-                                                    srslte_ra_pusch_t *ra_ul, 
-                                                    uint8_t *data, 
-                                                    srslte_uci_data_t uci_data, 
-                                                    uint32_t sf_idx, 
-                                                    cf_t *output_signal);
+SRSLTE_API int srslte_ue_ul_pusch_uci_encode(srslte_ue_ul_t *q,
+                                             srslte_ra_pusch_t *ra_ul, 
+                                             uint8_t *data, 
+                                             srslte_uci_data_t uci_data, 
+                                             uint32_t sf_idx, 
+                                             cf_t *output_signal);
 
-SRSLTE_API int srslte_ue_ul_srslte_pusch_uci_encode_rnti(srslte_ue_ul_t *q,
-                                                         srslte_ra_pusch_t *ra_ul, 
-                                                         uint8_t *data,
-                                                         srslte_uci_data_t uci_data, 
-                                                         uint32_t sf_idx, 
-                                                         uint16_t rnti, 
-                                                         cf_t *output_signal); 
+SRSLTE_API int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q,
+                                                  srslte_ra_pusch_t *ra_ul, 
+                                                  uint8_t *data,
+                                                  srslte_uci_data_t uci_data, 
+                                                  uint32_t sf_idx, 
+                                                  uint16_t rnti, 
+                                                  cf_t *output_signal); 
 
 SRSLTE_API void srslte_ue_ul_reset(srslte_ue_ul_t *q);
 

@@ -48,13 +48,13 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   uint8_t *uci_cqi;
   uint32_t uci_cqi_len;
-  float beta_cqi;
-  uint8_t uci_ri;  // Only 1-bit supported for RI
+  uint32_t I_offset_cqi;
+  uint8_t  uci_ri;  // Only 1-bit supported for RI
   uint32_t uci_ri_len;
-  float beta_ri;
-  uint8_t uci_ack; // Only 1-bit supported for HARQ
+  uint32_t I_offset_ri;
+  uint8_t  uci_ack; // Only 1-bit supported for HARQ
   uint32_t uci_ack_len;
-  float beta_ack;
+  uint32_t I_offset_ack;
 } srslte_uci_data_t;
 
 SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q);

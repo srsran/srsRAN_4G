@@ -441,7 +441,7 @@ int main(int argc, char **argv) {
   cf_t pss_signal[SRSLTE_PSS_LEN];
   float sss_signal0[SRSLTE_SSS_LEN]; // for subframe 0
   float sss_signal5[SRSLTE_SSS_LEN]; // for subframe 5
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int i;
   cf_t *sf_symbols[SRSLTE_MAX_PORTS];
   cf_t *slot1_symbols[SRSLTE_MAX_PORTS];

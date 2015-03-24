@@ -297,7 +297,7 @@ int srslte_refsignal_dmrs_gen(srslte_refsignal_ul_t *q, srslte_refsignal_drms_pu
       
       // Get sequence hopping number v 
       uint32_t v = 0; 
-      if (nof_prb >= 6 && cfg->srslte_sequence_hopping_en) {
+      if (nof_prb >= 6 && cfg->sequence_hopping_en) {
         v = q->v_pusch[ns][cfg->delta_ss];
       }
 

@@ -79,8 +79,24 @@ typedef struct SRSLTE_API {
   srslte_dft_plan_t *zc_fft;
   srslte_dft_plan_t *zc_ifft;
 
-
 } srslte_prach_t;
+
+typedef struct SRSLTE_API {
+  int nof_sf;
+  uint32_t sf[5];
+} srslte_prach_sf_config_t;
+
+typedef enum SRSLTE_API {
+  SRSLTE_PRACH_SFN_EVEN = 0,
+  SRSLTE_PRACH_SFN_ANY,  
+} srslte_prach_sfn_t;
+
+SRSLTE_API uint32_t srslte_prach_get_preamble_format(uint32_t config_idx);
+
+SRSLTE_API srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx);
+
+SRSLTE_API void srslte_prach_sf_config(uint32_t config_idx, 
+                                       srslte_prach_sf_config_t *sf_config);
 
 SRSLTE_API int srslte_prach_init(srslte_prach_t *p,
                                  uint32_t N_ifft_ul,
@@ -92,7 +108,6 @@ SRSLTE_API int srslte_prach_init(srslte_prach_t *p,
 SRSLTE_API int srslte_prach_gen(srslte_prach_t *p,
                                 uint32_t seq_index,
                                 uint32_t freq_offset,
-                                float beta_prach,
                                 cf_t *signal);
 
 SRSLTE_API int srslte_prach_detect(srslte_prach_t *p,

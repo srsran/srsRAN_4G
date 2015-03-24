@@ -41,12 +41,9 @@
 #include "srslte/fec/viterbi.h"
 #include "srslte/fec/crc.h"
 
-#define BCH_PAYLOAD_LEN   24
-#define BCH_PAYLOADCRC_LEN  (BCH_PAYLOAD_LEN+16)
-#define BCH_ENCODED_LEN   3*(BCH_PAYLOADCRC_LEN)
-
-#define PBCH_RE_SRSLTE_SRSLTE_CP_NORM    240
-#define PBCH_RE_SRSLTE_SRSLTE_CP_EXT     216
+#define SRSLTE_BCH_PAYLOAD_LEN     24
+#define SRSLTE_BCH_PAYLOADCRC_LEN  (SRSLTE_BCH_PAYLOAD_LEN+16)
+#define SRSLTE_BCH_ENCODED_LEN     3*(SRSLTE_BCH_PAYLOADCRC_LEN)
 
 /* PBCH object */
 typedef struct SRSLTE_API {
@@ -61,10 +58,10 @@ typedef struct SRSLTE_API {
   cf_t *d;
   float *llr;
   float *temp;
-  float rm_f[BCH_ENCODED_LEN];
+  float rm_f[SRSLTE_BCH_ENCODED_LEN];
   uint8_t *rm_b;
-  uint8_t data[BCH_PAYLOADCRC_LEN];
-  uint8_t data_enc[BCH_ENCODED_LEN];
+  uint8_t data[SRSLTE_BCH_PAYLOADCRC_LEN];
+  uint8_t data_enc[SRSLTE_BCH_ENCODED_LEN];
 
   uint32_t frame_idx;
 
@@ -87,12 +84,12 @@ SRSLTE_API int srslte_pbch_decode(srslte_pbch_t *q,
                            cf_t *slot1_symbols, 
                            cf_t *ce_slot1[SRSLTE_MAX_PORTS], 
                            float noise_estimate, 
-                           uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                           uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                            uint32_t *nof_tx_ports,
                            uint32_t *sfn_offset);
 
 SRSLTE_API int srslte_pbch_encode(srslte_pbch_t *q, 
-                           uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                           uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                            cf_t *slot1_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API void srslte_pbch_decode_reset(srslte_pbch_t *q);

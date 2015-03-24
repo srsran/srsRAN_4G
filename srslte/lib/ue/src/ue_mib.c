@@ -113,7 +113,7 @@ void srslte_ue_mib_reset(srslte_ue_mib_t * q)
 }
 
 int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input, 
-                  uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
+                  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset)
 {
   int ret = SRSLTE_SUCCESS;
   cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
@@ -193,7 +193,7 @@ void srslte_ue_mib_sync_reset(srslte_ue_mib_sync_t * q) {
 
 int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q, 
                        uint32_t max_frames_timeout,
-                       uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                       uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                        uint32_t *nof_tx_ports, 
                        uint32_t *sfn_offset) 
 {

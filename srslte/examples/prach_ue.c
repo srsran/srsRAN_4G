@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
   srslte_ue_mib_t ue_mib; 
   void *uhd; 
   int n; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
   rar_msg_t rar_msg; 
   srslte_ra_pusch_t ra_pusch; 
@@ -382,7 +382,7 @@ int main(int argc, char **argv) {
     perror("maloc");
     exit(-1);
   }
-  if(srslte_prach_gen(&prach, prog_args.preamble_idx, 0, prog_args.beta_prach, prach_buffer)){
+  if(srslte_prach_gen(&prach, prog_args.preamble_idx, 0, prach_buffer)){
     fprintf(stderr, "Error generating prach sequence\n");
     return -1;
   }
@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
   bzero(&drms_cfg, sizeof(srslte_refsignal_drms_pusch_cfg_t));  
   drms_cfg.beta_pusch = 1.0; 
   drms_cfg.group_hopping_en = false; 
-  drms_cfg.srslte_sequence_hopping_en = false; 
+  drms_cfg.sequence_hopping_en = false; 
   drms_cfg.delta_ss = 0;
   drms_cfg.cyclic_shift = 0; 
   drms_cfg.cyclic_shift_for_drms = 0; 
@@ -555,7 +555,7 @@ int main(int argc, char **argv) {
                     ra_pusch.rv_idx = rv[i];
                     ul_sf_idx = (srslte_ue_sync_get_sfidx(&ue_sync)+6+i*8)%10;
 
-                    n = srslte_ue_ul_srslte_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
+                    n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
                     if (n < 0) {
                       fprintf(stderr, "Error encoding PUSCH\n");
                       exit(-1);
@@ -604,7 +604,7 @@ int main(int argc, char **argv) {
             printf("L: %d\n", ra_pusch.prb_alloc.L_prb);
             // srslte_ue_ul_set_cfo(&ue_ul, srslte_sync_get_cfo(&ue_sync.strack));
             srslte_bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
-            n = srslte_ue_ul_srslte_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, 111, ul_signal);
+            n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, 111, ul_signal);
             if (n < 0) {
               fprintf(stderr, "Error encoding PUSCH\n");
               exit(-1);

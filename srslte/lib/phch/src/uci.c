@@ -102,7 +102,7 @@ static uint8_t M_basis_seq_pucch[20][13]={
                                   {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
                                   {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0},
                                   };                                    
-                                    
+                                  
 int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q) {
   if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC8, 8)) {
     return SRSLTE_ERROR;
@@ -220,7 +220,10 @@ int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_b
 int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, uint8_t *cqi_data, uint32_t cqi_len, float beta, uint32_t Q_prime_ri, 
                    srslte_harq_t *harq, uint8_t *q_bits)
 {
-  
+  if (beta < 0) {
+    fprintf(stderr, "Error beta is reserved\n");
+    return -1; 
+  }
   uint32_t Q_prime = Q_prime_cqi(cqi_len, beta, Q_prime_ri, harq);
   uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);
   
@@ -244,6 +247,7 @@ static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bi
 
   const uint32_t ack_column_set_norm[4] = {2, 3, 8, 9};
   const uint32_t ack_column_set_ext[4] = {1, 2, 6, 7};
+
   
   if (H_prime_total/N_pusch_symbs >= 1+ack_q_bit_idx/4) {
     uint32_t row = H_prime_total/N_pusch_symbs-1-ack_q_bit_idx/4;
@@ -287,6 +291,12 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
 }
 
 static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, srslte_harq_t *harq) {
+  
+  if (beta < 0) {
+    fprintf(stderr, "Error beta is reserved\n");
+    return -1; 
+  }
+
   uint32_t M_sc = harq->ul_alloc.L_prb * SRSLTE_NRE;
   
   uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
@@ -321,8 +331,15 @@ static void encode_ri_ack(uint8_t data, uint8_t q_encoded_bits[6], uint8_t Q_m) 
 /* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit HARQ
  */
-int srslte_uci_encode_ack(uint8_t data, uint32_t O_cqi, float beta, srslte_harq_t *harq, uint32_t H_prime_total, uint8_t *q_bits)
+int srslte_uci_encode_ack(uint8_t data, uint32_t O_cqi, 
+                          float beta, srslte_harq_t *harq, 
+                          uint32_t H_prime_total, uint8_t *q_bits)
 {
+  if (beta < 0) {
+    fprintf(stderr, "Error beta is reserved\n");
+    return -1; 
+  }
+
   uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);  
   uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq);
   uint8_t q_encoded_bits[6];
@@ -340,8 +357,15 @@ int srslte_uci_encode_ack(uint8_t data, uint32_t O_cqi, float beta, srslte_harq_
 /* Encode UCI RI bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit RI
  */
-int srslte_uci_encode_ri(uint8_t data, uint32_t O_cqi, float beta, srslte_harq_t *harq, uint32_t H_prime_total, uint8_t *q_bits)
+int srslte_uci_encode_ri(uint8_t data, uint32_t O_cqi, float beta, 
+                         srslte_harq_t *harq, uint32_t H_prime_total, 
+                         uint8_t *q_bits)
 {
+  if (beta < 0) {
+    fprintf(stderr, "Error beta is reserved\n");
+    return -1; 
+  }
+
   uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);  
   uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq);
   uint8_t q_encoded_bits[6];

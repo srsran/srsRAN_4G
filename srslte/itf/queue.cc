@@ -24,63 +24,26 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#include <stdlib.h>
+#include "queue.h"
 
-#ifndef QUEUE_H
-#define QUEUE_H
-
-namespace srslte {
-
-class queue
+srslte::queue::queue(uint32_t nof_elements, uint32_t element_size)
 {
-public:
-
-  class element
-  {
-  public: 
-    ~element(); 
-    bool release()
-    {
-      if (state == READY) {
-        state = RELEASED; 
-        return true; 
-      } else {
-        return false; 
-      }
-    }
-    bool is_released() 
-    {
-      return state == RELEASED;
-    }
-    bool ready_to_send() {
-      if (state == RELEASED) {
-        state = READY; 
-        return true; 
-      } else {
-        return false; 
-      }
-    }
-    bool is_ready_to_send() {
-      return state == READY; 
-    }
-    
-  protected: 
-    enum {
-     RELEASED, READY
-    } state;     
+  buffer_of_elements = (queue::element**) malloc(sizeof(queue::element*) * nof_elements);
+  for (int i=0;i<nof_elements;i++) {
+    buffer_of_elements[i] = (queue::element*) malloc(element_size); 
   }
-  
-  queue(uint32_t nof_elements, uint32_t element_size);
-  ~queue();
-  
-  element* get(uint32_t idx);
-  
-private:
-  uint32_t nof_elements; 
-  uint32_t element_size; 
-  void **buffer_of_elements; 
-  
-};
-
 }
-  
-#endif
+
+srslte::queue::~queue()
+{
+  for (int i=0;i<nof_elements;i++) {
+    free(buffer_of_elements[i]);
+  }
+  free(buffer_of_elements);
+}  
+ 
+srslte::queue::element* srslte::queue::get(uint32_t idx)
+{
+ return (queue::element*) buffer_of_elements[idx%nof_elements];
+}

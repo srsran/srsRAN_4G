@@ -72,7 +72,7 @@ typedef struct SRSLTE_API {
   srslte_chest_dl_t chest; 
   srslte_pbch_t pbch;
   
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   uint32_t nof_tx_ports; 
   uint32_t sfn_offset; 
   
@@ -88,7 +88,7 @@ SRSLTE_API void srslte_ue_mib_reset(srslte_ue_mib_t * q);
 
 SRSLTE_API int srslte_ue_mib_decode(srslte_ue_mib_t * q, 
                                     cf_t *input, 
-                                    uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                                    uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                                     uint32_t *nof_tx_ports, 
                                     uint32_t *sfn_offset); 
 
@@ -113,7 +113,7 @@ SRSLTE_API void srslte_ue_mib_sync_reset(srslte_ue_mib_sync_t * q);
 
 SRSLTE_API int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q, 
                                          uint32_t max_frames_timeout,
-                                         uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                                         uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                                          uint32_t *nof_tx_ports, 
                                          uint32_t *sfn_offset); 
 

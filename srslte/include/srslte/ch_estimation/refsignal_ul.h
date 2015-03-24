@@ -48,7 +48,7 @@ typedef struct SRSLTE_API {
   bool en_drms_2; 
   float beta_pusch;
   bool group_hopping_en; 
-  bool srslte_sequence_hopping_en; 
+  bool sequence_hopping_en; 
 }srslte_refsignal_drms_pusch_cfg_t;
 
 typedef struct SRSLTE_API {
