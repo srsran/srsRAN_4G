@@ -44,7 +44,7 @@ LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
 
 
 #################################################################
-# These two can be compiled without UHD or graphics support
+# These can be compiled without UHD or graphics support
 #################################################################
 
 add_executable(pdsch_ue pdsch_ue.c cuhd_utils.c)
@@ -65,7 +65,7 @@ ENDIF(${CUHD_FIND} EQUAL -1)
 FIND_PACKAGE(LIBSDRGUI)
 IF(LIBSDRGUI_FOUND)
   include_directories(${LIBSDRGUI_INCLUDE_DIRS})
-  target_link_libraries(pdsch_ue ${LIBSDRGUI_LIBRARIES})  
+  target_link_libraries(pdsch_ue ${LIBSDRGUI_LIBRARIES})
 ELSE(LIBSDRGUI_FOUND)
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
 ENDIF(LIBSDRGUI_FOUND)
@@ -85,6 +85,9 @@ IF(${CUHD_FIND} GREATER -1)
 
   add_executable(cell_measurement cell_measurement.c cuhd_utils.c)
   target_link_libraries(cell_measurement cuhd srslte)
+
+  add_executable(usrp_capture usrp_capture.c cuhd_utils.c)
+  target_link_libraries(usrp_capture cuhd srslte)
 
   MESSAGE(STATUS "   UHD examples will be installed.")
 
