@@ -38,7 +38,7 @@ ELSE(${DISABLE_VOLK})
   FIND_PACKAGE(Volk)
 ENDIF(${DISABLE_VOLK})
 
-FIND_PACKAGE(LIBSDRGUI)
+FIND_PACKAGE(SRSGUI)
 
 ########################################################################
 # Recurse subdirectories and compile all source files into the same lib  

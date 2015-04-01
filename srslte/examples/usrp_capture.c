@@ -61,7 +61,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "agnvfo")) != -1) {
+  while ((opt = getopt(argc, argv, "agrnvfo")) != -1) {
     switch (opt) {
     case 'o':
       output_file_name = argv[optind];

@@ -62,13 +62,13 @@ ELSE(${CUHD_FIND} EQUAL -1)
   target_link_libraries(pdsch_enodeb cuhd)
 ENDIF(${CUHD_FIND} EQUAL -1)
 
-FIND_PACKAGE(LIBSDRGUI)
-IF(LIBSDRGUI_FOUND)
-  include_directories(${LIBSDRGUI_INCLUDE_DIRS})
-  target_link_libraries(pdsch_ue ${LIBSDRGUI_LIBRARIES})
-ELSE(LIBSDRGUI_FOUND)
+FIND_PACKAGE(SRSGUI)
+IF(SRSGUI_FOUND)
+  include_directories(${SRSGUI_INCLUDE_DIRS})
+  target_link_libraries(pdsch_ue ${SRSGUI_LIBRARIES})
+ELSE(SRSGUI_FOUND)
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-ENDIF(LIBSDRGUI_FOUND)
+ENDIF(SRSGUI_FOUND)
 
 
 #################################################################
