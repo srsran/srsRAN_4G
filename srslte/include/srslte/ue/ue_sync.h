@@ -25,6 +25,28 @@
  *
  */
 
+/******************************************************************************
+ *  File:         ue_sync.h
+ *
+ *  Description:  This object automatically manages the cell synchronization
+ *                procedure.
+ *
+ *                The main function is srslte_ue_sync_get_buffer(), which returns
+ *                a pointer to the aligned subframe of samples (before FFT). This
+ *                function should be called regularly, returning every 1 ms.
+ *                It reads from the USRP, aligns the samples to the subframe and
+ *                performs time/freq synch.
+ *
+ *                It is also possible to read the signal from a file using the
+ *                init function srslte_ue_sync_init_file(). The sampling frequency
+ *                is derived from the number of PRB.
+ *
+ *                The function returns 1 when the signal is correctly acquired and
+ *                the returned buffer is aligned with the subframe.
+ *
+ *  Reference:
+ *****************************************************************************/
+
 #ifndef UE_SYNC_
 #define UE_SYNC_
 
@@ -39,22 +61,6 @@
 #include "srslte/common/timestamp.h"
 #include "srslte/io/filesource.h"
 
-/**************************************************************
- *
- * This object automatically manages the cell synchronization procedure. 
- * 
- * The main function is srslte_ue_sync_get_buffer(), which returns a pointer
- * to the aligned subframe of samples (before FFT). This function
- * should be called regularly, returning every 1 ms. It reads from the 
- * USRP, aligns the samples to the subframe and performs time/freq synch. 
- *
- * It is also possible to read the signal from a file using the init function 
- * srslte_ue_sync_init_file(). The sampling frequency is derived from the number of PRB. 
- * 
- * The function returns 1 when the signal is correctly acquired and the 
- * returned buffer is aligned with the subframe. 
- * 
- *************************************************************/
 
 typedef enum SRSLTE_API { SF_FIND, SF_TRACK} srslte_ue_sync_state_t;
 

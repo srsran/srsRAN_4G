@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         pusch.h
+ *
+ *  Description:  Physical uplink shared channel.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.3
+ *****************************************************************************/
 
 #ifndef PUSCH_
 #define PUSCH_
@@ -81,7 +88,7 @@ typedef struct SRSLTE_API {
   void *g;
 
   /* tx & rx objects */
-  srslte_srslte_modem_table_t mod[4];
+  srslte_modem_table_t mod[4];
   srslte_demod_soft_t demod;
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
   srslte_sequence_t seq_type2_fo; 

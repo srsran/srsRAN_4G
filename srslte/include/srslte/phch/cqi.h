@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         cqi.h
+ *
+ *  Description:  Channel quality indicator message packing.
+ *
+ *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.2.2.6, 5.2.3.3
+ *****************************************************************************/
+
 #ifndef CQI_
 #define CQI_
 
@@ -32,11 +40,6 @@
 
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
-
-/**
- * CQI message generation according to 36.212 Sections 5.2.2.6 and 5.2.3.3
- *
- */
 
 
 /* Table 5.2.2.6.2-1: Fields for channel quality information feedback for higher layer configured subband

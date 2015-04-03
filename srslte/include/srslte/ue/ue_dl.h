@@ -25,16 +25,19 @@
  *
  */
 
+/******************************************************************************
+ *  File:         ue_dl.h
+ *
+ *  Description:  UE downlink object.
+ *
+ *                This module is a frontend to all the downlink data and control
+ *                channel processing modules.
+ *
+ *  Reference:
+ *****************************************************************************/
+
 #ifndef UEDL_H
 #define UEDL_H
-
-/*******************************************************
- * 
- * This module is a frontend to all the data and control channels processing 
- * modules. 
- ********************************************************/
-
-
 
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/dft/ofdm.h"

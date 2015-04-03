@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         sss.h
+ *
+ *  Description:  Secondary synchronization signal (SSS) generation and detection.
+ *
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.11.2
+ *****************************************************************************/
 
 #ifndef SSS_
 #define SSS_

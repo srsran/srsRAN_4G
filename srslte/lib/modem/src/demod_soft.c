@@ -71,7 +71,7 @@ void srslte_demod_soft_free(srslte_demod_soft_t *q) {
   bzero((void*)q,sizeof(srslte_demod_soft_t));
 }
 
-void srslte_demod_soft_table_set(srslte_demod_soft_t *q, srslte_srslte_modem_table_t *table) {
+void srslte_demod_soft_table_set(srslte_demod_soft_t *q, srslte_modem_table_t *table) {
   q->table = table;
 }
 

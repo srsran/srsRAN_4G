@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         pdcch.h
+ *
+ *  Description:  Physical downlink control channel.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.8
+ *****************************************************************************/
+
 #ifndef PDCCH_
 #define PDCCH_
 
@@ -69,7 +77,7 @@ typedef struct SRSLTE_API {
   float *llr;
 
   /* tx & rx objects */
-  srslte_srslte_modem_table_t mod;
+  srslte_modem_table_t mod;
   srslte_demod_soft_t demod;
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
   srslte_viterbi_t decoder;

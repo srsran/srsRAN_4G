@@ -35,7 +35,7 @@
 
 /** Low-level API */
 
-int srslte_mod_modulate(srslte_srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint32_t nbits) {
+int srslte_mod_modulate(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint32_t nbits) {
   uint32_t i,j,idx;
   uint8_t *b_ptr=(uint8_t*) bits;
   j=0;

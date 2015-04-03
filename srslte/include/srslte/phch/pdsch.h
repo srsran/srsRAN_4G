@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         pdsch.h
+ *
+ *  Description:  Physical downlink shared channel
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.4
+ *****************************************************************************/
 
 #ifndef PDSCH_
 #define PDSCH_
@@ -62,7 +69,7 @@ typedef struct SRSLTE_API {
   void *e;
 
   /* tx & rx objects */
-  srslte_srslte_modem_table_t mod[4];
+  srslte_modem_table_t mod[4];
   srslte_demod_soft_t demod;
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
   srslte_precoding_t precoding; 

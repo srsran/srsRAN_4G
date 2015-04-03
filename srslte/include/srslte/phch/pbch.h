@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         pbch.h
+ *
+ *  Description:  Physical broadcast channel.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.6
+ *****************************************************************************/
 
 #ifndef PBCH_
 #define PBCH_
@@ -69,7 +76,7 @@ typedef struct SRSLTE_API {
   uint32_t frame_idx;
 
   /* tx & rx objects */
-  srslte_srslte_modem_table_t mod;
+  srslte_modem_table_t mod;
   srslte_demod_soft_t demod;
   srslte_sequence_t seq;
   srslte_viterbi_t decoder;

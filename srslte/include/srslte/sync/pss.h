@@ -25,6 +25,23 @@
  *
  */
 
+/******************************************************************************
+ *  File:         pss.h
+ *
+ *  Description:  Primary synchronization signal (PSS) generation and detection.
+ *
+ *                The srslte_pss_synch_t object provides functions for fast
+ *                computation of the crosscorrelation between the PSS and received
+ *                signal and CFO estimation. Also, the function srslte_pss_synch_tperiodic()
+ *                is designed to be called periodically every subframe, taking
+ *                care of the correct data alignment with respect to the PSS sequence.
+ *
+ *                The object is designed to work with signals sampled at 1.92 Mhz
+ *                centered at the carrier frequency. Thus, downsampling is required
+ *                if the signal is sampled at higher frequencies.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.11.1
+ *****************************************************************************/
 
 #ifndef PSS_
 #define PSS_
@@ -49,17 +66,6 @@
 #define SRSLTE_PSS_ABS_SQUARE   // If enabled, compute abs square, otherwise computes absolute value only 
 
 #define SRSLTE_PSS_RETURN_PSR  // If enabled returns peak to side-lobe ratio, otherwise returns absolute peak value
-
-/**
- * The srslte_pss_synch_t object provides functions for fast computation of the crosscorrelation
- * between the PSS and received signal and CFO estimation. Also, the function srslte_pss_synch_tperiodic() is designed
- * to be called periodically every subframe, taking care of the correct data alignment with respect
- * to the PSS sequence.
- *
- * The object is designed to work with signals sampled at 1.92 Mhz centered at the carrier frequency.
- * Thus, downsampling is required if the signal is sampled at higher frequencies.
- *
- */
 
 
 /* Low-level API */

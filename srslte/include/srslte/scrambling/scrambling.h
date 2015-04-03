@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         scrambling.h
+ *
+ *  Description:  Generic scrambling functions used by UL and DL channels.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.3.1, 6.3.1
+ *****************************************************************************/
 
 #ifndef SCRAMBLING_
 #define SCRAMBLING_

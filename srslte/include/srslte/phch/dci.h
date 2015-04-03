@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         dci.h
+ *
+ *  Description:  Downlink control information (DCI)
+ *
+ *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.3.3
+ *****************************************************************************/
+
 #ifndef DCI_
 #define DCI_
 
@@ -33,13 +41,6 @@
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/ra.h"
-
-/**
- * DCI message generation according to the formats, as specified in
- * 36.212 Section 5.3.3.1
- *
- */
-
 
 #define DCI_MAX_BITS  57
 

@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         cfo.h
+ *
+ *  Description:  Carrier frequency offset correction using complex exponentials.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef CFO_
 #define CFO_

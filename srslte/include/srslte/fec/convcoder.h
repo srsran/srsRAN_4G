@@ -25,7 +25,15 @@
  *
  */
 
-
+/**********************************************************************************************
+ *  File:         convcoder.h
+ *
+ *  Description:  Convolutional encoder.
+ *                LTE uses a tail biting convolutional code with constraint length 7
+ *                and coding rate 1/3.
+ *
+ *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.3.1
+ *********************************************************************************************/
 
 #ifndef CONVCODER_
 #define CONVCODER_

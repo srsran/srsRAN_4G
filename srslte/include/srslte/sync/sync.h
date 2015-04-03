@@ -25,6 +25,23 @@
  *
  */
 
+/******************************************************************************
+ *  File:         sync.h
+ *
+ *  Description:  Time and frequency synchronization using the PSS and SSS signals.
+ *
+ *                The object is designed to work with signals sampled at 1.92 Mhz
+ *                centered at the carrier frequency. Thus, downsampling is required
+ *                if the signal is sampled at higher frequencies.
+ *
+ *                Correlation peak is detected comparing the maximum at the output
+ *                of the correlator with a threshold. The comparison accepts two
+ *                modes: absolute value or peak-to-mean ratio, which are configured
+ *                with the functions sync_pss_det_absolute() and sync_pss_det_peakmean().
+ *
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.11.1, 6.11.2
+ *****************************************************************************/
 
 #ifndef SYNC_
 #define SYNC_
@@ -39,18 +56,6 @@
 
 #define SRSLTE_SYNC_FFT_SZ_MIN    64
 #define SRSLTE_SYNC_FFT_SZ_MAX    2048
-
-/**
- *
- * This object performs time and frequency synchronization using the PSS and SSS signals.
- * 
- * The object is designed to work with signals sampled at 1.92 Mhz centered at the carrier frequency.
- * Thus, downsampling is required if the signal is sampled at higher frequencies.
- *
- * Correlation peak is detected comparing the maximum at the output of the correlator with a threshold.
- * The comparison accepts two modes: absolute value or peak-to-mean ratio, which are configured with the
- * functions sync_pss_det_absolute() and sync_pss_det_peakmean().
- */
 
 typedef enum {SSS_DIFF=0, SSS_PARTIAL_3=2, SSS_FULL=1} sss_alg_t; 
 

@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         convolution.h
+ *
+ *  Description:  Utility module for fast convolution using FFT.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef CONVOLUTION_H_
 #define CONVOLUTION_H_

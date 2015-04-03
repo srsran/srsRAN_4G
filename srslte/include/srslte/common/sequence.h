@@ -25,6 +25,15 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         sequence.h
+ *
+ *  Description:  Pseudo Random Sequence generation. Sequences are defined by a length-31 Gold
+ *                sequence.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 7.2
+ *********************************************************************************************/
+
 #ifndef LTESEQ_
 #define LTESEQ_
 

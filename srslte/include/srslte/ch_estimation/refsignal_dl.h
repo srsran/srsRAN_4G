@@ -25,12 +25,16 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         refsignal_dl.h
+ *
+ *  Description:  Object to manage downlink reference signals for channel estimation.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.10
+ *********************************************************************************************/
+
 #ifndef SRSLTE_REFSIGNAL_DL_
 #define SRSLTE_REFSIGNAL_DL_
-
-/* Object to manage Downlink reference signals for channel estimation.
- *
- */
 
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"

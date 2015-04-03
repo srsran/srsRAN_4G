@@ -25,6 +25,15 @@
  *
  */
 
+/******************************************************************************
+ *  File:         filesource.h
+ *
+ *  Description:  File source.
+ *                Supports reading floats, complex floats and complex shorts
+ *                from file in text or binary formats.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef FILESOURCE_
 #define FILESOURCE_

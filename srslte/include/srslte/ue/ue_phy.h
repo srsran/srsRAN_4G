@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         ue_phy.h
+ *
+ *  Description:  Top-level class wrapper for PHY layer.
+ *
+ *  Reference:
+ *****************************************************************************/
+
 #include "srslte/srslte.h"
 #include "srslte/utils/queue.h"
 

@@ -94,7 +94,7 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   int i;
-  srslte_srslte_modem_table_t mod;
+  srslte_modem_table_t mod;
   srslte_demod_hard_t demod_hard;
   srslte_demod_soft_t demod_soft;
   uint8_t *input, *output;

@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         demod_soft.h
+ *
+ *  Description:  Soft demodulator.
+ *                Supports BPSK, QPSK, 16QAM and 64QAM.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 7.1
+ *****************************************************************************/
 
 #ifndef DEMOD_SOFT_
 #define DEMOD_SOFT_
@@ -43,7 +51,7 @@ typedef enum SRSLTE_API {
 typedef struct SRSLTE_API {
   float sigma;      // noise power
   srslte_demod_soft_alg_t alg_type;    // soft demapping algorithm (SRSLTE_DEMOD_SOFT_ALG_EXACT or SRSLTE_DEMOD_SOFT_ALG_APPROX)
-  srslte_srslte_modem_table_t *table;  // symbol mapping table (see modem_table.h)
+  srslte_modem_table_t *table;  // symbol mapping table (see modem_table.h)
   uint32_t *zones; 
   float *dd; 
   uint32_t max_symbols;
@@ -55,7 +63,7 @@ SRSLTE_API int srslte_demod_soft_init(srslte_demod_soft_t *q,
 SRSLTE_API void srslte_demod_soft_free(srslte_demod_soft_t *q); 
 
 SRSLTE_API void srslte_demod_soft_table_set(srslte_demod_soft_t *q, 
-                                            srslte_srslte_modem_table_t *table);
+                                            srslte_modem_table_t *table);
 
 SRSLTE_API void srslte_demod_soft_alg_set(srslte_demod_soft_t *q, 
                                           srslte_demod_soft_alg_t alg_type);
@@ -72,7 +80,7 @@ SRSLTE_API int srslte_demod_soft_demodulate(srslte_demod_soft_t *q,
 /* High-level API */
 typedef struct SRSLTE_API {
   srslte_demod_soft_t obj;
-  srslte_srslte_modem_table_t table;
+  srslte_modem_table_t table;
 
   struct srslte_demod_soft_init{
     srslte_mod_t std;    // symbol mapping standard (see modem_table.h)
