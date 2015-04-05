@@ -25,62 +25,23 @@
  *
  */
 
-#ifndef QUEUE_H
-#define QUEUE_H
+#include <string.h>
+#include <strings.h>
+#include <pthread.h>
+#include "srslte/srslte.h"
+
+#include "srslte/ue_itf/params.h"
 
 namespace srslte {
-
-class queue
-{
-public:
-
-  class element
+ namespace ue {
+  
+  void params::set_param(param_t param, int64_t value)
   {
-  public: 
-    ~element(); 
-    bool release()
-    {
-      if (state == READY) {
-        state = RELEASED; 
-        return true; 
-      } else {
-        return false; 
-      }
-    }
-    bool is_released() 
-    {
-      return state == RELEASED;
-    }
-    bool ready_to_send() {
-      if (state == RELEASED) {
-        state = READY; 
-        return true; 
-      } else {
-        return false; 
-      }
-    }
-    bool is_ready_to_send() {
-      return state == READY; 
-    }
-    
-  protected: 
-    enum {
-     RELEASED, READY
-    } state;     
-  };
-  
-  queue(uint32_t nof_elements, uint32_t element_size);
-  ~queue();
-  
-  element* get(uint32_t idx);
-
-private:
-  uint32_t nof_elements; 
-  uint32_t element_size; 
-  element* *buffer_of_elements; 
-  
-};
-
+    params_db[param] = value; 
+  }
+  int64_t params::get_param(param_t param)
+  {
+    return params_db[param]; 
+  }
+ }
 }
-  
-#endif

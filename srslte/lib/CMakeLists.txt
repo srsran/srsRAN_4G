@@ -77,8 +77,20 @@ FOREACH (_file ${cmakefiles})
   ENDIF ()
 ENDFOREACH()
 
+########################################################################
+# Create C++ library
+########################################################################
+FILE(GLOB modules *) 
+SET(SOURCES_CPP_ALL "")
+FOREACH (_module ${modules})
+  IF(IS_DIRECTORY ${_module})
+    FILE(GLOB_RECURSE tmp "${_module}/src/*.cc")
+    LIST(APPEND SOURCES_CPP_ALL ${tmp})
+  ENDIF(IS_DIRECTORY ${_module})
+ENDFOREACH()
 
-
-
-
+ADD_LIBRARY(srslte++ SHARED ${SOURCES_CPP_ALL})
+TARGET_LINK_LIBRARIES(srslte++ srslte m pthread ${FFTW3F_LIBRARIES})
+INSTALL(TARGETS srslte++ DESTINATION ${LIBRARY_DIR})
+LIBLTE_SET_PIC(srslte++)
 
