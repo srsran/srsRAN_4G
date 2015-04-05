@@ -38,7 +38,7 @@
 #include "srslte/srslte.h"
 
 int cell_id = -1, offset = 0;
-srslte_cp_t cp = SRSLTE_SRSLTE_CP_NORM;
+srslte_cp_t cp = SRSLTE_CP_NORM;
 uint32_t nof_prb=6; 
 
 #define FLEN  SRSLTE_SF_LEN(fft_size)
@@ -66,7 +66,7 @@ void parse_args(int argc, char **argv) {
       offset = atoi(argv[optind]);
       break;
     case 'e':
-      cp = SRSLTE_SRSLTE_CP_EXT;
+      cp = SRSLTE_CP_EXT;
       break;
     case 'v':
       srslte_verbose++;

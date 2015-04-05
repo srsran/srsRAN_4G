@@ -57,7 +57,7 @@
 #define SRSLTE_LTE_CRC16   0x11021
 #define SRSLTE_LTE_CRC8    0x19B
 
-typedef enum {SRSLTE_SRSLTE_CP_NORM, SRSLTE_SRSLTE_CP_EXT} srslte_cp_t;
+typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
 
 
 #define SRSLTE_CRNTI_START  0x003D
@@ -77,23 +77,23 @@ typedef enum {SRSLTE_SRSLTE_CP_NORM, SRSLTE_SRSLTE_CP_EXT} srslte_cp_t;
 
 #define SRSLTE_SYMBOL_SZ_MAX   2048
 
-#define SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB    7
-#define SRSLTE_SRSLTE_CP_NORM_SF_NSYMB (2*SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB)
-#define SRSLTE_SRSLTE_CP_NORM_0_LEN    160
-#define SRSLTE_SRSLTE_CP_NORM_LEN      144
+#define SRSLTE_CP_NORM_NSYMB    7
+#define SRSLTE_CP_NORM_SF_NSYMB (2*SRSLTE_CP_NORM_NSYMB)
+#define SRSLTE_CP_NORM_0_LEN    160
+#define SRSLTE_CP_NORM_LEN      144
 
-#define SRSLTE_SRSLTE_CP_EXT_NSYMB     6
-#define SRSLTE_SRSLTE_CP_EXT_SF_NSYMB  (2*SRSLTE_SRSLTE_CP_EXT_NSYMB)
-#define SRSLTE_SRSLTE_CP_EXT_LEN       512
-#define SRSLTE_SRSLTE_CP_EXT_7_5_LEN   1024
+#define SRSLTE_CP_EXT_NSYMB     6
+#define SRSLTE_CP_EXT_SF_NSYMB  (2*SRSLTE_CP_EXT_NSYMB)
+#define SRSLTE_CP_EXT_LEN       512
+#define SRSLTE_CP_EXT_7_5_LEN   1024
 
-#define SRSLTE_CP_ISNORM(cp) (cp==SRSLTE_SRSLTE_CP_NORM)
-#define SRSLTE_CP_ISEXT(cp) (cp==SRSLTE_SRSLTE_CP_EXT)
-#define SRSLTE_CP_NSYMB(cp) (SRSLTE_CP_ISNORM(cp)?SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB:SRSLTE_SRSLTE_CP_EXT_NSYMB)
+#define SRSLTE_CP_ISNORM(cp) (cp==SRSLTE_CP_NORM)
+#define SRSLTE_CP_ISEXT(cp) (cp==SRSLTE_CP_EXT)
+#define SRSLTE_CP_NSYMB(cp) (SRSLTE_CP_ISNORM(cp)?SRSLTE_CP_NORM_NSYMB:SRSLTE_CP_EXT_NSYMB)
 
 #define SRSLTE_CP(symbol_sz, c) ((int) ceil((((float) (c)*(symbol_sz))/2048)))
-#define SRSLTE_CP_NORM(symbol, symbol_sz) ((symbol==0)?SRSLTE_CP((symbol_sz),SRSLTE_SRSLTE_CP_NORM_0_LEN):SRSLTE_CP((symbol_sz),SRSLTE_SRSLTE_CP_NORM_LEN))
-#define SRSLTE_CP_EXT(symbol_sz) (SRSLTE_CP((symbol_sz),SRSLTE_SRSLTE_CP_EXT_LEN))
+#define SRSLTE_CP_NORM(symbol, symbol_sz) ((symbol==0)?SRSLTE_CP((symbol_sz),SRSLTE_CP_NORM_0_LEN):SRSLTE_CP((symbol_sz),SRSLTE_CP_NORM_LEN))
+#define SRSLTE_CP_EXT(symbol_sz) (SRSLTE_CP((symbol_sz),SRSLTE_CP_EXT_LEN))
 
 #define SRSLTE_SLOT_LEN(symbol_sz)     (480*((symbol_sz)/64))
 #define SRSLTE_SF_LEN(symbol_sz)       (2*SRSLTE_SLOT_LEN(symbol_sz))
@@ -109,9 +109,9 @@ typedef enum {SRSLTE_SRSLTE_CP_NORM, SRSLTE_SRSLTE_CP_EXT} srslte_cp_t;
 
 #define SRSLTE_LTE_TS         1.0/(15000.0*2048)
 
-#define SRSLTE_SLOT_IDX_CPNORM(symbol_idx, symbol_sz) (symbol_idx==0?0:(symbol_sz + SRSLTE_CP(symbol_sz, SRSLTE_SRSLTE_CP_NORM_0_LEN) + \
-                                                (symbol_idx-1)*(symbol_sz+SRSLTE_CP(symbol_sz, SRSLTE_SRSLTE_CP_NORM_LEN))))
-#define SRSLTE_SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+SRSLTE_CP(symbol_sz, SRSLTE_SRSLTE_CP_EXT_LEN)))
+#define SRSLTE_SLOT_IDX_CPNORM(symbol_idx, symbol_sz) (symbol_idx==0?0:(symbol_sz + SRSLTE_CP(symbol_sz, SRSLTE_CP_NORM_0_LEN) + \
+                                                (symbol_idx-1)*(symbol_sz+SRSLTE_CP(symbol_sz, SRSLTE_CP_NORM_LEN))))
+#define SRSLTE_SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+SRSLTE_CP(symbol_sz, SRSLTE_CP_EXT_LEN)))
 
 #define SRSLTE_RE_IDX(nof_prb, symbol_idx, sample_idx) ((symbol_idx)*(nof_prb)*(SRSLTE_NRE) + sample_idx)
 

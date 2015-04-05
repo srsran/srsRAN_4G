@@ -68,7 +68,7 @@ int srslte_ofdm_tx_init_(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb, srs
   
   DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
       dir==SRSLTE_DFT_FORWARD?"FFT":"iFFT", q->symbol_sz, q->nof_symbols,
-          q->cp==SRSLTE_SRSLTE_CP_NORM?"Normal":"Extended", q->nof_re, q->nof_guards);
+          q->cp==SRSLTE_CP_NORM?"Normal":"Extended", q->nof_re, q->nof_guards);
 
   return SRSLTE_SUCCESS;
 }

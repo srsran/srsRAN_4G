@@ -42,17 +42,17 @@ typedef struct SRSLTE_API {
   uint32_t *forward;
   uint32_t *reverse;
   uint32_t max_long_cb;
-} srs_tc_interl_t;
+} srslte_tc_interl_t;
 
-SRSLTE_API int srs_tc_interl_LTE_gen(srs_tc_interl_t *h, 
-                                 uint32_t long_cb);
+SRSLTE_API int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, 
+                                        uint32_t long_cb);
 
-SRSLTE_API int srs_tc_interl_UMTS_gen(srs_tc_interl_t *h, 
-                                  uint32_t long_cb);
+SRSLTE_API int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, 
+                                         uint32_t long_cb);
 
-SRSLTE_API int srs_tc_interl_init(srs_tc_interl_t *h, 
-                              uint32_t max_long_cb);
+SRSLTE_API int srslte_tc_interl_init(srslte_tc_interl_t *h, 
+                                     uint32_t max_long_cb);
 
-SRSLTE_API void srs_tc_interl_free(srs_tc_interl_t *h);
+SRSLTE_API void srslte_tc_interl_free(srslte_tc_interl_t *h);
 
 #endif

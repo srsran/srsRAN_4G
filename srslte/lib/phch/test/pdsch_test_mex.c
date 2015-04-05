@@ -109,7 +109,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
     
-  nof_re = 2 * SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
+  nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
   mcs.tbs = mxGetScalar(TBS);
   if (mcs.tbs == 0) {

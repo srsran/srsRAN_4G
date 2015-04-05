@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
     /* If peak detected */
     if (peak_value[N_id_2] > corr_peak_threshold) {
 
-      sss_idx = peak_pos[N_id_2]-2*(symbol_sz+SRSLTE_CP(symbol_sz,SRSLTE_SRSLTE_CP_NORM_LEN));
+      sss_idx = peak_pos[N_id_2]-2*(symbol_sz+SRSLTE_CP(symbol_sz,SRSLTE_CP_NORM_LEN));
       if (sss_idx >= 0) {
         srslte_sss_synch_m0m1_diff(&sss[N_id_2], &input[sss_idx],
             &m0, &m0_value, &m1, &m1_value);

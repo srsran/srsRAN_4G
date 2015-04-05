@@ -163,7 +163,7 @@ uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod) {
 }
 
 char *srslte_cp_string(srslte_cp_t cp) {
-  if (cp == SRSLTE_SRSLTE_CP_NORM) {
+  if (cp == SRSLTE_CP_NORM) {
     return "Normal";
   } else {
     return "Extended";

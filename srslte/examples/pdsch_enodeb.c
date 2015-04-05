@@ -52,7 +52,7 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
@@ -215,7 +215,7 @@ void base_init() {
   }
 
   /* create ifft object */
-  if (srslte_ofdm_rx_init(&ifft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&ifft, SRSLTE_CP_NORM, cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
@@ -324,7 +324,7 @@ int update_radl(uint32_t sf_idx) {
   ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
     
   srslte_ra_dl_alloc(&prb_alloc, &ra_dl, cell.nof_prb);
-  srslte_ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, SRSLTE_SRSLTE_CP_NORM);
+  srslte_ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, SRSLTE_CP_NORM);
   srslte_ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
 
   srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   N_id_2 = cell.id % 3;
-  sf_n_re = 2 * SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
+  sf_n_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
   sf_n_samples = 2 * SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb));
 
   cell.phich_length = SRSLTE_PHICH_NORM;
@@ -524,9 +524,9 @@ int main(int argc, char **argv) {
       bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
       if (sf_idx == 0 || sf_idx == 5) {
-        srslte_pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, SRSLTE_SRSLTE_CP_NORM);
+        srslte_pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, SRSLTE_CP_NORM);
         srslte_sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
-            SRSLTE_SRSLTE_CP_NORM);
+            SRSLTE_CP_NORM);
       }
 
       srslte_refsignal_cs_put_sf(cell, 0, est.csr_signal.pilots[0][sf_idx], sf_buffer);

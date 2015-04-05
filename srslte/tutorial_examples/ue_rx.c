@@ -316,7 +316,7 @@ int main(int argc, char **argv) {
     state = DECODE_PDSCH; 
     /* preset cell configuration */
     cell.id = 1; 
-    cell.cp = SRSLTE_SRSLTE_CP_NORM; 
+    cell.cp = SRSLTE_CP_NORM; 
     cell.phich_length = SRSLTE_PHICH_NORM;
     cell.phich_resources = SRSLTE_PHICH_R_1;
     cell.nof_ports = 1; 
@@ -541,9 +541,9 @@ plot_real_t poutfft;
 plot_real_t pce_angle, pce;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
-float tmp_plot[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
-float tmp_plot2[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
-float tmp_plot3[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
+float tmp_plot[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+float tmp_plot2[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+float tmp_plot3[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
 
 void *plot_thread_run(void *arg) {
   int i;

@@ -67,7 +67,7 @@ typedef struct SRSLTE_API {
   srslte_llr_t *syst;
   srslte_llr_t *parity;
 
-  srs_tc_interl_t interleaver;
+  srslte_tc_interl_t interleaver;
 } srslte_tdec_t;
 
 SRSLTE_API int srslte_tdec_init(srslte_tdec_t * h, 

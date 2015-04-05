@@ -89,6 +89,9 @@ IF(${CUHD_FIND} GREATER -1)
   add_executable(usrp_capture usrp_capture.c cuhd_utils.c)
   target_link_libraries(usrp_capture cuhd srslte)
 
+  add_executable(usrp_capture_sync usrp_capture_sync.c cuhd_utils.c)
+  target_link_libraries(usrp_capture_sync cuhd srslte)
+
   MESSAGE(STATUS "   UHD examples will be installed.")
 
 ELSE(${CUHD_FIND} GREATER -1)

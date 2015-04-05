@@ -59,7 +59,7 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t fft_size) {
     
     bzero(q, sizeof(srslte_sync_t));
     q->detect_cp = true;
-    q->cp = SRSLTE_SRSLTE_CP_NORM;
+    q->cp = SRSLTE_CP_NORM;
     q->mean_peak_value = 0.0;
     q->sss_en = true;
     q->correct_cfo = true; 
@@ -215,14 +215,14 @@ srslte_cp_t srslte_sync_detect_cp(srslte_sync_t *q, cf_t *input, uint32_t peak_p
   q->M_ext_avg = SRSLTE_VEC_EMA(M_ext/2, q->M_ext_avg, CP_EMA_ALPHA);
 
   if (q->M_norm_avg > q->M_ext_avg) {
-    return SRSLTE_SRSLTE_CP_NORM;    
+    return SRSLTE_CP_NORM;    
   } else if (q->M_norm_avg < q->M_ext_avg) {
-    return SRSLTE_SRSLTE_CP_EXT;
+    return SRSLTE_CP_EXT;
   } else {
     if (R_norm > R_ext) {
-      return SRSLTE_SRSLTE_CP_NORM;
+      return SRSLTE_CP_NORM;
     } else {
-      return SRSLTE_SRSLTE_CP_EXT;
+      return SRSLTE_CP_EXT;
     }
   }
 }
@@ -236,7 +236,7 @@ int sync_sss(srslte_sync_t *q, cf_t *input, uint32_t peak_pos, srslte_cp_t cp) {
   srslte_sss_synch_set_N_id_2(&q->sss, q->N_id_2);
 
   /* Make sure we have enough room to find SSS sequence */
-  sss_idx = (int) peak_pos-2*q->fft_size-SRSLTE_CP(q->fft_size, (SRSLTE_CP_ISNORM(q->cp)?SRSLTE_SRSLTE_CP_NORM_LEN:SRSLTE_SRSLTE_CP_EXT_LEN));
+  sss_idx = (int) peak_pos-2*q->fft_size-SRSLTE_CP(q->fft_size, (SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM_LEN:SRSLTE_CP_EXT_LEN));
   if (sss_idx < 0) {
     INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
     return SRSLTE_ERROR;

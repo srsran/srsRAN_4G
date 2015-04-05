@@ -138,7 +138,7 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
 
     bzero(q, sizeof(srslte_pbch_t));
     q->cell = cell;
-    q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_SRSLTE_SRSLTE_CP_NORM : PBCH_RE_SRSLTE_SRSLTE_CP_EXT;
+    q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_SRSLTE_CP_NORM : PBCH_RE_SRSLTE_CP_EXT;
     
     if (srslte_precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");

@@ -37,7 +37,7 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,    // nof_ports
   1000,         // cell_id
-  SRSLTE_SRSLTE_CP_NORM        // cyclic prefix
+  SRSLTE_CP_NORM        // cyclic prefix
 };
 
 char *output_matlab = NULL;
@@ -62,7 +62,7 @@ void parse_args(int argc, char **argv) {
       cell.nof_prb = atoi(argv[optind]);
       break;
     case 'e':
-      cell.cp = SRSLTE_SRSLTE_CP_EXT;
+      cell.cp = SRSLTE_CP_EXT;
       break;
     case 'c':
       cell.id = atoi(argv[optind]);

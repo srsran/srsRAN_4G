@@ -49,7 +49,7 @@
 
 typedef struct SRSLTE_API {
   uint32_t max_long_cb;
-  srs_tc_interl_t interl;
+  srslte_tc_interl_t interl;
 } srslte_tcod_t;
 
 SRSLTE_API int srslte_tcod_init(srslte_tcod_t *h, 

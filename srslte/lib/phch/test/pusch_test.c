@@ -38,7 +38,7 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   0,            // cell_id
-  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_SRSLTE_PHICH_R_1_6,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
   cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   srslte_ofdm_t fft; 
-  srslte_ofdm_rx_init(&fft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb);
+  srslte_ofdm_rx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
   srslte_ofdm_set_freq_shift(&fft, 0.5);
   srslte_ofdm_rx_sf(&fft, sf_symbols, scfdma);
   

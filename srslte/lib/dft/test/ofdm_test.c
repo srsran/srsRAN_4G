@@ -35,7 +35,7 @@
 #include "srslte/srslte.h"
 
 int nof_prb = -1;
-srslte_cp_t cp = SRSLTE_SRSLTE_CP_NORM;
+srslte_cp_t cp = SRSLTE_CP_NORM;
 
 void usage(char *prog) {
   printf("Usage: %s\n", prog);
@@ -51,7 +51,7 @@ void parse_args(int argc, char **argv) {
       nof_prb = atoi(argv[optind]);
       break;
     case 'e':
-      cp = SRSLTE_SRSLTE_CP_EXT;
+      cp = SRSLTE_CP_EXT;
       break;
     default:
       usage(argv[0]);
