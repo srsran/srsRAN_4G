@@ -25,6 +25,15 @@
  *
  */
 
+/******************************************************************************
+ *  File:         layermap.h
+ *
+ *  Description:  MIMO layer mapping and demapping.
+ *                Single antenna, tx diversity and spatial multiplexing are
+ *                supported.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.3.3
+ *****************************************************************************/
 
 #ifndef LAYERMAP_H_
 #define LAYERMAP_H_

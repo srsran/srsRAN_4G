@@ -1,15 +1,15 @@
 #
-# Copyright 2012-2013 The libLTE Developers. See the
+# Copyright 2012-2013 The srsLTE Developers. See the
 # COPYRIGHT file at the top-level directory of this distribution.
 #
-# This file is part of the libLTE library.
+# This file is part of the srsLTE library.
 #
-# libLTE is free software: you can redistribute it and/or modify
+# srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# libLTE is distributed in the hope that it will be useful,
+# srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -44,7 +44,7 @@ LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
 
 
 #################################################################
-# These two can be compiled without UHD or graphics support
+# These can be compiled without UHD or graphics support
 #################################################################
 
 add_executable(pdsch_ue pdsch_ue.c cuhd_utils.c)
@@ -62,13 +62,13 @@ ELSE(${CUHD_FIND} EQUAL -1)
   target_link_libraries(pdsch_enodeb cuhd)
 ENDIF(${CUHD_FIND} EQUAL -1)
 
-FIND_PACKAGE(LIBSDRGUI)
-IF(LIBSDRGUI_FOUND)
-  include_directories(${LIBSDRGUI_INCLUDE_DIRS})
-  target_link_libraries(pdsch_ue ${LIBSDRGUI_LIBRARIES})  
-ELSE(LIBSDRGUI_FOUND)
+FIND_PACKAGE(SRSGUI)
+IF(SRSGUI_FOUND)
+  include_directories(${SRSGUI_INCLUDE_DIRS})
+  target_link_libraries(pdsch_ue ${SRSGUI_LIBRARIES})
+ELSE(SRSGUI_FOUND)
   SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-ENDIF(LIBSDRGUI_FOUND)
+ENDIF(SRSGUI_FOUND)
 
 
 #################################################################
@@ -85,6 +85,9 @@ IF(${CUHD_FIND} GREATER -1)
 
   add_executable(cell_measurement cell_measurement.c cuhd_utils.c)
   target_link_libraries(cell_measurement cuhd srslte)
+
+  add_executable(usrp_capture usrp_capture.c cuhd_utils.c)
+  target_link_libraries(usrp_capture cuhd srslte)
 
   MESSAGE(STATUS "   UHD examples will be installed.")
 

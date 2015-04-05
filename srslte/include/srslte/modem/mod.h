@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         mod.h
+ *
+ *  Description:  Modulation.
+ *                Supports BPSK, QPSK, 16QAM and 64QAM.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 7.1
+ *****************************************************************************/
 
 #ifndef MOD_
 #define MOD_
@@ -35,7 +43,7 @@
 #include "srslte/config.h"
 #include "modem_table.h"
 
-SRSLTE_API int srslte_mod_modulate(srslte_modem_table_t* table, 
+SRSLTE_API int srslte_mod_modulate(srslte_modem_table_t* table,
                                    uint8_t *bits, 
                                    cf_t* symbols, 
                                    uint32_t nbits);

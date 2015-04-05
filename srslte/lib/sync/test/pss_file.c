@@ -36,20 +36,19 @@
 #include <stdbool.h>
 
 #include "srslte/srslte.h"
-#include "srslte/cuhd/cuhd.h"
 
 
 #ifndef DISABLE_GRAPHICS
 void init_plots();
 void do_plots(float *corr, float energy, uint32_t size, cf_t ce[SRSLTE_PSS_LEN]);
 void do_plots_sss(float *corr_m0, float *corr_m1);
+void destroy_plots();
 #endif
 
 
-bool disable_plots = false; 
+bool disable_plots = false;
+char *input_file_name;
 int cell_id = -1;
-char *uhd_args="";
-float uhd_gain=40.0, uhd_freq=-1.0;
 int nof_frames = -1;
 uint32_t fft_size=64;
 float threshold = 0.4; 
@@ -57,9 +56,7 @@ int N_id_2_sync = -1;
 srslte_cp_t cp=SRSLTE_SRSLTE_CP_NORM;
 
 void usage(char *prog) {
-  printf("Usage: %s [aedgtvnp] -f rx_frequency_hz -i cell_id\n", prog);
-  printf("\t-a UHD args [Default %s]\n", uhd_args);
-  printf("\t-g UHD Gain [Default %.2f dB]\n", uhd_gain);
+  printf("Usage: %s [nlestdv] -i cell_id -f input_file_name\n", prog);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-l N_id_2 to sync [Default use cell_id]\n");
   printf("\t-e Extended CP [Default Normal]\n", fft_size);
@@ -75,16 +72,10 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "adgetvsfil")) != -1) {
+  while ((opt = getopt(argc, argv, "nlestdvif")) != -1) {
     switch (opt) {
-    case 'a':
-      uhd_args = argv[optind];
-      break;
-    case 'g':
-      uhd_gain = atof(argv[optind]);
-      break;
     case 'f':
-      uhd_freq = atof(argv[optind]);
+      input_file_name = argv[optind];
       break;
     case 't':
       threshold = atof(argv[optind]);
@@ -115,7 +106,7 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-  if (cell_id < 0 || uhd_freq < 0) {
+  if (cell_id < 0) {
     usage(argv[0]);
     exit(-1);
   }
@@ -123,9 +114,9 @@ void parse_args(int argc, char **argv) {
   float m0_value, m1_value; 
 
 int main(int argc, char **argv) {
+  srslte_filesource_t fsrc;
   cf_t *buffer; 
-  int frame_cnt, n; 
-  void *uhd;
+  int frame_cnt, n;
   srslte_pss_synch_t pss; 
   srslte_cfo_t cfocorr, cfocorr64; 
   srslte_sss_synch_t sss; 
@@ -177,17 +168,12 @@ int main(int argc, char **argv) {
 
   srslte_sss_synch_set_N_id_2(&sss, N_id_2);
 
-  printf("Opening UHD device...\n");
-  if (cuhd_open(uhd_args, &uhd)) {
-    fprintf(stderr, "Error opening uhd\n");
+  printf("Opening file...\n");
+  if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
+    fprintf(stderr, "Error opening file %s\n", input_file_name);
     exit(-1);
   }
   printf("N_id_2: %d\n", N_id_2);  
-  printf("Set RX rate: %.2f MHz\n", cuhd_set_rx_srate(uhd, flen*2*100) / 1000000);
-  printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
-  printf("Set RX freq: %.2f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
-  cuhd_rx_wait_lo_locked(uhd);
-  cuhd_start_rx_stream(uhd);
   
   printf("Frame length %d samples\n", flen);
   printf("PSS detection threshold: %.2f\n", threshold);
@@ -208,10 +194,14 @@ int main(int argc, char **argv) {
   ssync.fft_size = fft_size;
   
   while(frame_cnt < nof_frames || nof_frames == -1) {
-    n = cuhd_recv(uhd, buffer, flen - peak_offset, 1);
+    n = srslte_filesource_read(&fsrc, buffer, flen - peak_offset);
     if (n < 0) {
-      fprintf(stderr, "Error receiving samples\n");
+      fprintf(stderr, "Error reading samples\n");
       exit(-1);
+    }
+    if (n < flen - peak_offset) {
+      fprintf(stdout, "End of file\n");
+      break;
     }
     
     peak_idx = srslte_pss_synch_find_pss(&pss, buffer, &peak_value);
@@ -308,6 +298,8 @@ int main(int argc, char **argv) {
     if (SRSLTE_VERBOSE_ISINFO()) {
       printf("\n");
     }
+
+    usleep(10000);
   
 #ifndef DISABLE_GRAPHICS
     if (!disable_plots)
@@ -320,7 +312,11 @@ int main(int argc, char **argv) {
   
   srslte_pss_synch_free(&pss);
   free(buffer);
-  cuhd_close(uhd);
+  srslte_filesource_free(&fsrc);
+#ifndef DISABLE_GRAPHICS
+  if (!disable_plots)
+    destroy_plots();
+#endif
 
   printf("Ok\n");
   exit(0);
@@ -395,5 +391,10 @@ void do_plots_sss(float *corr_m0, float *corr_m1) {
 //    srslte_vec_sc_prod_fff(corr_m1,1./m1_value,corr_m1, SRSLTE_SSS_N);
 //  plot_real_setNewData(&psss2, corr_m1, SRSLTE_SSS_N);        
 }
+
+void destroy_plots() {
+  sdrgui_exit();
+}
+
 
 #endif

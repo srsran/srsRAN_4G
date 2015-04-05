@@ -25,7 +25,14 @@
  *
  */
 
-
+/**********************************************************************************************
+ *  File:         agc.h
+ *
+ *  Description:  Automatic gain control
+ *                This module is not currently used
+ *
+ *  Reference:
+ *********************************************************************************************/
 
 #ifndef AGC_
 #define AGC_
@@ -35,10 +42,6 @@
 #include <complex.h>
 
 #include "srslte/config.h"
-
-/* Automatic Gain Control 
- *
- */
 
 #define SRSLTE_AGC_DEFAULT_BW  (5e-2)
 

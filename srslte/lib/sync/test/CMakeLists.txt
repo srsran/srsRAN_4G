@@ -1,15 +1,15 @@
 #
-# Copyright 2012-2013 The libLTE Developers. See the
+# Copyright 2012-2013 The srsLTE Developers. See the
 # COPYRIGHT file at the top-level directory of this distribution.
 #
-# This file is part of the libLTE library.
+# This file is part of the srsLTE library.
 #
-# libLTE is free software: you can redistribute it and/or modify
+# srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# libLTE is distributed in the hope that it will be useful,
+# srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -25,17 +25,27 @@
 
 LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
 
-FIND_PACKAGE(LIBSDRGUI)
+FIND_PACKAGE(SRSGUI)
+
+ADD_EXECUTABLE(pss_file pss_file.c)
+TARGET_LINK_LIBRARIES(pss_file srslte)
+
+IF(SRSGUI_FOUND)
+  include_directories(${SRSGUI_INCLUDE_DIRS})
+  target_link_libraries(pss_file ${SRSGUI_LIBRARIES})
+ELSE(SRSGUI_FOUND)
+  SET_TARGET_PROPERTIES(pss_file PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
+ENDIF(SRSGUI_FOUND)
 
 IF(${CUHD_FIND} GREATER -1)
   ADD_EXECUTABLE(pss_usrp pss_usrp.c)
   TARGET_LINK_LIBRARIES(pss_usrp srslte cuhd)
-  IF(LIBSDRGUI_FOUND)
-    include_directories(${LIBSDRGUI_INCLUDE_DIRS})
-    target_link_libraries(pss_usrp ${LIBSDRGUI_LIBRARIES})
-  ELSE(LIBSDRGUI_FOUND)
+  IF(SRSGUI_FOUND)
+    include_directories(${SRSGUI_INCLUDE_DIRS})
+    target_link_libraries(pss_usrp ${SRSGUI_LIBRARIES})
+  ELSE(SRSGUI_FOUND)
     SET_TARGET_PROPERTIES(pss_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-  ENDIF(LIBSDRGUI_FOUND)
+  ENDIF(SRSGUI_FOUND)
 ENDIF(${CUHD_FIND} GREATER -1)
 
 

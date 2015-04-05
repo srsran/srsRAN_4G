@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         cexptab.h
+ *
+ *  Description:  Utility module for generation of complex exponential tables.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef CEXPTAB_
 #define CEXPTAB_

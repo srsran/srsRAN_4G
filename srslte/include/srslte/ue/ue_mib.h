@@ -25,26 +25,27 @@
  *
  */
 
+/******************************************************************************
+ *  File:         ue_mib.h
+ *
+ *  Description:  This object decodes the MIB from the PBCH of an LTE signal.
+ *
+ *                The function srslte_ue_mib_decode() shall be called multiple
+ *                times, each passing a number of samples multiple of 19200,
+ *                sampled at 1.92 MHz (that is, 10 ms of samples).
+ *
+ *                The function uses the sync_t object to find the PSS sequence and
+ *                decode the PBCH to obtain the MIB.
+ *
+ *                The function returns 0 until the MIB is decoded.
+ *
+ *                See ue_cell_detect.c for an example.
+ *
+ *  Reference:
+ *****************************************************************************/
+
 #ifndef UE_MIB_
 #define UE_MIB_
-
-
-/************************************************************
- * 
- * This object decodes the MIB from the PBCH of an LTE signal. 
- * 
- * The function srslte_ue_mib_decode() shall be called multiple times, 
- * each passing a number of samples multiple of 19200, sampled at 1.92 MHz
- * (that is, 10 ms of samples). 
- * 
- * The function uses the sync_t object to find the PSS sequence and 
- * decode the PBCH to obtain the MIB. 
- * 
- * The function returns 0 until the MIB is decoded. 
- * 
- * See ue_cell_detect.c for an example. 
- * 
- ************************************************************/
 
 #include <stdbool.h>
 

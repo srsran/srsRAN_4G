@@ -1,15 +1,15 @@
 #
-# Copyright 2012-2013 The libLTE Developers. See the
+# Copyright 2012-2013 The srsLTE Developers. See the
 # COPYRIGHT file at the top-level directory of this distribution.
 #
-# This file is part of the libLTE library.
+# This file is part of the srsLTE library.
 #
-# libLTE is free software: you can redistribute it and/or modify
+# srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# libLTE is distributed in the hope that it will be useful,
+# srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -37,27 +37,28 @@ if(NOT MATLAB_MEX_PATH)
     )
 endif()
 
-IF (MATLAB_FOUND)
+if(MATLAB_FOUND)
   message(STATUS "Found MATLAB in ${MATLAB_ROOT}")
-ENDIF(MATLAB_FOUND)
-IF (OCTAVE_FOUND)
+  add_library(srslte_mex SHARED mexutils.c)
+  install(TARGETS srslte_mex DESTINATION ${LIBRARY_DIR})
+  liblte_set_pic(srslte_mex)
+  include_directories(${MATLAB_INCLUDE_DIR})
+endif(MATLAB_FOUND)
+
+if(OCTAVE_FOUND)
   message(STATUS "Found OCTAVE in ${OCTAVE_INCLUDE_PATHS}")
-ENDIF(OCTAVE_FOUND)
+  if (NOT MATLAB_FOUND)
+    add_library(srslte_mex SHARED mexutils.c)
+    install(TARGETS srslte_mex DESTINATION ${LIBRARY_DIR})
+    liblte_set_pic(srslte_mex)
+  endif (NOT MATLAB_FOUND)
+  include_directories(${OCTAVE_INCLUDE_DIR})
+endif(OCTAVE_FOUND)
 
-
-IF (MATLAB_FOUND OR OCTAVE_FOUND)
-  ADD_LIBRARY(srslte_mex SHARED mexutils.c)
-  INSTALL(TARGETS srslte_mex DESTINATION ${LIBRARY_DIR})
-  LIBLTE_SET_PIC(srslte_mex)
-  if (MATLAB_FOUND)
-    include_directories(${MATLAB_INCLUDE_DIR})
-  endif(MATLAB_FOUND)
-  if (OCTAVE_FOUND) 
-    include_directories(${OCTAVE_INCLUDE_DIR})
-  endif (OCTAVE_FOUND)
-
-ELSEIF (MATLAB_FOUND OR OCTAVE_FOUND)
-  message(STATUS "Could NOT find OCTAVE or MATLAB. MEX files won't be compiled")
-ENDIF(MATLAB_FOUND OR OCTAVE_FOUND)
+if(NOT MATLAB_FOUND)
+  if(NOT OCTAVE_FOUND)
+    message(STATUS "Could NOT find OCTAVE or MATLAB. MEX files won't be compiled")
+  endif(NOT OCTAVE_FOUND)
+endif(NOT MATLAB_FOUND)
 
 

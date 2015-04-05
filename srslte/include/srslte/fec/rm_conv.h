@@ -25,6 +25,15 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         rm_conv.h
+ *
+ *  Description:  Rate matching for convolutionally coded transport channels and control
+ *                information.
+ *
+ *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.4.2
+ *********************************************************************************************/
+
 #ifndef RM_CONV_
 #define RM_CONV_
 

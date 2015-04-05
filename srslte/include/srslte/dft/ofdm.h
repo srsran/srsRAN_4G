@@ -29,6 +29,14 @@
 #ifndef LTEFFT_
 #define LTEFFT_
 
+/**********************************************************************************************
+ *  File:         ofdm.h
+ *
+ *  Description:  OFDM modulation object.
+ *                Used in generation of downlink OFDM signals.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6
+ *********************************************************************************************/
 
 #include <strings.h>
 #include <stdlib.h>

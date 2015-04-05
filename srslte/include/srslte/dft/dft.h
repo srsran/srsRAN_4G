@@ -32,18 +32,23 @@
 #include <stdbool.h>
 #include "srslte/config.h"
 
-
-/* Generic DFT module.
- * Supports one-dimensional complex and real transforms. Options are set
- * using the dft_plan_set_x functions.
+/**********************************************************************************************
+ *  File:         dft.h
  *
- * Options (default is false):
- * mirror - Rearranges negative and positive frequency bins. Swaps after
- *            transform for FORWARD, swaps before transform for BACKWARD.
- * db     - Provides output in dB (10*log10(x)).
- * norm   - Normalizes output (by sqrt(len) for complex, len for real).
- * dc     - Handles insertion and removal of null DC carrier internally.
- */
+ *  Description:  Generic DFT module.
+ *                Supports one-dimensional complex and real transforms. Options are set
+ *                using the dft_plan_set_x functions.
+ *
+ *                Options (default is false):
+ *
+ *                mirror - Rearranges negative and positive frequency bins. Swaps after
+ *                         transform for FORWARD, swaps before transform for BACKWARD.
+ *                db     - Provides output in dB (10*log10(x)).
+ *                norm   - Normalizes output (by sqrt(len) for complex, len for real).
+ *                dc     - Handles insertion and removal of null DC carrier internally.
+ *
+ *  Reference:
+ *********************************************************************************************/
 
 typedef enum {
   SRSLTE_DFT_COMPLEX, SRSLTE_REAL

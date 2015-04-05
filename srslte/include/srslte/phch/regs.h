@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         regs.h
+ *
+ *  Description:  Resource element mapping functions.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10
+ *****************************************************************************/
 
 #ifndef _REGS_H_
 #define _REGS_H_

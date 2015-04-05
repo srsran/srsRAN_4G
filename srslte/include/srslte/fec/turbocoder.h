@@ -25,6 +25,17 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         turbocoder.h
+ *
+ *  Description:  Turbo coder.
+ *                Parallel Concatenated Convolutional Code (PCCC) with two 8-state constituent
+ *                encoders and one turbo code internal interleaver. The coding rate of turbo
+ *                encoder is 1/3.
+ *
+ *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.3.2
+ *********************************************************************************************/
+
 #ifndef TURBOCODER_
 #define TURBOCODER_
 

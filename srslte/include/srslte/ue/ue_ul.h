@@ -25,15 +25,19 @@
  *
  */
 
+/******************************************************************************
+ *  File:         ue_ul.h
+ *
+ *  Description:  UE uplink object.
+ *
+ *                This module is a frontend to all the uplink data and control
+ *                channel processing modules.
+ *
+ *  Reference:
+ *****************************************************************************/
+
 #ifndef UEUL_H
 #define UEUL_H
-
-/*******************************************************
- * 
- * This module is a frontend to all the data and control channels processing 
- * modules. 
- ********************************************************/
-
 
 #include "srslte/common/phy_common.h"
 #include "srslte/ch_estimation/chest_dl.h"

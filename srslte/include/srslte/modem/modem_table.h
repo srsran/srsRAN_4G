@@ -25,7 +25,14 @@
  *
  */
 
-
+/******************************************************************************
+ *  File:         modem_table.h
+ *
+ *  Description:  Modem tables used for modulation/demodulation.
+ *                Supports BPSK, QPSK, 16QAM and 64QAM.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 7.1
+ *****************************************************************************/
 
 #ifndef MODEM_TABLE_
 #define MODEM_TABLE_

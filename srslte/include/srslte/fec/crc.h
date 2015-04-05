@@ -25,6 +25,15 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         convcoder.h
+ *
+ *  Description:  Cyclic Redundancy Check
+ *                LTE requires CRC lengths 8, 16, 24A and 24B, each with it's own generator
+ *                polynomial.
+ *
+ *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.1
+ *********************************************************************************************/
 
 #ifndef CRC_
 #define CRC_

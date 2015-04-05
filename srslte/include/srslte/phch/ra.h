@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         ra.h
+ *
+ *  Description:  Structures and utility functions for DL/UL resource allocation.
+ *
+ *  Reference:    3GPP TS 36.213 version 10.0.1 Release 10
+ *****************************************************************************/
+
 #ifndef RB_ALLOC_H_
 #define RB_ALLOC_H_
 
@@ -33,10 +41,6 @@
 
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
-
-/** Structures and utility functions for DL/UL resource
- * allocation.
- */
 
 typedef struct SRSLTE_API {
   srslte_mod_t mod;

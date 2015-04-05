@@ -25,6 +25,14 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         rm_turbo.h
+ *
+ *  Description:  Rate matching for turbo coded transport channels.
+ *
+ *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.4.1
+ *********************************************************************************************/
+
 #ifndef RM_TURBO_
 #define RM_TURBO_
 

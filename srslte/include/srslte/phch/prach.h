@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         prach.h
+ *
+ *  Description:  Physical random access channel.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.7
+ *****************************************************************************/
+
 #ifndef PRACH_
 #define PRACH_
 

@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         netsource.h
+ *
+ *  Description:  Network socket source.
+ *                Supports reading binary data from a TCP or UDP socket.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef NETSOURCE_
 #define NETSOURCE_

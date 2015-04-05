@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         sch.h
+ *
+ *  Description:  Common UL and DL shared channel encode/decode functions.
+ *
+ *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10
+ *****************************************************************************/
 
 #ifndef SCH_
 #define SCH_

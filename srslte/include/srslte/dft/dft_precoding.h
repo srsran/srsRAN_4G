@@ -25,6 +25,14 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         dft_precoding.h
+ *
+ *  Description:  DFT-based transform precoding object.
+ *                Used in generation of uplink SCFDMA signals.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.3.3
+ *********************************************************************************************/
 
 #ifndef DFTPREC_
 #define DFTPREC_

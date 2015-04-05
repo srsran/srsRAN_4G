@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         netsink.h
+ *
+ *  Description:  Network socket sink.
+ *                Supports writing binary data to a TCP or UDP socket.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef NETSINK_
 #define NETSINK_

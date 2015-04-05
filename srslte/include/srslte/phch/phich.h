@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         phich.h
+ *
+ *  Description:  Physical Hybrid ARQ indicator channel.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.9
+ *****************************************************************************/
 
 #ifndef PHICH_
 #define PHICH_
