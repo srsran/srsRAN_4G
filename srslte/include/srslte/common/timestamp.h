@@ -25,19 +25,21 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         timestamp.h
+ *
+ *  Description:  A simple timestamp struct with separate variables for full and frac seconds.
+ *                Separate variables are used to avoid loss of precision in our frac seconds.
+ *                Only positive timestamps are supported.
+ *
+ *  Reference:
+ *********************************************************************************************/
 
 #ifndef TIMESTAMP_
 #define TIMESTAMP_
 
 #include <time.h>
 #include "srslte/config.h"
-
-/*!
- * A simple timestamp struct with separate variables for full and frac seconds.
- *
- * Separate variables are used to avoid loss of precision in our frac seconds.
- * Only positive timestamps are supported.
- */
 
 typedef struct SRSLTE_API{
   time_t full_secs;

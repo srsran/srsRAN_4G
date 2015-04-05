@@ -25,6 +25,22 @@
  *
  */
 
+/******************************************************************************
+ *  File:         ue_cell_search.h
+ *
+ *  Description:  Wrapper for the ue_sync object.
+ *
+ *                This object is a wrapper to the ue_sync object. It receives
+ *                several synchronized frames and obtains the most common cell_id
+ *                and cp length.
+ *
+ *                The I/O stream device sampling frequency must be set to 1.92 MHz
+ *                (SRSLTE_CS_SAMP_FREQ constant) before calling to
+ *                srslte_ue_cellsearch_scan() functions.
+ *
+ *  Reference:
+ *****************************************************************************/
+
 #ifndef UE_CELLSEARCH_
 #define UE_CELLSEARCH_
 
@@ -37,17 +53,6 @@
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/phch/pbch.h"
 #include "srslte/dft/ofdm.h"
-
-/************************************************************
- * 
- * This object is a wrapper to the ue_sync object. It receives
- * several synchronized frames and obtains the most common cell_id 
- * and cp length. 
- * 
- * The I/O stream device sampling frequency must be set to 1.92 MHz (SRSLTE_CS_SAMP_FREQ constant)
- * before calling to srslte_ue_cellsearch_scan() functions. 
- * 
- ************************************************************/
 
 /** 
  * TODO: Check also peak offset 

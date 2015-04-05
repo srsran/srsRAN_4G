@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         pucch.h
+ *
+ *  Description:  Physical uplink control channel.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.4
+ *****************************************************************************/
 
 #ifndef PUCCH_
 #define PUCCH_

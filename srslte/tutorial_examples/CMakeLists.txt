@@ -25,18 +25,18 @@
 #################################################################
 
 
-FIND_PACKAGE(LIBSDRGUI)
+FIND_PACKAGE(SRSGUI)
 
-IF(LIBSDRGUI_FOUND)
-  include_directories(${LIBSDRGUI_INCLUDE_DIRS})
+IF(SRSGUI_FOUND)
+  include_directories(${SRSGUI_INCLUDE_DIRS})
 
   add_executable(pss pss.c)
-  target_link_libraries(pss srslte cuhd ${LIBSDRGUI_LIBRARIES})
+  target_link_libraries(pss srslte cuhd ${SRSGUI_LIBRARIES})
 
   include_directories("../examples")
   add_executable(ue_rx ue_rx.c ../examples/cuhd_utils.c)
-  target_link_libraries(ue_rx srslte cuhd ${LIBSDRGUI_LIBRARIES} pthread)
-ENDIF(LIBSDRGUI_FOUND)
+  target_link_libraries(ue_rx srslte cuhd ${SRSGUI_LIBRARIES} pthread)
+ENDIF(SRSGUI_FOUND)
 
 add_executable(simple_tx simple_tx.c)
 target_link_libraries(simple_tx srslte cuhd)

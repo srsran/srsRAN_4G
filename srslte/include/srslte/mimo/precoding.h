@@ -25,6 +25,15 @@
  *
  */
 
+/******************************************************************************
+ *  File:         precoding.h
+ *
+ *  Description:  MIMO precoding and deprecoding.
+ *                Single antenna and tx diversity supported.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.3.4
+ *****************************************************************************/
+
 #ifndef PRECODING_H_
 #define PRECODING_H_
 

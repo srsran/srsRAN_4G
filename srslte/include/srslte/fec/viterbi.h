@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         viterbi.h
+ *
+ *  Description:  Viterbi decoder for convolutionally encoded data.
+ *                Used for decoding of PBCH and PDCCH (type 37 decoder).
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef VITERBI_
 #define VITERBI_

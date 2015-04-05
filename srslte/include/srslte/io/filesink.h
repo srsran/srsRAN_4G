@@ -25,6 +25,15 @@
  *
  */
 
+/******************************************************************************
+ *  File:         filesink.h
+ *
+ *  Description:  File sink.
+ *                Supports writing floats, complex floats and complex shorts
+ *                to file in text or binary formats.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef FILESINK_
 #define FILESINK_

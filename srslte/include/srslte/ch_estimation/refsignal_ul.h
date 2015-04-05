@@ -25,12 +25,16 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         refsignal_ul.h
+ *
+ *  Description:  Object to manage uplink reference signals for channel estimation.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 5.5
+ *********************************************************************************************/
+
 #ifndef SRSLTE_REFSIGNAL_UL_
 #define SRSLTE_REFSIGNAL_UL_
-
-/* Object to manage Downlink reference signals for channel estimation.
- *
- */
 
 #include "srslte/config.h"
 #include "srslte/phch/pucch.h"

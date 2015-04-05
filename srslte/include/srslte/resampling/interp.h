@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         interp.h
+ *
+ *  Description:  Linear and vector interpolation
+ *
+ *  Reference:
+ *****************************************************************************/
+
 #ifndef INTERP_H
 #define INTERP_H
 

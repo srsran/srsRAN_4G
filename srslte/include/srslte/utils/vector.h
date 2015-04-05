@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         vector.h
+ *
+ *  Description:  Vector functions using SIMD instructions where possible.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef VECTOR_
 #define VECTOR_

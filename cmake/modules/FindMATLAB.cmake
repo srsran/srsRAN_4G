@@ -24,7 +24,7 @@
 # The original file was copied from an Ubuntu Linux install
 # /usr/share/cmake-2.8/Modules/FindMatlab.cmake
 
-set(MATLAB_FOUND 0)
+set(MATLAB_FOUND FALSE)
 if(WIN32)
   # Search for a version of Matlab available, starting from the most modern one to older versions
   foreach(MATVER "7.14" "7.11" "7.10" "7.9" "7.8" "7.7" "7.6" "7.5" "7.4")
@@ -128,25 +128,25 @@ else()
   # Get path to the MEX libraries
   execute_process(
     #COMMAND find "${MATLAB_ROOT}/extern/lib" -name libmex${LIBRARY_EXTENSION} # Peter
-        COMMAND find "${MATLAB_ROOT}/bin" -name libmex${LIBRARY_EXTENSION} # standard
+    COMMAND find "${MATLAB_ROOT}/bin" -name libmex${LIBRARY_EXTENSION} # standard
     COMMAND xargs echo -n
     OUTPUT_VARIABLE MATLAB_MEX_LIBRARY
     )
   execute_process(
     #COMMAND find "${MATLAB_ROOT}/extern/lib" -name libmx${LIBRARY_EXTENSION} # Peter
-        COMMAND find "${MATLAB_ROOT}/bin" -name libmx${LIBRARY_EXTENSION} # Standard
+    COMMAND find "${MATLAB_ROOT}/bin" -name libmx${LIBRARY_EXTENSION} # Standard
     COMMAND xargs echo -n
     OUTPUT_VARIABLE MATLAB_MX_LIBRARY
     )
   execute_process(
     #COMMAND find "${MATLAB_ROOT}/extern/lib" -name libmat${LIBRARY_EXTENSION} # Peter
-        COMMAND find "${MATLAB_ROOT}/bin" -name libmat${LIBRARY_EXTENSION} # Standard
+    COMMAND find "${MATLAB_ROOT}/bin" -name libmat${LIBRARY_EXTENSION} # Standard
     COMMAND xargs echo -n
     OUTPUT_VARIABLE MATLAB_MAT_LIBRARY
     )
   execute_process(
     #COMMAND find "${MATLAB_ROOT}/extern/lib" -name libeng${LIBRARY_EXTENSION} # Peter
-        COMMAND find "${MATLAB_ROOT}/bin" -name libeng${LIBRARY_EXTENSION} # Standard
+    COMMAND find "${MATLAB_ROOT}/bin" -name libeng${LIBRARY_EXTENSION} # Standard
     COMMAND xargs echo -n
     OUTPUT_VARIABLE MATLAB_ENG_LIBRARY
     )
@@ -185,7 +185,7 @@ set(MATLAB_LIBRARIES
 )
 
 if(MATLAB_INCLUDE_DIR AND MATLAB_LIBRARIES)
-  set(MATLAB_FOUND 1)
+  set(MATLAB_FOUND TRUE)
 endif()
 
 # 32-bit or 64-bit mex

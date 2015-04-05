@@ -25,6 +25,13 @@
  *
  */
 
+/**********************************************************************************************
+ *  File:         phy_common.h
+ *
+ *  Description:  Common parameters and lookup functions for PHY
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10
+ *********************************************************************************************/
 
 #ifndef _LTEBASE_
 #define _LTEBASE_

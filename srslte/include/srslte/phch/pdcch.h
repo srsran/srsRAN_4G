@@ -25,6 +25,14 @@
  *
  */
 
+/******************************************************************************
+ *  File:         pdcch.h
+ *
+ *  Description:  Physical downlink control channel.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.8
+ *****************************************************************************/
+
 #ifndef PDCCH_
 #define PDCCH_
 

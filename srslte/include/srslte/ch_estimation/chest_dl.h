@@ -25,7 +25,19 @@
  *
  */
 
-
+/**********************************************************************************************
+ *  File:         chest_dl.h
+ *
+ *  Description:  3GPP LTE Downlink channel estimator and equalizer.
+ *                Estimates the channel in the resource elements transmitting references and
+ *                interpolates for the rest of the resource grid.
+ *                The equalizer uses the channel estimates to produce an estimation of the
+ *                transmitted symbol.
+ *                This object depends on the srslte_refsignal_t object for creating the LTE
+ *                CSR signal.
+ *
+ *  Reference:
+ *********************************************************************************************/
 
 #ifndef CHEST_DL_
 #define CHEST_DL_
@@ -37,15 +49,6 @@
 #include "srslte/resampling/interp.h"
 #include "srslte/ch_estimation/refsignal_dl.h"
 #include "srslte/common/phy_common.h"
-
-/** 3GPP LTE Downlink channel estimator and equalizer. 
- * Estimates the channel in the resource elements transmitting references and interpolates for the rest
- * of the resource grid. 
- * 
- * The equalizer uses the channel estimates to produce an estimation of the transmitted symbol. 
- * 
- * This object depends on the srslte_refsignal_t object for creating the LTE CSR signal.  
-*/
 
 #define SRSLTE_CHEST_MAX_FILTER_FREQ_LEN    10
 #define SRSLTE_CHEST_MAX_FILTER_TIME_LEN    4

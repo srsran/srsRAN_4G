@@ -26,6 +26,13 @@
  */
 
 #include <stdint.h>
+/******************************************************************************
+ *  File:         queue.h
+ *
+ *  Description:  Queue used at interface of PHY/MAC
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef QUEUE_H
 #define QUEUE_H
@@ -85,5 +92,7 @@ private:
 };
 
 }
+
 }
 #endif
+  

@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         binsource.h
+ *
+ *  Description:  Pseudo-random binary source.
+ *
+ *  Reference:
+ *****************************************************************************/
 
 #ifndef BINSOURCE_
 #define BINSOURCE_

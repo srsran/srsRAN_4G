@@ -25,6 +25,13 @@
  *
  */
 
+/******************************************************************************
+ *  File:         pbch.h
+ *
+ *  Description:  Physical broadcast channel.
+ *
+ *  Reference:    3GPP TS 36.211 version 10.0.0 Release 10 Sec. 6.6
+ *****************************************************************************/
 
 #ifndef PBCH_
 #define PBCH_

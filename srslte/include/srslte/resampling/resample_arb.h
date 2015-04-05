@@ -25,6 +25,16 @@
  *
  */
 
+/******************************************************************************
+ *  File:         resample_arb.h
+ *
+ *  Description:  Arbitrary rate resampler using a polyphase filter bank
+ *                implementation.
+ *
+ *  Reference:    Multirate Signal Processing for Communication Systems
+ *                fredric j. harris
+ *****************************************************************************/
+
 #ifndef RESAMPLE_ARB_
 #define RESAMPLE_ARB_
 
