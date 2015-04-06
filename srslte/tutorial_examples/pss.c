@@ -336,7 +336,7 @@ extern cf_t *tmp2;
 #ifndef DISABLE_GRAPHICS
 
 
-#include "libsdrgui/libsdrgui.h"
+#include "srsgui/srsgui.h"
 plot_real_t pssout;
 //plot_complex_t pce; 
 
