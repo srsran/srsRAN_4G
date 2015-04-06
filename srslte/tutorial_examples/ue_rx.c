@@ -56,7 +56,7 @@ cell_search_cfg_t cell_detect_config = {
 //#define STDOUT_COMPACT
 
 #ifndef DISABLE_GRAPHICS
-#include "libsdrgui/libsdrgui.h"
+#include "srsgui/srsgui.h"
 void init_plots();
 pthread_t plot_thread; 
 sem_t plot_sem; 
