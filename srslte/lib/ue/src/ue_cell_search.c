@@ -167,9 +167,9 @@ static void get_cell(srslte_ue_cellsearch_t * q, uint32_t nof_detected_frames, s
   found_cell->peak /= nof_detected_frames;
   
   if (nof_normal > q->mode_ntimes[mode_pos]/2) {
-    found_cell->cp = SRSLTE_SRSLTE_CP_NORM;
+    found_cell->cp = SRSLTE_CP_NORM;
   } else {
-    found_cell->cp = SRSLTE_SRSLTE_CP_EXT; 
+    found_cell->cp = SRSLTE_CP_EXT; 
   }
   found_cell->mode = (float) q->mode_ntimes[mode_pos]/nof_detected_frames;  
   

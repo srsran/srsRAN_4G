@@ -66,7 +66,7 @@ const uint32_t f2_list[SRSLTE_NOF_TC_CB_SIZES] = { 10, 12, 42, 16, 18, 20, 22, 2
     280, 142, 480, 146, 444, 120, 152, 462, 234, 158, 80, 96, 902, 166, 336,
     170, 86, 174, 176, 178, 120, 182, 184, 186, 94, 190, 480 };
 
-int srs_tc_interl_LTE_gen(srs_tc_interl_t *h, uint32_t long_cb) {
+int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
   uint32_t cb_table_idx, f1, f2;
   uint64_t i, j;
 

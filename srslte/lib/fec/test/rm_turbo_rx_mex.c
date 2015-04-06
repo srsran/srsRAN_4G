@@ -41,7 +41,7 @@
 void help()
 {
   mexErrMsgTxt
-    ("[out] = srslte_srslte_rm_turbo_rx(in, trblkin, rv)\n\n");
+    ("[out] = srslte_rm_turbo_rx(in, trblkin, rv)\n\n");
 }
 
 /* the gateway function */

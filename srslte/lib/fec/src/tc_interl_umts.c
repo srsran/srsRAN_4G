@@ -54,7 +54,7 @@ const uint8_t table_v[52] = { 3, 2, 2, 3, 2, 5, 2, 3, 2, 6, 3, 5, 2, 2, 2,
     2, 7, 5, 3, 2, 3, 5, 2, 5, 2, 6, 3, 3, 2, 3, 2, 2, 6, 5, 2, 5, 2, 2, 2, 19,
     5, 2, 3, 2, 3, 2, 6, 3, 7, 7, 6, 3 };
 
-int srs_tc_interl_init(srs_tc_interl_t *h, uint32_t max_long_cb) {
+int srslte_tc_interl_init(srslte_tc_interl_t *h, uint32_t max_long_cb) {
   int ret = -1;
   h->forward = malloc(sizeof(uint32_t) * max_long_cb);
   if (!h->forward) {
@@ -69,22 +69,22 @@ int srs_tc_interl_init(srs_tc_interl_t *h, uint32_t max_long_cb) {
   h->max_long_cb = max_long_cb;
   ret = 0;
   clean_exit: if (ret == -1) {
-    srs_tc_interl_free(h);
+    srslte_tc_interl_free(h);
   }
   return ret;
 }
 
-void srs_tc_interl_free(srs_tc_interl_t *h) {
+void srslte_tc_interl_free(srslte_tc_interl_t *h) {
   if (h->forward) {
     free(h->forward);
   }
   if (h->reverse) {
     free(h->reverse);
   }
-  bzero(h, sizeof(srs_tc_interl_t));
+  bzero(h, sizeof(srslte_tc_interl_t));
 }
 
-int srs_tc_interl_UMTS_gen(srs_tc_interl_t *h, uint32_t long_cb) {
+int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
 
   uint32_t i, j;
   uint32_t res, prim, aux;

@@ -45,7 +45,7 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
@@ -145,7 +145,7 @@ void base_init() {
   }
   
   /* create ifft object */
-  if (srslte_ofdm_rx_init(&ifft, SRSLTE_SRSLTE_CP_NORM, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&ifft, SRSLTE_CP_NORM, cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   N_id_2 = cell.id % 3;
-  sf_n_re = 2 * SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
+  sf_n_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
   sf_n_samples = 2 * SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb));
 
   cell.phich_length = SRSLTE_PHICH_NORM;
@@ -228,9 +228,9 @@ int main(int argc, char **argv) {
 
 #ifdef kk
       if (sf_idx == 0 || sf_idx == 5) {
-        srslte_pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, SRSLTE_SRSLTE_CP_NORM);
+        srslte_pss_put_slot(pss_signal, sf_buffer, cell.nof_prb, SRSLTE_CP_NORM);
         srslte_sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
-            SRSLTE_SRSLTE_CP_NORM);
+            SRSLTE_CP_NORM);
         /* Transform to OFDM symbols */
         srslte_ofdm_rx_sf(&ifft, sf_buffer, output_buffer);
         

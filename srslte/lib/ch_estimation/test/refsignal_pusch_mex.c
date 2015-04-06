@@ -39,7 +39,7 @@
 void help()
 {
   mexErrMsgTxt
-    ("[seq] = srslte_srslte_refsignal_pusch(ueConfig, puschConfig)\n\n");
+    ("[seq] = srslte_refsignal_pusch(ueConfig, puschConfig)\n\n");
 }
 
 extern int indices[2048];
@@ -65,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field NCellID not found in UE config\n");
     return;
   }
-  cell.cp = SRSLTE_SRSLTE_CP_NORM;
+  cell.cp = SRSLTE_CP_NORM;
   cell.nof_ports = 1; 
 
   if (mexutils_read_uint32_struct(UECFG, "NSubframe", &sf_idx)) {

@@ -38,7 +38,7 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   0,            // cell_id
-  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_SRSLTE_PHICH_R_1_6,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   
-  nof_re = 2 * SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
+  nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
   mcs.mod = modulation;
   

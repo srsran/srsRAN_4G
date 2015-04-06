@@ -50,7 +50,7 @@ bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t *cfg) {
 
 
 /* Generates n_cs_cell according to Sec 5.4 of 36.211 */
-int srslte_generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB]) 
+int srslte_generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB]) 
 {
   srslte_sequence_t seq; 
   bzero(&seq, sizeof(srslte_sequence_t));
@@ -71,7 +71,7 @@ int srslte_generate_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLO
 
 
 /* Calculates alpha according to 5.5.2.2.2 of 36.211 */
-float srslte_pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB], 
+float srslte_pucch_get_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB], 
                       srslte_pucch_cfg_t *cfg, 
                       srslte_cp_t cp, bool is_drms,
                       uint32_t ns, uint32_t l, 

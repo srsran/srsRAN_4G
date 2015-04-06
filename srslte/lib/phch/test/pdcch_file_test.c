@@ -42,7 +42,7 @@ srslte_cell_t cell = {
   1,            // cell.cell.nof_ports
   0,            // bw_idx
   0,            // cell.id
-  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
@@ -109,7 +109,7 @@ void parse_args(int argc, char **argv) {
       srslte_verbose++;
       break;
     case 'e':
-      cell.cp = SRSLTE_SRSLTE_CP_EXT;
+      cell.cp = SRSLTE_CP_EXT;
       break;
     default:
       usage(argv[0]);

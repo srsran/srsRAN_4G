@@ -88,9 +88,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cell.nof_prb = mxGetM(INPUT)/SRSLTE_NRE;
   cell.nof_ports = (uint32_t) *((double*) mxGetPr(PORTS)); 
   if ((mxGetN(INPUT)%14) == 0) {
-    cell.cp = SRSLTE_SRSLTE_CP_NORM;    
+    cell.cp = SRSLTE_CP_NORM;    
   } else if ((mxGetN(INPUT)%12)!=0) {
-    cell.cp = SRSLTE_SRSLTE_CP_EXT;
+    cell.cp = SRSLTE_CP_EXT;
   } else {
     mexErrMsgTxt("Invalid number of symbols\n");
     help();
@@ -103,7 +103,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   int nsubframes;
-  if (cell.cp == SRSLTE_SRSLTE_CP_NORM) {
+  if (cell.cp == SRSLTE_CP_NORM) {
     nsubframes = mxGetN(INPUT)/14;
   } else {
     nsubframes = mxGetN(INPUT)/12;

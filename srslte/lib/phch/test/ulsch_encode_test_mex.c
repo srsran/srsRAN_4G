@@ -40,7 +40,7 @@
 void help()
 {
   mexErrMsgTxt
-    ("[cwout] = srslte_srslte_pusch_encode(ue, chs, trblkin, cqi, ri, ack)\n\n");
+    ("[cwout] = srslte_pusch_encode(ue, chs, trblkin, cqi, ri, ack)\n\n");
 }
 
 /* the gateway function */
@@ -66,7 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_cell_t cell;
   cell.nof_prb = 100;
   cell.id=1;
-  cell.cp=SRSLTE_SRSLTE_CP_NORM;
+  cell.cp=SRSLTE_CP_NORM;
   if (srslte_harq_init(&harq_process, cell)) {
     mexErrMsgTxt("Error initiating HARQ\n");
     return;

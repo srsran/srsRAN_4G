@@ -38,7 +38,7 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1000,         // cell_id
-  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
@@ -87,7 +87,7 @@ void parse_args(int argc, char **argv) {
       phich_length = SRSLTE_PHICH_EXT;
       break;
     case 'l':
-      cell.cp = SRSLTE_SRSLTE_CP_EXT;
+      cell.cp = SRSLTE_CP_EXT;
       break;
     case 'v':
       srslte_verbose++;
@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
   max_nseq = SRSLTE_CP_ISNORM(cell.cp)?SRSLTE_PHICH_NORM_NSEQUENCES:SRSLTE_PHICH_EXT_NSEQUENCES;
 
-  nof_re = SRSLTE_SRSLTE_SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
+  nof_re = SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
   /* init memory */
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {

@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
   cell.id = 1; 
   cell.nof_ports = 1; 
   cell.nof_prb = 25; 
-  cell.cp = SRSLTE_SRSLTE_CP_NORM; 
+  cell.cp = SRSLTE_CP_NORM; 
   cell.phich_length = SRSLTE_PHICH_NORM; 
   cell.phich_resources = SRSLTE_PHICH_R_1; 
 #endif

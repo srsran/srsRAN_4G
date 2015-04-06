@@ -80,6 +80,8 @@ typedef struct {
   uint16_t rnti;
   char *input_file_name; 
   uint32_t file_nof_prb;
+  uint32_t file_nof_ports;
+  uint32_t file_cell_id;
   char *uhd_args; 
   float uhd_freq; 
   float uhd_freq_offset; 
@@ -96,6 +98,8 @@ void args_default(prog_args_t *args) {
   args->force_N_id_2 = -1; // Pick the best
   args->input_file_name = NULL;
   args->file_nof_prb = 6; 
+  args->file_nof_ports = 1; 
+  args->file_cell_id = 0; 
   args->uhd_args = "";
   args->uhd_freq = -1.0;
   args->uhd_freq = 8000000.0;
@@ -107,7 +111,7 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agildnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [agpPcildnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
@@ -117,6 +121,8 @@ void usage(prog_args_t *args, char *prog) {
 #endif
   printf("\t-i input_file [Default USRP]\n");
   printf("\t-p nof_prb for input file [Default %d]\n", args->file_nof_prb);
+  printf("\t-P nof_ports for input file [Default %d]\n", args->file_nof_ports);
+  printf("\t-c cell_id for input file [Default %d]\n", args->file_cell_id);
   printf("\t-r RNTI [Default 0x%x]\n",args->rnti);
   printf("\t-l Force N_id_2 [Default best]\n");
 #ifndef DISABLE_GRAPHICS
@@ -135,13 +141,19 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aoglipdnvrfuUsS")) != -1) {
+  while ((opt = getopt(argc, argv, "aoglipPcdnvrfuUsS")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
       break;
     case 'p':
       args->file_nof_prb = atoi(argv[optind]);
+      break;
+    case 'P':
+      args->file_nof_ports = atoi(argv[optind]);
+      break;
+    case 'c':
+      args->file_cell_id = atoi(argv[optind]);
       break;
     case 'a':
       args->uhd_args = argv[optind];
@@ -303,11 +315,11 @@ int main(int argc, char **argv) {
   if (prog_args.input_file_name) {
     state = DECODE_PDSCH; 
     /* preset cell configuration */
-    cell.id = 1; 
-    cell.cp = SRSLTE_SRSLTE_CP_NORM; 
+    cell.id = prog_args.file_cell_id; 
+    cell.cp = SRSLTE_CP_NORM; 
     cell.phich_length = SRSLTE_PHICH_NORM;
     cell.phich_resources = SRSLTE_PHICH_R_1;
-    cell.nof_ports = 1; 
+    cell.nof_ports = prog_args.file_nof_ports; 
     cell.nof_prb = prog_args.file_nof_prb; 
     
     if (srslte_ue_sync_init_file(&ue_sync, prog_args.file_nof_prb, prog_args.input_file_name)) {
@@ -399,8 +411,8 @@ int main(int argc, char **argv) {
             if (prog_args.rnti != SRSLTE_SIRNTI) {
               n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync));
             } else {
-              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
-                                 ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
+              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync), 
+                                              SRSLTE_SIRNTI, ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
@@ -519,9 +531,9 @@ int main(int argc, char **argv) {
 plot_real_t p_sync, pce;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
-float tmp_plot[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
-float tmp_plot2[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
-float tmp_plot3[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_SRSLTE_CP_NORM)];
+float tmp_plot[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+float tmp_plot2[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+float tmp_plot3[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
 
 void *plot_thread_run(void *arg) {
   int i;

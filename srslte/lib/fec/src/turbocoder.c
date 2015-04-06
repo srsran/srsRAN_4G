@@ -39,7 +39,7 @@
 
 int srslte_tcod_init(srslte_tcod_t *h, uint32_t max_long_cb) {
 
-  if (srs_tc_interl_init(&h->interl, max_long_cb)) {
+  if (srslte_tc_interl_init(&h->interl, max_long_cb)) {
     return -1;
   }
   h->max_long_cb = max_long_cb;
@@ -47,7 +47,7 @@ int srslte_tcod_init(srslte_tcod_t *h, uint32_t max_long_cb) {
 }
 
 void srslte_tcod_free(srslte_tcod_t *h) {
-  srs_tc_interl_free(&h->interl);
+  srslte_tc_interl_free(&h->interl);
   h->max_long_cb = 0;
 }
 
@@ -65,7 +65,7 @@ int srslte_tcod_encode(srslte_tcod_t *h, uint8_t *input, uint8_t *output, uint32
     return -1;
   }
 
-  if (srs_tc_interl_LTE_gen(&h->interl, long_cb)) {
+  if (srslte_tc_interl_LTE_gen(&h->interl, long_cb)) {
     fprintf(stderr, "Error initiating TC interleaver\n");
     return -1;
   }

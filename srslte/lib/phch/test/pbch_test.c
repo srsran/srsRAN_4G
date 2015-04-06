@@ -38,7 +38,7 @@ srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
   1,            // cell_id
-  SRSLTE_SRSLTE_CP_NORM,       // cyclic prefix
+  SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
 
   parse_args(argc,argv);
 
-  nof_re = SRSLTE_SLOT_LEN_RE(cell.nof_prb, SRSLTE_SRSLTE_CP_NORM); 
+  nof_re = SRSLTE_SLOT_LEN_RE(cell.nof_prb, SRSLTE_CP_NORM); 
 
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {

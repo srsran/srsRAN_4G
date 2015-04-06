@@ -239,7 +239,7 @@ int srslte_tdec_init(srslte_tdec_t * h, uint32_t max_long_cb)
     goto clean_and_exit;
   }
 
-  if (srs_tc_interl_init(&h->interleaver, h->max_long_cb) < 0) {
+  if (srslte_tc_interl_init(&h->interleaver, h->max_long_cb) < 0) {
     goto clean_and_exit;
   }
 
@@ -270,7 +270,7 @@ void srslte_tdec_free(srslte_tdec_t * h)
 
   srslte_map_gen_free(&h->dec);
 
-  srs_tc_interl_free(&h->interleaver);
+  srslte_tc_interl_free(&h->interleaver);
 
   bzero(h, sizeof(srslte_tdec_t));
 }
@@ -323,7 +323,7 @@ int srslte_tdec_reset(srslte_tdec_t * h, uint32_t long_cb)
     return -1;
   }
   memset(h->w, 0, sizeof(srslte_llr_t) * long_cb);
-  return srs_tc_interl_LTE_gen(&h->interleaver, long_cb);
+  return srslte_tc_interl_LTE_gen(&h->interleaver, long_cb);
 }
 
 void srslte_tdec_decision(srslte_tdec_t * h, uint8_t *output, uint32_t long_cb)
