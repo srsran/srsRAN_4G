@@ -145,7 +145,7 @@ void base_init() {
   }
   
   /* create ifft object */
-  if (srslte_ofdm_rx_init(&ifft, SRSLTE_CP_NORM, cell.nof_prb)) {
+  if (srslte_ofdm_tx_init(&ifft, SRSLTE_CP_NORM, cell.nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
@@ -154,7 +154,7 @@ void base_init() {
 
 void base_free() {
 
-  srslte_ofdm_rx_free(&ifft);
+  srslte_ofdm_tx_free(&ifft);
 
   if (sf_buffer) {
     free(sf_buffer);
@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
         srslte_sss_put_slot(sf_idx ? sss_signal5 : sss_signal0, sf_buffer, cell.nof_prb,
             SRSLTE_CP_NORM);
         /* Transform to OFDM symbols */
-        srslte_ofdm_rx_sf(&ifft, sf_buffer, output_buffer);
+        srslte_ofdm_tx_sf(&ifft, sf_buffer, output_buffer);
         
         float norm_factor = (float) sqrtf(cell.nof_prb)/15;
         srslte_vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));

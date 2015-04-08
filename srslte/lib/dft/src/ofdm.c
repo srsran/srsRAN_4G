@@ -37,7 +37,7 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
-int srslte_ofdm_tx_init_(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb, srslte_dft_dir_t dir) {
+int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb, srslte_dft_dir_t dir) {
   int symbol_sz = srslte_symbol_sz(nof_prb);
 
   if (symbol_sz < 0) {
@@ -84,19 +84,19 @@ void srslte_ofdm_free_(srslte_ofdm_t *q) {
   bzero(q, sizeof(srslte_ofdm_t));
 }
 
-int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
-  return srslte_ofdm_tx_init_(q, cp, nof_prb, SRSLTE_DFT_FORWARD);
+int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
+  return srslte_ofdm_init_(q, cp, nof_prb, SRSLTE_DFT_FORWARD);
 }
 
-void srslte_ofdm_tx_free(srslte_ofdm_t *q) {
+void srslte_ofdm_rx_free(srslte_ofdm_t *q) {
   srslte_ofdm_free_(q);
 }
 
-int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
+int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   uint32_t i;
   int ret;
   
-  ret = srslte_ofdm_tx_init_(q, cp, nof_prb, SRSLTE_DFT_BACKWARD); 
+  ret = srslte_ofdm_init_(q, cp, nof_prb, SRSLTE_DFT_BACKWARD); 
   
   if (ret == SRSLTE_SUCCESS) {
     srslte_dft_plan_set_norm(&q->fft_plan, true);
@@ -139,14 +139,14 @@ int srslte_ofdm_set_freq_shift(srslte_ofdm_t *q, float freq_shift) {
   return SRSLTE_SUCCESS;
 }
 
-void srslte_ofdm_rx_free(srslte_ofdm_t *q) {
+void srslte_ofdm_tx_free(srslte_ofdm_t *q) {
   srslte_ofdm_free_(q);
 }
 
 /* Transforms input samples into output OFDM symbols.
  * Performs FFT on a each symbol and removes CP.
  */
-void srslte_ofdm_tx_slot(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
+void srslte_ofdm_rx_slot(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   uint32_t i;
   for (i=0;i<q->nof_symbols;i++) {
     input += SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM(i, q->symbol_sz):SRSLTE_CP_EXT(q->symbol_sz);
@@ -157,20 +157,20 @@ void srslte_ofdm_tx_slot(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   }
 }
 
-void srslte_ofdm_tx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
+void srslte_ofdm_rx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   uint32_t n; 
   if (q->freq_shift) {
     srslte_vec_prod_ccc(input, q->shift_buffer, input, 2*q->slot_sz);
   }
   for (n=0;n<2;n++) {
-    srslte_ofdm_tx_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
+    srslte_ofdm_rx_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
   }
 }
 
 /* Transforms input OFDM symbols into output samples.
  * Performs FFT on a each symbol and adds CP.
  */
-void srslte_ofdm_rx_slot(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
+void srslte_ofdm_tx_slot(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   uint32_t i, cp_len;
   for (i=0;i<q->nof_symbols;i++) {
     cp_len = SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM(i, q->symbol_sz):SRSLTE_CP_EXT(q->symbol_sz);
@@ -187,10 +187,10 @@ void srslte_ofdm_set_normalize(srslte_ofdm_t *q, bool normalize_enable) {
   srslte_dft_plan_set_norm(&q->fft_plan, normalize_enable);
 }
 
-void srslte_ofdm_rx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
+void srslte_ofdm_tx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   uint32_t n; 
   for (n=0;n<2;n++) {
-    srslte_ofdm_rx_slot(q, &input[n*q->nof_re*q->nof_symbols], &output[n*q->slot_sz]);
+    srslte_ofdm_tx_slot(q, &input[n*q->nof_re*q->nof_symbols], &output[n*q->slot_sz]);
   }
   if (q->freq_shift) {
     srslte_vec_prod_ccc(output, q->shift_buffer, output, 2*q->slot_sz);

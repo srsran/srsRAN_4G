@@ -24,13 +24,16 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
+#include <stdio.h>
 #include <stdlib.h>
 #include "srslte/ue_itf/queue.h"
 
 namespace srslte {
 namespace ue {
-  queue::queue(uint32_t nof_elements, uint32_t element_size)
+  queue::queue(uint32_t nof_elements_, uint32_t element_size)
   {
+    nof_elements = nof_elements_; 
     buffer_of_elements = (queue::element**) malloc(sizeof(queue::element*) * nof_elements);
     for (int i=0;i<nof_elements;i++) {
       buffer_of_elements[i] = (queue::element*) malloc(element_size); 
@@ -39,15 +42,20 @@ namespace ue {
 
   queue::~queue()
   {
+    printf("destroying %d elements\n", nof_elements);
     for (int i=0;i<nof_elements;i++) {
-      free(buffer_of_elements[i]);
+      if (buffer_of_elements[i]) {
+        free(buffer_of_elements[i]);
+      }
     }
-    free(buffer_of_elements);
+    if (buffer_of_elements) {
+      free(buffer_of_elements);      
+    }
   }  
   
   queue::element* queue::get(uint32_t idx)
   {
-  return (queue::element*) buffer_of_elements[idx%nof_elements];
+    return (queue::element*) buffer_of_elements[idx%nof_elements];
   }
   
 } // namespace ue

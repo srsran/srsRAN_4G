@@ -172,7 +172,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -207,7 +207,7 @@ void base_free() {
     free(ce[i]);
   }
   srslte_chest_dl_free(&chest);
-  srslte_ofdm_tx_free(&fft);
+  srslte_ofdm_rx_free(&fft);
 
   srslte_phich_free(&phich);
   srslte_regs_free(&regs);
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
 
   n = srslte_filesource_read(&fsrc, input_buffer, flen);
 
-  srslte_ofdm_tx_sf(&fft, input_buffer, fft_buffer);
+  srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
 
   if (fmatlab) {
     fprintf(fmatlab, "infft=");

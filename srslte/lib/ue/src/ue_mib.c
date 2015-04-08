@@ -62,7 +62,7 @@ int srslte_ue_mib_init(srslte_ue_mib_t * q,
       }
     }
 
-    if (srslte_ofdm_tx_init(&q->fft, cell.cp, cell.nof_prb)) {
+    if (srslte_ofdm_rx_init(&q->fft, cell.cp, cell.nof_prb)) {
       fprintf(stderr, "Error initializing FFT\n");
       goto clean_exit;
     }
@@ -99,7 +99,7 @@ void srslte_ue_mib_free(srslte_ue_mib_t * q)
   srslte_sync_free(&q->sfind);
   srslte_chest_dl_free(&q->chest);
   srslte_pbch_free(&q->pbch);
-  srslte_ofdm_tx_free(&q->fft);
+  srslte_ofdm_rx_free(&q->fft);
     
   bzero(q, sizeof(srslte_ue_mib_t));
     
@@ -119,7 +119,7 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
   cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
 
   /* Run FFT for the slot symbols */
-  srslte_ofdm_tx_sf(&q->fft, input, q->sf_symbols);
+  srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
             
   /* Get channel estimates of sf idx #0 for each port */
   ret = srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, 0);

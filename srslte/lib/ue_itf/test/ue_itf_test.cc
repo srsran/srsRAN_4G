@@ -27,43 +27,66 @@
 
 #include <unistd.h>
 
+#include "srslte/utils/debug.h"
 #include "srslte/ue_itf/phy.h"
 
 void tti_callback();
 void status_change();
 
-srslte::ue::phy phy = srslte::ue::phy(tti_callback, status_change);
-void tti_callback() {
-  printf("called tti callback\n");
+srslte::ue::phy phy;
+
+uint8_t payload[1024]; 
+
+void tti_callback(uint32_t tti) {
+  printf("called tti: %d\n", tti);
+  
+  // This is the MAC implementation
+  if ((phy.tti_to_SFN(tti)%2) == 0 && phy.tti_to_subf(tti) == 5) {
+    srslte::ue::sched_grant grant; 
+    srslte_verbose = SRSLTE_VERBOSE_DEBUG; 
+    if (phy.get_dl_buffer(tti)->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_SIRNTI, SRSLTE_SIRNTI, &grant)) {
+      if (phy.get_dl_buffer(tti)->decode_pdsch(grant, payload)) {
+        printf("Decoded SIB1 ok TBS: %d\n", grant.get_tbs());
+        srslte_vec_fprint_hex(stdout, payload, grant.get_tbs());
+      } else {
+        fprintf(stderr, "Could not decode SIB\n");
+      }    
+    } else {
+      fprintf(stderr, "Error getting DL grant\n");
+    }    
+    exit(0);
+  }
 }
 
-bool status_changed; 
 void status_change() {
   printf("called status change\n");
-  status_changed=true; 
 }
 
 int main(int argc, char *argv[])
 {
+  srslte_cell_t cell; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
-
+  phy.init(tti_callback, status_change);
   sleep(1);
   
+  phy.set_rx_freq(1825000000);
+  phy.set_rx_gain(60.0);
+  
   /* Instruct the PHY to decode BCH */
-  status_changed=false; 
-  phy.dl_bch();
-  while(!status_changed);
-  if (!phy.status_is_bch_decoded(bch_payload)) {
-    printf("Could not decode BCH\n");
+  if (!phy.decode_mib_best(&cell, bch_payload)) {
     exit(-1);
   }
+  srslte_pbch_mib_fprint(stdout, &cell, phy.get_current_tti()/10);
   srslte_vec_fprint_hex(stdout, bch_payload, SRSLTE_BCH_PAYLOAD_LEN);
   
+  // Set the current PHY cell to the detected cell
+  if (!phy.set_cell(cell)) {
+    printf("Error setting cell\n");
+    exit(-1);
+  }
+  
   /* Instruct the PHY to start RX streaming and synchronize */
-  status_changed=false; 
-  phy.start_rxtx();
-  while(!status_changed);
-  if (!phy.status_is_rxtx()) {
+  if (!phy.start_rxtx()) {
     printf("Could not start RX\n");
     exit(-1);
   }

@@ -59,9 +59,11 @@ namespace ue {
       PDCCH_DL_SEARCH_SPS
     } pdcch_dl_search_t; 
 
+    int buffer_id; 
+    
     bool           init_cell(srslte_cell_t cell, params *params_db);
     void           free_cell();
-    bool           recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time);
+    bool           recv_ue_sync(uint32_t current_tti, srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time);
     bool           get_ul_grant(pdcch_ul_search_t mode, uint32_t rnti, sched_grant *grant);
     bool           get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant *grant);
     bool           decode_phich(srslte_phich_alloc_t assignment);

@@ -20,5 +20,8 @@
 #
 
 
-ADD_EXECUTABLE(ue_itf_test ue_itf_test.cc)
-TARGET_LINK_LIBRARIES(ue_itf_test srslte++)
+LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
+IF(${CUHD_FIND} GREATER -1)
+  ADD_EXECUTABLE(ue_itf_test ue_itf_test.cc)
+  TARGET_LINK_LIBRARIES(ue_itf_test srslte++ cuhd)
+ENDIF(${CUHD_FIND} GREATER -1)

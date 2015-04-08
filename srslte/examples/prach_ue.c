@@ -459,7 +459,7 @@ int main(int argc, char **argv) {
     
       if (state != RECV_RAR) {
         /* Run FFT for all subframe data */
-        srslte_ofdm_tx_sf(&ue_dl.fft, sf_buffer, ue_dl.sf_symbols);
+        srslte_ofdm_rx_sf(&ue_dl.fft, sf_buffer, ue_dl.sf_symbols);
 
         /* Get channel estimates for each port */
         srslte_chest_dl_estimate(&ue_dl.chest, ue_dl.sf_symbols, ue_dl.ce, srslte_ue_sync_get_sfidx(&ue_sync));        
@@ -476,7 +476,7 @@ int main(int argc, char **argv) {
                 exit(-1);
               } else if (n == SRSLTE_UE_MIB_FOUND) {       
                 srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
-                srslte_pbch_mib_fprint(stdout, &cell, sfn, cell.id);
+                srslte_pbch_mib_fprint(stdout, &cell, sfn);
                 printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
                 sfn = (sfn + sfn_offset)%1024; 
                 state = SEND_PRACH; 

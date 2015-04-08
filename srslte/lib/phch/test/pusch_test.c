@@ -237,9 +237,9 @@ int main(int argc, char **argv) {
   cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   srslte_ofdm_t fft; 
-  srslte_ofdm_rx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
+  srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
   srslte_ofdm_set_freq_shift(&fft, 0.5);
-  srslte_ofdm_rx_sf(&fft, sf_symbols, scfdma);
+  srslte_ofdm_tx_sf(&fft, sf_symbols, scfdma);
   
   gettimeofday(&t[1], NULL);
   //int r = srslte_pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);

@@ -84,34 +84,33 @@ typedef struct SRSLTE_API {
 } srslte_pbch_t;
 
 SRSLTE_API int srslte_pbch_init(srslte_pbch_t *q,
-                         srslte_cell_t cell);
+                                srslte_cell_t cell);
 
 SRSLTE_API void srslte_pbch_free(srslte_pbch_t *q);
 SRSLTE_API int srslte_pbch_decode(srslte_pbch_t *q, 
-                           cf_t *slot1_symbols, 
-                           cf_t *ce_slot1[SRSLTE_MAX_PORTS], 
-                           float noise_estimate, 
-                           uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
-                           uint32_t *nof_tx_ports,
-                           uint32_t *sfn_offset);
+                                  cf_t *slot1_symbols, 
+                                  cf_t *ce_slot1[SRSLTE_MAX_PORTS], 
+                                  float noise_estimate, 
+                                  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
+                                  uint32_t *nof_tx_ports,
+                                  uint32_t *sfn_offset);
 
 SRSLTE_API int srslte_pbch_encode(srslte_pbch_t *q, 
-                           uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
-                           cf_t *slot1_symbols[SRSLTE_MAX_PORTS]);
+                                  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
+                                  cf_t *slot1_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API void srslte_pbch_decode_reset(srslte_pbch_t *q);
 
 SRSLTE_API void srslte_pbch_mib_unpack(uint8_t *msg, 
-                                srslte_cell_t *cell, 
-                                uint32_t *sfn);
+                                       srslte_cell_t *cell, 
+                                       uint32_t *sfn);
 
 SRSLTE_API void srslte_pbch_mib_pack(srslte_cell_t *cell, 
-                              uint32_t sfn, 
-                              uint8_t *msg);
+                                     uint32_t sfn, 
+                                     uint8_t *msg);
 
 SRSLTE_API void srslte_pbch_mib_fprint(FILE *stream, 
-                                srslte_cell_t *cell, 
-                                uint32_t sfn, 
-                                uint32_t cell_id);
+                                       srslte_cell_t *cell, 
+                                       uint32_t sfn);
 
 #endif // PBCH_

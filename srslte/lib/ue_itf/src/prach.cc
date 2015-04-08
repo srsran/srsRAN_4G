@@ -87,7 +87,7 @@ bool prach::ready_to_send(uint32_t preamble_idx_)
 }
 
 bool prach::is_ready_to_send(uint32_t current_tti) {
-  if (preamble_idx >= 0 && preamble_idx < 64) {
+  if (preamble_idx >= 0 && preamble_idx < 64 && params_db != NULL) {
     uint32_t config_idx = (uint32_t) params_db->get_param(params::PRACH_CONFIG_INDEX); 
     srslte_prach_sfn_t prach_sfn = srslte_prach_get_sfn(config_idx);  
     if (prach_sfn == SRSLTE_PRACH_SFN_EVEN && ((current_tti/10)%2)==0 ||

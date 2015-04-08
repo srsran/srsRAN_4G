@@ -47,6 +47,14 @@ namespace ue {
       return dl_grant.rv_idx;    
     }
   }
+  
+  uint32_t sched_grant::get_tbs() {
+    if (dir == UPLINK) {
+      return ul_grant.mcs.tbs;
+    } else {
+      return dl_grant.mcs.tbs;    
+    }
+  }
 
   void sched_grant::set_rv(uint32_t rv) {
     if (dir == UPLINK) {

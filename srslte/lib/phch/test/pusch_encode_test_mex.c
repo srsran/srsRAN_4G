@@ -195,10 +195,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   srslte_ofdm_t fft; 
-  srslte_ofdm_rx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
+  srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
   srslte_ofdm_set_normalize(&fft, true);
   srslte_ofdm_set_freq_shift(&fft, 0.5);
-  srslte_ofdm_rx_sf(&fft, sf_symbols, scfdma);
+  srslte_ofdm_tx_sf(&fft, sf_symbols, scfdma);
 
   // Matlab toolbox expects further normalization 
   srslte_vec_sc_prod_cfc(scfdma, 1.0/sqrtf(srslte_symbol_sz(cell.nof_prb)), scfdma, SRSLTE_SF_LEN_PRB(cell.nof_prb));

@@ -45,17 +45,20 @@ bool ul_buffer::init_cell(srslte_cell_t cell_, params *params_db) {
   current_tx_nb = 0;
   if (!srslte_ue_ul_init(&ue_ul, cell)) {  
     signal_buffer = (cf_t*) srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-    return signal_buffer?true:false; 
+    cell_initiated = signal_buffer?true:false;
+    return cell_initiated; 
   } else {
     return false; 
   }
 }
 
 void ul_buffer::free_cell() {
-  if (signal_buffer) {
-    free(signal_buffer);
+  if (cell_initiated) {
+    if (signal_buffer) {
+      free(signal_buffer);
+    }
+    srslte_ue_ul_free(&ue_ul);    
   }
-  srslte_ue_ul_free(&ue_ul);
 }
 
 bool ul_buffer::generate_pusch(sched_grant pusch_grant, 

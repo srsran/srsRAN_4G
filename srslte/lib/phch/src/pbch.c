@@ -329,8 +329,8 @@ void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   srslte_bit_pack(sfn >> 2, &msg, 8);
 }
 
-void srslte_pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn, uint32_t cell_id) {
-  printf(" - Cell ID:         %d\n", cell_id);
+void srslte_pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn) {
+  printf(" - Cell ID:         %d\n", cell->id);
   printf(" - Nof ports:       %d\n", cell->nof_ports);
   printf(" - PRB:             %d\n", cell->nof_prb);
   printf(" - PHICH Length:    %s\n",

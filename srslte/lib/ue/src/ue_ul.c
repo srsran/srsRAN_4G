@@ -52,7 +52,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     
     q->cell = cell; 
     
-    if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+    if (srslte_ofdm_tx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
@@ -106,7 +106,7 @@ clean_exit:
 
 void srslte_ue_ul_free(srslte_ue_ul_t *q) {
   if (q) {
-    srslte_ofdm_tx_free(&q->fft);
+    srslte_ofdm_rx_free(&q->fft);
     srslte_pusch_free(&q->pusch);
     for (uint32_t i=0;i<SRSLTE_UE_UL_NOF_HARQ_PROCESSES; i++) {
       srslte_harq_free(&q->harq_process[i]);
@@ -212,7 +212,7 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_
                               q->harq_process[0].ul_alloc.n_prb_tilde, 
                               q->sf_symbols);                
     
-    srslte_ofdm_rx_sf(&q->fft, q->sf_symbols, output_signal);
+    srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
     //srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));      
     

@@ -50,6 +50,7 @@ namespace ue {
     bool     is_uplink();
     bool     is_downlink();
     void*    get_grant_ptr();
+    uint32_t get_tbs(); 
   protected: 
     union {
       srslte_ra_pusch_t ul_grant;

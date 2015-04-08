@@ -54,7 +54,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
     q->pkt_errors = 0;
     q->pkts_total = 0;
     
-    if (srslte_ofdm_tx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+    if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
@@ -114,7 +114,7 @@ clean_exit:
 
 void srslte_ue_dl_free(srslte_ue_dl_t *q) {
   if (q) {
-    srslte_ofdm_tx_free(&q->fft);
+    srslte_ofdm_rx_free(&q->fft);
     srslte_chest_dl_free(&q->chest);
     srslte_regs_free(&q->regs);
     srslte_pcfich_free(&q->pcfich);
@@ -176,7 +176,7 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
   if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Run FFT for all subframe data */
-    srslte_ofdm_tx_sf(&q->fft, input, q->sf_symbols);
+    srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
 
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);

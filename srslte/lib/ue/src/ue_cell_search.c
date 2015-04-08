@@ -258,13 +258,6 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, uint32_t N_id_2
               nof_detected_frames                       < 4)                  &&
               nof_scanned_frames                       < q->nof_frames_to_scan);
     
-    /*
-    srslte_vec_save_file("sss_corr",tmp_sss_corr, nof_detected_frames*sizeof(float)*31);
-    srslte_vec_save_file("track_corr",tmp_pss_corr, nof_detected_frames*sizeof(float)*32);
-    srslte_vec_save_file("find_corr",q->ue_sync.sfind.pss.conv_output_avg, 
-                  sizeof(float)*(9600+127));
-    */
-    
     /* In either case, check if the mean PSR is above the minimum threshold */
     if (nof_detected_frames > 0) {
       ret = 1;      // A cell has been found.  

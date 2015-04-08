@@ -43,7 +43,7 @@ namespace ue {
     bool           is_ready_to_send(uint32_t current_tti);
     bool           send(void *radio_handler, srslte_timestamp_t rx_time);
   private: 
-    params        *params_db; 
+    params        *params_db     = NULL; 
     int            preamble_idx;  
     bool           initiated     = false;   
     uint32_t       len; 

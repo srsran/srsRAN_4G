@@ -157,7 +157,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }
@@ -193,7 +193,7 @@ void base_free() {
     free(ce[i]);
   }
   srslte_chest_dl_free(&chest);
-  srslte_ofdm_tx_free(&fft);
+  srslte_ofdm_rx_free(&fft);
 
   srslte_pdcch_free(&pdcch);
   srslte_regs_free(&regs);
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
 
     INFO("Reading %d samples sub-frame %d\n", flen, frame_cnt);
 
-    srslte_ofdm_tx_sf(&fft, input_buffer, fft_buffer);
+    srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
 
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);

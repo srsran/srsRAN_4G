@@ -74,7 +74,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
     mexErrMsgTxt("Error initializing FFT\n");
     return;
   }
@@ -102,7 +102,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
-  srslte_ofdm_tx_sf(&fft, input_signal, input_fft);
+  srslte_ofdm_rx_sf(&fft, input_signal, input_fft);
 
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray; 
@@ -143,7 +143,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   srslte_chest_dl_free(&chest);
-  srslte_ofdm_tx_free(&fft);
+  srslte_ofdm_rx_free(&fft);
   srslte_pcfich_free(&pcfich);
   srslte_regs_free(&regs);
   

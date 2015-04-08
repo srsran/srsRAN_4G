@@ -42,8 +42,7 @@ namespace ue {
 
       CELLSEARCH_TIMEOUT_PSS_NFRAMES, 
       CELLSEARCH_TIMEOUT_MIB_NFRAMES, 
-      CELLSEARCH_FORCE_N_ID_2, 
-      CELLSEARCH_CORRELATION_THRESHOLD, // integer that will be divided by 10 
+      CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, // integer that will be divided by 10 
 
       PUSCH_BETA, 
       

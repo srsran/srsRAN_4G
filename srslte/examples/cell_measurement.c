@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
   /* Initialize subframe counter */
   sf_cnt = 0;
     
-  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initiating FFT\n");
     return -1;
   }
@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
         
         if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
           /* Run FFT for all subframe data */
-          srslte_ofdm_tx_sf(&fft, sf_buffer, sf_symbols);
+          srslte_ofdm_rx_sf(&fft, sf_buffer, sf_symbols);
           
           srslte_chest_dl_estimate(&chest, sf_symbols, ce, srslte_ue_sync_get_sfidx(&ue_sync));
                   

@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
-  if (srslte_ofdm_rx_init(&ifft, cp, nof_prb)) {
+  if (srslte_ofdm_tx_init(&ifft, cp, nof_prb)) {
     fprintf(stderr, "Error creating iFFT object\n");
     exit(-1);
   }
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 
       /* Transform to OFDM symbols */
       memset(fft_buffer, 0, sizeof(cf_t) * FLEN);
-      srslte_ofdm_rx_slot(&ifft, buffer, &fft_buffer[offset]);
+      srslte_ofdm_tx_slot(&ifft, buffer, &fft_buffer[offset]);
       
       if (srslte_sync_find(&sync, fft_buffer, 0, &find_idx) < 0) {
         fprintf(stderr, "Error running srslte_sync_find\n");
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
   free(buffer);
 
   srslte_sync_free(&sync);
-  srslte_ofdm_rx_free(&ifft);
+  srslte_ofdm_tx_free(&ifft);
 
   printf("Ok\n");
   exit(0);

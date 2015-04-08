@@ -81,7 +81,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (srslte_ofdm_tx_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return;
   }
@@ -91,7 +91,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  srslte_ofdm_tx_sf(&fft, input_symbols, input_fft);
+  srslte_ofdm_rx_sf(&fft, input_symbols, input_fft);
   
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray; 
@@ -148,7 +148,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   srslte_chest_dl_free(&chest);
-  srslte_ofdm_tx_free(&fft);
+  srslte_ofdm_rx_free(&fft);
   srslte_pbch_free(&pbch);
 
   for (i=0;i<cell.nof_ports;i++) {

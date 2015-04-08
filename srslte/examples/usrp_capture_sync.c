@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
             }
           }
           if (decoded_mib && srslte_ue_sync_get_sfidx(&ue_sync) == 9 && sfn == 1023) {
-            srslte_pbch_mib_fprint(stdout, &cell, sfn, cell.id);
+            srslte_pbch_mib_fprint(stdout, &cell, sfn);
             printf("Decoded MIB. SFN: %d\n", sfn);
             state = SAVE_FILE;                             
           }

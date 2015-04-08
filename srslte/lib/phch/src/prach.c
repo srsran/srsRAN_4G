@@ -242,7 +242,7 @@ int srslte_prach_gen_seqs(srslte_prach_t *p)
       }else{
         u = prach_zc_roots[(p->rsi + p->N_roots)%838];
       }
-      printf("Seq#%d, u: %3d (rsi: %d, n_roots: %d\n", i, u, p->rsi, p->N_roots);
+
       for(int j=0;j<p->N_zc;j++){
         double phase = -M_PI*u*j*(j+1)/p->N_zc;
         root[j] = cexp(phase*I);

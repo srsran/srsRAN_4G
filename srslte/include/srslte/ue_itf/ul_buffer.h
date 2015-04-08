@@ -41,6 +41,7 @@ namespace ue {
    * for transmission. The MAC must call generate_pusch() to set the packet ready for transmission
    */
   class SRSLTE_API ul_buffer : public queue::element {
+
   public: 
     bool     init_cell(srslte_cell_t cell, params *params_db);
     void     free_cell();
@@ -49,11 +50,13 @@ namespace ue {
     bool     generate_pusch(sched_grant pusch_grant, uint8_t *payload, srslte_uci_data_t uci_data);    
     bool     generate_pucch(srslte_uci_data_t uci_data);
     bool     send_packet(void *radio_handler, srslte_timestamp_t rx_time);
+
   private: 
-    params       *params_db; 
+    params        *params_db; 
     srslte_cell_t  cell; 
     srslte_ue_ul_t ue_ul; 
     bool           signal_generated; 
+    bool           cell_initiated; 
     cf_t*          signal_buffer;
     uint32_t       tti; 
     uint32_t       current_tx_nb; 
