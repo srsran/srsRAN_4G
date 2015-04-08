@@ -42,7 +42,7 @@
 static bool keep_running = true;
 char *output_file_name = NULL;
 char *uhd_args="";
-float uhd_gain=40.0, uhd_freq=-1.0;
+float uhd_gain=60.0, uhd_freq=-1.0;
 int nof_prb = 6;
 int nof_subframes = -1;
 int N_id_2 = -1; 
@@ -57,7 +57,7 @@ void usage(char *prog) {
   printf("\t-g UHD Gain [Default %.2f dB]\n", uhd_gain);
   printf("\t-p nof_prb [Default %d]\n", nof_prb);
   printf("\t-n nof_subframes [Default %d]\n", nof_subframes);
-  printf("\t-v srslte_verbose\n");
+  printf("\t-v verbose\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -104,25 +104,18 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t
   return cuhd_recv(h, data, nsamples, 1);
 }
 
-enum receiver_state { DECODE_MIB, SAVE_FILE} state; 
-
 int main(int argc, char **argv) {
   cf_t *buffer; 
-  int subframe_count, n;
+  int n;
   void *uhd;
   srslte_filesink_t sink;
-  srslte_ue_mib_t ue_mib; 
   srslte_ue_sync_t ue_sync; 
   srslte_cell_t cell; 
-  enum receiver_state state; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
 
   signal(SIGINT, int_handler);
 
   parse_args(argc, argv);
   
-  subframe_count = 0;
-
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
   printf("Opening UHD device...\n");
@@ -145,17 +138,12 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
-  if (srslte_ue_mib_init(&ue_mib, cell)) {
-    fprintf(stderr, "Error initaiting UE MIB decoder\n");
-    exit(-1);
-  }    
-  state = DECODE_MIB; 
-  bool decoded_mib = false; 
-  uint32_t sfn, sfn_offset; 
-  
-  printf("Waiting for SFN=0\n");
+ 
+  uint32_t subframe_count = 0;
+  bool start_capture = false; 
+  bool stop_capture = false; 
   while((subframe_count < nof_subframes || nof_subframes == -1)
-        && keep_running)
+        && !stop_capture)
   {
     n = srslte_ue_sync_get_buffer(&ue_sync, &buffer);
     if (n < 0) {
@@ -163,39 +151,20 @@ int main(int argc, char **argv) {
       exit(-1);
     }
     if (n == 1) {
-      switch (state) {
-        case DECODE_MIB:
-          if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
-            srslte_pbch_decode_reset(&ue_mib.pbch);
-            n = srslte_ue_mib_decode(&ue_mib, buffer, bch_payload, NULL, &sfn_offset);
-            if (n < 0) {
-              fprintf(stderr, "Error decoding UE MIB\n");
-              exit(-1);
-            } else if (n == SRSLTE_UE_MIB_FOUND) {             
-              srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
-              sfn = (sfn + sfn_offset)%1024;   
-              decoded_mib = true; 
-            }
-          }
-          if (decoded_mib && srslte_ue_sync_get_sfidx(&ue_sync) == 9 && sfn == 1023) {
-            srslte_pbch_mib_fprint(stdout, &cell, sfn, cell.id);
-            printf("Decoded MIB. SFN: %d\n", sfn);
-            state = SAVE_FILE;                             
-          }
-          break;
-        case SAVE_FILE:
-          printf("Writing to file %4d subframes...\r", subframe_count);
-          srslte_filesink_write(&sink, buffer, SRSLTE_SF_LEN_PRB(nof_prb));
-          subframe_count++;              
-          break;
+      if (!start_capture) {
+        if (srslte_ue_sync_get_sfidx(&ue_sync) == 9) {
+          start_capture = true; 
+        }        
+      } else {
+        printf("Writing to file %6d subframes...\r", subframe_count);
+        srslte_filesink_write(&sink, buffer, SRSLTE_SF_LEN_PRB(nof_prb));
+        subframe_count++;                              
+      }      
+    }
+    if (!keep_running) {
+      if (!start_capture || (start_capture && srslte_ue_sync_get_sfidx(&ue_sync) == 9)) {
+        stop_capture = true; 
       }
-      if (srslte_ue_sync_get_sfidx(&ue_sync) == 9) {
-        sfn++; 
-        if (sfn == 1024) {
-          sfn = 0; 
-        } 
-      }
-
     }
   }
   
