@@ -41,6 +41,10 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
+#define PBCH_RE_CP_NORM    240
+#define PBCH_RE_CP_EXT     216
+
+
 const uint8_t srslte_crc_mask[4][16] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, 
@@ -137,8 +141,16 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
     ret = SRSLTE_ERROR;
 
     bzero(q, sizeof(srslte_pbch_t));
+    
+    if (cell.nof_ports == 0) {
+      q->search_all_ports = true; 
+      cell.nof_ports = SRSLTE_MAX_PORTS; 
+    } else {
+      q->search_all_ports = false; 
+    }
+    
     q->cell = cell;
-    q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_SRSLTE_CP_NORM : PBCH_RE_SRSLTE_CP_EXT;
+    q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_CP_NORM : PBCH_RE_CP_EXT;
     
     if (srslte_precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
       fprintf(stderr, "Error initializing precoding\n");
@@ -326,32 +338,6 @@ void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   srslte_bit_pack(sfn >> 2, &msg, 8);
 }
 
-void srslte_pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn, uint32_t cell_id) {
-  printf(" - Cell ID:         %d\n", cell_id);
-  printf(" - Nof ports:       %d\n", cell->nof_ports);
-  printf(" - PRB:             %d\n", cell->nof_prb);
-  printf(" - PHICH Length:    %s\n",
-         cell->phich_length == SRSLTE_PHICH_EXT ? "Extended" : "Normal");
-  printf(" - PHICH Resources: ");
-  switch (cell->phich_resources) {
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
-    printf("1/6");
-    break;
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
-    printf("1/2");
-    break;
-  case SRSLTE_PHICH_R_1:
-    printf("1");
-    break;
-  case SRSLTE_PHICH_R_2:
-    printf("2");
-    break;
-  }
-  printf("\n");
-  printf(" - SFN:             %d\n", sfn);
-}
-
-
 void srslte_pbch_decode_reset(srslte_pbch_t *q) {
   q->frame_idx = 0;
 }
@@ -359,9 +345,8 @@ void srslte_pbch_decode_reset(srslte_pbch_t *q) {
 void srslte_crc_set_mask(uint8_t *data, int nof_ports) {
   int i;
   for (i = 0; i < 16; i++) {
-    data[BCH_PAYLOAD_LEN + i] = (data[BCH_PAYLOAD_LEN + i] + srslte_crc_mask[nof_ports - 1][i]) % 2;
+    data[SRSLTE_BCH_PAYLOAD_LEN + i] = (data[SRSLTE_BCH_PAYLOAD_LEN + i] + srslte_crc_mask[nof_ports - 1][i]) % 2;
   }
-
 }
 
 /* Checks CRC after applying the mask for the given number of ports.
@@ -371,13 +356,13 @@ void srslte_crc_set_mask(uint8_t *data, int nof_ports) {
  * Returns 0 if the data is correct, -1 otherwise
  */
 uint32_t srslte_pbch_crc_check(srslte_pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
-  uint8_t data[BCH_PAYLOADCRC_LEN];
-  memcpy(data, bits, BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
+  uint8_t data[SRSLTE_BCH_PAYLOADCRC_LEN];
+  memcpy(data, bits, SRSLTE_BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
   srslte_crc_set_mask(data, nof_ports);
-  int ret = srslte_crc_checksum(&q->crc, data, BCH_PAYLOADCRC_LEN);
+  int ret = srslte_crc_checksum(&q->crc, data, SRSLTE_BCH_PAYLOADCRC_LEN);
   if (ret == 0) {
     uint32_t chkzeros=0;
-    for (int i=0;i<BCH_PAYLOAD_LEN;i++) {
+    for (int i=0;i<SRSLTE_BCH_PAYLOAD_LEN;i++) {
       chkzeros += data[i];
     }
     if (chkzeros) {
@@ -411,10 +396,10 @@ int decode_frame(srslte_pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
   }
 
   /* unrate matching */
-  srslte_rm_conv_rx(q->temp, 4 * nof_bits, q->rm_f, BCH_ENCODED_LEN);
+  srslte_rm_conv_rx(q->temp, 4 * nof_bits, q->rm_f, SRSLTE_BCH_ENCODED_LEN);
   
   /* decode */
-  srslte_viterbi_decode_f(&q->decoder, q->rm_f, q->data, BCH_PAYLOADCRC_LEN);
+  srslte_viterbi_decode_f(&q->decoder, q->rm_f, q->data, SRSLTE_BCH_PAYLOADCRC_LEN);
 
  if (!srslte_pbch_crc_check(q, q->data, nof_ports)) {
     return 1;
@@ -432,7 +417,7 @@ int decode_frame(srslte_pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
 int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS], float noise_estimate, 
-                 uint8_t bch_payload[BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
+                 uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
 {
   uint32_t src, dst, nb;
   uint32_t nant;
@@ -478,7 +463,12 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
     ret = 0;
 
     /* Try decoding for 1 to cell.nof_ports antennas */
-    for (nant = 1; nant <= q->cell.nof_ports && !ret; nant++) {
+    if (q->search_all_ports) {
+      nant = 1; 
+    } else {
+      nant = q->cell.nof_ports; 
+    }
+    do {
       if (nant != 3) {
         DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
 
@@ -517,15 +507,16 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
                   *nof_tx_ports = nant; 
                 }
                 if (bch_payload) {
-                  memcpy(bch_payload, q->data, sizeof(uint8_t) * BCH_PAYLOAD_LEN);      
+                  memcpy(bch_payload, q->data, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);      
                 }
               }
             }
           }
         }
       }
-    }
-
+      nant++;
+    } while(nant <= q->cell.nof_ports && !ret); 
+    
     /* If not found, make room for the next packet of radio frame symbols */
     if (q->frame_idx == 4) {
       memmove(q->llr, &q->llr[nof_bits], nof_bits * 3 * sizeof(float));
@@ -537,7 +528,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS]) {
+int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS]) {
   int i;
   int nof_bits;
   cf_t *x[SRSLTE_MAX_LAYERS];
@@ -560,15 +551,15 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], c
     memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
     
     if (q->frame_idx == 0) {
-      memcpy(q->data, bch_payload, sizeof(uint8_t) * BCH_PAYLOAD_LEN);
+      memcpy(q->data, bch_payload, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);
 
       /* encode & modulate */
-      srslte_crc_attach(&q->crc, q->data, BCH_PAYLOAD_LEN);
+      srslte_crc_attach(&q->crc, q->data, SRSLTE_BCH_PAYLOAD_LEN);
       srslte_crc_set_mask(q->data, q->cell.nof_ports);
       
-      srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, BCH_PAYLOADCRC_LEN);
+      srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, SRSLTE_BCH_PAYLOADCRC_LEN);
 
-      srslte_rm_conv_tx(q->data_enc, BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
+      srslte_rm_conv_tx(q->data_enc, SRSLTE_BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
     }
 
     srslte_scrambling_b_offset(&q->seq, &q->rm_b[q->frame_idx * nof_bits],

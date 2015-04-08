@@ -47,7 +47,7 @@ srslte_cell_t cell = {
 
 int nof_frames = 1; 
 
-uint8_t bch_payload_file[BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint8_t bch_payload_file[SRSLTE_BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 #define FLEN  (10*SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb)))
 
@@ -171,7 +171,7 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int n;
   uint32_t nof_tx_ports, sfn_offset; 
   cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
@@ -231,8 +231,8 @@ int main(int argc, char **argv) {
       exit(-1);
     } else {
       printf("MIB decoded OK. Nof ports: %d. SFN offset: %d Payload: ", nof_tx_ports, sfn_offset);    
-      srslte_vec_fprint_hex(stdout, bch_payload, BCH_PAYLOAD_LEN);
-      if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, BCH_PAYLOAD_LEN)) {
+      srslte_vec_fprint_hex(stdout, bch_payload, SRSLTE_BCH_PAYLOAD_LEN);
+      if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, SRSLTE_BCH_PAYLOAD_LEN)) {
         printf("This is the signal.1.92M.dat file\n");
         exit(0);
       } else {

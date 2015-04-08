@@ -182,7 +182,8 @@ enum band_geographical_area {
 SRSLTE_API bool srslte_cell_isvalid(srslte_cell_t *cell);
 
 SRSLTE_API void srslte_cell_fprint(FILE *stream, 
-                                   srslte_cell_t *cell); 
+                                   srslte_cell_t *cell, 
+                                   uint32_t sfn);
 
 SRSLTE_API bool srslte_cellid_isvalid(uint32_t cell_id);
 

@@ -75,8 +75,31 @@ bool srslte_cell_isvalid(srslte_cell_t *cell) {
          srslte_nofprb_isvalid(cell->nof_prb);
 }
 
-void srslte_cell_fprint(FILE *stream, srslte_cell_t *cell) {
-  fprintf(stream, "PCI: %d, CP: %s, PRB: %d, Ports: %d\n", cell->id, srslte_cp_string(cell->cp), cell->nof_prb, cell->nof_ports);
+void srslte_cell_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn) {
+  fprintf(stream, " - Cell ID:         %d\n", cell->id);
+  fprintf(stream, " - Nof ports:       %d\n", cell->nof_ports);
+  fprintf(stream, " - CP:              %s\n", srslte_cp_string(cell->cp));
+  fprintf(stream, " - PRB:             %d\n", cell->nof_prb);
+  fprintf(stream, " - PHICH Length:    %s\n",
+         cell->phich_length == SRSLTE_PHICH_EXT ? "Extended" : "Normal");
+  fprintf(stream, " - PHICH Resources: ");
+  switch (cell->phich_resources) {
+  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
+    fprintf(stream, "1/6");
+    break;
+  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
+    fprintf(stream, "1/2");
+    break;
+  case SRSLTE_PHICH_R_1:
+    fprintf(stream, "1");
+    break;
+  case SRSLTE_PHICH_R_2:
+    fprintf(stream, "2");
+    break;
+  }
+  fprintf(stream, "\n");
+  fprintf(stream, " - SFN:             %d\n", sfn);
+
 }
 
 bool srslte_sfidx_isvalid(uint32_t sf_idx) {

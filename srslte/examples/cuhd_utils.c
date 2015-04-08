@@ -53,7 +53,7 @@ int cuhd_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, srslte_timestam
 int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
   int ret = SRSLTE_ERROR; 
   srslte_ue_mib_sync_t ue_mib; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
 
   if (srslte_ue_mib_sync_init(&ue_mib, cell->id, cell->cp, cuhd_recv_wrapper_cs, uhd)) {
     fprintf(stderr, "Error initiating srslte_ue_mib_sync\n");

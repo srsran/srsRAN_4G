@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
   srslte_ue_mib_t ue_mib; 
   void *uhd; 
   int n; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
   rar_msg_t rar_msg; 
   srslte_ra_pusch_t ra_pusch; 
@@ -476,7 +476,7 @@ int main(int argc, char **argv) {
                 exit(-1);
               } else if (n == SRSLTE_UE_MIB_FOUND) {       
                 srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
-                srslte_pbch_mib_fprint(stdout, &cell, sfn, cell.id);
+                srslte_cell_fprint(stdout, &cell, sfn);
                 printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
                 sfn = (sfn + sfn_offset)%1024; 
                 state = SEND_PRACH; 

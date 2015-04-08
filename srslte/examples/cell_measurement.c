@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
   uint32_t nof_trials = 0; 
   uint32_t sfn = 0; // system frame number
   int n; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   uint32_t sfn_offset; 
   float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
   cf_t *ce[SRSLTE_MAX_PORTS];

@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
 #endif
   uint32_t nof_trials = 0; 
   int n; 
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
   
   parse_args(&prog_args, argc, argv);
@@ -369,6 +369,7 @@ int main(int argc, char **argv) {
   bool decode_pdsch; 
   int pdcch_tx=0; 
           
+  INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     
@@ -389,7 +390,7 @@ int main(int argc, char **argv) {
               exit(-1);
             } else if (n == SRSLTE_UE_MIB_FOUND) {             
               srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
-              srslte_pbch_mib_fprint(stdout, &cell, sfn, cell.id);
+              srslte_cell_fprint(stdout, &cell, sfn);
               printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
               sfn = (sfn + sfn_offset)%1024; 
               state = DECODE_PDSCH; 

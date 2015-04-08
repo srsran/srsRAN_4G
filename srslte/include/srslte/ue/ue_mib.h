@@ -36,7 +36,7 @@
  *
  *                The function uses the sync_t object to find the PSS sequence and
  *                decode the PBCH to obtain the MIB.
- *
+ * 
  *                The function returns 0 until the MIB is decoded.
  *
  *                See ue_cell_detect.c for an example.
@@ -57,7 +57,6 @@
 #include "srslte/dft/ofdm.h"
 
 
-#define SRSLTE_UE_MIB_MAX_PORTS            4
 #define SRSLTE_UE_MIB_NOF_PRB              6
 
 #define SRSLTE_UE_MIB_FOUND                1
@@ -67,13 +66,13 @@ typedef struct SRSLTE_API {
   srslte_sync_t sfind;
  
   cf_t *sf_symbols;
-  cf_t *ce[SRSLTE_UE_MIB_MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
   
   srslte_ofdm_t fft;
   srslte_chest_dl_t chest; 
   srslte_pbch_t pbch;
   
-  uint8_t bch_payload[BCH_PAYLOAD_LEN];
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   uint32_t nof_tx_ports; 
   uint32_t sfn_offset; 
   
@@ -89,13 +88,15 @@ SRSLTE_API void srslte_ue_mib_reset(srslte_ue_mib_t * q);
 
 SRSLTE_API int srslte_ue_mib_decode(srslte_ue_mib_t * q, 
                                     cf_t *input, 
-                                    uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                                    uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                                     uint32_t *nof_tx_ports, 
                                     uint32_t *sfn_offset); 
 
 
 /* This interface uses ue_mib and ue_sync to first get synchronized subframes 
  * and then decode MIB
+ * 
+ * This object calls the pbch object with nof_ports=0 for blind nof_ports determination 
 */
 typedef struct {
   srslte_ue_mib_t ue_mib; 
@@ -114,7 +115,7 @@ SRSLTE_API void srslte_ue_mib_sync_reset(srslte_ue_mib_sync_t * q);
 
 SRSLTE_API int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q, 
                                          uint32_t max_frames_timeout,
-                                         uint8_t bch_payload[BCH_PAYLOAD_LEN], 
+                                         uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                                          uint32_t *nof_tx_ports, 
                                          uint32_t *sfn_offset); 
 
