@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
     exit(-1);
   }
   // Print MIB 
-  srslte_pbch_mib_fprint(stdout, &cell, phy.get_current_tti()/10);
+  srslte_cell_fprint(stdout, &cell, phy.get_current_tti()/10);
   
   // Set the current PHY cell to the detected cell
   if (!phy.set_cell(cell)) {

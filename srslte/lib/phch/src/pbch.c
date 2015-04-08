@@ -44,7 +44,8 @@
 #define PBCH_RE_CP_NORM    240
 #define PBCH_RE_CP_EXT     216
 
-const uint8_t crc_mask[4][16] = {
+
+const uint8_t srslte_crc_mask[4][16] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, 
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
@@ -140,6 +141,14 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
     ret = SRSLTE_ERROR;
 
     bzero(q, sizeof(srslte_pbch_t));
+    
+    if (cell.nof_ports == 0) {
+      q->search_all_ports = true; 
+      cell.nof_ports = SRSLTE_MAX_PORTS; 
+    } else {
+      q->search_all_ports = false; 
+    }
+    
     q->cell = cell;
     q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_CP_NORM : PBCH_RE_CP_EXT;
     
@@ -329,42 +338,15 @@ void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   srslte_bit_pack(sfn >> 2, &msg, 8);
 }
 
-void srslte_pbch_mib_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn) {
-  printf(" - Cell ID:         %d\n", cell->id);
-  printf(" - Nof ports:       %d\n", cell->nof_ports);
-  printf(" - PRB:             %d\n", cell->nof_prb);
-  printf(" - PHICH Length:    %s\n",
-         cell->phich_length == SRSLTE_PHICH_EXT ? "Extended" : "Normal");
-  printf(" - PHICH Resources: ");
-  switch (cell->phich_resources) {
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
-    printf("1/6");
-    break;
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
-    printf("1/2");
-    break;
-  case SRSLTE_PHICH_R_1:
-    printf("1");
-    break;
-  case SRSLTE_PHICH_R_2:
-    printf("2");
-    break;
-  }
-  printf("\n");
-  printf(" - SFN:             %d\n", sfn);
-}
-
-
 void srslte_pbch_decode_reset(srslte_pbch_t *q) {
   q->frame_idx = 0;
 }
 
-void crc_set_mask(uint8_t *data, int nof_ports) {
+void srslte_crc_set_mask(uint8_t *data, int nof_ports) {
   int i;
   for (i = 0; i < 16; i++) {
-    data[SRSLTE_BCH_PAYLOAD_LEN + i] = (data[SRSLTE_BCH_PAYLOAD_LEN + i] + crc_mask[nof_ports - 1][i]) % 2;
+    data[SRSLTE_BCH_PAYLOAD_LEN + i] = (data[SRSLTE_BCH_PAYLOAD_LEN + i] + srslte_crc_mask[nof_ports - 1][i]) % 2;
   }
-
 }
 
 /* Checks CRC after applying the mask for the given number of ports.
@@ -376,7 +358,7 @@ void crc_set_mask(uint8_t *data, int nof_ports) {
 uint32_t srslte_pbch_crc_check(srslte_pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
   uint8_t data[SRSLTE_BCH_PAYLOADCRC_LEN];
   memcpy(data, bits, SRSLTE_BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
-  crc_set_mask(data, nof_ports);
+  srslte_crc_set_mask(data, nof_ports);
   int ret = srslte_crc_checksum(&q->crc, data, SRSLTE_BCH_PAYLOADCRC_LEN);
   if (ret == 0) {
     uint32_t chkzeros=0;
@@ -481,11 +463,16 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
     ret = 0;
 
     /* Try decoding for 1 to cell.nof_ports antennas */
-    for (nant = 1; nant <= q->cell.nof_ports && !ret; nant++) {
+    if (q->search_all_ports) {
+      nant = 1; 
+    } else {
+      nant = q->cell.nof_ports; 
+    }
+    do {
       if (nant != 3) {
         DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
 
-        /* in conctrol channels, only diversity is supported */
+        /* in control channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
           srslte_predecoding_single(&q->precoding, q->symbols[0], q->ce[0], q->d,
@@ -527,8 +514,9 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
           }
         }
       }
-    }
-
+      nant++;
+    } while(nant <= q->cell.nof_ports && !ret); 
+    
     /* If not found, make room for the next packet of radio frame symbols */
     if (q->frame_idx == 4) {
       memmove(q->llr, &q->llr[nof_bits], nof_bits * 3 * sizeof(float));
@@ -567,12 +555,11 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
 
       /* encode & modulate */
       srslte_crc_attach(&q->crc, q->data, SRSLTE_BCH_PAYLOAD_LEN);
-      crc_set_mask(q->data, q->cell.nof_ports);
+      srslte_crc_set_mask(q->data, q->cell.nof_ports);
       
       srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, SRSLTE_BCH_PAYLOADCRC_LEN);
 
       srslte_rm_conv_tx(q->data_enc, SRSLTE_BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
-
     }
 
     srslte_scrambling_b_offset(&q->seq, &q->rm_b[q->frame_idx * nof_bits],

@@ -37,16 +37,25 @@
 #include "srslte/utils/vector.h"
 
 int srslte_ue_mib_init(srslte_ue_mib_t * q, 
-                srslte_cell_t cell) 
+                       srslte_cell_t cell) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && 
-      cell.nof_ports <= SRSLTE_UE_MIB_MAX_PORTS) 
+      cell.nof_ports <= SRSLTE_MAX_PORTS) 
   {
 
     ret = SRSLTE_ERROR;    
     bzero(q, sizeof(srslte_ue_mib_t));
+    
+    if (srslte_pbch_init(&q->pbch, cell)) {
+      fprintf(stderr, "Error initiating PBCH\n");
+      goto clean_exit;
+    }
+
+    if (cell.nof_ports == 0) {
+      cell.nof_ports = SRSLTE_MAX_PORTS; 
+    }
     
     q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     if (!q->sf_symbols) {
@@ -70,10 +79,6 @@ int srslte_ue_mib_init(srslte_ue_mib_t * q,
       fprintf(stderr, "Error initializing reference signal\n");
       goto clean_exit;
     }
-    if (srslte_pbch_init(&q->pbch, cell)) {
-      fprintf(stderr, "Error initiating PBCH\n");
-      goto clean_exit;
-    }
     srslte_ue_mib_reset(q);
     
     ret = SRSLTE_SUCCESS;
@@ -91,7 +96,7 @@ void srslte_ue_mib_free(srslte_ue_mib_t * q)
   if (q->sf_symbols) {
     free(q->sf_symbols);
   }
-  for (int i=0;i<SRSLTE_UE_MIB_MAX_PORTS;i++) {
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     if (q->ce[i]) {
       free(q->ce[i]);
     }
@@ -163,7 +168,8 @@ int srslte_ue_mib_sync_init(srslte_ue_mib_sync_t *q,
                      void *stream_handler) 
 {
   srslte_cell_t cell; 
-  cell.nof_ports = SRSLTE_UE_MIB_MAX_PORTS; 
+  // If the ports are set to 0, ue_mib goes through 1, 2 and 4 ports to blindly detect nof_ports
+  cell.nof_ports = 0;  
   cell.id = cell_id; 
   cell.cp = cp; 
   cell.nof_prb = SRSLTE_UE_MIB_NOF_PRB; 

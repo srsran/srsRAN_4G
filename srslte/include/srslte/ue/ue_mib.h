@@ -36,7 +36,7 @@
  *
  *                The function uses the sync_t object to find the PSS sequence and
  *                decode the PBCH to obtain the MIB.
- *
+ * 
  *                The function returns 0 until the MIB is decoded.
  *
  *                See ue_cell_detect.c for an example.
@@ -57,7 +57,6 @@
 #include "srslte/dft/ofdm.h"
 
 
-#define SRSLTE_UE_MIB_MAX_PORTS            4
 #define SRSLTE_UE_MIB_NOF_PRB              6
 
 #define SRSLTE_UE_MIB_FOUND                1
@@ -67,7 +66,7 @@ typedef struct SRSLTE_API {
   srslte_sync_t sfind;
  
   cf_t *sf_symbols;
-  cf_t *ce[SRSLTE_UE_MIB_MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS];
   
   srslte_ofdm_t fft;
   srslte_chest_dl_t chest; 
@@ -96,6 +95,8 @@ SRSLTE_API int srslte_ue_mib_decode(srslte_ue_mib_t * q,
 
 /* This interface uses ue_mib and ue_sync to first get synchronized subframes 
  * and then decode MIB
+ * 
+ * This object calls the pbch object with nof_ports=0 for blind nof_ports determination 
 */
 typedef struct {
   srslte_ue_mib_t ue_mib; 

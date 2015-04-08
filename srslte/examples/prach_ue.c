@@ -476,7 +476,7 @@ int main(int argc, char **argv) {
                 exit(-1);
               } else if (n == SRSLTE_UE_MIB_FOUND) {       
                 srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
-                srslte_pbch_mib_fprint(stdout, &cell, sfn);
+                srslte_cell_fprint(stdout, &cell, sfn);
                 printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
                 sfn = (sfn + sfn_offset)%1024; 
                 state = SEND_PRACH; 
