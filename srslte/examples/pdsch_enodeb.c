@@ -51,7 +51,8 @@ char *output_file_name = NULL;
 srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
-  1,            // cell_id
+  0,            // bw idx 
+  0,            // cell_id
   SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
@@ -588,9 +589,6 @@ int main(int argc, char **argv) {
       /* Transform to OFDM symbols */
       srslte_ofdm_rx_sf(&ifft, sf_buffer, output_buffer);
       
-      float norm_factor = (float) cell.nof_prb/15/sqrtf(ra_dl.prb_alloc.slot[0].nof_prb);
-      srslte_vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-      
       /* send to file or usrp */
       if (output_file_name) {
         if (!null_file_sink) {
@@ -599,7 +597,9 @@ int main(int argc, char **argv) {
         usleep(1000);
       } else {
 #ifndef DISABLE_UHD
-        srslte_vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);
+        // FIXME
+        float norm_factor = (float) cell.nof_prb/15/sqrtf(ra_dl.prb_alloc.slot[0].nof_prb);
+        srslte_vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
         cuhd_send(uhd, output_buffer, sf_n_samples, true);
 #endif
       }

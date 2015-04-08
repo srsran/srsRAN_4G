@@ -501,8 +501,12 @@ int main(int argc, char **argv) {
     sf_cnt++;                  
   } // Main loop
   
-  pthread_cancel(plot_thread);
-  pthread_join(plot_thread, NULL);
+  if (!prog_args.disable_plots) {
+    if (!pthread_kill(plot_thread, 0)) {
+      pthread_kill(plot_thread, SIGHUP);
+      pthread_join(plot_thread, NULL);    
+    }
+  }
   srslte_ue_dl_free(&ue_dl);
   srslte_ue_sync_free(&ue_sync);
   

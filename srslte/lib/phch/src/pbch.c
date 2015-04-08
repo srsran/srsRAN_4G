@@ -482,7 +482,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
       if (nant != 3) {
         DEBUG("Trying %d TX antennas with %d frames\n", nant, q->frame_idx);
 
-        /* in conctrol channels, only diversity is supported */
+        /* in control channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
           srslte_predecoding_single(&q->precoding, q->symbols[0], q->ce[0], q->d,
@@ -569,7 +569,6 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[BCH_PAYLOAD_LEN], c
       srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, BCH_PAYLOADCRC_LEN);
 
       srslte_rm_conv_tx(q->data_enc, BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
-
     }
 
     srslte_scrambling_b_offset(&q->seq, &q->rm_b[q->frame_idx * nof_bits],
