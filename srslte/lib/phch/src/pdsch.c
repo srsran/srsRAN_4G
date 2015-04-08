@@ -302,9 +302,8 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
 
 }
 
-/* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while 
+/* Precalculate the PDSCH scramble sequences for a given RNTI. This function takes a while 
  * to execute, so shall be called once the final C-RNTI has been allocated for the session.
- * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
  */
 int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
   uint32_t i;

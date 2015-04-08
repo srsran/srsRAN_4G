@@ -60,11 +60,11 @@ int srslte_sch_init(srslte_sch_t *q) {
   if (q) {    
     bzero(q, sizeof(srslte_sch_t));
     
-    if (srslte_crc_init(&q->srslte_crc_tb, SRSLTE_LTE_CRC24A, 24)) {
+    if (srslte_crc_init(&q->crc_tb, SRSLTE_LTE_CRC24A, 24)) {
       fprintf(stderr, "Error initiating CRC\n");
       goto clean;
     }
-    if (srslte_crc_init(&q->srslte_crc_cb, SRSLTE_LTE_CRC24B, 24)) {
+    if (srslte_crc_init(&q->crc_cb, SRSLTE_LTE_CRC24B, 24)) {
       fprintf(stderr, "Error initiating CRC\n");
       goto clean;
     }
@@ -152,7 +152,7 @@ static int encode_tb(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data, uint8_
     
     if (harq->rv == 0) {
       /* Compute transport block CRC */
-      par = srslte_crc_checksum(&q->srslte_crc_tb, data, harq->mcs.tbs);
+      par = srslte_crc_checksum(&q->crc_tb, data, harq->mcs.tbs);
 
       /* parity bits will be appended later */
       srslte_bit_pack(par, &p_parity, 24);
@@ -213,7 +213,7 @@ static int encode_tb(srslte_sch_t *q, srslte_harq_t *harq, uint8_t *data, uint8_
         }
         /* Attach Codeblock CRC */
         if (harq->cb_segm.C > 1) {
-          srslte_crc_attach(&q->srslte_crc_cb, q->cb_in, rlen);
+          srslte_crc_attach(&q->crc_cb, q->cb_in, rlen);
         }
         /* Set the filler bits to <NULL> */
         for (int j = 0; j < F; j++) {
@@ -325,7 +325,7 @@ static int decode_tb(srslte_sch_t *q, srslte_harq_t *harq, float *e_bits, uint8_
       q->nof_iterations = 0; 
       uint32_t len_crc; 
       uint8_t *cb_in_ptr; 
-      srslte_crc_t *srslte_crc_ptr; 
+      srslte_crc_t *crc_ptr; 
       early_stop = false; 
 
       srslte_tdec_reset(&q->decoder, cb_len);
@@ -337,17 +337,17 @@ static int decode_tb(srslte_sch_t *q, srslte_harq_t *harq, float *e_bits, uint8_
         if (harq->cb_segm.C > 1) {
           len_crc = cb_len; 
           cb_in_ptr = q->cb_in; 
-          srslte_crc_ptr = &q->srslte_crc_cb; 
+          crc_ptr = &q->crc_cb; 
         } else {
           len_crc = harq->mcs.tbs+24; 
           cb_in_ptr = &q->cb_in[F];
-          srslte_crc_ptr = &q->srslte_crc_tb; 
+          crc_ptr = &q->crc_tb; 
         }
 
         srslte_tdec_decision(&q->decoder, q->cb_in, cb_len);
   
         /* Check Codeblock CRC and stop early if incorrect */
-        if (!srslte_crc_checksum(srslte_crc_ptr, cb_in_ptr, len_crc)) {
+        if (!srslte_crc_checksum(crc_ptr, cb_in_ptr, len_crc)) {
           early_stop = true;           
         }
         
@@ -385,7 +385,7 @@ static int decode_tb(srslte_sch_t *q, srslte_harq_t *harq, float *e_bits, uint8_
       INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
 
       // Compute transport block CRC
-      par_rx = srslte_crc_checksum(&q->srslte_crc_tb, data, harq->mcs.tbs);
+      par_rx = srslte_crc_checksum(&q->crc_tb, data, harq->mcs.tbs);
 
       // check parity bits
       par_tx = srslte_bit_unpack(&p_parity, 24);

@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);
     
-    uint16_t srslte_crc_rem = 0;
+    uint16_t crc_rem = 0;
     if (srslte_pdcch_extract_llr(&pdcch, fft_buffer, 
                           ce, srslte_chest_dl_get_noise_estimate(&chest), 
                           frame_cnt %10, cfi)) {
@@ -247,14 +247,14 @@ int main(int argc, char **argv) {
       nof_locations = srslte_pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, frame_cnt %10, cfi, rnti); 
     }
 
-    for (i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
-      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &srslte_crc_rem)) {
+    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
+      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return -1;
       }
     }
     
-    if (srslte_crc_rem == rnti) {
+    if (crc_rem == rnti) {
       srslte_dci_msg_type_t type;
       if (srslte_dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti)) {
         fprintf(stderr, "Can't get DCI message type\n");

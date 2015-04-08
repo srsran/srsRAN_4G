@@ -195,16 +195,16 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error extracting LLRs\n");
       goto quit;
     }
-    uint16_t srslte_crc_rem; 
-    if (srslte_pdcch_decode_msg(&pdcch, &dci_tmp, &dci_locations[i], SRSLTE_DCI_FORMAT1, &srslte_crc_rem)) {
+    uint16_t crc_rem; 
+    if (srslte_pdcch_decode_msg(&pdcch, &dci_tmp, &dci_locations[i], SRSLTE_DCI_FORMAT1, &crc_rem)) {
       fprintf(stderr, "Error decoding DCI message\n");
       goto quit;
     }      
-    if (srslte_crc_rem >= 1234 && srslte_crc_rem < 1234 + nof_dcis) {
-      srslte_crc_rem -= 1234;
-        memcpy(&dci_rx[srslte_crc_rem], &dci_tmp, sizeof(srslte_dci_msg_t));
+    if (crc_rem >= 1234 && crc_rem < 1234 + nof_dcis) {
+      crc_rem -= 1234;
+        memcpy(&dci_rx[crc_rem], &dci_tmp, sizeof(srslte_dci_msg_t));
     } else {
-      printf("Received invalid DCI CRC 0x%x\n", srslte_crc_rem);
+      printf("Received invalid DCI CRC 0x%x\n", crc_rem);
       goto quit;
     }
   }

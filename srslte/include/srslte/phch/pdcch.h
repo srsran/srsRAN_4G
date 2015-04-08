@@ -115,7 +115,7 @@ SRSLTE_API int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
                                        srslte_dci_msg_t *msg, 
                                        srslte_dci_location_t *location,
                                        srslte_dci_format_t format,
-                                       uint16_t *srslte_crc_rem);
+                                       uint16_t *crc_rem);
 
 /* Function for generation of UE-specific search space DCI locations */
 SRSLTE_API uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, 

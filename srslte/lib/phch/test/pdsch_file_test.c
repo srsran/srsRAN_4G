@@ -267,19 +267,19 @@ int main(int argc, char **argv) {
       nof_locations = srslte_pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
     }
     
-    uint16_t srslte_crc_rem = 0;
+    uint16_t crc_rem = 0;
     if (srslte_pdcch_extract_llr(&pdcch, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), sf_idx, cfi)) {
       fprintf(stderr, "Error extracting LLRs\n");
       return -1;
     }
-    for (i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
-      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &srslte_crc_rem)) {
+    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
+      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return -1;
       }
     }
     
-    if (srslte_crc_rem == rnti) {
+    if (crc_rem == rnti) {
       if (srslte_dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, &ra_dl)) {
         fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
         goto goout;

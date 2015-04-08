@@ -66,7 +66,7 @@ void dl_buffer::free_cell()
 bool dl_buffer::recv_ue_sync(uint32_t current_tti, srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time)
 {
   if (signal_buffer) {
-    printf("DL_buffer %d receiving tti %d...\n", buffer_id, current_tti); 
+    INFO("DL Buffer TTI %d: Receiving packet\n", tti);
     cf_t *sf_buffer = NULL;
     tti = current_tti; 
     if (srslte_ue_sync_get_buffer(ue_sync, &sf_buffer) == 1) {
@@ -111,20 +111,31 @@ bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, uint32_t rnti, sched_grant 
 
 }
 
+uint8_t data[1024]; 
+
 bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant *grant)
 {
   if (signal_buffer) {
+    INFO("DL Buffer TTI %d: Getting DL grant\n", tti);
     if (!sf_symbols_and_ce_done) {
+    INFO("DL Buffer TTI %d: Getting DL grant. Calling fft estimate\n", tti);
       if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
         return false; 
       }
       sf_symbols_and_ce_done = true; 
     }
     if (!pdcch_llr_extracted) {
+    INFO("DL Buffer TTI %d: Getting DL grant. extracting LLR\n", tti);
       if (srslte_pdcch_extract_llr(&ue_dl.pdcch, ue_dl.sf_symbols, ue_dl.ce, 0, tti%10, cfi)) {
         return false; 
       }
       pdcch_llr_extracted = true; 
+    }
+    
+    if (SRSLTE_VERBOSE_ISINFO()) {
+      srslte_vec_save_file((char*) "ce1", ue_dl.ce[0], SRSLTE_SF_LEN_RE(ue_dl.cell.nof_prb, ue_dl.cell.cp)*sizeof(cf_t));      
+      srslte_vec_save_file((char*) "ce2", ue_dl.ce[1], SRSLTE_SF_LEN_RE(ue_dl.cell.nof_prb, ue_dl.cell.cp)*sizeof(cf_t));      
+      srslte_vec_save_file((char*) "pdcch_d", ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce*sizeof(cf_t));      
     }
     
     srslte_dci_msg_t dci_msg; 
@@ -132,10 +143,15 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant 
       return false; 
     }
     
-    if (srslte_dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, 
+    uint32_t sfn = tti/10; 
+    uint32_t rvidx = ((uint32_t) ceilf((float)3*((sfn/2)%4)/2))%4; 
+    srslte_ue_dl_decode_rnti_rv_packet(&ue_dl, &dci_msg, data, cfi, tti%10, rnti, rvidx);    
+
+   /* if (srslte_dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, 
                             (srslte_ra_pdsch_t*) grant->get_grant_ptr())) {
       return false; 
     }
+    */
     return true;     
   }
 }
@@ -156,21 +172,28 @@ bool dl_buffer::decode_phich(srslte_phich_alloc_t assignment)
 bool dl_buffer::decode_pdsch(sched_grant pdsch_grant, uint8_t *payload)
 {
   if (signal_buffer) {
+    INFO("DL Buffer TTI %d: Decoding PDSCH\n", tti);
     if (!sf_symbols_and_ce_done) {
+    INFO("DL Buffer TTI %d: Decoding PDSCH. Calling fft estimate\n", tti);
       if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
         return false; 
       }
       sf_symbols_and_ce_done = true; 
     }
+    
     srslte_ra_pdsch_t *ra_dl = (srslte_ra_pdsch_t*) pdsch_grant.get_grant_ptr();
     if (srslte_harq_setup_dl(&ue_dl.harq_process[0], ra_dl->mcs, 
-                            pdsch_grant.get_rv(), tti%10, &ra_dl->prb_alloc)) {
+                            ra_dl->rv_idx, tti%10, &ra_dl->prb_alloc)) {
       fprintf(stderr, "Error configuring HARQ process\n");
       return SRSLTE_ERROR;
     }
     if (ue_dl.harq_process[0].mcs.mod > 0 && ue_dl.harq_process[0].mcs.tbs >= 0) {
       int ret = srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.harq_process[0], ue_dl.sf_symbols, 
                               ue_dl.ce, 0, pdsch_grant.get_rnti(), payload);
+
+      if (SRSLTE_VERBOSE_ISINFO()) {
+        srslte_vec_save_file((char*) "pdsch_d", ue_dl.pdsch.d, ue_dl.harq_process[0].nof_re*sizeof(cf_t));      
+      }
       if (ret == SRSLTE_SUCCESS) {
         return true; 
       } 

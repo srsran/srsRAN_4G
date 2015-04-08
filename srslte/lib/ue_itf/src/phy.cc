@@ -65,7 +65,7 @@ bool phy::init(ue_phy_callback_tti_t tti_clock_callback_, ue_phy_callback_status
   params_db.set_param(params::CELLSEARCH_TIMEOUT_MIB_NFRAMES, 100);
 
   
-  if (init_radio_handler("")) {
+  if (init_radio_handler((char*) "")) {
     pthread_create(&radio_thread, NULL, radio_thread_fnc, this);
     started = true;         
   }
@@ -353,7 +353,6 @@ void phy::run_rx_tx_state()
 {
   int ret; 
   if (!is_sfn_synched) {
-    printf("Synchronising SFN...\n");
     ret = sync_sfn(); 
     switch(ret) {
       default:
@@ -386,15 +385,12 @@ void phy::run_rx_tx_state()
 
 
 void phy::main_radio_loop() {
-  printf("PHY initiated\n");
-
   while(started) {
     switch(phy_state) {
       case IDLE:
         usleep(50000);
         break;
       case RXTX:
-        printf("Run RX_TX\n");
         run_rx_tx_state();
         break;
     }

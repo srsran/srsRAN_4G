@@ -275,7 +275,7 @@ uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, srslte_dci_location_t 
  */
 static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
 
-  uint16_t p_bits, srslte_crc_res;
+  uint16_t p_bits, crc_res;
   uint8_t *x;
 
   if (q         != NULL         &&
@@ -306,12 +306,12 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
 
     x = &data[nof_bits];
     p_bits = (uint16_t) srslte_bit_unpack(&x, 16);
-    srslte_crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
-    INFO("p_bits: 0x%x, srslte_crc_checksum: 0x%x, srslte_crc_rem: 0x%x\n", p_bits, srslte_crc_res,
-        p_bits ^ srslte_crc_res);
+    crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
+    INFO("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
+        p_bits ^ crc_res);
     
     if (crc) {
-      *crc = p_bits ^ srslte_crc_res; 
+      *crc = p_bits ^ crc_res; 
     }
     return SRSLTE_SUCCESS;
   } else {
@@ -322,16 +322,16 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
 
 /** Tries to decode a DCI message from the LLRs stored in the srslte_pdcch_t structure by the function 
  * srslte_pdcch_extract_llr(). This function can be called multiple times. 
- * The decoded message is stored in msg and the CRC remainder in srslte_crc_rem pointer
+ * The decoded message is stored in msg and the CRC remainder in crc_rem pointer
  * 
  */
-int srslte_pdcch_decode_msg(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_location_t *location, srslte_dci_format_t format, uint16_t *srslte_crc_rem) 
+int srslte_pdcch_decode_msg(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_location_t *location, srslte_dci_format_t format, uint16_t *crc_rem) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q                 != NULL       && 
       msg               != NULL       && 
       srslte_dci_location_isvalid(location)  &&
-      srslte_crc_rem           != NULL)
+      crc_rem           != NULL)
   {
     if (location->ncce * 72 + PDCCH_FORMAT_NOF_BITS(location->L) > 
       q->nof_cce*72) {
@@ -345,7 +345,7 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci
             location->ncce * 72, e_bits, nof_bits, location->ncce, location->L);
       
       ret = dci_decode(q, &q->llr[location->ncce * 72], 
-                      msg->data, e_bits, nof_bits, srslte_crc_rem);
+                      msg->data, e_bits, nof_bits, crc_rem);
       if (ret == SRSLTE_SUCCESS) {
         msg->nof_bits = nof_bits;
       }      
@@ -437,7 +437,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
 
 
 
-static void srslte_crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
+static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   uint32_t i;
   uint8_t mask[16];
   uint8_t *r = mask;
@@ -472,7 +472,7 @@ static int dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof
     memcpy(encoder.poly, poly, 3 * sizeof(int));
 
     srslte_crc_attach(&q->crc, data, nof_bits);
-    srslte_crc_set_mask_rnti(&data[nof_bits], rnti);
+    crc_set_mask_rnti(&data[nof_bits], rnti);
 
     srslte_convcoder_encode(&encoder, data, tmp, nof_bits + 16);
 

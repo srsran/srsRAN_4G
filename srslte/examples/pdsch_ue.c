@@ -102,7 +102,7 @@ void args_default(prog_args_t *args) {
   args->file_cell_id = 0; 
   args->uhd_args = "";
   args->uhd_freq = -1.0;
-  args->uhd_freq = 8000000.0;
+  args->uhd_freq_offset = 8000000.0;
   args->uhd_gain = 60.0; 
   args->net_port = -1; 
   args->net_address = "127.0.0.1";

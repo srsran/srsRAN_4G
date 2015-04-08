@@ -162,13 +162,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     formats = ue_formats; 
     nof_formats = nof_ue_formats;
   }
-  uint16_t srslte_crc_rem=0;   
+  uint16_t crc_rem=0;   
   srslte_dci_msg_t dci_msg; 
   bzero(&dci_msg, sizeof(srslte_dci_msg_t));
   
   for (int f=0;f<nof_formats;f++) {
-    for (i=0;i<nof_locations && srslte_crc_rem != rnti;i++) {
-      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], formats[f], &srslte_crc_rem)) {
+    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
+      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], formats[f], &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return;
       }
@@ -176,7 +176,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }    
   
   if (nlhs >= 1) { 
-    plhs[0] = mxCreateLogicalScalar(srslte_crc_rem == rnti);
+    plhs[0] = mxCreateLogicalScalar(crc_rem == rnti);
   }
   int nof_bits = (srslte_regs_pdcch_nregs(&regs, cfi) / 9) * 72;
   if (nlhs >= 2) {

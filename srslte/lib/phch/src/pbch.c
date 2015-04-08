@@ -44,7 +44,7 @@
 #define PBCH_RE_CP_NORM    240
 #define PBCH_RE_CP_EXT     216
 
-const uint8_t srslte_crc_mask[4][16] = {
+const uint8_t crc_mask[4][16] = {
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, 
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 
@@ -359,10 +359,10 @@ void srslte_pbch_decode_reset(srslte_pbch_t *q) {
   q->frame_idx = 0;
 }
 
-void srslte_crc_set_mask(uint8_t *data, int nof_ports) {
+void crc_set_mask(uint8_t *data, int nof_ports) {
   int i;
   for (i = 0; i < 16; i++) {
-    data[SRSLTE_BCH_PAYLOAD_LEN + i] = (data[SRSLTE_BCH_PAYLOAD_LEN + i] + srslte_crc_mask[nof_ports - 1][i]) % 2;
+    data[SRSLTE_BCH_PAYLOAD_LEN + i] = (data[SRSLTE_BCH_PAYLOAD_LEN + i] + crc_mask[nof_ports - 1][i]) % 2;
   }
 
 }
@@ -376,7 +376,7 @@ void srslte_crc_set_mask(uint8_t *data, int nof_ports) {
 uint32_t srslte_pbch_crc_check(srslte_pbch_t *q, uint8_t *bits, uint32_t nof_ports) {
   uint8_t data[SRSLTE_BCH_PAYLOADCRC_LEN];
   memcpy(data, bits, SRSLTE_BCH_PAYLOADCRC_LEN * sizeof(uint8_t));
-  srslte_crc_set_mask(data, nof_ports);
+  crc_set_mask(data, nof_ports);
   int ret = srslte_crc_checksum(&q->crc, data, SRSLTE_BCH_PAYLOADCRC_LEN);
   if (ret == 0) {
     uint32_t chkzeros=0;
@@ -567,7 +567,7 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
 
       /* encode & modulate */
       srslte_crc_attach(&q->crc, q->data, SRSLTE_BCH_PAYLOAD_LEN);
-      srslte_crc_set_mask(q->data, q->cell.nof_ports);
+      crc_set_mask(q->data, q->cell.nof_ports);
       
       srslte_convcoder_encode(&q->encoder, q->data, q->data_enc, SRSLTE_BCH_PAYLOADCRC_LEN);
 

@@ -69,8 +69,8 @@ typedef struct SRSLTE_API {
   
   srslte_tcod_t encoder;
   srslte_tdec_t decoder;  
-  srslte_crc_t srslte_crc_tb;
-  srslte_crc_t srslte_crc_cb;
+  srslte_crc_t crc_tb;
+  srslte_crc_t crc_cb;
   
   srslte_uci_cqi_pusch_t uci_cqi; 
   

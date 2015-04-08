@@ -180,7 +180,7 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
 
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
-    
+
     /* First decode PCFICH and obtain CFI */
     if (srslte_pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
                       srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi, &cfi_corr)<0) {
@@ -223,6 +223,7 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
     ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
                             q->ce, 0,
                             rnti, data);
+    
     if (ret == SRSLTE_ERROR) {
       q->pkt_errors++;
     } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
@@ -304,7 +305,7 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
   if (found_dci == 1) {
     ret = srslte_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, q->cfi, sf_idx, rnti, rvidx);    
   }
- 
+   
   if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
     return q->ra_dl.mcs.tbs;    
   } else {

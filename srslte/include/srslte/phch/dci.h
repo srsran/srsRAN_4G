@@ -131,12 +131,12 @@ SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_ra_pdsch_t *data,
                                          srslte_dci_msg_t *msg, 
                                          srslte_dci_format_t format, 
                                          uint32_t nof_prb, 
-                                         bool srslte_crc_is_crnti);
+                                         bool crc_is_crnti);
 
 SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, 
                                            srslte_ra_pdsch_t *data, 
                                            uint32_t nof_prb, 
-                                           bool srslte_crc_is_crnti);
+                                           bool crc_is_crnti);
 
 SRSLTE_API uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, 
                                              uint32_t nof_prb);
