@@ -302,18 +302,12 @@ int main(int argc, char **argv) {
 
     INFO("Stopping UHD and flushing buffer...\r",0);
     cuhd_stop_rx_stream(uhd);
-    cuhd_flush_buffer(uhd);
-    
-    if (srslte_ue_mib_init(&ue_mib, cell)) {
-      fprintf(stderr, "Error initaiting UE MIB decoder\n");
-      exit(-1);
-    }    
+    cuhd_flush_buffer(uhd);    
   }
 #endif
-
+  
   /* If reading from file, go straight to PDSCH decoding. Otherwise, decode MIB first */
   if (prog_args.input_file_name) {
-    state = DECODE_PDSCH; 
     /* preset cell configuration */
     cell.id = prog_args.file_cell_id; 
     cell.cp = SRSLTE_CP_NORM; 
@@ -329,13 +323,19 @@ int main(int argc, char **argv) {
 
   } else {
 #ifndef DISABLE_UHD
-    state = DECODE_MIB; 
     if (srslte_ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
 #endif
   }
+
+  state = DECODE_MIB; 
+
+  if (srslte_ue_mib_init(&ue_mib, cell)) {
+    fprintf(stderr, "Error initaiting UE MIB decoder\n");
+    exit(-1);
+  }    
 
   if (srslte_ue_dl_init(&ue_dl, cell)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
@@ -501,6 +501,8 @@ int main(int argc, char **argv) {
     sf_cnt++;                  
   } // Main loop
   
+  pthread_cancel(plot_thread);
+  pthread_join(plot_thread, NULL);
   srslte_ue_dl_free(&ue_dl);
   srslte_ue_sync_free(&ue_sync);
   
