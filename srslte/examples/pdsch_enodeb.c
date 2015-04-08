@@ -65,7 +65,7 @@ uint32_t mcs_idx = 1, last_mcs_idx = 1;
 int nof_frames = -1;
 
 char *uhd_args = "";
-float uhd_amp = 0.03, uhd_gain = 70.0, uhd_freq = 2400000000;
+float uhd_amp = 0.8, uhd_gain = 70.0, uhd_freq = 2400000000;
 
 bool null_file_sink=false; 
 srslte_filesink_t fsink;
