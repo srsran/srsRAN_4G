@@ -29,11 +29,7 @@
 
 #include "srslte/utils/debug.h"
 #include "srslte/ue_itf/phy.h"
-
-void tti_callback();
-void status_change();
-
-
+#include "srslte/ue_itf/tti_sync_cv.h"
 
 
 
@@ -95,9 +91,9 @@ uint32_t total_errors=0;
 uint8_t payload[1024]; 
 
 // This is the MAC implementation
-void tti_callback(uint32_t tti) {
-  srslte::ue::sched_grant grant; 
-  INFO("called tti: %d\n", tti);
+void run_tti(uint32_t tti) {
+  srslte::ue::sched_grant grant = srslte::ue::sched_grant(SRSLTE_SIRNTI); 
+  INFO("MAC running tti: %d\n", tti);
   
   // SIB1 is scheduled in subframe #5 of even frames
   if ((phy.tti_to_SFN(tti)%2) == 0 && phy.tti_to_subf(tti) == 5) {
@@ -108,33 +104,24 @@ void tti_callback(uint32_t tti) {
     // Get DL grant
     if (buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_SIRNTI, SRSLTE_SIRNTI, &grant)) 
     {
-      // MAC sets RV 
+      total_dci++; 
+
+      // MAC sets RV and RNTI
       grant.set_rv(((uint32_t) ceilf((float)3*((phy.tti_to_SFN(tti)/2)%4)/2))%4);
       
       // Decode packet
-      if (buffer->decode_pdsch(grant, payload)) {
-        printf("Decoded SIB1 ok TBS: %d\n", grant.get_tbs());
-        srslte_vec_fprint_hex(stdout, payload, grant.get_tbs());
-        exit(0);
-      } else {
+      if (!buffer->decode_pdsch(grant, payload)) {
         total_errors++; 
       }
-      exit(0);
-      total_dci++; 
     }       
     total_pkts++; 
-    if (total_pkts==4) {
-      exit(-1);
-    }
   }
-  printf("PDCCH BLER %.3f \%% PDSCH BLER %.3f \%% (total pkts: %d) \r", 
-         1-(float) total_dci/total_pkts, 
-         (float) total_errors/total_pkts, 
-         total_pkts);
-}
-
-void status_change() {
-  printf("called status change\n");
+  if (srslte_verbose == SRSLTE_VERBOSE_NONE) {
+    printf("PDCCH BLER %.1f \%% PDSCH BLER %.1f \%% (total pkts: %5u) \r", 
+         100-(float) 100*total_dci/total_pkts, 
+         (float) 100*total_errors/total_pkts, 
+         total_pkts);    
+  }
 }
 
 int main(int argc, char *argv[])
@@ -142,11 +129,12 @@ int main(int argc, char *argv[])
   srslte_cell_t cell; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   prog_args_t prog_args; 
+  srslte::ue::tti_sync_cv ttisync(10240); 
   
   parse_args(&prog_args, argc, argv);
 
   // Init PHY 
-  phy.init(tti_callback, status_change);
+  phy.init(&ttisync);
   
   // Give it time to create thread 
   sleep(1);
@@ -175,6 +163,7 @@ int main(int argc, char *argv[])
   }
   /* go to idle and process each tti */
   while(1) {
-    sleep(1);
+    uint32_t tti = ttisync.wait();
+    run_tti(tti);
   }
 }

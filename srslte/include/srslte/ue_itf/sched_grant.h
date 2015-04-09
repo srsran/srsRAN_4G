@@ -39,12 +39,11 @@ namespace ue {
   public:
 
     typedef enum {DOWNLINK=0, UPLINK=1} direction_t; 
-
+             sched_grant(uint16_t rnti);
     uint16_t get_rnti();
     uint32_t get_rv();
     void     set_rv(uint32_t rv);
     bool     get_ndi();
-    uint32_t get_current_tti();
     bool     get_cqi_request();
     int      get_harq_process();    
     bool     is_uplink();
@@ -58,7 +57,6 @@ namespace ue {
     }; 
     direction_t         dir; 
     uint16_t            rnti; 
-    uint32_t            current_tti; 
   };
  
 }

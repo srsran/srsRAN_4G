@@ -72,7 +72,7 @@ public:
     bool is_ready_to_send() {
       return state == READY; 
     }
-    
+    uint32_t tti; 
   protected: 
     enum {
      RELEASED, READY
@@ -82,7 +82,7 @@ public:
   queue(uint32_t nof_elements, uint32_t element_size);
   ~queue();
   
-  element* get(uint32_t idx);
+  element* get(uint32_t tti);
 
 private:
   uint32_t nof_elements; 

@@ -51,11 +51,10 @@ bool phy::init_radio_handler(char *args) {
   return true;    
 }
 
-bool phy::init(ue_phy_callback_tti_t tti_clock_callback_, ue_phy_callback_status_t status_change_)
+bool phy::init(tti_sync *ttisync_)
 {
   started = false; 
-  tti_clock_callback = tti_clock_callback_;
-  status_change      = status_change_;
+  ttisync = ttisync_;
   ul_buffer_queue = new queue(6, sizeof(ul_buffer));
   dl_buffer_queue = new queue(6, sizeof(dl_buffer));
   
@@ -142,7 +141,6 @@ bool phy::start_rxtx()
       // Start streaming
       cuhd_start_rx_stream(radio_handler);
       phy_state = RXTX;
-      status_change();  
       return true; 
     } else {
       fprintf(stderr, "Can not change state to RXTX: cell is not set\n");
@@ -159,7 +157,6 @@ bool phy::stop_rxtx()
     // Stop streaming
     cuhd_stop_rx_stream(radio_handler);
     phy_state = IDLE; 
-    status_change();  
     return true; 
   } else {
     fprintf(stderr, "Can not change state to RXTX: invalid state %d\n", phy_state);
@@ -176,7 +173,7 @@ bool phy::status_is_rxtx() {
 }
 
 uint32_t phy::get_current_tti() {
-  return current_tti; 
+  return ttisync->get_producer_cntr(); 
 }
 uint32_t phy::tti_to_SFN(uint32_t tti) {
   return tti/10; 
@@ -304,9 +301,7 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
   srslte_ue_mib_sync_free(&ue_mib_sync);
 
   if (ret == 1) {
-    srslte_pbch_mib_unpack(bch_payload, cell_ptr, &sfn);
-    sfn = (sfn + sfn_offset)%1024;         
-    current_tti = sfn*10+1;
+    srslte_pbch_mib_unpack(bch_payload, cell_ptr, NULL);
     return true;     
   } else {
     printf("Error decoding MIB: Error decoding PBCH\n");      
@@ -321,6 +316,7 @@ int phy::sync_sfn(void) {
   int ret = SRSLTE_ERROR; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
 
+  srslte_ue_sync_decode_sss_on_track(&ue_sync, true);
   ret = srslte_ue_sync_get_buffer(&ue_sync, &sf_buffer);
   if (ret < 0) {
     fprintf(stderr, "Error calling ue_sync_get_buffer");      
@@ -340,14 +336,14 @@ int phy::sync_sfn(void) {
         srslte_pbch_mib_unpack(bch_payload, &cell, &sfn);
 
         sfn = (sfn + sfn_offset)%1024;         
-        current_tti = sfn*10 + 1;
+        ttisync->set_producer_cntr(10*sfn+1);
+        srslte_ue_sync_decode_sss_on_track(&ue_sync, false);
         return 1;
       }
     }    
   }
   return 0;
 }
-
 
 void phy::run_rx_tx_state() 
 {
@@ -359,16 +355,17 @@ void phy::run_rx_tx_state()
         phy_state = IDLE; 
         break; 
       case 1:
-        printf("SFN synched ok\n");
         is_sfn_synched = true; 
         break;        
       case 0:
         break;        
     } 
   } else {
+    uint32_t current_tti = ttisync->get_producer_cntr();
+    
     // Receive alligned buffer for the current tti 
     srslte_timestamp_t rx_time; 
-    get_dl_buffer(current_tti)->recv_ue_sync(current_tti, &ue_sync, &rx_time);
+    get_dl_buffer(current_tti)->recv_ue_sync(&ue_sync, &rx_time);
 
     // send prach if we have to 
     if (prach_buffer.is_ready_to_send(current_tti)) {
@@ -378,8 +375,7 @@ void phy::run_rx_tx_state()
     if (get_ul_buffer(current_tti)->is_ready_to_send()) {
       get_ul_buffer(current_tti)->send_packet(radio_handler, rx_time);      
     }
-    tti_clock_callback(current_tti);
-    current_tti = (current_tti + 1)%10240; 
+    ttisync->increase();
   }
 }
 

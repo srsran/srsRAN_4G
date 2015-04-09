@@ -351,8 +351,8 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q, srslte_harq_t *harq, cf_t *sf_sy
       harq          != NULL)
   {
     
-    INFO("Decoding PDSCH SF: %d, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-        harq->sf_idx, srslte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+        harq->sf_idx, rnti, srslte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {

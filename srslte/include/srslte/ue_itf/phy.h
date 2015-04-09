@@ -26,6 +26,7 @@
  */
 
 #include "srslte/srslte.h"
+#include "srslte/ue_itf/tti_sync.h"
 #include "srslte/ue_itf/dl_buffer.h"
 #include "srslte/ue_itf/ul_buffer.h"
 #include "srslte/ue_itf/prach.h"
@@ -35,10 +36,6 @@
 
 #ifndef UEPHY_H
 #define UEPHY_H
-
-#define SYNC_MODE_CV       0
-#define SYNC_MODE_CALLBACK 1
-#define SYNC_MODE          SYNC_MODE_CALLBACK
 
 namespace srslte {
 namespace ue {
@@ -62,11 +59,7 @@ class SRSLTE_API phy
 {
 public:
     
-  typedef void (*ue_phy_callback_tti_t) (uint32_t); 
-  typedef void (*ue_phy_callback_status_t) (void); 
-  ue_phy_callback_tti_t    tti_clock_callback; 
-  ue_phy_callback_status_t status_change;
-  bool init(ue_phy_callback_tti_t tti_clock_callback, ue_phy_callback_status_t status_change);
+  bool init(tti_sync *ttisync);
   void stop();
 
   // These functions can be called only if PHY is in IDLE (ie, not RX/TX)
@@ -98,11 +91,6 @@ public:
   static uint32_t tti_to_SFN(uint32_t tti);
   static uint32_t tti_to_subf(uint32_t tti);
 
-  #if SYNC_MODE==SYNC_MODE_CV
-  std::condition_variable tti_cv; 
-  std::mutex              tti_mutex; 
-#endif
-  
   ul_buffer* get_ul_buffer(uint32_t tti);
   dl_buffer* get_dl_buffer(uint32_t tti);
 
@@ -113,11 +101,12 @@ private:
     IDLE, RXTX
   } phy_state; 
   
+  tti_sync      *ttisync; 
+  
   srslte_cell_t cell; 
   bool          cell_is_set;
   bool          is_sfn_synched = false; 
   bool          started        = false; 
-  uint32_t      current_tti; 
   
   srslte_ue_sync_t  ue_sync; 
   srslte_ue_mib_t   ue_mib;

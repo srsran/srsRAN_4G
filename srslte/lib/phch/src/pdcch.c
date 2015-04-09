@@ -284,18 +284,8 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
       nof_bits  <= DCI_MAX_BITS)
   {
 
-    DEBUG("Rm input: ", 0);
-    if (SRSLTE_VERBOSE_ISDEBUG()) {
-      srslte_vec_fprint_f(stdout, e, E);
-    }
-
     /* unrate matching */
     srslte_rm_conv_rx(e, E, q->rm_f, 3 * (nof_bits + 16));
-
-    DEBUG("Viterbi input: ", 0);
-    if (SRSLTE_VERBOSE_ISDEBUG()) {
-      srslte_vec_fprint_f(stdout, q->rm_f, 3 * (nof_bits + 16));
-    }
 
     /* viterbi decoder */
     srslte_viterbi_decode_f(&q->decoder, q->rm_f, data, nof_bits + 16);
@@ -424,11 +414,6 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
 
     /* descramble */
     srslte_scrambling_f_offset(&q->seq[nsubframe], q->llr, 0, e_bits);
-
-    DEBUG("llr: ", 0);
-    if (SRSLTE_VERBOSE_ISDEBUG()) {
-      srslte_vec_fprint_f(stdout, q->llr, e_bits);
-    }
 
     ret = SRSLTE_SUCCESS;
   } 

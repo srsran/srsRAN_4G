@@ -1,4 +1,4 @@
-/**
+  /**
  *
  * \section COPYRIGHT
  *
@@ -25,41 +25,34 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "srslte/ue_itf/queue.h"
+#include <pthread.h>
+#include "srslte/ue_itf/tti_sync.h"
+#include "srslte/srslte.h"
+
+#ifndef TTISYNC_CV_H
+#define TTISYNC_CV_H
+
 
 namespace srslte {
 namespace ue {
-  queue::queue(uint32_t nof_elements_, uint32_t element_size)
-  {
-    nof_elements = nof_elements_; 
-    buffer_of_elements = (queue::element**) malloc(sizeof(queue::element*) * nof_elements);
-    for (int i=0;i<nof_elements;i++) {
-      buffer_of_elements[i] = (queue::element*) malloc(element_size); 
-    }
-  }
-
-  queue::~queue()
-  {
-    printf("destroying %d elements\n", nof_elements);
-    for (int i=0;i<nof_elements;i++) {
-      if (buffer_of_elements[i]) {
-        free(buffer_of_elements[i]);
-      }
-    }
-    if (buffer_of_elements) {
-      free(buffer_of_elements);      
-    }
-  }  
   
-  queue::element* queue::get(uint32_t tti)
-  {
-    queue::element* el = (queue::element*) buffer_of_elements[tti%nof_elements];
-    el->tti = tti; 
-    return el; 
-  }
+  /* Implements tti_sync interface with condition variables. 
+   */
   
-} // namespace ue
-} // namespace srslte
+class SRSLTE_API tti_sync_cv : public tti_sync
+{
+  public: 
+             tti_sync_cv(uint32_t modulus);
+            ~tti_sync_cv();
+    void     increase();
+    uint32_t wait();      
+    void     set_producer_cntr(uint32_t producer_cntr);
+    
+  private: 
+    pthread_cond_t  cond; 
+    pthread_mutex_t mutex; 
+}; 
+}
+}
 
+#endif

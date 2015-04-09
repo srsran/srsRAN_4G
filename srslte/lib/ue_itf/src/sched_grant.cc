@@ -35,6 +35,11 @@
 namespace srslte {
 namespace ue {
   
+  sched_grant::sched_grant(uint16_t rnti_)
+  {
+    rnti = rnti_; 
+  }
+  
   /* Returns the RNTI associated with the UL/DL scheduling grant */
   uint16_t sched_grant::get_rnti() {
     return rnti; 
@@ -78,10 +83,6 @@ namespace ue {
     } else {
       return dl_grant.ndi;    
     }  
-  }
-
-  uint32_t sched_grant::get_current_tti() {
-    return current_tti;
   }
 
   int sched_grant::get_harq_process() {

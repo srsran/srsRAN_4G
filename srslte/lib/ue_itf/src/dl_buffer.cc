@@ -63,12 +63,11 @@ void dl_buffer::free_cell()
 }
 
 // FIXME: Avoid this memcpy modifying ue_sync to directly write into provided pointer
-bool dl_buffer::recv_ue_sync(uint32_t current_tti, srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time)
+bool dl_buffer::recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time)
 {
   if (signal_buffer) {
     INFO("DL Buffer TTI %d: Receiving packet\n", tti);
     cf_t *sf_buffer = NULL;
-    tti = current_tti; 
     if (srslte_ue_sync_get_buffer(ue_sync, &sf_buffer) == 1) {
       memcpy(signal_buffer, sf_buffer, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
       srslte_ue_sync_get_last_timestamp(ue_sync, rx_time);    
@@ -111,8 +110,6 @@ bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, uint32_t rnti, sched_grant 
 
 }
 
-uint8_t data[1024]; 
-
 bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant *grant)
 {
   if (signal_buffer) {
@@ -136,6 +133,7 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant 
       srslte_vec_save_file((char*) "ce1", ue_dl.ce[0], SRSLTE_SF_LEN_RE(ue_dl.cell.nof_prb, ue_dl.cell.cp)*sizeof(cf_t));      
       srslte_vec_save_file((char*) "ce2", ue_dl.ce[1], SRSLTE_SF_LEN_RE(ue_dl.cell.nof_prb, ue_dl.cell.cp)*sizeof(cf_t));      
       srslte_vec_save_file((char*) "pdcch_d", ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce*sizeof(cf_t));      
+      srslte_vec_save_file((char*) "pdcch_llr", ue_dl.pdcch.llr, 72*ue_dl.pdcch.nof_cce*sizeof(cf_t));      
     }
     
     srslte_dci_msg_t dci_msg; 
@@ -143,15 +141,11 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant 
       return false; 
     }
     
-    uint32_t sfn = tti/10; 
-    uint32_t rvidx = ((uint32_t) ceilf((float)3*((sfn/2)%4)/2))%4; 
-    srslte_ue_dl_decode_rnti_rv_packet(&ue_dl, &dci_msg, data, cfi, tti%10, rnti, rvidx);    
-
-   /* if (srslte_dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, 
-                            (srslte_ra_pdsch_t*) grant->get_grant_ptr())) {
+    if (srslte_dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, 
+                                (srslte_ra_pdsch_t*) grant->get_grant_ptr())) {
       return false; 
     }
-    */
+    
     return true;     
   }
 }
