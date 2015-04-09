@@ -143,7 +143,7 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
   
   /* Decode PBCH */
   ret = srslte_pbch_decode(&q->pbch, &q->sf_symbols[SRSLTE_SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
-                    ce_slot1, srslte_chest_dl_get_noise_estimate(&q->chest),
+                    ce_slot1, 0,
                     bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
