@@ -469,7 +469,7 @@ int main(int argc, char **argv) {
 #else
             printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, "
                   "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%% (%d), PDSCH-BLER: %5.2f%% (%d)\r",
+                  "PDCCH-Miss: %5.2f%% (%u), PDSCH-BLER: %5.2f%% (%u)\r",
                   srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
                   10*log10(rsrp*1000)-gain_offset, 
                   10*log10(rsrq), 10*log10(snr), 
@@ -502,12 +502,14 @@ int main(int argc, char **argv) {
     sf_cnt++;                  
   } // Main loop
   
+#ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
     if (!pthread_kill(plot_thread, 0)) {
       pthread_kill(plot_thread, SIGHUP);
       pthread_join(plot_thread, NULL);    
     }
   }
+#endif
   srslte_ue_dl_free(&ue_dl);
   srslte_ue_sync_free(&ue_sync);
   
