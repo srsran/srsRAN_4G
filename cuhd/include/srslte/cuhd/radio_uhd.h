@@ -26,32 +26,42 @@
  */
 
 #include "srslte/srslte.h"
-#include "srslte/ue_itf/queue.h"
-#include "srslte/ue_itf/params.h"
+#include "srslte/common/radio.h"
+#include "srslte/cuhd/cuhd.h"
 
-#ifndef UEPRACH_H
-#define UEPRACH_H
+#ifndef RADIO_UHD_H
+#define RADIO_UHD_H
+
 
 namespace srslte {
-namespace ue {
+  
+/* Interface to the RF frontend. 
+  */
+  class SRSLTE_API radio_uhd : public radio
+  {
+    public: 
+      bool init();
+      bool init(char *args);
 
-  class SRSLTE_API prach {
-  public: 
-    bool           init_cell(srslte_cell_t cell, params *params_db);
-    void           free_cell();
-    bool           prepare_to_send(uint32_t preamble_idx);
-    bool           is_ready_to_send(uint32_t current_tti);
-    bool           send(void *radio_handler, srslte_timestamp_t rx_time);
-  private: 
-    static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
-    params        *params_db     = NULL; 
-    int            preamble_idx;  
-    bool           initiated     = false;   
-    uint32_t       len; 
-    cf_t          *buffer[64]; 
-    srslte_prach_t prach; 
-  };
+      bool tx(void *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+      bool rx_now(void *buffer, uint32_t nof_samples, srslte_timestamp_t *rxd_time);
+      bool rx_at(void *buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
 
+      void set_tx_gain(float gain);
+      void set_rx_gain(float gain);
+
+      void set_tx_freq(float freq);
+      void set_rx_freq(float freq);
+
+      void set_tx_srate(float srate);
+      void set_rx_srate(float srate);
+
+      void start_rx();
+      void stop_rx();
+      
+    private:
+      void *uhd; 
+  }; 
 }
-}
+
 #endif

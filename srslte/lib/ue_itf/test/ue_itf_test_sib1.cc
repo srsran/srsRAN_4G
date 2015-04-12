@@ -30,7 +30,7 @@
 #include "srslte/utils/debug.h"
 #include "srslte/ue_itf/phy.h"
 #include "srslte/ue_itf/tti_sync_cv.h"
-
+#include "srslte/cuhd/radio_uhd.h"
 
 
 /**********************************************************************
@@ -92,35 +92,33 @@ uint8_t payload[1024];
 
 // This is the MAC implementation
 void run_tti(uint32_t tti) {
-  srslte::ue::sched_grant grant = srslte::ue::sched_grant(SRSLTE_SIRNTI); 
+  srslte::ue::sched_grant grant = srslte::ue::sched_grant(srslte::ue::sched_grant::DOWNLINK, SRSLTE_SIRNTI); 
   INFO("MAC running tti: %d\n", tti);
   
   // SIB1 is scheduled in subframe #5 of even frames
   if ((phy.tti_to_SFN(tti)%2) == 0 && phy.tti_to_subf(tti) == 5) {
-    
     // Get buffer 
     srslte::ue::dl_buffer *buffer = phy.get_dl_buffer(tti); 
     
     // Get DL grant
-    if (buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_SIRNTI, SRSLTE_SIRNTI, &grant)) 
+    if (buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_SIRNTI, &grant)) 
     {
       total_dci++; 
-
-      // MAC sets RV and RNTI
+      // MAC sets RV
       grant.set_rv(((uint32_t) ceilf((float)3*((phy.tti_to_SFN(tti)/2)%4)/2))%4);
       
       // Decode packet
       if (!buffer->decode_pdsch(grant, payload)) {
         total_errors++; 
       }
-    }       
+    }
     total_pkts++; 
   }
   if (srslte_verbose == SRSLTE_VERBOSE_NONE) {
     printf("PDCCH BLER %.1f \%% PDSCH BLER %.1f \%% (total pkts: %5u) \r", 
          100-(float) 100*total_dci/total_pkts, 
          (float) 100*total_errors/total_pkts, 
-         total_pkts);    
+         total_pkts);   
   }
 }
 
@@ -130,18 +128,22 @@ int main(int argc, char *argv[])
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   prog_args_t prog_args; 
   srslte::ue::tti_sync_cv ttisync(10240); 
+  srslte::radio_uhd radio_uhd; 
   
   parse_args(&prog_args, argc, argv);
 
+  // Init Radio 
+  radio_uhd.init();
+
   // Init PHY 
-  phy.init(&ttisync);
+  phy.init(&radio_uhd, &ttisync);
   
   // Give it time to create thread 
   sleep(1);
   
   // Set RX freq and gain
-  phy.set_rx_freq(prog_args.uhd_freq);
-  phy.set_rx_gain(prog_args.uhd_gain);
+  phy.get_radio()->set_rx_freq(prog_args.uhd_freq);
+  phy.get_radio()->set_rx_gain(prog_args.uhd_gain);
   
   /* Instruct the PHY to decode BCH */
   if (!phy.decode_mib_best(&cell, bch_payload)) {

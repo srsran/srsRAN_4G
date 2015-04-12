@@ -543,7 +543,7 @@ int main(int argc, char **argv) {
                   
                   srslte_bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
 
-                  uint32_t n_ta = srssrslte_N_ta_new_rar(rar_msg.timing_adv_cmd);
+                  uint32_t n_ta = srslte_N_ta_new_rar(rar_msg.timing_adv_cmd);
                   printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
                   float time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;
                   if (prog_args.ta_usec >= 0) {

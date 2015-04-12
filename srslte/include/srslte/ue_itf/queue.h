@@ -47,29 +47,23 @@ public:
   class element
   {
   public: 
-    ~element(); 
-    bool release()
+    element() {
+      state = READY;
+      tti = 0; 
+    }
+   ~element(); 
+    void release()
     {
-      if (state == READY) {
-        state = RELEASED; 
-        return true; 
-      } else {
-        return false; 
-      }
+      state = RELEASED; 
     }
     bool is_released() 
     {
       return state == RELEASED;
     }
-    bool ready_to_send() {
-      if (state == RELEASED) {
-        state = READY; 
-        return true; 
-      } else {
-        return false; 
-      }
+    void ready() {
+      state = READY;       
     }
-    bool is_ready_to_send() {
+    bool is_ready() {
       return state == READY; 
     }
     uint32_t tti; 

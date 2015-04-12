@@ -78,23 +78,19 @@ FOREACH (_file ${cmakefiles})
 ENDFOREACH()
 
 ########################################################################
-# Create C++ library only if UHD is found
+# Create C++ library 
 ########################################################################
-LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
-IF(${CUHD_FIND} GREATER -1)
+FILE(GLOB modules *) 
+SET(SOURCES_CPP_ALL "")
+FOREACH (_module ${modules})
+  IF(IS_DIRECTORY ${_module})
+    FILE(GLOB_RECURSE tmp "${_module}/src/*.cc")
+    LIST(APPEND SOURCES_CPP_ALL ${tmp})
+  ENDIF(IS_DIRECTORY ${_module})
+ENDFOREACH()
 
-  FILE(GLOB modules *) 
-  SET(SOURCES_CPP_ALL "")
-  FOREACH (_module ${modules})
-    IF(IS_DIRECTORY ${_module})
-      FILE(GLOB_RECURSE tmp "${_module}/src/*.cc")
-      LIST(APPEND SOURCES_CPP_ALL ${tmp})
-    ENDIF(IS_DIRECTORY ${_module})
-  ENDFOREACH()
+ADD_LIBRARY(srslte++ SHARED ${SOURCES_CPP_ALL})
+TARGET_LINK_LIBRARIES(srslte++ cuhd srslte m pthread ${FFTW3F_LIBRARIES})
+INSTALL(TARGETS srslte++ DESTINATION ${LIBRARY_DIR})
+LIBLTE_SET_PIC(srslte++)
 
-  ADD_LIBRARY(srslte++ SHARED ${SOURCES_CPP_ALL})
-  TARGET_LINK_LIBRARIES(srslte++ cuhd srslte m pthread ${FFTW3F_LIBRARIES})
-  INSTALL(TARGETS srslte++ DESTINATION ${LIBRARY_DIR})
-  LIBLTE_SET_PIC(srslte++)
-
-ENDIF(${CUHD_FIND} GREATER -1)

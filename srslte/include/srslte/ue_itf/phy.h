@@ -33,6 +33,7 @@
 #include "srslte/ue_itf/params.h"
 #include "srslte/ue_itf/sched_grant.h"
 #include "srslte/ue_itf/queue.h"
+#include "srslte/common/radio.h"
 
 #ifndef UEPHY_H
 #define UEPHY_H
@@ -59,7 +60,7 @@ class SRSLTE_API phy
 {
 public:
     
-  bool init(tti_sync *ttisync);
+  bool init(radio *radio_handler, tti_sync *ttisync);
   void stop();
 
   // These functions can be called only if PHY is in IDLE (ie, not RX/TX)
@@ -75,11 +76,15 @@ public:
   // Indicate the PHY to send PRACH as soon as possible
   bool send_prach(uint32_t preamble_idx);  
 
-  // Control USRP freq/gain
-  void set_tx_gain(float gain);
-  void set_rx_gain(float gain);
-  void set_tx_freq(float freq);
-  void set_rx_freq(float freq);
+  // Get handler to the radio
+  radio* get_radio(); 
+  
+  // Time advance commands
+  void set_timeadv_rar(uint32_t ta_cmd);
+  void set_timeadv(uint32_t ta_cmd);
+  
+  // Generate Msg3 UL grant from RAR 
+  void rar_ul_grant(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, sched_grant *grant); 
   
   // Get status 
   bool status_is_idle();
@@ -102,7 +107,8 @@ private:
   } phy_state; 
   
   tti_sync      *ttisync; 
-  
+  radio         *radio_handler;
+
   srslte_cell_t cell; 
   bool          cell_is_set;
   bool          is_sfn_synched = false; 
@@ -116,9 +122,10 @@ private:
   prach        prach_buffer; 
   params       params_db; 
   
-  pthread_t    radio_thread; 
-  void        *radio_handler;
-  static void *radio_thread_fnc(void *arg);
+  pthread_t    phy_thread; 
+  float        time_adv_sec;
+  uint32_t     n_ta;
+  static void *phy_thread_fnc(void *arg);
   bool         decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell, uint8_t payload[SRSLTE_BCH_PAYLOAD_LEN]);
   int          sync_sfn();
   void         run_rx_tx_state();

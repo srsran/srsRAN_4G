@@ -28,8 +28,9 @@
 #include <string.h>
 #include <strings.h>
 #include <pthread.h>
-#include "srslte/srslte.h"
 
+#include "srslte/srslte.h"
+#include "srslte/cuhd/cuhd.h"
 #include "srslte/ue_itf/prach.h"
 #include "srslte/ue_itf/phy.h"
 #include "srslte/ue_itf/params.h"
@@ -76,20 +77,26 @@ bool prach::init_cell(srslte_cell_t cell, params *params_db_)
   return true;  
 }
 
-bool prach::ready_to_send(uint32_t preamble_idx_)
+bool prach::prepare_to_send(uint32_t preamble_idx_)
 {
   if (initiated && preamble_idx_ < 64) {
     preamble_idx = preamble_idx_;
+    INFO("PRACH Buffer: Prepare to send preamble %d\n", preamble_idx);
     return true; 
   } else {
     return false; 
   }
 }
 
-bool prach::is_ready_to_send(uint32_t current_tti) {
-  if (preamble_idx >= 0 && preamble_idx < 64 && params_db != NULL) {
+bool prach::is_ready_to_send(uint32_t current_tti_) {
+  if (initiated && preamble_idx >= 0 && preamble_idx < 64 && params_db != NULL) {
+    // consider the number of subframes the transmission must be anticipated 
+    uint32_t current_tti = current_tti_ + tx_advance_sf;
+    
+    // Get SFN and sf_idx from the PRACH configuration index
     uint32_t config_idx = (uint32_t) params_db->get_param(params::PRACH_CONFIG_INDEX); 
     srslte_prach_sfn_t prach_sfn = srslte_prach_get_sfn(config_idx);  
+
     if (prach_sfn == SRSLTE_PRACH_SFN_EVEN && ((current_tti/10)%2)==0 ||
         prach_sfn == SRSLTE_PRACH_SFN_ANY) 
     {
@@ -97,17 +104,25 @@ bool prach::is_ready_to_send(uint32_t current_tti) {
       srslte_prach_sf_config(config_idx, &sf_config);
       for (int i=0;i<sf_config.nof_sf;i++) {
         if ((current_tti%10) == sf_config.sf[i]) {
+          INFO("PRACH Buffer: Ready to send at tti: %d\n", current_tti);
           return true; 
         }
       }
     }
-    return false;     
   }
+  INFO("PRACH Buffer: Not ready to send at tti: %d\n", current_tti_);
+  return false;     
 }
 
 bool prach::send(void *radio_handler, srslte_timestamp_t rx_time)
 {
+  // advance transmission time
+  srslte_timestamp_t tx_time; 
+  srslte_timestamp_copy(&tx_time, &rx_time);
+  srslte_timestamp_add(&tx_time, 0, 1e-3*tx_advance_sf); 
+
   // transmit
+  cuhd_send_timed(radio_handler, buffer[preamble_idx], len, tx_time.full_secs, tx_time.frac_secs);
 }
   
 } // namespace ue

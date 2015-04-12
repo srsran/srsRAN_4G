@@ -197,7 +197,7 @@ SRSLTE_API bool srslte_N_id_2_isvalid(uint32_t N_id_2);
 
 SRSLTE_API bool srslte_N_id_1_isvalid(uint32_t N_id_1);
 
-SRSLTE_API bool srssrslte_symbol_sz_isvalid(uint32_t symbol_sz); 
+SRSLTE_API bool srslte_symbol_sz_isvalid(uint32_t symbol_sz); 
 
 SRSLTE_API int srslte_symbol_sz(uint32_t nof_prb);
 
@@ -213,7 +213,7 @@ SRSLTE_API uint32_t srslte_voffset(uint32_t symbol_id,
                                    uint32_t cell_id, 
                                    uint32_t nof_ports);
 
-SRSLTE_API uint32_t srssrslte_N_ta_new_rar(uint32_t ta);
+SRSLTE_API uint32_t srslte_N_ta_new_rar(uint32_t ta);
 
 SRSLTE_API uint32_t srslte_N_ta_new(uint32_t N_ta_old, 
                                     uint32_t ta);

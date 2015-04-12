@@ -31,7 +31,6 @@
 #include <unistd.h>
 
 #include "srslte/srslte.h"
-#include "srslte/cuhd/cuhd.h"
 
 #include "srslte/ue_itf/phy.h"
 #include "srslte/ue_itf/prach.h"
@@ -40,21 +39,12 @@
 
 namespace srslte {
 namespace ue {
-  
-  
-bool phy::init_radio_handler(char *args) {
-  printf("Opening UHD device...\n");
-  if (cuhd_open(args, &radio_handler)) {
-    fprintf(stderr, "Error opening uhd\n");
-    return false;
-  }
-  return true;    
-}
-
-bool phy::init(tti_sync *ttisync_)
+    
+bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_)
 {
   started = false; 
   ttisync = ttisync_;
+  radio_handler = radio_handler_;
   ul_buffer_queue = new queue(6, sizeof(ul_buffer));
   dl_buffer_queue = new queue(6, sizeof(dl_buffer));
   
@@ -62,12 +52,13 @@ bool phy::init(tti_sync *ttisync_)
   params_db.set_param(params::CELLSEARCH_TIMEOUT_PSS_NFRAMES, 100);
   params_db.set_param(params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, 160);
   params_db.set_param(params::CELLSEARCH_TIMEOUT_MIB_NFRAMES, 100);
-
   
-  if (init_radio_handler((char*) "")) {
-    pthread_create(&radio_thread, NULL, radio_thread_fnc, this);
-    started = true;         
+  if (!pthread_create(&phy_thread, NULL, phy_thread_fnc, this)) {
+    started = true;             
+  } else {
+    perror("pthread_create");
   }
+    
   return started; 
 }
 
@@ -75,7 +66,7 @@ void phy::stop()
 {
   started = false; 
   
-  pthread_join(radio_thread, NULL);
+  pthread_join(phy_thread, NULL);
 
   for (int i=0;i<6;i++) {
     ((ul_buffer*) ul_buffer_queue->get(i))->free_cell();
@@ -88,24 +79,31 @@ void phy::stop()
   prach_buffer.free_cell(); 
 }
 
-void phy::set_tx_gain(float gain) {
-  float x = cuhd_set_tx_gain(radio_handler, gain);
-  printf("Set TX gain to %.1f dB\n", x);
+radio* phy::get_radio() {
+  return radio_handler; 
 }
 
-void phy::set_rx_gain(float gain) {
-  float x = cuhd_set_rx_gain(radio_handler, gain);
-  printf("Set RX gain to %.1f dB\n", x);
+void phy::set_timeadv_rar(uint32_t ta_cmd) {
+  n_ta = srslte_N_ta_new_rar(ta_cmd);
+  time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;
+  INFO("Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
-void phy::set_tx_freq(float freq) {
-  float x = cuhd_set_tx_freq(radio_handler, freq);
-  printf("Set TX freq to %.1f MHz\n", x/1000000);
+void phy::set_timeadv(uint32_t ta_cmd) {
+  n_ta = srslte_N_ta_new(n_ta, ta_cmd);
+  time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;  
+  INFO("Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
-void phy::set_rx_freq(float freq) {
-  float x = cuhd_set_rx_freq(radio_handler, freq);
-  printf("Set RX freq to %.1f MHz\n", x/1000000);
+void phy::rar_ul_grant(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, sched_grant *grant)
+{
+  uint32_t n_ho = params_db.get_param(params::PUSCH_HOPPING_OFFSET);
+  srslte_ra_pusch_t *ra_pusch = (srslte_ra_pusch_t*) grant->get_grant_ptr(); 
+  srslte_dci_rar_to_ra_ul(rba, trunc_mcs, hopping_flag, cell.nof_prb, ra_pusch);
+  srslte_ra_ul_alloc(&ra_pusch->prb_alloc, ra_pusch, n_ho, cell.nof_prb);
+  if (SRSLTE_VERBOSE_ISINFO()) {
+    srslte_ra_pusch_fprint(stdout, ra_pusch, cell.nof_prb);
+  }
 }
 
 void phy::set_param(params::param_t param, int64_t value) {
@@ -117,8 +115,9 @@ void phy::set_param(params::param_t param, int64_t value) {
 bool phy::send_prach(uint32_t preamble_idx)
 {
   if (phy_state == RXTX) {
-    prach_buffer.ready_to_send(preamble_idx);
-  }
+    return prach_buffer.prepare_to_send(preamble_idx);
+  } 
+  return false; 
 }
 
 // Do fast measurement on RSSI and/or PSS autocorrelation energy or PSR
@@ -135,11 +134,11 @@ bool phy::start_rxtx()
   if (phy_state == IDLE) {
     if (cell_is_set) {
       // Set RX/TX sampling rate 
-      cuhd_set_rx_srate(radio_handler, srslte_sampling_freq_hz(cell.nof_prb));
-      cuhd_set_tx_srate(radio_handler, srslte_sampling_freq_hz(cell.nof_prb));
+      radio_handler->set_rx_srate(srslte_sampling_freq_hz(cell.nof_prb));
+      radio_handler->set_tx_srate(srslte_sampling_freq_hz(cell.nof_prb));
       
       // Start streaming
-      cuhd_start_rx_stream(radio_handler);
+      radio_handler->start_rx();
       phy_state = RXTX;
       return true; 
     } else {
@@ -155,7 +154,7 @@ bool phy::stop_rxtx()
 {
   if (phy_state == RXTX) {
     // Stop streaming
-    cuhd_stop_rx_stream(radio_handler);
+    radio_handler->stop_rx();
     phy_state = IDLE; 
     return true; 
   } else {
@@ -183,15 +182,16 @@ uint32_t phy::tti_to_subf(uint32_t tti) {
   return tti%10; 
 }
 
-void* phy::radio_thread_fnc(void *arg) {
+void* phy::phy_thread_fnc(void *arg) {
   phy* phy = static_cast<srslte::ue::phy*>(arg);  
   phy->main_radio_loop();
   return NULL; 
 }
 
-int radio_recv_wrapper_cs(void *h,void *data, uint32_t nsamples, srslte_timestamp_t*)
+int radio_recv_wrapper_cs(void *h,void *data, uint32_t nsamples, srslte_timestamp_t *rx_time)
 {
-  return cuhd_recv(h, data, nsamples, 1);
+  radio *radio_handler = (radio*) h;
+  return radio_handler->rx_now(data, nsamples, rx_time);
 }
 
 bool phy::set_cell(srslte_cell_t cell_) {
@@ -204,9 +204,11 @@ bool phy::set_cell(srslte_cell_t cell_) {
       {
         if (prach_buffer.init_cell(cell, &params_db)) {
           for(uint32_t i=0;i<6;i++) {
-            get_ul_buffer(i)->init_cell(cell, &params_db);
-            get_dl_buffer(i)->init_cell(cell, &params_db);      
-            get_dl_buffer(i)->buffer_id = i; 
+            ((ul_buffer*) ul_buffer_queue->get(i))->init_cell(cell, &params_db);
+            ((dl_buffer*) dl_buffer_queue->get(i))->init_cell(cell, &params_db);      
+            ((dl_buffer*) dl_buffer_queue->get(i))->buffer_id = i; 
+            ((ul_buffer*) ul_buffer_queue->get(i))->ready(); 
+            ((dl_buffer*) dl_buffer_queue->get(i))->release(); 
           }    
           cell_is_set = true;           
         }
@@ -224,15 +226,14 @@ bool phy::set_cell(srslte_cell_t cell_) {
 
 ul_buffer* phy::get_ul_buffer(uint32_t tti)
 {
-  return (ul_buffer*) ul_buffer_queue->get(tti);  
+  return (ul_buffer*) ul_buffer_queue->get(tti - ul_buffer::tx_advance_sf);  
 }
 
 dl_buffer* phy::get_dl_buffer(uint32_t tti)
 {
   return (dl_buffer*) dl_buffer_queue->get(tti);  
 }
-  
-  
+    
 bool phy::decode_mib(uint32_t N_id_2, srslte_cell_t *cell, uint8_t payload[SRSLTE_BCH_PAYLOAD_LEN]) {
   return decode_mib_N_id_2((int) N_id_2, cell, payload); 
 }
@@ -253,10 +254,11 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
   }
   
   srslte_ue_cellsearch_set_nof_frames_to_scan(&cs, params_db.get_param(params::CELLSEARCH_TIMEOUT_PSS_NFRAMES));
-  srslte_ue_cellsearch_set_threshold(&cs, (float) params_db.get_param(params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD)/10);
+  srslte_ue_cellsearch_set_threshold(&cs, (float) 
+    params_db.get_param(params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD)/10);
 
-  cuhd_set_rx_srate(radio_handler, 1920000.0);
-  cuhd_start_rx_stream(radio_handler);
+  radio_handler->set_rx_srate(1920000.0);
+  radio_handler->start_rx();
   
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
   uint32_t max_peak_cell = 0;
@@ -267,8 +269,8 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
   } else {
     ret = srslte_ue_cellsearch_scan(&cs, found_cells, &max_peak_cell); 
   }
-  
-  cuhd_stop_rx_stream(radio_handler);
+
+  radio_handler->stop_rx();
   srslte_ue_cellsearch_free(&cs);
   
   if (ret < 0) {
@@ -294,10 +296,10 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
   /* Find and decode MIB */
   uint32_t sfn, sfn_offset; 
 
-  cuhd_start_rx_stream(radio_handler);
+  radio_handler->start_rx();
   ret = srslte_ue_mib_sync_decode(&ue_mib_sync, params_db.get_param(params::CELLSEARCH_TIMEOUT_MIB_NFRAMES), 
                                   bch_payload, &cell_ptr->nof_ports, &sfn_offset); 
-  cuhd_stop_rx_stream(radio_handler);
+  radio_handler->stop_rx();
   srslte_ue_mib_sync_free(&ue_mib_sync);
 
   if (ret == 1) {
@@ -372,8 +374,8 @@ void phy::run_rx_tx_state()
       prach_buffer.send(radio_handler, rx_time);
     }
     // send ul buffer if we have to 
-    if (get_ul_buffer(current_tti)->is_ready_to_send()) {
-      get_ul_buffer(current_tti)->send_packet(radio_handler, rx_time);      
+    if (get_ul_buffer(current_tti)->is_released()) {
+      get_ul_buffer(current_tti)->send_packet(radio_handler, time_adv_sec, rx_time);      
     }
     ttisync->increase();
   }

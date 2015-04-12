@@ -71,13 +71,17 @@ bool dl_buffer::recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_t
     if (srslte_ue_sync_get_buffer(ue_sync, &sf_buffer) == 1) {
       memcpy(signal_buffer, sf_buffer, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
       srslte_ue_sync_get_last_timestamp(ue_sync, rx_time);    
+      sf_symbols_and_ce_done = false; 
+      pdcch_llr_extracted = false; 
+      ready();
+      return true; 
     } else {
       return false; 
     }
   }
 }
 
-bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, uint32_t rnti, sched_grant *grant)
+bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, sched_grant *grant)
 {
   if (signal_buffer) {
     if (!sf_symbols_and_ce_done) {
@@ -94,7 +98,7 @@ bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, uint32_t rnti, sched_grant 
     }
     
     srslte_dci_msg_t dci_msg; 
-    if (srslte_ue_dl_find_ul_dci(&ue_dl, &dci_msg, cfi, tti%10, rnti)) {
+    if (srslte_ue_dl_find_ul_dci(&ue_dl, &dci_msg, cfi, tti%10, grant->get_rnti())) {
       return false; 
     }
     
@@ -110,9 +114,9 @@ bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, uint32_t rnti, sched_grant 
 
 }
 
-bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant *grant)
+bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, sched_grant *grant)
 {
-  if (signal_buffer) {
+  if (signal_buffer && is_ready()) {
     INFO("DL Buffer TTI %d: Getting DL grant\n", tti);
     if (!sf_symbols_and_ce_done) {
     INFO("DL Buffer TTI %d: Getting DL grant. Calling fft estimate\n", tti);
@@ -137,11 +141,11 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant 
     }
     
     srslte_dci_msg_t dci_msg; 
-    if (srslte_ue_dl_find_dl_dci(&ue_dl, &dci_msg, cfi, tti%10, rnti) != 1) {
+    if (srslte_ue_dl_find_dl_dci(&ue_dl, &dci_msg, cfi, tti%10, grant->get_rnti()) != 1) {
       return false; 
     }
     
-    if (srslte_dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, 
+    if (srslte_dci_msg_to_ra_dl(&dci_msg, grant->get_rnti(), cell, cfi, 
                                 (srslte_ra_pdsch_t*) grant->get_grant_ptr())) {
       return false; 
     }
@@ -152,7 +156,7 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti, sched_grant 
 
 bool dl_buffer::decode_phich(srslte_phich_alloc_t assignment)
 {
-  if (signal_buffer) {
+  if (signal_buffer && is_ready()) {
     if (!sf_symbols_and_ce_done) {
       if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
         return false; 
@@ -165,10 +169,10 @@ bool dl_buffer::decode_phich(srslte_phich_alloc_t assignment)
 
 bool dl_buffer::decode_pdsch(sched_grant pdsch_grant, uint8_t *payload)
 {
-  if (signal_buffer) {
+  if (signal_buffer && is_ready()) {
     INFO("DL Buffer TTI %d: Decoding PDSCH\n", tti);
     if (!sf_symbols_and_ce_done) {
-    INFO("DL Buffer TTI %d: Decoding PDSCH. Calling fft estimate\n", tti);
+      INFO("DL Buffer TTI %d: Decoding PDSCH. Calling fft estimate\n", tti);
       if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
         return false; 
       }

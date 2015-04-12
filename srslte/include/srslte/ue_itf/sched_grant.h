@@ -39,7 +39,7 @@ namespace ue {
   public:
 
     typedef enum {DOWNLINK=0, UPLINK=1} direction_t; 
-             sched_grant(uint16_t rnti);
+             sched_grant(direction_t direction, uint16_t rnti);
     uint16_t get_rnti();
     uint32_t get_rv();
     void     set_rv(uint32_t rv);

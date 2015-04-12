@@ -24,4 +24,7 @@ LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
 IF(${CUHD_FIND} GREATER -1)
   ADD_EXECUTABLE(ue_itf_test_sib1 ue_itf_test_sib1.cc)
   TARGET_LINK_LIBRARIES(ue_itf_test_sib1 srslte++ cuhd)
+
+  ADD_EXECUTABLE(ue_itf_test_prach ue_itf_test_prach.cc)
+  TARGET_LINK_LIBRARIES(ue_itf_test_prach srslte++ cuhd)
 ENDIF(${CUHD_FIND} GREATER -1)

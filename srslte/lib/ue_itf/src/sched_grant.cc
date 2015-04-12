@@ -35,9 +35,10 @@
 namespace srslte {
 namespace ue {
   
-  sched_grant::sched_grant(uint16_t rnti_)
+  sched_grant::sched_grant(direction_t direction, uint16_t rnti_)
   {
     rnti = rnti_; 
+    dir = direction; 
   }
   
   /* Returns the RNTI associated with the UL/DL scheduling grant */

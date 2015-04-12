@@ -26,6 +26,7 @@
  */
 
 #include "srslte/srslte.h"
+#include "srslte/common/radio.h"
 #include "srslte/ue_itf/queue.h"
 #include "srslte/ue_itf/sched_grant.h"
 #include "srslte/ue_itf/params.h"
@@ -47,18 +48,18 @@ namespace ue {
     void     free_cell();
     void     set_tti(uint32_t tti);
     void     set_current_tx_nb(uint32_t current_tx_nb);
+    bool     generate_pusch(sched_grant pusch_grant, uint8_t *payload);    
     bool     generate_pusch(sched_grant pusch_grant, uint8_t *payload, srslte_uci_data_t uci_data);    
     bool     generate_pucch(srslte_uci_data_t uci_data);
-    bool     send_packet(void *radio_handler, srslte_timestamp_t rx_time);
+    bool     send_packet(radio* radio_handler, float time_adv_sec, srslte_timestamp_t rx_time);
+    static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
 
   private: 
     params        *params_db; 
     srslte_cell_t  cell; 
     srslte_ue_ul_t ue_ul; 
-    bool           signal_generated; 
     bool           cell_initiated; 
     cf_t*          signal_buffer;
-    uint32_t       tti; 
     uint32_t       current_tx_nb; 
   };
 

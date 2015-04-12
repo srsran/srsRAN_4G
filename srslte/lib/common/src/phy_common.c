@@ -211,7 +211,7 @@ uint32_t srslte_N_ta_new(uint32_t N_ta_old, uint32_t ta) {
 
 /* Returns the new time advance as indicated by the random access response 
  * as specified in Section 4.2.3 of 36.213 */
-uint32_t srssrslte_N_ta_new_rar(uint32_t ta) {
+uint32_t srslte_N_ta_new_rar(uint32_t ta) {
   if (ta > 1282) {
     ta = 1282; 
   }
@@ -263,7 +263,7 @@ int srslte_symbol_sz(uint32_t nof_prb) {
   return SRSLTE_ERROR;
 }
 
-bool srssrslte_symbol_sz_isvalid(uint32_t symbol_sz) {
+bool srslte_symbol_sz_isvalid(uint32_t symbol_sz) {
   if (symbol_sz == 128  || 
       symbol_sz == 256  ||
       symbol_sz == 512  ||
