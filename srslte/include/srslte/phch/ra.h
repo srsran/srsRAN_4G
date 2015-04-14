@@ -130,6 +130,8 @@ typedef struct SRSLTE_API {
   srslte_ra_mcs_t mcs;
   uint32_t rv_idx; // If set to non-zero, a retransmission is requested with the same modulation
                    // than before (SRSLTE_DCI_FORMAT0 message, see also 8.6.1 in 36.2313).
+
+  uint32_t n_dmrs; 
   bool ndi;
   bool cqi_request;
 

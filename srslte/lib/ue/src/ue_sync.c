@@ -221,6 +221,10 @@ float srslte_ue_sync_get_cfo(srslte_ue_sync_t *q) {
   return 15000 * srslte_sync_get_cfo(&q->strack);
 }
 
+void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, float cfo) {
+  srslte_sync_set_cfo(&q->strack, cfo/15000);
+}
+
 float srslte_ue_sync_get_sfo(srslte_ue_sync_t *q) {
   return 5000*q->mean_time_offset;
 }
@@ -266,9 +270,6 @@ static int find_peak_ok(srslte_ue_sync_t *q) {
     q->frame_find_cnt = 0; 
     q->mean_time_offset = 0; 
     
-    /* Set tracking CFO average to find CFO */
-    q->strack.mean_cfo = q->sfind.mean_cfo;
-
     /* Goto Tracking state */
     q->state = SF_TRACK;            
   }
@@ -455,13 +456,6 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
                         -srslte_sync_get_cfo(&q->strack) / q->fft_size);               
                         
           }
-          /*
-          if (track_idx > q->fft_size + q->strack.frame_size/2) {
-            *sf_symbols = &q->input_buffer[track_idx - q->fft_size - q->strack.frame_size/2];            
-          } else {
-            *sf_symbols = q->input_buffer;
-          }
-          */
           *sf_symbols = q->input_buffer;
           
         break;

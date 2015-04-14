@@ -47,12 +47,17 @@ void prach::free_cell()
         free(buffer[i]);
       }
     }
+    if (signal_buffer) {
+      free(signal_buffer);
+    }
+    srslte_cfo_free(&cfo_h);
     srslte_prach_free(&prach);
   }
 }
 
-bool prach::init_cell(srslte_cell_t cell, params *params_db_)
+bool prach::init_cell(srslte_cell_t cell_, params *params_db_)
 {
+  cell = cell_; 
   params_db = params_db_; 
   preamble_idx = -1; 
   if (srslte_prach_init(&prach, srslte_symbol_sz(cell.nof_prb), 
@@ -73,14 +78,18 @@ bool prach::init_cell(srslte_cell_t cell, params *params_db_)
       return false;
     }
   }
-  initiated = true; 
-  return true;  
+  srslte_cfo_init(&cfo_h, len);
+  signal_buffer = (cf_t*) srslte_vec_malloc(len*sizeof(cf_t)); 
+  initiated = signal_buffer?true:false; 
+  transmitted_tti = -1; 
+  return initiated;  
 }
 
 bool prach::prepare_to_send(uint32_t preamble_idx_)
 {
   if (initiated && preamble_idx_ < 64) {
     preamble_idx = preamble_idx_;
+    transmitted_tti = -1; 
     INFO("PRACH Buffer: Prepare to send preamble %d\n", preamble_idx);
     return true; 
   } else {
@@ -91,7 +100,7 @@ bool prach::prepare_to_send(uint32_t preamble_idx_)
 bool prach::is_ready_to_send(uint32_t current_tti_) {
   if (initiated && preamble_idx >= 0 && preamble_idx < 64 && params_db != NULL) {
     // consider the number of subframes the transmission must be anticipated 
-    uint32_t current_tti = current_tti_ + tx_advance_sf;
+    uint32_t current_tti = (current_tti_ + tx_advance_sf)%10240;
     
     // Get SFN and sf_idx from the PRACH configuration index
     uint32_t config_idx = (uint32_t) params_db->get_param(params::PRACH_CONFIG_INDEX); 
@@ -104,7 +113,8 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
       srslte_prach_sf_config(config_idx, &sf_config);
       for (int i=0;i<sf_config.nof_sf;i++) {
         if ((current_tti%10) == sf_config.sf[i]) {
-          INFO("PRACH Buffer: Ready to send at tti: %d\n", current_tti);
+          INFO("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", current_tti, current_tti_);
+          transmitted_tti = current_tti; 
           return true; 
         }
       }
@@ -114,15 +124,29 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
   return false;     
 }
 
-bool prach::send(void *radio_handler, srslte_timestamp_t rx_time)
+int prach::get_transmitted_tti() {
+  if (initiated) {
+    return transmitted_tti;     
+  } else {
+    return -1; 
+  }
+}
+
+bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
 {
   // advance transmission time
   srslte_timestamp_t tx_time; 
   srslte_timestamp_copy(&tx_time, &rx_time);
   srslte_timestamp_add(&tx_time, 0, 1e-3*tx_advance_sf); 
 
+  // Correct CFO before transmission
+  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, 1.7*cfo / srslte_symbol_sz(cell.nof_prb));            
+
   // transmit
-  cuhd_send_timed(radio_handler, buffer[preamble_idx], len, tx_time.full_secs, tx_time.frac_secs);
+  radio_handler->tx(signal_buffer, len, tx_time);                
+  INFO("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f\n", cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs);
+  //srslte_vec_save_file("prach", buffer[preamble_idx], len*sizeof(cf_t));
+  preamble_idx = -1; 
 }
   
 } // namespace ue

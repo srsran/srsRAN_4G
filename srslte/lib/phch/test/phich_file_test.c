@@ -214,7 +214,7 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  uint32_t distance;
+  float distance;
   int n;
   uint32_t ngroup, nseq, max_nseq;
   uint8_t ack_rx;

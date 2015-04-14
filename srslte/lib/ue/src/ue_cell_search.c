@@ -175,6 +175,9 @@ static void get_cell(srslte_ue_cellsearch_t * q, uint32_t nof_detected_frames, s
   
   // PSR is already averaged so take the last value 
   found_cell->psr = q->candidates[nof_detected_frames-1].psr;
+  
+  // CFO is also already averaged 
+  found_cell->cfo = q->candidates[nof_detected_frames-1].cfo; 
 }
 
 /** Finds up to 3 cells, one per each N_id_2=0,1,2 and stores ID and CP in the structure pointed by found_cell.
@@ -235,6 +238,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, uint32_t N_id_2
           q->candidates[nof_detected_frames].cp = srslte_sync_get_cp(&q->ue_sync.strack);
           q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
           q->candidates[nof_detected_frames].psr = srslte_sync_get_peak_value(&q->ue_sync.strack);
+          q->candidates[nof_detected_frames].cfo = srslte_ue_sync_get_cfo(&q->ue_sync);
           INFO
             ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
               nof_detected_frames, nof_scanned_frames, q->nof_frames_to_scan,

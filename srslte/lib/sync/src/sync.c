@@ -144,6 +144,10 @@ float srslte_sync_get_cfo(srslte_sync_t *q) {
   return q->mean_cfo;
 }
 
+void srslte_sync_set_cfo(srslte_sync_t *q, float cfo) {
+  q->mean_cfo = cfo;
+}
+
 float srslte_sync_get_last_peak_value(srslte_sync_t *q) {
   return q->peak_value;
 }
@@ -313,7 +317,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       // Make sure we have enough space to estimate CFO
       if (peak_pos + find_offset >= q->fft_size) {
         float cfo = srslte_pss_synch_cfo_compute(&q->pss, &input[find_offset+peak_pos-q->fft_size]);
-
+          
         /* compute cumulative moving average CFO */
         q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, CFO_EMA_ALPHA);
       } else {

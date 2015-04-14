@@ -75,6 +75,9 @@ public:
 
   // Indicate the PHY to send PRACH as soon as possible
   bool send_prach(uint32_t preamble_idx);  
+  
+  // Returns TTI when PRACH was transmitted. -1 if not yet transmitted
+  int get_prach_transmitted_tti();
 
   // Get handler to the radio
   radio* get_radio(); 
@@ -125,12 +128,15 @@ private:
   pthread_t    phy_thread; 
   float        time_adv_sec;
   uint32_t     n_ta;
+  bool         radio_is_streaming;
+  srslte_timestamp_t last_rx_time; 
+  float        cellsearch_cfo;
   static void *phy_thread_fnc(void *arg);
   bool         decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell, uint8_t payload[SRSLTE_BCH_PAYLOAD_LEN]);
   int          sync_sfn();
   void         run_rx_tx_state();
   bool         init_radio_handler(char *args);
-  
+  ul_buffer*   get_ul_buffer_adv(uint32_t tti);
 };
 
 } 

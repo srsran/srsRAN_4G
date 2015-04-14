@@ -92,8 +92,10 @@ int srslte_dci_msg_to_ra_dl(srslte_dci_msg_t *msg, uint16_t msg_rnti,
             
       ret = SRSLTE_SUCCESS;
     } else {
-      fprintf(stderr, "Unsupported message type: "); 
-      srslte_dci_msg_type_fprint(stderr, type);
+      if (SRSLTE_VERBOSE_ISINFO()) {
+        fprintf(stderr, "Unsupported message type: "); 
+        srslte_dci_msg_type_fprint(stderr, type);        
+      }
     }
   }
   return ret;
@@ -375,9 +377,10 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_pusch_t *data, uint32_t 
 
   data->ndi = *y++ ? true : false;
 
-  // TCP and DM RS commands not implemented
+  // TPC and DM RS commands not implemented
   y += 5;
-
+  data->n_dmrs = 0; 
+  
   // CQI request
   data->cqi_request = *y++ ? true : false;
 

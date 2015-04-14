@@ -73,6 +73,7 @@ typedef struct SRSLTE_API {
   float peak; 
   float mode; 
   float psr;
+  float cfo; 
 } srslte_ue_cellsearch_result_t;
 
 

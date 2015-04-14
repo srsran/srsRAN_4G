@@ -51,7 +51,7 @@ namespace ue {
     bool     generate_pusch(sched_grant pusch_grant, uint8_t *payload);    
     bool     generate_pusch(sched_grant pusch_grant, uint8_t *payload, srslte_uci_data_t uci_data);    
     bool     generate_pucch(srslte_uci_data_t uci_data);
-    bool     send_packet(radio* radio_handler, float time_adv_sec, srslte_timestamp_t rx_time);
+    bool     send(radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time);
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
 
   private: 

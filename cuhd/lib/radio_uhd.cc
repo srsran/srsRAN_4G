@@ -62,6 +62,10 @@ bool radio_uhd::rx_now(void* buffer, uint32_t nof_samples, srslte_timestamp_t* r
   }
 }
 
+void radio_uhd::get_time(srslte_timestamp_t *now) {
+  cuhd_get_time(uhd, &now->full_secs, &now->frac_secs);  
+}
+
 bool radio_uhd::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
   if (cuhd_send_timed(uhd, buffer, nof_samples, tx_time.full_secs, tx_time.frac_secs) > 0) {

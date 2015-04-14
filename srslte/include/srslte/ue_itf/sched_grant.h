@@ -50,11 +50,14 @@ namespace ue {
     bool     is_downlink();
     void*    get_grant_ptr();
     uint32_t get_tbs(); 
+    uint32_t get_current_tx_nb();
+    void     set_current_tx_nb(uint32_t current_tx_nb);
   protected: 
     union {
       srslte_ra_pusch_t ul_grant;
       srslte_ra_pdsch_t dl_grant;
     }; 
+    uint32_t            current_tx_nb; 
     direction_t         dir; 
     uint16_t            rnti; 
   };

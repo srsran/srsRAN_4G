@@ -53,6 +53,14 @@ uint32_t srslte_phich_ngroups(srslte_phich_t *q) {
   return srslte_regs_phich_ngroups(q->regs);
 }
 
+uint32_t srslte_phich_nsf(srslte_phich_t *q) {
+  if (SRSLTE_CP_ISNORM(q->cell.cp)) {
+    return SRSLTE_PHICH_NORM_NSF;
+  } else {
+    return SRSLTE_PHICH_EXT_NSF; 
+  }
+}
+
 void srslte_phich_reset(srslte_phich_t *q, cf_t *slot_symbols[SRSLTE_MAX_PORTS]) {
   int i;
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
@@ -79,12 +87,13 @@ int srslte_phich_init(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t cell
       fprintf(stderr, "Error initializing precoding\n");
     }
 
-    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_BPSK, false)) {
+    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_BPSK, true)) {
       goto clean;
     }
 
-    srslte_demod_hard_init(&q->demod);
-    srslte_demod_hard_table_set(&q->demod, SRSLTE_MOD_BPSK);
+    srslte_demod_soft_init(&q->demod, SRSLTE_PHICH_MAX_NSYMB);
+    srslte_demod_soft_table_set(&q->demod, &q->mod);
+    srslte_demod_soft_alg_set(&q->demod, SRSLTE_DEMOD_SOFT_ALG_APPROX);
 
     for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
       if (srslte_sequence_phich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
@@ -114,25 +123,29 @@ void srslte_phich_free(srslte_phich_t *q) {
 /* Decodes ACK
  *
  */
-uint8_t srslte_phich_ack_decode(uint8_t bits[SRSLTE_PHICH_NBITS], uint32_t *distance) {
-  int i, n;
-
-  n = 0;
-  for (i = 0; i < SRSLTE_PHICH_NBITS; i++) {
-    n += bits[i];
+uint8_t srslte_phich_ack_decode(float bits[SRSLTE_PHICH_NBITS], float *distance) {
+  int i;
+  float ack_table[2][3] = {{-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0}}; 
+  float max_corr = -9999; 
+  uint8_t index=0; 
+  
+  if (SRSLTE_VERBOSE_ISINFO()) {
+    INFO("Received bits: ", 0);
+    srslte_vec_fprint_f(stdout, bits, SRSLTE_PHICH_NBITS);
   }
-  INFO("PHICH decoder: %d, %d, %d\n", bits[0], bits[1], bits[2]);
-  if (n >= 2) {
-    if (distance) {
-      *distance = 3 - n;
+  
+  for (i = 0; i < 2; i++) {
+    float corr = srslte_vec_dot_prod_fff(ack_table[i], bits, SRSLTE_PHICH_NBITS);
+    INFO("Corr%d=%f\n", i, corr);
+    if (corr > max_corr) {
+      max_corr = corr; 
+      if (distance) {
+        *distance = max_corr;
+      }
+      index = i; 
     }
-    return 1;
-  } else {
-    if (distance) {
-      *distance = n;
-    }
-    return 0;
-  }
+  }  
+  return index;
 }
 
 /** Encodes the ACK
@@ -147,7 +160,7 @@ void srslte_phich_ack_encode(uint8_t ack, uint8_t bits[SRSLTE_PHICH_NBITS]) {
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
 int srslte_phich_decode(srslte_phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate,
-    uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, uint32_t *distance) {
+    uint32_t ngroup, uint32_t nseq, uint32_t subframe, uint8_t *ack, float *distance) {
 
   /* Set pointers for layermapping & precoding */
   int i, j;
@@ -265,10 +278,10 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_M
   if (SRSLTE_VERBOSE_ISDEBUG())
     srslte_vec_fprint_c(stdout, q->z, SRSLTE_PHICH_NBITS);
 
-  srslte_demod_hard_demodulate(&q->demod, q->z, q->data, SRSLTE_PHICH_NBITS);
+  srslte_demod_soft_demodulate(&q->demod, q->z, q->data_rx, SRSLTE_PHICH_NBITS);
 
   if (ack) {
-    *ack = srslte_phich_ack_decode(q->data, distance);
+    *ack = srslte_phich_ack_decode(q->data_rx, distance);
   }
 
   return SRSLTE_SUCCESS;

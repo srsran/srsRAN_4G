@@ -59,6 +59,7 @@ typedef struct SRSLTE_API {
   srslte_cell_t cell;
   
   bool normalize_en; 
+  bool cfo_en; 
   
   float current_cfo; 
 
@@ -82,6 +83,9 @@ SRSLTE_API void srslte_ue_ul_free(srslte_ue_ul_t *q);
 
 SRSLTE_API void srslte_ue_ul_set_cfo(srslte_ue_ul_t *q, 
                                      float cur_cfo); 
+
+SRSLTE_API void srslte_ue_ul_set_cfo_enable(srslte_ue_ul_t *q, 
+                                            bool enabled); 
 
 SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, 
                                                bool enabled); 

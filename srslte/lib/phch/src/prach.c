@@ -44,6 +44,7 @@
 #define   PHI_4         2     // PRACH phi parameter for format 4
 #define   MAX_ROOTS     838   // Max number of root sequences
 
+#define PRACH_AMP       0.5
 
 /******************************************************
  * Reference tables from 3GPP TS 36.211 v10.7.0
@@ -357,14 +358,14 @@ int srslte_prach_init(srslte_prach_t *p,
       return SRSLTE_ERROR;
     }
     srslte_dft_plan_set_mirror(p->zc_fft, false);
-    srslte_dft_plan_set_norm(p->zc_fft, false);
+    srslte_dft_plan_set_norm(p->zc_fft, true);
 
     p->zc_ifft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
     if(srslte_dft_plan(p->zc_ifft, p->N_zc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)){
       return SRSLTE_ERROR;
     }
     srslte_dft_plan_set_mirror(p->zc_ifft, false);
-    srslte_dft_plan_set_norm(p->zc_ifft, false);
+    srslte_dft_plan_set_norm(p->zc_ifft, true);
 
     // Generate our 64 sequences
     p->N_roots = 0;
@@ -437,7 +438,7 @@ int srslte_prach_gen(srslte_prach_t *p,
 
     // Copy preamble sequence into buffer
     for(int i=0;i<p->N_seq;i++){
-      signal[p->N_cp+i] = p->ifft_out[i%p->N_ifft_prach];
+      signal[p->N_cp+i] = PRACH_AMP*p->ifft_out[i%p->N_ifft_prach];
     }
                 
     ret = SRSLTE_SUCCESS;

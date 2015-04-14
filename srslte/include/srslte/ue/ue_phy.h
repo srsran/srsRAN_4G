@@ -112,7 +112,7 @@ public:
                  dl_buffer(srslte_cell_t cell);
     sched_grant  get_ul_grant(pdcch_ul_search_t mode, uint32_t rnti);
     sched_grant  get_dl_grant(pdcch_dl_search_t mode, uint32_t rnti);
-    bool         decode_phich(srslte_phich_alloc_t assignment);
+    bool         decode_phich(sched_grant pusch_grant);
     bool         decode_pdsch(sched_grant pdsch_grant, uint8_t *payload); // returns true or false for CRC OK/KO
   private: 
     srslte_ue_dl_t ue_dl; 

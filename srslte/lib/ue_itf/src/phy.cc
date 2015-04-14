@@ -53,12 +53,19 @@ bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_)
   params_db.set_param(params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, 160);
   params_db.set_param(params::CELLSEARCH_TIMEOUT_MIB_NFRAMES, 100);
   
-  if (!pthread_create(&phy_thread, NULL, phy_thread_fnc, this)) {
+  pthread_attr_t attr;
+  struct sched_param param;
+  param.sched_priority = 99;
+  
+  pthread_attr_init(&attr);
+  pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+  pthread_attr_setschedparam(&attr, &param);
+  if (!pthread_create(&phy_thread, &attr, phy_thread_fnc, this)) {
     started = true;             
   } else {
     perror("pthread_create");
   }
-    
+  pthread_attr_destroy(&attr);
   return started; 
 }
 
@@ -120,6 +127,11 @@ bool phy::send_prach(uint32_t preamble_idx)
   return false; 
 }
 
+int phy::get_prach_transmitted_tti()
+{
+  return prach_buffer.get_transmitted_tti(); 
+}
+
 // Do fast measurement on RSSI and/or PSS autocorrelation energy or PSR
 bool phy::measure()
 {
@@ -134,11 +146,9 @@ bool phy::start_rxtx()
   if (phy_state == IDLE) {
     if (cell_is_set) {
       // Set RX/TX sampling rate 
-      radio_handler->set_rx_srate(srslte_sampling_freq_hz(cell.nof_prb));
-      radio_handler->set_tx_srate(srslte_sampling_freq_hz(cell.nof_prb));
+      radio_handler->set_rx_srate((float) srslte_sampling_freq_hz(cell.nof_prb));
+      radio_handler->set_tx_srate((float) srslte_sampling_freq_hz(cell.nof_prb));
       
-      // Start streaming
-      radio_handler->start_rx();
       phy_state = RXTX;
       return true; 
     } else {
@@ -202,6 +212,8 @@ bool phy::set_cell(srslte_cell_t cell_) {
     {
       if (!srslte_ue_sync_init(&ue_sync, cell, radio_recv_wrapper_cs, radio_handler)) 
       {
+
+        srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
         if (prach_buffer.init_cell(cell, &params_db)) {
           for(uint32_t i=0;i<6;i++) {
             ((ul_buffer*) ul_buffer_queue->get(i))->init_cell(cell, &params_db);
@@ -226,7 +238,12 @@ bool phy::set_cell(srslte_cell_t cell_) {
 
 ul_buffer* phy::get_ul_buffer(uint32_t tti)
 {
-  return (ul_buffer*) ul_buffer_queue->get(tti - ul_buffer::tx_advance_sf);  
+  return (ul_buffer*) ul_buffer_queue->get(tti);        
+}
+
+ul_buffer* phy::get_ul_buffer_adv(uint32_t tti)
+{
+  return (ul_buffer*) ul_buffer_queue->get(tti + ul_buffer::tx_advance_sf);        
 }
 
 dl_buffer* phy::get_dl_buffer(uint32_t tti)
@@ -284,8 +301,9 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
   // Save result 
   cell_ptr->id = found_cells[max_peak_cell].cell_id;
   cell_ptr->cp = found_cells[max_peak_cell].cp; 
+  cellsearch_cfo = found_cells[max_peak_cell].cfo;
   
-  INFO("\nFound CELL ID: %d CP: %s\n", cell_ptr->id, srslte_cp_string(cell_ptr->cp));
+  INFO("\nFound CELL ID: %d CP: %s, CFO: %f\n", cell_ptr->id, srslte_cp_string(cell_ptr->cp), cellsearch_cfo);
   
   srslte_ue_mib_sync_t ue_mib_sync; 
 
@@ -351,6 +369,12 @@ void phy::run_rx_tx_state()
 {
   int ret; 
   if (!is_sfn_synched) {
+    if (!radio_is_streaming) {
+      // Start streaming
+      radio_handler->start_rx();
+      radio_is_streaming = true; 
+    }
+      
     ret = sync_sfn(); 
     switch(ret) {
       default:
@@ -364,20 +388,24 @@ void phy::run_rx_tx_state()
     } 
   } else {
     uint32_t current_tti = ttisync->get_producer_cntr();
-    
-    // Receive alligned buffer for the current tti 
-    srslte_timestamp_t rx_time; 
-    get_dl_buffer(current_tti)->recv_ue_sync(&ue_sync, &rx_time);
+    float cfo = srslte_ue_sync_get_cfo(&ue_sync)/15000; 
 
+    // Prepare transmission for the next tti 
+    srslte_timestamp_add(&last_rx_time, 0, 1e-3);
+    
     // send prach if we have to 
     if (prach_buffer.is_ready_to_send(current_tti)) {
-      prach_buffer.send(radio_handler, rx_time);
+      prach_buffer.send(radio_handler, cfo, last_rx_time);
     }
     // send ul buffer if we have to 
-    if (get_ul_buffer(current_tti)->is_released()) {
-      get_ul_buffer(current_tti)->send_packet(radio_handler, time_adv_sec, rx_time);      
+    if (get_ul_buffer_adv(current_tti)->is_released()) {
+      get_ul_buffer_adv(current_tti)->send(radio_handler, time_adv_sec, cfo, last_rx_time);      
     }
-    ttisync->increase();
+    
+    // Receive alligned buffer for the current tti 
+    get_dl_buffer(current_tti)->recv_ue_sync(&ue_sync, &last_rx_time);
+
+    ttisync->increase();      
   }
 }
 

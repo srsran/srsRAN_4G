@@ -285,9 +285,6 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
     return(ret);
 }
 
-#define kk
-#define use_usrp 
-
 int main(int argc, char **argv) {
   int ret; 
   srslte_cell_t cell;  
@@ -308,7 +305,6 @@ int main(int argc, char **argv) {
 
   parse_args(&prog_args, argc, argv);
 
-#ifdef use_usrp
   printf("Opening UHD device...\n");
   if (cuhd_open(prog_args.uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
@@ -329,9 +325,7 @@ int main(int argc, char **argv) {
   cuhd_set_tx_freq_offset(uhd, prog_args.uhd_tx_freq, prog_args.uhd_tx_freq_offset);
   printf("Tunning TX receiver to %.3f MHz\n", (double ) prog_args.uhd_tx_freq/1000000);
 
-#endif
   
-#ifdef kk
   ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
   if (ret < 0) {
     fprintf(stderr, "Error searching for cell\n");
@@ -340,16 +334,6 @@ int main(int argc, char **argv) {
     printf("Cell not found\n");
     exit(0);
   }
-#else
-  cell.id = 1; 
-  cell.nof_ports = 1; 
-  cell.nof_prb = 25; 
-  cell.cp = SRSLTE_CP_NORM; 
-  cell.phich_length = SRSLTE_PHICH_NORM; 
-  cell.phich_resources = SRSLTE_PHICH_R_1; 
-#endif
-
-#ifdef use_usrp
 
   /* set sampling frequency */
   int srate = srslte_sampling_freq_hz(cell.nof_prb);
@@ -365,7 +349,6 @@ int main(int argc, char **argv) {
   cuhd_stop_rx_stream(uhd);
   cuhd_flush_buffer(uhd);
 
-#endif
   
   if (srslte_ue_mib_init(&ue_mib, cell)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
@@ -391,6 +374,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating UE UL\n");
     exit(-1);
   }
+  
+  srslte_ue_ul_set_cfo_enable(&ue_ul, true);
   
   srslte_pusch_hopping_cfg_t hop_cfg; 
   bzero(&hop_cfg, sizeof(srslte_pusch_hopping_cfg_t));
@@ -421,39 +406,28 @@ int main(int argc, char **argv) {
   sf_cnt = 0;
 
 
-#ifdef use_usrp
   if (srslte_ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper_timed, uhd)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
 
   cuhd_start_rx_stream(uhd);    
-#endif           
     
   uint16_t ra_rnti; 
   uint32_t conn_setup_trial = 0; 
   uint32_t ul_sf_idx = 0; 
-#ifdef kk
   // Register Ctrl+C handler
   signal(SIGINT, sig_int_handler);
   state = DECODE_MIB; 
-#else
-  state = RECV_RAR; 
-#endif  
+
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     
-#ifdef kk
     ret = srslte_ue_sync_get_buffer(&ue_sync, &sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
-#else 
-  ret = 1;
-            srslte_timestamp_t rx_time, tx_time; 
-            cf_t dummy[4];
-#endif  
-            
+           
     /* srslte_ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
     
@@ -485,7 +459,6 @@ int main(int argc, char **argv) {
             break;
           case SEND_PRACH:
 
-  #ifdef kk
             if (((sfn%2) == 1) && (srslte_ue_sync_get_sfidx(&ue_sync) == 1)) {
               srslte_ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
       
@@ -497,27 +470,15 @@ int main(int argc, char **argv) {
               cuhd_send_timed(uhd, prach_buffer, prach_buffer_len, 
                               next_tx_time.full_secs, next_tx_time.frac_secs);
               
+              srslte_vec_save_file("prach_ue", prach_buffer, prach_buffer_len*sizeof(cf_t));
+              
               ra_rnti = 2; 
               rar_window_start = sfn+1;
               rar_window_stop = sfn+3;
               state = RECV_RAR;
             }
-  #else
-              cuhd_recv_with_time(uhd, dummy, 4, 1, &rx_time.full_secs, &rx_time.frac_secs);
-
-              srslte_timestamp_copy(&tx_time, &rx_time);
-              printf("Transmitting PRACH...\n");
-              srslte_vec_save_file("srslte_prach_tx", prach_buffers[7], prach_buffer_len*sizeof(cf_t));
-              while(1) {
-                srslte_timestamp_add(&tx_time, 0, 0.001); // send every (10 ms)            
-                cuhd_send_timed(uhd, prach_buffers[7], prach_buffer_len, 
-                              tx_time.full_secs, tx_time.frac_secs);
-                
-              }
-  #endif
             break;
           case RECV_RAR:
-            #ifdef kk
 
             if ((sfn == rar_window_start && srslte_ue_sync_get_sfidx(&ue_sync) > 3) || sfn > rar_window_start) {
               printf("Looking for RAR in sfn: %d sf_idx: %d\n", sfn, srslte_ue_sync_get_sfidx(&ue_sync));
@@ -527,58 +488,55 @@ int main(int argc, char **argv) {
               } else if (n > 0) {
 
                 rar_unpack(data_rx, &rar_msg);
-                //if (rar_msg.RAPID != prog_args.preamble_idx) {
-                //  printf("Found RAR for sequence %d\n", rar_msg.RAPID);
-                //} else {
-                  //cuhd_stop_rx_stream(uhd);
-                  //cuhd_flush_buffer(uhd);
-                  rar_msg_fprint(stdout, &rar_msg);              
+                rar_msg_fprint(stdout, &rar_msg);              
+                
+                srslte_dci_rar_to_ra_ul(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, cell.nof_prb, &ra_pusch);
+                srslte_ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
+
+                srslte_ra_ul_alloc(&ra_pusch.prb_alloc, &ra_pusch, 0, cell.nof_prb);
+
+                srslte_ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
+                
+                srslte_bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
+
+                uint32_t n_ta = srslte_N_ta_new_rar(rar_msg.timing_adv_cmd);
+                printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
+                float time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;
+                if (prog_args.ta_usec >= 0) {
+                  time_adv_sec = prog_args.ta_usec*1e-6;
+                }
+#define N_TX  1
+                const uint32_t rv[N_TX]={0};
+                for (int i=0; i<N_TX;i++) {
+                  ra_pusch.rv_idx = rv[i];
+                  ul_sf_idx = (srslte_ue_sync_get_sfidx(&ue_sync)+6+i*8)%10;
+
+                  float cfo = srslte_ue_sync_get_cfo(&ue_sync)/15000; 
+                  printf("Setting CFO: %f (%f)\n", cfo, cfo*15000);
+                  srslte_ue_ul_set_cfo(&ue_ul, cfo);
                   
-                  srslte_dci_rar_to_ra_ul(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, cell.nof_prb, &ra_pusch);
-                  srslte_ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
-
-                  srslte_ra_ul_alloc(&ra_pusch.prb_alloc, &ra_pusch, 0, cell.nof_prb);
-
-                  srslte_ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
-                  
-                  srslte_bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
-
-                  uint32_t n_ta = srslte_N_ta_new_rar(rar_msg.timing_adv_cmd);
-                  printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
-                  float time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;
-                  if (prog_args.ta_usec >= 0) {
-                    time_adv_sec = prog_args.ta_usec*1e-6;
+                  n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
+                  if (n < 0) {
+                    fprintf(stderr, "Error encoding PUSCH\n");
+                    exit(-1);
                   }
-  #define N_TX  1
-                  const uint32_t rv[N_TX]={0};
-                  for (int i=0; i<N_TX;i++) {
-                    ra_pusch.rv_idx = rv[i];
-                    ul_sf_idx = (srslte_ue_sync_get_sfidx(&ue_sync)+6+i*8)%10;
+                  
+                  srslte_vec_sc_prod_cfc(ul_signal, prog_args.beta_pusch, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+                  
+                  srslte_timestamp_copy(&next_tx_time, &uhd_time);
+                  srslte_timestamp_add(&next_tx_time, 0, 0.006 + i*0.008 - time_adv_sec); // send after 6 sub-frames (6 ms)
+                  printf("Send %d samples PUSCH sfn: %d. RV_idx=%d, Last frame time = %.6f "
+                        "send PUSCH time = %.6f TA: %.1f us\n", 
+                        SRSLTE_SF_LEN_PRB(cell.nof_prb), sfn, ra_pusch.rv_idx, 
+                        srslte_timestamp_real(&uhd_time), 
+                        srslte_timestamp_real(&next_tx_time), time_adv_sec*1000000);
+                  
+                  cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
+                                next_tx_time.full_secs, next_tx_time.frac_secs);                
 
-                    n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
-                    if (n < 0) {
-                      fprintf(stderr, "Error encoding PUSCH\n");
-                      exit(-1);
-                    }
-                    
-                    srslte_vec_sc_prod_cfc(ul_signal, prog_args.beta_pusch, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-                    
-                    srslte_timestamp_copy(&next_tx_time, &uhd_time);
-                    srslte_timestamp_add(&next_tx_time, 0, 0.006 + i*0.008 - time_adv_sec); // send after 6 sub-frames (6 ms)
-                    printf("Send %d samples PUSCH sfn: %d. RV_idx=%d, Last frame time = %.6f "
-                          "send PUSCH time = %.6f TA: %.1f us\n", 
-                          SRSLTE_SF_LEN_PRB(cell.nof_prb), sfn, ra_pusch.rv_idx, 
-                          srslte_timestamp_real(&uhd_time), 
-                          srslte_timestamp_real(&next_tx_time), time_adv_sec*1000000);
-                    
-                    cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
-                                  next_tx_time.full_secs, next_tx_time.frac_secs);                
-
-                    //cuhd_start_rx_stream(uhd);
-                    state = RECV_CONNSETUP;                   
-                    conn_setup_trial = 0; 
-
-                 // }
+                  //cuhd_start_rx_stream(uhd);
+                  state = RECV_CONNSETUP;                   
+                  conn_setup_trial = 0; 
                 }
 
               }
@@ -590,41 +548,6 @@ int main(int argc, char **argv) {
                 }
               }              
             }
-  #else
-
-            ra_pusch.mcs.mod = SRSLTE_MOD_QPSK;
-            ra_pusch.mcs.tbs = 94;
-            ra_pusch.rv_idx = 0; 
-            ra_pusch.prb_alloc.freq_hopping = 0; 
-            ra_pusch.prb_alloc.L_prb = 4; 
-            ra_pusch.prb_alloc.n_prb[0] = 19; 
-            ra_pusch.prb_alloc.n_prb[1] = 19; 
-            
-            uint32_t ul_sf_idx = 4;
-            printf("L: %d\n", ra_pusch.prb_alloc.L_prb);
-            // srslte_ue_ul_set_cfo(&ue_ul, srslte_sync_get_cfo(&ue_sync.strack));
-            srslte_bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
-            n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, 111, ul_signal);
-            if (n < 0) {
-              fprintf(stderr, "Error encoding PUSCH\n");
-              exit(-1);
-            }
-            
-            srslte_vec_save_file("srslte_pusch_tx", ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb)*sizeof(cf_t));
-
-  #ifdef use_usrp
-            cuhd_recv_with_time(uhd, dummy, 4, 1, &uhd_time.full_secs, &uhd_time.frac_secs);
-            srslte_timestamp_copy(&next_tx_time, &uhd_time);
-            while(1) {
-              srslte_timestamp_add(&next_tx_time, 0, 0.002); // send every 2 ms 
-              cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
-                            next_tx_time.full_secs, next_tx_time.frac_secs);               
-            }
-  #else
-            exit(-1);
-  #endif
-  #endif
-
             break;
             
           case RECV_CONNSETUP: 
@@ -641,6 +564,7 @@ int main(int argc, char **argv) {
             } else if (n > 0) {
               printf("Received ConnectionSetup len: %d.\n", n);
               srslte_vec_fprint_hex(stdout, data_rx, n);
+              exit(0);
             } else {
               conn_setup_trial++;
               if (conn_setup_trial == 20) {

@@ -121,7 +121,7 @@ int cuhd_open(char *args, void **h)
 {
   cuhd_handler *handler = new cuhd_handler();
   std::string _args = std::string(args);
-  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000" + ", num_recv_frames=512");
+  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000");
 
 //  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=50000000" + ", num_recv_frames=512");
   handler->usrp->set_clock_source("internal");
@@ -273,6 +273,16 @@ double cuhd_set_tx_freq_offset(void *h, double freq,  double off) {
   return handler->usrp->get_tx_freq();
 }
 
+void cuhd_get_time(void *h, time_t *secs, double *frac_secs) {
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  uhd::time_spec_t now = handler->usrp->get_time_now();
+  if (secs) {
+    *secs = now.get_full_secs();    
+  }
+  if (frac_secs) {
+    *frac_secs = now.get_frac_secs();    
+  }
+}
 
 int cuhd_send(void *h, void *data, uint32_t nsamples, bool blocking)
 {
@@ -305,12 +315,12 @@ int cuhd_send_timed(void *h,
 }
                     
 int cuhd_send_timed2(void *h,
-                    void *data,
-                    int nsamples,
-                    time_t secs,
-                    double frac_secs,                      
-                    bool is_start_of_burst,
-                    bool is_end_of_burst) 
+                     void *data,
+                     int nsamples,
+                     time_t secs,
+                     double frac_secs,                      
+                     bool is_start_of_burst,
+                     bool is_end_of_burst) 
 {
   cuhd_handler* handler = static_cast<cuhd_handler*>(h);
   uhd::tx_metadata_t md;

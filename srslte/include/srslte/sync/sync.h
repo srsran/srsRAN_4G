@@ -137,6 +137,9 @@ SRSLTE_API int srslte_sync_get_cell_id(srslte_sync_t *q);
 /* Gets the CFO estimation from the last call to synch_run() */
 SRSLTE_API float srslte_sync_get_cfo(srslte_sync_t *q);
 
+/* Sets known CFO to avoid long transients due to average */
+SRSLTE_API void srslte_sync_set_cfo(srslte_sync_t *q, float cfo);
+
 /* Gets the CP length estimation from the last call to synch_run() */
 SRSLTE_API srslte_cp_t srslte_sync_get_cp(srslte_sync_t *q);
 

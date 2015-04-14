@@ -61,6 +61,17 @@ namespace ue {
       return dl_grant.mcs.tbs;    
     }
   }
+  
+  uint32_t sched_grant::get_current_tx_nb()
+  {
+    return current_tx_nb; 
+  }
+
+  void sched_grant::set_current_tx_nb(uint32_t current_tx_nb_)
+  {
+    current_tx_nb = current_tx_nb_; 
+  }
+
 
   void sched_grant::set_rv(uint32_t rv) {
     if (dir == UPLINK) {

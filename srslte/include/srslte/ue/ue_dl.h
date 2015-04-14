@@ -39,6 +39,8 @@
 #ifndef UEDL_H
 #define UEDL_H
 
+#include <stdbool.h>
+
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/dft/ofdm.h"
 #include "srslte/common/phy_common.h"
@@ -62,6 +64,7 @@ typedef struct SRSLTE_API {
   srslte_pcfich_t pcfich;
   srslte_pdcch_t pdcch;
   srslte_pdsch_t pdsch;
+  srslte_phich_t phich; 
   srslte_harq_t harq_process[SRSLTE_UE_UL_NOF_HARQ_PROCESSES];
   srslte_regs_t regs;
   srslte_ofdm_t fft;
@@ -131,6 +134,11 @@ SRSLTE_API int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t * q,
                                            uint32_t sf_idx, 
                                            uint16_t rnti, 
                                            uint32_t rvidx); 
+
+SRSLTE_API bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, 
+                                          uint32_t sf_idx, 
+                                          uint32_t n_prb_lowest, 
+                                          uint32_t n_dmrs); 
 
 SRSLTE_API void srslte_ue_dl_reset(srslte_ue_dl_t *q);
 

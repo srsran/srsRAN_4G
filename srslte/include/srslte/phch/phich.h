@@ -41,7 +41,7 @@
 #include "srslte/mimo/precoding.h"
 #include "srslte/mimo/layermap.h"
 #include "srslte/modem/mod.h"
-#include "srslte/modem/demod_hard.h"
+#include "srslte/modem/demod_soft.h"
 #include "srslte/scrambling/scrambling.h"
 #include "regs.h"
 
@@ -58,11 +58,6 @@
 #define SRSLTE_PHICH_EXT_C          2
 #define SRSLTE_PHICH_NORM_NSF       4
 #define SRSLTE_PHICH_EXT_NSF        2
-
-typedef struct SRSLTE_API {
-  uint32_t ngroup;
-  uint32_t nseq; 
-}srslte_phich_alloc_t;
 
 /* phich object */
 typedef struct SRSLTE_API {
@@ -81,10 +76,11 @@ typedef struct SRSLTE_API {
 
   /* bit message */
   uint8_t data[SRSLTE_PHICH_NBITS];
+  float data_rx[SRSLTE_PHICH_NBITS];
 
   /* tx & rx objects */
   srslte_modem_table_t mod;
-  srslte_demod_hard_t demod;
+  srslte_demod_soft_t demod;
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
   srslte_precoding_t precoding; 
 
@@ -104,7 +100,7 @@ SRSLTE_API int srslte_phich_decode(srslte_phich_t *q,
                                    uint32_t nseq, 
                                    uint32_t nsubframe, 
                                    uint8_t *ack, 
-                                   uint32_t *distance);
+                                   float *distance);
 
 SRSLTE_API int srslte_phich_encode(srslte_phich_t *q, 
                                    uint8_t ack, 
@@ -117,5 +113,7 @@ SRSLTE_API void srslte_phich_reset(srslte_phich_t *q,
                                    cf_t *slot_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API uint32_t srslte_phich_ngroups(srslte_phich_t *q);
+
+SRSLTE_API uint32_t srslte_phich_nsf(srslte_phich_t *q);
 
 #endif // PHICH_

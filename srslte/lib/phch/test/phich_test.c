@@ -108,7 +108,8 @@ int main(int argc, char **argv) {
   int nof_re;
   cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   uint8_t ack[50][SRSLTE_PHICH_NORM_NSEQUENCES], ack_rx;
-  uint32_t nsf, distance;
+  uint32_t nsf; 
+  float distance;
   int cid, max_cid;
   uint32_t ngroup, nseq, max_nseq;
 

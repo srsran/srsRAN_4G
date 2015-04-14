@@ -66,7 +66,7 @@ namespace ue {
     bool           recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time);
     bool           get_ul_grant(pdcch_ul_search_t mode, sched_grant *grant);
     bool           get_dl_grant(pdcch_dl_search_t mode, sched_grant *grant);
-    bool           decode_phich(srslte_phich_alloc_t assignment);
+    bool           decode_phich(srslte::ue::sched_grant pusch_grant);
     bool           decode_pdsch(sched_grant pdsch_grant, uint8_t *payload); // returns true or false for CRC OK/KO
   private: 
     params       *params_db;

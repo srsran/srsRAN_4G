@@ -65,20 +65,20 @@ void dl_buffer::free_cell()
 // FIXME: Avoid this memcpy modifying ue_sync to directly write into provided pointer
 bool dl_buffer::recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time)
 {
+  bool ret = false; 
   if (signal_buffer) {
     INFO("DL Buffer TTI %d: Receiving packet\n", tti);
     cf_t *sf_buffer = NULL;
+    sf_symbols_and_ce_done = false; 
+    pdcch_llr_extracted = false; 
     if (srslte_ue_sync_get_buffer(ue_sync, &sf_buffer) == 1) {
       memcpy(signal_buffer, sf_buffer, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-      srslte_ue_sync_get_last_timestamp(ue_sync, rx_time);    
-      sf_symbols_and_ce_done = false; 
-      pdcch_llr_extracted = false; 
       ready();
-      return true; 
-    } else {
-      return false; 
-    }
+      ret = true; 
+    } 
+    srslte_ue_sync_get_last_timestamp(ue_sync, rx_time);        
   }
+  return ret; 
 }
 
 bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, sched_grant *grant)
@@ -154,7 +154,7 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, sched_grant *grant)
   }
 }
 
-bool dl_buffer::decode_phich(srslte_phich_alloc_t assignment)
+bool dl_buffer::decode_phich(sched_grant pusch_grant)
 {
   if (signal_buffer && is_ready()) {
     if (!sf_symbols_and_ce_done) {
@@ -163,7 +163,10 @@ bool dl_buffer::decode_phich(srslte_phich_alloc_t assignment)
       }
       sf_symbols_and_ce_done = true; 
     }
-    return false;     
+
+    srslte_ra_pusch_t *ra_ul = (srslte_ra_pusch_t*) pusch_grant.get_grant_ptr();
+    
+    return srslte_ue_dl_decode_phich(&ue_dl, tti%10, ra_ul->prb_alloc.n_prb[0], ra_ul->n_dmrs);     
   }
 }
 

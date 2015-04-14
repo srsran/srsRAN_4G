@@ -94,6 +94,10 @@ SRSLTE_API double cuhd_set_tx_freq_offset(void *h,
                                           double freq, 
                                           double offset);
 
+SRSLTE_API void cuhd_get_time(void *h, 
+                              time_t *secs, 
+                              double *frac_secs); 
+
 SRSLTE_API int cuhd_send(void *h, 
                          void *data, 
                          uint32_t nsamples, 

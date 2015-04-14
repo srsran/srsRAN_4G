@@ -128,6 +128,11 @@ void srslte_ue_ul_set_cfo(srslte_ue_ul_t *q, float cur_cfo) {
   q->current_cfo = cur_cfo; 
 }
 
+void srslte_ue_ul_set_cfo_enable(srslte_ue_ul_t *q, bool enabled)
+{
+  q->cfo_en = enabled; 
+}
+
 void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, bool enabled)
 {
   q->normalize_en = enabled;
@@ -194,7 +199,7 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_
       fprintf(stderr, "Error configuring HARQ process\n");
       return ret; 
     }
-    printf("sf_idx: %d, rnti: %d\n", sf_idx, rnti);
+
     if (srslte_pusch_encode_rnti(&q->pusch, &q->harq_process[0], data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 
@@ -214,7 +219,9 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_
     
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
-    //srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));      
+    if (q->cfo_en) {
+      srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));            
+    }
     
     if (q->normalize_en) {
       float norm_factor = (float) q->cell.nof_prb/10/sqrtf(q->harq_process[0].ul_alloc.L_prb);

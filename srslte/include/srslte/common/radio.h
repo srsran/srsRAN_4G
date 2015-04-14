@@ -40,6 +40,7 @@ namespace srslte {
   class SRSLTE_API radio
   {
     public: 
+      virtual void get_time(srslte_timestamp_t *now) = 0; 
       virtual bool tx(void *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time) = 0;
       virtual bool rx_now(void *buffer, uint32_t nof_samples, srslte_timestamp_t *rxd_time) = 0;
       virtual bool rx_at(void *buffer, uint32_t nof_samples, srslte_timestamp_t rx_time) = 0;
