@@ -47,16 +47,15 @@
 
 typedef struct SRSLTE_API {
   uint32_t cyclic_shift; 
-  uint32_t cyclic_shift_for_drms;
+  uint32_t cyclic_shift_for_dmrs;
   uint32_t delta_ss;  
-  bool en_drms_2; 
+  bool en_dmrs_2; 
   float beta_pusch;
   bool group_hopping_en; 
   bool sequence_hopping_en; 
-}srslte_refsignal_drms_pusch_cfg_t;
+}srslte_refsignal_dmrs_pusch_cfg_t;
 
 typedef struct SRSLTE_API {
-  float beta_pucch;
   uint32_t nof_prb;
 }srslte_refsignal_srs_cfg_t;
 
@@ -77,29 +76,36 @@ SRSLTE_API int srslte_refsignal_ul_init(srslte_refsignal_ul_t *q,
 
 SRSLTE_API void srslte_refsignal_ul_free(srslte_refsignal_ul_t *q);
 
-SRSLTE_API bool srslte_refsignal_drms_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, 
-                                                        srslte_refsignal_drms_pusch_cfg_t *cfg, 
+SRSLTE_API void srslte_refsignal_r_uv_arg_1prb(float *arg, 
+                                               uint32_t u); 
+
+SRSLTE_API bool srslte_refsignal_dmrs_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, 
+                                                        srslte_refsignal_dmrs_pusch_cfg_t *cfg, 
                                                         uint32_t nof_prb); 
 
-SRSLTE_API void srslte_refsignal_drms_pusch_put(srslte_refsignal_ul_t *q, 
-                                                srslte_refsignal_drms_pusch_cfg_t *cfg, 
+SRSLTE_API int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, 
+                                               srslte_refsignal_dmrs_pusch_cfg_t *cfg, 
+                                               uint32_t nof_prb, 
+                                               uint32_t sf_idx, 
+                                               cf_t *r_pusch);
+
+SRSLTE_API void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q, 
+                                                srslte_refsignal_dmrs_pusch_cfg_t *cfg, 
                                                 cf_t *r_pusch, 
                                                 uint32_t nof_prb, 
                                                 uint32_t n_prb[2], 
                                                 cf_t *sf_symbols); 
 
-SRSLTE_API int srslte_refsignal_dmrs_gen(srslte_refsignal_ul_t *q, 
-                                               srslte_refsignal_drms_pusch_cfg_t *cfg, 
-                                               uint32_t nof_prb, 
-                                               uint32_t sf_idx, 
-                                               cf_t *r_pusch);
-
 SRSLTE_API int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, 
                                                srslte_pucch_cfg_t *cfg, 
-                                               uint32_t sf_idx, 
-                                               uint32_t n_rb, 
-                                               cf_t *r_pucch) ;
+                                               uint32_t sf_idx,
+                                               cf_t *r_pucch);
 
+SRSLTE_API int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t* q, 
+                                               srslte_pucch_cfg_t* cfg, 
+                                               cf_t *r_pucch, 
+                                               cf_t *output);
+                                               
 SRSLTE_API void srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, 
                                          srslte_refsignal_srs_cfg_t *cfg, 
                                          uint32_t sf_idx, 

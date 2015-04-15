@@ -242,7 +242,7 @@ int main(int argc, char **argv) {
         }
         
         // Find SSS 
-        int sss_idx = peak_idx-2*fft_size-(SRSLTE_CP_ISNORM(cp)?SRSLTE_CP(fft_size, SRSLTE_CP_NORM_LEN):SRSLTE_CP(fft_size, SRSLTE_CP_EXT_LEN));             
+        int sss_idx = peak_idx-2*fft_size-(SRSLTE_CP_ISNORM(cp)?SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN):SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));             
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
           srslte_sss_synch_m0m1_partial(&sss, &buffer[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);
           if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
@@ -262,7 +262,7 @@ int main(int argc, char **argv) {
         }
         
         // Estimate CP 
-        if (peak_idx > 2*(fft_size + SRSLTE_CP_EXT(fft_size))) {
+        if (peak_idx > 2*(fft_size + SRSLTE_CP_LEN_EXT(fft_size))) {
           srslte_cp_t cp = srslte_sync_detect_cp(&ssync, buffer, peak_idx);
           if (SRSLTE_CP_ISNORM(cp)) {
             cp_is_norm++; 

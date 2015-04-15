@@ -76,7 +76,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
         goto clean_exit;
       }
     }
-    if (srslte_refsignal_ul_init(&q->drms, cell)) {
+    if (srslte_refsignal_ul_init(&q->dmrs, cell)) {
       fprintf(stderr, "Error initiating srslte_refsignal_ul\n");
       goto clean_exit;
     }
@@ -112,7 +112,7 @@ void srslte_ue_ul_free(srslte_ue_ul_t *q) {
       srslte_harq_free(&q->harq_process[i]);
     }
     srslte_cfo_free(&q->cfo); 
-    srslte_refsignal_ul_free(&q->drms);
+    srslte_refsignal_ul_free(&q->dmrs);
 
     if (q->sf_symbols) {
       free(q->sf_symbols);
@@ -151,9 +151,9 @@ void srslte_ue_ul_reset(srslte_ue_ul_t *q) {
   srslte_harq_reset(&q->harq_process[0]);
 }
 
-void srslte_ue_ul_set_pusch_cfg(srslte_ue_ul_t *q, srslte_refsignal_drms_pusch_cfg_t *drms_cfg, srslte_pusch_hopping_cfg_t *pusch_hopping_cfg)
+void srslte_ue_ul_set_pusch_cfg(srslte_ue_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, srslte_pusch_hopping_cfg_t *pusch_hopping_cfg)
 {
-  memcpy(&q->drms_cfg, drms_cfg, sizeof(srslte_refsignal_drms_pusch_cfg_t));
+  memcpy(&q->dmrs_cfg, dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
   srslte_pusch_set_hopping_cfg(&q->pusch, pusch_hopping_cfg); 
 }
 
@@ -206,13 +206,13 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_
     }
 
     // FIXME: Pregenerate for all possible number of prb 
-    if (srslte_refsignal_dmrs_gen(&q->drms, &q->drms_cfg, 
+    if (srslte_refsignal_dmrs_pusch_gen(&q->dmrs, &q->dmrs_cfg, 
       q->harq_process[0].ul_alloc.L_prb, sf_idx, q->refsignal)) 
     {
       fprintf(stderr, "Error generating PUSCH DRMS signals\n");
       return ret; 
     }
-    srslte_refsignal_drms_pusch_put(&q->drms, &q->drms_cfg, q->refsignal, 
+    srslte_refsignal_dmrs_pusch_put(&q->dmrs, &q->dmrs_cfg, q->refsignal, 
                               q->harq_process[0].ul_alloc.L_prb, 
                               q->harq_process[0].ul_alloc.n_prb_tilde, 
                               q->sf_symbols);                

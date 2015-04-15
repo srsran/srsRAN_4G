@@ -91,9 +91,9 @@ typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
 #define SRSLTE_CP_ISEXT(cp) (cp==SRSLTE_CP_EXT)
 #define SRSLTE_CP_NSYMB(cp) (SRSLTE_CP_ISNORM(cp)?SRSLTE_CP_NORM_NSYMB:SRSLTE_CP_EXT_NSYMB)
 
-#define SRSLTE_CP(symbol_sz, c) ((int) ceil((((float) (c)*(symbol_sz))/2048)))
-#define SRSLTE_CP_NORM(symbol, symbol_sz) ((symbol==0)?SRSLTE_CP((symbol_sz),SRSLTE_CP_NORM_0_LEN):SRSLTE_CP((symbol_sz),SRSLTE_CP_NORM_LEN))
-#define SRSLTE_CP_EXT(symbol_sz) (SRSLTE_CP((symbol_sz),SRSLTE_CP_EXT_LEN))
+#define SRSLTE_CP_LEN(symbol_sz, c)           ((int) ceil((((float) (c)*(symbol_sz))/2048)))
+#define SRSLTE_CP_LEN_NORM(symbol, symbol_sz) ((symbol==0)?SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_0_LEN):SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_LEN))
+#define SRSLTE_CP_LEN_EXT(symbol_sz)          (SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_EXT_LEN))
 
 #define SRSLTE_SLOT_LEN(symbol_sz)     (480*((symbol_sz)/64))
 #define SRSLTE_SF_LEN(symbol_sz)       (2*SRSLTE_SLOT_LEN(symbol_sz))
@@ -109,8 +109,8 @@ typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
 
 #define SRSLTE_LTE_TS         1.0/(15000.0*2048)
 
-#define SRSLTE_SLOT_IDX_CPNORM(symbol_idx, symbol_sz) (symbol_idx==0?0:(symbol_sz + SRSLTE_CP(symbol_sz, SRSLTE_CP_NORM_0_LEN) + \
-                                                (symbol_idx-1)*(symbol_sz+SRSLTE_CP(symbol_sz, SRSLTE_CP_NORM_LEN))))
+#define SRSLTE_SLOT_IDX_CPNORM(symbol_idx, symbol_sz) (symbol_idx==0?0:(symbol_sz + SRSLTE_CP_LEN(symbol_sz, SRSLTE_CP_NORM_0_LEN) + \
+                                                (symbol_idx-1)*(symbol_sz+SRSLTE_CP_LEN(symbol_sz, SRSLTE_CP_NORM_LEN))))
 #define SRSLTE_SLOT_IDX_CPEXT(idx, symbol_sz) (idx*(symbol_sz+SRSLTE_CP(symbol_sz, SRSLTE_CP_EXT_LEN)))
 
 #define SRSLTE_RE_IDX(nof_prb, symbol_idx, sample_idx) ((symbol_idx)*(nof_prb)*(SRSLTE_NRE) + sample_idx)
@@ -212,6 +212,9 @@ SRSLTE_API uint32_t srslte_re_x_prb(uint32_t ns,
 SRSLTE_API uint32_t srslte_voffset(uint32_t symbol_id, 
                                    uint32_t cell_id, 
                                    uint32_t nof_ports);
+
+SRSLTE_API int srslte_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME], 
+                                         uint32_t cell_id); 
 
 SRSLTE_API uint32_t srslte_N_ta_new_rar(uint32_t ta);
 

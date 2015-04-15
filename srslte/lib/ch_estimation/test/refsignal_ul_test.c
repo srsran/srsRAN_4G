@@ -76,7 +76,7 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   srslte_refsignal_ul_t refs;
-  srslte_refsignal_drms_pusch_cfg_t pusch_cfg;
+  srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg;
   cf_t *signal = NULL;
   int ret = -1;
   
@@ -100,11 +100,11 @@ int main(int argc, char **argv) {
       for (int cshift=0;cshift<SRSLTE_NOF_CSHIFT;cshift++) {
         for (int h=0;h<3;h++) {
           for (int sf_idx=0;sf_idx<SRSLTE_NSLOTS_X_FRAME;sf_idx++) {
-            for (int cshift_drms=0;cshift_drms<SRSLTE_NOF_CSHIFT;cshift_drms++) {
+            for (int cshift_dmrs=0;cshift_dmrs<SRSLTE_NOF_CSHIFT;cshift_dmrs++) {
               pusch_cfg.beta_pusch = 1.0;
               uint32_t nof_prb = n;
               pusch_cfg.cyclic_shift = cshift;
-              pusch_cfg.cyclic_shift_for_drms = cshift_drms;
+              pusch_cfg.cyclic_shift_for_dmrs = cshift_dmrs;
               pusch_cfg.delta_ss = delta_ss;            
               if (!h) {
                 pusch_cfg.group_hopping_en = false;
@@ -116,14 +116,14 @@ int main(int argc, char **argv) {
                 pusch_cfg.group_hopping_en = true;
                 pusch_cfg.sequence_hopping_en = false;
               }
-              pusch_cfg.en_drms_2 = true; 
+              pusch_cfg.en_dmrs_2 = true; 
               printf("Beta: %f, ",pusch_cfg.beta_pusch);
               printf("nof_prb: %d, ",nof_prb);
               printf("cyclic_shift: %d, ",pusch_cfg.cyclic_shift);
-              printf("cyclic_shift_for_drms: %d, ",pusch_cfg.cyclic_shift_for_drms);
+              printf("cyclic_shift_for_dmrs: %d, ",pusch_cfg.cyclic_shift_for_dmrs);
               printf("delta_ss: %d, ",pusch_cfg.delta_ss);
               printf("SF_idx: %d\n", sf_idx);
-              srslte_refsignal_dmrs_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);              
+              srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);              
               exit(0);
             }
           }

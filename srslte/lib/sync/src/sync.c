@@ -192,8 +192,8 @@ srslte_cp_t srslte_sync_detect_cp(srslte_sync_t *q, cf_t *input, uint32_t peak_p
   float R_norm, R_ext, C_norm, C_ext; 
   float M_norm=0, M_ext=0; 
   
-  uint32_t cp_norm_len = SRSLTE_CP_NORM(7, q->fft_size);
-  uint32_t cp_ext_len = SRSLTE_CP_EXT(q->fft_size);
+  uint32_t cp_norm_len = SRSLTE_CP_LEN_NORM(7, q->fft_size);
+  uint32_t cp_ext_len = SRSLTE_CP_LEN_EXT(q->fft_size);
  
   cf_t *input_cp_norm = &input[peak_pos-2*(q->fft_size+cp_norm_len)]; 
   cf_t *input_cp_ext = &input[peak_pos-2*(q->fft_size+cp_ext_len)]; 
@@ -240,7 +240,7 @@ int sync_sss(srslte_sync_t *q, cf_t *input, uint32_t peak_pos, srslte_cp_t cp) {
   srslte_sss_synch_set_N_id_2(&q->sss, q->N_id_2);
 
   /* Make sure we have enough room to find SSS sequence */
-  sss_idx = (int) peak_pos-2*q->fft_size-SRSLTE_CP(q->fft_size, (SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM_LEN:SRSLTE_CP_EXT_LEN));
+  sss_idx = (int) peak_pos-2*q->fft_size-SRSLTE_CP_LEN(q->fft_size, (SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM_LEN:SRSLTE_CP_EXT_LEN));
   if (sss_idx < 0) {
     INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
     return SRSLTE_ERROR;
@@ -325,7 +325,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       }
 
       if (q->detect_cp) {
-        if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_EXT(q->fft_size))) {
+        if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
           q->cp = srslte_sync_detect_cp(q, input, peak_pos + find_offset);
         } else {
           INFO("Not enough room to detect CP length. Peak position: %d\n", peak_pos);

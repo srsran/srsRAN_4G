@@ -33,6 +33,7 @@
 #include <string.h>
 
 #include "srslte/common/phy_common.h"
+#include "srslte/common/sequence.h"
 
 const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120,
     128, 136, 144, 152, 160, 168, 176, 184, 192, 200, 208, 216, 224, 232,
@@ -281,6 +282,27 @@ uint32_t srslte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports
   } else {
     return cell_id % 6;
   }
+}
+
+
+/** Computes sequence-group pattern f_gh according to 5.5.1.3 of 36.211 */
+int srslte_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME], uint32_t cell_id) {
+  srslte_sequence_t seq; 
+  bzero(&seq, sizeof(srslte_sequence_t));
+  
+  if (srslte_sequence_LTE_pr(&seq, 160, cell_id / 30)) {
+    return SRSLTE_ERROR;
+  }
+  
+  for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {
+    f_gh[ns] = 0;
+    for (int i = 0; i < 8; i++) {
+      f_gh[ns] += (((uint32_t) seq.c[8 * ns + i]) << i);
+    }
+  }
+
+  srslte_sequence_free(&seq);
+  return SRSLTE_SUCCESS;
 }
 
 /* Returns the number of available RE per PRB */

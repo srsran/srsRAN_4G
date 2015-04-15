@@ -79,14 +79,14 @@ bool ul_buffer::generate_pusch(sched_grant pusch_grant,
       return false; 
     }
     
-    srslte_refsignal_drms_pusch_cfg_t drms_cfg; 
-    bzero(&drms_cfg, sizeof(srslte_refsignal_drms_pusch_cfg_t));
+    srslte_refsignal_dmrs_pusch_cfg_t dmrs_cfg; 
+    bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
     
-    drms_cfg.beta_pusch          = (float) params_db->get_param(params::PUSCH_BETA)/10; 
-    drms_cfg.group_hopping_en    = params_db->get_param(params::PUSCH_RS_GROUP_HOPPING_EN);
-    drms_cfg.sequence_hopping_en = params_db->get_param(params::PUSCH_RS_SEQUENCE_HOPPING_EN);
-    drms_cfg.cyclic_shift        = params_db->get_param(params::PUSCH_RS_CYCLIC_SHIFT);
-    drms_cfg.delta_ss            = params_db->get_param(params::PUSCH_RS_GROUP_ASSIGNMENT);
+    dmrs_cfg.beta_pusch          = (float) params_db->get_param(params::PUSCH_BETA)/10; 
+    dmrs_cfg.group_hopping_en    = params_db->get_param(params::PUSCH_RS_GROUP_HOPPING_EN);
+    dmrs_cfg.sequence_hopping_en = params_db->get_param(params::PUSCH_RS_SEQUENCE_HOPPING_EN);
+    dmrs_cfg.cyclic_shift        = params_db->get_param(params::PUSCH_RS_CYCLIC_SHIFT);
+    dmrs_cfg.delta_ss            = params_db->get_param(params::PUSCH_RS_GROUP_ASSIGNMENT);
     
     srslte_pusch_hopping_cfg_t pusch_hopping; 
     pusch_hopping.n_sb           = params_db->get_param(params::PUSCH_HOPPING_N_SB);
@@ -96,7 +96,7 @@ bool ul_buffer::generate_pusch(sched_grant pusch_grant,
     pusch_hopping.hopping_offset = params_db->get_param(params::PUSCH_HOPPING_OFFSET);
     pusch_hopping.current_tx_nb  = pusch_grant.get_current_tx_nb(); 
     
-    srslte_ue_ul_set_pusch_cfg(&ue_ul, &drms_cfg, &pusch_hopping);
+    srslte_ue_ul_set_pusch_cfg(&ue_ul, &dmrs_cfg, &pusch_hopping);
 
     int n = srslte_ue_ul_pusch_uci_encode_rnti(&ue_ul, (srslte_ra_pusch_t*) pusch_grant.get_grant_ptr(), 
                                               payload, uci_data, 

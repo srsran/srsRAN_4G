@@ -63,9 +63,9 @@ typedef struct SRSLTE_API {
   
   float current_cfo; 
 
-  srslte_refsignal_drms_pusch_cfg_t drms_cfg;
+  srslte_refsignal_dmrs_pusch_cfg_t dmrs_cfg;
   
-  srslte_refsignal_ul_t drms; 
+  srslte_refsignal_ul_t dmrs; 
   srslte_harq_t harq_process[SRSLTE_UE_UL_NOF_HARQ_PROCESSES];
   srslte_pusch_t pusch; 
   
@@ -91,7 +91,7 @@ SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q,
                                                bool enabled); 
 
 SRSLTE_API void srslte_ue_ul_set_pusch_cfg(srslte_ue_ul_t *q, 
-                                           srslte_refsignal_drms_pusch_cfg_t *drms_cfg, 
+                                           srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
                                            srslte_pusch_hopping_cfg_t *pusch_hopping_cfg); 
 
 SRSLTE_API int srslte_ue_ul_pusch_encode(srslte_ue_ul_t *q,

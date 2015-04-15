@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
             printf("Invalid received ACK: %d!=%d\n", ack[ngroup][nseq], ack_rx);
             exit(-1);
           }
-          if (distance) {
+          if (distance < 5) {
             printf("Error\n");
             exit(-1);
           }

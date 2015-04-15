@@ -49,7 +49,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   srslte_cell_t cell; 
   srslte_refsignal_ul_t refs;
-  srslte_refsignal_drms_pusch_cfg_t pusch_cfg;
+  srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg;
   uint32_t sf_idx; 
 
   if (nrhs != NOF_INPUTS) {
@@ -73,7 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  bzero(&pusch_cfg, sizeof(srslte_refsignal_drms_pusch_cfg_t));
+  bzero(&pusch_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
 
 
   pusch_cfg.group_hopping_en = false;
@@ -104,11 +104,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } 
   uint32_t nof_prb = mexutils_read_f(p, &prbset); 
   
-  if (mexutils_read_uint32_struct(PUSCHCFG, "DynCyclicShift", &pusch_cfg.cyclic_shift_for_drms)) {
-    pusch_cfg.cyclic_shift_for_drms = 0; 
-    pusch_cfg.en_drms_2 = false; 
+  if (mexutils_read_uint32_struct(PUSCHCFG, "DynCyclicShift", &pusch_cfg.cyclic_shift_for_dmrs)) {
+    pusch_cfg.cyclic_shift_for_dmrs = 0; 
+    pusch_cfg.en_dmrs_2 = false; 
   } else {
-    pusch_cfg.en_drms_2 = true; 
+    pusch_cfg.en_dmrs_2 = true; 
   }
   
   pusch_cfg.beta_pusch = 1.0; 
@@ -120,7 +120,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mexPrintf("nof_prb: %d, ",nof_prb);
   mexPrintf("cyclic_shift: %d, ",pusch_cfg.cyclic_shift);
-  mexPrintf("cyclic_shift_for_drms: %d, ",pusch_cfg.cyclic_shift_for_drms);
+  mexPrintf("cyclic_shift_for_dmrs: %d, ",pusch_cfg.cyclic_shift_for_dmrs);
   mexPrintf("delta_ss: %d, ",pusch_cfg.delta_ss);
   
   cf_t *signal = srslte_vec_malloc(2*SRSLTE_NRE*nof_prb*sizeof(cf_t));
@@ -135,11 +135,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   bzero(sf_symbols, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
   //mexPrintf("Generating DRMS for ns=%d, nof_prb=%d\n", 2*sf_idx+i,pusch_cfg.nof_prb);
-  srslte_refsignal_dmrs_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);    
+  srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);    
   uint32_t n_prb[2]; 
   n_prb[0] = prbset[0];
   n_prb[1] = prbset[0];
-  srslte_refsignal_drms_pusch_put(&refs, &pusch_cfg, signal, nof_prb, n_prb, sf_symbols);                
+  srslte_refsignal_dmrs_pusch_put(&refs, &pusch_cfg, signal, nof_prb, n_prb, sf_symbols);                
   if (nlhs >= 1) {
     mexutils_write_cf(sf_symbols, &plhs[0], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
   }

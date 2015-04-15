@@ -94,6 +94,7 @@
 #include "srslte/phch/pdsch.h"
 #include "srslte/phch/phich.h"
 #include "srslte/phch/pusch.h"
+#include "srslte/phch/pucch.h"
 #include "srslte/phch/prach.h"
 #include "srslte/phch/ra.h"
 #include "srslte/phch/regs.h"

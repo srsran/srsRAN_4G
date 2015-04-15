@@ -379,16 +379,16 @@ int main(int argc, char **argv) {
   
   srslte_pusch_hopping_cfg_t hop_cfg; 
   bzero(&hop_cfg, sizeof(srslte_pusch_hopping_cfg_t));
-  srslte_refsignal_drms_pusch_cfg_t drms_cfg; 
-  bzero(&drms_cfg, sizeof(srslte_refsignal_drms_pusch_cfg_t));  
-  drms_cfg.beta_pusch = 1.0; 
-  drms_cfg.group_hopping_en = false; 
-  drms_cfg.sequence_hopping_en = false; 
-  drms_cfg.delta_ss = 0;
-  drms_cfg.cyclic_shift = 0; 
-  drms_cfg.cyclic_shift_for_drms = 0; 
-  drms_cfg.en_drms_2 = false; 
-  srslte_ue_ul_set_pusch_cfg(&ue_ul, &drms_cfg, &hop_cfg);
+  srslte_refsignal_dmrs_pusch_cfg_t dmrs_cfg; 
+  bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));  
+  dmrs_cfg.beta_pusch = 1.0; 
+  dmrs_cfg.group_hopping_en = false; 
+  dmrs_cfg.sequence_hopping_en = false; 
+  dmrs_cfg.delta_ss = 0;
+  dmrs_cfg.cyclic_shift = 0; 
+  dmrs_cfg.cyclic_shift_for_dmrs = 0; 
+  dmrs_cfg.en_dmrs_2 = false; 
+  srslte_ue_ul_set_pusch_cfg(&ue_ul, &dmrs_cfg, &hop_cfg);
 
   cf_t *ul_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   if (!ul_signal) {
