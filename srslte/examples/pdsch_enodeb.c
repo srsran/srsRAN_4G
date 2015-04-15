@@ -313,8 +313,7 @@ uint32_t prbset_to_bitmask() {
   return reverse(mask)>>(32-nb); 
 }
 
-int update_radl(uint32_t sf_idx) {
-  srslte_ra_dl_alloc_t prb_alloc;
+int update_radl() {
   
   bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
   ra_dl.harq_process = 0;
@@ -324,24 +323,18 @@ int update_radl(uint32_t sf_idx) {
   ra_dl.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
     
-  srslte_ra_dl_alloc(&prb_alloc, &ra_dl, cell.nof_prb);
-  srslte_ra_dl_alloc_re(&prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, SRSLTE_CP_NORM);
-  srslte_ra_mcs_from_idx_dl(mcs_idx, prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
+  srslte_ra_dl_alloc(&ra_dl.prb_alloc, &ra_dl, cell.nof_prb);
+  srslte_ra_dl_alloc_re(&ra_dl.prb_alloc, cell.nof_prb, 1, cell.nof_prb<10?(cfi+1):cfi, SRSLTE_CP_NORM);
+  srslte_ra_mcs_from_idx_dl(mcs_idx, ra_dl.prb_alloc.slot[0].nof_prb, &ra_dl.mcs);
 
   srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   printf("Type new MCS index and press Enter: "); fflush(stdout);
-  
-  srslte_harq_reset(&harq_process);
-  if (srslte_harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &prb_alloc)) {
-    fprintf(stderr, "Error configuring HARQ process\n");
-    return -1; 
-  }
-  
+ 
   return 0; 
 }
 
 /* Read new MCS from stdin */
-int update_control(uint32_t sf_idx) {
+int update_control() {
   char input[128];
   
   fd_set set; 
@@ -381,11 +374,11 @@ int update_control(uint32_t sf_idx) {
         mcs_idx = atoi(input);          
       }
       bzero(input,sizeof(input));
-      if (update_radl(sf_idx)) {
+      if (update_radl()) {
         printf("Trying with last known MCS index\n");
         mcs_idx = last_mcs_idx; 
         prbset_num = last_prbset_num; 
-        return update_radl(sf_idx);
+        return update_radl();
       }
     }
     return 0; 
@@ -543,6 +536,13 @@ int main(int argc, char **argv) {
       if (update_control(sf_idx)) {
         fprintf(stderr, "Error updating parameters from control port\n");
       }
+      
+      srslte_harq_reset(&harq_process);
+      if (srslte_harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &ra_dl.prb_alloc)) {
+        fprintf(stderr, "Error configuring HARQ process\n");
+        return -1; 
+      }
+
       
       /* Transmit PDCCH + PDSCH only when there is data to send */
       if (sf_idx != 0 && sf_idx != 5) {
