@@ -153,7 +153,7 @@ void srslte_ue_ul_reset(srslte_ue_ul_t *q) {
 
 void srslte_ue_ul_set_pusch_cfg(srslte_ue_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, srslte_pusch_hopping_cfg_t *pusch_hopping_cfg)
 {
-  memcpy(&q->dmrs_cfg, dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
+  srslte_refsignal_ul_set_pusch_cfg(&q->dmrs, dmrs_cfg);
   srslte_pusch_set_hopping_cfg(&q->pusch, pusch_hopping_cfg); 
 }
 
@@ -206,13 +206,12 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_
     }
 
     // FIXME: Pregenerate for all possible number of prb 
-    if (srslte_refsignal_dmrs_pusch_gen(&q->dmrs, &q->dmrs_cfg, 
-      q->harq_process[0].ul_alloc.L_prb, sf_idx, q->refsignal)) 
+    if (srslte_refsignal_dmrs_pusch_gen(&q->dmrs, q->harq_process[0].ul_alloc.L_prb, sf_idx, q->refsignal)) 
     {
       fprintf(stderr, "Error generating PUSCH DRMS signals\n");
       return ret; 
     }
-    srslte_refsignal_dmrs_pusch_put(&q->dmrs, &q->dmrs_cfg, q->refsignal, 
+    srslte_refsignal_dmrs_pusch_put(&q->dmrs, q->refsignal, 
                               q->harq_process[0].ul_alloc.L_prb, 
                               q->harq_process[0].ul_alloc.n_prb_tilde, 
                               q->sf_symbols);                

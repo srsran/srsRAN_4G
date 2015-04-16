@@ -132,6 +132,8 @@ int srslte_refsignal_ul_init(srslte_refsignal_ul_t * q, srslte_cell_t cell)
       goto free_and_exit;
     }
     
+    srslte_pucch_cfg_default(&q->pucch_cfg);
+    
     // Precompute n_prs
     if (generate_n_prs(q)) {
       goto free_and_exit;
@@ -167,6 +169,21 @@ void srslte_refsignal_ul_free(srslte_refsignal_ul_t * q) {
   bzero(q, sizeof(srslte_refsignal_ul_t));
 }
 
+
+void srslte_refsignal_ul_set_pusch_cfg(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg)
+{
+  memcpy(&q->pusch_cfg, cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
+}
+
+bool srslte_refsignal_ul_set_pucch_cfg(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t *cfg)
+{
+  if (srslte_pucch_cfg_isvalid(cfg, q->cell.nof_prb)) {
+    memcpy(&q->pucch_cfg, cfg, sizeof(srslte_pucch_cfg_t));    
+    return true; 
+  } else {
+    return false; 
+  }
+}
 
 uint32_t largest_prime_lower_than(uint32_t x) {
   /* get largest prime n_zc<len */
@@ -244,11 +261,7 @@ bool srslte_refsignal_dmrs_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, srslte_re
   }
 }
 
-void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, 
-                              cf_t *r_pusch, 
-                              uint32_t nof_prb, 
-                              uint32_t n_prb[2], 
-                              cf_t *sf_symbols) 
+void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q, cf_t *r_pusch, uint32_t nof_prb, uint32_t n_prb[2], cf_t *sf_symbols) 
 {
   for (uint32_t ns_idx=0;ns_idx<2;ns_idx++) {
     DEBUG("Putting DRMS to n_prb: %d, L: %d, ns_idx: %d\n", n_prb[ns_idx], nof_prb, ns_idx);
@@ -259,43 +272,43 @@ void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q, srslte_refsignal_
 }
 
 /* Generate DRMS for PUSCH signal according to 5.5.2.1 of 36.211 */
-int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t sf_idx, cf_t *r_pusch) 
+int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t sf_idx, cf_t *r_pusch) 
 {
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (srslte_refsignal_dmrs_pusch_cfg_isvalid(q, cfg, nof_prb)) {
+  if (srslte_refsignal_dmrs_pusch_cfg_isvalid(q, &q->pusch_cfg, nof_prb)) {
     ret = SRSLTE_ERROR;
     
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       // Get group hopping number u 
       uint32_t f_gh=0; 
-      if (cfg->group_hopping_en) {
+      if (q->pusch_cfg.group_hopping_en) {
         f_gh = q->f_gh[ns];
       }
-      uint32_t u = (f_gh + (q->cell.id%30)+cfg->delta_ss)%30;
+      uint32_t u = (f_gh + (q->cell.id%30)+q->pusch_cfg.delta_ss)%30;
       
       // Get sequence hopping number v 
       uint32_t v = 0; 
-      if (nof_prb >= 6 && cfg->sequence_hopping_en) {
-        v = q->v_pusch[ns][cfg->delta_ss];
+      if (nof_prb >= 6 && q->pusch_cfg.sequence_hopping_en) {
+        v = q->v_pusch[ns][q->pusch_cfg.delta_ss];
       }
 
       // Compute signal argument 
-      compute_pusch_r_uv_arg(q, cfg, nof_prb, u, v);
+      compute_pusch_r_uv_arg(q, &q->pusch_cfg, nof_prb, u, v);
 
       // Add cyclic prefix alpha
-      float alpha = pusch_alpha(q, cfg, ns);
+      float alpha = pusch_alpha(q, &q->pusch_cfg, ns);
 
       if (srslte_verbose == SRSLTE_VERBOSE_DEBUG) {
         uint32_t N_sz = largest_prime_lower_than(nof_prb*SRSLTE_NRE);
         DEBUG("Generating PUSCH DRMS sequence with parameters:\n",0);
         DEBUG("\tbeta: %.1f, nof_prb: %d, u: %d, v: %d, alpha: %f, N_sc: %d, root q: %d, nprs: %d\n", 
-              cfg->beta_pusch, nof_prb, u, v, alpha, N_sz, get_q(u,v,N_sz),q->n_prs_pusch[cfg->delta_ss][ns]);
+              q->pusch_cfg.beta_pusch, nof_prb, u, v, alpha, N_sz, get_q(u,v,N_sz),q->n_prs_pusch[q->pusch_cfg.delta_ss][ns]);
       }
 
       // Do complex exponential and adjust amplitude
       for (int i=0;i<SRSLTE_NRE*nof_prb;i++) {
-        r_pusch[(ns%2)*SRSLTE_NRE*nof_prb+i] = cfg->beta_pusch * cexpf(I*(q->tmp_arg[i] + alpha*i));
+        r_pusch[(ns%2)*SRSLTE_NRE*nof_prb+i] = q->pusch_cfg.beta_pusch * cexpf(I*(q->tmp_arg[i] + alpha*i));
       }      
     }
     ret = 0; 
@@ -362,18 +375,18 @@ static uint32_t get_pucch_dmrs_symbol(uint32_t m, srslte_pucch_format_t format, 
 }
 
 /* Generates DMRS for PUCCH according to 5.5.2.2 in 36.211 */
-int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t *cfg, uint32_t sf_idx, cf_t *r_pucch) 
+int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, uint32_t sf_idx, cf_t *r_pucch) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (srslte_pucch_cfg_isvalid(cfg)) {
+  if (q && r_pucch) {
     ret = SRSLTE_ERROR;
     
-    uint32_t N_rs=get_N_rs(cfg->format, q->cell.cp); 
+    uint32_t N_rs=get_N_rs(format, q->cell.cp); 
     
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       // Get group hopping number u 
       uint32_t f_gh=0; 
-      if (cfg->group_hopping_en) {
+      if (q->pucch_cfg.group_hopping_en) {
         f_gh = q->f_gh[ns];
       }
       uint32_t u = (f_gh + (q->cell.id%30))%30;
@@ -383,13 +396,13 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t
       for (uint32_t m=0;m<N_rs;m++) {
         uint32_t n_oc=0; 
         
-        uint32_t l = get_pucch_dmrs_symbol(m, cfg->format, q->cell.cp);
+        uint32_t l = get_pucch_dmrs_symbol(m, format, q->cell.cp);
         // Add cyclic prefix alpha
-        float alpha = srslte_pucch_alpha(q->n_cs_cell, cfg, q->cell.cp, true, ns, l, &n_oc, NULL);
+        float alpha = srslte_pucch_alpha(q->n_cs_cell, &q->pucch_cfg, n_pucch, q->cell.cp, true, ns, l, &n_oc, NULL);
 
         // Choose number of symbols and orthogonal sequence from Tables 5.5.2.2.1-1 to -3 
         float *w=NULL;
-        switch (cfg->format) {
+        switch (format) {
           case SRSLTE_PUCCH_FORMAT_1:
           case SRSLTE_PUCCH_FORMAT_1A:
           case SRSLTE_PUCCH_FORMAT_1B:
@@ -414,7 +427,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t
 
         if (w) {
           for (uint32_t n=0;n<SRSLTE_NRE;n++) {
-            r_pucch[(ns%2)*SRSLTE_NRE*N_rs+m*SRSLTE_NRE+n] = cfg->beta_pucch*w[m]*cexpf(I*(q->tmp_arg[n]+alpha*n));
+            r_pucch[(ns%2)*SRSLTE_NRE*N_rs+m*SRSLTE_NRE+n] = q->pucch_cfg.beta_pucch*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
           }                                 
         } else {
           return SRSLTE_ERROR; 
@@ -427,16 +440,16 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t
 }
 
 /* Maps PUCCH DMRS to the physical resources as defined in 5.5.2.2.2 in 36.211 */
-int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t *cfg, cf_t *r_pucch, cf_t *output) 
+int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, cf_t *r_pucch, cf_t *output) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-  if (q && cfg && output) {
+  if (q && output) {
     ret = SRSLTE_ERROR; 
 
     // Determine m 
-    uint32_t m = srslte_pucch_m(cfg, q->cell.cp); 
+    uint32_t m = srslte_pucch_m(&q->pucch_cfg, format, n_pucch, q->cell.cp); 
     
-    uint32_t N_rs = get_N_rs(cfg->format, q->cell.cp);
+    uint32_t N_rs = get_N_rs(format, q->cell.cp);
     for (uint32_t ns=0;ns<2;ns++) {
       // Determine n_prb 
       uint32_t n_prb = m/2; 
@@ -445,7 +458,7 @@ int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t
       }
       
       for (uint32_t i=0;i<N_rs;i++) {
-        uint32_t l = get_pucch_dmrs_symbol(m, cfg->format, q->cell.cp);
+        uint32_t l = get_pucch_dmrs_symbol(m, format, q->cell.cp);
         memcpy(&output[SRSLTE_RE_IDX(q->cell.nof_prb, l, n_prb*SRSLTE_NRE)], 
                &r_pucch[ns*N_rs*SRSLTE_NRE+i*SRSLTE_NRE], 
                SRSLTE_NRE*sizeof(cf_t));
@@ -457,7 +470,7 @@ int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t
   return ret;   
 }
 
-void srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, srslte_refsignal_srs_cfg_t *cfg, uint32_t ns, cf_t *r_srs) 
+void srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t ns, cf_t *r_srs) 
 {
   
 }

@@ -123,7 +123,8 @@ int main(int argc, char **argv) {
               printf("cyclic_shift_for_dmrs: %d, ",pusch_cfg.cyclic_shift_for_dmrs);
               printf("delta_ss: %d, ",pusch_cfg.delta_ss);
               printf("SF_idx: %d\n", sf_idx);
-              srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, signal);              
+              srslte_refsignal_ul_set_pusch_cfg(&refs, &pusch_cfg);
+              srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, signal);              
               exit(0);
             }
           }

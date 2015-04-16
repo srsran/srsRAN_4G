@@ -136,6 +136,22 @@ TARGET_LINK_LIBRARIES(pusch_test srslte)
 BuildMex(MEXNAME ulsch_encode SOURCES ulsch_encode_test_mex.c LIBRARIES srslte srslte_mex)
 BuildMex(MEXNAME pusch_encode SOURCES pusch_encode_test_mex.c LIBRARIES srslte srslte_mex)
 
+ADD_TEST(pusch_test pusch_test)
+
+########################################################################
+# PUCCH TEST  
+########################################################################
+
+ADD_EXECUTABLE(pucch_test pucch_test.c)
+TARGET_LINK_LIBRARIES(pucch_test srslte)
+
+ADD_TEST(pucch_test pucch_test -f 0)
+ADD_TEST(pucch_test pucch_test -f 1)
+ADD_TEST(pucch_test pucch_test -f 2)
+
+BuildMex(MEXNAME pucch_encode SOURCES pucch_encode_test_mex.c LIBRARIES srslte srslte_mex)
+
+
 
 
 

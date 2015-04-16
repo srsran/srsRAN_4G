@@ -1,75 +1,59 @@
 clear 
-ueConfig=struct('NCellID',1,'NULRB',6,'NSubframe',8,'RNTI',68,'CyclicPrefixUL','Normal','NTxAnts',1);
-puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',[1:4]','Modulation','QPSK','RV',0,'Shortened',0);
+ueConfig=struct('NCellID',2,'NULRB',6,'NSubframe',7,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Off');
+pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0,'ResourceSize',0);
 
-addpath('../../debug/lte/phy/lib/phch/test')
+addpath('../../debug/srslte/lib/phch/test')
 
-%  TBs=0:13:211;
-%  cqilen=[0, 8, 17];
-%  mods={'QPSK','16QAM','64QAM'};
-%  rvs=0;
-%  betas=0:3:11;
+k=1;
+for f=0:2
+    for n=0:130
+        for d=1:3
+            for ncs=0:d:7
+                pucchConfig.ResourceIdx= n;
+                pucchConfig.DeltaShift = d;
+                pucchConfig.CyclicShifts = ncs;
+                ack=randi(2,f,1)-1;
+                fprintf('Testint Format: %d, n_pucch=%d, DeltaShift=%d, CyclicShift=%d\n',f,n,d,ncs);
+                [sym_mat, info]=ltePUCCH1(ueConfig,pucchConfig,ack);
+                idx=ltePUCCH1Indices(ueConfig,pucchConfig);
+                [dmrs_mat, info_dmrs]=ltePUCCH1DRS(ueConfig,pucchConfig);
+                idx_dmrs=ltePUCCH1DRSIndices(ueConfig,pucchConfig);
+                subframe_mat = lteULResourceGrid(ueConfig);
+                subframe_mat(idx)=sym_mat;
+                subframe_mat(idx_dmrs)=dmrs_mat;
 
-TBs=88;
-cqilen=0;
-mods={'QPSK'};
-rvs=0;
-betas=0;
- 
-for i=1:length(TBs)
-    for m=1:length(mods)
-        for r=1:length(rvs)
-            for bcqi=1:length(betas)
-                for bri=1:length(betas)
-                    for back=1:length(betas)          
-                        for c=1:length(cqilen)
-                            
-                            trblkin=randi(2,TBs(i),1)-1;
-    
-                            puschConfig.Modulation = mods{m};
-                            puschConfig.RV = rvs(r);
-                            puschConfig.BetaCQI = 2+betas(bcqi); 
-                            puschConfig.BetaRI = 2+betas(bri);
-                            puschConfig.BetaACK = 2+betas(back);
+                [sym, dmrs]=srslte_pucch_encode(ueConfig,pucchConfig,ack);
 
-                            if (betas(bri)>0)
-                                ri_bit=randi(2,1,1)-1;
-                            else
-                                ri_bit=[];
-                            end
-                            if (betas(back)>0)
-                                ack_bit=randi(2,1,1)-1;
-                            else
-                                ack_bit=[];
-                            end
-                            
-                            if (cqilen(c)>0 || TBs(i)>0)
-                                [cw, info]=lteULSCH(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit,[]);
-                                cw_mat=ltePUSCH(ueConfig,puschConfig,cw);
-                                idx=ltePUSCHIndices(ueConfig,puschConfig);
-                                subframe_mat = lteULResourceGrid(ueConfig);
-                                subframe_mat(idx)=cw_mat;
-                                waveform = lteSCFDMAModulate(ueConfig,subframe_mat,0);
-                               
-                                [waveform_lib, subframe_lib, cwlib]=srslte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
-                                err=mean(abs(waveform-waveform_lib));
-                                if (err > 10^-6)
-                                  disp(err)    
-                                  error('Error!');
-                                end
-                            end
-                        end
-                    end
+                error_sym=mean(abs(sym-sym_mat));
+                error_dmrs=mean(abs(dmrs-dmrs_mat));
+                %error_sf=mean(abs(subframe_mat(:)-subframe_lib));
+                k=k+1;
+
+                if (error_sym > 1e-6)
+                    disp(info)
+                    plot(angle(sym)-angle(sym_mat))
+                    error('Error in symbols');                
                 end
+                if (error_dmrs > 1e-6)
+                    disp(info_dmrs)
+                    plot(angle(dmrs)-angle(dmrs_mat))
+                    error('Error in DMRS');                
+                end
+%                 if (error_sf > 1e-6)
+%                     disp(info)
+%                     p=1:length(subframe_lib);
+%                     plot(p,real(subframe_lib(p)),p,real(subframe_mat(p)))
+%                     error('Error in subframe');
+%                 end
             end
         end
     end
 end
 
-if (length(TBs) == 1)
-    %disp(info)
-    %n=1:length(mat);
-    %plot(abs(double(mat)-double(lib)))
-    %plot(n,real(lib(n)),n,real(mat(n)))
-    plot(abs(waveform_lib-waveform))
+if (k == 2) 
+    disp(info)
+    disp(error_sym)
+    disp(error_sf)
+    n=1:length(sym);
+    plot(n,real(sym(n)),n,real(sym_mat(n)))
 end

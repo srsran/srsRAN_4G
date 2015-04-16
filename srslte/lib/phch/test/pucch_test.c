@@ -43,75 +43,36 @@ srslte_cell_t cell = {
   SRSLTE_PHICH_NORM    // PHICH length
 };
 
-uint32_t cfi = 2;
-uint32_t tbs = 0;
 uint32_t subframe = 1;
-srslte_mod_t modulation = SRSLTE_MOD_QPSK;
-uint32_t rv_idx = 0;
-uint32_t L_prb = 2; 
-uint32_t n_prb = 0; 
-int freq_hop = -1; 
-int riv = -1; 
+srslte_pucch_format_t format; 
 
 void usage(char *prog) {
-  printf("Usage: %s [csrnfvmtLNF] -l TBS \n", prog);
-  printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
+  printf("Usage: %s [csNnv] -f [format (0: Format 1 | 1: Format 1a | 2: Format 1b)]\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
-  printf("\t-L L_prb [Default %d]\n", L_prb);
-  printf("\t-N n_prb [Default %d]\n", n_prb);
-  printf("\t-F frequency hopping [Default %d]\n", freq_hop);
-  printf("\t-R RIV [Default %d]\n", riv);
-  printf("\t-r rv_idx [Default %d]\n", rv_idx);
-  printf("\t-f cfi [Default %d]\n", cfi);
-  printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-n nof_prb [Default %d]\n", cell.nof_prb);
+  printf("\t-v [set verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lcnfvmtsrLNFR")) != -1) {
+  while ((opt = getopt(argc, argv, "csNnvf")) != -1) {
     switch(opt) {
-    case 'm':
+    case 'f':
       switch(atoi(argv[optind])) {
-      case 1:
-        modulation = SRSLTE_MOD_BPSK;
-        break;
-      case 2:
-        modulation = SRSLTE_MOD_QPSK;
-        break;
-      case 4:
-        modulation = SRSLTE_MOD_16QAM;
-        break;
-      case 6:
-        modulation = SRSLTE_MOD_64QAM;
-        break;
-      default:
-        fprintf(stderr, "Invalid modulation %d. Possible values: "
-            "(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n", atoi(argv[optind]));
-        break;
+        case 0:
+          format = SRSLTE_PUCCH_FORMAT_1;
+          break;
+        case 1:
+          format = SRSLTE_PUCCH_FORMAT_1A;
+          break;
+        case 2:
+          format = SRSLTE_PUCCH_FORMAT_1B;
+          break;
       }
       break;
     case 's':
       subframe = atoi(argv[optind]);
-      break;
-    case 'L':
-      L_prb = atoi(argv[optind]);
-      break;
-    case 'N':
-      n_prb = atoi(argv[optind]);
-      break;
-    case 'R':
-      riv = atoi(argv[optind]);
-      break;
-    case 'F':
-      freq_hop = atoi(argv[optind]);
-      break;
-    case 'r':
-      rv_idx = atoi(argv[optind]);
-      break;
-    case 'l':
-      tbs = atoi(argv[optind]);
       break;
     case 'n':
       cell.nof_prb = atoi(argv[optind]);
@@ -130,140 +91,77 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  srslte_pusch_t pusch;
-  uint8_t *data = NULL;
+  srslte_pucch_t pucch;
+  srslte_pucch_cfg_t pucch_cfg;
+  srslte_refsignal_ul_t dmrs;
+  uint8_t bits[SRSLTE_PUCCH_MAX_BITS];
   cf_t *sf_symbols = NULL;
+  cf_t pucch_dmrs[2*SRSLTE_NRE*3];
   int ret = -1;
-  struct timeval t[3];
-  srslte_ra_mcs_t mcs;
-  srslte_ra_ul_alloc_t prb_alloc;
-  srslte_harq_t harq_process;
   
   parse_args(argc,argv);
 
-  mcs.tbs = tbs;
-  mcs.mod = modulation;
-  
-  bzero(&prb_alloc, sizeof(srslte_ra_ul_alloc_t));
-  
-  if (srslte_pusch_init(&pusch, cell)) {
+  if (srslte_pucch_init(&pucch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
-  srslte_pusch_set_rnti(&pusch, 1234);
-  
-  if (srslte_harq_init(&harq_process, cell)) {
-    fprintf(stderr, "Error initiating HARQ process\n");
+  if (srslte_refsignal_ul_init(&dmrs, cell)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
   
-  printf("Encoding rv_idx=%d\n",rv_idx);
+  bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
   
-  uint8_t tmp[20];
-  for (uint32_t i=0;i<20;i++) {
-    tmp[i] = 1;
+  for (int i=0;i<SRSLTE_PUCCH_MAX_BITS;i++) {
+    bits[i] = rand()%2;
   }
-  srslte_uci_data_t uci_data; 
-  bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.I_offset_cqi = 7; 
-  uci_data.I_offset_ri = 2; 
-  uci_data.I_offset_ack = 0; 
   
-  uci_data.uci_cqi_len = 0; 
-  uci_data.uci_ri_len = 0; 
-  uci_data.uci_ack_len = 0; 
-
-  uci_data.uci_cqi = tmp;
-  uci_data.uci_ri = 1; 
-  uci_data.uci_ack = 1; 
-    
-  srslte_ra_pusch_t dci;
-  dci.freq_hop_fl = freq_hop;
-  if (riv < 0) {
-    dci.type2_alloc.L_crb = L_prb; 
-    dci.type2_alloc.RB_start = n_prb;    
-  } else {
-    srslte_ra_type2_from_riv((uint32_t) riv, &dci.type2_alloc.L_crb, &dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
-  }
-  srslte_ra_ul_alloc(&prb_alloc, &dci, 0, cell.nof_prb);
-
-  if (srslte_harq_setup_ul(&harq_process, mcs, 0, subframe, &prb_alloc)) {
-    fprintf(stderr, "Error configuring HARQ process\n");
-    goto quit;
-  }
-  srslte_pusch_hopping_cfg_t ul_hopping; 
-  ul_hopping.n_sb = 1; 
-  ul_hopping.hopping_offset = 0;
-  ul_hopping.hop_mode = SRSLTE_PUSCH_HOP_MODE_INTER_SF;
-  ul_hopping.current_tx_nb = 0;
-  
-  srslte_pusch_set_hopping_cfg(&pusch, &ul_hopping);
-  
-  uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
-  sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
+  sf_symbols = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
   if (!sf_symbols) {
-    perror("malloc");
-    goto quit;
+    goto quit; 
   }
 
-  data = malloc(sizeof(uint8_t) * mcs.tbs);
-  if (!data) {
-    perror("malloc");
-    goto quit;
-  }
+  for (uint32_t d=1;d<=2;d++) {
+    for (uint32_t ncs=0;ncs<8;ncs+=d) {
+      for (uint32_t n_pucch=0;n_pucch<130;n_pucch++) {
+        INFO("n_pucch: %d, ncs: %d, d: %d\n", n_pucch, ncs, d);
+        pucch_cfg.beta_pucch = 1.0; 
+        pucch_cfg.delta_pucch_shift = d; 
+        pucch_cfg.group_hopping_en = false; 
+        pucch_cfg.N_cs = ncs; 
+        pucch_cfg.n_rb_2 = 0; 
   
-  for (uint32_t i=0;i<mcs.tbs;i++) {
-    data[i] = 1;
-  }
-
-  if (srslte_pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
-    fprintf(stderr, "Error encoding TB\n");
-    exit(-1);
-  }
-
-  if (rv_idx > 0) {
-    if (srslte_harq_setup_ul(&harq_process, mcs, rv_idx, subframe, &prb_alloc)) {
-      fprintf(stderr, "Error configuring HARQ process\n");
-      goto quit;
+        if (!srslte_pucch_set_cfg(&pucch, &pucch_cfg)) {
+          fprintf(stderr, "Error setting PUCCH config\n");
+          goto quit; 
+        }
+        
+        if (srslte_pucch_encode(&pucch, format, n_pucch, subframe, bits, sf_symbols)) {
+          fprintf(stderr, "Error encoding PUCCH\n");
+          goto quit; 
+        }
+        srslte_refsignal_ul_set_pucch_cfg(&dmrs, &pucch_cfg);
+        
+        if (srslte_refsignal_dmrs_pucch_gen(&dmrs, format, n_pucch, subframe, pucch_dmrs)) {
+          fprintf(stderr, "Error encoding PUCCH\n");
+          goto quit; 
+        }
+        if (srslte_refsignal_dmrs_pucch_put(&dmrs, format, n_pucch, pucch_dmrs, sf_symbols)) {
+          fprintf(stderr, "Error encoding PUCCH\n");
+          goto quit; 
+        }
+        
+      }
     }
+  }
 
-    if (srslte_pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
-      fprintf(stderr, "Error encoding TB\n");
-      exit(-1);
-    }
-  }
-  
-  
-  cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  srslte_ofdm_t fft; 
-  srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
-  srslte_ofdm_set_freq_shift(&fft, 0.5);
-  srslte_ofdm_tx_sf(&fft, sf_symbols, scfdma);
-  
-  gettimeofday(&t[1], NULL);
-  //int r = srslte_pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
-  int r = 0; 
-  gettimeofday(&t[2], NULL);
-  get_time_interval(t);
-  if (r) {
-    printf("Error decoding\n");
-    ret = -1;
-    goto quit;
-  } else {
-    printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);
-  }
-  
   ret = 0;
 quit:
-  srslte_pusch_free(&pusch);
-  srslte_harq_free(&harq_process);
+  srslte_pucch_free(&pucch);
+  srslte_refsignal_ul_free(&dmrs);
   
   if (sf_symbols) {
     free(sf_symbols);
-  }
-  if (data) {
-    free(data);
   }
   if (ret) {
     printf("Error\n");

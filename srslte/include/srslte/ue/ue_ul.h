@@ -63,8 +63,6 @@ typedef struct SRSLTE_API {
   
   float current_cfo; 
 
-  srslte_refsignal_dmrs_pusch_cfg_t dmrs_cfg;
-  
   srslte_refsignal_ul_t dmrs; 
   srslte_harq_t harq_process[SRSLTE_UE_UL_NOF_HARQ_PROCESSES];
   srslte_pusch_t pusch; 
