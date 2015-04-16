@@ -44,10 +44,9 @@ srslte_cell_t cell = {
 };
 
 uint32_t subframe = 1;
-srslte_pucch_format_t format; 
 
 void usage(char *prog) {
-  printf("Usage: %s [csNnv] -f [format (0: Format 1 | 1: Format 1a | 2: Format 1b)]\n", prog);
+  printf("Usage: %s [csNnv]\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
   printf("\t-n nof_prb [Default %d]\n", cell.nof_prb);
@@ -56,21 +55,8 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "csNnvf")) != -1) {
+  while ((opt = getopt(argc, argv, "csNnv")) != -1) {
     switch(opt) {
-    case 'f':
-      switch(atoi(argv[optind])) {
-        case 0:
-          format = SRSLTE_PUCCH_FORMAT_1;
-          break;
-        case 1:
-          format = SRSLTE_PUCCH_FORMAT_1A;
-          break;
-        case 2:
-          format = SRSLTE_PUCCH_FORMAT_1B;
-          break;
-      }
-      break;
     case 's':
       subframe = atoi(argv[optind]);
       break;
@@ -95,6 +81,7 @@ int main(int argc, char **argv) {
   srslte_pucch_cfg_t pucch_cfg;
   srslte_refsignal_ul_t dmrs;
   uint8_t bits[SRSLTE_PUCCH_MAX_BITS];
+  uint8_t pucch2_bits[2]; 
   cf_t *sf_symbols = NULL;
   cf_t pucch_dmrs[2*SRSLTE_NRE*3];
   int ret = -1;
@@ -115,44 +102,55 @@ int main(int argc, char **argv) {
   for (int i=0;i<SRSLTE_PUCCH_MAX_BITS;i++) {
     bits[i] = rand()%2;
   }
+        
+  for (int i=0;i<2;i++) {
+    pucch2_bits[i] = rand()%2;
+  }
+  
+  if (srslte_pucch_set_crnti(&pucch, 1234)) {
+    fprintf(stderr, "Error setting C-RNTI\n");
+    goto quit; 
+  }
   
   sf_symbols = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
   if (!sf_symbols) {
     goto quit; 
   }
 
-  for (uint32_t d=1;d<=2;d++) {
-    for (uint32_t ncs=0;ncs<8;ncs+=d) {
-      for (uint32_t n_pucch=0;n_pucch<130;n_pucch++) {
-        INFO("n_pucch: %d, ncs: %d, d: %d\n", n_pucch, ncs, d);
-        pucch_cfg.beta_pucch = 1.0; 
-        pucch_cfg.delta_pucch_shift = d; 
-        pucch_cfg.group_hopping_en = false; 
-        pucch_cfg.N_cs = ncs; 
-        pucch_cfg.n_rb_2 = 0; 
-  
-        if (!srslte_pucch_set_cfg(&pucch, &pucch_cfg)) {
-          fprintf(stderr, "Error setting PUCCH config\n");
-          goto quit; 
+  srslte_pucch_format_t format; 
+  for (format=0;format<=SRSLTE_PUCCH_FORMAT_2B;format++) {
+    for (uint32_t d=1;d<=3;d++) {
+      for (uint32_t ncs=0;ncs<8;ncs+=d) {
+        for (uint32_t n_pucch=1;n_pucch<130;n_pucch++) {
+          INFO("format %d, n_pucch: %d, ncs: %d, d: %d\n", format, n_pucch, ncs, d);
+          pucch_cfg.beta_pucch = 1.0; 
+          pucch_cfg.delta_pucch_shift = d; 
+          pucch_cfg.group_hopping_en = false; 
+          pucch_cfg.N_cs = ncs; 
+          pucch_cfg.n_rb_2 = 0; 
+    
+          if (!srslte_pucch_set_cfg(&pucch, &pucch_cfg)) {
+            fprintf(stderr, "Error setting PUCCH config\n");
+            goto quit; 
+          }
+          
+          if (srslte_pucch_encode(&pucch, format, n_pucch, subframe, bits, sf_symbols)) {
+            fprintf(stderr, "Error encoding PUCCH\n");
+            goto quit; 
+          }
+          srslte_refsignal_ul_set_pucch_cfg(&dmrs, &pucch_cfg);
+          
+          if (srslte_refsignal_dmrs_pucch_gen(&dmrs, format, pucch2_bits, n_pucch, subframe, pucch_dmrs)) {
+            fprintf(stderr, "Error encoding PUCCH\n");
+            goto quit; 
+          }
+          if (srslte_refsignal_dmrs_pucch_put(&dmrs, format, n_pucch, pucch_dmrs, sf_symbols)) {
+            fprintf(stderr, "Error encoding PUCCH\n");
+            goto quit; 
+          }     
         }
-        
-        if (srslte_pucch_encode(&pucch, format, n_pucch, subframe, bits, sf_symbols)) {
-          fprintf(stderr, "Error encoding PUCCH\n");
-          goto quit; 
-        }
-        srslte_refsignal_ul_set_pucch_cfg(&dmrs, &pucch_cfg);
-        
-        if (srslte_refsignal_dmrs_pucch_gen(&dmrs, format, n_pucch, subframe, pucch_dmrs)) {
-          fprintf(stderr, "Error encoding PUCCH\n");
-          goto quit; 
-        }
-        if (srslte_refsignal_dmrs_pucch_put(&dmrs, format, n_pucch, pucch_dmrs, sf_symbols)) {
-          fprintf(stderr, "Error encoding PUCCH\n");
-          goto quit; 
-        }
-        
       }
-    }
+    }    
   }
 
   ret = 0;

@@ -105,9 +105,10 @@ SRSLTE_API void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q,
 
 SRSLTE_API int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, 
                                                srslte_pucch_format_t format, 
-                                               uint32_t n_pucch, 
-                                               uint32_t sf_idx,
-                                               cf_t *r_pucch);
+                                               uint8_t pucch2_bits[2], 
+                                               uint32_t n_pucch, // n_pucch_1 or n_pucch_2 depending on format
+                                               uint32_t sf_idx, 
+                                               cf_t *r_pucch); 
 
 SRSLTE_API int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t* q, 
                                                srslte_pucch_format_t format, 

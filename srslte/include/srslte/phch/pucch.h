@@ -38,10 +38,12 @@
 
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
+#include "srslte/common/sequence.h"
+#include "srslte/modem/mod.h"
 
-#define SRSLTE_PUCCH_N_SEQ     12 // Only Format 1, 1a and 1b supported
-#define SRSLTE_PUCCH_MAX_BITS  2 
-#define SRSLTE_PUCCH_N_SF_MAX  5
+#define SRSLTE_PUCCH_N_SEQ       12 
+#define SRSLTE_PUCCH_MAX_BITS    20
+#define SRSLTE_PUCCH_MAX_SYMBOLS 120 
 
 typedef enum SRSLTE_API {
   SRSLTE_PUCCH_FORMAT_1 = 0, 
@@ -64,11 +66,16 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
   srslte_pucch_cfg_t pucch_cfg;
- 
+  srslte_sequence_t seq_f2[SRSLTE_NSUBFRAMES_X_FRAME]; 
+  srslte_modem_table_t mod; 
+  
+  uint8_t bits_scram[SRSLTE_PUCCH_MAX_BITS];
+  cf_t d[SRSLTE_PUCCH_MAX_BITS/2];
   uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB]; 
   uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME];
   float tmp_arg[SRSLTE_PUCCH_N_SEQ];
-  cf_t z[2*SRSLTE_PUCCH_N_SF_MAX*SRSLTE_PUCCH_N_SEQ];
+  cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS];
+  bool rnti_is_set;
 }srslte_pucch_t;
 
 
@@ -77,24 +84,34 @@ SRSLTE_API int srslte_pucch_init(srslte_pucch_t *q,
 
 SRSLTE_API void srslte_pucch_free(srslte_pucch_t *q);
 
-SRSLTE_API bool srslte_pucch_set_cfg(srslte_pucch_t* q, srslte_pucch_cfg_t* cfg); 
+SRSLTE_API bool srslte_pucch_set_cfg(srslte_pucch_t* q, 
+                                     srslte_pucch_cfg_t* cfg); 
+
+SRSLTE_API int srslte_pucch_set_crnti(srslte_pucch_t *q, 
+                                      uint16_t c_rnti); 
 
 SRSLTE_API int srslte_pucch_encode(srslte_pucch_t *q, 
                                    srslte_pucch_format_t format,
-                                   uint32_t n_pucch, 
+                                   uint32_t n_pucch, // n_pucch_1 or n_pucch_2 depending on format
                                    uint32_t sf_idx, 
                                    uint8_t bits[SRSLTE_PUCCH_MAX_BITS], 
                                    cf_t *sf_symbols); 
 
-SRSLTE_API float srslte_pucch_alpha(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB], 
-                                    srslte_pucch_cfg_t *cfg, 
-                                    uint32_t n_pucch,
-                                    srslte_cp_t cp, 
-                                    bool is_dmrs,
-                                    uint32_t ns, 
-                                    uint32_t l,
-                                    uint32_t *n_oc,
-                                    uint32_t *n_prime_ns); 
+SRSLTE_API float srslte_pucch_alpha_format1(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB], 
+                                            srslte_pucch_cfg_t *cfg, 
+                                            uint32_t n_pucch, 
+                                            srslte_cp_t cp, 
+                                            bool is_dmrs,
+                                            uint32_t ns, 
+                                            uint32_t l,
+                                            uint32_t *n_oc,
+                                            uint32_t *n_prime_ns); 
+
+SRSLTE_API float srslte_pucch_alpha_format2(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB], 
+                                            srslte_pucch_cfg_t *cfg, 
+                                            uint32_t n_pucch, 
+                                            uint32_t ns, 
+                                            uint32_t l); 
 
 SRSLTE_API uint32_t srslte_pucch_m(srslte_pucch_cfg_t *cfg, 
                                    srslte_pucch_format_t format, 
@@ -104,6 +121,9 @@ SRSLTE_API uint32_t srslte_pucch_m(srslte_pucch_cfg_t *cfg,
 SRSLTE_API int srslte_pucch_n_cs_cell(srslte_cell_t cell, 
                                       uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB]);
 
+SRSLTE_API int srslte_pucch_format2ab_mod_bits(srslte_pucch_format_t format, 
+                                               uint8_t bits[2], 
+                                               cf_t *d_10); 
 
 SRSLTE_API bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t *cfg, 
                                          uint32_t nof_prb); 

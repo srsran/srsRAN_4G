@@ -75,6 +75,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field NSubframe not found in UE config\n");
     return;
   }
+  uint32_t rnti; 
+  if (mexutils_read_uint32_struct(UECFG, "RNTI", &rnti)) {
+    mexErrMsgTxt("Field NSubframe not found in UE config\n");
+    return;
+  }
+  if (srslte_pucch_set_crnti(&pucch, (uint16_t) rnti&0xffff)) {
+    mexErrMsgTxt("Error setting C-RNTI\n");
+    return;
+  }
   uint32_t n_pucch; 
   if (mexutils_read_uint32_struct(PUCCHCFG, "ResourceIdx", &n_pucch)) {
     mexErrMsgTxt("Field ResourceIdx not found in PUCCHCFG\n");
@@ -101,12 +110,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   uint8_t bits[SRSLTE_PUCCH_MAX_BITS]; 
+  uint8_t pucch2_bits[2]; 
   float *bits_ptr; 
   int n = mexutils_read_f(ACK, &bits_ptr); 
-  for (int i=0;i<n;i++) {
-    bits[i] = bits_ptr[i]>0?1:0; 
-  }
-  free(bits_ptr); 
   
   srslte_pucch_format_t format; 
   switch(n) {
@@ -119,10 +125,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     case 2: 
       format = SRSLTE_PUCCH_FORMAT_1B; 
       break; 
+    case 20: 
+      format = SRSLTE_PUCCH_FORMAT_2;
+      break;
+    case 21: 
+      format = SRSLTE_PUCCH_FORMAT_2A;
+      break;
+    case 22: 
+      format = SRSLTE_PUCCH_FORMAT_2B;
+      break;
     default: 
       mexErrMsgTxt("Invalid number of bits in parameter ack\n");
       return; 
   }
+  if (n > 20) {
+    n = 20; 
+  }
+  for (int i=0;i<n;i++) {
+    bits[i] = bits_ptr[i]>0?1:0; 
+  }
+  if (format == SRSLTE_PUCCH_FORMAT_2A) {
+    pucch2_bits[0] = bits_ptr[20];
+  }
+  if (format == SRSLTE_PUCCH_FORMAT_2B) {
+    pucch2_bits[0] = bits_ptr[20];
+    pucch2_bits[1] = bits_ptr[21];
+  }
+  free(bits_ptr); 
   
   cf_t *sf_symbols = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)); 
   if (!sf_symbols) {
@@ -138,7 +167,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 1) {
-    mexutils_write_cf(pucch.z, &plhs[0], 96, 1);  
+    uint32_t n_bits = 96;
+    if (format >= SRSLTE_PUCCH_FORMAT_2) {
+      n_bits = 120;
+    }
+    mexutils_write_cf(pucch.z, &plhs[0], n_bits, 1);  
   }
 
   if (nlhs >= 2) {
@@ -158,17 +191,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
     
-    if (srslte_refsignal_dmrs_pucch_gen(&pucch_dmrs, format, n_pucch, sf_idx, dmrs_pucch)) {
+    if (srslte_refsignal_dmrs_pucch_gen(&pucch_dmrs, format, pucch2_bits, n_pucch, sf_idx, dmrs_pucch)) {
       mexErrMsgTxt("Error generating PUCCH DMRS\n");
       return; 
     }
-    mexutils_write_cf(dmrs_pucch, &plhs[1], 2*3*SRSLTE_NRE, 1);  
+    uint32_t n_rs = 3;
+    if (format >= SRSLTE_PUCCH_FORMAT_2) {
+      n_rs = 2;
+    }
+    mexutils_write_cf(dmrs_pucch, &plhs[1], 2*n_rs*SRSLTE_NRE, 1);  
     
     if (nlhs >= 3) {
       if (srslte_refsignal_dmrs_pucch_put(&pucch_dmrs, format, n_pucch, dmrs_pucch, sf_symbols)) {
         mexErrMsgTxt("Error generating PUCCH DMRS\n");
         return; 
-      }    
+      }   
       mexutils_write_cf(sf_symbols, &plhs[2], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
     }
     

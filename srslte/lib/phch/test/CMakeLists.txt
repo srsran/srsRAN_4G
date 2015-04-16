@@ -145,9 +145,7 @@ ADD_TEST(pusch_test pusch_test)
 ADD_EXECUTABLE(pucch_test pucch_test.c)
 TARGET_LINK_LIBRARIES(pucch_test srslte)
 
-ADD_TEST(pucch_test pucch_test -f 0)
-ADD_TEST(pucch_test pucch_test -f 1)
-ADD_TEST(pucch_test pucch_test -f 2)
+ADD_TEST(pucch_test pucch_test)
 
 BuildMex(MEXNAME pucch_encode SOURCES pucch_encode_test_mex.c LIBRARIES srslte srslte_mex)
 

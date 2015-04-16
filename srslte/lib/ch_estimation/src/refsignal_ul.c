@@ -375,13 +375,18 @@ static uint32_t get_pucch_dmrs_symbol(uint32_t m, srslte_pucch_format_t format, 
 }
 
 /* Generates DMRS for PUCCH according to 5.5.2.2 in 36.211 */
-int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, uint32_t sf_idx, cf_t *r_pucch) 
+int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint8_t pucch_bits[2], uint32_t n_pucch, uint32_t sf_idx, cf_t *r_pucch) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q && r_pucch) {
     ret = SRSLTE_ERROR;
     
     uint32_t N_rs=get_N_rs(format, q->cell.cp); 
+    
+    cf_t z_m_1 = 1.0;     
+    if (format == SRSLTE_PUCCH_FORMAT_2A || format == SRSLTE_PUCCH_FORMAT_2B) {
+      srslte_pucch_format2ab_mod_bits(format, pucch_bits, &z_m_1);
+    }
     
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       // Get group hopping number u 
@@ -398,7 +403,12 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
         
         uint32_t l = get_pucch_dmrs_symbol(m, format, q->cell.cp);
         // Add cyclic prefix alpha
-        float alpha = srslte_pucch_alpha(q->n_cs_cell, &q->pucch_cfg, n_pucch, q->cell.cp, true, ns, l, &n_oc, NULL);
+        float alpha = 0.0; 
+        if (format < SRSLTE_PUCCH_FORMAT_2) {
+          alpha = srslte_pucch_alpha_format1(q->n_cs_cell, &q->pucch_cfg, n_pucch, q->cell.cp, true, ns, l, &n_oc, NULL);
+        } else {
+          alpha = srslte_pucch_alpha_format2(q->n_cs_cell, &q->pucch_cfg, n_pucch, ns, l);
+        }
 
         // Choose number of symbols and orthogonal sequence from Tables 5.5.2.2.1-1 to -3 
         float *w=NULL;
@@ -424,10 +434,13 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
             w=w_arg_pucch_format2_cpnorm;
             break;
         }
-
+        cf_t z_m = 1.0; 
+        if (m == 1) {
+          z_m = z_m_1; 
+        }
         if (w) {
           for (uint32_t n=0;n<SRSLTE_NRE;n++) {
-            r_pucch[(ns%2)*SRSLTE_NRE*N_rs+m*SRSLTE_NRE+n] = q->pucch_cfg.beta_pucch*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
+            r_pucch[(ns%2)*SRSLTE_NRE*N_rs+m*SRSLTE_NRE+n] = q->pucch_cfg.beta_pucch*z_m*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
           }                                 
         } else {
           return SRSLTE_ERROR; 
@@ -443,9 +456,10 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
 int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, cf_t *r_pucch, cf_t *output) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-  if (q && output) {
+  if (q && output && r_pucch) {
     ret = SRSLTE_ERROR; 
-
+    uint32_t nsymbols = SRSLTE_CP_ISNORM(q->cell.cp)?SRSLTE_CP_NORM_NSYMB:SRSLTE_CP_EXT_NSYMB;
+    
     // Determine m 
     uint32_t m = srslte_pucch_m(&q->pucch_cfg, format, n_pucch, q->cell.cp); 
     
@@ -458,8 +472,8 @@ int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_forma
       }
       
       for (uint32_t i=0;i<N_rs;i++) {
-        uint32_t l = get_pucch_dmrs_symbol(m, format, q->cell.cp);
-        memcpy(&output[SRSLTE_RE_IDX(q->cell.nof_prb, l, n_prb*SRSLTE_NRE)], 
+        uint32_t l = get_pucch_dmrs_symbol(i, format, q->cell.cp);
+        memcpy(&output[SRSLTE_RE_IDX(q->cell.nof_prb, l+ns*nsymbols, n_prb*SRSLTE_NRE)], 
                &r_pucch[ns*N_rs*SRSLTE_NRE+i*SRSLTE_NRE], 
                SRSLTE_NRE*sizeof(cf_t));
       }
