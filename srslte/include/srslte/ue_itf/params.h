@@ -45,7 +45,6 @@ namespace ue {
       CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, // integer that will be divided by 10 
 
       PUSCH_BETA, 
-      
       PUSCH_RS_GROUP_HOPPING_EN,
       PUSCH_RS_SEQUENCE_HOPPING_EN,
       PUSCH_RS_CYCLIC_SHIFT,
@@ -54,6 +53,18 @@ namespace ue {
       PUSCH_HOPPING_N_SB,
       PUSCH_HOPPING_INTRA_SF,
       PUSCH_HOPPING_OFFSET,
+
+      PUCCH_BETA, 
+      PUCCH_DELTA_SHIFT,
+      PUCCH_CYCLIC_SHIFT,
+      PUCCH_N_RB_2,
+      PUCCH_N_PUCCH_1_0,
+      PUCCH_N_PUCCH_1_1,
+      PUCCH_N_PUCCH_1_2,
+      PUCCH_N_PUCCH_1_3,
+      PUCCH_N_PUCCH_1,
+      PUCCH_N_PUCCH_2,
+      PUCCH_N_PUCCH_SR,
 
       UCI_I_OFFSET_ACK,
       UCI_I_OFFSET_RI,

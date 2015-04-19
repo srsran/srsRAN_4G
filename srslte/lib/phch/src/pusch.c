@@ -282,7 +282,9 @@ void srslte_pusch_free(srslte_pusch_t *q) {
 
 void srslte_pusch_set_hopping_cfg(srslte_pusch_t *q, srslte_pusch_hopping_cfg_t *cfg)
 {
-  memcpy(&q->hopping_cfg, cfg, sizeof(srslte_pusch_hopping_cfg_t));
+  if (cfg) {
+    memcpy(&q->hopping_cfg, cfg, sizeof(srslte_pusch_hopping_cfg_t));    
+  }
 }
 
 /* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while 

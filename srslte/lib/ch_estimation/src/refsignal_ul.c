@@ -172,7 +172,9 @@ void srslte_refsignal_ul_free(srslte_refsignal_ul_t * q) {
 
 void srslte_refsignal_ul_set_pusch_cfg(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg)
 {
-  memcpy(&q->pusch_cfg, cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
+  if (cfg) {
+    memcpy(&q->pusch_cfg, cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
+  }
 }
 
 bool srslte_refsignal_ul_set_pucch_cfg(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t *cfg)
@@ -375,7 +377,8 @@ static uint32_t get_pucch_dmrs_symbol(uint32_t m, srslte_pucch_format_t format, 
 }
 
 /* Generates DMRS for PUCCH according to 5.5.2.2 in 36.211 */
-int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint8_t pucch_bits[2], uint32_t n_pucch, uint32_t sf_idx, cf_t *r_pucch) 
+int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, 
+                                    uint32_t sf_idx, uint8_t pucch_bits[2], cf_t *r_pucch) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q && r_pucch) {

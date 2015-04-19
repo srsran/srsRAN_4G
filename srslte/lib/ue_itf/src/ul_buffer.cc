@@ -46,6 +46,8 @@ bool ul_buffer::init_cell(srslte_cell_t cell_, params *params_db_) {
     signal_buffer = (cf_t*) srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     cell_initiated = signal_buffer?true:false;
     srslte_ue_ul_set_cfo_enable(&ue_ul, false);
+    bzero(&uci_data, sizeof(srslte_uci_data_t));
+    uci_pending = false; 
     return cell_initiated; 
   } else {
     return false; 
@@ -61,27 +63,45 @@ void ul_buffer::free_cell() {
   }
 }
 
-bool ul_buffer::generate_pusch(sched_grant pusch_grant, 
-                                  uint8_t *payload) 
+bool ul_buffer::generate_ack(bool ack, sched_grant last_dl_grant)
 {
-  srslte_uci_data_t uci_data; 
-  bzero(&uci_data, sizeof(srslte_uci_data_t));
-  return generate_pusch(pusch_grant, payload, uci_data);
+  uci_data.uci_ack_len = 1; 
+  uci_data.uci_ack = ack?1:0; 
+  uci_pending = true; 
+  last_n_cce = last_dl_grant.get_ncce();
 }
 
-bool ul_buffer::generate_pusch(sched_grant pusch_grant, 
-                               uint8_t *payload, 
-                               srslte_uci_data_t uci_data) 
+bool ul_buffer::generate_ack(bool ack[2])
+{
+  uci_data.uci_ack_len = 2; 
+  uci_data.uci_ack = ack[0]?1:0; 
+  uci_data.uci_ack_2 = ack[1]?1:0; 
+  uci_pending = true; 
+}
+
+bool ul_buffer::generate_sr() {
+  uci_data.scheduling_request = true; 
+  uci_pending = true; 
+}
+
+bool ul_buffer::uci_ready() {
+  return uci_pending; 
+}
+
+bool ul_buffer::generate_data() {
+  sched_grant dummy(sched_grant::DOWNLINK, 0); 
+  return generate_data(dummy, NULL);
+}
+
+bool ul_buffer::generate_data(sched_grant pusch_grant, 
+                              uint8_t *payload) 
 {
   if (is_ready()) {
-    if (!pusch_grant.is_uplink()) {
-      fprintf(stderr, "Error in UL buffer: Invalid scheduling grant. Grant is for Downlink\n");
-      return false; 
-    }
+    
+    bzero(signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
     
     srslte_refsignal_dmrs_pusch_cfg_t dmrs_cfg; 
-    bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
-    
+    bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
     dmrs_cfg.beta_pusch          = (float) params_db->get_param(params::PUSCH_BETA)/10; 
     dmrs_cfg.group_hopping_en    = params_db->get_param(params::PUSCH_RS_GROUP_HOPPING_EN);
     dmrs_cfg.sequence_hopping_en = params_db->get_param(params::PUSCH_RS_SEQUENCE_HOPPING_EN);
@@ -89,6 +109,7 @@ bool ul_buffer::generate_pusch(sched_grant pusch_grant,
     dmrs_cfg.delta_ss            = params_db->get_param(params::PUSCH_RS_GROUP_ASSIGNMENT);
     
     srslte_pusch_hopping_cfg_t pusch_hopping; 
+    bzero(&pusch_hopping, sizeof(srslte_pusch_hopping_cfg_t));
     pusch_hopping.n_sb           = params_db->get_param(params::PUSCH_HOPPING_N_SB);
     pusch_hopping.hop_mode       = params_db->get_param(params::PUSCH_HOPPING_INTRA_SF) ? 
                                     pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
@@ -96,28 +117,55 @@ bool ul_buffer::generate_pusch(sched_grant pusch_grant,
     pusch_hopping.hopping_offset = params_db->get_param(params::PUSCH_HOPPING_OFFSET);
     pusch_hopping.current_tx_nb  = pusch_grant.get_current_tx_nb(); 
     
-    srslte_ue_ul_set_pusch_cfg(&ue_ul, &dmrs_cfg, &pusch_hopping);
+    srslte_pucch_cfg_t pucch_cfg; 
+    bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
+    pucch_cfg.beta_pucch        = (float) params_db->get_param(params::PUCCH_BETA)/10; 
+    pucch_cfg.delta_pucch_shift = params_db->get_param(params::PUCCH_DELTA_SHIFT);
+    pucch_cfg.group_hopping_en  = dmrs_cfg.group_hopping_en;
+    pucch_cfg.N_cs              = params_db->get_param(params::PUCCH_CYCLIC_SHIFT);
+    pucch_cfg.n_rb_2            = params_db->get_param(params::PUCCH_N_RB_2);
+    
+    srslte_pucch_sched_t pucch_sched; 
+    bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
+    pucch_sched.n_cce = last_n_cce; 
+    pucch_sched.n_pucch_1[0] = params_db->get_param(params::PUCCH_N_PUCCH_1_0);
+    pucch_sched.n_pucch_1[1] = params_db->get_param(params::PUCCH_N_PUCCH_1_1);
+    pucch_sched.n_pucch_1[2] = params_db->get_param(params::PUCCH_N_PUCCH_1_2);
+    pucch_sched.n_pucch_1[3] = params_db->get_param(params::PUCCH_N_PUCCH_1_3);
+    pucch_sched.N_pucch_1    = params_db->get_param(params::PUCCH_N_PUCCH_1);
+    pucch_sched.n_pucch_2    = params_db->get_param(params::PUCCH_N_PUCCH_2);
+    pucch_sched.n_pucch_sr   = params_db->get_param(params::PUCCH_N_PUCCH_SR);
+    
+    srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, &pusch_hopping, &pucch_cfg, &pucch_sched);
 
-    int n = srslte_ue_ul_pusch_uci_encode_rnti(&ue_ul, (srslte_ra_pusch_t*) pusch_grant.get_grant_ptr(), 
-                                              payload, uci_data, 
-                                              tti%10, pusch_grant.get_rnti(), 
-                                              signal_buffer);
-    if (n < 0) {
-      fprintf(stderr, "Error in UL buffer: Error encoding PUSCH\n");
-      return false; 
+    uci_data.I_offset_ack    = params_db->get_param(params::UCI_I_OFFSET_ACK);
+    uci_data.I_offset_cqi    = params_db->get_param(params::UCI_I_OFFSET_CQI);
+    uci_data.I_offset_ri     = params_db->get_param(params::UCI_I_OFFSET_RI);
+    
+    int n = 0; 
+    // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
+    if (payload) {
+      n = srslte_ue_ul_pusch_uci_encode_rnti(&ue_ul, (srslte_ra_pusch_t*) pusch_grant.get_grant_ptr(), 
+                                                payload, uci_data, 
+                                                tti%10, pusch_grant.get_rnti(), 
+                                                signal_buffer);      
+    } else {
+      n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti&10, signal_buffer);
     }
+    // Reset UCI data
+    bzero(&uci_data, sizeof(srslte_uci_data_t));
+    uci_pending = false; 
     release();
-    return true; 
+    if (n < 0) {
+      fprintf(stderr, "Error in UL buffer: Error encoding %s\n", signal_buffer?"PUSCH":"PUCCH");
+      return false; 
+    } else {
+      return true; 
+    }
   } else {
     fprintf(stderr, "Error in UL buffer: buffer not released\n");
     return false; 
   }
-}
-
-bool ul_buffer::generate_pucch(srslte_uci_data_t uci_data)
-{  
-  fprintf(stderr, "Not implemented\n");
-  return false; 
 }
 
 bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time)
@@ -136,8 +184,6 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
 
   radio_handler->tx(signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);                
   
-  //srslte_vec_save_file("pusch", signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb)*sizeof(cf_t));
-
   ready();
 }
   

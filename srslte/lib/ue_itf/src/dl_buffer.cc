@@ -145,6 +145,8 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, sched_grant *grant)
       return false; 
     }
     
+    grant->set_ncce(srslte_ue_dl_get_ncce(&ue_dl));
+    
     if (srslte_dci_msg_to_ra_dl(&dci_msg, grant->get_rnti(), cell, cfi, 
                                 (srslte_ra_pdsch_t*) grant->get_grant_ptr())) {
       return false; 
@@ -154,7 +156,7 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, sched_grant *grant)
   }
 }
 
-bool dl_buffer::decode_phich(sched_grant pusch_grant)
+bool dl_buffer::decode_ack(sched_grant pusch_grant)
 {
   if (signal_buffer && is_ready()) {
     if (!sf_symbols_and_ce_done) {
@@ -170,7 +172,7 @@ bool dl_buffer::decode_phich(sched_grant pusch_grant)
   }
 }
 
-bool dl_buffer::decode_pdsch(sched_grant pdsch_grant, uint8_t *payload)
+bool dl_buffer::decode_data(sched_grant pdsch_grant, uint8_t *payload)
 {
   if (signal_buffer && is_ready()) {
     INFO("DL Buffer TTI %d: Decoding PDSCH\n", tti);

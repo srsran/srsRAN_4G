@@ -28,7 +28,7 @@
 /******************************************************************************
  *  File:         uci.h
  *
- *  Description:  Uplink control information.
+ *  Description:  Uplink control information. Only 1-bit ACK for UCI on PUSCCH is supported
  *
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.2.3, 5.2.4
  *****************************************************************************/
@@ -59,9 +59,12 @@ typedef struct SRSLTE_API {
   uint8_t  uci_ri;  // Only 1-bit supported for RI
   uint32_t uci_ri_len;
   uint32_t I_offset_ri;
-  uint8_t  uci_ack; // Only 1-bit supported for HARQ
+  uint8_t  uci_ack;   // 1st codeword bit for HARQ-ACK
+  uint8_t  uci_ack_2; // 2st codeword bit for HARQ-ACK
   uint32_t uci_ack_len;
   uint32_t I_offset_ack;
+  bool scheduling_request; 
+  bool channel_selection; 
 } srslte_uci_data_t;
 
 SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q);

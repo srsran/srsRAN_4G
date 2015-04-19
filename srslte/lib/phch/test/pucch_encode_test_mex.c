@@ -191,7 +191,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
     
-    if (srslte_refsignal_dmrs_pucch_gen(&pucch_dmrs, format, pucch2_bits, n_pucch, sf_idx, dmrs_pucch)) {
+    if (srslte_refsignal_dmrs_pucch_gen(&pucch_dmrs, format, n_pucch, sf_idx, pucch2_bits, dmrs_pucch)) {
       mexErrMsgTxt("Error generating PUCCH DMRS\n");
       return; 
     }

@@ -398,9 +398,13 @@ void phy::run_rx_tx_state()
       prach_buffer.send(radio_handler, cfo, last_rx_time);
     }
     // send ul buffer if we have to 
-    if (get_ul_buffer_adv(current_tti)->is_released()) {
+    if (get_ul_buffer_adv(current_tti)->is_released() || get_ul_buffer_adv(current_tti)->uci_ready()) {
+      // Generate PUCCH if no UL grant
+      if (!get_ul_buffer_adv(current_tti)->is_released()) {
+        get_ul_buffer_adv(current_tti)->generate_data();
+      }
       get_ul_buffer_adv(current_tti)->send(radio_handler, time_adv_sec, cfo, last_rx_time);      
-    }
+    } 
     
     // Receive alligned buffer for the current tti 
     get_dl_buffer(current_tti)->recv_ue_sync(&ue_sync, &last_rx_time);

@@ -66,6 +66,9 @@ typedef struct SRSLTE_API {
   srslte_refsignal_ul_t dmrs; 
   srslte_harq_t harq_process[SRSLTE_UE_UL_NOF_HARQ_PROCESSES];
   srslte_pusch_t pusch; 
+  srslte_pucch_t pucch; 
+  
+  srslte_pucch_sched_t pucch_sched; 
   
   cf_t *refsignal; 
   cf_t *sf_symbols; 
@@ -88,9 +91,16 @@ SRSLTE_API void srslte_ue_ul_set_cfo_enable(srslte_ue_ul_t *q,
 SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, 
                                                bool enabled); 
 
-SRSLTE_API void srslte_ue_ul_set_pusch_cfg(srslte_ue_ul_t *q, 
-                                           srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
-                                           srslte_pusch_hopping_cfg_t *pusch_hopping_cfg); 
+SRSLTE_API void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
+                                     srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
+                                     srslte_pusch_hopping_cfg_t *pusch_hopping_cfg, 
+                                     srslte_pucch_cfg_t *pucch_cfg, 
+                                     srslte_pucch_sched_t *pucch_sched); 
+
+SRSLTE_API int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q,
+                                         srslte_uci_data_t uci_data, 
+                                         uint32_t sf_idx, 
+                                         cf_t *output_signal);
 
 SRSLTE_API int srslte_ue_ul_pusch_encode(srslte_ue_ul_t *q,
                                          srslte_ra_pusch_t *ra_ul, 

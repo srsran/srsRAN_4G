@@ -259,6 +259,10 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
   return crc_rem == rnti; 
 }
 
+uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {
+  return q->last_n_cce; 
+}
+
 int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
 {
   srslte_dci_location_t locations[MAX_CANDIDATES];
@@ -281,6 +285,7 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
   for (int f=0;f<nof_formats && crc_rem != rnti;f++) {
     INFO("Trying format %s\n", srslte_dci_format_string(formats[f]));
     for (int i=0;i<nof_locations && crc_rem != rnti;i++) {
+      q->last_n_cce = locations[i].ncce;
       if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], formats[f], &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;

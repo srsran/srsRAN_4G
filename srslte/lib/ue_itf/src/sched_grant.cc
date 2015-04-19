@@ -62,6 +62,16 @@ namespace ue {
     }
   }
   
+  uint32_t sched_grant::get_ncce()
+  {
+    return ncce; 
+  }
+  
+  void sched_grant::set_ncce(uint32_t ncce_)
+  {
+    ncce = ncce_;
+  }
+
   uint32_t sched_grant::get_current_tx_nb()
   {
     return current_tx_nb; 

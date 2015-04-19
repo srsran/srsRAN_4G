@@ -388,7 +388,7 @@ int main(int argc, char **argv) {
   dmrs_cfg.cyclic_shift = 0; 
   dmrs_cfg.cyclic_shift_for_dmrs = 0; 
   dmrs_cfg.en_dmrs_2 = false; 
-  srslte_ue_ul_set_pusch_cfg(&ue_ul, &dmrs_cfg, &hop_cfg);
+  srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, &hop_cfg, NULL, NULL);
 
   cf_t *ul_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   if (!ul_signal) {

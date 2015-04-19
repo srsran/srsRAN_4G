@@ -39,7 +39,7 @@ namespace srslte {
 namespace ue {
   
   /* Uplink scheduling assignment. The MAC instructs the PHY to prepare an UL packet (PUSCH or PUCCH) 
-   * for transmission. The MAC must call generate_pusch() to set the packet ready for transmission
+   * for transmission. The MAC must call generate_data() to set the packet ready for transmission
    */
   class SRSLTE_API ul_buffer : public queue::element {
 
@@ -48,9 +48,13 @@ namespace ue {
     void     free_cell();
     void     set_tti(uint32_t tti);
     void     set_current_tx_nb(uint32_t current_tx_nb);
-    bool     generate_pusch(sched_grant pusch_grant, uint8_t *payload);    
-    bool     generate_pusch(sched_grant pusch_grant, uint8_t *payload, srslte_uci_data_t uci_data);    
-    bool     generate_pucch(srslte_uci_data_t uci_data);
+    bool     generate_ack(bool ack, sched_grant last_dl_grant); 
+    bool     generate_ack(bool ack[2]); 
+    bool     generate_sr(); 
+    bool     generate_cqi_report(); 
+    bool     uci_ready();
+    bool     generate_data();   
+    bool     generate_data(sched_grant pusch_grant, uint8_t *payload);   
     bool     send(radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time);
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
 
@@ -61,6 +65,9 @@ namespace ue {
     bool           cell_initiated; 
     cf_t*          signal_buffer;
     uint32_t       current_tx_nb; 
+    uint32_t       last_n_cce;
+    srslte_uci_data_t uci_data; 
+    bool           uci_pending; 
   };
 
 }

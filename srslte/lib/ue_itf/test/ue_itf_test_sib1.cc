@@ -108,7 +108,7 @@ void run_tti(uint32_t tti) {
       grant.set_rv(((uint32_t) ceilf((float)3*((phy.tti_to_SFN(tti)/2)%4)/2))%4);
       
       // Decode packet
-      if (!buffer->decode_pdsch(grant, payload)) {
+      if (!buffer->decode_data(grant, payload)) {
         total_errors++; 
       }
     }

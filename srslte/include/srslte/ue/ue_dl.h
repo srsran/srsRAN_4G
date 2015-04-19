@@ -84,6 +84,7 @@ typedef struct SRSLTE_API {
   uint64_t nof_detected; 
 
   uint16_t current_rnti;
+  uint32_t last_n_cce; 
 }srslte_ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
@@ -116,6 +117,8 @@ SRSLTE_API int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q,
                                         uint32_t cfi, 
                                         uint32_t sf_idx, 
                                         uint16_t rnti); 
+
+SRSLTE_API uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q);
 
 SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
                                    cf_t *input, 

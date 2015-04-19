@@ -193,7 +193,7 @@ srslte::ue::phy phy;
 uint8_t payload[102400]; 
 const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6, 0x00, 0x00, 0x00};
 
-enum mac_state {RA, RAR, CONNSETUP} state = RA; 
+enum mac_state {RA, RAR, CONNREQUEST, CONNSETUP} state = RA; 
 
 uint32_t conreq_tti = 0;  
 uint32_t preamble_idx = 7; 
@@ -215,7 +215,13 @@ void config_phy() {
   phy.set_param(srslte::ue::params::PUSCH_RS_SEQUENCE_HOPPING_EN, 0);
   phy.set_param(srslte::ue::params::PUSCH_RS_CYCLIC_SHIFT, 0);
   phy.set_param(srslte::ue::params::PUSCH_HOPPING_OFFSET, 0);
-  
+ 
+  phy.set_param(srslte::ue::params::PUCCH_BETA, 10);
+  phy.set_param(srslte::ue::params::PUCCH_DELTA_SHIFT, 1);
+  phy.set_param(srslte::ue::params::PUCCH_CYCLIC_SHIFT, 0);
+  phy.set_param(srslte::ue::params::PUCCH_N_PUCCH_1, 0);
+  phy.set_param(srslte::ue::params::PUCCH_N_RB_2, 2);
+
 }
 
 uint32_t interval(uint32_t x1, uint32_t x2) {
@@ -245,7 +251,8 @@ void run_tti(uint32_t tti) {
       fprintf(stderr, "Error sending PRACH\n");
       exit(-1);
     }
-  } else if (state == RAR) { 
+  } 
+  if (state == RAR) { 
     srslte::ue::sched_grant rar_grant(srslte::ue::sched_grant::DOWNLINK, 2); 
     int ra_tti = phy.get_prach_transmitted_tti();
     if (ra_tti > 0) {
@@ -258,11 +265,11 @@ void run_tti(uint32_t tti) {
         if (dl_buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_RARNTI, &rar_grant)) 
         {
           // Decode packet
-          if (dl_buffer->decode_pdsch(rar_grant, payload)) {
-            INFO("RAR received tti: %d\n", tti);            
+          if (dl_buffer->decode_data(rar_grant, payload)) {
             rar_unpack(payload, &rar_msg);
-
-            INFO("Received RAR for preamble %d\n", rar_msg.RAPID);              
+            if (!prog_args.continous) {
+              printf("Received RAR for preamble %d\n", rar_msg.RAPID);              
+            }
             if (rar_msg.RAPID == preamble_idx) {
 
               INFO("Received RAR at TTI: %d\n", tti);
@@ -293,7 +300,7 @@ void run_tti(uint32_t tti) {
 
                 // Save transmission time
                 conreq_tti = ul_buffer->tti;        
-                state = CONNSETUP;                              
+                state = CONNREQUEST;                              
               } else {
                 fprintf(stderr, "Error getting UL buffer for TTI %d\n", tti);
                 state = RA; 
@@ -306,9 +313,8 @@ void run_tti(uint32_t tti) {
         state = RA; 
       }
     }
-  } else {
-    srslte::ue::sched_grant conn_setup_grant(srslte::ue::sched_grant::DOWNLINK, rar_msg.temp_c_rnti); 
-    
+  }
+  if (state == CONNREQUEST) {    
     uint32_t interval_conreq = interval(tti, conreq_tti);
     if (interval_conreq == 4) {
       
@@ -316,7 +322,7 @@ void run_tti(uint32_t tti) {
       phy.rar_ul_grant(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, &connreq_grant);
       
       // Decode PHICH from Connection Request
-      if (!dl_buffer->decode_phich(connreq_grant)) {
+      if (!dl_buffer->decode_ack(connreq_grant)) {
         
         // Pack Msg3 bits
         srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload, connreq_grant.get_tbs());
@@ -333,40 +339,55 @@ void run_tti(uint32_t tti) {
             connreq_grant.set_current_tx_nb(nof_rtx_connsetup);
             connreq_grant.set_rv(rv_value[nof_rtx_connsetup%4]);
             INFO("Generating PUSCH for TTI: %d\n", ul_buffer->tti);
-            ul_buffer->generate_pusch(connreq_grant, payload);
+            ul_buffer->generate_data(connreq_grant, payload);
 
             // Save transmission time
             conreq_tti = ul_buffer->tti;        
-            state = CONNSETUP;                                          
           }
         } else {
           fprintf(stderr, "Error getting UL buffer for TTI %d\n", tti);
           state = RA; 
         }
       } else {
-        // Get DL grant for tmp_rnti
-        if (dl_buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_TEMPORAL, &conn_setup_grant)) 
-        {
-          // Decode packet
-          if (dl_buffer->decode_pdsch(conn_setup_grant, payload)) {
-            nof_rx_connsetup++;
-            state = RA; 
-            nof_rtx_connsetup=0;
-            if (!prog_args.continous) {              
-              printf("Connection Setup received (%d/%d)\n", nof_rx_connsetup, nof_tx_ra);
-            }
-          } else {
-            INFO("Error decoding PDSCH for Connection Request at TTI=%d\n", tti);
-            state = RA; 
-          }
-        } else {
-          INFO("DCI for Connection Request not found on PDCCH at TTI=%d\n", tti);
-          state = RA; 
-        }              
+        state = CONNSETUP;
       }
     }
   }
-  
+  if (state == CONNSETUP) {
+    srslte::ue::sched_grant conn_setup_grant(srslte::ue::sched_grant::DOWNLINK, rar_msg.temp_c_rnti); 
+    bool connsetup_recv = false;
+    // Get DL grant for tmp_rnti
+    if (dl_buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_TEMPORAL, &conn_setup_grant)) 
+    {
+      // Decode packet
+      if (dl_buffer->decode_data(conn_setup_grant, payload)) {
+        nof_rx_connsetup++;
+        state = RA; 
+        nof_rtx_connsetup=0;
+        if (!prog_args.continous) {              
+          printf("Connection Setup received (%d/%d)\n", nof_rx_connsetup, nof_tx_ra);
+        }
+        connsetup_recv = true; 
+      } else {
+        INFO("Error decoding PDSCH for Connection Request at TTI=%d\n", tti);        
+      }
+      
+      // send ACK
+      INFO("Sending ack %d on TTI: %d\n", connsetup_recv, tti+4);
+      srslte::ue::ul_buffer *ul_buffer = phy.get_ul_buffer(tti+4); 
+      ul_buffer->generate_ack(connsetup_recv, conn_setup_grant);
+      if (!prog_args.continous) {
+        while(ul_buffer->uci_ready()) {
+          sleep(1);
+        }        
+      }
+      state = RA; 
+      
+    } else {
+      INFO("DCI for Connection Request not found on PDCCH at TTI=%d\n", tti);
+      state = RA; 
+    }                    
+  }
   if (srslte_verbose == SRSLTE_VERBOSE_NONE && prog_args.continous) {
     printf("RECV RAR %2.1f \%% RECV ConnSetup %2.1f \%% (%5u/%5u) \r", 
          (float) 100*nof_rx_rar/nof_tx_ra, 
@@ -420,6 +441,9 @@ int main(int argc, char *argv[])
   if (!phy.start_rxtx()) {
     printf("Could not start RX\n");
     exit(-1);
+  }
+  for (int i=0;i<100;i++) {
+    ttisync.wait();
   }
   /* go to idle and process each tti */
   while(1) {

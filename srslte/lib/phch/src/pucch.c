@@ -289,7 +289,6 @@ static int pucch_put(srslte_pucch_t *q, srslte_pucch_format_t format, uint32_t n
         return SRSLTE_ERROR; 
       }
     }
-    
     ret = SRSLTE_SUCCESS; 
   }
   return ret;   
@@ -350,9 +349,13 @@ int srslte_pucch_set_crnti(srslte_pucch_t *q, uint16_t c_rnti) {
 
 bool srslte_pucch_set_cfg(srslte_pucch_t *q, srslte_pucch_cfg_t *cfg)
 {
-  if (srslte_pucch_cfg_isvalid(cfg, q->cell.nof_prb)) {
-    memcpy(&q->pucch_cfg, cfg, sizeof(srslte_pucch_cfg_t));      
-    return true; 
+  if (cfg) {
+    if (srslte_pucch_cfg_isvalid(cfg, q->cell.nof_prb)) {
+      memcpy(&q->pucch_cfg, cfg, sizeof(srslte_pucch_cfg_t));      
+      return true; 
+    } else {
+      return false; 
+    }    
   } else {
     return false; 
   }

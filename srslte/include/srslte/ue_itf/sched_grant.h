@@ -49,6 +49,8 @@ namespace ue {
     bool     is_uplink();
     bool     is_downlink();
     void*    get_grant_ptr();
+    void     set_ncce(uint32_t ncce);
+    uint32_t get_ncce();
     uint32_t get_tbs(); 
     uint32_t get_current_tx_nb();
     void     set_current_tx_nb(uint32_t current_tx_nb);
@@ -60,6 +62,7 @@ namespace ue {
     uint32_t            current_tx_nb; 
     direction_t         dir; 
     uint16_t            rnti; 
+    uint32_t            ncce; 
   };
  
 }

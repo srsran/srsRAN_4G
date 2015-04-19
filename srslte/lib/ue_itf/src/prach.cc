@@ -140,7 +140,7 @@ bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
   srslte_timestamp_add(&tx_time, 0, 1e-3*tx_advance_sf); 
 
   // Correct CFO before transmission
-  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, 1.7*cfo / srslte_symbol_sz(cell.nof_prb));            
+  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, 2*cfo / srslte_symbol_sz(cell.nof_prb));            
 
   // transmit
   radio_handler->tx(signal_buffer, len, tx_time);                
