@@ -55,6 +55,7 @@
 #include "srslte/config.h"
 #include "srslte/sync/sync.h"
 #include "srslte/sync/cfo.h"
+#include "srslte/agc/agc.h"
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/phch/pbch.h"
 #include "srslte/dft/ofdm.h"
@@ -69,7 +70,10 @@ typedef enum SRSLTE_API { SF_FIND, SF_TRACK} srslte_ue_sync_state_t;
 typedef struct SRSLTE_API {
   srslte_sync_t sfind;
   srslte_sync_t strack;
-
+  
+  srslte_agc_t agc; 
+  bool do_agc; 
+  
   void *stream; 
   int (*recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*); 
   srslte_timestamp_t last_timestamp;
@@ -122,6 +126,9 @@ SRSLTE_API int srslte_ue_sync_init_file(srslte_ue_sync_t *q,
                                         char *file_name);
 
 SRSLTE_API void srslte_ue_sync_free(srslte_ue_sync_t *q);
+
+SRSLTE_API int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, 
+                                        double (set_gain_callback)(void*, double)); 
 
 SRSLTE_API uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q); 
 

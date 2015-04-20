@@ -60,6 +60,8 @@ int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
     goto clean_exit; 
   }
   
+  srslte_ue_sync_start_agc(&ue_mib.ue_sync, cuhd_set_rx_gain);
+
   int srate = srslte_sampling_freq_hz(SRSLTE_UE_MIB_NOF_PRB);
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", (float) srate/1000000);
   cuhd_set_rx_srate(uhd, (float) srate);
@@ -107,6 +109,8 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
   if (config->threshold) {
     srslte_ue_cellsearch_set_threshold(&cs, config->threshold);
   }
+  
+  srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain);
 
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
   cuhd_set_rx_srate(uhd, SRSLTE_CS_SAMP_FREQ);

@@ -43,24 +43,42 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_AGC_DEFAULT_BW  (5e-2)
+#define SRSLTE_AGC_DEFAULT_TARGET 0.5
+#define SRSLTE_AGC_DEFAULT_BW     (5e-1)
+
+typedef enum SRSLTE_API {
+  SRSLTE_AGC_MODE_ENERGY = 0, 
+  SRSLTE_AGC_MODE_PEAK_AMPLITUDE  
+} srslte_agc_mode_t; 
 
 typedef struct SRSLTE_API{
   float bandwidth;
-  float gain; 
+  double gain; 
   float y_out;
   bool lock;
   bool isfirst; 
+  void *uhd_handler; 
+  double (*set_gain_callback) (void*,double);
+  srslte_agc_mode_t mode; 
+  float target;
 } srslte_agc_t;
 
-SRSLTE_API int srslte_agc_init (srslte_agc_t *q);
+SRSLTE_API int srslte_agc_init(srslte_agc_t *q, srslte_agc_mode_t mode);
+
+SRSLTE_API int srslte_agc_init_uhd(srslte_agc_t *q, 
+                                   srslte_agc_mode_t mode, 
+                                   double (set_gain_callback)(void*, double), 
+                                   void *uhd_handler); 
 
 SRSLTE_API void srslte_agc_free(srslte_agc_t *q);
 
 SRSLTE_API void srslte_agc_reset(srslte_agc_t *q);
 
 SRSLTE_API void srslte_agc_set_bandwidth(srslte_agc_t *q, 
-                                  float bandwidth);
+                                         float bandwidth);
+
+SRSLTE_API void srslte_agc_set_target(srslte_agc_t *q, 
+                                      float target);
 
 SRSLTE_API float srslte_agc_get_rssi(srslte_agc_t *q);
 

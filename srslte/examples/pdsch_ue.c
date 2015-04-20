@@ -369,6 +369,8 @@ int main(int argc, char **argv) {
   bool decode_pdsch; 
   int pdcch_tx=0; 
           
+  srslte_ue_sync_start_agc(&ue_sync, cuhd_set_rx_gain);
+  
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -377,7 +379,7 @@ int main(int argc, char **argv) {
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
-            
+     
     /* srslte_ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
       switch (state) {
@@ -458,7 +460,16 @@ int main(int argc, char **argv) {
           if (srslte_ue_sync_get_sfidx(&ue_sync) != 5 && srslte_ue_sync_get_sfidx(&ue_sync) != 0) {
             pdcch_tx++;
           }
-          
+
+          float max=-999;
+          for (int i=0;i<SRSLTE_SF_LEN_PRB(cell.nof_prb);i++) {
+            if (fabs(crealf(sf_buffer[i])) > max) {
+              max = fabs(crealf(sf_buffer[i]));
+            }
+            if (fabs(cimagf(sf_buffer[i])) > max) {
+              max = fabs(cimagf(sf_buffer[i]));
+            }
+          }
           
           // Plot and Printf
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
@@ -468,13 +479,15 @@ int main(int argc, char **argv) {
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,ue_dl.pkt_errors);                
 #else
             printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, "
-                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%% (%u), PDSCH-BLER: %5.2f%% (%u)\r",
+                  "RSRP: %+5.1f dBm, SNR: %4.1f dB, "
+                  "PDCCH-Miss: %5.2f%% (%u), PDSCH-BLER: %5.2f%% Peak: %.2f Gain: %.1f dB/%.1f\r",
                   srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
                   10*log10(rsrp*1000)-gain_offset, 
-                  10*log10(rsrq), 10*log10(snr), 
+                  10*log10(snr), 
                   100*(1-(float) ue_dl.nof_detected/nof_trials), pdcch_tx-ue_dl.nof_detected, 
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, ue_dl.pkt_errors);                
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, max, cuhd_get_rx_gain(uhd), 
+                  10*log10(ue_sync.agc.gain)
+                  );                
             
 #endif            
           }

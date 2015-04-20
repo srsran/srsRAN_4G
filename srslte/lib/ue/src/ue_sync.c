@@ -57,7 +57,7 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
     bzero(q, sizeof(srslte_ue_sync_t));
     q->file_mode = true; 
     q->sf_len = SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb));
-
+    
     if (srslte_filesource_init(&q->file_source, file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
       fprintf(stderr, "Error opening file %s\n", file_name);
       goto clean_exit; 
@@ -78,6 +78,12 @@ clean_exit:
     srslte_ue_sync_free(q);
   }
   return ret; 
+}
+
+int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(void*, double)) {
+  int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, set_gain_callback, q->stream); 
+  q->do_agc = n==0?true:false;
+  return n; 
 }
 
 int srslte_ue_sync_init(srslte_ue_sync_t *q, 
@@ -192,6 +198,9 @@ uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q) {
 void srslte_ue_sync_free(srslte_ue_sync_t *q) {
   if (q->input_buffer) {
     free(q->input_buffer);
+  }
+  if (q->do_agc) {
+    srslte_agc_free(&q->agc);
   }
   if (!q->file_mode) {
     srslte_sync_free(&q->sfind);
@@ -390,7 +399,9 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
         fprintf(stderr, "Error receiving samples\n");
         return SRSLTE_ERROR;
       }
-      
+      if (q->do_agc) {
+        srslte_agc_process(&q->agc, q->input_buffer, q->input_buffer, q->sf_len);        
+      }
       switch (q->state) {
         case SF_FIND:        
           ret = srslte_sync_find(&q->sfind, q->input_buffer, 0, &q->peak_idx);

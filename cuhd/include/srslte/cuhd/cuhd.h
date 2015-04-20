@@ -58,6 +58,8 @@ SRSLTE_API double cuhd_set_rx_srate(void *h,
 SRSLTE_API double cuhd_set_rx_gain(void *h, 
                                    double gain);
 
+SRSLTE_API double cuhd_get_rx_gain(void *h);
+
 SRSLTE_API double cuhd_set_rx_freq(void *h, 
                                    double freq);
 
