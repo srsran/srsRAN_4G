@@ -81,9 +81,11 @@ clean_exit:
 }
 
 int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(void*, double)) {
-  int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, set_gain_callback, q->stream); 
-  q->do_agc = n==0?true:false;
-  return n; 
+  //int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, set_gain_callback, q->stream); 
+  //q->do_agc = n==0?true:false;
+  //return n; 
+  set_gain_callback(q->stream, 40);
+  return 0; 
 }
 
 int srslte_ue_sync_init(srslte_ue_sync_t *q, 
