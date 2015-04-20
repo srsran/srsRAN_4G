@@ -57,7 +57,7 @@ Where -f is the LTE channel frequency.
 
 * eNodeB to UE Downlink PHY test
 
-You will need to computers, each equipped with a USRP. At the transmitter side, run: 
+You will need two computers, each equipped with a USRP. At the transmitter side, run: 
 
 ```
 lte/examples/pdsch_enodeb -f [frequency_in_Hz] [-h for more commands]

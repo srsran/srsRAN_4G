@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
           }
           srslte_refsignal_ul_set_pucch_cfg(&dmrs, &pucch_cfg);
           
-          if (srslte_refsignal_dmrs_pucch_gen(&dmrs, format, pucch2_bits, n_pucch, subframe, pucch_dmrs)) {
+          if (srslte_refsignal_dmrs_pucch_gen(&dmrs, format, n_pucch, subframe, pucch2_bits, pucch_dmrs)) {
             fprintf(stderr, "Error encoding PUCCH\n");
             goto quit; 
           }
