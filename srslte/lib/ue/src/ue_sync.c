@@ -81,11 +81,9 @@ clean_exit:
 }
 
 int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(void*, double)) {
-  //int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, set_gain_callback, q->stream); 
-  //q->do_agc = n==0?true:false;
-  //return n; 
-  set_gain_callback(q->stream, 40);
-  return 0; 
+  int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, 10, set_gain_callback, q->stream); 
+  q->do_agc = n==0?true:false;
+  return n; 
 }
 
 int srslte_ue_sync_init(srslte_ue_sync_t *q, 
@@ -400,9 +398,6 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
         fprintf(stderr, "Error receiving samples\n");
         return SRSLTE_ERROR;
       }
-      if (q->do_agc) {
-        srslte_agc_process(&q->agc, q->input_buffer, q->input_buffer, q->sf_len);        
-      }
       switch (q->state) {
         case SF_FIND:        
           ret = srslte_sync_find(&q->sfind, q->input_buffer, 0, &q->peak_idx);
@@ -410,7 +405,10 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
             fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
             return SRSLTE_ERROR;
           }
-          
+          if (q->do_agc) {
+            srslte_agc_process(&q->agc, q->input_buffer, q->sf_len);        
+          }
+
           if (ret == 1) {
             ret = find_peak_ok(q);
           } 
@@ -424,6 +422,10 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
 
           /* Every SF idx 0 and 5, find peak around known position q->peak_idx */
           if (q->sf_idx == 0 || q->sf_idx == 5) {
+
+            if (q->do_agc) {
+              srslte_agc_process(&q->agc, q->input_buffer, q->sf_len);        
+            }
 
             #ifdef MEASURE_EXEC_TIME
             struct timeval t[3];

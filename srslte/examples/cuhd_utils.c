@@ -50,7 +50,7 @@ int cuhd_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, srslte_timestam
 /** This function is simply a wrapper to the ue_cell_search module for cuhd devices 
  * Return 1 if the MIB is decoded, 0 if not or -1 on error. 
  */
-int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
+int cuhd_mib_decoder(void *uhd, cell_search_cfg_t *config, srslte_cell_t *cell) {
   int ret = SRSLTE_ERROR; 
   srslte_ue_mib_sync_t ue_mib; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
@@ -60,7 +60,9 @@ int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
     goto clean_exit; 
   }
   
-  srslte_ue_sync_start_agc(&ue_mib.ue_sync, cuhd_set_rx_gain);
+  if (config->do_agc) {
+    srslte_ue_sync_start_agc(&ue_mib.ue_sync, cuhd_set_rx_gain_th);    
+  }
 
   int srate = srslte_sampling_freq_hz(SRSLTE_UE_MIB_NOF_PRB);
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", (float) srate/1000000);
@@ -70,7 +72,7 @@ int cuhd_mib_decoder(void *uhd, uint32_t max_nof_frames, srslte_cell_t *cell) {
   cuhd_start_rx_stream(uhd);
     
   /* Find and decody MIB */
-  ret = srslte_ue_mib_sync_decode(&ue_mib, max_nof_frames, bch_payload, &cell->nof_ports, NULL); 
+  ret = srslte_ue_mib_sync_decode(&ue_mib, config->max_frames_pss, bch_payload, &cell->nof_ports, NULL); 
   if (ret < 0) {
     fprintf(stderr, "Error decoding MIB\n");
     goto clean_exit; 
@@ -109,9 +111,11 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
   if (config->threshold) {
     srslte_ue_cellsearch_set_threshold(&cs, config->threshold);
   }
-  
-  srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain);
 
+  if (config->do_agc) {
+    srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain_th);
+  }
+  
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
   cuhd_set_rx_srate(uhd, SRSLTE_CS_SAMP_FREQ);
   
@@ -160,7 +164,7 @@ int cuhd_search_and_decode_mib(void *uhd, cell_search_cfg_t *config, int force_N
   ret = cuhd_cell_search(uhd, config, force_N_id_2, cell);
   if (ret > 0) {
     printf("Decoding PBCH for cell %d (N_id_2=%d)\n", cell->id, cell->id%3);        
-    ret = cuhd_mib_decoder(uhd, config->max_frames_pbch, cell);
+    ret = cuhd_mib_decoder(uhd, config, cell);
     if (ret < 0) {
       fprintf(stderr, "Could not decode PBCH from CELL ID %d\n", cell->id);
       return SRSLTE_ERROR;

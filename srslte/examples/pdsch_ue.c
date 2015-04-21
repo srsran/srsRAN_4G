@@ -103,7 +103,7 @@ void args_default(prog_args_t *args) {
   args->uhd_args = "";
   args->uhd_freq = -1.0;
   args->uhd_freq_offset = 8000000.0;
-  args->uhd_gain = 60.0; 
+  args->uhd_gain = -1.0; 
   args->net_port = -1; 
   args->net_address = "127.0.0.1";
   args->net_port_signal = -1; 
@@ -114,7 +114,7 @@ void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [agpPcildnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
-  printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
+  printf("\t-g UHD fix RX gain [Default AGC]\n");
   printf("\t-o UHD RX freq offset [Default %.1f MHz]\n", args->uhd_freq_offset/1000000);
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
@@ -270,12 +270,19 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_UHD
   if (!prog_args.input_file_name) {
     printf("Opening UHD device...\n");
-    if (cuhd_open(prog_args.uhd_args, &uhd)) {
+    if (cuhd_open_th(prog_args.uhd_args, &uhd)) {
       fprintf(stderr, "Error opening uhd\n");
       exit(-1);
     }
+    
+    cuhd_set_rx_gain(uhd, 50);      
+    
     /* Set receiver gain */
-    cuhd_set_rx_gain(uhd, prog_args.uhd_gain);
+    if (prog_args.uhd_gain > 0) {
+      cuhd_set_rx_gain(uhd, prog_args.uhd_gain);      
+    } else {
+      cell_detect_config.do_agc = true; 
+    }
 
     /* set receiver frequency */
     cuhd_set_rx_freq_offset(uhd, (double) prog_args.uhd_freq, prog_args.uhd_freq_offset);
@@ -369,7 +376,9 @@ int main(int argc, char **argv) {
   bool decode_pdsch; 
   int pdcch_tx=0; 
           
-  srslte_ue_sync_start_agc(&ue_sync, cuhd_set_rx_gain);
+  if (prog_args.uhd_gain < 0) {
+    srslte_ue_sync_start_agc(&ue_sync, cuhd_set_rx_gain_th);    
+  }
   
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
@@ -461,16 +470,7 @@ int main(int argc, char **argv) {
             pdcch_tx++;
           }
 
-          float max=-999;
-          for (int i=0;i<SRSLTE_SF_LEN_PRB(cell.nof_prb);i++) {
-            if (fabs(crealf(sf_buffer[i])) > max) {
-              max = fabs(crealf(sf_buffer[i]));
-            }
-            if (fabs(cimagf(sf_buffer[i])) > max) {
-              max = fabs(cimagf(sf_buffer[i]));
-            }
-          }
-          
+
           // Plot and Printf
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
 #ifdef STDOUT_COMPACT
@@ -480,14 +480,13 @@ int main(int argc, char **argv) {
 #else
             printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, "
                   "RSRP: %+5.1f dBm, SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%% (%u), PDSCH-BLER: %5.2f%% Peak: %.2f Gain: %.1f dB/%.1f\r",
+                  "PDCCH-Miss: %5.2f%% (%u), PDSCH-BLER: %5.2f%% Peak: %.2f Gain: %.1f dB\r",
                   srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
                   10*log10(rsrp*1000)-gain_offset, 
                   10*log10(snr), 
                   100*(1-(float) ue_dl.nof_detected/nof_trials), pdcch_tx-ue_dl.nof_detected, 
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, max, cuhd_get_rx_gain(uhd), 
-                  10*log10(ue_sync.agc.gain)
-                  );                
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, 
+                   srslte_agc_get_output_level(&ue_sync.agc), 10*log10(srslte_agc_get_gain(&ue_sync.agc)));                
             
 #endif            
           }

@@ -55,7 +55,7 @@
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 
-cell_search_cfg_t config = {100, 10, 16}; 
+cell_search_cfg_t config = {100, 10, 16, true}; 
 
 
 float uhd_gain = 60.0;
@@ -167,6 +167,9 @@ int main(int argc, char **argv) {
     if (config.threshold) {
       srslte_ue_cellsearch_set_threshold(&cs, config.threshold);
     }
+    if (config.do_agc) {
+      srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain);    
+    }
 
     INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000);
     cuhd_set_rx_srate(uhd, SRSLTE_CS_SAMP_FREQ);
@@ -183,7 +186,7 @@ int main(int argc, char **argv) {
           srslte_cell_t cell; 
           cell.id = found_cells[i].cell_id; 
           cell.cp = found_cells[i].cp; 
-          int ret = cuhd_mib_decoder(uhd, 100, &cell);
+          int ret = cuhd_mib_decoder(uhd, &config, &cell);
           if (ret < 0) {
             fprintf(stderr, "Error decoding MIB\n");
             exit(-1);

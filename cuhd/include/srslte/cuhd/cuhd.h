@@ -39,6 +39,9 @@ extern "C" {
 SRSLTE_API int cuhd_open(char *args, 
                          void **handler);
 
+SRSLTE_API int cuhd_open_th(char *args, 
+                            void **handler);
+
 SRSLTE_API int cuhd_close(void *h);
 
 SRSLTE_API int cuhd_start_rx_stream(void *h);
@@ -57,6 +60,9 @@ SRSLTE_API double cuhd_set_rx_srate(void *h,
 
 SRSLTE_API double cuhd_set_rx_gain(void *h, 
                                    double gain);
+
+SRSLTE_API double cuhd_set_rx_gain_th(void *h, 
+                                      double gain);
 
 SRSLTE_API double cuhd_get_rx_gain(void *h);
 

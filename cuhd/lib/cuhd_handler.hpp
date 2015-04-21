@@ -27,6 +27,7 @@
 
 
 #include <uhd/usrp/multi_usrp.hpp>
+#include <pthread.h>
 
 class cuhd_handler {
 public:
@@ -34,5 +35,11 @@ public:
   uhd::rx_streamer::sptr rx_stream;
   bool rx_stream_enable;
   uhd::tx_streamer::sptr tx_stream;
-
+  
+  // The following variables are for threaded RX gain control 
+  pthread_t thread_gain; 
+  pthread_cond_t  cond; 
+  pthread_mutex_t mutex; 
+  double cur_rx_gain; 
+  double new_rx_gain; 
 };

@@ -38,20 +38,31 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
-
 int srslte_agc_init (srslte_agc_t *q, srslte_agc_mode_t mode) {
+  return srslte_agc_init_acc(q, mode, 1);
+}
+
+int srslte_agc_init_acc(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_frames) {
   bzero(q, sizeof(srslte_agc_t));
   q->mode = mode; 
+  q->nof_frames = nof_frames;  
+  if (nof_frames > 0) {
+    q->y_tmp = srslte_vec_malloc(sizeof(float) * nof_frames);
+    if (!q->y_tmp) {
+      return SRSLTE_ERROR; 
+    }
+  } else {
+    q->y_tmp = NULL; 
+  }
   q->target = SRSLTE_AGC_DEFAULT_TARGET; 
   srslte_agc_reset(q);
   return SRSLTE_SUCCESS;
 }
 
-int srslte_agc_init_uhd(srslte_agc_t *q, srslte_agc_mode_t mode, double (set_gain_callback)(void*, double), void *uhd_handler) {
-  if (!srslte_agc_init(q, mode)) {
+int srslte_agc_init_uhd(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_frames, double (set_gain_callback)(void*, double), void *uhd_handler) {
+  if (!srslte_agc_init_acc(q, mode, nof_frames)) {
     q->set_gain_callback = set_gain_callback;
     q->uhd_handler = uhd_handler;    
-    set_gain_callback(uhd_handler, 30.0);
     return SRSLTE_SUCCESS;
   } else {
     return SRSLTE_ERROR; 
@@ -59,15 +70,21 @@ int srslte_agc_init_uhd(srslte_agc_t *q, srslte_agc_mode_t mode, double (set_gai
 }
 
 void srslte_agc_free(srslte_agc_t *q) {
+  if (q->y_tmp) {
+    free(q->y_tmp);
+  }
   bzero(q, sizeof(srslte_agc_t));
 }
 
 void srslte_agc_reset(srslte_agc_t *q) {
   q->bandwidth = SRSLTE_AGC_DEFAULT_BW;
   q->lock = false; 
-  q->gain = 1.0;
+  q->gain = pow(10,50/10);
   q->y_out = 1.0; 
   q->isfirst = true; 
+  if (q->set_gain_callback && q->uhd_handler) {
+    q->set_gain_callback(q->uhd_handler, 10*log10(q->gain));
+  }
 }
 
 void srslte_agc_set_bandwidth(srslte_agc_t *q, float bandwidth) {
@@ -79,7 +96,7 @@ void srslte_agc_set_target(srslte_agc_t *q, float target) {
 }
 
 float srslte_agc_get_rssi(srslte_agc_t *q) {
-  return 1.0/q->gain;
+  return q->target/q->gain;
 }
 
 float srslte_agc_get_output_level(srslte_agc_t *q) {
@@ -94,56 +111,69 @@ void srslte_agc_lock(srslte_agc_t *q, bool enable) {
   q->lock = enable;
 }
 
-void srslte_agc_process(srslte_agc_t *q, cf_t *input, cf_t *output, uint32_t len) {
-  float gain_res = 1.0;
+void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
+  float gain_db = 10*log10(q->gain); 
+  float gain_uhd_db = 1.0;
+  //float gain_uhd = 1.0;  
+  float y = 0; 
   // Apply current gain to input signal 
   if (!q->uhd_handler) {
-    srslte_vec_sc_prod_cfc(input, q->gain, output, len);
+    srslte_vec_sc_prod_cfc(signal, q->gain, signal, len);
   } else {
     if (q->gain < 1) {
       q->gain = 1.0; 
     }
-    if (isinf(10*log10(q->gain)) || isnan(10*log10(q->gain))) {
-      q->gain = 1.0; 
-    }
-    gain_res = q->set_gain_callback(q->uhd_handler, 10*log10(q->gain));
-    gain_res = pow(10, gain_res/10);
-    if (gain_res > q->gain) {
-      q->gain = gain_res; 
+    if (isinf(gain_db) || isnan(gain_db)) {
+      q->gain = 10.0; 
+    } else {
+      gain_uhd_db = q->set_gain_callback(q->uhd_handler, gain_db);        
+      //gain_uhd = pow(10, gain_uhd_db/10);
     }
   }
-  float y = 0; 
+  float *t; 
   switch(q->mode) {
     case SRSLTE_AGC_MODE_ENERGY:
-      y = sqrtf(crealf(srslte_vec_dot_prod_conj_ccc(output, output, len))/len);
+      y = sqrtf(crealf(srslte_vec_dot_prod_conj_ccc(signal, signal, len))/len);
       break;
     case SRSLTE_AGC_MODE_PEAK_AMPLITUDE:
-      y = -99; 
-      for (int i=0;i<len;i++) {
-        if (fabs(crealf(input[i])) > y) {
-          y = fabs(crealf(input[i]));
-        }
-        if (fabs(cimagf(input[i])) > y) {
-          y = fabs(cimagf(input[i]));
-        }
-      }
+      t = (float*) signal; 
+      y = t[srslte_vec_max_fi(t, 2*len)];// take only positive max to avoid abs() (should be similar) 
       break;
     default: 
       fprintf(stderr, "Unsupported AGC mode\n");
       return; 
   }
   
-  float gg = 1.0; 
+  if (q->nof_frames > 0) {
+    q->y_tmp[q->frame_cnt++] = y; 
+    if (q->frame_cnt == q->nof_frames) {
+      q->frame_cnt = 0; 
+      switch(q->mode) {
+        case SRSLTE_AGC_MODE_ENERGY:
+          y = srslte_vec_acc_ff(q->y_tmp, q->nof_frames)/q->nof_frames;
+          break;
+        case SRSLTE_AGC_MODE_PEAK_AMPLITUDE:
+          y = q->y_tmp[srslte_vec_max_fi(q->y_tmp, q->nof_frames)];
+          break;
+        default: 
+          fprintf(stderr, "Unsupported AGC mode\n");
+          return; 
+      }
+    }
+  }
+  
+  double gg = 1.0; 
   if (q->isfirst) {
     q->y_out = y; 
-    q->gain = q->target/y;
     q->isfirst = false; 
   } else {
-    q->y_out = (1-q->bandwidth) * q->y_out + q->bandwidth * y;
-    if (!q->lock) {
-      gg = expf(-0.5*q->bandwidth*logf(q->y_out/q->target));
-      q->gain *= gg; 
-    }    
+    if (q->frame_cnt == 0) {
+      q->y_out = (1-q->bandwidth) * q->y_out + q->bandwidth * y;
+      if (!q->lock) {
+        gg = expf(-0.5*q->bandwidth*logf(q->y_out/q->target));
+        q->gain *= gg; 
+      }          
+      INFO("AGC gain: %.2f (%.2f) y_out=%.3f, y=%.3f target=%.1f gg=%.2f %d/%d\n", gain_db, gain_uhd_db, q->y_out, y, q->target, gg, q->frame_cnt, q->nof_frames);      
+    }
   }
-  INFO("AGC gain: %.3f (%.2f - %.2f) y_out=%.3f, y=%.3f target=%.1f gg=%.2f\n", q->gain, 10*log10(q->gain), gain_res, q->y_out, y, q->target, gg);
 }

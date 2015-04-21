@@ -43,8 +43,8 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_AGC_DEFAULT_TARGET 0.4
-#define SRSLTE_AGC_DEFAULT_BW     (5e-2)
+#define SRSLTE_AGC_DEFAULT_TARGET 0.5
+#define SRSLTE_AGC_DEFAULT_BW     (2e-1)
 
 typedef enum SRSLTE_API {
   SRSLTE_AGC_MODE_ENERGY = 0, 
@@ -61,12 +61,18 @@ typedef struct SRSLTE_API{
   double (*set_gain_callback) (void*,double);
   srslte_agc_mode_t mode; 
   float target;
+  uint32_t nof_frames; 
+  uint32_t frame_cnt; 
+  float *y_tmp;
 } srslte_agc_t;
 
 SRSLTE_API int srslte_agc_init(srslte_agc_t *q, srslte_agc_mode_t mode);
 
+SRSLTE_API int srslte_agc_init_acc(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_frames);
+
 SRSLTE_API int srslte_agc_init_uhd(srslte_agc_t *q, 
                                    srslte_agc_mode_t mode, 
+                                   uint32_t nof_frames,
                                    double (set_gain_callback)(void*, double), 
                                    void *uhd_handler); 
 
@@ -90,8 +96,7 @@ SRSLTE_API void srslte_agc_lock(srslte_agc_t *q,
                                 bool enable);
 
 SRSLTE_API void srslte_agc_process(srslte_agc_t *q, 
-                                   cf_t *input,
-                                   cf_t *output, 
+                                   cf_t *signal,
                                    uint32_t len);
 
 #endif // AGC_

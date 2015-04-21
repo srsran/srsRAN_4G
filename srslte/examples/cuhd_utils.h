@@ -32,10 +32,11 @@ typedef struct SRSLTE_API {
   uint32_t max_frames_pbch; // maximum number of 5ms frames to capture for MIB decoding
   uint32_t max_frames_pss; // maximum number of 5ms frames to capture for PSS correlation
   float threshold;   // early-stops cell detection if mean PSR is above this value 
+  bool do_agc; 
 }cell_search_cfg_t;
 
 int cuhd_mib_decoder(void *uhd, 
-                     uint32_t max_nof_frames, 
+                     cell_search_cfg_t *config, 
                      srslte_cell_t *cell);
 
 int cuhd_cell_search(void *uhd, 

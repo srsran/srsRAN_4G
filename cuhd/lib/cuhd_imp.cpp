@@ -117,7 +117,36 @@ int cuhd_start_rx_stream_nsamples(void *h, uint32_t nsamples)
   return 0;
 }
 
-int cuhd_open(char *args, void **h)
+double cuhd_set_rx_gain_th(void *h, double gain)
+{
+  /*
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  // round to avoid histeresis
+  gain = roundf(gain);   
+  pthread_mutex_lock(&handler->mutex);
+  handler->new_rx_gain = gain; 
+  pthread_cond_signal(&handler->cond);
+  pthread_mutex_unlock(&handler->mutex);
+  */
+  return gain; 
+}
+
+/* This thread listens for set_rx_gain commands to the USRP */
+static void* thread_gain_fcn(void *h) {
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  while(1) {
+    pthread_mutex_lock(&handler->mutex);
+    while(handler->cur_rx_gain == handler->new_rx_gain) {
+      pthread_cond_wait(&handler->cond, &handler->mutex);
+    }
+    handler->cur_rx_gain = handler->new_rx_gain; 
+    pthread_mutex_unlock(&handler->mutex);
+    cuhd_set_rx_gain(h, handler->cur_rx_gain);
+    printf("set gain to %f\n", handler->cur_rx_gain);
+  }
+}
+
+int cuhd_open_(char *args, void **h, bool create_thread_gain)
 {
   cuhd_handler *handler = new cuhd_handler();
   std::string _args = std::string(args);
@@ -139,8 +168,31 @@ int cuhd_open(char *args, void **h)
 
   *h = handler;
 
+  if (create_thread_gain) {
+    if (pthread_mutex_init(&handler->mutex, NULL)) {
+      return -1; 
+    }
+    if (pthread_cond_init(&handler->cond, NULL)) {
+      return -1; 
+    }
+
+    if (pthread_create(&handler->thread_gain, NULL, thread_gain_fcn, *h)) {
+      perror("pthread_create");
+      return -1; 
+    }
+  }
+  
   return 0;
 }
+
+int cuhd_open(char *args, void **h) {
+  return cuhd_open_(args, h, false); 
+}
+
+int cuhd_open_th(char *args, void **h) {
+  return cuhd_open_(args, h, true); 
+}
+
 
 int cuhd_close(void *h)
 {
