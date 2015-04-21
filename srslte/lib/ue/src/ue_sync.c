@@ -80,9 +80,18 @@ clean_exit:
   return ret; 
 }
 
-int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(void*, double)) {
-  int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, 10, set_gain_callback, q->stream); 
+int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(void*, double), float init_gain_value) {
+  uint32_t nframes; 
+  if (q->nof_recv_sf == 1) {
+    nframes = 10; 
+  } else {
+    nframes = 0; 
+  }
+  int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, nframes, set_gain_callback, q->stream); 
   q->do_agc = n==0?true:false;
+  if (q->do_agc) {
+    srslte_agc_set_gain(&q->agc, init_gain_value);
+  }
   return n; 
 }
 
@@ -144,8 +153,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       srslte_sync_correct_cfo(&q->sfind, true);    
       srslte_sync_correct_cfo(&q->strack, true); 
       
-      srslte_sync_set_threshold(&q->sfind, 1.3);
-      srslte_sync_set_em_alpha(&q->sfind, 0.01);
+      srslte_sync_set_threshold(&q->sfind, 1.5);
       q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES; 
       srslte_sync_set_threshold(&q->strack, 1.0);
       

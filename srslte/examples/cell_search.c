@@ -55,7 +55,7 @@
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 
-cell_search_cfg_t config = {100, 10, 16, true}; 
+cell_search_cfg_t config = {100, 10, 10.0, 50}; 
 
 
 float uhd_gain = 60.0;
@@ -167,8 +167,8 @@ int main(int argc, char **argv) {
     if (config.threshold) {
       srslte_ue_cellsearch_set_threshold(&cs, config.threshold);
     }
-    if (config.do_agc) {
-      srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain);    
+    if (config.init_agc) {
+      srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain, config.init_agc);    
     }
 
     INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000);

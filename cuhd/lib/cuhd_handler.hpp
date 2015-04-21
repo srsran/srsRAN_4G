@@ -41,5 +41,6 @@ public:
   pthread_cond_t  cond; 
   pthread_mutex_t mutex; 
   double cur_rx_gain; 
-  double new_rx_gain; 
+  double new_rx_gain;   
+  uhd::gain_range_t rx_gain_range; 
 };

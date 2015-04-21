@@ -47,8 +47,8 @@
 
 cell_search_cfg_t cell_detect_config = {
   5000,
-  100, // nof_frames_total 
-  16.0 // threshold
+  200, // nof_frames_total 
+  10.0 // threshold
 };
 
 #endif
@@ -62,13 +62,6 @@ pthread_t plot_thread;
 sem_t plot_sem; 
 uint32_t plot_sf_idx=0;
 #endif
-
-
-#define B210_DEFAULT_GAIN         40.0
-#define B210_DEFAULT_GAIN_CORREC  110.0 // Gain of the Rx chain when the gain is set to 40
-
-float gain_offset = B210_DEFAULT_GAIN_CORREC;
-
 
 /**********************************************************************
  *  Program arguments processing
@@ -269,19 +262,23 @@ int main(int argc, char **argv) {
   
 #ifndef DISABLE_UHD
   if (!prog_args.input_file_name) {
-    printf("Opening UHD device...\n");
-    if (cuhd_open_th(prog_args.uhd_args, &uhd)) {
-      fprintf(stderr, "Error opening uhd\n");
-      exit(-1);
-    }
-    
-    cuhd_set_rx_gain(uhd, 50);      
     
     /* Set receiver gain */
     if (prog_args.uhd_gain > 0) {
+      printf("Opening UHD device...\n");
+      if (cuhd_open_th(prog_args.uhd_args, &uhd)) {
+        fprintf(stderr, "Error opening uhd\n");
+        exit(-1);
+      }
       cuhd_set_rx_gain(uhd, prog_args.uhd_gain);      
     } else {
-      cell_detect_config.do_agc = true; 
+      printf("Opening UHD device with threaded RX Gain control ...\n");
+      if (cuhd_open_th(prog_args.uhd_args, &uhd)) {
+        fprintf(stderr, "Error opening uhd\n");
+        exit(-1);
+      }
+      cuhd_set_rx_gain(uhd, 50);      
+      cell_detect_config.init_agc = 50; 
     }
 
     /* set receiver frequency */
@@ -289,14 +286,16 @@ int main(int argc, char **argv) {
     cuhd_rx_wait_lo_locked(uhd);
     printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
 
-    ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
-    if (ret < 0) {
-      fprintf(stderr, "Error searching for cell\n");
-      exit(-1); 
-    } else if (ret == 0) {
-      printf("Cell not found\n");
-      exit(0);
-    }
+    uint32_t ntrial=0; 
+    do {
+      ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
+      if (ret < 0) {
+        fprintf(stderr, "Error searching for cell\n");
+        exit(-1); 
+      } else if (ret == 0) {
+        printf("Cell not found after %d trials. Trying again (Press Ctrl+C to exit)\n", ntrial++);
+      }      
+    } while (ret == 0); 
     
     /* set sampling frequency */
     int srate = srslte_sampling_freq_hz(cell.nof_prb);
@@ -377,7 +376,7 @@ int main(int argc, char **argv) {
   int pdcch_tx=0; 
           
   if (prog_args.uhd_gain < 0) {
-    srslte_ue_sync_start_agc(&ue_sync, cuhd_set_rx_gain_th);    
+    srslte_ue_sync_start_agc(&ue_sync, cuhd_set_rx_gain_th, cell_detect_config.init_agc);    
   }
   
   INFO("\nEntering main loop...\n\n", 0);
@@ -478,15 +477,19 @@ int main(int argc, char **argv) {
                   sfn, 100*(1-(float) ue_dl.nof_detected/nof_trials),pdcch_tx-ue_dl.nof_detected,
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,ue_dl.pkt_errors);                
 #else
+            float gain = prog_args.uhd_gain; 
+            if (gain < 0) {
+              gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
+            }
             printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, "
                   "RSRP: %+5.1f dBm, SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%% (%u), PDSCH-BLER: %5.2f%% Peak: %.2f Gain: %.1f dB\r",
+                  "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% Peak: %.2f Gain: %.1f dB\r",
                   srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
-                  10*log10(rsrp*1000)-gain_offset, 
+                  10*log10(rsrp*1000)-gain, 
                   10*log10(snr), 
-                  100*(1-(float) ue_dl.nof_detected/nof_trials), pdcch_tx-ue_dl.nof_detected, 
+                  100*(1-(float) ue_dl.nof_detected/nof_trials), 
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, 
-                   srslte_agc_get_output_level(&ue_sync.agc), 10*log10(srslte_agc_get_gain(&ue_sync.agc)));                
+                   srslte_agc_get_output_level(&ue_sync.agc), gain);                
             
 #endif            
           }

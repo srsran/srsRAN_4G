@@ -60,8 +60,8 @@ int cuhd_mib_decoder(void *uhd, cell_search_cfg_t *config, srslte_cell_t *cell) 
     goto clean_exit; 
   }
   
-  if (config->do_agc) {
-    srslte_ue_sync_start_agc(&ue_mib.ue_sync, cuhd_set_rx_gain_th);    
+  if (config->init_agc > 0) {
+    srslte_ue_sync_start_agc(&ue_mib.ue_sync, cuhd_set_rx_gain_th, config->init_agc);    
   }
 
   int srate = srslte_sampling_freq_hz(SRSLTE_UE_MIB_NOF_PRB);
@@ -79,6 +79,11 @@ int cuhd_mib_decoder(void *uhd, cell_search_cfg_t *config, srslte_cell_t *cell) 
   }
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, cell, NULL);
+  }
+
+  // Save AGC value 
+  if (config->init_agc > 0) {
+    config->init_agc = srslte_agc_get_gain(&ue_mib.ue_sync.agc);
   }
 
 clean_exit: 
@@ -112,8 +117,8 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
     srslte_ue_cellsearch_set_threshold(&cs, config->threshold);
   }
 
-  if (config->do_agc) {
-    srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain_th);
+  if (config->init_agc > 0) {
+    srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain_th, config->init_agc);
   }
   
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
@@ -138,12 +143,29 @@ int cuhd_cell_search(void *uhd, cell_search_cfg_t *config,
     return SRSLTE_SUCCESS;
   }
   
+  for (int i=0;i<3;i++) {
+    if (i == max_peak_cell) {
+      printf("*");
+    } else {
+      printf(" ");
+    }
+    printf("Found Cell_id: %3d CP: %s, DetectRatio=%2.0f%% PSR=%.2f, Power=%.1f dBm\n", 
+           found_cells[i].cell_id, srslte_cp_string(found_cells[i].cp), 
+           found_cells[i].mode*100,
+           found_cells[i].psr, 20*log10(found_cells[i].peak*1000));
+  }
+  
   // Save result 
   if (cell) {
     cell->id = found_cells[max_peak_cell].cell_id;
     cell->cp = found_cells[max_peak_cell].cp; 
   }
 
+  // Save AGC value for MIB decoding
+  if (config->init_agc > 0) {
+    config->init_agc = srslte_agc_get_gain(&cs.ue_sync.agc);
+  }
+  
   cuhd_stop_rx_stream(uhd);
   srslte_ue_cellsearch_free(&cs);
 

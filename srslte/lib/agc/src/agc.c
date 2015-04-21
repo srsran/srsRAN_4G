@@ -39,7 +39,7 @@
 #include "srslte/utils/debug.h"
 
 int srslte_agc_init (srslte_agc_t *q, srslte_agc_mode_t mode) {
-  return srslte_agc_init_acc(q, mode, 1);
+  return srslte_agc_init_acc(q, mode, 0);
 }
 
 int srslte_agc_init_acc(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_frames) {
@@ -107,6 +107,10 @@ float srslte_agc_get_gain(srslte_agc_t *q) {
   return q->gain;
 }
 
+void srslte_agc_set_gain(srslte_agc_t *q, float init_gain_value) {
+  q->gain = init_gain_value;
+}
+
 void srslte_agc_lock(srslte_agc_t *q, bool enable) {
   q->lock = enable;
 }
@@ -127,7 +131,7 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
       q->gain = 10.0; 
     } else {
       gain_uhd_db = q->set_gain_callback(q->uhd_handler, gain_db);        
-      //gain_uhd = pow(10, gain_uhd_db/10);
+      q->gain = pow(10, gain_uhd_db/10);
     }
   }
   float *t; 
@@ -173,7 +177,7 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
         gg = expf(-0.5*q->bandwidth*logf(q->y_out/q->target));
         q->gain *= gg; 
       }          
-      INFO("AGC gain: %.2f (%.2f) y_out=%.3f, y=%.3f target=%.1f gg=%.2f %d/%d\n", gain_db, gain_uhd_db, q->y_out, y, q->target, gg, q->frame_cnt, q->nof_frames);      
+      INFO("AGC gain: %.2f (%.2f) y_out=%.3f, y=%.3f target=%.1f gg=%.2f\n", gain_db, gain_uhd_db, q->y_out, y, q->target, gg);      
     }
   }
 }

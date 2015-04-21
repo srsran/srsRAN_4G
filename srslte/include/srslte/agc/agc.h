@@ -43,8 +43,8 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_AGC_DEFAULT_TARGET 0.5
-#define SRSLTE_AGC_DEFAULT_BW     (2e-1)
+#define SRSLTE_AGC_DEFAULT_TARGET 1.0
+#define SRSLTE_AGC_DEFAULT_BW     (5e-2)
 
 typedef enum SRSLTE_API {
   SRSLTE_AGC_MODE_ENERGY = 0, 
@@ -91,6 +91,9 @@ SRSLTE_API float srslte_agc_get_rssi(srslte_agc_t *q);
 SRSLTE_API float srslte_agc_get_output_level(srslte_agc_t *q); 
 
 SRSLTE_API float srslte_agc_get_gain(srslte_agc_t *q);
+
+SRSLTE_API void srslte_agc_set_gain(srslte_agc_t *q, 
+                                    float init_gain_value); 
 
 SRSLTE_API void srslte_agc_lock(srslte_agc_t *q, 
                                 bool enable);

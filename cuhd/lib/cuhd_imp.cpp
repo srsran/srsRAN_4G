@@ -30,11 +30,12 @@
 #include <complex>
 #include <cstdio>
 #include <uhd/utils/msg.hpp>
+#include <sys/time.h>
 
 #include "cuhd_handler.hpp"
 #include "srslte/cuhd/cuhd.h"
 
-//#define METADATA_VERBOSE
+#define METADATA_VERBOSE
 
 //#define HIDE_MESSAGES
 
@@ -119,15 +120,13 @@ int cuhd_start_rx_stream_nsamples(void *h, uint32_t nsamples)
 
 double cuhd_set_rx_gain_th(void *h, double gain)
 {
-  /*
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   // round to avoid histeresis
-  gain = roundf(gain);   
+  gain = handler->rx_gain_range.clip(gain);     
   pthread_mutex_lock(&handler->mutex);
   handler->new_rx_gain = gain; 
   pthread_cond_signal(&handler->cond);
   pthread_mutex_unlock(&handler->mutex);
-  */
   return gain; 
 }
 
@@ -142,7 +141,7 @@ static void* thread_gain_fcn(void *h) {
     handler->cur_rx_gain = handler->new_rx_gain; 
     pthread_mutex_unlock(&handler->mutex);
     cuhd_set_rx_gain(h, handler->cur_rx_gain);
-    printf("set gain to %f\n", handler->cur_rx_gain);
+    //printf("Set gain %.2f\n", handler->cur_rx_gain);
   }
 }
 
@@ -150,7 +149,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain)
 {
   cuhd_handler *handler = new cuhd_handler();
   std::string _args = std::string(args);
-  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000");
+  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000, num_recv_frames=512");
 
 //  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=50000000" + ", num_recv_frames=512");
   handler->usrp->set_clock_source("internal");
@@ -166,6 +165,10 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain)
   handler->rx_stream = handler->usrp->get_rx_stream(stream_args);
   handler->tx_stream = handler->usrp->get_tx_stream(stream_args);
 
+  
+  handler->rx_gain_range = handler->usrp->get_rx_gain_range();
+
+  
   *h = handler;
 
   if (create_thread_gain) {

@@ -36,9 +36,6 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
-float tmp_pss_corr[32*10000];
-float tmp_sss_corr[31*10000];
-
 int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*), void *stream_handler) 
 {
   return srslte_ue_cellsearch_init_max(q, SRSLTE_CS_DEFAULT_MAXFRAMES_TOTAL, recv_callback, stream_handler); 
@@ -82,7 +79,8 @@ int srslte_ue_cellsearch_init_max(srslte_ue_cellsearch_t * q, uint32_t max_frame
 
     q->max_frames = max_frames;
     q->nof_frames_to_scan = SRSLTE_CS_DEFAULT_NOFFRAMES_TOTAL; 
-
+    q->detect_threshold = 1.0; 
+    
     ret = SRSLTE_SUCCESS;
   }
 
@@ -233,22 +231,22 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, uint32_t N_id_2
         /* This means a peak was found and ue_sync is now in tracking state */
         ret = srslte_sync_get_cell_id(&q->ue_sync.strack);
         if (ret >= 0) {
-          /* Save cell id, cp and peak */
-          q->candidates[nof_detected_frames].cell_id = (uint32_t) ret;
-          q->candidates[nof_detected_frames].cp = srslte_sync_get_cp(&q->ue_sync.strack);
-          q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
-          q->candidates[nof_detected_frames].psr = srslte_sync_get_peak_value(&q->ue_sync.strack);
-          q->candidates[nof_detected_frames].cfo = srslte_ue_sync_get_cfo(&q->ue_sync);
-          INFO
-            ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
-              nof_detected_frames, nof_scanned_frames, q->nof_frames_to_scan,
-              q->candidates[nof_detected_frames].peak, q->candidates[nof_detected_frames].cell_id,
-              srslte_cp_string(q->candidates[nof_detected_frames].cp));
-          memcpy(&tmp_pss_corr[nof_detected_frames*32], 
-                &q->ue_sync.strack.pss.conv_output_avg[128], 32*sizeof(float));
-          memcpy(&tmp_sss_corr[nof_detected_frames*31], 
-                &q->ue_sync.strack.sss.corr_output_m0, 31*sizeof(float));
-          nof_detected_frames++; 
+          if (srslte_sync_get_peak_value(&q->ue_sync.strack) > q->detect_threshold) {
+            /* Save cell id, cp and peak */
+            q->candidates[nof_detected_frames].cell_id = (uint32_t) ret;
+            q->candidates[nof_detected_frames].cp = srslte_sync_get_cp(&q->ue_sync.strack);
+            q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
+            q->candidates[nof_detected_frames].psr = srslte_sync_get_peak_value(&q->ue_sync.strack);
+            q->candidates[nof_detected_frames].cfo = srslte_ue_sync_get_cfo(&q->ue_sync);
+            INFO
+              ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
+                nof_detected_frames, nof_scanned_frames, q->nof_frames_to_scan,
+                q->candidates[nof_detected_frames].psr, q->candidates[nof_detected_frames].cell_id,
+                srslte_cp_string(q->candidates[nof_detected_frames].cp));
+              
+            nof_detected_frames++; 
+            
+          }
         }
       } else if (ret == 0) {
         /* This means a peak is not yet found and ue_sync is in find state 
@@ -258,9 +256,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, uint32_t N_id_2
     
       nof_scanned_frames++;
       
-    } while ((srslte_sync_get_peak_value(&q->ue_sync.strack)  < q->detect_threshold  ||
-              nof_detected_frames                       < 4)                  &&
-              nof_scanned_frames                       < q->nof_frames_to_scan);
+    } while (nof_scanned_frames < q->nof_frames_to_scan);
     
     /* In either case, check if the mean PSR is above the minimum threshold */
     if (nof_detected_frames > 0) {

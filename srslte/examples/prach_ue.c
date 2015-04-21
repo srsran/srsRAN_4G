@@ -46,8 +46,8 @@
 
 cell_search_cfg_t cell_detect_config = {
   5000,
-  100, // nof_frames_total 
-  16.0 // threshold
+  200, // nof_frames_total 
+  10.0 // threshold
 };
 
 #define B210_DEFAULT_GAIN         40.0

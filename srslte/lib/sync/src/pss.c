@@ -336,7 +336,7 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
     }
     // Find end of peak lobe to the left
     int pl_lb; 
-    if (corr_peak_pos > 0) {
+    if (corr_peak_pos > 2) {
       pl_lb = corr_peak_pos-1;
         while(q->conv_output_avg[pl_lb-1] <= q->conv_output_avg[pl_lb] && pl_lb > 1) {
         pl_lb --; 
