@@ -25,23 +25,28 @@
  *
  */
 
-#include <string.h>
-#include <strings.h>
-#include <pthread.h>
 #include "srslte/srslte.h"
 
-#include "srslte/ue_itf/params.h"
+#ifndef PARAMS_H
+#define PARAMS_H
 
 namespace srslte {
- namespace ue {
-  
-  void params::set_param(param_t param, int64_t value)
+namespace ue {
+  class SRSLTE_API params_db
   {
-    params_db[param] = value; 
-  }
-  int64_t params::get_param(param_t param)
-  {
-    return params_db[param]; 
-  }
- }
+  public: 
+    params_db();
+   ~params_db();
+    void    init_db(uint32_t nof_params);
+    void    free_db();
+    void    set_param(uint32_t param_idx, int64_t value); 
+    int64_t get_param(uint32_t param_idx); 
+    
+  private:
+    uint32_t nof_params; 
+    int64_t *db;
+  };
 }
+}
+
+#endif

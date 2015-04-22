@@ -30,7 +30,7 @@
 #include "srslte/ue_itf/dl_buffer.h"
 #include "srslte/ue_itf/ul_buffer.h"
 #include "srslte/ue_itf/prach.h"
-#include "srslte/ue_itf/params.h"
+#include "srslte/ue_itf/phy_params.h"
 #include "srslte/ue_itf/sched_grant.h"
 #include "srslte/ue_itf/queue.h"
 #include "srslte/common/radio.h"
@@ -93,7 +93,7 @@ public:
   bool status_is_idle();
   bool status_is_rxtx();
   
-  void set_param(params::param_t param, int64_t value); 
+  void set_param(phy_params::phy_param_t param, int64_t value); 
 
   uint32_t        get_current_tti(); 
   static uint32_t tti_to_SFN(uint32_t tti);
@@ -123,7 +123,7 @@ private:
   queue       *ul_buffer_queue;
   queue       *dl_buffer_queue; 
   prach        prach_buffer; 
-  params       params_db; 
+  phy_params   params_db; 
   
   pthread_t    phy_thread; 
   float        time_adv_sec;

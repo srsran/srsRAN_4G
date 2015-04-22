@@ -26,15 +26,23 @@
  */
 
 #include "srslte/srslte.h"
+#include "srslte/ue_itf/params_db.h"
 
-#ifndef UEH
-#define UEH
+#ifndef PHYPARAMS_H
+#define PHYPARAMS_H
+
 
 namespace srslte {
 namespace ue {
-  class SRSLTE_API params
+
+  class SRSLTE_API phy_params : public params_db
   {
   public: 
+
+    phy_params();
+   ~phy_params();
+    
+    
     typedef enum {
       
       DL_FREQ = 0, 
@@ -77,13 +85,8 @@ namespace ue {
       PRACH_FREQ_OFFSET,
       
       NOF_PARAMS,    
-    } param_t;
-  
-    void    set_param(param_t param, int64_t value); 
-    int64_t get_param(param_t param); 
+    } phy_param_t;
     
-  private:
-    int64_t params_db[NOF_PARAMS];
   };
 }
 }

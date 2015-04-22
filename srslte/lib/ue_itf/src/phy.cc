@@ -49,9 +49,9 @@ bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_)
   dl_buffer_queue = new queue(6, sizeof(dl_buffer));
   
   // Set default params  
-  params_db.set_param(params::CELLSEARCH_TIMEOUT_PSS_NFRAMES, 100);
-  params_db.set_param(params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, 160);
-  params_db.set_param(params::CELLSEARCH_TIMEOUT_MIB_NFRAMES, 100);
+  params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_NFRAMES, 100);
+  params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, 160);
+  params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_MIB_NFRAMES, 100);
   
   pthread_attr_t attr;
   struct sched_param param;
@@ -104,7 +104,7 @@ void phy::set_timeadv(uint32_t ta_cmd) {
 
 void phy::rar_ul_grant(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, sched_grant *grant)
 {
-  uint32_t n_ho = params_db.get_param(params::PUSCH_HOPPING_OFFSET);
+  uint32_t n_ho = params_db.get_param(phy_params::PUSCH_HOPPING_OFFSET);
   srslte_ra_pusch_t *ra_pusch = (srslte_ra_pusch_t*) grant->get_grant_ptr(); 
   srslte_dci_rar_to_ra_ul(rba, trunc_mcs, hopping_flag, cell.nof_prb, ra_pusch);
   srslte_ra_ul_alloc(&ra_pusch->prb_alloc, ra_pusch, n_ho, cell.nof_prb);
@@ -113,8 +113,8 @@ void phy::rar_ul_grant(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, sche
   }
 }
 
-void phy::set_param(params::param_t param, int64_t value) {
-  params_db.set_param(param, value);
+void phy::set_param(phy_params::phy_param_t param, int64_t value) {
+  params_db.set_param((uint32_t) param, value);
 }
 
 
@@ -270,9 +270,9 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
     return false; 
   }
   
-  srslte_ue_cellsearch_set_nof_frames_to_scan(&cs, params_db.get_param(params::CELLSEARCH_TIMEOUT_PSS_NFRAMES));
+  srslte_ue_cellsearch_set_nof_frames_to_scan(&cs, params_db.get_param(phy_params::CELLSEARCH_TIMEOUT_PSS_NFRAMES));
   srslte_ue_cellsearch_set_threshold(&cs, (float) 
-    params_db.get_param(params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD)/10);
+    params_db.get_param(phy_params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD)/10);
 
   radio_handler->set_rx_srate(1920000.0);
   radio_handler->start_rx();
@@ -315,7 +315,7 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
   uint32_t sfn, sfn_offset; 
 
   radio_handler->start_rx();
-  ret = srslte_ue_mib_sync_decode(&ue_mib_sync, params_db.get_param(params::CELLSEARCH_TIMEOUT_MIB_NFRAMES), 
+  ret = srslte_ue_mib_sync_decode(&ue_mib_sync, params_db.get_param(phy_params::CELLSEARCH_TIMEOUT_MIB_NFRAMES), 
                                   bch_payload, &cell_ptr->nof_ports, &sfn_offset); 
   radio_handler->stop_rx();
   srslte_ue_mib_sync_free(&ue_mib_sync);

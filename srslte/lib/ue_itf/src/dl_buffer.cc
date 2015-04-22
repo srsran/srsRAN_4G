@@ -33,13 +33,13 @@
 #include "srslte/ue_itf/sched_grant.h"
 #include "srslte/ue_itf/dl_buffer.h"
 #include "srslte/ue_itf/phy.h"
-#include "srslte/ue_itf/params.h"
+#include "srslte/ue_itf/phy_params.h"
 
     
 namespace srslte {
 namespace ue {
  
-bool dl_buffer::init_cell(srslte_cell_t cell_, params *params_db_)
+bool dl_buffer::init_cell(srslte_cell_t cell_, phy_params *params_db_)
 {
   params_db = params_db_; 
   cell = cell_; 
@@ -103,7 +103,7 @@ bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, sched_grant *grant)
     }
     
     if (srslte_dci_msg_to_ra_ul(&dci_msg, cell.nof_prb, 
-                            params_db->get_param(params::PUSCH_HOPPING_OFFSET),  
+                            params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET),  
                             (srslte_ra_pusch_t*) grant->get_grant_ptr())) 
     {
       return false; 

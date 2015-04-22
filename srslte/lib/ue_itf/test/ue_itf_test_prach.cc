@@ -204,23 +204,23 @@ uint32_t nof_rtx_connsetup = 0;
 uint32_t rv_value[4] = {0, 2, 3, 1}; 
 
 void config_phy() {
-  phy.set_param(srslte::ue::params::PRACH_CONFIG_INDEX, 0);
-  phy.set_param(srslte::ue::params::PRACH_FREQ_OFFSET, 0);
-  phy.set_param(srslte::ue::params::PRACH_HIGH_SPEED_FLAG, 0);
-  phy.set_param(srslte::ue::params::PRACH_ROOT_SEQ_IDX, 0);
-  phy.set_param(srslte::ue::params::PRACH_ZC_CONFIG, 1);
+  phy.set_param(srslte::ue::phy_params::PRACH_CONFIG_INDEX, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_FREQ_OFFSET, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_HIGH_SPEED_FLAG, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_ROOT_SEQ_IDX, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 1);
 
-  phy.set_param(srslte::ue::params::PUSCH_BETA, 10);
-  phy.set_param(srslte::ue::params::PUSCH_RS_GROUP_HOPPING_EN, 0);
-  phy.set_param(srslte::ue::params::PUSCH_RS_SEQUENCE_HOPPING_EN, 0);
-  phy.set_param(srslte::ue::params::PUSCH_RS_CYCLIC_SHIFT, 0);
-  phy.set_param(srslte::ue::params::PUSCH_HOPPING_OFFSET, 0);
+  phy.set_param(srslte::ue::phy_params::PUSCH_BETA, 10);
+  phy.set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_HOPPING_EN, 0);
+  phy.set_param(srslte::ue::phy_params::PUSCH_RS_SEQUENCE_HOPPING_EN, 0);
+  phy.set_param(srslte::ue::phy_params::PUSCH_RS_CYCLIC_SHIFT, 0);
+  phy.set_param(srslte::ue::phy_params::PUSCH_HOPPING_OFFSET, 0);
  
-  phy.set_param(srslte::ue::params::PUCCH_BETA, 10);
-  phy.set_param(srslte::ue::params::PUCCH_DELTA_SHIFT, 1);
-  phy.set_param(srslte::ue::params::PUCCH_CYCLIC_SHIFT, 0);
-  phy.set_param(srslte::ue::params::PUCCH_N_PUCCH_1, 0);
-  phy.set_param(srslte::ue::params::PUCCH_N_RB_2, 2);
+  phy.set_param(srslte::ue::phy_params::PUCCH_BETA, 10);
+  phy.set_param(srslte::ue::phy_params::PUCCH_DELTA_SHIFT, 1);
+  phy.set_param(srslte::ue::phy_params::PUCCH_CYCLIC_SHIFT, 0);
+  phy.set_param(srslte::ue::phy_params::PUCCH_N_PUCCH_1, 0);
+  phy.set_param(srslte::ue::phy_params::PUCCH_N_RB_2, 2);
 
 }
 

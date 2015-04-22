@@ -33,7 +33,7 @@
 #include "srslte/cuhd/cuhd.h"
 #include "srslte/ue_itf/prach.h"
 #include "srslte/ue_itf/phy.h"
-#include "srslte/ue_itf/params.h"
+#include "srslte/ue_itf/phy_params.h"
 
 namespace srslte {
 namespace ue {
@@ -55,16 +55,16 @@ void prach::free_cell()
   }
 }
 
-bool prach::init_cell(srslte_cell_t cell_, params *params_db_)
+bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_)
 {
   cell = cell_; 
   params_db = params_db_; 
   preamble_idx = -1; 
   if (srslte_prach_init(&prach, srslte_symbol_sz(cell.nof_prb), 
-                        srslte_prach_get_preamble_format(params_db->get_param(params::PRACH_CONFIG_INDEX)), 
-                        params_db->get_param(params::PRACH_ROOT_SEQ_IDX), 
-                        params_db->get_param(params::PRACH_HIGH_SPEED_FLAG)?true:false, 
-                        params_db->get_param(params::PRACH_ZC_CONFIG))) {
+                        srslte_prach_get_preamble_format(params_db->get_param(phy_params::PRACH_CONFIG_INDEX)), 
+                        params_db->get_param(phy_params::PRACH_ROOT_SEQ_IDX), 
+                        params_db->get_param(phy_params::PRACH_HIGH_SPEED_FLAG)?true:false, 
+                        params_db->get_param(phy_params::PRACH_ZC_CONFIG))) {
     return false; 
   }
   
@@ -74,7 +74,7 @@ bool prach::init_cell(srslte_cell_t cell_, params *params_db_)
     if(!buffer[i]) {
       return false; 
     }
-    if(srslte_prach_gen(&prach, i, params_db->get_param(params::PRACH_FREQ_OFFSET), buffer[i])){
+    if(srslte_prach_gen(&prach, i, params_db->get_param(phy_params::PRACH_FREQ_OFFSET), buffer[i])){
       return false;
     }
   }
@@ -103,7 +103,7 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
     uint32_t current_tti = (current_tti_ + tx_advance_sf)%10240;
     
     // Get SFN and sf_idx from the PRACH configuration index
-    uint32_t config_idx = (uint32_t) params_db->get_param(params::PRACH_CONFIG_INDEX); 
+    uint32_t config_idx = (uint32_t) params_db->get_param(phy_params::PRACH_CONFIG_INDEX); 
     srslte_prach_sfn_t prach_sfn = srslte_prach_get_sfn(config_idx);  
 
     if (prach_sfn == SRSLTE_PRACH_SFN_EVEN && ((current_tti/10)%2)==0 ||

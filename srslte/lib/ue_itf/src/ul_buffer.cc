@@ -33,12 +33,12 @@
 #include "srslte/ue_itf/sched_grant.h"
 #include "srslte/ue_itf/ul_buffer.h"
 #include "srslte/ue_itf/phy.h"
-#include "srslte/ue_itf/params.h"
+#include "srslte/ue_itf/phy_params.h"
 
 namespace srslte {
 namespace ue {
 
-bool ul_buffer::init_cell(srslte_cell_t cell_, params *params_db_) {
+bool ul_buffer::init_cell(srslte_cell_t cell_, phy_params *params_db_) {
   cell = cell_; 
   params_db = params_db_; 
   current_tx_nb = 0;
@@ -102,45 +102,45 @@ bool ul_buffer::generate_data(sched_grant pusch_grant,
     
     srslte_refsignal_dmrs_pusch_cfg_t dmrs_cfg; 
     bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
-    dmrs_cfg.beta_pusch          = (float) params_db->get_param(params::PUSCH_BETA)/10; 
-    dmrs_cfg.group_hopping_en    = params_db->get_param(params::PUSCH_RS_GROUP_HOPPING_EN);
-    dmrs_cfg.sequence_hopping_en = params_db->get_param(params::PUSCH_RS_SEQUENCE_HOPPING_EN);
-    dmrs_cfg.cyclic_shift        = params_db->get_param(params::PUSCH_RS_CYCLIC_SHIFT);
-    dmrs_cfg.delta_ss            = params_db->get_param(params::PUSCH_RS_GROUP_ASSIGNMENT);
+    dmrs_cfg.beta_pusch          = (float) params_db->get_param(phy_params::PUSCH_BETA)/10; 
+    dmrs_cfg.group_hopping_en    = params_db->get_param(phy_params::PUSCH_RS_GROUP_HOPPING_EN);
+    dmrs_cfg.sequence_hopping_en = params_db->get_param(phy_params::PUSCH_RS_SEQUENCE_HOPPING_EN);
+    dmrs_cfg.cyclic_shift        = params_db->get_param(phy_params::PUSCH_RS_CYCLIC_SHIFT);
+    dmrs_cfg.delta_ss            = params_db->get_param(phy_params::PUSCH_RS_GROUP_ASSIGNMENT);
     
     srslte_pusch_hopping_cfg_t pusch_hopping; 
     bzero(&pusch_hopping, sizeof(srslte_pusch_hopping_cfg_t));
-    pusch_hopping.n_sb           = params_db->get_param(params::PUSCH_HOPPING_N_SB);
-    pusch_hopping.hop_mode       = params_db->get_param(params::PUSCH_HOPPING_INTRA_SF) ? 
+    pusch_hopping.n_sb           = params_db->get_param(phy_params::PUSCH_HOPPING_N_SB);
+    pusch_hopping.hop_mode       = params_db->get_param(phy_params::PUSCH_HOPPING_INTRA_SF) ? 
                                     pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
                                     pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
-    pusch_hopping.hopping_offset = params_db->get_param(params::PUSCH_HOPPING_OFFSET);
+    pusch_hopping.hopping_offset = params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET);
     pusch_hopping.current_tx_nb  = pusch_grant.get_current_tx_nb(); 
     
     srslte_pucch_cfg_t pucch_cfg; 
     bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
-    pucch_cfg.beta_pucch        = (float) params_db->get_param(params::PUCCH_BETA)/10; 
-    pucch_cfg.delta_pucch_shift = params_db->get_param(params::PUCCH_DELTA_SHIFT);
+    pucch_cfg.beta_pucch        = (float) params_db->get_param(phy_params::PUCCH_BETA)/10; 
+    pucch_cfg.delta_pucch_shift = params_db->get_param(phy_params::PUCCH_DELTA_SHIFT);
     pucch_cfg.group_hopping_en  = dmrs_cfg.group_hopping_en;
-    pucch_cfg.N_cs              = params_db->get_param(params::PUCCH_CYCLIC_SHIFT);
-    pucch_cfg.n_rb_2            = params_db->get_param(params::PUCCH_N_RB_2);
+    pucch_cfg.N_cs              = params_db->get_param(phy_params::PUCCH_CYCLIC_SHIFT);
+    pucch_cfg.n_rb_2            = params_db->get_param(phy_params::PUCCH_N_RB_2);
     
     srslte_pucch_sched_t pucch_sched; 
     bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
     pucch_sched.n_cce = last_n_cce; 
-    pucch_sched.n_pucch_1[0] = params_db->get_param(params::PUCCH_N_PUCCH_1_0);
-    pucch_sched.n_pucch_1[1] = params_db->get_param(params::PUCCH_N_PUCCH_1_1);
-    pucch_sched.n_pucch_1[2] = params_db->get_param(params::PUCCH_N_PUCCH_1_2);
-    pucch_sched.n_pucch_1[3] = params_db->get_param(params::PUCCH_N_PUCCH_1_3);
-    pucch_sched.N_pucch_1    = params_db->get_param(params::PUCCH_N_PUCCH_1);
-    pucch_sched.n_pucch_2    = params_db->get_param(params::PUCCH_N_PUCCH_2);
-    pucch_sched.n_pucch_sr   = params_db->get_param(params::PUCCH_N_PUCCH_SR);
+    pucch_sched.n_pucch_1[0] = params_db->get_param(phy_params::PUCCH_N_PUCCH_1_0);
+    pucch_sched.n_pucch_1[1] = params_db->get_param(phy_params::PUCCH_N_PUCCH_1_1);
+    pucch_sched.n_pucch_1[2] = params_db->get_param(phy_params::PUCCH_N_PUCCH_1_2);
+    pucch_sched.n_pucch_1[3] = params_db->get_param(phy_params::PUCCH_N_PUCCH_1_3);
+    pucch_sched.N_pucch_1    = params_db->get_param(phy_params::PUCCH_N_PUCCH_1);
+    pucch_sched.n_pucch_2    = params_db->get_param(phy_params::PUCCH_N_PUCCH_2);
+    pucch_sched.n_pucch_sr   = params_db->get_param(phy_params::PUCCH_N_PUCCH_SR);
     
     srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, &pusch_hopping, &pucch_cfg, &pucch_sched);
 
-    uci_data.I_offset_ack    = params_db->get_param(params::UCI_I_OFFSET_ACK);
-    uci_data.I_offset_cqi    = params_db->get_param(params::UCI_I_OFFSET_CQI);
-    uci_data.I_offset_ri     = params_db->get_param(params::UCI_I_OFFSET_RI);
+    uci_data.I_offset_ack    = params_db->get_param(phy_params::UCI_I_OFFSET_ACK);
+    uci_data.I_offset_cqi    = params_db->get_param(phy_params::UCI_I_OFFSET_CQI);
+    uci_data.I_offset_ri     = params_db->get_param(phy_params::UCI_I_OFFSET_RI);
     
     int n = 0; 
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 

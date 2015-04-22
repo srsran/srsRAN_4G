@@ -28,7 +28,7 @@
 #include "srslte/srslte.h"
 #include "srslte/ue_itf/queue.h"
 #include "srslte/ue_itf/sched_grant.h"
-#include "srslte/ue_itf/params.h"
+#include "srslte/ue_itf/phy_params.h"
 
 #ifndef UEDLBUFFER_H
 #define UEDLBUFFER_H
@@ -61,7 +61,7 @@ namespace ue {
 
     int buffer_id; 
     
-    bool           init_cell(srslte_cell_t cell, params *params_db);
+    bool           init_cell(srslte_cell_t cell, phy_params *params_db);
     void           free_cell();
     bool           recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time);
     bool           get_ul_grant(pdcch_ul_search_t mode, sched_grant *grant);
@@ -69,7 +69,7 @@ namespace ue {
     bool           decode_ack(srslte::ue::sched_grant pusch_grant);
     bool           decode_data(sched_grant pdsch_grant, uint8_t *payload); // returns true or false for CRC OK/KO
   private: 
-    params       *params_db;
+    phy_params    *params_db;
     srslte_cell_t  cell; 
     srslte_ue_dl_t ue_dl; 
     srslte_phich_t phich; 

@@ -29,7 +29,7 @@
 #include "srslte/common/radio.h"
 #include "srslte/ue_itf/queue.h"
 #include "srslte/ue_itf/sched_grant.h"
-#include "srslte/ue_itf/params.h"
+#include "srslte/ue_itf/phy_params.h"
 
 #ifndef UEULBUFFER_H
 #define UEULBUFFER_H
@@ -44,7 +44,7 @@ namespace ue {
   class SRSLTE_API ul_buffer : public queue::element {
 
   public: 
-    bool     init_cell(srslte_cell_t cell, params *params_db);
+    bool     init_cell(srslte_cell_t cell, phy_params *params_db);
     void     free_cell();
     void     set_tti(uint32_t tti);
     void     set_current_tx_nb(uint32_t current_tx_nb);
@@ -59,7 +59,7 @@ namespace ue {
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
 
   private: 
-    params        *params_db; 
+    phy_params    *params_db; 
     srslte_cell_t  cell; 
     srslte_ue_ul_t ue_ul; 
     bool           cell_initiated; 

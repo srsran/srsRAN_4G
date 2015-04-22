@@ -28,7 +28,7 @@
 #include "srslte/srslte.h"
 #include "srslte/common/radio.h"
 #include "srslte/ue_itf/queue.h"
-#include "srslte/ue_itf/params.h"
+#include "srslte/ue_itf/phy_params.h"
 
 #ifndef UEPRACH_H
 #define UEPRACH_H
@@ -38,7 +38,7 @@ namespace ue {
 
   class SRSLTE_API prach {
   public: 
-    bool           init_cell(srslte_cell_t cell, params *params_db);
+    bool           init_cell(srslte_cell_t cell, phy_params *params_db);
     void           free_cell();
     bool           prepare_to_send(uint32_t preamble_idx);
     bool           is_ready_to_send(uint32_t current_tti);
@@ -46,7 +46,7 @@ namespace ue {
     bool           send(srslte::radio* radio_handler, float cfo, srslte_timestamp_t rx_time);
   private: 
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
-    params        *params_db     = NULL; 
+    phy_params    *params_db     = NULL; 
     int            preamble_idx;  
     bool           initiated     = false;   
     uint32_t       len; 
