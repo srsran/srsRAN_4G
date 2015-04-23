@@ -44,11 +44,13 @@ namespace ue {
     uint32_t get_rv();
     void     set_rv(uint32_t rv);
     bool     get_ndi();
+    void     set_ndi(bool value);
     bool     get_cqi_request();
     int      get_harq_process();    
     bool     is_uplink();
     bool     is_downlink();
     void*    get_grant_ptr();
+    bool     is_sps_release(); 
     void     set_ncce(uint32_t ncce);
     uint32_t get_ncce();
     uint32_t get_tbs(); 

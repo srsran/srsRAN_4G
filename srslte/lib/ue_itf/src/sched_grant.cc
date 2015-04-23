@@ -67,6 +67,11 @@ namespace ue {
     return ncce; 
   }
   
+  bool srslte::ue::sched_grant::is_sps_release()
+  {
+    return false; 
+  }
+  
   void sched_grant::set_ncce(uint32_t ncce_)
   {
     ncce = ncce_;
@@ -96,6 +101,14 @@ namespace ue {
       return ul_grant.ndi;
     } else {
       return dl_grant.ndi;    
+    }
+  }
+
+  void sched_grant::set_ndi(bool value) {
+    if (dir == UPLINK) {
+      ul_grant.ndi = value;
+    } else {
+      dl_grant.ndi = value;    
     }
   }
 

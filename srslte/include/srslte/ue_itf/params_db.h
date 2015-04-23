@@ -35,12 +35,25 @@ namespace ue {
   class SRSLTE_API params_db
   {
   public: 
-    params_db();
-   ~params_db();
-    void    init_db(uint32_t nof_params);
-    void    free_db();
-    void    set_param(uint32_t param_idx, int64_t value); 
-    int64_t get_param(uint32_t param_idx); 
+    params_db(uint32_t nof_params_) {
+      nof_params = nof_params_; 
+      db = new int64_t[nof_params_]; 
+    }
+   ~params_db() {
+      delete db; 
+    }
+    void    set_param(uint32_t param_idx, int64_t value) {
+      if (param_idx < nof_params) {
+        db[param_idx] = value;       
+      }
+    }
+    int64_t get_param(uint32_t param_idx) {
+      if (param_idx < nof_params) {
+        return db[param_idx]; 
+      } else {
+        return -1; 
+      }
+    }
     
   private:
     uint32_t nof_params; 

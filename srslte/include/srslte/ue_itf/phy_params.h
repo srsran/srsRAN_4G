@@ -39,8 +39,8 @@ namespace ue {
   {
   public: 
 
-    phy_params();
-   ~phy_params();
+    phy_params() : params_db(NOF_PARAMS) { }
+   ~phy_params() {}
     
     
     typedef enum {
