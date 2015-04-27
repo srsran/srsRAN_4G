@@ -214,8 +214,9 @@ void config_phy() {
   phy.set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_HOPPING_EN, 0);
   phy.set_param(srslte::ue::phy_params::PUSCH_RS_SEQUENCE_HOPPING_EN, 0);
   phy.set_param(srslte::ue::phy_params::PUSCH_RS_CYCLIC_SHIFT, 0);
+  phy.set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_ASSIGNMENT, 0);
   phy.set_param(srslte::ue::phy_params::PUSCH_HOPPING_OFFSET, 0);
- 
+
   phy.set_param(srslte::ue::phy_params::PUCCH_BETA, 10);
   phy.set_param(srslte::ue::phy_params::PUCCH_DELTA_SHIFT, 1);
   phy.set_param(srslte::ue::phy_params::PUCCH_CYCLIC_SHIFT, 0);
@@ -253,7 +254,7 @@ void run_tti(uint32_t tti) {
     }
   } 
   if (state == RAR) { 
-    srslte::ue::sched_grant rar_grant(srslte::ue::sched_grant::DOWNLINK, 2); 
+    srslte::ue::dl_sched_grant rar_grant(2); 
     int ra_tti = phy.get_prach_transmitted_tti();
     if (ra_tti > 0) {
       INFO("PRACH was transmitted at %d\n", ra_tti);
@@ -265,7 +266,7 @@ void run_tti(uint32_t tti) {
         if (dl_buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_RARNTI, &rar_grant)) 
         {
           // Decode packet
-          if (dl_buffer->decode_data(rar_grant, payload)) {
+          if (dl_buffer->decode_data(&rar_grant, payload)) {
             rar_unpack(payload, &rar_msg);
             if (!prog_args.continous) {
               printf("Received RAR for preamble %d\n", rar_msg.RAPID);              
@@ -283,8 +284,12 @@ void run_tti(uint32_t tti) {
               phy.set_timeadv_rar(rar_msg.timing_adv_cmd);
 
               // Generate Msg3 grant
-              srslte::ue::sched_grant connreq_grant(srslte::ue::sched_grant::UPLINK, rar_msg.temp_c_rnti); 
-              phy.rar_ul_grant(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, &connreq_grant);
+              srslte::ue::ul_sched_grant connreq_grant(rar_msg.temp_c_rnti); 
+              srslte_dci_rar_grant_t rar_grant; 
+              rar_grant.rba = rar_msg.rba; 
+              rar_grant.trunc_mcs = rar_msg.mcs; 
+              rar_grant.hopping_flag = rar_msg.hopping_flag; 
+              phy.rar_ul_grant(&rar_grant, &connreq_grant);
               
               // Pack Msg3 bits
               srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload, connreq_grant.get_tbs());
@@ -296,7 +301,7 @@ void run_tti(uint32_t tti) {
               if (ul_buffer) {
                 connreq_grant.set_rv(0);
                 INFO("Generating PUSCH for TTI: %d\n", ul_buffer->tti);
-                //ul_buffer->generate_pusch(connreq_grant, payload);
+                ul_buffer->generate_data(&connreq_grant, payload);
 
                 // Save transmission time
                 conreq_tti = ul_buffer->tti;        
@@ -318,11 +323,15 @@ void run_tti(uint32_t tti) {
     uint32_t interval_conreq = interval(tti, conreq_tti);
     if (interval_conreq == 4) {
       
-      srslte::ue::sched_grant connreq_grant(srslte::ue::sched_grant::UPLINK, rar_msg.temp_c_rnti); 
-      phy.rar_ul_grant(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, &connreq_grant);
+      srslte::ue::ul_sched_grant connreq_grant(rar_msg.temp_c_rnti); 
+      srslte_dci_rar_grant_t rar_grant; 
+      rar_grant.rba = rar_msg.rba; 
+      rar_grant.trunc_mcs = rar_msg.mcs; 
+      rar_grant.hopping_flag = rar_msg.hopping_flag; 
+      phy.rar_ul_grant(&rar_grant, &connreq_grant);
       
       // Decode PHICH from Connection Request
-      if (!dl_buffer->decode_ack(connreq_grant)) {
+      if (!dl_buffer->decode_ack(&connreq_grant)) {
         
         // Pack Msg3 bits
         srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload, connreq_grant.get_tbs());
@@ -339,7 +348,7 @@ void run_tti(uint32_t tti) {
             connreq_grant.set_current_tx_nb(nof_rtx_connsetup);
             connreq_grant.set_rv(rv_value[nof_rtx_connsetup%4]);
             INFO("Generating PUSCH for TTI: %d\n", ul_buffer->tti);
-            ul_buffer->generate_data(connreq_grant, payload);
+            ul_buffer->generate_data(&connreq_grant, payload);
 
             // Save transmission time
             conreq_tti = ul_buffer->tti;        
@@ -354,13 +363,13 @@ void run_tti(uint32_t tti) {
     }
   }
   if (state == CONNSETUP) {
-    srslte::ue::sched_grant conn_setup_grant(srslte::ue::sched_grant::DOWNLINK, rar_msg.temp_c_rnti); 
+    srslte::ue::dl_sched_grant conn_setup_grant(rar_msg.temp_c_rnti); 
     bool connsetup_recv = false;
     // Get DL grant for tmp_rnti
     if (dl_buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_TEMPORAL, &conn_setup_grant)) 
     {
       // Decode packet
-      if (dl_buffer->decode_data(conn_setup_grant, payload)) {
+      if (dl_buffer->decode_data(&conn_setup_grant, payload)) {
         nof_rx_connsetup++;
         state = RA; 
         nof_rtx_connsetup=0;
@@ -375,7 +384,7 @@ void run_tti(uint32_t tti) {
       // send ACK
       INFO("Sending ack %d on TTI: %d\n", connsetup_recv, tti+4);
       srslte::ue::ul_buffer *ul_buffer = phy.get_ul_buffer(tti+4); 
-      ul_buffer->generate_ack(connsetup_recv, conn_setup_grant);
+      ul_buffer->generate_ack(connsetup_recv, &conn_setup_grant);
       if (!prog_args.continous) {
         while(ul_buffer->uci_ready()) {
           sleep(1);

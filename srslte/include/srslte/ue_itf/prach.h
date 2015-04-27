@@ -38,6 +38,11 @@ namespace ue {
 
   class SRSLTE_API prach {
   public: 
+    prach() {
+      params_db = NULL; 
+      initiated = false; 
+      signal_buffer = NULL; 
+    }
     bool           init_cell(srslte_cell_t cell, phy_params *params_db);
     void           free_cell();
     bool           prepare_to_send(uint32_t preamble_idx);
@@ -51,7 +56,7 @@ namespace ue {
     bool           initiated     = false;   
     uint32_t       len; 
     cf_t          *buffer[64]; 
-    srslte_prach_t prach; 
+    srslte_prach_t prach_obj; 
     uint32_t       transmitted_tti;
     srslte_cell_t  cell;
     cf_t          *signal_buffer;

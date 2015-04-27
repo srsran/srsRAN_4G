@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   srslte_pdcch_t pdcch;
   srslte_dci_msg_t dci_tx[2], dci_rx[2], dci_tmp;
   srslte_dci_location_t dci_locations[2];
-  srslte_ra_pdsch_t ra_dl;
+  srslte_ra_dl_dci_t ra_dl;
   srslte_regs_t regs;
   int i, j;
   cf_t *ce[SRSLTE_MAX_PORTS];
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
   }
 
   nof_dcis = 2;
-  bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
+  bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
   ra_dl.harq_process = 0;
   ra_dl.mcs_idx = 5;
   ra_dl.ndi = 0;

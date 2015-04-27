@@ -200,7 +200,7 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  srslte_ra_pdsch_t ra_dl;
+  srslte_ra_dl_dci_t ra_dl;
   int i;
   int frame_cnt;
   int ret;
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
       srslte_dci_msg_type_fprint(stdout, type);
       switch(type.type) {
       case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
-        bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
+        bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
         if (srslte_dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SRSLTE_SIRNTI)) {
           fprintf(stderr, "Can't unpack PDSCH message\n");
         } else {

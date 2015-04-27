@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
   srslte_chest_dl_t est;
   srslte_precoding_t cheq; 
   cf_t *input = NULL, *ce = NULL, *h = NULL, *output = NULL;
-  int i, j, n_port, sf_idx, cid, num_re;
+  int i, j, n_port=0, sf_idx=0, cid=0, num_re;
   int ret = -1;
   int max_cid;
   FILE *fmatlab = NULL;

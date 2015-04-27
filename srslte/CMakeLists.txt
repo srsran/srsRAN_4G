@@ -46,4 +46,4 @@ ADD_CUSTOM_TARGET (add_srslte_headers SOURCES ${HEADERS_ALL})
 ########################################################################
 ADD_SUBDIRECTORY(lib)
 ADD_SUBDIRECTORY(examples)
-add_subdirectory(tutorial_examples)
+#add_subdirectory(tutorial_examples)

@@ -35,7 +35,7 @@
 #include "cuhd_handler.hpp"
 #include "srslte/cuhd/cuhd.h"
 
-#define METADATA_VERBOSE
+//#define METADATA_VERBOSE
 
 //#define HIDE_MESSAGES
 

@@ -28,7 +28,9 @@
 /******************************************************************************
  *  File:         dci.h
  *
- *  Description:  Downlink control information (DCI)
+ *  Description:  Downlink control information (DCI). 
+ *                Packing/Unpacking functions to convert between bit streams 
+ *                and packed DCI UL/DL grants defined in ra.h
  *
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.3.3
  *****************************************************************************/
@@ -79,25 +81,36 @@ typedef struct SRSLTE_API {
   uint32_t nof_bits;
 } srslte_dci_msg_t;
 
+typedef struct SRSLTE_API {
+  uint32_t rba;
+  uint32_t trunc_mcs;
+  bool hopping_flag; 
+} srslte_dci_rar_grant_t;
+
 /* Converts a received PDSCH DL scheduling DCI message 
  * to ra structures ready to be passed to the harq setup function
  */
-SRSLTE_API int srslte_dci_msg_to_ra_dl(srslte_dci_msg_t *msg, 
-                                       uint16_t msg_rnti,
-                                       srslte_cell_t cell,
-                                       uint32_t cfi,
-                                       srslte_ra_pdsch_t *ra_dl);
+SRSLTE_API int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, 
+                                          uint16_t msg_rnti,
+                                          srslte_cell_t cell, 
+                                          uint32_t cfi, 
+                                          uint32_t sf_idx, 
+                                          srslte_ra_dl_dci_t *dl_dci, 
+                                          srslte_ra_dl_grant_t *grant);
 
-SRSLTE_API int srslte_dci_msg_to_ra_ul(srslte_dci_msg_t *msg, 
-                                       uint32_t nof_prb,
-                                       uint32_t n_rb_ho, 
-                                       srslte_ra_pusch_t *ra_ul);
+SRSLTE_API int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, 
+                                          srslte_cell_t cell,
+                                          uint32_t N_srs, 
+                                          uint32_t n_rb_ho, 
+                                          srslte_ra_ul_dci_t *ul_dci, 
+                                          srslte_ra_ul_grant_t *grant);
 
-SRSLTE_API int srslte_dci_rar_to_ra_ul(uint32_t rba, 
-                                       uint32_t trunc_mcs, 
-                                       bool hopping_flag, 
-                                       uint32_t nof_prb, 
-                                       srslte_ra_pusch_t *ra); 
+SRSLTE_API int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar,
+                                          srslte_cell_t cell, 
+                                          uint32_t N_srs, 
+                                          uint32_t n_rb_ho, 
+                                          srslte_ra_ul_dci_t *ul_dci,
+                                          srslte_ra_ul_grant_t *grant); 
 
 SRSLTE_API srslte_dci_format_t srslte_dci_format_from_string(char *str);
 
@@ -118,23 +131,23 @@ SRSLTE_API void srslte_dci_msg_type_fprint(FILE *f,
                                            srslte_dci_msg_type_t type);
 
 // For srslte_dci_msg_type_t = SRSLTE_DCI_MSG_TYPE_PUSCH_SCHED
-SRSLTE_API int srslte_dci_msg_pack_pusch(srslte_ra_pusch_t *data, 
+SRSLTE_API int srslte_dci_msg_pack_pusch(srslte_ra_ul_dci_t *data, 
                                          srslte_dci_msg_t *msg, 
                                          uint32_t nof_prb);
 
 SRSLTE_API int srslte_dci_msg_unpack_pusch(srslte_dci_msg_t *msg, 
-                                           srslte_ra_pusch_t *data, 
+                                           srslte_ra_ul_dci_t *data, 
                                            uint32_t nof_prb);
 
 // For srslte_dci_msg_type_t = SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED
-SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_ra_pdsch_t *data, 
+SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, 
                                          srslte_dci_msg_t *msg, 
                                          srslte_dci_format_t format, 
                                          uint32_t nof_prb, 
                                          bool crc_is_crnti);
 
 SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, 
-                                           srslte_ra_pdsch_t *data, 
+                                           srslte_ra_dl_dci_t *data, 
                                            uint32_t nof_prb, 
                                            bool crc_is_crnti);
 

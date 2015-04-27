@@ -81,7 +81,7 @@ bool dl_buffer::recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_t
   return ret; 
 }
 
-bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, sched_grant *grant)
+bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, ul_sched_grant *grant)
 {
   if (signal_buffer) {
     if (!sf_symbols_and_ce_done) {
@@ -102,19 +102,12 @@ bool dl_buffer::get_ul_grant(pdcch_ul_search_t mode, sched_grant *grant)
       return false; 
     }
     
-    if (srslte_dci_msg_to_ra_ul(&dci_msg, cell.nof_prb, 
-                            params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET),  
-                            (srslte_ra_pusch_t*) grant->get_grant_ptr())) 
-    {
-      return false; 
-    }
-
-    return true; 
+    return grant->create_from_dci(&dci_msg, cell, 0, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET));     
   }
 
 }
 
-bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, sched_grant *grant)
+bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, dl_sched_grant *grant)
 {
   if (signal_buffer && is_ready()) {
     INFO("DL Buffer TTI %d: Getting DL grant\n", tti);
@@ -145,18 +138,11 @@ bool dl_buffer::get_dl_grant(pdcch_dl_search_t mode, sched_grant *grant)
       return false; 
     }
     
-    grant->set_ncce(srslte_ue_dl_get_ncce(&ue_dl));
-    
-    if (srslte_dci_msg_to_ra_dl(&dci_msg, grant->get_rnti(), cell, cfi, 
-                                (srslte_ra_pdsch_t*) grant->get_grant_ptr())) {
-      return false; 
-    }
-    
-    return true;     
+    return grant->create_from_dci(&dci_msg, cell, cfi, tti%10, srslte_ue_dl_get_ncce(&ue_dl));     
   }
 }
 
-bool dl_buffer::decode_ack(sched_grant pusch_grant)
+bool dl_buffer::decode_ack(ul_sched_grant *grant)
 {
   if (signal_buffer && is_ready()) {
     if (!sf_symbols_and_ce_done) {
@@ -166,13 +152,11 @@ bool dl_buffer::decode_ack(sched_grant pusch_grant)
       sf_symbols_and_ce_done = true; 
     }
 
-    srslte_ra_pusch_t *ra_ul = (srslte_ra_pusch_t*) pusch_grant.get_grant_ptr();
-    
-    return srslte_ue_dl_decode_phich(&ue_dl, tti%10, ra_ul->prb_alloc.n_prb[0], ra_ul->n_dmrs);     
+    return srslte_ue_dl_decode_phich(&ue_dl, tti%10, grant->get_I_lowest(), grant->get_n_dmrs());     
   }
 }
 
-bool dl_buffer::decode_data(sched_grant pdsch_grant, uint8_t *payload)
+bool dl_buffer::decode_data(dl_sched_grant *grant, uint8_t *payload)
 {
   if (signal_buffer && is_ready()) {
     INFO("DL Buffer TTI %d: Decoding PDSCH\n", tti);
@@ -184,18 +168,13 @@ bool dl_buffer::decode_data(sched_grant pdsch_grant, uint8_t *payload)
       sf_symbols_and_ce_done = true; 
     }
     
-    srslte_ra_pdsch_t *ra_dl = (srslte_ra_pdsch_t*) pdsch_grant.get_grant_ptr();
-    if (srslte_harq_setup_dl(&ue_dl.harq_process[0], ra_dl->mcs, 
-                            ra_dl->rv_idx, tti%10, &ra_dl->prb_alloc)) {
-      fprintf(stderr, "Error configuring HARQ process\n");
-      return SRSLTE_ERROR;
-    }
-    if (ue_dl.harq_process[0].mcs.mod > 0 && ue_dl.harq_process[0].mcs.tbs >= 0) {
-      int ret = srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.harq_process[0], ue_dl.sf_symbols, 
-                              ue_dl.ce, 0, pdsch_grant.get_rnti(), payload);
+    grant->get_pdsch_cfg(tti%10, &ue_dl.pdsch_cfg);
+    if (ue_dl.pdsch_cfg.grant.mcs.mod > 0 && ue_dl.pdsch_cfg.grant.mcs.tbs >= 0) {
+      int ret = srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.pdsch_cfg, &ue_dl.softbuffer, ue_dl.sf_symbols, 
+                                         ue_dl.ce, 0, grant->get_rnti(), payload);
 
       if (SRSLTE_VERBOSE_ISINFO()) {
-        srslte_vec_save_file((char*) "pdsch_d", ue_dl.pdsch.d, ue_dl.harq_process[0].nof_re*sizeof(cf_t));      
+        srslte_vec_save_file((char*) "pdsch_d", ue_dl.pdsch.d, ue_dl.pdsch_cfg.grant.nof_re*sizeof(cf_t));      
       }
       if (ret == SRSLTE_SUCCESS) {
         return true; 

@@ -49,6 +49,7 @@
 #include "srslte/phch/pcfich.h"
 #include "srslte/phch/pdcch.h"
 #include "srslte/phch/pdsch.h"
+#include "srslte/phch/pdsch_cfg.h"
 #include "srslte/phch/phich.h"
 #include "srslte/phch/ra.h"
 #include "srslte/phch/regs.h"
@@ -58,19 +59,17 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_UE_UL_NOF_HARQ_PROCESSES 8
-
 typedef struct SRSLTE_API {
   srslte_pcfich_t pcfich;
   srslte_pdcch_t pdcch;
   srslte_pdsch_t pdsch;
   srslte_phich_t phich; 
-  srslte_harq_t harq_process[SRSLTE_UE_UL_NOF_HARQ_PROCESSES];
   srslte_regs_t regs;
   srslte_ofdm_t fft;
   srslte_chest_dl_t chest;
   
-  srslte_ra_pdsch_t ra_dl;
+  srslte_pdsch_cfg_t pdsch_cfg; 
+  srslte_softbuffer_rx_t softbuffer;
 
   srslte_cell_t cell;
 

@@ -39,7 +39,7 @@ void usage(char *prog) {
 
 int main(int argc, char **argv) {
   srslte_dci_msg_t msg;
-  srslte_ra_pdsch_t ra_dl;
+  srslte_ra_dl_dci_t ra_dl;
   int len, rlen;
   int nof_prb;
   int nwords;
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   srslte_dci_msg_type_fprint(stdout, dci_type);
   switch (dci_type.type) {
   case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
-    bzero(&ra_dl, sizeof(srslte_ra_pdsch_t));
+    bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
     srslte_dci_msg_unpack_pdsch(&msg, &ra_dl, nof_prb, false);
     srslte_ra_pdsch_fprint(stdout, &ra_dl, nof_prb);
     break;

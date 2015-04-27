@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
             printf("Error decoding ACK\n");
             exit(-1);
           }
-          INFO("%d/%d, ack_tx: %d, ack_rx: %d, ns: %d, distance: %d\n",
+          INFO("%d/%d, ack_tx: %d, ack_rx: %d, ns: %d, distance: %f\n",
               ngroup, nseq, ack[ngroup][nseq], ack_rx, nsf, distance);
           if (ack[ngroup][nseq] != ack_rx) {
             printf("Invalid received ACK: %d!=%d\n", ack[ngroup][nseq], ack_rx);

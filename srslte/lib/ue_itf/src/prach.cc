@@ -51,7 +51,7 @@ void prach::free_cell()
       free(signal_buffer);
     }
     srslte_cfo_free(&cfo_h);
-    srslte_prach_free(&prach);
+    srslte_prach_free(&prach_obj);
   }
 }
 
@@ -60,7 +60,7 @@ bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_)
   cell = cell_; 
   params_db = params_db_; 
   preamble_idx = -1; 
-  if (srslte_prach_init(&prach, srslte_symbol_sz(cell.nof_prb), 
+  if (srslte_prach_init(&prach_obj, srslte_symbol_sz(cell.nof_prb), 
                         srslte_prach_get_preamble_format(params_db->get_param(phy_params::PRACH_CONFIG_INDEX)), 
                         params_db->get_param(phy_params::PRACH_ROOT_SEQ_IDX), 
                         params_db->get_param(phy_params::PRACH_HIGH_SPEED_FLAG)?true:false, 
@@ -68,13 +68,13 @@ bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_)
     return false; 
   }
   
-  len = prach.N_seq + prach.N_cp;
+  len = prach_obj.N_seq + prach_obj.N_cp;
   for (uint32_t i=0;i<64;i++) {
     buffer[i] = (cf_t*) srslte_vec_malloc(len*sizeof(cf_t));
     if(!buffer[i]) {
       return false; 
     }
-    if(srslte_prach_gen(&prach, i, params_db->get_param(phy_params::PRACH_FREQ_OFFSET), buffer[i])){
+    if(srslte_prach_gen(&prach_obj, i, params_db->get_param(phy_params::PRACH_FREQ_OFFSET), buffer[i])){
       return false;
     }
   }

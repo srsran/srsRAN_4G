@@ -46,16 +46,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   srslte_sch_t dlsch;
   uint8_t *trblkin;
-  srslte_ra_mcs_t mcs;
-  srslte_ra_dl_alloc_t prb_alloc;
-  srslte_harq_t harq_process;
-  uint32_t rv;
+  srslte_pdsch_cfg_t cfg; 
+  srslte_softbuffer_tx_t softbuffer; 
 
   if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
-      
+  
   if (srslte_sch_init(&dlsch)) {
     mexErrMsgTxt("Error initiating DL-SCH\n");
     return;
@@ -63,18 +61,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_cell_t cell;
   cell.nof_prb = 100;
   cell.id=1;
-  if (srslte_harq_init(&harq_process, cell)) {
-    mexErrMsgTxt("Error initiating HARQ\n");
-    return;
-  }
- 
-  mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
-  if (mcs.tbs == 0) {
+  
+  cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
+  if (cfg.grant.mcs.tbs == 0) {
     mexErrMsgTxt("Error trblklen is zero\n");
     return;
   }
   
-  if (mexutils_read_uint32_struct(PUSCHCFG, "RV", &rv)) {
+  if (mexutils_read_uint32_struct(PUSCHCFG, "RV", &cfg.rv)) {
     mexErrMsgTxt("Field RV not found in dlsch config\n");
     return;
   }
@@ -82,36 +76,42 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");
   
   if (!strcmp(mod_str, "QPSK")) {
-    mcs.mod = SRSLTE_MOD_QPSK;
+    cfg.grant.mcs.mod = SRSLTE_MOD_QPSK;
+    cfg.grant.Qm = 2; 
   } else if (!strcmp(mod_str, "16QAM")) {
-    mcs.mod = SRSLTE_MOD_16QAM;
+    cfg.grant.mcs.mod = SRSLTE_MOD_16QAM;
+    cfg.grant.Qm = 4; 
   } else if (!strcmp(mod_str, "64QAM")) {
-    mcs.mod = SRSLTE_MOD_64QAM;
+    cfg.grant.mcs.mod = SRSLTE_MOD_64QAM;
+    cfg.grant.Qm = 6; 
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
   }
 
   mxFree(mod_str);
-      
-  if (srslte_harq_setup_dl(&harq_process, mcs, rv, 0, &prb_alloc)) {
-    mexErrMsgTxt("Error configuring HARQ process\n");
-    return;
+
+  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+    mexErrMsgTxt("Error initiating DL-SCH soft buffer\n");
+    return; 
   }
-  harq_process.nof_bits = mxGetScalar(OUTLEN); 
-    
-  uint8_t *e_bits = srslte_vec_malloc(harq_process.nof_bits* sizeof(uint8_t));
+
+  cfg.grant.nof_bits = mxGetScalar(OUTLEN); 
+  uint8_t *e_bits = srslte_vec_malloc(cfg.grant.nof_bits * sizeof(uint8_t));
   if (!e_bits) {
     return;
   }
-
-  if (srslte_dlsch_encode(&dlsch, &harq_process, trblkin, e_bits)) {
+  if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
+    mexErrMsgTxt("Error computing CB segmentation\n");
+    return; 
+  }
+  if (srslte_dlsch_encode(&dlsch, &cfg, &softbuffer, trblkin, e_bits)) {
     mexErrMsgTxt("Error encoding TB\n");
     return;
   }
   
   if (nlhs >= 1) {
-    mexutils_write_uint8(e_bits, &plhs[0], harq_process.nof_bits, 1);  
+    mexutils_write_uint8(e_bits, &plhs[0], cfg.grant.nof_bits, 1);  
   }
   
   srslte_sch_free(&dlsch);

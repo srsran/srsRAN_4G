@@ -295,7 +295,8 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   uint32_t sfn_offset;
   rar_msg_t rar_msg; 
-  srslte_ra_pusch_t ra_pusch; 
+  srslte_ra_ul_dci_t ra_pusch; 
+  srslte_ra_ul_grant_t ra_grant; 
   uint32_t rar_window_start = 0, rar_trials = 0, rar_window_stop = 0; 
   srslte_timestamp_t uhd_time;
   srslte_timestamp_t next_tx_time;  
@@ -489,15 +490,16 @@ int main(int argc, char **argv) {
 
                 rar_unpack(data_rx, &rar_msg);
                 rar_msg_fprint(stdout, &rar_msg);              
-                
-                srslte_dci_rar_to_ra_ul(rar_msg.rba, rar_msg.mcs, rar_msg.hopping_flag, cell.nof_prb, &ra_pusch);
+                srslte_dci_rar_grant_t rar_grant; 
+                rar_grant.hopping_flag = rar_msg.hopping_flag; 
+                rar_grant.rba = rar_msg.rba; 
+                rar_grant.trunc_mcs = rar_msg.mcs; 
+                srslte_dci_rar_to_ul_grant(&rar_grant, cell, 0, 0, &ra_pusch, &ra_grant);
                 srslte_ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
-
-                srslte_ra_ul_alloc(&ra_pusch.prb_alloc, &ra_pusch, 0, cell.nof_prb);
 
                 srslte_ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
                 
-                srslte_bit_pack_vector((uint8_t*) conn_request_msg, data, ra_pusch.mcs.tbs);
+                srslte_bit_pack_vector((uint8_t*) conn_request_msg, data, ra_grant.mcs.tbs);
 
                 uint32_t n_ta = srslte_N_ta_new_rar(rar_msg.timing_adv_cmd);
                 printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);
@@ -515,7 +517,7 @@ int main(int argc, char **argv) {
                   printf("Setting CFO: %f (%f)\n", cfo, cfo*15000);
                   srslte_ue_ul_set_cfo(&ue_ul, cfo);
                   
-                  n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, &ra_pusch, data, ul_sf_idx, rar_msg.temp_c_rnti, ul_signal);
+                  n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, &ra_grant, data, ul_sf_idx, 0, rar_msg.temp_c_rnti, ul_signal);
                   if (n < 0) {
                     fprintf(stderr, "Error encoding PUSCH\n");
                     exit(-1);

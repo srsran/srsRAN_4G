@@ -1,7 +1,7 @@
 enbConfig=struct('NCellID',1,'CyclicPrefix','Normal','CellRefP',1);
 pdschConfig=struct('Modulation','QPSK','RV',0,'TxScheme','Port0');
 
-addpath('../../debug/lte/phy/lib/phch/test')
+addpath('../../debug/srslte/lib/phch/test')
 
 TBs=1:111:15000;
 e_bits=10000;

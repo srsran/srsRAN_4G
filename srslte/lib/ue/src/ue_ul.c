@@ -39,7 +39,7 @@
 
 
 int srslte_ue_ul_init(srslte_ue_ul_t *q, 
-               srslte_cell_t cell) 
+                      srslte_cell_t cell) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -74,11 +74,9 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
       fprintf(stderr, "Error creating PUSCH object\n");
       goto clean_exit;
     }
-    for (uint32_t i=0;i<SRSLTE_UE_UL_NOF_HARQ_PROCESSES; i++) {
-      if (srslte_harq_init(&q->harq_process[i], q->cell)) {
-        fprintf(stderr, "Error initiating HARQ process\n");
-        goto clean_exit;
-      }
+    if (srslte_softbuffer_tx_init(&q->softbuffer, q->cell)) {
+      fprintf(stderr, "Error initiating soft buffer\n");
+      goto clean_exit;
     }
     if (srslte_refsignal_ul_init(&q->dmrs, cell)) {
       fprintf(stderr, "Error initiating srslte_refsignal_ul\n");
@@ -113,9 +111,8 @@ void srslte_ue_ul_free(srslte_ue_ul_t *q) {
     srslte_ofdm_rx_free(&q->fft);
     srslte_pusch_free(&q->pusch);
     srslte_pucch_free(&q->pucch);
-    for (uint32_t i=0;i<SRSLTE_UE_UL_NOF_HARQ_PROCESSES; i++) {
-      srslte_harq_free(&q->harq_process[i]);
-    }
+    srslte_softbuffer_tx_free(&q->softbuffer);
+    
     srslte_cfo_free(&q->cfo); 
     srslte_refsignal_ul_free(&q->dmrs);
 
@@ -154,14 +151,14 @@ void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q, uint16_t rnti) {
 }
 
 void srslte_ue_ul_reset(srslte_ue_ul_t *q) {
-  srslte_harq_reset(&q->harq_process[0]);
+  srslte_softbuffer_tx_reset(&q->softbuffer);
 }
 
 void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
-                                srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
-                                srslte_pusch_hopping_cfg_t *pusch_hopping_cfg, 
-                                srslte_pucch_cfg_t *pucch_cfg, 
-                                srslte_pucch_sched_t *pucch_sched)
+                          srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
+                          srslte_pusch_hopping_cfg_t *pusch_hopping_cfg, 
+                          srslte_pucch_cfg_t *pucch_cfg, 
+                          srslte_pucch_sched_t *pucch_sched)
 {
   srslte_refsignal_ul_set_pusch_cfg(&q->dmrs, dmrs_cfg);
   srslte_pusch_set_hopping_cfg(&q->pusch, pusch_hopping_cfg); 
@@ -274,11 +271,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     }
     
     if (q->normalize_en) {
-      uint32_t n_prb = 1; 
-      if (q->harq_process[0].ul_alloc.L_prb > 0) {
-        n_prb = q->harq_process[0].ul_alloc.L_prb; 
-      }
-      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(n_prb);
+      float norm_factor = (float) q->cell.nof_prb/10;
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     srslte_vec_save_file("pucch", output_signal, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
@@ -288,64 +281,84 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
   return ret; 
 }
 
-int srslte_ue_ul_pusch_encode(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_ul, uint8_t *data, uint32_t sf_idx, cf_t *output_signal) 
+int srslte_ue_ul_pusch_encode(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *grant, uint8_t *data, uint32_t sf_idx, uint32_t rv, cf_t *output_signal) 
 {
   srslte_uci_data_t uci_data;
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  return srslte_ue_ul_pusch_uci_encode_rnti(q, ra_ul, data, uci_data, sf_idx, q->current_rnti, output_signal);    
+  return srslte_ue_ul_pusch_uci_encode_rnti(q, grant, data, uci_data, sf_idx, rv, q->current_rnti, output_signal);    
 }
 
-int srslte_ue_ul_pusch_encode_rnti(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_ul, uint8_t *data, uint32_t sf_idx, uint16_t rnti, cf_t *output_signal)
+int srslte_ue_ul_pusch_encode_rnti(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *grant, uint8_t *data, uint32_t sf_idx, uint32_t rv, uint16_t rnti, cf_t *output_signal)
 {
   srslte_uci_data_t uci_data;
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  return srslte_ue_ul_pusch_uci_encode_rnti(q, ra_ul, data, uci_data, sf_idx, rnti, output_signal);  
+  return srslte_ue_ul_pusch_uci_encode_rnti(q, grant, data, uci_data, sf_idx, rv,rnti, output_signal);  
 }
 
-int srslte_ue_ul_pusch_uci_encode(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_ul, uint8_t *data, srslte_uci_data_t uci_data, uint32_t sf_idx, cf_t *output_signal)
+int srslte_ue_ul_pusch_uci_encode(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *grant, uint8_t *data, srslte_uci_data_t uci_data, uint32_t sf_idx, uint32_t rv, cf_t *output_signal)
 {
-  return srslte_ue_ul_pusch_uci_encode_rnti(q, ra_ul, data, uci_data, sf_idx, q->current_rnti, output_signal);
+  return srslte_ue_ul_pusch_uci_encode_rnti(q, grant, data, uci_data, sf_idx, rv, q->current_rnti, output_signal);
 }
 
-int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_ul, uint8_t *data, srslte_uci_data_t uci_data, 
-                                uint32_t sf_idx, uint16_t rnti, 
-                                cf_t *output_signal)
+int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *grant, 
+                                       uint8_t *data, srslte_uci_data_t uci_data, 
+                                       uint32_t sf_idx, uint32_t rv, uint16_t rnti, 
+                                       cf_t *output_signal)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q             != NULL &&
-      ra_ul         != NULL &&
+      grant         != NULL &&
       data          != NULL &&
       output_signal != NULL) 
   {
     
-    if (ra_ul->prb_alloc.L_prb == 0)  {
+    if (grant->L_prb == 0)  {
       fprintf(stderr, "Invalid UL PRB allocation (L_prb=0)\n");
       return ret; 
     }      
     
     ret = SRSLTE_ERROR; 
     
-    if (srslte_harq_setup_ul(&q->harq_process[0], ra_ul->mcs, ra_ul->rv_idx, sf_idx, &ra_ul->prb_alloc)) {
-      fprintf(stderr, "Error configuring HARQ process\n");
-      return ret; 
-    }
-
-    if (srslte_pusch_encode_rnti(&q->pusch, &q->harq_process[0], data, rnti, q->sf_symbols)) {
+    memcpy(&q->pusch_cfg.grant, grant, sizeof(srslte_ra_ul_grant_t)); 
+    q->pusch_cfg.sf_idx = sf_idx; 
+    q->pusch_cfg.rv = rv; 
+    q->pusch_cfg.cp = q->cell.cp; 
+    srslte_cbsegm(&q->pusch_cfg.cb_segm, grant->mcs.tbs); 
+  
+    return srslte_ue_ul_pusch_encode_cfg(q, &q->pusch_cfg, data, uci_data, rnti, output_signal); 
+  }
+  return ret; 
+}
+  
+int srslte_ue_ul_pusch_encode_cfg(srslte_ue_ul_t *q, srslte_pusch_cfg_t *cfg, 
+                                  uint8_t *data, srslte_uci_data_t uci_data, 
+                                  uint16_t rnti, 
+                                  cf_t *output_signal)
+{
+ 
+  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
+  
+  if (q             != NULL &&
+      cfg           != NULL &&
+      data          != NULL &&
+      output_signal != NULL) 
+  {
+    if (srslte_pusch_encode_rnti(&q->pusch, cfg, &q->softbuffer, data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 
     }
 
     // FIXME: Pregenerate for all possible number of prb 
-    if (srslte_refsignal_dmrs_pusch_gen(&q->dmrs, q->harq_process[0].ul_alloc.L_prb, sf_idx, q->refsignal)) 
+    if (srslte_refsignal_dmrs_pusch_gen(&q->dmrs, cfg->grant.L_prb, cfg->sf_idx, q->refsignal)) 
     {
       fprintf(stderr, "Error generating PUSCH DRMS signals\n");
       return ret; 
     }
     srslte_refsignal_dmrs_pusch_put(&q->dmrs, q->refsignal, 
-                              q->harq_process[0].ul_alloc.L_prb, 
-                              q->harq_process[0].ul_alloc.n_prb_tilde, 
-                              q->sf_symbols);                
+                                    cfg->grant.L_prb, 
+                                    cfg->grant.n_prb_tilde, 
+                                    q->sf_symbols);                
     
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
@@ -354,7 +367,7 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_pusch_t *ra_
     }
     
     if (q->normalize_en) {
-      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(q->harq_process[0].ul_alloc.L_prb);
+      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(cfg->grant.L_prb);
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     

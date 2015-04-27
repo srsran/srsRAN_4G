@@ -80,20 +80,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   
   
-  
-  uint32_t sf_idx=0; 
-  if (mexutils_read_uint32_struct(UECFG, "NSubframe", &sf_idx)) {
+  srslte_pusch_cfg_t cfg; 
+  bzero(&cfg, sizeof(srslte_pusch_cfg_t));
+  if (mexutils_read_uint32_struct(UECFG, "NSubframe", &cfg.sf_idx)) {
     mexErrMsgTxt("Field NSubframe not found in UE config\n");
     return;
   }
-  srslte_ra_mcs_t mcs;
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");  
   if (!strcmp(mod_str, "QPSK")) {
-    mcs.mod = SRSLTE_MOD_QPSK;
+    cfg.grant.mcs.mod = SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
-    mcs.mod = SRSLTE_MOD_16QAM;
+    cfg.grant.mcs.mod = SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
-    mcs.mod = SRSLTE_MOD_64QAM;
+    cfg.grant.mcs.mod = SRSLTE_MOD_64QAM;
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
@@ -108,27 +107,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error field PRBSet not found\n");
     return;
   } 
-  
-  srslte_ra_ul_alloc_t prb_alloc;
-  bzero(&prb_alloc, sizeof(srslte_ra_ul_alloc_t));
-  prb_alloc.L_prb = mexutils_read_f(p, &prbset);
-  prb_alloc.n_prb[0] = prbset[0];
-  prb_alloc.n_prb[1] = prbset[0];
+  cfg.grant.L_prb = mexutils_read_f(p, &prbset);
+  cfg.grant.n_prb[0] = prbset[0];
+  cfg.grant.n_prb[1] = prbset[0];
+  cfg.grant.lstart = 0;
+  cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1); 
+  cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
+  cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
+  cfg.grant.nof_re = cfg.grant.nof_symb*cfg.grant.M_sc;
+  cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
+  cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;
+
   free(prbset);
   
-  mexPrintf("L_prb: %d, n_prb: %d\n", prb_alloc.L_prb, prb_alloc.n_prb[2*sf_idx]);
+  mexPrintf("L_prb: %d, n_prb: %d\n", cfg.grant.L_prb, cfg.grant.n_prb[0]);
   
   uint8_t *trblkin = NULL;
-  mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
+  cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
 
-  srslte_harq_t harq_process;
-  if (srslte_harq_init(&harq_process, cell)) {
-    mexErrMsgTxt("Error initiating HARQ process\n");
+  srslte_softbuffer_tx_t softbuffer; 
+  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+    mexErrMsgTxt("Error initiating soft buffer\n");
     return;
   }
-  if (srslte_harq_setup_ul(&harq_process, mcs, 0, sf_idx, &prb_alloc)) {
-    mexErrMsgTxt("Error configuring HARQ process\n");
-    return;
+  if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
+    mexErrMsgTxt("Error computing CB segmentation\n");
+    return; 
   }
 
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
@@ -156,36 +160,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(tmp);
   
   
-  if (mexutils_read_uint32_struct(PUSCHCFG, "OffsetCQI", &uci_data.I_offset_cqi)) {
+  float beta; 
+  if (mexutils_read_float_struct(PUSCHCFG, "BetaCQI", &beta)) {
     uci_data.I_offset_cqi = 7; 
+  } else {
+    uci_data.I_offset_cqi = srslte_sch_find_Ioffset_cqi(beta);
   }
-  if (mexutils_read_uint32_struct(PUSCHCFG, "OffsetRI", &uci_data.I_offset_ri)) {
+  if (mexutils_read_float_struct(PUSCHCFG, "BetaRI", &beta)) {
     uci_data.I_offset_ri = 2; 
+  } else {
+    uci_data.I_offset_ri = srslte_sch_find_Ioffset_ri(beta);
   }
-  if (mexutils_read_uint32_struct(PUSCHCFG, "OffsetACK", &uci_data.I_offset_ack)) {
+  if (mexutils_read_float_struct(PUSCHCFG, "BetaACK", &beta)) {
     uci_data.I_offset_ack = 0; 
+  } else {
+    uci_data.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
   }
-  mexPrintf("TRBL_len: %d, CQI_len: %d, ACK_len: %d (%d), RI_len: %d (%d)\n", mcs.tbs, 
+  mexPrintf("TRBL_len: %d, CQI_len: %d, ACK_len: %d (%d), RI_len: %d (%d)\n", cfg.grant.mcs.tbs, 
             uci_data.uci_cqi_len, uci_data.uci_ack_len, uci_data.uci_ack, uci_data.uci_ri_len, uci_data.uci_ri);
-     
 
-  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d\n", harq_process.nof_re, harq_process.nof_bits, harq_process.mcs.tbs);
-  int r = srslte_pusch_uci_encode(&pusch, &harq_process, trblkin, uci_data, sf_symbols);
+  mexPrintf("I_cqi: %d, I_ri: %d, I_ack=%d\n", uci_data.I_offset_cqi, uci_data.I_offset_ri, uci_data.I_offset_ack);
+
+  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d\n", cfg.grant.nof_re, cfg.grant.nof_bits, cfg.grant.mcs.tbs);
+  int r = srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, sf_symbols);
   if (r < 0) {
     mexErrMsgTxt("Error encoding PUSCH\n");
     return;
   }
-  uint32_t rv=0;
-  if (mexutils_read_uint32_struct(PUSCHCFG, "RV", &rv)) {
+  if (mexutils_read_uint32_struct(PUSCHCFG, "RV", &cfg.rv)) {
     mexErrMsgTxt("Field RV not found in pdsch config\n");
     return;
   }
-  if (rv > 0) {
-    if (srslte_harq_setup_ul(&harq_process, mcs, rv, sf_idx, &prb_alloc)) {
-      mexErrMsgTxt("Error configuring HARQ process\n");
-      return;
-    }
-    r = srslte_pusch_uci_encode(&pusch, &harq_process, trblkin, uci_data, sf_symbols);
+  if (cfg.rv > 0) {
+    r = srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, sf_symbols);
     if (r < 0) {
       mexErrMsgTxt("Error encoding PUSCH\n");
       return;
@@ -210,7 +217,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(sf_symbols, &plhs[1], nof_re, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pusch.z, &plhs[2], harq_process.nof_re, 1);  
+    mexutils_write_cf(pusch.z, &plhs[2], cfg.grant.nof_re, 1);  
   }
   srslte_pusch_free(&pusch);  
   free(trblkin);

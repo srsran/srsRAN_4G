@@ -82,8 +82,8 @@ public:
     uint32_t get_harq_process();    
   private: 
     union {
-      srslte_ra_pusch_t ul_grant;
-      srslte_ra_pdsch_t dl_grant;
+      srslte_ra_ul_dci_t ul_grant;
+      srslte_ra_dl_dci_t dl_grant;
     }; 
     direction_t         dir; 
   };

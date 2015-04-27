@@ -46,10 +46,9 @@
 #include "srslte/phch/dci.h"
 #include "srslte/phch/regs.h"
 #include "srslte/phch/sch.h"
-#include "srslte/phch/harq.h"
+#include "srslte/phch/pdsch_cfg.h"
 
 #define SRSLTE_PDSCH_MAX_TDEC_ITERS         5
-
 
 
 /* PDSCH object */
@@ -87,25 +86,29 @@ SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q,
                                      uint16_t rnti);
 
 SRSLTE_API int srslte_pdsch_encode(srslte_pdsch_t *q,
-                                   srslte_harq_t *harq_process,
+                                   srslte_pdsch_cfg_t *cfg,
+                                   srslte_softbuffer_tx_t *softbuffer,
                                    uint8_t *data, 
                                    cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API int srslte_pdsch_encode_rnti(srslte_pdsch_t *q,
-                                        srslte_harq_t *harq_process,
+                                        srslte_pdsch_cfg_t *cfg,
+                                        srslte_softbuffer_tx_t *softbuffer,
                                         uint8_t *data, 
                                         uint16_t rnti,
                                         cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API int srslte_pdsch_decode(srslte_pdsch_t *q, 
-                                   srslte_harq_t *harq_process, 
+                                   srslte_pdsch_cfg_t *cfg, 
+                                   srslte_softbuffer_rx_t *softbuffer,
                                    cf_t *sf_symbols, 
                                    cf_t *ce[SRSLTE_MAX_PORTS],
                                    float noise_estimate, 
                                    uint8_t *data);
 
 SRSLTE_API int srslte_pdsch_decode_rnti(srslte_pdsch_t *q, 
-                                        srslte_harq_t *harq_process, 
+                                        srslte_pdsch_cfg_t *cfg, 
+                                        srslte_softbuffer_rx_t *softbuffer,
                                         cf_t *sf_symbols, 
                                         cf_t *ce[SRSLTE_MAX_PORTS],
                                         float noise_estimate, 

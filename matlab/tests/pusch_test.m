@@ -1,20 +1,14 @@
 clear 
-ueConfig=struct('NCellID',1,'NULRB',6,'NSubframe',8,'RNTI',68,'CyclicPrefixUL','Normal','NTxAnts',1);
+ueConfig=struct('NCellID',1,'NULRB',6,'NSubframe',1,'RNTI',18,'CyclicPrefixUL','Normal','NTxAnts',1);
 puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',[1:4]','Modulation','QPSK','RV',0,'Shortened',0);
 
-addpath('../../debug/lte/phy/lib/phch/test')
+addpath('../../debug/srslte/lib/phch/test')
 
-%  TBs=0:13:211;
-%  cqilen=[0, 8, 17];
-%  mods={'QPSK','16QAM','64QAM'};
-%  rvs=0;
-%  betas=0:3:11;
-
-TBs=88;
-cqilen=0;
-mods={'QPSK'};
-rvs=0;
-betas=0;
+ TBs=0:13:211;
+ cqilen=[0, 8, 17];
+ mods={'QPSK','16QAM','64QAM'};
+ rvs=0;
+ betas=[2.0 2.5 6.25];
  
 for i=1:length(TBs)
     for m=1:length(mods)
@@ -28,9 +22,9 @@ for i=1:length(TBs)
     
                             puschConfig.Modulation = mods{m};
                             puschConfig.RV = rvs(r);
-                            puschConfig.BetaCQI = 2+betas(bcqi); 
-                            puschConfig.BetaRI = 2+betas(bri);
-                            puschConfig.BetaACK = 2+betas(back);
+                            puschConfig.BetaCQI = betas(bcqi); 
+                            puschConfig.BetaRI = betas(bri);
+                            puschConfig.BetaACK = betas(back);
 
                             if (betas(bri)>0)
                                 ri_bit=randi(2,1,1)-1;

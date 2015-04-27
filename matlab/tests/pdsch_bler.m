@@ -10,7 +10,7 @@ Npackets = 1;
 SNR_values = linspace(15,20,4);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.9',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.4',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
@@ -51,7 +51,7 @@ cec.InterpType = 'linear';             % 2D interpolation type
 cec.InterpWindow = 'Centered';        % Interpolation window type
 cec.InterpWinSize = 1;                % Interpolation window size
 
-addpath('../../debug/lte/phy/lib/phch/test')
+addpath('../../debug/srslte/lib/phch/test')
 
 decoded = zeros(size(SNR_values));
 decoded_srslte = zeros(size(SNR_values));

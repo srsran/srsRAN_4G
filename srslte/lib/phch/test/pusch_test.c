@@ -135,29 +135,49 @@ int main(int argc, char **argv) {
   cf_t *sf_symbols = NULL;
   int ret = -1;
   struct timeval t[3];
-  srslte_ra_mcs_t mcs;
-  srslte_ra_ul_alloc_t prb_alloc;
-  srslte_harq_t harq_process;
+  srslte_pusch_cfg_t cfg; 
+  srslte_softbuffer_tx_t softbuffer; 
   
   parse_args(argc,argv);
 
-  mcs.tbs = tbs;
-  mcs.mod = modulation;
-  
-  bzero(&prb_alloc, sizeof(srslte_ra_ul_alloc_t));
-  
+  bzero(&cfg, sizeof(srslte_pusch_cfg_t));
+
+  srslte_ra_ul_dci_t dci;
+  dci.freq_hop_fl = freq_hop;
+  if (riv < 0) {
+    dci.type2_alloc.L_crb = L_prb; 
+    dci.type2_alloc.RB_start = n_prb;    
+  } else {
+    srslte_ra_type2_from_riv((uint32_t) riv, &dci.type2_alloc.L_crb, &dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
+  }
+  cfg.grant.mcs.tbs = tbs;
+  cfg.grant.mcs.mod = modulation;
+
+  // Compute PRB allocation 
+  if (!srslte_ul_dci_to_grant_prb_allocation(&dci, &cfg.grant, 0, cell.nof_prb)) {
+    cfg.grant.lstart = 0;
+    cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1); 
+    cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
+    cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
+    cfg.grant.nof_re = cfg.grant.nof_symb*cfg.grant.M_sc;
+    cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
+    cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;
+  }
+
   if (srslte_pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
   srslte_pusch_set_rnti(&pusch, 1234);
   
-  if (srslte_harq_init(&harq_process, cell)) {
-    fprintf(stderr, "Error initiating HARQ process\n");
+  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+    fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
   
   printf("Encoding rv_idx=%d\n",rv_idx);
+  cfg.rv = 0; 
+  cfg.sf_idx = subframe; 
   
   uint8_t tmp[20];
   for (uint32_t i=0;i<20;i++) {
@@ -167,28 +187,18 @@ int main(int argc, char **argv) {
   bzero(&uci_data, sizeof(srslte_uci_data_t));
   uci_data.I_offset_cqi = 7; 
   uci_data.I_offset_ri = 2; 
-  uci_data.I_offset_ack = 0; 
+  uci_data.I_offset_ack = 4; 
   
-  uci_data.uci_cqi_len = 0; 
+  uci_data.uci_cqi_len = 8; 
   uci_data.uci_ri_len = 0; 
-  uci_data.uci_ack_len = 0; 
+  uci_data.uci_ack_len = 1; 
 
   uci_data.uci_cqi = tmp;
-  uci_data.uci_ri = 1; 
-  uci_data.uci_ack = 1; 
+  uci_data.uci_ri = 0; 
+  uci_data.uci_ack = 0; 
     
-  srslte_ra_pusch_t dci;
-  dci.freq_hop_fl = freq_hop;
-  if (riv < 0) {
-    dci.type2_alloc.L_crb = L_prb; 
-    dci.type2_alloc.RB_start = n_prb;    
-  } else {
-    srslte_ra_type2_from_riv((uint32_t) riv, &dci.type2_alloc.L_crb, &dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
-  }
-  srslte_ra_ul_alloc(&prb_alloc, &dci, 0, cell.nof_prb);
-
-  if (srslte_harq_setup_ul(&harq_process, mcs, 0, subframe, &prb_alloc)) {
-    fprintf(stderr, "Error configuring HARQ process\n");
+  if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
+    fprintf(stderr, "Error configuring CB segmentation\n");
     goto quit;
   }
   srslte_pusch_hopping_cfg_t ul_hopping; 
@@ -206,34 +216,29 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  data = malloc(sizeof(uint8_t) * mcs.tbs);
+  data = malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
   if (!data) {
     perror("malloc");
     goto quit;
   }
   
-  for (uint32_t i=0;i<mcs.tbs;i++) {
+  for (uint32_t i=0;i<cfg.grant.mcs.tbs;i++) {
     data[i] = 1;
   }
 
-  if (srslte_pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
+  if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
     fprintf(stderr, "Error encoding TB\n");
     exit(-1);
   }
 
   if (rv_idx > 0) {
-    if (srslte_harq_setup_ul(&harq_process, mcs, rv_idx, subframe, &prb_alloc)) {
-      fprintf(stderr, "Error configuring HARQ process\n");
-      goto quit;
-    }
-
-    if (srslte_pusch_uci_encode(&pusch, &harq_process, data, uci_data, sf_symbols)) {
+    cfg.rv = rv_idx; 
+    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
   }
-  
-  
+    
   cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   srslte_ofdm_t fft; 
@@ -251,13 +256,13 @@ int main(int argc, char **argv) {
     ret = -1;
     goto quit;
   } else {
-    printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);
+    printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) cfg.grant.mcs.tbs/t[0].tv_usec);
   }
   
   ret = 0;
 quit:
   srslte_pusch_free(&pusch);
-  srslte_harq_free(&harq_process);
+  srslte_softbuffer_tx_free(&softbuffer);
   
   if (sf_symbols) {
     free(sf_symbols);

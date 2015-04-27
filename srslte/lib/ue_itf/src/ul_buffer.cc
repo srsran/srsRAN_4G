@@ -63,12 +63,12 @@ void ul_buffer::free_cell() {
   }
 }
 
-bool ul_buffer::generate_ack(bool ack, sched_grant last_dl_grant)
+bool ul_buffer::generate_ack(bool ack, dl_sched_grant *last_dl_grant)
 {
   uci_data.uci_ack_len = 1; 
   uci_data.uci_ack = ack?1:0; 
   uci_pending = true; 
-  last_n_cce = last_dl_grant.get_ncce();
+  last_n_cce = last_dl_grant->get_ncce();
 }
 
 bool ul_buffer::generate_ack(bool ack[2])
@@ -89,11 +89,11 @@ bool ul_buffer::uci_ready() {
 }
 
 bool ul_buffer::generate_data() {
-  sched_grant dummy(sched_grant::DOWNLINK, 0); 
-  return generate_data(dummy, NULL);
+  ul_sched_grant dummy(0); 
+  return generate_data(&dummy, NULL);
 }
 
-bool ul_buffer::generate_data(sched_grant pusch_grant, 
+bool ul_buffer::generate_data(ul_sched_grant *grant, 
                               uint8_t *payload) 
 {
   if (is_ready()) {
@@ -115,7 +115,7 @@ bool ul_buffer::generate_data(sched_grant pusch_grant,
                                     pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
                                     pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
     pusch_hopping.hopping_offset = params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET);
-    pusch_hopping.current_tx_nb  = pusch_grant.get_current_tx_nb(); 
+    pusch_hopping.current_tx_nb  = grant->get_current_tx_nb(); 
     
     srslte_pucch_cfg_t pucch_cfg; 
     bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
@@ -145,10 +145,12 @@ bool ul_buffer::generate_data(sched_grant pusch_grant,
     int n = 0; 
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
     if (payload) {
-      n = srslte_ue_ul_pusch_uci_encode_rnti(&ue_ul, (srslte_ra_pusch_t*) pusch_grant.get_grant_ptr(), 
-                                                payload, uci_data, 
-                                                tti%10, pusch_grant.get_rnti(), 
-                                                signal_buffer);      
+
+      grant->to_pusch_cfg(tti%10, cell.cp, &pusch_cfg);
+      n = srslte_ue_ul_pusch_encode_cfg(&ue_ul, &pusch_cfg, 
+                                        payload, uci_data, 
+                                        grant->get_rnti(), 
+                                        signal_buffer);      
     } else {
       n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti&10, signal_buffer);
     }

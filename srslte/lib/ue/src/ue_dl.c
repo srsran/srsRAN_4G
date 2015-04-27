@@ -84,11 +84,9 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
-    for (uint32_t i=0;i<SRSLTE_UE_UL_NOF_HARQ_PROCESSES; i++) {
-      if (srslte_harq_init(&q->harq_process[i], q->cell)) {
-        fprintf(stderr, "Error initiating HARQ process\n");
-        goto clean_exit;
-      }
+    if (srslte_softbuffer_rx_init(&q->softbuffer, q->cell)) {
+      fprintf(stderr, "Error initiating soft buffer\n");
+      goto clean_exit;
     }
     q->sf_symbols = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
     if (!q->sf_symbols) {
@@ -125,9 +123,7 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
     srslte_phich_free(&q->phich);
     srslte_pdcch_free(&q->pdcch);
     srslte_pdsch_free(&q->pdsch);
-    for (uint32_t i=0;i<SRSLTE_UE_UL_NOF_HARQ_PROCESSES; i++) {
-      srslte_harq_free(&q->harq_process[i]);
-    }
+    srslte_softbuffer_rx_free(&q->softbuffer);
     if (q->sf_symbols) {
       free(q->sf_symbols);
     }
@@ -136,9 +132,7 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
         free(q->ce[i]);
       }
     }
-
     bzero(q, sizeof(srslte_ue_dl_t));
-
   }
 }
 
@@ -152,7 +146,8 @@ void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
 }
 
 void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
-  srslte_harq_reset(&q->harq_process[0]);
+  srslte_softbuffer_rx_reset(&q->softbuffer);
+  bzero(&q->pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
 }
 
 srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1,SRSLTE_DCI_FORMAT1A}; // SRSLTE_DCI_FORMAT1B should go here also
@@ -212,22 +207,26 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
   int ret = SRSLTE_ERROR; 
 
   q->nof_detected++;
-  if (srslte_dci_msg_to_ra_dl(dci_msg, rnti, q->cell, cfi, &q->ra_dl)) {
+  
+  srslte_ra_dl_dci_t dl_dci; 
+  
+  if (srslte_dci_msg_to_dl_grant(dci_msg, rnti, q->cell, cfi, sf_idx, &dl_dci, &q->pdsch_cfg.grant)) {
     fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
     return SRSLTE_ERROR;
   }
-
-  if (rnti != SRSLTE_SIRNTI) {
-    rvidx = q->ra_dl.rv_idx;
+  if (srslte_cbsegm(&q->pdsch_cfg.cb_segm, q->pdsch_cfg.grant.mcs.tbs)) {
+    fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", q->pdsch_cfg.grant.mcs.tbs);
+    return SRSLTE_ERROR; 
   }
-  if (srslte_harq_setup_dl(&q->harq_process[0], q->ra_dl.mcs, rvidx, sf_idx, &q->ra_dl.prb_alloc)) {
-    fprintf(stderr, "Error configuring HARQ process\n");
-    return SRSLTE_ERROR;
+  q->pdsch_cfg.sf_idx = sf_idx; 
+  if (rnti == SRSLTE_SIRNTI) {
+    q->pdsch_cfg.rv = rvidx;
+  } else {
+    q->pdsch_cfg.rv = dl_dci.rv_idx;
   }
-  if (q->harq_process[0].mcs.mod > 0 && q->harq_process[0].mcs.tbs >= 0) {
-    ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->harq_process[0], q->sf_symbols, 
-                            q->ce, 0,
-                            rnti, data);
+  if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
+    ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
+                                   q->sf_symbols, q->ce, 0, rnti, data);
     
     if (ret == SRSLTE_ERROR) {
       q->pkt_errors++;
@@ -236,7 +235,7 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
     } else if (ret == SRSLTE_SUCCESS) {
       if (SRSLTE_VERBOSE_ISINFO()) {
         INFO("Decoded Message: ", 0);
-        srslte_vec_fprint_hex(stdout, data, q->ra_dl.mcs.tbs);
+        srslte_vec_fprint_hex(stdout, data, q->pdsch_cfg.grant.mcs.tbs);
       }
     }
     q->pkts_total++;
@@ -317,7 +316,7 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
   }
    
   if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
-    return q->ra_dl.mcs.tbs;    
+    return q->pdsch_cfg.grant.mcs.tbs;    
   } else {
     return 0;
   }

@@ -38,13 +38,12 @@
 
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
-#include "srslte/phch/harq.h"
+#include "srslte/phch/pusch_cfg.h"
 #include "srslte/fec/crc.h"
 
 #define SRSLTE_UCI_MAX_CQI_LEN_PUSCH       512
 #define SRSLTE_UCI_MAX_CQI_LEN_PUCCH       13
 #define SRSLTE_UCI_CQI_CODED_PUCCH_B       20
-
 
 typedef struct SRSLTE_API {
   srslte_crc_t crc;
@@ -72,28 +71,28 @@ SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q);
 SRSLTE_API void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t *q);
 
 SRSLTE_API int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, 
+                                           srslte_pusch_cfg_t *cfg,
                                            uint8_t *cqi_data, 
                                            uint32_t cqi_len, 
                                            float beta, 
                                            uint32_t Q_prime_ri, 
-                                           srslte_harq_t *harq_process, 
                                            uint8_t *q_bits);
 
 SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, 
                                            uint32_t cqi_len, 
                                            uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
 
-SRSLTE_API int srslte_uci_encode_ack(uint8_t data,
-                                     uint32_t O_cqi,
+SRSLTE_API int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
+                                     uint8_t data, 
+                                     uint32_t O_cqi, 
                                      float beta, 
-                                     srslte_harq_t *harq_process,
                                      uint32_t H_prime_total, 
                                      uint8_t *q_bits); 
 
-SRSLTE_API int srslte_uci_encode_ri(uint8_t data,
-                                    uint32_t O_cqi,
+SRSLTE_API int srslte_uci_encode_ri(srslte_pusch_cfg_t *cfg,
+                                    uint8_t data, 
+                                    uint32_t O_cqi, 
                                     float beta, 
-                                    srslte_harq_t *harq_process,
                                     uint32_t H_prime_total, 
                                     uint8_t *q_bits); 
 

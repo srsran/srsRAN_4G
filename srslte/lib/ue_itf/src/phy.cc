@@ -102,15 +102,10 @@ void phy::set_timeadv(uint32_t ta_cmd) {
   INFO("Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
-void phy::rar_ul_grant(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, sched_grant *grant)
+void phy::rar_ul_grant(srslte_dci_rar_grant_t *rar, ul_sched_grant *grant)
 {
   uint32_t n_ho = params_db.get_param(phy_params::PUSCH_HOPPING_OFFSET);
-  srslte_ra_pusch_t *ra_pusch = (srslte_ra_pusch_t*) grant->get_grant_ptr(); 
-  srslte_dci_rar_to_ra_ul(rba, trunc_mcs, hopping_flag, cell.nof_prb, ra_pusch);
-  srslte_ra_ul_alloc(&ra_pusch->prb_alloc, ra_pusch, n_ho, cell.nof_prb);
-  if (SRSLTE_VERBOSE_ISINFO()) {
-    srslte_ra_pusch_fprint(stdout, ra_pusch, cell.nof_prb);
-  }
+  grant->create_from_rar(rar, cell, 0, params_db.get_param(phy_params::PUSCH_HOPPING_OFFSET)); 
 }
 
 void phy::set_param(phy_params::phy_param_t param, int64_t value) {

@@ -59,7 +59,11 @@ typedef _Complex float cf_t;
 class SRSLTE_API phy
 {
 public:
-    
+  phy() {
+    started = false; 
+    is_sfn_synched = false; 
+    cell_is_set = false; 
+  }
   bool init(radio *radio_handler, tti_sync *ttisync);
   void stop();
 
@@ -87,7 +91,7 @@ public:
   void set_timeadv(uint32_t ta_cmd);
   
   // Generate Msg3 UL grant from RAR 
-  void rar_ul_grant(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, sched_grant *grant); 
+  void rar_ul_grant(srslte_dci_rar_grant_t *rar, ul_sched_grant *grant); 
   
   // Get status 
   bool status_is_idle();
@@ -114,8 +118,8 @@ private:
 
   srslte_cell_t cell; 
   bool          cell_is_set;
-  bool          is_sfn_synched = false; 
-  bool          started        = false; 
+  bool          is_sfn_synched; 
+  bool          started; 
   
   srslte_ue_sync_t  ue_sync; 
   srslte_ue_mib_t   ue_mib;

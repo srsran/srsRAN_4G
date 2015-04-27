@@ -57,13 +57,8 @@ uint32_t sf_idx = 0;
 
 srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
 srslte_filesource_t fsrc;
-srslte_pdcch_t pdcch;
-srslte_pdsch_t pdsch;
-srslte_harq_t harq_process;
-cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
-srslte_regs_t regs;
-srslte_ofdm_t fft;
-srslte_chest_dl_t chest;
+srslte_ue_dl_t ue_dl;
+cf_t *input_buffer;
 
 void usage(char *prog) {
   printf("Usage: %s [rovfcenmps] -i input_file\n", prog);
@@ -132,7 +127,6 @@ void parse_args(int argc, char **argv) {
 }
 
 int base_init() {
-  int i;
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     fprintf(stderr, "Error opening file %s\n", input_file_name);
@@ -147,98 +141,31 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
-  if (!fft_buffer) {
-    perror("malloc");
+  if (srslte_ue_dl_init(&ue_dl, cell)) {
+    fprintf(stderr, "Error initializing UE DL\n");
     return -1;
   }
-
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
-    if (!ce[i]) {
-      perror("malloc");
-      return -1;
-    }
-  }
-
-  if (srslte_chest_dl_init(&chest, cell)) {
-    fprintf(stderr, "Error initializing equalizer\n");
-    return -1;
-  }
-
-  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
-    fprintf(stderr, "Error initializing FFT\n");
-    return -1;
-  }
-
-  if (srslte_regs_init(&regs, cell)) {
-    fprintf(stderr, "Error initiating regs\n");
-    return -1;
-  }
-
-  if (srslte_regs_set_cfi(&regs, cfi)) {
-    fprintf(stderr, "Error setting CFI %d\n", cfi);
-    return -1;
-  }
-
-  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
-    fprintf(stderr, "Error creating PDCCH object\n");
-    exit(-1);
-  }
-
-  if (srslte_pdsch_init(&pdsch, cell)) {
-    fprintf(stderr, "Error creating PDSCH object\n");
-    exit(-1);
-  }
-  srslte_pdsch_set_rnti(&pdsch, rnti);
   
-  if (srslte_harq_init(&harq_process, cell)) {
-    fprintf(stderr, "Error initiating HARQ process\n");
-    exit(-1);
-  }
+  srslte_ue_dl_set_rnti(&ue_dl, rnti); 
 
   DEBUG("Memory init OK\n",0);
   return 0;
 }
 
 void base_free() {
-  int i;
-
   srslte_filesource_free(&fsrc);
-
-  free(input_buffer);
-  free(fft_buffer);
-
-  srslte_filesource_free(&fsrc);
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    free(ce[i]);
-  }
-  srslte_chest_dl_free(&chest);
-  srslte_ofdm_rx_free(&fft);
-
-  srslte_pdcch_free(&pdcch);
-  srslte_pdsch_free(&pdsch);
-  srslte_harq_free(&harq_process);
-  srslte_regs_free(&regs);
+  srslte_ue_dl_free(&ue_dl);
+  free(input_buffer);  
 }
 
 int main(int argc, char **argv) {
-  srslte_ra_pdsch_t ra_dl;  
-  int i;
   int nof_frames;
   int ret;
-  uint8_t *data;
-  srslte_dci_location_t locations[MAX_CANDIDATES];
-  uint32_t nof_locations = 0;
-  srslte_dci_msg_t dci_msg; 
-  
-  data = malloc(100000);
 
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
   }
-
   parse_args(argc,argv);
 
   if (base_init()) {
@@ -246,67 +173,30 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (rnti == SRSLTE_SIRNTI) {
-    INFO("Initializing common search space for SI-RNTI\n",0);
-    nof_locations = srslte_pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
-  } 
-  
+  uint8_t *data = malloc(100000);
+
   ret = -1;
   nof_frames = 0;
   do {
     srslte_filesource_read(&fsrc, input_buffer, flen);
     INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
 
-    srslte_ofdm_rx_sf(&fft, input_buffer, fft_buffer);
-
-    /* Get channel estimates for each port */
-    srslte_chest_dl_estimate(&chest, fft_buffer, ce, sf_idx);
-    
-    if (rnti != SRSLTE_SIRNTI) {
-      INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
-      nof_locations = srslte_pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, sf_idx, cfi, rnti); 
+    ret = srslte_ue_dl_decode(&ue_dl, input_buffer, data, sf_idx); 
+    if(ret > 0) {
+      printf("PDSCH Decoded OK!\n");       
+    } else if (ret == 0) {
+      printf("No DCI grant found\n");
+    } else if (ret < 0) {
+      printf("Error decoding PDSCH\n");
     }
-    
-    uint16_t crc_rem = 0;
-    if (srslte_pdcch_extract_llr(&pdcch, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), sf_idx, cfi)) {
-      fprintf(stderr, "Error extracting LLRs\n");
-      return -1;
-    }
-    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, &crc_rem)) {
-        fprintf(stderr, "Error decoding DCI msg\n");
-        return -1;
-      }
-    }
-    
-    if (crc_rem == rnti) {
-      if (srslte_dci_msg_to_ra_dl(&dci_msg, rnti, cell, cfi, &ra_dl)) {
-        fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-        goto goout;
-      }
-      if (ra_dl.mcs.tbs > 0) {
-        if (srslte_harq_setup_dl(&harq_process, ra_dl.mcs, ra_dl.rv_idx, sf_idx, &ra_dl.prb_alloc)) {
-          fprintf(stderr, "Error configuring HARQ process\n");
-          goto goout;
-        }
-        if (srslte_pdsch_decode(&pdsch, &harq_process, fft_buffer, ce, srslte_chest_dl_get_noise_estimate(&chest), data)) {
-          fprintf(stderr, "Error decoding PDSCH\n");
-          goto goout;
-        } else {
-          printf("PDSCH Decoded OK!\n");
-        }
-      } else {
-        printf("Received DCI with no resource allocation\n");
-      }
-      sf_idx = (sf_idx+1)%10;
-    }
-
+    sf_idx = (sf_idx+1)%10;
     nof_frames++;
-  } while (nof_frames <= max_frames);
+  } while (nof_frames <= max_frames && ret == 0);
 
-  ret = 0;
-
-goout:
   base_free();
-  exit(ret);
+  if (ret > 0) {        
+    exit(0);
+  } else {
+    exit(-1); 
+  }
 }

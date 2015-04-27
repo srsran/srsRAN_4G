@@ -35,7 +35,7 @@
 #include <math.h>
 
 #include "srslte/phch/uci.h"
-#include "srslte/phch/harq.h"
+#include "srslte/fec/cbsegm.h"
 #include "srslte/fec/convcoder.h"
 #include "srslte/fec/crc.h"
 #include "srslte/fec/rm_conv.h"
@@ -114,22 +114,21 @@ void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t *q) {
   
 }
 
-static uint32_t Q_prime_cqi(uint32_t O, float beta, uint32_t Q_prime_ri, srslte_harq_t *harq) {
-  uint32_t M_sc = harq->ul_alloc.L_prb * SRSLTE_NRE;
+static uint32_t Q_prime_cqi(srslte_pusch_cfg_t *cfg, 
+                            uint32_t O, float beta, uint32_t Q_prime_ri) 
+{
   
-  uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
-    harq->cb_segm.C2*harq->cb_segm.K2;
+  uint32_t K = cfg->cb_segm.C1*cfg->cb_segm.K1 + cfg->cb_segm.C2*cfg->cb_segm.K2;
     
   uint32_t Q_prime = 0;
+  uint32_t L = (O<11)?0:8;
+  uint32_t x = 999999;
+  
   if (K > 0) {
-    uint32_t M_sc_init = harq->nof_prb * SRSLTE_NRE;
-    uint32_t L = (O<11)?0:8;
-    uint32_t x = (uint32_t) ceilf((float) (O+L)*M_sc_init*harq->nof_symb*beta/K);
-
-    Q_prime = SRSLTE_MIN(x, M_sc * harq->nof_symb - Q_prime_ri);    
-  } else {
-    Q_prime = 12*harq->ul_alloc.L_prb*SRSLTE_NRE - Q_prime_ri;
+    x = (uint32_t) ceilf((float) (O+L)*cfg->grant.M_sc_init*cfg->grant.nof_symb*beta/K);      
   }
+  
+  Q_prime = SRSLTE_MIN(x, cfg->grant.M_sc * cfg->grant.nof_symb - Q_prime_ri);    
 
   return Q_prime; 
 }
@@ -217,21 +216,23 @@ int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_b
 
 /* Encode UCI CQI/PMI as described in 5.2.2.6 of 36.212 
  */
-int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, uint8_t *cqi_data, uint32_t cqi_len, float beta, uint32_t Q_prime_ri, 
-                   srslte_harq_t *harq, uint8_t *q_bits)
+int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, srslte_pusch_cfg_t *cfg,
+                                uint8_t *cqi_data, uint32_t cqi_len, 
+                                float beta, uint32_t Q_prime_ri, 
+                                uint8_t *q_bits)
 {
   if (beta < 0) {
     fprintf(stderr, "Error beta is reserved\n");
     return -1; 
   }
-  uint32_t Q_prime = Q_prime_cqi(cqi_len, beta, Q_prime_ri, harq);
-  uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);
+
+  uint32_t Q_prime = Q_prime_cqi(cfg, cqi_len, beta, Q_prime_ri);
   
   int ret = SRSLTE_ERROR;
   if (cqi_len <= 11) {
-    ret = encode_cqi_short(q, cqi_data, cqi_len, q_bits, Q_prime*Q_m);
+    ret = encode_cqi_short(q, cqi_data, cqi_len, q_bits, Q_prime*cfg->grant.Qm);
   } else {
-    ret = encode_cqi_long(q, cqi_data, cqi_len, q_bits, Q_prime*Q_m);
+    ret = encode_cqi_long(q, cqi_data, cqi_len, q_bits, Q_prime*cfg->grant.Qm);
   }
   if (ret) {
     return ret;
@@ -242,7 +243,7 @@ int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, uint8_t *cqi_data, ui
 
 /* Inserts UCI-ACK bits into the correct positions in the g buffer before interleaving */
 static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bit_idx, 
-                          uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_cp_t cp,
+                          uint32_t Qm, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_cp_t cp,
                           uint8_t *q_bits) {
 
   const uint32_t ack_column_set_norm[4] = {2, 3, 8, 9};
@@ -253,9 +254,9 @@ static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bi
     uint32_t row = H_prime_total/N_pusch_symbs-1-ack_q_bit_idx/4;
     uint32_t colidx = (3*ack_q_bit_idx)%4;
     uint32_t col = SRSLTE_CP_ISNORM(cp)?ack_column_set_norm[colidx]:ack_column_set_ext[colidx];
-    for(uint32_t k=0; k<Q_m; k++) {
-      q_bits[row *Q_m + 
-             (H_prime_total/N_pusch_symbs)*col*Q_m + k] = ack_coded_bits[k];
+    for(uint32_t k=0; k<Qm; k++) {
+      q_bits[row *Qm + 
+             (H_prime_total/N_pusch_symbs)*col*Qm + k] = ack_coded_bits[k];
     }    
     return SRSLTE_SUCCESS;
   } else {
@@ -267,7 +268,7 @@ static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bi
 
 /* Inserts UCI-RI bits into the correct positions in the g buffer before interleaving */
 static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_idx, 
-                          uint32_t Q_m, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_cp_t cp,
+                          uint32_t Qm, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_cp_t cp,
                           uint8_t *q_bits) {
   
   static uint32_t ri_column_set_norm[4]  = {1, 4, 7, 10};
@@ -278,8 +279,8 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
     uint32_t colidx = (3*ri_q_bit_idx)%4;
     uint32_t col = SRSLTE_CP_ISNORM(cp)?ri_column_set_norm[colidx]:ri_column_set_ext[colidx];
     printf("r=%d-%d\n",H_prime_total/N_pusch_symbs,1+ri_q_bit_idx/4);
-    for(uint32_t k=0; k<Q_m; k++) {
-      q_bits[row *Q_m + (H_prime_total/N_pusch_symbs)*col*Q_m + k] = 10+ri_coded_bits[k];
+    for(uint32_t k=0; k<Qm; k++) {
+      q_bits[row *Qm + (H_prime_total/N_pusch_symbs)*col*Qm + k] = 10+ri_coded_bits[k];
     }    
     return SRSLTE_SUCCESS;
   } else {
@@ -290,17 +291,15 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
 
 }
 
-static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, srslte_harq_t *harq) {
+static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t *cfg, 
+                               uint32_t O, uint32_t O_cqi, float beta) {
   
   if (beta < 0) {
     fprintf(stderr, "Error beta is reserved\n");
     return -1; 
   }
 
-  uint32_t M_sc = harq->ul_alloc.L_prb * SRSLTE_NRE;
-  
-  uint32_t K = harq->cb_segm.C1*harq->cb_segm.K1 + 
-    harq->cb_segm.C2*harq->cb_segm.K2;
+  uint32_t K = cfg->cb_segm.C1*cfg->cb_segm.K1 + cfg->cb_segm.C2*cfg->cb_segm.K2;
   
   // If not carrying UL-SCH, get Q_prime according to 5.2.4.1
   if (K == 0) {
@@ -311,19 +310,17 @@ static uint32_t Q_prime_ri_ack(uint32_t O, uint32_t O_cqi, float beta, srslte_ha
     }
   }
     
-  uint32_t M_sc_init = harq->nof_prb * SRSLTE_NRE;
-    
-  uint32_t x = (uint32_t) ceilf((float) O*M_sc_init*harq->nof_symb*beta/K);
+  uint32_t x = (uint32_t) ceilf((float) O*cfg->grant.M_sc_init*cfg->grant.nof_symb*beta/K);
 
-  uint32_t Q_prime = SRSLTE_MIN(x, 4*M_sc);
+  uint32_t Q_prime = SRSLTE_MIN(x, 4*cfg->grant.M_sc);
 
   return Q_prime; 
 }
 
-static void encode_ri_ack(uint8_t data, uint8_t q_encoded_bits[6], uint8_t Q_m) {
+static void encode_ri_ack(uint8_t data, uint8_t q_encoded_bits[6], uint8_t Qm) {
   q_encoded_bits[0] = data;
   q_encoded_bits[1] = 2; 
-  for (uint32_t i=2;i<Q_m;i++) {
+  for (uint32_t i=2;i<Qm;i++) {
     q_encoded_bits[i] = 3;
   }
 }
@@ -331,23 +328,23 @@ static void encode_ri_ack(uint8_t data, uint8_t q_encoded_bits[6], uint8_t Q_m) 
 /* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit HARQ
  */
-int srslte_uci_encode_ack(uint8_t data, uint32_t O_cqi, 
-                          float beta, srslte_harq_t *harq, 
-                          uint32_t H_prime_total, uint8_t *q_bits)
+int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
+                          uint8_t data, 
+                          uint32_t O_cqi, float beta, uint32_t H_prime_total, 
+                          uint8_t *q_bits)
 {
   if (beta < 0) {
     fprintf(stderr, "Error beta is reserved\n");
     return -1; 
   }
 
-  uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);  
-  uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq);
+  uint32_t Qprime = Q_prime_ri_ack(cfg, 1, O_cqi, beta);
   uint8_t q_encoded_bits[6];
 
-  encode_ri_ack(data, q_encoded_bits, Q_m);
+  encode_ri_ack(data, q_encoded_bits, cfg->grant.Qm);
   
   for (uint32_t i=0;i<Qprime;i++) {
-    uci_ulsch_interleave_ack(q_encoded_bits, i, Q_m, H_prime_total, harq->nof_symb, harq->cell.cp, q_bits);
+    uci_ulsch_interleave_ack(q_encoded_bits, i, cfg->grant.Qm, H_prime_total, cfg->grant.nof_symb, cfg->cp, q_bits);
   }
   
   return (int) Qprime;
@@ -357,23 +354,22 @@ int srslte_uci_encode_ack(uint8_t data, uint32_t O_cqi,
 /* Encode UCI RI bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit RI
  */
-int srslte_uci_encode_ri(uint8_t data, uint32_t O_cqi, float beta, 
-                         srslte_harq_t *harq, uint32_t H_prime_total, 
+int srslte_uci_encode_ri(srslte_pusch_cfg_t *cfg,
+                         uint8_t data, 
+                         uint32_t O_cqi, float beta, uint32_t H_prime_total, 
                          uint8_t *q_bits)
 {
   if (beta < 0) {
     fprintf(stderr, "Error beta is reserved\n");
     return -1; 
   }
-
-  uint32_t Q_m = srslte_mod_bits_x_symbol(harq->mcs.mod);  
-  uint32_t Qprime = Q_prime_ri_ack(1, O_cqi, beta, harq);
+  uint32_t Qprime = Q_prime_ri_ack(cfg, 1, O_cqi, beta);
   uint8_t q_encoded_bits[6];
 
-  encode_ri_ack(data, q_encoded_bits, Q_m);
+  encode_ri_ack(data, q_encoded_bits, cfg->grant.Qm);
   
   for (uint32_t i=0;i<Qprime;i++) {
-    uci_ulsch_interleave_ri(q_encoded_bits, i, Q_m, H_prime_total, harq->nof_symb, harq->cell.cp, q_bits);
+    uci_ulsch_interleave_ri(q_encoded_bits, i, cfg->grant.Qm, H_prime_total, cfg->grant.nof_symb, cfg->cp, q_bits);
   }
   
   return (int) Qprime;

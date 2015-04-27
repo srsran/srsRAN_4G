@@ -35,6 +35,7 @@
 #include <math.h>
 
 #include "srslte/phch/pusch.h"
+#include "srslte/phch/pusch_cfg.h"
 #include "srslte/phch/uci.h"
 #include "srslte/common/phy_common.h"
 #include "srslte/utils/bit.h"
@@ -83,7 +84,7 @@ static int f_m(srslte_pusch_t *q, srslte_pusch_hopping_cfg_t *hopping, uint32_t 
   }
 }
 
-int pusch_cp(srslte_pusch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output, bool advance_input) 
+int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, uint32_t sf_idx, cf_t *input, cf_t *output, bool advance_input) 
 {
   cf_t *in_ptr = input; 
   cf_t *out_ptr = output; 
@@ -93,27 +94,27 @@ int pusch_cp(srslte_pusch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output, 
   if (SRSLTE_CP_ISEXT(q->cell.cp)) {
     L_ref = 2; 
   }
-  INFO("PUSCH Freq hopping: %d\n", harq->ul_alloc.freq_hopping);
+  INFO("PUSCH Freq hopping: %d\n", grant->freq_hopping);
   for (uint32_t slot=0;slot<2;slot++) {
-    uint32_t n_prb_tilde = harq->ul_alloc.n_prb[slot]; 
-    if (harq->ul_alloc.freq_hopping == 1) {
+    uint32_t n_prb_tilde = grant->n_prb[slot]; 
+    if (grant->freq_hopping == 1) {
       if (hopping->hop_mode == SRSLTE_PUSCH_HOP_MODE_INTER_SF) {
-        n_prb_tilde = harq->ul_alloc.n_prb[hopping->current_tx_nb%2];      
+        n_prb_tilde = grant->n_prb[hopping->current_tx_nb%2];      
       } else {
-        n_prb_tilde = harq->ul_alloc.n_prb[slot];
+        n_prb_tilde = grant->n_prb[slot];
       }
     }
-    if (harq->ul_alloc.freq_hopping == 2) {
+    if (grant->freq_hopping == 2) {
       /* Freq hopping type 2 as defined in 5.3.4 of 36.211 */
-      uint32_t n_vrb_tilde = harq->ul_alloc.n_prb[0];
+      uint32_t n_vrb_tilde = grant->n_prb[0];
       if (hopping->n_sb > 1) {
         n_vrb_tilde -= (hopping->hopping_offset-1)/2+1;
       }
       int i=0;
       if (hopping->hop_mode == SRSLTE_PUSCH_HOP_MODE_INTER_SF) {
-        i = harq->sf_idx;
+        i = sf_idx;
       } else {
-        i = 2*harq->sf_idx+slot;
+        i = 2*sf_idx+slot;
       }
       uint32_t n_rb_sb = q->cell.nof_prb;
       if (hopping->n_sb > 1) {
@@ -129,8 +130,8 @@ int pusch_cp(srslte_pusch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output, 
       }
       
     }
-    harq->ul_alloc.n_prb_tilde[slot] = n_prb_tilde; 
-    INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",harq->ul_alloc.L_prb, n_prb_tilde,slot);
+    grant->n_prb_tilde[slot] = n_prb_tilde; 
+    INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",grant->L_prb, n_prb_tilde,slot);
     for (uint32_t l=0;l<SRSLTE_CP_NSYMB(q->cell.cp);l++) {
       if (l != L_ref) {
         uint32_t idx = SRSLTE_RE_IDX(q->cell.nof_prb, l+slot*SRSLTE_CP_NSYMB(q->cell.cp), 
@@ -140,24 +141,24 @@ int pusch_cp(srslte_pusch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output, 
         } else {
           in_ptr = &input[idx];
         }              
-        memcpy(out_ptr, in_ptr, harq->ul_alloc.L_prb * SRSLTE_NRE * sizeof(cf_t));                       
+        memcpy(out_ptr, in_ptr, grant->L_prb * SRSLTE_NRE * sizeof(cf_t));                       
         if (advance_input) {
-          in_ptr += harq->ul_alloc.L_prb*SRSLTE_NRE;
+          in_ptr += grant->L_prb*SRSLTE_NRE;
         } else {
-          out_ptr += harq->ul_alloc.L_prb*SRSLTE_NRE; 
+          out_ptr += grant->L_prb*SRSLTE_NRE; 
         }
       }
     }        
   }
-  return SRSLTE_NRE*harq->ul_alloc.L_prb; 
+  return SRSLTE_NRE*grant->L_prb; 
 }
 
-int pusch_put(srslte_pusch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output) {
-  return pusch_cp(q, harq, input, output, true);
+int pusch_put(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, uint32_t sf_idx, cf_t *input, cf_t *output) {
+  return pusch_cp(q, grant, sf_idx, input, output, true);
 }
 
-int get(srslte_pusch_t *q, srslte_harq_t *harq, cf_t *input, cf_t *output) {
-  return pusch_cp(q, harq, input, output, false);
+int pusch_get(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, uint32_t sf_idx, cf_t *input, cf_t *output) {
+  return pusch_cp(q, grant, sf_idx, input, output, false);
 }
 
 
@@ -306,53 +307,57 @@ int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
 
 /** Decodes the PUSCH from the received symbols
  */
-int srslte_pusch_decode(srslte_pusch_t *q, srslte_harq_t *harq, cf_t *sf_symbols, cf_t *ce, float noise_estimate, uint8_t *data) 
+int srslte_pusch_decode(srslte_pusch_t *q, 
+                        srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
+                        cf_t *sf_symbols, 
+                        cf_t *ce, float noise_estimate, 
+                        uint8_t *data) 
 {
 
   uint32_t n;
   
-  if (q                     != NULL &&
-      sf_symbols            != NULL &&
-      data                  != NULL &&
-       harq          != NULL)
+  if (q           != NULL &&
+      sf_symbols  != NULL &&
+      data        != NULL &&
+      cfg         != NULL)
   {
     
     if (q->rnti_is_set) {
       INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-          harq->sf_idx, srslte_mod_string(harq->mcs.mod), harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+          cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, 
+           cfg->grant.nof_re, cfg->grant.nof_bits, cfg->rv);
 
       /* extract symbols */
-      n = get(q, harq, sf_symbols, q->d);
-      if (n != harq->nof_re) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
+      n = pusch_get(q, &cfg->grant, cfg->sf_idx, sf_symbols, q->d);
+      if (n != cfg->grant.nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->grant.nof_re, n);
         return SRSLTE_ERROR;
       }
       
       /* extract channel estimates */
-      n = get(q, harq, ce, q->ce);
-      if (n != harq->nof_re) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", harq->nof_re, n);
+      n = pusch_get(q, &cfg->grant, cfg->sf_idx, ce, q->ce);
+      if (n != cfg->grant.nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->grant.nof_re, n);
         return SRSLTE_ERROR;
       }
       
       srslte_predecoding_single(&q->equalizer, q->d, q->ce, q->z,
-            harq->nof_re, noise_estimate);
+            cfg->grant.nof_re, noise_estimate);
 
-      srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, 
-                      harq->ul_alloc.L_prb, harq->nof_symb);
+      srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->grant.nof_symb);
       
       /* demodulate symbols 
       * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
       * thus we don't need tot set it in the LLRs normalization
       */
       srslte_demod_soft_sigma_set(&q->demod, sqrt(0.5));
-      srslte_demod_soft_table_set(&q->demod, &q->mod[harq->mcs.mod]);
-      srslte_demod_soft_demodulate(&q->demod, q->d, q->q, harq->nof_re);
+      srslte_demod_soft_table_set(&q->demod, &q->mod[cfg->grant.mcs.mod]);
+      srslte_demod_soft_demodulate(&q->demod, q->d, q->q, cfg->grant.nof_re);
 
       /* descramble */
-      srslte_scrambling_f_offset(&q->seq[harq->sf_idx], q->q, 0, harq->nof_bits);
+      srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->grant.nof_bits);
 
-      return srslte_ulsch_decode(&q->dl_sch, harq, q->q, data);      
+      return srslte_ulsch_decode(&q->dl_sch, cfg, softbuffer, q->q, data);      
     } else {
       fprintf(stderr, "Must call srslte_pusch_set_rnti() before calling srslte_pusch_decode()\n");
       return SRSLTE_ERROR; 
@@ -362,29 +367,34 @@ int srslte_pusch_decode(srslte_pusch_t *q, srslte_harq_t *harq, cf_t *sf_symbols
   }
 }
 
-int srslte_pusch_encode_rnti(srslte_pusch_t *q, srslte_harq_t *harq_process, uint8_t *data, uint16_t rnti, cf_t *sf_symbols) 
+int srslte_pusch_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
+                             uint8_t *data, uint16_t rnti, 
+                             cf_t *sf_symbols) 
 {
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  return srslte_pusch_uci_encode_rnti(q, harq_process, data, uci_data, rnti, sf_symbols);
+  return srslte_pusch_uci_encode_rnti(q, cfg, softbuffer, data, uci_data, rnti, sf_symbols);
 }
 
-int srslte_pusch_encode(srslte_pusch_t *q, srslte_harq_t *harq_process, uint8_t *data, cf_t *sf_symbols) 
+int srslte_pusch_encode(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
+                        uint8_t *data, cf_t *sf_symbols) 
 {
   if (q->rnti_is_set) {
     srslte_uci_data_t uci_data; 
     bzero(&uci_data, sizeof(srslte_uci_data_t));
-    return srslte_pusch_uci_encode_rnti(q, harq_process, data, uci_data, q->rnti, sf_symbols);    
+    return srslte_pusch_uci_encode_rnti(q, cfg, softbuffer, data, uci_data, q->rnti, sf_symbols);    
   } else {
     fprintf(stderr, "Must call srslte_pusch_set_rnti() to set the encoder/decoder RNTI\n");       
     return SRSLTE_ERROR;     
   }
 }
 
-int srslte_pusch_uci_encode(srslte_pusch_t *q, srslte_harq_t *harq, uint8_t *data, srslte_uci_data_t uci_data, cf_t *sf_symbols) 
+int srslte_pusch_uci_encode(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
+                            uint8_t *data, srslte_uci_data_t uci_data, 
+                            cf_t *sf_symbols) 
 {
   if (q->rnti_is_set) {
-    return srslte_pusch_uci_encode_rnti(q, harq, data, uci_data, q->rnti, sf_symbols);
+    return srslte_pusch_uci_encode_rnti(q, cfg, softbuffer, data, uci_data, q->rnti, sf_symbols);
   } else {
     fprintf(stderr, "Must call srslte_pusch_set_rnti() to set the encoder/decoder RNTI\n");       
     return SRSLTE_ERROR; 
@@ -393,52 +403,54 @@ int srslte_pusch_uci_encode(srslte_pusch_t *q, srslte_harq_t *harq, uint8_t *dat
 
 /** Converts the PUSCH data bits to symbols mapped to the slot ready for transmission
  */
-int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_harq_t *harq, uint8_t *data, srslte_uci_data_t uci_data, uint16_t rnti, cf_t *sf_symbols) 
+int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
+                                 uint8_t *data, srslte_uci_data_t uci_data, uint16_t rnti, 
+                                 cf_t *sf_symbols) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
    
   if (q    != NULL &&
       data != NULL &&
-      harq != NULL)
+      cfg  != NULL)
   {
-    if (harq->mcs.tbs > harq->nof_bits) {
-      fprintf(stderr, "Invalid code rate %.2f\n", (float) harq->mcs.tbs / harq->nof_bits);
+    if (cfg->grant.mcs.tbs > cfg->grant.nof_bits) {
+      fprintf(stderr, "Invalid code rate %.2f\n", (float) cfg->grant.mcs.tbs / cfg->grant.nof_bits);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
-    if (harq->nof_re > q->max_re) {
+    if (cfg->grant.nof_re > q->max_re) {
       fprintf(stderr, "Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
-          harq->nof_re, q->max_re, q->cell.nof_prb);
+          cfg->grant.nof_re, q->max_re, q->cell.nof_prb);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
-        harq->sf_idx, srslte_mod_string(harq->mcs.mod), rnti, harq->mcs.tbs, harq->nof_re, harq->nof_bits, harq->rv);
+         cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), rnti, 
+         cfg->grant.mcs.tbs, cfg->grant.nof_re, cfg->grant.nof_bits, cfg->rv);
     
-    bzero(q->q, harq->nof_bits);
-    if (srslte_ulsch_uci_encode(&q->dl_sch, harq, data, uci_data, q->g, q->q)) {
+    bzero(q->q, cfg->grant.nof_bits);
+    if (srslte_ulsch_uci_encode(&q->dl_sch, cfg, softbuffer, data, uci_data, q->g, q->q)) {
       fprintf(stderr, "Error encoding TB\n");
       return SRSLTE_ERROR;
     }
     
     if (rnti != q->rnti) {
       srslte_sequence_t seq; 
-      if (srslte_sequence_pusch(&seq, rnti, 2 * harq->sf_idx, q->cell.id, harq->nof_bits)) {
+      if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->grant.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_b_offset_pusch(&seq, (uint8_t*) q->q, 0, harq->nof_bits);      
+      srslte_scrambling_b_offset_pusch(&seq, (uint8_t*) q->q, 0, cfg->grant.nof_bits);      
       srslte_sequence_free(&seq);
     } else {
-      srslte_scrambling_b_offset_pusch(&q->seq[harq->sf_idx], (uint8_t*) q->q, 0, harq->nof_bits);            
+      srslte_scrambling_b_offset_pusch(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->grant.nof_bits);            
     }
     
-    srslte_mod_modulate(&q->mod[harq->mcs.mod], (uint8_t*) q->q, q->d, harq->nof_bits);
+    srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->grant.nof_bits);
     
-    srslte_dft_precoding(&q->dft_precoding, q->d, q->z, 
-                  harq->ul_alloc.L_prb, harq->nof_symb);
+    srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->grant.nof_symb);
     
     /* mapping to resource elements */      
-    pusch_put(q, harq, q->z, sf_symbols);
+    pusch_put(q, &cfg->grant, cfg->sf_idx, q->z, sf_symbols);
     
     ret = SRSLTE_SUCCESS;
   } 

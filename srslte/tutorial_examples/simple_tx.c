@@ -209,12 +209,12 @@ int main(int argc, char **argv) {
   srslte_modem_table_lte(&modulator, modulation, false);
 
   srslte_tcod_t turbocoder; 
-  srslte_tcod_init(&turbocoder, MAX_LONG_CB);
+  srslte_tcod_init(&turbocoder, SRSLTE_TCOD_MAX_LEN_CB);
 
   srslte_dft_precoding_t dft_precod;
   srslte_dft_precoding_init(&dft_precod, 12);
   
-  nbits = srslte_find_cb_index(sf_n_samples/8/srslte_mod_bits_x_symbol(modulation)/3 - 12);
+  nbits = srslte_cbsegm_cbindex(sf_n_samples/8/srslte_mod_bits_x_symbol(modulation)/3 - 12);
   uint32_t ncoded_bits = sf_n_samples/8/srslte_mod_bits_x_symbol(modulation); 
   
   uint8_t *data     = malloc(sizeof(uint8_t)*nbits);

@@ -368,8 +368,8 @@ int main(int argc, char **argv) {
   float rsrp=0.0, rsrq=0.0, snr=0.0;
   bool decode_pdsch; 
   int pdcch_tx=0; 
-  srslte_ra_pdsch_t old_ra_dl; 
-  bzero(&old_ra_dl, sizeof(srslte_ra_pdsch_t));
+  srslte_ra_dl_dci_t old_ra_dl; 
+  bzero(&old_ra_dl, sizeof(srslte_ra_dl_dci_t));
   
   ue_sync.correct_cfo = prog_args.enable_cfo; 
           
@@ -418,8 +418,8 @@ int main(int argc, char **argv) {
               n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data_packed, srslte_ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
                                  ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
-            if (memcmp(&ue_dl.ra_dl, &old_ra_dl, sizeof(srslte_ra_pdsch_t))) {
-              memcpy(&old_ra_dl, &ue_dl.ra_dl, sizeof(srslte_ra_pdsch_t));
+            if (memcmp(&ue_dl.ra_dl, &old_ra_dl, sizeof(srslte_ra_dl_dci_t))) {
+              memcpy(&old_ra_dl, &ue_dl.ra_dl, sizeof(srslte_ra_dl_dci_t));
               fflush(stdout);printf("\nCFI:\t%d\n", ue_dl.cfi);
               printf("Format: %s\n", srslte_dci_format_string(ue_dl.dci_format));
               srslte_ra_pdsch_fprint(stdout, &old_ra_dl, cell.nof_prb);

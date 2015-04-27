@@ -126,8 +126,6 @@ typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
 
 #define SRSLTE_NOF_LTE_BANDS 29
 
-#define SRSLTE_NOF_TC_CB_SIZES 188
-
 typedef enum SRSLTE_API { 
   SRSLTE_PHICH_NORM = 0, 
   SRSLTE_PHICH_EXT  
@@ -221,17 +219,11 @@ SRSLTE_API uint32_t srslte_N_ta_new_rar(uint32_t ta);
 SRSLTE_API uint32_t srslte_N_ta_new(uint32_t N_ta_old, 
                                     uint32_t ta);
 
-SRSLTE_API int srslte_cb_size(uint32_t index);
-
-SRSLTE_API bool srslte_cb_size_isvalid(uint32_t size); 
-
 SRSLTE_API char *srslte_cp_string(srslte_cp_t cp); 
 
 SRSLTE_API char *srslte_mod_string(srslte_mod_t mod);
 
 SRSLTE_API uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod);
-
-SRSLTE_API int srslte_find_cb_index(uint32_t long_cb);
 
 SRSLTE_API float srslte_band_fd(uint32_t earfcn);
 

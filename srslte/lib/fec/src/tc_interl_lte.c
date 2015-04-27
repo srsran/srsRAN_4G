@@ -32,6 +32,7 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/fec/tc_interl.h"
 #include "srslte/fec/turbocoder.h"
+#include "srslte/fec/cbsegm.h"
 #include "srslte/utils/debug.h"
 
 /************************************************
@@ -76,7 +77,7 @@ int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
     return -1;
   }
 
-  cb_table_idx = srslte_find_cb_index(long_cb);
+  cb_table_idx = srslte_cbsegm_cbindex(long_cb);
   if (cb_table_idx == -1) {
     fprintf(stderr, "Can't find long_cb=%d in valid TC CB table\n", long_cb);
     return -1;

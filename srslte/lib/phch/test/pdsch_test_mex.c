@@ -54,20 +54,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_pdsch_t pdsch;
   srslte_chest_dl_t chest; 
   srslte_ofdm_t fft; 
-  uint32_t cfi, sf_idx; 
   cf_t *input_fft, *input_signal;
   int nof_re; 
-  srslte_ra_mcs_t mcs;
-  srslte_ra_dl_alloc_t dl_alloc;
-  srslte_harq_t harq_process;
-  uint32_t rv;
+  srslte_pdsch_cfg_t cfg;
+  srslte_softbuffer_rx_t softbuffer; 
   uint32_t rnti32;
+  uint32_t cfi; 
 
   if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
-    
+
+  bzero(&cfg, sizeof(srslte_pdsch_cfg_t));
+
   if (mexutils_read_cell(ENBCFG, &cell)) {
     help();
     return;
@@ -82,7 +82,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     help();
     return;
   }
-  if (mexutils_read_uint32_struct(ENBCFG, "NSubframe", &sf_idx)) {
+  if (mexutils_read_uint32_struct(ENBCFG, "NSubframe", &cfg.sf_idx)) {
     help();
     return;
   }
@@ -93,8 +93,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   srslte_pdsch_set_rnti(&pdsch, (uint16_t) (rnti32 & 0xffff));
 
-  if (srslte_harq_init(&harq_process, cell)) {
-    mexErrMsgTxt("Error initiating HARQ process\n");
+  if (srslte_softbuffer_rx_init(&softbuffer, cell)) {
+    mexErrMsgTxt("Error initiating soft buffer\n");
     return;
   }
   
@@ -108,16 +108,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-    
   nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
-  mcs.tbs = mxGetScalar(TBS);
-  if (mcs.tbs == 0) {
+  cfg.grant.mcs.tbs = mxGetScalar(TBS);
+  if (cfg.grant.mcs.tbs == 0) {
     mexErrMsgTxt("Error trblklen is zero\n");
     return;
   }
+  if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
+    mexErrMsgTxt("Error computing CB segmentation\n");
+    return; 
+  }
 
-  if (mexutils_read_uint32_struct(PDSCHCFG, "RV", &rv)) {
+  if (mexutils_read_uint32_struct(PDSCHCFG, "RV", &cfg.rv)) {
     mexErrMsgTxt("Field RV not found in pdsch config\n");
     return;
   }
@@ -125,11 +128,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   char *mod_str = mexutils_get_char_struct(PDSCHCFG, "Modulation");
   
   if (!strcmp(mod_str, "QPSK")) {
-    mcs.mod = SRSLTE_MOD_QPSK;
+    cfg.grant.mcs.mod = SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
-    mcs.mod = SRSLTE_MOD_16QAM;
+    cfg.grant.mcs.mod = SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
-    mcs.mod = SRSLTE_MOD_64QAM;
+    cfg.grant.mcs.mod = SRSLTE_MOD_64QAM;
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
@@ -146,27 +149,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } 
   
   // Only localized PRB supported 
-  dl_alloc.slot[0].nof_prb = mexutils_read_f(p, &prbset);
+  cfg.grant.nof_prb = mexutils_read_f(p, &prbset);
 
   for (i=0;i<cell.nof_prb;i++) {
-    dl_alloc.slot[0].prb_idx[i] = false; 
-    for (int j=0;j<dl_alloc.slot[0].nof_prb && !dl_alloc.slot[0].prb_idx[i];j++) {
+    cfg.grant.prb_idx[0][i] = false; 
+    for (int j=0;j<cfg.grant.nof_prb && !cfg.grant.prb_idx[0][i];j++) {
       if ((int) prbset[j] == i) {
-        dl_alloc.slot[0].prb_idx[i] = true;
+        cfg.grant.prb_idx[0][i] = true;
       }
     }
   }
-  memcpy(&dl_alloc.slot[1], &dl_alloc.slot[0], sizeof(srslte_ra_prb_slot_t));
+  memcpy(&cfg.grant.prb_idx[1], &cfg.grant.prb_idx[0], SRSLTE_MAX_PRB*sizeof(bool));
 
   free(prbset);
   
-  srslte_ra_dl_alloc_re(&dl_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
+  srslte_dl_dci_to_grant_nof_re(&cfg.grant, cell, cfg.sf_idx, cell.nof_prb<10?(cfi+1):cfi);
   
-  if (srslte_harq_setup_dl(&harq_process, mcs, rv, sf_idx, &dl_alloc)) {
-    mexErrMsgTxt("Error configuring HARQ process\n");
-    return;
-  }
-
+  // Fill rest of grant structure 
+  cfg.grant.lstart = cell.nof_prb<10?(cfi+1):cfi;
+  cfg.grant.nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-cfg.grant.lstart;
+  cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
+  cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;     
+    
   /** Allocate input buffers */
   if (mexutils_read_cf(INPUT, &input_signal) < 0) {
     mexErrMsgTxt("Error reading input signal\n");
@@ -174,7 +178,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   input_fft = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   
-  // Set Channel estimates to 1.0 (ignore fading) 
   cf_t *ce[SRSLTE_MAX_PORTS];
   for (i=0;i<cell.nof_ports;i++) {
     ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
@@ -195,7 +198,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (cearray_ptr)
       free(cearray_ptr);
   } else {
-    srslte_chest_dl_estimate(&chest, input_fft, ce, sf_idx);    
+    srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
   }
   float noise_power;
   if (nrhs > NOF_INPUTS + 1) {
@@ -204,28 +207,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     noise_power = srslte_chest_dl_get_noise_estimate(&chest);
   }
   
-  uint8_t *data = malloc(sizeof(uint8_t) * mcs.tbs);
+  uint8_t *data = malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
   if (!data) {
     return;
   }
 
-  int r = srslte_pdsch_decode(&pdsch, &harq_process, input_fft, ce, noise_power, data);
+  int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data);
 
   
   if (nlhs >= 1) { 
     plhs[0] = mxCreateLogicalScalar(r == 0);
   }
   if (nlhs >= 2) {
-    mexutils_write_uint8(data, &plhs[1], mcs.tbs, 1);  
+    mexutils_write_uint8(data, &plhs[1], cfg.grant.mcs.tbs, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pdsch.symbols[0], &plhs[2], harq_process.dl_alloc.re_sf[sf_idx], 1);  
+    mexutils_write_cf(pdsch.symbols[0], &plhs[2], cfg.grant.nof_re, 1);  
   }
   if (nlhs >= 4) {
-    mexutils_write_cf(pdsch.d, &plhs[3], harq_process.dl_alloc.re_sf[sf_idx], 1);  
+    mexutils_write_cf(pdsch.d, &plhs[3], cfg.grant.nof_re, 1);  
   }
   if (nlhs >= 5) {
-    mexutils_write_f(pdsch.e, &plhs[4], harq_process.dl_alloc.re_sf[sf_idx] * srslte_mod_bits_x_symbol(mcs.mod), 1);  
+    mexutils_write_f(pdsch.e, &plhs[4], cfg.grant.nof_bits, 1);  
   }
   
   srslte_chest_dl_free(&chest);

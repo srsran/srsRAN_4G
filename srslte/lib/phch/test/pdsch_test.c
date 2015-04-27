@@ -127,45 +127,49 @@ int main(int argc, char **argv) {
   uint32_t i, j;
   uint8_t *data = NULL;
   cf_t *ce[SRSLTE_MAX_PORTS];
-  uint32_t nof_re;
   cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   int ret = -1;
   struct timeval t[3];
-  srslte_ra_mcs_t mcs;
-  srslte_ra_dl_alloc_t prb_alloc;
-  srslte_harq_t harq_process;
+  srslte_pdsch_cfg_t pdsch_cfg; 
+  srslte_softbuffer_tx_t softbuffer_tx;
+  srslte_softbuffer_rx_t softbuffer_rx;
   uint32_t rv;
 
   parse_args(argc,argv);
 
   bzero(&pdsch, sizeof(srslte_pdsch_t));
-  bzero(&harq_process, sizeof(srslte_harq_t));
+  bzero(&pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   
-  nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
+  pdsch_cfg.grant.nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
-  mcs.mod = modulation;
+  pdsch_cfg.grant.mcs.mod = modulation;
   
-  prb_alloc.slot[0].nof_prb = cell.nof_prb;
-  for (i=0;i<prb_alloc.slot[0].nof_prb;i++) {
-    prb_alloc.slot[0].prb_idx[i] = true;
+  pdsch_cfg.grant.nof_prb = cell.nof_prb;
+  for (i=0;i<pdsch_cfg.grant.nof_prb;i++) {
+    pdsch_cfg.grant.prb_idx[0][i] = true;
   }
-  memcpy(&prb_alloc.slot[1], &prb_alloc.slot[0], sizeof(srslte_ra_prb_slot_t));
+  memcpy(&pdsch_cfg.grant.prb_idx[1], &pdsch_cfg.grant.prb_idx[0], SRSLTE_MAX_PRB * sizeof(bool));
 
-  srslte_ra_dl_alloc_re(&prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
-  
+  srslte_dl_dci_to_grant_nof_re(&pdsch_cfg.grant, cell, pdsch_cfg.sf_idx, cell.nof_prb<10?(cfi+1):cfi);
+  // Fill rest of grant structure 
+  pdsch_cfg.grant.lstart = cell.nof_prb<10?(cfi+1):cfi;
+  pdsch_cfg.grant.nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-pdsch_cfg.grant.lstart;
+  pdsch_cfg.grant.Qm = srslte_mod_bits_x_symbol(pdsch_cfg.grant.mcs.mod);
+  pdsch_cfg.grant.nof_bits = pdsch_cfg.grant.nof_re * pdsch_cfg.grant.Qm;      
+
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = malloc(sizeof(cf_t) * nof_re);
+    ce[i] = malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
     if (!ce[i]) {
       perror("malloc");
       goto quit;
     }
-    for (j=0;j<nof_re;j++) {
+    for (j=0;j<pdsch_cfg.grant.nof_re;j++) {
       ce[i][j] = 1;
     }
-    slot_symbols[i] = calloc(sizeof(cf_t) , nof_re);
+    slot_symbols[i] = calloc(sizeof(cf_t) , SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
     if (!slot_symbols[i]) {
       perror("malloc");
       goto quit;
@@ -185,33 +189,35 @@ int main(int argc, char **argv) {
   
   srslte_pdsch_set_rnti(&pdsch, 1234);
   
-  if (srslte_harq_init(&harq_process, cell)) {
-    fprintf(stderr, "Error initiating HARQ process\n");
+  if (srslte_softbuffer_tx_init(&softbuffer_tx, cell)) {
+    fprintf(stderr, "Error initiating TX soft buffer\n");
+    goto quit;
+  }
+
+  if (srslte_softbuffer_rx_init(&softbuffer_rx, cell)) {
+    fprintf(stderr, "Error initiating RX soft buffer\n");
     goto quit;
   }
   
-  for (mcs.tbs = tbs;mcs.tbs<=tbs+nof_tbs;mcs.tbs++) {
+  for (pdsch_cfg.grant.mcs.tbs = tbs;pdsch_cfg.grant.mcs.tbs<=tbs+nof_tbs;pdsch_cfg.grant.mcs.tbs++) {
     if (SRSLTE_VERBOSE_ISNONE()) {
-      printf("Decoding TBS: %d\r",mcs.tbs);
+      printf("Decoding TBS: %d\r",pdsch_cfg.grant.mcs.tbs);
     }
-    for (i=0;i<mcs.tbs;i++) {
+    for (i=0;i<pdsch_cfg.grant.mcs.tbs;i++) {
       data[i] = rand()%2;
     }
 
     for (rv=0;rv<=rv_idx;rv++) {
-      if (srslte_harq_setup_dl(&harq_process, mcs, rv, subframe, &prb_alloc)) {
-        fprintf(stderr, "Error configuring HARQ process\n");
-        goto quit;
-      }
+      srslte_cbsegm(&pdsch_cfg.cb_segm, pdsch_cfg.grant.mcs.tbs);
 
-      if (srslte_pdsch_encode(&pdsch, &harq_process, data, slot_symbols)) {
+      if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
         fprintf(stderr, "Error encoding PDSCH\n");
         goto quit;
       }
 
       /* combine outputs */
       for (i=0;i<cell.nof_ports;i++) {
-        for (j=0;j<nof_re;j++) {
+        for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
           if (i > 0) {
             slot_symbols[0][j] += slot_symbols[i][j];
           }
@@ -220,16 +226,16 @@ int main(int argc, char **argv) {
       }
       
       gettimeofday(&t[1], NULL);
-      int r = srslte_pdsch_decode(&pdsch, &harq_process, slot_symbols[0], ce, 0, data);
+      int r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
       if (r) {
-        printf("Error decoding TBS: %d\n", mcs.tbs);
+        printf("Error decoding TBS: %d\n", pdsch_cfg.grant.mcs.tbs);
         ret = -1;
         goto quit;
       } else {
         if (nof_tbs == 0) {
-          printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) mcs.tbs/t[0].tv_usec);          
+          printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) pdsch_cfg.grant.mcs.tbs/t[0].tv_usec);          
         }
       }
     } 
@@ -237,7 +243,8 @@ int main(int argc, char **argv) {
   ret = 0;
 quit:
   srslte_pdsch_free(&pdsch);
-  srslte_harq_free(&harq_process);
+  srslte_softbuffer_tx_free(&softbuffer_tx);
+  srslte_softbuffer_rx_free(&softbuffer_rx);
   
   for (i=0;i<cell.nof_ports;i++) {
     if (ce[i]) {

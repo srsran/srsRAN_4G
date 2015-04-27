@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
         exit(-1);
       }
 
-      INFO("%d/%d, ack_rx: %d, ns: %d, distance: %d\n",
+      INFO("%d/%d, ack_rx: %d, ns: %d, distance: %f\n",
           ngroup, nseq, ack_rx, numsubframe, distance);
     }
   }

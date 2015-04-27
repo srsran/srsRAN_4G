@@ -45,7 +45,7 @@
 #include "srslte/scrambling/scrambling.h"
 #include "srslte/phch/regs.h"
 #include "srslte/phch/sch.h"
-#include "srslte/phch/harq.h"
+#include "srslte/phch/pusch_cfg.h"
 #include "srslte/dft/dft_precoding.h"
 
 #define SRSLTE_PUSCH_MAX_TDEC_ITERS         5
@@ -110,31 +110,36 @@ SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t *q,
                                      uint16_t rnti);
 
 SRSLTE_API int srslte_pusch_encode(srslte_pusch_t *q, 
-                                   srslte_harq_t *harq_process,
+                                   srslte_pusch_cfg_t *cfg,
+                                   srslte_softbuffer_tx_t *softbuffer,
                                    uint8_t *data, 
                                    cf_t *sf_symbols);
 
 SRSLTE_API int srslte_pusch_encode_rnti(srslte_pusch_t *q, 
-                                        srslte_harq_t *harq_process, 
+                                        srslte_pusch_cfg_t *cfg,
+                                        srslte_softbuffer_tx_t *softbuffer,
                                         uint8_t *data, 
                                         uint16_t rnti, 
                                         cf_t *sf_symbols); 
 
 SRSLTE_API int srslte_pusch_uci_encode(srslte_pusch_t *q, 
-                                       srslte_harq_t *harq_process,
+                                       srslte_pusch_cfg_t *cfg,
+                                       srslte_softbuffer_tx_t *softbuffer,
                                        uint8_t *data, 
                                        srslte_uci_data_t uci_data, 
                                        cf_t *sf_symbols);
 
 SRSLTE_API int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, 
-                                            srslte_harq_t *harq, 
+                                            srslte_pusch_cfg_t *cfg,
+                                            srslte_softbuffer_tx_t *softbuffer,
                                             uint8_t *data, 
                                             srslte_uci_data_t uci_data, 
                                             uint16_t rnti, 
                                             cf_t *sf_symbols); 
 
 SRSLTE_API int srslte_pusch_decode(srslte_pusch_t *q, 
-                                   srslte_harq_t *harq_process,
+                                   srslte_pusch_cfg_t *cfg,
+                                   srslte_softbuffer_rx_t *softbuffer,
                                    cf_t *sf_symbols, 
                                    cf_t *ce,
                                    float noise_estimate, 

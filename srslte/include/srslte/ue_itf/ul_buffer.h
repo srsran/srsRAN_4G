@@ -28,7 +28,8 @@
 #include "srslte/srslte.h"
 #include "srslte/common/radio.h"
 #include "srslte/ue_itf/queue.h"
-#include "srslte/ue_itf/sched_grant.h"
+#include "srslte/ue_itf/ul_sched_grant.h"
+#include "srslte/ue_itf/dl_sched_grant.h"
 #include "srslte/ue_itf/phy_params.h"
 
 #ifndef UEULBUFFER_H
@@ -48,26 +49,27 @@ namespace ue {
     void     free_cell();
     void     set_tti(uint32_t tti);
     void     set_current_tx_nb(uint32_t current_tx_nb);
-    bool     generate_ack(bool ack, sched_grant last_dl_grant); 
+    bool     generate_ack(bool ack, dl_sched_grant *last_dl_grant); 
     bool     generate_ack(bool ack[2]); 
     bool     generate_sr(); 
     bool     generate_cqi_report(); 
     bool     uci_ready();
     bool     generate_data();   
-    bool     generate_data(sched_grant pusch_grant, uint8_t *payload);   
+    bool     generate_data(ul_sched_grant *pusch_grant, uint8_t *payload);   
     bool     send(radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time);
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
 
   private: 
-    phy_params    *params_db; 
-    srslte_cell_t  cell; 
-    srslte_ue_ul_t ue_ul; 
-    bool           cell_initiated; 
-    cf_t*          signal_buffer;
-    uint32_t       current_tx_nb; 
-    uint32_t       last_n_cce;
-    srslte_uci_data_t uci_data; 
-    bool           uci_pending; 
+    phy_params        *params_db; 
+    srslte_cell_t      cell; 
+    srslte_ue_ul_t     ue_ul; 
+    srslte_pusch_cfg_t pusch_cfg; 
+    bool               cell_initiated; 
+    cf_t*              signal_buffer;
+    uint32_t           current_tx_nb; 
+    uint32_t           last_n_cce;
+    srslte_uci_data_t  uci_data; 
+    bool               uci_pending; 
   };
 
 }

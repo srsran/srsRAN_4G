@@ -41,23 +41,25 @@
 #include "srslte/utils/debug.h"
 
 
-/* Creates the DL PDSCH resource allocation grant from a DCI message
+/* Unpacks a DCI message and configures the DL grant object
  */
-int srslte_dci_msg_to_ra_dl(srslte_dci_msg_t *msg, uint16_t msg_rnti,
-                     srslte_cell_t cell, uint32_t cfi,
-                     srslte_ra_pdsch_t *ra_dl) 
+int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
+                               srslte_cell_t cell, uint32_t cfi, uint32_t sf_idx, 
+                               srslte_ra_dl_dci_t *dl_dci, 
+                               srslte_ra_dl_grant_t *grant) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
-      ra_dl             !=  NULL   &&
-      srslte_cell_isvalid(&cell)      && 
+      grant             !=  NULL   &&
+      srslte_cell_isvalid(&cell)   && 
       cfi               >   0      &&
       cfi               <   4)
   {
     ret = SRSLTE_ERROR;
     
     srslte_dci_msg_type_t type;
+    
     if (srslte_dci_msg_get_type(msg, &type, cell.nof_prb, msg_rnti)) {
       fprintf(stderr, "Can't get DCI message type\n");
       return ret; 
@@ -68,28 +70,25 @@ int srslte_dci_msg_to_ra_dl(srslte_dci_msg_t *msg, uint16_t msg_rnti,
       srslte_dci_msg_type_fprint(stdout, type);    
     }
     if (type.type == SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED) {
-      bzero(ra_dl, sizeof(srslte_ra_pdsch_t));
+      bzero(dl_dci, sizeof(srslte_ra_dl_dci_t));
+      bzero(grant, sizeof(srslte_ra_dl_grant_t));
       
       bool crc_is_crnti = false; 
       if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
         crc_is_crnti = true; 
       }
-      if (srslte_dci_msg_unpack_pdsch(msg, ra_dl, cell.nof_prb, crc_is_crnti)) {
+      if (srslte_dci_msg_unpack_pdsch(msg, dl_dci, cell.nof_prb, crc_is_crnti)) {
         fprintf(stderr, "Can't unpack PDSCH message\n");
         return ret;
       } 
       
+      srslte_ra_dl_dci_to_grant(dl_dci, grant, cell, sf_idx, cfi, crc_is_crnti);
+
       if (SRSLTE_VERBOSE_ISINFO()) {
-        srslte_ra_pdsch_fprint(stdout, ra_dl, cell.nof_prb);
+        srslte_ra_pdsch_fprint(stdout, dl_dci, cell.nof_prb);
+        srslte_ra_dl_grant_fprint(stdout, grant);
       }
-      
-      if (srslte_ra_dl_alloc(&ra_dl->prb_alloc, ra_dl, cell.nof_prb)) {
-        fprintf(stderr, "Error computing resource allocation\n");
-        return ret;
-      }
-      
-      srslte_ra_dl_alloc_re(&ra_dl->prb_alloc, cell.nof_prb, cell.nof_ports, cell.nof_prb<10?(cfi+1):cfi, cell.cp);
-            
+
       ret = SRSLTE_SUCCESS;
     } else {
       if (SRSLTE_VERBOSE_ISINFO()) {
@@ -103,56 +102,75 @@ int srslte_dci_msg_to_ra_dl(srslte_dci_msg_t *msg, uint16_t msg_rnti,
 
 /* Creates the UL PUSCH resource allocation grant from the random access respone message 
  */
-int srslte_dci_rar_to_ra_ul(uint32_t rba, uint32_t trunc_mcs, bool hopping_flag, uint32_t nof_prb, srslte_ra_pusch_t *ra) {
-  bzero(ra, sizeof(srslte_ra_pusch_t));
-  if (!hopping_flag) {
-    ra->freq_hop_fl = SRSLTE_RA_PUSCH_HOP_DISABLED;
+int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, srslte_cell_t cell, 
+                               uint32_t N_srs, uint32_t n_rb_ho, 
+                               srslte_ra_ul_dci_t *ul_dci, 
+                               srslte_ra_ul_grant_t *grant) 
+{
+  bzero(ul_dci, sizeof(srslte_ra_ul_dci_t));
+  
+  if (!rar->hopping_flag) {
+    ul_dci->freq_hop_fl = SRSLTE_RA_PUSCH_HOP_DISABLED;
   } else {
     fprintf(stderr, "FIXME: Frequency hopping in RAR not implemented\n");
-    ra->freq_hop_fl = 1;
+    ul_dci->freq_hop_fl = 1;
   }
-  uint32_t riv = rba; 
+  uint32_t riv = rar->rba; 
   // Truncate resource block assignment 
   uint32_t b = 0;
-  if (nof_prb <= 44) {
-    b = (uint32_t) (ceilf(log2((float) nof_prb*(nof_prb+1)/2)));
+  if (cell.nof_prb <= 44) {
+    b = (uint32_t) (ceilf(log2((float) cell.nof_prb*(cell.nof_prb+1)/2)));
     riv = riv & ((1<<(b+1))-1); 
   }
-  ra->type2_alloc.riv = riv; 
-  ra->mcs_idx = trunc_mcs;
+  ul_dci->type2_alloc.riv = riv; 
+  ul_dci->mcs_idx = rar->trunc_mcs;
 
-  srslte_ra_type2_from_riv(riv, &ra->type2_alloc.L_crb, &ra->type2_alloc.RB_start,
-      nof_prb, nof_prb);
+  srslte_ra_type2_from_riv(riv, &ul_dci->type2_alloc.L_crb, &ul_dci->type2_alloc.RB_start,
+                           cell.nof_prb, cell.nof_prb);
   
-  srslte_ra_mcs_from_idx_ul(ra->mcs_idx, srslte_ra_nprb_ul(ra, nof_prb), &ra->mcs);
+  if (srslte_ra_ul_dci_to_grant(ul_dci, grant, cell, n_rb_ho, N_srs)) {
+    fprintf(stderr, "Error computing resource allocation\n");
+    return SRSLTE_ERROR;
+  }
+  
+  if (SRSLTE_VERBOSE_ISINFO()) {
+    srslte_ra_pusch_fprint(stdout, ul_dci, cell.nof_prb);
+    srslte_ra_ul_grant_fprint(stdout, grant);
+  }
   return SRSLTE_SUCCESS;
 }
 
 /* Creates the UL PUSCH resource allocation grant from a DCI format 0 message
  */
-int srslte_dci_msg_to_ra_ul(srslte_dci_msg_t *msg, uint32_t nof_prb, uint32_t n_rb_ho, srslte_ra_pusch_t *ra_ul) 
+int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, srslte_cell_t cell, 
+                               uint32_t N_srs, uint32_t n_rb_ho, 
+                               srslte_ra_ul_dci_t *ul_dci, 
+                               srslte_ra_ul_grant_t *grant) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
-      ra_ul             !=  NULL)
+      srslte_cell_isvalid(&cell)   && 
+      grant             !=  NULL)
   {
     ret = SRSLTE_ERROR;
     
-    bzero(ra_ul, sizeof(srslte_ra_pusch_t));
+    bzero(ul_dci, sizeof(srslte_ra_ul_dci_t));
+    bzero(grant, sizeof(srslte_ra_ul_dci_t));
     
-    if (srslte_dci_msg_unpack_pusch(msg, ra_ul, nof_prb)) {
+    if (srslte_dci_msg_unpack_pusch(msg, ul_dci, cell.nof_prb)) {
       fprintf(stderr, "Can't unpack PDSCH message\n");
       return ret;
     } 
     
-    if (SRSLTE_VERBOSE_ISINFO()) {
-      srslte_ra_pusch_fprint(stdout, ra_ul, nof_prb);
-    }
-    
-    if (srslte_ra_ul_alloc(&ra_ul->prb_alloc, ra_ul, n_rb_ho, nof_prb)) {
+    if (srslte_ra_ul_dci_to_grant(ul_dci, grant, cell, n_rb_ho, N_srs)) {
       fprintf(stderr, "Error computing resource allocation\n");
       return ret;
+    }
+    
+    if (SRSLTE_VERBOSE_ISINFO()) {
+      srslte_ra_pusch_fprint(stdout, ul_dci, cell.nof_prb);
+      srslte_ra_ul_grant_fprint(stdout, grant);
     }
     
     ret = SRSLTE_SUCCESS;
@@ -275,7 +293,7 @@ uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb) 
  *
  * TODO: TPC and cyclic shift for DM RS not implemented
  */
-int dci_format0_pack(srslte_ra_pusch_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
+int dci_format0_pack(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
   uint8_t *y = msg->data;
@@ -337,7 +355,7 @@ int dci_format0_pack(srslte_ra_pusch_t *data, srslte_dci_msg_t *msg, uint32_t no
  *
  * TODO: TPC and cyclic shift for DM RS not implemented
  */
-int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_pusch_t *data, uint32_t nof_prb) {
+int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t nof_prb) {
 
   /* pack bits */
   uint8_t *y = msg->data;
@@ -384,19 +402,6 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_pusch_t *data, uint32_t 
   // CQI request
   data->cqi_request = *y++ ? true : false;
 
-  // 8.6.2 First paragraph
-  if (data->mcs_idx <= 28) {
-    srslte_ra_mcs_from_idx_ul(data->mcs_idx, srslte_ra_nprb_ul(data, nof_prb), &data->mcs);
-  } else if (data->mcs_idx == 29 && data->cqi_request && srslte_ra_nprb_ul(data, nof_prb) <= 4) {
-    // 8.6.1 and 8.6.2 36.213 second paragraph
-    data->mcs.mod = SRSLTE_MOD_QPSK;
-    data->mcs.tbs = 0;
-  } else if (data->mcs_idx >= 29) {
-    // Else leave TBS and use the previously used PUSCH modulation
-    data->mcs.tbs = 0;
-    data->rv_idx = data->mcs_idx - 28;
-  }
-
   return SRSLTE_SUCCESS;
 }
 
@@ -406,7 +411,7 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_pusch_t *data, uint32_t 
  * TODO: TPC commands
  */
 
-int dci_format1_pack(srslte_ra_pdsch_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
+int dci_format1_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
   uint8_t *y = msg->data;
@@ -459,7 +464,7 @@ int dci_format1_pack(srslte_ra_pdsch_t *data, srslte_dci_msg_t *msg, uint32_t no
   return SRSLTE_SUCCESS;
 }
 
-int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_t nof_prb) {
+int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb) {
 
   /* pack bits */
   uint8_t *y = msg->data;
@@ -496,10 +501,6 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_t 
   }
   /* unpack MCS according to 7.1.7 of 36.213 */
   data->mcs_idx = srslte_bit_unpack(&y, 5);
-  if (srslte_ra_mcs_from_idx_dl(data->mcs_idx, srslte_ra_nprb_dl(data, nof_prb), &data->mcs)) {
-    fprintf(stderr, "Error getting MCS\n");
-    return SRSLTE_ERROR;
-  }
   
   /* harq process number */
   data->harq_process = srslte_bit_unpack(&y, 3);
@@ -510,6 +511,9 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_t 
   data->rv_idx = srslte_bit_unpack(&y, 2);
 
   // TPC not implemented
+  
+  data->dci_format = SRSLTE_RA_DCI_FORMAT1;
+
 
   return SRSLTE_SUCCESS;
 }
@@ -518,7 +522,7 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_t 
  *
  * TODO: RA procedure initiated by PDCCH, TPC commands
  */
-int dci_format1As_pack(srslte_ra_pdsch_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb,
+int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb,
     bool crc_is_crnti) {
 
   /* pack bits */
@@ -604,7 +608,7 @@ int dci_format1As_pack(srslte_ra_pdsch_t *data, srslte_dci_msg_t *msg, uint32_t 
 /* Unpacks DCI format 1A for compact scheduling of PDSCH words according to 36.212 5.3.3.1.3
  *
  */
-int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_t nof_prb,
+int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb,
     bool crc_is_crnti) {
 
   /* pack bits */
@@ -667,14 +671,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_
     data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
 
-  uint32_t n_prb;
-  if (crc_is_crnti) {
-    n_prb = srslte_ra_nprb_dl(data, nof_prb);
-  } else {
-    n_prb = data->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
-  }
-  data->mcs.tbs = srslte_ra_tbs_from_idx(data->mcs_idx, n_prb);
-  data->mcs.mod = SRSLTE_MOD_QPSK;
+  data->dci_format = SRSLTE_RA_DCI_FORMAT1A;
 
   return SRSLTE_SUCCESS;
 }
@@ -682,7 +679,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_
 /* Format 1C for compact scheduling of PDSCH words
  *
  */
-int dci_format1Cs_pack(srslte_ra_pdsch_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
+int dci_format1Cs_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
 
   /* pack bits */
   uint8_t *y = msg->data;
@@ -732,7 +729,7 @@ int dci_format1Cs_pack(srslte_ra_pdsch_t *data, srslte_dci_msg_t *msg, uint32_t 
   return SRSLTE_SUCCESS;
 }
 
-int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_t nof_prb) {
+int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb) {
   uint32_t L_p, RB_p;
 
   /* pack bits */
@@ -759,15 +756,15 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_
   data->type2_alloc.riv = riv;
 
   data->mcs_idx = srslte_bit_unpack(&y, 5);
-  data->mcs.tbs = srslte_ra_tbs_from_idx_format1c(data->mcs_idx);
-  data->mcs.mod = SRSLTE_MOD_QPSK;
-
+  
+  data->dci_format = SRSLTE_RA_DCI_FORMAT1C;
+  
   msg->nof_bits = (y - msg->data);
 
   return SRSLTE_SUCCESS;
 }
 
-int srslte_dci_msg_pack_pdsch(srslte_ra_pdsch_t *data, srslte_dci_msg_t *msg, srslte_dci_format_t format,
+int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, srslte_dci_format_t format,
     uint32_t nof_prb, bool crc_is_crnti) {
   switch (format) {
   case SRSLTE_DCI_FORMAT1:
@@ -783,7 +780,7 @@ int srslte_dci_msg_pack_pdsch(srslte_ra_pdsch_t *data, srslte_dci_msg_t *msg, sr
   }
 }
 
-int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, uint32_t nof_prb,
+int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb,
     bool crc_is_crnti) {
   if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb)) {
     return dci_format1_unpack(msg, data, nof_prb);
@@ -796,11 +793,11 @@ int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, srslte_ra_pdsch_t *data, 
   }
 }
 
-int srslte_dci_msg_pack_pusch(srslte_ra_pusch_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
+int srslte_dci_msg_pack_pusch(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
   return dci_format0_pack(data, msg, nof_prb);
 }
 
-int srslte_dci_msg_unpack_pusch(srslte_dci_msg_t *msg, srslte_ra_pusch_t *data, uint32_t nof_prb) {
+int srslte_dci_msg_unpack_pusch(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t nof_prb) {
   return dci_format0_unpack(msg, data, nof_prb);
 }
 

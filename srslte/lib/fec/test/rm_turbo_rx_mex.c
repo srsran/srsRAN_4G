@@ -68,8 +68,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   trblklen = (uint32_t) mxGetScalar(TRBLKLEN);
   rvidx = (uint32_t) mxGetScalar(RV);
   
-  srslte_harq_cbsegm_t cbsegm; 
-  srslte_harq_codeblock_segmentation(&cbsegm, trblklen);
+  srslte_cbsegm_t cbsegm; 
+  srslte_cbsegm(&cbsegm, trblklen);
   cblen = 3*cbsegm.K1+12;
 
   w_buff_f = calloc(1,sizeof(float) * cblen * 10);

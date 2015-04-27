@@ -48,17 +48,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   srslte_sch_t ulsch;
   uint8_t *trblkin;
-  srslte_ra_mcs_t mcs;
-  srslte_ra_ul_alloc_t prb_alloc;
-  srslte_harq_t harq_process;
-  uint32_t rv;
+  srslte_pusch_cfg_t cfg;
+  srslte_softbuffer_tx_t softbuffer; 
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-
+  uint32_t rv; 
+  
   if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
+  bzero(&cfg, sizeof(srslte_pusch_cfg_t));
+  
   if (srslte_sch_init(&ulsch)) {
     mexErrMsgTxt("Error initiating ULSCH\n");
     return;
@@ -67,12 +68,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cell.nof_prb = 100;
   cell.id=1;
   cell.cp=SRSLTE_CP_NORM;
-  if (srslte_harq_init(&harq_process, cell)) {
+
+  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
     mexErrMsgTxt("Error initiating HARQ\n");
     return;
   }
 
-  mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
+  cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
 
   uci_data.uci_cqi_len = mexutils_read_uint8(CQI, &uci_data.uci_cqi);
   uint8_t *tmp;
@@ -87,7 +89,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   free(tmp);
   
-  mexPrintf("TRBL_len: %d, CQI_len: %d, ACK_len: %d, RI_len: %d\n", mcs.tbs, 
+  mexPrintf("TRBL_len: %d, CQI_len: %d, ACK_len: %d, RI_len: %d\n", cfg.grant.mcs.tbs, 
             uci_data.uci_cqi_len, uci_data.uci_ack_len, uci_data.uci_ri_len);
   
   if (mexutils_read_uint32_struct(PUSCHCFG, "RV", &rv)) {
@@ -95,24 +97,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (mexutils_read_uint32_struct(PUSCHCFG, "OffsetCQI", &uci_data.I_offset_cqi)) {
+  float beta; 
+  if (mexutils_read_float_struct(PUSCHCFG, "BetaCQI", &beta)) {
     uci_data.I_offset_cqi = 7; 
+  } else {
+    uci_data.I_offset_cqi = srslte_sch_find_Ioffset_cqi(beta);
   }
-  if (mexutils_read_uint32_struct(PUSCHCFG, "OffsetRI", &uci_data.I_offset_ri)) {
+  if (mexutils_read_float_struct(PUSCHCFG, "BetaRI", &beta)) {
     uci_data.I_offset_ri = 2; 
+  } else {
+    uci_data.I_offset_ri = srslte_sch_find_Ioffset_ri(beta);
   }
-  if (mexutils_read_uint32_struct(PUSCHCFG, "OffsetACK", &uci_data.I_offset_ack)) {
+  if (mexutils_read_float_struct(PUSCHCFG, "BetaACK", &beta)) {
     uci_data.I_offset_ack = 0; 
+  } else {
+    uci_data.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
   }
   
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");
   
   if (!strcmp(mod_str, "QPSK")) {
-    mcs.mod = SRSLTE_MOD_QPSK;
+    cfg.grant.mcs.mod = SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
-    mcs.mod = SRSLTE_MOD_16QAM;
+    cfg.grant.mcs.mod = SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
-    mcs.mod = SRSLTE_MOD_64QAM;
+    cfg.grant.mcs.mod = SRSLTE_MOD_64QAM;
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
@@ -128,49 +137,56 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   
-  prb_alloc.L_prb = mexutils_read_f(p, &prbset);
-  prb_alloc.n_prb[0] = prbset[0];
-  prb_alloc.n_prb[1] = prbset[0];
+  cfg.grant.L_prb = mexutils_read_f(p, &prbset);
+  cfg.grant.n_prb[0] = prbset[0];
+  cfg.grant.n_prb[1] = prbset[0];
   free(prbset);
-  
-  mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", srslte_mod_bits_x_symbol(mcs.mod), prb_alloc.L_prb, rv);
+  cfg.grant.L_prb = mexutils_read_f(p, &prbset);
+  cfg.grant.n_prb[0] = prbset[0];
+  cfg.grant.n_prb[1] = prbset[0];
+  cfg.grant.lstart = 0;
+  cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1); 
+  cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
+  cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
+  cfg.grant.nof_re = cfg.grant.nof_symb*cfg.grant.M_sc;
+  cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
+  cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;
 
-  if (srslte_harq_setup_ul(&harq_process, mcs, 0, 0, &prb_alloc)) {
+  mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", srslte_mod_bits_x_symbol(cfg.grant.mcs.mod), cfg.grant.L_prb, cfg.rv);
+
+  if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
   }
     
-  uint8_t *q_bits = srslte_vec_malloc(harq_process.nof_bits * sizeof(uint8_t));
+  uint8_t *q_bits = srslte_vec_malloc(cfg.grant.nof_bits * sizeof(uint8_t));
   if (!q_bits) {
     return;
   }
-  uint8_t *g_bits = srslte_vec_malloc(harq_process.nof_bits * sizeof(uint8_t));
+  uint8_t *g_bits = srslte_vec_malloc(cfg.grant.nof_bits * sizeof(uint8_t));
   if (!g_bits) {
     return;
   }
 
-  if (srslte_ulsch_uci_encode(&ulsch, &harq_process, trblkin, uci_data, g_bits, q_bits)) 
+  if (srslte_ulsch_uci_encode(&ulsch, &cfg, &softbuffer, trblkin, uci_data, g_bits, q_bits)) 
   {
     mexErrMsgTxt("Error encoding TB\n");
     return;
   }    
   if (rv > 0) {
-    if (srslte_harq_setup_ul(&harq_process, mcs, rv, 0, &prb_alloc)) {
-      mexErrMsgTxt("Error configuring HARQ process\n");
-      return;
-    }
-    if (srslte_ulsch_uci_encode(&ulsch, &harq_process, trblkin, uci_data, g_bits, q_bits)) {
+    cfg.rv = rv; 
+    if (srslte_ulsch_uci_encode(&ulsch, &cfg, &softbuffer, trblkin, uci_data, g_bits, q_bits)) {
       mexErrMsgTxt("Error encoding TB\n");
       return;
     }    
   }
   
   if (nlhs >= 1) {
-    mexutils_write_uint8(q_bits, &plhs[0], harq_process.nof_bits, 1);  
+    mexutils_write_uint8(q_bits, &plhs[0], cfg.grant.nof_bits, 1);  
   }
   
   srslte_sch_free(&ulsch);  
-  srslte_harq_free(&harq_process);
+  srslte_softbuffer_tx_free(&softbuffer);
   
   free(trblkin);
   free(g_bits);    

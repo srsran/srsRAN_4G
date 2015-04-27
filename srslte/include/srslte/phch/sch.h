@@ -42,7 +42,8 @@
 #include "srslte/fec/turbocoder.h"
 #include "srslte/fec/turbodecoder.h"
 #include "srslte/fec/crc.h"
-#include "srslte/phch/harq.h"
+#include "srslte/phch/pdsch_cfg.h"
+#include "srslte/phch/pusch_cfg.h"
 #include "srslte/phch/uci.h"
 
 #define SRSLTE_PDSCH_MAX_TDEC_ITERS         5
@@ -58,7 +59,7 @@
 
 /* DL-SCH AND UL-SCH common functions */
 typedef struct SRSLTE_API {
-
+  
   uint32_t nof_iterations; 
   float average_nof_iterations; 
   
@@ -86,31 +87,42 @@ SRSLTE_API float srslte_sch_average_noi(srslte_sch_t *q);
 SRSLTE_API uint32_t srslte_sch_last_noi(srslte_sch_t *q);
 
 SRSLTE_API int srslte_dlsch_encode(srslte_sch_t *q, 
-                            srslte_harq_t *harq_process,
-                            uint8_t *data, 
-                            uint8_t *e_bits);
+                                   srslte_pdsch_cfg_t *cfg,
+                                   srslte_softbuffer_tx_t *softbuffer,
+                                   uint8_t *data, 
+                                   uint8_t *e_bits);
 
 SRSLTE_API int srslte_dlsch_decode(srslte_sch_t *q, 
-                            srslte_harq_t *harq_process,
-                            float *e_bits, 
-                            uint8_t *data);
+                                   srslte_pdsch_cfg_t *cfg,
+                                   srslte_softbuffer_rx_t *softbuffer,
+                                   float *e_bits, 
+                                   uint8_t *data);
 
 SRSLTE_API int srslte_ulsch_encode(srslte_sch_t *q, 
-                            srslte_harq_t *harq_process,
-                            uint8_t *data, 
-                            uint8_t *g_bits,
-                            uint8_t *q_bits);
+                                   srslte_pusch_cfg_t *cfg,
+                                   srslte_softbuffer_tx_t *softbuffer,
+                                   uint8_t *data, 
+                                   uint8_t *g_bits,
+                                   uint8_t *q_bits);
 
 SRSLTE_API int srslte_ulsch_uci_encode(srslte_sch_t *q, 
-                                srslte_harq_t *harq_process,
-                                uint8_t *data, 
-                                srslte_uci_data_t uci_data, 
-                                uint8_t *g_bits,
-                                uint8_t *q_bits);
+                                       srslte_pusch_cfg_t *cfg,
+                                       srslte_softbuffer_tx_t *softbuffer,
+                                       uint8_t *data, 
+                                       srslte_uci_data_t uci_data, 
+                                       uint8_t *g_bits, 
+                                       uint8_t *q_bits);
 
 SRSLTE_API int srslte_ulsch_decode(srslte_sch_t *q, 
-                            srslte_harq_t *harq_process,
-                            float *e_bits, 
-                            uint8_t *data);
+                                   srslte_pusch_cfg_t *cfg,
+                                   srslte_softbuffer_rx_t *softbuffer,
+                                   float *e_bits, 
+                                   uint8_t *data);
+
+SRSLTE_API uint32_t srslte_sch_find_Ioffset_ack(float beta); 
+
+SRSLTE_API uint32_t srslte_sch_find_Ioffset_cqi(float beta); 
+
+SRSLTE_API uint32_t srslte_sch_find_Ioffset_ri(float beta); 
 
 #endif

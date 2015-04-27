@@ -64,6 +64,7 @@
 #include "srslte/fec/tc_interl.h"
 #include "srslte/fec/turbocoder.h"
 #include "srslte/fec/turbodecoder.h"
+#include "srslte/fec/cbsegm.h"
 #include "srslte/fec/rm_conv.h"
 #include "srslte/fec/rm_turbo.h"
 
@@ -87,7 +88,7 @@
 
 #include "srslte/phch/cqi.h"
 #include "srslte/phch/dci.h"
-#include "srslte/phch/harq.h"
+#include "srslte/phch/softbuffer.h"
 #include "srslte/phch/pbch.h"
 #include "srslte/phch/pcfich.h"
 #include "srslte/phch/pdcch.h"

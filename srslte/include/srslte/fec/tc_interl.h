@@ -37,6 +37,7 @@
 #define _TC_INTERL_H
 
 #include "srslte/config.h"
+#include <stdint.h>
 
 typedef struct SRSLTE_API {
   uint32_t *forward;

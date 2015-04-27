@@ -92,7 +92,7 @@ uint8_t payload[1024];
 
 // This is the MAC implementation
 void run_tti(uint32_t tti) {
-  srslte::ue::sched_grant grant = srslte::ue::sched_grant(srslte::ue::sched_grant::DOWNLINK, SRSLTE_SIRNTI); 
+  srslte::ue::dl_sched_grant grant(SRSLTE_SIRNTI); 
   INFO("MAC running tti: %d\n", tti);
   
   // SIB1 is scheduled in subframe #5 of even frames
@@ -106,9 +106,9 @@ void run_tti(uint32_t tti) {
       total_dci++; 
       // MAC sets RV
       grant.set_rv(((uint32_t) ceilf((float)3*((phy.tti_to_SFN(tti)/2)%4)/2))%4);
-      
+
       // Decode packet
-      if (!buffer->decode_data(grant, payload)) {
+      if (!buffer->decode_data(&grant, payload)) {
         total_errors++; 
       }
     }
@@ -140,6 +140,12 @@ int main(int argc, char *argv[])
   
   // Give it time to create thread 
   sleep(1);
+  
+  // Set default parameters 
+  phy.set_param(srslte::ue::phy_params::PRACH_CONFIG_INDEX, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_ROOT_SEQ_IDX, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_HIGH_SPEED_FLAG, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 1);
   
   // Set RX freq and gain
   phy.get_radio()->set_rx_freq(prog_args.uhd_freq);
