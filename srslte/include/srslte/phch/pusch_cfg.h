@@ -37,7 +37,7 @@
 #define PUSCHCFG_
 
 #include "srslte/phch/ra.h"
-#include "srslte/phch/softbuffer.h"
+#include "srslte/fec/softbuffer.h"
 #include "srslte/fec/cbsegm.h"
 
 typedef struct SRSLTE_API {

@@ -88,7 +88,7 @@
 
 #include "srslte/phch/cqi.h"
 #include "srslte/phch/dci.h"
-#include "srslte/phch/softbuffer.h"
+#include "srslte/fec/softbuffer.h"
 #include "srslte/phch/pbch.h"
 #include "srslte/phch/pcfich.h"
 #include "srslte/phch/pdcch.h"

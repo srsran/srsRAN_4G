@@ -133,8 +133,7 @@ int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uin
 /* Undoes Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1
  * 
- * If rv_idx==0, the w_buff circular buffer is initialized. Every subsequent call 
- * with rv_idx!=0 will soft-combine the LLRs from input with w_buff
+ * Soft-combines the data available in w_buff 
  */
 int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_t in_len, float *output,
     uint32_t out_len, uint32_t rv_idx, uint32_t nof_filler_bits) {
@@ -162,12 +161,6 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
   ndummy = K_p - out_len / 3;
   if (ndummy < 0) {
     ndummy = 0;
-  }
-
-  if (rv_idx == 0) {
-    for (i = 0; i < 3 * K_p; i++) {
-      w_buff[i] = SRSLTE_RX_NULL;
-    }    
   }
 
   /* Undo bit collection. Account for dummy bits */

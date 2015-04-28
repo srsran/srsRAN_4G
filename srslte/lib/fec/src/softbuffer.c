@@ -37,7 +37,8 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/ra.h"
 #include "srslte/fec/turbodecoder.h"
-#include "srslte/phch/softbuffer.h"
+#include "srslte/fec/rm_turbo.h"
+#include "srslte/fec/softbuffer.h"
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
@@ -92,11 +93,12 @@ void srslte_softbuffer_rx_free(srslte_softbuffer_rx_t *q) {
 }
 
 void srslte_softbuffer_rx_reset(srslte_softbuffer_rx_t *q) {
-  int i; 
   if (q->buffer_f) {
-    for (i=0;i<q->max_cb;i++) {
+    for (uint32_t i=0;i<q->max_cb;i++) {
       if (q->buffer_f[i]) {
-        bzero(q->buffer_f[i], sizeof(float) * q->buff_size);
+        for (uint32_t j=0;j<q->buff_size;j++) {
+          q->buffer_f[i][j] = SRSLTE_RX_NULL;
+        }
       }
     }
   }
