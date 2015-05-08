@@ -46,6 +46,8 @@ namespace ue {
     bool           init_cell(srslte_cell_t cell, phy_params *params_db);
     void           free_cell();
     bool           prepare_to_send(uint32_t preamble_idx);
+    bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe);
+    bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe, int target_power_dbm);
     bool           is_ready_to_send(uint32_t current_tti);
     int            get_transmitted_tti(); 
     bool           send(srslte::radio* radio_handler, float cfo, srslte_timestamp_t rx_time);
@@ -53,6 +55,7 @@ namespace ue {
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
     phy_params    *params_db     = NULL; 
     int            preamble_idx;  
+    int            allowed_subframe; 
     bool           initiated     = false;   
     uint32_t       len; 
     cf_t          *buffer[64]; 

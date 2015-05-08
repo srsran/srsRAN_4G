@@ -101,7 +101,7 @@ void run_tti(uint32_t tti) {
     srslte::ue::dl_buffer *buffer = phy.get_dl_buffer(tti); 
     
     // Get DL grant
-    if (buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_SIRNTI, &grant)) 
+    if (buffer->get_dl_grant(&grant)) 
     {
       total_dci++; 
       // MAC sets RV

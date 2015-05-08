@@ -74,7 +74,7 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       perror("malloc");
       goto clean_exit;
     }
-    q->tmp_noise = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+    q->tmp_noise = srslte_vec_malloc(sizeof(cf_t) * 2 * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
     if (!q->tmp_noise) {
       perror("malloc");
       goto clean_exit;
@@ -99,7 +99,8 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
         perror("malloc");
         goto clean_exit;
       }      
-      q->pilot_estimates_average[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb, i));
+      // FIXME: There's an invalid read during rsrp estimation for this buffer
+      q->pilot_estimates_average[i] = srslte_vec_malloc(2 * sizeof(cf_t) * SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb, i));
       if (!q->pilot_estimates_average[i]) {
         perror("malloc");
         goto clean_exit;

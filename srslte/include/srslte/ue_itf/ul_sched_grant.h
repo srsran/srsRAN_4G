@@ -39,6 +39,7 @@ namespace ue {
   class SRSLTE_API ul_sched_grant : public sched_grant {
   public:
 
+             ul_sched_grant(rnti_type_t type, uint16_t rnti) : sched_grant(type, rnti) {} 
              ul_sched_grant(uint16_t rnti) : sched_grant(rnti) {} 
              
     uint32_t get_rv() {
@@ -77,7 +78,11 @@ namespace ue {
     uint32_t get_n_dmrs() {
       return ul_dci.n_dmrs;
     }
+    bool     is_from_rar() {
+      return grant_is_from_rar; 
+    }
     bool     create_from_dci(srslte_dci_msg_t *msg, srslte_cell_t cell, uint32_t N_srs, uint32_t n_rb_ho) {
+      grant_is_from_rar = false; 
       if (srslte_dci_msg_to_ul_grant(msg, cell, N_srs, n_rb_ho, &ul_dci, &grant)) {
         return false; 
       } else {
@@ -88,6 +93,7 @@ namespace ue {
       }
     }
     bool     create_from_rar(srslte_dci_rar_grant_t *rar, srslte_cell_t cell, uint32_t N_srs, uint32_t n_rb_ho) {
+      grant_is_from_rar = true; 
       if (srslte_dci_rar_to_ul_grant(rar, cell, N_srs, n_rb_ho, &ul_dci, &grant)) {
         return false; 
       } else {
@@ -109,6 +115,7 @@ namespace ue {
     srslte_ra_ul_dci_t   ul_dci; 
     uint32_t             current_tx_nb; 
     uint16_t             rnti; 
+    bool                 grant_is_from_rar; 
   };
  
 }

@@ -114,10 +114,16 @@ void phy::set_param(phy_params::phy_param_t param, int64_t value) {
 
 
 // FIXME: Add PRACH power control
-bool phy::send_prach(uint32_t preamble_idx)
+bool phy::send_prach(uint32_t preamble_idx) {
+  send_prach(preamble_idx, -1, 0);
+}
+bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe) {
+  send_prach(preamble_idx, allowed_subframe, 0);
+}
+bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_power_dbm)
 {
   if (phy_state == RXTX) {
-    return prach_buffer.prepare_to_send(preamble_idx);
+    return prach_buffer.prepare_to_send(preamble_idx, allowed_subframe, target_power_dbm);
   } 
   return false; 
 }
@@ -209,16 +215,14 @@ bool phy::set_cell(srslte_cell_t cell_) {
       {
 
         srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
-        if (prach_buffer.init_cell(cell, &params_db)) {
-          for(uint32_t i=0;i<6;i++) {
-            ((ul_buffer*) ul_buffer_queue->get(i))->init_cell(cell, &params_db);
-            ((dl_buffer*) dl_buffer_queue->get(i))->init_cell(cell, &params_db);      
-            ((dl_buffer*) dl_buffer_queue->get(i))->buffer_id = i; 
-            ((ul_buffer*) ul_buffer_queue->get(i))->ready(); 
-            ((dl_buffer*) dl_buffer_queue->get(i))->release(); 
-          }    
-          cell_is_set = true;           
-        }
+        for(uint32_t i=0;i<6;i++) {
+          ((ul_buffer*) ul_buffer_queue->get(i))->init_cell(cell, &params_db);
+          ((dl_buffer*) dl_buffer_queue->get(i))->init_cell(cell, &params_db);      
+          ((dl_buffer*) dl_buffer_queue->get(i))->buffer_id = i; 
+          ((ul_buffer*) ul_buffer_queue->get(i))->ready(); 
+          ((dl_buffer*) dl_buffer_queue->get(i))->release(); 
+        }    
+        cell_is_set = true;                   
       } else {
         fprintf(stderr, "Error setting cell: initiating ue_sync");      
       }
@@ -229,6 +233,10 @@ bool phy::set_cell(srslte_cell_t cell_) {
     fprintf(stderr, "Error setting cell: Invalid state %d\n", phy_state);
   }
   return cell_is_set; 
+}
+
+bool phy::init_prach() {
+  return prach_buffer.init_cell(cell, &params_db);
 }
 
 ul_buffer* phy::get_ul_buffer(uint32_t tti)

@@ -98,7 +98,7 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
     }
 
     uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
-    if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, DCI_MAX_BITS + 16, true)) {
+    if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, SRSLTE_DCI_MAX_BITS + 16, true)) {
       goto clean;
     }
 
@@ -281,7 +281,7 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
   if (q         != NULL         &&
       data      != NULL         &&
       E         <= q->max_bits   && 
-      nof_bits  <= DCI_MAX_BITS)
+      nof_bits  <= SRSLTE_DCI_MAX_BITS)
   {
 
     /* unrate matching */
@@ -441,12 +441,12 @@ static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
 static int dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, uint32_t E,
     uint16_t rnti) {
   srslte_convcoder_t encoder;
-  uint8_t tmp[3 * (DCI_MAX_BITS + 16)];
+  uint8_t tmp[3 * (SRSLTE_DCI_MAX_BITS + 16)];
   
   if (q                 != NULL        && 
       data              != NULL        && 
       e                 != NULL        && 
-      nof_bits          < DCI_MAX_BITS &&
+      nof_bits          < SRSLTE_DCI_MAX_BITS &&
       E                 < q->max_bits)
   {
 
@@ -506,7 +506,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
     ret = SRSLTE_ERROR;
     
     if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce && 
-        msg->nof_bits < DCI_MAX_BITS) 
+        msg->nof_bits < SRSLTE_DCI_MAX_BITS) 
     {      
       INFO("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
           msg->nof_bits, e_bits, location.ncce, location.L, rnti);

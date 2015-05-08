@@ -78,7 +78,7 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
         crc_is_crnti = true; 
       }
       if (srslte_dci_msg_unpack_pdsch(msg, dl_dci, cell.nof_prb, crc_is_crnti)) {
-        fprintf(stderr, "Can't unpack PDSCH message\n");
+        fprintf(stderr, "Can't unpack DCI message\n");
         return ret;
       } 
       
@@ -138,6 +138,18 @@ int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, srslte_cell_t cell,
     srslte_ra_ul_grant_fprint(stdout, grant);
   }
   return SRSLTE_SUCCESS;
+}
+
+/* Unpack RAR UL grant as defined in Section 6.2 of 36.213 */
+void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, uint8_t grant[SRSLTE_RAR_GRANT_LEN])
+{
+  uint8_t *grant_ptr = grant; 
+  rar->hopping_flag = srslte_bit_unpack(&grant_ptr, 1)?true:false;
+  rar->rba          = srslte_bit_unpack(&grant_ptr, 10);
+  rar->trunc_mcs    = srslte_bit_unpack(&grant_ptr, 4);
+  rar->tpc_pusch    = srslte_bit_unpack(&grant_ptr, 3);
+  rar->ul_delay     = srslte_bit_unpack(&grant_ptr, 1)?true:false;
+  rar->cqi_request  = srslte_bit_unpack(&grant_ptr, 1)?true:false;
 }
 
 /* Creates the UL PUSCH resource allocation grant from a DCI format 0 message

@@ -79,6 +79,16 @@ bool ul_buffer::generate_ack(bool ack[2])
   uci_pending = true; 
 }
 
+void ul_buffer::set_current_tx_nb(uint32_t current_tx_nb_)
+{
+  current_tx_nb = current_tx_nb_;
+}
+
+bool ul_buffer::generate_cqi_report()
+{
+  return false; 
+}
+
 bool ul_buffer::generate_sr() {
   uci_data.scheduling_request = true; 
   uci_pending = true; 
@@ -95,6 +105,11 @@ bool ul_buffer::generate_data() {
 
 bool ul_buffer::generate_data(ul_sched_grant *grant, 
                               uint8_t *payload) 
+{
+  generate_data(grant, &ue_ul.softbuffer, payload); 
+}
+  
+bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *softbuffer, uint8_t *payload) 
 {
   if (is_ready()) {
     

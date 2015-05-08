@@ -263,7 +263,7 @@ void run_tti(uint32_t tti) {
       INFO("Interval=%u\n", interval_ra);
       if (interval_ra >= 3 && interval_ra <= 13) {        
         // Get DL grant for RA-RNTI=2
-        if (dl_buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_RARNTI, &rar_grant)) 
+        if (dl_buffer->get_dl_grant(&rar_grant)) 
         {
           // Decode packet
           if (dl_buffer->decode_data(&rar_grant, payload)) {
@@ -366,7 +366,7 @@ void run_tti(uint32_t tti) {
     srslte::ue::dl_sched_grant conn_setup_grant(rar_msg.temp_c_rnti); 
     bool connsetup_recv = false;
     // Get DL grant for tmp_rnti
-    if (dl_buffer->get_dl_grant(srslte::ue::dl_buffer::PDCCH_DL_SEARCH_TEMPORAL, &conn_setup_grant)) 
+    if (dl_buffer->get_dl_grant(&conn_setup_grant)) 
     {
       // Decode packet
       if (dl_buffer->decode_data(&conn_setup_grant, payload)) {

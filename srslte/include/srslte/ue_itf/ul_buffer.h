@@ -47,7 +47,6 @@ namespace ue {
   public: 
     bool     init_cell(srslte_cell_t cell, phy_params *params_db);
     void     free_cell();
-    void     set_tti(uint32_t tti);
     void     set_current_tx_nb(uint32_t current_tx_nb);
     bool     generate_ack(bool ack, dl_sched_grant *last_dl_grant); 
     bool     generate_ack(bool ack[2]); 
@@ -56,6 +55,7 @@ namespace ue {
     bool     uci_ready();
     bool     generate_data();   
     bool     generate_data(ul_sched_grant *pusch_grant, uint8_t *payload);   
+    bool     generate_data(ul_sched_grant *pusch_grant, srslte_softbuffer_tx_t *softbuffer, uint8_t *payload);   
     bool     send(radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time);
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
 

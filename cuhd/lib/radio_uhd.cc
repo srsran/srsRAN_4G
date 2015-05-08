@@ -49,7 +49,7 @@ bool radio_uhd::init(char *args)
 
 bool radio_uhd::rx_at(void* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time)
 {
-  fprintf(stderr, "Not implemented\n");
+  fprintf(stderr, "UHD Receive at time not implemented\n");
   return false; 
 }
 

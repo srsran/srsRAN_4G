@@ -42,33 +42,20 @@ namespace ue {
     */
   class SRSLTE_API dl_buffer : public queue::element {
   public:
-    typedef enum {
-      PDCCH_UL_SEARCH_CRNTI = 0,
-      PDCCH_UL_SEARCH_RA_PROC,
-      PDCCH_UL_SEARCH_SPS,
-      PDCCH_UL_SEARCH_TEMPORAL,
-      PDCCH_UL_SEARCH_TPC_PUSCH,
-      PDCCH_UL_SEARCH_TPC_PUCCH
-    } pdcch_ul_search_t; 
-
-    typedef enum {
-      PDCCH_DL_SEARCH_CRNTI = 0,
-      PDCCH_DL_SEARCH_SIRNTI,
-      PDCCH_DL_SEARCH_PRNTI,
-      PDCCH_DL_SEARCH_RARNTI,
-      PDCCH_DL_SEARCH_TEMPORAL,    
-      PDCCH_DL_SEARCH_SPS
-    } pdcch_dl_search_t; 
-
+    
     int buffer_id; 
     
     bool           init_cell(srslte_cell_t cell, phy_params *params_db);
     void           free_cell();
     bool           recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time);
-    bool           get_ul_grant(pdcch_ul_search_t mode, ul_sched_grant *grant);
-    bool           get_dl_grant(pdcch_dl_search_t mode, dl_sched_grant *grant);
+    bool           get_ul_grant(ul_sched_grant *grant);
+    bool           get_dl_grant(dl_sched_grant *grant);
+    void           discard_pending_rar_grant(); 
+    void           set_rar_grant(srslte_dci_rar_grant_t *rar_grant);
+    void           set_rar_grant(uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
     bool           decode_ack(ul_sched_grant *pusch_grant);
     bool           decode_data(dl_sched_grant *pdsch_grant, uint8_t *payload); // returns true or false for CRC OK/NOK
+    bool           decode_data(dl_sched_grant *grant, srslte_softbuffer_rx_t *softbuffer, uint8_t *payload);
     
   private: 
     phy_params    *params_db;
@@ -79,6 +66,8 @@ namespace ue {
     uint32_t       cfi; 
     bool           sf_symbols_and_ce_done; 
     bool           pdcch_llr_extracted;    
+    bool           pending_rar_grant; 
+    srslte_dci_rar_grant_t rar_grant; 
   };    
 }
 }

@@ -44,7 +44,9 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/ra.h"
 
-#define DCI_MAX_BITS  57
+#define SRSLTE_DCI_MAX_BITS  57
+
+#define SRSLTE_RAR_GRANT_LEN 20
 
 typedef enum {
   SRSLTE_DCI_FORMAT0, 
@@ -77,13 +79,16 @@ typedef struct SRSLTE_API {
 } srslte_dci_location_t;
 
 typedef struct SRSLTE_API {
-  uint8_t data[DCI_MAX_BITS];
+  uint8_t data[SRSLTE_DCI_MAX_BITS];
   uint32_t nof_bits;
 } srslte_dci_msg_t;
 
 typedef struct SRSLTE_API {
   uint32_t rba;
   uint32_t trunc_mcs;
+  uint32_t tpc_pusch;
+  bool ul_delay;
+  bool cqi_request; 
   bool hopping_flag; 
 } srslte_dci_rar_grant_t;
 
@@ -111,6 +116,9 @@ SRSLTE_API int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar,
                                           uint32_t n_rb_ho, 
                                           srslte_ra_ul_dci_t *ul_dci,
                                           srslte_ra_ul_grant_t *grant); 
+
+SRSLTE_API void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, 
+                                            uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
 
 SRSLTE_API srslte_dci_format_t srslte_dci_format_from_string(char *str);
 

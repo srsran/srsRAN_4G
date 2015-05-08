@@ -24,6 +24,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#include <stdlib.h>
 
 #include "srslte/srslte.h"
 
@@ -37,10 +38,12 @@ namespace ue {
   public: 
     params_db(uint32_t nof_params_) {
       nof_params = nof_params_; 
-      db = new int64_t[nof_params_]; 
+      db = (int64_t*) calloc(sizeof(int64_t), nof_params); 
     }
    ~params_db() {
-      delete db; 
+      if (db) {
+        free(db);
+      }
     }
     void    set_param(uint32_t param_idx, int64_t value) {
       if (param_idx < nof_params) {

@@ -73,7 +73,7 @@ typedef struct SRSLTE_API {
   cf_t *x[SRSLTE_MAX_PORTS];
   cf_t *d;
   uint8_t *e;
-  float rm_f[3 * (DCI_MAX_BITS + 16)];
+  float rm_f[3 * (SRSLTE_DCI_MAX_BITS + 16)];
   float *llr;
 
   /* tx & rx objects */

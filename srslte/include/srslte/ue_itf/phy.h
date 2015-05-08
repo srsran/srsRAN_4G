@@ -63,6 +63,7 @@ public:
     started = false; 
     is_sfn_synched = false; 
     cell_is_set = false; 
+    phy_state = IDLE; 
   }
   bool init(radio *radio_handler, tti_sync *ttisync);
   void stop();
@@ -78,7 +79,10 @@ public:
   bool stop_rxtx();
 
   // Indicate the PHY to send PRACH as soon as possible
+  bool init_prach();
   bool send_prach(uint32_t preamble_idx);  
+  bool send_prach(uint32_t preamble_idx, int allowed_subframe);  
+  bool send_prach(uint32_t preamble_idx, int allowed_subframe, int target_power_dbm);  
   
   // Returns TTI when PRACH was transmitted. -1 if not yet transmitted
   int get_prach_transmitted_tti();
@@ -90,7 +94,7 @@ public:
   void set_timeadv_rar(uint32_t ta_cmd);
   void set_timeadv(uint32_t ta_cmd);
   
-  // Generate Msg3 UL grant from RAR 
+  // Convert Msg3 UL grant to ul_sched_grant 
   void rar_ul_grant(srslte_dci_rar_grant_t *rar, ul_sched_grant *grant); 
   
   // Get status 

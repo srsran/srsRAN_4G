@@ -85,10 +85,17 @@ bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_)
   return initiated;  
 }
 
-bool prach::prepare_to_send(uint32_t preamble_idx_)
+bool prach::prepare_to_send(uint32_t preamble_idx_) {
+  prepare_to_send(preamble_idx_, -1, 0); 
+}
+bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_) {
+  prepare_to_send(preamble_idx_, allowed_subframe_, 0); 
+}
+bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, int target_power_dbm)
 {
   if (initiated && preamble_idx_ < 64) {
     preamble_idx = preamble_idx_;
+    allowed_subframe = allowed_subframe_; 
     transmitted_tti = -1; 
     INFO("PRACH Buffer: Prepare to send preamble %d\n", preamble_idx);
     return true; 
@@ -112,7 +119,9 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
       srslte_prach_sf_config_t sf_config;
       srslte_prach_sf_config(config_idx, &sf_config);
       for (int i=0;i<sf_config.nof_sf;i++) {
-        if ((current_tti%10) == sf_config.sf[i]) {
+        if ((current_tti%10) == sf_config.sf[i] && allowed_subframe == -1 || 
+            ((current_tti%10) == sf_config.sf[i] && (current_tti%10) == allowed_subframe))
+        {
           INFO("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", current_tti, current_tti_);
           transmitted_tti = current_tti; 
           return true; 

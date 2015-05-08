@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
       case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
         bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
         if (srslte_dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SRSLTE_SIRNTI)) {
-          fprintf(stderr, "Can't unpack PDSCH message\n");
+          fprintf(stderr, "Can't unpack DCI message\n");
         } else {
           srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
           if (ra_dl.alloc_type == SRSLTE_RA_ALLOC_TYPE2 && ra_dl.type2_alloc.mode == SRSLTE_RA_TYPE2_LOC

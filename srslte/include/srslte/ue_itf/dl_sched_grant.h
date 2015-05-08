@@ -39,6 +39,7 @@ namespace ue {
   class SRSLTE_API dl_sched_grant : public sched_grant {
   public:
 
+             dl_sched_grant(rnti_type_t type, uint16_t rnti) : sched_grant(type, rnti) {} 
              dl_sched_grant(uint16_t rnti) : sched_grant(rnti) {} 
              
     uint32_t get_rv() {

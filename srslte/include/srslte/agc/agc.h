@@ -43,7 +43,7 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_AGC_DEFAULT_TARGET 1.0
+#define SRSLTE_AGC_DEFAULT_TARGET 0.7
 #define SRSLTE_AGC_DEFAULT_BW     (5e-2)
 
 typedef enum SRSLTE_API {
