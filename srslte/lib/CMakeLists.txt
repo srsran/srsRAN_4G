@@ -25,8 +25,9 @@
 ########################################################################
 include(CheckFunctionExistsMath)
 
+FIND_PACKAGE(SRSGUI)
+FIND_PACKAGE(UHD)
 FIND_PACKAGE(FFTW3F REQUIRED) # TODO: distribute kissfft instead
-INCLUDE_DIRECTORIES(${FFTW3F_INCLUDE_DIRS})
 
 IF(${DISABLE_VOLK})
   IF(${DISABLE_VOLK} EQUAL 0)
@@ -38,7 +39,21 @@ ELSE(${DISABLE_VOLK})
   FIND_PACKAGE(Volk)
 ENDIF(${DISABLE_VOLK})
 
-FIND_PACKAGE(SRSGUI)
+IF(FFTW3F_FOUND)
+  INCLUDE_DIRECTORIES(${FFTW3F_INCLUDE_DIRS})
+  LINK_DIRECTORIES(${FFTW3F_LIBRARY_DIRS})
+ENDIF(FFTW3F_FOUND)
+
+IF(UHD_FOUND)
+  INCLUDE_DIRECTORIES(${UHD_INCLUDE_DIRS})
+  LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
+ENDIF(UHD_FOUND)
+
+IF(SRSGUI_FOUND)
+  INCLUDE_DIRECTORIES(${SRSGUI_INCLUDE_DIRS})
+  LINK_DIRECTORIES(${SRSGUI_LIBRARY_DIRS})
+ENDIF(SRSGUI_FOUND)
+
 
 ########################################################################
 # Recurse subdirectories and compile all source files into the same lib  
@@ -47,13 +62,22 @@ FILE(GLOB modules *)
 SET(SOURCES_ALL "")
 FOREACH (_module ${modules})
   IF(IS_DIRECTORY ${_module})
-    FILE(GLOB_RECURSE tmp "${_module}/src/*.c")
-    LIST(APPEND SOURCES_ALL ${tmp})
+    IF ((NOT ${_module} MATCHES "cuhd") OR UHD_FOUND)
+      FILE(GLOB_RECURSE tmp "${_module}/src/*.c")
+      LIST(APPEND SOURCES_ALL ${tmp})
+      FILE(GLOB_RECURSE tmp2 "${_module}/src/*.cpp")
+      LIST(APPEND SOURCES_ALL ${tmp2})
+    ENDIF ((NOT ${_module} MATCHES "cuhd") OR UHD_FOUND)
   ENDIF(IS_DIRECTORY ${_module})
 ENDFOREACH()
 
 ADD_LIBRARY(srslte SHARED ${SOURCES_ALL})
+
 TARGET_LINK_LIBRARIES(srslte m ${FFTW3F_LIBRARIES})
+IF(UHD_FOUND)
+  TARGET_LINK_LIBRARIES(srslte ${UHD_LIBRARIES})
+ENDIF(UHD_FOUND)
+
 INSTALL(TARGETS srslte DESTINATION ${LIBRARY_DIR})
 LIBLTE_SET_PIC(srslte)
 
@@ -76,21 +100,4 @@ FOREACH (_file ${cmakefiles})
     ADD_SUBDIRECTORY(${dir})
   ENDIF ()
 ENDFOREACH()
-
-########################################################################
-# Create C++ library 
-########################################################################
-FILE(GLOB modules *) 
-SET(SOURCES_CPP_ALL "")
-FOREACH (_module ${modules})
-  IF(IS_DIRECTORY ${_module})
-    FILE(GLOB_RECURSE tmp "${_module}/src/*.cc")
-    LIST(APPEND SOURCES_CPP_ALL ${tmp})
-  ENDIF(IS_DIRECTORY ${_module})
-ENDFOREACH()
-
-ADD_LIBRARY(srslte++ SHARED ${SOURCES_CPP_ALL})
-TARGET_LINK_LIBRARIES(srslte++ cuhd srslte m pthread ${FFTW3F_LIBRARIES})
-INSTALL(TARGETS srslte++ DESTINATION ${LIBRARY_DIR})
-LIBLTE_SET_PIC(srslte++)
 

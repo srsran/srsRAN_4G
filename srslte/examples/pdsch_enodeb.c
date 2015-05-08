@@ -39,6 +39,8 @@
 #ifndef DISABLE_UHD
 #include "srslte/cuhd/cuhd.h"
 void *uhd;
+#else
+#warning Compiling pdsch_ue with no UHD support
 #endif
 
 char *output_file_name = NULL;

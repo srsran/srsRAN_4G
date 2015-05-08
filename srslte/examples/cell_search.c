@@ -37,7 +37,7 @@
 
 #include "srslte/srslte.h"
 
-#include "cuhd_utils.h"
+#include "srslte/cuhd/cuhd_utils.h"
 
 
 #ifndef DISABLE_UHD

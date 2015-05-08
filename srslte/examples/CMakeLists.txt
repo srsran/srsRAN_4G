@@ -38,36 +38,27 @@ target_link_libraries(ll_example srslte)
 add_executable(synch_file synch_file.c)
 target_link_libraries(synch_file srslte)
 
-LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
-
-
-
 
 #################################################################
 # These can be compiled without UHD or graphics support
 #################################################################
 
-add_executable(pdsch_ue pdsch_ue.c cuhd_utils.c)
-target_link_libraries(pdsch_ue srslte)
+add_executable(pdsch_ue pdsch_ue.c)
+target_link_libraries(pdsch_ue srslte pthread)
 
 add_executable(pdsch_enodeb pdsch_enodeb.c)
 target_link_libraries(pdsch_enodeb srslte pthread)
 
-LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
-IF(${CUHD_FIND} EQUAL -1)
-  SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
-  SET_TARGET_PROPERTIES(pdsch_enodeb PROPERTIES COMPILE_DEFINITIONS "DISABLE_UHD")
-ELSE(${CUHD_FIND} EQUAL -1)
-  target_link_libraries(pdsch_ue cuhd pthread)
-  target_link_libraries(pdsch_enodeb cuhd)
-ENDIF(${CUHD_FIND} EQUAL -1)
+IF(UHD_FOUND)
+ELSE(UHD_FOUND)
+  add_definitions(-DDISABLE_UHD)
+  add_definitions(-DDISABLE_UHD)
+ENDIF(UHD_FOUND)
 
-FIND_PACKAGE(SRSGUI)
 IF(SRSGUI_FOUND)
-  include_directories(${SRSGUI_INCLUDE_DIRS})
   target_link_libraries(pdsch_ue ${SRSGUI_LIBRARIES})
 ELSE(SRSGUI_FOUND)
-  SET_TARGET_PROPERTIES(pdsch_ue PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
+  add_definitions(-DDISABLE_GRAPHICS)
 ENDIF(SRSGUI_FOUND)
 
 
@@ -75,25 +66,29 @@ ENDIF(SRSGUI_FOUND)
 # These examples need the UHD driver
 #################################################################
 
-IF(${CUHD_FIND} GREATER -1)
+IF(UHD_FOUND)
 
-  add_executable(cell_search cell_search.c cuhd_utils.c)
-  target_link_libraries(cell_search srslte cuhd )
+  add_executable(cell_search cell_search.c)
+  target_link_libraries(cell_search srslte )
 
-  add_executable(prach_ue prach_ue.c cuhd_utils.c)
-  target_link_libraries(prach_ue srslte cuhd)
+  add_executable(prach_ue prach_ue.c)
+  target_link_libraries(prach_ue srslte )
 
-  add_executable(cell_measurement cell_measurement.c cuhd_utils.c)
-  target_link_libraries(cell_measurement cuhd srslte)
+  add_executable(cell_measurement cell_measurement.c)
+  target_link_libraries(cell_measurement srslte)
 
-  add_executable(usrp_capture usrp_capture.c cuhd_utils.c)
-  target_link_libraries(usrp_capture cuhd srslte)
+  add_executable(usrp_capture usrp_capture.c)
+  target_link_libraries(usrp_capture srslte)
 
-  add_executable(usrp_capture_sync usrp_capture_sync.c cuhd_utils.c)
-  target_link_libraries(usrp_capture_sync cuhd srslte)
+  add_executable(usrp_capture_sync usrp_capture_sync.c)
+  target_link_libraries(usrp_capture_sync srslte)
 
   MESSAGE(STATUS "   UHD examples will be installed.")
 
-ELSE(${CUHD_FIND} GREATER -1)
-  MESSAGE(STATUS "   UHD examples NOT INSTALLED: CUHD library not compiled.")
-ENDIF(${CUHD_FIND} GREATER -1)
+ELSE(UHD_FOUND)
+  MESSAGE(STATUS "   UHD examples NOT INSTALLED.")
+ENDIF(UHD_FOUND)
+
+# Add subdirectories 
+add_subdirectory(tutorial_examples)
+

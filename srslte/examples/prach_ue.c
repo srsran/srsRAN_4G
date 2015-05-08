@@ -42,7 +42,7 @@
 
 
 #include "srslte/cuhd/cuhd.h"
-#include "cuhd_utils.h"
+#include "srslte/cuhd/cuhd_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
   5000,

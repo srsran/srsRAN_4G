@@ -23,32 +23,24 @@
 # PROGRAM TO DEBUG PSS FROM USRP  
 ########################################################################
 
-LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
-
-FIND_PACKAGE(SRSGUI)
-
 ADD_EXECUTABLE(pss_file pss_file.c)
 TARGET_LINK_LIBRARIES(pss_file srslte)
 
 IF(SRSGUI_FOUND)
-  include_directories(${SRSGUI_INCLUDE_DIRS})
   target_link_libraries(pss_file ${SRSGUI_LIBRARIES})
 ELSE(SRSGUI_FOUND)
   SET_TARGET_PROPERTIES(pss_file PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
 ENDIF(SRSGUI_FOUND)
 
-IF(${CUHD_FIND} GREATER -1)
+IF(UHD_FOUND)
   ADD_EXECUTABLE(pss_usrp pss_usrp.c)
-  TARGET_LINK_LIBRARIES(pss_usrp srslte cuhd)
+  TARGET_LINK_LIBRARIES(pss_usrp srslte)
   IF(SRSGUI_FOUND)
-    include_directories(${SRSGUI_INCLUDE_DIRS})
     target_link_libraries(pss_usrp ${SRSGUI_LIBRARIES})
   ELSE(SRSGUI_FOUND)
     SET_TARGET_PROPERTIES(pss_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
   ENDIF(SRSGUI_FOUND)
-ENDIF(${CUHD_FIND} GREATER -1)
-
-
+ENDIF(UHD_FOUND)
 
 BuildMex(MEXNAME pss SOURCES pss_mex.c LIBRARIES srslte srslte_mex)
 BuildMex(MEXNAME sss SOURCES sss_mex.c LIBRARIES srslte srslte_mex)

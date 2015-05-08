@@ -43,14 +43,15 @@
 
 #ifndef DISABLE_UHD
 #include "srslte/cuhd/cuhd.h"
-#include "cuhd_utils.h"
+#include "srslte/cuhd/cuhd_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
   5000,
   200, // nof_frames_total 
   10.0 // threshold
 };
-
+#else
+#warning Compiling pdsch_ue with no UHD support
 #endif
 
 //#define STDOUT_COMPACT
@@ -374,11 +375,13 @@ int main(int argc, char **argv) {
   float rsrp=0.0, rsrq=0.0, snr=0.0;
   bool decode_pdsch; 
   int pdcch_tx=0; 
-          
+
+#ifndef DISABLE_UHD
   if (prog_args.uhd_gain < 0) {
     srslte_ue_sync_start_agc(&ue_sync, cuhd_set_rx_gain_th, cell_detect_config.init_agc);    
   }
-  
+#endif
+
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {

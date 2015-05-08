@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   w_buff_f = malloc(sizeof(float) * nof_rx_bits * 10);
-  if (!w_buff_c) {
+  if (!w_buff_f) {
     perror("malloc");
     exit(-1);
   }
@@ -127,6 +127,9 @@ int main(int argc, char **argv) {
     bits[3*i+0] = SRSLTE_TX_NULL;
     bits[3*i+1] = SRSLTE_TX_NULL;
   }
+  
+  bzero(w_buff_c, nof_tx_bits * 10 * sizeof(uint8_t));
+  bzero(w_buff_f, nof_rx_bits * 10 * sizeof(float));
   
   printf("BITS: ");
   srslte_vec_fprint_b(stdout, bits, nof_tx_bits);

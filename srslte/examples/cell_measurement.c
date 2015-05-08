@@ -38,7 +38,7 @@
 
 #include "srslte/srslte.h"
 #include "srslte/cuhd/cuhd.h"
-#include "cuhd_utils.h"
+#include "srslte/cuhd/cuhd_utils.h"
 
 #define B210_DEFAULT_GAIN         40.0
 #define B210_DEFAULT_GAIN_CORREC  110.0 // Gain of the Rx chain when the gain is set to 40

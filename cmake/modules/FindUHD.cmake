@@ -16,8 +16,8 @@ FIND_LIBRARY(
     HINTS $ENV{UHD_DIR}/lib
     PATHS /usr/local/lib
           /usr/lib
-	  /usr/local/lib64
- 	  /usr/local/lib32
+          /usr/local/lib64
+          /usr/local/lib32
 )
 
 INCLUDE(FindPackageHandleStandardArgs)

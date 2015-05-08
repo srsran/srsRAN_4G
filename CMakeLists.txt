@@ -135,19 +135,6 @@ MACRO(LIBLTE_SET_PIC)
 ENDMACRO(LIBLTE_SET_PIC)
 
 ########################################################################
-# A macro for passing lists between different directories
-# through an internal cache variable.
-########################################################################
-MACRO (APPEND_INTERNAL_LIST  LIST_NAME  VALUE)
-   # If the list in not in the cache, create it.
-   IF (${LIST_NAME})
-      SET (${LIST_NAME} "${${LIST_NAME}};${VALUE}" CACHE INTERNAL "Internal variable")
-   ELSE (${LIST_NAME})
-      SET (${LIST_NAME} "${VALUE}" CACHE INTERNAL "Internal variable")
-   ENDIF (${LIST_NAME})
-ENDMACRO (APPEND_INTERNAL_LIST)
-
-########################################################################
 # Print summary
 ########################################################################
 MESSAGE(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
@@ -156,15 +143,12 @@ MESSAGE(STATUS "Building for version: ${VERSION}")
 ########################################################################
 # Add general includes and dependencies
 ########################################################################
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/common/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/srslte/include/)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/cuhd/include)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/mex/include)
 
 ########################################################################
 # Add the subdirectories
 ########################################################################
-ADD_SUBDIRECTORY(common)
-ADD_SUBDIRECTORY(cuhd)
 ADD_SUBDIRECTORY(srslte)
-add_subdirectory(mex)
+ADD_SUBDIRECTORY(mex)
+ADD_SUBDIRECTORY(srsapps)
