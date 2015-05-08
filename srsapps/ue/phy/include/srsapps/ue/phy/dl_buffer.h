@@ -1,4 +1,4 @@
-  /**
+/**
  *
  * \section COPYRIGHT
  *
@@ -25,6 +25,8 @@
  *
  */
 
+
+
 #include "srslte/srslte.h"
 #include "srsapps/common/queue.h"
 #include "srsapps/ue/phy/ul_sched_grant.h"
@@ -40,7 +42,7 @@ namespace ue {
   /* Class for the processing of Downlink buffers. The MAC obtains a buffer for a given TTI and then 
     * gets ul/dl scheduling grants and/or processes phich/pdsch channels 
     */
-  class SRSLTE_API dl_buffer : public queue::element {
+  class dl_buffer : public queue::element {
   public:
     
     int buffer_id; 

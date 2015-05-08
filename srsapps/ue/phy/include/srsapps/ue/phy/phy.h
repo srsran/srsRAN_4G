@@ -25,6 +25,9 @@
  *
  */
 
+
+
+
 #include "srslte/srslte.h"
 #include "srsapps/common/tti_sync.h"
 #include "srsapps/ue/phy/dl_buffer.h"
@@ -56,7 +59,7 @@ namespace ue {
   
 typedef _Complex float cf_t; 
 
-class SRSLTE_API phy
+class phy
 {
 public:
   phy() {

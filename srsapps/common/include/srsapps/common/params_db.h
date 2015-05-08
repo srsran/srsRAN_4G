@@ -24,16 +24,18 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
+
 #include <stdlib.h>
 
-#include "srslte/config.h"
+
 
 #ifndef PARAMS_H
 #define PARAMS_H
 
 namespace srslte {
 namespace ue {
-  class SRSLTE_API params_db
+  class params_db
   {
   public: 
     params_db(uint32_t nof_params_) {

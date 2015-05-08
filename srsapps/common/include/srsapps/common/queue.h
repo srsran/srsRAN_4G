@@ -25,6 +25,8 @@
  *
  */
 
+
+
 #include <stdint.h>
 /******************************************************************************
  *  File:         queue.h
@@ -34,7 +36,7 @@
  *  Reference:
  *****************************************************************************/
 
-#include "srslte/config.h"
+
 
 #ifndef QUEUE_H
 #define QUEUE_H
@@ -42,7 +44,7 @@
 namespace srslte {
 namespace ue {
   
-class SRSLTE_API queue
+class queue
 {
 public:
 

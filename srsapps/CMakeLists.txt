@@ -23,6 +23,8 @@
 # Install headers
 ########################################################################
 
+remove_definitions(-fvisibility=hidden)
+
 INCLUDE_DIRECTORIES(radio/include/)
 INCLUDE_DIRECTORIES(common/include/)
 

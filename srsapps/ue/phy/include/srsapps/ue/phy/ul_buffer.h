@@ -25,6 +25,7 @@
  *
  */
 
+
 #include "srslte/srslte.h"
 #include "srslte/common/radio.h"
 #include "srsapps/common/queue.h"
@@ -42,7 +43,7 @@ namespace ue {
   /* Uplink scheduling assignment. The MAC instructs the PHY to prepare an UL packet (PUSCH or PUCCH) 
    * for transmission. The MAC must call generate_data() to set the packet ready for transmission
    */
-  class SRSLTE_API ul_buffer : public queue::element {
+  class ul_buffer : public queue::element {
 
   public: 
     bool     init_cell(srslte_cell_t cell, phy_params *params_db);

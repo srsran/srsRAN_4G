@@ -1,4 +1,4 @@
-  /**
+/**
  *
  * \section COPYRIGHT
  *
@@ -25,9 +25,11 @@
  *
  */
 
+
+
 #include <pthread.h>
 #include "srsapps/common/tti_sync.h"
-#include "srslte/config.h"
+
 
 #ifndef TTISYNC_CV_H
 #define TTISYNC_CV_H
@@ -39,7 +41,7 @@ namespace ue {
   /* Implements tti_sync interface with condition variables. 
    */
   
-class SRSLTE_API tti_sync_cv : public tti_sync
+class tti_sync_cv : public tti_sync
 {
   public: 
              tti_sync_cv(uint32_t modulus);

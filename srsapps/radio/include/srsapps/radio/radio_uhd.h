@@ -1,4 +1,4 @@
-  /**
+/**
  *
  * \section COPYRIGHT
  *
@@ -25,6 +25,8 @@
  *
  */
 
+
+
 #include "srslte/srslte.h"
 #include "srslte/common/radio.h"
 #include "srslte/cuhd/cuhd.h"
@@ -37,7 +39,7 @@ namespace srslte {
   
 /* Interface to the RF frontend. 
   */
-  class SRSLTE_API radio_uhd : public radio
+  class radio_uhd : public radio
   {
     public: 
       bool init();

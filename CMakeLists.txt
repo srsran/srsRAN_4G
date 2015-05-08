@@ -75,7 +75,7 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
     include(CheckCXXCompilerFlag)
     CHECK_CXX_COMPILER_FLAG(${flag} ${have})
     if(${have})
-        add_definitions(${flag})
+        add_definitions(${flag})        
     endif(${have})
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 

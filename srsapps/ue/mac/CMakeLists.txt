@@ -33,3 +33,4 @@ SRSLTE_SET_PIC(srsapps_ue_mac)
 FILE(GLOB HEADERS_ALL "include/srsapps/ue/mac/*.h")
 ADD_CUSTOM_TARGET (add_ue_mac_headers SOURCES ${HEADERS_ALL})
 
+ADD_SUBDIRECTORY(test)

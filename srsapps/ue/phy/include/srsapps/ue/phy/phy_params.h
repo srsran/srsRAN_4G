@@ -25,6 +25,8 @@
  *
  */
 
+
+
 #include "srslte/srslte.h"
 #include "srsapps/common/params_db.h"
 
@@ -35,7 +37,7 @@
 namespace srslte {
 namespace ue {
 
-  class SRSLTE_API phy_params : public params_db
+  class phy_params : public params_db
   {
   public: 
 

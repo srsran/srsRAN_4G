@@ -1,0 +1,52 @@
+# - Try to find openLTE's liblte
+
+find_package(PkgConfig)
+pkg_check_modules(PC_OPENLTE QUIET srslte)
+set(OPENLTE_DEFINITIONS ${PC_OPENLTE_CFLAGS_OTHER})
+
+FIND_PATH(
+    OPENLTE_LIBLTE_DIRS
+    NAMES liblte_common.h typedefs.h
+    HINTS ${PC_OPENLTE_SRCDIR}/liblte/hdr
+          ${PC_OPENLTE_INCLUDEDIR}
+          ${PC_OPENLTE_INCLUDE_DIRS}
+          $ENV{OPENLTE_DIR}/liblte/hdr
+    PATHS /usr/local/include 
+          /usr/include 
+)
+
+FIND_PATH(
+    OPENLTE_COMMON_DIRS
+    NAMES typedefs.h
+    HINTS ${PC_OPENLTE_SRCDIR}/cmn_hdr
+          ${PC_OPENLTE_INCLUDEDIR}
+          ${PC_OPENLTE_INCLUDE_DIRS}
+          $ENV{OPENLTE_DIR}/liblte/hdr
+    PATHS /usr/local/include 
+          /usr/include 
+)
+
+FIND_LIBRARY(
+    OPENLTE_LIBRARIES
+    NAMES lte
+    HINTS ${PC_OPENLTE_BUILDDIR}/liblte
+          ${CMAKE_INSTALL_PREFIX}/lib
+          ${CMAKE_INSTALL_PREFIX}/lib64
+          $ENV{OPENLTE_DIR}/lib
+    PATHS /usr/local/lib
+          /usr/local/lib64
+          /usr/lib
+          /usr/lib64
+)
+
+IF(OPENLTE_LIBLTE_DIRS AND OPENLTE_COMMON_DIRS)
+  SET(OPENLTE_INCLUDE_DIRS ${OPENLTE_LIBLTE_DIRS} ${OPENLTE_COMMON_DIRS})
+ENDIF(OPENLTE_LIBLTE_DIRS AND OPENLTE_COMMON_DIRS)
+
+message(STATUS "OPENLTE LIBRARIES " ${OPENLTE_LIBRARIES})
+message(STATUS "OPENLTE INCLUDE DIRS " ${OPENLTE_INCLUDE_DIRS})
+
+INCLUDE(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(OPENLTE DEFAULT_MSG OPENLTE_LIBRARIES OPENLTE_INCLUDE_DIRS)
+MARK_AS_ADVANCED(OPENLTE_LIBRARIES OPENLTE_INCLUDE_DIRS)
+

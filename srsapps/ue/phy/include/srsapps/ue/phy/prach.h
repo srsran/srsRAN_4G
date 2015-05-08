@@ -1,4 +1,4 @@
-  /**
+/**
  *
  * \section COPYRIGHT
  *
@@ -25,6 +25,8 @@
  *
  */
 
+
+
 #include "srslte/srslte.h"
 #include "srslte/common/radio.h"
 #include "srsapps/common/queue.h"
@@ -36,7 +38,7 @@
 namespace srslte {
 namespace ue {
 
-  class SRSLTE_API prach {
+  class prach {
   public: 
     prach() {
       params_db = NULL; 

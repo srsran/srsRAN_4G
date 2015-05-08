@@ -1,4 +1,4 @@
-  /**
+/**
  *
  * \section COPYRIGHT
  *
@@ -25,8 +25,11 @@
  *
  */
 
+
+
+
 #include <stdint.h>
-#include "srslte/config.h"
+
 
 #ifndef TTISYNC_H
 #define TTISYNC_H
@@ -39,7 +42,7 @@ namespace ue {
    * The consumer waits while its counter is lower than the producer counter. 
    * The PHY is the consumer. The MAC is the producer. 
    */
-class SRSLTE_API tti_sync
+class tti_sync
 {
   public: 
     tti_sync(uint32_t modulus_) 
