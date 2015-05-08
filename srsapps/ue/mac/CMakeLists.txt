@@ -19,11 +19,17 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+INSTALL(DIRECTORY include/ 
+        DESTINATION "${INCLUDE_DIR}" 
+        FILES_MATCHING PATTERN "*.h" 
+        PATTERN ".svn" EXCLUDE
+)
+
 FILE(GLOB SOURCES "src/*.cc")
 ADD_LIBRARY(srsapps_ue_mac SHARED ${SOURCES})
 INSTALL(TARGETS srsapps_ue_mac DESTINATION ${LIBRARY_DIR})
 LIBLTE_SET_PIC(srsapps_ue_mac)
 
-FILE(GLOB SOURCES "include/*.h")
-ADD_CUSTOM_TARGET (add_srsapps_ue_mac_headers SOURCES ${HEADERS_ALL})
+FILE(GLOB HEADERS_ALL "include/srsapps/ue/mac/*.h")
+ADD_CUSTOM_TARGET (add_ue_mac_headers SOURCES ${HEADERS_ALL})
 

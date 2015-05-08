@@ -19,10 +19,16 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+INSTALL(DIRECTORY include/ 
+        DESTINATION "${INCLUDE_DIR}" 
+        FILES_MATCHING PATTERN "*.h" 
+        PATTERN ".svn" EXCLUDE
+)
+
 FILE(GLOB SOURCES "src/*.cc")
 ADD_LIBRARY(srsapps_common SHARED ${SOURCES})
 INSTALL(TARGETS srsapps_common DESTINATION ${LIBRARY_DIR})
 LIBLTE_SET_PIC(srsapps_common)
 
-FILE(GLOB SOURCES "include/srsapps/common/*.h")
+FILE(GLOB HEADERS_ALL "include/srsapps/common/*.h")
 ADD_CUSTOM_TARGET (add_srsapps_common_headers SOURCES ${HEADERS_ALL})

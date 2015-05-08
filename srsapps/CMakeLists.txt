@@ -19,10 +19,14 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+########################################################################
+# Install headers
+########################################################################
+
 INCLUDE_DIRECTORIES(radio/include/)
 INCLUDE_DIRECTORIES(common/include/)
 
 add_subdirectory(radio)
-add_subdirectory(ue)
 add_subdirectory(common)
+add_subdirectory(ue)
 

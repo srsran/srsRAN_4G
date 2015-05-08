@@ -21,6 +21,12 @@
 
 FIND_PACKAGE(UHD)
 
+INSTALL(DIRECTORY include/ 
+        DESTINATION "${INCLUDE_DIR}" 
+        FILES_MATCHING PATTERN "*.h" 
+        PATTERN ".svn" EXCLUDE
+)
+
 IF(UHD_FOUND)
   FILE(GLOB SOURCES "src/*.cc")
   ADD_LIBRARY(srsapps_radio SHARED ${SOURCES})
@@ -28,5 +34,5 @@ IF(UHD_FOUND)
   LIBLTE_SET_PIC(srsapps_radio)
 ENDIF(UHD_FOUND)
 
-FILE(GLOB SOURCES "include/srsapps/radio/*.h")
+FILE(GLOB HEADERS_ALL "include/srsapps/radio/*.h")
 ADD_CUSTOM_TARGET (add_srsapps_radio_headers SOURCES ${HEADERS_ALL})

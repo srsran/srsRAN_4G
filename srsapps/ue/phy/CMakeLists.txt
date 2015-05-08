@@ -19,13 +19,19 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+INSTALL(DIRECTORY include/ 
+        DESTINATION "${INCLUDE_DIR}" 
+        FILES_MATCHING PATTERN "*.h" 
+        PATTERN ".svn" EXCLUDE
+)
+
 FILE(GLOB SOURCES "src/*.cc")
 ADD_LIBRARY(srsapps_ue_phy SHARED ${SOURCES})
 TARGET_LINK_LIBRARIES(srsapps_ue_phy srsapps_common)
 INSTALL(TARGETS srsapps_ue_phy DESTINATION ${LIBRARY_DIR})
 LIBLTE_SET_PIC(srsapps_ue_phy)
 
-FILE(GLOB SOURCES "include/srsapps/ue/phy/*.h")
+FILE(GLOB HEADERS_ALL "include/srsapps/ue/phy/*.h")
 ADD_CUSTOM_TARGET (add_ue_phy_headers SOURCES ${HEADERS_ALL})
 
 ADD_SUBDIRECTORY(test)
