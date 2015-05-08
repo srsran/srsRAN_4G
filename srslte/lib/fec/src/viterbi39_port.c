@@ -1,6 +1,6 @@
 /* K=9 r=1/3 Viterbi decoder in portable C
  * Copyright Aug 2006, Phil Karn, KA9Q
- * May be used under the terms of the GNU Lesser General Public License (LGPL)
+ * May be used under the terms of the GNU Affero General Public License (LGPL)
  */
 #include <stdio.h>
 #include <stdlib.h>
