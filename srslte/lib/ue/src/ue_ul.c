@@ -309,7 +309,6 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *
   
   if (q             != NULL &&
       grant         != NULL &&
-      data          != NULL &&
       output_signal != NULL) 
   {
     
@@ -341,7 +340,6 @@ int srslte_ue_ul_pusch_encode_cfg(srslte_ue_ul_t *q, srslte_pusch_cfg_t *cfg,
   
   if (q             != NULL &&
       cfg           != NULL &&
-      data          != NULL &&
       output_signal != NULL) 
   {
     if (srslte_pusch_encode_rnti(&q->pusch, cfg, &q->softbuffer, data, rnti, q->sf_symbols)) {

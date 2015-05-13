@@ -37,7 +37,7 @@
 #include "srsapps/common/timers.h"
 #include "srsapps/ue/mac/mux.h"
 #include "srsapps/ue/mac/demux.h"
-#include "srsapps/ue/mac/mac_pdu.h"
+#include "srsapps/ue/mac/pdu.h"
 
 #ifndef PROCRA_H
 #define PROCRA_H
@@ -50,7 +50,7 @@ namespace ue {
 class ra_proc : public proc,timer_callback
 {
   public:
-    ra_proc() : rar_pdu(20) {};
+    ra_proc() : rar_pdu_msg(20) {};
     bool init(mac_params *params_db, phy *phy_h, log *log_h, timers *timers_db, 
               mux *mux_unit, demux *demux_unit);
     void reset();
@@ -64,10 +64,12 @@ class ra_proc : public proc,timer_callback
     bool in_progress();
     void pdcch_to_crnti(bool is_ul_grant);
     void timer_expired(uint32_t timer_id);
-private: 
     
+private: 
+      
     void process_timeadv_cmd(uint32_t tti, uint32_t ta_cmd); 
     void step_initialization();
+    void step_initialization_wait();
     void step_resource_selection();
     void step_preamble_transmission();
     void step_response_reception();
@@ -79,7 +81,7 @@ private:
     //  Buffer to receive RAR PDU 
     static const uint32_t MAX_RAR_PDU_LEN = 2048;
     uint8_t     rar_pdu_buffer[MAX_RAR_PDU_LEN];
-    mac_rar_pdu rar_pdu; 
+    rar_pdu     rar_pdu_msg; 
     
     // Random Access parameters provided by higher layers defined in 5.1.1
     // They are read from params_db during initialization init()    
@@ -115,7 +117,8 @@ private:
     
     enum {
       IDLE = 0,
-      INITIALIZATION,       // Section 5.1.1
+      INITIALIZATION,           // Section 5.1.1
+      INITIALIZATION_WAIT,
       RESOURCE_SELECTION,       // Section 5.1.2
       PREAMBLE_TRANSMISSION,    // Section 5.1.3
       RESPONSE_RECEPTION,       // Section 5.1.4
@@ -139,6 +142,8 @@ private:
     timers      *timers_db;
     mux         *mux_unit; 
     demux       *demux_unit; 
+    
+    pthread_t   pt_init_prach; 
     
     uint64_t    received_contention_id;
     uint64_t    transmitted_contention_id;

@@ -51,6 +51,7 @@ class tti_sync
       init_counters(0);
     }
     virtual void     increase() = 0;
+    virtual void     resync() = 0;
     virtual uint32_t wait() = 0; 
     virtual void     set_producer_cntr(uint32_t) = 0; 
     uint32_t         get_producer_cntr() { return producer_cntr; }

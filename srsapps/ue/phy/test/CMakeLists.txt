@@ -22,8 +22,8 @@
 
 IF(UHD_FOUND)
   ADD_EXECUTABLE(ue_itf_test_sib1 ue_itf_test_sib1.cc)
-  TARGET_LINK_LIBRARIES(ue_itf_test_sib1 srsapps_ue_phy srsapps_radio srslte)
+  TARGET_LINK_LIBRARIES(ue_itf_test_sib1 srsapps_ue_phy srsapps_radio srslte srslte_uhd)
 
   ADD_EXECUTABLE(ue_itf_test_prach ue_itf_test_prach.cc)
-  TARGET_LINK_LIBRARIES(ue_itf_test_prach srsapps_ue_phy srsapps_radio srslte)
+  TARGET_LINK_LIBRARIES(ue_itf_test_prach srsapps_ue_phy srsapps_radio srslte srslte_uhd)
 ENDIF(UHD_FOUND)

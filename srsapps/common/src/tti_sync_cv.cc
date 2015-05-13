@@ -56,6 +56,11 @@ namespace srslte {
       return x; 
     }
     
+    void tti_sync_cv::resync()
+    {
+      consumer_cntr = producer_cntr;
+    }
+
     void tti_sync_cv::set_producer_cntr(uint32_t producer_cntr)
     {
       pthread_mutex_lock(&mutex);

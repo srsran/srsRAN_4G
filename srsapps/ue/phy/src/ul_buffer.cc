@@ -28,6 +28,8 @@
 #include <string.h>
 #include <strings.h>
 #include <pthread.h>
+#include <math.h>
+
 #include "srslte/srslte.h"
 
 #include "srsapps/ue/phy/sched_grant.h"
@@ -99,8 +101,7 @@ bool ul_buffer::uci_ready() {
 }
 
 bool ul_buffer::generate_data() {
-  ul_sched_grant dummy(0); 
-  return generate_data(&dummy, NULL);
+  return generate_data(NULL, NULL);
 }
 
 bool ul_buffer::generate_data(ul_sched_grant *grant, 
@@ -108,7 +109,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant,
 {
   generate_data(grant, &ue_ul.softbuffer, payload); 
 }
-  
+
 bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *softbuffer, uint8_t *payload) 
 {
   if (is_ready()) {
@@ -124,13 +125,15 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     dmrs_cfg.delta_ss            = params_db->get_param(phy_params::PUSCH_RS_GROUP_ASSIGNMENT);
     
     srslte_pusch_hopping_cfg_t pusch_hopping; 
-    bzero(&pusch_hopping, sizeof(srslte_pusch_hopping_cfg_t));
-    pusch_hopping.n_sb           = params_db->get_param(phy_params::PUSCH_HOPPING_N_SB);
-    pusch_hopping.hop_mode       = params_db->get_param(phy_params::PUSCH_HOPPING_INTRA_SF) ? 
-                                    pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
-                                    pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
-    pusch_hopping.hopping_offset = params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET);
-    pusch_hopping.current_tx_nb  = grant->get_current_tx_nb(); 
+    if (grant) {
+      bzero(&pusch_hopping, sizeof(srslte_pusch_hopping_cfg_t));
+      pusch_hopping.n_sb           = params_db->get_param(phy_params::PUSCH_HOPPING_N_SB);
+      pusch_hopping.hop_mode       = params_db->get_param(phy_params::PUSCH_HOPPING_INTRA_SF) ? 
+                                      pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
+                                      pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
+      pusch_hopping.hopping_offset = params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET);
+      pusch_hopping.current_tx_nb  = grant->get_current_tx_nb();       
+    }
     
     srslte_pucch_cfg_t pucch_cfg; 
     bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
@@ -159,7 +162,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     
     int n = 0; 
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
-    if (payload) {
+    if (grant) {
 
       grant->to_pusch_cfg(tti%10, cell.cp, &pusch_cfg);
       n = srslte_ue_ul_pusch_encode_cfg(&ue_ul, &pusch_cfg, 
@@ -191,16 +194,26 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
   srslte_timestamp_t tx_time; 
   srslte_timestamp_copy(&tx_time, &rx_time);
   srslte_timestamp_add(&tx_time, 0, tx_advance_sf*1e-3 - time_adv_sec); 
-  INFO("Send PUSCH TTI: %d, CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f us\n", 
+
+  // Compute peak
+    float max = -1; 
+  if (SRSLTE_VERBOSE_ISINFO()) {
+    float *t = (float*) signal_buffer;
+    for (int i=0;i<2*SRSLTE_SF_LEN_PRB(cell.nof_prb);i++) {
+      if (fabsf(t[i]) > max) {
+        max = fabsf(t[i]);
+      }
+    }
+  }
+  INFO("Send PUSCH TTI: %d, CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f us PeakAmplitude=%f\n", 
         tti, cfo*15000, SRSLTE_SF_LEN_PRB(cell.nof_prb),
         srslte_timestamp_real(&rx_time), 
-        srslte_timestamp_real(&tx_time), time_adv_sec*1000000);
+        srslte_timestamp_real(&tx_time), time_adv_sec*1000000, max);
   
   // Correct CFO before transmission
-  srslte_cfo_correct(&ue_ul.cfo, signal_buffer, signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));            
-
-  radio_handler->tx(signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);                
+  srslte_cfo_correct(&ue_ul.cfo, signal_buffer, signal_buffer, 1.5*cfo / srslte_symbol_sz(cell.nof_prb));            
   
+  radio_handler->tx(signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);                
   ready();
 }
   

@@ -32,7 +32,7 @@
 #include "srsapps/ue/mac/mac_io.h"
 #include "srsapps/common/timers.h"
 #include "srsapps/ue/mac/mac_params.h"
-#include "srsapps/ue/mac/mac_pdu.h"
+#include "srsapps/ue/mac/pdu.h"
 
 #ifndef DEMUX_H
 #define DEMUX_H
@@ -57,11 +57,11 @@ public:
   uint64_t get_contention_resolution_id();
   
 private:
-  mac_pdu mac_msg;
-  mac_pdu pending_mac_msg;
+  sch_pdu mac_msg;
+  sch_pdu pending_mac_msg;
   
-  void process_pdu(mac_pdu *pdu);
-  bool process_ce(mac_pdu::mac_subh *subheader);
+  void process_pdu(sch_pdu *pdu);
+  bool process_ce(sch_subh *subheader);
 
   uint64_t   contention_resolution_id; 
   bool       pending_temp_rnti;

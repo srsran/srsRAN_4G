@@ -105,10 +105,11 @@ void dl_harq_entity::send_pending_ack_contention_resolution()
   * HARQ PROCESS
   * 
   *********************************************************/
-        
+          
 dl_harq_entity::dl_harq_process::dl_harq_process() : cur_grant(0),pending_ack_grant(0) {
   is_first_tx = true; 
   is_first_decoded = true; 
+  is_initiated = false; 
   bzero(&cur_grant, sizeof(srslte::ue::dl_sched_grant));
   payload = NULL; 
   max_payload_len = 0; 
@@ -118,7 +119,9 @@ void dl_harq_entity::dl_harq_process::reset() {
   is_first_tx = true; 
   is_first_decoded = true; 
   bzero(&cur_grant, sizeof(srslte::ue::dl_sched_grant));
-  srslte_softbuffer_rx_reset(&softbuffer);
+  if (is_initiated) {
+    srslte_softbuffer_rx_reset(&softbuffer);
+  }
 }
 
 void dl_harq_entity::dl_harq_process::send_pending_ack_contention_resolution()
@@ -169,6 +172,7 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
           pending_ul_buffer = phy_h->get_ul_buffer(tti+4);
           harq_entity->pending_ack_pid = pid; 
           memcpy(&pending_ack_grant, &cur_grant, sizeof(dl_sched_grant));
+          Debug("ACK pending contention resolution\n");
         } else {
           Debug("Generating ACK\n");
           // Generate ACK
@@ -209,6 +213,7 @@ bool dl_harq_entity::dl_harq_process::init(srslte_cell_t cell, uint32_t max_payl
     fprintf(stderr, "Error initiating soft buffer\n");
     return false; 
   } else {
+    is_initiated = true; 
     harq_entity = parent; 
     log_h = harq_entity->log_h; 
     payload = (uint8_t*)  srslte_vec_malloc(sizeof(uint8_t) * max_payload_len);

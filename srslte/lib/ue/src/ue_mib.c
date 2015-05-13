@@ -152,7 +152,7 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
     srslte_ue_mib_reset(q);
     ret = SRSLTE_UE_MIB_FOUND; 
   } else {
-    INFO("MIB not decoded: %u\n", q->frame_cnt);
+    DEBUG("MIB not decoded: %u\n", q->frame_cnt);
     q->frame_cnt++;
     ret = SRSLTE_UE_MIB_NOTFOUND;
   }    
@@ -222,7 +222,7 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
         if (ret == 1) {
           mib_ret = srslte_ue_mib_decode(&q->ue_mib, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);                    
         } else {
-          INFO("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
+          DEBUG("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
           srslte_ue_mib_reset(&q->ue_mib);
         }
         nof_frames++;

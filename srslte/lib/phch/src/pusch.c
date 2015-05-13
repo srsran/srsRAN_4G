@@ -410,7 +410,6 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
    
   if (q    != NULL &&
-      data != NULL &&
       cfg  != NULL)
   {
     if (cfg->grant.mcs.tbs > cfg->grant.nof_bits) {

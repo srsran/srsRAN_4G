@@ -253,7 +253,7 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
       fprintf(stderr, "Error decoding DCI msg\n");
       return SRSLTE_ERROR;
     }
-    INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
+    DEBUG("Decoded DCI message RNTI: 0x%x\n", crc_rem);
   } 
   return crc_rem == rnti; 
 }
@@ -289,7 +289,7 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
       }
-      INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
+      DEBUG("Decoded DCI message RNTI: 0x%x\n", crc_rem);
     }
   } 
   return crc_rem == rnti; 

@@ -89,7 +89,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  uint32_t nof_samples = srslte_sampling_freq_hz(n_ul_rb) * 0.003;
+  uint32_t nof_samples = srslte_sampling_freq_hz(n_ul_rb) * 0.001;
   
   cf_t *signal = srslte_vec_malloc(sizeof(cf_t) * nof_samples);
   if (!signal) {
@@ -102,6 +102,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return; 
   }
 
+  srslte_vec_sc_prod_cfc(signal, 1.0/sqrtf(N_ifft_ul), signal, prach.N_seq+prach.N_cp);              
   
   if (nlhs >= 0) {
     mexutils_write_cf(signal, &plhs[0], nof_samples, 1);  

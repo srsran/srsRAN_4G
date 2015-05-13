@@ -81,13 +81,16 @@ void demux::push_pdu_temp_crnti(uint32_t tti_, uint8_t *mac_pdu, uint32_t nof_bi
   tti = tti_; 
   if (!pending_temp_rnti) {
     // Unpack DLSCH MAC PDU 
-    pending_mac_msg.init(nof_bits);
+    pending_mac_msg.init(nof_bits/8);
     pending_mac_msg.parse_packet(mac_pdu);
+    pending_mac_msg.fprint(stdout);
     
+    //MIRAR ACK PENDING. EL QUE PASSA ES QUE AL HARQ NO FA RES SI EL CONTENTION RES ID ES 0, PERQUE ES 0???
+
     // Look for Contention Resolution UE ID 
     contention_resolution_id = 0; 
-    while(pending_mac_msg.read_next()) {
-      if (pending_mac_msg.get()->ce_type() == mac_pdu::mac_subh::CON_RES_ID) {
+    while(pending_mac_msg.next()) {
+      if (pending_mac_msg.get()->ce_type() == sch_subh::CON_RES_ID) {
         contention_resolution_id = pending_mac_msg.get()->get_con_res_id();
       }
     }
@@ -103,7 +106,7 @@ void demux::push_pdu(uint32_t tti_, uint8_t *mac_pdu, uint32_t nof_bits)
 {
   tti = tti_; 
   // Unpack DLSCH MAC PDU 
-  mac_msg.init(nof_bits);
+  mac_msg.init(nof_bits/8);
   mac_msg.parse_packet(mac_pdu);
   process_pdu(&mac_msg);
   Debug("Normal MAC PDU processed\n");
@@ -124,26 +127,26 @@ void demux::demultiplex_pending_pdu(uint32_t tti_)
 
 
 
-void demux::process_pdu(mac_pdu *pdu)
+void demux::process_pdu(sch_pdu *pdu_msg)
 {  
-  while(pdu->read_next()) {
-    if (pdu->get()->is_sdu()) {
+  while(pdu_msg->next()) {
+    if (pdu_msg->get()->is_sdu()) {
       // Route logical channel 
-      if (pdu->get()->get_sdu_lcid() <= mac_io::MAC_LCH_DTCH2_DL) {
-        qbuff *dest_lch = mac_io_h->get(pdu->get()->get_sdu_lcid());
+      if (pdu_msg->get()->get_sdu_lcid() <= mac_io::MAC_LCH_DTCH2_DL) {
+        qbuff *dest_lch = mac_io_h->get(pdu_msg->get()->get_sdu_lcid());
         if (dest_lch) {
-          dest_lch->send(pdu->get()->get_sdu_ptr(), pdu->get()->get_sdu_nbytes()*8);
+          dest_lch->send(pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_sdu_nbytes()*8);
           Debug("Sent MAC SDU len=%d bytes to lchid=%d\n",  
-                pdu->get()->get_sdu_nbytes(), pdu->get()->get_sdu_lcid());
+                pdu_msg->get()->get_sdu_nbytes(), pdu_msg->get()->get_sdu_lcid());
         } else {
-          Error("Getting destination channel LCID=%d\n", pdu->get()->get_sdu_lcid());
+          Error("Getting destination channel LCID=%d\n", pdu_msg->get()->get_sdu_lcid());
         }
       } else {
-        Warning("Received SDU for unsupported LCID=%d\n", pdu->get()->get_sdu_lcid());
+        Warning("Received SDU for unsupported LCID=%d\n", pdu_msg->get()->get_sdu_lcid());
       }
     // Process MAC Control Element
     } else {
-      if (!process_ce(pdu->get())) {
+      if (!process_ce(pdu_msg->get())) {
         Warning("Received Subheader with invalid or unkonwn LCID\n");
       }
     }
@@ -151,13 +154,13 @@ void demux::process_pdu(mac_pdu *pdu)
 }
 
 
-bool demux::process_ce(mac_pdu::mac_subh *subh) {
+bool demux::process_ce(sch_subh *subh) {
   switch(subh->ce_type()) {
-    case mac_pdu::mac_subh::CON_RES_ID:
+    case sch_subh::CON_RES_ID:
       contention_resolution_id = subh->get_c_rnti();
       Debug("Saved Contention Resolution ID=%d\n", contention_resolution_id);
       break;
-    case mac_pdu::mac_subh::TA_CMD:
+    case sch_subh::TA_CMD:
       phy_h->set_timeadv(subh->get_ta_cmd());
       
       // Start or restart timeAlignmentTimer

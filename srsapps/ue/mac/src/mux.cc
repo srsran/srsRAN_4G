@@ -64,6 +64,11 @@ void mux::reset()
   }
 }
 
+bool mux::is_pending_sdu()
+{
+  return !mac_io_h->get(mac_io::MAC_LCH_CCCH_UL)->isempty();
+}
+
 void mux::set_priority(uint32_t lch_id, uint32_t set_priority, int set_PBR, uint32_t set_BSD)
 {
   pthread_mutex_lock(&mutex);
@@ -145,7 +150,7 @@ void mux::append_crnti_ce_next_tx(uint16_t crnti) {
   pending_crnti_ce = crnti; 
 }
 
-bool mux::assemble_pdu(uint32_t pdu_sz) {
+bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
 
   uint8_t *buff = (uint8_t*) pdu_buff.request();
   if (!buff) {
@@ -154,13 +159,13 @@ bool mux::assemble_pdu(uint32_t pdu_sz) {
   }
   
   // Make sure pdu_sz is byte-aligned
-  pdu_sz = 8*(pdu_sz/8);
+  pdu_sz_nbits = 8*(pdu_sz_nbits/8);
   
   // Acquire mutex. Cannot change priorities, PBR or BSD after assemble finishes
   pthread_mutex_lock(&mutex); 
   
   // Update Bj
-  for (int i=0;i=mac_io::NOF_UL_LCH;i++) {    
+  for (int i=0;i<mac_io::NOF_UL_LCH;i++) {    
     // Add PRB unless it's infinity 
     if (PBR[i] >= 0) {
       Bj[i] += PBR[i];
@@ -174,12 +179,13 @@ bool mux::assemble_pdu(uint32_t pdu_sz) {
   
   uint32_t sdu_sz   = 0; 
  
-  pdu_msg.init(pdu_sz);
+  pdu_msg.init(pdu_sz_nbits/8, true);
   
   // MAC control element for C-RNTI or data from UL-CCCH
   if (!allocate_sdu(UL_IDX(mac_io::MAC_LCH_CCCH_UL), &pdu_msg)) {
     if (pending_crnti_ce) {
-      if (pdu_msg.write_next()) {
+      if (pdu_msg.new_subh()) {
+        pdu_msg.next();
         if (!pdu_msg.get()->set_c_rnti(pending_crnti_ce)) {
           Warning("Pending C-RNTI CE could not be inserted in MAC PDU\n");
         }
@@ -225,7 +231,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz) {
 
   /* Generate MAC PDU and save to buffer */
   if (pdu_msg.write_packet(buff)) {
-    pdu_buff.push(pdu_sz);
+    pdu_buff.push(pdu_sz_nbits);
   } else {
     Error("Writing PDU message to packet\n");
     return false; 
@@ -234,21 +240,22 @@ bool mux::assemble_pdu(uint32_t pdu_sz) {
 }
 
 
-bool mux::allocate_sdu(uint32_t lcid, mac_pdu *pdu) 
+bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg) 
 {
-  return allocate_sdu(lcid, pdu, NULL);
+  return allocate_sdu(lcid, pdu_msg, NULL);
 }
 
-bool mux::allocate_sdu(uint32_t lcid, mac_pdu *pdu, uint32_t *sdu_sz) 
+bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz) 
 {
   
   // Get n-th pending SDU pointer and length
   uint32_t buff_len; 
-  uint8_t *buff_ptr = (uint8_t*) mac_io_h->get(lcid)->pop(&buff_len, nof_tx_pkts[lcid]);  
+  uint8_t *buff_ptr = (uint8_t*) mac_io_h->get(mac_io::MAC_LCH_CCCH_UL + lcid)->pop(&buff_len, nof_tx_pkts[lcid]);  
 
   if (buff_ptr) { // there is pending SDU to allocate
-    if (pdu->write_next()) { // there is space for a new subheader
-      if (pdu->get()->set_sdu(buff_ptr, buff_len)) { // new SDU could be added
+    if (pdu_msg->new_subh()) { // there is space for a new subheader
+      pdu_msg->next();
+      if (pdu_msg->get()->set_sdu(lcid, buff_ptr, buff_len/8)) { // new SDU could be added
         // Increase number of pop'ed packets from queue
         nof_tx_pkts[lcid]++;      
         return true;               

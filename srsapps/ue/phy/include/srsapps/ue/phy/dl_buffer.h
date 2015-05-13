@@ -54,7 +54,9 @@ namespace ue {
     bool           get_dl_grant(dl_sched_grant *grant);
     void           discard_pending_rar_grant(); 
     void           set_rar_grant(srslte_dci_rar_grant_t *rar_grant);
-    void           set_rar_grant(uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
+    void           set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]);
+    void           release_pending_rar_grant();
+    void           reset_softbuffer();
     bool           decode_ack(ul_sched_grant *pusch_grant);
     bool           decode_data(dl_sched_grant *pdsch_grant, uint8_t *payload); // returns true or false for CRC OK/NOK
     bool           decode_data(dl_sched_grant *grant, srslte_softbuffer_rx_t *softbuffer, uint8_t *payload);

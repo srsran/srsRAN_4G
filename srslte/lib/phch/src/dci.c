@@ -152,6 +152,15 @@ void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, uint8_t grant[SRSL
   rar->cqi_request  = srslte_bit_unpack(&grant_ptr, 1)?true:false;
 }
 
+void srslte_dci_rar_grant_fprint(FILE *stream, srslte_dci_rar_grant_t *rar) {
+  fprintf(stream, "RBA: %d, MCS: %d, TPC: %d, Hopping=%s, UL-Delay=%s, CQI=%s\n",
+    rar->rba, rar->trunc_mcs, rar->tpc_pusch, 
+    rar->hopping_flag?"yes":"no",
+    rar->ul_delay?"yes":"no",
+    rar->cqi_request?"yes":"no"
+  );
+}
+
 /* Creates the UL PUSCH resource allocation grant from a DCI format 0 message
  */
 int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, srslte_cell_t cell, 
@@ -171,7 +180,6 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, srslte_cell_t cell,
     bzero(grant, sizeof(srslte_ra_ul_dci_t));
     
     if (srslte_dci_msg_unpack_pusch(msg, ul_dci, cell.nof_prb)) {
-      fprintf(stderr, "Can't unpack PDSCH message\n");
       return ret;
     } 
     
@@ -379,8 +387,7 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t
     return SRSLTE_ERROR;
   }
   if (*y++ != 0) {
-    fprintf(stderr,
-        "Invalid format differentiation field value. This is SRSLTE_DCI_FORMAT1A\n");
+    INFO("DCI message is Format1A\n", 0);
     return SRSLTE_ERROR;
   }
   if (*y++ == 0) {
@@ -633,7 +640,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   }
 
   if (*y++ != 1) {
-    fprintf(stderr, "Invalid format differentiation field value. This is SRSLTE_DCI_FORMAT0\n");
+    INFO("DCI message is Format0\n", 0);
     return SRSLTE_ERROR;
   }
 

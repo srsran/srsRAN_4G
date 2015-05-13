@@ -120,6 +120,9 @@ SRSLTE_API int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar,
 SRSLTE_API void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, 
                                             uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
 
+SRSLTE_API void srslte_dci_rar_grant_fprint(FILE *stream, 
+                                            srslte_dci_rar_grant_t *rar);
+
 SRSLTE_API srslte_dci_format_t srslte_dci_format_from_string(char *str);
 
 SRSLTE_API char* srslte_dci_format_string(srslte_dci_format_t format);

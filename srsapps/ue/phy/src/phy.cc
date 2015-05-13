@@ -43,6 +43,7 @@ namespace ue {
 bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_)
 {
   started = false; 
+  radio_is_streaming = false; 
   ttisync = ttisync_;
   radio_handler = radio_handler_;
   ul_buffer_queue = new queue(6, sizeof(ul_buffer));
@@ -55,8 +56,7 @@ bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_)
   
   pthread_attr_t attr;
   struct sched_param param;
-  param.sched_priority = 99;
-  
+  param.sched_priority = -20;  
   pthread_attr_init(&attr);
   pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
   pthread_attr_setschedparam(&attr, &param);
@@ -115,10 +115,10 @@ void phy::set_param(phy_params::phy_param_t param, int64_t value) {
 
 // FIXME: Add PRACH power control
 bool phy::send_prach(uint32_t preamble_idx) {
-  send_prach(preamble_idx, -1, 0);
+  return send_prach(preamble_idx, -1, 0);
 }
 bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe) {
-  send_prach(preamble_idx, allowed_subframe, 0);
+  return send_prach(preamble_idx, allowed_subframe, 0);
 }
 bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_power_dbm)
 {
@@ -202,7 +202,8 @@ void* phy::phy_thread_fnc(void *arg) {
 int radio_recv_wrapper_cs(void *h,void *data, uint32_t nsamples, srslte_timestamp_t *rx_time)
 {
   radio *radio_handler = (radio*) h;
-  return radio_handler->rx_now(data, nsamples, rx_time);
+  int n = radio_handler->rx_now(data, nsamples, rx_time);
+  return n; 
 }
 
 bool phy::set_cell(srslte_cell_t cell_) {
@@ -251,6 +252,9 @@ ul_buffer* phy::get_ul_buffer_adv(uint32_t tti)
 
 dl_buffer* phy::get_dl_buffer(uint32_t tti)
 {
+  if (tti + 6 < get_current_tti()) {
+    printf("Warning access to PHY too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
+  }
   return (dl_buffer*) dl_buffer_queue->get(tti);  
 }
     

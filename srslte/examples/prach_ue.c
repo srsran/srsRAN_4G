@@ -327,6 +327,7 @@ int main(int argc, char **argv) {
   printf("Tunning TX receiver to %.3f MHz\n", (double ) prog_args.uhd_tx_freq/1000000);
 
   
+#ifdef kk
   ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
   if (ret < 0) {
     fprintf(stderr, "Error searching for cell\n");
@@ -335,6 +336,10 @@ int main(int argc, char **argv) {
     printf("Cell not found\n");
     exit(0);
   }
+#endif
+cell.nof_prb = 50; 
+cell.id = 1; 
+cell.nof_ports = 1; 
 
   /* set sampling frequency */
   int srate = srslte_sampling_freq_hz(cell.nof_prb);
@@ -471,7 +476,7 @@ int main(int argc, char **argv) {
               cuhd_send_timed(uhd, prach_buffer, prach_buffer_len, 
                               next_tx_time.full_secs, next_tx_time.frac_secs);
               
-              srslte_vec_save_file("prach_ue", prach_buffer, prach_buffer_len*sizeof(cf_t));
+              srslte_vec_save_file("prach_ue.dat", prach_buffer, prach_buffer_len*sizeof(cf_t));
               
               ra_rnti = 2; 
               rar_window_start = sfn+1;
@@ -536,6 +541,8 @@ int main(int argc, char **argv) {
                   cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
                                 next_tx_time.full_secs, next_tx_time.frac_secs);                
 
+                  srslte_vec_save_file("prach_ue_connreq.dat", ul_signal, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+                  
                   //cuhd_start_rx_stream(uhd);
                   state = RECV_CONNSETUP;                   
                   conn_setup_trial = 0; 

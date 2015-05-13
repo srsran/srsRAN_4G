@@ -215,7 +215,7 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
         c[k].L = l;
         c[k].ncce = ncce;
         
-        INFO("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
+        DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
             k, c[k].ncce, c[k].L);            
 
         k++;          
@@ -223,7 +223,7 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
     }
   }
 
-  INFO("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", k, rnti);
+  DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", k, rnti);
   
   return k; 
 }
@@ -297,7 +297,7 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
     x = &data[nof_bits];
     p_bits = (uint16_t) srslte_bit_unpack(&x, 16);
     crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
-    INFO("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
+    DEBUG("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
         p_bits ^ crc_res);
     
     if (crc) {
@@ -331,7 +331,7 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci
       uint32_t nof_bits = srslte_dci_format_sizeof(format, q->cell.nof_prb);
       uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(location->L);
     
-      INFO("Decoding DCI offset %d, e_bits: %d, msg_len %d (nCCE: %d, L: %d)\n", 
+      DEBUG("Decoding DCI offset %d, e_bits: %d, msg_len %d (nCCE: %d, L: %d)\n", 
             location->ncce * 72, e_bits, nof_bits, location->ncce, location->L);
       
       ret = dci_decode(q, &q->llr[location->ncce * 72], 
@@ -369,7 +369,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     nof_symbols = e_bits/2;
     ret = SRSLTE_ERROR;
         
-    INFO("Extracting LLRs: E: %d, SF: %d, CFI: %d\n",
+    DEBUG("Extracting LLRs: E: %d, SF: %d, CFI: %d\n",
         e_bits, nsubframe, cfi);
 
     /* number of layers equals number of ports */
@@ -427,7 +427,7 @@ static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   uint8_t mask[16];
   uint8_t *r = mask;
 
-  INFO("Mask CRC with RNTI 0x%x\n", rnti);
+  DEBUG("Mask CRC with RNTI 0x%x\n", rnti);
 
   srslte_bit_pack(rnti, &r, 16);
   for (i = 0; i < 16; i++) {
@@ -508,7 +508,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
     if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce && 
         msg->nof_bits < SRSLTE_DCI_MAX_BITS) 
     {      
-      INFO("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+      DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
           msg->nof_bits, e_bits, location.ncce, location.L, rnti);
 
       dci_encode(q, msg->data, q->e, msg->nof_bits, e_bits, rnti);

@@ -208,7 +208,7 @@ void config_phy() {
   phy.set_param(srslte::ue::phy_params::PRACH_FREQ_OFFSET, 0);
   phy.set_param(srslte::ue::phy_params::PRACH_HIGH_SPEED_FLAG, 0);
   phy.set_param(srslte::ue::phy_params::PRACH_ROOT_SEQ_IDX, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 1);
+  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 4);
 
   phy.set_param(srslte::ue::phy_params::PUSCH_BETA, 10);
   phy.set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_HOPPING_EN, 0);
@@ -233,6 +233,8 @@ uint32_t interval(uint32_t x1, uint32_t x2) {
   }
 }
 
+srslte_softbuffer_rx_t softbuffer; 
+
 // This is the MAC implementation
 void run_tti(uint32_t tti) {
   INFO("MAC running tti: %d\n", tti);
@@ -247,7 +249,7 @@ void run_tti(uint32_t tti) {
     // Indicate PHY to transmit the PRACH when possible 
     if (phy.send_prach(preamble_idx)) {
       nof_tx_ra++;
-      state = RAR; 
+      state = RAR;       
     } else {
       fprintf(stderr, "Error sending PRACH\n");
       exit(-1);
@@ -265,12 +267,10 @@ void run_tti(uint32_t tti) {
         // Get DL grant for RA-RNTI=2
         if (dl_buffer->get_dl_grant(&rar_grant)) 
         {
+          srslte_softbuffer_rx_reset(&softbuffer);
           // Decode packet
-          if (dl_buffer->decode_data(&rar_grant, payload)) {
+          if (dl_buffer->decode_data(&rar_grant, &softbuffer, payload)) {
             rar_unpack(payload, &rar_msg);
-            if (!prog_args.continous) {
-              printf("Received RAR for preamble %d\n", rar_msg.RAPID);              
-            }
             if (rar_msg.RAPID == preamble_idx) {
 
               INFO("Received RAR at TTI: %d\n", tti);
@@ -358,6 +358,7 @@ void run_tti(uint32_t tti) {
           state = RA; 
         }
       } else {
+        srslte_softbuffer_rx_reset(&softbuffer);
         state = CONNSETUP;
       }
     }
@@ -369,7 +370,7 @@ void run_tti(uint32_t tti) {
     if (dl_buffer->get_dl_grant(&conn_setup_grant)) 
     {
       // Decode packet
-      if (dl_buffer->decode_data(&conn_setup_grant, payload)) {
+      if (dl_buffer->decode_data(&conn_setup_grant, &softbuffer, payload)) {
         nof_rx_connsetup++;
         state = RA; 
         nof_rtx_connsetup=0;
@@ -397,12 +398,14 @@ void run_tti(uint32_t tti) {
       state = RA; 
     }                    
   }
+  
   if (srslte_verbose == SRSLTE_VERBOSE_NONE && prog_args.continous) {
     printf("RECV RAR %2.1f \%% RECV ConnSetup %2.1f \%% (%5u/%5u) \r", 
          (float) 100*nof_rx_rar/nof_tx_ra, 
          (float) 100*nof_rx_connsetup/nof_tx_ra, 
          nof_rx_connsetup, nof_tx_ra);    
   }
+  
   
 }
 
@@ -426,7 +429,7 @@ int main(int argc, char *argv[])
   
   // Setup PHY parameters
   config_phy();
-  
+    
   // Set RX freq and gain
   phy.get_radio()->set_rx_freq(prog_args.uhd_rx_freq);
   phy.get_radio()->set_tx_freq(prog_args.uhd_tx_freq);
@@ -446,6 +449,13 @@ int main(int argc, char *argv[])
     exit(-1);
   }
   
+  if (!phy.init_prach()) {
+    printf("Error initiating PRACH\n");
+    exit(-1);
+  }
+
+  srslte_softbuffer_rx_init(&softbuffer, cell);
+
   /* Instruct the PHY to start RX streaming and synchronize */
   if (!phy.start_rxtx()) {
     printf("Could not start RX\n");

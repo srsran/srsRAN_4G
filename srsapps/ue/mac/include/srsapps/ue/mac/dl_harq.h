@@ -75,6 +75,7 @@ private:
     uint32_t pid;    
   private: 
     
+    bool            is_initiated; 
     dl_harq_entity *harq_entity; 
     uint8_t        *payload; 
     uint32_t       max_payload_len; 
@@ -88,7 +89,6 @@ private:
     
     srslte_softbuffer_rx_t softbuffer; 
   };
-  
   
   dl_harq_process *proc;
   timers          *timers_db; 

@@ -54,14 +54,14 @@ public:
   ul_harq_entity();
   ~ul_harq_entity();
   
-  bool init(srslte_cell_t cell, uint32_t max_payload_len, log *log_h, timers* timers_, mux *mux_unit);
+  bool init(srslte_cell_t cell, log *log_h, timers* timers_, mux *mux_unit);
   void set_maxHARQ_Tx(uint32_t maxHARQ_Tx, uint32_t maxHARQ_Msg3Tx);
   
   void reset();
   void reset_ndi();
   bool is_sps(uint32_t pid); 
   void run_tti(uint32_t tti, ul_sched_grant *grant, phy *phy_);
-  void run_tti(uint32_t tti, phy *phy_);
+  void run_tti(uint32_t tti, dl_buffer *dl_buffer, phy *phy_);
   bool is_last_retx_msg3();
   
 private:  
@@ -69,7 +69,7 @@ private:
   class ul_harq_process {
   public:
     ul_harq_process();
-    bool init(srslte_cell_t cell, uint32_t max_payload_len, ul_harq_entity *parent);
+    bool init(srslte_cell_t cell, ul_harq_entity *parent);
     void reset();
     void reset_ndi();
     void set_maxHARQ_Tx(uint32_t maxHARQ_Tx_, uint32_t maxHARQ_Msg3Tx_);
@@ -83,6 +83,7 @@ private:
     void set_harq_feedback(bool ack);
     bool get_ndi();
    
+    uint32_t tti; 
   private: 
     uint32_t                    current_tx_nb;
     uint32_t                    current_irv; 
@@ -91,14 +92,13 @@ private:
     srslte::log                 *log_h; 
     ul_harq_entity              *harq_entity; 
     ul_sched_grant              cur_grant; 
-    uint8_t                     *payload; 
-    uint32_t                    max_payload_len; 
     bool                        is_grant_configured; 
     srslte_softbuffer_tx_t      softbuffer; 
     uint32_t                    maxHARQ_Tx, maxHARQ_Msg3Tx; 
     bool                        is_msg3;
+    bool is_initiated;    
     
-    void                        generate_tx(ul_buffer* ul);
+    void                        generate_tx(uint8_t *pdu_payload, ul_buffer* ul);
   };
     
   bool            last_retx_is_msg3;

@@ -122,9 +122,10 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
   mac->set_param(srslte::ue::mac_params::RA_MAXTXMSG3, 
                  sib2->rr_config_common_sib.rach_cnfg.max_harq_msg3_tx);
   
-  printf("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d\n",  
+  printf("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",  
          liblte_rrc_number_of_ra_preambles_num[sib2->rr_config_common_sib.rach_cnfg.num_ra_preambles], 
-         liblte_rrc_ra_response_window_size_num[sib2->rr_config_common_sib.rach_cnfg.ra_resp_win_size]);
+         liblte_rrc_ra_response_window_size_num[sib2->rr_config_common_sib.rach_cnfg.ra_resp_win_size], 
+         liblte_rrc_mac_contention_resolution_timer_num[sib2->rr_config_common_sib.rach_cnfg.mac_con_res_timer]);
   
   // PDSCH ConfigCommon
   mac->set_param(srslte::ue::mac_params::PDSCH_RSPOWER, 
@@ -133,6 +134,7 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
                  sib2->rr_config_common_sib.pdsch_cnfg.p_b);
 
   // PUSCH ConfigCommon
+  phy->set_param(srslte::ue::phy_params::PUSCH_BETA, 10);
   phy->set_param(srslte::ue::phy_params::PUSCH_EN_64QAM, 
                  sib2->rr_config_common_sib.pusch_cnfg.enable_64_qam);
   phy->set_param(srslte::ue::phy_params::PUSCH_HOPPING_OFFSET, 
@@ -150,12 +152,14 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
   phy->set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_ASSIGNMENT, 
                  sib2->rr_config_common_sib.pusch_cnfg.ul_rs.group_assignment_pusch);
 
-  printf("Set PUSCH ConfigCommon: HopOffset=%d, RSGroup=%d, RSNcs=%d\n",
+  printf("Set PUSCH ConfigCommon: HopOffset=%d, RSGroup=%d, RSNcs=%d, N_sb=%d\n",
     sib2->rr_config_common_sib.pusch_cnfg.pusch_hopping_offset,
     sib2->rr_config_common_sib.pusch_cnfg.ul_rs.group_assignment_pusch,
-    sib2->rr_config_common_sib.pusch_cnfg.ul_rs.cyclic_shift);
+    sib2->rr_config_common_sib.pusch_cnfg.ul_rs.cyclic_shift, 
+    sib2->rr_config_common_sib.pusch_cnfg.n_sb);
   
   // PUCCH ConfigCommon
+  phy->set_param(srslte::ue::phy_params::PUCCH_BETA, 10);
   phy->set_param(srslte::ue::phy_params::PUCCH_DELTA_SHIFT, 
                  liblte_rrc_delta_pucch_shift_num[sib2->rr_config_common_sib.pucch_cnfg.delta_pucch_shift]);
   phy->set_param(srslte::ue::phy_params::PUCCH_CYCLIC_SHIFT, 
@@ -276,7 +280,7 @@ int main(int argc, char *argv[])
           liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, &bit_msg);
           
           mac.set_param(srslte::ue::mac_params::CONTENTION_ID, ul_ccch_msg.msg.rrc_con_req.ue_id.random);
-          
+
           // Send ConnectionRequest Packet
           mac.send_ccch_sdu(bit_msg.msg, bit_msg.N_bits);
           state = CONNECT; 

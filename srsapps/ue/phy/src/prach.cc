@@ -42,10 +42,10 @@ namespace ue {
 void prach::free_cell() 
 {
   if (initiated) {
-    for (uint32_t i=0;i<64;i++) {
+    for (int i=0;i<64;i++) {
       if (buffer[i]) {
-        free(buffer[i]);
-      }
+        free(buffer[i]);    
+      }      
     }
     if (signal_buffer) {
       free(signal_buffer);
@@ -69,12 +69,12 @@ bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_)
   }
   
   len = prach_obj.N_seq + prach_obj.N_cp;
-  for (uint32_t i=0;i<64;i++) {
+  for (int i=0;i<64;i++) {
     buffer[i] = (cf_t*) srslte_vec_malloc(len*sizeof(cf_t));
     if(!buffer[i]) {
       return false; 
-    }
-    if(srslte_prach_gen(&prach_obj, i, params_db->get_param(phy_params::PRACH_FREQ_OFFSET), buffer[i])){
+    }    
+    if(srslte_prach_gen(&prach_obj, i, params_db->get_param(phy_params::PRACH_FREQ_OFFSET), buffer[i])) {
       return false;
     }
   }
@@ -86,10 +86,10 @@ bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_)
 }
 
 bool prach::prepare_to_send(uint32_t preamble_idx_) {
-  prepare_to_send(preamble_idx_, -1, 0); 
+  return prepare_to_send(preamble_idx_, -1, 0); 
 }
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_) {
-  prepare_to_send(preamble_idx_, allowed_subframe_, 0); 
+  return prepare_to_send(preamble_idx_, allowed_subframe_, 0); 
 }
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, int target_power_dbm)
 {
@@ -129,7 +129,7 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
       }
     }
   }
-  INFO("PRACH Buffer: Not ready to send at tti: %d\n", current_tti_);
+  DEBUG("PRACH Buffer: Not ready to send at tti: %d\n", current_tti_);
   return false;     
 }
 
@@ -149,12 +149,13 @@ bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
   srslte_timestamp_add(&tx_time, 0, 1e-3*tx_advance_sf); 
 
   // Correct CFO before transmission
-  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, 2*cfo / srslte_symbol_sz(cell.nof_prb));            
+  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, 1.5*cfo/srslte_symbol_sz(cell.nof_prb));            
 
   // transmit
   radio_handler->tx(signal_buffer, len, tx_time);                
-  INFO("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f\n", cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs);
-  //srslte_vec_save_file("prach", buffer[preamble_idx], len*sizeof(cf_t));
+  INFO("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f\n", 
+       cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs);
+  //srslte_vec_save_file("prach", buffer, len*sizeof(cf_t));
   preamble_idx = -1; 
 }
   

@@ -242,7 +242,7 @@ int sync_sss(srslte_sync_t *q, cf_t *input, uint32_t peak_pos, srslte_cp_t cp) {
   /* Make sure we have enough room to find SSS sequence */
   sss_idx = (int) peak_pos-2*q->fft_size-SRSLTE_CP_LEN(q->fft_size, (SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM_LEN:SRSLTE_CP_EXT_LEN));
   if (sss_idx < 0) {
-    INFO("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
+    DEBUG("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
     return SRSLTE_ERROR;
   }
   DEBUG("Searching SSS around sss_idx: %d, peak_pos: %d\n", sss_idx, peak_pos);
@@ -321,14 +321,14 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
         /* compute cumulative moving average CFO */
         q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, CFO_EMA_ALPHA);
       } else {
-        INFO("No space for CFO computation. Frame starts at \n",peak_pos);
+        DEBUG("No space for CFO computation. Frame starts at \n",peak_pos);
       }
 
       if (q->detect_cp) {
         if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
           q->cp = srslte_sync_detect_cp(q, input, peak_pos + find_offset);
         } else {
-          INFO("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
+          DEBUG("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
         }
       }
   
@@ -343,7 +343,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
         q->N_id_1 = 1000; 
         
         if (sync_sss(q, input, find_offset + peak_pos, q->cp) < 0) {
-          INFO("No space for SSS processing. Frame starts at %d\n", peak_pos);
+          DEBUG("No space for SSS processing. Frame starts at %d\n", peak_pos);
         }
       }
       // Return 1 (peak detected) even if we couldn't estimate CFO and SSS
@@ -352,7 +352,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       ret = 0;
     }
     
-    INFO("SYNC ret=%d N_id_2=%d find_offset=%d pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
+    DEBUG("SYNC ret=%d N_id_2=%d find_offset=%d pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
          ret, q->N_id_2, find_offset, peak_pos, q->peak_value, q->threshold, q->sf_idx, 15*q->mean_cfo);
 
   } else if (srslte_N_id_2_isvalid(q->N_id_2)) {

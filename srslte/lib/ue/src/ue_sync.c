@@ -265,16 +265,16 @@ static int find_peak_ok(srslte_ue_sync_t *q) {
     /* Get the subframe index (0 or 5) */
     q->sf_idx = srslte_sync_get_sf_idx(&q->sfind) + q->nof_recv_sf;
   } else {
-    INFO("Found peak at %d, SSS not detected\n", q->peak_idx);
+    DEBUG("Found peak at %d, SSS not detected\n", q->peak_idx);
   }
   
   q->frame_find_cnt++;  
-  INFO("Found peak %d at %d, value %.3f, Cell_id: %d CP: %s\n", 
+  DEBUG("Found peak %d at %d, value %.3f, Cell_id: %d CP: %s\n", 
        q->frame_find_cnt, q->peak_idx, 
        srslte_sync_get_last_peak_value(&q->sfind), q->cell.id, srslte_cp_string(q->cell.cp));       
 
   if (q->frame_find_cnt >= q->nof_avg_find_frames || q->peak_idx < 2*q->fft_size) {
-    INFO("Realigning frame, reading %d samples\n", q->peak_idx+q->sf_len/2);
+    DEBUG("Realigning frame, reading %d samples\n", q->peak_idx+q->sf_len/2);
     /* Receive the rest of the subframe so that we are subframe aligned*/
     if (q->recv_callback(q->stream, q->input_buffer, q->peak_idx+q->sf_len/2, &q->last_timestamp) < 0) {
       return SRSLTE_ERROR;
@@ -299,7 +299,7 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
   
    /* Make sure subframe idx is what we expect */
   if ((q->sf_idx != srslte_sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track) {
-    INFO("Warning: Expected SF idx %d but got %d (%d,%g - %d,%g)!\n", 
+    DEBUG("Warning: Expected SF idx %d but got %d (%d,%g - %d,%g)!\n", 
          q->sf_idx, srslte_sync_get_sf_idx(&q->strack), 
          q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
       q->sf_idx = srslte_sync_get_sf_idx(&q->strack);          
@@ -309,7 +309,7 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
   q->time_offset = ((int) track_idx - (int) q->strack.frame_size/2 - (int) q->strack.fft_size); 
   
   if (q->time_offset) {
-    INFO("Time offset adjustment: %d samples\n", q->time_offset);
+    DEBUG("Time offset adjustment: %d samples\n", q->time_offset);
   }
   
   /* compute cumulative moving average time offset */
@@ -318,7 +318,7 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
   /* If the PSS peak is beyond the frame (we sample too slowly), 
     discard the offseted samples to align next frame */
   if (q->time_offset > 0 && q->time_offset < MAX_TIME_OFFSET) {
-    INFO("Positive time offset %d samples. Mean time offset %f.\n", q->time_offset, q->mean_time_offset);
+    DEBUG("Positive time offset %d samples. Mean time offset %f.\n", q->time_offset, q->mean_time_offset);
     if (q->recv_callback(q->stream, dummy, (uint32_t) q->time_offset, &q->last_timestamp) < 0) {
       fprintf(stderr, "Error receiving from USRP\n");
       return SRSLTE_ERROR; 
@@ -338,10 +338,10 @@ static int track_peak_no(srslte_ue_sync_t *q) {
   /* if we missed too many PSS go back to FIND */
   q->frame_no_cnt++; 
   if (q->frame_no_cnt >= TRACK_MAX_LOST) {
-    INFO("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
+    DEBUG("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
     q->state = SF_FIND;
   } else {
-    INFO("Tracking peak not found. Peak %.3f, %d lost\n", 
+    DEBUG("Tracking peak not found. Peak %.3f, %d lost\n", 
          srslte_sync_get_last_peak_value(&q->strack), (int) q->frame_no_cnt);    
   }
 
@@ -398,7 +398,7 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
       if (q->sf_idx == 10) {
         q->sf_idx = 0;
       }
-      INFO("Reading %d samples. sf_idx = %d\n", q->sf_len, q->sf_idx);
+      DEBUG("Reading %d samples. sf_idx = %d\n", q->sf_len, q->sf_idx);
       ret = 1;
       *sf_symbols = q->input_buffer;
     } else {

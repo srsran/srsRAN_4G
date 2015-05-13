@@ -238,7 +238,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, uint32_t N_id_2
             q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
             q->candidates[nof_detected_frames].psr = srslte_sync_get_peak_value(&q->ue_sync.strack);
             q->candidates[nof_detected_frames].cfo = srslte_ue_sync_get_cfo(&q->ue_sync);
-            INFO
+            DEBUG
               ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
                 nof_detected_frames, nof_scanned_frames, q->nof_frames_to_scan,
                 q->candidates[nof_detected_frames].psr, q->candidates[nof_detected_frames].cell_id,

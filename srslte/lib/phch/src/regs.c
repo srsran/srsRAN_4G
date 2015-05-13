@@ -308,7 +308,7 @@ int regs_phich_init(srslte_regs_t *h) {
       ni=((h->cell.id*n[li]/n[0])+mi+i*n[li]/3) % n[li]; // Step 8
       h->phich[mi].regs[i] = regs_phich[li][ni];
       h->phich[mi].regs[i]->assigned = true;
-      INFO("Assigned PHICH REG#%d (%d,%d)\n",nreg,h->phich[mi].regs[i]->k0,li);
+      DEBUG("Assigned PHICH REG#%d (%d,%d)\n",nreg,h->phich[mi].regs[i]->k0,li);
       nreg++;
     }
   }
@@ -487,7 +487,7 @@ int regs_pcfich_init(srslte_regs_t *h) {
       return SRSLTE_ERROR;
     } else {
       ch->regs[i]->assigned = true;     
-      INFO("Assigned PCFICH REG#%d (%d,0)\n", i, k);
+      DEBUG("Assigned PCFICH REG#%d (%d,0)\n", i, k);
     }
   }
   return SRSLTE_SUCCESS;

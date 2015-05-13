@@ -48,6 +48,7 @@ class tti_sync_cv : public tti_sync
             ~tti_sync_cv();
     void     increase();
     uint32_t wait();      
+    void     resync();
     void     set_producer_cntr(uint32_t producer_cntr);
     
   private: 

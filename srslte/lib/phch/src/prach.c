@@ -44,7 +44,7 @@
 #define   PHI_4         2     // PRACH phi parameter for format 4
 #define   MAX_ROOTS     838   // Max number of root sequences
 
-#define PRACH_AMP       0.5
+#define PRACH_AMP       0.4
 
 /******************************************************
  * Reference tables from 3GPP TS 36.211 v10.7.0
@@ -346,6 +346,8 @@ int srslte_prach_init(srslte_prach_t *p,
         p->N_cs = prach_Ncs_unrestricted[p->zczc];
       }
     }
+    
+    printf("N_cs=%d, ZCZC=%d\n", p->N_cs, p->zczc);
 
     // Set up containers
     p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
@@ -438,9 +440,10 @@ int srslte_prach_gen(srslte_prach_t *p,
 
     // Copy preamble sequence into buffer
     for(int i=0;i<p->N_seq;i++){
-      signal[p->N_cp+i] = PRACH_AMP*p->ifft_out[i%p->N_ifft_prach];
+      signal[p->N_cp+i] = p->ifft_out[i%p->N_ifft_prach];
     }
-                
+    srslte_vec_sc_prod_cfc(signal, PRACH_AMP, signal, p->N_cp + p->N_seq);
+    
     ret = SRSLTE_SUCCESS;
   }
 

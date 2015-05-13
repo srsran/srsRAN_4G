@@ -50,10 +50,13 @@ add_executable(pdsch_enodeb pdsch_enodeb.c)
 target_link_libraries(pdsch_enodeb srslte pthread)
 
 IF(UHD_FOUND)
+  target_link_libraries(pdsch_ue srslte_uhd)
+  target_link_libraries(pdsch_enodeb srslte_uhd)
 ELSE(UHD_FOUND)
   add_definitions(-DDISABLE_UHD)
-  add_definitions(-DDISABLE_UHD)
 ENDIF(UHD_FOUND)
+
+FIND_PACKAGE(SRSGUI)
 
 IF(SRSGUI_FOUND)
   target_link_libraries(pdsch_ue ${SRSGUI_LIBRARIES})
@@ -69,19 +72,19 @@ ENDIF(SRSGUI_FOUND)
 IF(UHD_FOUND)
 
   add_executable(cell_search cell_search.c)
-  target_link_libraries(cell_search srslte )
+  target_link_libraries(cell_search srslte srslte_uhd)
 
   add_executable(prach_ue prach_ue.c)
-  target_link_libraries(prach_ue srslte )
+  target_link_libraries(prach_ue srslte srslte_uhd)
 
   add_executable(cell_measurement cell_measurement.c)
-  target_link_libraries(cell_measurement srslte)
+  target_link_libraries(cell_measurement srslte srslte_uhd)
 
   add_executable(usrp_capture usrp_capture.c)
-  target_link_libraries(usrp_capture srslte)
+  target_link_libraries(usrp_capture srslte srslte_uhd)
 
   add_executable(usrp_capture_sync usrp_capture_sync.c)
-  target_link_libraries(usrp_capture_sync srslte)
+  target_link_libraries(usrp_capture_sync srslte srslte_uhd)
 
   MESSAGE(STATUS "   UHD examples will be installed.")
 

@@ -31,7 +31,7 @@
 #include "srsapps/common/log.h"
 #include "srsapps/ue/mac/mac_io.h"
 #include "srsapps/ue/mac/mac_params.h"
-#include "srsapps/ue/mac/mac_pdu.h"
+#include "srsapps/ue/mac/pdu.h"
 
 #ifndef MUX_H
 #define MUX_H
@@ -48,6 +48,8 @@ public:
   void     reset();
   void     init(log *log_h, mac_io *mac_io_h);
 
+  bool     is_pending_sdu();
+  
   uint8_t* pdu_pop(uint32_t tti_, uint32_t pdu_sz);
   bool     pdu_move_to_msg3(uint32_t tti, uint32_t pdu_sz);
   void     pdu_release();
@@ -63,8 +65,8 @@ public:
     
 private:  
   bool          assemble_pdu(uint32_t pdu_sz); 
-  bool          allocate_sdu(uint32_t lcid, mac_pdu *pdu, uint32_t *sdu_sz);
-  bool          allocate_sdu(uint32_t lcid, mac_pdu *pdu);
+  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu, uint32_t *sdu_sz);
+  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu);
   
   int64_t       Bj[mac_io::NOF_UL_LCH];
   int           PBR[mac_io::NOF_UL_LCH]; // -1 sets to infinity
@@ -89,7 +91,7 @@ private:
   /* PDU Buffer */
   static const uint32_t PDU_BUFF_SZ  = 16*1024; 
   qbuff                 pdu_buff; 
-  mac_pdu               pdu_msg; 
+  sch_pdu               pdu_msg; 
 
 };
 }

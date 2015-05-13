@@ -53,7 +53,14 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
 
   reset();
 
-  if (!pthread_create(&mac_thread, NULL, mac_thread_fnc, this)) {
+  pthread_attr_t attr;
+  struct sched_param param;
+  param.sched_priority = -20;  
+  pthread_attr_init(&attr);
+  pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+  pthread_attr_setschedparam(&attr, &param);
+
+  if (!pthread_create(&mac_thread, &attr, mac_thread_fnc, this)) {
     started = true;             
   } else {
     perror("pthread_create");
@@ -63,8 +70,7 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
 
 void mac::stop()
 {
-  started = false; 
-  
+  started = false;   
   pthread_join(mac_thread, NULL);
 }
 
@@ -126,7 +132,7 @@ void mac::main_radio_loop() {
 
         // Init HARQ for this cell 
         Info("Init UL/DL HARQ\n");
-        ul_harq.init(cell, 8*1024, log_h, &timers_db, &mux_unit);
+        ul_harq.init(cell, log_h, &timers_db, &mux_unit);
         dl_harq.init(cell, 8*1024, log_h, &timers_db, &demux_unit);
 
         // Set the current PHY cell to the detected cell
@@ -134,13 +140,17 @@ void mac::main_radio_loop() {
         if (phy_h->set_cell(cell)) {
           Info("Starting RX streaming\n");
           if (phy_h->start_rxtx()) {
-            tti = ttisync->wait();
             Info("Receiver synchronized\n");
 
             // Send MIB to RRC 
             mac_io_lch.get(mac_io::MAC_LCH_BCCH_DL)->send(bch_payload, SRSLTE_BCH_PAYLOAD_LEN);
         
-            is_synchronized = true;   
+            ttisync->resync();
+            Info("Wait to sync\n");
+            for (int i=0;i<1000;i++) {
+              tti = ttisync->wait();
+            }
+            is_synchronized = true;               
           } else {
             Error("Starting PHY receiver\n");
             exit(-1);
@@ -151,14 +161,14 @@ void mac::main_radio_loop() {
         }
       } else {
         Warning("Cell not found\n");
+        sleep(1);
       }
-      sleep(1);
     }
     if (is_synchronized) {
       /* Warning: Here order of invocation of procedures is important!! */
-
+      
       tti = ttisync->wait();
-
+      
       // Step all procedures 
       ra_procedure.step(tti);
       sr_procedure.step(tti);
@@ -181,10 +191,18 @@ void mac::main_radio_loop() {
 
       // Process UL grants if RA procedure is done or in contention resolution 
       if (ra_procedure.is_successful() || ra_procedure.is_contention_resolution()) {
-        Info("Processing UL grants\n");
         process_ul_grants(tti);
       }
       timers_db.step_all();
+      
+      // Check if there is pending CCCH SDU in Multiplexing Unit
+      if (mux_unit.is_pending_sdu()) {
+        // Start RA procedure 
+        if (!ra_procedure.in_progress() && !ra_procedure.is_successful()) {
+          Info("Starting RA procedure by RLC order\n");
+          ra_procedure.start_rlc_order();        
+        }
+      }
     }
   }  
 }
@@ -267,7 +285,6 @@ void mac::process_dl_grants(uint32_t tti) {
   for (int i = mac_params::RNTI_C;i<=mac_params::RNTI_RA;i++) {
     // Check C-RNTI, SPS-RNTI and Temporal RNTI
     if (params_db.get_param(i) != 0) {
-      Info("Searching DL grants for RNTI: %d\n", params_db.get_param(i));
       dl_sched_grant ue_grant(rnti_type(i), params_db.get_param(i)); 
       if (dl_buffer->get_dl_grant(&ue_grant)) {
         // If PDCCH for C-RNTI and RA procedure in Contention Resolution, notify it
@@ -362,12 +379,16 @@ void mac::process_ul_grants(uint32_t tti) {
       if (params_db.get_param(i) != 0) {
         ul_sched_grant ul_grant(rnti_type(i), params_db.get_param(i)); 
         if (dl_buffer->get_ul_grant(&ul_grant)) {
+          if (ul_grant.is_from_rar()) {
+            dl_buffer->release_pending_rar_grant();
+          }
           if (ra_procedure.is_contention_resolution() && i == mac_params::RNTI_C) {
             ra_procedure.pdcch_to_crnti(true);
           }
           if (i == mac_params::RNTI_C || i == mac_params::RNTI_TEMP || ra_procedure.is_running()) {
-            if (i == mac_params::RNTI_C && ul_harq.is_sps(tti))
-            ul_grant.set_ndi(true);
+            if (i == mac_params::RNTI_C && ul_harq.is_sps(tti)) {
+              ul_grant.set_ndi(true);
+            }
             ul_harq.run_tti(tti, &ul_grant, phy_h); 
             if (i == mac_params::RNTI_TEMP) {
               // Discard already processed RAR grant
@@ -401,7 +422,7 @@ void mac::process_ul_grants(uint32_t tti) {
       return;
     }
   }
-  ul_harq.run_tti(tti, phy_h);
+  ul_harq.run_tti(tti, dl_buffer, phy_h);      
 }
 
 

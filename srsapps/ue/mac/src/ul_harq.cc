@@ -46,13 +46,13 @@ ul_harq_entity::ul_harq_entity() {
 ul_harq_entity::~ul_harq_entity() {
 delete proc; 
 }
-bool ul_harq_entity::init(srslte_cell_t cell, uint32_t max_payload_len, log *log_h_, timers *timers_db_, mux *mux_unit_) {
+bool ul_harq_entity::init(srslte_cell_t cell, log *log_h_, timers *timers_db_, mux *mux_unit_) {
   log_h     = log_h_; 
   mux_unit  = mux_unit_; 
   timers_db = timers_db_;
   
   for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
-    if (!proc[i].init(cell, max_payload_len, this)) {
+    if (!proc[i].init(cell, this)) {
       return false; 
     }
   }
@@ -79,15 +79,16 @@ void ul_harq_entity::reset_ndi() {
 bool ul_harq_entity::is_sps(uint32_t pid) {
   return false; 
 }
-
-void ul_harq_entity::run_tti(uint32_t tti, phy *phy_) {
-  run_tti(tti, NULL, phy_);
+// Called with no UL grant
+void ul_harq_entity::run_tti(uint32_t tti, dl_buffer *dl_buffer, phy *phy_) {
+  // TODO: Receive HARQ information from PHY (PHICH) and perform retransmissions
 }
-
 // Implements Section 5.4.2.1
+// Called with UL grant
 void ul_harq_entity::run_tti(uint32_t tti, ul_sched_grant *grant, phy *phy_h)
 {
   uint32_t pid = pidof(tti); 
+  proc[pid].tti = tti; 
   last_retx_is_msg3 = false; 
   
   if (grant) {
@@ -148,10 +149,9 @@ static int rv_of_irv[4] = {0, 2, 3, 1};
 static int irv_of_rv[4] = {0, 3, 1, 2}; 
     
 ul_harq_entity::ul_harq_process::ul_harq_process() : cur_grant(0) {
-  payload = NULL; 
-  max_payload_len = 0; 
   current_tx_nb = 0; 
   current_irv = 0; 
+  is_initiated = false; 
   is_grant_configured = false; 
   bzero(&cur_grant, sizeof(ul_sched_grant));
 }
@@ -160,7 +160,9 @@ void ul_harq_entity::ul_harq_process::reset() {
   current_irv = 0; 
   is_grant_configured = false; 
   bzero(&cur_grant, sizeof(ul_sched_grant));
-  srslte_softbuffer_tx_reset(&softbuffer);
+  if (is_initiated) {
+    srslte_softbuffer_tx_reset(&softbuffer);
+  }
 }
 bool ul_harq_entity::ul_harq_process::has_grant() {
   return is_grant_configured; 
@@ -186,34 +188,31 @@ void ul_harq_entity::ul_harq_process::set_maxHARQ_Tx(uint32_t maxHARQ_Tx_, uint3
   maxHARQ_Msg3Tx = maxHARQ_Msg3Tx_; 
 }
 
-bool ul_harq_entity::ul_harq_process::init(srslte_cell_t cell, uint32_t max_payload_len_, ul_harq_entity *parent) {
-  max_payload_len = max_payload_len_; 
+bool ul_harq_entity::ul_harq_process::init(srslte_cell_t cell, ul_harq_entity *parent) {
   if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     return false; 
   } else {
+    is_initiated = true; 
     harq_entity = parent; 
     log_h = harq_entity->log_h;
-    payload = (uint8_t*)  srslte_vec_malloc(sizeof(uint8_t) * max_payload_len);
-    return payload?true:false;
   }     
 }
 
 // Retransmission with or w/o grant (Section 5.4.2.2)
 void ul_harq_entity::ul_harq_process::generate_retx(ul_sched_grant* grant, ul_buffer* ul)
 {
-  current_tx_nb++;
-  
+  current_tx_nb++;  
   if (grant) {
     // HARQ entity requests an adaptive transmission
     memcpy(&cur_grant, grant, sizeof(grant));
     current_irv = irv_of_rv[grant->get_rv()%4];
     harq_feedback = false; 
-    generate_tx(ul);
+    generate_tx(NULL, ul);
   } else {
     // HARQ entity requests a non-adaptive transmission
     if (!harq_feedback) {
-      generate_tx(ul);
+      generate_tx(NULL, ul);
     }
   }
   
@@ -226,17 +225,17 @@ void ul_harq_entity::ul_harq_process::generate_retx(ul_sched_grant* grant, ul_bu
 // New transmission (Section 5.4.2.2)
 void ul_harq_entity::ul_harq_process::generate_new_tx(uint8_t *pdu_payload, bool is_msg3_, ul_sched_grant* ul_grant, ul_buffer* ul)
 {
-  if (ul_grant && pdu_payload && ul_grant->get_tbs() < max_payload_len) {
+  if (ul_grant && pdu_payload) {
     current_tx_nb = 0; 
     current_irv = 0;         
-    // Store MAC PDU in the HARQ buffer
-    srslte_bit_pack_vector(pdu_payload, payload, ul_grant->get_tbs());
+    srslte_softbuffer_tx_reset(&softbuffer);
     // Store the uplink grant
-    memcpy(&cur_grant, ul_grant, sizeof(ul_grant));        
+    memcpy(&cur_grant, ul_grant, sizeof(ul_sched_grant));        
     harq_feedback = false; 
-    generate_tx(ul);
+    generate_tx(pdu_payload, ul);
     is_grant_configured = true; 
     is_msg3 = is_msg3_;
+    Info("New %s transmission PDU Len %d bytes\n", is_msg3_?"Msg3":"", cur_grant.get_tbs());
   }
 }
 
@@ -246,12 +245,13 @@ void ul_harq_entity::ul_harq_process::generate_retx(ul_buffer* ul)
 }
 
   // Transmission of pending frame (Section 5.4.2.2)
-void ul_harq_entity::ul_harq_process::generate_tx(ul_buffer* ul)
+void ul_harq_entity::ul_harq_process::generate_tx(uint8_t *pdu_payload, ul_buffer* ul)
 {
   cur_grant.set_rv(rv_of_irv[current_irv%4]);
   ul->set_current_tx_nb(current_tx_nb);
-  ul->generate_data(&cur_grant, &softbuffer, payload);
+  ul->generate_data(&cur_grant, &softbuffer, pdu_payload);
   current_irv = (current_irv+1)%4;  
+  Info("UL transmission RV=%d, TBS=%d\n", cur_grant.get_rv(), cur_grant.get_tbs());
   if (is_msg3) {
     if (current_tx_nb == maxHARQ_Msg3Tx) {
       reset();          
