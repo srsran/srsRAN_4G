@@ -50,14 +50,14 @@ public:
 
   bool     is_pending_sdu();
   
-  uint8_t* pdu_pop(uint32_t tti_, uint32_t pdu_sz);
-  bool     pdu_move_to_msg3(uint32_t tti, uint32_t pdu_sz);
+  uint8_t* pdu_pop(uint32_t pdu_sz);
+  bool     pdu_move_to_msg3(uint32_t pdu_sz);
   void     pdu_release();
 
-  uint8_t* msg3_pop(uint32_t tti_, uint32_t pdu_sz);
+  uint8_t* msg3_pop(uint32_t pdu_sz);
   void     msg3_flush();
-  void     msg3_release();
-  bool     msg3_isempty();
+  void     msg3_transmitted(); 
+  bool     msg3_is_transmitted();
   
   void append_crnti_ce_next_tx(uint16_t crnti); 
   
@@ -81,7 +81,6 @@ private:
 
   log        *log_h;
   mac_io     *mac_io_h; 
-  uint32_t    tti;
   uint16_t    pending_crnti_ce;
   
   /* Msg3 Buffer */
@@ -92,6 +91,7 @@ private:
   static const uint32_t PDU_BUFF_SZ  = 16*1024; 
   qbuff                 pdu_buff; 
   sch_pdu               pdu_msg; 
+  bool msg3_has_been_transmitted;
 
 };
 }

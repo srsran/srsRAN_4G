@@ -180,7 +180,7 @@ static int encode_tb(srslte_sch_t *q,
     if (cb_segm->C > 0) {
       gamma = Gp%cb_segm->C;
     }
-    
+
     if (data) {
       /* Compute transport block CRC */
       par = srslte_crc_checksum(&q->crc_tb, data, cb_segm->tbs);

@@ -29,6 +29,7 @@
 
 #include "srslte/utils/debug.h"
 #include "srsapps/ue/phy/phy.h"
+#include "srsapps/common/log_stdout.h"
 #include "srsapps/common/tti_sync_cv.h"
 #include "srsapps/radio/radio_uhd.h"
 
@@ -43,12 +44,12 @@ typedef struct {
 
 void args_default(prog_args_t *args) {
   args->uhd_freq = -1.0;
-  args->uhd_gain = 60.0; 
+  args->uhd_gain = -1.0; 
 }
 
 void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [gv] -f rx_frequency (in Hz)\n", prog);
-  printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_gain);
+  printf("\t-g UHD RX gain [Default AGC]\n");
   printf("\t-v [increase verbosity, default none]\n");
 }
 
@@ -84,6 +85,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 
 
 srslte::ue::phy phy;
+prog_args_t prog_args; 
 
 uint32_t total_pkts=0;
 uint32_t total_dci=0;
@@ -114,11 +116,15 @@ void run_tti(uint32_t tti) {
     }
     total_pkts++; 
   }
+  float gain = prog_args.uhd_gain; 
+  if (gain < 0) {
+    gain = phy.get_agc_gain();
+  }
   if (srslte_verbose == SRSLTE_VERBOSE_NONE) {
-    printf("PDCCH BLER %.1f \%% PDSCH BLER %.1f \%% (total pkts: %5u) \r", 
+    printf("PDCCH BLER %.1f \%% PDSCH BLER %.1f \%% (total pkts: %5u) Gain: %.1f dB\r", 
          100-(float) 100*total_dci/total_pkts, 
          (float) 100*total_errors/total_pkts, 
-         total_pkts);   
+         total_pkts, gain);   
   }
 }
 
@@ -126,17 +132,21 @@ int main(int argc, char *argv[])
 {
   srslte_cell_t cell; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
-  prog_args_t prog_args; 
   srslte::ue::tti_sync_cv ttisync(10240); 
   srslte::radio_uhd radio_uhd; 
+  srslte::log_stdout log("PHY");
   
   parse_args(&prog_args, argc, argv);
 
-  // Init Radio 
-  radio_uhd.init();
-
-  // Init PHY 
-  phy.init(&radio_uhd, &ttisync);
+  // Init Radio and PHY
+  if (prog_args.uhd_gain > 0) {
+    radio_uhd.init();
+    radio_uhd.set_rx_gain(prog_args.uhd_gain);    
+    phy.init(&radio_uhd, &ttisync, &log);
+  } else {
+    radio_uhd.init_agc();
+    phy.init_agc(&radio_uhd, &ttisync, &log);
+  }
   
   // Give it time to create thread 
   sleep(1);

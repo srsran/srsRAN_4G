@@ -27,7 +27,8 @@
 
 
 #include "srslte/srslte.h"
-#include "srslte/common/radio.h"
+#include "srsapps/radio/radio.h"
+#include "srsapps/common/log.h"
 #include "srsapps/common/queue.h"
 #include "srsapps/ue/phy/ul_sched_grant.h"
 #include "srsapps/ue/phy/dl_sched_grant.h"
@@ -46,7 +47,7 @@ namespace ue {
   class ul_buffer : public queue::element {
 
   public: 
-    bool     init_cell(srslte_cell_t cell, phy_params *params_db);
+    bool     init_cell(srslte_cell_t cell, phy_params *params_db, log *log_h);
     void     free_cell();
     void     set_current_tx_nb(uint32_t current_tx_nb);
     bool     generate_ack(bool ack, dl_sched_grant *last_dl_grant); 
@@ -61,6 +62,7 @@ namespace ue {
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
 
   private: 
+    log               *log_h; 
     phy_params        *params_db; 
     srslte_cell_t      cell; 
     srslte_ue_ul_t     ue_ul; 

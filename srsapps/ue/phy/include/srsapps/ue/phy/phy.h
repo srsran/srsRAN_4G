@@ -29,6 +29,7 @@
 
 
 #include "srslte/srslte.h"
+#include "srsapps/common/log.h"
 #include "srsapps/common/tti_sync.h"
 #include "srsapps/ue/phy/dl_buffer.h"
 #include "srsapps/ue/phy/ul_buffer.h"
@@ -36,7 +37,7 @@
 #include "srsapps/ue/phy/phy_params.h"
 #include "srsapps/ue/phy/sched_grant.h"
 #include "srsapps/common/queue.h"
-#include "srslte/common/radio.h"
+#include "srsapps/radio/radio.h"
 
 #ifndef UEPHY_H
 #define UEPHY_H
@@ -68,7 +69,8 @@ public:
     cell_is_set = false; 
     phy_state = IDLE; 
   }
-  bool init(radio *radio_handler, tti_sync *ttisync);
+  bool init(radio *radio_handler, tti_sync *ttisync, log *log_h);
+  bool init_agc(radio *radio_handler, tti_sync *ttisync, log *log_h);
   void stop();
 
   // These functions can be called only if PHY is in IDLE (ie, not RX/TX)
@@ -81,6 +83,8 @@ public:
   bool start_rxtx();
   bool stop_rxtx();
 
+  float get_agc_gain();
+  
   // Indicate the PHY to send PRACH as soon as possible
   bool init_prach();
   bool send_prach(uint32_t preamble_idx);  
@@ -122,7 +126,8 @@ private:
   
   tti_sync      *ttisync; 
   radio         *radio_handler;
-
+  log           *log_h; 
+  
   srslte_cell_t cell; 
   bool          cell_is_set;
   bool          is_sfn_synched; 
@@ -142,6 +147,9 @@ private:
   bool         radio_is_streaming;
   srslte_timestamp_t last_rx_time; 
   float        cellsearch_cfo;
+  bool         do_agc;
+  double       last_gain;
+  bool         init_(radio *radio_handler, tti_sync *ttisync, log *log_h, bool do_agc);
   static void *phy_thread_fnc(void *arg);
   bool         decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell, uint8_t payload[SRSLTE_BCH_PAYLOAD_LEN]);
   int          sync_sfn();

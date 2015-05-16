@@ -121,13 +121,17 @@ int cuhd_start_rx_stream_nsamples(void *h, uint32_t nsamples)
 double cuhd_set_rx_gain_th(void *h, double gain)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  // round to avoid histeresis
   gain = handler->rx_gain_range.clip(gain);     
   pthread_mutex_lock(&handler->mutex);
   handler->new_rx_gain = gain; 
   pthread_cond_signal(&handler->cond);
   pthread_mutex_unlock(&handler->mutex);
   return gain; 
+}
+
+void cuhd_set_tx_rx_gain_offset(void *h, double offset) {
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  handler->tx_rx_gain_offset = offset; 
 }
 
 /* This thread listens for set_rx_gain commands to the USRP */
@@ -141,11 +145,14 @@ static void* thread_gain_fcn(void *h) {
     handler->cur_rx_gain = handler->new_rx_gain; 
     pthread_mutex_unlock(&handler->mutex);
     cuhd_set_rx_gain(h, handler->cur_rx_gain);
+    if (handler->tx_gain_same_rx) {
+      cuhd_set_tx_gain(h, handler->cur_rx_gain+handler->tx_rx_gain_offset);
+    }
     //printf("Set gain %.2f\n", handler->cur_rx_gain);
   }
 }
 
-int cuhd_open_(char *args, void **h, bool create_thread_gain)
+int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
 {
   cuhd_handler *handler = new cuhd_handler();
   std::string _args = std::string(args);
@@ -165,7 +172,8 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain)
   handler->rx_stream = handler->usrp->get_rx_stream(stream_args);
   handler->tx_stream = handler->usrp->get_tx_stream(stream_args);
 
-  
+  handler->tx_gain_same_rx = tx_gain_same_rx; 
+  handler->tx_rx_gain_offset = 0.0; 
   handler->rx_gain_range = handler->usrp->get_rx_gain_range();
 
   
@@ -189,11 +197,11 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain)
 }
 
 int cuhd_open(char *args, void **h) {
-  return cuhd_open_(args, h, false); 
+  return cuhd_open_(args, h, false, false); 
 }
 
-int cuhd_open_th(char *args, void **h) {
-  return cuhd_open_(args, h, true); 
+int cuhd_open_th(char *args, void **h, bool tx_gain_same_rx) {
+  return cuhd_open_(args, h, true, tx_gain_same_rx); 
 }
 
 

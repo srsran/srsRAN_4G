@@ -102,7 +102,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return; 
   }
 
-  srslte_vec_sc_prod_cfc(signal, 1.0/sqrtf(N_ifft_ul), signal, prach.N_seq+prach.N_cp);              
+  srslte_vec_sc_prod_cfc(signal, 1.0/sqrtf(N_ifft_ul), signal, nof_samples);              
   
   if (nlhs >= 0) {
     mexutils_write_cf(signal, &plhs[0], nof_samples, 1);  

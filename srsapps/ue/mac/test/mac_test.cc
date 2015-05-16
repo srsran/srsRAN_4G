@@ -45,19 +45,21 @@ typedef struct {
   float uhd_tx_freq; 
   float uhd_rx_gain;
   float uhd_tx_gain;
+  int   verbose; 
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
   args->uhd_rx_freq = -1.0;
   args->uhd_tx_freq = -1.0;
-  args->uhd_rx_gain = 60.0;
-  args->uhd_tx_gain = 60.0; 
+  args->uhd_rx_gain = -1; // set to autogain
+  args->uhd_tx_gain = -1; 
+  args->verbose     = 0; 
 }
 
 void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [gv] -f rx_frequency (in Hz) -F tx_frequency (in Hz)\n", prog);
-  printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_rx_gain);
-  printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_tx_gain);
+  printf("\t-g UHD RX gain [Default AGC]\n");
+  printf("\t-G UHD TX gain [Default same as RX gain (AGC)]\n");
   printf("\t-v [increase verbosity, default none]\n");
 }
 
@@ -79,7 +81,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->uhd_tx_freq = atof(argv[optind]);
       break;
     case 'v':
-      srslte_verbose++;
+      args->verbose++;
       break;
     default:
       usage(args, argv[0]);
@@ -119,7 +121,7 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
                  liblte_rrc_ra_response_window_size_num[sib2->rr_config_common_sib.rach_cnfg.ra_resp_win_size]);
   mac->set_param(srslte::ue::mac_params::RA_CONTENTIONTIMER, 
                  liblte_rrc_mac_contention_resolution_timer_num[sib2->rr_config_common_sib.rach_cnfg.mac_con_res_timer]);
-  mac->set_param(srslte::ue::mac_params::RA_MAXTXMSG3, 
+  mac->set_param(srslte::ue::mac_params::HARQ_MAXMSG3TX, 
                  sib2->rr_config_common_sib.rach_cnfg.max_harq_msg3_tx);
   
   printf("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",  
@@ -195,6 +197,20 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
      sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_config_index);
 }
 
+void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac *mac, srslte::ue::phy *phy) {
+  mac->set_param(srslte::ue::mac_params::HARQ_MAXTX, 
+                 liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx]);
+  
+  mac->set_param(srslte::ue::mac_params::SR_PUCCH_RESINDEX, msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx);
+  mac->set_param(srslte::ue::mac_params::SR_CONFIG_INDEX, msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);
+  mac->set_param(srslte::ue::mac_params::SR_TRANS_MAX, liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max]);
+  
+  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_ACK, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ack_idx);
+  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_CQI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_cqi_idx);
+  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_RI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ri_idx);
+  
+}
+
 int main(int argc, char *argv[])
 {
   prog_args_t prog_args; 
@@ -202,25 +218,39 @@ int main(int argc, char *argv[])
   srslte::radio_uhd radio_uhd; 
   srslte::ue::phy phy; 
   srslte::ue::mac mac; 
-  srslte::log_stdout log("MAC"); 
+  srslte::log_stdout mac_log("MAC"), phy_log("PHY"); 
   
   parse_args(&prog_args, argc, argv);
-
-  // Init Radio 
-  radio_uhd.init();
-
-  // Init PHY 
-  phy.init(&radio_uhd, &ttisync);
   
-  // Init MAC 
-  mac.init(&phy, &ttisync, &log);
-    
-  // Set RX freq and gain
-  radio_uhd.set_rx_freq(prog_args.uhd_rx_freq);
-  radio_uhd.set_rx_gain(prog_args.uhd_rx_gain);
-  radio_uhd.set_tx_freq(prog_args.uhd_tx_freq);
-  radio_uhd.set_tx_gain(prog_args.uhd_tx_gain);
+  switch (prog_args.verbose) {
+    case 1:
+      mac_log.set_level_info();
+      phy_log.set_level_info();
+      break;
+    case 2: 
+      mac_log.set_level_debug();
+      phy_log.set_level_debug();
+      break;
+  }
 
+// Init Radio and PHY
+  if (prog_args.uhd_rx_gain > 0 && prog_args.uhd_tx_gain > 0) {
+    radio_uhd.init();
+    radio_uhd.set_rx_gain(prog_args.uhd_rx_gain);
+    radio_uhd.set_tx_gain(prog_args.uhd_tx_gain);
+    phy.init(&radio_uhd, &ttisync, &phy_log);
+  } else {
+    radio_uhd.init_agc();
+    radio_uhd.set_tx_rx_gain_offset(-10);
+    phy.init_agc(&radio_uhd, &ttisync, &phy_log);
+  }  
+  // Init MAC 
+  mac.init(&phy, &ttisync, &mac_log);
+    
+  // Set RX freq
+  radio_uhd.set_rx_freq(prog_args.uhd_rx_freq);
+  radio_uhd.set_tx_freq(prog_args.uhd_tx_freq);
+  
   LIBLTE_BIT_MSG_STRUCT                bit_msg; 
   LIBLTE_RRC_MIB_STRUCT                bch_msg; 
   LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT     dlsch_msg; 
@@ -252,8 +282,6 @@ int main(int argc, char *argv[])
           sib2_period = liblte_rrc_si_periodicity_num[dlsch_msg.sibs[0].sib.sib1.sched_info[0].si_periodicity];
           printf("SIB1 received %d bytes, CellID=%d, si_window=%d, sib2_period=%d\n", 
                  n/8, dlsch_msg.sibs[0].sib.sib1.cell_id&0xfff, si_window_len, sib2_period);          
-          printf("Payload: ");
-          srslte_vec_fprint_hex(stdout, bit_msg.msg, n);
           state = SIB2; 
         } else {
           tti = mac.get_tti();           
@@ -268,8 +296,6 @@ int main(int argc, char *argv[])
           bit_msg.N_bits = n; 
           liblte_rrc_unpack_bcch_dlsch_msg(&bit_msg, &dlsch_msg);                    
           printf("SIB2 received %d bytes\n", n/8);
-          printf("Payload: ");
-          srslte_vec_fprint_hex(stdout, bit_msg.msg, n);
           setup_mac_phy_sib2(&dlsch_msg.sibs[0].sib.sib2, &mac, &phy);
           
           // Prepare ConnectionRequest packet
@@ -278,10 +304,18 @@ int main(int argc, char *argv[])
           ul_ccch_msg.msg.rrc_con_req.ue_id.random = 1000;
           ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_DATA; 
           liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, &bit_msg);
-          
-          mac.set_param(srslte::ue::mac_params::CONTENTION_ID, ul_ccch_msg.msg.rrc_con_req.ue_id.random);
+
+          uint64_t uecri=0;
+          uint8_t *ue_cri_ptr = (uint8_t*) &uecri; 
+          uint32_t nbytes = bit_msg.N_bits/8;
+          uint8_t *ptr = bit_msg.msg; 
+          for (int i=0;i<nbytes;i++) {
+            ue_cri_ptr[nbytes-i-1] = (uint8_t) srslte_bit_unpack(&ptr, 8);
+          }
+          mac.set_param(srslte::ue::mac_params::CONTENTION_ID, uecri);
 
           // Send ConnectionRequest Packet
+          printf("Send ConnectionRequest %d bytes\n", nbytes);
           mac.send_ccch_sdu(bit_msg.msg, bit_msg.N_bits);
           state = CONNECT; 
         } else {
@@ -298,15 +332,21 @@ int main(int argc, char *argv[])
           bit_msg.N_bits = n; 
           liblte_rrc_unpack_dl_ccch_msg(&bit_msg, &dl_ccch_msg);
           printf("Response: %s\n", liblte_rrc_dl_ccch_msg_type_text[dl_ccch_msg.msg_type]);
-          if (dl_ccch_msg.msg_type == LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP) {
-            // Process ConnectionRequest
-          }
-          exit(0);
+          switch (dl_ccch_msg.msg_type) {
+            case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP: 
+              // Process ConnectionSetup
+              process_connsetup(&dl_ccch_msg.msg.rrc_con_setup, &mac, &phy);
+              break;
+            case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
+              mac.set_param(srslte::ue::mac_params::RNTI_C, 0);
+              break;
+          } 
+         // exit(0);
         }
         break;
     }
       
-    usleep(50000);
+    usleep(10000);
   }
 }
 

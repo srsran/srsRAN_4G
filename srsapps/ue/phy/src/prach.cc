@@ -30,7 +30,7 @@
 #include <pthread.h>
 
 #include "srslte/srslte.h"
-#include "srslte/cuhd/cuhd.h"
+#include "srsapps/common/log.h"
 #include "srsapps/ue/phy/prach.h"
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/ue/phy/phy_params.h"
@@ -55,9 +55,10 @@ void prach::free_cell()
   }
 }
 
-bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_)
+bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_, log *log_h_)
 {
   cell = cell_; 
+  log_h = log_h_; 
   params_db = params_db_; 
   preamble_idx = -1; 
   if (srslte_prach_init(&prach_obj, srslte_symbol_sz(cell.nof_prb), 
@@ -97,7 +98,7 @@ bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, int t
     preamble_idx = preamble_idx_;
     allowed_subframe = allowed_subframe_; 
     transmitted_tti = -1; 
-    INFO("PRACH Buffer: Prepare to send preamble %d\n", preamble_idx);
+    Info("PRACH Buffer: Prepare to send preamble %d\n", preamble_idx);
     return true; 
   } else {
     return false; 
@@ -122,14 +123,13 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
         if ((current_tti%10) == sf_config.sf[i] && allowed_subframe == -1 || 
             ((current_tti%10) == sf_config.sf[i] && (current_tti%10) == allowed_subframe))
         {
-          INFO("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", current_tti, current_tti_);
+          Info("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", current_tti, current_tti_);
           transmitted_tti = current_tti; 
           return true; 
         }
       }
     }
   }
-  DEBUG("PRACH Buffer: Not ready to send at tti: %d\n", current_tti_);
   return false;     
 }
 
@@ -149,13 +149,12 @@ bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
   srslte_timestamp_add(&tx_time, 0, 1e-3*tx_advance_sf); 
 
   // Correct CFO before transmission
-  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, 1.5*cfo/srslte_symbol_sz(cell.nof_prb));            
+  srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo /srslte_symbol_sz(cell.nof_prb));            
 
   // transmit
   radio_handler->tx(signal_buffer, len, tx_time);                
-  INFO("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f\n", 
+  Info("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f\n", 
        cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs);
-  //srslte_vec_save_file("prach", buffer, len*sizeof(cf_t));
   preamble_idx = -1; 
 }
   

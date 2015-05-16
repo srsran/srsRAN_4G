@@ -29,6 +29,7 @@
 
 #include "srslte/utils/debug.h"
 #include "srsapps/ue/phy/phy.h"
+#include "srsapps/common/log_stdout.h"
 #include "srsapps/common/tti_sync_cv.h"
 #include "srsapps/radio/radio_uhd.h"
 
@@ -48,15 +49,15 @@ prog_args_t prog_args;
 void args_default(prog_args_t *args) {
   args->uhd_rx_freq = -1.0;
   args->uhd_tx_freq = -1.0;
-  args->uhd_rx_gain = 60.0;
-  args->uhd_tx_gain = 40.0; 
+  args->uhd_rx_gain = -1; // set to autogain
+  args->uhd_tx_gain = -1; 
   args->continous = false; 
 }
 
 void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [gGcv] -f rx_frequency -F tx_frequency (in Hz)\n", prog);
-  printf("\t-g UHD RX gain [Default %.2f dB]\n", args->uhd_rx_gain);
-  printf("\t-G UHD TX gain [Default %.2f dB]\n", args->uhd_tx_gain);
+  printf("\t-g UHD RX gain [Default AGC]\n");
+  printf("\t-G UHD TX gain [Default same as RX gain (AGC)]\n");
   printf("\t-c Run continuously [Default only once]\n");
   printf("\t-v [increase verbosity, default none]\n");
 }
@@ -208,7 +209,7 @@ void config_phy() {
   phy.set_param(srslte::ue::phy_params::PRACH_FREQ_OFFSET, 0);
   phy.set_param(srslte::ue::phy_params::PRACH_HIGH_SPEED_FLAG, 0);
   phy.set_param(srslte::ue::phy_params::PRACH_ROOT_SEQ_IDX, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 4);
+  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 1);
 
   phy.set_param(srslte::ue::phy_params::PUSCH_BETA, 10);
   phy.set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_HOPPING_EN, 0);
@@ -398,12 +399,15 @@ void run_tti(uint32_t tti) {
       state = RA; 
     }                    
   }
-  
+  float gain = prog_args.uhd_rx_gain; 
+  if (gain < 0) {
+    gain = phy.get_agc_gain();
+  }
   if (srslte_verbose == SRSLTE_VERBOSE_NONE && prog_args.continous) {
-    printf("RECV RAR %2.1f \%% RECV ConnSetup %2.1f \%% (%5u/%5u) \r", 
+    printf("RECV RAR %2.1f \%% RECV ConnSetup %2.1f \%% (%5u/%5u) Gain: %.1f dB\r", 
          (float) 100*nof_rx_rar/nof_tx_ra, 
          (float) 100*nof_rx_connsetup/nof_tx_ra, 
-         nof_rx_connsetup, nof_tx_ra);    
+         nof_rx_connsetup, nof_tx_ra, gain);    
   }
   
   
@@ -415,14 +419,21 @@ int main(int argc, char *argv[])
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   srslte::ue::tti_sync_cv ttisync(10240); 
   srslte::radio_uhd radio_uhd; 
+  srslte::log_stdout log("PHY");
   
   parse_args(&prog_args, argc, argv);
 
-  // Init Radio 
-  radio_uhd.init();
-  
-  // Init PHY 
-  phy.init(&radio_uhd, &ttisync);
+  // Init Radio and PHY
+  if (prog_args.uhd_rx_gain > 0 && prog_args.uhd_tx_gain > 0) {
+    radio_uhd.init();
+    radio_uhd.set_rx_gain(prog_args.uhd_rx_gain);
+    radio_uhd.set_tx_gain(prog_args.uhd_tx_gain);
+    phy.init(&radio_uhd, &ttisync, &log);
+  } else {
+    radio_uhd.init_agc();
+    radio_uhd.set_tx_rx_gain_offset(-10);
+    phy.init_agc(&radio_uhd, &ttisync, &log);
+  }
   
   // Give it time to create thread 
   sleep(1);
@@ -430,11 +441,9 @@ int main(int argc, char *argv[])
   // Setup PHY parameters
   config_phy();
     
-  // Set RX freq and gain
-  phy.get_radio()->set_rx_freq(prog_args.uhd_rx_freq);
-  phy.get_radio()->set_tx_freq(prog_args.uhd_tx_freq);
-  phy.get_radio()->set_rx_gain(prog_args.uhd_rx_gain);
-  phy.get_radio()->set_tx_gain(prog_args.uhd_tx_gain);
+  // Set RX freq
+  radio_uhd.set_rx_freq(prog_args.uhd_rx_freq);
+  radio_uhd.set_tx_freq(prog_args.uhd_tx_freq);
   
   /* Instruct the PHY to decode BCH */
   if (!phy.decode_mib_best(&cell, bch_payload)) {

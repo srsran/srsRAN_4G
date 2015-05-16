@@ -30,6 +30,7 @@
 #include <pthread.h>
 #include "srslte/srslte.h"
 
+#include "srsapps/common/log.h"
 #include "srsapps/ue/phy/sched_grant.h"
 #include "srsapps/ue/phy/dl_buffer.h"
 #include "srsapps/ue/phy/phy.h"
@@ -39,8 +40,9 @@
 namespace srslte {
 namespace ue {
  
-bool dl_buffer::init_cell(srslte_cell_t cell_, phy_params *params_db_)
+bool dl_buffer::init_cell(srslte_cell_t cell_, phy_params *params_db_, log *log_h_)
 {
+  log_h = log_h_; 
   params_db = params_db_; 
   cell = cell_; 
   sf_symbols_and_ce_done = false; 
@@ -68,7 +70,6 @@ bool dl_buffer::recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_t
 {
   bool ret = false; 
   if (signal_buffer) {
-    DEBUG("DL Buffer TTI %d: Receiving packet\n", tti);
     cf_t *sf_buffer = NULL;
     sf_symbols_and_ce_done = false; 
     pdcch_llr_extracted = false; 
@@ -83,10 +84,6 @@ bool dl_buffer::recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_t
 }
 
 void dl_buffer::discard_pending_rar_grant() {
-  pending_rar_grant = false; 
-}
-
-void dl_buffer::release_pending_rar_grant() {
   pending_rar_grant = false; 
 }
 
@@ -124,29 +121,27 @@ void dl_buffer::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])
 {
   pending_rar_grant = true; 
   srslte_dci_rar_grant_unpack(&rar_grant, grant_payload);
-  srslte_dci_rar_grant_fprint(stdout, &rar_grant);
 }
 
 void dl_buffer::set_rar_grant(srslte_dci_rar_grant_t* rar_grant_)
 {
   pending_rar_grant = true; 
   memcpy(&rar_grant, rar_grant_, sizeof(srslte_dci_rar_grant_t));
-  srslte_dci_rar_grant_fprint(stdout, &rar_grant);
 }
 
 bool dl_buffer::get_dl_grant(dl_sched_grant *grant)
 {
   if (signal_buffer && is_ready()) {
-    DEBUG("DL Buffer TTI %d: Getting DL grant\n", tti);
+    Debug("DL Buffer TTI %d: Getting DL grant\n", tti);
     if (!sf_symbols_and_ce_done) {
-    DEBUG("DL Buffer TTI %d: Getting DL grant. Calling fft estimate\n", tti);
+    Debug("DL Buffer TTI %d: Getting DL grant. Calling fft estimate\n", tti);
       if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
         return false; 
       }
       sf_symbols_and_ce_done = true; 
     }
     if (!pdcch_llr_extracted) {
-    DEBUG("DL Buffer TTI %d: Getting DL grant. extracting LLR\n", tti);
+    Debug("DL Buffer TTI %d: Getting DL grant. extracting LLR\n", tti);
       if (srslte_pdcch_extract_llr(&ue_dl.pdcch, ue_dl.sf_symbols, ue_dl.ce, 0, tti%10, cfi)) {
         return false; 
       }
@@ -196,9 +191,9 @@ bool dl_buffer::decode_data(dl_sched_grant *grant, uint8_t *payload)
 bool dl_buffer::decode_data(dl_sched_grant *grant, srslte_softbuffer_rx_t *softbuffer, uint8_t *payload)
 {
   if (signal_buffer && is_ready()) {
-    DEBUG("DL Buffer TTI %d: Decoding PDSCH\n", tti);
+    Debug("DL Buffer TTI %d: Decoding PDSCH\n", tti);
     if (!sf_symbols_and_ce_done) {
-      DEBUG("DL Buffer TTI %d: Decoding PDSCH. Calling fft estimate\n", tti);
+      Debug("DL Buffer TTI %d: Decoding PDSCH. Calling fft estimate\n", tti);
       if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
         return false; 
       }

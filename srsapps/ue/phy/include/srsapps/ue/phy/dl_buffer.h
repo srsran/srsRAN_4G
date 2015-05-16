@@ -28,6 +28,7 @@
 
 
 #include "srslte/srslte.h"
+#include "srsapps/common/log.h"
 #include "srsapps/common/queue.h"
 #include "srsapps/ue/phy/ul_sched_grant.h"
 #include "srsapps/ue/phy/dl_sched_grant.h"
@@ -47,7 +48,7 @@ namespace ue {
     
     int buffer_id; 
     
-    bool           init_cell(srslte_cell_t cell, phy_params *params_db);
+    bool           init_cell(srslte_cell_t cell, phy_params *params_db, log *log_h_);
     void           free_cell();
     bool           recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time);
     bool           get_ul_grant(ul_sched_grant *grant);
@@ -55,7 +56,6 @@ namespace ue {
     void           discard_pending_rar_grant(); 
     void           set_rar_grant(srslte_dci_rar_grant_t *rar_grant);
     void           set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]);
-    void           release_pending_rar_grant();
     void           reset_softbuffer();
     bool           decode_ack(ul_sched_grant *pusch_grant);
     bool           decode_data(dl_sched_grant *pdsch_grant, uint8_t *payload); // returns true or false for CRC OK/NOK
@@ -63,6 +63,7 @@ namespace ue {
     
   private: 
     phy_params    *params_db;
+    log           *log_h; 
     srslte_cell_t  cell; 
     srslte_ue_dl_t ue_dl; 
     srslte_phich_t phich; 

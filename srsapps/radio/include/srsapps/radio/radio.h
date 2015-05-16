@@ -47,6 +47,7 @@ namespace srslte {
 
       virtual void set_tx_gain(float gain) = 0;
       virtual void set_rx_gain(float gain) = 0;
+      virtual double set_rx_gain_th(float gain) = 0;
 
       virtual void set_tx_freq(float freq) = 0;
       virtual void set_rx_freq(float freq) = 0;

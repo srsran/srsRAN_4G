@@ -48,11 +48,13 @@ public:
   demux();
   void init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_);
 
-  void     push_pdu(uint32_t tti, uint8_t *mac_pdu, uint32_t nof_bits);
-  void     push_pdu_bcch(uint32_t tti, uint8_t *mac_pdu, uint32_t nof_bits);
-  void     push_pdu_temp_crnti(uint32_t tti, uint8_t *mac_pdu, uint32_t nof_bits);
+  void     push_pdu(uint8_t *mac_pdu, uint32_t nof_bits);
+  void     push_pdu_bcch(uint8_t *mac_pdu, uint32_t nof_bits);
+  void     push_pdu_temp_crnti(uint8_t *mac_pdu, uint32_t nof_bits);
   bool     is_temp_crnti_pending();
-  void     demultiplex_pending_pdu(uint32_t tti);
+  bool     is_contention_resolution_id_pending(); 
+  void     demultiplex_pending_pdu();
+  void     discard_pending_pdu();
 
   uint64_t get_contention_resolution_id();
   
@@ -65,12 +67,12 @@ private:
 
   uint64_t   contention_resolution_id; 
   bool       pending_temp_rnti;
+  bool       has_pending_contention_resolution_id; 
 
   phy        *phy_h; 
   log        *log_h;
   mac_io     *mac_io_h; 
   timers     *timers_db; 
-  uint32_t    tti;
 };
 }
 }

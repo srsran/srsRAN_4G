@@ -28,6 +28,7 @@
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/common/log.h"
 
+#include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/ue/mac/mac.h"
 #include "srsapps/ue/mac/ul_harq.h"
 
@@ -40,17 +41,11 @@ namespace srslte {
   * 
   *********************************************************/
     
-ul_harq_entity::ul_harq_entity() {
-  proc = new ul_harq_process[NOF_HARQ_PROC]; // BCCH process is separate      
-}
-ul_harq_entity::~ul_harq_entity() {
-delete proc; 
-}
-bool ul_harq_entity::init(srslte_cell_t cell, log *log_h_, timers *timers_db_, mux *mux_unit_) {
+bool ul_harq_entity::init(srslte_cell_t cell, mac_params *params_db_, log *log_h_, timers *timers_db_, mux *mux_unit_) {
   log_h     = log_h_; 
   mux_unit  = mux_unit_; 
+  params_db = params_db_; 
   timers_db = timers_db_;
-  
   for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
     if (!proc[i].init(cell, this)) {
       return false; 
@@ -58,13 +53,8 @@ bool ul_harq_entity::init(srslte_cell_t cell, log *log_h_, timers *timers_db_, m
   }
   return true; 
 }
-void ul_harq_entity::set_maxHARQ_Tx(uint32_t maxHARQ_Tx, uint32_t maxHARQ_Msg3Tx) {
-  for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
-    proc[i].set_maxHARQ_Tx(maxHARQ_Tx, maxHARQ_Msg3Tx);
-  }
-}
 uint32_t ul_harq_entity::pidof(uint32_t tti) {
-  return tti%NOF_HARQ_PROC;
+  return (uint32_t) tti%NOF_HARQ_PROC;  
 }
 void ul_harq_entity::reset() {
   for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
@@ -80,36 +70,53 @@ bool ul_harq_entity::is_sps(uint32_t pid) {
   return false; 
 }
 // Called with no UL grant
-void ul_harq_entity::run_tti(uint32_t tti, dl_buffer *dl_buffer, phy *phy_) {
-  // TODO: Receive HARQ information from PHY (PHICH) and perform retransmissions
+void ul_harq_entity::run_tti(uint32_t tti, phy *phy_h) {
+  run_tti(tti, NULL, phy_h);
 }
+
 // Implements Section 5.4.2.1
 // Called with UL grant
 void ul_harq_entity::run_tti(uint32_t tti, ul_sched_grant *grant, phy *phy_h)
 {
-  uint32_t pid = pidof(tti); 
-  proc[pid].tti = tti; 
-  last_retx_is_msg3 = false; 
+  uint32_t tti_tx = (tti+4)%10240;
+  uint32_t pid = pidof(tti_tx); 
   
+  // Receive and route HARQ feedbacks
+  int tti_harq = (int) tti - 4; 
+  if (tti_harq < 0) {
+    tti_harq += 10240; 
+  }
+  uint32_t pid_harq = pidof(tti_harq); 
+  if (proc[pid_harq].has_grant() && proc[pid_harq].last_tx_tti() <= tti_harq) {
+    Info("Receiving HARQ feedback for PID=%d, TTI last TX %d, TTI harq %d\n", pid_harq, proc[pid_harq].last_tx_tti(), tti_harq);
+    proc[pid_harq].set_harq_feedback(phy_h->get_dl_buffer(tti)->decode_ack(proc[pid_harq].get_grant()));
+  }
+
   if (grant) {
     if ((grant->is_temp_rnti() && grant->get_ndi() != proc[pid].get_ndi()) || 
         (grant->is_crnti() && !proc[pid].has_grant())                      ||
           grant->is_from_rar()) 
     {          
       // New transmission
-      uint8_t* msg3_ptr = (uint8_t*) mux_unit->msg3_pop(tti, grant->get_tbs());
+      uint8_t* msg3_ptr = (uint8_t*) mux_unit->msg3_pop(grant->get_tbs());
       
       // Uplink grant in a RAR
-      if (msg3_ptr && grant->is_from_rar()) {
-        proc[pid].generate_new_tx(msg3_ptr, true, grant, phy_h->get_ul_buffer(tti+4));
-        mux_unit->msg3_release();
+      if (grant->is_from_rar()) {
+        if (msg3_ptr) {
+          Info("Generating New Msg3 Transmission for PID=%d TTI=%d\n", pid, tti_tx);
+          proc[pid].generate_new_tx(tti_tx, msg3_ptr, true, grant, phy_h->get_ul_buffer(tti_tx));
+          mux_unit->msg3_transmitted();
+        } else {
+          Warning("UL RAR grant available but no Msg3 on buffer\n");
+        }
               
       // Normal UL grant
       } else {
         // Request a MAC PDU from the Multiplexing & Assemble Unit
-        uint8_t* mac_pdu = mux_unit->pdu_pop(tti, grant->get_tbs());
+        Info("Generating New Transmission for PID=%d TTI=%d\n", pid, tti_tx);
+        uint8_t* mac_pdu = mux_unit->pdu_pop(grant->get_tbs());
         if (mac_pdu) {            
-          proc[pid].generate_new_tx(mac_pdu, false, grant, phy_h->get_ul_buffer(tti+4));          
+          proc[pid].generate_new_tx(tti_tx, mac_pdu, false, grant, phy_h->get_ul_buffer(tti_tx));          
           mux_unit->pdu_release();
         } else {
           Warning("Uplink grant with MAC PDU available in Multiplex Unit\n");
@@ -117,24 +124,15 @@ void ul_harq_entity::run_tti(uint32_t tti, ul_sched_grant *grant, phy *phy_h)
       }
     } else {
       // Adaptive Re-TX 
-      proc[pid].generate_retx(grant, phy_h->get_ul_buffer(tti+4));
+      Info("Generating Adaptive Retransmission for PID=%d RV=%d\n", pid, proc[pid].get_rv());
+      proc[pid].generate_retx(tti_tx, grant, phy_h->get_ul_buffer(tti_tx));
     }        
   } else if (proc[pid].has_grant()) {
     // Non-Adaptive Re-Tx
-    proc[pid].generate_retx(phy_h->get_ul_buffer(tti+4));
+    Info("Generating Non-adaptive Retransmission for PID=%d RV=%d\n", pid, proc[pid].get_rv());
+    proc[pid].generate_retx(tti_tx, phy_h->get_ul_buffer(tti_tx));
   }
   
-  // Receive and route HARQ feedbacks
-  for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
-    if (proc[pid].has_grant()) {
-      proc[pid].set_harq_feedback(phy_h->get_dl_buffer(tti)->decode_ack(proc[pid].get_grant()));
-    }
-  }
-}
-
-bool ul_harq_entity::is_last_retx_msg3()
-{
-  return last_retx_is_msg3; 
 }
 
 
@@ -153,11 +151,13 @@ ul_harq_entity::ul_harq_process::ul_harq_process() : cur_grant(0) {
   current_irv = 0; 
   is_initiated = false; 
   is_grant_configured = false; 
+  tti_last_tx = 0; 
   bzero(&cur_grant, sizeof(ul_sched_grant));
 }
 void ul_harq_entity::ul_harq_process::reset() {
   current_tx_nb = 0; 
   current_irv = 0; 
+  tti_last_tx = 0; 
   is_grant_configured = false; 
   bzero(&cur_grant, sizeof(ul_sched_grant));
   if (is_initiated) {
@@ -175,6 +175,11 @@ bool ul_harq_entity::ul_harq_process::get_ndi()
   return ndi; 
 }
 
+uint32_t ul_harq_entity::ul_harq_process::get_rv()
+{
+  return rv_of_irv[current_irv%4];
+}
+
 ul_sched_grant* ul_harq_entity::ul_harq_process::get_grant()
 {
   return &cur_grant; 
@@ -182,10 +187,13 @@ ul_sched_grant* ul_harq_entity::ul_harq_process::get_grant()
 
 void ul_harq_entity::ul_harq_process::set_harq_feedback(bool ack) {
   harq_feedback = ack; 
-}
-void ul_harq_entity::ul_harq_process::set_maxHARQ_Tx(uint32_t maxHARQ_Tx_, uint32_t maxHARQ_Msg3Tx_) {
-  maxHARQ_Tx = maxHARQ_Tx_; 
-  maxHARQ_Msg3Tx = maxHARQ_Msg3Tx_; 
+  // UL packet successfully delivered
+  if (ack) {
+    Info("HARQ = ACK for UL transmission. Discarting TB.\n");
+    reset();
+  } else {
+    Info("HARQ = NACK for UL transmission\n");
+  }
 }
 
 bool ul_harq_entity::ul_harq_process::init(srslte_cell_t cell, ul_harq_entity *parent) {
@@ -196,23 +204,24 @@ bool ul_harq_entity::ul_harq_process::init(srslte_cell_t cell, ul_harq_entity *p
     is_initiated = true; 
     harq_entity = parent; 
     log_h = harq_entity->log_h;
+    return true; 
   }     
 }
 
 // Retransmission with or w/o grant (Section 5.4.2.2)
-void ul_harq_entity::ul_harq_process::generate_retx(ul_sched_grant* grant, ul_buffer* ul)
+void ul_harq_entity::ul_harq_process::generate_retx(uint32_t tti_tx, ul_sched_grant* grant, ul_buffer* ul)
 {
-  current_tx_nb++;  
+  current_tx_nb++;    
   if (grant) {
     // HARQ entity requests an adaptive transmission
-    memcpy(&cur_grant, grant, sizeof(grant));
+    memcpy(&cur_grant, grant, sizeof(ul_sched_grant));
     current_irv = irv_of_rv[grant->get_rv()%4];
     harq_feedback = false; 
-    generate_tx(NULL, ul);
+    generate_tx(tti_tx, NULL, ul);
   } else {
     // HARQ entity requests a non-adaptive transmission
     if (!harq_feedback) {
-      generate_tx(NULL, ul);
+      generate_tx(tti_tx, NULL, ul);
     }
   }
   
@@ -222,47 +231,56 @@ void ul_harq_entity::ul_harq_process::generate_retx(ul_sched_grant* grant, ul_bu
   }
 }
 
+void ul_harq_entity::ul_harq_process::generate_retx(uint32_t tti_tx, ul_buffer* ul)
+{
+  generate_retx(tti_tx, NULL, ul);
+}
+
+
 // New transmission (Section 5.4.2.2)
-void ul_harq_entity::ul_harq_process::generate_new_tx(uint8_t *pdu_payload, bool is_msg3_, ul_sched_grant* ul_grant, ul_buffer* ul)
+void ul_harq_entity::ul_harq_process::generate_new_tx(uint32_t tti_tx, uint8_t *pdu_payload, bool is_msg3_, ul_sched_grant* ul_grant, ul_buffer* ul)
 {
   if (ul_grant && pdu_payload) {
-    current_tx_nb = 0; 
-    current_irv = 0;         
     srslte_softbuffer_tx_reset(&softbuffer);
     // Store the uplink grant
     memcpy(&cur_grant, ul_grant, sizeof(ul_sched_grant));        
     harq_feedback = false; 
-    generate_tx(pdu_payload, ul);
     is_grant_configured = true; 
+    current_tx_nb = 0; 
+    current_irv = 0;         
     is_msg3 = is_msg3_;
-    Info("New %s transmission PDU Len %d bytes\n", is_msg3_?"Msg3":"", cur_grant.get_tbs());
+    generate_tx(tti_tx, pdu_payload, ul);
   }
 }
 
-void ul_harq_entity::ul_harq_process::generate_retx(ul_buffer* ul)
+// Transmission of pending frame (Section 5.4.2.2)
+void ul_harq_entity::ul_harq_process::generate_tx(uint32_t tti_tx, uint8_t *pdu_payload, ul_buffer* ul)
 {
-  generate_retx(NULL, ul);
-}
-
-  // Transmission of pending frame (Section 5.4.2.2)
-void ul_harq_entity::ul_harq_process::generate_tx(uint8_t *pdu_payload, ul_buffer* ul)
-{
-  cur_grant.set_rv(rv_of_irv[current_irv%4]);
+  cur_grant.set_rv(get_rv());
   ul->set_current_tx_nb(current_tx_nb);
   ul->generate_data(&cur_grant, &softbuffer, pdu_payload);
+
   current_irv = (current_irv+1)%4;  
-  Info("UL transmission RV=%d, TBS=%d\n", cur_grant.get_rv(), cur_grant.get_tbs());
+  tti_last_tx = tti_tx; 
   if (is_msg3) {
-    if (current_tx_nb == maxHARQ_Msg3Tx) {
+    if (current_tx_nb == harq_entity->params_db->get_param(mac_params::HARQ_MAXMSG3TX)) {
+      Info("Maximum number of ReTX for Msg3 reached (%d). Discarting TB.\n", harq_entity->params_db->get_param(mac_params::HARQ_MAXMSG3TX));
       reset();          
     }        
   } else {
-    if (current_tx_nb == maxHARQ_Tx) {
+    if (current_tx_nb == harq_entity->params_db->get_param(mac_params::HARQ_MAXTX)) {
+      Info("Maximum number of ReTX reached (%d). Discarting TB.\n", harq_entity->params_db->get_param(mac_params::HARQ_MAXTX));
       reset();
     }
   }
 
 }
+
+uint32_t ul_harq_entity::ul_harq_process::last_tx_tti()
+{
+  return tti_last_tx;
+}
+
 
 }
 }

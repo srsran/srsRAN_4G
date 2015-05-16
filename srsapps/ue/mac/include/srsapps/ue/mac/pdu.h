@@ -112,6 +112,7 @@ public:
   
   // Section 6.1.2
   void parse_packet(uint8_t *ptr) {
+    uint8_t *init_ptr = ptr; 
     nof_subheaders = 0; 
     while(subheaders[nof_subheaders].read_subheader(&ptr)) {
       nof_subheaders++;
@@ -177,6 +178,8 @@ public:
   // Reading functions
   bool     is_sdu();
   cetype   ce_type();
+  uint32_t  size_plus_header();
+  void     set_payload_size(uint32_t size);
   
   bool     read_subheader(uint8_t** ptr);
   void     read_payload(uint8_t **ptr);
@@ -218,10 +221,12 @@ public:
   
   sch_pdu(uint32_t max_rars) : pdu(max_rars) {}
 
+  void      parse_packet(uint8_t *ptr);
   bool      write_packet(uint8_t *ptr);
   bool      has_space_ce(uint32_t nbytes);  
   bool      has_space_sdu(uint32_t nbytes);  
-  static uint32_t size_plus_header_pdu(uint32_t nbytes);
+  uint32_t  size();
+  static uint32_t size_plus_header_sdu(uint32_t nbytes);
   bool      update_space_ce(uint32_t nbytes);  
   bool      update_space_sdu(uint32_t nbytes);  
   void     fprint(FILE *stream);

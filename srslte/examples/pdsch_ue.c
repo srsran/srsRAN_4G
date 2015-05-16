@@ -267,14 +267,14 @@ int main(int argc, char **argv) {
     /* Set receiver gain */
     if (prog_args.uhd_gain > 0) {
       printf("Opening UHD device...\n");
-      if (cuhd_open_th(prog_args.uhd_args, &uhd)) {
+      if (cuhd_open(prog_args.uhd_args, &uhd)) {
         fprintf(stderr, "Error opening uhd\n");
         exit(-1);
       }
       cuhd_set_rx_gain(uhd, prog_args.uhd_gain);      
     } else {
       printf("Opening UHD device with threaded RX Gain control ...\n");
-      if (cuhd_open_th(prog_args.uhd_args, &uhd)) {
+      if (cuhd_open_th(prog_args.uhd_args, &uhd, false)) {
         fprintf(stderr, "Error opening uhd\n");
         exit(-1);
       }

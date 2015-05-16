@@ -59,6 +59,7 @@ class ra_proc : public proc,timer_callback
     void start_mac_order();
     void step(uint32_t tti);
     bool is_successful(); 
+    bool is_response_error(); 
     bool is_contention_resolution(); 
     bool is_error(); 
     bool in_progress();
@@ -67,7 +68,7 @@ class ra_proc : public proc,timer_callback
     
 private: 
       
-    void process_timeadv_cmd(uint32_t tti, uint32_t ta_cmd); 
+    void process_timeadv_cmd(uint32_t ta_cmd); 
     void step_initialization();
     void step_initialization_wait();
     void step_resource_selection();
@@ -98,7 +99,6 @@ private:
     uint32_t preambleTransMax;
     uint32_t iniReceivedTargetPower;
     int      delta_preamble_db; 
-    uint32_t maxharq_msg3tx;
     uint32_t contentionResolutionTimer; 
     uint32_t maskIndex; 
     int      preambleIndex;
@@ -145,7 +145,6 @@ private:
     
     pthread_t   pt_init_prach; 
     
-    uint64_t    received_contention_id;
     uint64_t    transmitted_contention_id;
     uint16_t    transmitted_crnti; 
     enum {

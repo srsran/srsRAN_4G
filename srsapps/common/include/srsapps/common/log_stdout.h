@@ -53,16 +53,16 @@ public:
 
   log_stdout(string service_name_) : log(service_name_) { }
   
-  void error(uint32_t tti, string message, ...);
-  void warning(uint32_t tti, string message, ...);
-  void info(uint32_t tti, string message, ...);   
-  void debug(uint32_t tti, string message, ...);  
+  void error(string message, ...);
+  void warning(string message, ...);
+  void info(string message, ...);   
+  void debug(string message, ...);  
   
   // Same with line and file info
-  void error(uint32_t tti, string file, int line, string message, ...);  
-  void warning(uint32_t tti, string file, int line, string message, ...);
-  void info(uint32_t tti, string file, int line, string message, ...);   
-  void debug(uint32_t tti, string file, int line, string message, ...);  
+  void error(string file, int line, string message, ...);  
+  void warning(string file, int line, string message, ...);
+  void info(string file, int line, string message, ...);   
+  void debug(string file, int line, string message, ...);  
 
 private:
   typedef enum {

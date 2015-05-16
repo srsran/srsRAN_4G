@@ -10,7 +10,7 @@ NULRB=[6 15 25 50 100];
 
 for n_rb=3:length(NULRB)
     for format=0;
-        for seqIdx=0:17:237
+        for seqIdx=7:17:237
             fprintf('RB: %d, format %d, seqIdx: %d\n',NULRB(n_rb),format,seqIdx);
             for preambleIdx=0:23:63
                 for CyclicShift=1:3:15
@@ -24,10 +24,10 @@ for n_rb=3:length(NULRB)
                         prachConfig.HighSpeed=hs;
                         prachConfig.FreqIdx=0;
                         prachConfig.FreqOffset=0;
-                        lib=srslte_prach(ueConfig,prachConfig);
+                        lib=srslte_prach(ueConfig,prachConfig)*2.4645;
                         
                         [mat, info]=ltePRACH(ueConfig,prachConfig);
-                        err=mean(abs(mat(:)-lib(1:length(mat))));
+                        err=mean(abs(mat-lib));
                         if (err > 10^-3)
                             disp(err)    
                             error('Error!');

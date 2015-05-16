@@ -39,7 +39,8 @@ SRSLTE_API int cuhd_open(char *args,
                          void **handler);
 
 SRSLTE_API int cuhd_open_th(char *args, 
-                            void **handler);
+                            void **handler, 
+                            bool tx_gain_same_rx);
 
 SRSLTE_API int cuhd_close(void *h);
 
@@ -60,9 +61,11 @@ SRSLTE_API double cuhd_set_rx_srate(void *h,
 SRSLTE_API double cuhd_set_rx_gain(void *h, 
                                    double gain);
 
+SRSLTE_API void cuhd_set_tx_rx_gain_offset(void *h, 
+                                           double offset); 
+
 SRSLTE_API double cuhd_set_rx_gain_th(void *h, 
                                       double gain);
-
 SRSLTE_API double cuhd_get_rx_gain(void *h);
 
 SRSLTE_API double cuhd_set_rx_freq(void *h, 

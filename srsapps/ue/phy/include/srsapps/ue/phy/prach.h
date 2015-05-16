@@ -28,7 +28,8 @@
 
 
 #include "srslte/srslte.h"
-#include "srslte/common/radio.h"
+#include "srsapps/radio/radio.h"
+#include "srsapps/common/log.h"
 #include "srsapps/common/queue.h"
 #include "srsapps/ue/phy/phy_params.h"
 
@@ -45,7 +46,7 @@ namespace ue {
       initiated = false; 
       signal_buffer = NULL; 
     }
-    bool           init_cell(srslte_cell_t cell, phy_params *params_db);
+    bool           init_cell(srslte_cell_t cell, phy_params *params_db, log *log_h);
     void           free_cell();
     bool           prepare_to_send(uint32_t preamble_idx);
     bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe);
@@ -56,6 +57,7 @@ namespace ue {
   private: 
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
     phy_params    *params_db     = NULL; 
+    log           *log_h; 
     int            preamble_idx;  
     int            allowed_subframe; 
     bool           initiated     = false;   

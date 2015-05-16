@@ -36,6 +36,7 @@ demux::demux() : mac_msg(20),pending_mac_msg(20)
 {
   contention_resolution_id = 0; 
   pending_temp_rnti = false; 
+  has_pending_contention_resolution_id = false; 
 }
 
 void demux::init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_)
@@ -52,10 +53,15 @@ bool demux::is_temp_crnti_pending()
   return pending_temp_rnti; 
 }
 
+bool demux::is_contention_resolution_id_pending() {
+  return has_pending_contention_resolution_id; 
+}
+
 uint64_t demux::get_contention_resolution_id()
 {
   uint64_t x = contention_resolution_id; 
   contention_resolution_id = 0; 
+  has_pending_contention_resolution_id = false; 
   return x; 
 }
 
@@ -63,9 +69,8 @@ uint64_t demux::get_contention_resolution_id()
 /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through 
  * the MAC in transparent mode 
  */
-void demux::push_pdu_bcch(uint32_t tti_, uint8_t *mac_pdu, uint32_t nof_bits) 
+void demux::push_pdu_bcch(uint8_t *mac_pdu, uint32_t nof_bits) 
 {
-  tti = tti_; 
   mac_io_h->get(mac_io::MAC_LCH_BCCH_DL)->send(mac_pdu, nof_bits);
   Debug("Pushed BCCH MAC PDU in transparent mode\n");
 }
@@ -76,35 +81,32 @@ void demux::push_pdu_bcch(uint32_t tti_, uint8_t *mac_pdu, uint32_t nof_bits)
  * wether the PDU shall pass to upper layers or not, which depends on the 
  * Contention Resolution result
  */
-void demux::push_pdu_temp_crnti(uint32_t tti_, uint8_t *mac_pdu, uint32_t nof_bits) 
+void demux::push_pdu_temp_crnti(uint8_t *mac_pdu, uint32_t nof_bits) 
 {
-  tti = tti_; 
   if (!pending_temp_rnti) {
     // Unpack DLSCH MAC PDU 
     pending_mac_msg.init(nof_bits/8);
     pending_mac_msg.parse_packet(mac_pdu);
-    pending_mac_msg.fprint(stdout);
     
-    //MIRAR ACK PENDING. EL QUE PASSA ES QUE AL HARQ NO FA RES SI EL CONTENTION RES ID ES 0, PERQUE ES 0???
-
     // Look for Contention Resolution UE ID 
-    contention_resolution_id = 0; 
     while(pending_mac_msg.next()) {
       if (pending_mac_msg.get()->ce_type() == sch_subh::CON_RES_ID) {
         contention_resolution_id = pending_mac_msg.get()->get_con_res_id();
+        has_pending_contention_resolution_id = true; 
+        Info("Found Contention Resolution ID CE\n");
       }
     }
+    pending_mac_msg.reset();
     pending_temp_rnti = true; 
-    Debug("Saved MAC PDU with Temporal C-RNTI in buffer\n");
+    Info("Saved MAC PDU with Temporal C-RNTI in buffer\n");
   } else {
     Warning("Error pushing PDU with Temporal C-RNTI: Another PDU is still in pending\n");
   }
 }
 
 /* Demultiplexing of logical channels and dissassemble of MAC CE */ 
-void demux::push_pdu(uint32_t tti_, uint8_t *mac_pdu, uint32_t nof_bits)
+void demux::push_pdu(uint8_t *mac_pdu, uint32_t nof_bits)
 {
-  tti = tti_; 
   // Unpack DLSCH MAC PDU 
   mac_msg.init(nof_bits/8);
   mac_msg.parse_packet(mac_pdu);
@@ -112,14 +114,18 @@ void demux::push_pdu(uint32_t tti_, uint8_t *mac_pdu, uint32_t nof_bits)
   Debug("Normal MAC PDU processed\n");
 }
 
-void demux::demultiplex_pending_pdu(uint32_t tti_)
+void demux::discard_pending_pdu()
 {
-  tti = tti_; 
+  pending_temp_rnti = false; 
+  pending_mac_msg.reset();  
+}
+
+void demux::demultiplex_pending_pdu()
+{
   if (pending_temp_rnti) {
     process_pdu(&pending_mac_msg);
-    Debug("Temporal C-RNTI MAC PDU processed\n");
-    pending_temp_rnti = false; 
-    pending_mac_msg.reset();
+    discard_pending_pdu();
+    Info("Temporal C-RNTI MAC PDU processed\n");
   } else {
     Error("Error demultiplex pending PDU: No pending PDU\n");
   }
@@ -129,6 +135,7 @@ void demux::demultiplex_pending_pdu(uint32_t tti_)
 
 void demux::process_pdu(sch_pdu *pdu_msg)
 {  
+  Info("Processing PDU\n");
   while(pdu_msg->next()) {
     if (pdu_msg->get()->is_sdu()) {
       // Route logical channel 
@@ -136,7 +143,7 @@ void demux::process_pdu(sch_pdu *pdu_msg)
         qbuff *dest_lch = mac_io_h->get(pdu_msg->get()->get_sdu_lcid());
         if (dest_lch) {
           dest_lch->send(pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_sdu_nbytes()*8);
-          Debug("Sent MAC SDU len=%d bytes to lchid=%d\n",  
+          Info("Sent MAC SDU len=%d bytes to lchid=%d\n",  
                 pdu_msg->get()->get_sdu_nbytes(), pdu_msg->get()->get_sdu_lcid());
         } else {
           Error("Getting destination channel LCID=%d\n", pdu_msg->get()->get_sdu_lcid());
@@ -168,8 +175,10 @@ bool demux::process_ce(sch_subh *subh) {
       timers_db->get(mac::TIME_ALIGNMENT)->run();
       Debug("Set TimeAdvance Command %d\n", subh->get_ta_cmd());
       break;
+    case sch_subh::PADDING:
+      break;
     default:
-      Error("MAC CE not supported\n");
+      Error("MAC CE 0x%x not supported\n", subh->ce_type());
       break;
   }
   return true; 

@@ -59,7 +59,7 @@ void log_stdout::printlog(level_t type, uint32_t tti, string file, int line, str
   vprintf(msg.c_str(), args);
 }
 
-void log_stdout::error(uint32_t tti, string msg, ...)
+void log_stdout::error(string msg, ...)
 {
   va_list args;
   va_start(args, msg);
@@ -67,23 +67,27 @@ void log_stdout::error(uint32_t tti, string msg, ...)
   va_end(args);
 }
 
-void log_stdout::info(uint32_t tti, string msg, ...)
+void log_stdout::info(string msg, ...)
 {
-  va_list args;
-  va_start(args, msg);
-  printlog(INFO, tti, msg, args);
-  va_end(args);
+  if (level >= LOG_LEVEL_INFO) {
+    va_list args;
+    va_start(args, msg);
+    printlog(INFO, tti, msg, args);
+    va_end(args);    
+  }
 }
 
-void log_stdout::debug(uint32_t tti, string msg, ...)
+void log_stdout::debug(string msg, ...)
 {
-  va_list args;
-  va_start(args, msg);
-  printlog(DEBUG, tti, msg, args);
-  va_end(args);
+  if (level >= LOG_LEVEL_DEBUG) {
+    va_list args;
+    va_start(args, msg);
+    printlog(DEBUG, tti, msg, args);
+    va_end(args);
+  }
 }
 
-void log_stdout::warning(uint32_t tti, string msg, ...)
+void log_stdout::warning(string msg, ...)
 {
   va_list args;
   va_start(args, msg);
@@ -92,7 +96,7 @@ void log_stdout::warning(uint32_t tti, string msg, ...)
 }
 
 
-void log_stdout::error(uint32_t tti, string file, int line, string msg, ...)
+void log_stdout::error(string file, int line, string msg, ...)
 {
   va_list args;
   va_start(args, msg);
@@ -100,23 +104,27 @@ void log_stdout::error(uint32_t tti, string file, int line, string msg, ...)
   va_end(args);
 }
 
-void log_stdout::info(uint32_t tti, string file, int line, string msg, ...)
+void log_stdout::info(string file, int line, string msg, ...)
 {
-  va_list args;
-  va_start(args, msg);
-  printlog(INFO, tti, file, line, msg, args);
-  va_end(args);
+  if (level >= LOG_LEVEL_INFO) {
+    va_list args;
+    va_start(args, msg);
+    printlog(INFO, tti, file, line, msg, args);
+    va_end(args);
+  }
 }
 
-void log_stdout::debug(uint32_t tti, string file, int line, string msg, ...)
+void log_stdout::debug(string file, int line, string msg, ...)
 {
-  va_list args;
-  va_start(args, msg);
-  printlog(DEBUG, tti, file, line, msg, args);
-  va_end(args);
+  if (level >= LOG_LEVEL_DEBUG) {
+    va_list args;
+    va_start(args, msg);
+    printlog(DEBUG, tti, file, line, msg, args);
+    va_end(args);
+  }
 }
 
-void log_stdout::warning(uint32_t tti, string file, int line, string msg, ...)
+void log_stdout::warning(string file, int line, string msg, ...)
 {
   va_list args;
   va_start(args, msg);

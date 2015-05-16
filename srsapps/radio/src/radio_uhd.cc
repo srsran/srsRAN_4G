@@ -26,7 +26,6 @@
  */
 
 #include "srslte/srslte.h"
-#include "srslte/common/radio.h"
 #include "srsapps/radio/radio_uhd.h"
 
 
@@ -47,6 +46,26 @@ bool radio_uhd::init(char *args)
   return true;    
 }
 
+bool radio_uhd::init_agc()
+{
+  return init_agc((char*) "");
+}
+
+void radio_uhd::set_tx_rx_gain_offset(float offset) {
+  cuhd_set_tx_rx_gain_offset(uhd, offset);  
+}
+
+bool radio_uhd::init_agc(char *args)
+{
+  printf("Opening UHD device with threaded RX Gain control ...\n");
+  if (cuhd_open_th(args, &uhd, true)) {
+    fprintf(stderr, "Error opening uhd\n");
+    return false;
+  }
+  cuhd_set_rx_gain(uhd, 40);
+  cuhd_set_tx_gain(uhd, 40);
+  return true;    
+}
 bool radio_uhd::rx_at(void* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time)
 {
   fprintf(stderr, "Not implemented\n");
@@ -83,6 +102,12 @@ void radio_uhd::set_rx_freq(float freq)
 void radio_uhd::set_rx_gain(float gain)
 {
  cur_rx_gain = cuhd_set_rx_gain(uhd, gain);
+}
+
+double radio_uhd::set_rx_gain_th(float gain)
+{
+ cur_rx_gain = cuhd_set_rx_gain_th(uhd, gain);
+ return cur_rx_gain;
 }
 
 void radio_uhd::set_rx_srate(float srate)

@@ -52,10 +52,9 @@ public:
   const static uint32_t HARQ_BCCH_PID = NOF_HARQ_PROC; 
   
   dl_harq_entity();
-  ~dl_harq_entity();
   bool init(srslte_cell_t cell, uint32_t max_payload_len, srslte::log *log_h_, timers *timers_, demux *demux_unit);
   bool is_sps(uint32_t pid); 
-  void set_harq_info(uint32_t tti, uint32_t pid, dl_sched_grant *grant);
+  void set_harq_info(uint32_t pid, dl_sched_grant *grant);
   void receive_data(uint32_t tti, uint32_t pid, dl_buffer *dl_buffer, phy *phy_h);
   void reset();
   bool is_ack_pending_resolution();
@@ -67,7 +66,7 @@ private:
   public:
     dl_harq_process();
     bool init(srslte_cell_t cell, uint32_t max_payload_len, dl_harq_entity *parent);
-    void set_harq_info(uint32_t tti, dl_sched_grant *grant); 
+    void set_harq_info(dl_sched_grant *grant); 
     void receive_data(uint32_t tti, dl_buffer *dl_buffer, phy *phy_h); 
     void reset();
     // Called after the contention resolution is terminated to send pending ACKs, if any
@@ -90,7 +89,7 @@ private:
     srslte_softbuffer_rx_t softbuffer; 
   };
   
-  dl_harq_process *proc;
+  dl_harq_process proc[NOF_HARQ_PROC+1];
   timers          *timers_db; 
   demux           *demux_unit; 
   srslte::log     *log_h; 

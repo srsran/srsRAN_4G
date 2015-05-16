@@ -42,5 +42,7 @@ public:
   pthread_mutex_t mutex; 
   double cur_rx_gain; 
   double new_rx_gain;   
+  bool   tx_gain_same_rx; 
+  float  tx_rx_gain_offset; 
   uhd::gain_range_t rx_gain_range; 
 };

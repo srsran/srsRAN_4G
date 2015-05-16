@@ -79,7 +79,13 @@ namespace ue {
       RA_PREAMBLETRANSMAX,
       RA_INITRECEIVEDPOWER,
       RA_CONTENTIONTIMER,
-      RA_MAXTXMSG3,
+      
+      SR_PUCCH_RESINDEX,
+      SR_CONFIG_INDEX,
+      SR_TRANS_MAX,
+      
+      HARQ_MAXTX,
+      HARQ_MAXMSG3TX,
       
       PDSCH_RSPOWER,
       PDSCH_PB,

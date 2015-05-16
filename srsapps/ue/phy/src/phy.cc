@@ -32,6 +32,7 @@
 
 #include "srslte/srslte.h"
 
+#include "srsapps/common/log.h"
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/ue/phy/prach.h"
 #include "srsapps/ue/phy/ul_buffer.h"
@@ -39,15 +40,26 @@
 
 namespace srslte {
 namespace ue {
-    
-bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_)
+
+bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, log *log_h) {
+  return init_(radio_handler_, ttisync_, log_h, false);
+}
+
+bool phy::init_agc(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, log *log_h) {
+  return init_(radio_handler_, ttisync_, log_h, true);
+}
+
+bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, log *log_h_, bool do_agc_)
 {
   started = false; 
   radio_is_streaming = false; 
   ttisync = ttisync_;
+  log_h = log_h_; 
   radio_handler = radio_handler_;
   ul_buffer_queue = new queue(6, sizeof(ul_buffer));
   dl_buffer_queue = new queue(6, sizeof(dl_buffer));
+  do_agc = do_agc_;
+  last_gain = 1e4; 
   
   // Set default params  
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_NFRAMES, 100);
@@ -56,7 +68,7 @@ bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_)
   
   pthread_attr_t attr;
   struct sched_param param;
-  param.sched_priority = -20;  
+  param.sched_priority = sched_get_priority_min(SCHED_FIFO) ;  
   pthread_attr_init(&attr);
   pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
   pthread_attr_setschedparam(&attr, &param);
@@ -93,13 +105,13 @@ radio* phy::get_radio() {
 void phy::set_timeadv_rar(uint32_t ta_cmd) {
   n_ta = srslte_N_ta_new_rar(ta_cmd);
   time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;
-  INFO("Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
+  Info("Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   n_ta = srslte_N_ta_new(n_ta, ta_cmd);
   time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;  
-  INFO("Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
+  Info("Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
 void phy::rar_ul_grant(srslte_dci_rar_grant_t *rar, ul_sched_grant *grant)
@@ -153,10 +165,10 @@ bool phy::start_rxtx()
       phy_state = RXTX;
       return true; 
     } else {
-      fprintf(stderr, "Can not change state to RXTX: cell is not set\n");
+      Error("Can not change state to RXTX: cell is not set\n");
     }    
   } else {
-    fprintf(stderr, "Can not change state to RXTX: invalid state %d\n", phy_state);
+    Error("Can not change state to RXTX: invalid state %d\n", phy_state);
   }
   return false; 
 }
@@ -169,9 +181,14 @@ bool phy::stop_rxtx()
     phy_state = IDLE; 
     return true; 
   } else {
-    fprintf(stderr, "Can not change state to RXTX: invalid state %d\n", phy_state);
+    Error("Can not change state to RXTX: invalid state %d\n", phy_state);
   }
   return false; 
+}
+
+float phy::get_agc_gain()
+{
+  return 10*log10(srslte_agc_get_gain(&ue_sync.agc));
 }
 
 bool phy::status_is_idle() {
@@ -206,6 +223,11 @@ int radio_recv_wrapper_cs(void *h,void *data, uint32_t nsamples, srslte_timestam
   return n; 
 }
 
+double callback_set_rx_gain(void *h, double gain) {
+  radio *radio_handler = (radio*) h;
+  return radio_handler->set_rx_gain_th(gain);
+}
+
 bool phy::set_cell(srslte_cell_t cell_) {
   if (phy_state == IDLE) {
     cell_is_set = false;
@@ -215,29 +237,33 @@ bool phy::set_cell(srslte_cell_t cell_) {
       if (!srslte_ue_sync_init(&ue_sync, cell, radio_recv_wrapper_cs, radio_handler)) 
       {
 
+        if (do_agc) {
+          srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, last_gain);    
+        }
+
         srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
         for(uint32_t i=0;i<6;i++) {
-          ((ul_buffer*) ul_buffer_queue->get(i))->init_cell(cell, &params_db);
-          ((dl_buffer*) dl_buffer_queue->get(i))->init_cell(cell, &params_db);      
+          ((ul_buffer*) ul_buffer_queue->get(i))->init_cell(cell, &params_db, log_h);
+          ((dl_buffer*) dl_buffer_queue->get(i))->init_cell(cell, &params_db, log_h);      
           ((dl_buffer*) dl_buffer_queue->get(i))->buffer_id = i; 
           ((ul_buffer*) ul_buffer_queue->get(i))->ready(); 
           ((dl_buffer*) dl_buffer_queue->get(i))->release(); 
         }    
         cell_is_set = true;                   
       } else {
-        fprintf(stderr, "Error setting cell: initiating ue_sync");      
+        Error("Error setting cell: initiating ue_sync");      
       }
     } else {
-      fprintf(stderr, "Error setting cell: initiating ue_mib\n"); 
+      Error("Error setting cell: initiating ue_mib\n"); 
     }      
   } else {
-    fprintf(stderr, "Error setting cell: Invalid state %d\n", phy_state);
+    Error("Error setting cell: Invalid state %d\n", phy_state);
   }
   return cell_is_set; 
 }
 
 bool phy::init_prach() {
-  return prach_buffer.init_cell(cell, &params_db);
+  return prach_buffer.init_cell(cell, &params_db, log_h);
 }
 
 ul_buffer* phy::get_ul_buffer(uint32_t tti)
@@ -253,7 +279,7 @@ ul_buffer* phy::get_ul_buffer_adv(uint32_t tti)
 dl_buffer* phy::get_dl_buffer(uint32_t tti)
 {
   if (tti + 6 < get_current_tti()) {
-    printf("Warning access to PHY too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
+    Warning("Warning access to PHY too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
   }
   return (dl_buffer*) dl_buffer_queue->get(tti);  
 }
@@ -277,6 +303,11 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
     return false; 
   }
   
+  if (do_agc) {
+    srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, last_gain);
+  }
+
+  
   srslte_ue_cellsearch_set_nof_frames_to_scan(&cs, params_db.get_param(phy_params::CELLSEARCH_TIMEOUT_PSS_NFRAMES));
   srslte_ue_cellsearch_set_threshold(&cs, (float) 
     params_db.get_param(phy_params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD)/10);
@@ -294,23 +325,25 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
     ret = srslte_ue_cellsearch_scan(&cs, found_cells, &max_peak_cell); 
   }
 
+  last_gain = srslte_agc_get_gain(&cs.ue_sync.agc);
+
   radio_handler->stop_rx();
   srslte_ue_cellsearch_free(&cs);
   
   if (ret < 0) {
-    fprintf(stderr, "Error decoding MIB: Error searching PSS\n");
+    Error("Error decoding MIB: Error searching PSS\n");
     return false;
   } else if (ret == 0) {
-    fprintf(stderr, "Error decoding MIB: Could not find any PSS in this frequency\n");
+    Error("Error decoding MIB: Could not find any PSS in this frequency\n");
     return false;
   }
-  
+    
   // Save result 
   cell_ptr->id = found_cells[max_peak_cell].cell_id;
   cell_ptr->cp = found_cells[max_peak_cell].cp; 
   cellsearch_cfo = found_cells[max_peak_cell].cfo;
   
-  INFO("\nFound CELL ID: %d CP: %s, CFO: %f\n", cell_ptr->id, srslte_cp_string(cell_ptr->cp), cellsearch_cfo);
+  Info("\nFound CELL ID: %d CP: %s, CFO: %f\n", cell_ptr->id, srslte_cp_string(cell_ptr->cp), cellsearch_cfo);
   
   srslte_ue_mib_sync_t ue_mib_sync; 
 
@@ -318,6 +351,10 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
     return false; 
   }
   
+  if (do_agc) {
+    srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync, callback_set_rx_gain, last_gain);    
+  }
+
   /* Find and decode MIB */
   uint32_t sfn, sfn_offset; 
 
@@ -325,13 +362,15 @@ bool phy::decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell_ptr, uint8_t b
   ret = srslte_ue_mib_sync_decode(&ue_mib_sync, params_db.get_param(phy_params::CELLSEARCH_TIMEOUT_MIB_NFRAMES), 
                                   bch_payload, &cell_ptr->nof_ports, &sfn_offset); 
   radio_handler->stop_rx();
+  last_gain = srslte_agc_get_gain(&ue_mib_sync.ue_sync.agc);
   srslte_ue_mib_sync_free(&ue_mib_sync);
+
 
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, cell_ptr, NULL);
     return true;     
   } else {
-    printf("Error decoding MIB: Error decoding PBCH\n");      
+    Warning("Error decoding MIB: Error decoding PBCH\n");      
     return false;
   }
 }
@@ -346,7 +385,7 @@ int phy::sync_sfn(void) {
   srslte_ue_sync_decode_sss_on_track(&ue_sync, true);
   ret = srslte_ue_sync_get_buffer(&ue_sync, &sf_buffer);
   if (ret < 0) {
-    fprintf(stderr, "Error calling ue_sync_get_buffer");      
+    Error("Error calling ue_sync_get_buffer");      
     return -1;
   }
     
@@ -356,7 +395,7 @@ int phy::sync_sfn(void) {
       srslte_pbch_decode_reset(&ue_mib.pbch);
       int n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload, NULL, &sfn_offset);
       if (n < 0) {
-        fprintf(stderr, "Error decoding MIB while synchronising SFN");      
+        Error("Error decoding MIB while synchronising SFN");      
         return -1; 
       } else if (n == SRSLTE_UE_MIB_FOUND) {  
         uint32_t sfn; 
@@ -395,6 +434,7 @@ void phy::run_rx_tx_state()
     } 
   } else {
     uint32_t current_tti = ttisync->get_producer_cntr();
+    log_h->step(current_tti);
     float cfo = srslte_ue_sync_get_cfo(&ue_sync)/15000; 
 
     // Prepare transmission for the next tti 

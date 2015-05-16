@@ -55,7 +55,7 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
 
   pthread_attr_t attr;
   struct sched_param param;
-  param.sched_priority = -20;  
+  param.sched_priority = sched_get_priority_min(SCHED_FIFO) ;  
   pthread_attr_init(&attr);
   pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
   pthread_attr_setschedparam(&attr, &param);
@@ -132,7 +132,7 @@ void mac::main_radio_loop() {
 
         // Init HARQ for this cell 
         Info("Init UL/DL HARQ\n");
-        ul_harq.init(cell, log_h, &timers_db, &mux_unit);
+        ul_harq.init(cell, &params_db, log_h, &timers_db, &mux_unit);
         dl_harq.init(cell, 8*1024, log_h, &timers_db, &demux_unit);
 
         // Set the current PHY cell to the detected cell
@@ -140,13 +140,15 @@ void mac::main_radio_loop() {
         if (phy_h->set_cell(cell)) {
           Info("Starting RX streaming\n");
           if (phy_h->start_rxtx()) {
+            log_h->step(ttisync->wait());
+    
             Info("Receiver synchronized\n");
 
             // Send MIB to RRC 
             mac_io_lch.get(mac_io::MAC_LCH_BCCH_DL)->send(bch_payload, SRSLTE_BCH_PAYLOAD_LEN);
         
             ttisync->resync();
-            Info("Wait to sync\n");
+            Info("Wait for AGC, CFO estimation, etc. \n");
             for (int i=0;i<1000;i++) {
               tti = ttisync->wait();
             }
@@ -168,6 +170,7 @@ void mac::main_radio_loop() {
       /* Warning: Here order of invocation of procedures is important!! */
       
       tti = ttisync->wait();
+      log_h->step(tti);
       
       // Step all procedures 
       ra_procedure.step(tti);
@@ -181,18 +184,22 @@ void mac::main_radio_loop() {
       // Process DL grants always 
       process_dl_grants(tti);
      
+      // Process UL grants if RA procedure is done and we have pending data or in contention resolution 
+      if (ra_procedure.is_contention_resolution() ||
+          ra_procedure.is_successful() && mux_unit.is_pending_sdu()) 
+      {
+        process_ul_grants(tti);
+      }
+      
       // Send pending HARQ ACK, if any, and contention resolution is resolved
       if (dl_harq.is_ack_pending_resolution()) {
-        if (ra_procedure.is_successful()) {
+        ra_procedure.step(tti);
+        if (ra_procedure.is_successful() || ra_procedure.is_response_error()) {
           Info("Sending pending ACK for contention resolution\n");
           dl_harq.send_pending_ack_contention_resolution();
         }
       }
 
-      // Process UL grants if RA procedure is done or in contention resolution 
-      if (ra_procedure.is_successful() || ra_procedure.is_contention_resolution()) {
-        process_ul_grants(tti);
-      }
       timers_db.step_all();
       
       // Check if there is pending CCCH SDU in Multiplexing Unit
@@ -300,13 +307,14 @@ void mac::process_dl_grants(uint32_t tti) {
           if (i == mac_params::RNTI_C && dl_harq.is_sps(harq_pid)) {
             ue_grant.set_ndi(true);
           }
-          dl_harq.set_harq_info(tti, harq_pid, &ue_grant);
+          Info("Processing DL grant TBS=%d, RNTI=%d, RV=%d\n", ue_grant.get_tbs(), ue_grant.get_rnti(), ue_grant.get_rv());
+          dl_harq.set_harq_info(harq_pid, &ue_grant);
           dl_harq.receive_data(tti, harq_pid, dl_buffer, phy_h);
         } else {
           uint32_t harq_pid = get_harq_sps_pid(tti); 
           if (ue_grant.get_ndi()) {
             ue_grant.set_ndi(false);
-            dl_harq.set_harq_info(tti, harq_pid, &ue_grant);
+            dl_harq.set_harq_info(harq_pid, &ue_grant);
             dl_harq.receive_data(tti, harq_pid, dl_buffer, phy_h);
           } else {
             if (ue_grant.is_sps_release()) {
@@ -318,7 +326,7 @@ void mac::process_dl_grants(uint32_t tti) {
             } else {
               dl_sps_assig.reset(tti, &ue_grant);
               ue_grant.set_ndi(true);
-              dl_harq.set_harq_info(tti, harq_pid, &ue_grant);              
+              dl_harq.set_harq_info(harq_pid, &ue_grant);              
             }
           }
         }
@@ -331,7 +339,7 @@ void mac::process_dl_grants(uint32_t tti) {
     Info("Processing SPS grant\n");
     uint32_t harq_pid = get_harq_sps_pid(tti);
     sps_grant->set_ndi(true);
-    dl_harq.set_harq_info(tti, harq_pid, sps_grant);
+    dl_harq.set_harq_info(harq_pid, sps_grant);
     dl_harq.receive_data(tti, harq_pid, dl_buffer, phy_h);
   }
   
@@ -355,7 +363,7 @@ void mac::process_dl_grants(uint32_t tti) {
         }
         si_grant.set_rv(((uint32_t) ceilf((float)1.5*k))%4);
         Info("DL grant found, sending to HARQ with RV: %d\n", si_grant.get_rv());
-        dl_harq.set_harq_info(tti, dl_harq_entity::HARQ_BCCH_PID, &si_grant);
+        dl_harq.set_harq_info(dl_harq_entity::HARQ_BCCH_PID, &si_grant);
         dl_harq.receive_data(tti, dl_harq_entity::HARQ_BCCH_PID, dl_buffer, phy_h);
         params_db.set_param(mac_params::BCCH_SI_WINDOW_ST, 0);
         params_db.set_param(mac_params::BCCH_SI_WINDOW_LEN, 0);
@@ -380,7 +388,7 @@ void mac::process_ul_grants(uint32_t tti) {
         ul_sched_grant ul_grant(rnti_type(i), params_db.get_param(i)); 
         if (dl_buffer->get_ul_grant(&ul_grant)) {
           if (ul_grant.is_from_rar()) {
-            dl_buffer->release_pending_rar_grant();
+            dl_buffer->discard_pending_rar_grant();
           }
           if (ra_procedure.is_contention_resolution() && i == mac_params::RNTI_C) {
             ra_procedure.pdcch_to_crnti(true);
@@ -389,11 +397,8 @@ void mac::process_ul_grants(uint32_t tti) {
             if (i == mac_params::RNTI_C && ul_harq.is_sps(tti)) {
               ul_grant.set_ndi(true);
             }
+            Info("Found UL Grant TBS=%d RNTI=%d is_from_rar=%d\n", ul_grant.get_tbs(), params_db.get_param(i), ul_grant.is_from_rar());
             ul_harq.run_tti(tti, &ul_grant, phy_h); 
-            if (i == mac_params::RNTI_TEMP) {
-              // Discard already processed RAR grant
-              dl_buffer->discard_pending_rar_grant();
-            }
             return;
           }
           else if (i == mac_params::RNTI_SPS) {
@@ -422,7 +427,7 @@ void mac::process_ul_grants(uint32_t tti) {
       return;
     }
   }
-  ul_harq.run_tti(tti, dl_buffer, phy_h);      
+  ul_harq.run_tti(tti, phy_h);      
 }
 
 

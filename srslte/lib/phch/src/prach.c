@@ -347,8 +347,6 @@ int srslte_prach_init(srslte_prach_t *p,
       }
     }
     
-    printf("N_cs=%d, ZCZC=%d\n", p->N_cs, p->zczc);
-
     // Set up containers
     p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
     p->corr_spec = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
@@ -425,7 +423,7 @@ int srslte_prach_gen(srslte_prach_t *p,
     uint32_t N_rb_ul = prach_get_rb_ul(p->N_ifft_ul);
     uint32_t k_0 = freq_offset*N_RB_SC - N_rb_ul*N_RB_SC/2 + p->N_ifft_ul/2;
     uint32_t K = DELTA_F/DELTA_F_RA;
-    uint32_t begin = PHI + (K*k_0) + (K/2);
+    uint32_t begin = PHI + (K*k_0) + (K/2) + 1;
 
     DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
     // Map dft-precoded sequence to ifft bins

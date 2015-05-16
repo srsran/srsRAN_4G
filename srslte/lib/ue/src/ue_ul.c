@@ -161,6 +161,7 @@ void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
                           srslte_pucch_sched_t *pucch_sched)
 {
   srslte_refsignal_ul_set_pusch_cfg(&q->dmrs, dmrs_cfg);
+  srslte_refsignal_ul_set_pucch_cfg(&q->dmrs, pucch_cfg);
   srslte_pusch_set_hopping_cfg(&q->pusch, pusch_hopping_cfg); 
   srslte_pucch_set_cfg(&q->pucch, pucch_cfg); 
   if (pucch_sched) {
@@ -264,6 +265,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     }
     srslte_refsignal_dmrs_pucch_put(&q->dmrs, format, n_pucch, q->refsignal, q->sf_symbols);                
     
+    
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
     if (q->cfo_en) {
@@ -274,7 +276,6 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
       float norm_factor = (float) q->cell.nof_prb/10;
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
-    srslte_vec_save_file("pucch", output_signal, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     ret = SRSLTE_SUCCESS; 
   } 
   
@@ -325,13 +326,14 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *
     q->pusch_cfg.cp = q->cell.cp; 
     srslte_cbsegm(&q->pusch_cfg.cb_segm, grant->mcs.tbs); 
   
-    return srslte_ue_ul_pusch_encode_cfg(q, &q->pusch_cfg, data, uci_data, rnti, output_signal); 
+    return srslte_ue_ul_pusch_encode_cfg(q, &q->pusch_cfg, data, uci_data, &q->softbuffer, rnti, output_signal); 
   }
   return ret; 
 }
   
 int srslte_ue_ul_pusch_encode_cfg(srslte_ue_ul_t *q, srslte_pusch_cfg_t *cfg, 
                                   uint8_t *data, srslte_uci_data_t uci_data, 
+                                  srslte_softbuffer_tx_t *softbuffer,
                                   uint16_t rnti, 
                                   cf_t *output_signal)
 {
@@ -342,7 +344,7 @@ int srslte_ue_ul_pusch_encode_cfg(srslte_ue_ul_t *q, srslte_pusch_cfg_t *cfg,
       cfg           != NULL &&
       output_signal != NULL) 
   {
-    if (srslte_pusch_encode_rnti(&q->pusch, cfg, &q->softbuffer, data, rnti, q->sf_symbols)) {
+    if (srslte_pusch_encode_rnti(&q->pusch, cfg, softbuffer, data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 
     }

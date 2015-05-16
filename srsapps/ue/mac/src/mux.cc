@@ -41,6 +41,7 @@ mux::mux() : pdu_msg(20)
   pdu_buff.init(1, PDU_BUFF_SZ);
   bzero(nof_tx_pkts, sizeof(uint32_t) * mac_io::NOF_UL_LCH);
   pthread_mutex_init(&mutex, NULL);
+  msg3_has_been_transmitted = false; 
   
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
    priority[i]        = 1; 
@@ -107,9 +108,8 @@ void mux::pdu_release()
   pdu_buff.release();
 }
 
-bool mux::pdu_move_to_msg3(uint32_t tti_, uint32_t pdu_sz)
+bool mux::pdu_move_to_msg3(uint32_t pdu_sz)
 {
-  tti = tti_; 
   if (pdu_buff.isempty()) {
     if (assemble_pdu(pdu_sz)) {
       if (pdu_buff.pending_data() < MSG3_BUFF_SZ) {
@@ -131,9 +131,8 @@ bool mux::pdu_move_to_msg3(uint32_t tti_, uint32_t pdu_sz)
 }
 
 // Multiplexing and logical channel priorization as defined in Section 5.4.3
-uint8_t* mux::pdu_pop(uint32_t tti_, uint32_t pdu_sz)
+uint8_t* mux::pdu_pop(uint32_t pdu_sz)
 {
-  tti = tti_; 
   if (pdu_buff.isempty()) {
     if (assemble_pdu(pdu_sz)) {
       return (uint8_t*) pdu_buff.pop();
@@ -221,7 +220,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
 
   pthread_mutex_unlock(&mutex);
 
-  /* Release SDUs */
+  /* Release all SDUs */
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
     while(nof_tx_pkts[i] > 0) {
       mac_io_h->get(IO_IDX(i))->release();      
@@ -229,6 +228,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
     }
   }
 
+  Info("Assembled MAC PDU msg size %d bytes\n", pdu_msg.size());
   /* Generate MAC PDU and save to buffer */
   if (pdu_msg.write_packet(buff)) {
     pdu_buff.push(pdu_sz_nbits);
@@ -270,15 +270,21 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz)
 void mux::msg3_flush()
 {
   msg3_buff.flush();
+  msg3_has_been_transmitted = false; 
 }
 
-bool mux::msg3_isempty()
+void mux::msg3_transmitted()
 {
-  return msg3_buff.isempty();
+  msg3_has_been_transmitted = true; 
+}
+
+bool mux::msg3_is_transmitted()
+{
+  return msg3_has_been_transmitted; 
 }
 
 /* Returns a pointer to the Msg3 buffer */
-uint8_t* mux::msg3_pop(uint32_t tti, uint32_t TB_size)
+uint8_t* mux::msg3_pop(uint32_t TB_size)
 {
   uint32_t len; 
   uint8_t *msg3 = (uint8_t*) msg3_buff.pop(&len);
@@ -293,12 +299,6 @@ uint8_t* mux::msg3_pop(uint32_t tti, uint32_t TB_size)
   }  
   return msg3;
 }
-
-void mux::msg3_release()
-{
-  msg3_buff.release();
-}
-
 
   
 }

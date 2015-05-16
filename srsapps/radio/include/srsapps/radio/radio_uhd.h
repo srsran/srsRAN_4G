@@ -27,8 +27,8 @@
 
 
 
+#include "srsapps/radio/radio.h"
 #include "srslte/srslte.h"
-#include "srslte/common/radio.h"
 #include "srslte/cuhd/cuhd.h"
 
 #ifndef RADIO_UHD_H
@@ -44,6 +44,8 @@ namespace srslte {
     public: 
       bool init();
       bool init(char *args);
+      bool init_agc();
+      bool init_agc(char *args);
 
       void get_time(srslte_timestamp_t *now);
       bool tx(void *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
@@ -52,6 +54,8 @@ namespace srslte {
 
       void set_tx_gain(float gain);
       void set_rx_gain(float gain);
+      void set_tx_rx_gain_offset(float offset); 
+      double set_rx_gain_th(float gain);
 
       void set_tx_freq(float freq);
       void set_rx_freq(float freq);

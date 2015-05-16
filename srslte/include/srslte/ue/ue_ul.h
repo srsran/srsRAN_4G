@@ -140,6 +140,7 @@ SRSLTE_API int srslte_ue_ul_pusch_encode_cfg(srslte_ue_ul_t *q,
                                              srslte_pusch_cfg_t *cfg, 
                                              uint8_t *data, 
                                              srslte_uci_data_t uci_data,
+                                             srslte_softbuffer_tx_t *softbuffer,
                                              uint16_t rnti, 
                                              cf_t *output_signal); 
 

@@ -32,6 +32,7 @@
 
 #include "srslte/srslte.h"
 
+#include "srsapps/common/log.h"
 #include "srsapps/ue/phy/sched_grant.h"
 #include "srsapps/ue/phy/ul_buffer.h"
 #include "srsapps/ue/phy/phy.h"
@@ -40,8 +41,9 @@
 namespace srslte {
 namespace ue {
 
-bool ul_buffer::init_cell(srslte_cell_t cell_, phy_params *params_db_) {
+bool ul_buffer::init_cell(srslte_cell_t cell_, phy_params *params_db_, log *log_h_) {
   cell = cell_; 
+  log_h = log_h_; 
   params_db = params_db_; 
   current_tx_nb = 0;
   if (!srslte_ue_ul_init(&ue_ul, cell)) {  
@@ -142,7 +144,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     pucch_cfg.group_hopping_en  = dmrs_cfg.group_hopping_en;
     pucch_cfg.N_cs              = params_db->get_param(phy_params::PUCCH_CYCLIC_SHIFT);
     pucch_cfg.n_rb_2            = params_db->get_param(phy_params::PUCCH_N_RB_2);
-    
+
     srslte_pucch_sched_t pucch_sched; 
     bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
     pucch_sched.n_cce = last_n_cce; 
@@ -164,12 +166,22 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
     if (grant) {
 
+      INFO("Encoding PUSCH TBS=%d, rb_start=%d n_prb=%d, rv=%d, rnti=%d\n", 
+           grant->get_tbs(), pusch_cfg.grant.L_prb, pusch_cfg.grant.n_prb[0], grant->get_rv(), grant->get_rnti());
+    
       grant->to_pusch_cfg(tti%10, cell.cp, &pusch_cfg);
       n = srslte_ue_ul_pusch_encode_cfg(&ue_ul, &pusch_cfg, 
                                         payload, uci_data, 
+                                        softbuffer,
                                         grant->get_rnti(), 
                                         signal_buffer);      
+      
+      if (grant->get_rv() == 0) {
+        bzero(signal_buffer, 7680*sizeof(cf_t));
+      }
     } else {
+      Info("Encoding PUCCH n_cce=%d, ack=%d\n", last_n_cce, uci_data.uci_ack);
+    
       n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti&10, signal_buffer);
     }
     // Reset UCI data
@@ -196,8 +208,9 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
   srslte_timestamp_add(&tx_time, 0, tx_advance_sf*1e-3 - time_adv_sec); 
 
   // Compute peak
-    float max = -1; 
+#ifdef compute_peak
   if (SRSLTE_VERBOSE_ISINFO()) {
+    float max = 0; 
     float *t = (float*) signal_buffer;
     for (int i=0;i<2*SRSLTE_SF_LEN_PRB(cell.nof_prb);i++) {
       if (fabsf(t[i]) > max) {
@@ -205,15 +218,20 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
       }
     }
   }
-  INFO("Send PUSCH TTI: %d, CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f us PeakAmplitude=%f\n", 
-        tti, cfo*15000, SRSLTE_SF_LEN_PRB(cell.nof_prb),
+#endif
+
+  Info("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f us\n", 
+        cfo*15000, SRSLTE_SF_LEN_PRB(cell.nof_prb),
         srslte_timestamp_real(&rx_time), 
-        srslte_timestamp_real(&tx_time), time_adv_sec*1000000, max);
+        srslte_timestamp_real(&tx_time), time_adv_sec*1000000);
   
   // Correct CFO before transmission
-  srslte_cfo_correct(&ue_ul.cfo, signal_buffer, signal_buffer, 1.5*cfo / srslte_symbol_sz(cell.nof_prb));            
+  srslte_cfo_correct(&ue_ul.cfo, signal_buffer, signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));            
   
   radio_handler->tx(signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);                
+  
+  //srslte_vec_save_file("pucch_tx", signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  
   ready();
 }
   

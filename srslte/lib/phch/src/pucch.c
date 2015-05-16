@@ -150,6 +150,7 @@ uint32_t srslte_pucch_m(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format, u
   case SRSLTE_PUCCH_FORMAT_1A:
   case SRSLTE_PUCCH_FORMAT_1B:
     m = cfg->n_rb_2;
+
     uint32_t c=SRSLTE_CP_ISNORM(cp)?3:2; 
     if (n_pucch >= c*cfg->N_cs/cfg->delta_pucch_shift) {
       m = (n_pucch-c*cfg->N_cs/cfg->delta_pucch_shift)/(c*SRSLTE_NRE/cfg->delta_pucch_shift)
@@ -495,8 +496,8 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
           if (n_prime_ns%2) {
             S_ns = M_PI/2;
           }
-          DEBUG("PUCCH d_0: %.1f+%.1fi, alpha: %.1f, n_oc: %d, n_prime_ns: %d\n", 
-                __real__ q->d[0], __imag__ q->d[0], alpha, n_oc, n_prime_ns);
+          DEBUG("PUCCH d_0: %.1f+%.1fi, alpha: %.1f, n_oc: %d, n_prime_ns: %d, n_rb_2=%d\n", 
+                __real__ q->d[0], __imag__ q->d[0], alpha, n_oc, n_prime_ns, q->pucch_cfg.n_rb_2);
           for (uint32_t n=0;n<SRSLTE_PUCCH_N_SEQ;n++) {
             q->z[(ns%2)*N_sf*SRSLTE_PUCCH_N_SEQ+m*SRSLTE_PUCCH_N_SEQ+n] = q->pucch_cfg.beta_pucch
                   *q->d[0]*w_n_oc[n_oc%3][m]*cexpf(I*(q->tmp_arg[n]+alpha*n+S_ns));
