@@ -65,7 +65,17 @@ void mux::reset()
   }
 }
 
-bool mux::is_pending_sdu()
+bool mux::is_pending_any_sdu()
+{
+  for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
+    if (!mac_io_h->get(i)->isempty()) {
+      return true; 
+    }
+  }
+  return false; 
+}
+
+bool mux::is_pending_ccch_sdu()
 {
   return !mac_io_h->get(mac_io::MAC_LCH_CCCH_UL)->isempty();
 }

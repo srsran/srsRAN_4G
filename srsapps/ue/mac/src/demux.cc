@@ -37,6 +37,7 @@ demux::demux() : mac_msg(20),pending_mac_msg(20)
   contention_resolution_id = 0; 
   pending_temp_rnti = false; 
   has_pending_contention_resolution_id = false; 
+  sdu_handler_ = NULL; 
 }
 
 void demux::init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_)
@@ -47,6 +48,10 @@ void demux::init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_
   timers_db = timers_db_;
 }
 
+void demux::add_sdu_handler(sdu_handler* handler)
+{
+  sdu_handler_ = handler; 
+}
 
 bool demux::is_temp_crnti_pending()
 {
@@ -158,6 +163,15 @@ void demux::process_pdu(sch_pdu *pdu_msg)
       }
     }
   }      
+  /* notify handler if registred */
+  if (sdu_handler_) {
+    pdu_msg->reset();
+    while(pdu_msg->next()) {
+      if (pdu_msg->get()->is_sdu()) {
+        sdu_handler_->notify_new_sdu(pdu_msg->get()->get_sdu_lcid());
+      }
+    }
+  }
 }
 
 

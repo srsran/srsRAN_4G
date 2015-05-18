@@ -33,6 +33,7 @@
 #include "srsapps/common/timers.h"
 #include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/ue/mac/pdu.h"
+#include "srsapps/ue/mac/sdu_handler.h"
 
 #ifndef DEMUX_H
 #define DEMUX_H
@@ -47,6 +48,8 @@ class demux
 public:
   demux();
   void init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_);
+
+  void add_sdu_handler(sdu_handler *handler); 
 
   void     push_pdu(uint8_t *mac_pdu, uint32_t nof_bits);
   void     push_pdu_bcch(uint8_t *mac_pdu, uint32_t nof_bits);
@@ -73,6 +76,7 @@ private:
   log        *log_h;
   mac_io     *mac_io_h; 
   timers     *timers_db; 
+  sdu_handler *sdu_handler_;
 };
 }
 }

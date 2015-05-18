@@ -80,6 +80,7 @@ namespace ue {
       RA_INITRECEIVEDPOWER,
       RA_CONTENTIONTIMER,
       
+      SR_PUCCH_CONFIGURED,
       SR_PUCCH_RESINDEX,
       SR_CONFIG_INDEX,
       SR_TRANS_MAX,

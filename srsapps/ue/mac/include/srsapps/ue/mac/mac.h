@@ -44,6 +44,7 @@
 #include "srsapps/ue/mac/proc_phr.h"
 #include "srsapps/ue/mac/mux.h"
 #include "srsapps/ue/mac/demux.h"
+#include "srsapps/ue/mac/sdu_handler.h"
 
 #ifndef UEMAC_H
 #define UEMAC_H
@@ -62,10 +63,14 @@ public:
   int  get_tti();
   void main_radio_loop(); // called after thread creation
 
+  void add_sdu_handler(sdu_handler *handler); 
+  
+  bool send_sdu(uint32_t lcid, uint8_t *sdu_payload, uint32_t nbytes);
   bool send_ccch_sdu(uint8_t *sdu_payload, uint32_t nbytes);
   bool send_dtch0_sdu(uint8_t *sdu_payload, uint32_t nbytes);  // SRB0
   bool send_dcch0_sdu(uint8_t *sdu_payload, uint32_t nbytes);  // DRB0
 
+  int  recv_sdu(uint32_t lcid, uint8_t *sdu_payload, uint32_t nbytes);
   int  recv_bcch_sdu(uint8_t *sdu_payload, uint32_t buffer_len_nbytes);
   int  recv_ccch_sdu(uint8_t *sdu_payload, uint32_t buffer_len_nbytes);
   int  recv_dtch0_sdu(uint8_t *sdu_payload, uint32_t buffer_len_nbytes); // SRB0
@@ -129,7 +134,7 @@ private:
 
   /* Other procedures */  
   void          process_dl_grants(uint32_t tti); 
-  void          process_ul_grants(uint32_t tti); 
+  bool          process_ul_grants(uint32_t tti); 
   void          receive_pch(uint32_t tti);
   
   /* Functions for MAC Timers */

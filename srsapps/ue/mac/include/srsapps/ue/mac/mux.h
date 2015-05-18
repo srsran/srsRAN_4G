@@ -48,7 +48,8 @@ public:
   void     reset();
   void     init(log *log_h, mac_io *mac_io_h);
 
-  bool     is_pending_sdu();
+  bool     is_pending_ccch_sdu();
+  bool     is_pending_any_sdu();
   
   uint8_t* pdu_pop(uint32_t pdu_sz);
   bool     pdu_move_to_msg3(uint32_t pdu_sz);

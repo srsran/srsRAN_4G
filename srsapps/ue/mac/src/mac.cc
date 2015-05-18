@@ -50,7 +50,7 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
   mux_unit.init(log_h, &mac_io_lch);
   demux_unit.init(phy_h, log_h, &mac_io_lch, &timers_db);
   ra_procedure.init(&params_db, phy_h, log_h, &timers_db, &mux_unit, &demux_unit);
-
+  sr_procedure.init(log_h, &params_db, phy_h);
   reset();
 
   pthread_attr_t attr;
@@ -168,16 +168,23 @@ void mac::main_radio_loop() {
     }
     if (is_synchronized) {
       /* Warning: Here order of invocation of procedures is important!! */
-      
+      bool ul_resources_available; 
       tti = ttisync->wait();
       log_h->step(tti);
       
       // Step all procedures 
       ra_procedure.step(tti);
-      sr_procedure.step(tti);
+      //sr_procedure.step(tti);
       bsr_procedure.step(tti);
       phr_procedure.step(tti);
 
+      // Check SR if we need to start RA 
+      /*
+      if (sr_procedure.need_random_access()) {
+        ra_procedure.start_mac_order();
+      }
+      */
+      
       // Receive PCH, if requested
       receive_pch(tti);
       
@@ -186,11 +193,11 @@ void mac::main_radio_loop() {
      
       // Process UL grants if RA procedure is done and we have pending data or in contention resolution 
       if (ra_procedure.is_contention_resolution() ||
-          ra_procedure.is_successful() && mux_unit.is_pending_sdu()) 
+          ra_procedure.is_successful() && mux_unit.is_pending_ccch_sdu()) 
       {
-        process_ul_grants(tti);
+        ul_resources_available = process_ul_grants(tti);
       }
-      
+            
       // Send pending HARQ ACK, if any, and contention resolution is resolved
       if (dl_harq.is_ack_pending_resolution()) {
         ra_procedure.step(tti);
@@ -203,15 +210,25 @@ void mac::main_radio_loop() {
       timers_db.step_all();
       
       // Check if there is pending CCCH SDU in Multiplexing Unit
-      if (mux_unit.is_pending_sdu()) {
+      if (mux_unit.is_pending_ccch_sdu()) {
         // Start RA procedure 
         if (!ra_procedure.in_progress() && !ra_procedure.is_successful()) {
           Info("Starting RA procedure by RLC order\n");
           ra_procedure.start_rlc_order();        
         }
-      }
+      } /*else if (mux_unit.is_pending_any_sdu()) {
+        // Sart SR if no PUSCH resources available for TTI+4
+        if (!ul_resources_available) {
+          sr_procedure.start();
+          Info("Starting Scheduling Request procedure\n");
+        }
+      }*/
     }
   }  
+}
+
+void mac::add_sdu_handler(sdu_handler *handler) {
+  demux_unit.add_sdu_handler(handler);
 }
 
 void mac::setup_timers()
@@ -376,7 +393,7 @@ void mac::process_dl_grants(uint32_t tti) {
 }
 
 /* UL Grant reception and processin as defined in Section 5.4.1 in 36.321 */
-void mac::process_ul_grants(uint32_t tti) {
+bool mac::process_ul_grants(uint32_t tti) {
   // Get DL buffer for this TTI to look for DCI grants
   dl_buffer *dl_buffer = phy_h->get_dl_buffer(tti); 
 
@@ -399,7 +416,7 @@ void mac::process_ul_grants(uint32_t tti) {
             }
             Info("Found UL Grant TBS=%d RNTI=%d is_from_rar=%d\n", ul_grant.get_tbs(), params_db.get_param(i), ul_grant.is_from_rar());
             ul_harq.run_tti(tti, &ul_grant, phy_h); 
-            return;
+            return true;
           }
           else if (i == mac_params::RNTI_SPS) {
             if (ul_grant.get_ndi()) {
@@ -412,7 +429,7 @@ void mac::process_ul_grants(uint32_t tti) {
                 ul_sps_assig.reset(tti, &ul_grant);
                 ul_grant.set_ndi(true);
                 ul_harq.run_tti(tti, &ul_grant, phy_h);              
-                return;
+                return true;
               }
             }
           }
@@ -424,12 +441,23 @@ void mac::process_ul_grants(uint32_t tti) {
     if (sps_grant != NULL) {
       sps_grant->set_ndi(true);
       ul_harq.run_tti(tti, sps_grant, phy_h);
-      return;
+      return true;
     }
   }
   ul_harq.run_tti(tti, phy_h);      
+  return false; 
 }
 
+
+int mac::recv_sdu(uint32_t lcid, uint8_t* sdu_payload, uint32_t nbytes)
+{
+  if (lcid <= mac_io::MAC_LCH_PCCH_DL) {
+    return mac_io_lch.get(lcid)->recv(sdu_payload, nbytes);
+  } else {
+    Error("Receiving SDU: Invalid lcid=%d\n", lcid);
+    return -1; 
+  }
+}
 
 int mac::recv_bcch_sdu(uint8_t* sdu_payload, uint32_t buffer_len_nbytes)
 {
@@ -451,6 +479,17 @@ int mac::recv_dcch0_sdu(uint8_t* sdu_payload, uint32_t buffer_len_nbytes)
   return mac_io_lch.get(mac_io::MAC_LCH_DTCH0_DL)->recv(sdu_payload, buffer_len_nbytes);   
 }
 
+
+bool mac::send_sdu(uint32_t lcid, uint8_t* sdu_payload, uint32_t nbytes)
+{
+  lcid += mac_io::MAC_LCH_CCCH_UL;
+  if (lcid <= mac_io::MAC_LCH_DTCH2_UL) {
+    return mac_io_lch.get(lcid)->send(sdu_payload, nbytes);
+  } else {
+    Error("Receiving SDU: Invalid lcid=%d\n", lcid);
+    return -1; 
+  }
+}
 
 bool mac::send_ccch_sdu(uint8_t* sdu_payload, uint32_t nbytes)
 {

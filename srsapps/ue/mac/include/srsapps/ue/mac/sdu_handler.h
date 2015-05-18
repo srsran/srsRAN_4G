@@ -25,41 +25,15 @@
  *
  */
 
+#ifndef SDUHANDLER_H
+#define SDUHANDLER_H
 
-
-#include <stdint.h>
-
-#include "srsapps/ue/mac/proc.h"
-#include "srsapps/ue/phy/phy.h"
-#include "srsapps/ue/mac/mac_params.h"
-
-#ifndef PROCSR_H
-#define PROCSR_H
-
-/* Scheduling Request procedure as defined in 5.4.4 of 36.321 */
-
-namespace srslte {
-namespace ue {
-
-class sr_proc : public proc
+class sdu_handler
 {
-public:
-  sr_proc();
-  void init(log *log_h, mac_params *params_db, phy *phy_h);
-  void step(uint32_t tti);  
-  void reset();
-  void start();
-  bool need_random_access(); 
-private:
-  uint32_t   sr_counter;
-  uint32_t   dsr_transmax; 
-  bool       is_pending_sr;
-  mac_params *params_db; 
-  phy        *phy_h; 
-  log        *log_h; 
-  bool       initiated;
+public: 
+  virtual void notify_new_sdu(uint32_t lcid) = 0;
 };
-}
-}
+
 
 #endif
+
