@@ -70,7 +70,7 @@ typedef struct SRSLTE_API {
   
   srslte_pdsch_cfg_t pdsch_cfg; 
   srslte_softbuffer_rx_t softbuffer;
-
+  srslte_ra_dl_dci_t dl_dci;
   srslte_cell_t cell;
 
   cf_t *sf_symbols; 

@@ -150,7 +150,7 @@ void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
   bzero(&q->pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
 }
 
-srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1,SRSLTE_DCI_FORMAT1A}; // SRSLTE_DCI_FORMAT1B should go here also
+srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
 const uint32_t nof_ue_formats = 2; 
 
 srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
@@ -208,10 +208,8 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
 
   q->nof_detected++;
   
-  srslte_ra_dl_dci_t dl_dci; 
-  
-  if (srslte_dci_msg_to_dl_grant(dci_msg, rnti, q->cell, cfi, sf_idx, &dl_dci, &q->pdsch_cfg.grant)) {
-    fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
+  if (srslte_dci_msg_to_dl_grant(dci_msg, rnti, q->cell, cfi, sf_idx, &q->dl_dci, &q->pdsch_cfg.grant)) {
+    //fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
     return SRSLTE_ERROR;
   }
   if (srslte_cbsegm(&q->pdsch_cfg.cb_segm, q->pdsch_cfg.grant.mcs.tbs)) {
@@ -222,7 +220,10 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
   if (rnti == SRSLTE_SIRNTI) {
     q->pdsch_cfg.rv = rvidx;
   } else {
-    q->pdsch_cfg.rv = dl_dci.rv_idx;
+    q->pdsch_cfg.rv = q->dl_dci.rv_idx;
+  }
+  if (q->pdsch_cfg.rv == 0) {
+    srslte_softbuffer_rx_reset(&q->softbuffer);
   }
   if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
     ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 

@@ -254,7 +254,7 @@ void base_init() {
     exit(-1);
   }
   
-  srslte_pdsch_set_rnti(&pdsch, 1234);
+  srslte_pdsch_set_rnti(&pdsch, 4660);
   
   if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
     fprintf(stderr, "Error initiating soft buffer\n");

@@ -369,51 +369,47 @@ static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_
 
 /* Modulation order and transport block size determination 7.1.7 in 36.213 */
 static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, bool crc_is_crnti) {
-  uint32_t n_prb;
+  uint32_t n_prb=0;
   int tbs = -1; 
-  switch(dci->dci_format) {
-    case SRSLTE_RA_DCI_FORMAT1:
-      /* Table 7.1.7.1-1 on 36.213 */
-      if (dci->mcs_idx < 10) {
-        grant->mcs.mod = SRSLTE_MOD_QPSK;
-        tbs = srslte_ra_tbs_from_idx(dci->mcs_idx, grant->nof_prb);
-      } else if (dci->mcs_idx < 17) {
-        grant->mcs.mod = !crc_is_crnti?SRSLTE_MOD_QPSK:SRSLTE_MOD_16QAM;
-        tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 1, grant->nof_prb);
-      } else if (dci->mcs_idx < 29) {
-        grant->mcs.mod = !crc_is_crnti?SRSLTE_MOD_QPSK:SRSLTE_MOD_64QAM;
-        tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 2, grant->nof_prb);
-      } else if (dci->mcs_idx == 29) {
-        grant->mcs.mod = SRSLTE_MOD_QPSK;
-        tbs = 0;
-      } else if (dci->mcs_idx == 30) {
-        grant->mcs.mod = !crc_is_crnti?SRSLTE_MOD_QPSK:SRSLTE_MOD_16QAM;
-        tbs = 0;
-      } else if (dci->mcs_idx == 31) {
-        grant->mcs.mod = !crc_is_crnti?SRSLTE_MOD_QPSK:SRSLTE_MOD_64QAM;
-        tbs = 0;
-      }    
-      break; 
-    case SRSLTE_RA_DCI_FORMAT1A:      
-      /* Downlink Transport Block size determination as defined in 7.1.7.2 on 36.213 */
-      if (crc_is_crnti) {
-        n_prb = grant->nof_prb;
-      } else {
-        n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
-      }
-      if (dci->mcs_idx < 27 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
-        tbs = tbs_table[dci->mcs_idx][n_prb - 1];
-        grant->mcs.mod = SRSLTE_MOD_QPSK; 
+  uint32_t i_tbs = 0; 
+  
+  if (!crc_is_crnti) {
+    if (dci->dci_format == SRSLTE_RA_DCI_FORMAT1A) {
+      n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
+      i_tbs = dci->mcs_idx;
+    } else {
+      if (dci->mcs_idx < 32) {
+        tbs = tbs_format1c_table[dci->mcs_idx];
       } 
-      break;
-    case SRSLTE_RA_DCI_FORMAT1C:
-      /* Downlink Transport Block size for Format 1C as defined in 7.1.7.2.2-1 on 36.213 */
-        if (dci->mcs_idx < 32) {
-          tbs = tbs_format1c_table[dci->mcs_idx];
-          grant->mcs.mod = SRSLTE_MOD_QPSK; 
-        }
-    break;
-  }
+    }
+    grant->mcs.mod = SRSLTE_MOD_QPSK;      
+  } else {
+    n_prb = grant->nof_prb;
+    if (dci->mcs_idx < 10) {
+      grant->mcs.mod = SRSLTE_MOD_QPSK;
+      i_tbs = dci->mcs_idx;
+    } else if (dci->mcs_idx < 17) {
+      grant->mcs.mod = SRSLTE_MOD_16QAM;
+      i_tbs = dci->mcs_idx-1;
+    } else if (dci->mcs_idx < 29) {
+      grant->mcs.mod = SRSLTE_MOD_64QAM;
+      i_tbs = dci->mcs_idx-2;
+    } else if (dci->mcs_idx == 29) {
+      grant->mcs.mod = SRSLTE_MOD_QPSK;
+      tbs = 0;
+      i_tbs = 0;
+    } else if (dci->mcs_idx == 30) {
+      grant->mcs.mod = SRSLTE_MOD_16QAM;
+      tbs = 0;
+      i_tbs = 0;
+    } else if (dci->mcs_idx == 31) {
+      grant->mcs.mod = SRSLTE_MOD_64QAM;
+      tbs = 0;
+      i_tbs = 0;
+    }
+  }  
+  tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
+  
   if (tbs < 0) {
     return SRSLTE_ERROR; 
   } else {
@@ -534,7 +530,6 @@ int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
   if (tbs_idx < 27 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
     return tbs_table[tbs_idx][n_prb - 1];
   } else {
-    fprintf(stderr, "Error computing TBS: Invalid TBS_idx=%d or n_prb=%d\n", tbs_idx, n_prb);
     return SRSLTE_ERROR;
   }
 }

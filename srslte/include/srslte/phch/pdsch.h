@@ -48,9 +48,6 @@
 #include "srslte/phch/sch.h"
 #include "srslte/phch/pdsch_cfg.h"
 
-#define SRSLTE_PDSCH_MAX_TDEC_ITERS         5
-
-
 /* PDSCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;

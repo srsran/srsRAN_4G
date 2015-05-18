@@ -680,7 +680,6 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
 
   // rv version
   srslte_bit_pack(data->rv_idx, &y, 2);
-
   if (crc_is_crnti) {
     // TPC not implemented
     y++;
