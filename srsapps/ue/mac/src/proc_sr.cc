@@ -47,6 +47,7 @@ void sr_proc::init(log* log_h_, mac_params* params_db_, phy* phy_h_)
 void sr_proc::reset()
 {
   is_pending_sr = false;    
+  phy_h->send_sr(false);
 }
 
 void sr_proc::step(uint32_t tti)
@@ -55,7 +56,7 @@ void sr_proc::step(uint32_t tti)
     if (is_pending_sr) {    
       if (sr_counter < dsr_transmax) {
         sr_counter++;
-        phy_h->get_ul_buffer(tti+4)->generate_sr();
+        phy_h->send_sr(true);
       } else {
         reset();
       }

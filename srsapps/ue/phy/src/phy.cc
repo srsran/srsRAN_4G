@@ -140,6 +140,52 @@ bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_pow
   return false; 
 }
 
+/* Send SR as soon as possible as defined in Section 10.2 of 36.213 */
+void phy::send_sr(bool enable)
+{
+
+  if (enable) {
+    // Get sr_periodicity and sr_N_offset from table 10.1-5
+    uint32_t I_sr = params_db.get_param(phy_params::SR_CONFIG_INDEX);
+    if (I_sr < 5) {
+      sr_periodicity = 5;
+      sr_N_offset    = I_sr; 
+    } else if (I_sr < 15) {
+      sr_periodicity = 10;
+      sr_N_offset    = I_sr-5;     
+    } else if (I_sr < 35) {
+      sr_periodicity = 20;
+      sr_N_offset    = I_sr-15; 
+    } else if (I_sr < 75) {
+      sr_periodicity = 40;
+      sr_N_offset    = I_sr-35; 
+    } else if (I_sr < 155) {
+      sr_periodicity = 80;
+      sr_N_offset    = I_sr-75; 
+    } else if (I_sr < 157) {
+      sr_periodicity = 2;
+      sr_N_offset    = I_sr-155; 
+    } else if (I_sr == 157) {
+      sr_periodicity = 1;
+      sr_N_offset    = I_sr-157; 
+    } else {
+      Error("Invalid I_sr=%d\n", I_sr);
+      return;
+    }
+    sr_n_pucch = params_db.get_param(phy_params::SR_PUCCH_RESINDEX);
+  }
+  sr_enabled = enable;
+}
+
+bool phy::sr_is_ready_to_send(uint32_t tti_) {
+  if (sr_enabled) {
+    if ((10*tti_to_SFN(tti_)+tti_to_subf(tti_)-sr_N_offset)%sr_periodicity==0) {
+      return true; 
+    }
+  }
+  return false; 
+}
+
 int phy::get_prach_transmitted_tti()
 {
   return prach_buffer.get_transmitted_tti(); 
@@ -443,6 +489,9 @@ void phy::run_rx_tx_state()
     // send prach if we have to 
     if (prach_buffer.is_ready_to_send(current_tti)) {
       prach_buffer.send(radio_handler, cfo, last_rx_time);
+    }
+    if (sr_is_ready_to_send(current_tti+ul_buffer::tx_advance_sf)) {
+      get_ul_buffer_adv(current_tti)->generate_sr();
     }
     // send ul buffer if we have to 
     if (get_ul_buffer_adv(current_tti)->is_released() || get_ul_buffer_adv(current_tti)->uci_ready()) {

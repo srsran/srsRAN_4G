@@ -200,14 +200,16 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
 void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac *mac, srslte::ue::phy *phy) {
   mac->set_param(srslte::ue::mac_params::HARQ_MAXTX, 
                  liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx]);
-  
-  mac->set_param(srslte::ue::mac_params::SR_PUCCH_RESINDEX, 
+    
+  phy->set_param(srslte::ue::phy_params::SR_PUCCH_RESINDEX, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx);
-  mac->set_param(srslte::ue::mac_params::SR_CONFIG_INDEX, 
+  phy->set_param(srslte::ue::phy_params::SR_CONFIG_INDEX, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);
+
   mac->set_param(srslte::ue::mac_params::SR_TRANS_MAX, 
                  liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max]);
-  
+  mac->set_param(srslte::ue::mac_params::SR_PUCCH_CONFIGURED, 1);
+
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_ACK, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ack_idx);
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_CQI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_cqi_idx);
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_RI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ri_idx);

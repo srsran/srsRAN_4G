@@ -118,15 +118,13 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
     q->sf_len = SRSLTE_SF_LEN(q->fft_size);
     q->file_mode = false; 
     q->correct_cfo = true; 
+    q->decode_sss_on_track = true; 
     
     if (cell.id == 1000) {
-      /* If the cell is unkown, decode SSS on track state */
-      q->decode_sss_on_track = true;       
       
       /* If the cell is unkown, we search PSS/SSS in 5 ms */
       q->nof_recv_sf = 5; 
     } else {
-      q->decode_sss_on_track = false; 
       
       /* If the cell is known, we work on a 1ms basis */
       q->nof_recv_sf = 1; 

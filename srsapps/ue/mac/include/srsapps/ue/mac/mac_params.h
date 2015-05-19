@@ -81,8 +81,6 @@ namespace ue {
       RA_CONTENTIONTIMER,
       
       SR_PUCCH_CONFIGURED,
-      SR_PUCCH_RESINDEX,
-      SR_CONFIG_INDEX,
       SR_TRANS_MAX,
       
       HARQ_MAXTX,

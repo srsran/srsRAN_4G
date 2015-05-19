@@ -25,38 +25,41 @@
  *
  */
 
-
-
-#include <stdint.h>
-
-#include "srsapps/ue/mac/proc.h"
-#include "srsapps/ue/mac/mux.h"
-
-#ifndef PROCBSR_H
-#define PROCBSR_H
-
-/* Buffer status report procedure */
+#include "srsapps/ue/mac/proc_bsr.h"
+#include "srsapps/ue/mac/mac_params.h"
 
 namespace srslte {
-namespace ue {
-
-class bsr_proc : public proc
+  namespace ue {
+    
+bsr_proc::bsr_proc()
 {
-public:
-  bsr_proc();
-  void init(log *log_h, mac_params *params_db, mux *mux_unit_);
-  void step(uint32_t tti);  
-  void reset();
-  void start();
-private:
-  bool       is_pending_sr;
-  mac_params *params_db; 
-  mux        *mux_unit; 
-  log        *log_h; 
-  bool       initiated;
-
-};
-}
+  initiated = false; 
 }
 
-#endif
+
+void bsr_proc::init(log* log_h_, mac_params* params_db_, mux *mux_unit_)
+{
+  log_h     = log_h; 
+  params_db = params_db_;
+  mux_unit  = mux_unit_;
+  initiated = true;
+}
+
+void bsr_proc::reset()
+{
+
+}
+
+void bsr_proc::start()
+{
+
+}
+void bsr_proc::step(uint32_t tti)
+{
+  if (!initiated) {
+    return;
+  }  
+}
+    
+  }
+}

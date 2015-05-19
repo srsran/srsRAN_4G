@@ -561,7 +561,7 @@ int main(int argc, char **argv) {
       
       #ifndef DISABLE_GRAPHICS
       if (!prog_args.disable_plots) {
-        if ((sfn%10) == 0 && decode_pdsch) {
+        if ((sfn%4) == 0 && decode_pdsch) {
           plot_sf_idx = srslte_ue_sync_get_sfidx(&ue_sync);
           sem_post(&plot_sem);
         }
@@ -694,10 +694,10 @@ void *plot_thread_run(void *arg) {
       plot_real_setNewData(&pce_arg, tmp_plot2, SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
   #endif
       
-      plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce/2);
+      plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
     }
     
-    plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d, nof_symbols/2);
+    plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d, nof_symbols);
     
     if (plot_sf_idx == 1) {
       if (prog_args.net_port_signal > 0) {

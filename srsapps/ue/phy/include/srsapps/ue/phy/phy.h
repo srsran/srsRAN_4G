@@ -90,6 +90,9 @@ public:
   bool send_prach(uint32_t preamble_idx);  
   bool send_prach(uint32_t preamble_idx, int allowed_subframe);  
   bool send_prach(uint32_t preamble_idx, int allowed_subframe, int target_power_dbm);  
+
+  // Indicate the PHY to send SR as soon as possible or not
+  void send_sr(bool enable);
   
   // Returns TTI when PRACH was transmitted. -1 if not yet transmitted
   int get_prach_transmitted_tti();
@@ -149,12 +152,18 @@ private:
   float        cellsearch_cfo;
   bool         do_agc;
   double       last_gain;
+  
+  uint32_t     sr_N_offset;
+  uint32_t     sr_periodicity;
+  bool         sr_enabled;
+  uint32_t     sr_n_pucch;
+  bool         sr_is_ready_to_send(uint32_t tti);
+  
   bool         init_(radio *radio_handler, tti_sync *ttisync, log *log_h, bool do_agc);
   static void *phy_thread_fnc(void *arg);
   bool         decode_mib_N_id_2(int force_N_id_2, srslte_cell_t *cell, uint8_t payload[SRSLTE_BCH_PAYLOAD_LEN]);
   int          sync_sfn();
   void         run_rx_tx_state();
-  bool         init_radio_handler(char *args);
   ul_buffer*   get_ul_buffer_adv(uint32_t tti);
 };
 
