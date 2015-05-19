@@ -64,8 +64,8 @@ sem_t plot_sem;
 uint32_t plot_sf_idx=0;
 #endif
 
-#define PLOT_CHEST_ARGUMENT
-#define PRINT_CHANGE_SCHEDULIGN
+//#define PLOT_CHEST_ARGUMENT
+//#define PRINT_CHANGE_SCHEDULIGN
 
 /**********************************************************************
  *  Program arguments processing
@@ -394,9 +394,8 @@ int main(int argc, char **argv) {
     
   // Variables for measurements 
   uint32_t nframes=0;
-  float rsrp=0.0, rsrq=0.0, snr=0.0;
+  float rsrp=0.0, rsrq=0.0, noise=0.0;
   bool decode_pdsch = false; 
-  int pdcch_tx=0; 
 
 #ifndef DISABLE_UHD
   if (prog_args.uhd_gain < 0) {
@@ -495,45 +494,21 @@ int main(int argc, char **argv) {
             
             rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.05);
             rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
-            snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_snr(&ue_dl.chest), snr, 0.01);      
+            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);      
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
             }
-            if (isnan(snr)) {
-              snr = 0; 
+            if (isnan(noise)) {
+              noise = 0; 
             }
             if (isnan(rsrp)) {
               rsrp = 0; 
-            }
-            
-#ifdef adjust_estimator
-            /* Adjust channel estimator based on SNR */
-            if (10*log10(snr) < 5.0) {
-              float f_low_snr[5]={0.05, 0.15, 0.6, 0.15, 0.05};
-              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_low_snr, 5);
-            } else if (10*log10(snr) < 10.0) {
-              float f_mid_snr[3]={0.1, 0.8, 0.1};
-              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_mid_snr, 3);
-            } else {
-              float f_high_snr[3]={0.05, 0.9, 0.05};
-              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_high_snr, 3);
-            }
-#endif
-            
+            }        
           }
-          if (srslte_ue_sync_get_sfidx(&ue_sync) != 5 && srslte_ue_sync_get_sfidx(&ue_sync) != 0) {
-            pdcch_tx++;
-          }
-
 
           // Plot and Printf
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
-#ifdef STDOUT_COMPACT
-            printf("SFN: %4d, PDCCH-Miss: %5.2f%% (%d missed), PDSCH-BLER: %5.2f%% (%d errors)\r",
-                  sfn, 100*(1-(float) ue_dl.nof_detected/nof_trials),pdcch_tx-ue_dl.nof_detected,
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,ue_dl.pkt_errors);                
-#else
             float gain = prog_args.uhd_gain; 
             if (gain < 0) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
@@ -542,13 +517,11 @@ int main(int argc, char **argv) {
                   "RSRP: %+5.1f dBm, SNR: %4.1f dB, "
                   "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% Peak: %.2f Gain: %.1f dB\r",
                   srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
-                  10*log10(rsrp*1000)-gain, 
-                  10*log10(snr), 
+                  10*log10(rsrp*1000)-gain-cuhd_get_rx_gain_offset(uhd), 
+                  10*log10(rsrp/noise), 
                   100*(1-(float) ue_dl.nof_detected/nof_trials), 
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, 
-                   srslte_agc_get_output_level(&ue_sync.agc), gain);                
-            
-#endif            
+                   srslte_agc_get_output_level(&ue_sync.agc), gain);                            
           }
           break;
       }

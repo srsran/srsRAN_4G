@@ -152,6 +152,10 @@ static void* thread_gain_fcn(void *h) {
   }
 }
 
+float cuhd_get_rx_gain_offset(void *h) {
+  return 15; 
+}
+
 int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
 {
   cuhd_handler *handler = new cuhd_handler();

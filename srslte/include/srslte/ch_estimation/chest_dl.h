@@ -103,8 +103,6 @@ SRSLTE_API int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q,
                                              uint32_t sf_idx, 
                                              uint32_t port_id);
 
-SRSLTE_API float srslte_chest_dl_get_snr(srslte_chest_dl_t *q); 
-
 SRSLTE_API float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q); 
 
 SRSLTE_API float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q);

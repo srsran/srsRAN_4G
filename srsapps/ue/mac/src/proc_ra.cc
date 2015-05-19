@@ -93,7 +93,7 @@ void ra_proc::read_params() {
   iniReceivedTargetPower    = params_db->get_param(mac_params::RA_INITRECEIVEDPOWER);
   contentionResolutionTimer = params_db->get_param(mac_params::RA_CONTENTIONTIMER); 
 
-  delta_preamble_db         = delta_preamble_db_table[configIndex]; 
+  delta_preamble_db         = delta_preamble_db_table[configIndex%5]; 
   
   if (contentionResolutionTimer > 0) {
     timers_db->get(mac::CONTENTION_TIMER)->set(this, contentionResolutionTimer);
@@ -170,6 +170,7 @@ void ra_proc::process_timeadv_cmd(uint32_t ta) {
 
 void* init_prach_thread(void *arg) {
   phy* phy_h = (phy*) arg; 
+  printf("thread initiating prach\n");
   if (phy_h->init_prach()) {
     return (void*) 0;
   } else {

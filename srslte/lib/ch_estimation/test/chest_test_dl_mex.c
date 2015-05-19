@@ -244,13 +244,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 4) {
-    plhs[3] = mxCreateDoubleScalar(srslte_chest_dl_get_snr(&chest));
+    plhs[3] = mxCreateDoubleScalar(srslte_chest_dl_get_noise_estimate(&chest));
   }
   if (nlhs >= 5) {
-    plhs[4] = mxCreateDoubleScalar(srslte_chest_dl_get_noise_estimate(&chest));
-  }
-  if (nlhs >= 6) {
-    plhs[5] = mxCreateDoubleScalar(srslte_chest_dl_get_rsrp(&chest));
+    plhs[4] = mxCreateDoubleScalar(srslte_chest_dl_get_rsrp(&chest));
   }
   
   srslte_chest_dl_free(&chest);

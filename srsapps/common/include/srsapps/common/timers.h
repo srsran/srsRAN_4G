@@ -117,6 +117,7 @@ public:
     if (i < nof_timers) {
       return &timer_list[i];       
     } else {
+      printf("Error accessing invalid timer %d (Only %d timers available)\n", i, nof_timers);
       return NULL; 
     }
   }

@@ -36,7 +36,6 @@ bsr_proc::bsr_proc()
   initiated = false; 
 }
 
-
 void bsr_proc::init(log* log_h_, mac_params* params_db_, mux *mux_unit_)
 {
   log_h     = log_h; 

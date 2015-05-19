@@ -175,8 +175,8 @@ void mac::main_radio_loop() {
       // Step all procedures 
       ra_procedure.step(tti);
       //sr_procedure.step(tti);
-      bsr_procedure.step(tti);
-      phr_procedure.step(tti);
+      //bsr_procedure.step(tti);
+      //phr_procedure.step(tti);
 
       // Check SR if we need to start RA 
       /*

@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
           rssi_utra = SRSLTE_VEC_CMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,nframes);
           rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&chest),rsrq,0.05);
           rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&chest),rsrp,0.05);      
-          snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_snr(&chest),snr,0.05);      
+          snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&chest),snr,0.05);      
           nframes++;          
         }        
         
