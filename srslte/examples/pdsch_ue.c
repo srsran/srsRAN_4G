@@ -407,15 +407,17 @@ int main(int argc, char **argv) {
   bzero(&old_dl_dci, sizeof(srslte_ra_dl_dci_t));
 #endif
   
-  ue_sync.correct_cfo = !prog_args.disable_cfo;
+  //ue_sync.correct_cfo = !prog_args.disable_cfo;
   
   /* Set high priority */
+  /*
   struct sched_param param;
   param.sched_priority = sched_get_priority_max(SCHED_FIFO);
   if (sched_setscheduler(pthread_self(), SCHED_FIFO, &param)) {
     perror("setscheduler");
   }
-
+*/
+  
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {

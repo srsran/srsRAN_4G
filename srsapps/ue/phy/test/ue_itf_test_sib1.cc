@@ -148,12 +148,19 @@ int main(int argc, char *argv[])
     phy.init_agc(&radio_uhd, &ttisync, &log);
   }
   
-  // Set RX freq and gain
-  phy.get_radio()->set_rx_freq(prog_args.uhd_freq);
-
   // Give it time to create thread 
   sleep(1);
-      
+  
+  // Set default parameters 
+  phy.set_param(srslte::ue::phy_params::PRACH_CONFIG_INDEX, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_ROOT_SEQ_IDX, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_HIGH_SPEED_FLAG, 0);
+  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 1);
+  
+  // Set RX freq and gain
+  phy.get_radio()->set_rx_freq(prog_args.uhd_freq);
+  phy.get_radio()->set_rx_gain(prog_args.uhd_gain);
+  
   /* Instruct the PHY to decode BCH */
   if (!phy.decode_mib_best(&cell, bch_payload)) {
     exit(-1);
