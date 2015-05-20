@@ -478,8 +478,9 @@ int main(int argc, char **argv) {
               
               #ifdef PRINT_CHANGE_SCHEDULIGN
               if (ue_dl.dl_dci.mcs_idx         != old_dl_dci.mcs_idx           || 
-                  ue_dl.dl_dci.alloc_type      != old_dl_dci.alloc_type        ||
-                  ue_dl.dl_dci.type2_alloc.riv != ue_dl.dl_dci.type2_alloc.riv)
+                  memcmp(&ue_dl.dl_dci.type0_alloc, &old_dl_dci.type0_alloc, sizeof(srslte_ra_type0_t)) ||
+                  memcmp(&ue_dl.dl_dci.type1_alloc, &old_dl_dci.type1_alloc, sizeof(srslte_ra_type1_t)) ||
+                  memcmp(&ue_dl.dl_dci.type2_alloc, &old_dl_dci.type2_alloc, sizeof(srslte_ra_type2_t)))
               {
                 memcpy(&old_dl_dci, &ue_dl.dl_dci, sizeof(srslte_ra_dl_dci_t));
                 fflush(stdout);printf("\nCFI:\t%d\n", ue_dl.cfi);
@@ -514,15 +515,14 @@ int main(int argc, char **argv) {
             if (gain < 0) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
             }
-            printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, "
-                  "RSRP: %+5.1f dBm, SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% Peak: %.2f Gain: %.1f dB\r",
-                  srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
-                  10*log10(rsrp*1000)-gain-cuhd_get_rx_gain_offset(uhd), 
+            printf("CFO: %+6.2f KHz, "
+                  "SNR: %4.1f dB, "
+                  "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
+                   
+                  srslte_ue_sync_get_cfo(&ue_sync)/1000,
                   10*log10(rsrp/noise), 
                   100*(1-(float) ue_dl.nof_detected/nof_trials), 
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, 
-                   srslte_agc_get_output_level(&ue_sync.agc), gain);                            
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total);                            
           }
           break;
       }

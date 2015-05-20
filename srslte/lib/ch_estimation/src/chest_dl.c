@@ -126,11 +126,10 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
     //float f[3]={0.2, 0.6, 0.2};
     //srslte_chest_dl_set_filter_freq(q, f, 3);
 
-    float f[5]={0.1, 0.2, 0.4, 0.2, 0.1};
-    srslte_chest_dl_set_filter_freq(q, f, 5);
+    float f[9]={0.025, 0.075, 0.05, 0.15, 0.4, 0.15, 0.05, 0.075, 0.025};
+    srslte_chest_dl_set_filter_freq(q, f, 9);
 
-    float t[2]={0.5, 0.5};
-    srslte_chest_dl_set_filter_time(q, t, 0);
+    //srslte_chest_dl_set_filter_time_ema(q, 0.8); 
     
     q->cell = cell; 
   }
@@ -189,6 +188,10 @@ int srslte_chest_dl_set_filter_freq(srslte_chest_dl_t *q, float *filter, uint32_
   } else {
     return SRSLTE_ERROR;
   }
+}
+
+void srslte_chest_dl_set_filter_time_ema(srslte_chest_dl_t *q, float ema_coefficient) {
+  q->filter_time_ema = ema_coefficient;  
 }
 
 int srslte_chest_dl_set_filter_time(srslte_chest_dl_t *q, float *filter, uint32_t filter_len) {
@@ -263,31 +266,62 @@ static void average_pilots(srslte_chest_dl_t *q, uint32_t port_id)
   q->noise_estimate[port_id] = estimate_noise_port(q, port_id, q->tmp_freqavg);
   #endif
   
-  for (l=0;l<srslte_refsignal_cs_nof_symbols(port_id);l++) {
-    /* Filter in time domain. */
-    if (q->filter_time_len > 0) {
-      /* Move last symbols */
-      for (i=0;i<q->filter_time_len-1;i++) {
-        memcpy(q->tmp_timeavg[i], q->tmp_timeavg[i+1], nref*sizeof(cf_t));                      
-      }
-      /* Save last symbol to buffer */
-      memcpy(q->tmp_timeavg[q->filter_time_len-1], &pilot_tmp(0), nref*sizeof(cf_t));            
-      
-      /* Multiply all symbols by filter and add them  */
-      if (l > 0) {
-        bzero(&pilot_avg(0), nref * sizeof(cf_t));
-        for (i=0;i<q->filter_time_len;i++) {
-          srslte_vec_sc_prod_cfc(q->tmp_timeavg[i], q->filter_time[i], q->tmp_timeavg_mult, nref);
-          srslte_vec_sum_ccc(q->tmp_timeavg_mult, &pilot_avg(0), &pilot_avg(0), nref);            
-        }        
-      } else {
-        memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));
-      }
-    } else {
-      memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));        
-    }
-  }
   
+//#define EMA_VEC
+    
+  /* Filter with Exponential moving average (IIR) */
+  if (q->filter_time_ema > 0) {
+#ifdef EMA_VEC
+    srslte_vec_ema_filter(&q->tmp_freqavg[0],
+                          &q->pilot_estimates_average[port_id][2*q->cell.nof_prb*srslte_refsignal_cs_nof_symbols(port_id)], 
+                          &q->pilot_estimates_average[port_id][0],
+                          q->filter_time_ema, 
+                          nref);
+    for (l=1;l<srslte_refsignal_cs_nof_symbols(port_id);l++) {
+      srslte_vec_ema_filter(&q->tmp_freqavg[2*q->cell.nof_prb*l],
+                            &q->pilot_estimates_average[port_id][2*q->cell.nof_prb*(l-1)], 
+                            &q->pilot_estimates_average[port_id][2*q->cell.nof_prb*l],
+                            q->filter_time_ema, 
+                            nref);
+    }
+#else    
+    for (i=0;i<nref;i++) {
+      l=0;
+      pilot_avg(i) = SRSLTE_VEC_EMA(pilot_tmp(i), q->pilot_estimates_average[port_id][
+          SRSLTE_REFSIGNAL_PILOT_IDX(i,srslte_refsignal_cs_nof_symbols(port_id),q->cell)], q->filter_time_ema);
+      for (l=1;l<srslte_refsignal_cs_nof_symbols(port_id);l++) {
+        pilot_avg(i) = SRSLTE_VEC_EMA(pilot_tmp(i), q->pilot_estimates_average[port_id][SRSLTE_REFSIGNAL_PILOT_IDX(i,l-1,q->cell)], q->filter_time_ema);
+      }    
+    }
+#endif
+
+  } else {
+    /* Filter with FIR or don't filter */ 
+    for (l=0;l<srslte_refsignal_cs_nof_symbols(port_id);l++) {
+      /* Filter in time domain. */
+      if (q->filter_time_len > 0) {
+        /* Move last symbols */
+        for (i=0;i<q->filter_time_len-1;i++) {
+          memcpy(q->tmp_timeavg[i], q->tmp_timeavg[i+1], nref*sizeof(cf_t));                      
+        }
+        /* Save last symbol to buffer */
+        memcpy(q->tmp_timeavg[q->filter_time_len-1], &pilot_tmp(0), nref*sizeof(cf_t));            
+        
+        /* Multiply all symbols by filter and add them  */
+        if (l > 0) {
+          bzero(&pilot_avg(0), nref * sizeof(cf_t));
+          for (i=0;i<q->filter_time_len;i++) {
+            srslte_vec_sc_prod_cfc(q->tmp_timeavg[i], q->filter_time[i], q->tmp_timeavg_mult, nref);
+            srslte_vec_sum_ccc(q->tmp_timeavg_mult, &pilot_avg(0), &pilot_avg(0), nref);            
+          }        
+        } else {
+          memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));
+        }
+      } else {
+        memcpy(&pilot_avg(0), &pilot_tmp(0), nref * sizeof(cf_t));        
+      }
+    } 
+  }
 }
 
 #define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,0)]

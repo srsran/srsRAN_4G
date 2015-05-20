@@ -38,6 +38,8 @@
 
 #define MAX_CANDIDATES  64
 
+#define PDSCH_DO_ZF
+
 int srslte_ue_dl_init(srslte_ue_dl_t *q, 
                srslte_cell_t cell) 
 {
@@ -225,9 +227,18 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
   if (q->pdsch_cfg.rv == 0) {
     srslte_softbuffer_rx_reset(&q->softbuffer);
   }
+  
+#ifdef PDSCH_DO_ZF
+  float noise_estimate = 0; 
+#else
+  float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
+#endif
+  
   if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
     ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
-                                   q->sf_symbols, q->ce, 0, rnti, data);
+                                   q->sf_symbols, q->ce, 
+                                   noise_estimate, 
+                                   rnti, data);
     
     if (ret == SRSLTE_ERROR) {
       q->pkt_errors++;

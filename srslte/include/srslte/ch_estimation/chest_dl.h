@@ -76,6 +76,7 @@ typedef struct {
   float rssi[SRSLTE_MAX_PORTS]; 
   float rsrp[SRSLTE_MAX_PORTS]; 
   float noise_estimate[SRSLTE_MAX_PORTS];
+  float filter_time_ema;
 } srslte_chest_dl_t;
 
 
@@ -91,6 +92,9 @@ SRSLTE_API int srslte_chest_dl_set_filter_freq(srslte_chest_dl_t *q,
 SRSLTE_API int srslte_chest_dl_set_filter_time(srslte_chest_dl_t *q, 
                                                float *filter, 
                                                uint32_t filter_len);
+
+SRSLTE_API void srslte_chest_dl_set_filter_time_ema(srslte_chest_dl_t *q, 
+                                                    float ema_coefficient); 
 
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,
