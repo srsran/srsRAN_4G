@@ -123,11 +123,11 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
     }
     
     /* Set default time/freq filters */
-    float f[3]={0.2, 0.6, 0.2};
-    srslte_chest_dl_set_filter_freq(q, f, 3);
+    //float f[3]={0.2, 0.6, 0.2};
+    //srslte_chest_dl_set_filter_freq(q, f, 3);
 
-    //float f[5]={0.1, 0.2, 0.4, 0.2, 0.1};
-    //srslte_chest_dl_set_filter_freq(q, f, 5);
+    float f[5]={0.1, 0.2, 0.4, 0.2, 0.1};
+    srslte_chest_dl_set_filter_freq(q, f, 5);
 
     float t[2]={0.5, 0.5};
     srslte_chest_dl_set_filter_time(q, t, 0);

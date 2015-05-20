@@ -64,8 +64,8 @@ sem_t plot_sem;
 uint32_t plot_sf_idx=0;
 #endif
 
-//#define PLOT_CHEST_ARGUMENT
-//#define PRINT_CHANGE_SCHEDULIGN
+#define PLOT_CHEST_ARGUMENT
+#define PRINT_CHANGE_SCHEDULIGN
 
 /**********************************************************************
  *  Program arguments processing
@@ -407,16 +407,15 @@ int main(int argc, char **argv) {
   bzero(&old_dl_dci, sizeof(srslte_ra_dl_dci_t));
 #endif
   
-  //ue_sync.correct_cfo = !prog_args.disable_cfo;
+  ue_sync.correct_cfo = !prog_args.disable_cfo;
   
-  /* Set high priority */
-  /*
+  /* Set high priority */  
   struct sched_param param;
   param.sched_priority = sched_get_priority_max(SCHED_FIFO);
   if (sched_setscheduler(pthread_self(), SCHED_FIFO, &param)) {
     perror("setscheduler");
   }
-*/
+
   
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
