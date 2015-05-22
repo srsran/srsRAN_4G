@@ -32,7 +32,7 @@ Download & Install Instructions
 * Optional requirements: 
   * srsgui:        for real-time plotting. Download it here: https://github.com/srslte/srsgui 
   * VOLK:          if the VOLK library and headers are detected, they will be used for accelerating some signal processing functions. 
-  * Matlab/Octave: if found by CMake, MEX files will also be generated and installed. If you find any compilation issue with MEX and you don't need them, pass -DDisableMex=ON to cmake to disable them. 
+  * Matlab/Octave: if found by CMake, MEX files will also be generated and installed. If you find any compilation issue with MEX and you don't need them, pass -DDisableMEX=ON to cmake to disable them. 
 
 Download and build srsLTE: 
 ```
