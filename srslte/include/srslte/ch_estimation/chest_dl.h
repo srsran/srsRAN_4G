@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -50,8 +50,8 @@
 #include "srslte/ch_estimation/refsignal_dl.h"
 #include "srslte/common/phy_common.h"
 
-#define SRSLTE_CHEST_MAX_FILTER_FREQ_LEN    10
-#define SRSLTE_CHEST_MAX_FILTER_TIME_LEN    4
+#define SRSLTE_CHEST_MAX_FILTER_FREQ_LEN    21
+#define SRSLTE_CHEST_MAX_FILTER_TIME_LEN    40
 
 typedef struct {
   srslte_cell_t cell; 
@@ -76,6 +76,7 @@ typedef struct {
   float rssi[SRSLTE_MAX_PORTS]; 
   float rsrp[SRSLTE_MAX_PORTS]; 
   float noise_estimate[SRSLTE_MAX_PORTS];
+  float filter_time_ema;
 } srslte_chest_dl_t;
 
 
@@ -92,6 +93,9 @@ SRSLTE_API int srslte_chest_dl_set_filter_time(srslte_chest_dl_t *q,
                                                float *filter, 
                                                uint32_t filter_len);
 
+SRSLTE_API void srslte_chest_dl_set_filter_time_ema(srslte_chest_dl_t *q, 
+                                                    float ema_coefficient); 
+
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,
                                         cf_t *ce[SRSLTE_MAX_PORTS],
@@ -102,8 +106,6 @@ SRSLTE_API int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q,
                                              cf_t *ce,
                                              uint32_t sf_idx, 
                                              uint32_t port_id);
-
-SRSLTE_API float srslte_chest_dl_get_snr(srslte_chest_dl_t *q); 
 
 SRSLTE_API float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q); 
 

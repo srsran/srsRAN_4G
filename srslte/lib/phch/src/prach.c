@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -44,7 +44,7 @@
 #define   PHI_4         2     // PRACH phi parameter for format 4
 #define   MAX_ROOTS     838   // Max number of root sequences
 
-#define PRACH_AMP       0.5
+#define PRACH_AMP       0.4
 
 /******************************************************
  * Reference tables from 3GPP TS 36.211 v10.7.0
@@ -346,7 +346,7 @@ int srslte_prach_init(srslte_prach_t *p,
         p->N_cs = prach_Ncs_unrestricted[p->zczc];
       }
     }
-
+    
     // Set up containers
     p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
     p->corr_spec = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
@@ -423,7 +423,7 @@ int srslte_prach_gen(srslte_prach_t *p,
     uint32_t N_rb_ul = prach_get_rb_ul(p->N_ifft_ul);
     uint32_t k_0 = freq_offset*N_RB_SC - N_rb_ul*N_RB_SC/2 + p->N_ifft_ul/2;
     uint32_t K = DELTA_F/DELTA_F_RA;
-    uint32_t begin = PHI + (K*k_0) + (K/2);
+    uint32_t begin = PHI + (K*k_0) + (K/2) + 1;
 
     DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
     // Map dft-precoded sequence to ifft bins
@@ -438,9 +438,10 @@ int srslte_prach_gen(srslte_prach_t *p,
 
     // Copy preamble sequence into buffer
     for(int i=0;i<p->N_seq;i++){
-      signal[p->N_cp+i] = PRACH_AMP*p->ifft_out[i%p->N_ifft_prach];
+      signal[p->N_cp+i] = p->ifft_out[i%p->N_ifft_prach];
     }
-                
+    srslte_vec_sc_prod_cfc(signal, PRACH_AMP, signal, p->N_cp + p->N_seq);
+    
     ret = SRSLTE_SUCCESS;
   }
 

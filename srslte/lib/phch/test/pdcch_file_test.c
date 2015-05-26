@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
       case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
         bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
         if (srslte_dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SRSLTE_SIRNTI)) {
-          fprintf(stderr, "Can't unpack PDSCH message\n");
+          fprintf(stderr, "Can't unpack DCI message\n");
         } else {
           srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
           if (ra_dl.alloc_type == SRSLTE_RA_ALLOC_TYPE2 && ra_dl.type2_alloc.mode == SRSLTE_RA_TYPE2_LOC

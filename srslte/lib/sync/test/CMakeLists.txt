@@ -1,20 +1,20 @@
 #
-# Copyright 2012-2013 The srsLTE Developers. See the
+# Copyright 2013-2015 The srsLTE Developers. See the
 # COPYRIGHT file at the top-level directory of this distribution.
 #
 # This file is part of the srsLTE library.
 #
 # srsLTE is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
+# it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
 # srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
+# GNU Affero General Public License for more details.
 #
-# A copy of the GNU Lesser General Public License can be found in
+# A copy of the GNU Affero General Public License can be found in
 # the LICENSE file in the top-level directory of this distribution
 # and at http://www.gnu.org/licenses/.
 #
@@ -23,32 +23,24 @@
 # PROGRAM TO DEBUG PSS FROM USRP  
 ########################################################################
 
-LIST(FIND OPTIONAL_LIBS cuhd CUHD_FIND)
-
-FIND_PACKAGE(SRSGUI)
-
 ADD_EXECUTABLE(pss_file pss_file.c)
 TARGET_LINK_LIBRARIES(pss_file srslte)
 
 IF(SRSGUI_FOUND)
-  include_directories(${SRSGUI_INCLUDE_DIRS})
   target_link_libraries(pss_file ${SRSGUI_LIBRARIES})
 ELSE(SRSGUI_FOUND)
   SET_TARGET_PROPERTIES(pss_file PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
 ENDIF(SRSGUI_FOUND)
 
-IF(${CUHD_FIND} GREATER -1)
+IF(UHD_FOUND)
   ADD_EXECUTABLE(pss_usrp pss_usrp.c)
-  TARGET_LINK_LIBRARIES(pss_usrp srslte cuhd)
+  TARGET_LINK_LIBRARIES(pss_usrp srslte srslte_uhd)
   IF(SRSGUI_FOUND)
-    include_directories(${SRSGUI_INCLUDE_DIRS})
     target_link_libraries(pss_usrp ${SRSGUI_LIBRARIES})
   ELSE(SRSGUI_FOUND)
     SET_TARGET_PROPERTIES(pss_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
   ENDIF(SRSGUI_FOUND)
-ENDIF(${CUHD_FIND} GREATER -1)
-
-
+ENDIF(UHD_FOUND)
 
 BuildMex(MEXNAME pss SOURCES pss_mex.c LIBRARIES srslte srslte_mex)
 BuildMex(MEXNAME sss SOURCES sss_mex.c LIBRARIES srslte srslte_mex)

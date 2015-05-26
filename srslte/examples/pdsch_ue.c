@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -43,14 +43,15 @@
 
 #ifndef DISABLE_UHD
 #include "srslte/cuhd/cuhd.h"
-#include "cuhd_utils.h"
+#include "srslte/cuhd/cuhd_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
   5000,
   200, // nof_frames_total 
   10.0 // threshold
 };
-
+#else
+#warning Compiling pdsch_ue with no UHD support
 #endif
 
 //#define STDOUT_COMPACT
@@ -63,12 +64,18 @@ sem_t plot_sem;
 uint32_t plot_sf_idx=0;
 #endif
 
+#define PLOT_CHEST_ARGUMENT
+#define PRINT_CHANGE_SCHEDULIGN
+
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
 typedef struct {
   int nof_subframes;
   bool disable_plots;
+  bool disable_plots_except_constellation;
+  bool disable_cfo; 
+  uint32_t time_offset; 
   int force_N_id_2;
   uint16_t rnti;
   char *input_file_name; 
@@ -86,10 +93,14 @@ typedef struct {
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
+  args->disable_plots = false; 
+  args->disable_plots_except_constellation = false; 
   args->nof_subframes = -1;
   args->rnti = SRSLTE_SIRNTI;
   args->force_N_id_2 = -1; // Pick the best
   args->input_file_name = NULL;
+  args->disable_cfo = false; 
+  args->time_offset = 0; 
   args->file_nof_prb = 6; 
   args->file_nof_ports = 1; 
   args->file_cell_id = 0; 
@@ -104,7 +115,7 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agpPcildnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [agpPcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD fix RX gain [Default AGC]\n");
@@ -116,10 +127,13 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-p nof_prb for input file [Default %d]\n", args->file_nof_prb);
   printf("\t-P nof_ports for input file [Default %d]\n", args->file_nof_ports);
   printf("\t-c cell_id for input file [Default %d]\n", args->file_cell_id);
-  printf("\t-r RNTI [Default 0x%x]\n",args->rnti);
+  printf("\t-r RNTI in Hex [Default 0x%x]\n",args->rnti);
   printf("\t-l Force N_id_2 [Default best]\n");
+  printf("\t-C Disable CFO correction [Default %s]\n", args->disable_cfo?"Disabled":"Enabled");
+  printf("\t-t Add time offset [Default %d]\n", args->time_offset);
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
+  printf("\t-D disable all but constellation plots [Default enabled]\n");
 #else
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
@@ -134,7 +148,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aoglipPcdnvrfuUsS")) != -1) {
+  while ((opt = getopt(argc, argv, "aoglipPcCtdDnvrfuUsS")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -154,6 +168,12 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'g':
       args->uhd_gain = atof(argv[optind]);
       break;
+    case 'C':
+      args->disable_cfo = true;
+      break;
+    case 't':
+      args->time_offset = atoi(argv[optind]);
+      break;
     case 'o':
       args->uhd_freq_offset = atof(argv[optind]);
       break;
@@ -164,7 +184,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->nof_subframes = atoi(argv[optind]);
       break;
     case 'r':
-      args->rnti = atoi(argv[optind]);
+      args->rnti = strtol(argv[optind], NULL, 16);
       break;
     case 'l':
       args->force_N_id_2 = atoi(argv[optind]);
@@ -183,6 +203,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'd':
       args->disable_plots = true;
+      break;
+    case 'D':
+      args->disable_plots_except_constellation = true;
       break;
     case 'v':
       srslte_verbose++;
@@ -266,14 +289,14 @@ int main(int argc, char **argv) {
     /* Set receiver gain */
     if (prog_args.uhd_gain > 0) {
       printf("Opening UHD device...\n");
-      if (cuhd_open_th(prog_args.uhd_args, &uhd)) {
+      if (cuhd_open(prog_args.uhd_args, &uhd)) {
         fprintf(stderr, "Error opening uhd\n");
         exit(-1);
       }
       cuhd_set_rx_gain(uhd, prog_args.uhd_gain);      
     } else {
       printf("Opening UHD device with threaded RX Gain control ...\n");
-      if (cuhd_open_th(prog_args.uhd_args, &uhd)) {
+      if (cuhd_open_th(prog_args.uhd_args, &uhd, false)) {
         fprintf(stderr, "Error opening uhd\n");
         exit(-1);
       }
@@ -371,13 +394,28 @@ int main(int argc, char **argv) {
     
   // Variables for measurements 
   uint32_t nframes=0;
-  float rsrp=0.0, rsrq=0.0, snr=0.0;
-  bool decode_pdsch; 
-  int pdcch_tx=0; 
-          
+  float rsrp=0.0, rsrq=0.0, noise=0.0;
+  bool decode_pdsch = false; 
+
+#ifndef DISABLE_UHD
   if (prog_args.uhd_gain < 0) {
     srslte_ue_sync_start_agc(&ue_sync, cuhd_set_rx_gain_th, cell_detect_config.init_agc);    
   }
+#endif
+#ifdef PRINT_CHANGE_SCHEDULIGN
+  srslte_ra_dl_dci_t old_dl_dci; 
+  bzero(&old_dl_dci, sizeof(srslte_ra_dl_dci_t));
+#endif
+  
+  ue_sync.correct_cfo = !prog_args.disable_cfo;
+  
+  /* Set high priority */  
+  struct sched_param param;
+  param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+  if (sched_setscheduler(pthread_self(), SCHED_FIFO, &param)) {
+    perror("setscheduler");
+  }
+
   
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
@@ -409,9 +447,13 @@ int main(int argc, char **argv) {
           break;
         case DECODE_PDSCH:
           if (prog_args.rnti != SRSLTE_SIRNTI) {
-            decode_pdsch = true; 
+            if (srslte_ue_sync_get_sfidx(&ue_sync) != 5 && srslte_ue_sync_get_sfidx(&ue_sync) != 0) {
+              decode_pdsch = true; 
+            } else {
+              decode_pdsch = false; 
+            }
           } else {
-            /* We are looking for SIB1 Blocks, search only in appropiate places */
+            /* We are looking for SIB1 Blocks, 2search only in appropiate places */
             if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
               decode_pdsch = true; 
             } else {
@@ -420,9 +462,9 @@ int main(int argc, char **argv) {
           }
           if (decode_pdsch) {
             if (prog_args.rnti != SRSLTE_SIRNTI) {
-              n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync));
+              n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data_packed, srslte_ue_sync_get_sfidx(&ue_sync));
             } else {
-              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data_packed, srslte_ue_sync_get_sfidx(&ue_sync), 
+              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data_packed, srslte_ue_sync_get_sfidx(&ue_sync), 
                                               SRSLTE_SIRNTI, ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {
@@ -433,65 +475,54 @@ int main(int argc, char **argv) {
                 srslte_bit_unpack_vector(data_packed, data, n);
                 srslte_netsink_write(&net_sink, data, 1+(n-1)/8);
               }
+              
+              #ifdef PRINT_CHANGE_SCHEDULIGN
+              if (ue_dl.dl_dci.mcs_idx         != old_dl_dci.mcs_idx           || 
+                  memcmp(&ue_dl.dl_dci.type0_alloc, &old_dl_dci.type0_alloc, sizeof(srslte_ra_type0_t)) ||
+                  memcmp(&ue_dl.dl_dci.type1_alloc, &old_dl_dci.type1_alloc, sizeof(srslte_ra_type1_t)) ||
+                  memcmp(&ue_dl.dl_dci.type2_alloc, &old_dl_dci.type2_alloc, sizeof(srslte_ra_type2_t)))
+              {
+                memcpy(&old_dl_dci, &ue_dl.dl_dci, sizeof(srslte_ra_dl_dci_t));
+                fflush(stdout);printf("\nCFI:\t%d\n", ue_dl.cfi);
+                printf("Format: %s\n", srslte_dci_format_string(ue_dl.dci_format));
+                srslte_ra_pdsch_fprint(stdout, &old_dl_dci, cell.nof_prb);
+                srslte_ra_dl_grant_fprint(stdout, &ue_dl.pdsch_cfg.grant);
+              }
+              #endif
+
             }
+                        
             nof_trials++; 
             
             rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.05);
             rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
-            snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_snr(&ue_dl.chest), snr, 0.01);      
+            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);      
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
             }
-            if (isnan(snr)) {
-              snr = 0; 
+            if (isnan(noise)) {
+              noise = 0; 
             }
             if (isnan(rsrp)) {
               rsrp = 0; 
-            }
-            
-#ifdef adjust_estimator
-            /* Adjust channel estimator based on SNR */
-            if (10*log10(snr) < 5.0) {
-              float f_low_snr[5]={0.05, 0.15, 0.6, 0.15, 0.05};
-              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_low_snr, 5);
-            } else if (10*log10(snr) < 10.0) {
-              float f_mid_snr[3]={0.1, 0.8, 0.1};
-              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_mid_snr, 3);
-            } else {
-              float f_high_snr[3]={0.05, 0.9, 0.05};
-              srslte_chest_dl_set_filter_freq(&ue_dl.chest, f_high_snr, 3);
-            }
-#endif
-            
+            }        
           }
-          if (srslte_ue_sync_get_sfidx(&ue_sync) != 5 && srslte_ue_sync_get_sfidx(&ue_sync) != 0) {
-            pdcch_tx++;
-          }
-
 
           // Plot and Printf
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
-#ifdef STDOUT_COMPACT
-            printf("SFN: %4d, PDCCH-Miss: %5.2f%% (%d missed), PDSCH-BLER: %5.2f%% (%d errors)\r",
-                  sfn, 100*(1-(float) ue_dl.nof_detected/nof_trials),pdcch_tx-ue_dl.nof_detected,
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total,ue_dl.pkt_errors);                
-#else
             float gain = prog_args.uhd_gain; 
             if (gain < 0) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
             }
-            printf("CFO: %+6.2f KHz, SFO: %+6.2f Khz, "
-                  "RSRP: %+5.1f dBm, SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%% Peak: %.2f Gain: %.1f dB\r",
-                  srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
-                  10*log10(rsrp*1000)-gain, 
-                  10*log10(snr), 
+            printf("CFO: %+6.2f KHz, "
+                  "SNR: %4.1f dB, "
+                  "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
+                   
+                  srslte_ue_sync_get_cfo(&ue_sync)/1000,
+                  10*log10(rsrp/noise), 
                   100*(1-(float) ue_dl.nof_detected/nof_trials), 
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total, 
-                   srslte_agc_get_output_level(&ue_sync.agc), gain);                
-            
-#endif            
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total);                            
           }
           break;
       }
@@ -504,8 +535,10 @@ int main(int argc, char **argv) {
       
       #ifndef DISABLE_GRAPHICS
       if (!prog_args.disable_plots) {
-        plot_sf_idx = srslte_ue_sync_get_sfidx(&ue_sync);
-        sem_post(&plot_sem);
+        if ((sfn%4) == 0 && decode_pdsch) {
+          plot_sf_idx = srslte_ue_sync_get_sfidx(&ue_sync);
+          sem_post(&plot_sem);
+        }
       }
       #endif
     } else if (ret == 0) {
@@ -552,7 +585,7 @@ int main(int argc, char **argv) {
 
 
 //plot_waterfall_t poutfft;
-plot_real_t p_sync, pce;
+plot_real_t p_sync, pce, pce_arg;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
 float tmp_plot[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
@@ -563,38 +596,83 @@ void *plot_thread_run(void *arg) {
   int i;
   uint32_t nof_re = SRSLTE_SF_LEN_RE(ue_dl.cell.nof_prb, ue_dl.cell.cp);
     
+  
+  sdrgui_init();
+  
+  //plot_waterfall_init(&poutfft, SRSLTE_NRE * ue_dl.cell.nof_prb, 1000);
+  //plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
+  //plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
+
+  if (!prog_args.disable_plots_except_constellation) {
+    plot_real_init(&pce);
+    plot_real_setTitle(&pce, "Channel Response - Magnitude");
+    plot_real_setLabels(&pce, "Index", "dB");
+    plot_real_setYAxisScale(&pce, -40, 40);
+
+  #ifdef PLOT_CHEST_ARGUMENT
+    plot_real_init(&pce_arg);
+    plot_real_setTitle(&pce_arg, "Channel Response - Argument");
+    plot_real_setLabels(&pce_arg, "Index", "rad");
+    plot_real_setYAxisScale(&pce_arg, -1.1*M_PI, 1.1*M_PI);
+  #endif
+    
+    plot_real_init(&p_sync);
+    plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
+    plot_real_setYAxisScale(&p_sync, 0, 1);
+
+    plot_scatter_init(&pscatequal_pdcch);
+    plot_scatter_setTitle(&pscatequal_pdcch, "PDCCH - Equalized Symbols");
+    plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
+    plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
+  }
+
+  plot_scatter_init(&pscatequal);
+  plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pscatequal, -4, 4);
+  plot_scatter_setYAxisScale(&pscatequal, -4, 4);
+
+  
   while(1) {
     sem_wait(&plot_sem);
     
     uint32_t nof_symbols = ue_dl.pdsch_cfg.grant.nof_re;
-    for (i = 0; i < nof_re; i++) {
-      tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
-      if (isinf(tmp_plot[i])) {
-        tmp_plot[i] = -80;
+    if (!prog_args.disable_plots_except_constellation) {      
+      for (i = 0; i < nof_re; i++) {
+        tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
+        if (isinf(tmp_plot[i])) {
+          tmp_plot[i] = -80;
+        }
       }
-    }
-    for (i = 0; i < SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0); i++) {
-      tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.chest.pilot_estimates_average[0][i]));
-      if (isinf(tmp_plot2[i])) {
-        tmp_plot2[i] = -80;
+      for (i = 0; i < 4*12*ue_dl.cell.nof_prb; i++) {
+        tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.ce[0][i]));
+        if (isinf(tmp_plot2[i])) {
+          tmp_plot2[i] = -80;
+        }
       }
-    }
-    //for (i=0;i<SRSLTE_CP_NSYMB(ue_dl.cell.cp);i++) {
-    //  plot_waterfall_appendNewData(&poutfft, &tmp_plot[i*SRSLTE_NRE*ue_dl.cell.nof_prb], SRSLTE_NRE*ue_dl.cell.nof_prb);            
-    //}
-    plot_real_setNewData(&pce, tmp_plot2, SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
-    if (!prog_args.input_file_name) {
-      int max = srslte_vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
-      srslte_vec_sc_prod_fff(ue_sync.strack.pss.conv_output_avg, 
-                      1/ue_sync.strack.pss.conv_output_avg[max], 
-                      tmp_plot2, 
-                      ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);        
-      plot_real_setNewData(&p_sync, tmp_plot2, ue_sync.strack.pss.frame_size);        
+
+      plot_real_setNewData(&pce, tmp_plot2, 4*12*ue_dl.cell.nof_prb);        
       
+      if (!prog_args.input_file_name) {
+        int max = srslte_vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
+        srslte_vec_sc_prod_fff(ue_sync.strack.pss.conv_output_avg, 
+                        1/ue_sync.strack.pss.conv_output_avg[max], 
+                        tmp_plot2, 
+                        ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);        
+        plot_real_setNewData(&p_sync, tmp_plot2, ue_sync.strack.pss.frame_size);        
+        
+      }
+
+  #ifdef PLOT_CHEST_ARGUMENT
+      for (i = 0; i < 2*12*ue_dl.cell.nof_prb; i++) {
+        tmp_plot2[i] = cargf(ue_dl.ce[0][i]);
+      }
+      plot_real_setNewData(&pce_arg, tmp_plot2, 2*12*ue_dl.cell.nof_prb);        
+  #endif
+      
+      plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
     }
     
     plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d, nof_symbols);
-    plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
     
     if (plot_sf_idx == 1) {
       if (prog_args.net_port_signal > 0) {
@@ -610,36 +688,17 @@ void *plot_thread_run(void *arg) {
 
 void init_plots() {
 
-  sdrgui_init();
-  
-  //plot_waterfall_init(&poutfft, SRSLTE_NRE * ue_dl.cell.nof_prb, 1000);
-  //plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
-  //plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
-
-  plot_real_init(&pce);
-  plot_real_setTitle(&pce, "Channel Response - Magnitude");
-  plot_real_setLabels(&pce, "Index", "dB");
-  plot_real_setYAxisScale(&pce, -40, 40);
-
-  plot_real_init(&p_sync);
-  plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
-  plot_real_setYAxisScale(&p_sync, 0, 1);
-
-  plot_scatter_init(&pscatequal);
-  plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&pscatequal, -4, 4);
-  plot_scatter_setYAxisScale(&pscatequal, -4, 4);
-
-  plot_scatter_init(&pscatequal_pdcch);
-  plot_scatter_setTitle(&pscatequal_pdcch, "PDCCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
-  plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
-
   if (sem_init(&plot_sem, 0, 0)) {
     perror("sem_init");
     exit(-1);
   }
   
+  pthread_attr_t attr;
+  struct sched_param param;
+  param.sched_priority = 0;  
+  pthread_attr_init(&attr);
+  pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
+  pthread_attr_setschedparam(&attr, &param);
   if (pthread_create(&plot_thread, NULL, plot_thread_run, NULL)) {
     perror("pthread_create");
     exit(-1);

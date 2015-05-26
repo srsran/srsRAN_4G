@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -238,7 +238,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, uint32_t N_id_2
             q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
             q->candidates[nof_detected_frames].psr = srslte_sync_get_peak_value(&q->ue_sync.strack);
             q->candidates[nof_detected_frames].cfo = srslte_ue_sync_get_cfo(&q->ue_sync);
-            INFO
+            DEBUG
               ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
                 nof_detected_frames, nof_scanned_frames, q->nof_frames_to_scan,
                 q->candidates[nof_detected_frames].psr, q->candidates[nof_detected_frames].cell_id,

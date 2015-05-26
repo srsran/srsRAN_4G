@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -169,7 +169,6 @@ static int encode_tb(srslte_sch_t *q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q            != NULL &&
-      data         != NULL &&
       e_bits       != NULL &&
       cb_segm      != NULL &&
       soft_buffer  != NULL)
@@ -181,8 +180,8 @@ static int encode_tb(srslte_sch_t *q,
     if (cb_segm->C > 0) {
       gamma = Gp%cb_segm->C;
     }
-    
-    if (rv == 0) {
+
+    if (data) {
       /* Compute transport block CRC */
       par = srslte_crc_checksum(&q->crc_tb, data, cb_segm->tbs);
 
@@ -226,7 +225,7 @@ static int encode_tb(srslte_sch_t *q,
       INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,
           cb_len, rlen - F, wp, rp, F, n_e);
 
-      if (rv == 0) {
+      if (data) {
 
         /* Copy data to another buffer, making space for the Codeblock CRC */
         if (i < cb_segm->C - 1) {

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -41,6 +41,16 @@ void srslte_bit_pack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int no
   if (nof_bits%8) {
     srslte_bit_pack(bits_unpacked[i], &bits_packed, nof_bits%8);
   }
+}
+
+void srslte_bit_pack_l(uint64_t value, uint8_t **bits, int nof_bits)
+{
+  int i;
+
+  for(i=0; i<nof_bits; i++) {
+      (*bits)[i] = (value >> (nof_bits-i-1)) & 0x1;
+  }
+  *bits += nof_bits;
 }
 
 void srslte_bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
@@ -69,6 +79,18 @@ uint32_t srslte_bit_unpack(uint8_t **bits, int nof_bits)
 {
     int i;
     uint32_t value=0;
+
+    for(i=0; i<nof_bits; i++) {
+      value |= (*bits)[i] << (nof_bits-i-1);
+    }
+    *bits += nof_bits;
+    return value;
+}
+
+uint64_t srslte_bit_unpack_l(uint8_t **bits, int nof_bits)
+{
+    int i;
+    uint64_t value=0;
 
     for(i=0; i<nof_bits; i++) {
       value |= (*bits)[i] << (nof_bits-i-1);

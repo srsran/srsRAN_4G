@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -170,33 +170,39 @@ int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_
 }
 
 static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant) {  
+  int tbs = -1; 
   // 8.6.2 First paragraph
   if (dci->mcs_idx <= 28) {
     /* Table 8.6.1-1 on 36.213 */
     if (dci->mcs_idx < 11) {
       grant->mcs.mod = SRSLTE_MOD_QPSK;
-      grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx, grant->L_prb);
+      tbs = srslte_ra_tbs_from_idx(dci->mcs_idx, grant->L_prb);      
     } else if (dci->mcs_idx < 21) {
       grant->mcs.mod = SRSLTE_MOD_16QAM;
-      grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 1, grant->L_prb);
+      tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 1, grant->L_prb);
     } else if (dci->mcs_idx < 29) {
       grant->mcs.mod = SRSLTE_MOD_64QAM;
-      grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 2, grant->L_prb);
+      tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 2, grant->L_prb);
     } else {
       fprintf(stderr, "Invalid MCS index %d\n", dci->mcs_idx);
-      return SRSLTE_ERROR;
     }
   } else if (dci->mcs_idx == 29 && dci->cqi_request && grant->L_prb <= 4) {
     // 8.6.1 and 8.6.2 36.213 second paragraph
     grant->mcs.mod = SRSLTE_MOD_QPSK;
-    grant->mcs.tbs = 0;
+    tbs = 0;
   } else if (dci->mcs_idx >= 29) {
     // Else use last TBS/Modulation and use mcs to obtain rv_idx 
-    grant->mcs.tbs = 0; 
+    tbs = 0; 
     grant->mcs.mod = 0; 
     dci->rv_idx = dci->mcs_idx - 28;
   }
-  return SRSLTE_SUCCESS;
+  if (tbs < 0) {
+    fprintf(stderr, "Error computing TBS\n");
+    return SRSLTE_ERROR; 
+  } else {
+    grant->mcs.tbs = (uint32_t) tbs; 
+    return SRSLTE_SUCCESS;
+  }
 }
 
 /** Compute PRB allocation for Uplink as defined in 8.1 and 8.4 of 36.213 */
@@ -363,57 +369,53 @@ static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_
 
 /* Modulation order and transport block size determination 7.1.7 in 36.213 */
 static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, bool crc_is_crnti) {
-  uint32_t n_prb;
-  switch(dci->dci_format) {
-    case SRSLTE_RA_DCI_FORMAT1:
-      /* Table 7.1.7.1-1 on 36.213 */
-      if (dci->mcs_idx < 10) {
-        grant->mcs.mod = SRSLTE_MOD_QPSK;
-        grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx, grant->nof_prb);
-      } else if (dci->mcs_idx < 17) {
-        grant->mcs.mod = !crc_is_crnti?SRSLTE_MOD_QPSK:SRSLTE_MOD_16QAM;
-        grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 1, grant->nof_prb);
-      } else if (dci->mcs_idx < 29) {
-        grant->mcs.mod = !crc_is_crnti?SRSLTE_MOD_QPSK:SRSLTE_MOD_64QAM;
-        grant->mcs.tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 2, grant->nof_prb);
-      } else if (dci->mcs_idx == 29) {
-        grant->mcs.mod = SRSLTE_MOD_QPSK;
-        grant->mcs.tbs = 0;
-      } else if (dci->mcs_idx == 30) {
-        grant->mcs.mod = !crc_is_crnti?SRSLTE_MOD_QPSK:SRSLTE_MOD_16QAM;
-        grant->mcs.tbs = 0;
-      } else if (dci->mcs_idx == 31) {
-        grant->mcs.mod = !crc_is_crnti?SRSLTE_MOD_QPSK:SRSLTE_MOD_64QAM;
-        grant->mcs.tbs = 0;
-      } else {
-        return SRSLTE_ERROR;
-      }    
-      break; 
-    case SRSLTE_RA_DCI_FORMAT1A:      
-      /* Downlink Transport Block size determination as defined in 7.1.7.2 on 36.213 */
-      if (crc_is_crnti) {
-        n_prb = grant->nof_prb;
-      } else {
-        n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
-      }
-      if (dci->mcs_idx < 27 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
-        grant->mcs.tbs = tbs_table[dci->mcs_idx][n_prb - 1];
-        grant->mcs.mod = SRSLTE_MOD_QPSK; 
-      } else {
-        return SRSLTE_ERROR;
-      }
-      break;
-    case SRSLTE_RA_DCI_FORMAT1C:
-      /* Downlink Transport Block size for Format 1C as defined in 7.1.7.2.2-1 on 36.213 */
-        if (dci->mcs_idx < 32) {
-          grant->mcs.tbs = tbs_format1c_table[dci->mcs_idx];
-          grant->mcs.mod = SRSLTE_MOD_QPSK; 
-        } else {
-          return SRSLTE_ERROR;
-        }
-    break;
+  uint32_t n_prb=0;
+  int tbs = -1; 
+  uint32_t i_tbs = 0; 
+  
+  if (!crc_is_crnti) {
+    if (dci->dci_format == SRSLTE_RA_DCI_FORMAT1A) {
+      n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
+      i_tbs = dci->mcs_idx;
+    } else {
+      if (dci->mcs_idx < 32) {
+        tbs = tbs_format1c_table[dci->mcs_idx];
+      } 
+    }
+    grant->mcs.mod = SRSLTE_MOD_QPSK;      
+  } else {
+    n_prb = grant->nof_prb;
+    if (dci->mcs_idx < 10) {
+      grant->mcs.mod = SRSLTE_MOD_QPSK;
+      i_tbs = dci->mcs_idx;
+    } else if (dci->mcs_idx < 17) {
+      grant->mcs.mod = SRSLTE_MOD_16QAM;
+      i_tbs = dci->mcs_idx-1;
+    } else if (dci->mcs_idx < 29) {
+      grant->mcs.mod = SRSLTE_MOD_64QAM;
+      i_tbs = dci->mcs_idx-2;
+    } else if (dci->mcs_idx == 29) {
+      grant->mcs.mod = SRSLTE_MOD_QPSK;
+      tbs = 0;
+      i_tbs = 0;
+    } else if (dci->mcs_idx == 30) {
+      grant->mcs.mod = SRSLTE_MOD_16QAM;
+      tbs = 0;
+      i_tbs = 0;
+    } else if (dci->mcs_idx == 31) {
+      grant->mcs.mod = SRSLTE_MOD_64QAM;
+      tbs = 0;
+      i_tbs = 0;
+    }
+  }  
+  tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
+  
+  if (tbs < 0) {
+    return SRSLTE_ERROR; 
+  } else {
+    grant->mcs.tbs = (uint32_t) tbs; 
+    return SRSLTE_SUCCESS; 
   }
-  return SRSLTE_SUCCESS;
 }
 
 /** Obtains a DL grant from a DCI grant for PDSCH */

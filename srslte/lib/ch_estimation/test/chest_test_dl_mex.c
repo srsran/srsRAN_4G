@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -72,11 +72,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double *outr1=NULL, *outi1=NULL;
   double *outr2=NULL, *outi2=NULL;
   
-  if (nrhs < NOF_INPUTS) {
-    help();
-    return;
-  }
-
   if (!mxIsDouble(CELLID) && mxGetN(CELLID) != 1 && 
       !mxIsDouble(PORTS) && mxGetN(PORTS) != 1 && 
       mxGetM(CELLID) != 1) {
@@ -117,34 +112,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
     sf_idx = (uint32_t) *((double*) mxGetPr(SFIDX));
-  } else {
-    if (nrhs != NOF_INPUTS) {
-      help();
-      return;
-    }
-  }
+  } 
+  
+  if (nrhs > 5) {
+    uint32_t filter_len = 0;
+    float *filter; 
+    double *f; 
     
-  uint32_t filter_len = 0;
-  float *filter; 
-  double *f; 
-  
-  filter_len = mxGetNumberOfElements(FREQ_FILTER);
-  filter = malloc(sizeof(float) * filter_len);
-  f = (double*) mxGetPr(FREQ_FILTER);
-  for (i=0;i<filter_len;i++) {
-    filter[i] = (float) f[i];
-  }
+    filter_len = mxGetNumberOfElements(FREQ_FILTER);
+    filter = malloc(sizeof(float) * filter_len);
+    f = (double*) mxGetPr(FREQ_FILTER);
+    for (i=0;i<filter_len;i++) {
+      filter[i] = (float) f[i];
+    }
 
-  srslte_chest_dl_set_filter_freq(&chest, filter, filter_len);
+    srslte_chest_dl_set_filter_freq(&chest, filter, filter_len);
 
-  filter_len = mxGetNumberOfElements(TIME_FILTER);
-  filter = malloc(sizeof(float) * filter_len);
-  f = (double*) mxGetPr(TIME_FILTER);
-  for (i=0;i<filter_len;i++) {
-    filter[i] = (float) f[i];
-  }
-  srslte_chest_dl_set_filter_time(&chest, filter, filter_len);
-  
+    filter_len = mxGetNumberOfElements(TIME_FILTER);
+    filter = malloc(sizeof(float) * filter_len);
+    f = (double*) mxGetPr(TIME_FILTER);
+    for (i=0;i<filter_len;i++) {
+      filter[i] = (float) f[i];
+    }
+    srslte_chest_dl_set_filter_time(&chest, filter, filter_len);
+  }  
 
 
   double *inr=(double *)mxGetPr(INPUT);
@@ -244,13 +235,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 4) {
-    plhs[3] = mxCreateDoubleScalar(srslte_chest_dl_get_snr(&chest));
+    plhs[3] = mxCreateDoubleScalar(srslte_chest_dl_get_noise_estimate(&chest));
   }
   if (nlhs >= 5) {
-    plhs[4] = mxCreateDoubleScalar(srslte_chest_dl_get_noise_estimate(&chest));
-  }
-  if (nlhs >= 6) {
-    plhs[5] = mxCreateDoubleScalar(srslte_chest_dl_get_rsrp(&chest));
+    plhs[4] = mxCreateDoubleScalar(srslte_chest_dl_get_rsrp(&chest));
   }
   
   srslte_chest_dl_free(&chest);

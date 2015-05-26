@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -124,6 +124,49 @@ uint32_t srslte_conv_same_cc(cf_t *input, cf_t *filter, cf_t *output, uint32_t i
   return N;
 }
 
+
+#define conv_same_extrapolates_extremes
+
+#ifdef conv_same_extrapolates_extremes
+uint32_t srslte_conv_same_cf(cf_t *input, float *filter, cf_t *output, 
+                      uint32_t input_len, uint32_t filter_len) {
+  uint32_t i;
+  uint32_t M = filter_len; 
+  uint32_t N = input_len; 
+  cf_t first[filter_len+filter_len/2]; 
+  cf_t last[filter_len+filter_len/2]; 
+  
+  for (i=0;i<M+M/2;i++) {
+    if (i<M/2) {
+      first[i] = (2+M/2-i)*input[1]-(1+M/2-i)*input[0]; 
+    } else {
+      first[i] = input[i-M/2]; 
+    }
+  }
+
+  for (i=0;i<M+M/2;i++) {
+    if (i>=M-1) {
+      last[i] = (2+i-M/2)*input[N-1]-(1+i-M/2)*input[N-2];
+    } else {
+      last[i] = input[N-M+i+1]; 
+    }
+  }
+
+  for (i=0;i<M/2;i++) {
+    output[i]=srslte_vec_dot_prod_cfc(&first[i],filter,M);
+  }
+  
+  for (;i<N-M/2;i++) {
+    output[i]=srslte_vec_dot_prod_cfc(&input[i-M/2],filter,M);
+  }
+  int j=0;
+  for (;i<N;i++) {
+    output[i]=srslte_vec_dot_prod_cfc(&last[j++],filter,M);
+  }
+  return N;
+}
+#else
+
 uint32_t srslte_conv_same_cf(cf_t *input, float *filter, cf_t *output, 
                       uint32_t input_len, uint32_t filter_len) {
   uint32_t i;
@@ -141,3 +184,5 @@ uint32_t srslte_conv_same_cf(cf_t *input, float *filter, cf_t *output,
   }
   return N;
 }
+
+#endif

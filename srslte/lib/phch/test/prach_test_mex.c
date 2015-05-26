@@ -2,24 +2,24 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The libLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
  *
- * This file is part of the libLTE library.
+ * This file is part of the srsLTE library.
  *
- * libLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * srsLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * libLTE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -89,7 +89,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  uint32_t nof_samples = srslte_sampling_freq_hz(n_ul_rb) * 0.003;
+  uint32_t nof_samples = srslte_sampling_freq_hz(n_ul_rb) * 0.001;
   
   cf_t *signal = srslte_vec_malloc(sizeof(cf_t) * nof_samples);
   if (!signal) {
@@ -102,6 +102,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return; 
   }
 
+  srslte_vec_sc_prod_cfc(signal, 1.0/sqrtf(N_ifft_ul), signal, nof_samples);              
   
   if (nlhs >= 0) {
     mexutils_write_cf(signal, &plhs[0], nof_samples, 1);  

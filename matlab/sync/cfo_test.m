@@ -1,27 +1,26 @@
-%clear;
-M=1000;
+clear;
 sym_len=128;
-x=lte(1:M*15360*sym_len/2048*2000/1536);
-%x=read_complex('../../../eclipse_osldlib/test.dat');
-%y=resample(x,99839996,100000000);
-
-input=resample(x,1536,2000);
-%input=x;
-%input=y(1:M*15360*sym_len/2048);
-%input=resample(x,3840000,1920000);
+hflen = (sym_len/128)*1920*5;
+samp_rate = (sym_len/128)*1920000;
+N_id_2=1;
+input=read_complex('../../build/lte_signal.dat', hflen*200);
 
 cp0_len=160*sym_len/2048;
 cp1_len=144*sym_len/2048;
 
-slots=reshape(input,15360*sym_len/2048,[]);
-[n m]=size(slots);
+%t = (0:length(input)-1).'/samp_rate;
+%input = input .* exp(-1i*2*pi*2000.0*t);
 
-cfo=zeros(m,1);
-output=zeros(size(input));
+subframes=reshape(input,hflen,[]);
+[n m]=size(subframes);
+
+cfdl=struct('NDLRB',6,'CyclicPrefix','Normal','DuplexMode','FDD');
+cfo=zeros(m,2);
 for i=1:m
-    cfo(i)=cfo_estimate(slots(:,i),7,sym_len,cp1_len,cp1_len);
-    t=(i-1)*n+1:i*n;
-    %output(t)=input(t).*exp(-1i*2*pi*cfo(i)*t/sym_len);
+    [toffset, cfo(i,2)] = find_pss(subframes(:,i),N_id_2);
+    cfo(i,1)            = lteFrequencyOffset(cfdl,subframes(:,i),toffset)/15000;
 end
 
-plot(cfo)
+plot(cfo*15000)
+legend('Matlab','PSS-based')
+disp(mean(cfo)*15)

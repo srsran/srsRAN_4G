@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -133,8 +133,7 @@ int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uin
 /* Undoes Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1
  * 
- * If rv_idx==0, the w_buff circular buffer is initialized. Every subsequent call 
- * with rv_idx!=0 will soft-combine the LLRs from input with w_buff
+ * Soft-combines the data available in w_buff 
  */
 int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_t in_len, float *output,
     uint32_t out_len, uint32_t rv_idx, uint32_t nof_filler_bits) {
@@ -162,12 +161,6 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
   ndummy = K_p - out_len / 3;
   if (ndummy < 0) {
     ndummy = 0;
-  }
-
-  if (rv_idx == 0) {
-    for (i = 0; i < 3 * K_p; i++) {
-      w_buff[i] = SRSLTE_RX_NULL;
-    }    
   }
 
   /* Undo bit collection. Account for dummy bits */

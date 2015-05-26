@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -82,6 +82,9 @@ SRSLTE_API void srslte_vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
 /* substract two vectors z=x-y */
 SRSLTE_API void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len); 
 SRSLTE_API void srslte_vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
+
+/* EMA filter: output=coeff*new_data + (1-coeff)*average */
+SRSLTE_API void srslte_vec_ema_filter(cf_t *new_data, cf_t *average, cf_t *output, float coeff, uint32_t len); 
 
 /* Square distance */
 SRSLTE_API void srslte_vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t npoints);

@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -42,7 +42,7 @@
 
 
 #include "srslte/cuhd/cuhd.h"
-#include "cuhd_utils.h"
+#include "srslte/cuhd/cuhd_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
   5000,
@@ -327,6 +327,7 @@ int main(int argc, char **argv) {
   printf("Tunning TX receiver to %.3f MHz\n", (double ) prog_args.uhd_tx_freq/1000000);
 
   
+#ifdef kk
   ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
   if (ret < 0) {
     fprintf(stderr, "Error searching for cell\n");
@@ -335,6 +336,10 @@ int main(int argc, char **argv) {
     printf("Cell not found\n");
     exit(0);
   }
+#endif
+cell.nof_prb = 50; 
+cell.id = 1; 
+cell.nof_ports = 1; 
 
   /* set sampling frequency */
   int srate = srslte_sampling_freq_hz(cell.nof_prb);
@@ -471,7 +476,7 @@ int main(int argc, char **argv) {
               cuhd_send_timed(uhd, prach_buffer, prach_buffer_len, 
                               next_tx_time.full_secs, next_tx_time.frac_secs);
               
-              srslte_vec_save_file("prach_ue", prach_buffer, prach_buffer_len*sizeof(cf_t));
+              srslte_vec_save_file("prach_ue.dat", prach_buffer, prach_buffer_len*sizeof(cf_t));
               
               ra_rnti = 2; 
               rar_window_start = sfn+1;
@@ -536,6 +541,8 @@ int main(int argc, char **argv) {
                   cuhd_send_timed(uhd, ul_signal, SRSLTE_SF_LEN_PRB(cell.nof_prb),
                                 next_tx_time.full_secs, next_tx_time.frac_secs);                
 
+                  srslte_vec_save_file("prach_ue_connreq.dat", ul_signal, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+                  
                   //cuhd_start_rx_stream(uhd);
                   state = RECV_CONNSETUP;                   
                   conn_setup_trial = 0; 

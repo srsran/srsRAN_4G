@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -37,6 +37,8 @@
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
 #define MAX_CANDIDATES  64
+
+#define PDSCH_DO_ZF
 
 int srslte_ue_dl_init(srslte_ue_dl_t *q, 
                srslte_cell_t cell) 
@@ -150,7 +152,7 @@ void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
   bzero(&q->pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
 }
 
-srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1,SRSLTE_DCI_FORMAT1A}; // SRSLTE_DCI_FORMAT1B should go here also
+srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
 const uint32_t nof_ue_formats = 2; 
 
 srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
@@ -208,10 +210,8 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
 
   q->nof_detected++;
   
-  srslte_ra_dl_dci_t dl_dci; 
-  
-  if (srslte_dci_msg_to_dl_grant(dci_msg, rnti, q->cell, cfi, sf_idx, &dl_dci, &q->pdsch_cfg.grant)) {
-    fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
+  if (srslte_dci_msg_to_dl_grant(dci_msg, rnti, q->cell, cfi, sf_idx, &q->dl_dci, &q->pdsch_cfg.grant)) {
+    //fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
     return SRSLTE_ERROR;
   }
   if (srslte_cbsegm(&q->pdsch_cfg.cb_segm, q->pdsch_cfg.grant.mcs.tbs)) {
@@ -222,11 +222,23 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
   if (rnti == SRSLTE_SIRNTI) {
     q->pdsch_cfg.rv = rvidx;
   } else {
-    q->pdsch_cfg.rv = dl_dci.rv_idx;
+    q->pdsch_cfg.rv = q->dl_dci.rv_idx;
   }
+  if (q->pdsch_cfg.rv == 0) {
+    srslte_softbuffer_rx_reset(&q->softbuffer);
+  }
+  
+#ifdef PDSCH_DO_ZF
+  float noise_estimate = 0; 
+#else
+  float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
+#endif
+  
   if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
     ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
-                                   q->sf_symbols, q->ce, 0, rnti, data);
+                                   q->sf_symbols, q->ce, 
+                                   noise_estimate, 
+                                   rnti, data);
     
     if (ret == SRSLTE_ERROR) {
       q->pkt_errors++;
@@ -253,7 +265,7 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
       fprintf(stderr, "Error decoding DCI msg\n");
       return SRSLTE_ERROR;
     }
-    INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
+    DEBUG("Decoded DCI message RNTI: 0x%x\n", crc_rem);
   } 
   return crc_rem == rnti; 
 }
@@ -289,7 +301,7 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
       }
-      INFO("Decoded DCI message RNTI: 0x%x\n", crc_rem);
+      DEBUG("Decoded DCI message RNTI: 0x%x\n", crc_rem);
     }
   } 
   return crc_rem == rnti; 

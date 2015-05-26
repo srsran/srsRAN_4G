@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -78,7 +78,7 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
         crc_is_crnti = true; 
       }
       if (srslte_dci_msg_unpack_pdsch(msg, dl_dci, cell.nof_prb, crc_is_crnti)) {
-        fprintf(stderr, "Can't unpack PDSCH message\n");
+        fprintf(stderr, "Can't unpack DCI message\n");
         return ret;
       } 
       
@@ -140,6 +140,27 @@ int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, srslte_cell_t cell,
   return SRSLTE_SUCCESS;
 }
 
+/* Unpack RAR UL grant as defined in Section 6.2 of 36.213 */
+void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, uint8_t grant[SRSLTE_RAR_GRANT_LEN])
+{
+  uint8_t *grant_ptr = grant; 
+  rar->hopping_flag = srslte_bit_unpack(&grant_ptr, 1)?true:false;
+  rar->rba          = srslte_bit_unpack(&grant_ptr, 10);
+  rar->trunc_mcs    = srslte_bit_unpack(&grant_ptr, 4);
+  rar->tpc_pusch    = srslte_bit_unpack(&grant_ptr, 3);
+  rar->ul_delay     = srslte_bit_unpack(&grant_ptr, 1)?true:false;
+  rar->cqi_request  = srslte_bit_unpack(&grant_ptr, 1)?true:false;
+}
+
+void srslte_dci_rar_grant_fprint(FILE *stream, srslte_dci_rar_grant_t *rar) {
+  fprintf(stream, "RBA: %d, MCS: %d, TPC: %d, Hopping=%s, UL-Delay=%s, CQI=%s\n",
+    rar->rba, rar->trunc_mcs, rar->tpc_pusch, 
+    rar->hopping_flag?"yes":"no",
+    rar->ul_delay?"yes":"no",
+    rar->cqi_request?"yes":"no"
+  );
+}
+
 /* Creates the UL PUSCH resource allocation grant from a DCI format 0 message
  */
 int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, srslte_cell_t cell, 
@@ -159,7 +180,6 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, srslte_cell_t cell,
     bzero(grant, sizeof(srslte_ra_ul_dci_t));
     
     if (srslte_dci_msg_unpack_pusch(msg, ul_dci, cell.nof_prb)) {
-      fprintf(stderr, "Can't unpack PDSCH message\n");
       return ret;
     } 
     
@@ -367,8 +387,7 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t
     return SRSLTE_ERROR;
   }
   if (*y++ != 0) {
-    fprintf(stderr,
-        "Invalid format differentiation field value. This is SRSLTE_DCI_FORMAT1A\n");
+    INFO("DCI message is Format1A\n", 0);
     return SRSLTE_ERROR;
   }
   if (*y++ == 0) {
@@ -621,7 +640,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   }
 
   if (*y++ != 1) {
-    fprintf(stderr, "Invalid format differentiation field value. This is SRSLTE_DCI_FORMAT0\n");
+    INFO("DCI message is Format0\n", 0);
     return SRSLTE_ERROR;
   }
 
@@ -661,7 +680,6 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
 
   // rv version
   srslte_bit_pack(data->rv_idx, &y, 2);
-
   if (crc_is_crnti) {
     // TPC not implemented
     y++;

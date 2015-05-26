@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -60,6 +60,12 @@ float srslte_vec_acc_ff(float *x, uint32_t len) {
   }
   return z;
 #endif
+}
+
+void srslte_vec_ema_filter(cf_t *new_data, cf_t *average, cf_t *output, float coeff, uint32_t len) {
+  srslte_vec_sc_prod_cfc(new_data, coeff, new_data, len);
+  srslte_vec_sc_prod_cfc(average, 1-coeff, output, len);
+  srslte_vec_sum_ccc(output, new_data, output, len);
 }
 
 cf_t srslte_vec_acc_cc(cf_t *x, uint32_t len) {

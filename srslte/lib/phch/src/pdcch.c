@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -98,7 +98,7 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
     }
 
     uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
-    if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, DCI_MAX_BITS + 16, true)) {
+    if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, SRSLTE_DCI_MAX_BITS + 16, true)) {
       goto clean;
     }
 
@@ -204,7 +204,7 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
 
   k = 0;
   // All aggregation levels from 8 to 1
-  for (l = 3; l >= 0; l--) {
+  for (l = 0; l < 3; l++) {
     L = (1 << l);
     // For all possible ncce offset
     for (i = 0; i < SRSLTE_MIN(q->nof_cce / L, S[l]/PDCCH_FORMAT_NOF_CCE(l)); i++) {
@@ -215,7 +215,7 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
         c[k].L = l;
         c[k].ncce = ncce;
         
-        INFO("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
+        DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
             k, c[k].ncce, c[k].L);            
 
         k++;          
@@ -223,7 +223,7 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
     }
   }
 
-  INFO("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", k, rnti);
+  DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", k, rnti);
   
   return k; 
 }
@@ -281,7 +281,7 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
   if (q         != NULL         &&
       data      != NULL         &&
       E         <= q->max_bits   && 
-      nof_bits  <= DCI_MAX_BITS)
+      nof_bits  <= SRSLTE_DCI_MAX_BITS)
   {
 
     /* unrate matching */
@@ -297,7 +297,7 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
     x = &data[nof_bits];
     p_bits = (uint16_t) srslte_bit_unpack(&x, 16);
     crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
-    INFO("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
+    DEBUG("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
         p_bits ^ crc_res);
     
     if (crc) {
@@ -331,7 +331,7 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci
       uint32_t nof_bits = srslte_dci_format_sizeof(format, q->cell.nof_prb);
       uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(location->L);
     
-      INFO("Decoding DCI offset %d, e_bits: %d, msg_len %d (nCCE: %d, L: %d)\n", 
+      DEBUG("Decoding DCI offset %d, e_bits: %d, msg_len %d (nCCE: %d, L: %d)\n", 
             location->ncce * 72, e_bits, nof_bits, location->ncce, location->L);
       
       ret = dci_decode(q, &q->llr[location->ncce * 72], 
@@ -369,7 +369,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     nof_symbols = e_bits/2;
     ret = SRSLTE_ERROR;
         
-    INFO("Extracting LLRs: E: %d, SF: %d, CFI: %d\n",
+    DEBUG("Extracting LLRs: E: %d, SF: %d, CFI: %d\n",
         e_bits, nsubframe, cfi);
 
     /* number of layers equals number of ports */
@@ -427,7 +427,7 @@ static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   uint8_t mask[16];
   uint8_t *r = mask;
 
-  INFO("Mask CRC with RNTI 0x%x\n", rnti);
+  DEBUG("Mask CRC with RNTI 0x%x\n", rnti);
 
   srslte_bit_pack(rnti, &r, 16);
   for (i = 0; i < 16; i++) {
@@ -441,12 +441,12 @@ static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
 static int dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, uint32_t E,
     uint16_t rnti) {
   srslte_convcoder_t encoder;
-  uint8_t tmp[3 * (DCI_MAX_BITS + 16)];
+  uint8_t tmp[3 * (SRSLTE_DCI_MAX_BITS + 16)];
   
   if (q                 != NULL        && 
       data              != NULL        && 
       e                 != NULL        && 
-      nof_bits          < DCI_MAX_BITS &&
+      nof_bits          < SRSLTE_DCI_MAX_BITS &&
       E                 < q->max_bits)
   {
 
@@ -506,9 +506,9 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
     ret = SRSLTE_ERROR;
     
     if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce && 
-        msg->nof_bits < DCI_MAX_BITS) 
+        msg->nof_bits < SRSLTE_DCI_MAX_BITS) 
     {      
-      INFO("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
+      DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
           msg->nof_bits, e_bits, location.ncce, location.L, rnti);
 
       dci_encode(q, msg->data, q->e, msg->nof_bits, e_bits, rnti);

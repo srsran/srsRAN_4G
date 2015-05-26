@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -44,7 +44,9 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/ra.h"
 
-#define DCI_MAX_BITS  57
+#define SRSLTE_DCI_MAX_BITS  57
+
+#define SRSLTE_RAR_GRANT_LEN 20
 
 typedef enum {
   SRSLTE_DCI_FORMAT0, 
@@ -77,13 +79,16 @@ typedef struct SRSLTE_API {
 } srslte_dci_location_t;
 
 typedef struct SRSLTE_API {
-  uint8_t data[DCI_MAX_BITS];
+  uint8_t data[SRSLTE_DCI_MAX_BITS];
   uint32_t nof_bits;
 } srslte_dci_msg_t;
 
 typedef struct SRSLTE_API {
   uint32_t rba;
   uint32_t trunc_mcs;
+  uint32_t tpc_pusch;
+  bool ul_delay;
+  bool cqi_request; 
   bool hopping_flag; 
 } srslte_dci_rar_grant_t;
 
@@ -111,6 +116,12 @@ SRSLTE_API int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar,
                                           uint32_t n_rb_ho, 
                                           srslte_ra_ul_dci_t *ul_dci,
                                           srslte_ra_ul_grant_t *grant); 
+
+SRSLTE_API void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, 
+                                            uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
+
+SRSLTE_API void srslte_dci_rar_grant_fprint(FILE *stream, 
+                                            srslte_dci_rar_grant_t *rar);
 
 SRSLTE_API srslte_dci_format_t srslte_dci_format_from_string(char *str);
 

@@ -6,7 +6,7 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=20;%linspace(0,30,8);
+SNR_values_db=10;%linspace(0,30,8);
 Nrealizations=1 ;
 
 preEVM = zeros(length(SNR_values_db),Nrealizations);
@@ -147,7 +147,7 @@ rxWaveform = rxWaveform(1+offset+2:end,:);
 rxGrid = lteOFDMDemodulate(enb,rxWaveform);
 rxGrid = rxGrid(:,1:140);
 
-addpath('../../debug/srslte/lib/ch_estimation/test')
+addpath('../../build/srslte/lib/ch_estimation/test')
 
 %% Channel Estimation
 [estChannel, noiseEst(snr_idx)] = lteDLChannelEstimate(enb,cec,rxGrid);
@@ -156,68 +156,69 @@ snrest_srslte = zeros(10,1);
 noise_srslte = zeros(10,1);
 rsrp = zeros(1,10);
 
-for i=0:9
-    [d, a, out, snrest_srslte(i+1), noise_srslte(i+1), rsrp(i+1)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid(:,i*14+1:(i+1)*14),[0.1 0.8 0.1],[0.1 0.9],i);
-    output = [output out];
+[d, ~, out] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid);
+output = [output out];
+%RSRP = [RSRP rsrp];
+%meanRSRP(snr_idx)=mean(rsrp);
+%SNR_srslte(snr_idx)=mean(snrest_srslte);
+%noiseEst_srslte(snr_idx)=mean(noise_srslte);
+d=reshape(d, size(estChannel));
+plot(1:288,real(reshape(estChannel(:,11:14),1,[])),'b-',...
+     1:288,real(reshape(d(:,11:14),1,[])),'r-')
+
+% if ~plot_noise_estimation_only
+% 
+% %% MMSE Equalization
+%     eqGrid_mmse = lteEqualizeMMSE(rxGrid, estChannel, noiseEst(snr_idx));
+% 
+%     eqGrid_srslte = reshape(output,size(eqGrid_mmse));
+% 
+%     % Analysis
+% 
+%     %Compute EVM across all input values EVM of pre-equalized receive signal
+%     preEqualisedEVM = lteEVM(txGrid,rxGrid);
+%     fprintf('%d-%d: Pre-EQ: %0.3f%%\n', ...
+%             snr_idx,nreal,preEqualisedEVM.RMS*100); 
+% 
+% 
+%     %EVM of post-equalized receive signal
+%      postEqualisedEVM_mmse = lteEVM(txGrid,reshape(eqGrid_mmse,size(txGrid)));
+%      fprintf('%d-%d: MMSE: %0.3f%%\n', ...
+%              snr_idx,nreal,postEqualisedEVM_mmse.RMS*100); 
+% 
+%     postEqualisedEVM_srslte = lteEVM(txGrid,reshape(eqGrid_srslte,size(txGrid)));
+%     fprintf('%d-%d: srslte: %0.3f%%\n', ...
+%             snr_idx,nreal,postEqualisedEVM_srslte.RMS*100); 
+% 
+%     preEVM(snr_idx,nreal) = preEqualisedEVM.RMS;
+%     postEVM_mmse(snr_idx,nreal) = mean([postEqualisedEVM_mmse.RMS]);
+%     postEVM_srslte(snr_idx,nreal) = mean([postEqualisedEVM_srslte.RMS]);
+% end
 end
-RSRP = [RSRP rsrp];
-meanRSRP(snr_idx)=mean(rsrp);
-SNR_srslte(snr_idx)=mean(snrest_srslte);
-noiseEst_srslte(snr_idx)=mean(noise_srslte);
-
-if ~plot_noise_estimation_only
-
-%% MMSE Equalization
-    eqGrid_mmse = lteEqualizeMMSE(rxGrid, estChannel, noiseEst(snr_idx));
-
-    eqGrid_srslte = reshape(output,size(eqGrid_mmse));
-
-    % Analysis
-
-    %Compute EVM across all input values EVM of pre-equalized receive signal
-    preEqualisedEVM = lteEVM(txGrid,rxGrid);
-    fprintf('%d-%d: Pre-EQ: %0.3f%%\n', ...
-            snr_idx,nreal,preEqualisedEVM.RMS*100); 
-
-
-    %EVM of post-equalized receive signal
-     postEqualisedEVM_mmse = lteEVM(txGrid,reshape(eqGrid_mmse,size(txGrid)));
-     fprintf('%d-%d: MMSE: %0.3f%%\n', ...
-             snr_idx,nreal,postEqualisedEVM_mmse.RMS*100); 
-
-    postEqualisedEVM_srslte = lteEVM(txGrid,reshape(eqGrid_srslte,size(txGrid)));
-    fprintf('%d-%d: srslte: %0.3f%%\n', ...
-            snr_idx,nreal,postEqualisedEVM_srslte.RMS*100); 
-
-    preEVM(snr_idx,nreal) = preEqualisedEVM.RMS;
-    postEVM_mmse(snr_idx,nreal) = mean([postEqualisedEVM_mmse.RMS]);
-    postEVM_srslte(snr_idx,nreal) = mean([postEqualisedEVM_srslte.RMS]);
 end
-end
-end
-
-% subplot(1,2,1)
-
-if ~plot_noise_estimation_only
-    plot(SNR_values_db, mean(preEVM,2), ...
-        SNR_values_db, mean(postEVM_mmse,2), ...
-        SNR_values_db, mean(postEVM_srslte,2))
-    legend('No Eq','MMSE-lin','MMSE-srslte')
-    grid on
-end
-
-% subplot(1,2,2)
-if plot_noise_estimation_only
-    SNR_matlab = 1./(noiseEst*sqrt(2.0)*enb.CellRefP);
-
-    subplot(1,3,1)
-    plot(SNR_values_db, SNR_values_db, SNR_values_db, 10*log10(SNR_srslte),SNR_values_db, 10*log10(SNR_matlab))
-    legend('Theory','srsLTE','Matlab')
-
-    subplot(1,3,2)
-    plot(SNR_values_db, 10*log10(noiseTx), SNR_values_db, 10*log10(noiseEst_srslte),SNR_values_db, 10*log10(noiseEst))
-    legend('Theory','srsLTE','Matlab')
-    
-    subplot(1,3,3)
-    plot(1:10*length(SNR_values_db),RSRP,10*(1:length(SNR_values_db)),meanRSRP)
-end
+% 
+% % subplot(1,2,1)
+% 
+% if ~plot_noise_estimation_only
+%     plot(SNR_values_db, mean(preEVM,2), ...
+%         SNR_values_db, mean(postEVM_mmse,2), ...
+%         SNR_values_db, mean(postEVM_srslte,2))
+%     legend('No Eq','MMSE-lin','MMSE-srslte')
+%     grid on
+% end
+% 
+% % subplot(1,2,2)
+% if plot_noise_estimation_only
+%     SNR_matlab = 1./(noiseEst*sqrt(2.0)*enb.CellRefP);
+% 
+%     subplot(1,3,1)
+%     plot(SNR_values_db, SNR_values_db, SNR_values_db, 10*log10(SNR_srslte),SNR_values_db, 10*log10(SNR_matlab))
+%     legend('Theory','srsLTE','Matlab')
+% 
+%     subplot(1,3,2)
+%     plot(SNR_values_db, 10*log10(noiseTx), SNR_values_db, 10*log10(noiseEst_srslte),SNR_values_db, 10*log10(noiseEst))
+%     legend('Theory','srsLTE','Matlab')
+%     
+%     subplot(1,3,3)
+%     plot(1:10*length(SNR_values_db),RSRP,10*(1:length(SNR_values_db)),meanRSRP)
+% end

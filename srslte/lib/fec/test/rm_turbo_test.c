@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2014 The srsLTE Developers. See the
+ * Copyright 2013-2015 The srsLTE Developers. See the
  * COPYRIGHT file at the top-level directory of this distribution.
  *
  * \section LICENSE
@@ -10,16 +10,16 @@
  * This file is part of the srsLTE library.
  *
  * srsLTE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
+ * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
  * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * A copy of the GNU Lesser General Public License can be found in
+ * A copy of the GNU Affero General Public License can be found in
  * the LICENSE file in the top-level directory of this distribution
  * and at http://www.gnu.org/licenses/.
  *
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   w_buff_f = malloc(sizeof(float) * nof_rx_bits * 10);
-  if (!w_buff_c) {
+  if (!w_buff_f) {
     perror("malloc");
     exit(-1);
   }
@@ -127,6 +127,9 @@ int main(int argc, char **argv) {
     bits[3*i+0] = SRSLTE_TX_NULL;
     bits[3*i+1] = SRSLTE_TX_NULL;
   }
+  
+  bzero(w_buff_c, nof_tx_bits * 10 * sizeof(uint8_t));
+  bzero(w_buff_f, nof_rx_bits * 10 * sizeof(float));
   
   printf("BITS: ");
   srslte_vec_fprint_b(stdout, bits, nof_tx_bits);
