@@ -55,7 +55,7 @@ char *output_file_name = NULL;
 #define DOWN_KEY  66
 
 srslte_cell_t cell = {
-  6,            // nof_prb
+  25,            // nof_prb
   1,            // nof_ports
   0,            // bw idx 
   0,            // cell_id
@@ -471,7 +471,7 @@ int main(int argc, char **argv) {
   cell.phich_resources = SRSLTE_PHICH_R_1;
   sfn = 0;
 
-  prbset_num = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb)); 
+  prbset_num = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb))/5; 
   last_prbset_num = prbset_num; 
   
   /* this *must* be called after setting slot_len_* */
