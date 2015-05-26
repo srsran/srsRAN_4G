@@ -47,7 +47,8 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
   tti = 0; 
   is_synchronized = false;   
 
-  mux_unit.init(log_h, &mac_io_lch);
+  bsr_procedure.init(log_h, &timers_db, &params_db, &mac_io_lch);
+  mux_unit.init(log_h, &mac_io_lch, &bsr_procedure);
   demux_unit.init(phy_h, log_h, &mac_io_lch, &timers_db);
   ra_procedure.init(&params_db, phy_h, log_h, &timers_db, &mux_unit, &demux_unit);
   sr_procedure.init(log_h, &params_db, phy_h);
@@ -173,17 +174,23 @@ void mac::main_radio_loop() {
       log_h->step(tti);
       
       // Step all procedures 
-      ra_procedure.step(tti);
-      //sr_procedure.step(tti);
-      //bsr_procedure.step(tti);
-      //phr_procedure.step(tti);
+      bsr_procedure.step(tti);
+      
+      // Check if BSR procedure need to start SR 
+      if (bsr_procedure.need_to_send_sr()) {
+        sr_procedure.start();
+      }
+      sr_procedure.step(tti);
 
       // Check SR if we need to start RA 
-      /*
       if (sr_procedure.need_random_access()) {
         ra_procedure.start_mac_order();
       }
-      */
+
+      ra_procedure.step(tti);
+      
+      
+      //phr_procedure.step(tti);
       
       // Receive PCH, if requested
       receive_pch(tti);
@@ -216,13 +223,7 @@ void mac::main_radio_loop() {
           Info("Starting RA procedure by RLC order\n");
           ra_procedure.start_rlc_order();        
         }
-      } /*else if (mux_unit.is_pending_any_sdu()) {
-        // Sart SR if no PUSCH resources available for TTI+4
-        if (!ul_resources_available) {
-          sr_procedure.start();
-          Info("Starting Scheduling Request procedure\n");
-        }
-      }*/
+      } 
     }
   }  
 }
@@ -511,13 +512,11 @@ void mac::set_param(mac_params::mac_param_t param, int64_t value)
   params_db.set_param((uint32_t) param, value);
 }
 
-void mac::set_dcch0_priority(uint32_t priority, int PBR_x_tti, uint32_t BSD)
+void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)
 {
-  mux_unit.set_priority(mac_io::MAC_LCH_DCCH0_UL - mac_io::MAC_LCH_CCCH_UL, priority, PBR_x_tti, BSD);
-}
-void mac::set_dtch0_priority(uint32_t priority, int PBR_x_tti, uint32_t BSD)
-{
-  mux_unit.set_priority(mac_io::MAC_LCH_DTCH0_UL - mac_io::MAC_LCH_CCCH_UL, priority, PBR_x_tti, BSD);
+  mux_unit.set_priority(mac_io::MAC_LCH_CCCH_UL+lcid, priority, PBR_x_tti, BSD);
+  bsr_procedure.setup_lcg(lcid, lcg);
+  bsr_procedure.set_priority(lcid, priority);
 }
 
 

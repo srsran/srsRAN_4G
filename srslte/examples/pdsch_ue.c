@@ -643,14 +643,15 @@ void *plot_thread_run(void *arg) {
           tmp_plot[i] = -80;
         }
       }
-      for (i = 0; i < SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0); i++) {
-        tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.chest.pilot_estimates_average[0][i]));
+      for (i = 0; i < 4*12*ue_dl.cell.nof_prb; i++) {
+        tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.ce[0][i]));
         if (isinf(tmp_plot2[i])) {
           tmp_plot2[i] = -80;
         }
       }
 
-      plot_real_setNewData(&pce, tmp_plot2, SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
+      plot_real_setNewData(&pce, tmp_plot2, 4*12*ue_dl.cell.nof_prb);        
+      
       if (!prog_args.input_file_name) {
         int max = srslte_vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
         srslte_vec_sc_prod_fff(ue_sync.strack.pss.conv_output_avg, 
@@ -662,10 +663,10 @@ void *plot_thread_run(void *arg) {
       }
 
   #ifdef PLOT_CHEST_ARGUMENT
-      for (i = 0; i < SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0); i++) {
-        tmp_plot2[i] = cargf(ue_dl.chest.pilot_estimates_average[0][i]);
+      for (i = 0; i < 2*12*ue_dl.cell.nof_prb; i++) {
+        tmp_plot2[i] = cargf(ue_dl.ce[0][i]);
       }
-      plot_real_setNewData(&pce_arg, tmp_plot2, SRSLTE_REFSIGNAL_NUM_SF(ue_dl.cell.nof_prb,0));        
+      plot_real_setNewData(&pce_arg, tmp_plot2, 2*12*ue_dl.cell.nof_prb);        
   #endif
       
       plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);

@@ -197,6 +197,7 @@ public:
   void     write_payload(uint8_t **ptr);
   bool     set_sdu(uint32_t lcid, uint8_t *ptr, uint32_t nof_bytes);
   bool     set_c_rnti(uint16_t crnti);
+  bool     set_bsr(uint32_t buff_size[4], sch_subh::cetype format);
   bool     set_con_res_id(uint64_t con_res_id);
   bool     set_ta_cmd(uint8_t ta_cmd);
   bool     set_phd(uint8_t phd);
@@ -211,8 +212,9 @@ private:
   uint32_t nof_bytes; 
   uint8_t* sdu_payload_ptr; 
   bool     F_bit;    
-  uint8_t  ce_payload[MAX_CE_PAYLOAD_LEN];
+  uint8_t  ce_payload[MAX_CE_PAYLOAD_LEN*8];
   uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
+  uint8_t buff_size_table(uint32_t buffer_size);
 };
 
 class sch_pdu : public pdu<sch_subh>
@@ -226,6 +228,7 @@ public:
   bool      has_space_ce(uint32_t nbytes);  
   bool      has_space_sdu(uint32_t nbytes);  
   uint32_t  size();
+  uint32_t  rem_size(); 
   static uint32_t size_plus_header_sdu(uint32_t nbytes);
   bool      update_space_ce(uint32_t nbytes);  
   bool      update_space_sdu(uint32_t nbytes);  

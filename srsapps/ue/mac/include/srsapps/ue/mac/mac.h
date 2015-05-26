@@ -76,8 +76,7 @@ public:
   int  recv_dtch0_sdu(uint8_t *sdu_payload, uint32_t buffer_len_nbytes); // SRB0
   int  recv_dcch0_sdu(uint8_t *sdu_payload, uint32_t buffer_len_nbytes); // DRB0
 
-  void set_dcch0_priority(uint32_t priority, int PBR_x_tti, uint32_t BSD);
-  void set_dtch0_priority(uint32_t priority, int PBR_x_tti, uint32_t BSD);
+  void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
   
   void set_param(mac_params::mac_param_t param, int64_t value); 
   
@@ -90,6 +89,8 @@ public:
     HARQ_RTT = 0, 
     TIME_ALIGNMENT,
     CONTENTION_TIMER,
+    BSR_TIMER_PERIODIC,
+    BSR_TIMER_RETX,
     NOF_MAC_TIMERS
   } mac_timers_t; 
   

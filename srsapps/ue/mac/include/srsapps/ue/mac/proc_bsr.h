@@ -29,8 +29,11 @@
 
 #include <stdint.h>
 
+#include "srsapps/common/log.h"
 #include "srsapps/ue/mac/proc.h"
-#include "srsapps/ue/mac/mux.h"
+#include "srsapps/ue/mac/mac_params.h"
+#include "srsapps/ue/mac/mac_io.h"
+#include "srsapps/common/timers.h" 
 
 #ifndef PROCBSR_H
 #define PROCBSR_H
@@ -40,21 +43,53 @@
 namespace srslte {
 namespace ue {
 
-class bsr_proc : public proc
+class bsr_proc : public proc, timer_callback
 {
 public:
   bsr_proc();
-  void init(log *log_h, mac_params *params_db, mux *mux_unit_);
+  void init(log *log_h, timers *timers_db, mac_params *params_db, mac_io *mac_io_h);
   void step(uint32_t tti);  
   void reset();
-  void start();
+  void setup_lcg(uint32_t lcid, uint32_t new_lcg);
+  void set_priority(uint32_t lcid, uint32_t priority); 
+  void timer_expired(uint32_t timer_id);
+  
+  typedef enum {
+    LONG_BSR, 
+    SHORT_BSR, 
+    TRUNC_BSR    
+  } bsr_format_t;
+  
+  typedef struct {
+    bsr_format_t format; 
+    uint32_t buff_size[4];
+  } bsr_t; 
+
+  bool need_to_send_bsr_on_ul_grant(uint32_t nof_grant_bytes, uint32_t nof_padding_bytes, bsr_t *bsr);
+  bool need_to_send_sr(); 
+  
 private:
+  
   bool       is_pending_sr;
   mac_params *params_db; 
-  mux        *mux_unit; 
+  mac_io     *mac_io_h;
+  timers     *timers_db; 
   log        *log_h; 
   bool       initiated;
-
+  const static int MAX_LCID = 20; 
+  uint32_t   lcg[MAX_LCID];
+  uint32_t   priorities[MAX_LCID]; 
+  uint32_t   find_max_priority_lcid(); 
+  enum {NONE, REGULAR, PADDING, PERIODIC} triggered_bsr_type; 
+  bool timer_periodic;
+  bool timer_retx;
+  
+  bsr_t pending_bsr; 
+  bool sr_is_sent;
+  bool check_all_channels(); 
+  bool check_highest_channel(); 
+  void get_pending_bsr_format(uint32_t nof_padding_bytes); 
+  
 };
 }
 }

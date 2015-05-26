@@ -52,6 +52,13 @@ SRSLTE_API void srslte_bit_unpack_vector(uint8_t *bits_packed,
 SRSLTE_API uint32_t srslte_bit_unpack(uint8_t **bits, 
                                       int nof_bits);
 
+SRSLTE_API uint64_t srslte_bit_unpack_l(uint8_t **bits, 
+                                        int nof_bits);
+
+SRSLTE_API void srslte_bit_pack_l(uint64_t value, 
+                                  uint8_t **bits, 
+                                  int nof_bits);
+
 SRSLTE_API void srslte_bit_pack(uint32_t value, 
                                 uint8_t **bits, 
                                 int nof_bits);

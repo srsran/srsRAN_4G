@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
         mse /= num_re;
         printf("MSE: %f\n", mse);
 
-        if (mse > 1.7) {
+        if (mse > 2.0) {
           goto do_exit;
         }
         

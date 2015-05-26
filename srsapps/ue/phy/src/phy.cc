@@ -41,6 +41,14 @@
 namespace srslte {
 namespace ue {
 
+phy::phy()
+{
+  started = false; 
+  is_sfn_synched = false; 
+  cell_is_set = false; 
+  phy_state = IDLE; 
+}
+
 bool phy::init(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, log *log_h) {
   return init_(radio_handler_, ttisync_, log_h, false);
 }

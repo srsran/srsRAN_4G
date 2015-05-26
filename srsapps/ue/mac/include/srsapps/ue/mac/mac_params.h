@@ -83,6 +83,9 @@ namespace ue {
       SR_PUCCH_CONFIGURED,
       SR_TRANS_MAX,
       
+      BSR_TIMER_PERIODIC,
+      BSR_TIMER_RETX,
+      
       HARQ_MAXTX,
       HARQ_MAXMSG3TX,
       

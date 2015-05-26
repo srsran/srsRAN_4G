@@ -52,10 +52,11 @@ mux::mux() : pdu_msg(20)
   }  
 }
 
-void mux::init(log *log_h_, mac_io *mac_io_h_)
+void mux::init(log *log_h_, mac_io *mac_io_h_, bsr_proc *bsr_procedure_)
 {
   log_h      = log_h_;
   mac_io_h   = mac_io_h_;
+  bsr_procedure = bsr_procedure_;
 }
 
 void mux::reset()
@@ -63,6 +64,11 @@ void mux::reset()
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
     Bj[i] = 0; 
   }
+}
+
+bool mux::is_pending_ccch_sdu()
+{
+  return is_pending_sdu(0);
 }
 
 bool mux::is_pending_any_sdu()
@@ -75,9 +81,11 @@ bool mux::is_pending_any_sdu()
   return false; 
 }
 
-bool mux::is_pending_ccch_sdu()
-{
-  return !mac_io_h->get(mac_io::MAC_LCH_CCCH_UL)->isempty();
+bool mux::is_pending_sdu(uint32_t lch_id) {
+  lch_id += (uint32_t) mac_io::MAC_LCH_CCCH_UL;
+  if (lch_id < mac_io::MAC_NOF_QUEUES) {
+    return !mac_io_h->get(lch_id)->isempty();
+  }
 }
 
 void mux::set_priority(uint32_t lch_id, uint32_t set_priority, int set_PBR, uint32_t set_BSD)
@@ -159,6 +167,18 @@ void mux::append_crnti_ce_next_tx(uint16_t crnti) {
   pending_crnti_ce = crnti; 
 }
 
+sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
+  switch(format) {
+    case bsr_proc::LONG_BSR: 
+      return sch_subh::LONG_BSR;
+    case bsr_proc::SHORT_BSR: 
+      return sch_subh::SHORT_BSR;
+    case bsr_proc::TRUNC_BSR: 
+      return sch_subh::TRUNC_BSR;
+    
+  }
+}
+
 bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
 
   uint8_t *buff = (uint8_t*) pdu_buff.request();
@@ -203,8 +223,15 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   }
   pending_crnti_ce = 0; 
   
+  bsr_proc::bsr_t bsr; 
+  bool send_bsr_normal = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_sz_nbits/8, 0, &bsr);
+  
   // MAC control element for BSR, with exception of BSR included for padding;
-     // TODO
+  if (send_bsr_normal) {
+    pdu_msg.next();
+    pdu_msg.get()->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format));
+  }
+  
   // MAC control element for PHR
      // TODO
      
@@ -226,8 +253,12 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   }
   
   // MAC control element for BSR included for padding.
-     // TODO
-
+  bool send_bsr_padding = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_sz_nbits/8, pdu_msg.rem_size(), &bsr);
+  if (send_bsr_padding) {
+    pdu_msg.next();
+    pdu_msg.get()->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format));    
+  }
+  
   pthread_mutex_unlock(&mutex);
 
   /* Release all SDUs */
@@ -249,12 +280,10 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   return true; 
 }
 
-
 bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg) 
 {
   return allocate_sdu(lcid, pdu_msg, NULL);
 }
-
 bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz) 
 {
   
@@ -263,6 +292,9 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz)
   uint8_t *buff_ptr = (uint8_t*) mac_io_h->get(mac_io::MAC_LCH_CCCH_UL + lcid)->pop(&buff_len, nof_tx_pkts[lcid]);  
 
   if (buff_ptr) { // there is pending SDU to allocate
+    if (sdu_sz) {
+      *sdu_sz = buff_len; 
+    }
     if (pdu_msg->new_subh()) { // there is space for a new subheader
       pdu_msg->next();
       if (pdu_msg->get()->set_sdu(lcid, buff_ptr, buff_len/8)) { // new SDU could be added

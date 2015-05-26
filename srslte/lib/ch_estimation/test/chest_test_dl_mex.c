@@ -72,11 +72,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double *outr1=NULL, *outi1=NULL;
   double *outr2=NULL, *outi2=NULL;
   
-  if (nrhs < NOF_INPUTS) {
-    help();
-    return;
-  }
-
   if (!mxIsDouble(CELLID) && mxGetN(CELLID) != 1 && 
       !mxIsDouble(PORTS) && mxGetN(PORTS) != 1 && 
       mxGetM(CELLID) != 1) {
@@ -117,34 +112,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
     sf_idx = (uint32_t) *((double*) mxGetPr(SFIDX));
-  } else {
-    if (nrhs != NOF_INPUTS) {
-      help();
-      return;
-    }
-  }
+  } 
+  
+  if (nrhs > 5) {
+    uint32_t filter_len = 0;
+    float *filter; 
+    double *f; 
     
-  uint32_t filter_len = 0;
-  float *filter; 
-  double *f; 
-  
-  filter_len = mxGetNumberOfElements(FREQ_FILTER);
-  filter = malloc(sizeof(float) * filter_len);
-  f = (double*) mxGetPr(FREQ_FILTER);
-  for (i=0;i<filter_len;i++) {
-    filter[i] = (float) f[i];
-  }
+    filter_len = mxGetNumberOfElements(FREQ_FILTER);
+    filter = malloc(sizeof(float) * filter_len);
+    f = (double*) mxGetPr(FREQ_FILTER);
+    for (i=0;i<filter_len;i++) {
+      filter[i] = (float) f[i];
+    }
 
-  srslte_chest_dl_set_filter_freq(&chest, filter, filter_len);
+    srslte_chest_dl_set_filter_freq(&chest, filter, filter_len);
 
-  filter_len = mxGetNumberOfElements(TIME_FILTER);
-  filter = malloc(sizeof(float) * filter_len);
-  f = (double*) mxGetPr(TIME_FILTER);
-  for (i=0;i<filter_len;i++) {
-    filter[i] = (float) f[i];
-  }
-  srslte_chest_dl_set_filter_time(&chest, filter, filter_len);
-  
+    filter_len = mxGetNumberOfElements(TIME_FILTER);
+    filter = malloc(sizeof(float) * filter_len);
+    f = (double*) mxGetPr(TIME_FILTER);
+    for (i=0;i<filter_len;i++) {
+      filter[i] = (float) f[i];
+    }
+    srslte_chest_dl_set_filter_time(&chest, filter, filter_len);
+  }  
 
 
   double *inr=(double *)mxGetPr(INPUT);

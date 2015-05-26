@@ -63,12 +63,8 @@ typedef _Complex float cf_t;
 class phy
 {
 public:
-  phy() {
-    started = false; 
-    is_sfn_synched = false; 
-    cell_is_set = false; 
-    phy_state = IDLE; 
-  }
+  phy();
+  void set();
   bool init(radio *radio_handler, tti_sync *ttisync, log *log_h);
   bool init_agc(radio *radio_handler, tti_sync *ttisync, log *log_h);
   void stop();
@@ -134,7 +130,7 @@ private:
   srslte_cell_t cell; 
   bool          cell_is_set;
   bool          is_sfn_synched; 
-  bool          started; 
+  volatile bool          started; 
   
   srslte_ue_sync_t  ue_sync; 
   srslte_ue_mib_t   ue_mib;

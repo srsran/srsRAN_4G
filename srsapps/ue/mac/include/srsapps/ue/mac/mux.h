@@ -32,6 +32,7 @@
 #include "srsapps/ue/mac/mac_io.h"
 #include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/ue/mac/pdu.h"
+#include "srsapps/ue/mac/proc_bsr.h"
 
 #ifndef MUX_H
 #define MUX_H
@@ -46,10 +47,11 @@ class mux
 public:
   mux();
   void     reset();
-  void     init(log *log_h, mac_io *mac_io_h);
+  void     init(log *log_h, mac_io *mac_io_h, bsr_proc *bsr_procedure);
 
   bool     is_pending_ccch_sdu();
   bool     is_pending_any_sdu();
+  bool     is_pending_sdu(uint32_t lcid); 
   
   uint8_t* pdu_pop(uint32_t pdu_sz);
   bool     pdu_move_to_msg3(uint32_t pdu_sz);
@@ -60,14 +62,14 @@ public:
   void     msg3_transmitted(); 
   bool     msg3_is_transmitted();
   
-  void append_crnti_ce_next_tx(uint16_t crnti); 
+  void     append_crnti_ce_next_tx(uint16_t crnti); 
   
-  void set_priority(uint32_t lch_id, uint32_t priority, int PBR_x_tti, uint32_t BSD);
-    
+  void     set_priority(uint32_t lcid, uint32_t priority, int PBR_x_tti, uint32_t BSD);
+      
 private:  
   bool          assemble_pdu(uint32_t pdu_sz); 
-  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu, uint32_t *sdu_sz);
   bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu);
+  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu, uint32_t *sdu_sz);
   
   int64_t       Bj[mac_io::NOF_UL_LCH];
   int           PBR[mac_io::NOF_UL_LCH]; // -1 sets to infinity
@@ -82,6 +84,7 @@ private:
 
   log        *log_h;
   mac_io     *mac_io_h; 
+  bsr_proc   *bsr_procedure;
   uint16_t    pending_crnti_ce;
   
   /* Msg3 Buffer */
@@ -93,7 +96,7 @@ private:
   qbuff                 pdu_buff; 
   sch_pdu               pdu_msg; 
   bool msg3_has_been_transmitted;
-
+  
 };
 }
 }

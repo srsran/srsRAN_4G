@@ -50,8 +50,8 @@
 #include "srslte/ch_estimation/refsignal_dl.h"
 #include "srslte/common/phy_common.h"
 
-#define SRSLTE_CHEST_MAX_FILTER_FREQ_LEN    10
-#define SRSLTE_CHEST_MAX_FILTER_TIME_LEN    4
+#define SRSLTE_CHEST_MAX_FILTER_FREQ_LEN    21
+#define SRSLTE_CHEST_MAX_FILTER_TIME_LEN    40
 
 typedef struct {
   srslte_cell_t cell; 
