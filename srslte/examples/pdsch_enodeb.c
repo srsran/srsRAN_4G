@@ -36,6 +36,10 @@
 
 #include "srslte/srslte.h"
 
+
+#define UE_CRNTI 0x1234
+
+
 #ifndef DISABLE_UHD
 #include "srslte/cuhd/cuhd.h"
 void *uhd;
@@ -80,7 +84,6 @@ srslte_pdsch_cfg_t pdsch_cfg;
 srslte_softbuffer_tx_t softbuffer; 
 srslte_regs_t regs;
 srslte_ra_dl_dci_t ra_dl;  
-
 
 cf_t *sf_buffer = NULL, *output_buffer = NULL;
 int sf_n_re, sf_n_samples;
@@ -254,7 +257,7 @@ void base_init() {
     exit(-1);
   }
   
-  srslte_pdsch_set_rnti(&pdsch, 4660);
+  srslte_pdsch_set_rnti(&pdsch, UE_CRNTI);
   
   if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
     fprintf(stderr, "Error initiating soft buffer\n");
@@ -512,7 +515,7 @@ int main(int argc, char **argv) {
   
   /* Initiate valid DCI locations */
   for (i=0;i<SRSLTE_NSUBFRAMES_X_FRAME;i++) {
-    srslte_pdcch_ue_locations(&pdcch, locations[i], 30, i, cfi, 1234);
+    srslte_pdcch_ue_locations(&pdcch, locations[i], 30, i, cfi, UE_CRNTI);
     
   }
     
@@ -571,7 +574,7 @@ int main(int argc, char **argv) {
               
         srslte_dci_msg_pack_pdsch(&ra_dl, &dci_msg, SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
         INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
-        if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], 1234, sf_symbols, sf_idx, cfi)) {
+        if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], UE_CRNTI, sf_symbols, sf_idx, cfi)) {
           fprintf(stderr, "Error encoding DCI message\n");
           exit(-1);
         }
