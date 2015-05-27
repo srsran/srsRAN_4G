@@ -77,8 +77,8 @@ private:
   log        *log_h; 
   bool       initiated;
   const static int MAX_LCID = 20; 
-  uint32_t   lcg[MAX_LCID];
-  uint32_t   priorities[MAX_LCID]; 
+  int        lcg[MAX_LCID];
+  int        priorities[MAX_LCID]; 
   uint32_t   find_max_priority_lcid(); 
   enum {NONE, REGULAR, PADDING, PERIODIC} triggered_bsr_type; 
   bool timer_periodic;
@@ -88,6 +88,7 @@ private:
   bool sr_is_sent;
   bool check_all_channels(); 
   bool check_highest_channel(); 
+  bool check_single_channel(); 
   void get_pending_bsr_format(uint32_t nof_padding_bytes); 
   
 };

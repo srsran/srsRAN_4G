@@ -63,6 +63,10 @@ namespace srslte {
       void set_tx_srate(float srate);
       void set_rx_srate(float srate);
 
+      float get_tx_gain();
+      float get_rx_gain();
+
+      
       void start_rx();
       void stop_rx();
       

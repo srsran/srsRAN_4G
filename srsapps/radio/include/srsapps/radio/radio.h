@@ -58,22 +58,9 @@ namespace srslte {
       virtual void start_rx() = 0;
       virtual void stop_rx() = 0;
 
-      float get_tx_gain() { return cur_tx_gain; }
-      float get_rx_gain() { return cur_rx_gain; }
-
-      float get_tx_freq() { return cur_tx_freq; }
-      float get_rx_freq() { return cur_rx_freq; }
+      virtual float get_tx_gain() = 0; 
+      virtual float get_rx_gain() = 0;
       
-      float get_tx_srate() { return cur_tx_srate; }
-      float get_rx_srate() { return cur_rx_srate; }
-      
-    protected: 
-      float cur_tx_gain; 
-      float cur_rx_gain; 
-      float cur_tx_freq; 
-      float cur_rx_freq; 
-      float cur_tx_srate; 
-      float cur_rx_srate; 
   }; 
 }
 

@@ -122,7 +122,6 @@ void dl_harq_entity::dl_harq_process::reset() {
 void dl_harq_entity::dl_harq_process::send_pending_ack_contention_resolution()
 {
   if (pending_ul_buffer) {
-    Info("Generating Pending ACK=%d for UL TTI=%d\n", pending_ack, pending_ul_buffer->tti);
     pending_ul_buffer->generate_ack(pending_ack, &pending_ack_grant);                      
   }
 }
@@ -134,9 +133,7 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
   
   if (payload) {
     if (cur_grant.get_tbs() <= max_payload_len) {
-      Info("Decoding PDSCH data TBS=%d, RV=%d\n", cur_grant.get_tbs(), cur_grant.get_rv());
       if (dl_buffer->decode_data(&cur_grant, &softbuffer, payload)) {
-        Info("Decoded OK\n");
         // RX OK
         if (pid == HARQ_BCCH_PID) {
           Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.get_tbs()/8);
@@ -155,7 +152,6 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
           ack = true; 
         }            
       } else {
-        Warning("Decoded Error\n");
         // RX NOK
         ack = false; 
       }
@@ -181,21 +177,34 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
       fprintf(stderr, "Error with DL grant. TBS (%d) exceeds payload buffer length (%d)\n", cur_grant.get_tbs(), max_payload_len);
     }          
   }
+
+  Info("DL PID %d: TBS=%d, RV=%d, MCS=%d, crc=%s\n", pid, cur_grant.get_tbs(), cur_grant.get_rv(), cur_grant.get_mcs(), ack?"OK":"NOK");
+
 }
 // Implement 5.3.2.2 
 void dl_harq_entity::dl_harq_process::set_harq_info(srslte::ue::dl_sched_grant* new_grant)    {
   bool is_new_transmission = false; 
-  if (new_grant->get_ndi() && !cur_grant.get_ndi() || is_first_tx) {
+
+  if (new_grant->get_ndi() != cur_grant.get_ndi() || is_first_tx) {
     is_new_transmission = true; 
     is_first_decoded = true; 
-    is_first_tx = false; 
     Debug("Set HARQ Info for new transmission\n");
   } else {
     is_new_transmission = false; 
     Debug("Set HARQ Info for retransmission\n");
   }
+
+  if (is_first_tx) {
+    Info("DL PID %d: first TX RV=%d, NDI=%d\n", pid, new_grant->get_rv(), new_grant->get_ndi());    
+  } else {
+    Info("DL PID %d: %s RV=%d, NDI=%d, LastNDI=%d\n", pid, is_new_transmission?"new TX":"reTX", new_grant->get_rv(), new_grant->get_ndi(), cur_grant.get_ndi());   
+  }
+
+  if (is_first_tx) {
+    is_first_tx = false; 
+  }
+  
   if (is_new_transmission || cur_grant.get_tbs() != new_grant->get_tbs()) {
-    Debug("Reset softbuffer RX\n");
     srslte_softbuffer_rx_reset(&softbuffer);
   }
   if (new_grant->get_tbs() <= max_payload_len) {

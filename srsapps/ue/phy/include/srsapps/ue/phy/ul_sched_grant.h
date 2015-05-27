@@ -67,6 +67,9 @@ namespace ue {
     uint32_t get_tbs() {
       return grant.mcs.tbs; 
     }
+    uint32_t get_mcs() {
+      return ul_dci.mcs_idx; 
+    }
     uint32_t get_current_tx_nb() {
       return current_tx_nb; 
     }

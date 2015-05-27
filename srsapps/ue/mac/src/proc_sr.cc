@@ -56,6 +56,7 @@ void sr_proc::step(uint32_t tti)
     if (is_pending_sr) {    
       if (sr_counter < dsr_transmax) {
         sr_counter++;
+        Info("SR stepping: sr_counter=%d\n", sr_counter);
         phy_h->send_sr(true);
       } else {
         reset();
@@ -66,8 +67,10 @@ void sr_proc::step(uint32_t tti)
 
 bool sr_proc::need_random_access() {
   if (initiated) {
-    if (sr_counter == dsr_transmax && dsr_transmax > 0 || 
-        !params_db->get_param(mac_params::SR_PUCCH_CONFIGURED)) {
+    if (sr_counter == dsr_transmax && dsr_transmax > 0 && 
+        params_db->get_param(mac_params::SR_PUCCH_CONFIGURED)) {
+      
+      Info("SR checking need RA: sr_counter=%d, dsr_transmax=%d, configured=%d\n", sr_counter, dsr_transmax, params_db->get_param(mac_params::SR_PUCCH_CONFIGURED));
       return true;
     } else {
       return false; 
@@ -82,6 +85,7 @@ void sr_proc::start()
       if (!is_pending_sr) {
         sr_counter = 0;
         dsr_transmax = params_db->get_param(mac_params::SR_TRANS_MAX);
+        Info("SR starting dsrTransMax=%d. Setting sr_counter=0\n", dsr_transmax);
       }    
     }
   }

@@ -112,7 +112,7 @@ private:
   int           tti; 
   bool          started = false; 
   bool          is_synchronized; 
-  bool          is_first_temporal;
+  uint16_t      last_temporal_crnti;
   
   /* Multiplexing/Demultiplexing Units */
   mux           mux_unit; 

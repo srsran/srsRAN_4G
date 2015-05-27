@@ -85,6 +85,11 @@ void sch_pdu::parse_packet(uint8_t *ptr)
 bool sch_pdu::write_packet(uint8_t* ptr)
 {
   uint8_t *init_ptr = ptr; 
+  bool last_is_padding = false; 
+  // Add multi-byte padding if necessary 
+  if (rem_len > 2) {
+    last_is_padding = true; 
+  }
   // Add single or two-byte padding if required
   if (rem_len == 1 || rem_len == 2) {
     sch_subh padding; 
@@ -93,17 +98,22 @@ bool sch_pdu::write_packet(uint8_t* ptr)
       padding.write_subheader(&ptr, false);  
     }
     rem_len = 0;
+  } 
+  int last_sh;
+  if (!last_is_padding) {
+    // Find last SDU or CE 
+    int last_sdu = nof_subheaders-1; 
+    while(!subheaders[last_sdu].is_sdu() && last_sdu >= 0) {
+      last_sdu--;
+    }
+    int last_ce = nof_subheaders-1; 
+    while(subheaders[last_ce].is_sdu() && last_ce >= 0) {
+      last_ce--;
+    }
+    last_sh = subheaders[last_sdu].is_sdu()?last_sdu:last_ce;  
+  } else {
+    last_sh = -1;
   }
-  // Find last SDU or CE 
-  int last_sdu = nof_subheaders-1; 
-  while(!subheaders[last_sdu].is_sdu() && last_sdu >= 0) {
-    last_sdu--;
-  }
-  int last_ce = nof_subheaders-1; 
-  while(subheaders[last_ce].is_sdu() && last_ce >= 0) {
-    last_ce--;
-  }
-  int last_sh = subheaders[last_sdu].is_sdu()?last_sdu:last_ce;  
   // Write subheaders for MAC CE first
   for (int i=0;i<nof_subheaders;i++) {
     if (!subheaders[i].is_sdu()) {
@@ -115,6 +125,11 @@ bool sch_pdu::write_packet(uint8_t* ptr)
     if (subheaders[i].is_sdu()) {
       subheaders[i].write_subheader(&ptr, i==last_sh);
     }
+  }
+  if (last_is_padding) {
+    sch_subh padding; 
+    padding.set_padding(rem_len); 
+    padding.write_subheader(&ptr, true);
   }
   // Write payloads in the same order
   for (int i=0;i<nof_subheaders;i++) {
@@ -279,10 +294,16 @@ uint8_t* sch_subh::get_sdu_ptr()
 {
   return sdu_payload_ptr;
 }
-void sch_subh::set_padding()
+void sch_subh::set_padding(uint32_t padding_len)
 {
   lcid = PADDING;
+  nof_bytes = padding_len; 
 }
+void sch_subh::set_padding()
+{
+  set_padding(0);
+}
+
 
 bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
 {
@@ -416,7 +437,7 @@ bool sch_subh::read_subheader(uint8_t** ptr)
   if (is_sdu()) {
     if (e_bit) {
       F_bit      = srslte_bit_unpack(ptr, 1)?true:false;
-      nof_bytes  = srslte_bit_unpack(ptr, F_bit?7:15); 
+      nof_bytes  = srslte_bit_unpack(ptr, F_bit?15:7); 
     } else {
       nof_bytes = 0; 
       F_bit = 0; 

@@ -161,6 +161,8 @@ private:
   int          sync_sfn();
   void         run_rx_tx_state();
   ul_buffer*   get_ul_buffer_adv(uint32_t tti);
+  float        old_gain; 
+
 };
 
 } 

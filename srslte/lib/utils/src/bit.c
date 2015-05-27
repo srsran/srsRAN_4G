@@ -81,7 +81,7 @@ uint32_t srslte_bit_unpack(uint8_t **bits, int nof_bits)
     uint32_t value=0;
 
     for(i=0; i<nof_bits; i++) {
-      value |= (*bits)[i] << (nof_bits-i-1);
+      value |= (uint32_t) (*bits)[i] << (nof_bits-i-1);
     }
     *bits += nof_bits;
     return value;
@@ -93,7 +93,7 @@ uint64_t srslte_bit_unpack_l(uint8_t **bits, int nof_bits)
     uint64_t value=0;
 
     for(i=0; i<nof_bits; i++) {
-      value |= (*bits)[i] << (nof_bits-i-1);
+      value |= (uint64_t) (*bits)[i] << (nof_bits-i-1);
     }
     *bits += nof_bits;
     return value;

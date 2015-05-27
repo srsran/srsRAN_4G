@@ -69,10 +69,11 @@ void dl_buffer::free_cell()
 bool dl_buffer::recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time)
 {
   bool ret = false; 
+  cf_t *sf_buffer = NULL;
+  sf_symbols_and_ce_done = false; 
+  pdcch_llr_extracted = false; 
   if (signal_buffer) {
-    cf_t *sf_buffer = NULL;
-    sf_symbols_and_ce_done = false; 
-    pdcch_llr_extracted = false; 
+    bzero(signal_buffer, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ue_sync_get_buffer(ue_sync, &sf_buffer) == 1) {
       memcpy(signal_buffer, sf_buffer, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
       ready();
@@ -202,6 +203,7 @@ bool dl_buffer::decode_data(dl_sched_grant *grant, srslte_softbuffer_rx_t *softb
     
     grant->get_pdsch_cfg(tti%10, &ue_dl.pdsch_cfg);
     if (ue_dl.pdsch_cfg.grant.mcs.mod > 0 && ue_dl.pdsch_cfg.grant.mcs.tbs >= 0) {
+      
       int ret = srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols, 
                                          ue_dl.ce, 0, grant->get_rnti(), payload);
 

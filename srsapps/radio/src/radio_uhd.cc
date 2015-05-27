@@ -96,38 +96,47 @@ bool radio_uhd::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_tim
 
 void radio_uhd::set_rx_freq(float freq)
 {
- cur_rx_freq = cuhd_set_rx_freq(uhd, freq);
+  cuhd_set_rx_freq(uhd, freq);
 }
 
 void radio_uhd::set_rx_gain(float gain)
 {
- cur_rx_gain = cuhd_set_rx_gain(uhd, gain);
+  cuhd_set_rx_gain(uhd, gain);
 }
 
 double radio_uhd::set_rx_gain_th(float gain)
 {
- cur_rx_gain = cuhd_set_rx_gain_th(uhd, gain);
- return cur_rx_gain;
+  return cuhd_set_rx_gain_th(uhd, gain);
 }
 
 void radio_uhd::set_rx_srate(float srate)
 {
- cur_rx_srate = cuhd_set_rx_srate(uhd, srate);
+  cuhd_set_rx_srate(uhd, srate);
 }
 
 void radio_uhd::set_tx_freq(float freq)
 {
- cur_tx_freq = cuhd_set_tx_freq(uhd, freq);
+  cuhd_set_tx_freq(uhd, freq);
 }
 
 void radio_uhd::set_tx_gain(float gain)
 {
- cur_tx_gain = cuhd_set_tx_gain(uhd, gain);
+  cuhd_set_tx_gain(uhd, gain);
+}
+
+float radio_uhd::get_tx_gain()
+{
+  return cuhd_get_tx_gain(uhd);
+}
+
+float radio_uhd::get_rx_gain()
+{
+  return cuhd_get_rx_gain(uhd);
 }
 
 void radio_uhd::set_tx_srate(float srate)
 {
- cur_tx_srate = cuhd_set_tx_srate(uhd, srate);
+  cuhd_set_tx_srate(uhd, srate);
 }
 
 void radio_uhd::start_rx()

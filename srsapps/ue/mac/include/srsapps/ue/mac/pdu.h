@@ -202,6 +202,7 @@ public:
   bool     set_ta_cmd(uint8_t ta_cmd);
   bool     set_phd(uint8_t phd);
   void     set_padding();
+  void     set_padding(uint32_t padding_len);
 
   void     init();
   void     fprint(FILE *stream);

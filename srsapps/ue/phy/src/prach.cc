@@ -151,10 +151,19 @@ bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
   // Correct CFO before transmission
   srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo /srslte_symbol_sz(cell.nof_prb));            
 
+  // Compute peak
+  float max = 0; 
+  float *t = (float*) signal_buffer;
+  for (int i=0;i<2*len;i++) {
+    if (fabsf(t[i]) > max) {
+      max = fabsf(t[i]);
+    }
+  }
+  
   // transmit
   radio_handler->tx(signal_buffer, len, tx_time);                
-  Info("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f\n", 
-       cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs);
+  Info("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f, PeakAmplitude=%.2f\n", 
+       cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs, max);
   preamble_idx = -1; 
 }
   

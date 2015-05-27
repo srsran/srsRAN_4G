@@ -44,7 +44,7 @@
 #define   PHI_4         2     // PRACH phi parameter for format 4
 #define   MAX_ROOTS     838   // Max number of root sequences
 
-#define PRACH_AMP       0.4
+#define PRACH_AMP       1.0
 
 /******************************************************
  * Reference tables from 3GPP TS 36.211 v10.7.0

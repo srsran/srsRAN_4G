@@ -39,14 +39,15 @@ bsr_proc::bsr_proc()
   timer_periodic = false; 
   timer_retx = false; 
   for (int i=0;i<MAX_LCID;i++)  {
-    lcg[i]        = 0; 
-    priorities[i] = 0; 
+    lcg[i]        = -1; 
+    priorities[i] = -1; 
   }        
+  triggered_bsr_type=NONE; 
 }
 
 void bsr_proc::init(log* log_h_, timers *timers_db_, mac_params* params_db_, mac_io *mac_io_h_)
 {
-  log_h     = log_h; 
+  log_h     = log_h_; 
   params_db = params_db_;
   mac_io_h  = mac_io_h_;
   timers_db = timers_db_; 
@@ -66,12 +67,14 @@ void bsr_proc::timer_expired(uint32_t timer_id) {
         // Check condition 4 in Sec 5.4.5 
         if (check_all_channels()) {
           triggered_bsr_type = PERIODIC; 
+          Info("BSR set to PERIODIC\n");
         }
       }
       break;
     case mac::BSR_TIMER_RETX:
       // Check condition 3 in Sec 5.4.5 
       if (check_all_channels()) {
+        Info("BSR set to REGULAR RETX\n");
         triggered_bsr_type = REGULAR; 
         sr_is_sent = false; // Enable reTx of SR 
       }
@@ -79,54 +82,69 @@ void bsr_proc::timer_expired(uint32_t timer_id) {
   }
 }
 
-/* Checks condition 1 for Regular BSR reporting */
+// Checks if data is available for a a channel with higher priority than others 
 bool bsr_proc::check_highest_channel() {
-  uint32_t lcg_with_data = 0;
   uint32_t pending_data = 0; 
-  uint32_t min_priority_group[4]={99, 99, 99, 99};
-  bool trigger_bsr = true; 
+  uint32_t pending_data_lcid = 0; 
   
-  // Check if data arrived for a LCG
-  for (uint32_t group=0;group<4;group++) {
-    for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
-      if (lcg[group] == i) {
-        if (priorities[i] < min_priority_group[group]) {
-          min_priority_group[group] = priorities[i];
-        }
-        pending_data = mac_io_h->get(i)->pending_data();
-        if (pending_data > 0) {
-          lcg_with_data = group; 
-        }
-      }
-    }
-  }
-  
-  if (pending_data) {
-    // If no data is available belonging to any of the logical channels belonging to any other LCG 
-    for (uint32_t group=0;group<4 && trigger_bsr;group++) {
-      if (group != lcg_with_data) {
-        for (int i=0;i<mac_io::NOF_UL_LCH && trigger_bsr;i++) {
-          if (lcg[group] == i) {
-            if (mac_io_h->get(i)->pending_data() && priorities[i] > min_priority_group[group]) {
-              trigger_bsr=false;
+  for (int i=0;i<mac_io::NOF_UL_LCH && !pending_data;i++) {
+    if (lcg[i] >= 0) {
+      pending_data = mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8;
+      if (pending_data > 0) {
+        pending_data_lcid = i; 
+        for (int j=0;j<mac_io::NOF_UL_LCH;j++) {
+          if (!mac_io_h->get(j+mac_io::MAC_LCH_CCCH_UL)->isempty()) {
+            if (priorities[j] > priorities[i]) {
+              pending_data = 0; 
             }
           }
         }
+      }      
+    }
+  }
+  if (pending_data) {
+    pending_bsr.buff_size[lcg[pending_data_lcid]] = pending_data; 
+    triggered_bsr_type = REGULAR; 
+    Info("Triggered REGULAR BSR for Max Priority LCID=%d\n", pending_data_lcid);
+    return true; 
+  } else {
+    return false; 
+  }
+}
+    
+// Checks if only one logical channel has data avaiable for Tx
+bool bsr_proc::check_single_channel() {    
+  uint32_t pending_data_lcid = 0; 
+  uint32_t nof_nonzero_lcid = 0; 
+  
+  for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
+    if (lcg[i] >= 0) {
+      if (!mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->isempty()) {
+        pending_data_lcid = i;
+        nof_nonzero_lcid++; 
       }
     }
   }
-  
-  return trigger_bsr;
+  if (nof_nonzero_lcid == 1) {
+    pending_bsr.buff_size[lcg[pending_data_lcid]] = mac_io_h->get(pending_data_lcid+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8; 
+    triggered_bsr_type = REGULAR; 
+    Info("Triggered REGULAR BSR for single LCID=%d\n", pending_data_lcid);
+    return true; 
+  } else {
+    return false; 
+  }
 }
 
 bool bsr_proc::check_all_channels() {
   bool ret = false; 
   bzero(&pending_bsr, sizeof(bsr_t));    
   for (int i=0;i<mac_io_h->NOF_UL_LCH;i++) {
-    uint32_t n = mac_io_h->get(i)->pending_data();
-    pending_bsr.buff_size[lcg[i]] += n;
-    if (n > 0) {
-      ret = true; 
+    if (lcg[i] >= 0) {
+      uint32_t n = mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8;
+      pending_bsr.buff_size[lcg[i]] += n;
+      if (n > 0) {
+        ret = true; 
+      }
     }
   }
   return ret; 
@@ -188,12 +206,12 @@ void bsr_proc::step(uint32_t tti)
     }
   }
 
-  // Check condition 1 in Sec 5.4.5 
+  // Check condition 1 in Sec 5.4.5   
   if (triggered_bsr_type == NONE) {
-    if (check_highest_channel()) {
-      triggered_bsr_type = REGULAR; 
-    }
+    check_single_channel();
   }
+  // Higher priority channel is reported regardless of a BSR being already triggered
+  check_highest_channel();
 }
 
 bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t nof_grant_bytes, uint32_t nof_padding_bytes, bsr_t *bsr) 
@@ -215,25 +233,26 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t nof_grant_bytes, uint32_t n
     for (int i=0;i<4;i++) {
       nof_pending_bytes += pending_bsr.buff_size[i]; 
     }
-    // Do not include BSR CE if the UL grant can accomodate all pending data but is not sufficient 
-    // to additionally accomodate the BSR MAC CE plus its header
-    uint32_t bsr_sz_plus_header = 1 + pending_bsr.format == LONG_BSR?3:1;
-    if (nof_pending_bytes + bsr_sz_plus_header == nof_grant_bytes) {
-      // if nof_pending_bytes + bsr_sz_plus_header > nof_grant_bytes, BSR has higher priority than data
-      return false; 
-    }
+    Info("Triggered BSR: nof_grant_bytes=%d, nof_padding_bytes=%d, nof_pending_bytes=%d\n", nof_grant_bytes, nof_padding_bytes, nof_pending_bytes);
 
     get_pending_bsr_format(nof_padding_bytes);    
-
-    // Instruct MUX unit to generate MAC CE 
-    ret = true; 
-    memcpy(bsr, &pending_bsr, sizeof(bsr_t));
-    if (timer_periodic && pending_bsr.format != TRUNC_BSR) {
-      timers_db->get(mac::BSR_TIMER_PERIODIC)->reset();
-      timers_db->get(mac::BSR_TIMER_PERIODIC)->run();
+    
+    // Do not include BSR CE if the UL grant can accomodate all pending data but is not sufficient 
+    // to additionally accomodate the BSR MAC CE plus its header
+    uint32_t bsr_sz_plus_header = pending_bsr.format == LONG_BSR?4:2;
+    if (nof_pending_bytes + bsr_sz_plus_header == nof_grant_bytes) {
+      triggered_bsr_type = NONE;       
+    } else {
+      // Instruct MUX unit to generate MAC CE 
+      ret = true; 
+      memcpy(bsr, &pending_bsr, sizeof(bsr_t));
+      if (timer_periodic && pending_bsr.format != TRUNC_BSR) {
+        timers_db->get(mac::BSR_TIMER_PERIODIC)->reset();
+        timers_db->get(mac::BSR_TIMER_PERIODIC)->run();
+      }
+      // Cancel all triggered BSR 
+      triggered_bsr_type = NONE;     
     }
-    // Cancel all triggered BSR 
-    triggered_bsr_type = NONE;     
   }
   
   // Restart or Start ReTX timer

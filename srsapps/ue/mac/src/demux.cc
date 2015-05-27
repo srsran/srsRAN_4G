@@ -92,6 +92,7 @@ void demux::push_pdu_temp_crnti(uint8_t *mac_pdu, uint32_t nof_bits)
     // Unpack DLSCH MAC PDU 
     pending_mac_msg.init(nof_bits/8);
     pending_mac_msg.parse_packet(mac_pdu);
+    pending_mac_msg.fprint(stdout);
     
     // Look for Contention Resolution UE ID 
     while(pending_mac_msg.next()) {
@@ -115,6 +116,7 @@ void demux::push_pdu(uint8_t *mac_pdu, uint32_t nof_bits)
   // Unpack DLSCH MAC PDU 
   mac_msg.init(nof_bits/8);
   mac_msg.parse_packet(mac_pdu);
+  mac_msg.fprint(stdout);
   process_pdu(&mac_msg);
   Debug("Normal MAC PDU processed\n");
 }
@@ -130,7 +132,6 @@ void demux::demultiplex_pending_pdu()
   if (pending_temp_rnti) {
     process_pdu(&pending_mac_msg);
     discard_pending_pdu();
-    Info("Temporal C-RNTI MAC PDU processed\n");
   } else {
     Error("Error demultiplex pending PDU: No pending PDU\n");
   }
@@ -140,7 +141,6 @@ void demux::demultiplex_pending_pdu()
 
 void demux::process_pdu(sch_pdu *pdu_msg)
 {  
-  Info("Processing PDU\n");
   while(pdu_msg->next()) {
     if (pdu_msg->get()->is_sdu()) {
       // Route logical channel 
@@ -148,7 +148,7 @@ void demux::process_pdu(sch_pdu *pdu_msg)
         qbuff *dest_lch = mac_io_h->get(pdu_msg->get()->get_sdu_lcid());
         if (dest_lch) {
           dest_lch->send(pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_sdu_nbytes()*8);
-          Info("Sent MAC SDU len=%d bytes to lchid=%d\n",  
+          Debug("Sent MAC SDU len=%d bytes to lchid=%d\n",  
                 pdu_msg->get()->get_sdu_nbytes(), pdu_msg->get()->get_sdu_lcid());
         } else {
           Error("Getting destination channel LCID=%d\n", pdu_msg->get()->get_sdu_lcid());

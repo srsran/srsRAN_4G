@@ -170,7 +170,6 @@ void ra_proc::process_timeadv_cmd(uint32_t ta) {
 
 void* init_prach_thread(void *arg) {
   phy* phy_h = (phy*) arg; 
-  printf("thread initiating prach\n");
   if (phy_h->init_prach()) {
     return (void*) 0;
   } else {
@@ -234,6 +233,7 @@ void ra_proc::step_resource_selection() {
     }
     sel_maskIndex = 0;           
   }
+  
   rInfo("Selected preambleIndex=%d maskIndex=%d nof_GroupApreambles=%d\n", sel_preamble, sel_maskIndex,nof_groupA_preambles);
   state = PREAMBLE_TRANSMISSION;
 }
@@ -353,7 +353,7 @@ void ra_proc::step_response_reception() {
 void ra_proc::step_response_error() {
   
   preambleTransmissionCounter++;
-  if (preambleTransmissionCounter == preambleTransMax + 1) {
+  if (preambleTransmissionCounter >= preambleTransMax + 1) {
     rError("Maximum number of transmissions reached (%d)\n", preambleTransMax);
     state = RA_PROBLEM;
   } else {
@@ -367,7 +367,7 @@ void ra_proc::step_response_error() {
       rInfo("Backoff wait interval %d\n", backoff_inteval);
       state = BACKOFF_WAIT; 
     } else {
-      rInfo("Transmitting inmediatly\n");
+      rInfo("Transmitting inmediatly (%d/%d)\n", preambleTransmissionCounter, preambleTransMax);
       state = RESOURCE_SELECTION;
     }
   }
@@ -481,6 +481,7 @@ void ra_proc::start_mac_order()
   if (state == IDLE || state == COMPLETION || state == RA_PROBLEM) {
     start_mode = MAC_ORDER;
     state = INITIALIZATION;    
+    Info("Starting PRACH by MAC order\n");
     run();
   }
 }
@@ -490,6 +491,7 @@ void ra_proc::start_pdcch_order()
   if (state == IDLE || state == COMPLETION || state == RA_PROBLEM) {
     start_mode = PDCCH_ORDER;
     state = INITIALIZATION;    
+    Info("Starting PRACH by PDCCH order\n");
     run();
   }
 }
@@ -499,6 +501,7 @@ void ra_proc::start_rlc_order()
   if (state == IDLE || state == COMPLETION || state == RA_PROBLEM) {
     start_mode = RLC_ORDER;
     state = INITIALIZATION;    
+    Info("Starting PRACH by RLC CCCH SDU order\n");
     run();
   }
 }

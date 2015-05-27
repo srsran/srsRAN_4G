@@ -237,6 +237,12 @@ double cuhd_get_rx_gain(void *h)
   return handler->usrp->get_rx_gain();
 }
 
+double cuhd_get_tx_gain(void *h)
+{
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  return handler->usrp->get_tx_gain();
+}
+
 double cuhd_set_rx_freq(void *h, double freq)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);

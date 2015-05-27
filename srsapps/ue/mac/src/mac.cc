@@ -46,6 +46,7 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
   log_h = log_h_; 
   tti = 0; 
   is_synchronized = false;   
+  last_temporal_crnti = 0; 
 
   bsr_procedure.init(log_h, &timers_db, &params_db, &mac_io_lch);
   mux_unit.init(log_h, &mac_io_lch, &bsr_procedure);
@@ -169,7 +170,6 @@ void mac::main_radio_loop() {
     }
     if (is_synchronized) {
       /* Warning: Here order of invocation of procedures is important!! */
-      bool ul_resources_available; 
       tti = ttisync->wait();
       log_h->step(tti);
       
@@ -177,7 +177,9 @@ void mac::main_radio_loop() {
       bsr_procedure.step(tti);
       
       // Check if BSR procedure need to start SR 
+      
       if (bsr_procedure.need_to_send_sr()) {
+        Info("Starting SR procedure by BSR request\n");
         sr_procedure.start();
       }
       sr_procedure.step(tti);
@@ -186,10 +188,8 @@ void mac::main_radio_loop() {
       if (sr_procedure.need_random_access()) {
         ra_procedure.start_mac_order();
       }
-
+      
       ra_procedure.step(tti);
-      
-      
       //phr_procedure.step(tti);
       
       // Receive PCH, if requested
@@ -202,7 +202,7 @@ void mac::main_radio_loop() {
       if (ra_procedure.is_contention_resolution() ||
           ra_procedure.is_successful() && mux_unit.is_pending_ccch_sdu()) 
       {
-        ul_resources_available = process_ul_grants(tti);
+        process_ul_grants(tti);
       }
             
       // Send pending HARQ ACK, if any, and contention resolution is resolved
@@ -318,14 +318,13 @@ void mac::process_dl_grants(uint32_t tti) {
         }
         if (i != mac_params::RNTI_SPS) {
           uint32_t harq_pid = ue_grant.get_harq_process(); 
-          if (i == mac_params::RNTI_TEMP) {
-            ue_grant.set_ndi(is_first_temporal);          
-            is_first_temporal = false; 
+          if (i == mac_params::RNTI_TEMP && last_temporal_crnti != params_db.get_param(i)) {
+            ue_grant.set_ndi(true);
+            last_temporal_crnti = params_db.get_param(i);
           }
           if (i == mac_params::RNTI_C && dl_harq.is_sps(harq_pid)) {
             ue_grant.set_ndi(true);
           }
-          Info("Processing DL grant TBS=%d, RNTI=%d, RV=%d\n", ue_grant.get_tbs(), ue_grant.get_rnti(), ue_grant.get_rv());
           dl_harq.set_harq_info(harq_pid, &ue_grant);
           dl_harq.receive_data(tti, harq_pid, dl_buffer, phy_h);
         } else {
@@ -415,7 +414,6 @@ bool mac::process_ul_grants(uint32_t tti) {
             if (i == mac_params::RNTI_C && ul_harq.is_sps(tti)) {
               ul_grant.set_ndi(true);
             }
-            Info("Found UL Grant TBS=%d RNTI=%d is_from_rar=%d\n", ul_grant.get_tbs(), params_db.get_param(i), ul_grant.is_from_rar());
             ul_harq.run_tti(tti, &ul_grant, phy_h); 
             return true;
           }

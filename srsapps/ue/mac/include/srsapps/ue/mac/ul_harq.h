@@ -78,6 +78,7 @@ private:
     void set_harq_feedback(bool ack);
     bool get_ndi();
     uint32_t last_tx_tti();
+    uint32_t pid;
    
   private: 
     uint32_t                    current_tx_nb;

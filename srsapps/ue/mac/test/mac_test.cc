@@ -124,10 +124,11 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
   mac->set_param(srslte::ue::mac_params::HARQ_MAXMSG3TX, 
                  sib2->rr_config_common_sib.rach_cnfg.max_harq_msg3_tx);
   
-  printf("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",  
+  printf("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms, MaxTrials=%d\n",  
          liblte_rrc_number_of_ra_preambles_num[sib2->rr_config_common_sib.rach_cnfg.num_ra_preambles], 
          liblte_rrc_ra_response_window_size_num[sib2->rr_config_common_sib.rach_cnfg.ra_resp_win_size], 
-         liblte_rrc_mac_contention_resolution_timer_num[sib2->rr_config_common_sib.rach_cnfg.mac_con_res_timer]);
+         liblte_rrc_mac_contention_resolution_timer_num[sib2->rr_config_common_sib.rach_cnfg.mac_con_res_timer], 
+         liblte_rrc_preamble_trans_max_num[sib2->rr_config_common_sib.rach_cnfg.preamble_trans_max]);
   
   // PDSCH ConfigCommon
   mac->set_param(srslte::ue::mac_params::PDSCH_RSPOWER, 
@@ -246,7 +247,7 @@ int main(int argc, char *argv[])
     phy.init(&radio_uhd, &ttisync, &phy_log);
   } else {
     radio_uhd.init_agc();
-    radio_uhd.set_tx_rx_gain_offset(-10);
+    radio_uhd.set_tx_rx_gain_offset(0);
     phy.init_agc(&radio_uhd, &ttisync, &phy_log);
   }  
   // Init MAC 
@@ -330,7 +331,7 @@ int main(int argc, char *argv[])
         }
         break;
       case CONNECT: 
-        // Waint for Connection Setup
+        // Wait for Connection Setup
         n = mac.recv_ccch_sdu(bit_msg.msg, LIBLTE_MAX_MSG_SIZE); 
         if (n > 0) {
           printf("ConnSetup received %d bytes\n", n/8);

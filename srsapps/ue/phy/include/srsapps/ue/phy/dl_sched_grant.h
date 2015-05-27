@@ -72,6 +72,9 @@ namespace ue {
     uint32_t get_ncce() {
       return ncce; 
     }
+    uint32_t get_mcs() {
+      return dl_dci.mcs_idx;
+    }
     bool     create_from_dci(srslte_dci_msg_t *msg, srslte_cell_t cell, uint32_t cfi, uint32_t sf_idx, uint32_t ncce_) {
       ncce = ncce_; 
       if (srslte_dci_msg_to_dl_grant(msg, rnti, cell, cfi, sf_idx, &dl_dci, &grant)) {

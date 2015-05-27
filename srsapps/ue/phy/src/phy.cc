@@ -143,6 +143,10 @@ bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe) {
 bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_power_dbm)
 {
   if (phy_state == RXTX) {
+    srslte_agc_lock(&ue_sync.agc, true);
+    old_gain = radio_handler->get_tx_gain();
+    radio_handler->set_tx_gain(0);
+    Info("Stopped AGC. Set TX gain to %.1f dB\n", 0);
     return prach_buffer.prepare_to_send(preamble_idx, allowed_subframe, target_power_dbm);
   } 
   return false; 
@@ -332,8 +336,8 @@ ul_buffer* phy::get_ul_buffer_adv(uint32_t tti)
 
 dl_buffer* phy::get_dl_buffer(uint32_t tti)
 {
-  if (tti + 6 < get_current_tti()) {
-    Warning("Warning access to PHY too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
+  if (tti + 4 < get_current_tti()) {
+    Debug("Warning access to PHY too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
   }
   return (dl_buffer*) dl_buffer_queue->get(tti);  
 }
@@ -497,6 +501,9 @@ void phy::run_rx_tx_state()
     // send prach if we have to 
     if (prach_buffer.is_ready_to_send(current_tti)) {
       prach_buffer.send(radio_handler, cfo, last_rx_time);
+      radio_handler->set_tx_gain(old_gain);
+      srslte_agc_lock(&ue_sync.agc, false);
+      Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);
     }
     if (sr_is_ready_to_send(current_tti+ul_buffer::tx_advance_sf)) {
       get_ul_buffer_adv(current_tti)->generate_sr();
