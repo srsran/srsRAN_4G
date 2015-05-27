@@ -59,6 +59,7 @@ ENDIF(UHD_FOUND)
 FIND_PACKAGE(SRSGUI)
 
 IF(SRSGUI_FOUND)
+  include_directories(${SRSGUI_INCLUDE_DIRS})
   target_link_libraries(pdsch_ue ${SRSGUI_LIBRARIES})
 ELSE(SRSGUI_FOUND)
   add_definitions(-DDISABLE_GRAPHICS)
