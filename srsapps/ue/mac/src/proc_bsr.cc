@@ -104,8 +104,10 @@ bool bsr_proc::check_highest_channel() {
   }
   if (pending_data) {
     pending_bsr.buff_size[lcg[pending_data_lcid]] = pending_data; 
+    if (triggered_bsr_type != REGULAR) {        
+      Info("Triggered REGULAR BSR for Max Priority LCID=%d\n", pending_data_lcid);
+    }
     triggered_bsr_type = REGULAR; 
-    Info("Triggered REGULAR BSR for Max Priority LCID=%d\n", pending_data_lcid);
     return true; 
   } else {
     return false; 

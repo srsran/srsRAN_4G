@@ -84,6 +84,7 @@ void sr_proc::start()
     if (params_db->get_param(mac_params::SR_PUCCH_CONFIGURED)) {
       if (!is_pending_sr) {
         sr_counter = 0;
+        is_pending_sr = true; 
         dsr_transmax = params_db->get_param(mac_params::SR_TRANS_MAX);
         Info("SR starting dsrTransMax=%d. Setting sr_counter=0\n", dsr_transmax);
       }    

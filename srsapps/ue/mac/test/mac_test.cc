@@ -201,7 +201,8 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
 void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac *mac, srslte::ue::phy *phy) {
   mac->set_param(srslte::ue::mac_params::HARQ_MAXTX, 
                  liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx]);
-    
+  printf("Set MAX HARQ reTX: %d\n", liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx]);
+  
   phy->set_param(srslte::ue::phy_params::SR_PUCCH_RESINDEX, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx);
   phy->set_param(srslte::ue::phy_params::SR_CONFIG_INDEX, 
@@ -210,12 +211,62 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
   mac->set_param(srslte::ue::mac_params::SR_TRANS_MAX, 
                  liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max]);
   mac->set_param(srslte::ue::mac_params::SR_PUCCH_CONFIGURED, 1);
+  
+  printf("Set SR configuration: TransMAX: %d, n_pucch=%d, configIndex=%d\n", 
+         liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max], 
+         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx,
+         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);
+  
+  mac->set_param(srslte::ue::mac_params::BSR_TIMER_RETX, 
+                 liblte_rrc_retransmission_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.retx_bsr_timer]);
+  mac->set_param(srslte::ue::mac_params::BSR_TIMER_PERIODIC, 
+                 liblte_rrc_periodic_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.periodic_bsr_timer]);
 
+  printf("Set MAC BSR configuration: ReTX timer: %d, Periodic: %d\n", 
+         liblte_rrc_retransmission_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.retx_bsr_timer], 
+         liblte_rrc_periodic_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.periodic_bsr_timer]);
+  
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_ACK, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ack_idx);
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_CQI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_cqi_idx);
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_RI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ri_idx);
+ 
   
+  // Setup radio bearers
+  for (int i=0;i<msg->rr_cnfg.srb_to_add_mod_list_size;i++) {
+    if (msg->rr_cnfg.srb_to_add_mod_list[i].lc_default_cnfg_present) {
+      printf("Setting up Default Configuration for SRB%d \n", msg->rr_cnfg.srb_to_add_mod_list[i].srb_id);  
+      switch(msg->rr_cnfg.srb_to_add_mod_list[i].srb_id) {
+        case 1:
+          mac->setup_lcid(1, 0, 1, -1, -1);
+          break;
+        case 2: 
+          mac->setup_lcid(2, 0, 3, -1, -1);
+          break;
+      }
+    }
+  }
+  for (int i=0;i<msg->rr_cnfg.drb_to_add_mod_list_size;i++) {
+    printf("Setting up DRB%d\n", msg->rr_cnfg.drb_to_add_mod_list[i].drb_id);
+    // todo 
+  }
 }
+
+
+// Hex bytes for the connection setup complete packet
+// Got hex bytes from http://www.sharetechnote.com/html/RACH_LTE.html 
+uint8_t setupComplete_segm[10][12] ={{0x88, 0x00, 0x00, 0x20, 0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0}, 
+                                      {0x98, 0x01, 0x20, 0x80, 0x01, 0x00, 0x59, 0x17, 0x0,  0x0,  0x0,  0x0},
+                                      {0x98, 0x02, 0x39, 0x45, 0xE5, 0x34, 0x0B, 0x07, 0x0,  0x0,  0x0,  0x0},
+                                      {0x98, 0x03, 0x41, 0x02, 0x0B, 0xF6, 0x03, 0x02, 0x0,  0x0,  0x0,  0x0},
+                                      {0x98, 0x04, 0x27, 0x80, 0x01, 0x00, 0xD0, 0xCC, 0x0,  0x0,  0x0,  0x0},
+                                      {0x98, 0x05, 0x71, 0x51, 0x04, 0xE0, 0x0,  0x0,  0x0,  0x0,  0x0,  0x0},
+                                      {0x98, 0x06, 0xE0, 0xC0, 0x40, 0x00, 0x21, 0x02, 0x0,  0x0,  0x0,  0x0},
+                                      {0x98, 0x07, 0x03, 0xD0, 0x11, 0xD1, 0x27, 0x1A, 0x0,  0x0,  0x0,  0x0},
+                                      {0x98, 0x08, 0x80, 0x80, 0x21, 0x10, 0x01, 0x00, 0x0,  0x0,  0x0,  0x0},
+                                      {0xB0, 0x09, 0x00, 0x10, 0x81, 0x06, 0x00, 0x00, 0x00, 0x00, 0x83, 0x06}};
+uint8_t last_segm[54]; 
+uint32_t lengths[10] = {4, 8, 8, 8, 8, 6, 8, 8, 8, 12}; 
+
 
 int main(int argc, char *argv[])
 {
@@ -265,7 +316,7 @@ int main(int argc, char *argv[])
   
   uint32_t si_window_len, sib2_period; 
   int tti; 
-  enum {START, SIB1, SIB2, CONNECT} state = START;
+  enum {START, SIB1, SIB2, CONNECT, SETUPCOMPLETE} state = START;
   int n; 
   
   while(1) {
@@ -342,12 +393,42 @@ int main(int argc, char *argv[])
             case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_SETUP: 
               // Process ConnectionSetup
               process_connsetup(&dl_ccch_msg.msg.rrc_con_setup, &mac, &phy);
+
+              // Generate and send ConnectionSetupComplete              
+              for (int i=0;i<9;i++) {
+                printf("Sending Connection Setup Complete %d\n", i);
+                srslte_bit_pack_vector(setupComplete_segm[i], bit_msg.msg, lengths[i]);
+                n=mac.send_dcch0_sdu(bit_msg.msg, lengths[i]*8);
+                if (n < 0) {
+                  fprintf(stderr, "Error writting to DCCH0\n");
+                  exit(-1);
+                }
+              }
+              // Last segment is 54 bytes long 
+              printf("Sending Connection Setup Complete Last segment\n");
+              bzero(last_segm, 54*sizeof(uint8_t));
+              memcpy(last_segm, setupComplete_segm[9], lengths[9]*sizeof(uint8_t));
+              srslte_bit_pack_vector(last_segm, bit_msg.msg, 54);
+              n=mac.send_dcch0_sdu(bit_msg.msg, 54*8);
+              if (n < 0) {
+                fprintf(stderr, "Error writting to DCCH0\n");
+                exit(-1);
+              }
+              
+              state = SETUPCOMPLETE;
               break;
             case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
               mac.set_param(srslte::ue::mac_params::RNTI_C, 0);
               break;
           } 
          // exit(0);
+        }
+        break;
+      case SETUPCOMPLETE:
+        // Wait for ConnectionSetup
+        n = mac.recv_dtch0_sdu(bit_msg.msg, LIBLTE_MAX_MSG_SIZE); 
+        if (n > 0) {
+          printf("Received on DTCH0 %d bytes\n", n/8);
         }
         break;
     }

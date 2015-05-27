@@ -96,6 +96,7 @@ bool ul_buffer::generate_cqi_report()
 bool ul_buffer::generate_sr() {
   uci_data.scheduling_request = true; 
   uci_pending = true; 
+  Info("SR Generating\n");
   return true; 
 }
 

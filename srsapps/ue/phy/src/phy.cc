@@ -185,6 +185,7 @@ void phy::send_sr(bool enable)
       return;
     }
     sr_n_pucch = params_db.get_param(phy_params::SR_PUCCH_RESINDEX);
+    Info("SR I_sr=%d, periodicity=%d, N_offset=%d, n_pucch=%d\n", I_sr, sr_periodicity, sr_N_offset, sr_n_pucch);
   }
   sr_enabled = enable;
 }
@@ -192,6 +193,7 @@ void phy::send_sr(bool enable)
 bool phy::sr_is_ready_to_send(uint32_t tti_) {
   if (sr_enabled) {
     if ((10*tti_to_SFN(tti_)+tti_to_subf(tti_)-sr_N_offset)%sr_periodicity==0) {
+      Info("SR ready to send\n");
       return true; 
     }
   }
