@@ -26,7 +26,7 @@ INSTALL(DIRECTORY include/
 )
 
 FILE(GLOB SOURCES "src/*.cc")
-ADD_LIBRARY(srsapps_common SHARED ${SOURCES})
+ADD_LIBRARY(srsapps_common SHARED ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/src/threads.c)
 INSTALL(TARGETS srsapps_common DESTINATION ${LIBRARY_DIR})
 SRSLTE_SET_PIC(srsapps_common)
 

@@ -199,37 +199,39 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
 }
 
 void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac *mac, srslte::ue::phy *phy) {
-  mac->set_param(srslte::ue::mac_params::HARQ_MAXTX, 
-                 liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx]);
-  printf("Set MAX HARQ reTX: %d\n", liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx]);
+  
+  // FIXME: There's an error parsing the connectionSetup message. This value is hard-coded: 
+  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx = 35;
   
   phy->set_param(srslte::ue::phy_params::SR_PUCCH_RESINDEX, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx);
   phy->set_param(srslte::ue::phy_params::SR_CONFIG_INDEX, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);
-
+  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_ACK, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ack_idx);
+  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_CQI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_cqi_idx);
+  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_RI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ri_idx);
+ 
+  printf("Set PHY configuration: n_pucch=%d, configIndex=%d\n", 
+         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx,
+         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);
+  
+  mac->set_param(srslte::ue::mac_params::HARQ_MAXTX, 
+                 liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx]);
   mac->set_param(srslte::ue::mac_params::SR_TRANS_MAX, 
                  liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max]);
   mac->set_param(srslte::ue::mac_params::SR_PUCCH_CONFIGURED, 1);
-  
-  printf("Set SR configuration: TransMAX: %d, n_pucch=%d, configIndex=%d\n", 
-         liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max], 
-         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx,
-         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);
   
   mac->set_param(srslte::ue::mac_params::BSR_TIMER_RETX, 
                  liblte_rrc_retransmission_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.retx_bsr_timer]);
   mac->set_param(srslte::ue::mac_params::BSR_TIMER_PERIODIC, 
                  liblte_rrc_periodic_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.periodic_bsr_timer]);
-
-  printf("Set MAC BSR configuration: ReTX timer: %d, Periodic: %d\n", 
-         liblte_rrc_retransmission_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.retx_bsr_timer], 
+  
+  printf("Set MAC configuration: dsr-TransMAX: %d, harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n", 
+         liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max], 
+         liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx],
+         liblte_rrc_retransmission_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.retx_bsr_timer],
          liblte_rrc_periodic_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.periodic_bsr_timer]);
   
-  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_ACK, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ack_idx);
-  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_CQI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_cqi_idx);
-  phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_RI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ri_idx);
- 
   
   // Setup radio bearers
   for (int i=0;i<msg->rr_cnfg.srb_to_add_mod_list_size;i++) {
@@ -254,18 +256,17 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
 
 // Hex bytes for the connection setup complete packet
 // Got hex bytes from http://www.sharetechnote.com/html/RACH_LTE.html 
-uint8_t setupComplete_segm[10][12] ={{0x88, 0x00, 0x00, 0x20, 0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0,  0x0}, 
-                                      {0x98, 0x01, 0x20, 0x80, 0x01, 0x00, 0x59, 0x17, 0x0,  0x0,  0x0,  0x0},
-                                      {0x98, 0x02, 0x39, 0x45, 0xE5, 0x34, 0x0B, 0x07, 0x0,  0x0,  0x0,  0x0},
-                                      {0x98, 0x03, 0x41, 0x02, 0x0B, 0xF6, 0x03, 0x02, 0x0,  0x0,  0x0,  0x0},
-                                      {0x98, 0x04, 0x27, 0x80, 0x01, 0x00, 0xD0, 0xCC, 0x0,  0x0,  0x0,  0x0},
-                                      {0x98, 0x05, 0x71, 0x51, 0x04, 0xE0, 0x0,  0x0,  0x0,  0x0,  0x0,  0x0},
-                                      {0x98, 0x06, 0xE0, 0xC0, 0x40, 0x00, 0x21, 0x02, 0x0,  0x0,  0x0,  0x0},
-                                      {0x98, 0x07, 0x03, 0xD0, 0x11, 0xD1, 0x27, 0x1A, 0x0,  0x0,  0x0,  0x0},
-                                      {0x98, 0x08, 0x80, 0x80, 0x21, 0x10, 0x01, 0x00, 0x0,  0x0,  0x0,  0x0},
-                                      {0xB0, 0x09, 0x00, 0x10, 0x81, 0x06, 0x00, 0x00, 0x00, 0x00, 0x83, 0x06}};
-uint8_t last_segm[54]; 
-uint32_t lengths[10] = {4, 8, 8, 8, 8, 6, 8, 8, 8, 12}; 
+uint8_t setupComplete_segm[2][41] ={ {
+  0x88, 0x00, 0x00, 0x20, 0x21, 0x90, 0xa0, 0x12, 0x00, 0x00, 0x80, 0xf0, 0x5e, 0x3b, 0xf1, 0x04, 
+  0x64, 0x04, 0x1d, 0x20, 0x44, 0x2f, 0xd8, 0x4b, 0xd1, 0x02, 0x00, 0x00, 0x83, 0x03, 0x41, 0xb0,
+  0xe5, 0x60, 0x13, 0x81, 0x83},
+  
+ {0xb0, 0x01, 0x01, 0x01, 0x48, 0x4b, 0xd1, 0x00, 0x7d, 0x21, 0x70, 0x28, 0x01, 0x5c, 0x08, 0x80,
+  0x00, 0xc4, 0x0f, 0x97, 0x80, 0xd0, 0x4c, 0x4b, 0xd1, 0x00, 0xc0, 0x58, 0x44, 0x0d, 0x5d, 0x62,
+  0x99, 0x74, 0x04, 0x03, 0x80, 0x00, 0x00, 0x00, 0x00}
+};
+uint32_t lengths[2] = {37, 41}; 
+uint8_t reply[2] = {0x00, 0x04};
 
 
 int main(int argc, char *argv[])
@@ -290,7 +291,7 @@ int main(int argc, char *argv[])
       break;
   }
 
-// Init Radio and PHY
+  // Init Radio and PHY
   if (prog_args.uhd_rx_gain > 0 && prog_args.uhd_tx_gain > 0) {
     radio_uhd.init();
     radio_uhd.set_rx_gain(prog_args.uhd_rx_gain);
@@ -316,7 +317,7 @@ int main(int argc, char *argv[])
   
   uint32_t si_window_len, sib2_period; 
   int tti; 
-  enum {START, SIB1, SIB2, CONNECT, SETUPCOMPLETE} state = START;
+  enum {START, SIB1, SIB2, CONNECT, SETUPCOMPLETE, IDLE} state = START;
   int n; 
   
   while(1) {
@@ -359,7 +360,7 @@ int main(int argc, char *argv[])
           ul_ccch_msg.msg_type = LIBLTE_RRC_UL_CCCH_MSG_TYPE_RRC_CON_REQ;
           ul_ccch_msg.msg.rrc_con_req.ue_id_type = LIBLTE_RRC_CON_REQ_UE_ID_TYPE_RANDOM_VALUE; 
           ul_ccch_msg.msg.rrc_con_req.ue_id.random = 1000;
-          ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_DATA; 
+          ul_ccch_msg.msg.rrc_con_req.cause = LIBLTE_RRC_CON_REQ_EST_CAUSE_MO_SIGNALLING; 
           liblte_rrc_pack_ul_ccch_msg(&ul_ccch_msg, &bit_msg);
 
           uint64_t uecri=0;
@@ -395,26 +396,15 @@ int main(int argc, char *argv[])
               process_connsetup(&dl_ccch_msg.msg.rrc_con_setup, &mac, &phy);
 
               // Generate and send ConnectionSetupComplete              
-              for (int i=0;i<9;i++) {
+              for (int i=0;i<2;i++) {
                 printf("Sending Connection Setup Complete %d\n", i);
-                srslte_bit_pack_vector(setupComplete_segm[i], bit_msg.msg, lengths[i]);
+                srslte_bit_pack_vector(setupComplete_segm[i], bit_msg.msg, lengths[i]*8);
                 n=mac.send_dcch0_sdu(bit_msg.msg, lengths[i]*8);
                 if (n < 0) {
                   fprintf(stderr, "Error writting to DCCH0\n");
                   exit(-1);
                 }
-              }
-              // Last segment is 54 bytes long 
-              printf("Sending Connection Setup Complete Last segment\n");
-              bzero(last_segm, 54*sizeof(uint8_t));
-              memcpy(last_segm, setupComplete_segm[9], lengths[9]*sizeof(uint8_t));
-              srslte_bit_pack_vector(last_segm, bit_msg.msg, 54);
-              n=mac.send_dcch0_sdu(bit_msg.msg, 54*8);
-              if (n < 0) {
-                fprintf(stderr, "Error writting to DCCH0\n");
-                exit(-1);
-              }
-              
+              }              
               state = SETUPCOMPLETE;
               break;
             case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
@@ -426,10 +416,20 @@ int main(int argc, char *argv[])
         break;
       case SETUPCOMPLETE:
         // Wait for ConnectionSetup
-        n = mac.recv_dtch0_sdu(bit_msg.msg, LIBLTE_MAX_MSG_SIZE); 
+        n = mac.recv_dcch0_sdu(bit_msg.msg, LIBLTE_MAX_MSG_SIZE); 
         if (n > 0) {
-          printf("Received on DTCH0 %d bytes\n", n/8);
-        }
+          printf("Received on DCCH0 %d bytes\n", n/8);
+          printf("Send RLC ACK\n");
+          srslte_bit_pack_vector(reply, bit_msg.msg, 2*8);
+          n=mac.send_dcch0_sdu(bit_msg.msg, 2*8);
+          if (n < 0) {
+            fprintf(stderr, "Error writting to DCCH0\n");
+            exit(-1);
+          }    
+          state = IDLE; 
+          }
+        break;
+      case IDLE:
         break;
     }
       

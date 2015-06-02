@@ -49,6 +49,7 @@ namespace ue {
   public: 
     bool     init_cell(srslte_cell_t cell, phy_params *params_db, log *log_h);
     void     free_cell();
+    void     set_crnti(uint16_t rnti);
     void     set_current_tx_nb(uint32_t current_tx_nb);
     bool     generate_ack(bool ack, dl_sched_grant *last_dl_grant); 
     bool     generate_ack(bool ack[2]); 

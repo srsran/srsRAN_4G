@@ -398,18 +398,17 @@ void ra_proc::step_contention_resolution() {
       
     } else if (demux_unit->is_temp_crnti_pending()) 
     {
-      rInfo("MAC PDU with Temporal C-RNTI has been decoded\n");
+      rDebug("MAC PDU with Temporal C-RNTI has been decoded\n");
       // Random Access initiated by RRC by the transmission of CCCH SDU      
       if (demux_unit->is_contention_resolution_id_pending()) {
-        rInfo("MAC PDU Contains Contention Resolution ID CE\n");
+        rDebug("MAC PDU Contains Contention Resolution ID CE\n");
         // MAC PDU successfully decoded and contains MAC CE contention Id
         uint64_t rx_contention_id = demux_unit->get_contention_resolution_id(); 
         timers_db->get(mac::CONTENTION_TIMER)->stop();
         if (transmitted_contention_id == rx_contention_id) {
-          rInfo("MAC PDU Contention Resolution ID matches the one transmitted in CCCH SDU\n");
+          rDebug("MAC PDU Contention Resolution ID matches the one transmitted in CCCH SDU\n");
           // UE Contention Resolution ID included in MAC CE matches the CCCH SDU transmitted in Msg3
           params_db->set_param(mac_params::RNTI_C, params_db->get_param(mac_params::RNTI_TEMP));
-          
           // finish the disassembly and demultiplexing of the MAC PDU
           demux_unit->demultiplex_pending_pdu();
           state = COMPLETION;                           

@@ -86,6 +86,10 @@ public:
     }
   }
   
+  uint32_t nof_subh() {
+    return nof_subheaders;
+  }
+  
   bool new_subh() {
     if (nof_subheaders < max_subheaders - 1) {
       nof_subheaders++;
@@ -101,6 +105,13 @@ public:
       return true; 
     } else {
       return false; 
+    }
+  }
+  
+  void del_subh() {
+    if (cur_idx > 0 && nof_subheaders > 0) {
+      cur_idx--;
+      nof_subheaders--;
     }
   }
 
@@ -196,8 +207,9 @@ public:
   void     write_subheader(uint8_t** ptr, bool is_last);
   void     write_payload(uint8_t **ptr);
   bool     set_sdu(uint32_t lcid, uint8_t *ptr, uint32_t nof_bytes);
+  bool     set_sdu(uint32_t lcid, uint8_t *ptr, uint32_t nof_bytes, bool is_first);
   bool     set_c_rnti(uint16_t crnti);
-  bool     set_bsr(uint32_t buff_size[4], sch_subh::cetype format);
+  bool     set_bsr(uint32_t buff_size[4], sch_subh::cetype format, bool update_size);
   bool     set_con_res_id(uint64_t con_res_id);
   bool     set_ta_cmd(uint8_t ta_cmd);
   bool     set_phd(uint8_t phd);
@@ -228,13 +240,15 @@ public:
   bool      write_packet(uint8_t *ptr);
   bool      has_space_ce(uint32_t nbytes);  
   bool      has_space_sdu(uint32_t nbytes);  
+  bool      has_space_sdu(uint32_t nbytes, bool is_first);  
   uint32_t  size();
   uint32_t  rem_size(); 
   static uint32_t size_plus_header_sdu(uint32_t nbytes);
   bool      update_space_ce(uint32_t nbytes);  
   bool      update_space_sdu(uint32_t nbytes);  
+  bool      update_space_sdu(uint32_t nbytes, bool is_first);  
   void     fprint(FILE *stream);
-
+  
 };
 
 class rar_subh : public subh<rar_subh>

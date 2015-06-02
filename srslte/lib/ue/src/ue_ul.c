@@ -265,7 +265,6 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     }
     srslte_refsignal_dmrs_pucch_put(&q->dmrs, format, n_pucch, q->refsignal, q->sf_symbols);                
     
-    
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
     if (q->cfo_en) {
@@ -339,6 +338,7 @@ int srslte_ue_ul_pusch_encode_cfg(srslte_ue_ul_t *q, srslte_pusch_cfg_t *cfg,
 {
  
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
+  bzero(q->sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
   
   if (q             != NULL &&
       cfg           != NULL &&

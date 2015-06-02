@@ -50,6 +50,7 @@ namespace ue {
     
     bool           init_cell(srslte_cell_t cell, phy_params *params_db, log *log_h_);
     void           free_cell();
+    void           set_crnti(uint16_t rnti);
     bool           recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time);
     bool           get_ul_grant(ul_sched_grant *grant);
     bool           get_dl_grant(dl_sched_grant *grant);

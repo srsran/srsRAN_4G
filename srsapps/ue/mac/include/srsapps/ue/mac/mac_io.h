@@ -77,7 +77,7 @@ namespace ue {
     const static int NOF_UL_LCH = MAC_LCH_DTCH2_UL - MAC_LCH_CCCH_UL; 
 
     const static int DEFAULT_MSG_SZ  = 8*1024; // 8 Kbytes
-    const static int DEFAULT_NOF_MESSAGES = 8;  
+    const static int DEFAULT_NOF_MESSAGES = 64;  
     
 
     qbuff* get(mac_lch_t ch) {      

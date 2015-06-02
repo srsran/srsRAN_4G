@@ -122,10 +122,12 @@ double cuhd_set_rx_gain_th(void *h, double gain)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   gain = handler->rx_gain_range.clip(gain);     
-  pthread_mutex_lock(&handler->mutex);
-  handler->new_rx_gain = gain; 
-  pthread_cond_signal(&handler->cond);
-  pthread_mutex_unlock(&handler->mutex);
+  if (gain != handler->new_rx_gain) {
+    pthread_mutex_lock(&handler->mutex);
+    handler->new_rx_gain = gain; 
+    pthread_cond_signal(&handler->cond);
+    pthread_mutex_unlock(&handler->mutex);
+  }
   return gain; 
 }
 

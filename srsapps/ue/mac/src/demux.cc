@@ -92,19 +92,19 @@ void demux::push_pdu_temp_crnti(uint8_t *mac_pdu, uint32_t nof_bits)
     // Unpack DLSCH MAC PDU 
     pending_mac_msg.init(nof_bits/8);
     pending_mac_msg.parse_packet(mac_pdu);
-    pending_mac_msg.fprint(stdout);
+    //pending_mac_msg.fprint(stdout);
     
     // Look for Contention Resolution UE ID 
     while(pending_mac_msg.next()) {
       if (pending_mac_msg.get()->ce_type() == sch_subh::CON_RES_ID) {
         contention_resolution_id = pending_mac_msg.get()->get_con_res_id();
         has_pending_contention_resolution_id = true; 
-        Info("Found Contention Resolution ID CE\n");
+        Debug("Found Contention Resolution ID CE\n");
       }
     }
     pending_mac_msg.reset();
     pending_temp_rnti = true; 
-    Info("Saved MAC PDU with Temporal C-RNTI in buffer\n");
+    Debug("Saved MAC PDU with Temporal C-RNTI in buffer\n");
   } else {
     Warning("Error pushing PDU with Temporal C-RNTI: Another PDU is still in pending\n");
   }
@@ -148,7 +148,7 @@ void demux::process_pdu(sch_pdu *pdu_msg)
         qbuff *dest_lch = mac_io_h->get(pdu_msg->get()->get_sdu_lcid());
         if (dest_lch) {
           dest_lch->send(pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_sdu_nbytes()*8);
-          Debug("Sent MAC SDU len=%d bytes to lchid=%d\n",  
+          Info("Sent MAC SDU len=%d bytes to lchid=%d\n",  
                 pdu_msg->get()->get_sdu_nbytes(), pdu_msg->get()->get_sdu_lcid());
         } else {
           Error("Getting destination channel LCID=%d\n", pdu_msg->get()->get_sdu_lcid());

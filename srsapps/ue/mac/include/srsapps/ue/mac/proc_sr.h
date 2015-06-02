@@ -58,6 +58,7 @@ private:
   phy        *phy_h; 
   log        *log_h; 
   bool       initiated;
+  bool       do_ra;
 };
 }
 }

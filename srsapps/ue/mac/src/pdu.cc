@@ -47,19 +47,41 @@ void sch_subh::fprint(FILE* stream)
   if (is_sdu()) {
     fprintf(stream, "SDU LCHID=%d, SDU nof_bytes=%d\n", lcid, nof_bytes);
   } else {
-    switch(lcid) {
-      case C_RNTI:
-        fprintf(stream, "C-RNTI CE: %d\n", get_c_rnti());
-        break;
-      case CON_RES_ID:
-        fprintf(stream, "Contention Resolution ID CE: 0x%lx\n", get_con_res_id());
-        break;
-      case TA_CMD:
-        fprintf(stream, "Time Advance Command CE: %d\n", get_ta_cmd());
-        break;
-      case PADDING:
-        fprintf(stream, "PADDING\n");
-    }    
+    if (parent->is_ul()) {
+      switch(lcid) {
+        case C_RNTI:
+          fprintf(stream, "C-RNTI CE: %d\n", get_c_rnti());
+          break;
+        case PHD_REPORT:
+          fprintf(stream, "C-RNTI CE: %d\n", get_c_rnti());
+          break;
+        case TRUNC_BSR:
+          fprintf(stream, "Truncated BSR CE\n");
+          break;
+        case SHORT_BSR:
+          fprintf(stream, "Short BSR CE\n");
+          break;
+        case LONG_BSR:
+          fprintf(stream, "Long BSR CE\n");
+          break;
+        case PADDING:
+          fprintf(stream, "PADDING\n");
+      }
+    } else {
+      switch(lcid) {
+        case CON_RES_ID:
+          fprintf(stream, "Contention Resolution ID CE: 0x%lx\n", get_con_res_id());
+          break;
+        case TA_CMD:
+          fprintf(stream, "Time Advance Command CE: %d\n", get_ta_cmd());
+          break;
+        case DRX_CMD:
+          fprintf(stream, "DRX Command CE: Not implemented\n");
+          break;
+        case PADDING:
+          fprintf(stream, "PADDING\n");
+      }      
+    }
   }
 }
 
@@ -86,32 +108,38 @@ bool sch_pdu::write_packet(uint8_t* ptr)
 {
   uint8_t *init_ptr = ptr; 
   bool last_is_padding = false; 
-  // Add multi-byte padding if necessary 
-  if (rem_len > 2) {
-    last_is_padding = true; 
-  }
-  // Add single or two-byte padding if required
-  if (rem_len == 1 || rem_len == 2) {
-    sch_subh padding; 
-    padding.set_padding(); 
-    for (int i=0;i<rem_len;i++) {
-      padding.write_subheader(&ptr, false);  
-    }
-    rem_len = 0;
-  } 
+
+  // Find last SDU or CE 
   int last_sh;
-  if (!last_is_padding) {
-    // Find last SDU or CE 
-    int last_sdu = nof_subheaders-1; 
-    while(!subheaders[last_sdu].is_sdu() && last_sdu >= 0) {
-      last_sdu--;
+  int last_sdu = nof_subheaders-1; 
+  while(!subheaders[last_sdu].is_sdu() && last_sdu >= 0) {
+    last_sdu--;
+  }
+  int last_ce = nof_subheaders-1; 
+  while(subheaders[last_ce].is_sdu() && last_ce >= 0) {
+    last_ce--;
+  }
+  last_sh = subheaders[last_sdu].is_sdu()?last_sdu:last_ce;  
+  
+  // Add multi-byte padding if there are more than 2 bytes or there are 2 bytes 
+  // and there is at least one SDU 
+  if (rem_len > 2 || (rem_len==2 && subheaders[last_sdu].is_sdu())) {
+    last_is_padding = true; 
+  } else if (rem_len > 0) {
+    if (subheaders[last_sdu].is_sdu()) {
+      rem_len++; 
     }
-    int last_ce = nof_subheaders-1; 
-    while(subheaders[last_ce].is_sdu() && last_ce >= 0) {
-      last_ce--;
-    }
-    last_sh = subheaders[last_sdu].is_sdu()?last_sdu:last_ce;  
-  } else {
+    // Add single or two-byte padding if required
+    if (rem_len == 1 || rem_len == 2) {
+      sch_subh padding; 
+      padding.set_padding(); 
+      for (int i=0;i<rem_len;i++) {
+        padding.write_subheader(&ptr, false);  
+      }
+      rem_len = 0;
+    }     
+  }
+  if (last_is_padding) {
     last_sh = -1;
   }
   // Write subheaders for MAC CE first
@@ -172,9 +200,16 @@ bool sch_pdu::has_space_ce(uint32_t nbytes)
     return false; 
   }
 }
+
 bool sch_pdu::has_space_sdu(uint32_t nbytes)
 {
-  if (rem_len >= size_plus_header_sdu(nbytes)) {
+  return has_space_sdu(nbytes, false);
+}
+
+bool sch_pdu::has_space_sdu(uint32_t nbytes, bool is_first)
+{
+  uint32_t sizeh_first=is_first?1:0;
+  if (rem_len >= size_plus_header_sdu(nbytes)-sizeh_first) {
     return true; 
   } else {
     return false; 
@@ -186,10 +221,15 @@ bool sch_pdu::update_space_ce(uint32_t nbytes)
     rem_len -= nbytes + 1; 
   }
 }
-bool sch_pdu::update_space_sdu(uint32_t nbytes)
+bool sch_pdu::update_space_sdu(uint32_t nbytes) {
+  return update_space_sdu(nbytes, false);
+}
+
+bool sch_pdu::update_space_sdu(uint32_t nbytes, bool is_first)
 {
-  if (has_space_sdu(nbytes)) {
-    rem_len -= size_plus_header_sdu(nbytes);
+  uint32_t sizeh_first=is_first?1:0;
+  if (has_space_sdu(nbytes, is_first)) {
+    rem_len -= (size_plus_header_sdu(nbytes)-sizeh_first);
   }
 }
 
@@ -305,7 +345,7 @@ void sch_subh::set_padding()
 }
 
 
-bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
+bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format, bool update_size)
 {
   uint32_t nonzero_lcg=0;
   for (int i=0;i<4;i++) {
@@ -314,18 +354,22 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
     }
   }
   uint32_t ce_size = format==LONG_BSR?3:1;
-  if (((sch_pdu*)parent)->has_space_ce(ce_size)) {
+  if (((sch_pdu*)parent)->has_space_ce(ce_size) || !update_size) {
     uint8_t *ptr = ce_payload; 
     if (format==LONG_BSR) {
+      bzero(ce_payload, 3*8*sizeof(uint8_t));
       for (int i=0;i<4;i++) {
         srslte_bit_pack(buff_size_table(buff_size[i]), &ptr, 6);
       }
     } else {
+      bzero(ce_payload, 8*sizeof(uint8_t));
       srslte_bit_pack(nonzero_lcg, &ptr, 2);
       srslte_bit_pack(buff_size_table(buff_size[nonzero_lcg]), &ptr, 6);
     }
     lcid = format;
-    ((sch_pdu*)parent)->update_space_ce(ce_size);
+    if (update_size) {
+      ((sch_pdu*)parent)->update_space_ce(ce_size);
+    }
     return true; 
   } else {
     return false; 
@@ -371,13 +415,19 @@ bool sch_subh::set_phd(uint8_t phd)
     return false; 
   }
 }
+
 bool sch_subh::set_sdu(uint32_t lcid_, uint8_t* ptr, uint32_t nof_bytes_)
 {
-  if (((sch_pdu*)parent)->has_space_sdu(nof_bytes_)) {
+  return set_sdu(lcid_, ptr, nof_bytes_, false);
+}
+
+bool sch_subh::set_sdu(uint32_t lcid_, uint8_t* ptr, uint32_t nof_bytes_, bool is_first)
+{
+  if (((sch_pdu*)parent)->has_space_sdu(nof_bytes_, is_first)) {
     sdu_payload_ptr = ptr; 
     nof_bytes = nof_bytes_;
     lcid = lcid_;
-    ((sch_pdu*)parent)->update_space_sdu(nof_bytes_);
+    ((sch_pdu*)parent)->update_space_sdu(nof_bytes_, is_first);
     return true; 
   } else {
     return false; 
@@ -423,6 +473,7 @@ void sch_subh::write_payload(uint8_t** ptr)
   if (is_sdu()) {
     src = sdu_payload_ptr;
   } else {
+    nof_bytes = sizeof_ce(lcid, parent->is_ul()); 
     src = ce_payload;    
   }
   memcpy(*ptr, src, nof_bytes*8*sizeof(uint8_t));    
@@ -618,7 +669,7 @@ uint8_t sch_subh::buff_size_table(uint32_t buffer_size) {
     return 63;
   } else {
     for (int i=0;i<61;i++) {
-      if (buffer_size > btable[i]) {
+      if (buffer_size < btable[i]) {
         return 1+i; 
       }      
     }

@@ -69,7 +69,8 @@ public:
 private:  
   bool          assemble_pdu(uint32_t pdu_sz); 
   bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu);
-  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu, uint32_t *sdu_sz);
+  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu, bool *is_first);
+  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu, uint32_t *sdu_sz, bool *is_first);
   
   int64_t       Bj[mac_io::NOF_UL_LCH];
   int           PBR[mac_io::NOF_UL_LCH]; // -1 sets to infinity

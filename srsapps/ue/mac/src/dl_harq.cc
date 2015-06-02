@@ -178,7 +178,7 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
     }          
   }
 
-  Info("DL PID %d: TBS=%d, RV=%d, MCS=%d, crc=%s\n", pid, cur_grant.get_tbs(), cur_grant.get_rv(), cur_grant.get_mcs(), ack?"OK":"NOK");
+  Info("DL PID %d: TBS=%d, RV=%d, MCS=%d, crc=%s, PHY TTI: %d\n", pid, cur_grant.get_tbs(), cur_grant.get_rv(), cur_grant.get_mcs(), ack?"OK":"NOK", phy_h->get_current_tti());
 
 }
 // Implement 5.3.2.2 

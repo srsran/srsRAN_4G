@@ -65,12 +65,14 @@ public:
     uint32_t buff_size[4];
   } bsr_t; 
 
-  bool need_to_send_bsr_on_ul_grant(uint32_t nof_grant_bytes, uint32_t nof_padding_bytes, bsr_t *bsr);
+  uint32_t need_to_send_bsr_on_ul_grant(uint32_t grant_size); 
+  bool generate_bsr_on_ul_grant(uint32_t nof_padding_bytes, bsr_t *bsr);
   bool need_to_send_sr(); 
+  bool need_to_reset_sr(); 
   
 private:
   
-  bool       is_pending_sr;
+  bool       reset_sr; 
   mac_params *params_db; 
   mac_io     *mac_io_h;
   timers     *timers_db; 
@@ -78,19 +80,21 @@ private:
   bool       initiated;
   const static int MAX_LCID = 20; 
   int        lcg[MAX_LCID];
+  uint32_t   last_pending_data[MAX_LCID];
   int        priorities[MAX_LCID]; 
   uint32_t   find_max_priority_lcid(); 
-  enum {NONE, REGULAR, PADDING, PERIODIC} triggered_bsr_type; 
+  typedef enum {NONE, REGULAR, PADDING, PERIODIC} triggered_bsr_type_t;
+  triggered_bsr_type_t triggered_bsr_type; 
   bool timer_periodic;
   bool timer_retx;
   
-  bsr_t pending_bsr; 
   bool sr_is_sent;
-  bool check_all_channels(); 
+  void update_pending_data(); 
   bool check_highest_channel(); 
   bool check_single_channel(); 
-  void get_pending_bsr_format(uint32_t nof_padding_bytes); 
-  
+  bool generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes); 
+  char* bsr_type_tostring(triggered_bsr_type_t type); 
+  char* bsr_format_tostring(bsr_format_t format);
 };
 }
 }
