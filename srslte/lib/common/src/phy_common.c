@@ -127,9 +127,9 @@ char *srslte_mod_string(srslte_mod_t mod) {
   case SRSLTE_MOD_QPSK:
     return "QPSK";
   case SRSLTE_MOD_16QAM:
-    return "QAM16";
+    return "16QAM";
   case SRSLTE_MOD_64QAM:
-    return "QAM64";
+    return "64QAM";
   default:
     return "N/A";
   } 

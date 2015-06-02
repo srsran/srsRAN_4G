@@ -239,14 +239,14 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(uint32_t tti_tx, uint8_t *
 {
   if (ul_grant && pdu_payload) {
     srslte_softbuffer_tx_reset(&softbuffer);
-    // Store the uplink grant
     memcpy(&cur_grant, ul_grant, sizeof(ul_sched_grant));        
     harq_feedback = false; 
     is_grant_configured = true; 
     current_tx_nb = 0; 
     current_irv = 0;         
     is_msg3 = is_msg3_;
-    Info("UL PID %d: New TX%s, RV=%d, TBS=%d, MCS=%d\n", pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.get_tbs(), cur_grant.get_mcs());
+    Info("UL PID %d: New TX%s, RV=%d, TBS=%d, MCS=%d, RNTI=%d\n", pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.get_tbs(), 
+         cur_grant.get_mcs(), cur_grant.get_rnti());
     generate_tx(tti_tx, pdu_payload, ul);
   }
 }

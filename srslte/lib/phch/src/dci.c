@@ -414,9 +414,11 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t
 
   data->ndi = *y++ ? true : false;
 
-  // TPC and DM RS commands not implemented
-  y += 5;
-  data->n_dmrs = 0; 
+  // TPC command for scheduled PUSCH
+  data->tpc_pusch = srslte_bit_unpack(&y, 2);
+  
+  // Cyclic shift for DMRS
+  data->n_dmrs = srslte_bit_unpack(&y, 3); 
   
   // CQI request
   data->cqi_request = *y++ ? true : false;

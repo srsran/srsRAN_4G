@@ -140,6 +140,7 @@ private:
   
   /* Functions for MAC Timers */
   timers        timers_db; 
+  uint16_t      phy_rnti;
   void          setup_timers();
   void          timeAlignmentTimerExpire();
     

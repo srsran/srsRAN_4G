@@ -27,7 +27,6 @@ INSTALL(DIRECTORY include/
 
 FILE(GLOB SOURCES "src/*.cc")
 ADD_LIBRARY(srsapps_ue_phy SHARED ${SOURCES})
-TARGET_LINK_LIBRARIES(srsapps_ue_phy srsapps_common)
 INSTALL(TARGETS srsapps_ue_phy DESTINATION ${LIBRARY_DIR})
 SRSLTE_SET_PIC(srsapps_ue_phy)
 

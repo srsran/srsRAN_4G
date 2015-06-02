@@ -29,9 +29,11 @@
 #include <strings.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #include "srslte/srslte.h"
 
+#include "srsapps/common/threads.h"
 #include "srsapps/common/log.h"
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/ue/phy/prach.h"
@@ -57,8 +59,12 @@ bool phy::init_agc(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_
   return init_(radio_handler_, ttisync_, log_h, true);
 }
 
+
 bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, log *log_h_, bool do_agc_)
 {
+
+  mlockall(MCL_CURRENT | MCL_FUTURE);
+  
   started = false; 
   radio_is_streaming = false; 
   ttisync = ttisync_;
@@ -74,18 +80,9 @@ bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, l
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, 160);
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_MIB_NFRAMES, 100);
   
-  pthread_attr_t attr;
-  struct sched_param param;
-  param.sched_priority = sched_get_priority_min(SCHED_FIFO) ;  
-  pthread_attr_init(&attr);
-  pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-  pthread_attr_setschedparam(&attr, &param);
-  if (!pthread_create(&phy_thread, &attr, phy_thread_fnc, this)) {
-    started = true;             
-  } else {
-    perror("pthread_create");
+  if (threads_new_rt(&phy_thread, phy_thread_fnc, this)) {
+    started = true; 
   }
-  pthread_attr_destroy(&attr);
   return started; 
 }
 
@@ -186,14 +183,25 @@ void phy::send_sr(bool enable)
     }
     sr_n_pucch = params_db.get_param(phy_params::SR_PUCCH_RESINDEX);
     Info("SR I_sr=%d, periodicity=%d, N_offset=%d, n_pucch=%d\n", I_sr, sr_periodicity, sr_N_offset, sr_n_pucch);
+    sr_tx_tti = get_current_tti(); 
   }
   sr_enabled = enable;
+}
+
+int phy::sr_last_tx_tti() {
+  if (sr_enabled) {
+    return -1; 
+  } else {
+    return (int) sr_tx_tti; 
+  }
 }
 
 bool phy::sr_is_ready_to_send(uint32_t tti_) {
   if (sr_enabled) {
     if ((10*tti_to_SFN(tti_)+tti_to_subf(tti_)-sr_N_offset)%sr_periodicity==0) {
-      Info("SR ready to send\n");
+      sr_enabled = false;
+      sr_tx_tti = tti_; 
+      Debug("SR ready to send for TTI=%d\n", tti_);
       return true; 
     }
   }
@@ -212,6 +220,14 @@ bool phy::measure()
     // capture and do measurement 
   }
   return false; 
+}
+
+void phy::set_crnti(uint16_t rnti) {
+  for(uint32_t i=0;i<6;i++) {
+    ((ul_buffer*) ul_buffer_queue->get(i))->set_crnti(rnti);
+    ((dl_buffer*) dl_buffer_queue->get(i))->set_crnti(rnti);      
+    
+  }    
 }
 
 bool phy::start_rxtx()
@@ -328,6 +344,9 @@ bool phy::init_prach() {
 
 ul_buffer* phy::get_ul_buffer(uint32_t tti)
 {
+  if (tti + 1 < get_current_tti()) {
+    Warning("Warning access to PHY UL buffer too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
+  }
   return (ul_buffer*) ul_buffer_queue->get(tti);        
 }
 
@@ -339,7 +358,8 @@ ul_buffer* phy::get_ul_buffer_adv(uint32_t tti)
 dl_buffer* phy::get_dl_buffer(uint32_t tti)
 {
   if (tti + 4 < get_current_tti()) {
-    Debug("Warning access to PHY too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
+    Warning("Warning access to PHY DL buffer too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
+   // return NULL; 
   }
   return (dl_buffer*) dl_buffer_queue->get(tti);  
 }

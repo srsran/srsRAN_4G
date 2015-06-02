@@ -169,6 +169,7 @@ typedef struct SRSLTE_API {
   uint32_t n_dmrs; 
   bool ndi;
   bool cqi_request;
+  uint32_t tpc_pusch;
 
 } srslte_ra_ul_dci_t;
 

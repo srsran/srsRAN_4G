@@ -30,6 +30,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#include "srsapps/common/threads.h"
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/common/log.h"
 #include "srsapps/ue/mac/mac.h"
@@ -47,7 +48,8 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
   tti = 0; 
   is_synchronized = false;   
   last_temporal_crnti = 0; 
-
+  phy_rnti = 0; 
+  
   bsr_procedure.init(log_h, &timers_db, &params_db, &mac_io_lch);
   mux_unit.init(log_h, &mac_io_lch, &bsr_procedure);
   demux_unit.init(phy_h, log_h, &mac_io_lch, &timers_db);
@@ -55,18 +57,10 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
   sr_procedure.init(log_h, &params_db, phy_h);
   reset();
 
-  pthread_attr_t attr;
-  struct sched_param param;
-  param.sched_priority = sched_get_priority_min(SCHED_FIFO) ;  
-  pthread_attr_init(&attr);
-  pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
-  pthread_attr_setschedparam(&attr, &param);
-
-  if (!pthread_create(&mac_thread, &attr, mac_thread_fnc, this)) {
-    started = true;             
-  } else {
-    perror("pthread_create");
+  if (threads_new_rt(&mac_thread, mac_thread_fnc, this)) {
+    started = true; 
   }
+
   return started; 
 }
 
@@ -179,14 +173,18 @@ void mac::main_radio_loop() {
       // Check if BSR procedure need to start SR 
       
       if (bsr_procedure.need_to_send_sr()) {
-        Info("Starting SR procedure by BSR request\n");
+        Info("Starting SR procedure by BSR request, PHY TTI=%d\n", phy_h->get_current_tti());
         sr_procedure.start();
+      } else if (bsr_procedure.need_to_reset_sr()) {
+        Info("Resetting SR procedure by BSR request\n");
+        sr_procedure.reset();
       }
       sr_procedure.step(tti);
 
       // Check SR if we need to start RA 
       if (sr_procedure.need_random_access()) {
-        ra_procedure.start_mac_order();
+        Info("Starting RA procedure by MAC order\n");
+        //ra_procedure.start_mac_order();
       }
       
       ra_procedure.step(tti);
@@ -197,23 +195,21 @@ void mac::main_radio_loop() {
       
       // Process DL grants always 
       process_dl_grants(tti);
-     
-      // Process UL grants if RA procedure is done and we have pending data or in contention resolution 
-      if (ra_procedure.is_contention_resolution() ||
-          ra_procedure.is_successful() && mux_unit.is_pending_ccch_sdu()) 
-      {
-        process_ul_grants(tti);
-      }
-            
+
       // Send pending HARQ ACK, if any, and contention resolution is resolved
       if (dl_harq.is_ack_pending_resolution()) {
         ra_procedure.step(tti);
         if (ra_procedure.is_successful() || ra_procedure.is_response_error()) {
-          Info("Sending pending ACK for contention resolution\n");
+          Info("Sending pending ACK for contention resolution PHY TTI: %d\n", phy_h->get_current_tti());
           dl_harq.send_pending_ack_contention_resolution();
         }
       }
 
+      // Process UL grants if RA procedure is done and we have pending data or in contention resolution 
+      if (ra_procedure.is_contention_resolution() || ra_procedure.is_successful()) {
+        process_ul_grants(tti);
+      }
+      
       timers_db.step_all();
       
       // Check if there is pending CCCH SDU in Multiplexing Unit
@@ -223,7 +219,17 @@ void mac::main_radio_loop() {
           Info("Starting RA procedure by RLC order\n");
           ra_procedure.start_rlc_order();        
         }
-      } 
+      }
+      if (ra_procedure.is_successful() && phy_rnti != params_db.get_param(mac_params::RNTI_C) && params_db.get_param(mac_params::RNTI_C) > 0) {
+        phy_rnti = params_db.get_param(mac_params::RNTI_C);
+        Info("Setting PHY RNTI=%d\n", phy_rnti);
+        
+        // This operation takes a while, do nothing for the rest 100 slots to re-align with PHY 
+        phy_h->set_crnti(phy_rnti);          
+        for (int i=0;i<100;i++) {
+          tti = ttisync->wait();
+        }
+      }
     }
   }  
 }
@@ -475,7 +481,7 @@ int mac::recv_dtch0_sdu(uint8_t* sdu_payload, uint32_t buffer_len_nbytes)
 
 int mac::recv_dcch0_sdu(uint8_t* sdu_payload, uint32_t buffer_len_nbytes)
 {
-  return mac_io_lch.get(mac_io::MAC_LCH_DTCH0_DL)->recv(sdu_payload, buffer_len_nbytes);   
+  return mac_io_lch.get(mac_io::MAC_LCH_DCCH0_DL)->recv(sdu_payload, buffer_len_nbytes);   
 }
 
 

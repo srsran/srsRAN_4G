@@ -65,6 +65,11 @@ void dl_buffer::free_cell()
   srslte_ue_dl_free(&ue_dl);
 }
 
+void dl_buffer::set_crnti(uint16_t rnti)
+{
+  srslte_ue_dl_set_rnti(&ue_dl, rnti);
+}
+
 // FIXME: Avoid this memcpy modifying ue_sync to directly write into provided pointer
 bool dl_buffer::recv_ue_sync(srslte_ue_sync_t *ue_sync, srslte_timestamp_t *rx_time)
 {
@@ -111,7 +116,6 @@ bool dl_buffer::get_ul_grant(ul_sched_grant *grant)
       if (srslte_ue_dl_find_ul_dci(&ue_dl, &dci_msg, cfi, tti%10, grant->get_rnti()) != 1) {
         return false; 
       }
-      
       return grant->create_from_dci(&dci_msg, cell, 0, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET));     
     }      
   }
@@ -160,6 +164,8 @@ bool dl_buffer::get_dl_grant(dl_sched_grant *grant)
     if (srslte_ue_dl_find_dl_dci(&ue_dl, &dci_msg, cfi, tti%10, grant->get_rnti()) != 1) {
       return false; 
     }
+
+    Info("Found DL DCI cce_index=%d, n_data_bits=%d\n", ue_dl.last_n_cce, dci_msg.nof_bits);
     
     return grant->create_from_dci(&dci_msg, cell, cfi, tti%10, srslte_ue_dl_get_ncce(&ue_dl));     
   }

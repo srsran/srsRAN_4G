@@ -42,11 +42,12 @@ void sr_proc::init(log* log_h_, mac_params* params_db_, phy* phy_h_)
   params_db = params_db_; 
   phy_h     = phy_h_;
   initiated = true; 
+  do_ra = false; 
 }
   
 void sr_proc::reset()
 {
-  is_pending_sr = false;    
+  is_pending_sr = false;
   phy_h->send_sr(false);
 }
 
@@ -54,11 +55,20 @@ void sr_proc::step(uint32_t tti)
 {
   if (initiated) {
     if (is_pending_sr) {    
-      if (sr_counter < dsr_transmax) {
-        sr_counter++;
-        Info("SR stepping: sr_counter=%d\n", sr_counter);
-        phy_h->send_sr(true);
+      if (params_db->get_param(mac_params::SR_PUCCH_CONFIGURED)) {
+        if (sr_counter < dsr_transmax) {
+          int last_tx_tti = phy_h->sr_last_tx_tti(); 
+          if (last_tx_tti >= 0 && last_tx_tti + 4 < tti) {
+            sr_counter++;
+            Info("SR signalling PHY. sr_counter=%d, PHY TTI=%d\n", sr_counter, phy_h->get_current_tti());
+            phy_h->send_sr(true);
+          }
+        } else {
+          do_ra = true; 
+          reset(); 
+        }
       } else {
+        do_ra = true; 
         reset();
       }
     }
@@ -67,11 +77,9 @@ void sr_proc::step(uint32_t tti)
 
 bool sr_proc::need_random_access() {
   if (initiated) {
-    if (sr_counter == dsr_transmax && dsr_transmax > 0 && 
-        params_db->get_param(mac_params::SR_PUCCH_CONFIGURED)) {
-      
-      Info("SR checking need RA: sr_counter=%d, dsr_transmax=%d, configured=%d\n", sr_counter, dsr_transmax, params_db->get_param(mac_params::SR_PUCCH_CONFIGURED));
-      return true;
+    if (do_ra) {
+      do_ra = false; 
+      return true; 
     } else {
       return false; 
     }
@@ -81,14 +89,12 @@ bool sr_proc::need_random_access() {
 void sr_proc::start()
 {
   if (initiated) {
-    if (params_db->get_param(mac_params::SR_PUCCH_CONFIGURED)) {
-      if (!is_pending_sr) {
-        sr_counter = 0;
-        is_pending_sr = true; 
-        dsr_transmax = params_db->get_param(mac_params::SR_TRANS_MAX);
-        Info("SR starting dsrTransMax=%d. Setting sr_counter=0\n", dsr_transmax);
-      }    
+    if (!is_pending_sr) {
+      sr_counter = 0;
+      is_pending_sr = true; 
     }
+    dsr_transmax = params_db->get_param(mac_params::SR_TRANS_MAX);
+    Info("SR starting dsrTransMax=%d. sr_counter=%d, PHY TTI=%d\n", dsr_transmax, sr_counter, phy_h->get_current_tti());
   }
 }
 

@@ -81,6 +81,8 @@ public:
 
   float get_agc_gain();
   
+  void set_crnti(uint16_t rnti);
+  
   // Indicate the PHY to send PRACH as soon as possible
   bool init_prach();
   bool send_prach(uint32_t preamble_idx);  
@@ -89,6 +91,7 @@ public:
 
   // Indicate the PHY to send SR as soon as possible or not
   void send_sr(bool enable);
+  int  sr_last_tx_tti(); 
   
   // Returns TTI when PRACH was transmitted. -1 if not yet transmitted
   int get_prach_transmitted_tti();
@@ -162,6 +165,7 @@ private:
   void         run_rx_tx_state();
   ul_buffer*   get_ul_buffer_adv(uint32_t tti);
   float        old_gain; 
+  uint32_t     sr_tx_tti;
 
 };
 

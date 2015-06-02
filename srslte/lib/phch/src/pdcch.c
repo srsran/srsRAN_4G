@@ -283,7 +283,8 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
       E         <= q->max_bits   && 
       nof_bits  <= SRSLTE_DCI_MAX_BITS)
   {
-
+    bzero(q->rm_f, sizeof(float)*3 * (SRSLTE_DCI_MAX_BITS + 16));
+    
     /* unrate matching */
     srslte_rm_conv_rx(e, E, q->rm_f, 3 * (nof_bits + 16));
 
@@ -315,7 +316,11 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
  * The decoded message is stored in msg and the CRC remainder in crc_rem pointer
  * 
  */
-int srslte_pdcch_decode_msg(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_location_t *location, srslte_dci_format_t format, uint16_t *crc_rem) 
+int srslte_pdcch_decode_msg(srslte_pdcch_t *q, 
+                            srslte_dci_msg_t *msg, 
+                            srslte_dci_location_t *location, 
+                            srslte_dci_format_t format, 
+                            uint16_t *crc_rem) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q                 != NULL       && 
@@ -333,12 +338,21 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci
     
       DEBUG("Decoding DCI offset %d, e_bits: %d, msg_len %d (nCCE: %d, L: %d)\n", 
             location->ncce * 72, e_bits, nof_bits, location->ncce, location->L);
-      
-      ret = dci_decode(q, &q->llr[location->ncce * 72], 
-                      msg->data, e_bits, nof_bits, crc_rem);
-      if (ret == SRSLTE_SUCCESS) {
-        msg->nof_bits = nof_bits;
-      }      
+
+      double mean = 0; 
+      for (int i=0;i<e_bits;i++) {
+        mean += fabsf(q->llr[location->ncce * 72 + i]);
+      }
+      mean /= e_bits; 
+      if (mean > 0.5) {
+        ret = dci_decode(q, &q->llr[location->ncce * 72], 
+                        msg->data, e_bits, nof_bits, crc_rem);
+        if (ret == SRSLTE_SUCCESS) {
+          msg->nof_bits = nof_bits;
+        }      
+      } else {
+        ret = SRSLTE_SUCCESS;
+      }
     }
   }
   return ret;
@@ -368,7 +382,8 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     uint32_t e_bits = 72*q->nof_cce;
     nof_symbols = e_bits/2;
     ret = SRSLTE_ERROR;
-        
+    bzero(q->llr, sizeof(float) * q->max_bits);
+    
     DEBUG("Extracting LLRs: E: %d, SF: %d, CFI: %d\n",
         e_bits, nsubframe, cfi);
 
