@@ -45,15 +45,13 @@
 #define Info(fmt, ...)    log_h->info(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   log_h->debug(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-using namespace std; 
-
 namespace srslte {
   
 class log
 {
 public:
 
-  log(string service_name_) { service_name = service_name_; tti = 0; level = LOG_LEVEL_NONE; }
+  log(std::string service_name_) { service_name = service_name_; tti = 0; level = LOG_LEVEL_NONE; }
   
   // This function shall be called at the start of every tti for printing tti 
   void step(uint32_t tti_) {
@@ -74,23 +72,23 @@ public:
   }
   
   // Pure virtual methods for logging
-  virtual void error(string message, ...)   = 0;
-  virtual void warning(string message, ...) = 0;
-  virtual void info(string message, ...)    = 0;
-  virtual void debug(string message, ...)   = 0;
+  virtual void error(std::string message, ...)   = 0;
+  virtual void warning(std::string message, ...) = 0;
+  virtual void info(std::string message, ...)    = 0;
+  virtual void debug(std::string message, ...)   = 0;
   
   // Same with line and file info
-  virtual void error(string file, int line, string message, ...)   = 0;
-  virtual void warning(string file, int line, string message, ...) = 0;
-  virtual void info(string file, int line, string message, ...)    = 0;
-  virtual void debug(string file, int line, string message, ...)   = 0;
+  virtual void error(std::string file, int line, std::string message, ...)   = 0;
+  virtual void warning(std::string file, int line, std::string message, ...) = 0;
+  virtual void info(std::string file, int line, std::string message, ...)    = 0;
+  virtual void debug(std::string file, int line, std::string message, ...)   = 0;
   
 protected: 
-  string get_service_name() { return service_name; }
+  std::string get_service_name() { return service_name; }
   uint32_t tti; 
   log_level_t level; 
 private:
-  string service_name; 
+  std::string service_name;
 };
 
 }
