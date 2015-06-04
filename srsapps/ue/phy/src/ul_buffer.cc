@@ -220,6 +220,7 @@ int nof_tx = 0;
 
 bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time)
 {
+  
   // send packet through usrp 
   srslte_timestamp_t tx_time; 
   srslte_timestamp_copy(&tx_time, &rx_time);
@@ -247,12 +248,12 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
  
   radio_handler->tx(signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);                
 
-
+  /*
   char filename[25];
   sprintf(filename, "pusch%d",nof_tx);
   srslte_vec_save_file(filename, signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
   nof_tx++;
-
+*/
   
   ready();
 }

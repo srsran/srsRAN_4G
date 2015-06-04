@@ -471,7 +471,7 @@ int main(int argc, char **argv) {
   cell.phich_resources = SRSLTE_PHICH_R_1;
   sfn = 0;
 
-  prbset_num = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb))/5; 
+  prbset_num = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb)); 
   last_prbset_num = prbset_num; 
   
   /* this *must* be called after setting slot_len_* */
@@ -548,22 +548,18 @@ int main(int argc, char **argv) {
       }
       
       /* Transmit PDCCH + PDSCH only when there is data to send */
-      if (sf_idx != 0 && sf_idx != 5) {
-        if (net_port > 0) {
-          send_data = net_packet_ready; 
-          if (net_packet_ready) {
-            INFO("Transmitting packet\n",0);
-          }
-        } else {
-          INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs.tbs);
-          for (i=0;i<pdsch_cfg.grant.mcs.tbs;i++) {
-            data[i] = rand()%2;
-          }
-          send_data = true; 
-        }        
+      if (net_port > 0) {
+        send_data = net_packet_ready; 
+        if (net_packet_ready) {
+          INFO("Transmitting packet\n",0);
+        }
       } else {
-        send_data = false; 
-      }
+        INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs.tbs);
+        for (i=0;i<pdsch_cfg.grant.mcs.tbs;i++) {
+          data[i] = rand()%2;
+        }
+        send_data = true; 
+      }        
       
       if (send_data) {
         srslte_ra_dl_dci_to_grant(&ra_dl, &pdsch_cfg.grant, cell, sf_idx, cfi, true);

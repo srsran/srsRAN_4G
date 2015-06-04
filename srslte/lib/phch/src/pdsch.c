@@ -101,7 +101,7 @@ int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_g
           // Skip PSS/SSS signals
           if (s == 0 && (nsubframe == 0 || nsubframe == 5)) {
             if (n >= q->cell.nof_prb / 2 - 3
-                && n < q->cell.nof_prb / 2 + 3) {
+                && n <= q->cell.nof_prb / 2 + 3) {
               lend = SRSLTE_CP_NSYMB(q->cell.cp) - 2;
               is_sss = true;
             }
@@ -109,7 +109,7 @@ int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_g
           // Skip PBCH
           if (s == 1 && nsubframe == 0) {
             if (n >= q->cell.nof_prb / 2 - 3
-                && n < q->cell.nof_prb / 2 + 3) {
+                && n <= q->cell.nof_prb / 2 + 3) {
               lstart = 4;
               is_pbch = true;
             }

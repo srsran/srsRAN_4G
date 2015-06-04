@@ -55,7 +55,7 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
 
   /* if it's the prb in the middle, there are less RE due to PBCH and PSS/SSS */
   if ((subframe == 0 || subframe == 5)
-      && (prb_idx >= nof_prb / 2 - 3 && prb_idx < nof_prb / 2 + 3)) {
+      && (prb_idx >= nof_prb / 2 - 3 && prb_idx <= nof_prb / 2 + 3)) {
     if (subframe == 0) {
       if (slot == 0) {
         re = (SRSLTE_CP_NSYMB(cp) - nof_ctrl_symbols - 2) * SRSLTE_NRE;

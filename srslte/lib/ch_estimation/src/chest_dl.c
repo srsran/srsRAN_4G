@@ -351,7 +351,9 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   }
   
   #if NOISE_POWER_METHOD==1
-  q->noise_estimate[port_id] = estimate_noise_port(q, input);
+  if (sf_idx == 0 || sf_idx == 5) {
+    q->noise_estimate[port_id] = estimate_noise_port(q, input);
+  }
   #endif
   
   /* Compute RSRP for the channel estimates in this port */

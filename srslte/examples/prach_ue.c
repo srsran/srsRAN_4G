@@ -499,7 +499,7 @@ cell.nof_ports = 1;
                 rar_grant.hopping_flag = rar_msg.hopping_flag; 
                 rar_grant.rba = rar_msg.rba; 
                 rar_grant.trunc_mcs = rar_msg.mcs; 
-                srslte_dci_rar_to_ul_grant(&rar_grant, cell, 0, 0, &ra_pusch, &ra_grant);
+                srslte_dci_rar_to_ul_grant(&rar_grant, cell, 0, &ra_pusch, &ra_grant);
                 srslte_ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
 
                 srslte_ue_sync_get_last_timestamp(&ue_sync, &uhd_time);

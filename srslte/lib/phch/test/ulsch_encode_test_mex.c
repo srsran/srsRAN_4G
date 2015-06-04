@@ -137,6 +137,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   
+  uint32_t N_srs = 0; 
+  mexutils_read_uint32_struct(PUSCHCFG, "Shortened", &N_srs);
+  
+  
   cfg.grant.L_prb = mexutils_read_f(p, &prbset);
   cfg.grant.n_prb[0] = prbset[0];
   cfg.grant.n_prb[1] = prbset[0];
@@ -145,14 +149,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cfg.grant.n_prb[0] = prbset[0];
   cfg.grant.n_prb[1] = prbset[0];
   cfg.grant.lstart = 0;
-  cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1); 
+  cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs; 
   cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
   cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
   cfg.grant.nof_re = cfg.grant.nof_symb*cfg.grant.M_sc;
   cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
   cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;
 
-  mexPrintf("Q_m: %d, NPRB: %d, RV: %d\n", srslte_mod_bits_x_symbol(cfg.grant.mcs.mod), cfg.grant.L_prb, cfg.rv);
+  mexPrintf("Q_m: %d, NPRB: %d, RV: %d, Nsrs=%d\n", srslte_mod_bits_x_symbol(cfg.grant.mcs.mod), cfg.grant.L_prb, cfg.rv, N_srs);
 
   if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
     mexErrMsgTxt("Error configuring HARQ process\n");

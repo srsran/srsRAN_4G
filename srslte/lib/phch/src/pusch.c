@@ -323,9 +323,9 @@ int srslte_pusch_decode(srslte_pusch_t *q,
   {
     
     if (q->rnti_is_set) {
-      INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+      INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
           cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, 
-           cfg->grant.nof_re, cfg->grant.nof_bits, cfg->rv);
+           cfg->grant.nof_re, cfg->grant.nof_symb, cfg->grant.nof_bits, cfg->rv);
 
       /* extract symbols */
       n = pusch_get(q, &cfg->grant, cfg->sf_idx, sf_symbols, q->d);
@@ -423,9 +423,9 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
-    INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+    INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
          cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), rnti, 
-         cfg->grant.mcs.tbs, cfg->grant.nof_re, cfg->grant.nof_bits, cfg->rv);
+         cfg->grant.mcs.tbs, cfg->grant.nof_re, cfg->grant.nof_symb, cfg->grant.nof_bits, cfg->rv);
     
     bzero(q->q, cfg->grant.nof_bits);
     if (srslte_ulsch_uci_encode(&q->dl_sch, cfg, softbuffer, data, uci_data, q->g, q->q)) {

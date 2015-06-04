@@ -103,7 +103,7 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
 /* Creates the UL PUSCH resource allocation grant from the random access respone message 
  */
 int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, srslte_cell_t cell, 
-                               uint32_t N_srs, uint32_t n_rb_ho, 
+                               uint32_t n_rb_ho, 
                                srslte_ra_ul_dci_t *ul_dci, 
                                srslte_ra_ul_grant_t *grant) 
 {
@@ -128,7 +128,7 @@ int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, srslte_cell_t cell,
   srslte_ra_type2_from_riv(riv, &ul_dci->type2_alloc.L_crb, &ul_dci->type2_alloc.RB_start,
                            cell.nof_prb, cell.nof_prb);
   
-  if (srslte_ra_ul_dci_to_grant(ul_dci, grant, cell, n_rb_ho, N_srs)) {
+  if (srslte_ra_ul_dci_to_grant(ul_dci, grant, cell, n_rb_ho, 0)) {
     fprintf(stderr, "Error computing resource allocation\n");
     return SRSLTE_ERROR;
   }

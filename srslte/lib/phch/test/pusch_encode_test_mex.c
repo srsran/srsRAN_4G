@@ -107,11 +107,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error field PRBSet not found\n");
     return;
   } 
+  
+  uint32_t N_srs = 0; 
+  mexutils_read_uint32_struct(PUSCHCFG, "Shortened", &N_srs);
+
   cfg.grant.L_prb = mexutils_read_f(p, &prbset);
   cfg.grant.n_prb[0] = prbset[0];
   cfg.grant.n_prb[1] = prbset[0];
   cfg.grant.lstart = 0;
-  cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1); 
+  cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs; 
   cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
   cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
   cfg.grant.nof_re = cfg.grant.nof_symb*cfg.grant.M_sc;
@@ -181,7 +185,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mexPrintf("I_cqi: %d, I_ri: %d, I_ack=%d\n", uci_data.I_offset_cqi, uci_data.I_offset_ri, uci_data.I_offset_ack);
 
-  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d\n", cfg.grant.nof_re, cfg.grant.nof_bits, cfg.grant.mcs.tbs);
+  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d, N_srs=%d\n", cfg.grant.nof_re, cfg.grant.nof_bits, cfg.grant.mcs.tbs, N_srs);
   int r = srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, sf_symbols);
   if (r < 0) {
     mexErrMsgTxt("Error encoding PUSCH\n");

@@ -97,7 +97,7 @@ bool dl_buffer::get_ul_grant(ul_sched_grant *grant)
 {
   if (signal_buffer) {
     if (pending_rar_grant && grant->is_temp_rnti()) {
-      return grant->create_from_rar(&rar_grant, cell, 0, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET)); 
+      return grant->create_from_rar(&rar_grant, cell, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET)); 
     } else {
       if (!sf_symbols_and_ce_done) {
         if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {

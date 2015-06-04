@@ -1,14 +1,14 @@
 clear 
 ueConfig=struct('NCellID',1,'CyclicPrefixUL','Normal','NTxAnts',1);
-puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',0,'Modulation','16QAM','RV',0,'Shortened',0);
+puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',22,'Shortened',1);
 
-addpath('../../debug/srslte/lib/phch/test')
+addpath('../../build/srslte/lib/phch/test')
 
- TBs=0:13:222;
- cqilen=[0, 8, 17];
- mods={'QPSK','16QAM','64QAM'};
- rvs=[0, 3];
- betas=[2.0 2.5 6.25];
+ TBs=336;
+ cqilen=0;
+ mods={'16QAM'};
+ rvs=0;
+ betas=0;
 
 
 for i=1:length(TBs)

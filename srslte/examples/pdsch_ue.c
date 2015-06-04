@@ -101,7 +101,7 @@ void args_default(prog_args_t *args) {
   args->input_file_name = NULL;
   args->disable_cfo = false; 
   args->time_offset = 0; 
-  args->file_nof_prb = 6; 
+  args->file_nof_prb = 25; 
   args->file_nof_ports = 1; 
   args->file_cell_id = 0; 
   args->uhd_args = "";
@@ -447,11 +447,7 @@ int main(int argc, char **argv) {
           break;
         case DECODE_PDSCH:
           if (prog_args.rnti != SRSLTE_SIRNTI) {
-            if (srslte_ue_sync_get_sfidx(&ue_sync) != 5 && srslte_ue_sync_get_sfidx(&ue_sync) != 0) {
-              decode_pdsch = true; 
-            } else {
-              decode_pdsch = false; 
-            }
+            decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, 2search only in appropiate places */
             if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {

@@ -96,9 +96,9 @@ namespace ue {
         return true; 
       }
     }
-    bool     create_from_rar(srslte_dci_rar_grant_t *rar, srslte_cell_t cell, uint32_t N_srs, uint32_t n_rb_ho) {
+    bool     create_from_rar(srslte_dci_rar_grant_t *rar, srslte_cell_t cell, uint32_t n_rb_ho) {
       grant_is_from_rar = true; 
-      if (srslte_dci_rar_to_ul_grant(rar, cell, N_srs, n_rb_ho, &ul_dci, &grant)) {
+      if (srslte_dci_rar_to_ul_grant(rar, cell, n_rb_ho, &ul_dci, &grant)) {
         return false; 
       } else {
         if (SRSLTE_VERBOSE_ISINFO()) {

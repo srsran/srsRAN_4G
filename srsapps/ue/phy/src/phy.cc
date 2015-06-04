@@ -109,20 +109,20 @@ radio* phy::get_radio() {
 
 void phy::set_timeadv_rar(uint32_t ta_cmd) {
   n_ta = srslte_N_ta_new_rar(ta_cmd);
-  time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;
+  time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)/(15000.0*2048);
   Info("Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   n_ta = srslte_N_ta_new(n_ta, ta_cmd);
-  time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)*SRSLTE_LTE_TS;  
+  time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)/(15000.0*2048);  
   Info("Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
 void phy::rar_ul_grant(srslte_dci_rar_grant_t *rar, ul_sched_grant *grant)
 {
   uint32_t n_ho = params_db.get_param(phy_params::PUSCH_HOPPING_OFFSET);
-  grant->create_from_rar(rar, cell, 0, params_db.get_param(phy_params::PUSCH_HOPPING_OFFSET)); 
+  grant->create_from_rar(rar, cell, params_db.get_param(phy_params::PUSCH_HOPPING_OFFSET)); 
 }
 
 void phy::set_param(phy_params::phy_param_t param, int64_t value) {
@@ -527,6 +527,7 @@ void phy::run_rx_tx_state()
       srslte_agc_lock(&ue_sync.agc, false);
       Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);
     }
+    // Generate scheduling request if we have to 
     if (sr_is_ready_to_send(current_tti+ul_buffer::tx_advance_sf)) {
       get_ul_buffer_adv(current_tti)->generate_sr();
     }

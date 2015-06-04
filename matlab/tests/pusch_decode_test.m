@@ -1,8 +1,10 @@
-ueConfig=struct('NCellID',1,'NULRB',25,'NSubframe',0,'RNTI',65,'CyclicPrefixUL','Normal','NTxAnts',1);
-puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',24,'Modulation','QPSK','RV',0,'Shortened',0);
+ueConfig=struct('NCellID',1,'NULRB',25,'NSubframe',8,'RNTI',65,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0);
+puschConfig=struct('NTurboDecIts',5,'NLayers',1,'OrthCover','Off','PRBSet',22,'Modulation','16QAM','RV',0);
 
-TBS=72;
-cfo=1146;
+TBS=336;
+cfo=2717.973389;
+t0=1;
+x=[rx(t0:end); zeros(t0-1,1)];
 
 subframe_rx=lteSCFDMADemodulate(ueConfig,x.*exp(-1i*2*pi*cfo/15000*transpose(1:length(x))/512));
 idx=ltePUSCHIndices(ueConfig,puschConfig);
@@ -13,3 +15,4 @@ ce=hest(idx);
 [trblkout,blkcrc,stateout] = lteULSCHDecode(ueConfig,puschConfig,TBS,cws);
 disp(blkcrc)
 scatter(real(symbols),imag(symbols))
+plot(real(hest(:,1)))

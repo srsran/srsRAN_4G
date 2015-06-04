@@ -324,6 +324,21 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
         DEBUG("No space for CFO computation. Frame starts at \n",peak_pos);
       }
 
+      /* Correct CFO with the averaged CFO estimation */
+      if (q->correct_cfo) {
+        srslte_cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                 
+      }
+      
+      // Try to detect SSS 
+      if (q->sss_en) {
+        // Set an invalid N_id_1 indicating SSS is yet to be detected
+        q->N_id_1 = 1000; 
+        
+        if (sync_sss(q, input, find_offset + peak_pos, q->cp) < 0) {
+          DEBUG("No space for SSS processing. Frame starts at %d\n", peak_pos);
+        }
+      }
+      
       if (q->detect_cp) {
         if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
           q->cp = srslte_sync_detect_cp(q, input, peak_pos + find_offset);
@@ -332,20 +347,6 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
         }
       }
   
-      // Try to detect SSS 
-      if (q->sss_en) {
-        /* Correct CFO with the averaged CFO estimation */
-        if (q->mean_cfo && q->correct_cfo) {
-          srslte_cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                 
-        }
-        
-        // Set an invalid N_id_1 indicating SSS is yet to be detected
-        q->N_id_1 = 1000; 
-        
-        if (sync_sss(q, input, find_offset + peak_pos, q->cp) < 0) {
-          DEBUG("No space for SSS processing. Frame starts at %d\n", peak_pos);
-        }
-      }
       // Return 1 (peak detected) even if we couldn't estimate CFO and SSS
       ret = 1;
     } else {

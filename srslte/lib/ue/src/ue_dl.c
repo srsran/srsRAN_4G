@@ -245,7 +245,7 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
     } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
       fprintf(stderr, "Error calling srslte_pdsch_decode()\n");      
     } else if (ret == SRSLTE_SUCCESS) {
-      if (SRSLTE_VERBOSE_ISINFO()) {
+      if (SRSLTE_VERBOSE_ISDEBUG()) {
         INFO("Decoded Message: ", 0);
         srslte_vec_fprint_hex(stdout, data, q->pdsch_cfg.grant.mcs.tbs);
       }

@@ -112,7 +112,6 @@ SRSLTE_API int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg,
 
 SRSLTE_API int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar,
                                           srslte_cell_t cell, 
-                                          uint32_t N_srs, 
                                           uint32_t n_rb_ho, 
                                           srslte_ra_ul_dci_t *ul_dci,
                                           srslte_ra_ul_grant_t *grant); 

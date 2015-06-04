@@ -239,7 +239,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   }
   // MAC control element for PHR
      // TODO
-     
+
   // data from any Logical Channel, except data from UL-CCCH;  
   // first only those with positive Bj
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
@@ -265,12 +265,12 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
       bsr_subh = pdu_msg.get();
     }    
   }
-    
+
   // And set the BSR 
   if (bsr_subh) {
     bsr_subh->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format), bsr_payload_sz?false:true);    
   }
-  
+
   pthread_mutex_unlock(&mutex);
 
   /* Release all SDUs */
@@ -282,7 +282,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   }
 
   Info("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.size(), pdu_sz_nbits/8);
-  pdu_msg.fprint(stdout);
+  //pdu_msg.fprint(stdout);
   
   /* Generate MAC PDU and save to buffer */
   if (pdu_msg.write_packet(buff)) {
@@ -306,7 +306,7 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz, bool *
 {
   
   // Get n-th pending SDU pointer and length
-  uint32_t buff_len; 
+  uint32_t buff_len = 0; 
   uint8_t *buff_ptr = (uint8_t*) mac_io_h->get(mac_io::MAC_LCH_CCCH_UL + lcid)->pop(&buff_len, nof_tx_pkts[lcid]);  
 
   if (buff_ptr && buff_len > 0) { // there is pending SDU to allocate
