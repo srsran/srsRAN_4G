@@ -64,7 +64,11 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
       perror("pthread_attr_setaffinity_np");
     }
   } 
-  if (pthread_create(thread, &attr, start_routine, arg)) {
+  int err = pthread_create(thread, &attr, start_routine, arg);
+  if (err) {
+    if (1 == err) {
+      perror("Failed to create thread - permission error. Running with root permissions?");
+    }
     perror("pthread_create");
   } else {
     ret = true; 
