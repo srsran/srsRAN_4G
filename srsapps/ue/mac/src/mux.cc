@@ -239,6 +239,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   }
   // MAC control element for PHR
      // TODO
+    printf("1 nof_subh=%d, rem_size=%d\n", pdu_msg.nof_subh(), pdu_msg.rem_size());
 
   // data from any Logical Channel, except data from UL-CCCH;  
   // first only those with positive Bj
@@ -251,11 +252,14 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
       }
     }
   }
+  printf("2 nof_subh=%d, rem_size=%d\n", pdu_msg.nof_subh(), pdu_msg.rem_size());
 
   // If resources remain, allocate regardless of their Bj value
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
     while (allocate_sdu(lchid_sorted[i], &pdu_msg));   
   }
+
+  printf("3 nof_subh=%d, rem_size=%d\n", pdu_msg.nof_subh(), pdu_msg.rem_size());
 
   bool send_bsr = bsr_procedure->generate_bsr_on_ul_grant(pdu_msg.rem_size(), &bsr);
   // Insert Padding BSR if not inserted Regular/Periodic BSR 
@@ -309,16 +313,19 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz, bool *
   uint32_t buff_len = 0; 
   uint8_t *buff_ptr = (uint8_t*) mac_io_h->get(mac_io::MAC_LCH_CCCH_UL + lcid)->pop(&buff_len, nof_tx_pkts[lcid]);  
 
+  uint32_t nbytes = (buff_len-1)/8 + 1; 
+  
   if (buff_ptr && buff_len > 0) { // there is pending SDU to allocate
     if (sdu_sz) {
       *sdu_sz = buff_len; 
     }
     if (pdu_msg->new_subh()) { // there is space for a new subheader
       pdu_msg->next();
-      if (pdu_msg->get()->set_sdu(lcid, buff_ptr, buff_len/8, is_first?*is_first:false)) { // new SDU could be added
+      if (pdu_msg->get()->set_sdu(lcid, buff_ptr, nbytes, is_first?*is_first:false)) { // new SDU could be added
         if (is_first) {
           *is_first = false;           
         }
+        Info("Allocated SDU lcid=%d nbytes=%d\n", lcid, nbytes);
         // Increase number of pop'ed packets from queue
         nof_tx_pkts[lcid]++;      
         return true;               
