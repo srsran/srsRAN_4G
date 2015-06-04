@@ -1,9 +1,9 @@
-ueConfig=struct('NCellID',1,'NULRB',25,'NSubframe',8,'RNTI',65,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0);
+ueConfig=struct('NCellID',1,'NULRB',25,'NSubframe',8,'RNTI',71,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0);
 puschConfig=struct('NTurboDecIts',5,'NLayers',1,'OrthCover','Off','PRBSet',22,'Modulation','16QAM','RV',0);
 
 TBS=336;
-cfo=2717.973389;
-t0=1;
+cfo=3400;
+t0=128;
 x=[rx(t0:end); zeros(t0-1,1)];
 
 subframe_rx=lteSCFDMADemodulate(ueConfig,x.*exp(-1i*2*pi*cfo/15000*transpose(1:length(x))/512));
@@ -15,4 +15,4 @@ ce=hest(idx);
 [trblkout,blkcrc,stateout] = lteULSCHDecode(ueConfig,puschConfig,TBS,cws);
 disp(blkcrc)
 scatter(real(symbols),imag(symbols))
-plot(real(hest(:,1)))
+%plot(angle(hest(:,1)))

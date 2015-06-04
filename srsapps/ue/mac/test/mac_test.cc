@@ -201,8 +201,7 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
 void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac *mac, srslte::ue::phy *phy) {
   
   // FIXME: There's an error parsing the connectionSetup message. This value is hard-coded: 
-  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx = 35;
-  
+ 
   phy->set_param(srslte::ue::phy_params::SR_PUCCH_RESINDEX, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx);
   phy->set_param(srslte::ue::phy_params::SR_CONFIG_INDEX, 
@@ -388,6 +387,7 @@ int main(int argc, char *argv[])
         if (n > 0) {
           printf("ConnSetup received %d bytes\n", n/8);
           bit_msg.N_bits = n; 
+          srslte_vec_fprint_hex(stdout, bit_msg.msg, n);
           liblte_rrc_unpack_dl_ccch_msg(&bit_msg, &dl_ccch_msg);
           printf("Response: %s\n", liblte_rrc_dl_ccch_msg_type_text[dl_ccch_msg.msg_type]);
           switch (dl_ccch_msg.msg_type) {

@@ -192,5 +192,10 @@ ADD_TEST(prach_test_multi_n8 prach_test_multi -n 8)
 ADD_TEST(prach_test_multi_n4 prach_test_multi -n 4)
  
  
- BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES srslte srslte_mex)
 
+
+IF(UHD_FOUND)
+  ADD_EXECUTABLE(prach_test_usrp prach_test_usrp.c)
+  TARGET_LINK_LIBRARIES(prach_test_usrp srslte srslte_uhd)
+ENDIF(UHD_FOUND)

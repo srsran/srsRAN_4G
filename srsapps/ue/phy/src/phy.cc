@@ -108,14 +108,15 @@ radio* phy::get_radio() {
 }
 
 void phy::set_timeadv_rar(uint32_t ta_cmd) {
+  ta_cmd=7;
   n_ta = srslte_N_ta_new_rar(ta_cmd);
-  time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)/(15000.0*2048);
+  time_adv_sec = ((float) n_ta)/(15000.0*srslte_symbol_sz(cell.nof_prb));
   Info("Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   n_ta = srslte_N_ta_new(n_ta, ta_cmd);
-  time_adv_sec = SRSLTE_TA_OFFSET+((float) n_ta)/(15000.0*2048);  
+  time_adv_sec = ((float) n_ta)/(15000.0*srslte_symbol_sz(cell.nof_prb));  
   Info("Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
