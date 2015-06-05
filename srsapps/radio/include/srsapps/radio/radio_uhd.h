@@ -72,6 +72,7 @@ namespace srslte {
       
     private:
       void *uhd; 
+      bool is_first;
   }; 
 }
 

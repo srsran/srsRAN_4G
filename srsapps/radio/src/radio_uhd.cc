@@ -57,6 +57,7 @@ void radio_uhd::set_tx_rx_gain_offset(float offset) {
 
 bool radio_uhd::init_agc(char *args)
 {
+  is_first = true; 
   printf("Opening UHD device with threaded RX Gain control ...\n");
   if (cuhd_open_th(args, &uhd, true)) {
     fprintf(stderr, "Error opening uhd\n");
@@ -87,7 +88,8 @@ void radio_uhd::get_time(srslte_timestamp_t *now) {
 
 bool radio_uhd::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
-  if (cuhd_send_timed(uhd, buffer, nof_samples, tx_time.full_secs, tx_time.frac_secs) > 0) {
+  if (cuhd_send_timed2(uhd, buffer, nof_samples, tx_time.full_secs, tx_time.frac_secs, is_first, false) > 0) {
+    is_first = false; 
     return true; 
   } else {
     return false; 

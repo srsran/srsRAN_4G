@@ -218,7 +218,18 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
 
 int nof_tx = 0; 
 
+bool ul_buffer::send_zeros(srslte::radio* radio_handler, float time_adv_sec, srslte_timestamp_t rx_time)
+{
+  bzero(signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  send(radio_handler, time_adv_sec, 0, rx_time, false); 
+}
+
 bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time)
+{
+  send(radio_handler, time_adv_sec, cfo, rx_time, true);
+}
+
+bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time, bool normalize_amp)
 {
   
   // send packet through usrp 
@@ -227,20 +238,24 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
   srslte_timestamp_add(&tx_time, 0, tx_advance_sf*1e-3 - time_adv_sec); 
 
   // Correct CFO before transmission
-  srslte_cfo_correct(&ue_ul.cfo, signal_buffer, signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));            
+  if (cfo != 0) {
+    srslte_cfo_correct(&ue_ul.cfo, signal_buffer, signal_buffer, cfo / srslte_symbol_sz(cell.nof_prb));            
+  }
   
   // Compute peak
   float max = 0; 
-  float *t = (float*) signal_buffer;
-  for (int i=0;i<2*SRSLTE_SF_LEN_PRB(cell.nof_prb);i++) {
-    if (fabsf(t[i]) > max) {
-      max = fabsf(t[i]);
+  if (normalize_amp) {
+    float *t = (float*) signal_buffer;
+    for (int i=0;i<2*SRSLTE_SF_LEN_PRB(cell.nof_prb);i++) {
+      if (fabsf(t[i]) > max) {
+        max = fabsf(t[i]);
+      }
     }
+    
+    // Normalize before TX 
+    srslte_vec_sc_prod_cfc(signal_buffer, 0.9/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }
   
-  // Normalize before TX 
-  srslte_vec_sc_prod_cfc(signal_buffer, 0.9/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-
   Info("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f us PeakAmplitude=%.2f PKT#%d\n", 
         cfo*15000, SRSLTE_SF_LEN_PRB(cell.nof_prb),
         srslte_timestamp_real(&rx_time), 

@@ -71,7 +71,7 @@ bool cuhd_rx_wait_lo_locked(void *h)
 {
 
   double report = 0.0;
-  while (isLocked(h) && report < 3000.0) {
+  while (isLocked(h) && report < 20.0) {
     report += 0.1;
     usleep(1000);
   }
