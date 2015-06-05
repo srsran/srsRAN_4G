@@ -331,6 +331,18 @@ void srslte_vec_save_file(char *filename, void *buffer, uint32_t len) {
   }  
 }
 
+void srslte_vec_load_file(char *filename, void *buffer, uint32_t len) {
+  FILE *f; 
+  f = fopen(filename, "r");
+  if (f) {
+    fread(buffer, len, 1, f);
+    fclose(f);
+  } else {
+    perror("fopen");
+  }  
+}
+
+
 void srslte_vec_conj_cc(cf_t *x, cf_t *y, uint32_t len) {
 #ifndef HAVE_VOLK_CONJ_FUNCTION
   int i;

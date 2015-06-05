@@ -71,8 +71,9 @@ SRSLTE_API void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len);
 SRSLTE_API void srslte_vec_fprint_i(FILE *stream, int *x, uint32_t len);
 SRSLTE_API void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len);
 
-/* Saves a vector to a file */
+/* Saves/loads a vector to a file */
 SRSLTE_API void srslte_vec_save_file(char *filename, void *buffer, uint32_t len);
+SRSLTE_API void srslte_vec_load_file(char *filename, void *buffer, uint32_t len);
 
 /* sum two vectors */
 SRSLTE_API void srslte_vec_sum_ch(uint8_t *x, uint8_t *y, char *z, uint32_t len);
