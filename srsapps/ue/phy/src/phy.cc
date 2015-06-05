@@ -153,15 +153,6 @@ bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_pow
 /* Send SR as soon as possible as defined in Section 10.2 of 36.213 */
 void phy::send_sr(bool enable)
 {
-
-  if (enable) {
-    // Get sr_periodicity and sr_N_offset from table 10.1-5
-    uint32_t I_sr = params_db.get_param(phy_params::SR_CONFIG_INDEX);
-    sr_n_pucch = params_db.get_param(phy_params::SR_PUCCH_RESINDEX);
-    srslte_ue_ul_sr_config(I_sr, &sr_periodicity, &sr_N_offset);
-    Info("SR I_sr=%d, periodicity=%d, N_offset=%d, n_pucch=%d\n", I_sr, sr_periodicity, sr_N_offset, sr_n_pucch);
-    sr_tx_tti = get_current_tti(); 
-  }
   sr_enabled = enable;
 }
 
@@ -175,10 +166,12 @@ int phy::sr_last_tx_tti() {
 
 bool phy::sr_is_ready_to_send(uint32_t tti_) {
   if (sr_enabled) {
-    if ((10*tti_to_SFN(tti_)+tti_to_subf(tti_)-sr_N_offset)%sr_periodicity==0) {
+    // Get I_sr parameter
+    uint32_t I_sr = params_db.get_param(phy_params::SR_CONFIG_INDEX);
+    if (srslte_ue_ul_sr_send_tti(I_sr, tti_)) {
       sr_enabled = false;
       sr_tx_tti = tti_; 
-      Debug("SR ready to send for TTI=%d\n", tti_);
+      Info("SR ready to send for TTI=%d\n", tti_);
       return true; 
     }
   }

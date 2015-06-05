@@ -377,37 +377,41 @@ int srslte_ue_ul_pusch_encode_cfg(srslte_ue_ul_t *q, srslte_pusch_cfg_t *cfg,
   return ret;   
 }
 
-/* Obtains Scheduling Request channel assignment as defined in Table 10.1-5, 36.213 */
-int srslte_ue_ul_sr_config(uint32_t I_sr, uint32_t *sr_periodicity, uint32_t *sr_N_offset) {
-  if (sr_periodicity && sr_N_offset) {
-    if (I_sr < 5) {
-      *sr_periodicity = 5;
-      *sr_N_offset    = I_sr; 
-    } else if (I_sr < 15) {
-      *sr_periodicity = 10;
-      *sr_N_offset    = I_sr-5;     
-    } else if (I_sr < 35) {
-      *sr_periodicity = 20;
-      *sr_N_offset    = I_sr-15; 
-    } else if (I_sr < 75) {
-      *sr_periodicity = 40;
-      *sr_N_offset    = I_sr-35; 
-    } else if (I_sr < 155) {
-      *sr_periodicity = 80;
-      *sr_N_offset    = I_sr-75; 
-    } else if (I_sr < 157) {
-      *sr_periodicity = 2;
-      *sr_N_offset    = I_sr-155; 
-    } else if (I_sr == 157) {
-      *sr_periodicity = 1;
-      *sr_N_offset    = I_sr-157; 
-    } else {
-      return SRSLTE_ERROR;
-    }
+/* Returns 1 if a SR needs to be sent at current_tti given I_sr, as defined in Section 10.1 of 36.213 */
+int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {
+  uint32_t sr_periodicity; 
+  uint32_t sr_N_offset;
+  if (I_sr < 5) {
+    sr_periodicity = 5;
+    sr_N_offset    = I_sr; 
+  } else if (I_sr < 15) {
+    sr_periodicity = 10;
+    sr_N_offset    = I_sr-5;     
+  } else if (I_sr < 35) {
+    sr_periodicity = 20;
+    sr_N_offset    = I_sr-15; 
+  } else if (I_sr < 75) {
+    sr_periodicity = 40;
+    sr_N_offset    = I_sr-35; 
+  } else if (I_sr < 155) {
+    sr_periodicity = 80;
+    sr_N_offset    = I_sr-75; 
+  } else if (I_sr < 157) {
+    sr_periodicity = 2;
+    sr_N_offset    = I_sr-155; 
+  } else if (I_sr == 157) {
+    sr_periodicity = 1;
+    sr_N_offset    = I_sr-157; 
   } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR;
   }
-  return SRSLTE_SUCCESS;
+  uint32_t sfn = current_tti/10;
+  uint32_t subf = current_tti%10; 
+  if ((10*sfn+subf-sr_N_offset)%sr_periodicity==0) {
+    return 1; 
+  } else {
+    return SRSLTE_SUCCESS;
+  }
 }
 
 

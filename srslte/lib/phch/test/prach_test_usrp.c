@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
     if (nframe==9 || nframe==8) {
       srslte_timestamp_add(&tstamp, 0, 2e-3);
       if (nframe==8) {
-        //cuhd_send_timed2(uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
+        cuhd_send_timed2(uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
         printf("Transmitting zeros\n");        
       } else {
         cuhd_send_timed2(uhd, preamble, flen, tstamp.full_secs, tstamp.frac_secs, true, true);      

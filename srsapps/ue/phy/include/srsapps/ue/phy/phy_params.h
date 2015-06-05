@@ -77,7 +77,6 @@ namespace ue {
       PUCCH_N_PUCCH_2,
       PUCCH_N_PUCCH_SR,
 
-      SR_PUCCH_RESINDEX,
       SR_CONFIG_INDEX,
 
       UCI_I_OFFSET_ACK,

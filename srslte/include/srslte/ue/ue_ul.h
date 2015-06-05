@@ -151,8 +151,7 @@ SRSLTE_API void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q,
 
 /* Other static functions for UL PHY procedures defined in 36.213 */
 
-SRSLTE_API int srslte_ue_ul_sr_config(uint32_t I_sr, 
-                                      uint32_t *sr_periodicity, 
-                                      uint32_t *sr_N_offset);
+SRSLTE_API int srslte_ue_ul_sr_send_tti(uint32_t I_sr, 
+                                        uint32_t current_tti);
 
 #endif
