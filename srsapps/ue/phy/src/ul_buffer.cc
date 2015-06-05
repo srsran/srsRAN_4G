@@ -49,7 +49,7 @@ bool ul_buffer::init_cell(srslte_cell_t cell_, phy_params *params_db_, log *log_
   if (!srslte_ue_ul_init(&ue_ul, cell)) {  
     srslte_ue_ul_set_normalization(&ue_ul, false); 
     signal_buffer = (cf_t*) srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-    cell_initiated = signal_buffer?true:false;
+    cell_initiated = (signal_buffer)?true:false;
     srslte_ue_ul_set_cfo_enable(&ue_ul, false);
     bzero(&uci_data, sizeof(srslte_uci_data_t));
     uci_pending = false; 
@@ -218,21 +218,9 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
 
 int nof_tx = 0; 
 
-bool ul_buffer::send_zeros(srslte::radio* radio_handler, float time_adv_sec, srslte_timestamp_t rx_time)
-{
-  bzero(signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  send(radio_handler, time_adv_sec, 0, rx_time, false); 
-}
-
 bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time)
-{
-  send(radio_handler, time_adv_sec, cfo, rx_time, true);
-}
-
-bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time, bool normalize_amp)
-{
-  
-  // send packet through usrp 
+{  
+  // send packet next timeslot minus time advance
   srslte_timestamp_t tx_time; 
   srslte_timestamp_copy(&tx_time, &rx_time);
   srslte_timestamp_add(&tx_time, 0, tx_advance_sf*1e-3 - time_adv_sec); 
@@ -256,7 +244,7 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
     srslte_vec_sc_prod_cfc(signal_buffer, 0.9/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }
   
-  Info("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f us PeakAmplitude=%.2f PKT#%d\n", 
+  Info("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f PeakAmplitude=%.2f PKT#%d\n", 
         cfo*15000, SRSLTE_SF_LEN_PRB(cell.nof_prb),
         srslte_timestamp_real(&rx_time), 
         srslte_timestamp_real(&tx_time), time_adv_sec*1000000, max, nof_tx);

@@ -74,6 +74,7 @@ bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, l
   dl_buffer_queue = new queue(6, sizeof(dl_buffer));
   do_agc = do_agc_;
   last_gain = 1e4; 
+  time_adv_sec = 0; 
   
   // Set default params  
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_NFRAMES, 100);
@@ -143,8 +144,8 @@ bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_pow
   if (phy_state == RXTX) {
     srslte_agc_lock(&ue_sync.agc, true);
     old_gain = radio_handler->get_tx_gain();
-    radio_handler->set_tx_gain(0);
-    Info("Stopped AGC. Set TX gain to %.1f dB\n", 0);
+    radio_handler->set_tx_gain(10);
+    Info("Stopped AGC. Set TX gain to %.1f dB\n", radio_handler->get_tx_gain());
     return prach_buffer.prepare_to_send(preamble_idx, allowed_subframe, target_power_dbm);
   } 
   return false; 
@@ -508,7 +509,8 @@ void phy::run_rx_tx_state()
         phy_state = IDLE; 
         break; 
       case 1:
-        is_sfn_synched = true; 
+        is_sfn_synched = true;
+        is_first_of_burst = true; 
         break;        
       case 0:
         break;        
@@ -520,7 +522,7 @@ void phy::run_rx_tx_state()
 
     bool tx_zeros = true; 
     
-    // Prepare transmission for the next tti 
+    // Advance transmission time for the next tti 
     srslte_timestamp_add(&last_rx_time, 0, 1e-3);
 
     // Generate scheduling request if we have to 
@@ -543,16 +545,14 @@ void phy::run_rx_tx_state()
         get_ul_buffer_adv(current_tti)->generate_data();
       }
       // And transmit
-      get_ul_buffer_adv(current_tti)->send(radio_handler, time_adv_sec, cfo, last_rx_time);      
+      get_ul_buffer_adv(current_tti)->send(radio_handler, time_adv_sec, cfo, last_rx_time);
+      is_first_of_burst = false; 
     } else {
-      // Transmit zeros to avoid transitions. 
-      // FIXME: This keeps the TX RF chain always on. Should transmit zeros only before a true transmission
-      get_ul_buffer_adv(current_tti)->send_zeros(radio_handler, time_adv_sec, last_rx_time);
+      if (!is_first_of_burst) {
+        radio_handler->tx_end();
+        is_first_of_burst = true; 
+      }
     }
-    
-    
-      // send ul buffer if we have to 
-      // Generate PUCCH if no UL grant
     
     // Receive alligned buffer for the current tti 
     get_dl_buffer(current_tti)->recv_ue_sync(&ue_sync, &last_rx_time);

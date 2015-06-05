@@ -160,7 +160,6 @@ bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
     }
   }
   
-  // transmit
   radio_handler->tx(signal_buffer, len, tx_time);                
   Info("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f, PeakAmplitude=%.2f\n", 
        cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs, max);

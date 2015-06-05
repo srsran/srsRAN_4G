@@ -167,6 +167,8 @@ private:
   float        old_gain; 
   uint32_t     sr_tx_tti;
 
+  bool         is_first_of_burst; 
+  
 };
 
 } 

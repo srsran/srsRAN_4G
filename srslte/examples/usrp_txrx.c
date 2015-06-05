@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
   
   uint32_t flen = srslte_sampling_freq_hz(nof_prb)/1000;
+  uint32_t nsamples_adv = 3000; 
 
   cf_t *rx_buffer = malloc(sizeof(cf_t)*flen*nof_frames);
   if (!rx_buffer) {
@@ -105,11 +106,13 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  cf_t *tx_buffer = malloc(sizeof(cf_t)*flen);
+  cf_t *tx_buffer = malloc(sizeof(cf_t)*(flen+nsamples_adv));
   if (!tx_buffer) {
     perror("malloc");
     exit(-1);
   }
+  bzero(tx_buffer, sizeof(cf_t)*(flen+nsamples_adv));
+  
   cf_t *zeros = calloc(sizeof(cf_t),flen);
   if (!zeros) {
     perror("calloc");
@@ -132,24 +135,28 @@ int main(int argc, char **argv) {
   cuhd_set_tx_freq_offset(uhd, uhd_freq, 8e6);  
   sleep(1);
   
-  srslte_vec_load_file(input_filename, tx_buffer, flen*sizeof(cf_t));
+  srslte_vec_load_file(input_filename, &tx_buffer[nsamples_adv], flen*sizeof(cf_t));
 
   srslte_timestamp_t tstamp; 
   
   cuhd_start_rx_stream(uhd);
   uint32_t nframe=0;
   
+  float burst_settle_time = (float) nsamples_adv/srslte_sampling_freq_hz(nof_prb);
+  
+  printf("timeadv=%f\n",burst_settle_time);
+
   while(nframe<nof_frames) {
     printf("Rx subframe %d\n", nframe);
     cuhd_recv_with_time(uhd, &rx_buffer[flen*nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
     nframe++;
     if (nframe==9 || nframe==8) {
-      srslte_timestamp_add(&tstamp, 0, 2e-3);
+      srslte_timestamp_add(&tstamp, 0, 2e-3-burst_settle_time);
       if (nframe==8) {
-        cuhd_send_timed2(uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
+        //cuhd_send_timed2(uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
         printf("Transmitting zeros\n");        
       } else {
-        cuhd_send_timed2(uhd, tx_buffer, flen, tstamp.full_secs, tstamp.frac_secs, false, true);      
+        cuhd_send_timed2(uhd, tx_buffer, flen+nsamples_adv, tstamp.full_secs, tstamp.frac_secs, true, true);      
         printf("Transmitting Signal\n");  
       }
     }
