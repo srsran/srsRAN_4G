@@ -40,8 +40,12 @@ namespace ue {
   class ul_sched_grant : public sched_grant {
   public:
 
-             ul_sched_grant(rnti_type_t type, uint16_t rnti) : sched_grant(type, rnti) {} 
-             ul_sched_grant(uint16_t rnti) : sched_grant(rnti) {} 
+             ul_sched_grant(rnti_type_t type, uint16_t rnti) : sched_grant(type, rnti) {
+               N_srs = 0; 
+             } 
+             ul_sched_grant(uint16_t rnti) : sched_grant(rnti) {
+               N_srs = 0; 
+             } 
              
     uint32_t get_rv() {
       return ul_dci.rv_idx; 
@@ -55,6 +59,13 @@ namespace ue {
     void     set_ndi(bool value) {
       ul_dci.ndi = value; 
     }   
+    void     set_shortened(bool enabled) {
+      if (enabled) {
+        N_srs = 1; 
+      } else {
+        N_srs = 0; 
+      }
+    }
     bool     get_cqi_request() {
       return ul_dci.cqi_request; 
     }
@@ -85,7 +96,7 @@ namespace ue {
     bool     is_from_rar() {
       return grant_is_from_rar; 
     }
-    bool     create_from_dci(srslte_dci_msg_t *msg, srslte_cell_t cell, uint32_t N_srs, uint32_t n_rb_ho) {
+    bool     create_from_dci(srslte_dci_msg_t *msg, srslte_cell_t cell, uint32_t n_rb_ho) {
       grant_is_from_rar = false; 
       if (srslte_dci_msg_to_ul_grant(msg, cell, N_srs, n_rb_ho, &ul_dci, &grant)) {
         return false; 
@@ -120,6 +131,7 @@ namespace ue {
     uint32_t             current_tx_nb; 
     uint16_t             rnti; 
     bool                 grant_is_from_rar; 
+    uint32_t             N_srs;
   };
  
 }
