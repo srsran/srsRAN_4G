@@ -131,7 +131,6 @@ void phy::set_param(phy_params::phy_param_t param, int64_t value) {
   params_db.set_param((uint32_t) param, value);
 }
 
-
 // FIXME: Add PRACH power control
 bool phy::send_prach(uint32_t preamble_idx) {
   return send_prach(preamble_idx, -1, 0);
@@ -158,32 +157,8 @@ void phy::send_sr(bool enable)
   if (enable) {
     // Get sr_periodicity and sr_N_offset from table 10.1-5
     uint32_t I_sr = params_db.get_param(phy_params::SR_CONFIG_INDEX);
-    if (I_sr < 5) {
-      sr_periodicity = 5;
-      sr_N_offset    = I_sr; 
-    } else if (I_sr < 15) {
-      sr_periodicity = 10;
-      sr_N_offset    = I_sr-5;     
-    } else if (I_sr < 35) {
-      sr_periodicity = 20;
-      sr_N_offset    = I_sr-15; 
-    } else if (I_sr < 75) {
-      sr_periodicity = 40;
-      sr_N_offset    = I_sr-35; 
-    } else if (I_sr < 155) {
-      sr_periodicity = 80;
-      sr_N_offset    = I_sr-75; 
-    } else if (I_sr < 157) {
-      sr_periodicity = 2;
-      sr_N_offset    = I_sr-155; 
-    } else if (I_sr == 157) {
-      sr_periodicity = 1;
-      sr_N_offset    = I_sr-157; 
-    } else {
-      Error("Invalid I_sr=%d\n", I_sr);
-      return;
-    }
     sr_n_pucch = params_db.get_param(phy_params::SR_PUCCH_RESINDEX);
+    srslte_ue_ul_sr_config(I_sr, &sr_periodicity, &sr_N_offset);
     Info("SR I_sr=%d, periodicity=%d, N_offset=%d, n_pucch=%d\n", I_sr, sr_periodicity, sr_N_offset, sr_n_pucch);
     sr_tx_tti = get_current_tti(); 
   }

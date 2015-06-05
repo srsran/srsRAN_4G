@@ -184,6 +184,30 @@ srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx) {
   }
 }
 
+/* Returns true if current_tti is a valid opportunity for PRACH transmission and the is an allowed subframe, 
+ * or allowed_subframe == -1
+ */
+bool srslte_prach_send_tti(uint32_t config_idx, uint32_t current_tti, int allowed_subframe) {
+  // Get SFN and sf_idx from the PRACH configuration index
+  srslte_prach_sfn_t prach_sfn = srslte_prach_get_sfn(config_idx);  
+
+  if ((prach_sfn == SRSLTE_PRACH_SFN_EVEN && ((current_tti/10)%2)==0) ||
+      prach_sfn == SRSLTE_PRACH_SFN_ANY) 
+  {
+    srslte_prach_sf_config_t sf_config;
+    srslte_prach_sf_config(config_idx, &sf_config);
+    for (int i=0;i<sf_config.nof_sf;i++) {
+      if (((current_tti%10) == sf_config.sf[i] && allowed_subframe == -1) || 
+          ((current_tti%10) == sf_config.sf[i] && (current_tti%10) == allowed_subframe))
+      {
+        return true; 
+      }
+    }
+  }
+  return false; 
+}
+
+
 void srslte_prach_sf_config(uint32_t config_idx, srslte_prach_sf_config_t *sf_config) {
   memcpy(sf_config, &prach_sf_config[config_idx%16], sizeof(srslte_prach_sf_config_t));
 }
