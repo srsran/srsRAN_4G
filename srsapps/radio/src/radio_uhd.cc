@@ -116,7 +116,8 @@ void radio_uhd::set_rx_srate(float srate)
 
 void radio_uhd::set_tx_freq(float freq)
 {
-  cuhd_set_tx_freq(uhd, freq);
+  //cuhd_set_tx_freq(uhd, freq);
+  cuhd_set_tx_freq_offset(uhd, freq, 8e6);  
 }
 
 void radio_uhd::set_tx_gain(float gain)

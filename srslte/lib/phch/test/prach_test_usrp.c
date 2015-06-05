@@ -149,12 +149,12 @@ int main(int argc, char **argv) {
   }
   printf("Subframe len:   %d samples\n", flen);
   printf("Set TX/RX rate: %.2f MHz\n", cuhd_set_rx_srate(uhd, srslte_sampling_freq_hz(nof_prb)) / 1000000);
-  printf("Set TX/RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
+  printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
+  printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
   printf("Set TX/RX freq: %.2f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
   cuhd_set_tx_srate(uhd, srslte_sampling_freq_hz(nof_prb));
-  cuhd_set_tx_gain(uhd, uhd_gain);
-  cuhd_set_tx_freq(uhd, uhd_freq);  
-  cuhd_rx_wait_lo_locked(uhd);
+  cuhd_set_tx_freq_offset(uhd, uhd_freq, 8e6);  
+  sleep(1);
   
   cf_t *zeros = calloc(sizeof(cf_t),flen);
   
@@ -167,21 +167,25 @@ int main(int argc, char **argv) {
   
   cuhd_start_rx_stream(uhd);
   uint32_t nframe=0;
-
+  
   while(nframe<nof_frames) {
+    printf("Rx subframe %d\n", nframe);
     cuhd_recv_with_time(uhd, &buffer[flen*nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
     nframe++;
-    if (nframe==9 || nframe==8) {
+    if (nframe==9 || nframe==8 || nframe==10) {
       srslte_timestamp_add(&tstamp, 0, 2e-3);
       if (nframe==8) {
         cuhd_send_timed2(uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
         printf("Transmitting zeros\n");        
-      } else {
-        cuhd_send_timed2(uhd, preamble, flen, tstamp.full_secs, tstamp.frac_secs, false, true);      
+      } else if (nframe == 9) {
+        cuhd_send_timed2(uhd, preamble, flen, tstamp.full_secs, tstamp.frac_secs, false, false);      
         printf("Transmitting PRACH\n");
+      } else {
+        cuhd_send_timed2(uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, false, true);      
+        printf("Transmitting zeros\n");                
       }
     }
-    printf("Rx subframe %d\n", nframe);
+
   }
   if (f) {
     fwrite(&buffer[10*flen], flen*sizeof(cf_t), 1, f);
