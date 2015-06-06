@@ -119,6 +119,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
+  
+  srslte_sync_set_cp(&sync, cp);
 
   /* Set a very high threshold to make sure the correlation is ok */
   srslte_sync_set_threshold(&sync, 5.0);
