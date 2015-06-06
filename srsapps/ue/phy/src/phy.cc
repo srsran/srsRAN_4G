@@ -74,6 +74,8 @@ bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, l
   dl_buffer_queue = new queue(6, sizeof(dl_buffer));
   do_agc = do_agc_;
   last_gain = 1e4; 
+  time_adv_sec = 0;
+  sr_tx_tti = 0;  
   
   // Set default params  
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_NFRAMES, 100);
@@ -108,15 +110,14 @@ radio* phy::get_radio() {
 }
 
 void phy::set_timeadv_rar(uint32_t ta_cmd) {
-  ta_cmd=7;
   n_ta = srslte_N_ta_new_rar(ta_cmd);
-  time_adv_sec = ((float) n_ta)/(15000.0*srslte_symbol_sz(cell.nof_prb));
+  time_adv_sec = ((float) n_ta)*SRSLTE_LTE_TS;
   Info("Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   n_ta = srslte_N_ta_new(n_ta, ta_cmd);
-  time_adv_sec = ((float) n_ta)/(15000.0*srslte_symbol_sz(cell.nof_prb));  
+  time_adv_sec = ((float) n_ta)*SRSLTE_LTE_TS;  
   Info("Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
@@ -130,7 +131,6 @@ void phy::set_param(phy_params::phy_param_t param, int64_t value) {
   params_db.set_param((uint32_t) param, value);
 }
 
-
 // FIXME: Add PRACH power control
 bool phy::send_prach(uint32_t preamble_idx) {
   return send_prach(preamble_idx, -1, 0);
@@ -143,49 +143,16 @@ bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_pow
   if (phy_state == RXTX) {
     srslte_agc_lock(&ue_sync.agc, true);
     old_gain = radio_handler->get_tx_gain();
-    radio_handler->set_tx_gain(0);
-    Info("Stopped AGC. Set TX gain to %.1f dB\n", 0);
+    radio_handler->set_tx_gain(10);
+    Info("Stopped AGC. Set TX gain to %.1f dB\n", radio_handler->get_tx_gain());
     return prach_buffer.prepare_to_send(preamble_idx, allowed_subframe, target_power_dbm);
   } 
   return false; 
 }
 
-/* Send SR as soon as possible as defined in Section 10.2 of 36.213 */
+/* Instruct the PHY to send a SR as soon as possible */
 void phy::send_sr(bool enable)
 {
-
-  if (enable) {
-    // Get sr_periodicity and sr_N_offset from table 10.1-5
-    uint32_t I_sr = params_db.get_param(phy_params::SR_CONFIG_INDEX);
-    if (I_sr < 5) {
-      sr_periodicity = 5;
-      sr_N_offset    = I_sr; 
-    } else if (I_sr < 15) {
-      sr_periodicity = 10;
-      sr_N_offset    = I_sr-5;     
-    } else if (I_sr < 35) {
-      sr_periodicity = 20;
-      sr_N_offset    = I_sr-15; 
-    } else if (I_sr < 75) {
-      sr_periodicity = 40;
-      sr_N_offset    = I_sr-35; 
-    } else if (I_sr < 155) {
-      sr_periodicity = 80;
-      sr_N_offset    = I_sr-75; 
-    } else if (I_sr < 157) {
-      sr_periodicity = 2;
-      sr_N_offset    = I_sr-155; 
-    } else if (I_sr == 157) {
-      sr_periodicity = 1;
-      sr_N_offset    = I_sr-157; 
-    } else {
-      Error("Invalid I_sr=%d\n", I_sr);
-      return;
-    }
-    sr_n_pucch = params_db.get_param(phy_params::SR_PUCCH_RESINDEX);
-    Info("SR I_sr=%d, periodicity=%d, N_offset=%d, n_pucch=%d\n", I_sr, sr_periodicity, sr_N_offset, sr_n_pucch);
-    sr_tx_tti = get_current_tti(); 
-  }
   sr_enabled = enable;
 }
 
@@ -199,10 +166,12 @@ int phy::sr_last_tx_tti() {
 
 bool phy::sr_is_ready_to_send(uint32_t tti_) {
   if (sr_enabled) {
-    if ((10*tti_to_SFN(tti_)+tti_to_subf(tti_)-sr_N_offset)%sr_periodicity==0) {
+    // Get I_sr parameter
+    uint32_t I_sr = params_db.get_param(phy_params::SR_CONFIG_INDEX);
+    if (srslte_ue_ul_sr_send_tti(I_sr, tti_)) {
       sr_enabled = false;
       sr_tx_tti = tti_; 
-      Debug("SR ready to send for TTI=%d\n", tti_);
+      Info("SR ready to send for TTI=%d\n", tti_);
       return true; 
     }
   }
@@ -508,7 +477,8 @@ void phy::run_rx_tx_state()
         phy_state = IDLE; 
         break; 
       case 1:
-        is_sfn_synched = true; 
+        is_sfn_synched = true;
+        is_first_of_burst = true; 
         break;        
       case 0:
         break;        
@@ -518,28 +488,40 @@ void phy::run_rx_tx_state()
     log_h->step(current_tti);
     float cfo = srslte_ue_sync_get_cfo(&ue_sync)/15000; 
 
-    // Prepare transmission for the next tti 
-    srslte_timestamp_add(&last_rx_time, 0, 1e-3);
+    bool tx_zeros = true; 
     
-    // send prach if we have to 
-    if (prach_buffer.is_ready_to_send(current_tti)) {
-      prach_buffer.send(radio_handler, cfo, last_rx_time);
-      radio_handler->set_tx_gain(old_gain);
-      srslte_agc_lock(&ue_sync.agc, false);
-      Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);
-    }
+    // Advance transmission time for the next tti 
+    srslte_timestamp_add(&last_rx_time, 0, 1e-3);
+
     // Generate scheduling request if we have to 
     if (sr_is_ready_to_send(current_tti+ul_buffer::tx_advance_sf)) {
       get_ul_buffer_adv(current_tti)->generate_sr();
     }
-    // send ul buffer if we have to 
-    if (get_ul_buffer_adv(current_tti)->is_released() || get_ul_buffer_adv(current_tti)->uci_ready()) {
-      // Generate PUCCH if no UL grant
+
+    // Every subframe, TX a PRACH or a PUSCH/PUCCH
+    if (prach_buffer.is_ready_to_send(current_tti)) {
+      // send prach if we have to 
+      prach_buffer.send(radio_handler, cfo, last_rx_time);
+      radio_handler->tx_end();
+      radio_handler->set_tx_gain(old_gain);
+      srslte_agc_lock(&ue_sync.agc, false);
+      Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);
+    
+    // If we don't transmit PRACH, check if need to transmit PUSCH/PUCCH
+    } else if (get_ul_buffer_adv(current_tti)->is_released() || get_ul_buffer_adv(current_tti)->uci_ready()) { 
+      // If the packet was not generated by a call from MAC, means it's PUCCH. Generate now the signal
       if (!get_ul_buffer_adv(current_tti)->is_released()) {
         get_ul_buffer_adv(current_tti)->generate_data();
       }
-      get_ul_buffer_adv(current_tti)->send(radio_handler, time_adv_sec, cfo, last_rx_time);      
-    } 
+      // And transmit
+      get_ul_buffer_adv(current_tti)->send(radio_handler, time_adv_sec, cfo, last_rx_time);
+      is_first_of_burst = false; 
+    } else {
+      if (!is_first_of_burst) {
+        radio_handler->tx_end();
+        is_first_of_burst = true; 
+      }
+    }
     
     // Receive alligned buffer for the current tti 
     get_dl_buffer(current_tti)->recv_ue_sync(&ue_sync, &last_rx_time);

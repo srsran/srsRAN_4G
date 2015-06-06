@@ -49,6 +49,7 @@ namespace srslte {
 
       void get_time(srslte_timestamp_t *now);
       bool tx(void *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+      bool tx_end();
       bool rx_now(void *buffer, uint32_t nof_samples, srslte_timestamp_t *rxd_time);
       bool rx_at(void *buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
 
@@ -72,6 +73,17 @@ namespace srslte {
       
     private:
       void *uhd; 
+      
+      static const double lo_offset = 8e6; // LO offset (in Hz)      
+      static const double burst_settle_time = 0.4e-3; // Start of burst settle time (off->on RF transition time)      
+      const static uint32_t burst_settle_max_samples = 12288;  // 30.72 MHz is maximum frequency
+
+      srslte_timestamp_t end_of_burst_time; 
+      bool is_start_of_burst; 
+      uint32_t burst_settle_samples; 
+      double burst_settle_time_rounded; // settle time rounded to sample time
+      cf_t zeros[burst_settle_max_samples]; 
+      double cur_tx_srate;
   }; 
 }
 

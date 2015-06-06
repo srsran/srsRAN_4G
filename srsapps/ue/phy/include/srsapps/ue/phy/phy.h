@@ -152,10 +152,7 @@ private:
   bool         do_agc;
   double       last_gain;
   
-  uint32_t     sr_N_offset;
-  uint32_t     sr_periodicity;
   bool         sr_enabled;
-  uint32_t     sr_n_pucch;
   bool         sr_is_ready_to_send(uint32_t tti);
   
   bool         init_(radio *radio_handler, tti_sync *ttisync, log *log_h, bool do_agc);
@@ -167,6 +164,8 @@ private:
   float        old_gain; 
   uint32_t     sr_tx_tti;
 
+  bool         is_first_of_burst; 
+  
 };
 
 } 

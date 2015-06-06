@@ -116,7 +116,7 @@ bool dl_buffer::get_ul_grant(ul_sched_grant *grant)
       if (srslte_ue_dl_find_ul_dci(&ue_dl, &dci_msg, cfi, tti%10, grant->get_rnti()) != 1) {
         return false; 
       }
-      return grant->create_from_dci(&dci_msg, cell, 0, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET));     
+      return grant->create_from_dci(&dci_msg, cell, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET));     
     }      
   }
 }

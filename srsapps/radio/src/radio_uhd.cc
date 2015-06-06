@@ -28,7 +28,6 @@
 #include "srslte/srslte.h"
 #include "srsapps/radio/radio_uhd.h"
 
-
 namespace srslte {
 
 bool radio_uhd::init()
@@ -64,6 +63,11 @@ bool radio_uhd::init_agc(char *args)
   }
   cuhd_set_rx_gain(uhd, 40);
   cuhd_set_tx_gain(uhd, 40);
+
+  burst_settle_samples = 0; 
+  burst_settle_time_rounded = 0; 
+  is_start_of_burst = true; 
+
   return true;    
 }
 bool radio_uhd::rx_at(void* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time)
@@ -87,11 +91,29 @@ void radio_uhd::get_time(srslte_timestamp_t *now) {
 
 bool radio_uhd::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
-  if (cuhd_send_timed(uhd, buffer, nof_samples, tx_time.full_secs, tx_time.frac_secs) > 0) {
+  if (is_start_of_burst) {
+    if (burst_settle_samples != 0) {
+      srslte_timestamp_t tx_time_pad; 
+      srslte_timestamp_copy(&tx_time_pad, &tx_time);
+      srslte_timestamp_sub(&tx_time_pad, 0, burst_settle_time_rounded); 
+      cuhd_send_timed2(uhd, zeros, burst_settle_samples, tx_time_pad.full_secs, tx_time_pad.frac_secs, true, false);
+    }        
+    is_start_of_burst = false; 
+    srslte_timestamp_copy(&end_of_burst_time, &tx_time);
+    srslte_timestamp_add(&end_of_burst_time, 0, nof_samples*cur_tx_srate); 
+  }
+  
+  if (cuhd_send_timed2(uhd, buffer, nof_samples, tx_time.full_secs, tx_time.frac_secs, false, false) > 0) {
     return true; 
   } else {
     return false; 
   }
+}
+
+bool radio_uhd::tx_end()
+{
+  cuhd_send_timed2(uhd, zeros, burst_settle_samples, end_of_burst_time.full_secs, end_of_burst_time.frac_secs, false, true);
+  is_start_of_burst = true; 
 }
 
 void radio_uhd::set_rx_freq(float freq)
@@ -116,7 +138,7 @@ void radio_uhd::set_rx_srate(float srate)
 
 void radio_uhd::set_tx_freq(float freq)
 {
-  cuhd_set_tx_freq(uhd, freq);
+  cuhd_set_tx_freq_offset(uhd, freq, lo_offset);  
 }
 
 void radio_uhd::set_tx_gain(float gain)
@@ -136,7 +158,13 @@ float radio_uhd::get_rx_gain()
 
 void radio_uhd::set_tx_srate(float srate)
 {
-  cuhd_set_tx_srate(uhd, srate);
+  cur_tx_srate = cuhd_set_tx_srate(uhd, srate);
+  burst_settle_samples = (uint32_t) (cur_tx_srate * burst_settle_time);
+  if (burst_settle_samples > burst_settle_max_samples) {
+    burst_settle_samples = burst_settle_max_samples;
+    fprintf(stderr, "Error setting TX srate %.1f MHz. Maximum frequency for zero prepadding is 30.72 MHz\n", srate*1e-6);
+  }
+  burst_settle_time_rounded = (double) burst_settle_samples/cur_tx_srate;
 }
 
 void radio_uhd::start_rx()

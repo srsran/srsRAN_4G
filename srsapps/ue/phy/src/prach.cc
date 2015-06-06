@@ -109,25 +109,11 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
   if (initiated && preamble_idx >= 0 && preamble_idx < 64 && params_db != NULL) {
     // consider the number of subframes the transmission must be anticipated 
     uint32_t current_tti = (current_tti_ + tx_advance_sf)%10240;
-    
-    // Get SFN and sf_idx from the PRACH configuration index
     uint32_t config_idx = (uint32_t) params_db->get_param(phy_params::PRACH_CONFIG_INDEX); 
-    srslte_prach_sfn_t prach_sfn = srslte_prach_get_sfn(config_idx);  
-
-    if (prach_sfn == SRSLTE_PRACH_SFN_EVEN && ((current_tti/10)%2)==0 ||
-        prach_sfn == SRSLTE_PRACH_SFN_ANY) 
-    {
-      srslte_prach_sf_config_t sf_config;
-      srslte_prach_sf_config(config_idx, &sf_config);
-      for (int i=0;i<sf_config.nof_sf;i++) {
-        if ((current_tti%10) == sf_config.sf[i] && allowed_subframe == -1 || 
-            ((current_tti%10) == sf_config.sf[i] && (current_tti%10) == allowed_subframe))
-        {
-          Info("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", current_tti, current_tti_);
-          transmitted_tti = current_tti; 
-          return true; 
-        }
-      }
+    if (srslte_prach_send_tti(config_idx, current_tti, allowed_subframe)) {
+      Info("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", current_tti, current_tti_);
+      transmitted_tti = current_tti; 
+      return true; 
     }
   }
   return false;     
@@ -160,7 +146,6 @@ bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
     }
   }
   
-  // transmit
   radio_handler->tx(signal_buffer, len, tx_time);                
   Info("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f, PeakAmplitude=%.2f\n", 
        cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs, max);

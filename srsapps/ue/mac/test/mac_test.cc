@@ -202,7 +202,7 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
   
   // FIXME: There's an error parsing the connectionSetup message. This value is hard-coded: 
  
-  phy->set_param(srslte::ue::phy_params::SR_PUCCH_RESINDEX, 
+  phy->set_param(srslte::ue::phy_params::PUCCH_N_PUCCH_SR, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx);
   phy->set_param(srslte::ue::phy_params::SR_CONFIG_INDEX, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);

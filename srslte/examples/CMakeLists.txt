@@ -87,6 +87,9 @@ IF(UHD_FOUND)
   add_executable(usrp_capture_sync usrp_capture_sync.c)
   target_link_libraries(usrp_capture_sync srslte srslte_uhd)
 
+  add_executable(usrp_txrx usrp_txrx.c)
+  target_link_libraries(usrp_txrx srslte srslte_uhd)
+
   MESSAGE(STATUS "   UHD examples will be installed.")
 
 ELSE(UHD_FOUND)
