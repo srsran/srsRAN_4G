@@ -74,7 +74,8 @@ bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, l
   dl_buffer_queue = new queue(6, sizeof(dl_buffer));
   do_agc = do_agc_;
   last_gain = 1e4; 
-  time_adv_sec = 0; 
+  time_adv_sec = 0;
+  sr_tx_tti = 0;  
   
   // Set default params  
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_NFRAMES, 100);
@@ -109,15 +110,14 @@ radio* phy::get_radio() {
 }
 
 void phy::set_timeadv_rar(uint32_t ta_cmd) {
-  ta_cmd=7;
   n_ta = srslte_N_ta_new_rar(ta_cmd);
-  time_adv_sec = ((float) n_ta)/(15000.0*srslte_symbol_sz(cell.nof_prb));
+  time_adv_sec = ((float) n_ta)*SRSLTE_LTE_TS;
   Info("Set TA RAR: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
 void phy::set_timeadv(uint32_t ta_cmd) {
   n_ta = srslte_N_ta_new(n_ta, ta_cmd);
-  time_adv_sec = ((float) n_ta)/(15000.0*srslte_symbol_sz(cell.nof_prb));  
+  time_adv_sec = ((float) n_ta)*SRSLTE_LTE_TS;  
   Info("Set TA: ta_cmd: %d, n_ta: %d, ta_usec: %.1f\n", ta_cmd, n_ta, time_adv_sec*1e6);
 }
 
@@ -150,7 +150,7 @@ bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_pow
   return false; 
 }
 
-/* Send SR as soon as possible as defined in Section 10.2 of 36.213 */
+/* Instruct the PHY to send a SR as soon as possible */
 void phy::send_sr(bool enable)
 {
   sr_enabled = enable;
@@ -502,6 +502,7 @@ void phy::run_rx_tx_state()
     if (prach_buffer.is_ready_to_send(current_tti)) {
       // send prach if we have to 
       prach_buffer.send(radio_handler, cfo, last_rx_time);
+      radio_handler->tx_end();
       radio_handler->set_tx_gain(old_gain);
       srslte_agc_lock(&ue_sync.agc, false);
       Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);

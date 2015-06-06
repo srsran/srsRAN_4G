@@ -357,7 +357,7 @@ int srslte_prach_init(srslte_prach_t *p,
     p->rsi = root_seq_index;
     p->hs = high_speed_flag;
     p->zczc = zero_corr_zone_config;
-
+    
     // Determine N_zc and N_cs
     if(4 == preamble_format){
       p->N_zc = 139;
@@ -370,6 +370,8 @@ int srslte_prach_init(srslte_prach_t *p,
         p->N_cs = prach_Ncs_unrestricted[p->zczc];
       }
     }
+
+    printf("Ncs=%d, zczc=%d, root_seq_index=%d, format=%d\n", p->N_cs, zero_corr_zone_config, root_seq_index, preamble_format);
     
     // Set up containers
     p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
@@ -500,7 +502,7 @@ int srslte_prach_detect(srslte_prach_t *p,
     uint32_t N_rb_ul = prach_get_rb_ul(p->N_ifft_ul);
     uint32_t k_0 = freq_offset*N_RB_SC - N_rb_ul*N_RB_SC/2 + p->N_ifft_ul/2;
     uint32_t K = DELTA_F/DELTA_F_RA;
-    uint32_t begin = PHI + (K*k_0) + (K/2) + 1;
+    uint32_t begin = PHI + (K*k_0) + (K/2);
 
     for(int i=0;i<p->N_zc;i++){
       p->prach_bins[i] = signal[begin+i];

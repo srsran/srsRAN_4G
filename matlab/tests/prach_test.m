@@ -27,8 +27,8 @@ for n_rb=1:length(NULRB)
                         lib=srslte_prach(ueConfig,prachConfig);
                         
                         [mat, info]=ltePRACH(ueConfig,prachConfig);
-                        err=mean(abs(mat-lib));
-                        if (err > 10^-3)
+                        err=max(abs(mat-lib));
+                        if (err > 2*10^-3)
                             disp(err)    
                             a=1:100;
                             plot(a,real(lib(a)),a,real(mat(a)))
