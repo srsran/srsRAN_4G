@@ -120,4 +120,10 @@ SRSLTE_API void srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q,
                                          uint32_t sf_idx, 
                                          cf_t *r_srs);
 
+SRSLTE_API int srslte_refsignal_srs_send_cs(uint32_t subframe_config, 
+                                            uint32_t sf_idx);
+
+SRSLTE_API int srslte_refsignal_srs_send_ue(uint32_t I_srs, 
+                                            uint32_t tti);
+
 #endif

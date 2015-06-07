@@ -116,7 +116,7 @@ void demux::push_pdu(uint8_t *mac_pdu, uint32_t nof_bits)
   // Unpack DLSCH MAC PDU 
   mac_msg.init(nof_bits/8);
   mac_msg.parse_packet(mac_pdu);
-  mac_msg.fprint(stdout);
+  //mac_msg.fprint(stdout);
   process_pdu(&mac_msg);
   Debug("Normal MAC PDU processed\n");
 }

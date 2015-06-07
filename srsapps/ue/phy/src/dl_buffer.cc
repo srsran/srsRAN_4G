@@ -116,6 +116,15 @@ bool dl_buffer::get_ul_grant(ul_sched_grant *grant)
       if (srslte_ue_dl_find_ul_dci(&ue_dl, &dci_msg, cfi, tti%10, grant->get_rnti()) != 1) {
         return false; 
       }
+      /*
+      grant->set_shortened(false);
+      if (params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)) {
+        if (srslte_refsignal_srs_send_cs((uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG), tti%10) == 1) {
+          grant->set_shortened(true);
+          printf("UL grant tti=%d is shortened. SF-CFG=%d\n", tti, (int) params_db->get_param(phy_params::SRS_CS_SFCFG));
+        }
+      }
+      */
       return grant->create_from_dci(&dci_msg, cell, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET));     
     }      
   }

@@ -78,7 +78,21 @@ namespace ue {
       PUCCH_N_PUCCH_SR,
 
       SR_CONFIG_INDEX,
-
+      
+      SRS_BETA,
+      SRS_UE_TXCOMB, 
+      SRS_UE_NRRC,
+      SRS_UE_DURATION,
+      SRS_UE_CONFIGINDEX,
+      SRS_UE_BW,
+      SRS_UE_HOP,
+      SRS_UE_CS,
+      SRS_IS_UE_CONFIGURED,
+      SRS_CS_BWCFG,
+      SRS_CS_SFCFG,
+      SRS_CS_ACKNACKSIMUL,
+      SRS_IS_CS_CONFIGURED,
+      
       UCI_I_OFFSET_ACK,
       UCI_I_OFFSET_RI,
       UCI_I_OFFSET_CQI,

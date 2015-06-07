@@ -63,6 +63,11 @@ uint32_t pucch_dmrs_symbol_format1_cpext[2] = {2, 3};
 uint32_t pucch_dmrs_symbol_format2_cpnorm[2] = {1, 5};
 uint32_t pucch_dmrs_symbol_format2_cpext[1] = {3};
 
+/* Table 5.5.3.3-1: Frame structure type 1 sounding reference signal subframe configuration. */
+uint32_t T_sfc[15] = {1, 2, 2, 5, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 10};
+uint32_t Delta_sfc1[7] = {0, 0, 1, 0, 1, 2, 3}; 
+uint32_t Delta_sfc2[4] = {0, 1, 2, 3}; 
+
 /** Computes n_prs values used to compute alpha as defined in 5.5.2.1.1 of 36.211 */
 static int generate_n_prs(srslte_refsignal_ul_t * q) {
   /* Calculate n_prs */
@@ -490,4 +495,102 @@ int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_forma
 void srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t ns, cf_t *r_srs) 
 {
   
+}
+
+
+/* Returns 1 if tti is a valid subframe for SRS transmission according to I_srs (UE-specific 
+ * configuration index), as defined in Section 8.1 of 36.213. 
+ * Returns 0 if no SRS shall be transmitted or a negative number if error. 
+ */
+int srslte_refsignal_srs_send_ue(uint32_t I_srs, uint32_t tti) {
+  if (I_srs < 1024 && tti < 10240) {
+    uint32_t T_srs   = 0;
+    uint32_t Toffset = 0;
+    /* This is Table 8.2-1 */
+    if (I_srs < 2) {
+      T_srs   = 2; 
+      Toffset = I_srs;  
+    } else if (I_srs < 7) {
+      T_srs   = 5; 
+      Toffset = I_srs-2;        
+    } else if (I_srs < 17) {
+      T_srs   = 10; 
+      Toffset = I_srs-7;        
+    } else if (I_srs < 37) {
+      T_srs   = 20; 
+      Toffset = I_srs-17;        
+    } else if (I_srs < 77) {
+      T_srs   = 40; 
+      Toffset = I_srs-37;        
+    } else if (I_srs < 157) {
+      T_srs   = 80; 
+      Toffset = I_srs-77;        
+    } else if (I_srs < 317) {
+      T_srs   = 160; 
+      Toffset = I_srs-157;        
+    } else if (I_srs < 637) {
+      T_srs   = 320; 
+      Toffset = I_srs-317;        
+    } else {
+      return 0; 
+    }
+    if (((tti-Toffset)%T_srs) == 0) {
+      return 1; 
+    } else {
+      return 0; 
+    }
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
+/* Returns 1 if sf_idx is a valid subframe for SRS transmission according to subframe_config (cell-specific), 
+ * as defined in Section 5.5.3.3 of 36.211. Returns 0 if no SRS shall be transmitted or a negative
+ * number if error. 
+ */
+int srslte_refsignal_srs_send_cs(uint32_t subframe_config, uint32_t sf_idx) {
+  if (subframe_config < 15 && sf_idx < 10) {
+    uint32_t tsfc = T_sfc[subframe_config];
+    if (subframe_config < 7) {
+      if ((sf_idx%tsfc)==Delta_sfc1[subframe_config]) {
+        return 1; 
+      } else {
+        return 0; 
+      }
+    } else if (subframe_config == 8) {
+      if (((sf_idx%tsfc)==0) || ((sf_idx%tsfc)==1)){
+        return 1; 
+      } else {
+        return 0; 
+      }
+    } else if (subframe_config == 9) {
+      if (((sf_idx%tsfc)==2) || ((sf_idx%tsfc)==3)){
+        return 1; 
+      } else {
+        return 0; 
+      }
+    } else if (subframe_config < 13) {
+      if ((sf_idx%tsfc)==Delta_sfc2[subframe_config-9]) {
+        return 1; 
+      } else {
+        return 0; 
+      }
+    } else if (subframe_config == 13) {
+      if (((sf_idx%tsfc)==5) || ((sf_idx%tsfc)==7) || ((sf_idx%tsfc)==9)){
+        return 0; 
+      } else {
+        return 1; 
+      }
+    } else if (subframe_config == 14) {
+      if (((sf_idx%tsfc)==7) || ((sf_idx%tsfc)==9)) {
+        return 0; 
+      } else {
+        return 1; 
+      }
+    } else {
+      return 0; 
+    }
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 }
