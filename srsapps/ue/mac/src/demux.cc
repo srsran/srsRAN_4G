@@ -148,8 +148,14 @@ void demux::process_pdu(sch_pdu *pdu_msg)
         qbuff *dest_lch = mac_io_h->get(pdu_msg->get()->get_sdu_lcid());
         if (dest_lch) {
           dest_lch->send(pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_sdu_nbytes()*8);
-          Info("Sent MAC SDU len=%d bytes to lchid=%d\n",  
+          Info("Sent MAC SDU len=%d bytes to lchid=%d\n",
                 pdu_msg->get()->get_sdu_nbytes(), pdu_msg->get()->get_sdu_lcid());
+          if (sdu_handler_) {
+            sdu_handler_->notify_new_sdu(pdu_msg->get()->get_sdu_lcid());
+            Info("Notified SDU handler len=%d bytes to lchid=%d\n",
+                  pdu_msg->get()->get_sdu_nbytes(), pdu_msg->get()->get_sdu_lcid());
+          }
+
         } else {
           Error("Getting destination channel LCID=%d\n", pdu_msg->get()->get_sdu_lcid());
         }
@@ -163,15 +169,6 @@ void demux::process_pdu(sch_pdu *pdu_msg)
       }
     }
   }      
-  /* notify handler if registred */
-  if (sdu_handler_) {
-    pdu_msg->reset();
-    while(pdu_msg->next()) {
-      if (pdu_msg->get()->is_sdu()) {
-        sdu_handler_->notify_new_sdu(pdu_msg->get()->get_sdu_lcid());
-      }
-    }
-  }
 }
 
 

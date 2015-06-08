@@ -26,6 +26,7 @@
  */
 
 
+#include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -66,7 +67,7 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
   } 
   int err = pthread_create(thread, &attr, start_routine, arg);
   if (err) {
-    if (1 == err) {
+    if (EPERM == err) {
       perror("Failed to create thread - permission error. Running with root permissions?");
     }
     perror("pthread_create");
