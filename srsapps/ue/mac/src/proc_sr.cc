@@ -54,8 +54,8 @@ void sr_proc::reset()
 void sr_proc::step(uint32_t tti)
 {
   if (initiated) {
-    if (is_pending_sr) {    
-      if (params_db->get_param(mac_params::SR_PUCCH_CONFIGURED)) {
+    if (is_pending_sr) {
+      if (phy_h->get_param(phy_params::SR_PUCCH_CONFIGURED)) {
         if (sr_counter < dsr_transmax) {
           int last_tx_tti = phy_h->sr_last_tx_tti(); 
           if (last_tx_tti >= 0 && last_tx_tti + 4 < tti) {
@@ -93,7 +93,7 @@ void sr_proc::start()
       sr_counter = 0;
       is_pending_sr = true; 
     }
-    dsr_transmax = params_db->get_param(mac_params::SR_TRANS_MAX);
+    dsr_transmax = phy_h->get_param(phy_params::SR_TRANS_MAX);
     Info("SR starting dsrTransMax=%d. sr_counter=%d, PHY TTI=%d\n", dsr_transmax, sr_counter, phy_h->get_current_tti());
   }
 }

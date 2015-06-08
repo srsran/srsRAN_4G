@@ -131,6 +131,10 @@ void phy::set_param(phy_params::phy_param_t param, int64_t value) {
   params_db.set_param((uint32_t) param, value);
 }
 
+int64_t phy::get_param(phy_params::phy_param_t param) {
+  return params_db.get_param((uint32_t) param);
+}
+
 // FIXME: Add PRACH power control
 bool phy::send_prach(uint32_t preamble_idx) {
   return send_prach(preamble_idx, -1, 0);

@@ -78,6 +78,8 @@ namespace ue {
       PUCCH_N_PUCCH_SR,
 
       SR_CONFIG_INDEX,
+      SR_TRANS_MAX,
+      SR_PUCCH_CONFIGURED,
 
       UCI_I_OFFSET_ACK,
       UCI_I_OFFSET_RI,

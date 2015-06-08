@@ -516,6 +516,11 @@ void mac::set_param(mac_params::mac_param_t param, int64_t value)
   params_db.set_param((uint32_t) param, value);
 }
 
+int64_t mac::get_param(mac_params::mac_param_t param)
+{
+  return params_db.get_param((uint32_t) param);
+}
+
 void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)
 {
   mux_unit.set_priority(mac_io::MAC_LCH_CCCH_UL+lcid, priority, PBR_x_tti, BSD);

@@ -79,6 +79,7 @@ public:
   void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
   
   void set_param(mac_params::mac_param_t param, int64_t value); 
+  int64_t get_param(mac_params::mac_param_t param);
   
   void reconfiguration(); 
   void reset(); 
