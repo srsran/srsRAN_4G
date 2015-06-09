@@ -30,6 +30,7 @@
 #include "srsapps/radio/radio.h"
 #include "srslte/srslte.h"
 #include "srslte/cuhd/cuhd.h"
+#include "srsapps/common/trace.h"
 
 #ifndef RADIO_UHD_H
 #define RADIO_UHD_H
@@ -42,6 +43,7 @@ namespace srslte {
   class radio_uhd : public radio
   {
     public: 
+      radio_uhd() : tr_local_time(1024*10), tr_usrp_time(1024*10), tr_tx_time(1024*10), tr_is_eob(1024*10) {};
       bool init();
       bool init(char *args);
       bool init_agc();
@@ -67,15 +69,19 @@ namespace srslte {
       float get_tx_gain();
       float get_rx_gain();
 
-      
+      void start_trace();
+      void write_trace(std::string filename);
       void start_rx();
       void stop_rx();
       
     private:
+      
+      void save_trace(uint32_t is_eob, srslte_timestamp_t *usrp_time);
+      
       void *uhd; 
       
       static const double lo_offset = 8e6; // LO offset (in Hz)      
-      static const double burst_settle_time = 0.4e-3; // Start of burst settle time (off->on RF transition time)      
+      static const double burst_settle_time = 0.3e-3; // Start of burst settle time (off->on RF transition time)      
       const static uint32_t burst_settle_max_samples = 12288;  // 30.72 MHz is maximum frequency
 
       srslte_timestamp_t end_of_burst_time; 
@@ -84,6 +90,13 @@ namespace srslte {
       double burst_settle_time_rounded; // settle time rounded to sample time
       cf_t zeros[burst_settle_max_samples]; 
       double cur_tx_srate;
+      
+      trace<uint32_t> tr_local_time;
+      trace<uint32_t> tr_usrp_time;
+      trace<uint32_t> tr_tx_time;
+      trace<uint32_t> tr_is_eob;
+      bool trace_enabled;
+      uint32_t my_tti;
   }; 
 }
 

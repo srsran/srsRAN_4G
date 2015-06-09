@@ -38,6 +38,7 @@
 #include "srsapps/ue/phy/sched_grant.h"
 #include "srsapps/common/queue.h"
 #include "srsapps/radio/radio.h"
+#include "srsapps/common/trace.h"
 
 #ifndef UEPHY_H
 #define UEPHY_H
@@ -119,6 +120,9 @@ public:
   ul_buffer* get_ul_buffer(uint32_t tti);
   dl_buffer* get_dl_buffer(uint32_t tti);
 
+  void start_trace();
+  void write_trace(std::string filename); 
+  
   void main_radio_loop(); 
   
 private:
@@ -166,6 +170,11 @@ private:
 
   bool         is_first_of_burst; 
   
+  trace<uint32_t> tr_start_time;
+  trace<uint32_t> tr_end_time;
+  bool tr_enabled; 
+  void tr_log_start();
+  void tr_log_end();    
 };
 
 } 

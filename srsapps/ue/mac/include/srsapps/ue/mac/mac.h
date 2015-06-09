@@ -45,6 +45,8 @@
 #include "srsapps/ue/mac/mux.h"
 #include "srsapps/ue/mac/demux.h"
 #include "srsapps/ue/mac/sdu_handler.h"
+#include "srsapps/common/trace.h"
+
 
 #ifndef UEMAC_H
 #define UEMAC_H
@@ -57,7 +59,7 @@ typedef _Complex float cf_t;
 class mac : public timer_callback
 {
 public:
-  mac() : timers_db((uint32_t) NOF_MAC_TIMERS) {}
+  mac() : timers_db((uint32_t) NOF_MAC_TIMERS), tr_end_time(1024*10), tr_start_time(1024*10) {started=false;}
   bool init(phy *phy_h, tti_sync *ttisync, log *log_h);
   void stop();
   int  get_tti();
@@ -82,6 +84,9 @@ public:
   
   void reconfiguration(); 
   void reset(); 
+  
+  void start_trace();
+  void write_trace(std::string filename); 
   
   void timer_expired(uint32_t timer_id); 
     
@@ -110,7 +115,7 @@ private:
   static void*  mac_thread_fnc(void*);
   
   int           tti; 
-  bool          started = false; 
+  bool          started; 
   bool          is_synchronized; 
   uint16_t      last_temporal_crnti;
   
@@ -144,6 +149,12 @@ private:
   void          setup_timers();
   void          timeAlignmentTimerExpire();
     
+  trace<uint32_t> tr_start_time;
+  trace<uint32_t> tr_end_time;
+  bool tr_enabled; 
+  void tr_log_start(uint32_t tti);
+  void tr_log_end(uint32_t tti);    
+
 };
 
 } 

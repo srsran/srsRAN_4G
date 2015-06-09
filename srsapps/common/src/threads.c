@@ -35,15 +35,19 @@
 #include "srsapps/common/threads.h"
 
 bool threads_new_rt(pthread_t *thread, void *(*start_routine) (void*), void *arg) {
-  return threads_new_rt_cpu(thread, start_routine, arg, -1);
+  return threads_new_rt_prio(thread, start_routine, arg, 0);
 }
 
-bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void *arg, int cpu) {
+bool threads_new_rt_prio(pthread_t *thread, void *(*start_routine) (void*), void *arg, uint32_t prio_offset) {
+  return threads_new_rt_cpu(thread, start_routine, arg, -1, prio_offset);
+}
+
+bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void *arg, int cpu, uint32_t prio_offset) {
   bool ret = false; 
   
   pthread_attr_t attr;
   struct sched_param param;
-  param.sched_priority = sched_get_priority_max(SCHED_FIFO);  
+  param.sched_priority = sched_get_priority_max(SCHED_FIFO) - prio_offset;  
 
   pthread_attr_init(&attr);
   if (pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) {

@@ -26,12 +26,14 @@
  */
 
 #include <pthread.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
     extern "C" {
 #endif
   bool threads_new_rt(pthread_t *thread, void *(*start_routine) (void*), void *arg);
-  bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void *arg, int cpu);
+  bool threads_new_rt_prio(pthread_t *thread, void *(*start_routine) (void*), void *arg, uint32_t prio_offset);
+  bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void *arg, int cpu, uint32_t prio_offset);
   void threads_print_self();
 
 #ifdef __cplusplus

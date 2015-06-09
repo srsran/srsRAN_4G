@@ -79,6 +79,32 @@ int mac::get_tti()
   }
 }
 
+void mac::start_trace()
+{
+  tr_enabled = true; 
+}
+
+void mac::write_trace(std::string filename)
+{
+  tr_start_time.writeToBinary(filename + ".start");
+  tr_end_time.writeToBinary(filename + ".end");
+}
+
+void mac::tr_log_start(uint32_t tti)
+{
+  if (tr_enabled) {
+    tr_start_time.push_cur_time_us(tti);
+  }
+}
+
+void mac::tr_log_end(uint32_t tti)
+{
+  if (tr_enabled) {
+    tr_end_time.push_cur_time_us(tti);
+  }
+}
+
+
 // Implement Section 5.8
 void mac::reconfiguration()
 {
@@ -164,7 +190,9 @@ void mac::main_radio_loop() {
     }
     if (is_synchronized) {
       /* Warning: Here order of invocation of procedures is important!! */
+      tr_log_end(tti);
       tti = ttisync->wait();
+      tr_log_start(tti);
       log_h->step(tti);
       
       // Step all procedures 

@@ -80,3 +80,8 @@ int srslte_timestamp_sub(srslte_timestamp_t *t, time_t full_secs, double frac_se
 double srslte_timestamp_real(srslte_timestamp_t *t){
  return t->frac_secs + t->full_secs;
 }
+
+uint32_t srslte_timestamp_uint32(srslte_timestamp_t *t){
+ uint32_t x = t->full_secs*1e6 + (uint32_t) (t->frac_secs*1e6);
+ return x; 
+}

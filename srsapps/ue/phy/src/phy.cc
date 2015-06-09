@@ -43,7 +43,7 @@
 namespace srslte {
 namespace ue {
 
-phy::phy()
+phy::phy() : tr_end_time(1024*10), tr_start_time(1024*10)
 {
   started = false; 
   is_sfn_synched = false; 
@@ -59,6 +59,30 @@ bool phy::init_agc(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_
   return init_(radio_handler_, ttisync_, log_h, true);
 }
 
+void phy::start_trace()
+{
+  tr_enabled = true; 
+}
+
+void phy::write_trace(std::string filename)
+{
+  tr_start_time.writeToBinary(filename + ".start");
+  tr_end_time.writeToBinary(filename + ".end");
+}
+
+void phy::tr_log_start()
+{
+  if (tr_enabled) {
+    tr_start_time.push_cur_time_us(get_current_tti());
+  }
+}
+
+void phy::tr_log_end()
+{
+  if (tr_enabled) {
+    tr_end_time.push_cur_time_us(get_current_tti());
+  }
+}
 
 bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, log *log_h_, bool do_agc_)
 {
@@ -314,7 +338,7 @@ bool phy::init_prach() {
 
 ul_buffer* phy::get_ul_buffer(uint32_t tti)
 {
-  if (tti + 1 < get_current_tti()) {
+  if ((tti + 1)%10240 < get_current_tti() && tti > 6) {
     Warning("Warning access to PHY UL buffer too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
   }
   return (ul_buffer*) ul_buffer_queue->get(tti);        
@@ -524,8 +548,9 @@ void phy::run_rx_tx_state()
     }
     
     // Receive alligned buffer for the current tti 
+    tr_log_end();
     get_dl_buffer(current_tti)->recv_ue_sync(&ue_sync, &last_rx_time);
-
+    tr_log_start();
     ttisync->increase();      
   }
 }

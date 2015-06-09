@@ -56,11 +56,11 @@ namespace ue {
     bool           send(srslte::radio* radio_handler, float cfo, srslte_timestamp_t rx_time);
   private: 
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
-    phy_params    *params_db     = NULL; 
+    phy_params    *params_db; 
     log           *log_h; 
     int            preamble_idx;  
     int            allowed_subframe; 
-    bool           initiated     = false;   
+    bool           initiated;   
     uint32_t       len; 
     cf_t          *buffer[64]; 
     srslte_prach_t prach_obj; 

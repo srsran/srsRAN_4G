@@ -27,6 +27,7 @@
 
 
 #include <unistd.h>
+#include <signal.h>
 
 #include "liblte_rrc.h"
 #include "srsapps/radio/radio_uhd.h"
@@ -46,6 +47,7 @@ typedef struct {
   float uhd_rx_gain;
   float uhd_tx_gain;
   int   verbose; 
+  bool  do_trace; 
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
@@ -54,19 +56,21 @@ void args_default(prog_args_t *args) {
   args->uhd_rx_gain = -1; // set to autogain
   args->uhd_tx_gain = -1; 
   args->verbose     = 0; 
+  args->do_trace    = false; 
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [gv] -f rx_frequency (in Hz) -F tx_frequency (in Hz)\n", prog);
+  printf("Usage: %s [gGtv] -f rx_frequency (in Hz) -F tx_frequency (in Hz)\n", prog);
   printf("\t-g UHD RX gain [Default AGC]\n");
   printf("\t-G UHD TX gain [Default same as RX gain (AGC)]\n");
+  printf("\t-t Enable trace [Default disabled]\n");
   printf("\t-v [increase verbosity, default none]\n");
 }
 
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "gGfFv")) != -1) {
+  while ((opt = getopt(argc, argv, "gGftFv")) != -1) {
     switch (opt) {
     case 'g':
       args->uhd_rx_gain = atof(argv[optind]);
@@ -79,6 +83,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'F':
       args->uhd_tx_freq = atof(argv[optind]);
+      break;
+    case 't':
+      args->do_trace = true;
       break;
     case 'v':
       args->verbose++;
@@ -202,7 +209,6 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
     phy->set_param(srslte::ue::phy_params::SRS_CS_BWCFG, sib2->rr_config_common_sib.srs_ul_cnfg.bw_cnfg);
     phy->set_param(srslte::ue::phy_params::SRS_CS_SFCFG, sib2->rr_config_common_sib.srs_ul_cnfg.subfr_cnfg);
     phy->set_param(srslte::ue::phy_params::SRS_CS_ACKNACKSIMUL, sib2->rr_config_common_sib.srs_ul_cnfg.ack_nack_simul_tx);
-    phy->set_param(srslte::ue::phy_params::SRS_IS_CS_CONFIGURED, 1);
   }
 
   printf("Set SRS ConfigCommon: BW-Configuration=%d, SF-Configuration=%d, ACKNACK=%d\n", 
@@ -233,7 +239,6 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
       phy->set_param(srslte::ue::phy_params::SRS_UE_HOP, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.srs_hopping_bandwidth);
       phy->set_param(srslte::ue::phy_params::SRS_UE_TXCOMB, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.tx_comb);
       phy->set_param(srslte::ue::phy_params::SRS_BETA, 10);
-      phy->set_param(srslte::ue::phy_params::SRS_IS_UE_CONFIGURED, 1);
     }
   }
   printf("Set PHY configuration: SR-n_pucch=%d, SR-ConfigIndex=%d, SRS-ConfigIndex=%d, SRS-bw=%d, SRS-Nrcc=%d, SRS-hop=%d, SRS-Ncs=%d\n", 
@@ -299,13 +304,23 @@ uint32_t lengths[2] = {37, 41};
 uint8_t reply[2] = {0x00, 0x04};
 
 
+srslte::radio_uhd radio_uhd; 
+srslte::ue::phy phy; 
+srslte::ue::mac mac; 
+  
+void sig_int_handler(int signo)
+{
+  //radio_uhd.write_trace("radio");
+  phy.write_trace("phy");
+  mac.write_trace("mac");
+  exit(0);
+}
+
+
 int main(int argc, char *argv[])
 {
   prog_args_t prog_args; 
   srslte::ue::tti_sync_cv ttisync(10240); 
-  srslte::radio_uhd radio_uhd; 
-  srslte::ue::phy phy; 
-  srslte::ue::mac mac; 
   srslte::log_stdout mac_log("MAC"), phy_log("PHY"); 
   
   parse_args(&prog_args, argc, argv);
@@ -320,7 +335,15 @@ int main(int argc, char *argv[])
       phy_log.set_level_debug();
       break;
   }
-
+ 
+  if (prog_args.do_trace) {
+    // Capture SIGINT to write traces 
+    signal(SIGINT, sig_int_handler);
+    //radio_uhd.start_trace();
+    phy.start_trace();
+    mac.start_trace();
+  }
+  
   // Init Radio and PHY
   if (prog_args.uhd_rx_gain > 0 && prog_args.uhd_tx_gain > 0) {
     radio_uhd.init();
@@ -449,6 +472,8 @@ int main(int argc, char *argv[])
         // Wait for ConnectionSetup
         n = mac.recv_dcch0_sdu(bit_msg.msg, LIBLTE_MAX_MSG_SIZE); 
         if (n > 0) {
+          phy.set_param(srslte::ue::phy_params::SRS_IS_CS_CONFIGURED, 1);
+          phy.set_param(srslte::ue::phy_params::SRS_IS_UE_CONFIGURED, 1);
           printf("Received on DCCH0 %d bytes\n", n/8);
           printf("Send RLC ACK\n");
           srslte_bit_pack_vector(reply, bit_msg.msg, 2*8);

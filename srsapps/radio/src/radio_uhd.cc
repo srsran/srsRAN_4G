@@ -92,18 +92,23 @@ void radio_uhd::get_time(srslte_timestamp_t *now) {
 bool radio_uhd::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
   if (is_start_of_burst) {
+    
     if (burst_settle_samples != 0) {
       srslte_timestamp_t tx_time_pad; 
       srslte_timestamp_copy(&tx_time_pad, &tx_time);
       srslte_timestamp_sub(&tx_time_pad, 0, burst_settle_time_rounded); 
+      save_trace(1, &tx_time_pad);
       cuhd_send_timed2(uhd, zeros, burst_settle_samples, tx_time_pad.full_secs, tx_time_pad.frac_secs, true, false);
     }        
     is_start_of_burst = false; 
-    srslte_timestamp_copy(&end_of_burst_time, &tx_time);
-    srslte_timestamp_add(&end_of_burst_time, 0, nof_samples*cur_tx_srate); 
   }
   
-  if (cuhd_send_timed2(uhd, buffer, nof_samples, tx_time.full_secs, tx_time.frac_secs, false, false) > 0) {
+  // Save possible end of burst time 
+  srslte_timestamp_copy(&end_of_burst_time, &tx_time);
+  srslte_timestamp_add(&end_of_burst_time, 0, (double) nof_samples/cur_tx_srate); 
+  
+  save_trace(0, &tx_time);
+  if (cuhd_send_timed2(uhd, buffer, nof_samples, tx_time.full_secs, tx_time.frac_secs, true, false) > 0) {
     return true; 
   } else {
     return false; 
@@ -112,8 +117,34 @@ bool radio_uhd::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_tim
 
 bool radio_uhd::tx_end()
 {
+  save_trace(2, &end_of_burst_time);
   cuhd_send_timed2(uhd, zeros, burst_settle_samples, end_of_burst_time.full_secs, end_of_burst_time.frac_secs, false, true);
   is_start_of_burst = true; 
+}
+
+void radio_uhd::start_trace() {
+  trace_enabled = true; 
+  my_tti = 0; 
+}
+
+void radio_uhd::write_trace(std::string filename)
+{
+  tr_local_time.writeToBinary(filename + ".local");
+  tr_is_eob.writeToBinary(filename + ".eob");
+  tr_usrp_time.writeToBinary(filename + ".usrp");
+  tr_tx_time.writeToBinary(filename + ".tx");
+}
+
+void radio_uhd::save_trace(uint32_t is_eob, srslte_timestamp_t *tx_time) {
+  if (trace_enabled) {
+    tr_local_time.push_cur_time_us(my_tti);
+    srslte_timestamp_t usrp_time; 
+    cuhd_get_time(uhd, &usrp_time.full_secs, &usrp_time.frac_secs);
+    tr_usrp_time.push(my_tti, srslte_timestamp_uint32(&usrp_time));
+    tr_tx_time.push(my_tti, srslte_timestamp_uint32(tx_time));
+    tr_is_eob.push(my_tti, is_eob);
+    my_tti++;
+  }
 }
 
 void radio_uhd::set_rx_freq(float freq)

@@ -39,6 +39,7 @@
 #define TIMESTAMP_
 
 #include <time.h>
+#include <stdint.h>
 #include "srslte/config.h"
 
 typedef struct SRSLTE_API{
@@ -62,5 +63,7 @@ SRSLTE_API int srslte_timestamp_sub(srslte_timestamp_t *t,
                                     double frac_secs);
 
 SRSLTE_API double srslte_timestamp_real(srslte_timestamp_t *t);
+
+SRSLTE_API uint32_t srslte_timestamp_uint32(srslte_timestamp_t *t);
 
 #endif // TIMESTAMP_
