@@ -206,16 +206,18 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx);
   phy->set_param(srslte::ue::phy_params::SR_CONFIG_INDEX, 
                  msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);
-  phy->set_param(srslte::ue::phy_params::SR_TRANS_MAX, msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max);
+  phy->set_param(srslte::ue::phy_params::SR_TRANS_MAX,
+                 liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max]);
   phy->set_param(srslte::ue::phy_params::SR_PUCCH_CONFIGURED, 1);
 
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_ACK, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ack_idx);
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_CQI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_cqi_idx);
   phy->set_param(srslte::ue::phy_params::UCI_I_OFFSET_RI, msg->rr_cnfg.phy_cnfg_ded.pusch_cnfg_ded.beta_offset_ri_idx);
  
-  printf("Set PHY configuration: n_pucch=%d, configIndex=%d\n", 
+  printf("Set PHY configuration: n_pucch=%d, configIndex=%d, dsr_trans_max=%d\n",
          msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_pucch_resource_idx,
-         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx);
+         msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.sr_cnfg_idx,
+         liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max]);
   
   mac->set_param(srslte::ue::mac_params::HARQ_MAXTX, 
                  liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx]);
@@ -226,8 +228,7 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
   mac->set_param(srslte::ue::mac_params::BSR_TIMER_PERIODIC, 
                  liblte_rrc_periodic_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.periodic_bsr_timer]);
   
-  printf("Set MAC configuration: dsr-TransMAX: %d, harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n", 
-         liblte_rrc_dsr_trans_max_num[msg->rr_cnfg.phy_cnfg_ded.sched_request_cnfg.dsr_trans_max], 
+  printf("Set MAC configuration: harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n",
          liblte_rrc_max_harq_tx_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.max_harq_tx],
          liblte_rrc_retransmission_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.retx_bsr_timer],
          liblte_rrc_periodic_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.periodic_bsr_timer]);
