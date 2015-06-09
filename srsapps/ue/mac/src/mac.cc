@@ -250,9 +250,11 @@ void mac::main_radio_loop() {
       }
       if (ra_procedure.is_successful() && phy_rnti != params_db.get_param(mac_params::RNTI_C) && params_db.get_param(mac_params::RNTI_C) > 0) {
         phy_rnti = params_db.get_param(mac_params::RNTI_C);
+                // This operation takes a while, do nothing for the rest 100 slots to re-align with PHY 
+        for (int i=0;i<10;i++) {
+          tti = ttisync->wait();
+        }
         Info("Setting PHY RNTI=%d\n", phy_rnti);
-        
-        // This operation takes a while, do nothing for the rest 100 slots to re-align with PHY 
         phy_h->set_crnti(phy_rnti);          
         for (int i=0;i<100;i++) {
           tti = ttisync->wait();
