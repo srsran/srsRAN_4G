@@ -310,7 +310,7 @@ int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg
   if (dci_msg) {
     srslte_ra_dl_dci_t dl_dci; 
     if (srslte_dci_msg_to_dl_grant(dci_msg, rnti, cell.nof_prb, &dl_dci, &cfg->grant)) {
-      //fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
+      fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
       return SRSLTE_ERROR;
     }    
     if (rnti == SRSLTE_SIRNTI) {

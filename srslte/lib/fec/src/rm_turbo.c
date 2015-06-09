@@ -147,7 +147,7 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
   K_p = nrows * NCOLS;
   if (3 * K_p > w_buff_len) {
     fprintf(stderr,
-        "Input too large. Max output length including dummy bits is %d (3x%dx32, in_len %d)\n",
+        "Output too large. Max output length including dummy bits is %d (3x%dx32, in_len %d)\n",
         w_buff_len, nrows, out_len);
     return -1;
   }
