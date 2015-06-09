@@ -193,7 +193,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
         }
       }
       */
-      grant->to_pusch_cfg(tti%10, N_srs, &ue_ul);
+      grant->to_pusch_cfg(tti%10, 0, &ue_ul);
 
       Info("Encoding PUSCH TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, sf_idx=%d\n", 
            grant->get_tbs(), srslte_mod_string(pusch_cfg.grant.mcs.mod), pusch_cfg.grant.n_prb[0], pusch_cfg.grant.L_prb,  
