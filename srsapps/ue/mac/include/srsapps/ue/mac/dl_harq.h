@@ -87,6 +87,7 @@ private:
     srslte::log    *log_h; 
     
     srslte_softbuffer_rx_t softbuffer; 
+    bool          ack;
   };
   
   dl_harq_process proc[NOF_HARQ_PROC+1];
