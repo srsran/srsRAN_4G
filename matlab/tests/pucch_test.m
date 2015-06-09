@@ -1,8 +1,8 @@
 clear 
-ueConfig=struct('NCellID',50,'RNTI',11,'NULRB',6,'NSubframe',1,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Off');
+ueConfig=struct('NCellID',25,'RNTI',11,'NULRB',6,'NSubframe',1,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Off');
 pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0,'ResourceSize',0);
 
-addpath('../../debug/srslte/lib/phch/test')
+addpath('../../build/srslte/lib/phch/test')
 
 format_str={'1','1a','1b','2','2a','2b'};
 
@@ -41,9 +41,9 @@ for f=0:5
 
                 [sym, dmrs, subframe]=srslte_pucch_encode(ueConfig,pucchConfig,[bits; bits_ack]);
                 
-                error_sym=mean(abs(sym-sym_mat));
-                error_dmrs=mean(abs(dmrs-dmrs_mat));
-                error_sf=mean(abs(subframe_mat(:)-subframe));
+                error_sym=max(abs(sym-sym_mat));
+                error_dmrs=max(abs(dmrs-dmrs_mat));
+                error_sf=max(abs(subframe_mat(:)-subframe));
                 k=k+1;
 
                 if (error_sym > 1e-5)
@@ -56,7 +56,7 @@ for f=0:5
                     plot(angle(dmrs)-angle(dmrs_mat))
                     error('Error in DMRS');                
                 end
-                if (error_sf > 1e-6)
+                if (error_sf > 1e-5)
                     disp(info)
                     plot(abs(subframe-subframe_mat(:)))
                     error('Error in subframe');

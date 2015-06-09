@@ -142,12 +142,12 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
           // RX OK
           if (pid == HARQ_BCCH_PID) {
             Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.get_tbs()/8);
-            harq_entity->demux_unit->push_pdu_bcch(payload, cur_grant.get_tbs()); 
-            is_first_tx = true; 
+            harq_entity->demux_unit->push_pdu_bcch(payload, cur_grant.get_tbs());             
           } else {
             if (is_first_decoded) {
               if (cur_grant.is_temp_rnti()) {
-                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n", cur_grant.get_tbs()/8);
+                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
+                      cur_grant.get_tbs()/8);
                 harq_entity->demux_unit->push_pdu_temp_crnti(payload, cur_grant.get_tbs());
               } else {
                 Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.get_tbs()/8);

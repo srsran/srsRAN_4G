@@ -67,7 +67,6 @@ namespace ue {
     phy_params        *params_db; 
     srslte_cell_t      cell; 
     srslte_ue_ul_t     ue_ul; 
-    srslte_pusch_cfg_t pusch_cfg; 
     bool               cell_initiated; 
     cf_t*              signal_buffer;
     uint32_t           current_tx_nb; 
