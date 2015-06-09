@@ -97,21 +97,18 @@ typedef struct SRSLTE_API {
  */
 SRSLTE_API int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, 
                                           uint16_t msg_rnti,
-                                          srslte_cell_t cell, 
-                                          uint32_t cfi, 
-                                          uint32_t sf_idx, 
+                                          uint32_t nof_prb, 
                                           srslte_ra_dl_dci_t *dl_dci, 
                                           srslte_ra_dl_grant_t *grant);
 
 SRSLTE_API int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, 
-                                          srslte_cell_t cell,
-                                          uint32_t N_srs, 
+                                          uint32_t nof_prb,
                                           uint32_t n_rb_ho, 
                                           srslte_ra_ul_dci_t *ul_dci, 
                                           srslte_ra_ul_grant_t *grant);
 
 SRSLTE_API int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar,
-                                          srslte_cell_t cell, 
+                                          uint32_t nof_prb, 
                                           uint32_t n_rb_ho, 
                                           srslte_ra_ul_dci_t *ul_dci,
                                           srslte_ra_ul_grant_t *grant); 

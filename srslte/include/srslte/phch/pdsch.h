@@ -82,6 +82,14 @@ SRSLTE_API void srslte_pdsch_free(srslte_pdsch_t *q);
 SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q, 
                                      uint16_t rnti);
 
+SRSLTE_API int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, 
+                                srslte_cell_t cell, 
+                                srslte_dci_msg_t *dci_msg, 
+                                uint32_t cfi, 
+                                uint32_t sf_idx, 
+                                uint16_t rnti, 
+                                uint32_t rvidx); 
+
 SRSLTE_API int srslte_pdsch_encode(srslte_pdsch_t *q,
                                    srslte_pdsch_cfg_t *cfg,
                                    srslte_softbuffer_tx_t *softbuffer,

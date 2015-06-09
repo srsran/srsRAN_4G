@@ -97,6 +97,13 @@ SRSLTE_API int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q,
                                                 uint32_t sf_idx, 
                                                 uint32_t *cfi); 
 
+SRSLTE_API int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, 
+                                      srslte_dci_msg_t *dci_msg, 
+                                      uint32_t cfi, 
+                                      uint32_t sf_idx, 
+                                      uint16_t rnti, 
+                                      uint32_t rvidx); 
+
 SRSLTE_API int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, 
                                                   srslte_dci_msg_t *dci_msg, 
                                                   uint8_t *data, 

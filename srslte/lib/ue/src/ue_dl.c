@@ -203,6 +203,11 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
   }
 }
 
+int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+{
+  return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, dci_msg, cfi, sf_idx, rnti, rvidx);
+}
+
 int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint8_t *data, 
                                 uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
@@ -210,20 +215,11 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
 
   q->nof_detected++;
   
-  if (srslte_dci_msg_to_dl_grant(dci_msg, rnti, q->cell, cfi, sf_idx, &q->dl_dci, &q->pdsch_cfg.grant)) {
-    //fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-    return SRSLTE_ERROR;
-  }
-  if (srslte_cbsegm(&q->pdsch_cfg.cb_segm, q->pdsch_cfg.grant.mcs.tbs)) {
-    fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", q->pdsch_cfg.grant.mcs.tbs);
+  /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
+  if (srslte_ue_dl_cfg_grant(q, dci_msg, cfi, sf_idx, rnti, rvidx)) {
     return SRSLTE_ERROR; 
   }
-  q->pdsch_cfg.sf_idx = sf_idx; 
-  if (rnti == SRSLTE_SIRNTI) {
-    q->pdsch_cfg.rv = rvidx;
-  } else {
-    q->pdsch_cfg.rv = q->dl_dci.rv_idx;
-  }
+  
   if (q->pdsch_cfg.rv == 0) {
     srslte_softbuffer_rx_reset(&q->softbuffer);
   }
@@ -339,6 +335,7 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
   }
 
   int found_dci = srslte_ue_dl_find_dl_dci(q, &dci_msg, q->cfi, sf_idx, rnti); 
+  
   if (found_dci == 1) {
     ret = srslte_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, q->cfi, sf_idx, rnti, rvidx);    
   }

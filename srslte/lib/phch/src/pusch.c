@@ -288,6 +288,30 @@ void srslte_pusch_set_hopping_cfg(srslte_pusch_t *q, srslte_pusch_hopping_cfg_t 
   }
 }
 
+/* Configures the structure srslte_pusch_cfg_t from the UL DCI allocation dci_msg. 
+ * If dci_msg is NULL, the grant is assumed to be already stored in cfg->grant
+ */
+int srslte_pusch_cfg(srslte_pusch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg_t *dci_msg, uint32_t n_rb_ho, uint32_t N_srs, uint32_t sf_idx, uint32_t rvidx) 
+{
+  if (dci_msg) {
+    srslte_ra_ul_dci_t ul_dci; 
+    if (srslte_dci_msg_to_ul_grant(dci_msg, cell.nof_prb, n_rb_ho, &ul_dci, &cfg->grant)) {
+      fprintf(stderr, "Error unpacking UL grant from DCI message\n");
+      return SRSLTE_ERROR; 
+    }
+  }
+  if (srslte_cbsegm(&cfg->cb_segm, cfg->grant.mcs.tbs)) {
+    fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
+    return SRSLTE_ERROR; 
+  }
+  srslte_ra_ul_grant_to_nbits(&cfg->grant, cell.cp, N_srs, &cfg->nbits);
+  cfg->sf_idx = sf_idx; 
+  cfg->rv = rvidx; 
+  cfg->cp = cell.cp; 
+  
+  return SRSLTE_SUCCESS;  
+}
+
 /* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while 
  * to execute, so shall be called once the final C-RNTI has been allocated for the session.
  * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions */
@@ -325,26 +349,26 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     if (q->rnti_is_set) {
       INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
           cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, 
-           cfg->grant.nof_re, cfg->grant.nof_symb, cfg->grant.nof_bits, cfg->rv);
+           cfg->nbits.nof_re, cfg->nbits.nof_symb, cfg->nbits.nof_bits, cfg->rv);
 
       /* extract symbols */
       n = pusch_get(q, &cfg->grant, cfg->sf_idx, sf_symbols, q->d);
-      if (n != cfg->grant.nof_re) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->grant.nof_re, n);
+      if (n != cfg->nbits.nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
         return SRSLTE_ERROR;
       }
       
       /* extract channel estimates */
       n = pusch_get(q, &cfg->grant, cfg->sf_idx, ce, q->ce);
-      if (n != cfg->grant.nof_re) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->grant.nof_re, n);
+      if (n != cfg->nbits.nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
         return SRSLTE_ERROR;
       }
       
       srslte_predecoding_single(&q->equalizer, q->d, q->ce, q->z,
-            cfg->grant.nof_re, noise_estimate);
+            cfg->nbits.nof_re, noise_estimate);
 
-      srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->grant.nof_symb);
+      srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
       
       /* demodulate symbols 
       * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
@@ -352,10 +376,10 @@ int srslte_pusch_decode(srslte_pusch_t *q,
       */
       srslte_demod_soft_sigma_set(&q->demod, sqrt(0.5));
       srslte_demod_soft_table_set(&q->demod, &q->mod[cfg->grant.mcs.mod]);
-      srslte_demod_soft_demodulate(&q->demod, q->d, q->q, cfg->grant.nof_re);
+      srslte_demod_soft_demodulate(&q->demod, q->d, q->q, cfg->nbits.nof_re);
 
       /* descramble */
-      srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->grant.nof_bits);
+      srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->nbits.nof_bits);
 
       return srslte_ulsch_decode(&q->dl_sch, cfg, softbuffer, q->q, data);      
     } else {
@@ -412,22 +436,22 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
   if (q    != NULL &&
       cfg  != NULL)
   {
-    if (cfg->grant.mcs.tbs > cfg->grant.nof_bits) {
-      fprintf(stderr, "Invalid code rate %.2f\n", (float) cfg->grant.mcs.tbs / cfg->grant.nof_bits);
+    if (cfg->grant.mcs.tbs > cfg->nbits.nof_bits) {
+      fprintf(stderr, "Invalid code rate %.2f\n", (float) cfg->grant.mcs.tbs / cfg->nbits.nof_bits);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
-    if (cfg->grant.nof_re > q->max_re) {
+    if (cfg->nbits.nof_re > q->max_re) {
       fprintf(stderr, "Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
-          cfg->grant.nof_re, q->max_re, q->cell.nof_prb);
+          cfg->nbits.nof_re, q->max_re, q->cell.nof_prb);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
     INFO("Encoding PUSCH SF: %d, Mod %s, RNTI: %d, TBS: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
          cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), rnti, 
-         cfg->grant.mcs.tbs, cfg->grant.nof_re, cfg->grant.nof_symb, cfg->grant.nof_bits, cfg->rv);
+         cfg->grant.mcs.tbs, cfg->nbits.nof_re, cfg->nbits.nof_symb, cfg->nbits.nof_bits, cfg->rv);
     
-    bzero(q->q, cfg->grant.nof_bits);
+    bzero(q->q, cfg->nbits.nof_bits);
     if (srslte_ulsch_uci_encode(&q->dl_sch, cfg, softbuffer, data, uci_data, q->g, q->q)) {
       fprintf(stderr, "Error encoding TB\n");
       return SRSLTE_ERROR;
@@ -435,18 +459,18 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
     
     if (rnti != q->rnti) {
       srslte_sequence_t seq; 
-      if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->grant.nof_bits)) {
+      if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_b_offset_pusch(&seq, (uint8_t*) q->q, 0, cfg->grant.nof_bits);      
+      srslte_scrambling_b_offset_pusch(&seq, (uint8_t*) q->q, 0, cfg->nbits.nof_bits);      
       srslte_sequence_free(&seq);
     } else {
-      srslte_scrambling_b_offset_pusch(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->grant.nof_bits);            
+      srslte_scrambling_b_offset_pusch(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits);            
     }
     
-    srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->grant.nof_bits);
+    srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
     
-    srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->grant.nof_symb);
+    srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);
     
     /* mapping to resource elements */      
     pusch_put(q, &cfg->grant, cfg->sf_idx, q->z, sf_symbols);

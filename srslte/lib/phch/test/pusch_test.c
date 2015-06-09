@@ -150,20 +150,18 @@ int main(int argc, char **argv) {
   } else {
     srslte_ra_type2_from_riv((uint32_t) riv, &dci.type2_alloc.L_crb, &dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
   }
+  
+
+  /* Configure PUSCH */
+  srslte_ul_dci_to_grant_prb_allocation(&dci, &cfg.grant, 0, cell.nof_prb);
   cfg.grant.mcs.tbs = tbs;
   cfg.grant.mcs.mod = modulation;
-
-  // Compute PRB allocation 
-  if (!srslte_ul_dci_to_grant_prb_allocation(&dci, &cfg.grant, 0, cell.nof_prb)) {
-    cfg.grant.lstart = 0;
-    cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1); 
-    cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
-    cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
-    cfg.grant.nof_re = cfg.grant.nof_symb*cfg.grant.M_sc;
-    cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
-    cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;
+  cfg.grant.Qm = srslte_mod_bits_x_symbol(modulation);
+  if (srslte_pusch_cfg(&cfg, cell, NULL, 0, 0, subframe, 0)) {
+    fprintf(stderr, "Error configuring PDSCH\n");
+    exit(-1);
   }
-
+  
   if (srslte_pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
@@ -197,10 +195,6 @@ int main(int argc, char **argv) {
   uci_data.uci_ri = 0; 
   uci_data.uci_ack = 0; 
     
-  if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
-    fprintf(stderr, "Error configuring CB segmentation\n");
-    goto quit;
-  }
   srslte_pusch_hopping_cfg_t ul_hopping; 
   ul_hopping.n_sb = 1; 
   ul_hopping.hopping_offset = 0;

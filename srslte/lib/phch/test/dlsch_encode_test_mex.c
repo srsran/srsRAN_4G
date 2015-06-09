@@ -96,8 +96,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return; 
   }
 
-  cfg.grant.nof_bits = mxGetScalar(OUTLEN); 
-  uint8_t *e_bits = srslte_vec_malloc(cfg.grant.nof_bits * sizeof(uint8_t));
+  cfg.nbits.nof_bits = mxGetScalar(OUTLEN); 
+  uint8_t *e_bits = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t));
   if (!e_bits) {
     return;
   }
@@ -111,7 +111,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   if (nlhs >= 1) {
-    mexutils_write_uint8(e_bits, &plhs[0], cfg.grant.nof_bits, 1);  
+    mexutils_write_uint8(e_bits, &plhs[0], cfg.nbits.nof_bits, 1);  
   }
   
   srslte_sch_free(&dlsch);

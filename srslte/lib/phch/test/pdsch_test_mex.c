@@ -163,14 +163,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   free(prbset);
   
-  srslte_dl_dci_to_grant_nof_re(&cfg.grant, cell, cfg.sf_idx, cell.nof_prb<10?(cfi+1):cfi);
-  
-  // Fill rest of grant structure 
-  cfg.grant.lstart = cell.nof_prb<10?(cfi+1):cfi;
-  cfg.grant.nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-cfg.grant.lstart;
+  /* Configure rest of pdsch_cfg parameters */
   cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
-  cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;     
-    
+  if (srslte_pdsch_cfg(&cfg, cell, NULL, cfi, cfg.sf_idx, (uint16_t) (rnti32 & 0xffff), cfg.rv)) {
+    fprintf(stderr, "Error configuring PDSCH\n");
+    exit(-1);
+  }
+      
   /** Allocate input buffers */
   if (mexutils_read_cf(INPUT, &input_signal) < 0) {
     mexErrMsgTxt("Error reading input signal\n");
@@ -222,13 +221,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_uint8(data, &plhs[1], cfg.grant.mcs.tbs, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pdsch.symbols[0], &plhs[2], cfg.grant.nof_re, 1);  
+    mexutils_write_cf(pdsch.symbols[0], &plhs[2], cfg.nbits.nof_re, 1);  
   }
   if (nlhs >= 4) {
-    mexutils_write_cf(pdsch.d, &plhs[3], cfg.grant.nof_re, 1);  
+    mexutils_write_cf(pdsch.d, &plhs[3], cfg.nbits.nof_re, 1);  
   }
   if (nlhs >= 5) {
-    mexutils_write_f(pdsch.e, &plhs[4], cfg.grant.nof_bits, 1);  
+    mexutils_write_f(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
   }
   
   srslte_chest_dl_free(&chest);

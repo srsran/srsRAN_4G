@@ -118,6 +118,12 @@ SRSLTE_API int cuhd_send(void *h,
                          uint32_t nsamples, 
                          bool blocking);
 
+SRSLTE_API int cuhd_send2(void *h, 
+                          void *data, 
+                          uint32_t nsamples, 
+                          bool blocking, 
+                          bool start_of_burst, 
+                          bool end_of_burst); 
 
 SRSLTE_API int cuhd_send(void *h, 
                          void *data, 

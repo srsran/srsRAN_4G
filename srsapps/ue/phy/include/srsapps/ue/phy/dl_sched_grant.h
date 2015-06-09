@@ -75,19 +75,22 @@ namespace ue {
     uint32_t get_mcs() {
       return dl_dci.mcs_idx;
     }
-    bool     create_from_dci(srslte_dci_msg_t *msg, srslte_cell_t cell, uint32_t cfi, uint32_t sf_idx, uint32_t ncce_) {
+    bool     create_from_dci(srslte_dci_msg_t *msg, uint32_t nof_prb, uint32_t ncce_) {
       ncce = ncce_; 
-      if (srslte_dci_msg_to_dl_grant(msg, rnti, cell, cfi, sf_idx, &dl_dci, &grant)) {
+      if (srslte_dci_msg_to_dl_grant(msg, rnti, nof_prb, &dl_dci, &grant)) {
         return false; 
       } else {
         return true; 
       }
     }
-    void     get_pdsch_cfg(uint32_t sf_idx, srslte_pdsch_cfg_t *cfg) {
-      srslte_cbsegm(&cfg->cb_segm, grant.mcs.tbs);
-      memcpy(&cfg->grant, &grant, sizeof(srslte_ra_dl_grant_t));
-      cfg->sf_idx = sf_idx; 
-      cfg->rv = dl_dci.rv_idx; 
+    bool     get_pdsch_cfg(uint32_t sf_idx, uint32_t cfi, srslte_ue_dl_t *ue_dl) {      
+      memcpy(&ue_dl->pdsch_cfg.grant, &grant, sizeof(srslte_ra_dl_grant_t));
+      
+      /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
+      if (srslte_ue_dl_cfg_grant(ue_dl, NULL, cfi, sf_idx, rnti, get_rv())) {
+        return false; 
+      }
+      return true; 
     }
   private: 
     srslte_ra_dl_grant_t grant;

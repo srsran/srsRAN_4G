@@ -331,12 +331,14 @@ int update_radl() {
 
   srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   srslte_ra_dl_grant_t dummy_grant; 
-  srslte_ra_dl_dci_to_grant(&ra_dl, &dummy_grant, cell, 1, cfi, true);
+  srslte_ra_nbits_t dummy_nbits;
+  srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, true, &dummy_grant);
+  srslte_ra_dl_grant_to_nbits(&dummy_grant, cfi, cell, 0, &dummy_nbits);
   srslte_ra_dl_grant_fprint(stdout, &dummy_grant);
   printf("Type new MCS index and press Enter: "); fflush(stdout);
  
-  if (dummy_grant.mcs.tbs > dummy_grant.nof_bits) {
-    fprintf(stderr, "Invalid code rate %d/%d=%.2f\n", dummy_grant.mcs.tbs, dummy_grant.nof_bits, (float) dummy_grant.mcs.tbs / dummy_grant.nof_bits);
+  if (dummy_grant.mcs.tbs > dummy_nbits.nof_bits) {
+    fprintf(stderr, "Invalid code rate %d/%d=%.2f\n", dummy_grant.mcs.tbs, dummy_nbits.nof_bits, (float) dummy_grant.mcs.tbs / dummy_nbits.nof_bits);
     return -1;
   }
 
@@ -522,7 +524,9 @@ int main(int argc, char **argv) {
   nf = 0;
   
   bool send_data = false; 
-
+  bool start_of_burst = true; 
+  srslte_softbuffer_tx_reset(&softbuffer);
+  
   while (nf < nof_frames || nof_frames == -1) {
     for (sf_idx = 0; sf_idx < SRSLTE_NSUBFRAMES_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
       bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
@@ -562,19 +566,23 @@ int main(int argc, char **argv) {
       }        
       
       if (send_data) {
-        srslte_ra_dl_dci_to_grant(&ra_dl, &pdsch_cfg.grant, cell, sf_idx, cfi, true);
-        srslte_cbsegm(&pdsch_cfg.cb_segm, pdsch_cfg.grant.mcs.tbs);
-        srslte_softbuffer_tx_reset(&softbuffer);
-        pdsch_cfg.sf_idx = sf_idx; 
-        pdsch_cfg.rv = 0; 
               
+        /* Encode PDCCH */
         srslte_dci_msg_pack_pdsch(&ra_dl, &dci_msg, SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
         INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
         if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], UE_CRNTI, sf_symbols, sf_idx, cfi)) {
           fprintf(stderr, "Error encoding DCI message\n");
           exit(-1);
         }
-        
+
+        /* Configure pdsch_cfg parameters */
+        srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, true, &pdsch_cfg.grant);        
+        if (srslte_pdsch_cfg(&pdsch_cfg, cell, NULL, cfi, sf_idx, UE_CRNTI, 0)) {
+          fprintf(stderr, "Error configuring PDSCH\n");
+          exit(-1);
+        }
+       
+        /* Encode PDSCH */
         if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer, data, sf_symbols)) {
           fprintf(stderr, "Error encoding PDSCH\n");
           exit(-1);
@@ -605,7 +613,8 @@ int main(int argc, char **argv) {
         // FIXME
         float norm_factor = (float) cell.nof_prb/15/sqrtf(pdsch_cfg.grant.nof_prb);
         srslte_vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-        cuhd_send(uhd, output_buffer, sf_n_samples, true);
+        cuhd_send2(uhd, output_buffer, sf_n_samples, true, start_of_burst, false);
+        start_of_burst=false; 
 #endif
       }
       nf++;

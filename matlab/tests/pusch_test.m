@@ -3,12 +3,12 @@ puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',22,'Shortened',0);
 
 addpath('../../build/srslte/lib/phch/test')
 
-TBs=336;
+TBs=[111 336];
 cqilen=0;
-rvs=0;
+rvs=[0 2];
 mods={'16QAM'};
 betas=0;
-subf=8;
+subf=[1:8];
 
 for i=1:length(TBs)
     for m=1:length(mods)
@@ -41,17 +41,17 @@ for i=1:length(TBs)
                                 if (cqilen(c)>0 || TBs(i)>0)
                                     [cw, info]=lteULSCH(ueConfig,puschConfig,trblkin);
                                     cw_mat=ltePUSCH(ueConfig,puschConfig,cw);
-                                    drs=ltePUSCHDRS(ueConfig,puschConfig);
+                                    %drs=ltePUSCHDRS(ueConfig,puschConfig);
                                     idx=ltePUSCHIndices(ueConfig,puschConfig);
-                                    drs_idx=ltePUSCHDRSIndices(ueConfig,puschConfig);
+                                    %drs_idx=ltePUSCHDRSIndices(ueConfig,puschConfig);
                                     subframe_mat = lteULResourceGrid(ueConfig);
                                     subframe_mat(idx)=cw_mat;
-                                    subframe_mat(drs_idx)=drs;
+                                    %subframe_mat(drs_idx)=drs;
                                     waveform = lteSCFDMAModulate(ueConfig,subframe_mat,0);
                                     
                                     [waveform_lib, subframe_lib, cwlib]=srslte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
-                                    err=mean(abs(waveform-waveform_lib));
-                                    if (err > 10^-8)
+                                    err=max(abs(waveform-waveform_lib));
+                                    if (err > 10^-5)
                                       disp(err)    
                                       error('Error!');
                                     end

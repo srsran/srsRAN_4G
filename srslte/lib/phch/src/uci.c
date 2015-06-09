@@ -125,10 +125,10 @@ static uint32_t Q_prime_cqi(srslte_pusch_cfg_t *cfg,
   uint32_t x = 999999;
   
   if (K > 0) {
-    x = (uint32_t) ceilf((float) (O+L)*cfg->grant.M_sc_init*cfg->grant.nof_symb*beta/K);      
+    x = (uint32_t) ceilf((float) (O+L)*cfg->grant.M_sc_init*cfg->nbits.nof_symb*beta/K);      
   }
   
-  Q_prime = SRSLTE_MIN(x, cfg->grant.M_sc * cfg->grant.nof_symb - Q_prime_ri);    
+  Q_prime = SRSLTE_MIN(x, cfg->grant.M_sc * cfg->nbits.nof_symb - Q_prime_ri);    
 
   return Q_prime; 
 }
@@ -310,7 +310,7 @@ static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t *cfg,
     }
   }
     
-  uint32_t x = (uint32_t) ceilf((float) O*cfg->grant.M_sc_init*cfg->grant.nof_symb*beta/K);
+  uint32_t x = (uint32_t) ceilf((float) O*cfg->grant.M_sc_init*cfg->nbits.nof_symb*beta/K);
 
   uint32_t Q_prime = SRSLTE_MIN(x, 4*cfg->grant.M_sc);
 
@@ -344,7 +344,7 @@ int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
   encode_ri_ack(data, q_encoded_bits, cfg->grant.Qm);
   
   for (uint32_t i=0;i<Qprime;i++) {
-    uci_ulsch_interleave_ack(q_encoded_bits, i, cfg->grant.Qm, H_prime_total, cfg->grant.nof_symb, cfg->cp, q_bits);
+    uci_ulsch_interleave_ack(q_encoded_bits, i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, q_bits);
   }
   
   return (int) Qprime;
@@ -369,7 +369,7 @@ int srslte_uci_encode_ri(srslte_pusch_cfg_t *cfg,
   encode_ri_ack(data, q_encoded_bits, cfg->grant.Qm);
   
   for (uint32_t i=0;i<Qprime;i++) {
-    uci_ulsch_interleave_ri(q_encoded_bits, i, cfg->grant.Qm, H_prime_total, cfg->grant.nof_symb, cfg->cp, q_bits);
+    uci_ulsch_interleave_ri(q_encoded_bits, i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, q_bits);
   }
   
   return (int) Qprime;

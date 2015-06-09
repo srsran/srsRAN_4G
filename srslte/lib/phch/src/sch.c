@@ -448,7 +448,7 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 {
   return decode_tb(q,                    
                    softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->grant.nof_bits, 
+                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
                    e_bits, data);
 }
 
@@ -457,7 +457,7 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 {
   return encode_tb(q, 
                    softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->grant.nof_bits, 
+                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
                    data, e_bits);
 }
 
@@ -466,7 +466,7 @@ int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuf
 {
   return decode_tb(q,                    
                    softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->grant.nof_bits, 
+                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
                    e_bits, data);
 }
 
@@ -514,7 +514,7 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   uint32_t Q_prime_ack = 0;
   uint32_t Q_prime_ri = 0;
 
-  uint32_t nb_q = cfg->grant.nof_bits; 
+  uint32_t nb_q = cfg->nbits.nof_bits; 
   uint32_t Qm = cfg->grant.Qm; 
   
   bzero(q_bits, sizeof(uint8_t) * nb_q);
@@ -558,7 +558,7 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   } 
     
   // Interleave UL-SCH (and RI and CQI)
-  ulsch_interleave(g_bits, Qm, nb_q/Qm, cfg->grant.nof_symb, q_bits);
+  ulsch_interleave(g_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits);
   
    // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {

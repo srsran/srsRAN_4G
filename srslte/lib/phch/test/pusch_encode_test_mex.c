@@ -114,14 +114,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cfg.grant.L_prb = mexutils_read_f(p, &prbset);
   cfg.grant.n_prb[0] = prbset[0];
   cfg.grant.n_prb[1] = prbset[0];
-  cfg.grant.lstart = 0;
-  cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs; 
   cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
   cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
-  cfg.grant.nof_re = cfg.grant.nof_symb*cfg.grant.M_sc;
   cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
-  cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;
-
+  if (srslte_pusch_cfg(&cfg, cell, NULL, 0, 0, cfg.sf_idx, cfg.rv)) {
+    fprintf(stderr, "Error configuring PDSCH\n");
+    exit(-1);
+  }
+  
   free(prbset);
   
   mexPrintf("L_prb: %d, n_prb: %d\n", cfg.grant.L_prb, cfg.grant.n_prb[0]);
@@ -185,7 +185,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mexPrintf("I_cqi: %d, I_ri: %d, I_ack=%d\n", uci_data.I_offset_cqi, uci_data.I_offset_ri, uci_data.I_offset_ack);
 
-  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d, N_srs=%d\n", cfg.grant.nof_re, cfg.grant.nof_bits, cfg.grant.mcs.tbs, N_srs);
+  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d, N_srs=%d\n", cfg.nbits.nof_re, cfg.nbits.nof_bits, cfg.grant.mcs.tbs, N_srs);
   int r = srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, sf_symbols);
   if (r < 0) {
     mexErrMsgTxt("Error encoding PUSCH\n");
@@ -221,7 +221,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(sf_symbols, &plhs[1], nof_re, 1);  
   }
   if (nlhs >= 3) {
-    mexutils_write_cf(pusch.z, &plhs[2], cfg.grant.nof_re, 1);  
+    mexutils_write_cf(pusch.z, &plhs[2], cfg.nbits.nof_re, 1);  
   }
   srslte_pusch_free(&pusch);  
   free(trblkin);

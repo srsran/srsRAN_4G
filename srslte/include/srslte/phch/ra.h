@@ -52,6 +52,15 @@ typedef struct SRSLTE_API {
   int tbs;
 } srslte_ra_mcs_t;
 
+
+/* Structure that gives the number of encoded bits and RE for a UL/DL grant */
+typedef struct {
+  uint32_t lstart; 
+  uint32_t nof_symb; 
+  uint32_t nof_bits;
+  uint32_t nof_re; 
+} srslte_ra_nbits_t;
+
 typedef enum SRSLTE_API {
   SRSLTE_RA_ALLOC_TYPE0 = 0, 
   SRSLTE_RA_ALLOC_TYPE1 = 1, 
@@ -86,18 +95,12 @@ typedef struct SRSLTE_API {
 
 
 
-
-
 /**************************************************
  * Structures used for Downlink Resource Allocation 
  **************************************************/
 
 typedef struct SRSLTE_API {
   bool prb_idx[2][SRSLTE_MAX_PRB];
-  uint32_t lstart;
-  uint32_t nof_re;
-  uint32_t nof_bits; 
-  uint32_t nof_symb; 
   uint32_t nof_prb;  
   uint32_t Qm; 
   srslte_ra_mcs_t mcs;
@@ -138,10 +141,6 @@ typedef struct SRSLTE_API {
   uint32_t n_prb_tilde[2];
   uint32_t L_prb;
   uint32_t freq_hopping; 
-  uint32_t lstart;
-  uint32_t nof_re;
-  uint32_t nof_bits; 
-  uint32_t nof_symb; 
   uint32_t M_sc; 
   uint32_t M_sc_init; 
   uint32_t Qm; 
@@ -180,26 +179,34 @@ typedef struct SRSLTE_API {
  **************************************************/
 
 
-SRSLTE_API int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t* dci, 
-                                         srslte_ra_dl_grant_t* grant, 
-                                         srslte_cell_t cell, 
-                                         uint32_t sf_idx,
-                                         uint32_t cfi, 
-                                         bool crc_is_crnti);
+SRSLTE_API int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, 
+                                         uint32_t nof_prb, 
+                                         bool crc_is_crnti, 
+                                         srslte_ra_dl_grant_t *grant);
 
-SRSLTE_API void srslte_dl_dci_to_grant_nof_re(srslte_ra_dl_grant_t *grant, 
+SRSLTE_API void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, 
+                                            uint32_t cfi, 
+                                            srslte_cell_t cell, 
+                                            uint32_t sf_idx, 
+                                            srslte_ra_nbits_t *nbits); 
+
+SRSLTE_API uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, 
                                               srslte_cell_t cell, 
                                               uint32_t sf_idx, 
                                               uint32_t nof_ctrl_symbols); 
 
 SRSLTE_API int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, 
-                                         srslte_ra_ul_grant_t *grant, 
-                                         srslte_cell_t cell,
+                                         uint32_t nof_prb,
                                          uint32_t n_rb_ho, 
-                                         uint32_t N_srs);
+                                         srslte_ra_ul_grant_t *grant);
+
+SRSLTE_API void srslte_ra_ul_grant_to_nbits(srslte_ra_ul_grant_t *grant, 
+                                            srslte_cp_t cp,
+                                            uint32_t N_srs, 
+                                            srslte_ra_nbits_t *nbits); 
 
 SRSLTE_API int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, 
-                                                     srslte_ra_ul_grant_t *grant, 
+                                                     srslte_ra_ul_grant_t *grant,
                                                      uint32_t n_rb_ho, 
                                                      uint32_t nof_prb); 
 

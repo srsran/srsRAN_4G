@@ -108,8 +108,8 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
   return re;
 }
 
-int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, 
-                                          uint32_t n_rb_ho, uint32_t nof_prb) {
+int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, uint32_t n_rb_ho, uint32_t nof_prb) 
+{
     bzero(grant, sizeof(srslte_ra_ul_grant_t));  
   grant->L_prb = dci->type2_alloc.L_crb;
   uint32_t n_prb_1 = dci->type2_alloc.RB_start;
@@ -205,25 +205,27 @@ static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *gr
   }
 }
 
+void srslte_ra_ul_grant_to_nbits(srslte_ra_ul_grant_t *grant, srslte_cp_t cp, uint32_t N_srs, srslte_ra_nbits_t *nbits) 
+{
+  nbits->nof_symb = 2*(SRSLTE_CP_NSYMB(cp)-1) - N_srs; 
+  nbits->nof_re   = nbits->nof_symb*grant->M_sc;
+  nbits->nof_bits = nbits->nof_re * grant->Qm;
+}
+
 /** Compute PRB allocation for Uplink as defined in 8.1 and 8.4 of 36.213 */
-int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, srslte_cell_t cell, 
-                              uint32_t n_rb_ho, uint32_t N_srs) 
+int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, uint32_t nof_prb, uint32_t n_rb_ho, srslte_ra_ul_grant_t *grant) 
 {
   
   // Compute PRB allocation 
-  if (!srslte_ul_dci_to_grant_prb_allocation(dci, grant, n_rb_ho, cell.nof_prb)) {
+  if (!srslte_ul_dci_to_grant_prb_allocation(dci, grant, n_rb_ho, nof_prb)) {
     
     // Compute MCS 
     if (!ul_dci_to_grant_mcs(dci, grant)) {
       
       // Fill rest of grant structure 
-      grant->lstart = 0;
-      grant->nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs; 
       grant->M_sc = grant->L_prb*SRSLTE_NRE;
       grant->M_sc_init = grant->M_sc; // FIXME: What should M_sc_init be? 
-      grant->nof_re = grant->nof_symb*grant->M_sc;
       grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);
-      grant->nof_bits = grant->nof_re * grant->Qm;
     } else {
       fprintf(stderr, "Error computing MCS\n");
       return SRSLTE_ERROR; 
@@ -236,21 +238,22 @@ int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *gra
 }
 
 /* Computes the number of RE for each PRB in the prb_dist structure */
-void srslte_dl_dci_to_grant_nof_re(srslte_ra_dl_grant_t *grant, srslte_cell_t cell, 
-                                   uint32_t sf_idx, uint32_t nof_ctrl_symbols) 
+uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, srslte_cell_t cell, 
+                                      uint32_t sf_idx, uint32_t nof_ctrl_symbols) 
 {
   uint32_t j, s;
 
   // Compute number of RE per PRB
-  grant->nof_re = 0;
+  uint32_t nof_re = 0;
   for (s = 0; s < 2; s++) {
     for (j = 0; j < cell.nof_prb; j++) {
       if (grant->prb_idx[s][j]) {
-        grant->nof_re += ra_re_x_prb(sf_idx, s, j,
+        nof_re += ra_re_x_prb(sf_idx, s, j,
             cell.nof_prb, cell.nof_ports, nof_ctrl_symbols, cell.cp);          
       }
     }
   }  
+  return nof_re; 
 }
 
 
@@ -418,21 +421,24 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
   }
 }
 
+void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srslte_cell_t cell, uint32_t sf_idx, srslte_ra_nbits_t *nbits) 
+{
+  // Compute number of RE 
+  nbits->nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb<10?(cfi+1):cfi);
+  nbits->lstart = cell.nof_prb<10?(cfi+1):cfi;
+  nbits->nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-nbits->lstart;
+  nbits->nof_bits = nbits->nof_re * grant->Qm;      
+}
+
 /** Obtains a DL grant from a DCI grant for PDSCH */
-int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, srslte_cell_t cell, 
-                              uint32_t sf_idx, uint32_t cfi, bool crc_is_crnti) 
+int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, bool crc_is_crnti, srslte_ra_dl_grant_t *grant) 
 {  
   // Compute PRB allocation 
-  if (!dl_dci_to_grant_prb_allocation(dci, grant, cell.nof_prb)) {
-    // Compute number of RE 
-    srslte_dl_dci_to_grant_nof_re(grant, cell, sf_idx, cell.nof_prb<10?(cfi+1):cfi);
+  if (!dl_dci_to_grant_prb_allocation(dci, grant, nof_prb)) {
     // Compute MCS 
     if (!dl_dci_to_grant_mcs(dci, grant, crc_is_crnti)) {      
       // Fill rest of grant structure 
-      grant->lstart = cell.nof_prb<10?(cfi+1):cfi;
-      grant->nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-grant->lstart;
-      grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);
-      grant->nof_bits = grant->nof_re * grant->Qm;      
+      grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
     } else {
       return SRSLTE_ERROR; 
     }

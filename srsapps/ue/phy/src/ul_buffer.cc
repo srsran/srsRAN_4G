@@ -183,19 +183,28 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
     if (grant) {
 
-      grant->to_pusch_cfg(tti%10, cell.cp, &pusch_cfg);
+      uint32_t N_srs = 0; 
+      if (params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)) {
+        if (srslte_refsignal_srs_send_cs((uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG), tti%10) == 1) {
+          N_srs = 1; 
+          printf("UL grant tti=%d is shortened. SF-CFG=%d\n", tti, 
+                 (int) params_db->get_param(phy_params::SRS_CS_SFCFG));
+        }
+      }
+      
+      grant->to_pusch_cfg(tti%10, N_srs, &ue_ul);
 
       Info("Encoding PUSCH TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, sf_idx=%d\n", 
            grant->get_tbs(), srslte_mod_string(pusch_cfg.grant.mcs.mod), pusch_cfg.grant.n_prb[0], pusch_cfg.grant.L_prb,  
            uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
            grant->get_rnti(), tti%10);
     
-      n = srslte_ue_ul_pusch_encode_cfg(&ue_ul, &pusch_cfg, 
-                                        payload, uci_data, 
-                                        softbuffer,
-                                        grant->get_rnti(), 
-                                        signal_buffer);    
-    } else {
+      n = srslte_ue_ul_pusch_encode_rnti_softbuffer(&ue_ul, 
+                                                    payload, uci_data, 
+                                                    softbuffer,
+                                                    grant->get_rnti(), 
+                                                    signal_buffer);    
+      } else {
       Info("Encoding PUCCH n_cce=%d, ack=%d, sr=%d\n", last_n_cce, uci_data.uci_ack, uci_data.scheduling_request);
     
       n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti&10, signal_buffer);

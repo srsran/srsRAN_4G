@@ -117,15 +117,6 @@ bool dl_buffer::get_ul_grant(ul_sched_grant *grant)
         return false; 
       }
       
-      grant->set_shortened(false);
-      if (params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)) {
-        if (srslte_refsignal_srs_send_cs((uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG), (tti+4)%10) == 1) {
-          grant->set_shortened(true);
-          printf("UL grant tti=%d is shortened. SF-CFG=%d\n", tti+4, 
-                 (int) params_db->get_param(phy_params::SRS_CS_SFCFG));
-        }
-      }
-      
       return grant->create_from_dci(&dci_msg, cell, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET));     
     }      
   }
@@ -177,7 +168,7 @@ bool dl_buffer::get_dl_grant(dl_sched_grant *grant)
 
     Info("Found DL DCI cce_index=%d, n_data_bits=%d\n", ue_dl.last_n_cce, dci_msg.nof_bits);
     
-    return grant->create_from_dci(&dci_msg, cell, cfi, tti%10, srslte_ue_dl_get_ncce(&ue_dl));     
+    return grant->create_from_dci(&dci_msg, cell.nof_prb, srslte_ue_dl_get_ncce(&ue_dl));     
   }
 }
 
@@ -217,14 +208,14 @@ bool dl_buffer::decode_data(dl_sched_grant *grant, srslte_softbuffer_rx_t *softb
       sf_symbols_and_ce_done = true; 
     }
     
-    grant->get_pdsch_cfg(tti%10, &ue_dl.pdsch_cfg);
+    grant->get_pdsch_cfg(tti%10, cfi, &ue_dl);
     if (ue_dl.pdsch_cfg.grant.mcs.mod > 0 && ue_dl.pdsch_cfg.grant.mcs.tbs >= 0) {
       
       int ret = srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols, 
                                          ue_dl.ce, 0, grant->get_rnti(), payload);
 
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        srslte_vec_save_file((char*) "pdsch_d", ue_dl.pdsch.d, ue_dl.pdsch_cfg.grant.nof_re*sizeof(cf_t));      
+        srslte_vec_save_file((char*) "pdsch_d", ue_dl.pdsch.d, ue_dl.pdsch_cfg.nbits.nof_re*sizeof(cf_t));      
       }
       if (ret == SRSLTE_SUCCESS) {
         return true; 

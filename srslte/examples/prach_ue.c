@@ -499,7 +499,7 @@ cell.nof_ports = 1;
                 rar_grant.hopping_flag = rar_msg.hopping_flag; 
                 rar_grant.rba = rar_msg.rba; 
                 rar_grant.trunc_mcs = rar_msg.mcs; 
-                srslte_dci_rar_to_ul_grant(&rar_grant, cell, 0, &ra_pusch, &ra_grant);
+                srslte_dci_rar_to_ul_grant(&rar_grant, cell.nof_prb, 0, &ra_pusch, &ra_grant);
                 srslte_ra_pusch_fprint(stdout, &ra_pusch, cell.nof_prb);
 
                 srslte_ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
@@ -522,7 +522,10 @@ cell.nof_ports = 1;
                   printf("Setting CFO: %f (%f)\n", cfo, cfo*15000);
                   srslte_ue_ul_set_cfo(&ue_ul, cfo);
                   
-                  n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, &ra_grant, data, ul_sf_idx, 0, rar_msg.temp_c_rnti, ul_signal);
+                  memcpy(&ue_ul.pusch_cfg.grant, &ra_grant, sizeof(srslte_ra_ul_grant_t));
+                  srslte_ue_ul_cfg_grant(&ue_ul, NULL, 0, 0, ul_sf_idx, 0);
+                  
+                  n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, data, rar_msg.temp_c_rnti, ul_signal);
                   if (n < 0) {
                     fprintf(stderr, "Error encoding PUSCH\n");
                     exit(-1);

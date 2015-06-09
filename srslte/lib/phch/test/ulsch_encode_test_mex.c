@@ -148,13 +148,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cfg.grant.L_prb = mexutils_read_f(p, &prbset);
   cfg.grant.n_prb[0] = prbset[0];
   cfg.grant.n_prb[1] = prbset[0];
-  cfg.grant.lstart = 0;
-  cfg.grant.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs; 
+  cfg.nbits.lstart = 0;
+  cfg.nbits.nof_symb = 2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs; 
   cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
   cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
-  cfg.grant.nof_re = cfg.grant.nof_symb*cfg.grant.M_sc;
+  cfg.nbits.nof_re = cfg.nbits.nof_symb*cfg.grant.M_sc;
   cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
-  cfg.grant.nof_bits = cfg.grant.nof_re * cfg.grant.Qm;
+  cfg.nbits.nof_bits = cfg.nbits.nof_re * cfg.grant.Qm;
 
   mexPrintf("Q_m: %d, NPRB: %d, RV: %d, Nsrs=%d\n", srslte_mod_bits_x_symbol(cfg.grant.mcs.mod), cfg.grant.L_prb, cfg.rv, N_srs);
 
@@ -163,11 +163,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
     
-  uint8_t *q_bits = srslte_vec_malloc(cfg.grant.nof_bits * sizeof(uint8_t));
+  uint8_t *q_bits = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t));
   if (!q_bits) {
     return;
   }
-  uint8_t *g_bits = srslte_vec_malloc(cfg.grant.nof_bits * sizeof(uint8_t));
+  uint8_t *g_bits = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t));
   if (!g_bits) {
     return;
   }
@@ -186,7 +186,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   if (nlhs >= 1) {
-    mexutils_write_uint8(q_bits, &plhs[0], cfg.grant.nof_bits, 1);  
+    mexutils_write_uint8(q_bits, &plhs[0], cfg.nbits.nof_bits, 1);  
   }
   
   srslte_sch_free(&ulsch);  

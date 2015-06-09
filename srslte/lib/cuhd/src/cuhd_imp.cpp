@@ -367,8 +367,16 @@ void cuhd_get_time(void *h, time_t *secs, double *frac_secs) {
 
 int cuhd_send(void *h, void *data, uint32_t nsamples, bool blocking)
 {
+  return cuhd_send2(h, data, nsamples, blocking, true, true); 
+}
+
+int cuhd_send2(void *h, void *data, uint32_t nsamples, bool blocking, bool start_of_burst, bool end_of_burst)
+{
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   uhd::tx_metadata_t md;
+  md.has_time_spec = false; 
+  md.start_of_burst = start_of_burst; 
+  md.end_of_burst = end_of_burst; 
   if (blocking) {
     int n = 0, p;
     complex_t *data_c = (complex_t *) data;

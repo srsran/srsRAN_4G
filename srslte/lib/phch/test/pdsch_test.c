@@ -45,14 +45,12 @@ srslte_cell_t cell = {
 
 uint32_t cfi = 2;
 uint32_t tbs = 0;
-uint32_t nof_tbs = 0; 
 uint32_t subframe = 1;
 srslte_mod_t modulation = SRSLTE_MOD_BPSK;
 uint32_t rv_idx = 0;
 
 void usage(char *prog) {
   printf("Usage: %s [Lcpsrnfvmt] -l TBS \n", prog);
-  printf("\t-L number of consequent TBS [Default 0]\n");
   printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
@@ -65,7 +63,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lLcpnfvmtsr")) != -1) {
+  while ((opt = getopt(argc, argv, "lcpnfvmtsr")) != -1) {
     switch(opt) {
     case 'm':
       switch(atoi(argv[optind])) {
@@ -95,9 +93,6 @@ void parse_args(int argc, char **argv) {
       break;
     case 'l':
       tbs = atoi(argv[optind]);
-      break;
-    case 'L':
-      nof_tbs = atoi(argv[optind]);
       break;
     case 'p':
       cell.nof_ports = atoi(argv[optind]);
@@ -142,22 +137,20 @@ int main(int argc, char **argv) {
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   
-  pdsch_cfg.grant.nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
-
+  pdsch_cfg.grant.mcs.tbs = tbs; 
   pdsch_cfg.grant.mcs.mod = modulation;
-  
-  pdsch_cfg.grant.nof_prb = cell.nof_prb;
+  pdsch_cfg.grant.Qm = srslte_mod_bits_x_symbol(pdsch_cfg.grant.mcs.mod);
+  pdsch_cfg.grant.nof_prb = cell.nof_prb; // Allocate all PRB 
   for (i=0;i<pdsch_cfg.grant.nof_prb;i++) {
     pdsch_cfg.grant.prb_idx[0][i] = true;
   }
   memcpy(&pdsch_cfg.grant.prb_idx[1], &pdsch_cfg.grant.prb_idx[0], SRSLTE_MAX_PRB * sizeof(bool));
 
-  srslte_dl_dci_to_grant_nof_re(&pdsch_cfg.grant, cell, pdsch_cfg.sf_idx, cell.nof_prb<10?(cfi+1):cfi);
-  // Fill rest of grant structure 
-  pdsch_cfg.grant.lstart = cell.nof_prb<10?(cfi+1):cfi;
-  pdsch_cfg.grant.nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-pdsch_cfg.grant.lstart;
-  pdsch_cfg.grant.Qm = srslte_mod_bits_x_symbol(pdsch_cfg.grant.mcs.mod);
-  pdsch_cfg.grant.nof_bits = pdsch_cfg.grant.nof_re * pdsch_cfg.grant.Qm;      
+  /* Configure PDSCH */
+  if (srslte_pdsch_cfg(&pdsch_cfg, cell, NULL, cfi, subframe, 1234, 0)) {
+    fprintf(stderr, "Error configuring PDSCH\n");
+    exit(-1);
+  }
 
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {
@@ -166,7 +159,7 @@ int main(int argc, char **argv) {
       perror("malloc");
       goto quit;
     }
-    for (j=0;j<pdsch_cfg.grant.nof_re;j++) {
+    for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
       ce[i][j] = 1;
     }
     slot_symbols[i] = calloc(sizeof(cf_t) , SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
@@ -176,7 +169,7 @@ int main(int argc, char **argv) {
     }
   }
   
-  data = malloc(sizeof(uint8_t) * (tbs+nof_tbs));
+  data = malloc(sizeof(uint8_t) * tbs);
   if (!data) {
     perror("malloc");
     goto quit;
@@ -199,47 +192,44 @@ int main(int argc, char **argv) {
     goto quit;
   }
   
-  for (pdsch_cfg.grant.mcs.tbs = tbs;pdsch_cfg.grant.mcs.tbs<=tbs+nof_tbs;pdsch_cfg.grant.mcs.tbs++) {
-    if (SRSLTE_VERBOSE_ISNONE()) {
-      printf("Decoding TBS: %d\r",pdsch_cfg.grant.mcs.tbs);
-    }
-    for (i=0;i<pdsch_cfg.grant.mcs.tbs;i++) {
-      data[i] = rand()%2;
-    }
-
-    for (rv=0;rv<=rv_idx;rv++) {
-      srslte_cbsegm(&pdsch_cfg.cb_segm, pdsch_cfg.grant.mcs.tbs);
-
-      if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
-        fprintf(stderr, "Error encoding PDSCH\n");
-        goto quit;
-      }
-
-      /* combine outputs */
-      for (i=0;i<cell.nof_ports;i++) {
-        for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
-          if (i > 0) {
-            slot_symbols[0][j] += slot_symbols[i][j];
-          }
-          ce[i][j] = 1;
-        }
-      }
-      
-      gettimeofday(&t[1], NULL);
-      int r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
-      gettimeofday(&t[2], NULL);
-      get_time_interval(t);
-      if (r) {
-        printf("Error decoding TBS: %d\n", pdsch_cfg.grant.mcs.tbs);
-        ret = -1;
-        goto quit;
-      } else {
-        if (nof_tbs == 0) {
-          printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) pdsch_cfg.grant.mcs.tbs/t[0].tv_usec);          
-        }
-      }
-    } 
+  if (SRSLTE_VERBOSE_ISNONE()) {
+    printf("Decoding TBS: %d\r",pdsch_cfg.grant.mcs.tbs);
   }
+  for (i=0;i<pdsch_cfg.grant.mcs.tbs;i++) {
+    data[i] = rand()%2;
+  }
+
+  for (rv=0;rv<=rv_idx;rv++) {
+
+    pdsch_cfg.rv = rv; 
+    
+    if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
+      fprintf(stderr, "Error encoding PDSCH\n");
+      goto quit;
+    }
+
+    /* combine outputs */
+    for (i=0;i<cell.nof_ports;i++) {
+      for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
+        if (i > 0) {
+          slot_symbols[0][j] += slot_symbols[i][j];
+        }
+        ce[i][j] = 1;
+      }
+    }
+    
+    gettimeofday(&t[1], NULL);
+    int r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    if (r) {
+      printf("Error decoding TBS: %d\n", pdsch_cfg.grant.mcs.tbs);
+      ret = -1;
+      goto quit;
+    } else {
+      printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) pdsch_cfg.grant.mcs.tbs/t[0].tv_usec);                
+    }
+  } 
   ret = 0;
 quit:
   srslte_pdsch_free(&pdsch);

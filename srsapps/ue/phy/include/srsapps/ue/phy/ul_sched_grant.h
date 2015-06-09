@@ -40,12 +40,8 @@ namespace ue {
   class ul_sched_grant : public sched_grant {
   public:
 
-             ul_sched_grant(rnti_type_t type, uint16_t rnti) : sched_grant(type, rnti) {
-               N_srs = 0; 
-             } 
-             ul_sched_grant(uint16_t rnti) : sched_grant(rnti) {
-               N_srs = 0; 
-             } 
+             ul_sched_grant(rnti_type_t type, uint16_t rnti) : sched_grant(type, rnti) {} 
+             ul_sched_grant(uint16_t rnti) : sched_grant(rnti) {} 
              
     uint32_t get_rv() {
       return ul_dci.rv_idx; 
@@ -59,13 +55,6 @@ namespace ue {
     void     set_ndi(bool value) {
       ul_dci.ndi = value; 
     }   
-    void     set_shortened(bool enabled) {
-      if (enabled) {
-        N_srs = 1; 
-      } else {
-        N_srs = 0; 
-      }
-    }
     bool     get_cqi_request() {
       return ul_dci.cqi_request; 
     }
@@ -98,7 +87,7 @@ namespace ue {
     }
     bool     create_from_dci(srslte_dci_msg_t *msg, srslte_cell_t cell, uint32_t n_rb_ho) {
       grant_is_from_rar = false; 
-      if (srslte_dci_msg_to_ul_grant(msg, cell, N_srs, n_rb_ho, &ul_dci, &grant)) {
+      if (srslte_dci_msg_to_ul_grant(msg, cell.nof_prb, n_rb_ho, &ul_dci, &grant)) {
         return false; 
       } else {
         if (SRSLTE_VERBOSE_ISINFO()) {
@@ -109,7 +98,7 @@ namespace ue {
     }
     bool     create_from_rar(srslte_dci_rar_grant_t *rar, srslte_cell_t cell, uint32_t n_rb_ho) {
       grant_is_from_rar = true; 
-      if (srslte_dci_rar_to_ul_grant(rar, cell, n_rb_ho, &ul_dci, &grant)) {
+      if (srslte_dci_rar_to_ul_grant(rar, cell.nof_prb, n_rb_ho, &ul_dci, &grant)) {
         return false; 
       } else {
         if (SRSLTE_VERBOSE_ISINFO()) {
@@ -118,12 +107,12 @@ namespace ue {
         return true; 
       }
     }
-    void    to_pusch_cfg(uint32_t sf_idx, srslte_cp_t cp, srslte_pusch_cfg_t *cfg) {
-      srslte_cbsegm(&cfg->cb_segm, grant.mcs.tbs);
-      cfg->cp = cp; 
-      memcpy(&cfg->grant, &grant, sizeof(srslte_ra_ul_grant_t)); 
-      cfg->rv = ul_dci.rv_idx; 
-      cfg->sf_idx = sf_idx; 
+    bool    to_pusch_cfg(uint32_t sf_idx, uint32_t N_srs, srslte_ue_ul_t *ue_ul) {
+      memcpy(&ue_ul->pusch_cfg.grant, &grant, sizeof(srslte_ra_ul_grant_t)); 
+      if (srslte_ue_ul_cfg_grant(ue_ul, NULL, 0, N_srs, sf_idx, get_rv())) {
+        return false; 
+      }
+      return true; 
     }
   private: 
     srslte_ra_ul_grant_t grant; 
@@ -131,7 +120,6 @@ namespace ue {
     uint32_t             current_tx_nb; 
     uint16_t             rnti; 
     bool                 grant_is_from_rar; 
-    uint32_t             N_srs;
   };
  
 }

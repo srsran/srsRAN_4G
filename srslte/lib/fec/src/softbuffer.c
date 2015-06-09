@@ -63,7 +63,7 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, srslte_cell_t cell) {
       }
       
       // FIXME: Use HARQ buffer limitation based on UE category
-      q->buff_size = cell.nof_prb * MAX_PDSCH_RE(cell.cp) * 6 * 10;
+      q->buff_size = cell.nof_prb * MAX_PDSCH_RE(cell.cp) * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM);
       for (uint32_t i=0;i<q->max_cb;i++) {
         q->buffer_f[i] = srslte_vec_malloc(sizeof(float) * q->buff_size);
         if (!q->buffer_f[i]) {

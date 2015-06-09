@@ -44,6 +44,7 @@
 #include "srslte/modem/demod_soft.h"
 #include "srslte/scrambling/scrambling.h"
 #include "srslte/phch/regs.h"
+#include "srslte/phch/dci.h"
 #include "srslte/phch/sch.h"
 #include "srslte/phch/pusch_cfg.h"
 #include "srslte/dft/dft_precoding.h"
@@ -102,6 +103,14 @@ SRSLTE_API int srslte_pusch_init(srslte_pusch_t *q,
                                  srslte_cell_t cell);
 
 SRSLTE_API void srslte_pusch_free(srslte_pusch_t *q);
+
+SRSLTE_API int srslte_pusch_cfg(srslte_pusch_cfg_t *cfg, 
+                                srslte_cell_t cell, 
+                                srslte_dci_msg_t *dci_msg, 
+                                uint32_t n_rb_ho, 
+                                uint32_t N_srs, 
+                                uint32_t sf_idx, 
+                                uint32_t rvidx); 
 
 SRSLTE_API void srslte_pusch_set_hopping_cfg(srslte_pusch_t *q, 
                                              srslte_pusch_hopping_cfg_t *cfg); 

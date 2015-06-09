@@ -44,23 +44,20 @@
 /* Unpacks a DCI message and configures the DL grant object
  */
 int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
-                               srslte_cell_t cell, uint32_t cfi, uint32_t sf_idx, 
+                               uint32_t nof_prb, 
                                srslte_ra_dl_dci_t *dl_dci, 
                                srslte_ra_dl_grant_t *grant) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
-      grant             !=  NULL   &&
-      srslte_cell_isvalid(&cell)   && 
-      cfi               >   0      &&
-      cfi               <   4)
+      grant             !=  NULL)
   {
     ret = SRSLTE_ERROR;
     
     srslte_dci_msg_type_t type;
     
-    if (srslte_dci_msg_get_type(msg, &type, cell.nof_prb, msg_rnti)) {
+    if (srslte_dci_msg_get_type(msg, &type, nof_prb, msg_rnti)) {
       fprintf(stderr, "Can't get DCI message type\n");
       return ret; 
     }
@@ -77,15 +74,15 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
       if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
         crc_is_crnti = true; 
       }
-      if (srslte_dci_msg_unpack_pdsch(msg, dl_dci, cell.nof_prb, crc_is_crnti)) {
+      if (srslte_dci_msg_unpack_pdsch(msg, dl_dci, nof_prb, crc_is_crnti)) {
         fprintf(stderr, "Can't unpack DCI message\n");
         return ret;
       } 
       
-      srslte_ra_dl_dci_to_grant(dl_dci, grant, cell, sf_idx, cfi, crc_is_crnti);
+      srslte_ra_dl_dci_to_grant(dl_dci, nof_prb, crc_is_crnti, grant);
 
       if (SRSLTE_VERBOSE_ISINFO()) {
-        srslte_ra_pdsch_fprint(stdout, dl_dci, cell.nof_prb);
+        srslte_ra_pdsch_fprint(stdout, dl_dci, nof_prb);
         srslte_ra_dl_grant_fprint(stdout, grant);
       }
 
@@ -102,7 +99,7 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
 
 /* Creates the UL PUSCH resource allocation grant from the random access respone message 
  */
-int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, srslte_cell_t cell, 
+int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, uint32_t nof_prb, 
                                uint32_t n_rb_ho, 
                                srslte_ra_ul_dci_t *ul_dci, 
                                srslte_ra_ul_grant_t *grant) 
@@ -118,23 +115,23 @@ int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, srslte_cell_t cell,
   uint32_t riv = rar->rba; 
   // Truncate resource block assignment 
   uint32_t b = 0;
-  if (cell.nof_prb <= 44) {
-    b = (uint32_t) (ceilf(log2((float) cell.nof_prb*(cell.nof_prb+1)/2)));
+  if (nof_prb <= 44) {
+    b = (uint32_t) (ceilf(log2((float) nof_prb*(nof_prb+1)/2)));
     riv = riv & ((1<<(b+1))-1); 
   }
   ul_dci->type2_alloc.riv = riv; 
   ul_dci->mcs_idx = rar->trunc_mcs;
 
   srslte_ra_type2_from_riv(riv, &ul_dci->type2_alloc.L_crb, &ul_dci->type2_alloc.RB_start,
-                           cell.nof_prb, cell.nof_prb);
+                           nof_prb, nof_prb);
   
-  if (srslte_ra_ul_dci_to_grant(ul_dci, grant, cell, n_rb_ho, 0)) {
+  if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
     fprintf(stderr, "Error computing resource allocation\n");
     return SRSLTE_ERROR;
   }
   
   if (SRSLTE_VERBOSE_ISINFO()) {
-    srslte_ra_pusch_fprint(stdout, ul_dci, cell.nof_prb);
+    srslte_ra_pusch_fprint(stdout, ul_dci, nof_prb);
     srslte_ra_ul_grant_fprint(stdout, grant);
   }
   return SRSLTE_SUCCESS;
@@ -163,15 +160,14 @@ void srslte_dci_rar_grant_fprint(FILE *stream, srslte_dci_rar_grant_t *rar) {
 
 /* Creates the UL PUSCH resource allocation grant from a DCI format 0 message
  */
-int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, srslte_cell_t cell, 
-                               uint32_t N_srs, uint32_t n_rb_ho, 
+int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb, 
+                               uint32_t n_rb_ho, 
                                srslte_ra_ul_dci_t *ul_dci, 
                                srslte_ra_ul_grant_t *grant) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
-      srslte_cell_isvalid(&cell)   && 
       grant             !=  NULL)
   {
     ret = SRSLTE_ERROR;
@@ -179,17 +175,17 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, srslte_cell_t cell,
     bzero(ul_dci, sizeof(srslte_ra_ul_dci_t));
     bzero(grant, sizeof(srslte_ra_ul_dci_t));
     
-    if (srslte_dci_msg_unpack_pusch(msg, ul_dci, cell.nof_prb)) {
+    if (srslte_dci_msg_unpack_pusch(msg, ul_dci, nof_prb)) {
       return ret;
     } 
     
-    if (srslte_ra_ul_dci_to_grant(ul_dci, grant, cell, n_rb_ho, N_srs)) {
+    if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
       fprintf(stderr, "Error computing resource allocation\n");
       return ret;
     }
     
     if (SRSLTE_VERBOSE_ISINFO()) {
-      srslte_ra_pusch_fprint(stdout, ul_dci, cell.nof_prb);
+      srslte_ra_pusch_fprint(stdout, ul_dci, nof_prb);
       srslte_ra_ul_grant_fprint(stdout, grant);
     }
     
