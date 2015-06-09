@@ -250,18 +250,41 @@ void mac::main_radio_loop() {
       }
       if (ra_procedure.is_successful() && phy_rnti != params_db.get_param(mac_params::RNTI_C) && params_db.get_param(mac_params::RNTI_C) > 0) {
         phy_rnti = params_db.get_param(mac_params::RNTI_C);
-                // This operation takes a while, do nothing for the rest 100 slots to re-align with PHY 
-        for (int i=0;i<10;i++) {
-          tti = ttisync->wait();
-        }
-        Info("Setting PHY RNTI=%d\n", phy_rnti);
-        phy_h->set_crnti(phy_rnti);          
-        for (int i=0;i<100;i++) {
-          tti = ttisync->wait();
-        }
+        set_phy_crnti(phy_rnti);
       }
     }
   }  
+}
+
+
+struct phy_crnti {
+  phy *phy_ptr; 
+  log *log_h; 
+  uint16_t crnti;   
+};
+
+void *set_phy_crnti_thread(void *arg) {
+  struct phy_crnti *a = (struct phy_crnti*) arg;
+  a->log_h->info("Setting PHY RNTI=%d\n", a->crnti);
+  a->phy_ptr->set_crnti(a->crnti);
+  a->log_h->info("Done Setting PHY RNTI\n");
+  free(a);
+  return NULL; 
+}
+
+void mac::set_phy_crnti(uint16_t phy_rnti)
+{
+  pthread_t rnti_thread; 
+  struct phy_crnti *arg = (struct phy_crnti*) malloc(sizeof(struct phy_crnti));
+  arg->crnti = phy_rnti;
+  arg->phy_ptr = phy_h; 
+  arg->log_h = log_h; 
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  if (pthread_create(&rnti_thread, &attr, set_phy_crnti_thread, arg)) {
+    perror("pthread_create");
+  }
 }
 
 void mac::add_sdu_handler(sdu_handler *handler) {

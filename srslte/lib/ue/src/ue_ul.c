@@ -145,9 +145,9 @@ void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q, bool enabled)
  * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
  */
 void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q, uint16_t rnti) {
-  q->current_rnti = rnti; 
   srslte_pusch_set_rnti(&q->pusch, rnti);
   srslte_pucch_set_crnti(&q->pucch, rnti);
+  q->current_rnti = rnti; 
 }
 
 void srslte_ue_ul_reset(srslte_ue_ul_t *q) {

@@ -143,8 +143,8 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
  * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
  */
 void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
-  q->current_rnti = rnti; 
   srslte_pdsch_set_rnti(&q->pdsch, rnti);
+  q->current_rnti = rnti; 
 }
 
 void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
