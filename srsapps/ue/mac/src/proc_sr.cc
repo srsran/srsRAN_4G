@@ -54,7 +54,7 @@ void sr_proc::reset()
 void sr_proc::step(uint32_t tti)
 {
   if (initiated) {
-    if (is_pending_sr) {    
+    if (is_pending_sr) {
       if (params_db->get_param(mac_params::SR_PUCCH_CONFIGURED)) {
         if (sr_counter < dsr_transmax) {
           int last_tx_tti = phy_h->sr_last_tx_tti(); 

@@ -112,6 +112,7 @@ public:
   bool status_is_rxtx();
   
   void set_param(phy_params::phy_param_t param, int64_t value); 
+  int64_t get_param(phy_params::phy_param_t param);
 
   uint32_t        get_current_tti(); 
   static uint32_t tti_to_SFN(uint32_t tti);
