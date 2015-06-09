@@ -207,10 +207,10 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
                                                     grant->get_rnti(), 
                                                     signal_buffer);    
     } else {
-      Info("Encoding PUCCH n_cce=%d, ack=%s, sr=%s\n", last_n_cce, 
+      Info("Encoding PUCCH n_cce=%d, sf_idx=%d, ack=%s, sr=%s\n", last_n_cce, tti%10,
         uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no");
     
-      n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti&10, signal_buffer);
+      n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti%10, signal_buffer);
     }
     // Reset UCI data
     bzero(&uci_data, sizeof(srslte_uci_data_t));

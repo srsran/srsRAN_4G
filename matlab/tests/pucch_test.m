@@ -7,7 +7,7 @@ addpath('../../build/srslte/lib/phch/test')
 format_str={'1','1a','1b','2','2a','2b'};
 
 k=1;
-for f=0:5 
+for f=1:5 
     for n=0:7:130
         for d=1:3
             for ncs=0:d:7
