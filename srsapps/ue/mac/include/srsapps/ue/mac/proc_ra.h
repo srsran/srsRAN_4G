@@ -66,6 +66,7 @@ class ra_proc : public proc,timer_callback
     void pdcch_to_crnti(bool is_ul_grant);
     void timer_expired(uint32_t timer_id);
     
+    void* run_prach_thread(); 
 private: 
       
     void process_timeadv_cmd(uint32_t ta_cmd); 
@@ -144,6 +145,9 @@ private:
     demux       *demux_unit; 
     
     pthread_t   pt_init_prach; 
+    pthread_cond_t  cond; 
+    pthread_mutex_t mutex; 
+    bool        start_prach_init; 
     
     uint64_t    transmitted_contention_id;
     uint16_t    transmitted_crnti; 

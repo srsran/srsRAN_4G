@@ -148,11 +148,11 @@ void demux::process_pdu(sch_pdu *pdu_msg)
         qbuff *dest_lch = mac_io_h->get(pdu_msg->get()->get_sdu_lcid());
         if (dest_lch) {
           dest_lch->send(pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_sdu_nbytes()*8);
-          Info("Sent MAC SDU len=%d bytes to lchid=%d\n",
+          Debug("Sent MAC SDU len=%d bytes to lchid=%d\n",
                 pdu_msg->get()->get_sdu_nbytes(), pdu_msg->get()->get_sdu_lcid());
           if (sdu_handler_) {
             sdu_handler_->notify_new_sdu(pdu_msg->get()->get_sdu_lcid());
-            Info("Notified SDU handler len=%d bytes to lchid=%d\n",
+            Debug("Notified SDU handler len=%d bytes to lchid=%d\n",
                   pdu_msg->get()->get_sdu_nbytes(), pdu_msg->get()->get_sdu_lcid());
           }
 

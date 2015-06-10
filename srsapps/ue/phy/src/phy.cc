@@ -199,7 +199,7 @@ bool phy::sr_is_ready_to_send(uint32_t tti_) {
     if (srslte_ue_ul_sr_send_tti(I_sr, tti_)) {
       sr_enabled = false;
       sr_tx_tti = tti_; 
-      Info("SR ready to send for TTI=%d\n", tti_);
+      Info("SR sending at TTI=%d\n", tti_);
       return true; 
     }
   }

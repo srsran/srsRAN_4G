@@ -75,6 +75,16 @@ namespace ue {
     uint32_t get_mcs() {
       return dl_dci.mcs_idx;
     }
+    const char* get_dciformat_string() {
+      switch(dl_dci.dci_format) {
+        case srslte_ra_dl_dci_t::SRSLTE_RA_DCI_FORMAT1: 
+          return "Format1";
+        case srslte_ra_dl_dci_t::SRSLTE_RA_DCI_FORMAT1A:
+          return "Format1A";
+        case srslte_ra_dl_dci_t::SRSLTE_RA_DCI_FORMAT1C:
+          return "Format1C";
+      }
+    }
     bool     create_from_dci(srslte_dci_msg_t *msg, uint32_t nof_prb, uint32_t ncce_) {
       ncce = ncce_; 
       if (srslte_dci_msg_to_dl_grant(msg, rnti, nof_prb, &dl_dci, &grant)) {

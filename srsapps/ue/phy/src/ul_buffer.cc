@@ -195,8 +195,8 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
       */
       grant->to_pusch_cfg(tti%10, 0, &ue_ul);
 
-      Info("Encoding PUSCH TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, sf_idx=%d\n", 
-           grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
+      Info("PUSCH: TTI=%d, TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, sf_idx=%d\n", 
+           tti, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
            ue_ul.pusch_cfg.grant.L_prb,  
            uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
            grant->get_rnti(), tti%10);
@@ -207,7 +207,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
                                                     grant->get_rnti(), 
                                                     signal_buffer);    
     } else {
-      Info("Encoding PUCCH n_cce=%d, sf_idx=%d, ack=%s, sr=%s\n", last_n_cce, tti%10,
+      Info("PUCCH: TTI=%d n_cce=%d, sf_idx=%d, ack=%s, sr=%s\n", tti, last_n_cce, tti%10,
         uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no");
     
       n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti%10, signal_buffer);
@@ -256,7 +256,7 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
     srslte_vec_sc_prod_cfc(signal_buffer, 0.9/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }
   
-  Info("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f PeakAmplitude=%.2f PKT#%d\n", 
+  Debug("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f PeakAmplitude=%.2f PKT#%d\n", 
         cfo*15000, SRSLTE_SF_LEN_PRB(cell.nof_prb),
         srslte_timestamp_real(&rx_time), 
         srslte_timestamp_real(&tx_time), time_adv_sec*1000000, max, nof_tx);
