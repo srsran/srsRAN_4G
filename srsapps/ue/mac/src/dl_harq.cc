@@ -102,7 +102,6 @@ void dl_harq_entity::send_pending_ack_contention_resolution()
   *********************************************************/
           
 dl_harq_entity::dl_harq_process::dl_harq_process() : cur_grant(0),pending_ack_grant(0) {
-  is_first_tx = true; 
   is_initiated = false; 
   ack = false; 
   bzero(&cur_grant, sizeof(srslte::ue::dl_sched_grant));
@@ -112,7 +111,6 @@ dl_harq_entity::dl_harq_process::dl_harq_process() : cur_grant(0),pending_ack_gr
   
 void dl_harq_entity::dl_harq_process::reset() {
   ack = false; 
-  is_first_tx = true; 
   bzero(&cur_grant, sizeof(srslte::ue::dl_sched_grant));
   if (is_initiated) {
     srslte_softbuffer_rx_reset(&softbuffer);
@@ -135,8 +133,17 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
       
       // If data has not yet been successfully decoded
       if (ack == false) {
+        
         // Combine the received data and attempt to decode it
         if (dl_buffer->decode_data(&cur_grant, &softbuffer, payload)) {
+          ack = true; 
+        } else {
+          ack = false; 
+        }
+
+        Info("DL PID %d: TBS=%d, RV=%d, MCS=%d, crc=%s\n", pid, cur_grant.get_tbs(), cur_grant.get_rv(), cur_grant.get_mcs(), ack?"OK":"NOK");
+
+        if (ack) {
           // RX OK
           if (pid == HARQ_BCCH_PID) {
             Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.get_tbs()/8);
@@ -150,13 +157,10 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
               Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.get_tbs()/8);
               harq_entity->demux_unit->push_pdu(payload, cur_grant.get_tbs());
             }
-            ack = true; 
-            is_first_tx = true; 
-          }            
-        } else {
-          // RX NOK
-          ack = false; 
+          }
         }
+      } else {
+        Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n");
       }
       if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(mac::TIME_ALIGNMENT)->is_expired()) {
         // Do not generate ACK
@@ -180,15 +184,15 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
       fprintf(stderr, "Error with DL grant. TBS (%d) exceeds payload buffer length (%d)\n", cur_grant.get_tbs(), max_payload_len);
     }          
   }
-
-  Info("DL PID %d: TBS=%d, RV=%d, MCS=%d, crc=%s, PHY TTI: %d\n", pid, cur_grant.get_tbs(), cur_grant.get_rv(), cur_grant.get_mcs(), ack?"OK":"NOK", phy_h->get_current_tti());
-
 }
 // Implement 5.3.2.2 
 void dl_harq_entity::dl_harq_process::set_harq_info(srslte::ue::dl_sched_grant* new_grant)    {
   bool is_new_transmission = false; 
 
-  if (new_grant->get_ndi() == true || is_first_tx || (pid == HARQ_BCCH_PID && new_grant->get_rv() == 0)) {
+  if ((new_grant->get_ndi() != cur_grant.get_ndi() && new_grant->get_tbs() == cur_grant.get_tbs()) || // NDI toggled for same TB (assume TB is identified by TBS)
+      (pid == HARQ_BCCH_PID && new_grant->get_rv() == 0)                                           || // Broadcast PID and 1st TX (RV=0)
+      (new_grant->get_tbs() != cur_grant.get_tbs()))                                                  // First transmission for this TB
+  {
     is_new_transmission = true; 
     Debug("Set HARQ Info for new transmission\n");
   } else {
@@ -196,16 +200,8 @@ void dl_harq_entity::dl_harq_process::set_harq_info(srslte::ue::dl_sched_grant* 
     Debug("Set HARQ Info for retransmission\n");
   }
 
-  if (is_first_tx) {
-    Info("DL PID %d: first TX RV=%d, NDI=%d\n", pid, new_grant->get_rv(), new_grant->get_ndi());    
-  } else {
-    Info("DL PID %d: %s RV=%d, NDI=%d, LastNDI=%d\n", pid, is_new_transmission?"new TX":"reTX", new_grant->get_rv(), 
-         new_grant->get_ndi(), cur_grant.get_ndi());   
-  }
-
-  if (is_first_tx) {
-    is_first_tx = false; 
-  }
+  Info("DL PID %d: %s RV=%d, NDI=%d, LastNDI=%d, DCI %s\n", pid, is_new_transmission?"new TX":"reTX", new_grant->get_rv(), 
+         new_grant->get_ndi(), cur_grant.get_ndi(), new_grant->get_dciformat_string());   
   
   if (is_new_transmission) {
     ack = false; 

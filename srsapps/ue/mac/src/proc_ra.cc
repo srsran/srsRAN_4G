@@ -47,6 +47,25 @@ uint32_t backoff_table[16] = {0, 10, 20, 30, 40, 60, 80, 120, 160, 240, 320, 480
 // Table 7.6-1: DELTA_PREAMBLE values.
 int delta_preamble_db_table[5] = {0, 0, -3, -3, 8};
 
+
+void* init_prach_thread(void *arg) {
+  ra_proc* ra = (ra_proc*) arg; 
+  return ra->run_prach_thread();
+}
+
+void* ra_proc::run_prach_thread() {
+  pthread_mutex_lock(&mutex);
+  while(!start_prach_init) {
+    pthread_cond_wait(&cond, &mutex);
+  }
+  pthread_mutex_unlock(&mutex);
+  if (phy_h->init_prach()) {
+    return (void*) 0;
+  } else {
+    return (void*) -1;
+  }
+
+}
 bool ra_proc::init(mac_params* params_db_, phy* phy_h_, srslte::log* log_h_, srslte::timers* timers_db_, 
                    mux* mux_unit_, demux* demux_unit_)
 {
@@ -56,6 +75,12 @@ bool ra_proc::init(mac_params* params_db_, phy* phy_h_, srslte::log* log_h_, srs
   timers_db = timers_db_;
   mux_unit  = mux_unit_; 
   demux_unit= demux_unit_; 
+  start_prach_init = false; 
+  if (pthread_create(&pt_init_prach, NULL, init_prach_thread, this)) {
+    perror("pthread_create");
+  }
+  pthread_mutex_init(&mutex, NULL);
+  pthread_cond_init(&cond, NULL);      
   reset();
 }
 
@@ -168,15 +193,6 @@ void ra_proc::process_timeadv_cmd(uint32_t ta) {
   }
 }
 
-void* init_prach_thread(void *arg) {
-  phy* phy_h = (phy*) arg; 
-  if (phy_h->init_prach()) {
-    return (void*) 0;
-  } else {
-    return (void*) -1;
-  }
-}
-
 void ra_proc::step_initialization() {
   read_params();
   pdcch_to_crnti_received = PDCCH_CRNTI_NOT_RECEIVED; 
@@ -185,12 +201,14 @@ void ra_proc::step_initialization() {
   first_rar_received = true; 
   mux_unit->msg3_flush();
   backoff_param_ms = 0; 
-  if (pthread_create(&pt_init_prach, NULL, init_prach_thread, phy_h)) {
-    perror("pthread_create");
-    state = RA_PROBLEM;
-  } else {
-    state = INITIALIZATION_WAIT;
-  }
+  
+  // Instruct phy prach init thread to start initialization
+  pthread_mutex_lock(&mutex);
+  start_prach_init = true;
+  pthread_cond_signal(&cond);
+  pthread_mutex_unlock(&mutex);
+  state = INITIALIZATION_WAIT;
+ 
 }
 
 void ra_proc::step_initialization_wait() {

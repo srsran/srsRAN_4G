@@ -523,7 +523,6 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   data->harq_process = srslte_bit_unpack(&y, 3);
 
   data->ndi = *y++ ? true : false;
-
   // rv version
   data->rv_idx = srslte_bit_unpack(&y, 2);
   
@@ -670,10 +669,14 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
 
   data->harq_process = srslte_bit_unpack(&y, 3);
 
-  if (!crc_is_crnti && nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
-    data->type2_alloc.n_gap = *y++;
+  if (!crc_is_crnti)  {
+    if (nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
+      data->type2_alloc.n_gap = *y++;
+    } else {
+      y++; // NDI reserved
+    }
   } else {
-    y++; // bit reserved
+    data->ndi = *y++ ? true : false;
   }
 
   // rv version

@@ -201,17 +201,17 @@ void mac::main_radio_loop() {
       // Check if BSR procedure need to start SR 
       
       if (bsr_procedure.need_to_send_sr()) {
-        Info("Starting SR procedure by BSR request, PHY TTI=%d\n", phy_h->get_current_tti());
+        Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", phy_h->get_current_tti());
         sr_procedure.start();
       } else if (bsr_procedure.need_to_reset_sr()) {
-        Info("Resetting SR procedure by BSR request\n");
+        Debug("Resetting SR procedure by BSR request\n");
         sr_procedure.reset();
       }
       sr_procedure.step(tti);
 
       // Check SR if we need to start RA 
       if (sr_procedure.need_random_access()) {
-        Info("Starting RA procedure by MAC order\n");
+        Warning("Starting RA procedure by MAC order is DISABLED\n");
         //ra_procedure.start_mac_order();
       }
       
@@ -244,7 +244,6 @@ void mac::main_radio_loop() {
       if (mux_unit.is_pending_ccch_sdu()) {
         // Start RA procedure 
         if (!ra_procedure.in_progress() && !ra_procedure.is_successful()) {
-          Info("Starting RA procedure by RLC order\n");
           ra_procedure.start_rlc_order();        
         }
       }
@@ -379,14 +378,17 @@ void mac::process_dl_grants(uint32_t tti) {
           uint32_t harq_pid = ue_grant.get_harq_process(); 
           if (i == mac_params::RNTI_TEMP && last_temporal_crnti != params_db.get_param(i)) {
             ue_grant.set_ndi(true);
+            Info("Set NDI=1 for Temp-RNTI DL grant\n");
             last_temporal_crnti = params_db.get_param(i);
           }
           if (i == mac_params::RNTI_C && dl_harq.is_sps(harq_pid)) {
             ue_grant.set_ndi(true);
+            Info("Set NDI=1 for C-RNTI DL grant\n");
           }
           dl_harq.set_harq_info(harq_pid, &ue_grant);
           dl_harq.receive_data(tti, harq_pid, dl_buffer, phy_h);
         } else {
+          /* This is for SPS scheduling */
           uint32_t harq_pid = get_harq_sps_pid(tti); 
           if (ue_grant.get_ndi()) {
             ue_grant.set_ndi(false);
@@ -428,7 +430,7 @@ void mac::process_dl_grants(uint32_t tti) {
     if (!(phy_h->tti_to_subf(si_window_length) != 1 && 
           phy_h->tti_to_subf(si_window_start) == 5 && (phy_h->tti_to_SFN(tti)%2) == 0)) 
     {
-      Info("Searching for DL grant for SI-RNTI window_st=%d, window_len=%d\n", si_window_start, si_window_length);
+      Debug("Searching for DL grant for SI-RNTI window_st=%d, window_len=%d\n", si_window_start, si_window_length);
       dl_sched_grant si_grant(sched_grant::RNTI_TYPE_SIRNTI, SRSLTE_SIRNTI); 
       if (dl_buffer->get_dl_grant(&si_grant)) {
         uint32_t k; 
@@ -443,9 +445,7 @@ void mac::process_dl_grants(uint32_t tti) {
         dl_harq.receive_data(tti, dl_harq_entity::HARQ_BCCH_PID, dl_buffer, phy_h);
         params_db.set_param(mac_params::BCCH_SI_WINDOW_ST, 0);
         params_db.set_param(mac_params::BCCH_SI_WINDOW_LEN, 0);
-      } else {
-        Warning("DL grant not found\n");
-      }
+      } 
     } 
       
   }  

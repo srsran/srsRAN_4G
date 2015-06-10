@@ -264,10 +264,10 @@ uint32_t bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size)
     bsr_sz = bsr.format==LONG_BSR?3:1;
     if (total_data <= grant_size && total_data + 1 + bsr_sz > grant_size) {
       bsr_sz = 0; 
-      Info("Grant is not enough to accomodate the BSR MAC CE\n");
+      Debug("Grant is not enough to accomodate the BSR MAC CE\n");
       triggered_bsr_type = NONE; 
     }
-    Info("Checking if Regular BSR is sent: grant_size=%d, total_data=%d, bsr_sz=%d\n", 
+    Debug("Checking if Regular BSR is sent: grant_size=%d, total_data=%d, bsr_sz=%d\n", 
          grant_size, total_data, bsr_sz);
   }
   return bsr_sz; 
@@ -285,7 +285,7 @@ bool bsr_proc::generate_bsr_on_ul_grant(uint32_t nof_padding_bytes, bsr_t *bsr)
     }
     generate_bsr(bsr, nof_padding_bytes);
     ret = true; 
-    Info("Sending BSR type %s, format %s, nof_padding_bytes=%d\n", 
+    Debug("Sending BSR type %s, format %s, nof_padding_bytes=%d\n", 
            bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format), nof_padding_bytes);
     
     if (timer_periodic && bsr->format != TRUNC_BSR) {
@@ -308,6 +308,7 @@ bool bsr_proc::generate_bsr_on_ul_grant(uint32_t nof_padding_bytes, bsr_t *bsr)
 bool bsr_proc::need_to_reset_sr() {
   if (reset_sr) {
     reset_sr = false; 
+    sr_is_sent = false; 
     return true; 
   } else {
     return false; 

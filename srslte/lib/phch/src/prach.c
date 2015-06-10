@@ -371,8 +371,6 @@ int srslte_prach_init(srslte_prach_t *p,
       }
     }
 
-    printf("Ncs=%d, zczc=%d, root_seq_index=%d, format=%d\n", p->N_cs, zero_corr_zone_config, root_seq_index, preamble_format);
-    
     // Set up containers
     p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
     p->corr_spec = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);

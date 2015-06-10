@@ -230,7 +230,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   // MAC control element for BSR, with exception of BSR included for padding;
   sch_subh *bsr_subh = NULL;
   if (bsr_payload_sz) {
-    Info("Including BSR CE size %d\n", bsr_payload_sz);
+    Debug("Including BSR CE size %d\n", bsr_payload_sz);
     if (pdu_msg.new_subh()) {
       pdu_msg.next();
       bsr_subh = pdu_msg.get();
@@ -281,7 +281,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
     }
   }
 
-  Info("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.size(), pdu_sz_nbits/8);
+  Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.size(), pdu_sz_nbits/8);
   //pdu_msg.fprint(stdout);
   
   /* Generate MAC PDU and save to buffer */
@@ -321,7 +321,7 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz, bool *
         if (is_first) {
           *is_first = false;           
         }
-        Info("Allocated SDU lcid=%d nbytes=%d\n", lcid, nbytes);
+        Debug("Allocated SDU lcid=%d nbytes=%d\n", lcid, nbytes);
         // Increase number of pop'ed packets from queue
         nof_tx_pkts[lcid]++;      
         return true;               

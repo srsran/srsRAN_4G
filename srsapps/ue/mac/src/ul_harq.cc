@@ -93,7 +93,7 @@ void ul_harq_entity::run_tti(uint32_t tti, ul_sched_grant *grant, phy *phy_h)
   }
 
   if (grant) {
-    if ((!grant->is_temp_rnti() && grant->get_ndi() == true) || 
+    if ((!grant->is_temp_rnti() && grant->get_ndi() != proc[pid].get_ndi()) || 
         (grant->is_crnti() && !proc[pid].has_grant())        ||
           grant->is_from_rar()) 
     {          
