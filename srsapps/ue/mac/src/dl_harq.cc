@@ -103,7 +103,6 @@ void dl_harq_entity::send_pending_ack_contention_resolution()
           
 dl_harq_entity::dl_harq_process::dl_harq_process() : cur_grant(0),pending_ack_grant(0) {
   is_first_tx = true; 
-  is_first_decoded = true; 
   is_initiated = false; 
   ack = false; 
   bzero(&cur_grant, sizeof(srslte::ue::dl_sched_grant));
@@ -114,7 +113,6 @@ dl_harq_entity::dl_harq_process::dl_harq_process() : cur_grant(0),pending_ack_gr
 void dl_harq_entity::dl_harq_process::reset() {
   ack = false; 
   is_first_tx = true; 
-  is_first_decoded = true; 
   bzero(&cur_grant, sizeof(srslte::ue::dl_sched_grant));
   if (is_initiated) {
     srslte_softbuffer_rx_reset(&softbuffer);
@@ -144,17 +142,16 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
             Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.get_tbs()/8);
             harq_entity->demux_unit->push_pdu_bcch(payload, cur_grant.get_tbs());             
           } else {
-            if (is_first_decoded) {
-              if (cur_grant.is_temp_rnti()) {
-                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
-                      cur_grant.get_tbs()/8);
-                harq_entity->demux_unit->push_pdu_temp_crnti(payload, cur_grant.get_tbs());
-              } else {
-                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.get_tbs()/8);
-                harq_entity->demux_unit->push_pdu(payload, cur_grant.get_tbs());
-              }
+            if (cur_grant.is_temp_rnti()) {
+              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
+                    cur_grant.get_tbs()/8);
+              harq_entity->demux_unit->push_pdu_temp_crnti(payload, cur_grant.get_tbs());
+            } else {
+              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.get_tbs()/8);
+              harq_entity->demux_unit->push_pdu(payload, cur_grant.get_tbs());
             }
             ack = true; 
+            is_first_tx = true; 
           }            
         } else {
           // RX NOK
@@ -191,9 +188,8 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
 void dl_harq_entity::dl_harq_process::set_harq_info(srslte::ue::dl_sched_grant* new_grant)    {
   bool is_new_transmission = false; 
 
-  if (new_grant->get_ndi() == 1 || is_first_tx || (pid == HARQ_BCCH_PID && new_grant->get_rv() == 0)) {
+  if (new_grant->get_ndi() == true || is_first_tx || (pid == HARQ_BCCH_PID && new_grant->get_rv() == 0)) {
     is_new_transmission = true; 
-    is_first_decoded = true; 
     Debug("Set HARQ Info for new transmission\n");
   } else {
     is_new_transmission = false; 
@@ -203,7 +199,8 @@ void dl_harq_entity::dl_harq_process::set_harq_info(srslte::ue::dl_sched_grant* 
   if (is_first_tx) {
     Info("DL PID %d: first TX RV=%d, NDI=%d\n", pid, new_grant->get_rv(), new_grant->get_ndi());    
   } else {
-    Info("DL PID %d: %s RV=%d, NDI=%d, LastNDI=%d\n", pid, is_new_transmission?"new TX":"reTX", new_grant->get_rv(), new_grant->get_ndi(), cur_grant.get_ndi());   
+    Info("DL PID %d: %s RV=%d, NDI=%d, LastNDI=%d\n", pid, is_new_transmission?"new TX":"reTX", new_grant->get_rv(), 
+         new_grant->get_ndi(), cur_grant.get_ndi());   
   }
 
   if (is_first_tx) {

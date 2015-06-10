@@ -82,7 +82,6 @@ private:
     dl_sched_grant pending_ack_grant;
     ul_buffer     *pending_ul_buffer;
     bool           is_first_tx; 
-    bool           is_first_decoded; 
     bool           pending_ack; 
     srslte::log    *log_h; 
     
