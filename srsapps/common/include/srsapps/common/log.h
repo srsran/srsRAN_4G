@@ -78,10 +78,10 @@ public:
   virtual void debug(std::string message, ...)   = 0;
   
   // Same with line and file info
-  virtual void error(std::string file, int line, std::string message, ...)   = 0;
-  virtual void warning(std::string file, int line, std::string message, ...) = 0;
-  virtual void info(std::string file, int line, std::string message, ...)    = 0;
-  virtual void debug(std::string file, int line, std::string message, ...)   = 0;
+//  virtual void error(std::string file, int line, std::string message, ...)   = 0;
+//  virtual void warning(std::string file, int line, std::string message, ...) = 0;
+//  virtual void info(std::string file, int line, std::string message, ...)    = 0;
+//  virtual void debug(std::string file, int line, std::string message, ...)   = 0;
   
 protected: 
   std::string get_service_name() { return service_name; }
