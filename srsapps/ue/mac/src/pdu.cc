@@ -30,6 +30,7 @@
 #include <stdlib.h>
 
 #include "srsapps/ue/mac/pdu.h"
+#include "srsapps/ue/mac/pcap.h"
 #include "srslte/srslte.h"
 
 namespace srslte {
@@ -85,8 +86,24 @@ void sch_subh::fprint(FILE* stream)
   }
 }
 
-void sch_pdu::parse_packet(uint8_t *ptr)
+void sch_pdu::parse_packet(uint8_t *ptr, FILE *pcap_file)
 {
+  if(pcap_file) {
+    MAC_Context_Info_t  context =
+    {
+        FDD_RADIO, DIRECTION_DOWNLINK, C_RNTI,
+        50,       /* RNTI */
+        102,      /* UEId */
+        0,        /* Retx */
+        1,        /* CRC Stsatus (i.e. OK) */
+        1,        /* Sysframe number */
+        4        /* Subframe number */
+    };
+
+    MAC_LTE_PCAP_WritePDU(pcap_file, &context, ptr, pdu_len);
+    fprintf(stdout, "Wrote DL MAC PDU, len=%d\n", pdu_len);
+  }
+
   pdu::parse_packet(ptr);
   
   // Correct size for last SDU 
@@ -104,7 +121,7 @@ void sch_pdu::parse_packet(uint8_t *ptr)
 }
     
 // Section 6.1.2
-bool sch_pdu::write_packet(uint8_t* ptr)
+bool sch_pdu::write_packet(uint8_t* ptr, FILE *pcap_file)
 {
   uint8_t *init_ptr = ptr; 
   bool last_is_padding = false; 
@@ -173,6 +190,21 @@ bool sch_pdu::write_packet(uint8_t* ptr)
   // Set paddint to zeros (if any) 
   bzero(ptr, rem_len*sizeof(uint8_t)*8);
   
+  if(pcap_file) {
+    MAC_Context_Info_t  context =
+    {
+        FDD_RADIO, DIRECTION_UPLINK, C_RNTI,
+        50,       /* RNTI */
+        102,      /* UEId */
+        0,        /* Retx */
+        1,        /* CRC Stsatus (i.e. OK) */
+        1,        /* Sysframe number */
+        4        /* Subframe number */
+    };
+
+    MAC_LTE_PCAP_WritePDU(pcap_file, &context, init_ptr, pdu_len);
+    fprintf(stdout, "Wrote UL MAC PDU, len=%d\n", pdu_len);
+  }
 }
 
 uint32_t sch_pdu::rem_size() {
@@ -554,7 +586,7 @@ void rar_pdu::set_backoff(uint8_t bi)
 }
 
 // Section 6.1.5
-bool rar_pdu::write_packet(uint8_t* ptr)
+bool rar_pdu::write_packet(uint8_t* ptr, FILE *pcap_file)
 {
   // Write Backoff Indicator, if any 
   if (has_backoff_indicator) {
