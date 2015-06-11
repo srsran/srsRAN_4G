@@ -35,6 +35,7 @@
 #include "srsapps/common/tti_sync_cv.h"
 #include "srsapps/common/log_stdout.h"
 #include "srsapps/ue/mac/mac.h"
+#include "srsapps/ue/mac/mac_pcap.h"
 
 
 
@@ -48,6 +49,7 @@ typedef struct {
   float uhd_tx_gain;
   int   verbose; 
   bool  do_trace; 
+  bool  do_pcap; 
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
@@ -57,20 +59,22 @@ void args_default(prog_args_t *args) {
   args->uhd_tx_gain = -1; 
   args->verbose     = 0; 
   args->do_trace    = false; 
+  args->do_pcap     = false; 
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [gGtv] -f rx_frequency (in Hz) -F tx_frequency (in Hz)\n", prog);
+  printf("Usage: %s [gGtpv] -f rx_frequency (in Hz) -F tx_frequency (in Hz)\n", prog);
   printf("\t-g UHD RX gain [Default AGC]\n");
   printf("\t-G UHD TX gain [Default same as RX gain (AGC)]\n");
   printf("\t-t Enable trace [Default disabled]\n");
+  printf("\t-p Enable PCAP capture [Default disabled]\n");
   printf("\t-v [increase verbosity, default none]\n");
 }
 
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "gGftFv")) != -1) {
+  while ((opt = getopt(argc, argv, "gGftpFv")) != -1) {
     switch (opt) {
     case 'g':
       args->uhd_rx_gain = atof(argv[optind]);
@@ -86,6 +90,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 't':
       args->do_trace = true;
+      break;
+    case 'p':
+      args->do_pcap = true;
       break;
     case 'v':
       args->verbose++;
@@ -307,6 +314,7 @@ uint8_t reply[2] = {0x00, 0x04};
 srslte::radio_uhd radio_uhd; 
 srslte::ue::phy phy; 
 srslte::ue::mac mac; 
+srslte::ue::mac_pcap mac_pcap; 
 
 prog_args_t prog_args; 
   
@@ -316,6 +324,9 @@ void sig_int_handler(int signo)
     //radio_uhd.write_trace("radio");
     phy.write_trace("phy");
     mac.write_trace("mac");
+  }
+  if (prog_args.do_pcap) {
+    mac_pcap.close();
   }
   mac.stop();
   exit(0);
@@ -341,11 +352,19 @@ int main(int argc, char *argv[])
   }
  
   // Capture SIGINT to write traces 
-  signal(SIGINT, sig_int_handler);
   if (prog_args.do_trace) {
+    signal(SIGINT, sig_int_handler);
     //radio_uhd.start_trace();
     phy.start_trace();
     mac.start_trace();
+  }
+  
+  if (prog_args.do_pcap) {
+    if (!prog_args.do_trace) {
+      signal(SIGINT, sig_int_handler);
+    }
+    mac_pcap.open("/tmp/ue_mac.pcap");
+    mac.start_pcap(&mac_pcap);
   }
   
   // Init Radio and PHY
@@ -360,7 +379,7 @@ int main(int argc, char *argv[])
     phy.init_agc(&radio_uhd, &ttisync, &phy_log);
   }  
   // Init MAC 
-  mac.init(&phy, &ttisync, &mac_log, true);
+  mac.init(&phy, &ttisync, &mac_log);
     
   // Set RX freq
   radio_uhd.set_rx_freq(prog_args.uhd_rx_freq);

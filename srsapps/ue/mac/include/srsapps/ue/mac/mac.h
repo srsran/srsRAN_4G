@@ -45,6 +45,7 @@
 #include "srsapps/ue/mac/mux.h"
 #include "srsapps/ue/mac/demux.h"
 #include "srsapps/ue/mac/sdu_handler.h"
+#include "srsapps/ue/mac/mac_pcap.h"
 #include "srsapps/common/trace.h"
 
 
@@ -59,8 +60,8 @@ typedef _Complex float cf_t;
 class mac : public timer_callback
 {
 public:
-  mac() : timers_db((uint32_t) NOF_MAC_TIMERS), tr_end_time(1024*10), tr_start_time(1024*10) {started=false;}
-  bool init(phy *phy_h, tti_sync *ttisync, log *log_h, bool pcap_=false);
+  mac() : timers_db((uint32_t) NOF_MAC_TIMERS), tr_end_time(1024*10), tr_start_time(1024*10) {started=false;  pcap = NULL; }
+  bool init(phy *phy_h, tti_sync *ttisync, log *log_h);
   void stop();
   int  get_tti();
   void main_radio_loop(); // called after thread creation
@@ -90,6 +91,7 @@ public:
   void write_trace(std::string filename); 
   
   void timer_expired(uint32_t timer_id); 
+  void start_pcap(mac_pcap* pcap);
     
   enum {
     HARQ_RTT = 0, 
@@ -150,13 +152,13 @@ private:
   void          setup_timers();
   void          timeAlignmentTimerExpire();
 
-  /* Write MAC PDUs to file in PCACP format? */
-  bool pcap;
-  FILE *pcap_file;
-    
+  // pointer to MAC PCAP object
+  mac_pcap* pcap;
+  
+  // Variables for Execution time Trace
   trace<uint32_t> tr_start_time;
   trace<uint32_t> tr_end_time;
-  bool tr_enabled; 
+  bool tr_enabled;   
   void tr_log_start(uint32_t tti);
   void tr_log_end(uint32_t tti);    
   void set_phy_crnti(uint16_t phy_rnti);

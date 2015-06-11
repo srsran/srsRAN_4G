@@ -38,6 +38,7 @@
 #include "srsapps/ue/mac/mux.h"
 #include "srsapps/ue/mac/demux.h"
 #include "srsapps/ue/mac/pdu.h"
+#include "srsapps/ue/mac/mac_pcap.h"
 
 #ifndef PROCRA_H
 #define PROCRA_H
@@ -50,7 +51,7 @@ namespace ue {
 class ra_proc : public proc,timer_callback
 {
   public:
-    ra_proc() : rar_pdu_msg(20) {};
+    ra_proc() : rar_pdu_msg(20) {pcap = NULL;};
     bool init(mac_params *params_db, phy *phy_h, log *log_h, timers *timers_db, 
               mux *mux_unit, demux *demux_unit);
     void reset();
@@ -67,6 +68,7 @@ class ra_proc : public proc,timer_callback
     void timer_expired(uint32_t timer_id);
     
     void* run_prach_thread(); 
+    void start_pcap(mac_pcap* pcap);
 private: 
       
     void process_timeadv_cmd(uint32_t ta_cmd); 
@@ -143,6 +145,7 @@ private:
     timers      *timers_db;
     mux         *mux_unit; 
     demux       *demux_unit; 
+    mac_pcap    *pcap; 
     
     pthread_t   pt_init_prach; 
     pthread_cond_t  cond; 

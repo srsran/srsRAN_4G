@@ -47,7 +47,7 @@ class demux
 {
 public:
   demux();
-  void init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_, bool pcap_=false, FILE *pcap_file_=0);
+  void init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_);
 
   void add_sdu_handler(sdu_handler *handler); 
 
@@ -71,10 +71,6 @@ private:
   uint64_t   contention_resolution_id; 
   bool       pending_temp_rnti;
   bool       has_pending_contention_resolution_id; 
-
-  /* Write MAC PDUs to file in PCACP format? */
-  bool  pcap;
-  FILE *pcap_file;
 
   phy        *phy_h; 
   log        *log_h;

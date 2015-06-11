@@ -32,6 +32,7 @@
 #include "srsapps/common/log.h"
 #include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/ue/mac/mux.h"
+#include "srsapps/ue/mac/mac_pcap.h"
 #include "srsapps/common/timers.h"
 
 #ifndef ULHARQ_H
@@ -51,6 +52,7 @@ public:
   const static uint32_t NOF_HARQ_PROC = 8; 
   static uint32_t pidof(uint32_t tti);
   
+  ul_harq_entity() {  pcap      = NULL; }
   bool init(srslte_cell_t cell, mac_params *params_db, log *log_h, timers* timers_, mux *mux_unit);
   
   void reset();
@@ -58,6 +60,7 @@ public:
   bool is_sps(uint32_t pid); 
   void run_tti(uint32_t tti, ul_sched_grant *grant, phy *phy_);
   void run_tti(uint32_t tti, phy *phy_);
+  void start_pcap(mac_pcap* pcap);
   
 private:  
   
@@ -102,6 +105,7 @@ private:
   ul_harq_process proc[NOF_HARQ_PROC];
   log             *log_h; 
   mac_params      *params_db; 
+  mac_pcap        *pcap; 
 };
 
 } 

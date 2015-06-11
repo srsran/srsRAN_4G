@@ -88,6 +88,11 @@ void ra_proc::reset() {
   state = IDLE;   
 }
 
+void ra_proc::start_pcap(mac_pcap* pcap_)
+{
+  pcap = pcap_; 
+}
+
 void ra_proc::read_params() {
   
   // Read initialization parameters   
@@ -290,7 +295,12 @@ void ra_proc::step_response_reception() {
        
         // Decode packet
         dl_buffer->reset_softbuffer();
-        if (dl_buffer->decode_data(&rar_grant, rar_pdu_buffer)) {
+        bool ack = dl_buffer->decode_data(&rar_grant, rar_pdu_buffer);
+        if (pcap) {
+          pcap->write_dl_crnti(payload, rar_grant.get_tbs()/8, ra_rnti, ack, tti);            
+        }
+
+        if (ack) {
           rDebug("RAR decoded successfully TBS=%d\n", rar_grant.get_tbs());
           
           rar_pdu_msg.init(rar_grant.get_tbs()/8);

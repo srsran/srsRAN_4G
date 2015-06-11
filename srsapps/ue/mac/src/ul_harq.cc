@@ -57,6 +57,12 @@ bool ul_harq_entity::init(srslte_cell_t cell, mac_params *params_db_, log *log_h
 uint32_t ul_harq_entity::pidof(uint32_t tti) {
   return (uint32_t) tti%NOF_HARQ_PROC;  
 }
+
+void ul_harq_entity::start_pcap(mac_pcap* pcap_)
+{
+  pcap = pcap_; 
+}
+
 void ul_harq_entity::reset() {
   for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
     proc[i].reset();
@@ -258,6 +264,10 @@ void ul_harq_entity::ul_harq_process::generate_tx(uint32_t tti_tx, uint8_t *pdu_
   ul->set_current_tx_nb(current_tx_nb);
   ul->generate_data(&cur_grant, &softbuffer, pdu_payload);
 
+  if (harq_entity->pcap) {
+    harq_entity->pcap->write_ul_crnti(pdu_payload, cur_grant.get_tbs()/8, cur_grant.get_rnti(), current_tx_nb, tti_tx);
+  }
+  
   current_irv = (current_irv+1)%4;  
   tti_last_tx = tti_tx; 
   if (is_msg3) {

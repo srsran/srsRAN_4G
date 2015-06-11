@@ -33,6 +33,7 @@
 #include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/common/timers.h"
 #include "srsapps/ue/mac/demux.h"
+#include "srsapps/ue/mac/mac_pcap.h"
 
 #ifndef DLHARQ_H
 #define DLHARQ_H
@@ -59,6 +60,7 @@ public:
   void reset();
   bool is_ack_pending_resolution();
   void send_pending_ack_contention_resolution();
+  void start_pcap(mac_pcap* pcap);
 private:  
   
   
@@ -93,6 +95,7 @@ private:
   demux           *demux_unit; 
   srslte::log     *log_h; 
   int              pending_ack_pid; 
+  mac_pcap        *pcap; 
 };
 
 } 

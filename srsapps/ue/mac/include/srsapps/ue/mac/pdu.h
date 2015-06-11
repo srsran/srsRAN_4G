@@ -124,7 +124,7 @@ public:
   }
   
   // Section 6.1.2
-  void parse_packet(uint8_t *ptr, FILE *pcap_file=0) {
+  void parse_packet(uint8_t *ptr) {
     uint8_t *init_ptr = ptr; 
     nof_subheaders = 0; 
     while(subheaders[nof_subheaders].read_subheader(&ptr)) {
@@ -139,7 +139,7 @@ public:
     return pdu_is_ul;
   }
 
-  virtual bool write_packet(uint8_t *ptr, FILE *pcap_file=0) = 0;
+  virtual bool write_packet(uint8_t *ptr) = 0;
 
 protected:  
   std::vector<SubH> subheaders;
@@ -229,8 +229,7 @@ private:
   bool     F_bit;    
   uint8_t  ce_payload[MAX_CE_PAYLOAD_LEN*8];
   uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
-  uint8_t  buff_size_table(uint32_t buffer_size);
-  
+  uint8_t buff_size_table(uint32_t buffer_size);
 };
 
 class sch_pdu : public pdu<sch_subh>
@@ -239,8 +238,8 @@ public:
   
   sch_pdu(uint32_t max_rars) : pdu(max_rars) {}
 
-  void      parse_packet(uint8_t *ptr, FILE *pcap_file=0);
-  bool      write_packet(uint8_t *ptr, FILE *pcap_file=0);
+  void      parse_packet(uint8_t *ptr);
+  bool      write_packet(uint8_t *ptr);
   bool      has_space_ce(uint32_t nbytes);  
   bool      has_space_sdu(uint32_t nbytes);  
   bool      has_space_sdu(uint32_t nbytes, bool is_first);  
@@ -251,9 +250,6 @@ public:
   bool      update_space_sdu(uint32_t nbytes);  
   bool      update_space_sdu(uint32_t nbytes, bool is_first);  
   void     fprint(FILE *stream);
-private:
-  uint8_t  pdu_pcap_tmp[1024*64];
-
   
 };
 
@@ -299,7 +295,7 @@ public:
   bool     has_backoff();
   uint8_t  get_backoff();
   
-  bool     write_packet(uint8_t* ptr, FILE *pcap_file=0);
+  bool     write_packet(uint8_t* ptr);
   void     fprint(FILE *stream);
 
 private: 

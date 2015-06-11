@@ -47,7 +47,7 @@ class mux
 public:
   mux();
   void     reset();
-  void     init(log *log_h, mac_io *mac_io_h, bsr_proc *bsr_procedure, bool pcap_=false, FILE *pcap_file_=0);
+  void     init(log *log_h, mac_io *mac_io_h, bsr_proc *bsr_procedure);
 
   bool     is_pending_ccch_sdu();
   bool     is_pending_any_sdu();
@@ -97,10 +97,6 @@ private:
   qbuff                 pdu_buff; 
   sch_pdu               pdu_msg; 
   bool msg3_has_been_transmitted;
-
-  /* Write MAC PDUs to file in PCACP format? */
-  bool  pcap;
-  FILE *pcap_file;
   
 };
 }

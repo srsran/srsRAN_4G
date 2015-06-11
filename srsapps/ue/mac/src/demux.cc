@@ -40,14 +40,12 @@ demux::demux() : mac_msg(20),pending_mac_msg(20)
   sdu_handler_ = NULL; 
 }
 
-void demux::init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_, bool pcap_, FILE *pcap_file_)
+void demux::init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_)
 {
   phy_h     = phy_h_; 
   log_h     = log_h_; 
   mac_io_h  = mac_io_h_;  
   timers_db = timers_db_;
-  pcap      = pcap_;
-  pcap_file = pcap_file_;
 }
 
 void demux::add_sdu_handler(sdu_handler* handler)
@@ -93,7 +91,7 @@ void demux::push_pdu_temp_crnti(uint8_t *mac_pdu, uint32_t nof_bits)
   if (!pending_temp_rnti) {
     // Unpack DLSCH MAC PDU 
     pending_mac_msg.init(nof_bits/8);
-    pending_mac_msg.parse_packet(mac_pdu, pcap_file);
+    pending_mac_msg.parse_packet(mac_pdu);
     //pending_mac_msg.fprint(stdout);
     
     // Look for Contention Resolution UE ID 
@@ -117,7 +115,7 @@ void demux::push_pdu(uint8_t *mac_pdu, uint32_t nof_bits)
 {
   // Unpack DLSCH MAC PDU 
   mac_msg.init(nof_bits/8);
-  mac_msg.parse_packet(mac_pdu, pcap_file);
+  mac_msg.parse_packet(mac_pdu);
   //mac_msg.fprint(stdout);
   process_pdu(&mac_msg);
   Debug("Normal MAC PDU processed\n");

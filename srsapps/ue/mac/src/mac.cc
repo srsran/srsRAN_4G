@@ -40,29 +40,20 @@
 namespace srslte {
 namespace ue {
 
-bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_, bool pcap_)
+bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
 {
   started = false; 
   ttisync = ttisync_;
   phy_h = phy_h_;
   log_h = log_h_; 
-  pcap = pcap_;
   tti = 0; 
   is_synchronized = false;   
   last_temporal_crnti = 0; 
   phy_rnti = 0; 
-
-  if(pcap) {
-    pcap_file = MAC_LTE_PCAP_Open("/tmp/ue_mac.pcap");
-    if(!pcap_file) {
-      Info("Failed to open pcap for writing\n");
-      pcap = false;
-    }
-  }
   
   bsr_procedure.init(log_h, &timers_db, &params_db, &mac_io_lch);
-  mux_unit.init(log_h, &mac_io_lch, &bsr_procedure, pcap, pcap_file);
-  demux_unit.init(phy_h, log_h, &mac_io_lch, &timers_db, pcap, pcap_file);
+  mux_unit.init(log_h, &mac_io_lch, &bsr_procedure);
+  demux_unit.init(phy_h, log_h, &mac_io_lch, &timers_db);
   ra_procedure.init(&params_db, phy_h, log_h, &timers_db, &mux_unit, &demux_unit);
   sr_procedure.init(log_h, &params_db, phy_h);
   reset();
@@ -76,10 +67,6 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_, bool pcap_)
 
 void mac::stop()
 {
-  if (pcap && pcap_file) {
-    MAC_LTE_PCAP_Close(pcap_file);
-    printf("Closing MAC PCAP file\n");
-  }
   started = false;   
   pthread_join(mac_thread, NULL);
 }
@@ -91,6 +78,14 @@ int mac::get_tti()
   } else {
     return -1;
   }
+}
+
+void mac::start_pcap(mac_pcap* pcap_)
+{
+  pcap = pcap_; 
+  dl_harq.start_pcap(pcap);
+  ul_harq.start_pcap(pcap);
+  ra_procedure.start_pcap(pcap);
 }
 
 void mac::start_trace()
@@ -166,6 +161,10 @@ void mac::main_radio_loop() {
         // Print MIB 
         srslte_cell_fprint(stdout, &cell, phy_h->get_current_tti()/10);
 
+        if (pcap) {
+          pcap->write_dl_bch(bch_payload, SRSLTE_BCH_PAYLOAD_LEN/8, true, phy_h->get_current_tti());
+        }
+        
         // Init HARQ for this cell 
         Info("Init UL/DL HARQ\n");
         ul_harq.init(cell, &params_db, log_h, &timers_db, &mux_unit);

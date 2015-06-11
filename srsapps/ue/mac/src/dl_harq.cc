@@ -47,6 +47,7 @@ dl_harq_entity::dl_harq_entity()
     proc[i].pid = i; 
   }  
   pending_ack_pid = -1; 
+  pcap = NULL; 
 }
 bool dl_harq_entity::init(srslte_cell_t cell, uint32_t max_payload_len, log* log_h_, timers* timers_, demux *demux_unit_)
 {
@@ -61,6 +62,12 @@ bool dl_harq_entity::init(srslte_cell_t cell, uint32_t max_payload_len, log* log
   return true; 
 
 }
+
+void dl_harq_entity::start_pcap(mac_pcap* pcap_)
+{
+  pcap = pcap_; 
+}
+
 bool dl_harq_entity::is_sps(uint32_t pid)
 {
   return false; 
@@ -143,12 +150,16 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
 
         Info("DL PID %d: TBS=%d, RV=%d, MCS=%d, crc=%s\n", pid, cur_grant.get_tbs(), cur_grant.get_rv(), cur_grant.get_mcs(), ack?"OK":"NOK");
 
-        if (ack) {
-          // RX OK
-          if (pid == HARQ_BCCH_PID) {
+        if (pid == HARQ_BCCH_PID) {
+          if (ack) {
             Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.get_tbs()/8);
-            harq_entity->demux_unit->push_pdu_bcch(payload, cur_grant.get_tbs());             
-          } else {
+            harq_entity->demux_unit->push_pdu_bcch(payload, cur_grant.get_tbs());        
+          }
+          if (harq_entity->pcap) {
+            harq_entity->pcap->write_dl_sirnti(payload, cur_grant.get_tbs()/8, ack, tti);
+          }
+        } else {
+          if (ack) {
             if (cur_grant.is_temp_rnti()) {
               Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
                     cur_grant.get_tbs()/8);
@@ -157,6 +168,9 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
               Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.get_tbs()/8);
               harq_entity->demux_unit->push_pdu(payload, cur_grant.get_tbs());
             }
+          }
+          if (harq_entity->pcap) {
+            harq_entity->pcap->write_dl_crnti(payload, cur_grant.get_tbs()/8, cur_grant.get_rnti(), ack, tti);            
           }
         }
       } else {
