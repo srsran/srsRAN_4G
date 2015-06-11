@@ -40,10 +40,10 @@
 #ifndef LOG_H
 #define LOG_H
 
-#define Error(fmt, ...)   log_h->error(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
 namespace srslte {
   
@@ -78,10 +78,10 @@ public:
   virtual void debug(std::string message, ...)   = 0;
   
   // Same with line and file info
-//  virtual void error(std::string file, int line, std::string message, ...)   = 0;
-//  virtual void warning(std::string file, int line, std::string message, ...) = 0;
-//  virtual void info(std::string file, int line, std::string message, ...)    = 0;
-//  virtual void debug(std::string file, int line, std::string message, ...)   = 0;
+  virtual void error_line(std::string file, int line, std::string message, ...)   = 0;
+  virtual void warning_line(std::string file, int line, std::string message, ...) = 0;
+  virtual void info_line(std::string file, int line, std::string message, ...)    = 0;
+  virtual void debug_line(std::string file, int line, std::string message, ...)   = 0;
   
 protected: 
   std::string get_service_name() { return service_name; }

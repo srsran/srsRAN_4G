@@ -59,10 +59,10 @@ public:
   void debug(string message, ...);  
   
   // Same with line and file info
-  void error(string file, int line, string message, ...);  
-  void warning(string file, int line, string message, ...);
-  void info(string file, int line, string message, ...);   
-  void debug(string file, int line, string message, ...);  
+  void error_line(string file, int line, string message, ...);  
+  void warning_line(string file, int line, string message, ...);
+  void info_line(string file, int line, string message, ...);   
+  void debug_line(string file, int line, string message, ...);  
 
 private:
   typedef enum {

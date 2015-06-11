@@ -96,7 +96,7 @@ void log_stdout::warning(string msg, ...)
 }
 
 
-void log_stdout::error(string file, int line, string msg, ...)
+void log_stdout::error_line(string file, int line, string msg, ...)
 {
   va_list args;
   va_start(args, msg);
@@ -104,7 +104,7 @@ void log_stdout::error(string file, int line, string msg, ...)
   va_end(args);
 }
 
-void log_stdout::info(string file, int line, string msg, ...)
+void log_stdout::info_line(string file, int line, string msg, ...)
 {
   if (level >= LOG_LEVEL_INFO) {
     va_list args;
@@ -114,7 +114,7 @@ void log_stdout::info(string file, int line, string msg, ...)
   }
 }
 
-void log_stdout::debug(string file, int line, string msg, ...)
+void log_stdout::debug_line(string file, int line, string msg, ...)
 {
   if (level >= LOG_LEVEL_DEBUG) {
     va_list args;
@@ -124,7 +124,7 @@ void log_stdout::debug(string file, int line, string msg, ...)
   }
 }
 
-void log_stdout::warning(string file, int line, string msg, ...)
+void log_stdout::warning_line(string file, int line, string msg, ...)
 {
   va_list args;
   va_start(args, msg);

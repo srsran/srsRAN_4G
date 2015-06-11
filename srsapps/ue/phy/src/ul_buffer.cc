@@ -102,7 +102,6 @@ bool ul_buffer::generate_cqi_report()
 bool ul_buffer::generate_sr() {
   uci_data.scheduling_request = true; 
   uci_pending = true; 
-  Debug("SR Generating\n");
   return true; 
 }
 
@@ -154,6 +153,14 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
       pusch_hopping.current_tx_nb  = grant->get_current_tx_nb();       
     }
     
+    bool is_shortened = false; 
+    if (params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)) {
+      if (srslte_refsignal_srs_send_cs((uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG), tti%10) == 1) {
+        is_shortened = true; 
+        Info("PUCCH/PUSCH Shortened\n");
+      }      
+    }
+    
     srslte_pucch_cfg_t pucch_cfg; 
     bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
     pucch_cfg.beta_pucch        = (float) params_db->get_param(phy_params::PUCCH_BETA)/10; 
@@ -161,7 +168,8 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     pucch_cfg.group_hopping_en  = dmrs_cfg.group_hopping_en;
     pucch_cfg.N_cs              = params_db->get_param(phy_params::PUCCH_CYCLIC_SHIFT);
     pucch_cfg.n_rb_2            = params_db->get_param(phy_params::PUCCH_N_RB_2);
-
+    pucch_cfg.shortened         = is_shortened; 
+    
     srslte_pucch_sched_t pucch_sched; 
     bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
     pucch_sched.n_cce = last_n_cce; 
@@ -178,22 +186,12 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     uci_data.I_offset_ack    = params_db->get_param(phy_params::UCI_I_OFFSET_ACK);
     uci_data.I_offset_cqi    = params_db->get_param(phy_params::UCI_I_OFFSET_CQI);
     uci_data.I_offset_ri     = params_db->get_param(phy_params::UCI_I_OFFSET_RI);
-    
+
     int n = 0; 
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
     if (grant) {
 
-      /*
-      uint32_t N_srs = 0; 
-      if (params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)) {
-        if (srslte_refsignal_srs_send_cs((uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG), tti%10) == 1) {
-          N_srs = 1; 
-          printf("UL grant tti=%d is shortened. SF-CFG=%d\n", tti, 
-                 (int) params_db->get_param(phy_params::SRS_CS_SFCFG));
-        }
-      }
-      */
-      grant->to_pusch_cfg(tti%10, 0, &ue_ul);
+      grant->to_pusch_cfg(tti%10, is_shortened?1:0, &ue_ul);
 
       Info("PUSCH: TTI=%d, TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, sf_idx=%d\n", 
            tti, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
@@ -207,6 +205,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
                                                     grant->get_rnti(), 
                                                     signal_buffer);    
     } else {
+      
       Info("PUCCH: TTI=%d n_cce=%d, sf_idx=%d, ack=%s, sr=%s\n", tti, last_n_cce, tti%10,
         uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no");
     

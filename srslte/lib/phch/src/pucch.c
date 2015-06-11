@@ -49,10 +49,18 @@ uint32_t pucch_symbol_format1_cpext[4] = {0, 1, 4, 5};
 uint32_t pucch_symbol_format2_cpnorm[5] = {0, 2, 3, 4, 6};
 uint32_t pucch_symbol_format2_cpext[5] = {0, 1, 2, 4, 5};
 
-// Table 5.4.1-2 Orthogonal sequences w for N_sf=4
-float w_n_oc[3][4] = {{1, 1, 1, 1},
-                      {1,-1, 1,-1},
-                      {1,-1,-1,1}};
+float w_n_oc[2][3][4] = {
+              // Table 5.4.1-2 Orthogonal sequences w for N_sf=4 (complex argument)
+                      {{0, 0, 0, 0},
+                      {0,M_PI, 0, M_PI},
+                      {0,M_PI, M_PI, 0}}, 
+              // Table 5.4.1-3 Orthogonal sequences w for N_sf=3
+                      {{0, 0, 0, 0},
+                      {0,2*M_PI/3, 4*M_PI/3,0},
+                      {0,4*M_PI/3,2*M_PI/3,0}}, 
+  
+};
+
 
 /* Verify PUCCH configuration as given in Section 5.4 36.211 */
 bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t *cfg, uint32_t nof_prb) {
@@ -80,18 +88,30 @@ void srslte_pucch_cfg_default(srslte_pucch_cfg_t *cfg) {
   cfg->delta_pucch_shift = 1; 
 }
 
-uint32_t get_N_sf(srslte_pucch_format_t format) {
+uint32_t get_N_sf(srslte_pucch_format_t format, uint32_t slot_idx, bool shortened) {
   switch (format) {
     case SRSLTE_PUCCH_FORMAT_1:
     case SRSLTE_PUCCH_FORMAT_1A:
     case SRSLTE_PUCCH_FORMAT_1B:
-      return 4;
+      if (!slot_idx) {
+        return 4; 
+      } else {
+        return shortened?3:4; 
+      }
     case SRSLTE_PUCCH_FORMAT_2:
     case SRSLTE_PUCCH_FORMAT_2A:
     case SRSLTE_PUCCH_FORMAT_2B:
       return 5; 
   }
   return 0; 
+}
+
+uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format) {
+  uint32_t len=0;
+  for (uint32_t ns=0;ns<2;ns++) {
+    len += SRSLTE_NRE*get_N_sf(format, ns, cfg->shortened);
+  }
+  return len; 
 }
 
 // Number of bits per subframe (M_bit) Table 5.4-1 36.211 
@@ -271,8 +291,9 @@ static int pucch_put(srslte_pucch_t *q, srslte_pucch_format_t format, uint32_t n
     // Determine m 
     uint32_t m = srslte_pucch_m(&q->pucch_cfg, format, n_pucch, q->cell.cp); 
     
-    uint32_t N_sf = get_N_sf(format);
+    uint32_t N_sf_0 = get_N_sf(format, 0, q->pucch_cfg.shortened);
     for (uint32_t ns=0;ns<2;ns++) {
+      uint32_t N_sf = get_N_sf(format, ns%2, q->pucch_cfg.shortened);
       // Determine n_prb 
       uint32_t n_prb = m/2; 
       if ((m+ns)%2) {
@@ -283,7 +304,7 @@ static int pucch_put(srslte_pucch_t *q, srslte_pucch_format_t format, uint32_t n
         for (uint32_t i=0;i<N_sf;i++) {
           uint32_t l = get_pucch_symbol(i, format, q->cell.cp);
           memcpy(&output[SRSLTE_RE_IDX(q->cell.nof_prb, l+ns*nsymbols, n_prb*SRSLTE_NRE)], 
-                &q->z[i*SRSLTE_NRE+ns*N_sf*SRSLTE_NRE], 
+                &q->z[i*SRSLTE_NRE+ns*N_sf_0*SRSLTE_NRE], 
                 SRSLTE_NRE*sizeof(cf_t));
         }        
       } else {
@@ -467,9 +488,9 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
       fprintf(stderr, "Error encoding PUCCH bits\n");
       return SRSLTE_ERROR; 
     }
-
-    uint32_t N_sf=get_N_sf(format); 
+    uint32_t N_sf_0 = get_N_sf(format, 0, q->pucch_cfg.shortened);
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
+      uint32_t N_sf = get_N_sf(format, ns%2, q->pucch_cfg.shortened);
       // Get group hopping number u 
       uint32_t f_gh=0; 
       if (q->pucch_cfg.group_hopping_en) {
@@ -478,7 +499,7 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
       uint32_t u = (f_gh + (q->cell.id%30))%30;
       
       srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u); 
-
+      uint32_t N_sf_widx = N_sf==3?1:0;
       for (uint32_t m=0;m<N_sf;m++) {
         uint32_t l = get_pucch_symbol(m, format, q->cell.cp);
         uint32_t n_prime_ns;
@@ -499,8 +520,8 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
           DEBUG("PUCCH d_0: %.1f+%.1fi, alpha: %.1f, n_oc: %d, n_prime_ns: %d, n_rb_2=%d\n", 
                 __real__ q->d[0], __imag__ q->d[0], alpha, n_oc, n_prime_ns, q->pucch_cfg.n_rb_2);
           for (uint32_t n=0;n<SRSLTE_PUCCH_N_SEQ;n++) {
-            q->z[(ns%2)*N_sf*SRSLTE_PUCCH_N_SEQ+m*SRSLTE_PUCCH_N_SEQ+n] = q->pucch_cfg.beta_pucch
-                  *q->d[0]*w_n_oc[n_oc%3][m]*cexpf(I*(q->tmp_arg[n]+alpha*n+S_ns));
+            q->z[(ns%2)*N_sf_0*SRSLTE_PUCCH_N_SEQ+m*SRSLTE_PUCCH_N_SEQ+n] = q->pucch_cfg.beta_pucch
+                  *q->d[0]*cexpf(I*(w_n_oc[N_sf_widx][n_oc%3][m]+q->tmp_arg[n]+alpha*n+S_ns));
           }        
         }
       }              

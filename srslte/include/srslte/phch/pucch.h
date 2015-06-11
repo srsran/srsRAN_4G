@@ -70,6 +70,7 @@ typedef struct SRSLTE_API {
   uint32_t n_rb_2; 
   uint32_t N_cs; 
   bool group_hopping_en; 
+  bool shortened; 
 } srslte_pucch_cfg_t;
 
 /* PUSCH object */
@@ -99,6 +100,9 @@ SRSLTE_API bool srslte_pucch_set_cfg(srslte_pucch_t* q,
 
 SRSLTE_API int srslte_pucch_set_crnti(srslte_pucch_t *q, 
                                       uint16_t c_rnti); 
+
+SRSLTE_API uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, 
+                                             srslte_pucch_format_t format); 
 
 SRSLTE_API int srslte_pucch_encode(srslte_pucch_t *q, 
                                    srslte_pucch_format_t format,

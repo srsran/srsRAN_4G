@@ -1,13 +1,13 @@
 clear 
 ueConfig=struct('NCellID',25,'RNTI',11,'NULRB',6,'NSubframe',1,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Off');
-pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0,'ResourceSize',0);
+pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',1,'ResourceSize',0);
 
 addpath('../../build/srslte/lib/phch/test')
 
 format_str={'1','1a','1b','2','2a','2b'};
 
 k=1;
-for f=1:5 
+for f=0:2 
     for n=0:7:130
         for d=1:3
             for ncs=0:d:7
@@ -48,7 +48,8 @@ for f=1:5
 
                 if (error_sym > 1e-5)
                     disp(info)
-                    plot(abs(sym-sym_mat))
+                    plot(1:length(sym),sym,1:length(sym_mat),sym_mat)
+                    legend('srsLTE','Matlab')
                     error('Error in symbols');                
                 end
                 if (error_dmrs > 1e-5)
