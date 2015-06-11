@@ -60,7 +60,8 @@ class mac : public timer_callback
 {
 public:
   mac() : timers_db((uint32_t) NOF_MAC_TIMERS), tr_end_time(1024*10), tr_start_time(1024*10) {started=false;}
-  bool init(phy *phy_h, tti_sync *ttisync, log *log_h);
+  ~mac();
+  bool init(phy *phy_h, tti_sync *ttisync, log *log_h, bool pcap_=false);
   void stop();
   int  get_tti();
   void main_radio_loop(); // called after thread creation
@@ -149,6 +150,10 @@ private:
   uint16_t      phy_rnti;
   void          setup_timers();
   void          timeAlignmentTimerExpire();
+
+  /* Write MAC PDUs to file in PCACP format? */
+  bool pcap;
+  FILE *pcap_file;
     
   trace<uint32_t> tr_start_time;
   trace<uint32_t> tr_end_time;

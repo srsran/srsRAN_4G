@@ -52,11 +52,13 @@ mux::mux() : pdu_msg(20)
   }  
 }
 
-void mux::init(log *log_h_, mac_io *mac_io_h_, bsr_proc *bsr_procedure_)
+void mux::init(log *log_h_, mac_io *mac_io_h_, bsr_proc *bsr_procedure_, bool pcap_, FILE *pcap_file_)
 {
   log_h      = log_h_;
   mac_io_h   = mac_io_h_;
   bsr_procedure = bsr_procedure_;
+  pcap = pcap_;
+  pcap_file = pcap_file_;
 }
 
 void mux::reset()
@@ -285,7 +287,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   //pdu_msg.fprint(stdout);
   
   /* Generate MAC PDU and save to buffer */
-  if (pdu_msg.write_packet(buff)) {
+  if (pdu_msg.write_packet(buff, pcap_file)) {
     pdu_buff.push(pdu_sz_nbits);
   } else {
     Error("Writing PDU message to packet\n");

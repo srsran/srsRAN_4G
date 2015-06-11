@@ -282,10 +282,10 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
       }
     }
   }
-  for (int i=0;i<msg->rr_cnfg.drb_to_add_mod_list_size;i++) {
-    printf("Setting up DRB%d\n", msg->rr_cnfg.drb_to_add_mod_list[i].drb_id);
-    // todo 
-  }
+//  for (int i=0;i<msg->rr_cnfg.drb_to_add_mod_list_size;i++) {
+//    printf("Setting up DRB%d\n", msg->rr_cnfg.drb_to_add_mod_list[i].drb_id);
+//    // todo
+//  }
 }
 
 
