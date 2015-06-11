@@ -40,13 +40,6 @@
 namespace srslte {
 namespace ue {
 
-mac::~mac()
-{
-  if(pcap && pcap_file) {
-    MAC_LTE_PCAP_Close(pcap_file);
-  }
-}
-    
 bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_, bool pcap_)
 {
   started = false; 
@@ -83,6 +76,10 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_, bool pcap_)
 
 void mac::stop()
 {
+  if (pcap && pcap_file) {
+    MAC_LTE_PCAP_Close(pcap_file);
+    printf("Closing MAC PCAP file\n");
+  }
   started = false;   
   pthread_join(mac_thread, NULL);
 }
@@ -159,7 +156,7 @@ void* mac::mac_thread_fnc(void *arg) {
 
 void mac::main_radio_loop() {
   setup_timers();
-  while(1) {
+  while(started) {
     if (!is_synchronized) {      
       srslte_cell_t cell; 
       uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];

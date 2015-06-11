@@ -307,19 +307,23 @@ uint8_t reply[2] = {0x00, 0x04};
 srslte::radio_uhd radio_uhd; 
 srslte::ue::phy phy; 
 srslte::ue::mac mac; 
+
+prog_args_t prog_args; 
   
 void sig_int_handler(int signo)
 {
-  //radio_uhd.write_trace("radio");
-  phy.write_trace("phy");
-  mac.write_trace("mac");
+  if (prog_args.do_trace) {
+    //radio_uhd.write_trace("radio");
+    phy.write_trace("phy");
+    mac.write_trace("mac");
+  }
+  mac.stop();
   exit(0);
 }
 
 
 int main(int argc, char *argv[])
 {
-  prog_args_t prog_args; 
   srslte::ue::tti_sync_cv ttisync(10240); 
   srslte::log_stdout mac_log("MAC"), phy_log("PHY"); 
   
@@ -336,9 +340,9 @@ int main(int argc, char *argv[])
       break;
   }
  
+  // Capture SIGINT to write traces 
+  signal(SIGINT, sig_int_handler);
   if (prog_args.do_trace) {
-    // Capture SIGINT to write traces 
-    signal(SIGINT, sig_int_handler);
     //radio_uhd.start_trace();
     phy.start_trace();
     mac.start_trace();
@@ -356,7 +360,7 @@ int main(int argc, char *argv[])
     phy.init_agc(&radio_uhd, &ttisync, &phy_log);
   }  
   // Init MAC 
-  mac.init(&phy, &ttisync, &mac_log);
+  mac.init(&phy, &ttisync, &mac_log, true);
     
   // Set RX freq
   radio_uhd.set_rx_freq(prog_args.uhd_rx_freq);

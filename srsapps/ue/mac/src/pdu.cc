@@ -100,7 +100,8 @@ void sch_pdu::parse_packet(uint8_t *ptr, FILE *pcap_file)
         4        /* Subframe number */
     };
 
-    MAC_LTE_PCAP_WritePDU(pcap_file, &context, ptr, pdu_len);
+    srslte_bit_unpack_vector(ptr, pdu_pcap_tmp, pdu_len*8);
+    MAC_LTE_PCAP_WritePDU(pcap_file, &context, pdu_pcap_tmp, pdu_len);
     fprintf(stdout, "Wrote DL MAC PDU, len=%d\n", pdu_len);
   }
 
@@ -202,7 +203,8 @@ bool sch_pdu::write_packet(uint8_t* ptr, FILE *pcap_file)
         4        /* Subframe number */
     };
 
-    MAC_LTE_PCAP_WritePDU(pcap_file, &context, init_ptr, pdu_len);
+    srslte_bit_unpack_vector(init_ptr, pdu_pcap_tmp, pdu_len*8);
+    MAC_LTE_PCAP_WritePDU(pcap_file, &context, pdu_pcap_tmp, pdu_len);
     fprintf(stdout, "Wrote UL MAC PDU, len=%d\n", pdu_len);
   }
 }

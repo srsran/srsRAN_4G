@@ -229,7 +229,8 @@ private:
   bool     F_bit;    
   uint8_t  ce_payload[MAX_CE_PAYLOAD_LEN*8];
   uint32_t sizeof_ce(uint32_t lcid, bool is_ul);
-  uint8_t buff_size_table(uint32_t buffer_size);
+  uint8_t  buff_size_table(uint32_t buffer_size);
+  
 };
 
 class sch_pdu : public pdu<sch_subh>
@@ -250,6 +251,9 @@ public:
   bool      update_space_sdu(uint32_t nbytes);  
   bool      update_space_sdu(uint32_t nbytes, bool is_first);  
   void     fprint(FILE *stream);
+private:
+  uint8_t  pdu_pcap_tmp[1024*64];
+
   
 };
 
