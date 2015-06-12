@@ -70,7 +70,9 @@ typedef struct SRSLTE_API {
   uint32_t n_rb_2; 
   uint32_t N_cs; 
   bool group_hopping_en; 
-  bool shortened; 
+  bool srs_cs_configured; 
+  uint32_t srs_cs_subf_cfg;
+  bool srs_simul_ack; 
 } srslte_pucch_cfg_t;
 
 /* PUSCH object */
@@ -87,6 +89,7 @@ typedef struct SRSLTE_API {
   float tmp_arg[SRSLTE_PUCCH_N_SEQ];
   cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS];
   bool rnti_is_set;
+  bool shortened; 
 }srslte_pucch_t;
 
 

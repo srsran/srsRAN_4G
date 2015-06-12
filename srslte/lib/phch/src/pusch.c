@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <math.h>
 
+#include "srslte/ch_estimation/refsignal_ul.h"
 #include "srslte/phch/pusch.h"
 #include "srslte/phch/pusch_cfg.h"
 #include "srslte/phch/uci.h"
@@ -84,19 +85,15 @@ static int f_m(srslte_pusch_t *q, srslte_pusch_hopping_cfg_t *hopping, uint32_t 
   }
 }
 
-int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, uint32_t sf_idx, cf_t *input, cf_t *output, bool advance_input) 
+/* Computes PUSCH frequency hopping as defined in Section 8.4 of 36.213 */
+void srslte_pusch_freq_hopping(srslte_ra_ul_grant_t *grant, srslte_pusch_hopping_cfg_t *hopping, uint32_t sf_idx, uint32_t nof_prb) 
 {
-  cf_t *in_ptr = input; 
-  cf_t *out_ptr = output; 
-  srslte_pusch_hopping_cfg_t *hopping = &q->hopping_cfg; 
   
-  uint32_t L_ref = 3;
-  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
-    L_ref = 2; 
-  }
-  INFO("PUSCH Freq hopping: %d\n", grant->freq_hopping);
-  for (uint32_t slot=0;slot<2;slot++) {
+  for (uint32_t slot=0;slot<2;slot++) {    
+
+    INFO("PUSCH Freq hopping: %d\n", grant->freq_hopping);
     uint32_t n_prb_tilde = grant->n_prb[slot]; 
+    
     if (grant->freq_hopping == 1) {
       if (hopping->hop_mode == SRSLTE_PUSCH_HOP_MODE_INTER_SF) {
         n_prb_tilde = grant->n_prb[hopping->current_tx_nb%2];      
@@ -116,7 +113,7 @@ int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, uint32_t sf_idx, cf
       } else {
         i = 2*sf_idx+slot;
       }
-      uint32_t n_rb_sb = q->cell.nof_prb;
+      uint32_t n_rb_sb = nof_prb;
       if (hopping->n_sb > 1) {
         n_rb_sb = (n_rb_sb-hopping->hopping_offset-hopping->hopping_offset%2)/hopping->n_sb;
       }
@@ -131,11 +128,27 @@ int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, uint32_t sf_idx, cf
       
     }
     grant->n_prb_tilde[slot] = n_prb_tilde; 
-    INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",grant->L_prb, n_prb_tilde,slot);
+  }
+}
+
+
+/* Allocate/deallocate PUSCH RBs to the resource grid
+ */
+int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *output, bool advance_input) 
+{
+  cf_t *in_ptr = input; 
+  cf_t *out_ptr = output; 
+  
+  uint32_t L_ref = 3;
+  if (SRSLTE_CP_ISEXT(q->cell.cp)) {
+    L_ref = 2; 
+  }
+  for (uint32_t slot=0;slot<2;slot++) {        
+    INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",grant->L_prb, grant->n_prb_tilde[slot], slot);
     for (uint32_t l=0;l<SRSLTE_CP_NSYMB(q->cell.cp);l++) {
       if (l != L_ref) {
         uint32_t idx = SRSLTE_RE_IDX(q->cell.nof_prb, l+slot*SRSLTE_CP_NSYMB(q->cell.cp), 
-                              n_prb_tilde*SRSLTE_NRE);
+                              grant->n_prb_tilde[slot]*SRSLTE_NRE);
         if (advance_input) {
           out_ptr = &output[idx]; 
         } else {
@@ -281,17 +294,12 @@ void srslte_pusch_free(srslte_pusch_t *q) {
 
 }
 
-void srslte_pusch_set_hopping_cfg(srslte_pusch_t *q, srslte_pusch_hopping_cfg_t *cfg)
-{
-  if (cfg) {
-    memcpy(&q->hopping_cfg, cfg, sizeof(srslte_pusch_hopping_cfg_t));    
-  }
-}
-
 /* Configures the structure srslte_pusch_cfg_t from the UL DCI allocation dci_msg. 
  * If dci_msg is NULL, the grant is assumed to be already stored in cfg->grant
  */
-int srslte_pusch_cfg(srslte_pusch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg_t *dci_msg, uint32_t n_rb_ho, uint32_t N_srs, uint32_t sf_idx, uint32_t rvidx) 
+int srslte_pusch_cfg(srslte_pusch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg_t *dci_msg, 
+                     srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_pusch_srs_cfg_t *srs_cfg, 
+                     uint32_t sf_idx, uint32_t rvidx) 
 {
   if (dci_msg) {
     srslte_ra_ul_dci_t ul_dci; 
@@ -304,7 +312,30 @@ int srslte_pusch_cfg(srslte_pusch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg
     fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
     return SRSLTE_ERROR; 
   }
+
+  /* Compute PUSCH frequency hopping */
+  srslte_pusch_freq_hopping(&cfg->grant, hopping_cfg, sf_idx, cell.nof_prb);
+  
+  uint32_t N_srs = 0; 
+  
+  if (srs_cfg->cs_configured) {
+    // If UE-specific SRS is configured, PUSCH is shortened every time UE transmits SRS even if overlaping in the same RB or not
+    if (srs_cfg->ue_configured) {
+      if (srslte_refsignal_srs_send_cs(srs_cfg->cs_subf_cfg, sf_idx) == 1 && 
+          srslte_refsignal_srs_send_ue(srs_cfg->ue_config_idx, sf_idx) == 1)
+      {
+        N_srs = 1; 
+      }
+    }
+    // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission bw coincides with PUSCH allocated RB
+    if (N_srs == 0) {
+      
+    }
+  }
+
+  /* Compute final number of bits and RE */
   srslte_ra_ul_grant_to_nbits(&cfg->grant, cell.cp, N_srs, &cfg->nbits);
+
   cfg->sf_idx = sf_idx; 
   cfg->rv = rvidx; 
   cfg->cp = cell.cp; 

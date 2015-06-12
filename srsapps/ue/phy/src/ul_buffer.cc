@@ -142,24 +142,6 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
         dmrs_cfg.cyclic_shift_for_dmrs = grant->get_n_dmrs();
       }
     }    
-    srslte_pusch_hopping_cfg_t pusch_hopping; 
-    if (grant) {
-      bzero(&pusch_hopping, sizeof(srslte_pusch_hopping_cfg_t));
-      pusch_hopping.n_sb           = params_db->get_param(phy_params::PUSCH_HOPPING_N_SB);
-      pusch_hopping.hop_mode       = params_db->get_param(phy_params::PUSCH_HOPPING_INTRA_SF) ? 
-                                      pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
-                                      pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
-      pusch_hopping.hopping_offset = params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET);
-      pusch_hopping.current_tx_nb  = grant->get_current_tx_nb();       
-    }
-    
-    bool is_shortened = false; 
-    if (params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)) {
-      if (srslte_refsignal_srs_send_cs((uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG), tti%10) == 1) {
-        is_shortened = true; 
-        Info("PUCCH/PUSCH Shortened\n");
-      }      
-    }
     
     srslte_pucch_cfg_t pucch_cfg; 
     bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
@@ -168,7 +150,9 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     pucch_cfg.group_hopping_en  = dmrs_cfg.group_hopping_en;
     pucch_cfg.N_cs              = params_db->get_param(phy_params::PUCCH_CYCLIC_SHIFT);
     pucch_cfg.n_rb_2            = params_db->get_param(phy_params::PUCCH_N_RB_2);
-    pucch_cfg.shortened         = is_shortened; 
+    pucch_cfg.srs_cs_configured = params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)?true:false;
+    pucch_cfg.srs_cs_subf_cfg   = (uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG);
+    pucch_cfg.srs_simul_ack     = params_db->get_param(phy_params::SRS_CS_ACKNACKSIMUL)?true:false;
     
     srslte_pucch_sched_t pucch_sched; 
     bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
@@ -181,7 +165,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     pucch_sched.n_pucch_2    = params_db->get_param(phy_params::PUCCH_N_PUCCH_2);
     pucch_sched.n_pucch_sr   = params_db->get_param(phy_params::PUCCH_N_PUCCH_SR);
     
-    srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, &pusch_hopping, &pucch_cfg, &pucch_sched);
+    srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, &pucch_cfg, &pucch_sched);
 
     uci_data.I_offset_ack    = params_db->get_param(phy_params::UCI_I_OFFSET_ACK);
     uci_data.I_offset_cqi    = params_db->get_param(phy_params::UCI_I_OFFSET_CQI);
@@ -190,26 +174,46 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     int n = 0; 
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
     if (grant) {
+      srslte_pusch_hopping_cfg_t pusch_hopping_cfg; 
+      srslte_pusch_srs_cfg_t pusch_srs_cfg;           
+      bzero(&pusch_hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
+      bzero(&pusch_srs_cfg, sizeof(srslte_pusch_srs_cfg_t));
+      
+      pusch_hopping_cfg.n_sb           = params_db->get_param(phy_params::PUSCH_HOPPING_N_SB);
+      pusch_hopping_cfg.hop_mode       = params_db->get_param(phy_params::PUSCH_HOPPING_INTRA_SF) ? 
+                                      pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
+                                      pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
+      pusch_hopping_cfg.hopping_offset = params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET);
+      pusch_hopping_cfg.current_tx_nb  = grant->get_current_tx_nb();       
 
-      grant->to_pusch_cfg(tti%10, is_shortened?1:0, &ue_ul);
+      pusch_srs_cfg.cs_configured = params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)?true:false;
+      pusch_srs_cfg.ue_configured = params_db->get_param(phy_params::SRS_IS_UE_CONFIGURED)?true:false;
+      pusch_srs_cfg.cs_subf_cfg   = (uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG);
+      pusch_srs_cfg.cs_bw_cfg     = (uint32_t) params_db->get_param(phy_params::SRS_CS_BWCFG);
+      pusch_srs_cfg.ue_config_idx = (uint32_t) params_db->get_param(phy_params::SRS_UE_CONFIGINDEX);
 
-      Info("PUSCH: TTI=%d, TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, sf_idx=%d\n", 
-           tti, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
-           ue_ul.pusch_cfg.grant.L_prb,  
-           uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
-           grant->get_rnti(), tti%10);
-    
+      grant->to_pusch_cfg(&pusch_hopping_cfg, &pusch_srs_cfg, tti%10, &ue_ul);
+
       n = srslte_ue_ul_pusch_encode_rnti_softbuffer(&ue_ul, 
                                                     payload, uci_data, 
                                                     softbuffer,
                                                     grant->get_rnti(), 
                                                     signal_buffer);    
+
+      Info("PUSCH: TTI=%d, TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, shortened=%s\n", 
+           tti, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
+           ue_ul.pusch_cfg.grant.L_prb,  
+           uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
+           grant->get_rnti(), ue_ul.pusch_is_shortened?"yes":"no");
+    
+
     } else {
       
-      Info("PUCCH: TTI=%d n_cce=%d, sf_idx=%d, ack=%s, sr=%s\n", tti, last_n_cce, tti%10,
-        uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no");
-    
       n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti%10, signal_buffer);
+
+      Info("PUCCH: TTI=%d n_cce=%d, ack=%s, sr=%s, shortened=%s\n", tti, last_n_cce, 
+        uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", ue_ul.pucch.shortened?"yes":"no");
+    
     }
     // Reset UCI data
     bzero(&uci_data, sizeof(srslte_uci_data_t));
