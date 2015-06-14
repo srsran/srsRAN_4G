@@ -182,6 +182,9 @@ bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_pow
 void phy::send_sr(bool enable)
 {
   sr_enabled = enable;
+  if (!enable) {
+    sr_tx_tti = 0; 
+  }
 }
 
 int phy::sr_last_tx_tti() {

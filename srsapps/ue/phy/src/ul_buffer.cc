@@ -152,15 +152,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
       pusch_hopping.hopping_offset = params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET);
       pusch_hopping.current_tx_nb  = grant->get_current_tx_nb();       
     }
-    
-    bool is_shortened = false; 
-    if (params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)) {
-      if (srslte_refsignal_srs_send_cs((uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG), tti%10) == 1) {
-        is_shortened = true; 
-        Info("PUCCH/PUSCH Shortened\n");
-      }      
-    }
-    
+      
     srslte_pucch_cfg_t pucch_cfg; 
     bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
     pucch_cfg.beta_pucch        = (float) params_db->get_param(phy_params::PUCCH_BETA)/10; 
@@ -168,7 +160,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     pucch_cfg.group_hopping_en  = dmrs_cfg.group_hopping_en;
     pucch_cfg.N_cs              = params_db->get_param(phy_params::PUCCH_CYCLIC_SHIFT);
     pucch_cfg.n_rb_2            = params_db->get_param(phy_params::PUCCH_N_RB_2);
-    pucch_cfg.shortened         = is_shortened; 
+    pucch_cfg.shortened         = false; 
     
     srslte_pucch_sched_t pucch_sched; 
     bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
@@ -191,7 +183,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
     if (grant) {
 
-      grant->to_pusch_cfg(tti%10, is_shortened?1:0, &ue_ul);
+      grant->to_pusch_cfg(tti%10, 0, &ue_ul);
 
       Info("PUSCH: TTI=%d, TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, sf_idx=%d\n", 
            tti, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
@@ -252,7 +244,7 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
     }
     
     // Normalize before TX 
-    srslte_vec_sc_prod_cfc(signal_buffer, 0.9/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    srslte_vec_sc_prod_cfc(signal_buffer, 0.7/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }
   
   Debug("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f PeakAmplitude=%.2f PKT#%d\n", 

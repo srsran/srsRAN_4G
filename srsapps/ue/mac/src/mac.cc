@@ -168,7 +168,7 @@ void mac::main_radio_loop() {
         // Init HARQ for this cell 
         Info("Init UL/DL HARQ\n");
         ul_harq.init(cell, &params_db, log_h, &timers_db, &mux_unit);
-        dl_harq.init(cell, 8*1024, log_h, &timers_db, &demux_unit);
+        dl_harq.init(cell, 1024*1024, log_h, &timers_db, &demux_unit);
 
         // Set the current PHY cell to the detected cell
         Info("Setting up PHY for cell_id=%d\n", cell.id);
@@ -216,7 +216,8 @@ void mac::main_radio_loop() {
       if (bsr_procedure.need_to_send_sr()) {
         Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", phy_h->get_current_tti());
         sr_procedure.start();
-      } else if (bsr_procedure.need_to_reset_sr()) {
+      }
+      if (bsr_procedure.need_to_reset_sr()) {
         Debug("Resetting SR procedure by BSR request\n");
         sr_procedure.reset();
       }
@@ -589,7 +590,8 @@ int64_t mac::get_param(mac_params::mac_param_t param)
 
 void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)
 {
-  mux_unit.set_priority(mac_io::MAC_LCH_CCCH_UL+lcid, priority, PBR_x_tti, BSD);
+  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSd=%d\n", lcid, lcg, priority, PBR_x_tti, BSD);
+  mux_unit.set_priority(lcid, priority, PBR_x_tti, BSD);
   bsr_procedure.setup_lcg(lcid, lcg);
   bsr_procedure.set_priority(lcid, priority);
 }

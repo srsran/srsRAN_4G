@@ -224,13 +224,13 @@ void dl_harq_entity::dl_harq_process::set_harq_info(srslte::ue::dl_sched_grant* 
   if (new_grant->get_tbs() <= max_payload_len) {
     memcpy(&cur_grant, new_grant, sizeof(srslte::ue::dl_sched_grant));        
   } else {
-    fprintf(stderr, "Error with DL grant. TBS (%d) exceeds payload buffer length (%d)\n", new_grant->get_tbs(), max_payload_len);
+    Error("Error with DL grant. TBS (%d) exceeds payload buffer length (%d)\n", new_grant->get_tbs(), max_payload_len);
   }
 }
 bool dl_harq_entity::dl_harq_process::init(srslte_cell_t cell, uint32_t max_payload_len_, dl_harq_entity *parent) {
   max_payload_len = max_payload_len_; 
   if (srslte_softbuffer_rx_init(&softbuffer, cell)) {
-    fprintf(stderr, "Error initiating soft buffer\n");
+    Error("Error initiating soft buffer\n");
     return false; 
   } else {
     is_initiated = true; 

@@ -60,7 +60,7 @@ void sr_proc::step(uint32_t tti)
           int last_tx_tti = phy_h->sr_last_tx_tti(); 
           if (last_tx_tti >= 0 && last_tx_tti + 4 < tti) {
             sr_counter++;
-            Debug("SR signalling PHY. sr_counter=%d, PHY TTI=%d\n", sr_counter, phy_h->get_current_tti());
+            Info("SR signalling PHY. sr_counter=%d, PHY TTI=%d\n", sr_counter, phy_h->get_current_tti());
             phy_h->send_sr(true);
           }
         } else {
@@ -94,7 +94,7 @@ void sr_proc::start()
       is_pending_sr = true; 
     }
     dsr_transmax = params_db->get_param(mac_params::SR_TRANS_MAX);
-    Debug("SR starting dsrTransMax=%d. sr_counter=%d, PHY TTI=%d\n", dsr_transmax, sr_counter, phy_h->get_current_tti());
+    Info("SR starting dsrTransMax=%d. sr_counter=%d\n", dsr_transmax, sr_counter);
   }
 }
 

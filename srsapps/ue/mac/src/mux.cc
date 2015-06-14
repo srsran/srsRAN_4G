@@ -44,11 +44,11 @@ mux::mux() : pdu_msg(20)
   msg3_has_been_transmitted = false; 
   
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
-   priority[i]        = 1; 
-   priority_sorted[i] = 1; 
+   priority[i]        = i; 
+   priority_sorted[i] = i; 
    PBR[i]             = -1; // -1 is infinite 
    BSD[i]             = 10;
-   lchid_sorted[i]      = i; 
+   lchid_sorted[i]    = i; 
   }  
 }
 
@@ -119,6 +119,7 @@ void mux::set_priority(uint32_t lch_id, uint32_t set_priority, int set_PBR, uint
     lchid_sorted[new_index]    = lch_id; 
   }
   pthread_mutex_unlock(&mutex);
+  
 }
 
 void mux::pdu_release()
@@ -256,6 +257,15 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
     while (allocate_sdu(lchid_sorted[i], &pdu_msg));   
   }
+  pthread_mutex_unlock(&mutex);
+
+  /* Release all SDUs */
+  for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
+    while(nof_tx_pkts[i] > 0) {
+      mac_io_h->get(IO_IDX(i))->release();      
+      nof_tx_pkts[i]--;
+    }
+  }
 
   bool send_bsr = bsr_procedure->generate_bsr_on_ul_grant(pdu_msg.rem_size(), &bsr);
   // Insert Padding BSR if not inserted Regular/Periodic BSR 
@@ -269,16 +279,6 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   // And set the BSR 
   if (bsr_subh) {
     bsr_subh->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format), bsr_payload_sz?false:true);    
-  }
-
-  pthread_mutex_unlock(&mutex);
-
-  /* Release all SDUs */
-  for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
-    while(nof_tx_pkts[i] > 0) {
-      mac_io_h->get(IO_IDX(i))->release();      
-      nof_tx_pkts[i]--;
-    }
   }
 
   Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.size(), pdu_sz_nbits/8);
@@ -310,7 +310,7 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz, bool *
   uint8_t *buff_ptr = (uint8_t*) mac_io_h->get(mac_io::MAC_LCH_CCCH_UL + lcid)->pop(&buff_len, nof_tx_pkts[lcid]);  
 
   uint32_t nbytes = (buff_len-1)/8 + 1; 
-  
+
   if (buff_ptr && buff_len > 0) { // there is pending SDU to allocate
     if (sdu_sz) {
       *sdu_sz = buff_len; 
@@ -321,11 +321,15 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz, bool *
         if (is_first) {
           *is_first = false;           
         }
-        Debug("Allocated SDU lcid=%d nbytes=%d\n", lcid, nbytes);
+        Info("Allocated SDU lcid=%d nbytes=%d\n", lcid, nbytes);
         // Increase number of pop'ed packets from queue
         nof_tx_pkts[lcid]++;      
         return true;               
       } else {
+        if (pdu_msg->rem_size() > 10) {
+          Warning("Could not allocate SDU in current grant. SDU length: %d bytes. Grant space: %d bytes\n", nbytes, 
+                pdu_msg->rem_size());
+        }
         pdu_msg->del_subh();
       }
     } 
