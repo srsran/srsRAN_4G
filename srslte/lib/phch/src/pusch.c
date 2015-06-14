@@ -365,6 +365,7 @@ int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_
   srslte_ra_ul_grant_to_nbits(&cfg->grant, q->cell.cp, q->shortened?1:0, &cfg->nbits);
 
   cfg->sf_idx = tti%10; 
+  cfg->tti    = tti; 
   cfg->rv = rvidx; 
   cfg->cp = q->cell.cp; 
   

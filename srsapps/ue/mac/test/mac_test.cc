@@ -160,9 +160,9 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
                  sib2->rr_config_common_sib.pusch_cnfg.n_sb);
   phy->set_param(srslte::ue::phy_params::PUSCH_HOPPING_INTRA_SF, 
                  sib2->rr_config_common_sib.pusch_cnfg.hopping_mode == LIBLTE_RRC_HOPPING_MODE_INTRA_AND_INTER_SUBFRAME?1:0);
-  phy->set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_HOPPING_EN, 
+  phy->set_param(srslte::ue::phy_params::DMRS_GROUP_HOPPING_EN, 
                  sib2->rr_config_common_sib.pusch_cnfg.ul_rs.group_hopping_enabled?1:0);
-  phy->set_param(srslte::ue::phy_params::PUSCH_RS_SEQUENCE_HOPPING_EN, 
+  phy->set_param(srslte::ue::phy_params::DMRS_SEQUENCE_HOPPING_EN, 
                  sib2->rr_config_common_sib.pusch_cnfg.ul_rs.sequence_hopping_enabled?1:0);
   phy->set_param(srslte::ue::phy_params::PUSCH_RS_CYCLIC_SHIFT, 
                  sib2->rr_config_common_sib.pusch_cnfg.ul_rs.cyclic_shift);
@@ -244,6 +244,7 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
       phy->set_param(srslte::ue::phy_params::SRS_UE_BW, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.srs_bandwidth);
       phy->set_param(srslte::ue::phy_params::SRS_UE_CONFIGINDEX, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.srs_cnfg_idx);
       phy->set_param(srslte::ue::phy_params::SRS_UE_HOP, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.srs_hopping_bandwidth);
+      phy->set_param(srslte::ue::phy_params::SRS_UE_CYCLICSHIFT, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.cyclic_shift);
       phy->set_param(srslte::ue::phy_params::SRS_UE_TXCOMB, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.tx_comb);
       phy->set_param(srslte::ue::phy_params::SRS_BETA, 10);
     }

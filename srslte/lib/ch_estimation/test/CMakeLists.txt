@@ -48,9 +48,9 @@ BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES srslte)
 ADD_EXECUTABLE(refsignal_ul_test_all refsignal_ul_test.c)
 TARGET_LINK_LIBRARIES(refsignal_ul_test_all srslte)
 
-
 BuildMex(MEXNAME refsignal_pusch SOURCES refsignal_pusch_mex.c LIBRARIES srslte srslte_mex)
 
+BuildMex(MEXNAME refsignal_srs SOURCES refsignal_srs_mex.c LIBRARIES srslte srslte_mex)
 
 
 

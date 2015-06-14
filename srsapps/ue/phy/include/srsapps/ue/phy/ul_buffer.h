@@ -56,6 +56,7 @@ namespace ue {
     bool     generate_sr(); 
     bool     generate_cqi_report(); 
     bool     uci_ready();
+    bool     srs_is_ready_to_send();
     bool     generate_data();   
     bool     generate_data(ul_sched_grant *pusch_grant, uint8_t *payload);   
     bool     generate_data(ul_sched_grant *pusch_grant, srslte_softbuffer_tx_t *softbuffer, uint8_t *payload);   

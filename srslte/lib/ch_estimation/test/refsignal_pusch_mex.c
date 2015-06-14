@@ -76,14 +76,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   bzero(&pusch_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
 
 
-  pusch_cfg.group_hopping_en = false;
-  pusch_cfg.sequence_hopping_en = false;
+  bool group_hopping_en = false;
+  bool sequence_hopping_en = false;
   char *tmp = mexutils_get_char_struct(UECFG, "Hopping");
   if (tmp) {
     if (!strcmp(tmp, "Group")) {
-      pusch_cfg.group_hopping_en = true;
+      group_hopping_en = true;
     } else if (!strcmp(tmp, "Sequence")) {
-      pusch_cfg.sequence_hopping_en = true;
+      sequence_hopping_en = true;
     }
     mxFree(tmp);    
   }
@@ -135,7 +135,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   bzero(sf_symbols, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)*sizeof(cf_t));
   
-  srslte_refsignal_ul_set_pusch_cfg(&refs, &pusch_cfg);
+  srslte_refsignal_ul_set_cfg(&refs, &pusch_cfg, NULL, NULL, group_hopping_en, sequence_hopping_en);
   
   //mexPrintf("Generating DRMS for ns=%d, nof_prb=%d\n", 2*sf_idx+i,pusch_cfg.nof_prb);
   srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, signal);    

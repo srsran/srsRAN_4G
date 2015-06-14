@@ -212,8 +212,8 @@ void config_phy() {
   phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 1);
 
   phy.set_param(srslte::ue::phy_params::PUSCH_BETA, 10);
-  phy.set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_HOPPING_EN, 0);
-  phy.set_param(srslte::ue::phy_params::PUSCH_RS_SEQUENCE_HOPPING_EN, 0);
+  phy.set_param(srslte::ue::phy_params::DMRS_GROUP_HOPPING_EN, 0);
+  phy.set_param(srslte::ue::phy_params::DMRS_SEQUENCE_HOPPING_EN, 0);
   phy.set_param(srslte::ue::phy_params::PUSCH_RS_CYCLIC_SHIFT, 0);
   phy.set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_ASSIGNMENT, 0);
   phy.set_param(srslte::ue::phy_params::PUSCH_HOPPING_OFFSET, 0);

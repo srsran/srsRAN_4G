@@ -69,7 +69,6 @@ typedef struct SRSLTE_API {
   uint32_t delta_pucch_shift; 
   uint32_t n_rb_2; 
   uint32_t N_cs; 
-  bool group_hopping_en; 
   bool srs_cs_configured; 
   uint32_t srs_cs_subf_cfg;
   bool srs_simul_ack; 
@@ -90,6 +89,7 @@ typedef struct SRSLTE_API {
   cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS];
   bool rnti_is_set;
   bool shortened; 
+  bool group_hopping_en;
 }srslte_pucch_t;
 
 
@@ -99,7 +99,8 @@ SRSLTE_API int srslte_pucch_init(srslte_pucch_t *q,
 SRSLTE_API void srslte_pucch_free(srslte_pucch_t *q);
 
 SRSLTE_API bool srslte_pucch_set_cfg(srslte_pucch_t* q, 
-                                     srslte_pucch_cfg_t* cfg); 
+                                     srslte_pucch_cfg_t* cfg, 
+                                     bool group_hopping_en); 
 
 SRSLTE_API int srslte_pucch_set_crnti(srslte_pucch_t *q, 
                                       uint16_t c_rnti); 

@@ -93,6 +93,12 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
       goto clean_exit; 
     }
     
+    q->srs_signal = srslte_vec_malloc(SRSLTE_NRE * q->cell.nof_prb * sizeof(cf_t));
+    if (!q->srs_signal) {
+      perror("malloc");
+      goto clean_exit; 
+    }
+    
     ret = SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
@@ -121,6 +127,9 @@ void srslte_ue_ul_free(srslte_ue_ul_t *q) {
     }
     if (q->refsignal) {
       free(q->refsignal);
+    }
+    if (q->srs_signal) {
+      free(q->srs_signal);
     }
     bzero(q, sizeof(srslte_ue_ul_t));
   }
@@ -155,20 +164,23 @@ void srslte_ue_ul_reset(srslte_ue_ul_t *q) {
 }
 
 void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
-                          srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
+                          srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg, 
                           srslte_pucch_cfg_t *pucch_cfg, 
-                          srslte_pucch_sched_t *pucch_sched)
+                          srslte_refsignal_srs_cfg_t *srs_cfg, 
+                          srslte_pucch_sched_t *pucch_sched, 
+                          bool group_hopping_en, 
+                          bool sequence_hopping_en)
 {
-  srslte_refsignal_ul_set_pusch_cfg(&q->dmrs, dmrs_cfg);
-  srslte_refsignal_ul_set_pucch_cfg(&q->dmrs, pucch_cfg);
-  srslte_pucch_set_cfg(&q->pucch, pucch_cfg); 
+  srslte_refsignal_ul_set_cfg(&q->dmrs, pusch_cfg, pucch_cfg, srs_cfg, group_hopping_en, sequence_hopping_en);
+  srslte_pucch_set_cfg(&q->pucch, pucch_cfg, group_hopping_en); 
   if (pucch_sched) {
     memcpy(&q->pucch_sched, pucch_sched, sizeof(srslte_pucch_sched_t));    
   }
 }
 
 int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_dci_msg_t *dci_msg, 
-                           srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_refsignal_srs_cfg_t *srs_cfg, 
+                           srslte_pusch_hopping_cfg_t *hopping_cfg, 
+                           srslte_refsignal_srs_cfg_t *srs_cfg, 
                            uint32_t tti, uint32_t rvidx) 
 {
   return srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, dci_msg, hopping_cfg, srs_cfg, tti, rvidx);
@@ -177,7 +189,7 @@ int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_dci_msg_t *dci_msg,
 /* Choose PUCCH format as in Sec 10.1 of 36.213 and generate PUCCH signal 
  */
 int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data, 
-                              uint32_t sf_idx, 
+                              uint32_t tti, 
                               cf_t *output_signal)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -186,6 +198,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
       output_signal != NULL) 
   {
     
+    uint32_t sf_idx = tti%10; 
     ret = SRSLTE_ERROR; 
     bzero(q->sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
     
@@ -270,6 +283,11 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     }
     srslte_refsignal_dmrs_pucch_put(&q->dmrs, format, n_pucch, q->refsignal, q->sf_symbols);                
     
+    if (srslte_ue_ul_srs_tx_enabled(&q->dmrs.srs_cfg, tti) && q->pucch.shortened) {
+      srslte_refsignal_srs_gen(&q->dmrs, tti%10, q->srs_signal);
+      srslte_refsignal_srs_put(&q->dmrs, tti, q->srs_signal, q->sf_symbols);      
+    }
+
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
     if (q->cfo_en) {
@@ -325,7 +343,33 @@ int srslte_ue_ul_pusch_uci_encode_rnti(srslte_ue_ul_t *q,
   }
   return ret; 
 }
-  
+
+int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal) {
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  if (q && output_signal) {
+    ret = SRSLTE_ERROR; 
+    
+    if (srslte_ue_ul_srs_tx_enabled(&q->dmrs.srs_cfg, q->pusch_cfg.tti) && q->pusch.shortened) {
+      srslte_refsignal_srs_gen(&q->dmrs, q->pusch_cfg.sf_idx, q->srs_signal);
+      srslte_refsignal_srs_put(&q->dmrs, q->pusch_cfg.tti, q->srs_signal, q->sf_symbols);      
+    }
+    
+    srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
+    
+    if (q->cfo_en) {
+      srslte_cfo_correct(&q->cfo, output_signal, output_signal, q->current_cfo / srslte_symbol_sz(q->cell.nof_prb));            
+    }
+    
+    if (q->normalize_en) {
+      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(q->pusch_cfg.grant.L_prb);
+      srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+    }
+    
+    ret = SRSLTE_SUCCESS; 
+  } 
+  return ret; 
+}
+
 int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q, 
                                               uint8_t *data, srslte_uci_data_t uci_data, 
                                               srslte_softbuffer_tx_t *softbuffer,
@@ -355,6 +399,11 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
                                     q->pusch_cfg.grant.L_prb, 
                                     q->pusch_cfg.grant.n_prb_tilde, 
                                     q->sf_symbols);                
+
+    if (srslte_ue_ul_srs_tx_enabled(&q->dmrs.srs_cfg, q->pusch_cfg.tti)) {
+      srslte_refsignal_srs_gen(&q->dmrs, q->pusch_cfg.sf_idx, q->srs_signal);
+      srslte_refsignal_srs_put(&q->dmrs, q->pusch_cfg.tti, q->srs_signal, q->sf_symbols);      
+    }
     
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
     
@@ -410,5 +459,19 @@ int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {
   }
 }
 
+
+bool srslte_ue_ul_srs_tx_enabled(srslte_refsignal_srs_cfg_t *srs_cfg, uint32_t tti) {
+  if (srs_cfg->cs_configured) {
+    if (srs_cfg->ue_configured) {
+      if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 
+          srslte_refsignal_srs_send_ue(srs_cfg->I_srs, tti) == 1)
+      {
+        printf("SRS UE transmission\n");
+        return true; 
+      }
+    }
+  }
+  return false; 
+}
 
 

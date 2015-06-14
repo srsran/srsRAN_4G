@@ -100,11 +100,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field CyclicShifts not found in PUCCHCFG\n");
     return;
   }
-  pucch_cfg.group_hopping_en = false; 
-  char *hop = mexutils_get_char_struct(PUCCHCFG, "Hopping"); 
+  bool group_hopping_en = false; 
+  char *hop = mexutils_get_char_struct(UECFG, "Hopping"); 
   if (hop) {
     if (!strcmp(hop, "Group")) {
-      pucch_cfg.group_hopping_en = true; 
+      group_hopping_en = true; 
     }
     mxFree(hop);
   }
@@ -166,7 +166,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   bzero(sf_symbols, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   
-  srslte_pucch_set_cfg(&pucch, &pucch_cfg);
+  srslte_pucch_set_cfg(&pucch, &pucch_cfg, group_hopping_en);
   
   if (srslte_pucch_encode(&pucch, format, n_pucch, sf_idx, bits, sf_symbols)) {
     mexErrMsgTxt("Error encoding PUCCH\n");
@@ -190,10 +190,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     bzero(dmrs_pucch, sizeof(cf_t)*SRSLTE_NRE*3*2);
     
-    if (!srslte_refsignal_ul_set_pucch_cfg(&pucch_dmrs, &pucch_cfg)) {
-      mexErrMsgTxt("Error setting PUCCH config\n");
-      return;
-    }
+    srslte_refsignal_ul_set_cfg(&pucch_dmrs, NULL, &pucch_cfg, NULL, group_hopping_en, false);
     
     if (srslte_refsignal_dmrs_pucch_gen(&pucch_dmrs, format, n_pucch, sf_idx, pucch2_bits, dmrs_pucch)) {
       mexErrMsgTxt("Error generating PUCCH DMRS\n");

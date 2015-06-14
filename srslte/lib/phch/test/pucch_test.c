@@ -125,11 +125,11 @@ int main(int argc, char **argv) {
           INFO("format %d, n_pucch: %d, ncs: %d, d: %d\n", format, n_pucch, ncs, d);
           pucch_cfg.beta_pucch = 1.0; 
           pucch_cfg.delta_pucch_shift = d; 
-          pucch_cfg.group_hopping_en = false; 
+          bool group_hopping_en = false; 
           pucch_cfg.N_cs = ncs; 
           pucch_cfg.n_rb_2 = 0; 
     
-          if (!srslte_pucch_set_cfg(&pucch, &pucch_cfg)) {
+          if (!srslte_pucch_set_cfg(&pucch, &pucch_cfg, group_hopping_en)) {
             fprintf(stderr, "Error setting PUCCH config\n");
             goto quit; 
           }
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Error encoding PUCCH\n");
             goto quit; 
           }
-          srslte_refsignal_ul_set_pucch_cfg(&dmrs, &pucch_cfg);
+          srslte_refsignal_ul_set_cfg(&dmrs, NULL, &pucch_cfg, NULL, group_hopping_en, false);
           
           if (srslte_refsignal_dmrs_pucch_gen(&dmrs, format, n_pucch, subframe, pucch2_bits, pucch_dmrs)) {
             fprintf(stderr, "Error encoding PUCCH\n");

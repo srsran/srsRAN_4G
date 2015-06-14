@@ -78,6 +78,7 @@ typedef struct SRSLTE_API {
   
   
   cf_t *refsignal; 
+  cf_t *srs_signal; 
   cf_t *sf_symbols; 
   
   uint16_t current_rnti;  
@@ -101,7 +102,10 @@ SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q,
 SRSLTE_API void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
                                      srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
                                      srslte_pucch_cfg_t *pucch_cfg, 
-                                     srslte_pucch_sched_t *pucch_sched); 
+                                     srslte_refsignal_srs_cfg_t *srs_cfg,
+                                     srslte_pucch_sched_t *pucch_sched, 
+                                     bool group_hopping_en, 
+                                     bool sequence_hopping_en); 
 
 SRSLTE_API int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, 
                                       srslte_dci_msg_t *dci_msg, 
@@ -112,7 +116,7 @@ SRSLTE_API int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q,
 
 SRSLTE_API int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q,
                                          srslte_uci_data_t uci_data, 
-                                         uint32_t sf_idx, 
+                                         uint32_t tti, 
                                          cf_t *output_signal);
 
 SRSLTE_API int srslte_ue_ul_pusch_encode(srslte_ue_ul_t *q,
@@ -142,6 +146,10 @@ SRSLTE_API int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
                                                          uint16_t rnti, 
                                                          cf_t *output_signal);
 
+SRSLTE_API int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, 
+                                       uint32_t tti, 
+                                       cf_t *output_signal); 
+
 SRSLTE_API void srslte_ue_ul_reset(srslte_ue_ul_t *q);
 
 SRSLTE_API void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q, 
@@ -151,5 +159,8 @@ SRSLTE_API void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q,
 
 SRSLTE_API int srslte_ue_ul_sr_send_tti(uint32_t I_sr, 
                                         uint32_t current_tti);
+
+SRSLTE_API bool srslte_ue_ul_srs_tx_enabled(srslte_refsignal_srs_cfg_t *srs_cfg, 
+                                            uint32_t tti); 
 
 #endif

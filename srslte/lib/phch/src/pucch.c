@@ -370,8 +370,9 @@ int srslte_pucch_set_crnti(srslte_pucch_t *q, uint16_t c_rnti) {
   return SRSLTE_SUCCESS; 
 }
 
-bool srslte_pucch_set_cfg(srslte_pucch_t *q, srslte_pucch_cfg_t *cfg)
+bool srslte_pucch_set_cfg(srslte_pucch_t *q, srslte_pucch_cfg_t *cfg, bool group_hopping_en)
 {
+  q->group_hopping_en = group_hopping_en; 
   if (cfg) {
     if (srslte_pucch_cfg_isvalid(cfg, q->cell.nof_prb)) {
       memcpy(&q->pucch_cfg, cfg, sizeof(srslte_pucch_cfg_t));      
@@ -506,10 +507,11 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
       uint32_t N_sf = get_N_sf(format, ns%2, q->shortened);
       // Get group hopping number u 
       uint32_t f_gh=0; 
-      if (q->pucch_cfg.group_hopping_en) {
+      if (q->group_hopping_en) {
         f_gh = q->f_gh[ns];
       }
       uint32_t u = (f_gh + (q->cell.id%30))%30;
+      printf("u=%d\n", u);
       
       srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u); 
       uint32_t N_sf_widx = N_sf==3?1:0;

@@ -1,5 +1,5 @@
 clear 
-ueConfig=struct('NCellID',25,'RNTI',11,'NULRB',6,'NSubframe',1,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Off');
+ueConfig=struct('NCellID',1,'RNTI',11,'NULRB',6,'NSubframe',1,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Group');
 pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',1,'ResourceSize',0);
 
 addpath('../../build/srslte/lib/phch/test')

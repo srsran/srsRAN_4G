@@ -105,16 +105,19 @@ int main(int argc, char **argv) {
               uint32_t nof_prb = n;
               pusch_cfg.cyclic_shift = cshift;
               pusch_cfg.cyclic_shift_for_dmrs = cshift_dmrs;
-              pusch_cfg.delta_ss = delta_ss;            
+              pusch_cfg.delta_ss = delta_ss;        
+              bool group_hopping_en = false; 
+              bool sequence_hopping_en = false; 
+              
               if (!h) {
-                pusch_cfg.group_hopping_en = false;
-                pusch_cfg.sequence_hopping_en = false;                
+                group_hopping_en = false;
+                sequence_hopping_en = false;                
               } else if (h == 1) {
-                pusch_cfg.group_hopping_en = false;
-                pusch_cfg.sequence_hopping_en = true;                
+                group_hopping_en = false;
+                sequence_hopping_en = true;                
               } else if (h == 2) {
-                pusch_cfg.group_hopping_en = true;
-                pusch_cfg.sequence_hopping_en = false;
+                group_hopping_en = true;
+                sequence_hopping_en = false;
               }
               pusch_cfg.en_dmrs_2 = true; 
               printf("Beta: %f, ",pusch_cfg.beta_pusch);
@@ -123,7 +126,7 @@ int main(int argc, char **argv) {
               printf("cyclic_shift_for_dmrs: %d, ",pusch_cfg.cyclic_shift_for_dmrs);
               printf("delta_ss: %d, ",pusch_cfg.delta_ss);
               printf("SF_idx: %d\n", sf_idx);
-              srslte_refsignal_ul_set_pusch_cfg(&refs, &pusch_cfg);
+              srslte_refsignal_ul_set_cfg(&refs, &pusch_cfg, NULL, NULL, group_hopping_en, sequence_hopping_en);
               srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, signal);              
               exit(0);
             }

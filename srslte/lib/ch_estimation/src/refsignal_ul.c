@@ -68,6 +68,56 @@ uint32_t T_sfc[15] = {1, 2, 2, 5, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 10};
 uint32_t Delta_sfc1[7] = {0, 0, 1, 0, 1, 2, 3}; 
 uint32_t Delta_sfc2[4] = {0, 1, 2, 3}; 
 
+
+uint32_t m_srs_b[4][4][8] = {{
+                        /* m_srs for 6<n_rb<40. Table 5.5.3.2-1 */
+                        {36, 32, 24, 20, 16, 12, 8, 4}, 
+                        {12, 16,  4,  4,  4,  4, 4, 4}, 
+                        { 4,  8,  4,  4,  4,  4, 4, 4},
+                        { 4,  4,  4,  4,  4,  4, 4, 4}},
+                        {
+                        /* m_srs for 40<n_rb<60. Table 5.5.3.2-2 */
+                        {48, 48, 40, 36, 32, 24, 20, 16}, 
+                        {24, 16, 20, 12, 16,  4,  4,  4},
+                        {12, 16,  4, 12,  8,  4,  4,  8},
+                        { 4,  4,  4,  4,  4,  4,  4,  4}},
+                        {
+                        /* m_srs for 60<n_rb<80. Table 5.5.3.2-3 */
+                        {72, 64, 60, 48, 48, 40, 36, 32},
+                        {24, 32, 20, 24, 16, 20, 12, 16},
+                        {12, 16,  4, 12,  8,  4,  4,  8},
+                        { 4,  4,  4,  4,  4,  4,  4,  4}},
+                        
+                        {
+                        /* m_srs for 80<n_rb<110. Table 5.5.3.2-4 */
+                        {96, 96, 80, 72, 64, 60, 48, 48},
+                        {48, 32, 40, 24, 32, 20, 24, 16},
+                        {24, 16, 20, 12, 16,  4, 12,  8},
+                        { 4,  4,  4,  4,  4,  4,  4,  4}}};
+                        
+/* Same tables for Nb */                        
+uint32_t Nb[4][4][8] = {{
+                        {1, 1, 1, 1, 1, 1, 1, 1},
+                        {3, 2, 6, 5, 4, 3, 2, 1},
+                        {3, 2, 1, 1, 1, 1, 1, 1},
+                        {1, 2, 1, 1, 1, 1, 1, 1}},
+                        {
+                        {1, 1, 1, 1, 1, 1, 1, 1},
+                        {2, 3, 2, 3, 2, 6, 5, 4},
+                        {2, 2, 5, 3, 2, 1, 1, 1},
+                        {3, 2, 1, 1, 2, 1, 1, 1}},
+                        {
+                        {1, 1, 1, 1, 1, 1, 1, 1},
+                        {3, 2, 3, 2, 3, 2, 3, 2},
+                        {2, 2, 5, 2, 2, 5, 3, 2},
+                        {3, 4, 1, 3, 2, 1, 1, 2}},
+                        {
+                        {1, 1, 1, 1, 1, 1, 1, 1},
+                        {2, 3, 2, 3, 2, 3, 2, 3},
+                        {2, 2, 2, 2, 2, 5, 2, 2},
+                        {6, 4, 5, 3, 4, 1, 3, 2}}};
+
+                        
 /** Computes n_prs values used to compute alpha as defined in 5.5.2.1.1 of 36.211 */
 static int generate_n_prs(srslte_refsignal_ul_t * q) {
   /* Calculate n_prs */
@@ -174,21 +224,25 @@ void srslte_refsignal_ul_free(srslte_refsignal_ul_t * q) {
   bzero(q, sizeof(srslte_refsignal_ul_t));
 }
 
-
-void srslte_refsignal_ul_set_pusch_cfg(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg)
+void srslte_refsignal_ul_set_cfg(srslte_refsignal_ul_t *q, 
+                                  srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
+                                  srslte_pucch_cfg_t *pucch_cfg, 
+                                  srslte_refsignal_srs_cfg_t *srs_cfg, 
+                                  bool group_hopping_en, 
+                                  bool sequence_hopping_en) 
 {
-  if (cfg) {
-    memcpy(&q->pusch_cfg, cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
+  q->group_hopping_en = group_hopping_en; 
+  q->sequence_hopping_en = sequence_hopping_en; 
+  if (pusch_cfg) {
+    memcpy(&q->pusch_cfg, pusch_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));        
   }
-}
-
-bool srslte_refsignal_ul_set_pucch_cfg(srslte_refsignal_ul_t *q, srslte_pucch_cfg_t *cfg)
-{
-  if (srslte_pucch_cfg_isvalid(cfg, q->cell.nof_prb)) {
-    memcpy(&q->pucch_cfg, cfg, sizeof(srslte_pucch_cfg_t));    
-    return true; 
-  } else {
-    return false; 
+  if (pucch_cfg) {
+    if (srslte_pucch_cfg_isvalid(pucch_cfg, q->cell.nof_prb)) {
+      memcpy(&q->pucch_cfg, pucch_cfg, sizeof(srslte_pucch_cfg_t));    
+    }
+  }
+  if (srs_cfg) {
+    memcpy(&q->srs_cfg, srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
   }
 }
 
@@ -227,7 +281,7 @@ static void arg_r_uv_mprb(float *arg, uint32_t M_sc, uint32_t u, uint32_t v) {
   uint32_t N_sz = largest_prime_lower_than(M_sc);
   float q = get_q(u,v,N_sz);
   float n_sz = (float) N_sz;
-  
+
   for (uint32_t i = 0; i < M_sc; i++) {
     float m = (float) (i%N_sz);
     arg[i] =  -M_PI * q * m * (m + 1) / n_sz;
@@ -279,17 +333,17 @@ void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q, cf_t *r_pusch, ui
 }
 
 /* Computes r sequence */
-void compute_r(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t ns) {
+void compute_r(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t ns, uint32_t delta_ss) {
   // Get group hopping number u 
   uint32_t f_gh=0; 
-  if (q->pusch_cfg.group_hopping_en) {
+  if (q->group_hopping_en) {
     f_gh = q->f_gh[ns];
   }
-  uint32_t u = (f_gh + (q->cell.id%30)+q->pusch_cfg.delta_ss)%30;
+  uint32_t u = (f_gh + (q->cell.id%30)+delta_ss)%30;
   
   // Get sequence hopping number v 
   uint32_t v = 0; 
-  if (nof_prb >= 6 && q->pusch_cfg.sequence_hopping_en) {
+  if (nof_prb >= 6 && q->sequence_hopping_en) {
     v = q->v_pusch[ns][q->pusch_cfg.delta_ss];
   }
 
@@ -308,7 +362,7 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, 
     
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       
-      compute_r(q, nof_prb, ns);
+      compute_r(q, nof_prb, ns, q->pusch_cfg.delta_ss);
       
       // Add cyclic prefix alpha
       float alpha = pusch_alpha(q, &q->pusch_cfg, ns);
@@ -399,7 +453,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       // Get group hopping number u 
       uint32_t f_gh=0; 
-      if (q->pucch_cfg.group_hopping_en) {
+      if (q->group_hopping_en) {
         f_gh = q->f_gh[ns];
       }
       uint32_t u = (f_gh + (q->cell.id%30))%30;
@@ -606,54 +660,6 @@ int srslte_refsignal_srs_send_cs(uint32_t subframe_config, uint32_t sf_idx) {
   }
 }
 
-uint32_t m_srs_b[4][4][8] = {{
-                        /* m_srs for 6<n_rb<40. Table 5.5.3.2-1 */
-                        {36, 32, 24, 20, 16, 12, 8, 4}, 
-                        {12, 16,  4,  4,  4,  4, 4, 4}, 
-                        { 4,  8,  4,  4,  4,  4, 4, 4},
-                        { 4,  4,  4,  4,  4,  4, 4, 4}},
-                        {
-                        /* m_srs for 40<n_rb<60. Table 5.5.3.2-2 */
-                        {48, 48, 40, 36, 32, 24, 20, 16}, 
-                        {24, 16, 20, 12, 16,  4,  4,  4},
-                        {12, 16,  4, 12,  8,  4,  4,  8},
-                        { 4,  4,  4,  4,  4,  4,  4,  4}},
-                        {
-                        /* m_srs for 60<n_rb<80. Table 5.5.3.2-3 */
-                        {72, 64, 60, 48, 48, 40, 36, 32},
-                        {24, 32, 20, 24, 16, 20, 12, 16},
-                        {12, 16,  4, 12,  8,  4,  4,  8},
-                        { 4,  4,  4,  4,  4,  4,  4,  4}},
-                        
-                        {
-                        /* m_srs for 80<n_rb<110. Table 5.5.3.2-4 */
-                        {96, 96, 80, 72, 64, 60, 48, 48},
-                        {48, 32, 40, 24, 32, 20, 24, 16},
-                        {24, 16, 20, 12, 16,  4, 12,  8},
-                        { 4,  4,  4,  4,  4,  4,  4,  4}}};
-                        
-/* Same tables for Nb */                        
-uint32_t Nb[4][4][8] = {{
-                        {1, 1, 1, 1, 1, 1, 1, 1},
-                        {3, 2, 6, 5, 4, 3, 2, 1},
-                        {3, 2, 1, 1, 1, 1, 1, 1},
-                        {1, 2, 1, 1, 1, 1, 1, 1}},
-                        {
-                        {1, 1, 1, 1, 1, 1, 1, 1},
-                        {2, 3, 2, 3, 2, 6, 5, 4},
-                        {2, 2, 5, 3, 2, 1, 1, 1},
-                        {3, 2, 1, 1, 2, 1, 1, 1}},
-                        {
-                        {1, 1, 1, 1, 1, 1, 1, 1},
-                        {3, 2, 3, 2, 3, 2, 3, 2},
-                        {2, 2, 5, 2, 2, 5, 3, 2},
-                        {3, 4, 1, 3, 2, 1, 1, 2}},
-                        {
-                        {1, 1, 1, 1, 1, 1, 1, 1},
-                        {2, 3, 2, 3, 2, 3, 2, 3},
-                        {2, 2, 2, 2, 2, 5, 2, 2},
-                        {6, 4, 5, 3, 4, 1, 3, 2}}};
-
 uint32_t srsbwtable_idx(uint32_t nof_prb) {
   if (nof_prb <= 40) {
     return 0;
@@ -701,20 +707,27 @@ uint32_t srs_Fb(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t tti)
 uint32_t srs_k0_ue(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t tti) {
   
   if (cfg->bw_cfg < 8 && cfg->B < 4 && cfg->k_tc < 2) {    
-    uint32_t m_srs = m_srs_b[srsbwtable_idx(nof_prb)][cfg->B][cfg->bw_cfg]; 
-    uint32_t nb = (4*cfg->n_rrc/m_srs)%Nb[srsbwtable_idx(nof_prb)][cfg->B][cfg->bw_cfg]; 
-    if (cfg->b_hop < cfg->B) {
-      nb += srs_Fb(cfg, nof_prb, tti); 
-    }
     uint32_t k0p = srslte_refsignal_srs_rb_start_cs(cfg->bw_cfg, nof_prb)*SRSLTE_NRE + cfg->k_tc; 
-    uint32_t m_sc = m_srs*SRSLTE_NRE/2;
     uint32_t k0 = k0p;
-    for (int b=0;b<cfg->B;b++) {
+    uint32_t nb = 0; 
+    for (int b=0;b<=cfg->B;b++) {
+      uint32_t m_srs = m_srs_b[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
+      uint32_t m_sc = m_srs*SRSLTE_NRE/2;
+      if (b <= cfg->b_hop) {
+        nb = (4*cfg->n_rrc/m_srs)%Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
+      } else {
+        nb = ((4*cfg->n_rrc/m_srs)+srs_Fb(cfg, nof_prb, tti))%Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
+      }
+      printf("nb[%d]=%d\n",b,nb);
       k0 += 2*m_sc*nb;
     }
     return k0;
   }
   return 0; 
+}
+
+uint32_t srslte_refsignal_M_sc(srslte_refsignal_ul_t *q) {
+  return m_srs_b[srsbwtable_idx(q->cell.nof_prb)][q->srs_cfg.B][q->srs_cfg.bw_cfg]*SRSLTE_NRE/2;
 }
 
 /* Genearte SRS signal as defined in Section 5.5.3.1 */
@@ -724,11 +737,12 @@ int srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t sf_idx, cf_t *r_
   if (r_srs && q) {
     ret = SRSLTE_ERROR;
     
-    uint32_t M_sc = srslte_refsignal_srs_rb_L_cs(q->srs_cfg.bw_cfg, q->cell.nof_prb)*SRSLTE_NRE/2; 
+    uint32_t M_sc = srslte_refsignal_M_sc(q); 
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       
-      compute_r(q, M_sc/SRSLTE_NRE, ns);
+      compute_r(q, M_sc/SRSLTE_NRE, ns, 0);
       float alpha = 2*M_PI*q->srs_cfg.n_srs/8; 
+
       // Do complex exponential and adjust amplitude
       for (int i=0;i<M_sc;i++) {
         r_srs[(ns%2)*M_sc+i] = q->srs_cfg.beta_srs * cexpf(I*(q->tmp_arg[i] + alpha*i));
@@ -747,8 +761,9 @@ int srslte_refsignal_srs_put(srslte_refsignal_ul_t *q, uint32_t tti, cf_t *r_srs
     if (srslte_refsignal_srs_send_ue(q->srs_cfg.I_srs, tti) == 1 &&
         srslte_refsignal_srs_send_cs(q->srs_cfg.subframe_config, tti) == 1) 
     {
-      uint32_t M_sc = srslte_refsignal_srs_rb_L_cs(q->srs_cfg.bw_cfg, q->cell.nof_prb)*SRSLTE_NRE/2; 
+      uint32_t M_sc = srslte_refsignal_M_sc(q); 
       uint32_t k0 = srs_k0_ue(&q->srs_cfg, q->cell.nof_prb, tti);
+      printf("k0=%d, n_rrc=%d\n", k0, q->srs_cfg.n_rrc);
       for (int i=0;i<M_sc;i++) {
         sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, 2*SRSLTE_CP_NSYMB(q->cell.cp)-1, k0 + 2*i)] = r_srs[i];
       }
