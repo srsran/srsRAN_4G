@@ -106,8 +106,8 @@ SRSLTE_API void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
 SRSLTE_API int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, 
                                       srslte_dci_msg_t *dci_msg, 
                                       srslte_pusch_hopping_cfg_t *hopping_cfg, 
-                                      srslte_pusch_srs_cfg_t *srs_cfg,
-                                      uint32_t sf_idx, 
+                                      srslte_refsignal_srs_cfg_t *srs_cfg,
+                                      uint32_t tti, 
                                       uint32_t rvidx); 
 
 SRSLTE_API int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q,

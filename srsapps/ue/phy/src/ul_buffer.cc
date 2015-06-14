@@ -175,24 +175,24 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
     if (grant) {
       srslte_pusch_hopping_cfg_t pusch_hopping_cfg; 
-      srslte_pusch_srs_cfg_t pusch_srs_cfg;           
+      srslte_refsignal_srs_cfg_t srs_cfg;           
       bzero(&pusch_hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
-      bzero(&pusch_srs_cfg, sizeof(srslte_pusch_srs_cfg_t));
+      bzero(&srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
       
       pusch_hopping_cfg.n_sb           = params_db->get_param(phy_params::PUSCH_HOPPING_N_SB);
       pusch_hopping_cfg.hop_mode       = params_db->get_param(phy_params::PUSCH_HOPPING_INTRA_SF) ? 
-                                      pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
-                                      pusch_hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
+                                      srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
+                                      srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTER_SF; 
       pusch_hopping_cfg.hopping_offset = params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET);
       pusch_hopping_cfg.current_tx_nb  = grant->get_current_tx_nb();       
 
-      pusch_srs_cfg.cs_configured = params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)?true:false;
-      pusch_srs_cfg.ue_configured = params_db->get_param(phy_params::SRS_IS_UE_CONFIGURED)?true:false;
-      pusch_srs_cfg.cs_subf_cfg   = (uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG);
-      pusch_srs_cfg.cs_bw_cfg     = (uint32_t) params_db->get_param(phy_params::SRS_CS_BWCFG);
-      pusch_srs_cfg.ue_config_idx = (uint32_t) params_db->get_param(phy_params::SRS_UE_CONFIGINDEX);
+      srs_cfg.cs_configured   = params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)?true:false;
+      srs_cfg.ue_configured   = params_db->get_param(phy_params::SRS_IS_UE_CONFIGURED)?true:false;
+      srs_cfg.subframe_config = (uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG);
+      srs_cfg.bw_cfg          = (uint32_t) params_db->get_param(phy_params::SRS_CS_BWCFG);
+      srs_cfg.I_srs           = (uint32_t) params_db->get_param(phy_params::SRS_UE_CONFIGINDEX);
 
-      grant->to_pusch_cfg(&pusch_hopping_cfg, &pusch_srs_cfg, tti%10, &ue_ul);
+      grant->to_pusch_cfg(&pusch_hopping_cfg, &srs_cfg, tti, &ue_ul);
 
       n = srslte_ue_ul_pusch_encode_rnti_softbuffer(&ue_ul, 
                                                     payload, uci_data, 
@@ -204,7 +204,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
            tti, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
            ue_ul.pusch_cfg.grant.L_prb,  
            uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
-           grant->get_rnti(), ue_ul.pusch_is_shortened?"yes":"no");
+           grant->get_rnti(), ue_ul.pusch.shortened?"yes":"no");
     
 
     } else {

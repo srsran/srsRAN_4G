@@ -86,7 +86,9 @@ static int f_m(srslte_pusch_t *q, srslte_pusch_hopping_cfg_t *hopping, uint32_t 
 }
 
 /* Computes PUSCH frequency hopping as defined in Section 8.4 of 36.213 */
-void srslte_pusch_freq_hopping(srslte_ra_ul_grant_t *grant, srslte_pusch_hopping_cfg_t *hopping, uint32_t sf_idx, uint32_t nof_prb) 
+void compute_freq_hopping(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, 
+                               srslte_pusch_hopping_cfg_t *hopping, 
+                               uint32_t sf_idx) 
 {
   
   for (uint32_t slot=0;slot<2;slot++) {    
@@ -113,7 +115,7 @@ void srslte_pusch_freq_hopping(srslte_ra_ul_grant_t *grant, srslte_pusch_hopping
       } else {
         i = 2*sf_idx+slot;
       }
-      uint32_t n_rb_sb = nof_prb;
+      uint32_t n_rb_sb = q->cell.nof_prb;
       if (hopping->n_sb > 1) {
         n_rb_sb = (n_rb_sb-hopping->hopping_offset-hopping->hopping_offset%2)/hopping->n_sb;
       }
@@ -144,8 +146,12 @@ int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *
     L_ref = 2; 
   }
   for (uint32_t slot=0;slot<2;slot++) {        
+    uint32_t N_srs = 0; 
+    if (q->shortened && slot == 1) {
+      N_srs = 1; 
+    }
     INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",grant->L_prb, grant->n_prb_tilde[slot], slot);
-    for (uint32_t l=0;l<SRSLTE_CP_NSYMB(q->cell.cp);l++) {
+    for (uint32_t l=0;l<SRSLTE_CP_NSYMB(q->cell.cp)-N_srs;l++) {
       if (l != L_ref) {
         uint32_t idx = SRSLTE_RE_IDX(q->cell.nof_prb, l+slot*SRSLTE_CP_NSYMB(q->cell.cp), 
                               grant->n_prb_tilde[slot]*SRSLTE_NRE);
@@ -166,12 +172,12 @@ int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *
   return SRSLTE_NRE*grant->L_prb; 
 }
 
-int pusch_put(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, uint32_t sf_idx, cf_t *input, cf_t *output) {
-  return pusch_cp(q, grant, sf_idx, input, output, true);
+int pusch_put(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *output) {
+  return pusch_cp(q, grant, input, output, true);
 }
 
-int pusch_get(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, uint32_t sf_idx, cf_t *input, cf_t *output) {
-  return pusch_cp(q, grant, sf_idx, input, output, false);
+int pusch_get(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *output) {
+  return pusch_cp(q, grant, input, output, false);
 }
 
 
@@ -284,6 +290,8 @@ void srslte_pusch_free(srslte_pusch_t *q) {
     srslte_sequence_free(&q->seq[i]);
   }
 
+  srslte_sequence_free(&q->seq_type2_fo);
+  
   for (i = 0; i < 4; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
@@ -297,13 +305,13 @@ void srslte_pusch_free(srslte_pusch_t *q) {
 /* Configures the structure srslte_pusch_cfg_t from the UL DCI allocation dci_msg. 
  * If dci_msg is NULL, the grant is assumed to be already stored in cfg->grant
  */
-int srslte_pusch_cfg(srslte_pusch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg_t *dci_msg, 
-                     srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_pusch_srs_cfg_t *srs_cfg, 
-                     uint32_t sf_idx, uint32_t rvidx) 
+int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_t *dci_msg, 
+                     srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_refsignal_srs_cfg_t *srs_cfg, 
+                     uint32_t tti, uint32_t rvidx) 
 {
   if (dci_msg) {
     srslte_ra_ul_dci_t ul_dci; 
-    if (srslte_dci_msg_to_ul_grant(dci_msg, cell.nof_prb, n_rb_ho, &ul_dci, &cfg->grant)) {
+    if (srslte_dci_msg_to_ul_grant(dci_msg, q->cell.nof_prb, hopping_cfg->hopping_offset, &ul_dci, &cfg->grant)) {
       fprintf(stderr, "Error unpacking UL grant from DCI message\n");
       return SRSLTE_ERROR; 
     }
@@ -314,31 +322,51 @@ int srslte_pusch_cfg(srslte_pusch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg
   }
 
   /* Compute PUSCH frequency hopping */
-  srslte_pusch_freq_hopping(&cfg->grant, hopping_cfg, sf_idx, cell.nof_prb);
-  
-  uint32_t N_srs = 0; 
-  
-  if (srs_cfg->cs_configured) {
-    // If UE-specific SRS is configured, PUSCH is shortened every time UE transmits SRS even if overlaping in the same RB or not
-    if (srs_cfg->ue_configured) {
-      if (srslte_refsignal_srs_send_cs(srs_cfg->cs_subf_cfg, sf_idx) == 1 && 
-          srslte_refsignal_srs_send_ue(srs_cfg->ue_config_idx, sf_idx) == 1)
-      {
-        N_srs = 1; 
+  if (hopping_cfg) {
+    compute_freq_hopping(q, &cfg->grant, hopping_cfg, tti%10);
+  } else {
+    cfg->grant.n_prb_tilde[0] = cfg->grant.n_prb[0];
+    cfg->grant.n_prb_tilde[1] = cfg->grant.n_prb[1];
+  }
+  if (srs_cfg) {
+    q->shortened = false; 
+    if (srs_cfg->cs_configured) {
+      // If UE-specific SRS is configured, PUSCH is shortened every time UE transmits SRS even if overlaping in the same RB or not
+      if (srs_cfg->ue_configured) {
+        if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 
+            srslte_refsignal_srs_send_ue(srs_cfg->I_srs, tti) == 1)
+        {
+          printf("SRS UE transmission\n");
+          q->shortened = true; 
+        }
+      }
+      // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission RB coincides with PUSCH allocated RB
+      if (!q->shortened) {
+        uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
+        uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
+        for (uint32_t ns=0;ns<2 && !q->shortened;ns++) {
+          if ((cfg->grant.n_prb_tilde[ns] >= k0_srs && cfg->grant.n_prb_tilde[ns] < k0_srs + nrb_srs) || 
+              (cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb >= k0_srs && 
+                    cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb < k0_srs + nrb_srs))
+          {            
+            q->shortened = true; 
+            printf("CS n_prb=%d, L=%d, k0=%d, nrb=%d\n", cfg->grant.n_prb_tilde[ns], cfg->grant.L_prb, k0_srs, nrb_srs);
+          }
+        }
       }
     }
-    // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission bw coincides with PUSCH allocated RB
-    if (N_srs == 0) {
-      
-    }
+    
+    if (q->shortened) {
+      printf("PUSCH is shortened TTI=%d\n", tti);
+    } 
   }
-
+  
   /* Compute final number of bits and RE */
-  srslte_ra_ul_grant_to_nbits(&cfg->grant, cell.cp, N_srs, &cfg->nbits);
+  srslte_ra_ul_grant_to_nbits(&cfg->grant, q->cell.cp, q->shortened?1:0, &cfg->nbits);
 
-  cfg->sf_idx = sf_idx; 
+  cfg->sf_idx = tti%10; 
   cfg->rv = rvidx; 
-  cfg->cp = cell.cp; 
+  cfg->cp = q->cell.cp; 
   
   return SRSLTE_SUCCESS;  
 }
@@ -383,14 +411,14 @@ int srslte_pusch_decode(srslte_pusch_t *q,
            cfg->nbits.nof_re, cfg->nbits.nof_symb, cfg->nbits.nof_bits, cfg->rv);
 
       /* extract symbols */
-      n = pusch_get(q, &cfg->grant, cfg->sf_idx, sf_symbols, q->d);
+      n = pusch_get(q, &cfg->grant, sf_symbols, q->d);
       if (n != cfg->nbits.nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
         return SRSLTE_ERROR;
       }
       
       /* extract channel estimates */
-      n = pusch_get(q, &cfg->grant, cfg->sf_idx, ce, q->ce);
+      n = pusch_get(q, &cfg->grant, ce, q->ce);
       if (n != cfg->nbits.nof_re) {
         fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
         return SRSLTE_ERROR;
@@ -504,7 +532,7 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
     srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);
     
     /* mapping to resource elements */      
-    pusch_put(q, &cfg->grant, cfg->sf_idx, q->z, sf_symbols);
+    pusch_put(q, &cfg->grant, q->z, sf_symbols);
     
     ret = SRSLTE_SUCCESS;
   } 

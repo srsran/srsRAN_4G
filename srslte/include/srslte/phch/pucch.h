@@ -105,7 +105,8 @@ SRSLTE_API int srslte_pucch_set_crnti(srslte_pucch_t *q,
                                       uint16_t c_rnti); 
 
 SRSLTE_API uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, 
-                                             srslte_pucch_format_t format); 
+                                             srslte_pucch_format_t format, 
+                                             bool shortened); 
 
 SRSLTE_API int srslte_pucch_encode(srslte_pucch_t *q, 
                                    srslte_pucch_format_t format,

@@ -1,6 +1,6 @@
 clear 
 ueConfig=struct('NCellID',25,'RNTI',11,'NULRB',6,'NSubframe',1,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Off');
-pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0,'ResourceSize',0);
+pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',1,'ResourceSize',0);
 
 addpath('../../build/srslte/lib/phch/test')
 

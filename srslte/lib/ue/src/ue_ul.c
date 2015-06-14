@@ -168,9 +168,10 @@ void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
 }
 
 int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_dci_msg_t *dci_msg, 
-                           srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_pusch_srs_cfg_t *srs_cfg, uint32_t sf_idx, uint32_t rvidx) 
+                           srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_refsignal_srs_cfg_t *srs_cfg, 
+                           uint32_t tti, uint32_t rvidx) 
 {
-  return srslte_pusch_cfg(&q->pusch_cfg, q->cell, dci_msg, hopping_cfg, srs_cfg, sf_idx, rvidx);
+  return srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, dci_msg, hopping_cfg, srs_cfg, tti, rvidx);
 }
 
 /* Choose PUCCH format as in Sec 10.1 of 36.213 and generate PUCCH signal 

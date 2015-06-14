@@ -107,10 +107,10 @@ uint32_t get_N_sf(srslte_pucch_format_t format, uint32_t slot_idx, bool shortene
   return 0; 
 }
 
-uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format) {
+uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format, bool shortened) {
   uint32_t len=0;
   for (uint32_t ns=0;ns<2;ns++) {
-    len += SRSLTE_NRE*get_N_sf(format, ns, cfg->shortened);
+    len += SRSLTE_NRE*get_N_sf(format, ns, shortened);
   }
   return len; 
 }
@@ -482,8 +482,8 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
     ret = SRSLTE_ERROR; 
     
     // Shortened PUCCH happen in every cell-specific SRS subframes for Format 1/1a/1b
-    q->shortened = false; 
     if (q->pucch_cfg.srs_cs_configured && format < SRSLTE_PUCCH_FORMAT_2) {
+      q->shortened = false; 
       // If CQI is not transmitted, PUCCH will be normal unless ACK/NACK and SRS simultaneous transmission is enabled 
       if (q->pucch_cfg.srs_simul_ack) {
         // If simultaneous ACK and SRS is enabled, PUCCH is shortened in cell-specific SRS subframes
