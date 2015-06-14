@@ -235,7 +235,7 @@ static void arg_r_uv_mprb(float *arg, uint32_t M_sc, uint32_t u, uint32_t v) {
 }
 
 /* Computes argument of r_u_v signal */
-static void compute_pusch_r_uv_arg(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t u, uint32_t v) {
+static void compute_r_uv_arg(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t u, uint32_t v) {
   if (nof_prb == 1) {
     srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u);
   } else if (nof_prb == 2) {
@@ -278,6 +278,26 @@ void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q, cf_t *r_pusch, ui
   }
 }
 
+/* Computes r sequence */
+void compute_r(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t ns) {
+  // Get group hopping number u 
+  uint32_t f_gh=0; 
+  if (q->pusch_cfg.group_hopping_en) {
+    f_gh = q->f_gh[ns];
+  }
+  uint32_t u = (f_gh + (q->cell.id%30)+q->pusch_cfg.delta_ss)%30;
+  
+  // Get sequence hopping number v 
+  uint32_t v = 0; 
+  if (nof_prb >= 6 && q->pusch_cfg.sequence_hopping_en) {
+    v = q->v_pusch[ns][q->pusch_cfg.delta_ss];
+  }
+
+  // Compute signal argument 
+  compute_r_uv_arg(q, &q->pusch_cfg, nof_prb, u, v);
+
+}
+
 /* Generate DRMS for PUSCH signal according to 5.5.2.1 of 36.211 */
 int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t sf_idx, cf_t *r_pusch) 
 {
@@ -287,31 +307,11 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, 
     ret = SRSLTE_ERROR;
     
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
-      // Get group hopping number u 
-      uint32_t f_gh=0; 
-      if (q->pusch_cfg.group_hopping_en) {
-        f_gh = q->f_gh[ns];
-      }
-      uint32_t u = (f_gh + (q->cell.id%30)+q->pusch_cfg.delta_ss)%30;
       
-      // Get sequence hopping number v 
-      uint32_t v = 0; 
-      if (nof_prb >= 6 && q->pusch_cfg.sequence_hopping_en) {
-        v = q->v_pusch[ns][q->pusch_cfg.delta_ss];
-      }
-
-      // Compute signal argument 
-      compute_pusch_r_uv_arg(q, &q->pusch_cfg, nof_prb, u, v);
-
+      compute_r(q, nof_prb, ns);
+      
       // Add cyclic prefix alpha
       float alpha = pusch_alpha(q, &q->pusch_cfg, ns);
-
-      if (srslte_verbose == SRSLTE_VERBOSE_DEBUG) {
-        uint32_t N_sz = largest_prime_lower_than(nof_prb*SRSLTE_NRE);
-        DEBUG("Generating PUSCH DRMS sequence with parameters:\n",0);
-        DEBUG("\tbeta: %.1f, nof_prb: %d, u: %d, v: %d, alpha: %f, N_sc: %d, root q: %d, nprs: %d\n", 
-              q->pusch_cfg.beta_pusch, nof_prb, u, v, alpha, N_sz, get_q(u,v,N_sz),q->n_prs_pusch[q->pusch_cfg.delta_ss][ns]);
-      }
 
       // Do complex exponential and adjust amplitude
       for (int i=0;i<SRSLTE_NRE*nof_prb;i++) {
@@ -492,11 +492,31 @@ int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_forma
   return ret;   
 }
 
-void srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t ns, cf_t *r_srs) 
-{
-  
-}
 
+uint32_t T_srs_table(uint32_t I_srs) {
+  uint32_t T_srs; 
+  /* This is Table 8.2-1 */
+  if (I_srs < 2) {
+    T_srs   = 2; 
+  } else if (I_srs < 7) {
+    T_srs   = 5; 
+  } else if (I_srs < 17) {
+    T_srs   = 10; 
+  } else if (I_srs < 37) {
+    T_srs   = 20; 
+  } else if (I_srs < 77) {
+    T_srs   = 40; 
+  } else if (I_srs < 157) {
+    T_srs   = 80; 
+  } else if (I_srs < 317) {
+    T_srs   = 160; 
+  } else if (I_srs < 637) {
+    T_srs   = 320; 
+  } else {
+    T_srs = 0; 
+  }
+  return T_srs; 
+}
 
 /* Returns 1 if tti is a valid subframe for SRS transmission according to I_srs (UE-specific 
  * configuration index), as defined in Section 8.1 of 36.213. 
@@ -504,37 +524,28 @@ void srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t ns, cf_t *r_srs
  */
 int srslte_refsignal_srs_send_ue(uint32_t I_srs, uint32_t tti) {
   if (I_srs < 1024 && tti < 10240) {
-    uint32_t T_srs   = 0;
     uint32_t Toffset = 0;
     /* This is Table 8.2-1 */
     if (I_srs < 2) {
-      T_srs   = 2; 
       Toffset = I_srs;  
     } else if (I_srs < 7) {
-      T_srs   = 5; 
       Toffset = I_srs-2;        
     } else if (I_srs < 17) {
-      T_srs   = 10; 
       Toffset = I_srs-7;        
     } else if (I_srs < 37) {
-      T_srs   = 20; 
       Toffset = I_srs-17;        
     } else if (I_srs < 77) {
-      T_srs   = 40; 
       Toffset = I_srs-37;        
     } else if (I_srs < 157) {
-      T_srs   = 80; 
       Toffset = I_srs-77;        
     } else if (I_srs < 317) {
-      T_srs   = 160; 
       Toffset = I_srs-157;        
     } else if (I_srs < 637) {
-      T_srs   = 320; 
       Toffset = I_srs-317;        
     } else {
       return 0; 
     }
-    if (((tti-Toffset)%T_srs) == 0) {
+    if (((tti-Toffset)%T_srs_table(I_srs)) == 0) {
       return 1; 
     } else {
       return 0; 
@@ -594,3 +605,156 @@ int srslte_refsignal_srs_send_cs(uint32_t subframe_config, uint32_t sf_idx) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
+
+uint32_t m_srs_b[4][4][8] = {{
+                        /* m_srs for 6<n_rb<40. Table 5.5.3.2-1 */
+                        {36, 32, 24, 20, 16, 12, 8, 4}, 
+                        {12, 16,  4,  4,  4,  4, 4, 4}, 
+                        { 4,  8,  4,  4,  4,  4, 4, 4},
+                        { 4,  4,  4,  4,  4,  4, 4, 4}},
+                        {
+                        /* m_srs for 40<n_rb<60. Table 5.5.3.2-2 */
+                        {48, 48, 40, 36, 32, 24, 20, 16}, 
+                        {24, 16, 20, 12, 16,  4,  4,  4},
+                        {12, 16,  4, 12,  8,  4,  4,  8},
+                        { 4,  4,  4,  4,  4,  4,  4,  4}},
+                        {
+                        /* m_srs for 60<n_rb<80. Table 5.5.3.2-3 */
+                        {72, 64, 60, 48, 48, 40, 36, 32},
+                        {24, 32, 20, 24, 16, 20, 12, 16},
+                        {12, 16,  4, 12,  8,  4,  4,  8},
+                        { 4,  4,  4,  4,  4,  4,  4,  4}},
+                        
+                        {
+                        /* m_srs for 80<n_rb<110. Table 5.5.3.2-4 */
+                        {96, 96, 80, 72, 64, 60, 48, 48},
+                        {48, 32, 40, 24, 32, 20, 24, 16},
+                        {24, 16, 20, 12, 16,  4, 12,  8},
+                        { 4,  4,  4,  4,  4,  4,  4,  4}}};
+                        
+/* Same tables for Nb */                        
+uint32_t Nb[4][4][8] = {{
+                        {1, 1, 1, 1, 1, 1, 1, 1},
+                        {3, 2, 6, 5, 4, 3, 2, 1},
+                        {3, 2, 1, 1, 1, 1, 1, 1},
+                        {1, 2, 1, 1, 1, 1, 1, 1}},
+                        {
+                        {1, 1, 1, 1, 1, 1, 1, 1},
+                        {2, 3, 2, 3, 2, 6, 5, 4},
+                        {2, 2, 5, 3, 2, 1, 1, 1},
+                        {3, 2, 1, 1, 2, 1, 1, 1}},
+                        {
+                        {1, 1, 1, 1, 1, 1, 1, 1},
+                        {3, 2, 3, 2, 3, 2, 3, 2},
+                        {2, 2, 5, 2, 2, 5, 3, 2},
+                        {3, 4, 1, 3, 2, 1, 1, 2}},
+                        {
+                        {1, 1, 1, 1, 1, 1, 1, 1},
+                        {2, 3, 2, 3, 2, 3, 2, 3},
+                        {2, 2, 2, 2, 2, 5, 2, 2},
+                        {6, 4, 5, 3, 4, 1, 3, 2}}};
+
+uint32_t srsbwtable_idx(uint32_t nof_prb) {
+  if (nof_prb <= 40) {
+    return 0;
+  } else if (nof_prb <= 60) {
+    return 1; 
+  } else if (nof_prb <= 80) {
+    return 2; 
+  } else {
+    return 3; 
+  }
+}
+                        
+/* Returns start of common SRS BW region */
+uint32_t srslte_refsignal_srs_rb_start_cs(uint32_t bw_cfg, uint32_t nof_prb) {
+  if (bw_cfg < 8) {
+    return nof_prb/2-m_srs_b[srsbwtable_idx(nof_prb)][0][bw_cfg]/2;
+  }
+  return 0; 
+}
+
+/* Returns number of RB defined for the cell-specific SRS */
+uint32_t srslte_refsignal_srs_rb_L_cs(uint32_t bw_cfg, uint32_t nof_prb) {
+  if (bw_cfg < 8) {
+    return m_srs_b[srsbwtable_idx(nof_prb)][0][bw_cfg];
+  } 
+  return 0; 
+}
+
+uint32_t srs_Fb(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t tti) {
+  uint32_t n_srs = tti/T_srs_table(cfg->I_srs); 
+  uint32_t N_b = Nb[srsbwtable_idx(nof_prb)][cfg->B][cfg->bw_cfg]; 
+  uint32_t prod_1=1;
+  for (uint32_t b=cfg->b_hop;b<cfg->B-1;b++) {
+    prod_1 *= Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg];
+  }
+  uint32_t prod_2 = prod_1*Nb[srsbwtable_idx(nof_prb)][cfg->B][cfg->bw_cfg];
+  if (N_b%2) {
+    return N_b/2*((n_srs%prod_2)/prod_1)+((n_srs%prod_2)/prod_1/2);
+  } else {
+    return N_b/2*(n_srs/prod_1);
+  }
+}
+
+/* Returns k0: frequency-domain starting position for ue-specific SRS */
+uint32_t srs_k0_ue(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t tti) {
+  
+  if (cfg->bw_cfg < 8 && cfg->B < 4 && cfg->k_tc < 2) {    
+    uint32_t m_srs = m_srs_b[srsbwtable_idx(nof_prb)][cfg->B][cfg->bw_cfg]; 
+    uint32_t nb = (4*cfg->n_rrc/m_srs)%Nb[srsbwtable_idx(nof_prb)][cfg->B][cfg->bw_cfg]; 
+    if (cfg->b_hop < cfg->B) {
+      nb += srs_Fb(cfg, nof_prb, tti); 
+    }
+    uint32_t k0p = srslte_refsignal_srs_rb_start_cs(cfg->bw_cfg, nof_prb)*SRSLTE_NRE + cfg->k_tc; 
+    uint32_t m_sc = m_srs*SRSLTE_NRE/2;
+    uint32_t k0 = k0p;
+    for (int b=0;b<cfg->B;b++) {
+      k0 += 2*m_sc*nb;
+    }
+    return k0;
+  }
+  return 0; 
+}
+
+/* Genearte SRS signal as defined in Section 5.5.3.1 */
+int srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t sf_idx, cf_t *r_srs) 
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  if (r_srs && q) {
+    ret = SRSLTE_ERROR;
+    
+    uint32_t M_sc = srslte_refsignal_srs_rb_L_cs(q->srs_cfg.bw_cfg, q->cell.nof_prb)*SRSLTE_NRE/2; 
+    for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
+      
+      compute_r(q, M_sc/SRSLTE_NRE, ns);
+      float alpha = 2*M_PI*q->srs_cfg.n_srs/8; 
+      // Do complex exponential and adjust amplitude
+      for (int i=0;i<M_sc;i++) {
+        r_srs[(ns%2)*M_sc+i] = q->srs_cfg.beta_srs * cexpf(I*(q->tmp_arg[i] + alpha*i));
+      }     
+    }
+    ret = SRSLTE_SUCCESS; 
+  }
+  return ret; 
+}
+
+int srslte_refsignal_srs_put(srslte_refsignal_ul_t *q, uint32_t tti, cf_t *r_srs, cf_t *sf_symbols) {
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  if (r_srs && q) {
+    ret = SRSLTE_ERROR;
+    
+    if (srslte_refsignal_srs_send_ue(q->srs_cfg.I_srs, tti) == 1 &&
+        srslte_refsignal_srs_send_cs(q->srs_cfg.subframe_config, tti) == 1) 
+    {
+      uint32_t M_sc = srslte_refsignal_srs_rb_L_cs(q->srs_cfg.bw_cfg, q->cell.nof_prb)*SRSLTE_NRE/2; 
+      uint32_t k0 = srs_k0_ue(&q->srs_cfg, q->cell.nof_prb, tti);
+      for (int i=0;i<M_sc;i++) {
+        sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, 2*SRSLTE_CP_NSYMB(q->cell.cp)-1, k0 + 2*i)] = r_srs[i];
+      }
+    }
+    ret = SRSLTE_SUCCESS; 
+  }
+  return ret; 
+}
+

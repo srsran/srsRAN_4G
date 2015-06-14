@@ -152,20 +152,27 @@ int main(int argc, char **argv) {
   }
   
 
-  /* Configure PUSCH */
-  srslte_ul_dci_to_grant_prb_allocation(&dci, &cfg.grant, 0, cell.nof_prb);
-  cfg.grant.mcs.tbs = tbs;
-  cfg.grant.mcs.mod = modulation;
-  cfg.grant.Qm = srslte_mod_bits_x_symbol(modulation);
-  if (srslte_pusch_cfg(&cfg, cell, NULL, 0, 0, subframe, 0)) {
-    fprintf(stderr, "Error configuring PDSCH\n");
-    exit(-1);
-  }
+  srslte_pusch_hopping_cfg_t ul_hopping; 
+  ul_hopping.n_sb = 1; 
+  ul_hopping.hopping_offset = 0;
+  ul_hopping.hop_mode = SRSLTE_PUSCH_HOP_MODE_INTER_SF;
+  ul_hopping.current_tx_nb = 0;
   
   if (srslte_pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
+  
+  /* Configure PUSCH */
+  srslte_ul_dci_to_grant_prb_allocation(&dci, &cfg.grant, 0, cell.nof_prb);
+  cfg.grant.mcs.tbs = tbs;
+  cfg.grant.mcs.mod = modulation;
+  cfg.grant.Qm = srslte_mod_bits_x_symbol(modulation);
+  if (srslte_pusch_cfg(&pusch, &cfg, NULL, &ul_hopping, NULL, subframe, 0)) {
+    fprintf(stderr, "Error configuring PDSCH\n");
+    exit(-1);
+  }
+  
   srslte_pusch_set_rnti(&pusch, 1234);
   
   if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
@@ -195,14 +202,6 @@ int main(int argc, char **argv) {
   uci_data.uci_ri = 0; 
   uci_data.uci_ack = 0; 
     
-  srslte_pusch_hopping_cfg_t ul_hopping; 
-  ul_hopping.n_sb = 1; 
-  ul_hopping.hopping_offset = 0;
-  ul_hopping.hop_mode = SRSLTE_PUSCH_HOP_MODE_INTER_SF;
-  ul_hopping.current_tx_nb = 0;
-  
-  srslte_pusch_set_hopping_cfg(&pusch, &ul_hopping);
-  
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {

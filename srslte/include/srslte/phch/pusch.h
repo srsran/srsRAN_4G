@@ -48,6 +48,7 @@
 #include "srslte/phch/sch.h"
 #include "srslte/phch/pusch_cfg.h"
 #include "srslte/dft/dft_precoding.h"
+#include "srslte/ch_estimation/refsignal_ul.h"
 
 #define SRSLTE_PUSCH_MAX_TDEC_ITERS         5
 
@@ -64,13 +65,10 @@ typedef struct {
   uint32_t n_sb;
 } srslte_pusch_hopping_cfg_t;
 
-
 /* PUSCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
 
-  srslte_pusch_hopping_cfg_t hopping_cfg;
-  
   uint32_t max_re;
   bool rnti_is_set; 
   uint16_t rnti; 
@@ -95,6 +93,7 @@ typedef struct SRSLTE_API {
   srslte_sequence_t seq_type2_fo; 
   
   srslte_sch_t dl_sch;
+  bool shortened;
   
 }srslte_pusch_t;
 
@@ -104,16 +103,13 @@ SRSLTE_API int srslte_pusch_init(srslte_pusch_t *q,
 
 SRSLTE_API void srslte_pusch_free(srslte_pusch_t *q);
 
-SRSLTE_API int srslte_pusch_cfg(srslte_pusch_cfg_t *cfg, 
-                                srslte_cell_t cell, 
+SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t *q, 
+                                srslte_pusch_cfg_t *cfg, 
                                 srslte_dci_msg_t *dci_msg, 
-                                uint32_t n_rb_ho, 
-                                uint32_t N_srs, 
-                                uint32_t sf_idx, 
+                                srslte_pusch_hopping_cfg_t *hopping_cfg,
+                                srslte_refsignal_srs_cfg_t *srs_cfg,
+                                uint32_t tti, 
                                 uint32_t rvidx); 
-
-SRSLTE_API void srslte_pusch_set_hopping_cfg(srslte_pusch_t *q, 
-                                             srslte_pusch_hopping_cfg_t *cfg); 
 
 SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t *q, 
                                      uint16_t rnti);

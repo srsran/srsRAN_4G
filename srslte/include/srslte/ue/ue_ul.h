@@ -54,6 +54,9 @@
 
 #define SRSLTE_UE_UL_NOF_HARQ_PROCESSES 8
 
+
+
+
 typedef struct SRSLTE_API {
   srslte_ofdm_t fft;
   srslte_cfo_t cfo; 
@@ -72,6 +75,7 @@ typedef struct SRSLTE_API {
   srslte_pucch_t pucch; 
   
   srslte_pucch_sched_t pucch_sched; 
+  
   
   cf_t *refsignal; 
   cf_t *sf_symbols; 
@@ -96,15 +100,14 @@ SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q,
 
 SRSLTE_API void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
                                      srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
-                                     srslte_pusch_hopping_cfg_t *pusch_hopping_cfg, 
                                      srslte_pucch_cfg_t *pucch_cfg, 
                                      srslte_pucch_sched_t *pucch_sched); 
 
 SRSLTE_API int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, 
                                       srslte_dci_msg_t *dci_msg, 
-                                      uint32_t n_rb_ho,
-                                      uint32_t N_srs, 
-                                      uint32_t sf_idx, 
+                                      srslte_pusch_hopping_cfg_t *hopping_cfg, 
+                                      srslte_refsignal_srs_cfg_t *srs_cfg,
+                                      uint32_t tti, 
                                       uint32_t rvidx); 
 
 SRSLTE_API int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q,

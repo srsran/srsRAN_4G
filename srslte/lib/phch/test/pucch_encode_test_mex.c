@@ -109,11 +109,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(hop);
   }
   
-  pucch_cfg.shortened = false; 
+  pucch.shortened = false; 
   uint32_t sh = 0; 
   mexutils_read_uint32_struct(PUCCHCFG, "Shortened", &sh);
   if (sh == 1) {
-    pucch_cfg.shortened = true;     
+    pucch.shortened = true;     
   }
   
   uint8_t bits[SRSLTE_PUCCH_MAX_BITS]; 
@@ -174,7 +174,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 1) {
-    uint32_t n_bits = srslte_pucch_nof_symbols(&pucch_cfg, format);
+    uint32_t n_bits = srslte_pucch_nof_symbols(&pucch_cfg, format, pucch.shortened);
     mexutils_write_cf(pucch.z, &plhs[0], n_bits, 1);  
   }
 

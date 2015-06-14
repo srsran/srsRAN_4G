@@ -383,8 +383,6 @@ cell.nof_ports = 1;
   
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
   
-  srslte_pusch_hopping_cfg_t hop_cfg; 
-  bzero(&hop_cfg, sizeof(srslte_pusch_hopping_cfg_t));
   srslte_refsignal_dmrs_pusch_cfg_t dmrs_cfg; 
   bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));  
   dmrs_cfg.beta_pusch = 1.0; 
@@ -394,7 +392,7 @@ cell.nof_ports = 1;
   dmrs_cfg.cyclic_shift = 0; 
   dmrs_cfg.cyclic_shift_for_dmrs = 0; 
   dmrs_cfg.en_dmrs_2 = false; 
-  srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, &hop_cfg, NULL, NULL);
+  srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, NULL, NULL);
 
   cf_t *ul_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   if (!ul_signal) {

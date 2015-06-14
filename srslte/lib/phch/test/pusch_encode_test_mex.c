@@ -110,14 +110,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   uint32_t N_srs = 0; 
   mexutils_read_uint32_struct(PUSCHCFG, "Shortened", &N_srs);
-
+  if (N_srs == 1) {
+    pusch.shortened = true; 
+  }
   cfg.grant.L_prb = mexutils_read_f(p, &prbset);
   cfg.grant.n_prb[0] = prbset[0];
   cfg.grant.n_prb[1] = prbset[0];
   cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
   cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
   cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
-  if (srslte_pusch_cfg(&cfg, cell, NULL, 0, 0, cfg.sf_idx, cfg.rv)) {
+  if (srslte_pusch_cfg(&pusch, &cfg, NULL, NULL, NULL, cfg.sf_idx, cfg.rv)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }

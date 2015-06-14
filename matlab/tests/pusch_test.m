@@ -8,7 +8,7 @@ cqilen=0;
 rvs=[0 2];
 mods={'16QAM'};
 betas=0;
-subf=[1:8];
+subf=[0:9];
 
 for i=1:length(TBs)
     for m=1:length(mods)

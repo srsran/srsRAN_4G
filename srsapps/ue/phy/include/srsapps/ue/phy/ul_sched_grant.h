@@ -107,9 +107,9 @@ namespace ue {
         return true; 
       }
     }
-    bool    to_pusch_cfg(uint32_t sf_idx, uint32_t N_srs, srslte_ue_ul_t *ue_ul) {
+    bool    to_pusch_cfg(srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_refsignal_srs_cfg_t *srs_cfg, uint32_t tti, srslte_ue_ul_t *ue_ul) {
       memcpy(&ue_ul->pusch_cfg.grant, &grant, sizeof(srslte_ra_ul_grant_t)); 
-      if (srslte_ue_ul_cfg_grant(ue_ul, NULL, 0, N_srs, sf_idx, get_rv())) {
+      if (srslte_ue_ul_cfg_grant(ue_ul, NULL, hopping_cfg, srs_cfg, tti, get_rv())) {
         return false; 
       }
       return true; 

@@ -35,6 +35,7 @@
 #include <math.h>
 #include <complex.h>
 
+#include "srslte/ch_estimation/refsignal_ul.h"
 #include "srslte/phch/pucch.h"
 #include "srslte/common/sequence.h"
 #include "srslte/common/phy_common.h"
@@ -106,10 +107,10 @@ uint32_t get_N_sf(srslte_pucch_format_t format, uint32_t slot_idx, bool shortene
   return 0; 
 }
 
-uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format) {
+uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format, bool shortened) {
   uint32_t len=0;
   for (uint32_t ns=0;ns<2;ns++) {
-    len += SRSLTE_NRE*get_N_sf(format, ns, cfg->shortened);
+    len += SRSLTE_NRE*get_N_sf(format, ns, shortened);
   }
   return len; 
 }
@@ -291,9 +292,9 @@ static int pucch_put(srslte_pucch_t *q, srslte_pucch_format_t format, uint32_t n
     // Determine m 
     uint32_t m = srslte_pucch_m(&q->pucch_cfg, format, n_pucch, q->cell.cp); 
     
-    uint32_t N_sf_0 = get_N_sf(format, 0, q->pucch_cfg.shortened);
+    uint32_t N_sf_0 = get_N_sf(format, 0, q->shortened);
     for (uint32_t ns=0;ns<2;ns++) {
-      uint32_t N_sf = get_N_sf(format, ns%2, q->pucch_cfg.shortened);
+      uint32_t N_sf = get_N_sf(format, ns%2, q->shortened);
       // Determine n_prb 
       uint32_t n_prb = m/2; 
       if ((m+ns)%2) {
@@ -480,6 +481,18 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
   {
     ret = SRSLTE_ERROR; 
     
+    // Shortened PUCCH happen in every cell-specific SRS subframes for Format 1/1a/1b
+    if (q->pucch_cfg.srs_cs_configured && format < SRSLTE_PUCCH_FORMAT_2) {
+      q->shortened = false; 
+      // If CQI is not transmitted, PUCCH will be normal unless ACK/NACK and SRS simultaneous transmission is enabled 
+      if (q->pucch_cfg.srs_simul_ack) {
+        // If simultaneous ACK and SRS is enabled, PUCCH is shortened in cell-specific SRS subframes
+        if (srslte_refsignal_srs_send_cs(q->pucch_cfg.srs_cs_subf_cfg, sf_idx) == 1) {
+          q->shortened = true; 
+        }
+      }
+    }
+    
     if (format >= SRSLTE_PUCCH_FORMAT_2 && !q->rnti_is_set) {
       fprintf(stderr, "Error encoding PUCCH: C-RNTI must be set before encoding PUCCH Format 2/2a/2b\n");
       return SRSLTE_ERROR; 
@@ -488,9 +501,9 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
       fprintf(stderr, "Error encoding PUCCH bits\n");
       return SRSLTE_ERROR; 
     }
-    uint32_t N_sf_0 = get_N_sf(format, 0, q->pucch_cfg.shortened);
+    uint32_t N_sf_0 = get_N_sf(format, 0, q->shortened);
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
-      uint32_t N_sf = get_N_sf(format, ns%2, q->pucch_cfg.shortened);
+      uint32_t N_sf = get_N_sf(format, ns%2, q->shortened);
       // Get group hopping number u 
       uint32_t f_gh=0; 
       if (q->pucch_cfg.group_hopping_en) {

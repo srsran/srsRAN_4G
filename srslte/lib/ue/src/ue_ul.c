@@ -156,22 +156,22 @@ void srslte_ue_ul_reset(srslte_ue_ul_t *q) {
 
 void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
                           srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
-                          srslte_pusch_hopping_cfg_t *pusch_hopping_cfg, 
                           srslte_pucch_cfg_t *pucch_cfg, 
                           srslte_pucch_sched_t *pucch_sched)
 {
   srslte_refsignal_ul_set_pusch_cfg(&q->dmrs, dmrs_cfg);
   srslte_refsignal_ul_set_pucch_cfg(&q->dmrs, pucch_cfg);
-  srslte_pusch_set_hopping_cfg(&q->pusch, pusch_hopping_cfg); 
   srslte_pucch_set_cfg(&q->pucch, pucch_cfg); 
   if (pucch_sched) {
     memcpy(&q->pucch_sched, pucch_sched, sizeof(srslte_pucch_sched_t));    
   }
 }
 
-int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_dci_msg_t *dci_msg, uint32_t n_rb_ho, uint32_t N_srs, uint32_t sf_idx, uint32_t rvidx) 
+int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_dci_msg_t *dci_msg, 
+                           srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_refsignal_srs_cfg_t *srs_cfg, 
+                           uint32_t tti, uint32_t rvidx) 
 {
-  return srslte_pusch_cfg(&q->pusch_cfg, q->cell, dci_msg, n_rb_ho, N_srs, sf_idx, rvidx);
+  return srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, dci_msg, hopping_cfg, srs_cfg, tti, rvidx);
 }
 
 /* Choose PUCCH format as in Sec 10.1 of 36.213 and generate PUCCH signal 
