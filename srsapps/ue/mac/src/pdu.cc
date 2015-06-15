@@ -123,12 +123,9 @@ bool sch_pdu::write_packet(uint8_t* ptr)
   
   // Add multi-byte padding if there are more than 2 bytes or there are 2 bytes 
   // and there is at least one SDU 
-  if (rem_len > 2 || (rem_len==2 && subheaders[last_sdu].is_sdu())) {
+  if (rem_len > 2) {
     last_is_padding = true; 
   } else if (rem_len > 0) {
-    if (subheaders[last_sdu].is_sdu()) {
-      rem_len++; 
-    }
     // Add single or two-byte padding if required
     if (rem_len == 1 || rem_len == 2) {
       sch_subh padding; 
