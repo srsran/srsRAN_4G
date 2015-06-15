@@ -718,7 +718,6 @@ uint32_t srs_k0_ue(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t t
       } else {
         nb = ((4*cfg->n_rrc/m_srs)+srs_Fb(cfg, nof_prb, tti))%Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
       }
-      printf("nb[%d]=%d\n",b,nb);
       k0 += 2*m_sc*nb;
     }
     return k0;
@@ -726,7 +725,7 @@ uint32_t srs_k0_ue(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t t
   return 0; 
 }
 
-uint32_t srslte_refsignal_M_sc(srslte_refsignal_ul_t *q) {
+uint32_t srslte_refsignal_srs_M_sc(srslte_refsignal_ul_t *q) {
   return m_srs_b[srsbwtable_idx(q->cell.nof_prb)][q->srs_cfg.B][q->srs_cfg.bw_cfg]*SRSLTE_NRE/2;
 }
 
@@ -737,12 +736,11 @@ int srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t sf_idx, cf_t *r_
   if (r_srs && q) {
     ret = SRSLTE_ERROR;
     
-    uint32_t M_sc = srslte_refsignal_M_sc(q); 
+    uint32_t M_sc = srslte_refsignal_srs_M_sc(q); 
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       
       compute_r(q, M_sc/SRSLTE_NRE, ns, 0);
       float alpha = 2*M_PI*q->srs_cfg.n_srs/8; 
-
       // Do complex exponential and adjust amplitude
       for (int i=0;i<M_sc;i++) {
         r_srs[(ns%2)*M_sc+i] = q->srs_cfg.beta_srs * cexpf(I*(q->tmp_arg[i] + alpha*i));
@@ -758,15 +756,10 @@ int srslte_refsignal_srs_put(srslte_refsignal_ul_t *q, uint32_t tti, cf_t *r_srs
   if (r_srs && q) {
     ret = SRSLTE_ERROR;
     
-    if (srslte_refsignal_srs_send_ue(q->srs_cfg.I_srs, tti) == 1 &&
-        srslte_refsignal_srs_send_cs(q->srs_cfg.subframe_config, tti) == 1) 
-    {
-      uint32_t M_sc = srslte_refsignal_M_sc(q); 
-      uint32_t k0 = srs_k0_ue(&q->srs_cfg, q->cell.nof_prb, tti);
-      printf("k0=%d, n_rrc=%d\n", k0, q->srs_cfg.n_rrc);
-      for (int i=0;i<M_sc;i++) {
-        sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, 2*SRSLTE_CP_NSYMB(q->cell.cp)-1, k0 + 2*i)] = r_srs[i];
-      }
+    uint32_t M_sc = srslte_refsignal_srs_M_sc(q); 
+    uint32_t k0 = srs_k0_ue(&q->srs_cfg, q->cell.nof_prb, tti);
+    for (int i=0;i<M_sc;i++) {
+      sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, 2*SRSLTE_CP_NSYMB(q->cell.cp)-1, k0 + 2*i)] = r_srs[i];
     }
     ret = SRSLTE_SUCCESS; 
   }

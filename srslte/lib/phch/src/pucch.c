@@ -483,7 +483,7 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
     ret = SRSLTE_ERROR; 
     
     // Shortened PUCCH happen in every cell-specific SRS subframes for Format 1/1a/1b
-    if (q->pucch_cfg.srs_cs_configured && format < SRSLTE_PUCCH_FORMAT_2) {
+    if (q->pucch_cfg.srs_configured && format < SRSLTE_PUCCH_FORMAT_2) {
       q->shortened = false; 
       // If CQI is not transmitted, PUCCH will be normal unless ACK/NACK and SRS simultaneous transmission is enabled 
       if (q->pucch_cfg.srs_simul_ack) {
@@ -511,7 +511,6 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
         f_gh = q->f_gh[ns];
       }
       uint32_t u = (f_gh + (q->cell.id%30))%30;
-      printf("u=%d\n", u);
       
       srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u); 
       uint32_t N_sf_widx = N_sf==3?1:0;

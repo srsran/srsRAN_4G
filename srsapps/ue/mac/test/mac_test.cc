@@ -246,6 +246,7 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
       phy->set_param(srslte::ue::phy_params::SRS_UE_HOP, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.srs_hopping_bandwidth);
       phy->set_param(srslte::ue::phy_params::SRS_UE_CYCLICSHIFT, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.cyclic_shift);
       phy->set_param(srslte::ue::phy_params::SRS_UE_TXCOMB, msg->rr_cnfg.phy_cnfg_ded.srs_ul_cnfg_ded.tx_comb);
+      phy->set_param(srslte::ue::phy_params::SRS_IS_CONFIGURED, 1);
       phy->set_param(srslte::ue::phy_params::SRS_BETA, 10);
     }
   }
@@ -496,8 +497,6 @@ int main(int argc, char *argv[])
         // Wait for ConnectionSetup
         n = mac.recv_dcch0_sdu(bit_msg.msg, LIBLTE_MAX_MSG_SIZE); 
         if (n > 0) {
-          phy.set_param(srslte::ue::phy_params::SRS_IS_CS_CONFIGURED, 1);
-          phy.set_param(srslte::ue::phy_params::SRS_IS_UE_CONFIGURED, 1);
           printf("Received on DCCH0 %d bytes\n", n/8);
           printf("Send RLC ACK\n");
           srslte_bit_pack_vector(reply, bit_msg.msg, 2*8);

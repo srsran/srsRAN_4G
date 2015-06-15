@@ -69,7 +69,7 @@ typedef struct SRSLTE_API {
   uint32_t delta_pucch_shift; 
   uint32_t n_rb_2; 
   uint32_t N_cs; 
-  bool srs_cs_configured; 
+  bool srs_configured; 
   uint32_t srs_cs_subf_cfg;
   bool srs_simul_ack; 
 } srslte_pucch_cfg_t;

@@ -158,8 +158,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         cfg.grant.prb_idx[0][i] = true;
       }
     }
+    cfg.grant.prb_idx[1][i] = cfg.grant.prb_idx[0][i];
   }
-  memcpy(&cfg.grant.prb_idx[1], &cfg.grant.prb_idx[0], SRSLTE_MAX_PRB*sizeof(bool));
 
   free(prbset);
   

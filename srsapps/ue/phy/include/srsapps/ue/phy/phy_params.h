@@ -88,11 +88,10 @@ namespace ue {
       SRS_UE_HOP,
       SRS_UE_CS,
       SRS_UE_CYCLICSHIFT,
-      SRS_IS_UE_CONFIGURED,
       SRS_CS_BWCFG,
       SRS_CS_SFCFG,
       SRS_CS_ACKNACKSIMUL,
-      SRS_IS_CS_CONFIGURED,
+      SRS_IS_CONFIGURED,
       
       UCI_I_OFFSET_ACK,
       UCI_I_OFFSET_RI,

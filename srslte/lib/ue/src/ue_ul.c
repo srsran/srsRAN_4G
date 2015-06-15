@@ -349,9 +349,9 @@ int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal
   if (q && output_signal) {
     ret = SRSLTE_ERROR; 
     
-    if (srslte_ue_ul_srs_tx_enabled(&q->dmrs.srs_cfg, q->pusch_cfg.tti) && q->pusch.shortened) {
-      srslte_refsignal_srs_gen(&q->dmrs, q->pusch_cfg.sf_idx, q->srs_signal);
-      srslte_refsignal_srs_put(&q->dmrs, q->pusch_cfg.tti, q->srs_signal, q->sf_symbols);      
+    if (srslte_ue_ul_srs_tx_enabled(&q->dmrs.srs_cfg, tti)) {
+      srslte_refsignal_srs_gen(&q->dmrs, tti%10, q->srs_signal);
+      srslte_refsignal_srs_put(&q->dmrs, tti, q->srs_signal, q->sf_symbols);      
     }
     
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
@@ -361,7 +361,7 @@ int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal
     }
     
     if (q->normalize_en) {
-      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(q->pusch_cfg.grant.L_prb);
+      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(srslte_refsignal_srs_M_sc(&q->dmrs)/6);
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     
@@ -461,14 +461,11 @@ int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {
 
 
 bool srslte_ue_ul_srs_tx_enabled(srslte_refsignal_srs_cfg_t *srs_cfg, uint32_t tti) {
-  if (srs_cfg->cs_configured) {
-    if (srs_cfg->ue_configured) {
-      if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 
-          srslte_refsignal_srs_send_ue(srs_cfg->I_srs, tti) == 1)
-      {
-        printf("SRS UE transmission\n");
-        return true; 
-      }
+  if (srs_cfg->configured) {
+    if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 
+        srslte_refsignal_srs_send_ue(srs_cfg->I_srs, tti) == 1)
+    {
+      return true; 
     }
   }
   return false; 

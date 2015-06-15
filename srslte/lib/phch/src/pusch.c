@@ -330,15 +330,13 @@ int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_
   }
   if (srs_cfg) {
     q->shortened = false; 
-    if (srs_cfg->cs_configured) {
+    if (srs_cfg->configured) {
       // If UE-specific SRS is configured, PUSCH is shortened every time UE transmits SRS even if overlaping in the same RB or not
-      if (srs_cfg->ue_configured) {
-        if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 
-            srslte_refsignal_srs_send_ue(srs_cfg->I_srs, tti) == 1)
-        {
-          printf("SRS UE transmission\n");
-          q->shortened = true; 
-        }
+      if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 
+          srslte_refsignal_srs_send_ue(srs_cfg->I_srs, tti) == 1)
+      {
+        printf("PUSCH shorteneed for SRS UE transmission\n");
+        q->shortened = true; 
       }
       // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission RB coincides with PUSCH allocated RB
       if (!q->shortened) {

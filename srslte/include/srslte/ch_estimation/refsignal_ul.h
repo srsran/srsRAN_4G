@@ -63,8 +63,7 @@ typedef struct SRSLTE_API {
   uint32_t n_rrc;
   uint32_t B; 
   uint32_t b_hop; 
-  bool cs_configured; 
-  bool ue_configured;
+  bool configured; 
 }srslte_refsignal_srs_cfg_t;
 
 /** Uplink DeModulation Reference Signal (DMRS) */
@@ -149,6 +148,6 @@ SRSLTE_API uint32_t srslte_refsignal_srs_rb_start_cs(uint32_t bw_cfg,
 SRSLTE_API uint32_t srslte_refsignal_srs_rb_L_cs(uint32_t bw_cfg, 
                                                  uint32_t nof_prb);
 
-SRSLTE_API uint32_t srslte_refsignal_M_sc(srslte_refsignal_ul_t *q); 
+SRSLTE_API uint32_t srslte_refsignal_srs_M_sc(srslte_refsignal_ul_t *q); 
 
 #endif

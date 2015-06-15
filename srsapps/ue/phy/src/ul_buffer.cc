@@ -122,19 +122,19 @@ bool ul_buffer::generate_data(ul_sched_grant *grant,
 
 
 bool ul_buffer::srs_is_ready_to_send() {
-
-  if (params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED) && 
-      params_db->get_param(phy_params::SRS_IS_UE_CONFIGURED)) 
+  if (params_db->get_param(phy_params::SRS_IS_CONFIGURED)) 
   {
     if (srslte_refsignal_srs_send_cs(params_db->get_param(phy_params::SRS_CS_SFCFG), tti%10) == 1 && 
         srslte_refsignal_srs_send_ue(params_db->get_param(phy_params::SRS_UE_CONFIGINDEX), tti) == 1)
     {
-      Info("SRS ready to send at TTI=%d\n", tti);
       return true; 
     }
   }
   return false; 
 }
+
+int srspkt = 0; 
+
 bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *softbuffer, uint8_t *payload) 
 {
   if (is_ready()) {
@@ -174,7 +174,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     pucch_cfg.delta_pucch_shift = params_db->get_param(phy_params::PUCCH_DELTA_SHIFT);
     pucch_cfg.N_cs              = params_db->get_param(phy_params::PUCCH_CYCLIC_SHIFT);
     pucch_cfg.n_rb_2            = params_db->get_param(phy_params::PUCCH_N_RB_2);
-    pucch_cfg.srs_cs_configured = params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)?true:false;
+    pucch_cfg.srs_configured = params_db->get_param(phy_params::SRS_IS_CONFIGURED)?true:false;
     pucch_cfg.srs_cs_subf_cfg   = (uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG);
     pucch_cfg.srs_simul_ack     = params_db->get_param(phy_params::SRS_CS_ACKNACKSIMUL)?true:false;
     
@@ -191,8 +191,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
 
     srslte_refsignal_srs_cfg_t srs_cfg;           
     bzero(&srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
-    srs_cfg.cs_configured   = params_db->get_param(phy_params::SRS_IS_CS_CONFIGURED)?true:false;
-    srs_cfg.ue_configured   = params_db->get_param(phy_params::SRS_IS_UE_CONFIGURED)?true:false;
+    srs_cfg.configured   = params_db->get_param(phy_params::SRS_IS_CONFIGURED)?true:false;
     srs_cfg.subframe_config = (uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG);
     srs_cfg.bw_cfg          = (uint32_t) params_db->get_param(phy_params::SRS_CS_BWCFG);
     srs_cfg.I_srs           = (uint32_t) params_db->get_param(phy_params::SRS_UE_CONFIGINDEX);
@@ -201,6 +200,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     srs_cfg.n_rrc           = (uint32_t) params_db->get_param(phy_params::SRS_UE_NRRC);
     srs_cfg.k_tc            = (uint32_t) params_db->get_param(phy_params::SRS_UE_TXCOMB);
     srs_cfg.n_srs           = (uint32_t) params_db->get_param(phy_params::SRS_UE_CYCLICSHIFT);
+    srs_cfg.beta_srs        = ((float) params_db->get_param(phy_params::SRS_BETA))/10;
     
     srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, &pucch_cfg, &srs_cfg, &pucch_sched, 
                          group_hopping_en, sequence_hopping_en);
@@ -237,17 +237,16 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
            grant->get_rnti(), ue_ul.pusch.shortened?"yes":"no");
     
 
-    } else {
-      if (uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ack_len) {
-        n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti%10, signal_buffer);
+    } else if (uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ack_len) {
+      n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti%10, signal_buffer);
 
-        Info("PUCCH: TTI=%d n_cce=%d, ack=%s, sr=%s, shortened=%s\n", tti, last_n_cce, 
-          uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
-          ue_ul.pucch.shortened?"yes":"no");        
-      } else {
-        n = srslte_ue_ul_srs_encode(&ue_ul, tti, signal_buffer);
-      }
-    
+      Info("PUCCH: TTI=%d n_cce=%d, ack=%s, sr=%s, shortened=%s\n", tti, last_n_cce, 
+        uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
+        ue_ul.pucch.shortened?"yes":"no");        
+    } else {
+      n = srslte_ue_ul_srs_encode(&ue_ul, tti, signal_buffer);
+      
+      Info("SRS only: TX at TTI=%d\n", tti);
     }
     // Reset UCI data
     bzero(&uci_data, sizeof(srslte_uci_data_t));
@@ -293,7 +292,7 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
     srslte_vec_sc_prod_cfc(signal_buffer, 0.7/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }
   
-  Debug("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f PeakAmplitude=%.2f PKT#%d\n", 
+  Info("TX CFO: %f, len=%d, rx_time= %.6f tx_time = %.6f TA: %.1f PeakAmplitude=%.2f PKT#%d\n", 
         cfo*15000, SRSLTE_SF_LEN_PRB(cell.nof_prb),
         srslte_timestamp_real(&rx_time), 
         srslte_timestamp_real(&tx_time), time_adv_sec*1000000, max, nof_tx);
@@ -305,7 +304,7 @@ bool ul_buffer::send(srslte::radio* radio_handler, float time_adv_sec, float cfo
   sprintf(filename, "pusch%d",nof_tx);
   srslte_vec_save_file(filename, signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
   nof_tx++;
-*/
+  */
   
   ready();
 }

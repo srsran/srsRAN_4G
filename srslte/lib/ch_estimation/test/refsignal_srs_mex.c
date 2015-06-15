@@ -147,7 +147,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   if (nlhs >= 1) {
-    uint32_t M_sc = srslte_refsignal_M_sc(&refsignal); ;
+    uint32_t M_sc = srslte_refsignal_srs_M_sc(&refsignal); ;
     mexutils_write_cf(r_srs, &plhs[0], M_sc, 1);  
   }
 
