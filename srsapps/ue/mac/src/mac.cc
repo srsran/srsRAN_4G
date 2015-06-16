@@ -58,7 +58,7 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
   sr_procedure.init(log_h, &params_db, phy_h);
   reset();
 
-  if (threads_new_rt(&mac_thread, mac_thread_fnc, this)) {
+  if (threads_new_rt_prio(&mac_thread, mac_thread_fnc, this, 5)) {
     started = true; 
   }
 
