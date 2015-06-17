@@ -33,6 +33,7 @@
 #include "srsapps/ue/phy/ul_sched_grant.h"
 #include "srsapps/ue/phy/dl_sched_grant.h"
 #include "srsapps/ue/phy/phy_params.h"
+#include "srsapps/radio/radio.h"
 
 #ifndef UEULBUFFER_H
 #define UEULBUFFER_H
@@ -47,7 +48,7 @@ namespace ue {
   class ul_buffer : public queue::element {
 
   public: 
-    bool     init_cell(srslte_cell_t cell, phy_params *params_db, log *log_h);
+    bool     init_cell(srslte_cell_t cell, phy_params *params_db, log *log_h, radio *radio_h);
     void     free_cell();
     void     set_crnti(uint16_t rnti);
     void     set_current_tx_nb(uint32_t current_tx_nb);
@@ -60,12 +61,18 @@ namespace ue {
     bool     generate_data();   
     bool     generate_data(ul_sched_grant *pusch_grant, uint8_t *payload);   
     bool     generate_data(ul_sched_grant *pusch_grant, srslte_softbuffer_tx_t *softbuffer, uint8_t *payload);   
-    bool     send(radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time);
-    static const uint32_t tx_advance_sf = 2; // Number of subframes to advance transmission
+    void     set_tx_params(float cfo, float time_adv_sec, srslte_timestamp_t tx_time);
+    void     set_end_of_burst();
+    bool     is_end_of_burst();
+    static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
     static const bool normalize_amp = true; 
   private: 
     log               *log_h; 
     phy_params        *params_db; 
+    radio             *radio_h; 
+    float              cfo;
+    bool               tti_is_end_of_burst; 
+    srslte_timestamp_t tx_time; 
     srslte_cell_t      cell; 
     srslte_ue_ul_t     ue_ul; 
     bool               cell_initiated; 

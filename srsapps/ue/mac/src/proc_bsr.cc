@@ -44,6 +44,7 @@ bsr_proc::bsr_proc()
     priorities[i] = -1; 
     last_pending_data[i] = 0; 
   }        
+  last_print = 0; 
   triggered_bsr_type=NONE; 
 }
 
@@ -67,14 +68,14 @@ void bsr_proc::timer_expired(uint32_t timer_id) {
     case mac::BSR_TIMER_PERIODIC:
       if (triggered_bsr_type == NONE) {
         // Check condition 4 in Sec 5.4.5 
-        //triggered_bsr_type = PERIODIC; 
-        Info("BSR PERIODIC disabled\n");
+        triggered_bsr_type = PERIODIC; 
+        Info("Triggering BSR PERIODIC\n");
       }
       break;
     case mac::BSR_TIMER_RETX:
       // Enable reTx of SR 
-      //triggered_bsr_type = REGULAR; 
-      Info("BSR reTX disabled\n");
+      triggered_bsr_type = REGULAR; 
+      Info("Triggering BSR reTX\n");
       sr_is_sent = false; 
       break;      
   }
@@ -151,7 +152,7 @@ bool bsr_proc::generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes) {
   for (int i=0;i<mac_io_h->NOF_UL_LCH;i++) {
     if (lcg[i] >= 0) {
       uint32_t n = mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8;
-      bsr->buff_size[lcg[i]] += n;
+      bsr->buff_size[lcg[i]] += 8*n;
       if (n > 0) {
         nof_lcg++;
         ret = true; 
@@ -216,6 +217,18 @@ void bsr_proc::step(uint32_t tti)
   check_highest_channel();
   
   update_pending_data();
+  
+  
+  if ((tti - last_print)%10240 > 40) {
+    char str[128];
+    bzero(str, 128);
+    for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
+      sprintf(str, "%s%d (%d), ", str, mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8, last_pending_data[i]);
+    }
+    Info("QUEUE status: %s\n", str);
+    last_print = tti; 
+  }
+  
 }
 
 char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type) {

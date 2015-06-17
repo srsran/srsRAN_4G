@@ -125,11 +125,14 @@ public:
   void write_trace(std::string filename); 
   
   void main_radio_loop(); 
-  
+    bool         sr_is_ready_to_send(uint32_t tti);
+
 private:
   enum {
     IDLE, RXTX
   } phy_state; 
+  
+  static const int NOF_ULDL_QUEUES = 6; 
   
   tti_sync      *ttisync; 
   radio         *radio_handler;
@@ -158,7 +161,6 @@ private:
   double       last_gain;
   
   bool         sr_enabled;
-  bool         sr_is_ready_to_send(uint32_t tti);
   
   bool         init_(radio *radio_handler, tti_sync *ttisync, log *log_h, bool do_agc);
   static void *phy_thread_fnc(void *arg);
