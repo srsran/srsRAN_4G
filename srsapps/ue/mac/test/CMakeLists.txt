@@ -25,7 +25,4 @@ IF(UHD_FOUND AND OPENLTE_FOUND)
   INCLUDE_DIRECTORIES(${OPENLTE_INCLUDE_DIRS})
   ADD_EXECUTABLE(mac_test mac_test.cc)
   TARGET_LINK_LIBRARIES(mac_test srsapps_common srsapps_ue_mac srsapps_ue_phy srsapps_radio srslte ${OPENLTE_LIBRARIES} srslte_uhd)
-
-  ADD_EXECUTABLE(mac_test mac_test.cc)
-  TARGET_LINK_LIBRARIES(mac_test srsapps_common srsapps_ue_mac srsapps_ue_phy srsapps_radio srslte ${OPENLTE_LIBRARIES} srslte_uhd)
-  ENDIF(UHD_FOUND AND OPENLTE_FOUND)
+ENDIF(UHD_FOUND AND OPENLTE_FOUND)
