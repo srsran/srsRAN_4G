@@ -61,7 +61,7 @@ namespace ue {
     bool     generate_data(ul_sched_grant *pusch_grant, uint8_t *payload);   
     bool     generate_data(ul_sched_grant *pusch_grant, srslte_softbuffer_tx_t *softbuffer, uint8_t *payload);   
     bool     send(radio* radio_handler, float time_adv_sec, float cfo, srslte_timestamp_t rx_time);
-    static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
+    static const uint32_t tx_advance_sf = 2; // Number of subframes to advance transmission
     static const bool normalize_amp = true; 
   private: 
     log               *log_h; 
