@@ -44,7 +44,7 @@ namespace ue {
 class tti_sync_cv : public tti_sync
 {
   public: 
-             tti_sync_cv(uint32_t modulus);
+             tti_sync_cv(uint32_t modulus = 10240);
             ~tti_sync_cv();
     void     increase();
     uint32_t wait();      

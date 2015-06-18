@@ -30,6 +30,7 @@
 
 #include "srsapps/common/log.h"
 #include "srsapps/common/tti_sync.h"
+#include "srsapps/common/tti_sync_cv.h"
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/ue/mac/dl_harq.h"
@@ -101,12 +102,31 @@ public:
     BSR_TIMER_RETX,
     NOF_MAC_TIMERS
   } mac_timers_t; 
+
+  class tti_thread {
+  public: 
+    bool init(mac *parent, tti_sync_cv *ttysync);
+    void run();
+    void stop();
+  private: 
+    bool        started; 
+    log         *log_h;
+    mac         *parent; 
+    tti_sync_cv *sync; 
+    pthread_t   thread; 
+  };
   
 private:  
+  
+  
+  // TTI processing threads
+  static const int NOF_TTI_THREADS = 2; 
+  tti_thread   tti_threads[NOF_TTI_THREADS]; 
+  tti_sync_cv  tti_threads_sync[NOF_TTI_THREADS];
+  
   // Interaction with PHY 
   tti_sync     *ttisync; 
   phy          *phy_h; 
-
   log          *log_h; 
 
   /* Logical channel (lch) IO */
