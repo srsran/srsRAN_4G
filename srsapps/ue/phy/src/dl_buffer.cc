@@ -117,6 +117,8 @@ bool dl_buffer::get_ul_grant(ul_sched_grant *grant)
         return false; 
       }
       
+      grant->set_tti(tti);
+    
       Info("PDCCH: UL DCI Format0 cce_index=%d, n_data_bits=%d\n", ue_dl.last_n_cce, dci_msg.nof_bits);
 
       return grant->create_from_dci(&dci_msg, cell, params_db->get_param(phy_params::PUSCH_HOPPING_OFFSET));     
@@ -167,7 +169,9 @@ bool dl_buffer::get_dl_grant(dl_sched_grant *grant)
     if (srslte_ue_dl_find_dl_dci(&ue_dl, &dci_msg, cfi, tti%10, grant->get_rnti()) != 1) {
       return false; 
     }
-
+    
+    grant->set_tti(tti);
+    
     Info("PDCCH: DL DCI %s cce_index=%d, n_data_bits=%d\n", grant->get_dciformat_string(), ue_dl.last_n_cce, dci_msg.nof_bits);
     
     return grant->create_from_dci(&dci_msg, cell.nof_prb, srslte_ue_dl_get_ncce(&ue_dl));     

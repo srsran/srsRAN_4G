@@ -152,14 +152,6 @@ bool ra_proc::is_error() {
   return state == RA_PROBLEM;
 }
 
-uint32_t interval(uint32_t x1, uint32_t x2) {
-  if (x1 > x2) {
-    return x1-x2; 
-  } else {
-    return 10240-x2+x1;
-  }
-}
-
 const char* state_str[11] = {"Idle",
                             "RA Initializat.: ",
                             "RA Initial.Wait: ",
@@ -277,7 +269,7 @@ void ra_proc::step_response_reception() {
     
     ra_rnti = 1+ra_tti%10; // f_id=0 for FDD 
     dl_sched_grant rar_grant(ra_rnti); 
-    uint32_t interval_ra = interval(tti, ra_tti);
+    uint32_t interval_ra = srslte_tti_interval(tti, ra_tti);
     
     // Try to decode RAR only within the RA response window
     if (interval_ra >= 3 && interval_ra <= 3+responseWindowSize) {        
@@ -402,7 +394,7 @@ void ra_proc::step_response_error() {
 }
 
 void ra_proc::step_backoff_wait() {
-  if (interval(tti, backoff_interval_start) >= backoff_inteval) {
+  if (srslte_tti_interval(tti, backoff_interval_start) >= backoff_inteval) {
     state = RESOURCE_SELECTION; 
   }
 }

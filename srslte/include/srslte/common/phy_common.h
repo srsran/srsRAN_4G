@@ -244,6 +244,7 @@ SRSLTE_API int srslte_band_get_fd_region(enum band_geographical_area region,
 SRSLTE_API int srslte_str2mimotype(char *mimo_type_str, 
                                    srslte_mimo_type_t *type);
 
-
+SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1, 
+                                        uint32_t tti2); 
 
 #endif

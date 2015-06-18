@@ -299,7 +299,7 @@ void ul_buffer::set_tx_params(float cfo_, float time_adv_sec, srslte_timestamp_t
 
 void ul_buffer::set_end_of_burst()
 {
-  Info("Is end of burst\n");
+  Info("TTI %d Is end of burst\n", tti);
   tti_is_end_of_burst = true; 
 }
 

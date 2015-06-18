@@ -174,7 +174,7 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
           }
         }
       } else {
-        Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n");
+        Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
       }
       if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(mac::TIME_ALIGNMENT)->is_expired()) {
         // Do not generate ACK
@@ -203,13 +203,24 @@ void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_
 void dl_harq_entity::dl_harq_process::set_harq_info(srslte::ue::dl_sched_grant* new_grant)    {
   bool is_new_transmission = false; 
 
-  if ((new_grant->get_ndi() != cur_grant.get_ndi() && new_grant->get_tbs() == cur_grant.get_tbs()) || // NDI toggled for same TB (assume TB is identified by TBS)
-      (pid == HARQ_BCCH_PID && new_grant->get_rv() == 0)                                           || // Broadcast PID and 1st TX (RV=0)
-      (new_grant->get_tbs() != cur_grant.get_tbs()))                                                  // First transmission for this TB
+  bool is_new_tb = true; 
+  if (srslte_tti_interval(new_grant->get_tti(), cur_grant.get_tti()) <= 8 && 
+      new_grant->get_tbs() == cur_grant.get_tbs())
+  {
+    is_new_tb = false; 
+  }
+  
+  if ((new_grant->get_ndi() != cur_grant.get_ndi() && !is_new_tb) || // NDI toggled for same TB
+      is_new_tb                                                   || // is new TB
+      (pid == HARQ_BCCH_PID && new_grant->get_rv() == 0))            // Broadcast PID and 1st TX (RV=0)
   {
     is_new_transmission = true; 
     Debug("Set HARQ Info for new transmission\n");
   } else {
+    if (!is_new_tb) {
+      Info("old_tbs=%d, new_tbs=%d, old_tti=%d new_tti=%d\n", cur_grant.get_tbs(), new_grant->get_tbs(), 
+           cur_grant.get_tti(), new_grant->get_tti());
+    }
     is_new_transmission = false; 
     Debug("Set HARQ Info for retransmission\n");
   }
