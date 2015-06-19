@@ -340,7 +340,9 @@ int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_
         uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
         uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
         for (uint32_t ns=0;ns<2 && q->shortened;ns++) {
-          if (cfg->grant.n_prb_tilde[ns] != k0_srs + nrb_srs) {
+          if (cfg->grant.n_prb_tilde[ns] != k0_srs + nrb_srs ||         // If grant allocation starts when SRS ends
+              cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb != k0_srs)  // or SRS allocation starts when grant ends
+          {
             q->shortened = false; 
           }
         }
@@ -348,14 +350,17 @@ int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_
       // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission RB 
       //coincides with PUSCH allocated RB
       if (!q->shortened) {
-        uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
-        uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
-        for (uint32_t ns=0;ns<2 && !q->shortened;ns++) {
-          if ((cfg->grant.n_prb_tilde[ns] >= k0_srs && cfg->grant.n_prb_tilde[ns] < k0_srs + nrb_srs) || 
-              (cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb >= k0_srs && 
-                    cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb < k0_srs + nrb_srs))
-          {            
-            q->shortened = true; 
+        if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1) {
+          uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
+          uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
+          for (uint32_t ns=0;ns<2 && !q->shortened;ns++) {
+            if ((cfg->grant.n_prb_tilde[ns] >= k0_srs && cfg->grant.n_prb_tilde[ns] < k0_srs + nrb_srs) || 
+                (cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb >= k0_srs && 
+                      cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb < k0_srs + nrb_srs) ||
+                (cfg->grant.n_prb_tilde[ns] <= k0_srs && cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb >= k0_srs + nrb_srs))
+            {            
+              q->shortened = true; 
+            }
           }
         }
       }
