@@ -124,9 +124,11 @@ public:
   void start_trace();
   void write_trace(std::string filename); 
   
-  void main_radio_loop(); 
-    bool         sr_is_ready_to_send(uint32_t tti);
+  bool sr_is_ready_to_send(uint32_t tti);
+  bool cqi_is_ready_to_send(uint32_t tti);
 
+  void main_radio_loop(); 
+  
 private:
   enum {
     IDLE, RXTX

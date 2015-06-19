@@ -94,4 +94,7 @@ SRSLTE_API int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg
                                         uint8_t *buff, 
                                         uint32_t buff_len);
 
+SRSLTE_API bool srslte_cqi_send(uint32_t I_cqi_pmi, 
+                                uint32_t tti); 
+
 #endif // CQI_

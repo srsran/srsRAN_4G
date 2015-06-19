@@ -195,6 +195,19 @@ int phy::sr_last_tx_tti() {
   }
 }
 
+bool phy::cqi_is_ready_to_send(uint32_t tti)
+{
+  /*
+  if (params_db.get_param(phy_params::CQI_PERIODIC_CONFIGURED)) {
+    if (srslte_cqi_send(params_db.get_param(phy_params::CQI_PERIODIC_PMI_IDX), tti)) {
+      Warning("Sending PUCCH CQI\n");
+      return true; 
+    }
+  }
+  */
+  return false; 
+}
+
 bool phy::sr_is_ready_to_send(uint32_t tti_) {
   if (sr_enabled) {
     // Get I_sr parameter

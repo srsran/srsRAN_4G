@@ -335,10 +335,18 @@ int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_
       if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 
           srslte_refsignal_srs_send_ue(srs_cfg->I_srs, tti) == 1)
       {
-        printf("PUSCH shorteneed for SRS UE transmission\n");
         q->shortened = true; 
+        /* If RBs are contiguous, PUSCH is not shortened */
+        uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
+        uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
+        for (uint32_t ns=0;ns<2 && q->shortened;ns++) {
+          if (cfg->grant.n_prb_tilde[ns] != k0_srs + nrb_srs) {
+            q->shortened = false; 
+          }
+        }
       }
-      // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission RB coincides with PUSCH allocated RB
+      // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission RB 
+      //coincides with PUSCH allocated RB
       if (!q->shortened) {
         uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
         uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
@@ -348,15 +356,10 @@ int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_
                     cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb < k0_srs + nrb_srs))
           {            
             q->shortened = true; 
-            printf("CS n_prb=%d, L=%d, k0=%d, nrb=%d\n", cfg->grant.n_prb_tilde[ns], cfg->grant.L_prb, k0_srs, nrb_srs);
           }
         }
       }
-    }
-    
-    if (q->shortened) {
-      printf("PUSCH is shortened TTI=%d\n", tti);
-    } 
+    }    
   }
   
   /* Compute final number of bits and RE */
