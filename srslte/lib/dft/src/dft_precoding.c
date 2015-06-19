@@ -48,7 +48,7 @@ int srslte_dft_precoding_init(srslte_dft_precoding_t *q, uint32_t max_prb)
   
   if (max_prb <= SRSLTE_MAX_PRB) {
     ret = SRSLTE_ERROR; 
-    for (uint32_t i=1;i<max_prb;i++) {
+    for (uint32_t i=1;i<=max_prb;i++) {
       if(srslte_dft_precoding_valid_prb(i)) {        
         DEBUG("Initiating DFT precoding plan for %d PRBs\n", i);
         if (srslte_dft_plan_c(&q->dft_plan[i], i*SRSLTE_NRE, SRSLTE_DFT_FORWARD)) {
@@ -77,7 +77,7 @@ clean_exit:
 /* Free DFT plans for transform precoding */
 void srslte_dft_precoding_free(srslte_dft_precoding_t  *q) 
 {
-  for (uint32_t i=1;i<q->max_prb;i++) {
+  for (uint32_t i=1;i<=q->max_prb;i++) {
     if(srslte_dft_precoding_valid_prb(i)) {      
       DEBUG("Freeing DFT precoding plan for %d PRBs\n", i);
       srslte_dft_plan_free(&q->dft_plan[i]);
@@ -99,7 +99,7 @@ int srslte_dft_precoding(srslte_dft_precoding_t *q, cf_t *input, cf_t *output,
                   uint32_t nof_prb, uint32_t nof_symbols) 
 {
   
-  if (!srslte_dft_precoding_valid_prb(nof_prb)) {
+  if (!srslte_dft_precoding_valid_prb(nof_prb) && nof_prb <= q->max_prb) {
     fprintf(stderr, "Error invalid number of PRB (%d)\n", nof_prb);
     return SRSLTE_ERROR; 
   }
@@ -114,7 +114,7 @@ int srslte_dft_precoding(srslte_dft_precoding_t *q, cf_t *input, cf_t *output,
 int srslte_dft_predecoding(srslte_dft_precoding_t *q, cf_t *input, cf_t *output, 
                     uint32_t nof_prb, uint32_t nof_symbols)
 {
-  if (!srslte_dft_precoding_valid_prb(nof_prb)) {
+  if (!srslte_dft_precoding_valid_prb(nof_prb) && nof_prb <= q->max_prb) {
     fprintf(stderr, "Error invalid number of PRB (%d)\n", nof_prb);
     return SRSLTE_ERROR; 
   }

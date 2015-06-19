@@ -547,7 +547,6 @@ void phy::run_rx_tx_state()
       Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);    
     } else if (get_ul_buffer_adv(current_tti)->is_end_of_burst()) {
       radio_handler->tx_end();
-      Info("Sending TX END\n");
     }
     
     // Receive alligned buffer for the current tti 

@@ -93,7 +93,7 @@ private:
   qbuff                 msg3_buff; 
   
   /* PDU Buffer */
-  static const uint32_t PDU_BUFF_SZ  = 16*1024; 
+  static const uint32_t PDU_BUFF_SZ  = 128*1024; 
   qbuff                 pdu_buff; 
   sch_pdu               pdu_msg; 
   bool msg3_has_been_transmitted;

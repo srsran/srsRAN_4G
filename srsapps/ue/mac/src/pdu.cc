@@ -169,7 +169,8 @@ bool sch_pdu::write_packet(uint8_t* ptr)
   }
   // Set paddint to zeros (if any) 
   bzero(ptr, rem_len*sizeof(uint8_t)*8);
-  
+ 
+  return true; 
 }
 
 uint32_t sch_pdu::rem_size() {
@@ -572,6 +573,8 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   }
   // Set paddint to zeros (if any) 
   bzero(ptr, rem_len*sizeof(uint8_t)*8);
+  
+  return true; 
 }
 
 

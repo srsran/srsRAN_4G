@@ -240,7 +240,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   }
   pkt_num++;
   // MAC control element for PHR
-  if (pkt_num == 1) {
+  if (pkt_num == 2) {
     if (pdu_msg.new_subh()) {
       pdu_msg.next();
       pdu_msg.get()->set_phd(46);

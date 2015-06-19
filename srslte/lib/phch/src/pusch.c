@@ -517,7 +517,7 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       fprintf(stderr, "Error encoding TB\n");
       return SRSLTE_ERROR;
     }
-    
+
     if (rnti != q->rnti) {
       srslte_sequence_t seq; 
       if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
@@ -528,7 +528,6 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
     } else {
       srslte_scrambling_b_offset_pusch(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits);            
     }
-    
     srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
     
     srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);
