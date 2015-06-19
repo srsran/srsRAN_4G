@@ -179,7 +179,7 @@ sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
     
   }
 }
-
+int pkt_num=0;
 bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
 
   uint8_t *buff = (uint8_t*) pdu_buff.request();
@@ -238,8 +238,14 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
       pdu_msg.update_space_ce(bsr_payload_sz);
     }
   }
+  pkt_num++;
   // MAC control element for PHR
-     // TODO
+  if (pkt_num == 1) {
+    if (pdu_msg.new_subh()) {
+      pdu_msg.next();
+      pdu_msg.get()->set_phd(46);
+    }
+  }
 
   // data from any Logical Channel, except data from UL-CCCH;  
   // first only those with positive Bj
