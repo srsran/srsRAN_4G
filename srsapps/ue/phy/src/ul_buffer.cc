@@ -98,7 +98,10 @@ void ul_buffer::set_current_tx_nb(uint32_t current_tx_nb_)
 
 bool ul_buffer::generate_cqi_report()
 {
-  return false; 
+  uci_data.uci_cqi_len = 4; 
+  uint8_t cqi[4] = {1, 1, 1, 1}; 
+  uci_data.uci_cqi = cqi;          
+  return true; 
 }
 
 bool ul_buffer::generate_sr() {
@@ -216,6 +219,13 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     int n = 0; 
     // Transmit on PUSCH if UL grant available, otherwise in PUCCH 
     if (grant) {
+      
+      if (params_db->get_param(phy_params::CQI_PERIODIC_CONFIGURED)) {
+        if (srslte_cqi_send(params_db->get_param(phy_params::CQI_PERIODIC_PMI_IDX), tti)) {
+          generate_cqi_report();
+        }
+      }
+      
       srslte_pusch_hopping_cfg_t pusch_hopping_cfg; 
       bzero(&pusch_hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
       
@@ -233,6 +243,11 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
                                                     softbuffer,
                                                     grant->get_rnti(), 
                                                     signal_buffer);    
+      
+      if (ue_ul.pusch.shortened) {
+        Warning("PUSCH shortened on tti=%d\n", tti);
+      }
+      
 
       Info("PUSCH: TTI=%d, CFO= %.1f KHz TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, shortened=%s\n", 
            tti, cfo*15e3, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
@@ -299,7 +314,7 @@ void ul_buffer::set_tx_params(float cfo_, float time_adv_sec, srslte_timestamp_t
 
 void ul_buffer::set_end_of_burst()
 {
-  Info("Is end of burst\n");
+  Info("TTI %d Is end of burst\n", tti);
   tti_is_end_of_burst = true; 
 }
 

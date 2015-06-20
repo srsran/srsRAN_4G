@@ -315,7 +315,7 @@ bool srslte_refsignal_dmrs_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, srslte_re
   if (cfg->cyclic_shift          < SRSLTE_NOF_CSHIFT   && 
       cfg->cyclic_shift_for_dmrs < SRSLTE_NOF_CSHIFT   &&
       cfg->delta_ss              < SRSLTE_NOF_DELTA_SS &&
-      nof_prb                    < q->cell.nof_prb) {
+      nof_prb                    <= q->cell.nof_prb) {
     return true; 
   } else {
     return false;

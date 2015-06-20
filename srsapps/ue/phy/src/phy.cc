@@ -195,6 +195,19 @@ int phy::sr_last_tx_tti() {
   }
 }
 
+bool phy::cqi_is_ready_to_send(uint32_t tti)
+{
+  /*
+  if (params_db.get_param(phy_params::CQI_PERIODIC_CONFIGURED)) {
+    if (srslte_cqi_send(params_db.get_param(phy_params::CQI_PERIODIC_PMI_IDX), tti)) {
+      Warning("Sending PUCCH CQI\n");
+      return true; 
+    }
+  }
+  */
+  return false; 
+}
+
 bool phy::sr_is_ready_to_send(uint32_t tti_) {
   if (sr_enabled) {
     // Get I_sr parameter
@@ -534,7 +547,6 @@ void phy::run_rx_tx_state()
       Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);    
     } else if (get_ul_buffer_adv(current_tti)->is_end_of_burst()) {
       radio_handler->tx_end();
-      Info("Sending TX END\n");
     }
     
     // Receive alligned buffer for the current tti 

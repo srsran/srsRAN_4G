@@ -596,7 +596,7 @@ bool mac::tti_thread::init(mac* parent_, tti_sync_cv *sync_)
 {
   parent = parent_; 
   log_h  = parent->log_h;
-  sync_  = sync; 
+  sync  = sync_; 
   
   started = threads_new_rt(&thread, tti_thread_runner, this);
   return started; 

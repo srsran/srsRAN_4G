@@ -335,28 +335,36 @@ int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_
       if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1 && 
           srslte_refsignal_srs_send_ue(srs_cfg->I_srs, tti) == 1)
       {
-        printf("PUSCH shorteneed for SRS UE transmission\n");
         q->shortened = true; 
-      }
-      // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission RB coincides with PUSCH allocated RB
-      if (!q->shortened) {
+        /* If RBs are contiguous, PUSCH is not shortened */
         uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
         uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
-        for (uint32_t ns=0;ns<2 && !q->shortened;ns++) {
-          if ((cfg->grant.n_prb_tilde[ns] >= k0_srs && cfg->grant.n_prb_tilde[ns] < k0_srs + nrb_srs) || 
-              (cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb >= k0_srs && 
-                    cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb < k0_srs + nrb_srs))
-          {            
-            q->shortened = true; 
-            printf("CS n_prb=%d, L=%d, k0=%d, nrb=%d\n", cfg->grant.n_prb_tilde[ns], cfg->grant.L_prb, k0_srs, nrb_srs);
+        for (uint32_t ns=0;ns<2 && q->shortened;ns++) {
+          if (cfg->grant.n_prb_tilde[ns] != k0_srs + nrb_srs ||         // If grant allocation starts when SRS ends
+              cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb != k0_srs)  // or SRS allocation starts when grant ends
+          {
+            q->shortened = false; 
           }
         }
       }
-    }
-    
-    if (q->shortened) {
-      printf("PUSCH is shortened TTI=%d\n", tti);
-    } 
+      // If not coincides with UE transmission. PUSCH shall be shortened if cell-specific SRS transmission RB 
+      //coincides with PUSCH allocated RB
+      if (!q->shortened) {
+        if (srslte_refsignal_srs_send_cs(srs_cfg->subframe_config, tti%10) == 1) {
+          uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
+          uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
+          for (uint32_t ns=0;ns<2 && !q->shortened;ns++) {
+            if ((cfg->grant.n_prb_tilde[ns] >= k0_srs && cfg->grant.n_prb_tilde[ns] < k0_srs + nrb_srs) || 
+                (cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb >= k0_srs && 
+                      cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb < k0_srs + nrb_srs) ||
+                (cfg->grant.n_prb_tilde[ns] <= k0_srs && cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb >= k0_srs + nrb_srs))
+            {            
+              q->shortened = true; 
+            }
+          }
+        }
+      }
+    }    
   }
   
   /* Compute final number of bits and RE */
@@ -514,7 +522,7 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       fprintf(stderr, "Error encoding TB\n");
       return SRSLTE_ERROR;
     }
-    
+
     if (rnti != q->rnti) {
       srslte_sequence_t seq; 
       if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
@@ -525,7 +533,6 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
     } else {
       srslte_scrambling_b_offset_pusch(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits);            
     }
-    
     srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
     
     srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);

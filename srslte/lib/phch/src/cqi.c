@@ -75,3 +75,51 @@ int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, uint8_t *
   return 4+1;    
 }
 
+bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
+  
+  uint32_t N_p = 0;
+  uint32_t N_offset = 0;
+  
+  if (I_cqi_pmi <= 1) {
+    N_p = 2; 
+    N_offset = I_cqi_pmi; 
+  } else if (I_cqi_pmi <= 6) {
+    N_p = 5; 
+    N_offset = I_cqi_pmi - 2;     
+  } else if (I_cqi_pmi <= 16) {
+    N_p = 10; 
+    N_offset = I_cqi_pmi - 7;     
+  } else if (I_cqi_pmi <= 36) {
+    N_p = 20; 
+    N_offset = I_cqi_pmi - 17;     
+  } else if (I_cqi_pmi <= 76) {
+    N_p = 40; 
+    N_offset = I_cqi_pmi - 37;     
+  } else if (I_cqi_pmi <= 156) {
+    N_p = 80; 
+    N_offset = I_cqi_pmi - 77;     
+  } else if (I_cqi_pmi <= 316) {
+    N_p = 160; 
+    N_offset = I_cqi_pmi - 157;   
+  } else if (I_cqi_pmi == 317) {
+    return false; 
+  } else if (I_cqi_pmi <= 349) {
+    N_p = 32; 
+    N_offset = I_cqi_pmi - 318;     
+  } else if (I_cqi_pmi <= 413) {
+    N_p = 64; 
+    N_offset = I_cqi_pmi - 350;     
+  } else if (I_cqi_pmi <= 541) {
+    N_p = 128; 
+    N_offset = I_cqi_pmi - 414;     
+  } else if (I_cqi_pmi <= 1023) {
+    return false; 
+  }
+  
+  if ((tti-N_offset)%N_p == 0) {
+    return true; 
+  } else {
+    return false; 
+  }
+}
+

@@ -80,6 +80,12 @@ namespace ue {
     bool is_tpc_rnti() {
       return (rnti_type == RNTI_TYPE_TPC_PUSCH || rnti_type == RNTI_TYPE_TPC_PUCCH);
     }
+    uint32_t get_tti() {
+      return tti; 
+    }
+    void set_tti(uint32_t tti_) {
+      tti = tti_; 
+    }
     virtual uint32_t get_rv()            = 0; 
     virtual void     set_rv(uint32_t rv) = 0; 
     virtual bool     get_ndi()           = 0; 
@@ -89,6 +95,7 @@ namespace ue {
   protected: 
     uint16_t            rnti; 
     rnti_type_t         rnti_type; 
+    uint32_t            tti; 
   };
  
 }
