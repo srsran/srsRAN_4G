@@ -42,7 +42,6 @@ namespace ue {
 
   queue::~queue()
   {
-    printf("destroying %d elements\n", nof_elements);
     for (int i=0;i<nof_elements;i++) {
       if (buffer_of_elements[i]) {
         free(buffer_of_elements[i]);

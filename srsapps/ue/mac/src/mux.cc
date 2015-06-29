@@ -333,7 +333,7 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, uint32_t *sdu_sz, bool *
         return true;               
       } else {
         if (pdu_msg->rem_size() > 10) {
-          Warning("Could not allocate SDU in current grant. SDU length: %d bytes. Grant space: %d bytes\n", nbytes, 
+          Info("Could not allocate SDU in current grant. SDU length: %d bytes. Grant space: %d bytes\n", nbytes, 
                 pdu_msg->rem_size());
         }
         pdu_msg->del_subh();

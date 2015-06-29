@@ -118,7 +118,7 @@ bool radio_uhd::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_tim
 bool radio_uhd::tx_end()
 {
   save_trace(2, &end_of_burst_time);
-  cuhd_send_timed2(uhd, zeros, burst_settle_samples, end_of_burst_time.full_secs, end_of_burst_time.frac_secs, false, true);
+  cuhd_send_timed2(uhd, zeros, 10, end_of_burst_time.full_secs, end_of_burst_time.frac_secs, false, true);
   is_start_of_burst = true; 
 }
 

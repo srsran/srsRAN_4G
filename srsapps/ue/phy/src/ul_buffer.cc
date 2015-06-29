@@ -121,7 +121,7 @@ bool ul_buffer::generate_data() {
 bool ul_buffer::generate_data(ul_sched_grant *grant, 
                               uint8_t *payload) 
 {
-  generate_data(grant, &ue_ul.softbuffer, payload); 
+  return generate_data(grant, &ue_ul.softbuffer, payload); 
 }
 //int nof_tx=0; 
 
@@ -245,10 +245,9 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
                                                     signal_buffer);    
       
       if (ue_ul.pusch.shortened) {
-        Warning("PUSCH shortened on tti=%d\n", tti);
+        Info("PUSCH shortened on tti=%d\n", tti);
       }
       
-
       Info("PUSCH: TTI=%d, CFO= %.1f KHz TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, shortened=%s\n", 
            tti, cfo*15e3, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
            ue_ul.pusch_cfg.grant.L_prb,  
