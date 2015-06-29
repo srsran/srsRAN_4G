@@ -263,7 +263,6 @@ void mac::main_radio_loop() {
         ul_buffer->generate_cqi_report();        
       }
 
-      
       // The UL buffer is released when successfully transmitted. 
       if (ul_buffer->is_released()) {
         ul_buffer->ready();

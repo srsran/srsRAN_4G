@@ -79,7 +79,7 @@ uint32_t m_srs_b[4][4][8] = {{
                         /* m_srs for 40<n_rb<60. Table 5.5.3.2-2 */
                         {48, 48, 40, 36, 32, 24, 20, 16}, 
                         {24, 16, 20, 12, 16,  4,  4,  4},
-                        {12, 16,  4, 12,  8,  4,  4,  8},
+                        {12,  8,  4,  4,  8,  4,  4,  4},
                         { 4,  4,  4,  4,  4,  4,  4,  4}},
                         {
                         /* m_srs for 60<n_rb<80. Table 5.5.3.2-3 */
@@ -281,7 +281,6 @@ static void arg_r_uv_mprb(float *arg, uint32_t M_sc, uint32_t u, uint32_t v) {
   uint32_t N_sz = largest_prime_lower_than(M_sc);
   float q = get_q(u,v,N_sz);
   float n_sz = (float) N_sz;
-
   for (uint32_t i = 0; i < M_sc; i++) {
     float m = (float) (i%N_sz);
     arg[i] =  -M_PI * q * m * (m + 1) / n_sz;
@@ -289,7 +288,7 @@ static void arg_r_uv_mprb(float *arg, uint32_t M_sc, uint32_t u, uint32_t v) {
 }
 
 /* Computes argument of r_u_v signal */
-static void compute_r_uv_arg(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, uint32_t nof_prb, uint32_t u, uint32_t v) {
+static void compute_r_uv_arg(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t u, uint32_t v) {
   if (nof_prb == 1) {
     srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u);
   } else if (nof_prb == 2) {
@@ -340,7 +339,7 @@ void compute_r(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t ns, uint32_t
     f_gh = q->f_gh[ns];
   }
   uint32_t u = (f_gh + (q->cell.id%30)+delta_ss)%30;
-  
+
   // Get sequence hopping number v 
   uint32_t v = 0; 
   if (nof_prb >= 6 && q->sequence_hopping_en) {
@@ -348,7 +347,7 @@ void compute_r(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t ns, uint32_t
   }
 
   // Compute signal argument 
-  compute_r_uv_arg(q, &q->pusch_cfg, nof_prb, u, v);
+  compute_r_uv_arg(q, nof_prb, u, v);
 
 }
 
@@ -688,19 +687,23 @@ uint32_t srslte_refsignal_srs_rb_L_cs(uint32_t bw_cfg, uint32_t nof_prb) {
   return 0; 
 }
 
-uint32_t srs_Fb(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t tti) {
+uint32_t srs_Fb(srslte_refsignal_srs_cfg_t *cfg, uint32_t b, uint32_t nof_prb, uint32_t tti) {
   uint32_t n_srs = tti/T_srs_table(cfg->I_srs); 
-  uint32_t N_b = Nb[srsbwtable_idx(nof_prb)][cfg->B][cfg->bw_cfg]; 
+  uint32_t N_b = Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
+ 
   uint32_t prod_1=1;
-  for (uint32_t b=cfg->b_hop;b<cfg->B-1;b++) {
-    prod_1 *= Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg];
+  for (uint32_t bp=cfg->b_hop+1;bp<b;bp++) {
+    prod_1 *= Nb[srsbwtable_idx(nof_prb)][bp][cfg->bw_cfg];
   }
-  uint32_t prod_2 = prod_1*Nb[srsbwtable_idx(nof_prb)][cfg->B][cfg->bw_cfg];
-  if (N_b%2) {
-    return N_b/2*((n_srs%prod_2)/prod_1)+((n_srs%prod_2)/prod_1/2);
+  uint32_t prod_2 = prod_1*Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg];
+  uint32_t Fb;
+  if ((N_b%2) == 0) {
+    Fb = (N_b/2)*((n_srs%prod_2)/prod_1)+((n_srs%prod_2)/prod_1/2);
   } else {
-    return N_b/2*(n_srs/prod_1);
+    Fb = (N_b/2)*(n_srs/prod_1);
   }
+
+  return Fb;
 }
 
 /* Returns k0: frequency-domain starting position for ue-specific SRS */
@@ -716,9 +719,11 @@ uint32_t srs_k0_ue(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t t
       if (b <= cfg->b_hop) {
         nb = (4*cfg->n_rrc/m_srs)%Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
       } else {
-        nb = ((4*cfg->n_rrc/m_srs)+srs_Fb(cfg, nof_prb, tti))%Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
+        uint32_t Fb=srs_Fb(cfg, b, nof_prb, tti);
+        nb = ((4*cfg->n_rrc/m_srs)+Fb)%Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
       }
-      k0 += 2*m_sc*nb;
+      k0 += 2*m_sc*nb;      
+
     }
     return k0;
   }
@@ -741,6 +746,7 @@ int srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t sf_idx, cf_t *r_
       
       compute_r(q, M_sc/SRSLTE_NRE, ns, 0);
       float alpha = 2*M_PI*q->srs_cfg.n_srs/8; 
+
       // Do complex exponential and adjust amplitude
       for (int i=0;i<M_sc;i++) {
         r_srs[(ns%2)*M_sc+i] = q->srs_cfg.beta_srs * cexpf(I*(q->tmp_arg[i] + alpha*i));

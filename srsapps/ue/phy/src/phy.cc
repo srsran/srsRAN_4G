@@ -358,6 +358,7 @@ bool phy::init_prach() {
 
 ul_buffer* phy::get_ul_buffer(uint32_t tti)
 {
+  tti=tti%10240;
   if (tti + 1 < get_current_tti() && tti > NOF_ULDL_QUEUES) {
     Warning("Warning access to PHY UL buffer too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
   }
@@ -371,6 +372,7 @@ ul_buffer* phy::get_ul_buffer_adv(uint32_t tti)
 
 dl_buffer* phy::get_dl_buffer(uint32_t tti)
 {
+  tti=tti%10240;
   if (tti + 4 < get_current_tti()) {
     Warning("Warning access to PHY DL buffer too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
    // return NULL; 
