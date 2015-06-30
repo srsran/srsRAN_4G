@@ -47,7 +47,7 @@ bool ul_buffer::init_cell(srslte_cell_t cell_, phy_params *params_db_, log *log_
   radio_h = radio_h_; 
   params_db = params_db_; 
   current_tx_nb = 0;
-  tti_is_end_of_burst = false; 
+
   if (!srslte_ue_ul_init(&ue_ul, cell)) {  
     srslte_ue_ul_set_normalization(&ue_ul, false); 
     signal_buffer = (cf_t*) srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
@@ -121,7 +121,7 @@ bool ul_buffer::generate_data() {
 bool ul_buffer::generate_data(ul_sched_grant *grant, 
                               uint8_t *payload) 
 {
-  generate_data(grant, &ue_ul.softbuffer, payload); 
+  return generate_data(grant, &ue_ul.softbuffer, payload); 
 }
 //int nof_tx=0; 
 
@@ -245,10 +245,9 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
                                                     signal_buffer);    
       
       if (ue_ul.pusch.shortened) {
-        Warning("PUSCH shortened on tti=%d\n", tti);
+        Info("PUSCH shortened on tti=%d\n", tti);
       }
       
-
       Info("PUSCH: TTI=%d, CFO= %.1f KHz TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, shortened=%s\n", 
            tti, cfo*15e3, grant->get_tbs(), srslte_mod_string(ue_ul.pusch_cfg.grant.mcs.mod), ue_ul.pusch_cfg.grant.n_prb[0], 
            ue_ul.pusch_cfg.grant.L_prb,  
@@ -283,7 +282,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
       }
       
       // Normalize before TX 
-      srslte_vec_sc_prod_cfc(signal_buffer, 0.7/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+      srslte_vec_sc_prod_cfc(signal_buffer, 0.9/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
     }
     
     radio_h->tx(signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);         
@@ -306,22 +305,17 @@ int nof_tx = 0;
 
 void ul_buffer::set_tx_params(float cfo_, float time_adv_sec, srslte_timestamp_t tx_time_)
 {
-  tti_is_end_of_burst = false; 
   cfo = cfo_; 
   srslte_timestamp_copy(&tx_time, &tx_time_);
-  srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec);
+  srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec); // UL buffer is configured for tti+4
 }
 
-void ul_buffer::set_end_of_burst()
+void ul_buffer::send_end_of_burst()
 {
-  Info("TTI %d Is end of burst\n", tti);
-  tti_is_end_of_burst = true; 
+  Info("TTI %d sending end of burst\n", tti);
+  radio_h->tx_end();
 }
 
-bool ul_buffer::is_end_of_burst()
-{
-  return tti_is_end_of_burst; 
-}
   
 } // namespace ue
 } // namespace srslte

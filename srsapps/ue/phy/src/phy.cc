@@ -106,7 +106,7 @@ bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, l
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, 160);
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_MIB_NFRAMES, 100);
   
-  if (threads_new_rt(&phy_thread, phy_thread_fnc, this)) {
+  if (threads_new_rt_prio(&phy_thread, phy_thread_fnc, this, 1)) {
     started = true; 
   }
   return started; 
@@ -358,6 +358,7 @@ bool phy::init_prach() {
 
 ul_buffer* phy::get_ul_buffer(uint32_t tti)
 {
+  tti=tti%10240;
   if (tti + 1 < get_current_tti() && tti > NOF_ULDL_QUEUES) {
     Warning("Warning access to PHY UL buffer too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
   }
@@ -371,6 +372,7 @@ ul_buffer* phy::get_ul_buffer_adv(uint32_t tti)
 
 dl_buffer* phy::get_dl_buffer(uint32_t tti)
 {
+  tti=tti%10240;
   if (tti + 4 < get_current_tti()) {
     Warning("Warning access to PHY DL buffer too late. Requested TTI=%d while PHY is in %d\n", tti, get_current_tti());
    // return NULL; 
@@ -545,9 +547,7 @@ void phy::run_rx_tx_state()
       radio_handler->set_tx_gain(old_gain);
       srslte_agc_lock(&ue_sync.agc, false);
       Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);    
-    } else if (get_ul_buffer_adv(current_tti)->is_end_of_burst()) {
-      radio_handler->tx_end();
-    }
+    } 
     
     // Receive alligned buffer for the current tti 
     tr_log_end();

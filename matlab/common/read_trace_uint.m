@@ -1,4 +1,4 @@
-function [ tti, values ] = read_trace_uint( filename, count )
+function [ values, tti] = read_trace_uint( filename, count )
 
     [tidin msg]=fopen(filename,'r');
     if (tidin==-1)

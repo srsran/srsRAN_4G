@@ -69,7 +69,7 @@ public:
         if (st >= nof_elems) {
           st=0;
         }
-      } while(st<rpm);
+      } while(st!=rpm);
       fclose(f);
       return true; 
     } else {
