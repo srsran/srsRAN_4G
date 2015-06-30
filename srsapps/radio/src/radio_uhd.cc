@@ -42,6 +42,7 @@ bool radio_uhd::init(char *args)
     fprintf(stderr, "Error opening uhd\n");
     return false;
   }
+  bzero(zeros, burst_settle_max_samples*sizeof(cf_t));
   return true;    
 }
 

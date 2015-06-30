@@ -62,8 +62,7 @@ namespace ue {
     bool     generate_data(ul_sched_grant *pusch_grant, uint8_t *payload);   
     bool     generate_data(ul_sched_grant *pusch_grant, srslte_softbuffer_tx_t *softbuffer, uint8_t *payload);   
     void     set_tx_params(float cfo, float time_adv_sec, srslte_timestamp_t tx_time);
-    void     set_end_of_burst();
-    bool     is_end_of_burst();
+    void     send_end_of_burst();    
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
     static const bool normalize_amp = true; 
   private: 
@@ -71,7 +70,6 @@ namespace ue {
     phy_params        *params_db; 
     radio             *radio_h; 
     float              cfo;
-    bool               tti_is_end_of_burst; 
     srslte_timestamp_t tx_time; 
     srslte_cell_t      cell; 
     srslte_ue_ul_t     ue_ul; 

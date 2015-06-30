@@ -59,7 +59,7 @@ bool mac::init(phy *phy_h_, tti_sync* ttisync_, log* log_h_)
   is_first_of_burst = true; 
   reset();
 
-  if (threads_new_rt_prio(&mac_thread, mac_thread_fnc, this, 5)) {
+  if (threads_new_rt_prio(&mac_thread, mac_thread_fnc, this, 0)) {
     started = true; 
   }
 
@@ -274,7 +274,7 @@ void mac::main_radio_loop() {
         is_first_of_burst = false; 
       } else {
         if (!is_first_of_burst) {
-          ul_buffer->set_end_of_burst();
+          ul_buffer->send_end_of_burst();
           is_first_of_burst = true; 
         }
       }
