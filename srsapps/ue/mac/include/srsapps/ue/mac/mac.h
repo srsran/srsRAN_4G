@@ -60,7 +60,7 @@ typedef _Complex float cf_t;
 class mac : public timer_callback
 {
 public:
-  mac() : timers_db((uint32_t) NOF_MAC_TIMERS), tr_end_time(1024*10), tr_start_time(1024*10) {started=false;  pcap = NULL; }
+  mac() : timers_db((uint32_t) NOF_MAC_TIMERS), tr_exec_total(1024*10), tr_exec_dl(1024*10), tr_exec_ul(1024*10) {started=false;  pcap = NULL; }
   bool init(phy *phy_h, tti_sync *ttisync, log *log_h);
   void stop();
   int  get_tti();
@@ -156,12 +156,18 @@ private:
   mac_pcap* pcap;
   
   // Variables for Execution time Trace
-  trace<uint32_t> tr_start_time;
-  trace<uint32_t> tr_end_time;
+  trace<uint32_t> tr_exec_total;
+  trace<uint32_t> tr_exec_dl;
+  trace<uint32_t> tr_exec_ul;
+  struct timeval tr_time_total[3];
+  struct timeval tr_time_ul[3];
+  struct timeval tr_time_dl[3];
   bool tr_enabled;   
   bool is_first_of_burst;
   void tr_log_start(uint32_t tti);
   void tr_log_end(uint32_t tti);    
+  void tr_log_dl(uint32_t tti);
+  void tr_log_ul(uint32_t tti);    
   void set_phy_crnti(uint16_t phy_rnti);
 
 };

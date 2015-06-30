@@ -96,21 +96,49 @@ void mac::start_trace()
 
 void mac::write_trace(std::string filename)
 {
-  tr_start_time.writeToBinary(filename + ".start");
-  tr_end_time.writeToBinary(filename + ".end");
+  tr_exec_total.writeToBinary(filename + ".total");
+  tr_exec_dl.writeToBinary(filename + ".dl");
+  tr_exec_ul.writeToBinary(filename + ".ul");
 }
 
 void mac::tr_log_start(uint32_t tti)
 {
   if (tr_enabled) {
-    tr_start_time.push_cur_time_us(tti);
+    gettimeofday(&tr_time_total[1], NULL);
   }
 }
 
 void mac::tr_log_end(uint32_t tti)
 {
   if (tr_enabled) {
-    tr_end_time.push_cur_time_us(tti);
+    /* compute total execution time */
+    gettimeofday(&tr_time_total[2], NULL);
+    get_time_interval(tr_time_total);
+    tr_exec_total.push(tti, tr_time_total[0].tv_usec);
+    
+    /* ul execution time is from the call to tr_log_ul */ 
+    memcpy(&tr_time_ul[2], &tr_time_total[2], sizeof(struct timeval));
+    get_time_interval(tr_time_ul);
+    tr_exec_ul.push(tti, tr_time_ul[0].tv_usec);
+  }
+}
+
+void mac::tr_log_ul(uint32_t tti)
+{
+  if (tr_enabled) {
+    /* DL execution time is from the call to tr_log_dl to the call to tr_log_ul */
+    gettimeofday(&tr_time_dl[2], NULL);
+    get_time_interval(tr_time_dl);
+    tr_exec_dl.push(tti, tr_time_dl[0].tv_usec);
+    
+    memcpy(&tr_time_ul[1], &tr_time_dl[2], sizeof(struct timeval));
+  }
+}
+
+void mac::tr_log_dl(uint32_t tti)
+{
+  if (tr_enabled) {
+    gettimeofday(&tr_time_dl[1], NULL);    
   }
 }
 
@@ -204,7 +232,6 @@ void mac::main_radio_loop() {
     }
     if (is_synchronized) {
       /* Warning: Here order of invocation of procedures is important!! */
-      tr_log_end(tti);
       tti = ttisync->wait();
       tr_log_start(tti);
       log_h->step(tti);
@@ -236,6 +263,8 @@ void mac::main_radio_loop() {
       // Receive PCH, if requested
       receive_pch(tti);
       
+      tr_log_dl(tti);
+      
       // Process DL grants always 
       process_dl_grants(tti);
 
@@ -247,6 +276,8 @@ void mac::main_radio_loop() {
           dl_harq.send_pending_ack_contention_resolution();
         }
       }
+      
+      tr_log_ul(tti);
 
       // Process UL grants if RA procedure is done and we have pending data or in contention resolution 
       if (ra_procedure.is_contention_resolution() || ra_procedure.is_successful()) {
@@ -279,6 +310,8 @@ void mac::main_radio_loop() {
         }
       }
       
+      tr_log_end(tti);
+
       timers_db.step_all();
       
       // Check if there is pending CCCH SDU in Multiplexing Unit

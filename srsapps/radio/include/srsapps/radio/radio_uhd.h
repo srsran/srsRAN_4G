@@ -81,7 +81,7 @@ namespace srslte {
       void *uhd; 
       
       static const double lo_offset = 8e6; // LO offset (in Hz)      
-      static const double burst_settle_time = 0.3e-3; // Start of burst settle time (off->on RF transition time)      
+      static const double burst_settle_time = 0.4e-3; // Start of burst settle time (off->on RF transition time)      
       const static uint32_t burst_settle_max_samples = 30720000;  // 30.72 MHz is maximum frequency
 
       srslte_timestamp_t end_of_burst_time; 
