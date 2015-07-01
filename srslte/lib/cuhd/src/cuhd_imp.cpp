@@ -162,9 +162,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
 {
   cuhd_handler *handler = new cuhd_handler();
   std::string _args = std::string(args);
-  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000, num_recv_frames=512");
-
-//  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=50000000" + ", num_recv_frames=512");
+  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000, num_recv_frames=64, num_send_frames=64");
   handler->usrp->set_clock_source("internal");
   
 #ifdef HIDE_MESSAGES
@@ -177,7 +175,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   uhd::stream_args_t stream_args(cpu, otw);
   handler->rx_stream = handler->usrp->get_rx_stream(stream_args);
   handler->tx_stream = handler->usrp->get_tx_stream(stream_args);
-
+  
   handler->tx_gain_same_rx = tx_gain_same_rx; 
   handler->tx_rx_gain_offset = 0.0; 
   handler->rx_gain_range = handler->usrp->get_rx_gain_range();

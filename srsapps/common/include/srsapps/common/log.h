@@ -71,6 +71,10 @@ public:
     level = LOG_LEVEL_DEBUG; 
   }
   
+  uint32_t get_tti() {
+    return tti; 
+  }
+  
   // Pure virtual methods for logging
   virtual void error(std::string message, ...)   = 0;
   virtual void warning(std::string message, ...) = 0;

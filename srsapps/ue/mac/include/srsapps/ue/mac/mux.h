@@ -80,7 +80,7 @@ private:
   uint32_t      lchid_sorted[mac_io::NOF_UL_LCH];
   uint32_t      nof_tx_pkts[mac_io::NOF_UL_LCH]; 
   
-  // Mutex for priority setting from outside MAC 
+  // Mutex for exclusive access
   pthread_mutex_t mutex; 
 
   log        *log_h;

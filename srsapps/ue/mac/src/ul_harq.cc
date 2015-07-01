@@ -120,10 +120,12 @@ void ul_harq_entity::run_tti(uint32_t tti, ul_sched_grant *grant, phy *phy_h)
         // Request a MAC PDU from the Multiplexing & Assemble Unit
         uint8_t* mac_pdu = mux_unit->pdu_pop(grant->get_tbs());
         if (mac_pdu) {            
-          proc[pid].generate_new_tx(tti_tx, mac_pdu, false, grant, phy_h->get_ul_buffer(tti_tx));          
+          // FIXME: This is inefficient. too many memcopies 
+          memcpy(mac_pdu_buffer[pid], mac_pdu, grant->get_tbs()*sizeof(uint8_t));
           mux_unit->pdu_release();
+          proc[pid].generate_new_tx(tti_tx, mac_pdu_buffer[pid], false, grant, phy_h->get_ul_buffer(tti_tx));          
         } else {
-          Warning("Uplink grant with MAC PDU available in Multiplex Unit\n");
+          Warning("Uplink grant but no MAC PDU in Multiplex Unit buffer\n");
         }
       }
     } else {

@@ -37,8 +37,8 @@ namespace ue {
 
 mux::mux() : pdu_msg(20)
 {
-  msg3_buff.init(1, MSG3_BUFF_SZ);
-  pdu_buff.init(1, PDU_BUFF_SZ);
+  msg3_buff.init(mac::NOF_TTI_THREADS, MSG3_BUFF_SZ);
+  pdu_buff.init(mac::NOF_TTI_THREADS, PDU_BUFF_SZ);
   bzero(nof_tx_pkts, sizeof(uint32_t) * mac_io::NOF_UL_LCH);
   pthread_mutex_init(&mutex, NULL);
   msg3_has_been_transmitted = false; 
@@ -124,6 +124,7 @@ void mux::set_priority(uint32_t lch_id, uint32_t set_priority, int set_PBR, uint
 
 void mux::pdu_release()
 {
+  pthread_mutex_unlock(&mutex);  
   pdu_buff.release();
 }
 
@@ -152,6 +153,9 @@ bool mux::pdu_move_to_msg3(uint32_t pdu_sz)
 // Multiplexing and logical channel priorization as defined in Section 5.4.3
 uint8_t* mux::pdu_pop(uint32_t pdu_sz)
 {
+  // Acquire mutex. Will be released after a call to pdu_release
+  pthread_mutex_lock(&mutex); 
+
   if (pdu_buff.isempty()) {
     if (assemble_pdu(pdu_sz)) {
       return (uint8_t*) pdu_buff.pop();
@@ -190,9 +194,6 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   
   // Make sure pdu_sz is byte-aligned
   pdu_sz_nbits = 8*(pdu_sz_nbits/8);
-  
-  // Acquire mutex. Cannot change priorities, PBR or BSD after assemble finishes
-  pthread_mutex_lock(&mutex); 
   
   // Update Bj
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {    
@@ -263,7 +264,6 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
     while (allocate_sdu(lchid_sorted[i], &pdu_msg));   
   }
-  pthread_mutex_unlock(&mutex);
 
   /* Release all SDUs */
   for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
@@ -289,7 +289,7 @@ bool mux::assemble_pdu(uint32_t pdu_sz_nbits) {
 
   Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.size(), pdu_sz_nbits/8);
   //pdu_msg.fprint(stdout);
-  
+
   /* Generate MAC PDU and save to buffer */
   if (pdu_msg.write_packet(buff)) {
     pdu_buff.push(pdu_sz_nbits);

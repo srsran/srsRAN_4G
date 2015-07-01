@@ -27,6 +27,7 @@
 
 
 
+#include <pthread.h>
 
 #include "srsapps/common/log.h"
 #include "srsapps/common/tti_sync.h"
@@ -116,15 +117,18 @@ public:
     tti_sync_cv *sync; 
     pthread_t   thread; 
   };
+
+  static const int NOF_TTI_THREADS = 2; 
   
 private:  
   
   
   // TTI processing threads
-  static const int NOF_TTI_THREADS = 1; 
-  tti_thread   tti_threads[NOF_TTI_THREADS]; 
-  tti_sync_cv  tti_threads_sync[NOF_TTI_THREADS];
-  
+  tti_thread      tti_threads[NOF_TTI_THREADS]; 
+  tti_sync_cv     tti_threads_sync[NOF_TTI_THREADS];
+  pthread_mutex_t tti_threads_sync_tx[NOF_TTI_THREADS];
+  bool            is_first_tx;
+
   // Interaction with PHY 
   tti_sync     *ttisync; 
   phy          *phy_h; 

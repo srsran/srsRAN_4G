@@ -285,8 +285,6 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
       srslte_vec_sc_prod_cfc(signal_buffer, 0.9/max, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
     }
     
-    radio_h->tx(signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);         
-
     release();
     
     if (n < 0) {
@@ -308,6 +306,11 @@ void ul_buffer::set_tx_params(float cfo_, float time_adv_sec, srslte_timestamp_t
   cfo = cfo_; 
   srslte_timestamp_copy(&tx_time, &tx_time_);
   srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec); // UL buffer is configured for tti+4
+}
+
+void ul_buffer::send() {
+  radio_h->tx(signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);         
+  Info("TX TTI=%d\n", tti);
 }
 
 void ul_buffer::send_end_of_burst()

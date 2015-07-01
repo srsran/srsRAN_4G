@@ -38,6 +38,9 @@ demux::demux() : mac_msg(20),pending_mac_msg(20)
   pending_temp_rnti = false; 
   has_pending_contention_resolution_id = false; 
   sdu_handler_ = NULL; 
+  
+  pthread_mutex_init(&mutex, NULL);
+
 }
 
 void demux::init(phy* phy_h_, log* log_h_, mac_io* mac_io_h_, timers* timers_db_)
@@ -113,12 +116,17 @@ void demux::push_pdu_temp_crnti(uint8_t *mac_pdu, uint32_t nof_bits)
 /* Demultiplexing of logical channels and dissassemble of MAC CE */ 
 void demux::push_pdu(uint8_t *mac_pdu, uint32_t nof_bits)
 {
+  pthread_mutex_lock(&mutex);
+
   // Unpack DLSCH MAC PDU 
   mac_msg.init(nof_bits/8);
   mac_msg.parse_packet(mac_pdu);
   //mac_msg.fprint(stdout);
   process_pdu(&mac_msg);
   Debug("Normal MAC PDU processed\n");
+  
+  pthread_mutex_unlock(&mutex);
+  
 }
 
 void demux::discard_pending_pdu()

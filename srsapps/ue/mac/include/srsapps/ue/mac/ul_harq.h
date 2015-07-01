@@ -100,6 +100,8 @@ private:
     void generate_tx(uint32_t tti_tx, uint8_t *pdu_payload, ul_buffer* ul);
   };
     
+  uint8_t         mac_pdu_buffer[NOF_HARQ_PROC][64*1024];
+  
   timers          *timers_db; 
   mux             *mux_unit;
   ul_harq_process proc[NOF_HARQ_PROC];

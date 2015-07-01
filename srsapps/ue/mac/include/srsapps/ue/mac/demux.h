@@ -67,6 +67,9 @@ private:
   
   void process_pdu(sch_pdu *pdu);
   bool process_ce(sch_subh *subheader);
+  
+  // Mutex for exclusive access
+  pthread_mutex_t mutex; 
 
   uint64_t   contention_resolution_id; 
   bool       pending_temp_rnti;

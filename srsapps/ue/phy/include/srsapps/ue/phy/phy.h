@@ -134,7 +134,7 @@ private:
     IDLE, RXTX
   } phy_state; 
   
-  static const int NOF_ULDL_QUEUES = 6; 
+  static const int NOF_ULDL_QUEUES = 10; 
   
   tti_sync      *ttisync; 
   radio         *radio_handler;

@@ -106,7 +106,7 @@ bool phy::init_(srslte::radio* radio_handler_, srslte::ue::tti_sync* ttisync_, l
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_PSS_CORRELATION_THRESHOLD, 160);
   params_db.set_param(phy_params::CELLSEARCH_TIMEOUT_MIB_NFRAMES, 100);
   
-  if (threads_new_rt_prio(&phy_thread, phy_thread_fnc, this, 1)) {
+  if (threads_new_rt_prio(&phy_thread, phy_thread_fnc, this, 2)) {
     started = true; 
   }
   return started; 
