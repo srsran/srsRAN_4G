@@ -208,24 +208,18 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     bzero(pucch_bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
     bzero(pucch2_bits, 2*sizeof(uint8_t));
     
-    // 1-bit ACK + SR
+    // 1-bit ACK + optional SR
     if (uci_data.uci_ack_len == 1) {
       format = SRSLTE_PUCCH_FORMAT_1A;
       pucch_bits[0] = uci_data.uci_ack; 
     }
-    // 2-bit ACK + SR
-    else if (uci_data.uci_ack_len == 2 && uci_data.scheduling_request) {
+    // 2-bit ACK + optional SR
+    else if (uci_data.uci_ack_len == 2) {
       format = SRSLTE_PUCCH_FORMAT_1B;    
       pucch_bits[0] = uci_data.uci_ack; 
       pucch_bits[1] = uci_data.uci_ack_2; 
     }
-    // 2-bit ACK with channel selection
-    else if (uci_data.uci_ack_len == 2 && uci_data.channel_selection) {
-      format = SRSLTE_PUCCH_FORMAT_1B;    
-      pucch_bits[0] = uci_data.uci_ack; 
-      pucch_bits[1] = uci_data.uci_ack_2; 
-    }
-    // scheduling_request
+    // SR only 
     else if (uci_data.scheduling_request) {
       format = SRSLTE_PUCCH_FORMAT_1;    
     }
@@ -260,7 +254,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     
     // Choose n_pucch 
     uint32_t n_pucch = 0; 
-    if (format == SRSLTE_PUCCH_FORMAT_1) {
+    if (uci_data.scheduling_request) {
       n_pucch = q->pucch_sched.n_pucch_sr; 
     } else if (format < SRSLTE_PUCCH_FORMAT_2) {
       if (q->pucch_sched.sps_enabled) {
