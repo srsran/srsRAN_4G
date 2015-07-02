@@ -45,4 +45,7 @@ public:
   bool   tx_gain_same_rx; 
   float  tx_rx_gain_offset; 
   uhd::gain_range_t rx_gain_range; 
+  size_t rx_nof_samples;
+  size_t tx_nof_samples;
+  double tx_rate;
 };

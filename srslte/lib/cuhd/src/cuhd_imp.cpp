@@ -162,7 +162,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
 {
   cuhd_handler *handler = new cuhd_handler();
   std::string _args = std::string(args);
-  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000, num_recv_frames=64, num_send_frames=64");
+  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000, recv_frame_size=7696,num_recv_frames=64,send_frame_size=7696,num_send_frames=64");
   handler->usrp->set_clock_source("internal");
   
 #ifdef HIDE_MESSAGES
@@ -175,6 +175,9 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   uhd::stream_args_t stream_args(cpu, otw);
   handler->rx_stream = handler->usrp->get_rx_stream(stream_args);
   handler->tx_stream = handler->usrp->get_tx_stream(stream_args);
+
+  handler->rx_nof_samples = handler->rx_stream->get_max_num_samps();
+  handler->tx_nof_samples = handler->tx_stream->get_max_num_samps();
   
   handler->tx_gain_same_rx = tx_gain_same_rx; 
   handler->tx_rx_gain_offset = 0.0; 
@@ -258,31 +261,7 @@ double cuhd_set_rx_freq_offset(void *h, double freq,  double off) {
 
 int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  uhd::rx_metadata_t md;
-  uint32_t nof_packets = 0; 
-  if (blocking) {
-    int n = 0, p;
-    complex_t *data_c = (complex_t *) data;
-    do {
-      p = handler->rx_stream->recv(&data_c[n], nsamples - n, md);
-      if (p == -1) {
-        return -1;
-      }
-      n += p;
-#ifdef METADATA_VERBOSE
-      if (md.error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {
-        std::cout << "\nError code: " << md.to_pp_string() << "\n\n";
-      }
-#endif
-      nof_packets++;
-    } while (n < nsamples                                              && 
-             md.error_code == uhd::rx_metadata_t::ERROR_CODE_NONE      && 
-             nof_packets < 10);
-    return nsamples;
-  } else {
-    return handler->rx_stream->recv(data, nsamples, md, 0.0);
-  }
+  return cuhd_recv_with_time(h, data, nsamples, blocking, NULL, NULL);
 }
 
 int cuhd_recv_with_time(void *h,
@@ -293,14 +272,16 @@ int cuhd_recv_with_time(void *h,
                     double *frac_secs) 
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  uhd::rx_metadata_t md;
-  uint32_t nof_packets = 0; 
-  int ret = -1; 
+  uhd::rx_metadata_t md, md_first;
   if (blocking) {
     int n = 0, p;
     complex_t *data_c = (complex_t *) data;
     do {
-      p = handler->rx_stream->recv(&data_c[n], nsamples - n, md);
+      size_t rx_samples = handler->rx_nof_samples;
+      if (rx_samples > nsamples - n) {
+        rx_samples = nsamples - n; 
+      }
+      p = handler->rx_stream->recv(&data_c[n], rx_samples, n==0?md_first:md);
       if (p == -1) {
         return -1;
       }
@@ -310,19 +291,18 @@ int cuhd_recv_with_time(void *h,
         std::cout << "\nError code: " << md.to_pp_string() << "\n\n";
       }
 #endif
-      nof_packets++;
     } while (n < nsamples                                              && 
-             md.error_code == uhd::rx_metadata_t::ERROR_CODE_NONE      && 
-             nof_packets < 10);
-    ret = nsamples;
+             md.error_code == uhd::rx_metadata_t::ERROR_CODE_NONE);
   } else {
-    ret = handler->rx_stream->recv(data, nsamples, md, 0.0);
+    return handler->rx_stream->recv(data, nsamples, md, 0.0);
   }
-  if (secs && frac_secs) {
-    *secs = md.time_spec.get_full_secs();
-    *frac_secs = md.time_spec.get_frac_secs();    
+  if (secs) {
+    *secs = md_first.time_spec.get_full_secs();
   }
-  return ret;
+  if (frac_secs) {
+    *frac_secs = md_first.time_spec.get_frac_secs();    
+  }
+  return nsamples;
 }
 double cuhd_set_tx_gain(void *h, double gain)
 {
@@ -335,7 +315,8 @@ double cuhd_set_tx_srate(void *h, double freq)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   handler->usrp->set_tx_rate(freq);
-  return handler->usrp->get_tx_rate();
+  handler->tx_rate = handler->usrp->get_tx_rate();
+  return handler->tx_rate; 
 }
 
 double cuhd_set_tx_freq(void *h, double freq)
@@ -363,6 +344,58 @@ void cuhd_get_time(void *h, time_t *secs, double *frac_secs) {
   }
 }
 
+                   
+int cuhd_send_timed3(void *h,
+                     void *data,
+                     int nsamples,
+                     time_t secs,
+                     double frac_secs,                      
+                     bool has_time_spec,
+                     bool blocking,
+                     bool is_start_of_burst,
+                     bool is_end_of_burst) 
+{
+  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
+  uhd::tx_metadata_t md;
+  md.has_time_spec = has_time_spec;
+  if (has_time_spec) {
+    md.time_spec = uhd::time_spec_t(secs, frac_secs);
+  }
+
+  if (blocking) {
+    int n = 0, p;
+    complex_t *data_c = (complex_t *) data;
+    do {
+      size_t tx_samples = handler->tx_nof_samples;
+      
+      // First packet is start of burst if so defined, others are never 
+      if (n == 0) {
+        md.start_of_burst = is_start_of_burst;
+      } else {
+        md.start_of_burst = false; 
+      }
+      
+      // middle packets are never end of burst, last one as defined
+      if (nsamples - n > tx_samples) {
+        md.end_of_burst = false; 
+      } else {
+        tx_samples = nsamples - n; 
+        md.end_of_burst = is_end_of_burst;
+      }
+      p = handler->tx_stream->send(&data_c[n], tx_samples, md);
+      if (p == -1) {
+        return -1;
+      }
+      // Increase time spec 
+      md.time_spec += tx_samples/handler->tx_rate; 
+      n += p;
+    } while (n < nsamples);
+    return nsamples;
+  } else {
+    return handler->tx_stream->send(data, nsamples, md, 0.0);
+  }
+}
+
 int cuhd_send(void *h, void *data, uint32_t nsamples, bool blocking)
 {
   return cuhd_send2(h, data, nsamples, blocking, true, true); 
@@ -370,25 +403,7 @@ int cuhd_send(void *h, void *data, uint32_t nsamples, bool blocking)
 
 int cuhd_send2(void *h, void *data, uint32_t nsamples, bool blocking, bool start_of_burst, bool end_of_burst)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  uhd::tx_metadata_t md;
-  md.has_time_spec = false; 
-  md.start_of_burst = start_of_burst; 
-  md.end_of_burst = end_of_burst; 
-  if (blocking) {
-    int n = 0, p;
-    complex_t *data_c = (complex_t *) data;
-    do {
-      p = handler->tx_stream->send(&data_c[n], nsamples - n, md);
-      if (p == -1) {
-        return -1;
-      }
-      n += p;
-    } while (n < nsamples);
-    return nsamples;
-  } else {
-    return handler->tx_stream->send(data, nsamples, md, 0.0);
-  }
+  return cuhd_send_timed3(h, data, nsamples, 0, 0, false, blocking, start_of_burst, end_of_burst);
 }
 
 
@@ -400,20 +415,14 @@ int cuhd_send_timed(void *h,
 {
   return cuhd_send_timed2(h, data, nsamples, secs, frac_secs, true, true);
 }
-                    
+
 int cuhd_send_timed2(void *h,
-                     void *data,
-                     int nsamples,
-                     time_t secs,
-                     double frac_secs,                      
-                     bool is_start_of_burst,
-                     bool is_end_of_burst) 
+                    void *data,
+                    int nsamples,
+                    time_t secs,
+                    double frac_secs,
+                    bool is_start_of_burst,
+                    bool is_end_of_burst) 
 {
-  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
-  uhd::tx_metadata_t md;
-  md.start_of_burst = is_start_of_burst;
-  md.end_of_burst = is_end_of_burst; 
-  md.has_time_spec = true;
-  md.time_spec = uhd::time_spec_t(secs, frac_secs);
-  return handler->tx_stream->send(data, nsamples, md);
+  return cuhd_send_timed3(h, data, nsamples, secs, frac_secs, true, true, is_start_of_burst, is_end_of_burst);
 }
