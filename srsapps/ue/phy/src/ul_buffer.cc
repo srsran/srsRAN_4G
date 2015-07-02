@@ -256,7 +256,7 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     
 
     } else if (uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ack_len) {
-      n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti%10, signal_buffer);
+      n = srslte_ue_ul_pucch_encode(&ue_ul, uci_data, tti, signal_buffer);
 
       Info("PUCCH: TTI=%d, CFO= %.1f KHz n_cce=%d, ack=%s, sr=%s, shortened=%s\n", tti, cfo*15e3, last_n_cce, 
         uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
