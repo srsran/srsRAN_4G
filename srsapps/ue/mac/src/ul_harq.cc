@@ -125,6 +125,7 @@ void ul_harq_entity::run_tti(uint32_t tti, ul_sched_grant *grant, phy *phy_h)
           mux_unit->pdu_release();
           proc[pid].generate_new_tx(tti_tx, mac_pdu_buffer[pid], false, grant, phy_h->get_ul_buffer(tti_tx));          
         } else {
+          mux_unit->pdu_release();
           Warning("Uplink grant but no MAC PDU in Multiplex Unit buffer\n");
         }
       }

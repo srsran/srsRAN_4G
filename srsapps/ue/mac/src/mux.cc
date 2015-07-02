@@ -124,8 +124,8 @@ void mux::set_priority(uint32_t lch_id, uint32_t set_priority, int set_PBR, uint
 
 void mux::pdu_release()
 {
-  pthread_mutex_unlock(&mutex);  
   pdu_buff.release();
+  pthread_mutex_unlock(&mutex);  
 }
 
 bool mux::pdu_move_to_msg3(uint32_t pdu_sz)
