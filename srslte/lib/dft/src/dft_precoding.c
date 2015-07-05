@@ -88,7 +88,9 @@ void srslte_dft_precoding_free(srslte_dft_precoding_t  *q)
 }
 
 bool srslte_dft_precoding_valid_prb(uint32_t nof_prb) {
-  if (nof_prb == 1 || (nof_prb%2) == 0 || (nof_prb%3) == 0 || (nof_prb%5) == 0) {
+  if (nof_prb > 0 && 
+     (nof_prb == 1 || (nof_prb%2) == 0 || (nof_prb%3) == 0 || (nof_prb%5) == 0)) 
+  {
     return true; 
   } else {
     return false; 

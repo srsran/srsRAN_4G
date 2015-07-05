@@ -104,12 +104,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } 
   uint32_t nof_prb = mexutils_read_f(p, &prbset); 
   
-  if (mexutils_read_uint32_struct(PUSCHCFG, "DynCyclicShift", &pusch_cfg.cyclic_shift_for_dmrs)) {
-    pusch_cfg.cyclic_shift_for_dmrs = 0; 
-    pusch_cfg.en_dmrs_2 = false; 
-  } else {
-    pusch_cfg.en_dmrs_2 = true; 
-  }
+  uint32_t cyclic_shift_for_dmrs = 0; 
+  if (mexutils_read_uint32_struct(PUSCHCFG, "DynCyclicShift", &cyclic_shift_for_dmrs)) {
+    cyclic_shift_for_dmrs = 0; 
+  } 
   
   pusch_cfg.beta_pusch = 1.0; 
 
@@ -120,7 +118,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mexPrintf("nof_prb: %d, ",nof_prb);
   mexPrintf("cyclic_shift: %d, ",pusch_cfg.cyclic_shift);
-  mexPrintf("cyclic_shift_for_dmrs: %d, ",pusch_cfg.cyclic_shift_for_dmrs);
+  mexPrintf("cyclic_shift_for_dmrs: %d, ", cyclic_shift_for_dmrs);
   mexPrintf("delta_ss: %d, ",pusch_cfg.delta_ss);
   
   cf_t *signal = srslte_vec_malloc(2*SRSLTE_NRE*nof_prb*sizeof(cf_t));
@@ -138,7 +136,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_refsignal_ul_set_cfg(&refs, &pusch_cfg, NULL, NULL, group_hopping_en, sequence_hopping_en);
   
   //mexPrintf("Generating DRMS for ns=%d, nof_prb=%d\n", 2*sf_idx+i,pusch_cfg.nof_prb);
-  srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, signal);    
+  srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, cyclic_shift_for_dmrs, signal);    
   uint32_t n_prb[2]; 
   n_prb[0] = prbset[0];
   n_prb[1] = prbset[0];

@@ -78,7 +78,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
       fprintf(stderr, "Error initiating soft buffer\n");
       goto clean_exit;
     }
-    if (srslte_refsignal_ul_init(&q->dmrs, cell)) {
+    if (srslte_refsignal_ul_init(&q->signals, cell)) {
       fprintf(stderr, "Error initiating srslte_refsignal_ul\n");
       goto clean_exit;
     }
@@ -98,7 +98,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
       perror("malloc");
       goto clean_exit; 
     }
-    
+    q->signals_pregenerated = false; 
     ret = SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
@@ -120,7 +120,7 @@ void srslte_ue_ul_free(srslte_ue_ul_t *q) {
     srslte_softbuffer_tx_free(&q->softbuffer);
     
     srslte_cfo_free(&q->cfo); 
-    srslte_refsignal_ul_free(&q->dmrs);
+    srslte_refsignal_ul_free(&q->signals);
 
     if (q->sf_symbols) {
       free(q->sf_symbols);
@@ -130,6 +130,10 @@ void srslte_ue_ul_free(srslte_ue_ul_t *q) {
     }
     if (q->srs_signal) {
       free(q->srs_signal);
+    }
+    if (q->signals_pregenerated) {
+      srslte_refsignal_dmrs_pusch_pregen_free(&q->signals, &q->pregen_drms);
+      srslte_refsignal_srs_pregen_free(&q->signals, &q->pregen_srs);
     }
     bzero(q, sizeof(srslte_ue_ul_t));
   }
@@ -163,6 +167,21 @@ void srslte_ue_ul_reset(srslte_ue_ul_t *q) {
   srslte_softbuffer_tx_reset(&q->softbuffer);
 }
 
+int srslte_ue_ul_pregen_signals(srslte_ue_ul_t *q) {
+  if (q->signals_pregenerated) {
+    srslte_refsignal_dmrs_pusch_pregen_free(&q->signals, &q->pregen_drms);
+    srslte_refsignal_srs_pregen_free(&q->signals, &q->pregen_srs);
+  }
+  if (srslte_refsignal_dmrs_pusch_pregen(&q->signals, &q->pregen_drms)) {
+    return SRSLTE_ERROR;
+  }
+  if (srslte_refsignal_srs_pregen(&q->signals, &q->pregen_srs)) {
+    return SRSLTE_ERROR;
+  }
+  q->signals_pregenerated = true; 
+  return SRSLTE_SUCCESS;
+}
+
 void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
                           srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg, 
                           srslte_pucch_cfg_t *pucch_cfg, 
@@ -171,7 +190,7 @@ void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
                           bool group_hopping_en, 
                           bool sequence_hopping_en)
 {
-  srslte_refsignal_ul_set_cfg(&q->dmrs, pusch_cfg, pucch_cfg, srs_cfg, group_hopping_en, sequence_hopping_en);
+  srslte_refsignal_ul_set_cfg(&q->signals, pusch_cfg, pucch_cfg, srs_cfg, group_hopping_en, sequence_hopping_en);
   srslte_pucch_set_cfg(&q->pucch, pucch_cfg, group_hopping_en); 
   if (pucch_sched) {
     memcpy(&q->pucch_sched, pucch_sched, sizeof(srslte_pucch_sched_t));    
@@ -181,9 +200,9 @@ void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
 int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_dci_msg_t *dci_msg, 
                            srslte_pusch_hopping_cfg_t *hopping_cfg, 
                            srslte_refsignal_srs_cfg_t *srs_cfg, 
-                           uint32_t tti, uint32_t rvidx) 
+                           uint32_t tti, uint32_t cyclic_shift_for_dmrs, uint32_t rvidx) 
 {
-  return srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, dci_msg, hopping_cfg, srs_cfg, tti, rvidx);
+  return srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, dci_msg, hopping_cfg, srs_cfg, tti, cyclic_shift_for_dmrs, rvidx);
 }
 
 /* Choose PUCCH format as in Sec 10.1 of 36.213 and generate PUCCH signal 
@@ -270,16 +289,16 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
       return ret; 
     }
 
-    if (srslte_refsignal_dmrs_pucch_gen(&q->dmrs, format, n_pucch, sf_idx, pucch2_bits, q->refsignal)) 
+    if (srslte_refsignal_dmrs_pucch_gen(&q->signals, format, n_pucch, sf_idx, pucch2_bits, q->refsignal)) 
     {
       fprintf(stderr, "Error generating PUSCH DRMS signals\n");
       return ret; 
     }
-    srslte_refsignal_dmrs_pucch_put(&q->dmrs, format, n_pucch, q->refsignal, q->sf_symbols);                
+    srslte_refsignal_dmrs_pucch_put(&q->signals, format, n_pucch, q->refsignal, q->sf_symbols);                
     
-    if (srslte_ue_ul_srs_tx_enabled(&q->dmrs.srs_cfg, tti) && q->pucch.shortened) {
-      srslte_refsignal_srs_gen(&q->dmrs, tti%10, q->srs_signal);
-      srslte_refsignal_srs_put(&q->dmrs, tti, q->srs_signal, q->sf_symbols);      
+    if (srslte_ue_ul_srs_tx_enabled(&q->signals.srs_cfg, tti) && q->pucch.shortened) {
+      srslte_refsignal_srs_gen(&q->signals, tti%10, q->srs_signal);
+      srslte_refsignal_srs_put(&q->signals, tti, q->srs_signal, q->sf_symbols);      
     }
 
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
@@ -343,9 +362,13 @@ int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal
   if (q && output_signal) {
     ret = SRSLTE_ERROR; 
     
-    if (srslte_ue_ul_srs_tx_enabled(&q->dmrs.srs_cfg, tti)) {
-      srslte_refsignal_srs_gen(&q->dmrs, tti%10, q->srs_signal);
-      srslte_refsignal_srs_put(&q->dmrs, tti, q->srs_signal, q->sf_symbols);      
+    if (srslte_ue_ul_srs_tx_enabled(&q->signals.srs_cfg, tti)) {
+      if (q->signals_pregenerated) {
+        srslte_refsignal_srs_pregen_put(&q->signals, &q->pregen_srs, tti, q->sf_symbols);
+      } else {
+        srslte_refsignal_srs_gen(&q->signals, tti%10, q->srs_signal);
+        srslte_refsignal_srs_put(&q->signals, tti, q->srs_signal, q->sf_symbols);      
+      }
     }
     
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
@@ -355,7 +378,7 @@ int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal
     }
     
     if (q->normalize_en) {
-      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(srslte_refsignal_srs_M_sc(&q->dmrs)/6);
+      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(srslte_refsignal_srs_M_sc(&q->signals)/6);
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     
@@ -383,20 +406,35 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
       return ret; 
     }
 
-    // FIXME: Pregenerate for all possible number of prb 
-    if (srslte_refsignal_dmrs_pusch_gen(&q->dmrs, q->pusch_cfg.grant.L_prb, q->pusch_cfg.sf_idx, q->refsignal)) 
-    {
-      fprintf(stderr, "Error generating PUSCH DRMS signals\n");
-      return ret; 
+    if (q->signals_pregenerated) {
+      srslte_refsignal_dmrs_pusch_pregen_put(&q->signals, &q->pregen_drms, 
+                                             q->pusch_cfg.grant.L_prb, 
+                                             q->pusch_cfg.sf_idx, 
+                                             q->pusch_cfg.cyclic_shift_for_dmrs,
+                                             q->pusch_cfg.grant.n_prb_tilde, 
+                                             q->sf_symbols);
+    } else {
+      if (srslte_refsignal_dmrs_pusch_gen(&q->signals, q->pusch_cfg.grant.L_prb, 
+                                          q->pusch_cfg.sf_idx,
+                                          q->pusch_cfg.cyclic_shift_for_dmrs,
+                                          q->refsignal)) 
+      {
+        fprintf(stderr, "Error generating PUSCH DRMS signals\n");
+        return ret; 
+      }
+      srslte_refsignal_dmrs_pusch_put(&q->signals, q->refsignal, 
+                                      q->pusch_cfg.grant.L_prb, 
+                                      q->pusch_cfg.grant.n_prb_tilde, 
+                                      q->sf_symbols);                      
     }
-    srslte_refsignal_dmrs_pusch_put(&q->dmrs, q->refsignal, 
-                                    q->pusch_cfg.grant.L_prb, 
-                                    q->pusch_cfg.grant.n_prb_tilde, 
-                                    q->sf_symbols);                
 
-    if (srslte_ue_ul_srs_tx_enabled(&q->dmrs.srs_cfg, q->pusch_cfg.tti)) {
-      srslte_refsignal_srs_gen(&q->dmrs, q->pusch_cfg.sf_idx, q->srs_signal);
-      srslte_refsignal_srs_put(&q->dmrs, q->pusch_cfg.tti, q->srs_signal, q->sf_symbols);      
+    if (srslte_ue_ul_srs_tx_enabled(&q->signals.srs_cfg, q->pusch_cfg.tti)) {
+      if (q->signals_pregenerated) {
+        srslte_refsignal_srs_pregen_put(&q->signals, &q->pregen_srs, q->pusch_cfg.tti, q->sf_symbols);
+      } else {
+        srslte_refsignal_srs_gen(&q->signals, q->pusch_cfg.sf_idx, q->srs_signal);
+        srslte_refsignal_srs_put(&q->signals, q->pusch_cfg.tti, q->srs_signal, q->sf_symbols);              
+      }
     }
     
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);

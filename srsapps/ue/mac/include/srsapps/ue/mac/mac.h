@@ -168,7 +168,7 @@ private:
   void tr_log_end(uint32_t tti);    
   void tr_log_dl(uint32_t tti);
   void tr_log_ul(uint32_t tti);    
-  void set_phy_crnti(uint16_t phy_rnti);
+  void pregen_phy(uint16_t phy_rnti);
 
 };
 

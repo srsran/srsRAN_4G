@@ -36,6 +36,7 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 #include "srslte/common/sequence.h"
+#include "srslte/dft/dft_precoding.h"
 
 #include "ul_rs_tables.h"
 
@@ -299,20 +300,19 @@ static void compute_r_uv_arg(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_
 }
 
 /* Calculates alpha according to 5.5.2.1.1 of 36.211 */
-static float pusch_alpha(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, uint32_t ns) {
-  uint32_t n_dmrs_2_val = 0; 
-  if (cfg->en_dmrs_2) {
-    n_dmrs_2_val = n_dmrs_2[cfg->cyclic_shift_for_dmrs];
-  }
+static float pusch_alpha(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, 
+                           uint32_t cyclic_shift_for_dmrs, uint32_t ns) 
+{
+  uint32_t n_dmrs_2_val = n_dmrs_2[cyclic_shift_for_dmrs];  
   uint32_t n_cs = (n_dmrs_1[cfg->cyclic_shift] + n_dmrs_2_val + q->n_prs_pusch[cfg->delta_ss][ns]) % 12;
   
   return 2 * M_PI * (n_cs) / 12;
 
 }
 
-bool srslte_refsignal_dmrs_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, uint32_t nof_prb) {
+bool srslte_refsignal_dmrs_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, srslte_refsignal_dmrs_pusch_cfg_t *cfg, 
+                                             uint32_t nof_prb) {
   if (cfg->cyclic_shift          < SRSLTE_NOF_CSHIFT   && 
-      cfg->cyclic_shift_for_dmrs < SRSLTE_NOF_CSHIFT   &&
       cfg->delta_ss              < SRSLTE_NOF_DELTA_SS &&
       nof_prb                    <= q->cell.nof_prb) {
     return true; 
@@ -351,8 +351,73 @@ void compute_r(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t ns, uint32_t
 
 }
 
+int srslte_refsignal_dmrs_pusch_pregen(srslte_refsignal_ul_t *q, srslte_refsignal_ul_dmrs_pregen_t *pregen)
+{
+  for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
+    for (uint32_t cs=0;cs<SRSLTE_NOF_CSHIFT;cs++) {
+      pregen->r[cs][sf_idx] = (cf_t**) calloc(sizeof(cf_t*), q->cell.nof_prb + 1);
+      if (pregen->r[cs][sf_idx]) {
+        for (uint32_t n=0;n<=q->cell.nof_prb;n++) {
+          if (srslte_dft_precoding_valid_prb(n)) {
+            pregen->r[cs][sf_idx][n] = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*n*2*SRSLTE_NRE);
+            if (pregen->r[cs][sf_idx][n]) {
+              if (srslte_refsignal_dmrs_pusch_gen(q, n, sf_idx, cs, pregen->r[cs][sf_idx][n])) {
+                return SRSLTE_ERROR; 
+              }
+            } else {
+              return SRSLTE_ERROR;
+            }     
+          }
+        }
+      } else {
+        return SRSLTE_ERROR;
+      }
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
+void srslte_refsignal_dmrs_pusch_pregen_free(srslte_refsignal_ul_t *q, srslte_refsignal_ul_dmrs_pregen_t *pregen)
+{
+  for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
+    for (uint32_t cs=0;cs<SRSLTE_NOF_CSHIFT;cs++) {
+      if (pregen->r[cs][sf_idx]) {
+        for (uint32_t n=0;n<=q->cell.nof_prb;n++) {
+          if (srslte_dft_precoding_valid_prb(n)) {
+            if (pregen->r[cs][sf_idx][n]) {
+              free(pregen->r[cs][sf_idx][n]);
+            }
+          }
+        }
+        free(pregen->r[cs][sf_idx]);      
+      }
+    }
+  }
+}
+
+int srslte_refsignal_dmrs_pusch_pregen_put(srslte_refsignal_ul_t *q, 
+                                            srslte_refsignal_ul_dmrs_pregen_t *pregen, 
+                                            uint32_t nof_prb, 
+                                            uint32_t sf_idx,
+                                            uint32_t cyclic_shift_for_dmrs,
+                                            uint32_t n_prb[2], 
+                                            cf_t *sf_symbols)
+{
+  if (srslte_dft_precoding_valid_prb(nof_prb) && 
+      sf_idx < SRSLTE_NSUBFRAMES_X_FRAME      &&
+      cyclic_shift_for_dmrs < SRSLTE_NOF_CSHIFT) 
+  {
+    srslte_refsignal_dmrs_pusch_put(q, pregen->r[cyclic_shift_for_dmrs][sf_idx][nof_prb], nof_prb, n_prb, sf_symbols);
+    return SRSLTE_SUCCESS;
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
+
 /* Generate DRMS for PUSCH signal according to 5.5.2.1 of 36.211 */
-int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t sf_idx, cf_t *r_pusch) 
+int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t sf_idx, 
+                                    uint32_t cyclic_shift_for_dmrs, cf_t *r_pusch) 
 {
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -364,7 +429,7 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, 
       compute_r(q, nof_prb, ns, q->pusch_cfg.delta_ss);
       
       // Add cyclic prefix alpha
-      float alpha = pusch_alpha(q, &q->pusch_cfg, ns);
+      float alpha = pusch_alpha(q, &q->pusch_cfg, cyclic_shift_for_dmrs, ns);
 
       // Do complex exponential and adjust amplitude
       for (int i=0;i<SRSLTE_NRE*nof_prb;i++) {
@@ -733,6 +798,38 @@ uint32_t srs_k0_ue(srslte_refsignal_srs_cfg_t *cfg, uint32_t nof_prb, uint32_t t
 uint32_t srslte_refsignal_srs_M_sc(srslte_refsignal_ul_t *q) {
   return m_srs_b[srsbwtable_idx(q->cell.nof_prb)][q->srs_cfg.B][q->srs_cfg.bw_cfg]*SRSLTE_NRE/2;
 }
+
+int srslte_refsignal_srs_pregen(srslte_refsignal_ul_t *q, srslte_refsignal_srs_pregen_t *pregen)
+{  
+  uint32_t M_sc = srslte_refsignal_srs_M_sc(q); 
+  for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
+    pregen->r[sf_idx] = srslte_vec_malloc(2*M_sc*sizeof(cf_t));
+    if (pregen->r[sf_idx]) {
+      if (srslte_refsignal_srs_gen(q, sf_idx, pregen->r[sf_idx])) {
+        return SRSLTE_ERROR; 
+      }
+    } else {
+      return SRSLTE_ERROR;
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
+void srslte_refsignal_srs_pregen_free(srslte_refsignal_ul_t *q, srslte_refsignal_srs_pregen_t *pregen) 
+{
+  for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
+    if (pregen->r[sf_idx]) {
+      free(pregen->r[sf_idx]);
+    }
+  }
+}
+
+int srslte_refsignal_srs_pregen_put(srslte_refsignal_ul_t *q, srslte_refsignal_srs_pregen_t *pregen, 
+                                    uint32_t tti, cf_t *sf_symbols)
+{
+  return srslte_refsignal_srs_put(q, tti, pregen->r[tti%SRSLTE_NSUBFRAMES_X_FRAME], sf_symbols);  
+}
+
 
 /* Genearte SRS signal as defined in Section 5.5.3.1 */
 int srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t sf_idx, cf_t *r_srs) 

@@ -122,13 +122,15 @@ int main(int argc, char **argv) {
     for (uint32_t d=1;d<=3;d++) {
       for (uint32_t ncs=0;ncs<8;ncs+=d) {
         for (uint32_t n_pucch=1;n_pucch<130;n_pucch++) {
-          INFO("format %d, n_pucch: %d, ncs: %d, d: %d\n", format, n_pucch, ncs, d);
+          struct timeval t[3]; 
+          
           pucch_cfg.beta_pucch = 1.0; 
           pucch_cfg.delta_pucch_shift = d; 
           bool group_hopping_en = false; 
           pucch_cfg.N_cs = ncs; 
           pucch_cfg.n_rb_2 = 0; 
     
+          gettimeofday(&t[1], NULL);
           if (!srslte_pucch_set_cfg(&pucch, &pucch_cfg, group_hopping_en)) {
             fprintf(stderr, "Error setting PUCCH config\n");
             goto quit; 
@@ -148,6 +150,9 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Error encoding PUCCH\n");
             goto quit; 
           }     
+          gettimeofday(&t[2], NULL);
+          get_time_interval(t);
+          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_exec=%d us\n", format, n_pucch, ncs, d, t[0].tv_usec);
         }
       }
     }    

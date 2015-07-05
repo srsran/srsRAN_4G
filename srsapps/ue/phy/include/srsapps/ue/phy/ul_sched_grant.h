@@ -109,7 +109,13 @@ namespace ue {
     }
     bool    to_pusch_cfg(srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_refsignal_srs_cfg_t *srs_cfg, uint32_t tti, srslte_ue_ul_t *ue_ul) {
       memcpy(&ue_ul->pusch_cfg.grant, &grant, sizeof(srslte_ra_ul_grant_t)); 
-      if (srslte_ue_ul_cfg_grant(ue_ul, NULL, hopping_cfg, srs_cfg, tti, get_rv())) {
+
+      uint32_t cyclic_shift_for_dmrs = 0;
+      if (!is_from_rar()) {
+        cyclic_shift_for_dmrs = get_n_dmrs();
+      }
+
+      if (srslte_ue_ul_cfg_grant(ue_ul, NULL, hopping_cfg, srs_cfg, tti, cyclic_shift_for_dmrs, get_rv())) {
         return false; 
       }
       return true; 

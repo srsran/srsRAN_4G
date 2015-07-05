@@ -109,6 +109,7 @@ SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t *q,
                                 srslte_pusch_hopping_cfg_t *hopping_cfg,
                                 srslte_refsignal_srs_cfg_t *srs_cfg,
                                 uint32_t tti, 
+                                uint32_t cyclic_shift_for_dmrs,
                                 uint32_t rvidx); 
 
 SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t *q, 

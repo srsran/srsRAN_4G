@@ -169,10 +169,6 @@ bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe) {
 bool phy::send_prach(uint32_t preamble_idx, int allowed_subframe, int target_power_dbm)
 {
   if (phy_state == RXTX) {
-    srslte_agc_lock(&ue_sync.agc, true);
-    old_gain = radio_handler->get_tx_gain();
-    radio_handler->set_tx_gain(80);
-    Info("Stopped AGC. Set TX gain to %.1f dB\n", radio_handler->get_tx_gain());
     return prach_buffer.prepare_to_send(preamble_idx, allowed_subframe, target_power_dbm);
   } 
   return false; 
@@ -239,9 +235,15 @@ bool phy::measure()
 void phy::set_crnti(uint16_t rnti) {
   for(uint32_t i=0;i<NOF_ULDL_QUEUES;i++) {
     ((ul_buffer*) ul_buffer_queue->get(i))->set_crnti(rnti);
-    ((dl_buffer*) dl_buffer_queue->get(i))->set_crnti(rnti);      
-    
+    ((dl_buffer*) dl_buffer_queue->get(i))->set_crnti(rnti);          
   }    
+}
+
+void phy::pregen_signals()
+{
+  for(uint32_t i=0;i<NOF_ULDL_QUEUES;i++) {
+    ((ul_buffer*) ul_buffer_queue->get(i))->pregen_signals();    
+  }
 }
 
 bool phy::start_rxtx()
@@ -544,9 +546,6 @@ void phy::run_rx_tx_state()
       // send prach if we have to 
       prach_buffer.send(radio_handler, cfo, last_rx_time);
       radio_handler->tx_end();
-      radio_handler->set_tx_gain(old_gain);
-      srslte_agc_lock(&ue_sync.agc, false);
-      Info("Restoring AGC. Set TX gain to %.1f dB\n", old_gain);    
     } 
     
     // Receive alligned buffer for the current tti 

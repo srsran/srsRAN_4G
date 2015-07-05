@@ -307,7 +307,7 @@ void srslte_pusch_free(srslte_pusch_t *q) {
  */
 int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_t *dci_msg, 
                      srslte_pusch_hopping_cfg_t *hopping_cfg, srslte_refsignal_srs_cfg_t *srs_cfg, 
-                     uint32_t tti, uint32_t rvidx) 
+                     uint32_t tti, uint32_t cyclic_shift_for_dmrs, uint32_t rvidx) 
 {
   if (dci_msg) {
     srslte_ra_ul_dci_t ul_dci; 
@@ -320,7 +320,9 @@ int srslte_pusch_cfg(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_dci_msg_
     fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
     return SRSLTE_ERROR; 
   }
-
+  
+  cfg->cyclic_shift_for_dmrs = cyclic_shift_for_dmrs; 
+  
   /* Compute PUSCH frequency hopping */
   if (hopping_cfg) {
     compute_freq_hopping(q, &cfg->grant, hopping_cfg, tti%10);

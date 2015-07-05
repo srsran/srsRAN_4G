@@ -75,6 +75,33 @@ void ul_buffer::set_crnti(uint16_t rnti)
   srslte_ue_ul_set_rnti(&ue_ul, rnti);
 }
 
+void ul_buffer::pregen_signals()
+{
+  srslte_refsignal_dmrs_pusch_cfg_t dmrs_cfg; 
+  bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
+  dmrs_cfg.beta_pusch      = (float) params_db->get_param(phy_params::PUSCH_BETA)/10; 
+  bool group_hopping_en    = params_db->get_param(phy_params::DMRS_GROUP_HOPPING_EN);
+  bool sequence_hopping_en = params_db->get_param(phy_params::DMRS_SEQUENCE_HOPPING_EN);
+  dmrs_cfg.cyclic_shift    = params_db->get_param(phy_params::PUSCH_RS_CYCLIC_SHIFT);
+  dmrs_cfg.delta_ss        = params_db->get_param(phy_params::PUSCH_RS_GROUP_ASSIGNMENT);
+  
+  srslte_refsignal_srs_cfg_t srs_cfg;           
+  bzero(&srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
+  srs_cfg.configured      = params_db->get_param(phy_params::SRS_IS_CONFIGURED)?true:false;
+  srs_cfg.subframe_config = (uint32_t) params_db->get_param(phy_params::SRS_CS_SFCFG);
+  srs_cfg.bw_cfg          = (uint32_t) params_db->get_param(phy_params::SRS_CS_BWCFG);
+  srs_cfg.I_srs           = (uint32_t) params_db->get_param(phy_params::SRS_UE_CONFIGINDEX);
+  srs_cfg.B               = (uint32_t) params_db->get_param(phy_params::SRS_UE_BW);
+  srs_cfg.b_hop           = (uint32_t) params_db->get_param(phy_params::SRS_UE_HOP);
+  srs_cfg.n_rrc           = (uint32_t) params_db->get_param(phy_params::SRS_UE_NRRC);
+  srs_cfg.k_tc            = (uint32_t) params_db->get_param(phy_params::SRS_UE_TXCOMB);
+  srs_cfg.n_srs           = (uint32_t) params_db->get_param(phy_params::SRS_UE_CYCLICSHIFT);
+  srs_cfg.beta_srs        = ((float) params_db->get_param(phy_params::SRS_BETA))/10;
+  
+  srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, NULL, &srs_cfg, NULL, group_hopping_en, sequence_hopping_en);
+  srslte_ue_ul_pregen_signals(&ue_ul);
+}
+
 bool ul_buffer::generate_ack(bool ack, dl_sched_grant *last_dl_grant)
 {
   uci_data.uci_ack_len = 1; 
@@ -154,14 +181,6 @@ bool ul_buffer::generate_data(ul_sched_grant *grant, srslte_softbuffer_tx_t *sof
     dmrs_cfg.cyclic_shift    = params_db->get_param(phy_params::PUSCH_RS_CYCLIC_SHIFT);
     dmrs_cfg.delta_ss        = params_db->get_param(phy_params::PUSCH_RS_GROUP_ASSIGNMENT);
     
-    // Get cyclic shift for DMRS if PUSCH is not for RAR or (TODO) is not SPS
-    if (grant) {
-      if (!grant->is_from_rar()) {
-        dmrs_cfg.en_dmrs_2 = true; 
-        dmrs_cfg.cyclic_shift_for_dmrs = grant->get_n_dmrs();
-      }
-    }    
-
     srslte_pusch_hopping_cfg_t pusch_hopping; 
     if (grant) {
       bzero(&pusch_hopping, sizeof(srslte_pusch_hopping_cfg_t));
