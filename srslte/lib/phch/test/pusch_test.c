@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
   cfg.grant.mcs.tbs = tbs;
   cfg.grant.mcs.mod = modulation;
   cfg.grant.Qm = srslte_mod_bits_x_symbol(modulation);
-  if (srslte_pusch_cfg(&pusch, &cfg, NULL, &ul_hopping, NULL, subframe, 0)) {
+  if (srslte_pusch_cfg(&pusch, &cfg, NULL, &ul_hopping, NULL, subframe, 0, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }

@@ -297,16 +297,17 @@ struct phy_crnti {
   uint16_t crnti;   
 };
 
-void *set_phy_crnti_thread(void *arg) {
+void *pregen_phy_thread(void *arg) {
   struct phy_crnti *a = (struct phy_crnti*) arg;
   a->log_h->info("Setting PHY RNTI=%d\n", a->crnti);
   a->phy_ptr->set_crnti(a->crnti);
+  a->phy_ptr->pregen_signals();
   a->log_h->info("Done Setting PHY RNTI\n");
   free(a);
   return NULL; 
 }
 
-void mac::set_phy_crnti(uint16_t phy_rnti)
+void mac::pregen_phy(uint16_t phy_rnti)
 {
   pthread_t rnti_thread; 
   struct phy_crnti *arg = (struct phy_crnti*) malloc(sizeof(struct phy_crnti));
@@ -316,7 +317,8 @@ void mac::set_phy_crnti(uint16_t phy_rnti)
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  if (pthread_create(&rnti_thread, &attr, set_phy_crnti_thread, arg)) {
+  pthread_attr_setschedpolicy(&attr, SCHED_OTHER);
+  if (pthread_create(&rnti_thread, &attr, pregen_phy_thread, arg)) {
     perror("pthread_create");
   }
 }
@@ -708,18 +710,20 @@ void mac::tti_thread::run_tti(uint32_t tti) {
   pthread_mutex_unlock(&parent->tti_threads_sync_tx[(tti+1)%parent->NOF_TTI_THREADS]);
   
   // Check if there is pending CCCH SDU in Multiplexing Unit
-  if (parent->mux_unit.is_pending_ccch_sdu()) {
+  if (mux_unit.is_pending_ccch_sdu()) {
     // Start RA procedure 
-    if (!parent->ra_procedure.in_progress() && !parent->ra_procedure.is_successful()) {
-      parent->ra_procedure.start_rlc_order();        
+    if (!ra_procedure.in_progress() && !ra_procedure.is_successful()) {
+      ra_procedure.start_rlc_order();        
     }
   }
-  if (parent->ra_procedure.is_successful() && parent->phy_rnti != parent->params_db.get_param(mac_params::RNTI_C) &&
-      parent->params_db.get_param(mac_params::RNTI_C) > 0) 
+  if (ra_procedure.is_successful()                      && 
+    phy_rnti != params_db.get_param(mac_params::RNTI_C) && 
+    params_db.get_param(mac_params::RNTI_C) > 0         && 
+    phy_h->get_param(srslte::ue::phy_params::SRS_IS_CONFIGURED) == 1) 
   {
-    parent->phy_rnti = parent->params_db.get_param(mac_params::RNTI_C);
-    parent->set_phy_crnti(parent->phy_rnti);
-  }           
+    phy_rnti = params_db.get_param(mac_params::RNTI_C);
+    pregen_phy(phy_rnti);
+  }
 }
 }
 }

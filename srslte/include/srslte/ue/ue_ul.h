@@ -68,20 +68,23 @@ typedef struct SRSLTE_API {
   float current_cfo; 
 
   srslte_pusch_cfg_t pusch_cfg; 
-  srslte_refsignal_ul_t dmrs; 
+  srslte_refsignal_ul_t signals; 
+  srslte_refsignal_ul_dmrs_pregen_t pregen_drms;
+  srslte_refsignal_srs_pregen_t pregen_srs;
+  
   srslte_softbuffer_tx_t softbuffer;
   
   srslte_pusch_t pusch; 
   srslte_pucch_t pucch; 
   
   srslte_pucch_sched_t pucch_sched; 
-  
-  
+   
   cf_t *refsignal; 
   cf_t *srs_signal; 
   cf_t *sf_symbols; 
   
   uint16_t current_rnti;  
+  bool signals_pregenerated;
 }srslte_ue_ul_t;
 
 /* This function shall be called just after the initial synchronization */
@@ -112,6 +115,7 @@ SRSLTE_API int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q,
                                       srslte_pusch_hopping_cfg_t *hopping_cfg, 
                                       srslte_refsignal_srs_cfg_t *srs_cfg,
                                       uint32_t tti, 
+                                      uint32_t cyclic_shift_for_dmrs,
                                       uint32_t rvidx); 
 
 SRSLTE_API int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q,
@@ -151,6 +155,8 @@ SRSLTE_API int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q,
                                        cf_t *output_signal); 
 
 SRSLTE_API void srslte_ue_ul_reset(srslte_ue_ul_t *q);
+
+SRSLTE_API int srslte_ue_ul_pregen_signals(srslte_ue_ul_t *q); 
 
 SRSLTE_API void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q, 
                                       uint16_t rnti);

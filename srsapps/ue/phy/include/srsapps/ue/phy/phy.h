@@ -83,6 +83,7 @@ public:
   float get_agc_gain();
   
   void set_crnti(uint16_t rnti);
+  void pregen_signals();
   
   // Indicate the PHY to send PRACH as soon as possible
   bool init_prach();

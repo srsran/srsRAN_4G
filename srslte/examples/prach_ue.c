@@ -390,8 +390,6 @@ cell.nof_ports = 1;
   bool sequence_hopping_en = false; 
   dmrs_cfg.delta_ss = 0;
   dmrs_cfg.cyclic_shift = 0; 
-  dmrs_cfg.cyclic_shift_for_dmrs = 0; 
-  dmrs_cfg.en_dmrs_2 = false; 
   srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, NULL, NULL, NULL, group_hopping_en, sequence_hopping_en);
 
   cf_t *ul_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
@@ -521,7 +519,7 @@ cell.nof_ports = 1;
                   srslte_ue_ul_set_cfo(&ue_ul, cfo);
                   
                   memcpy(&ue_ul.pusch_cfg.grant, &ra_grant, sizeof(srslte_ra_ul_grant_t));
-                  srslte_ue_ul_cfg_grant(&ue_ul, NULL, 0, 0, ul_sf_idx, 0);
+                  srslte_ue_ul_cfg_grant(&ue_ul, NULL, 0, 0, ul_sf_idx, 0, 0);
                   
                   n = srslte_ue_ul_pusch_encode_rnti(&ue_ul, data, rar_msg.temp_c_rnti, ul_signal);
                   if (n < 0) {

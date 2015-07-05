@@ -82,17 +82,16 @@ int main(int argc, char **argv) {
   
   parse_args(argc,argv);
 
+  if (srslte_refsignal_ul_init(&refs, cell)) {
+    fprintf(stderr, "Error initializing UL reference signal\n");
+    goto do_exit;
+  }
+
   signal = malloc(2 * SRSLTE_NRE * cell.nof_prb * sizeof(cf_t));
   if (!signal) {
     perror("malloc");
     goto do_exit;
   }
-  
-  if (srslte_refsignal_ul_init(&refs, cell)) {
-    fprintf(stderr, "Error initializing UL reference signal\n");
-    goto do_exit;
-  }
-  
   printf("Running tests for %d PRB\n", cell.nof_prb);
     
   for (int n=6;n<cell.nof_prb;n++) {
@@ -104,7 +103,6 @@ int main(int argc, char **argv) {
               pusch_cfg.beta_pusch = 1.0;
               uint32_t nof_prb = n;
               pusch_cfg.cyclic_shift = cshift;
-              pusch_cfg.cyclic_shift_for_dmrs = cshift_dmrs;
               pusch_cfg.delta_ss = delta_ss;        
               bool group_hopping_en = false; 
               bool sequence_hopping_en = false; 
@@ -119,16 +117,27 @@ int main(int argc, char **argv) {
                 group_hopping_en = true;
                 sequence_hopping_en = false;
               }
-              pusch_cfg.en_dmrs_2 = true; 
+
               printf("Beta: %f, ",pusch_cfg.beta_pusch);
               printf("nof_prb: %d, ",nof_prb);
               printf("cyclic_shift: %d, ",pusch_cfg.cyclic_shift);
-              printf("cyclic_shift_for_dmrs: %d, ",pusch_cfg.cyclic_shift_for_dmrs);
+              printf("cyclic_shift_for_dmrs: %d, ", cshift_dmrs);
               printf("delta_ss: %d, ",pusch_cfg.delta_ss);
               printf("SF_idx: %d\n", sf_idx);
+              struct timeval t[3]; 
+              
+              gettimeofday(&t[1], NULL);
               srslte_refsignal_ul_set_cfg(&refs, &pusch_cfg, NULL, NULL, group_hopping_en, sequence_hopping_en);
-              srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, signal);              
-              exit(0);
+              srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, cshift_dmrs, signal);              
+              gettimeofday(&t[2], NULL);
+              get_time_interval(t);
+              printf("DMRS ExecTime: %d us\n", t[0].tv_usec);
+
+              gettimeofday(&t[1], NULL);
+              srslte_refsignal_srs_gen(&refs, sf_idx, signal);
+              gettimeofday(&t[2], NULL);
+              get_time_interval(t);
+              printf("SRS ExecTime: %d us\n", t[0].tv_usec);
             }
           }
         }
