@@ -710,19 +710,19 @@ void mac::tti_thread::run_tti(uint32_t tti) {
   pthread_mutex_unlock(&parent->tti_threads_sync_tx[(tti+1)%parent->NOF_TTI_THREADS]);
   
   // Check if there is pending CCCH SDU in Multiplexing Unit
-  if (mux_unit.is_pending_ccch_sdu()) {
+  if (parent->mux_unit.is_pending_ccch_sdu()) {
     // Start RA procedure 
-    if (!ra_procedure.in_progress() && !ra_procedure.is_successful()) {
-      ra_procedure.start_rlc_order();        
+    if (!parent->ra_procedure.in_progress() && !parent->ra_procedure.is_successful()) {
+      parent->ra_procedure.start_rlc_order();        
     }
   }
-  if (ra_procedure.is_successful()                      && 
-    phy_rnti != params_db.get_param(mac_params::RNTI_C) && 
-    params_db.get_param(mac_params::RNTI_C) > 0         && 
-    phy_h->get_param(srslte::ue::phy_params::SRS_IS_CONFIGURED) == 1) 
+  if (parent->ra_procedure.is_successful()                      && 
+    parent->phy_rnti != parent->params_db.get_param(mac_params::RNTI_C) && 
+    parent->params_db.get_param(mac_params::RNTI_C) > 0         && 
+    parent->phy_h->get_param(srslte::ue::phy_params::SRS_IS_CONFIGURED) == 1) 
   {
-    phy_rnti = params_db.get_param(mac_params::RNTI_C);
-    pregen_phy(phy_rnti);
+    parent->phy_rnti = parent->params_db.get_param(mac_params::RNTI_C);
+    parent->pregen_phy(parent->phy_rnti);
   }
 }
 }
