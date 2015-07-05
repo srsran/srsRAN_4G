@@ -110,7 +110,7 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
 
 int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, uint32_t n_rb_ho, uint32_t nof_prb) 
 {
-    bzero(grant, sizeof(srslte_ra_ul_grant_t));  
+  bzero(grant, sizeof(srslte_ra_ul_grant_t));  
   grant->L_prb = dci->type2_alloc.L_crb;
   uint32_t n_prb_1 = dci->type2_alloc.RB_start;
   uint32_t n_rb_pusch = 0;

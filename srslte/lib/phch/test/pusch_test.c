@@ -52,10 +52,11 @@ uint32_t L_prb = 2;
 uint32_t n_prb = 0; 
 int freq_hop = -1; 
 int riv = -1; 
+uint32_t mcs_idx = 0; 
 
 void usage(char *prog) {
-  printf("Usage: %s [csrnfvmtLNF] -l TBS \n", prog);
-  printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
+  printf("Usage: %s [csrnfvmtLNF] -m MCS \n", prog);
+  printf("\t-m MCS index [Default %d]\n", mcs_idx);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
   printf("\t-L L_prb [Default %d]\n", L_prb);
@@ -70,27 +71,10 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lcnfvmtsrLNFR")) != -1) {
+  while ((opt = getopt(argc, argv, "cnfvmtsrLNFR")) != -1) {
     switch(opt) {
     case 'm':
-      switch(atoi(argv[optind])) {
-      case 1:
-        modulation = SRSLTE_MOD_BPSK;
-        break;
-      case 2:
-        modulation = SRSLTE_MOD_QPSK;
-        break;
-      case 4:
-        modulation = SRSLTE_MOD_16QAM;
-        break;
-      case 6:
-        modulation = SRSLTE_MOD_64QAM;
-        break;
-      default:
-        fprintf(stderr, "Invalid modulation %d. Possible values: "
-            "(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n", atoi(argv[optind]));
-        break;
-      }
+      mcs_idx = atoi(argv[optind]);
       break;
     case 's':
       subframe = atoi(argv[optind]);
@@ -109,9 +93,6 @@ void parse_args(int argc, char **argv) {
       break;
     case 'r':
       rv_idx = atoi(argv[optind]);
-      break;
-    case 'l':
-      tbs = atoi(argv[optind]);
       break;
     case 'n':
       cell.nof_prb = atoi(argv[optind]);
@@ -150,7 +131,9 @@ int main(int argc, char **argv) {
   } else {
     srslte_ra_type2_from_riv((uint32_t) riv, &dci.type2_alloc.L_crb, &dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
   }
-  
+  dci.mcs_idx = mcs_idx;
+  srslte_dci_msg_t dci_msg; 
+  srslte_dci_msg_pack_pusch(&dci, &dci_msg, cell.nof_prb);
 
   srslte_pusch_hopping_cfg_t ul_hopping; 
   ul_hopping.n_sb = 1; 
@@ -164,22 +147,13 @@ int main(int argc, char **argv) {
   }
   
   /* Configure PUSCH */
-  srslte_ul_dci_to_grant_prb_allocation(&dci, &cfg.grant, 0, cell.nof_prb);
-  cfg.grant.mcs.tbs = tbs;
-  cfg.grant.mcs.mod = modulation;
-  cfg.grant.Qm = srslte_mod_bits_x_symbol(modulation);
-  if (srslte_pusch_cfg(&pusch, &cfg, NULL, &ul_hopping, NULL, subframe, 0, 0)) {
+  if (srslte_pusch_cfg(&pusch, &cfg, &dci_msg, &ul_hopping, NULL, subframe, 0, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
   
   srslte_pusch_set_rnti(&pusch, 1234);
-  
-  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
-    fprintf(stderr, "Error initiating soft buffer\n");
-    goto quit;
-  }
-  
+    
   printf("Encoding rv_idx=%d\n",rv_idx);
   cfg.rv = 0; 
   cfg.sf_idx = subframe; 
@@ -209,6 +183,12 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
+  cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  srslte_ofdm_t fft; 
+  srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
+  srslte_ofdm_set_freq_shift(&fft, 0.5);
+  
   data = malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
   if (!data) {
     perror("malloc");
@@ -219,6 +199,11 @@ int main(int argc, char **argv) {
     data[i] = 1;
   }
 
+  gettimeofday(&t[1], NULL);
+  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+    fprintf(stderr, "Error initiating soft buffer\n");
+    goto quit;
+  }
   if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
     fprintf(stderr, "Error encoding TB\n");
     exit(-1);
@@ -232,24 +217,19 @@ int main(int argc, char **argv) {
     }
   }
     
-  cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  srslte_ofdm_t fft; 
-  srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
-  srslte_ofdm_set_freq_shift(&fft, 0.5);
   srslte_ofdm_tx_sf(&fft, sf_symbols, scfdma);
-  
-  gettimeofday(&t[1], NULL);
-  //int r = srslte_pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
-  int r = 0; 
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
+
+  //int r = srslte_pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
+  int r = 0; 
   if (r) {
     printf("Error decoding\n");
     ret = -1;
     goto quit;
   } else {
-    printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) cfg.grant.mcs.tbs/t[0].tv_usec);
+    printf("ENCODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, 
+           (float) cfg.grant.mcs.tbs/t[0].tv_usec);
   }
   
   ret = 0;
