@@ -152,7 +152,7 @@ bool bsr_proc::generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes) {
   for (int i=0;i<mac_io_h->NOF_UL_LCH;i++) {
     if (lcg[i] >= 0) {
       uint32_t n = mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8;
-      bsr->buff_size[lcg[i]] += 8*n;
+      bsr->buff_size[lcg[i]] += n;
       if (n > 0) {
         nof_lcg++;
         ret = true; 
