@@ -11,13 +11,18 @@ Current Features:
  * Tested bandwidths: 1.4, 3, 5 and 10 and 20 MHz
  * Transmission mode 1 (single antenna) and 2 (transmit diversity) 
  * Cell search and synchronization procedure for the UE
- * All DL channels are supported UE/eNodeB side: PSS, SSS, PBCH, PCFICH, PHICH, PDCCH, PDSCH
- * Some UL channels are supported UE side: PRACH, PUSCH, DM-RS
- * HARQ DL supported at receiver UE side
+ * All DL channels/signals are supported for UE and eNodeB side: PSS, SSS, PBCH, PCFICH, PHICH, PDCCH, PDSCH
+ * All UL channels/signals are supported for UE side: PRACH, PUSCH, PUCCH, SRS 
+ * All MAC for UE side is supported
  * Frequency-based ZF and MMSE equalizer
  * Highly optimized Turbo Decoder (up to 25 Mbps/iteration @ 3 GHz i7 1 core)
  * MATLAB and OCTAVE MEX library generation for many components
  * UE receiver tested and verified with Amarisoft LTE 100 eNodeB and commercial LTE networks (Telefonica Spain, Three.ie and Eircom in Ireland)
+
+Missing Features: 
+ * CQI reports
+ * Semi-Persistent Scheduling
+ * UL power control 
 
 Hardware
 ========
