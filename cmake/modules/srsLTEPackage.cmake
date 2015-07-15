@@ -1,32 +1,10 @@
-#
-# Copyright 2012-2013 The Iris Project Developers. See the
-# COPYRIGHT file at the top-level directory of this distribution
-# and at http://www.softwareradiosystems.com/iris/copyright.html.
-#
-# This file is part of the Iris Project.
-#
-# Iris is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation, either version 3 of
-# the License, or (at your option) any later version.
-#
-# Iris is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# A copy of the GNU Lesser General Public License can be found in
-# the LICENSE file in the top-level directory of this distribution
-# and at http://www.gnu.org/licenses/.
-#
-
 SET(CPACK_PACKAGE_DESCRIPTION "srsLTE")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LTE library for SDR.")
 SET(CPACK_PACKAGE_NAME "srslte")
 SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.3.6), libgcc1 (>= 1:4.1), libboost-dev (>= 1.35)")
 
 SET(CPACK_PACKAGE_CONTACT "Ismael Gomez ")
-SET(CPACK_PACKAGE_VENDOR "University of Dublin, Trinity College")
+SET(CPACK_PACKAGE_VENDOR "Software Radio Systems Limited")
 SET(CPACK_PACKAGE_VERSION_MAJOR "0")
 SET(CPACK_PACKAGE_VERSION_MINOR "1")
 SET(CPACK_PACKAGE_VERSION_PATCH "0")
