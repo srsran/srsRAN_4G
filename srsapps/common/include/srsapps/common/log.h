@@ -40,35 +40,42 @@
 #ifndef LOG_H
 #define LOG_H
 
-#define Error(fmt, ...)   log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
-
 namespace srslte {
-  
+
+typedef enum {
+  LOG_LEVEL_NONE = 0,
+  LOG_LEVEL_ERROR,
+  LOG_LEVEL_WARNING,
+  LOG_LEVEL_INFO,
+  LOG_LEVEL_DEBUG,
+  LOG_LEVEL_N_ITEMS
+} LOG_LEVEL_ENUM;
+static const char log_level_text[LOG_LEVEL_N_ITEMS][16] = {"None",
+                                                           "Error",
+                                                           "Warning",
+                                                           "Info",
+                                                           "Debug"};
+
 class log
 {
 public:
 
-  log(std::string service_name_) { service_name = service_name_; tti = 0; level = LOG_LEVEL_NONE; }
+  log(std::string service_name_) {
+    service_name = service_name_;
+    tti = 0;
+    level = LOG_LEVEL_NONE;
+  }
   
   // This function shall be called at the start of every tti for printing tti 
   void step(uint32_t tti_) {
     tti = tti_; 
   }
   
-  typedef enum {
-    LOG_LEVEL_NONE = 0,
-    LOG_LEVEL_INFO, 
-    LOG_LEVEL_DEBUG
-  } log_level_t; 
-  
-  void set_level_info() {
-    level = LOG_LEVEL_INFO; 
+  void set_level(LOG_LEVEL_ENUM l) {
+    level = l;
   }
-  void set_level_debug() {
-    level = LOG_LEVEL_DEBUG; 
+  LOG_LEVEL_ENUM get_level() {
+    return level;
   }
   
   uint32_t get_tti() {
@@ -90,12 +97,12 @@ public:
 protected: 
   std::string get_service_name() { return service_name; }
   uint32_t tti; 
-  log_level_t level; 
+  LOG_LEVEL_ENUM level;
 private:
   std::string service_name;
 };
 
-}
+} // namespace srslte
 
-#endif
+#endif // LOG_H
   

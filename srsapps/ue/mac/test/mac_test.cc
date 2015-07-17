@@ -344,12 +344,12 @@ int main(int argc, char *argv[])
   
   switch (prog_args.verbose) {
     case 1:
-      mac_log.set_level_info();
-      phy_log.set_level_info();
+      mac_log.set_level(srslte::LOG_LEVEL_INFO);
+      phy_log.set_level(srslte::LOG_LEVEL_INFO);
       break;
     case 2: 
-      mac_log.set_level_debug();
-      phy_log.set_level_debug();
+      mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+      phy_log.set_level(srslte::LOG_LEVEL_DEBUG);
       break;
   }
  

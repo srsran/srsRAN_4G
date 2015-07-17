@@ -65,14 +65,11 @@ public:
   void debug_line(string file, int line, string message, ...);  
 
 private:
-  typedef enum {
-    ERROR=0, WARNING, INFO, DEBUG, NOF_LEVELS
-  } level_t;
-  void printlog(level_t level, uint32_t tti, string file, int line, string message, va_list args);
-  void printlog(level_t level, uint32_t tti, string message, va_list args);
+  void printlog(LOG_LEVEL_ENUM level, uint32_t tti, string file, int line, string message, va_list args);
+  void printlog(LOG_LEVEL_ENUM level, uint32_t tti, string message, va_list args);
 };
 
-}
+} // namespace srslte
 
-#endif
+#endif // LOGSTDOUT_H
   

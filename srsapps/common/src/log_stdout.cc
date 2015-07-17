@@ -37,19 +37,14 @@ using namespace std;
 
 namespace srslte {
 
-const char* level_str[4] =  {"[ERROR ",
-                             "[WARN  ",
-                             "[INFO  ",
-                             "[DEBUG "};
+void log_stdout::printlog(LOG_LEVEL_ENUM level, uint32_t tti, string msg, va_list args) {
 
-void log_stdout::printlog(level_t type, uint32_t tti, string msg, va_list args) {
-
-  printlog(type, tti, string(), -1, msg, args);
+  printlog(level, tti, string(), -1, msg, args);
 }
  
-void log_stdout::printlog(level_t type, uint32_t tti, string file, int line, string msg, va_list args) {
+void log_stdout::printlog(LOG_LEVEL_ENUM level, uint32_t tti, string file, int line, string msg, va_list args) {
 
-  printf("%s %s",level_str[type], get_service_name().c_str());
+  printf("%s %s",log_level_text[level], get_service_name().c_str());
   if (file.length() > 0) {
     printf("/%-14s", file.substr(file.find_last_of("/")+1,file.find_last_of(".")-1-file.find_last_of("/")).c_str());
   }
@@ -61,10 +56,22 @@ void log_stdout::printlog(level_t type, uint32_t tti, string file, int line, str
 
 void log_stdout::error(string msg, ...)
 {
-  va_list args;
-  va_start(args, msg);
-  printlog(ERROR, tti, msg, args);
-  va_end(args);
+  if (level >= LOG_LEVEL_ERROR) {
+    va_list args;
+    va_start(args, msg);
+    printlog(LOG_LEVEL_ERROR, tti, msg, args);
+    va_end(args);
+  }
+}
+
+void log_stdout::warning(string msg, ...)
+{
+  if (level >= LOG_LEVEL_WARNING) {
+    va_list args;
+    va_start(args, msg);
+    printlog(LOG_LEVEL_WARNING, tti, msg, args);
+    va_end(args);
+  }
 }
 
 void log_stdout::info(string msg, ...)
@@ -72,7 +79,7 @@ void log_stdout::info(string msg, ...)
   if (level >= LOG_LEVEL_INFO) {
     va_list args;
     va_start(args, msg);
-    printlog(INFO, tti, msg, args);
+    printlog(LOG_LEVEL_INFO, tti, msg, args);
     va_end(args);    
   }
 }
@@ -82,26 +89,32 @@ void log_stdout::debug(string msg, ...)
   if (level >= LOG_LEVEL_DEBUG) {
     va_list args;
     va_start(args, msg);
-    printlog(DEBUG, tti, msg, args);
+    printlog(LOG_LEVEL_DEBUG, tti, msg, args);
     va_end(args);
   }
 }
 
-void log_stdout::warning(string msg, ...)
-{
-  va_list args;
-  va_start(args, msg);
-  printlog(WARNING, tti, msg, args);
-  va_end(args);
-}
+
 
 
 void log_stdout::error_line(string file, int line, string msg, ...)
 {
-  va_list args;
-  va_start(args, msg);
-  printlog(ERROR, tti, file, line, msg, args);
-  va_end(args);
+  if (level >= LOG_LEVEL_ERROR) {
+    va_list args;
+    va_start(args, msg);
+    printlog(LOG_LEVEL_ERROR, tti, file, line, msg, args);
+    va_end(args);
+  }
+}
+
+void log_stdout::warning_line(string file, int line, string msg, ...)
+{
+  if (level >= LOG_LEVEL_WARNING) {
+    va_list args;
+    va_start(args, msg);
+    printlog(LOG_LEVEL_WARNING, tti, file, line, msg, args);
+    va_end(args);
+  }
 }
 
 void log_stdout::info_line(string file, int line, string msg, ...)
@@ -109,7 +122,7 @@ void log_stdout::info_line(string file, int line, string msg, ...)
   if (level >= LOG_LEVEL_INFO) {
     va_list args;
     va_start(args, msg);
-    printlog(INFO, tti, file, line, msg, args);
+    printlog(LOG_LEVEL_INFO, tti, file, line, msg, args);
     va_end(args);
   }
 }
@@ -119,19 +132,11 @@ void log_stdout::debug_line(string file, int line, string msg, ...)
   if (level >= LOG_LEVEL_DEBUG) {
     va_list args;
     va_start(args, msg);
-    printlog(DEBUG, tti, file, line, msg, args);
+    printlog(LOG_LEVEL_DEBUG, tti, file, line, msg, args);
     va_end(args);
   }
 }
 
-void log_stdout::warning_line(string file, int line, string msg, ...)
-{
-  va_list args;
-  va_start(args, msg);
-  printlog(WARNING, tti, file, line, msg, args);
-  va_end(args);
-}
-
-}
+} // namespace srslte
 
   
