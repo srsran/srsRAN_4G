@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
         for (int h=0;h<3;h++) {
           for (int sf_idx=0;sf_idx<SRSLTE_NSLOTS_X_FRAME;sf_idx++) {
             for (int cshift_dmrs=0;cshift_dmrs<SRSLTE_NOF_CSHIFT;cshift_dmrs++) {
-              pusch_cfg.beta_pusch = 1.0;
+              
               uint32_t nof_prb = n;
               pusch_cfg.cyclic_shift = cshift;
               pusch_cfg.delta_ss = delta_ss;        
@@ -118,7 +118,6 @@ int main(int argc, char **argv) {
                 sequence_hopping_en = false;
               }
 
-              printf("Beta: %f, ",pusch_cfg.beta_pusch);
               printf("nof_prb: %d, ",nof_prb);
               printf("cyclic_shift: %d, ",pusch_cfg.cyclic_shift);
               printf("cyclic_shift_for_dmrs: %d, ", cshift_dmrs);
@@ -127,7 +126,9 @@ int main(int argc, char **argv) {
               struct timeval t[3]; 
               
               gettimeofday(&t[1], NULL);
-              srslte_refsignal_ul_set_cfg(&refs, &pusch_cfg, NULL, NULL, group_hopping_en, sequence_hopping_en);
+              pusch_cfg.group_hopping_en = group_hopping_en; 
+              pusch_cfg.sequence_hopping_en = sequence_hopping_en;
+              srslte_refsignal_ul_set_cfg(&refs, &pusch_cfg, NULL, NULL);
               srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, cshift_dmrs, signal);              
               gettimeofday(&t[2], NULL);
               get_time_interval(t);

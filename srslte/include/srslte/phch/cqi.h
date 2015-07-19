@@ -41,7 +41,11 @@
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
 
-
+typedef struct {
+  bool configured; 
+  uint32_t pmi_idx; 
+} srslte_cqi_cfg_t; 
+  
 /* Table 5.2.2.6.2-1: Fields for channel quality information feedback for higher layer configured subband
 CQI reports
 (transmission mode 1, transmission mode 2, transmission mode 3, transmission mode 7 and

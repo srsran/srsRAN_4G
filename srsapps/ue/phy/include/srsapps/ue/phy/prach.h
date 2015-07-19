@@ -30,7 +30,7 @@
 #include "srslte/srslte.h"
 #include "srsapps/radio/radio.h"
 #include "srsapps/common/log.h"
-#include "srsapps/common/queue.h"
+#include "srsapps/common/phy_interface.h"
 #include "srsapps/ue/phy/phy_params.h"
 
 #ifndef UEPRACH_H
@@ -46,14 +46,16 @@ namespace ue {
       initiated = false; 
       signal_buffer = NULL; 
     }
-    bool           init_cell(srslte_cell_t cell, phy_params *params_db, log *log_h);
+    void           init(phy_params *params_db, log *log_h);
+    bool           init_cell(srslte_cell_t cell);
     void           free_cell();
-    bool           prepare_to_send(uint32_t preamble_idx);
-    bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe);
-    bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe, int target_power_dbm);
+    bool           prepare_to_send(phy_interface::prach_cfg_t* cfg);
+    bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
     bool           is_ready_to_send(uint32_t current_tti);
-    int            get_transmitted_tti(); 
-    bool           send(srslte::radio* radio_handler, float cfo, srslte_timestamp_t rx_time);
+    void           get_rar_cfg(uint16_t* rar_rnti, uint32_t* tti_start, uint32_t* tti_end);
+    
+    bool           send(radio* radio_handler, float cfo, srslte_timestamp_t rx_time);
+    
   private: 
     static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
     phy_params    *params_db; 
@@ -68,6 +70,8 @@ namespace ue {
     srslte_cell_t  cell;
     cf_t          *signal_buffer;
     srslte_cfo_t   cfo_h; 
+    
+    phy_interface::prach_cfg_t prach_cfg;
   };
 
 }

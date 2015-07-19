@@ -86,13 +86,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field NSubframe not found in UE config\n");
     return;
   }
+
+  srslte_ra_ul_grant_t grant; 
+  bzero(&grant, sizeof(srslte_ra_ul_grant_t));
+  
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");  
   if (!strcmp(mod_str, "QPSK")) {
-    cfg.grant.mcs.mod = SRSLTE_MOD_QPSK;
+    grant.mcs.mod = SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
-    cfg.grant.mcs.mod = SRSLTE_MOD_16QAM;
+    grant.mcs.mod = SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
-    cfg.grant.mcs.mod = SRSLTE_MOD_64QAM;
+    grant.mcs.mod = SRSLTE_MOD_64QAM;
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
@@ -113,33 +117,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (N_srs == 1) {
     pusch.shortened = true; 
   }
-  cfg.grant.L_prb = mexutils_read_f(p, &prbset);
-  cfg.grant.n_prb[0] = prbset[0];
-  cfg.grant.n_prb[1] = prbset[0];
-  cfg.grant.M_sc = cfg.grant.L_prb*SRSLTE_NRE;
-  cfg.grant.M_sc_init = cfg.grant.M_sc; // FIXME: What should M_sc_init be? 
-  cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
-  if (srslte_pusch_cfg(&pusch, &cfg, NULL, NULL, NULL, cfg.sf_idx, 0, cfg.rv)) {
+
+  grant.L_prb = mexutils_read_f(p, &prbset);
+  grant.n_prb[0] = prbset[0];
+  grant.n_prb[1] = prbset[0];
+  free(prbset);
+
+  uint8_t *trblkin = NULL;
+  grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
+
+  grant.M_sc = grant.L_prb*SRSLTE_NRE;
+  grant.M_sc_init = grant.M_sc; // FIXME: What should M_sc_init be? 
+  grant.Qm = srslte_mod_bits_x_symbol(grant.mcs.mod);
+
+  if (srslte_pusch_cfg(&pusch, &cfg, &grant, NULL, NULL, NULL, cfg.sf_idx, cfg.rv, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
   
-  free(prbset);
+  mexPrintf("L_prb: %d, n_prb: %d\n", grant.L_prb, grant.n_prb[0]);
   
-  mexPrintf("L_prb: %d, n_prb: %d\n", cfg.grant.L_prb, cfg.grant.n_prb[0]);
-  
-  uint8_t *trblkin = NULL;
-  cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
 
   srslte_softbuffer_tx_t softbuffer; 
   if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
     mexErrMsgTxt("Error initiating soft buffer\n");
     return;
   }
-  if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
-    mexErrMsgTxt("Error computing CB segmentation\n");
-    return; 
-  }
+  
 
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   cf_t *sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
@@ -168,26 +172,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   float beta; 
   if (mexutils_read_float_struct(PUSCHCFG, "BetaCQI", &beta)) {
-    uci_data.I_offset_cqi = 7; 
+    cfg.uci_cfg.I_offset_cqi = 7; 
   } else {
-    uci_data.I_offset_cqi = srslte_sch_find_Ioffset_cqi(beta);
+    cfg.uci_cfg.I_offset_cqi = srslte_sch_find_Ioffset_cqi(beta);
   }
   if (mexutils_read_float_struct(PUSCHCFG, "BetaRI", &beta)) {
-    uci_data.I_offset_ri = 2; 
+    cfg.uci_cfg.I_offset_ri = 2; 
   } else {
-    uci_data.I_offset_ri = srslte_sch_find_Ioffset_ri(beta);
+    cfg.uci_cfg.I_offset_ri = srslte_sch_find_Ioffset_ri(beta);
   }
   if (mexutils_read_float_struct(PUSCHCFG, "BetaACK", &beta)) {
-    uci_data.I_offset_ack = 0; 
+    cfg.uci_cfg.I_offset_ack = 0; 
   } else {
-    uci_data.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
+    cfg.uci_cfg.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
   }
-  mexPrintf("TRBL_len: %d, CQI_len: %d, ACK_len: %d (%d), RI_len: %d (%d)\n", cfg.grant.mcs.tbs, 
+  mexPrintf("TRBL_len: %d, CQI_len: %d, ACK_len: %d (%d), RI_len: %d (%d)\n", grant.mcs.tbs, 
             uci_data.uci_cqi_len, uci_data.uci_ack_len, uci_data.uci_ack, uci_data.uci_ri_len, uci_data.uci_ri);
 
-  mexPrintf("I_cqi: %d, I_ri: %d, I_ack=%d\n", uci_data.I_offset_cqi, uci_data.I_offset_ri, uci_data.I_offset_ack);
+  mexPrintf("I_cqi: %d, I_ri: %d, I_ack=%d\n", cfg.uci_cfg.I_offset_cqi, cfg.uci_cfg.I_offset_ri, cfg.uci_cfg.I_offset_ack);
 
-  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d, N_srs=%d\n", cfg.nbits.nof_re, cfg.nbits.nof_bits, cfg.grant.mcs.tbs, N_srs);
+  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d, N_srs=%d\n", cfg.nbits.nof_re, cfg.nbits.nof_bits, grant.mcs.tbs, N_srs);
   int r = srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, sf_symbols);
   if (r < 0) {
     mexErrMsgTxt("Error encoding PUSCH\n");

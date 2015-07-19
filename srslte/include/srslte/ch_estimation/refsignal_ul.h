@@ -48,11 +48,11 @@
 typedef struct SRSLTE_API {
   uint32_t cyclic_shift; 
   uint32_t delta_ss;  
-  float beta_pusch;
+  bool group_hopping_en; 
+  bool sequence_hopping_en; 
 }srslte_refsignal_dmrs_pusch_cfg_t;
 
 typedef struct SRSLTE_API {
-  float beta_srs;
   uint32_t subframe_config;
   uint32_t I_srs; 
   uint32_t bw_cfg; 
@@ -67,8 +67,6 @@ typedef struct SRSLTE_API {
 /** Uplink DeModulation Reference Signal (DMRS) */
 typedef struct SRSLTE_API {
   srslte_cell_t cell; 
-  bool group_hopping_en; 
-  bool sequence_hopping_en; 
   srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg; 
   srslte_pucch_cfg_t pucch_cfg; 
   srslte_refsignal_srs_cfg_t srs_cfg; 
@@ -97,9 +95,7 @@ SRSLTE_API void srslte_refsignal_ul_free(srslte_refsignal_ul_t *q);
 SRSLTE_API void srslte_refsignal_ul_set_cfg(srslte_refsignal_ul_t *q, 
                                             srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
                                             srslte_pucch_cfg_t *pucch_cfg, 
-                                            srslte_refsignal_srs_cfg_t *srs_cfg, 
-                                            bool group_hopping_en, 
-                                            bool sequence_hopping_en);
+                                            srslte_refsignal_srs_cfg_t *srs_cfg);
 
 SRSLTE_API void srslte_refsignal_r_uv_arg_1prb(float *arg, 
                                                uint32_t u); 

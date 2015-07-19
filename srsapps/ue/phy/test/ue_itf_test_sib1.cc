@@ -30,17 +30,20 @@
 #include "srslte/utils/debug.h"
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/common/log_stdout.h"
-#include "srsapps/common/tti_sync_cv.h"
+#include "srsapps/common/mac_interface.h"
 #include "srsapps/radio/radio_uhd.h"
 
 
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
+
 typedef struct {
   float uhd_freq; 
   float uhd_gain;
 }prog_args_t;
+
+prog_args_t prog_args; 
 
 void args_default(prog_args_t *args) {
   args->uhd_freq = -1.0;
@@ -79,13 +82,37 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 }
 
 
+/******** MAC Interface implementation */
+class testmac : public srslte::ue::mac_interface_phy
+{
+public:
+  void new_grant_ul(mac_grant_t grant, uint8_t *payload_ptr, tb_action_ul_t *action) {
+    printf("New grant UL\n");
+  }
+  void new_grant_ul_ack(mac_grant_t grant, uint8_t *payload_ptr, bool ack, tb_action_ul_t *action) {
+    printf("New grant UL ACK\n");    
+  }
+
+  void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action) {
+    printf("harq recv\n");    
+  }
+
+  void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) {
+    printf("New grant DL\n");    
+  }
+  
+  void tb_decoded_ok(uint32_t harq_pid) {
+    printf("TB decoded OK\n");    
+  }
+
+  void bch_decoded_ok(uint8_t *payload) {
+    printf("BCH decoded\n");
+  }
+};
 
 
 
-
-
-srslte::ue::phy phy;
-prog_args_t prog_args; 
+#ifdef kk
 
 uint32_t total_pkts=0;
 uint32_t total_dci=0;
@@ -94,7 +121,6 @@ uint8_t payload[1024];
 
 // This is the MAC implementation
 void run_tti(uint32_t tti) {
-  srslte::ue::dl_sched_grant grant(SRSLTE_SIRNTI); 
   INFO("MAC running tti: %d\n", tti);
   
   // SIB1 is scheduled in subframe #5 of even frames
@@ -127,12 +153,14 @@ void run_tti(uint32_t tti) {
          total_pkts, gain);   
   }
 }
+#endif
 
 int main(int argc, char *argv[])
 {
+  srslte::ue::phy phy;
+  testmac         mac;
   srslte_cell_t cell; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
-  srslte::ue::tti_sync_cv ttisync(10240); 
   srslte::radio_uhd radio_uhd; 
   srslte::log_stdout log("PHY");
   
@@ -142,46 +170,28 @@ int main(int argc, char *argv[])
   if (prog_args.uhd_gain > 0) {
     radio_uhd.init();
     radio_uhd.set_rx_gain(prog_args.uhd_gain);    
-    phy.init(&radio_uhd, &ttisync, &log);
+    phy.init(&radio_uhd, &mac, &log);
   } else {
     radio_uhd.init_agc();
-    phy.init_agc(&radio_uhd, &ttisync, &log);
+    phy.init_agc(&radio_uhd, &mac, &log);
   }
   
   // Give it time to create thread 
   sleep(1);
   
   // Set default parameters 
-  phy.set_param(srslte::ue::phy_params::PRACH_CONFIG_INDEX, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_ROOT_SEQ_IDX, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_HIGH_SPEED_FLAG, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 1);
+  phy.set_param(srslte::ue::phy_interface_params::PRACH_CONFIG_INDEX, 0);
+  phy.set_param(srslte::ue::phy_interface_params::PRACH_ROOT_SEQ_IDX, 0);
+  phy.set_param(srslte::ue::phy_interface_params::PRACH_HIGH_SPEED_FLAG, 0);
+  phy.set_param(srslte::ue::phy_interface_params::PRACH_ZC_CONFIG, 1);
   
   // Set RX freq and gain
-  phy.get_radio()->set_rx_freq(prog_args.uhd_freq);
-  phy.get_radio()->set_rx_gain(prog_args.uhd_gain);
+  radio_uhd.set_rx_freq(prog_args.uhd_freq);
+  radio_uhd.set_rx_gain(prog_args.uhd_gain);
+
+  phy.sync_start();
   
-  /* Instruct the PHY to decode BCH */
-  if (!phy.decode_mib_best(&cell, bch_payload)) {
-    exit(-1);
-  }
-  // Print MIB 
-  srslte_cell_fprint(stdout, &cell, phy.get_current_tti()/10);
-  
-  // Set the current PHY cell to the detected cell
-  if (!phy.set_cell(cell)) {
-    printf("Error setting cell\n");
-    exit(-1);
-  }
-  
-  /* Instruct the PHY to start RX streaming and synchronize */
-  if (!phy.start_rxtx()) {
-    printf("Could not start RX\n");
-    exit(-1);
-  }
-  /* go to idle and process each tti */
   while(1) {
-    uint32_t tti = ttisync.wait();
-    run_tti(tti);
+    usleep(1000);
   }
 }

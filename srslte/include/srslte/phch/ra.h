@@ -145,6 +145,7 @@ typedef struct SRSLTE_API {
   uint32_t M_sc_init; 
   uint32_t Qm; 
   srslte_ra_mcs_t mcs;
+  uint32_t ncs_dmrs;
 } srslte_ra_ul_grant_t;
 
 /** Unpacked DCI Format0 message */
@@ -172,12 +173,19 @@ typedef struct SRSLTE_API {
 
 } srslte_ra_ul_dci_t;
 
+typedef union {
+  srslte_ra_ul_grant_t ul;
+  srslte_ra_dl_grant_t dl;
+} srslte_phy_grant_t;
+
+#define SRSLTE_PHY_GRANT_LEN sizeof(srslte_phy_grant_t)
 
 
 /**************************************************
  * Functions 
  **************************************************/
 
+SRSLTE_API char* srslte_ra_dl_dci_string(srslte_ra_dl_dci_t *dci);
 
 SRSLTE_API int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, 
                                          uint32_t nof_prb, 

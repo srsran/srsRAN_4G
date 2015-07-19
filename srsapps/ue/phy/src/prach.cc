@@ -33,7 +33,7 @@
 #include "srsapps/common/log.h"
 #include "srsapps/ue/phy/prach.h"
 #include "srsapps/ue/phy/phy.h"
-#include "srsapps/ue/phy/phy_params.h"
+#include "srsapps/common/phy_interface.h"
 
 namespace srslte {
 namespace ue {
@@ -55,17 +55,21 @@ void prach::free_cell()
   }
 }
 
-bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_, log *log_h_)
+void prach::init(phy_params* params_db_, log* log_h_)
 {
-  cell = cell_; 
   log_h = log_h_; 
   params_db = params_db_; 
+}
+
+bool prach::init_cell(srslte_cell_t cell_)
+{
+  cell = cell_; 
   preamble_idx = -1; 
   if (srslte_prach_init(&prach_obj, srslte_symbol_sz(cell.nof_prb), 
-                        srslte_prach_get_preamble_format(params_db->get_param(phy_params::PRACH_CONFIG_INDEX)), 
-                        params_db->get_param(phy_params::PRACH_ROOT_SEQ_IDX), 
-                        params_db->get_param(phy_params::PRACH_HIGH_SPEED_FLAG)?true:false, 
-                        params_db->get_param(phy_params::PRACH_ZC_CONFIG))) {
+                        srslte_prach_get_preamble_format(params_db->get_param(phy_interface_params::PRACH_CONFIG_INDEX)), 
+                        params_db->get_param(phy_interface_params::PRACH_ROOT_SEQ_IDX), 
+                        params_db->get_param(phy_interface_params::PRACH_HIGH_SPEED_FLAG)?true:false, 
+                        params_db->get_param(phy_interface_params::PRACH_ZC_CONFIG))) {
     return false; 
   }
   
@@ -75,7 +79,7 @@ bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_, log *log_h_)
     if(!buffer[i]) {
       return false; 
     }    
-    if(srslte_prach_gen(&prach_obj, i, params_db->get_param(phy_params::PRACH_FREQ_OFFSET), buffer[i])) {
+    if(srslte_prach_gen(&prach_obj, i, params_db->get_param(phy_interface_params::PRACH_FREQ_OFFSET), buffer[i])) {
       return false;
     }
   }
@@ -86,13 +90,16 @@ bool prach::init_cell(srslte_cell_t cell_, phy_params *params_db_, log *log_h_)
   return initiated;  
 }
 
-bool prach::prepare_to_send(uint32_t preamble_idx_) {
-  return prepare_to_send(preamble_idx_, -1, 0); 
+bool prach::prepare_to_send(phy_interface::prach_cfg_t* cfg)
+{
+  int allowed_sf = cfg->allowed_subframe_enabled?(int) cfg->allowed_subframe:-1;
+  bool ret = prepare_to_send(cfg->preamble_idx, allowed_sf, cfg->target_power_dbm);
+  if (ret) {
+    memcpy(&prach_cfg, cfg, sizeof(phy_interface::prach_cfg_t));  
+  }
 }
-bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_) {
-  return prepare_to_send(preamble_idx_, allowed_subframe_, 0); 
-}
-bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, int target_power_dbm)
+
+bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm)
 {
   if (initiated && preamble_idx_ < 64) {
     preamble_idx = preamble_idx_;
@@ -109,7 +116,7 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
   if (initiated && preamble_idx >= 0 && preamble_idx < 64 && params_db != NULL) {
     // consider the number of subframes the transmission must be anticipated 
     uint32_t current_tti = (current_tti_ + tx_advance_sf)%10240;
-    uint32_t config_idx = (uint32_t) params_db->get_param(phy_params::PRACH_CONFIG_INDEX); 
+    uint32_t config_idx = (uint32_t) params_db->get_param(phy_interface_params::PRACH_CONFIG_INDEX); 
     if (srslte_prach_send_tti(config_idx, current_tti, allowed_subframe)) {
       Info("PRACH Buffer: Ready to send at tti: %d (now is %d)\n", current_tti, current_tti_);
       transmitted_tti = current_tti; 
@@ -119,11 +126,16 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
   return false;     
 }
 
-int prach::get_transmitted_tti() {
-  if (initiated) {
-    return transmitted_tti;     
-  } else {
-    return -1; 
+void prach::get_rar_cfg(uint16_t *rar_rnti, uint32_t *tti_start, uint32_t *tti_end)
+{
+  if (rar_rnti) {
+    *rar_rnti  = prach_cfg.rar_rnti;
+  }
+  if (tti_start) {
+    *tti_start = transmitted_tti + prach_cfg.rar_start;
+  }
+  if (tti_end) {
+    *tti_end   = transmitted_tti + prach_cfg.rar_start + prach_cfg.rar_window;
   }
 }
 
@@ -137,18 +149,13 @@ bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
   // Correct CFO before transmission
   srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo /srslte_symbol_sz(cell.nof_prb));            
 
-  // Compute peak
-  float max = 0; 
-  float *t = (float*) signal_buffer;
-  for (int i=0;i<2*len;i++) {
-    if (fabsf(t[i]) > max) {
-      max = fabsf(t[i]);
-    }
-  }
+  // Normalize signal amplitude  
+  srslte_vec_norm_cfc(signal_buffer, 0.9, signal_buffer, len);
   
   radio_handler->tx(signal_buffer, len, tx_time);                
-  Debug("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f, PeakAmplitude=%.2f\n", 
-       cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs, max);
+  
+  Debug("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f\n", 
+       cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs);
   preamble_idx = -1; 
 }
   

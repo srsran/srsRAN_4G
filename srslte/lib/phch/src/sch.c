@@ -521,9 +521,9 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
 
   // Encode RI
   if (uci_data.uci_ri_len > 0) {
-    float beta = beta_ri_offset[uci_data.I_offset_ri]; 
+    float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
     if (cfg->cb_segm.tbs == 0) {
-        beta /= beta_cqi_offset[uci_data.I_offset_cqi];
+        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
     ret = srslte_uci_encode_ri(cfg, uci_data.uci_ri, uci_data.uci_cqi_len, beta, nb_q/Qm, q_bits);
     if (ret < 0) {
@@ -536,7 +536,7 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   if (uci_data.uci_cqi_len > 0) {
     ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi, cfg, 
                                       uci_data.uci_cqi, uci_data.uci_cqi_len, 
-                                      beta_cqi_offset[uci_data.I_offset_cqi], 
+                                      beta_cqi_offset[cfg->uci_cfg.I_offset_cqi], 
                                       Q_prime_ri, g_bits);
     if (ret < 0) {
       return ret; 
@@ -562,9 +562,9 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   
    // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
-    float beta = beta_harq_offset[uci_data.I_offset_ack]; 
+    float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {
-        beta /= beta_cqi_offset[uci_data.I_offset_cqi];
+        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
     ret = srslte_uci_encode_ack(cfg, uci_data.uci_ack, uci_data.uci_cqi_len, beta, nb_q/Qm, q_bits);
     if (ret < 0) {

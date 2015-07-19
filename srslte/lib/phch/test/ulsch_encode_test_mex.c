@@ -99,19 +99,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   float beta; 
   if (mexutils_read_float_struct(PUSCHCFG, "BetaCQI", &beta)) {
-    uci_data.I_offset_cqi = 7; 
+    cfg.uci_cfg.I_offset_cqi = 7; 
   } else {
-    uci_data.I_offset_cqi = srslte_sch_find_Ioffset_cqi(beta);
+    cfg.uci_cfg.I_offset_cqi = srslte_sch_find_Ioffset_cqi(beta);
   }
   if (mexutils_read_float_struct(PUSCHCFG, "BetaRI", &beta)) {
-    uci_data.I_offset_ri = 2; 
+    cfg.uci_cfg.I_offset_ri = 2; 
   } else {
-    uci_data.I_offset_ri = srslte_sch_find_Ioffset_ri(beta);
+    cfg.uci_cfg.I_offset_ri = srslte_sch_find_Ioffset_ri(beta);
   }
   if (mexutils_read_float_struct(PUSCHCFG, "BetaACK", &beta)) {
-    uci_data.I_offset_ack = 0; 
+    cfg.uci_cfg.I_offset_ack = 0; 
   } else {
-    uci_data.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
+    cfg.uci_cfg.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
   }
   
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");

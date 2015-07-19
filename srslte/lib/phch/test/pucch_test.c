@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
         for (uint32_t n_pucch=1;n_pucch<130;n_pucch++) {
           struct timeval t[3]; 
           
-          pucch_cfg.beta_pucch = 1.0; 
+          
           pucch_cfg.delta_pucch_shift = d; 
           bool group_hopping_en = false; 
           pucch_cfg.N_cs = ncs; 
@@ -140,7 +140,11 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Error encoding PUCCH\n");
             goto quit; 
           }
-          srslte_refsignal_ul_set_cfg(&dmrs, NULL, &pucch_cfg, NULL, group_hopping_en, false);
+          
+          srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg; 
+          pusch_cfg.group_hopping_en = group_hopping_en; 
+          pusch_cfg.sequence_hopping_en = false; 
+          srslte_refsignal_ul_set_cfg(&dmrs, &pusch_cfg, &pucch_cfg, NULL);
           
           if (srslte_refsignal_dmrs_pucch_gen(&dmrs, format, n_pucch, subframe, pucch2_bits, pucch_dmrs)) {
             fprintf(stderr, "Error encoding PUCCH\n");

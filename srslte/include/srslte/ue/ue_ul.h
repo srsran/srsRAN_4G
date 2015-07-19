@@ -77,7 +77,10 @@ typedef struct SRSLTE_API {
   srslte_pusch_t pusch; 
   srslte_pucch_t pucch; 
   
-  srslte_pucch_sched_t pucch_sched; 
+  srslte_pucch_sched_t              pucch_sched; 
+  srslte_refsignal_srs_cfg_t        srs_cfg;
+  srslte_uci_cfg_t                  uci_cfg;
+  srslte_pusch_hopping_cfg_t        hopping_cfg;
    
   cf_t *refsignal; 
   cf_t *srs_signal; 
@@ -104,22 +107,21 @@ SRSLTE_API void srslte_ue_ul_set_normalization(srslte_ue_ul_t *q,
 
 SRSLTE_API void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q, 
                                      srslte_refsignal_dmrs_pusch_cfg_t *dmrs_cfg, 
-                                     srslte_pucch_cfg_t *pucch_cfg, 
-                                     srslte_refsignal_srs_cfg_t *srs_cfg,
-                                     srslte_pucch_sched_t *pucch_sched, 
-                                     bool group_hopping_en, 
-                                     bool sequence_hopping_en); 
+                                     srslte_refsignal_srs_cfg_t        *srs_cfg,
+                                     srslte_pucch_cfg_t                *pucch_cfg, 
+                                     srslte_pucch_sched_t              *pucch_sched, 
+                                     srslte_uci_cfg_t                  *uci_cfg,
+                                     srslte_pusch_hopping_cfg_t        *hopping_cfg); 
 
 SRSLTE_API int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, 
-                                      srslte_dci_msg_t *dci_msg, 
-                                      srslte_pusch_hopping_cfg_t *hopping_cfg, 
-                                      srslte_refsignal_srs_cfg_t *srs_cfg,
+                                      srslte_ra_ul_grant_t *grant,
                                       uint32_t tti, 
-                                      uint32_t cyclic_shift_for_dmrs,
-                                      uint32_t rvidx); 
+                                      uint32_t rvidx, 
+                                      uint32_t current_tx_nb); 
 
 SRSLTE_API int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q,
                                          srslte_uci_data_t uci_data, 
+                                         uint32_t pdcch_n_cce, /* Ncce of the last PDCCH message received */
                                          uint32_t tti, 
                                          cf_t *output_signal);
 

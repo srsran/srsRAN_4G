@@ -183,6 +183,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       
     }
       
+    /* FIXME: Go for zerocopy only and eliminate this allocation */
     q->input_buffer = srslte_vec_malloc(2*q->frame_len * sizeof(cf_t));
     if (!q->input_buffer) {
       perror("malloc");
@@ -260,7 +261,7 @@ void srslte_ue_sync_set_N_id_2(srslte_ue_sync_t *q, uint32_t N_id_2) {
   }
 }
 
-static int find_peak_ok(srslte_ue_sync_t *q) {
+static int find_peak_ok(srslte_ue_sync_t *q, cf_t *input_buffer) {
 
   
   if (srslte_sync_sss_detected(&q->sfind)) {    
@@ -278,7 +279,7 @@ static int find_peak_ok(srslte_ue_sync_t *q) {
   if (q->frame_find_cnt >= q->nof_avg_find_frames || q->peak_idx < 2*q->fft_size) {
     DEBUG("Realigning frame, reading %d samples\n", q->peak_idx+q->sf_len/2);
     /* Receive the rest of the subframe so that we are subframe aligned*/
-    if (q->recv_callback(q->stream, q->input_buffer, q->peak_idx+q->sf_len/2, &q->last_timestamp) < 0) {
+    if (q->recv_callback(q->stream, input_buffer, q->peak_idx+q->sf_len/2, &q->last_timestamp) < 0) {
       return SRSLTE_ERROR;
     }
     
@@ -350,7 +351,7 @@ static int track_peak_no(srslte_ue_sync_t *q) {
   return 1;
 }
 
-static int receive_samples(srslte_ue_sync_t *q) {
+static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer) {
   
   /* A negative time offset means there are samples in our buffer for the next subframe, 
   because we are sampling too fast. 
@@ -360,7 +361,7 @@ static int receive_samples(srslte_ue_sync_t *q) {
   }
 
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
-  if (q->recv_callback(q->stream, &q->input_buffer[q->time_offset], q->frame_len - q->time_offset, &q->last_timestamp) < 0) {
+  if (q->recv_callback(q->stream, &input_buffer[q->time_offset], q->frame_len - q->time_offset, &q->last_timestamp) < 0) {
     return SRSLTE_ERROR;
   }
   
@@ -373,16 +374,24 @@ static int receive_samples(srslte_ue_sync_t *q) {
 bool first_track = true; 
 
 int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
+  int ret = srslte_ue_sync_zerocopy(q, q->input_buffer);
+  if (sf_symbols) {
+    *sf_symbols = q->input_buffer;
+  }
+  return ret; 
+
+}
+
+int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   uint32_t track_idx; 
   
   if (q               != NULL   &&
-      sf_symbols      != NULL   &&
-      q->input_buffer != NULL)
+      input_buffer != NULL)
   {
     
     if (q->file_mode) {
-      int n = srslte_filesource_read(&q->file_source, q->input_buffer, q->sf_len);
+      int n = srslte_filesource_read(&q->file_source, input_buffer, q->sf_len);
       if (n < 0) {
         fprintf(stderr, "Error reading input file\n");
         return SRSLTE_ERROR; 
@@ -390,7 +399,7 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
       if (n == 0) {
         srslte_filesource_seek(&q->file_source, 0);
         q->sf_idx = 9; 
-        int n = srslte_filesource_read(&q->file_source, q->input_buffer, q->sf_len);
+        int n = srslte_filesource_read(&q->file_source, input_buffer, q->sf_len);
         if (n < 0) {
           fprintf(stderr, "Error reading input file\n");
           return SRSLTE_ERROR; 
@@ -402,25 +411,24 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
       }
       DEBUG("Reading %d samples. sf_idx = %d\n", q->sf_len, q->sf_idx);
       ret = 1;
-      *sf_symbols = q->input_buffer;
     } else {
-      if (receive_samples(q)) {
+      if (receive_samples(q, input_buffer)) {
         fprintf(stderr, "Error receiving samples\n");
         return SRSLTE_ERROR;
       }
       switch (q->state) {
         case SF_FIND:        
-          ret = srslte_sync_find(&q->sfind, q->input_buffer, 0, &q->peak_idx);
+          ret = srslte_sync_find(&q->sfind, input_buffer, 0, &q->peak_idx);
           if (ret < 0) {
             fprintf(stderr, "Error finding correlation peak (%d)\n", ret);
             return SRSLTE_ERROR;
           }
           if (q->do_agc) {
-            srslte_agc_process(&q->agc, q->input_buffer, q->sf_len);        
+            srslte_agc_process(&q->agc, input_buffer, q->sf_len);        
           }
 
           if (ret == 1) {
-            ret = find_peak_ok(q);
+            ret = find_peak_ok(q, input_buffer);
           } 
         break;
         case SF_TRACK:
@@ -434,7 +442,7 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
           if (q->sf_idx == 0 || q->sf_idx == 5) {
 
             if (q->do_agc) {
-              srslte_agc_process(&q->agc, q->input_buffer, q->sf_len);        
+              srslte_agc_process(&q->agc, input_buffer, q->sf_len);        
             }
 
             #ifdef MEASURE_EXEC_TIME
@@ -445,7 +453,7 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
             track_idx = 0; 
             
             /* track PSS/SSS around the expected PSS position */
-            ret = srslte_sync_find(&q->strack, q->input_buffer, 
+            ret = srslte_sync_find(&q->strack, input_buffer, 
                             q->frame_len - q->sf_len/2 - q->fft_size - q->strack.frame_size/2, 
                             &track_idx);
             if (ret < 0) {
@@ -476,13 +484,11 @@ int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, cf_t **sf_symbols) {
           /* Do CFO Correction if not done in track and deliver the frame */
           if (!q->strack.correct_cfo && q->correct_cfo) {
             srslte_cfo_correct(&q->sfind.cfocorr, 
-                        q->input_buffer, 
-                        q->input_buffer, 
+                        input_buffer, 
+                        input_buffer, 
                         -srslte_sync_get_cfo(&q->strack) / q->fft_size);               
                         
           }
-          *sf_symbols = q->input_buffer;
-          
         break;
       }
       

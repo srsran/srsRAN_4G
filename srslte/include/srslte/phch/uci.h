@@ -54,14 +54,11 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   uint8_t *uci_cqi;
   uint32_t uci_cqi_len;
-  uint32_t I_offset_cqi;
   uint8_t  uci_ri;  // Only 1-bit supported for RI
   uint32_t uci_ri_len;
-  uint32_t I_offset_ri;
   uint8_t  uci_ack;   // 1st codeword bit for HARQ-ACK
   uint8_t  uci_ack_2; // 2st codeword bit for HARQ-ACK
   uint32_t uci_ack_len;
-  uint32_t I_offset_ack;
   bool scheduling_request; 
   bool channel_selection; 
 } srslte_uci_data_t;

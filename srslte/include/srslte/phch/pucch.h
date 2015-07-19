@@ -55,7 +55,6 @@ typedef enum SRSLTE_API {
 } srslte_pucch_format_t; 
 
 typedef struct SRSLTE_API {
-  uint32_t n_cce; 
   bool sps_enabled; 
   uint32_t tpc_for_pucch; 
   uint32_t N_pucch_1; 
@@ -65,7 +64,6 @@ typedef struct SRSLTE_API {
 }srslte_pucch_sched_t;
 
 typedef struct SRSLTE_API {
-  float beta_pucch;
   uint32_t delta_pucch_shift; 
   uint32_t n_rb_2; 
   uint32_t N_cs; 

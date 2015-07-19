@@ -111,6 +111,8 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
 int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, uint32_t n_rb_ho, uint32_t nof_prb) 
 {
   bzero(grant, sizeof(srslte_ra_ul_grant_t));  
+  
+  grant->ncs_dmrs = dci->n_dmrs;
   grant->L_prb = dci->type2_alloc.L_crb;
   uint32_t n_prb_1 = dci->type2_alloc.RB_start;
   uint32_t n_rb_pusch = 0;
@@ -256,6 +258,18 @@ uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, srslte_cell_t ce
   return nof_re; 
 }
 
+char* srslte_ra_dl_dci_string(srslte_ra_dl_dci_t *dci) {
+  switch(dci->dci_format) {
+    case SRSLTE_RA_DCI_FORMAT1:
+      return "1";
+    case SRSLTE_RA_DCI_FORMAT1A:
+      return "1A";
+    case SRSLTE_RA_DCI_FORMAT1C:
+      return "1C";
+    default:
+      return "";
+  }
+}
 
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
 static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, uint32_t nof_prb) {

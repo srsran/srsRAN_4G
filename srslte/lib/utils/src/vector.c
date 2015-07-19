@@ -28,6 +28,7 @@
 
 #include <float.h>
 #include <complex.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -157,6 +158,22 @@ void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
 #else
   volk_32f_s32f_multiply_32f(z,x,h,len);
 #endif
+}
+
+// TODO: Improve this implementation
+void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len) {
+  // Compute peak
+  float max = 0; 
+  float *t = (float*) x;
+  for (int i=0;i<2*len;i++) {
+    if (fabsf(t[i]) > max) {
+      max = fabsf(t[i]);
+    }
+  }
+    
+  // Normalize before TX 
+  srslte_vec_sc_prod_cfc(x, amplitude/max, y, len);
+
 }
 
 void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {

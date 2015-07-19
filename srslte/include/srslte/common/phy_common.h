@@ -139,6 +139,16 @@ typedef enum SRSLTE_API {
   
 } srslte_phich_resources_t;
 
+typedef enum {
+  SRSLTE_RNTI_USER = 0,
+  SRSLTE_RNTI_SI,
+  SRSLTE_RNTI_RAR,
+  SRSLTE_RNTI_TEMP,
+  SRSLTE_RNTI_SPS,
+  SRSLTE_RNTI_PCH,  
+  SRSLTE_RNTI_NOF_TYPES
+} srslte_rnti_type_t;
+
 typedef struct SRSLTE_API {
   uint32_t nof_prb;
   uint32_t nof_ports; 

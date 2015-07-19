@@ -38,5 +38,31 @@
 
 #ifdef __cplusplus
 }
+  
+#ifndef THREADS_
+#define THREADS_   
+  
+class thread
+{
+public: 
+  bool start(uint32_t prio = 0) {
+    return threads_new_rt_prio(&_thread, thread_function_entry, this, prio);    
+  }
+  void print_priority() {
+    threads_print_self();
+  }
+  void wait_thread_finish() {
+    pthread_join(_thread, NULL);
+  }
+protected:
+  virtual void run_thread() = 0; 
+private:
+  static void *thread_function_entry(void *_this)  { ((thread*) _this)->run_thread();}
+  pthread_t _thread;
+};
+  
+
+#endif
+
 #endif
 

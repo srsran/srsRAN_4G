@@ -135,11 +135,15 @@ int main(int argc, char **argv) {
   srslte_dci_msg_t dci_msg; 
   srslte_dci_msg_pack_pusch(&dci, &dci_msg, cell.nof_prb);
 
+  srslte_ra_ul_grant_t grant; 
+  if (srslte_dci_msg_to_ul_grant(&dci_msg, cell.nof_prb, 0, NULL, &grant)) {
+    return false;   
+  }
+
   srslte_pusch_hopping_cfg_t ul_hopping; 
   ul_hopping.n_sb = 1; 
   ul_hopping.hopping_offset = 0;
   ul_hopping.hop_mode = SRSLTE_PUSCH_HOP_MODE_INTER_SF;
-  ul_hopping.current_tx_nb = 0;
   
   if (srslte_pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
@@ -147,35 +151,38 @@ int main(int argc, char **argv) {
   }
   
   /* Configure PUSCH */
-  if (srslte_pusch_cfg(&pusch, &cfg, &dci_msg, &ul_hopping, NULL, subframe, 0, 0)) {
+    
+  printf("Encoding rv_idx=%d\n",rv_idx);
+  
+  srslte_uci_cfg_t uci_cfg; 
+  uci_cfg.I_offset_cqi = 7; 
+  uci_cfg.I_offset_ri = 2; 
+  uci_cfg.I_offset_ack = 4; 
+
+  if (srslte_pusch_cfg(&pusch, &cfg, &grant, &uci_cfg, &ul_hopping, NULL, subframe, 0, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
   
   srslte_pusch_set_rnti(&pusch, 1234);
-    
-  printf("Encoding rv_idx=%d\n",rv_idx);
-  cfg.rv = 0; 
-  cfg.sf_idx = subframe; 
   
-  uint8_t tmp[20];
-  for (uint32_t i=0;i<20;i++) {
-    tmp[i] = 1;
-  }
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.I_offset_cqi = 7; 
-  uci_data.I_offset_ri = 2; 
-  uci_data.I_offset_ack = 4; 
-  
   uci_data.uci_cqi_len = 8; 
   uci_data.uci_ri_len = 0; 
   uci_data.uci_ack_len = 1; 
 
+  uint8_t tmp[20];
+  for (uint32_t i=0;i<20;i++) {
+    tmp[i] = 1;
+  }
+
   uci_data.uci_cqi = tmp;
   uci_data.uci_ri = 0; 
   uci_data.uci_ack = 0; 
-    
+
+  
+
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {

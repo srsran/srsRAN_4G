@@ -23,5 +23,5 @@ INCLUDE_DIRECTORIES(phy/include/)
 INCLUDE_DIRECTORIES(mac/include/)
 
 add_subdirectory(phy)
-add_subdirectory(mac)
+#add_subdirectory(mac)
 

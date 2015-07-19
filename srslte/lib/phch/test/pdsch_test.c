@@ -137,17 +137,18 @@ int main(int argc, char **argv) {
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   
-  pdsch_cfg.grant.mcs.tbs = tbs; 
-  pdsch_cfg.grant.mcs.mod = modulation;
-  pdsch_cfg.grant.Qm = srslte_mod_bits_x_symbol(pdsch_cfg.grant.mcs.mod);
-  pdsch_cfg.grant.nof_prb = cell.nof_prb; // Allocate all PRB 
-  for (i=0;i<pdsch_cfg.grant.nof_prb;i++) {
-    pdsch_cfg.grant.prb_idx[0][i] = true;
+  srslte_ra_dl_grant_t grant; 
+  grant.mcs.tbs = tbs; 
+  grant.mcs.mod = modulation;
+  grant.Qm = srslte_mod_bits_x_symbol(grant.mcs.mod);
+  grant.nof_prb = cell.nof_prb; // Allocate all PRB 
+  for (i=0;i<grant.nof_prb;i++) {
+    grant.prb_idx[0][i] = true;
   }
-  memcpy(&pdsch_cfg.grant.prb_idx[1], &pdsch_cfg.grant.prb_idx[0], SRSLTE_MAX_PRB * sizeof(bool));
+  memcpy(&grant.prb_idx[1], &grant.prb_idx[0], SRSLTE_MAX_PRB * sizeof(bool));
 
   /* Configure PDSCH */
-  if (srslte_pdsch_cfg(&pdsch_cfg, cell, NULL, cfi, subframe, 1234, 0)) {
+  if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, subframe, 1234, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
@@ -193,9 +194,9 @@ int main(int argc, char **argv) {
   }
   
   if (SRSLTE_VERBOSE_ISNONE()) {
-    printf("Decoding TBS: %d\r",pdsch_cfg.grant.mcs.tbs);
+    printf("Decoding TBS: %d\r",grant.mcs.tbs);
   }
-  for (i=0;i<pdsch_cfg.grant.mcs.tbs;i++) {
+  for (i=0;i<grant.mcs.tbs;i++) {
     data[i] = rand()%2;
   }
 
@@ -223,11 +224,11 @@ int main(int argc, char **argv) {
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     if (r) {
-      printf("Error decoding TBS: %d\n", pdsch_cfg.grant.mcs.tbs);
+      printf("Error decoding TBS: %d\n", grant.mcs.tbs);
       ret = -1;
       goto quit;
     } else {
-      printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) pdsch_cfg.grant.mcs.tbs/t[0].tv_usec);                
+      printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) grant.mcs.tbs/t[0].tv_usec);                
     }
   } 
   ret = 0;

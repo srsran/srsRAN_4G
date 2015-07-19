@@ -305,21 +305,11 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
 /* Configures the structure srslte_pdsch_cfg_t from the DL DCI allocation dci_msg. 
  * If dci_msg is NULL, the grant is assumed to be already stored in cfg->grant
  */
-int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
-  if (dci_msg) {
-    srslte_ra_dl_dci_t dl_dci; 
-    if (srslte_dci_msg_to_dl_grant(dci_msg, rnti, cell.nof_prb, &dl_dci, &cfg->grant)) {
-      fprintf(stderr, "Error unpacking PDSCH scheduling DCI message\n");
-      return SRSLTE_ERROR;
-    }    
-    if (rnti == SRSLTE_SIRNTI) {
-      cfg->rv = rvidx;
-    } else {
-      cfg->rv = dl_dci.rv_idx;
-    }
-  } else {
-    cfg->rv = rvidx; 
+  
+  if (cfg && grant) {
+    memcpy(&cfg->grant, grant, sizeof(srslte_ra_dl_grant_t));
   }
   if (srslte_cbsegm(&cfg->cb_segm, cfg->grant.mcs.tbs)) {
     fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
@@ -327,6 +317,7 @@ int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_dci_msg
   }
   srslte_ra_dl_grant_to_nbits(&cfg->grant, cfi, cell, sf_idx, &cfg->nbits);
   cfg->sf_idx = sf_idx; 
+  cfg->rv = rvidx;
   
   return SRSLTE_SUCCESS;   
 }
