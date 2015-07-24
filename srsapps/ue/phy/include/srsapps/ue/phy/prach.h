@@ -57,7 +57,7 @@ namespace ue {
     bool           send(radio* radio_handler, float cfo, srslte_timestamp_t rx_time);
     
   private: 
-    static const uint32_t tx_advance_sf = 1; // Number of subframes to advance transmission
+    static const uint32_t tx_advance_sf = 4; // Number of subframes to advance transmission
     phy_params    *params_db; 
     log           *log_h; 
     int            preamble_idx;  

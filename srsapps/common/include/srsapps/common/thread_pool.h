@@ -54,8 +54,9 @@ public:
   class worker : public thread
   {
   public:
-    void setup(uint32_t id, thread_pool *parent);
+    void setup(uint32_t id, thread_pool *parent, uint32_t prio=0);
     void stop();
+    uint32_t get_id();
   protected: 
     virtual void work_imp() = 0;
   private: 
@@ -69,7 +70,7 @@ public:
     
   
   thread_pool(uint32_t nof_workers);  
-  void    init_worker(uint32_t id, worker*);              
+  void    init_worker(uint32_t id, worker*, uint32_t prio = 0);              
   void    stop();
   worker* wait_worker();              
   void    start_worker(worker*);              
@@ -85,6 +86,7 @@ private:
   pthread_cond_t cvar_start, cvar_stop;
   pthread_mutex_t mutex_start, mutex_stop;
   uint32_t nof_workers; 
+  bool running;
 };
 }
   

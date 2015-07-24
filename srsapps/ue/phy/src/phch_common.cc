@@ -60,14 +60,18 @@ bool phch_common::ul_rnti_active(uint32_t tti) {
       (tti <  ul_rnti_end   && ul_rnti_end   >= 0 || ul_rnti_end   < 0)) 
   {
     return true; 
+  } else {
+    return false; 
   }
 }
 
 bool phch_common::dl_rnti_active(uint32_t tti) {
-  if ((tti >= dl_rnti_start && dl_rnti_start >= 0  || dl_rnti_start < 0) && 
-      (tti <  dl_rnti_end   && dl_rnti_end   >= 0  || dl_rnti_end   < 0))
+  if (((tti >= dl_rnti_start && dl_rnti_start >= 0)  || dl_rnti_start < 0) && 
+      ((tti <  dl_rnti_end   && dl_rnti_end   >= 0)  || dl_rnti_end   < 0))
   {
     return true; 
+  } else {
+    return false; 
   }
 }
 
@@ -76,6 +80,8 @@ void phch_common::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_G
 {
   srslte_dci_rar_grant_unpack(&rar_grant, grant_payload);
   rar_grant_pending = true; 
+  Info("Setting RAR grant: \n");
+  srslte_dci_rar_grant_fprint(stdout, &rar_grant);
   // PUSCH is at n+6 or n+7 and phch_worker assumes default delay of 4 ttis
   if (rar_grant.ul_delay) {
     rar_grant_tti     = (tti + 3) % 10240; 
@@ -86,8 +92,11 @@ void phch_common::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_G
 
 bool phch_common::get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_grant_)
 {
-  if (rar_grant_pending && tti >= rar_grant_tti) {
-    memcpy(rar_grant_, &rar_grant, sizeof(srslte_dci_rar_grant_t));
+  if (rar_grant_pending && (tti >= rar_grant_tti || (tti < 10 && rar_grant_pending > 10235))) {
+    if (rar_grant_) {
+      rar_grant_pending = false; 
+      memcpy(rar_grant_, &rar_grant, sizeof(srslte_dci_rar_grant_t));
+    }
     return true; 
   }
   return false; 
@@ -97,6 +106,8 @@ bool phch_common::get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_gran
 uint16_t phch_common::get_ul_rnti(uint32_t tti) {
   if (ul_rnti_active(tti)) {
     return ul_rnti; 
+  } else {
+    return 0; 
   }
 }
 srslte_rnti_type_t phch_common::get_ul_rnti_type() {
@@ -111,6 +122,8 @@ void phch_common::set_ul_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int 
 uint16_t phch_common::get_dl_rnti(uint32_t tti) {
   if (dl_rnti_active(tti)) {
     return dl_rnti; 
+  } else {
+    return 0; 
   }
 }
 srslte_rnti_type_t phch_common::get_dl_rnti_type() {
@@ -121,6 +134,7 @@ void phch_common::set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int 
   dl_rnti_type  = type;
   dl_rnti_start = tti_start;
   dl_rnti_end   = tti_end;
+  Debug("Set DL rnti: start=%d, end=%d, value=0x%x\n", tti_start, tti_end, rnti_value);
 }
 
 void phch_common::reset_pending_ack(uint32_t tti) {
@@ -131,6 +145,7 @@ void phch_common::set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dm
   pending_ack[tti%10].enabled  = true; 
   pending_ack[tti%10].I_lowest = I_lowest;       
   pending_ack[tti%10].n_dmrs = n_dmrs;            
+  Debug("Set pending ACK for tti=%d I_lowest=%d, n_dmrs=%d\n", tti, I_lowest, n_dmrs);
 }
 
 bool phch_common::get_pending_ack(uint32_t tti) {

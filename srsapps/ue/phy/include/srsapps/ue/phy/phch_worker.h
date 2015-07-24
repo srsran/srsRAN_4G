@@ -56,6 +56,7 @@ public:
   void  set_cfo(float cfo);
   
   void  set_ul_params();
+  void  reset_ul_params(); 
   void  set_crnti(uint16_t rnti);
   void  enable_pregen_signals(bool enabled);
   
@@ -71,10 +72,10 @@ private:
   bool decode_pdcch_ul(mac_interface_phy::mac_grant_t *grant);
   bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
   bool decode_phich(bool *ack); 
-  bool decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload, srslte_softbuffer_rx_t* softbuffer, uint32_t rv);
+  bool decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload, srslte_softbuffer_rx_t* softbuffer, uint32_t rv, uint16_t rnti);
 
   /* ... for UL */
-  void encode_pusch(srslte_ra_ul_grant_t *grant, uint32_t rv_idx, uint32_t current_tx_nb, srslte_softbuffer_tx_t *softbuffer);
+  void encode_pusch(srslte_ra_ul_grant_t *grant, uint32_t current_tx_nb, srslte_softbuffer_tx_t *softbuffer, uint32_t rv, uint16_t rnti);
   void encode_pucch();
   void encode_srs();
   void reset_uci();
@@ -116,6 +117,7 @@ private:
   uint32_t                          I_sr; 
   float                             cfo;
   bool                              rar_cqi_request;
+  uint32_t                          ul_payload_max_len;
   
   
 };

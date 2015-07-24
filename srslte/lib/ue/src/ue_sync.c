@@ -386,7 +386,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   uint32_t track_idx; 
   
-  if (q               != NULL   &&
+  if (q            != NULL   &&
       input_buffer != NULL)
   {
     

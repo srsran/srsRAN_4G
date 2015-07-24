@@ -25,16 +25,17 @@
  *
  */
 
+#include <stdio.h>
 #include "srsapps/common/thread_pool.h"
 
 namespace srslte {
  
   
-void thread_pool::worker::setup(uint32_t id, thread_pool *parent)
+void thread_pool::worker::setup(uint32_t id, thread_pool *parent, uint32_t prio)
 {
   my_id = id; 
   my_parent = parent;   
-  start();
+  start(prio);
 }
 
 void thread_pool::worker::run_thread()
@@ -44,14 +45,20 @@ void thread_pool::worker::run_thread()
     wait_to_start();
     if (running) {
       work_imp();
+      finished();
     }
-    finished();
   }
+}
+
+uint32_t thread_pool::worker::get_id()
+{
+  return my_id;
 }
 
 void thread_pool::worker::stop()
 {
   running = false; 
+  wait_thread_finish();
 }
 
 void thread_pool::worker::wait_to_start()
@@ -77,31 +84,46 @@ thread_pool::thread_pool(uint32_t nof_workers_)  : workers(nof_workers_), begin(
   for (int i=0;i<nof_workers;i++) {
     workers[i] = NULL;
   }
+  running = true; 
   pthread_mutex_init(&mutex_start, NULL);
   pthread_mutex_init(&mutex_stop, NULL);
   pthread_cond_init(&cvar_start, NULL);
   pthread_cond_init(&cvar_stop, NULL);
 }
 
-void thread_pool::init_worker(uint32_t id, worker *obj)
+void thread_pool::init_worker(uint32_t id, worker *obj, uint32_t prio)
 {
   if (id < nof_workers) {
+    pthread_mutex_lock(&mutex_stop);   
     begin[id] = false; 
     workers[id] = obj; 
     available_workers.push(obj);    
-    obj->setup(id, this);
+    printf("Added worker to available_workers, len=%lu\n", available_workers.size());
+    obj->setup(id, this, prio);
+    pthread_cond_signal(&cvar_stop);
+    pthread_mutex_unlock(&mutex_stop);  
   }
 }
 
 void thread_pool::stop()
 {
+  /* Stop any thread waiting for available worker */
+  running = false; 
+  pthread_mutex_lock(&mutex_stop);
+  pthread_cond_signal(&cvar_start);
+  pthread_mutex_unlock(&mutex_stop);
+  
+  /* Now stop all workers */
   for (uint32_t i=0;i<nof_workers;i++) {
     if (workers[i]) {
       workers[i]->stop(); 
+      // Need to call start to wake it up 
       start_worker(i);
       workers[i]->wait_thread_finish();
     }
   }
+  
+  /* And destroy mutexes */ 
   pthread_mutex_destroy(&mutex_start);
   pthread_mutex_destroy(&mutex_stop);
   pthread_cond_destroy(&cvar_start);
@@ -143,11 +165,15 @@ thread_pool::worker* thread_pool::wait_worker()
 {
   thread_pool::worker *x; 
   pthread_mutex_lock(&mutex_stop); 
-  while(!available_workers.empty()) {
+  while(available_workers.empty() && running) {
     pthread_cond_wait(&cvar_stop, &mutex_stop);    
   }
-  x = (worker*) available_workers.top();
-  available_workers.pop();
+  if (running) {
+    x = (worker*) available_workers.top();
+    available_workers.pop();
+  } else {
+    x = NULL; 
+  }
   pthread_mutex_unlock(&mutex_stop);
   return x; 
 }

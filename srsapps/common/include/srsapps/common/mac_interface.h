@@ -54,13 +54,15 @@ public:
     uint32_t    tti;
     bool        ndi; 
     uint32_t    tbs;
-    srslte_rnti_type_t rnti_type; 
+    uint32_t    rv; 
+    uint16_t    rnti; 
     srslte_phy_grant_t phy_grant; 
   } mac_grant_t; 
   
   typedef struct {
     bool                    decode_enabled;
-    uint16_t                rv;
+    uint32_t                rv;
+    uint16_t                rnti; 
     bool                    generate_ack; 
     bool                    default_ack; 
     uint8_t                *payload_ptr; 
@@ -70,7 +72,9 @@ public:
 
   typedef struct {
     bool                    tx_enabled;
-    uint16_t                rv;
+    bool                    expect_ack;
+    uint32_t                rv;
+    uint16_t                rnti; 
     uint32_t                current_tx_nb;
     srslte_softbuffer_tx_t *softbuffer;
     srslte_phy_grant_t      phy_grant;
@@ -94,6 +98,11 @@ public:
   
   /* Indicate successfull decoding of BCH TB through PBCH */
   virtual void bch_decoded_ok(uint8_t *payload) = 0;  
+  
+  /* Function called every start of a subframe (TTI). Warning, this function is called 
+   * from a high priority thread and should terminate asap 
+   */
+  virtual void tti_clock(uint32_t tti) = 0;
   
 };
 

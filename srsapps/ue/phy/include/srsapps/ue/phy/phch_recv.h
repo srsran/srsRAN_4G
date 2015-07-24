@@ -50,7 +50,7 @@ class phch_recv : public thread
 public:
   phch_recv();
   bool init(radio* radio_handler, mac_interface_phy *mac, prach *prach_buffer, thread_pool *_workers_pool, 
-            phch_common *_worker_com, log* _log_h, bool do_agc);
+            phch_common *_worker_com, log* _log_h, bool do_agc = false, uint32_t prio = 1);
   void stop();
   
   uint32_t get_current_tti();
@@ -60,6 +60,7 @@ public:
   bool    status_is_sync();
 
   void    set_time_adv_sec(float time_adv_sec);
+  void    get_current_cell(srslte_cell_t *cell);
   
 private:
   void   run_thread();
@@ -75,7 +76,7 @@ private:
   prach             *prach_buffer; 
   
   srslte_ue_sync_t   ue_sync;
-  srslte_ue_mib_t   ue_mib;
+  srslte_ue_mib_t    ue_mib;
 
   enum {
     IDLE, CELL_SEARCH, SYNCING, SYNC_DONE

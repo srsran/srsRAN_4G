@@ -65,11 +65,14 @@ bool prach::init_cell(srslte_cell_t cell_)
 {
   cell = cell_; 
   preamble_idx = -1; 
+
   if (srslte_prach_init(&prach_obj, srslte_symbol_sz(cell.nof_prb), 
                         srslte_prach_get_preamble_format(params_db->get_param(phy_interface_params::PRACH_CONFIG_INDEX)), 
                         params_db->get_param(phy_interface_params::PRACH_ROOT_SEQ_IDX), 
                         params_db->get_param(phy_interface_params::PRACH_HIGH_SPEED_FLAG)?true:false, 
-                        params_db->get_param(phy_interface_params::PRACH_ZC_CONFIG))) {
+                        params_db->get_param(phy_interface_params::PRACH_ZC_CONFIG))) 
+  {
+    Error("Initiating PRACH library\n");
     return false; 
   }
   
@@ -80,6 +83,7 @@ bool prach::init_cell(srslte_cell_t cell_)
       return false; 
     }    
     if(srslte_prach_gen(&prach_obj, i, params_db->get_param(phy_interface_params::PRACH_FREQ_OFFSET), buffer[i])) {
+      Error("Generating PRACH preamble %d\n", i);
       return false;
     }
   }
@@ -87,6 +91,7 @@ bool prach::init_cell(srslte_cell_t cell_)
   signal_buffer = (cf_t*) srslte_vec_malloc(len*sizeof(cf_t)); 
   initiated = signal_buffer?true:false; 
   transmitted_tti = -1; 
+  Info("PRACH Initiated %s\n", initiated?"OK":"KO");
   return initiated;  
 }
 
@@ -97,6 +102,7 @@ bool prach::prepare_to_send(phy_interface::prach_cfg_t* cfg)
   if (ret) {
     memcpy(&prach_cfg, cfg, sizeof(phy_interface::prach_cfg_t));  
   }
+  return ret; 
 }
 
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm)
@@ -105,9 +111,14 @@ bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float
     preamble_idx = preamble_idx_;
     allowed_subframe = allowed_subframe_; 
     transmitted_tti = -1; 
-    Info("PRACH Buffer: Prepare to send preamble %d\n", preamble_idx);
+    Info("PRACH prepare to send preamble %d\n", preamble_idx);
     return true; 
   } else {
+    if (!initiated) {
+      Error("PRACH not initiated\n");
+    } else if (preamble_idx_ >= 64) {
+      Error("Invalid preamble %d\n", preamble_idx_);
+    }
     return false; 
   }
 }
@@ -139,23 +150,18 @@ void prach::get_rar_cfg(uint16_t *rar_rnti, uint32_t *tti_start, uint32_t *tti_e
   }
 }
 
-bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t rx_time)
+bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t tx_time)
 {
-  // advance transmission time
-  srslte_timestamp_t tx_time; 
-  srslte_timestamp_copy(&tx_time, &rx_time);
-  srslte_timestamp_add(&tx_time, 0, 1e-3*tx_advance_sf); 
-
   // Correct CFO before transmission
   srslte_cfo_correct(&cfo_h, buffer[preamble_idx], signal_buffer, cfo /srslte_symbol_sz(cell.nof_prb));            
 
   // Normalize signal amplitude  
   srslte_vec_norm_cfc(signal_buffer, 0.9, signal_buffer, len);
   
-  radio_handler->tx(signal_buffer, len, tx_time);                
+  radio_handler->tx(signal_buffer, len, tx_time);               
   
-  Debug("PRACH transmitted CFO: %f, preamble=%d, len=%d rx_time=%f, tx_time=%f\n", 
-       cfo*15000, preamble_idx, len, rx_time.frac_secs, tx_time.frac_secs);
+  Debug("PRACH transmitted CFO: %f, preamble=%d, len=%d tx_time=%f\n", 
+       cfo*15000, preamble_idx, len, tx_time.frac_secs);
   preamble_idx = -1; 
 }
   

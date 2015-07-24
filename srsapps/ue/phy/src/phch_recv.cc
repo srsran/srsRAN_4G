@@ -42,7 +42,7 @@ phch_recv::phch_recv() {
 }
 
 bool phch_recv::init(radio* _radio_handler, mac_interface_phy *_mac, prach* _prach_buffer, thread_pool* _workers_pool, 
-                     phch_common* _worker_com, log* _log_h, bool do_agc_)
+                     phch_common* _worker_com, log* _log_h, bool do_agc_, uint32_t prio)
 {
   radio_h      = _radio_handler;
   log_h        = _log_h;     
@@ -55,18 +55,22 @@ bool phch_recv::init(radio* _radio_handler, mac_interface_phy *_mac, prach* _pra
   time_adv_sec = 0; 
   cell_is_set  = false; 
   do_agc       = do_agc_;
-  start();
+  start(prio);
 }
 
 void phch_recv::stop() {
   running = false; 
+  wait_thread_finish();
 }
 
-int radio_recv_wrapper_cs(void *h,void *data, uint32_t nsamples, srslte_timestamp_t *rx_time)
+int radio_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *rx_time)
 {
   radio *radio_h = (radio*) h;
-  int n = radio_h->rx_now(data, nsamples, rx_time);
-  return n; 
+  if (radio_h->rx_now(data, nsamples, rx_time)) {
+    return nsamples;
+  } else {
+    return -1;
+  }
 }
 
 double callback_set_rx_gain(void *h, double gain) {
@@ -79,33 +83,29 @@ void phch_recv::set_time_adv_sec(float _time_adv_sec) {
 }
 
 bool phch_recv::init_cell() {
-  if (phy_state == IDLE) {
-    cell_is_set = false;
-    if (!srslte_ue_mib_init(&ue_mib, cell)) 
+  cell_is_set = false;
+  if (!srslte_ue_mib_init(&ue_mib, cell)) 
+  {
+    if (!srslte_ue_sync_init(&ue_sync, cell, radio_recv_wrapper_cs, radio_h)) 
     {
-      if (!srslte_ue_sync_init(&ue_sync, cell, radio_recv_wrapper_cs, radio_h)) 
-      {
-        
-        for (int i=0;i<workers_pool->get_nof_workers();i++) {
-          if (((phch_worker*) workers_pool->get_worker(i))->init_cell(cell)) {
-            Error("Error setting cell: initiating PHCH worker\n");
-            return false; 
-          }
+      
+      for (int i=0;i<workers_pool->get_nof_workers();i++) {
+        if (!((phch_worker*) workers_pool->get_worker(i))->init_cell(cell)) {
+          Error("Error setting cell: initiating PHCH worker\n");
+          return false; 
         }
-        if (do_agc) {
-          srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, last_gain);    
-        }
-        srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
-        cell_is_set = true;                             
-      } else {
-        Error("Error setting cell: initiating ue_sync");      
       }
+      if (do_agc) {
+        srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, last_gain);    
+      }
+      srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
+      cell_is_set = true;                             
     } else {
-      Error("Error setting cell: initiating ue_mib\n"); 
-    }      
+      Error("Error setting cell: initiating ue_sync");      
+    }
   } else {
-    Error("Error setting cell: Invalid state %d\n", phy_state);
-  }
+    Error("Error setting cell: initiating ue_mib\n"); 
+  }      
   return cell_is_set; 
 }
 
@@ -130,6 +130,7 @@ bool phch_recv::cell_search(int force_N_id_2)
   bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
 
   if (srslte_ue_cellsearch_init(&cs, radio_recv_wrapper_cs, radio_h)) {
+    Error("Initiating UE cell search\n");
     return false; 
   }
   
@@ -148,6 +149,7 @@ bool phch_recv::cell_search(int force_N_id_2)
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
   uint32_t max_peak_cell = 0;
   int ret = SRSLTE_ERROR; 
+  
   if (force_N_id_2 >= 0 && force_N_id_2 < 3) {
     ret = srslte_ue_cellsearch_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
     max_peak_cell = force_N_id_2;
@@ -178,6 +180,7 @@ bool phch_recv::cell_search(int force_N_id_2)
   srslte_ue_mib_sync_t ue_mib_sync; 
 
   if (srslte_ue_mib_sync_init(&ue_mib_sync, cell.id, cell.cp, radio_recv_wrapper_cs, radio_h)) {
+    Error("Initiating UE MIB synchronization\n");
     return false; 
   }
   
@@ -187,7 +190,6 @@ bool phch_recv::cell_search(int force_N_id_2)
 
   /* Find and decode MIB */
   uint32_t sfn, sfn_offset; 
-
   radio_h->start_rx();
   ret = srslte_ue_mib_sync_decode(&ue_mib_sync, 
                                   worker_com->params_db->get_param(phy_interface_params::CELLSEARCH_TIMEOUT_MIB_NFRAMES), 
@@ -198,6 +200,7 @@ bool phch_recv::cell_search(int force_N_id_2)
 
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, &cell, NULL);
+    srslte_cell_fprint(stdout, &cell, 0);
     mac->bch_decoded_ok(bch_payload);
     return true;     
   } else {
@@ -254,7 +257,10 @@ void phch_recv::run_thread()
           init_cell();
           radio_h->set_rx_srate((float) srslte_sampling_freq_hz(cell.nof_prb));
           radio_h->set_tx_srate((float) srslte_sampling_freq_hz(cell.nof_prb));
+          Info("Cell found. Synchronizing...\n");
           phy_state = SYNCING;
+        } else {
+          phy_state = IDLE; 
         }
         break;
       case SYNCING:
@@ -269,6 +275,7 @@ void phch_recv::run_thread()
             phy_state = IDLE; 
             break; 
           case 1:
+            Info("Synchronized.\n");
             phy_state = SYNC_DONE;  
             break;        
           case 0:
@@ -277,34 +284,44 @@ void phch_recv::run_thread()
        break;
       case SYNC_DONE:
         worker = (phch_worker*) workers_pool->wait_worker();
-        buffer = worker->get_buffer();
-        if (srslte_ue_sync_zerocopy(&ue_sync, buffer) == 1) {
-   
-          float cfo = srslte_ue_sync_get_cfo(&ue_sync)/15000; 
-          worker->set_cfo(cfo);
-   
-          srslte_timestamp_t rx_time; 
-          srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time); 
-          srslte_timestamp_add(&rx_time, 0, 1e-3 - time_adv_sec);
-          worker->set_tx_time(rx_time);
-          worker->set_tti(tti);
-
-          // Check if we need to TX a PRACH 
-          if (prach_buffer->is_ready_to_send(tti)) {
-            // send prach if we have to 
-            prach_buffer->send(radio_h, cfo, rx_time);
-            radio_h->tx_end();
+        if (worker) {
+          buffer = worker->get_buffer();
+          if (srslte_ue_sync_zerocopy(&ue_sync, buffer) == 1) {
+            tti = (tti + 1) % 10240;
+            log_h->step(tti);
             
-            /* Setup DL RNTI search to look for RAR as configured by MAC */
-            uint16_t rar_rnti;
-            uint32_t rar_start, rar_end; 
-            prach_buffer->get_rar_cfg(&rar_rnti, &rar_start, &rar_end);
-            worker_com->set_dl_rnti(SRSLTE_RNTI_RAR, rar_rnti, (int) rar_start, (int) rar_end);
-          } else {           
-            workers_pool->start_worker(worker);                              
+            float cfo = srslte_ue_sync_get_cfo(&ue_sync)/15000; 
+            worker->set_cfo(cfo);
+    
+            /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
+            srslte_timestamp_t rx_time, tx_time; 
+            srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time); 
+            srslte_timestamp_copy(&tx_time, &rx_time);
+            srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec);
+            worker->set_tx_time(tx_time);
+            worker->set_tti(tti);
+
+            // Check if we need to TX a PRACH 
+            if (prach_buffer->is_ready_to_send(tti)) {
+              srslte_timestamp_t cur_time; 
+              radio_h->get_time(&cur_time);
+              Info("TX PRACH now. RX time: %d:%f, Now: %d:%f\n", rx_time.full_secs, rx_time.frac_secs, cur_time.full_secs, cur_time.frac_secs);
+              // send prach if we have to 
+              prach_buffer->send(radio_h, cfo, tx_time);
+              radio_h->tx_end();
+              
+              /* Setup DL RNTI search to look for RAR as configured by MAC */
+              uint16_t rar_rnti;
+              uint32_t rar_start, rar_end; 
+              prach_buffer->get_rar_cfg(&rar_rnti, &rar_start, &rar_end);
+              worker_com->set_dl_rnti(SRSLTE_RNTI_RAR, rar_rnti, (int) rar_start, (int) rar_end);
+            }            
+            workers_pool->start_worker(worker);                                          
           }
+        } else {
+          // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
+          running = false; 
         }
-        tti = (tti + 1) % 10240;
         break;
       case IDLE:
         usleep(1000);
@@ -321,6 +338,13 @@ uint32_t phch_recv::get_current_tti()
 bool phch_recv::status_is_sync()
 {
   return phy_state == SYNC_DONE;
+}
+
+void phch_recv::get_current_cell(srslte_cell_t* cell_)
+{
+  if (cell_) {
+    memcpy(cell_, &cell, sizeof(srslte_cell_t));
+  }
 }
 
 void phch_recv::sync_start()

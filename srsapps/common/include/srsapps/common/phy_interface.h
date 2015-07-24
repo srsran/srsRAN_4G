@@ -161,6 +161,8 @@ public:
   /* Instruct the PHY to decode PDCCH with the CRC scrambled with given RNTI */
   virtual void pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
   virtual void pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
+  virtual void pdcch_ul_search_reset() = 0;
+  virtual void pdcch_dl_search_reset() = 0;
   
   virtual uint32_t get_current_tti() = 0;
   

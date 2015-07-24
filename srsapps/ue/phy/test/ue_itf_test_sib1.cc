@@ -43,6 +43,8 @@ typedef struct {
   float uhd_gain;
 }prog_args_t;
 
+uint32_t srsapps_verbose = 0; 
+
 prog_args_t prog_args; 
 
 void args_default(prog_args_t *args) {
@@ -68,7 +70,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->uhd_freq = atof(argv[optind]);
       break;
     case 'v':
-      srslte_verbose++;
+      srsapps_verbose++;
       break;
     default:
       usage(args, argv[0]);
@@ -81,6 +83,13 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
   }
 }
 
+srslte::ue::phy my_phy;
+bool bch_decoded = false; 
+uint32_t total_pkts=0;
+uint32_t total_dci=0;
+uint32_t total_oks=0;
+uint8_t payload[1024]; 
+srslte_softbuffer_rx_t softbuffer; 
 
 /******** MAC Interface implementation */
 class testmac : public srslte::ue::mac_interface_phy
@@ -98,70 +107,46 @@ public:
   }
 
   void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) {
-    printf("New grant DL\n");    
+    total_dci++; 
+    
+
+    action->decode_enabled = true; 
+    action->default_ack = false; 
+    action->generate_ack = false; 
+    action->payload_ptr = payload; 
+    memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
+    action->rv = ((uint32_t) ceilf((float)3*((my_phy.tti_to_SFN(grant.tti)/2)%4)/2))%4;
+    action->softbuffer = &softbuffer;
+    
+    if (action->rv == 0) {
+      srslte_softbuffer_rx_reset(&softbuffer);
+    }
   }
   
   void tb_decoded_ok(uint32_t harq_pid) {
-    printf("TB decoded OK\n");    
+    total_oks++;     
   }
 
   void bch_decoded_ok(uint8_t *payload) {
     printf("BCH decoded\n");
+    bch_decoded = true; 
+    srslte_cell_t cell; 
+    my_phy.get_current_cell(&cell); 
+    srslte_softbuffer_rx_init(&softbuffer, cell);
+
+    
   }
 };
 
 
+testmac         my_mac;
+srslte::radio_uhd radio_uhd; 
 
-#ifdef kk
 
-uint32_t total_pkts=0;
-uint32_t total_dci=0;
-uint32_t total_errors=0;
-uint8_t payload[1024]; 
 
-// This is the MAC implementation
-void run_tti(uint32_t tti) {
-  INFO("MAC running tti: %d\n", tti);
-  
-  // SIB1 is scheduled in subframe #5 of even frames
-  if ((phy.tti_to_SFN(tti)%2) == 0 && phy.tti_to_subf(tti) == 5) {
-    // Get buffer 
-    srslte::ue::dl_buffer *buffer = phy.get_dl_buffer(tti); 
-    
-    // Get DL grant
-    if (buffer->get_dl_grant(&grant)) 
-    {
-      total_dci++; 
-      // MAC sets RV
-      grant.set_rv(((uint32_t) ceilf((float)3*((phy.tti_to_SFN(tti)/2)%4)/2))%4);
-
-      // Decode packet
-      if (!buffer->decode_data(&grant, payload)) {
-        total_errors++; 
-      }
-    }
-    total_pkts++; 
-  }
-  float gain = prog_args.uhd_gain; 
-  if (gain < 0) {
-    gain = phy.get_agc_gain();
-  }
-  if (srslte_verbose == SRSLTE_VERBOSE_NONE) {
-    printf("PDCCH BLER %.1f \%% PDSCH BLER %.1f \%% (total pkts: %5u) Gain: %.1f dB\r", 
-         100-(float) 100*total_dci/total_pkts, 
-         (float) 100*total_errors/total_pkts, 
-         total_pkts, gain);   
-  }
-}
-#endif
 
 int main(int argc, char *argv[])
 {
-  srslte::ue::phy phy;
-  testmac         mac;
-  srslte_cell_t cell; 
-  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
-  srslte::radio_uhd radio_uhd; 
   srslte::log_stdout log("PHY");
   
   parse_args(&prog_args, argc, argv);
@@ -170,28 +155,54 @@ int main(int argc, char *argv[])
   if (prog_args.uhd_gain > 0) {
     radio_uhd.init();
     radio_uhd.set_rx_gain(prog_args.uhd_gain);    
-    phy.init(&radio_uhd, &mac, &log);
+    my_phy.init(&radio_uhd, &my_mac, &log);
   } else {
     radio_uhd.init_agc();
-    phy.init_agc(&radio_uhd, &mac, &log);
+    my_phy.init_agc(&radio_uhd, &my_mac, &log);
   }
   
+  if (srsapps_verbose == 1) {
+    log.set_level_info();
+    printf("Log level info\n");
+  }
+  if (srsapps_verbose == 2) {
+    log.set_level_debug();
+    printf("Log level debug\n");
+  }
+    
   // Give it time to create thread 
   sleep(1);
-  
-  // Set default parameters 
-  phy.set_param(srslte::ue::phy_interface_params::PRACH_CONFIG_INDEX, 0);
-  phy.set_param(srslte::ue::phy_interface_params::PRACH_ROOT_SEQ_IDX, 0);
-  phy.set_param(srslte::ue::phy_interface_params::PRACH_HIGH_SPEED_FLAG, 0);
-  phy.set_param(srslte::ue::phy_interface_params::PRACH_ZC_CONFIG, 1);
-  
+    
   // Set RX freq and gain
   radio_uhd.set_rx_freq(prog_args.uhd_freq);
-  radio_uhd.set_rx_gain(prog_args.uhd_gain);
-
-  phy.sync_start();
   
-  while(1) {
-    usleep(1000);
+  my_phy.sync_start();
+  
+  bool running = true; 
+  while(running) {
+    if (bch_decoded && my_phy.status_is_sync()) {
+      uint32_t tti = my_phy.get_current_tti();
+      
+      // SIB1 is scheduled in subframe #5 of even frames, try to decode next frame SIB1
+      tti = (((tti/20)*20) + 25)%10240;
+      my_phy.pdcch_dl_search(SRSLTE_RNTI_SI, SRSLTE_SIRNTI, tti, tti+1);
+      
+      total_pkts++;       
+    }
+    usleep(30000);    
+    if (bch_decoded && my_phy.status_is_sync() && total_pkts > 0) {
+      if (srslte_verbose == SRSLTE_VERBOSE_NONE && srsapps_verbose == 0) {
+        float gain = prog_args.uhd_gain; 
+        if (gain < 0) {
+          gain = radio_uhd.get_rx_gain();
+        }
+        printf("PDCCH BLER %.1f \%% PDSCH BLER %.1f \%% (total pkts: %5u) Gain: %.1f dB\r", 
+            100-(float) 100*total_dci/total_pkts, 
+            (float) 100*(1 - total_oks/total_pkts), 
+            total_pkts, gain);   
+      }
+    }
   }
+  my_phy.stop();
+  radio_uhd.stop_rx();
 }

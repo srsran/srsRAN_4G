@@ -30,7 +30,6 @@
 #include "srslte/utils/debug.h"
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/common/log_stdout.h"
-#include "srsapps/common/tti_sync_cv.h"
 #include "srsapps/radio/radio_uhd.h"
 
 /**********************************************************************
@@ -45,6 +44,7 @@ typedef struct {
 }prog_args_t;
 
 prog_args_t prog_args; 
+uint32_t srsapps_verbose = 0; 
 
 void args_default(prog_args_t *args) {
   args->uhd_rx_freq = -1.0;
@@ -83,7 +83,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->continous = true; 
       break;
     case 'v':
-      srslte_verbose++;
+      srsapps_verbose++;
       break;
     default:
       usage(args, argv[0]);
@@ -99,18 +99,6 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 
 
 typedef enum{
-    rar_tpc_n6dB = 0,
-    rar_tpc_n4dB,
-    rar_tpc_n2dB,
-    rar_tpc_0dB,
-    rar_tpc_2dB,
-    rar_tpc_4dB,
-    rar_tpc_6dB,
-    rar_tpc_8dB,
-    rar_tpc_n_items,
-}rar_tpc_command_t;
-static const char tpc_command_text[rar_tpc_n_items][8] = {"-6dB", "-4dB", "-2dB",  "0dB", "2dB",  "4dB",  "6dB",  "8dB"};
-typedef enum{
     rar_header_type_bi = 0,
     rar_header_type_rapid,
     rar_header_type_n_items,
@@ -120,7 +108,7 @@ static const char rar_header_text[rar_header_type_n_items][8] = {"BI", "RAPID"};
 typedef struct {
   rar_header_t      hdr_type;
   bool              hopping_flag;
-  rar_tpc_command_t tpc_command;
+  uint32_t          tpc_command;
   bool              ul_delay;
   bool              csi_req;
   uint16_t          rba; 
@@ -131,28 +119,6 @@ typedef struct {
   uint8_t           BI;
 }rar_msg_t; 
 
-char *bool_to_string(bool x) {
-  if (x) {
-    return (char*) "Enabled";
-  } else {
-    return (char*) "Disabled";
-  }
-}
-
-void rar_msg_fprint(FILE *stream, rar_msg_t *msg) 
-{
-  fprintf(stream, "Header type:  %s\n", rar_header_text[msg->hdr_type]);
-  fprintf(stream, "Hopping flag: %s\n", bool_to_string(msg->hopping_flag));
-  fprintf(stream, "TPC command:  %s\n", tpc_command_text[msg->tpc_command]);
-  fprintf(stream, "UL delay:     %s\n", bool_to_string(msg->ul_delay));
-  fprintf(stream, "CSI required: %s\n", bool_to_string(msg->csi_req));
-  fprintf(stream, "RBA:          %d\n", msg->rba);
-  fprintf(stream, "TA:           %d\n", msg->timing_adv_cmd);
-  fprintf(stream, "T-CRNTI:      %d\n", msg->temp_c_rnti);
-  fprintf(stream, "MCS:          %d\n", msg->mcs);
-  fprintf(stream, "RAPID:        %d\n", msg->RAPID);
-  fprintf(stream, "BI:           %d\n", msg->BI);
-}
 
 int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
 {
@@ -176,7 +142,7 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
         msg->hopping_flag   = *ptr++;
         msg->rba            = srslte_bit_unpack(&ptr, 10); 
         msg->mcs            = srslte_bit_unpack(&ptr, 4);
-        msg->tpc_command    = (rar_tpc_command_t) srslte_bit_unpack(&ptr, 3);
+        msg->tpc_command    = srslte_bit_unpack(&ptr, 3);
         msg->ul_delay       = *ptr++;
         msg->csi_req        = *ptr++;
         msg->temp_c_rnti    = srslte_bit_unpack(&ptr, 16);
@@ -189,236 +155,155 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
 
 
 
-srslte::ue::phy phy;
+srslte::ue::phy my_phy;
+bool bch_decoded = false; 
 
-uint8_t payload[102400]; 
+uint8_t payload[10240]; 
 const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6, 0x00, 0x00, 0x00};
 
 enum mac_state {RA, RAR, CONNREQUEST, CONNSETUP} state = RA; 
 
-uint32_t conreq_tti = 0;  
-uint32_t preamble_idx = 7; 
+uint32_t preamble_idx = 0; 
 rar_msg_t rar_msg;
-uint32_t nof_rx_connsetup = 0, nof_rx_rar = 0, nof_tx_ra = 0; 
 
 uint32_t nof_rtx_connsetup = 0; 
 uint32_t rv_value[4] = {0, 2, 3, 1}; 
 
 void config_phy() {
-  phy.set_param(srslte::ue::phy_params::PRACH_CONFIG_INDEX, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_FREQ_OFFSET, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_HIGH_SPEED_FLAG, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_ROOT_SEQ_IDX, 0);
-  phy.set_param(srslte::ue::phy_params::PRACH_ZC_CONFIG, 1);
+  my_phy.set_param(srslte::ue::phy_interface_params::PRACH_CONFIG_INDEX, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::PRACH_FREQ_OFFSET, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::PRACH_HIGH_SPEED_FLAG, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::PRACH_ROOT_SEQ_IDX, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::PRACH_ZC_CONFIG, 11);
 
-  phy.set_param(srslte::ue::phy_params::PUSCH_BETA, 10);
-  phy.set_param(srslte::ue::phy_params::DMRS_GROUP_HOPPING_EN, 0);
-  phy.set_param(srslte::ue::phy_params::DMRS_SEQUENCE_HOPPING_EN, 0);
-  phy.set_param(srslte::ue::phy_params::PUSCH_RS_CYCLIC_SHIFT, 0);
-  phy.set_param(srslte::ue::phy_params::PUSCH_RS_GROUP_ASSIGNMENT, 0);
-  phy.set_param(srslte::ue::phy_params::PUSCH_HOPPING_OFFSET, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::DMRS_GROUP_HOPPING_EN, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::DMRS_SEQUENCE_HOPPING_EN, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::PUSCH_HOPPING_N_SB, 2);
+  my_phy.set_param(srslte::ue::phy_interface_params::PUSCH_RS_CYCLIC_SHIFT, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::PUSCH_RS_GROUP_ASSIGNMENT, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::PUSCH_HOPPING_OFFSET, 0);
 
-  phy.set_param(srslte::ue::phy_params::PUCCH_BETA, 10);
-  phy.set_param(srslte::ue::phy_params::PUCCH_DELTA_SHIFT, 1);
-  phy.set_param(srslte::ue::phy_params::PUCCH_CYCLIC_SHIFT, 0);
-  phy.set_param(srslte::ue::phy_params::PUCCH_N_PUCCH_1, 0);
-  phy.set_param(srslte::ue::phy_params::PUCCH_N_RB_2, 2);
+  my_phy.set_param(srslte::ue::phy_interface_params::PUCCH_DELTA_SHIFT, 2);
+  my_phy.set_param(srslte::ue::phy_interface_params::PUCCH_CYCLIC_SHIFT, 0);
+  my_phy.set_param(srslte::ue::phy_interface_params::PUCCH_N_PUCCH_1, 1);
+  my_phy.set_param(srslte::ue::phy_interface_params::PUCCH_N_RB_2, 2);
+
+  my_phy.configure_prach_params();
+  my_phy.configure_ul_params();
 
 }
 
-uint32_t interval(uint32_t x1, uint32_t x2) {
-  if (x1 > x2) {
-    return x1-x2; 
-  } else {
-    return 10240-x2+x1;
-  }
-}
+srslte_softbuffer_rx_t softbuffer_rx; 
+srslte_softbuffer_tx_t softbuffer_tx; 
 
-srslte_softbuffer_rx_t softbuffer; 
+uint16_t temp_c_rnti; 
 
-// This is the MAC implementation
-void run_tti(uint32_t tti) {
-  INFO("MAC running tti: %d\n", tti);
-
-  // Get buffer 
-  srslte::ue::dl_buffer *dl_buffer = phy.get_dl_buffer(tti); 
-
-  if (state == RA) { 
-    if (nof_tx_ra > 0 && !prog_args.continous) {
-      exit(0);
+/******** MAC Interface implementation */
+class testmac : public srslte::ue::mac_interface_phy
+{
+public:
+  void new_grant_ul(mac_grant_t grant, uint8_t *payload_ptr, tb_action_ul_t *action) {
+    printf("New grant UL\n");
+    srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload_ptr, grant.tbs);
+    action->current_tx_nb = nof_rtx_connsetup;
+    action->rv = rv_value[nof_rtx_connsetup%4];
+    action->softbuffer = &softbuffer_tx;     
+    action->rnti = temp_c_rnti; 
+    action->expect_ack = (nof_rtx_connsetup < 5)?true:false;
+    memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
+    memcpy(&last_grant, &grant, sizeof(mac_grant_t));
+    action->tx_enabled = true; 
+    if (action->rv == 0) {
+      srslte_softbuffer_tx_reset(&softbuffer_tx);      
     }
-    // Indicate PHY to transmit the PRACH when possible 
-    if (phy.send_prach(preamble_idx)) {
-      nof_tx_ra++;
-      state = RAR;       
-    } else {
-      fprintf(stderr, "Error sending PRACH\n");
-      exit(-1);
-    }
-  } 
-  if (state == RAR) { 
-    srslte::ue::dl_sched_grant rar_grant(2); 
-    int ra_tti = phy.get_prach_transmitted_tti();
-    if (ra_tti > 0) {
-      INFO("PRACH was transmitted at %d\n", ra_tti);
-      // Assume the maximum RA-window
-      uint32_t interval_ra = interval(tti, ra_tti);
-      INFO("Interval=%u\n", interval_ra);
-      if (interval_ra >= 3 && interval_ra <= 13) {        
-        // Get DL grant for RA-RNTI=2
-        if (dl_buffer->get_dl_grant(&rar_grant)) 
-        {
-          srslte_softbuffer_rx_reset(&softbuffer);
-          // Decode packet
-          if (dl_buffer->decode_data(&rar_grant, &softbuffer, payload)) {
-            rar_unpack(payload, &rar_msg);
-            if (rar_msg.RAPID == preamble_idx) {
-
-              INFO("Received RAR at TTI: %d\n", tti);
-              nof_rx_rar++;
-              
-              if (SRSLTE_VERBOSE_ISINFO()) {
-                rar_msg_fprint(stdout, &rar_msg);                              
-              }
-               
-              // Set time advance
-              phy.set_timeadv_rar(rar_msg.timing_adv_cmd);
-
-              // Generate Msg3 grant
-              srslte::ue::ul_sched_grant connreq_grant(rar_msg.temp_c_rnti); 
-              srslte_dci_rar_grant_t rar_grant; 
-              rar_grant.rba = rar_msg.rba; 
-              rar_grant.trunc_mcs = rar_msg.mcs; 
-              rar_grant.hopping_flag = rar_msg.hopping_flag; 
-              phy.rar_ul_grant(&rar_grant, &connreq_grant);
-              
-              // Pack Msg3 bits
-              srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload, connreq_grant.get_tbs());
-
-              // Get UL buffer 
-              srslte::ue::ul_buffer *ul_buffer = phy.get_ul_buffer(tti+6); 
-              
-              // Generate PUSCH
-              if (ul_buffer) {
-                connreq_grant.set_rv(0);
-                INFO("Generating PUSCH for TTI: %d\n", ul_buffer->tti);
-                ul_buffer->generate_data(&connreq_grant, payload);
-
-                // Save transmission time
-                conreq_tti = ul_buffer->tti;        
-                state = CONNREQUEST;                              
-              } else {
-                fprintf(stderr, "Error getting UL buffer for TTI %d\n", tti);
-                state = RA; 
-              }
-            } 
-          }        
-        }       
-      } else if (interval_ra > 13 && interval_ra < 100) { // avoid wrapping
-        INFO("RAR not received at TTI=%d (interval_ra=%d)\n", tti, interval_ra);
-        state = RA; 
-      }
-    }
-  }
-  if (state == CONNREQUEST) {    
-    uint32_t interval_conreq = interval(tti, conreq_tti);
-    if (interval_conreq == 4) {
-      
-      srslte::ue::ul_sched_grant connreq_grant(rar_msg.temp_c_rnti); 
-      srslte_dci_rar_grant_t rar_grant; 
-      rar_grant.rba = rar_msg.rba; 
-      rar_grant.trunc_mcs = rar_msg.mcs; 
-      rar_grant.hopping_flag = rar_msg.hopping_flag; 
-      phy.rar_ul_grant(&rar_grant, &connreq_grant);
-      
-      // Decode PHICH from Connection Request
-      if (!dl_buffer->decode_ack(&connreq_grant)) {
-        
-        // Pack Msg3 bits
-        srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload, connreq_grant.get_tbs());
-
-        // Get UL buffer 
-        srslte::ue::ul_buffer *ul_buffer = phy.get_ul_buffer(tti+4); 
-        
-        // Generate PUSCH
-        if (ul_buffer) {
-          nof_rtx_connsetup++;
-          if (nof_rtx_connsetup >= 5) {
-            state = RA;
-          } else {
-            connreq_grant.set_current_tx_nb(nof_rtx_connsetup);
-            connreq_grant.set_rv(rv_value[nof_rtx_connsetup%4]);
-            INFO("Generating PUSCH for TTI: %d\n", ul_buffer->tti);
-            ul_buffer->generate_data(&connreq_grant, payload);
-
-            // Save transmission time
-            conreq_tti = ul_buffer->tti;        
-          }
-        } else {
-          fprintf(stderr, "Error getting UL buffer for TTI %d\n", tti);
-          state = RA; 
-        }
-      } else {
-        srslte_softbuffer_rx_reset(&softbuffer);
-        state = CONNSETUP;
-      }
-    }
-  }
-  if (state == CONNSETUP) {
-    srslte::ue::dl_sched_grant conn_setup_grant(rar_msg.temp_c_rnti); 
-    bool connsetup_recv = false;
-    // Get DL grant for tmp_rnti
-    if (dl_buffer->get_dl_grant(&conn_setup_grant)) 
-    {
-      // Decode packet
-      if (dl_buffer->decode_data(&conn_setup_grant, &softbuffer, payload)) {
-        nof_rx_connsetup++;
-        state = RA; 
-        nof_rtx_connsetup=0;
-        if (!prog_args.continous) {              
-          printf("Connection Setup received (%d/%d)\n", nof_rx_connsetup, nof_tx_ra);
-        }
-        connsetup_recv = true; 
-      } else {
-        INFO("Error decoding PDSCH for Connection Request at TTI=%d\n", tti);        
-      }
-      
-      // send ACK
-      INFO("Sending ack %d on TTI: %d\n", connsetup_recv, tti+4);
-      srslte::ue::ul_buffer *ul_buffer = phy.get_ul_buffer(tti+4); 
-      ul_buffer->generate_ack(connsetup_recv, &conn_setup_grant);
-      if (!prog_args.continous) {
-        while(ul_buffer->uci_ready()) {
-          sleep(1);
-        }        
-      }
-      state = RA; 
-      
-    } else {
-      INFO("DCI for Connection Request not found on PDCCH at TTI=%d\n", tti);
-      state = RA; 
-    }                    
-  }
-  float gain = prog_args.uhd_rx_gain; 
-  if (gain < 0) {
-    gain = phy.get_agc_gain();
-  }
-  if (srslte_verbose == SRSLTE_VERBOSE_NONE && prog_args.continous) {
-    printf("RECV RAR %2.1f \%% RECV ConnSetup %2.1f \%% (%5u/%5u) Gain: %.1f dB\r", 
-         (float) 100*nof_rx_rar/nof_tx_ra, 
-         (float) 100*nof_rx_connsetup/nof_tx_ra, 
-         nof_rx_connsetup, nof_tx_ra, gain);    
+    my_phy.pdcch_dl_search(SRSLTE_RNTI_USER, temp_c_rnti);
   }
   
-  
-}
+  void new_grant_ul_ack(mac_grant_t grant, uint8_t *payload_ptr, bool ack, tb_action_ul_t *action) {
+    printf("New grant UL ACK\n");    
+  }
 
+  void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action) {
+    printf("harq recv hi=%d\n", ack?1:0);    
+    if (!ack) {
+      nof_rtx_connsetup++;
+      action->current_tx_nb = nof_rtx_connsetup;
+      action->rv = rv_value[nof_rtx_connsetup%4];
+      action->softbuffer = &softbuffer_tx;     
+      action->rnti = temp_c_rnti; 
+      action->expect_ack = true; 
+      memcpy(&action->phy_grant, &last_grant.phy_grant, sizeof(srslte_phy_grant_t));
+      action->tx_enabled = true; 
+      if (action->rv == 0) {
+        srslte_softbuffer_tx_reset(&softbuffer_tx);      
+      }
+      printf("Retransmission %d, rv=%d\n", nof_rtx_connsetup, action->rv);
+    } 
+  }
+
+  void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) {
+    action->decode_enabled = true; 
+    action->default_ack = false; 
+    if (grant.rnti == 2) {
+      action->generate_ack = false; 
+    } else {
+      action->generate_ack = true; 
+    }
+    action->payload_ptr = payload; 
+    action->rnti = grant.rnti; 
+    memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
+    memcpy(&last_grant, &grant, sizeof(mac_grant_t));
+    action->rv = grant.rv;
+    action->softbuffer = &softbuffer_rx;
+    
+    if (action->rv == 0) {
+      srslte_softbuffer_rx_reset(&softbuffer_rx);
+    }
+  }
+  
+  void tb_decoded_ok(uint32_t harq_pid) {
+    if (last_grant.rnti == 2) {
+      my_phy.pdcch_dl_search_reset();
+      rar_unpack(payload, &rar_msg);
+      if (rar_msg.RAPID == preamble_idx) {
+
+        printf("Received RAR at TTI: %d\n", last_grant.tti);
+        my_phy.set_timeadv_rar(rar_msg.timing_adv_cmd);
+        
+        temp_c_rnti = rar_msg.temp_c_rnti; 
+        
+        if (last_grant.tbs > 20 + SRSLTE_RAR_GRANT_LEN) {
+          uint8_t rar_grant[SRSLTE_RAR_GRANT_LEN];
+          memcpy(rar_grant, &payload[20], sizeof(uint8_t)*SRSLTE_RAR_GRANT_LEN);
+          my_phy.set_rar_grant(last_grant.tti, rar_grant);          
+        }
+      } else {
+        printf("Received RAR RAPID=%d\n", rar_msg.RAPID);        
+      }
+    } else {
+      printf("Received Connection Setup\n");
+      my_phy.pdcch_dl_search_reset();
+    }
+  }
+
+  void bch_decoded_ok(uint8_t *payload) {
+    printf("BCH decoded\n");
+    bch_decoded = true; 
+    srslte_cell_t cell; 
+    my_phy.get_current_cell(&cell); 
+    srslte_softbuffer_rx_init(&softbuffer_rx, cell);
+    srslte_softbuffer_tx_init(&softbuffer_tx, cell);
+  }
+private: 
+  mac_grant_t last_grant; 
+};
+
+
+testmac         my_mac;
+srslte::radio_uhd radio_uhd; 
+  
 int main(int argc, char *argv[])
 {
-  srslte_cell_t cell; 
-  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
-  srslte::ue::tti_sync_cv ttisync(10240); 
-  srslte::radio_uhd radio_uhd; 
   srslte::log_stdout log("PHY");
   
   parse_args(&prog_args, argc, argv);
@@ -428,56 +313,55 @@ int main(int argc, char *argv[])
     radio_uhd.init();
     radio_uhd.set_rx_gain(prog_args.uhd_rx_gain);
     radio_uhd.set_tx_gain(prog_args.uhd_tx_gain);
-    phy.init(&radio_uhd, &ttisync, &log);
+    my_phy.init(&radio_uhd, &my_mac, &log);
   } else {
     radio_uhd.init_agc();
-    radio_uhd.set_tx_rx_gain_offset(-10);
-    phy.init_agc(&radio_uhd, &ttisync, &log);
+    radio_uhd.set_tx_rx_gain_offset(0);
+    my_phy.init_agc(&radio_uhd, &my_mac, &log);
   }
   
+  if (srsapps_verbose == 1) {
+    log.set_level_info();
+    printf("Log level info\n");
+  }
+  if (srsapps_verbose == 2) {
+    log.set_level_debug();
+    printf("Log level debug\n");
+  }
+
   // Give it time to create thread 
   sleep(1);
   
-  // Setup PHY parameters
-  config_phy();
-    
   // Set RX freq
   radio_uhd.set_rx_freq(prog_args.uhd_rx_freq);
   radio_uhd.set_tx_freq(prog_args.uhd_tx_freq);
   
-  /* Instruct the PHY to decode BCH */
-  if (!phy.decode_mib_best(&cell, bch_payload)) {
-    exit(-1);
-  }
-  // Print MIB 
-  srslte_cell_fprint(stdout, &cell, phy.get_current_tti()/10);
+  // Instruct the PHY to configure PRACH parameters and sync to current cell 
+  my_phy.sync_start();
   
-  // Set the current PHY cell to the detected cell
-  if (!phy.set_cell(cell)) {
-    printf("Error setting cell\n");
-    exit(-1);
-  }
-  
-  if (!phy.init_prach()) {
-    printf("Error initiating PRACH\n");
-    exit(-1);
+  while(!my_phy.status_is_sync()) {
+    usleep(20000);
   }
 
-  srslte_softbuffer_rx_init(&softbuffer, cell);
-
-  /* Instruct the PHY to start RX streaming and synchronize */
-  if (!phy.start_rxtx()) {
-    printf("Could not start RX\n");
-    exit(-1);
-  }
-  for (int i=0;i<100;i++) {
-    ttisync.wait();
-  }
+  // Setup PHY parameters
+  config_phy();
+    
+  /* Instruct PHY to send PRACH and prepare it for receiving RAR */
+  srslte::ue::phy_interface::prach_cfg_t prach_cfg; 
+  prach_cfg.allowed_subframe_enabled = false; 
+  prach_cfg.preamble_idx = preamble_idx; 
+  prach_cfg.rar_rnti     = 2; 
+  prach_cfg.rar_start    = 3; 
+  prach_cfg.rar_window   = 10; 
+  my_phy.prach_send(&prach_cfg);
+  
   /* go to idle and process each tti */
-  while(1) {
-    uint32_t tti = ttisync.wait();
-    run_tti(tti);
+  bool running = true; 
+  while(running) {
+    sleep(1);
   }
+  my_phy.stop();
+  radio_uhd.stop_rx();
 }
 
 

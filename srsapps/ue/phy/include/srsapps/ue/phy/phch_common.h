@@ -63,7 +63,7 @@ namespace ue {
     srslte_rnti_type_t get_dl_rnti_type();
     
     void set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]);
-    bool get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_grant);
+    bool get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_grant = NULL);
     
     void reset_pending_ack(uint32_t tti);
     void set_pending_ack(uint32_t tti, uint32_t I_lowest, uint32_t n_dmrs);   

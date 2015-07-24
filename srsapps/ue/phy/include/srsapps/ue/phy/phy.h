@@ -95,7 +95,9 @@ public:
   /* Instruct the PHY to decode PDCCH with the CRC scrambled with given RNTI */  
   void    pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1);
   void    pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1);
-  
+  void    pdcch_ul_search_reset();
+  void    pdcch_dl_search_reset();
+
   /* Get/Set PHY parameters */  
   void    set_param(phy_param_t param, int64_t value); 
   int64_t get_param(phy_param_t param);
@@ -103,10 +105,11 @@ public:
   void    reset();
   
   uint32_t get_current_tti();
+  void     get_current_cell(srslte_cell_t *cell);
   
 private:
     
-  const static int NOF_WORKERS = 1; 
+  const static int NOF_WORKERS         = 1; 
   const static int SF_RECV_THREAD_PRIO = 1;
   const static int WORKERS_THREAD_PRIO = 0; 
   
@@ -123,8 +126,6 @@ private:
   
   /* Current time advance */
   uint32_t     n_ta;
-  
-  srslte_cell_t cell; 
   
   bool         init_(radio *radio_handler, mac_interface_phy *mac, log *log_h, bool do_agc);
 

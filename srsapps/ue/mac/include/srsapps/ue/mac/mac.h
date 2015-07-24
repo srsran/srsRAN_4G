@@ -30,8 +30,6 @@
 #include <pthread.h>
 
 #include "srsapps/common/log.h"
-#include "srsapps/common/tti_sync.h"
-#include "srsapps/common/tti_sync_cv.h"
 #include "srsapps/ue/phy/phy.h"
 #include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/ue/mac/dl_harq.h"
@@ -49,6 +47,7 @@
 #include "srsapps/ue/mac/sdu_handler.h"
 #include "srsapps/ue/mac/mac_pcap.h"
 #include "srsapps/common/trace.h"
+#include "srsapps/common/mac_interface.h"
 
 
 #ifndef UEMAC_H
@@ -59,7 +58,7 @@ namespace ue {
   
 typedef _Complex float cf_t; 
 
-class mac : public timer_callback
+class mac : public timer_callback, mac_interface_phy, mac_interface_rlc
 {
 public:
   mac() : timers_db((uint32_t) NOF_MAC_TIMERS), tr_exec_total(1024*10), tr_exec_dl(1024*10), tr_exec_ul(1024*10) {started=false;  pcap = NULL; }

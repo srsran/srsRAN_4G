@@ -69,17 +69,14 @@ bool phy::init_(radio* radio_handler_, mac_interface_phy *mac, log *log_h_, bool
 
   prach_buffer.init(&params_db, log_h);
   workers_common.init(&params_db, log_h, radio_handler, mac);
-  sf_recv.init(radio_handler, mac, &prach_buffer, &workers_pool, &workers_common, log_h, do_agc);
   
   // Add workers to workers pool and start threads
   for (int i=0;i<NOF_WORKERS;i++) {
-    workers_pool.init_worker(i, &workers[i]);
-    workers[i].start(WORKERS_THREAD_PRIO);
     workers[i].set_common(&workers_common);
+    workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO);    
   }
-  
-  // Start the Radio receiver thread 
-  sf_recv.start(SF_RECV_THREAD_PRIO);
+
+  sf_recv.init(radio_handler, mac, &prach_buffer, &workers_pool, &workers_common, log_h, do_agc, SF_RECV_THREAD_PRIO);
   
   return true; 
 }
@@ -110,13 +107,12 @@ void phy::tr_log_end()
 
 void phy::stop()
 {  
+  workers_pool.stop();
   sf_recv.stop();
-  sf_recv.wait_thread_finish();
   
   for (int i=0;i<NOF_WORKERS;i++) {
     ((phch_worker) workers[i]).free_cell();
     workers[i].stop();
-    workers[i].wait_thread_finish();
   }
     
   prach_buffer.free_cell(); 
@@ -144,9 +140,17 @@ int64_t phy::get_param(phy_interface_params::phy_param_t param) {
 
 void phy::configure_prach_params()
 {
-  Info("Configuring PRACH parameters\n");
-  if (prach_buffer.init_cell(cell)) {
-    Error("Configuring PRACH parameters\n");
+  if (sf_recv.status_is_sync()) {
+    Info("Configuring PRACH parameters\n");
+    srslte_cell_t cell; 
+    sf_recv.get_current_cell(&cell);
+    if (!prach_buffer.init_cell(cell)) {
+      Error("Configuring PRACH parameters\n");
+    } else {
+      Info("Done\n");
+    }
+  } else {
+    Error("Cell is not synchronized\n");
   }
 }
 
@@ -165,13 +169,28 @@ void phy::pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_s
 
 void phy::pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start, int tti_end)
 {
-  workers_common.set_dl_rnti(rnti_type, rnti);
+  workers_common.set_dl_rnti(rnti_type, rnti, tti_start, tti_end);
+}
+
+void phy::pdcch_dl_search_reset()
+{
+  workers_common.set_dl_rnti(SRSLTE_RNTI_USER, 0);
+}
+
+void phy::pdcch_ul_search_reset()
+{
+  workers_common.set_ul_rnti(SRSLTE_RNTI_USER, 0);
+}
+
+void phy::get_current_cell(srslte_cell_t *cell)
+{
+  sf_recv.get_current_cell(cell);
 }
 
 void phy::prach_send(phy_interface::prach_cfg_t* cfg)
 {
   
-  if (prach_buffer.prepare_to_send(cfg)) {
+  if (!prach_buffer.prepare_to_send(cfg)) {
     Error("Preparing PRACH to send\n");
   }
 }

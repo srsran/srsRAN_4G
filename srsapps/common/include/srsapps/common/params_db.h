@@ -40,13 +40,13 @@ namespace ue {
   public: 
     params_db(uint32_t nof_params_) {
       nof_params = nof_params_; 
-      db = new int64_t[nof_params];       
+      db = (int64_t*) calloc(sizeof(int64_t), nof_params);       
       for (int i=0;i<nof_params;i++) {
         db[i] = 0; 
       }
     }
    ~params_db() {
-      delete db;
+      free(db);
     }
     void    set_param(uint32_t param_idx, int64_t value) {
       if (param_idx < nof_params) {

@@ -39,16 +39,14 @@ phch_worker::phch_worker()
 {
   phy = NULL; 
   signal_buffer = NULL; 
-  
-  bzero(&cell, sizeof(srslte_cell_t));
-  bzero(&ue_dl, sizeof(srslte_ue_dl_t));
-  bzero(&ue_ul, sizeof(srslte_ue_ul_t));
-  bzero(&uci_data, sizeof(srslte_uci_data_t));  
+  ul_payload    = NULL; 
   
   cell_initiated  = false; 
   pregen_enabled  = false; 
   rar_cqi_request = false; 
-  cfi = 0; 
+  cfi = 0;
+  
+  reset_ul_params();
   
 }
 
@@ -67,6 +65,13 @@ bool phch_worker::init_cell(srslte_cell_t cell_)
     Error("Allocating memory\n");
     return false; 
   }
+  ul_payload_max_len = srslte_ra_tbs_from_idx(26, cell.nof_prb);
+  ul_payload   = (uint8_t*) srslte_vec_malloc(sizeof(uint8_t) * ul_payload_max_len);
+  if (!ul_payload) {
+    Error("Allocating memory\n");
+    return false; 
+  }
+      
   if (srslte_ue_dl_init(&ue_dl, cell)) {    
     Error("Initiating UE DL\n");
     return false; 
@@ -80,7 +85,7 @@ bool phch_worker::init_cell(srslte_cell_t cell_)
   srslte_ue_ul_set_normalization(&ue_ul, false); 
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
   
-  cell_initiated = false; 
+  cell_initiated = true; 
   
   return true; 
 }
@@ -139,6 +144,7 @@ void phch_worker::work_imp()
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   if (extract_fft_and_pdcch_llr()) {
     
+    
     /***** Downlink Processing *******/
     
     /* PDCCH DL + PDSCH */
@@ -149,7 +155,7 @@ void phch_worker::work_imp()
       /* Decode PDSCH if instructed to do so */
       bool dl_ack = dl_action.default_ack; 
       if (dl_action.decode_enabled) {
-        dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr, dl_action.softbuffer, dl_action.rv);      
+        dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr, dl_action.softbuffer, dl_action.rv, dl_action.rnti);      
         phy->mac->tb_decoded_ok(dl_mac_grant.pid);
       }
       if (dl_action.generate_ack) {
@@ -164,7 +170,7 @@ void phch_worker::work_imp()
     
     
     /***** Uplink Processing + Transmission *******/
-
+    
     /* Generate UCI */
     set_uci_sr();
     set_uci_cqi();
@@ -188,10 +194,11 @@ void phch_worker::work_imp()
   
   /* Transmit PUSCH, PUCCH or SRS */
   bool tx_signal = false; 
-  if (ul_grant_available) {
-    if (ul_action.tx_enabled) {
-      encode_pusch(&ul_action.phy_grant.ul, ul_action.rv, ul_action.current_tx_nb, ul_action.softbuffer);          
-      tx_signal = true; 
+  if (ul_action.tx_enabled) {
+    encode_pusch(&ul_action.phy_grant.ul, ul_action.current_tx_nb, ul_action.softbuffer, ul_action.rv, ul_action.rnti);          
+    tx_signal = true; 
+    if (ul_action.expect_ack) {
+      phy->set_pending_ack(tti + 8, ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
     }
   } else if (dl_action.generate_ack) {
     encode_pucch();
@@ -208,19 +215,21 @@ void phch_worker::work_imp()
 
 bool phch_worker::extract_fft_and_pdcch_llr() {
   bool decode_pdcch = false; 
-  if (phy->get_ul_rnti(tti) || phy->get_dl_rnti(tti)) {
+  if (phy->get_ul_rnti(tti) || phy->get_dl_rnti(tti) || phy->get_pending_rar(tti)) {
     decode_pdcch = true; 
-  }
+  } 
   
   /* Without a grant, we might need to do fft processing if need to decode PHICH */
   if (phy->get_pending_ack(tti) || decode_pdcch) {
+    Debug("Running FFT estimate\n");
     if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
       Error("Getting PDCCH FFT estimate\n");
       return false; 
     }        
   }
-
+  
   if (decode_pdcch) { /* and not in DRX mode */ 
+    Debug("Extracting PDCCH LLR\n");
     if (srslte_pdcch_extract_llr(&ue_dl.pdcch, ue_dl.sf_symbols, ue_dl.ce, 0, tti%10, cfi)) {
       Error("Extracting PDCCH LLR\n");
       return false; 
@@ -252,10 +261,12 @@ bool phch_worker::decode_pdcch_dl(srslte::ue::mac_interface_phy::mac_grant_t* gr
     srslte_ra_dl_dci_t dci_unpacked;
 
     if (srslte_ue_dl_find_dl_dci_type(&ue_dl, &dci_msg, cfi, tti%10, dl_rnti, type) != 1) {
+      Debug("Can't find DL DCI message\n");
       return false; 
     }
     
     if (srslte_dci_msg_to_dl_grant(&dci_msg, dl_rnti, cell.nof_prb, &dci_unpacked, &grant->phy_grant.dl)) {
+      Error("Converting DCI message to DL grant\n");
       return false;   
     }
 
@@ -264,7 +275,8 @@ bool phch_worker::decode_pdcch_dl(srslte::ue::mac_interface_phy::mac_grant_t* gr
     grant->pid = dci_unpacked.harq_process;
     grant->tbs = grant->phy_grant.dl.mcs.tbs;
     grant->tti = tti; 
-    grant->rnti_type = type; 
+    grant->rv  = dci_unpacked.rv_idx;
+    grant->rnti = dl_rnti; 
     
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
@@ -277,16 +289,24 @@ bool phch_worker::decode_pdcch_dl(srslte::ue::mac_interface_phy::mac_grant_t* gr
   }
 }
 
-bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload, srslte_softbuffer_rx_t* softbuffer, uint32_t rv)
+bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload, 
+                               srslte_softbuffer_rx_t* softbuffer, uint32_t rv, uint16_t rnti)
 {
   Debug("DL Buffer TTI %d: Decoding PDSCH\n", tti);
 
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
-  if (!srslte_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, dl_rnti, rv)) {
+  if (!srslte_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, rnti, rv)) {
     if (ue_dl.pdsch_cfg.grant.mcs.mod > 0 && ue_dl.pdsch_cfg.grant.mcs.tbs >= 0) {
       
-      return srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols, 
-                                    ue_dl.ce, 0, dl_rnti, payload) == 0; 
+      if (srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols, 
+                                    ue_dl.ce, 0, rnti, payload) == 0) 
+      {
+        Debug("TB decoded OK\n");
+        return true; 
+      } else {
+        Debug("TB decoded KO\n");
+        return false; 
+      }
     } else {
       Warning("Received grant for TBS=0\n");
     }
@@ -301,8 +321,10 @@ bool phch_worker::decode_phich(bool *ack)
   uint32_t I_lowest, n_dmrs; 
   if (phy->get_pending_ack(tti, &I_lowest, &n_dmrs)) {
     if (ack) {
+      Debug("Decoding PHICH I_lowest=%d, n_dmrs=%d\n", I_lowest, n_dmrs);
       *ack = srslte_ue_dl_decode_phich(&ue_dl, tti%10, I_lowest, n_dmrs);     
     }
+    phy->reset_pending_ack(tti);
     return true; 
   } else {
     return false; 
@@ -317,6 +339,7 @@ bool phch_worker::decode_phich(bool *ack)
 bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
 {
   phy->reset_pending_ack(tti + 4); 
+
   srslte_dci_msg_t dci_msg; 
   srslte_ra_ul_dci_t dci_unpacked;
   srslte_dci_rar_grant_t rar_grant;
@@ -324,9 +347,14 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
   
   bool ret = false; 
   if (phy->get_pending_rar(tti, &rar_grant)) {
-    if (srslte_dci_rar_to_ul_grant(&rar_grant, cell.nof_prb, pusch_hopping.hopping_offset, &dci_unpacked, &grant->phy_grant.ul)) {
+    Info("Pending RAR UL grant\n");
+    if (srslte_dci_rar_to_ul_grant(&rar_grant, cell.nof_prb, pusch_hopping.hopping_offset, 
+      &dci_unpacked, &grant->phy_grant.ul)) 
+    {
+      Error("Converting RAR message to UL grant\n");
       return false; 
     } 
+    Info("RAR grant found for TTI=%d\n", tti);
     rar_cqi_request = rar_grant.cqi_request;    
     ret = true;  
   } else {
@@ -338,9 +366,14 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       if (srslte_ue_dl_find_ul_dci(&ue_dl, &dci_msg, cfi, tti%10, ul_rnti) != 1) {
         return false; 
       }
-      if (srslte_dci_msg_to_ul_grant(&dci_msg, cell.nof_prb, pusch_hopping.hopping_offset, &dci_unpacked, &grant->phy_grant.ul)) {
+      if (srslte_dci_msg_to_ul_grant(&dci_msg, cell.nof_prb, pusch_hopping.hopping_offset, 
+        &dci_unpacked, &grant->phy_grant.ul)) 
+      {
+        Error("Converting DCI message to UL grant\n");
         return false;   
       }
+      ret = true; 
+      Info("PDCCH: UL DCI Format0 cce_index=%d, n_data_bits=%d\n", ue_dl.last_n_cce, dci_msg.nof_bits);
     }
   }
   if (ret) {    
@@ -348,9 +381,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
     grant->pid = 0; // This is computed by MAC from TTI 
     grant->tbs = grant->phy_grant.ul.mcs.tbs;
     grant->tti = tti; 
-    grant->rnti_type = type; 
-
-    Info("PDCCH: UL DCI Format0 cce_index=%d, n_data_bits=%d\n", ue_dl.last_n_cce, dci_msg.nof_bits);
+    grant->rnti = ul_rnti; 
     
     if (SRSLTE_VERBOSE_ISINFO()) {
       srslte_ra_pusch_fprint(stdout, &dci_unpacked, cell.nof_prb);
@@ -378,8 +409,8 @@ void phch_worker::set_uci_sr()
   uci_data.scheduling_request = false; 
   if (phy->sr_enabled) {
     // Get I_sr parameter
-    if (srslte_ue_ul_sr_send_tti(I_sr, tti)) {
-      Info("SR transmission at TTI=%d\n", tti);
+    if (srslte_ue_ul_sr_send_tti(I_sr, tti+4)) {
+      Info("SR transmission at TTI=%d\n", tti+4);
       uci_data.scheduling_request = true; 
       phy->sr_enabled = false;
     }
@@ -389,7 +420,7 @@ void phch_worker::set_uci_sr()
 void phch_worker::set_uci_cqi()
 {
   if (cqi_cfg.configured || rar_cqi_request) {
-    if (srslte_cqi_send(cqi_cfg.pmi_idx, tti)) {
+    if (srslte_cqi_send(cqi_cfg.pmi_idx, tti+4)) {
       uci_data.uci_cqi_len = 4; 
       uint8_t cqi[4] = {1, 1, 1, 1}; 
       uci_data.uci_cqi = cqi;          
@@ -400,8 +431,8 @@ void phch_worker::set_uci_cqi()
 
 bool phch_worker::srs_is_ready_to_send() {
   if (srs_cfg.configured) {
-    if (srslte_refsignal_srs_send_cs(srs_cfg.subframe_config, tti%10) == 1 && 
-        srslte_refsignal_srs_send_ue(srs_cfg.I_srs, tti)              == 1)
+    if (srslte_refsignal_srs_send_cs(srs_cfg.subframe_config, (tti+4)%10) == 1 && 
+        srslte_refsignal_srs_send_ue(srs_cfg.I_srs, tti+4)              == 1)
     {
       return true; 
     }
@@ -418,30 +449,28 @@ void phch_worker::normalize() {
   srslte_vec_norm_cfc(signal_buffer, 0.9, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));  
 }
 
-void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint32_t rv_idx, uint32_t current_tx_nb, srslte_softbuffer_tx_t* softbuffer)
+void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint32_t current_tx_nb, 
+                               srslte_softbuffer_tx_t* softbuffer, uint32_t rv, uint16_t rnti)
 {
   
-  if (srslte_ue_ul_cfg_grant(&ue_ul, grant, tti, rv_idx, current_tx_nb)) {
+  if (srslte_ue_ul_cfg_grant(&ue_ul, grant, tti+4, rv, current_tx_nb)) {
     Error("Configuring UL grant\n");
   }
-
-  phy->set_pending_ack(tti + 4, grant->n_prb_tilde[0], grant->ncs_dmrs);
-    
-
+  
   if (srslte_ue_ul_pusch_encode_rnti_softbuffer(&ue_ul, 
                                                 ul_payload, uci_data, 
                                                 softbuffer,
-                                                ul_rnti, 
+                                                rnti, 
                                                 signal_buffer)) 
   {
     Error("Encoding PUSCH\n");
   }
     
   Info("PUSCH: TTI=%d, CFO= %.1f KHz TBS=%d, mod=%s, rb_start=%d n_prb=%d, ack=%s, sr=%s, rnti=%d, shortened=%s\n", 
-        tti, cfo*15e3, grant->mcs.tbs, srslte_mod_string(grant->mcs.mod),
+        tti+4, cfo*15e3, grant->mcs.tbs, srslte_mod_string(grant->mcs.mod),
         grant->n_prb[0], grant->L_prb,  
         uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
-        ul_rnti, ue_ul.pusch.shortened?"yes":"no");
+        rnti, ue_ul.pusch.shortened?"yes":"no");
 
   normalize();
 }
@@ -449,13 +478,13 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint32_t rv_idx, uin
 void phch_worker::encode_pucch()
 {
 
-  if (uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ack_len) 
+  if (uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ack_len > 0) 
   {
-    if (srslte_ue_ul_pucch_encode(&ue_ul, uci_data, last_dl_pdcch_ncce, tti, signal_buffer)) {
+    if (srslte_ue_ul_pucch_encode(&ue_ul, uci_data, last_dl_pdcch_ncce, tti+4, signal_buffer)) {
       Error("Encoding PUCCH\n");
     }
 
-    Info("PUCCH: TTI=%d, CFO= %.1f KHz n_cce=%d, ack=%s, sr=%s, shortened=%s\n", tti, cfo*15e3, last_dl_pdcch_ncce, 
+    Info("PUCCH: TTI=%d, CFO= %.1f KHz n_cce=%d, ack=%s, sr=%s, shortened=%s\n", tti+4, cfo*15e3, last_dl_pdcch_ncce, 
       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
       ue_ul.pucch.shortened?"yes":"no");        
   }   
@@ -464,12 +493,12 @@ void phch_worker::encode_pucch()
 
 void phch_worker::encode_srs()
 {
-  if (srslte_ue_ul_srs_encode(&ue_ul, tti, signal_buffer)) 
+  if (srslte_ue_ul_srs_encode(&ue_ul, tti+4, signal_buffer)) 
   {
     Error("Encoding SRS\n");
   }
     
-  Info("SRS: TTI=%d, CFO= %.1f KHz \n", tti, cfo*15e3);
+  Info("SRS: TTI=%d, CFO= %.1f KHz \n", tti+4, cfo*15e3);
   
   normalize();
 }
@@ -477,6 +506,18 @@ void phch_worker::encode_srs()
 void phch_worker::enable_pregen_signals(bool enabled)
 {
   pregen_enabled = enabled; 
+}
+
+void phch_worker::reset_ul_params() 
+{
+  bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
+  bzero(&pusch_hopping, sizeof(srslte_pusch_hopping_cfg_t));
+  bzero(&uci_cfg, sizeof(srslte_uci_cfg_t));
+  bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
+  bzero(&pucch_sched, sizeof(srslte_pucch_sched_t));
+  bzero(&srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
+  bzero(&cqi_cfg, sizeof(srslte_cqi_cfg_t));
+  I_sr = 0; 
 }
 
 void phch_worker::set_ul_params()
@@ -537,6 +578,7 @@ void phch_worker::set_ul_params()
   srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, &srs_cfg, &pucch_cfg, &pucch_sched, &uci_cfg, &pusch_hopping);
 
   /* CQI configuration */
+  bzero(&cqi_cfg, sizeof(srslte_cqi_cfg_t));
   cqi_cfg.configured           = (bool)     phy->params_db->get_param(phy_interface_params::CQI_PERIODIC_CONFIGURED)?true:false;
   cqi_cfg.pmi_idx              = (uint32_t) phy->params_db->get_param(phy_interface_params::CQI_PERIODIC_PMI_IDX); 
   
