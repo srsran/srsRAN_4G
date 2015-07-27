@@ -224,7 +224,7 @@ void ra_proc::step_pdcch_setup() {
   int ra_tti = phy_h->prach_tx_tti();
   if (ra_tti > 0) {    
     ra_rnti = 1+ra_tti%10;
-    phy_h->pdcch_dl_search(SRSLTE_RNTI_RAR, ra_rnti, ra_tti+3, responseWindowSize);
+    phy_h->pdcch_dl_search(SRSLTE_RNTI_RAR, ra_rnti, ra_tti+3, ra_tti+3+responseWindowSize);
     state = RESPONSE_RECEPTION;
   }
 }

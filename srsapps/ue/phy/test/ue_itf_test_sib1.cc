@@ -117,7 +117,7 @@ public:
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
     action->rv = ((uint32_t) ceilf((float)3*((my_phy.tti_to_SFN(grant.tti)/2)%4)/2))%4;
     action->softbuffer = &softbuffer;
-    
+    action->rnti = grant.rnti; 
     if (action->rv == 0) {
       srslte_softbuffer_rx_reset(&softbuffer);
     }

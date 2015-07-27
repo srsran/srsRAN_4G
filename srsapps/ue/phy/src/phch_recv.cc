@@ -311,7 +311,8 @@ void phch_recv::run_thread()
               prach_buffer->send(radio_h, cfo, tx_time);
               radio_h->tx_end();              
             }            
-            workers_pool->start_worker(worker);                                          
+            workers_pool->start_worker(worker);             
+            mac->tti_clock(tti);
           }
         } else {
           // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here

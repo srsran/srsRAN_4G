@@ -159,6 +159,7 @@ srslte::ue::phy my_phy;
 bool bch_decoded = false; 
 
 uint8_t payload[10240]; 
+uint8_t payload_bits[10240]; 
 const uint8_t conn_request_msg[] = {0x20, 0x06, 0x1F, 0x5C, 0x2C, 0x04, 0xB2, 0xAC, 0xF6, 0x00, 0x00, 0x00};
 
 enum mac_state {RA, RAR, CONNREQUEST, CONNSETUP} state = RA; 
@@ -213,7 +214,7 @@ public:
     if (!rar_rnti_set) {
       int prach_tti = my_phy.prach_tx_tti();
       if (prach_tti > 0) {
-        my_phy.pdcch_dl_search(SRSLTE_RNTI_RAR, 1+prach_tti%10, prach_tti+3, 10);
+        my_phy.pdcch_dl_search(SRSLTE_RNTI_RAR, 1+prach_tti%10, prach_tti+3, prach_tti+13);
         rar_rnti_set = true; 
       }
     }
@@ -221,7 +222,7 @@ public:
   
   void new_grant_ul(mac_grant_t grant, uint8_t *payload_ptr, tb_action_ul_t *action) {
     printf("New grant UL\n");
-    srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload_ptr, grant.n_bytes*8);
+    memcpy(payload_ptr, conn_request_msg, grant.n_bytes*sizeof(uint8_t));
     action->current_tx_nb = nof_rtx_connsetup;
     action->rv = rv_value[nof_rtx_connsetup%4];
     action->softbuffer = &softbuffer_tx;     
@@ -281,7 +282,8 @@ public:
   void tb_decoded_ok(uint32_t harq_pid) {
     if (last_grant.rnti == 2) {
       my_phy.pdcch_dl_search_reset();
-      rar_unpack(payload, &rar_msg);
+      srslte_bit_pack_vector(payload, payload_bits, last_grant.n_bytes*8);
+      rar_unpack(payload_bits, &rar_msg);
       if (rar_msg.RAPID == preamble_idx) {
 
         printf("Received RAR at TTI: %d\n", last_grant.tti);
@@ -291,7 +293,7 @@ public:
         
         if (last_grant.n_bytes*8 > 20 + SRSLTE_RAR_GRANT_LEN) {
           uint8_t rar_grant[SRSLTE_RAR_GRANT_LEN];
-          memcpy(rar_grant, &payload[20], sizeof(uint8_t)*SRSLTE_RAR_GRANT_LEN);
+          memcpy(rar_grant, &payload_bits[20], sizeof(uint8_t)*SRSLTE_RAR_GRANT_LEN);
           my_phy.set_rar_grant(last_grant.tti, rar_grant);          
         }
       } else {
