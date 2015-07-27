@@ -158,6 +158,9 @@ void phch_worker::work_imp()
         dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr, dl_action.softbuffer, dl_action.rv, dl_action.rnti);      
         phy->mac->tb_decoded_ok(dl_mac_grant.pid);
       }
+      if (dl_action.generate_ack_callback) {
+        dl_action.generate_ack = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
+      }
       if (dl_action.generate_ack) {
         set_uci_ack(dl_ack);
       }
@@ -273,7 +276,7 @@ bool phch_worker::decode_pdcch_dl(srslte::ue::mac_interface_phy::mac_grant_t* gr
     /* Fill MAC grant structure */
     grant->ndi = dci_unpacked.ndi;
     grant->pid = dci_unpacked.harq_process;
-    grant->tbs = grant->phy_grant.dl.mcs.tbs;
+    grant->n_bytes = grant->phy_grant.dl.mcs.tbs/8;
     grant->tti = tti; 
     grant->rv  = dci_unpacked.rv_idx;
     grant->rnti = dl_rnti; 
@@ -299,8 +302,10 @@ bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
     if (ue_dl.pdsch_cfg.grant.mcs.mod > 0 && ue_dl.pdsch_cfg.grant.mcs.tbs >= 0) {
       
       if (srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols, 
-                                    ue_dl.ce, 0, rnti, payload) == 0) 
+                                    ue_dl.ce, 0, rnti, payload_bits) == 0) 
       {
+        // FIXME: TEMPORAL
+        srslte_bit_unpack_vector(payload_bits, payload, grant->mcs.tbs);
         Debug("TB decoded OK\n");
         return true; 
       } else {
@@ -354,6 +359,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       Error("Converting RAR message to UL grant\n");
       return false; 
     } 
+    grant->is_from_rar = true; 
     Info("RAR grant found for TTI=%d\n", tti);
     rar_cqi_request = rar_grant.cqi_request;    
     ret = true;  
@@ -372,6 +378,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
         Error("Converting DCI message to UL grant\n");
         return false;   
       }
+      grant->is_from_rar = false; 
       ret = true; 
       Info("PDCCH: UL DCI Format0 cce_index=%d, n_data_bits=%d\n", ue_dl.last_n_cce, dci_msg.nof_bits);
     }
@@ -379,7 +386,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
   if (ret) {    
     grant->ndi = dci_unpacked.ndi;
     grant->pid = 0; // This is computed by MAC from TTI 
-    grant->tbs = grant->phy_grant.ul.mcs.tbs;
+    grant->n_bytes = grant->phy_grant.ul.mcs.tbs/8;
     grant->tti = tti; 
     grant->rnti = ul_rnti; 
     
@@ -412,6 +419,7 @@ void phch_worker::set_uci_sr()
     if (srslte_ue_ul_sr_send_tti(I_sr, tti+4)) {
       Info("SR transmission at TTI=%d\n", tti+4);
       uci_data.scheduling_request = true; 
+      phy->sr_last_tx_tti = tti+4; 
       phy->sr_enabled = false;
     }
   } 
@@ -457,8 +465,11 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint32_t current_tx_
     Error("Configuring UL grant\n");
   }
   
+  // FIXME: TEMPORAL
+  srslte_bit_pack_vector(ul_payload, payload_bits, grant->mcs.tbs);
+        
   if (srslte_ue_ul_pusch_encode_rnti_softbuffer(&ue_ul, 
-                                                ul_payload, uci_data, 
+                                                payload_bits, uci_data, 
                                                 softbuffer,
                                                 rnti, 
                                                 signal_buffer)) 

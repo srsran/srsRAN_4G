@@ -29,6 +29,7 @@
 
 #include "srslte/srslte.h"
 #include "srsapps/common/params_db.h"
+#include "srsapps/common/mac_interface.h"
 
 #ifndef MACPARAMS_H
 #define MACPARAMS_H
@@ -41,7 +42,7 @@ namespace ue {
   {
   public: 
 
-    mac_params() : params_db(NOF_PARAMS) {}
+    mac_params() : params_db(mac_interface_params::NOF_PARAMS) {}
    ~mac_params() {}
     
     

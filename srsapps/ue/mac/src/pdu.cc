@@ -104,7 +104,7 @@ void sch_pdu::parse_packet(uint8_t *ptr)
 }
     
 // Section 6.1.2
-bool sch_pdu::write_packet(uint8_t* ptr)
+bool sch_pdu::write_packet(uint8_t* ptr, rlc_interface_mac *rlc)
 {
   uint8_t *init_ptr = ptr; 
   bool last_is_padding = false; 
@@ -159,16 +159,16 @@ bool sch_pdu::write_packet(uint8_t* ptr)
   // Write payloads in the same order
   for (int i=0;i<nof_subheaders;i++) {
     if (!subheaders[i].is_sdu()) {
-      subheaders[i].write_payload(&ptr);
+      subheaders[i].write_payload(&ptr, rlc);
     }
   }
   for (int i=0;i<nof_subheaders;i++) {
     if (subheaders[i].is_sdu()) {
-      subheaders[i].write_payload(&ptr);
+      subheaders[i].write_payload(&ptr, rlc);
     }
   }
   // Set paddint to zeros (if any) 
-  bzero(ptr, rem_len*sizeof(uint8_t)*8);
+  bzero(ptr, rem_len*sizeof(uint8_t));
  
   return true; 
 }
@@ -235,8 +235,8 @@ void sch_subh::init()
 {
   lcid            = 0; 
   nof_bytes       = 0; 
-  sdu_payload_ptr = NULL;
-  bzero(ce_payload, sizeof(uint8_t) * MAX_CE_PAYLOAD_LEN);
+  payload         = NULL;
+  bzero(payload, sizeof(uint8_t) * MAX_CE_PAYLOAD_LEN);
 }
 
 sch_subh::cetype sch_subh::ce_type()
@@ -296,29 +296,36 @@ bool sch_subh::is_sdu()
 }
 uint16_t sch_subh::get_c_rnti()
 {
-  uint8_t *ptr = ce_payload;
-  uint16_t ret = (uint16_t) srslte_bit_unpack(&ptr, 16);
-  return ret; 
+  if (payload) {
+    return (uint16_t) payload[0] | payload[1]<<8;
+  } else {
+    return 0;
+  }
 }
 uint64_t sch_subh::get_con_res_id()
 {
-  uint8_t *ptr = ce_payload;
-  uint64_t ret = (uint64_t) srslte_bit_unpack_l(&ptr, 48);
-  return ret; 
+  if (payload) {
+    return ((uint64_t) payload[0]) | ((uint64_t) payload[1])<<8 | ((uint64_t) payload[2])<<16 | ((uint64_t) payload[3])<<24 |
+                      ((uint64_t) payload[4])<<32 | ((uint64_t) payload[5])<<48;                
+  } else {
+    return 0; 
+  }
 }
 uint8_t sch_subh::get_phd()
 {
-  uint8_t *ptr = ce_payload;
-  ptr += 2; 
-  uint8_t ret = (uint8_t) srslte_bit_unpack(&ptr, 6);
-  return ret; 
+  if (payload) {
+    return (uint8_t) payload[0]&0x3f;
+  } else {
+    return 0;
+  }
 }
 uint8_t sch_subh::get_ta_cmd()
 {
-  uint8_t *ptr = ce_payload;
-  ptr += 2; 
-  uint8_t ret = (uint8_t) srslte_bit_unpack(&ptr, 6);
-  return ret; 
+  if (payload) {
+    return (uint8_t) payload[0]&0x3f;
+  } else {
+    return 0;
+  }
 }
 uint32_t sch_subh::get_sdu_lcid()
 {
@@ -330,7 +337,7 @@ uint32_t sch_subh::get_sdu_nbytes()
 }
 uint8_t* sch_subh::get_sdu_ptr()
 {
-  return sdu_payload_ptr;
+  return payload;
 }
 void sch_subh::set_padding(uint32_t padding_len)
 {
@@ -353,16 +360,12 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format, bool upda
   }
   uint32_t ce_size = format==LONG_BSR?3:1;
   if (((sch_pdu*)parent)->has_space_ce(ce_size) || !update_size) {
-    uint8_t *ptr = ce_payload; 
     if (format==LONG_BSR) {
-      bzero(ce_payload, 3*8*sizeof(uint8_t));
-      for (int i=0;i<4;i++) {
-        srslte_bit_pack(buff_size_table(buff_size[i]), &ptr, 6);
-      }
+      w_payload_ce[0] = (buff_size_table(buff_size[0])&0x3f) << 2 | (buff_size_table(buff_size[1])&0xc0)>>6;
+      w_payload_ce[1] = (buff_size_table(buff_size[1])&0xf)  << 4 | (buff_size_table(buff_size[2])&0xf0)>>4;
+      w_payload_ce[2] = (buff_size_table(buff_size[2])&0x3)  << 6 | (buff_size_table(buff_size[3])&0x3f);
     } else {
-      bzero(ce_payload, 8*sizeof(uint8_t));
-      srslte_bit_pack(nonzero_lcg, &ptr, 2);
-      srslte_bit_pack(buff_size_table(buff_size[nonzero_lcg]), &ptr, 6);
+      w_payload_ce[0] = (nonzero_lcg&0x3)<<6 | buff_size_table(buff_size[nonzero_lcg])&0x3f;
     }
     lcid = format;
     if (update_size) {
@@ -377,11 +380,9 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format, bool upda
 bool sch_subh::set_c_rnti(uint16_t crnti)
 {
   if (((sch_pdu*)parent)->has_space_ce(2)) {
-    
-    *((uint16_t*) ce_payload) = crnti;  
+    w_payload_ce[0] = (uint8_t) (crnti&0xff00)>>8;
+    w_payload_ce[1] = (uint8_t) (crnti&0x00ff);
     lcid = C_RNTI;
-    uint8_t *ptr = ce_payload; 
-    srslte_bit_pack(crnti, &ptr, 16);
     ((sch_pdu*)parent)->update_space_ce(2);
     return true; 
   } else {
@@ -391,8 +392,12 @@ bool sch_subh::set_c_rnti(uint16_t crnti)
 bool sch_subh::set_con_res_id(uint64_t con_res_id)
 {
   if (((sch_pdu*)parent)->has_space_ce(6)) {
-    uint8_t *ptr = ce_payload; 
-    srslte_bit_pack_l(con_res_id, &ptr, 48);
+    w_payload_ce[0] = (uint8_t) ((con_res_id&0xff0000000000)>>48);
+    w_payload_ce[1] = (uint8_t) ((con_res_id&0x00ff00000000)>>32);
+    w_payload_ce[2] = (uint8_t) ((con_res_id&0x0000ff000000)>>24);
+    w_payload_ce[3] = (uint8_t) ((con_res_id&0x000000ff0000)>>16);
+    w_payload_ce[4] = (uint8_t) ((con_res_id&0x00000000ff00)>>8);
+    w_payload_ce[5] = (uint8_t) ((con_res_id&0x0000000000ff));
     lcid = CON_RES_ID;
     ((sch_pdu*)parent)->update_space_ce(6);
     return true; 
@@ -403,9 +408,7 @@ bool sch_subh::set_con_res_id(uint64_t con_res_id)
 bool sch_subh::set_phd(uint8_t phd)
 {
   if (((sch_pdu*)parent)->has_space_ce(1)) {
-    uint8_t *ptr = ce_payload; 
-    srslte_bit_pack(0, &ptr, 2);
-    srslte_bit_pack(phd, &ptr, 6);
+    w_payload_ce[0] = phd&0x3f; 
     lcid = PHD_REPORT;
     ((sch_pdu*)parent)->update_space_ce(1);
     return true; 
@@ -414,31 +417,29 @@ bool sch_subh::set_phd(uint8_t phd)
   }
 }
 
-bool sch_subh::set_sdu(uint32_t lcid_, uint8_t* ptr, uint32_t nof_bytes_)
+bool sch_subh::set_ta_cmd(uint8_t ta_cmd)
 {
-  return set_sdu(lcid_, ptr, nof_bytes_, false);
-}
-
-bool sch_subh::set_sdu(uint32_t lcid_, uint8_t* ptr, uint32_t nof_bytes_, bool is_first)
-{
-  if (((sch_pdu*)parent)->has_space_sdu(nof_bytes_, is_first)) {
-    sdu_payload_ptr = ptr; 
-    nof_bytes = nof_bytes_;
-    lcid = lcid_;
-    ((sch_pdu*)parent)->update_space_sdu(nof_bytes_, is_first);
+  if (((sch_pdu*)parent)->has_space_ce(1)) {
+    w_payload_ce[0] = ta_cmd&0x3f; 
+    lcid = TA_CMD;
+    ((sch_pdu*)parent)->update_space_ce(1);
     return true; 
   } else {
     return false; 
   }
 }
-bool sch_subh::set_ta_cmd(uint8_t ta_cmd)
+
+bool sch_subh::set_sdu(uint32_t lcid_, uint32_t nof_bytes_)
 {
-  if (((sch_pdu*)parent)->has_space_ce(1)) {
-    uint8_t *ptr = ce_payload; 
-    srslte_bit_pack(0, &ptr, 2);
-    srslte_bit_pack(ta_cmd, &ptr, 6);
-    lcid = TA_CMD;
-    ((sch_pdu*)parent)->update_space_ce(1);
+  return set_sdu(lcid_, nof_bytes_, false);
+}
+
+bool sch_subh::set_sdu(uint32_t lcid_, uint32_t nof_bytes_, bool is_first)
+{
+  if (((sch_pdu*)parent)->has_space_sdu(nof_bytes_, is_first)) {
+    nof_bytes = nof_bytes_;
+    lcid = lcid_;
+    ((sch_pdu*)parent)->update_space_sdu(nof_bytes_, is_first);
     return true; 
   } else {
     return false; 
@@ -449,44 +450,47 @@ void sch_subh::write_subheader(uint8_t** ptr, bool is_last)
 {
   if (is_sdu()) {
     // MAC SDU: R/R/E/LCID/F/L subheader
-    srslte_bit_pack(0, ptr, 2);           // R, R    
-    srslte_bit_pack(is_last?0:1, ptr, 1); // E
-    srslte_bit_pack(lcid, ptr, 5);        // LCID
+    *(*ptr + 0)   = (uint8_t) is_last<<5 | (lcid & 0x1f);
 
     // 2nd and 3rd octet
     if (!is_last) {
-      srslte_bit_pack(F_bit?1:0, ptr, 1); // F
-      srslte_bit_pack(nof_bytes, ptr, nof_bytes<128?7:15); // L    
+      if (nof_bytes >= 128) {
+        *(*ptr + 1) = (uint8_t) 1<<7 | ((nof_bytes & 0x7f00) >> 8);
+        *(*ptr + 2) = (uint8_t) (nof_bytes & 0xff);
+      } else {
+       *(*ptr + 1) = (uint8_t) (nof_bytes & 0x7f); 
+     }      
     }
   } else {
     // MAC CE: R/R/E/LCID MAC Subheader
-    srslte_bit_pack(0, ptr, 2);           // R, R    
-    srslte_bit_pack(is_last?0:1, ptr, 1); // E
-    srslte_bit_pack(lcid, ptr, 5);        // LCID
+    *(*ptr + 0)   = (uint8_t) is_last<<5 | (lcid & 0x1f);
   }
 }
-void sch_subh::write_payload(uint8_t** ptr)
+
+void sch_subh::write_payload(uint8_t** ptr, rlc_interface_mac *rlc)
 {
-  uint8_t *src;
   if (is_sdu()) {
-    src = sdu_payload_ptr;
+    // Read data from RLC interface 
+    rlc->read_pdu(lcid, *ptr, nof_bytes);
   } else {
     nof_bytes = sizeof_ce(lcid, parent->is_ul()); 
-    src = ce_payload;    
+    memcpy(*ptr, w_payload_ce, nof_bytes*sizeof(uint8_t));    
   }
-  memcpy(*ptr, src, nof_bytes*8*sizeof(uint8_t));    
-  *ptr += nof_bytes*8;
+  *ptr += nof_bytes;
 }
+
 bool sch_subh::read_subheader(uint8_t** ptr)
 {
   // Skip R
-  *ptr += 2; 
-  bool e_bit   = srslte_bit_unpack(ptr, 1)?true:false;
-  lcid         = srslte_bit_unpack(ptr, 5);
+  bool e_bit    = (bool)    *(*ptr + 0) & 0x20;
+  lcid          = (uint8_t) *(*ptr + 0) & 0x1f;
   if (is_sdu()) {
     if (e_bit) {
-      F_bit      = srslte_bit_unpack(ptr, 1)?true:false;
-      nof_bytes  = srslte_bit_unpack(ptr, F_bit?15:7); 
+      F_bit     = (bool)    *(*ptr + 1) & 0x80;
+      nof_bytes = (uint32_t)*(*ptr + 1) & 0x7f;
+      if (F_bit) {
+        nof_bytes = nof_bytes<<8 | (uint32_t) *(*ptr + 2) & 0xff;
+      }
     } else {
       nof_bytes = 0; 
       F_bit = 0; 
@@ -498,15 +502,33 @@ bool sch_subh::read_subheader(uint8_t** ptr)
 }
 void sch_subh::read_payload(uint8_t** ptr)
 {
-  if (is_sdu()) {
-    sdu_payload_ptr = *ptr; 
-  } else {    
-    memcpy(ce_payload, *ptr, 8*nof_bytes*sizeof(uint8_t));  
-  }
-  *ptr += nof_bytes*8;
+  payload = *ptr; 
+  *ptr += nof_bytes;
 }
 
 
+
+// Table 6.1.3.1-1 Buffer size levels for BSR 
+uint32_t btable[61] = {
+  10, 12, 14, 17, 19, 22, 26, 31, 36, 42, 49, 57, 67, 78, 91, 107, 125, 146, 171, 200, 234, 274, 321, 376, 440, 515, 603, 706, 826, 967, 1132, 
+  1326, 1552, 1817, 2127, 2490, 2915, 3413, 3995, 4667, 5476, 6411, 7505, 8787, 10287, 12043, 14099, 16507, 19325, 22624, 26487, 31009, 36304, 
+  42502, 49759, 58255, 68201, 79846, 93479, 109439, 128125};
+
+uint8_t sch_subh::buff_size_table(uint32_t buffer_size) {
+  if (buffer_size == 0) {
+    return 0; 
+  } else if (buffer_size > 150000) {
+    return 63;
+  } else {
+    for (int i=0;i<61;i++) {
+      if (buffer_size < btable[i]) {
+        return 1+i; 
+      }      
+    }
+    return 62; 
+  }
+}
+  
 
 
 
@@ -552,15 +574,12 @@ void rar_pdu::set_backoff(uint8_t bi)
 }
 
 // Section 6.1.5
-bool rar_pdu::write_packet(uint8_t* ptr)
+bool rar_pdu::write_packet(uint8_t* ptr, rlc_interface_mac *rlc)
 {
   // Write Backoff Indicator, if any 
   if (has_backoff_indicator) {
     if (nof_subheaders > 0) {
-      srslte_bit_pack(1, &ptr, 1);                 // E
-      srslte_bit_pack(0, &ptr, 1);                 // T
-      srslte_bit_pack(0, &ptr, 2);                 // R, R
-      srslte_bit_pack(backoff_indicator, &ptr, 4);
+      *(ptr) = 1<<7 | backoff_indicator&0xf;
     }
   }
   // Write RAR subheaders
@@ -569,10 +588,10 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   }
   // Write payload 
   for (int i=0;i<nof_subheaders;i++) {
-    subheaders[i].write_payload(&ptr);
+    subheaders[i].write_payload(&ptr, rlc);
   }
   // Set paddint to zeros (if any) 
-  bzero(ptr, rem_len*sizeof(uint8_t)*8);
+  bzero(ptr, rem_len*sizeof(uint8_t));
   
   return true; 
 }
@@ -620,63 +639,45 @@ void rar_subh::set_temp_crnti(uint16_t temp_rnti_)
 // Section 6.2.2
 void rar_subh::write_subheader(uint8_t** ptr, bool is_last)
 {
-  srslte_bit_pack(is_last?0:1, ptr, 1); // E
-  srslte_bit_pack(1, ptr, 1);           // T
-  srslte_bit_pack(preamble, ptr, 6);    // RAPID
+  *(*ptr + 0) = (uint8_t) (is_last<<7 | 1<<6 | preamble & 0x3f);
 }
 // Section 6.2.3
-void rar_subh::write_payload(uint8_t** ptr)
+void rar_subh::write_payload(uint8_t** ptr, rlc_interface_mac *rlc)
 {
-  srslte_bit_pack(0, ptr, 1);             // R
-  srslte_bit_pack(ta, ptr, 11);           // Timing Adv Cmd
-  memcpy(*ptr, grant, 20*sizeof(uint8_t)); // UL grant
-  *ptr += 20; 
-  srslte_bit_pack(temp_rnti, ptr, 16);    // Temp C-RNTI
+  *(*ptr + 0) = (uint8_t)  (ta&0x7f0)>>4;
+  *(*ptr + 1) = (uint8_t)  (ta&0xf)  <<4 | grant[0]<<3 | grant[1] << 2 | grant[2] << 1 | grant[3];
+  uint8_t *x = &grant[4];
+  *(*ptr + 2) = (uint8_t) srslte_bit_unpack(&x, 8);
+  *(*ptr + 3) = (uint8_t) srslte_bit_unpack(&x, 8);
+  *(*ptr + 4) = (uint8_t) ((temp_rnti&0xff00) >> 8);
+  *(*ptr + 5) = (uint8_t)  (temp_rnti&0x00ff);
 }
+
 void rar_subh::read_payload(uint8_t** ptr)
 {
-  *ptr += 1; // R
-  ta    = srslte_bit_unpack(ptr, 11);     // Timing Adv Cmd
-  memcpy(grant, *ptr, 20*sizeof(uint8_t)); // UL Grant
-  *ptr += 20; 
-  temp_rnti = srslte_bit_unpack(ptr, 16); // Temp C-RNTI  
+  ta = *(*ptr + 0)&0x7f << 4 | (*(*ptr + 1)&0xf0)>>4;
+  grant[0] = *(*ptr + 1)&0x8;
+  grant[1] = *(*ptr + 1)&0x4;
+  grant[2] = *(*ptr + 1)&0x2;
+  grant[3] = *(*ptr + 1)&0x1;
+  uint8_t *x = &grant[4];
+  srslte_bit_pack(*(*ptr+2), &x, 8);
+  srslte_bit_pack(*(*ptr+3), &x, 8);
+  temp_rnti = *(*ptr + 4)<<8 | *(*ptr + 5);    
 }
+
 bool rar_subh::read_subheader(uint8_t** ptr)
 {
-  bool e_bit   = srslte_bit_unpack(ptr, 1); // E
-  bool type    = srslte_bit_unpack(ptr, 1); // T
+  bool e_bit = *(*ptr + 0) & 0x80;
+  bool type  = *(*ptr + 0) & 0x40;
   if (type) {
-    preamble   = srslte_bit_unpack(ptr, 6); // RAPID  
+    preamble = *(*ptr + 0) & 0x3f;
   } else {
-    // Read Backoff
-    *ptr += 2; // R, R
-    ((rar_pdu*)parent)->set_backoff((uint8_t) srslte_bit_unpack(ptr, 4));
+    ((rar_pdu*)parent)->set_backoff(*(*ptr + 0) & 0xf);
   }
   return e_bit;
 }
 
-
-// Table 6.1.3.1-1 Buffer size levels for BSR 
-uint32_t btable[61] = {
-  10, 12, 14, 17, 19, 22, 26, 31, 36, 42, 49, 57, 67, 78, 91, 107, 125, 146, 171, 200, 234, 274, 321, 376, 440, 515, 603, 706, 826, 967, 1132, 
-  1326, 1552, 1817, 2127, 2490, 2915, 3413, 3995, 4667, 5476, 6411, 7505, 8787, 10287, 12043, 14099, 16507, 19325, 22624, 26487, 31009, 36304, 
-  42502, 49759, 58255, 68201, 79846, 93479, 109439, 128125};
-
-uint8_t sch_subh::buff_size_table(uint32_t buffer_size) {
-  if (buffer_size == 0) {
-    return 0; 
-  } else if (buffer_size > 150000) {
-    return 63;
-  } else {
-    for (int i=0;i<61;i++) {
-      if (buffer_size < btable[i]) {
-        return 1+i; 
-      }      
-    }
-    return 62; 
-  }
-}
-  
     
   }
 }

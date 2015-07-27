@@ -25,24 +25,37 @@
  *
  */
 
-#include "srsapps/ue/mac/dl_sps.h"
+
+
+#include <pthread.h>
+#include "srsapps/common/tti_sync.h"
+
+
+#ifndef TTISYNC_CV_H
+#define TTISYNC_CV_H
+
 
 namespace srslte {
-  namespace ue {
-
-    dl_sched_grant* dl_sps::get_pending_grant(uint32_t tti)
-    {
-      return NULL; 
-    }
-    void dl_sps::reset(uint32_t tti, dl_sched_grant* grant)
-    {
-
-    }
-    void dl_sps::clear()
-    {
-
-    }
-   
-
-  }
+namespace ue {
+  
+  /* Implements tti_sync interface with condition variables. 
+   */
+  
+class tti_sync_cv : public tti_sync
+{
+  public: 
+             tti_sync_cv(uint32_t modulus = 10240);
+            ~tti_sync_cv();
+    void     increase();
+    uint32_t wait();      
+    void     resync();
+    void     set_producer_cntr(uint32_t producer_cntr);
+    
+  private: 
+    pthread_cond_t  cond; 
+    pthread_mutex_t mutex; 
+}; 
 }
+}
+
+#endif

@@ -93,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   srslte_pdsch_set_rnti(&pdsch, (uint16_t) (rnti32 & 0xffff));
 
-  if (srslte_softbuffer_rx_init(&softbuffer, cell)) {
+  if (srslte_softbuffer_rx_init(&softbuffer, cell.nof_prb)) {
     mexErrMsgTxt("Error initiating soft buffer\n");
     return;
   }

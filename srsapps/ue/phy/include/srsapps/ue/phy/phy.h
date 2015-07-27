@@ -71,7 +71,7 @@ public:
   void write_trace(std::string filename); 
   
   /********** MAC INTERFACE ********************/
-  /* Instructs the PHY to configure using the parameters written with set_param() */
+  /* Instructs the PHY to configure using the parameters written by set_param() */
   void    configure_prach_params();
   void    configure_ul_params();
 
@@ -79,11 +79,13 @@ public:
   void    sync_start(); 
   void    sync_stop();
   
-  /* Functions to initialize and transmit PRACH in the next opportunity */
-  void    prach_send(prach_cfg_t *cfg);  
-
+  /* Transmits PRACH in the next opportunity */
+  void    prach_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = 0.0);  
+  int     prach_tx_tti();
+  
   /* Indicates the transmission of a SR signal in the next opportunity */
   void    sr_send();  
+  int     sr_last_tx_tti();
 
   // Time advance commands
   void    set_timeadv_rar(uint32_t ta_cmd);

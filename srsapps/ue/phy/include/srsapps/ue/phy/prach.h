@@ -49,10 +49,9 @@ namespace ue {
     void           init(phy_params *params_db, log *log_h);
     bool           init_cell(srslte_cell_t cell);
     void           free_cell();
-    bool           prepare_to_send(phy_interface::prach_cfg_t* cfg);
     bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
     bool           is_ready_to_send(uint32_t current_tti);
-    void           get_rar_cfg(uint16_t* rar_rnti, uint32_t* tti_start, uint32_t* tti_end);
+    int            tx_tti();
     
     bool           send(radio* radio_handler, float cfo, srslte_timestamp_t rx_time);
     
@@ -66,12 +65,11 @@ namespace ue {
     uint32_t       len; 
     cf_t          *buffer[64]; 
     srslte_prach_t prach_obj; 
-    uint32_t       transmitted_tti;
+    int            transmitted_tti;
     srslte_cell_t  cell;
     cf_t          *signal_buffer;
     srslte_cfo_t   cfo_h; 
     
-    phy_interface::prach_cfg_t prach_cfg;
   };
 
 }

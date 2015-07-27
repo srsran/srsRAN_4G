@@ -202,9 +202,26 @@ uint16_t temp_c_rnti;
 class testmac : public srslte::ue::mac_interface_phy
 {
 public:
+  
+  testmac() { 
+    rar_rnti_set = false; 
+  }
+  
+  bool rar_rnti_set;
+  
+  void tti_clock(uint32_t tti) {
+    if (!rar_rnti_set) {
+      int prach_tti = my_phy.prach_tx_tti();
+      if (prach_tti > 0) {
+        my_phy.pdcch_dl_search(SRSLTE_RNTI_RAR, 1+prach_tti%10, prach_tti+3, 10);
+        rar_rnti_set = true; 
+      }
+    }
+  }
+  
   void new_grant_ul(mac_grant_t grant, uint8_t *payload_ptr, tb_action_ul_t *action) {
     printf("New grant UL\n");
-    srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload_ptr, grant.tbs);
+    srslte_bit_pack_vector((uint8_t*) conn_request_msg, payload_ptr, grant.n_bytes*8);
     action->current_tx_nb = nof_rtx_connsetup;
     action->rv = rv_value[nof_rtx_connsetup%4];
     action->softbuffer = &softbuffer_tx;     
@@ -272,7 +289,7 @@ public:
         
         temp_c_rnti = rar_msg.temp_c_rnti; 
         
-        if (last_grant.tbs > 20 + SRSLTE_RAR_GRANT_LEN) {
+        if (last_grant.n_bytes*8 > 20 + SRSLTE_RAR_GRANT_LEN) {
           uint8_t rar_grant[SRSLTE_RAR_GRANT_LEN];
           memcpy(rar_grant, &payload[20], sizeof(uint8_t)*SRSLTE_RAR_GRANT_LEN);
           my_phy.set_rar_grant(last_grant.tti, rar_grant);          
@@ -286,14 +303,15 @@ public:
     }
   }
 
-  void bch_decoded_ok(uint8_t *payload) {
+  void bch_decoded_ok(uint8_t *payload, uint32_t len) {
     printf("BCH decoded\n");
     bch_decoded = true; 
     srslte_cell_t cell; 
     my_phy.get_current_cell(&cell); 
-    srslte_softbuffer_rx_init(&softbuffer_rx, cell);
-    srslte_softbuffer_tx_init(&softbuffer_tx, cell);
+    srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb);
+    srslte_softbuffer_tx_init(&softbuffer_tx, cell.nof_prb);
   }
+   
 private: 
   mac_grant_t last_grant; 
 };
@@ -347,13 +365,7 @@ int main(int argc, char *argv[])
   config_phy();
     
   /* Instruct PHY to send PRACH and prepare it for receiving RAR */
-  srslte::ue::phy_interface::prach_cfg_t prach_cfg; 
-  prach_cfg.allowed_subframe_enabled = false; 
-  prach_cfg.preamble_idx = preamble_idx; 
-  prach_cfg.rar_rnti     = 2; 
-  prach_cfg.rar_start    = 3; 
-  prach_cfg.rar_window   = 10; 
-  my_phy.prach_send(&prach_cfg);
+  my_phy.prach_send(preamble_idx);
   
   /* go to idle and process each tti */
   bool running = true; 

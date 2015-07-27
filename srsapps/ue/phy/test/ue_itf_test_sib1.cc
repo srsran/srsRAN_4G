@@ -127,13 +127,14 @@ public:
     total_oks++;     
   }
 
-  void bch_decoded_ok(uint8_t *payload) {
+  void bch_decoded_ok(uint8_t *payload, uint32_t len) {
     printf("BCH decoded\n");
     bch_decoded = true; 
     srslte_cell_t cell; 
     my_phy.get_current_cell(&cell); 
-    srslte_softbuffer_rx_init(&softbuffer, cell);
-
+    srslte_softbuffer_rx_init(&softbuffer, cell.nof_prb);
+  }
+  void tti_clock(uint32_t tti) {
     
   }
 };

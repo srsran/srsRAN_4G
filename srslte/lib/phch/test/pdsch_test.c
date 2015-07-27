@@ -183,12 +183,12 @@ int main(int argc, char **argv) {
   
   srslte_pdsch_set_rnti(&pdsch, 1234);
   
-  if (srslte_softbuffer_tx_init(&softbuffer_tx, cell)) {
+  if (srslte_softbuffer_tx_init(&softbuffer_tx, cell.nof_prb)) {
     fprintf(stderr, "Error initiating TX soft buffer\n");
     goto quit;
   }
 
-  if (srslte_softbuffer_rx_init(&softbuffer_rx, cell)) {
+  if (srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb)) {
     fprintf(stderr, "Error initiating RX soft buffer\n");
     goto quit;
   }

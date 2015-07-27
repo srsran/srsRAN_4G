@@ -133,23 +133,12 @@ public:
   virtual void sync_start() = 0; 
   virtual void sync_stop() = 0;
   
-  /* Functions to initialize and transmit PRACH in the next opportunity. 
-   * This function returns at the start of the rar reception window, ie the transmission
-   * TTI + rar_start
-   */
-  typedef struct {
-    uint32_t preamble_idx; 
-    bool     allowed_subframe_enabled; 
-    uint32_t allowed_subframe;
-    float    target_power_dbm;
-    uint16_t rar_rnti;
-    uint32_t rar_start;
-    uint32_t rar_window;
-  } prach_cfg_t;
-  virtual void prach_send(prach_cfg_t *cfg) = 0;  
-
+  virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;  
+  virtual int  prach_tx_tti() = 0; 
+  
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send() = 0;  
+  virtual int  sr_last_tx_tti() = 0; 
   
   /* Time advance commands */
   virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;

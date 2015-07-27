@@ -53,9 +53,12 @@ public:
     uint32_t    pid;    
     uint32_t    tti;
     bool        ndi; 
-    uint32_t    tbs;
+    uint32_t    n_bytes;
     uint32_t    rv; 
     uint16_t    rnti; 
+    bool        is_from_rar;
+    bool        is_sps_release; 
+    srslte_rnti_type_t rnti_type; 
     srslte_phy_grant_t phy_grant; 
   } mac_grant_t; 
   
@@ -65,6 +68,9 @@ public:
     uint16_t                rnti; 
     bool                    generate_ack; 
     bool                    default_ack; 
+    // If non-null, called after tb_decoded_ok to determine if ack needs to be sent
+    bool                  (*generate_ack_callback)(void*); 
+    void                   *generate_ack_callback_arg;
     uint8_t                *payload_ptr; 
     srslte_softbuffer_rx_t *softbuffer;
     srslte_phy_grant_t      phy_grant;
@@ -97,7 +103,7 @@ public:
   virtual void tb_decoded_ok(uint32_t harq_pid) = 0;
   
   /* Indicate successfull decoding of BCH TB through PBCH */
-  virtual void bch_decoded_ok(uint8_t *payload) = 0;  
+  virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;  
   
   /* Function called every start of a subframe (TTI). Warning, this function is called 
    * from a high priority thread and should terminate asap 
@@ -113,7 +119,9 @@ public:
  
   /* RLC configures a logical channel */
   virtual void    setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;  
-
+  
+  virtual uint32_t get_current_tti() = 0;
+  
   virtual void    reconfiguration() = 0; 
   virtual void    reset() = 0; 
 };
@@ -126,13 +134,17 @@ public:
   /* MAC calls RLC to get buffer state for a logical channel. This function should return quickly */
   virtual uint32_t get_buffer_state(uint32_t lcid) = 0;
   
-  /* MAC calls RLC to get RLC segment of nof_bytes length. Segmentation happens in this function. RLC PDU is stored in payload. */
-  virtual void     read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
+  /* MAC calls RLC to get RLC segment of nof_bytes length. Segmentation happens in this function. RLC PDU is stored in 
+   * payload. */
+  virtual uint32_t read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
 
-  /* MAC calls RLC to push an RLC PDU. This function is called from an independent MAC thread. PDU gets placed into the PDCP buffer and higher layer thread gets notified 
-     when the last segment is received 
+  /* MAC calls RLC to push an RLC PDU. This function is called from an independent MAC thread. PDU gets placed into the 
+   * PDCP buffer and higher layer thread gets notified 
+   * when the last segment is received 
   */
   virtual void     write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
+  virtual void     write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes) = 0;
+  virtual void     write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes) = 0;
 
   
 };
@@ -144,6 +156,9 @@ public:
       
       SPS_DL_SCHED_INTERVAL,
       SPS_DL_NOF_PROC,
+      
+      RNTI_TEMP,
+      RNTI_C,
       
       BCCH_SI_WINDOW_ST,
       BCCH_SI_WINDOW_LEN,

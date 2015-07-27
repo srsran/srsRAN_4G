@@ -44,7 +44,7 @@
 
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
-int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, srslte_cell_t cell) {
+int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, uint32_t nof_prb) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL) {    
@@ -52,7 +52,7 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, srslte_cell_t cell) {
     
     bzero(q, sizeof(srslte_softbuffer_rx_t));
     
-    ret = srslte_ra_tbs_from_idx(26, cell.nof_prb);
+    ret = srslte_ra_tbs_from_idx(26, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
       
@@ -106,7 +106,7 @@ void srslte_softbuffer_rx_reset(srslte_softbuffer_rx_t *q) {
 
 
 
-int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t *q, srslte_cell_t cell) {
+int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t *q, uint32_t nof_prb) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL) {    
@@ -114,7 +114,7 @@ int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t *q, srslte_cell_t cell) {
     
     bzero(q, sizeof(srslte_softbuffer_tx_t));
     
-    ret = srslte_ra_tbs_from_idx(26, cell.nof_prb);
+    ret = srslte_ra_tbs_from_idx(26, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
       

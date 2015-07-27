@@ -30,8 +30,6 @@
 #include <stdint.h>
 #include <signal.h>
 
-#include "srsapps/ue/mac/mac_params.h"
-#include "srsapps/ue/mac/mac_io.h"
 #include "srsapps/ue/mac/proc_ra.h"
 #include "srsapps/ue/mac/mac.h"
 #include "srsapps/ue/mac/mux.h"
@@ -47,26 +45,7 @@ uint32_t backoff_table[16] = {0, 10, 20, 30, 40, 60, 80, 120, 160, 240, 320, 480
 // Table 7.6-1: DELTA_PREAMBLE values.
 int delta_preamble_db_table[5] = {0, 0, -3, -3, 8};
 
-
-void* init_prach_thread(void *arg) {
-  ra_proc* ra = (ra_proc*) arg; 
-  return ra->run_prach_thread();
-}
-
-void* ra_proc::run_prach_thread() {
-  pthread_mutex_lock(&mutex);
-  while(!start_prach_init) {
-    pthread_cond_wait(&cond, &mutex);
-  }
-  pthread_mutex_unlock(&mutex);
-  if (phy_h->init_prach()) {
-    return (void*) 0;
-  } else {
-    return (void*) -1;
-  }
-
-}
-bool ra_proc::init(mac_params* params_db_, phy* phy_h_, srslte::log* log_h_, srslte::timers* timers_db_, 
+bool ra_proc::init(phy_interface* phy_h_, log* log_h_, mac_params* params_db_, timers* timers_db_, 
                    mux* mux_unit_, demux* demux_unit_)
 {
   phy_h     = phy_h_; 
@@ -75,12 +54,8 @@ bool ra_proc::init(mac_params* params_db_, phy* phy_h_, srslte::log* log_h_, srs
   timers_db = timers_db_;
   mux_unit  = mux_unit_; 
   demux_unit= demux_unit_; 
-  start_prach_init = false; 
-  if (pthread_create(&pt_init_prach, NULL, init_prach_thread, this)) {
-    perror("pthread_create");
-  }
-  pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&cond, NULL);      
+  srslte_softbuffer_rx_init(&softbuffer_rar, 10);
+  
   reset();
 }
 
@@ -96,32 +71,32 @@ void ra_proc::start_pcap(mac_pcap* pcap_)
 void ra_proc::read_params() {
   
   // Read initialization parameters   
-  configIndex               = params_db->get_param(mac_params::RA_CONFIGINDEX);
-  preambleIndex             = params_db->get_param(mac_params::RA_PREAMBLEINDEX);
-  maskIndex                 = params_db->get_param(mac_params::RA_MASKINDEX); 
-  nof_preambles             = params_db->get_param(mac_params::RA_NOFPREAMBLES); 
+  configIndex               = params_db->get_param(mac_interface_params::RA_CONFIGINDEX);
+  preambleIndex             = params_db->get_param(mac_interface_params::RA_PREAMBLEINDEX);
+  maskIndex                 = params_db->get_param(mac_interface_params::RA_MASKINDEX); 
+  nof_preambles             = params_db->get_param(mac_interface_params::RA_NOFPREAMBLES); 
   if (!nof_preambles || nof_preambles > 64) {
     nof_preambles = 64; 
   }
-  nof_groupA_preambles      = params_db->get_param(mac_params::RA_NOFGROUPAPREAMBLES);
+  nof_groupA_preambles      = params_db->get_param(mac_interface_params::RA_NOFGROUPAPREAMBLES);
   if (!nof_groupA_preambles) {
-    nof_groupA_preambles = nof_preambles; 
+    nof_groupA_preambles    = nof_preambles; 
   }
   if (nof_groupA_preambles > nof_preambles) {
-    nof_groupA_preambles = nof_preambles;
+    nof_groupA_preambles    = nof_preambles;
   }
   nof_groupB_preambles      = nof_preambles - nof_groupA_preambles;
   if (nof_groupB_preambles) {
-    messagePowerOffsetGroupB  = params_db->get_param(mac_params::RA_MESSAGEPOWEROFFSETB);
-    messageSizeGroupA         = params_db->get_param(mac_params::RA_MESSAGESIZEA);
-    Pcmax                     = params_db->get_param(mac_params::RA_PCMAX);
-    deltaPreambleMsg3         = params_db->get_param(mac_params::RA_DELTAPREAMBLEMSG3);      
+    messagePowerOffsetGroupB= params_db->get_param(mac_interface_params::RA_MESSAGEPOWEROFFSETB);
+    messageSizeGroupA       = params_db->get_param(mac_interface_params::RA_MESSAGESIZEA);
+    Pcmax                   = params_db->get_param(mac_interface_params::RA_PCMAX);
+    deltaPreambleMsg3       = params_db->get_param(mac_interface_params::RA_DELTAPREAMBLEMSG3);      
   }
-  responseWindowSize        = params_db->get_param(mac_params::RA_RESPONSEWINDOW);
-  powerRampingStep          = params_db->get_param(mac_params::RA_POWERRAMPINGSTEP);
-  preambleTransMax          = params_db->get_param(mac_params::RA_PREAMBLETRANSMAX);
-  iniReceivedTargetPower    = params_db->get_param(mac_params::RA_INITRECEIVEDPOWER);
-  contentionResolutionTimer = params_db->get_param(mac_params::RA_CONTENTIONTIMER); 
+  responseWindowSize        = params_db->get_param(mac_interface_params::RA_RESPONSEWINDOW);
+  powerRampingStep          = params_db->get_param(mac_interface_params::RA_POWERRAMPINGSTEP);
+  preambleTransMax          = params_db->get_param(mac_interface_params::RA_PREAMBLETRANSMAX);
+  iniReceivedTargetPower    = params_db->get_param(mac_interface_params::RA_INITRECEIVEDPOWER);
+  contentionResolutionTimer = params_db->get_param(mac_interface_params::RA_CONTENTIONTIMER); 
 
   delta_preamble_db         = delta_preamble_db_table[configIndex%5]; 
   
@@ -154,9 +129,9 @@ bool ra_proc::is_error() {
 
 const char* state_str[11] = {"Idle",
                             "RA Initializat.: ",
-                            "RA Initial.Wait: ",
                             "RA ResSelection: ",
                             "RA PreambleTx  : ",
+                            "RA PDCCH setup : ",
                             "RA PreambleRx  : ",
                             "RA ResponseErr : ",
                             "RA BackoffWait : ",
@@ -199,28 +174,9 @@ void ra_proc::step_initialization() {
   mux_unit->msg3_flush();
   backoff_param_ms = 0; 
   
-  // Instruct phy prach init thread to start initialization
-  pthread_mutex_lock(&mutex);
-  start_prach_init = true;
-  pthread_cond_signal(&cond);
-  pthread_mutex_unlock(&mutex);
-  state = INITIALIZATION_WAIT;
- 
-}
-
-void ra_proc::step_initialization_wait() {
-  int n = pthread_kill(pt_init_prach, 0);
-  if (n) {
-    void *status; 
-    pthread_join(pt_init_prach, &status);
-    if (status) {
-      rError("Initializing PRACH on PHY\n");
-      state = RA_PROBLEM;
-    } else {
-      rInfo("PRACH init OK\n");
-      state = RESOURCE_SELECTION;
-    }
-  }
+  // Instruct phy to configure PRACH
+  phy_h->configure_prach_params();
+  state = RESOURCE_SELECTION; 
 }
 
 void ra_proc::step_resource_selection() {
@@ -249,7 +205,8 @@ void ra_proc::step_resource_selection() {
     sel_maskIndex = 0;           
   }
   
-  rInfo("Selected preambleIndex=%d maskIndex=%d nof_GroupApreambles=%d\n", sel_preamble, sel_maskIndex,nof_groupA_preambles);
+  rInfo("Selected preambleIndex=%d maskIndex=%d nof_GroupApreambles=%d\n", 
+        sel_preamble, sel_maskIndex,nof_groupA_preambles);
   state = PREAMBLE_TRANSMISSION;
 }
 
@@ -258,116 +215,111 @@ void ra_proc::step_preamble_transmission() {
       delta_preamble_db + 
       (preambleTransmissionCounter-1)*powerRampingStep;
       
-  phy_h->send_prach(sel_preamble, sel_maskIndex - 1, received_target_power_dbm); 
+  phy_h->prach_send(sel_preamble, sel_maskIndex - 1, received_target_power_dbm); 
   rInfo("Selected received_target_power_dbm=%d dBm\n", received_target_power_dbm);
-  state = RESPONSE_RECEPTION;
+  state = PDCCH_SETUP;
+}
+
+void ra_proc::step_pdcch_setup() {
+  int ra_tti = phy_h->prach_tx_tti();
+  if (ra_tti > 0) {    
+    ra_rnti = 1+ra_tti%10;
+    phy_h->pdcch_dl_search(SRSLTE_RNTI_RAR, ra_rnti, ra_tti+3, responseWindowSize);
+    state = RESPONSE_RECEPTION;
+  }
+}
+
+void ra_proc::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action) 
+{
+  if (grant.n_bytes < MAX_RAR_PDU_LEN) {
+    rInfo("DL grant found RA-RNTI=%d\n", ra_rnti);        
+    action->decode_enabled = true; 
+    action->default_ack = false; 
+    action->generate_ack = false; 
+    action->payload_ptr = rar_pdu_buffer; 
+    action->rnti = grant.rnti; 
+    memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
+    action->rv = grant.rv;
+    action->softbuffer = &softbuffer_rar;
+    rar_grant_nbytes = grant.n_bytes;
+    rar_grant_tti    = grant.tti; 
+    if (action->rv == 0) {
+      srslte_softbuffer_rx_reset(&softbuffer_rar);
+    }
+  } else {
+    rError("Received RAR grant exceeds buffer length (%d>%d)\n", grant.n_bytes, MAX_RAR_PDU_LEN);
+    action->decode_enabled = false; 
+    state = RESPONSE_ERROR;
+  }
+}
+
+void ra_proc::tb_decoded_ok() {
+  if (pcap) {
+    pcap->write_dl_crnti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, rar_grant_tti);            
+  }
+  
+  rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
+  
+  rar_pdu_msg.init(rar_grant_nbytes);
+  rar_pdu_msg.parse_packet(rar_pdu_buffer);
+  
+  // Set Backoff parameter
+  if (rar_pdu_msg.has_backoff()) {
+    backoff_param_ms = backoff_table[rar_pdu_msg.get_backoff()%16];
+  } else {
+    backoff_param_ms = 0; 
+  }
+  
+  while(rar_pdu_msg.next()) {
+    if (rar_pdu_msg.get()->get_rapid() == sel_preamble) {
+      rInfo("Received RAPID=%d\n", sel_preamble);
+
+      process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
+      
+      // FIXME: Indicate received target power
+      //phy_h->set_target_power_rar(iniReceivedTargetPower, (preambleTransmissionCounter-1)*powerRampingStep);
+
+      uint8_t grant[rar_subh::RAR_GRANT_LEN];
+      rar_pdu_msg.get()->get_sched_grant(grant);
+      
+      phy_h->set_rar_grant(rar_grant_tti, grant);          
+      
+      if (preambleIndex > 0) {
+        // Preamble selected by Network
+        state = COMPLETION; 
+      } else {
+        // Preamble selected by UE MAC 
+        params_db->set_param(mac_interface_params::RNTI_TEMP, rar_pdu_msg.get()->get_temp_crnti());
+        if (first_rar_received) {
+          first_rar_received = false; 
+          
+          // Save transmitted C-RNTI (if any) 
+          transmitted_crnti = params_db->get_param(mac_interface_params::RNTI_C);
+          
+          // Save transmitted UE contention id, as defined by higher layers 
+          transmitted_contention_id = params_db->get_param(mac_interface_params::CONTENTION_ID);
+          params_db->set_param(mac_interface_params::CONTENTION_ID, 0);                        
+
+          // If we have a C-RNTI, tell Mux unit to append C-RNTI CE if no CCCH SDU transmission
+          if (transmitted_crnti) {
+            mux_unit->append_crnti_ce_next_tx(transmitted_crnti);
+          }           
+        }                  
+        rDebug("Going to Contention Resolution state\n");
+        state = CONTENTION_RESOLUTION;
+        
+        // Start contention resolution timer 
+        timers_db->get(mac::CONTENTION_TIMER)->reset();
+        timers_db->get(mac::CONTENTION_TIMER)->run();                      
+      }  
+    } else {
+      rDebug("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
+    }
+  }
 }
 
 void ra_proc::step_response_reception() {
-  int ra_tti = phy_h->get_prach_transmitted_tti();
-  if (ra_tti > 0) {
-    
-    ra_rnti = 1+ra_tti%10; // f_id=0 for FDD 
-    dl_sched_grant rar_grant(ra_rnti); 
-    uint32_t interval_ra = srslte_tti_interval(tti, ra_tti);
-    
-    // Try to decode RAR only within the RA response window
-    if (interval_ra >= 3 && interval_ra <= 3+responseWindowSize) {        
-
-      // Get DL grant for RA-RNTI
-      dl_buffer *dl_buffer = phy_h->get_dl_buffer(tti); 
-      if (dl_buffer->get_dl_grant(&rar_grant)) 
-      {            
-        rInfo("DL grant found RA-RNTI=%d\n", ra_rnti);        
-        if (rar_grant.get_tbs() > MAX_RAR_PDU_LEN) {
-          rError("RAR PDU exceeds local RAR PDU buffer (%d>%d)\n", rar_grant.get_tbs(), MAX_RAR_PDU_LEN);
-          state = RESPONSE_ERROR;
-          return; 
-        }
-       
-        // Decode packet
-        dl_buffer->reset_softbuffer();
-        bool ack = dl_buffer->decode_data(&rar_grant, rar_pdu_buffer);
-        if (pcap) {
-          pcap->write_dl_crnti(payload, rar_grant.get_tbs()/8, ra_rnti, ack, tti);            
-        }
-
-        if (ack) {
-          rDebug("RAR decoded successfully TBS=%d\n", rar_grant.get_tbs());
-          
-          rar_pdu_msg.init(rar_grant.get_tbs()/8);
-          rar_pdu_msg.parse_packet(rar_pdu_buffer);
-          
-          // Set Backoff parameter
-          if (rar_pdu_msg.has_backoff()) {
-            backoff_param_ms = backoff_table[rar_pdu_msg.get_backoff()%16];
-          } else {
-            backoff_param_ms = 0; 
-          }
-          
-          while(rar_pdu_msg.next()) {
-            if (rar_pdu_msg.get()->get_rapid() == sel_preamble) {
-              rInfo("Received RAPID=%d\n", sel_preamble);
-
-              process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
-              
-              // FIXME: Indicate received target power
-              //phy_h->set_target_power_rar(iniReceivedTargetPower, (preambleTransmissionCounter-1)*powerRampingStep);
-
-              // Indicate grant to PHY layer. RAR grants have 6 sf delay (4 is the default delay)
-              uint8_t grant[rar_subh::RAR_GRANT_LEN];
-              rar_pdu_msg.get()->get_sched_grant(grant);
-              phy_h->get_dl_buffer(tti+2)->set_rar_grant(grant);
-              
-              if (preambleIndex > 0) {
-                // Preamble selected by Network
-                state = COMPLETION; 
-              } else {
-                // Preamble selected by UE MAC 
-                params_db->set_param(mac_params::RNTI_TEMP, rar_pdu_msg.get()->get_temp_crnti());
-                if (first_rar_received) {
-                  first_rar_received = false; 
-                  
-                  // Save transmitted C-RNTI (if any) 
-                  transmitted_crnti = params_db->get_param(mac_params::RNTI_C);
-                  
-                  // Save transmitted UE contention id, as defined by higher layers 
-                  transmitted_contention_id = params_db->get_param(mac_params::CONTENTION_ID);
-                  params_db->set_param(mac_params::CONTENTION_ID, 0);                        
-
-                  // If we have a C-RNTI, tell Mux unit to append C-RNTI CE if no CCCH SDU transmission
-                  if (transmitted_crnti) {
-                    mux_unit->append_crnti_ce_next_tx(transmitted_crnti);
-                  } 
-                  
-                  // Get TransportBlock size for the grant
-                  ul_sched_grant msg3_grant(sched_grant::RNTI_TYPE_TEMP, rar_pdu_msg.get()->get_temp_crnti());
-                  phy_h->get_dl_buffer(tti+2)->get_ul_grant(&msg3_grant);
-                  
-                  // Move MAC PDU from Multiplexing and assembly unit to Msg3 
-                  rInfo("Generating Msg3 for TBS=%d\n", msg3_grant.get_tbs());
-                  mux_unit->pdu_move_to_msg3(msg3_grant.get_tbs()); // 56 is the minimum grant provided 
-                }                  
-                rDebug("Going to Contention Resolution state\n");
-                state = CONTENTION_RESOLUTION;
-                
-                // Start contention resolution timer 
-                timers_db->get(mac::CONTENTION_TIMER)->reset();
-                timers_db->get(mac::CONTENTION_TIMER)->run();                      
-              }  
-            } else {
-              rDebug("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
-            }
-          }         
-        }        
-      }
-      srslte_verbose = SRSLTE_VERBOSE_NONE;
-    }
-    if (interval_ra > 3+responseWindowSize && interval_ra < 10000) {
-      rInfo("Timeout while trying to receive RAR\n");
-      state = RESPONSE_ERROR; 
-    }
-  }
+  // do nothing. Processing done in tb_decoded_ok()
 }
 
 void ra_proc::step_response_error() {
@@ -377,7 +329,7 @@ void ra_proc::step_response_error() {
     rError("Maximum number of transmissions reached (%d)\n", preambleTransMax);
     state = RA_PROBLEM;
   } else {
-    backoff_interval_start = tti; 
+    backoff_interval_start = phy_h->get_current_tti(); 
     if (backoff_param_ms) {
       backoff_inteval = rand()%backoff_param_ms;          
     } else {
@@ -394,7 +346,7 @@ void ra_proc::step_response_error() {
 }
 
 void ra_proc::step_backoff_wait() {
-  if (srslte_tti_interval(tti, backoff_interval_start) >= backoff_inteval) {
+  if (srslte_tti_interval(phy_h->get_current_tti(), backoff_interval_start) >= backoff_inteval) {
     state = RESOURCE_SELECTION; 
   }
 }
@@ -411,7 +363,7 @@ void ra_proc::step_contention_resolution() {
           start_mode == PDCCH_ORDER) 
       {
         timers_db->get(mac::CONTENTION_TIMER)->stop();
-        params_db->set_param(mac_params::RNTI_TEMP, 0);
+        params_db->set_param(mac_interface_params::RNTI_TEMP, 0);
         state = COMPLETION;           
       }            
       pdcch_to_crnti_received = PDCCH_CRNTI_NOT_RECEIVED;
@@ -428,7 +380,7 @@ void ra_proc::step_contention_resolution() {
         if (transmitted_contention_id == rx_contention_id) {
           rDebug("MAC PDU Contention Resolution ID matches the one transmitted in CCCH SDU\n");
           // UE Contention Resolution ID included in MAC CE matches the CCCH SDU transmitted in Msg3
-          params_db->set_param(mac_params::RNTI_C, params_db->get_param(mac_params::RNTI_TEMP));
+          params_db->set_param(mac_interface_params::RNTI_C, params_db->get_param(mac_interface_params::RNTI_TEMP));
           // finish the disassembly and demultiplexing of the MAC PDU
           demux_unit->demultiplex_pending_pdu();
           state = COMPLETION;                           
@@ -441,7 +393,7 @@ void ra_proc::step_contention_resolution() {
           // FIXME: Need to flush Msg3 HARQ buffer. Why? 
           state = RESPONSE_ERROR; 
         }
-        params_db->set_param(mac_params::RNTI_TEMP, 0);              
+        params_db->set_param(mac_interface_params::RNTI_TEMP, 0);              
       }
     }  
   } else {
@@ -451,15 +403,14 @@ void ra_proc::step_contention_resolution() {
 }
 
 void ra_proc::step_completition() {
-  params_db->set_param(mac_params::RA_PREAMBLEINDEX, 0);
-  params_db->set_param(mac_params::RA_MASKINDEX, 0);
+  params_db->set_param(mac_interface_params::RA_PREAMBLEINDEX, 0);
+  params_db->set_param(mac_interface_params::RA_MASKINDEX, 0);
   mux_unit->msg3_flush();
   msg3_transmitted = false; 
 }
 
 void ra_proc::step(uint32_t tti_)
 {
-  tti = tti_;
   if (is_running()) {
     switch(state) {
       case IDLE: 
@@ -467,14 +418,14 @@ void ra_proc::step(uint32_t tti_)
       case INITIALIZATION:
         step_initialization();
         break;
-      case INITIALIZATION_WAIT:
-        step_initialization_wait();
-        break;
       case RESOURCE_SELECTION:
         step_resource_selection();
       break;
       case PREAMBLE_TRANSMISSION:
         step_preamble_transmission();
+      break;
+      case PDCCH_SETUP:      
+        step_pdcch_setup();
       break;
       case RESPONSE_RECEPTION:      
         step_response_reception();
@@ -529,7 +480,7 @@ void ra_proc::start_rlc_order()
 void ra_proc::timer_expired(uint32_t timer_id)
 {
   rInfo("Contention Resolution Timer expired. Going to Response Error\n");
-  params_db->set_param(mac_params::RNTI_TEMP, 0);
+  params_db->set_param(mac_interface_params::RNTI_TEMP, 0);
   state = RESPONSE_ERROR; 
 }
 

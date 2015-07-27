@@ -187,12 +187,17 @@ void phy::get_current_cell(srslte_cell_t *cell)
   sf_recv.get_current_cell(cell);
 }
 
-void phy::prach_send(phy_interface::prach_cfg_t* cfg)
+void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
 {
   
-  if (!prach_buffer.prepare_to_send(cfg)) {
+  if (!prach_buffer.prepare_to_send(preamble_idx, allowed_subframe, target_power_dbm)) {
     Error("Preparing PRACH to send\n");
   }
+}
+
+int phy::prach_tx_tti()
+{
+  return prach_buffer.tx_tti();
 }
 
 void phy::reset()
@@ -208,6 +213,11 @@ uint32_t phy::get_current_tti()
 void phy::sr_send()
 {
   workers_common.sr_enabled = true;
+}
+
+int phy::sr_last_tx_tti()
+{
+  return workers_common.sr_last_tx_tti;
 }
 
 bool phy::status_is_sync()

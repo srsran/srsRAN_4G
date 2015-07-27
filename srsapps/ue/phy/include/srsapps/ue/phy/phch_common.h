@@ -73,6 +73,7 @@ namespace ue {
     void worker_end(uint32_t tti, bool tx_enable, cf_t *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
     
     bool sr_enabled; 
+    int  sr_last_tx_tti; 
     
   private: 
     pthread_mutex_t    tx_mutex; 

@@ -33,6 +33,7 @@
 #include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/common/timers.h"
 #include "srsapps/ue/mac/demux.h"
+#include "srsapps/ue/mac/dl_sps.h"
 #include "srsapps/ue/mac/mac_pcap.h"
 
 #ifndef DLHARQ_H
@@ -43,8 +44,6 @@
 namespace srslte {
 namespace ue {
   
-typedef _Complex float cf_t; 
-
 class dl_harq_entity
 {
 public:
@@ -53,49 +52,56 @@ public:
   const static uint32_t HARQ_BCCH_PID = NOF_HARQ_PROC; 
   
   dl_harq_entity();
-  bool init(srslte_cell_t cell, uint32_t max_payload_len, srslte::log *log_h_, timers *timers_, demux *demux_unit);
-  bool is_sps(uint32_t pid); 
-  void set_harq_info(uint32_t pid, dl_sched_grant *grant);
-  void receive_data(uint32_t tti, uint32_t pid, dl_buffer *dl_buffer, phy *phy_h);
+  bool init(log *log_h_, timers *timers_, demux *demux_unit);
+  
+  
+  /***************** PHY->MAC interface for DL processes **************************/
+  void new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t *action);
+  void tb_decoded_ok(uint32_t harq_pid);
+ 
+  
   void reset();
-  bool is_ack_pending_resolution();
-  void send_pending_ack_contention_resolution();
   void start_pcap(mac_pcap* pcap);
+
 private:  
   
   
   class dl_harq_process {
   public:
     dl_harq_process();
-    bool init(srslte_cell_t cell, uint32_t max_payload_len, dl_harq_entity *parent);
-    void set_harq_info(dl_sched_grant *grant); 
-    void receive_data(uint32_t tti, dl_buffer *dl_buffer, phy *phy_h); 
+    bool init(uint32_t pid, dl_harq_entity *parent);
     void reset();
-    // Called after the contention resolution is terminated to send pending ACKs, if any
-    void send_pending_ack_contention_resolution();
-    uint32_t pid;    
+    bool is_sps(); 
+    bool is_new_transmission(mac_interface_phy::mac_grant_t grant); 
+    void new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t *action);
+    void tb_decoded_ok();   
+    
   private: 
     
     bool            is_initiated; 
     dl_harq_entity *harq_entity; 
-    uint8_t        *payload; 
-    uint32_t       max_payload_len; 
-    dl_sched_grant cur_grant;
-    dl_sched_grant pending_ack_grant;
-    ul_buffer     *pending_ul_buffer;
-    bool           pending_ack; 
-    srslte::log    *log_h; 
+    log            *log_h; 
     
-    srslte_softbuffer_rx_t softbuffer; 
-    bool          ack;
+    uint32_t        pid;    
+    uint8_t        *payload_buffer_ptr; 
+    bool            ack;
+    
+    mac_interface_phy::mac_grant_t cur_grant;    
+    srslte_softbuffer_rx_t         softbuffer; 
+    
   };
+  static bool      generate_ack_callback(void *arg);
+
+  uint32_t         get_harq_sps_pid(uint32_t tti);
   
-  dl_harq_process proc[NOF_HARQ_PROC+1];
+  dl_sps           dl_sps_assig;
+  
+  dl_harq_process  proc[NOF_HARQ_PROC+1];
   timers          *timers_db; 
   demux           *demux_unit; 
-  srslte::log     *log_h; 
-  int              pending_ack_pid; 
+  log             *log_h; 
   mac_pcap        *pcap; 
+  uint16_t         last_temporal_crnti;
 };
 
 } 

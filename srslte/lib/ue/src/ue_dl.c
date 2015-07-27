@@ -86,7 +86,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
-    if (srslte_softbuffer_rx_init(&q->softbuffer, q->cell)) {
+    if (srslte_softbuffer_rx_init(&q->softbuffer, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating soft buffer\n");
       goto clean_exit;
     }

@@ -106,6 +106,9 @@ private:
   uint16_t           ul_rnti;
   uint8_t           *ul_payload;
 
+  // FIXME: THIS IS TEMPORAL. Need to change srslte to accept bits for payload
+  uint8_t payload_bits[64*1024];
+  
   // UL configuration parameters 
   srslte_refsignal_srs_cfg_t        srs_cfg;           
   srslte_pucch_cfg_t                pucch_cfg; 

@@ -56,9 +56,6 @@ private:
   uint32_t ue_id; 
   void pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti, 
                               uint16_t crnti_, uint8_t direction, uint8_t rnti_type);
-  
-  static const uint32_t max_pdu_len = 16*1024;
-  uint8_t pdu_pcap_tmp[max_pdu_len]; 
 };
 
 }

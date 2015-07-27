@@ -95,16 +95,6 @@ bool prach::init_cell(srslte_cell_t cell_)
   return initiated;  
 }
 
-bool prach::prepare_to_send(phy_interface::prach_cfg_t* cfg)
-{
-  int allowed_sf = cfg->allowed_subframe_enabled?(int) cfg->allowed_subframe:-1;
-  bool ret = prepare_to_send(cfg->preamble_idx, allowed_sf, cfg->target_power_dbm);
-  if (ret) {
-    memcpy(&prach_cfg, cfg, sizeof(phy_interface::prach_cfg_t));  
-  }
-  return ret; 
-}
-
 bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float target_power_dbm)
 {
   if (initiated && preamble_idx_ < 64) {
@@ -137,17 +127,8 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
   return false;     
 }
 
-void prach::get_rar_cfg(uint16_t *rar_rnti, uint32_t *tti_start, uint32_t *tti_end)
-{
-  if (rar_rnti) {
-    *rar_rnti  = prach_cfg.rar_rnti;
-  }
-  if (tti_start) {
-    *tti_start = transmitted_tti + prach_cfg.rar_start;
-  }
-  if (tti_end) {
-    *tti_end   = transmitted_tti + prach_cfg.rar_start + prach_cfg.rar_window;
-  }
+int prach::tx_tti() {
+  return transmitted_tti; 
 }
 
 bool prach::send(radio *radio_handler, float cfo, srslte_timestamp_t tx_time)

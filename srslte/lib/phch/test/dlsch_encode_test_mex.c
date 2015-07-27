@@ -91,7 +91,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mxFree(mod_str);
 
-  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+  if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
     mexErrMsgTxt("Error initiating DL-SCH soft buffer\n");
     return; 
   }

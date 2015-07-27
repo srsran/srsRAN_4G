@@ -31,8 +31,8 @@
 
 #include "srsapps/common/log.h"
 #include "srsapps/ue/mac/proc.h"
+#include "srsapps/common/mac_interface.h"
 #include "srsapps/ue/mac/mac_params.h"
-#include "srsapps/ue/mac/mac_io.h"
 #include "srsapps/common/timers.h" 
 
 #ifndef PROCBSR_H
@@ -47,7 +47,7 @@ class bsr_proc : public proc, timer_callback
 {
 public:
   bsr_proc();
-  void init(log *log_h, timers *timers_db, mac_params *params_db, mac_io *mac_io_h);
+  void init(rlc_interface_mac *rlc, log *log_h, mac_params *params_db, timers *timers_db);
   void step(uint32_t tti);  
   void reset();
   void setup_lcg(uint32_t lcid, uint32_t new_lcg);
@@ -74,9 +74,9 @@ private:
   
   bool       reset_sr; 
   mac_params *params_db; 
-  mac_io     *mac_io_h;
   timers     *timers_db; 
   log        *log_h; 
+  rlc_interface_mac *rlc;
   bool       initiated;
   const static int MAX_LCID = 20; 
   int        lcg[MAX_LCID];

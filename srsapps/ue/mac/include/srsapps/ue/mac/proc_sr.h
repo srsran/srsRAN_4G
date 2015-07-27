@@ -45,20 +45,22 @@ class sr_proc : public proc
 {
 public:
   sr_proc();
-  void init(log *log_h, mac_params *params_db, phy *phy_h);
+  void init(phy_interface *phy_h, log *log_h, mac_params *params_db);
   void step(uint32_t tti);  
   void reset();
   void start();
   bool need_random_access(); 
+  
 private:
-  uint32_t   sr_counter;
-  uint32_t   dsr_transmax; 
-  bool       is_pending_sr;
-  mac_params *params_db; 
-  phy        *phy_h; 
-  log        *log_h; 
-  bool       initiated;
-  bool       do_ra;
+  uint32_t      sr_counter;
+  uint32_t      dsr_transmax; 
+  bool          is_pending_sr;
+  mac_params    *params_db; 
+  
+  phy_interface *phy_h; 
+  log           *log_h; 
+  bool          initiated;
+  bool          do_ra;
 };
 }
 }

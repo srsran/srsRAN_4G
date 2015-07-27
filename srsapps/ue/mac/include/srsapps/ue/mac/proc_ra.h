@@ -52,8 +52,7 @@ class ra_proc : public proc,timer_callback
 {
   public:
     ra_proc() : rar_pdu_msg(20) {pcap = NULL;};
-    bool init(mac_params *params_db, phy *phy_h, log *log_h, timers *timers_db, 
-              mux *mux_unit, demux *demux_unit);
+    bool init(phy_interface *phy_h, log *log_h, mac_params *params_db, timers *timers_db, mux *mux_unit, demux *demux_unit);
     void reset();
     void start_pdcch_order();
     void start_rlc_order();
@@ -67,15 +66,18 @@ class ra_proc : public proc,timer_callback
     void pdcch_to_crnti(bool is_ul_grant);
     void timer_expired(uint32_t timer_id);
     
+    void new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action);
+    void tb_decoded_ok();
+    
     void* run_prach_thread(); 
     void start_pcap(mac_pcap* pcap);
 private: 
       
     void process_timeadv_cmd(uint32_t ta_cmd); 
     void step_initialization();
-    void step_initialization_wait();
     void step_resource_selection();
     void step_preamble_transmission();
+    void step_pdcch_setup();
     void step_response_reception();
     void step_response_error();
     void step_backoff_wait();
@@ -107,7 +109,6 @@ private:
     int      preambleIndex;
     
     // Internal variables
-    uint32_t tti; 
     uint32_t preambleTransmissionCounter; 
     uint32_t backoff_param_ms; 
     uint32_t sel_maskIndex; 
@@ -116,14 +117,15 @@ private:
     uint32_t backoff_inteval;
     int      received_target_power_dbm; 
     uint32_t ra_rnti; 
-    uint8_t  payload[256]; // 56 bits is often enough
+    
+    srslte_softbuffer_rx_t softbuffer_rar; 
     
     enum {
       IDLE = 0,
       INITIALIZATION,           // Section 5.1.1
-      INITIALIZATION_WAIT,
       RESOURCE_SELECTION,       // Section 5.1.2
       PREAMBLE_TRANSMISSION,    // Section 5.1.3
+      PDCCH_SETUP,
       RESPONSE_RECEPTION,       // Section 5.1.4
       RESPONSE_ERROR,
       BACKOFF_WAIT,
@@ -139,21 +141,17 @@ private:
     bool        first_rar_received; 
     void        read_params();
     
-    phy         *phy_h; 
-    log         *log_h; 
-    mac_params  *params_db;
-    timers      *timers_db;
-    mux         *mux_unit; 
-    demux       *demux_unit; 
-    mac_pcap    *pcap; 
-    
-    pthread_t   pt_init_prach; 
-    pthread_cond_t  cond; 
-    pthread_mutex_t mutex; 
-    bool        start_prach_init; 
-    
+    phy_interface *phy_h; 
+    log           *log_h; 
+    mac_params    *params_db;
+    timers        *timers_db;
+    mux           *mux_unit; 
+    demux         *demux_unit; 
+    mac_pcap      *pcap; 
+        
     uint64_t    transmitted_contention_id;
     uint16_t    transmitted_crnti; 
+    
     enum {
        PDCCH_CRNTI_NOT_RECEIVED = 0, 
        PDCCH_CRNTI_UL_GRANT, 
@@ -165,6 +163,8 @@ private:
       RLC_ORDER, 
       MAC_ORDER
     } start_mode; 
+    uint32_t rar_grant_nbytes;
+    uint32_t rar_grant_tti;
 };
 }
 }

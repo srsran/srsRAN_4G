@@ -201,7 +201,7 @@ bool phch_recv::cell_search(int force_N_id_2)
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, &cell, NULL);
     srslte_cell_fprint(stdout, &cell, 0);
-    mac->bch_decoded_ok(bch_payload);
+    mac->bch_decoded_ok(bch_payload, SRSLTE_BCH_PAYLOAD_LEN);
     return true;     
   } else {
     Warning("Error decoding MIB: Error decoding PBCH\n");      
@@ -305,16 +305,11 @@ void phch_recv::run_thread()
             if (prach_buffer->is_ready_to_send(tti)) {
               srslte_timestamp_t cur_time; 
               radio_h->get_time(&cur_time);
-              Info("TX PRACH now. RX time: %d:%f, Now: %d:%f\n", rx_time.full_secs, rx_time.frac_secs, cur_time.full_secs, cur_time.frac_secs);
+              Info("TX PRACH now. RX time: %d:%f, Now: %d:%f\n", rx_time.full_secs, rx_time.frac_secs, 
+                   cur_time.full_secs, cur_time.frac_secs);
               // send prach if we have to 
               prach_buffer->send(radio_h, cfo, tx_time);
-              radio_h->tx_end();
-              
-              /* Setup DL RNTI search to look for RAR as configured by MAC */
-              uint16_t rar_rnti;
-              uint32_t rar_start, rar_end; 
-              prach_buffer->get_rar_cfg(&rar_rnti, &rar_start, &rar_end);
-              worker_com->set_dl_rnti(SRSLTE_RNTI_RAR, rar_rnti, (int) rar_start, (int) rar_end);
+              radio_h->tx_end();              
             }            
             workers_pool->start_worker(worker);                                          
           }

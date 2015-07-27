@@ -48,8 +48,8 @@ class ul_sps
 public:
 
   void           clear() {}
-  void           reset(uint32_t tti, sched_grant *grant) {}
-  ul_sched_grant *get_pending_grant(uint32_t tti) { return NULL; }
+  void           reset(uint32_t tti) {}
+  bool           get_pending_grant(uint32_t tti, mac_interface_phy::mac_grant_t *grant) { return false; }
 private:  
   
 };

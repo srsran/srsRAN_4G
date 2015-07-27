@@ -26,7 +26,6 @@
  */
 
 #include "srsapps/ue/mac/proc_bsr.h"
-#include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/ue/mac/mac.h"
 #include "srsapps/ue/mac/mux.h"
 
@@ -48,11 +47,11 @@ bsr_proc::bsr_proc()
   triggered_bsr_type=NONE; 
 }
 
-void bsr_proc::init(log* log_h_, timers *timers_db_, mac_params* params_db_, mac_io *mac_io_h_)
+void bsr_proc::init(rlc_interface_mac *rlc_, log* log_h_, mac_params* params_db_, timers *timers_db_)
 {
   log_h     = log_h_; 
+  rlc       = rlc_; 
   params_db = params_db_;
-  mac_io_h  = mac_io_h_;
   timers_db = timers_db_; 
   initiated = true;
 }
@@ -85,12 +84,12 @@ void bsr_proc::timer_expired(uint32_t timer_id) {
 bool bsr_proc::check_highest_channel() {
   int pending_data_lcid = -1; 
   
-  for (int i=0;i<mac_io::NOF_UL_LCH && pending_data_lcid == -1;i++) {
+  for (int i=0;i<MAX_LCID && pending_data_lcid == -1;i++) {
     if (lcg[i] >= 0) {
-      if (!mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->isempty()) {
+      if (rlc->get_buffer_state(i) > 0) {
         pending_data_lcid = i; 
-        for (int j=0;j<mac_io::NOF_UL_LCH;j++) {
-          if (!mac_io_h->get(j+mac_io::MAC_LCH_CCCH_UL)->isempty()) {
+        for (int j=0;j<MAX_LCID;j++) {
+          if (rlc->get_buffer_state(j) > 0) {
             if (priorities[j] > priorities[i]) {
               pending_data_lcid = -1; 
             }
@@ -101,7 +100,7 @@ bool bsr_proc::check_highest_channel() {
   }
   if (pending_data_lcid >= 0) {
     // If there is new data available for this logical channel 
-    uint32_t nbytes = mac_io_h->get(pending_data_lcid+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8;
+    uint32_t nbytes = rlc->get_buffer_state(pending_data_lcid);
     if (nbytes > last_pending_data[pending_data_lcid]) 
     {
       if (triggered_bsr_type != REGULAR) {        
@@ -119,16 +118,16 @@ bool bsr_proc::check_single_channel() {
   uint32_t pending_data_lcid = 0; 
   uint32_t nof_nonzero_lcid = 0; 
   
-  for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
+  for (int i=0;i<MAX_LCID;i++) {
     if (lcg[i] >= 0) {
-      if (!mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->isempty()) {
+      if (rlc->get_buffer_state(i) > 0) {
         pending_data_lcid = i;
         nof_nonzero_lcid++; 
       }
     }
   }
   if (nof_nonzero_lcid == 1) {
-    uint32_t nbytes = mac_io_h->get(pending_data_lcid+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8;
+    uint32_t nbytes = rlc->get_buffer_state(pending_data_lcid);
     // If there is new data available for this logical channel 
     if (nbytes > last_pending_data[pending_data_lcid]) {
       triggered_bsr_type = REGULAR; 
@@ -140,8 +139,8 @@ bool bsr_proc::check_single_channel() {
 }
 
 void bsr_proc::update_pending_data() {
-  for (int i=0;i<mac_io_h->NOF_UL_LCH;i++) {
-    last_pending_data[i] = mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8; 
+  for (int i=0;i<MAX_LCID;i++) {
+    last_pending_data[i] = rlc->get_buffer_state(i); 
   }
 }
 
@@ -149,9 +148,9 @@ bool bsr_proc::generate_bsr(bsr_t *bsr, uint32_t nof_padding_bytes) {
   bool ret = false; 
   uint32_t nof_lcg=0;
   bzero(bsr, sizeof(bsr_t));    
-  for (int i=0;i<mac_io_h->NOF_UL_LCH;i++) {
+  for (int i=0;i<MAX_LCID;i++) {
     if (lcg[i] >= 0) {
-      uint32_t n = mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8;
+      uint32_t n = rlc->get_buffer_state(i);
       bsr->buff_size[lcg[i]] += n;
       if (n > 0) {
         nof_lcg++;
@@ -196,16 +195,16 @@ void bsr_proc::step(uint32_t tti)
   }  
   
   if (!timer_periodic) {
-    if (params_db->get_param(mac_params::BSR_TIMER_PERIODIC)) {
+    if (params_db->get_param(mac_interface_params::BSR_TIMER_PERIODIC)) {
       timer_periodic = true; 
-      timers_db->get(mac::BSR_TIMER_PERIODIC)->set(this, params_db->get_param(mac_params::BSR_TIMER_PERIODIC));
+      timers_db->get(mac::BSR_TIMER_PERIODIC)->set(this, params_db->get_param(mac_interface_params::BSR_TIMER_PERIODIC));
     }
   }
 
   if (!timer_retx) {
-    if (params_db->get_param(mac_params::BSR_TIMER_RETX)) {
+    if (params_db->get_param(mac_interface_params::BSR_TIMER_RETX)) {
       timer_retx = true; 
-      timers_db->get(mac::BSR_TIMER_RETX)->set(this, params_db->get_param(mac_params::BSR_TIMER_RETX));
+      timers_db->get(mac::BSR_TIMER_RETX)->set(this, params_db->get_param(mac_interface_params::BSR_TIMER_RETX));
     }
   }
 
@@ -222,8 +221,8 @@ void bsr_proc::step(uint32_t tti)
   if ((tti - last_print)%10240 > 40) {
     char str[128];
     bzero(str, 128);
-    for (int i=0;i<mac_io::NOF_UL_LCH;i++) {
-      sprintf(str, "%s%d (%d), ", str, mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pending_data()/8, last_pending_data[i]);
+    for (int i=0;i<MAX_LCID;i++) {
+      sprintf(str, "%s%d (%d), ", str, rlc->get_buffer_state(i), last_pending_data[i]);
     }
     Info("QUEUE status: %s\n", str);
     last_print = tti; 
@@ -257,15 +256,10 @@ uint32_t bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size)
 {
   uint32_t bsr_sz = 0; 
   if (triggered_bsr_type == PERIODIC || triggered_bsr_type == REGULAR) {
-    uint32_t total_data = 0; 
     /* Check if grant + MAC SDU headers is enough to accomodate all pending data */
-    for (int i=0;i<mac_io_h->NOF_UL_LCH && total_data < grant_size;i++) {
-      uint32_t idx = 0; 
-      uint32_t sdu_len = 0; 
-      while(mac_io_h->get(i+mac_io::MAC_LCH_CCCH_UL)->pop(&sdu_len, idx) && total_data < grant_size) {
-        idx++;
-        total_data += sch_pdu::size_plus_header_sdu(sdu_len/8);
-      }
+    uint32_t total_data = 0; 
+    for (int i=0;i<MAX_LCID && total_data < grant_size;i++) {
+      total_data += sch_pdu::size_plus_header_sdu(rlc->get_buffer_state(i));      
     }
     total_data--; // Because last SDU has no size header 
     

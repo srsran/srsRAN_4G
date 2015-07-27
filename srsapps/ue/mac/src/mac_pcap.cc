@@ -55,23 +55,18 @@ void mac_pcap::pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reT
                               uint16_t crnti, uint8_t direction, uint8_t rnti_type)
 {
   if (enable_write) {
-    if (pdu_len_bytes < max_pdu_len) {
-      MAC_Context_Info_t  context =
-      {
-          FDD_RADIO, direction, rnti_type,
-          crnti,       /* RNTI */
-          ue_id,      /* UEId */
-          reTX,        /* Retx */
-          crc_ok,        /* CRC Stsatus (i.e. OK) */
-          tti/10,        /* Sysframe number */
-          tti%10        /* Subframe number */
-      };
-      if (pdu) {
-        srslte_bit_unpack_vector(pdu, pdu_pcap_tmp, pdu_len_bytes*8);
-        MAC_LTE_PCAP_WritePDU(pcap_file, &context, pdu_pcap_tmp, pdu_len_bytes);
-      }
-    } else {
-      fprintf(stderr, "MAC PCAP: PDU len %d exceeds maximum allowed length (%d bytes)\n", pdu_len_bytes, max_pdu_len); 
+    MAC_Context_Info_t  context =
+    {
+        FDD_RADIO, direction, rnti_type,
+        crnti,       /* RNTI */
+        ue_id,      /* UEId */
+        reTX,        /* Retx */
+        crc_ok,        /* CRC Stsatus (i.e. OK) */
+        tti/10,        /* Sysframe number */
+        tti%10        /* Subframe number */
+    };
+    if (pdu) {
+      MAC_LTE_PCAP_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
     }
   }
 }

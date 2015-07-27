@@ -28,8 +28,9 @@
 
 #include <pthread.h>
 
+#include "srsapps/common/qbuff.h"
 #include "srsapps/common/log.h"
-#include "srsapps/ue/mac/mac_io.h"
+#include "srsapps/common/mac_interface.h"
 #include "srsapps/ue/mac/mac_params.h"
 #include "srsapps/ue/mac/pdu.h"
 #include "srsapps/ue/mac/proc_bsr.h"
@@ -47,17 +48,15 @@ class mux
 public:
   mux();
   void     reset();
-  void     init(log *log_h, mac_io *mac_io_h, bsr_proc *bsr_procedure);
+  void     init(rlc_interface_mac *rlc, log *log_h, bsr_proc *bsr_procedure);
 
   bool     is_pending_ccch_sdu();
   bool     is_pending_any_sdu();
   bool     is_pending_sdu(uint32_t lcid); 
   
-  uint8_t* pdu_pop(uint32_t pdu_sz);
-  bool     pdu_move_to_msg3(uint32_t pdu_sz);
-  void     pdu_release();
+  bool     pdu_get(uint8_t *payload, uint32_t pdu_sz);
 
-  uint8_t* msg3_pop(uint32_t pdu_sz);
+  bool     msg3_get(uint8_t *payload, uint32_t pdu_sz);
   void     msg3_flush();
   void     msg3_transmitted(); 
   bool     msg3_is_transmitted();
@@ -67,34 +66,33 @@ public:
   void     set_priority(uint32_t lcid, uint32_t priority, int PBR_x_tti, uint32_t BSD);
       
 private:  
-  bool          assemble_pdu(uint32_t pdu_sz); 
-  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu);
-  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu, bool *is_first);
-  bool          allocate_sdu(uint32_t lcid, sch_pdu *pdu, uint32_t *sdu_sz, bool *is_first);
+  bool     pdu_move_to_msg3(uint32_t pdu_sz);
+  bool     allocate_sdu(uint32_t lcid, sch_pdu *pdu);
+  bool     allocate_sdu(uint32_t lcid, sch_pdu *pdu, bool *is_first);
+  bool     allocate_sdu(uint32_t lcid, sch_pdu *pdu, int max_sdu_sz, uint32_t *sdu_sz, bool *is_first);
   
-  int64_t       Bj[mac_io::NOF_UL_LCH];
-  int           PBR[mac_io::NOF_UL_LCH]; // -1 sets to infinity
-  uint32_t      BSD[mac_io::NOF_UL_LCH];
-  uint32_t      priority[mac_io::NOF_UL_LCH];
-  uint32_t      priority_sorted[mac_io::NOF_UL_LCH];
-  uint32_t      lchid_sorted[mac_io::NOF_UL_LCH];
-  uint32_t      nof_tx_pkts[mac_io::NOF_UL_LCH]; 
+  const static int NOF_UL_LCH = 10; 
+  
+  int64_t       Bj[NOF_UL_LCH];
+  int           PBR[NOF_UL_LCH]; // -1 sets to infinity
+  uint32_t      BSD[NOF_UL_LCH];
+  uint32_t      priority[NOF_UL_LCH];
+  uint32_t      priority_sorted[NOF_UL_LCH];
+  uint32_t      lchid_sorted[NOF_UL_LCH];
   
   // Mutex for exclusive access
   pthread_mutex_t mutex; 
 
-  log        *log_h;
-  mac_io     *mac_io_h; 
-  bsr_proc   *bsr_procedure;
-  uint16_t    pending_crnti_ce;
+  log               *log_h;
+  rlc_interface_mac *rlc; 
+  bsr_proc          *bsr_procedure;
+  uint16_t           pending_crnti_ce;
   
   /* Msg3 Buffer */
   static const uint32_t MSG3_BUFF_SZ = 128; 
   qbuff                 msg3_buff; 
   
   /* PDU Buffer */
-  static const uint32_t PDU_BUFF_SZ  = 128*1024; 
-  qbuff                 pdu_buff; 
   sch_pdu               pdu_msg; 
   bool msg3_has_been_transmitted;
   

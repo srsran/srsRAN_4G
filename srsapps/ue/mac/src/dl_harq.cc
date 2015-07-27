@@ -26,7 +26,6 @@
  */
 
 #include "srsapps/ue/phy/phy.h"
-#include "srsapps/ue/phy/dl_sched_grant.h"
 
 #include "srsapps/ue/mac/mac.h"
 #include "srsapps/ue/mac/dl_harq.h"
@@ -43,19 +42,15 @@ namespace srslte {
         
 dl_harq_entity::dl_harq_entity()
 {
-  for (uint32_t i=0;i<NOF_HARQ_PROC+1;i++) {
-    proc[i].pid = i; 
-  }  
-  pending_ack_pid = -1; 
   pcap = NULL; 
 }
-bool dl_harq_entity::init(srslte_cell_t cell, uint32_t max_payload_len, log* log_h_, timers* timers_, demux *demux_unit_)
+bool dl_harq_entity::init(log* log_h_, timers* timers_, demux *demux_unit_)
 {
   timers_db  = timers_; 
   demux_unit = demux_unit_; 
   log_h = log_h_; 
   for (uint32_t i=0;i<NOF_HARQ_PROC+1;i++) {
-    if (!proc[i].init(cell, max_payload_len, this)) {
+    if (!proc[i].init(i, this)) {
       return false; 
     }
   }
@@ -68,39 +63,82 @@ void dl_harq_entity::start_pcap(mac_pcap* pcap_)
   pcap = pcap_; 
 }
 
-bool dl_harq_entity::is_sps(uint32_t pid)
-{
-  return false; 
-}                                                            
-void dl_harq_entity::set_harq_info(uint32_t pid, dl_sched_grant* grant)
-{
-  proc[pid%(NOF_HARQ_PROC+1)].set_harq_info(grant);
-}
-
-void dl_harq_entity::receive_data(uint32_t tti, uint32_t pid, dl_buffer* dl_buffer, phy* phy_h)
-{
-  proc[pid%(NOF_HARQ_PROC+1)].receive_data(tti, dl_buffer, phy_h);
-}
-
 void dl_harq_entity::reset()
 {
   for (uint32_t i=0;i<NOF_HARQ_PROC+1;i++) {
     proc[i].reset();
   }
+  dl_sps_assig.clear();
 }
 
-bool dl_harq_entity::is_ack_pending_resolution()
-{
-  return pending_ack_pid >= 0; 
+uint32_t dl_harq_entity::get_harq_sps_pid(uint32_t tti) {
+  /*
+  uint32_t nof_proc = ((uint32_t) params_db->get_param(mac_interface_params::SPS_DL_NOF_PROC));
+  return tti/params_db.get_param(mac_interface_params::SPS_DL_SCHED_INTERVAL)%nof_proc;
+  */
 }
 
-void dl_harq_entity::send_pending_ack_contention_resolution()
+void dl_harq_entity::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action)
 {
-  if (is_ack_pending_resolution()) {
-    proc[pending_ack_pid].send_pending_ack_contention_resolution();
-    pending_ack_pid = -1; 
+  
+  // If PDCCH for C-RNTI and RA procedure in Contention Resolution, notify it
+  if (grant.rnti_type == SRSLTE_RNTI_USER) {
+    Warning("Not implemented ra_procedure_crnti\n");
+      //ra_procedure.pdcch_to_crnti(false);
+  }
+  if (grant.rnti_type != SRSLTE_RNTI_SPS) {
+    uint32_t harq_pid; 
+    // Set BCCH PID for SI RNTI 
+    if (grant.rnti_type == SRSLTE_RNTI_SI) {
+      harq_pid = HARQ_BCCH_PID; 
+    } else {
+      harq_pid = grant.pid%NOF_HARQ_PROC; 
+    }
+    if (grant.rnti_type == SRSLTE_RNTI_TEMP && last_temporal_crnti != grant.rnti) {
+      grant.ndi = true;
+      Info("Set NDI=1 for Temp-RNTI DL grant\n");
+      last_temporal_crnti = grant.rnti;
+    }
+    if (grant.rnti_type == SRSLTE_RNTI_USER && proc[harq_pid].is_sps()) {
+      grant.ndi = true;
+      Info("Set NDI=1 for C-RNTI DL grant\n");
+    }
+    proc[harq_pid].new_grant_dl(grant, action);
+  } else {
+    /* This is for SPS scheduling */
+    uint32_t harq_pid = get_harq_sps_pid(grant.tti)%NOF_HARQ_PROC; 
+    if (grant.ndi) {
+      grant.ndi = false; 
+      proc[harq_pid].new_grant_dl(grant, action);
+    } else {
+      if (grant.is_sps_release) {
+        dl_sps_assig.clear();
+        if (timers_db->get(mac::TIME_ALIGNMENT)->is_running()) {
+          //phy_h->send_sps_ack();
+          Warning("PHY Send SPS ACK not implemented\n");
+        }
+      } else {
+        Error("SPS not implemented\n");
+        //dl_sps_assig.reset(grant.tti, grant);
+        //grant.ndi = true;
+        //procs[harq_pid].save_grant();
+      }
+    }
   }
 }
+
+void dl_harq_entity::tb_decoded_ok(uint32_t harq_pid)
+{
+  proc[harq_pid%NOF_HARQ_PROC].tb_decoded_ok();
+}
+
+bool dl_harq_entity::generate_ack_callback(void *arg)
+{
+  demux *demux_unit = (demux*) arg;
+  return demux_unit->is_contention_resolution_id_pending();
+}
+
+
 
   /***********************************************************
   * 
@@ -108,149 +146,157 @@ void dl_harq_entity::send_pending_ack_contention_resolution()
   * 
   *********************************************************/
           
-dl_harq_entity::dl_harq_process::dl_harq_process() : cur_grant(0),pending_ack_grant(0) {
+dl_harq_entity::dl_harq_process::dl_harq_process() {
   is_initiated = false; 
   ack = false; 
-  bzero(&cur_grant, sizeof(srslte::ue::dl_sched_grant));
-  payload = NULL; 
-  max_payload_len = 0; 
+  bzero(&cur_grant, sizeof(mac_interface_phy::mac_grant_t));
 }  
   
 void dl_harq_entity::dl_harq_process::reset() {
   ack = false; 
-  bzero(&cur_grant, sizeof(srslte::ue::dl_sched_grant));
+  payload_buffer_ptr = NULL; 
+  bzero(&cur_grant, sizeof(mac_interface_phy::mac_grant_t));
   if (is_initiated) {
     srslte_softbuffer_rx_reset(&softbuffer);
   }
 }
 
-void dl_harq_entity::dl_harq_process::send_pending_ack_contention_resolution()
-{
-  if (pending_ul_buffer) {
-    pending_ul_buffer->generate_ack(pending_ack, &pending_ack_grant);                      
-  }
+bool dl_harq_entity::dl_harq_process::init(uint32_t pid_, dl_harq_entity *parent) {
+  if (srslte_softbuffer_rx_init(&softbuffer, 100)) {
+    Error("Error initiating soft buffer\n");
+    return false; 
+  } else {
+    pid = pid_;
+    is_initiated = true; 
+    harq_entity = parent; 
+    log_h = harq_entity->log_h; 
+    return true;
+  }     
 }
 
-void dl_harq_entity::dl_harq_process::receive_data(uint32_t tti, srslte::ue::dl_buffer *dl_buffer, phy *phy_h)
+bool dl_harq_entity::dl_harq_process::is_sps()
 {
-  pending_ul_buffer = NULL; 
+  return false; 
+}                                                            
+
+bool dl_harq_entity::dl_harq_process::is_new_transmission(mac_interface_phy::mac_grant_t grant) {
+  bool is_new_transmission; 
   
-  if (payload) {
-    if (cur_grant.get_tbs() <= max_payload_len) {
-      
-      // If data has not yet been successfully decoded
-      if (ack == false) {
-        
-        // Combine the received data and attempt to decode it
-        if (dl_buffer->decode_data(&cur_grant, &softbuffer, payload)) {
-          ack = true; 
-        } else {
-          ack = false; 
-        }
-
-        Info("DL PID %d: TBS=%d, RV=%d, MCS=%d, crc=%s\n", pid, cur_grant.get_tbs(), cur_grant.get_rv(), cur_grant.get_mcs(), ack?"OK":"NOK");
-
-        if (pid == HARQ_BCCH_PID) {
-          if (ack) {
-            Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.get_tbs()/8);
-            harq_entity->demux_unit->push_pdu_bcch(payload, cur_grant.get_tbs());        
-          }
-          if (harq_entity->pcap) {
-            harq_entity->pcap->write_dl_sirnti(payload, cur_grant.get_tbs()/8, ack, tti);
-          }
-        } else {
-          if (ack) {
-            if (cur_grant.is_temp_rnti()) {
-              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
-                    cur_grant.get_tbs()/8);
-              harq_entity->demux_unit->push_pdu_temp_crnti(payload, cur_grant.get_tbs());
-            } else {
-              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.get_tbs()/8);
-              harq_entity->demux_unit->push_pdu(payload, cur_grant.get_tbs());
-            }
-          }
-          if (harq_entity->pcap) {
-            harq_entity->pcap->write_dl_crnti(payload, cur_grant.get_tbs()/8, cur_grant.get_rnti(), ack, tti);            
-          }
-        }
-      } else {
-        Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
-      }
-      if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(mac::TIME_ALIGNMENT)->is_expired()) {
-        // Do not generate ACK
-        Debug("Not generating ACK\n");
-      } else {
-        if (cur_grant.is_temp_rnti()) {
-          // Postpone ACK after contention resolution is resolved
-          pending_ack       = ack; 
-          pending_ul_buffer = phy_h->get_ul_buffer(tti+4);
-          harq_entity->pending_ack_pid = pid; 
-          memcpy(&pending_ack_grant, &cur_grant, sizeof(dl_sched_grant));
-          Debug("ACK pending contention resolution\n");
-        } else {
-          Debug("Generating ACK\n");
-          // Generate ACK
-          srslte::ue::ul_buffer *ul_buffer = phy_h->get_ul_buffer(tti+4); 
-          ul_buffer->generate_ack(ack, &cur_grant);                      
-        }
-      }
-    } else {
-      fprintf(stderr, "Error with DL grant. TBS (%d) exceeds payload buffer length (%d)\n", cur_grant.get_tbs(), max_payload_len);
-    }          
-  }
-}
-// Implement 5.3.2.2 
-void dl_harq_entity::dl_harq_process::set_harq_info(srslte::ue::dl_sched_grant* new_grant)    {
-  bool is_new_transmission = false; 
-
   bool is_new_tb = true; 
-  if (srslte_tti_interval(new_grant->get_tti(), cur_grant.get_tti()) <= 8 && 
-      new_grant->get_tbs() == cur_grant.get_tbs())
-  {
+  if (srslte_tti_interval(grant.tti, cur_grant.tti) <= 8 && grant.n_bytes == cur_grant.n_bytes) {
     is_new_tb = false; 
   }
   
-  if ((new_grant->get_ndi() != cur_grant.get_ndi() && !is_new_tb) || // NDI toggled for same TB
-      is_new_tb                                                   || // is new TB
-      (pid == HARQ_BCCH_PID && new_grant->get_rv() == 0))            // Broadcast PID and 1st TX (RV=0)
+  if ((grant.ndi != cur_grant.ndi && !is_new_tb) || // NDI toggled for same TB
+      is_new_tb                                  || // is new TB
+      (pid == HARQ_BCCH_PID && grant.rv == 0))      // Broadcast PID and 1st TX (RV=0)
   {
     is_new_transmission = true; 
     Debug("Set HARQ Info for new transmission\n");
   } else {
     if (!is_new_tb) {
-      Info("old_tbs=%d, new_tbs=%d, old_tti=%d new_tti=%d\n", cur_grant.get_tbs(), new_grant->get_tbs(), 
-           cur_grant.get_tti(), new_grant->get_tti());
+      Info("old_tbs=%d, new_tbs=%d, old_tti=%d new_tti=%d\n", cur_grant.n_bytes, grant.n_bytes, cur_grant.tti, grant.tti);
     }
     is_new_transmission = false; 
     Debug("Set HARQ Info for retransmission\n");
   }
 
-  Info("DL PID %d: %s RV=%d, NDI=%d, LastNDI=%d, DCI %s\n", pid, is_new_transmission?"new TX":"reTX", new_grant->get_rv(), 
-         new_grant->get_ndi(), cur_grant.get_ndi(), new_grant->get_dciformat_string());   
+  Info("DL PID %d: %s RV=%d, NDI=%d, LastNDI=%d\n", pid, is_new_transmission?"new TX":"reTX", grant.rv, 
+         grant.ndi, cur_grant.ndi);   
   
-  if (is_new_transmission) {
+  return is_new_transmission;
+}
+
+void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action)
+{
+
+  if (is_new_transmission(grant)) {
     ack = false; 
     srslte_softbuffer_rx_reset(&softbuffer);
   }
-  if (new_grant->get_tbs() <= max_payload_len) {
-    memcpy(&cur_grant, new_grant, sizeof(srslte::ue::dl_sched_grant));        
+  
+  // Save grant 
+  memcpy(&cur_grant, &grant, sizeof(mac_interface_phy::mac_grant_t)); 
+  action->default_ack = ack; 
+  action->generate_ack = true; 
+
+  // If data has not yet been successfully decoded
+  if (ack == false) {
+    
+    // Instruct the PHY To combine the received data and attempt to decode it
+    action->decode_enabled = true;     
+    action->rv = cur_grant.rv; 
+    action->rnti = cur_grant.rnti; 
+    action->softbuffer = &softbuffer;     
+    payload_buffer_ptr = harq_entity->demux_unit->request_buffer(cur_grant.n_bytes);
+    action->payload_ptr = payload_buffer_ptr;
+    if (!action->payload_ptr) {
+      action->decode_enabled = false; 
+      Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes);
+      return;       
+    }
+    memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(mac_interface_phy::mac_grant_t));
+    
+    Info("DL PID %d: TBS=%d, RV=%d, crc=%s\n", pid, cur_grant.n_bytes, cur_grant.rv, ack?"OK":"NOK");
+
   } else {
-    Error("Error with DL grant. TBS (%d) exceeds payload buffer length (%d)\n", new_grant->get_tbs(), max_payload_len);
+    Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
+  }
+    
+  if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(mac::TIME_ALIGNMENT)->is_expired()) {
+    // Do not generate ACK
+    Debug("Not generating ACK\n");
+    action->generate_ack = false; 
+    
+    if (pid == HARQ_BCCH_PID) {
+      // Compute RV
+      uint32_t k; 
+      if (grant.tti%10 == 5) { // This is SIB1, k is different
+        k = (grant.tti/20)%4; 
+      } else {      
+        k = (grant.tti/10)%4; 
+      }
+      action->rv = ((uint32_t) ceilf((float)1.5*k))%4;
+    }
+  } else {
+    if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
+      // Postpone ACK after contention resolution is resolved
+      action->generate_ack_callback = harq_entity->generate_ack_callback; 
+      action->generate_ack_callback_arg = harq_entity->demux_unit;
+      Debug("ACK pending contention resolution\n");
+    } else {
+      Debug("Generating ACK\n");
+    }
+  }  
+}
+
+void dl_harq_entity::dl_harq_process::tb_decoded_ok()
+{
+  ack = true;   
+  if (pid == HARQ_BCCH_PID) {
+    if (harq_entity->pcap) {
+      harq_entity->pcap->write_dl_sirnti(payload_buffer_ptr, cur_grant.n_bytes, ack, cur_grant.tti);
+    }
+    if (ack) {
+      Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.n_bytes);
+      harq_entity->demux_unit->release_pdu_bcch(payload_buffer_ptr, cur_grant.n_bytes);
+    }
+  } else {
+    if (harq_entity->pcap) {
+      harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes, cur_grant.rnti, ack, cur_grant.tti);            
+    }
+    if (ack) {
+      if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
+        Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n", cur_grant.n_bytes);
+        harq_entity->demux_unit->release_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes);
+      } else {
+        Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes);
+        harq_entity->demux_unit->release_pdu(payload_buffer_ptr, cur_grant.n_bytes);
+      }
+    }
   }
 }
-bool dl_harq_entity::dl_harq_process::init(srslte_cell_t cell, uint32_t max_payload_len_, dl_harq_entity *parent) {
-  max_payload_len = max_payload_len_; 
-  if (srslte_softbuffer_rx_init(&softbuffer, cell)) {
-    Error("Error initiating soft buffer\n");
-    return false; 
-  } else {
-    is_initiated = true; 
-    harq_entity = parent; 
-    log_h = harq_entity->log_h; 
-    payload = (uint8_t*)  srslte_vec_malloc(sizeof(uint8_t) * max_payload_len);
-    return payload?true:false;
-  }     
-}
+
 
     
 }

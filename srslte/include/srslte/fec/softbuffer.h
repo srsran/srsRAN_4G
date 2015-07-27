@@ -53,14 +53,14 @@ typedef struct SRSLTE_API {
 } srslte_softbuffer_tx_t;
 
 SRSLTE_API int  srslte_softbuffer_rx_init(srslte_softbuffer_rx_t * q,
-                                          srslte_cell_t cell);
+                                          uint32_t nof_prb);
 
 SRSLTE_API void srslte_softbuffer_rx_reset(srslte_softbuffer_rx_t *p); 
 
 SRSLTE_API void srslte_softbuffer_rx_free(srslte_softbuffer_rx_t *p);
 
 SRSLTE_API int  srslte_softbuffer_tx_init(srslte_softbuffer_tx_t * q,
-                                          srslte_cell_t cell);
+                                          uint32_t nof_prb);
 
 SRSLTE_API void srslte_softbuffer_tx_reset(srslte_softbuffer_tx_t *p); 
 

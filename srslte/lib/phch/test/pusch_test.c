@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   }
 
   gettimeofday(&t[1], NULL);
-  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+  if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
