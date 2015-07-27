@@ -58,7 +58,6 @@ public:
 
   bool     msg3_get(uint8_t *payload, uint32_t pdu_sz);
   void     msg3_flush();
-  void     msg3_transmitted(); 
   bool     msg3_is_transmitted();
   
   void     append_crnti_ce_next_tx(uint16_t crnti); 

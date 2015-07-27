@@ -44,10 +44,11 @@ dl_harq_entity::dl_harq_entity()
 {
   pcap = NULL; 
 }
-bool dl_harq_entity::init(log* log_h_, timers* timers_, demux *demux_unit_)
+bool dl_harq_entity::init(log* log_h_, mac_params *params_db_, timers* timers_, demux *demux_unit_)
 {
   timers_db  = timers_; 
   demux_unit = demux_unit_; 
+  params_db  = params_db_; 
   log_h = log_h_; 
   for (uint32_t i=0;i<NOF_HARQ_PROC+1;i++) {
     if (!proc[i].init(i, this)) {
@@ -81,11 +82,6 @@ uint32_t dl_harq_entity::get_harq_sps_pid(uint32_t tti) {
 void dl_harq_entity::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action)
 {
   
-  // If PDCCH for C-RNTI and RA procedure in Contention Resolution, notify it
-  if (grant.rnti_type == SRSLTE_RNTI_USER) {
-    Warning("Not implemented ra_procedure_crnti\n");
-      //ra_procedure.pdcch_to_crnti(false);
-  }
   if (grant.rnti_type != SRSLTE_RNTI_SPS) {
     uint32_t harq_pid; 
     // Set BCCH PID for SI RNTI 
@@ -127,9 +123,13 @@ void dl_harq_entity::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_inte
   }
 }
 
-void dl_harq_entity::tb_decoded_ok(uint32_t harq_pid)
+void dl_harq_entity::tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
 {
-  proc[harq_pid%NOF_HARQ_PROC].tb_decoded_ok();
+  if (rnti_type == SRSLTE_RNTI_SI) {
+    proc[NOF_HARQ_PROC].tb_decoded(ack);    
+  } else {
+    proc[harq_pid%NOF_HARQ_PROC].tb_decoded(ack);
+  }
 }
 
 bool dl_harq_entity::generate_ack_callback(void *arg)
@@ -192,13 +192,10 @@ bool dl_harq_entity::dl_harq_process::is_new_transmission(mac_interface_phy::mac
       (pid == HARQ_BCCH_PID && grant.rv == 0))      // Broadcast PID and 1st TX (RV=0)
   {
     is_new_transmission = true; 
-    Debug("Set HARQ Info for new transmission\n");
+    Debug("Set HARQ for new transmission\n");
   } else {
-    if (!is_new_tb) {
-      Info("old_tbs=%d, new_tbs=%d, old_tti=%d new_tti=%d\n", cur_grant.n_bytes, grant.n_bytes, cur_grant.tti, grant.tti);
-    }
     is_new_transmission = false; 
-    Debug("Set HARQ Info for retransmission\n");
+    Debug("Set HARQ for retransmission\n");
   }
 
   Info("DL PID %d: %s RV=%d, NDI=%d, LastNDI=%d\n", pid, is_new_transmission?"new TX":"reTX", grant.rv, 
@@ -209,7 +206,18 @@ bool dl_harq_entity::dl_harq_process::is_new_transmission(mac_interface_phy::mac
 
 void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action)
 {
-
+  if (pid == HARQ_BCCH_PID) {
+    // Compute RV
+    uint32_t k; 
+    if (grant.tti%10 == 5) { // This is SIB1, k is different
+      k = (grant.tti/20)%4; 
+    } else {      
+      uint32_t nw = harq_entity->params_db->get_param(mac_interface_params::BCCH_SI_WINDOW_LEN);
+      k = (grant.tti%nw)%4; 
+    }
+    grant.rv = ((uint32_t) ceilf((float)1.5*k))%4;
+  }
+  
   if (is_new_transmission(grant)) {
     ack = false; 
     srslte_softbuffer_rx_reset(&softbuffer);
@@ -235,10 +243,9 @@ void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_
       Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes);
       return;       
     }
-    memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(mac_interface_phy::mac_grant_t));
     
-    Info("DL PID %d: TBS=%d, RV=%d, crc=%s\n", pid, cur_grant.n_bytes, cur_grant.rv, ack?"OK":"NOK");
-
+    memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(srslte_phy_grant_t));
+    
   } else {
     Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
   }
@@ -246,18 +253,7 @@ void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_
   if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(mac::TIME_ALIGNMENT)->is_expired()) {
     // Do not generate ACK
     Debug("Not generating ACK\n");
-    action->generate_ack = false; 
-    
-    if (pid == HARQ_BCCH_PID) {
-      // Compute RV
-      uint32_t k; 
-      if (grant.tti%10 == 5) { // This is SIB1, k is different
-        k = (grant.tti/20)%4; 
-      } else {      
-        k = (grant.tti/10)%4; 
-      }
-      action->rv = ((uint32_t) ceilf((float)1.5*k))%4;
-    }
+    action->generate_ack = false;    
   } else {
     if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
       // Postpone ACK after contention resolution is resolved
@@ -267,34 +263,37 @@ void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_
     } else {
       Debug("Generating ACK\n");
     }
-  }  
+  }
 }
 
-void dl_harq_entity::dl_harq_process::tb_decoded_ok()
+void dl_harq_entity::dl_harq_process::tb_decoded(bool ack_)
 {
-  ack = true;   
-  if (pid == HARQ_BCCH_PID) {
-    if (harq_entity->pcap) {
-      harq_entity->pcap->write_dl_sirnti(payload_buffer_ptr, cur_grant.n_bytes, ack, cur_grant.tti);
-    }
-    if (ack) {
-      Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.n_bytes);
-      harq_entity->demux_unit->release_pdu_bcch(payload_buffer_ptr, cur_grant.n_bytes);
-    }
-  } else {
-    if (harq_entity->pcap) {
-      harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes, cur_grant.rnti, ack, cur_grant.tti);            
-    }
-    if (ack) {
-      if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
-        Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n", cur_grant.n_bytes);
-        harq_entity->demux_unit->release_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes);
-      } else {
-        Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes);
-        harq_entity->demux_unit->release_pdu(payload_buffer_ptr, cur_grant.n_bytes);
+  ack = ack_;
+  if (ack == true) {
+    if (pid == HARQ_BCCH_PID) {
+      if (harq_entity->pcap) {
+        harq_entity->pcap->write_dl_sirnti(payload_buffer_ptr, cur_grant.n_bytes, ack, cur_grant.tti);
+      }
+      if (ack) {
+        Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.n_bytes);
+        harq_entity->demux_unit->release_pdu_bcch(payload_buffer_ptr, cur_grant.n_bytes);
+      }
+    } else {
+      if (harq_entity->pcap) {
+        harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes, cur_grant.rnti, ack, cur_grant.tti);            
+      }
+      if (ack) {
+        if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
+          Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n", cur_grant.n_bytes);
+          harq_entity->demux_unit->release_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes);
+        } else {
+          Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes);
+          harq_entity->demux_unit->release_pdu(payload_buffer_ptr, cur_grant.n_bytes);
+        }
       }
     }
   }
+  Info("DL PID %d: TBS=%d, RV=%d, ACK=%s\n", pid, cur_grant.n_bytes, cur_grant.rv, ack?"OK":"KO");
 }
 
 

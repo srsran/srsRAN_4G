@@ -292,7 +292,7 @@ bool bsr_proc::generate_bsr_on_ul_grant(uint32_t nof_padding_bytes, bsr_t *bsr)
     }
     generate_bsr(bsr, nof_padding_bytes);
     ret = true; 
-    Info("Sending BSR type %s, format %s, nof_padding_bytes=%d\n", 
+    Info("Including BSR type %s, format %s, nof_padding_bytes=%d\n", 
            bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format), nof_padding_bytes);
     
     if (timer_periodic && bsr->format != TRUNC_BSR) {

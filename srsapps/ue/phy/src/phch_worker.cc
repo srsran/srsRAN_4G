@@ -131,6 +131,7 @@ void phch_worker::work_imp()
   reset_uci();
 
   bool ul_grant_available = false; 
+  bool dl_ack = false; 
   
   mac_interface_phy::mac_grant_t    dl_mac_grant;
   mac_interface_phy::tb_action_dl_t dl_action; 
@@ -153,10 +154,9 @@ void phch_worker::work_imp()
       phy->mac->new_grant_dl(dl_mac_grant, &dl_action);
       
       /* Decode PDSCH if instructed to do so */
-      bool dl_ack = dl_action.default_ack; 
+      dl_ack = dl_action.default_ack; 
       if (dl_action.decode_enabled) {
         dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr, dl_action.softbuffer, dl_action.rv, dl_action.rnti);      
-        phy->mac->tb_decoded_ok(dl_mac_grant.pid);
       }
       if (dl_action.generate_ack_callback) {
         dl_action.generate_ack = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
@@ -212,7 +212,10 @@ void phch_worker::work_imp()
   } 
   
   phy->worker_end(tti, tx_signal, signal_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb), tx_time);
-  
+
+  if (dl_action.decode_enabled) {
+    phy->mac->tb_decoded(dl_ack, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+  }
 }
 
 
@@ -280,6 +283,7 @@ bool phch_worker::decode_pdcch_dl(srslte::ue::mac_interface_phy::mac_grant_t* gr
     grant->tti = tti; 
     grant->rv  = dci_unpacked.rv_idx;
     grant->rnti = dl_rnti; 
+    grant->rnti_type = type; 
     
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
@@ -359,6 +363,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
       Error("Converting RAR message to UL grant\n");
       return false; 
     } 
+    grant->rnti_type = SRSLTE_RNTI_TEMP;
     grant->is_from_rar = true; 
     Info("RAR grant found for TTI=%d\n", tti);
     rar_cqi_request = rar_grant.cqi_request;    
@@ -378,6 +383,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
         Error("Converting DCI message to UL grant\n");
         return false;   
       }
+      grant->rnti_type = type; 
       grant->is_from_rar = false; 
       ret = true; 
       Info("PDCCH: UL DCI Format0 cce_index=%d, n_data_bits=%d\n", ue_dl.last_n_cce, dci_msg.nof_bits);

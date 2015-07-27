@@ -112,11 +112,11 @@ bool sch_pdu::write_packet(uint8_t* ptr, rlc_interface_mac *rlc)
   // Find last SDU or CE 
   int last_sh;
   int last_sdu = nof_subheaders-1; 
-  while(!subheaders[last_sdu].is_sdu() && last_sdu >= 0) {
+  while(!subheaders[last_sdu].is_sdu() && last_sdu > 0) {
     last_sdu--;
   }
   int last_ce = nof_subheaders-1; 
-  while(subheaders[last_ce].is_sdu() && last_ce >= 0) {
+  while(subheaders[last_ce].is_sdu() && last_ce > 0) {
     last_ce--;
   }
   last_sh = subheaders[last_sdu].is_sdu()?last_sdu:last_ce;  
@@ -236,7 +236,6 @@ void sch_subh::init()
   lcid            = 0; 
   nof_bytes       = 0; 
   payload         = NULL;
-  bzero(payload, sizeof(uint8_t) * MAX_CE_PAYLOAD_LEN);
 }
 
 sch_subh::cetype sch_subh::ce_type()
@@ -450,20 +449,24 @@ void sch_subh::write_subheader(uint8_t** ptr, bool is_last)
 {
   if (is_sdu()) {
     // MAC SDU: R/R/E/LCID/F/L subheader
-    *(*ptr + 0)   = (uint8_t) is_last<<5 | (lcid & 0x1f);
-
+    *(*ptr)   = (uint8_t) !is_last<<5 | (lcid & 0x1f);
+    *ptr += 1;
     // 2nd and 3rd octet
     if (!is_last) {
       if (nof_bytes >= 128) {
-        *(*ptr + 1) = (uint8_t) 1<<7 | ((nof_bytes & 0x7f00) >> 8);
-        *(*ptr + 2) = (uint8_t) (nof_bytes & 0xff);
+        *(*ptr) = (uint8_t) 1<<7 | ((nof_bytes & 0x7f00) >> 8);
+        *ptr += 1;
+        *(*ptr) = (uint8_t) (nof_bytes & 0xff);
+        *ptr += 1;
       } else {
-       *(*ptr + 1) = (uint8_t) (nof_bytes & 0x7f); 
+       *(*ptr) = (uint8_t) (nof_bytes & 0x7f); 
+       *ptr += 1;
      }      
     }
   } else {
     // MAC CE: R/R/E/LCID MAC Subheader
-    *(*ptr + 0)   = (uint8_t) is_last<<5 | (lcid & 0x1f);
+    *(*ptr)   = (uint8_t) is_last<<5 | (lcid & 0x1f);
+    *ptr += 1;
   }
 }
 
@@ -482,14 +485,17 @@ void sch_subh::write_payload(uint8_t** ptr, rlc_interface_mac *rlc)
 bool sch_subh::read_subheader(uint8_t** ptr)
 {
   // Skip R
-  bool e_bit    = (bool)    *(*ptr + 0) & 0x20;
-  lcid          = (uint8_t) *(*ptr + 0) & 0x1f;
+  bool e_bit    = (bool)    *(*ptr) & 0x20;
+  lcid          = (uint8_t) *(*ptr) & 0x1f;
+  *ptr += 1;
   if (is_sdu()) {
     if (e_bit) {
-      F_bit     = (bool)    *(*ptr + 1) & 0x80;
-      nof_bytes = (uint32_t)*(*ptr + 1) & 0x7f;
+      F_bit     = (bool)    *(*ptr) & 0x80;
+      nof_bytes = (uint32_t)*(*ptr) & 0x7f;
+      *ptr += 1;
       if (F_bit) {
-        nof_bytes = nof_bytes<<8 | (uint32_t) *(*ptr + 2) & 0xff;
+        nof_bytes = nof_bytes<<8 | (uint32_t) *(*ptr) & 0xff;
+        *ptr += 1;
       }
     } else {
       nof_bytes = 0; 
@@ -640,6 +646,7 @@ void rar_subh::set_temp_crnti(uint16_t temp_rnti_)
 void rar_subh::write_subheader(uint8_t** ptr, bool is_last)
 {
   *(*ptr + 0) = (uint8_t) (is_last<<7 | 1<<6 | preamble & 0x3f);
+  *ptr += 1;
 }
 // Section 6.2.3
 void rar_subh::write_payload(uint8_t** ptr, rlc_interface_mac *rlc)
@@ -651,11 +658,13 @@ void rar_subh::write_payload(uint8_t** ptr, rlc_interface_mac *rlc)
   *(*ptr + 3) = (uint8_t) srslte_bit_unpack(&x, 8);
   *(*ptr + 4) = (uint8_t) ((temp_rnti&0xff00) >> 8);
   *(*ptr + 5) = (uint8_t)  (temp_rnti&0x00ff);
+  *ptr += 6;
 }
 
 void rar_subh::read_payload(uint8_t** ptr)
 {
-  ta = *(*ptr + 0)&0x7f << 4 | (*(*ptr + 1)&0xf0)>>4;
+  ta = ((uint32_t) *(*ptr + 0)&0x7f)<<4 | (*(*ptr + 1)&0xf0)>>4;
+  printf("ta=%d, 0x%x\n", ta, ta);
   grant[0] = *(*ptr + 1)&0x8;
   grant[1] = *(*ptr + 1)&0x4;
   grant[2] = *(*ptr + 1)&0x2;
@@ -663,18 +672,20 @@ void rar_subh::read_payload(uint8_t** ptr)
   uint8_t *x = &grant[4];
   srslte_bit_pack(*(*ptr+2), &x, 8);
   srslte_bit_pack(*(*ptr+3), &x, 8);
-  temp_rnti = *(*ptr + 4)<<8 | *(*ptr + 5);    
+  temp_rnti = ((uint16_t) *(*ptr + 4))<<8 | *(*ptr + 5);    
+  *ptr += 6;
 }
 
 bool rar_subh::read_subheader(uint8_t** ptr)
 {
-  bool e_bit = *(*ptr + 0) & 0x80;
-  bool type  = *(*ptr + 0) & 0x40;
+  bool e_bit = *(*ptr) & 0x80;
+  bool type  = *(*ptr) & 0x40;
   if (type) {
-    preamble = *(*ptr + 0) & 0x3f;
+    preamble = *(*ptr) & 0x3f;
   } else {
-    ((rar_pdu*)parent)->set_backoff(*(*ptr + 0) & 0xf);
+    ((rar_pdu*)parent)->set_backoff(*(*ptr) & 0xf);
   }
+  *ptr += 1; 
   return e_bit;
 }
 

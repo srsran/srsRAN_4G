@@ -123,8 +123,10 @@ public:
     }
   }
   
-  void tb_decoded_ok(uint32_t harq_pid) {
-    total_oks++;     
+  void tb_decoded(bool ack, srslte_rnti_type_t rnti, uint32_t harq_pid) {
+    if (ack) {
+      total_oks++;     
+    }
   }
 
   void bch_decoded_ok(uint8_t *payload, uint32_t len) {

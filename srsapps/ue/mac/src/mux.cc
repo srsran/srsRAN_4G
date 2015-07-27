@@ -154,7 +154,7 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   bool is_first = true; 
   if (!allocate_sdu(0, &pdu_msg, &is_first)) {
     if (pending_crnti_ce) {
-      if (pdu_msg.new_subh()) {http://moodycamel.com/blog/2014/detailed-design-of-a-lock-free-queue
+      if (pdu_msg.new_subh()) {
         pdu_msg.next();
         if (!pdu_msg.get()->set_c_rnti(pending_crnti_ce)) {
           Warning("Pending C-RNTI CE could not be inserted in MAC PDU\n");
@@ -164,6 +164,7 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   }
   pending_crnti_ce = 0; 
   
+#ifdef kk
   uint32_t bsr_payload_sz = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_msg.rem_size());
   bsr_proc::bsr_t bsr; 
   
@@ -189,7 +190,7 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   // data from any Logical Channel, except data from UL-CCCH;  
   // first only those with positive Bj
   uint32_t sdu_sz   = 0; 
-  for (int i=0;i<NOF_UL_LCH;i++) {
+  for (int i=0;i<1;i++) {
     uint32_t lcid = lchid_sorted[i];
     if (lcid != 0) {
       bool res = true; 
@@ -203,7 +204,7 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   }
 
   // If resources remain, allocate regardless of their Bj value
-  for (int i=0;i<NOF_UL_LCH;i++) {
+  for (int i=1;i<NOF_UL_LCH;i++) {
     while (allocate_sdu(lchid_sorted[i], &pdu_msg));   
   }
 
@@ -220,7 +221,8 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   if (bsr_subh) {
     bsr_subh->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format), bsr_payload_sz?false:true);    
   }
-
+#endif
+  pdu_msg.fprint(stdout);
   Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.size(), pdu_sz);
 
   pthread_mutex_unlock(&mutex);
@@ -254,11 +256,13 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
   uint32_t sdu_len = rlc->get_buffer_state(lcid); 
 
   if (sdu_len > 0) { // there is pending SDU to allocate
+    Debug("%d bytes pending on RLC buffer. Maximum rate=%d, available space=%d\n", 
+          sdu_len, max_sdu_sz, pdu_msg->rem_size() - 2);
     if (sdu_len > max_sdu_sz && max_sdu_sz >= 0) {
       sdu_len = max_sdu_sz;
     }
-    if (sdu_len > pdu_msg->rem_size() - pdu_msg->size_plus_header_sdu(sdu_len)) {
-      sdu_len = pdu_msg->rem_size() - pdu_msg->size_plus_header_sdu(sdu_len);
+    if (sdu_len > pdu_msg->rem_size() - 2) {
+      sdu_len = pdu_msg->rem_size() - 2;
     }
     if (pdu_msg->new_subh()) { // there is space for a new subheader
       pdu_msg->next();
@@ -284,11 +288,6 @@ void mux::msg3_flush()
 {
   msg3_buff.flush();
   msg3_has_been_transmitted = false; 
-}
-
-void mux::msg3_transmitted()
-{
-  msg3_has_been_transmitted = true; 
 }
 
 bool mux::msg3_is_transmitted()
@@ -321,6 +320,8 @@ bool mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
     if (msg3) {
       memcpy(payload, msg3, sizeof(uint8_t)*pdu_sz);
       msg3_buff.release();
+      msg3_has_been_transmitted = true; 
+      srslte_vec_fprint_byte(stdout, payload, pdu_sz);
       return true; 
     } else {
       Error("Generating Msg3\n");

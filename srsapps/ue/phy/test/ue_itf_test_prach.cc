@@ -279,29 +279,31 @@ public:
     }
   }
   
-  void tb_decoded_ok(uint32_t harq_pid) {
-    if (last_grant.rnti == 2) {
-      my_phy.pdcch_dl_search_reset();
-      srslte_bit_pack_vector(payload, payload_bits, last_grant.n_bytes*8);
-      rar_unpack(payload_bits, &rar_msg);
-      if (rar_msg.RAPID == preamble_idx) {
+  void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid) {
+    if (ack) {
+      if (rnti_type == SRSLTE_RNTI_RAR) {
+        my_phy.pdcch_dl_search_reset();
+        srslte_bit_pack_vector(payload, payload_bits, last_grant.n_bytes*8);
+        rar_unpack(payload_bits, &rar_msg);
+        if (rar_msg.RAPID == preamble_idx) {
 
-        printf("Received RAR at TTI: %d\n", last_grant.tti);
-        my_phy.set_timeadv_rar(rar_msg.timing_adv_cmd);
-        
-        temp_c_rnti = rar_msg.temp_c_rnti; 
-        
-        if (last_grant.n_bytes*8 > 20 + SRSLTE_RAR_GRANT_LEN) {
-          uint8_t rar_grant[SRSLTE_RAR_GRANT_LEN];
-          memcpy(rar_grant, &payload_bits[20], sizeof(uint8_t)*SRSLTE_RAR_GRANT_LEN);
-          my_phy.set_rar_grant(last_grant.tti, rar_grant);          
+          printf("Received RAR at TTI: %d\n", last_grant.tti);
+          my_phy.set_timeadv_rar(rar_msg.timing_adv_cmd);
+          
+          temp_c_rnti = rar_msg.temp_c_rnti; 
+          
+          if (last_grant.n_bytes*8 > 20 + SRSLTE_RAR_GRANT_LEN) {
+            uint8_t rar_grant[SRSLTE_RAR_GRANT_LEN];
+            memcpy(rar_grant, &payload_bits[20], sizeof(uint8_t)*SRSLTE_RAR_GRANT_LEN);
+            my_phy.set_rar_grant(last_grant.tti, rar_grant);          
+          }
+        } else {
+          printf("Received RAR RAPID=%d\n", rar_msg.RAPID);        
         }
       } else {
-        printf("Received RAR RAPID=%d\n", rar_msg.RAPID);        
+        printf("Received Connection Setup\n");
+        my_phy.pdcch_dl_search_reset();
       }
-    } else {
-      printf("Received Connection Setup\n");
-      my_phy.pdcch_dl_search_reset();
     }
   }
 
@@ -336,7 +338,7 @@ int main(int argc, char *argv[])
     my_phy.init(&radio_uhd, &my_mac, &log);
   } else {
     radio_uhd.init_agc();
-    radio_uhd.set_tx_rx_gain_offset(0);
+    radio_uhd.set_tx_rx_gain_offset(10);
     my_phy.init_agc(&radio_uhd, &my_mac, &log);
   }
   

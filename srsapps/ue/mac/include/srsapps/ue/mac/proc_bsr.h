@@ -78,7 +78,7 @@ private:
   log        *log_h; 
   rlc_interface_mac *rlc;
   bool       initiated;
-  const static int MAX_LCID = 20; 
+  const static int MAX_LCID = 6; 
   int        lcg[MAX_LCID];
   uint32_t   last_pending_data[MAX_LCID];
   int        priorities[MAX_LCID]; 

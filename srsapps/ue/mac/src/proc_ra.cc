@@ -262,7 +262,7 @@ void ra_proc::tb_decoded_ok() {
   
   rar_pdu_msg.init(rar_grant_nbytes);
   rar_pdu_msg.parse_packet(rar_pdu_buffer);
-  
+  srslte_vec_fprint_byte(stdout, rar_pdu_buffer, rar_grant_nbytes);
   // Set Backoff parameter
   if (rar_pdu_msg.has_backoff()) {
     backoff_param_ms = backoff_table[rar_pdu_msg.get_backoff()%16];
@@ -273,7 +273,7 @@ void ra_proc::tb_decoded_ok() {
   while(rar_pdu_msg.next()) {
     if (rar_pdu_msg.get()->get_rapid() == sel_preamble) {
       rInfo("Received RAPID=%d\n", sel_preamble);
-
+      rar_pdu_msg.fprint(stdout);
       process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
       
       // FIXME: Indicate received target power
@@ -281,6 +281,8 @@ void ra_proc::tb_decoded_ok() {
 
       uint8_t grant[rar_subh::RAR_GRANT_LEN];
       rar_pdu_msg.get()->get_sched_grant(grant);
+
+      phy_h->pdcch_dl_search_reset();
       
       phy_h->set_rar_grant(rar_grant_tti, grant);          
       
@@ -290,6 +292,7 @@ void ra_proc::tb_decoded_ok() {
       } else {
         // Preamble selected by UE MAC 
         params_db->set_param(mac_interface_params::RNTI_TEMP, rar_pdu_msg.get()->get_temp_crnti());
+        
         if (first_rar_received) {
           first_rar_received = false; 
           
@@ -341,6 +344,7 @@ void ra_proc::step_response_error() {
     } else {
       rInfo("Transmitting inmediatly (%d/%d)\n", preambleTransmissionCounter, preambleTransMax);
       state = RESOURCE_SELECTION;
+      exit(-1);
     }
   }
 }

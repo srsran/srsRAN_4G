@@ -62,7 +62,7 @@ public:
   void new_grant_ul_ack(mac_grant_t grant, uint8_t *payload_ptr, bool ack, tb_action_ul_t *action);
   void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action);
   void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action);
-  void tb_decoded_ok(uint32_t harq_pid);
+  void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid);
   void bch_decoded_ok(uint8_t *payload, uint32_t len);  
   void tti_clock(uint32_t tti);
 
@@ -120,8 +120,6 @@ private:
   dl_harq_entity dl_harq; 
   ul_harq_entity ul_harq; 
   
-  int si_window_start, si_window_length; 
- 
   /* MAC Uplink-related Procedures */
   ra_proc       ra_procedure;
   sr_proc       sr_procedure; 
@@ -135,6 +133,9 @@ private:
 
   // pointer to MAC PCAP object
   mac_pcap* pcap;
+  bool si_search_in_progress;
+  int si_window_length;
+  int si_window_start;
   
 };
 

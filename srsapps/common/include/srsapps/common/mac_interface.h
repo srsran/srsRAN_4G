@@ -100,7 +100,7 @@ public:
   virtual void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) = 0;
   
   /* Indicate successfull decoding of PDSCH TB. */
-  virtual void tb_decoded_ok(uint32_t harq_pid) = 0;
+  virtual void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid) = 0;
   
   /* Indicate successfull decoding of BCH TB through PBCH */
   virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;  

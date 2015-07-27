@@ -52,12 +52,12 @@ public:
   const static uint32_t HARQ_BCCH_PID = NOF_HARQ_PROC; 
   
   dl_harq_entity();
-  bool init(log *log_h_, timers *timers_, demux *demux_unit);
+  bool init(log *log_h_, mac_params *params_db, timers *timers_, demux *demux_unit);
   
   
   /***************** PHY->MAC interface for DL processes **************************/
   void new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t *action);
-  void tb_decoded_ok(uint32_t harq_pid);
+  void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid);
  
   
   void reset();
@@ -74,7 +74,7 @@ private:
     bool is_sps(); 
     bool is_new_transmission(mac_interface_phy::mac_grant_t grant); 
     void new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t *action);
-    void tb_decoded_ok();   
+    void tb_decoded(bool ack);   
     
   private: 
     
@@ -98,6 +98,7 @@ private:
   
   dl_harq_process  proc[NOF_HARQ_PROC+1];
   timers          *timers_db; 
+  mac_params      *params_db; 
   demux           *demux_unit; 
   log             *log_h; 
   mac_pcap        *pcap; 

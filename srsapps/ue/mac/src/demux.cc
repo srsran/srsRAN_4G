@@ -103,11 +103,11 @@ uint8_t* demux::request_buffer(uint32_t len)
   }
   pthread_mutex_lock(&mutex); 
   uint8_t idx;
-  while(find_unused_queue(&idx)) {
+  while(!find_unused_queue(&idx)) {
     pthread_cond_wait(&cvar, &mutex);  
   }
   if (idx > 0) {
-    Debug("Using queue %d for MAC PDU\n");
+    Debug("Using queue %d for MAC PDU\n", idx);
   }
   used_q[idx] = true; 
   uint8_t *buff = (uint8_t*) pdu_q[idx].request();

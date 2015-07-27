@@ -123,6 +123,7 @@ void phch_recv::free_cell()
 bool phch_recv::cell_search(int force_N_id_2) 
 {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
+  uint8_t bch_payload_bits[SRSLTE_BCH_PAYLOAD_LEN/8];
   
   srslte_ue_cellsearch_result_t found_cells[3];
   srslte_ue_cellsearch_t        cs; 
@@ -201,7 +202,9 @@ bool phch_recv::cell_search(int force_N_id_2)
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, &cell, NULL);
     srslte_cell_fprint(stdout, &cell, 0);
-    mac->bch_decoded_ok(bch_payload, SRSLTE_BCH_PAYLOAD_LEN);
+    //FIXME: this is temporal
+    srslte_bit_unpack_vector(bch_payload, bch_payload_bits, SRSLTE_BCH_PAYLOAD_LEN);
+    mac->bch_decoded_ok(bch_payload_bits, SRSLTE_BCH_PAYLOAD_LEN/8);
     return true;     
   } else {
     Warning("Error decoding MIB: Error decoding PBCH\n");      

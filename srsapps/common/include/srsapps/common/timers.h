@@ -27,6 +27,7 @@
 
 
 #include <stdint.h>
+#include <vector>
 
 
 #ifndef TIMERS_H
@@ -82,15 +83,11 @@ public:
     bool running; 
   };
   
-  timers(uint32_t nof_timers_) {
+  timers(uint32_t nof_timers_) : timer_list(nof_timers_) {
     nof_timers = nof_timers_; 
-    timer_list = new timer[nof_timers];
     for (uint32_t i=0;i<nof_timers;i++) {
       timer_list[i].id = i; 
     }
-  }
- ~timers() {
-   delete timer_list; 
   }
   
   void step_all() {
@@ -123,7 +120,7 @@ public:
   }
 private:
   uint32_t nof_timers; 
-  timer   *timer_list;   
+  std::vector<timer>   timer_list;   
 };
 }
   
