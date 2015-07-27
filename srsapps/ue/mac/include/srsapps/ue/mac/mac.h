@@ -49,7 +49,7 @@
 namespace srslte {
 namespace ue {
   
-class mac : public thread, timer_callback, mac_interface_phy, mac_interface_rlc, mac_interface_params
+class mac : public mac_interface_phy, mac_interface_rlc, thread, timer_callback, mac_interface_params
 {
 public:
   mac();

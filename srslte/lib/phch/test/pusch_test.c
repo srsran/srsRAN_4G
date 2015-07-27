@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   srslte_dci_msg_pack_pusch(&dci, &dci_msg, cell.nof_prb);
 
   srslte_ra_ul_grant_t grant; 
-  if (srslte_dci_msg_to_ul_grant(&dci_msg, cell.nof_prb, 0, NULL, &grant)) {
+  if (srslte_dci_msg_to_ul_grant(&dci_msg, cell.nof_prb, 0, &dci, &grant)) {
     return false;   
   }
 

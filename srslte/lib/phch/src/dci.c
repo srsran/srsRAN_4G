@@ -168,6 +168,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
+      ul_dci            !=  NULL   &&
       grant             !=  NULL)
   {
     ret = SRSLTE_ERROR;
@@ -186,7 +187,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
     
     if (SRSLTE_VERBOSE_ISINFO()) {
       srslte_ra_pusch_fprint(stdout, ul_dci, nof_prb);
-      srslte_ra_ul_grant_fprint(stdout, grant);
+      srslte_ra_ul_grant_fprint(stdout, grant);     
     }
     
     ret = SRSLTE_SUCCESS;

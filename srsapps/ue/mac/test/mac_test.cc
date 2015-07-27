@@ -151,7 +151,6 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
                  sib2->rr_config_common_sib.pdsch_cnfg.p_b);
 
   // PUSCH ConfigCommon
-  phy->set_param(srslte::ue::phy_interface_params::PUSCH_BETA, 10);
   phy->set_param(srslte::ue::phy_interface_params::PUSCH_EN_64QAM, 
                  sib2->rr_config_common_sib.pusch_cnfg.enable_64_qam);
   phy->set_param(srslte::ue::phy_interface_params::PUSCH_HOPPING_OFFSET, 
@@ -176,7 +175,6 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
     sib2->rr_config_common_sib.pusch_cnfg.n_sb);
   
   // PUCCH ConfigCommon
-  phy->set_param(srslte::ue::phy_interface_params::PUCCH_BETA, 10);
   phy->set_param(srslte::ue::phy_interface_params::PUCCH_DELTA_SHIFT, 
                  liblte_rrc_delta_pucch_shift_num[sib2->rr_config_common_sib.pucch_cnfg.delta_pucch_shift]);
   phy->set_param(srslte::ue::phy_interface_params::PUCCH_CYCLIC_SHIFT, 
@@ -332,7 +330,7 @@ void sig_int_handler(int signo)
   exit(0);
 }
 
-class my_rlc : public srslte::ue::rlc_interface_mac {
+class rlctest : public srslte::ue::rlc_interface_mac {
 public:
   bool mib_decoded; 
   bool sib1_decoded; 
@@ -341,7 +339,7 @@ public:
   int nsegm_dcch; 
   uint8_t si_window_len, sib2_period; 
   
-  my_rlc() {
+  rlctest() {
     mib_decoded  = false; 
     sib1_decoded = false;
     sib2_decoded = false; 
@@ -388,7 +386,7 @@ public:
 
       // Send ConnectionRequest Packet
       printf("Send ConnectionRequest %d/%d bytes\n", nbytes, nof_bytes);
-      memcpy(payload, nbytes, nbytes*sizeof(uint8_t));
+      srslte_bit_pack_vector(bit_msg.msg, payload, nbytes*8);
       bzero(&payload[nbytes], (nof_bytes-nbytes)*sizeof(uint8_t));
     } else if (lcid == 1) {
       if (nsegm_dcch < 2) {
@@ -466,7 +464,7 @@ private:
 int main(int argc, char *argv[])
 {
   srslte::log_stdout mac_log("MAC"), phy_log("PHY"); 
-  
+  rlctest my_rlc;  
   parse_args(&prog_args, argc, argv);
   
   switch (prog_args.verbose) {
