@@ -257,6 +257,10 @@ static int encode_tb(srslte_sch_t *q,
 
         /* Turbo Encoding */
         srslte_tcod_encode(&q->encoder, q->cb_in, (uint8_t*) q->cb_out, cb_len);
+        if (SRSLTE_VERBOSE_ISDEBUG()) {
+          DEBUG("CB#%d encoded: ", i);
+          srslte_vec_fprint_b(stdout, q->cb_out, cb_len);
+        }
       }
       
       /* Rate matching */
@@ -273,7 +277,7 @@ static int encode_tb(srslte_sch_t *q,
       wp += n_e;
     }
     INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
-    
+   
     ret = SRSLTE_SUCCESS;      
   } 
   return ret; 

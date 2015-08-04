@@ -57,7 +57,7 @@ void sr_proc::step(uint32_t tti)
       if (params_db->get_param(mac_interface_params::SR_PUCCH_CONFIGURED)) {
         if (sr_counter < dsr_transmax) {
           int last_tx_tti = phy_h->sr_last_tx_tti(); 
-          if (last_tx_tti >= 0 && last_tx_tti + 4 < tti) {
+          if (last_tx_tti >= 0 && last_tx_tti + 4 < tti || sr_counter == 0) {
             sr_counter++;
             Info("SR signalling PHY. sr_counter=%d, PHY TTI=%d\n", sr_counter, phy_h->get_current_tti());
             phy_h->sr_send();

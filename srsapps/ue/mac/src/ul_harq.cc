@@ -85,12 +85,11 @@ void ul_harq_entity::set_ack(uint32_t tti, bool ack) {
 void ul_harq_entity::harq_recv(uint32_t tti, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
   set_ack(tti, ack);
-  run_tti(tti, NULL, NULL, action);
+  run_tti(tti, NULL, action);
 }
 
 // Implements Section 5.4.1 
-void ul_harq_entity::new_grant_ul(mac_interface_phy::mac_grant_t grant, uint8_t* payload_ptr, 
-                                  mac_interface_phy::tb_action_ul_t* action)
+void ul_harq_entity::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_ul_t* action)
 {
   if (grant.rnti_type == SRSLTE_RNTI_USER || 
       grant.rnti_type == SRSLTE_RNTI_TEMP ||
@@ -99,74 +98,32 @@ void ul_harq_entity::new_grant_ul(mac_interface_phy::mac_grant_t grant, uint8_t*
     if (grant.rnti_type == SRSLTE_RNTI_USER && proc[pidof(grant.tti)].is_sps()) {
       grant.ndi = true; 
     }
-    run_tti(grant.tti, &grant, payload_ptr, action);
+    run_tti(grant.tti, &grant, action);
   } else if (grant.rnti_type == SRSLTE_RNTI_SPS) {
     if (grant.ndi) {
       grant.ndi = proc[pidof(grant.tti)].get_ndi();
-      run_tti(grant.tti, &grant, payload_ptr, action);
+      run_tti(grant.tti, &grant, action);
     } else {
       Info("Not implemented\n");
     }
   }
 }
 
-void ul_harq_entity::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, uint8_t* payload_ptr, bool ack, 
-                                      mac_interface_phy::tb_action_ul_t* action)
+void ul_harq_entity::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
   set_ack(grant.tti, ack);
-  new_grant_ul(grant, payload_ptr, action);
+  new_grant_ul(grant, action);
 }
 
 
 
 // Implements Section 5.4.2.1
 // Called with UL grant
-void ul_harq_entity::run_tti(uint32_t tti, mac_interface_phy::mac_grant_t *grant, uint8_t* payload_ptr, 
-                             mac_interface_phy::tb_action_ul_t* action)
+void ul_harq_entity::run_tti(uint32_t tti, mac_interface_phy::mac_grant_t *grant, mac_interface_phy::tb_action_ul_t* action)
 {
-
   uint32_t tti_tx = (tti+4)%10240;
-  uint32_t pid = pidof(tti_tx); 
-  
-  // Receive and route HARQ feedbacks
-  if (grant) {
-    if ((!grant->rnti_type == SRSLTE_RNTI_TEMP && grant->ndi != proc[pid].get_ndi()) || 
-        (grant->rnti_type == SRSLTE_RNTI_USER && !proc[pid].has_grant())             ||
-         grant->is_from_rar) 
-    {          
-      // New transmission
-
-      // Uplink grant in a RAR
-      if (grant->is_from_rar) {
-        if (mux_unit->msg3_get(payload_ptr, grant->n_bytes)) {
-          proc[pid].generate_new_tx(tti_tx, true, grant, action);
-        } else {
-          Warning("UL RAR grant available but no Msg3 on buffer\n");
-        }
-              
-      // Normal UL grant
-      } else {
-        // Request a MAC PDU from the Multiplexing & Assemble Unit
-        if (mux_unit->pdu_get(payload_ptr, grant->n_bytes)) {            
-          proc[pid].generate_new_tx(tti_tx, false, grant, action);          
-        } else {
-          Warning("Uplink grant but no MAC PDU in Multiplex Unit buffer\n");
-        }
-      }
-    } else {
-      // Adaptive Re-TX 
-      proc[pid].generate_retx(tti_tx, grant, action);
-    }        
-  } else if (proc[pid].has_grant()) {
-    // Non-Adaptive Re-Tx
-    proc[pid].generate_retx(tti_tx, action);
-  }
-  if (pcap) {
-    pcap->write_ul_crnti(payload_ptr, grant->n_bytes, grant->rnti, proc[pid].get_nof_retx(), tti_tx);
-  }
-
+  proc[pidof(tti_tx)].run_tti(tti_tx, grant, action);
 }
-
 
 
 /***********************************************************
@@ -236,8 +193,57 @@ bool ul_harq_entity::ul_harq_process::init(uint32_t pid_, ul_harq_entity* parent
     harq_entity = parent; 
     log_h = harq_entity->log_h;
     pid = pid_;
+    payload_buffer = (uint8_t*) srslte_vec_malloc(payload_buffer_len*sizeof(uint8_t));
+    if (!payload_buffer) {
+      Error("Allocating memory\n");
+      return false; 
+    }
+    pdu_ptr = payload_buffer;
     return true; 
   }     
+}
+
+void ul_harq_entity::ul_harq_process::run_tti(uint32_t tti_tx, mac_interface_phy::mac_grant_t* grant, mac_interface_phy::tb_action_ul_t* action)
+{   
+  // Receive and route HARQ feedbacks
+  if (grant) {
+    if ((!grant->rnti_type == SRSLTE_RNTI_TEMP && grant->ndi != get_ndi()) || 
+        (grant->rnti_type == SRSLTE_RNTI_USER && !has_grant())             ||
+         grant->is_from_rar) 
+    {          
+      // New transmission
+
+      // Uplink grant in a RAR
+      if (grant->is_from_rar) {
+        pdu_ptr  = harq_entity->mux_unit->msg3_get(payload_buffer, grant->n_bytes);
+        if (pdu_ptr) {
+          generate_new_tx(tti_tx, true, grant, action);
+        } else {
+          Warning("UL RAR grant available but no Msg3 on buffer\n");
+        }
+              
+      // Normal UL grant
+      } else {
+        // Request a MAC PDU from the Multiplexing & Assemble Unit
+        pdu_ptr = harq_entity->mux_unit->pdu_get(payload_buffer, grant->n_bytes);
+        if (pdu_ptr) {            
+          generate_new_tx(tti_tx, false, grant, action);          
+        } else {
+          Warning("Uplink grant but no MAC PDU in Multiplex Unit buffer\n");
+        }
+      }
+    } else {
+      // Adaptive Re-TX 
+      generate_retx(tti_tx, grant, action);
+    }        
+  } else if (has_grant()) {
+    // Non-Adaptive Re-Tx
+    generate_retx(tti_tx, action);
+  }
+  if (harq_entity->pcap) {
+    harq_entity->pcap->write_ul_crnti(pdu_ptr, grant->n_bytes, grant->rnti, get_nof_retx(), tti_tx);
+  }
+
 }
 
 void ul_harq_entity::ul_harq_process::generate_retx(uint32_t tti_tx, mac_interface_phy::tb_action_ul_t *action)
@@ -300,6 +306,7 @@ void ul_harq_entity::ul_harq_process::generate_tx(uint32_t tti_tx, mac_interface
   action->rv = get_rv();
   action->softbuffer = &softbuffer; 
   action->tx_enabled = true; 
+  action->payload_ptr = pdu_ptr; 
   memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(srslte_phy_grant_t));
   
   current_irv = (current_irv+1)%4;  

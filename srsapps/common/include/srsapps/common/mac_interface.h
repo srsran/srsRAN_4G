@@ -84,14 +84,15 @@ public:
     uint32_t                current_tx_nb;
     srslte_softbuffer_tx_t *softbuffer;
     srslte_phy_grant_t      phy_grant;
+    uint8_t                *payload_ptr; 
   } tb_action_ul_t;
   
   /* Indicate reception of UL grant. 
    * payload_ptr points to memory where MAC PDU must be written by MAC layer */
-  virtual void new_grant_ul(mac_grant_t grant, uint8_t *payload_ptr, tb_action_ul_t *action) = 0;
+  virtual void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action) = 0;
 
   /* Indicate reception of UL grant + HARQ information throught PHICH in the same TTI. */
-  virtual void new_grant_ul_ack(mac_grant_t grant, uint8_t *payload_ptr, bool ack, tb_action_ul_t *action) = 0;
+  virtual void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action) = 0;
 
   /* Indicate reception of HARQ information only through PHICH.   */
   virtual void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action) = 0;
@@ -134,9 +135,11 @@ public:
   /* MAC calls RLC to get buffer state for a logical channel. This function should return quickly */
   virtual uint32_t get_buffer_state(uint32_t lcid) = 0;
   
+  const static int MAX_PDU_SEGMENTS = 20; 
+  
   /* MAC calls RLC to get RLC segment of nof_bytes length. Segmentation happens in this function. RLC PDU is stored in 
    * payload. */
-  virtual uint32_t read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
+  virtual uint32_t read_pdu(uint32_t lcid, uint8_t *payload, uint32_t segment_idx) = 0;
 
   /* MAC calls RLC to push an RLC PDU. This function is called from an independent MAC thread. PDU gets placed into the 
    * PDCP buffer and higher layer thread gets notified 

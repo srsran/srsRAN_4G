@@ -173,7 +173,6 @@ void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len) {
     
   // Normalize before TX 
   srslte_vec_sc_prod_cfc(x, amplitude/max, y, len);
-
 }
 
 void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {

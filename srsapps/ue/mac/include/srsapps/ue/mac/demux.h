@@ -56,17 +56,16 @@ public:
   void     release_pdu_bcch(uint8_t *buff, uint32_t nof_bytes);
   void     release_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes);
 
-  bool     is_temp_crnti_pending();
-  bool     is_contention_resolution_id_pending(); 
-  void     demultiplex_pending_pdu();
-  void     discard_pending_pdu();
-
-  uint64_t get_contention_resolution_id();
+  void     set_uecrid_callback(bool (*callback)(void*, uint64_t), void *arg);
+  bool     get_uecrid_successful();
   
 private:
   const static int NOF_PDU_Q   = 3; // prevents threads from being locked
   const static int MAX_PDU_LEN = 128*1024; 
 
+  bool (*uecrid_callback) (void*, uint64_t);
+  void *uecrid_callback_arg; 
+  
   sch_pdu mac_msg;
   sch_pdu pending_mac_msg;
   
@@ -77,10 +76,8 @@ private:
   bool find_nonempty_queue(uint8_t *idx);
   void push_buffer(uint8_t *buff, uint32_t nof_bytes);
 
-  uint64_t   contention_resolution_id; 
-  bool       pending_temp_rnti;
-  bool       has_pending_contention_resolution_id; 
-   
+  bool       is_uecrid_successful; 
+  
   typedef struct {
     uint8_t idx; 
     uint8_t dummy[15]; // FIXME: This it to keep 128-bit alignment

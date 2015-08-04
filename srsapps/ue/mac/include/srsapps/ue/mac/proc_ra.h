@@ -69,10 +69,11 @@ class ra_proc : public proc,timer_callback
     void new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t* action);
     void tb_decoded_ok();
     
-    void* run_prach_thread(); 
     void start_pcap(mac_pcap* pcap);
 private: 
-      
+    static bool uecrid_callback(void *arg, uint64_t uecri);
+    
+    bool contention_resolution_id_received(uint64_t uecri);
     void process_timeadv_cmd(uint32_t ta_cmd); 
     void step_initialization();
     void step_resource_selection();

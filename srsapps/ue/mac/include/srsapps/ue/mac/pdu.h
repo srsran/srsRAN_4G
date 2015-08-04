@@ -72,21 +72,15 @@ public:
     rem_len = pdu_len;
   }
 
-  /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
-  void init(uint32_t pdu_len_bytes) {
-    init(pdu_len_bytes, false);
+  void init_rx(uint8_t *payload, uint32_t pdu_len_bytes, bool is_ulsch = false) {
+    init_(NULL, pdu_len_bytes, is_ulsch);
+    parse_packet(payload);
   }
-  void init(uint32_t pdu_len_bytes, bool is_ulsch) {
-    nof_subheaders = 0; 
-    pdu_len        = pdu_len_bytes; 
-    rem_len        = pdu_len; 
-    pdu_is_ul      = is_ulsch; 
-    reset();
-    for (int i=0;i<max_subheaders;i++) {
-      subheaders[i].init();
-    }
+
+  void init_tx(uint8_t *payload, uint32_t pdu_len_bytes, bool is_ulsch = false) {
+    init_(payload, pdu_len_bytes, is_ulsch);
   }
-  
+
   uint32_t nof_subh() {
     return nof_subheaders;
   }
@@ -124,6 +118,30 @@ public:
     }
   }
   
+  bool is_ul() {
+    return pdu_is_ul;
+  }
+  
+  uint8_t* get_current_sdu_ptr() {
+    return &buffer_tx[total_sdu_len+sdu_offset_start];    
+  }
+  
+  void add_sdu(uint32_t sdu_sz) {
+    total_sdu_len += sdu_sz; 
+  }
+
+protected:  
+  std::vector<SubH> subheaders;
+  uint32_t   pdu_len; 
+  uint32_t   rem_len; 
+  int        cur_idx;
+  int        nof_subheaders; 
+  uint32_t   max_subheaders; 
+  bool       pdu_is_ul;
+  uint8_t*   buffer_tx; 
+  uint32_t   total_sdu_len; 
+  uint32_t   sdu_offset_start; 
+
   // Section 6.1.2
   void parse_packet(uint8_t *ptr) {
     uint8_t *init_ptr = ptr; 
@@ -136,20 +154,23 @@ public:
       subheaders[i].read_payload(&ptr);
     }
   }
-  bool is_ul() {
-    return pdu_is_ul;
+  
+private: 
+  
+  /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
+  void init_(uint8_t *buffer_tx_ptr, uint32_t pdu_len_bytes, bool is_ulsch) {
+    nof_subheaders = 0; 
+    pdu_len        = pdu_len_bytes; 
+    rem_len        = pdu_len; 
+    pdu_is_ul      = is_ulsch; 
+    buffer_tx      = buffer_tx_ptr; 
+    sdu_offset_start = max_subheaders*2 + 13; // Assuming worst-case 2 bytes per sdu subheader + all possible CE
+    total_sdu_len = 0; 
+    reset();
+    for (int i=0;i<max_subheaders;i++) {
+      subheaders[i].init();
+    }
   }
-
-  virtual bool write_packet(uint8_t *ptr, rlc_interface_mac *rlc) = 0;
-
-protected:  
-  std::vector<SubH> subheaders;
-  uint32_t   pdu_len; 
-  uint32_t   rem_len; 
-  int        cur_idx;
-  int        nof_subheaders; 
-  uint32_t   max_subheaders; 
-  bool       pdu_is_ul;
 };
 
 template<class SubH>
@@ -160,7 +181,7 @@ public:
   virtual bool read_subheader(uint8_t** ptr)                        = 0;
   virtual void read_payload(uint8_t **ptr)                          = 0;    
   virtual void write_subheader(uint8_t** ptr, bool is_last)         = 0;
-  virtual void write_payload(uint8_t **ptr, rlc_interface_mac *rlc) = 0;
+  virtual void write_payload(uint8_t **ptr)                         = 0;
   virtual void fprint(FILE *stream)                                 = 0;
 
   pdu<SubH>* parent; 
@@ -177,7 +198,7 @@ class sch_subh : public subh<sch_subh>
 public: 
   
   typedef enum {
-    PHD_REPORT = 26,
+    PHR_REPORT = 26,
     C_RNTI     = 27,
     CON_RES_ID = 28,
     TRUNC_BSR  = 28,
@@ -204,18 +225,18 @@ public:
   uint16_t get_c_rnti();
   uint64_t get_con_res_id();
   uint8_t  get_ta_cmd();
-  uint8_t  get_phd();
+  uint8_t  get_phr();
   
   // Writing functions
   void     write_subheader(uint8_t** ptr, bool is_last);
-  void     write_payload(uint8_t **ptr, rlc_interface_mac *rlc);
-  bool     set_sdu(uint32_t lcid, uint32_t nof_bytes);
-  bool     set_sdu(uint32_t lcid, uint32_t nof_bytes, bool is_first);
+  void     write_payload(uint8_t **ptr);
+  bool     set_sdu(uint32_t lcid, uint32_t requested_bytes, rlc_interface_mac *rlc);
+  bool     set_sdu(uint32_t lcid, uint32_t requested_bytes, rlc_interface_mac *rlc, bool is_first);
   bool     set_c_rnti(uint16_t crnti);
   bool     set_bsr(uint32_t buff_size[4], sch_subh::cetype format, bool update_size);
   bool     set_con_res_id(uint64_t con_res_id);
   bool     set_ta_cmd(uint8_t ta_cmd);
-  bool     set_phd(uint8_t phd);
+  bool     set_phr(uint8_t phr);
   void     set_padding();
   void     set_padding(uint32_t padding_len);
 
@@ -240,7 +261,7 @@ public:
   sch_pdu(uint32_t max_rars) : pdu(max_rars) {}
 
   void      parse_packet(uint8_t *ptr);
-  bool      write_packet(uint8_t *ptr, rlc_interface_mac *rlc);
+  uint8_t*  write_packet();
   bool      has_space_ce(uint32_t nbytes);  
   bool      has_space_sdu(uint32_t nbytes);  
   bool      has_space_sdu(uint32_t nbytes, bool is_first);  
@@ -270,7 +291,7 @@ public:
   
   // Writing functoins
   void     write_subheader(uint8_t** ptr, bool is_last);
-  void     write_payload(uint8_t** ptr, rlc_interface_mac *rlc);
+  void     write_payload(uint8_t** ptr);
   void     set_rapid(uint32_t rapid);
   void     set_ta_cmd(uint32_t ta);
   void     set_temp_crnti(uint16_t temp_rnti);
@@ -296,7 +317,7 @@ public:
   bool     has_backoff();
   uint8_t  get_backoff();
   
-  bool     write_packet(uint8_t* ptr, rlc_interface_mac *rlc);
+  bool     write_packet(uint8_t* ptr);
   void     fprint(FILE *stream);
 
 private: 

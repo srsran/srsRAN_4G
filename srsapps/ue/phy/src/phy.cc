@@ -213,6 +213,7 @@ uint32_t phy::get_current_tti()
 void phy::sr_send()
 {
   workers_common.sr_enabled = true;
+  workers_common.sr_last_tx_tti = -1;
 }
 
 int phy::sr_last_tx_tti()

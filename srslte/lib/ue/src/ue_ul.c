@@ -425,6 +425,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
                                              q->pusch_cfg.grant.n_prb_tilde, 
                                              q->sf_symbols);
     } else {
+   
       if (srslte_refsignal_dmrs_pusch_gen(&q->signals, q->pusch_cfg.grant.L_prb, 
                                           q->pusch_cfg.sf_idx,
                                           q->pusch_cfg.grant.ncs_dmrs,
@@ -438,7 +439,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
                                       q->pusch_cfg.grant.n_prb_tilde, 
                                       q->sf_symbols);                      
     }
-
+    
     if (srslte_ue_ul_srs_tx_enabled(&q->signals.srs_cfg, q->pusch_cfg.tti)) {
       if (q->signals_pregenerated) {
         srslte_refsignal_srs_pregen_put(&q->signals, &q->pregen_srs, q->pusch_cfg.tti, q->sf_symbols);

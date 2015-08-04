@@ -54,9 +54,9 @@ public:
   bool     is_pending_any_sdu();
   bool     is_pending_sdu(uint32_t lcid); 
   
-  bool     pdu_get(uint8_t *payload, uint32_t pdu_sz);
-
-  bool     msg3_get(uint8_t *payload, uint32_t pdu_sz);
+  uint8_t* pdu_get(uint8_t *payload, uint32_t pdu_sz);
+  uint8_t* msg3_get(uint8_t* payload, uint32_t pdu_sz);
+  
   void     msg3_flush();
   bool     msg3_is_transmitted();
   
@@ -71,6 +71,8 @@ private:
   bool     allocate_sdu(uint32_t lcid, sch_pdu *pdu, int max_sdu_sz, uint32_t *sdu_sz, bool *is_first);
   
   const static int NOF_UL_LCH = 10; 
+  const static int MIN_RLC_SDU_LEN = 0; 
+  const static int MAX_NOF_SUBHEADERS = 20; 
   
   int64_t       Bj[NOF_UL_LCH];
   int           PBR[NOF_UL_LCH]; // -1 sets to infinity
@@ -94,6 +96,7 @@ private:
   /* PDU Buffer */
   sch_pdu               pdu_msg; 
   bool msg3_has_been_transmitted;
+  bool phr_included;
   
 };
 }

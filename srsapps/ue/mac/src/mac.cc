@@ -44,6 +44,7 @@ mac::mac() : ttisync(10240), timers_db((uint32_t) NOF_MAC_TIMERS)
   si_search_in_progress = false; 
   si_window_length = -1; 
   si_window_start  = -1; 
+  signals_pregenerated = false; 
 }
   
 bool mac::init(phy_interface *phy, rlc_interface_mac *rlc, log *log_h_)
@@ -116,6 +117,8 @@ void mac::reset()
   phy_h->pdcch_dl_search_reset();
   phy_h->pdcch_ul_search_reset();
   
+  signals_pregenerated = false; 
+  
   params_db.set_param(mac_interface_params::BCCH_SI_WINDOW_ST, -1);
   params_db.set_param(mac_interface_params::BCCH_SI_WINDOW_LEN, -1);
 }
@@ -134,10 +137,10 @@ void mac::run_thread() {
   while(started) {
 
     /* Warning: Here order of invocation of procedures is important!! */
-    tti = ttisync.wait();
+    tti = (ttisync.wait() + 1)%10240;
     
     log_h->step(tti);
-    
+      
     search_si_rnti();
     
     // Step all procedures 
@@ -170,6 +173,22 @@ void mac::run_thread() {
     
     ra_procedure.step(tti);
     //phr_procedure.step(tti);
+
+    // FIXME: Do here DTX and look for UL grants only when needed
+    if (ra_procedure.is_successful() && !signals_pregenerated) {
+      // Configure PHY to look for UL C-RNTI grants
+      uint16_t crnti = params_db.get_param(mac_interface_params::RNTI_C);
+      phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, crnti);
+      phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, crnti);
+      
+      // Pregenerate UL signals and C-RNTI scrambling sequences
+      Info("Pre-generating UL signals and C-RNTI scrambling sequences\n");
+      ((phy*) phy_h)->enable_pregen_signals(true);
+      ((phy*) phy_h)->set_crnti(crnti);
+      phy_h->configure_ul_params();
+      Info("Done\n");
+      signals_pregenerated = true; 
+    }
     
     timers_db.step_all();
     
@@ -246,21 +265,19 @@ uint32_t mac::get_current_tti()
   return phy_h->get_current_tti();
 }
 
-void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, uint8_t* payload_ptr,
-                       mac_interface_phy::tb_action_ul_t* action)
+void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_ul_t* action)
 {
   if (grant.rnti_type == SRSLTE_RNTI_USER) {
     if (ra_procedure.is_contention_resolution()) {
       ra_procedure.pdcch_to_crnti(true);
     }
   }
-  ul_harq.new_grant_ul(grant, payload_ptr, action);
+  ul_harq.new_grant_ul(grant, action);
 }
 
-void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, uint8_t* payload_ptr, bool ack, 
-                           mac_interface_phy::tb_action_ul_t* action)
+void mac::new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t* action)
 {
-  ul_harq.new_grant_ul_ack(grant, payload_ptr, ack, action);
+  ul_harq.new_grant_ul_ack(grant, ack, action);
 }
 
 void mac::tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid)

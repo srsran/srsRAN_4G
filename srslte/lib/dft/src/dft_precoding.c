@@ -55,12 +55,12 @@ int srslte_dft_precoding_init(srslte_dft_precoding_t *q, uint32_t max_prb)
           fprintf(stderr, "Error: Creating DFT plan %d\n",i);
           goto clean_exit;
         }
-        srslte_dft_plan_set_norm(&q->dft_plan[i], false);
+        srslte_dft_plan_set_norm(&q->dft_plan[i], true);
         if (srslte_dft_plan_c(&q->idft_plan[i], i*SRSLTE_NRE, SRSLTE_DFT_BACKWARD)) {
           fprintf(stderr, "Error: Creating DFT plan %d\n",i);
           goto clean_exit;
         }
-        srslte_dft_plan_set_norm(&q->idft_plan[i], false);
+        srslte_dft_plan_set_norm(&q->idft_plan[i], true);
       }
     }
     q->max_prb = max_prb;

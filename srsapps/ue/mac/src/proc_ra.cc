@@ -260,9 +260,8 @@ void ra_proc::tb_decoded_ok() {
   
   rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
   
-  rar_pdu_msg.init(rar_grant_nbytes);
-  rar_pdu_msg.parse_packet(rar_pdu_buffer);
-  srslte_vec_fprint_byte(stdout, rar_pdu_buffer, rar_grant_nbytes);
+  rar_pdu_msg.init_rx(rar_pdu_buffer, rar_grant_nbytes);
+
   // Set Backoff parameter
   if (rar_pdu_msg.has_backoff()) {
     backoff_param_ms = backoff_table[rar_pdu_msg.get_backoff()%16];
@@ -273,7 +272,7 @@ void ra_proc::tb_decoded_ok() {
   while(rar_pdu_msg.next()) {
     if (rar_pdu_msg.get()->get_rapid() == sel_preamble) {
       rInfo("Received RAPID=%d\n", sel_preamble);
-      rar_pdu_msg.fprint(stdout);
+
       process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
       
       // FIXME: Indicate received target power
@@ -292,6 +291,7 @@ void ra_proc::tb_decoded_ok() {
       } else {
         // Preamble selected by UE MAC 
         params_db->set_param(mac_interface_params::RNTI_TEMP, rar_pdu_msg.get()->get_temp_crnti());
+        phy_h->pdcch_dl_search(SRSLTE_RNTI_TEMP, rar_pdu_msg.get()->get_temp_crnti());
         
         if (first_rar_received) {
           first_rar_received = false; 
@@ -299,14 +299,13 @@ void ra_proc::tb_decoded_ok() {
           // Save transmitted C-RNTI (if any) 
           transmitted_crnti = params_db->get_param(mac_interface_params::RNTI_C);
           
-          // Save transmitted UE contention id, as defined by higher layers 
-          transmitted_contention_id = params_db->get_param(mac_interface_params::CONTENTION_ID);
-          params_db->set_param(mac_interface_params::CONTENTION_ID, 0);                        
-
           // If we have a C-RNTI, tell Mux unit to append C-RNTI CE if no CCCH SDU transmission
           if (transmitted_crnti) {
             mux_unit->append_crnti_ce_next_tx(transmitted_crnti);
           }           
+          
+          // Tell demux to call us when a UE CRID is received
+          demux_unit->set_uecrid_callback(uecrid_callback, this);
         }                  
         rDebug("Going to Contention Resolution state\n");
         state = CONTENTION_RESOLUTION;
@@ -355,9 +354,52 @@ void ra_proc::step_backoff_wait() {
   }
 }
 
+bool ra_proc::uecrid_callback(void *arg, uint64_t uecri) {
+  return ((ra_proc*) arg)->contention_resolution_id_received(uecri);
+}
+
+// Random Access initiated by RRC by the transmission of CCCH SDU      
+bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id) {
+  bool uecri_successful = false; 
+  
+  rDebug("MAC PDU Contains Contention Resolution ID CE\n");
+  
+  // MAC PDU successfully decoded and contains MAC CE contention Id
+  timers_db->get(mac::CONTENTION_TIMER)->stop();
+  
+  if (transmitted_contention_id == rx_contention_id) 
+  {
+    rDebug("MAC PDU Contention Resolution ID matches the one transmitted in CCCH SDU\n");
+    // UE Contention Resolution ID included in MAC CE matches the CCCH SDU transmitted in Msg3
+    params_db->set_param(mac_interface_params::RNTI_C, params_db->get_param(mac_interface_params::RNTI_TEMP));
+    // finish the disassembly and demultiplexing of the MAC PDU
+    uecri_successful = true;
+    state = COMPLETION;                           
+  } else {
+    rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%lx != 0x%lx)\n", 
+          transmitted_contention_id, rx_contention_id);
+    // Discard MAC PDU 
+    uecri_successful = false;
+
+    // Contention Resolution not successfully is like RAR not successful 
+    // FIXME: Need to flush Msg3 HARQ buffer. Why? 
+    state = RESPONSE_ERROR; 
+  }  
+  params_db->set_param(mac_interface_params::RNTI_TEMP, 0);                
+  
+  return uecri_successful;
+}
+
 void ra_proc::step_contention_resolution() {
   // If Msg3 has been sent
-  if (mux_unit->msg3_is_transmitted()) {
+  if (mux_unit->msg3_is_transmitted()) 
+  {
+    // Save transmitted UE contention id, as defined by higher layers 
+    if (!transmitted_contention_id) {
+      transmitted_contention_id = params_db->get_param(mac_interface_params::CONTENTION_ID);
+      params_db->set_param(mac_interface_params::CONTENTION_ID, 0);                        
+    }
+    
     msg3_transmitted = true; 
     if (pdcch_to_crnti_received != PDCCH_CRNTI_NOT_RECEIVED) 
     {
@@ -370,36 +412,9 @@ void ra_proc::step_contention_resolution() {
         params_db->set_param(mac_interface_params::RNTI_TEMP, 0);
         state = COMPLETION;           
       }            
-      pdcch_to_crnti_received = PDCCH_CRNTI_NOT_RECEIVED;
-      
-    } else if (demux_unit->is_temp_crnti_pending()) 
-    {
-      rDebug("MAC PDU with Temporal C-RNTI has been decoded\n");
-      // Random Access initiated by RRC by the transmission of CCCH SDU      
-      if (demux_unit->is_contention_resolution_id_pending()) {
-        rDebug("MAC PDU Contains Contention Resolution ID CE\n");
-        // MAC PDU successfully decoded and contains MAC CE contention Id
-        uint64_t rx_contention_id = demux_unit->get_contention_resolution_id(); 
-        timers_db->get(mac::CONTENTION_TIMER)->stop();
-        if (transmitted_contention_id == rx_contention_id) {
-          rDebug("MAC PDU Contention Resolution ID matches the one transmitted in CCCH SDU\n");
-          // UE Contention Resolution ID included in MAC CE matches the CCCH SDU transmitted in Msg3
-          params_db->set_param(mac_interface_params::RNTI_C, params_db->get_param(mac_interface_params::RNTI_TEMP));
-          // finish the disassembly and demultiplexing of the MAC PDU
-          demux_unit->demultiplex_pending_pdu();
-          state = COMPLETION;                           
-        } else {
-          rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%lx != 0x%lx)\n", transmitted_contention_id, rx_contention_id);
-          // Discard MAC PDU 
-          demux_unit->discard_pending_pdu();
-
-          // Contention Resolution not successfully is like RAR not successful 
-          // FIXME: Need to flush Msg3 HARQ buffer. Why? 
-          state = RESPONSE_ERROR; 
-        }
-        params_db->set_param(mac_interface_params::RNTI_TEMP, 0);              
-      }
-    }  
+      pdcch_to_crnti_received = PDCCH_CRNTI_NOT_RECEIVED;      
+    }
+    // RA initiated by RLC order is resolved in contention_resolution_id_received() callback function
   } else {
     rDebug("Msg3 not yet transmitted\n");
   }
@@ -410,7 +425,7 @@ void ra_proc::step_completition() {
   params_db->set_param(mac_interface_params::RA_PREAMBLEINDEX, 0);
   params_db->set_param(mac_interface_params::RA_MASKINDEX, 0);
   mux_unit->msg3_flush();
-  msg3_transmitted = false; 
+  msg3_transmitted = false;  
 }
 
 void ra_proc::step(uint32_t tti_)

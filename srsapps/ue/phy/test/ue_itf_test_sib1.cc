@@ -95,10 +95,10 @@ srslte_softbuffer_rx_t softbuffer;
 class testmac : public srslte::ue::mac_interface_phy
 {
 public:
-  void new_grant_ul(mac_grant_t grant, uint8_t *payload_ptr, tb_action_ul_t *action) {
+  void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action) {
     printf("New grant UL\n");
   }
-  void new_grant_ul_ack(mac_grant_t grant, uint8_t *payload_ptr, bool ack, tb_action_ul_t *action) {
+  void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action) {
     printf("New grant UL ACK\n");    
   }
 

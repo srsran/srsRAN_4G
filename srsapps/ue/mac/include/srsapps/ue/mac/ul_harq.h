@@ -57,10 +57,8 @@ public:
 
   
   /***************** PHY->MAC interface for UL processes **************************/
-  void new_grant_ul(mac_interface_phy::mac_grant_t grant, uint8_t *payload_ptr, 
-                    mac_interface_phy::tb_action_ul_t *action);
-  void new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, uint8_t *payload_ptr, bool ack, 
-                        mac_interface_phy::tb_action_ul_t *action);
+  void new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_ul_t *action);
+  void new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t *action);
   void harq_recv(uint32_t tti, bool ack, mac_interface_phy::tb_action_ul_t *action);
 
     
@@ -73,12 +71,7 @@ private:
     void reset();
     void reset_ndi();
     
-    
-    void generate_retx(uint32_t tti_tx, mac_interface_phy::tb_action_ul_t *action); 
-    void generate_retx(uint32_t tti_tx, mac_interface_phy::mac_grant_t *grant, 
-                                        mac_interface_phy::tb_action_ul_t *action); 
-    void generate_new_tx(uint32_t tti_tx, bool is_msg3, mac_interface_phy::mac_grant_t *grant, 
-                         mac_interface_phy::tb_action_ul_t *action);
+    void run_tti(uint32_t tti, mac_interface_phy::mac_grant_t *grant, mac_interface_phy::tb_action_ul_t* action);
 
     uint32_t get_rv();
     bool has_grant();
@@ -105,12 +98,20 @@ private:
     bool                        is_initiated;    
     uint32_t                    tti_last_tx;
     
+    const static int payload_buffer_len = 128*1024; 
+    uint8_t *payload_buffer;
+    uint8_t *pdu_ptr; 
+    
+    void generate_retx(uint32_t tti_tx, mac_interface_phy::tb_action_ul_t *action); 
+    void generate_retx(uint32_t tti_tx, mac_interface_phy::mac_grant_t *grant, 
+                                        mac_interface_phy::tb_action_ul_t *action); 
+    void generate_new_tx(uint32_t tti_tx, bool is_msg3, mac_interface_phy::mac_grant_t *grant, 
+                         mac_interface_phy::tb_action_ul_t *action);
     void generate_tx(uint32_t tti_tx, mac_interface_phy::tb_action_ul_t *action);
   };
 
   
-  void run_tti(uint32_t tti, mac_interface_phy::mac_grant_t *grant, uint8_t* payload_ptr, 
-               mac_interface_phy::tb_action_ul_t* action);
+  void run_tti(uint32_t tti, mac_interface_phy::mac_grant_t *grant, mac_interface_phy::tb_action_ul_t* action);
   void set_ack(uint32_t tti, bool ack);
   
   ul_sps           ul_sps_assig;

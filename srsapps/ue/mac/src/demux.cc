@@ -34,9 +34,6 @@ namespace ue {
     
 demux::demux() : mac_msg(20), pending_mac_msg(20)
 {
-  contention_resolution_id = 0; 
-  pending_temp_rnti = false; 
-  has_pending_contention_resolution_id = false; 
   for (int i=0;i<NOF_PDU_Q;i++) {
     pdu_q[i].init(8, MAX_PDU_LEN);
     used_q[i] = false; 
@@ -54,21 +51,13 @@ void demux::init(phy_interface* phy_h_, rlc_interface_mac *rlc_, log* log_h_, ti
   timers_db = timers_db_;
 }
 
-bool demux::is_temp_crnti_pending()
-{
-  return pending_temp_rnti; 
+void demux::set_uecrid_callback(bool (*callback)(void*,uint64_t), void *arg) {
+  uecrid_callback     = callback;
+  uecrid_callback_arg = arg; 
 }
 
-bool demux::is_contention_resolution_id_pending() {
-  return has_pending_contention_resolution_id; 
-}
-
-uint64_t demux::get_contention_resolution_id()
-{
-  uint64_t x = contention_resolution_id; 
-  contention_resolution_id = 0; 
-  has_pending_contention_resolution_id = false; 
-  return x; 
+bool demux::get_uecrid_successful() {
+  return is_uecrid_successful;
 }
 
 bool demux::find_unused_queue(uint8_t *idx) {
@@ -85,10 +74,14 @@ bool demux::find_unused_queue(uint8_t *idx) {
 
 // Read packets from queues in round robin
 bool demux::find_nonempty_queue(uint8_t *idx) {
+  uint32_t start=0; 
+  if (idx) {
+    start = *idx; 
+  }
   for (uint8_t i=0;i<NOF_PDU_Q;i++) {
-    if (!pdu_q[(i+*idx)%NOF_PDU_Q].isempty()) {
+    if (!pdu_q[(i+start+1)%NOF_PDU_Q].isempty()) {
       if (idx) {
-        *idx = i; 
+        *idx = (i+start+1)%NOF_PDU_Q; 
       }
       return true; 
     }
@@ -102,17 +95,18 @@ uint8_t* demux::request_buffer(uint32_t len)
     return NULL; 
   }
   pthread_mutex_lock(&mutex); 
-  uint8_t idx;
+  uint8_t idx=0;
   while(!find_unused_queue(&idx)) {
     pthread_cond_wait(&cvar, &mutex);  
   }
   if (idx > 0) {
-    Debug("Using queue %d for MAC PDU\n", idx);
+    printf("Using queue %d for MAC PDU\n", idx);
   }
   used_q[idx] = true; 
   uint8_t *buff = (uint8_t*) pdu_q[idx].request();
   buff_header_t *head = (buff_header_t*) buff;
   head->idx = idx;   
+
   pthread_mutex_unlock(&mutex);
   
   return &buff[sizeof(buff_header_t)]; 
@@ -156,27 +150,21 @@ void demux::release_pdu_bcch(uint8_t *buff, uint32_t nof_bytes)
  */
 void demux::release_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes) 
 {
-  if (!pending_temp_rnti) {
-    // Unpack DLSCH MAC PDU 
-    pending_mac_msg.init(nof_bytes);
-    pending_mac_msg.parse_packet(buff);
-    //pending_mac_msg.fprint(stdout);
-    
-    // Look for Contention Resolution UE ID 
-    while(pending_mac_msg.next()) {
-      if (pending_mac_msg.get()->ce_type() == sch_subh::CON_RES_ID) {
-        contention_resolution_id = pending_mac_msg.get()->get_con_res_id();
-        has_pending_contention_resolution_id = true; 
-        Debug("Found Contention Resolution ID CE\n");
-      }
+  // Unpack DLSCH MAC PDU 
+  pending_mac_msg.init_rx(buff, nof_bytes);
+  
+  // Look for Contention Resolution UE ID 
+  is_uecrid_successful = false; 
+  while(pending_mac_msg.next() && !is_uecrid_successful) {
+    if (pending_mac_msg.get()->ce_type() == sch_subh::CON_RES_ID) {
+      Debug("Found Contention Resolution ID CE\n");
+      is_uecrid_successful = uecrid_callback(uecrid_callback_arg, pending_mac_msg.get()->get_con_res_id());
     }
-    pending_mac_msg.reset();
-    pending_temp_rnti = true; 
-    Debug("Saved MAC PDU with Temporal C-RNTI in buffer\n");
-    push_buffer(buff, 0);
-  } else {
-    Warning("Error pushing PDU with Temporal C-RNTI: Another PDU is still in pending\n");
   }
+  
+  pending_mac_msg.reset();
+  Debug("Saved MAC PDU with Temporal C-RNTI in buffer\n");
+  push_buffer(buff, nof_bytes);
 }
 
 /* Demultiplexing of logical channels and dissassemble of MAC CE 
@@ -191,13 +179,13 @@ void demux::release_pdu(uint8_t *buff, uint32_t nof_bytes)
 void demux::process_pdus()
 {
   uint32_t len; 
-  uint8_t idx; 
+  uint8_t idx=0; 
   while(find_nonempty_queue(&idx)) {
     uint8_t *mac_pdu = (uint8_t*) pdu_q[idx].pop(&len);
     if (mac_pdu) {
-      process_pdu(mac_pdu, len);
-      pdu_q[idx].release();
+      process_pdu(&mac_pdu[sizeof(buff_header_t)], len);
     }
+    pdu_q[idx].release();
     idx++;
   } 
 }
@@ -205,27 +193,10 @@ void demux::process_pdus()
 void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes)
 {
   // Unpack DLSCH MAC PDU 
-  mac_msg.init(nof_bytes);
-  mac_msg.parse_packet(mac_pdu);
-  mac_msg.fprint(stdout);
+  mac_msg.init_rx(mac_pdu, nof_bytes);
+  //mac_msg.fprint(stdout);
   process_sch_pdu(&mac_msg);
-  Debug("Normal MAC PDU processed\n");
-}
-
-void demux::discard_pending_pdu()
-{
-  pending_temp_rnti = false; 
-  pending_mac_msg.reset();  
-}
-
-void demux::demultiplex_pending_pdu()
-{
-  if (pending_temp_rnti) {
-    process_sch_pdu(&pending_mac_msg);
-    discard_pending_pdu();
-  } else {
-    Error("Error demultiplex pending PDU: No pending PDU\n");
-  }
+  Debug("MAC PDU processed\n");
 }
 
 void demux::process_sch_pdu(sch_pdu *pdu_msg)
@@ -246,8 +217,7 @@ void demux::process_sch_pdu(sch_pdu *pdu_msg)
 bool demux::process_ce(sch_subh *subh) {
   switch(subh->ce_type()) {
     case sch_subh::CON_RES_ID:
-      contention_resolution_id = subh->get_c_rnti();
-      Debug("Saved Contention Resolution ID=%d\n", contention_resolution_id);
+      // Do nothing
       break;
     case sch_subh::TA_CMD:
       phy_h->set_timeadv(subh->get_ta_cmd());

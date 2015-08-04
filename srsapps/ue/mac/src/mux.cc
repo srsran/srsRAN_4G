@@ -32,7 +32,7 @@
 namespace srslte {
 namespace ue {
 
-mux::mux() : pdu_msg(20)
+mux::mux() : pdu_msg(MAX_NOF_SUBHEADERS)
 {
   msg3_buff.init(1, MSG3_BUFF_SZ);
 
@@ -46,6 +46,8 @@ mux::mux() : pdu_msg(20)
    BSD[i]             = 10;
    lchid_sorted[i]    = i; 
   }  
+  phr_included = false; 
+  pending_crnti_ce = 0;
 }
 
 void mux::init(rlc_interface_mac *rlc_, log *log_h_, bsr_proc *bsr_procedure_)
@@ -60,6 +62,7 @@ void mux::reset()
   for (int i=0;i<NOF_UL_LCH;i++) {
     Bj[i] = 0; 
   }
+  pending_crnti_ce = 0;
 }
 
 bool mux::is_pending_ccch_sdu()
@@ -127,10 +130,8 @@ sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
 }
 
 
-int pkt_num = 0; 
-
 // Multiplexing and logical channel priorization as defined in Section 5.4.3
-bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
+uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
 {
 
   pthread_mutex_lock(&mutex);
@@ -148,7 +149,7 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   
 // Logical Channel Procedure
    
-  pdu_msg.init(pdu_sz, true);
+  pdu_msg.init_tx(payload, pdu_sz, true);
   
   // MAC control element for C-RNTI or data from UL-CCCH
   bool is_first = true; 
@@ -164,7 +165,6 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   }
   pending_crnti_ce = 0; 
   
-#ifdef kk
   uint32_t bsr_payload_sz = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_msg.rem_size());
   bsr_proc::bsr_t bsr; 
   
@@ -178,24 +178,24 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
       pdu_msg.update_space_ce(bsr_payload_sz);
     }
   }
-  pkt_num++;
   // MAC control element for PHR
-  if (pkt_num == 2) {
+  if (!phr_included) {
     if (pdu_msg.new_subh()) {
+      phr_included = true; 
       pdu_msg.next();
-      pdu_msg.get()->set_phd(46);
+      pdu_msg.get()->set_phr(46);
     }
   }
 
   // data from any Logical Channel, except data from UL-CCCH;  
   // first only those with positive Bj
   uint32_t sdu_sz   = 0; 
-  for (int i=0;i<1;i++) {
+  for (int i=1;i<NOF_UL_LCH;i++) {
     uint32_t lcid = lchid_sorted[i];
     if (lcid != 0) {
       bool res = true; 
       while ((Bj[lcid] > 0 || PBR[lcid] < 0) && res) {
-        res = allocate_sdu(lcid, &pdu_msg, Bj[lcid], &sdu_sz, &is_first);
+        res = allocate_sdu(lcid, &pdu_msg, (PBR[lcid]<0)?-1:Bj[lcid], &sdu_sz, &is_first);
         if (res && PBR[lcid] >= 0) {
           Bj[lcid] -= sdu_sz;         
         }
@@ -221,19 +221,13 @@ bool mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   if (bsr_subh) {
     bsr_subh->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format), bsr_payload_sz?false:true);    
   }
-#endif
-  pdu_msg.fprint(stdout);
-  Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.size(), pdu_sz);
 
+  Debug("Assembled MAC PDU msg size %d/%d bytes\n", pdu_msg.size(), pdu_sz);
+  //pdu_msg.fprint(stdout);  
   pthread_mutex_unlock(&mutex);
 
   /* Generate MAC PDU and save to buffer */
-  if (!pdu_msg.write_packet(payload, rlc)) {
-    Error("Writing PDU message to packet\n");
-    return false; 
-  } else {      
-    return true; 
-  }
+  return pdu_msg.write_packet();   
 }
 
 void mux::append_crnti_ce_next_tx(uint16_t crnti) {
@@ -253,33 +247,37 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
 {
   
   // Get n-th pending SDU pointer and length
-  uint32_t sdu_len = rlc->get_buffer_state(lcid); 
+  int sdu_len = rlc->get_buffer_state(lcid); 
 
   if (sdu_len > 0) { // there is pending SDU to allocate
-    Debug("%d bytes pending on RLC buffer. Maximum rate=%d, available space=%d\n", 
+    Info("%d bytes pending on RLC buffer. Maximum rate=%d, available space=%d\n", 
           sdu_len, max_sdu_sz, pdu_msg->rem_size() - 2);
+    
     if (sdu_len > max_sdu_sz && max_sdu_sz >= 0) {
       sdu_len = max_sdu_sz;
     }
     if (sdu_len > pdu_msg->rem_size() - 2) {
       sdu_len = pdu_msg->rem_size() - 2;
     }
-    if (pdu_msg->new_subh()) { // there is space for a new subheader
-      pdu_msg->next();
-      if (pdu_msg->get()->set_sdu(lcid, sdu_len, is_first?*is_first:false)) { // new SDU could be added
-        if (is_first) {
-          *is_first = false;           
+    if (sdu_len > MIN_RLC_SDU_LEN) {
+      if (pdu_msg->new_subh()) { // there is space for a new subheader
+        pdu_msg->next();
+        if (pdu_msg->get()->set_sdu(lcid, sdu_len, rlc, is_first?*is_first:false)) { // new SDU could be added
+          if (is_first) {
+            *is_first = false;           
+          }
+          if (sdu_sz) {
+            *sdu_sz = sdu_len; 
+          }
+                    
+          Info("Allocated SDU lcid=%d nbytes=%d\n", lcid, sdu_len);
+          return true;               
+        } else {
+          Info("Could not add SDU rem_size=%d, sdu_len=%d\n", pdu_msg->rem_size(), sdu_len);
+          pdu_msg->del_subh();
         }
-        if (sdu_sz) {
-          *sdu_sz = sdu_len; 
-        }
-        Info("Allocated SDU lcid=%d nbytes=%d\n", lcid, sdu_len);
-        return true;               
-      } else {
-        Error("Could not add SDU rem_size=%d, sdu_len=%d\n", pdu_msg->rem_size(), sdu_len);
-        pdu_msg->del_subh();
-      }
-    } 
+      } 
+    }
   }
   return false; 
 }
@@ -298,9 +296,11 @@ bool mux::msg3_is_transmitted()
 
 bool mux::pdu_move_to_msg3(uint32_t pdu_sz)
 {
-  uint8_t *msg3 = (uint8_t*) msg3_buff.request();
-  if (msg3) {
-    if (pdu_get(msg3, pdu_sz)) {
+  uint8_t *msg3_start = (uint8_t*) msg3_buff.request();
+  if (msg3_start) {
+    uint8_t *msg3_pdu = pdu_get(msg3_start, pdu_sz); 
+    if (msg3_pdu) {
+      memmove(msg3_start, msg3_pdu, pdu_sz*sizeof(uint8_t));
       msg3_buff.push(pdu_sz);
       return true;       
     } else {
@@ -313,7 +313,7 @@ bool mux::pdu_move_to_msg3(uint32_t pdu_sz)
 }
 
 /* Returns a pointer to the Msg3 buffer */
-bool mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
+uint8_t* mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
 {
   if (pdu_move_to_msg3(pdu_sz)) {
     uint8_t *msg3 = (uint8_t*) msg3_buff.pop();
@@ -321,13 +321,12 @@ bool mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
       memcpy(payload, msg3, sizeof(uint8_t)*pdu_sz);
       msg3_buff.release();
       msg3_has_been_transmitted = true; 
-      srslte_vec_fprint_byte(stdout, payload, pdu_sz);
-      return true; 
+      return payload; 
     } else {
       Error("Generating Msg3\n");
     }
   }
-  return false; 
+  return NULL; 
 }
 
   

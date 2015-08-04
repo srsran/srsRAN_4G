@@ -135,7 +135,7 @@ void dl_harq_entity::tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t
 bool dl_harq_entity::generate_ack_callback(void *arg)
 {
   demux *demux_unit = (demux*) arg;
-  return demux_unit->is_contention_resolution_id_pending();
+  return demux_unit->get_uecrid_successful();
 }
 
 
@@ -225,6 +225,9 @@ void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_
   
   // Save grant 
   memcpy(&cur_grant, &grant, sizeof(mac_interface_phy::mac_grant_t)); 
+  
+  // Fill action structure 
+  bzero(action, sizeof(mac_interface_phy::tb_action_dl_t));
   action->default_ack = ack; 
   action->generate_ack = true; 
 
@@ -242,11 +245,11 @@ void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_
       action->decode_enabled = false; 
       Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes);
       return;       
-    }
-    
+    }    
     memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(srslte_phy_grant_t));
     
   } else {
+    action->decode_enabled = false; 
     Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
   }
     
@@ -255,7 +258,7 @@ void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_
     Debug("Not generating ACK\n");
     action->generate_ack = false;    
   } else {
-    if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
+    if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP && ack == false) {
       // Postpone ACK after contention resolution is resolved
       action->generate_ack_callback = harq_entity->generate_ack_callback; 
       action->generate_ack_callback_arg = harq_entity->demux_unit;
@@ -279,6 +282,7 @@ void dl_harq_entity::dl_harq_process::tb_decoded(bool ack_)
         harq_entity->demux_unit->release_pdu_bcch(payload_buffer_ptr, cur_grant.n_bytes);
       }
     } else {
+      
       if (harq_entity->pcap) {
         harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes, cur_grant.rnti, ack, cur_grant.tti);            
       }

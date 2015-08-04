@@ -220,6 +220,9 @@ void setup_mac_phy_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, srslte::u
     sib2->rr_config_common_sib.srs_ul_cnfg.bw_cnfg,
     sib2->rr_config_common_sib.srs_ul_cnfg.subfr_cnfg,
     sib2->rr_config_common_sib.srs_ul_cnfg.ack_nack_simul_tx);
+  
+  phy->configure_ul_params();
+  
 }
 
 void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac *mac, srslte::ue::phy *phy) {
@@ -273,6 +276,7 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srslte::ue::mac 
          liblte_rrc_retransmission_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.retx_bsr_timer],
          liblte_rrc_periodic_bsr_timer_num[msg->rr_cnfg.mac_main_cnfg.explicit_value.ulsch_cnfg.periodic_bsr_timer]);
   
+  phy->configure_ul_params();
   
   // Setup radio bearers
   for (int i=0;i<msg->rr_cnfg.srb_to_add_mod_list_size;i++) {
@@ -306,6 +310,13 @@ uint8_t setupComplete_segm[2][41] ={ {
   0x00, 0xc4, 0x0f, 0x97, 0x80, 0xd0, 0x4c, 0x4b, 0xd1, 0x00, 0xc0, 0x58, 0x44, 0x0d, 0x5d, 0x62,
   0x99, 0x74, 0x04, 0x03, 0x80, 0x00, 0x00, 0x00, 0x00}
 };
+uint8_t setupComplete[80] = {
+  0x88, 0x00, 0x00, 0x20, 0x21, 0x90, 0xa0, 0x12, 0x00, 0x00, 0x80, 0xf0, 0x5e, 0x3b, 0xf1, 0x04, 
+  0x64, 0x04, 0x1d, 0x20, 0x44, 0x2f, 0xd8, 0x4b, 0xd1, 0x02, 0x00, 0x00, 0x83, 0x03, 0x41, 0xb0,
+  0xe5, 0x60, 0x13, 0x81, 0x83, 0x48, 0x4b, 0xd1, 0x00, 0x7d, 0x21, 0x70, 0x28, 0x01, 0x5c, 0x08, 0x80,
+  0x00, 0xc4, 0x0f, 0x97, 0x80, 0xd0, 0x4c, 0x4b, 0xd1, 0x00, 0xc0, 0x58, 0x44, 0x0d, 0x5d, 0x62,
+  0x99, 0x74, 0x04, 0x03, 0x80, 0x00, 0x00, 0x00, 0x00};
+  
 uint32_t lengths[2] = {37, 41}; 
 uint8_t reply[2] = {0x00, 0x04};
 
@@ -337,6 +348,7 @@ public:
   bool sib2_decoded; 
   bool connsetup_decoded; 
   int nsegm_dcch; 
+  int send_ack; 
   uint8_t si_window_len, sib2_period; 
   
   rlctest() {
@@ -347,6 +359,7 @@ public:
     nsegm_dcch = 0; 
     si_window_len = 0; 
     sib2_period = 0; 
+    send_ack = 0; 
   }
   
   uint32_t get_buffer_state(uint32_t lcid) {
@@ -357,7 +370,7 @@ public:
     } else if (lcid == 1) {
       if (connsetup_decoded && nsegm_dcch < 2) {        
         return lengths[nsegm_dcch];
-      } else if (nsegm_dcch == 2) {
+      } else if (send_ack == 1) {
         return 2; 
       }
     }
@@ -388,24 +401,39 @@ public:
       printf("Send ConnectionRequest %d/%d bytes\n", nbytes, nof_bytes);
       srslte_bit_unpack_vector(bit_msg.msg, payload, nbytes*8);
       bzero(&payload[nbytes], (nof_bytes-nbytes)*sizeof(uint8_t));
-      srslte_vec_fprint_byte(stdout, payload, nof_bytes);
+      return nof_bytes;
     } else if (lcid == 1) {
       if (nsegm_dcch < 2) {
-        printf("Sending Connection Setup Complete %d length %d\n", nsegm_dcch, lengths[nsegm_dcch]);
-        memcpy(payload, setupComplete_segm[nsegm_dcch], lengths[nsegm_dcch]);
-        nsegm_dcch++;
-      } else if (nsegm_dcch == 2) {
+        if (nof_bytes >= 80) {
+          printf("Sending Connection Setup Complete length 80\n");
+          memcpy(payload, setupComplete, 80);
+          return 80; 
+        } else {
+          if (nof_bytes >= lengths[nsegm_dcch]) {
+            printf("Sending Connection Setup Complete %d/2 length %d\n", nsegm_dcch, lengths[nsegm_dcch]);
+            memcpy(payload, setupComplete_segm[nsegm_dcch], lengths[nsegm_dcch]);            
+          } else {
+            bzero(payload, nof_bytes);
+          }          
+          uint32_t r = lengths[nsegm_dcch];
+          nsegm_dcch++;
+          return r; 
+        }
+      } else if (send_ack == 1) {
         printf("Send RLC ACK\n");
         memcpy(payload, reply, 2*sizeof(uint8_t));
-        nsegm_dcch++;
+        send_ack = 2; 
+        return 2; 
       }
     }
+    return 0; 
   }
 
   void     write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) {
     if (lcid == 0) {
       LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
       printf("ConnSetup received %d bytes\n", nof_bytes);
+      srslte_vec_fprint_byte(stdout, payload, nof_bytes);
       srslte_bit_pack_vector(payload, bit_msg.msg, nof_bytes*8);
       bit_msg.N_bits = nof_bytes*8; 
       liblte_rrc_unpack_dl_ccch_msg(&bit_msg, &dl_ccch_msg);
@@ -422,8 +450,12 @@ public:
       } 
     } else if (lcid == 1) {
       printf("Received on DCCH0 %d bytes\n", nof_bytes);
+      if (send_ack == 0) {
+        send_ack = 1;         
+      }
     }
   }
+  
   void     write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes) 
   {
     LIBLTE_RRC_MIB_STRUCT mib;

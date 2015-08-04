@@ -54,7 +54,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     help();
     return;
   }
-  
+
   srslte_cell_t cell;     
   bzero(&cell, sizeof(srslte_cell_t));
   cell.nof_ports = 1; 

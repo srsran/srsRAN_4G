@@ -220,14 +220,15 @@ public:
     }
   }
   
-  void new_grant_ul(mac_grant_t grant, uint8_t *payload_ptr, tb_action_ul_t *action) {
+  void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action) {
     printf("New grant UL\n");
-    memcpy(payload_ptr, conn_request_msg, grant.n_bytes*sizeof(uint8_t));
+    memcpy(payload, conn_request_msg, grant.n_bytes*sizeof(uint8_t));
     action->current_tx_nb = nof_rtx_connsetup;
     action->rv = rv_value[nof_rtx_connsetup%4];
     action->softbuffer = &softbuffer_tx;     
     action->rnti = temp_c_rnti; 
     action->expect_ack = (nof_rtx_connsetup < 5)?true:false;
+    action->payload_ptr = payload;
     memcpy(&action->phy_grant, &grant.phy_grant, sizeof(srslte_phy_grant_t));
     memcpy(&last_grant, &grant, sizeof(mac_grant_t));
     action->tx_enabled = true; 
@@ -237,7 +238,7 @@ public:
     my_phy.pdcch_dl_search(SRSLTE_RNTI_USER, temp_c_rnti);
   }
   
-  void new_grant_ul_ack(mac_grant_t grant, uint8_t *payload_ptr, bool ack, tb_action_ul_t *action) {
+  void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action) {
     printf("New grant UL ACK\n");    
   }
 

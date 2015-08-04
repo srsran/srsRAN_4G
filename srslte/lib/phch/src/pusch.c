@@ -378,7 +378,9 @@ int srslte_pusch_cfg(srslte_pusch_t             *q,
     cfg->cp     = q->cell.cp; 
     
     // Save UCI configuration 
-    memcpy(&cfg->uci_cfg, uci_cfg, sizeof(srslte_uci_cfg_t));
+    if (uci_cfg) {
+      memcpy(&cfg->uci_cfg, uci_cfg, sizeof(srslte_uci_cfg_t));
+    }
     
     return SRSLTE_SUCCESS;      
   } else {
@@ -542,7 +544,6 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       srslte_scrambling_b_offset_pusch(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits);            
     }
     srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
-    
     srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);
     
     /* mapping to resource elements */      

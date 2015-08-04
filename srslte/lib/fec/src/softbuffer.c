@@ -160,6 +160,9 @@ void srslte_softbuffer_tx_reset(srslte_softbuffer_tx_t *q) {
     for (i=0;i<q->max_cb;i++) {
       if (q->buffer_b[i]) {
         bzero(q->buffer_b[i], sizeof(uint8_t) * q->buff_size);
+        /*for (uint32_t j=0;j<q->buff_size;j++) {
+          q->buffer_b[i][j] = SRSLTE_TX_NULL;
+        }*/
       }
     }
   }

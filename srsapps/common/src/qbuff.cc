@@ -103,6 +103,7 @@ bool qbuff::push(uint32_t len)
   packets[wp].len = len; 
   packets[wp].valid = true; 
   wp += (wp+1 >= nof_messages)?(1-nof_messages):1; 
+  return true; 
 }
 
 void* qbuff::pop()

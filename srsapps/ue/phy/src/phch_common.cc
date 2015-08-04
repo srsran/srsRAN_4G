@@ -44,6 +44,7 @@ phch_common::phch_common()
   is_first_of_burst = true; 
   is_first_tx       = true; 
   rar_grant_pending = false; 
+  sr_last_tx_tti = -1;
 }
   
 void phch_common::init(phy_params *_params, log *_log, radio *_radio, mac_interface_phy *_mac) 
@@ -53,6 +54,7 @@ void phch_common::init(phy_params *_params, log *_log, radio *_radio, mac_interf
   radio_h   = _radio; 
   mac       = _mac; 
   is_first_tx = true; 
+  sr_last_tx_tti = -1;
 }
 
 bool phch_common::ul_rnti_active(uint32_t tti) {
@@ -80,8 +82,6 @@ void phch_common::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_G
 {
   srslte_dci_rar_grant_unpack(&rar_grant, grant_payload);
   rar_grant_pending = true; 
-  Info("Setting RAR grant: \n");
-  srslte_dci_rar_grant_fprint(stdout, &rar_grant);
   // PUSCH is at n+6 or n+7 and phch_worker assumes default delay of 4 ttis
   if (rar_grant.ul_delay) {
     rar_grant_tti     = (tti + 3) % 10240; 

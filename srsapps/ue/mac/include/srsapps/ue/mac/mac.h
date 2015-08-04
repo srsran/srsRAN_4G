@@ -58,8 +58,8 @@ public:
 
   /******** Interface from PHY (PHY -> MAC) ****************/ 
   /* see mac_interface.h for comments */
-  void new_grant_ul(mac_grant_t grant, uint8_t *payload_ptr, tb_action_ul_t *action);
-  void new_grant_ul_ack(mac_grant_t grant, uint8_t *payload_ptr, bool ack, tb_action_ul_t *action);
+  void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action);
+  void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action);
   void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action);
   void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action);
   void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid);
@@ -136,6 +136,7 @@ private:
   bool si_search_in_progress;
   int si_window_length;
   int si_window_start;
+  bool signals_pregenerated;
   
 };
 
