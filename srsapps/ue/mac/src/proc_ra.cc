@@ -172,6 +172,7 @@ void ra_proc::step_initialization() {
   preambleTransmissionCounter = 1; 
   first_rar_received = true; 
   mux_unit->msg3_flush();
+  msg3_flushed = false; 
   backoff_param_ms = 0; 
   
   // Instruct phy to configure PRACH
@@ -343,7 +344,6 @@ void ra_proc::step_response_error() {
     } else {
       rInfo("Transmitting inmediatly (%d/%d)\n", preambleTransmissionCounter, preambleTransMax);
       state = RESOURCE_SELECTION;
-      exit(-1);
     }
   }
 }
@@ -424,7 +424,10 @@ void ra_proc::step_contention_resolution() {
 void ra_proc::step_completition() {
   params_db->set_param(mac_interface_params::RA_PREAMBLEINDEX, 0);
   params_db->set_param(mac_interface_params::RA_MASKINDEX, 0);
-  mux_unit->msg3_flush();
+  if (!msg3_flushed) {
+    mux_unit->msg3_flush();
+    msg3_flushed = true; 
+  }
   msg3_transmitted = false;  
 }
 

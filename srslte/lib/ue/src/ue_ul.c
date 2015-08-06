@@ -278,7 +278,8 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
       pucch2_bits[0] = uci_data.uci_ack; 
       pucch2_bits[1] = uci_data.uci_ack_2; 
     } else {
-      fprintf(stderr, "Unsupported combination of UCI parameters\n");
+      fprintf(stderr, "Unsupported combination of UCI parameters: ack_len=%d, cqi_len=%d\n", 
+              uci_data.uci_ack, uci_data.uci_cqi_len);
       return SRSLTE_ERROR; 
     }
     

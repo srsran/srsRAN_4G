@@ -166,6 +166,7 @@ private:
     } start_mode; 
     uint32_t rar_grant_nbytes;
     uint32_t rar_grant_tti;
+    bool msg3_flushed;
 };
 }
 }

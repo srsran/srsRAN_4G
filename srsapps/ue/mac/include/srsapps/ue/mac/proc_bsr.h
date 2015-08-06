@@ -72,6 +72,8 @@ public:
   
 private:
   
+  const static int QUEUE_STATUS_PERIOD_MS = 500; 
+  
   bool       reset_sr; 
   mac_params *params_db; 
   timers     *timers_db; 

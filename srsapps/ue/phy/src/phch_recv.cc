@@ -287,7 +287,7 @@ void phch_recv::run_thread()
        break;
       case SYNC_DONE:
         worker = (phch_worker*) workers_pool->wait_worker();
-        if (worker) {
+        if (worker) {          
           buffer = worker->get_buffer();
           if (srslte_ue_sync_zerocopy(&ue_sync, buffer) == 1) {
             tti = (tti + 1) % 10240;
@@ -297,10 +297,12 @@ void phch_recv::run_thread()
             worker->set_cfo(cfo);
     
             /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
-            srslte_timestamp_t rx_time, tx_time; 
+            srslte_timestamp_t rx_time, tx_time, tx_time_prach; 
             srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time); 
             srslte_timestamp_copy(&tx_time, &rx_time);
+            srslte_timestamp_copy(&tx_time_prach, &rx_time);
             srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec);
+            srslte_timestamp_add(&tx_time_prach, 0, 4e-3);
             worker->set_tx_time(tx_time);
             worker->set_tti(tti);
 
@@ -311,7 +313,7 @@ void phch_recv::run_thread()
               Info("TX PRACH now. RX time: %d:%f, Now: %d:%f\n", rx_time.full_secs, rx_time.frac_secs, 
                    cur_time.full_secs, cur_time.frac_secs);
               // send prach if we have to 
-              prach_buffer->send(radio_h, cfo, tx_time);
+              prach_buffer->send(radio_h, cfo, tx_time_prach);
               radio_h->tx_end();              
             }            
             workers_pool->start_worker(worker);             

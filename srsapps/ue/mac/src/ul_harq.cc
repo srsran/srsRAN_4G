@@ -215,6 +215,7 @@ void ul_harq_entity::ul_harq_process::run_tti(uint32_t tti_tx, mac_interface_phy
 
       // Uplink grant in a RAR
       if (grant->is_from_rar) {
+        Info("Getting Msg3 buffer payload, grant size=%d bytes\n", grant->n_bytes);
         pdu_ptr  = harq_entity->mux_unit->msg3_get(payload_buffer, grant->n_bytes);
         if (pdu_ptr) {
           generate_new_tx(tti_tx, true, grant, action);

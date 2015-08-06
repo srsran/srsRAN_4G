@@ -248,11 +248,9 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
   
   // Get n-th pending SDU pointer and length
   int sdu_len = rlc->get_buffer_state(lcid); 
-
+  
   if (sdu_len > 0) { // there is pending SDU to allocate
-    Info("%d bytes pending on RLC buffer. Maximum rate=%d, available space=%d\n", 
-          sdu_len, max_sdu_sz, pdu_msg->rem_size() - 2);
-    
+    int buffer_state = sdu_len; 
     if (sdu_len > max_sdu_sz && max_sdu_sz >= 0) {
       sdu_len = max_sdu_sz;
     }
@@ -262,7 +260,8 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
     if (sdu_len > MIN_RLC_SDU_LEN) {
       if (pdu_msg->new_subh()) { // there is space for a new subheader
         pdu_msg->next();
-        if (pdu_msg->get()->set_sdu(lcid, sdu_len, rlc, is_first?*is_first:false)) { // new SDU could be added
+        sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc, is_first?*is_first:false);
+        if (sdu_len >= 0) { // new SDU could be added
           if (is_first) {
             *is_first = false;           
           }
@@ -270,10 +269,10 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
             *sdu_sz = sdu_len; 
           }
                     
-          Info("Allocated SDU lcid=%d nbytes=%d\n", lcid, sdu_len);
+          Info("Allocated SDU lcid=%d nbytes=%d, buffer_state=%d\n", lcid, sdu_len, buffer_state);
           return true;               
         } else {
-          Info("Could not add SDU rem_size=%d, sdu_len=%d\n", pdu_msg->rem_size(), sdu_len);
+          Info("Could not add SDU rem_size=%d, sdu_len=%d\n", pdu_msg->rem_size(), buffer_state);
           pdu_msg->del_subh();
         }
       } 
@@ -284,6 +283,7 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
 
 void mux::msg3_flush()
 {
+  Info("Msg3 buffer flushed\n");
   msg3_buff.flush();
   msg3_has_been_transmitted = false; 
 }
@@ -315,16 +315,20 @@ bool mux::pdu_move_to_msg3(uint32_t pdu_sz)
 /* Returns a pointer to the Msg3 buffer */
 uint8_t* mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
 {
-  if (pdu_move_to_msg3(pdu_sz)) {
-    uint8_t *msg3 = (uint8_t*) msg3_buff.pop();
-    if (msg3) {
-      memcpy(payload, msg3, sizeof(uint8_t)*pdu_sz);
-      msg3_buff.release();
-      msg3_has_been_transmitted = true; 
-      return payload; 
-    } else {
-      Error("Generating Msg3\n");
-    }
+  if (msg3_buff.isempty()) {
+    Info("Moving PDU from Mux unit to Msg3 buffer\n");
+    if (!pdu_move_to_msg3(pdu_sz)) {
+      Error("Moving PDU from Mux unit to Msg3 buffer\n");
+      return NULL;
+    }    
+  }
+  uint8_t *msg3 = (uint8_t*) msg3_buff.pop();
+  if (msg3) {
+    memcpy(payload, msg3, sizeof(uint8_t)*pdu_sz);
+    msg3_has_been_transmitted = true; 
+    return payload; 
+  } else {
+    Error("Generating Msg3\n");
   }
   return NULL; 
 }

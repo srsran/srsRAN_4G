@@ -230,8 +230,8 @@ public:
   // Writing functions
   void     write_subheader(uint8_t** ptr, bool is_last);
   void     write_payload(uint8_t **ptr);
-  bool     set_sdu(uint32_t lcid, uint32_t requested_bytes, rlc_interface_mac *rlc);
-  bool     set_sdu(uint32_t lcid, uint32_t requested_bytes, rlc_interface_mac *rlc, bool is_first);
+  int      set_sdu(uint32_t lcid, uint32_t requested_bytes, rlc_interface_mac *rlc);
+  int      set_sdu(uint32_t lcid, uint32_t requested_bytes, rlc_interface_mac *rlc, bool is_first);
   bool     set_c_rnti(uint16_t crnti);
   bool     set_bsr(uint32_t buff_size[4], sch_subh::cetype format, bool update_size);
   bool     set_con_res_id(uint64_t con_res_id);

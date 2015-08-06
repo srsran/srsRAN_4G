@@ -134,7 +134,6 @@ void phch_worker::work_imp()
   mac_interface_phy::tb_action_ul_t ul_action; 
   bzero(&ul_action, sizeof(mac_interface_phy::tb_action_ul_t));
 
-  
   /* Do FFT and extract PDCCH LLR, or quit if no actions are required in this subframe */
   if (extract_fft_and_pdcch_llr()) {
     
@@ -153,8 +152,8 @@ void phch_worker::work_imp()
       }
       if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
         phy->mac->tb_decoded(dl_ack, dl_mac_grant.rnti_type, dl_mac_grant.pid);
-        dl_action.generate_ack = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
-        Info("Calling generate ACK callback returned=%d\n", dl_action.generate_ack);
+        dl_ack = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
+        Info("Calling generate ACK callback returned=%d\n", dl_ack);
       }
       if (dl_action.generate_ack) {
         set_uci_ack(dl_ack);
@@ -170,7 +169,7 @@ void phch_worker::work_imp()
     /***** Uplink Processing + Transmission *******/
     
     /* Generate UCI */
-    set_uci_sr();
+    set_uci_sr();    
     set_uci_cqi();
     
     
@@ -482,7 +481,7 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
 void phch_worker::encode_pucch()
 {
 
-  if (uci_data.scheduling_request || uci_data.uci_cqi_len > 0 || uci_data.uci_ack_len > 0) 
+  if (uci_data.scheduling_request || uci_data.uci_ack_len > 0) 
   {
     if (srslte_ue_ul_pucch_encode(&ue_ul, uci_data, last_dl_pdcch_ncce, tti+4, signal_buffer)) {
       Error("Encoding PUCCH\n");

@@ -38,9 +38,6 @@ demux::demux() : mac_msg(20), pending_mac_msg(20)
     pdu_q[i].init(8, MAX_PDU_LEN);
     used_q[i] = false; 
   }
-  pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&cvar, NULL);
-
 }
 
 void demux::init(phy_interface* phy_h_, rlc_interface_mac *rlc_, log* log_h_, timers* timers_db_)
@@ -94,36 +91,32 @@ uint8_t* demux::request_buffer(uint32_t len)
   if (len >= MAX_PDU_LEN - sizeof(buff_header_t)) {
     return NULL; 
   }
-  pthread_mutex_lock(&mutex); 
-  uint8_t idx=0;
-  while(!find_unused_queue(&idx)) {
-    pthread_cond_wait(&cvar, &mutex);  
-  }
-  if (idx > 0) {
-    printf("Using queue %d for MAC PDU\n", idx);
-  }
-  used_q[idx] = true; 
-  uint8_t *buff = (uint8_t*) pdu_q[idx].request();
-  buff_header_t *head = (buff_header_t*) buff;
-  head->idx = idx;   
 
-  pthread_mutex_unlock(&mutex);
-  
-  return &buff[sizeof(buff_header_t)]; 
+  uint8_t idx=0;
+  if(find_unused_queue(&idx)) {
+    if (idx > 0) {
+      printf("Using queue %d for MAC PDU\n", idx);
+    }
+    used_q[idx] = true; 
+    uint8_t *buff = (uint8_t*) pdu_q[idx].request();
+    buff_header_t *head = (buff_header_t*) buff;
+    head->idx = idx;   
+    return &buff[sizeof(buff_header_t)]; 
+  } else {
+    Error("All DL buffers are full. Packet will be lost\n");
+    return NULL; 
+  }
 }
 
 void demux::push_buffer(uint8_t *buff, uint32_t nof_bytes) {
   buff_header_t *head = (buff_header_t*) (buff-sizeof(buff_header_t));
   if (head->idx < NOF_PDU_Q) {
-    pthread_mutex_lock(&mutex);
     if (nof_bytes > 0) {
       if (!pdu_q[head->idx].push(nof_bytes)) {
         Warning("Full queue %d when pushing MAC PDU %d bytes\n", head->idx, nof_bytes);
       }
     } 
     used_q[head->idx] = false; 
-    pthread_cond_signal(&cvar);
-    pthread_mutex_unlock(&mutex);
   }
 }
 
@@ -132,7 +125,7 @@ void demux::push_buffer(uint8_t *buff, uint32_t nof_bytes) {
  * Warning: this function sends the message to RLC now, since SI blocks do not 
  * require ACK feedback to be transmitted quickly. 
  */
-void demux::release_pdu_bcch(uint8_t *buff, uint32_t nof_bytes) 
+void demux::push_pdu_bcch(uint8_t *buff, uint32_t nof_bytes) 
 {
   Debug("Pushed BCCH MAC PDU in transparent mode\n");
   rlc->write_pdu_bcch_dlsch(buff, nof_bytes);
@@ -148,7 +141,7 @@ void demux::release_pdu_bcch(uint8_t *buff, uint32_t nof_bytes)
  * Warning: this function does some processing here assuming ACK deadline is not an 
  * issue here because Temp C-RNTI messages have small payloads
  */
-void demux::release_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes) 
+void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes) 
 {
   // Unpack DLSCH MAC PDU 
   pending_mac_msg.init_rx(buff, nof_bytes);
@@ -171,9 +164,20 @@ void demux::release_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
  * This function enqueues the packet and returns quicly because ACK 
  * deadline is important here. 
  */ 
-void demux::release_pdu(uint8_t *buff, uint32_t nof_bytes)
+void demux::push_pdu(uint8_t *buff, uint32_t nof_bytes)
 {
   push_buffer(buff, nof_bytes);
+}
+
+void demux::release_buffer(uint8_t* ptr)
+{
+  uint8_t *addr = ptr - sizeof(buff_header_t); 
+  for (int i=0;i<NOF_PDU_Q;i++) {
+    if (pdu_q[i].request() == addr) {
+      used_q[i] = false; 
+      break;
+    }
+  }
 }
 
 void demux::process_pdus()
@@ -204,6 +208,7 @@ void demux::process_sch_pdu(sch_pdu *pdu_msg)
   while(pdu_msg->next()) {
     if (pdu_msg->get()->is_sdu()) {
       // Route logical channel 
+      Info("Delivering PDU for lcid=%d, %d bytes\n", pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_nbytes());
       rlc->write_pdu(pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_sdu_nbytes());
     } else {
       // Process MAC Control Element

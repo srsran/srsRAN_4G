@@ -55,6 +55,9 @@ void phch_common::init(phy_params *_params, log *_log, radio *_radio, mac_interf
   mac       = _mac; 
   is_first_tx = true; 
   sr_last_tx_tti = -1;
+  
+  pthread_mutex_init(&tx_mutex, NULL);
+  pthread_cond_init(&tx_cvar, NULL);
 }
 
 bool phch_common::ul_rnti_active(uint32_t tti) {
@@ -172,6 +175,7 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
                                    cf_t *buffer, uint32_t nof_samples, 
                                    srslte_timestamp_t tx_time) 
 {
+
   pthread_mutex_lock(&tx_mutex);
   
   // Wait previous TTIs to be transmitted 
@@ -192,7 +196,7 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
   } /* else do nothing, just update tti counter */
   
   tx_tti_cnt = (tx_tti_cnt + 1) % 10240;
-  
+
   pthread_cond_signal(&tx_cvar);
   pthread_mutex_unlock(&tx_mutex);
 }    

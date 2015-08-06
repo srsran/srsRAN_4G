@@ -66,6 +66,11 @@ bool prach::init_cell(srslte_cell_t cell_)
   cell = cell_; 
   preamble_idx = -1; 
 
+  Info("ConfigIdx=%d, RootSeq=%d, ZC=%d\n", 
+       params_db->get_param(phy_interface_params::PRACH_CONFIG_INDEX),     
+       params_db->get_param(phy_interface_params::PRACH_ROOT_SEQ_IDX),     
+       params_db->get_param(phy_interface_params::PRACH_ZC_CONFIG));
+  
   if (srslte_prach_init(&prach_obj, srslte_symbol_sz(cell.nof_prb), 
                         srslte_prach_get_preamble_format(params_db->get_param(phy_interface_params::PRACH_CONFIG_INDEX)), 
                         params_db->get_param(phy_interface_params::PRACH_ROOT_SEQ_IDX), 

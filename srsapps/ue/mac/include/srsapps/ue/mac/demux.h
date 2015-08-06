@@ -52,10 +52,12 @@ public:
   void     process_pdus();
   uint8_t* request_buffer(uint32_t len);
   
-  void     release_pdu(uint8_t *buff, uint32_t nof_bytes);
-  void     release_pdu_bcch(uint8_t *buff, uint32_t nof_bytes);
-  void     release_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes);
+  void     push_pdu(uint8_t *buff, uint32_t nof_bytes);
+  void     push_pdu_bcch(uint8_t *buff, uint32_t nof_bytes);
+  void     push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes);
 
+  void     release_buffer(uint8_t *ptr);
+  
   void     set_uecrid_callback(bool (*callback)(void*, uint64_t), void *arg);
   bool     get_uecrid_successful();
   
@@ -84,8 +86,6 @@ private:
   } buff_header_t;
 
   // Mutex for exclusive access
-  pthread_mutex_t mutex; 
-  pthread_cond_t  cvar; 
   qbuff      pdu_q[NOF_PDU_Q]; 
   bool       used_q[NOF_PDU_Q]; 
   

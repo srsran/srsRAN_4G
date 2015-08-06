@@ -218,7 +218,7 @@ void bsr_proc::step(uint32_t tti)
   update_pending_data();
   
   
-  if ((tti - last_print)%10240 > 40) {
+  if ((tti - last_print)%10240 > QUEUE_STATUS_PERIOD_MS) {
     char str[128];
     bzero(str, 128);
     for (int i=0;i<MAX_LCID;i++) {
