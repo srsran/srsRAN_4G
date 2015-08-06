@@ -241,7 +241,7 @@ void ul_harq_entity::ul_harq_process::run_tti(uint32_t tti_tx, mac_interface_phy
     // Non-Adaptive Re-Tx
     generate_retx(tti_tx, action);
   }
-  if (harq_entity->pcap) {
+  if (harq_entity->pcap && grant) {
     harq_entity->pcap->write_ul_crnti(pdu_ptr, grant->n_bytes, grant->rnti, get_nof_retx(), tti_tx);
   }
 
