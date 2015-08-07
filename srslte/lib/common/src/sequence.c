@@ -31,6 +31,7 @@
 #include <assert.h>
 
 #include "srslte/common/sequence.h"
+#include "srslte/utils/vector.h"
 
 #define Nc 1600
 
@@ -88,7 +89,7 @@ int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
     free(q->c);
   }
   if (!q->c) {
-    q->c = malloc(len * sizeof(uint8_t));
+    q->c = srslte_vec_malloc(len * sizeof(uint8_t));
     if (!q->c) {
       return SRSLTE_ERROR;
     }
