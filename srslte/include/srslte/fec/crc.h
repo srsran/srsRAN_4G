@@ -42,13 +42,12 @@
 #include <stdint.h>
 
 typedef struct SRSLTE_API {
-  unsigned long table[256];
-  uint8_t byte;
+  uint64_t table[256];
   int polynom;
   int order;
-  unsigned long crcinit; 
-  unsigned long crcmask;
-  unsigned long crchighbit;
+  uint64_t crcinit; 
+  uint64_t crcmask;
+  uint64_t crchighbit;
   uint32_t srslte_crc_out;
 } srslte_crc_t;
 
@@ -57,11 +56,19 @@ SRSLTE_API int srslte_crc_init(srslte_crc_t *h,
                                int srslte_crc_order);
 
 SRSLTE_API int srslte_crc_set_init(srslte_crc_t *h, 
-                                   unsigned long srslte_crc_init_value);
+                                   uint64_t srslte_crc_init_value);
 
-SRSLTE_API void srslte_crc_attach(srslte_crc_t *h, 
-                                  uint8_t *data, 
-                                  int len);
+SRSLTE_API uint32_t srslte_crc_attach(srslte_crc_t *h, 
+                                      uint8_t *data, 
+                                      int len);
+
+SRSLTE_API uint32_t srslte_crc_attach_byte(srslte_crc_t *h, 
+                                           uint8_t *data, 
+                                           int len); 
+
+SRSLTE_API uint32_t srslte_crc_checksum_byte(srslte_crc_t *h, 
+                                             uint8_t *data, 
+                                             int len); 
 
 SRSLTE_API uint32_t srslte_crc_checksum(srslte_crc_t *h, 
                                         uint8_t *data, 

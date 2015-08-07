@@ -223,7 +223,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-uint8_t data[20000], data_packed[20000];
+uint8_t data[20000];
 
 bool go_exit = false; 
 
@@ -458,9 +458,10 @@ int main(int argc, char **argv) {
           }
           if (decode_pdsch) {
             if (prog_args.rnti != SRSLTE_SIRNTI) {
-              n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data_packed, srslte_ue_sync_get_sfidx(&ue_sync));
+              n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data, srslte_ue_sync_get_sfidx(&ue_sync));
             } else {
-              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data_packed, srslte_ue_sync_get_sfidx(&ue_sync), 
+              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
+                                              srslte_ue_sync_get_sfidx(&ue_sync), 
                                               SRSLTE_SIRNTI, ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
             }
             if (n < 0) {
@@ -468,7 +469,6 @@ int main(int argc, char **argv) {
             } else if (n > 0) {
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
-                srslte_bit_unpack_vector(data_packed, data, n);
                 srslte_netsink_write(&net_sink, data, 1+(n-1)/8);
               }
               

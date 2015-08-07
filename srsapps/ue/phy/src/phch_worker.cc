@@ -148,7 +148,8 @@ void phch_worker::work_imp()
       /* Decode PDSCH if instructed to do so */
       dl_ack = dl_action.default_ack; 
       if (dl_action.decode_enabled) {
-        dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr, dl_action.softbuffer, dl_action.rv, dl_action.rnti);      
+        dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr, 
+                              dl_action.softbuffer, dl_action.rv, dl_action.rnti);      
       }
       if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
         phy->mac->tb_decoded(dl_ack, dl_mac_grant.rnti_type, dl_mac_grant.pid);
@@ -192,7 +193,8 @@ void phch_worker::work_imp()
   /* Transmit PUSCH, PUCCH or SRS */
   bool tx_signal = false; 
   if (ul_action.tx_enabled) {
-    encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr, ul_action.current_tx_nb, ul_action.softbuffer, ul_action.rv, ul_action.rnti);          
+    encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr, 
+                 ul_action.current_tx_nb, ul_action.softbuffer, ul_action.rv, ul_action.rnti);          
     tx_signal = true; 
     if (ul_action.expect_ack) {
       phy->set_pending_ack(tti + 8, ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
@@ -295,10 +297,8 @@ bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
     if (ue_dl.pdsch_cfg.grant.mcs.mod > 0 && ue_dl.pdsch_cfg.grant.mcs.tbs >= 0) {
       
       if (srslte_pdsch_decode_rnti(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols, 
-                                    ue_dl.ce, 0, rnti, payload_bits) == 0) 
+                                    ue_dl.ce, 0, rnti, payload) == 0) 
       {
-        // FIXME: TEMPORAL
-        srslte_bit_unpack_vector(payload_bits, payload, grant->mcs.tbs);
         Debug("TB decoded OK\n");
         return true; 
       } else {
@@ -457,11 +457,8 @@ void phch_worker::encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, ui
     Error("Configuring UL grant\n");
   }
     
-  // FIXME: TEMPORAL
-  srslte_bit_pack_vector(payload, payload_bits, grant->mcs.tbs);
-    
   if (srslte_ue_ul_pusch_encode_rnti_softbuffer(&ue_ul, 
-                                                payload_bits, uci_data, 
+                                                payload, uci_data, 
                                                 softbuffer,
                                                 rnti, 
                                                 signal_buffer)) 
