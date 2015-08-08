@@ -192,7 +192,8 @@ void phch_worker::work_imp()
   /* Transmit PUSCH, PUCCH or SRS */
   bool tx_signal = false; 
   if (ul_action.tx_enabled) {
-    encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr, ul_action.current_tx_nb, ul_action.softbuffer, ul_action.rv, ul_action.rnti);          
+    encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr, ul_action.current_tx_nb, 
+                 ul_action.softbuffer, ul_action.rv, ul_action.rnti);          
     tx_signal = true; 
     if (ul_action.expect_ack) {
       phy->set_pending_ack(tti + 8, ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
@@ -529,7 +530,7 @@ void phch_worker::reset_ul_params()
 
 void phch_worker::set_ul_params()
 {
-  
+
   /* PUSCH DMRS signal configuration */
   bzero(&dmrs_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));    
   dmrs_cfg.group_hopping_en    = (bool)     phy->params_db->get_param(phy_interface_params::DMRS_GROUP_HOPPING_EN);
@@ -592,7 +593,8 @@ void phch_worker::set_ul_params()
   /* SR configuration */
   I_sr                         = (uint32_t) phy->params_db->get_param(phy_interface_params::SR_CONFIG_INDEX);
   
-  if (pregen_enabled) {
+  if (pregen_enabled) { 
+    printf("Pre-generating UL signals\n");
     srslte_ue_ul_pregen_signals(&ue_ul);
   }
   

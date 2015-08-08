@@ -74,6 +74,7 @@ bool phy::init_(radio* radio_handler_, mac_interface_phy *mac, log *log_h_, bool
   for (int i=0;i<NOF_WORKERS;i++) {
     workers[i].set_common(&workers_common);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO);    
+    //printf("init worker here is at 0x%x\n", &workers[i]);
   }
 
   sf_recv.init(radio_handler, mac, &prach_buffer, &workers_pool, &workers_common, log_h, do_agc, SF_RECV_THREAD_PRIO);
@@ -111,7 +112,7 @@ void phy::stop()
   sf_recv.stop();
   
   for (int i=0;i<NOF_WORKERS;i++) {
-    ((phch_worker) workers[i]).free_cell();
+    workers[i].free_cell();
     workers[i].stop();
   }
     
@@ -243,14 +244,14 @@ void phy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN
 
 void phy::set_crnti(uint16_t rnti) {
   for(uint32_t i=0;i<NOF_WORKERS;i++) {
-    ((phch_worker) workers[i]).set_crnti(rnti);
+    workers[i].set_crnti(rnti);
   }    
 }
 
 void phy::enable_pregen_signals(bool enable)
 {
   for(uint32_t i=0;i<NOF_WORKERS;i++) {
-    ((phch_worker) workers[i]).enable_pregen_signals(enable);
+    workers[i].enable_pregen_signals(enable);
   }
 }
 

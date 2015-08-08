@@ -144,7 +144,8 @@ void demux::push_pdu_bcch(uint8_t *buff, uint32_t nof_bytes)
 void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes) 
 {
   // Unpack DLSCH MAC PDU 
-  pending_mac_msg.init_rx(buff, nof_bytes);
+  pending_mac_msg.init_rx(nof_bytes);
+  pending_mac_msg.parse_packet(buff);
   
   // Look for Contention Resolution UE ID 
   is_uecrid_successful = false; 
@@ -197,9 +198,11 @@ void demux::process_pdus()
 void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes)
 {
   // Unpack DLSCH MAC PDU 
-  mac_msg.init_rx(mac_pdu, nof_bytes);
-  //mac_msg.fprint(stdout);
+  mac_msg.init_rx(nof_bytes);
+  mac_msg.parse_packet(mac_pdu);
+
   process_sch_pdu(&mac_msg);
+  //srslte_vec_fprint_byte(stdout, mac_pdu, nof_bytes);
   Debug("MAC PDU processed\n");
 }
 

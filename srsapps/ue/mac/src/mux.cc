@@ -254,12 +254,13 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
     if (sdu_len > max_sdu_sz && max_sdu_sz >= 0) {
       sdu_len = max_sdu_sz;
     }
-    if (sdu_len > pdu_msg->rem_size() - 2) {
-      sdu_len = pdu_msg->rem_size() - 2;
+    if (sdu_len > pdu_msg->rem_size() - 3) {
+      sdu_len = pdu_msg->rem_size() - 3;
     }
     if (sdu_len > MIN_RLC_SDU_LEN) {
       if (pdu_msg->new_subh()) { // there is space for a new subheader
         pdu_msg->next();
+        int sdu_len2 = sdu_len; 
         sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc, is_first?*is_first:false);
         if (sdu_len >= 0) { // new SDU could be added
           if (is_first) {
@@ -272,7 +273,7 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
           Info("Allocated SDU lcid=%d nbytes=%d, buffer_state=%d\n", lcid, sdu_len, buffer_state);
           return true;               
         } else {
-          Info("Could not add SDU rem_size=%d, sdu_len=%d\n", pdu_msg->rem_size(), buffer_state);
+          Info("Could not add SDU rem_size=%d, sdu_len=%d\n", pdu_msg->rem_size(), sdu_len2);
           pdu_msg->del_subh();
         }
       } 

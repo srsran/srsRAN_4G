@@ -185,7 +185,6 @@ void mac::run_thread() {
       Info("Pre-generating UL signals and C-RNTI scrambling sequences\n");
       ((phy*) phy_h)->enable_pregen_signals(true);
       ((phy*) phy_h)->set_crnti(crnti);
-      phy_h->configure_ul_params();
       Info("Done\n");
       signals_pregenerated = true; 
     }

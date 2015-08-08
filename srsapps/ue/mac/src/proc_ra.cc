@@ -261,8 +261,8 @@ void ra_proc::tb_decoded_ok() {
   
   rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
   
-  rar_pdu_msg.init_rx(rar_pdu_buffer, rar_grant_nbytes);
-
+  rar_pdu_msg.init_rx(rar_grant_nbytes);
+  rar_pdu_msg.parse_packet(rar_pdu_buffer);
   // Set Backoff parameter
   if (rar_pdu_msg.has_backoff()) {
     backoff_param_ms = backoff_table[rar_pdu_msg.get_backoff()%16];

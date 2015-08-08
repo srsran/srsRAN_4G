@@ -87,14 +87,16 @@ void sch_subh::fprint(FILE* stream)
 
 void sch_pdu::parse_packet(uint8_t *ptr)
 {
+
   pdu::parse_packet(ptr);
-  
+
   // Correct size for last SDU 
   if (nof_subheaders > 0) {
     uint32_t read_len = 0; 
     for (int i=0;i<nof_subheaders-1;i++) {
       read_len += subheaders[i].size_plus_header();
     }
+
     if (pdu_len-read_len-1 >= 0) {
       subheaders[nof_subheaders-1].set_payload_size(pdu_len-read_len-1);
     } else {
@@ -467,7 +469,11 @@ int sch_subh::set_sdu(uint32_t lcid_, uint32_t requested_bytes, rlc_interface_ma
     payload = ((sch_pdu*)parent)->get_current_sdu_ptr();
     
     // Copy data and get final number of bytes written to the MAC PDU 
-    uint32_t sdu_sz = rlc->read_pdu(lcid, payload, requested_bytes);
+    int sdu_sz = rlc->read_pdu(lcid, payload, requested_bytes);
+    
+    if (sdu_sz < 0) {
+      return -1;
+    }
 
     // Save final number of written bytes
     nof_bytes = sdu_sz;

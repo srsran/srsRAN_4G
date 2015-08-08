@@ -158,8 +158,9 @@ bool qbuff::send(void* buffer, uint32_t msg_size)
     void *ptr = request();
     if (ptr) {
       memcpy(ptr, buffer, msg_size);
-      push(msg_size);
+      return push(msg_size);
     } else {
+      printf("No ptr\n");
       return false; 
     }
   } else {

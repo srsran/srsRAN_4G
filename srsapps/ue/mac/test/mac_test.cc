@@ -377,7 +377,7 @@ public:
     return 0; 
   }
   
-  uint32_t read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) 
+  int read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) 
   {
     if (lcid == 0) {
       LIBLTE_RRC_UL_CCCH_MSG_STRUCT ul_ccch_msg;

@@ -176,7 +176,7 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
                                    srslte_timestamp_t tx_time) 
 {
 
-  pthread_mutex_lock(&tx_mutex);
+/*  pthread_mutex_lock(&tx_mutex);
   
   // Wait previous TTIs to be transmitted 
   if (is_first_tx) {
@@ -187,6 +187,7 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
       pthread_cond_wait(&tx_cvar, &tx_mutex);
     }
   }
+  */
   if (tx_enable) {
     radio_h->tx(buffer, nof_samples, tx_time);
     is_first_of_burst = false; 
@@ -197,8 +198,8 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
   
   tx_tti_cnt = (tx_tti_cnt + 1) % 10240;
 
-  pthread_cond_signal(&tx_cvar);
-  pthread_mutex_unlock(&tx_mutex);
+  //pthread_cond_signal(&tx_cvar);
+  //pthread_mutex_unlock(&tx_mutex);
 }    
 
 }

@@ -72,9 +72,8 @@ public:
     rem_len = pdu_len;
   }
 
-  void init_rx(uint8_t *payload, uint32_t pdu_len_bytes, bool is_ulsch = false) {
+  void init_rx(uint32_t pdu_len_bytes, bool is_ulsch = false) {
     init_(NULL, pdu_len_bytes, is_ulsch);
-    parse_packet(payload);
   }
 
   void init_tx(uint8_t *payload, uint32_t pdu_len_bytes, bool is_ulsch = false) {
@@ -130,18 +129,6 @@ public:
     total_sdu_len += sdu_sz; 
   }
 
-protected:  
-  std::vector<SubH> subheaders;
-  uint32_t   pdu_len; 
-  uint32_t   rem_len; 
-  int        cur_idx;
-  int        nof_subheaders; 
-  uint32_t   max_subheaders; 
-  bool       pdu_is_ul;
-  uint8_t*   buffer_tx; 
-  uint32_t   total_sdu_len; 
-  uint32_t   sdu_offset_start; 
-
   // Section 6.1.2
   void parse_packet(uint8_t *ptr) {
     uint8_t *init_ptr = ptr; 
@@ -154,6 +141,18 @@ protected:
       subheaders[i].read_payload(&ptr);
     }
   }
+
+protected:  
+  std::vector<SubH> subheaders;
+  uint32_t   pdu_len; 
+  uint32_t   rem_len; 
+  int        cur_idx;
+  int        nof_subheaders; 
+  uint32_t   max_subheaders; 
+  bool       pdu_is_ul;
+  uint8_t*   buffer_tx; 
+  uint32_t   total_sdu_len; 
+  uint32_t   sdu_offset_start; 
   
 private: 
   
