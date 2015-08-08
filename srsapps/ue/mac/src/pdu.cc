@@ -179,14 +179,16 @@ uint8_t* sch_pdu::write_packet()
       subheaders[i].write_subheader(&ptr, i==last_sh);
     }
   }
+  // Then for padding
   if (last_is_padding) {
     sch_subh padding; 
     padding.set_padding(rem_len); 
     padding.write_subheader(&ptr, true);
+    rem_len -= 2; 
   }
   // Write CE payloads (SDU payloads already in the buffer)
   for (int i=0;i<nof_subheaders;i++) {
-    if (!subheaders[i].is_sdu()) {
+    if (!subheaders[i].is_sdu()) {      
       subheaders[i].write_payload(&ptr);
     }
   }
@@ -471,7 +473,7 @@ int sch_subh::set_sdu(uint32_t lcid_, uint32_t requested_bytes, rlc_interface_ma
     nof_bytes = sdu_sz;
     
     ((sch_pdu*)parent)->add_sdu(nof_bytes);
-    ((sch_pdu*)parent)->update_space_sdu(sdu_sz, is_first);
+    ((sch_pdu*)parent)->update_space_sdu(nof_bytes, is_first);
     return (int) nof_bytes; 
   } else {
     return -1; 
