@@ -129,17 +129,16 @@ int main(int argc, char **argv) {
     dci.type2_alloc.L_crb = L_prb; 
     dci.type2_alloc.RB_start = n_prb;    
   } else {
-    srslte_ra_type2_from_riv((uint32_t) riv, &dci.type2_alloc.L_crb, &dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
+    dci.type2_alloc.riv = riv;
   }
   dci.mcs_idx = mcs_idx;
-  srslte_dci_msg_t dci_msg; 
-  srslte_dci_msg_pack_pusch(&dci, &dci_msg, cell.nof_prb);
-
+  
   srslte_ra_ul_grant_t grant; 
-  if (srslte_dci_msg_to_ul_grant(&dci_msg, cell.nof_prb, 0, &dci, &grant)) {
-    return false;   
+  if (srslte_ra_ul_dci_to_grant(&dci, cell.nof_prb, 0, &grant)) {
+    fprintf(stderr, "Error computing resource allocation\n");
+    return ret;
   }
-
+      
   srslte_pusch_hopping_cfg_t ul_hopping; 
   ul_hopping.n_sb = 1; 
   ul_hopping.hopping_offset = 0;
@@ -196,7 +195,7 @@ int main(int argc, char **argv) {
   srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
   srslte_ofdm_set_freq_shift(&fft, 0.5);
   
-  data = malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
+  data = srslte_vec_malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
   if (!data) {
     perror("malloc");
     goto quit;
@@ -207,7 +206,7 @@ int main(int argc, char **argv) {
   }
 
   gettimeofday(&t[1], NULL);
-  if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
+  if (srslte_softbuffer_tx_init(&softbuffer, 4*cell.nof_prb)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
@@ -235,7 +234,10 @@ int main(int argc, char **argv) {
     ret = -1;
     goto quit;
   } else {
-    printf("ENCODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, 
+    printf("ENCODED OK in %d:%d (TBS: %d bits, TX: %.2f Mbps, Processing: %.2f Mbps)\n", (int) t[0].tv_sec, 
+           (int) t[0].tv_usec, 
+           cfg.grant.mcs.tbs,
+           (float) cfg.grant.mcs.tbs/1000,
            (float) cfg.grant.mcs.tbs/t[0].tv_usec);
   }
   

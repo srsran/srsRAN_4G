@@ -270,6 +270,18 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
           }
                     
           Info("Allocated SDU lcid=%d nbytes=%d, buffer_state=%d\n", lcid, sdu_len, buffer_state);
+          /*
+          char str[64];
+          int len = 10; 
+          if (len > sdu_len) {
+            len = sdu_len; 
+          }
+          uint8_t *x=pdu_msg->get()->get_sdu_ptr();
+          for (int i=0;i<len;i++) {
+            sprintf(str, "0x%x, ", x[i]);
+          }
+          Info("Payload: %s\n", str);
+          */
           return true;               
         } else {
           Info("Could not add SDU rem_size=%d, sdu_len=%d\n", pdu_msg->rem_size(), buffer_state);
