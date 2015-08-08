@@ -1,14 +1,14 @@
-ueConfig=struct('NCellID',1,'NULRB',25,'RNTI',84,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0);
-puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',[23 24]','Shortened',0);
+ueConfig=struct('NCellID',1,'NULRB',25,'RNTI',64,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0);
+puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',(0:23)','Shortened',0);
 
 addpath('../../build/srslte/lib/phch/test')
 
-TBs=696;
+TBs=9144;
 cqilen=0;
 rvs=0;
 mods={'16QAM'};
 betas=0;
-subf=2;
+subf=5;
 
 for i=1:length(TBs)
     for m=1:length(mods)

@@ -1,8 +1,8 @@
-ueConfig=struct('NCellID',1,'NULRB',25,'NSubframe',8,'RNTI',85,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0);
-puschConfig=struct('NTurboDecIts',5,'NLayers',1,'OrthCover','Off','PRBSet',[23 24]','Modulation','16QAM','RV',0);
+ueConfig=struct('NCellID',1,'NULRB',25,'NSubframe',2,'RNTI',62,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0);
+puschConfig=struct('NTurboDecIts',5,'NLayers',1,'OrthCover','Off','PRBSet',(0:24)','Modulation','16QAM','RV',3);
 
-TBS=696;
-cfo=0;
+TBS=9144;
+cfo=1000;
 %t0=1;
 %x=[rx(t0:end); zeros(t0-1,1)];
 
