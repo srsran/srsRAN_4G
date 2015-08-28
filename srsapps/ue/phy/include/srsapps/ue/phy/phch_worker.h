@@ -114,9 +114,6 @@ private:
   srslte_timestamp_t tx_time; 
   srslte_uci_data_t  uci_data; 
   uint16_t           ul_rnti;
-
-  // FIXME: THIS IS TEMPORAL. Need to change srslte to accept bits for payload
-  uint8_t payload_bits[64*1024];
   
   // UL configuration parameters 
   srslte_refsignal_srs_cfg_t        srs_cfg;           

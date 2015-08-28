@@ -211,8 +211,6 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
     while (allocate_sdu(lchid_sorted[i], &pdu_msg));   
   }
 
-  pthread_mutex_unlock(&mutex);
-
   bool send_bsr = bsr_procedure->generate_bsr_on_ul_grant(pdu_msg.rem_size(), &bsr);
   // Insert Padding BSR if not inserted Regular/Periodic BSR 
   if (!bsr_payload_sz && send_bsr) {
@@ -232,6 +230,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   /* Generate MAC PDU and save to buffer */
   uint8_t *ret = pdu_msg.write_packet();   
   
+  pthread_mutex_unlock(&mutex);
 
   return ret; 
 }
@@ -277,6 +276,18 @@ bool mux::allocate_sdu(uint32_t lcid, sch_pdu *pdu_msg, int max_sdu_sz, uint32_t
           }
                     
           Info("Allocated SDU lcid=%d nbytes=%d, buffer_state=%d\n", lcid, sdu_len, buffer_state);
+          /*
+          char str[64];
+          int len = 10; 
+          if (len > sdu_len) {
+            len = sdu_len; 
+          }
+          uint8_t *x=pdu_msg->get()->get_sdu_ptr();
+          for (int i=0;i<len;i++) {
+            sprintf(str, "0x%x, ", x[i]);
+          }
+          Info("Payload: %s\n", str);
+          */
           return true;               
         } else {
           Info("Could not add SDU rem_size=%d, sdu_len=%d\n", pdu_msg->rem_size(), sdu_len2);

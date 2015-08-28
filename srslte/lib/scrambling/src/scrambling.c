@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "srslte/utils/vector.h"
 #include "srslte/scrambling/scrambling.h"
 
 void srslte_scrambling_f(srslte_sequence_t *s, float *data) {
@@ -40,7 +41,7 @@ void srslte_scrambling_f_offset(srslte_sequence_t *s, float *data, int offset, i
   assert (len + offset <= s->len);
 
   for (i = 0; i < len; i++) {
-    data[i] = data[i] * (1 - 2 * s->c[i + offset]);
+    data[i] = data[i] * (1-2*s->c[i + offset]);
   }
 }
 
@@ -58,18 +59,35 @@ void srslte_scrambling_c_offset(srslte_sequence_t *s, cf_t *data, int offset, in
 }
 
 void srslte_scrambling_b(srslte_sequence_t *s, uint8_t *data) {
-  int i;
-
-  for (i = 0; i < s->len; i++) {
-    data[i] = (data[i] + s->c[i]) % 2;
-  }
+  srslte_scrambling_b_offset(s, data, 0, s->len);  
 }
 
 void srslte_scrambling_b_offset(srslte_sequence_t *s, uint8_t *data, int offset, int len) {
   int i;
   assert (len + offset <= s->len);
-  for (i = 0; i < len; i++) {
-    data[i] = (data[i] + s->c[i + offset]) % 2;
+  // Do XOR on a word basis
+  if (!(len%8)) {
+    uint64_t *x = (uint64_t*) data; 
+    uint64_t *y = (uint64_t*) &s->c[offset];
+    for (int i=0;i<len/8;i++) {
+      x[i] = (x[i] ^ y[i]);
+    }
+  } else if (!(len%4)) {
+    uint32_t *x = (uint32_t*) data; 
+    uint32_t *y = (uint32_t*) &s->c[offset];
+    for (int i=0;i<len/8;i++) {
+      x[i] = (x[i] ^ y[i]);
+    }
+  } else if (!(len%2)) {
+    uint16_t *x = (uint16_t*) data; 
+    uint16_t *y = (uint16_t*) &s->c[offset];
+    for (int i=0;i<len/8;i++) {
+      x[i] = (x[i] ^ y[i]);
+    }
+  } else {
+    for (i = 0; i < len; i++) {
+      data[i] = (data[i] + s->c[i + offset]) % 2;
+    }
   }
 }
 

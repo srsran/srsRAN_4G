@@ -334,6 +334,20 @@ void srslte_tdec_decision(srslte_tdec_t * h, uint8_t *output, uint32_t long_cb)
   }
 }
 
+void srslte_tdec_decision_byte(srslte_tdec_t * h, uint8_t *output, uint32_t long_cb)
+{
+  uint32_t i, j;
+  // long_cb is always byte aligned
+  for (i = 0; i < long_cb/8; i++) {
+    output[i] = 0; 
+    for (j=0;j<8;j++) {
+      if (h->llr2[h->interleaver.reverse[8*i+j]] > 0) {
+        output[i] |= 1<<(7-j);
+      }
+    }
+  }
+}
+
 int srslte_tdec_run_all(srslte_tdec_t * h, srslte_llr_t * input, uint8_t *output,
                   uint32_t nof_iterations, uint32_t long_cb)
 {

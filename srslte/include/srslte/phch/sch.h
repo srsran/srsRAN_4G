@@ -65,6 +65,7 @@ typedef struct SRSLTE_API {
   
   /* buffers */
   uint8_t *cb_in; 
+  uint8_t *cb_temp; 
   void *cb_out;  
   void *e;
   

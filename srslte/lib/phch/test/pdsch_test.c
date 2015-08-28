@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
     }
   }
   
-  data = malloc(sizeof(uint8_t) * tbs);
+  data = malloc(sizeof(uint8_t) * tbs/8);
   if (!data) {
     perror("malloc");
     goto quit;
@@ -196,8 +196,8 @@ int main(int argc, char **argv) {
   if (SRSLTE_VERBOSE_ISNONE()) {
     printf("Decoding TBS: %d\r",grant.mcs.tbs);
   }
-  for (i=0;i<grant.mcs.tbs;i++) {
-    data[i] = rand()%2;
+  for (i=0;i<grant.mcs.tbs/8;i++) {
+    data[i] = rand()%256;
   }
 
   for (rv=0;rv<=rv_idx;rv++) {
@@ -228,7 +228,8 @@ int main(int argc, char **argv) {
       ret = -1;
       goto quit;
     } else {
-      printf("DECODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, (float) grant.mcs.tbs/t[0].tv_usec);                
+      printf("DECODED OK in %d:%d (%.2f Mbps)\n", 
+             (int) t[0].tv_sec, (int) t[0].tv_usec, (float) grant.mcs.tbs/t[0].tv_usec);                
     }
   } 
   ret = 0;

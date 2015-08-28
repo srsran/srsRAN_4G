@@ -190,7 +190,7 @@ void config_phy() {
   my_phy.set_param(srslte::ue::phy_interface_params::PUCCH_N_RB_2, 2);
 
   my_phy.configure_ul_params();
-
+  my_phy.configure_prach_params();
 }
 
 srslte_softbuffer_rx_t softbuffer_rx; 
