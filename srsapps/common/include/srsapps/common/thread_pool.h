@@ -57,6 +57,7 @@ public:
     void setup(uint32_t id, thread_pool *parent, uint32_t prio=0);
     void stop();
     uint32_t get_id();
+    void release();
   protected: 
     virtual void work_imp() = 0;
   private: 
@@ -65,7 +66,7 @@ public:
     bool running; 
     void run_thread();  
     void wait_to_start();
-    void finished();
+    void finished();    
   };
     
   
@@ -73,6 +74,7 @@ public:
   void    init_worker(uint32_t id, worker*, uint32_t prio = 0);              
   void    stop();
   worker* wait_worker();              
+  worker* wait_worker(uint32_t tti);              
   void    start_worker(worker*);              
   void    start_worker(uint32_t id);              
   worker* get_worker(uint32_t id);
@@ -80,13 +82,25 @@ public:
   
 
 private:
+
+  bool find_finished_worker(uint32_t tti, uint32_t *id);
+  
+  typedef enum {
+    IDLE, 
+    START_WORK,
+    WORKER_READY,
+    WORKING
+  }worker_status;
+  
   std::vector<worker*> workers; 
-  std::vector<bool> begin;
-  std::stack<worker*> available_workers;
-  pthread_cond_t cvar_start, cvar_stop;
-  pthread_mutex_t mutex_start, mutex_stop;
   uint32_t nof_workers; 
   bool running;
+  pthread_cond_t cvar_queue;
+  pthread_mutex_t mutex_queue;
+  std::vector<worker_status> status;
+  std::vector<pthread_cond_t> cvar;
+  std::vector<pthread_mutex_t> mutex;
+  std::stack<worker*> available_workers;
 };
 }
   

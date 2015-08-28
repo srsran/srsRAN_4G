@@ -140,7 +140,8 @@ uint8_t* sch_pdu::write_packet()
     head_and_ce_sz -= rem_len - 2; 
   }
   if (head_and_ce_sz >= sdu_offset_start) {
-    fprintf(stderr, "Writting PDU: head_and_ce_sz<sdu_offset_start (%d<%d)\n", head_and_ce_sz, sdu_offset_start);
+    fprintf(stderr, "Writting PDU: head_and_ce_sz>=sdu_offset_start (%d>=%d). pdu_len=%d, total_sdu_len=%d\n", 
+            head_and_ce_sz, sdu_offset_start, pdu_len, total_sdu_len);
     return NULL; 
   }
   
@@ -471,13 +472,15 @@ int sch_subh::set_sdu(uint32_t lcid_, uint32_t requested_bytes, rlc_interface_ma
     // Copy data and get final number of bytes written to the MAC PDU 
     int sdu_sz = rlc->read_pdu(lcid, payload, requested_bytes);
     
-    if (sdu_sz < 0) {
+    if (sdu_sz < 0 || sdu_sz > requested_bytes) {
       return -1;
+    } else if (sdu_sz == 0) {
+      return 0; 
     }
 
     // Save final number of written bytes
     nof_bytes = sdu_sz;
-    
+
     ((sch_pdu*)parent)->add_sdu(nof_bytes);
     ((sch_pdu*)parent)->update_space_sdu(nof_bytes, is_first);
     return (int) nof_bytes; 

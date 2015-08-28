@@ -28,6 +28,7 @@
 
 #include <pthread.h>
 #include <string.h>
+#include <vector>
 #include "srslte/srslte.h"
 #include "srsapps/common/mac_interface.h"
 #include "srsapps/radio/radio.h"
@@ -49,7 +50,7 @@ namespace ue {
     log               *log_h; 
     mac_interface_phy *mac;
 
-    phch_common();
+    phch_common(uint32_t nof_workers);
     void init(phy_params *_params, log *_log, radio *_radio, mac_interface_phy *_mac);
     
     /* For RNTI searches, -1 means now or forever */
@@ -76,9 +77,7 @@ namespace ue {
     int  sr_last_tx_tti; 
     
   private: 
-    pthread_mutex_t    tx_mutex; 
-    pthread_cond_t     tx_cvar; 
-    uint32_t           tx_tti_cnt; 
+    std::vector<pthread_mutex_t>    tx_mutex; 
     
     bool               is_first_of_burst;
     radio             *radio_h;
@@ -105,6 +104,7 @@ namespace ue {
     pending_ack_t pending_ack[10];
     
     bool is_first_tx;
+    uint32_t nof_workers;
     
   };
   

@@ -285,7 +285,7 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(uint32_t tti_tx, bool is_m
                                                       mac_interface_phy::tb_action_ul_t *action)
 {
   if (grant) {
-    srslte_softbuffer_tx_reset(&softbuffer);
+    srslte_softbuffer_tx_reset_tbs(&softbuffer, cur_grant.n_bytes*8);
     memcpy(&cur_grant, grant, sizeof(mac_interface_phy::mac_grant_t));
     harq_feedback = false; 
     is_grant_configured = true; 

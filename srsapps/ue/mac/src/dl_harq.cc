@@ -220,7 +220,7 @@ void dl_harq_entity::dl_harq_process::new_grant_dl(mac_interface_phy::mac_grant_
   
   if (is_new_transmission(grant)) {
     ack = false; 
-    srslte_softbuffer_rx_reset(&softbuffer);
+    srslte_softbuffer_rx_reset_tbs(&softbuffer, cur_grant.n_bytes*8);
   }
   
   // Save grant 

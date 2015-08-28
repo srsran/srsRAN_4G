@@ -31,6 +31,7 @@
 #include "srslte/srslte.h"
 #include "srsapps/common/thread_pool.h"
 #include "srsapps/common/phy_interface.h"
+#include "srsapps/common/trace.h"
 #include "srsapps/ue/phy/phch_common.h"
 
 
@@ -60,6 +61,9 @@ public:
   void  set_crnti(uint16_t rnti);
   void  enable_pregen_signals(bool enabled);
   
+  void start_trace();
+  void write_trace(std::string filename);
+  
 private: 
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
   void work_imp();
@@ -84,6 +88,12 @@ private:
   void set_uci_ack(bool ack);
   bool srs_is_ready_to_send();
   void normalize();
+  
+  void tr_log_start();
+  void tr_log_end();
+  struct timeval tr_time[3];
+  trace<uint32_t> tr_exec;
+  bool trace_enabled; 
   
   /* Common objects */  
   phch_common    *phy;

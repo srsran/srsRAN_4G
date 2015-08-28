@@ -34,12 +34,13 @@
 namespace srslte {                                                                                                                                                                                                                                                                                                                                                                                                                                                     
 namespace ue {
 
-phch_common::phch_common()
+phch_common::phch_common(uint32_t nof_workers_) : tx_mutex(nof_workers_)
 {
   params_db = NULL; 
   log_h     = NULL; 
   radio_h   = NULL; 
   mac       = NULL; 
+  nof_workers = nof_workers_;
   sr_enabled        = false; 
   is_first_of_burst = true; 
   is_first_tx       = true; 
@@ -56,8 +57,9 @@ void phch_common::init(phy_params *_params, log *_log, radio *_radio, mac_interf
   is_first_tx = true; 
   sr_last_tx_tti = -1;
   
-  pthread_mutex_init(&tx_mutex, NULL);
-  pthread_cond_init(&tx_cvar, NULL);
+  for (int i=0;i<nof_workers;i++) {
+    pthread_mutex_init(&tx_mutex[i], NULL);
+  }
 }
 
 bool phch_common::ul_rnti_active(uint32_t tti) {
@@ -176,30 +178,24 @@ void phch_common::worker_end(uint32_t tti, bool tx_enable,
                                    srslte_timestamp_t tx_time) 
 {
 
-/*  pthread_mutex_lock(&tx_mutex);
   
   // Wait previous TTIs to be transmitted 
   if (is_first_tx) {
-    tx_tti_cnt = tti; 
     is_first_tx = false; 
   } else {
-    while(tti != tx_tti_cnt) {
-      pthread_cond_wait(&tx_cvar, &tx_mutex);
-    }
+    pthread_mutex_lock(&tx_mutex[tti%nof_workers]);
   }
-  */
+  radio_h->set_tti(tti); 
   if (tx_enable) {
     radio_h->tx(buffer, nof_samples, tx_time);
     is_first_of_burst = false; 
   } else if (!is_first_of_burst) {
     radio_h->tx_end();
     is_first_of_burst = true;   
-  } /* else do nothing, just update tti counter */
+  } 
   
-  tx_tti_cnt = (tx_tti_cnt + 1) % 10240;
-
-  //pthread_cond_signal(&tx_cvar);
-  //pthread_mutex_unlock(&tx_mutex);
+  // Trigger next transmission 
+  pthread_mutex_unlock(&tx_mutex[(tti+1)%nof_workers]);
 }    
 
 }

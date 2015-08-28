@@ -77,6 +77,7 @@ bool mac::init(phy_interface *phy, rlc_interface_mac *rlc, log *log_h_)
 void mac::stop()
 {
   started = false;   
+  ttisync.increase();
   wait_thread_finish();
 }
 
@@ -139,59 +140,62 @@ void mac::run_thread() {
     /* Warning: Here order of invocation of procedures is important!! */
     tti = (ttisync.wait() + 1)%10240;
     
-    log_h->step(tti);
+    if (started) {
+      log_h->step(tti);
+        
+      search_si_rnti();
       
-    search_si_rnti();
-    
-    // Step all procedures 
-    bsr_procedure.step(tti);
-    
-    // Check if BSR procedure need to start SR 
-    
-    if (bsr_procedure.need_to_send_sr()) {
-      Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", phy_h->get_current_tti());
-      sr_procedure.start();
-    }
-    if (bsr_procedure.need_to_reset_sr()) {
-      Debug("Resetting SR procedure by BSR request\n");
-      sr_procedure.reset();
-    }
-    sr_procedure.step(tti);
-
-    // Check SR if we need to start RA 
-    if (sr_procedure.need_random_access()) {
-      Warning("Starting RA procedure by MAC order is DISABLED\n");
-      //ra_procedure.start_mac_order();
-    }
-    
-    // Check if there is pending CCCH SDU in Mux unit 
-    if (mux_unit.is_pending_ccch_sdu()) {
-      if (!ra_procedure.in_progress() && !ra_procedure.is_successful()) {
-        ra_procedure.start_rlc_order();
+      // Step all procedures 
+      bsr_procedure.step(tti);
+      
+      // Check if BSR procedure need to start SR 
+      
+      if (bsr_procedure.need_to_send_sr()) {
+        Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", phy_h->get_current_tti());
+        sr_procedure.start();
       }
-    }
-    
-    ra_procedure.step(tti);
-    //phr_procedure.step(tti);
+      if (bsr_procedure.need_to_reset_sr()) {
+        Debug("Resetting SR procedure by BSR request\n");
+        sr_procedure.reset();
+      }
+      sr_procedure.step(tti);
 
-    // FIXME: Do here DTX and look for UL grants only when needed
-    if (ra_procedure.is_successful() && !signals_pregenerated) {
-      // Configure PHY to look for UL C-RNTI grants
-      uint16_t crnti = params_db.get_param(mac_interface_params::RNTI_C);
-      phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, crnti);
-      phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, crnti);
+      // Check SR if we need to start RA 
+      if (sr_procedure.need_random_access()) {
+        Warning("Starting RA procedure by MAC order is DISABLED\n");
+        //ra_procedure.start_mac_order();
+      }
       
-      // Pregenerate UL signals and C-RNTI scrambling sequences
-      Info("Pre-generating UL signals and C-RNTI scrambling sequences\n");
-      ((phy*) phy_h)->enable_pregen_signals(true);
-      ((phy*) phy_h)->set_crnti(crnti);
-      Info("Done\n");
-      signals_pregenerated = true; 
+      // Check if there is pending CCCH SDU in Mux unit 
+      if (mux_unit.is_pending_ccch_sdu()) {
+        if (!ra_procedure.in_progress() && !ra_procedure.is_successful()) {
+          ra_procedure.start_rlc_order();
+        }
+      }
+      
+      ra_procedure.step(tti);
+      //phr_procedure.step(tti);
+
+      // FIXME: Do here DTX and look for UL grants only when needed
+      if (ra_procedure.is_successful() && !signals_pregenerated) {
+        // Configure PHY to look for UL C-RNTI grants
+        uint16_t crnti = params_db.get_param(mac_interface_params::RNTI_C);
+        phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, crnti);
+        phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, crnti);
+        
+        // Pregenerate UL signals and C-RNTI scrambling sequences
+        Info("Pre-generating UL signals and C-RNTI scrambling sequences\n");
+        ((phy*) phy_h)->enable_pregen_signals(true);
+        ((phy*) phy_h)->set_crnti(crnti);
+        Info("Done\n");
+        signals_pregenerated = true; 
+      }
+      
+      timers_db.step_all();
+      
+      demux_unit.process_pdus();
+      
     }
-    
-    timers_db.step_all();
-    
-    demux_unit.process_pdus();
   }  
 }
 

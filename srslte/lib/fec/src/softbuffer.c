@@ -92,9 +92,21 @@ void srslte_softbuffer_rx_free(srslte_softbuffer_rx_t *q) {
   }
 }
 
+void srslte_softbuffer_rx_reset_tbs(srslte_softbuffer_rx_t *q, uint32_t tbs) {
+  uint32_t nof_cb = (tbs + 24)/(SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
+  srslte_softbuffer_rx_reset_cb(q, nof_cb);
+}
+
 void srslte_softbuffer_rx_reset(srslte_softbuffer_rx_t *q) {
+  srslte_softbuffer_rx_reset_cb(q, q->max_cb);
+}
+
+void srslte_softbuffer_rx_reset_cb(srslte_softbuffer_rx_t *q, uint32_t nof_cb) {
   if (q->buffer_f) {
-    for (uint32_t i=0;i<q->max_cb;i++) {
+    if (nof_cb > q->max_cb) {
+      nof_cb = q->max_cb; 
+    }
+    for (uint32_t i=0;i<nof_cb;i++) {
       if (q->buffer_f[i]) {
         for (uint32_t j=0;j<q->buff_size;j++) {
           q->buffer_f[i][j] = SRSLTE_RX_NULL;
@@ -154,15 +166,25 @@ void srslte_softbuffer_tx_free(srslte_softbuffer_tx_t *q) {
   }
 }
 
+
+void srslte_softbuffer_tx_reset_tbs(srslte_softbuffer_tx_t *q, uint32_t tbs) {
+  uint32_t nof_cb = (tbs + 24)/(SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
+  srslte_softbuffer_tx_reset_cb(q, nof_cb);
+}
+
 void srslte_softbuffer_tx_reset(srslte_softbuffer_tx_t *q) {
+  srslte_softbuffer_tx_reset_cb(q, q->max_cb);
+}
+
+void srslte_softbuffer_tx_reset_cb(srslte_softbuffer_tx_t *q, uint32_t nof_cb) {
   int i; 
   if (q->buffer_b) {
-    for (i=0;i<q->max_cb;i++) {
+    if (nof_cb > q->max_cb) {
+      nof_cb = q->max_cb; 
+    }
+    for (i=0;i<nof_cb;i++) {
       if (q->buffer_b[i]) {
         bzero(q->buffer_b[i], sizeof(uint8_t) * q->buff_size);
-        /*for (uint32_t j=0;j<q->buff_size;j++) {
-          q->buffer_b[i][j] = SRSLTE_TX_NULL;
-        }*/
       }
     }
   }

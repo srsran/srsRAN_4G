@@ -125,7 +125,10 @@ bool radio_uhd::tx_end()
 
 void radio_uhd::start_trace() {
   trace_enabled = true; 
-  my_tti = 0; 
+}
+
+void radio_uhd::set_tti(uint32_t tti_) {
+  tti = tti_; 
 }
 
 void radio_uhd::write_trace(std::string filename)
@@ -138,13 +141,12 @@ void radio_uhd::write_trace(std::string filename)
 
 void radio_uhd::save_trace(uint32_t is_eob, srslte_timestamp_t *tx_time) {
   if (trace_enabled) {
-    tr_local_time.push_cur_time_us(my_tti);
+    tr_local_time.push_cur_time_us(tti);
     srslte_timestamp_t usrp_time; 
     cuhd_get_time(uhd, &usrp_time.full_secs, &usrp_time.frac_secs);
-    tr_usrp_time.push(my_tti, srslte_timestamp_uint32(&usrp_time));
-    tr_tx_time.push(my_tti, srslte_timestamp_uint32(tx_time));
-    tr_is_eob.push(my_tti, is_eob);
-    my_tti++;
+    tr_usrp_time.push(tti, srslte_timestamp_uint32(&usrp_time));
+    tr_tx_time.push(tti, srslte_timestamp_uint32(tx_time));
+    tr_is_eob.push(tti, is_eob);
   }
 }
 

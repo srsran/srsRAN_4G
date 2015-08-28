@@ -95,7 +95,7 @@ uint8_t* demux::request_buffer(uint32_t len)
   uint8_t idx=0;
   if(find_unused_queue(&idx)) {
     if (idx > 0) {
-      printf("Using queue %d for MAC PDU\n", idx);
+      //printf("Using queue %d for MAC PDU\n", idx);
     }
     used_q[idx] = true; 
     uint8_t *buff = (uint8_t*) pdu_q[idx].request();

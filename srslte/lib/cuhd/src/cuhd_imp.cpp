@@ -123,7 +123,7 @@ double cuhd_set_rx_gain_th(void *h, double gain)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   gain = handler->rx_gain_range.clip(gain);     
-  if (gain != handler->new_rx_gain) {
+  if (gain > handler->new_rx_gain + 0.5 || gain < handler->new_rx_gain - 0.5) {
     pthread_mutex_lock(&handler->mutex);
     handler->new_rx_gain = gain; 
     pthread_cond_signal(&handler->cond);
@@ -151,7 +151,6 @@ static void* thread_gain_fcn(void *h) {
     if (handler->tx_gain_same_rx) {
       cuhd_set_tx_gain(h, handler->cur_rx_gain+handler->tx_rx_gain_offset);
     }
-    //printf("Set gain %.2f\n", handler->cur_rx_gain);
   }
 }
 

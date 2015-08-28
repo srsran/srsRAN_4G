@@ -61,7 +61,9 @@ namespace srslte {
 
       virtual float get_tx_gain() = 0; 
       virtual float get_rx_gain() = 0;
-      
+
+      // This is used for debugging/trace purposes
+      virtual void set_tti(uint32_t tti) = 0;      
   }; 
 }
 

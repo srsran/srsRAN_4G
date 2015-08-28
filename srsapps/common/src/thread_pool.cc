@@ -28,6 +28,11 @@
 #include <stdio.h>
 #include "srsapps/common/thread_pool.h"
 
+#define DEBUG 0
+#define debug_thread(fmt, ...) do { if(DEBUG) printf(fmt, __VA_ARGS__); } while(0)
+
+#define USE_QUEUE
+
 namespace srslte {
  
   
@@ -58,50 +63,38 @@ uint32_t thread_pool::worker::get_id()
 void thread_pool::worker::stop()
 {
   running = false; 
+  pthread_cond_signal(&my_parent->cvar[my_id]);
   wait_thread_finish();
 }
 
-void thread_pool::worker::wait_to_start()
+thread_pool::thread_pool(uint32_t nof_workers_)  : 
+                                  workers(nof_workers_),
+                                  status(nof_workers_),
+                                  cvar(nof_workers_),
+                                  mutex(nof_workers_)
+                                  
 {
-  pthread_mutex_lock(&my_parent->mutex_start); 
-  while(!my_parent->begin[my_id]) {
-    pthread_cond_wait(&my_parent->cvar_start, &my_parent->mutex_start);
-  }
-  my_parent->begin[my_id] = false; 
-  pthread_mutex_unlock(&my_parent->mutex_start);
-}
-
-void thread_pool::worker::finished()
-{
-  pthread_mutex_lock(&my_parent->mutex_stop);   
-  my_parent->available_workers.push(this); 
-  pthread_cond_signal(&my_parent->cvar_stop);
-  pthread_mutex_unlock(&my_parent->mutex_stop);
-}
-
-thread_pool::thread_pool(uint32_t nof_workers_)  : workers(nof_workers_), begin(nof_workers_) {
   nof_workers = nof_workers_;
   for (int i=0;i<nof_workers;i++) {
     workers[i] = NULL;
+    status[i] = IDLE; 
+    pthread_mutex_init(&mutex[i], NULL);
+    pthread_cond_init(&cvar[i], NULL);
   }
+  pthread_mutex_init(&mutex_queue, NULL);
+  pthread_cond_init(&cvar_queue, NULL);
   running = true; 
-  pthread_mutex_init(&mutex_start, NULL);
-  pthread_mutex_init(&mutex_stop, NULL);
-  pthread_cond_init(&cvar_start, NULL);
-  pthread_cond_init(&cvar_stop, NULL);
 }
 
 void thread_pool::init_worker(uint32_t id, worker *obj, uint32_t prio)
 {
   if (id < nof_workers) {
-    pthread_mutex_lock(&mutex_stop);   
-    begin[id] = false; 
+    pthread_mutex_lock(&mutex_queue);   
     workers[id] = obj; 
     available_workers.push(obj);    
-    printf("Added worker to available_workers, len=%lu\n", available_workers.size());
     obj->setup(id, this, prio);
-    pthread_cond_signal(&cvar_stop);
-    pthread_mutex_unlock(&mutex_stop);  
+    pthread_cond_signal(&cvar_queue);
+    pthread_mutex_unlock(&mutex_queue);  
   }
 }
 
@@ -109,9 +102,6 @@ void thread_pool::stop()
 {
   /* Stop any thread waiting for available worker */
   running = false; 
-  pthread_mutex_lock(&mutex_stop);
-  pthread_cond_signal(&cvar_start);
-  pthread_mutex_unlock(&mutex_stop);
   
   /* Now stop all workers */
   for (uint32_t i=0;i<nof_workers;i++) {
@@ -121,23 +111,119 @@ void thread_pool::stop()
       start_worker(i);
       workers[i]->wait_thread_finish();
     }
+    pthread_cond_destroy(&cvar[i]);
+    pthread_mutex_destroy(&mutex[i]);
   }
-  
-  /* And destroy mutexes */ 
-  pthread_mutex_destroy(&mutex_start);
-  pthread_mutex_destroy(&mutex_stop);
-  pthread_cond_destroy(&cvar_start);
-  pthread_cond_destroy(&cvar_stop);
+  pthread_cond_destroy(&cvar_queue);
+  pthread_mutex_destroy(&mutex_queue);
 }
 
+
+void thread_pool::worker::release()
+{
+  finished();
+}
+
+void thread_pool::worker::wait_to_start()
+{
+  
+  debug_thread("wait_to_start() id=%d, status=%d, enter\n", my_id, my_parent->status[my_id]);
+
+  pthread_mutex_lock(&my_parent->mutex[my_id]); 
+  while(my_parent->status[my_id] != START_WORK && running) {
+    pthread_cond_wait(&my_parent->cvar[my_id], &my_parent->mutex[my_id]);
+  }
+  my_parent->status[my_id] = WORKING; 
+  pthread_mutex_unlock(&my_parent->mutex[my_id]);
+
+  debug_thread("wait_to_start() id=%d, status=%d, exit\n", my_id, my_parent->status[my_id]);
+}
+
+void thread_pool::worker::finished()
+{
+#ifdef USE_QUEUE
+  //my_parent->available_workers.push(this); 
+  pthread_mutex_lock(&my_parent->mutex[my_id]); 
+  my_parent->status[my_id] = IDLE; 
+  pthread_mutex_unlock(&my_parent->mutex[my_id]); 
+
+  pthread_mutex_lock(&my_parent->mutex_queue); 
+  pthread_cond_signal(&my_parent->cvar_queue);
+  pthread_mutex_unlock(&my_parent->mutex_queue); 
+#else
+  pthread_mutex_lock(&my_parent->mutex[my_id]); 
+  my_parent->status[my_id] = IDLE; 
+  pthread_cond_signal(&my_parent->cvar[my_id]);
+  pthread_mutex_unlock(&my_parent->mutex[my_id]);   
+#endif
+}
+
+
+thread_pool::worker* thread_pool::wait_worker()
+{
+  wait_worker(0);
+}
+
+bool thread_pool::find_finished_worker(uint32_t tti, uint32_t *id) {
+  for(int i=0;i<nof_workers;i++) {
+    if (status[i] == IDLE) {
+      *id = i; 
+      return true; 
+    }
+  }
+  return false; 
+}
+
+thread_pool::worker* thread_pool::wait_worker(uint32_t tti)
+{
+  thread_pool::worker *x; 
+  
+#ifdef USE_QUEUE
+  debug_thread("wait_worker() - enter - tti=%d, state0=%d, state1=%d\n", tti, status[0], status[1]);
+  pthread_mutex_lock(&mutex_queue); 
+  uint32_t id = 0; 
+  while(!find_finished_worker(tti, &id) && running) {
+    pthread_cond_wait(&cvar_queue, &mutex_queue);    
+  }
+  pthread_mutex_unlock(&mutex_queue);
+  if (running) {
+    x = workers[id];
+    pthread_mutex_lock(&mutex[id]); 
+    status[id] = WORKER_READY;
+    pthread_mutex_unlock(&mutex[id]); 
+} else {
+    x = NULL; 
+  }  
+  debug_thread("wait_worker() - exit - id=%d, x=0x%x\n", id, x);
+#else
+  
+  uint32_t id = tti%nof_workers;
+  pthread_mutex_lock(&mutex[id]); 
+  while(status[id] != IDLE && running) {
+    pthread_cond_wait(&cvar[id], &mutex[id]);    
+  }
+  if (running) {
+    x = (worker*) workers[id];
+    status[id] = WORKER_READY;
+  } else {
+    x = NULL; 
+  }
+  pthread_mutex_unlock(&mutex[id]);
+#endif  
+  return x; 
+}
+
+
 void thread_pool::start_worker(uint32_t id) {
-  if (workers[id]) {
-    pthread_mutex_lock(&mutex_start); 
-    begin[id%nof_workers] = true; 
-    pthread_cond_signal(&cvar_start);
-    pthread_mutex_unlock(&mutex_start);
+  if (id < nof_workers) {
+    pthread_mutex_lock(&mutex[id]); 
+    status[id] = START_WORK;
+    pthread_cond_signal(&cvar[id]);
+    pthread_mutex_unlock(&mutex[id]);
+    debug_thread("start_worker() id=%d, status=%d\n", id, status[id]);
   }
 }
+
 
 void thread_pool::start_worker(worker* x)
 {
@@ -159,23 +245,6 @@ thread_pool::worker* thread_pool::get_worker(uint32_t id)
 uint32_t thread_pool::get_nof_workers()
 {
   return nof_workers;
-}
-
-thread_pool::worker* thread_pool::wait_worker()
-{
-  thread_pool::worker *x; 
-  pthread_mutex_lock(&mutex_stop); 
-  while(available_workers.empty() && running) {
-    pthread_cond_wait(&cvar_stop, &mutex_stop);    
-  }
-  if (running) {
-    x = (worker*) available_workers.top();
-    available_workers.pop();
-  } else {
-    x = NULL; 
-  }
-  pthread_mutex_unlock(&mutex_stop);
-  return x; 
 }
 
 }
