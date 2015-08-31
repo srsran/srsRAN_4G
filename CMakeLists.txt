@@ -151,4 +151,3 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/mex/include)
 ########################################################################
 ADD_SUBDIRECTORY(srslte)
 ADD_SUBDIRECTORY(mex)
-ADD_SUBDIRECTORY(srsapps)
