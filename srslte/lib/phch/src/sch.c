@@ -438,7 +438,7 @@ static int decode_tb(srslte_sch_t *q,
     }
 
     if (!early_stop) {
-      printf("CB %d failed. TB is erroneous.\n",i-1);
+      INFO("CB %d failed. TB is erroneous.\n",i-1);
       return SRSLTE_ERROR; 
     } else {
       INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);

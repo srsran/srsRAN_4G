@@ -134,8 +134,6 @@ sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
 uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
 {
   
-  pdu_msg.init_tx(payload, pdu_sz, true);
-
   if (pthread_mutex_trylock(&mutex)) {
     printf("M");fflush(stdout);
     pthread_mutex_lock(&mutex);
@@ -153,7 +151,9 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz)
   }
   
 // Logical Channel Procedure
-   
+
+  pdu_msg.init_tx(payload, pdu_sz, true);
+
   // MAC control element for C-RNTI or data from UL-CCCH
   bool is_first = true; 
   if (!allocate_sdu(0, &pdu_msg, &is_first)) {

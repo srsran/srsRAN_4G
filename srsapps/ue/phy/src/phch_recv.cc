@@ -320,9 +320,7 @@ void phch_recv::run_thread()
               prach_buffer->send(radio_h, cfo, tx_time_prach);
               radio_h->tx_end();              
             }            
-            Debug("Starting worker id %d\n", worker->get_id());
             workers_pool->start_worker(worker);             
-            Debug("Done worker id %d\n", worker->get_id());
             mac->tti_clock(tti);
           } else {
             worker->release();
