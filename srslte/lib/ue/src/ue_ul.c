@@ -410,7 +410,7 @@ int srslte_ue_ul_srs_encode(srslte_ue_ul_t *q, uint32_t tti, cf_t *output_signal
     }
     
     if (q->normalize_en) {
-      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(srslte_refsignal_srs_M_sc(&q->signals)/6);
+      float norm_factor = (float) q->cell.nof_prb/20/sqrtf(srslte_refsignal_srs_M_sc(&q->signals)/6);
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     
