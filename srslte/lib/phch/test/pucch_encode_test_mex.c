@@ -51,6 +51,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     help();
     return;
   }
+  srslte_verbose = SRSLTE_VERBOSE_DEBUG;
   
   srslte_cell_t cell;     
   bzero(&cell, sizeof(srslte_cell_t));
@@ -93,6 +94,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
   
   if (mexutils_read_uint32_struct(PUCCHCFG, "DeltaShift", &pucch_cfg.delta_pucch_shift)) {
+    mexErrMsgTxt("Field DeltaShift not found in PUCCHCFG\n");
+    return;
+  }
+  if (mexutils_read_uint32_struct(PUCCHCFG, "ResourceSize", &pucch_cfg.n_rb_2)) {
     mexErrMsgTxt("Field DeltaShift not found in PUCCHCFG\n");
     return;
   }

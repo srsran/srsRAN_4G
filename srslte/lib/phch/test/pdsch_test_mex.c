@@ -207,13 +207,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     noise_power = srslte_chest_dl_get_noise_estimate(&chest);
   }
   
-  uint8_t *data = malloc(sizeof(uint8_t) * grant.mcs.tbs);
-  if (!data) {
+  uint8_t *data_bytes = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
+  if (!data_bytes) {
     return;
   }
 
-  int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data);
+  int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data_bytes);
 
+  free(data_bytes);
+  
+  uint8_t *data = malloc(grant.mcs.tbs);
+  srslte_bit_pack_vector(data_bytes, data, grant.mcs.tbs);
   
   if (nlhs >= 1) { 
     plhs[0] = mxCreateLogicalScalar(r == 0);

@@ -54,7 +54,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     help();
     return;
   }
-
+  srslte_verbose = SRSLTE_VERBOSE_DEBUG;
+  
   srslte_cell_t cell;     
   bzero(&cell, sizeof(srslte_cell_t));
   cell.nof_ports = 1; 
@@ -123,8 +124,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   grant.n_prb[1] = prbset[0];
   free(prbset);
 
-  uint8_t *trblkin = NULL;
-  grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
+  uint8_t *trblkin_bits = NULL;
+  grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin_bits);
+
+  uint8_t *trblkin = srslte_vec_malloc(grant.mcs.tbs/8);
+  srslte_bit_unpack_vector(trblkin_bits, trblkin, grant.mcs.tbs);
+  free(trblkin_bits);
 
   grant.M_sc = grant.L_prb*SRSLTE_NRE;
   grant.M_sc_init = grant.M_sc; // FIXME: What should M_sc_init be? 
@@ -156,8 +161,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.uci_cqi_len = mexutils_read_uint8(CQI, &uci_data.uci_cqi);
   uint8_t *tmp;
+  uci_data.uci_cqi_len = mexutils_read_uint8(CQI, &tmp);
+  memcpy(&uci_data.uci_cqi, tmp, uci_data.uci_cqi_len);
+  free(tmp);
   uci_data.uci_ri_len = mexutils_read_uint8(RI, &tmp);
   if (uci_data.uci_ri_len > 0) {
     uci_data.uci_ri = *tmp;
@@ -229,9 +236,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nlhs >= 3) {
     mexutils_write_cf(pusch.z, &plhs[2], cfg.nbits.nof_re, 1);  
   }
+  if (nlhs >= 4) {
+    mexutils_write_uint8(pusch.q, &plhs[3], cfg.nbits.nof_bits, 1);  
+  }
   srslte_pusch_free(&pusch);  
   free(trblkin);
-  free(uci_data.uci_cqi);
   free(sf_symbols);
   free(scfdma);
   

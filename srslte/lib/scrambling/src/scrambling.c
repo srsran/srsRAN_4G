@@ -66,6 +66,7 @@ void srslte_scrambling_b_offset(srslte_sequence_t *s, uint8_t *data, int offset,
   int i;
   assert (len + offset <= s->len);
   // Do XOR on a word basis
+  
   if (!(len%8)) {
     uint64_t *x = (uint64_t*) data; 
     uint64_t *y = (uint64_t*) &s->c[offset];
@@ -75,35 +76,18 @@ void srslte_scrambling_b_offset(srslte_sequence_t *s, uint8_t *data, int offset,
   } else if (!(len%4)) {
     uint32_t *x = (uint32_t*) data; 
     uint32_t *y = (uint32_t*) &s->c[offset];
-    for (int i=0;i<len/8;i++) {
+    for (int i=0;i<len/4;i++) {
       x[i] = (x[i] ^ y[i]);
     }
   } else if (!(len%2)) {
     uint16_t *x = (uint16_t*) data; 
     uint16_t *y = (uint16_t*) &s->c[offset];
-    for (int i=0;i<len/8;i++) {
+    for (int i=0;i<len/2;i++) {
       x[i] = (x[i] ^ y[i]);
     }
-  } else {
+  } else {    
     for (i = 0; i < len; i++) {
       data[i] = (data[i] + s->c[i + offset]) % 2;
-    }
-  }
-}
-
-/* As defined in 36.211 5.3.1 */
-void srslte_scrambling_b_offset_pusch(srslte_sequence_t *s, uint8_t *data, int offset, int len) {
-  int i;
-  assert (len + offset <= s->len);
-  for (i = 0; i < len; i++) {
-    if (data[i] == 3) {
-      data[i] = 1; 
-    } else if (data[i] == 2) {
-      if (i > 1) {
-        data[i] = data[i-1];        
-      }
-    } else {
-      data[i] = (data[i] + s->c[i + offset]) % 2;      
     }
   }
 }

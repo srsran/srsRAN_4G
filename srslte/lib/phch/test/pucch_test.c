@@ -35,15 +35,16 @@
 #include "srslte/srslte.h"
 
 srslte_cell_t cell = {
-  6,            // nof_prb
+  25,            // nof_prb
   1,            // nof_ports
-  0,            // cell_id
+  2,            // bw_idx = 5 MHz
+  1,            // cell_id
   SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_SRSLTE_PHICH_R_1_6,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
 
-uint32_t subframe = 1;
+uint32_t subframe = 0;
 
 void usage(char *prog) {
   printf("Usage: %s [csNnv]\n", prog);
@@ -100,14 +101,14 @@ int main(int argc, char **argv) {
   bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
   
   for (int i=0;i<SRSLTE_PUCCH_MAX_BITS;i++) {
-    bits[i] = rand()%2;
+    bits[i] = i%2;
   }
         
   for (int i=0;i<2;i++) {
-    pucch2_bits[i] = rand()%2;
+    pucch2_bits[i] = i%2;
   }
   
-  if (srslte_pucch_set_crnti(&pucch, 1234)) {
+  if (srslte_pucch_set_crnti(&pucch, 11)) {
     fprintf(stderr, "Error setting C-RNTI\n");
     goto quit; 
   }
@@ -122,6 +123,12 @@ int main(int argc, char **argv) {
     for (uint32_t d=1;d<=3;d++) {
       for (uint32_t ncs=0;ncs<8;ncs+=d) {
         for (uint32_t n_pucch=1;n_pucch<130;n_pucch++) {
+  
+          format=SRSLTE_PUCCH_FORMAT_2;
+          uint32_t d=2;
+          uint32_t ncs=0;
+          uint32_t n_pucch=0;
+          
           struct timeval t[3]; 
           
           

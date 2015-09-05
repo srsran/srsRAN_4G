@@ -274,9 +274,10 @@ static int encode_tb(srslte_sch_t *q,
         
         /* Turbo Encoding */
         srslte_tcod_encode(&q->encoder, q->cb_temp, (uint8_t*) q->cb_out, cb_len);
+
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d encoded: ", i);
-          srslte_vec_fprint_b(stdout, q->cb_out, cb_len);
+          srslte_vec_fprint_b(stdout, q->cb_out, 3*cb_len+12);
         }
       }
       
@@ -496,7 +497,8 @@ int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuf
 
 
 /* UL-SCH channel interleaver according to 5.5.2.8 of 36.212 */
-void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, uint32_t N_pusch_symbs, uint8_t *q_bits) 
+void ulsch_interleave(srslte_uci_pos_t *q, uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
+                      uint32_t N_pusch_symbs, uint8_t *q_bits) 
 {
   
   uint32_t rows = H_prime_total/N_pusch_symbs;
@@ -508,6 +510,11 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, uint
       for(uint32_t k=0; k<Qm; k++) {
         if (q_bits[j*Qm + i*rows*Qm + k] >= 10) {
           q_bits[j*Qm + i*rows*Qm + k] -= 10;
+          q->pos[q->idx%SRSLTE_UCI_MAX_CQI_LEN_PUSCH] = j*Qm + i*rows*Qm + k;
+          q->idx++;
+          if (q->idx >= SRSLTE_UCI_MAX_CQI_LEN_PUSCH) {
+            fprintf(stderr, "Error number of UCI bits exceeds SRSLTE_UCI_MAX_CQI_LEN_PUSCH\n");
+          }
         } else {
           q_bits[j*Qm + i*rows*Qm + k] = g_bits[idx];                                
           idx++;                  
@@ -569,7 +576,7 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   }
   
   e_offset += Q_prime_cqi*Qm;
-  
+ 
   // Encode UL-SCH
   if (cfg->cb_segm.tbs > 0) {
     uint32_t G = nb_q/Qm - Q_prime_ri - Q_prime_cqi;     
@@ -580,17 +587,18 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
       return ret; 
     }    
   } 
-    
+   
   // Interleave UL-SCH (and RI and CQI)
-  ulsch_interleave(g_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits);
-  
+  q->uci_pos.idx=0;
+  ulsch_interleave(&q->uci_pos, g_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits);
+
    // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
     float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ack(cfg, uci_data.uci_ack, uci_data.uci_cqi_len, beta, nb_q/Qm, q_bits);
+    ret = srslte_uci_encode_ack(cfg, &q->uci_pos, uci_data.uci_ack, uci_data.uci_cqi_len, beta, nb_q/Qm, q_bits);
     if (ret < 0) {
       return ret; 
     }

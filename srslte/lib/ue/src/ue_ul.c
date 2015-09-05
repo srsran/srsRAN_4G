@@ -57,7 +57,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
       goto clean_exit;
     }
     srslte_ofdm_set_freq_shift(&q->fft, 0.5);
-    srslte_ofdm_set_normalize(&q->fft, false);
+    srslte_ofdm_set_normalize(&q->fft, true);
     
     q->normalize_en = false; 
 
@@ -215,6 +215,66 @@ int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, srslte_ra_ul_grant_t *grant,
   return srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, grant, &q->uci_cfg, &q->hopping_cfg, &q->srs_cfg, tti, rvidx, current_tx_nb);
 }
 
+int pucch_encode_bits(srslte_uci_data_t *uci_data, srslte_pucch_format_t *format, 
+                      uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS], uint8_t pucch2_bits[2], 
+                      srslte_cp_t cp) 
+{  
+  int ret = SRSLTE_SUCCESS; 
+  
+  // No CQI data
+  if (uci_data->uci_cqi_len == 0) {
+    // 1-bit ACK + optional SR
+    if (uci_data->uci_ack_len == 1) {
+      *format = SRSLTE_PUCCH_FORMAT_1A;
+      pucch_bits[0] = uci_data->uci_ack; 
+    }
+    // 2-bit ACK + optional SR
+    else if (uci_data->uci_ack_len == 2) {
+      *format = SRSLTE_PUCCH_FORMAT_1B;    
+      pucch_bits[0] = uci_data->uci_ack; 
+      pucch_bits[1] = uci_data->uci_ack_2; 
+    }
+    // SR only 
+    else if (uci_data->scheduling_request) {
+      *format = SRSLTE_PUCCH_FORMAT_1;    
+    } else {
+      ret = SRSLTE_ERROR; 
+    }
+  }
+  // CQI data
+  else {
+    srslte_uci_encode_cqi_pucch(uci_data->uci_cqi, uci_data->uci_cqi_len, pucch_bits);
+    // CQI and no ack
+    if (uci_data->uci_ack_len == 0) {
+      *format = SRSLTE_PUCCH_FORMAT_2;    
+    }
+    // CQI + 1-bit ACK
+    else if (uci_data->uci_cqi_len == SRSLTE_PUCCH_MAX_BITS && uci_data->uci_ack_len == 1) {
+      *format = SRSLTE_PUCCH_FORMAT_2A;    
+      pucch2_bits[0] = uci_data->uci_ack; 
+    }
+    // CQI + 2-bit ACK 
+    else if (uci_data->uci_cqi_len == SRSLTE_PUCCH_MAX_BITS && uci_data->uci_ack_len == 2) {
+      *format = SRSLTE_PUCCH_FORMAT_2B;    
+      pucch2_bits[0] = uci_data->uci_ack; 
+      pucch2_bits[1] = uci_data->uci_ack_2; 
+    }
+    // CQI + 2-bit ACK + cyclic prefix 
+    else if (uci_data->uci_cqi_len == SRSLTE_PUCCH_MAX_BITS && uci_data->uci_ack_len == 1 && SRSLTE_CP_ISEXT(cp)) {
+      *format = SRSLTE_PUCCH_FORMAT_2B;    
+      pucch2_bits[0] = uci_data->uci_ack; 
+      pucch2_bits[1] = uci_data->uci_ack_2; 
+    } else {
+      ret = SRSLTE_ERROR; 
+    }
+  }
+  if (ret) {
+    fprintf(stderr, "Unsupported combination of UCI parameters: ack_len=%d, cqi_len=%d\n", 
+            uci_data->uci_ack, uci_data->uci_cqi_len);
+  }
+  return ret; 
+}
+
 /* Choose PUCCH format as in Sec 10.1 of 36.213 and generate PUCCH signal 
  */
 int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
@@ -238,48 +298,8 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     bzero(pucch_bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
     bzero(pucch2_bits, 2*sizeof(uint8_t));
     
-    // 1-bit ACK + optional SR
-    if (uci_data.uci_ack_len == 1) {
-      format = SRSLTE_PUCCH_FORMAT_1A;
-      pucch_bits[0] = uci_data.uci_ack; 
-    }
-    // 2-bit ACK + optional SR
-    else if (uci_data.uci_ack_len == 2) {
-      format = SRSLTE_PUCCH_FORMAT_1B;    
-      pucch_bits[0] = uci_data.uci_ack; 
-      pucch_bits[1] = uci_data.uci_ack_2; 
-    }
-    // SR only 
-    else if (uci_data.scheduling_request) {
-      format = SRSLTE_PUCCH_FORMAT_1;    
-    }
-    // CQI and no ack
-    else if (uci_data.uci_cqi_len == SRSLTE_PUCCH_MAX_BITS && uci_data.uci_ack_len == 0) {
-      format = SRSLTE_PUCCH_FORMAT_2;    
-      memcpy(pucch_bits, uci_data.uci_cqi, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
-    }
-    // CQI + 1-bit ACK
-    else if (uci_data.uci_cqi_len == SRSLTE_PUCCH_MAX_BITS && uci_data.uci_ack_len == 1) {
-      format = SRSLTE_PUCCH_FORMAT_2A;    
-      memcpy(pucch_bits, uci_data.uci_cqi, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
-      pucch2_bits[0] = uci_data.uci_ack; 
-    }
-    // CQI + 2-bit ACK 
-    else if (uci_data.uci_cqi_len == 20 && uci_data.uci_ack_len == 2) {
-      format = SRSLTE_PUCCH_FORMAT_2B;    
-      memcpy(pucch_bits, uci_data.uci_cqi, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
-      pucch2_bits[0] = uci_data.uci_ack; 
-      pucch2_bits[1] = uci_data.uci_ack_2; 
-    }
-    // CQI + 2-bit ACK + cyclic prefix 
-    else if (uci_data.uci_cqi_len == 20 && uci_data.uci_ack_len == 1 && SRSLTE_CP_ISEXT(q->cell.cp)) {
-      format = SRSLTE_PUCCH_FORMAT_2B;    
-      memcpy(pucch_bits, uci_data.uci_cqi, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
-      pucch2_bits[0] = uci_data.uci_ack; 
-      pucch2_bits[1] = uci_data.uci_ack_2; 
-    } else {
-      fprintf(stderr, "Unsupported combination of UCI parameters: ack_len=%d, cqi_len=%d\n", 
-              uci_data.uci_ack, uci_data.uci_cqi_len);
+    // Encode UCI information 
+    if (pucch_encode_bits(&uci_data, &format, pucch_bits, pucch2_bits, q->cell.cp)) {
       return SRSLTE_ERROR; 
     }
     
@@ -320,7 +340,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     }
     
     if (q->normalize_en) {
-      float norm_factor = (float) 0.9*q->cell.nof_prb/5;
+      float norm_factor = (float) 0.6*q->cell.nof_prb/5;
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     ret = SRSLTE_SUCCESS; 
@@ -457,7 +477,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
     }
     
     if (q->normalize_en) {
-      float norm_factor = (float) q->cell.nof_prb/10/sqrtf(q->pusch_cfg.grant.L_prb);
+      float norm_factor = (float) q->cell.nof_prb/15/sqrtf(q->pusch_cfg.grant.L_prb);
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     

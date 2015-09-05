@@ -242,7 +242,7 @@ int srslte_pusch_init(srslte_pusch_t *q, srslte_cell_t cell) {
     }
     q->d = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
     if (!q->d) {
-      goto clean;
+      goto clean; 
     }
 
     q->ce = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
@@ -538,11 +538,24 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_b_offset_pusch(&seq, (uint8_t*) q->q, 0, cfg->nbits.nof_bits);      
+      srslte_scrambling_b_offset(&seq, (uint8_t*) q->q, 0, cfg->nbits.nof_bits);      
       srslte_sequence_free(&seq);
     } else {
-      srslte_scrambling_b_offset_pusch(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits);            
+      srslte_scrambling_b_offset(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits);            
     }
+    
+    // Correct UCI placeholder bits    
+    uint8_t *d = q->q; 
+    for (int i = 0; i < q->dl_sch.uci_pos.idx; i++) {     
+      if (d[q->dl_sch.uci_pos.pos[i]] & SRSLTE_UCI_ACK_RI_PLACEHOLDER) {
+        d[q->dl_sch.uci_pos.pos[i]] = 1; 
+      } else if (d[q->dl_sch.uci_pos.pos[i]] & SRSLTE_UCI_ACK_RI_PLACEHOLDER_REPETITION) {
+        if (q->dl_sch.uci_pos.pos[i] > 1) {
+          d[q->dl_sch.uci_pos.pos[i]] = d[q->dl_sch.uci_pos.pos[i]-1];        
+        } 
+      }
+    }
+    
     srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
     srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);
     

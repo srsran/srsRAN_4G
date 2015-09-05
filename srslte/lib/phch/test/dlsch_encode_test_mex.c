@@ -45,7 +45,6 @@ void help()
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   srslte_sch_t dlsch;
-  uint8_t *trblkin;
   srslte_pdsch_cfg_t cfg; 
   srslte_softbuffer_tx_t softbuffer; 
 
@@ -61,13 +60,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_cell_t cell;
   cell.nof_prb = 100;
   cell.id=1;
+  srslte_verbose = SRSLTE_VERBOSE_NONE; 
   
-  cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
+  uint8_t *trblkin_bits = NULL;
+  cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin_bits);
   if (cfg.grant.mcs.tbs == 0) {
     mexErrMsgTxt("Error trblklen is zero\n");
     return;
   }
-  
+  uint8_t *trblkin = srslte_vec_malloc(cfg.grant.mcs.tbs/8);
+  srslte_bit_unpack_vector(trblkin_bits, trblkin, cfg.grant.mcs.tbs);
+  free(trblkin_bits);
+
   if (mexutils_read_uint32_struct(PUSCHCFG, "RV", &cfg.rv)) {
     mexErrMsgTxt("Field RV not found in dlsch config\n");
     return;

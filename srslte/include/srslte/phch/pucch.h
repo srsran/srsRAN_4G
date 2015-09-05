@@ -40,9 +40,10 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/common/sequence.h"
 #include "srslte/modem/mod.h"
+#include "srslte/phch/cqi.h"
 
 #define SRSLTE_PUCCH_N_SEQ       12 
-#define SRSLTE_PUCCH_MAX_BITS    20
+#define SRSLTE_PUCCH_MAX_BITS    SRSLTE_CQI_MAX_BITS
 #define SRSLTE_PUCCH_MAX_SYMBOLS 120 
 
 typedef enum SRSLTE_API {

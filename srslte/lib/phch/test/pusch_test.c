@@ -167,16 +167,13 @@ int main(int argc, char **argv) {
   
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.uci_cqi_len = 8; 
+  uci_data.uci_cqi_len = 20; 
   uci_data.uci_ri_len = 0; 
   uci_data.uci_ack_len = 1; 
 
-  uint8_t tmp[20];
   for (uint32_t i=0;i<20;i++) {
-    tmp[i] = 1;
+    uci_data.uci_cqi [i] = 1;
   }
-
-  uci_data.uci_cqi = tmp;
   uci_data.uci_ri = 0; 
   uci_data.uci_ack = 0; 
 

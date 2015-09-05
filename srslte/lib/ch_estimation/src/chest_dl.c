@@ -380,6 +380,10 @@ float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
   return srslte_vec_acc_ff(q->noise_estimate, q->cell.nof_ports)/q->cell.nof_ports;
 }
 
+float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
+  return srslte_chest_dl_get_rsrp(q)/srslte_chest_dl_get_noise_estimate(q);
+}
+
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {
   return 4*q->rssi[0]/q->cell.nof_prb/SRSLTE_NRE; 
 }

@@ -136,6 +136,8 @@ int main(int argc, char **argv) {
   bzero(&pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
+  bzero(&softbuffer_rx, sizeof(srslte_softbuffer_rx_t));
+  bzero(&softbuffer_tx, sizeof(srslte_softbuffer_tx_t));
   
   srslte_ra_dl_grant_t grant; 
   grant.mcs.tbs = tbs; 
