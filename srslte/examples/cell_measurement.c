@@ -40,10 +40,7 @@
 #include "srslte/cuhd/cuhd.h"
 #include "srslte/cuhd/cuhd_utils.h"
 
-#define B210_DEFAULT_GAIN         40.0
-#define B210_DEFAULT_GAIN_CORREC  110.0 // Gain of the Rx chain when the gain is set to 40
-
-float gain_offset = B210_DEFAULT_GAIN_CORREC;
+#define B210_DEFAULT_GAIN_CORREC  100.0 
 
 cell_search_cfg_t cell_detect_config = {
   5000, // maximum number of frames to receive for MIB decoding
@@ -69,7 +66,7 @@ void args_default(prog_args_t *args) {
   args->force_N_id_2 = -1; // Pick the best
   args->uhd_args = "";
   args->uhd_freq = -1.0;
-  args->uhd_gain = B210_DEFAULT_GAIN; 
+  args->uhd_gain = 50; 
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -188,6 +185,10 @@ int main(int argc, char **argv) {
   /* set sampling frequency */
   int srate = srslte_sampling_freq_hz(cell.nof_prb);
   if (srate != -1) {  
+    /* Modify master clock rate for 15 Mhz */
+    if (cell.nof_prb == 75) {
+      cuhd_set_master_clock_rate(uhd, 23.04e6);
+    }
     cuhd_set_rx_srate(uhd, (double) srate);      
   } else {
     fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
@@ -279,7 +280,7 @@ int main(int argc, char **argv) {
               nof_trials++; 
             } else {
               printf("Decoded SIB1. Payload: ");
-              srslte_vec_fprint_hex(stdout, data, n);;
+              srslte_vec_fprint_byte(stdout, data, n/8);;
               state = MEASURE;
             }
           }
@@ -293,15 +294,11 @@ int main(int argc, char **argv) {
           
           srslte_chest_dl_estimate(&chest, sf_symbols, ce, srslte_ue_sync_get_sfidx(&ue_sync));
                   
-          rssi = SRSLTE_VEC_CMA(srslte_vec_avg_power_cf(sf_buffer,SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))),rssi,nframes);
-          rssi_utra = SRSLTE_VEC_CMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,nframes);
+          rssi = SRSLTE_VEC_EMA(srslte_vec_avg_power_cf(sf_buffer,SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))),rssi,0.05);
+          rssi_utra = SRSLTE_VEC_EMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,0.05);
           rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&chest),rsrq,0.05);
           rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&chest),rsrp,0.05);      
           snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_snr(&chest),snr,0.05);      
-          // Adjust with USRP gain
-          rssi += cuhd_get_rx_gain(uhd);
-          rssi_utra += cuhd_get_rx_gain(uhd);
-          rsrp += cuhd_get_rx_gain(uhd);
           
           nframes++;          
         }        
@@ -311,9 +308,9 @@ int main(int argc, char **argv) {
           printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %5.1f dB\r",
                 srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
-                10*log10(rssi*1000)-gain_offset, 
-                10*log10(rssi_utra*1000)-gain_offset, 
-                10*log10(rsrp*1000)-gain_offset, 
+                10*log10(rssi*1000) - cuhd_get_rx_gain(uhd), 
+                10*log10(rssi_utra*1000)- cuhd_get_rx_gain(uhd), 
+                10*log10(rsrp*1000)- cuhd_get_rx_gain(uhd), 
                 10*log10(rsrq), 10*log10(snr));                
           if (srslte_verbose != SRSLTE_VERBOSE_NONE) {
             printf("\n");

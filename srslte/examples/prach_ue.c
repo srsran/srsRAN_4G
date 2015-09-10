@@ -344,6 +344,10 @@ cell.nof_ports = 1;
   /* set sampling frequency */
   int srate = srslte_sampling_freq_hz(cell.nof_prb);
   if (srate != -1) {  
+    /* Modify master clock rate for 15 Mhz */
+    if (cell.nof_prb == 75) {
+      cuhd_set_master_clock_rate(uhd, 23.04e6);
+    }
     cuhd_set_rx_srate(uhd, (double) srate);      
     cuhd_set_tx_srate(uhd, (double) srate);      
   } else {

@@ -220,6 +220,10 @@ int cuhd_close(void *h)
   return 0;
 }
 
+void cuhd_set_master_clock_rate(void *h, double rate) {
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  handler->usrp->set_master_clock_rate(rate);    
+}
 
 double cuhd_set_rx_srate(void *h, double freq)
 {

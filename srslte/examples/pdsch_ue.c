@@ -323,6 +323,10 @@ int main(int argc, char **argv) {
     /* set sampling frequency */
     int srate = srslte_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {  
+      /* Modify master clock rate for 15 Mhz */
+      if (cell.nof_prb == 75) {
+        cuhd_set_master_clock_rate(uhd, 23.04e6);
+      }
       cuhd_set_rx_srate(uhd, (double) srate);      
     } else {
       fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
@@ -408,15 +412,7 @@ int main(int argc, char **argv) {
 #endif
   
   ue_sync.correct_cfo = !prog_args.disable_cfo;
-  
-  /* Set high priority */  
-  struct sched_param param;
-  param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-  if (sched_setscheduler(pthread_self(), SCHED_FIFO, &param)) {
-    perror("setscheduler");
-  }
-
-  
+    
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
