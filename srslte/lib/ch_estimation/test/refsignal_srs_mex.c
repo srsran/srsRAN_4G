@@ -78,7 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   srslte_refsignal_srs_cfg_t srs_cfg; 
   bzero(&srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
-  srs_cfg.beta_srs = 1.0; 
+  
   if (mexutils_read_uint32_struct(SRSCFG, "BWConfig", &srs_cfg.bw_cfg)) {
     mexErrMsgTxt("Field BWConfig not found in SRSCFG\n");
     return;
@@ -133,8 +133,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error initiating UL refsignal\n");
     return;
   }
-
-  srslte_refsignal_ul_set_cfg(&refsignal, NULL, NULL, &srs_cfg, group_hopping_en, false);
+  srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg; 
+  pusch_cfg.group_hopping_en = group_hopping_en;
+  pusch_cfg.sequence_hopping_en = false; 
+  srslte_refsignal_ul_set_cfg(&refsignal, &pusch_cfg, NULL, &srs_cfg);
 
   if (srslte_refsignal_srs_gen(&refsignal, sf_idx, r_srs)) {
     mexErrMsgTxt("Error generating SRS\n");    

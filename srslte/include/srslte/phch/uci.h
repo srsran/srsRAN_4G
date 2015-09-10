@@ -40,10 +40,14 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/pusch_cfg.h"
 #include "srslte/fec/crc.h"
+#include "srslte/phch/cqi.h"
 
 #define SRSLTE_UCI_MAX_CQI_LEN_PUSCH       512
 #define SRSLTE_UCI_MAX_CQI_LEN_PUCCH       13
 #define SRSLTE_UCI_CQI_CODED_PUCCH_B       20
+
+#define SRSLTE_UCI_ACK_RI_PLACEHOLDER_REPETITION 0xC0
+#define SRSLTE_UCI_ACK_RI_PLACEHOLDER            0x30
 
 typedef struct SRSLTE_API {
   srslte_crc_t crc;
@@ -52,19 +56,21 @@ typedef struct SRSLTE_API {
 } srslte_uci_cqi_pusch_t;
 
 typedef struct SRSLTE_API {
-  uint8_t *uci_cqi;
+  uint8_t  uci_cqi[SRSLTE_CQI_MAX_BITS];
   uint32_t uci_cqi_len;
-  uint32_t I_offset_cqi;
   uint8_t  uci_ri;  // Only 1-bit supported for RI
   uint32_t uci_ri_len;
-  uint32_t I_offset_ri;
   uint8_t  uci_ack;   // 1st codeword bit for HARQ-ACK
   uint8_t  uci_ack_2; // 2st codeword bit for HARQ-ACK
   uint32_t uci_ack_len;
-  uint32_t I_offset_ack;
   bool scheduling_request; 
   bool channel_selection; 
 } srslte_uci_data_t;
+
+typedef struct {
+  uint32_t idx;
+  uint32_t pos[SRSLTE_UCI_MAX_CQI_LEN_PUSCH];  
+} srslte_uci_pos_t;
 
 SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q);
 
@@ -83,6 +89,7 @@ SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data,
                                            uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
 
 SRSLTE_API int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
+                                     srslte_uci_pos_t *pos,
                                      uint8_t data, 
                                      uint32_t O_cqi, 
                                      float beta, 

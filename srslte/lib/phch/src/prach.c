@@ -411,15 +411,17 @@ int srslte_prach_init(srslte_prach_t *p,
     p->ifft_in = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
     p->ifft_out = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
     p->ifft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
-    if(srslte_dft_plan(p->ifft, p->N_ifft_prach, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)){
-       return -1;
+    if(srslte_dft_plan(p->ifft, p->N_ifft_prach, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
+      fprintf(stderr, "Error creating DFT plan\n");
+      return -1;
     }
     srslte_dft_plan_set_mirror(p->ifft, true);
     srslte_dft_plan_set_norm(p->ifft, true);
 
     p->fft = (srslte_dft_plan_t*)srslte_vec_malloc(sizeof(srslte_dft_plan_t));
     if(srslte_dft_plan(p->fft, p->N_ifft_prach, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)){
-       return -1;
+      fprintf(stderr, "Error creating DFT plan\n");
+      return -1;
     }
     srslte_dft_plan_set_mirror(p->fft, true);
     srslte_dft_plan_set_norm(p->fft, true);
@@ -428,6 +430,8 @@ int srslte_prach_init(srslte_prach_t *p,
     p->N_cp = prach_Tcp[p->f]*p->N_ifft_ul/2048;
 
     ret = SRSLTE_SUCCESS;
+  } else {
+    fprintf(stderr, "Invalid parameters\n");
   }
 
   return ret;

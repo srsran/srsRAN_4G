@@ -129,17 +129,20 @@ int main(int argc, char **argv) {
     dci.type2_alloc.L_crb = L_prb; 
     dci.type2_alloc.RB_start = n_prb;    
   } else {
-    srslte_ra_type2_from_riv((uint32_t) riv, &dci.type2_alloc.L_crb, &dci.type2_alloc.RB_start, cell.nof_prb, cell.nof_prb);
+    dci.type2_alloc.riv = riv;
   }
   dci.mcs_idx = mcs_idx;
-  srslte_dci_msg_t dci_msg; 
-  srslte_dci_msg_pack_pusch(&dci, &dci_msg, cell.nof_prb);
-
+  
+  srslte_ra_ul_grant_t grant; 
+  if (srslte_ra_ul_dci_to_grant(&dci, cell.nof_prb, 0, &grant)) {
+    fprintf(stderr, "Error computing resource allocation\n");
+    return ret;
+  }
+      
   srslte_pusch_hopping_cfg_t ul_hopping; 
   ul_hopping.n_sb = 1; 
   ul_hopping.hopping_offset = 0;
   ul_hopping.hop_mode = SRSLTE_PUSCH_HOP_MODE_INTER_SF;
-  ul_hopping.current_tx_nb = 0;
   
   if (srslte_pusch_init(&pusch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
@@ -147,35 +150,35 @@ int main(int argc, char **argv) {
   }
   
   /* Configure PUSCH */
-  if (srslte_pusch_cfg(&pusch, &cfg, &dci_msg, &ul_hopping, NULL, subframe, 0, 0)) {
+    
+  printf("Encoding rv_idx=%d\n",rv_idx);
+  
+  srslte_uci_cfg_t uci_cfg; 
+  uci_cfg.I_offset_cqi = 7; 
+  uci_cfg.I_offset_ri = 2; 
+  uci_cfg.I_offset_ack = 4; 
+
+  if (srslte_pusch_cfg(&pusch, &cfg, &grant, &uci_cfg, &ul_hopping, NULL, subframe, 0, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
   
   srslte_pusch_set_rnti(&pusch, 1234);
-    
-  printf("Encoding rv_idx=%d\n",rv_idx);
-  cfg.rv = 0; 
-  cfg.sf_idx = subframe; 
   
-  uint8_t tmp[20];
-  for (uint32_t i=0;i<20;i++) {
-    tmp[i] = 1;
-  }
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.I_offset_cqi = 7; 
-  uci_data.I_offset_ri = 2; 
-  uci_data.I_offset_ack = 4; 
-  
-  uci_data.uci_cqi_len = 8; 
+  uci_data.uci_cqi_len = 20; 
   uci_data.uci_ri_len = 0; 
   uci_data.uci_ack_len = 1; 
 
-  uci_data.uci_cqi = tmp;
+  for (uint32_t i=0;i<20;i++) {
+    uci_data.uci_cqi [i] = 1;
+  }
   uci_data.uci_ri = 0; 
   uci_data.uci_ack = 0; 
-    
+
+  
+
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
@@ -189,7 +192,7 @@ int main(int argc, char **argv) {
   srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
   srslte_ofdm_set_freq_shift(&fft, 0.5);
   
-  data = malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
+  data = srslte_vec_malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
   if (!data) {
     perror("malloc");
     goto quit;
@@ -200,7 +203,7 @@ int main(int argc, char **argv) {
   }
 
   gettimeofday(&t[1], NULL);
-  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+  if (srslte_softbuffer_tx_init(&softbuffer, 4*cell.nof_prb)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
@@ -228,7 +231,10 @@ int main(int argc, char **argv) {
     ret = -1;
     goto quit;
   } else {
-    printf("ENCODED OK in %d:%d (%.2f Mbps)\n", (int) t[0].tv_sec, (int) t[0].tv_usec, 
+    printf("ENCODED OK in %d:%d (TBS: %d bits, TX: %.2f Mbps, Processing: %.2f Mbps)\n", (int) t[0].tv_sec, 
+           (int) t[0].tv_usec, 
+           cfg.grant.mcs.tbs,
+           (float) cfg.grant.mcs.tbs/1000,
            (float) cfg.grant.mcs.tbs/t[0].tv_usec);
   }
   

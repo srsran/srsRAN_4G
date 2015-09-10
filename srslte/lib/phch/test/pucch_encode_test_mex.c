@@ -51,6 +51,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     help();
     return;
   }
+  srslte_verbose = SRSLTE_VERBOSE_DEBUG;
   
   srslte_cell_t cell;     
   bzero(&cell, sizeof(srslte_cell_t));
@@ -91,8 +92,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   srslte_pucch_cfg_t pucch_cfg; 
   bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
-  pucch_cfg.beta_pucch = 1.0; 
+  
   if (mexutils_read_uint32_struct(PUCCHCFG, "DeltaShift", &pucch_cfg.delta_pucch_shift)) {
+    mexErrMsgTxt("Field DeltaShift not found in PUCCHCFG\n");
+    return;
+  }
+  if (mexutils_read_uint32_struct(PUCCHCFG, "ResourceSize", &pucch_cfg.n_rb_2)) {
     mexErrMsgTxt("Field DeltaShift not found in PUCCHCFG\n");
     return;
   }
@@ -190,7 +195,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     bzero(dmrs_pucch, sizeof(cf_t)*SRSLTE_NRE*3*2);
     
-    srslte_refsignal_ul_set_cfg(&pucch_dmrs, NULL, &pucch_cfg, NULL, group_hopping_en, false);
+    srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg; 
+    pusch_cfg.group_hopping_en = group_hopping_en; 
+    pusch_cfg.sequence_hopping_en = false; 
+    srslte_refsignal_ul_set_cfg(&pucch_dmrs, &pusch_cfg, &pucch_cfg, NULL);
     
     if (srslte_refsignal_dmrs_pucch_gen(&pucch_dmrs, format, n_pucch, sf_idx, pucch2_bits, dmrs_pucch)) {
       mexErrMsgTxt("Error generating PUCCH DMRS\n");

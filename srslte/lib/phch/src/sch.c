@@ -111,6 +111,10 @@ int srslte_sch_init(srslte_sch_t *q) {
     if (!q->cb_in) {
       goto clean;
     }
+    q->cb_temp = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_TCOD_MAX_LEN_CB);
+    if (!q->cb_temp) {
+      goto clean;
+    }
     
     q->cb_out = srslte_vec_malloc(sizeof(float) * (3 * SRSLTE_TCOD_MAX_LEN_CB + 12));
     if (!q->cb_out) {
@@ -132,6 +136,9 @@ clean:
 void srslte_sch_free(srslte_sch_t *q) {
   if (q->cb_in) {
     free(q->cb_in);
+  }
+  if (q->cb_temp) {
+    free(q->cb_temp);
   }
   if (q->cb_out) {
     free(q->cb_out);
@@ -161,8 +168,7 @@ static int encode_tb(srslte_sch_t *q,
                      uint32_t Qm, uint32_t rv, uint32_t nof_e_bits,  
                      uint8_t *data, uint8_t *e_bits) 
 {
-  uint8_t parity[24];
-  uint8_t *p_parity = parity;
+  uint8_t parity[3] = {0, 0, 0};
   uint32_t par;
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
@@ -182,17 +188,20 @@ static int encode_tb(srslte_sch_t *q,
     }
 
     if (data) {
+
       /* Compute transport block CRC */
-      par = srslte_crc_checksum(&q->crc_tb, data, cb_segm->tbs);
+      par = srslte_crc_checksum_byte(&q->crc_tb, data, cb_segm->tbs);
 
       /* parity bits will be appended later */
-      srslte_bit_pack(par, &p_parity, 24);
+      parity[0] = (par&(0xff<<16))>>16;
+      parity[1] = (par&(0xff<<8))>>8;
+      parity[2] = par&0xff;
 
       if (SRSLTE_VERBOSE_ISDEBUG()) {
         DEBUG("DATA: ", 0);
-        srslte_vec_fprint_b(stdout, data, cb_segm->tbs);
+        srslte_vec_fprint_byte(stdout, data, cb_segm->tbs/8);
         DEBUG("PARITY: ", 0);
-        srslte_vec_fprint_b(stdout, parity, 24);
+        srslte_vec_fprint_byte(stdout, parity, 3);
       }      
     }
     
@@ -230,33 +239,46 @@ static int encode_tb(srslte_sch_t *q,
         /* Copy data to another buffer, making space for the Codeblock CRC */
         if (i < cb_segm->C - 1) {
           // Copy data 
-          memcpy(&q->cb_in[F], &data[rp], (rlen - F) * sizeof(uint8_t));
+          memcpy(&q->cb_in[F/8], &data[rp/8], (rlen - F) * sizeof(uint8_t)/8);
         } else {
           INFO("Last CB, appending parity: %d from %d and 24 to %d\n",
               rlen - F - 24, rp, rlen - 24);
+          
           /* Append Transport Block parity bits to the last CB */
-          memcpy(&q->cb_in[F], &data[rp], (rlen - 24 - F) * sizeof(uint8_t));
-          memcpy(&q->cb_in[rlen - 24], parity, 24 * sizeof(uint8_t));
+          memcpy(&q->cb_in[F/8], &data[rp/8], (rlen - 24 - F) * sizeof(uint8_t)/8);
+          memcpy(&q->cb_in[(rlen - 24)/8], parity, 3 * sizeof(uint8_t));
         }        
+        
         /* Filler bits are treated like zeros for the CB CRC calculation */
-        for (int j = 0; j < F; j++) {
+        for (int j = 0; j < F/8; j++) {
           q->cb_in[j] = 0;
         }
+        
         /* Attach Codeblock CRC */
         if (cb_segm->C > 1) {
-          srslte_crc_attach(&q->crc_cb, q->cb_in, rlen);
+          srslte_crc_attach_byte(&q->crc_cb, q->cb_in, rlen);
         }
+        
+        /* pack bits to temporal buffer for encoding */
+        srslte_bit_pack_vector(q->cb_in, q->cb_temp, cb_len);
+
         /* Set the filler bits to <NULL> */
         for (int j = 0; j < F; j++) {
-          q->cb_in[j] = SRSLTE_TX_NULL;
+          q->cb_temp[j] = SRSLTE_TX_NULL;
         }
+        
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d: ", i);
-          srslte_vec_fprint_b(stdout, q->cb_in, cb_len);
+          srslte_vec_fprint_hex(stdout, q->cb_temp, cb_len);
         }
-
+        
         /* Turbo Encoding */
-        srslte_tcod_encode(&q->encoder, q->cb_in, (uint8_t*) q->cb_out, cb_len);
+        srslte_tcod_encode(&q->encoder, q->cb_temp, (uint8_t*) q->cb_out, cb_len);
+
+        if (SRSLTE_VERBOSE_ISDEBUG()) {
+          DEBUG("CB#%d encoded: ", i);
+          srslte_vec_fprint_b(stdout, q->cb_out, 3*cb_len+12);
+        }
       }
       
       /* Rate matching */
@@ -273,7 +295,7 @@ static int encode_tb(srslte_sch_t *q,
       wp += n_e;
     }
     INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
-    
+   
     ret = SRSLTE_SUCCESS;      
   } 
   return ret; 
@@ -287,8 +309,7 @@ static int decode_tb(srslte_sch_t *q,
                      uint32_t Qm, uint32_t rv, uint32_t nof_e_bits, 
                      float *e_bits, uint8_t *data) 
 {
-  uint8_t parity[24];
-  uint8_t *p_parity = parity;
+  uint8_t parity[3] = {0, 0, 0};
   uint32_t par_rx, par_tx;
   uint32_t i;
   uint32_t cb_len, rp, wp, rlen, F, n_e;
@@ -375,14 +396,14 @@ static int decode_tb(srslte_sch_t *q,
           crc_ptr = &q->crc_cb; 
         } else {
           len_crc = cb_segm->tbs+24; 
-          cb_in_ptr = &q->cb_in[F];
+          cb_in_ptr = &q->cb_in[F/8];
           crc_ptr = &q->crc_tb; 
         }
 
-        srslte_tdec_decision(&q->decoder, q->cb_in, cb_len);
-  
+        srslte_tdec_decision_byte(&q->decoder, q->cb_in, cb_len);
+                  
         /* Check Codeblock CRC and stop early if incorrect */
-        if (!srslte_crc_checksum(crc_ptr, cb_in_ptr, len_crc)) {
+        if (!srslte_crc_checksum_byte(crc_ptr, cb_in_ptr, len_crc)) {
           early_stop = true;           
         }
         
@@ -391,21 +412,25 @@ static int decode_tb(srslte_sch_t *q,
 
       if (SRSLTE_VERBOSE_ISDEBUG()) {
         DEBUG("CB#%d IN: ", i);
-        srslte_vec_fprint_b(stdout, q->cb_in, cb_len);
+        srslte_vec_fprint_byte(stdout, q->cb_in, cb_len/8);
       }
             
       // If CB CRC is not correct, early_stop will be false and wont continue with rest of CBs
 
+      if (F%8) {
+        fprintf(stderr, "Fatal Error: Number of filler bits %d is not byte aligned\n", F);
+      }
+      
       /* Copy data to another buffer, removing the Codeblock CRC */
       if (i < cb_segm->C - 1) {
-        memcpy(&data[wp], &q->cb_in[F], (rlen - F) * sizeof(uint8_t));
+        memcpy(&data[wp/8], &q->cb_in[F/8], (rlen - F) * sizeof(uint8_t)/8);
       } else {
         DEBUG("Last CB, appending parity: %d to %d from %d and 24 from %d\n",
             rlen - F - 24, wp, F, rlen - 24);
         
         /* Append Transport Block parity bits to the last CB */
-        memcpy(&data[wp], &q->cb_in[F], (rlen - F - 24) * sizeof(uint8_t));
-        memcpy(parity, &q->cb_in[rlen - 24], 24 * sizeof(uint8_t));
+        memcpy(&data[wp/8], &q->cb_in[F/8], (rlen - F - 24) * sizeof(uint8_t)/8);
+        memcpy(parity, &q->cb_in[(rlen - 24)/8], 24 * sizeof(uint8_t)/8);
       }
 
       /* Set read/write pointers */
@@ -420,11 +445,11 @@ static int decode_tb(srslte_sch_t *q,
       INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
 
       // Compute transport block CRC
-      par_rx = srslte_crc_checksum(&q->crc_tb, data, cb_segm->tbs);
+      par_rx = srslte_crc_checksum_byte(&q->crc_tb, data, cb_segm->tbs);
 
       // check parity bits
-      par_tx = srslte_bit_unpack(&p_parity, 24);
-
+      par_tx = ((uint32_t) parity[0])<<16 | ((uint32_t) parity[1])<<8 | ((uint32_t) parity[2]);
+      
       if (!par_rx) {
         INFO("\n\tCAUTION!! Received all-zero transport block\n\n", 0);
       }
@@ -433,7 +458,7 @@ static int decode_tb(srslte_sch_t *q,
         INFO("TB decoded OK\n",i);
         return SRSLTE_SUCCESS;
       } else {
-        INFO("Error in TB parity\n",i);
+        INFO("Error in TB parity: par_tx=0x%x, par_rx=0x%x\n", par_tx, par_rx);
         return SRSLTE_ERROR;
       }
       
@@ -472,7 +497,8 @@ int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuf
 
 
 /* UL-SCH channel interleaver according to 5.5.2.8 of 36.212 */
-void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, uint32_t N_pusch_symbs, uint8_t *q_bits) 
+void ulsch_interleave(srslte_uci_pos_t *q, uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
+                      uint32_t N_pusch_symbs, uint8_t *q_bits) 
 {
   
   uint32_t rows = H_prime_total/N_pusch_symbs;
@@ -484,6 +510,11 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, uint
       for(uint32_t k=0; k<Qm; k++) {
         if (q_bits[j*Qm + i*rows*Qm + k] >= 10) {
           q_bits[j*Qm + i*rows*Qm + k] -= 10;
+          q->pos[q->idx%SRSLTE_UCI_MAX_CQI_LEN_PUSCH] = j*Qm + i*rows*Qm + k;
+          q->idx++;
+          if (q->idx >= SRSLTE_UCI_MAX_CQI_LEN_PUSCH) {
+            fprintf(stderr, "Error number of UCI bits exceeds SRSLTE_UCI_MAX_CQI_LEN_PUSCH\n");
+          }
         } else {
           q_bits[j*Qm + i*rows*Qm + k] = g_bits[idx];                                
           idx++;                  
@@ -521,9 +552,9 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
 
   // Encode RI
   if (uci_data.uci_ri_len > 0) {
-    float beta = beta_ri_offset[uci_data.I_offset_ri]; 
+    float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
     if (cfg->cb_segm.tbs == 0) {
-        beta /= beta_cqi_offset[uci_data.I_offset_cqi];
+        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
     ret = srslte_uci_encode_ri(cfg, uci_data.uci_ri, uci_data.uci_cqi_len, beta, nb_q/Qm, q_bits);
     if (ret < 0) {
@@ -536,7 +567,7 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   if (uci_data.uci_cqi_len > 0) {
     ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi, cfg, 
                                       uci_data.uci_cqi, uci_data.uci_cqi_len, 
-                                      beta_cqi_offset[uci_data.I_offset_cqi], 
+                                      beta_cqi_offset[cfg->uci_cfg.I_offset_cqi], 
                                       Q_prime_ri, g_bits);
     if (ret < 0) {
       return ret; 
@@ -545,7 +576,7 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
   }
   
   e_offset += Q_prime_cqi*Qm;
-  
+ 
   // Encode UL-SCH
   if (cfg->cb_segm.tbs > 0) {
     uint32_t G = nb_q/Qm - Q_prime_ri - Q_prime_cqi;     
@@ -556,17 +587,18 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
       return ret; 
     }    
   } 
-    
+   
   // Interleave UL-SCH (and RI and CQI)
-  ulsch_interleave(g_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits);
-  
+  q->uci_pos.idx=0;
+  ulsch_interleave(&q->uci_pos, g_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits);
+
    // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
-    float beta = beta_harq_offset[uci_data.I_offset_ack]; 
+    float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {
-        beta /= beta_cqi_offset[uci_data.I_offset_cqi];
+        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_encode_ack(cfg, uci_data.uci_ack, uci_data.uci_cqi_len, beta, nb_q/Qm, q_bits);
+    ret = srslte_uci_encode_ack(cfg, &q->uci_pos, uci_data.uci_ack, uci_data.uci_cqi_len, beta, nb_q/Qm, q_bits);
     if (ret < 0) {
       return ret; 
     }

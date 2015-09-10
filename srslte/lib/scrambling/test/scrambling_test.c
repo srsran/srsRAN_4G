@@ -40,19 +40,24 @@ char *srslte_sequence_name = NULL;
 bool do_floats = false;
 srslte_cp_t cp = SRSLTE_CP_NORM;
 int cell_id = -1;
+int nof_bits = 100; 
 
 void usage(char *prog) {
   printf("Usage: %s [ef] -c cell_id -s [PBCH, PDSCH, PDCCH, PMCH, PUCCH]\n", prog);
+  printf("\t -l nof_bits [Default %d]\n", nof_bits);
   printf("\t -e CP extended [Default CP Normal]\n");
   printf("\t -f scramble floats [Default bits]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "csef")) != -1) {
+  while ((opt = getopt(argc, argv, "csefl")) != -1) {
     switch (opt) {
     case 'c':
       cell_id = atoi(argv[optind]);
+      break;
+    case 'l':
+      nof_bits = atoi(argv[optind]);
       break;
     case 'e':
       cp = SRSLTE_CP_EXT;
@@ -81,6 +86,8 @@ void parse_args(int argc, char **argv) {
 int init_sequence(srslte_sequence_t *seq, char *name) {
   if (!strcmp(name, "PBCH")) {
     return srslte_sequence_pbch(seq, cp, cell_id);
+  } else if (!strcmp(name, "PDSCH")) {
+    return srslte_sequence_pdsch(seq, 1234, 0, 0, cell_id, nof_bits);
   } else {
     fprintf(stderr, "Unsupported sequence name %s\n", name);
     return -1;
@@ -93,7 +100,8 @@ int main(int argc, char **argv) {
   srslte_sequence_t seq;
   uint8_t *input_b, *scrambled_b;
   float *input_f, *scrambled_f;
-
+  struct timeval t[3];
+  
   parse_args(argc, argv);
 
   if (init_sequence(&seq, srslte_sequence_name) == -1) {
@@ -118,9 +126,14 @@ int main(int argc, char **argv) {
       scrambled_b[i] = input_b[i];
     }
 
+    gettimeofday(&t[1], NULL);
     srslte_scrambling_b(&seq, scrambled_b);
+    gettimeofday(&t[2], NULL);
     srslte_scrambling_b(&seq, scrambled_b);
 
+    get_time_interval(t);
+    printf("Texec=%d us for %d bits\n", t[0].tv_usec, seq.len);
+    
     for (i=0;i<seq.len;i++) {
       if (scrambled_b[i] != input_b[i]) {
         printf("Error in %d\n", i);
@@ -146,8 +159,13 @@ int main(int argc, char **argv) {
       scrambled_f[i] = input_f[i];
     }
 
+    gettimeofday(&t[1], NULL);
     srslte_scrambling_f(&seq, scrambled_f);
+    gettimeofday(&t[2], NULL);
     srslte_scrambling_f(&seq, scrambled_f);
+
+    get_time_interval(t);
+    printf("Texec=%d us for %d bits\n", t[0].tv_usec, seq.len);
 
     for (i=0;i<seq.len;i++) {
       if (scrambled_f[i] != input_f[i]) {

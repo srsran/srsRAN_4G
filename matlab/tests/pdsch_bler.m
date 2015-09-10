@@ -51,7 +51,7 @@ cec.InterpType = 'linear';             % 2D interpolation type
 cec.InterpWindow = 'Centered';        % Interpolation window type
 cec.InterpWinSize = 1;                % Interpolation window size
 
-addpath('../../debug/srslte/lib/phch/test')
+addpath('../../build/srslte/lib/phch/test')
 
 decoded = zeros(size(SNR_values));
 decoded_srslte = zeros(size(SNR_values));

@@ -100,6 +100,9 @@ SRSLTE_API void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len); 
 
+/* Normalization */
+SRSLTE_API void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len);
+
 SRSLTE_API void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len);
 
 SRSLTE_API void srslte_vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len); 

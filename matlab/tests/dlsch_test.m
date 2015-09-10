@@ -1,10 +1,10 @@
 enbConfig=struct('NCellID',1,'CyclicPrefix','Normal','CellRefP',1);
 pdschConfig=struct('Modulation','QPSK','RV',0,'TxScheme','Port0');
 
-addpath('../../debug/srslte/lib/phch/test')
+addpath('/home/ismael/work/srsLTE/debug/srslte/lib/phch/test')
 
-TBs=1:111:15000;
-e_bits=10000;
+TBs=40:8:800;
+e_bits=1000;
 error=zeros(size(TBs));
 for i=1:length(TBs)
     trblkin=randi(2,TBs(i),1)-1;

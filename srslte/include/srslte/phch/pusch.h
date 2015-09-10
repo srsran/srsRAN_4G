@@ -60,7 +60,6 @@ typedef struct {
     SRSLTE_PUSCH_HOP_MODE_INTER_SF = 1,
     SRSLTE_PUSCH_HOP_MODE_INTRA_SF = 0
   } hop_mode; 
-  uint32_t current_tx_nb;
   uint32_t hopping_offset;
   uint32_t n_sb;
 } srslte_pusch_hopping_cfg_t;
@@ -103,14 +102,15 @@ SRSLTE_API int srslte_pusch_init(srslte_pusch_t *q,
 
 SRSLTE_API void srslte_pusch_free(srslte_pusch_t *q);
 
-SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t *q, 
-                                srslte_pusch_cfg_t *cfg, 
-                                srslte_dci_msg_t *dci_msg, 
-                                srslte_pusch_hopping_cfg_t *hopping_cfg,
-                                srslte_refsignal_srs_cfg_t *srs_cfg,
+SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t             *q, 
+                                srslte_pusch_cfg_t         *cfg, 
+                                srslte_ra_ul_grant_t       *grant, 
+                                srslte_uci_cfg_t           *uci_cfg, 
+                                srslte_pusch_hopping_cfg_t *hopping_cfg, 
+                                srslte_refsignal_srs_cfg_t *srs_cfg, 
                                 uint32_t tti, 
-                                uint32_t cyclic_shift_for_dmrs,
-                                uint32_t rvidx); 
+                                uint32_t rv_idx, 
+                                uint32_t current_tx_nb); 
 
 SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t *q, 
                                      uint16_t rnti);

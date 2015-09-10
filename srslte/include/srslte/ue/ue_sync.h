@@ -136,6 +136,10 @@ SRSLTE_API uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q);
 SRSLTE_API int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, 
                                          cf_t **sf_symbols);
 
+/* CAUTION: input_buffer MUST have space for 2 subframes */
+SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, 
+                                       cf_t *input_buffer);
+
 SRSLTE_API void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, 
                                        float cfo); 
 

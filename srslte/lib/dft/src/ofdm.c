@@ -99,7 +99,7 @@ int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   ret = srslte_ofdm_init_(q, cp, nof_prb, SRSLTE_DFT_BACKWARD); 
   
   if (ret == SRSLTE_SUCCESS) {
-    srslte_dft_plan_set_norm(&q->fft_plan, true);
+    srslte_dft_plan_set_norm(&q->fft_plan, false);
     
     /* set now zeros at CP */
     for (i=0;i<q->nof_symbols;i++) {

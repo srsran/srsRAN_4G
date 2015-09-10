@@ -37,7 +37,7 @@
 #include "srslte/cuhd/cuhd.h"
 #include "srslte/srslte.h"
 
-uint32_t nof_prb          = 25;
+uint32_t nof_prb    = 25;
 uint32_t nof_frames = 20; 
 
 float uhd_rx_gain=40, uhd_tx_gain=40, uhd_freq=2.4e9; 

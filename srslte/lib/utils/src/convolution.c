@@ -45,12 +45,15 @@ int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_
     return SRSLTE_ERROR;
   }
   if (srslte_dft_plan(&q->input_plan,q->output_len,SRSLTE_DFT_FORWARD,SRSLTE_DFT_COMPLEX)) {
+    fprintf(stderr, "Error initiating input plan\n");
     return SRSLTE_ERROR;
   }
   if (srslte_dft_plan(&q->filter_plan,q->output_len,SRSLTE_DFT_FORWARD,SRSLTE_DFT_COMPLEX)) {
+    fprintf(stderr, "Error initiating filter plan\n");
     return SRSLTE_ERROR;
   }
   if (srslte_dft_plan(&q->output_plan,q->output_len,SRSLTE_DFT_BACKWARD,SRSLTE_DFT_COMPLEX)) {
+    fprintf(stderr, "Error initiating output plan\n");
     return SRSLTE_ERROR;
   }
   srslte_dft_plan_set_norm(&q->input_plan, true);

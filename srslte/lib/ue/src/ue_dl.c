@@ -86,7 +86,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
-    if (srslte_softbuffer_rx_init(&q->softbuffer, q->cell)) {
+    if (srslte_softbuffer_rx_init(&q->softbuffer, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating soft buffer\n");
       goto clean_exit;
     }
@@ -203,12 +203,12 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
   }
 }
 
-int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
-  return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, dci_msg, cfi, sf_idx, rnti, rvidx);
+  return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rnti, rvidx);
 }
 
-int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint8_t *data, 
+int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint8_t *data, 
                                 uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
   int ret = SRSLTE_ERROR; 
@@ -216,7 +216,7 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_
   q->nof_detected++;
   
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
-  if (srslte_ue_dl_cfg_grant(q, dci_msg, cfi, sf_idx, rnti, rvidx)) {
+  if (srslte_ue_dl_cfg_grant(q, grant, cfi, sf_idx, rnti, rvidx)) {
     return SRSLTE_ERROR; 
   }
   
@@ -279,13 +279,29 @@ uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {
 
 int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
 {
+  srslte_rnti_type_t rnti_type; 
+  if (rnti == SRSLTE_SIRNTI) {
+    rnti_type = SRSLTE_RNTI_SI;
+  } else if (rnti == SRSLTE_PRNTI) {
+    rnti_type = SRSLTE_RNTI_PCH;    
+  } else if (rnti <= SRSLTE_RARNTI_END) {
+    rnti_type = SRSLTE_RNTI_RAR;    
+  } else {
+    rnti_type = SRSLTE_RNTI_USER;
+  }
+  return srslte_ue_dl_find_dl_dci_type(q, dci_msg, cfi, sf_idx, rnti, rnti_type);
+}
+
+int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, 
+                                  uint16_t rnti, srslte_rnti_type_t rnti_type)
+{
   srslte_dci_location_t locations[MAX_CANDIDATES];
   uint32_t nof_locations;
   uint32_t nof_formats; 
   srslte_dci_format_t *formats = NULL; 
 
   /* Generate PDCCH candidates */
-  if (rnti == SRSLTE_SIRNTI) {
+  if (rnti_type == SRSLTE_RNTI_SI || rnti_type == SRSLTE_RNTI_PCH || rnti_type == SRSLTE_RNTI_RAR) {
     nof_locations = srslte_pdcch_common_locations(&q->pdcch, locations, MAX_CANDIDATES, q->cfi);
     formats = common_formats;
     nof_formats = nof_common_formats;
@@ -323,6 +339,8 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
 int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
 {
   srslte_dci_msg_t dci_msg;
+  srslte_ra_dl_dci_t dci_unpacked;
+  srslte_ra_dl_grant_t grant; 
   int ret = SRSLTE_ERROR; 
   
   if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &q->cfi)) < 0) {
@@ -337,7 +355,13 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
   int found_dci = srslte_ue_dl_find_dl_dci(q, &dci_msg, q->cfi, sf_idx, rnti); 
   
   if (found_dci == 1) {
-    ret = srslte_ue_dl_decode_rnti_rv_packet(q, &dci_msg, data, q->cfi, sf_idx, rnti, rvidx);    
+    
+    if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, &dci_unpacked, &grant)) {
+      fprintf(stderr, "Error unpacking DCI\n");
+      return SRSLTE_ERROR;   
+    }
+
+    ret = srslte_ue_dl_decode_rnti_rv_packet(q, &grant, data, q->cfi, sf_idx, rnti, rvidx);    
   }
    
   if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
@@ -355,7 +379,7 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
   uint32_t Ngroups = srslte_phich_ngroups(&q->phich); 
   uint32_t ngroup = (n_prb_lowest+n_dmrs)%Ngroups;
   uint32_t nseq = ((n_prb_lowest/Ngroups)+n_dmrs)%(2*srslte_phich_nsf(&q->phich));
-  INFO("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d\n", 
+  DEBUG("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d\n", 
     sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq);
   if (!srslte_phich_decode(&q->phich, q->sf_symbols, q->ce, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
     INFO("Decoded PHICH %d with distance %f\n", ack_bit, distance);    

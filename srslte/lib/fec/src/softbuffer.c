@@ -44,7 +44,7 @@
 
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 
-int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, srslte_cell_t cell) {
+int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, uint32_t nof_prb) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL) {    
@@ -52,7 +52,7 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, srslte_cell_t cell) {
     
     bzero(q, sizeof(srslte_softbuffer_rx_t));
     
-    ret = srslte_ra_tbs_from_idx(26, cell.nof_prb);
+    ret = srslte_ra_tbs_from_idx(26, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
       
@@ -63,7 +63,7 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, srslte_cell_t cell) {
       }
       
       // FIXME: Use HARQ buffer limitation based on UE category
-      q->buff_size = 3 * (SRSLTE_TCOD_MAX_LEN_CB+24);
+      q->buff_size = 18600;
       for (uint32_t i=0;i<q->max_cb;i++) {
         q->buffer_f[i] = srslte_vec_malloc(sizeof(float) * q->buff_size);
         if (!q->buffer_f[i]) {
@@ -92,9 +92,21 @@ void srslte_softbuffer_rx_free(srslte_softbuffer_rx_t *q) {
   }
 }
 
+void srslte_softbuffer_rx_reset_tbs(srslte_softbuffer_rx_t *q, uint32_t tbs) {
+  uint32_t nof_cb = (tbs + 24)/(SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
+  srslte_softbuffer_rx_reset_cb(q, nof_cb);
+}
+
 void srslte_softbuffer_rx_reset(srslte_softbuffer_rx_t *q) {
+  srslte_softbuffer_rx_reset_cb(q, q->max_cb);
+}
+
+void srslte_softbuffer_rx_reset_cb(srslte_softbuffer_rx_t *q, uint32_t nof_cb) {
   if (q->buffer_f) {
-    for (uint32_t i=0;i<q->max_cb;i++) {
+    if (nof_cb > q->max_cb) {
+      nof_cb = q->max_cb; 
+    }
+    for (uint32_t i=0;i<nof_cb;i++) {
       if (q->buffer_f[i]) {
         for (uint32_t j=0;j<q->buff_size;j++) {
           q->buffer_f[i][j] = SRSLTE_RX_NULL;
@@ -106,7 +118,7 @@ void srslte_softbuffer_rx_reset(srslte_softbuffer_rx_t *q) {
 
 
 
-int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t *q, srslte_cell_t cell) {
+int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t *q, uint32_t nof_prb) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL) {    
@@ -114,7 +126,7 @@ int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t *q, srslte_cell_t cell) {
     
     bzero(q, sizeof(srslte_softbuffer_tx_t));
     
-    ret = srslte_ra_tbs_from_idx(26, cell.nof_prb);
+    ret = srslte_ra_tbs_from_idx(26, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb =  (uint32_t) ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
       
@@ -125,7 +137,7 @@ int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t *q, srslte_cell_t cell) {
       }
      
       // FIXME: Use HARQ buffer limitation based on UE category
-      q->buff_size = 3 * SRSLTE_TCOD_MAX_LEN_CB;
+      q->buff_size = 18600;
       for (uint32_t i=0;i<q->max_cb;i++) {
         q->buffer_b[i] = srslte_vec_malloc(sizeof(float) * q->buff_size);
         if (!q->buffer_b[i]) {
@@ -154,10 +166,23 @@ void srslte_softbuffer_tx_free(srslte_softbuffer_tx_t *q) {
   }
 }
 
+
+void srslte_softbuffer_tx_reset_tbs(srslte_softbuffer_tx_t *q, uint32_t tbs) {
+  uint32_t nof_cb = (tbs + 24)/(SRSLTE_TCOD_MAX_LEN_CB - 24) + 1; 
+  srslte_softbuffer_tx_reset_cb(q, nof_cb);
+}
+
 void srslte_softbuffer_tx_reset(srslte_softbuffer_tx_t *q) {
+  srslte_softbuffer_tx_reset_cb(q, q->max_cb);
+}
+
+void srslte_softbuffer_tx_reset_cb(srslte_softbuffer_tx_t *q, uint32_t nof_cb) {
   int i; 
   if (q->buffer_b) {
-    for (i=0;i<q->max_cb;i++) {
+    if (nof_cb > q->max_cb) {
+      nof_cb = q->max_cb; 
+    }
+    for (i=0;i<nof_cb;i++) {
       if (q->buffer_b[i]) {
         bzero(q->buffer_b[i], sizeof(uint8_t) * q->buff_size);
       }

@@ -204,7 +204,7 @@ int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_b
     for (uint32_t i=0;i<SRSLTE_UCI_CQI_CODED_PUCCH_B;i++) {
       uint64_t x=0;
       for (uint32_t n=0;n<cqi_len;n++) {
-        x += cqi_data[n]*M_basis_seq_pucch[n][i];
+        x += cqi_data[n]*M_basis_seq_pucch[i][n];
       }
       b_bits[i] = (uint8_t) (x%2);
     }
@@ -242,7 +242,7 @@ int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, srslte_pusch_cfg_t *c
 }
 
 /* Inserts UCI-ACK bits into the correct positions in the g buffer before interleaving */
-static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bit_idx, 
+static int uci_ulsch_interleave_ack(srslte_uci_pos_t *q, uint8_t ack_coded_bits[6], uint32_t ack_q_bit_idx, 
                           uint32_t Qm, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_cp_t cp,
                           uint8_t *q_bits) {
 
@@ -255,8 +255,14 @@ static int uci_ulsch_interleave_ack(uint8_t ack_coded_bits[6], uint32_t ack_q_bi
     uint32_t colidx = (3*ack_q_bit_idx)%4;
     uint32_t col = SRSLTE_CP_ISNORM(cp)?ack_column_set_norm[colidx]:ack_column_set_ext[colidx];
     for(uint32_t k=0; k<Qm; k++) {
-      q_bits[row *Qm + 
-             (H_prime_total/N_pusch_symbs)*col*Qm + k] = ack_coded_bits[k];
+      q_bits[row *Qm + (H_prime_total/N_pusch_symbs)*col*Qm + k] = ack_coded_bits[k];
+      
+      // Save position for placeholder bits
+      q->pos[q->idx%SRSLTE_UCI_MAX_CQI_LEN_PUSCH] = row *Qm + (H_prime_total/N_pusch_symbs)*col*Qm + k;
+      q->idx++;
+      if (q->idx >= SRSLTE_UCI_MAX_CQI_LEN_PUSCH) {
+        fprintf(stderr, "Error number of UCI bits exceeds SRSLTE_UCI_MAX_CQI_LEN_PUSCH\n");
+      }
     }    
     return SRSLTE_SUCCESS;
   } else {
@@ -278,7 +284,7 @@ static int uci_ulsch_interleave_ri(uint8_t ri_coded_bits[6], uint32_t ri_q_bit_i
     uint32_t row = H_prime_total/N_pusch_symbs-1-ri_q_bit_idx/4;
     uint32_t colidx = (3*ri_q_bit_idx)%4;
     uint32_t col = SRSLTE_CP_ISNORM(cp)?ri_column_set_norm[colidx]:ri_column_set_ext[colidx];
-    printf("r=%d-%d\n",H_prime_total/N_pusch_symbs,1+ri_q_bit_idx/4);
+
     for(uint32_t k=0; k<Qm; k++) {
       q_bits[row *Qm + (H_prime_total/N_pusch_symbs)*col*Qm + k] = 10+ri_coded_bits[k];
     }    
@@ -319,16 +325,16 @@ static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t *cfg,
 
 static void encode_ri_ack(uint8_t data, uint8_t q_encoded_bits[6], uint8_t Qm) {
   q_encoded_bits[0] = data;
-  q_encoded_bits[1] = 2; 
+  q_encoded_bits[1] = SRSLTE_UCI_ACK_RI_PLACEHOLDER_REPETITION; 
   for (uint32_t i=2;i<Qm;i++) {
-    q_encoded_bits[i] = 3;
+    q_encoded_bits[i] = SRSLTE_UCI_ACK_RI_PLACEHOLDER;
   }
 }
 
 /* Encode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212 
  *  Currently only supporting 1-bit HARQ
  */
-int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
+int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg, srslte_uci_pos_t *pos,
                           uint8_t data, 
                           uint32_t O_cqi, float beta, uint32_t H_prime_total, 
                           uint8_t *q_bits)
@@ -344,7 +350,7 @@ int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
   encode_ri_ack(data, q_encoded_bits, cfg->grant.Qm);
   
   for (uint32_t i=0;i<Qprime;i++) {
-    uci_ulsch_interleave_ack(q_encoded_bits, i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, q_bits);
+    uci_ulsch_interleave_ack(pos, q_encoded_bits, i, cfg->grant.Qm, H_prime_total, cfg->nbits.nof_symb, cfg->cp, q_bits);
   }
   
   return (int) Qprime;

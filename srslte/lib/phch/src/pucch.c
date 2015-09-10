@@ -65,8 +65,7 @@ float w_n_oc[2][3][4] = {
 
 /* Verify PUCCH configuration as given in Section 5.4 36.211 */
 bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t *cfg, uint32_t nof_prb) {
-  if (cfg->beta_pucch > 0 && 
-      cfg->delta_pucch_shift > 0 && cfg->delta_pucch_shift < 4 &&
+  if (cfg->delta_pucch_shift > 0 && cfg->delta_pucch_shift < 4 &&
       cfg->N_cs < 8 && (cfg->N_cs%cfg->delta_pucch_shift) == 0 && 
       cfg->n_rb_2 < nof_prb) {
     return true; 
@@ -85,7 +84,6 @@ bool srslte_pucch_n2_isvalid(srslte_pucch_cfg_t *cfg, uint32_t n_pucch_2) {
 }
 
 void srslte_pucch_cfg_default(srslte_pucch_cfg_t *cfg) {
-  cfg->beta_pucch = 1.0; 
   cfg->delta_pucch_shift = 1; 
 }
 
@@ -278,8 +276,9 @@ float srslte_pucch_alpha_format2(uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLT
     }
   }
   uint32_t n_cs = (n_cs_cell[ns][l]+n_prime)%SRSLTE_NRE;
-  DEBUG("n_pucch: %d, ns: %d, l: %d, n_prime: %d, n_cs: %d\n", n_pucch, ns, l, n_prime, n_cs); 
-  return 2 * M_PI * (n_cs) / SRSLTE_NRE; 
+  float alpha = 2 * M_PI * (n_cs) / SRSLTE_NRE;
+  DEBUG("n_pucch: %d, ns: %d, l: %d, n_prime: %d, n_cs: %d, alpha=%f\n", n_pucch, ns, l, n_prime, n_cs, alpha); 
+  return alpha; 
 }
 
 /* Map PUCCH symbols to physical resources according to 5.4.3 in 36.211 */
@@ -360,7 +359,7 @@ void srslte_pucch_free(srslte_pucch_t *q) {
 
 int srslte_pucch_set_crnti(srslte_pucch_t *q, uint16_t c_rnti) {
   for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
-    // Precompute scrambling sequence for pucch format 2
+    // Precompute scrambling sequence for pucch format 2    
     if (srslte_sequence_pucch(&q->seq_f2[sf_idx], c_rnti, 2*sf_idx, q->cell.id)) {
       fprintf(stderr, "Error computing PUCCH Format 2 scrambling sequence\n");
       return SRSLTE_ERROR; 
@@ -505,27 +504,27 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
     uint32_t N_sf_0 = get_N_sf(format, 0, q->shortened);
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       uint32_t N_sf = get_N_sf(format, ns%2, q->shortened);
+      DEBUG("ns=%d, N_sf=%d\n", ns, N_sf);
       // Get group hopping number u 
       uint32_t f_gh=0; 
       if (q->group_hopping_en) {
         f_gh = q->f_gh[ns];
       }
       uint32_t u = (f_gh + (q->cell.id%30))%30;
-      
+
       srslte_refsignal_r_uv_arg_1prb(q->tmp_arg, u); 
       uint32_t N_sf_widx = N_sf==3?1:0;
       for (uint32_t m=0;m<N_sf;m++) {
         uint32_t l = get_pucch_symbol(m, format, q->cell.cp);
-        uint32_t n_prime_ns;
-        uint32_t n_oc;        
         float alpha=0; 
         if (format >= SRSLTE_PUCCH_FORMAT_2) {
           alpha = srslte_pucch_alpha_format2(q->n_cs_cell, &q->pucch_cfg, n_pucch, ns, l);                 
           for (uint32_t n=0;n<SRSLTE_PUCCH_N_SEQ;n++) {
-            q->z[(ns%2)*N_sf*SRSLTE_PUCCH_N_SEQ+m*SRSLTE_PUCCH_N_SEQ+n] = q->pucch_cfg.beta_pucch
-                  *q->d[(ns%2)*N_sf+m]*cexpf(I*(q->tmp_arg[n]+alpha*n));
+            q->z[(ns%2)*N_sf*SRSLTE_PUCCH_N_SEQ+m*SRSLTE_PUCCH_N_SEQ+n] = q->d[(ns%2)*N_sf+m]*cexpf(I*(q->tmp_arg[n]+alpha*n));
           }
         } else {
+          uint32_t n_prime_ns=0;
+          uint32_t n_oc=0;        
           alpha = srslte_pucch_alpha_format1(q->n_cs_cell, &q->pucch_cfg, n_pucch, q->cell.cp, true, ns, l, &n_oc, &n_prime_ns);          
           float S_ns = 0; 
           if (n_prime_ns%2) {
@@ -534,13 +533,12 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
           DEBUG("PUCCH d_0: %.1f+%.1fi, alpha: %.1f, n_oc: %d, n_prime_ns: %d, n_rb_2=%d\n", 
                 __real__ q->d[0], __imag__ q->d[0], alpha, n_oc, n_prime_ns, q->pucch_cfg.n_rb_2);
           for (uint32_t n=0;n<SRSLTE_PUCCH_N_SEQ;n++) {
-            q->z[(ns%2)*N_sf_0*SRSLTE_PUCCH_N_SEQ+m*SRSLTE_PUCCH_N_SEQ+n] = q->pucch_cfg.beta_pucch
-                  *q->d[0]*cexpf(I*(w_n_oc[N_sf_widx][n_oc%3][m]+q->tmp_arg[n]+alpha*n+S_ns));
+            q->z[(ns%2)*N_sf_0*SRSLTE_PUCCH_N_SEQ+m*SRSLTE_PUCCH_N_SEQ+n] = 
+              q->d[0]*cexpf(I*(w_n_oc[N_sf_widx][n_oc%3][m]+q->tmp_arg[n]+alpha*n+S_ns));
           }        
         }
       }              
     }    
-    
     if (pucch_put(q, format, n_pucch, sf_symbols)) {
       fprintf(stderr, "Error putting PUCCH symbols\n");
       return SRSLTE_ERROR; 

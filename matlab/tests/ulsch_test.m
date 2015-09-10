@@ -1,14 +1,14 @@
 clear 
 ueConfig=struct('NCellID',1,'CyclicPrefixUL','Normal','NTxAnts',1);
-puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',22,'Shortened',1);
+puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',0,'Shortened',0);
 
-addpath('../../build/srslte/lib/phch/test')
+addpath('../../debug/srslte/lib/phch/test')
 
  TBs=336;
  cqilen=0;
  mods={'16QAM'};
  rvs=0;
- betas=0;
+ betas=5;
 
 
 for i=1:length(TBs)
@@ -23,7 +23,7 @@ for i=1:length(TBs)
     
                             puschConfig.Modulation = mods{m};
                             puschConfig.RV = rvs(r);
-                            puschConfig.BetaCQI = betas(bcqi); 
+                            puschConfig.BetaCQI = 5; 
                             puschConfig.BetaRI = betas(bri);
                             puschConfig.BetaACK = betas(back);
 
@@ -46,6 +46,7 @@ for i=1:length(TBs)
                                 err=sum(abs(double(mat)-double(lib)));
                                 if (err > 0)
                                   disp(err)    
+                                  plot(abs(double(mat)-double(lib)))
                                   error('Error!');
                                 end
                             end

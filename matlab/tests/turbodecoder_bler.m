@@ -4,7 +4,7 @@ blen=5184;
 SNR_values_db=linspace(-1.3,-0.7,6);
 Nrealizations=600;
 
-addpath('../../debug/lte/phy/lib/fec/test')
+addpath('../../build/srslte/lib/fec/test')
 
 errors1=zeros(1,length(SNR_values_db));
 errors2=zeros(1,length(SNR_values_db));

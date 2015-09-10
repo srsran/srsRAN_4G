@@ -47,7 +47,7 @@ void help()
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   srslte_sch_t ulsch;
-  uint8_t *trblkin;
+  
   srslte_pusch_cfg_t cfg;
   srslte_softbuffer_tx_t softbuffer; 
   srslte_uci_data_t uci_data; 
@@ -69,15 +69,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cell.id=1;
   cell.cp=SRSLTE_CP_NORM;
 
-  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+  if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
     mexErrMsgTxt("Error initiating HARQ\n");
     return;
   }
 
-  cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin);
+  uint8_t *trblkin_bits = NULL;
+  cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin_bits);
 
-  uci_data.uci_cqi_len = mexutils_read_uint8(CQI, &uci_data.uci_cqi);
-  uint8_t *tmp;
+  uint8_t *trblkin = srslte_vec_malloc(cfg.grant.mcs.tbs/8);
+  srslte_bit_unpack_vector(trblkin_bits, trblkin, cfg.grant.mcs.tbs);
+  free(trblkin_bits);
+
+  
+  uint8_t *tmp; 
+  uci_data.uci_cqi_len = mexutils_read_uint8(CQI, &tmp);
+  memcpy(uci_data.uci_cqi, tmp, uci_data.uci_cqi_len);
+  free(tmp);  
   uci_data.uci_ri_len = mexutils_read_uint8(RI, &tmp);
   if (uci_data.uci_ri_len > 0) {
     uci_data.uci_ri = *tmp;
@@ -99,19 +107,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   float beta; 
   if (mexutils_read_float_struct(PUSCHCFG, "BetaCQI", &beta)) {
-    uci_data.I_offset_cqi = 7; 
+    cfg.uci_cfg.I_offset_cqi = 7; 
   } else {
-    uci_data.I_offset_cqi = srslte_sch_find_Ioffset_cqi(beta);
+    cfg.uci_cfg.I_offset_cqi = srslte_sch_find_Ioffset_cqi(beta);
   }
   if (mexutils_read_float_struct(PUSCHCFG, "BetaRI", &beta)) {
-    uci_data.I_offset_ri = 2; 
+    cfg.uci_cfg.I_offset_ri = 2; 
   } else {
-    uci_data.I_offset_ri = srslte_sch_find_Ioffset_ri(beta);
+    cfg.uci_cfg.I_offset_ri = srslte_sch_find_Ioffset_ri(beta);
   }
   if (mexutils_read_float_struct(PUSCHCFG, "BetaACK", &beta)) {
-    uci_data.I_offset_ack = 0; 
+    cfg.uci_cfg.I_offset_ack = 0; 
   } else {
-    uci_data.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
+    cfg.uci_cfg.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
   }
   
   char *mod_str = mexutils_get_char_struct(PUSCHCFG, "Modulation");
@@ -158,6 +166,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mexPrintf("Q_m: %d, NPRB: %d, RV: %d, Nsrs=%d\n", srslte_mod_bits_x_symbol(cfg.grant.mcs.mod), cfg.grant.L_prb, cfg.rv, N_srs);
 
+  mexPrintf("I_cqi: %d, I_ri: %d, I_ack=%d\n", cfg.uci_cfg.I_offset_cqi, cfg.uci_cfg.I_offset_ri, cfg.uci_cfg.I_offset_ack);
+
   if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
     mexErrMsgTxt("Error configuring HARQ process\n");
     return;
@@ -195,7 +205,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(trblkin);
   free(g_bits);    
   free(q_bits);    
-  free(uci_data.uci_cqi);
+  
   
   return;
 }

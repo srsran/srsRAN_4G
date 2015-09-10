@@ -41,38 +41,53 @@
 #include "srslte/utils/debug.h"
 
 
-int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, uint32_t N, uint8_t *buff, uint32_t buff_len) 
+int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
 {
   uint8_t *body_ptr = buff; 
   srslte_bit_pack(msg->wideband_cqi, &body_ptr, 4);
-  srslte_bit_pack(msg->subband_diff_cqi, &body_ptr, 2*N);
+  srslte_bit_pack(msg->subband_diff_cqi, &body_ptr, 2*msg->N);
   
-  return 4+2*N;
+  return 4+2*msg->N;
 }
 
-int srslte_cqi_ue_subband_pack(srslte_cqi_ue_subband_t *msg, uint32_t L, uint8_t *buff, uint32_t buff_len)
+int srslte_cqi_ue_subband_pack(srslte_cqi_ue_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS])
 {
   uint8_t *body_ptr = buff; 
   srslte_bit_pack(msg->wideband_cqi, &body_ptr, 4);
   srslte_bit_pack(msg->subband_diff_cqi, &body_ptr, 2);  
-  srslte_bit_pack(msg->subband_diff_cqi, &body_ptr, L);  
+  srslte_bit_pack(msg->subband_diff_cqi, &body_ptr, msg->L);  
   
-  return 4+2+L;
+  return 4+2+msg->L;
 }
 
-int srslte_cqi_format2_wideband_pack(srslte_cqi_format2_wideband_t *msg, uint8_t *buff, uint32_t buff_len) 
+int srslte_cqi_format2_wideband_pack(srslte_cqi_format2_wideband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
 {
   uint8_t *body_ptr = buff; 
   srslte_bit_pack(msg->wideband_cqi, &body_ptr, 4);  
   return 4;  
 }
 
-int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, uint8_t *buff, uint32_t buff_len) 
+int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
 {
   uint8_t *body_ptr = buff; 
   srslte_bit_pack(msg->subband_cqi, &body_ptr, 4);  
-  srslte_bit_pack(msg->subband_label, &body_ptr, 1);  
-  return 4+1;    
+  srslte_bit_pack(msg->subband_label, &body_ptr, msg->subband_label_2_bits?2:1);  
+  return 4+msg->subband_label_2_bits?2:1;    
+}
+
+int srslte_cqi_value_pack(srslte_cqi_value_t *value, uint8_t buff[SRSLTE_CQI_MAX_BITS])
+{
+  switch(value->type) {
+    case SRSLTE_CQI_TYPE_WIDEBAND:
+      return srslte_cqi_format2_wideband_pack(&value->wideband, buff);
+    case SRSLTE_CQI_TYPE_SUBBAND:
+      return srslte_cqi_format2_subband_pack(&value->subband, buff);
+    case SRSLTE_CQI_TYPE_SUBBAND_UE:
+      return srslte_cqi_ue_subband_pack(&value->subband_ue, buff);
+    case SRSLTE_CQI_TYPE_SUBBAND_HL:
+      return srslte_cqi_hl_subband_pack(&value->subband_hl, buff);
+  }
+  return -1; 
 }
 
 bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
@@ -122,4 +137,21 @@ bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
     return false; 
   }
 }
+
+
+/* SNR-to-CQI conversion, got from "Downlink SNR to CQI Mapping for Different Multiple Antenna Techniques in LTE"
+ * Table III. 
+*/
+static float cqi_to_snr_table[15] = { 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 19.9, 21.5, 23.45, 25.0, 27.30, 29};
+
+uint8_t srslte_cqi_from_snr(float snr)
+{
+ for (uint8_t cqi=14;cqi>=0;cqi--) {
+   if (snr >= cqi_to_snr_table[cqi]) {
+     return cqi+1;
+   }
+ }
+ return 0;
+}
+
 

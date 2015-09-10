@@ -93,7 +93,7 @@ BuildMex(MEXNAME pdcch SOURCES pdcch_test_mex.c LIBRARIES srslte srslte_mex)
 ADD_EXECUTABLE(pdsch_test pdsch_test.c)
 TARGET_LINK_LIBRARIES(pdsch_test srslte)
 
-ADD_TEST(pdsch_test_bpsk pdsch_test -l 500 -m 1 -n 50 -r 2)
+ADD_TEST(pdsch_test_bpsk pdsch_test -l 504 -m 1 -n 50 -r 2)
 ADD_TEST(pdsch_test_qpsk pdsch_test -l 1000 -m 2 -n 50 -r 1)
 ADD_TEST(pdsch_test_qam16 pdsch_test -l 50000 -m 4 -n 100)
 ADD_TEST(pdsch_test_qam64 pdsch_test -l 61664 -m 6 -n 100 -r 0)

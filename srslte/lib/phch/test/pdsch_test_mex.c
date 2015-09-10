@@ -93,7 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   srslte_pdsch_set_rnti(&pdsch, (uint16_t) (rnti32 & 0xffff));
 
-  if (srslte_softbuffer_rx_init(&softbuffer, cell)) {
+  if (srslte_softbuffer_rx_init(&softbuffer, cell.nof_prb)) {
     mexErrMsgTxt("Error initiating soft buffer\n");
     return;
   }
@@ -110,12 +110,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
-  cfg.grant.mcs.tbs = mxGetScalar(TBS);
-  if (cfg.grant.mcs.tbs == 0) {
+  srslte_ra_dl_grant_t grant; 
+  grant.mcs.tbs = mxGetScalar(TBS);
+  if (grant.mcs.tbs == 0) {
     mexErrMsgTxt("Error trblklen is zero\n");
     return;
   }
-  if (srslte_cbsegm(&cfg.cb_segm, cfg.grant.mcs.tbs)) {
+  if (srslte_cbsegm(&cfg.cb_segm, grant.mcs.tbs)) {
     mexErrMsgTxt("Error computing CB segmentation\n");
     return; 
   }
@@ -128,11 +129,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   char *mod_str = mexutils_get_char_struct(PDSCHCFG, "Modulation");
   
   if (!strcmp(mod_str, "QPSK")) {
-    cfg.grant.mcs.mod = SRSLTE_MOD_QPSK;
+    grant.mcs.mod = SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
-    cfg.grant.mcs.mod = SRSLTE_MOD_16QAM;
+    grant.mcs.mod = SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
-    cfg.grant.mcs.mod = SRSLTE_MOD_64QAM;
+    grant.mcs.mod = SRSLTE_MOD_64QAM;
   } else {
    mexErrMsgTxt("Unknown modulation\n");
    return;
@@ -149,23 +150,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } 
   
   // Only localized PRB supported 
-  cfg.grant.nof_prb = mexutils_read_f(p, &prbset);
+  grant.nof_prb = mexutils_read_f(p, &prbset);
 
   for (i=0;i<cell.nof_prb;i++) {
-    cfg.grant.prb_idx[0][i] = false; 
-    for (int j=0;j<cfg.grant.nof_prb && !cfg.grant.prb_idx[0][i];j++) {
+    grant.prb_idx[0][i] = false; 
+    for (int j=0;j<grant.nof_prb && !grant.prb_idx[0][i];j++) {
       if ((int) prbset[j] == i) {
-        cfg.grant.prb_idx[0][i] = true;
+        grant.prb_idx[0][i] = true;
       }
     }
-    cfg.grant.prb_idx[1][i] = cfg.grant.prb_idx[0][i];
+    grant.prb_idx[1][i] = grant.prb_idx[0][i];
   }
 
   free(prbset);
   
   /* Configure rest of pdsch_cfg parameters */
-  cfg.grant.Qm = srslte_mod_bits_x_symbol(cfg.grant.mcs.mod);
-  if (srslte_pdsch_cfg(&cfg, cell, NULL, cfi, cfg.sf_idx, (uint16_t) (rnti32 & 0xffff), cfg.rv)) {
+  grant.Qm = srslte_mod_bits_x_symbol(grant.mcs.mod);
+  if (srslte_pdsch_cfg(&cfg, cell, &grant, cfi, cfg.sf_idx, (uint16_t) (rnti32 & 0xffff), cfg.rv)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
@@ -206,19 +207,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     noise_power = srslte_chest_dl_get_noise_estimate(&chest);
   }
   
-  uint8_t *data = malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
-  if (!data) {
+  uint8_t *data_bytes = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
+  if (!data_bytes) {
     return;
   }
 
-  int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data);
+  int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data_bytes);
 
+  free(data_bytes);
+  
+  uint8_t *data = malloc(grant.mcs.tbs);
+  srslte_bit_pack_vector(data_bytes, data, grant.mcs.tbs);
   
   if (nlhs >= 1) { 
     plhs[0] = mxCreateLogicalScalar(r == 0);
   }
   if (nlhs >= 2) {
-    mexutils_write_uint8(data, &plhs[1], cfg.grant.mcs.tbs, 1);  
+    mexutils_write_uint8(data, &plhs[1], grant.mcs.tbs, 1);  
   }
   if (nlhs >= 3) {
     mexutils_write_cf(pdsch.symbols[0], &plhs[2], cfg.nbits.nof_re, 1);  

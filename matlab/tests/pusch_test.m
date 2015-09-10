@@ -1,14 +1,14 @@
-ueConfig=struct('NCellID',1,'NULRB',25,'RNTI',77,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',1);
-puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',22,'Shortened',0);
+ueConfig=struct('NCellID',1,'NULRB',6,'RNTI',64,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0,'Hopping','Off','SeqGroup',0,'CyclicShift',0);
+puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',0,'Shortened',0,'DynCyclicShift',0);
 
-addpath('../../build/srslte/lib/phch/test')
+addpath('../../debug/srslte/lib/phch/test')
 
-TBs=[111 336];
-cqilen=0;
-rvs=[0 2];
+TBs=336;
+cqilen=20;
+rvs=0;
 mods={'16QAM'};
-betas=0;
-subf=[0:9];
+betas=5;
+subf=0;
 
 for i=1:length(TBs)
     for m=1:length(mods)
@@ -19,7 +19,7 @@ for i=1:length(TBs)
                         for c=1:length(cqilen)
                             for s=1:length(subf)
                                 fprintf('Subf=%d, RV=%d\n', subf(s), rvs(r));
-                                trblkin=randi(2,TBs(i),1)-1;
+                                trblkin=mod(0:TBs(i)-1,2);
                                 ueConfig.NSubframe=subf(s);
                                 puschConfig.Modulation = mods{m};
                                 puschConfig.RV = rvs(r);
@@ -28,7 +28,7 @@ for i=1:length(TBs)
                                 puschConfig.BetaACK = betas(back);
 
                                 if (betas(bri)>0)
-                                    ri_bit=randi(2,1,1)-1;
+                                   ri_bit=randi(2,1,1)-1;
                                 else
                                     ri_bit=[];
                                 end
@@ -39,20 +39,25 @@ for i=1:length(TBs)
                                 end
 
                                 if (cqilen(c)>0 || TBs(i)>0)
-                                    [cw, info]=lteULSCH(ueConfig,puschConfig,trblkin);
-                                    cw_mat=ltePUSCH(ueConfig,puschConfig,cw);
-                                    %drs=ltePUSCHDRS(ueConfig,puschConfig);
+                                    [enc, info]=lteULSCH(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
+                                    cw_mat=ltePUSCH(ueConfig,puschConfig,enc);
+                                    %[drs, infodrs]=ltePUSCHDRS(ueConfig,puschConfig);
                                     idx=ltePUSCHIndices(ueConfig,puschConfig);
                                     %drs_idx=ltePUSCHDRSIndices(ueConfig,puschConfig);
                                     subframe_mat = lteULResourceGrid(ueConfig);
                                     subframe_mat(idx)=cw_mat;
                                     %subframe_mat(drs_idx)=drs;
                                     waveform = lteSCFDMAModulate(ueConfig,subframe_mat,0);
-                                    
-                                    [waveform_lib, subframe_lib, cwlib]=srslte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
+                                     
+                                    cw_scram=lteULScramble(enc,0,1,64);
+%                                 
+                                    [waveform_lib, subframe_lib, cwlib, bits]=srslte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
                                     err=max(abs(waveform-waveform_lib));
                                     if (err > 10^-5)
                                       disp(err)    
+                                      t=1:200;
+                                      %plot(t,bits(t),t,cw_scram(t))
+                                      plot(abs(double(bits)-double(cw_scram)))
                                       error('Error!');
                                     end
                                 end

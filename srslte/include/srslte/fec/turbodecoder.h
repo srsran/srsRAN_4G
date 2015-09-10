@@ -85,6 +85,10 @@ SRSLTE_API void srslte_tdec_decision(srslte_tdec_t * h,
                                      uint8_t *output, 
                                      uint32_t long_cb);
 
+SRSLTE_API void srslte_tdec_decision_byte(srslte_tdec_t * h, 
+                                          uint8_t *output, 
+                                          uint32_t long_cb); 
+
 SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h, 
                                    srslte_llr_t * input, 
                                    uint8_t *output,

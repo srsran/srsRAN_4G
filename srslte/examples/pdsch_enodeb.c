@@ -259,7 +259,7 @@ void base_init() {
   
   srslte_pdsch_set_rnti(&pdsch, UE_CRNTI);
   
-  if (srslte_softbuffer_tx_init(&softbuffer, cell)) {
+  if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     exit(-1);
   }
@@ -576,8 +576,9 @@ int main(int argc, char **argv) {
         }
 
         /* Configure pdsch_cfg parameters */
-        srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, true, &pdsch_cfg.grant);        
-        if (srslte_pdsch_cfg(&pdsch_cfg, cell, NULL, cfi, sf_idx, UE_CRNTI, 0)) {
+        srslte_ra_dl_grant_t grant; 
+        srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, true, &grant);        
+        if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, sf_idx, UE_CRNTI, 0)) {
           fprintf(stderr, "Error configuring PDSCH\n");
           exit(-1);
         }

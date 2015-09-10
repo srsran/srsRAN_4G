@@ -228,12 +228,8 @@ void srslte_refsignal_ul_free(srslte_refsignal_ul_t * q) {
 void srslte_refsignal_ul_set_cfg(srslte_refsignal_ul_t *q, 
                                   srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
                                   srslte_pucch_cfg_t *pucch_cfg, 
-                                  srslte_refsignal_srs_cfg_t *srs_cfg, 
-                                  bool group_hopping_en, 
-                                  bool sequence_hopping_en) 
+                                  srslte_refsignal_srs_cfg_t *srs_cfg) 
 {
-  q->group_hopping_en = group_hopping_en; 
-  q->sequence_hopping_en = sequence_hopping_en; 
   if (pusch_cfg) {
     memcpy(&q->pusch_cfg, pusch_cfg, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));        
   }
@@ -335,14 +331,14 @@ void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q, cf_t *r_pusch, ui
 void compute_r(srslte_refsignal_ul_t *q, uint32_t nof_prb, uint32_t ns, uint32_t delta_ss) {
   // Get group hopping number u 
   uint32_t f_gh=0; 
-  if (q->group_hopping_en) {
+  if (q->pusch_cfg.group_hopping_en) {
     f_gh = q->f_gh[ns];
   }
   uint32_t u = (f_gh + (q->cell.id%30)+delta_ss)%30;
 
   // Get sequence hopping number v 
   uint32_t v = 0; 
-  if (nof_prb >= 6 && q->sequence_hopping_en) {
+  if (nof_prb >= 6 && q->pusch_cfg.sequence_hopping_en) {
     v = q->v_pusch[ns][q->pusch_cfg.delta_ss];
   }
 
@@ -433,7 +429,7 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, 
 
       // Do complex exponential and adjust amplitude
       for (int i=0;i<SRSLTE_NRE*nof_prb;i++) {
-        r_pusch[(ns%2)*SRSLTE_NRE*nof_prb+i] = q->pusch_cfg.beta_pusch * cexpf(I*(q->tmp_arg[i] + alpha*i));
+        r_pusch[(ns%2)*SRSLTE_NRE*nof_prb+i] = cexpf(I*(q->tmp_arg[i] + alpha*i));
       }      
     }
     ret = 0; 
@@ -517,7 +513,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
     for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
       // Get group hopping number u 
       uint32_t f_gh=0; 
-      if (q->group_hopping_en) {
+      if (q->pusch_cfg.group_hopping_en) {
         f_gh = q->f_gh[ns];
       }
       uint32_t u = (f_gh + (q->cell.id%30))%30;
@@ -566,7 +562,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
         }
         if (w) {
           for (uint32_t n=0;n<SRSLTE_NRE;n++) {
-            r_pucch[(ns%2)*SRSLTE_NRE*N_rs+m*SRSLTE_NRE+n] = q->pucch_cfg.beta_pucch*z_m*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
+            r_pucch[(ns%2)*SRSLTE_NRE*N_rs+m*SRSLTE_NRE+n] = z_m*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
           }                                 
         } else {
           return SRSLTE_ERROR; 
@@ -846,7 +842,7 @@ int srslte_refsignal_srs_gen(srslte_refsignal_ul_t *q, uint32_t sf_idx, cf_t *r_
 
       // Do complex exponential and adjust amplitude
       for (int i=0;i<M_sc;i++) {
-        r_srs[(ns%2)*M_sc+i] = q->srs_cfg.beta_srs * cexpf(I*(q->tmp_arg[i] + alpha*i));
+        r_srs[(ns%2)*M_sc+i] = cexpf(I*(q->tmp_arg[i] + alpha*i));
       }     
     }
     ret = SRSLTE_SUCCESS; 

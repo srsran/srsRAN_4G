@@ -168,6 +168,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (msg               !=  NULL   &&
+      ul_dci            !=  NULL   &&
       grant             !=  NULL)
   {
     ret = SRSLTE_ERROR;
@@ -178,7 +179,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
     if (srslte_dci_msg_unpack_pusch(msg, ul_dci, nof_prb)) {
       return ret;
     } 
-    
+
     if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
       fprintf(stderr, "Error computing resource allocation\n");
       return ret;
@@ -186,7 +187,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
     
     if (SRSLTE_VERBOSE_ISINFO()) {
       srslte_ra_pusch_fprint(stdout, ul_dci, nof_prb);
-      srslte_ra_ul_grant_fprint(stdout, grant);
+      srslte_ra_ul_grant_fprint(stdout, grant);     
     }
     
     ret = SRSLTE_SUCCESS;
@@ -339,6 +340,7 @@ int dci_format0_pack(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
   } else {
     riv = data->type2_alloc.riv;
   }
+
   srslte_bit_pack(riv, &y, riv_nbits(nof_prb) - n_ul_hop);
 
   /* pack MCS according to 8.6.1 of 36.213 */

@@ -70,8 +70,8 @@ int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uin
   K_p = nrows * NCOLS;
   if (3 * K_p > w_buff_len) {
     fprintf(stderr,
-        "Input too large. Max input length including dummy bits is %d (3x%dx32, in_len %d)\n",
-        w_buff_len, nrows, in_len);
+        "Input too large. Max input length including dummy bits is %d (3x%dx32, in_len %d, Kp=%d)\n",
+        w_buff_len, nrows, in_len, K_p);
     return -1;
   }
 
