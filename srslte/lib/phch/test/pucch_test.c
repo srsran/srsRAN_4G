@@ -122,15 +122,9 @@ int main(int argc, char **argv) {
   for (format=0;format<=SRSLTE_PUCCH_FORMAT_2B;format++) {
     for (uint32_t d=1;d<=3;d++) {
       for (uint32_t ncs=0;ncs<8;ncs+=d) {
-        for (uint32_t n_pucch=1;n_pucch<130;n_pucch++) {
-  
-          format=SRSLTE_PUCCH_FORMAT_2;
-          uint32_t d=2;
-          uint32_t ncs=0;
-          uint32_t n_pucch=0;
-          
+        for (uint32_t n_pucch=1;n_pucch<130;n_pucch+=50) {
+        
           struct timeval t[3]; 
-          
           
           pucch_cfg.delta_pucch_shift = d; 
           bool group_hopping_en = false; 

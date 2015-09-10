@@ -155,13 +155,21 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  printf("Opening UHD device...\n");
-  if (cuhd_open(prog_args.uhd_args, &uhd)) {
-    fprintf(stderr, "Error opening uhd\n");
-    return -1;
+  if (prog_args.uhd_gain > 0) {
+    printf("Opening UHD device...\n");
+    if (cuhd_open(prog_args.uhd_args, &uhd)) {
+      fprintf(stderr, "Error opening uhd\n");
+      exit(-1);
+    }
+    cuhd_set_rx_gain(uhd, prog_args.uhd_gain);      
+  } else {
+    printf("Opening UHD device with threaded RX Gain control ...\n");
+    if (cuhd_open_th(prog_args.uhd_args, &uhd, false)) {
+      fprintf(stderr, "Error opening uhd\n");
+      exit(-1);
+    }
+    cuhd_set_rx_gain(uhd, 50);      
   }
-  /* Set receiver gain */
-  cuhd_set_rx_gain(uhd, prog_args.uhd_gain);
 
   /* set receiver frequency */
   cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
@@ -289,7 +297,12 @@ int main(int argc, char **argv) {
           rssi_utra = SRSLTE_VEC_CMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,nframes);
           rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&chest),rsrq,0.05);
           rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&chest),rsrp,0.05);      
-          snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&chest),snr,0.05);      
+          snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_snr(&chest),snr,0.05);      
+          // Adjust with USRP gain
+          rssi += cuhd_get_rx_gain(uhd);
+          rssi_utra += cuhd_get_rx_gain(uhd);
+          rsrp += cuhd_get_rx_gain(uhd);
+          
           nframes++;          
         }        
         
