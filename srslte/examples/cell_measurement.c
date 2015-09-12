@@ -236,6 +236,8 @@ int main(int argc, char **argv) {
   }
   
   cuhd_start_rx_stream(uhd);
+  
+  float rx_gain_offset = 0;
 
   /* Main loop */
   while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
@@ -301,16 +303,26 @@ int main(int argc, char **argv) {
           snr = SRSLTE_VEC_EMA(srslte_chest_dl_get_snr(&chest),snr,0.05);      
           
           nframes++;          
-        }        
+        } 
+        
+        
+        if ((nframes%100) == 0 || rx_gain_offset == 0) {
+          if (cuhd_has_rssi(uhd)) {
+            rx_gain_offset = 10*log10(rssi)-cuhd_get_rssi(uhd);
+          } else {
+            rx_gain_offset = cuhd_get_rx_gain(uhd);
+          }
+        }
         
         // Plot and Printf
         if ((nframes%10) == 0) {
+
           printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %5.1f dB\r",
                 srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
-                10*log10(rssi*1000) - cuhd_get_rx_gain(uhd), 
-                10*log10(rssi_utra*1000)- cuhd_get_rx_gain(uhd), 
-                10*log10(rsrp*1000)- cuhd_get_rx_gain(uhd), 
+                10*log10(rssi*1000) - rx_gain_offset,                                  
+                10*log10(rssi_utra*1000)- rx_gain_offset, 
+                10*log10(rsrp*1000) - rx_gain_offset, 
                 10*log10(rsrq), 10*log10(snr));                
           if (srslte_verbose != SRSLTE_VERBOSE_NONE) {
             printf("\n");
