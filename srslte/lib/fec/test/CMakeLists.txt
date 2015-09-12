@@ -53,6 +53,11 @@ ADD_TEST(turbodecoder_test_known turbodecoder_test -n 1 -s 1 -k -e 0.5)
 
 BuildMex(MEXNAME turbodecoder SOURCES turbodecoder_test_mex.c LIBRARIES srslte srslte_mex)
 
+ADD_EXECUTABLE(turbocoder_test turbocoder_test.c)
+TARGET_LINK_LIBRARIES(turbocoder_test srslte)
+ADD_TEST(turbocoder_test_40 turbocoder_test -l 40)
+ADD_TEST(turbocoder_test_6114 turbocoder_test -l 6114)
+
 ########################################################################
 # Viterbi TEST  
 ########################################################################

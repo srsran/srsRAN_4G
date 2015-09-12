@@ -49,6 +49,7 @@
 
 typedef struct SRSLTE_API {
   uint32_t max_long_cb;
+  uint8_t *temp;
   srslte_tc_interl_t interl;
 } srslte_tcod_t;
 
@@ -61,6 +62,13 @@ SRSLTE_API int srslte_tcod_encode(srslte_tcod_t *h,
                                   uint8_t *input, 
                                   uint8_t *output, 
                                   uint32_t long_cb);
+
+SRSLTE_API int srslte_tcod_encode_lut(srslte_tcod_t *h, 
+                                      uint8_t *input, 
+                                      uint8_t *output, 
+                                      uint32_t long_cb); 
+
+SRSLTE_API void srslte_tcod_gentable(); 
 
 #endif
 
