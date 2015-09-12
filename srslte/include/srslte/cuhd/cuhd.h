@@ -53,6 +53,10 @@ SRSLTE_API int cuhd_stop_rx_stream(void *h);
 
 SRSLTE_API void cuhd_flush_buffer(void *h);
 
+SRSLTE_API bool cuhd_has_rssi(void *h);
+
+SRSLTE_API float cuhd_get_rssi(void *h); 
+
 SRSLTE_API bool cuhd_rx_wait_lo_locked(void *h);
 
 SRSLTE_API void cuhd_set_master_clock_rate(void *h, 

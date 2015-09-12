@@ -108,6 +108,27 @@ void cuhd_flush_buffer(void *h)
   } while (n > 0);  
 }
 
+bool cuhd_has_rssi(void *h) {
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  std::vector < std::string > mb_sensors = handler->usrp->get_mboard_sensor_names();
+  std::vector < std::string > rx_sensors = handler->usrp->get_rx_sensor_names(0);
+  if (std::find(rx_sensors.begin(), rx_sensors.end(), "rssi") != rx_sensors.end()) {
+    return true;
+  } else {
+    return false; 
+  }
+}
+
+float cuhd_get_rssi(void *h) {
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  if (cuhd_has_rssi(h)) {
+    uhd::sensor_value_t value = handler->usrp->get_rx_sensor("rssi");
+    return value.to_real();
+  } else {
+    return 0;
+  }
+}
+
 int cuhd_start_rx_stream_nsamples(void *h, uint32_t nsamples)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
