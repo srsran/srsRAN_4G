@@ -41,6 +41,11 @@
 
 #include "srslte/config.h"
 
+SRSLTE_API void srslte_bit_interleave(uint8_t *input, 
+                                      uint8_t *output, 
+                                      uint32_t *interleaver, 
+                                      uint32_t nof_bits); 
+
 SRSLTE_API void srslte_bit_unpack_vector(uint8_t *srslte_bit_packed, 
                                        uint8_t *bits_packed, 
                                        int nof_bits);
