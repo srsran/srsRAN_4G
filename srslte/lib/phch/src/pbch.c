@@ -261,7 +261,7 @@ void srslte_pbch_free(srslte_pbch_t *q) {
 void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   int phich_res;
 
-  cell->bw_idx = srslte_bit_unpack(&msg, 3);
+  cell->bw_idx = srslte_bit_pack(&msg, 3);
   switch (cell->bw_idx) {
   case 0:
     cell->nof_prb = 6;
@@ -280,7 +280,7 @@ void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   }
   msg++;
 
-  phich_res = srslte_bit_unpack(&msg, 2);
+  phich_res = srslte_bit_pack(&msg, 2);
   switch (phich_res) {
   case 0:
       cell->phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6;
@@ -296,7 +296,7 @@ void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
     break;
   }
   if (sfn) {
-    *sfn = srslte_bit_unpack(&msg, 8) << 2;    
+    *sfn = srslte_bit_pack(&msg, 8) << 2;    
   }
 }
 
@@ -315,7 +315,7 @@ void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   } else {
     bw = 1 + cell->nof_prb / 25;
   }
-  srslte_bit_pack(bw, &msg, 3);
+  srslte_bit_unpack(bw, &msg, 3);
 
   *msg = cell->phich_length == SRSLTE_PHICH_EXT;
   msg++;
@@ -334,8 +334,8 @@ void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
     phich_res = 3;
     break;
   }
-  srslte_bit_pack(phich_res, &msg, 2);
-  srslte_bit_pack(sfn >> 2, &msg, 8);
+  srslte_bit_unpack(phich_res, &msg, 2);
+  srslte_bit_unpack(sfn >> 2, &msg, 8);
 }
 
 void srslte_pbch_decode_reset(srslte_pbch_t *q) {

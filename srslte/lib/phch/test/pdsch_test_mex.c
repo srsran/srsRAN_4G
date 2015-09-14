@@ -217,7 +217,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(data_bytes);
   
   uint8_t *data = malloc(grant.mcs.tbs);
-  srslte_bit_pack_vector(data_bytes, data, grant.mcs.tbs);
+  srslte_bit_unpack_vector(data_bytes, data, grant.mcs.tbs);
   
   if (nlhs >= 1) { 
     plhs[0] = mxCreateLogicalScalar(r == 0);

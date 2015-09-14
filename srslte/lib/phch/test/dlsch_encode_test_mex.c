@@ -69,7 +69,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   uint8_t *trblkin = srslte_vec_malloc(cfg.grant.mcs.tbs/8);
-  srslte_bit_unpack_vector(trblkin_bits, trblkin, cfg.grant.mcs.tbs);
+  srslte_bit_pack_vector(trblkin_bits, trblkin, cfg.grant.mcs.tbs);
   free(trblkin_bits);
 
   if (mexutils_read_uint32_struct(PUSCHCFG, "RV", &cfg.rv)) {

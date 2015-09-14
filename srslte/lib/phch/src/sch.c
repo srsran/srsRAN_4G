@@ -260,7 +260,7 @@ static int encode_tb(srslte_sch_t *q,
         }
         
         /* pack bits to temporal buffer for encoding */
-        srslte_bit_pack_vector(q->cb_in, q->cb_temp, cb_len);
+        srslte_bit_unpack_vector(q->cb_in, q->cb_temp, cb_len);
 
         /* Set the filler bits to <NULL> */
         for (int j = 0; j < F; j++) {

@@ -326,11 +326,11 @@ void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
   nbytes = len/8;
   fprintf(stream, "[", len);
   for (i=0;i<nbytes;i++) {
-    byte = (uint8_t) srslte_bit_unpack(&x, 8);
+    byte = (uint8_t) srslte_bit_pack(&x, 8);
     fprintf(stream, "%02x ", byte);
   }
   if (len%8) {
-    byte = (uint8_t) srslte_bit_unpack(&x, len%8);
+    byte = (uint8_t) srslte_bit_pack(&x, len%8);
     fprintf(stream, "%02x ", byte);
   }
   fprintf(stream, "];\n");

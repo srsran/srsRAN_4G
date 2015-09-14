@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
       input_bytes[i] = rand()%256;
     }
     
-    srslte_bit_pack_vector(input_bytes, input_bits, long_cb);
+    srslte_bit_unpack_vector(input_bytes, input_bits, long_cb);
 
     if (SRSLTE_VERBOSE_ISINFO()) {
       printf("Input bits:\n");
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     srslte_tcod_encode(&tcod, input_bits, output_bits, long_cb);
     srslte_tcod_encode_lut(&tcod, input_bytes, output_bytes, long_cb);
     
-    srslte_bit_pack_vector(output_bytes, output_bits2, 2*long_cb+12);
+    srslte_bit_unpack_vector(output_bytes, output_bits2, 2*long_cb+12);
 
     /* de-Interleace bits for comparison */
     for (int i=0;i<long_cb;i++) {

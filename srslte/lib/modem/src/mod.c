@@ -40,7 +40,7 @@ int srslte_mod_modulate(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, u
   uint8_t *b_ptr=(uint8_t*) bits;
   j=0;
   for (i=0;i<nbits;i+=q->nbits_x_symbol) {
-    idx = srslte_bit_unpack(&b_ptr,q->nbits_x_symbol);
+    idx = srslte_bit_pack(&b_ptr,q->nbits_x_symbol);
     if (idx < q->nsymbols) {
       symbols[j] = q->symbol_table[idx];      
     } else {

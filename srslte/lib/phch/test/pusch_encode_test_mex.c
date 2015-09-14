@@ -128,7 +128,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin_bits);
 
   uint8_t *trblkin = srslte_vec_malloc(grant.mcs.tbs/8);
-  srslte_bit_unpack_vector(trblkin_bits, trblkin, grant.mcs.tbs);
+  srslte_bit_pack_vector(trblkin_bits, trblkin, grant.mcs.tbs);
   free(trblkin_bits);
 
   grant.M_sc = grant.L_prb*SRSLTE_NRE;

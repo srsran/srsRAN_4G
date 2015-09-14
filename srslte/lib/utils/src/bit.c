@@ -31,19 +31,19 @@
 
 #include "srslte/utils/bit.h"
 
-void srslte_bit_pack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
+void srslte_bit_unpack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits/8;
   for (i=0;i<nbytes;i++) {
-    srslte_bit_pack(bits_unpacked[i], &bits_packed, 8);
+    srslte_bit_unpack(bits_unpacked[i], &bits_packed, 8);
   }
   if (nof_bits%8) {
-    srslte_bit_pack(bits_unpacked[i], &bits_packed, nof_bits%8);
+    srslte_bit_unpack(bits_unpacked[i], &bits_packed, nof_bits%8);
   }
 }
 
-void srslte_bit_pack_l(uint64_t value, uint8_t **bits, int nof_bits)
+void srslte_bit_unpack_l(uint64_t value, uint8_t **bits, int nof_bits)
 {
   int i;
 
@@ -53,7 +53,7 @@ void srslte_bit_pack_l(uint64_t value, uint8_t **bits, int nof_bits)
   *bits += nof_bits;
 }
 
-void srslte_bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
+void srslte_bit_unpack(uint32_t value, uint8_t **bits, int nof_bits)
 {
     int i;
 
@@ -63,19 +63,19 @@ void srslte_bit_pack(uint32_t value, uint8_t **bits, int nof_bits)
     *bits += nof_bits;
 }
 
-void srslte_bit_unpack_vector(uint8_t *bits_packed, uint8_t *bits_unpacked, int nof_bits)
+void srslte_bit_pack_vector(uint8_t *bits_packed, uint8_t *bits_unpacked, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits/8;
   for (i=0;i<nbytes;i++) {
-    bits_unpacked[i] = srslte_bit_unpack(&bits_packed, 8);
+    bits_unpacked[i] = srslte_bit_pack(&bits_packed, 8);
   }
   if (nof_bits%8) {
-    bits_unpacked[i] = srslte_bit_unpack(&bits_packed, nof_bits%8);
+    bits_unpacked[i] = srslte_bit_pack(&bits_packed, nof_bits%8);
   }
 }
 
-uint32_t srslte_bit_unpack(uint8_t **bits, int nof_bits)
+uint32_t srslte_bit_pack(uint8_t **bits, int nof_bits)
 {
     int i;
     uint32_t value=0;
@@ -87,7 +87,7 @@ uint32_t srslte_bit_unpack(uint8_t **bits, int nof_bits)
     return value;
 }
 
-uint64_t srslte_bit_unpack_l(uint8_t **bits, int nof_bits)
+uint64_t srslte_bit_pack_l(uint8_t **bits, int nof_bits)
 {
     int i;
     uint64_t value=0;

@@ -422,7 +422,7 @@ void *net_thread_fnc(void *arg) {
       while (rpm >= nbytes) {
         // wait for packet to be transmitted
         sem_wait(&net_sem);
-        srslte_bit_pack_vector(&data_unpacked[wpm], data, nbytes*8);          
+        srslte_bit_unpack_vector(&data_unpacked[wpm], data, nbytes*8);          
         INFO("Sent %d/%d bytes ready\n", nbytes, rpm);
         rpm -= nbytes;          
         wpm += nbytes; 
@@ -590,7 +590,7 @@ int main(int argc, char **argv) {
         }        
         if (net_port > 0 && net_packet_ready) {
           if (null_file_sink) {
-            srslte_bit_unpack_vector(data, data_tmp, pdsch_cfg.grant.mcs.tbs);
+            srslte_bit_pack_vector(data, data_tmp, pdsch_cfg.grant.mcs.tbs);
             if (srslte_netsink_write(&net_sink, data_tmp, 1+(pdsch_cfg.grant.mcs.tbs-1)/8) < 0) {
               fprintf(stderr, "Error sending data through UDP socket\n");
             }            

@@ -141,12 +141,12 @@ int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, uint32_t nof_prb,
 void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, uint8_t grant[SRSLTE_RAR_GRANT_LEN])
 {
   uint8_t *grant_ptr = grant; 
-  rar->hopping_flag = srslte_bit_unpack(&grant_ptr, 1)?true:false;
-  rar->rba          = srslte_bit_unpack(&grant_ptr, 10);
-  rar->trunc_mcs    = srslte_bit_unpack(&grant_ptr, 4);
-  rar->tpc_pusch    = srslte_bit_unpack(&grant_ptr, 3);
-  rar->ul_delay     = srslte_bit_unpack(&grant_ptr, 1)?true:false;
-  rar->cqi_request  = srslte_bit_unpack(&grant_ptr, 1)?true:false;
+  rar->hopping_flag = srslte_bit_pack(&grant_ptr, 1)?true:false;
+  rar->rba          = srslte_bit_pack(&grant_ptr, 10);
+  rar->trunc_mcs    = srslte_bit_pack(&grant_ptr, 4);
+  rar->tpc_pusch    = srslte_bit_pack(&grant_ptr, 3);
+  rar->ul_delay     = srslte_bit_pack(&grant_ptr, 1)?true:false;
+  rar->cqi_request  = srslte_bit_pack(&grant_ptr, 1)?true:false;
 }
 
 void srslte_dci_rar_grant_fprint(FILE *stream, srslte_dci_rar_grant_t *rar) {
@@ -341,10 +341,10 @@ int dci_format0_pack(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
     riv = data->type2_alloc.riv;
   }
 
-  srslte_bit_pack(riv, &y, riv_nbits(nof_prb) - n_ul_hop);
+  srslte_bit_unpack(riv, &y, riv_nbits(nof_prb) - n_ul_hop);
 
   /* pack MCS according to 8.6.1 of 36.213 */
-  srslte_bit_pack(data->mcs_idx, &y, 5);
+  srslte_bit_unpack(data->mcs_idx, &y, 5);
 
   *y++ = data->ndi;
 
@@ -402,21 +402,21 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t
     }
   }
   /* unpack RIV according to 8.1 of 36.213 */
-  uint32_t riv = srslte_bit_unpack(&y, riv_nbits(nof_prb) - n_ul_hop);
+  uint32_t riv = srslte_bit_pack(&y, riv_nbits(nof_prb) - n_ul_hop);
   srslte_ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
       nof_prb, nof_prb);
   data->type2_alloc.riv = riv;
 
   /* unpack MCS according to 8.6 of 36.213 */
-  data->mcs_idx = srslte_bit_unpack(&y, 5);
+  data->mcs_idx = srslte_bit_pack(&y, 5);
 
   data->ndi = *y++ ? true : false;
 
   // TPC command for scheduled PUSCH
-  data->tpc_pusch = srslte_bit_unpack(&y, 2);
+  data->tpc_pusch = srslte_bit_pack(&y, 2);
   
   // Cyclic shift for DMRS
-  data->n_dmrs = srslte_bit_unpack(&y, 3); 
+  data->n_dmrs = srslte_bit_pack(&y, 3); 
   
   // CQI request
   data->cqi_request = *y++ ? true : false;
@@ -444,12 +444,12 @@ int dci_format1_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
   uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
   switch (data->alloc_type) {
   case SRSLTE_RA_ALLOC_TYPE0:
-    srslte_bit_pack((uint32_t) data->type0_alloc.rbg_bitmask, &y, alloc_size);
+    srslte_bit_unpack((uint32_t) data->type0_alloc.rbg_bitmask, &y, alloc_size);
     break;
   case SRSLTE_RA_ALLOC_TYPE1:
-    srslte_bit_pack((uint32_t) data->type1_alloc.rbg_subset, &y, (int) ceilf(log2f(P)));
+    srslte_bit_unpack((uint32_t) data->type1_alloc.rbg_subset, &y, (int) ceilf(log2f(P)));
     *y++ = data->type1_alloc.shift ? 1 : 0;
-    srslte_bit_pack((uint32_t) data->type1_alloc.vrb_bitmask, &y,
+    srslte_bit_unpack((uint32_t) data->type1_alloc.vrb_bitmask, &y,
         alloc_size - (int) ceilf(log2f(P)) - 1);
     break;
   default:
@@ -459,15 +459,15 @@ int dci_format1_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
 
   }
   /* pack MCS */
-  srslte_bit_pack(data->mcs_idx, &y, 5);
+  srslte_bit_unpack(data->mcs_idx, &y, 5);
 
   /* harq process number */
-  srslte_bit_pack(data->harq_process, &y, 3);
+  srslte_bit_unpack(data->harq_process, &y, 3);
 
   *y++ = data->ndi;
 
   // rv version
-  srslte_bit_pack(data->rv_idx, &y, 2);
+  srslte_bit_unpack(data->rv_idx, &y, 2);
 
   // TPC not implemented
   *y++ = 0;
@@ -505,12 +505,12 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
   switch (data->alloc_type) {
   case SRSLTE_RA_ALLOC_TYPE0:
-    data->type0_alloc.rbg_bitmask = srslte_bit_unpack(&y, alloc_size);
+    data->type0_alloc.rbg_bitmask = srslte_bit_pack(&y, alloc_size);
     break;
   case SRSLTE_RA_ALLOC_TYPE1:
-    data->type1_alloc.rbg_subset = srslte_bit_unpack(&y, (int) ceilf(log2f(P)));
+    data->type1_alloc.rbg_subset = srslte_bit_pack(&y, (int) ceilf(log2f(P)));
     data->type1_alloc.shift = *y++ ? true : false;
-    data->type1_alloc.vrb_bitmask = srslte_bit_unpack(&y,
+    data->type1_alloc.vrb_bitmask = srslte_bit_pack(&y,
         alloc_size - (int) ceilf(log2f(P)) - 1);
     break;
   default:
@@ -519,14 +519,14 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
 
   }
   /* unpack MCS according to 7.1.7 of 36.213 */
-  data->mcs_idx = srslte_bit_unpack(&y, 5);
+  data->mcs_idx = srslte_bit_pack(&y, 5);
   
   /* harq process number */
-  data->harq_process = srslte_bit_unpack(&y, 3);
+  data->harq_process = srslte_bit_pack(&y, 3);
 
   data->ndi = *y++ ? true : false;
   // rv version
-  data->rv_idx = srslte_bit_unpack(&y, 2);
+  data->rv_idx = srslte_bit_pack(&y, 2);
   
   // TPC not implemented
   
@@ -588,12 +588,12 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
     nb_gap = 1;
     *y++ = data->type2_alloc.n_gap;
   }
-  srslte_bit_pack(riv, &y, riv_nbits(nof_prb) - nb_gap);
+  srslte_bit_unpack(riv, &y, riv_nbits(nof_prb) - nb_gap);
 
   // in format1A, MCS = TBS according to 7.1.7.2 of 36.213
-  srslte_bit_pack(data->mcs_idx, &y, 5);
+  srslte_bit_unpack(data->mcs_idx, &y, 5);
 
-  srslte_bit_pack(data->harq_process, &y, 3);
+  srslte_bit_unpack(data->harq_process, &y, 3);
 
   if (!crc_is_crnti && nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
     *y++ = data->type2_alloc.n_gap;
@@ -602,7 +602,7 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   }
 
   // rv version
-  srslte_bit_pack(data->rv_idx, &y, 2);
+  srslte_bit_unpack(data->rv_idx, &y, 2);
 
   if (crc_is_crnti) {
     // TPC not implemented
@@ -661,15 +661,15 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   } else {
     nof_vrb = srslte_ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
   }
-  uint32_t riv = srslte_bit_unpack(&y, riv_nbits(nof_prb) - nb_gap);
+  uint32_t riv = srslte_bit_pack(&y, riv_nbits(nof_prb) - nb_gap);
   srslte_ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
       nof_prb, nof_vrb);
   data->type2_alloc.riv = riv;
 
   // unpack MCS
-  data->mcs_idx = srslte_bit_unpack(&y, 5);
+  data->mcs_idx = srslte_bit_pack(&y, 5);
 
-  data->harq_process = srslte_bit_unpack(&y, 3);
+  data->harq_process = srslte_bit_pack(&y, 3);
 
   if (!crc_is_crnti)  {
     if (nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
@@ -682,7 +682,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   }
 
   // rv version
-  data->rv_idx = srslte_bit_unpack(&y, 2);
+  data->rv_idx = srslte_bit_pack(&y, 2);
 
   if (crc_is_crnti) {
     // TPC not implemented
@@ -741,10 +741,10 @@ int dci_format1Cs_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   } else {
     riv = data->type2_alloc.riv;
   }
-  srslte_bit_pack(riv, &y, riv_nbits((int) n_vrb_dl / n_step));
+  srslte_bit_unpack(riv, &y, riv_nbits((int) n_vrb_dl / n_step));
 
   // in format1C, MCS = TBS according to 7.1.7.2 of 36.213
-  srslte_bit_pack(data->mcs_idx, &y, 5);
+  srslte_bit_unpack(data->mcs_idx, &y, 5);
 
   msg->nof_bits = (y - msg->data);
 
@@ -769,7 +769,7 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   uint32_t n_step = srslte_ra_type2_n_rb_step(nof_prb);
   uint32_t n_vrb_dl = srslte_ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
 
-  uint32_t riv = srslte_bit_unpack(&y, riv_nbits((int) n_vrb_dl / n_step));
+  uint32_t riv = srslte_bit_pack(&y, riv_nbits((int) n_vrb_dl / n_step));
   uint32_t n_vrb_p = (uint32_t) n_vrb_dl / n_step;
 
   srslte_ra_type2_from_riv(riv, &L_p, &RB_p, n_vrb_p, n_vrb_p);
@@ -777,7 +777,7 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   data->type2_alloc.RB_start = RB_p * n_step;
   data->type2_alloc.riv = riv;
 
-  data->mcs_idx = srslte_bit_unpack(&y, 5);
+  data->mcs_idx = srslte_bit_pack(&y, 5);
   
   data->dci_format = SRSLTE_RA_DCI_FORMAT1C;
   

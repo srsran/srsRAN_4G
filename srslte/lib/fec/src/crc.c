@@ -136,7 +136,7 @@ uint32_t srslte_crc_checksum(srslte_crc_t *h, uint8_t *data, int len) {
         byte |= ((uint8_t) *(pter + k)) << (7 - k);
       }
     } else {
-      byte = (uint8_t) (srslte_bit_unpack(&pter, 8) & 0xFF);
+      byte = (uint8_t) (srslte_bit_pack(&pter, 8) & 0xFF);
     }
     crc = crctable(h, byte);
   }
@@ -185,7 +185,7 @@ uint32_t srslte_crc_attach(srslte_crc_t *h, uint8_t *data, int len) {
 
   // Add CRC
   uint8_t *ptr = &data[len];
-  srslte_bit_pack(checksum, &ptr, h->order);
+  srslte_bit_unpack(checksum, &ptr, h->order);
   return checksum;
 }
 

@@ -67,9 +67,9 @@ int main(int argc, char **argv) {
   for (i = 0; i < nwords; i++) {
     x = strtoul(argv[i + 3], NULL, 16);
     if (len - rlen < 32) {
-      srslte_bit_pack(x, &y, len - rlen);
+      srslte_bit_unpack(x, &y, len - rlen);
     } else {
-      srslte_bit_pack(x, &y, 32);
+      srslte_bit_unpack(x, &y, 32);
     }
 
   }

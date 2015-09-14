@@ -264,20 +264,20 @@ int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
       msg->hdr_type = *ptr++;
       if(msg->hdr_type == rar_header_type_bi) {
         ptr += 2; 
-        msg->BI = srslte_bit_unpack(&ptr, 4);
+        msg->BI = srslte_bit_pack(&ptr, 4);
         ret = SRSLTE_SUCCESS; 
       } else if (msg->hdr_type == rar_header_type_rapid) {
-        msg->RAPID = srslte_bit_unpack(&ptr, 6);
+        msg->RAPID = srslte_bit_pack(&ptr, 6);
         ptr++;
         
-        msg->timing_adv_cmd = srslte_bit_unpack(&ptr, 11);
+        msg->timing_adv_cmd = srslte_bit_pack(&ptr, 11);
         msg->hopping_flag   = *ptr++;
-        msg->rba            = srslte_bit_unpack(&ptr, 10); 
-        msg->mcs            = srslte_bit_unpack(&ptr, 4);
-        msg->tpc_command    = (rar_tpc_command_t) srslte_bit_unpack(&ptr, 3);
+        msg->rba            = srslte_bit_pack(&ptr, 10); 
+        msg->mcs            = srslte_bit_pack(&ptr, 4);
+        msg->tpc_command    = (rar_tpc_command_t) srslte_bit_pack(&ptr, 3);
         msg->ul_delay       = *ptr++;
         msg->csi_req        = *ptr++;
-        msg->temp_c_rnti    = srslte_bit_unpack(&ptr, 16);
+        msg->temp_c_rnti    = srslte_bit_pack(&ptr, 16);
         ret = SRSLTE_SUCCESS;
       } 
     }
@@ -504,7 +504,7 @@ cell.nof_ports = 1;
 
                 srslte_ue_sync_get_last_timestamp(&ue_sync, &uhd_time);
                 
-                srslte_bit_pack_vector((uint8_t*) conn_request_msg, data, ra_grant.mcs.tbs);
+                srslte_bit_unpack_vector((uint8_t*) conn_request_msg, data, ra_grant.mcs.tbs);
 
                 uint32_t n_ta = srslte_N_ta_new_rar(rar_msg.timing_adv_cmd);
                 printf("ta: %d, n_ta: %d\n", rar_msg.timing_adv_cmd, n_ta);

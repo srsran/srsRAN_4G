@@ -44,8 +44,8 @@
 int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
 {
   uint8_t *body_ptr = buff; 
-  srslte_bit_pack(msg->wideband_cqi, &body_ptr, 4);
-  srslte_bit_pack(msg->subband_diff_cqi, &body_ptr, 2*msg->N);
+  srslte_bit_unpack(msg->wideband_cqi, &body_ptr, 4);
+  srslte_bit_unpack(msg->subband_diff_cqi, &body_ptr, 2*msg->N);
   
   return 4+2*msg->N;
 }
@@ -53,9 +53,9 @@ int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, uint8_t buff[SRSLTE
 int srslte_cqi_ue_subband_pack(srslte_cqi_ue_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS])
 {
   uint8_t *body_ptr = buff; 
-  srslte_bit_pack(msg->wideband_cqi, &body_ptr, 4);
-  srslte_bit_pack(msg->subband_diff_cqi, &body_ptr, 2);  
-  srslte_bit_pack(msg->subband_diff_cqi, &body_ptr, msg->L);  
+  srslte_bit_unpack(msg->wideband_cqi, &body_ptr, 4);
+  srslte_bit_unpack(msg->subband_diff_cqi, &body_ptr, 2);  
+  srslte_bit_unpack(msg->subband_diff_cqi, &body_ptr, msg->L);  
   
   return 4+2+msg->L;
 }
@@ -63,15 +63,15 @@ int srslte_cqi_ue_subband_pack(srslte_cqi_ue_subband_t *msg, uint8_t buff[SRSLTE
 int srslte_cqi_format2_wideband_pack(srslte_cqi_format2_wideband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
 {
   uint8_t *body_ptr = buff; 
-  srslte_bit_pack(msg->wideband_cqi, &body_ptr, 4);  
+  srslte_bit_unpack(msg->wideband_cqi, &body_ptr, 4);  
   return 4;  
 }
 
 int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
 {
   uint8_t *body_ptr = buff; 
-  srslte_bit_pack(msg->subband_cqi, &body_ptr, 4);  
-  srslte_bit_pack(msg->subband_label, &body_ptr, msg->subband_label_2_bits?2:1);  
+  srslte_bit_unpack(msg->subband_cqi, &body_ptr, 4);  
+  srslte_bit_unpack(msg->subband_label, &body_ptr, msg->subband_label_2_bits?2:1);  
   return 4+msg->subband_label_2_bits?2:1;    
 }
 

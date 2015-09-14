@@ -265,7 +265,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
     k++;
   }
   
-  srslte_bit_unpack_vector(tail, &output[2*(long_cb/8)], TOTALTAIL);
+  srslte_bit_pack_vector(tail, &output[2*(long_cb/8)], TOTALTAIL);
   
   return 2*long_cb+TOTALTAIL;
 }

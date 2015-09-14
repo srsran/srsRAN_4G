@@ -296,7 +296,7 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
     }
 
     x = &data[nof_bits];
-    p_bits = (uint16_t) srslte_bit_unpack(&x, 16);
+    p_bits = (uint16_t) srslte_bit_pack(&x, 16);
     crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
     DEBUG("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
         p_bits ^ crc_res);
@@ -444,7 +444,7 @@ static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
 
   DEBUG("Mask CRC with RNTI 0x%x\n", rnti);
 
-  srslte_bit_pack(rnti, &r, 16);
+  srslte_bit_unpack(rnti, &r, 16);
   for (i = 0; i < 16; i++) {
     crc[i] = (crc[i] + mask[i]) % 2;
   }
