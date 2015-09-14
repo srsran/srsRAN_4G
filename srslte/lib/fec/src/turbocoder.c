@@ -43,7 +43,7 @@
 
 uint8_t tcod_lut_next_state[188][8][256];
 uint8_t tcod_lut_output[188][8][256];
-uint16_t tcod_per_fw[188][6114];
+uint32_t tcod_per_fw[188][6114];
 
 int srslte_tcod_init(srslte_tcod_t *h, uint32_t max_long_cb) {
 
@@ -198,15 +198,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
   }
 
   /* Interleave input */  
-  for (uint32_t i=0;i<long_cb/8;i++) {
-    h->temp[i] = 0; 
-    for (uint32_t j=0;j<8;j++) {
-      uint32_t i_p = tcod_per_fw[len_idx][i*8+j];      
-      if (input[i_p/8] & (1<<(7-i_p%8))) {
-        h->temp[i] |= 1<<(7-j);
-      }
-    }
-  }
+  srslte_bit_interleave(input, h->temp, tcod_per_fw[len_idx], long_cb);
 
   /* Parity bits for the 2nd constituent encoders */
   uint8_t state1 = 0;

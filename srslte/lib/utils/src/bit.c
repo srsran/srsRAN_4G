@@ -31,6 +31,24 @@
 
 #include "srslte/utils/bit.h"
 
+void srslte_bit_interleave(uint8_t *input, uint8_t *output, uint32_t *interleaver, uint32_t nof_bits) {
+  for (uint32_t i=0;i<nof_bits/8;i++) {
+    output[i] = 0; 
+    for (uint32_t j=0;j<8;j++) {
+      uint32_t i_p = interleaver[i*8+j];      
+      if (input[i_p/8] & (1<<(7-i_p%8))) {
+        output[i] |= 1<<(7-j);
+      }
+    }
+  }
+  for (uint32_t j=0;j<nof_bits%8;j++) {
+    uint32_t i_p = interleaver[(nof_bits/8)*8+j];      
+    if (input[i_p/8] & (1<<(7-i_p%8))) {
+      output[nof_bits/8] |= 1<<(7-j);
+    }
+  }
+}
+
 void srslte_bit_unpack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
 {
   uint32_t i, nbytes;
