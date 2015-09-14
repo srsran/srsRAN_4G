@@ -41,13 +41,13 @@
 
 #include "srslte/config.h"
 
-SRSLTE_API void srslte_bit_unpack_vector(uint8_t *srslte_bit_packed, 
-                                       uint8_t *bits_packed, 
-                                       int nof_bits);
-
-SRSLTE_API void srslte_bit_pack_vector(uint8_t *bits_packed, 
-                                         uint8_t *srslte_bit_packed, 
+SRSLTE_API void srslte_bit_unpack_vector(uint8_t *packed,
+                                         uint8_t *unpacked,
                                          int nof_bits);
+
+SRSLTE_API void srslte_bit_pack_vector(uint8_t *unpacked,
+                                       uint8_t *packed,
+                                       int nof_bits);
 
 SRSLTE_API uint32_t srslte_bit_pack(uint8_t **bits, 
                                       int nof_bits);
