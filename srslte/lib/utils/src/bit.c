@@ -31,15 +31,15 @@
 
 #include "srslte/utils/bit.h"
 
-void srslte_bit_unpack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
+void srslte_bit_unpack_vector(uint8_t *packed, uint8_t *unpacked, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits/8;
   for (i=0;i<nbytes;i++) {
-    srslte_bit_unpack(bits_unpacked[i], &bits_packed, 8);
+    srslte_bit_unpack(packed[i], &unpacked, 8);
   }
   if (nof_bits%8) {
-    srslte_bit_unpack(bits_unpacked[i], &bits_packed, nof_bits%8);
+    srslte_bit_unpack(packed[i], &unpacked, nof_bits%8);
   }
 }
 
@@ -63,15 +63,15 @@ void srslte_bit_unpack(uint32_t value, uint8_t **bits, int nof_bits)
     *bits += nof_bits;
 }
 
-void srslte_bit_pack_vector(uint8_t *bits_packed, uint8_t *bits_unpacked, int nof_bits)
+void srslte_bit_pack_vector(uint8_t *unpacked, uint8_t *packed, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits/8;
   for (i=0;i<nbytes;i++) {
-    bits_unpacked[i] = srslte_bit_pack(&bits_packed, 8);
+    packed[i] = srslte_bit_pack(&unpacked, 8);
   }
   if (nof_bits%8) {
-    bits_unpacked[i] = srslte_bit_pack(&bits_packed, nof_bits%8);
+    packed[i] = srslte_bit_pack(&unpacked, nof_bits%8);
   }
 }
 
