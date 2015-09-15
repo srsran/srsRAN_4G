@@ -68,6 +68,7 @@ typedef struct SRSLTE_API {
   uint8_t *cb_temp; 
   void *cb_out;  
   void *e;
+  srslte_tcod_out_t cb_tcod_out;
   
   srslte_tcod_t encoder;
   srslte_tdec_t decoder;  

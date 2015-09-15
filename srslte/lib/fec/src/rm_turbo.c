@@ -33,6 +33,7 @@
 #include <stdint.h>
 
 #include "srslte/fec/rm_turbo.h"
+#include "srslte/utils/bit.h"
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
@@ -40,6 +41,7 @@
 uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
     6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31 };
 
+uint32_t test_interleaver[64*1024];
 
 /* Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1
@@ -53,6 +55,59 @@ uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
  * 
  * TODO: Soft buffer size limitation according to UE category
  */
+//#define new 
+
+#ifdef new
+int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uint32_t in_len, uint8_t *output,
+    uint32_t out_len, uint32_t rv_idx) {
+
+  int ndummy, kidx; 
+  int nrows, K_p;
+
+  int i, j, k, s, N_cb, k0;
+  
+  if (in_len < 3) {
+    fprintf(stderr, "Error minimum input length for rate matching is 3\n");
+    return -1;
+  }
+
+  nrows = (uint32_t) (in_len / 3 - 1) / NCOLS + 1;
+  K_p = nrows * NCOLS;
+  if (3 * K_p > w_buff_len) {
+    fprintf(stderr,
+        "Input too large. Max input length including dummy bits is %d (3x%dx32, in_len %d, Kp=%d)\n",
+        w_buff_len, nrows, in_len, K_p);
+    return -1;
+  }
+
+  ndummy = K_p - in_len / 3;
+  if (ndummy < 0) {
+    ndummy = 0;
+  }
+
+  if (rv_idx == 0) {
+    srslte_bit_interleave(input, w_buff, test_interleaver, in_len);
+  }
+
+  /* Bit selection and transmission 5.1.4.1.2 */
+  N_cb = 3 * K_p;       // TODO: Soft buffer size limitation
+
+  k0 = nrows
+      * (2 * (uint32_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
+  k = 0;
+  j = 0;
+
+  while (k < out_len) {
+    if (w_buff[(k0 + j) % N_cb] != SRSLTE_TX_NULL) {
+      output[k] = w_buff[(k0 + j) % N_cb];
+      k++;
+    }
+    j++;
+  }
+  return 0;
+}
+
+#else
 int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uint32_t in_len, uint8_t *output,
     uint32_t out_len, uint32_t rv_idx) {
 
@@ -129,6 +184,7 @@ int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uin
   }
   return 0;
 }
+#endif
 
 /* Undoes Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1

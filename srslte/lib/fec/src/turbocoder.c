@@ -43,7 +43,9 @@
 
 uint8_t tcod_lut_next_state[188][8][256];
 uint8_t tcod_lut_output[188][8][256];
-uint32_t tcod_per_fw[188][6114];
+uint32_t tcod_per_fw[188][6144];
+
+static bool table_initiated = false; 
 
 int srslte_tcod_init(srslte_tcod_t *h, uint32_t max_long_cb) {
 
@@ -52,6 +54,11 @@ int srslte_tcod_init(srslte_tcod_t *h, uint32_t max_long_cb) {
   }
   h->max_long_cb = max_long_cb;
   h->temp = srslte_vec_malloc(max_long_cb/8);
+  
+  if (!table_initiated) {
+    table_initiated = true; 
+    srslte_tcod_gentable();
+  }
   return 0;
 }
 
@@ -177,7 +184,7 @@ int srslte_tcod_encode(srslte_tcod_t *h, uint8_t *input, uint8_t *output, uint32
 }
 
 /* Expects bytes and produces bytes. The systematic and parity bits are interlaced in the output */
-int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, uint32_t long_cb) 
+int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, srslte_tcod_out_t *output, uint32_t long_cb) 
 {
   if (long_cb % 8) {
     fprintf(stderr, "Turbo coder LUT implementation long_cb must be multiple of 8\n");
@@ -193,7 +200,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
   /* Parity bits for the 1st constituent encoders */
   uint8_t state0 = 0;   
   for (uint32_t i=0;i<long_cb/8;i++) {
-    output[i] = tcod_lut_output[len_idx][state0][input[i]];    
+    output->parity1[i] = tcod_lut_output[len_idx][state0][input[i]];    
     state0 = tcod_lut_next_state[len_idx][state0][input[i]] % 8;
   }
 
@@ -203,7 +210,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
   /* Parity bits for the 2nd constituent encoders */
   uint8_t state1 = 0;
   for (uint32_t i=0;i<long_cb/8;i++) {
-    output[long_cb/8+i] = tcod_lut_output[len_idx][state1][h->temp[i]];    
+    output->parity2[i] = tcod_lut_output[len_idx][state1][h->temp[i]];    
     state1 = tcod_lut_next_state[len_idx][state1][h->temp[i]] % 8;
   }
 
@@ -211,7 +218,6 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
   uint8_t reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
   uint8_t bit, in, out; 
   uint8_t k=0;
-  uint8_t tail[12];
   
   reg2_0 = (state1&4)>>2;
   reg2_1 = (state1&2)>>1;
@@ -225,7 +231,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
   for (uint32_t j = 0; j < NOF_REGS; j++) {
     bit = reg1_2 ^ reg1_1;
 
-    tail[k] = bit;
+    output->tail[k] = bit;
     k++;
 
     in = bit ^ (reg1_2 ^ reg1_1);
@@ -235,7 +241,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
     reg1_1 = reg1_0;
     reg1_0 = in;
 
-    tail[k] = out;
+    output->tail[k] = out;
     k++;
   }
 
@@ -243,7 +249,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
   for (uint32_t j = 0; j < NOF_REGS; j++) {
     bit = reg2_2 ^ reg2_1;
 
-    tail[k] = bit;
+    output->tail[k] = bit;
     k++;
 
     in = bit ^ (reg2_2 ^ reg2_1);
@@ -253,14 +259,23 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *output, ui
     reg2_1 = reg2_0;
     reg2_0 = in;
 
-    tail[k] = out;
+    output->tail[k] = out;
     k++;
   }
-  
-  srslte_bit_pack_vector(tail, &output[2*(long_cb/8)], TOTALTAIL);
-  
+    
   return 2*long_cb+TOTALTAIL;
 }
+
+void srslte_tcod_output_to_array(uint8_t *input_bytes, srslte_tcod_out_t *output, uint8_t *array, uint32_t long_cb) 
+{
+  for (int i=0;i<long_cb;i++) {
+    array[3*i] = input_bytes[i/8] & (1<<(7-i%8))?1:0;
+    array[3*i+1] = output->parity1[i/8] & (1<<(7-i%8))?1:0;
+    array[3*i+2] = output->parity2[i/8] & (1<<(7-i%8))?1:0;
+  }
+  memcpy(&array[3*long_cb], output->tail, 12);
+}
+
 
 void srslte_tcod_gentable() {
   srslte_tc_interl_t interl; 
@@ -307,7 +322,7 @@ void srslte_tcod_gentable() {
           tcod_lut_output[len][state][data] |= out<<(7-i);
 
         }
-        tcod_lut_next_state[len][state][data] = reg_0<<2 | reg_1<<1 | reg_2;
+        tcod_lut_next_state[len][state][data] = reg_0<<2 | reg_1<<1 | reg_2;        
       }
     }  
   }

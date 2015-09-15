@@ -202,16 +202,18 @@ int main(int argc, char **argv) {
     data[i] = 1;
   }
 
-  gettimeofday(&t[1], NULL);
   if (srslte_softbuffer_tx_init(&softbuffer, 4*cell.nof_prb)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
-  if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
-    fprintf(stderr, "Error encoding TB\n");
-    exit(-1);
-  }
 
+  gettimeofday(&t[1], NULL);
+  for (int i=0;i<10;i++) {
+    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
+      fprintf(stderr, "Error encoding TB\n");
+      exit(-1);
+    }
+  }
   if (rv_idx > 0) {
     cfg.rv = rv_idx; 
     if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
@@ -232,10 +234,10 @@ int main(int argc, char **argv) {
     goto quit;
   } else {
     printf("ENCODED OK in %d:%d (TBS: %d bits, TX: %.2f Mbps, Processing: %.2f Mbps)\n", (int) t[0].tv_sec, 
-           (int) t[0].tv_usec, 
+           (int) t[0].tv_usec/10, 
            cfg.grant.mcs.tbs,
            (float) cfg.grant.mcs.tbs/1000,
-           (float) cfg.grant.mcs.tbs/t[0].tv_usec);
+           (float) cfg.grant.mcs.tbs/t[0].tv_usec*10);
   }
   
   ret = 0;

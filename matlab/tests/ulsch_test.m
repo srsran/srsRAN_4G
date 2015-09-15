@@ -4,11 +4,11 @@ puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',0,'Shortened',0);
 
 addpath('../../build/srslte/lib/phch/test')
 
-TBs=336;
+TBs=40;
 cqilen=0;
-mods={'16QAM'};
+mods={'QPSK'};
 rvs=0;
-betas=5;
+betas=0;
 
 for i=1:length(TBs)
     for m=1:length(mods)
@@ -37,12 +37,12 @@ for i=1:length(TBs)
                         end
 
                         if (cqilen(c)>0 || TBs(i)>0)
-                            [mat, info]=lteULSCH(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit,[]);
-                            mat(mat==-2)=3;
-                            mat(mat==-1)=2;
                             [lib]=srslte_ulsch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
                             lib(lib==192)=3;
                             lib(lib==48)=2;
+                            [mat, info]=lteULSCH(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit,[]);
+                            mat(mat==-2)=3;
+                            mat(mat==-1)=2;
                             err=sum(abs(double(mat)-double(lib)));
                             if (err > 0)
                               disp(err)    

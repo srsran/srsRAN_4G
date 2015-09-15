@@ -1,10 +1,10 @@
 ueConfig=struct('NCellID',1,'NULRB',6,'RNTI',64,'CyclicPrefixUL','Normal','NTxAnts',1,'Shortened',0,'Hopping','Off','SeqGroup',0,'CyclicShift',0);
 puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',0,'Shortened',0,'DynCyclicShift',0);
 
-addpath('../../debug/srslte/lib/phch/test')
+addpath('../../build/srslte/lib/phch/test')
 
 TBs=336;
-cqilen=20;
+cqilen=0;
 rvs=0;
 mods={'16QAM'};
 betas=5;

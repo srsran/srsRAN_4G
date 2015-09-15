@@ -259,22 +259,15 @@ static int encode_tb(srslte_sch_t *q,
           srslte_crc_attach_byte(&q->crc_cb, q->cb_in, rlen);
         }
         
-        /* pack bits to temporal buffer for encoding */
-        srslte_bit_unpack_vector(q->cb_in, q->cb_temp, cb_len);
-
-        /* Set the filler bits to <NULL> */
-        for (int j = 0; j < F; j++) {
-          q->cb_temp[j] = SRSLTE_TX_NULL;
-        }
-        
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d: ", i);
-          srslte_vec_fprint_hex(stdout, q->cb_temp, cb_len);
+          srslte_vec_fprint_byte(stdout, q->cb_in, cb_len/8);
         }
-        
-        /* Turbo Encoding */
-        srslte_tcod_encode(&q->encoder, q->cb_temp, (uint8_t*) q->cb_out, cb_len);
 
+        /* Turbo Encoding */
+        srslte_tcod_encode_lut(&q->encoder, q->cb_in, &q->cb_tcod_out, cb_len);
+        srslte_tcod_output_to_array(q->cb_in, &q->cb_tcod_out, q->cb_out, cb_len);
+        
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d encoded: ", i);
           srslte_vec_fprint_b(stdout, q->cb_out, 3*cb_len+12);
@@ -496,7 +489,7 @@ int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuf
 }
 
 
-/* UL-SCH channel interleaver according to 5.5.2.8 of 36.212 */
+/* UL-SCH channel interleaver according to 5.2.2.8 of 36.212 */
 void ulsch_interleave(srslte_uci_pos_t *q, uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
                       uint32_t N_pusch_symbs, uint8_t *q_bits) 
 {
