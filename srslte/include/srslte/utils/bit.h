@@ -58,16 +58,16 @@ SRSLTE_API void srslte_bit_interleave_w_offset(uint8_t *input,
                                                uint32_t nof_bits, 
                                                uint32_t w_offset);
 
-SRSLTE_API void srslte_bit_unpack_vector(uint8_t *srslte_bit_packed, 
-                                       uint8_t *bits_packed, 
+SRSLTE_API void srslte_bit_unpack_vector(uint8_t *packed,
+                                         uint8_t *unpacked,
+                                         int nof_bits);
+                                         
+SRSLTE_API void srslte_bit_pack_vector(uint8_t *unpacked,
+                                       uint8_t *packed,
                                        int nof_bits);
 
-SRSLTE_API void srslte_bit_pack_vector(uint8_t *bits_packed, 
-                                         uint8_t *srslte_bit_packed, 
-                                         int nof_bits);
-
 SRSLTE_API uint32_t srslte_bit_pack(uint8_t **bits, 
-                                      int nof_bits);
+                                    int nof_bits);
 
 SRSLTE_API uint64_t srslte_bit_pack_l(uint8_t **bits, 
                                         int nof_bits);

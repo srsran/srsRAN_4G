@@ -200,14 +200,17 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *parity, ui
       parity[i] = tcod_lut_output[cblen_idx][state0][input[i]];    
       state0 = tcod_lut_next_state[cblen_idx][state0][input[i]] % 8;
     }
-
+    parity[long_cb/8] = 0;  // will put tail here later
+    
     /* Interleave input */  
     srslte_bit_interleave(input, h->temp, tcod_per_fw[cblen_idx], long_cb);
 
     /* Parity bits for the 2nd constituent encoders */
     uint8_t state1 = 0;
     for (uint32_t i=0;i<long_cb/8;i++) {
-      parity[long_cb/8+i] = tcod_lut_output[cblen_idx][state1][h->temp[i]];    
+      uint8_t out = tcod_lut_output[cblen_idx][state1][h->temp[i]];    
+      parity[long_cb/8+i] |= (out&0xf0)>>4;
+      parity[long_cb/8+i+1] = (out&0xf)<<4; 
       state1 = tcod_lut_next_state[cblen_idx][state1][h->temp[i]] % 8;
     }
 
@@ -268,11 +271,14 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *parity, ui
       }
     }
     uint8_t *x = tailv[0];
-    input[long_cb/8] = srslte_bit_pack(&x, 4);
+    printf("tail0: ");
+    srslte_vec_fprint_b(stdout, tailv[0], 4);
+    input[long_cb/8] = (srslte_bit_pack(&x, 4)<<4);
+    printf("0x%x\n", input[long_cb/8]);
     x = tailv[1];
-    parity[long_cb/8] = srslte_bit_pack(&x, 4);
+    parity[long_cb/8] |= (srslte_bit_pack(&x, 4)<<4);
     x = tailv[2];
-    parity[2*long_cb/8] = srslte_bit_pack(&x, 4);
+    parity[2*long_cb/8] |= (srslte_bit_pack(&x, 4)&0xf);
     
     return 3*long_cb+TOTALTAIL;
   } else {

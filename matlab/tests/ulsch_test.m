@@ -1,24 +1,25 @@
 clear 
 ueConfig=struct('NCellID',1,'CyclicPrefixUL','Normal','NTxAnts',1);
-puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',0,'Shortened',0);
+puschConfig=struct('NLayers',1,'OrthCover','Off','PRBSet',(0:15)','Shortened',0);
 
 addpath('../../build/srslte/lib/phch/test')
 
-TBs=40;
+
 cqilen=0;
 mods={'QPSK'};
 rvs=0;
 betas=0;
 
-for i=1:length(TBs)
+for i=0:26
     for m=1:length(mods)
         for r=1:length(rvs)
             for bri=1:length(betas)
                 for back=1:length(betas)          
                     for c=1:length(cqilen)
-
-                        trblkin=randi(2,TBs(i),1)-1;
-
+                        TBs=lteTBS(length(puschConfig.PRBSet),i);
+                        
+                        trblkin=randi(2,TBs,1)-1;
+                        
                         puschConfig.Modulation = mods{m};
                         puschConfig.RV = rvs(r);
                         puschConfig.BetaCQI = 5; 
@@ -36,7 +37,7 @@ for i=1:length(TBs)
                             ack_bit=[];
                         end
 
-                        if (cqilen(c)>0 || TBs(i)>0)
+                        if (cqilen(c)>0 || TBs>0)
                             [lib]=srslte_ulsch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
                             lib(lib==192)=3;
                             lib(lib==48)=2;

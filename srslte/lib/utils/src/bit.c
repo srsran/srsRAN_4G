@@ -53,13 +53,26 @@ void srslte_bit_interleave_w_offset(uint8_t *input, uint8_t *output, uint32_t *i
     w_offset_p=8-w_offset;
   }
   for (uint32_t i=st;i<nof_bits/8;i++) {
-    output[i] = 0; 
-    for (uint32_t j=0;j<8;j++) {
-      uint32_t i_p = interleaver[i*8+j-w_offset_p];      
-      if (input[i_p/8] & mask[i_p%8]) {        
-        output[i] |= mask[j];
-      }      
-    }
+    
+    uint32_t i_p0 = interleaver[i*8+0-w_offset_p];
+    uint32_t i_p1 = interleaver[i*8+1-w_offset_p];      
+    uint32_t i_p2 = interleaver[i*8+2-w_offset_p];      
+    uint32_t i_p3 = interleaver[i*8+3-w_offset_p];      
+    uint32_t i_p4 = interleaver[i*8+4-w_offset_p];      
+    uint32_t i_p5 = interleaver[i*8+5-w_offset_p];      
+    uint32_t i_p6 = interleaver[i*8+6-w_offset_p];      
+    uint32_t i_p7 = interleaver[i*8+7-w_offset_p];      
+    
+    uint8_t out0  = (input[i_p0/8] & mask[i_p0%8])?mask[0]:0;
+    uint8_t out1  = (input[i_p1/8] & mask[i_p1%8])?mask[1]:0;
+    uint8_t out2  = (input[i_p2/8] & mask[i_p2%8])?mask[2]:0;
+    uint8_t out3  = (input[i_p3/8] & mask[i_p3%8])?mask[3]:0;
+    uint8_t out4  = (input[i_p4/8] & mask[i_p4%8])?mask[4]:0;
+    uint8_t out5  = (input[i_p5/8] & mask[i_p5%8])?mask[5]:0;
+    uint8_t out6  = (input[i_p6/8] & mask[i_p6%8])?mask[6]:0;
+    uint8_t out7  = (input[i_p7/8] & mask[i_p7%8])?mask[7]:0;
+    
+    output[i] = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7; 
   }
   for (uint32_t j=0;j<nof_bits%8;j++) {
     uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];          
@@ -213,15 +226,15 @@ void srslte_bit_copy(uint8_t *dst, uint32_t dst_offset, uint8_t *src, uint32_t s
   }
 }
 
-void srslte_bit_unpack_vector(uint8_t *bits_unpacked, uint8_t *bits_packed, int nof_bits)
+void srslte_bit_unpack_vector(uint8_t *packed, uint8_t *unpacked, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits/8;
   for (i=0;i<nbytes;i++) {
-    srslte_bit_unpack(bits_unpacked[i], &bits_packed, 8);
+    srslte_bit_unpack(packed[i], &unpacked, 8);
   }
   if (nof_bits%8) {
-    srslte_bit_unpack(bits_unpacked[i], &bits_packed, nof_bits%8);
+    srslte_bit_unpack(packed[i]>>(nof_bits%8), &unpacked, nof_bits%8);
   }
 }
 
@@ -245,16 +258,16 @@ void srslte_bit_unpack(uint32_t value, uint8_t **bits, int nof_bits)
     *bits += nof_bits;
 }
 
-void srslte_bit_pack_vector(uint8_t *bits_packed, uint8_t *bits_unpacked, int nof_bits)
+void srslte_bit_pack_vector(uint8_t *unpacked, uint8_t *packed, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits/8;
   for (i=0;i<nbytes;i++) {
-    bits_unpacked[i] = srslte_bit_pack(&bits_packed, 8);
+    packed[i] = srslte_bit_pack(&unpacked, 8);
   }
   if (nof_bits%8) {
-    bits_unpacked[i] = srslte_bit_pack(&bits_packed, nof_bits%8);
-    bits_unpacked[i] <<= 8-(nof_bits%8);
+    packed[i] = srslte_bit_pack(&unpacked, nof_bits%8);
+    packed[i] <<= 8-(nof_bits%8);
   }
 }
 

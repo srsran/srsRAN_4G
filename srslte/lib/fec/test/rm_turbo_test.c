@@ -93,8 +93,8 @@ int main(int argc, char **argv) {
   
   srslte_rm_turbo_gentables();
 
- //for (cb_idx=0;cb_idx<188;cb_idx++) {
-  //  for (rv_idx=0;rv_idx<4;rv_idx++) {
+ for (cb_idx=0;cb_idx<188;cb_idx++) {
+    for (rv_idx=0;rv_idx<4;rv_idx++) {
       printf("cb_len=%d, rv_idx=%d\n", cb_idx, rv_idx);
   
   
@@ -197,8 +197,8 @@ int main(int argc, char **argv) {
       exit(-1);
     }
   }
-  //}    
-  //}
+  }    
+  }
   printf("OK\n");
   exit(0);
   

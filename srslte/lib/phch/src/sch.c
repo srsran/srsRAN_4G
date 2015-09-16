@@ -109,11 +109,11 @@ int srslte_sch_init(srslte_sch_t *q) {
     srslte_rm_turbo_gentables();
     
     // Allocate floats for reception (LLRs)
-    q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_TCOD_MAX_LEN_CB);
+    q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_TCOD_MAX_LEN_CB+4);
     if (!q->cb_in) {
       goto clean;
     }
-    q->cb_temp = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_TCOD_MAX_LEN_CB);
+    q->cb_temp = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_TCOD_MAX_LEN_CB+4);
     if (!q->cb_temp) {
       goto clean;
     }
@@ -161,6 +161,7 @@ uint32_t srslte_sch_last_noi(srslte_sch_t *q) {
 }
 
 
+uint8_t temp[64*1024];
 
 /* Encode a transport block according to 36.212 5.3.2
  *
@@ -273,23 +274,25 @@ static int encode_tb(srslte_sch_t *q,
         
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d encoded: ", i);
-          srslte_vec_fprint_b(stdout, q->cb_out, 3*cb_len+12);
+          srslte_vec_fprint_byte(stdout, q->cb_out, 2*cb_len/8);
         }
       }
       
       /* Rate matching */
-      if (srslte_rm_turbo_tx_lut(soft_buffer->buffer_b[i], q->cb_in, (uint8_t*) q->cb_out, &e_bits[wp], cblen_idx, n_e, rv))
+      if (srslte_rm_turbo_tx_lut(soft_buffer->buffer_b[i], q->cb_in, (uint8_t*) q->cb_out, &temp[wp], cblen_idx, n_e, rv))
       {
         fprintf(stderr, "Error in rate matching\n");
         return SRSLTE_ERROR;
       }
-
+      
       /* Set read/write pointers */
       rp += rlen;
       wp += n_e;
     }
     INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
-   
+
+    srslte_bit_unpack_vector(temp, e_bits, nof_e_bits);
+
     ret = SRSLTE_SUCCESS;      
   } 
   return ret; 
