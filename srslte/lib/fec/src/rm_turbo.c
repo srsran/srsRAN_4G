@@ -34,14 +34,152 @@
 
 #include "srslte/fec/rm_turbo.h"
 #include "srslte/utils/bit.h"
+#include "srslte/utils/vector.h"
+#include "srslte/fec/cbsegm.h"
+
+
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
 
-uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
+static uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
     6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31 };
 
-uint32_t test_interleaver[64*1024];
+static uint32_t interleaver_systematic_bits[SRSLTE_NOF_TC_CB_SIZES][6148]; // 4 tail bits
+static uint32_t interleaver_parity_bits[SRSLTE_NOF_TC_CB_SIZES][2*6148];
+static uint32_t k0_vec[SRSLTE_NOF_TC_CB_SIZES][4][2];
+
+
+
+void srslte_rm_turbo_gentable_systematic(uint32_t *table_bits, uint32_t k0_vec[4][2], uint32_t nrows, int ndummy) {
+
+  bool last_is_null=true;
+  int k_b=0, buff_idx=0;
+  for (int j = 0; j < NCOLS; j++) {
+    for (int i = 0; i < nrows; i++) {      
+      if (i * NCOLS + RM_PERM_TC[j] >= ndummy) {
+        table_bits[k_b] = i * NCOLS + RM_PERM_TC[j] - ndummy;
+        k_b++;        
+        last_is_null=false;
+      } else {
+        last_is_null=true;
+      }
+      for (int i=0;i<4;i++) {
+        if (k0_vec[i][1] == -1) {
+          if (k0_vec[i][0]%(3*nrows*NCOLS) <= buff_idx && !last_is_null) {
+            k0_vec[i][1] = k_b-1;
+          }
+        }
+      }
+      buff_idx++;
+    }
+  }
+}
+
+void srslte_rm_turbo_gentable_parity(uint32_t *table_parity, uint32_t k0_vec[4][2], int offset, uint32_t nrows, int ndummy) {
+  
+  bool last_is_null=true;
+  int k_b=0, buff_idx0=0;
+  int K_p = nrows*NCOLS;
+  int buff_idx1=0;
+  for (int j = 0; j < NCOLS; j++) {
+    for (int i = 0; i < nrows; i++) {      
+      if (i * NCOLS + RM_PERM_TC[j] >= ndummy) {
+        table_parity[k_b] = i * NCOLS + RM_PERM_TC[j] - ndummy;
+        k_b++;
+        last_is_null=false;
+      } else {
+        last_is_null=true;
+      }
+      for (int i=0;i<4;i++) {
+        if (k0_vec[i][1] == -1) {
+          if (k0_vec[i][0]%(3*K_p) <= 2*buff_idx0+K_p && !last_is_null) {
+            k0_vec[i][1] = offset+k_b-1;
+          }
+        }
+      }
+      buff_idx0++;
+      
+      int kidx = (RM_PERM_TC[buff_idx1 / nrows] + NCOLS * (buff_idx1 % nrows) + 1) % K_p;
+      if ((kidx - ndummy) >= 0) {
+        table_parity[k_b] = kidx-ndummy+offset;
+        k_b++;
+        last_is_null=false;
+      } else {
+        last_is_null=true;
+      }
+      for (int i=0;i<4;i++) {
+        if (k0_vec[i][1] == -1) {
+          if (k0_vec[i][0]%(3*K_p) <= 2*buff_idx1+1+K_p && !last_is_null) {
+            k0_vec[i][1] = offset+k_b-1;
+          }
+        }
+      }
+      buff_idx1++;
+    }    
+  }
+}
+
+void srslte_rm_turbo_gentables() {
+  for (int cb_idx=0;cb_idx<SRSLTE_NOF_TC_CB_SIZES;cb_idx++) {
+    int cb_len=srslte_cbsegm_cbsize(cb_idx);
+    int in_len=3*cb_len+12;
+    
+    int nrows = (in_len / 3 - 1) / NCOLS + 1;
+    int K_p = nrows * NCOLS;
+    int ndummy = K_p - in_len / 3;
+    if (ndummy < 0) {
+      ndummy = 0;
+    }
+
+    for (int i=0;i<4;i++) {
+      k0_vec[cb_idx][i][0] = nrows * (2 * (uint32_t) ceilf((float) (3*K_p) / (float) (8 * nrows)) * i + 2);
+      k0_vec[cb_idx][i][1] = -1; 
+    }
+    srslte_rm_turbo_gentable_systematic(interleaver_systematic_bits[cb_idx], k0_vec[cb_idx], nrows, ndummy);
+    srslte_rm_turbo_gentable_parity(interleaver_parity_bits[cb_idx], k0_vec[cb_idx], in_len/3, nrows, ndummy);
+ }
+}
+
+int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity, uint8_t *output, uint32_t cb_idx, uint32_t out_len, uint32_t rv_idx) {
+
+  
+  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
+    
+    int in_len=3*srslte_cbsegm_cbsize(cb_idx)+12;
+    
+    /* Sub-block interleaver (5.1.4.1.1) and bit collection */
+    if (rv_idx == 0) {
+      
+      // Systematic bits 
+      srslte_bit_interleave(systematic, w_buff, interleaver_systematic_bits[cb_idx], in_len/3);
+
+      // Parity bits 
+      srslte_bit_interleave_w_offset(parity, &w_buff[in_len/24], interleaver_parity_bits[cb_idx], 2*in_len/3, 4);      
+    }
+    
+    /* Bit selection and transmission 5.1.4.1.2 */    
+    int w_len = 0; 
+    int r_ptr = k0_vec[cb_idx][rv_idx][1]; 
+    while (w_len < out_len) {
+      int cp_len = out_len - w_len; 
+      if (cp_len + r_ptr >= in_len) {
+        cp_len = in_len - r_ptr;
+      }
+      srslte_bit_copy(output, w_len, w_buff, r_ptr, cp_len);
+      r_ptr += cp_len; 
+      if (r_ptr >= in_len) {
+        r_ptr -= in_len; 
+      }
+      w_len += cp_len; 
+    }
+
+    return 0;
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
 
 /* Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1
@@ -55,59 +193,6 @@ uint32_t test_interleaver[64*1024];
  * 
  * TODO: Soft buffer size limitation according to UE category
  */
-//#define new 
-
-#ifdef new
-int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uint32_t in_len, uint8_t *output,
-    uint32_t out_len, uint32_t rv_idx) {
-
-  int ndummy, kidx; 
-  int nrows, K_p;
-
-  int i, j, k, s, N_cb, k0;
-  
-  if (in_len < 3) {
-    fprintf(stderr, "Error minimum input length for rate matching is 3\n");
-    return -1;
-  }
-
-  nrows = (uint32_t) (in_len / 3 - 1) / NCOLS + 1;
-  K_p = nrows * NCOLS;
-  if (3 * K_p > w_buff_len) {
-    fprintf(stderr,
-        "Input too large. Max input length including dummy bits is %d (3x%dx32, in_len %d, Kp=%d)\n",
-        w_buff_len, nrows, in_len, K_p);
-    return -1;
-  }
-
-  ndummy = K_p - in_len / 3;
-  if (ndummy < 0) {
-    ndummy = 0;
-  }
-
-  if (rv_idx == 0) {
-    srslte_bit_interleave(input, w_buff, test_interleaver, in_len);
-  }
-
-  /* Bit selection and transmission 5.1.4.1.2 */
-  N_cb = 3 * K_p;       // TODO: Soft buffer size limitation
-
-  k0 = nrows
-      * (2 * (uint32_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
-  k = 0;
-  j = 0;
-
-  while (k < out_len) {
-    if (w_buff[(k0 + j) % N_cb] != SRSLTE_TX_NULL) {
-      output[k] = w_buff[(k0 + j) % N_cb];
-      k++;
-    }
-    j++;
-  }
-  return 0;
-}
-
-#else
 int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uint32_t in_len, uint8_t *output,
     uint32_t out_len, uint32_t rv_idx) {
 
@@ -166,7 +251,7 @@ int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uin
       }
     }
   }
-
+  
   /* Bit selection and transmission 5.1.4.1.2 */
   N_cb = 3 * K_p;       // TODO: Soft buffer size limitation
 
@@ -174,17 +259,16 @@ int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uin
       * (2 * (uint32_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
   k = 0;
   j = 0;
-
+  
   while (k < out_len) {
     if (w_buff[(k0 + j) % N_cb] != SRSLTE_TX_NULL) {
       output[k] = w_buff[(k0 + j) % N_cb];
-      k++;
+      k++;      
     }
     j++;
   }
   return 0;
 }
-#endif
 
 /* Undoes Turbo Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.1

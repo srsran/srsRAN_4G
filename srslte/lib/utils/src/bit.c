@@ -25,27 +25,191 @@
  *
  */
 
-
+#include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <limits.h>
+#include <string.h>
+#include <stddef.h>
 
 #include "srslte/utils/bit.h"
 
 void srslte_bit_interleave(uint8_t *input, uint8_t *output, uint32_t *interleaver, uint32_t nof_bits) {
-  for (uint32_t i=0;i<nof_bits/8;i++) {
+  srslte_bit_interleave_w_offset(input, output, interleaver, nof_bits, 0);
+}
+
+void srslte_bit_interleave_w_offset(uint8_t *input, uint8_t *output, uint32_t *interleaver, uint32_t nof_bits, uint32_t w_offset) {
+  uint32_t st=0, w_offset_p=0;
+  static const uint8_t mask[] = { 0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1 };
+
+  if (w_offset < 8 && w_offset > 0) {
+    st=1;
+    for (uint32_t j=0;j<8-w_offset;j++) {
+      uint32_t i_p = interleaver[j];            
+      if (input[i_p/8] & mask[i_p%8]) {
+        output[0] |= mask[j+w_offset];
+      }
+    }
+    w_offset_p=8-w_offset;
+  }
+  for (uint32_t i=st;i<nof_bits/8;i++) {
     output[i] = 0; 
     for (uint32_t j=0;j<8;j++) {
-      uint32_t i_p = interleaver[i*8+j];      
-      if (input[i_p/8] & (1<<(7-i_p%8))) {
-        output[i] |= 1<<(7-j);
-      }
+      uint32_t i_p = interleaver[i*8+j-w_offset_p];      
+      if (input[i_p/8] & mask[i_p%8]) {        
+        output[i] |= mask[j];
+      }      
     }
   }
   for (uint32_t j=0;j<nof_bits%8;j++) {
-    uint32_t i_p = interleaver[(nof_bits/8)*8+j];      
-    if (input[i_p/8] & (1<<(7-i_p%8))) {
-      output[nof_bits/8] |= 1<<(7-j);
+    uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];          
+    if (input[i_p/8] & mask[i_p%8]) {
+      output[nof_bits/8] |= mask[j];
     }
+  }
+  for (uint32_t j=0;j<w_offset;j++) {
+    uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];          
+    if (input[i_p/8] & (1<<(7-i_p%8))) {
+      output[nof_bits/8] |= mask[j];
+    }
+  }
+}
+
+/* bitarray copy function taken from 
+ * http://stackoverflow.com/questions/3534535/whats-a-time-efficient-algorithm-to-copy-unaligned-bit-arrays
+ */
+
+
+#define PREPARE_FIRST_COPY()                                      \
+    do {                                                          \
+    if (src_len >= (CHAR_BIT - dst_offset_modulo)) {              \
+        *dst     &= reverse_mask[dst_offset_modulo];              \
+        src_len -= CHAR_BIT - dst_offset_modulo;                  \
+    } else {                                                      \
+        *dst     &= reverse_mask[dst_offset_modulo]               \
+              | reverse_mask_xor[dst_offset_modulo + src_len];    \
+         c       &= reverse_mask[dst_offset_modulo + src_len];    \
+        src_len = 0;                                              \
+    } } while (0)
+
+
+static void
+bitarray_copy(const unsigned char *src_org, int src_offset, int src_len,
+                    unsigned char *dst_org, int dst_offset)
+{
+    static const unsigned char reverse_mask[] =
+        { 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff };
+    static const unsigned char reverse_mask_xor[] =
+        { 0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01, 0x00 };
+
+    if (src_len) {
+        const unsigned char *src;
+              unsigned char *dst;
+        int                  src_offset_modulo,
+                             dst_offset_modulo;
+
+        src = src_org + (src_offset / CHAR_BIT);
+        dst = dst_org + (dst_offset / CHAR_BIT);
+
+        src_offset_modulo = src_offset % CHAR_BIT;
+        dst_offset_modulo = dst_offset % CHAR_BIT;
+
+        if (src_offset_modulo == dst_offset_modulo) {
+            int              byte_len;
+            int              src_len_modulo;
+            if (src_offset_modulo) {
+                unsigned char   c;
+
+                c = reverse_mask_xor[dst_offset_modulo]     & *src++;
+
+                PREPARE_FIRST_COPY();
+                *dst++ |= c;
+            }
+
+            byte_len = src_len / CHAR_BIT;
+            src_len_modulo = src_len % CHAR_BIT;
+
+            if (byte_len) {
+                memcpy(dst, src, byte_len);
+                src += byte_len;
+                dst += byte_len;
+            }
+            if (src_len_modulo) {
+                *dst     &= reverse_mask_xor[src_len_modulo];
+                *dst |= reverse_mask[src_len_modulo]     & *src;
+            }
+        } else {
+            int             bit_diff_ls,
+                            bit_diff_rs;
+            int             byte_len;
+            int             src_len_modulo;
+            unsigned char   c;
+            /*
+             * Begin: Line things up on destination. 
+             */
+            if (src_offset_modulo > dst_offset_modulo) {
+                bit_diff_ls = src_offset_modulo - dst_offset_modulo;
+                bit_diff_rs = CHAR_BIT - bit_diff_ls;
+
+                c = *src++ << bit_diff_ls;
+                c |= *src >> bit_diff_rs;
+                c     &= reverse_mask_xor[dst_offset_modulo];
+            } else {
+                bit_diff_rs = dst_offset_modulo - src_offset_modulo;
+                bit_diff_ls = CHAR_BIT - bit_diff_rs;
+
+                c = *src >> bit_diff_rs     &
+                    reverse_mask_xor[dst_offset_modulo];
+            }
+            PREPARE_FIRST_COPY();
+            *dst++ |= c;
+
+            /*
+             * Middle: copy with only shifting the source. 
+             */
+            byte_len = src_len / CHAR_BIT;
+
+            while (--byte_len >= 0) {
+                c = *src++ << bit_diff_ls;
+                c |= *src >> bit_diff_rs;
+                *dst++ = c;
+            }
+
+            /*
+             * End: copy the remaing bits; 
+             */
+            src_len_modulo = src_len % CHAR_BIT;
+            if (src_len_modulo) {
+                c = *src++ << bit_diff_ls;
+                c |= *src >> bit_diff_rs;
+                c     &= reverse_mask[src_len_modulo];
+
+                *dst     &= reverse_mask_xor[src_len_modulo];
+                *dst |= c;
+            }
+        }
+    }
+}
+
+void srslte_bit_copy(uint8_t *dst, uint32_t dst_offset, uint8_t *src, uint32_t src_offset, uint32_t nof_bits)
+{
+  static const uint8_t mask_src[] =
+        { 0x00, 0x1, 0x3, 0x7, 0xf, 0x1f, 0x3f, 0x7f, 0xff };
+  static const uint8_t mask_dst[] =
+        { 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff };
+  if ((dst_offset%8) == (src_offset%8)) {
+    if (src_offset%8) {
+      // copy 1st word
+      dst[dst_offset/8] |= src[src_offset/8] & mask_src[src_offset%8];
+    }
+    // copy rest of words
+    memcpy(&dst[dst_offset/8], &src[src_offset/8], nof_bits/8);
+    // copy last word
+    if ((src_offset%8+nof_bits)%8) {
+      dst[dst_offset/8+nof_bits/8] = src[src_offset/8+nof_bits/8] & mask_dst[(src_offset%8+nof_bits)%8];
+    }
+  } else {
+    bitarray_copy(src, src_offset, nof_bits, dst, dst_offset);
   }
 }
 
@@ -90,6 +254,7 @@ void srslte_bit_pack_vector(uint8_t *bits_packed, uint8_t *bits_unpacked, int no
   }
   if (nof_bits%8) {
     bits_unpacked[i] = srslte_bit_pack(&bits_packed, nof_bits%8);
+    bits_unpacked[i] <<= 8-(nof_bits%8);
   }
 }
 
