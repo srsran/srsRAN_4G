@@ -59,11 +59,6 @@ typedef struct SRSLTE_API {
  * The encoder produces parity bits only and rate matching will interleave them
  * with the systematic bits
  */
-typedef struct {
-  uint8_t parity1[SRSLTE_TCOD_MAX_LEN_CB_BYTES];
-  uint8_t parity2[SRSLTE_TCOD_MAX_LEN_CB_BYTES];
-  uint8_t tail[12]; // this bits are unpacked
-} srslte_tcod_out_t;
 
 SRSLTE_API int srslte_tcod_init(srslte_tcod_t *h, 
                                 uint32_t max_long_cb);
@@ -77,13 +72,8 @@ SRSLTE_API int srslte_tcod_encode(srslte_tcod_t *h,
 
 SRSLTE_API int srslte_tcod_encode_lut(srslte_tcod_t *h, 
                                       uint8_t *input, 
-                                      srslte_tcod_out_t *output, 
-                                      uint32_t long_cb); 
-
-SRSLTE_API void srslte_tcod_output_to_array(uint8_t *input_bytes, 
-                                            srslte_tcod_out_t *output, 
-                                            uint8_t *array, 
-                                            uint32_t long_cb); 
+                                      uint8_t *parity, 
+                                      uint32_t cblen_idx); 
 
 SRSLTE_API void srslte_tcod_gentable(); 
 

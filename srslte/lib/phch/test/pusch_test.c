@@ -167,9 +167,9 @@ int main(int argc, char **argv) {
   
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.uci_cqi_len = 20; 
+  uci_data.uci_cqi_len = 0; 
   uci_data.uci_ri_len = 0; 
-  uci_data.uci_ack_len = 1; 
+  uci_data.uci_ack_len = 0; 
 
   for (uint32_t i=0;i<20;i++) {
     uci_data.uci_cqi [i] = 1;
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
     goto quit;
   }
   
-  for (uint32_t i=0;i<cfg.grant.mcs.tbs;i++) {
+  for (uint32_t i=0;i<cfg.grant.mcs.tbs/8;i++) {
     data[i] = 1;
   }
 

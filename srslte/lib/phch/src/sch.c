@@ -106,6 +106,8 @@ int srslte_sch_init(srslte_sch_t *q) {
       goto clean;
     }
 
+    srslte_rm_turbo_gentables();
+    
     // Allocate floats for reception (LLRs)
     q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_TCOD_MAX_LEN_CB);
     if (!q->cb_in) {
@@ -171,7 +173,7 @@ static int encode_tb(srslte_sch_t *q,
   uint8_t parity[3] = {0, 0, 0};
   uint32_t par;
   uint32_t i;
-  uint32_t cb_len, rp, wp, rlen, F, n_e;
+  uint32_t cb_len, rp, wp, rlen, n_e;
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q            != NULL &&
@@ -180,6 +182,11 @@ static int encode_tb(srslte_sch_t *q,
       soft_buffer  != NULL)
   {
   
+    if (cb_segm->F) {
+      fprintf(stderr, "Error filler bits are not supported. Use standard TBS\n");
+      return SRSLTE_ERROR;       
+    }
+    
     uint32_t Gp = nof_e_bits / Qm;
     
     uint32_t gamma = Gp;
@@ -220,39 +227,36 @@ static int encode_tb(srslte_sch_t *q,
       } else {
         rlen = cb_len;
       }
-      if (i == 0) {
-        F = cb_segm->F;
-      } else {
-        F = 0;
-      }
       if (i <= cb_segm->C - gamma - 1) {
         n_e = Qm * (Gp/cb_segm->C);
       } else {
         n_e = Qm * ((uint32_t) ceilf((float) Gp/cb_segm->C));
       }
 
-      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,
-          cb_len, rlen - F, wp, rp, F, n_e);
+      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d\n", i,
+          cb_len, rlen, wp, rp, n_e);
+
+      int ret = srslte_cbsegm_cbindex(cb_len);
+      if (ret < 0) {
+        fprintf(stderr, "Error invalid CBLEN=%d\n", cb_len);
+        return -1;
+      }
+      uint8_t cblen_idx = (uint8_t) ret; 
 
       if (data) {
 
         /* Copy data to another buffer, making space for the Codeblock CRC */
         if (i < cb_segm->C - 1) {
           // Copy data 
-          memcpy(&q->cb_in[F/8], &data[rp/8], (rlen - F) * sizeof(uint8_t)/8);
+          memcpy(q->cb_in, &data[rp/8], rlen * sizeof(uint8_t)/8);
         } else {
           INFO("Last CB, appending parity: %d from %d and 24 to %d\n",
-              rlen - F - 24, rp, rlen - 24);
+              rlen - 24, rp, rlen - 24);
           
           /* Append Transport Block parity bits to the last CB */
-          memcpy(&q->cb_in[F/8], &data[rp/8], (rlen - 24 - F) * sizeof(uint8_t)/8);
+          memcpy(q->cb_in, &data[rp/8], (rlen - 24) * sizeof(uint8_t)/8);
           memcpy(&q->cb_in[(rlen - 24)/8], parity, 3 * sizeof(uint8_t));
         }        
-        
-        /* Filler bits are treated like zeros for the CB CRC calculation */
-        for (int j = 0; j < F/8; j++) {
-          q->cb_in[j] = 0;
-        }
         
         /* Attach Codeblock CRC */
         if (cb_segm->C > 1) {
@@ -265,8 +269,7 @@ static int encode_tb(srslte_sch_t *q,
         }
 
         /* Turbo Encoding */
-        srslte_tcod_encode_lut(&q->encoder, q->cb_in, &q->cb_tcod_out, cb_len);
-        srslte_tcod_output_to_array(q->cb_in, &q->cb_tcod_out, q->cb_out, cb_len);
+        srslte_tcod_encode_lut(&q->encoder, q->cb_in, (uint8_t*) q->cb_out, cblen_idx);
         
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d encoded: ", i);
@@ -275,16 +278,14 @@ static int encode_tb(srslte_sch_t *q,
       }
       
       /* Rate matching */
-      if (srslte_rm_turbo_tx(soft_buffer->buffer_b[i], soft_buffer->buff_size, 
-                  (uint8_t*) q->cb_out, 3 * cb_len + 12,
-                  &e_bits[wp], n_e, rv))
+      if (srslte_rm_turbo_tx_lut(soft_buffer->buffer_b[i], q->cb_in, (uint8_t*) q->cb_out, &e_bits[wp], cblen_idx, n_e, rv))
       {
         fprintf(stderr, "Error in rate matching\n");
         return SRSLTE_ERROR;
       }
 
       /* Set read/write pointers */
-      rp += (rlen - F);
+      rp += rlen;
       wp += n_e;
     }
     INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);

@@ -63,9 +63,9 @@ void parse_args(int argc, char **argv) {
 
 uint8_t input_bytes[6144/8];
 uint8_t input_bits[6144];
+uint8_t parity[3*6144+12];
 uint8_t output_bits[3*6144+12];
 uint8_t output_bits2[3*6144+12];
-srslte_tcod_out_t tcod_output;
 
 int main(int argc, char **argv) {
 
@@ -99,9 +99,7 @@ int main(int argc, char **argv) {
     }
 
     srslte_tcod_encode(&tcod, input_bits, output_bits, long_cb);
-    srslte_tcod_encode_lut(&tcod, input_bytes, &tcod_output, long_cb);
-
-    srslte_tcod_output_to_array(input_bytes, &tcod_output, output_bits2, long_cb);
+    srslte_tcod_encode_lut(&tcod, input_bytes, parity, long_cb);
 
     if (SRSLTE_VERBOSE_ISINFO()) {
       printf("1st encoder\n");

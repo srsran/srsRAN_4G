@@ -184,98 +184,101 @@ int srslte_tcod_encode(srslte_tcod_t *h, uint8_t *input, uint8_t *output, uint32
 }
 
 /* Expects bytes and produces bytes. The systematic and parity bits are interlaced in the output */
-int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, srslte_tcod_out_t *output, uint32_t long_cb) 
+int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *parity, uint32_t cblen_idx) 
 {
-  if (long_cb % 8) {
-    fprintf(stderr, "Turbo coder LUT implementation long_cb must be multiple of 8\n");
+  if (cblen_idx < 188) {
+    uint32_t long_cb = srslte_cbsegm_cbsize(cblen_idx);
+    
+    if (long_cb % 8) {
+      fprintf(stderr, "Turbo coder LUT implementation long_cb must be multiple of 8\n");
+      return -1; 
+    }
+    
+    /* Parity bits for the 1st constituent encoders */
+    uint8_t state0 = 0;   
+    for (uint32_t i=0;i<long_cb/8;i++) {
+      parity[i] = tcod_lut_output[cblen_idx][state0][input[i]];    
+      state0 = tcod_lut_next_state[cblen_idx][state0][input[i]] % 8;
+    }
+
+    /* Interleave input */  
+    srslte_bit_interleave(input, h->temp, tcod_per_fw[cblen_idx], long_cb);
+
+    /* Parity bits for the 2nd constituent encoders */
+    uint8_t state1 = 0;
+    for (uint32_t i=0;i<long_cb/8;i++) {
+      parity[long_cb/8+i] = tcod_lut_output[cblen_idx][state1][h->temp[i]];    
+      state1 = tcod_lut_next_state[cblen_idx][state1][h->temp[i]] % 8;
+    }
+
+    /* Tail bits */
+    uint8_t reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
+    uint8_t bit, in, out; 
+    uint8_t k=0;
+    uint8_t tail[12]; 
+    
+    reg2_0 = (state1&4)>>2;
+    reg2_1 = (state1&2)>>1;
+    reg2_2 = state1&1;
+    
+    reg1_0 = (state0&4)>>2;
+    reg1_1 = (state0&2)>>1;
+    reg1_2 = state0&1;
+      
+    /* TAILING CODER #1 */
+    for (uint32_t j = 0; j < NOF_REGS; j++) {
+      bit = reg1_2 ^ reg1_1;
+
+      tail[k] = bit;
+      k++;
+
+      in = bit ^ (reg1_2 ^ reg1_1);
+      out = reg1_2 ^ (reg1_0 ^ in);
+
+      reg1_2 = reg1_1;
+      reg1_1 = reg1_0;
+      reg1_0 = in;
+
+      tail[k] = out;
+      k++;
+    }
+
+    /* TAILING CODER #2 */
+    for (uint32_t j = 0; j < NOF_REGS; j++) {
+      bit = reg2_2 ^ reg2_1;
+
+      tail[k] = bit;
+      k++;
+
+      in = bit ^ (reg2_2 ^ reg2_1);
+      out = reg2_2 ^ (reg2_0 ^ in);
+
+      reg2_2 = reg2_1;
+      reg2_1 = reg2_0;
+      reg2_0 = in;
+
+      tail[k] = out;
+      k++;
+    }
+    
+    uint8_t tailv[3][4];
+    for (int i=0;i<4;i++) {
+      for (int j=0;j<3;j++) {
+        tailv[j][i] = tail[3*i+j];
+      }
+    }
+    uint8_t *x = tailv[0];
+    input[long_cb/8] = srslte_bit_pack(&x, 4);
+    x = tailv[1];
+    parity[long_cb/8] = srslte_bit_pack(&x, 4);
+    x = tailv[2];
+    parity[2*long_cb/8] = srslte_bit_pack(&x, 4);
+    
+    return 3*long_cb+TOTALTAIL;
+  } else {
     return -1; 
   }
-  
-  int ret = srslte_cbsegm_cbindex(long_cb);
-  if (ret < 0) {
-    return -1;
-  }
-  uint8_t len_idx = (uint8_t) ret; 
-    
-  /* Parity bits for the 1st constituent encoders */
-  uint8_t state0 = 0;   
-  for (uint32_t i=0;i<long_cb/8;i++) {
-    output->parity1[i] = tcod_lut_output[len_idx][state0][input[i]];    
-    state0 = tcod_lut_next_state[len_idx][state0][input[i]] % 8;
-  }
-
-  /* Interleave input */  
-  srslte_bit_interleave(input, h->temp, tcod_per_fw[len_idx], long_cb);
-
-  /* Parity bits for the 2nd constituent encoders */
-  uint8_t state1 = 0;
-  for (uint32_t i=0;i<long_cb/8;i++) {
-    output->parity2[i] = tcod_lut_output[len_idx][state1][h->temp[i]];    
-    state1 = tcod_lut_next_state[len_idx][state1][h->temp[i]] % 8;
-  }
-
-  /* Tail bits */
-  uint8_t reg1_0, reg1_1, reg1_2, reg2_0, reg2_1, reg2_2;
-  uint8_t bit, in, out; 
-  uint8_t k=0;
-  
-  reg2_0 = (state1&4)>>2;
-  reg2_1 = (state1&2)>>1;
-  reg2_2 = state1&1;
-  
-  reg1_0 = (state0&4)>>2;
-  reg1_1 = (state0&2)>>1;
-  reg1_2 = state0&1;
-    
-  /* TAILING CODER #1 */
-  for (uint32_t j = 0; j < NOF_REGS; j++) {
-    bit = reg1_2 ^ reg1_1;
-
-    output->tail[k] = bit;
-    k++;
-
-    in = bit ^ (reg1_2 ^ reg1_1);
-    out = reg1_2 ^ (reg1_0 ^ in);
-
-    reg1_2 = reg1_1;
-    reg1_1 = reg1_0;
-    reg1_0 = in;
-
-    output->tail[k] = out;
-    k++;
-  }
-
-  /* TAILING CODER #2 */
-  for (uint32_t j = 0; j < NOF_REGS; j++) {
-    bit = reg2_2 ^ reg2_1;
-
-    output->tail[k] = bit;
-    k++;
-
-    in = bit ^ (reg2_2 ^ reg2_1);
-    out = reg2_2 ^ (reg2_0 ^ in);
-
-    reg2_2 = reg2_1;
-    reg2_1 = reg2_0;
-    reg2_0 = in;
-
-    output->tail[k] = out;
-    k++;
-  }
-    
-  return 2*long_cb+TOTALTAIL;
 }
-
-void srslte_tcod_output_to_array(uint8_t *input_bytes, srslte_tcod_out_t *output, uint8_t *array, uint32_t long_cb) 
-{
-  for (int i=0;i<long_cb;i++) {
-    array[3*i] = input_bytes[i/8] & (1<<(7-i%8))?1:0;
-    array[3*i+1] = output->parity1[i/8] & (1<<(7-i%8))?1:0;
-    array[3*i+2] = output->parity2[i/8] & (1<<(7-i%8))?1:0;
-  }
-  memcpy(&array[3*long_cb], output->tail, 12);
-}
-
 
 void srslte_tcod_gentable() {
   srslte_tc_interl_t interl; 

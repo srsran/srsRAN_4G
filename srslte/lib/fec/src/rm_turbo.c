@@ -48,7 +48,7 @@ static uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
 static uint32_t interleaver_systematic_bits[SRSLTE_NOF_TC_CB_SIZES][6148]; // 4 tail bits
 static uint32_t interleaver_parity_bits[SRSLTE_NOF_TC_CB_SIZES][2*6148];
 static uint32_t k0_vec[SRSLTE_NOF_TC_CB_SIZES][4][2];
-
+static bool rm_turbo_tables_generated = false; 
 
 
 void srslte_rm_turbo_gentable_systematic(uint32_t *table_bits, uint32_t k0_vec[4][2], uint32_t nrows, int ndummy) {
@@ -121,24 +121,27 @@ void srslte_rm_turbo_gentable_parity(uint32_t *table_parity, uint32_t k0_vec[4][
 }
 
 void srslte_rm_turbo_gentables() {
-  for (int cb_idx=0;cb_idx<SRSLTE_NOF_TC_CB_SIZES;cb_idx++) {
-    int cb_len=srslte_cbsegm_cbsize(cb_idx);
-    int in_len=3*cb_len+12;
-    
-    int nrows = (in_len / 3 - 1) / NCOLS + 1;
-    int K_p = nrows * NCOLS;
-    int ndummy = K_p - in_len / 3;
-    if (ndummy < 0) {
-      ndummy = 0;
-    }
+  if (!rm_turbo_tables_generated) {
+    rm_turbo_tables_generated = true; 
+    for (int cb_idx=0;cb_idx<SRSLTE_NOF_TC_CB_SIZES;cb_idx++) {
+      int cb_len=srslte_cbsegm_cbsize(cb_idx);
+      int in_len=3*cb_len+12;
+      
+      int nrows = (in_len / 3 - 1) / NCOLS + 1;
+      int K_p = nrows * NCOLS;
+      int ndummy = K_p - in_len / 3;
+      if (ndummy < 0) {
+        ndummy = 0;
+      }
 
-    for (int i=0;i<4;i++) {
-      k0_vec[cb_idx][i][0] = nrows * (2 * (uint32_t) ceilf((float) (3*K_p) / (float) (8 * nrows)) * i + 2);
-      k0_vec[cb_idx][i][1] = -1; 
+      for (int i=0;i<4;i++) {
+        k0_vec[cb_idx][i][0] = nrows * (2 * (uint32_t) ceilf((float) (3*K_p) / (float) (8 * nrows)) * i + 2);
+        k0_vec[cb_idx][i][1] = -1; 
+      }
+      srslte_rm_turbo_gentable_systematic(interleaver_systematic_bits[cb_idx], k0_vec[cb_idx], nrows, ndummy);
+      srslte_rm_turbo_gentable_parity(interleaver_parity_bits[cb_idx], k0_vec[cb_idx], in_len/3, nrows, ndummy);
     }
-    srslte_rm_turbo_gentable_systematic(interleaver_systematic_bits[cb_idx], k0_vec[cb_idx], nrows, ndummy);
-    srslte_rm_turbo_gentable_parity(interleaver_parity_bits[cb_idx], k0_vec[cb_idx], in_len/3, nrows, ndummy);
- }
+  }
 }
 
 int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity, uint8_t *output, uint32_t cb_idx, uint32_t out_len, uint32_t rv_idx) {
