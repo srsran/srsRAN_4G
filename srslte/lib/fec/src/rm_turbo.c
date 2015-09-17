@@ -144,32 +144,35 @@ void srslte_rm_turbo_gentables() {
   }
 }
 
-int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity, uint8_t *output, uint32_t cb_idx, uint32_t out_len, uint32_t rv_idx) {
+
+int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity, uint8_t *output, uint32_t cb_idx, uint32_t out_len, uint32_t w_offset, uint32_t rv_idx) {
 
   
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
     
     int in_len=3*srslte_cbsegm_cbsize(cb_idx)+12;
     
+    
     /* Sub-block interleaver (5.1.4.1.1) and bit collection */
     if (rv_idx == 0) {
-      
+
       // Systematic bits 
       srslte_bit_interleave(systematic, w_buff, interleaver_systematic_bits[cb_idx], in_len/3);
 
       // Parity bits 
       srslte_bit_interleave_w_offset(parity, &w_buff[in_len/24], interleaver_parity_bits[cb_idx], 2*in_len/3, 4);      
     }
-    
+
     /* Bit selection and transmission 5.1.4.1.2 */    
     int w_len = 0; 
     int r_ptr = k0_vec[cb_idx][rv_idx][1]; 
+
     while (w_len < out_len) {
       int cp_len = out_len - w_len; 
       if (cp_len + r_ptr >= in_len) {
         cp_len = in_len - r_ptr;
       }
-      srslte_bit_copy(output, w_len, w_buff, r_ptr, cp_len);
+      srslte_bit_copy(output, w_len+w_offset, w_buff, r_ptr, cp_len);
       r_ptr += cp_len; 
       if (r_ptr >= in_len) {
         r_ptr -= in_len; 

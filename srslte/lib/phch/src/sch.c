@@ -174,7 +174,7 @@ static int encode_tb(srslte_sch_t *q,
   uint8_t parity[3] = {0, 0, 0};
   uint32_t par;
   uint32_t i;
-  uint32_t cb_len, rp, wp, rlen, n_e;
+  uint32_t cb_len=0, rp=0, wp=0, rlen=0, n_e=0;
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q            != NULL &&
@@ -277,22 +277,28 @@ static int encode_tb(srslte_sch_t *q,
           srslte_vec_fprint_byte(stdout, q->cb_out, 2*cb_len/8);
         }
       }
+      DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d\n",cblen_idx, n_e, wp, nof_e_bits);
       
       /* Rate matching */
-      if (srslte_rm_turbo_tx_lut(soft_buffer->buffer_b[i], q->cb_in, (uint8_t*) q->cb_out, &temp[wp], cblen_idx, n_e, rv))
-      {
-        fprintf(stderr, "Error in rate matching\n");
-        return SRSLTE_ERROR;
+      if (3*cb_len+12 < soft_buffer->buff_size) {
+        if (srslte_rm_turbo_tx_lut(soft_buffer->buffer_b[i], q->cb_in, (uint8_t*) q->cb_out, &temp[wp/8], cblen_idx, n_e, wp%8, rv))
+        {
+          fprintf(stderr, "Error in rate matching\n");
+          return SRSLTE_ERROR;
+        }
+        srslte_vec_fprint_byte(stdout, &temp[wp/8], (n_e-1)/8+1);
+      } else {
+        fprintf(stderr, "Encoded CB length exceeds RM buffer (%d>%d)\n",3*cb_len+12,soft_buffer->buff_size);
+        return SRSLTE_ERROR; 
       }
-      
       /* Set read/write pointers */
       rp += rlen;
       wp += n_e;
     }
-    INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
-
     srslte_bit_unpack_vector(temp, e_bits, nof_e_bits);
-
+    srslte_vec_fprint_b(stdout, e_bits, nof_e_bits);
+    
+    INFO("END CB#%d: wp: %d, rp: %d\n", i, wp, rp);
     ret = SRSLTE_SUCCESS;      
   } 
   return ret; 

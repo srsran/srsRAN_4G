@@ -69,7 +69,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cell.id=1;
   cell.cp=SRSLTE_CP_NORM;
 
-  srslte_verbose = SRSLTE_VERBOSE_DEBUG;
+  srslte_verbose = SRSLTE_VERBOSE_INFO;
   
   if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
     mexErrMsgTxt("Error initiating HARQ\n");

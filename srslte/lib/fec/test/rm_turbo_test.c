@@ -183,10 +183,10 @@ int main(int argc, char **argv) {
   bzero(w_buff_c, nof_tx_bits * 10 * sizeof(uint8_t));
 
   bzero(rm_bits2_bytes, nof_rx_bits/8);
-  srslte_rm_turbo_tx_lut(w_buff_c, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_rx_bits, 0);
+  srslte_rm_turbo_tx_lut(w_buff_c, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_rx_bits, 0, 0);
   if (rv_idx > 0) {
     bzero(rm_bits2_bytes, nof_rx_bits/8);
-    srslte_rm_turbo_tx_lut(w_buff_c, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_rx_bits, rv_idx);
+    srslte_rm_turbo_tx_lut(w_buff_c, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_rx_bits, 0, rv_idx);
   }
 
   srslte_bit_unpack_vector(rm_bits2_bytes, rm_bits2, nof_rx_bits);

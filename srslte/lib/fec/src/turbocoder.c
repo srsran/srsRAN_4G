@@ -271,10 +271,7 @@ int srslte_tcod_encode_lut(srslte_tcod_t *h, uint8_t *input, uint8_t *parity, ui
       }
     }
     uint8_t *x = tailv[0];
-    printf("tail0: ");
-    srslte_vec_fprint_b(stdout, tailv[0], 4);
     input[long_cb/8] = (srslte_bit_pack(&x, 4)<<4);
-    printf("0x%x\n", input[long_cb/8]);
     x = tailv[1];
     parity[long_cb/8] |= (srslte_bit_pack(&x, 4)<<4);
     x = tailv[2];

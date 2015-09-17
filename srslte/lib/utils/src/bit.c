@@ -48,6 +48,8 @@ void srslte_bit_interleave_w_offset(uint8_t *input, uint8_t *output, uint32_t *i
       uint32_t i_p = interleaver[j];            
       if (input[i_p/8] & mask[i_p%8]) {
         output[0] |= mask[j+w_offset];
+      } else {
+        output[0] &= ~(mask[j+w_offset]);
       }
     }
     w_offset_p=8-w_offset;
@@ -78,12 +80,16 @@ void srslte_bit_interleave_w_offset(uint8_t *input, uint8_t *output, uint32_t *i
     uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];          
     if (input[i_p/8] & mask[i_p%8]) {
       output[nof_bits/8] |= mask[j];
+    } else {
+      output[nof_bits/8] &= ~(mask[j]);
     }
   }
   for (uint32_t j=0;j<w_offset;j++) {
     uint32_t i_p = interleaver[(nof_bits/8)*8+j-w_offset];          
     if (input[i_p/8] & (1<<(7-i_p%8))) {
       output[nof_bits/8] |= mask[j];
+    } else {
+      output[nof_bits/8] &= ~(mask[j]);
     }
   }
 }
@@ -213,7 +219,10 @@ void srslte_bit_copy(uint8_t *dst, uint32_t dst_offset, uint8_t *src, uint32_t s
   if ((dst_offset%8) == (src_offset%8)) {
     if (src_offset%8) {
       // copy 1st word
-      dst[dst_offset/8] |= src[src_offset/8] & mask_src[src_offset%8];
+      dst[dst_offset/8] &= 0xf0;
+      dst[dst_offset/8] |= (src[src_offset/8] & mask_src[src_offset%8]);
+      dst_offset+=(src_offset%8);
+      src_offset+=(src_offset%8);
     }
     // copy rest of words
     memcpy(&dst[dst_offset/8], &src[src_offset/8], nof_bits/8);
@@ -234,7 +243,7 @@ void srslte_bit_unpack_vector(uint8_t *packed, uint8_t *unpacked, int nof_bits)
     srslte_bit_unpack(packed[i], &unpacked, 8);
   }
   if (nof_bits%8) {
-    srslte_bit_unpack(packed[i]>>(nof_bits%8), &unpacked, nof_bits%8);
+    srslte_bit_unpack(packed[i]>>(8-nof_bits%8), &unpacked, nof_bits%8);
   }
 }
 

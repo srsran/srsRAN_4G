@@ -65,6 +65,7 @@ SRSLTE_API int srslte_rm_turbo_tx_lut(uint8_t *w_buff,
                                       uint8_t *output, 
                                       uint32_t cb_idx, 
                                       uint32_t out_len, 
+                                      uint32_t w_offset,
                                       uint32_t rv_idx);
 
 SRSLTE_API int srslte_rm_turbo_rx(float *w_buff,
