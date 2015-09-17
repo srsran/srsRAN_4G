@@ -19,6 +19,9 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+IF(UHD_FOUND)
+  LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
+ENDIF(UHD_FOUND)
 
 #################################################################
 # EXAMPLES
