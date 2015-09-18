@@ -53,6 +53,10 @@ typedef struct SRSLTE_API {
 
 
 typedef struct {
+  cf_t symbol[8];
+} bpsk_packed_t;
+
+typedef struct {
   cf_t symbol[4];
 } qpsk_packed_t;
 
@@ -67,6 +71,7 @@ typedef struct SRSLTE_API {
   uint32_t nbits_x_symbol;        // number of bits per symbol
   
   bool byte_tables_init;
+  bpsk_packed_t *symbol_table_bpsk;
   qpsk_packed_t *symbol_table_qpsk;
   qam16_packed_t *symbol_table_16qam;  
 }srslte_modem_table_t;

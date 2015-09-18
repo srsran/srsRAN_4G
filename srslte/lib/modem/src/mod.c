@@ -55,13 +55,19 @@ int srslte_mod_modulate(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, u
 /* Assumes packet bits as input */
 int srslte_mod_modulate_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint32_t nbits) {
   if (nbits%8) {
-    fprintf(stderr, "Warning: srslte_mod_modulate_bytes() accepts byte-aligned inputs only\n");
+    fprintf(stderr, "Warning: srslte_mod_modulate_bytes() accepts byte-aligned inputs only "
+                    "(nbits=%d, bits_x_symbol=%d)\n", nbits, q->nbits_x_symbol);
   }
   if (!q->byte_tables_init) {
     fprintf(stderr, "Error need to initiated modem tables for packeted bits before calling srslte_mod_modulate_bytes()\n");
     return -1; 
   }
   switch(q->nbits_x_symbol) {
+    case 1:
+      for (int i=0;i<nbits/8;i++) {
+        memcpy(&symbols[8*i], &q->symbol_table_bpsk[bits[i]], sizeof(bpsk_packed_t));
+      }
+      break;
     case 2:
       for (int i=0;i<nbits/8;i++) {
         memcpy(&symbols[4*i], &q->symbol_table_qpsk[bits[i]], sizeof(qpsk_packed_t));

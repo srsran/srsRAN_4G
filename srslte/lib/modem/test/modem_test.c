@@ -131,33 +131,33 @@ int main(int argc, char **argv) {
   }
 
   /* allocate buffers */
-  input = malloc(sizeof(uint8_t) * num_bits);
+  input = srslte_vec_malloc(sizeof(uint8_t) * num_bits);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  input_bytes = malloc(sizeof(uint8_t) * num_bits/8);
+  input_bytes = srslte_vec_malloc(sizeof(uint8_t) * num_bits/8);
   if (!input_bytes) {
     perror("malloc");
     exit(-1);
   }
-  output = malloc(sizeof(uint8_t) * num_bits);
+  output = srslte_vec_malloc(sizeof(uint8_t) * num_bits);
   if (!output) {
     perror("malloc");
     exit(-1);
   }
-  symbols = malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
+  symbols = srslte_vec_malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  symbols_bytes = malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
+  symbols_bytes = srslte_vec_malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
   if (!symbols_bytes) {
     perror("malloc");
     exit(-1);
   }
 
-  llr = malloc(sizeof(float) * num_bits);
+  llr = srslte_vec_malloc(sizeof(float) * num_bits);
   if (!llr) {
     perror("malloc");
     exit(-1);
@@ -169,13 +169,27 @@ int main(int argc, char **argv) {
   }
 
   /* modulate */
-  srslte_mod_modulate(&mod, input, symbols, num_bits);
-
-  srslte_vec_fprint_b(stdout, input, num_bits);
+  struct timeval t[3];
+  gettimeofday(&t[1], NULL);
+  int ntrials = 100; 
+  for (int i=0;i<ntrials;i++) {
+    srslte_mod_modulate(&mod, input, symbols, num_bits);
+  }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  
+  printf("Bit: %d us\n", t[0].tv_usec);
   
   /* Test packed implementation */
   srslte_bit_pack_vector(input, input_bytes, num_bits);
-  srslte_mod_modulate_bytes(&mod, input_bytes, symbols_bytes, num_bits);
+  gettimeofday(&t[1], NULL);
+  for (int i=0;i<ntrials;i++) {
+    srslte_mod_modulate_bytes(&mod, input_bytes, symbols_bytes, num_bits);
+  }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  
+  printf("Byte: %d us\n", t[0].tv_usec);
   
   for (int i=0;i<num_bits/mod.nbits_x_symbol;i++) {
     if (symbols[i] != symbols_bytes[i]) {

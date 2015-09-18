@@ -96,9 +96,9 @@ void srslte_scrambling_b_offset(srslte_sequence_t *s, uint8_t *data, int offset,
 }
 
 void srslte_scrambling_bytes(srslte_sequence_t *s, uint8_t *data) {
-  scrambling_b(s->c_bytes, data, 0, s->len);  
+  scrambling_b(s->c_bytes, data, 0, s->len/8);  
 }
 
 void srslte_scrambling_bytes_offset(srslte_sequence_t *s, uint8_t *data, int offset, int len) {
-  scrambling_b(s->c_bytes, data, offset, len);  
+  scrambling_b(s->c_bytes, data, offset, len/8);  
 }

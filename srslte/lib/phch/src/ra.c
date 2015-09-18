@@ -171,6 +171,8 @@ int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_
   return SRSLTE_SUCCESS; 
 }
 
+static srslte_mod_t last_mod; 
+
 static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant) {  
   int tbs = -1; 
   // 8.6.2 First paragraph
@@ -195,13 +197,14 @@ static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *gr
   } else if (dci->mcs_idx >= 29) {
     // Else use last TBS/Modulation and use mcs to obtain rv_idx 
     tbs = 0; 
-    grant->mcs.mod = 0; 
+    grant->mcs.mod = last_mod; 
     dci->rv_idx = dci->mcs_idx - 28;
   }
   if (tbs < 0) {
     fprintf(stderr, "Error computing TBS\n");
     return SRSLTE_ERROR; 
   } else {
+    last_mod = grant->mcs.mod;
     grant->mcs.tbs = (uint32_t) tbs; 
     return SRSLTE_SUCCESS;
   }

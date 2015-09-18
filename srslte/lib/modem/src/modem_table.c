@@ -51,6 +51,9 @@ void srslte_modem_table_free(srslte_modem_table_t* q) {
   if (q->symbol_table) {
     free(q->symbol_table);
   }
+  if (q->symbol_table_bpsk) {
+    free(q->symbol_table_bpsk);
+  }
   if (q->symbol_table_qpsk) {
     free(q->symbol_table_qpsk);
   }
@@ -122,6 +125,15 @@ void srslte_modem_table_bytes(srslte_modem_table_t* q) {
   uint8_t mask_16qam[2] = {0xf0, 0xf}; 
   
   switch(q->nbits_x_symbol) {
+    case 1:
+      q->symbol_table_bpsk = srslte_vec_malloc(sizeof(bpsk_packed_t)*256);
+      for (uint32_t i=0;i<256;i++) {
+        for (int j=0;j<8;j++) {
+          q->symbol_table_bpsk[i].symbol[j] = q->symbol_table[(i&(1<<(7-j)))>>(7-j)];
+        }
+      }
+      q->byte_tables_init = true; 
+      break;
     case 2:
       q->symbol_table_qpsk = srslte_vec_malloc(sizeof(qpsk_packed_t)*256);
       for (uint32_t i=0;i<256;i++) {
