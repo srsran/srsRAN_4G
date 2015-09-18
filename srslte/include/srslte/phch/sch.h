@@ -65,17 +65,19 @@ typedef struct SRSLTE_API {
   
   /* buffers */
   uint8_t *cb_in; 
-  uint8_t *cb_temp; 
   void *cb_out;  
   void *e;
+  uint8_t *temp_g_bits;
+  uint32_t *ul_interleaver;
+  srslte_uci_bit_t ack_ri_bits[12*288];
+  uint32_t nof_ri_ack_bits; 
   
   srslte_tcod_t encoder;
   srslte_tdec_t decoder;  
   srslte_crc_t crc_tb;
   srslte_crc_t crc_cb;
   
-  srslte_uci_cqi_pusch_t uci_cqi; 
-  srslte_uci_pos_t uci_pos;
+  srslte_uci_cqi_pusch_t uci_cqi;
   
 } srslte_sch_t;
 

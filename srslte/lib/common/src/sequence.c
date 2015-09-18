@@ -32,6 +32,7 @@
 
 #include "srslte/common/sequence.h"
 #include "srslte/utils/vector.h"
+#include "srslte/utils/bit.h"
 
 #define Nc 1600
 
@@ -81,16 +82,24 @@ int srslte_sequence_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed) {
   }
   q->len = len;
   srslte_sequence_set_LTE_pr(q, seed);
+  srslte_bit_pack_vector(q->c, q->c_bytes, len);
   return SRSLTE_SUCCESS;
 }
 
 int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
   if (q->c && (q->len != len)) {
     free(q->c);
+    if (q->c_bytes) {
+      free(q->c_bytes);
+    }
   }
   if (!q->c) {
     q->c = srslte_vec_malloc(len * sizeof(uint8_t));
     if (!q->c) {
+      return SRSLTE_ERROR;
+    }
+    q->c_bytes = srslte_vec_malloc(len * sizeof(uint8_t)/8);
+    if (!q->c_bytes) {
       return SRSLTE_ERROR;
     }
     q->len = len;
@@ -101,6 +110,9 @@ int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
 void srslte_sequence_free(srslte_sequence_t *q) {
   if (q->c) {
     free(q->c);
+  }
+  if (q->c_bytes) {
+    free(q->c_bytes);
   }
   bzero(q, sizeof(srslte_sequence_t));
 }

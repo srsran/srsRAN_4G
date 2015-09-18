@@ -89,7 +89,7 @@ int srslte_cbsegm(srslte_cbsegm_t *s, uint32_t tbs) {
             s->C1 = s->C - s->C2;
           }
           s->F = s->C1 * s->K1 + s->C2 * s->K2 - Bp;
-          printf("CB Segmentation: TBS: %d, C=%d, C+=%d K+=%d, C-=%d, K-=%d, F=%d, Bp=%d\n",
+          INFO("CB Segmentation: TBS: %d, C=%d, C+=%d K+=%d, C-=%d, K-=%d, F=%d, Bp=%d\n",
               tbs, s->C, s->C1, s->K1, s->C2, s->K2, s->F, Bp);         
           ret = SRSLTE_SUCCESS; 
         }

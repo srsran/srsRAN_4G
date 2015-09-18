@@ -546,12 +546,18 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
     
     // Correct UCI placeholder bits    
     uint8_t *d = q->q; 
-    for (int i = 0; i < q->dl_sch.uci_pos.idx; i++) {     
-      if (d[q->dl_sch.uci_pos.pos[i]] & SRSLTE_UCI_ACK_RI_PLACEHOLDER) {
-        d[q->dl_sch.uci_pos.pos[i]] = 1; 
-      } else if (d[q->dl_sch.uci_pos.pos[i]] & SRSLTE_UCI_ACK_RI_PLACEHOLDER_REPETITION) {
-        if (q->dl_sch.uci_pos.pos[i] > 1) {
-          d[q->dl_sch.uci_pos.pos[i]] = d[q->dl_sch.uci_pos.pos[i]-1];        
+    for (int i = 0; i < q->dl_sch.nof_ri_ack_bits; i++) {     
+      if (q->dl_sch.ack_ri_bits[i].type == UCI_BIT_PLACEHOLDER) {
+        d[q->dl_sch.ack_ri_bits[i].position/8] |= (1<<(q->dl_sch.ack_ri_bits[i].position%8)); 
+      } else if (q->dl_sch.ack_ri_bits[i].type == UCI_BIT_REPETITION) {
+        if (q->dl_sch.ack_ri_bits[i].position > 1) {
+          uint32_t p=q->dl_sch.ack_ri_bits[i].position;
+          uint8_t bit = d[(p-1)/8] & (1<<((p-1)%8)); 
+          if (bit) {
+            d[p/8] |= 1<<(p%8);
+          } else {
+            d[p/8] &= ~(1<<(p%8));
+          }
         } 
       }
     }

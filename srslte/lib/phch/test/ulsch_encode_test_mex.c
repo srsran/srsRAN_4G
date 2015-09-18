@@ -69,7 +69,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cell.id=1;
   cell.cp=SRSLTE_CP_NORM;
 
-  srslte_verbose = SRSLTE_VERBOSE_INFO;
+  srslte_verbose = SRSLTE_VERBOSE_NONE;
   
   if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
     mexErrMsgTxt("Error initiating HARQ\n");
@@ -175,11 +175,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
     
-  uint8_t *q_bits = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t));
+  uint8_t *q_bits = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t)/8);
   if (!q_bits) {
     return;
   }
-  uint8_t *g_bits = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t));
+  uint8_t *q_bits_unpacked = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t));
+  if (!q_bits_unpacked) {
+    return;
+  }
+  uint8_t *g_bits = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t)/8);
   if (!g_bits) {
     return;
   }
@@ -196,9 +200,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }    
   }
-  
+
+  srslte_bit_unpack_vector(q_bits, q_bits_unpacked, cfg.nbits.nof_bits);
+
   if (nlhs >= 1) {
-    mexutils_write_uint8(q_bits, &plhs[0], cfg.nbits.nof_bits, 1);  
+    mexutils_write_uint8(q_bits_unpacked, &plhs[0], cfg.nbits.nof_bits, 1);  
   }
   
   srslte_sch_free(&ulsch);  
@@ -206,6 +212,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   free(trblkin);
   free(g_bits);    
+  free(q_bits_unpacked);
   free(q_bits);    
   
   

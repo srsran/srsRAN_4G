@@ -212,23 +212,14 @@ bitarray_copy(const unsigned char *src_org, int src_offset, int src_len,
 
 void srslte_bit_copy(uint8_t *dst, uint32_t dst_offset, uint8_t *src, uint32_t src_offset, uint32_t nof_bits)
 {
-  static const uint8_t mask_src[] =
-        { 0x00, 0x1, 0x3, 0x7, 0xf, 0x1f, 0x3f, 0x7f, 0xff };
   static const uint8_t mask_dst[] =
         { 0x00, 0x80, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc, 0xfe, 0xff };
-  if ((dst_offset%8) == (src_offset%8)) {
-    if (src_offset%8) {
-      // copy 1st word
-      dst[dst_offset/8] &= 0xf0;
-      dst[dst_offset/8] |= (src[src_offset/8] & mask_src[src_offset%8]);
-      dst_offset+=(src_offset%8);
-      src_offset+=(src_offset%8);
-    }
+  if ((dst_offset%8) == 0 && (src_offset%8) == 0) {
     // copy rest of words
     memcpy(&dst[dst_offset/8], &src[src_offset/8], nof_bits/8);
     // copy last word
-    if ((src_offset%8+nof_bits)%8) {
-      dst[dst_offset/8+nof_bits/8] = src[src_offset/8+nof_bits/8] & mask_dst[(src_offset%8+nof_bits)%8];
+    if (nof_bits%8) {
+      dst[dst_offset/8+nof_bits/8] = src[src_offset/8+nof_bits/8] & mask_dst[nof_bits%8];
     }
   } else {
     bitarray_copy(src, src_offset, nof_bits, dst, dst_offset);

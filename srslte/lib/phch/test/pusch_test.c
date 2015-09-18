@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
   
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.uci_cqi_len = 0; 
+  uci_data.uci_cqi_len = 20; 
   uci_data.uci_ri_len = 0; 
   uci_data.uci_ack_len = 0; 
 
@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
     data[i] = 1;
   }
 
-  if (srslte_softbuffer_tx_init(&softbuffer, 4*cell.nof_prb)) {
+  if (srslte_softbuffer_tx_init(&softbuffer, 100)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }

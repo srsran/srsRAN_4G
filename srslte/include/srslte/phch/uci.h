@@ -46,9 +46,6 @@
 #define SRSLTE_UCI_MAX_CQI_LEN_PUCCH       13
 #define SRSLTE_UCI_CQI_CODED_PUCCH_B       20
 
-#define SRSLTE_UCI_ACK_RI_PLACEHOLDER_REPETITION 0xC0
-#define SRSLTE_UCI_ACK_RI_PLACEHOLDER            0x30
-
 typedef struct SRSLTE_API {
   srslte_crc_t crc;
   uint8_t tmp_cqi[SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
@@ -67,10 +64,14 @@ typedef struct SRSLTE_API {
   bool channel_selection; 
 } srslte_uci_data_t;
 
+typedef enum {
+  UCI_BIT_1 = 0, UCI_BIT_0, UCI_BIT_REPETITION, UCI_BIT_PLACEHOLDER
+} srslte_uci_bit_type_t;
+
 typedef struct {
-  uint32_t idx;
-  uint32_t pos[SRSLTE_UCI_MAX_CQI_LEN_PUSCH];  
-} srslte_uci_pos_t;
+  uint32_t position;
+  srslte_uci_bit_type_t type;
+} srslte_uci_bit_t;
 
 SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q);
 
@@ -89,19 +90,18 @@ SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data,
                                            uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
 
 SRSLTE_API int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
-                                     srslte_uci_pos_t *pos,
                                      uint8_t data, 
                                      uint32_t O_cqi, 
                                      float beta, 
                                      uint32_t H_prime_total, 
-                                     uint8_t *q_bits); 
+                                     srslte_uci_bit_t *ri_bits); 
 
 SRSLTE_API int srslte_uci_encode_ri(srslte_pusch_cfg_t *cfg,
                                     uint8_t data, 
                                     uint32_t O_cqi, 
                                     float beta, 
                                     uint32_t H_prime_total, 
-                                    uint8_t *q_bits); 
+                                    srslte_uci_bit_t *ri_bits); 
 
 
 #endif
