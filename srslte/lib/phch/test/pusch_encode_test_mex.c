@@ -54,7 +54,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     help();
     return;
   }
-  srslte_verbose = SRSLTE_VERBOSE_DEBUG;
+  srslte_verbose = SRSLTE_VERBOSE_NONE;
   
   srslte_cell_t cell;     
   bzero(&cell, sizeof(srslte_cell_t));
@@ -193,12 +193,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } else {
     cfg.uci_cfg.I_offset_ack = srslte_sch_find_Ioffset_ack(beta);
   }
-  mexPrintf("TRBL_len: %d, CQI_len: %d, ACK_len: %d (%d), RI_len: %d (%d)\n", grant.mcs.tbs, 
+  mexPrintf("TRBL_len: %d, CQI_len: %2d, ACK_len: %d (%d), RI_len: %d (%d)\n", grant.mcs.tbs, 
             uci_data.uci_cqi_len, uci_data.uci_ack_len, uci_data.uci_ack, uci_data.uci_ri_len, uci_data.uci_ri);
 
-  mexPrintf("I_cqi: %d, I_ri: %d, I_ack=%d\n", cfg.uci_cfg.I_offset_cqi, cfg.uci_cfg.I_offset_ri, cfg.uci_cfg.I_offset_ack);
+  mexPrintf("I_cqi: %2d, I_ri: %2d, I_ack=%2d\n", cfg.uci_cfg.I_offset_cqi, cfg.uci_cfg.I_offset_ri, cfg.uci_cfg.I_offset_ack);
 
-  mexPrintf("NofRE: %d, NofBits: %d, TBS: %d, N_srs=%d\n", cfg.nbits.nof_re, cfg.nbits.nof_bits, grant.mcs.tbs, N_srs);
+  mexPrintf("NofRE: %3d, NofBits: %3d, TBS: %3d, N_srs=%d\n", cfg.nbits.nof_re, cfg.nbits.nof_bits, grant.mcs.tbs, N_srs);
   int r = srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, sf_symbols);
   if (r < 0) {
     mexErrMsgTxt("Error encoding PUSCH\n");

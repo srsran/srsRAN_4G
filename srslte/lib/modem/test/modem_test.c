@@ -97,8 +97,8 @@ int main(int argc, char **argv) {
   srslte_modem_table_t mod;
   srslte_demod_hard_t demod_hard;
   srslte_demod_soft_t demod_soft;
-  uint8_t *input, *output;
-  cf_t *symbols;
+  uint8_t *input, *input_bytes, *output;
+  cf_t *symbols, *symbols_bytes;
   float *llr;
 
 //  unsigned long strt, fin;
@@ -112,6 +112,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initializing modem table\n");
     exit(-1);
   }
+  
+  srslte_modem_table_bytes(&mod);
 
   /* check that num_bits is multiple of num_bits x symbol */
   if (num_bits % mod.nbits_x_symbol) {
@@ -134,6 +136,11 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
+  input_bytes = malloc(sizeof(uint8_t) * num_bits/8);
+  if (!input_bytes) {
+    perror("malloc");
+    exit(-1);
+  }
   output = malloc(sizeof(uint8_t) * num_bits);
   if (!output) {
     perror("malloc");
@@ -141,6 +148,11 @@ int main(int argc, char **argv) {
   }
   symbols = malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
   if (!symbols) {
+    perror("malloc");
+    exit(-1);
+  }
+  symbols_bytes = malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
+  if (!symbols_bytes) {
     perror("malloc");
     exit(-1);
   }
@@ -152,7 +164,6 @@ int main(int argc, char **argv) {
   }
 
   /* generate random data */
-  srand(time(NULL));
   for (i=0;i<num_bits;i++) {
     input[i] = rand()%2;
   }
@@ -160,6 +171,19 @@ int main(int argc, char **argv) {
   /* modulate */
   srslte_mod_modulate(&mod, input, symbols, num_bits);
 
+  srslte_vec_fprint_b(stdout, input, num_bits);
+  
+  /* Test packed implementation */
+  srslte_bit_pack_vector(input, input_bytes, num_bits);
+  srslte_mod_modulate_bytes(&mod, input_bytes, symbols_bytes, num_bits);
+  
+  for (int i=0;i<num_bits/mod.nbits_x_symbol;i++) {
+    if (symbols[i] != symbols_bytes[i]) {
+      printf("error in symbol %d\n", i);
+      exit(-1);
+    }
+  }
+  printf("Symbols OK\n");  
   /* demodulate */
   if (soft_output) {
 
@@ -185,8 +209,10 @@ int main(int argc, char **argv) {
 
   free(llr);
   free(symbols);
+  free(symbols_bytes);
   free(output);
   free(input);
+  free(input_bytes);
 
   srslte_modem_table_free(&mod);
   if (soft_output) {

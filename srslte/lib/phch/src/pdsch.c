@@ -382,11 +382,6 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
         cfg->sf_idx, rnti, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, cfg->nbits.nof_re, 
          cfg->nbits.nof_bits, cfg->rv);
 
-    if (cfg->grant.mcs.tbs > cfg->nbits.nof_bits) {
-      fprintf(stderr, "Invalid code rate %d/%d=%.2f\n", cfg->grant.mcs.tbs, cfg->nbits.nof_bits, (float) cfg->grant.mcs.tbs / cfg->nbits.nof_bits);
-      return SRSLTE_ERROR_INVALID_INPUTS;
-    }
-
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {
       x[i] = q->x[i];
@@ -493,11 +488,6 @@ int srslte_pdsch_encode_rnti(srslte_pdsch_t *q,
       return SRSLTE_ERROR_INVALID_INPUTS;      
     }
     
-    if (cfg->grant.mcs.tbs > cfg->nbits.nof_bits) {
-      fprintf(stderr, "Invalid code rate %d/%d=%.2f\n", cfg->grant.mcs.tbs, cfg->nbits.nof_bits, (float) cfg->grant.mcs.tbs / cfg->nbits.nof_bits);
-      return SRSLTE_ERROR_INVALID_INPUTS;
-    }
-
     if (cfg->nbits.nof_re > q->max_re) {
       fprintf(stderr,
           "Error too many RE per subframe (%d). PDSCH configured for %d RE (%d PRB)\n",

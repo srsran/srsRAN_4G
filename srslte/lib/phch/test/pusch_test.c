@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
   
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.uci_cqi_len = 20; 
+  uci_data.uci_cqi_len = 0; 
   uci_data.uci_ri_len = 0; 
   uci_data.uci_ack_len = 0; 
 
@@ -206,9 +206,11 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
+  
+  uint32_t ntrials = 100; 
 
   gettimeofday(&t[1], NULL);
-  for (int i=0;i<10;i++) {
+  for (int i=0;i<ntrials;i++) {
     if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
@@ -234,10 +236,10 @@ int main(int argc, char **argv) {
     goto quit;
   } else {
     printf("ENCODED OK in %d:%d (TBS: %d bits, TX: %.2f Mbps, Processing: %.2f Mbps)\n", (int) t[0].tv_sec, 
-           (int) t[0].tv_usec/10, 
+           (int) t[0].tv_usec/ntrials, 
            cfg.grant.mcs.tbs,
            (float) cfg.grant.mcs.tbs/1000,
-           (float) cfg.grant.mcs.tbs/t[0].tv_usec*10);
+           (float) cfg.grant.mcs.tbs/t[0].tv_usec*ntrials);
   }
   
   ret = 0;

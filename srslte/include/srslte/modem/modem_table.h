@@ -46,16 +46,29 @@
 
 typedef struct SRSLTE_API {
   uint32_t idx[2][6][32];
-  uint32_t min_idx[2][64][6];	/* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2x(1, 2, 4, and 6 closest constellation points) for each bit, respectively. */
-  uint32_t d_idx[64][7];	/* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2, 3, 5 and 7 indices to constellation points that need to be computed for any recevied symbol modulated as BPSK, QPSK, 16QAM, and 64QAM, respectively. */
+  uint32_t min_idx[2][64][6];  /* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2x(1, 2, 4, and 6 closest constellation points) for each bit, respectively. */
+  uint32_t d_idx[64][7];       /* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2, 3, 5 and 7 indices to constellation points that need to be computed for any recevied symbol modulated as BPSK, QPSK, 16QAM, and 64QAM, respectively. */
 
 }srslte_soft_table_t;
 
+
+typedef struct {
+  cf_t symbol[4];
+} qpsk_packed_t;
+
+typedef struct {
+  cf_t symbol[2];
+} qam16_packed_t;
+
 typedef struct SRSLTE_API {
-  cf_t* symbol_table;     	// bit-to-symbol mapping
-  srslte_soft_table_t soft_table;   	// symbol-to-bit mapping (used in soft demodulating)
-  uint32_t nsymbols;        	// number of modulation symbols
-  uint32_t nbits_x_symbol;      // number of bits per symbol
+  cf_t* symbol_table;             // bit-to-symbol mapping
+  srslte_soft_table_t soft_table; // symbol-to-bit mapping (used in soft demodulating)
+  uint32_t nsymbols;              // number of modulation symbols
+  uint32_t nbits_x_symbol;        // number of bits per symbol
+  
+  bool byte_tables_init;
+  qpsk_packed_t *symbol_table_qpsk;
+  qam16_packed_t *symbol_table_16qam;  
 }srslte_modem_table_t;
 
 
@@ -74,5 +87,7 @@ SRSLTE_API int srslte_modem_table_set(srslte_modem_table_t* q,
 SRSLTE_API int srslte_modem_table_lte(srslte_modem_table_t* q, 
                                       srslte_mod_t modulation, 
                                       bool compute_soft_demod);
+
+SRSLTE_API void srslte_modem_table_bytes(srslte_modem_table_t* q); 
 
 #endif // MODEM_TABLE_

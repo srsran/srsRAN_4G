@@ -203,6 +203,7 @@ int srslte_pusch_init(srslte_pusch_t *q, srslte_cell_t cell) {
       if (srslte_modem_table_lte(&q->mod[i], modulations[i], true)) {
         goto clean;
       }
+      srslte_modem_table_bytes(&q->mod[i]);
     }
     
     /* Precompute sequence for type2 frequency hopping */
@@ -501,6 +502,8 @@ int srslte_pusch_uci_encode(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_s
   }
 }
 
+uint8_t temp[1024*1024];
+
 /** Converts the PUSCH data bits to symbols mapped to the slot ready for transmission
  */
 int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
@@ -512,10 +515,6 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
   if (q    != NULL &&
       cfg  != NULL)
   {
-    if (cfg->grant.mcs.tbs > cfg->nbits.nof_bits) {
-      fprintf(stderr, "Invalid code rate %.2f\n", (float) cfg->grant.mcs.tbs / cfg->nbits.nof_bits);
-      return SRSLTE_ERROR_INVALID_INPUTS;
-    }
 
     if (cfg->nbits.nof_re > q->max_re) {
       fprintf(stderr, "Error too many RE per subframe (%d). PUSCH configured for %d RE (%d PRB)\n",
@@ -538,31 +537,31 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_b_offset(&seq, (uint8_t*) q->q, 0, cfg->nbits.nof_bits);      
+      srslte_scrambling_bytes_offset(&seq, (uint8_t*) q->q, 0, cfg->nbits.nof_bits/8);      
       srslte_sequence_free(&seq);
     } else {
-      srslte_scrambling_b_offset(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits);            
+      srslte_scrambling_bytes_offset(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits/8);            
     }
     
     // Correct UCI placeholder bits    
     uint8_t *d = q->q; 
     for (int i = 0; i < q->dl_sch.nof_ri_ack_bits; i++) {     
       if (q->dl_sch.ack_ri_bits[i].type == UCI_BIT_PLACEHOLDER) {
-        d[q->dl_sch.ack_ri_bits[i].position/8] |= (1<<(q->dl_sch.ack_ri_bits[i].position%8)); 
+        d[q->dl_sch.ack_ri_bits[i].position/8] |= (1<<(7-q->dl_sch.ack_ri_bits[i].position%8)); 
       } else if (q->dl_sch.ack_ri_bits[i].type == UCI_BIT_REPETITION) {
         if (q->dl_sch.ack_ri_bits[i].position > 1) {
           uint32_t p=q->dl_sch.ack_ri_bits[i].position;
-          uint8_t bit = d[(p-1)/8] & (1<<((p-1)%8)); 
+          uint8_t bit = d[(p-1)/8] & (1<<(7-(p-1)%8)); 
           if (bit) {
-            d[p/8] |= 1<<(p%8);
+            d[p/8] |= 1<<(7-p%8);
           } else {
-            d[p/8] &= ~(1<<(p%8));
+            d[p/8] &= ~(1<<(7-p%8));
           }
         } 
       }
     }
     
-    srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
+    srslte_mod_modulate_bytes(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
     srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);
     
     /* mapping to resource elements */      

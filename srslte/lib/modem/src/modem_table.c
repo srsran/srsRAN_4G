@@ -35,11 +35,12 @@
 
 #include "srslte/common/phy_common.h"
 #include "srslte/modem/modem_table.h"
+#include "srslte/utils/vector.h"
 #include "lte_tables.h"
 
 /** Internal functions */
 static int table_create(srslte_modem_table_t* q) {
-  q->symbol_table = malloc(q->nsymbols*sizeof(cf_t));
+  q->symbol_table = srslte_vec_malloc(q->nsymbols*sizeof(cf_t));
   return q->symbol_table==NULL;
 }
 
@@ -49,6 +50,12 @@ void srslte_modem_table_init(srslte_modem_table_t* q) {
 void srslte_modem_table_free(srslte_modem_table_t* q) {
   if (q->symbol_table) {
     free(q->symbol_table);
+  }
+  if (q->symbol_table_qpsk) {
+    free(q->symbol_table_qpsk);
+  }
+  if (q->symbol_table_16qam) {
+    free(q->symbol_table_16qam);
   }
   bzero(q, sizeof(srslte_modem_table_t));
 }
@@ -72,6 +79,7 @@ int srslte_modem_table_set(srslte_modem_table_t* q, cf_t* table, srslte_soft_tab
 }
 
 int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation, bool compute_soft_demod) {
+  srslte_modem_table_init(q);
   switch(modulation) {
   case SRSLTE_MOD_BPSK:
     q->nbits_x_symbol = 1;
@@ -108,3 +116,35 @@ int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation, boo
   }
   return SRSLTE_SUCCESS;
 }
+
+void srslte_modem_table_bytes(srslte_modem_table_t* q) {
+  uint8_t mask_qpsk[4]  = {0xc0, 0x30, 0xc, 0x3}; 
+  uint8_t mask_16qam[2] = {0xf0, 0xf}; 
+  
+  switch(q->nbits_x_symbol) {
+    case 2:
+      q->symbol_table_qpsk = srslte_vec_malloc(sizeof(qpsk_packed_t)*256);
+      for (uint32_t i=0;i<256;i++) {
+        for (int j=0;j<4;j++) {
+          q->symbol_table_qpsk[i].symbol[j] = q->symbol_table[(i&mask_qpsk[j])>>(6-j*2)];
+        }
+      }
+      q->byte_tables_init = true; 
+      break;
+    case 4:
+      q->symbol_table_16qam = srslte_vec_malloc(sizeof(qam16_packed_t)*256);
+      for (uint32_t i=0;i<256;i++) {
+        for (int j=0;j<2;j++) {
+          q->symbol_table_16qam[i].symbol[j] = q->symbol_table[(i&mask_16qam[j])>>(4-j*4)];
+        }
+      }
+      q->byte_tables_init = true; 
+      break;
+    case 6:
+      q->byte_tables_init = true; 
+      break;
+  }
+}
+
+
+

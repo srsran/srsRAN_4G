@@ -27,6 +27,7 @@
 
 
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <assert.h>
 
@@ -49,6 +50,54 @@ int srslte_mod_modulate(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, u
     j++;
   }
   return j;
+}
+
+/* Assumes packet bits as input */
+int srslte_mod_modulate_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint32_t nbits) {
+  if (nbits%8) {
+    fprintf(stderr, "Warning: srslte_mod_modulate_bytes() accepts byte-aligned inputs only\n");
+  }
+  if (!q->byte_tables_init) {
+    fprintf(stderr, "Error need to initiated modem tables for packeted bits before calling srslte_mod_modulate_bytes()\n");
+    return -1; 
+  }
+  switch(q->nbits_x_symbol) {
+    case 2:
+      for (int i=0;i<nbits/8;i++) {
+        memcpy(&symbols[4*i], &q->symbol_table_qpsk[bits[i]], sizeof(qpsk_packed_t));
+      }
+      break;
+    case 4:
+      for (int i=0;i<nbits/8;i++) {
+        memcpy(&symbols[2*i], &q->symbol_table_16qam[bits[i]], sizeof(qam16_packed_t));
+      }
+      break;
+    case 6:
+      if (nbits%24) {
+        fprintf(stderr, "Warning: for 64QAM srslte_mod_modulate_bytes() accepts 24-bit aligned inputs only\n");
+      }
+
+      for (int i=0;i<nbits/24;i++) {
+        uint32_t in80 = bits[3*i+0];
+        uint32_t in81 = bits[3*i+1];
+        uint32_t in82 = bits[3*i+2];
+        
+        uint8_t in0 = (in80&0xfc)>>2;
+        uint8_t in1 = (in80&0x03)<<4 | ((in81&0xf0)>>4);
+        uint8_t in2 = (in81&0x0f)<<2 | ((in82&0xc0)>>6);
+        uint8_t in3 = in82&0x3f;
+        
+        symbols[i*4+0] = q->symbol_table[in0];
+        symbols[i*4+1] = q->symbol_table[in1];
+        symbols[i*4+2] = q->symbol_table[in2];
+        symbols[i*4+3] = q->symbol_table[in3];
+      }
+      break;      
+    default:
+      fprintf(stderr, "srslte_mod_modulate_bytes() accepts QPSK/16QAM/64QAM modulations only\n");
+      return -1; 
+  }
+  return nbits/q->nbits_x_symbol;
 }
 
 
