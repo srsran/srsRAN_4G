@@ -381,6 +381,17 @@ void srslte_vec_prod_cfc(cf_t *x, float *y, cf_t *z, uint32_t len) {
 #endif
 }
 
+void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len) {
+#ifndef HAVE_VOLK_MULT_REAL2_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]*y[i];
+  }
+#else
+  volk_32f_x2_multiply_32f(z,x,y,len);
+#endif
+}
+
 void srslte_vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT2_FUNCTION
   int i;

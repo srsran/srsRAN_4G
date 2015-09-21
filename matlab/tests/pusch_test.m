@@ -14,7 +14,7 @@ for p=1:ueConfig.NULRB
                 for bri=1:length(betas)
                     for back=1:length(betas)          
                         for c=1:length(cqilen)
-                            for s=0
+                            for s=0:9
                                 ueConfig.NSubframe=s;
                                 puschConfig.PRBSet=(0:p-1)';
 

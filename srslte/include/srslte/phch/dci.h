@@ -49,7 +49,7 @@
 #define SRSLTE_RAR_GRANT_LEN 20
 
 typedef enum {
-  SRSLTE_DCI_FORMAT0, 
+  SRSLTE_DCI_FORMAT0 = 0, 
   SRSLTE_DCI_FORMAT1, 
   SRSLTE_DCI_FORMAT1A, 
   SRSLTE_DCI_FORMAT1C, 
@@ -160,5 +160,8 @@ SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg,
 
 SRSLTE_API uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, 
                                              uint32_t nof_prb);
+
+SRSLTE_API uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, 
+                                                 uint32_t nof_prb);
 
 #endif // DCI_

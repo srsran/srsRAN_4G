@@ -91,12 +91,19 @@ int srslte_demod_soft_demodulate(srslte_demod_soft_t *q, const cf_t* symbols, fl
     break;
   case SRSLTE_DEMOD_SOFT_ALG_APPROX:
     if (nsymbols <= q->max_symbols) {
-      llr_approx(symbols, llr, nsymbols, q->table->nsymbols, 
+      
+      switch(q->table->nbits_x_symbol) {
+        case 2:
+          srslte_vec_sc_prod_fff((float*) symbols, -sqrt(2)/q->sigma, llr, nsymbols*2);
+          break;
+        default:
+          llr_approx(symbols, llr, nsymbols, q->table->nsymbols, 
                 q->table->nbits_x_symbol,
                 q->table->symbol_table, q->table->soft_table.idx, 
                 q->table->soft_table.d_idx, q->table->soft_table.min_idx, q->sigma, 
                 q->zones, q->dd);
-      
+          break;
+      }
     } else {
       fprintf(stderr, "Too many symbols (%d>%d)\n", nsymbols, q->max_symbols);
       return -1; 

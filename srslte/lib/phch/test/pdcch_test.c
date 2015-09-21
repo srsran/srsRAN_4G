@@ -43,19 +43,21 @@ srslte_cell_t cell = {
 };
 
 uint32_t cfi = 1;
+bool print_dci_table; 
 
 void usage(char *prog) {
-  printf("Usage: %s [cell.cpv]\n", prog);
+  printf("Usage: %s [cfpndv]\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-f cfi [Default %d]\n", cfi);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
+  printf("\t-d Print DCI table [Default %s]\n", print_dci_table?"yes":"no");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "cell.cpnfv")) != -1) {
+  while ((opt = getopt(argc, argv, "cfpndv")) != -1) {
     switch (opt) {
     case 'p':
       cell.nof_ports = atoi(argv[optind]);
@@ -68,6 +70,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'c':
       cell.id = atoi(argv[optind]);
+      break;
+    case 'd':
+      print_dci_table = true;
       break;
     case 'v':
       srslte_verbose++;
@@ -102,6 +107,25 @@ int test_dci_payload_size() {
     printf("  %2d:\t%2d\t%2d\t%2d\t%2d\n", n, x[0], x[1], x[2], x[3]);
   }
   printf("Ok\n");
+  
+  if (print_dci_table) {
+    printf("dci_sz_table[100][4] = {\n");
+    for (i=0;i<100;i++) {
+      printf("  {");
+      for (int j=0;j<4;j++) {
+        printf("%d",srslte_dci_format_sizeof(formats[j], i));
+        if (j<3) {
+          printf(", ");
+        }
+      }
+      if (i<99) {
+        printf("},\n");
+      } else {
+        printf("}\n");
+      }
+    }
+    printf("};\n");
+  }
   return 0;
 }
 

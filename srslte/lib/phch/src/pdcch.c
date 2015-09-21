@@ -333,7 +333,7 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
       fprintf(stderr, "Invalid location: nCCE: %d, L: %d, NofCCE: %d\n", 
         location->ncce, location->L, q->nof_cce);
     } else {
-      uint32_t nof_bits = srslte_dci_format_sizeof(format, q->cell.nof_prb);
+      uint32_t nof_bits = srslte_dci_format_sizeof_lut(format, q->cell.nof_prb);
       uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(location->L);
     
       DEBUG("Decoding DCI offset %d, e_bits: %d, msg_len %d (nCCE: %d, L: %d)\n", 
@@ -349,7 +349,7 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
                         msg->data, e_bits, nof_bits, crc_rem);
         if (ret == SRSLTE_SUCCESS) {
           msg->nof_bits = nof_bits;
-        }      
+        } 
       } else {
         ret = SRSLTE_SUCCESS;
       }
@@ -424,7 +424,8 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     }
 
     /* demodulate symbols */
-    srslte_demod_soft_sigma_set(&q->demod, 1.0);
+    //srslte_vec_sc_prod_fff((float*) q->d, -sqrt(2), q->llr, nof_symbols*2);
+    srslte_demod_soft_sigma_set(&q->demod, sqrt(0.5));
     srslte_demod_soft_demodulate(&q->demod, q->d, q->llr, nof_symbols);
 
     /* descramble */

@@ -40,6 +40,7 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
+#include "dci_sz_table.h"
 
 /* Unpacks a DCI message and configures the DL grant object
  */
@@ -301,6 +302,13 @@ uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb) 
   }
 }
 
+uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, uint32_t nof_prb) {
+  if (nof_prb < 100 && format < 4) {
+    return dci_sz_table[nof_prb][format];
+  } else {
+    return 0;
+  }
+}
 /**********************************
  *  DCI Resource Allocation functions
  * ********************************/
@@ -361,7 +369,7 @@ int dci_format0_pack(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
   *y++ = data->cqi_request;
 
   // Padding with zeros
-  uint32_t n = dci_format0_sizeof(nof_prb);
+  uint32_t n = srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT0, nof_prb);
   while (y - msg->data < n) {
     *y++ = 0;
   }
@@ -380,7 +388,7 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t
   uint32_t n_ul_hop;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT0 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, nof_prb)) {
+  if (msg->nof_bits != srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT0, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 0\n");
     return SRSLTE_ERROR;
   }
@@ -474,7 +482,7 @@ int dci_format1_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
   *y++ = 0;
 
   // Padding with zeros
-  uint32_t n = dci_format1_sizeof(nof_prb);
+  uint32_t n = srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1, nof_prb);
   while (y - msg->data < n) {
     *y++ = 0;
   }
@@ -489,7 +497,7 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   uint8_t *y = msg->data;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT1 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb)) {
+  if (msg->nof_bits != srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1\n");
     return SRSLTE_ERROR;
   }
@@ -614,7 +622,7 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   }
 
   // Padding with zeros
-  uint32_t n = dci_format1A_sizeof(nof_prb);
+  uint32_t n = srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1A, nof_prb);
   while (y - msg->data < n) {
     *y++ = 0;
   }
@@ -633,7 +641,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   uint8_t *y = msg->data;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT0 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb)) {
+  if (msg->nof_bits != srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1A, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1A\n");
     return SRSLTE_ERROR;
   }
@@ -757,7 +765,7 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   /* pack bits */
   uint8_t *y = msg->data;
 
-  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1C, nof_prb)) {
+  if (msg->nof_bits != srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1C, nof_prb)) {
     fprintf(stderr, "Invalid message length for format 1C\n");
     return SRSLTE_ERROR;
   }
@@ -804,11 +812,11 @@ int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, s
 
 int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb,
     bool crc_is_crnti) {
-  if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb)) {
+  if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1, nof_prb)) {
     return dci_format1_unpack(msg, data, nof_prb);
-  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb)) {
+  } else if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1A, nof_prb)) {
     return dci_format1As_unpack(msg, data, nof_prb, crc_is_crnti);
-  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1C, nof_prb)) {
+  } else if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1C, nof_prb)) {
     return dci_format1Cs_unpack(msg, data, nof_prb);
   } else {
     return SRSLTE_ERROR;
@@ -877,16 +885,16 @@ int srslte_dci_msg_get_type(srslte_dci_msg_t *msg, srslte_dci_msg_type_t *type, 
     uint16_t msg_rnti) 
 {
   DEBUG("Get message type: nof_bits=%d, msg_rnti=0x%x\n", msg->nof_bits, msg_rnti);
-  if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, nof_prb)
+  if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT0, nof_prb)
       && !msg->data[0]) {
     type->type = SRSLTE_DCI_MSG_TYPE_PUSCH_SCHED;
     type->format = SRSLTE_DCI_FORMAT0;
     return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb)) {
+  } else if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1, nof_prb)) {
     type->type = SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED; // only these 2 types supported
     type->format = SRSLTE_DCI_FORMAT1;
     return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb)) {
+  } else if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1A, nof_prb)) {
     /* The RNTI is not the only condition. Also some fields in the packet. 
      * if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
       type->type = SRSLTE_DCI_MSG_TYPE_RA_PROC_PDCCH;
@@ -897,7 +905,7 @@ int srslte_dci_msg_get_type(srslte_dci_msg_t *msg, srslte_dci_msg_type_t *type, 
       type->format = SRSLTE_DCI_FORMAT1A;
     //}
     return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1C, nof_prb)) {
+  } else if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1C, nof_prb)) {
     if (msg_rnti == SRSLTE_MRNTI) {
       type->type = SRSLTE_DCI_MSG_TYPE_MCCH_CHANGE;
       type->format = SRSLTE_DCI_FORMAT1C;

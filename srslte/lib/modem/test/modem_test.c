@@ -40,14 +40,14 @@ time_t start, finish;
 struct timeval x, y;
 
 int num_bits = 1000;
-srslte_mod_t modulation;
-bool soft_output = false, soft_exact = false;
+srslte_mod_t modulation = SRSLTE_MOD_BPSK;
+bool soft_output = true, soft_exact = false;
 
 void usage(char *prog) {
   printf("Usage: %s [nmse]\n", prog);
   printf("\t-n num_bits [Default %d]\n", num_bits);
   printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
-  printf("\t-s soft outputs [Default hard]\n");
+  printf("\t-s soft outputs [Default %s]\n", soft_output?"soft":"hard");
   printf("\t-e soft outputs exact algorithm [Default approx]\n");
 }
 
@@ -99,12 +99,8 @@ int main(int argc, char **argv) {
   srslte_demod_soft_t demod_soft;
   uint8_t *input, *input_bytes, *output;
   cf_t *symbols, *symbols_bytes;
-  float *llr;
+  float *llr, *llr2;
 
-//  unsigned long strt, fin;
-//  strt = x->tv_usec;
-//  fin = y->tv_usec;
-  
   parse_args(argc, argv);
 
   /* initialize objects */
@@ -159,6 +155,12 @@ int main(int argc, char **argv) {
 
   llr = srslte_vec_malloc(sizeof(float) * num_bits);
   if (!llr) {
+    perror("malloc");
+    exit(-1);
+  }
+
+  llr2 = srslte_vec_malloc(sizeof(float) * num_bits);
+  if (!llr2) {
     perror("malloc");
     exit(-1);
   }

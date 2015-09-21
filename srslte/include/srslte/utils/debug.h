@@ -39,14 +39,14 @@
 #include <stdio.h>
 #include "srslte/config.h"
 
-#define SRSLTE_VERBOSE_DEBUG   2
+#define SRSLTE_VERBOSE_DEBUG 2
 #define SRSLTE_VERBOSE_INFO  1
 #define SRSLTE_VERBOSE_NONE  0
 
 #include <sys/time.h>
 SRSLTE_API void get_time_interval(struct timeval * tdata);
 
-#ifndef SRSLTE_DEBUG_DISABLED
+#define SRSLTE_DEBUG_ENABLED 0
 
 SRSLTE_API extern int srslte_verbose;
 
@@ -58,17 +58,11 @@ SRSLTE_API extern int srslte_verbose;
 #define PRINT_INFO srslte_verbose=SRSLTE_VERBOSE_INFO
 #define PRINT_NONE srslte_verbose=SRSLTE_VERBOSE_NONE
 
-#define DEBUG(_fmt, ...) if (srslte_verbose >= SRSLTE_VERBOSE_DEBUG) \
+#define DEBUG(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG) \
   fprintf(stdout, "[DEBUG]: " _fmt, __VA_ARGS__)
 
-#define INFO(_fmt, ...) if (srslte_verbose >= SRSLTE_VERBOSE_INFO) \
+#define INFO(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO) \
   fprintf(stdout, "[INFO]:  " _fmt, __VA_ARGS__)
 
-#else // SRSLTE_DEBUG_DISABLED
-
-#define DEBUG
-#define INFO
-
-#endif // SRSLTE_DEBUG_DISABLED
 
 #endif // DEBUG_H

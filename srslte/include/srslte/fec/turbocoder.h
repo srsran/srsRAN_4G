@@ -51,7 +51,6 @@
 typedef struct SRSLTE_API {
   uint32_t max_long_cb;
   uint8_t *temp;
-  srslte_tc_interl_t interl;
 } srslte_tcod_t;
 
 

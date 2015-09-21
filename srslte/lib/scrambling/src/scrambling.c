@@ -37,12 +37,8 @@ void srslte_scrambling_f(srslte_sequence_t *s, float *data) {
 }
 
 void srslte_scrambling_f_offset(srslte_sequence_t *s, float *data, int offset, int len) {
-  int i;  
   assert (len + offset <= s->len);
-
-  for (i = 0; i < len; i++) {
-    data[i] = data[i] * (1-2*s->c[i + offset]);
-  }
+  srslte_vec_prod_fff(data, &s->c_float[offset], data, len);
 }
 
 void srslte_scrambling_c(srslte_sequence_t *s, cf_t *data) {
@@ -50,12 +46,8 @@ void srslte_scrambling_c(srslte_sequence_t *s, cf_t *data) {
 }
 
 void srslte_scrambling_c_offset(srslte_sequence_t *s, cf_t *data, int offset, int len) {
-  int i;
   assert (len + offset <= s->len);
-
-  for (i = 0; i < len; i++) {
-    data[i] = data[i] * (1 - 2 * s->c[i + offset]);
-  }
+  srslte_vec_prod_cfc(data, &s->c_float[offset], data, len);
 }
 
 void scrambling_b(uint8_t *c, uint8_t *data, int offset, int len) {

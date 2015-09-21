@@ -502,8 +502,6 @@ int srslte_pusch_uci_encode(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_s
   }
 }
 
-uint8_t temp[1024*1024];
-
 /** Converts the PUSCH data bits to symbols mapped to the slot ready for transmission
  */
 int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
@@ -532,7 +530,7 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       return SRSLTE_ERROR;
     }
 
-    if (rnti != q->rnti) {
+    if (rnti != q->rnti || !q->rnti_is_set) {
       srslte_sequence_t seq; 
       if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 

@@ -42,6 +42,7 @@
 
 #include "srslte/config.h"
 #include "srslte/fec/tc_interl.h"
+#include "srslte/fec/cbsegm.h"
 
 #define SRSLTE_TCOD_RATE 3
 #define SRSLTE_TCOD_TOTALTAIL 12
@@ -67,7 +68,8 @@ typedef struct SRSLTE_API {
   srslte_llr_t *syst;
   srslte_llr_t *parity;
 
-  srslte_tc_interl_t interleaver;
+  int current_cbidx; 
+  srslte_tc_interl_t interleaver[SRSLTE_NOF_TC_CB_SIZES];
 } srslte_tdec_t;
 
 SRSLTE_API int srslte_tdec_init(srslte_tdec_t * h, 
