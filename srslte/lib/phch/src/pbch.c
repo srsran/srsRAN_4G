@@ -159,10 +159,6 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK, true)) {
       goto clean;
     }
-    srslte_demod_soft_init(&q->demod, q->nof_symbols);
-    srslte_demod_soft_table_set(&q->demod, &q->mod);
-    srslte_demod_soft_alg_set(&q->demod, SRSLTE_DEMOD_SOFT_ALG_APPROX);
-    
     if (srslte_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
       goto clean;
     }
@@ -248,7 +244,6 @@ void srslte_pbch_free(srslte_pbch_t *q) {
   srslte_sequence_free(&q->seq);
   srslte_modem_table_free(&q->mod);
   srslte_viterbi_free(&q->decoder);
-  srslte_demod_soft_free(&q->demod);
 
   bzero(q, sizeof(srslte_pbch_t));
 
@@ -484,9 +479,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
         }
 
         /* demodulate symbols */
-        srslte_demod_soft_sigma_set(&q->demod, 1.0);
-        srslte_demod_soft_demodulate(&q->demod, q->d,
-            &q->llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
+        srslte_demod_soft_demodulate_lte(SRSLTE_MOD_QPSK, q->d, &q->llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
         
         /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
         * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.

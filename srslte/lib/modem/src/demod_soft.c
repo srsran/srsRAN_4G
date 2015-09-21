@@ -34,6 +34,7 @@
 #include "srslte/modem/demod_soft.h"
 #include "soft_algs.h"
 
+//#define SCALE_DEMOD16QAM
 
 int srslte_demod_soft_init(srslte_demod_soft_t *q, uint32_t max_symbols) {
   int ret = SRSLTE_ERROR; 
@@ -83,6 +84,86 @@ void srslte_demod_soft_sigma_set(srslte_demod_soft_t *q, float sigma) {
   q->sigma = 2*sigma;
 }
 
+void demod_bpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
+  for (int i=0;i<nsymbols;i++) {
+    llr[i] = -(crealf(symbols[i]) + cimagf(symbols[i]))/sqrt(2);
+  }
+}
+
+void demod_qpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
+  srslte_vec_sc_prod_fff((float*) symbols, -sqrt(2), llr, nsymbols*2);
+}
+
+void demod_16qam_lte(const cf_t *symbols, float *llr, int nsymbols) {
+  for (int i=0;i<nsymbols;i++) {
+    float yre = crealf(symbols[i]);
+    float yim = cimagf(symbols[i]);
+    
+#ifdef SCALE_DEMOD16QAM
+
+    llr[4*i+2] = (fabsf(yre)-2/sqrt(10))*sqrt(10);
+    llr[4*i+3] = (fabsf(yim)-2/sqrt(10))*sqrt(10);    
+
+    if (llr[4*i+2] > 0) {
+      llr[4*i+0] = -yre/(3/sqrt(10));
+    } else {
+      llr[4*i+0] = -yre/(1/sqrt(10));
+    }
+    if (llr[4*i+3] > 0) {
+      llr[4*i+1] = -yim/(3/sqrt(10));
+    } else {
+      llr[4*i+1] = -yim/(1/sqrt(10));
+    }    
+
+#else
+    
+    llr[4*i+0] = -yre;
+    llr[4*i+1] = -yim;
+    llr[4*i+2] = fabsf(yre)-2/sqrt(10);
+    llr[4*i+3] = fabsf(yim)-2/sqrt(10);
+
+#endif
+    
+  }
+}
+
+void demod_64qam_lte(const cf_t *symbols, float *llr, int nsymbols) 
+{
+  for (int i=0;i<nsymbols;i++) {
+    float yre = crealf(symbols[i]);
+    float yim = cimagf(symbols[i]);
+
+    llr[6*i+0] = -yre;
+    llr[6*i+1] = -yim;
+    llr[6*i+2] = fabsf(yre)-4/sqrt(42);
+    llr[6*i+3] = fabsf(yim)-4/sqrt(42);
+    llr[6*i+4] = fabsf(llr[6*i+2])-2/sqrt(42);
+    llr[6*i+5] = fabsf(llr[6*i+3])-2/sqrt(42);        
+  }
+  
+}
+
+int srslte_demod_soft_demodulate_lte(srslte_mod_t modulation, const cf_t* symbols, float* llr, int nsymbols) {
+  switch(modulation) {
+    case SRSLTE_MOD_BPSK:
+      demod_bpsk_lte(symbols, llr, nsymbols);
+      break;
+    case SRSLTE_MOD_QPSK:
+      demod_qpsk_lte(symbols, llr, nsymbols);
+      break;
+    case SRSLTE_MOD_16QAM:
+      demod_16qam_lte(symbols, llr, nsymbols);
+      break;
+    case SRSLTE_MOD_64QAM:
+      demod_64qam_lte(symbols, llr, nsymbols);
+      break;
+    default: 
+      fprintf(stderr, "Invalid modulation %d\n", modulation);
+      return -1; 
+  } 
+  return 0; 
+}
+
 int srslte_demod_soft_demodulate(srslte_demod_soft_t *q, const cf_t* symbols, float* llr, int nsymbols) {
   switch(q->alg_type) {
   case SRSLTE_DEMOD_SOFT_ALG_EXACT:
@@ -90,20 +171,12 @@ int srslte_demod_soft_demodulate(srslte_demod_soft_t *q, const cf_t* symbols, fl
         q->table->symbol_table, q->table->soft_table.idx, q->sigma);
     break;
   case SRSLTE_DEMOD_SOFT_ALG_APPROX:
-    if (nsymbols <= q->max_symbols) {
-      
-      switch(q->table->nbits_x_symbol) {
-        case 2:
-          srslte_vec_sc_prod_fff((float*) symbols, -sqrt(2)/q->sigma, llr, nsymbols*2);
-          break;
-        default:
-          llr_approx(symbols, llr, nsymbols, q->table->nsymbols, 
+    if (nsymbols <= q->max_symbols) {      
+      llr_approx(symbols, llr, nsymbols, q->table->nsymbols, 
                 q->table->nbits_x_symbol,
                 q->table->symbol_table, q->table->soft_table.idx, 
                 q->table->soft_table.d_idx, q->table->soft_table.min_idx, q->sigma, 
-                q->zones, q->dd);
-          break;
-      }
+                q->zones, q->dd);      
     } else {
       fprintf(stderr, "Too many symbols (%d>%d)\n", nsymbols, q->max_symbols);
       return -1; 
@@ -112,6 +185,8 @@ int srslte_demod_soft_demodulate(srslte_demod_soft_t *q, const cf_t* symbols, fl
   }
   return nsymbols*q->table->nbits_x_symbol;
 }
+
+
 
 
 

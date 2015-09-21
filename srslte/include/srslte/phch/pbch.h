@@ -76,7 +76,6 @@ typedef struct SRSLTE_API {
 
   /* tx & rx objects */
   srslte_modem_table_t mod;
-  srslte_demod_soft_t demod;
   srslte_sequence_t seq;
   srslte_viterbi_t decoder;
   srslte_crc_t crc;

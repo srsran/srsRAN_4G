@@ -85,10 +85,6 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
       goto clean;
     }
 
-    srslte_demod_soft_init(&q->demod, q->max_bits / 2);
-    srslte_demod_soft_table_set(&q->demod, &q->mod);
-    srslte_demod_soft_alg_set(&q->demod, SRSLTE_DEMOD_SOFT_ALG_APPROX);
-
     for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
       // we need to pregenerate the sequence for the maximum number of bits, which is 8 times 
       // the maximum number of REGs (for CFI=3)
@@ -170,8 +166,6 @@ void srslte_pdcch_free(srslte_pdcch_t *q) {
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     srslte_sequence_free(&q->seq[i]);
   }
-
-  srslte_demod_soft_free(&q->demod);
 
   srslte_precoding_free(&q->precoding);
   srslte_modem_table_free(&q->mod);
@@ -424,9 +418,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     }
 
     /* demodulate symbols */
-    //srslte_vec_sc_prod_fff((float*) q->d, -sqrt(2), q->llr, nof_symbols*2);
-    srslte_demod_soft_sigma_set(&q->demod, sqrt(0.5));
-    srslte_demod_soft_demodulate(&q->demod, q->d, q->llr, nof_symbols);
+    srslte_demod_soft_demodulate_lte(SRSLTE_MOD_QPSK, q->d, q->llr, nof_symbols);
 
     /* descramble */
     srslte_scrambling_f_offset(&q->seq[nsubframe], q->llr, 0, e_bits);

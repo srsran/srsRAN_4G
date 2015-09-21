@@ -109,10 +109,9 @@ float mse_threshold() {
 int main(int argc, char **argv) {
   int i;
   srslte_modem_table_t mod;
-  srslte_demod_soft_t demod_soft;
   uint8_t *input, *output;
   cf_t *symbols;
-  float *llr_exact, *llr_approx;
+  float *llr;
 
   parse_args(argc, argv);
 
@@ -124,11 +123,6 @@ int main(int argc, char **argv) {
 
   /* check that num_bits is multiple of num_bits x symbol */
   num_bits = mod.nbits_x_symbol * (num_bits / mod.nbits_x_symbol);
-
-  srslte_demod_soft_init(&demod_soft, num_bits / mod.nbits_x_symbol);
-  srslte_demod_soft_table_set(&demod_soft, &mod);
-  srslte_demod_soft_sigma_set(&demod_soft, 2.0 / mod.nbits_x_symbol);
-
 
   /* allocate buffers */
   input = malloc(sizeof(uint8_t) * num_bits);
@@ -147,14 +141,8 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  llr_exact = malloc(sizeof(float) * num_bits);
-  if (!llr_exact) {
-    perror("malloc");
-    exit(-1);
-  }
-
-  llr_approx = malloc(sizeof(float) * num_bits);
-  if (!llr_approx) {
+  llr = malloc(sizeof(float) * num_bits);
+  if (!llr) {
     perror("malloc");
     exit(-1);
   }
@@ -163,7 +151,6 @@ int main(int argc, char **argv) {
   srand(0);
   
   int ret = -1;
-  double mse;
   struct timeval t[3]; 
   float mean_texec = 0.0; 
   for (int n=0;n<nof_frames;n++) {
@@ -174,16 +161,8 @@ int main(int argc, char **argv) {
     /* modulate */
     srslte_mod_modulate(&mod, input, symbols, num_bits);
 
-    /* add noise */
-    srslte_ch_awgn_c(symbols, symbols, srslte_ch_awgn_get_variance(5.0, mod.nbits_x_symbol), num_bits / mod.nbits_x_symbol);
-    
-    /* Compare exact with approximation algorithms */
-    srslte_demod_soft_alg_set(&demod_soft, SRSLTE_DEMOD_SOFT_ALG_EXACT);
-    srslte_demod_soft_demodulate(&demod_soft, symbols, llr_exact, num_bits / mod.nbits_x_symbol);
-    
-    srslte_demod_soft_alg_set(&demod_soft, SRSLTE_DEMOD_SOFT_ALG_APPROX);
     gettimeofday(&t[1], NULL);
-    srslte_demod_soft_demodulate(&demod_soft, symbols, llr_approx, num_bits / mod.nbits_x_symbol);
+    srslte_demod_soft_demodulate_lte(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     
@@ -192,42 +171,35 @@ int main(int argc, char **argv) {
       mean_texec = SRSLTE_VEC_CMA((float) t[0].tv_usec, mean_texec, n-1);      
     }
     
-    /* check MSE */
-    mse = 0.0;
-    for (i=0;i<num_bits;i++) {
-      float e = llr_exact[i] - llr_approx[i];
-      mse += e*e;
-    }
-    mse/=num_bits;
-
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      printf("exact=");
-      srslte_vec_fprint_f(stdout, llr_exact, num_bits);
+      printf("bits=");
+      srslte_vec_fprint_b(stdout, input, num_bits);
 
-      printf("approx=");
-      srslte_vec_fprint_f(stdout, llr_approx, num_bits);
+      printf("symbols=");
+      srslte_vec_fprint_c(stdout, symbols, num_bits/mod.nbits_x_symbol);
+
+      printf("llr=");
+      srslte_vec_fprint_f(stdout, llr, num_bits);
     }
-    
-    if (mse > mse_threshold()) {
-        goto clean_exit; 
+
+    // Check demodulation errors
+    for (int i=0;i<num_bits;i++) {
+      if (input[i] != (llr[i]>0?1:0)) {
+          printf("Error in bit %d\n", i);
+          goto clean_exit;
+      }
     }
   }
   ret = 0; 
 
 clean_exit:  
-  free(llr_exact);
-  free(llr_approx);
+  free(llr);
   free(symbols);
   free(output);
   free(input);
 
   srslte_modem_table_free(&mod);
-  srslte_demod_soft_free(&demod_soft);
 
-  if (ret == 0) {
-    printf("Ok Mean Throughput: %.2f. Mbps ExTime: %.2f us\n", num_bits/mean_texec, mean_texec);    
-  } else {
-    printf("Error: MSE too large (%f > %f)\n", mse, mse_threshold());
-  }
+  printf("Mean Throughput: %.2f. Mbps ExTime: %.2f us\n", num_bits/mean_texec, mean_texec);    
   exit(ret);
 }

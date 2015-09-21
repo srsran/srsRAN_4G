@@ -83,10 +83,6 @@ int srslte_pcfich_init(srslte_pcfich_t *q, srslte_regs_t *regs, srslte_cell_t ce
       goto clean;
     }
 
-    srslte_demod_soft_init(&q->demod, q->nof_symbols);
-    srslte_demod_soft_table_set(&q->demod, &q->mod);
-    srslte_demod_soft_alg_set(&q->demod, SRSLTE_DEMOD_SOFT_ALG_APPROX);
-
     for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
       if (srslte_sequence_pcfich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
         goto clean;
@@ -116,7 +112,6 @@ void srslte_pcfich_free(srslte_pcfich_t *q) {
   }
   srslte_modem_table_free(&q->mod);
   srslte_precoding_free(&q->precoding); 
-  srslte_demod_soft_free(&q->demod);
 
   bzero(q, sizeof(srslte_pcfich_t));
 }
@@ -208,8 +203,7 @@ int srslte_pcfich_decode(srslte_pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE
     }
 
     /* demodulate symbols */
-    srslte_demod_soft_sigma_set(&q->demod, 1.0);
-    srslte_demod_soft_demodulate(&q->demod, q->d, q->data_f, q->nof_symbols);
+    srslte_demod_soft_demodulate_lte(SRSLTE_MOD_QPSK, q->d, q->data_f, q->nof_symbols);
 
     /* Scramble with the sequence for slot nslot */
     srslte_scrambling_f(&q->seq[nsubframe], q->data_f);

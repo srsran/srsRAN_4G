@@ -76,6 +76,10 @@ SRSLTE_API int srslte_demod_soft_demodulate(srslte_demod_soft_t *q,
                                             float* llr, 
                                             int nsymbols);
 
+SRSLTE_API int srslte_demod_soft_demodulate_lte(srslte_mod_t modulation, 
+                                                const cf_t* symbols, 
+                                                float* llr, 
+                                                int nsymbols); 
 
 /* High-level API */
 typedef struct SRSLTE_API {

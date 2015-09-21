@@ -223,9 +223,6 @@ int srslte_pdsch_init(srslte_pdsch_t *q, srslte_cell_t cell) {
         goto clean;
       }
     }
-
-    srslte_demod_soft_init(&q->demod, q->max_re);
-    srslte_demod_soft_alg_set(&q->demod, SRSLTE_DEMOD_SOFT_ALG_APPROX);
     
     srslte_sch_init(&q->dl_sch);
     
@@ -294,7 +291,6 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
   for (i = 0; i < 4; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
-  srslte_demod_soft_free(&q->demod);
   srslte_precoding_free(&q->precoding);
   srslte_sch_free(&q->dl_sch);
 
@@ -420,9 +416,7 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
     * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
     * thus we don't need tot set it in the LLRs normalization
     */
-    srslte_demod_soft_sigma_set(&q->demod, sqrt(0.5));
-    srslte_demod_soft_table_set(&q->demod, &q->mod[cfg->grant.mcs.mod]);
-    srslte_demod_soft_demodulate(&q->demod, q->d, q->e, cfg->nbits.nof_re);
+    srslte_demod_soft_demodulate_lte(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
 
     /* descramble */
     if (rnti != q->rnti) {

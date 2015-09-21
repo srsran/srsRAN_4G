@@ -95,8 +95,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int i;
   srslte_modem_table_t mod;
-  srslte_demod_hard_t demod_hard;
-  srslte_demod_soft_t demod_soft;
+  srslte_demod_hard_t demod_hard;  
   uint8_t *input, *input_bytes, *output;
   cf_t *symbols, *symbols_bytes;
   float *llr, *llr2;
@@ -117,11 +116,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (soft_output) {
-    srslte_demod_soft_init(&demod_soft, num_bits / mod.nbits_x_symbol);
-    srslte_demod_soft_table_set(&demod_soft, &mod);
-    srslte_demod_soft_alg_set(&demod_soft, soft_exact?SRSLTE_DEMOD_SOFT_ALG_EXACT:SRSLTE_DEMOD_SOFT_ALG_APPROX);
-  } else {
+  if (!soft_output) {
     srslte_demod_hard_init(&demod_hard);
     srslte_demod_hard_table_set(&demod_hard, modulation);
   }
@@ -204,7 +199,7 @@ int main(int argc, char **argv) {
   if (soft_output) {
 
     gettimeofday(&x, NULL);
-    srslte_demod_soft_demodulate(&demod_soft, symbols, llr, num_bits / mod.nbits_x_symbol);
+    srslte_demod_soft_demodulate_lte(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
     gettimeofday(&y, NULL);
     printf("\nElapsed time [ns]: %d\n", (int) y.tv_usec - (int) x.tv_usec);
     
@@ -231,9 +226,6 @@ int main(int argc, char **argv) {
   free(input_bytes);
 
   srslte_modem_table_free(&mod);
-  if (soft_output) {
-    srslte_demod_soft_free(&demod_soft);    
-  }
 
   printf("Ok\n");
   exit(0);

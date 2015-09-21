@@ -91,10 +91,6 @@ int srslte_phich_init(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t cell
       goto clean;
     }
 
-    srslte_demod_soft_init(&q->demod, SRSLTE_PHICH_MAX_NSYMB);
-    srslte_demod_soft_table_set(&q->demod, &q->mod);
-    srslte_demod_soft_alg_set(&q->demod, SRSLTE_DEMOD_SOFT_ALG_APPROX);
-
     for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
       if (srslte_sequence_phich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
         goto clean;
@@ -278,10 +274,10 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_M
   if (SRSLTE_VERBOSE_ISDEBUG())
     srslte_vec_fprint_c(stdout, q->z, SRSLTE_PHICH_NBITS);
 
-  srslte_demod_soft_demodulate(&q->demod, q->z, q->data_rx, SRSLTE_PHICH_NBITS);
+  srslte_demod_soft_demodulate_lte(SRSLTE_MOD_BPSK, q->z, q->data_rx, SRSLTE_PHICH_NBITS);
 
   if (ack) {
-    *ack = srslte_phich_ack_decode(q->data_rx, distance);
+    *ack = srslte_phich_ack_decode(q->data_rx, distance);    
   }
 
   return SRSLTE_SUCCESS;
