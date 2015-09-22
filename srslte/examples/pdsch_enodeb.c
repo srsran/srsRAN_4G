@@ -559,8 +559,8 @@ int main(int argc, char **argv) {
         }
       } else {
         INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs.tbs);
-        for (i=0;i<pdsch_cfg.grant.mcs.tbs;i++) {
-          data[i] = rand()%2;
+        for (i=0;i<pdsch_cfg.grant.mcs.tbs/8;i++) {
+          data[i] = rand()%256;
         }
         send_data = true; 
       }        
