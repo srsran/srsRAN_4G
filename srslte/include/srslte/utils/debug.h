@@ -46,7 +46,7 @@
 #include <sys/time.h>
 SRSLTE_API void get_time_interval(struct timeval * tdata);
 
-#define SRSLTE_DEBUG_ENABLED 0
+#define SRSLTE_DEBUG_ENABLED 1
 
 SRSLTE_API extern int srslte_verbose;
 

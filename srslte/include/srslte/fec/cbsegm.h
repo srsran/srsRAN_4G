@@ -41,6 +41,8 @@
   uint32_t C;
   uint32_t K1;
   uint32_t K2;
+  uint32_t K1_idx;
+  uint32_t K2_idx;
   uint32_t C1;
   uint32_t C2;
   uint32_t tbs; 

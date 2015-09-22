@@ -37,6 +37,7 @@
 srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
+  0,
   0,            // cell_id
   SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_SRSLTE_PHICH_R_1_6,          // PHICH resources      
@@ -220,7 +221,7 @@ int main(int argc, char **argv) {
         ce[i][j] = 1;
       }
     }
-    
+
     gettimeofday(&t[1], NULL);
     int r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
     gettimeofday(&t[2], NULL);

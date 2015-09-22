@@ -1,7 +1,7 @@
 enbConfig=struct('NCellID',1,'CyclicPrefix','Normal','CellRefP',1);
 pdschConfig=struct('Modulation','QPSK','RV',0,'TxScheme','Port0');
 
-addpath('/home/ismael/work/srsLTE/debug/srslte/lib/phch/test')
+addpath('/home/ismael/work/srsLTE/build/srslte/lib/phch/test')
 
 TBs=40:8:800;
 e_bits=1000;

@@ -86,8 +86,6 @@ int srslte_tc_interl_LTE_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
   f1 = f1_list[cb_table_idx];
   f2 = f2_list[cb_table_idx];
 
-  DEBUG("table_idx: %d, f1: %d, f2: %d\n", cb_table_idx, f1, f2);
-
   h->forward[0] = 0;
   h->reverse[0] = 0;
   for (i = 1; i < long_cb; i++) {

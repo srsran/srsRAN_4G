@@ -109,13 +109,13 @@ int srslte_sch_init(srslte_sch_t *q) {
     srslte_rm_turbo_gentables();
     
     // Allocate floats for reception (LLRs)
-    q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_TCOD_MAX_LEN_CB+4);
+    q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * (SRSLTE_TCOD_MAX_LEN_CB+8)/8);
     if (!q->cb_in) {
       goto clean;
     }
     
-    q->cb_out = srslte_vec_malloc(sizeof(float) * (3 * SRSLTE_TCOD_MAX_LEN_CB + 12));
-    if (!q->cb_out) {
+    q->parity_bits = srslte_vec_malloc(sizeof(uint8_t) * (3 * SRSLTE_TCOD_MAX_LEN_CB + 16) / 8);
+    if (!q->parity_bits) {
       goto clean;
     }  
     q->temp_g_bits = srslte_vec_malloc(sizeof(uint8_t)*SRSLTE_MAX_PRB*12*12*12);
@@ -144,8 +144,8 @@ void srslte_sch_free(srslte_sch_t *q) {
   if (q->cb_in) {
     free(q->cb_in);
   }
-  if (q->cb_out) {
-    free(q->cb_out);
+  if (q->parity_bits) {
+    free(q->parity_bits);
   }
   if (q->temp_g_bits) {
     free(q->temp_g_bits);
@@ -173,7 +173,7 @@ uint32_t srslte_sch_last_noi(srslte_sch_t *q) {
  *
  */
 static int encode_tb_off(srslte_sch_t *q, 
-                     srslte_softbuffer_tx_t *soft_buffer, srslte_cbsegm_t *cb_segm, 
+                     srslte_softbuffer_tx_t *softbuffer, srslte_cbsegm_t *cb_segm, 
                      uint32_t Qm, uint32_t rv, uint32_t nof_e_bits,  
                      uint8_t *data, uint8_t *e_bits, uint32_t w_offset) 
 {
@@ -186,14 +186,19 @@ static int encode_tb_off(srslte_sch_t *q,
   if (q            != NULL &&
       e_bits       != NULL &&
       cb_segm      != NULL &&
-      soft_buffer  != NULL)
+      softbuffer  != NULL)
   {
   
     if (cb_segm->F) {
       fprintf(stderr, "Error filler bits are not supported. Use standard TBS\n");
       return SRSLTE_ERROR;       
     }
-    
+
+    if (cb_segm->C > softbuffer->max_cb) {
+      fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
+      return -1; 
+    }
+
     uint32_t Gp = nof_e_bits / Qm;
     
     uint32_t gamma = Gp;
@@ -223,11 +228,14 @@ static int encode_tb_off(srslte_sch_t *q,
     rp = 0;
     for (i = 0; i < cb_segm->C; i++) {
 
+      uint32_t cblen_idx; 
       /* Get read lengths */
       if (i < cb_segm->C2) {
         cb_len = cb_segm->K2;
+        cblen_idx = cb_segm->K2_idx;
       } else {
         cb_len = cb_segm->K1;
+        cblen_idx = cb_segm->K1_idx;
       }
       if (cb_segm->C > 1) {
         rlen = cb_len - 24;
@@ -242,13 +250,6 @@ static int encode_tb_off(srslte_sch_t *q,
 
       INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d\n", i,
           cb_len, rlen, wp, rp, n_e);
-
-      int ret = srslte_cbsegm_cbindex(cb_len);
-      if (ret < 0) {
-        fprintf(stderr, "Error invalid CBLEN=%d\n", cb_len);
-        return -1;
-      }
-      uint8_t cblen_idx = (uint8_t) ret; 
 
       if (data) {
 
@@ -276,26 +277,23 @@ static int encode_tb_off(srslte_sch_t *q,
         }
 
         /* Turbo Encoding */
-        srslte_tcod_encode_lut(&q->encoder, q->cb_in, (uint8_t*) q->cb_out, cblen_idx);
+        srslte_tcod_encode_lut(&q->encoder, q->cb_in, q->parity_bits, cblen_idx);
         
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           DEBUG("CB#%d encoded: ", i);
-          srslte_vec_fprint_byte(stdout, q->cb_out, 2*cb_len/8);
+          srslte_vec_fprint_byte(stdout, q->parity_bits, 2*cb_len/8);
         }
       }
       DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d\n",cblen_idx, n_e, wp, nof_e_bits);
       
       /* Rate matching */
-      if (3*cb_len+12 < soft_buffer->buff_size) {
-        if (srslte_rm_turbo_tx_lut(soft_buffer->buffer_b[i], q->cb_in, (uint8_t*) q->cb_out, &e_bits[(wp+w_offset)/8], cblen_idx, n_e, (wp+w_offset)%8, rv))
-        {
-          fprintf(stderr, "Error in rate matching\n");
-          return SRSLTE_ERROR;
-        }
-      } else {
-        fprintf(stderr, "Encoded CB length exceeds RM buffer (%d>%d)\n",3*cb_len+12,soft_buffer->buff_size);
-        return SRSLTE_ERROR; 
+      if (srslte_rm_turbo_tx_lut(softbuffer->buffer_b[i], q->cb_in, q->parity_bits, 
+        &e_bits[(wp+w_offset)/8], cblen_idx, n_e, (wp+w_offset)%8, rv))
+      {
+        fprintf(stderr, "Error in rate matching\n");
+        return SRSLTE_ERROR;
       }
+      
       /* Set read/write pointers */
       rp += rlen;
       wp += n_e;
@@ -347,6 +345,16 @@ static int decode_tb(srslte_sch_t *q,
     uint32_t Gp = nof_e_bits / Qm;
     uint32_t gamma=Gp;
 
+    if (cb_segm->F) {
+      fprintf(stderr, "Error filler bits are not supported. Use standard TBS\n");
+      return SRSLTE_ERROR;       
+    }
+
+    if (cb_segm->C > softbuffer->max_cb) {
+      fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
+      return -1; 
+    }
+    
     if (cb_segm->C>0) {
       gamma = Gp%cb_segm->C;
     }
@@ -355,11 +363,15 @@ static int decode_tb(srslte_sch_t *q,
     for (i = 0; i < cb_segm->C && early_stop; i++) {
 
       /* Get read/write lengths */
+      uint32_t cblen_idx; 
       if (i < cb_segm->C2) {
         cb_len = cb_segm->K2;
+        cblen_idx = cb_segm->K2_idx;
       } else {
         cb_len = cb_segm->K1;
+        cblen_idx = cb_segm->K1_idx;
       }
+      
       if (cb_segm->C == 1) {
         rlen = cb_len;
       } else {
@@ -381,16 +393,14 @@ static int decode_tb(srslte_sch_t *q,
           cb_len, rlen - F, wp, rp, F, n_e);
       
       /* Rate Unmatching */
-      if (srslte_rm_turbo_rx(softbuffer->buffer_f[i], softbuffer->buff_size,  
-                  &e_bits[rp], n_e, 
-                  (float*) q->cb_out, 3 * cb_len + 12, rv, F)) {
+      if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[i], n_e, cblen_idx, rv)) {
         fprintf(stderr, "Error in rate matching\n");
         return SRSLTE_ERROR;
       }
 
       if (SRSLTE_VERBOSE_ISDEBUG()) {
         DEBUG("CB#%d RMOUT: ", i);
-        srslte_vec_fprint_f(stdout, q->cb_out, 3*cb_len+12);
+        srslte_vec_fprint_f(stdout, softbuffer->buffer_f[i], 3*cb_len+12);
       }
 
       /* Turbo Decoding with CRC-based early stopping */
@@ -403,7 +413,7 @@ static int decode_tb(srslte_sch_t *q,
       srslte_tdec_reset(&q->decoder, cb_len);
             
       do {
-        srslte_tdec_iteration(&q->decoder, (float*) q->cb_out, cb_len); 
+        srslte_tdec_iteration(&q->decoder, softbuffer->buffer_f[i], cb_len); 
         q->nof_iterations++;
         
         if (cb_segm->C > 1) {

@@ -33,10 +33,8 @@ TARGET_LINK_LIBRARIES(rm_turbo_test srslte)
 ADD_TEST(rm_conv_test_1 rm_conv_test -t 480 -r 1920) 
 ADD_TEST(rm_conv_test_2 rm_conv_test -t 1920 -r 480) 
 
-ADD_TEST(rm_turbo_test_1 rm_turbo_test -t 480 -r 1920 -i 0) 
-ADD_TEST(rm_turbo_test_2 rm_turbo_test -t 1920 -r 480 -i 1) 
-ADD_TEST(rm_turbo_test_1 rm_turbo_test -t 480 -r 1920 -i 2) 
-ADD_TEST(rm_turbo_test_2 rm_turbo_test -t 1920 -r 480 -i 3) 
+ADD_TEST(rm_turbo_test_1 rm_turbo_test -e 1920) 
+ADD_TEST(rm_turbo_test_2 rm_turbo_test -e 8192) 
  
 BuildMex(MEXNAME rm_turbo_rx SOURCES rm_turbo_rx_mex.c LIBRARIES srslte srslte_mex)
 
@@ -55,8 +53,7 @@ BuildMex(MEXNAME turbodecoder SOURCES turbodecoder_test_mex.c LIBRARIES srslte s
 
 ADD_EXECUTABLE(turbocoder_test turbocoder_test.c)
 TARGET_LINK_LIBRARIES(turbocoder_test srslte)
-ADD_TEST(turbocoder_test_40 turbocoder_test -l 40)
-ADD_TEST(turbocoder_test_6114 turbocoder_test -l 6114)
+ADD_TEST(turbocoder_test_all turbocoder_test)
 
 ########################################################################
 # Viterbi TEST  

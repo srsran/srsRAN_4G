@@ -222,6 +222,7 @@ int srslte_pdsch_init(srslte_pdsch_t *q, srslte_cell_t cell) {
       if (srslte_modem_table_lte(&q->mod[i], modulations[i], true)) {
         goto clean;
       }
+      srslte_modem_table_bytes(&q->mod[i]);
     }
     
     srslte_sch_init(&q->dl_sch);
@@ -509,14 +510,14 @@ int srslte_pdsch_encode_rnti(srslte_pdsch_t *q,
       if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_b_offset(&seq, (uint8_t*) q->e, 0, cfg->nbits.nof_bits);
+      srslte_scrambling_bytes_offset(&seq, (uint8_t*) q->e, 0, cfg->nbits.nof_bits);
       srslte_sequence_free(&seq);
     } else {    
-      srslte_scrambling_b_offset(&q->seq[cfg->sf_idx], (uint8_t*) q->e, 0, cfg->nbits.nof_bits);
+      srslte_scrambling_bytes_offset(&q->seq[cfg->sf_idx], (uint8_t*) q->e, 0, cfg->nbits.nof_bits);
     }
 
-    srslte_mod_modulate(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->e, q->d, cfg->nbits.nof_bits);
-
+    srslte_mod_modulate_bytes(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->e, q->d, cfg->nbits.nof_bits);
+    
     /* TODO: only diversity supported */
     if (q->cell.nof_ports > 1) {
       srslte_layermap_diversity(q->d, x, q->cell.nof_ports, cfg->nbits.nof_re);

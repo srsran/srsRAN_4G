@@ -38,7 +38,6 @@
 #include "srslte/fec/cbsegm.h"
 
 
-
 #define NCOLS 32
 #define NROWS_MAX NCOLS
 
@@ -47,10 +46,11 @@ static uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
 
 static uint32_t interleaver_systematic_bits[SRSLTE_NOF_TC_CB_SIZES][6148]; // 4 tail bits
 static uint32_t interleaver_parity_bits[SRSLTE_NOF_TC_CB_SIZES][2*6148];
+static uint32_t deinterleaver[SRSLTE_NOF_TC_CB_SIZES][4][3*6148];
 static uint32_t k0_vec[SRSLTE_NOF_TC_CB_SIZES][4][2];
 static bool rm_turbo_tables_generated = false; 
 
-uint32_t table_buffer[6144], table_output[6144];
+static uint32_t temp_table1[3*6176], temp_table2[3*6176];
 
 void srslte_rm_turbo_gentable_systematic(uint32_t *table_bits, uint32_t k0_vec[4][2], uint32_t nrows, int ndummy) {
 
@@ -122,6 +122,83 @@ void srslte_rm_turbo_gentable_parity(uint32_t *table_parity, uint32_t k0_vec[4][
 }
 
 
+
+void srslte_rm_turbo_gentable_receive(uint32_t *table, uint32_t cb_len, uint32_t rv_idx) 
+{
+  
+  int nrows = (uint32_t) (cb_len / 3 - 1) / NCOLS + 1;
+  int ndummy = nrows*NCOLS - cb_len / 3;
+  if (ndummy < 0) {
+    ndummy = 0;
+  }
+
+  /* Undo bit collection. Account for dummy bits */
+  int N_cb = 3*nrows*NCOLS;   
+  int k0 = nrows*(2*(uint32_t) ceilf((float) N_cb/(float) (8*nrows))*rv_idx+2);
+
+  int kidx; 
+  int K_p = nrows * NCOLS;
+  int k = 0, jp=0, j=0;  
+  bool isdummy = false; 
+  int d_i, d_j; 
+  while (k < cb_len) {
+    jp = (k0 + j) % N_cb;
+
+    if (jp < K_p || !(jp % 2)) {
+      if (jp >= K_p) {
+        d_i = ((jp - K_p) / 2) / nrows;
+        d_j = ((jp - K_p) / 2) % nrows;
+      } else {
+        d_i = jp / nrows;
+        d_j = jp % nrows;        
+      }      
+      if (d_j * NCOLS + RM_PERM_TC[d_i] >= ndummy) {
+        isdummy = false;
+        if (d_j * NCOLS + RM_PERM_TC[d_i] - ndummy < 0) {
+          isdummy = true;
+        } 
+      } else {
+        isdummy = true;
+      }
+
+    } else {
+      uint32_t jpp = (jp - K_p - 1) / 2;
+      kidx = (RM_PERM_TC[jpp / nrows] + NCOLS * (jpp % nrows) + 1) % K_p;
+      if ((kidx - ndummy) < 0) {
+        isdummy = true;
+      } else {
+        isdummy = false;
+      }      
+    }
+    
+    if (!isdummy) {
+      temp_table1[k] = jp%(3*nrows*NCOLS);
+      k++;
+    }
+    j++;
+  }
+
+  for (int i = 0; i < cb_len / 3; i++) {
+    d_i = (i + ndummy) / NCOLS;
+    d_j = (i + ndummy) % NCOLS;
+    for (j = 0; j < 3; j++) {
+      if (j != 2) {
+        kidx = K_p * j + (j + 1) * (RM_PERM_TC[d_j] * nrows + d_i);
+      } else {
+        k = (i + ndummy - 1) % K_p;
+        if (k < 0)
+          k += K_p;
+        kidx = (k / NCOLS + nrows * RM_PERM_TC[k % NCOLS]) % K_p;
+        kidx = 2 * kidx + K_p + 1;
+      }
+      temp_table2[kidx] = 3*i+j;
+    }
+  }
+  for (int i=0;i<cb_len;i++) {
+    table[i] = temp_table2[temp_table1[i]];
+  }
+}
+
 void srslte_rm_turbo_gentables() {
   if (!rm_turbo_tables_generated) {
     rm_turbo_tables_generated = true; 
@@ -142,14 +219,19 @@ void srslte_rm_turbo_gentables() {
       }
       srslte_rm_turbo_gentable_systematic(interleaver_systematic_bits[cb_idx], k0_vec[cb_idx], nrows, ndummy);
       srslte_rm_turbo_gentable_parity(interleaver_parity_bits[cb_idx], k0_vec[cb_idx], in_len/3, nrows, ndummy);
+
+      for (int i=0;i<4;i++) {
+        srslte_rm_turbo_gentable_receive(deinterleaver[cb_idx][i], in_len, i);  
+      }      
     }
   }  
-
-  srslte_rm_turbo_gentable_receive(table_buffer, table_output, 132, 0);  
 }
 
 
-int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity, uint8_t *output, uint32_t cb_idx, uint32_t out_len, uint32_t w_offset, uint32_t rv_idx) {
+int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity, uint8_t *output, 
+                           uint32_t cb_idx, uint32_t out_len, 
+                           uint32_t w_offset, uint32_t rv_idx) 
+{
 
   
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
@@ -189,6 +271,43 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
     return SRSLTE_ERROR_INVALID_INPUTS; 
   }
 }
+
+int srslte_rm_turbo_rx_lut(float *input, float *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
+{
+  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
+    uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;
+    uint32_t *deinter = deinterleaver[cb_idx][rv_idx];
+    
+    for (int i=0;i<in_len;i++) {
+      output[deinter[i%out_len]] += input[i];
+    }
+    return 0;    
+  } else {
+    printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* Turbo Code Rate Matching.
@@ -358,7 +477,7 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
       } else if (input[k] != SRSLTE_RX_NULL) {
         w_buff[jp] += input[k]; /* soft combine LLRs */
       }
-t      k++;
+      k++;
     } 
     j++;
   }
@@ -391,93 +510,6 @@ t      k++;
   return 0;
 }
 
-
-
-
-void srslte_rm_turbo_gentable_receive(uint32_t *table_buffer, uint32_t *table_output, uint32_t cb_len, uint32_t rv_idx) 
-{
-  
-  int nrows = (uint32_t) (cb_len / 3 - 1) / NCOLS + 1;
-  int ndummy = nrows*NCOLS - cb_len / 3;
-  if (ndummy < 0) {
-    ndummy = 0;
-  }
-
-  /* Undo bit collection. Account for dummy bits */
-  int N_cb = 3*nrows*NCOLS;   
-  int k0 = nrows*(2*(uint32_t) ceilf((float) N_cb/(float) (8*nrows))*rv_idx+2);
-       
-  printf("cb_len=%d, N_cb=%d, ndummy=%d, nrows=%d\n", cb_len, N_cb, ndummy, nrows);
-
-  int kidx; 
-  int K_p = nrows * NCOLS;
-  int k = 0, jp=0, j=0;  
-  bool isdummy = false; 
-  int d_i, d_j; 
-  while (k < cb_len) {
-    jp = (k0 + j) % N_cb;
-
-    if (jp < K_p || !(jp % 2)) {
-      if (jp >= K_p) {
-        d_i = ((jp - K_p) / 2) / nrows;
-        d_j = ((jp - K_p) / 2) % nrows;
-      } else {
-        d_i = jp / nrows;
-        d_j = jp % nrows;        
-      }      
-      if (d_j * NCOLS + RM_PERM_TC[d_i] >= ndummy) {
-        isdummy = false;
-        if (d_j * NCOLS + RM_PERM_TC[d_i] - ndummy < 0) {
-          isdummy = true;
-        } 
-      } else {
-        isdummy = true;
-      }
-
-    } else {
-      uint32_t jpp = (jp - K_p - 1) / 2;
-      kidx = (RM_PERM_TC[jpp / nrows] + NCOLS * (jpp % nrows) + 1) % K_p;
-      if ((kidx - ndummy) < 0) {
-        isdummy = true;
-      } else {
-        isdummy = false;
-      }      
-    }
-    
-    if (!isdummy) {
-      table_buffer[k] = jp%(3*nrows*NCOLS);
-      k++;
-    }
-    j++;
-  }
-
-  for (int i = 0; i < cb_len / 3; i++) {
-    d_i = (i + ndummy) / NCOLS;
-    d_j = (i + ndummy) % NCOLS;
-    for (j = 0; j < 3; j++) {
-      if (j != 2) {
-        kidx = K_p * j + (j + 1) * (RM_PERM_TC[d_j] * nrows + d_i);
-      } else {
-        k = (i + ndummy - 1) % K_p;
-        if (k < 0)
-          k += K_p;
-        kidx = (k / NCOLS + nrows * RM_PERM_TC[k % NCOLS]) % K_p;
-        kidx = 2 * kidx + K_p + 1;
-      }
-      table_output[kidx] = 3*i+j;
-    }
-  }
-}
-
-int srslte_rm_turbo_rx_lut(float *input, uint32_t in_len, float *output, uint32_t out_len, uint32_t rv_idx, uint32_t cb_idx) 
-{
-
-  for (int i=0;i<in_len;i++) {
-    output[table_output[table_buffer[i%out_len]]] += input[i];
-  }
-  
-  return 0;
-}
 
 
 /** High-level API */

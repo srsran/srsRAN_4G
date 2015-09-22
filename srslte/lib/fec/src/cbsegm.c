@@ -75,16 +75,19 @@ int srslte_cbsegm(srslte_cbsegm_t *s, uint32_t tbs) {
       ret = srslte_cbsegm_cbsize(idx1);
       if (ret != SRSLTE_ERROR) {
         s->K1 = (uint32_t) ret;
+        s->K1_idx = idx1;
         if (idx1 > 0) {
           ret = srslte_cbsegm_cbsize(idx1 - 1);        
         }
         if (ret != SRSLTE_ERROR) {
           if (s->C == 1) {
             s->K2 = 0;
+            s->K2_idx = 0;
             s->C2 = 0;
             s->C1 = 1;
           } else {
             s->K2 = (uint32_t) ret;
+            s->K2_idx = idx1-1;
             s->C2 = (s->C * s->K1 - Bp) / (s->K1 - s->K2);
             s->C1 = s->C - s->C2;
           }

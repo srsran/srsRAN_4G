@@ -37,33 +37,34 @@
 #include "srslte/srslte.h"
 
 
-int nof_tx_bits = -1, nof_rx_bits = -1;
-int nof_filler_bits = -1; 
-int rv_idx = 0;
+int nof_e_bits = -1;
+int rv_idx = -1;
 int cb_idx = -1; 
 
 uint8_t systematic[6148], parity[2*6148];
 uint8_t systematic_bytes[6148/8+1], parity_bytes[2*6148/8+1];
 
+#define BUFFSZ 6176*3
+
+uint8_t bits[3*6144+12];
+uint8_t buff_b[BUFFSZ];
+float buff_f[BUFFSZ];
+float bits_f[3*6144+12];
+float bits2_f[3*6144+12];
+
 void usage(char *prog) {
-  printf("Usage: %s -t nof_tx_bits | -c cb_idx -r nof_rx_bits [-i rv_idx -f nof_filler_bits]\n", prog);
+  printf("Usage: %s -c cb_idx -e nof_e_bits [-i rv_idx]\n", prog);
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "tcrif")) != -1) {
+  while ((opt = getopt(argc, argv, "cei")) != -1) {
     switch (opt) {
-    case 'f':
-      nof_filler_bits = atoi(argv[optind]);
-      break;
     case 'c':
       cb_idx = atoi(argv[optind]);
       break;
-    case 't':
-      nof_tx_bits = atoi(argv[optind]);
-      break;
-    case 'r':
-      nof_rx_bits = atoi(argv[optind]);
+    case 'e':
+      nof_e_bits = atoi(argv[optind]);
       break;
     case 'i':
       rv_idx = atoi(argv[optind]);
@@ -73,178 +74,127 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-  if (nof_tx_bits == -1 && cb_idx == -1) {
-    usage(argv[0]);
-    exit(-1);
-  }
-  if (nof_rx_bits == -1) {
+  if (nof_e_bits == -1) {
     usage(argv[0]);
     exit(-1);
   }
 }
 
+
 int main(int argc, char **argv) {
   int i;
-  uint8_t *bits, *bits_out, *rm_bits, *rm_bits2, *rm_bits2_bytes, *w_buff_c;
-  float *rm_symbols, *unrm_symbols, *unrm_symbols2, *w_buff_f;
-  int nof_errors;
-
+  uint8_t *rm_bits, *rm_bits2, *rm_bits2_bytes;
+  float *rm_bits_f; 
+  
   parse_args(argc, argv);
   
   srslte_rm_turbo_gentables();
 
-  if (cb_idx != -1) {
-    nof_tx_bits = 3*srslte_cbsegm_cbsize(cb_idx)+12;
-  }
-  
-  bits = malloc(sizeof(uint8_t) * nof_tx_bits);
-  if (!bits) {
+  rm_bits_f = malloc(sizeof(float) * nof_e_bits);
+  if (!rm_bits_f) {
     perror("malloc");
     exit(-1);
   }
-  bits_out = malloc(sizeof(uint8_t) * nof_tx_bits);
-  if (!bits_out) {
-    perror("malloc");
-    exit(-1);
-  }
-  w_buff_c = malloc(sizeof(uint8_t) * nof_tx_bits * 10);
-  if (!w_buff_c) {
-    perror("malloc");
-    exit(-1);
-  }
-  rm_bits = malloc(sizeof(uint8_t) * nof_rx_bits);
+  rm_bits = malloc(sizeof(uint8_t) * nof_e_bits);
   if (!rm_bits) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits2 = malloc(sizeof(uint8_t) * nof_rx_bits);
+  rm_bits2 = malloc(sizeof(uint8_t) * nof_e_bits);
   if (!rm_bits2) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits2_bytes = malloc(sizeof(uint8_t) * nof_rx_bits/8 + 1);
+  rm_bits2_bytes = malloc(sizeof(uint8_t) * nof_e_bits/8 + 1);
   if (!rm_bits2_bytes) {
     perror("malloc");
     exit(-1);
   }
-  rm_symbols = malloc(sizeof(float) * nof_rx_bits);
-  if (!rm_symbols) {
-    perror("malloc");
-    exit(-1);
-  }
-  w_buff_f = malloc(sizeof(float) * nof_rx_bits * 10);
-  if (!w_buff_f) {
-    perror("malloc");
-    exit(-1);
-  }
-  unrm_symbols = malloc(sizeof(float) * nof_tx_bits);
-  if (!unrm_symbols) {
-    perror("malloc");
-    exit(-1);
-  }
-  unrm_symbols2 = malloc(sizeof(float) * nof_tx_bits);
-  if (!unrm_symbols2) {
-    perror("malloc");
-    exit(-1);
-  }
 
-  for (i = 0; i < nof_tx_bits; i++) {
-    bits[i] = rand() % 2;
+  uint32_t st=0, end=188;
+  if (cb_idx != -1) {
+    st=cb_idx;
+    end=cb_idx+1;
+  }
+  uint32_t rv_st=0, rv_end=4;
+  if (rv_idx != -1) {
+    rv_st=rv_idx;
+    rv_end=rv_idx+1;
   }
   
-  for (i=0;i<nof_filler_bits;i++) {
-    bits[3*i+0] = SRSLTE_TX_NULL;
-    bits[3*i+1] = SRSLTE_TX_NULL;
-  }
-  
-  bzero(w_buff_c, nof_tx_bits * 10 * sizeof(uint8_t));
-  bzero(w_buff_f, nof_rx_bits * 10 * sizeof(float));
-  
-  srslte_rm_turbo_tx(w_buff_c, nof_tx_bits * 10, bits, nof_tx_bits, rm_bits, nof_rx_bits, 0);
+  for (cb_idx=st;cb_idx<end;cb_idx++) {
+    for (rv_idx=rv_st;rv_idx<rv_end;rv_idx++) {
+      uint32_t long_cb_enc = 3*srslte_cbsegm_cbsize(cb_idx)+12;
+      
+      printf("checking cb_idx=%3d rv_idx=%d...", cb_idx, rv_idx);
+      
+      for (i = 0; i < long_cb_enc; i++) {
+        bits[i] = rand() % 2;
+      }
+      
+      bzero(buff_b, BUFFSZ * sizeof(uint8_t));
+      
+      srslte_rm_turbo_tx(buff_b, BUFFSZ, bits, long_cb_enc, rm_bits, nof_e_bits, 0);
 
-  if (rv_idx > 0) {
-    srslte_rm_turbo_tx(w_buff_c, nof_tx_bits * 10, bits, nof_tx_bits, rm_bits, nof_rx_bits, rv_idx);
-  }
+      if (rv_idx > 0) {
+        srslte_rm_turbo_tx(buff_b, BUFFSZ, bits, long_cb_enc, rm_bits, nof_e_bits, rv_idx);
+      }
 
-  for (i=0;i<nof_filler_bits;i++) {
-    bits[3*i+0] = 0;
-    bits[3*i+1] = 0;
-  }
-  
-  for (int i=0;i<nof_tx_bits/3;i++) {
-    systematic[i] = bits[3*i];
-    parity[i] = bits[3*i+1];
-    parity[i+nof_tx_bits/3] = bits[3*i+2];
-  }
-  
-  srslte_bit_pack_vector(systematic, systematic_bytes, nof_tx_bits/3);
-  srslte_bit_pack_vector(parity, parity_bytes, 2*nof_tx_bits/3);
-  
-  bzero(w_buff_c, nof_tx_bits * 10 * sizeof(uint8_t));
+      for (int i=0;i<long_cb_enc/3;i++) {
+        systematic[i] = bits[3*i];
+        parity[i] = bits[3*i+1];
+        parity[i+long_cb_enc/3] = bits[3*i+2];
+      }
+      
+      srslte_bit_pack_vector(systematic, systematic_bytes, long_cb_enc/3);
+      srslte_bit_pack_vector(parity, parity_bytes, 2*long_cb_enc/3);
+      
+      bzero(buff_b, BUFFSZ * sizeof(uint8_t));
 
-  bzero(rm_bits2_bytes, nof_rx_bits/8);
-  srslte_rm_turbo_tx_lut(w_buff_c, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_rx_bits, 0, 0);
-  if (rv_idx > 0) {
-    bzero(rm_bits2_bytes, nof_rx_bits/8);
-    srslte_rm_turbo_tx_lut(w_buff_c, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_rx_bits, 0, rv_idx);
-  }
+      bzero(rm_bits2_bytes, nof_e_bits/8);
+      srslte_rm_turbo_tx_lut(buff_b, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_e_bits, 0, 0);
+      if (rv_idx > 0) {
+        bzero(rm_bits2_bytes, nof_e_bits/8);
+        srslte_rm_turbo_tx_lut(buff_b, systematic_bytes, parity_bytes, rm_bits2_bytes, cb_idx, nof_e_bits, 0, rv_idx);
+      }
 
-  srslte_bit_unpack_vector(rm_bits2_bytes, rm_bits2, nof_rx_bits);
-  
-  for (i = 0; i < nof_rx_bits; i++) {
-    rm_symbols[i] = (float) rm_bits[i] ? 1 : -1;
-  }
-  
-  for (int i=0;i<nof_rx_bits;i++) {
-    rm_symbols[i] = rand()%10-5;
-  }
+      srslte_bit_unpack_vector(rm_bits2_bytes, rm_bits2, nof_e_bits);
+      
+      for (int i=0;i<nof_e_bits;i++) {
+        if (rm_bits2[i] != rm_bits[i]) {
+          printf("Error in TX bit %d\n", i);
+          exit(-1);
+        }
+      }
+      
+      printf("OK TX...");
+      
+      for (int i=0;i<nof_e_bits;i++) {
+        rm_bits_f[i] = rand()%10-5;
+      }
 
-  bzero(w_buff_f, nof_rx_bits*10*sizeof(float));
-  struct timeval t[3];
-  gettimeofday(&t[1], NULL);
-  srslte_rm_turbo_rx(w_buff_f, nof_rx_bits * 10, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits, rv_idx, 0);
-  gettimeofday(&t[2], NULL);
-  get_time_interval(t);
-  printf("Old=%d us\n", t[0].tv_usec);
-  
-  bzero(unrm_symbols2, nof_tx_bits*sizeof(float));
-  gettimeofday(&t[1], NULL);
-  srslte_rm_turbo_rx_lut(rm_symbols, nof_rx_bits, unrm_symbols2, nof_tx_bits, rv_idx, cb_idx);
-  gettimeofday(&t[2], NULL);
-  get_time_interval(t);
-  printf("New=%d us\n", t[0].tv_usec);
-  
-  for (int i=0;i<nof_tx_bits;i++) {
-    if (unrm_symbols[i] != unrm_symbols2[i]) {
-      printf("error in bit %d %f!=%f\n", i, unrm_symbols[i], unrm_symbols2[i]);
-      exit(-1);
-    }
-  }
- 
-  printf("Ok\n");
-  exit(0);
-  
-  for (i=0;i<nof_tx_bits;i++) {
-    bits_out[i] = unrm_symbols[i]>0?1:0;
-  }
-  nof_errors = 0;
-  for (i = 0; i < nof_tx_bits; i++) {
-    if (bits_out[i] != bits[i]) {
-      nof_errors++;
+      bzero(buff_f, BUFFSZ*sizeof(float));
+
+      srslte_rm_turbo_rx(buff_f, BUFFSZ, rm_bits_f, nof_e_bits, bits_f, long_cb_enc, rv_idx, 0);
+      
+      bzero(bits2_f, long_cb_enc*sizeof(float));
+      srslte_rm_turbo_rx_lut(rm_bits_f, bits2_f, nof_e_bits, cb_idx, rv_idx);
+      
+      for (int i=0;i<long_cb_enc;i++) {
+        if (bits_f[i] != bits2_f[i]) {
+          printf("error RX in bit %d %f!=%f\n", i, bits_f[i], bits2_f[i]);
+          exit(-1);
+        }
+      }
+    
+      printf("OK RX\n");
+
     }
   }
 
-  free(bits);
   free(rm_bits);
-  free(rm_symbols);
-  free(unrm_symbols);
-  free(bits_out);
+  free(rm_bits2);
+  free(rm_bits2_bytes);
   
-  if (nof_errors) {
-    printf("nof_errors=%d\n", nof_errors);
-    exit(-1);
-  }
-
-  printf("Ok\n");
   exit(0);
 }

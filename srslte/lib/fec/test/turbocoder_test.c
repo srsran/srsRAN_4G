@@ -64,6 +64,7 @@ void parse_args(int argc, char **argv) {
 uint8_t input_bytes[6144/8];
 uint8_t input_bits[6144];
 uint8_t parity[3*6144+12];
+uint8_t parity_bits[3*6144+12];
 uint8_t output_bits[3*6144+12];
 uint8_t output_bits2[3*6144+12];
 
@@ -99,24 +100,23 @@ int main(int argc, char **argv) {
     }
 
     srslte_tcod_encode(&tcod, input_bits, output_bits, long_cb);
-    srslte_tcod_encode_lut(&tcod, input_bytes, parity, long_cb);
+    srslte_tcod_encode_lut(&tcod, input_bytes, parity, len);
+
+    srslte_bit_unpack_vector(parity, parity_bits, 2*(long_cb+4));
+    
+    for (int i=0;i<long_cb;i++) {
+      output_bits2[3*i] = input_bits[i];
+      output_bits2[3*i+1] = parity_bits[i];
+      output_bits2[3*i+2] = parity_bits[i+long_cb+4];
+    }
 
     if (SRSLTE_VERBOSE_ISINFO()) {
-      printf("1st encoder\n");
-      srslte_vec_fprint_b(stdout, output_bits2, long_cb); 
-      srslte_vec_fprint_b(stdout, output_bits, long_cb); 
-      
-      printf("2nd encoder\n");
-      srslte_vec_fprint_b(stdout, &output_bits2[long_cb], long_cb); 
-      srslte_vec_fprint_b(stdout, &output_bits[long_cb], long_cb); 
-
-      printf("tail\n");
-      srslte_vec_fprint_b(stdout, &output_bits2[2*long_cb], 12); 
-      srslte_vec_fprint_b(stdout, &output_bits[2*long_cb], 12); 
+      srslte_vec_fprint_b(stdout, output_bits2, 3*long_cb); 
+      srslte_vec_fprint_b(stdout, output_bits, 3*long_cb);       
       printf("\n");
     }  
-    for (int i=0;i<2*long_cb+12;i++) {
-      if (output_bits2[i] != output_bits[i]) {
+    for (int i=0;i<2*long_cb;i++) {
+      if (output_bits2[long_cb+i] != output_bits[long_cb+i]) {
         printf("error in bit %d, len=%d\n", i, len);
         exit(-1);
       }

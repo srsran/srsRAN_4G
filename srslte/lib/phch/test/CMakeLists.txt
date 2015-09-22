@@ -94,9 +94,9 @@ ADD_EXECUTABLE(pdsch_test pdsch_test.c)
 TARGET_LINK_LIBRARIES(pdsch_test srslte)
 
 ADD_TEST(pdsch_test_bpsk pdsch_test -l 504 -m 1 -n 50 -r 2)
-ADD_TEST(pdsch_test_qpsk pdsch_test -l 1000 -m 2 -n 50 -r 1)
-ADD_TEST(pdsch_test_qam16 pdsch_test -l 50000 -m 4 -n 100)
-ADD_TEST(pdsch_test_qam64 pdsch_test -l 61664 -m 6 -n 100 -r 0)
+ADD_TEST(pdsch_test_qpsk pdsch_test -l 2216 -m 2 -n 50 -r 1)
+ADD_TEST(pdsch_test_qam16 pdsch_test -l 18336 -m 4 -n 100)
+ADD_TEST(pdsch_test_qam64 pdsch_test -l 75376 -m 6 -n 100 -r 0)
 
 BuildMex(MEXNAME pdsch SOURCES pdsch_test_mex.c LIBRARIES srslte srslte_mex)
 BuildMex(MEXNAME dlsch_encode SOURCES dlsch_encode_test_mex.c LIBRARIES srslte srslte_mex)
