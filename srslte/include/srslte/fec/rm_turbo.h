@@ -77,6 +77,12 @@ SRSLTE_API int srslte_rm_turbo_rx(float *w_buff,
                                   uint32_t rv_idx, 
                                   uint32_t nof_filler_bits);
 
+SRSLTE_API int srslte_rm_turbo_rx_lut(float *input, 
+                                      uint32_t in_len, 
+                                      float *output,
+                                      uint32_t out_len, 
+                                      uint32_t rv_idx, uint32_t cb_idx); 
+
 /* High-level API */
 typedef struct SRSLTE_API {
   

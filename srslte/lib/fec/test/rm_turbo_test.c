@@ -86,18 +86,13 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int i;
   uint8_t *bits, *bits_out, *rm_bits, *rm_bits2, *rm_bits2_bytes, *w_buff_c;
-  float *rm_symbols, *unrm_symbols, *w_buff_f;
+  float *rm_symbols, *unrm_symbols, *unrm_symbols2, *w_buff_f;
   int nof_errors;
 
   parse_args(argc, argv);
   
   srslte_rm_turbo_gentables();
 
- for (cb_idx=0;cb_idx<188;cb_idx++) {
-    for (rv_idx=0;rv_idx<4;rv_idx++) {
-      printf("cb_len=%d, rv_idx=%d\n", cb_idx, rv_idx);
-  
-  
   if (cb_idx != -1) {
     nof_tx_bits = 3*srslte_cbsegm_cbsize(cb_idx)+12;
   }
@@ -147,6 +142,11 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
+  unrm_symbols2 = malloc(sizeof(float) * nof_tx_bits);
+  if (!unrm_symbols2) {
+    perror("malloc");
+    exit(-1);
+  }
 
   for (i = 0; i < nof_tx_bits; i++) {
     bits[i] = rand() % 2;
@@ -191,38 +191,42 @@ int main(int argc, char **argv) {
 
   srslte_bit_unpack_vector(rm_bits2_bytes, rm_bits2, nof_rx_bits);
   
-  for (int i=0;i<nof_rx_bits;i++) {
-    if (rm_bits[i] != rm_bits2[i]) {
-      printf("error in bit %d\n", i);
-      exit(-1);
-    }
-  }
-  }    
-  }
-  printf("OK\n");
-  exit(0);
-  
-  printf("RM: ");
-  srslte_vec_fprint_b(stdout, rm_bits, nof_rx_bits);
- 
   for (i = 0; i < nof_rx_bits; i++) {
     rm_symbols[i] = (float) rm_bits[i] ? 1 : -1;
   }
+  
+  for (int i=0;i<nof_rx_bits;i++) {
+    rm_symbols[i] = rand()%10-5;
+  }
 
-  srslte_rm_turbo_rx(w_buff_f, nof_rx_bits * 10, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits,
-      rv_idx, nof_filler_bits);
-
-  printf("UMRM: ");
-  srslte_vec_fprint_f(stdout, unrm_symbols, nof_tx_bits);
-
+  bzero(w_buff_f, nof_rx_bits*10*sizeof(float));
+  struct timeval t[3];
+  gettimeofday(&t[1], NULL);
+  srslte_rm_turbo_rx(w_buff_f, nof_rx_bits * 10, rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits, rv_idx, 0);
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("Old=%d us\n", t[0].tv_usec);
+  
+  bzero(unrm_symbols2, nof_tx_bits*sizeof(float));
+  gettimeofday(&t[1], NULL);
+  srslte_rm_turbo_rx_lut(rm_symbols, nof_rx_bits, unrm_symbols2, nof_tx_bits, rv_idx, cb_idx);
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("New=%d us\n", t[0].tv_usec);
+  
+  for (int i=0;i<nof_tx_bits;i++) {
+    if (unrm_symbols[i] != unrm_symbols2[i]) {
+      printf("error in bit %d %f!=%f\n", i, unrm_symbols[i], unrm_symbols2[i]);
+      exit(-1);
+    }
+  }
+ 
+  printf("Ok\n");
+  exit(0);
+  
   for (i=0;i<nof_tx_bits;i++) {
     bits_out[i] = unrm_symbols[i]>0?1:0;
   }
-  printf("BITS: ");
-  srslte_vec_fprint_b(stdout, bits_out, nof_tx_bits);
-  printf("BITS: ");
-  srslte_vec_fprint_b(stdout, bits, nof_tx_bits);
-
   nof_errors = 0;
   for (i = 0; i < nof_tx_bits; i++) {
     if (bits_out[i] != bits[i]) {
