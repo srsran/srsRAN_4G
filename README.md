@@ -20,9 +20,9 @@ Current Features:
  * UE receiver tested and verified with Amarisoft LTE 100 eNodeB and commercial LTE networks (Telefonica Spain, Three.ie and Eircom in Ireland)
 
 Missing Features: 
- * CQI reports
- * Semi-Persistent Scheduling
  * UL power control 
+ * Semi-Persistent Scheduling
+ * Aperiodic CQI reports
 
 Hardware
 ========
