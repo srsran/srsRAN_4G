@@ -337,11 +337,6 @@ int update_radl() {
   srslte_ra_dl_grant_fprint(stdout, &dummy_grant);
   printf("Type new MCS index and press Enter: "); fflush(stdout);
  
-  if (dummy_grant.mcs.tbs > dummy_nbits.nof_bits) {
-    fprintf(stderr, "Invalid code rate %d/%d=%.2f\n", dummy_grant.mcs.tbs, dummy_nbits.nof_bits, (float) dummy_grant.mcs.tbs / dummy_nbits.nof_bits);
-    return -1;
-  }
-
   return 0; 
 }
 
