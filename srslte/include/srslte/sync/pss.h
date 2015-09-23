@@ -81,8 +81,8 @@ typedef struct SRSLTE_API {
   uint32_t N_id_2;
   uint32_t fft_size;
 
-  cf_t pss_signal_time[3][SRSLTE_PSS_LEN];
-  cf_t *pss_signal_freq[3]; // One sequence for each N_id_2
+  cf_t *pss_signal_time[3];
+  cf_t pss_signal_freq[3][SRSLTE_PSS_LEN]; // One sequence for each N_id_2
   cf_t *tmp_input;
   cf_t *conv_output;
   float *conv_output_abs;

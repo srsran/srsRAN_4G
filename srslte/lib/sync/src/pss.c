@@ -54,6 +54,8 @@ int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, u
     bzero(pss_signal_freq, fft_size * sizeof(cf_t));
     memcpy(&pss_signal_pad[(fft_size-SRSLTE_PSS_LEN)/2], pss_signal_time, SRSLTE_PSS_LEN * sizeof(cf_t));
 
+    /* Convert signal into the time domain */
+    
     if (srslte_dft_plan(&plan, fft_size, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
       return SRSLTE_ERROR;
     }
@@ -138,17 +140,17 @@ int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, uint32_t frame_size, uint32
 #endif
     
     for (N_id_2=0;N_id_2<3;N_id_2++) {
-      q->pss_signal_freq[N_id_2] = srslte_vec_malloc(buffer_size * sizeof(cf_t));
-      if (!q->pss_signal_freq[N_id_2]) {
+      q->pss_signal_time[N_id_2] = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+      if (!q->pss_signal_time[N_id_2]) {
         fprintf(stderr, "Error allocating memory\n");
         goto clean_and_exit;
       }
-      /* The PSS is translated into the frequency domain for each N_id_2  */
-      if (srslte_pss_synch_init_N_id_2(q->pss_signal_time[N_id_2], q->pss_signal_freq[N_id_2], N_id_2, fft_size)) {
+      /* The PSS is translated into the time domain for each N_id_2  */
+      if (srslte_pss_synch_init_N_id_2(q->pss_signal_freq[N_id_2], q->pss_signal_time[N_id_2], N_id_2, fft_size)) {
         fprintf(stderr, "Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
         goto clean_and_exit;
       }      
-      bzero(&q->pss_signal_freq[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
+      bzero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
 
     }    
     #ifdef CONVOLUTION_FFT
@@ -175,8 +177,8 @@ void srslte_pss_synch_free(srslte_pss_synch_t *q) {
 
   if (q) {
     for (i=0;i<3;i++) {
-      if (q->pss_signal_freq[i]) {
-        free(q->pss_signal_freq[i]);
+      if (q->pss_signal_time[i]) {
+        free(q->pss_signal_time[i]);
       }
     }
   #ifdef CONVOLUTION_FFT
@@ -297,13 +299,13 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
       memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
             
       conv_output_len = srslte_conv_fft_cc_run(&q->conv_fft, q->tmp_input,
-          q->pss_signal_freq[q->N_id_2], q->conv_output);
+          q->pss_signal_time[q->N_id_2], q->conv_output);
     #else
-      conv_output_len = srslte_conv_cc(input, q->pss_signal_freq[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
+      conv_output_len = srslte_conv_cc(input, q->pss_signal_time[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
     #endif
     } else {
       for (int i=0;i<q->frame_size;i++) {
-        q->conv_output[i] = srslte_vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], &input[i], q->fft_size);
+        q->conv_output[i] = srslte_vec_dot_prod_ccc(q->pss_signal_time[q->N_id_2], &input[i], q->fft_size);
       }
       conv_output_len = q->frame_size; 
     }
@@ -405,7 +407,7 @@ int srslte_pss_synch_chest(srslte_pss_synch_t *q, cf_t *input, cf_t ce[SRSLTE_PS
     srslte_dft_run_c(&q->dftp_input, input, input_fft);
     
     /* Compute channel estimate taking the PSS sequence as reference */
-    srslte_vec_prod_conj_ccc(&input_fft[(q->fft_size-SRSLTE_PSS_LEN)/2], q->pss_signal_time[q->N_id_2], ce, SRSLTE_PSS_LEN);
+    srslte_vec_prod_conj_ccc(&input_fft[(q->fft_size-SRSLTE_PSS_LEN)/2], q->pss_signal_freq[q->N_id_2], ce, SRSLTE_PSS_LEN);
       
     ret = SRSLTE_SUCCESS;
   }
@@ -420,8 +422,8 @@ int srslte_pss_synch_chest(srslte_pss_synch_t *q, cf_t *input, cf_t ce[SRSLTE_PS
 float srslte_pss_synch_cfo_compute(srslte_pss_synch_t* q, cf_t *pss_recv) {
   cf_t y0, y1, yr;
 
-  y0 = srslte_vec_dot_prod_ccc(q->pss_signal_freq[q->N_id_2], pss_recv, q->fft_size/2);
-  y1 = srslte_vec_dot_prod_ccc(&q->pss_signal_freq[q->N_id_2][q->fft_size/2], &pss_recv[q->fft_size/2], q->fft_size/2);
+  y0 = srslte_vec_dot_prod_ccc(q->pss_signal_time[q->N_id_2], pss_recv, q->fft_size/2);
+  y1 = srslte_vec_dot_prod_ccc(&q->pss_signal_time[q->N_id_2][q->fft_size/2], &pss_recv[q->fft_size/2], q->fft_size/2);
   
   yr = conjf(y0) * y1;
 
