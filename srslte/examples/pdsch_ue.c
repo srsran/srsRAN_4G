@@ -452,6 +452,7 @@ int main(int argc, char **argv) {
               decode_pdsch = false; 
             }
           }
+          
           if (decode_pdsch) {
             if (prog_args.rnti != SRSLTE_SIRNTI) {
               n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data, srslte_ue_sync_get_sfidx(&ue_sync));

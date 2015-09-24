@@ -341,7 +341,7 @@ plot_real_t pssout;
 
 plot_real_t psss1;//, psss2;
 
-float tmp[100000];
+float tmp[1000000];
 cf_t tmpce[SRSLTE_PSS_LEN];
 
 

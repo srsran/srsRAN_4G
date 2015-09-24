@@ -68,7 +68,7 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t fft_size) {
     q->N_id_1 = 1000;
     q->fft_size = fft_size;
     q->frame_size = frame_size;
-    q->sss_alg = SSS_FULL; 
+    q->sss_alg = SSS_PARTIAL_3; 
     
     if (srslte_pss_synch_init_fft(&q->pss, frame_size, fft_size)) {
       fprintf(stderr, "Error initializing PSS object\n");
