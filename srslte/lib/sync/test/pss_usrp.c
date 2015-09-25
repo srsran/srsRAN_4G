@@ -148,8 +148,27 @@ int main(int argc, char **argv) {
   if (!disable_plots)
     init_plots();
 #endif
+
+  float srate = 15000.0*fft_size; 
   
-  flen = 4800*(fft_size/64);
+  flen = srate*5/1000;
+
+  printf("Opening UHD device...\n");
+  if (cuhd_open(uhd_args, &uhd)) {
+    fprintf(stderr, "Error opening uhd\n");
+    exit(-1);
+  }
+  
+  if (srate < 10e6) {
+    cuhd_set_master_clock_rate(uhd, 4*srate);        
+  } else {
+    cuhd_set_master_clock_rate(uhd, srate);        
+  }
+
+  printf("Set RX rate: %.2f MHz\n", cuhd_set_rx_srate(uhd, srate) / 1000000);
+  printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
+  printf("Set RX freq: %.2f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
+  cuhd_rx_wait_lo_locked(uhd);
   
   buffer = malloc(sizeof(cf_t) * flen * 2);
   if (!buffer) {
@@ -177,16 +196,8 @@ int main(int argc, char **argv) {
 
   srslte_sss_synch_set_N_id_2(&sss, N_id_2);
 
-  printf("Opening UHD device...\n");
-  if (cuhd_open(uhd_args, &uhd)) {
-    fprintf(stderr, "Error opening uhd\n");
-    exit(-1);
-  }
   printf("N_id_2: %d\n", N_id_2);  
-  printf("Set RX rate: %.2f MHz\n", cuhd_set_rx_srate(uhd, flen*2*100) / 1000000);
-  printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
-  printf("Set RX freq: %.2f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
-  cuhd_rx_wait_lo_locked(uhd);
+
   cuhd_start_rx_stream(uhd);
   
   printf("Frame length %d samples\n", flen);

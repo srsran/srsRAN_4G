@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
     init_plots();
 #endif
   
-  flen = 4800*(fft_size/64);
+  flen = fft_size*15*5;
   
   buffer = malloc(sizeof(cf_t) * flen * 2);
   if (!buffer) {
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
     if (n < flen - peak_offset) {
-      fprintf(stdout, "End of file\n");
+      fprintf(stdout, "End of file (n=%d, flen=%d, peak=%d)\n", n, flen, peak_offset);
       break;
     }
     
@@ -337,7 +337,7 @@ plot_real_t pssout;
 
 plot_real_t psss1;//, psss2;
 
-float tmp[100000];
+float tmp[1000000];
 cf_t tmpce[SRSLTE_PSS_LEN];
 
 

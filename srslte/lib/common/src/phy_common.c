@@ -197,6 +197,21 @@ int srslte_symbol_sz(uint32_t nof_prb) {
   if (nof_prb<=0) {
     return SRSLTE_ERROR;
   }
+#ifdef USE_REDUCED_SAMPLING_RATES
+  if (nof_prb<=6) {
+    return 128;
+  } else if (nof_prb<=15) {
+    return 256;
+  } else if (nof_prb<=25) {
+    return 384;
+  } else if (nof_prb<=50) {
+    return 768;
+  } else if (nof_prb<=75) {
+    return 1024;
+  } else if (nof_prb<=100) {
+    return 1536;
+  }
+#else
   if (nof_prb<=6) {
     return 128;
   } else if (nof_prb<=15) {
@@ -210,6 +225,7 @@ int srslte_symbol_sz(uint32_t nof_prb) {
   } else if (nof_prb<=100) {
     return 2048;
   }
+#endif
   return SRSLTE_ERROR;
 }
 

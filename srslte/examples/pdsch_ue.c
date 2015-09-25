@@ -62,6 +62,7 @@ void init_plots();
 pthread_t plot_thread; 
 sem_t plot_sem; 
 uint32_t plot_sf_idx=0;
+bool plot_track = true; 
 #endif
 
 #define PLOT_CHEST_ARGUMENT
@@ -323,10 +324,12 @@ int main(int argc, char **argv) {
     /* set sampling frequency */
     int srate = srslte_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {  
-      /* Modify master clock rate for 15 Mhz */
-      if (cell.nof_prb == 75) {
-        cuhd_set_master_clock_rate(uhd, 23.04e6);
+      if (srate < 10e6) {
+        cuhd_set_master_clock_rate(uhd, 4*srate);        
+      } else {
+        cuhd_set_master_clock_rate(uhd, srate);        
       }
+      printf("Setting Sampling frequency %.2f MHz\n", (float) srate/1000000);
       cuhd_set_rx_srate(uhd, (double) srate);      
     } else {
       fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
@@ -530,6 +533,7 @@ int main(int argc, char **argv) {
       if (!prog_args.disable_plots) {
         if ((sfn%4) == 0 && decode_pdsch) {
           plot_sf_idx = srslte_ue_sync_get_sfidx(&ue_sync);
+          plot_track = true;
           sem_post(&plot_sem);
         }
       }
@@ -538,6 +542,13 @@ int main(int argc, char **argv) {
       printf("Finding PSS... Peak: %8.1f, FrameCnt: %d, State: %d\r", 
         srslte_sync_get_peak_value(&ue_sync.sfind), 
         ue_sync.frame_total_cnt, ue_sync.state);      
+      #ifndef DISABLE_GRAPHICS
+      if (!prog_args.disable_plots) {
+        plot_sf_idx = srslte_ue_sync_get_sfidx(&ue_sync);
+        plot_track = false; 
+        sem_post(&plot_sem);                
+      }
+      #endif
     }
         
     sf_cnt++;                  
@@ -646,12 +657,21 @@ void *plot_thread_run(void *arg) {
       plot_real_setNewData(&pce, tmp_plot2, 4*12*ue_dl.cell.nof_prb);        
       
       if (!prog_args.input_file_name) {
-        int max = srslte_vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
-        srslte_vec_sc_prod_fff(ue_sync.strack.pss.conv_output_avg, 
-                        1/ue_sync.strack.pss.conv_output_avg[max], 
-                        tmp_plot2, 
-                        ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);        
-        plot_real_setNewData(&p_sync, tmp_plot2, ue_sync.strack.pss.frame_size);        
+        if (plot_track) {
+          int max = srslte_vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
+          srslte_vec_sc_prod_fff(ue_sync.strack.pss.conv_output_avg, 
+                          1/ue_sync.strack.pss.conv_output_avg[max], 
+                          tmp_plot2, 
+                          ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);        
+          plot_real_setNewData(&p_sync, tmp_plot2, ue_sync.strack.pss.frame_size);        
+        } else {
+          int max = srslte_vec_max_fi(ue_sync.sfind.pss.conv_output_avg, ue_sync.sfind.pss.frame_size+ue_sync.sfind.pss.fft_size-1);
+          srslte_vec_sc_prod_fff(ue_sync.sfind.pss.conv_output_avg, 
+                          1/ue_sync.sfind.pss.conv_output_avg[max], 
+                          tmp_plot2, 
+                          ue_sync.sfind.pss.frame_size+ue_sync.sfind.pss.fft_size-1);        
+          plot_real_setNewData(&p_sync, tmp_plot2, ue_sync.sfind.pss.frame_size);        
+        }
         
       }
 

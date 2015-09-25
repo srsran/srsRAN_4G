@@ -43,6 +43,8 @@
 
 #include "srslte/config.h"
 
+#define USE_REDUCED_SAMPLING_RATES
+
 #define SRSLTE_NSUBFRAMES_X_FRAME  10
 #define SRSLTE_NSLOTS_X_FRAME      (2*SRSLTE_NSUBFRAMES_X_FRAME)
 
@@ -95,8 +97,8 @@ typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
 #define SRSLTE_CP_LEN_NORM(symbol, symbol_sz) ((symbol==0)?SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_0_LEN):SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_LEN))
 #define SRSLTE_CP_LEN_EXT(symbol_sz)          (SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_EXT_LEN))
 
-#define SRSLTE_SLOT_LEN(symbol_sz)     (480*((symbol_sz)/64))
-#define SRSLTE_SF_LEN(symbol_sz)       (2*SRSLTE_SLOT_LEN(symbol_sz))
+#define SRSLTE_SLOT_LEN(symbol_sz)     (symbol_sz*15/2)
+#define SRSLTE_SF_LEN(symbol_sz)       (symbol_sz*15)
 #define SRSLTE_SF_LEN_MAX              (SRSLTE_SF_LEN(SRSLTE_SYMBOL_SZ_MAX))
 
 #define SRSLTE_SLOT_LEN_PRB(nof_prb)   (SRSLTE_SLOT_LEN(srslte_symbol_sz(nof_prb)))
