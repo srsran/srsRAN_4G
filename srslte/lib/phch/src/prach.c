@@ -27,6 +27,8 @@
 
 #include <math.h>
 #include <string.h>
+
+#include "srslte/common/phy_common.h"
 #include "srslte/phch/prach.h"
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
@@ -220,27 +222,6 @@ void print(void *d, uint32_t size, uint32_t len, char* file_str)
   f = fopen(file_str, "wb");
   fwrite(d , size, len, f);
   fclose(f);
-}
-
-uint32_t prach_get_rb_ul(uint32_t N_ifft_ul)
-{
-  switch(N_ifft_ul)
-  {
-  case 128:
-    return 6;
-  case 256:
-    return 15;
-  case 512:
-    return 25;
-  case 1024:
-    return 50;
-  case 1536:
-    return 75;
-  case 2048:
-    return 100;
-  default:
-    return 0;
-  }
 }
 
 int srslte_prach_gen_seqs(srslte_prach_t *p)
@@ -448,7 +429,7 @@ int srslte_prach_gen(srslte_prach_t *p,
      signal     != NULL)
   {
     // Calculate parameters
-    uint32_t N_rb_ul = prach_get_rb_ul(p->N_ifft_ul);
+    uint32_t N_rb_ul = srslte_nof_prb(p->N_ifft_ul);
     uint32_t k_0 = freq_offset*N_RB_SC - N_rb_ul*N_RB_SC/2 + p->N_ifft_ul/2;
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);
@@ -501,7 +482,7 @@ int srslte_prach_detect(srslte_prach_t *p,
     *n_indices = 0;
 
     // Extract bins of interest
-    uint32_t N_rb_ul = prach_get_rb_ul(p->N_ifft_ul);
+    uint32_t N_rb_ul = srslte_nof_prb(p->N_ifft_ul);
     uint32_t k_0 = freq_offset*N_RB_SC - N_rb_ul*N_RB_SC/2 + p->N_ifft_ul/2;
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);

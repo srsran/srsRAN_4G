@@ -43,8 +43,6 @@
 
 #include "srslte/config.h"
 
-#define USE_REDUCED_SAMPLING_RATES
-
 #define SRSLTE_NSUBFRAMES_X_FRAME  10
 #define SRSLTE_NSLOTS_X_FRAME      (2*SRSLTE_NSUBFRAMES_X_FRAME)
 
@@ -211,6 +209,7 @@ SRSLTE_API bool srslte_symbol_sz_isvalid(uint32_t symbol_sz);
 
 SRSLTE_API int srslte_symbol_sz(uint32_t nof_prb);
 
+SRSLTE_API int srslte_nof_prb(uint32_t symbol_sz);
 
 SRSLTE_API int srslte_sampling_freq_hz(uint32_t nof_prb);
 

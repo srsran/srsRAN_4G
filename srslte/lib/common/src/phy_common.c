@@ -36,6 +36,10 @@
 #include "srslte/common/sequence.h"
 
 
+#define USE_REDUCED_SAMPLING_RATES
+
+
+
 /* Returns true if the structure pointed by cell has valid parameters
  */
 
@@ -229,16 +233,67 @@ int srslte_symbol_sz(uint32_t nof_prb) {
   return SRSLTE_ERROR;
 }
 
+int srslte_nof_prb(uint32_t symbol_sz)
+{
+#ifdef USE_REDUCED_SAMPLING_RATES
+  switch(symbol_sz) {
+    case 128:
+      return 6;
+    case 256:
+      return 15;
+    case 384:
+      return 25;
+    case 768:
+      return 50;
+    case 1024:
+      return 75;
+    case 1536:
+      return 100;
+  }
+#else 
+  switch(symbol_sz) {
+    case 128:
+      return 6;
+    case 256:
+      return 15;
+    case 512:
+      return 25;
+    case 1024:
+      return 50;
+    case 1536:
+      return 75;
+    case 2048:
+      return 100;
+  }
+#endif
+  return SRSLTE_ERROR;
+}
+
 bool srslte_symbol_sz_isvalid(uint32_t symbol_sz) {
+#ifdef USE_REDUCED_SAMPLING_RATES 
+  if (symbol_sz == 128  || 
+      symbol_sz == 256  ||
+      symbol_sz == 384  ||
+      symbol_sz == 768  ||
+      symbol_sz == 1024 ||
+      symbol_sz == 1536) {
+    return true;
+  } else {
+    return false; 
+  }
+#else
   if (symbol_sz == 128  || 
       symbol_sz == 256  ||
       symbol_sz == 512  ||
       symbol_sz == 1024 ||
+      symbol_sz == 1536 ||
       symbol_sz == 2048) {
     return true;
   } else {
     return false; 
   }
+#endif
+  
 }
 
 uint32_t srslte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports) {
