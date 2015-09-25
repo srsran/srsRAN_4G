@@ -60,6 +60,12 @@ typedef struct SRSLTE_API{
   cf_t *shift_buffer; 
 }srslte_ofdm_t;
 
+SRSLTE_API int srslte_ofdm_init_(srslte_ofdm_t *q, 
+                                 srslte_cp_t cp, 
+                                 int symbol_sz, 
+                                 int nof_prb, 
+                                 srslte_dft_dir_t dir); 
+
 SRSLTE_API int srslte_ofdm_rx_init(srslte_ofdm_t *q, 
                                srslte_cp_t cp_type, 
                                uint32_t nof_prb);

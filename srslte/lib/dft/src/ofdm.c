@@ -37,13 +37,8 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
-int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb, srslte_dft_dir_t dir) {
-  int symbol_sz = srslte_symbol_sz(nof_prb);
+int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_prb, srslte_dft_dir_t dir) {
 
-  if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
-    return -1;
-  }
   if (srslte_dft_plan_c(&q->fft_plan, symbol_sz, dir)) {
     fprintf(stderr, "Error: Creating DFT plan\n");
     return -1;
@@ -85,7 +80,12 @@ void srslte_ofdm_free_(srslte_ofdm_t *q) {
 }
 
 int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
-  return srslte_ofdm_init_(q, cp, nof_prb, SRSLTE_DFT_FORWARD);
+  int symbol_sz = srslte_symbol_sz(nof_prb);
+  if (symbol_sz < 0) {
+    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+    return -1;
+  }
+  return srslte_ofdm_init_(q, cp, symbol_sz, nof_prb, SRSLTE_DFT_FORWARD);
 }
 
 void srslte_ofdm_rx_free(srslte_ofdm_t *q) {
@@ -96,7 +96,13 @@ int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   uint32_t i;
   int ret;
   
-  ret = srslte_ofdm_init_(q, cp, nof_prb, SRSLTE_DFT_BACKWARD); 
+  int symbol_sz = srslte_symbol_sz(nof_prb);
+  if (symbol_sz < 0) {
+    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+    return -1;
+  }
+
+  ret = srslte_ofdm_init_(q, cp, symbol_sz, nof_prb, SRSLTE_DFT_BACKWARD); 
   
   if (ret == SRSLTE_SUCCESS) {
     srslte_dft_plan_set_norm(&q->fft_plan, false);

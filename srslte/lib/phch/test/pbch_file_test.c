@@ -138,7 +138,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_init_(&fft, cell.cp, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
     fprintf(stderr, "Error initializing FFT\n");
     return -1;
   }

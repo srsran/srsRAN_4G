@@ -36,7 +36,7 @@
 #include "srslte/common/sequence.h"
 
 
-#define USE_REDUCED_SAMPLING_RATES
+//#define USE_REDUCED_SAMPLING_RATES
 
 
 
@@ -197,6 +197,24 @@ int srslte_sampling_freq_hz(uint32_t nof_prb) {
     }
 }
 
+int srslte_symbol_sz_power2(uint32_t nof_prb) {
+  if (nof_prb<=6) {
+    return 128;
+  } else if (nof_prb<=15) {
+    return 256;
+  } else if (nof_prb<=25) {
+    return 512;
+  } else if (nof_prb<=50) {
+    return 1024;
+  } else if (nof_prb<=75) {
+    return 1536;
+  } else if (nof_prb<=100) {
+    return 2048;
+  } else {
+    return -1;
+  }
+}
+
 int srslte_symbol_sz(uint32_t nof_prb) {
   if (nof_prb<=0) {
     return SRSLTE_ERROR;
@@ -214,23 +232,12 @@ int srslte_symbol_sz(uint32_t nof_prb) {
     return 1024;
   } else if (nof_prb<=100) {
     return 1536;
+  } else {
+    return SRSLTE_ERROR;
   }
 #else
-  if (nof_prb<=6) {
-    return 128;
-  } else if (nof_prb<=15) {
-    return 256;
-  } else if (nof_prb<=25) {
-    return 512;
-  } else if (nof_prb<=50) {
-    return 1024;
-  } else if (nof_prb<=75) {
-    return 1536;
-  } else if (nof_prb<=100) {
-    return 2048;
-  }
+  return srslte_symbol_sz_power2(nof_prb);
 #endif
-  return SRSLTE_ERROR;
 }
 
 int srslte_nof_prb(uint32_t symbol_sz)
