@@ -109,8 +109,8 @@ int test_dci_payload_size() {
   printf("Ok\n");
   
   if (print_dci_table) {
-    printf("dci_sz_table[100][4] = {\n");
-    for (i=0;i<100;i++) {
+    printf("dci_sz_table[101][4] = {\n");
+    for (i=0;i<=100;i++) {
       printf("  {");
       for (int j=0;j<4;j++) {
         printf("%d",srslte_dci_format_sizeof(formats[j], i));
@@ -118,7 +118,7 @@ int test_dci_payload_size() {
           printf(", ");
         }
       }
-      if (i<99) {
+      if (i<100) {
         printf("},\n");
       } else {
         printf("}\n");

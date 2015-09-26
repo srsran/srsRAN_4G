@@ -303,7 +303,7 @@ uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb) 
 }
 
 uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, uint32_t nof_prb) {
-  if (nof_prb < 100 && format < 4) {
+  if (nof_prb <= 100 && format < 4) {
     return dci_sz_table[nof_prb][format];
   } else {
     return 0;

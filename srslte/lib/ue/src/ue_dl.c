@@ -40,6 +40,13 @@
 
 #define PDSCH_DO_ZF
 
+srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
+const uint32_t nof_ue_formats = 2; 
+
+srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
+const uint32_t nof_common_formats = 2; 
+
+
 int srslte_ue_dl_init(srslte_ue_dl_t *q, 
                srslte_cell_t cell) 
 {
@@ -151,12 +158,6 @@ void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
   srslte_softbuffer_rx_reset(&q->softbuffer);
   bzero(&q->pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
 }
-
-srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
-const uint32_t nof_ue_formats = 2; 
-
-srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
-const uint32_t nof_common_formats = 2; 
 
 /** Applies the following operations to a subframe of synchronized samples: 
  *    - OFDM demodulation
@@ -313,8 +314,9 @@ int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, 
 
   uint16_t crc_rem = 0; 
   for (int f=0;f<nof_formats && crc_rem != rnti;f++) {
-    INFO("Trying format %s\n", srslte_dci_format_string(formats[f]));
     for (int i=0;i<nof_locations && crc_rem != rnti;i++) {
+      INFO("Trying format %s (nbits=%d), location L=%d, ncce=%d\n", srslte_dci_format_string(formats[f]), 
+             srslte_dci_format_sizeof_lut(formats[f], q->cell.nof_prb), locations[i].L, locations[i].ncce);
       q->last_n_cce = locations[i].ncce;
       if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], formats[f], &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");

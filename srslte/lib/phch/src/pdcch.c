@@ -352,6 +352,8 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
   return ret;
 }
 
+int cnt=0;
+
 /** Extracts the LLRs from srslte_dci_location_t location of the subframe and stores them in the srslte_pdcch_t structure. 
  * DCI messages can be extracted from this location calling the function srslte_pdcch_decode_msg(). 
  * Every time this function is called (with a different location), the last demodulated symbols are overwritten and
@@ -422,7 +424,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
 
     /* descramble */
     srslte_scrambling_f_offset(&q->seq[nsubframe], q->llr, 0, e_bits);
-
+    
     ret = SRSLTE_SUCCESS;
   } 
   return ret;  
