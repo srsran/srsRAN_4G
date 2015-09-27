@@ -183,7 +183,9 @@ static void get_cell(srslte_ue_cellsearch_t * q, uint32_t nof_detected_frames, s
  * Saves in the pointer max_N_id_2 the N_id_2 index of the cell with the highest PSR
  * Returns the number of found cells or a negative number if error
  */
-int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t * q, srslte_ue_cellsearch_result_t found_cells[3], uint32_t *max_N_id_2)
+int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t * q, 
+                              srslte_ue_cellsearch_result_t found_cells[3], 
+                              uint32_t *max_N_id_2)
 {
   int ret = 0; 
   float max_peak_value = -1.0;
@@ -208,7 +210,9 @@ int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t * q, srslte_ue_cellsearch_r
 /** Finds a cell for a given N_id_2 and stores ID and CP in the structure pointed by found_cell. 
  * Returns 1 if the cell is found, 0 if not or -1 on error
  */
-int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, uint32_t N_id_2, srslte_ue_cellsearch_result_t *found_cell)
+int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q, 
+                                     uint32_t N_id_2, 
+                                     srslte_ue_cellsearch_result_t *found_cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   cf_t *sf_buffer = NULL; 

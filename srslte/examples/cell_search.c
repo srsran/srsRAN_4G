@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #include <unistd.h>
 
@@ -55,10 +56,22 @@
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 
-cell_search_cfg_t config = {100, 10, 10.0, 50}; 
+cell_search_cfg_t config = {
+  50,   // maximum number of 5ms frames to capture for MIB decoding
+  50,   // maximum number of 5ms frames to capture for PSS correlation
+  4.0,   // early-stops cell detection if mean PSR is above this value
+  0     // 0 or negative to disable AGC 
+}; 
 
+struct cells {
+  srslte_cell_t cell;
+  float freq; 
+  int dl_earfcn;
+  float power;
+};
+struct cells results[1024]; 
 
-float uhd_gain = 60.0;
+float uhd_gain = 70.0;
 char *uhd_args=""; 
 
 void usage(char *prog) {
@@ -116,6 +129,15 @@ int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t
   return cuhd_recv(h, data, nsamples, 1);
 }
 
+bool go_exit = false; 
+
+void sig_int_handler(int signo)
+{
+  if (signo == SIGINT) {
+    go_exit = true;
+  }
+}
+
 int main(int argc, char **argv) {
   int n; 
   void *uhd;
@@ -124,31 +146,45 @@ int main(int argc, char **argv) {
   int nof_freqs; 
   srslte_earfcn_t channels[MAX_EARFCN];
   uint32_t freq;
+  uint32_t n_found_cells=0;
   
   parse_args(argc, argv);
     
-  printf("Opening UHD device...\n");
-  if (cuhd_open(uhd_args, &uhd)) {
-    fprintf(stderr, "Error opening uhd\n");
-    exit(-1);
-  }  
-  cuhd_set_rx_gain(uhd, uhd_gain);
+  if (!config.init_agc) {
+    printf("Opening UHD device...\n");
+    if (cuhd_open(uhd_args, &uhd)) {
+      fprintf(stderr, "Error opening uhd\n");
+      exit(-1);
+    }  
+    cuhd_set_rx_gain(uhd, uhd_gain);
+  } else {
+    printf("Opening UHD device with threaded RX Gain control ...\n");
+    if (cuhd_open_th(uhd_args, &uhd, false)) {
+      fprintf(stderr, "Error opening uhd\n");
+      exit(-1);
+    }
+    cuhd_set_rx_gain(uhd, 50);      
+  }
+  // Supress UHD messages
+  cuhd_supress_stdout();
   
   nof_freqs = srslte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
   if (nof_freqs < 0) {
     fprintf(stderr, "Error getting EARFCN list\n");
     exit(-1);
   }
-    
-  for (freq=0;freq<nof_freqs;freq++) {
+
+  signal(SIGINT, sig_int_handler);
+
+  for (freq=0;freq<nof_freqs && !go_exit;freq++) {
   
     /* set uhd_freq */
     cuhd_set_rx_freq(uhd, (double) channels[freq].fd * MHZ);
     cuhd_rx_wait_lo_locked(uhd);
     INFO("Set uhd_freq to %.3f MHz\n", (double) channels[freq].fd * MHZ/1000000);
     
-    printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS. \n", freq, nof_freqs,
-                      channels[freq].id, channels[freq].fd);
+    printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS.\n", freq, nof_freqs,
+                      channels[freq].id, channels[freq].fd);fflush(stdout);
     
     if (SRSLTE_VERBOSE_ISINFO()) {
       printf("\n");
@@ -171,7 +207,7 @@ int main(int argc, char **argv) {
       srslte_ue_sync_start_agc(&cs.ue_sync, cuhd_set_rx_gain, config.init_agc);    
     }
 
-    INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000);
+    INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
     cuhd_set_rx_srate(uhd, SRSLTE_CS_SAMP_FREQ);
     INFO("Starting receiver...\n", 0);
     cuhd_start_rx_stream(uhd);
@@ -180,10 +216,10 @@ int main(int argc, char **argv) {
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
-    } else if (n == 1) {
+    } else if (n > 0) {
       for (int i=0;i<3;i++) {
-        if (found_cells[i].peak > config.threshold/2) {
-          srslte_cell_t cell; 
+        if (found_cells[i].psr > config.threshold/2) {
+          srslte_cell_t cell;
           cell.id = found_cells[i].cell_id; 
           cell.cp = found_cells[i].cp; 
           int ret = cuhd_mib_decoder(uhd, &config, &cell);
@@ -193,11 +229,32 @@ int main(int argc, char **argv) {
           }
           if (ret == SRSLTE_UE_MIB_FOUND) {
             printf("Found CELL ID %d. %d PRB, %d ports\n", 
-                 cell.id, cell.nof_prb, cell.nof_ports);
-          }
+                 cell.id, 
+                 cell.nof_prb, 
+                 cell.nof_ports);
+            if (cell.nof_ports > 0) {
+              memcpy(&results[n_found_cells].cell, &cell, sizeof(srslte_cell_t));
+              results[n_found_cells].freq = channels[freq].fd; 
+              results[n_found_cells].dl_earfcn = channels[freq].id;
+              results[n_found_cells].power = found_cells[i].peak;
+              n_found_cells++;
+            }
+          }          
         }
       }
     }    
+  }
+  
+  printf("\n\nFound %d cells\n", n_found_cells);
+  for (int i=0;i<n_found_cells;i++) {
+    printf("Found CELL %.1f MHz, EARFCN=%d, PHYID=%d, %d PRB, %d ports, PSS power=%.1f dBm\n", 
+           results[i].freq,
+           results[i].dl_earfcn,
+           results[i].cell.id, 
+           results[i].cell.nof_prb, 
+           results[i].cell.nof_ports, 
+           10*log10(results[i].power));
+
   }
   
   printf("\nBye\n");

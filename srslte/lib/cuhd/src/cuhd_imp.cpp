@@ -179,6 +179,10 @@ float cuhd_get_rx_gain_offset(void *h) {
   return 15; 
 }
 
+void cuhd_supress_stdout() {
+  uhd::msg::register_handler(my_handler);
+}
+
 int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
 {
   uhd::set_thread_priority_safe();
@@ -186,11 +190,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   std::string _args = std::string(args);
   handler->usrp = uhd::usrp::multi_usrp::make(_args + ", master_clock_rate=30720000, recv_frame_size=7696,num_recv_frames=64,send_frame_size=7696,num_send_frames=64");
   handler->usrp->set_clock_source("internal");
-  
-#ifdef HIDE_MESSAGES
-  uhd::msg::register_handler(my_handler);
-#endif
-  
+    
   std::string otw, cpu;
   otw = "sc16";
   cpu = "fc32";
