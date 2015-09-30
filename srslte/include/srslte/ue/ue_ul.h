@@ -54,8 +54,22 @@
 
 #define SRSLTE_UE_UL_NOF_HARQ_PROCESSES 8
 
-
-
+/* UE UL power control */
+typedef struct {
+  // Common configuration
+  float p0_nominal_pusch;
+  float alpha;
+  float p0_nominal_pucch;
+  float delta_f_pucch[5];
+  float delta_preamble_msg3;
+  
+  // Dedicated configuration
+  float p0_ue_pusch;
+  bool delta_mcs_based;
+  bool acc_enabled;
+  float p0_ue_pucch;
+  float p_srs_offset;  
+} srslte_ue_ul_powerctrl_t;
 
 typedef struct SRSLTE_API {
   srslte_ofdm_t fft;
@@ -81,7 +95,8 @@ typedef struct SRSLTE_API {
   srslte_refsignal_srs_cfg_t        srs_cfg;
   srslte_uci_cfg_t                  uci_cfg;
   srslte_pusch_hopping_cfg_t        hopping_cfg;
-   
+  srslte_ue_ul_powerctrl_t          power_ctrl;
+  
   cf_t *refsignal; 
   cf_t *srs_signal; 
   cf_t *sf_symbols; 
@@ -89,6 +104,8 @@ typedef struct SRSLTE_API {
   uint16_t current_rnti;  
   bool signals_pregenerated;
 }srslte_ue_ul_t;
+
+
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_ue_ul_init(srslte_ue_ul_t *q, 
@@ -111,7 +128,8 @@ SRSLTE_API void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
                                      srslte_pucch_cfg_t                *pucch_cfg, 
                                      srslte_pucch_sched_t              *pucch_sched, 
                                      srslte_uci_cfg_t                  *uci_cfg,
-                                     srslte_pusch_hopping_cfg_t        *hopping_cfg); 
+                                     srslte_pusch_hopping_cfg_t        *hopping_cfg, 
+                                     srslte_ue_ul_powerctrl_t          *power_ctrl); 
 
 SRSLTE_API int srslte_ue_ul_cfg_grant(srslte_ue_ul_t *q, 
                                       srslte_ra_ul_grant_t *grant,
@@ -163,6 +181,11 @@ SRSLTE_API int srslte_ue_ul_pregen_signals(srslte_ue_ul_t *q);
 SRSLTE_API void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q, 
                                       uint16_t rnti);
 
+/* Power control procedure */
+SRSLTE_API float srslte_ue_ul_pusch_power(srslte_ue_ul_t *q, 
+                                          float PL, 
+                                          float p0_preamble);
+
 /* Other static functions for UL PHY procedures defined in 36.213 */
 
 SRSLTE_API int srslte_ue_ul_sr_send_tti(uint32_t I_sr, 
@@ -170,5 +193,6 @@ SRSLTE_API int srslte_ue_ul_sr_send_tti(uint32_t I_sr,
 
 SRSLTE_API bool srslte_ue_ul_srs_tx_enabled(srslte_refsignal_srs_cfg_t *srs_cfg, 
                                             uint32_t tti); 
+
 
 #endif

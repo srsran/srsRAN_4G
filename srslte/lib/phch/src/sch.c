@@ -56,6 +56,14 @@ float beta_cqi_offset[16] = {-1.0, -1.0, 1.125, 1.25, 1.375, 1.625, 1.750, 2.0, 
                              3.125, 3.5, 4.0, 5.0, 6.25};
 
 
+float srslte_sch_beta_cqi(uint32_t I_cqi) {
+  if (I_cqi <= 16) {
+    return beta_cqi_offset[I_cqi];
+  } else {
+    return 0;
+  }
+}
+                             
 uint32_t srslte_sch_find_Ioffset_ack(float beta) {
   for (int i=0;i<16;i++) {
     if (beta_harq_offset[i] >= beta) {
@@ -610,7 +618,7 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     }
     Q_prime_ri = (uint32_t) ret; 
   }
-
+  cfg->last_O_cqi = uci_data.uci_cqi_len;
   // Encode CQI
   if (uci_data.uci_cqi_len > 0) {
     ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi, cfg, 

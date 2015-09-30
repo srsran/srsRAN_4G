@@ -153,6 +153,19 @@ double cuhd_set_rx_gain_th(void *h, double gain)
   return gain; 
 }
 
+double cuhd_set_tx_gain_th(void *h, double gain)
+{
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  gain = handler->tx_gain_range.clip(gain);     
+  if (gain > handler->new_tx_gain + 0.5 || gain < handler->new_tx_gain - 0.5) {
+    pthread_mutex_lock(&handler->mutex);
+    handler->new_tx_gain = gain; 
+    pthread_cond_signal(&handler->cond);
+    pthread_mutex_unlock(&handler->mutex);
+  }
+  return gain; 
+}
+
 void cuhd_set_tx_rx_gain_offset(void *h, double offset) {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   handler->tx_rx_gain_offset = offset; 
@@ -163,15 +176,22 @@ static void* thread_gain_fcn(void *h) {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   while(1) {
     pthread_mutex_lock(&handler->mutex);
-    while(handler->cur_rx_gain == handler->new_rx_gain) {
+    while(handler->cur_rx_gain == handler->new_rx_gain && 
+          handler->cur_tx_gain == handler->new_tx_gain) 
+    {
       pthread_cond_wait(&handler->cond, &handler->mutex);
     }
-    handler->cur_rx_gain = handler->new_rx_gain; 
-    pthread_mutex_unlock(&handler->mutex);
-    cuhd_set_rx_gain(h, handler->cur_rx_gain);
+    if (handler->new_rx_gain != handler->cur_rx_gain) {
+      handler->cur_rx_gain = handler->new_rx_gain; 
+      cuhd_set_rx_gain(h, handler->cur_rx_gain);
+    }
     if (handler->tx_gain_same_rx) {
       cuhd_set_tx_gain(h, handler->cur_rx_gain+handler->tx_rx_gain_offset);
+    } else if (handler->new_tx_gain != handler->cur_tx_gain) {
+      handler->cur_tx_gain = handler->new_tx_gain; 
+      cuhd_set_tx_gain(h, handler->cur_tx_gain);
     }
+    pthread_mutex_unlock(&handler->mutex);
   }
 }
 
@@ -204,6 +224,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   handler->tx_gain_same_rx = tx_gain_same_rx; 
   handler->tx_rx_gain_offset = 0.0; 
   handler->rx_gain_range = handler->usrp->get_rx_gain_range();
+  handler->tx_gain_range = handler->usrp->get_tx_gain_range();
 
   
   *h = handler;

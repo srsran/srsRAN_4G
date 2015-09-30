@@ -277,7 +277,8 @@ int main(int argc, char **argv) {
     srslte_netsink_set_nonblocking(&net_sink);
   }
   if (prog_args.net_port_signal > 0) {
-    if (srslte_netsink_init(&net_sink_signal, prog_args.net_address_signal, prog_args.net_port_signal, SRSLTE_NETSINK_UDP)) {
+    if (srslte_netsink_init(&net_sink_signal, prog_args.net_address_signal, 
+      prog_args.net_port_signal, SRSLTE_NETSINK_UDP)) {
       fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address_signal, prog_args.net_port_signal);
       exit(-1);
     }

@@ -74,6 +74,9 @@ SRSLTE_API void cuhd_set_tx_rx_gain_offset(void *h,
 SRSLTE_API double cuhd_set_rx_gain_th(void *h, 
                                       double gain);
 
+SRSLTE_API double cuhd_set_tx_gain_th(void *h, 
+                                      double gain);
+
 SRSLTE_API float cuhd_get_rx_gain_offset(void *h); 
 
 SRSLTE_API double cuhd_get_rx_gain(void *h);

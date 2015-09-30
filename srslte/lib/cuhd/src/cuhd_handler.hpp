@@ -42,9 +42,12 @@ public:
   pthread_mutex_t mutex; 
   double cur_rx_gain; 
   double new_rx_gain;   
+  double cur_tx_gain; 
+  double new_tx_gain;   
   bool   tx_gain_same_rx; 
   float  tx_rx_gain_offset; 
-  uhd::gain_range_t rx_gain_range; 
+  uhd::gain_range_t rx_gain_range;
+  uhd::gain_range_t tx_gain_range; 
   size_t rx_nof_samples;
   size_t tx_nof_samples;
   double tx_rate;

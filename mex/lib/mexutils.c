@@ -27,9 +27,9 @@
 
 #include <string.h>
 #include <complex.h>
-#include "srslte/common/phy_common.h"
 #include "srslte/mex/mexutils.h"
 #include "srslte/utils/vector.h"
+#include "srslte/common/phy_common.h"
 
 
 bool mexutils_isScalar(const mxArray *ptr) {

@@ -29,16 +29,16 @@
 #ifndef MEXUTILS_
 #define MEXUTILS_
 
-
-#include <stdbool.h>
-
 #ifdef UNDEF_BOOL
 #undef bool
 #endif
 
 #include "mex.h"
 
+#include <stdbool.h>
+
 #include "srslte/config.h"
+#include "srslte/common/phy_common.h"
 
  
 

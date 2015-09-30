@@ -146,9 +146,9 @@ static float cqi_to_snr_table[15] = { 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9,
 
 uint8_t srslte_cqi_from_snr(float snr)
 {
- for (uint8_t cqi=14;cqi>=0;cqi--) {
+ for (int cqi=14;cqi>=0;cqi--) {
    if (snr >= cqi_to_snr_table[cqi]) {
-     return cqi+1;
+     return (uint8_t) cqi+1;
    }
  }
  return 0;

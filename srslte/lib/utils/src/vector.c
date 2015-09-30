@@ -162,15 +162,11 @@ void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
 
 // TODO: Improve this implementation
 void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len) {
-  // Compute peak
-  float max = 0; 
-  float *t = (float*) x;
-  for (int i=0;i<2*len;i++) {
-    if (fabsf(t[i]) > max) {
-      max = fabsf(t[i]);
-    }
-  }
-    
+  // We should use fabs() here but is statistically should be similar
+  float *xp = (float*) x; 
+  uint32_t idx = srslte_vec_max_fi(xp, 2*len);
+  float max = xp[idx]; 
+
   // Normalize before TX 
   srslte_vec_sc_prod_cfc(x, amplitude/max, y, len);
 }

@@ -55,6 +55,7 @@ typedef struct SRSLTE_API {
   uint32_t sf_idx;
   uint32_t tti; 
   srslte_cp_t cp; 
+  uint32_t last_O_cqi;
 } srslte_pusch_cfg_t;
 
 #endif

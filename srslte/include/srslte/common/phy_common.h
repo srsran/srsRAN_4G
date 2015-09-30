@@ -48,6 +48,8 @@
 
 #define SRSLTE_NSOFT_BITS  250368 // Soft buffer size for Category 1 UE
 
+#define SRSLTE_PC_MAX 23         // Maximum TX power for Category 1 UE (in dBm)
+
 #define SRSLTE_MAX_PORTS     4
 #define SRSLTE_MAX_LAYERS    8
 #define SRSLTE_MAX_CODEWORDS 2

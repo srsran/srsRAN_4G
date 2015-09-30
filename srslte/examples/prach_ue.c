@@ -394,7 +394,7 @@ cell.nof_ports = 1;
   dmrs_cfg.sequence_hopping_en = false; 
   dmrs_cfg.delta_ss = 0;
   dmrs_cfg.cyclic_shift = 0; 
-  srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, NULL, NULL, NULL, NULL, NULL);
+  srslte_ue_ul_set_cfg(&ue_ul, &dmrs_cfg, NULL, NULL, NULL, NULL, NULL, NULL);
 
   cf_t *ul_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
   if (!ul_signal) {

@@ -189,7 +189,8 @@ void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
                           srslte_pucch_cfg_t                *pucch_cfg, 
                           srslte_pucch_sched_t              *pucch_sched, 
                           srslte_uci_cfg_t                  *uci_cfg,
-                          srslte_pusch_hopping_cfg_t        *hopping_cfg)
+                          srslte_pusch_hopping_cfg_t        *hopping_cfg, 
+                          srslte_ue_ul_powerctrl_t          *power_ctrl)
 {
   srslte_refsignal_ul_set_cfg(&q->signals, dmrs_cfg, pucch_cfg, srs_cfg);
   if (pucch_cfg && dmrs_cfg) {
@@ -206,6 +207,9 @@ void srslte_ue_ul_set_cfg(srslte_ue_ul_t *q,
   }
   if (hopping_cfg) {
     memcpy(&q->hopping_cfg, hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
+  }
+  if (power_ctrl) {
+    memcpy(&q->power_ctrl, power_ctrl, sizeof(srslte_ue_ul_powerctrl_t));
   }
 }
 
@@ -486,6 +490,41 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
   
   return ret;   
 }
+
+
+
+
+/* Returns the transmission power for PUSCH for this subframe */
+float srslte_ue_ul_pusch_power(srslte_ue_ul_t *q, float PL, float p0_preamble) 
+{
+  float p0_pusch, alpha;
+  if (p0_preamble) {
+    p0_pusch = p0_preamble + q->power_ctrl.delta_preamble_msg3;
+    alpha = 1;
+  } else {
+    alpha = q->power_ctrl.alpha;
+    p0_pusch = q->power_ctrl.p0_nominal_pusch+q->power_ctrl.p0_ue_pusch;
+  }
+  float delta=0;
+  if (q->power_ctrl.delta_mcs_based) {
+    float beta_offset_pusch = 1;
+    float MPR = q->pusch_cfg.cb_segm.K1*q->pusch_cfg.cb_segm.C1+q->pusch_cfg.cb_segm.K2*q->pusch_cfg.cb_segm.C2;
+    if (q->pusch_cfg.cb_segm.tbs == 0) {
+      beta_offset_pusch = srslte_sch_beta_cqi(q->pusch_cfg.uci_cfg.I_offset_cqi);
+      MPR = q->pusch_cfg.last_O_cqi;
+    }
+    MPR /= q->pusch_cfg.nbits.nof_re;
+    delta = 10*log10((pow(2,MPR*1.25)-1)*beta_offset_pusch);  
+  }
+  // This implements closed-loop power control
+  float f=0;  
+  
+  float pusch_power = 10*log10(q->pusch_cfg.grant.L_prb)+p0_pusch+alpha*PL+delta+f;
+  DEBUG("P=%f -- 10M=%f, p0=%f,alpha=%f,PL=%f,delta=%f,f=%f\n", pusch_power, 10*log10(q->pusch_cfg.grant.L_prb), p0_pusch, alpha, PL, delta, f);
+  return SRSLTE_MIN(SRSLTE_PC_MAX, pusch_power);
+}
+
+
 
 /* Returns 1 if a SR needs to be sent at current_tti given I_sr, as defined in Section 10.1 of 36.213 */
 int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {
