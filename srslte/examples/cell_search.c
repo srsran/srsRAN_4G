@@ -133,6 +133,7 @@ bool go_exit = false;
 
 void sig_int_handler(int signo)
 {
+  printf("SIGINT received. Exiting...\n");
   if (signo == SIGINT) {
     go_exit = true;
   }
@@ -165,6 +166,9 @@ int main(int argc, char **argv) {
     }
     cuhd_set_rx_gain(uhd, 50);      
   }
+
+  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+
   // Supress UHD messages
   cuhd_supress_stdout();
   
@@ -174,6 +178,10 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGINT);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
   signal(SIGINT, sig_int_handler);
 
   for (freq=0;freq<nof_freqs && !go_exit;freq++) {

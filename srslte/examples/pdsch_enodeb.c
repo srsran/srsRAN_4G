@@ -33,6 +33,7 @@
 #include <sys/select.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <signal.h>
 
 #include "srslte/srslte.h"
 
@@ -97,6 +98,7 @@ srslte_netsink_t net_sink;
 
 int prbset_num = 1, last_prbset_num = 1; 
 int prbset_orig = 0; 
+
 
 void usage(char *prog) {
   printf("Usage: %s [agmfoncvpu]\n", prog);
@@ -297,6 +299,18 @@ void base_free() {
   }  
 }
 
+
+bool go_exit = false; 
+void sig_int_handler(int signo)
+{
+  printf("SIGINT received. Exiting...\n");
+  if (signo == SIGINT) {
+    go_exit = true;
+  }
+}
+
+
+
 unsigned int
 reverse(register unsigned int x)
 {
@@ -490,6 +504,15 @@ int main(int argc, char **argv) {
   }
 
 #ifndef DISABLE_UHD
+
+
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGINT);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+  signal(SIGINT, sig_int_handler);
+  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+
   if (!output_file_name) {
     printf("Set TX rate: %.2f MHz\n",
         cuhd_set_tx_srate(uhd, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
@@ -522,7 +545,7 @@ int main(int argc, char **argv) {
   bool start_of_burst = true; 
   srslte_softbuffer_tx_reset(&softbuffer);
   
-  while (nf < nof_frames || nof_frames == -1) {
+  while ((nf < nof_frames || nof_frames == -1) && !go_exit) {
     for (sf_idx = 0; sf_idx < SRSLTE_NSUBFRAMES_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
       bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 

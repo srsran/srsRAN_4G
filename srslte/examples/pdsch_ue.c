@@ -227,9 +227,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 uint8_t data[20000];
 
 bool go_exit = false; 
-
 void sig_int_handler(int signo)
 {
+  printf("SIGINT received. Exiting...\n");
   if (signo == SIGINT) {
     go_exit = true;
   }
@@ -305,6 +305,14 @@ int main(int argc, char **argv) {
       cuhd_set_rx_gain(uhd, 50);      
       cell_detect_config.init_agc = 50; 
     }
+    
+    sigset_t sigset;
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGINT);
+    sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+    signal(SIGINT, sig_int_handler);
+    
+    cuhd_set_master_clock_rate(uhd, 30.72e6);        
 
     /* set receiver frequency */
     cuhd_set_rx_freq_offset(uhd, (double) prog_args.uhd_freq, prog_args.uhd_freq_offset);
@@ -317,24 +325,31 @@ int main(int argc, char **argv) {
       if (ret < 0) {
         fprintf(stderr, "Error searching for cell\n");
         exit(-1); 
-      } else if (ret == 0) {
+      } else if (ret == 0 && !go_exit) {
         printf("Cell not found after %d trials. Trying again (Press Ctrl+C to exit)\n", ntrial++);
       }      
-    } while (ret == 0); 
+    } while (ret == 0 && !go_exit); 
     
+    if (go_exit) {
+      exit(0);
+    }
     /* set sampling frequency */
-    int srate = srslte_sampling_freq_hz(cell.nof_prb);
+    int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
-      if (srate < 10e6) {
+      if (srate < 10e6) {          
         cuhd_set_master_clock_rate(uhd, 4*srate);        
       } else {
         cuhd_set_master_clock_rate(uhd, srate);        
       }
-      printf("Setting Sampling frequency %.2f MHz\n", (float) srate/1000000);
-      cuhd_set_rx_srate(uhd, (double) srate);      
+      printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
+      float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
+      if (srate_uhd != srate) {
+        fprintf(stderr, "Could not set sampling rate\n");
+        exit(-1);
+      }
     } else {
       fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
-      return SRSLTE_ERROR;
+      exit(-1);
     }
 
     INFO("Stopping UHD and flushing buffer...\r",0);
@@ -385,8 +400,6 @@ int main(int argc, char **argv) {
   /* Initialize subframe counter */
   sf_cnt = 0;
 
-  // Register Ctrl+C handler
-  signal(SIGINT, sig_int_handler);
 
 #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {

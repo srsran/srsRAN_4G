@@ -123,9 +123,32 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
+  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGINT);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+
   printf("Set RX freq: %.6f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
   printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
-  printf("Set RX rate: %.6f MHz\n", cuhd_set_rx_srate(uhd, srslte_sampling_freq_hz(nof_prb)) / 1000000);
+    int srate = srslte_sampling_freq_hz(nof_prb);    
+    if (srate != -1) {  
+      if (srate < 10e6) {          
+        cuhd_set_master_clock_rate(uhd, 4*srate);        
+      } else {
+        cuhd_set_master_clock_rate(uhd, srate);        
+      }
+      printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
+      float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
+      if (srate_uhd != srate) {
+        fprintf(stderr, "Could not set sampling rate\n");
+        exit(-1);
+      }
+    } else {
+      fprintf(stderr, "Invalid number of PRB %d\n", nof_prb);
+      exit(-1);
+    }
   cuhd_rx_wait_lo_locked(uhd);
   cuhd_start_rx_stream(uhd);
 

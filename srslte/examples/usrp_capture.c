@@ -43,7 +43,7 @@
 static bool keep_running = true;
 char *output_file_name;
 char *uhd_args="";
-float uhd_gain=40.0, uhd_freq=-1.0, uhd_rate=0.96;
+float uhd_gain=40.0, uhd_freq=-1.0, uhd_rate=0.96e6;
 int nof_samples = -1;
 
 void int_handler(int dummy) {
@@ -54,7 +54,7 @@ void usage(char *prog) {
   printf("Usage: %s [agrnv] -f rx_frequency_hz -o output_file\n", prog);
   printf("\t-a UHD args [Default %s]\n", uhd_args);
   printf("\t-g UHD Gain [Default %.2f dB]\n", uhd_gain);
-  printf("\t-r UHD Rate [Default %.6f MHz]\n", uhd_rate);
+  printf("\t-r UHD Rate [Default %.6f Hz]\n", uhd_rate);
   printf("\t-n nof_samples [Default %d]\n", nof_samples);
   printf("\t-v srslte_verbose\n");
 }
@@ -122,9 +122,30 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
-  printf("Set RX freq: %.6f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
-  printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
-  printf("Set RX rate: %.6f MHz\n", cuhd_set_rx_srate(uhd, uhd_rate*1e6) / 1000000);
+  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGINT);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+
+  printf("Set RX freq: %.2f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
+  printf("Set RX gain: %.2f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
+  float srate = cuhd_set_rx_srate(uhd, uhd_rate); 
+  if (srate != uhd_rate) {
+    if (srate < 10e6) {          
+      cuhd_set_master_clock_rate(uhd, 4*uhd_rate);        
+    } else {
+      cuhd_set_master_clock_rate(uhd, uhd_rate);        
+    }
+    srate = cuhd_set_rx_srate(uhd, uhd_rate);
+    if (srate != uhd_rate) {
+      fprintf(stderr, "Errror setting samplign frequency %.2f MHz\n", uhd_rate*1e-6);
+      exit(-1);
+    }
+  }
+
+  printf("Correctly RX rate: %.2f MHz\n", srate*1e-6);
   cuhd_rx_wait_lo_locked(uhd);
   cuhd_start_rx_stream(uhd);
   
