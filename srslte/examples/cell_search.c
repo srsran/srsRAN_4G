@@ -165,6 +165,9 @@ int main(int argc, char **argv) {
     }
     cuhd_set_rx_gain(uhd, 50);      
   }
+
+  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+
   // Supress UHD messages
   cuhd_supress_stdout();
   

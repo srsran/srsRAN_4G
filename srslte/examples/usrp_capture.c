@@ -122,6 +122,8 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
+  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+
   printf("Set RX freq: %.6f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
   printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
   printf("Set RX rate: %.6f MHz\n", cuhd_set_rx_srate(uhd, uhd_rate*1e6) / 1000000);

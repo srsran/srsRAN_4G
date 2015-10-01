@@ -324,8 +324,7 @@ int main(int argc, char **argv) {
     } while (ret == 0); 
     
     /* set sampling frequency */
-    int srate = srslte_sampling_freq_hz(cell.nof_prb);
-    
+    int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
       if (srate < 10e6) {          
         cuhd_set_master_clock_rate(uhd, 4*srate);        

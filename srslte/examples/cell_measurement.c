@@ -34,7 +34,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <assert.h>
-#include <signal.h>
 
 #include "srslte/srslte.h"
 #include "srslte/cuhd/cuhd.h"
@@ -168,6 +167,8 @@ int main(int argc, char **argv) {
     cuhd_set_rx_gain(uhd, 50);      
   }
 
+  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+
   /* set receiver frequency */
   cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
   cuhd_rx_wait_lo_locked(uhd);
@@ -183,17 +184,23 @@ int main(int argc, char **argv) {
   }
   
   /* set sampling frequency */
-  int srate = srslte_sampling_freq_hz(cell.nof_prb);
-  if (srate != -1) {  
-    /* Modify master clock rate for 15 Mhz */
-    if (cell.nof_prb == 75) {
-      cuhd_set_master_clock_rate(uhd, 23.04e6);
+    int srate = srslte_sampling_freq_hz(cell.nof_prb);    
+    if (srate != -1) {  
+      if (srate < 10e6) {          
+        cuhd_set_master_clock_rate(uhd, 4*srate);        
+      } else {
+        cuhd_set_master_clock_rate(uhd, srate);        
+      }
+      printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
+      float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
+      if (srate_uhd != srate) {
+        fprintf(stderr, "Could not set sampling rate\n");
+        exit(-1);
+      }
+    } else {
+      fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
+      exit(-1);
     }
-    cuhd_set_rx_srate(uhd, (double) srate);      
-  } else {
-    fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
-    return SRSLTE_ERROR;
-  }
 
   INFO("Stopping UHD and flushing buffer...\n",0);
   cuhd_stop_rx_stream(uhd);

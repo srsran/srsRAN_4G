@@ -490,6 +490,9 @@ int main(int argc, char **argv) {
   }
 
 #ifndef DISABLE_UHD
+
+  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+
   if (!output_file_name) {
     printf("Set TX rate: %.2f MHz\n",
         cuhd_set_tx_srate(uhd, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
