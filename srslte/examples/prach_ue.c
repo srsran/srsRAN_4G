@@ -163,14 +163,6 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 /* TODO: Do something with the output data */
 uint8_t data_rx[20000];
 
-bool go_exit = false; 
-
-void sig_int_handler(int signo)
-{
-  if (signo == SIGINT) {
-    go_exit = true;
-  }
-}
 
 int cuhd_recv_wrapper_timed(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *uhd_time) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
@@ -252,6 +244,15 @@ void rar_msg_fprint(FILE *stream, rar_msg_t *msg)
   fprintf(stream, "BI:           %d\n", msg->BI);
 }
 
+bool go_exit = false; 
+void sig_int_handler(int signo)
+{
+  printf("SIGINT received. Exiting...\n");
+  if (signo == SIGINT) {
+    go_exit = true;
+  }
+}
+
 int rar_unpack(uint8_t *buffer, rar_msg_t *msg)
 {
     int ret = SRSLTE_ERROR;
@@ -311,6 +312,12 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
+  
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGINT);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+  signal(SIGINT, sig_int_handler);
 
   cuhd_set_master_clock_rate(uhd, 30.72e6);        
 
@@ -329,38 +336,39 @@ int main(int argc, char **argv) {
   printf("Tunning TX receiver to %.3f MHz\n", (double ) prog_args.uhd_tx_freq/1000000);
 
   
-#ifdef kk
-  ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
-  if (ret < 0) {
-    fprintf(stderr, "Error searching for cell\n");
-    exit(-1); 
-  } else if (ret == 0) {
-    printf("Cell not found\n");
+  uint32_t ntrial=0; 
+  do {
+    ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
+    if (ret < 0) {
+      fprintf(stderr, "Error searching for cell\n");
+      exit(-1); 
+    } else if (ret == 0 && !go_exit) {
+      printf("Cell not found after %d trials. Trying again (Press Ctrl+C to exit)\n", ntrial++);
+    }      
+  } while (ret == 0 && !go_exit); 
+  
+  if (go_exit) {
     exit(0);
   }
-#endif
-cell.nof_prb = 50; 
-cell.id = 1; 
-cell.nof_ports = 1; 
 
   /* set sampling frequency */
-    int srate = srslte_sampling_freq_hz(cell.nof_prb);    
-    if (srate != -1) {  
-      if (srate < 10e6) {          
-        cuhd_set_master_clock_rate(uhd, 4*srate);        
-      } else {
-        cuhd_set_master_clock_rate(uhd, srate);        
-      }
-      printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
-      if (srate_uhd != srate) {
-        fprintf(stderr, "Could not set sampling rate\n");
-        exit(-1);
-      }
+  int srate = srslte_sampling_freq_hz(cell.nof_prb);    
+  if (srate != -1) {  
+    if (srate < 10e6) {          
+      cuhd_set_master_clock_rate(uhd, 4*srate);        
     } else {
-      fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
+      cuhd_set_master_clock_rate(uhd, srate);        
+    }
+    printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
+    float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
+    if (srate_uhd != srate) {
+      fprintf(stderr, "Could not set sampling rate\n");
       exit(-1);
     }
+  } else {
+    fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
+    exit(-1);
+  }
 
   INFO("Stopping UHD and flushing buffer...\r",0);
   cuhd_stop_rx_stream(uhd);
@@ -429,8 +437,7 @@ cell.nof_ports = 1;
   uint16_t ra_rnti; 
   uint32_t conn_setup_trial = 0; 
   uint32_t ul_sf_idx = 0; 
-  // Register Ctrl+C handler
-  signal(SIGINT, sig_int_handler);
+
   state = DECODE_MIB; 
 
   /* Main loop */

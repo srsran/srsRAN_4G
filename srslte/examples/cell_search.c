@@ -133,6 +133,7 @@ bool go_exit = false;
 
 void sig_int_handler(int signo)
 {
+  printf("SIGINT received. Exiting...\n");
   if (signo == SIGINT) {
     go_exit = true;
   }
@@ -177,6 +178,10 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGINT);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
   signal(SIGINT, sig_int_handler);
 
   for (freq=0;freq<nof_freqs && !go_exit;freq++) {

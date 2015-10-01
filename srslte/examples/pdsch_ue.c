@@ -227,9 +227,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 uint8_t data[20000];
 
 bool go_exit = false; 
-
 void sig_int_handler(int signo)
 {
+  printf("SIGINT received. Exiting...\n");
   if (signo == SIGINT) {
     go_exit = true;
   }
@@ -304,7 +304,13 @@ int main(int argc, char **argv) {
       cuhd_set_rx_gain(uhd, 50);      
       cell_detect_config.init_agc = 50; 
     }
-
+    
+    sigset_t sigset;
+    sigemptyset(&sigset);
+    sigaddset(&sigset, SIGINT);
+    sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+    signal(SIGINT, sig_int_handler);
+    
     cuhd_set_master_clock_rate(uhd, 30.72e6);        
 
     /* set receiver frequency */
@@ -318,11 +324,14 @@ int main(int argc, char **argv) {
       if (ret < 0) {
         fprintf(stderr, "Error searching for cell\n");
         exit(-1); 
-      } else if (ret == 0) {
+      } else if (ret == 0 && !go_exit) {
         printf("Cell not found after %d trials. Trying again (Press Ctrl+C to exit)\n", ntrial++);
       }      
-    } while (ret == 0); 
+    } while (ret == 0 && !go_exit); 
     
+    if (go_exit) {
+      exit(0);
+    }
     /* set sampling frequency */
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  

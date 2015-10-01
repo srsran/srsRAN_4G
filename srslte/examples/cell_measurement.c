@@ -34,12 +34,11 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <assert.h>
+#include <signal.h>
 
 #include "srslte/srslte.h"
 #include "srslte/cuhd/cuhd.h"
 #include "srslte/cuhd/cuhd_utils.h"
-
-#define B210_DEFAULT_GAIN_CORREC  100.0 
 
 cell_search_cfg_t cell_detect_config = {
   5000, // maximum number of frames to receive for MIB decoding
@@ -114,7 +113,16 @@ int  parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-uint8_t data[10000];
+uint8_t data[1000000];
+
+bool go_exit = false; 
+void sig_int_handler(int signo)
+{
+  printf("SIGINT received. Exiting...\n");
+  if (signo == SIGINT) {
+    go_exit = true;
+  }
+}
 
 int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *q) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
@@ -167,6 +175,12 @@ int main(int argc, char **argv) {
     cuhd_set_rx_gain(uhd, 50);      
   }
 
+  sigset_t sigset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGINT);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+  signal(SIGINT, sig_int_handler);
+
   cuhd_set_master_clock_rate(uhd, 30.72e6);        
 
   /* set receiver frequency */
@@ -174,12 +188,18 @@ int main(int argc, char **argv) {
   cuhd_rx_wait_lo_locked(uhd);
   printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
   
-  ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
-  if (ret < 0) {
-    fprintf(stderr, "Error searching cell\n");
-    return -1; 
-  } else if (ret == 0) {
-    printf("Cell not found\n");
+  uint32_t ntrial=0; 
+  do {
+    ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
+    if (ret < 0) {
+      fprintf(stderr, "Error searching for cell\n");
+      exit(-1); 
+    } else if (ret == 0 && !go_exit) {
+      printf("Cell not found after %d trials. Trying again (Press Ctrl+C to exit)\n", ntrial++);
+    }      
+  } while (ret == 0 && !go_exit); 
+  
+  if (go_exit) {
     exit(0);
   }
   
@@ -247,7 +267,7 @@ int main(int argc, char **argv) {
   float rx_gain_offset = 0;
 
   /* Main loop */
-  while (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) {
+  while ((sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) && !go_exit) {
     
     ret = srslte_ue_sync_get_buffer(&ue_sync, &sf_buffer);
     if (ret < 0) {
