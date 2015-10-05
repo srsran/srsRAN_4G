@@ -329,7 +329,7 @@ int srslte_pucch_init(srslte_pucch_t *q, srslte_cell_t cell) {
     
     srslte_pucch_cfg_default(&q->pucch_cfg);
     
-    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK, false)) {
+    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       return SRSLTE_ERROR;
     }
 

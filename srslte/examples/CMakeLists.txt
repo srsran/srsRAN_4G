@@ -23,16 +23,6 @@ IF(UHD_FOUND)
   LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
 ENDIF(UHD_FOUND)
 
-#################################################################
-# EXAMPLES
-#################################################################
-
-add_executable(hl_example hl_example.c)
-target_link_libraries(hl_example srslte)
-
-add_executable(ll_example ll_example.c)
-target_link_libraries(ll_example srslte)
-
 
 #################################################################
 # Applications
@@ -40,7 +30,6 @@ target_link_libraries(ll_example srslte)
 
 add_executable(synch_file synch_file.c)
 target_link_libraries(synch_file srslte)
-
 
 #################################################################
 # These can be compiled without UHD or graphics support
@@ -77,9 +66,6 @@ IF(UHD_FOUND)
 
   add_executable(cell_search cell_search.c)
   target_link_libraries(cell_search srslte srslte_uhd)
-
-  add_executable(prach_ue prach_ue.c)
-  target_link_libraries(prach_ue srslte srslte_uhd)
 
   add_executable(cell_measurement cell_measurement.c)
   target_link_libraries(cell_measurement srslte srslte_uhd)

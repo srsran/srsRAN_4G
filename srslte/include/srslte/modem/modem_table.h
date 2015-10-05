@@ -44,14 +44,6 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/config.h"
 
-typedef struct SRSLTE_API {
-  uint32_t idx[2][6][32];
-  uint32_t min_idx[2][64][6];  /* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2x(1, 2, 4, and 6 closest constellation points) for each bit, respectively. */
-  uint32_t d_idx[64][7];       /* NEW: for each constellation point zone (2, 4, 16, 64 for BPSK, QPSK, 16QAM, 64QAM) the 2, 3, 5 and 7 indices to constellation points that need to be computed for any recevied symbol modulated as BPSK, QPSK, 16QAM, and 64QAM, respectively. */
-
-}srslte_soft_table_t;
-
-
 typedef struct {
   cf_t symbol[8];
 } bpsk_packed_t;
@@ -66,7 +58,6 @@ typedef struct {
 
 typedef struct SRSLTE_API {
   cf_t* symbol_table;             // bit-to-symbol mapping
-  srslte_soft_table_t soft_table; // symbol-to-bit mapping (used in soft demodulating)
   uint32_t nsymbols;              // number of modulation symbols
   uint32_t nbits_x_symbol;        // number of bits per symbol
   
@@ -85,13 +76,11 @@ SRSLTE_API void srslte_modem_table_reset(srslte_modem_table_t* q);
 
 SRSLTE_API int srslte_modem_table_set(srslte_modem_table_t* q, 
                                       cf_t* table, 
-                                      srslte_soft_table_t *soft_table, 
                                       uint32_t nsymbols, 
                                       uint32_t nbits_x_symbol);
 
 SRSLTE_API int srslte_modem_table_lte(srslte_modem_table_t* q, 
-                                      srslte_mod_t modulation, 
-                                      bool compute_soft_demod);
+                                      srslte_mod_t modulation);
 
 SRSLTE_API void srslte_modem_table_bytes(srslte_modem_table_t* q); 
 

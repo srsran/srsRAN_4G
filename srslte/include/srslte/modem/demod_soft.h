@@ -43,47 +43,14 @@
 #include "srslte/config.h"
 #include "modem_table.h"
 
-typedef enum SRSLTE_API { 
-  SRSLTE_DEMOD_SOFT_ALG_EXACT, 
-  SRSLTE_DEMOD_SOFT_ALG_APPROX   
-} srslte_demod_soft_alg_t;
 
-typedef struct SRSLTE_API {
-  float sigma;      // noise power
-  srslte_demod_soft_alg_t alg_type;    // soft demapping algorithm (SRSLTE_DEMOD_SOFT_ALG_EXACT or SRSLTE_DEMOD_SOFT_ALG_APPROX)
-  srslte_modem_table_t *table;  // symbol mapping table (see modem_table.h)
-  uint32_t *zones; 
-  float *dd; 
-  uint32_t max_symbols;
-} srslte_demod_soft_t;
-
-SRSLTE_API int srslte_demod_soft_init(srslte_demod_soft_t *q, 
-                                      uint32_t max_symbols);
-
-SRSLTE_API void srslte_demod_soft_free(srslte_demod_soft_t *q); 
-
-SRSLTE_API void srslte_demod_soft_table_set(srslte_demod_soft_t *q, 
-                                            srslte_modem_table_t *table);
-
-SRSLTE_API void srslte_demod_soft_alg_set(srslte_demod_soft_t *q, 
-                                          srslte_demod_soft_alg_t alg_type);
-
-SRSLTE_API void srslte_demod_soft_sigma_set(srslte_demod_soft_t *q, 
-                                            float sigma);
-
-SRSLTE_API int srslte_demod_soft_demodulate(srslte_demod_soft_t *q, 
+SRSLTE_API int srslte_demod_soft_demodulate(srslte_mod_t modulation, 
                                             const cf_t* symbols, 
                                             float* llr, 
-                                            int nsymbols);
-
-SRSLTE_API int srslte_demod_soft_demodulate_lte(srslte_mod_t modulation, 
-                                                const cf_t* symbols, 
-                                                float* llr, 
-                                                int nsymbols); 
+                                            int nsymbols); 
 
 /* High-level API */
 typedef struct SRSLTE_API {
-  srslte_demod_soft_t obj;
   srslte_modem_table_t table;
 
   struct srslte_demod_soft_init{
@@ -95,7 +62,6 @@ typedef struct SRSLTE_API {
 
   struct srslte_demod_soft_ctrl_in {
     float sigma;      // Estimated noise variance
-    srslte_demod_soft_alg_t alg_type;    // soft demapping algorithm (SRSLTE_DEMOD_SOFT_ALG_EXACT or SRSLTE_DEMOD_SOFT_ALG_APPROX)
   }ctrl_in;
 
   float* output;

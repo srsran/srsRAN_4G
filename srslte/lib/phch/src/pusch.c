@@ -200,7 +200,7 @@ int srslte_pusch_init(srslte_pusch_t *q, srslte_cell_t cell) {
         q->cell.nof_prb, q->max_re);
 
     for (i = 0; i < 4; i++) {
-      if (srslte_modem_table_lte(&q->mod[i], modulations[i], true)) {
+      if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
         goto clean;
       }
       srslte_modem_table_bytes(&q->mod[i]);
@@ -447,7 +447,7 @@ int srslte_pusch_decode(srslte_pusch_t *q,
       * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
       * thus we don't need tot set it in the LLRs normalization
       */
-      srslte_demod_soft_demodulate_lte(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
+      srslte_demod_soft_demodulate(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
 
       /* descramble */
       srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->nbits.nof_bits);

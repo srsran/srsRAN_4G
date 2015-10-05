@@ -219,7 +219,7 @@ int srslte_pdsch_init(srslte_pdsch_t *q, srslte_cell_t cell) {
     }
 
     for (i = 0; i < 4; i++) {
-      if (srslte_modem_table_lte(&q->mod[i], modulations[i], true)) {
+      if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
         goto clean;
       }
       srslte_modem_table_bytes(&q->mod[i]);
@@ -417,7 +417,7 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
     * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
     * thus we don't need tot set it in the LLRs normalization
     */
-    srslte_demod_soft_demodulate_lte(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
+    srslte_demod_soft_demodulate(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
 
     /* descramble */
     if (rnti != q->rnti) {
@@ -535,4 +535,16 @@ int srslte_pdsch_encode_rnti(srslte_pdsch_t *q,
   } 
   return ret; 
 }
+
+float srslte_pdsch_average_noi(srslte_pdsch_t *q) 
+{
+  return q->dl_sch.average_nof_iterations;
+}
+
+uint32_t srslte_pdsch_last_noi(srslte_pdsch_t *q) {
+  return q->dl_sch.nof_iterations;
+}
+
+
+
   

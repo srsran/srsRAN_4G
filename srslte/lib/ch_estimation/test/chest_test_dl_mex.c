@@ -27,10 +27,7 @@
 
 #include <string.h>
 #include "srslte/srslte.h"
-#ifdef UNDEF_BOOL
-#undef bool
-#endif
-#include "mex.h"
+#include "srslte/mex/mexutils.h"
 
 
 /** MEX function to be called from MATLAB to test the channel estimator 

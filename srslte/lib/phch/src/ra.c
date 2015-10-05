@@ -228,6 +228,7 @@ int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, uint32_t nof_prb, uint32_
     if (!ul_dci_to_grant_mcs(dci, grant)) {
       
       // Fill rest of grant structure 
+      grant->mcs.idx = dci->mcs_idx;
       grant->M_sc = grant->L_prb*SRSLTE_NRE;
       grant->M_sc_init = grant->M_sc; // FIXME: What should M_sc_init be? 
       grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);
@@ -455,6 +456,7 @@ int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, bool cr
     // Compute MCS 
     if (!dl_dci_to_grant_mcs(dci, grant, crc_is_crnti)) {      
       // Fill rest of grant structure 
+      grant->mcs.idx = dci->mcs_idx;
       grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
     } else {
       return SRSLTE_ERROR; 

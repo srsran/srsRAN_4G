@@ -156,7 +156,7 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
       fprintf(stderr, "Error initializing precoding\n");
     }
 
-    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK, true)) {
+    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
     }
     if (srslte_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
@@ -479,7 +479,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
         }
 
         /* demodulate symbols */
-        srslte_demod_soft_demodulate_lte(SRSLTE_MOD_QPSK, q->d, &q->llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
+        srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, &q->llr[nof_bits * (q->frame_idx - 1)], q->nof_symbols);
         
         /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
         * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.

@@ -34,11 +34,9 @@
 #include "srslte/modem/modem_table.h"
 #include "lte_tables.h"
 
-void LLR_approx_params(const cf_t* table, srslte_soft_table_t *soft_table, int B);
-
 /**
  * Set the BPSK modulation table */
-void set_BPSKtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_soft_demod)
+void set_BPSKtable(cf_t* table)
 {
   // LTE-BPSK constellation:
   //    Q
@@ -48,32 +46,12 @@ void set_BPSKtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_so
   table[0] = BPSK_LEVEL + BPSK_LEVEL*_Complex_I;
   table[1] = -BPSK_LEVEL -BPSK_LEVEL*_Complex_I;
 
-  if (!compute_soft_demod) {
-    return;
-  }
-
-  /* BSPK symbols containing a '0' and a '1' (only two symbols, 1 bit) */
-  soft_table->idx[0][0][0] = 0;
-  soft_table->idx[1][0][0] = 1;
-
-  /* set two matrices for LLR approx. calculation */
-  soft_table->min_idx[0][0][0] = 0; 
-  soft_table->min_idx[0][1][0] = 0;
-  soft_table->min_idx[1][0][0] = 1;
-  soft_table->min_idx[1][1][0] = 1;
-
-  soft_table->d_idx[0][0] = 0; 
-  soft_table->d_idx[0][1] = 1;
-  soft_table->d_idx[1][0] = 0; 
-  soft_table->d_idx[1][1] = 1;
-
 }
 
 /**
  * Set the QPSK modulation table */
-void set_QPSKtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_soft_demod)
+void set_QPSKtable(cf_t* table)
 {
-  uint32_t i,j;
 
   // LTE-QPSK constellation:
   //     Q
@@ -84,36 +62,12 @@ void set_QPSKtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_so
   table[1] = QPSK_LEVEL - QPSK_LEVEL*_Complex_I;
   table[2] = -QPSK_LEVEL + QPSK_LEVEL*_Complex_I;
   table[3] = -QPSK_LEVEL - QPSK_LEVEL*_Complex_I;
-  for (i=0;i<6;i++) {
-    for (j=0;j<32;j++) {
-      soft_table->idx[0][i][j] = 0;
-      soft_table->idx[1][i][j] = 0;
-    }
-  }
-
-  if (!compute_soft_demod) {
-    return;
-  }
-
-  /* QSPK symbols containing a '0' at the different bit positions */
-  soft_table->idx[0][0][0] = 0;
-  soft_table->idx[0][0][1] = 1;
-  soft_table->idx[0][1][0] = 0;
-  soft_table->idx[0][1][1] = 2;
-  /* QSPK symbols containing a '1' at the different bit positions */
-  soft_table->idx[1][0][0] = 2;
-  soft_table->idx[1][0][1] = 3;
-  soft_table->idx[1][1][0] = 1;
-  soft_table->idx[1][1][1] = 3;
-
-  LLR_approx_params(table, soft_table, 2);	/* last param indicating B (bits per symbol) */
 }
 
 /**
  * Set the 16QAM modulation table */
-void set_16QAMtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_soft_demod)
+void set_16QAMtable(cf_t* table)
 {
-  uint32_t i,j;
   // LTE-16QAM constellation:
   //                Q
   //  1011  1001  |   0001  0011
@@ -137,50 +91,12 @@ void set_16QAMtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_s
   table[13] = -QAM16_LEVEL_1 - QAM16_LEVEL_2*_Complex_I;
   table[14] = -QAM16_LEVEL_2 - QAM16_LEVEL_1*_Complex_I;
   table[15] = -QAM16_LEVEL_2 - QAM16_LEVEL_2*_Complex_I;
-  for (i=0;i<6;i++) {
-    for (j=0;j<32;j++) {
-      soft_table->idx[0][i][j] = 0;
-      soft_table->idx[1][i][j] = 0;
-    }
-  }
-  if (!compute_soft_demod) {
-    return;
-  }
-
-
-  /* Matrices identifying the zeros and ones of LTE-16QAM constellation */
-  for (i=0;i<8;i++) {
-    soft_table->idx[0][0][i] = i;   /* symbols with a '0' at the bit0 (leftmost)*/
-    soft_table->idx[1][0][i] = i+8; /* symbols with a '1' at the bit0 (leftmost)*/
-  }
-  /* symbols with a '0' ans '1' at the bit position 1: */
-  for (i=0;i<4;i++) {
-    soft_table->idx[0][1][i] = i;
-    soft_table->idx[0][1][i+4] = i+8;
-    soft_table->idx[1][1][i] = i+4;
-    soft_table->idx[1][1][i+4] = i+12;
-  }
-  /* symbols with a '0' ans '1' at the bit position 2: */
-  for (j=0;j<4;j++) {
-    for (i=0;i<2;i++) {
-      soft_table->idx[0][2][i+2*j] = i + 4*j;
-      soft_table->idx[1][2][i+2*j] = i+2 + 4*j;
-    }
-  }
-  /* symbols with a '0' ans '1' at the bit position 3: */
-  for (i=0;i<8;i++) {
-    soft_table->idx[0][3][i] = 2*i;
-    soft_table->idx[1][3][i] = 2*i+1;
-  }
-
-  LLR_approx_params(table, soft_table, 4);	/* last param indication B (bits per symbol) */
 }
 
 /**
  * Set the 64QAM modulation table */
-void set_64QAMtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_soft_demod)
+void set_64QAMtable(cf_t* table)
 {
-  uint32_t i,j;
   // LTE-64QAM constellation:
   // see [3GPP TS 36.211 version 10.5.0 Release 10, Section 7.1.4]
   table[0] = QAM64_LEVEL_2 + QAM64_LEVEL_2*_Complex_I;
@@ -247,144 +163,5 @@ void set_64QAMtable(cf_t* table, srslte_soft_table_t *soft_table, bool compute_s
   table[61] = -QAM64_LEVEL_3 - QAM64_LEVEL_4*_Complex_I;
   table[62] = -QAM64_LEVEL_4 - QAM64_LEVEL_3*_Complex_I;
   table[63] = -QAM64_LEVEL_4 - QAM64_LEVEL_4*_Complex_I;
-
-  if (!compute_soft_demod) {
-    return;
-  }
-
-  /* Matrices identifying the zeros and ones of LTE-64QAM constellation */
-
-  for (i=0;i<32;i++) {
-    soft_table->idx[0][0][i] = i;  /* symbols with a '0' at the bit0 (leftmost)*/
-    soft_table->idx[1][0][i] = i+32;  /* symbols with a '1' at the bit0 (leftmost)*/
-  }
-  /* symbols with a '0' ans '1' at the bit position 1: */
-  for (i=0;i<16;i++) {
-    soft_table->idx[0][1][i] = i;
-    soft_table->idx[0][1][i+16] = i+32;
-    soft_table->idx[1][1][i] = i+16;
-    soft_table->idx[1][1][i+16] = i+48;
-  }
-  /* symbols with a '0' ans '1' at the bit position 2: */
-  for (i=0;i<8;i++) {
-    soft_table->idx[0][2][i] = i;
-    soft_table->idx[0][2][i+8] = i+16;
-    soft_table->idx[0][2][i+16] = i+32;
-    soft_table->idx[0][2][i+24] = i+48;
-    soft_table->idx[1][2][i] = i+8;
-    soft_table->idx[1][2][i+8] = i+24;
-    soft_table->idx[1][2][i+16] = i+40;
-    soft_table->idx[1][2][i+24] = i+56;
-  }
-  /* symbols with a '0' ans '1' at the bit position 3: */
-  for (j=0;j<8;j++) {
-    for (i=0;i<4;i++) {
-      soft_table->idx[0][3][i+4*j] = i + 8*j;
-      soft_table->idx[1][3][i+4*j] = i+4 + 8*j;
-    }
-  }
-  /* symbols with a '0' ans '1' at the bit position 4: */
-  for (j=0;j<16;j++) {
-    for (i=0;i<2;i++) {
-      soft_table->idx[0][4][i+2*j] = i + 4*j;
-      soft_table->idx[1][4][i+2*j] = i+2 + 4*j;
-    }
-  }
-  /* symbols with a '0' ans '1' at the bit position 5: */
-  for (i=0;i<32;i++) {
-    soft_table->idx[0][5][i] = 2*i;
-    soft_table->idx[1][5][i] = 2*i+1;
-  }
-
-  LLR_approx_params(table, soft_table, 6);	/* last param indication modulation */
-}
-
-/* Precompute two tables for calculating the distances based on the received symbol location relative to the constellation points */
-void LLR_approx_params(const cf_t* table, srslte_soft_table_t *soft_table, int B) {
-
-	int i, j, b, k;
-	float x, y, d0, d1, min_d0, min_d1;
-	int M, D;
-	uint32_t min_idx0[64][6], min_idx1[64][6];
-	uint32_t count;
-	int flag;
-
-
-	D = B+1;	/* number of different distances to be computed */
-	//M = pow(2,B);	/* number of constellation points */
-	switch (B) {
-		case 1: 	{M = 2; break;}		/* BPSK */
-		case 2: 	{M = 4; break;}		/* QPSK */
-		case 4: 	{M = 16; break;}	/* 16QAM */
-		case 6: 	{M = 64; break;}	/* 64QAM */
-		default:	{M = 4; break;}		/* QPSK */
-	}
-
-	for (i=0;i<M;i++) {	/* constellation points */
-	        for (b=0;b<B;b++) { /* bits per symbol */
-	        	min_d0 = 100;
-	        	min_d1 = 100;
-
-	        	for (j=0;j<M/2;j++) {	/* half the symbols have a '0', the other half a '1' at any bit position of modulation symbol */
-	        	    x = __real__ table[i] - __real__ table[soft_table->idx[0][b][j]];
-	        	    y = __imag__ table[i] - __imag__ table[soft_table->idx[0][b][j]];
-	        	    d0 = x*x + y*y;
-	        	    if (d0 < min_d0) {
-	        		    min_d0 = d0;
-	        		    min_idx0[i][b] = soft_table->idx[0][b][j];
-	        	    }
-
-	        	    x = __real__ table[i] - __real__ table[soft_table->idx[1][b][j]];
-	        	    y = __imag__ table[i] - __imag__ table[soft_table->idx[1][b][j]];
-	        	    d1 = x*x + y*y;
-	        	    if (d1 < min_d1) {
-	        		    min_d1 = d1;
-	        		    min_idx1[i][b] = soft_table->idx[1][b][j];
-	        	    }
-	        	}
-	        }
-	}
-
-	for (i=0;i<M;i++) {
-		for (j=0;j<D;j++) {
-			soft_table->d_idx[i][j] = -1;   /* intialization */
-		}
-	}
-
-	for (i=0;i<M;i++) {
-		count = 0;
-		for (b=0;b<B;b++) {	/* bit(b) = 0 */
-			flag = 0;
-			for (k=0;k<count;k++) {
-				if (min_idx0[i][b] == soft_table->d_idx[i][k]) {
-					soft_table->min_idx[0][i][b] = k;
-					flag = 1;   /* no new entry to idxdx */
-					break;
-				}
-			}
-
-			if (flag == 0) { /* new entry to min and d_idx */
-				soft_table->d_idx[i][count] = min_idx0[i][b];
-				soft_table->min_idx[0][i][b] = count;
-				count++;
-			}
-		}
-		for (b=0;b<B;b++) {	/* bit(b) = 1 */
-			flag = 0;
-			for (k=0;k<count;k++) {
-				if (min_idx1[i][b] == soft_table->d_idx[i][k]) {
-					soft_table->min_idx[1][i][b] = k;
-					flag = 1;   /* no new entry to d_idx */
-					break;
-				}
-			}
-
-			if (flag == 0) { /* new entry to min and d_idx */
-				soft_table->d_idx[i][count] = min_idx1[i][b];
-				soft_table->min_idx[1][i][b] = count;
-				count++;
-			}
-		}
-	}
 }
 

@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
   
   srslte_modem_table_t modulator; 
   srslte_modem_table_init(&modulator);
-  srslte_modem_table_lte(&modulator, modulation, false);
+  srslte_modem_table_lte(&modulator, modulation);
 
   srslte_tcod_t turbocoder; 
   srslte_tcod_init(&turbocoder, SRSLTE_TCOD_MAX_LEN_CB);

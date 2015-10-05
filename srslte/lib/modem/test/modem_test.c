@@ -41,28 +41,19 @@ struct timeval x, y;
 
 int num_bits = 1000;
 srslte_mod_t modulation = SRSLTE_MOD_BPSK;
-bool soft_output = true, soft_exact = false;
 
 void usage(char *prog) {
   printf("Usage: %s [nmse]\n", prog);
   printf("\t-n num_bits [Default %d]\n", num_bits);
-  printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
-  printf("\t-s soft outputs [Default %s]\n", soft_output?"soft":"hard");
-  printf("\t-e soft outputs exact algorithm [Default approx]\n");
+  printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");  
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "nmse")) != -1) {
+  while ((opt = getopt(argc, argv, "nm")) != -1) {
     switch (opt) {
     case 'n':
       num_bits = atoi(argv[optind]);
-      break;
-    case 's':
-      soft_output = true;
-      break;
-    case 'e':
-      soft_exact = true;
       break;
     case 'm':
       switch(atoi(argv[optind])) {
@@ -95,7 +86,6 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int i;
   srslte_modem_table_t mod;
-  srslte_demod_hard_t demod_hard;  
   uint8_t *input, *input_bytes, *output;
   cf_t *symbols, *symbols_bytes;
   float *llr, *llr2;
@@ -103,7 +93,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   /* initialize objects */
-  if (srslte_modem_table_lte(&mod, modulation, soft_output)) {
+  if (srslte_modem_table_lte(&mod, modulation)) {
     fprintf(stderr, "Error initializing modem table\n");
     exit(-1);
   }
@@ -114,11 +104,6 @@ int main(int argc, char **argv) {
   if (num_bits % mod.nbits_x_symbol) {
     fprintf(stderr, "Error num_bits must be multiple of %d\n", mod.nbits_x_symbol);
     exit(-1);
-  }
-
-  if (!soft_output) {
-    srslte_demod_hard_init(&demod_hard);
-    srslte_demod_hard_table_set(&demod_hard, modulation);
   }
 
   /* allocate buffers */
@@ -196,18 +181,13 @@ int main(int argc, char **argv) {
   }
   printf("Symbols OK\n");  
   /* demodulate */
-  if (soft_output) {
-
-    gettimeofday(&x, NULL);
-    srslte_demod_soft_demodulate_lte(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
-    gettimeofday(&y, NULL);
-    printf("\nElapsed time [ns]: %d\n", (int) y.tv_usec - (int) x.tv_usec);
-    
-    for (i=0;i<num_bits;i++) {
-      output[i] = llr[i]>=0 ? 1 : 0;
-    }
-  } else {
-    srslte_demod_hard_demodulate(&demod_hard, symbols, output, num_bits / mod.nbits_x_symbol);
+  gettimeofday(&x, NULL);
+  srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
+  gettimeofday(&y, NULL);
+  printf("\nElapsed time [ns]: %d\n", (int) y.tv_usec - (int) x.tv_usec);
+  
+  for (i=0;i<num_bits;i++) {
+    output[i] = llr[i]>=0 ? 1 : 0;
   }
 
   /* check errors */

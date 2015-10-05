@@ -67,7 +67,7 @@ void srslte_modem_table_reset(srslte_modem_table_t* q) {
   srslte_modem_table_init(q);
 }
 
-int srslte_modem_table_set(srslte_modem_table_t* q, cf_t* table, srslte_soft_table_t *soft_table, uint32_t nsymbols, uint32_t nbits_x_symbol) {
+int srslte_modem_table_set(srslte_modem_table_t* q, cf_t* table, uint32_t nsymbols, uint32_t nbits_x_symbol) {
   if (q->nsymbols) {
     return SRSLTE_ERROR;
   }
@@ -76,12 +76,11 @@ int srslte_modem_table_set(srslte_modem_table_t* q, cf_t* table, srslte_soft_tab
     return SRSLTE_ERROR;
   }
   memcpy(q->symbol_table,table,q->nsymbols*sizeof(cf_t));
-  memcpy(&q->soft_table,soft_table,sizeof(srslte_soft_table_t));
   q->nbits_x_symbol = nbits_x_symbol;
   return SRSLTE_SUCCESS;
 }
 
-int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation, bool compute_soft_demod) {
+int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation) {
   srslte_modem_table_init(q);
   switch(modulation) {
   case SRSLTE_MOD_BPSK:
@@ -90,7 +89,7 @@ int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation, boo
     if (table_create(q)) {
       return SRSLTE_ERROR;
     }
-    set_BPSKtable(q->symbol_table, &q->soft_table, compute_soft_demod);
+    set_BPSKtable(q->symbol_table);
     break;
   case SRSLTE_MOD_QPSK:
     q->nbits_x_symbol = 2;
@@ -98,7 +97,7 @@ int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation, boo
     if (table_create(q)) {
       return SRSLTE_ERROR;
     }
-    set_QPSKtable(q->symbol_table, &q->soft_table, compute_soft_demod);
+    set_QPSKtable(q->symbol_table);
     break;
   case SRSLTE_MOD_16QAM:
     q->nbits_x_symbol = 4;
@@ -106,7 +105,7 @@ int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation, boo
     if (table_create(q)) {
       return SRSLTE_ERROR;
     }
-    set_16QAMtable(q->symbol_table, &q->soft_table, compute_soft_demod);
+    set_16QAMtable(q->symbol_table);
     break;
   case SRSLTE_MOD_64QAM:
     q->nbits_x_symbol = 6;
@@ -114,7 +113,7 @@ int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation, boo
     if (table_create(q)) {
       return SRSLTE_ERROR;
     }
-    set_64QAMtable(q->symbol_table, &q->soft_table, compute_soft_demod);
+    set_64QAMtable(q->symbol_table);
     break;
   }
   return SRSLTE_SUCCESS;

@@ -79,7 +79,7 @@ int srslte_pcfich_init(srslte_pcfich_t *q, srslte_regs_t *regs, srslte_cell_t ce
       fprintf(stderr, "Error initializing precoding\n");
     }
 
-    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK, true)) {
+    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
     }
 
@@ -203,7 +203,7 @@ int srslte_pcfich_decode(srslte_pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE
     }
 
     /* demodulate symbols */
-    srslte_demod_soft_demodulate_lte(SRSLTE_MOD_QPSK, q->d, q->data_f, q->nof_symbols);
+    srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, q->data_f, q->nof_symbols);
 
     /* Scramble with the sequence for slot nslot */
     srslte_scrambling_f(&q->seq[nsubframe], q->data_f);

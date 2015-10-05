@@ -50,6 +50,7 @@
 typedef struct SRSLTE_API {
   srslte_mod_t mod;
   int tbs;
+  uint32_t idx; 
 } srslte_ra_mcs_t;
 
 

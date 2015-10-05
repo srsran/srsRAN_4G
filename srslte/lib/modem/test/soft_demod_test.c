@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
   parse_args(argc, argv);
 
   /* initialize objects */
-  if (srslte_modem_table_lte(&mod, modulation, true)) {
+  if (srslte_modem_table_lte(&mod, modulation)) {
     fprintf(stderr, "Error initializing modem table\n");
     exit(-1);
   }
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
     srslte_mod_modulate(&mod, input, symbols, num_bits);
 
     gettimeofday(&t[1], NULL);
-    srslte_demod_soft_demodulate_lte(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
+    srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     

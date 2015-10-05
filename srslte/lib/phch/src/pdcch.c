@@ -78,7 +78,7 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
     INFO("Init PDCCH: Max bits: %d, %d ports.\n", 
          q->max_bits, q->cell.nof_ports);
 
-    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK, true)) {
+    if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
     }
     if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
@@ -420,7 +420,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     }
 
     /* demodulate symbols */
-    srslte_demod_soft_demodulate_lte(SRSLTE_MOD_QPSK, q->d, q->llr, nof_symbols);
+    srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, q->llr, nof_symbols);
 
     /* descramble */
     srslte_scrambling_f_offset(&q->seq[nsubframe], q->llr, 0, e_bits);
