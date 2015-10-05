@@ -53,8 +53,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_cell_t cell; 
   srslte_pdsch_t pdsch;
   srslte_chest_dl_t chest; 
-  srslte_ofdm_t fft; 
-  cf_t *input_fft, *input_signal;
+  cf_t *input_fft;
   int nof_re; 
   srslte_pdsch_cfg_t cfg;
   srslte_softbuffer_rx_t softbuffer; 
@@ -103,10 +102,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (srslte_ofdm_rx_init(&fft, cell.cp, cell.nof_prb)) {
-    mexErrMsgTxt("Error initializing FFT\n");
-    return;
-  }
   
   nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
@@ -166,25 +161,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   /* Configure rest of pdsch_cfg parameters */
   grant.Qm = srslte_mod_bits_x_symbol(grant.mcs.mod);
-  if (srslte_pdsch_cfg(&cfg, cell, &grant, cfi, cfg.sf_idx, (uint16_t) (rnti32 & 0xffff), cfg.rv)) {
+  if (srslte_pdsch_cfg(&cfg, cell, &grant, cfi, cfg.sf_idx, cfg.rv)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
       
   /** Allocate input buffers */
-  if (mexutils_read_cf(INPUT, &input_signal) < 0) {
+  if (mexutils_read_cf(INPUT, &input_fft) < 0) {
     mexErrMsgTxt("Error reading input signal\n");
     return; 
   }
-  input_fft = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   
   cf_t *ce[SRSLTE_MAX_PORTS];
   for (i=0;i<cell.nof_ports;i++) {
     ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
-  srslte_ofdm_rx_sf(&fft, input_signal, input_fft);
-
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray = NULL; 
     nof_re = mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
@@ -236,14 +228,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   srslte_chest_dl_free(&chest);
-  srslte_ofdm_rx_free(&fft);
   srslte_pdsch_free(&pdsch);
   
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
   }
   free(data);
-  free(input_signal);
   free(input_fft);
   
   return;

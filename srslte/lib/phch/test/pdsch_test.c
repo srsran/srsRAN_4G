@@ -45,18 +45,21 @@ srslte_cell_t cell = {
 };
 
 uint32_t cfi = 2;
-uint32_t tbs = 0;
+uint32_t mcs = 0;
 uint32_t subframe = 1;
-srslte_mod_t modulation = SRSLTE_MOD_BPSK;
 uint32_t rv_idx = 0;
+uint16_t rnti = 1234; 
+char *input_file = NULL; 
 
 void usage(char *prog) {
-  printf("Usage: %s [Lcpsrnfvmt] -l TBS \n", prog);
-  printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
+  printf("Usage: %s [fmcsrRFpnv] \n", prog);
+  printf("\t-f read signal from file [Default generate it with pdsch_encode()]\n");
+  printf("\t-m MCS [Default %d]\n", mcs);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
   printf("\t-r rv_idx [Default %d]\n", rv_idx);
-  printf("\t-f cfi [Default %d]\n", cfi);
+  printf("\t-R rnti [Default %d]\n", rnti);
+  printf("\t-F cfi [Default %d]\n", cfi);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
@@ -64,27 +67,13 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "lcpnfvmtsr")) != -1) {
+  while ((opt = getopt(argc, argv, "fmcsrRFpnv")) != -1) {
     switch(opt) {
+    case 'f':
+      input_file = argv[optind];
+      break;
     case 'm':
-      switch(atoi(argv[optind])) {
-      case 1:
-        modulation = SRSLTE_MOD_BPSK;
-        break;
-      case 2:
-        modulation = SRSLTE_MOD_QPSK;
-        break;
-      case 4:
-        modulation = SRSLTE_MOD_16QAM;
-        break;
-      case 6:
-        modulation = SRSLTE_MOD_64QAM;
-        break;
-      default:
-        fprintf(stderr, "Invalid modulation %d. Possible values: "
-            "(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n", atoi(argv[optind]));
-        break;
-      }
+      mcs = atoi(argv[optind]);
       break;
     case 's':
       subframe = atoi(argv[optind]);
@@ -92,8 +81,11 @@ void parse_args(int argc, char **argv) {
     case 'r':
       rv_idx = atoi(argv[optind]);
       break;
-    case 'l':
-      tbs = atoi(argv[optind]);
+    case 'R':
+      rnti = atoi(argv[optind]);
+      break;
+    case 'F':
+      cfi = atoi(argv[optind]);
       break;
     case 'p':
       cell.nof_ports = atoi(argv[optind]);
@@ -111,10 +103,6 @@ void parse_args(int argc, char **argv) {
       usage(argv[0]);
       exit(-1);
     }
-  }
-  if (tbs == 0) {
-    usage(argv[0]);
-    exit(-1);
   }
 }
 
@@ -140,18 +128,19 @@ int main(int argc, char **argv) {
   bzero(&softbuffer_rx, sizeof(srslte_softbuffer_rx_t));
   bzero(&softbuffer_tx, sizeof(srslte_softbuffer_tx_t));
   
+  srslte_ra_dl_dci_t dci;
+  bzero(&dci, sizeof(srslte_ra_dl_dci_t));
+  dci.mcs_idx = mcs;
+  dci.rv_idx = rv_idx;
+  dci.type0_alloc.rbg_bitmask = 0xffffffff;
   srslte_ra_dl_grant_t grant; 
-  grant.mcs.tbs = tbs; 
-  grant.mcs.mod = modulation;
-  grant.Qm = srslte_mod_bits_x_symbol(grant.mcs.mod);
-  grant.nof_prb = cell.nof_prb; // Allocate all PRB 
-  for (i=0;i<grant.nof_prb;i++) {
-    grant.prb_idx[0][i] = true;
+  if (srslte_ra_dl_dci_to_grant(&dci, cell.nof_prb, true, &grant)) {
+    fprintf(stderr, "Error computing resource allocation\n");
+    return ret;
   }
-  memcpy(&grant.prb_idx[1], &grant.prb_idx[0], SRSLTE_MAX_PRB * sizeof(bool));
 
   /* Configure PDSCH */
-  if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, subframe, 1234, 0)) {
+  if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, subframe, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
@@ -173,7 +162,7 @@ int main(int argc, char **argv) {
     }
   }
   
-  data = malloc(sizeof(uint8_t) * tbs/8);
+  data = malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
   if (!data) {
     perror("malloc");
     goto quit;
@@ -184,7 +173,7 @@ int main(int argc, char **argv) {
     goto quit;
   }
   
-  srslte_pdsch_set_rnti(&pdsch, 1234);
+  srslte_pdsch_set_rnti(&pdsch, rnti);
   
   if (srslte_softbuffer_tx_init(&softbuffer_tx, cell.nof_prb)) {
     fprintf(stderr, "Error initiating TX soft buffer\n");
@@ -194,6 +183,17 @@ int main(int argc, char **argv) {
   if (srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb)) {
     fprintf(stderr, "Error initiating RX soft buffer\n");
     goto quit;
+  }
+  
+  if (input_file) {
+    srslte_filesource_t fsrc;
+    if (srslte_filesource_init(&fsrc, input_file, SRSLTE_COMPLEX_FLOAT_BIN)) {
+      fprintf(stderr, "Error opening file %s\n", input_file);
+      exit(-1);
+    }
+    srslte_filesource_read(&fsrc, slot_symbols[0], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
+    
+    srslte_filesource_free(&fsrc);
   }
   
   if (SRSLTE_VERBOSE_ISNONE()) {
@@ -207,11 +207,13 @@ int main(int argc, char **argv) {
 
     pdsch_cfg.rv = rv; 
     
-    if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
-      fprintf(stderr, "Error encoding PDSCH\n");
-      goto quit;
+    if (!input_file) {
+      if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
+        fprintf(stderr, "Error encoding PDSCH\n");
+        goto quit;
+      }
     }
-
+    
     /* combine outputs */
     for (i=0;i<cell.nof_ports;i++) {
       for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {

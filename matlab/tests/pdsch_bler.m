@@ -6,15 +6,15 @@
 
 recordedSignal=[];
 
-Npackets = 1;
-SNR_values = linspace(15,20,4);
+Npackets = 8;
+SNR_values = linspace(10.5,13,4);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.4',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.6',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
-    rmccFgOut = struct('NCellID',1,'CellRefP',1,'CFI',1,'NDLRB',15,'SamplingRate',3.84e6,'Nfft',256,'DuplexMode','FDD','CyclicPrefix','Normal'); 
+    rmccFgOut = struct('NCellID',1,'CellRefP',1,'CFI',1,'NDLRB',50,'SamplingRate',3.84e6,'Nfft',256,'DuplexMode','FDD','CyclicPrefix','Normal'); 
     rmccFgOut.PDSCH.RNTI = 1234;
     rmccFgOut.PDSCH.PRBSet = repmat(transpose(0:rmccFgOut.NDLRB-1),1,2);
     rmccFgOut.PDSCH.TxScheme = 'Port0';
@@ -79,7 +79,6 @@ for snr_idx=1:length(SNR_values)
         frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
 
         for sf_idx=0:Nsf
-            subframe_waveform = rxWaveform(sf_idx*flen+1:(sf_idx+1)*flen);
             subframe_rx=frame_rx(:,sf_idx*14+1:(sf_idx+1)*14);
             rmccFgOut.NSubframe=sf_idx;
             rmccFgOut.TotSubframes=1;
@@ -87,7 +86,7 @@ for snr_idx=1:length(SNR_values)
             % Perform channel estimation
             [hest, nest] = lteDLChannelEstimate(rmccFgOut, cec, subframe_rx);
 
-            [cws,symbols,pdschSymbols,hestCH,indices] = ltePDSCHDecode2(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
+            [cws,symbols] = ltePDSCHDecode(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
             [trblkout,blkcrc,dstate] = lteDLSCHDecode(rmccFgOut,rmccFgOut.PDSCH, ... 
                                                     rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1),cws);
 
@@ -98,7 +97,7 @@ for snr_idx=1:length(SNR_values)
             if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
                 [dec2, data, pdschRx, pdschSymbols2, deb] = srslte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
                                                         rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
-                                                        subframe_waveform);
+                                                        subframe_rx);
             else
                 dec2 = 1;
             end

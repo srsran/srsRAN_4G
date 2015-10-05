@@ -204,9 +204,9 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
   }
 }
 
-int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint32_t rvidx) 
 {
-  return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rnti, rvidx);
+  return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx);
 }
 
 int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint8_t *data, 
@@ -217,7 +217,7 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *
   q->nof_detected++;
   
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
-  if (srslte_ue_dl_cfg_grant(q, grant, cfi, sf_idx, rnti, rvidx)) {
+  if (srslte_ue_dl_cfg_grant(q, grant, cfi, sf_idx, rvidx)) {
     return SRSLTE_ERROR; 
   }
   

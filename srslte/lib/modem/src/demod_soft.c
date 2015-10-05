@@ -33,7 +33,7 @@
 #include "srslte/utils/bit.h"
 #include "srslte/modem/demod_soft.h"
 
-#define SCALE_DEMOD16QAM
+//#define SCALE_DEMOD16QAM
 
 
 void demod_bpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {

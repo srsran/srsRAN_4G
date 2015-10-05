@@ -98,7 +98,7 @@ int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_g
           // Skip PSS/SSS signals
           if (s == 0 && (nsubframe == 0 || nsubframe == 5)) {
             if (n >= q->cell.nof_prb / 2 - 3
-                && n <= q->cell.nof_prb / 2 + 3) {
+                && n < q->cell.nof_prb / 2 + 3 + (q->cell.nof_prb%2)) {
               lend = SRSLTE_CP_NSYMB(q->cell.cp) - 2;
               is_sss = true;
             }
@@ -106,7 +106,7 @@ int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_g
           // Skip PBCH
           if (s == 1 && nsubframe == 0) {
             if (n >= q->cell.nof_prb / 2 - 3
-                && n <= q->cell.nof_prb / 2 + 3) {
+                && n < q->cell.nof_prb / 2 + 3 + (q->cell.nof_prb%2)) {
               lstart = 4;
               is_pbch = true;
             }
@@ -302,7 +302,7 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
 /* Configures the structure srslte_pdsch_cfg_t from the DL DCI allocation dci_msg. 
  * If dci_msg is NULL, the grant is assumed to be already stored in cfg->grant
  */
-int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint32_t rvidx) 
 {
   
   if (cfg && grant) {
@@ -314,8 +314,8 @@ int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_g
   }
   srslte_ra_dl_grant_to_nbits(&cfg->grant, cfi, cell, sf_idx, &cfg->nbits);
   cfg->sf_idx = sf_idx; 
-  cfg->rv = rvidx;
-  
+  cfg->rv = rvidx;  
+
   return SRSLTE_SUCCESS;   
 }
 
