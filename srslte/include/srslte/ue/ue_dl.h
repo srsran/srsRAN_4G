@@ -84,6 +84,9 @@ typedef struct SRSLTE_API {
 
   uint16_t current_rnti;
   uint32_t last_n_cce; 
+  
+  srslte_dci_msg_t pending_ul_dci_msg; 
+  uint16_t pending_ul_dci_rnti; 
 }srslte_ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
