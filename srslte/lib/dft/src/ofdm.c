@@ -163,13 +163,25 @@ void srslte_ofdm_rx_slot(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   }
 }
 
+void srslte_ofdm_rx_slot_zerocopy(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
+  uint32_t i;
+  for (i=0;i<q->nof_symbols;i++) {
+    input += SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_LEN_NORM(i, q->symbol_sz):SRSLTE_CP_LEN_EXT(q->symbol_sz);
+    srslte_dft_run_c_zerocopy(&q->fft_plan, input, q->tmp);
+    memcpy(output, &q->tmp[q->symbol_sz/2+q->nof_guards], sizeof(cf_t)*q->nof_re/2);
+    memcpy(&output[q->nof_re/2], &q->tmp[1], sizeof(cf_t)*q->nof_re/2);
+    input += q->symbol_sz;
+    output += q->nof_re;
+  }  
+}
+
 void srslte_ofdm_rx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   uint32_t n; 
   if (q->freq_shift) {
     srslte_vec_prod_ccc(input, q->shift_buffer, input, 2*q->slot_sz);
   }
   for (n=0;n<2;n++) {
-    srslte_ofdm_rx_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
+    srslte_ofdm_rx_slot_zerocopy(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
   }
 }
 

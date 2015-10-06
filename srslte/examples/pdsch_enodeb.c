@@ -511,9 +511,9 @@ int main(int argc, char **argv) {
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
   signal(SIGINT, sig_int_handler);
-  cuhd_set_master_clock_rate(uhd, 30.72e6);        
 
   if (!output_file_name) {
+    cuhd_set_master_clock_rate(uhd, 30.72e6);        
     printf("Set TX rate: %.2f MHz\n",
         cuhd_set_tx_srate(uhd, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
     printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));

@@ -30,6 +30,7 @@
 #include <complex.h>
 #include <fftw3.h>
 #include <string.h>
+#include <volk/volk.h>
 
 #include "srslte/dft/dft.h"
 #include "srslte/utils/vector.h"
@@ -134,6 +135,10 @@ void srslte_dft_run(srslte_dft_plan_t *plan, void *in, void *out) {
   } else {
     srslte_dft_run_r(plan,in,out);
   }
+}
+
+void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan, cf_t *in, cf_t *out) {
+  fftwf_execute_dft(plan->p, in, out);  
 }
 
 void srslte_dft_run_c(srslte_dft_plan_t *plan, cf_t *in, cf_t *out) {
