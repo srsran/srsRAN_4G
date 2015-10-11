@@ -84,7 +84,7 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 IF(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g -mfpmath=sse -mavx -O3")
    # IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
    #   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wno-error=implicit-function-declaration -Wno-error=unused-but-set-variable")
    # ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")

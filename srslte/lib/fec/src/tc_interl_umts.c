@@ -89,7 +89,7 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
   uint32_t i, j;
   uint32_t res, prim, aux;
   uint32_t kp, k;
-  uint32_t *per, *desper;
+  uint16_t *per, *desper;
   uint8_t v;
   uint16_t p;
   uint16_t s[MAX_COLS], q[MAX_ROWS], r[MAX_ROWS], T[MAX_ROWS];

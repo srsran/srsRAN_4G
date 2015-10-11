@@ -69,6 +69,7 @@ SRSLTE_API void srslte_vec_fprint_f(FILE *stream, float *x, uint32_t len);
 SRSLTE_API void srslte_vec_fprint_b(FILE *stream, uint8_t *x, uint32_t len);
 SRSLTE_API void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len);
 SRSLTE_API void srslte_vec_fprint_i(FILE *stream, int *x, uint32_t len);
+SRSLTE_API void srslte_vec_fprint_s(FILE *stream, short *x, uint32_t len); 
 SRSLTE_API void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len);
 
 /* Saves/loads a vector to a file */
@@ -79,6 +80,8 @@ SRSLTE_API void srslte_vec_load_file(char *filename, void *buffer, uint32_t len)
 SRSLTE_API void srslte_vec_sum_ch(uint8_t *x, uint8_t *y, char *z, uint32_t len);
 SRSLTE_API void srslte_vec_sum_fff(float *x, float *y, float *z, uint32_t len);
 SRSLTE_API void srslte_vec_sum_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len);
+SRSLTE_API void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len);
+SRSLTE_API void srslte_vec_sum_sss(short *x, short *y, short *z, uint32_t len);
 
 /* substract two vectors z=x-y */
 SRSLTE_API void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len); 
@@ -99,11 +102,17 @@ SRSLTE_API void srslte_vec_sc_add_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len);
 SRSLTE_API void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len); 
+SRSLTE_API void srslte_vec_sc_prod_sfs(short *x, float h, short *z, uint32_t len); 
+SRSLTE_API void srslte_vec_sc_div2_sss(short *x, int pow2_div, short *z, uint32_t len); 
 
 /* Normalization */
 SRSLTE_API void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len);
 
 SRSLTE_API void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len);
+
+
+SRSLTE_API void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len);
+SRSLTE_API void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len); 
 
 SRSLTE_API void srslte_vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len); 
 SRSLTE_API void srslte_vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len);

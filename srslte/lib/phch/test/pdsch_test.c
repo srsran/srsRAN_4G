@@ -228,14 +228,12 @@ int main(int argc, char **argv) {
     int r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
+    printf("DECODED %d in %d:%d (%.2f Mbps)\n", r?"Error":"OK",
+             (int) t[0].tv_sec, (int) t[0].tv_usec, (float) grant.mcs.tbs/t[0].tv_usec);                
     if (r) {
-      printf("Error decoding TBS: %d\n", grant.mcs.tbs);
       ret = -1;
       goto quit;
-    } else {
-      printf("DECODED OK in %d:%d (%.2f Mbps)\n", 
-             (int) t[0].tv_sec, (int) t[0].tv_usec, (float) grant.mcs.tbs/t[0].tv_usec);                
-    }
+    } 
   } 
   ret = 0;
 quit:

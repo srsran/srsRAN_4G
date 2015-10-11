@@ -36,6 +36,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "srslte/srslte.h"
+#include "srslte/fec/turbodecoder_vl.h"
 
 #include "turbodecoder_test.h"
 
@@ -46,14 +47,15 @@ float ebno_db = 100.0;
 uint32_t seed = 0;
 int K = -1;
 
-#define MAX_ITERATIONS  4
+#define MAX_ITERATIONS  10
 int nof_iterations = MAX_ITERATIONS;
 int test_known_data = 0;
 int test_errors = 0;
+int nof_repetitions = 1; 
 
-#define SNR_POINTS      8
-#define SNR_MIN         0.0
-#define SNR_MAX         4.0
+#define SNR_POINTS      4
+#define SNR_MIN         1.0
+#define SNR_MAX         8.0
 
 void usage(char *prog) {
   printf("Usage: %s [nlesv]\n", prog);
@@ -61,6 +63,7 @@ void usage(char *prog) {
       "\t-k Test with known data (ignores frame_length) [Default disabled]\n");
   printf("\t-i nof_iterations [Default %d]\n", nof_iterations);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
+  printf("\t-N nof_repetitions [Default %d]\n", nof_repetitions);
   printf("\t-l frame_length [Default %d]\n", frame_length);
   printf("\t-e ebno in dB [Default scan]\n");
   printf("\t-t test: check errors on exit [Default disabled]\n");
@@ -69,10 +72,13 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "inlstvekt")) != -1) {
+  while ((opt = getopt(argc, argv, "inNlstvekt")) != -1) {
     switch (opt) {
     case 'n':
       nof_frames = atoi(argv[optind]);
+      break;
+    case 'N':
+      nof_repetitions = atoi(argv[optind]);
       break;
     case 'k':
       test_known_data = 1;
@@ -102,29 +108,6 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-void output_matlab(float ber[MAX_ITERATIONS][SNR_POINTS], int snr_points) {
-  int i, j;
-  FILE *f = fopen("turbocoder_snr.m", "w");
-  if (!f) {
-    perror("fopen");
-    exit(-1);
-  }
-  fprintf(f, "ber=[");
-  for (j = 0; j < MAX_ITERATIONS; j++) {
-    for (i = 0; i < snr_points; i++) {
-      fprintf(f, "%g ", ber[j][i]);
-    }
-    fprintf(f, ";\n");
-  }
-  fprintf(f, "];\n");
-  fprintf(f, "snr=linspace(%g,%g-%g/%d,%d);\n", SNR_MIN, SNR_MAX, SNR_MAX,
-      snr_points, snr_points);
-  fprintf(f, "semilogy(snr,ber,snr,0.5*erfc(sqrt(10.^(snr/10))));\n");
-  fprintf(f,
-      "legend('1 iter','2 iter', '3 iter', '4 iter', 'theory-uncoded');");
-  fprintf(f, "grid on;\n");
-  fclose(f);
-}
 
 int main(int argc, char **argv) {
   uint32_t frame_cnt;
@@ -134,14 +117,15 @@ int main(int argc, char **argv) {
   uint32_t i, j;
   float var[SNR_POINTS];
   uint32_t snr_points;
-  float ber[MAX_ITERATIONS][SNR_POINTS];
-  uint32_t errors[100];
+  uint32_t errors;
+  uint32_t errors_vl;
   uint32_t coded_length;
   struct timeval tdata[3];
-  float mean_usec;
+  float mean_usec, mean_usec_vl;
   srslte_tdec_t tdec;
+  srslte_tdec_vl_t tdec_vl;
   srslte_tcod_t tcod;
-
+  
   parse_args(argc, argv);
 
   if (!seed) {
@@ -200,6 +184,11 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  if (srslte_tdec_vl_init(&tdec_vl, frame_length)) {
+    fprintf(stderr, "Error initiating Turbo decoder\n");
+    exit(-1);
+  }
+
   float ebno_inc, esno_db;
   ebno_inc = (SNR_MAX - SNR_MIN) / SNR_POINTS;
   if (ebno_db == 100.0) {
@@ -215,11 +204,13 @@ int main(int argc, char **argv) {
     snr_points = 1;
   }
   for (i = 0; i < snr_points; i++) {
-    mean_usec = 0;
-    frame_cnt = 0;
-    bzero(errors, sizeof(int) * MAX_ITERATIONS);
-    while (frame_cnt < nof_frames) {
 
+    mean_usec = 0;
+    mean_usec_vl = 0;
+    errors = 0; 
+    errors_vl = 0; 
+    frame_cnt = 0;
+    while (frame_cnt < nof_frames) {
       /* generate data_tx */
       for (j = 0; j < frame_length; j++) {
         if (test_known_data) {
@@ -239,13 +230,14 @@ int main(int argc, char **argv) {
       }
 
       for (j = 0; j < coded_length; j++) {
-        llr[j] = symbols[j] ? sqrt(2) : -sqrt(2);
+        llr[j] = symbols[j] ? 1 : -1;
       }
 
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);
-
+      
       /* decoder */
       srslte_tdec_reset(&tdec, frame_length);
+      srslte_tdec_vl_reset(&tdec_vl, frame_length);
 
       uint32_t t;
       if (nof_iterations == -1) {
@@ -253,68 +245,50 @@ int main(int argc, char **argv) {
       } else {
         t = nof_iterations;
       }
-      for (j = 0; j < t; j++) {
 
-        if (!j)
-          gettimeofday(&tdata[1], NULL); // Only measure 1 iteration
-        srslte_tdec_iteration(&tdec, llr, frame_length);
-        srslte_tdec_decision(&tdec, data_rx, frame_length);
-        if (!j)
-          gettimeofday(&tdata[2], NULL);
-        if (!j)
-          get_time_interval(tdata);
-        if (!j)
-          mean_usec = (float) mean_usec * 0.9 + (float) tdata[0].tv_usec * 0.1;
-
-        /* check errors */
-        errors[j] += srslte_bit_diff(data_tx, data_rx, frame_length);
-        if (j < MAX_ITERATIONS) {
-          ber[j][i] = (float) errors[j] / (frame_cnt * frame_length);
-        }
+      gettimeofday(&tdata[1], NULL); 
+      for (int k=0;k<nof_repetitions;k++) {     
+        srslte_tdec_run_all(&tdec, llr, data_rx, t, frame_length);        
       }
+      gettimeofday(&tdata[2], NULL);
+      get_time_interval(tdata);
+      mean_usec = (float) mean_usec * 0.9 + (float) (tdata[0].tv_usec/nof_repetitions) * 0.1;
+      
+      errors += srslte_bit_diff(data_tx, data_rx, frame_length);
+      
+      gettimeofday(&tdata[1], NULL); 
+      for (int k=0;k<nof_repetitions;k++) {     
+        srslte_tdec_vl_run_all(&tdec_vl, llr, data_rx, t, frame_length);
+      }
+      gettimeofday(&tdata[2], NULL);
+      get_time_interval(tdata);
+      mean_usec_vl = (float) mean_usec_vl * 0.9 + (float) (tdata[0].tv_usec/nof_repetitions) * 0.1;
+
+      /* check errors */
+      errors_vl += srslte_bit_diff(data_tx, data_rx, frame_length);
+      
       frame_cnt++;
-      printf("Eb/No: %3.2f %10d/%d   ",
-      SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
-      printf("BER: %.2e  ", (float) errors[j - 1] / (frame_cnt * frame_length));
-      printf("%3.1f Mbps (%6.2f usec)", (float) frame_length / mean_usec,
-          mean_usec);
+      printf("Eb/No: %2.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
+      printf("BER: %.2e  ", (float) errors / (frame_cnt * frame_length));
+      printf("BER_vl: %.2e  ", (float) errors_vl / (frame_cnt * frame_length));
+      printf("%3.1f Mbps (%6.2f usec) -- vl: ", (float) frame_length / mean_usec, mean_usec);
+      printf("%3.1f Mbps (%6.2f usec)", (float) frame_length / mean_usec_vl, mean_usec_vl);
       printf("\r");
 
-    }
+    }    
     printf("\n");
-
-    if (snr_points == 1) {
-      if (test_known_data && seed == KNOWN_DATA_SEED
-          && ebno_db == KNOWN_DATA_EBNO && frame_cnt == KNOWN_DATA_NFRAMES) {
-        for (j = 0; j < MAX_ITERATIONS; j++) {
-          if (errors[j] > known_data_errors[j]) {
-            fprintf(stderr, "Expected %d errors but got %d\n",
-                known_data_errors[j], errors[j]);
-            exit(-1);
-          } else {
-            printf("Iter %d ok\n", j + 1);
-          }
-        }
-      } else {
-        for (j = 0; j < MAX_ITERATIONS; j++) {
-          printf("BER: %g\t%u errors\n",
-              (float) errors[j] / (frame_cnt * frame_length), errors[j]);
-          if (test_errors) {
-            if (errors[j]
-                > get_expected_errors(frame_cnt, seed, j + 1, frame_length,
-                    ebno_db)) {
-              fprintf(stderr, "Expected %d errors but got %d\n",
-                  get_expected_errors(frame_cnt, seed, j + 1, frame_length,
-                      ebno_db), errors[j]);
-              exit(-1);
-            } else {
-              printf("Iter %d ok\n", j + 1);
-            }
-          }
-        }
-      }
-    }
   }
+
+  printf("\n");
+  if (snr_points == 1) {
+    if (errors) {
+      printf("%d Errors\n", errors);
+    }
+    if (errors_vl) {
+      printf("%d Errors in VL\n", errors_vl);
+    }
+  }    
+
 
   free(data_tx);
   free(symbols);
@@ -326,7 +300,6 @@ int main(int argc, char **argv) {
   srslte_tcod_free(&tcod);
 
   printf("\n");
-  output_matlab(ber, snr_points);
   printf("Done\n");
   exit(0);
 }

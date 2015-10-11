@@ -40,8 +40,8 @@
 #include <stdint.h>
 
 typedef struct SRSLTE_API {
-  uint32_t *forward;
-  uint32_t *reverse;
+  uint16_t *forward;
+  uint16_t *reverse;
   uint32_t max_long_cb;
 } srslte_tc_interl_t;
 

@@ -441,6 +441,7 @@ static int decode_tb(srslte_sch_t *q,
           early_stop = true;           
         }
         
+        
       } while (q->nof_iterations < SRSLTE_PDSCH_MAX_TDEC_ITERS && !early_stop);
       q->average_nof_iterations = SRSLTE_VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
 

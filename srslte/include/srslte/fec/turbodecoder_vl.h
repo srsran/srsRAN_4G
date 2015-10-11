@@ -37,8 +37,8 @@
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.1.3.2
  *********************************************************************************************/
 
-#ifndef TURBODECODER_
-#define TURBODECODER_
+#ifndef TURBODECODER_VL_
+#define TURBODECODER_VL_
 
 #include "srslte/config.h"
 #include "srslte/fec/tc_interl.h"
@@ -50,53 +50,49 @@
 #define SRSLTE_TCOD_MAX_LEN_CB     6144
 #define SRSLTE_TCOD_MAX_LEN_CODED  (SRSLTE_TCOD_RATE*SRSLTE_TCOD_MAX_LEN_CB+SRSLTE_TCOD_TOTALTAIL)
 
-typedef short llr_t;
+typedef float srslte_llr_t;
 
 typedef struct SRSLTE_API {
   int max_long_cb;
-  llr_t *alpha;
-  llr_t *branch;
-} srslte_map_gen_t;
+  srslte_llr_t *beta;
+} srslte_map_gen_vl_t;
 
 typedef struct SRSLTE_API {
   int max_long_cb;
 
-  srslte_map_gen_t dec;
+  srslte_map_gen_vl_t dec;
 
-  llr_t *app1;
-  llr_t *app2;
-  llr_t *ext1;
-  llr_t *ext2;
-  llr_t *syst;
-  llr_t *parity0;
-  llr_t *parity1;
-  
+  srslte_llr_t *llr1;
+  srslte_llr_t *llr2;
+  srslte_llr_t *w;
+  srslte_llr_t *syst;
+  srslte_llr_t *parity;
+
   int current_cbidx; 
   srslte_tc_interl_t interleaver[SRSLTE_NOF_TC_CB_SIZES];
-  int n_iter;
-} srslte_tdec_t;
+} srslte_tdec_vl_t;
 
-SRSLTE_API int srslte_tdec_init(srslte_tdec_t * h, 
+SRSLTE_API int srslte_tdec_vl_init(srslte_tdec_vl_t * h, 
                                 uint32_t max_long_cb);
 
-SRSLTE_API void srslte_tdec_free(srslte_tdec_t * h);
+SRSLTE_API void srslte_tdec_vl_free(srslte_tdec_vl_t * h);
 
-SRSLTE_API int srslte_tdec_reset(srslte_tdec_t * h, uint32_t long_cb);
+SRSLTE_API int srslte_tdec_vl_reset(srslte_tdec_vl_t * h, uint32_t long_cb);
 
-SRSLTE_API void srslte_tdec_iteration(srslte_tdec_t * h, 
-                                      float * input, 
+SRSLTE_API void srslte_tdec_vl_iteration(srslte_tdec_vl_t * h, 
+                                      srslte_llr_t * input, 
                                       uint32_t long_cb);
 
-SRSLTE_API void srslte_tdec_decision(srslte_tdec_t * h, 
+SRSLTE_API void srslte_tdec_vl_decision(srslte_tdec_vl_t * h, 
                                      uint8_t *output, 
                                      uint32_t long_cb);
 
-SRSLTE_API void srslte_tdec_decision_byte(srslte_tdec_t * h, 
+SRSLTE_API void srslte_tdec_vl_decision_byte(srslte_tdec_vl_t * h, 
                                           uint8_t *output, 
                                           uint32_t long_cb); 
 
-SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h, 
-                                   float * input, 
+SRSLTE_API int srslte_tdec_vl_run_all(srslte_tdec_vl_t * h, 
+                                   srslte_llr_t * input, 
                                    uint8_t *output,
                                    uint32_t nof_iterations, 
                                    uint32_t long_cb);

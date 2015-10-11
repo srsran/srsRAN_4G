@@ -33,7 +33,10 @@
 #include <string.h>
 
 #include "srslte/utils/vector.h"
+#include "srslte/utils/vector_simd.h"
 #include "srslte/utils/bit.h"
+
+#define HAVE_VECTOR_SIMD
 
 #ifdef HAVE_VOLK
 #include "volk/volk.h"
@@ -102,6 +105,17 @@ void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 #endif 
 }
 
+void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len) {
+#ifndef HAVE_VECTOR_SIMD
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]-y[i];
+  }
+#else
+  srslte_vec_sub_sss_simd(x, y, z, len);
+#endif
+}
+
 void srslte_vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
   return srslte_vec_sub_fff((float*) x,(float*) y,(float*) z, 2*len);
 }
@@ -114,6 +128,17 @@ void srslte_vec_sum_fff(float *x, float *y, float *z, uint32_t len) {
   }
 #else
   volk_32f_x2_add_32f(z,x,y,len);
+#endif
+}
+
+void srslte_vec_sum_sss(short *x, short *y, short *z, uint32_t len) {
+#ifndef HAVE_VECTOR_SIMD
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]+y[i];
+  }
+#else
+  srslte_vec_sum_sss_simd(x, y, z, len);
 #endif
 }
 
@@ -157,6 +182,25 @@ void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
   }
 #else
   volk_32f_s32f_multiply_32f(z,x,h,len);
+#endif
+}
+
+void srslte_vec_sc_prod_sfs(short *x, float h, short *z, uint32_t len) {
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]*h;
+  }
+}
+
+void srslte_vec_sc_div2_sss(short *x, int n_rightshift, short *z, uint32_t len) {
+#ifndef HAVE_VECTOR_SIMD
+  int i;
+  int pow2_div = 1<<n_rightshift;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]/pow2_div;
+  }
+#else
+  srslte_vec_sc_div2_sss_simd(x, n_rightshift, z, len);
 #endif
 }
 
@@ -205,6 +249,18 @@ void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
     z[i] = (int16_t) (x[i]*scale);
   }
 #endif
+}
+
+void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len) {
+  for (int i=0;i<len;i++) {
+    y[i] = x[lut[i]];
+  }
+}
+
+void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len) {
+  for (int i=0;i<len;i++) {
+    y[i] = x[lut[i]];
+  }
 }
 
 void srslte_vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len) {
@@ -308,6 +364,15 @@ void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len) {
 }
 
 void srslte_vec_fprint_i(FILE *stream, int *x, uint32_t len) {
+  int i;
+  fprintf(stream, "[");
+  for (i=0;i<len;i++) {
+    fprintf(stream, "%d, ", x[i]);
+  }
+  fprintf(stream, "];\n");
+}
+
+void srslte_vec_fprint_s(FILE *stream, short *x, uint32_t len) {
   int i;
   fprintf(stream, "[");
   for (i=0;i<len;i++) {
