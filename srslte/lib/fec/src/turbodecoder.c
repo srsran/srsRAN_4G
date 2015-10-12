@@ -207,7 +207,7 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
   __m128i gv; 
   __m128i *gPtr = (__m128i*) s->branch;
   __m128i g, ap, an; 
-  
+    
   __m128i alpha_k = _mm_set_epi16(-INF, -INF, -INF, -INF, -INF, -INF, -INF, 0);
   
 #define ALPHA_STEP(c)  g = _mm_shuffle_epi8(gv, shuf_g[c]); \
@@ -564,13 +564,13 @@ void srslte_tdec_iteration(srslte_tdec_t * h, float * input, uint32_t long_cb)
     }
     
     // Interleave extrinsic output of DEC1 to form apriori info for decoder 2
-    srslte_vec_lut_sss(h->ext1, inter, h->app2, long_cb);
+    srslte_vec_lut_sss(h->ext1, deinter, h->app2, long_cb);
 
     // Run MAP DEC #2. 2nd decoder uses apriori information as systematic bits
     srslte_map_gen_dec(&h->dec, h->app2, NULL, h->parity1, h->ext2, long_cb);
 
     // Deinterleaved extrinsic bits become apriori info for decoder 1 
-    srslte_vec_lut_sss(h->ext2, deinter, h->app1, long_cb);
+    srslte_vec_lut_sss(h->ext2, inter, h->app1, long_cb);
     
     h->n_iter++;
   } else {
@@ -626,14 +626,14 @@ void srslte_tdec_decision_byte(srslte_tdec_t * h, uint8_t *output, uint32_t long
   
   // long_cb is always byte aligned
   for (uint32_t i = 0; i < long_cb/8; i++) {
-    uint8_t out0 = h->app1[i+0]>0?mask[0]:0;
-    uint8_t out1 = h->app1[i+1]>0?mask[1]:0;
-    uint8_t out2 = h->app1[i+2]>0?mask[2]:0;
-    uint8_t out3 = h->app1[i+3]>0?mask[3]:0;
-    uint8_t out4 = h->app1[i+4]>0?mask[4]:0;
-    uint8_t out5 = h->app1[i+5]>0?mask[5]:0;
-    uint8_t out6 = h->app1[i+6]>0?mask[6]:0;
-    uint8_t out7 = h->app1[i+7]>0?mask[7]:0;
+    uint8_t out0 = h->app1[8*i+0]>0?mask[0]:0;
+    uint8_t out1 = h->app1[8*i+1]>0?mask[1]:0;
+    uint8_t out2 = h->app1[8*i+2]>0?mask[2]:0;
+    uint8_t out3 = h->app1[8*i+3]>0?mask[3]:0;
+    uint8_t out4 = h->app1[8*i+4]>0?mask[4]:0;
+    uint8_t out5 = h->app1[8*i+5]>0?mask[5]:0;
+    uint8_t out6 = h->app1[8*i+6]>0?mask[6]:0;
+    uint8_t out7 = h->app1[8*i+7]>0?mask[7]:0;
     
     output[i] = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7; 
   }
@@ -650,7 +650,7 @@ int srslte_tdec_run_all(srslte_tdec_t * h, float * input, uint8_t *output,
     srslte_tdec_iteration(h, input, long_cb);
   } while (h->n_iter < nof_iterations);
 
-  srslte_tdec_decision(h, output, long_cb);
+  srslte_tdec_decision_byte(h, output, long_cb);
   
   return SRSLTE_SUCCESS;
 }

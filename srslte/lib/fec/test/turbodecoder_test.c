@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   uint32_t frame_cnt;
   float *llr;
   uint8_t *llr_c;
-  uint8_t *data_tx, *data_rx, *symbols;
+  uint8_t *data_tx, *data_rx, *data_rx_bytes, *symbols;
   uint32_t i, j;
   float var[SNR_POINTS];
   uint32_t snr_points;
@@ -154,6 +154,11 @@ int main(int argc, char **argv) {
 
   data_rx = srslte_vec_malloc(frame_length * sizeof(uint8_t));
   if (!data_rx) {
+    perror("malloc");
+    exit(-1);
+  }
+  data_rx_bytes = srslte_vec_malloc(frame_length * sizeof(uint8_t));
+  if (!data_rx_bytes) {
     perror("malloc");
     exit(-1);
   }
@@ -248,12 +253,14 @@ int main(int argc, char **argv) {
 
       gettimeofday(&tdata[1], NULL); 
       for (int k=0;k<nof_repetitions;k++) {     
-        srslte_tdec_run_all(&tdec, llr, data_rx, t, frame_length);        
+        srslte_tdec_run_all(&tdec, llr, data_rx_bytes, t, frame_length);        
       }
       gettimeofday(&tdata[2], NULL);
       get_time_interval(tdata);
       mean_usec = (float) mean_usec * 0.9 + (float) (tdata[0].tv_usec/nof_repetitions) * 0.1;
       
+      srslte_bit_unpack_vector(data_rx_bytes, data_rx, frame_length);
+
       errors += srslte_bit_diff(data_tx, data_rx, frame_length);
       
       gettimeofday(&tdata[1], NULL); 

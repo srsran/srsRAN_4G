@@ -135,3 +135,82 @@ void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
   }
 }
 
+void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t len)
+{
+  unsigned int number = 0;
+  const unsigned int points = len / 8;
+
+  const __m128i* xPtr = (const __m128i*) x;
+  const __m128i* lutPtr = (__m128i*) lut;
+
+  __m128i xVal, lutVal;
+  for(;number < points; number++){
+
+    xVal   = _mm_load_si128(xPtr);
+    lutVal = _mm_load_si128(lutPtr);
+    
+    for (int i=0;i<8;i++) {
+      uint16_t x = (uint16_t) _mm_extract_epi16(xVal, i); 
+      uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, i);
+      y[l] = x;
+    }
+    xPtr ++;
+    lutPtr ++;
+  }
+
+  number = points * 8;
+  for(;number < len; number++){
+    y[lut[number]] = x[number];
+  }
+  
+}
+
+/* Modified from volk_32f_s32f_convert_16i_a_sse2. Removed clipping */
+void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
+{
+    unsigned int number = 0;
+
+  const unsigned int eighthPoints = len / 8;
+
+  const float* inputVectorPtr = (const float*)x;
+  int16_t* outputVectorPtr = z;
+
+  float min_val = -32768;
+  float max_val = 32767;
+  float r;
+
+  __m128 vScalar = _mm_set_ps1(scale);
+  __m128 inputVal1, inputVal2;
+  __m128i intInputVal1, intInputVal2;
+  __m128 ret1, ret2;
+  __m128 vmin_val = _mm_set_ps1(min_val);
+  __m128 vmax_val = _mm_set_ps1(max_val);
+
+  for(;number < eighthPoints; number++){
+    inputVal1 = _mm_load_ps(inputVectorPtr); inputVectorPtr += 4;
+    inputVal2 = _mm_load_ps(inputVectorPtr); inputVectorPtr += 4;
+
+    // Scale and clip
+    ret1 = _mm_mul_ps(inputVal1, vScalar);
+    ret2 = _mm_mul_ps(inputVal2, vScalar);
+
+    intInputVal1 = _mm_cvtps_epi32(ret1);
+    intInputVal2 = _mm_cvtps_epi32(ret2);
+
+    intInputVal1 = _mm_packs_epi32(intInputVal1, intInputVal2);
+
+    _mm_store_si128((__m128i*)outputVectorPtr, intInputVal1);
+    outputVectorPtr += 8;
+  }
+
+  number = eighthPoints * 8;
+  for(; number < num_points; number++){
+    r = inputVector[number] * scalar;
+    if(r > max_val)
+      r = max_val;
+    else if(r < min_val)
+      r = min_val;
+    outputVector[number] = (int16_t)rintf(r);
+  }
+
+}

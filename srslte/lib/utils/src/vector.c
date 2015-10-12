@@ -241,26 +241,30 @@ void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
 }
 
 void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
-#ifdef HAVE_VOLK_CONVERT_FI_FUNCTION
-  volk_32f_s32f_convert_16i(z, x, scale, len);
-#else 
+#ifndef HAVE_VECTOR_SIMD
   int i;
   for (i=0;i<len;i++) {
     z[i] = (int16_t) (x[i]*scale);
   }
+#else 
+  srslte_vec_convert_fi_simd(x, z, scale, len);
 #endif
 }
 
 void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len) {
   for (int i=0;i<len;i++) {
-    y[i] = x[lut[i]];
+    y[lut[i]] = x[i];
   }
 }
 
 void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len) {
+#ifndef HAVE_VECTOR_SIMD
   for (int i=0;i<len;i++) {
-    y[i] = x[lut[i]];
+    y[lut[i]] = x[i];
   }
+#else
+  srslte_vec_lut_sss_simd(x, lut, y, len);
+#endif
 }
 
 void srslte_vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len) {
