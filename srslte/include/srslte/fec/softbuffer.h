@@ -42,7 +42,7 @@
 
 typedef struct SRSLTE_API {
   uint32_t max_cb;
-  float **buffer_f;  
+  int16_t **buffer_f;  
 } srslte_softbuffer_rx_t;
 
 typedef struct SRSLTE_API {

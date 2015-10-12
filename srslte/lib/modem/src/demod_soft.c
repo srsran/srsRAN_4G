@@ -58,7 +58,6 @@ void demod_bpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
 }
 
 void demod_qpsk_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
-  srslte_vec_fprint_f(stdout, (float*) symbols, nsymbols*2);
   srslte_vec_convert_fi((float*) symbols, llr, -SCALE_SHORT_CONV*sqrt(2), nsymbols*2);
 }
 

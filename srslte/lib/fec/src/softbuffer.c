@@ -36,7 +36,7 @@
 
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/ra.h"
-#include "srslte/fec/turbodecoder.h"
+#include "srslte/fec/turbodecoder_gen.h"
 #include "srslte/fec/rm_turbo.h"
 #include "srslte/fec/softbuffer.h"
 #include "srslte/utils/vector.h"

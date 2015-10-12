@@ -36,7 +36,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include "srslte/srslte.h"
-#include "srslte/fec/turbodecoder_vl.h"
 
 #include "turbodecoder_test.h"
 
@@ -119,12 +118,12 @@ int main(int argc, char **argv) {
   float var[SNR_POINTS];
   uint32_t snr_points;
   uint32_t errors;
-  uint32_t errors_vl;
+  uint32_t errors_gen;
   uint32_t coded_length;
   struct timeval tdata[3];
-  float mean_usec, mean_usec_vl;
-  srslte_tdec_t tdec;
-  srslte_tdec_vl_t tdec_vl;
+  float mean_usec, mean_usec_gen;
+  srslte_tdec_sse_t tdec;
+  srslte_tdec_gen_t tdec_gen;
   srslte_tcod_t tcod;
   
   parse_args(argc, argv);
@@ -190,12 +189,12 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_tdec_init(&tdec, frame_length)) {
+  if (srslte_tdec_sse_init(&tdec, frame_length)) {
     fprintf(stderr, "Error initiating Turbo decoder\n");
     exit(-1);
   }
 
-  if (srslte_tdec_vl_init(&tdec_vl, frame_length)) {
+  if (srslte_tdec_gen_init(&tdec_gen, frame_length)) {
     fprintf(stderr, "Error initiating Turbo decoder\n");
     exit(-1);
   }
@@ -217,9 +216,9 @@ int main(int argc, char **argv) {
   for (i = 0; i < snr_points; i++) {
 
     mean_usec = 0;
-    mean_usec_vl = 0;
+    mean_usec_gen = 0;
     errors = 0; 
-    errors_vl = 0; 
+    errors_gen = 0; 
     frame_cnt = 0;
     while (frame_cnt < nof_frames) {
       /* generate data_tx */
@@ -250,8 +249,8 @@ int main(int argc, char **argv) {
         llr_s[j] = (int16_t) (100*llr[j]);
       }
       /* decoder */
-      srslte_tdec_reset(&tdec, frame_length);
-      srslte_tdec_vl_reset(&tdec_vl, frame_length);
+      srslte_tdec_sse_reset(&tdec, frame_length);
+      srslte_tdec_gen_reset(&tdec_gen, frame_length);
 
       uint32_t t;
       if (nof_iterations == -1) {
@@ -262,7 +261,7 @@ int main(int argc, char **argv) {
 
       gettimeofday(&tdata[1], NULL); 
       for (int k=0;k<nof_repetitions;k++) {     
-        srslte_tdec_run_all(&tdec, llr_s, data_rx_bytes, t, frame_length);        
+        srslte_tdec_sse_run_all(&tdec, llr_s, data_rx_bytes, t, frame_length);        
       }
       gettimeofday(&tdata[2], NULL);
       get_time_interval(tdata);
@@ -274,21 +273,21 @@ int main(int argc, char **argv) {
 
       gettimeofday(&tdata[1], NULL); 
       for (int k=0;k<nof_repetitions;k++) {     
-        srslte_tdec_vl_run_all(&tdec_vl, llr, data_rx, t, frame_length);
+        srslte_tdec_gen_run_all(&tdec_gen, llr, data_rx, t, frame_length);
       }
       gettimeofday(&tdata[2], NULL);
       get_time_interval(tdata);
-      mean_usec_vl = (float) mean_usec_vl * 0.9 + (float) (tdata[0].tv_usec/nof_repetitions) * 0.1;
+      mean_usec_gen = (float) mean_usec_gen * 0.9 + (float) (tdata[0].tv_usec/nof_repetitions) * 0.1;
 
       /* check errors */
-      errors_vl += srslte_bit_diff(data_tx, data_rx, frame_length);
+      errors_gen += srslte_bit_diff(data_tx, data_rx, frame_length);
       
       frame_cnt++;
       printf("Eb/No: %2.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
       printf("BER: %.2e  ", (float) errors / (frame_cnt * frame_length));
-      printf("BER_vl: %.2e  ", (float) errors_vl / (frame_cnt * frame_length));
-      printf("%3.1f Mbps (%6.2f usec) -- vl: ", (float) frame_length / mean_usec, mean_usec);
-      printf("%3.1f Mbps (%6.2f usec)", (float) frame_length / mean_usec_vl, mean_usec_vl);
+      printf("BER_gen: %.2e  ", (float) errors_gen / (frame_cnt * frame_length));
+      printf("%3.1f Mbps (%6.2f usec) -- gen: ", (float) frame_length / mean_usec, mean_usec);
+      printf("%3.1f Mbps (%6.2f usec)", (float) frame_length / mean_usec_gen, mean_usec_gen);
       printf("\r");
 
     }    
@@ -298,10 +297,10 @@ int main(int argc, char **argv) {
   printf("\n");
   if (snr_points == 1) {
     if (errors) {
-      printf("%d Errors\n", errors);
+      printf("%d Errors in SSE\n", errors);
     }
-    if (errors_vl) {
-      printf("%d Errors in VL\n", errors_vl);
+    if (errors_gen) {
+      printf("%d Errors in GEN\n", errors_gen);
     }
   }    
 
@@ -312,7 +311,8 @@ int main(int argc, char **argv) {
   free(llr_c);
   free(data_rx);
 
-  srslte_tdec_free(&tdec);
+  srslte_tdec_sse_free(&tdec);
+  srslte_tdec_gen_free(&tdec_gen);
   srslte_tcod_free(&tcod);
 
   printf("\n");

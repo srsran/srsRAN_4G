@@ -229,8 +229,8 @@ int srslte_pdsch_init(srslte_pdsch_t *q, srslte_cell_t cell) {
     
     q->rnti_is_set = false; 
 
-    // Allocate floats for reception (LLRs)
-    q->e = srslte_vec_malloc(sizeof(float) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
+    // Allocate int16_t for reception (LLRs)
+    q->e = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
     if (!q->e) {
       goto clean;
     }
@@ -417,7 +417,7 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
     * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
     * thus we don't need tot set it in the LLRs normalization
     */
-    srslte_demod_soft_demodulate(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
+    srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
 
     /* descramble */
     if (rnti != q->rnti) {
@@ -425,10 +425,10 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
       if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_f_offset(&seq, q->e, 0, cfg->nbits.nof_bits);      
+      srslte_scrambling_s_offset(&seq, q->e, 0, cfg->nbits.nof_bits);      
       srslte_sequence_free(&seq);
     } else {    
-      srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->e, 0, cfg->nbits.nof_bits);      
+      srslte_scrambling_s_offset(&q->seq[cfg->sf_idx], q->e, 0, cfg->nbits.nof_bits);      
     }
 
     return srslte_dlsch_decode(&q->dl_sch, cfg, softbuffer, q->e, data);      

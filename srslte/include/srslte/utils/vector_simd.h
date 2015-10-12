@@ -41,6 +41,8 @@ SRSLTE_API void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t l
 
 SRSLTE_API void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len); 
 
+SRSLTE_API void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len); 
+
 SRSLTE_API void srslte_vec_sc_div2_sss_simd(short *x, int n_rightshift, short *z, uint32_t len); 
 
 SRSLTE_API void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t len); 

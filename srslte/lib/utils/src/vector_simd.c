@@ -107,6 +107,36 @@ void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len)
   }
 }
 
+void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len)
+{
+  unsigned int number = 0;
+  const unsigned int points = len / 8;
+
+  const __m128i* xPtr = (const __m128i*) x;
+  const __m128i* yPtr = (const __m128i*) y;
+  __m128i* zPtr = (__m128i*) z;
+
+  __m128i xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_load_si128(xPtr);
+    yVal = _mm_load_si128(yPtr);
+
+    zVal = _mm_mullo_epi16(xVal, yVal);
+
+    _mm_store_si128(zPtr, zVal); 
+
+    xPtr ++;
+    yPtr ++;
+    zPtr ++;
+  }
+
+  number = points * 8;
+  for(;number < len; number++){
+    z[number] = x[number] * y[number];
+  }
+}
+
 void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
 {
   unsigned int number = 0;
@@ -189,9 +219,6 @@ void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
 
     intInputVal1 = _mm_cvtps_epi32(ret1);
     intInputVal2 = _mm_cvtps_epi32(ret2);
-
-    printf("intinput: "); print128_num(intInputVal1);
-    printf("intinput2: "); print128_num(intInputVal2);
 
     intInputVal1 = _mm_packs_epi32(intInputVal1, intInputVal2);
 

@@ -130,6 +130,7 @@ SRSLTE_API void srslte_vec_prod_conj_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len
 
 /* real vector product (element-wise) */
 SRSLTE_API void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len);
+SRSLTE_API void srslte_vec_prod_sss(short *x, short *y, short *z, uint32_t len);
 
 /* Dot-product */
 SRSLTE_API cf_t srslte_vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len);

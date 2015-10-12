@@ -50,7 +50,7 @@ uint8_t bits[3*6144+12];
 uint8_t buff_b[BUFFSZ];
 float buff_f[BUFFSZ];
 float bits_f[3*6144+12];
-float bits2_f[3*6144+12];
+short bits2_s[3*6144+12];
 
 void usage(char *prog) {
   printf("Usage: %s -c cb_idx -e nof_e_bits [-i rv_idx]\n", prog);
@@ -84,18 +84,24 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int i;
   uint8_t *rm_bits, *rm_bits2, *rm_bits2_bytes;
+  short *rm_bits_s; 
   float *rm_bits_f; 
   
   parse_args(argc, argv);
   
   srslte_rm_turbo_gentables();
 
-  rm_bits_f = malloc(sizeof(float) * nof_e_bits);
+  rm_bits_s = srslte_vec_malloc(sizeof(short) * nof_e_bits);
+  if (!rm_bits_s) {
+    perror("malloc");
+    exit(-1);
+  }
+  rm_bits_f = srslte_vec_malloc(sizeof(float) * nof_e_bits);
   if (!rm_bits_f) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits = malloc(sizeof(uint8_t) * nof_e_bits);
+  rm_bits = srslte_vec_malloc(sizeof(uint8_t) * nof_e_bits);
   if (!rm_bits) {
     perror("malloc");
     exit(-1);
@@ -171,18 +177,18 @@ int main(int argc, char **argv) {
       
       for (int i=0;i<nof_e_bits;i++) {
         rm_bits_f[i] = rand()%10-5;
+        rm_bits_s[i] = (short) rm_bits_f[i];
       }
 
       bzero(buff_f, BUFFSZ*sizeof(float));
-
       srslte_rm_turbo_rx(buff_f, BUFFSZ, rm_bits_f, nof_e_bits, bits_f, long_cb_enc, rv_idx, 0);
-      
-      bzero(bits2_f, long_cb_enc*sizeof(float));
-      srslte_rm_turbo_rx_lut(rm_bits_f, bits2_f, nof_e_bits, cb_idx, rv_idx);
+
+      bzero(bits2_s, long_cb_enc*sizeof(short));
+      srslte_rm_turbo_rx_lut(rm_bits_s, bits2_s, nof_e_bits, cb_idx, rv_idx);
       
       for (int i=0;i<long_cb_enc;i++) {
-        if (bits_f[i] != bits2_f[i]) {
-          printf("error RX in bit %d %f!=%f\n", i, bits_f[i], bits2_f[i]);
+        if (bits_f[i] != bits2_s[i]) {
+          printf("error RX in bit %d %f!=%d\n", i, bits_f[i], bits2_s[i]);
           exit(-1);
         }
       }

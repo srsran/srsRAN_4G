@@ -457,6 +457,17 @@ void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len) {
 #endif
 }
 
+void srslte_vec_prod_sss(short *x, short *y, short *z, uint32_t len) {
+#ifndef HAVE_VECTOR_SIMD
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = x[i]*y[i];
+  }
+#else
+  srslte_vec_prod_sss_simd(x,y,z,len);
+#endif
+}
+
 void srslte_vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT2_FUNCTION
   int i;

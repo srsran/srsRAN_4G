@@ -28,7 +28,7 @@
 #include <strings.h>
 #include <math.h>
 
-#include "srslte/fec/turbodecoder.h"
+#include "srslte/fec/turbodecoder_gen.h"
 #include "srslte/fec/cbsegm.h"
 #include "srslte/utils/debug.h"
 

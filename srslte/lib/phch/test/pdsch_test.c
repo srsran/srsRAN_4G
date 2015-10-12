@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
     }
   }
   
-  data = malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
+  data = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
   if (!data) {
     perror("malloc");
     goto quit;

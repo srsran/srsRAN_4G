@@ -85,6 +85,7 @@ int srslte_sequence_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed) {
   srslte_bit_pack_vector(q->c, q->c_bytes, len);
   for (int i=0;i<len;i++) {
     q->c_float[i] = (1-2*q->c[i]);
+    q->c_short[i] = (int16_t) q->c_float[i];
   }
   return SRSLTE_SUCCESS;
 }
@@ -98,18 +99,25 @@ int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
     if (q->c_float) {
       free(q->c_float);
     }
+    if (q->c_short) {
+      free(q->c_short);
+    }
   }
   if (!q->c) {
     q->c = srslte_vec_malloc(len * sizeof(uint8_t));
     if (!q->c) {
       return SRSLTE_ERROR;
     }
-    q->c_bytes = srslte_vec_malloc(len * sizeof(uint8_t)/8);
+    q->c_bytes = srslte_vec_malloc(len * sizeof(uint8_t)/8+8);
     if (!q->c_bytes) {
       return SRSLTE_ERROR;
     }
     q->c_float = srslte_vec_malloc(len * sizeof(float));
     if (!q->c_float) {
+      return SRSLTE_ERROR;
+    }
+    q->c_short = srslte_vec_malloc(len * sizeof(short));
+    if (!q->c_short) {
       return SRSLTE_ERROR;
     }
     q->len = len;

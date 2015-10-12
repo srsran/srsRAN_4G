@@ -272,7 +272,7 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
   }
 }
 
-int srslte_rm_turbo_rx_lut(float *input, float *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
+int srslte_rm_turbo_rx_lut(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
 {
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
     uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;

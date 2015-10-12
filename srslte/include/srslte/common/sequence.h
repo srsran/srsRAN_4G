@@ -44,6 +44,7 @@ typedef struct SRSLTE_API {
   uint8_t *c;
   uint8_t *c_bytes;
   float *c_float;
+  short *c_short;
   uint32_t len;
 } srslte_sequence_t;
 

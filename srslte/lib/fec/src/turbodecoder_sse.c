@@ -32,7 +32,7 @@
 #include <strings.h>
 #include <math.h>
 
-#include "srslte/fec/turbodecoder.h"
+#include "srslte/fec/turbodecoder_sse.h"
 #include "srslte/utils/vector.h"
 
 #include <inttypes.h>
@@ -62,7 +62,7 @@ static inline int16_t hMax(__m128i buffer)
     return (int16_t)(_mm_cvtsi128_si32(tmp3));
 }
 
-void srslte_map_gen_beta(srslte_map_gen_t * s, llr_t * output, uint32_t long_cb)
+void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_cb)
 {
   int k;
   uint32_t end = long_cb + 3;
@@ -101,7 +101,7 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, llr_t * output, uint32_t long_cb)
   shuf_g[1] = _mm_set_epi8(11,10,9,8,9,8,11,10,11,10,9,8,9,8,11,10);
   shuf_g[0] = _mm_set_epi8(15,14,13,12,13,12,15,14,15,14,13,12,13,12,15,14);
   __m128i gv;
-  llr_t *b = &s->branch[2*long_cb-8];
+  int16_t *b = &s->branch[2*long_cb-8];
   __m128i *gPtr = (__m128i*) b;
   __m128i shuf_norm = _mm_set_epi8(1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0);
   
@@ -119,8 +119,8 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, llr_t * output, uint32_t long_cb)
     bn = _mm_add_epi16(bn, alpha_k); output[k-d] = hMax(bn) - hMax(bp);
   
   for (k=end-1; k>=long_cb; k--) {
-    llr_t g0 = s->branch[2*k];
-    llr_t g1 = s->branch[2*k+1];
+    int16_t g0 = s->branch[2*k];
+    int16_t g1 = s->branch[2*k+1];
     g = _mm_set_epi16(g1, g0, g0, g1, g1, g0, g0, g1);
   
     BETA_STEP(g);
@@ -147,7 +147,7 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, llr_t * output, uint32_t long_cb)
 void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
 {
   uint32_t k;
-  llr_t *alpha = s->alpha;
+  int16_t *alpha = s->alpha;
   uint32_t i;
 
   alpha[0] = 0; 
@@ -221,7 +221,7 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
   }  
 }
 
-void srslte_map_gen_gamma(srslte_map_gen_t * h, llr_t *input, llr_t *app, llr_t *parity, uint32_t long_cb) 
+void srslte_map_gen_gamma(srslte_map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t long_cb) 
 {
   __m128i res10, res20, res11, res21, res1, res2; 
   __m128i in, ap, pa, g1, g0;
@@ -278,12 +278,12 @@ void srslte_map_gen_gamma(srslte_map_gen_t * h, llr_t *input, llr_t *app, llr_t 
 int srslte_map_gen_init(srslte_map_gen_t * h, int max_long_cb)
 {
   bzero(h, sizeof(srslte_map_gen_t));
-  h->alpha = srslte_vec_malloc(sizeof(llr_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES);
+  h->alpha = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES);
   if (!h->alpha) {
     perror("srslte_vec_malloc");
     return -1;
   }
-  h->branch = srslte_vec_malloc(sizeof(llr_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES);
+  h->branch = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES);
   if (!h->branch) {
     perror("srslte_vec_malloc");
     return -1;
@@ -303,7 +303,7 @@ void srslte_map_gen_free(srslte_map_gen_t * h)
   bzero(h, sizeof(srslte_map_gen_t));
 }
 
-void srslte_map_gen_dec(srslte_map_gen_t * h, llr_t * input, llr_t *app, llr_t * parity, llr_t * output,
+void srslte_map_gen_dec(srslte_map_gen_t * h, int16_t * input, int16_t *app, int16_t * parity, int16_t * output,
                  uint32_t long_cb)
 {
  
@@ -323,45 +323,45 @@ void srslte_map_gen_dec(srslte_map_gen_t * h, llr_t * input, llr_t *app, llr_t *
  *  TURBO DECODER INTERFACE
  *
  ************************************************/
-int srslte_tdec_init(srslte_tdec_t * h, uint32_t max_long_cb)
+int srslte_tdec_sse_init(srslte_tdec_sse_t * h, uint32_t max_long_cb)
 {
   int ret = -1;
-  bzero(h, sizeof(srslte_tdec_t));
+  bzero(h, sizeof(srslte_tdec_sse_t));
   uint32_t len = max_long_cb + SRSLTE_TCOD_TOTALTAIL;
 
   h->max_long_cb = max_long_cb;
 
-  h->app1 = srslte_vec_malloc(sizeof(llr_t) * len);
+  h->app1 = srslte_vec_malloc(sizeof(int16_t) * len);
   if (!h->app1) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->app2 = srslte_vec_malloc(sizeof(llr_t) * len);
+  h->app2 = srslte_vec_malloc(sizeof(int16_t) * len);
   if (!h->app2) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->ext1 = srslte_vec_malloc(sizeof(llr_t) * len);
+  h->ext1 = srslte_vec_malloc(sizeof(int16_t) * len);
   if (!h->ext1) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->ext2 = srslte_vec_malloc(sizeof(llr_t) * len);
+  h->ext2 = srslte_vec_malloc(sizeof(int16_t) * len);
   if (!h->ext2) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->syst = srslte_vec_malloc(sizeof(llr_t) * len);
+  h->syst = srslte_vec_malloc(sizeof(int16_t) * len);
   if (!h->syst) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->parity0 = srslte_vec_malloc(sizeof(llr_t) * len);
+  h->parity0 = srslte_vec_malloc(sizeof(int16_t) * len);
   if (!h->parity0) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->parity1 = srslte_vec_malloc(sizeof(llr_t) * len);
+  h->parity1 = srslte_vec_malloc(sizeof(int16_t) * len);
   if (!h->parity1) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
@@ -380,12 +380,12 @@ int srslte_tdec_init(srslte_tdec_t * h, uint32_t max_long_cb)
   h->current_cbidx = -1; 
   ret = 0;
 clean_and_exit:if (ret == -1) {
-    srslte_tdec_free(h);
+    srslte_tdec_sse_free(h);
   }
   return ret;
 }
 
-void srslte_tdec_free(srslte_tdec_t * h)
+void srslte_tdec_sse_free(srslte_tdec_sse_t * h)
 {
   if (h->app1) {
     free(h->app1);
@@ -415,10 +415,10 @@ void srslte_tdec_free(srslte_tdec_t * h)
     srslte_tc_interl_free(&h->interleaver[i]);    
   }
 
-  bzero(h, sizeof(srslte_tdec_t));
+  bzero(h, sizeof(srslte_tdec_sse_t));
 }
 
-void deinterleave_input(srslte_tdec_t *h, short *input, uint32_t long_cb) {
+void deinterleave_input(srslte_tdec_sse_t *h, int16_t *input, uint32_t long_cb) {
   uint32_t i;
  
   __m128i *inputPtr = (__m128i*) input; 
@@ -502,7 +502,7 @@ void deinterleave_input(srslte_tdec_t *h, short *input, uint32_t long_cb) {
 
 }
 
-void srslte_tdec_iteration(srslte_tdec_t * h, short * input, uint32_t long_cb)
+void srslte_tdec_sse_iteration(srslte_tdec_sse_t * h, int16_t * input, uint32_t long_cb)
 {
 
   if (h->current_cbidx >= 0) {
@@ -541,11 +541,11 @@ void srslte_tdec_iteration(srslte_tdec_t * h, short * input, uint32_t long_cb)
     
     h->n_iter++;
   } else {
-    fprintf(stderr, "Error CB index not set (call srslte_tdec_reset() first\n");    
+    fprintf(stderr, "Error CB index not set (call srslte_tdec_sse_reset() first\n");    
   }
 }
 
-int srslte_tdec_reset(srslte_tdec_t * h, uint32_t long_cb)
+int srslte_tdec_sse_reset(srslte_tdec_sse_t * h, uint32_t long_cb)
 {
   if (long_cb > h->max_long_cb) {
     fprintf(stderr, "TDEC was initialized for max_long_cb=%d\n",
@@ -561,7 +561,7 @@ int srslte_tdec_reset(srslte_tdec_t * h, uint32_t long_cb)
   return 0;
 }
 
-void srslte_tdec_decision(srslte_tdec_t * h, uint8_t *output, uint32_t long_cb)
+void srslte_tdec_sse_decision(srslte_tdec_sse_t * h, uint8_t *output, uint32_t long_cb)
 {
   __m128i zero     = _mm_set1_epi16(0);
   __m128i lsb_mask = _mm_set1_epi16(1);
@@ -587,7 +587,7 @@ void srslte_tdec_decision(srslte_tdec_t * h, uint8_t *output, uint32_t long_cb)
   }
 }
 
-void srslte_tdec_decision_byte(srslte_tdec_t * h, uint8_t *output, uint32_t long_cb)
+void srslte_tdec_sse_decision_byte(srslte_tdec_sse_t * h, uint8_t *output, uint32_t long_cb)
 {
   uint8_t mask[8] = {0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
   
@@ -606,18 +606,18 @@ void srslte_tdec_decision_byte(srslte_tdec_t * h, uint8_t *output, uint32_t long
   }
 }
 
-int srslte_tdec_run_all(srslte_tdec_t * h, short * input, uint8_t *output,
+int srslte_tdec_sse_run_all(srslte_tdec_sse_t * h, int16_t * input, uint8_t *output,
                   uint32_t nof_iterations, uint32_t long_cb)
 {
-  if (srslte_tdec_reset(h, long_cb)) {
+  if (srslte_tdec_sse_reset(h, long_cb)) {
     return SRSLTE_ERROR; 
   }
 
   do {
-    srslte_tdec_iteration(h, input, long_cb);
+    srslte_tdec_sse_iteration(h, input, long_cb);
   } while (h->n_iter < nof_iterations);
 
-  srslte_tdec_decision_byte(h, output, long_cb);
+  srslte_tdec_sse_decision_byte(h, output, long_cb);
   
   return SRSLTE_SUCCESS;
 }

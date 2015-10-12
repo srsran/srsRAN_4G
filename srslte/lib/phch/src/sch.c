@@ -109,14 +109,14 @@ int srslte_sch_init(srslte_sch_t *q) {
       fprintf(stderr, "Error initiating Turbo Coder\n");
       goto clean;
     }
-    if (srslte_tdec_init(&q->decoder, SRSLTE_TCOD_MAX_LEN_CB)) {
+    if (srslte_tdec_sse_init(&q->decoder, SRSLTE_TCOD_MAX_LEN_CB)) {
       fprintf(stderr, "Error initiating Turbo Decoder\n");
       goto clean;
     }
 
     srslte_rm_turbo_gentables();
     
-    // Allocate floats for reception (LLRs)
+    // Allocate int16 for reception (LLRs)
     q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * (SRSLTE_TCOD_MAX_LEN_CB+8)/8);
     if (!q->cb_in) {
       goto clean;
@@ -161,7 +161,7 @@ void srslte_sch_free(srslte_sch_t *q) {
   if (q->ul_interleaver) {
     free(q->ul_interleaver);
   }
-  srslte_tdec_free(&q->decoder);
+  srslte_tdec_sse_free(&q->decoder);
   srslte_tcod_free(&q->encoder);
   srslte_uci_cqi_free(&q->uci_cqi);
   bzero(q, sizeof(srslte_sch_t));
@@ -329,7 +329,7 @@ static int encode_tb(srslte_sch_t *q,
 static int decode_tb(srslte_sch_t *q, 
                      srslte_softbuffer_rx_t *softbuffer, srslte_cbsegm_t *cb_segm, 
                      uint32_t Qm, uint32_t rv, uint32_t nof_e_bits, 
-                     float *e_bits, uint8_t *data) 
+                     int16_t *e_bits, uint8_t *data) 
 {
   uint8_t parity[3] = {0, 0, 0};
   uint32_t par_rx, par_tx;
@@ -408,7 +408,7 @@ static int decode_tb(srslte_sch_t *q,
 
       if (SRSLTE_VERBOSE_ISDEBUG()) {
         DEBUG("CB#%d RMOUT: ", i);
-        srslte_vec_fprint_f(stdout, softbuffer->buffer_f[i], 3*cb_len+12);
+        srslte_vec_fprint_s(stdout, softbuffer->buffer_f[i], 3*cb_len+12);
       }
 
       /* Turbo Decoding with CRC-based early stopping */
@@ -418,10 +418,10 @@ static int decode_tb(srslte_sch_t *q,
       srslte_crc_t *crc_ptr; 
       early_stop = false; 
 
-      srslte_tdec_reset(&q->decoder, cb_len);
+      srslte_tdec_sse_reset(&q->decoder, cb_len);
             
       do {
-        srslte_tdec_iteration(&q->decoder, softbuffer->buffer_f[i], cb_len); 
+        srslte_tdec_sse_iteration(&q->decoder, softbuffer->buffer_f[i], cb_len); 
         q->nof_iterations++;
         
         if (cb_segm->C > 1) {
@@ -434,7 +434,7 @@ static int decode_tb(srslte_sch_t *q,
           crc_ptr = &q->crc_tb; 
         }
 
-        srslte_tdec_decision_byte(&q->decoder, q->cb_in, cb_len);
+        srslte_tdec_sse_decision_byte(&q->decoder, q->cb_in, cb_len);
                   
         /* Check Codeblock CRC and stop early if incorrect */
         if (!srslte_crc_checksum_byte(crc_ptr, cb_in_ptr, len_crc)) {
@@ -504,7 +504,7 @@ static int decode_tb(srslte_sch_t *q,
 }
 
 int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
-                        float *e_bits, uint8_t *data) 
+                        int16_t *e_bits, uint8_t *data) 
 {
   return decode_tb(q,                    
                    softbuffer, &cfg->cb_segm, 
@@ -522,7 +522,7 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 }
 
 int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                        float *e_bits, uint8_t *data) 
+                        int16_t *e_bits, uint8_t *data) 
 {
   return decode_tb(q,                    
                    softbuffer, &cfg->cb_segm, 

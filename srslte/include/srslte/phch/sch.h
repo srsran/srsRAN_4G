@@ -40,7 +40,8 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/fec/rm_turbo.h"
 #include "srslte/fec/turbocoder.h"
-#include "srslte/fec/turbodecoder.h"
+#include "srslte/fec/turbodecoder_gen.h"
+#include "srslte/fec/turbodecoder_sse.h"
 #include "srslte/fec/crc.h"
 #include "srslte/phch/pdsch_cfg.h"
 #include "srslte/phch/pusch_cfg.h"
@@ -73,7 +74,7 @@ typedef struct SRSLTE_API {
   uint32_t nof_ri_ack_bits; 
   
   srslte_tcod_t encoder;
-  srslte_tdec_t decoder;  
+  srslte_tdec_sse_t decoder;  
   srslte_crc_t crc_tb;
   srslte_crc_t crc_cb;
   
@@ -99,7 +100,7 @@ SRSLTE_API int srslte_dlsch_encode(srslte_sch_t *q,
 SRSLTE_API int srslte_dlsch_decode(srslte_sch_t *q, 
                                    srslte_pdsch_cfg_t *cfg,
                                    srslte_softbuffer_rx_t *softbuffer,
-                                   float *e_bits, 
+                                   int16_t *e_bits, 
                                    uint8_t *data);
 
 SRSLTE_API int srslte_ulsch_encode(srslte_sch_t *q, 
@@ -120,7 +121,7 @@ SRSLTE_API int srslte_ulsch_uci_encode(srslte_sch_t *q,
 SRSLTE_API int srslte_ulsch_decode(srslte_sch_t *q, 
                                    srslte_pusch_cfg_t *cfg,
                                    srslte_softbuffer_rx_t *softbuffer,
-                                   float *e_bits, 
+                                   int16_t *e_bits, 
                                    uint8_t *data);
 
 SRSLTE_API float srslte_sch_beta_cqi(uint32_t I_cqi); 

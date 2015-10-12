@@ -41,6 +41,15 @@ void srslte_scrambling_f_offset(srslte_sequence_t *s, float *data, int offset, i
   srslte_vec_prod_fff(data, &s->c_float[offset], data, len);
 }
 
+void srslte_scrambling_s(srslte_sequence_t *s, short *data) {
+  srslte_scrambling_s_offset(s, data, 0, s->len);
+}
+
+void srslte_scrambling_s_offset(srslte_sequence_t *s, short *data, int offset, int len) {
+  assert (len + offset <= s->len);
+  srslte_vec_prod_sss(data, &s->c_short[offset], data, len);
+}
+
 void srslte_scrambling_c(srslte_sequence_t *s, cf_t *data) {
   srslte_scrambling_c_offset(s, data, 0, s->len);
 }
