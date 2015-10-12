@@ -33,13 +33,33 @@
 #include "srslte/utils/bit.h"
 #include "srslte/modem/demod_soft.h"
 
+#define HAVE_SIMD
+
+#ifdef HAVE_SIMD
+#include <xmmintrin.h>
+#include <tmmintrin.h>
+#endif
+
+
 //#define SCALE_DEMOD16QAM
 
+#define SCALE_SHORT_CONV 100
+
+void demod_bpsk_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
+  for (int i=0;i<nsymbols;i++) {
+    llr[i] = (short) -SCALE_SHORT_CONV*(crealf(symbols[i]) + cimagf(symbols[i]))/sqrt(2);
+  }
+}
 
 void demod_bpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
   for (int i=0;i<nsymbols;i++) {
     llr[i] = -(crealf(symbols[i]) + cimagf(symbols[i]))/sqrt(2);
   }
+}
+
+void demod_qpsk_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
+  srslte_vec_fprint_f(stdout, (float*) symbols, nsymbols*2);
+  srslte_vec_convert_fi((float*) symbols, llr, -SCALE_SHORT_CONV*sqrt(2), nsymbols*2);
 }
 
 void demod_qpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
@@ -79,6 +99,62 @@ void demod_16qam_lte(const cf_t *symbols, float *llr, int nsymbols) {
   }
 }
 
+void demod_16qam_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
+#ifndef HAVE_SIMD
+  for (int i=0;i<nsymbols;i++) {
+    short yre = (short) (SCALE_SHORT_CONV*crealf(symbols[i]));
+    short yim = (short) (SCALE_SHORT_CONV*cimagf(symbols[i]));
+        
+    llr[4*i+0] = -yre;
+    llr[4*i+1] = -yim;
+    llr[4*i+2] = abs(yre)-2*SCALE_SHORT_CONV/sqrt(10);
+    llr[4*i+3] = abs(yim)-2*SCALE_SHORT_CONV/sqrt(10);    
+  }
+#else
+
+  float *symbolsPtr = (float*) symbols;
+  __m128i *resultPtr = (__m128i*) llr;
+  __m128 symbol1, symbol2; 
+  __m128i symbol_i1, symbol_i2, symbol_i, symbol_abs;
+  __m128i offset = _mm_set1_epi16(2*SCALE_SHORT_CONV/sqrt(10));
+  __m128i result11, result12, result22, result21; 
+  __m128 scale_v = _mm_set1_ps(-SCALE_SHORT_CONV);
+  __m128i shuffle_negated_1 = _mm_set_epi8(0xff,0xff,0xff,0xff,7,6,5,4,0xff,0xff,0xff,0xff,3,2,1,0);
+  __m128i shuffle_negated_2 = _mm_set_epi8(0xff,0xff,0xff,0xff,15,14,13,12,0xff,0xff,0xff,0xff,11,10,9,8);
+  __m128i shuffle_abs_1 = _mm_set_epi8(7,6,5,4,0xff,0xff,0xff,0xff,3,2,1,0,0xff,0xff,0xff,0xff);
+  __m128i shuffle_abs_2 = _mm_set_epi8(15,14,13,12,0xff,0xff,0xff,0xff,11,10,9,8,0xff,0xff,0xff,0xff);
+  for (int i=0;i<nsymbols/4;i++) {
+    symbol1   = _mm_load_ps(symbolsPtr); symbolsPtr+=4;
+    symbol2   = _mm_load_ps(symbolsPtr); symbolsPtr+=4;
+    symbol_i1 = _mm_cvtps_epi32(_mm_mul_ps(symbol1, scale_v));
+    symbol_i2 = _mm_cvtps_epi32(_mm_mul_ps(symbol2, scale_v));
+    symbol_i  = _mm_packs_epi32(symbol_i1, symbol_i2);
+    
+    symbol_abs  = _mm_abs_epi16(symbol_i);
+    symbol_abs  = _mm_sub_epi16(symbol_abs, offset);
+    
+    result11 = _mm_shuffle_epi8(symbol_i, shuffle_negated_1);  
+    result12 = _mm_shuffle_epi8(symbol_abs, shuffle_abs_1);  
+
+    result21 = _mm_shuffle_epi8(symbol_i, shuffle_negated_2);  
+    result22 = _mm_shuffle_epi8(symbol_abs, shuffle_abs_2);  
+
+    _mm_store_si128(resultPtr, _mm_or_si128(result11, result12)); resultPtr++;
+    _mm_store_si128(resultPtr, _mm_or_si128(result21, result22)); resultPtr++;
+  }
+  // Demodulate last symbols 
+  for (int i=4*(nsymbols/4);i<nsymbols;i++) {
+    short yre = (short) (SCALE_SHORT_CONV*crealf(symbols[i]));
+    short yim = (short) (SCALE_SHORT_CONV*cimagf(symbols[i]));
+        
+    llr[4*i+0] = -yre;
+    llr[4*i+1] = -yim;
+    llr[4*i+2] = abs(yre)-2*SCALE_SHORT_CONV/sqrt(10);
+    llr[4*i+3] = abs(yim)-2*SCALE_SHORT_CONV/sqrt(10);    
+  }
+#endif
+}
+
 void demod_64qam_lte(const cf_t *symbols, float *llr, int nsymbols) 
 {
   for (int i=0;i<nsymbols;i++) {
@@ -95,6 +171,83 @@ void demod_64qam_lte(const cf_t *symbols, float *llr, int nsymbols)
   
 }
 
+void demod_64qam_lte_s(const cf_t *symbols, short *llr, int nsymbols) 
+{
+#ifndef HAVE_SIMD
+  for (int i=0;i<nsymbols;i++) {
+    float yre = (short) (SCALE_SHORT_CONV*crealf(symbols[i]));
+    float yim = (short) (SCALE_SHORT_CONV*cimagf(symbols[i]));
+
+    llr[6*i+0] = -yre;
+    llr[6*i+1] = -yim;
+    llr[6*i+2] = abs(yre)-4*SCALE_SHORT_CONV/sqrt(42);
+    llr[6*i+3] = abs(yim)-4*SCALE_SHORT_CONV/sqrt(42);
+    llr[6*i+4] = abs(llr[6*i+2])-2*SCALE_SHORT_CONV/sqrt(42);
+    llr[6*i+5] = abs(llr[6*i+3])-2*SCALE_SHORT_CONV/sqrt(42);        
+  }
+#else
+  float *symbolsPtr = (float*) symbols;
+  __m128i *resultPtr = (__m128i*) llr;
+  __m128 symbol1, symbol2; 
+  __m128i symbol_i1, symbol_i2, symbol_i, symbol_abs, symbol_abs2;
+  __m128i offset1 = _mm_set1_epi16(4*SCALE_SHORT_CONV/sqrt(42));
+  __m128i offset2 = _mm_set1_epi16(2*SCALE_SHORT_CONV/sqrt(42));
+  __m128 scale_v = _mm_set1_ps(-SCALE_SHORT_CONV);
+  __m128i result11, result12, result13, result22, result21,result23, result31, result32, result33; 
+
+  __m128i shuffle_negated_1 = _mm_set_epi8(7,6,5,4,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,3,2,1,0);
+  __m128i shuffle_negated_2 = _mm_set_epi8(0xff,0xff,0xff,0xff,11,10,9,8,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff);
+  __m128i shuffle_negated_3 = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,15,14,13,12,0xff,0xff,0xff,0xff);
+
+  __m128i shuffle_abs_1 = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,3,2,1,0,0xff,0xff,0xff,0xff);
+  __m128i shuffle_abs_2 = _mm_set_epi8(11,10,9,8,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,7,6,5,4);
+  __m128i shuffle_abs_3 = _mm_set_epi8(0xff,0xff,0xff,0xff,15,14,13,12,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff);
+
+  __m128i shuffle_abs2_1 = _mm_set_epi8(0xff,0xff,0xff,0xff,3,2,1,0,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff);
+  __m128i shuffle_abs2_2 = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,7,6,5,4,0xff,0xff,0xff,0xff);
+  __m128i shuffle_abs2_3 = _mm_set_epi8(15,14,13,12,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,11,10,9,8);
+
+  for (int i=0;i<nsymbols/4;i++) {
+    symbol1   = _mm_load_ps(symbolsPtr); symbolsPtr+=4;
+    symbol2   = _mm_load_ps(symbolsPtr); symbolsPtr+=4;
+    symbol_i1 = _mm_cvtps_epi32(_mm_mul_ps(symbol1, scale_v));
+    symbol_i2 = _mm_cvtps_epi32(_mm_mul_ps(symbol2, scale_v));
+    symbol_i  = _mm_packs_epi32(symbol_i1, symbol_i2);
+    
+    symbol_abs  = _mm_abs_epi16(symbol_i);
+    symbol_abs  = _mm_sub_epi16(symbol_abs, offset1);
+    symbol_abs2 = _mm_sub_epi16(_mm_abs_epi16(symbol_abs), offset2);
+    
+    result11 = _mm_shuffle_epi8(symbol_i, shuffle_negated_1);  
+    result12 = _mm_shuffle_epi8(symbol_abs, shuffle_abs_1);  
+    result13 = _mm_shuffle_epi8(symbol_abs2, shuffle_abs2_1);  
+
+    result21 = _mm_shuffle_epi8(symbol_i, shuffle_negated_2);  
+    result22 = _mm_shuffle_epi8(symbol_abs, shuffle_abs_2);  
+    result23 = _mm_shuffle_epi8(symbol_abs2, shuffle_abs2_2);  
+
+    result31 = _mm_shuffle_epi8(symbol_i, shuffle_negated_3);  
+    result32 = _mm_shuffle_epi8(symbol_abs, shuffle_abs_3);  
+    result33 = _mm_shuffle_epi8(symbol_abs2, shuffle_abs2_3);  
+
+    _mm_store_si128(resultPtr, _mm_or_si128(_mm_or_si128(result11, result12),result13)); resultPtr++;
+    _mm_store_si128(resultPtr, _mm_or_si128(_mm_or_si128(result21, result22),result23)); resultPtr++;
+    _mm_store_si128(resultPtr, _mm_or_si128(_mm_or_si128(result31, result32),result33)); resultPtr++;
+  }
+  for (int i=4*(nsymbols/4);i<nsymbols;i++) {
+    float yre = (short) (SCALE_SHORT_CONV*crealf(symbols[i]));
+    float yim = (short) (SCALE_SHORT_CONV*cimagf(symbols[i]));
+
+    llr[6*i+0] = -yre;
+    llr[6*i+1] = -yim;
+    llr[6*i+2] = abs(yre)-4*SCALE_SHORT_CONV/sqrt(42);
+    llr[6*i+3] = abs(yim)-4*SCALE_SHORT_CONV/sqrt(42);
+    llr[6*i+4] = abs(llr[6*i+2])-2*SCALE_SHORT_CONV/sqrt(42);
+    llr[6*i+5] = abs(llr[6*i+3])-2*SCALE_SHORT_CONV/sqrt(42);        
+  }
+#endif
+}
+
 int srslte_demod_soft_demodulate(srslte_mod_t modulation, const cf_t* symbols, float* llr, int nsymbols) {
   switch(modulation) {
     case SRSLTE_MOD_BPSK:
@@ -108,6 +261,27 @@ int srslte_demod_soft_demodulate(srslte_mod_t modulation, const cf_t* symbols, f
       break;
     case SRSLTE_MOD_64QAM:
       demod_64qam_lte(symbols, llr, nsymbols);
+      break;
+    default: 
+      fprintf(stderr, "Invalid modulation %d\n", modulation);
+      return -1; 
+  } 
+  return 0; 
+}
+
+int srslte_demod_soft_demodulate_s(srslte_mod_t modulation, const cf_t* symbols, short* llr, int nsymbols) {
+  switch(modulation) {
+    case SRSLTE_MOD_BPSK:
+      demod_bpsk_lte_s(symbols, llr, nsymbols);
+      break;
+    case SRSLTE_MOD_QPSK:
+      demod_qpsk_lte_s(symbols, llr, nsymbols);
+      break;
+    case SRSLTE_MOD_16QAM:
+      demod_16qam_lte_s(symbols, llr, nsymbols);
+      break;
+    case SRSLTE_MOD_64QAM:
+      demod_64qam_lte_s(symbols, llr, nsymbols);
       break;
     default: 
       fprintf(stderr, "Invalid modulation %d\n", modulation);

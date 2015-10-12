@@ -112,6 +112,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   uint32_t frame_cnt;
   float *llr;
+  short *llr_s;
   uint8_t *llr_c;
   uint8_t *data_tx, *data_rx, *data_rx_bytes, *symbols;
   uint32_t i, j;
@@ -170,6 +171,11 @@ int main(int argc, char **argv) {
   }
   llr = srslte_vec_malloc(coded_length * sizeof(float));
   if (!llr) {
+    perror("malloc");
+    exit(-1);
+  }
+  llr_s = srslte_vec_malloc(coded_length * sizeof(short));
+  if (!llr_s) {
     perror("malloc");
     exit(-1);
   }
@@ -239,7 +245,10 @@ int main(int argc, char **argv) {
       }
 
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);
-      
+
+      for (j=0;j<coded_length;j++) {
+        llr_s[j] = (int16_t) (100*llr[j]);
+      }
       /* decoder */
       srslte_tdec_reset(&tdec, frame_length);
       srslte_tdec_vl_reset(&tdec_vl, frame_length);
@@ -253,7 +262,7 @@ int main(int argc, char **argv) {
 
       gettimeofday(&tdata[1], NULL); 
       for (int k=0;k<nof_repetitions;k++) {     
-        srslte_tdec_run_all(&tdec, llr, data_rx_bytes, t, frame_length);        
+        srslte_tdec_run_all(&tdec, llr_s, data_rx_bytes, t, frame_length);        
       }
       gettimeofday(&tdata[2], NULL);
       get_time_interval(tdata);
@@ -262,7 +271,7 @@ int main(int argc, char **argv) {
       srslte_bit_unpack_vector(data_rx_bytes, data_rx, frame_length);
 
       errors += srslte_bit_diff(data_tx, data_rx, frame_length);
-      
+
       gettimeofday(&tdata[1], NULL); 
       for (int k=0;k<nof_repetitions;k++) {     
         srslte_tdec_vl_run_all(&tdec_vl, llr, data_rx, t, frame_length);

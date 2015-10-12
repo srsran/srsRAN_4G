@@ -84,7 +84,7 @@ SRSLTE_API void srslte_tdec_free(srslte_tdec_t * h);
 SRSLTE_API int srslte_tdec_reset(srslte_tdec_t * h, uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_iteration(srslte_tdec_t * h, 
-                                      float * input, 
+                                      llr_t * input, 
                                       uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_decision(srslte_tdec_t * h, 
@@ -96,7 +96,7 @@ SRSLTE_API void srslte_tdec_decision_byte(srslte_tdec_t * h,
                                           uint32_t long_cb); 
 
 SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h, 
-                                   float * input, 
+                                   llr_t * input, 
                                    uint8_t *output,
                                    uint32_t nof_iterations, 
                                    uint32_t long_cb);

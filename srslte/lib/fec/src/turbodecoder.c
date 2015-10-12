@@ -47,22 +47,6 @@
 
 #define INF 10000
 #define ZERO 0
-#define SCALE 100
-
-static void print128_num(__m128i var)
-{
-    int16_t *val = (int16_t*) &var;//can also use uint32_t instead of 16_t
-    printf("[%d %d %d %d %d %d %d %d]\n", 
-           val[0], val[1], val[2], val[3], val[4], val[5], 
-           val[6], val[7]);
-}
-
-void print128f_num(__m128 var)
-{
-    float *val = (float*) &var;
-    printf("[%f %f %f %f]\n", 
-           val[0], val[1], val[2], val[3]);
-}
 
 
 /************************************************
@@ -434,11 +418,10 @@ void srslte_tdec_free(srslte_tdec_t * h)
   bzero(h, sizeof(srslte_tdec_t));
 }
 
-void deinterleave_input(srslte_tdec_t *h, float *input, uint32_t long_cb) {
+void deinterleave_input(srslte_tdec_t *h, short *input, uint32_t long_cb) {
   uint32_t i;
  
-  float *inputPtr = input; 
-  __m128 inf0, inf1, inf2, inf3, inf4, inf5;
+  __m128i *inputPtr = (__m128i*) input; 
   __m128i in0, in1, in2;
   __m128i s0, s1, s2, s;
   __m128i p00, p01, p02, p0;
@@ -468,30 +451,14 @@ void deinterleave_input(srslte_tdec_t *h, float *input, uint32_t long_cb) {
   __m128i p11_mask = _mm_set_epi8(0xff,0xff,0xff,0xff,0xff,0xff,13,12,7,6,1,0,0xff,0xff,0xff,0xff);
   // pick bits 1, 4, 7 from 3rd word
   __m128i p12_mask = _mm_set_epi8(15,14,9,8,3,2,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff);
-  
-  __m128 vScalar = _mm_set1_ps(SCALE);
-    
+      
   // Split systematic and parity bits
   for (i = 0; i < long_cb/8; i++) {
         
-    inf0 = _mm_load_ps(inputPtr); inputPtr+=4; 
-    inf1 = _mm_load_ps(inputPtr); inputPtr+=4;   
-    inf2 = _mm_load_ps(inputPtr); inputPtr+=4;
-    inf3 = _mm_load_ps(inputPtr); inputPtr+=4;
-    inf4 = _mm_load_ps(inputPtr); inputPtr+=4;
-    inf5 = _mm_load_ps(inputPtr); inputPtr+=4;
-
-    inf0 = _mm_mul_ps(inf0, vScalar);
-    inf1 = _mm_mul_ps(inf1, vScalar);
-    inf2 = _mm_mul_ps(inf2, vScalar);
-    inf3 = _mm_mul_ps(inf3, vScalar);
-    inf4 = _mm_mul_ps(inf4, vScalar);
-    inf5 = _mm_mul_ps(inf5, vScalar);
+    in0 = _mm_load_si128(inputPtr); inputPtr++; 
+    in1 = _mm_load_si128(inputPtr); inputPtr++;   
+    in2 = _mm_load_si128(inputPtr); inputPtr++;
     
-    in0 = _mm_packs_epi32(_mm_cvtps_epi32(inf0), _mm_cvtps_epi32(inf1));
-    in1 = _mm_packs_epi32(_mm_cvtps_epi32(inf2), _mm_cvtps_epi32(inf3));
-    in2 = _mm_packs_epi32(_mm_cvtps_epi32(inf4), _mm_cvtps_epi32(inf5));
-
     /* Deinterleave Systematic bits */
     s0 = _mm_shuffle_epi8(in0, s0_mask);
     s1 = _mm_shuffle_epi8(in1, s1_mask);
@@ -525,17 +492,17 @@ void deinterleave_input(srslte_tdec_t *h, float *input, uint32_t long_cb) {
   }
   
   for (i = 0; i < 3; i++) {
-    h->syst[i+long_cb]    = (llr_t) SCALE*input[3*long_cb + 2*i];
-    h->parity0[i+long_cb] = (llr_t) SCALE*input[3*long_cb + 2*i + 1];
+    h->syst[i+long_cb]    = input[3*long_cb + 2*i];
+    h->parity0[i+long_cb] = input[3*long_cb + 2*i + 1];
   }
   for (i = 0; i < 3; i++) {
-    h->app2[i+long_cb]    = (llr_t) SCALE*input[3*long_cb + 6 + 2*i];
-    h->parity1[i+long_cb] = (llr_t) SCALE*input[3*long_cb + 6 + 2*i + 1];
+    h->app2[i+long_cb]    = input[3*long_cb + 6 + 2*i];
+    h->parity1[i+long_cb] = input[3*long_cb + 6 + 2*i + 1];
   }
 
 }
 
-void srslte_tdec_iteration(srslte_tdec_t * h, float * input, uint32_t long_cb)
+void srslte_tdec_iteration(srslte_tdec_t * h, short * input, uint32_t long_cb)
 {
 
   if (h->current_cbidx >= 0) {
@@ -639,7 +606,7 @@ void srslte_tdec_decision_byte(srslte_tdec_t * h, uint8_t *output, uint32_t long
   }
 }
 
-int srslte_tdec_run_all(srslte_tdec_t * h, float * input, uint8_t *output,
+int srslte_tdec_run_all(srslte_tdec_t * h, short * input, uint8_t *output,
                   uint32_t nof_iterations, uint32_t long_cb)
 {
   if (srslte_tdec_reset(h, long_cb)) {

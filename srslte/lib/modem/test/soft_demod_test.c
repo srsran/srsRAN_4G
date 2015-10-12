@@ -112,6 +112,7 @@ int main(int argc, char **argv) {
   uint8_t *input, *output;
   cf_t *symbols;
   float *llr;
+  short *llr_s;
 
   parse_args(argc, argv);
 
@@ -125,24 +126,30 @@ int main(int argc, char **argv) {
   num_bits = mod.nbits_x_symbol * (num_bits / mod.nbits_x_symbol);
 
   /* allocate buffers */
-  input = malloc(sizeof(uint8_t) * num_bits);
+  input = srslte_vec_malloc(sizeof(uint8_t) * num_bits);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  output = malloc(sizeof(uint8_t) * num_bits);
+  output = srslte_vec_malloc(sizeof(uint8_t) * num_bits);
   if (!output) {
     perror("malloc");
     exit(-1);
   }
-  symbols = malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
+  symbols = srslte_vec_malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
 
-  llr = malloc(sizeof(float) * num_bits);
+  llr = srslte_vec_malloc(sizeof(float) * num_bits);
   if (!llr) {
+    perror("malloc");
+    exit(-1);
+  }
+
+  llr_s = srslte_vec_malloc(sizeof(short) * num_bits);
+  if (!llr_s) {
     perror("malloc");
     exit(-1);
   }
@@ -153,6 +160,7 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3]; 
   float mean_texec = 0.0; 
+  float mean_texec_s = 0.0; 
   for (int n=0;n<nof_frames;n++) {
     for (i=0;i<num_bits;i++) {
       input[i] = rand()%2;
@@ -165,10 +173,19 @@ int main(int argc, char **argv) {
     srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
-    
+
     /* compute exponentially averaged execution time */
     if (n > 0) {
       mean_texec = SRSLTE_VEC_CMA((float) t[0].tv_usec, mean_texec, n-1);      
+    }
+
+    gettimeofday(&t[1], NULL);
+    srslte_demod_soft_demodulate_s(modulation, symbols, llr_s, num_bits / mod.nbits_x_symbol);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+
+    if (n > 0) {
+      mean_texec_s = SRSLTE_VEC_CMA((float) t[0].tv_usec, mean_texec_s, n-1);      
     }
     
     if (SRSLTE_VERBOSE_ISDEBUG()) {
@@ -180,6 +197,10 @@ int main(int argc, char **argv) {
 
       printf("llr=");
       srslte_vec_fprint_f(stdout, llr, num_bits);
+
+      printf("llr_s=");
+      srslte_vec_fprint_s(stdout, llr_s, num_bits);
+
     }
 
     // Check demodulation errors
@@ -200,6 +221,7 @@ clean_exit:
 
   srslte_modem_table_free(&mod);
 
-  printf("Mean Throughput: %.2f. Mbps ExTime: %.2f us\n", num_bits/mean_texec, mean_texec);    
+  printf("Mean Throughput: %.2f/%.2f. Mbps ExTime: %.2f/%.2f us\n", 
+         num_bits/mean_texec, num_bits/mean_texec_s, mean_texec, mean_texec_s);    
   exit(ret);
 }
