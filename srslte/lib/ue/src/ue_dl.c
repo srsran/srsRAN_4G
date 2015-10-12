@@ -183,7 +183,7 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
     
     /* Run FFT for all subframe data */
     srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
-
+    
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
 

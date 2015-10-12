@@ -109,6 +109,10 @@ SRSLTE_API void srslte_dft_run(srslte_dft_plan_t *plan,
                                void *in, 
                                void *out);
 
+SRSLTE_API void srslte_dft_run_c_zerocopy(srslte_dft_plan_t *plan, 
+                                          cf_t *in, 
+                                          cf_t *out); 
+
 SRSLTE_API void srslte_dft_run_c(srslte_dft_plan_t *plan, 
                                  cf_t *in, 
                                  cf_t *out);

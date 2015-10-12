@@ -36,7 +36,7 @@
 #include "srslte/common/sequence.h"
 
 
-#define USE_REDUCED_SAMPLING_RATES
+//#define USE_REDUCED_SAMPLING_RATES
 
 
 
