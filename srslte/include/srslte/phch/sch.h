@@ -47,7 +47,7 @@
 #include "srslte/phch/pusch_cfg.h"
 #include "srslte/phch/uci.h"
 
-#define SRSLTE_PDSCH_MAX_TDEC_ITERS         3
+#define SRSLTE_PDSCH_MAX_TDEC_ITERS         4
 
 
 #ifndef SRSLTE_RX_NULL
