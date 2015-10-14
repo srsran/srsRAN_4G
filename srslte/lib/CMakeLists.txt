@@ -26,7 +26,6 @@
 include(CheckFunctionExistsMath)
 
 FIND_PACKAGE(SRSGUI)
-FIND_PACKAGE(UHD)
 FIND_PACKAGE(FFTW3F REQUIRED) # TODO: distribute kissfft instead
 
 IF(${DISABLE_VOLK})
