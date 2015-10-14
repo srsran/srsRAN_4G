@@ -83,11 +83,6 @@ SRSLTE_API int srslte_rm_turbo_rx_lut(int16_t *input,
                                       uint32_t cb_idx, 
                                       uint32_t rv_idx); 
 
-SRSLTE_API int srslte_rm_turbo_rx_lut_simd(int16_t *input, 
-                                           int16_t *output, 
-                                           uint32_t in_len, 
-                                           uint32_t cb_idx, 
-                                           uint32_t rv_idx); 
 
 /* High-level API */
 typedef struct SRSLTE_API {

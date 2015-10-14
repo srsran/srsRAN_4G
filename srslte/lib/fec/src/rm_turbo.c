@@ -42,6 +42,9 @@
 #ifdef HAVE_SIMD
 #include <xmmintrin.h>
 #include <tmmintrin.h>
+
+int srslte_rm_turbo_rx_lut_simd(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx);
+
 #endif
 
 #define NCOLS 32
@@ -303,14 +306,6 @@ int srslte_rm_turbo_rx_lut(int16_t *input, int16_t *output, uint32_t in_len, uin
 }
 
 #ifdef HAVE_SIMD
-
-static void print128_num(__m128i var)
-{
-    int16_t *val = (int16_t*) &var;//can also use uint16_t instead of 16_t
-    printf("Numerical: %d %d %d %d %d %d %d %d \n", 
-           val[0], val[1], val[2], val[3], val[4], val[5], 
-           val[6], val[7]);
-}
 
 
 int srslte_rm_turbo_rx_lut_simd(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 

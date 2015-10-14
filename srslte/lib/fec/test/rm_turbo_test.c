@@ -185,9 +185,7 @@ int main(int argc, char **argv) {
 
       bzero(bits2_s, long_cb_enc*sizeof(short));
       srslte_rm_turbo_rx_lut(rm_bits_s, bits2_s, nof_e_bits, cb_idx, rv_idx);
-      
-      //srslte_vec_fprint_f(stdout, bits_f, long_cb_enc);
-      //srslte_vec_fprint_s(stdout, bits2_s, long_cb_enc);
+
       for (int i=0;i<long_cb_enc;i++) {
         if (bits_f[i] != bits2_s[i]) {
           printf("error RX in bit %d %f!=%d\n", i, bits_f[i], bits2_s[i]);
