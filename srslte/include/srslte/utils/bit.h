@@ -43,7 +43,7 @@
 
 SRSLTE_API void srslte_bit_interleave(uint8_t *input, 
                                       uint8_t *output, 
-                                      uint32_t *interleaver, 
+                                      uint16_t *interleaver, 
                                       uint32_t nof_bits); 
 
 SRSLTE_API void srslte_bit_copy(uint8_t *dst, 
@@ -54,7 +54,7 @@ SRSLTE_API void srslte_bit_copy(uint8_t *dst,
 
 SRSLTE_API void srslte_bit_interleave_w_offset(uint8_t *input, 
                                                uint8_t *output, 
-                                               uint32_t *interleaver, 
+                                               uint16_t *interleaver, 
                                                uint32_t nof_bits, 
                                                uint32_t w_offset);
 

@@ -375,9 +375,9 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
       cfg          != NULL)
   {
     
-    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
+    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d, C_prb=%d\n",
         cfg->sf_idx, rnti, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, cfg->nbits.nof_re, 
-         cfg->nbits.nof_bits, cfg->rv);
+         cfg->nbits.nof_bits, cfg->rv, cfg->grant.nof_prb);
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {

@@ -63,6 +63,11 @@ SRSLTE_API int mexutils_write_f(float *buffer,
                                 uint32_t nr, 
                                 uint32_t nc);
 
+SRSLTE_API int mexutils_write_s(short *buffer, 
+                                mxArray **ptr, 
+                                uint32_t nr, 
+                                uint32_t nc);
+
 SRSLTE_API int mexutils_write_cf(cf_t *buffer, 
                                  mxArray **ptr, 
                                  uint32_t nr, 

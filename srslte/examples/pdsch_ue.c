@@ -79,7 +79,8 @@ typedef struct {
   uint32_t time_offset; 
   int force_N_id_2;
   uint16_t rnti;
-  char *input_file_name; 
+  char *input_file_name;
+  int file_offset; 
   uint32_t file_nof_prb;
   uint32_t file_nof_ports;
   uint32_t file_cell_id;
@@ -105,6 +106,7 @@ void args_default(prog_args_t *args) {
   args->file_nof_prb = 25; 
   args->file_nof_ports = 1; 
   args->file_cell_id = 0; 
+  args->file_offset = 0; 
   args->uhd_args = "";
   args->uhd_freq = -1.0;
   args->uhd_freq_offset = 0.0;
@@ -116,7 +118,7 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agpPcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [agpPOcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD fix RX gain [Default AGC]\n");
@@ -125,6 +127,7 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
   printf("\t-i input_file [Default USRP]\n");
+  printf("\t-O offset samples for input file [Default %d]\n", args->file_offset);
   printf("\t-p nof_prb for input file [Default %d]\n", args->file_nof_prb);
   printf("\t-P nof_ports for input file [Default %d]\n", args->file_nof_ports);
   printf("\t-c cell_id for input file [Default %d]\n", args->file_cell_id);
@@ -149,7 +152,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aoglipPcCtdDnvrfuUsS")) != -1) {
+  while ((opt = getopt(argc, argv, "aoglipPcOCtdDnvrfuUsS")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -159,6 +162,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'P':
       args->file_nof_ports = atoi(argv[optind]);
+      break;
+    case 'O':
+      args->file_offset = atoi(argv[optind]);
       break;
     case 'c':
       args->file_cell_id = atoi(argv[optind]);
@@ -368,7 +374,7 @@ int main(int argc, char **argv) {
     cell.nof_ports = prog_args.file_nof_ports; 
     cell.nof_prb = prog_args.file_nof_prb; 
     
-    if (srslte_ue_sync_init_file(&ue_sync, prog_args.file_nof_prb, prog_args.input_file_name)) {
+    if (srslte_ue_sync_init_file(&ue_sync, prog_args.file_nof_prb, prog_args.input_file_name, prog_args.file_offset)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }

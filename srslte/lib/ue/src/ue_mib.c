@@ -140,11 +140,13 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce_slot1[i] = &q->ce[i][SRSLTE_SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)];
   }
-  
+
   /* Decode PBCH */
   ret = srslte_pbch_decode(&q->pbch, &q->sf_symbols[SRSLTE_SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
                     ce_slot1, 0,
                     bch_payload, nof_tx_ports, sfn_offset);
+  
+  
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
   } else if (ret == 1) {

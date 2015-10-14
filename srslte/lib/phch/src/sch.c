@@ -43,6 +43,8 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
+#define SRSLTE_PDSCH_MAX_TDEC_ITERS         4
+
 /* 36.213 Table 8.6.3-1: Mapping of HARQ-ACK offset values and the index signalled by higher layers */
 float beta_harq_offset[16] = {2.0, 2.5, 3.125, 4.0, 5.0, 6.250, 8.0, 10.0, 
                            12.625, 15.875, 20.0, 31.0, 50.0, 80.0, 126.0, -1.0};
@@ -322,6 +324,8 @@ static int encode_tb(srslte_sch_t *q,
   return encode_tb_off(q, soft_buffer, cb_segm, Qm, rv, nof_e_bits, data, e_bits, 0);
 }
 
+  
+
 
 /* Decode a transport block according to 36.212 5.3.2
  *
@@ -334,7 +338,7 @@ static int decode_tb(srslte_sch_t *q,
   uint8_t parity[3] = {0, 0, 0};
   uint32_t par_rx, par_tx;
   uint32_t i;
-  uint32_t cb_len, rp, wp, rlen, F, n_e;
+  uint32_t cb_len, rp, wp, rlen, n_e;
   
   if (q            != NULL && 
       data         != NULL &&       
@@ -385,11 +389,6 @@ static int decode_tb(srslte_sch_t *q,
       } else {
         rlen = cb_len - 24;
       }
-      if (i == 0) {
-        F = cb_segm->F;
-      } else {
-        F = 0;
-      }
 
       if (i <= cb_segm->C - gamma - 1) {
         n_e = Qm * (Gp/cb_segm->C);
@@ -397,9 +396,6 @@ static int decode_tb(srslte_sch_t *q,
         n_e = Qm * ((uint32_t) ceilf((float) Gp/cb_segm->C));
       }
 
-      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, F: %d, E: %d\n", i,
-          cb_len, rlen - F, wp, rp, F, n_e);
-      
       /* Rate Unmatching */
       if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[i], n_e, cblen_idx, rv)) {
         fprintf(stderr, "Error in rate matching\n");
@@ -414,7 +410,6 @@ static int decode_tb(srslte_sch_t *q,
       /* Turbo Decoding with CRC-based early stopping */
       q->nof_iterations = 0; 
       uint32_t len_crc; 
-      uint8_t *cb_in_ptr; 
       srslte_crc_t *crc_ptr; 
       early_stop = false; 
 
@@ -426,24 +421,28 @@ static int decode_tb(srslte_sch_t *q,
         
         if (cb_segm->C > 1) {
           len_crc = cb_len; 
-          cb_in_ptr = q->cb_in; 
           crc_ptr = &q->crc_cb; 
         } else {
           len_crc = cb_segm->tbs+24; 
-          cb_in_ptr = &q->cb_in[F/8];
           crc_ptr = &q->crc_tb; 
         }
 
         srslte_tdec_sse_decision_byte(&q->decoder, q->cb_in, cb_len);
-                  
+                 
+        if (i == 9) {
+          srslte_tdec_sse_decision(&q->decoder, q->temp_data, cb_len);
+        }
         /* Check Codeblock CRC and stop early if incorrect */
-        if (!srslte_crc_checksum_byte(crc_ptr, cb_in_ptr, len_crc)) {
+        if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
           early_stop = true;           
         }
-        
-        
+       
       } while (q->nof_iterations < SRSLTE_PDSCH_MAX_TDEC_ITERS && !early_stop);
       q->average_nof_iterations = SRSLTE_VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
+
+      INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d, n_iters=%d\n", i,
+          cb_len, rlen, wp, rp, n_e, q->nof_iterations);
+      
 
       if (SRSLTE_VERBOSE_ISDEBUG()) {
         DEBUG("CB#%d IN: ", i);
@@ -452,24 +451,17 @@ static int decode_tb(srslte_sch_t *q,
             
       // If CB CRC is not correct, early_stop will be false and wont continue with rest of CBs
 
-      if (F%8) {
-        fprintf(stderr, "Fatal Error: Number of filler bits %d is not byte aligned\n", F);
-      }
-      
       /* Copy data to another buffer, removing the Codeblock CRC */
       if (i < cb_segm->C - 1) {
-        memcpy(&data[wp/8], &q->cb_in[F/8], (rlen - F) * sizeof(uint8_t)/8);
-      } else {
-        DEBUG("Last CB, appending parity: %d to %d from %d and 24 from %d\n",
-            rlen - F - 24, wp, F, rlen - 24);
-        
+        memcpy(&data[wp/8], q->cb_in, rlen/8 * sizeof(uint8_t));
+      } else {        
         /* Append Transport Block parity bits to the last CB */
-        memcpy(&data[wp/8], &q->cb_in[F/8], (rlen - F - 24) * sizeof(uint8_t)/8);
-        memcpy(parity, &q->cb_in[(rlen - 24)/8], 24 * sizeof(uint8_t)/8);
+        memcpy(&data[wp/8], q->cb_in, (rlen - 24)/8 * sizeof(uint8_t));
+        memcpy(parity, &q->cb_in[(rlen - 24)/8], 3 * sizeof(uint8_t));
       }
 
       /* Set read/write pointers */
-      wp += (rlen - F);
+      wp += rlen;
       rp += n_e;
     }
 

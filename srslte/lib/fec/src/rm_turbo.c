@@ -37,6 +37,12 @@
 #include "srslte/utils/vector.h"
 #include "srslte/fec/cbsegm.h"
 
+//#define HAVE_SIMD
+
+#ifdef HAVE_SIMD
+#include <xmmintrin.h>
+#include <tmmintrin.h>
+#endif
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
@@ -44,15 +50,18 @@
 static uint8_t RM_PERM_TC[NCOLS] = { 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26,
     6, 22, 14, 30, 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31 };
 
-static uint32_t interleaver_systematic_bits[SRSLTE_NOF_TC_CB_SIZES][6148]; // 4 tail bits
-static uint32_t interleaver_parity_bits[SRSLTE_NOF_TC_CB_SIZES][2*6148];
-static uint32_t deinterleaver[SRSLTE_NOF_TC_CB_SIZES][4][3*6148];
-static uint32_t k0_vec[SRSLTE_NOF_TC_CB_SIZES][4][2];
+/* Align tables to 16-byte boundary */
+
+static uint16_t interleaver_systematic_bits[192][6160]; // 4 tail bits
+static uint16_t interleaver_parity_bits[192][2*6160];
+static uint16_t deinterleaver[192][4][18448];
+static int k0_vec[SRSLTE_NOF_TC_CB_SIZES][4][2];
 static bool rm_turbo_tables_generated = false; 
 
-static uint32_t temp_table1[3*6176], temp_table2[3*6176];
 
-void srslte_rm_turbo_gentable_systematic(uint32_t *table_bits, uint32_t k0_vec[4][2], uint32_t nrows, int ndummy) {
+static uint16_t temp_table1[3*6176], temp_table2[3*6176];
+
+void srslte_rm_turbo_gentable_systematic(uint16_t *table_bits, int k0_vec[4][2], uint32_t nrows, int ndummy) {
 
   bool last_is_null=true;
   int k_b=0, buff_idx=0;
@@ -77,7 +86,7 @@ void srslte_rm_turbo_gentable_systematic(uint32_t *table_bits, uint32_t k0_vec[4
   }
 }
 
-void srslte_rm_turbo_gentable_parity(uint32_t *table_parity, uint32_t k0_vec[4][2], int offset, uint32_t nrows, int ndummy) {
+void srslte_rm_turbo_gentable_parity(uint16_t *table_parity, int k0_vec[4][2], int offset, uint16_t nrows, int ndummy) {
   
   bool last_is_null=true;
   int k_b=0, buff_idx0=0;
@@ -123,7 +132,7 @@ void srslte_rm_turbo_gentable_parity(uint32_t *table_parity, uint32_t k0_vec[4][
 
 
 
-void srslte_rm_turbo_gentable_receive(uint32_t *table, uint32_t cb_len, uint32_t rv_idx) 
+void srslte_rm_turbo_gentable_receive(uint16_t *table, uint32_t cb_len, uint32_t rv_idx) 
 {
   
   int nrows = (uint32_t) (cb_len / 3 - 1) / NCOLS + 1;
@@ -134,7 +143,7 @@ void srslte_rm_turbo_gentable_receive(uint32_t *table, uint32_t cb_len, uint32_t
 
   /* Undo bit collection. Account for dummy bits */
   int N_cb = 3*nrows*NCOLS;   
-  int k0 = nrows*(2*(uint32_t) ceilf((float) N_cb/(float) (8*nrows))*rv_idx+2);
+  int k0 = nrows*(2*(uint16_t) ceilf((float) N_cb/(float) (8*nrows))*rv_idx+2);
 
   int kidx; 
   int K_p = nrows * NCOLS;
@@ -214,7 +223,7 @@ void srslte_rm_turbo_gentables() {
       }
 
       for (int i=0;i<4;i++) {
-        k0_vec[cb_idx][i][0] = nrows * (2 * (uint32_t) ceilf((float) (3*K_p) / (float) (8 * nrows)) * i + 2);
+        k0_vec[cb_idx][i][0] = nrows * (2 * (uint16_t) ceilf((float) (3*K_p) / (float) (8 * nrows)) * i + 2);
         k0_vec[cb_idx][i][1] = -1; 
       }
       srslte_rm_turbo_gentable_systematic(interleaver_systematic_bits[cb_idx], k0_vec[cb_idx], nrows, ndummy);
@@ -241,9 +250,10 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
     
     /* Sub-block interleaver (5.1.4.1.1) and bit collection */
     if (rv_idx == 0) {
-
+      
       // Systematic bits 
       srslte_bit_interleave(systematic, w_buff, interleaver_systematic_bits[cb_idx], in_len/3);
+
 
       // Parity bits 
       srslte_bit_interleave_w_offset(parity, &w_buff[in_len/24], interleaver_parity_bits[cb_idx], 2*in_len/3, 4);      
@@ -252,7 +262,6 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
     /* Bit selection and transmission 5.1.4.1.2 */    
     int w_len = 0; 
     int r_ptr = k0_vec[cb_idx][rv_idx][1]; 
-
     while (w_len < out_len) {
       int cp_len = out_len - w_len; 
       if (cp_len + r_ptr >= in_len) {
@@ -274,11 +283,13 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
 
 int srslte_rm_turbo_rx_lut(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
 {
+#ifndef HAVE_SIMD
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
     uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;
-    uint32_t *deinter = deinterleaver[cb_idx][rv_idx];
+    uint16_t *deinter = deinterleaver[cb_idx][rv_idx];
     
     for (int i=0;i<in_len;i++) {
+      //printf("i=%d=%d goes to %d\n", i%out_len, input[i], deinter[i%out_len]);
       output[deinter[i%out_len]] += input[i];
     }
     return 0;    
@@ -286,7 +297,79 @@ int srslte_rm_turbo_rx_lut(int16_t *input, int16_t *output, uint32_t in_len, uin
     printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
     return SRSLTE_ERROR_INVALID_INPUTS; 
   }
+#else
+  return srslte_rm_turbo_rx_lut_simd(input, output, in_len, cb_idx, rv_idx);
+#endif
 }
+
+#ifdef HAVE_SIMD
+
+static void print128_num(__m128i var)
+{
+    int16_t *val = (int16_t*) &var;//can also use uint16_t instead of 16_t
+    printf("Numerical: %d %d %d %d %d %d %d %d \n", 
+           val[0], val[1], val[2], val[3], val[4], val[5], 
+           val[6], val[7]);
+}
+
+
+int srslte_rm_turbo_rx_lut_simd(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
+{
+  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
+    uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;
+    uint16_t *deinter = deinterleaver[cb_idx][rv_idx];
+    
+    const __m128i* xPtr   = (const __m128i*) input;
+    const __m128i* lutPtr = (const __m128i*) deinter;
+    printf("\nin_len=%d, out_len=%d\n", in_len, out_len);
+    srslte_vec_fprint_s(stdout, input, in_len);
+    __m128i xVal, lutVal;
+    int intCnt = 8;
+    int nwrapps = 0; 
+    for (int i=0;i<in_len/8-1-nwrapps/2;i++) {
+      xVal   = _mm_loadu_si128(xPtr);
+      lutVal = _mm_load_si128(lutPtr);
+    
+      for (int j=0;j<8;j++) {
+        int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
+        uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, j);
+        output[l] += x;
+      }
+      printf("x: "); print128_num(xVal);
+      printf("l: "); print128_num(lutVal);
+      xPtr ++;
+      lutPtr ++;
+      intCnt += 8;
+      if (intCnt >= out_len) {
+        /* Copy last elements */
+        for (int j=nwrapps*out_len+intCnt-8;j<(nwrapps+1)*out_len;j++) {      
+          printf("coping element %d (in=%d)\n", j, input[j]);
+          output[deinter[j]] += input[j];
+        }
+        /* And wrap pointers */
+        nwrapps++;
+        printf("--- Wrapping: intCnt=%d, nwrap=%d\n",intCnt, nwrapps);
+        intCnt = 8; 
+        xPtr   = (const __m128i*) &input[nwrapps*out_len];
+        lutPtr = (const __m128i*) deinter;
+      }
+      
+    }
+
+    for (int i=8*(in_len/8-1)+(((8*(in_len/8))%out_len)%8);i<in_len;i++) {      
+      printf("copying i=%d, val=%d, t=%d\n",i, input[i],deinter[i%out_len]);
+      output[deinter[i%out_len]] += input[i];
+    }
+    
+    return 0;    
+  } else {
+    printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+#endif
+
 
 
 
@@ -335,7 +418,7 @@ int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uin
     return -1;
   }
 
-  nrows = (uint32_t) (in_len / 3 - 1) / NCOLS + 1;
+  nrows = (uint16_t) (in_len / 3 - 1) / NCOLS + 1;
   K_p = nrows * NCOLS;
   if (3 * K_p > w_buff_len) {
     fprintf(stderr,
@@ -385,7 +468,7 @@ int srslte_rm_turbo_tx(uint8_t *w_buff, uint32_t w_buff_len, uint8_t *input, uin
   N_cb = 3 * K_p;       // TODO: Soft buffer size limitation
 
   k0 = nrows
-      * (2 * (uint32_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
+      * (2 * (uint16_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
   k = 0;
   j = 0;
   
@@ -414,7 +497,7 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
 
   
   
-  nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
+  nrows = (uint16_t) (out_len / 3 - 1) / NCOLS + 1;
   K_p = nrows * NCOLS;
   if (3 * K_p > w_buff_len) {
     fprintf(stderr,
@@ -437,7 +520,7 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
   /* Undo bit collection. Account for dummy bits */
   N_cb = 3 * K_p;       // TODO: Soft buffer size limitation
   k0 = nrows
-      * (2 * (uint32_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
+      * (2 * (uint16_t) ceilf((float) N_cb / (float) (8 * nrows)) * rv_idx + 2);
       
   k = 0;
   j = 0;
@@ -462,7 +545,7 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
       }
 
     } else {
-      uint32_t jpp = (jp - K_p - 1) / 2;
+      uint16_t jpp = (jp - K_p - 1) / 2;
       kidx = (RM_PERM_TC[jpp / nrows] + NCOLS * (jpp % nrows) + 1) % K_p;
       if ((kidx - ndummy) < 0) {
         isdummy = true;

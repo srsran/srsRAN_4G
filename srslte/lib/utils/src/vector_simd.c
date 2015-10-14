@@ -180,7 +180,7 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t l
     lutVal = _mm_load_si128(lutPtr);
     
     for (int i=0;i<8;i++) {
-      uint16_t x = (uint16_t) _mm_extract_epi16(xVal, i); 
+      int16_t x = (int16_t)   _mm_extract_epi16(xVal, i); 
       uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, i);
       y[l] = x;
     }

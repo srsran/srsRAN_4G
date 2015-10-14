@@ -123,7 +123,8 @@ SRSLTE_API int srslte_ue_sync_init(srslte_ue_sync_t *q,
 
 SRSLTE_API int srslte_ue_sync_init_file(srslte_ue_sync_t *q, 
                                         uint32_t nof_prb,
-                                        char *file_name);
+                                        char *file_name, 
+                                        int offset);
 
 SRSLTE_API void srslte_ue_sync_free(srslte_ue_sync_t *q);
 

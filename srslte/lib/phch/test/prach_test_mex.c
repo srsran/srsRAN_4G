@@ -26,6 +26,7 @@
  */
 
 #include <string.h>
+#define FORCE_POWER2_FFT
 #include "srslte/srslte.h"
 #include "srslte/mex/mexutils.h"
 

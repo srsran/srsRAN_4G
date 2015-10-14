@@ -35,9 +35,7 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/common/sequence.h"
 
-
-//#define USE_REDUCED_SAMPLING_RATES
-
+#define USE_REDUCED_SAMPLING_RATES
 
 
 /* Returns true if the structure pointed by cell has valid parameters

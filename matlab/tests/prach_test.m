@@ -1,10 +1,10 @@
 clear 
 ueConfig=struct('NULRB',6,'DuplexMode','FDD','CyclicPrefix','Normal');
-prachConfig=struct('Format',0,'SeqIdx',0,'PreambleIdx',0,'CyclicShiftIdx',0,'HighSpeed',0,'TimingOffset',0,'FreqIdx',0,'FreqOffset',0);
+prachConfig=struct('Format',0,'SeqIdx',0,'PreambleIdx',0,'CyclicShiftIdx',0,'HighSpeed',0,'TimingOffset',0,'FreqIdx',0,'FreqOffset',8);
 
 addpath('../../build/srslte/lib/phch/test')
 
-NULRB=[6 15 25 50 100];
+NULRB=[100];
 
 % FreqIdx, FreqOffset and TimeOffset need to be tested
 

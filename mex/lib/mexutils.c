@@ -166,6 +166,18 @@ int mexutils_write_f(float *buffer, mxArray **ptr, uint32_t nr, uint32_t nc) {
   }
 }
 
+int mexutils_write_s(short *buffer, mxArray **ptr, uint32_t nr, uint32_t nc) {
+  *ptr = mxCreateDoubleMatrix(nr, nc, mxREAL); 
+  if (*ptr) {
+    double *outr = mxGetPr(*ptr);
+    for (int i=0;i<nr*nc;i++) {
+      outr[i] = (double) buffer[i];
+    }
+    return nc*nr;
+  } else {
+    return -1;
+  }
+}
 
 int mexutils_write_uint8(uint8_t *buffer, mxArray **ptr, uint32_t nr, uint32_t nc) {
   *ptr = mxCreateNumericMatrix(nr, nc, mxUINT8_CLASS, mxREAL); 

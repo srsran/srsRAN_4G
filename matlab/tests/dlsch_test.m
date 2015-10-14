@@ -4,8 +4,8 @@ pdschConfig=struct('Modulation','64QAM','RV',0,'TxScheme','Port0');
 
 addpath('../../build/srslte/lib/phch/test')
 
-TBs=19848;
-e_bits=38460;
+TBs=36696;
+e_bits=41400;
 error=zeros(size(TBs));
 for i=1:length(TBs)
     trblkin=randi(2,TBs(i),1)-1;

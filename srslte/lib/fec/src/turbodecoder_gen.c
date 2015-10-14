@@ -318,6 +318,10 @@ void srslte_tdec_gen_iteration(srslte_tdec_gen_t * h, float * input, uint32_t lo
     // Run MAP DEC #2
     map_gen_dec(&h->dec, h->syst, h->parity, h->llr2, long_cb);
 
+    //printf("llr2=");
+    //srslte_vec_fprint_f(stdout, h->llr2, long_cb);
+
+    
     // Update a-priori LLR from the last iteration
     for (i = 0; i < long_cb; i++) {
       h->w[i] += h->llr2[deinter[i]] - h->llr1[i];

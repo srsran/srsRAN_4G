@@ -65,6 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
+  srslte_verbose = SRSLTE_VERBOSE_INFO;
   bzero(&cfg, sizeof(srslte_pdsch_cfg_t));
 
   if (mexutils_read_cell(ENBCFG, &cell)) {
@@ -196,7 +197,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nrhs > NOF_INPUTS + 1) {
     noise_power = mxGetScalar(prhs[NOF_INPUTS+1]);
   } else {
-    noise_power = srslte_chest_dl_get_noise_estimate(&chest);
+    noise_power = 0;
   }
   
   uint8_t *data_bytes = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
@@ -224,7 +225,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(pdsch.d, &plhs[3], cfg.nbits.nof_re, 1);  
   }
   if (nlhs >= 5) {
-    mexutils_write_f(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
+    mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
+  }
+  if (nlhs >= 6) {
+    mexutils_write_s(softbuffer.buffer_f[9], &plhs[5], 16908, 1);  
+  }
+  if (nlhs >= 7) {
+    mexutils_write_uint8(pdsch.dl_sch.temp_data, &plhs[6], 5632, 1);  
   }
   
   srslte_chest_dl_free(&chest);

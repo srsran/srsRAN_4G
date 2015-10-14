@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
       }
 
       srslte_bit_unpack_vector(rm_bits2_bytes, rm_bits2, nof_e_bits);
-      
+
       for (int i=0;i<nof_e_bits;i++) {
         if (rm_bits2[i] != rm_bits[i]) {
           printf("Error in TX bit %d\n", i);
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
       printf("OK TX...");
       
       for (int i=0;i<nof_e_bits;i++) {
-        rm_bits_f[i] = rand()%10-5;
+        rm_bits_f[i] = i;//rand()%10-5;
         rm_bits_s[i] = (short) rm_bits_f[i];
       }
 
@@ -186,6 +186,8 @@ int main(int argc, char **argv) {
       bzero(bits2_s, long_cb_enc*sizeof(short));
       srslte_rm_turbo_rx_lut(rm_bits_s, bits2_s, nof_e_bits, cb_idx, rv_idx);
       
+      //srslte_vec_fprint_f(stdout, bits_f, long_cb_enc);
+      //srslte_vec_fprint_s(stdout, bits2_s, long_cb_enc);
       for (int i=0;i<long_cb_enc;i++) {
         if (bits_f[i] != bits2_s[i]) {
           printf("error RX in bit %d %f!=%d\n", i, bits_f[i], bits2_s[i]);

@@ -125,7 +125,7 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_c
   
     BETA_STEP(g);
   }  
-  
+  __m128i norm;
   for (; k >= 0; k-=8) {    
     gv = _mm_load_si128(gPtr);
     gPtr--;
@@ -133,13 +133,15 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_c
     BETA_STEP_CNT(1,1);
     BETA_STEP_CNT(2,2);
     BETA_STEP_CNT(3,3);
+    norm = _mm_shuffle_epi8(beta_k, shuf_norm); 
+    beta_k = _mm_sub_epi16(beta_k, norm);
     gv = _mm_load_si128(gPtr);
     gPtr--;
     BETA_STEP_CNT(0,4);
     BETA_STEP_CNT(1,5);
     BETA_STEP_CNT(2,6);
     BETA_STEP_CNT(3,7);
-  __m128i norm = _mm_shuffle_epi8(beta_k, shuf_norm); 
+    norm = _mm_shuffle_epi8(beta_k, shuf_norm); 
     beta_k = _mm_sub_epi16(beta_k, norm);
   }  
 }
@@ -203,6 +205,7 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
   _mm_store_si128(alphaPtr, alpha_k);\
   alphaPtr++;    \
   
+  __m128i norm;
   for (k = 0; k < long_cb/8; k++) {
     gv = _mm_load_si128(gPtr);
     gPtr++;
@@ -210,13 +213,15 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
     ALPHA_STEP(1);
     ALPHA_STEP(2);
     ALPHA_STEP(3);
+    norm = _mm_shuffle_epi8(alpha_k, shuf_norm); 
+    alpha_k = _mm_sub_epi16(alpha_k, norm);
     gv = _mm_load_si128(gPtr);
     gPtr++;
     ALPHA_STEP(0);
     ALPHA_STEP(1);
     ALPHA_STEP(2);
     ALPHA_STEP(3);
-    __m128i norm = _mm_shuffle_epi8(alpha_k, shuf_norm); 
+    norm = _mm_shuffle_epi8(alpha_k, shuf_norm); 
     alpha_k = _mm_sub_epi16(alpha_k, norm);
   }  
 }
@@ -569,7 +574,7 @@ void srslte_tdec_sse_decision(srslte_tdec_sse_t * h, uint8_t *output, uint32_t l
   __m128i *appPtr = (__m128i*) h->app1;
   __m128i *outPtr = (__m128i*) output;
   __m128i ap, out, out0, out1; 
-  
+    
   for (uint32_t i = 0; i < long_cb/16; i++) {
     ap   = _mm_load_si128(appPtr); appPtr++;    
     out0 = _mm_and_si128(_mm_cmpgt_epi16(ap, zero), lsb_mask);

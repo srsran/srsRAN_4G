@@ -46,7 +46,9 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     2
 
-int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name) {
+cf_t kk[1024*1024];
+
+int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                   != NULL && 
@@ -69,6 +71,9 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
       goto clean_exit;
     }
     
+    INFO("Offseting input file by %d samples\n", offset);
+    
+    srslte_filesource_read(&q->file_source, kk, offset);
     srslte_ue_sync_reset(q);
     
     ret = SRSLTE_SUCCESS;

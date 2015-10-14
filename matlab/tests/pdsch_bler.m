@@ -6,11 +6,11 @@
 
 recordedSignal=[];
 
-Npackets = 8;
-SNR_values = linspace(10.5,13,4);
+Npackets = 3;
+SNR_values = linspace(12,16,4);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.6',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.9',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
@@ -79,6 +79,7 @@ for snr_idx=1:length(SNR_values)
         frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
 
         for sf_idx=0:Nsf
+        %sf_idx=9;
             subframe_rx=frame_rx(:,sf_idx*14+1:(sf_idx+1)*14);
             rmccFgOut.NSubframe=sf_idx;
             rmccFgOut.TotSubframes=1;
@@ -95,11 +96,14 @@ for snr_idx=1:length(SNR_values)
 
             %% Same with srsLTE
             if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
-                [dec2, data, pdschRx, pdschSymbols2, deb] = srslte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
+                [dec2, data, pdschRx, pdschSymbols2, cws2, cb9, temp] = srslte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
                                                         rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
                                                         subframe_rx);
             else
                 dec2 = 1;
+            end
+             if (~dec2) 
+                fprintf('Error in sf=%d\n',sf_idx);
             end
             decoded_srslte(snr_idx) = decoded_srslte(snr_idx)+dec2;
         end
@@ -120,7 +124,6 @@ if (length(SNR_values)>1)
     ylabel('BLER')
     axis([min(SNR_values) max(SNR_values) 1/Npackets/(Nsf+1) 1])
 else
-    disp(decoded)
-    disp(decoded_srslte)
+    fprintf('Matlab: %d OK\nsrsLTE: %d OK\n',decoded, decoded_srslte);
 end
 

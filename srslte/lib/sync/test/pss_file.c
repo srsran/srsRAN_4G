@@ -54,14 +54,16 @@ uint32_t fft_size=64;
 float threshold = 0.4; 
 int N_id_2_sync = -1;
 srslte_cp_t cp=SRSLTE_CP_NORM;
+int file_offset = 0; 
 
 void usage(char *prog) {
-  printf("Usage: %s [nlestdv] -i cell_id -f input_file_name\n", prog);
+  printf("Usage: %s [nlestodv] -i cell_id -f input_file_name\n", prog);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-l N_id_2 to sync [Default use cell_id]\n");
   printf("\t-e Extended CP [Default Normal]\n", fft_size);
   printf("\t-s symbol_sz [Default %d]\n", fft_size);
   printf("\t-t threshold [Default %.2f]\n", threshold);
+  printf("\t-o file read offset [Default %d]\n", file_offset);
 #ifndef DISABLE_GRAPHICS
   printf("\t-d disable plots [Default enabled]\n");
 #else
@@ -72,7 +74,7 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "nlestdvif")) != -1) {
+  while ((opt = getopt(argc, argv, "nlestdvoif")) != -1) {
     switch (opt) {
     case 'f':
       input_file_name = argv[optind];
@@ -85,6 +87,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'i':
       cell_id = atoi(argv[optind]);
+      break;
+    case 'o':
+      file_offset = atoi(argv[optind]);
       break;
     case 'l':
       N_id_2_sync = atoi(argv[optind]);
@@ -193,6 +198,8 @@ int main(int argc, char **argv) {
   bzero(&ssync, sizeof(srslte_sync_t));
   ssync.fft_size = fft_size;
   
+  n = srslte_filesource_read(&fsrc, buffer, file_offset);
+  
   while(frame_cnt < nof_frames || nof_frames == -1) {
     n = srslte_filesource_read(&fsrc, buffer, flen - peak_offset);
     if (n < 0) {
@@ -237,6 +244,7 @@ int main(int argc, char **argv) {
           if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error2++;            
           }
+          printf("sf_idx = %d\n", srslte_sss_synch_subframe(m0, m1));
           INFO("Partial N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
           srslte_sss_synch_m0m1_diff(&sss, &buffer[sss_idx], &m0, &m0_value, &m1, &m1_value);
           if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {

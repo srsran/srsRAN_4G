@@ -43,7 +43,7 @@
 
 uint8_t tcod_lut_next_state[188][8][256];
 uint8_t tcod_lut_output[188][8][256];
-uint32_t tcod_per_fw[188][6144];
+uint16_t tcod_per_fw[188][6144];
 
 static bool table_initiated = false; 
 
@@ -74,7 +74,7 @@ int srslte_tcod_encode(srslte_tcod_t *h, uint8_t *input, uint8_t *output, uint32
   uint32_t i, k = 0, j;
   uint8_t bit;
   uint8_t in, out;
-  uint32_t *per;
+  uint16_t *per;
 
   if (long_cb > h->max_long_cb) {
     fprintf(stderr, "Turbo coder initiated for max_long_cb=%d\n",

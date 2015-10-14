@@ -47,9 +47,6 @@
 #include "srslte/phch/pusch_cfg.h"
 #include "srslte/phch/uci.h"
 
-#define SRSLTE_PDSCH_MAX_TDEC_ITERS         4
-
-
 #ifndef SRSLTE_RX_NULL
 #define SRSLTE_RX_NULL 10000
 #endif
@@ -79,6 +76,8 @@ typedef struct SRSLTE_API {
   srslte_crc_t crc_cb;
   
   srslte_uci_cqi_pusch_t uci_cqi;
+  
+  uint8_t temp_data[6000];
   
 } srslte_sch_t;
 

@@ -113,15 +113,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error encoding TB\n");
     return;
   }
-  
+  uint8_t *e_bits_unpacked = srslte_vec_malloc(cfg.nbits.nof_bits * sizeof(uint8_t));
+  if (!e_bits_unpacked) {
+    return;
+  }
+  srslte_bit_unpack_vector(e_bits, e_bits_unpacked, cfg.nbits.nof_bits);
   if (nlhs >= 1) {
-    mexutils_write_uint8(e_bits, &plhs[0], cfg.nbits.nof_bits, 1);  
+    mexutils_write_uint8(e_bits_unpacked, &plhs[0], cfg.nbits.nof_bits, 1);  
   }
   
   srslte_sch_free(&dlsch);
   
   free(trblkin);
   free(e_bits);
+  free(e_bits_unpacked);
   
   return;
 }
