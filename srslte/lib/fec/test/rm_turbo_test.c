@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
       printf("OK TX...");
       
       for (int i=0;i<nof_e_bits;i++) {
-        rm_bits_f[i] = i;//rand()%10-5;
+        rm_bits_f[i] = rand()%10-5;
         rm_bits_s[i] = (short) rm_bits_f[i];
       }
 

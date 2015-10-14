@@ -37,7 +37,7 @@
 #include "srslte/utils/vector.h"
 #include "srslte/fec/cbsegm.h"
 
-//#define HAVE_SIMD
+#define HAVE_SIMD
 
 #ifdef HAVE_SIMD
 #include <xmmintrin.h>
@@ -321,45 +321,60 @@ int srslte_rm_turbo_rx_lut_simd(int16_t *input, int16_t *output, uint32_t in_len
     
     const __m128i* xPtr   = (const __m128i*) input;
     const __m128i* lutPtr = (const __m128i*) deinter;
-    printf("\nin_len=%d, out_len=%d\n", in_len, out_len);
-    srslte_vec_fprint_s(stdout, input, in_len);
     __m128i xVal, lutVal;
-    int intCnt = 8;
-    int nwrapps = 0; 
-    for (int i=0;i<in_len/8-1-nwrapps/2;i++) {
-      xVal   = _mm_loadu_si128(xPtr);
-      lutVal = _mm_load_si128(lutPtr);
     
-      for (int j=0;j<8;j++) {
-        int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
-        uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, j);
-        output[l] += x;
-      }
-      printf("x: "); print128_num(xVal);
-      printf("l: "); print128_num(lutVal);
-      xPtr ++;
-      lutPtr ++;
-      intCnt += 8;
-      if (intCnt >= out_len) {
-        /* Copy last elements */
-        for (int j=nwrapps*out_len+intCnt-8;j<(nwrapps+1)*out_len;j++) {      
-          printf("coping element %d (in=%d)\n", j, input[j]);
-          output[deinter[j]] += input[j];
-        }
-        /* And wrap pointers */
-        nwrapps++;
-        printf("--- Wrapping: intCnt=%d, nwrap=%d\n",intCnt, nwrapps);
-        intCnt = 8; 
-        xPtr   = (const __m128i*) &input[nwrapps*out_len];
-        lutPtr = (const __m128i*) deinter;
-      }
+    /* Simplify load if we do not need to wrap (ie high rates) */
+    if (in_len <= out_len) {
+      for (int i=0;i<in_len/8;i++) {
+        xVal   = _mm_load_si128(xPtr);
+        lutVal = _mm_load_si128(lutPtr);
       
+        for (int j=0;j<8;j++) {
+          int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
+          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, j);
+          output[l] += x;
+        }
+        xPtr ++;
+        lutPtr ++;
+      }
+      for (int i=8*(in_len/8);i<in_len;i++) {      
+        output[deinter[i%out_len]] += input[i];
+      }
+    } else {
+      int intCnt = 8;
+      int inputCnt = 0;
+      int nwrapps = 0; 
+      while(inputCnt < in_len - 8) {
+        xVal   = _mm_loadu_si128(xPtr);
+        lutVal = _mm_load_si128(lutPtr);
+      
+        for (int j=0;j<8;j++) {
+          int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
+          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, j);
+          output[l] += x;
+        }
+        xPtr++;
+        lutPtr++;
+        intCnt   += 8;
+        inputCnt += 8;
+        if (intCnt >= out_len && inputCnt < in_len - 8) {
+          /* Copy last elements */
+          for (int j=(nwrapps+1)*out_len-4;j<(nwrapps+1)*out_len;j++) {      
+            output[deinter[j%out_len]] += input[j];
+            inputCnt++;
+          }
+          /* And wrap pointers */
+          nwrapps++;
+          intCnt = 8; 
+          xPtr   = (const __m128i*) &input[nwrapps*out_len];
+          lutPtr = (const __m128i*) deinter;
+        }
+      }      
+      for (int i=inputCnt;i<in_len;i++) {      
+        output[deinter[i%out_len]] += input[i];
+      }
     }
 
-    for (int i=8*(in_len/8-1)+(((8*(in_len/8))%out_len)%8);i<in_len;i++) {      
-      printf("copying i=%d, val=%d, t=%d\n",i, input[i],deinter[i%out_len]);
-      output[deinter[i%out_len]] += input[i];
-    }
     
     return 0;    
   } else {
