@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
       perror("srslte_vec_malloc");
       exit(-1);
     }
-    xr[i] = calloc(1,sizeof(cf_t) * nof_symbols);
+    xr[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
     if (!xr[i]) {
       perror("srslte_vec_malloc");
       exit(-1);
@@ -186,7 +186,6 @@ int main(int argc, char **argv) {
   mse = 0;
   for (i = 0; i < nof_layers; i++) {
     for (j = 0; j < nof_symbols; j++) {
-      printf("%f - %f\n", crealf(xr[i][j]), crealf(x[i][j]));
       mse += cabsf(xr[i][j] - x[i][j]);
     }
   }

@@ -216,8 +216,7 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_M
   /* in control channels, only diversity is supported */
   if (q->cell.nof_ports == 1) {
     /* no need for layer demapping */
-    srslte_predecoding_single(&q->precoding, q->symbols[0], q->ce[0], q->d0,
-    SRSLTE_PHICH_MAX_NSYMB, noise_estimate);
+    srslte_predecoding_single(q->symbols[0], q->ce[0], q->d0, SRSLTE_PHICH_MAX_NSYMB, noise_estimate);
   } else {
     srslte_predecoding_diversity(&q->precoding, q->symbols[0], ce_precoding, x,
         q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB, noise_estimate);

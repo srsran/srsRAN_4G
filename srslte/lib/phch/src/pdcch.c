@@ -408,7 +408,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single(&q->precoding, q->symbols[0], q->ce[0], q->d, nof_symbols, noise_estimate);
+      srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, nof_symbols, noise_estimate);
     } else {
       srslte_predecoding_diversity(&q->precoding, q->symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols, noise_estimate);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);

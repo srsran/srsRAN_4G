@@ -40,8 +40,7 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/fec/rm_turbo.h"
 #include "srslte/fec/turbocoder.h"
-#include "srslte/fec/turbodecoder_gen.h"
-#include "srslte/fec/turbodecoder_sse.h"
+#include "srslte/fec/turbodecoder.h"
 #include "srslte/fec/crc.h"
 #include "srslte/phch/pdsch_cfg.h"
 #include "srslte/phch/pusch_cfg.h"
@@ -66,12 +65,12 @@ typedef struct SRSLTE_API {
   uint8_t *parity_bits;  
   void *e;
   uint8_t *temp_g_bits;
-  uint32_t *ul_interleaver;
+  uint16_t *ul_interleaver;
   srslte_uci_bit_t ack_ri_bits[12*288];
   uint32_t nof_ri_ack_bits; 
   
   srslte_tcod_t encoder;
-  srslte_tdec_sse_t decoder;  
+  srslte_tdec_t decoder;  
   srslte_crc_t crc_tb;
   srslte_crc_t crc_cb;
   

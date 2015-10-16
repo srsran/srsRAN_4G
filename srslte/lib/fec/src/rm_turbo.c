@@ -37,14 +37,16 @@
 #include "srslte/utils/vector.h"
 #include "srslte/fec/cbsegm.h"
 
-#define HAVE_SIMD
 
-#ifdef HAVE_SIMD
+#ifdef LV_HAVE_SSE
 #include <xmmintrin.h>
-#include <tmmintrin.h>
+#include <pmmintrin.h>
+int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx);
+#endif
 
-int srslte_rm_turbo_rx_lut_simd(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx);
-
+#ifdef LV_HAVE_AVX
+#include <immintrin.h>
+int srslte_rm_turbo_rx_lut_avx(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx);
 #endif
 
 #define NCOLS 32
@@ -286,29 +288,32 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
 
 int srslte_rm_turbo_rx_lut(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
 {
-#ifndef HAVE_SIMD
-  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
-    uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;
-    uint16_t *deinter = deinterleaver[cb_idx][rv_idx];
-    
-    for (int i=0;i<in_len;i++) {
-      //printf("i=%d=%d goes to %d\n", i%out_len, input[i], deinter[i%out_len]);
-      output[deinter[i%out_len]] += input[i];
+#ifdef LV_HAVE_AVX
+  return srslte_rm_turbo_rx_lut_avx(input, output, in_len, cb_idx, rv_idx);
+#else 
+  #ifdef LV_HAVE_SSE
+    return srslte_rm_turbo_rx_lut_sse(input, output, in_len, cb_idx, rv_idx);
+  #else
+    if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
+      uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;
+      uint16_t *deinter = deinterleaver[cb_idx][rv_idx];
+      
+      for (int i=0;i<in_len;i++) {
+        //printf("i=%d=%d goes to %d\n", i%out_len, input[i], deinter[i%out_len]);
+        output[deinter[i%out_len]] += input[i];
+      }
+      return 0;    
+    } else {
+      printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
+      return SRSLTE_ERROR_INVALID_INPUTS; 
     }
-    return 0;    
-  } else {
-    printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS; 
-  }
-#else
-  return srslte_rm_turbo_rx_lut_simd(input, output, in_len, cb_idx, rv_idx);
+  #endif
 #endif
 }
 
-#ifdef HAVE_SIMD
+#ifdef LV_HAVE_SSE
 
-
-int srslte_rm_turbo_rx_lut_simd(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
+int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
 {
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
     uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;
@@ -381,7 +386,116 @@ int srslte_rm_turbo_rx_lut_simd(int16_t *input, int16_t *output, uint32_t in_len
 #endif
 
 
+#ifdef LV_HAVE_AVX
 
+#define SAVE_OUTPUT(j) x  = (int16_t) _mm256_extract_epi16(xVal,   j);\
+                       l = (uint16_t) _mm256_extract_epi16(lutVal, j);\
+                       output[l] += x;
+
+
+int srslte_rm_turbo_rx_lut_avx(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
+{
+  if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
+    uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;
+    uint16_t *deinter = deinterleaver[cb_idx][rv_idx];
+    
+    const __m256i* xPtr   = (const __m256i*) input;
+    const __m256i* lutPtr = (const __m256i*) deinter;
+    __m256i xVal, lutVal;
+    
+    int16_t x; 
+    uint16_t l;
+    
+    /* Simplify load if we do not need to wrap (ie high rates) */
+    if (in_len <= out_len) {
+      for (int i=0;i<in_len/16;i++) {
+        xVal   = _mm256_loadu_si256(xPtr);
+        lutVal = _mm256_loadu_si256(lutPtr);
+        SAVE_OUTPUT(0);
+        SAVE_OUTPUT(1);
+        SAVE_OUTPUT(2);
+        SAVE_OUTPUT(3);
+        SAVE_OUTPUT(4);
+        SAVE_OUTPUT(5);
+        SAVE_OUTPUT(6);
+        SAVE_OUTPUT(7);
+        
+        SAVE_OUTPUT(8);
+        SAVE_OUTPUT(9);
+        SAVE_OUTPUT(10);
+        SAVE_OUTPUT(11);
+        SAVE_OUTPUT(12);
+        SAVE_OUTPUT(13);
+        SAVE_OUTPUT(14);
+        SAVE_OUTPUT(15);
+        
+        xPtr ++;
+        lutPtr ++;
+      }
+      for (int i=16*(in_len/16);i<in_len;i++) {      
+        output[deinter[i%out_len]] += input[i];
+      }
+    } else {
+      int intCnt = 16;
+      int inputCnt = 0;
+      int nwrapps = 0; 
+      while(inputCnt < in_len - 16) {
+        xVal   = _mm256_loadu_si256(xPtr);
+        lutVal = _mm256_loadu_si256(lutPtr);
+      
+        SAVE_OUTPUT(0);
+        SAVE_OUTPUT(1);
+        SAVE_OUTPUT(2);
+        SAVE_OUTPUT(3);
+        SAVE_OUTPUT(4);
+        SAVE_OUTPUT(5);
+        SAVE_OUTPUT(6);
+        SAVE_OUTPUT(7);
+        
+        SAVE_OUTPUT(8);
+        SAVE_OUTPUT(9);
+        SAVE_OUTPUT(10);
+        SAVE_OUTPUT(11);
+        SAVE_OUTPUT(12);
+        SAVE_OUTPUT(13);
+        SAVE_OUTPUT(14);
+        SAVE_OUTPUT(15);
+        xPtr++;
+        lutPtr++;
+        intCnt   += 16;
+        inputCnt += 16;
+        if (intCnt >= out_len && inputCnt < in_len - 16) {
+          /* Copy last elements */
+          if ((out_len%16) == 12) {
+            for (int j=(nwrapps+1)*out_len-12;j<(nwrapps+1)*out_len;j++) {      
+              output[deinter[j%out_len]] += input[j];
+              inputCnt++;
+            }
+          } else {
+            for (int j=(nwrapps+1)*out_len-4;j<(nwrapps+1)*out_len;j++) {      
+              output[deinter[j%out_len]] += input[j];
+              inputCnt++;
+            }
+          }
+          /* And wrap pointers */
+          nwrapps++;
+          intCnt = 16; 
+          xPtr   = (const __m256i*) &input[nwrapps*out_len];
+          lutPtr = (const __m256i*) deinter;
+        }
+      }      
+      for (int i=inputCnt;i<in_len;i++) {      
+        output[deinter[i%out_len]] += input[i];
+      }
+    }    
+    return 0;    
+  } else {
+    printf("Invalid inputs rv_idx=%d, cb_idx=%d\n", rv_idx, cb_idx);
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+#endif
 
 
 

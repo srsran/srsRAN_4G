@@ -240,6 +240,17 @@ void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
 #endif
 }
 
+void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len) {
+#ifndef HAVE_VOLK_CONVERT_IF_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = ((float) x[i])*scale;
+  }
+#else
+  volk_16i_s32f_convert_32f(z,x,scale,len);
+#endif  
+}
+
 void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
 #ifndef HAVE_VECTOR_SIMD
   int i;
@@ -303,7 +314,12 @@ void srslte_vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
 
 void *srslte_vec_malloc(uint32_t size) {
 #ifndef HAVE_VOLK
-  return malloc(size);
+  void *ptr;
+  if (posix_memalign(&ptr,32,size)) {
+    return NULL;
+  } else {
+    return ptr;
+  }
 #else
   void *ptr;
   if (posix_memalign(&ptr,volk_get_alignment(),size)) {

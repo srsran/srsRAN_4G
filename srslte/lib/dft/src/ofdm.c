@@ -181,7 +181,7 @@ void srslte_ofdm_rx_sf(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
     srslte_vec_prod_ccc(input, q->shift_buffer, input, 2*q->slot_sz);
   }
   for (n=0;n<2;n++) {
-    srslte_ofdm_rx_slot_zerocopy(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
+    srslte_ofdm_rx_slot(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
   }
 }
 

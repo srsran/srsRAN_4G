@@ -102,24 +102,24 @@ int main(int argc, char **argv) {
 
   num_re = 2 * cell.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.cp);
 
-  input = malloc(num_re * sizeof(cf_t));
+  input = srslte_vec_malloc(num_re * sizeof(cf_t));
   if (!input) {
-    perror("malloc");
+    perror("srslte_vec_malloc");
     goto do_exit;
   }
-  output = malloc(num_re * sizeof(cf_t));
+  output = srslte_vec_malloc(num_re * sizeof(cf_t));
   if (!output) {
-    perror("malloc");
+    perror("srslte_vec_malloc");
     goto do_exit;
   }
-  h = malloc(num_re * sizeof(cf_t));
+  h = srslte_vec_malloc(num_re * sizeof(cf_t));
   if (!h) {
-    perror("malloc");
+    perror("srslte_vec_malloc");
     goto do_exit;
   }
-  ce = malloc(num_re * sizeof(cf_t));
+  ce = srslte_vec_malloc(num_re * sizeof(cf_t));
   if (!ce) {
-    perror("malloc");
+    perror("srslte_vec_malloc");
     goto do_exit;
   }
 
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
         
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          srslte_predecoding_single(&cheq, input, ce, output, num_re, 0);
+          srslte_predecoding_single(input, ce, output, num_re, 0);
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          srslte_predecoding_single(&cheq, input, ce, output, num_re, srslte_chest_dl_get_noise_estimate(&est));
+          srslte_predecoding_single(input, ce, output, num_re, srslte_chest_dl_get_noise_estimate(&est));
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);

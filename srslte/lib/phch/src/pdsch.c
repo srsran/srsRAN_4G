@@ -404,8 +404,7 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
     /* TODO: only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single(&q->precoding, q->symbols[0], q->ce[0], q->d,
-          cfg->nbits.nof_re, noise_estimate);
+      srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, cfg->nbits.nof_re, noise_estimate);
     } else {
       srslte_predecoding_diversity(&q->precoding, q->symbols[0], q->ce, x, q->cell.nof_ports,
           cfg->nbits.nof_re, noise_estimate);

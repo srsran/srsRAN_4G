@@ -109,7 +109,7 @@ SRSLTE_API void srslte_vec_sc_div2_sss(short *x, int pow2_div, short *z, uint32_
 SRSLTE_API void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len);
 
 SRSLTE_API void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len);
-
+SRSLTE_API void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len);
 
 SRSLTE_API void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len);
 SRSLTE_API void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len); 

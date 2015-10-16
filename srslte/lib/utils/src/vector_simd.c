@@ -37,18 +37,15 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#include <xmmintrin.h>
+#ifdef LV_HAVE_SSE
+#include <emmintrin.h>
+#include <nmmintrin.h>
+#endif
 
-void print128_num(__m128i var)
-{
-    int16_t *val = (int16_t*) &var;//can also use uint32_t instead of 16_t
-    printf("Numerical: %d %d %d %d %d %d %d %d \n", 
-           val[0], val[1], val[2], val[3], val[4], val[5], 
-           val[6], val[7]);
-}
 
 void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len)
 {
+#ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 8;
 
@@ -75,10 +72,13 @@ void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len)
   for(;number < len; number++){
     z[number] = x[number] + y[number];
   }
+#endif
+
 }
 
 void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len)
 {
+#ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 8;
 
@@ -105,10 +105,12 @@ void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len)
   for(;number < len; number++){
     z[number] = x[number] - y[number];
   }
+#endif
 }
 
 void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len)
 {
+#ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 8;
 
@@ -135,10 +137,12 @@ void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len)
   for(;number < len; number++){
     z[number] = x[number] * y[number];
   }
+#endif
 }
 
 void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
 {
+#ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 8;
 
@@ -163,10 +167,13 @@ void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
   for(;number < len; number++){
     z[number] = x[number] / divn;
   }
+#endif
 }
 
+/* No improvement with AVX */
 void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t len)
 {
+#ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 8;
 
@@ -192,12 +199,13 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t l
   for(;number < len; number++){
     y[lut[number]] = x[number];
   }
-  
+#endif  
 }
 
-/* Modified from volk_32f_s32f_convert_16i_a_sse2. Removed clipping */
+/* Modified from volk_32f_s32f_convert_16i_a_simd2. Removed clipping */
 void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
 {
+#ifdef LV_HAVE_SSE
   unsigned int number = 0;
 
   const unsigned int eighthPoints = len / 8;
@@ -230,5 +238,5 @@ void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
   for(; number < len; number++){
     z[number] = (int16_t) (x[number] * scale);
   }
-
+#endif
 }

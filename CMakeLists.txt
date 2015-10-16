@@ -83,8 +83,18 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
     #Any additional flags for CXX
 ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
+FIND_PACKAGE(SSE)
+
 IF(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g -mfpmath=sse -mavx -O3")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g -march=native -O3")
+    IF(AVX_FOUND) 
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")      
+    ELSEIF(SSE4_2_FOUND)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse_4.2 -DLV_HAVE_SSE")
+    ELSEIF(SSE4_1_FOUND)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse_4.1 -DLV_HAVE_SSE")
+    ENDIF(AVX_FOUND)
+    
    # IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
    #   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wno-error=implicit-function-declaration -Wno-error=unused-but-set-variable")
    # ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")

@@ -85,8 +85,7 @@ SRSLTE_API int srslte_precoding_type(srslte_precoding_t *q,
 
 /* Estimates the vector "x" based on the received signal "y" and the channel estimates "h"
  */
-SRSLTE_API int srslte_predecoding_single(srslte_precoding_t *q, 
-                                         cf_t *y, 
+SRSLTE_API int srslte_predecoding_single(cf_t *y, 
                                          cf_t *h, 
                                          cf_t *x, 
                                          int nof_symbols, 

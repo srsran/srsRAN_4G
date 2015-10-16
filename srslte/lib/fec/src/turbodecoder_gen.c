@@ -391,7 +391,7 @@ int srslte_tdec_gen_run_all(srslte_tdec_gen_t * h, float * input, uint8_t *outpu
     iter++;
   } while (iter < nof_iterations);
 
-  srslte_tdec_gen_decision(h, output, long_cb);
+  srslte_tdec_gen_decision_byte(h, output, long_cb);
   
   return SRSLTE_SUCCESS;
 }

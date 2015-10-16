@@ -147,24 +147,24 @@ int main(int argc, char **argv) {
 
   /* init memory */
   for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
+    ce[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
     if (!ce[i]) {
-      perror("malloc");
+      perror("srslte_vec_malloc");
       goto quit;
     }
     for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
       ce[i][j] = 1;
     }
-    slot_symbols[i] = calloc(sizeof(cf_t) , SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
+    slot_symbols[i] = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
     if (!slot_symbols[i]) {
-      perror("malloc");
+      perror("srslte_vec_malloc");
       goto quit;
     }
   }
   
   data = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
   if (!data) {
-    perror("malloc");
+    perror("srslte_vec_malloc");
     goto quit;
   }
 

@@ -37,8 +37,11 @@
 
 #include <inttypes.h>
 
+#ifdef LV_HAVE_SSE
 #include <emmintrin.h>
-#include <immintrin.h>
+#include <nmmintrin.h>
+#endif
+
 
 #define NUMSTATES       8
 #define NINPUTS         2
@@ -55,11 +58,13 @@
  *
  ************************************************/
 
+#ifdef LV_HAVE_SSE
+
 static inline int16_t hMax(__m128i buffer)
 {
-    __m128i tmp1 = _mm_sub_epi8(_mm_set1_epi16(0x7FFF), buffer);
-    __m128i tmp3 = _mm_minpos_epu16(tmp1);
-    return (int16_t)(_mm_cvtsi128_si32(tmp3));
+  __m128i tmp1 = _mm_sub_epi8(_mm_set1_epi16(0x7FFF), buffer);
+  __m128i tmp3 = _mm_minpos_epu16(tmp1);
+  return (int16_t)(_mm_cvtsi128_si32(tmp3));
 }
 
 void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_cb)
@@ -626,3 +631,7 @@ int srslte_tdec_sse_run_all(srslte_tdec_sse_t * h, int16_t * input, uint8_t *out
   
   return SRSLTE_SUCCESS;
 }
+
+#endif
+
+

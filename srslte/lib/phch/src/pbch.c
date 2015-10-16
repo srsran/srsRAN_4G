@@ -470,8 +470,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
         /* in control channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
-          srslte_predecoding_single(&q->precoding, q->symbols[0], q->ce[0], q->d,
-              q->nof_symbols, noise_estimate);
+          srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, q->nof_symbols, noise_estimate);
         } else {
           srslte_predecoding_diversity(&q->precoding, q->symbols[0], q->ce, x, nant,
               q->nof_symbols, noise_estimate);

@@ -438,8 +438,7 @@ int srslte_pusch_decode(srslte_pusch_t *q,
         return SRSLTE_ERROR;
       }
       
-      srslte_predecoding_single(&q->equalizer, q->d, q->ce, q->z,
-            cfg->nbits.nof_re, noise_estimate);
+      srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, noise_estimate);
 
       srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
       

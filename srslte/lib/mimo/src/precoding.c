@@ -35,6 +35,18 @@
 #include "srslte/mimo/precoding.h"
 #include "srslte/utils/vector.h"
 
+#ifdef LV_HAVE_SSE
+#include <xmmintrin.h>
+#include <pmmintrin.h>
+int srslte_predecoding_single_sse(cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate);
+#endif
+
+#ifdef LV_HAVE_AVX
+#include <immintrin.h>
+int srslte_predecoding_single_avx(cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate);
+#endif
+
+
 
 /************************************************
  * 
@@ -117,23 +129,138 @@ void srslte_precoding_free(srslte_precoding_t *q) {
   bzero(q, sizeof(srslte_precoding_t));
 }
 
-/* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
-int srslte_predecoding_single(srslte_precoding_t *q, cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate) {
-  if (nof_symbols <= q->max_frame_len) {
-    // h'h
-    srslte_vec_abs_square_cf(h, q->y_mod, nof_symbols);
-    if (noise_estimate > 0.0) {
-      // (h'h + n0)
-      srslte_vec_sc_add_fff(q->y_mod, noise_estimate, q->y_mod, nof_symbols);      
+#ifdef LV_HAVE_SSE
+
+#define PROD(a,b) _mm_addsub_ps(_mm_mul_ps(a,_mm_moveldup_ps(b)),_mm_mul_ps(_mm_shuffle_ps(a,a,0xB1),_mm_movehdup_ps(b)))
+
+int srslte_predecoding_single_sse(cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate) {
+  
+  float *xPtr = (float*) x;
+  const float *hPtr = (const float*) h;
+  const float *yPtr = (const float*) y;
+
+  __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
+  
+  __m128 noise = _mm_set1_ps(noise_estimate);
+  __m128 h1Val, h2Val, y1Val, y2Val, h12square, h1square, h2square, h1conj, h2conj, x1Val, x2Val;
+  for (int i=0;i<nof_symbols/4;i++) {
+    y1Val = _mm_load_ps(yPtr); yPtr+=4;
+    y2Val = _mm_load_ps(yPtr); yPtr+=4;
+    h1Val = _mm_load_ps(hPtr); hPtr+=4;
+    h2Val = _mm_load_ps(hPtr); hPtr+=4;
+    
+    h12square = _mm_hadd_ps(_mm_mul_ps(h1Val, h1Val), _mm_mul_ps(h2Val, h2Val)); 
+    if (noise_estimate > 0) {
+      h12square  = _mm_add_ps(h12square, noise);
     }
-    // y*h'
-    srslte_vec_prod_conj_ccc(y, h, x, nof_symbols);
-    // divide by (h'h+no)
-    srslte_vec_div_cfc(x,q->y_mod,x,q->z_real,q->z_imag, nof_symbols);
-    return nof_symbols;
-  } else {
-    return SRSLTE_ERROR; 
+    
+    h1square  = _mm_shuffle_ps(h12square, h12square, _MM_SHUFFLE(1, 1, 0, 0));
+    h2square  = _mm_shuffle_ps(h12square, h12square, _MM_SHUFFLE(3, 3, 2, 2));
+    
+    /* Conjugate channel */
+    h1conj = _mm_xor_ps(h1Val, conjugator); 
+    h2conj = _mm_xor_ps(h2Val, conjugator); 
+
+    /* Complex product */      
+    x1Val = PROD(y1Val, h1conj);
+    x2Val = PROD(y2Val, h2conj);
+
+    x1Val = _mm_div_ps(x1Val, h1square);
+    x2Val = _mm_div_ps(x2Val, h2square);
+    
+    _mm_store_ps(xPtr, x1Val); xPtr+=4;
+    _mm_store_ps(xPtr, x2Val); xPtr+=4;
   }
+  for (int i=8*(nof_symbols/8);i<nof_symbols;i++) {
+    x[i] = y[i]*conj(h[i])/(conj(h[i])*h[i]+noise_estimate);
+  }
+  return nof_symbols;
+}
+
+#endif
+
+#ifdef LV_HAVE_AVX
+
+#define PROD_AVX(a,b) _mm256_addsub_ps(_mm256_mul_ps(a,_mm256_moveldup_ps(b)),_mm256_mul_ps(_mm256_shuffle_ps(a,a,0xB1),_mm256_movehdup_ps(b)))
+
+
+
+int srslte_predecoding_single_avx(cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate) {
+  
+  float *xPtr = (float*) x;
+  const float *hPtr = (const float*) h;
+  const float *yPtr = (const float*) y;
+
+  __m256 conjugator = _mm256_setr_ps(0, -0.f, 0, -0.f, 0, -0.f, 0, -0.f);
+  
+  __m256 noise = _mm256_set1_ps(noise_estimate);
+  __m256 h1Val, h2Val, y1Val, y2Val, h12square, h1square, h2square, h1_p, h2_p, h1conj, h2conj, x1Val, x2Val;
+  
+  for (int i=0;i<nof_symbols/8;i++) {
+    y1Val = _mm256_load_ps(yPtr); yPtr+=8;
+    y2Val = _mm256_load_ps(yPtr); yPtr+=8;
+    h1Val = _mm256_load_ps(hPtr); hPtr+=8;
+    h2Val = _mm256_load_ps(hPtr); hPtr+=8;
+    
+    __m256 t1 = _mm256_mul_ps(h1Val, h1Val);
+    __m256 t2 = _mm256_mul_ps(h2Val, h2Val);
+    h12square = _mm256_hadd_ps(_mm256_permute2f128_ps(t1, t2, 0x20), _mm256_permute2f128_ps(t1, t2, 0x31)); 
+    if (noise_estimate > 0) {
+      h12square  = _mm256_add_ps(h12square, noise);
+    }
+    h1_p     = _mm256_permute_ps(h12square, _MM_SHUFFLE(1, 1, 0, 0));
+    h2_p     = _mm256_permute_ps(h12square, _MM_SHUFFLE(3, 3, 2, 2));
+    h1square = _mm256_permute2f128_ps(h1_p, h2_p, 2<<4);
+    h2square = _mm256_permute2f128_ps(h1_p, h2_p, 3<<4 | 1);
+    
+    /* Conjugate channel */
+    h1conj = _mm256_xor_ps(h1Val, conjugator); 
+    h2conj = _mm256_xor_ps(h2Val, conjugator); 
+
+    /* Complex product */      
+    x1Val = PROD_AVX(y1Val, h1conj);
+    x2Val = PROD_AVX(y2Val, h2conj);
+
+    x1Val = _mm256_div_ps(x1Val, h1square);
+    x2Val = _mm256_div_ps(x2Val, h2square);
+    
+    _mm256_store_ps(xPtr, x1Val); xPtr+=8;
+    _mm256_store_ps(xPtr, x2Val); xPtr+=8;
+  }
+  for (int i=16*(nof_symbols/16);i<nof_symbols;i++) {
+    x[i] = y[i]*conj(h[i])/(conj(h[i])*h[i]+noise_estimate);
+  }
+  return nof_symbols;
+}
+
+#endif
+
+int srslte_predecoding_single_gen(cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate) {
+  for (int i=0;i<nof_symbols;i++) {
+    x[i] = y[i]*conj(h[i])/(conj(h[i])*h[i]+noise_estimate);
+  }
+  return nof_symbols;
+}
+
+/* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
+int srslte_predecoding_single(cf_t *y, cf_t *h, cf_t *x, int nof_symbols, float noise_estimate) {
+#ifdef LV_HAVE_AVX
+  if (nof_symbols > 32) {
+    return srslte_predecoding_single_avx(y, h, x, nof_symbols, noise_estimate);
+  } else {
+    return srslte_predecoding_single_gen(y, h, x, nof_symbols, noise_estimate);
+  }
+#else
+  #ifdef LV_HAVE_SSE
+    if (nof_symbols > 32) {
+      return srslte_predecoding_single_sse(y, h, x, nof_symbols, noise_estimate);
+    } else {
+      return srslte_predecoding_single_gen(y, h, x, nof_symbols, noise_estimate);      
+    }
+  #else
+    return srslte_predecoding_single_gen(y, h, x, nof_symbols, noise_estimate);
+  #endif
+#endif
 }
 
 /* ZF/MMSE STBC equalizer x=y(H'H+n0·I)^(-1)H' (ZF is n0=0.0) 
@@ -257,7 +384,7 @@ int srslte_predecoding_type(srslte_precoding_t *q, cf_t *y, cf_t *h[SRSLTE_MAX_P
   switch (type) {
   case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     if (nof_ports == 1 && nof_layers == 1) {
-      return srslte_predecoding_single(q, y, h[0], x[0], nof_symbols, noise_estimate);              
+      return srslte_predecoding_single(y, h[0], x[0], nof_symbols, noise_estimate);              
     } else {
       fprintf(stderr,
           "Number of ports and layers must be 1 for transmission on single antenna ports\n");

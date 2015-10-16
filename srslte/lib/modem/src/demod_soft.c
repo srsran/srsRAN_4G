@@ -33,15 +33,15 @@
 #include "srslte/utils/bit.h"
 #include "srslte/modem/demod_soft.h"
 
-#define HAVE_SIMD
+// AVX implementation not useful for integers. Wait for AVX2
 
-#ifdef HAVE_SIMD
+#ifdef LV_HAVE_SSE
 #include <xmmintrin.h>
+#include <pmmintrin.h>
 #include <tmmintrin.h>
+void demod_16qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols);
 #endif
 
-
-//#define SCALE_DEMOD16QAM
 
 #define SCALE_SHORT_CONV_QPSK  100
 #define SCALE_SHORT_CONV_QAM16 400
@@ -72,48 +72,17 @@ void demod_16qam_lte(const cf_t *symbols, float *llr, int nsymbols) {
     float yre = crealf(symbols[i]);
     float yim = cimagf(symbols[i]);
     
-#ifdef SCALE_DEMOD16QAM
-
-    llr[4*i+2] = (fabsf(yre)-2/sqrt(10))*sqrt(10);
-    llr[4*i+3] = (fabsf(yim)-2/sqrt(10))*sqrt(10);    
-
-    if (llr[4*i+2] > 0) {
-      llr[4*i+0] = -yre/(3/sqrt(10));
-    } else {
-      llr[4*i+0] = -yre/(1/sqrt(10));
-    }
-    if (llr[4*i+3] > 0) {
-      llr[4*i+1] = -yim/(3/sqrt(10));
-    } else {
-      llr[4*i+1] = -yim/(1/sqrt(10));
-    }    
-
-#else
-    
     llr[4*i+0] = -yre;
     llr[4*i+1] = -yim;
     llr[4*i+2] = fabsf(yre)-2/sqrt(10);
     llr[4*i+3] = fabsf(yim)-2/sqrt(10);
-
-#endif
-    
   }
 }
 
-void demod_16qam_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
-#ifndef HAVE_SIMD
-  for (int i=0;i<nsymbols;i++) {
-    short yre = (short) (SCALE_SHORT_CONV_QAM16*crealf(symbols[i]));
-    short yim = (short) (SCALE_SHORT_CONV_QAM16*cimagf(symbols[i]));
-        
-    llr[4*i+0] = -yre;
-    llr[4*i+1] = -yim;
-    llr[4*i+2] = abs(yre)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);
-    llr[4*i+3] = abs(yim)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);    
-  }
-#else
+#ifdef LV_HAVE_SSE
 
-  float *symbolsPtr = (float*) symbols;
+void demod_16qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols) {
+    float *symbolsPtr = (float*) symbols;
   __m128i *resultPtr = (__m128i*) llr;
   __m128 symbol1, symbol2; 
   __m128i symbol_i1, symbol_i2, symbol_i, symbol_abs;
@@ -153,6 +122,22 @@ void demod_16qam_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
     llr[4*i+2] = abs(yre)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);
     llr[4*i+3] = abs(yim)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);    
   }
+}
+#endif
+
+void demod_16qam_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
+#ifdef LV_HAVE_SSE
+  demod_16qam_lte_s_sse(symbols, llr, nsymbols);
+#else
+  for (int i=0;i<nsymbols;i++) {
+    short yre = (short) (SCALE_SHORT_CONV_QAM16*crealf(symbols[i]));
+    short yim = (short) (SCALE_SHORT_CONV_QAM16*cimagf(symbols[i]));
+        
+    llr[4*i+0] = -yre;
+    llr[4*i+1] = -yim;
+    llr[4*i+2] = abs(yre)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);
+    llr[4*i+3] = abs(yim)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);    
+  }
 #endif
 }
 
@@ -172,21 +157,10 @@ void demod_64qam_lte(const cf_t *symbols, float *llr, int nsymbols)
   
 }
 
-void demod_64qam_lte_s(const cf_t *symbols, short *llr, int nsymbols) 
-{
-#ifndef HAVE_SIMD
-  for (int i=0;i<nsymbols;i++) {
-    float yre = (short) (SCALE_SHORT_CONV_QAM64*crealf(symbols[i]));
-    float yim = (short) (SCALE_SHORT_CONV*cimagf(symbols[i]));
+#ifdef LV_HAVE_SSE
 
-    llr[6*i+0] = -yre;
-    llr[6*i+1] = -yim;
-    llr[6*i+2] = abs(yre)-4*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+3] = abs(yim)-4*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+4] = abs(llr[6*i+2])-2*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+5] = abs(llr[6*i+3])-2*SCALE_SHORT_CONV_QAM64/sqrt(42);        
-  }
-#else
+void demod_64qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols) 
+{
   float *symbolsPtr = (float*) symbols;
   __m128i *resultPtr = (__m128i*) llr;
   __m128 symbol1, symbol2; 
@@ -236,6 +210,26 @@ void demod_64qam_lte_s(const cf_t *symbols, short *llr, int nsymbols)
     _mm_store_si128(resultPtr, _mm_or_si128(_mm_or_si128(result31, result32),result33)); resultPtr++;
   }
   for (int i=4*(nsymbols/4);i<nsymbols;i++) {
+    float yre = (short) (SCALE_SHORT_CONV_QAM64*crealf(symbols[i]));
+    float yim = (short) (SCALE_SHORT_CONV_QAM64*cimagf(symbols[i]));
+
+    llr[6*i+0] = -yre;
+    llr[6*i+1] = -yim;
+    llr[6*i+2] = abs(yre)-4*SCALE_SHORT_CONV_QAM64/sqrt(42);
+    llr[6*i+3] = abs(yim)-4*SCALE_SHORT_CONV_QAM64/sqrt(42);
+    llr[6*i+4] = abs(llr[6*i+2])-2*SCALE_SHORT_CONV_QAM64/sqrt(42);
+    llr[6*i+5] = abs(llr[6*i+3])-2*SCALE_SHORT_CONV_QAM64/sqrt(42);        
+  }
+}
+  
+#endif
+
+void demod_64qam_lte_s(const cf_t *symbols, short *llr, int nsymbols) 
+{
+#ifdef LV_HAVE_SSE
+  demod_64qam_lte_s_sse(symbols, llr, nsymbols);
+#else
+  for (int i=0;i<nsymbols;i++) {
     float yre = (short) (SCALE_SHORT_CONV_QAM64*crealf(symbols[i]));
     float yim = (short) (SCALE_SHORT_CONV_QAM64*cimagf(symbols[i]));
 

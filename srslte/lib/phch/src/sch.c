@@ -111,7 +111,7 @@ int srslte_sch_init(srslte_sch_t *q) {
       fprintf(stderr, "Error initiating Turbo Coder\n");
       goto clean;
     }
-    if (srslte_tdec_sse_init(&q->decoder, SRSLTE_TCOD_MAX_LEN_CB)) {
+    if (srslte_tdec_init(&q->decoder, SRSLTE_TCOD_MAX_LEN_CB)) {
       fprintf(stderr, "Error initiating Turbo Decoder\n");
       goto clean;
     }
@@ -133,7 +133,7 @@ int srslte_sch_init(srslte_sch_t *q) {
       goto clean; 
     }
     bzero(q->temp_g_bits, SRSLTE_MAX_PRB*12*12*12);
-    q->ul_interleaver = srslte_vec_malloc(sizeof(uint32_t)*SRSLTE_MAX_PRB*12*12*12);
+    q->ul_interleaver = srslte_vec_malloc(sizeof(uint16_t)*SRSLTE_MAX_PRB*12*12*12);
     if (!q->ul_interleaver) {
       goto clean; 
     }
@@ -163,7 +163,7 @@ void srslte_sch_free(srslte_sch_t *q) {
   if (q->ul_interleaver) {
     free(q->ul_interleaver);
   }
-  srslte_tdec_sse_free(&q->decoder);
+  srslte_tdec_free(&q->decoder);
   srslte_tcod_free(&q->encoder);
   srslte_uci_cqi_free(&q->uci_cqi);
   bzero(q, sizeof(srslte_sch_t));
@@ -413,10 +413,10 @@ static int decode_tb(srslte_sch_t *q,
       srslte_crc_t *crc_ptr; 
       early_stop = false; 
 
-      srslte_tdec_sse_reset(&q->decoder, cb_len);
+      srslte_tdec_reset(&q->decoder, cb_len);
             
       do {
-        srslte_tdec_sse_iteration(&q->decoder, softbuffer->buffer_f[i], cb_len); 
+        srslte_tdec_iteration(&q->decoder, softbuffer->buffer_f[i], cb_len); 
         q->nof_iterations++;
         
         if (cb_segm->C > 1) {
@@ -427,10 +427,10 @@ static int decode_tb(srslte_sch_t *q,
           crc_ptr = &q->crc_tb; 
         }
 
-        srslte_tdec_sse_decision_byte(&q->decoder, q->cb_in, cb_len);
+        srslte_tdec_decision_byte(&q->decoder, q->cb_in, cb_len);
                  
         if (i == 9) {
-          srslte_tdec_sse_decision(&q->decoder, q->temp_data, cb_len);
+          srslte_tdec_decision(&q->decoder, q->temp_data, cb_len);
         }
         /* Check Codeblock CRC and stop early if incorrect */
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
@@ -525,7 +525,7 @@ int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuf
 /* UL-SCH channel interleaver according to 5.2.2.8 of 36.212 */
 void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
                       uint32_t N_pusch_symbs, uint8_t *q_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
-                      uint32_t *interleaver_buffer, uint8_t *temp_buffer, uint32_t buffer_sz) 
+                      uint16_t *interleaver_buffer, uint8_t *temp_buffer, uint32_t buffer_sz) 
 {
   
   uint32_t rows = H_prime_total/N_pusch_symbs;
