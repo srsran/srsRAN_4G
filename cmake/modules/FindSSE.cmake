@@ -1,85 +1,58 @@
-# Check if SSE instructions are available on the machine where 
-# the project is compiled.
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|^i[3,9]86$")
+    return()
+endif()
 
-# Minimum requirement to enable SSE turbo decoder is SSE4.1
-# Since SSE 4.1 includes all previous SSE, look only for this one. 
+include(CheckCSourceRuns)
 
-# Check also AVX availability (for equalizer)
+option(ENABLE_SSE "Enable compile-time SSE4.1 support." ON)
+option(ENABLE_AVX "Enable compile-time AVX support."  ON)
 
-IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
-   EXEC_PROGRAM(cat ARGS "/proc/cpuinfo" OUTPUT_VARIABLE CPUINFO)
+if (ENABLE_SSE)
+    #
+    # Check compiler for SSE4_1 intrinsics
+    #
+    if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+        set(CMAKE_REQUIRED_FLAGS "-msse4.1")
+        check_c_source_runs("
+        #include <emmintrin.h>
+        #include <smmintrin.h>
 
-   STRING(REGEX REPLACE "^.*(sse4_1).*$" "\\1" SSE_THERE ${CPUINFO})
-   STRING(COMPARE EQUAL "sse4_1" "${SSE_THERE}" SSE41_TRUE)
-   IF (SSE41_TRUE)
-      set(SSE4_1_FOUND true CACHE BOOL "SSE4.1 available on host")
-   ELSE (SSE41_TRUE)
-      set(SSE4_1_FOUND false CACHE BOOL "SSE4.1 available on host")
-   ENDIF (SSE41_TRUE)
+        int main()
+        {
+        __m128i a = _mm_setzero_si128();
+        __m128i b = _mm_minpos_epu16(a);
+        return 0;
+        }"
+        HAVE_SSE)
+    endif()
 
-   STRING(REGEX REPLACE "^.*(sse4_2).*$" "\\1" SSE_THERE ${CPUINFO})
-   STRING(COMPARE EQUAL "sse4_2" "${SSE_THERE}" SSE42_TRUE)
-   IF (SSE42_TRUE)
-      set(SSE4_2_FOUND true CACHE BOOL "SSE4.2 available on host")
-   ELSE (SSE42_TRUE)
-      set(SSE4_2_FOUND false CACHE BOOL "SSE4.2 available on host")
-   ENDIF (SSE42_TRUE)
+    if (HAVE_SSE)        
+        message(STATUS "SSE4.1 is enabled - target CPU must support it")
+    endif()
+    
+    if (ENABLE_AVX)
 
-   STRING(REGEX REPLACE "^.*(avx).*$" "\\1" SSE_THERE ${CPUINFO})
-   STRING(COMPARE EQUAL "avx" "${SSE_THERE}" AVX_TRUE)
-   IF (AVX_TRUE)
-      set(AVX_FOUND true CACHE BOOL "AVX available on host")
-   ELSE (AVX_TRUE)
-      set(AVX_FOUND false CACHE BOOL "AVX available on host")
-   ENDIF (AVX_TRUE)
-ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-   EXEC_PROGRAM("/usr/sbin/sysctl -n machdep.cpu.features" OUTPUT_VARIABLE
-      CPUINFO)
+        #
+        # Check compiler for AVX intrinsics
+        #
+        if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+            set(CMAKE_REQUIRED_FLAGS "-mavx")
+            check_c_source_runs("
+            #include <immintrin.h>
 
-   STRING(REGEX REPLACE "^.*(SSE4.1).*$" "\\1" SSE_THERE ${CPUINFO})
-   STRING(COMPARE EQUAL "SSE4.1" "${SSE_THERE}" SSE41_TRUE)
-   IF (SSE41_TRUE)
-      set(SSE4_1_FOUND true CACHE BOOL "SSE4.1 available on host")
-   ELSE (SSE41_TRUE)
-      set(SSE4_1_FOUND false CACHE BOOL "SSE4.1 available on host")
-   ENDIF (SSE41_TRUE)
+            int main()
+            {
+            __m256i a = _mm256_setzero_si256();
+            return 0;
+            }"
+            HAVE_AVX)
+        endif()
 
-   STRING(REGEX REPLACE "^.*(SSE4.2).*$" "\\1" SSE_THERE ${CPUINFO})
-   STRING(COMPARE EQUAL "SSE4.2" "${SSE_THERE}" SSE42_TRUE)
-   IF (SSE42_TRUE)
-      set(SSE4_2_FOUND true CACHE BOOL "SSE4.2 available on host")
-   ELSE (SSE42_TRUE)
-      set(SSE4_2_FOUND false CACHE BOOL "SSE4.2 available on host")
-   ENDIF (SSE42_TRUE)
+        if (HAVE_AVX)
+            message(STATUS "AVX is enabled - target CPU must support it")
+        endif()
+    endif()
 
-   STRING(REGEX REPLACE "^.*(AVX).*$" "\\1" SSE_THERE ${CPUINFO})
-   STRING(COMPARE EQUAL "AVX" "${SSE_THERE}" AVX_TRUE)
-   IF (AVX_TRUE)
-      set(AVX_FOUND true CACHE BOOL "AVX available on host")
-   ELSE (AVX_TRUE)
-      set(AVX_FOUND false CACHE BOOL "AVX available on host")
-   ENDIF (AVX_TRUE)
-   
-ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Windows")
-   # TODO
-   set(SSE4_2_FOUND false CACHE BOOL "SSE4.2 available on host")
-   set(SSE4_1_FOUND false CACHE BOOL "SSE4.1 available on host")
-   set(AVX_FOUND    false CACHE BOOL "AVX    available on host")
-ELSE(CMAKE_SYSTEM_NAME MATCHES "Linux")
-   set(SSE4_1_FOUND false CACHE BOOL "SSE4.1 available on host")
-   set(AVX_FOUND    false CACHE BOOL "AVX    available on host")
-ENDIF(CMAKE_SYSTEM_NAME MATCHES "Linux")
+endif()
 
-if(NOT SSE4_1_FOUND)
-      MESSAGE(STATUS "Could not find hardware support for SSE4.1 on this machine.")
-endif(NOT SSE4_1_FOUND)
-
-if(NOT SSE4_2_FOUND)
-      MESSAGE(STATUS "Could not find hardware support for SSE4.2 on this machine.")
-endif(NOT SSE4_2_FOUND)
-
-if(NOT AVX_FOUND)
-      MESSAGE(STATUS "Could not find hardware support for AVX on this machine.")
-endif(NOT AVX_FOUND)
-
-mark_as_advanced(SSE4_1_FOUND AVX_FOUND)
+mark_as_advanced(HAVE_SSE, HAVE_AVX)

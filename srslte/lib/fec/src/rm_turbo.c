@@ -326,8 +326,8 @@ int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint32_t in_len,
     /* Simplify load if we do not need to wrap (ie high rates) */
     if (in_len <= out_len) {
       for (int i=0;i<in_len/8;i++) {
-        xVal   = _mm_load_si128(xPtr);
-        lutVal = _mm_load_si128(lutPtr);
+        xVal   = _mm_loadu_si128(xPtr);
+        lutVal = _mm_loadu_si128(lutPtr);
       
         for (int j=0;j<8;j++) {
           int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
@@ -346,7 +346,7 @@ int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint32_t in_len,
       int nwrapps = 0; 
       while(inputCnt < in_len - 8) {
         xVal   = _mm_loadu_si128(xPtr);
-        lutVal = _mm_load_si128(lutPtr);
+        lutVal = _mm_loadu_si128(lutPtr);
       
         for (int j=0;j<8;j++) {
           int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 

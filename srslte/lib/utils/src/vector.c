@@ -36,8 +36,6 @@
 #include "srslte/utils/vector_simd.h"
 #include "srslte/utils/bit.h"
 
-#define HAVE_VECTOR_SIMD
-
 #ifdef HAVE_VOLK
 #include "volk/volk.h"
 #endif
@@ -106,7 +104,7 @@ void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len) {
-#ifndef HAVE_VECTOR_SIMD
+#ifndef LV_HAVE_SSE
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]-y[i];
@@ -132,7 +130,7 @@ void srslte_vec_sum_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void srslte_vec_sum_sss(short *x, short *y, short *z, uint32_t len) {
-#ifndef HAVE_VECTOR_SIMD
+#ifndef LV_HAVE_SSE
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]+y[i];
@@ -193,7 +191,7 @@ void srslte_vec_sc_prod_sfs(short *x, float h, short *z, uint32_t len) {
 }
 
 void srslte_vec_sc_div2_sss(short *x, int n_rightshift, short *z, uint32_t len) {
-#ifndef HAVE_VECTOR_SIMD
+#ifndef LV_HAVE_SSE
   int i;
   int pow2_div = 1<<n_rightshift;
   for (i=0;i<len;i++) {
@@ -252,7 +250,7 @@ void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len) {
 }
 
 void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len) {
-#ifndef HAVE_VECTOR_SIMD
+#ifndef LV_HAVE_SSE
   int i;
   for (i=0;i<len;i++) {
     z[i] = (int16_t) (x[i]*scale);
@@ -269,7 +267,7 @@ void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len) {
 }
 
 void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len) {
-#ifndef HAVE_VECTOR_SIMD
+#ifndef LV_HAVE_SSE
   for (int i=0;i<len;i++) {
     y[lut[i]] = x[i];
   }
@@ -474,7 +472,7 @@ void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void srslte_vec_prod_sss(short *x, short *y, short *z, uint32_t len) {
-#ifndef HAVE_VECTOR_SIMD
+#ifndef LV_HAVE_SSE
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*y[i];
