@@ -413,7 +413,7 @@ int update_control() {
 }
 
 #define DATA_BUFF_SZ    1000
-uint8_t data[8*DATA_BUFF_SZ], data_unpacked[DATA_BUFF_SZ];
+uint8_t data[8*DATA_BUFF_SZ], data2[DATA_BUFF_SZ];
 uint8_t data_tmp[DATA_BUFF_SZ];
 
 /** Function run in a separate thread to receive UDP data */
@@ -422,7 +422,7 @@ void *net_thread_fnc(void *arg) {
   int rpm = 0, wpm=0; 
   
   do {
-    n = srslte_netsource_read(&net_source, &data_unpacked[rpm], DATA_BUFF_SZ-rpm);
+    n = srslte_netsource_read(&net_source, &data2[rpm], DATA_BUFF_SZ-rpm);
     if (n > 0) {
       int nbytes = 1+(pdsch_cfg.grant.mcs.tbs-1)/8;
       rpm += n; 
@@ -431,7 +431,7 @@ void *net_thread_fnc(void *arg) {
       while (rpm >= nbytes) {
         // wait for packet to be transmitted
         sem_wait(&net_sem);
-        srslte_bit_unpack_vector(&data_unpacked[wpm], data, nbytes*8);          
+        memcpy(data, &data2[wpm], nbytes);          
         INFO("Sent %d/%d bytes ready\n", nbytes, rpm);
         rpm -= nbytes;          
         wpm += nbytes; 
@@ -439,7 +439,7 @@ void *net_thread_fnc(void *arg) {
       }
       if (wpm > 0) {
         INFO("%d bytes left in buffer for next packet\n", rpm);
-        memcpy(data_unpacked, &data_unpacked[wpm], rpm * sizeof(uint8_t));
+        memcpy(data2, &data2[wpm], rpm * sizeof(uint8_t));
       }
     } else if (n == 0) {
       rpm = 0; 
