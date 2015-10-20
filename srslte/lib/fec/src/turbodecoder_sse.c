@@ -52,14 +52,9 @@
 #define ZERO 0
 
 
-/************************************************
- *
- *  MAP_GEN is the MAX-LOG-MAP generic implementation 
- *
- ************************************************/
-
 #ifdef LV_HAVE_SSE
 
+/* Computes the horizontal MAX from 8 16-bit integers using the minpos_epu16 SSE4.1 instruction */
 static inline int16_t hMax(__m128i buffer)
 {
   __m128i tmp1 = _mm_sub_epi8(_mm_set1_epi16(0x7FFF), buffer);
@@ -67,7 +62,8 @@ static inline int16_t hMax(__m128i buffer)
   return (int16_t)(_mm_cvtsi128_si32(tmp3));
 }
 
-void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_cb)
+/* Computes beta values */
+void map_gen_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
 {
   int k;
   uint32_t end = long_cb + 3;
@@ -76,6 +72,7 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_c
   __m128i beta_k = _mm_set_epi16(-INF, -INF, -INF, -INF, -INF, -INF, -INF, 0);
   __m128i g, bp, bn, alpha_k; 
   
+  /* Define the shuffle constant for the positive beta */
   __m128i shuf_bp = _mm_set_epi8(
     15, 14, // 7
     7,  6,  // 3
@@ -87,6 +84,7 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_c
     9,  8   // 4
   );
 
+  /* Define the shuffle constant for the negative beta */
   __m128i shuf_bn = _mm_set_epi8(
     7,   6, // 3
     15, 14, // 7
@@ -100,7 +98,8 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_c
  
   alphaPtr += long_cb-1;
 
-    __m128i shuf_g[4];
+  /* Define shuffle for branch costs */
+  __m128i shuf_g[4];  
   shuf_g[3] = _mm_set_epi8(3,2,1,0,1,0,3,2,3,2,1,0,1,0,3,2);
   shuf_g[2] = _mm_set_epi8(7,6,5,4,5,4,7,6,7,6,5,4,5,4,7,6);
   shuf_g[1] = _mm_set_epi8(11,10,9,8,9,8,11,10,11,10,9,8,9,8,11,10);
@@ -108,21 +107,31 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_c
   __m128i gv;
   int16_t *b = &s->branch[2*long_cb-8];
   __m128i *gPtr = (__m128i*) b;
+  /* Define shuffle for beta normalization */
   __m128i shuf_norm = _mm_set_epi8(1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0);
   
+  /* This defines a beta computation step: 
+   * Adds and substracts the branch metrics to the previous beta step, 
+   * shuffles the states according to the trellis path and selects maximum state 
+   */
 #define BETA_STEP(g)     bp = _mm_add_epi16(beta_k, g);\
     bn = _mm_sub_epi16(beta_k, g);\
     bp = _mm_shuffle_epi8(bp, shuf_bp);\
     bn = _mm_shuffle_epi8(bn, shuf_bn);\
     beta_k = _mm_max_epi16(bp, bn);    
 
+    /* Loads the alpha metrics from memory and adds them to the temporal bn and bp 
+     * metrics. Then computes horizontal maximum of both metrics and computes difference
+     */
 #define BETA_STEP_CNT(c,d) g = _mm_shuffle_epi8(gv, shuf_g[c]);\
     BETA_STEP(g)\
     alpha_k = _mm_load_si128(alphaPtr);\
     alphaPtr--;\
     bp = _mm_add_epi16(bp, alpha_k);\
     bn = _mm_add_epi16(bn, alpha_k); output[k-d] = hMax(bn) - hMax(bp);
-  
+
+  /* The tail does not require to load alpha or produce outputs. Only update 
+   * beta metrics accordingly */
   for (k=end-1; k>=long_cb; k--) {
     int16_t g0 = s->branch[2*k];
     int16_t g1 = s->branch[2*k+1];
@@ -130,6 +139,8 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_c
   
     BETA_STEP(g);
   }  
+  
+  /* We inline 2 trelis steps for each normalization */
   __m128i norm;
   for (; k >= 0; k-=8) {    
     gv = _mm_load_si128(gPtr);
@@ -151,7 +162,8 @@ void srslte_map_gen_beta(srslte_map_gen_t * s, int16_t * output, uint32_t long_c
   }  
 }
 
-void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
+/* Computes alpha metrics */
+void map_gen_alpha(map_gen_t * s, uint32_t long_cb)
 {
   uint32_t k;
   int16_t *alpha = s->alpha;
@@ -162,6 +174,7 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
     alpha[i] = -INF;
   }
   
+  /* Define the shuffle constant for the positive alpha */
   __m128i shuf_ap = _mm_set_epi8(
     15, 14, // 7
     9,  8,  // 4
@@ -173,6 +186,7 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
     3,  2   // 1
   );
 
+  /* Define the shuffle constant for the negative alpha */
   __m128i shuf_an = _mm_set_epi8(
     13, 12, // 6
     11, 10, // 5
@@ -184,6 +198,7 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
     1,  0   // 0
   );
   
+  /* Define shuffle for branch costs */
   __m128i shuf_g[4];
   shuf_g[0] = _mm_set_epi8(3,2,3,2,1,0,1,0,1,0,1,0,3,2,3,2);
   shuf_g[1] = _mm_set_epi8(7,6,7,6,5,4,5,4,5,4,5,4,7,6,7,6);
@@ -201,6 +216,10 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
     
   __m128i alpha_k = _mm_set_epi16(-INF, -INF, -INF, -INF, -INF, -INF, -INF, 0);
   
+  /* This defines a alpha computation step: 
+   * Adds and substracts the branch metrics to the previous alpha step, 
+   * shuffles the states according to the trellis path and selects maximum state 
+   */
 #define ALPHA_STEP(c)  g = _mm_shuffle_epi8(gv, shuf_g[c]); \
   ap = _mm_add_epi16(alpha_k, g);\
   an = _mm_sub_epi16(alpha_k, g);\
@@ -209,7 +228,8 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
   alpha_k = _mm_max_epi16(ap, an);\
   _mm_store_si128(alphaPtr, alpha_k);\
   alphaPtr++;    \
-  
+
+  /* In this loop, we compute 8 steps and normalize twice for each branch metrics memory load */
   __m128i norm;
   for (k = 0; k < long_cb/8; k++) {
     gv = _mm_load_si128(gPtr);
@@ -231,7 +251,8 @@ void srslte_map_gen_alpha(srslte_map_gen_t * s, uint32_t long_cb)
   }  
 }
 
-void srslte_map_gen_gamma(srslte_map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t long_cb) 
+/* Compute branch metrics (gamma) */
+void map_gen_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t long_cb) 
 {
   __m128i res10, res20, res11, res21, res1, res2; 
   __m128i in, ap, pa, g1, g0;
@@ -284,10 +305,10 @@ void srslte_map_gen_gamma(srslte_map_gen_t * h, int16_t *input, int16_t *app, in
   }
 }
 
-
-int srslte_map_gen_init(srslte_map_gen_t * h, int max_long_cb)
+/* Inititalizes constituent decoder object */
+int map_gen_init(map_gen_t * h, int max_long_cb)
 {
-  bzero(h, sizeof(srslte_map_gen_t));
+  bzero(h, sizeof(map_gen_t));
   h->alpha = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES);
   if (!h->alpha) {
     perror("srslte_vec_malloc");
@@ -302,7 +323,7 @@ int srslte_map_gen_init(srslte_map_gen_t * h, int max_long_cb)
   return 0;
 }
 
-void srslte_map_gen_free(srslte_map_gen_t * h)
+void map_gen_free(map_gen_t * h)
 {
   if (h->alpha) {
     free(h->alpha);
@@ -310,29 +331,26 @@ void srslte_map_gen_free(srslte_map_gen_t * h)
   if (h->branch) {
     free(h->branch);
   }
-  bzero(h, sizeof(srslte_map_gen_t));
+  bzero(h, sizeof(map_gen_t));
 }
 
-void srslte_map_gen_dec(srslte_map_gen_t * h, int16_t * input, int16_t *app, int16_t * parity, int16_t * output,
+/* Runs one instance of a decoder */
+void map_gen_dec(map_gen_t * h, int16_t * input, int16_t *app, int16_t * parity, int16_t * output,
                  uint32_t long_cb)
 {
  
   // Compute branch metrics
-  srslte_map_gen_gamma(h, input, app, parity, long_cb);
+  map_gen_gamma(h, input, app, parity, long_cb);
 
   // Forward recursion
-  srslte_map_gen_alpha(h, long_cb);
+  map_gen_alpha(h, long_cb);
 
   // Backwards recursion + LLR computation
-  srslte_map_gen_beta(h, output, long_cb);
+  map_gen_beta(h, output, long_cb);
   
 }
 
-/************************************************
- *
- *  TURBO DECODER INTERFACE
- *
- ************************************************/
+/* Initializes the turbo decoder object */
 int srslte_tdec_sse_init(srslte_tdec_sse_t * h, uint32_t max_long_cb)
 {
   int ret = -1;
@@ -377,7 +395,7 @@ int srslte_tdec_sse_init(srslte_tdec_sse_t * h, uint32_t max_long_cb)
     goto clean_and_exit;
   }
 
-  if (srslte_map_gen_init(&h->dec, h->max_long_cb)) {
+  if (map_gen_init(&h->dec, h->max_long_cb)) {
     goto clean_and_exit;
   }
 
@@ -419,7 +437,7 @@ void srslte_tdec_sse_free(srslte_tdec_sse_t * h)
     free(h->parity1);
   }
 
-  srslte_map_gen_free(&h->dec);
+  map_gen_free(&h->dec);
 
   for (int i=0;i<SRSLTE_NOF_TC_CB_SIZES;i++) {
     srslte_tc_interl_free(&h->interleaver[i]);    
@@ -428,6 +446,9 @@ void srslte_tdec_sse_free(srslte_tdec_sse_t * h)
   bzero(h, sizeof(srslte_tdec_sse_t));
 }
 
+/* Deinterleaves the 3 streams from the input (systematic and 2 parity bits) into 
+ * 3 buffers ready to be used by compute_gamma() 
+ */
 void deinterleave_input(srslte_tdec_sse_t *h, int16_t *input, uint32_t long_cb) {
   uint32_t i;
  
@@ -512,6 +533,7 @@ void deinterleave_input(srslte_tdec_sse_t *h, int16_t *input, uint32_t long_cb) 
 
 }
 
+/* Runs 1 turbo decoder iteration */
 void srslte_tdec_sse_iteration(srslte_tdec_sse_t * h, int16_t * input, uint32_t long_cb)
 {
 
@@ -530,9 +552,9 @@ void srslte_tdec_sse_iteration(srslte_tdec_sse_t * h, int16_t * input, uint32_t 
         
     // Run MAP DEC #1
     if (h->n_iter == 0) {
-      srslte_map_gen_dec(&h->dec, h->syst, NULL, h->parity0, h->ext1, long_cb);            
+      map_gen_dec(&h->dec, h->syst, NULL, h->parity0, h->ext1, long_cb);            
     } else {
-      srslte_map_gen_dec(&h->dec, h->syst, h->app1, h->parity0, h->ext1, long_cb);      
+      map_gen_dec(&h->dec, h->syst, h->app1, h->parity0, h->ext1, long_cb);      
     }
 
     // Convert aposteriori information into extrinsic information    
@@ -544,7 +566,7 @@ void srslte_tdec_sse_iteration(srslte_tdec_sse_t * h, int16_t * input, uint32_t 
     srslte_vec_lut_sss(h->ext1, deinter, h->app2, long_cb);
 
     // Run MAP DEC #2. 2nd decoder uses apriori information as systematic bits
-    srslte_map_gen_dec(&h->dec, h->app2, NULL, h->parity1, h->ext2, long_cb);
+    map_gen_dec(&h->dec, h->app2, NULL, h->parity1, h->ext2, long_cb);
 
     // Deinterleaved extrinsic bits become apriori info for decoder 1 
     srslte_vec_lut_sss(h->ext2, inter, h->app1, long_cb);
@@ -555,6 +577,7 @@ void srslte_tdec_sse_iteration(srslte_tdec_sse_t * h, int16_t * input, uint32_t 
   }
 }
 
+/* Resets the decoder and sets the codeblock length */
 int srslte_tdec_sse_reset(srslte_tdec_sse_t * h, uint32_t long_cb)
 {
   if (long_cb > h->max_long_cb) {
@@ -616,6 +639,7 @@ void srslte_tdec_sse_decision_byte(srslte_tdec_sse_t * h, uint8_t *output, uint3
   }
 }
 
+/* Runs nof_iterations iterations and decides the output bits */
 int srslte_tdec_sse_run_all(srslte_tdec_sse_t * h, int16_t * input, uint8_t *output,
                   uint32_t nof_iterations, uint32_t long_cb)
 {

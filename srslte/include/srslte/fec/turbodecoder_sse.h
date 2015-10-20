@@ -54,12 +54,12 @@ typedef struct SRSLTE_API {
   int max_long_cb;
   int16_t *alpha;
   int16_t *branch;
-} srslte_map_gen_t;
+} map_gen_t;
 
 typedef struct SRSLTE_API {
   int max_long_cb;
 
-  srslte_map_gen_t dec;
+  map_gen_t dec;
 
   int16_t *app1;
   int16_t *app2;
