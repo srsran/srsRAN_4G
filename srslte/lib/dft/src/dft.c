@@ -30,7 +30,6 @@
 #include <complex.h>
 #include <fftw3.h>
 #include <string.h>
-#include <volk/volk.h>
 
 #include "srslte/dft/dft.h"
 #include "srslte/utils/vector.h"
