@@ -39,7 +39,6 @@
 
 
 #ifdef LV_HAVE_SSE
-#include <emmintrin.h>
 #include <smmintrin.h>
 int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx);
 #endif

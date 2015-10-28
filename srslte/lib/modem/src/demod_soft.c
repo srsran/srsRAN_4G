@@ -36,7 +36,6 @@
 // AVX implementation not useful for integers. Wait for AVX2
 
 #ifdef LV_HAVE_SSE
-#include <emmintrin.h>
 #include <smmintrin.h>
 void demod_16qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols);
 #endif

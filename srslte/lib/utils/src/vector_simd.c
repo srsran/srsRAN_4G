@@ -38,7 +38,6 @@
 #include <stdio.h>
 
 #ifdef LV_HAVE_SSE
-#include <emmintrin.h>
 #include <smmintrin.h>
 #endif
 
