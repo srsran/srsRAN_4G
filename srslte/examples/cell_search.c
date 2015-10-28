@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
   cuhd_set_master_clock_rate(uhd, 30.72e6);        
 
   // Supress UHD messages
-  cuhd_supress_stdout();
+  cuhd_suppress_stdout();
   
   nof_freqs = srslte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
   if (nof_freqs < 0) {

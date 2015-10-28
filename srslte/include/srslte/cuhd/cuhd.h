@@ -35,6 +35,8 @@ extern "C" {
   
 #include "srslte/config.h"
 
+typedef void (*cuhd_msg_handler_t)(const char*);
+
 SRSLTE_API int cuhd_open(char *args, 
                          void **handler);
 
@@ -83,7 +85,9 @@ SRSLTE_API double cuhd_get_rx_gain(void *h);
 
 SRSLTE_API double cuhd_get_tx_gain(void *h);
 
-SRSLTE_API void cuhd_supress_stdout(); 
+SRSLTE_API void cuhd_suppress_stdout();
+
+SRSLTE_API void cuhd_register_msg_handler(cuhd_msg_handler_t h);
 
 SRSLTE_API double cuhd_set_rx_freq(void *h, 
                                    double freq);
