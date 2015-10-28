@@ -26,7 +26,7 @@
 #=============================================================================
 
 MACRO(CHECK_FUNCTION_EXISTS_MATH FUNCTION VARIABLE)
-  IF("${VARIABLE}" MATCHES "^${VARIABLE}$")
+  IF(${VARIABLE} MATCHES "^${VARIABLE}$")
     SET(MACRO_CHECK_FUNCTION_DEFINITIONS 
       "-DCHECK_FUNCTION_EXISTS=${FUNCTION} ${CMAKE_REQUIRED_FLAGS}")
     MESSAGE(STATUS "Looking for ${FUNCTION}")
@@ -63,5 +63,5 @@ MACRO(CHECK_FUNCTION_EXISTS_MATH FUNCTION VARIABLE)
         "Determining if the function ${FUNCTION} exists failed with the following output:\n"
         "${OUTPUT}\n\n")
     ENDIF(${VARIABLE})
-  ENDIF("${VARIABLE}" MATCHES "^${VARIABLE}$")
+  ENDIF(${VARIABLE} MATCHES "^${VARIABLE}$")
 ENDMACRO(CHECK_FUNCTION_EXISTS_MATH)
