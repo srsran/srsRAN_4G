@@ -40,9 +40,17 @@
 
 //#define HIDE_MESSAGES
 
-void my_handler(uhd::msg::type_t type, const std::string & msg)
+cuhd_msg_handler_t msg_handler;
+
+void suppress_handler(uhd::msg::type_t type, const std::string & msg)
 {
   //handle the message...
+}
+
+void translate_handler(uhd::msg::type_t type, const std::string & msg)
+{
+  if(msg_handler)
+    msg_handler(msg.c_str());
 }
 
 typedef _Complex float complex_t;
@@ -199,8 +207,14 @@ float cuhd_get_rx_gain_offset(void *h) {
   return 15; 
 }
 
-void cuhd_supress_stdout() {
-  uhd::msg::register_handler(my_handler);
+void cuhd_suppress_stdout() {
+  uhd::msg::register_handler(suppress_handler);
+}
+
+void cuhd_register_msg_handler(cuhd_msg_handler_t h)
+{
+  msg_handler = h;
+  uhd::msg::register_handler(translate_handler);
 }
 
 int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
