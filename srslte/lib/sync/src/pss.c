@@ -360,11 +360,8 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
       *corr_peak_value = q->conv_output_avg[corr_peak_pos]/side_lobe_value;
       
       if (*corr_peak_value < 2.0) {
-        DEBUG("pl_ub=%d, pl_lb=%d, sl_right: %d (%.2f), sl_left: %d (%.2f), PSR: %.2f/%.2f=%.2f\n", pl_ub, pl_lb, 
-             sl_right, 1000000*q->conv_output_avg[sl_right], 
-             sl_left, 1000000*q->conv_output_avg[sl_left], 
-          1000000*q->conv_output_avg[corr_peak_pos], 1000000*side_lobe_value,*corr_peak_value
-        );
+        DEBUG("peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: %.2f/%.2f=%.2f\n", corr_peak_pos, pl_ub, pl_lb, 
+             sl_right,sl_left, q->conv_output_avg[corr_peak_pos], side_lobe_value,*corr_peak_value);
       }      
     }
 #else
