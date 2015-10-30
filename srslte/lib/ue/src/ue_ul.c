@@ -344,7 +344,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     }
     
     if (q->normalize_en) {
-      float norm_factor = (float) 0.6*q->cell.nof_prb/5;
+      float norm_factor = (float) 0.8*q->cell.nof_prb/5;
       srslte_vec_sc_prod_cfc(output_signal, norm_factor, output_signal, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
     ret = SRSLTE_SUCCESS; 

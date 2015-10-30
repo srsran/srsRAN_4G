@@ -116,6 +116,8 @@ int srslte_sch_init(srslte_sch_t *q) {
       goto clean;
     }
 
+    q->max_iterations = SRSLTE_PDSCH_MAX_TDEC_ITERS;
+    
     srslte_rm_turbo_gentables();
     
     // Allocate int16 for reception (LLRs)
@@ -169,6 +171,9 @@ void srslte_sch_free(srslte_sch_t *q) {
   bzero(q, sizeof(srslte_sch_t));
 }
 
+void srslte_sch_set_max_noi(srslte_sch_t *q, uint32_t max_iterations) {
+  q->max_iterations = max_iterations;
+}
 
 float srslte_sch_average_noi(srslte_sch_t *q) {
   return q->average_nof_iterations; 
@@ -437,7 +442,7 @@ static int decode_tb(srslte_sch_t *q,
           early_stop = true;           
         }
        
-      } while (q->nof_iterations < SRSLTE_PDSCH_MAX_TDEC_ITERS && !early_stop);
+      } while (q->nof_iterations < q->max_iterations && !early_stop);
       q->average_nof_iterations = SRSLTE_VEC_EMA((float) q->nof_iterations, q->average_nof_iterations, 0.2);
 
       INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d, n_iters=%d\n", i,
