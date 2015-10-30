@@ -178,6 +178,8 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       srslte_sync_set_em_alpha(&q->sfind, 1);
       q->nof_avg_find_frames = 1; 
       srslte_sync_set_threshold(&q->sfind, 4.0);
+      
+      srslte_sync_set_em_alpha(&q->strack, 0.1);
       srslte_sync_set_threshold(&q->strack, 1.3);
 
       /* Correct CFO in the find state but not in the track state, since is called only 
