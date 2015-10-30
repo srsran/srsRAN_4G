@@ -549,6 +549,15 @@ uint32_t srslte_ra_type2_n_vrb_dl(uint32_t nof_prb, bool ngap_is_1) {
   }
 }
 
+/* Modulation and TBS index table for PDSCH from 3GPP TS 36.213 v10.3.0 table 7.1.7.1-1 */
+int srslte_ra_tbs_idx_from_mcs(uint32_t mcs) {
+  if(mcs < 29) {
+    return mcs_tbs_idx_table[mcs];
+  } else {
+    return SRSLTE_ERROR;
+  }
+}
+
 /* Table 7.1.7.2.1-1: Transport block size table on 36.213 */
 int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
   if (tbs_idx < 27 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {

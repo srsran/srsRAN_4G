@@ -219,6 +219,8 @@ SRSLTE_API int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci,
                                                      uint32_t n_rb_ho, 
                                                      uint32_t nof_prb); 
 
+SRSLTE_API int srslte_ra_tbs_idx_from_mcs(uint32_t mcs);
+
 SRSLTE_API int srslte_ra_tbs_from_idx(uint32_t tbs_idx, 
                                       uint32_t n_prb); 
 
