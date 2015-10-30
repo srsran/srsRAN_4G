@@ -77,8 +77,6 @@ typedef struct SRSLTE_API {
   
   srslte_uci_cqi_pusch_t uci_cqi;
   
-  uint8_t temp_data[6000];
-  
 } srslte_sch_t;
 
 SRSLTE_API int srslte_sch_init(srslte_sch_t *q);

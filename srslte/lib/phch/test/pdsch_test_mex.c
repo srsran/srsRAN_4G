@@ -230,9 +230,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nlhs >= 6) {
     mexutils_write_s(softbuffer.buffer_f[9], &plhs[5], 16908, 1);  
   }
-  if (nlhs >= 7) {
-    mexutils_write_uint8(pdsch.dl_sch.temp_data, &plhs[6], 5632, 1);  
-  }
   
   srslte_chest_dl_free(&chest);
   srslte_pdsch_free(&pdsch);

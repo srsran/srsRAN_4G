@@ -434,9 +434,6 @@ static int decode_tb(srslte_sch_t *q,
 
         srslte_tdec_decision_byte(&q->decoder, q->cb_in, cb_len);
                  
-        if (i == 9) {
-          srslte_tdec_decision(&q->decoder, q->temp_data, cb_len);
-        }
         /* Check Codeblock CRC and stop early if incorrect */
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
           early_stop = true;           
