@@ -296,14 +296,14 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     ret = SRSLTE_ERROR; 
     bzero(q->sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
     
-    srslte_pucch_format_t format; 
+    
     uint8_t pucch_bits[SRSLTE_PUCCH_MAX_BITS];
     uint8_t pucch2_bits[2];
     bzero(pucch_bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
     bzero(pucch2_bits, 2*sizeof(uint8_t));
     
     // Encode UCI information 
-    if (pucch_encode_bits(&uci_data, &format, pucch_bits, pucch2_bits, q->cell.cp)) {
+    if (pucch_encode_bits(&uci_data, &q->last_pucch_format, pucch_bits, pucch2_bits, q->cell.cp)) {
       return SRSLTE_ERROR; 
     }
     
@@ -311,7 +311,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     uint32_t n_pucch = 0; 
     if (uci_data.scheduling_request) {
       n_pucch = q->pucch_sched.n_pucch_sr; 
-    } else if (format < SRSLTE_PUCCH_FORMAT_2) {
+    } else if (q->last_pucch_format < SRSLTE_PUCCH_FORMAT_2) {
       if (q->pucch_sched.sps_enabled) {
         n_pucch = q->pucch_sched.n_pucch_1[q->pucch_sched.tpc_for_pucch%4];
       } else {
@@ -320,21 +320,25 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     } else {
       n_pucch = q->pucch_sched.n_pucch_2; 
     }
-    if (srslte_pucch_encode(&q->pucch, format, n_pucch, sf_idx, pucch_bits, q->sf_symbols)) {
+    if (srslte_pucch_encode(&q->pucch, q->last_pucch_format, n_pucch, sf_idx, pucch_bits, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 
     }
 
-    if (srslte_refsignal_dmrs_pucch_gen(&q->signals, format, n_pucch, sf_idx, pucch2_bits, q->refsignal)) 
+    if (srslte_refsignal_dmrs_pucch_gen(&q->signals, q->last_pucch_format, n_pucch, sf_idx, pucch2_bits, q->refsignal)) 
     {
       fprintf(stderr, "Error generating PUSCH DRMS signals\n");
       return ret; 
     }
-    srslte_refsignal_dmrs_pucch_put(&q->signals, format, n_pucch, q->refsignal, q->sf_symbols);                
+    srslte_refsignal_dmrs_pucch_put(&q->signals, q->last_pucch_format, n_pucch, q->refsignal, q->sf_symbols);                
     
     if (srslte_ue_ul_srs_tx_enabled(&q->signals.srs_cfg, tti) && q->pucch.shortened) {
-      srslte_refsignal_srs_gen(&q->signals, tti%10, q->srs_signal);
-      srslte_refsignal_srs_put(&q->signals, tti, q->srs_signal, q->sf_symbols);      
+      if (q->signals_pregenerated) {
+        srslte_refsignal_srs_pregen_put(&q->signals, &q->pregen_srs, tti, q->sf_symbols);
+      } else {
+        srslte_refsignal_srs_gen(&q->signals, tti%10, q->srs_signal);
+        srslte_refsignal_srs_put(&q->signals, tti, q->srs_signal, q->sf_symbols);      
+      }
     }
 
     srslte_ofdm_tx_sf(&q->fft, q->sf_symbols, output_signal);
@@ -491,10 +495,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
   return ret;   
 }
 
-
-
-
-/* Returns the transmission power for PUSCH for this subframe */
+/* Returns the transmission power for PUSCH for this subframe as defined in Section 5.1.1 of 36.213 */
 float srslte_ue_ul_pusch_power(srslte_ue_ul_t *q, float PL, float p0_preamble) 
 {
   float p0_pusch, alpha;
@@ -503,7 +504,7 @@ float srslte_ue_ul_pusch_power(srslte_ue_ul_t *q, float PL, float p0_preamble)
     alpha = 1;
   } else {
     alpha = q->power_ctrl.alpha;
-    p0_pusch = q->power_ctrl.p0_nominal_pusch+q->power_ctrl.p0_ue_pusch;
+    p0_pusch = q->power_ctrl.p0_nominal_pusch + q->power_ctrl.p0_ue_pusch;
   }
   float delta=0;
   if (q->power_ctrl.delta_mcs_based) {
@@ -516,15 +517,78 @@ float srslte_ue_ul_pusch_power(srslte_ue_ul_t *q, float PL, float p0_preamble)
     MPR /= q->pusch_cfg.nbits.nof_re;
     delta = 10*log10((pow(2,MPR*1.25)-1)*beta_offset_pusch);  
   }
-  // This implements closed-loop power control
+  //TODO: This implements closed-loop power control
   float f=0;  
   
   float pusch_power = 10*log10(q->pusch_cfg.grant.L_prb)+p0_pusch+alpha*PL+delta+f;
-  DEBUG("P=%f -- 10M=%f, p0=%f,alpha=%f,PL=%f,delta=%f,f=%f\n", pusch_power, 10*log10(q->pusch_cfg.grant.L_prb), p0_pusch, alpha, PL, delta, f);
+  DEBUG("PUSCH: P=%f -- 10M=%f, p0=%f,alpha=%f,PL=%f,\n", 
+         pusch_power, 10*log10(q->pusch_cfg.grant.L_prb), p0_pusch, alpha, PL);
   return SRSLTE_MIN(SRSLTE_PC_MAX, pusch_power);
 }
 
+/* Returns the transmission power for PUCCH for this subframe as defined in Section 5.1.2 of 36.213 */
+float srslte_ue_ul_pucch_power(srslte_ue_ul_t *q, float PL, srslte_pucch_format_t format, uint32_t n_cqi, uint32_t n_harq) {
+  float p0_pucch = q->power_ctrl.p0_nominal_pucch + q->power_ctrl.p0_ue_pucch;
 
+  uint8_t format_idx = format==0?0:((uint32_t) format-1);
+
+  float delta_f = q->power_ctrl.delta_f_pucch[format_idx];
+  
+  float h;
+  
+  if(format <= SRSLTE_PUCCH_FORMAT_1B) {
+    h = 0;
+  } else {
+    if (SRSLTE_CP_ISNORM(q->cell.cp)) {
+      if (n_cqi >= 4) {
+        h = 10*log10(n_cqi/4);
+      } else {
+        h = 0;
+      }
+    } else {
+      if (n_cqi + n_harq >= 4) {
+        h = 10*log10((n_cqi+n_harq)/4);
+      } else {
+        h = 0; 
+      }
+    }
+  }
+  
+  //TODO: This implements closed-loop power control
+  float g = 0; 
+ 
+  float pucch_power = p0_pucch + PL + h + delta_f + g;
+  
+  DEBUG("PUCCH: P=%f -- p0=%f, PL=%f, delta_f=%f, h=%f, g=%f\n", 
+         pucch_power, p0_pucch, PL, delta_f, h, g);
+  
+  return pucch_power;
+}
+
+/* Returns the transmission power for SRS for this subframe as defined in Section 5.1.3 of 36.213 */
+float srslte_ue_ul_srs_power(srslte_ue_ul_t *q, float PL) {
+  float alpha = q->power_ctrl.alpha;
+  float p0_pusch = q->power_ctrl.p0_nominal_pusch + q->power_ctrl.p0_ue_pusch;
+
+  //TODO: This implements closed-loop power control
+  float f=0;  
+
+  uint32_t M_sc = srslte_refsignal_srs_M_sc(&q->signals);
+  
+  float p_srs_offset; 
+  if (q->power_ctrl.delta_mcs_based) {
+    p_srs_offset = -3 + q->power_ctrl.p_srs_offset;
+  } else {
+    p_srs_offset = -10.5 + 1.5*q->power_ctrl.p_srs_offset;
+  }
+  
+  float p_srs = p_srs_offset + 10*log10(M_sc) + p0_pusch + alpha*PL + f; 
+  
+  DEBUG("SRS: P=%f -- p_offset=%f, 10M=%f, p0_pusch=%f, alpha=%f, PL=%f, f=%f\n", 
+    p_srs, p_srs_offset, 10*log10(M_sc), p0_pusch, alpha, PL, f);
+  
+  return p_srs; 
+}
 
 /* Returns 1 if a SR needs to be sent at current_tti given I_sr, as defined in Section 10.1 of 36.213 */
 int srslte_ue_ul_sr_send_tti(uint32_t I_sr, uint32_t current_tti) {

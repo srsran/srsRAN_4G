@@ -52,7 +52,7 @@ typedef enum SRSLTE_API {
   SRSLTE_PUCCH_FORMAT_1B, 
   SRSLTE_PUCCH_FORMAT_2, 
   SRSLTE_PUCCH_FORMAT_2A, 
-  SRSLTE_PUCCH_FORMAT_2B, 
+  SRSLTE_PUCCH_FORMAT_2B
 } srslte_pucch_format_t; 
 
 typedef struct SRSLTE_API {
