@@ -80,7 +80,8 @@ typedef struct SRSLTE_API {
   bool cfo_en; 
   
   float current_cfo; 
-
+  srslte_pucch_format_t last_pucch_format;
+  
   srslte_pusch_cfg_t pusch_cfg; 
   srslte_refsignal_ul_t signals; 
   srslte_refsignal_ul_dmrs_pregen_t pregen_drms;
@@ -185,6 +186,15 @@ SRSLTE_API void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q,
 SRSLTE_API float srslte_ue_ul_pusch_power(srslte_ue_ul_t *q, 
                                           float PL, 
                                           float p0_preamble);
+
+SRSLTE_API float srslte_ue_ul_pucch_power(srslte_ue_ul_t *q, 
+                                          float PL, 
+                                          srslte_pucch_format_t format, 
+                                          uint32_t n_cqi, 
+                                          uint32_t n_harq);
+
+SRSLTE_API float srslte_ue_ul_srs_power(srslte_ue_ul_t *q, 
+                                          float PL);
 
 /* Other static functions for UL PHY procedures defined in 36.213 */
 

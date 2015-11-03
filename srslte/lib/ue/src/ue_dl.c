@@ -263,6 +263,7 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
   
   if (rnti) {
     /* Do not search if an UL DCI is already pending */
+    
     if (q->pending_ul_dci_rnti == rnti) {
       q->pending_ul_dci_rnti = 0; 
       memcpy(dci_msg, &q->pending_ul_dci_msg, sizeof(srslte_dci_msg_t));
@@ -278,6 +279,9 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
         crc_rem = 0; 
       }
       DEBUG("Decoded DCI message RNTI: 0x%x\n", crc_rem);
+      if (crc_rem == rnti) {
+        memcpy(&q->last_location, &locations[i], sizeof(srslte_dci_location_t));
+      }
     } 
     if (crc_rem == rnti) {
       return 1; 
@@ -336,6 +340,9 @@ int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, 
       if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], formats[f], &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
+      }
+      if (crc_rem == rnti) {
+        memcpy(&q->last_location, &locations[i], sizeof(srslte_dci_location_t));
       }
       if (crc_rem == rnti && formats[f] == SRSLTE_DCI_FORMAT1A && dci_msg->data[0] != 1) {
         /* Save Format 0 msg. Recovered next call to srslte_ue_dl_find_ul_dci() */

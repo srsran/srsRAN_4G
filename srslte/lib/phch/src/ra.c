@@ -170,9 +170,10 @@ int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_
   return SRSLTE_SUCCESS; 
 }
 
-static srslte_mod_t last_mod; 
+srslte_mod_t last_mod[8];
+uint32_t     last_tbs_idx[8];
 
-static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant) {  
+static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, uint32_t harq_pid) {  
   int tbs = -1; 
   // 8.6.2 First paragraph
   if (dci->mcs_idx <= 28) {
@@ -180,30 +181,35 @@ static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *gr
     if (dci->mcs_idx < 11) {
       grant->mcs.mod = SRSLTE_MOD_QPSK;
       tbs = srslte_ra_tbs_from_idx(dci->mcs_idx, grant->L_prb);      
+      last_tbs_idx[harq_pid%8] = dci->mcs_idx;
     } else if (dci->mcs_idx < 21) {
       grant->mcs.mod = SRSLTE_MOD_16QAM;
-      tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 1, grant->L_prb);
+      tbs = srslte_ra_tbs_from_idx(dci->mcs_idx-1, grant->L_prb);
+      last_tbs_idx[harq_pid%8] = dci->mcs_idx-1;
     } else if (dci->mcs_idx < 29) {
       grant->mcs.mod = SRSLTE_MOD_64QAM;
-      tbs = srslte_ra_tbs_from_idx(dci->mcs_idx - 2, grant->L_prb);
+      tbs = srslte_ra_tbs_from_idx(dci->mcs_idx-2, grant->L_prb);
+      last_tbs_idx[harq_pid%8] = dci->mcs_idx-2;      
     } else {
       fprintf(stderr, "Invalid MCS index %d\n", dci->mcs_idx);
     }
+    last_mod[harq_pid%8] = grant->mcs.mod;
   } else if (dci->mcs_idx == 29 && dci->cqi_request && grant->L_prb <= 4) {
     // 8.6.1 and 8.6.2 36.213 second paragraph
     grant->mcs.mod = SRSLTE_MOD_QPSK;
-    tbs = 0;
+    tbs = srslte_ra_tbs_from_idx(last_tbs_idx[harq_pid%8], grant->L_prb); 
   } else if (dci->mcs_idx >= 29) {
     // Else use last TBS/Modulation and use mcs to obtain rv_idx 
-    tbs = 0; 
-    grant->mcs.mod = last_mod; 
+    tbs = srslte_ra_tbs_from_idx(last_tbs_idx[harq_pid%8], grant->L_prb); 
+    grant->mcs.mod = last_mod[harq_pid%8]; 
     dci->rv_idx = dci->mcs_idx - 28;
+    DEBUG("TTI=%d, harq_pid=%d, mcs_idx=%d, tbs=%d, mod=%d, rv=%d\n", 
+           harq_pid, harq_pid%8, dci->mcs_idx, tbs/8, grant->mcs.mod, dci->rv_idx);
   }
   if (tbs < 0) {
     fprintf(stderr, "Error computing TBS\n");
     return SRSLTE_ERROR; 
   } else {
-    last_mod = grant->mcs.mod;
     grant->mcs.tbs = (uint32_t) tbs; 
     return SRSLTE_SUCCESS;
   }
@@ -217,14 +223,15 @@ void srslte_ra_ul_grant_to_nbits(srslte_ra_ul_grant_t *grant, srslte_cp_t cp, ui
 }
 
 /** Compute PRB allocation for Uplink as defined in 8.1 and 8.4 of 36.213 */
-int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, uint32_t nof_prb, uint32_t n_rb_ho, srslte_ra_ul_grant_t *grant) 
+int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, uint32_t nof_prb, uint32_t n_rb_ho, srslte_ra_ul_grant_t *grant, 
+                              uint32_t harq_pid) 
 {
   
   // Compute PRB allocation 
   if (!srslte_ul_dci_to_grant_prb_allocation(dci, grant, n_rb_ho, nof_prb)) {
     
     // Compute MCS 
-    if (!ul_dci_to_grant_mcs(dci, grant)) {
+    if (!ul_dci_to_grant_mcs(dci, grant, harq_pid)) {
       
       // Fill rest of grant structure 
       grant->mcs.idx = dci->mcs_idx;

@@ -207,7 +207,8 @@ SRSLTE_API uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant,
 SRSLTE_API int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, 
                                          uint32_t nof_prb,
                                          uint32_t n_rb_ho, 
-                                         srslte_ra_ul_grant_t *grant);
+                                         srslte_ra_ul_grant_t *grant, 
+                                         uint32_t harq_pid);
 
 SRSLTE_API void srslte_ra_ul_grant_to_nbits(srslte_ra_ul_grant_t *grant, 
                                             srslte_cp_t cp,

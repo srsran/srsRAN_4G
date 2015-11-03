@@ -126,7 +126,7 @@ int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, uint32_t nof_prb,
   srslte_ra_type2_from_riv(riv, &ul_dci->type2_alloc.L_crb, &ul_dci->type2_alloc.RB_start,
                            nof_prb, nof_prb);
   
-  if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
+  if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant, 0)) {
     fprintf(stderr, "Error computing resource allocation\n");
     return SRSLTE_ERROR;
   }
@@ -164,7 +164,7 @@ void srslte_dci_rar_grant_fprint(FILE *stream, srslte_dci_rar_grant_t *rar) {
 int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb, 
                                uint32_t n_rb_ho, 
                                srslte_ra_ul_dci_t *ul_dci, 
-                               srslte_ra_ul_grant_t *grant) 
+                               srslte_ra_ul_grant_t *grant, uint32_t harq_pid) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
@@ -181,7 +181,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
       return ret;
     } 
 
-    if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
+    if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant, harq_pid)) {
       fprintf(stderr, "Error computing resource allocation\n");
       return ret;
     }
