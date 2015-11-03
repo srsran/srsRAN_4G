@@ -222,8 +222,8 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   uhd::set_thread_priority_safe();
   cuhd_handler *handler = new cuhd_handler();
   // Buffer sizes optimized for reduced clock rates (see common/phy_common.c)
-  std::string _args = std::string(args + ", recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64");
-  handler->usrp = uhd::usrp::multi_usrp::make(_args);
+  std::string _args = std::string(args);
+  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64");
   handler->usrp->set_clock_source("internal");
     
   std::string otw, cpu;
