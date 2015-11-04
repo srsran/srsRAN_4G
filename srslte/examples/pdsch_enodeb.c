@@ -513,9 +513,25 @@ int main(int argc, char **argv) {
   signal(SIGINT, sig_int_handler);
 
   if (!output_file_name) {
-    cuhd_set_master_clock_rate(uhd, 30.72e6);        
-    printf("Set TX rate: %.2f MHz\n",
-        cuhd_set_tx_srate(uhd, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
+    
+    int srate = srslte_sampling_freq_hz(cell.nof_prb);    
+    if (srate != -1) {  
+      if (srate < 10e6) {          
+        cuhd_set_master_clock_rate(uhd, 4*srate);        
+      } else {
+        cuhd_set_master_clock_rate(uhd, srate);        
+      }
+      printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
+      float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
+      if (srate_uhd != srate) {
+        fprintf(stderr, "Could not set sampling rate\n");
+        exit(-1);
+      }
+    } else {
+      fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
+      exit(-1);
+    }
+    
     printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
     printf("Set TX freq: %.2f MHz\n",
         cuhd_set_tx_freq(uhd, uhd_freq) / 1000000);
