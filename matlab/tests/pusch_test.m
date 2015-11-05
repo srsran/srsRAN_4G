@@ -1,10 +1,10 @@
-ueConfig=struct('NCellID',1,'NULRB',25,'CyclicPrefixUL','Normal','NTxAnts',1,'RNTI',64);
+ueConfig=struct('NCellID',1,'NULRB',50,'CyclicPrefixUL','Normal','NTxAnts',1,'RNTI',64);
 puschConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0,'NBundled',0);
 
 addpath('/home/ismael/work/srsLTE/debug/srslte/lib/phch/test')
 
 cqilen=[0 20];
-mods={'QPSK','16QAM', '64QAM'};
+mods={'64QAM'};
 rvs=0;
 betas=[0 2.0 2.5 5.0, 20.0];
 for p=1:ueConfig.NULRB
