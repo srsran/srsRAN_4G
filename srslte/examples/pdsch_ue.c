@@ -612,9 +612,9 @@ int main(int argc, char **argv) {
 plot_real_t p_sync, pce, pce_arg;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
-float tmp_plot[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
-float tmp_plot2[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
-float tmp_plot3[SRSLTE_SLOT_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+float tmp_plot[SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)];
+float tmp_plot2[SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)];
+float tmp_plot3[SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)];
 
 void *plot_thread_run(void *arg) {
   int i;
@@ -667,14 +667,14 @@ void *plot_thread_run(void *arg) {
           tmp_plot[i] = -80;
         }
       }
-      for (i = 0; i < 4*12*ue_dl.cell.nof_prb; i++) {
+      for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
         tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.ce[0][i]));
         if (isinf(tmp_plot2[i])) {
           tmp_plot2[i] = -80;
         }
       }
 
-      plot_real_setNewData(&pce, tmp_plot2, 4*12*ue_dl.cell.nof_prb);        
+      plot_real_setNewData(&pce, tmp_plot2, 12*ue_dl.cell.nof_prb);        
       
       if (!prog_args.input_file_name) {
         if (plot_track) {
@@ -696,10 +696,10 @@ void *plot_thread_run(void *arg) {
       }
 
   #ifdef PLOT_CHEST_ARGUMENT
-      for (i = 0; i < 2*12*ue_dl.cell.nof_prb; i++) {
+      for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
         tmp_plot2[i] = cargf(ue_dl.ce[0][i]);
       }
-      plot_real_setNewData(&pce_arg, tmp_plot2, 2*12*ue_dl.cell.nof_prb);        
+      plot_real_setNewData(&pce_arg, tmp_plot2, 12*ue_dl.cell.nof_prb);        
   #endif
       
       plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
