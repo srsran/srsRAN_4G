@@ -612,9 +612,9 @@ int main(int argc, char **argv) {
 plot_real_t p_sync, pce, pce_arg;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
-float tmp_plot[SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)];
-float tmp_plot2[SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)];
-float tmp_plot3[SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB)];
+float tmp_plot[110*15*2048];
+float tmp_plot2[110*15*2048];
+float tmp_plot3[110*15*2048];
 
 void *plot_thread_run(void *arg) {
   int i;
