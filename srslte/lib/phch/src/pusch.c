@@ -339,9 +339,10 @@ int srslte_pusch_cfg(srslte_pusch_t             *q,
           uint32_t k0_srs = srslte_refsignal_srs_rb_start_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
           uint32_t nrb_srs = srslte_refsignal_srs_rb_L_cs(srs_cfg->bw_cfg, q->cell.nof_prb);
           for (uint32_t ns=0;ns<2 && q->shortened;ns++) {
-            if (cfg->grant.n_prb_tilde[ns] != k0_srs + nrb_srs ||         // If grant allocation starts when SRS ends
-                cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb != k0_srs)  // or SRS allocation starts when grant ends
+            if (cfg->grant.n_prb_tilde[ns] == k0_srs + nrb_srs ||         // If PUSCH is contiguous on the right-hand side of SRS
+                cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb == k0_srs)  // If SRS is contiguous on the left-hand side of PUSCH
             {
+              printf("Not shortened because are continuous, k0_srs=%d, L_srs=%d, n_prb=%d, L_prb=%d\n", k0_srs, nrb_srs, cfg->grant.n_prb_tilde[ns], cfg->grant.L_prb);
               q->shortened = false; 
             }
           }
@@ -364,7 +365,7 @@ int srslte_pusch_cfg(srslte_pusch_t             *q,
           }
         }
       }    
-    }
+    } 
     
     /* Compute final number of bits and RE */
     srslte_ra_ul_grant_to_nbits(&cfg->grant, q->cell.cp, q->shortened?1:0, &cfg->nbits);
