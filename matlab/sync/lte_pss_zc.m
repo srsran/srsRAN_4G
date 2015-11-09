@@ -1,7 +1,5 @@
 function[a]=lte_pss_zc(cell_id)
 % Function returns 1 out of 3 possible Zadoff-Chu sequences used in LTE.
-% zadoff_chu element 32 left out. corresponds to DC carrier and is
-% therefore not transmitted
 
 Nzc=62;
 u=0;

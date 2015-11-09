@@ -115,6 +115,7 @@
 #include "srslte/sync/sss.h"
 #include "srslte/sync/sync.h"
 #include "srslte/sync/cfo.h"
+#include "srslte/sync/cp.h"
 
 #ifdef __cplusplus
 }

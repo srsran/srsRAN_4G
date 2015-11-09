@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_sync_init(&sync, FLEN, fft_size)) {
+  if (srslte_sync_init(&sync, FLEN, FLEN, fft_size)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
