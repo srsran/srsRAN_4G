@@ -3,12 +3,12 @@ PKG_CHECK_MODULES(PC_VOLK volk QUIET)
 
 FIND_PATH(
     VOLK_INCLUDE_DIRS
-    NAMES volk.h 
-    HINTS $ENV{VOLK_DIR}/include/volk
-          ${CMAKE_INSTALL_PREFIX}/include/volk
+    NAMES volk/volk.h
+    HINTS $ENV{VOLK_DIR}/include
+          ${CMAKE_INSTALL_PREFIX}/include
           ${PC_VOLK_INCLUDE_DIR}
-    PATHS /usr/local/include/volk
-          /usr/include/volk
+    PATHS /usr/local/include
+          /usr/include
 )
 
 FIND_LIBRARY(
