@@ -79,7 +79,7 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-  int N_id_2, ns, find_ns;
+  int N_id_2, sf_idx, find_sf;
   cf_t *buffer, *fft_buffer;
   cf_t pss_signal[SRSLTE_PSS_LEN];
   float sss_signal0[SRSLTE_SSS_LEN]; // for subframe 0
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  fft_buffer = malloc(sizeof(cf_t) * FLEN);
+  fft_buffer = malloc(sizeof(cf_t) * FLEN * 2);
   if (!fft_buffer) {
     perror("malloc");
     exit(-1);
@@ -142,28 +142,29 @@ int main(int argc, char **argv) {
 
     srslte_sync_set_N_id_2(&sync, N_id_2);
     
-    for (ns=0;ns<2;ns++) {
+    // SF1 is SF5 
+    for (sf_idx=0;sf_idx<2;sf_idx++) {
       memset(buffer, 0, sizeof(cf_t) * FLEN);
       srslte_pss_put_slot(pss_signal, buffer, nof_prb, cp);
-      srslte_sss_put_slot(ns?sss_signal5:sss_signal0, buffer, nof_prb, cp);
+      srslte_sss_put_slot(sf_idx?sss_signal5:sss_signal0, buffer, nof_prb, cp);
 
       /* Transform to OFDM symbols */
       memset(fft_buffer, 0, sizeof(cf_t) * FLEN);
-      srslte_ofdm_tx_slot(&ifft, buffer, &fft_buffer[offset]);
+      srslte_ofdm_tx_sf(&ifft, buffer, &fft_buffer[offset]);
       
       if (srslte_sync_find(&sync, fft_buffer, 0, &find_idx) < 0) {
         fprintf(stderr, "Error running srslte_sync_find\n");
         exit(-1);
       }
-      find_ns = 2*srslte_sync_get_sf_idx(&sync);
+      find_sf = srslte_sync_get_sf_idx(&sync);
       printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
-          ns, find_ns);
+          sf_idx, find_sf);
       if (find_idx != offset + FLEN/2) {
         printf("offset != find_offset: %d != %d\n", find_idx, offset + FLEN/2);
         exit(-1);
       }
-      if (ns*10 != find_ns) {
-        printf("ns != find_ns\n", 10 * ns, find_ns);
+      if (sf_idx*5 != find_sf) {
+        printf("ns != find_ns\n");
         exit(-1);
       }
       if (srslte_sync_get_cp(&sync) != cp) {
