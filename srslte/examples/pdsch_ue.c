@@ -435,7 +435,7 @@ int main(int argc, char **argv) {
 #endif
   
   ue_sync.correct_cfo = !prog_args.disable_cfo;
-    
+      
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -469,7 +469,8 @@ int main(int argc, char **argv) {
             decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, 2search only in appropiate places */
-            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+            // Decode only RV=0
+            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%8)==0)) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 
@@ -480,9 +481,12 @@ int main(int argc, char **argv) {
             if (prog_args.rnti != SRSLTE_SIRNTI) {
               n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data, srslte_ue_sync_get_sfidx(&ue_sync));
             } else {
+              // RV for SIB1 is predefined
+              uint32_t k  = (sfn/2)%4; 
+              uint32_t rv = ((uint32_t) ceilf((float)1.5*k))%4;
               n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
                                               srslte_ue_sync_get_sfidx(&ue_sync), 
-                                              SRSLTE_SIRNTI, ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);             
+                                              SRSLTE_SIRNTI, rv);             
             }
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
@@ -678,12 +682,13 @@ void *plot_thread_run(void *arg) {
       
       if (!prog_args.input_file_name) {
         if (plot_track) {
-          int max = srslte_vec_max_fi(ue_sync.strack.pss.conv_output_avg, ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);
-          srslte_vec_sc_prod_fff(ue_sync.strack.pss.conv_output_avg, 
-                          1/ue_sync.strack.pss.conv_output_avg[max], 
+          srslte_pss_synch_t *pss_obj = srslte_sync_get_cur_pss_obj(&ue_sync.strack);
+          int max = srslte_vec_max_fi(pss_obj->conv_output_avg, pss_obj->frame_size+pss_obj->fft_size-1);
+          srslte_vec_sc_prod_fff(pss_obj->conv_output_avg, 
+                          1/pss_obj->conv_output_avg[max], 
                           tmp_plot2, 
-                          ue_sync.strack.pss.frame_size+ue_sync.strack.pss.fft_size-1);        
-          plot_real_setNewData(&p_sync, tmp_plot2, ue_sync.strack.pss.frame_size);        
+                          pss_obj->frame_size+pss_obj->fft_size-1);        
+          plot_real_setNewData(&p_sync, tmp_plot2, pss_obj->frame_size);        
         } else {
           int max = srslte_vec_max_fi(ue_sync.sfind.pss.conv_output_avg, ue_sync.sfind.pss.frame_size+ue_sync.sfind.pss.fft_size-1);
           srslte_vec_sc_prod_fff(ue_sync.sfind.pss.conv_output_avg, 

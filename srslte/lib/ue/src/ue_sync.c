@@ -136,16 +136,16 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       /* If the cell is known, we work on a 1ms basis */
       q->nof_recv_sf = 1; 
 
-      q->decode_sss_on_track = false; 
+      q->decode_sss_on_track = true; 
     }
 
     q->frame_len = q->nof_recv_sf*q->sf_len;
 
-    if(srslte_sync_init(&q->sfind, q->frame_len, q->fft_size)) {
+    if(srslte_sync_init(&q->sfind, q->frame_len, q->frame_len, q->fft_size)) {
       fprintf(stderr, "Error initiating sync find\n");
       goto clean_exit;
     }
-    if(srslte_sync_init(&q->strack, TRACK_FRAME_SIZE, q->fft_size)) {
+    if(srslte_sync_init(&q->strack, q->frame_len, TRACK_FRAME_SIZE, q->fft_size)) {
       fprintf(stderr, "Error initiating sync track\n");
       goto clean_exit;
     }
@@ -154,12 +154,13 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       /* If the cell id is unknown, enable CP detection on find */ 
       srslte_sync_cp_en(&q->sfind, true);      
       srslte_sync_cp_en(&q->strack, true); 
-      
-      /* Correct CFO in all cases because both states are called always. 
-      */
-      srslte_sync_correct_cfo(&q->sfind, true);    
-      srslte_sync_correct_cfo(&q->strack, true); 
-      
+
+      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.9);
+      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.4);
+
+      srslte_sync_cfo_i_detec_en(&q->sfind, true); 
+      srslte_sync_cfo_i_detec_en(&q->strack, true); 
+
       srslte_sync_set_threshold(&q->sfind, 1.5);
       q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES; 
       srslte_sync_set_threshold(&q->strack, 1.0);
@@ -172,22 +173,22 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       srslte_sync_cp_en(&q->sfind, false);      
       srslte_sync_cp_en(&q->strack, false);        
 
+      srslte_sync_cfo_i_detec_en(&q->sfind, true); 
+      srslte_sync_cfo_i_detec_en(&q->strack, true); 
+
+      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.9);
+      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
+
       /* In find phase and if the cell is known, do not average pss correlation
        * because we only capture 1 subframe and do not know where the peak is. 
        */
-      srslte_sync_set_em_alpha(&q->sfind, 1);
       q->nof_avg_find_frames = 1; 
+      srslte_sync_set_em_alpha(&q->sfind, 1);
       srslte_sync_set_threshold(&q->sfind, 4.0);
       
       srslte_sync_set_em_alpha(&q->strack, 0.1);
       srslte_sync_set_threshold(&q->strack, 1.3);
 
-      /* Correct CFO in the find state but not in the track state, since is called only 
-       * 1 every 5 subframes. Will do it in the srslte_ue_sync_get_buffer() function. 
-      */
-      srslte_sync_correct_cfo(&q->sfind, true);    
-      srslte_sync_correct_cfo(&q->strack, false); 
-      
     }
       
     /* FIXME: Go for zerocopy only and eliminate this allocation */
@@ -298,7 +299,11 @@ static int find_peak_ok(srslte_ue_sync_t *q, cf_t *input_buffer) {
     q->mean_time_offset = 0; 
     
     /* Goto Tracking state */
-    q->state = SF_TRACK;            
+    q->state = SF_TRACK;     
+    
+    /* Initialize track state CFO */
+    q->strack.mean_cfo = q->sfind.mean_cfo;
+    q->strack.cfo_i    = q->sfind.cfo_i; 
   }
     
     
@@ -316,7 +321,7 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
   }
   
   // Adjust time offset 
-  q->time_offset = ((int) track_idx - (int) q->strack.frame_size/2 - (int) q->strack.fft_size); 
+  q->time_offset = ((int) track_idx - (int) q->strack.max_offset/2 - (int) q->strack.fft_size); 
   
   if (q->time_offset) {
     DEBUG("Time offset adjustment: %d samples\n", q->time_offset);
@@ -461,7 +466,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
             
             /* track PSS/SSS around the expected PSS position */
             ret = srslte_sync_find(&q->strack, input_buffer, 
-                            q->frame_len - q->sf_len/2 - q->fft_size - q->strack.frame_size/2, 
+                            q->frame_len - q->sf_len/2 - q->fft_size - q->strack.max_offset/2, 
                             &track_idx);
             if (ret < 0) {
               fprintf(stderr, "Error tracking correlation peak\n");
@@ -486,16 +491,17 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
             } 
                       
             q->frame_total_cnt++;       
+          } else {
+            /* Do CFO Correction if not in 0 or 5 subframes */
+            if (q->correct_cfo) {
+              srslte_cfo_correct(&q->sfind.cfocorr, 
+                          input_buffer, 
+                          input_buffer, 
+                          -srslte_sync_get_cfo(&q->strack) / q->fft_size);               
+                          
+            }            
           }
           
-          /* Do CFO Correction if not done in track and deliver the frame */
-          if (!q->strack.correct_cfo && q->correct_cfo) {
-            srslte_cfo_correct(&q->sfind.cfocorr, 
-                        input_buffer, 
-                        input_buffer, 
-                        -srslte_sync_get_cfo(&q->strack) / q->fft_size);               
-                        
-          }
         break;
       }
       

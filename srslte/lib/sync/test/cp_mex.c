@@ -40,7 +40,7 @@
 void help()
 {
   mexErrMsgTxt
-    ("[offset,corr] = srslte_pss(enbConfig, inputSignal)\n\n");
+    ("[offset,corr] = srslte_cp_synch(enbConfig, inputSignal)\n\n");
 }
 
 /* the gateway function */
@@ -48,7 +48,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
   srslte_cell_t cell; 
-  srslte_pss_synch_t pss; 
+  srslte_cp_synch_t cp_synch; 
   cf_t *input_symbols;
   int frame_len; 
   
@@ -69,25 +69,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  if (srslte_pss_synch_init_fft(&pss, frame_len, srslte_symbol_sz(cell.nof_prb))) {
-    fprintf(stderr, "Error initiating PSS\n");
-    exit(-1);
+  uint32_t symbol_sz = srslte_symbol_sz(cell.nof_prb);
+  if (srslte_cp_synch_init(&cp_synch, symbol_sz)) {
+    fprintf(stderr, "Error initiating CP\n");
+    return;
   }
-  if (srslte_pss_synch_set_N_id_2(&pss, cell.id%3)) {
-    fprintf(stderr, "Error setting N_id_2=%d\n",cell.id%3);
-    exit(-1);
-  }
-      
-  int peak_idx = srslte_pss_synch_find_pss(&pss, input_symbols, NULL);
+  
+  uint32_t cp_len = SRSLTE_CP_LEN_NORM(1, symbol_sz);
+  uint32_t nsymbols = frame_len/(symbol_sz+cp_len)-1;
+  uint32_t peak_idx = srslte_cp_synch(&cp_synch, input_symbols, symbol_sz, nsymbols, cp_len);
   
   if (nlhs >= 1) { 
-    plhs[0] = mxCreateLogicalScalar(peak_idx);
+    plhs[0] = mxCreateDoubleScalar(peak_idx);
   }
   if (nlhs >= 2) {
-    mexutils_write_cf(pss.conv_output, &plhs[1], frame_len, 1);  
+    mexutils_write_cf(cp_synch.corr, &plhs[1], symbol_sz, 1);  
   }
     
-  srslte_pss_synch_free(&pss);
+  srslte_cp_synch_free(&cp_synch);
   free(input_symbols);
 
   return;

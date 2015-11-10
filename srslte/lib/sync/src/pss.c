@@ -39,7 +39,8 @@
 #include "srslte/utils/debug.h"
 
 
-int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, uint32_t N_id_2, uint32_t fft_size) {
+int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, 
+                                 uint32_t N_id_2, uint32_t fft_size, int cfo_i) {
   srslte_dft_plan_t plan;
   cf_t pss_signal_pad[2048];
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -52,10 +53,9 @@ int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, u
 
     bzero(pss_signal_pad, fft_size * sizeof(cf_t));
     bzero(pss_signal_freq, fft_size * sizeof(cf_t));
-    memcpy(&pss_signal_pad[(fft_size-SRSLTE_PSS_LEN)/2], pss_signal_time, SRSLTE_PSS_LEN * sizeof(cf_t));
+    memcpy(&pss_signal_pad[(fft_size-SRSLTE_PSS_LEN)/2+cfo_i], pss_signal_time, SRSLTE_PSS_LEN * sizeof(cf_t));
 
-    /* Convert signal into the time domain */
-    
+    /* Convert signal into the time domain */    
     if (srslte_dft_plan(&plan, fft_size, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
       return SRSLTE_ERROR;
     }
@@ -80,12 +80,17 @@ int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, u
 int srslte_pss_synch_init(srslte_pss_synch_t *q, uint32_t frame_size) {
   return srslte_pss_synch_init_fft(q, frame_size, 128);
 }
+
+int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
+  return srslte_pss_synch_init_fft_offset(q, frame_size, fft_size, 0);
+}
+
 /* Initializes the PSS synchronization object. 
  * 
  * It correlates a signal of frame_size samples with the PSS sequence in the frequency 
  * domain. The PSS sequence is transformed using fft_size samples. 
  */
-int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size) {
+int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size, int offset) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
     
   if (q != NULL) {
@@ -100,8 +105,7 @@ int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, uint32_t frame_size, uint32
     q->ema_alpha = 0.1; 
 
     buffer_size = fft_size + frame_size + 1;
-    
-    
+        
     if (srslte_dft_plan(&q->dftp_input, fft_size, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
       fprintf(stderr, "Error creating DFT plan \n");
       goto clean_and_exit;
@@ -146,7 +150,7 @@ int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, uint32_t frame_size, uint32
         goto clean_and_exit;
       }
       /* The PSS is translated into the time domain for each N_id_2  */
-      if (srslte_pss_synch_init_N_id_2(q->pss_signal_freq[N_id_2], q->pss_signal_time[N_id_2], N_id_2, fft_size)) {
+      if (srslte_pss_synch_init_N_id_2(q->pss_signal_freq[N_id_2], q->pss_signal_time[N_id_2], N_id_2, fft_size, offset)) {
         fprintf(stderr, "Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
         goto clean_and_exit;
       }      
@@ -298,8 +302,7 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
     #ifdef CONVOLUTION_FFT
       memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
             
-      conv_output_len = srslte_conv_fft_cc_run(&q->conv_fft, q->tmp_input,
-          q->pss_signal_time[q->N_id_2], q->conv_output);
+      conv_output_len = srslte_conv_fft_cc_run(&q->conv_fft, q->tmp_input, q->pss_signal_time[q->N_id_2], q->conv_output);
     #else
       conv_output_len = srslte_conv_cc(input, q->pss_signal_time[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);
     #endif
@@ -359,10 +362,8 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
     if (corr_peak_value) {
       *corr_peak_value = q->conv_output_avg[corr_peak_pos]/side_lobe_value;
       
-      if (*corr_peak_value < 2.0) {
-        DEBUG("peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: %.2f/%.2f=%.2f\n", corr_peak_pos, pl_ub, pl_lb, 
+      DEBUG("peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: %.2f/%.2f=%.2f\n", corr_peak_pos, pl_ub, pl_lb, 
              sl_right,sl_left, q->conv_output_avg[corr_peak_pos], side_lobe_value,*corr_peak_value);
-      }      
     }
 #else
     if (corr_peak_value) {
@@ -378,8 +379,6 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
   } 
   return ret;
 }
-
-SRSLTE_API cf_t *tmp2; 
 
 /* Computes frequency-domain channel estimation of the PSS symbol 
  * input signal is in the time-domain. 
@@ -397,8 +396,6 @@ int srslte_pss_synch_chest(srslte_pss_synch_t *q, cf_t *input, cf_t ce[SRSLTE_PS
       fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
       return SRSLTE_ERROR;
     }
-    
-    tmp2 = input_fft; 
     
     /* Transform to frequency-domain */
     srslte_dft_run_c(&q->dftp_input, input, input_fft);

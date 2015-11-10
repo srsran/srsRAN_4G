@@ -53,6 +53,7 @@
 #include "srslte/sync/pss.h"
 #include "srslte/sync/sss.h"
 #include "srslte/sync/cfo.h"
+#include "srslte/sync/cp.h"
 
 #define SRSLTE_SYNC_FFT_SZ_MIN    64
 #define SRSLTE_SYNC_FFT_SZ_MAX    2048
@@ -61,7 +62,11 @@ typedef enum {SSS_DIFF=0, SSS_PARTIAL_3=2, SSS_FULL=1} sss_alg_t;
 
 typedef struct SRSLTE_API {
   srslte_pss_synch_t pss; 
+  srslte_pss_synch_t pss_i[2]; 
   srslte_sss_synch_t sss;
+  srslte_cp_synch_t cp_synch;
+  cf_t *cfo_i_corr[2];
+  
   float threshold;
   float peak_value;
   float mean_peak_value;
@@ -70,12 +75,17 @@ typedef struct SRSLTE_API {
   uint32_t sf_idx;
   uint32_t fft_size;
   uint32_t frame_size;
+  uint32_t max_offset;
   float mean_cfo;
+  int cfo_i;
+  bool find_cfo_i; 
+  float cfo_ema_alpha;
+  uint32_t nof_symbols;
+  uint32_t cp_len;
   srslte_cfo_t cfocorr;
   sss_alg_t sss_alg; 
   bool detect_cp;
   bool sss_en;
-  bool correct_cfo; 
   srslte_cp_t cp;
   uint32_t m0;
   uint32_t m1;
@@ -89,6 +99,7 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int srslte_sync_init(srslte_sync_t *q, 
                                 uint32_t frame_size, 
+                                uint32_t max_offset,
                                 uint32_t fft_size);
 
 SRSLTE_API void srslte_sync_free(srslte_sync_t *q);
@@ -140,6 +151,14 @@ SRSLTE_API float srslte_sync_get_cfo(srslte_sync_t *q);
 /* Sets known CFO to avoid long transients due to average */
 SRSLTE_API void srslte_sync_set_cfo(srslte_sync_t *q, float cfo);
 
+/* Set integer CFO */
+SRSLTE_API void srslte_sync_set_cfo_i(srslte_sync_t *q, 
+                                      int cfo_i); 
+
+/* Sets the exponential moving average coefficient for CFO averaging */
+SRSLTE_API void srslte_sync_set_cfo_ema_alpha(srslte_sync_t *q, 
+                                              float alpha);
+
 /* Gets the CP length estimation from the last call to synch_run() */
 SRSLTE_API srslte_cp_t srslte_sync_get_cp(srslte_sync_t *q);
 
@@ -147,9 +166,15 @@ SRSLTE_API srslte_cp_t srslte_sync_get_cp(srslte_sync_t *q);
 SRSLTE_API void srslte_sync_set_cp(srslte_sync_t *q, 
                                    srslte_cp_t cp);
 
+/* Enable integer CFO detection */
+SRSLTE_API void srslte_sync_cfo_i_detec_en(srslte_sync_t *q, 
+                                           bool enabled); 
+
 /* Enables/Disables SSS detection  */
 SRSLTE_API void srslte_sync_sss_en(srslte_sync_t *q, 
                                    bool enabled);
+
+SRSLTE_API srslte_pss_synch_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q); 
 
 SRSLTE_API bool srslte_sync_sss_detected(srslte_sync_t *q);
 
@@ -158,9 +183,6 @@ SRSLTE_API bool srslte_sync_sss_is_en(srslte_sync_t *q);
 /* Enables/Disables CP detection  */
 SRSLTE_API void srslte_sync_cp_en(srslte_sync_t *q, 
                                   bool enabled);
-
-SRSLTE_API void srslte_sync_correct_cfo(srslte_sync_t *q, 
-                                        bool enabled);
 
 #endif // SYNC_
 

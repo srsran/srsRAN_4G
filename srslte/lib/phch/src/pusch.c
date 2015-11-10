@@ -342,7 +342,6 @@ int srslte_pusch_cfg(srslte_pusch_t             *q,
             if (cfg->grant.n_prb_tilde[ns] == k0_srs + nrb_srs ||         // If PUSCH is contiguous on the right-hand side of SRS
                 cfg->grant.n_prb_tilde[ns] + cfg->grant.L_prb == k0_srs)  // If SRS is contiguous on the left-hand side of PUSCH
             {
-              printf("Not shortened because are continuous, k0_srs=%d, L_srs=%d, n_prb=%d, L_prb=%d\n", k0_srs, nrb_srs, cfg->grant.n_prb_tilde[ns], cfg->grant.L_prb);
               q->shortened = false; 
             }
           }
