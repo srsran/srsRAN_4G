@@ -76,6 +76,7 @@ typedef struct SRSLTE_API {
   uint32_t fft_size;
   uint32_t frame_size;
   uint32_t max_offset;
+  bool enable_cfo_corr;
   float mean_cfo;
   int cfo_i;
   bool find_cfo_i; 
@@ -154,6 +155,9 @@ SRSLTE_API void srslte_sync_set_cfo(srslte_sync_t *q, float cfo);
 /* Set integer CFO */
 SRSLTE_API void srslte_sync_set_cfo_i(srslte_sync_t *q, 
                                       int cfo_i); 
+
+SRSLTE_API void srslte_sync_set_cfo_enable(srslte_sync_t *q, 
+                                           bool enable); 
 
 /* Sets the exponential moving average coefficient for CFO averaging */
 SRSLTE_API void srslte_sync_set_cfo_ema_alpha(srslte_sync_t *q, 

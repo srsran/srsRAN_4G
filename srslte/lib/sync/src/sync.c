@@ -71,7 +71,8 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
     q->fft_size = fft_size;
     q->frame_size = frame_size;
     q->max_offset = max_offset;
-    q->sss_alg = SSS_PARTIAL_3; 
+    q->sss_alg = SSS_PARTIAL_3;
+    q->enable_cfo_corr = true; 
 
     for (int i=0;i<2;i++) {
       q->cfo_i_corr[i] = srslte_vec_malloc(sizeof(cf_t)*q->frame_size);
@@ -188,6 +189,10 @@ void srslte_sync_set_cfo(srslte_sync_t *q, float cfo) {
 
 void srslte_sync_set_cfo_i(srslte_sync_t *q, int cfo_i) {
   q->cfo_i = cfo_i;
+}
+
+void srslte_sync_set_cfo_enable(srslte_sync_t *q, bool enable) {
+  q->enable_cfo_corr = enable; 
 }
 
 void srslte_sync_set_cfo_ema_alpha(srslte_sync_t *q, float alpha) {
@@ -339,6 +344,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       fft_size_isvalid(q->fft_size))
   {
     int peak_pos;
+    float correct_cfo = 0; 
     
     ret = SRSLTE_SUCCESS; 
     
@@ -347,30 +353,32 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
     }
 
     /* Estimate CFO using CP */
-    uint32_t cp_offset = srslte_cp_synch(&q->cp_synch, input, q->nof_symbols, q->nof_symbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
-    cf_t cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
-    float cfo = -carg(cp_corr_max) / M_PI / 2; 
-    
-    /* compute cumulative moving average CFO */
-    DEBUG("cp_offset_pos=%d, abs=%f, cfo=%f, mean_cfo=%f, nof_symb=%d\n", 
-           cp_offset, cabs(cp_corr_max), cfo, q->mean_cfo, q->nof_symbols);
-    if (q->mean_cfo) {
-      q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
-    } else {
-      q->mean_cfo = cfo;
+    if (q->enable_cfo_corr) {
+      uint32_t cp_offset = srslte_cp_synch(&q->cp_synch, input, q->nof_symbols, q->nof_symbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
+      cf_t cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
+      float cfo = -carg(cp_corr_max) / M_PI / 2; 
+      
+      /* compute cumulative moving average CFO */
+      DEBUG("cp_offset_pos=%d, abs=%f, cfo=%f, mean_cfo=%f, nof_symb=%d\n", 
+            cp_offset, cabs(cp_corr_max), cfo, q->mean_cfo, q->nof_symbols);
+      if (q->mean_cfo) {
+        q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
+      } else {
+        q->mean_cfo = cfo;
+      }
+      
+      /* Correct CFO with the averaged CFO estimation */
+      correct_cfo = q->mean_cfo;
+      if (!q->find_cfo_i) {
+        correct_cfo = q->cfo_i + q->mean_cfo;
+        DEBUG("cfo_i disabled, correct_cfo=%d+%f=%f\n",q->cfo_i, q->mean_cfo, correct_cfo);
+      }
+      srslte_cfo_correct(&q->cfocorr, input, input, -correct_cfo / q->fft_size);                 
     }
     
-    /* Correct CFO with the averaged CFO estimation */
-    float correct_cfo = q->mean_cfo;
-    if (!q->find_cfo_i) {
-      correct_cfo = q->cfo_i + q->mean_cfo;
-      DEBUG("cfo_i disabled, correct_cfo=%d+%f=%f\n",q->cfo_i, q->mean_cfo, correct_cfo);
-    }
-    srslte_cfo_correct(&q->cfocorr, input, input, -correct_cfo / q->fft_size);                 
-
     srslte_pss_synch_set_N_id_2(&q->pss, q->N_id_2);
   
-    if (q->find_cfo_i) {
+    if (q->find_cfo_i && q->enable_cfo_corr) {
       float peak_value; 
       float max_peak_value = -99;
       peak_pos = 0; 

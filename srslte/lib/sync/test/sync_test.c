@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
   float sss_signal5[SRSLTE_SSS_LEN]; // for subframe 5
   int cid, max_cid; 
   uint32_t find_idx;
-  srslte_sync_t sync;
+  srslte_sync_t syncobj;
   srslte_ofdm_t ifft;
   int fft_size; 
   
@@ -115,16 +115,17 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_sync_init(&sync, FLEN, FLEN, fft_size)) {
+  if (srslte_sync_init(&syncobj, FLEN, FLEN, fft_size)) {
     fprintf(stderr, "Error initiating PSS/SSS\n");
     return -1;
   }
   
-  srslte_sync_set_cp(&sync, cp);
+  srslte_sync_set_cp(&syncobj, cp);
 
   /* Set a very high threshold to make sure the correlation is ok */
-  srslte_sync_set_threshold(&sync, 5.0);
-  srslte_sync_set_sss_algorithm(&sync, SSS_PARTIAL_3);
+  srslte_sync_set_threshold(&syncobj, 5.0);
+  srslte_sync_set_sss_algorithm(&syncobj, SSS_PARTIAL_3);
+  srslte_sync_set_cfo_enable(&syncobj, false); 
 
   if (cell_id == -1) {
     cid = 0;
@@ -140,7 +141,7 @@ int main(int argc, char **argv) {
     srslte_pss_generate(pss_signal, N_id_2);
     srslte_sss_generate(sss_signal0, sss_signal5, cid);
 
-    srslte_sync_set_N_id_2(&sync, N_id_2);
+    srslte_sync_set_N_id_2(&syncobj, N_id_2);
     
     // SF1 is SF5 
     for (sf_idx=0;sf_idx<2;sf_idx++) {
@@ -152,11 +153,11 @@ int main(int argc, char **argv) {
       memset(fft_buffer, 0, sizeof(cf_t) * FLEN);
       srslte_ofdm_tx_sf(&ifft, buffer, &fft_buffer[offset]);
       
-      if (srslte_sync_find(&sync, fft_buffer, 0, &find_idx) < 0) {
+      if (srslte_sync_find(&syncobj, fft_buffer, 0, &find_idx) < 0) {
         fprintf(stderr, "Error running srslte_sync_find\n");
         exit(-1);
       }
-      find_sf = srslte_sync_get_sf_idx(&sync);
+      find_sf = srslte_sync_get_sf_idx(&syncobj);
       printf("cell_id: %d find: %d, offset: %d, ns=%d find_ns=%d\n", cid, find_idx, offset,
           sf_idx, find_sf);
       if (find_idx != offset + FLEN/2) {
@@ -167,7 +168,7 @@ int main(int argc, char **argv) {
         printf("ns != find_ns\n");
         exit(-1);
       }
-      if (srslte_sync_get_cp(&sync) != cp) {
+      if (srslte_sync_get_cp(&syncobj) != cp) {
         printf("Detected CP should be %s\n", SRSLTE_CP_ISNORM(cp)?"Normal":"Extended");
         exit(-1);
       }
@@ -178,7 +179,7 @@ int main(int argc, char **argv) {
   free(fft_buffer);
   free(buffer);
 
-  srslte_sync_free(&sync);
+  srslte_sync_free(&syncobj);
   srslte_ofdm_tx_free(&ifft);
 
   printf("Ok\n");
