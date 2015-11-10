@@ -15,12 +15,12 @@ Current Features:
  * All UL channels/signals are supported for UE side: PRACH, PUSCH, PUCCH, SRS 
  * All MAC for UE side is supported
  * Frequency-based ZF and MMSE equalizer
- * Highly optimized Turbo Decoder (up to 25 Mbps/iteration @ 3 GHz i7 1 core)
+ * Highly optimized Turbo Decoder available for SSE (+100 Mbps) and standard C (+25 Mbps)
  * MATLAB and OCTAVE MEX library generation for many components
  * UE receiver tested and verified with Amarisoft LTE 100 eNodeB and commercial LTE networks (Telefonica Spain, Three.ie and Eircom in Ireland)
 
 Missing Features: 
- * UL power control 
+ * Closed-loop power control 
  * Semi-Persistent Scheduling
  * Aperiodic CQI reports
 
