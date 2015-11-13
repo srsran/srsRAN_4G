@@ -282,19 +282,3 @@ int srslte_demod_soft_demodulate_s(srslte_mod_t modulation, const cf_t* symbols,
   } 
   return 0; 
 }
-
-
-/* High-Level API */
-int srslte_demod_soft_initialize(srslte_demod_soft_hl* hl) {
-  return 0;
-}
-
-int srslte_demod_soft_work(srslte_demod_soft_hl* hl) {
-  int ret = srslte_demod_soft_demodulate(hl->init.std,hl->input,hl->output,hl->in_len);
-  hl->out_len = ret;
-  return 0;
-}
-
-int srslte_demod_soft_stop(srslte_demod_soft_hl* hl) {
-  return 0;
-}

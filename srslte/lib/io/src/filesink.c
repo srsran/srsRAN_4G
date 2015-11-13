@@ -100,20 +100,3 @@ int srslte_filesink_write(srslte_filesink_t *q, void *buffer, int nsamples) {
   return i;
 }
 
-
-
-int srslte_filesink_initialize(srslte_filesink_hl* h) {
-  return srslte_filesink_init(&h->obj, h->init.file_name, h->init.data_type);
-}
-
-int srslte_filesink_work(srslte_filesink_hl* h) {
-  if (srslte_filesink_write(&h->obj, h->input, h->in_len)<0) {
-    return -1;
-  }
-  return 0;
-}
-
-int srslte_filesink_stop(srslte_filesink_hl* h) {
-  srslte_filesink_free(&h->obj);
-  return 0;
-}

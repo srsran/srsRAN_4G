@@ -83,27 +83,4 @@ SRSLTE_API int srslte_viterbi_decode_uc(srslte_viterbi_t *q,
                                         uint8_t *data, 
                                         uint32_t frame_length);
 
-
-/* High-level API */
-typedef struct SRSLTE_API{
-  srslte_viterbi_t obj;
-  struct srslte_viterbi_init {
-    int rate;
-    int constraint_length;
-    int tail_bitting;
-    int generator_0;
-    int generator_1;
-    int generator_2;
-    int frame_length;
-  } init;
-  float *input;
-  int in_len;
-  uint8_t *output;
-  int out_len;
-}srslte_viterbi_hl;
-
-SRSLTE_API int srslte_viterbi_initialize(srslte_viterbi_hl* h);
-SRSLTE_API int srslte_viterbi_work(srslte_viterbi_hl* hl);
-SRSLTE_API int srslte_viterbi_stop(srslte_viterbi_hl* h);
-
 #endif

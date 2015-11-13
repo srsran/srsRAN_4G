@@ -153,32 +153,5 @@ SRSLTE_API void srslte_sss_synch_set_symbol_sz(srslte_sss_synch_t *q,
 SRSLTE_API void srslte_sss_synch_set_subframe_sz(srslte_sss_synch_t *q, 
                                                  uint32_t subframe_sz);
 
-
-/* High-level API */
-
-typedef struct SRSLTE_API {
-  srslte_sss_synch_t obj;
-  struct srslte_sss_synch_init {
-    uint32_t N_id_2;
-  } init;
-  cf_t *input;
-  uint32_t in_len;
-  struct srslte_sss_synch_ctrl_in {
-    uint32_t symbol_sz;
-    uint32_t subframe_sz;
-    uint32_t correlation_threshold;
-  } ctrl_in;
-  struct srslte_sss_synch_ctrl_out {
-    uint32_t subframe_idx;
-    uint32_t N_id_1;
-  } ctrl_out;
-}srslte_sss_synch_hl;
-
-#define DEFAULT_FRAME_SIZE    2048
-
-SRSLTE_API int srslte_sss_synch_initialize(srslte_sss_synch_hl* h);
-SRSLTE_API int srslte_sss_synch_work(srslte_sss_synch_hl* hl);
-SRSLTE_API int srslte_sss_synch_stop(srslte_sss_synch_hl* hl);
-
 #endif // SSS_
 

@@ -370,7 +370,7 @@ double cuhd_set_tx_gain(void *h, double gain)
 {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
   handler->usrp->set_tx_gain(gain);
-  return handler->usrp->get_tx_gain();
+  return gain;
 }
 
 double cuhd_set_tx_srate(void *h, double freq)

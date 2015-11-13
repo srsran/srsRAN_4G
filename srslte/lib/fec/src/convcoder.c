@@ -65,24 +65,3 @@ int srslte_convcoder_encode(srslte_convcoder_t *q, uint8_t *input, uint8_t *outp
   }
 }
 
-
-
-int srslte_convcoder_initialize(srslte_convcoder_hl* h) {
-  return 0;
-}
-
-int srslte_convcoder_work(srslte_convcoder_hl* hl) {
-
-  hl->obj.K = hl->ctrl_in.constraint_length;
-  hl->obj.R = hl->ctrl_in.rate;
-  hl->obj.poly[0] = hl->ctrl_in.generator_0;
-  hl->obj.poly[1] = hl->ctrl_in.generator_1;
-  hl->obj.poly[2] = hl->ctrl_in.generator_2;
-  hl->obj.tail_biting = hl->ctrl_in.tail_bitting?true:false;
-  hl->out_len = srslte_convcoder_encode(&hl->obj, hl->input, hl->output, hl->in_len);
-  return 0;
-}
-
-int srslte_convcoder_stop(srslte_convcoder_hl* h) {
-  return 0;
-}

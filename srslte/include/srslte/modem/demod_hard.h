@@ -58,23 +58,4 @@ SRSLTE_API int srslte_demod_hard_demodulate(srslte_demod_hard_t* q,
                                             uint8_t *bits, 
                                             uint32_t nsymbols);
 
-/* High-level API */
-typedef struct SRSLTE_API {
-  srslte_demod_hard_t obj;
-  struct srslte_demod_hard_init {
-    srslte_mod_t std;    // Symbol mapping standard (see modem_table.h)
-  } init;
-
-  cf_t* input;
-  int in_len;
-
-  uint8_t* output;
-  int out_len;
-}srslte_demod_hard_hl;
-
-SRSLTE_API int srslte_demod_hard_initialize(srslte_demod_hard_hl* hl);
-SRSLTE_API int srslte_demod_hard_work(srslte_demod_hard_hl* hl);
-SRSLTE_API int srslte_demod_hard_stop(srslte_demod_hard_hl* hl);
-
-
 #endif // DEMOD_HARD_

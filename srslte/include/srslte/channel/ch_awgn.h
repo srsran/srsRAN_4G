@@ -54,21 +54,5 @@ SRSLTE_API void srslte_ch_awgn_f(const float* x,
 SRSLTE_API float srslte_ch_awgn_get_variance(float ebno_db, 
                                              float rate);
 
-/* High-level API */
-
-typedef struct SRSLTE_API{
-  const cf_t* input;
-  int in_len;
-  struct srslte_ch_awgn_ctrl_in {
-    float variance;      // Noise variance
-  } ctrl_in;
-
-  cf_t* output;
-  int out_len;
-}srslte_ch_awgn_hl;
-
-SRSLTE_API int srslte_ch_awgn_initialize(srslte_ch_awgn_hl* hl);
-SRSLTE_API int srslte_ch_awgn_work(srslte_ch_awgn_hl* hl);
-SRSLTE_API int srslte_ch_awgn_stop(srslte_ch_awgn_hl* hl);
 
 #endif

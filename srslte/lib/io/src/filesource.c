@@ -117,20 +117,3 @@ int srslte_filesource_read(srslte_filesource_t *q, void *buffer, int nsamples) {
   return i;
 }
 
-
-int srslte_filesource_initialize(srslte_filesource_hl* h) {
-  return srslte_filesource_init(&h->obj, h->init.file_name, h->init.data_type);
-}
-
-int srslte_filesource_work(srslte_filesource_hl* h) {
-  h->out_len = srslte_filesource_read(&h->obj, h->output, h->ctrl_in.nsamples);
-  if (h->out_len < 0) {
-    return -1;
-  }
-  return 0;
-}
-
-int srslte_filesource_stop(srslte_filesource_hl* h) {
-  srslte_filesource_free(&h->obj);
-  return 0;
-}

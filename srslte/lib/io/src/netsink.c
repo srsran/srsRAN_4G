@@ -105,20 +105,3 @@ int srslte_netsink_write(srslte_netsink_t *q, void *buffer, int nof_bytes) {
   return n;
 }
 
-
-
-int srslte_netsink_initialize(srslte_netsink_hl* h) {
-  return srslte_netsink_init(&h->obj, h->init.address, h->init.port, SRSLTE_NETSINK_UDP);
-}
-
-int srslte_netsink_work(srslte_netsink_hl* h) {
-  if (srslte_netsink_write(&h->obj, h->input, h->in_len)<0) {
-    return -1;
-  }
-  return 0;
-}
-
-int srslte_netsink_stop(srslte_netsink_hl* h) {
-  srslte_netsink_free(&h->obj);
-  return 0;
-}

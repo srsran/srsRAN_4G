@@ -153,26 +153,3 @@ int srslte_rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out
   return 0;
 }
 
-/** High-level API */
-
-int srslte_rm_conv_initialize(srslte_rm_conv_hl* h) {
-
-  return 0;
-}
-
-/** This function can be called in a subframe (1ms) basis */
-int srslte_rm_conv_work(srslte_rm_conv_hl* hl) {
-  if (hl->init.direction) {
-    srslte_rm_conv_tx(hl->input, hl->in_len, hl->output, hl->ctrl_in.E);
-    hl->out_len = hl->ctrl_in.E;
-  } else {
-    srslte_rm_conv_rx(hl->input, hl->in_len, hl->output, hl->ctrl_in.S);
-    hl->out_len = hl->ctrl_in.S;
-  }
-  return 0;
-}
-
-int srslte_rm_conv_stop(srslte_rm_conv_hl* hl) {
-  return 0;
-}
-

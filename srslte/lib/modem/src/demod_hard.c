@@ -66,21 +66,3 @@ int srslte_demod_hard_demodulate(srslte_demod_hard_t* q, cf_t* symbols, uint8_t 
 }
 
 
-int srslte_demod_hard_initialize(srslte_demod_hard_hl* hl) {
-  srslte_demod_hard_init(&hl->obj);
-  srslte_demod_hard_table_set(&hl->obj,hl->init.std);
-
-  return 0;
-}
-
-int srslte_demod_hard_work(srslte_demod_hard_hl* hl) {
-  int ret = srslte_demod_hard_demodulate(&hl->obj,hl->input,hl->output,hl->in_len);
-  hl->out_len = ret;
-  return 0;
-}
-
-int srslte_demod_hard_stop(srslte_demod_hard_hl* hl) {
-  return 0;
-}
-
-

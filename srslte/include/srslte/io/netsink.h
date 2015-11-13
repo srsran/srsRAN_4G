@@ -72,22 +72,4 @@ SRSLTE_API int srslte_netsink_write(srslte_netsink_t *q,
 
 SRSLTE_API int srslte_netsink_set_nonblocking(srslte_netsink_t *q); 
 
-
-/* High-level API */
-typedef struct SRSLTE_API {
-  srslte_netsink_t obj;
-  struct srslte_netsink_init {
-    char *address;
-    int port;
-    int block_length;
-    int data_type;
-  } init;
-  void* input;
-  int in_len;
-}srslte_netsink_hl;
-
-SRSLTE_API int srslte_netsink_initialize(srslte_netsink_hl* h);
-SRSLTE_API int srslte_netsink_work(  srslte_netsink_hl* hl);
-SRSLTE_API int srslte_netsink_stop(srslte_netsink_hl* h);
-
 #endif // UDPSINK_

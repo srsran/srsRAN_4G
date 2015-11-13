@@ -151,30 +151,3 @@ int srslte_sss_synch_N_id_1(srslte_sss_synch_t *q, uint32_t m0, uint32_t m1) {
   } 
   return N_id_1;
 }
-
-/** High-level API */
-
-int srslte_sss_synch_initialize(srslte_sss_synch_hl* h) {
-
-  if (srslte_sss_synch_init(&h->obj, 128)) {
-    return SRSLTE_ERROR;
-  }
-  srslte_sss_synch_set_N_id_2(&h->obj, h->init.N_id_2);
-
-  return SRSLTE_SUCCESS;
-}
-
-int srslte_sss_synch_work(srslte_sss_synch_hl* hl) {
-
-  if (hl->ctrl_in.correlation_threshold) {
-    srslte_sss_synch_set_threshold(&hl->obj, hl->ctrl_in.correlation_threshold);
-  }
- 
-  return SRSLTE_SUCCESS;
-}
-
-int srslte_sss_synch_stop(srslte_sss_synch_hl* hl) {
-  srslte_sss_synch_free(&hl->obj);
-  return SRSLTE_SUCCESS;
-}
-

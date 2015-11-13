@@ -60,21 +60,4 @@ SRSLTE_API int srslte_filesink_write(srslte_filesink_t *q,
                                      void *buffer, 
                                      int nsamples);
 
-
-/* High-level API */
-typedef struct SRSLTE_API {
-  srslte_filesink_t obj;
-  struct srslte_filesink_init {
-    char *file_name;
-    int block_length;
-    int data_type;
-  } init;
-  void* input;
-  int in_len;
-}srslte_filesink_hl;
-
-SRSLTE_API int srslte_filesink_initialize(srslte_filesink_hl* h);
-SRSLTE_API int srslte_filesink_work(  srslte_filesink_hl* hl);
-SRSLTE_API int srslte_filesink_stop(srslte_filesink_hl* h);
-
 #endif // FILESINK_
