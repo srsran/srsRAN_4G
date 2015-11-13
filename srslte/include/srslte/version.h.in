@@ -32,7 +32,20 @@
 #define SRSLTE_VERSION_MAJOR @SRSLTE_VERSION_MAJOR@
 #define SRSLTE_VERSION_MINOR @SRSLTE_VERSION_MINOR@
 #define SRSLTE_VERSION_PATCH @SRSLTE_VERSION_PATCH@
-#define SRSLTE_VERSION @SRSLTE_VERSION@
+#define SRSLTE_VERSION_STRING @SRSLTE_VERSION_STRING@
+
+#define SRSLTE_VERSION_ENCODE(major, minor, patch) ( \
+    ((major) * 10000)                                \
+  + ((minor) *   100)                                \
+  + ((patch) *     1))
+
+#define SRSLTE_VERSION SRSLTE_VERSION_ENCODE( \
+  SRSLTE_VERSION_MAJOR,                       \
+  SRSLTE_VERSION_MINOR,                       \
+  SRSLTE_VERSION_PATCH)
+
+#define SRSLTE_VERSION_CHECK(major,minor,patch)    \
+  (SRSLTE_VERSION >= SRSLTE_VERSION_ENCODE(major,minor,patch))
 
 #include "srslte/config.h"
 
