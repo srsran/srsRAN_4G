@@ -34,8 +34,8 @@ CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 PROJECT (SRSLTE)
 
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
-
-INCLUDE(srsLTEPackage) #setup cpack
+INCLUDE(SRSLTEVersion) #sets version information
+INCLUDE(SRSLTEPackage) #setup cpack
 INCLUDE(BuildMex)
 
 include(CTest)
@@ -153,6 +153,7 @@ MESSAGE(STATUS "Building for version: ${VERSION}")
 ########################################################################
 # Add general includes and dependencies
 ########################################################################
+include_directories(${PROJECT_BINARY_DIR}/srslte/include/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/srslte/include/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/mex/include)
 

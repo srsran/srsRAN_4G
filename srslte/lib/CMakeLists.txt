@@ -52,7 +52,6 @@ IF(SRSGUI_FOUND)
   LINK_DIRECTORIES(${SRSGUI_LIBRARY_DIRS})
 ENDIF(SRSGUI_FOUND)
 
-
 ########################################################################
 # Recurse subdirectories and compile all source files into the same lib  
 ########################################################################

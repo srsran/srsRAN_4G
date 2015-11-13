@@ -23,8 +23,7 @@
 ########################################################################
 INSTALL(DIRECTORY include/ 
         DESTINATION "${INCLUDE_DIR}" 
-        FILES_MATCHING PATTERN "*.h" 
-        PATTERN ".svn" EXCLUDE
+        FILES_MATCHING PATTERN "*.h"
 )
 
 ########################################################################
@@ -49,4 +48,5 @@ FIND_PACKAGE(UHD)
 # Add subdirectories
 ########################################################################
 ADD_SUBDIRECTORY(lib)
+ADD_SUBDIRECTORY(include)
 ADD_SUBDIRECTORY(examples)

@@ -31,14 +31,12 @@
 #ifdef __cplusplus
     extern "C" {
 #endif
-
-#define SRSLTE_VERSION_MAJOR  1
-#define SRSLTE_VERSION_MINOR  0
       
 #include <complex.h>
 #include <math.h>
 
 #include "srslte/config.h"
+#include "srslte/version.h"
 
 #include "srslte/utils/bit.h"
 #include "srslte/utils/convolution.h"
