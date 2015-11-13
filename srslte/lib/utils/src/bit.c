@@ -2,7 +2,7 @@
  *
  * \section COPYRIGHT
  *
-* Copyright 2013-2015 Software Radio Systems Limited
+ * Copyright 2013-2015 Software Radio Systems Limited
  *
  * \section LICENSE
  *
