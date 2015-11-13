@@ -153,7 +153,7 @@ MESSAGE(STATUS "Building for version: ${VERSION}")
 ########################################################################
 # Add general includes and dependencies
 ########################################################################
-include_directories(${PROJECT_BINARY_DIR}/srslte/include/)
+INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR}/srslte/include/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/srslte/include/)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/mex/include)
 
