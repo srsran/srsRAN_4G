@@ -1,6 +1,5 @@
 #
-# Copyright 2013-2015 The srsLTE Developers. See the
-# COPYRIGHT file at the top-level directory of this distribution.
+# Copyright 2013-2015 Software Radio Systems Limited
 #
 # This file is part of the srsLTE library.
 #
