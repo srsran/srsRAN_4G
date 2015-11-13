@@ -13,7 +13,6 @@ Current Features:
  * Cell search and synchronization procedure for the UE
  * All DL channels/signals are supported for UE and eNodeB side: PSS, SSS, PBCH, PCFICH, PHICH, PDCCH, PDSCH
  * All UL channels/signals are supported for UE side: PRACH, PUSCH, PUCCH, SRS 
- * All MAC for UE side is supported
  * Frequency-based ZF and MMSE
  * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX (+100 Mbps) and standard C (+25 Mbps)
  * MATLAB and OCTAVE MEX library generation for many components
