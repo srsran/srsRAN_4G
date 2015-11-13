@@ -24,20 +24,7 @@
  *
  */
 
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
-
 #include "srslte/version.h"
-#include <stdio.h>
-
-char* srslte_get_version_string() {
-  char buf[32];
-  sprintf(buf, "%s.%s.%s",
-          TOSTRING(SRSLTE_VERSION_MAJOR),
-          TOSTRING(SRSLTE_VERSION_MINOR),
-          TOSTRING(SRSLTE_VERSION_PATCH));
-  return buf;
-}
 
 int   srslte_get_version_major() {
   return SRSLTE_VERSION_MAJOR;
