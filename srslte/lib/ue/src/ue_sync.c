@@ -122,6 +122,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
     q->sf_len = SRSLTE_SF_LEN(q->fft_size);
     q->file_mode = false; 
     q->correct_cfo = true; 
+    q->agc_period = 0; 
     
     if (cell.id == 1000) {
       
@@ -266,6 +267,10 @@ void srslte_ue_sync_set_N_id_2(srslte_ue_sync_t *q, uint32_t N_id_2) {
     srslte_sync_set_N_id_2(&q->strack, N_id_2);
     srslte_sync_set_N_id_2(&q->sfind, N_id_2);    
   }
+}
+
+void srslte_ue_sync_set_agc_period(srslte_ue_sync_t *q, uint32_t period) {
+  q->agc_period = period; 
 }
 
 static int find_peak_ok(srslte_ue_sync_t *q, cf_t *input_buffer) {
@@ -452,7 +457,9 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
           /* Every SF idx 0 and 5, find peak around known position q->peak_idx */
           if (q->sf_idx == 0 || q->sf_idx == 5) {
 
-            if (q->do_agc) {
+            if (q->do_agc && (q->agc_period == 0 || 
+                             (q->agc_period && (q->frame_total_cnt%q->agc_period) == 0))) 
+            {
               srslte_agc_process(&q->agc, input_buffer, q->sf_len);        
             }
 

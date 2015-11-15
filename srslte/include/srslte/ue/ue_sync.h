@@ -72,6 +72,7 @@ typedef struct SRSLTE_API {
   
   srslte_agc_t agc; 
   bool do_agc; 
+  uint32_t agc_period; 
   
   void *stream; 
   int (*recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*); 
@@ -135,6 +136,9 @@ SRSLTE_API uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q);
 
 SRSLTE_API int srslte_ue_sync_get_buffer(srslte_ue_sync_t *q, 
                                          cf_t **sf_symbols);
+
+SRSLTE_API void srslte_ue_sync_set_agc_period(srslte_ue_sync_t *q, 
+                                              uint32_t period); 
 
 /* CAUTION: input_buffer MUST have space for 2 subframes */
 SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, 
