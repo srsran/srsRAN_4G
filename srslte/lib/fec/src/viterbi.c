@@ -35,7 +35,6 @@
 #include "srslte/fec/viterbi.h"
 #include "parity.h"
 #include "viterbi37.h"
-#include "viterbi39.h"
 
 #define DEB 0
 
@@ -74,28 +73,6 @@ int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
   return q->framebits;
 }
 
-int decode39(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
-  srslte_viterbi_t *q = o;
-
-  if (frame_length > q->framebits) {
-    fprintf(stderr, "Initialized decoder for max frame length %d bits\n",
-        q->framebits);
-    return -1;
-  }
-
-  /* Initialize Viterbi decoder */
-  init_viterbi39_port(q->ptr, 0);
-
-  /* Decode block */
-  update_viterbi39_blk_port(q->ptr, symbols, frame_length + q->K - 1);
-
-  /* Do Viterbi chainback */
-  chainback_viterbi39_port(q->ptr, data, frame_length, 0);
-
-  return q->framebits;
-}
-
-
 void free37(void *o) {
   srslte_viterbi_t *q = o;
   if (q->symbols_uc) {
@@ -107,14 +84,6 @@ void free37(void *o) {
   delete_viterbi37_port(q->ptr);
 }
 
-void free39(void *o) {
-  srslte_viterbi_t *q = o;
-  if (q->symbols_uc) {
-    free(q->symbols_uc);
-  }
-  delete_viterbi39_port(q->ptr);
-}
-
 int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
   q->K = 7;
   q->R = 3;
@@ -124,13 +93,13 @@ int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_
   q->decode = decode37;
   q->free = free37;
   q->decode_f = NULL;
-  q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+  q->symbols_uc = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp = malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+    q->tmp = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -149,36 +118,6 @@ int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_
   }     
 }
 
-int init39(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
-  q->K = 9;
-  q->R = 3;
-  q->framebits = framebits;
-  q->tail_biting = tail_biting;
-  q->gain_quant = 32; 
-  q->decode = decode39;
-  q->free = free39;
-  q->decode_f = NULL;
-  if (q->tail_biting) {
-    fprintf(stderr,
-        "Error: Tailbitting not supported in 1/3 K=9 decoder\n");
-    return -1;
-  }
-  q->symbols_uc = malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
-  if (!q->symbols_uc) {
-    perror("malloc");
-    return -1;
-  }
-  if ((q->ptr = create_viterbi39_port(poly, framebits)) == NULL) {
-    fprintf(stderr, "create_viterbi37 failed\n");
-    free39(q);
-    return -1;
-  } else {
-    return 0;
-  }
-}
-
-
-
 void srslte_viterbi_set_gain_quant(srslte_viterbi_t *q, float gain_quant) {
   q->gain_quant = gain_quant;
 }
@@ -188,8 +127,6 @@ int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, uint32_
   switch (type) {
   case SRSLTE_VITERBI_37:
     return init37(q, poly, max_frame_length, tail_bitting);
-  case SRSLTE_VITERBI_39:
-    return init39(q, poly, max_frame_length, tail_bitting);
   default:
     fprintf(stderr, "Decoder not implemented\n");
     return -1;

@@ -1,4 +1,6 @@
-/* K=9 r=1/3 Viterbi decoder in portable C
+/* Adapted Viterbi Phil Karn's r=1/3 k=9 viterbi decoder to r=1/3 k=7
+ * 
+ * K=9 r=1/3 Viterbi decoder in portable C
  * Copyright Aug 2006, Phil Karn, KA9Q
  * May be used under the terms of the GNU Affero General Public License (LGPL)
  */
