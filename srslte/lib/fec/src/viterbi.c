@@ -38,7 +38,7 @@
 
 #define DEB 0
 
-#undef LV_HAVE_SSE
+//#undef LV_HAVE_SSE
 
 int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
   srslte_viterbi_t *q = o;
@@ -177,7 +177,7 @@ int init37_sse(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool t
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
-  q->gain_quant = 10; 
+  q->gain_quant = 20; 
   q->tail_biting = tail_biting;
   q->decode = decode37_sse;
   q->free = free37_sse;
@@ -257,7 +257,6 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
   }
   if (!q->decode_f) {
     srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);    
-    srslte_vec_fprint_b(stdout, q->symbols_uc, len);
     return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);    
   } else {
     return q->decode_f(q, symbols, data, frame_length);
