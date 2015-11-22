@@ -61,15 +61,15 @@ ADD_TEST(turbocoder_test_all turbocoder_test)
 ADD_EXECUTABLE(viterbi_test viterbi_test.c)
 TARGET_LINK_LIBRARIES(viterbi_test srslte)
 
-ADD_TEST(viterbi_40_0 viterbi_test -n 1000 -s 1 -l 40 -k 7 -t -e 0.0) 
-ADD_TEST(viterbi_40_2 viterbi_test -n 1000 -s 1 -l 40 -k 7 -t -e 2.0) 
-ADD_TEST(viterbi_40_3 viterbi_test -n 1000 -s 1 -l 40 -k 7 -t -e 3.0)
-ADD_TEST(viterbi_40_4 viterbi_test -n 1000 -s 1 -l 40 -k 7 -t -e 4.5)
+ADD_TEST(viterbi_40_0 viterbi_test -n 1000 -s 1 -l 40 -t -e 0.0) 
+ADD_TEST(viterbi_40_2 viterbi_test -n 1000 -s 1 -l 40 -t -e 2.0) 
+ADD_TEST(viterbi_40_3 viterbi_test -n 1000 -s 1 -l 40 -t -e 3.0)
+ADD_TEST(viterbi_40_4 viterbi_test -n 1000 -s 1 -l 40 -t -e 4.5)
 
-ADD_TEST(viterbi_1000_0 viterbi_test -n 100 -s 1 -l 1000 -k 7 -t -e 0.0) 
-ADD_TEST(viterbi_1000_2 viterbi_test -n 100 -s 1 -l 1000 -k 7 -t -e 2.0) 
-ADD_TEST(viterbi_1000_3 viterbi_test -n 100 -s 1 -l 1000 -k 7 -t -e 3.0)
-ADD_TEST(viterbi_1000_4 viterbi_test -n 100 -s 1 -l 1000 -k 7 -t -e 4.5)
+ADD_TEST(viterbi_1000_0 viterbi_test -n 100 -s 1 -l 1000 -t -e 0.0) 
+ADD_TEST(viterbi_1000_2 viterbi_test -n 100 -s 1 -l 1000 -t -e 2.0) 
+ADD_TEST(viterbi_1000_3 viterbi_test -n 100 -s 1 -l 1000 -t -e 3.0)
+ADD_TEST(viterbi_1000_4 viterbi_test -n 100 -s 1 -l 1000 -t -e 4.5)
 
 BuildMex(MEXNAME viterbi SOURCES viterbi_test_mex.c LIBRARIES srslte srslte_mex)
 

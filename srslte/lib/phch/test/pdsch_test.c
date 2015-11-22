@@ -105,17 +105,27 @@ void parse_args(int argc, char **argv) {
   }
 }
 
+uint8_t *data = NULL;
+cf_t *ce[SRSLTE_MAX_PORTS];
+srslte_softbuffer_rx_t softbuffer_rx;
+srslte_ra_dl_grant_t grant; 
+srslte_pdsch_cfg_t pdsch_cfg; 
+cf_t *sf_symbols;
+cf_t *slot_symbols[SRSLTE_MAX_PORTS];
+srslte_pdsch_t pdsch;
+srslte_ofdm_t ofdm_tx, ofdm_rx; 
+
+int dummy_function() {
+  srslte_ofdm_rx_sf(&ofdm_rx, sf_symbols, slot_symbols[1]);
+  srslte_softbuffer_rx_reset_tbs(&softbuffer_rx, grant.mcs.tbs);
+  return srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
+}
+
 int main(int argc, char **argv) {
-  srslte_pdsch_t pdsch;
   uint32_t i, j;
-  uint8_t *data = NULL;
-  cf_t *ce[SRSLTE_MAX_PORTS];
-  cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   int ret = -1;
   struct timeval t[3];
-  srslte_pdsch_cfg_t pdsch_cfg; 
   srslte_softbuffer_tx_t softbuffer_tx;
-  srslte_softbuffer_rx_t softbuffer_rx;
   uint32_t rv;
 
   parse_args(argc,argv);
@@ -132,12 +142,16 @@ int main(int argc, char **argv) {
   dci.mcs_idx = mcs;
   dci.rv_idx = rv_idx;
   dci.type0_alloc.rbg_bitmask = 0xffffffff;
-  srslte_ra_dl_grant_t grant; 
   if (srslte_ra_dl_dci_to_grant(&dci, cell.nof_prb, true, &grant)) {
     fprintf(stderr, "Error computing resource allocation\n");
     return ret;
   }
+  
+  srslte_ofdm_tx_init(&ofdm_tx, cell.cp, cell.nof_prb);
+  srslte_ofdm_rx_init(&ofdm_rx, cell.cp, cell.nof_prb);
 
+  sf_symbols=srslte_vec_malloc(sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  
   /* Configure PDSCH */
   if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, subframe, 0)) {
     fprintf(stderr, "Error configuring PDSCH\n");
@@ -145,7 +159,7 @@ int main(int argc, char **argv) {
   }
 
   /* init memory */
-  for (i=0;i<cell.nof_ports;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
     if (!ce[i]) {
       perror("srslte_vec_malloc");
@@ -222,13 +236,20 @@ int main(int argc, char **argv) {
         ce[i][j] = 1;
       }
     }
+    
+    srslte_ofdm_tx_sf(&ofdm_tx, slot_symbols[0], sf_symbols);
 
+    int M=1;
+    int r=0; 
+    srslte_sch_set_max_noi(&pdsch.dl_sch, 1);
     gettimeofday(&t[1], NULL);
-    int r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
+    for (i=0;i<M;i++) {
+      r = dummy_function();
+    }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
-    printf("DECODED %s in %d:%d (%.2f Mbps)\n", r?"Error":"OK",
-             (int) t[0].tv_sec, (int) t[0].tv_usec, (float) grant.mcs.tbs/t[0].tv_usec);                
+    printf("DECODED %s in %.2f (PHY bitrate=%.2f Mbps. Processing bitrate=%.2f Mbps)\n", r?"Error":"OK",
+             (float) t[0].tv_usec/M, (float) grant.mcs.tbs/1000, (float) grant.mcs.tbs*M/t[0].tv_usec);                
     if (r) {
       ret = -1;
       goto quit;

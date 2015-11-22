@@ -39,6 +39,8 @@
 #include <stdbool.h>
 #include "srslte/config.h"
 
+
+
 typedef enum {
   SRSLTE_VITERBI_27 = 0, 
   SRSLTE_VITERBI_29, 
@@ -81,5 +83,15 @@ SRSLTE_API int srslte_viterbi_decode_uc(srslte_viterbi_t *q,
                                         uint8_t *symbols, 
                                         uint8_t *data, 
                                         uint32_t frame_length);
+
+
+
+SRSLTE_API int srslte_viterbi_init_sse(srslte_viterbi_t *q, 
+                                   srslte_viterbi_type_t type, 
+                                   uint32_t poly[3], 
+                                   uint32_t max_frame_length, 
+                                   bool tail_bitting);
+
+
 
 #endif
