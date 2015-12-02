@@ -136,7 +136,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mxFree(mod_str);
   
-  float *prbset; 
   mxArray *p; 
   p = mxGetField(PDSCHCFG, 0, "PRBSet");
   if (!p) {
@@ -144,9 +143,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   
-  // Only localized PRB supported 
-  grant.nof_prb = mexutils_read_f(p, &prbset);
-
+  float *prbset_f;
+  uint64_t *prbset;
+  if (mxGetClassID(p) == mxDOUBLE_CLASS) {
+    grant.nof_prb = mexutils_read_f(p, &prbset_f);
+    prbset = malloc(sizeof(uint64_t)*grant.nof_prb);
+    for (i=0;i<grant.nof_prb;i++) {
+      prbset[i] = (uint64_t) prbset_f[i];
+    }
+  } else {
+    grant.nof_prb = mexutils_read_uint64(p, &prbset);
+  }
+  
   for (i=0;i<cell.nof_prb;i++) {
     grant.prb_idx[0][i] = false; 
     for (int j=0;j<grant.nof_prb && !grant.prb_idx[0][i];j++) {
@@ -156,7 +164,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     grant.prb_idx[1][i] = grant.prb_idx[0][i];
   }
-
+  
   free(prbset);
   
   /* Configure rest of pdsch_cfg parameters */
@@ -227,7 +235,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
   }
   if (nlhs >= 6) {
-    mexutils_write_s(softbuffer.buffer_f[9], &plhs[5], 16908, 1);  
+    mexutils_write_int(indices, &plhs[5], cfg.nbits.nof_re, 1);  
   }
   
   srslte_chest_dl_free(&chest);

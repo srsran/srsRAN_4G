@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
           if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
             sss_error2++;            
           }
-          printf("sf_idx = %d\n", srslte_sss_synch_subframe(m0, m1));
+          INFO("sf_idx = %d\n", srslte_sss_synch_subframe(m0, m1));
           INFO("Partial N_id_1: %d\n", srslte_sss_synch_N_id_1(&sss, m0, m1));
           srslte_sss_synch_m0m1_diff(&sss, &buffer[sss_idx], &m0, &m0_value, &m1, &m1_value);
           if (srslte_sss_synch_N_id_1(&sss, m0, m1) != N_id_1) {
@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
     printf("[%5d]: Pos: %5d, PSR: %4.1f (~%4.1f) Pdet: %4.2f, "
            "FA: %4.2f, CFO: %+4.1f KHz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f%%\r", 
            frame_cnt, 
-           peak_idx, 
+           peak_idx - flen/10, 
            peak_value, mean_peak,
            (float) nof_det/frame_cnt, 
            (float) nof_nopeakdet/frame_cnt, mean_cfo*15, 

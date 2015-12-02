@@ -79,13 +79,13 @@ typedef struct {
   int force_N_id_2;
   uint16_t rnti;
   char *input_file_name;
-  int file_offset; 
+  int file_offset_time; 
+  float file_offset_freq;
   uint32_t file_nof_prb;
   uint32_t file_nof_ports;
   uint32_t file_cell_id;
   char *uhd_args; 
   float uhd_freq; 
-  float uhd_freq_offset; 
   float uhd_gain;
   int net_port; 
   char *net_address; 
@@ -105,10 +105,10 @@ void args_default(prog_args_t *args) {
   args->file_nof_prb = 25; 
   args->file_nof_ports = 1; 
   args->file_cell_id = 0; 
-  args->file_offset = 0; 
+  args->file_offset_time = 0; 
+  args->file_offset_freq = 0; 
   args->uhd_args = "";
   args->uhd_freq = -1.0;
-  args->uhd_freq_offset = 0.0;
   args->uhd_gain = -1.0; 
   args->net_port = -1; 
   args->net_address = "127.0.0.1";
@@ -117,16 +117,16 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agpPOcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [agpPoOcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_UHD
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD fix RX gain [Default AGC]\n");
-  printf("\t-o UHD RX freq offset [Default %.1f MHz]\n", args->uhd_freq_offset/1000000);
 #else
   printf("\t   UHD is disabled. CUHD library not available\n");
 #endif
   printf("\t-i input_file [Default USRP]\n");
-  printf("\t-O offset samples for input file [Default %d]\n", args->file_offset);
+  printf("\t-o offset frequency correction (in Hz) for input file [Default %.1f Hz]\n", args->file_offset_freq);
+  printf("\t-O offset samples for input file [Default %d]\n", args->file_offset_time);
   printf("\t-p nof_prb for input file [Default %d]\n", args->file_nof_prb);
   printf("\t-P nof_ports for input file [Default %d]\n", args->file_nof_ports);
   printf("\t-c cell_id for input file [Default %d]\n", args->file_cell_id);
@@ -162,8 +162,11 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'P':
       args->file_nof_ports = atoi(argv[optind]);
       break;
+    case 'o':
+      args->file_offset_freq = atof(argv[optind]);
+      break;
     case 'O':
-      args->file_offset = atoi(argv[optind]);
+      args->file_offset_time = atoi(argv[optind]);
       break;
     case 'c':
       args->file_cell_id = atoi(argv[optind]);
@@ -179,9 +182,6 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 't':
       args->time_offset = atoi(argv[optind]);
-      break;
-    case 'o':
-      args->uhd_freq_offset = atof(argv[optind]);
       break;
     case 'f':
       args->uhd_freq = atof(argv[optind]);
@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
     cuhd_set_master_clock_rate(uhd, 30.72e6);        
 
     /* set receiver frequency */
-    cuhd_set_rx_freq_offset(uhd, (double) prog_args.uhd_freq, prog_args.uhd_freq_offset);
+    cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
     cuhd_rx_wait_lo_locked(uhd);
     printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
 
@@ -373,7 +373,8 @@ int main(int argc, char **argv) {
     cell.nof_ports = prog_args.file_nof_ports; 
     cell.nof_prb = prog_args.file_nof_prb; 
     
-    if (srslte_ue_sync_init_file(&ue_sync, prog_args.file_nof_prb, prog_args.input_file_name, prog_args.file_offset)) {
+    if (srslte_ue_sync_init_file(&ue_sync, prog_args.file_nof_prb, 
+      prog_args.input_file_name, prog_args.file_offset_time, prog_args.file_offset_freq)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
@@ -485,7 +486,7 @@ int main(int argc, char **argv) {
               uint32_t rv = ((uint32_t) ceilf((float)1.5*k))%4;
               n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
                                               srslte_ue_sync_get_sfidx(&ue_sync), 
-                                              SRSLTE_SIRNTI, rv);             
+                                              SRSLTE_SIRNTI, rv);                         
             }
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);

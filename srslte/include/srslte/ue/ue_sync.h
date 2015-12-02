@@ -80,6 +80,8 @@ typedef struct SRSLTE_API {
   
   srslte_filesource_t file_source; 
   bool file_mode; 
+  float file_cfo; 
+  srslte_cfo_t file_cfo_correct; 
   
   srslte_ue_sync_state_t state;
   
@@ -124,7 +126,8 @@ SRSLTE_API int srslte_ue_sync_init(srslte_ue_sync_t *q,
 SRSLTE_API int srslte_ue_sync_init_file(srslte_ue_sync_t *q, 
                                         uint32_t nof_prb,
                                         char *file_name, 
-                                        int offset);
+                                        int offset_time, 
+                                        float offset_freq);
 
 SRSLTE_API void srslte_ue_sync_free(srslte_ue_sync_t *q);
 

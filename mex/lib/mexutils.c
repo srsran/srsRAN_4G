@@ -137,6 +137,22 @@ int mexutils_read_uint8(const mxArray *ptr, uint8_t **buffer) {
   }
 }
 
+
+int mexutils_read_uint64(const mxArray *ptr, uint64_t **buffer) {
+  int numelems = mxGetNumberOfElements(ptr);
+  uint64_t *tmp = srslte_vec_malloc(numelems * sizeof(uint64_t));
+  if (tmp) {
+    uint64_t *inr=mxGetPr(ptr);
+    for (int i=0;i<numelems;i++) {
+      tmp[i] = (uint64_t) inr[i];       
+    }    
+    *buffer = tmp; 
+    return numelems;
+  } else {
+    return -1;
+  }
+}
+
 int mexutils_write_cf(cf_t *buffer, mxArray **ptr, uint32_t nr, uint32_t nc) {
   *ptr = mxCreateDoubleMatrix(nr, nc, mxCOMPLEX); 
   if (*ptr) {

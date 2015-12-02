@@ -406,11 +406,6 @@ static int decode_tb(srslte_sch_t *q,
         return SRSLTE_ERROR;
       }
 
-      if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("CB#%d RMOUT: ", i);
-        srslte_vec_fprint_s(stdout, softbuffer->buffer_f[i], 3*cb_len+12);
-      }
-
       /* Turbo Decoding with CRC-based early stopping */
       q->nof_iterations = 0; 
       uint32_t len_crc; 

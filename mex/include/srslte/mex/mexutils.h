@@ -85,6 +85,9 @@ SRSLTE_API int mexutils_write_int(int *buffer,
 SRSLTE_API int mexutils_read_uint8(const mxArray *ptr, 
                                    uint8_t **buffer);
 
+SRSLTE_API int mexutils_read_uint64(const mxArray *ptr, 
+                                   uint64_t **buffer);
+
 SRSLTE_API int mexutils_read_f(const mxArray *ptr, 
                                float **buffer);
 

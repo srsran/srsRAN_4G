@@ -121,8 +121,12 @@ int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_g
           // This is a symbol in a normal PRB with or without references
           if (l >= lstart && l < lend) {
             if (SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-              if (nof_refs == 2 && l != 0) {    
-                offset = q->cell.id % 3 + 3;
+              if (nof_refs == 2) {
+                if (l == 0) {
+                  offset = q->cell.id % 6;
+                } else {
+                  offset = (q->cell.id + 3) % 6;                  
+                }
               } else {
                 offset = q->cell.id % 3;
               }
@@ -409,6 +413,11 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
           cfg->nbits.nof_re, noise_estimate);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports,
           cfg->nbits.nof_re / q->cell.nof_ports);
+    }
+    
+    if (SRSLTE_VERBOSE_ISDEBUG()) {
+      DEBUG("pdsch_symbols: ",0);
+      srslte_vec_fprint_c(stdout, q->d, cfg->nbits.nof_re);
     }
     
     /* demodulate symbols 

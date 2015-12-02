@@ -47,7 +47,7 @@ cf_t dummy[MAX_TIME_OFFSET];
 
 cf_t kk[1024*1024];
 
-int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset) {
+int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset_time, float offset_freq) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                   != NULL && 
@@ -58,6 +58,14 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
     bzero(q, sizeof(srslte_ue_sync_t));
     q->file_mode = true; 
     q->sf_len = SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb));
+    q->file_cfo = -offset_freq; 
+    q->correct_cfo = true; 
+    q->fft_size = srslte_symbol_sz(nof_prb);
+    
+    if (srslte_cfo_init(&q->file_cfo_correct, 2*q->sf_len)) {
+      fprintf(stderr, "Error initiating CFO\n");
+      goto clean_exit; 
+    }
     
     if (srslte_filesource_init(&q->file_source, file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
       fprintf(stderr, "Error opening file %s\n", file_name);
@@ -70,9 +78,9 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
       goto clean_exit;
     }
     
-    INFO("Offseting input file by %d samples\n", offset);
+    INFO("Offseting input file by %d samples and %.1f KHz\n", offset_time, offset_freq/1000);
     
-    srslte_filesource_read(&q->file_source, kk, offset);
+    srslte_filesource_read(&q->file_source, kk, offset_time);
     srslte_ue_sync_reset(q);
     
     ret = SRSLTE_SUCCESS;
@@ -420,6 +428,13 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
           fprintf(stderr, "Error reading input file\n");
           return SRSLTE_ERROR; 
         }
+      }
+      if (q->correct_cfo) {
+        srslte_cfo_correct(&q->file_cfo_correct, 
+                    input_buffer, 
+                    input_buffer, 
+                    q->file_cfo / 15000 / q->fft_size);               
+                    
       }
       q->sf_idx++;
       if (q->sf_idx == 10) {
