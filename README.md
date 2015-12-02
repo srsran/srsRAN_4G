@@ -10,7 +10,7 @@ The srsLTE software license is AGPLv3.
 Current Features: 
  * LTE Release 8 compliant
  * FDD configuration
- * Tested bandwidths: 1.4, 3, 5 and 10 and 20 MHz
+ * Tested bandwidths: 1.4, 3, 5, 10, 15 and 20 MHz
  * Transmission mode 1 (single antenna) and 2 (transmit diversity) 
  * Cell search and synchronization procedure for the UE
  * All DL channels/signals are supported for UE and eNodeB side: PSS, SSS, PBCH, PCFICH, PHICH, PDCCH, PDSCH
