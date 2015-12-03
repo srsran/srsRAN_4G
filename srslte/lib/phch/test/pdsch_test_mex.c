@@ -211,7 +211,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!data_bytes) {
     return;
   }
-
+  srslte_softbuffer_rx_reset(&softbuffer);
   int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data_bytes);
 
   free(data_bytes);
@@ -233,9 +233,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   if (nlhs >= 5) {
     mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
-  }
-  if (nlhs >= 6) {
-    mexutils_write_int(indices, &plhs[5], cfg.nbits.nof_re, 1);  
   }
   
   srslte_chest_dl_free(&chest);

@@ -34,8 +34,10 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/common/sequence.h"
 
-#ifndef FORCE_STANDARD_RATE
-#define USE_REDUCED_SAMPLING_RATES
+#ifdef FORCE_STANDARD_RATE
+static bool use_standard_rates = true; 
+#else 
+static bool use_standard_rates = false; 
 #endif
 
 /* Returns true if the structure pointed by cell has valid parameters
@@ -186,6 +188,10 @@ uint32_t srslte_N_ta_new_rar(uint32_t ta) {
 }
 
 
+void srslte_use_standard_symbol_size(bool enabled) {
+  use_standard_rates = enabled;
+}
+
 int srslte_sampling_freq_hz(uint32_t nof_prb) {
     int n = srslte_symbol_sz(nof_prb); 
     if (n == -1) {
@@ -217,88 +223,87 @@ int srslte_symbol_sz(uint32_t nof_prb) {
   if (nof_prb<=0) {
     return SRSLTE_ERROR;
   }
-#ifdef USE_REDUCED_SAMPLING_RATES
-  if (nof_prb<=6) {
-    return 128;
-  } else if (nof_prb<=15) {
-    return 256;
-  } else if (nof_prb<=25) {
-    return 384;
-  } else if (nof_prb<=50) {
-    return 768;
-  } else if (nof_prb<=75) {
-    return 1024;
-  } else if (nof_prb<=100) {
-    return 1536;
+  if (!use_standard_rates) {
+    if (nof_prb<=6) {
+      return 128;
+    } else if (nof_prb<=15) {
+      return 256;
+    } else if (nof_prb<=25) {
+      return 384;
+    } else if (nof_prb<=50) {
+      return 768;
+    } else if (nof_prb<=75) {
+      return 1024;
+    } else if (nof_prb<=100) {
+      return 1536;
+    } else {
+      return SRSLTE_ERROR;
+    }
   } else {
-    return SRSLTE_ERROR;
+    return srslte_symbol_sz_power2(nof_prb);
   }
-#else
-  return srslte_symbol_sz_power2(nof_prb);
-#endif
 }
 
 int srslte_nof_prb(uint32_t symbol_sz)
 {
-#ifdef USE_REDUCED_SAMPLING_RATES
-  switch(symbol_sz) {
-    case 128:
-      return 6;
-    case 256:
-      return 15;
-    case 384:
-      return 25;
-    case 768:
-      return 50;
-    case 1024:
-      return 75;
-    case 1536:
-      return 100;
+  if (!use_standard_rates) {
+    switch(symbol_sz) {
+      case 128:
+        return 6;
+      case 256:
+        return 15;
+      case 384:
+        return 25;
+      case 768:
+        return 50;
+      case 1024:
+        return 75;
+      case 1536:
+        return 100;
+    }
+  } else {
+    switch(symbol_sz) {
+      case 128:
+        return 6;
+      case 256:
+        return 15;
+      case 512:
+        return 25;
+      case 1024:
+        return 50;
+      case 1536:
+        return 75;
+      case 2048:
+        return 100;
+    }
   }
-#else 
-  switch(symbol_sz) {
-    case 128:
-      return 6;
-    case 256:
-      return 15;
-    case 512:
-      return 25;
-    case 1024:
-      return 50;
-    case 1536:
-      return 75;
-    case 2048:
-      return 100;
-  }
-#endif
   return SRSLTE_ERROR;
 }
 
 bool srslte_symbol_sz_isvalid(uint32_t symbol_sz) {
-#ifdef USE_REDUCED_SAMPLING_RATES 
-  if (symbol_sz == 128  || 
-      symbol_sz == 256  ||
-      symbol_sz == 384  ||
-      symbol_sz == 768  ||
-      symbol_sz == 1024 ||
-      symbol_sz == 1536) {
-    return true;
+  if (!use_standard_rates) {
+    if (symbol_sz == 128  || 
+        symbol_sz == 256  ||
+        symbol_sz == 384  ||
+        symbol_sz == 768  ||
+        symbol_sz == 1024 ||
+        symbol_sz == 1536) {
+      return true;
+    } else {
+      return false; 
+    }
   } else {
-    return false; 
-  }
-#else
-  if (symbol_sz == 128  || 
-      symbol_sz == 256  ||
-      symbol_sz == 512  ||
-      symbol_sz == 1024 ||
-      symbol_sz == 1536 ||
-      symbol_sz == 2048) {
-    return true;
-  } else {
-    return false; 
-  }
-#endif
-  
+    if (symbol_sz == 128  || 
+        symbol_sz == 256  ||
+        symbol_sz == 512  ||
+        symbol_sz == 1024 ||
+        symbol_sz == 1536 ||
+        symbol_sz == 2048) {
+      return true;
+    } else {
+      return false; 
+    }
+  }  
 }
 
 uint32_t srslte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports) {

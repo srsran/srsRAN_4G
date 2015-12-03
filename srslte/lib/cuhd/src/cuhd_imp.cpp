@@ -34,10 +34,9 @@
 
 #include "cuhd_handler.hpp"
 #include "srslte/cuhd/cuhd.h"
+#include "srslte/srslte.h"
 
 //#define METADATA_VERBOSE
-
-//#define HIDE_MESSAGES
 
 cuhd_msg_handler_t msg_handler;
 
@@ -218,20 +217,26 @@ void cuhd_register_msg_handler(cuhd_msg_handler_t h)
 
 int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
 {
+  
+  *h = NULL; 
+  
+  /* Set priority to UHD threads */
   uhd::set_thread_priority_safe();
+  
+  
+  /* Get multiusrp handler */
   cuhd_handler *handler = new cuhd_handler();
-  // Buffer sizes optimized for reduced clock rates (see common/phy_common.c)
   std::string _args = std::string(args);
-  handler->usrp = uhd::usrp::multi_usrp::make(_args + ", recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64");
-  handler->usrp->set_clock_source("internal");
+  handler->usrp = uhd::usrp::multi_usrp::make(_args);// + ", recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64");
     
+  /* Initialize rx and tx stremers */
   std::string otw, cpu;
   otw = "sc16";
   cpu = "fc32";
   uhd::stream_args_t stream_args(cpu, otw);
   handler->rx_stream = handler->usrp->get_rx_stream(stream_args);
   handler->tx_stream = handler->usrp->get_tx_stream(stream_args);
-
+  
   handler->rx_nof_samples = handler->rx_stream->get_max_num_samps();
   handler->tx_nof_samples = handler->tx_stream->get_max_num_samps();
   
@@ -240,9 +245,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   handler->rx_gain_range = handler->usrp->get_rx_gain_range();
   handler->tx_gain_range = handler->usrp->get_tx_gain_range();
 
-  
-  *h = handler;
-
+  /* Create auxiliary thread and mutexes for AGC */
   if (create_thread_gain) {
     if (pthread_mutex_init(&handler->mutex, NULL)) {
       return -1; 
@@ -257,6 +260,26 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
     }
   }
   
+  /* Find out if the master clock rate is configurable */
+  double cur_clock = handler->usrp->get_master_clock_rate();
+  handler->usrp->set_master_clock_rate(cur_clock/2);
+  if (handler->usrp->get_master_clock_rate() == cur_clock) {
+    handler->dynamic_rate = false; 
+    /* Master clock rate is not configurable. Check if it is compatible with LTE */
+    int cur_clock_i = (int) cur_clock;
+    if (cur_clock_i % 1920000) {
+      fprintf(stderr, "Error: LTE sampling rates are not supported. Master clock rate is %.1f MHz\n", cur_clock/1e6);
+      return -1; 
+    } else {
+      printf("Master clock rate is not configurable. Using default LTE sampling rates.\n");
+      srslte_use_standard_symbol_size(true);
+    }
+  } else {
+    handler->dynamic_rate = true; 
+  }
+
+  *h = handler;
+
   return 0;
 }
 
@@ -278,7 +301,14 @@ int cuhd_close(void *h)
 
 void cuhd_set_master_clock_rate(void *h, double rate) {
   cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  handler->usrp->set_master_clock_rate(rate);    
+  if (handler->dynamic_rate) {
+    handler->usrp->set_master_clock_rate(rate);    
+  }
+}
+
+bool cuhd_is_master_clock_dynamic(void *h) {
+  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  return handler->dynamic_rate;
 }
 
 double cuhd_set_rx_srate(void *h, double freq)

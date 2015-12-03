@@ -142,7 +142,7 @@ int mexutils_read_uint64(const mxArray *ptr, uint64_t **buffer) {
   int numelems = mxGetNumberOfElements(ptr);
   uint64_t *tmp = srslte_vec_malloc(numelems * sizeof(uint64_t));
   if (tmp) {
-    uint64_t *inr=mxGetPr(ptr);
+    uint64_t *inr=(uint64_t*) mxGetPr(ptr);
     for (int i=0;i<numelems;i++) {
       tmp[i] = (uint64_t) inr[i];       
     }    
