@@ -254,7 +254,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
       return -1; 
     }
 
-    if (pthread_create(&handler->thread_gain, NULL, thread_gain_fcn, *h)) {
+    if (pthread_create(&handler->thread_gain, NULL, thread_gain_fcn, handler)) {
       perror("pthread_create");
       return -1; 
     }
@@ -262,6 +262,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   
   /* Find out if the master clock rate is configurable */
   double cur_clock = handler->usrp->get_master_clock_rate();
+  printf("Trying to dynamically change Master clock...\n");
   handler->usrp->set_master_clock_rate(cur_clock/2);
   if (handler->usrp->get_master_clock_rate() == cur_clock) {
     handler->dynamic_rate = false; 
@@ -271,10 +272,11 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
       fprintf(stderr, "Error: LTE sampling rates are not supported. Master clock rate is %.1f MHz\n", cur_clock/1e6);
       return -1; 
     } else {
-      printf("Master clock rate is not configurable. Using default LTE sampling rates.\n");
+      printf("Master clock is not configurable. Using standard symbol sizes and sampling rates.\n");
       srslte_use_standard_symbol_size(true);
     }
   } else {
+    printf("Master clock is configurable. Using reduced symbol sizes and sampling rates.\n");
     handler->dynamic_rate = true; 
   }
 

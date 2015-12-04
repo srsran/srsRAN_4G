@@ -6,8 +6,8 @@
 
 recordedSignal=[];
 
-Npackets = 1;
-SNR_values = 25;
+Npackets = 5;
+SNR_values = linspace(18,25,5);
 
 %% Choose RMC 
 [waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.9',[1;0;0;1]);
@@ -79,8 +79,8 @@ for snr_idx=1:length(SNR_values)
         %% Demodulate 
         frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
 
-        %for sf_idx=0:Nsf-1
-        sf_idx=9;
+        for sf_idx=0:Nsf-1
+       % sf_idx=9;
             subframe_rx=frame_rx(:,sf_idx*14+1:(sf_idx+1)*14);
             rmccFgOut.NSubframe=sf_idx;
             rmccFgOut.TotSubframes=1;
@@ -107,7 +107,7 @@ for snr_idx=1:length(SNR_values)
                 fprintf('Error in sf=%d\n',sf_idx);
             end
             decoded_srslte(snr_idx) = decoded_srslte(snr_idx)+dec2;
-        %end
+        end
 
         if ~isempty(recordedSignal)
             recordedSignal = recordedSignal(flen*10+1:end);
