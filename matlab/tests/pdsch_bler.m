@@ -14,7 +14,7 @@ SNR_values = 25;
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
-    rmccFgOut = struct('NCellID',1,'CellRefP',1,'CFI',1,'NDLRB',100,'DuplexMode','FDD','CyclicPrefix','Normal'); 
+    rmccFgOut = struct('CellRefP',1,'NDLRB',100,'DuplexMode','FDD','CyclicPrefix','Normal'); 
     rmccFgOut.PDSCH.RNTI = 1234;
     rmccFgOut.PDSCH.PRBSet = repmat(transpose(0:rmccFgOut.NDLRB-1),1,2);
     rmccFgOut.PDSCH.TxScheme = 'Port0';

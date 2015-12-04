@@ -416,8 +416,8 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
     }
     
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("pdsch_symbols: ",0);
-      srslte_vec_fprint_c(stdout, q->d, cfg->nbits.nof_re);
+      DEBUG("SAVED FILE pdsch_symbols.dat: symbols after equalization\n",0);
+      srslte_vec_save_file("pdsch_symbols.dat", q->d, cfg->nbits.nof_re*sizeof(cf_t));
     }
     
     /* demodulate symbols 
@@ -436,6 +436,11 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
       srslte_sequence_free(&seq);
     } else {    
       srslte_scrambling_s_offset(&q->seq[cfg->sf_idx], q->e, 0, cfg->nbits.nof_bits);      
+    }
+
+    if (SRSLTE_VERBOSE_ISDEBUG()) {
+      DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling\n",0);
+      srslte_vec_save_file("llr.dat", q->e, cfg->nbits.nof_bits*sizeof(int16_t));
     }
 
     return srslte_dlsch_decode(&q->dl_sch, cfg, softbuffer, q->e, data);      

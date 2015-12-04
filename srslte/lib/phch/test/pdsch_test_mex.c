@@ -120,6 +120,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field RV not found in pdsch config\n");
     return;
   }
+
+  uint32_t max_iterations = 5;
+  mexutils_read_uint32_struct(PDSCHCFG, "NTurboDecIts", &max_iterations);
   
   char *mod_str = mexutils_get_char_struct(PDSCHCFG, "Modulation");
   
@@ -211,7 +214,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!data_bytes) {
     return;
   }
-  srslte_softbuffer_rx_reset(&softbuffer);
+  
+  srslte_sch_set_max_noi(&pdsch.dl_sch, max_iterations);
+
   int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data_bytes);
 
   free(data_bytes);
