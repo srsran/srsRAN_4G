@@ -33,7 +33,7 @@ ENDIF(SRSGUI_FOUND)
 
 IF(UHD_FOUND)
   ADD_EXECUTABLE(pss_usrp pss_usrp.c)
-  TARGET_LINK_LIBRARIES(pss_usrp srslte srslte_uhd)
+  TARGET_LINK_LIBRARIES(pss_usrp srslte srslte_rf)
   IF(SRSGUI_FOUND)
     target_link_libraries(pss_usrp ${SRSGUI_LIBRARIES})
   ELSE(SRSGUI_FOUND)

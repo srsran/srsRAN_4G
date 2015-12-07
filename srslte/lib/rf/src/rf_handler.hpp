@@ -29,7 +29,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 #include <pthread.h>
 
-class cuhd_handler {
+class rf_handler {
 public:
   uhd::usrp::multi_usrp::sptr usrp;
   uhd::rx_streamer::sptr rx_stream;

@@ -36,7 +36,7 @@
 #include <stdbool.h>
 
 #include "srslte/srslte.h"
-#include "srslte/cuhd/cuhd.h"
+#include "srslte/rf/rf.h"
 
 static bool keep_running = true;
 char *output_file_name = NULL;
@@ -98,9 +98,9 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
+int rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return cuhd_recv(h, data, nsamples, 1);
+  return rf_recv(h, data, nsamples, 1);
 }
 
 int main(int argc, char **argv) {
@@ -118,28 +118,28 @@ int main(int argc, char **argv) {
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
   printf("Opening UHD device...\n");
-  if (cuhd_open(uhd_args, &uhd)) {
+  if (rf_open(uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
-  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+  rf_set_master_clock_rate(uhd, 30.72e6);        
 
   sigset_t sigset;
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  printf("Set RX freq: %.6f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
-  printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
+  printf("Set RX freq: %.6f MHz\n", rf_set_rx_freq(uhd, uhd_freq) / 1000000);
+  printf("Set RX gain: %.1f dB\n", rf_set_rx_gain(uhd, uhd_gain));
     int srate = srslte_sampling_freq_hz(nof_prb);    
     if (srate != -1) {  
       if (srate < 10e6) {          
-        cuhd_set_master_clock_rate(uhd, 4*srate);        
+        rf_set_master_clock_rate(uhd, 4*srate);        
       } else {
-        cuhd_set_master_clock_rate(uhd, srate);        
+        rf_set_master_clock_rate(uhd, srate);        
       }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
+      float srate_uhd = rf_set_rx_srate(uhd, (double) srate);
       if (srate_uhd != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
@@ -148,15 +148,15 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Invalid number of PRB %d\n", nof_prb);
       exit(-1);
     }
-  cuhd_rx_wait_lo_locked(uhd);
-  cuhd_start_rx_stream(uhd);
+  rf_rx_wait_lo_locked(uhd);
+  rf_start_rx_stream(uhd);
 
   cell.cp = SRSLTE_CP_NORM; 
   cell.id = N_id_2;
   cell.nof_prb = nof_prb; 
   cell.nof_ports = 1; 
   
-  if (srslte_ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
+  if (srslte_ue_sync_init(&ue_sync, cell, rf_recv_wrapper, uhd)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
   }
   
   srslte_filesink_free(&sink);
-  cuhd_close(uhd);
+  rf_close(uhd);
   srslte_ue_sync_free(&ue_sync);
 
   printf("Ok - wrote %d subframes\n", subframe_count);

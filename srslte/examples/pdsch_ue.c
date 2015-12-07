@@ -40,9 +40,9 @@
 #include "srslte/srslte.h"
 
 
-#ifndef DISABLE_UHD
-#include "srslte/cuhd/cuhd.h"
-#include "srslte/cuhd/cuhd_utils.h"
+#ifndef DISABLE_RF
+#include "srslte/rf/rf.h"
+#include "srslte/rf/rf_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
   5000,
@@ -118,7 +118,7 @@ void args_default(prog_args_t *args) {
 
 void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [agpPoOcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
-#ifndef DISABLE_UHD
+#ifndef DISABLE_RF
   printf("\t-a UHD args [Default %s]\n", args->uhd_args);
   printf("\t-g UHD fix RX gain [Default AGC]\n");
 #else
@@ -240,10 +240,10 @@ void sig_int_handler(int signo)
   }
 }
 
-#ifndef DISABLE_UHD
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
+#ifndef DISABLE_RF
+int rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return cuhd_recv(h, data, nsamples, 1);
+  return rf_recv(h, data, nsamples, 1);
 }
 #endif
 
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
   srslte_cell_t cell;  
   int64_t sf_cnt;
   srslte_ue_mib_t ue_mib; 
-#ifndef DISABLE_UHD
+#ifndef DISABLE_RF
   void *uhd; 
 #endif
   uint32_t nof_trials = 0; 
@@ -290,24 +290,24 @@ int main(int argc, char **argv) {
     srslte_netsink_set_nonblocking(&net_sink_signal);
   }
   
-#ifndef DISABLE_UHD
+#ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
     
     /* Set receiver gain */
     if (prog_args.uhd_gain > 0) {
       printf("Opening UHD device...\n");
-      if (cuhd_open(prog_args.uhd_args, &uhd)) {
+      if (rf_open(prog_args.uhd_args, &uhd)) {
         fprintf(stderr, "Error opening uhd\n");
         exit(-1);
       }
-      cuhd_set_rx_gain(uhd, prog_args.uhd_gain);      
+      rf_set_rx_gain(uhd, prog_args.uhd_gain);      
     } else {
       printf("Opening UHD device with threaded RX Gain control ...\n");
-      if (cuhd_open_th(prog_args.uhd_args, &uhd, false)) {
+      if (rf_open_th(prog_args.uhd_args, &uhd, false)) {
         fprintf(stderr, "Error opening uhd\n");
         exit(-1);
       }
-      cuhd_set_rx_gain(uhd, 50);      
+      rf_set_rx_gain(uhd, 50);      
       cell_detect_config.init_agc = 50; 
     }
     
@@ -317,16 +317,16 @@ int main(int argc, char **argv) {
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
     signal(SIGINT, sig_int_handler);
     
-    cuhd_set_master_clock_rate(uhd, 30.72e6);        
+    rf_set_master_clock_rate(uhd, 30.72e6);        
 
     /* set receiver frequency */
-    cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
-    cuhd_rx_wait_lo_locked(uhd);
+    rf_set_rx_freq(uhd, (double) prog_args.uhd_freq);
+    rf_rx_wait_lo_locked(uhd);
     printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
 
     uint32_t ntrial=0; 
     do {
-      ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
+      ret = rf_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
       if (ret < 0) {
         fprintf(stderr, "Error searching for cell\n");
         exit(-1); 
@@ -342,12 +342,12 @@ int main(int argc, char **argv) {
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
       if (srate < 10e6) {          
-        cuhd_set_master_clock_rate(uhd, 4*srate);        
+        rf_set_master_clock_rate(uhd, 4*srate);        
       } else {
-        cuhd_set_master_clock_rate(uhd, srate);        
+        rf_set_master_clock_rate(uhd, srate);        
       }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
+      float srate_uhd = rf_set_rx_srate(uhd, (double) srate);
       if (srate_uhd != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
@@ -358,8 +358,8 @@ int main(int argc, char **argv) {
     }
 
     INFO("Stopping UHD and flushing buffer...\r",0);
-    cuhd_stop_rx_stream(uhd);
-    cuhd_flush_buffer(uhd);    
+    rf_stop_rx_stream(uhd);
+    rf_flush_buffer(uhd);    
   }
 #endif
   
@@ -380,8 +380,8 @@ int main(int argc, char **argv) {
     }
 
   } else {
-#ifndef DISABLE_UHD
-    if (srslte_ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
+#ifndef DISABLE_RF
+    if (srslte_ue_sync_init(&ue_sync, cell, rf_recv_wrapper, uhd)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
@@ -413,9 +413,9 @@ int main(int argc, char **argv) {
   }
 #endif
 
-#ifndef DISABLE_UHD
+#ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-    cuhd_start_rx_stream(uhd);    
+    rf_start_rx_stream(uhd);    
   }
 #endif
     
@@ -424,9 +424,9 @@ int main(int argc, char **argv) {
   float rsrp=0.0, rsrq=0.0, noise=0.0;
   bool decode_pdsch = false; 
 
-#ifndef DISABLE_UHD
+#ifndef DISABLE_RF
   if (prog_args.uhd_gain < 0) {
-    srslte_ue_sync_start_agc(&ue_sync, cuhd_set_rx_gain_th, cell_detect_config.init_agc);    
+    srslte_ue_sync_start_agc(&ue_sync, rf_set_rx_gain_th, cell_detect_config.init_agc);    
   }
 #endif
 #ifdef PRINT_CHANGE_SCHEDULIGN
@@ -589,10 +589,10 @@ int main(int argc, char **argv) {
   srslte_ue_dl_free(&ue_dl);
   srslte_ue_sync_free(&ue_sync);
   
-#ifndef DISABLE_UHD
+#ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
     srslte_ue_mib_free(&ue_mib);
-    cuhd_close(uhd);    
+    rf_close(uhd);    
   }
 #endif
   printf("\nBye\n");

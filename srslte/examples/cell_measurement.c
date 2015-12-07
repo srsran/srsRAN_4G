@@ -36,8 +36,8 @@
 #include <signal.h>
 
 #include "srslte/srslte.h"
-#include "srslte/cuhd/cuhd.h"
-#include "srslte/cuhd/cuhd_utils.h"
+#include "srslte/rf/rf.h"
+#include "srslte/rf/rf_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
   5000, // maximum number of frames to receive for MIB decoding
@@ -123,9 +123,9 @@ void sig_int_handler(int signo)
   }
 }
 
-int cuhd_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *q) {
+int rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *q) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return cuhd_recv(h, data, nsamples, 1);
+  return rf_recv(h, data, nsamples, 1);
 }
 
 enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state; 
@@ -160,18 +160,18 @@ int main(int argc, char **argv) {
 
   if (prog_args.uhd_gain > 0) {
     printf("Opening UHD device...\n");
-    if (cuhd_open(prog_args.uhd_args, &uhd)) {
+    if (rf_open(prog_args.uhd_args, &uhd)) {
       fprintf(stderr, "Error opening uhd\n");
       exit(-1);
     }
-    cuhd_set_rx_gain(uhd, prog_args.uhd_gain);      
+    rf_set_rx_gain(uhd, prog_args.uhd_gain);      
   } else {
     printf("Opening UHD device with threaded RX Gain control ...\n");
-    if (cuhd_open_th(prog_args.uhd_args, &uhd, false)) {
+    if (rf_open_th(prog_args.uhd_args, &uhd, false)) {
       fprintf(stderr, "Error opening uhd\n");
       exit(-1);
     }
-    cuhd_set_rx_gain(uhd, 50);      
+    rf_set_rx_gain(uhd, 50);      
   }
 
   sigset_t sigset;
@@ -180,16 +180,16 @@ int main(int argc, char **argv) {
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
   signal(SIGINT, sig_int_handler);
 
-  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+  rf_set_master_clock_rate(uhd, 30.72e6);        
 
   /* set receiver frequency */
-  cuhd_set_rx_freq(uhd, (double) prog_args.uhd_freq);
-  cuhd_rx_wait_lo_locked(uhd);
+  rf_set_rx_freq(uhd, (double) prog_args.uhd_freq);
+  rf_rx_wait_lo_locked(uhd);
   printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.uhd_freq/1000000);
   
   uint32_t ntrial=0; 
   do {
-    ret = cuhd_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
+    ret = rf_search_and_decode_mib(uhd, &cell_detect_config, prog_args.force_N_id_2, &cell);
     if (ret < 0) {
       fprintf(stderr, "Error searching for cell\n");
       exit(-1); 
@@ -206,12 +206,12 @@ int main(int argc, char **argv) {
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
       if (srate < 10e6) {          
-        cuhd_set_master_clock_rate(uhd, 4*srate);        
+        rf_set_master_clock_rate(uhd, 4*srate);        
       } else {
-        cuhd_set_master_clock_rate(uhd, srate);        
+        rf_set_master_clock_rate(uhd, srate);        
       }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_uhd = cuhd_set_rx_srate(uhd, (double) srate);
+      float srate_uhd = rf_set_rx_srate(uhd, (double) srate);
       if (srate_uhd != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
@@ -222,10 +222,10 @@ int main(int argc, char **argv) {
     }
 
   INFO("Stopping UHD and flushing buffer...\n",0);
-  cuhd_stop_rx_stream(uhd);
-  cuhd_flush_buffer(uhd);
+  rf_stop_rx_stream(uhd);
+  rf_flush_buffer(uhd);
   
-  if (srslte_ue_sync_init(&ue_sync, cell, cuhd_recv_wrapper, uhd)) {
+  if (srslte_ue_sync_init(&ue_sync, cell, rf_recv_wrapper, uhd)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
     ce[i] = srslte_vec_malloc(sizeof(cf_t) * sf_re);
   }
   
-  cuhd_start_rx_stream(uhd);
+  rf_start_rx_stream(uhd);
   
   float rx_gain_offset = 0;
 
@@ -333,10 +333,10 @@ int main(int argc, char **argv) {
         
         
         if ((nframes%100) == 0 || rx_gain_offset == 0) {
-          if (cuhd_has_rssi(uhd)) {
-            rx_gain_offset = 10*log10(rssi)-cuhd_get_rssi(uhd);
+          if (rf_has_rssi(uhd)) {
+            rx_gain_offset = 10*log10(rssi)-rf_get_rssi(uhd);
           } else {
-            rx_gain_offset = cuhd_get_rx_gain(uhd);
+            rx_gain_offset = rf_get_rx_gain(uhd);
           }
         }
         
@@ -373,7 +373,7 @@ int main(int argc, char **argv) {
   } // Main loop
 
   srslte_ue_sync_free(&ue_sync);
-  cuhd_close(uhd);
+  rf_close(uhd);
   printf("\nBye\n");
   exit(0);
 }

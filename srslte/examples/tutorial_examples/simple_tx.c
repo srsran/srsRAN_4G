@@ -116,7 +116,7 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-#ifdef DISABLE_UHD
+#ifdef DISABLE_RF
   if (!output_file_name) {
     usage(argv[0]);
     exit(-1);
@@ -138,7 +138,7 @@ void base_init() {
     exit(-1);
   }
   printf("Opening UHD device...\n");
-  if (cuhd_open(uhd_args, &uhd)) {
+  if (rf_open(uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
@@ -161,7 +161,7 @@ void base_free() {
   if (output_buffer) {
     free(output_buffer);
   }
-  cuhd_close(&uhd);
+  rf_close(&uhd);
 }
 
 
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
   float sss_signal5[SRSLTE_SSS_LEN]; // for subframe 5
   int i;
   
-#ifdef DISABLE_UHD
+#ifdef DISABLE_RF
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
@@ -196,10 +196,10 @@ int main(int argc, char **argv) {
   srslte_sss_generate(sss_signal0, sss_signal5, cell.id);
   
   printf("Set TX rate: %.2f MHz\n",
-      cuhd_set_tx_srate(uhd, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
-  printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
+      rf_set_tx_srate(uhd, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
+  printf("Set TX gain: %.1f dB\n", rf_set_tx_gain(uhd, uhd_gain));
   printf("Set TX freq: %.2f MHz\n",
-      cuhd_set_tx_freq(uhd, uhd_freq) / 1000000);
+      rf_set_tx_freq(uhd, uhd_freq) / 1000000);
 
   uint32_t nbits; 
   
@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
       
       /* send to usrp */
       srslte_vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);
-      cuhd_send(uhd, output_buffer, sf_n_samples, true);
+      rf_send(uhd, output_buffer, sf_n_samples, true);
     }
   }
 

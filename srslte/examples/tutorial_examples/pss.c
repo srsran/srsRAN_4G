@@ -35,7 +35,7 @@
 #include <stdbool.h>
 
 #include "srslte/srslte.h"
-#include "srslte/cuhd/cuhd.h"
+#include "srslte/rf/rf.h"
 
 
 #ifndef DISABLE_GRAPHICS
@@ -177,16 +177,16 @@ int main(int argc, char **argv) {
   srslte_sss_synch_set_N_id_2(&sss, N_id_2);
 
   printf("Opening UHD device...\n");
-  if (cuhd_open(uhd_args, &uhd)) {
+  if (rf_open(uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
   printf("N_id_2: %d\n", N_id_2);  
-  printf("Set RX rate: %.2f MHz\n", cuhd_set_rx_srate(uhd, flen*2*100) / 1000000);
-  printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
-  printf("Set RX freq: %.2f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
-  cuhd_rx_wait_lo_locked(uhd);
-  cuhd_start_rx_stream(uhd);
+  printf("Set RX rate: %.2f MHz\n", rf_set_rx_srate(uhd, flen*2*100) / 1000000);
+  printf("Set RX gain: %.1f dB\n", rf_set_rx_gain(uhd, uhd_gain));
+  printf("Set RX freq: %.2f MHz\n", rf_set_rx_freq(uhd, uhd_freq) / 1000000);
+  rf_rx_wait_lo_locked(uhd);
+  rf_start_rx_stream(uhd);
   
   printf("Frame length %d samples\n", flen);
   printf("PSS detection threshold: %.2f\n", threshold);
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
   
   while(frame_cnt < nof_frames || nof_frames == -1) {
     peak_offset = 0; 
-    n = cuhd_recv(uhd, buffer, flen - peak_offset, 1);
+    n = rf_recv(uhd, buffer, flen - peak_offset, 1);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
   
   srslte_pss_synch_free(&pss);
   free(buffer);
-  cuhd_close(uhd);
+  rf_close(uhd);
 
   printf("Ok\n");
   exit(0);

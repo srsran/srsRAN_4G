@@ -32,13 +32,13 @@
 #include <uhd/utils/msg.hpp>
 #include <sys/time.h>
 
-#include "cuhd_handler.hpp"
-#include "srslte/cuhd/cuhd.h"
+#include "rf_handler.hpp"
+#include "srslte/rf/rf.h"
 #include "srslte/srslte.h"
 
 //#define METADATA_VERBOSE
 
-cuhd_msg_handler_t msg_handler;
+rf_msg_handler_t msg_handler;
 
 void suppress_handler(uhd::msg::type_t type, const std::string & msg)
 {
@@ -57,7 +57,7 @@ typedef _Complex float complex_t;
 
 bool isLocked(void *h)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   std::vector < std::string > mb_sensors =
     handler->usrp->get_mboard_sensor_names();
   std::vector < std::string > rx_sensors =
@@ -74,7 +74,7 @@ bool isLocked(void *h)
   }
 }
 
-bool cuhd_rx_wait_lo_locked(void *h)
+bool rf_rx_wait_lo_locked(void *h)
 {
 
   double report = 0.0;
@@ -85,9 +85,9 @@ bool cuhd_rx_wait_lo_locked(void *h)
   return isLocked(h);
 }
 
-int cuhd_start_rx_stream(void *h)
+int rf_start_rx_stream(void *h)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   uhd::stream_cmd_t cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
   cmd.time_spec = handler->usrp->get_time_now();
   cmd.stream_now = true;
@@ -95,9 +95,9 @@ int cuhd_start_rx_stream(void *h)
   return 0;
 }
 
-int cuhd_stop_rx_stream(void *h)
+int rf_stop_rx_stream(void *h)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   uhd::stream_cmd_t cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
   cmd.time_spec = handler->usrp->get_time_now();
   cmd.stream_now = true;
@@ -105,17 +105,17 @@ int cuhd_stop_rx_stream(void *h)
   return 0;
 }
 
-void cuhd_flush_buffer(void *h)
+void rf_flush_buffer(void *h)
 {
   int n; 
   _Complex float tmp[1024];
   do {
-    n = cuhd_recv(h, tmp, 1024, 0);
+    n = rf_recv(h, tmp, 1024, 0);
   } while (n > 0);  
 }
 
-bool cuhd_has_rssi(void *h) {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+bool rf_has_rssi(void *h) {
+  rf_handler *handler = static_cast < rf_handler * >(h);
   std::vector < std::string > mb_sensors = handler->usrp->get_mboard_sensor_names();
   std::vector < std::string > rx_sensors = handler->usrp->get_rx_sensor_names(0);
   if (std::find(rx_sensors.begin(), rx_sensors.end(), "rssi") != rx_sensors.end()) {
@@ -125,9 +125,9 @@ bool cuhd_has_rssi(void *h) {
   }
 }
 
-float cuhd_get_rssi(void *h) {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
-  if (cuhd_has_rssi(h)) {
+float rf_get_rssi(void *h) {
+  rf_handler *handler = static_cast < rf_handler * >(h);
+  if (rf_has_rssi(h)) {
     uhd::sensor_value_t value = handler->usrp->get_rx_sensor("rssi");
     return value.to_real();
   } else {
@@ -135,9 +135,9 @@ float cuhd_get_rssi(void *h) {
   }
 }
 
-int cuhd_start_rx_stream_nsamples(void *h, uint32_t nsamples)
+int rf_start_rx_stream_nsamples(void *h, uint32_t nsamples)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   uhd::stream_cmd_t cmd(uhd::stream_cmd_t::STREAM_MODE_NUM_SAMPS_AND_MORE);
   cmd.time_spec = handler->usrp->get_time_now();
   cmd.stream_now = true;
@@ -146,9 +146,9 @@ int cuhd_start_rx_stream_nsamples(void *h, uint32_t nsamples)
   return 0;
 }
 
-double cuhd_set_rx_gain_th(void *h, double gain)
+double rf_set_rx_gain_th(void *h, double gain)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   gain = handler->rx_gain_range.clip(gain);     
   if (gain > handler->new_rx_gain + 0.5 || gain < handler->new_rx_gain - 0.5) {
     pthread_mutex_lock(&handler->mutex);
@@ -159,9 +159,9 @@ double cuhd_set_rx_gain_th(void *h, double gain)
   return gain; 
 }
 
-double cuhd_set_tx_gain_th(void *h, double gain)
+double rf_set_tx_gain_th(void *h, double gain)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   gain = handler->tx_gain_range.clip(gain);     
   if (gain > handler->new_tx_gain + 0.5 || gain < handler->new_tx_gain - 0.5) {
     pthread_mutex_lock(&handler->mutex);
@@ -172,14 +172,14 @@ double cuhd_set_tx_gain_th(void *h, double gain)
   return gain; 
 }
 
-void cuhd_set_tx_rx_gain_offset(void *h, double offset) {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+void rf_set_tx_rx_gain_offset(void *h, double offset) {
+  rf_handler *handler = static_cast < rf_handler * >(h);
   handler->tx_rx_gain_offset = offset; 
 }
 
 /* This thread listens for set_rx_gain commands to the USRP */
 static void* thread_gain_fcn(void *h) {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   while(1) {
     pthread_mutex_lock(&handler->mutex);
     while(handler->cur_rx_gain == handler->new_rx_gain && 
@@ -189,33 +189,33 @@ static void* thread_gain_fcn(void *h) {
     }
     if (handler->new_rx_gain != handler->cur_rx_gain) {
       handler->cur_rx_gain = handler->new_rx_gain; 
-      cuhd_set_rx_gain(h, handler->cur_rx_gain);
+      rf_set_rx_gain(h, handler->cur_rx_gain);
     }
     if (handler->tx_gain_same_rx) {
-      cuhd_set_tx_gain(h, handler->cur_rx_gain+handler->tx_rx_gain_offset);
+      rf_set_tx_gain(h, handler->cur_rx_gain+handler->tx_rx_gain_offset);
     } else if (handler->new_tx_gain != handler->cur_tx_gain) {
       handler->cur_tx_gain = handler->new_tx_gain; 
-      cuhd_set_tx_gain(h, handler->cur_tx_gain);
+      rf_set_tx_gain(h, handler->cur_tx_gain);
     }
     pthread_mutex_unlock(&handler->mutex);
   }
 }
 
-float cuhd_get_rx_gain_offset(void *h) {
+float rf_get_rx_gain_offset(void *h) {
   return 15; 
 }
 
-void cuhd_suppress_stdout() {
+void rf_suppress_stdout() {
   uhd::msg::register_handler(suppress_handler);
 }
 
-void cuhd_register_msg_handler(cuhd_msg_handler_t h)
+void rf_register_msg_handler(rf_msg_handler_t h)
 {
   msg_handler = h;
   uhd::msg::register_handler(translate_handler);
 }
 
-int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
+int rf_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
 {
   
   *h = NULL; 
@@ -225,7 +225,7 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   
   
   /* Get multiusrp handler */
-  cuhd_handler *handler = new cuhd_handler();
+  rf_handler *handler = new rf_handler();
   std::string _args = std::string(args);
   handler->usrp = uhd::usrp::multi_usrp::make(_args);// + ", recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64");
     
@@ -285,86 +285,86 @@ int cuhd_open_(char *args, void **h, bool create_thread_gain, bool tx_gain_same_
   return 0;
 }
 
-int cuhd_open(char *args, void **h) {
-  return cuhd_open_(args, h, false, false); 
+int rf_open(char *args, void **h) {
+  return rf_open_(args, h, false, false); 
 }
 
-int cuhd_open_th(char *args, void **h, bool tx_gain_same_rx) {
-  return cuhd_open_(args, h, true, tx_gain_same_rx); 
+int rf_open_th(char *args, void **h, bool tx_gain_same_rx) {
+  return rf_open_(args, h, true, tx_gain_same_rx); 
 }
 
 
-int cuhd_close(void *h)
+int rf_close(void *h)
 {
-  cuhd_stop_rx_stream(h);
+  rf_stop_rx_stream(h);
   /** Something else to close the USRP?? */
   return 0;
 }
 
-void cuhd_set_master_clock_rate(void *h, double rate) {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+void rf_set_master_clock_rate(void *h, double rate) {
+  rf_handler *handler = static_cast < rf_handler * >(h);
   if (handler->dynamic_rate) {
     handler->usrp->set_master_clock_rate(rate);    
   }
 }
 
-bool cuhd_is_master_clock_dynamic(void *h) {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+bool rf_is_master_clock_dynamic(void *h) {
+  rf_handler *handler = static_cast < rf_handler * >(h);
   return handler->dynamic_rate;
 }
 
-double cuhd_set_rx_srate(void *h, double freq)
+double rf_set_rx_srate(void *h, double freq)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   handler->usrp->set_rx_rate(freq);  
   return handler->usrp->get_rx_rate(); 
 }
 
-double cuhd_set_rx_gain(void *h, double gain)
+double rf_set_rx_gain(void *h, double gain)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   handler->usrp->set_rx_gain(gain);
   return handler->usrp->get_rx_gain();
 }
 
-double cuhd_get_rx_gain(void *h)
+double rf_get_rx_gain(void *h)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   return handler->usrp->get_rx_gain();
 }
 
-double cuhd_get_tx_gain(void *h)
+double rf_get_tx_gain(void *h)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   return handler->usrp->get_tx_gain();
 }
 
-double cuhd_set_rx_freq(void *h, double freq)
+double rf_set_rx_freq(void *h, double freq)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   handler->usrp->set_rx_freq(freq);
   return freq;
 }
 
-double cuhd_set_rx_freq_offset(void *h, double freq,  double off) {
-  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
+double rf_set_rx_freq_offset(void *h, double freq,  double off) {
+  rf_handler* handler = static_cast<rf_handler*>(h);
   handler->usrp->set_rx_freq(uhd::tune_request_t(freq, off));
   return handler->usrp->get_rx_freq();
 }
 
-int cuhd_recv(void *h, void *data, uint32_t nsamples, bool blocking)
+int rf_recv(void *h, void *data, uint32_t nsamples, bool blocking)
 {
-  return cuhd_recv_with_time(h, data, nsamples, blocking, NULL, NULL);
+  return rf_recv_with_time(h, data, nsamples, blocking, NULL, NULL);
 }
 
-int cuhd_recv_with_time(void *h,
+int rf_recv_with_time(void *h,
                     void *data,
                     uint32_t nsamples,
                     bool blocking,
                     time_t *secs,
                     double *frac_secs) 
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   uhd::rx_metadata_t md, md_first;
   if (blocking) {
     int n = 0, p;
@@ -397,37 +397,37 @@ int cuhd_recv_with_time(void *h,
   }
   return nsamples;
 }
-double cuhd_set_tx_gain(void *h, double gain)
+double rf_set_tx_gain(void *h, double gain)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   handler->usrp->set_tx_gain(gain);
   return gain;
 }
 
-double cuhd_set_tx_srate(void *h, double freq)
+double rf_set_tx_srate(void *h, double freq)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   handler->usrp->set_tx_rate(freq);
   handler->tx_rate = handler->usrp->get_tx_rate();
   return handler->tx_rate; 
 }
 
-double cuhd_set_tx_freq(void *h, double freq)
+double rf_set_tx_freq(void *h, double freq)
 {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+  rf_handler *handler = static_cast < rf_handler * >(h);
   handler->usrp->set_tx_freq(freq);
   return handler->usrp->get_tx_freq();
 }
 
 
-double cuhd_set_tx_freq_offset(void *h, double freq,  double off) {
-  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
+double rf_set_tx_freq_offset(void *h, double freq,  double off) {
+  rf_handler* handler = static_cast<rf_handler*>(h);
   handler->usrp->set_tx_freq(uhd::tune_request_t(freq, off));
   return handler->usrp->get_tx_freq();
 }
 
-void cuhd_get_time(void *h, time_t *secs, double *frac_secs) {
-  cuhd_handler *handler = static_cast < cuhd_handler * >(h);
+void rf_get_time(void *h, time_t *secs, double *frac_secs) {
+  rf_handler *handler = static_cast < rf_handler * >(h);
   uhd::time_spec_t now = handler->usrp->get_time_now();
   if (secs) {
     *secs = now.get_full_secs();    
@@ -438,7 +438,7 @@ void cuhd_get_time(void *h, time_t *secs, double *frac_secs) {
 }
 
                    
-int cuhd_send_timed3(void *h,
+int rf_send_timed3(void *h,
                      void *data,
                      int nsamples,
                      time_t secs,
@@ -448,7 +448,7 @@ int cuhd_send_timed3(void *h,
                      bool is_start_of_burst,
                      bool is_end_of_burst) 
 {
-  cuhd_handler* handler = static_cast<cuhd_handler*>(h);
+  rf_handler* handler = static_cast<rf_handler*>(h);
   uhd::tx_metadata_t md;
   md.has_time_spec = has_time_spec;
   if (has_time_spec) {
@@ -489,27 +489,27 @@ int cuhd_send_timed3(void *h,
   }
 }
 
-int cuhd_send(void *h, void *data, uint32_t nsamples, bool blocking)
+int rf_send(void *h, void *data, uint32_t nsamples, bool blocking)
 {
-  return cuhd_send2(h, data, nsamples, blocking, true, true); 
+  return rf_send2(h, data, nsamples, blocking, true, true); 
 }
 
-int cuhd_send2(void *h, void *data, uint32_t nsamples, bool blocking, bool start_of_burst, bool end_of_burst)
+int rf_send2(void *h, void *data, uint32_t nsamples, bool blocking, bool start_of_burst, bool end_of_burst)
 {
-  return cuhd_send_timed3(h, data, nsamples, 0, 0, false, blocking, start_of_burst, end_of_burst);
+  return rf_send_timed3(h, data, nsamples, 0, 0, false, blocking, start_of_burst, end_of_burst);
 }
 
 
-int cuhd_send_timed(void *h,
+int rf_send_timed(void *h,
                     void *data,
                     int nsamples,
                     time_t secs,
                     double frac_secs) 
 {
-  return cuhd_send_timed2(h, data, nsamples, secs, frac_secs, true, true);
+  return rf_send_timed2(h, data, nsamples, secs, frac_secs, true, true);
 }
 
-int cuhd_send_timed2(void *h,
+int rf_send_timed2(void *h,
                     void *data,
                     int nsamples,
                     time_t secs,
@@ -517,5 +517,5 @@ int cuhd_send_timed2(void *h,
                     bool is_start_of_burst,
                     bool is_end_of_burst) 
 {
-  return cuhd_send_timed3(h, data, nsamples, secs, frac_secs, true, true, is_start_of_burst, is_end_of_burst);
+  return rf_send_timed3(h, data, nsamples, secs, frac_secs, true, true, is_start_of_burst, is_end_of_burst);
 }

@@ -36,7 +36,7 @@
 #include <stdbool.h>
 
 #include "srslte/srslte.h"
-#include "srslte/cuhd/cuhd.h"
+#include "srslte/rf/rf.h"
 #include "srslte/io/filesink.h"
 
 static bool keep_running = true;
@@ -117,27 +117,27 @@ int main(int argc, char **argv) {
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
   printf("Opening UHD device...\n");
-  if (cuhd_open(uhd_args, &uhd)) {
+  if (rf_open(uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
-  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+  rf_set_master_clock_rate(uhd, 30.72e6);        
 
   sigset_t sigset;
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  printf("Set RX freq: %.2f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
-  printf("Set RX gain: %.2f dB\n", cuhd_set_rx_gain(uhd, uhd_gain));
-  float srate = cuhd_set_rx_srate(uhd, uhd_rate); 
+  printf("Set RX freq: %.2f MHz\n", rf_set_rx_freq(uhd, uhd_freq) / 1000000);
+  printf("Set RX gain: %.2f dB\n", rf_set_rx_gain(uhd, uhd_gain));
+  float srate = rf_set_rx_srate(uhd, uhd_rate); 
   if (srate != uhd_rate) {
     if (srate < 10e6) {          
-      cuhd_set_master_clock_rate(uhd, 4*uhd_rate);        
+      rf_set_master_clock_rate(uhd, 4*uhd_rate);        
     } else {
-      cuhd_set_master_clock_rate(uhd, uhd_rate);        
+      rf_set_master_clock_rate(uhd, uhd_rate);        
     }
-    srate = cuhd_set_rx_srate(uhd, uhd_rate);
+    srate = rf_set_rx_srate(uhd, uhd_rate);
     if (srate != uhd_rate) {
       fprintf(stderr, "Errror setting samplign frequency %.2f MHz\n", uhd_rate*1e-6);
       exit(-1);
@@ -145,13 +145,13 @@ int main(int argc, char **argv) {
   }
 
   printf("Correctly RX rate: %.2f MHz\n", srate*1e-6);
-  cuhd_rx_wait_lo_locked(uhd);
-  cuhd_start_rx_stream(uhd);
+  rf_rx_wait_lo_locked(uhd);
+  rf_start_rx_stream(uhd);
   
   
   while((sample_count < nof_samples || nof_samples == -1)
         && keep_running){
-    n = cuhd_recv(uhd, buffer, buflen, 1);
+    n = rf_recv(uhd, buffer, buflen, 1);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
   
   srslte_filesink_free(&sink);
   free(buffer);
-  cuhd_close(uhd);
+  rf_close(uhd);
 
   printf("Ok - wrote %d samples\n", sample_count);
   exit(0);

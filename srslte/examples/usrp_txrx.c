@@ -33,7 +33,7 @@
 #include <time.h>
 #include <complex.h>
 
-#include "srslte/cuhd/cuhd.h"
+#include "srslte/rf/rf.h"
 #include "srslte/srslte.h"
 
 uint32_t nof_prb    = 25;
@@ -127,28 +127,28 @@ int main(int argc, char **argv) {
   // Send through UHD 
   void *uhd; 
   printf("Opening UHD device...\n");
-  if (cuhd_open(uhd_args, &uhd)) {
+  if (rf_open(uhd_args, &uhd)) {
     fprintf(stderr, "Error opening uhd\n");
     exit(-1);
   }
-  cuhd_set_master_clock_rate(uhd, 30.72e6);        
+  rf_set_master_clock_rate(uhd, 30.72e6);        
   
   int srate = srslte_sampling_freq_hz(nof_prb);    
   if (srate < 10e6) {          
-    cuhd_set_master_clock_rate(uhd, 4*srate);        
+    rf_set_master_clock_rate(uhd, 4*srate);        
   } else {
-    cuhd_set_master_clock_rate(uhd, srate);        
+    rf_set_master_clock_rate(uhd, srate);        
   }
-  cuhd_set_rx_srate(uhd, (double) srate);
-  cuhd_set_tx_srate(uhd, (double) srate);
+  rf_set_rx_srate(uhd, (double) srate);
+  rf_set_tx_srate(uhd, (double) srate);
 
   printf("Subframe len:   %d samples\n", flen);
   printf("Set TX/RX rate: %.2f MHz\n", (float) srate / 1000000);
-  printf("Set RX gain: %.1f dB\n", cuhd_set_rx_gain(uhd, uhd_rx_gain));
-  printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_tx_gain));
-  printf("Set TX/RX freq: %.2f MHz\n", cuhd_set_rx_freq(uhd, uhd_freq) / 1000000);
+  printf("Set RX gain: %.1f dB\n", rf_set_rx_gain(uhd, uhd_rx_gain));
+  printf("Set TX gain: %.1f dB\n", rf_set_tx_gain(uhd, uhd_tx_gain));
+  printf("Set TX/RX freq: %.2f MHz\n", rf_set_rx_freq(uhd, uhd_freq) / 1000000);
   
-  cuhd_set_tx_freq_offset(uhd, uhd_freq, 8e6);  
+  rf_set_tx_freq_offset(uhd, uhd_freq, 8e6);  
   sleep(1);
   
   if (input_filename) {
@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
 
   srslte_timestamp_t tstamp; 
   
-  cuhd_start_rx_stream(uhd);
+  rf_start_rx_stream(uhd);
   uint32_t nframe=0;
   
   float burst_settle_time = (float) nsamples_adv/srslte_sampling_freq_hz(nof_prb);
@@ -171,15 +171,15 @@ int main(int argc, char **argv) {
 
   while(nframe<nof_frames) {
     printf("Rx subframe %d\n", nframe);
-    cuhd_recv_with_time(uhd, &rx_buffer[flen*nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
+    rf_recv_with_time(uhd, &rx_buffer[flen*nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
     nframe++;
     if (nframe==9 || nframe==8) {
       srslte_timestamp_add(&tstamp, 0, 2e-3-burst_settle_time);
       if (nframe==8) {
-        //cuhd_send_timed2(uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
+        //rf_send_timed2(uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
         printf("Transmitting zeros\n");        
       } else {
-        cuhd_send_timed2(uhd, tx_buffer, flen+nsamples_adv, tstamp.full_secs, tstamp.frac_secs, true, true);      
+        rf_send_timed2(uhd, tx_buffer, flen+nsamples_adv, tstamp.full_secs, tstamp.frac_secs, true, true);      
         printf("Transmitting Signal\n");  
       }
     }
