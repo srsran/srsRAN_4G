@@ -70,20 +70,24 @@ ADD_LIBRARY(srslte SHARED ${SOURCES_ALL})
 TARGET_LINK_LIBRARIES(srslte m ${FFTW3F_LIBRARIES})
 
 IF(RF_FOUND)
+  # Include common RF files
+  SET(SOURCES_RF "")
+  LIST(APPEND SOURCES_RF "rf/src/rf_imp.c" "rf/src/rf_utils.c")
+
   IF (UHD_FOUND)
     INCLUDE_DIRECTORIES(${UHD_INCLUDE_DIRS})
     LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
     add_definitions(-DENABLE_UHD)
+    LIST(APPEND SOURCES_RF "rf/src/rf_uhd_imp.c" "rf/src/uhd_c_api.cpp")
   ENDIF (UHD_FOUND)
 
   IF (BLADERF_FOUND)
     INCLUDE_DIRECTORIES(${BLADERF_INCLUDE_DIRS})
     add_definitions(-DENABLE_BLADERF)
+    LIST(APPEND SOURCES_RF "rf/src/rf_blade_imp.c")
   ENDIF (BLADERF_FOUND)
 
-  FILE(GLOB_RECURSE cfiles "rf/src/*.c")
-  FILE(GLOB_RECURSE cppfiles "rf/src/*.cpp")
-  ADD_LIBRARY(srslte_rf SHARED ${cfiles} ${cppfiles})
+  ADD_LIBRARY(srslte_rf SHARED ${SOURCES_RF})
   
   IF (UHD_FOUND)
     TARGET_LINK_LIBRARIES(srslte_rf ${UHD_LIBRARIES})

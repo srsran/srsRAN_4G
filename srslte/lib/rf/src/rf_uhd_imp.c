@@ -230,8 +230,6 @@ static void* thread_gain_fcn(void *h) {
   return NULL; 
 }
 
-static char uhd_args[1024];
-
 int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
 {
   *h = NULL; 
@@ -252,19 +250,16 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
   uhd_usrp_find("", &devices_str);
   
   /* If device type or name not given in args, choose a B200 */
-  if (!strstr(args, "type") && !strstr(args, "name")) {
+  if (args[0]=='\0') {
     // If B200 is available, use it
     if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
-      snprintf(uhd_args, 1024, "type=b200,recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64,%s", args);
+      args = "type=b200,recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64";
     }
-    // If we explicitly define a B200 but do not give frame arguments, define them
-  } else if (strstr(args, "type=b200") && !strstr(args, "recv_frame_size")) {
-    snprintf(uhd_args, 1024, "recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64,%s", args);
   }
   
   /* Create UHD handler */
-  printf("Opening USRP with args: %s\n", uhd_args);
-  uhd_error error = uhd_usrp_make(&handler->usrp, uhd_args);
+  printf("Opening USRP with args: %s\n", args);
+  uhd_error error = uhd_usrp_make(&handler->usrp, args);
   if (error) {
     fprintf(stderr, "Error opening UHD: code %d\n", error);
     return -1; 
