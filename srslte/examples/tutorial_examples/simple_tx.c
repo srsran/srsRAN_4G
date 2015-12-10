@@ -35,8 +35,8 @@
 
 #include "srslte/srslte.h"
 
-#include "srslte/cuhd/cuhd.h"
-void *uhd;
+#include "srslte/rf/rf.h"
+rf_t rf;
 
 char *output_file_name = NULL;
 
@@ -50,8 +50,8 @@ srslte_cell_t cell = {
 };
   
 
-char *uhd_args = "";
-float uhd_amp = 0.5, uhd_gain = 30.0, uhd_freq = 2400000000;
+char *rf_args = "";
+float rf_amp = 0.5, rf_gain = 30.0, rf_freq = 2400000000;
 
 bool null_file_sink=false; 
 srslte_filesink_t fsink;
@@ -64,10 +64,10 @@ cf_t *sf_buffer = NULL, *output_buffer = NULL;
 
 void usage(char *prog) {
   printf("Usage: %s [algfmv]\n", prog);
-  printf("\t-a UHD args [Default %s]\n", uhd_args);
-  printf("\t-l UHD amplitude [Default %.2f]\n", uhd_amp);
-  printf("\t-g UHD TX gain [Default %.2f dB]\n", uhd_gain);
-  printf("\t-f UHD TX frequency [Default %.1f MHz]\n", uhd_freq / 1000000);
+  printf("\t-a RF args [Default %s]\n", rf_args);
+  printf("\t-l RF amplitude [Default %.2f]\n", rf_amp);
+  printf("\t-g RF TX gain [Default %.2f dB]\n", rf_gain);
+  printf("\t-f RF TX frequency [Default %.1f MHz]\n", rf_freq / 1000000);
   printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
@@ -77,16 +77,16 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "algfmv")) != -1) {
     switch (opt) {
     case 'a':
-      uhd_args = argv[optind];
+      rf_args = argv[optind];
       break;
     case 'g':
-      uhd_gain = atof(argv[optind]);
+      rf_gain = atof(argv[optind]);
       break;
     case 'l':
-      uhd_amp = atof(argv[optind]);
+      rf_amp = atof(argv[optind]);
       break;
     case 'f':
-      uhd_freq = atof(argv[optind]);
+      rf_freq = atof(argv[optind]);
       break;
     case 'm':
       switch(atoi(argv[optind])) {
@@ -137,9 +137,9 @@ void base_init() {
     perror("malloc");
     exit(-1);
   }
-  printf("Opening UHD device...\n");
-  if (rf_open(uhd_args, &uhd)) {
-    fprintf(stderr, "Error opening uhd\n");
+  printf("Opening RF device...\n");
+  if (rf_open(&rf, rf_args)) {
+    fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
   
@@ -161,7 +161,7 @@ void base_free() {
   if (output_buffer) {
     free(output_buffer);
   }
-  rf_close(&uhd);
+  rf_close(&rf);
 }
 
 
@@ -196,10 +196,10 @@ int main(int argc, char **argv) {
   srslte_sss_generate(sss_signal0, sss_signal5, cell.id);
   
   printf("Set TX rate: %.2f MHz\n",
-      rf_set_tx_srate(uhd, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
-  printf("Set TX gain: %.1f dB\n", rf_set_tx_gain(uhd, uhd_gain));
+      rf_set_tx_srate(&rf, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
+  printf("Set TX gain: %.1f dB\n", rf_set_tx_gain(&rf, rf_gain));
   printf("Set TX freq: %.2f MHz\n",
-      rf_set_tx_freq(uhd, uhd_freq) / 1000000);
+      rf_set_tx_freq(&rf, rf_freq) / 1000000);
 
   uint32_t nbits; 
   
@@ -234,7 +234,7 @@ int main(int argc, char **argv) {
         srslte_ofdm_tx_sf(&ifft, sf_buffer, output_buffer);
         
         float norm_factor = (float) sqrtf(cell.nof_prb)/15;
-        srslte_vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+        srslte_vec_sc_prod_cfc(output_buffer, rf_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
       
       } else {
 #endif
@@ -248,8 +248,8 @@ int main(int argc, char **argv) {
 //    }
       
       /* send to usrp */
-      srslte_vec_sc_prod_cfc(output_buffer, uhd_amp, output_buffer, sf_n_samples);
-      rf_send(uhd, output_buffer, sf_n_samples, true);
+      srslte_vec_sc_prod_cfc(output_buffer, rf_amp, output_buffer, sf_n_samples);
+      rf_send(&rf, output_buffer, sf_n_samples, true);
     }
   }
 

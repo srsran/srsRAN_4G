@@ -88,6 +88,10 @@ int rf_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, srslte_timestamp_
   return rf_recv(h, data, nsamples, 1);
 }
 
+double rf_set_rx_gain_th_wrapper(void *h, double f) {
+  return rf_set_rx_gain_th((rf_t*) h, f);
+}
+
 /** This function is simply a wrapper to the ue_cell_search module for rf devices 
  * Return 1 if the MIB is decoded, 0 if not or -1 on error. 
  */
@@ -102,7 +106,7 @@ int rf_mib_decoder(void *uhd, cell_search_cfg_t *config, srslte_cell_t *cell) {
   }
   
   if (config->init_agc > 0) {
-    srslte_ue_sync_start_agc(&ue_mib.ue_sync, rf_set_rx_gain_th, config->init_agc);    
+    srslte_ue_sync_start_agc(&ue_mib.ue_sync, rf_set_rx_gain_th_wrapper, config->init_agc);    
   }
 
   int srate = srslte_sampling_freq_hz(SRSLTE_UE_MIB_NOF_PRB);
@@ -159,7 +163,7 @@ int rf_cell_search(void *uhd, cell_search_cfg_t *config,
   }
 
   if (config->init_agc > 0) {
-    srslte_ue_sync_start_agc(&cs.ue_sync, rf_set_rx_gain_th, config->init_agc);
+    srslte_ue_sync_start_agc(&cs.ue_sync, rf_set_rx_gain_th_wrapper, config->init_agc);
   }
   
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);

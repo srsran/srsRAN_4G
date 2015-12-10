@@ -41,8 +41,8 @@
 
 static bool keep_running = true;
 char *output_file_name;
-char *uhd_args="";
-float uhd_gain=40.0, uhd_freq=-1.0, uhd_rate=0.96e6;
+char *rf_args="";
+float rf_gain=40.0, rf_freq=-1.0, rf_rate=0.96e6;
 int nof_samples = -1;
 
 void int_handler(int dummy) {
@@ -51,9 +51,9 @@ void int_handler(int dummy) {
 
 void usage(char *prog) {
   printf("Usage: %s [agrnv] -f rx_frequency_hz -o output_file\n", prog);
-  printf("\t-a UHD args [Default %s]\n", uhd_args);
-  printf("\t-g UHD Gain [Default %.2f dB]\n", uhd_gain);
-  printf("\t-r UHD Rate [Default %.6f Hz]\n", uhd_rate);
+  printf("\t-a RF args [Default %s]\n", rf_args);
+  printf("\t-g RF Gain [Default %.2f dB]\n", rf_gain);
+  printf("\t-r RF Rate [Default %.6f Hz]\n", rf_rate);
   printf("\t-n nof_samples [Default %d]\n", nof_samples);
   printf("\t-v srslte_verbose\n");
 }
@@ -66,16 +66,16 @@ void parse_args(int argc, char **argv) {
       output_file_name = argv[optind];
       break;
     case 'a':
-      uhd_args = argv[optind];
+      rf_args = argv[optind];
       break;
     case 'g':
-      uhd_gain = atof(argv[optind]);
+      rf_gain = atof(argv[optind]);
       break;
     case 'r':
-      uhd_rate = atof(argv[optind]);
+      rf_rate = atof(argv[optind]);
       break;
     case 'f':
-      uhd_freq = atof(argv[optind]);
+      rf_freq = atof(argv[optind]);
       break;
     case 'n':
       nof_samples = atoi(argv[optind]);
@@ -88,7 +88,7 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-  if (uhd_freq < 0) {
+  if (rf_freq < 0) {
     usage(argv[0]);
     exit(-1);
   }
@@ -97,7 +97,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   cf_t *buffer; 
   int sample_count, n;
-  void *uhd;
+  rf_t rf;
   srslte_filesink_t sink;
   int32_t buflen;
 
@@ -116,42 +116,42 @@ int main(int argc, char **argv) {
 
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
-  printf("Opening UHD device...\n");
-  if (rf_open(uhd_args, &uhd)) {
-    fprintf(stderr, "Error opening uhd\n");
+  printf("Opening RF device...\n");
+  if (rf_open(&rf, rf_args)) {
+    fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
-  rf_set_master_clock_rate(uhd, 30.72e6);        
+  rf_set_master_clock_rate(&rf, 30.72e6);        
 
   sigset_t sigset;
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  printf("Set RX freq: %.2f MHz\n", rf_set_rx_freq(uhd, uhd_freq) / 1000000);
-  printf("Set RX gain: %.2f dB\n", rf_set_rx_gain(uhd, uhd_gain));
-  float srate = rf_set_rx_srate(uhd, uhd_rate); 
-  if (srate != uhd_rate) {
+  printf("Set RX freq: %.2f MHz\n", rf_set_rx_freq(&rf, rf_freq) / 1000000);
+  printf("Set RX gain: %.2f dB\n", rf_set_rx_gain(&rf, rf_gain));
+  float srate = rf_set_rx_srate(&rf, rf_rate); 
+  if (srate != rf_rate) {
     if (srate < 10e6) {          
-      rf_set_master_clock_rate(uhd, 4*uhd_rate);        
+      rf_set_master_clock_rate(&rf, 4*rf_rate);        
     } else {
-      rf_set_master_clock_rate(uhd, uhd_rate);        
+      rf_set_master_clock_rate(&rf, rf_rate);        
     }
-    srate = rf_set_rx_srate(uhd, uhd_rate);
-    if (srate != uhd_rate) {
-      fprintf(stderr, "Errror setting samplign frequency %.2f MHz\n", uhd_rate*1e-6);
+    srate = rf_set_rx_srate(&rf, rf_rate);
+    if (srate != rf_rate) {
+      fprintf(stderr, "Errror setting samplign frequency %.2f MHz\n", rf_rate*1e-6);
       exit(-1);
     }
   }
 
   printf("Correctly RX rate: %.2f MHz\n", srate*1e-6);
-  rf_rx_wait_lo_locked(uhd);
-  rf_start_rx_stream(uhd);
+  rf_rx_wait_lo_locked(&rf);
+  rf_start_rx_stream(&rf);
   
   
   while((sample_count < nof_samples || nof_samples == -1)
         && keep_running){
-    n = rf_recv(uhd, buffer, buflen, 1);
+    n = rf_recv(&rf, buffer, buflen, 1);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
   
   srslte_filesink_free(&sink);
   free(buffer);
-  rf_close(uhd);
+  rf_close(&rf);
 
   printf("Ok - wrote %d samples\n", sample_count);
   exit(0);
