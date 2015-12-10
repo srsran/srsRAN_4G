@@ -234,7 +234,6 @@ static char uhd_args[1024];
 
 int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
 {
-  char err_msg[256];
   *h = NULL; 
   
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) malloc(sizeof(rf_uhd_handler_t));
@@ -267,8 +266,7 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
   printf("Opening USRP with args: %s\n", uhd_args);
   uhd_error error = uhd_usrp_make(&handler->usrp, uhd_args);
   if (error) {
-    uhd_usrp_last_error(handler->usrp, err_msg, 256);
-    fprintf(stderr, "Error opening UHD: %s\n", err_msg);
+    fprintf(stderr, "Error opening UHD: code %d\n", error);
     return -1; 
   }
     
@@ -285,15 +283,13 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
   uhd_rx_streamer_make(&handler->rx_stream);
   error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
   if (error) {
-    uhd_rx_streamer_last_error(handler->rx_stream, err_msg, 256);
-    fprintf(stderr, "Error opening RX stream: %s\n", err_msg);
+    fprintf(stderr, "Error opening RX stream: %d\n", error);
     return -1; 
   }
   uhd_tx_streamer_make(&handler->tx_stream);
   error = uhd_usrp_get_tx_stream(handler->usrp, &stream_args, handler->tx_stream);
   if (error) {
-    uhd_tx_streamer_last_error(handler->tx_stream, err_msg, 256);
-    fprintf(stderr, "Error opening TX stream: %s\n", err_msg);
+    fprintf(stderr, "Error opening TX stream: %d\n", error);
     return -1; 
   }
   
@@ -460,7 +456,6 @@ int rf_uhd_recv_with_time(void *h,
                     time_t *secs,
                     double *frac_secs) 
 {
-  char err_msg[256];
   
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   size_t rxd_samples;
@@ -477,11 +472,10 @@ int rf_uhd_recv_with_time(void *h,
       void *buff = (void*) &data_c[n];
       void **buffs_ptr = (void**) &buff;
       uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
-                                             rx_samples, md, 3.0, false, &rxd_samples);
+                                             rx_samples, md, 5.0, false, &rxd_samples);
       
       if (error) {
-        uhd_rx_streamer_last_error(handler->rx_stream, err_msg, 256);
-        fprintf(stderr, "Error receiving from UHD: %s\n", err_msg);
+        fprintf(stderr, "Error receiving from UHD: %d\n", error);
         return -1; 
       }
       md = &handler->rx_md; 
@@ -509,7 +503,6 @@ int rf_uhd_send_timed(void *h,
                      bool is_end_of_burst) 
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*) h;
-  char err_msg[256];
   
   size_t txd_samples;
   if (has_time_spec) {
@@ -541,8 +534,7 @@ int rf_uhd_send_timed(void *h,
       uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, 
                                              tx_samples, &handler->tx_md, 3.0, &txd_samples);
       if (error) {
-        uhd_tx_streamer_last_error(handler->tx_stream, err_msg, 256);
-        fprintf(stderr, "Error sending to UHD: %s\n", err_msg);
+        fprintf(stderr, "Error sending to UHD: %d\n", error);
         return -1; 
       }
       // Increase time spec 
