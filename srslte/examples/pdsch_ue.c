@@ -50,7 +50,7 @@ cell_search_cfg_t cell_detect_config = {
   10.0 // threshold
 };
 #else
-#warning Compiling pdsch_ue with no UHD support
+#warning Compiling pdsch_ue with no RF support
 #endif
 
 //#define STDOUT_COMPACT
@@ -300,14 +300,14 @@ int main(int argc, char **argv) {
     
     /* Set receiver gain */
     if (prog_args.rf_gain > 0) {
-      printf("Opening UHD device...\n");
+      printf("Opening RF device...\n");
       if (rf_open(&rf, prog_args.rf_args)) {
         fprintf(stderr, "Error opening rf\n");
         exit(-1);
       }
       rf_set_rx_gain(&rf, prog_args.rf_gain);      
     } else {
-      printf("Opening UHD device with threaded RX Gain control ...\n");
+      printf("Opening RF device with threaded RX Gain control ...\n");
       if (rf_open_th(&rf, prog_args.rf_args, false)) {
         fprintf(stderr, "Error opening rf\n");
         exit(-1);
@@ -325,9 +325,9 @@ int main(int argc, char **argv) {
     rf_set_master_clock_rate(&rf, 30.72e6);        
 
     /* set receiver frequency */
+    printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.rf_freq/1000000);
     rf_set_rx_freq(&rf, (double) prog_args.rf_freq);
     rf_rx_wait_lo_locked(&rf);
-    printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.rf_freq/1000000);
 
     uint32_t ntrial=0; 
     do {
@@ -362,7 +362,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    INFO("Stopping UHD and flushing buffer...\r",0);
+    INFO("Stopping RF and flushing buffer...\r",0);
     rf_stop_rx_stream(&rf);
     rf_flush_buffer(&rf);    
   }

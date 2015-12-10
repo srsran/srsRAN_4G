@@ -79,7 +79,7 @@ static bool find_string(uhd_string_vector_handle h, char *str)
   uhd_string_vector_size(h, &n);
   for (int i=0;i<n;i++) {
     uhd_string_vector_at(h, i, buff, 128);
-    if (!strcmp(buff, str)) {
+    if (strstr(buff, str)) {
       return true; 
     }
   }
@@ -109,10 +109,9 @@ bool rf_uhd_rx_wait_lo_locked(void *h)
   uhd_string_vector_handle rx_sensors;
   char *sensor_name;
   uhd_sensor_value_handle value_h;
-  
   uhd_string_vector_make(&mb_sensors);
   uhd_string_vector_make(&rx_sensors);
-
+  uhd_sensor_value_make_from_bool(&value_h, "", true, "True", "False");
   uhd_usrp_get_mboard_sensor_names(handler->usrp, 0, &mb_sensors);
   uhd_usrp_get_rx_sensor_names(handler->usrp, 0, &rx_sensors);
 
@@ -125,7 +124,7 @@ bool rf_uhd_rx_wait_lo_locked(void *h)
   }
   
   double report = 0.0;
-  while (isLocked(handler, sensor_name, &value_h) && report < 30.0) {
+  while (!isLocked(handler, sensor_name, &value_h) && report < 30.0) {
     report += 0.1;
     usleep(1000);
   }
@@ -173,6 +172,7 @@ void rf_uhd_flush_buffer(void *h)
 bool rf_uhd_has_rssi(void *h) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
   uhd_string_vector_handle rx_sensors;  
+  uhd_string_vector_make(&rx_sensors);
   uhd_usrp_get_rx_sensor_names(handler->usrp, 0, &rx_sensors);
   bool ret = find_string(rx_sensors, "rssi"); 
   uhd_string_vector_free(&rx_sensors);
@@ -182,6 +182,7 @@ bool rf_uhd_has_rssi(void *h) {
 float rf_uhd_get_rssi(void *h) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
   uhd_sensor_value_handle value;  
+  uhd_sensor_value_make_from_realnum(&value, "rssi", 0, "dBm", "%f");
   uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &value);
   double val_out; 
   uhd_sensor_value_to_realnum(value, &val_out);
@@ -229,6 +230,8 @@ static void* thread_gain_fcn(void *h) {
   return NULL; 
 }
 
+static char uhd_args[1024];
+
 int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
 {
   char err_msg[256];
@@ -244,24 +247,31 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
   /* Set priority to UHD threads */
   uhd_set_thread_priority(uhd_default_thread_priority, true);
   
-  /* Find available USRP devices in case args is empty */
-  if (args[0] == '\0') {
-    uhd_string_vector_handle devices_str;
-    uhd_string_vector_make(&devices_str);
-    uhd_usrp_find("", &devices_str);
-    
-    if (find_string(devices_str, "b200")) {
-     // build args here     
+  /* Set correct options for the USRP device */
+  uhd_string_vector_handle devices_str;
+  uhd_string_vector_make(&devices_str);
+  uhd_usrp_find("", &devices_str);
+  
+  /* If device type or name not given in args, choose a B200 */
+  if (!strstr(args, "type") && !strstr(args, "name")) {
+    // If B200 is available, use it
+    if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
+      snprintf(uhd_args, 1024, "type=b200,recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64,%s", args);
     }
+    // If we explicitly define a B200 but do not give frame arguments, define them
+  } else if (strstr(args, "type=b200") && !strstr(args, "recv_frame_size")) {
+    snprintf(uhd_args, 1024, "recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64,%s", args);
   }
   
   /* Create UHD handler */
-  uhd_error error = uhd_usrp_make(&handler->usrp, args);
+  printf("Opening USRP with args: %s\n", uhd_args);
+  uhd_error error = uhd_usrp_make(&handler->usrp, uhd_args);
   if (error) {
     uhd_usrp_last_error(handler->usrp, err_msg, 256);
     fprintf(stderr, "Error opening UHD: %s\n", err_msg);
+    return -1; 
   }
-
+    
   size_t channel = 0;
   uhd_stream_args_t stream_args = {
         .cpu_format = "fc32",
@@ -277,17 +287,19 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
   if (error) {
     uhd_rx_streamer_last_error(handler->rx_stream, err_msg, 256);
     fprintf(stderr, "Error opening RX stream: %s\n", err_msg);
+    return -1; 
   }
   uhd_tx_streamer_make(&handler->tx_stream);
   error = uhd_usrp_get_tx_stream(handler->usrp, &stream_args, handler->tx_stream);
   if (error) {
     uhd_tx_streamer_last_error(handler->tx_stream, err_msg, 256);
     fprintf(stderr, "Error opening TX stream: %s\n", err_msg);
+    return -1; 
   }
   
-  uhd_rx_streamer_num_channels(handler->rx_stream, &handler->rx_nof_samples);
-  uhd_tx_streamer_num_channels(handler->tx_stream, &handler->tx_nof_samples);
-    
+  uhd_rx_streamer_max_num_samps(handler->rx_stream, &handler->rx_nof_samples);
+  uhd_tx_streamer_max_num_samps(handler->tx_stream, &handler->tx_nof_samples);
+  
   handler->tx_gain_same_rx = tx_gain_same_rx; 
   handler->tx_rx_gain_offset = 0.0; 
   uhd_meta_range_make(&handler->rx_gain_range); 
@@ -306,13 +318,12 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
     if (pthread_cond_init(&handler->cond, NULL)) {
       return -1; 
     }
-
     if (pthread_create(&handler->thread_gain, NULL, thread_gain_fcn, handler)) {
       perror("pthread_create");
       return -1; 
     }
   }
-  
+ 
   /* Find out if the master clock rate is configurable */
   double cur_clock, new_clock; 
   uhd_usrp_get_master_clock_rate(handler->usrp, 0, &cur_clock);
@@ -334,7 +345,7 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
     printf("Master clock is configurable. Using reduced symbol sizes and sampling rates.\n");
     handler->dynamic_rate = true; 
   }
-
+ 
   return 0;
 }
 
@@ -459,7 +470,7 @@ int rf_uhd_recv_with_time(void *h,
     cf_t *data_c = (cf_t*) data;
     do {
       size_t rx_samples = handler->rx_nof_samples;
-       
+             
       if (rx_samples > nsamples - n) {
         rx_samples = nsamples - n; 
       }
@@ -467,6 +478,7 @@ int rf_uhd_recv_with_time(void *h,
       void **buffs_ptr = (void**) &buff;
       uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
                                              rx_samples, md, 3.0, false, &rxd_samples);
+      
       if (error) {
         uhd_rx_streamer_last_error(handler->rx_stream, err_msg, 256);
         fprintf(stderr, "Error receiving from UHD: %s\n", err_msg);

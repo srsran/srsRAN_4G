@@ -30,6 +30,44 @@
 #include "srslte/srslte.h"
 #include "rf_dev.h"
 
+int rf_get_available_devices(char **devnames, int max_strlen) {
+  int i=0;
+  while(available_devices[i]->name) {
+    strncpy(devnames[i], available_devices[i]->name, max_strlen);
+    i++;
+  }
+  return i;
+}
+
+
+int rf_open_devname(rf_t *rf, char *devname, char *args, bool agc_thread, bool tx_gain_same_rx) {
+  /* Try to open the device if name is provided */
+  if (devname) {
+    int i=0;
+    while(available_devices[i] != NULL) {
+      if (!strcmp(available_devices[i]->name, devname)) {
+        rf->dev = available_devices[i];
+        return available_devices[i]->rf_open(args, &rf->handler, agc_thread, tx_gain_same_rx);
+      }
+      i++;
+    }    
+    printf("Device %s not found. Switching to auto mode\n", devname);
+  }
+  
+  /* If in auto mode or provided device not found, try to open in order of apperance in available_devices[] array */
+  int i=0;
+  while(available_devices[i] != NULL) {
+    if (!available_devices[i]->rf_open(args, &rf->handler, agc_thread, tx_gain_same_rx)) {
+      rf->dev = available_devices[i];
+      return 0; 
+    }
+    i++;
+  }
+  fprintf(stderr, "No compatible RF frontend found\n");
+  return -1; 
+}
+
+
 bool rf_rx_wait_lo_locked(rf_t *rf)
 {
   return ((rf_dev_t*) rf->dev)->rf_rx_wait_lo_locked(rf->handler);  
@@ -80,30 +118,6 @@ void rf_register_msg_handler(rf_t *rf, rf_msg_handler_t msg_handler)
   ((rf_dev_t*) rf->dev)->rf_register_msg_handler(rf->handler, msg_handler);  
 }
 
-int rf_open_devname(rf_t *rf, char *devname, char *args, bool agc_thread, bool tx_gain_same_rx) {
-  /* Try to open the device if name is provided */
-  if (devname) {
-    int i=0;
-    while(available_devices[i] != NULL) {
-      if (!strcmp(available_devices[i]->name, devname)) {
-        rf->dev = &available_devices[i];
-        return available_devices[i]->rf_open(args, &rf->handler, agc_thread, tx_gain_same_rx);
-      }
-    }    
-  }
-  
-  /* If in auto mode, try to open in order of apperance in available_devices[] array */
-  int i=0;
-  while(available_devices[i] != NULL) {
-    if (!available_devices[i]->rf_open(args, &rf->handler, agc_thread, tx_gain_same_rx)) {
-      rf->dev = &available_devices[i];
-      return 0; 
-    }
-  }
-  fprintf(stderr, "No compatible RF frontend found\n");
-  return -1; 
-}
-
 int rf_open(rf_t *h, char *args) 
 {
   return rf_open_devname(h, NULL, args, false, false);
@@ -111,7 +125,7 @@ int rf_open(rf_t *h, char *args)
 
 int rf_open_th(rf_t *h, char *args, bool tx_gain_same_rx) 
 {
-  return rf_open_devname(h, NULL, args, false, tx_gain_same_rx);  
+  return rf_open_devname(h, NULL, args, true, tx_gain_same_rx);  
 }
 
 int rf_close(rf_t *rf)

@@ -187,6 +187,8 @@ int main(int argc, char **argv) {
   rf_rx_wait_lo_locked(&rf);
   printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.rf_freq/1000000);
   
+  cell_detect_config.init_agc = (prog_args.rf_gain<0);
+  
   uint32_t ntrial=0; 
   do {
     ret = rf_search_and_decode_mib(&rf, &cell_detect_config, prog_args.force_N_id_2, &cell);

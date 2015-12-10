@@ -39,32 +39,32 @@
 #include "srslte/rf/rf.h"
 #include "srslte/rf/rf_utils.h"
 
-int rf_rssi_scan(void *uhd, float *freqs, float *rssi, int nof_bands, double fs, int nsamp) {
+int rf_rssi_scan(rf_t *rf, float *freqs, float *rssi, int nof_bands, double fs, int nsamp) {
   int i, j;
   int ret = -1;
-  _Complex float *buffer;
+  cf_t *buffer;
   double f;
 
-  buffer = calloc(nsamp, sizeof(_Complex float));
+  buffer = calloc(nsamp, sizeof(cf_t));
   if (!buffer) {
     goto free_and_exit;
   }
 
-  rf_set_rx_gain(uhd, 20.0);
-  rf_set_rx_srate(uhd, fs);
+  rf_set_rx_gain(rf, 20.0);
+  rf_set_rx_srate(rf, fs);
 
   for (i=0;i<nof_bands;i++) {
-    rf_stop_rx_stream(uhd);
+    rf_stop_rx_stream(rf);
 
     f = (double) freqs[i];
-    rf_set_rx_freq(uhd, f);
-    rf_rx_wait_lo_locked(uhd);
+    rf_set_rx_freq(rf, f);
+    rf_rx_wait_lo_locked(rf);
     usleep(10000);
-    rf_start_rx_stream(uhd);
+    rf_start_rx_stream(rf);
 
     /* discard first samples */
     for (j=0;j<2;j++) {
-      if (rf_recv(uhd, buffer, nsamp, 1) != nsamp) {
+      if (rf_recv(rf, buffer, nsamp, 1) != nsamp) {
         goto free_and_exit;
       }
     }
@@ -74,7 +74,7 @@ int rf_rssi_scan(void *uhd, float *freqs, float *rssi, int nof_bands, double fs,
       printf("\n");
     }
   }
-  rf_stop_rx_stream(uhd);
+  rf_stop_rx_stream(rf);
 
   ret = 0;
 free_and_exit:
@@ -95,12 +95,12 @@ double rf_set_rx_gain_th_wrapper(void *h, double f) {
 /** This function is simply a wrapper to the ue_cell_search module for rf devices 
  * Return 1 if the MIB is decoded, 0 if not or -1 on error. 
  */
-int rf_mib_decoder(void *uhd, cell_search_cfg_t *config, srslte_cell_t *cell) {
+int rf_mib_decoder(rf_t *rf, cell_search_cfg_t *config, srslte_cell_t *cell) {
   int ret = SRSLTE_ERROR; 
   srslte_ue_mib_sync_t ue_mib; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
 
-  if (srslte_ue_mib_sync_init(&ue_mib, cell->id, cell->cp, rf_recv_wrapper_cs, uhd)) {
+  if (srslte_ue_mib_sync_init(&ue_mib, cell->id, cell->cp, rf_recv_wrapper_cs, (void*) rf)) {
     fprintf(stderr, "Error initiating srslte_ue_mib_sync\n");
     goto clean_exit; 
   }
@@ -111,10 +111,10 @@ int rf_mib_decoder(void *uhd, cell_search_cfg_t *config, srslte_cell_t *cell) {
 
   int srate = srslte_sampling_freq_hz(SRSLTE_UE_MIB_NOF_PRB);
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", (float) srate/1000000);
-  rf_set_rx_srate(uhd, (float) srate);
+  rf_set_rx_srate(rf, (float) srate);
   
   INFO("Starting receiver...\n", 0);
-  rf_start_rx_stream(uhd);
+  rf_start_rx_stream(rf);
     
   /* Find and decody MIB */
   ret = srslte_ue_mib_sync_decode(&ue_mib, config->max_frames_pss, bch_payload, &cell->nof_ports, NULL); 
@@ -133,7 +133,7 @@ int rf_mib_decoder(void *uhd, cell_search_cfg_t *config, srslte_cell_t *cell) {
 
 clean_exit: 
 
-  rf_stop_rx_stream(uhd);
+  rf_stop_rx_stream(rf);
   srslte_ue_mib_sync_free(&ue_mib);
 
   return ret; 
@@ -141,7 +141,7 @@ clean_exit:
 
 /** This function is simply a wrapper to the ue_cell_search module for rf devices 
  */
-int rf_cell_search(void *uhd, cell_search_cfg_t *config, 
+int rf_cell_search(rf_t *rf, cell_search_cfg_t *config, 
                      int force_N_id_2, srslte_cell_t *cell) 
 {
   int ret = SRSLTE_ERROR; 
@@ -150,7 +150,7 @@ int rf_cell_search(void *uhd, cell_search_cfg_t *config,
 
   bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
     
-  if (srslte_ue_cellsearch_init(&cs, rf_recv_wrapper_cs, uhd)) {
+  if (srslte_ue_cellsearch_init(&cs, rf_recv_wrapper_cs, (void*) rf)) {
     fprintf(stderr, "Error initiating UE cell detect\n");
     return SRSLTE_ERROR; 
   }
@@ -167,10 +167,10 @@ int rf_cell_search(void *uhd, cell_search_cfg_t *config,
   }
   
   INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
-  rf_set_rx_srate(uhd, SRSLTE_CS_SAMP_FREQ);
+  rf_set_rx_srate(rf, SRSLTE_CS_SAMP_FREQ);
   
   INFO("Starting receiver...\n", 0);
-  rf_start_rx_stream(uhd);
+  rf_start_rx_stream(rf);
 
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
   uint32_t max_peak_cell = 0;
@@ -211,7 +211,7 @@ int rf_cell_search(void *uhd, cell_search_cfg_t *config,
     config->init_agc = srslte_agc_get_gain(&cs.ue_sync.agc);
   }
   
-  rf_stop_rx_stream(uhd);
+  rf_stop_rx_stream(rf);
   srslte_ue_cellsearch_free(&cs);
 
   return ret; 
@@ -223,15 +223,15 @@ int rf_cell_search(void *uhd, cell_search_cfg_t *config,
  * 0 if no cell was found or MIB could not be decoded, 
  * -1 on error
  */
-int rf_search_and_decode_mib(void *uhd, cell_search_cfg_t *config, int force_N_id_2, srslte_cell_t *cell) 
+int rf_search_and_decode_mib(rf_t *rf, cell_search_cfg_t *config, int force_N_id_2, srslte_cell_t *cell) 
 {
   int ret = SRSLTE_ERROR; 
   
   printf("Searching for cell...\n");
-  ret = rf_cell_search(uhd, config, force_N_id_2, cell);
+  ret = rf_cell_search(rf, config, force_N_id_2, cell);
   if (ret > 0) {
     printf("Decoding PBCH for cell %d (N_id_2=%d)\n", cell->id, cell->id%3);        
-    ret = rf_mib_decoder(uhd, config, cell);
+    ret = rf_mib_decoder(rf, config, cell);
     if (ret < 0) {
       fprintf(stderr, "Could not decode PBCH from CELL ID %d\n", cell->id);
       return SRSLTE_ERROR;
