@@ -26,6 +26,7 @@ void rf_uhd_register_msg_handler_c(rf_msg_handler_t new_handler)
 void uhd_tx_metadata_set_time_spec(uhd_tx_metadata_handle *md, time_t secs, double frac_secs)
 {
   (*md)->tx_metadata_cpp.time_spec = uhd::time_spec_t(secs, frac_secs);
+  (*md)->tx_metadata_cpp.has_time_spec = true; 
 }
 
 void uhd_tx_metadata_set_start(uhd_tx_metadata_handle *md, bool is_start_of_burst)
