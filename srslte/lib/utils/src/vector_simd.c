@@ -217,8 +217,8 @@ void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
   __m128 ret1, ret2;
 
   for(;number < eighthPoints; number++){
-    inputVal1 = _mm_load_ps(inputVectorPtr); inputVectorPtr += 4;
-    inputVal2 = _mm_load_ps(inputVectorPtr); inputVectorPtr += 4;
+    inputVal1 = _mm_loadu_ps(inputVectorPtr); inputVectorPtr += 4;
+    inputVal2 = _mm_loadu_ps(inputVectorPtr); inputVectorPtr += 4;
 
     ret1 = _mm_mul_ps(inputVal1, vScalar);
     ret2 = _mm_mul_ps(inputVal2, vScalar);
@@ -228,7 +228,7 @@ void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
 
     intInputVal1 = _mm_packs_epi32(intInputVal1, intInputVal2);
 
-    _mm_store_si128((__m128i*)outputVectorPtr, intInputVal1);
+    _mm_storeu_si128((__m128i*)outputVectorPtr, intInputVal1);
     outputVectorPtr += 8;
   }
 

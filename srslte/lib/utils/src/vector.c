@@ -241,7 +241,7 @@ void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len) {
 #ifndef HAVE_VOLK_CONVERT_IF_FUNCTION
   int i;
   for (i=0;i<len;i++) {
-    z[i] = ((float) x[i])*scale;
+    z[i] = ((float) x[i])/scale;
   }
 #else
   volk_16i_s32f_convert_32f(z,x,scale,len);
