@@ -44,6 +44,7 @@ typedef struct {
   int16_t rx_buffer[CONVERT_BUFFER_SIZE]; 
   int16_t tx_buffer[CONVERT_BUFFER_SIZE]; 
   bool stream_enabled; 
+  bool tx_stream_enabled; 
 } rf_blade_handler_t;
 
 void rf_blade_suppress_stdout(void *h) {
@@ -59,6 +60,36 @@ bool rf_blade_rx_wait_lo_locked(void *h)
 {
   usleep(1000);
   return true; 
+}
+
+int rf_blade_start_tx_stream(void *h)
+{
+  int status; 
+  rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
+  
+  const unsigned int num_buffers    = 16;
+  const unsigned int buffer_size_tx = 1024;  
+  const unsigned int num_transfers  = 8;
+  const unsigned int timeout_ms     = 4000;
+  
+  status = bladerf_sync_config(handler->dev,
+                                BLADERF_MODULE_TX,
+                                BLADERF_FORMAT_SC16_Q11_META,
+                                num_buffers,
+                                buffer_size_tx,
+                                num_transfers,
+                                timeout_ms);
+  if (status != 0) {
+    fprintf(stderr, "Failed to configure TX sync interface: %s\n", bladerf_strerror(status));
+    return status; 
+  }
+  status = bladerf_enable_module(handler->dev, BLADERF_MODULE_TX, true);
+  if (status != 0) {
+    fprintf(stderr, "Failed to enable TX module: %s\n", bladerf_strerror(status));
+    return status;
+  }
+  handler->stream_enabled = true; 
+  return 0;
 }
 
 int rf_blade_start_rx_stream(void *h)
@@ -106,7 +137,7 @@ int rf_blade_start_rx_stream(void *h)
     fprintf(stderr, "Failed to enable TX module: %s\n", bladerf_strerror(status));
     return status;
   }
-  handler->stream_enabled = true; 
+  handler->tx_stream_enabled = true; 
   return 0;
 }
 
@@ -187,6 +218,7 @@ int rf_blade_open(char *args, void **h, bool create_thread_gain, bool tx_gain_sa
     return status;
   }
   handler->stream_enabled = false; 
+  handler->tx_stream_enabled = false; 
   return 0;
 }
 
@@ -319,6 +351,8 @@ double rf_blade_set_tx_freq(void *h, double freq)
   if (freq > 2.5e9 && freq < 2.6e9) {
     bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_PHASE, 184);
     bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_GAIN, 20);
+    bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_I, 19);
+    bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_Q, 97);
   }
   
   return freq;
@@ -407,6 +441,10 @@ int rf_blade_send_timed(void *h,
   struct bladerf_metadata meta;
   int status; 
   
+  if (!handler->tx_stream_enabled) {
+    rf_blade_start_tx_stream(h);
+  }
+  
   if (2*nsamples > CONVERT_BUFFER_SIZE) {
     fprintf(stderr, "TX failed: nsamples exceeds buffer size (%d>%d)\n", nsamples, CONVERT_BUFFER_SIZE);
     return -1;
@@ -426,15 +464,10 @@ int rf_blade_send_timed(void *h,
   if (is_end_of_burst) {
     meta.flags |= BLADERF_META_FLAG_TX_BURST_END;
   }
-  uint64_t dev_timestamp;
-  status = bladerf_get_timestamp(handler->dev, BLADERF_MODULE_TX, &dev_timestamp);
-  if (status != 0) {
-    fprintf(stderr, "Failed to get current RX timestamp: %s\n",
-              bladerf_strerror(status));
-  }
   status = bladerf_sync_tx(handler->dev, handler->tx_buffer, nsamples, &meta, 0);
   if (status != 0) {
     fprintf(stderr, "TX failed: %s\n", bladerf_strerror(status));
+    exit(-1);
     return status;
   }
   return nsamples;
