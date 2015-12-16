@@ -421,10 +421,6 @@ int rf_blade_recv_with_time(void *h,
   }
   
   timestamp_to_secs(handler->rx_rate, meta.timestamp, secs, frac_secs);
-  uint64_t rx_timestamp, rx_timestamp2, tx_timestamp;
-  bladerf_get_timestamp(handler->dev, BLADERF_MODULE_RX, &rx_timestamp);
-  bladerf_get_timestamp(handler->dev, BLADERF_MODULE_RX, &rx_timestamp2);
-  bladerf_get_timestamp(handler->dev, BLADERF_MODULE_TX, &tx_timestamp);
   srslte_vec_convert_if(handler->rx_buffer, data, 2048, 2*nsamples);
   
   return nsamples;
