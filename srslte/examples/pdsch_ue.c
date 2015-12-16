@@ -85,7 +85,7 @@ typedef struct {
   uint32_t file_nof_ports;
   uint32_t file_cell_id;
   char *rf_args; 
-  float rf_freq; 
+  double rf_freq; 
   float rf_gain;
   int net_port; 
   char *net_address; 
@@ -184,7 +184,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->time_offset = atoi(argv[optind]);
       break;
     case 'f':
-      args->rf_freq = atof(argv[optind]);
+      args->rf_freq = strtod(argv[optind], NULL);
       break;
     case 'n':
       args->nof_subframes = atoi(argv[optind]);
@@ -325,8 +325,8 @@ int main(int argc, char **argv) {
     srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
 
     /* set receiver frequency */
-    printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.rf_freq/1000000);
-    srslte_rf_set_rx_freq(&rf, (double) prog_args.rf_freq);
+    printf("Tunning receiver to %.3f MHz\n", prog_args.rf_freq/1000000);
+    srslte_rf_set_rx_freq(&rf, prog_args.rf_freq);
     srslte_rf_rx_wait_lo_locked(&rf);
 
     uint32_t ntrial=0; 

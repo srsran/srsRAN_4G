@@ -212,7 +212,7 @@ int rf_blade_open(char *args, void **h, bool create_thread_gain, bool tx_gain_sa
     fprintf(stderr, "Failed to set RX VGA1 gain: %s\n", bladerf_strerror(status));
     return status;
   }
-  status = bladerf_set_txvga1(handler->dev, -10);
+  status = bladerf_set_txvga1(handler->dev, -8);
   if (status != 0) {
     fprintf(stderr, "Failed to set TX VGA1 gain: %s\n", bladerf_strerror(status));
     return status;
@@ -253,6 +253,7 @@ double rf_blade_set_rx_srate(void *h, double freq)
     fprintf(stderr, "Failed to set bandwidth = %u: %s\n", handler->rx_rate, bladerf_strerror(status));
     return -1;
   }
+  printf("Set RX sampling rate %.2f Mhz, filter BW: %.2f Mhz\n", (float) handler->rx_rate/1e6, (float) bw/1e6);
   return (double) handler->rx_rate;
 }
 
@@ -328,7 +329,8 @@ double rf_blade_get_tx_gain(void *h)
 double rf_blade_set_rx_freq(void *h, double freq)
 {
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
-  int status = bladerf_set_frequency(handler->dev, BLADERF_MODULE_RX, (uint32_t) freq);
+  uint32_t f_int = (uint32_t) round(freq);
+  int status = bladerf_set_frequency(handler->dev, BLADERF_MODULE_RX, f_int);
   if (status != 0) {
     fprintf(stderr, "Failed to set samplerate = %u: %s\n",
             (uint32_t) freq, bladerf_strerror(status));
@@ -340,7 +342,8 @@ double rf_blade_set_rx_freq(void *h, double freq)
 double rf_blade_set_tx_freq(void *h, double freq)
 {
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
-  int status = bladerf_set_frequency(handler->dev, BLADERF_MODULE_TX, (uint32_t) freq);
+  uint32_t f_int = (uint32_t) round(freq);
+  int status = bladerf_set_frequency(handler->dev, BLADERF_MODULE_TX, f_int);
   if (status != 0) {
     fprintf(stderr, "Failed to set samplerate = %u: %s\n",
             (uint32_t) freq, bladerf_strerror(status));
