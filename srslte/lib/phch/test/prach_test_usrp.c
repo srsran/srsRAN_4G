@@ -140,18 +140,18 @@ int main(int argc, char **argv) {
   cf_t *buffer = malloc(sizeof(cf_t)*flen*nof_frames);
   
   // Send through UHD 
-  rf_t uhd; 
+  srslte_rf_t uhd; 
   printf("Opening UHD device...\n");
-  if (rf_open(&uhd, uhd_args)) {
+  if (srslte_rf_open(&uhd, uhd_args)) {
     fprintf(stderr, "Error opening &uhd\n");
     exit(-1);
   }
   printf("Subframe len:   %d samples\n", flen);
-  printf("Set TX/RX rate: %.2f MHz\n", rf_set_rx_srate(&uhd, srslte_sampling_freq_hz(nof_prb)) / 1000000);
-  printf("Set RX gain: %.1f dB\n", rf_set_rx_gain(&uhd, uhd_gain));
-  printf("Set TX gain: %.1f dB\n", rf_set_tx_gain(&uhd, uhd_gain));
-  printf("Set TX/RX freq: %.2f MHz\n", rf_set_rx_freq(&uhd, uhd_freq) / 1000000);
-  rf_set_tx_srate(&uhd, srslte_sampling_freq_hz(nof_prb));
+  printf("Set TX/RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&uhd, srslte_sampling_freq_hz(nof_prb)) / 1000000);
+  printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&uhd, uhd_gain));
+  printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&uhd, uhd_gain));
+  printf("Set TX/RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&uhd, uhd_freq) / 1000000);
+  srslte_rf_set_tx_srate(&uhd, srslte_sampling_freq_hz(nof_prb));
   sleep(1);
   
   cf_t *zeros = calloc(sizeof(cf_t),flen);
@@ -163,20 +163,20 @@ int main(int argc, char **argv) {
   
   srslte_timestamp_t tstamp; 
   
-  rf_start_rx_stream(&uhd);
+  srslte_rf_start_rx_stream(&uhd);
   uint32_t nframe=0;
   
   while(nframe<nof_frames) {
     printf("Rx subframe %d\n", nframe);
-    rf_recv_with_time(&uhd, &buffer[flen*nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
+    srslte_rf_recv_with_time(&uhd, &buffer[flen*nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
     nframe++;
     if (nframe==9 || nframe==8) {
       srslte_timestamp_add(&tstamp, 0, 2e-3);
       if (nframe==8) {
-        rf_send_timed2(&uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
+        srslte_rf_send_timed2(&uhd, zeros, flen, tstamp.full_secs, tstamp.frac_secs, true, false);      
         printf("Transmitting zeros\n");        
       } else {
-        rf_send_timed2(&uhd, preamble, flen, tstamp.full_secs, tstamp.frac_secs, true, true);      
+        srslte_rf_send_timed2(&uhd, preamble, flen, tstamp.full_secs, tstamp.frac_secs, true, true);      
         printf("Transmitting PRACH\n");      
       }
     }

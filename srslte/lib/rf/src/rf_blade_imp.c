@@ -35,7 +35,7 @@
 #include "srslte/rf/rf.h"
 
 
-#define CONVERT_BUFFER_SIZE 24*1024
+#define CONVERT_BUFFER_SIZE 240*1024
 
 typedef struct {
   struct bladerf *dev; 
@@ -50,7 +50,7 @@ void rf_blade_suppress_stdout(void *h) {
   bladerf_log_set_verbosity(BLADERF_LOG_LEVEL_SILENT);
 }
 
-void rf_blade_register_msg_handler(void *notused, rf_msg_handler_t new_handler)
+void rf_blade_register_msg_handler(void *notused, srslte_rf_msg_handler_t new_handler)
 {
 }
 

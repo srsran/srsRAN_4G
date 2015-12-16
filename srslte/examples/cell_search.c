@@ -123,9 +123,9 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return rf_recv((rf_t*) h, data, nsamples, 1);
+  return srslte_rf_recv((srslte_rf_t*) h, data, nsamples, 1);
 }
 
 bool go_exit = false; 
@@ -138,13 +138,13 @@ void sig_int_handler(int signo)
   }
 }
 
-double rf_set_rx_gain_wrapper(void *h, double f) {
-  return rf_set_rx_gain((rf_t*) h, f);
+double srslte_rf_set_rx_gain_wrapper(void *h, double f) {
+  return srslte_rf_set_rx_gain((srslte_rf_t*) h, f);
 }
 
 int main(int argc, char **argv) {
   int n; 
-  rf_t rf;
+  srslte_rf_t rf;
   srslte_ue_cellsearch_t cs; 
   srslte_ue_cellsearch_result_t found_cells[3]; 
   int nof_freqs; 
@@ -156,24 +156,24 @@ int main(int argc, char **argv) {
     
   if (!config.init_agc) {
     printf("Opening RF device...\n");
-    if (rf_open(&rf, rf_args)) {
+    if (srslte_rf_open(&rf, rf_args)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }  
-    rf_set_rx_gain(&rf, rf_gain);
+    srslte_rf_set_rx_gain(&rf, rf_gain);
   } else {
     printf("Opening RF device with threaded RX Gain control ...\n");
-    if (rf_open_th(&rf, rf_args, false)) {
+    if (srslte_rf_open_th(&rf, rf_args, false)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
-    rf_set_rx_gain(&rf, 50);      
+    srslte_rf_set_rx_gain(&rf, 50);      
   }
 
-  rf_set_master_clock_rate(&rf, 30.72e6);        
+  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
 
   // Supress RF messages
-  rf_suppress_stdout(&rf);
+  srslte_rf_suppress_stdout(&rf);
   
   nof_freqs = srslte_band_get_fd_band(band, channels, earfcn_start, earfcn_end, MAX_EARFCN);
   if (nof_freqs < 0) {
@@ -190,8 +190,8 @@ int main(int argc, char **argv) {
   for (freq=0;freq<nof_freqs && !go_exit;freq++) {
   
     /* set rf_freq */
-    rf_set_rx_freq(&rf, (double) channels[freq].fd * MHZ);
-    rf_rx_wait_lo_locked(&rf);
+    srslte_rf_set_rx_freq(&rf, (double) channels[freq].fd * MHZ);
+    srslte_rf_rx_wait_lo_locked(&rf);
     INFO("Set rf_freq to %.3f MHz\n", (double) channels[freq].fd * MHZ/1000000);
     
     printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for PSS.\n", freq, nof_freqs,
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
       
     bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
       
-    if (srslte_ue_cellsearch_init(&cs, rf_recv_wrapper, (void*) &rf)) {
+    if (srslte_ue_cellsearch_init(&cs, srslte_rf_recv_wrapper, (void*) &rf)) {
       fprintf(stderr, "Error initiating UE cell detect\n");
       exit(-1);
     }
@@ -215,13 +215,13 @@ int main(int argc, char **argv) {
       srslte_ue_cellsearch_set_threshold(&cs, config.threshold);
     }
     if (config.init_agc) {
-      srslte_ue_sync_start_agc(&cs.ue_sync, rf_set_rx_gain_wrapper, config.init_agc);    
+      srslte_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, config.init_agc);    
     }
 
     INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
-    rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
+    srslte_rf_set_rx_srate(&rf, SRSLTE_CS_SAMP_FREQ);
     INFO("Starting receiver...\n", 0);
-    rf_start_rx_stream(&rf);
+    srslte_rf_start_rx_stream(&rf);
     
     n = srslte_ue_cellsearch_scan(&cs, found_cells, NULL); 
     if (n < 0) {
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
   
   printf("\nBye\n");
     
-  rf_close(&rf);
+  srslte_rf_close(&rf);
   exit(0);
 }
 

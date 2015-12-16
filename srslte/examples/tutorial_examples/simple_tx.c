@@ -36,7 +36,7 @@
 #include "srslte/srslte.h"
 
 #include "srslte/rf/rf.h"
-rf_t rf;
+srslte_rf_t rf;
 
 char *output_file_name = NULL;
 
@@ -138,7 +138,7 @@ void base_init() {
     exit(-1);
   }
   printf("Opening RF device...\n");
-  if (rf_open(&rf, rf_args)) {
+  if (srslte_rf_open(&rf, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
@@ -161,7 +161,7 @@ void base_free() {
   if (output_buffer) {
     free(output_buffer);
   }
-  rf_close(&rf);
+  srslte_rf_close(&rf);
 }
 
 
@@ -196,10 +196,10 @@ int main(int argc, char **argv) {
   srslte_sss_generate(sss_signal0, sss_signal5, cell.id);
   
   printf("Set TX rate: %.2f MHz\n",
-      rf_set_tx_srate(&rf, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
-  printf("Set TX gain: %.1f dB\n", rf_set_tx_gain(&rf, rf_gain));
+      srslte_rf_set_tx_srate(&rf, srslte_sampling_freq_hz(cell.nof_prb)) / 1000000);
+  printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&rf, rf_gain));
   printf("Set TX freq: %.2f MHz\n",
-      rf_set_tx_freq(&rf, rf_freq) / 1000000);
+      srslte_rf_set_tx_freq(&rf, rf_freq) / 1000000);
 
   uint32_t nbits; 
   
@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
       
       /* send to usrp */
       srslte_vec_sc_prod_cfc(output_buffer, rf_amp, output_buffer, sf_n_samples);
-      rf_send(&rf, output_buffer, sf_n_samples, true);
+      srslte_rf_send(&rf, output_buffer, sf_n_samples, true);
     }
   }
 

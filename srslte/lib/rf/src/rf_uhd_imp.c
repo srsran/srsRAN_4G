@@ -67,7 +67,7 @@ void rf_uhd_suppress_stdout(void *h) {
   rf_uhd_register_msg_handler(h, suppress_handler);
 }
 
-void rf_uhd_register_msg_handler(void *notused, rf_msg_handler_t new_handler)
+void rf_uhd_register_msg_handler(void *notused, srslte_rf_msg_handler_t new_handler)
 {
   rf_uhd_register_msg_handler_c(new_handler);
 }

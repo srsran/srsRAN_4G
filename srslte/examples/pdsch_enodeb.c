@@ -42,7 +42,7 @@
 
 #ifndef DISABLE_RF
 #include "srslte/rf/rf.h"
-rf_t rf;
+srslte_rf_t rf;
 #else
 #warning Compiling pdsch_ue with no RF support
 #endif
@@ -64,7 +64,7 @@ srslte_cell_t cell = {
   SRSLTE_PHICH_NORM    // PHICH length
 };
   
-int net_port = -1; // -1 generates random data
+int net_port = -1; // -1 generates random dataThat means there is some problem sending samples to the device
 
 uint32_t cfi=2;
 uint32_t mcs_idx = 1, last_mcs_idx = 1;
@@ -195,7 +195,7 @@ void base_init() {
   } else {
 #ifndef DISABLE_RF
     printf("Opening RF device...\n");
-    if (rf_open(&rf, rf_args)) {
+    if (srslte_rf_open(&rf, rf_args)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
@@ -288,7 +288,7 @@ void base_free() {
     }
   } else {
 #ifndef DISABLE_RF
-    rf_close(&rf);
+    srslte_rf_close(&rf);
 #endif
   }
   
@@ -516,12 +516,12 @@ int main(int argc, char **argv) {
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
       if (srate < 10e6) {          
-        rf_set_master_clock_rate(&rf, 4*srate);        
+        srslte_rf_set_master_clock_rate(&rf, 4*srate);        
       } else {
-        rf_set_master_clock_rate(&rf, srate);        
+        srslte_rf_set_master_clock_rate(&rf, srate);        
       }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_rf = rf_set_tx_srate(&rf, (double) srate);
+      float srate_rf = srslte_rf_set_tx_srate(&rf, (double) srate);
       if (srate_rf != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
@@ -530,9 +530,9 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
       exit(-1);
     }
-    printf("Set TX gain: %.1f dB\n", rf_set_tx_gain(&rf, rf_gain));
+    printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&rf, rf_gain));
     printf("Set TX freq: %.2f MHz\n",
-        rf_set_tx_freq(&rf, rf_freq) / 1000000);
+        srslte_rf_set_tx_freq(&rf, rf_freq) / 1000000);
   }
 #endif
 
@@ -646,7 +646,7 @@ int main(int argc, char **argv) {
         // FIXME
         float norm_factor = (float) cell.nof_prb/15/sqrtf(pdsch_cfg.grant.nof_prb);
         srslte_vec_sc_prod_cfc(output_buffer, rf_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-        rf_send2(&rf, output_buffer, sf_n_samples, true, start_of_burst, false);
+        srslte_rf_send2(&rf, output_buffer, sf_n_samples, true, start_of_burst, false);
         start_of_burst=false; 
 #endif
       }

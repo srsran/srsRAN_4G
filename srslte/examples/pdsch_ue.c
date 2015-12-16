@@ -241,13 +241,13 @@ void sig_int_handler(int signo)
 }
 
 #ifndef DISABLE_RF
-int rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return rf_recv(h, data, nsamples, 1);
+  return srslte_rf_recv(h, data, nsamples, 1);
 }
 
-double rf_set_rx_gain_th_wrapper(void *h, double f) {
-  return rf_set_rx_gain_th((rf_t*) h, f);
+double srslte_rf_set_rx_gain_th_wrapper(void *h, double f) {
+  return srslte_rf_set_rx_gain_th((srslte_rf_t*) h, f);
 }
 
 #endif
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
   int64_t sf_cnt;
   srslte_ue_mib_t ue_mib; 
 #ifndef DISABLE_RF
-  rf_t rf; 
+  srslte_rf_t rf; 
 #endif
   uint32_t nof_trials = 0; 
   int n; 
@@ -301,18 +301,18 @@ int main(int argc, char **argv) {
     /* Set receiver gain */
     if (prog_args.rf_gain > 0) {
       printf("Opening RF device...\n");
-      if (rf_open(&rf, prog_args.rf_args)) {
+      if (srslte_rf_open(&rf, prog_args.rf_args)) {
         fprintf(stderr, "Error opening rf\n");
         exit(-1);
       }
-      rf_set_rx_gain(&rf, prog_args.rf_gain);      
+      srslte_rf_set_rx_gain(&rf, prog_args.rf_gain);      
     } else {
       printf("Opening RF device with threaded RX Gain control ...\n");
-      if (rf_open_th(&rf, prog_args.rf_args, false)) {
+      if (srslte_rf_open_th(&rf, prog_args.rf_args, false)) {
         fprintf(stderr, "Error opening rf\n");
         exit(-1);
       }
-      rf_set_rx_gain(&rf, 50);      
+      srslte_rf_set_rx_gain(&rf, 50);      
       cell_detect_config.init_agc = 50; 
     }
     
@@ -322,12 +322,12 @@ int main(int argc, char **argv) {
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
     signal(SIGINT, sig_int_handler);
     
-    rf_set_master_clock_rate(&rf, 30.72e6);        
+    srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
 
     /* set receiver frequency */
     printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.rf_freq/1000000);
-    rf_set_rx_freq(&rf, (double) prog_args.rf_freq);
-    rf_rx_wait_lo_locked(&rf);
+    srslte_rf_set_rx_freq(&rf, (double) prog_args.rf_freq);
+    srslte_rf_rx_wait_lo_locked(&rf);
 
     uint32_t ntrial=0; 
     do {
@@ -347,12 +347,12 @@ int main(int argc, char **argv) {
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
       if (srate < 10e6) {          
-        rf_set_master_clock_rate(&rf, 4*srate);        
+        srslte_rf_set_master_clock_rate(&rf, 4*srate);        
       } else {
-        rf_set_master_clock_rate(&rf, srate);        
+        srslte_rf_set_master_clock_rate(&rf, srate);        
       }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_rf = rf_set_rx_srate(&rf, (double) srate);
+      float srate_rf = srslte_rf_set_rx_srate(&rf, (double) srate);
       if (srate_rf != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
@@ -363,8 +363,8 @@ int main(int argc, char **argv) {
     }
 
     INFO("Stopping RF and flushing buffer...\r",0);
-    rf_stop_rx_stream(&rf);
-    rf_flush_buffer(&rf);    
+    srslte_rf_stop_rx_stream(&rf);
+    srslte_rf_flush_buffer(&rf);    
   }
 #endif
   
@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
 
   } else {
 #ifndef DISABLE_RF
-    if (srslte_ue_sync_init(&ue_sync, cell, rf_recv_wrapper, (void*) &rf)) {
+    if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*) &rf)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
@@ -420,7 +420,7 @@ int main(int argc, char **argv) {
 
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
-    rf_start_rx_stream(&rf);    
+    srslte_rf_start_rx_stream(&rf);    
   }
 #endif
     
@@ -431,7 +431,7 @@ int main(int argc, char **argv) {
 
 #ifndef DISABLE_RF
   if (prog_args.rf_gain < 0) {
-    srslte_ue_sync_start_agc(&ue_sync, rf_set_rx_gain_th_wrapper, cell_detect_config.init_agc);    
+    srslte_ue_sync_start_agc(&ue_sync, srslte_rf_set_rx_gain_th_wrapper, cell_detect_config.init_agc);    
   }
 #endif
 #ifdef PRINT_CHANGE_SCHEDULIGN
@@ -597,7 +597,7 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
     srslte_ue_mib_free(&ue_mib);
-    rf_close(&rf);    
+    srslte_rf_close(&rf);    
   }
 #endif
   printf("\nBye\n");

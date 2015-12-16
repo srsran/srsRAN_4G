@@ -123,9 +123,9 @@ void sig_int_handler(int signo)
   }
 }
 
-int rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *q) {
+int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *q) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return rf_recv(h, data, nsamples, 1);
+  return srslte_rf_recv(h, data, nsamples, 1);
 }
 
 enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state; 
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
   int64_t sf_cnt;
   srslte_ue_sync_t ue_sync; 
   srslte_ue_mib_t ue_mib; 
-  rf_t rf; 
+  srslte_rf_t rf; 
   srslte_ue_dl_t ue_dl; 
   srslte_ofdm_t fft; 
   srslte_chest_dl_t chest; 
@@ -160,18 +160,18 @@ int main(int argc, char **argv) {
 
   if (prog_args.rf_gain > 0) {
     printf("Opening RF device...\n");
-    if (rf_open(&rf, prog_args.rf_args)) {
+    if (srslte_rf_open(&rf, prog_args.rf_args)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
-    rf_set_rx_gain(&rf, prog_args.rf_gain);      
+    srslte_rf_set_rx_gain(&rf, prog_args.rf_gain);      
   } else {
     printf("Opening RF device with threaded RX Gain control ...\n");
-    if (rf_open_th(&rf, prog_args.rf_args, false)) {
+    if (srslte_rf_open_th(&rf, prog_args.rf_args, false)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
-    rf_set_rx_gain(&rf, 50);      
+    srslte_rf_set_rx_gain(&rf, 50);      
   }
 
   sigset_t sigset;
@@ -180,11 +180,11 @@ int main(int argc, char **argv) {
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
   signal(SIGINT, sig_int_handler);
 
-  rf_set_master_clock_rate(&rf, 30.72e6);        
+  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
 
   /* set receiver frequency */
-  rf_set_rx_freq(&rf, (double) prog_args.rf_freq);
-  rf_rx_wait_lo_locked(&rf);
+  srslte_rf_set_rx_freq(&rf, (double) prog_args.rf_freq);
+  srslte_rf_rx_wait_lo_locked(&rf);
   printf("Tunning receiver to %.3f MHz\n", (double ) prog_args.rf_freq/1000000);
   
   cell_detect_config.init_agc = (prog_args.rf_gain<0);
@@ -208,12 +208,12 @@ int main(int argc, char **argv) {
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
       if (srate < 10e6) {          
-        rf_set_master_clock_rate(&rf, 4*srate);        
+        srslte_rf_set_master_clock_rate(&rf, 4*srate);        
       } else {
-        rf_set_master_clock_rate(&rf, srate);        
+        srslte_rf_set_master_clock_rate(&rf, srate);        
       }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_rf = rf_set_rx_srate(&rf, (double) srate);
+      float srate_rf = srslte_rf_set_rx_srate(&rf, (double) srate);
       if (srate_rf != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
@@ -224,10 +224,10 @@ int main(int argc, char **argv) {
     }
 
   INFO("Stopping RF and flushing buffer...\n",0);
-  rf_stop_rx_stream(&rf);
-  rf_flush_buffer(&rf);
+  srslte_rf_stop_rx_stream(&rf);
+  srslte_rf_flush_buffer(&rf);
   
-  if (srslte_ue_sync_init(&ue_sync, cell, rf_recv_wrapper, (void*) &rf)) {
+  if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*) &rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
     ce[i] = srslte_vec_malloc(sizeof(cf_t) * sf_re);
   }
   
-  rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf);
   
   float rx_gain_offset = 0;
 
@@ -335,10 +335,10 @@ int main(int argc, char **argv) {
         
         
         if ((nframes%100) == 0 || rx_gain_offset == 0) {
-          if (rf_has_rssi(&rf)) {
-            rx_gain_offset = 10*log10(rssi)-rf_get_rssi(&rf);
+          if (srslte_rf_has_rssi(&rf)) {
+            rx_gain_offset = 10*log10(rssi)-srslte_rf_get_rssi(&rf);
           } else {
-            rx_gain_offset = rf_get_rx_gain(&rf);
+            rx_gain_offset = srslte_rf_get_rx_gain(&rf);
           }
         }
         
@@ -375,7 +375,7 @@ int main(int argc, char **argv) {
   } // Main loop
 
   srslte_ue_sync_free(&ue_sync);
-  rf_close(&rf);
+  srslte_rf_close(&rf);
   printf("\nBye\n");
   exit(0);
 }

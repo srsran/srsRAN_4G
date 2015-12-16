@@ -41,7 +41,7 @@ uint32_t nof_frames = 20;
 
 int time_adv_samples = 0; 
 float tone_offset_hz = 1e6;
-float rf_rx_gain=40, rf_tx_gain=40, rf_freq=2.4e9; 
+float rf_rx_gain=40, srslte_rf_tx_gain=40, rf_freq=2.4e9; 
 char *rf_args="";
 char *output_filename = NULL;
 char *input_filename = NULL;
@@ -51,7 +51,7 @@ void usage(char *prog) {
   printf("\t-a RF args [Default %s]\n", rf_args);
   printf("\t-f RF TX/RX frequency [Default %.2f MHz]\n", rf_freq/1e6);
   printf("\t-g RF RX gain [Default %.1f dB]\n", rf_rx_gain);
-  printf("\t-G RF TX gain [Default %.1f dB]\n", rf_tx_gain);
+  printf("\t-G RF TX gain [Default %.1f dB]\n", srslte_rf_tx_gain);
   printf("\t-t Single tone offset (Hz) [Default %f]\n", tone_offset_hz);
   printf("\t-T Time advance samples [Default %d]\n", time_adv_samples);    
   printf("\t-i File name to read signal from [Default single tone]\n");
@@ -84,7 +84,7 @@ void parse_args(int argc, char **argv) {
       rf_rx_gain = atof(argv[optind]);
       break;
     case 'G':
-      rf_tx_gain = atof(argv[optind]);
+      srslte_rf_tx_gain = atof(argv[optind]);
       break;
     case 'p':
       nof_prb = atoi(argv[optind]);
@@ -136,31 +136,31 @@ int main(int argc, char **argv) {
   float time_adv_sec = (float) time_adv_samples/srslte_sampling_freq_hz(nof_prb);
  
   // Send through RF 
-  rf_t rf; 
+  srslte_rf_t rf; 
   printf("Opening RF device...\n");
-  if (rf_open(&rf, rf_args)) {
+  if (srslte_rf_open(&rf, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
-  rf_set_master_clock_rate(&rf, 30.72e6);        
+  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
   
   int srate = srslte_sampling_freq_hz(nof_prb);    
   if (srate < 10e6) {          
-    rf_set_master_clock_rate(&rf, 4*srate);        
+    srslte_rf_set_master_clock_rate(&rf, 4*srate);        
   } else {
-    rf_set_master_clock_rate(&rf, srate);        
+    srslte_rf_set_master_clock_rate(&rf, srate);        
   }
-  rf_set_rx_srate(&rf, (double) srate);
-  rf_set_tx_srate(&rf, (double) srate);
+  srslte_rf_set_rx_srate(&rf, (double) srate);
+  srslte_rf_set_tx_srate(&rf, (double) srate);
   
   
   printf("Subframe len:   %d samples\n", flen);
   printf("Time advance:   %f us\n",time_adv_sec*1e6);
   printf("Set TX/RX rate: %.2f MHz\n", (float) srate / 1000000);
-  printf("Set RX gain:    %.1f dB\n", rf_set_rx_gain(&rf, rf_rx_gain));
-  printf("Set TX gain:    %.1f dB\n", rf_set_tx_gain(&rf, rf_tx_gain));
-  printf("Set TX/RX freq: %.2f MHz\n", rf_set_rx_freq(&rf, rf_freq) / 1000000);
-  rf_set_tx_freq(&rf, rf_freq);
+  printf("Set RX gain:    %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_rx_gain));
+  printf("Set TX gain:    %.1f dB\n", srslte_rf_set_tx_gain(&rf, srslte_rf_tx_gain));
+  printf("Set TX/RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, rf_freq) / 1000000);
+  srslte_rf_set_tx_freq(&rf, rf_freq);
   
   sleep(1);
   
@@ -170,22 +170,22 @@ int main(int argc, char **argv) {
     for (int i=0;i<flen-time_adv_samples;i++) {
       tx_buffer[i+time_adv_samples] = 0.3*cexpf(_Complex_I*2*M_PI*tone_offset_hz*((float) i/(float) srate));       
     }
-    srslte_vec_save_file("rf_txrx_tone", tx_buffer, flen*sizeof(cf_t));
+    srslte_vec_save_file("srslte_rf_txrx_tone", tx_buffer, flen*sizeof(cf_t));
   }
 
   srslte_timestamp_t tstamp; 
   
-  rf_start_rx_stream(&rf);
+  srslte_rf_start_rx_stream(&rf);
   uint32_t nframe=0;
   
 
   while(nframe<nof_frames) {
     printf("Rx subframe %d\n", nframe);
-    rf_recv_with_time(&rf, &rx_buffer[flen*nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
+    srslte_rf_recv_with_time(&rf, &rx_buffer[flen*nframe], flen, true, &tstamp.full_secs, &tstamp.frac_secs);
     nframe++;
     if (nframe==9) {
       srslte_timestamp_add(&tstamp, 0, 2e-3-time_adv_sec);
-      rf_send_timed2(&rf, tx_buffer, flen+time_adv_samples, tstamp.full_secs, tstamp.frac_secs, true, true);      
+      srslte_rf_send_timed2(&rf, tx_buffer, flen+time_adv_samples, tstamp.full_secs, tstamp.frac_secs, true, true);      
       printf("Transmitting Signal\n");        
     }
 

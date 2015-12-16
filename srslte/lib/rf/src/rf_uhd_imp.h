@@ -80,7 +80,7 @@ SRSLTE_API double rf_uhd_get_tx_gain(void *h);
 
 SRSLTE_API void rf_uhd_suppress_stdout(void *h);
 
-SRSLTE_API void rf_uhd_register_msg_handler(void *h, rf_msg_handler_t msg_handler);
+SRSLTE_API void rf_uhd_register_msg_handler(void *h, srslte_rf_msg_handler_t msg_handler);
 
 SRSLTE_API double rf_uhd_set_rx_freq(void *h, 
                                   double freq);

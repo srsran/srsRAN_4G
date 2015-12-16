@@ -97,7 +97,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   cf_t *buffer; 
   int sample_count, n;
-  rf_t rf;
+  srslte_rf_t rf;
   srslte_filesink_t sink;
   int32_t buflen;
 
@@ -117,27 +117,27 @@ int main(int argc, char **argv) {
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
   printf("Opening RF device...\n");
-  if (rf_open(&rf, rf_args)) {
+  if (srslte_rf_open(&rf, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
-  rf_set_master_clock_rate(&rf, 30.72e6);        
+  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
 
   sigset_t sigset;
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  printf("Set RX freq: %.2f MHz\n", rf_set_rx_freq(&rf, rf_freq) / 1000000);
-  printf("Set RX gain: %.2f dB\n", rf_set_rx_gain(&rf, rf_gain));
-  float srate = rf_set_rx_srate(&rf, rf_rate); 
+  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, rf_freq) / 1000000);
+  printf("Set RX gain: %.2f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
+  float srate = srslte_rf_set_rx_srate(&rf, rf_rate); 
   if (srate != rf_rate) {
     if (srate < 10e6) {          
-      rf_set_master_clock_rate(&rf, 4*rf_rate);        
+      srslte_rf_set_master_clock_rate(&rf, 4*rf_rate);        
     } else {
-      rf_set_master_clock_rate(&rf, rf_rate);        
+      srslte_rf_set_master_clock_rate(&rf, rf_rate);        
     }
-    srate = rf_set_rx_srate(&rf, rf_rate);
+    srate = srslte_rf_set_rx_srate(&rf, rf_rate);
     if (srate != rf_rate) {
       fprintf(stderr, "Errror setting samplign frequency %.2f MHz\n", rf_rate*1e-6);
       exit(-1);
@@ -145,13 +145,13 @@ int main(int argc, char **argv) {
   }
 
   printf("Correctly RX rate: %.2f MHz\n", srate*1e-6);
-  rf_rx_wait_lo_locked(&rf);
-  rf_start_rx_stream(&rf);
+  srslte_rf_rx_wait_lo_locked(&rf);
+  srslte_rf_start_rx_stream(&rf);
   
   
   while((sample_count < nof_samples || nof_samples == -1)
         && keep_running){
-    n = rf_recv(&rf, buffer, buflen, 1);
+    n = srslte_rf_recv(&rf, buffer, buflen, 1);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
   
   srslte_filesink_free(&sink);
   free(buffer);
-  rf_close(&rf);
+  srslte_rf_close(&rf);
 
   printf("Ok - wrote %d samples\n", sample_count);
   exit(0);

@@ -28,32 +28,32 @@
 /* RF frontend API */
 typedef struct {
   const char *name;
-  bool   (*rf_rx_wait_lo_locked) (void*);
-  int    (*rf_start_rx_stream)(void *h);
-  int    (*rf_stop_rx_stream)(void *h);
-  void   (*rf_flush_buffer)(void *h);
-  bool   (*rf_has_rssi)(void *h);
-  float  (*rf_get_rssi)(void *h);
-  double (*rf_set_rx_gain_th)(void *h, double gain);
-  void   (*rf_set_tx_rx_gain_offset)(void *h, double offset);
-  void   (*rf_suppress_stdout)(void *h);
-  void   (*rf_register_msg_handler)(void *h, rf_msg_handler_t msg_handler);
-  int    (*rf_open)(char *args, void **h, bool agc_thread, bool tx_gain_same_rx);
-  int    (*rf_close)(void *h);
-  void   (*rf_set_master_clock_rate)(void *h, double rate);
-  bool   (*rf_is_master_clock_dynamic)(void *h);
-  double (*rf_set_rx_srate)(void *h, double freq);
-  double (*rf_set_rx_gain)(void *h, double gain);
-  double (*rf_set_tx_gain)(void *h, double gain);
-  double (*rf_get_rx_gain)(void *h);
-  double (*rf_get_tx_gain)(void *h);
-  double (*rf_set_rx_freq)(void *h, double freq);  
-  double (*rf_set_tx_srate)(void *h, double freq);
-  double (*rf_set_tx_freq)(void *h, double freq);
-  void   (*rf_get_time)(void *h, time_t *secs, double *frac_secs);  
-  int    (*rf_recv_with_time)(void *h, void *data, uint32_t nsamples, 
+  bool   (*srslte_rf_rx_wait_lo_locked) (void*);
+  int    (*srslte_rf_start_rx_stream)(void *h);
+  int    (*srslte_rf_stop_rx_stream)(void *h);
+  void   (*srslte_rf_flush_buffer)(void *h);
+  bool   (*srslte_rf_has_rssi)(void *h);
+  float  (*srslte_rf_get_rssi)(void *h);
+  double (*srslte_rf_set_rx_gain_th)(void *h, double gain);
+  void   (*srslte_rf_set_tx_rx_gain_offset)(void *h, double offset);
+  void   (*srslte_rf_suppress_stdout)(void *h);
+  void   (*srslte_rf_register_msg_handler)(void *h, srslte_rf_msg_handler_t msg_handler);
+  int    (*srslte_rf_open)(char *args, void **h, bool agc_thread, bool tx_gain_same_rx);
+  int    (*srslte_rf_close)(void *h);
+  void   (*srslte_rf_set_master_clock_rate)(void *h, double rate);
+  bool   (*srslte_rf_is_master_clock_dynamic)(void *h);
+  double (*srslte_rf_set_rx_srate)(void *h, double freq);
+  double (*srslte_rf_set_rx_gain)(void *h, double gain);
+  double (*srslte_rf_set_tx_gain)(void *h, double gain);
+  double (*srslte_rf_get_rx_gain)(void *h);
+  double (*srslte_rf_get_tx_gain)(void *h);
+  double (*srslte_rf_set_rx_freq)(void *h, double freq);  
+  double (*srslte_rf_set_tx_srate)(void *h, double freq);
+  double (*srslte_rf_set_tx_freq)(void *h, double freq);
+  void   (*srslte_rf_get_time)(void *h, time_t *secs, double *frac_secs);  
+  int    (*srslte_rf_recv_with_time)(void *h, void *data, uint32_t nsamples, 
                            bool blocking, time_t *secs,double *frac_secs);
-  int    (*rf_send_timed)(void *h, void *data, int nsamples,
+  int    (*srslte_rf_send_timed)(void *h, void *data, int nsamples,
                      time_t secs, double frac_secs, bool has_time_spec,
                      bool blocking, bool is_start_of_burst, bool is_end_of_burst);
 } rf_dev_t; 

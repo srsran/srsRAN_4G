@@ -35,23 +35,23 @@ typedef struct SRSLTE_API {
   float init_agc; // 0 or negative to disable AGC  
 } cell_search_cfg_t;
 
-SRSLTE_API int rf_rssi_scan(rf_t *rf, 
+SRSLTE_API int rf_rssi_scan(srslte_rf_t *rf, 
                               float *freqs, 
                               float *rssi, 
                               int nof_bands, 
                               double fs, 
                               int nsamp);
 
-SRSLTE_API int rf_mib_decoder(rf_t *rf, 
+SRSLTE_API int rf_mib_decoder(srslte_rf_t *rf, 
                                 cell_search_cfg_t *config, 
                                 srslte_cell_t *cell);
 
-SRSLTE_API int rf_cell_search(rf_t *rf, 
+SRSLTE_API int rf_cell_search(srslte_rf_t *rf, 
                                 cell_search_cfg_t *config, 
                                 int force_N_id_2, 
                                 srslte_cell_t *cell);
 
-SRSLTE_API int rf_search_and_decode_mib(rf_t *rf, 
+SRSLTE_API int rf_search_and_decode_mib(srslte_rf_t *rf, 
                                           cell_search_cfg_t *config, 
                                           int force_N_id_2, 
                                           srslte_cell_t *cell);

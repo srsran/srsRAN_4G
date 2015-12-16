@@ -124,7 +124,7 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   cf_t *buffer; 
   int frame_cnt, n; 
-  rf_t rf;
+  srslte_rf_t rf;
   srslte_pss_synch_t pss; 
   srslte_cfo_t cfocorr, cfocorr64; 
   srslte_sss_synch_t sss; 
@@ -177,16 +177,16 @@ int main(int argc, char **argv) {
   srslte_sss_synch_set_N_id_2(&sss, N_id_2);
 
   printf("Opening RF device...\n");
-  if (rf_open(&rf, rf_args)) {
+  if (srslte_rf_open(&rf, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
   printf("N_id_2: %d\n", N_id_2);  
-  printf("Set RX rate: %.2f MHz\n", rf_set_rx_srate(&rf, flen*2*100) / 1000000);
-  printf("Set RX gain: %.1f dB\n", rf_set_rx_gain(&rf, rf_gain));
-  printf("Set RX freq: %.2f MHz\n", rf_set_rx_freq(&rf, rf_freq) / 1000000);
-  rf_rx_wait_lo_locked(&rf);
-  rf_start_rx_stream(&rf);
+  printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, flen*2*100) / 1000000);
+  printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
+  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, rf_freq) / 1000000);
+  srslte_rf_rx_wait_lo_locked(&rf);
+  srslte_rf_start_rx_stream(&rf);
   
   printf("Frame length %d samples\n", flen);
   printf("PSS detection threshold: %.2f\n", threshold);
@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
   
   while(frame_cnt < nof_frames || nof_frames == -1) {
     peak_offset = 0; 
-    n = rf_recv(&rf, buffer, flen - peak_offset, 1);
+    n = srslte_rf_recv(&rf, buffer, flen - peak_offset, 1);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
   
   srslte_pss_synch_free(&pss);
   free(buffer);
-  rf_close(&rf);
+  srslte_rf_close(&rf);
 
   printf("Ok\n");
   exit(0);

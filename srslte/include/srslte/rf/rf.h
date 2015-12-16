@@ -35,116 +35,116 @@
 typedef struct {
   void *handler;
   void *dev;
-} rf_t;
+} srslte_rf_t;
 
-typedef void (*rf_msg_handler_t)(const char*);
+typedef void (*srslte_rf_msg_handler_t)(const char*);
 
-SRSLTE_API int rf_open(rf_t *h, 
+SRSLTE_API int srslte_rf_open(srslte_rf_t *h, 
                        char *args);
 
-SRSLTE_API int rf_open_th(rf_t *h, 
+SRSLTE_API int srslte_rf_open_th(srslte_rf_t *h, 
                           char *args, 
                           bool tx_gain_same_rx);
 
-SRSLTE_API int rf_open_devname(rf_t *h, 
+SRSLTE_API int srslte_rf_open_devname(srslte_rf_t *h, 
                                char *devname, 
                                char *args, 
                                bool agc_thread, 
                                bool tx_gain_same_rx);
 
-SRSLTE_API int rf_close(rf_t *h);
+SRSLTE_API int srslte_rf_close(srslte_rf_t *h);
 
-SRSLTE_API int rf_start_rx_stream(rf_t *h);
+SRSLTE_API int srslte_rf_start_rx_stream(srslte_rf_t *h);
 
-SRSLTE_API int rf_stop_rx_stream(rf_t *h);
+SRSLTE_API int srslte_rf_stop_rx_stream(srslte_rf_t *h);
 
-SRSLTE_API void rf_flush_buffer(rf_t *h);
+SRSLTE_API void srslte_rf_flush_buffer(srslte_rf_t *h);
 
-SRSLTE_API bool rf_has_rssi(rf_t *h);
+SRSLTE_API bool srslte_rf_has_rssi(srslte_rf_t *h);
 
-SRSLTE_API float rf_get_rssi(rf_t *h); 
+SRSLTE_API float srslte_rf_get_rssi(srslte_rf_t *h); 
 
-SRSLTE_API bool rf_rx_wait_lo_locked(rf_t *h);
+SRSLTE_API bool srslte_rf_rx_wait_lo_locked(srslte_rf_t *h);
 
-SRSLTE_API void rf_set_master_clock_rate(rf_t *h, 
+SRSLTE_API void srslte_rf_set_master_clock_rate(srslte_rf_t *h, 
                                          double rate); 
 
-SRSLTE_API bool rf_is_master_clock_dynamic(rf_t *h); 
+SRSLTE_API bool srslte_rf_is_master_clock_dynamic(srslte_rf_t *h); 
 
-SRSLTE_API double rf_set_rx_srate(rf_t *h, 
+SRSLTE_API double srslte_rf_set_rx_srate(srslte_rf_t *h, 
                                   double freq);
 
-SRSLTE_API double rf_set_rx_gain(rf_t *h, 
+SRSLTE_API double srslte_rf_set_rx_gain(srslte_rf_t *h, 
                                  double gain);
 
-SRSLTE_API void rf_set_tx_rx_gain_offset(rf_t *h, 
+SRSLTE_API void srslte_rf_set_tx_rx_gain_offset(srslte_rf_t *h, 
                                          double offset); 
 
-SRSLTE_API double rf_set_rx_gain_th(rf_t *h, 
+SRSLTE_API double srslte_rf_set_rx_gain_th(srslte_rf_t *h, 
                                     double gain);
 
-SRSLTE_API double rf_get_rx_gain(rf_t *h);
+SRSLTE_API double srslte_rf_get_rx_gain(srslte_rf_t *h);
 
-SRSLTE_API double rf_get_tx_gain(rf_t *h);
+SRSLTE_API double srslte_rf_get_tx_gain(srslte_rf_t *h);
 
-SRSLTE_API void rf_suppress_stdout(rf_t *h);
+SRSLTE_API void srslte_rf_suppress_stdout(srslte_rf_t *h);
 
-SRSLTE_API void rf_register_msg_handler(rf_t *h, 
-                                        rf_msg_handler_t msg_handler);
+SRSLTE_API void srslte_rf_register_msg_handler(srslte_rf_t *h, 
+                                        srslte_rf_msg_handler_t msg_handler);
 
-SRSLTE_API double rf_set_rx_freq(rf_t *h, 
+SRSLTE_API double srslte_rf_set_rx_freq(srslte_rf_t *h, 
                                  double freq);
 
-SRSLTE_API int rf_recv(rf_t *h, 
+SRSLTE_API int srslte_rf_recv(srslte_rf_t *h, 
                        void *data, 
                        uint32_t nsamples, 
                        bool blocking);
 
-SRSLTE_API int rf_recv_with_time(rf_t *h,
+SRSLTE_API int srslte_rf_recv_with_time(srslte_rf_t *h,
                                  void *data,
                                  uint32_t nsamples,
                                  bool blocking,
                                  time_t *secs,
                                  double *frac_secs);
 
-SRSLTE_API double rf_set_tx_srate(rf_t *h, 
+SRSLTE_API double srslte_rf_set_tx_srate(srslte_rf_t *h, 
                                   double freq);
 
-SRSLTE_API double rf_set_tx_gain(rf_t *h, 
+SRSLTE_API double srslte_rf_set_tx_gain(srslte_rf_t *h, 
                                  double gain);
 
-SRSLTE_API double rf_set_tx_freq(rf_t *h,
+SRSLTE_API double srslte_rf_set_tx_freq(srslte_rf_t *h,
                                  double freq);
 
-SRSLTE_API void rf_get_time(rf_t *h, 
+SRSLTE_API void srslte_rf_get_time(srslte_rf_t *h, 
                             time_t *secs, 
                             double *frac_secs); 
 
-SRSLTE_API int rf_send(rf_t *h, 
+SRSLTE_API int srslte_rf_send(srslte_rf_t *h, 
                        void *data, 
                        uint32_t nsamples, 
                        bool blocking);
 
-SRSLTE_API int rf_send2(rf_t *h, 
+SRSLTE_API int srslte_rf_send2(srslte_rf_t *h, 
                         void *data, 
                         uint32_t nsamples, 
                         bool blocking, 
                         bool start_of_burst, 
                         bool end_of_burst); 
 
-SRSLTE_API int rf_send(rf_t *h, 
+SRSLTE_API int srslte_rf_send(srslte_rf_t *h, 
                        void *data, 
                        uint32_t nsamples, 
                        bool blocking);
 
 
-SRSLTE_API int rf_send_timed(rf_t *h,
+SRSLTE_API int srslte_rf_send_timed(srslte_rf_t *h,
                              void *data,
                              int nsamples,
                              time_t secs,
                              double frac_secs);
 
-SRSLTE_API int rf_send_timed2(rf_t *h,
+SRSLTE_API int srslte_rf_send_timed2(srslte_rf_t *h,
                               void *data,
                               int nsamples,
                               time_t secs,

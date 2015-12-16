@@ -9,7 +9,7 @@ extern "C" {
 #include "uhd_c_api.h"
 }
 
-static rf_msg_handler_t msg_handler;
+static srslte_rf_msg_handler_t msg_handler;
 
 void translate_handler(uhd::msg::type_t type, const std::string & msg)
 {
@@ -17,7 +17,7 @@ void translate_handler(uhd::msg::type_t type, const std::string & msg)
     msg_handler(msg.c_str());
 }
 
-void rf_uhd_register_msg_handler_c(rf_msg_handler_t new_handler) 
+void rf_uhd_register_msg_handler_c(srslte_rf_msg_handler_t new_handler) 
 {
   msg_handler = new_handler;
   uhd::msg::register_handler(translate_handler);
