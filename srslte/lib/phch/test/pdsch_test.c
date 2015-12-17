@@ -33,6 +33,9 @@
 
 #include "srslte/srslte.h"
 
+// Enable to measure execution time
+//#define DO_OFDM
+
 srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
@@ -105,17 +108,29 @@ void parse_args(int argc, char **argv) {
   }
 }
 
+uint8_t *data = NULL;
+cf_t *ce[SRSLTE_MAX_PORTS];
+srslte_softbuffer_rx_t softbuffer_rx;
+srslte_ra_dl_grant_t grant; 
+srslte_pdsch_cfg_t pdsch_cfg; 
+cf_t *sf_symbols;
+cf_t *slot_symbols[SRSLTE_MAX_PORTS];
+srslte_pdsch_t pdsch;
+srslte_ofdm_t ofdm_tx, ofdm_rx; 
+
+int dummy_function() {
+#ifdef DO_OFDM
+  srslte_ofdm_rx_sf(&ofdm_rx, sf_symbols, slot_symbols[1]);
+#endif
+  srslte_softbuffer_rx_reset_tbs(&softbuffer_rx, grant.mcs.tbs);
+  return srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
+}
+
 int main(int argc, char **argv) {
-  srslte_pdsch_t pdsch;
   uint32_t i, j;
-  uint8_t *data = NULL;
-  cf_t *ce[SRSLTE_MAX_PORTS];
-  cf_t *slot_symbols[SRSLTE_MAX_PORTS];
   int ret = -1;
   struct timeval t[3];
-  srslte_pdsch_cfg_t pdsch_cfg; 
   srslte_softbuffer_tx_t softbuffer_tx;
-  srslte_softbuffer_rx_t softbuffer_rx;
   uint32_t rv;
 
   parse_args(argc,argv);
@@ -132,20 +147,24 @@ int main(int argc, char **argv) {
   dci.mcs_idx = mcs;
   dci.rv_idx = rv_idx;
   dci.type0_alloc.rbg_bitmask = 0xffffffff;
-  srslte_ra_dl_grant_t grant; 
   if (srslte_ra_dl_dci_to_grant(&dci, cell.nof_prb, true, &grant)) {
     fprintf(stderr, "Error computing resource allocation\n");
     return ret;
   }
+  
+  srslte_ofdm_tx_init(&ofdm_tx, cell.cp, cell.nof_prb);
+  srslte_ofdm_rx_init(&ofdm_rx, cell.cp, cell.nof_prb);
 
+  sf_symbols=srslte_vec_malloc(sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  
   /* Configure PDSCH */
-  if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, subframe, 0)) {
+  if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, subframe, rv_idx)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     exit(-1);
   }
 
   /* init memory */
-  for (i=0;i<cell.nof_ports;i++) {
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
     if (!ce[i]) {
       perror("srslte_vec_malloc");
@@ -174,66 +193,83 @@ int main(int argc, char **argv) {
   
   srslte_pdsch_set_rnti(&pdsch, rnti);
   
-  if (srslte_softbuffer_tx_init(&softbuffer_tx, cell.nof_prb)) {
-    fprintf(stderr, "Error initiating TX soft buffer\n");
-    goto quit;
-  }
-
   if (srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb)) {
     fprintf(stderr, "Error initiating RX soft buffer\n");
     goto quit;
   }
-  
+
   if (input_file) {
     srslte_filesource_t fsrc;
     if (srslte_filesource_init(&fsrc, input_file, SRSLTE_COMPLEX_FLOAT_BIN)) {
       fprintf(stderr, "Error opening file %s\n", input_file);
       exit(-1);
     }
+#ifdef DO_OFDM
+    srslte_filesource_read(&fsrc, sf_symbols, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+#else
     srslte_filesource_read(&fsrc, slot_symbols[0], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
+#endif
+    
+    srslte_chest_dl_t chest; 
+    if (srslte_chest_dl_init(&chest, cell)) {
+      printf("Error initializing equalizer\n");
+      exit(-1);
+    }
+    srslte_chest_dl_estimate(&chest, slot_symbols[0], ce, subframe);    
+    srslte_chest_dl_free(&chest);
     
     srslte_filesource_free(&fsrc);
-  }
-  
-  if (SRSLTE_VERBOSE_ISNONE()) {
-    printf("Decoding TBS: %d\r",grant.mcs.tbs);
-  }
-  for (i=0;i<grant.mcs.tbs/8;i++) {
-    data[i] = rand()%256;
-  }
-
-  for (rv=0;rv<=rv_idx;rv++) {
-
-    pdsch_cfg.rv = rv; 
-    
-    if (!input_file) {
-      if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
-        fprintf(stderr, "Error encoding PDSCH\n");
-        goto quit;
-      }
-    }
-    
-    /* combine outputs */
-    for (i=0;i<cell.nof_ports;i++) {
-      for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
-        if (i > 0) {
-          slot_symbols[0][j] += slot_symbols[i][j];
-        }
-        ce[i][j] = 1;
-      }
-    }
-
-    gettimeofday(&t[1], NULL);
-    int r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
-    gettimeofday(&t[2], NULL);
-    get_time_interval(t);
-    printf("DECODED %s in %d:%d (%.2f Mbps)\n", r?"Error":"OK",
-             (int) t[0].tv_sec, (int) t[0].tv_usec, (float) grant.mcs.tbs/t[0].tv_usec);                
-    if (r) {
-      ret = -1;
+  } else { 
+    if (srslte_softbuffer_tx_init(&softbuffer_tx, cell.nof_prb)) {
+      fprintf(stderr, "Error initiating TX soft buffer\n");
       goto quit;
-    } 
+    }
+
+    for (i=0;i<grant.mcs.tbs/8;i++) {
+      data[i] = rand()%256;
+    }
+    for (rv=0;rv<=rv_idx;rv++) {
+
+      pdsch_cfg.rv = rv; 
+      
+      if (!input_file) {
+        if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
+          fprintf(stderr, "Error encoding PDSCH\n");
+          goto quit;
+        }
+      }
+      
+      /* combine outputs */
+      for (i=0;i<cell.nof_ports;i++) {
+        for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
+          if (i > 0) {
+            slot_symbols[0][j] += slot_symbols[i][j];
+          }
+          ce[i][j] = 1;
+        }
+      }
+      
+  #ifdef DO_OFDM
+      srslte_ofdm_tx_sf(&ofdm_tx, slot_symbols[0], sf_symbols);
+  #endif
+    }    
   } 
+  int M=1;
+  int r=0; 
+  srslte_sch_set_max_noi(&pdsch.dl_sch, 10);
+  gettimeofday(&t[1], NULL);
+  for (i=0;i<M;i++) {
+    r = dummy_function();
+  }
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("DECODED %s in %.2f (PHY bitrate=%.2f Mbps. Processing bitrate=%.2f Mbps)\n", r?"Error":"OK",
+            (float) t[0].tv_usec/M, (float) grant.mcs.tbs/1000, (float) grant.mcs.tbs*M/t[0].tv_usec);                
+  if (r) {
+    ret = -1;
+    goto quit;
+  } 
+
   ret = 0;
 quit:
   srslte_pdsch_free(&pdsch);

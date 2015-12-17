@@ -121,8 +121,12 @@ int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_g
           // This is a symbol in a normal PRB with or without references
           if (l >= lstart && l < lend) {
             if (SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-              if (nof_refs == 2 && l != 0) {    
-                offset = q->cell.id % 3 + 3;
+              if (nof_refs == 2) {
+                if (l == 0) {
+                  offset = q->cell.id % 6;
+                } else {
+                  offset = (q->cell.id + 3) % 6;                  
+                }
               } else {
                 offset = q->cell.id % 3;
               }
@@ -411,6 +415,11 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
           cfg->nbits.nof_re / q->cell.nof_ports);
     }
     
+    if (SRSLTE_VERBOSE_ISDEBUG()) {
+      DEBUG("SAVED FILE pdsch_symbols.dat: symbols after equalization\n",0);
+      srslte_vec_save_file("pdsch_symbols.dat", q->d, cfg->nbits.nof_re*sizeof(cf_t));
+    }
+    
     /* demodulate symbols 
     * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
     * thus we don't need tot set it in the LLRs normalization
@@ -427,6 +436,11 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
       srslte_sequence_free(&seq);
     } else {    
       srslte_scrambling_s_offset(&q->seq[cfg->sf_idx], q->e, 0, cfg->nbits.nof_bits);      
+    }
+
+    if (SRSLTE_VERBOSE_ISDEBUG()) {
+      DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling\n",0);
+      srslte_vec_save_file("llr.dat", q->e, cfg->nbits.nof_bits*sizeof(int16_t));
     }
 
     return srslte_dlsch_decode(&q->dl_sch, cfg, softbuffer, q->e, data);      

@@ -63,6 +63,8 @@ SRSLTE_API bool cuhd_rx_wait_lo_locked(void *h);
 SRSLTE_API void cuhd_set_master_clock_rate(void *h, 
                                            double rate); 
 
+SRSLTE_API bool cuhd_is_master_clock_dynamic(void *h); 
+
 SRSLTE_API double cuhd_set_rx_srate(void *h, 
                                     double freq);
 

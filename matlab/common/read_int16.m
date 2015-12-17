@@ -1,4 +1,4 @@
-function [ out ] = read_real( filename, count )
+function [ out ] = read_int16( filename, count )
 %READ_COMPLEX Summary of this function goes here
 %   Detailed explanation goes here
 

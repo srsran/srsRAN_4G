@@ -284,19 +284,9 @@ static int encode_tb_off(srslte_sch_t *q,
         if (cb_segm->C > 1) {
           srslte_crc_attach_byte(&q->crc_cb, q->cb_in, rlen);
         }
-        
-        if (SRSLTE_VERBOSE_ISDEBUG()) {
-          DEBUG("CB#%d: ", i);
-          srslte_vec_fprint_byte(stdout, q->cb_in, cb_len/8);
-        }
 
         /* Turbo Encoding */
-        srslte_tcod_encode_lut(&q->encoder, q->cb_in, q->parity_bits, cblen_idx);
-        
-        if (SRSLTE_VERBOSE_ISDEBUG()) {
-          DEBUG("CB#%d encoded: ", i);
-          srslte_vec_fprint_byte(stdout, q->parity_bits, 2*cb_len/8);
-        }
+        srslte_tcod_encode_lut(&q->encoder, q->cb_in, q->parity_bits, cblen_idx);        
       }
       DEBUG("RM cblen_idx=%d, n_e=%d, wp=%d, nof_e_bits=%d\n",cblen_idx, n_e, wp, nof_e_bits);
       
@@ -400,6 +390,7 @@ static int decode_tb(srslte_sch_t *q,
         n_e = Qm * ((uint32_t) ceilf((float) Gp/cb_segm->C));
       }
 
+      bzero(softbuffer->buffer_f[i], (3*cb_len+12)*sizeof(int16_t));
       /* Rate Unmatching */
       if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[i], n_e, cblen_idx, rv)) {
         fprintf(stderr, "Error in rate matching\n");
@@ -407,8 +398,10 @@ static int decode_tb(srslte_sch_t *q,
       }
 
       if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("CB#%d RMOUT: ", i);
-        srslte_vec_fprint_s(stdout, softbuffer->buffer_f[i], 3*cb_len+12);
+        char tmpstr[64]; 
+        snprintf(tmpstr,64,"rmout_%d.dat",i);
+        DEBUG("SAVED FILE %s: Encoded turbo code block %d\n", tmpstr, i);
+        srslte_vec_save_file(tmpstr, softbuffer->buffer_f[i], (3*cb_len+12)*sizeof(int16_t));
       }
 
       /* Turbo Decoding with CRC-based early stopping */
@@ -444,11 +437,6 @@ static int decode_tb(srslte_sch_t *q,
       INFO("CB#%d: cb_len: %d, rlen: %d, wp: %d, rp: %d, E: %d, n_iters=%d\n", i,
           cb_len, rlen, wp, rp, n_e, q->nof_iterations);
       
-
-      if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("CB#%d IN: ", i);
-        srslte_vec_fprint_byte(stdout, q->cb_in, cb_len/8);
-      }
             
       // If CB CRC is not correct, early_stop will be false and wont continue with rest of CBs
 

@@ -120,6 +120,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field RV not found in pdsch config\n");
     return;
   }
+
+  uint32_t max_iterations = 5;
+  mexutils_read_uint32_struct(PDSCHCFG, "NTurboDecIts", &max_iterations);
   
   char *mod_str = mexutils_get_char_struct(PDSCHCFG, "Modulation");
   
@@ -136,7 +139,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mxFree(mod_str);
   
-  float *prbset; 
   mxArray *p; 
   p = mxGetField(PDSCHCFG, 0, "PRBSet");
   if (!p) {
@@ -144,9 +146,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   } 
   
-  // Only localized PRB supported 
-  grant.nof_prb = mexutils_read_f(p, &prbset);
-
+  float *prbset_f;
+  uint64_t *prbset;
+  if (mxGetClassID(p) == mxDOUBLE_CLASS) {
+    grant.nof_prb = mexutils_read_f(p, &prbset_f);
+    prbset = malloc(sizeof(uint64_t)*grant.nof_prb);
+    for (i=0;i<grant.nof_prb;i++) {
+      prbset[i] = (uint64_t) prbset_f[i];
+    }
+  } else {
+    grant.nof_prb = mexutils_read_uint64(p, &prbset);
+  }
+  
   for (i=0;i<cell.nof_prb;i++) {
     grant.prb_idx[0][i] = false; 
     for (int j=0;j<grant.nof_prb && !grant.prb_idx[0][i];j++) {
@@ -156,7 +167,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     grant.prb_idx[1][i] = grant.prb_idx[0][i];
   }
-
+  
   free(prbset);
   
   /* Configure rest of pdsch_cfg parameters */
@@ -203,6 +214,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!data_bytes) {
     return;
   }
+  
+  srslte_sch_set_max_noi(&pdsch.dl_sch, max_iterations);
 
   int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data_bytes);
 
@@ -225,9 +238,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   if (nlhs >= 5) {
     mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
-  }
-  if (nlhs >= 6) {
-    mexutils_write_s(softbuffer.buffer_f[9], &plhs[5], 16908, 1);  
   }
   
   srslte_chest_dl_free(&chest);

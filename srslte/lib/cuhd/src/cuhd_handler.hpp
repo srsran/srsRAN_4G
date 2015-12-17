@@ -51,4 +51,5 @@ public:
   size_t rx_nof_samples;
   size_t tx_nof_samples;
   double tx_rate;
+  bool dynamic_rate; 
 };
