@@ -43,7 +43,7 @@ typedef struct {
   uint32_t tx_rate;
   int16_t rx_buffer[CONVERT_BUFFER_SIZE]; 
   int16_t tx_buffer[CONVERT_BUFFER_SIZE]; 
-  bool stream_enabled; 
+  bool rx_stream_enabled; 
   bool tx_stream_enabled; 
 } rf_blade_handler_t;
 
@@ -62,15 +62,17 @@ bool rf_blade_rx_wait_lo_locked(void *h)
   return true; 
 }
 
+const unsigned int num_buffers    = 256;
+const unsigned int ms_buffer_size_rx = 1024; 
+const unsigned int buffer_size_tx = 1024;  
+const unsigned int num_transfers  = 32;
+const unsigned int timeout_ms     = 4000;
+
+  
 int rf_blade_start_tx_stream(void *h)
 {
   int status; 
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
-  
-  const unsigned int num_buffers    = 64;
-  const unsigned int buffer_size_tx = 1024;  
-  const unsigned int num_transfers  = 32;
-  const unsigned int timeout_ms     = 4000;
   
   status = bladerf_sync_config(handler->dev,
                                 BLADERF_MODULE_TX,
@@ -88,7 +90,7 @@ int rf_blade_start_tx_stream(void *h)
     fprintf(stderr, "Failed to enable TX module: %s\n", bladerf_strerror(status));
     return status;
   }
-  handler->stream_enabled = true; 
+  handler->tx_stream_enabled = true; 
   return 0;
 }
 
@@ -96,15 +98,11 @@ int rf_blade_start_rx_stream(void *h)
 {
   int status; 
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
-  
-  const unsigned int num_buffers    = 128;
-  const unsigned int buffer_size_rx = 4*1024; 
-  const unsigned int buffer_size_tx = 1024;  
-  const unsigned int num_transfers  = 32;
-  const unsigned int timeout_ms     = 4000;
-  
+    
   /* Configure the device's RX module for use with the sync interface.
      * SC16 Q11 samples *with* metadata are used. */
+  uint32_t buffer_size_rx = ms_buffer_size_rx*(handler->rx_rate/1000/1024); 
+  printf("Setting buffer size %d for rate %d\n", buffer_size_rx, handler->rx_rate);
   status = bladerf_sync_config(handler->dev,
                                 BLADERF_MODULE_RX,
                                 BLADERF_FORMAT_SC16_Q11_META,
@@ -137,7 +135,7 @@ int rf_blade_start_rx_stream(void *h)
     fprintf(stderr, "Failed to enable TX module: %s\n", bladerf_strerror(status));
     return status;
   }
-  handler->tx_stream_enabled = true; 
+  handler->rx_stream_enabled = true; 
   return 0;
 }
 
@@ -154,7 +152,8 @@ int rf_blade_stop_rx_stream(void *h)
     fprintf(stderr, "Failed to enable TX module: %s\n", bladerf_strerror(status));
     return status;
   }
-  handler->stream_enabled = false; 
+  handler->rx_stream_enabled = false;
+  handler->tx_stream_enabled = false; 
   return 0;
 }
 
@@ -208,7 +207,7 @@ int rf_blade_open(char *args, void **h)
     fprintf(stderr, "Failed to set TX VGA1 gain: %s\n", bladerf_strerror(status));
     return status;
   }
-  handler->stream_enabled = false; 
+  handler->rx_stream_enabled = false; 
   handler->tx_stream_enabled = false; 
   return 0;
 }
@@ -457,7 +456,6 @@ int rf_blade_send_timed(void *h,
   status = bladerf_sync_tx(handler->dev, handler->tx_buffer, nsamples, &meta, 0);
   if (status != 0) {
     fprintf(stderr, "TX failed: %s\n", bladerf_strerror(status));
-    exit(-1);
     return status;
   }
   return nsamples;
