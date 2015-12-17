@@ -34,11 +34,9 @@ typedef struct {
   void   (*srslte_rf_flush_buffer)(void *h);
   bool   (*srslte_rf_has_rssi)(void *h);
   float  (*srslte_rf_get_rssi)(void *h);
-  double (*srslte_rf_set_rx_gain_th)(void *h, double gain);
-  void   (*srslte_rf_set_tx_rx_gain_offset)(void *h, double offset);
   void   (*srslte_rf_suppress_stdout)(void *h);
   void   (*srslte_rf_register_msg_handler)(void *h, srslte_rf_msg_handler_t msg_handler);
-  int    (*srslte_rf_open)(char *args, void **h, bool agc_thread, bool tx_gain_same_rx);
+  int    (*srslte_rf_open)(char *args, void **h);
   int    (*srslte_rf_close)(void *h);
   void   (*srslte_rf_set_master_clock_rate)(void *h, double rate);
   bool   (*srslte_rf_is_master_clock_dynamic)(void *h);
@@ -71,8 +69,6 @@ static rf_dev_t dev_uhd = {
   rf_uhd_flush_buffer,
   rf_uhd_has_rssi,
   rf_uhd_get_rssi,
-  rf_uhd_set_rx_gain_th,
-  rf_uhd_set_tx_rx_gain_offset,
   rf_uhd_suppress_stdout,
   rf_uhd_register_msg_handler,
   rf_uhd_open,
@@ -106,8 +102,6 @@ static rf_dev_t dev_blade = {
   rf_blade_flush_buffer,
   rf_blade_has_rssi,
   rf_blade_get_rssi,
-  rf_blade_set_rx_gain_th,
-  rf_blade_set_tx_rx_gain_offset,
   rf_blade_suppress_stdout,
   rf_blade_register_msg_handler,
   rf_blade_open,

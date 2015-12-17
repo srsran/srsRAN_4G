@@ -31,9 +31,7 @@
 #include "srslte/rf/rf.h"
 
 SRSLTE_API int rf_uhd_open(char *args, 
-                        void **handler, 
-                        bool agc_thread, 
-                        bool tx_gain_same_rx);
+                        void **handler);
 
 SRSLTE_API int rf_uhd_close(void *h);
 
@@ -62,17 +60,6 @@ SRSLTE_API double rf_uhd_set_rx_srate(void *h,
 
 SRSLTE_API double rf_uhd_set_rx_gain(void *h, 
                                   double gain);
-
-SRSLTE_API void rf_uhd_set_tx_rx_gain_offset(void *h, 
-                                          double offset); 
-
-SRSLTE_API double rf_uhd_set_rx_gain_th(void *h, 
-                                     double gain);
-
-SRSLTE_API double rf_uhd_set_tx_gain_th(void *h, 
-                                     double gain);
-
-SRSLTE_API float rf_uhd_get_rx_gain_offset(void *h); 
 
 SRSLTE_API double rf_uhd_get_rx_gain(void *h);
 

@@ -158,20 +158,20 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  printf("Opening RF device...\n");
+  if (srslte_rf_open(&rf, prog_args.rf_args)) {
+    fprintf(stderr, "Error opening rf\n");
+    exit(-1);
+  }
   if (prog_args.rf_gain > 0) {
-    printf("Opening RF device...\n");
-    if (srslte_rf_open(&rf, prog_args.rf_args)) {
-      fprintf(stderr, "Error opening rf\n");
-      exit(-1);
-    }
     srslte_rf_set_rx_gain(&rf, prog_args.rf_gain);      
   } else {
-    printf("Opening RF device with threaded RX Gain control ...\n");
-    if (srslte_rf_open_th(&rf, prog_args.rf_args, false)) {
+    printf("Starting AGC thread...\n");
+    if (srslte_rf_start_gain_thread(&rf, false)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
-    srslte_rf_set_rx_gain(&rf, 50);      
+    srslte_rf_set_rx_gain(&rf, 50);
   }
 
   sigset_t sigset;

@@ -43,15 +43,7 @@ typedef struct {
   uhd_rx_metadata_handle rx_md, rx_md_first; 
   uhd_tx_metadata_handle tx_md; 
   
-  // The following variables are for threaded RX gain control 
   uhd_meta_range_handle rx_gain_range;
-  pthread_t thread_gain; 
-  pthread_cond_t  cond; 
-  pthread_mutex_t mutex; 
-  double cur_rx_gain; 
-  double new_rx_gain;   
-  bool   tx_gain_same_rx; 
-  float  tx_rx_gain_offset; 
   size_t rx_nof_samples;
   size_t tx_nof_samples;
   double tx_rate;
@@ -190,47 +182,7 @@ float rf_uhd_get_rssi(void *h) {
   return val_out; 
 }
 
-double rf_uhd_set_rx_gain_th(void *h, double gain)
-{
-  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  double gain_clipped; 
-  uhd_meta_range_clip(handler->rx_gain_range, gain, true, &gain_clipped);
-  if (gain_clipped > handler->new_rx_gain + 0.5 || gain_clipped < handler->new_rx_gain - 0.5) {
-    pthread_mutex_lock(&handler->mutex);
-    handler->new_rx_gain = gain_clipped; 
-    pthread_cond_signal(&handler->cond);
-    pthread_mutex_unlock(&handler->mutex);
-  }
-  return gain_clipped; 
-}
-
-void rf_uhd_set_tx_rx_gain_offset(void *h, double offset) {
-  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  handler->tx_rx_gain_offset = offset; 
-}
-
-/* This thread listens for set_rx_gain commands to the USRP */
-static void* thread_gain_fcn(void *h) {
-  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  while(1) {
-    pthread_mutex_lock(&handler->mutex);
-    while(handler->cur_rx_gain == handler->new_rx_gain) 
-    {
-      pthread_cond_wait(&handler->cond, &handler->mutex);
-    }
-    if (handler->new_rx_gain != handler->cur_rx_gain) {
-      handler->cur_rx_gain = handler->new_rx_gain; 
-      rf_uhd_set_rx_gain(h, handler->cur_rx_gain);
-    }
-    if (handler->tx_gain_same_rx) {
-      rf_uhd_set_tx_gain(h, handler->cur_rx_gain+handler->tx_rx_gain_offset);
-    }
-    pthread_mutex_unlock(&handler->mutex);
-  }
-  return NULL; 
-}
-
-int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
+int rf_uhd_open(char *args, void **h)
 {
   *h = NULL; 
   
@@ -291,8 +243,6 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
   uhd_rx_streamer_max_num_samps(handler->rx_stream, &handler->rx_nof_samples);
   uhd_tx_streamer_max_num_samps(handler->tx_stream, &handler->tx_nof_samples);
   
-  handler->tx_gain_same_rx = tx_gain_same_rx; 
-  handler->tx_rx_gain_offset = 0.0; 
   uhd_meta_range_make(&handler->rx_gain_range); 
   uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, handler->rx_gain_range);
 
@@ -300,20 +250,6 @@ int rf_uhd_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same
   uhd_rx_metadata_make(&handler->rx_md);
   uhd_rx_metadata_make(&handler->rx_md_first);
   uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
-
-  /* Create auxiliary thread and mutexes for AGC */
-  if (create_thread_gain) {
-    if (pthread_mutex_init(&handler->mutex, NULL)) {
-      return -1; 
-    }
-    if (pthread_cond_init(&handler->cond, NULL)) {
-      return -1; 
-    }
-    if (pthread_create(&handler->thread_gain, NULL, thread_gain_fcn, handler)) {
-      perror("pthread_create");
-      return -1; 
-    }
-  }
  
   /* Find out if the master clock rate is configurable */
   double cur_clock, new_clock; 

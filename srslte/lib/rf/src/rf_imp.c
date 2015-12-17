@@ -39,15 +39,69 @@ int rf_get_available_devices(char **devnames, int max_strlen) {
   return i;
 }
 
+double srslte_rf_set_rx_gain_th(srslte_rf_t *rf, double gain)
+{
+  if (gain > rf->new_rx_gain + 0.5 || gain < rf->new_rx_gain - 0.5) {
+    pthread_mutex_lock(&rf->mutex);
+    rf->new_rx_gain = gain; 
+    pthread_cond_signal(&rf->cond);
+    pthread_mutex_unlock(&rf->mutex);
+  }
+  return gain; 
+}
 
-int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args, bool agc_thread, bool tx_gain_same_rx) {
+void srslte_rf_set_tx_rx_gain_offset(srslte_rf_t *rf, double offset) {
+  rf->tx_rx_gain_offset = offset; 
+}
+
+/* This thread listens for set_rx_gain commands to the USRP */
+static void* thread_gain_fcn(void *h) {
+  srslte_rf_t* rf = (srslte_rf_t*) h;
+  
+  while(1) {
+    pthread_mutex_lock(&rf->mutex);
+    while(rf->cur_rx_gain == rf->new_rx_gain) 
+    {
+      pthread_cond_wait(&rf->cond, &rf->mutex);
+    }
+    if (rf->new_rx_gain != rf->cur_rx_gain) {
+      rf->cur_rx_gain = rf->new_rx_gain; 
+      srslte_rf_set_rx_gain(h, rf->cur_rx_gain);
+    }
+    if (rf->tx_gain_same_rx) {
+      srslte_rf_set_tx_gain(h, rf->cur_rx_gain+rf->tx_rx_gain_offset);
+    }
+    pthread_mutex_unlock(&rf->mutex);
+  }
+  return NULL; 
+}
+
+
+/* Create auxiliary thread and mutexes for AGC */
+int srslte_rf_start_gain_thread(srslte_rf_t *rf, bool tx_gain_same_rx) {
+  rf->tx_gain_same_rx = tx_gain_same_rx; 
+  rf->tx_rx_gain_offset = 0.0; 
+  if (pthread_mutex_init(&rf->mutex, NULL)) {
+    return -1; 
+  }
+  if (pthread_cond_init(&rf->cond, NULL)) {
+    return -1; 
+  }
+  if (pthread_create(&rf->thread_gain, NULL, thread_gain_fcn, rf)) {
+    perror("pthread_create");
+    return -1; 
+  }
+  return 0;
+}
+
+int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args) {
   /* Try to open the device if name is provided */
   if (devname) {
     int i=0;
     while(available_devices[i] != NULL) {
       if (!strcmp(available_devices[i]->name, devname)) {
         rf->dev = available_devices[i];
-        return available_devices[i]->srslte_rf_open(args, &rf->handler, agc_thread, tx_gain_same_rx);
+        return available_devices[i]->srslte_rf_open(args, &rf->handler);
       }
       i++;
     }    
@@ -57,7 +111,7 @@ int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args, bool agc_
   /* If in auto mode or provided device not found, try to open in order of apperance in available_devices[] array */
   int i=0;
   while(available_devices[i] != NULL) {
-    if (!available_devices[i]->srslte_rf_open(args, &rf->handler, agc_thread, tx_gain_same_rx)) {
+    if (!available_devices[i]->srslte_rf_open(args, &rf->handler)) {
       rf->dev = available_devices[i];
       return 0; 
     }
@@ -98,16 +152,6 @@ float srslte_rf_get_rssi(srslte_rf_t *rf)
   return ((rf_dev_t*) rf->dev)->srslte_rf_get_rssi(rf->handler);  
 }
 
-double srslte_rf_set_rx_gain_th(srslte_rf_t *rf, double gain)
-{
-  return ((rf_dev_t*) rf->dev)->srslte_rf_set_rx_gain_th(rf->handler, gain);  
-}
-
-void srslte_rf_set_tx_rx_gain_offset(srslte_rf_t *rf, double offset) 
-{
-  ((rf_dev_t*) rf->dev)->srslte_rf_set_tx_rx_gain_offset(rf->handler, offset);  
-}
-
 void srslte_rf_suppress_stdout(srslte_rf_t *rf) 
 {
   ((rf_dev_t*) rf->dev)->srslte_rf_suppress_stdout(rf->handler);  
@@ -120,12 +164,7 @@ void srslte_rf_register_msg_handler(srslte_rf_t *rf, srslte_rf_msg_handler_t msg
 
 int srslte_rf_open(srslte_rf_t *h, char *args) 
 {
-  return srslte_rf_open_devname(h, NULL, args, false, false);
-}
-
-int srslte_rf_open_th(srslte_rf_t *h, char *args, bool tx_gain_same_rx) 
-{
-  return srslte_rf_open_devname(h, NULL, args, true, tx_gain_same_rx);  
+  return srslte_rf_open_devname(h, NULL, args);
 }
 
 int srslte_rf_close(srslte_rf_t *rf)

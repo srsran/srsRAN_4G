@@ -172,16 +172,7 @@ float rf_blade_get_rssi(void *h)
   return 0;
 }
 
-double rf_blade_set_rx_gain_th(void *h, double gain)
-{
-  return rf_blade_set_rx_gain(h, gain);
-}
-
-void rf_blade_set_tx_rx_gain_offset(void *h, double offset) 
-{
-}
-
-int rf_blade_open(char *args, void **h, bool create_thread_gain, bool tx_gain_same_rx)
+int rf_blade_open(char *args, void **h)
 {
   *h = NULL; 
   

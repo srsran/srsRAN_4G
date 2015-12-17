@@ -30,11 +30,22 @@
 #include <sys/time.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <pthread.h>
+
 #include "srslte/config.h"
 
 typedef struct {
   void *handler;
   void *dev;
+  
+  // The following variables are for threaded RX gain control 
+  pthread_t thread_gain; 
+  pthread_cond_t  cond; 
+  pthread_mutex_t mutex; 
+  double cur_rx_gain; 
+  double new_rx_gain;   
+  bool   tx_gain_same_rx; 
+  float  tx_rx_gain_offset; 
 } srslte_rf_t;
 
 typedef void (*srslte_rf_msg_handler_t)(const char*);
@@ -42,15 +53,12 @@ typedef void (*srslte_rf_msg_handler_t)(const char*);
 SRSLTE_API int srslte_rf_open(srslte_rf_t *h, 
                        char *args);
 
-SRSLTE_API int srslte_rf_open_th(srslte_rf_t *h, 
-                          char *args, 
-                          bool tx_gain_same_rx);
-
 SRSLTE_API int srslte_rf_open_devname(srslte_rf_t *h, 
                                char *devname, 
-                               char *args, 
-                               bool agc_thread, 
-                               bool tx_gain_same_rx);
+                               char *args);
+
+SRSLTE_API int srslte_rf_start_gain_thread(srslte_rf_t *rf, 
+                                           bool tx_gain_same_rx); 
 
 SRSLTE_API int srslte_rf_close(srslte_rf_t *h);
 

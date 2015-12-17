@@ -154,16 +154,16 @@ int main(int argc, char **argv) {
   
   parse_args(argc, argv);
     
+  printf("Opening RF device...\n");
+  if (srslte_rf_open(&rf, rf_args)) {
+    fprintf(stderr, "Error opening rf\n");
+    exit(-1);
+  }  
   if (!config.init_agc) {
-    printf("Opening RF device...\n");
-    if (srslte_rf_open(&rf, rf_args)) {
-      fprintf(stderr, "Error opening rf\n");
-      exit(-1);
-    }  
     srslte_rf_set_rx_gain(&rf, rf_gain);
   } else {
-    printf("Opening RF device with threaded RX Gain control ...\n");
-    if (srslte_rf_open_th(&rf, rf_args, false)) {
+    printf("Starting AGC thread...\n");
+    if (srslte_rf_start_gain_thread(&rf, false)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
