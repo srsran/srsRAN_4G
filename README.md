@@ -30,7 +30,7 @@ Hardware
 
 The library currently uses Ettus Universal Hardware Driver (UHD). Thus, any hardware supported by UHD can be used. There is no sampling rate conversion, therefore the hardware should support 30.72 MHz clock in order to work correctly with LTE sampling frequencies and decode signals from live LTE base stations. We are using the B210 USRP. 
 
-*News*: We have recently added support for the bladeRF in the `maint` branch. It's still experimental so any feedback will be very appreciated. 
+*News*: We have recently added support for the bladeRF in the `devel` branch. It's still experimental so any feedback will be very appreciated. 
 
 Download & Install Instructions
 =================================
