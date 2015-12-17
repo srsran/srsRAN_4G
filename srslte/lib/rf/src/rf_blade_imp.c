@@ -67,9 +67,9 @@ int rf_blade_start_tx_stream(void *h)
   int status; 
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   
-  const unsigned int num_buffers    = 16;
+  const unsigned int num_buffers    = 64;
   const unsigned int buffer_size_tx = 1024;  
-  const unsigned int num_transfers  = 8;
+  const unsigned int num_transfers  = 32;
   const unsigned int timeout_ms     = 4000;
   
   status = bladerf_sync_config(handler->dev,
@@ -97,10 +97,10 @@ int rf_blade_start_rx_stream(void *h)
   int status; 
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   
-  const unsigned int num_buffers    = 16;
+  const unsigned int num_buffers    = 128;
   const unsigned int buffer_size_rx = 4*1024; 
   const unsigned int buffer_size_tx = 1024;  
-  const unsigned int num_transfers  = 8;
+  const unsigned int num_transfers  = 32;
   const unsigned int timeout_ms     = 4000;
   
   /* Configure the device's RX module for use with the sync interface.
