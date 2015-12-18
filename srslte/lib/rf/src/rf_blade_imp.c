@@ -47,14 +47,16 @@ typedef struct {
   bool tx_stream_enabled; 
 } rf_blade_handler_t;
 
+srslte_rf_error_handler_t blade_error_handler = NULL; 
+
 void rf_blade_suppress_stdout(void *h) {
   bladerf_log_set_verbosity(BLADERF_LOG_LEVEL_SILENT);
 }
 
-void rf_blade_register_msg_handler(void *notused, srslte_rf_msg_handler_t new_handler)
+void rf_blade_register_error_handler(void *notused, srslte_rf_error_handler_t new_handler)
 {
+  new_handler = blade_error_handler;
 }
-
 
 bool rf_blade_rx_wait_lo_locked(void *h)
 {
@@ -403,11 +405,17 @@ int rf_blade_recv_with_time(void *h,
   status = bladerf_sync_rx(handler->dev, handler->rx_buffer, nsamples, &meta, 0);
   if (status) {
     fprintf(stderr, "RX failed: %s\n\n", bladerf_strerror(status));
-    exit(-1);
     return -1;
   } else if (meta.status & BLADERF_META_STATUS_OVERRUN) {
-    fprintf(stderr, "Overrun detected in scheduled RX. "
+    if (blade_error_handler) {
+      srslte_rf_error_t error; 
+      error.opt = meta.actual_count;
+      error.type = SRSLTE_RF_ERROR_OVERFLOW;
+      blade_error_handler(error);
+    } else {     
+      fprintf(stderr, "Overrun detected in scheduled RX. "
             "%u valid samples were read.\n\n", meta.actual_count);
+    }
   }
   
   timestamp_to_secs(handler->rx_rate, meta.timestamp, secs, frac_secs);
@@ -454,10 +462,27 @@ int rf_blade_send_timed(void *h,
     meta.flags |= BLADERF_META_FLAG_TX_BURST_END;
   }
   status = bladerf_sync_tx(handler->dev, handler->tx_buffer, nsamples, &meta, 0);
-  if (status != 0) {
+  if (status == BLADERF_ERR_TIME_PAST) {
+    if (blade_error_handler) {
+      srslte_rf_error_t error; 
+      error.type = SRSLTE_RF_ERROR_LATE;
+      blade_error_handler(error);
+    } else {
+      fprintf(stderr, "TX failed: %s\n", bladerf_strerror(status));      
+    }
+  } else if (status) {
     fprintf(stderr, "TX failed: %s\n", bladerf_strerror(status));
     return status;
+  } else if (meta.status == BLADERF_META_STATUS_UNDERRUN) {
+    if (blade_error_handler) {
+      srslte_rf_error_t error; 
+      error.type = SRSLTE_RF_ERROR_UNDERFLOW;
+      blade_error_handler(error);
+    } else {
+      fprintf(stderr, "TX warning: underflow detected.\n");
+    }
   }
+  
   return nsamples;
 }
 

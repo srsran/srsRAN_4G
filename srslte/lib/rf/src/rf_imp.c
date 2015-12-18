@@ -161,9 +161,9 @@ void srslte_rf_suppress_stdout(srslte_rf_t *rf)
   ((rf_dev_t*) rf->dev)->srslte_rf_suppress_stdout(rf->handler);  
 }
 
-void srslte_rf_register_msg_handler(srslte_rf_t *rf, srslte_rf_msg_handler_t msg_handler)
+void srslte_rf_register_error_handler(srslte_rf_t *rf, srslte_rf_error_handler_t error_handler)
 {
-  ((rf_dev_t*) rf->dev)->srslte_rf_register_msg_handler(rf->handler, msg_handler);  
+  ((rf_dev_t*) rf->dev)->srslte_rf_register_error_handler(rf->handler, error_handler);  
 }
 
 int srslte_rf_open(srslte_rf_t *h, char *args) 

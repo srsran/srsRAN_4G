@@ -35,7 +35,7 @@ typedef struct {
   bool   (*srslte_rf_has_rssi)(void *h);
   float  (*srslte_rf_get_rssi)(void *h);
   void   (*srslte_rf_suppress_stdout)(void *h);
-  void   (*srslte_rf_register_msg_handler)(void *h, srslte_rf_msg_handler_t msg_handler);
+  void   (*srslte_rf_register_error_handler)(void *h, srslte_rf_error_handler_t error_handler);
   int    (*srslte_rf_open)(char *args, void **h);
   int    (*srslte_rf_close)(void *h);
   void   (*srslte_rf_set_master_clock_rate)(void *h, double rate);
@@ -70,7 +70,7 @@ static rf_dev_t dev_uhd = {
   rf_uhd_has_rssi,
   rf_uhd_get_rssi,
   rf_uhd_suppress_stdout,
-  rf_uhd_register_msg_handler,
+  rf_uhd_register_error_handler,
   rf_uhd_open,
   rf_uhd_close,
   rf_uhd_set_master_clock_rate,
@@ -103,7 +103,7 @@ static rf_dev_t dev_blade = {
   rf_blade_has_rssi,
   rf_blade_get_rssi,
   rf_blade_suppress_stdout,
-  rf_blade_register_msg_handler,
+  rf_blade_register_error_handler,
   rf_blade_open,
   rf_blade_close,
   rf_blade_set_master_clock_rate,

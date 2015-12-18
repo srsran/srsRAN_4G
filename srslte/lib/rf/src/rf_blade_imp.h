@@ -67,7 +67,8 @@ SRSLTE_API double rf_blade_get_tx_gain(void *h);
 
 SRSLTE_API void rf_blade_suppress_stdout(void *h);
 
-SRSLTE_API void rf_blade_register_msg_handler(void *h, srslte_rf_msg_handler_t msg_handler);
+SRSLTE_API void rf_blade_register_error_handler(void *h, 
+                                              srslte_rf_error_handler_t error_handler);
 
 SRSLTE_API double rf_blade_set_rx_freq(void *h, 
                                   double freq);

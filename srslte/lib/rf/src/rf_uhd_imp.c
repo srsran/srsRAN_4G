@@ -55,13 +55,33 @@ void suppress_handler(const char *x)
   // do nothing
 }
 
-void rf_uhd_suppress_stdout(void *h) {
-  rf_uhd_register_msg_handler(h, suppress_handler);
+srslte_rf_error_handler_t uhd_error_handler = NULL; 
+
+void msg_handler(const char *msg)
+{
+  srslte_rf_error_t error; 
+  if(0 == strcmp(msg, "O")) {
+    error.type = SRSLTE_RF_ERROR_OVERFLOW;
+  } else if(0 == strcmp(msg, "D")) {
+    error.type = SRSLTE_RF_ERROR_OVERFLOW;
+  }else if(0 == strcmp(msg, "U")) {
+    error.type = SRSLTE_RF_ERROR_UNDERFLOW;
+  } else if(0 == strcmp(msg, "L")) {
+    error.type = SRSLTE_RF_ERROR_LATE;
+  }
+  if (uhd_error_handler) {
+    uhd_error_handler(error);
+  }
 }
 
-void rf_uhd_register_msg_handler(void *notused, srslte_rf_msg_handler_t new_handler)
+void rf_uhd_suppress_stdout(void *h) {
+  rf_uhd_register_msg_handler_c(suppress_handler);
+}
+
+void rf_uhd_register_error_handler(void *notused, srslte_rf_error_handler_t new_handler)
 {
-  rf_uhd_register_msg_handler_c(new_handler);
+  uhd_error_handler = new_handler;
+  rf_uhd_register_msg_handler_c(msg_handler);
 }
 
 static bool find_string(uhd_string_vector_handle h, char *str) 

@@ -48,7 +48,18 @@ typedef struct {
   float  tx_rx_gain_offset; 
 } srslte_rf_t;
 
-typedef void (*srslte_rf_msg_handler_t)(const char*);
+typedef struct {
+  enum { 
+    SRSLTE_RF_ERROR_LATE,
+    SRSLTE_RF_ERROR_UNDERFLOW,
+    SRSLTE_RF_ERROR_OVERFLOW,
+    SRSLTE_RF_ERROR_OTHER
+  } type;
+  int opt;
+  const char *msg; 
+} srslte_rf_error_t;
+
+typedef void (*srslte_rf_error_handler_t)(srslte_rf_error_t error);
 
 SRSLTE_API int srslte_rf_open(srslte_rf_t *h, 
                        char *args);
@@ -97,8 +108,8 @@ SRSLTE_API double srslte_rf_get_tx_gain(srslte_rf_t *h);
 
 SRSLTE_API void srslte_rf_suppress_stdout(srslte_rf_t *h);
 
-SRSLTE_API void srslte_rf_register_msg_handler(srslte_rf_t *h, 
-                                        srslte_rf_msg_handler_t msg_handler);
+SRSLTE_API void srslte_rf_register_error_handler(srslte_rf_t *h, 
+                                                 srslte_rf_error_handler_t error_handler);
 
 SRSLTE_API double srslte_rf_set_rx_freq(srslte_rf_t *h, 
                                  double freq);
