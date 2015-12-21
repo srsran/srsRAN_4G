@@ -403,11 +403,6 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
         fprintf(stderr, "Error calling finding PSS sequence\n");
         return SRSLTE_ERROR; 
       }      
-      if (q->max_offset<128) {
-        float temp[128];
-        srslte_vec_sc_prod_fff(q->pss.conv_output_avg, 1e8, temp, q->max_offset);
-        srslte_vec_fprint_f(stdout, temp, q->max_offset);
-      }
     }
     q->mean_peak_value = SRSLTE_VEC_EMA(q->peak_value, q->mean_peak_value, MEANPEAK_EMA_ALPHA);
 

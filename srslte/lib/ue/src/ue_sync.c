@@ -253,6 +253,11 @@ uint32_t srslte_ue_sync_get_sfidx(srslte_ue_sync_t *q) {
   return q->sf_idx;    
 }
 
+void srslte_ue_sync_cfo_i_detec_en(srslte_ue_sync_t *q, bool enable) {
+  srslte_sync_cfo_i_detec_en(&q->strack, enable);
+  srslte_sync_cfo_i_detec_en(&q->sfind, enable);  
+}
+
 float srslte_ue_sync_get_cfo(srslte_ue_sync_t *q) {
   return 15000 * srslte_sync_get_cfo(&q->strack);
 }

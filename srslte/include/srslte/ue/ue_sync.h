@@ -150,6 +150,9 @@ SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q,
 SRSLTE_API void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, 
                                        float cfo); 
 
+SRSLTE_API void srslte_ue_sync_cfo_i_detec_en(srslte_ue_sync_t *q, 
+                                              bool enable); 
+
 SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
 
 SRSLTE_API void srslte_ue_sync_set_N_id_2(srslte_ue_sync_t *q, 
