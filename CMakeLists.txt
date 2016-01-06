@@ -53,8 +53,18 @@ option(DisableMEX "DisableMEX" ON)
 ########################################################################
 # Install Dirs
 ########################################################################
+if (NOT CMAKE_INSTALL_LIBDIR)
+    include(GNUInstallDirs)
+endif (NOT CMAKE_INSTALL_LIBDIR)
+
+# Fall back to just "lib" if the item provided by GNUInstallDirs doesn't exist
+if (NOT EXISTS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+    message(STATUS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR} does not exist. Defaulting install location to ${CMAKE_INSTALL_PREFIX}/lib.")
+    set(CMAKE_INSTALL_LIBDIR lib)
+endif()
+
 SET(RUNTIME_DIR bin)
-SET(LIBRARY_DIR lib)
+SET(LIBRARY_DIR ${CMAKE_INSTALL_LIBDIR})
 SET(INCLUDE_DIR include)
 SET(MEX_DIR mex)
 SET(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
