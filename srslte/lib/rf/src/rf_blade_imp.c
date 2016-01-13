@@ -185,7 +185,7 @@ int rf_blade_open(char *args, void **h)
   *h = handler; 
 
   printf("Opening bladeRF...\n");
-  int status = bladerf_open(&handler->dev, NULL);
+  int status = bladerf_open(&handler->dev, args);
   if (status) {
     fprintf(stderr, "Unable to open device: %s\n", bladerf_strerror(status));
     return status;

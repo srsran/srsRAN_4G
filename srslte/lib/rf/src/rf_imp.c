@@ -101,15 +101,17 @@ const char* srslte_rf_get_devname(srslte_rf_t *rf) {
 int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args) {
   /* Try to open the device if name is provided */
   if (devname) {
-    int i=0;
-    while(available_devices[i] != NULL) {
-      if (!strcmp(available_devices[i]->name, devname)) {
-        rf->dev = available_devices[i];
-        return available_devices[i]->srslte_rf_open(args, &rf->handler);
-      }
-      i++;
-    }    
-    printf("Device %s not found. Switching to auto mode\n", devname);
+    if (devname[0] != '\0') {
+      int i=0;
+      while(available_devices[i] != NULL) {
+        if (!strcmp(available_devices[i]->name, devname)) {
+          rf->dev = available_devices[i];
+          return available_devices[i]->srslte_rf_open(args, &rf->handler);
+        }
+        i++;
+      }    
+      printf("Device %s not found. Switching to auto mode\n", devname);
+    }
   }
   
   /* If in auto mode or provided device not found, try to open in order of apperance in available_devices[] array */

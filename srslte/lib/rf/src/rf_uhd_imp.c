@@ -204,96 +204,105 @@ float rf_uhd_get_rssi(void *h) {
 
 int rf_uhd_open(char *args, void **h)
 {
-  *h = NULL; 
-  
-  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) malloc(sizeof(rf_uhd_handler_t));
-  if (!handler) {
-    perror("malloc");
-    return -1; 
-  }
-  *h = handler; 
-  
-  /* Set priority to UHD threads */
-  uhd_set_thread_priority(uhd_default_thread_priority, true);
-  
-  /* Set correct options for the USRP device */
-  uhd_string_vector_handle devices_str;
-  uhd_string_vector_make(&devices_str);
-  uhd_usrp_find("", &devices_str);
-  
-  /* If device type or name not given in args, choose a B200 */
-  if (args[0]=='\0') {
-    // If B200 is available, use it
-    if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
-      args = "type=b200,recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64";
-    }
-  }
-  
-  /* Create UHD handler */
-  printf("Opening USRP with args: %s\n", args);
-  uhd_error error = uhd_usrp_make(&handler->usrp, args);
-  if (error) {
-    fprintf(stderr, "Error opening UHD: code %d\n", error);
-    return -1; 
-  }
+  if (h) {
+    *h = NULL; 
     
-  size_t channel = 0;
-  uhd_stream_args_t stream_args = {
-        .cpu_format = "fc32",
-        .otw_format = "sc16",
-        .args = "",
-        .channel_list = &channel,
-        .n_channels = 1
-    };
-    
-  /* Initialize rx and tx stremers */
-  uhd_rx_streamer_make(&handler->rx_stream);
-  error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
-  if (error) {
-    fprintf(stderr, "Error opening RX stream: %d\n", error);
-    return -1; 
-  }
-  uhd_tx_streamer_make(&handler->tx_stream);
-  error = uhd_usrp_get_tx_stream(handler->usrp, &stream_args, handler->tx_stream);
-  if (error) {
-    fprintf(stderr, "Error opening TX stream: %d\n", error);
-    return -1; 
-  }
-  
-  uhd_rx_streamer_max_num_samps(handler->rx_stream, &handler->rx_nof_samples);
-  uhd_tx_streamer_max_num_samps(handler->tx_stream, &handler->tx_nof_samples);
-  
-  uhd_meta_range_make(&handler->rx_gain_range); 
-  uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, handler->rx_gain_range);
-
-  // Make metadata objects for RX/TX
-  uhd_rx_metadata_make(&handler->rx_md);
-  uhd_rx_metadata_make(&handler->rx_md_first);
-  uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
- 
-  /* Find out if the master clock rate is configurable */
-  double cur_clock, new_clock; 
-  uhd_usrp_get_master_clock_rate(handler->usrp, 0, &cur_clock);
-  printf("Trying to dynamically change Master clock...\n");
-  uhd_usrp_set_master_clock_rate(handler->usrp, cur_clock/2, 0);
-  uhd_usrp_get_master_clock_rate(handler->usrp, 0, &new_clock);
-  if (new_clock == cur_clock) {
-    handler->dynamic_rate = false; 
-    /* Master clock rate is not configurable. Check if it is compatible with LTE */
-    int cur_clock_i = (int) cur_clock;
-    if (cur_clock_i % 1920000) {
-      fprintf(stderr, "Error: LTE sampling rates are not supported. Master clock rate is %.1f MHz\n", cur_clock/1e6);
+    rf_uhd_handler_t *handler = (rf_uhd_handler_t*) malloc(sizeof(rf_uhd_handler_t));
+    if (!handler) {
+      perror("malloc");
       return -1; 
-    } else {
-      printf("Master clock is not configurable. Using standard symbol sizes and sampling rates.\n");
-      srslte_use_standard_symbol_size(true);
     }
+    *h = handler; 
+    
+    /* Set priority to UHD threads */
+    uhd_set_thread_priority(uhd_default_thread_priority, true);
+    
+    /* Set correct options for the USRP device */
+    uhd_string_vector_handle devices_str;
+    uhd_string_vector_make(&devices_str);
+    uhd_usrp_find("", &devices_str);
+    
+    // Allow NULL parameter
+    if (args == NULL) {
+      args = "";
+    }
+    
+    /* If device type or name not given in args, choose a B200 */
+    if (args[0]=='\0') {
+      // If B200 is available, use it
+      if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
+        args = "type=b200,recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64";
+      }
+    }
+    
+    /* Create UHD handler */
+    printf("Opening USRP with args: %s\n", args);
+    uhd_error error = uhd_usrp_make(&handler->usrp, args);
+    if (error) {
+      fprintf(stderr, "Error opening UHD: code %d\n", error);
+      return -1; 
+    }
+      
+    size_t channel = 0;
+    uhd_stream_args_t stream_args = {
+          .cpu_format = "fc32",
+          .otw_format = "sc16",
+          .args = "",
+          .channel_list = &channel,
+          .n_channels = 1
+      };
+      
+    /* Initialize rx and tx stremers */
+    uhd_rx_streamer_make(&handler->rx_stream);
+    error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
+    if (error) {
+      fprintf(stderr, "Error opening RX stream: %d\n", error);
+      return -1; 
+    }
+    uhd_tx_streamer_make(&handler->tx_stream);
+    error = uhd_usrp_get_tx_stream(handler->usrp, &stream_args, handler->tx_stream);
+    if (error) {
+      fprintf(stderr, "Error opening TX stream: %d\n", error);
+      return -1; 
+    }
+    
+    uhd_rx_streamer_max_num_samps(handler->rx_stream, &handler->rx_nof_samples);
+    uhd_tx_streamer_max_num_samps(handler->tx_stream, &handler->tx_nof_samples);
+    
+    uhd_meta_range_make(&handler->rx_gain_range); 
+    uhd_usrp_get_rx_gain_range(handler->usrp, "", 0, handler->rx_gain_range);
+
+    // Make metadata objects for RX/TX
+    uhd_rx_metadata_make(&handler->rx_md);
+    uhd_rx_metadata_make(&handler->rx_md_first);
+    uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
+  
+    /* Find out if the master clock rate is configurable */
+    double cur_clock, new_clock; 
+    uhd_usrp_get_master_clock_rate(handler->usrp, 0, &cur_clock);
+    printf("Trying to dynamically change Master clock...\n");
+    uhd_usrp_set_master_clock_rate(handler->usrp, cur_clock/2, 0);
+    uhd_usrp_get_master_clock_rate(handler->usrp, 0, &new_clock);
+    if (new_clock == cur_clock) {
+      handler->dynamic_rate = false; 
+      /* Master clock rate is not configurable. Check if it is compatible with LTE */
+      int cur_clock_i = (int) cur_clock;
+      if (cur_clock_i % 1920000) {
+        fprintf(stderr, "Error: LTE sampling rates are not supported. Master clock rate is %.1f MHz\n", cur_clock/1e6);
+        return -1; 
+      } else {
+        printf("Master clock is not configurable. Using standard symbol sizes and sampling rates.\n");
+        srslte_use_standard_symbol_size(true);
+      }
+    } else {
+      printf("Master clock is configurable. Using reduced symbol sizes and sampling rates.\n");
+      handler->dynamic_rate = true; 
+    }
+  
+    return 0;
   } else {
-    printf("Master clock is configurable. Using reduced symbol sizes and sampling rates.\n");
-    handler->dynamic_rate = true; 
+    return SRSLTE_ERROR_INVALID_INPUTS; 
   }
- 
-  return 0;
 }
 
 
