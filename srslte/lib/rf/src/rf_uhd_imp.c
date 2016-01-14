@@ -150,6 +150,17 @@ bool rf_uhd_rx_wait_lo_locked(void *h)
   return val;
 }
 
+void rf_uhd_set_tx_cal(void *h, srslte_rf_cal_t *cal)
+{
+  
+}
+
+void rf_uhd_set_rx_cal(void *h, srslte_rf_cal_t *cal) 
+{
+  
+}
+
+
 int rf_uhd_start_rx_stream(void *h)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
@@ -231,7 +242,7 @@ int rf_uhd_open(char *args, void **h)
     if (args[0]=='\0') {
       // If B200 is available, use it
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
-        args = "type=b200,recv_frame_size=9232,num_recv_frames=64,send_frame_size=9232,num_send_frames=64";
+        args = "type=b200,recv_frame_size=9232,send_frame_size=9232";
       }
     }
     

@@ -127,6 +127,18 @@ int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args) {
   return -1; 
 }
 
+void srslte_rf_set_tx_cal(srslte_rf_t *rf, srslte_rf_cal_t *cal) {
+  return ((rf_dev_t*) rf->dev)->srslte_rf_set_tx_cal(rf->handler, cal);  
+}
+
+void srslte_rf_set_rx_cal(srslte_rf_t *rf, srslte_rf_cal_t *cal) {
+  return ((rf_dev_t*) rf->dev)->srslte_rf_set_rx_cal(rf->handler, cal);  
+}
+
+
+const char* srslte_rf_name(srslte_rf_t *rf) {
+  return ((rf_dev_t*) rf->dev)->name; 
+}
 
 bool srslte_rf_rx_wait_lo_locked(srslte_rf_t *rf)
 {

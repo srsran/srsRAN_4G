@@ -33,6 +33,10 @@ SRSLTE_API int rf_blade_open(char *args,
 
 SRSLTE_API int rf_blade_close(void *h);
 
+SRSLTE_API void rf_blade_set_tx_cal(void *h, srslte_rf_cal_t *cal);
+
+SRSLTE_API void rf_blade_set_rx_cal(void *h, srslte_rf_cal_t *cal);
+
 SRSLTE_API int rf_blade_start_rx_stream(void *h);
 
 SRSLTE_API int rf_blade_start_rx_stream_nsamples(void *h, 

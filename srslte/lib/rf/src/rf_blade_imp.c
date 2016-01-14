@@ -104,7 +104,7 @@ int rf_blade_start_rx_stream(void *h)
   /* Configure the device's RX module for use with the sync interface.
      * SC16 Q11 samples *with* metadata are used. */
   uint32_t buffer_size_rx = ms_buffer_size_rx*(handler->rx_rate/1000/1024); 
-  printf("Setting buffer size %d for rate %d\n", buffer_size_rx, handler->rx_rate);
+  
   status = bladerf_sync_config(handler->dev,
                                 BLADERF_MODULE_RX,
                                 BLADERF_FORMAT_SC16_Q11_META,
@@ -342,16 +342,27 @@ double rf_blade_set_tx_freq(void *h, double freq)
     return -1;
   }
   
-  /* Apply manual IQ correction for 2.5-2.6G */
-  if (freq > 2.5e9 && freq < 2.6e9) {
-    bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_PHASE, 184);
-    bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_GAIN, 20);
-    bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_I, 19);
-    bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_Q, 97);
-  }
-  
   return freq;
 }
+
+void rf_blade_set_tx_cal(void *h, srslte_rf_cal_t *cal) {
+  rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
+  bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_PHASE, cal->dc_gain);
+  bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_GAIN, cal->dc_phase);
+  bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_I, cal->iq_i);
+  bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_Q, cal->iq_q);  
+  
+  printf("Set CAL values %f, %f, %f, %f\n", cal->dc_gain, cal->dc_phase, cal->iq_i, cal->iq_q);
+}
+
+void rf_blade_set_rx_cal(void *h, srslte_rf_cal_t *cal) {
+  rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
+  bladerf_set_correction(handler->dev, BLADERF_MODULE_RX, BLADERF_CORR_FPGA_PHASE, cal->dc_gain);
+  bladerf_set_correction(handler->dev, BLADERF_MODULE_RX, BLADERF_CORR_FPGA_GAIN, cal->dc_phase);
+  bladerf_set_correction(handler->dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_I, cal->iq_i);
+  bladerf_set_correction(handler->dev, BLADERF_MODULE_RX, BLADERF_CORR_LMS_DCOFF_Q, cal->iq_q);  
+}
+
 
 static void timestamp_to_secs(uint32_t rate, uint64_t timestamp, time_t *secs, double *frac_secs) {
   double totalsecs = (double) timestamp/rate;
@@ -402,7 +413,7 @@ int rf_blade_recv_with_time(void *h,
     fprintf(stderr, "RX failed: nsamples exceeds buffer size (%d>%d)\n", nsamples, CONVERT_BUFFER_SIZE);
     return -1;
   }
-  status = bladerf_sync_rx(handler->dev, handler->rx_buffer, nsamples, &meta, 0);
+  status = bladerf_sync_rx(handler->dev, handler->rx_buffer, nsamples, &meta, 2000);
   if (status) {
     fprintf(stderr, "RX failed: %s\n\n", bladerf_strerror(status));
     return -1;
@@ -461,7 +472,7 @@ int rf_blade_send_timed(void *h,
   if (is_end_of_burst) {
     meta.flags |= BLADERF_META_FLAG_TX_BURST_END;
   }
-  status = bladerf_sync_tx(handler->dev, handler->tx_buffer, nsamples, &meta, 0);
+  status = bladerf_sync_tx(handler->dev, handler->tx_buffer, nsamples, &meta, 2000);
   if (status == BLADERF_ERR_TIME_PAST) {
     if (blade_error_handler) {
       srslte_rf_error_t error; 
