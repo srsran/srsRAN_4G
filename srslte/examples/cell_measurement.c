@@ -338,7 +338,7 @@ int main(int argc, char **argv) {
           if (srslte_rf_has_rssi(&rf)) {
             rx_gain_offset = 10*log10(rssi)-srslte_rf_get_rssi(&rf);
           } else {
-            rx_gain_offset = srslte_rf_get_rx_gain(&rf);
+            rx_gain_offset = srslte_rf_get_rx_gain(&rf);            
           }
         }
         

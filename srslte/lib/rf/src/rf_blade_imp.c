@@ -270,7 +270,7 @@ double rf_blade_set_rx_gain(void *h, double gain)
 {
   int status; 
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;  
-  status = bladerf_set_rxvga2(handler->dev, (int) gain);
+  status = bladerf_set_rxvga2(handler->dev, (int) gain - 31);
   if (status != 0) {
     fprintf(stderr, "Failed to set RX VGA2 gain: %s\n", bladerf_strerror(status));
     return -1;
@@ -301,7 +301,7 @@ double rf_blade_get_rx_gain(void *h)
             bladerf_strerror(status));
     return -1;
   }
-  return gain;
+  return gain+31; // Add rxvga1 and LNA
 }
 
 double rf_blade_get_tx_gain(void *h)
@@ -315,7 +315,7 @@ double rf_blade_get_tx_gain(void *h)
             bladerf_strerror(status));
     return -1;
   }
-  return gain;
+  return gain; // Add txvga1
 }
 
 double rf_blade_set_rx_freq(void *h, double freq)
@@ -351,8 +351,6 @@ void rf_blade_set_tx_cal(void *h, srslte_rf_cal_t *cal) {
   bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_FPGA_GAIN, cal->dc_phase);
   bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_I, cal->iq_i);
   bladerf_set_correction(handler->dev, BLADERF_MODULE_TX, BLADERF_CORR_LMS_DCOFF_Q, cal->iq_q);  
-  
-  printf("Set CAL values %f, %f, %f, %f\n", cal->dc_gain, cal->dc_phase, cal->iq_i, cal->iq_q);
 }
 
 void rf_blade_set_rx_cal(void *h, srslte_rf_cal_t *cal) {
