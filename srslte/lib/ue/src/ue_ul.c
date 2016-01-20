@@ -252,18 +252,18 @@ int pucch_encode_bits(srslte_uci_data_t *uci_data, srslte_pucch_format_t *format
       *format = SRSLTE_PUCCH_FORMAT_2;    
     }
     // CQI + 1-bit ACK
-    else if (uci_data->uci_cqi_len == SRSLTE_PUCCH_MAX_BITS && uci_data->uci_ack_len == 1) {
+    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 1) {
       *format = SRSLTE_PUCCH_FORMAT_2A;    
       pucch2_bits[0] = uci_data->uci_ack; 
     }
     // CQI + 2-bit ACK 
-    else if (uci_data->uci_cqi_len == SRSLTE_PUCCH_MAX_BITS && uci_data->uci_ack_len == 2) {
+    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 2) {
       *format = SRSLTE_PUCCH_FORMAT_2B;    
       pucch2_bits[0] = uci_data->uci_ack; 
       pucch2_bits[1] = uci_data->uci_ack_2; 
     }
     // CQI + 2-bit ACK + cyclic prefix 
-    else if (uci_data->uci_cqi_len == SRSLTE_PUCCH_MAX_BITS && uci_data->uci_ack_len == 1 && SRSLTE_CP_ISEXT(cp)) {
+    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 1 && SRSLTE_CP_ISEXT(cp)) {
       *format = SRSLTE_PUCCH_FORMAT_2B;    
       pucch2_bits[0] = uci_data->uci_ack; 
       pucch2_bits[1] = uci_data->uci_ack_2; 

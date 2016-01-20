@@ -402,7 +402,7 @@ void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
   uint32_t i, nbytes; 
   uint8_t byte;
   nbytes = len/8;
-  fprintf(stream, "[", len);
+  fprintf(stream, "[");
   for (i=0;i<nbytes;i++) {
     byte = (uint8_t) srslte_bit_pack(&x, 8);
     fprintf(stream, "%02x ", byte);
