@@ -66,6 +66,7 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
     q->N_id_1 = 1000;
     q->cfo_i = 0; 
     q->find_cfo_i = false; 
+    q->find_cfo_i_initiated = false; 
     q->cfo_ema_alpha = CFO_EMA_ALPHA;
     q->fft_size = fft_size;
     q->frame_size = frame_size;
@@ -137,14 +138,17 @@ void srslte_sync_set_threshold(srslte_sync_t *q, float threshold) {
 
 void srslte_sync_cfo_i_detec_en(srslte_sync_t *q, bool enabled) {
   q->find_cfo_i = enabled;
-  for (int i=0;i<2;i++) {
-    int offset=(i==0)?-1:1;
-    if (srslte_pss_synch_init_fft_offset(&q->pss_i[i], q->max_offset, q->fft_size, offset)) {
-      fprintf(stderr, "Error initializing PSS object\n");      
+  if (enabled && !q->find_cfo_i_initiated) {
+    for (int i=0;i<2;i++) {
+      int offset=(i==0)?-1:1;
+      if (srslte_pss_synch_init_fft_offset(&q->pss_i[i], q->max_offset, q->fft_size, offset)) {
+        fprintf(stderr, "Error initializing PSS object\n");      
+      }
+      for (int t=0;t<q->frame_size;t++) {
+        q->cfo_i_corr[i][t] = cexpf(-2*_Complex_I*M_PI*offset*(float) t/q->fft_size);
+      }
     }
-    for (int t=0;t<q->frame_size;t++) {
-      q->cfo_i_corr[i][t] = cexpf(-2*_Complex_I*M_PI*offset*(float) t/q->fft_size);
-    }
+    q->find_cfo_i_initiated = true; 
   }
 }
 
@@ -343,7 +347,6 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       fft_size_isvalid(q->fft_size))
   {
     int peak_pos;
-    float correct_cfo = 0; 
     
     ret = SRSLTE_SUCCESS; 
     
@@ -358,7 +361,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       float cfo = -carg(cp_corr_max) / M_PI / 2; 
       
       /* compute cumulative moving average CFO */
-      DEBUG("cp_offset_pos=%d, abs=%f, cfo=%f, mean_cfo=%f, nof_symb=%d\n", 
+      INFO("cp_offset_pos=%d, abs=%f, cfo=%f, mean_cfo=%f, nof_symb=%d\n", 
             cp_offset, cabs(cp_corr_max), cfo, q->mean_cfo, q->nof_symbols);
       if (q->mean_cfo) {
         q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
@@ -367,16 +370,9 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       }
       
       /* Correct CFO with the averaged CFO estimation */
-      correct_cfo = q->mean_cfo;
-      if (!q->find_cfo_i) {
-        correct_cfo = q->cfo_i + q->mean_cfo;
-        DEBUG("cfo_i disabled, correct_cfo=%d+%f=%f\n",q->cfo_i, q->mean_cfo, correct_cfo);
-      }
-      srslte_cfo_correct(&q->cfocorr, input, input, -correct_cfo / q->fft_size);                 
+      srslte_cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                 
     }
-    
-    srslte_pss_synch_set_N_id_2(&q->pss, q->N_id_2);
-  
+ 
     if (q->find_cfo_i && q->enable_cfo_corr) {
       float peak_value; 
       float max_peak_value = -99;
@@ -393,21 +389,16 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
         }
       }      
       if (q->cfo_i != 0) {
-        correct_cfo = q->cfo_i+q->mean_cfo;
         srslte_vec_prod_ccc(input, q->cfo_i_corr[q->cfo_i<0?0:1], input, q->frame_size);
-        DEBUG("Compensating cfo_i=%d, total_cfo=%f\n", q->cfo_i, correct_cfo);
+        INFO("Compensating cfo_i=%d\n", q->cfo_i);
       }
     } else {
+      srslte_pss_synch_set_N_id_2(&q->pss, q->N_id_2);
       peak_pos = srslte_pss_synch_find_pss(&q->pss, &input[find_offset], &q->peak_value);
       if (peak_pos < 0) {
         fprintf(stderr, "Error calling finding PSS sequence\n");
         return SRSLTE_ERROR; 
       }      
-      if (q->max_offset<128) {
-        float temp[128];
-        srslte_vec_sc_prod_fff(q->pss.conv_output_avg, 1e8, temp, q->max_offset);
-        srslte_vec_fprint_f(stdout, temp, q->max_offset);
-      }
     }
     q->mean_peak_value = SRSLTE_VEC_EMA(q->peak_value, q->mean_peak_value, MEANPEAK_EMA_ALPHA);
 
@@ -443,7 +434,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
     }
     
     DEBUG("SYNC ret=%d N_id_2=%d find_offset=%d pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
-         ret, q->N_id_2, find_offset, peak_pos, q->peak_value, q->threshold, q->sf_idx, 15*correct_cfo);
+         ret, q->N_id_2, find_offset, peak_pos, q->peak_value, q->threshold, q->sf_idx, 15*(q->cfo_i+q->mean_cfo));
 
   } else if (srslte_N_id_2_isvalid(q->N_id_2)) {
     fprintf(stderr, "Must call srslte_sync_set_N_id_2() first!\n");
