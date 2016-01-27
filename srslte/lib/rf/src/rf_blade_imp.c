@@ -199,12 +199,12 @@ int rf_blade_open(char *args, void **h)
     fprintf(stderr, "Failed to set RX LNA gain: %s\n", bladerf_strerror(status));
     return status;
   }
-  status = bladerf_set_rxvga1(handler->dev, 25);
+  status = bladerf_set_rxvga1(handler->dev, 27);
   if (status != 0) {
     fprintf(stderr, "Failed to set RX VGA1 gain: %s\n", bladerf_strerror(status));
     return status;
   }
-  status = bladerf_set_txvga1(handler->dev, -8);
+  status = bladerf_set_txvga1(handler->dev, BLADERF_TXVGA1_GAIN_MAX);
   if (status != 0) {
     fprintf(stderr, "Failed to set TX VGA1 gain: %s\n", bladerf_strerror(status));
     return status;
@@ -270,7 +270,7 @@ double rf_blade_set_rx_gain(void *h, double gain)
 {
   int status; 
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;  
-  status = bladerf_set_rxvga2(handler->dev, (int) gain - 31);
+  status = bladerf_set_rxvga2(handler->dev, (int) gain);
   if (status != 0) {
     fprintf(stderr, "Failed to set RX VGA2 gain: %s\n", bladerf_strerror(status));
     return -1;
@@ -301,7 +301,7 @@ double rf_blade_get_rx_gain(void *h)
             bladerf_strerror(status));
     return -1;
   }
-  return gain+31; // Add rxvga1 and LNA
+  return gain; // Add rxvga1 and LNA
 }
 
 double rf_blade_get_tx_gain(void *h)

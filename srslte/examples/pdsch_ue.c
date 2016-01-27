@@ -545,7 +545,7 @@ int main(int argc, char **argv) {
                   "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
                    
                   srslte_ue_sync_get_cfo(&ue_sync)/1000,
-                  10*log10(rsrp/noise), 
+                  10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), 
                   100*(1-(float) ue_dl.nof_detected/nof_trials), 
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total);                            
           }
