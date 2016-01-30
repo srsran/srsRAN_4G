@@ -309,22 +309,18 @@ void srslte_vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
 #endif  
 }
 
+/* Note: We align memory to 32 bytes (for AVX compatibility) 
+ * because in some cases volk can incorrectly detect the architecture. 
+ * This could be inefficient for SSE or non-SIMD platforms but shouldn't 
+ * be a huge problem. 
+ */
 void *srslte_vec_malloc(uint32_t size) {
-#ifndef HAVE_VOLK
   void *ptr;
   if (posix_memalign(&ptr,32,size)) {
     return NULL;
   } else {
     return ptr;
   }
-#else
-  void *ptr;
-  if (posix_memalign(&ptr,volk_get_alignment(),size)) {
-    return NULL;
-  } else {
-    return ptr;
-  }
-#endif
 }
 
 void *srslte_vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
