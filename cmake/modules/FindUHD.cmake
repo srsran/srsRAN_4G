@@ -4,7 +4,7 @@ IF(NOT UHD_FOUND)
 
 FIND_PATH(
     UHD_INCLUDE_DIRS
-    NAMES uhd/config.hpp
+    NAMES uhd.h
     HINTS $ENV{UHD_DIR}/include
     PATHS /usr/local/include
           /usr/include

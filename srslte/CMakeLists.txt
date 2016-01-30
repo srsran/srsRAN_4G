@@ -43,6 +43,13 @@ ADD_CUSTOM_TARGET (add_srslte_headers SOURCES ${HEADERS_ALL})
 # Find Dependencies
 ########################################################################
 FIND_PACKAGE(UHD)
+FIND_PACKAGE(bladeRF)
+
+IF(BLADERF_FOUND OR UHD_FOUND)
+  set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
+ELSE(BLADERF_FOUND OR UHD_FOUND)
+  set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
+ENDIF(BLADERF_FOUND OR UHD_FOUND)
 
 ########################################################################
 # Add subdirectories

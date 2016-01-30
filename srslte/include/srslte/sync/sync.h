@@ -79,6 +79,7 @@ typedef struct SRSLTE_API {
   float mean_cfo;
   int cfo_i;
   bool find_cfo_i; 
+  bool find_cfo_i_initiated; 
   float cfo_ema_alpha;
   uint32_t nof_symbols;
   uint32_t cp_len;
