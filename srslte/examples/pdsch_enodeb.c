@@ -40,11 +40,11 @@
 #define UE_CRNTI 0x1234
 
 
-#ifndef DISABLE_UHD
-#include "srslte/cuhd/cuhd.h"
-void *uhd;
+#ifndef DISABLE_RF
+#include "srslte/rf/rf.h"
+srslte_rf_t rf;
 #else
-#warning Compiling pdsch_ue with no UHD support
+#warning Compiling pdsch_ue with no RF support
 #endif
 
 char *output_file_name = NULL;
@@ -64,14 +64,14 @@ srslte_cell_t cell = {
   SRSLTE_PHICH_NORM    // PHICH length
 };
   
-int net_port = -1; // -1 generates random data
+int net_port = -1; // -1 generates random dataThat means there is some problem sending samples to the device
 
 uint32_t cfi=2;
 uint32_t mcs_idx = 1, last_mcs_idx = 1;
 int nof_frames = -1;
 
-char *uhd_args = "";
-float uhd_amp = 0.8, uhd_gain = 70.0, uhd_freq = 2400000000;
+char *rf_args = "";
+float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 2400000000;
 
 bool null_file_sink=false; 
 srslte_filesink_t fsink;
@@ -101,15 +101,15 @@ int prbset_orig = 0;
 
 void usage(char *prog) {
   printf("Usage: %s [agmfoncvpu]\n", prog);
-#ifndef DISABLE_UHD
-  printf("\t-a UHD args [Default %s]\n", uhd_args);
-  printf("\t-l UHD amplitude [Default %.2f]\n", uhd_amp);
-  printf("\t-g UHD TX gain [Default %.2f dB]\n", uhd_gain);
-  printf("\t-f UHD TX frequency [Default %.1f MHz]\n", uhd_freq / 1000000);
+#ifndef DISABLE_RF
+  printf("\t-a RF args [Default %s]\n", rf_args);
+  printf("\t-l RF amplitude [Default %.2f]\n", rf_amp);
+  printf("\t-g RF TX gain [Default %.2f dB]\n", rf_gain);
+  printf("\t-f RF TX frequency [Default %.1f MHz]\n", rf_freq / 1000000);
 #else
-  printf("\t   UHD is disabled. CUHD library not available\n");
+  printf("\t   RF is disabled.\n");
 #endif
-  printf("\t-o output_file [Default USRP]\n");
+  printf("\t-o output_file [Default use RF board]\n");
   printf("\t-m MCS index [Default %d]\n", mcs_idx);
   printf("\t-n number of frames [Default %d]\n", nof_frames);
   printf("\t-c cell id [Default %d]\n", cell.id);
@@ -123,16 +123,16 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "aglfmoncpvu")) != -1) {
     switch (opt) {
     case 'a':
-      uhd_args = argv[optind];
+      rf_args = argv[optind];
       break;
     case 'g':
-      uhd_gain = atof(argv[optind]);
+      rf_gain = atof(argv[optind]);
       break;
     case 'l':
-      uhd_amp = atof(argv[optind]);
+      rf_amp = atof(argv[optind]);
       break;
     case 'f':
-      uhd_freq = atof(argv[optind]);
+      rf_freq = atof(argv[optind]);
       break;
     case 'o':
       output_file_name = argv[optind];
@@ -160,7 +160,7 @@ void parse_args(int argc, char **argv) {
       exit(-1);
     }
   }
-#ifdef DISABLE_UHD
+#ifdef DISABLE_RF
   if (!output_file_name) {
     usage(argv[0]);
     exit(-1);
@@ -171,12 +171,12 @@ void parse_args(int argc, char **argv) {
 void base_init() {
   
   /* init memory */
-  sf_buffer = malloc(sizeof(cf_t) * sf_n_re);
+  sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
   if (!sf_buffer) {
     perror("malloc");
     exit(-1);
   }
-  output_buffer = malloc(sizeof(cf_t) * sf_n_samples);
+  output_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
   if (!output_buffer) {
     perror("malloc");
     exit(-1);
@@ -193,14 +193,14 @@ void base_init() {
       null_file_sink = true; 
     }
   } else {
-#ifndef DISABLE_UHD
-    printf("Opening UHD device...\n");
-    if (cuhd_open(uhd_args, &uhd)) {
-      fprintf(stderr, "Error opening uhd\n");
+#ifndef DISABLE_RF
+    printf("Opening RF device...\n");
+    if (srslte_rf_open(&rf, rf_args)) {
+      fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
 #else
-    printf("Error UHD not available. Select an output file\n");
+    printf("Error RF not available. Select an output file\n");
     exit(-1);
 #endif
   }
@@ -287,8 +287,8 @@ void base_free() {
       srslte_filesink_free(&fsink);      
     }
   } else {
-#ifndef DISABLE_UHD
-    cuhd_close(&uhd);
+#ifndef DISABLE_RF
+    srslte_rf_close(&rf);
 #endif
   }
   
@@ -464,7 +464,7 @@ int main(int argc, char **argv) {
   uint32_t sfn; 
   srslte_chest_dl_t est; 
   
-#ifdef DISABLE_UHD
+#ifdef DISABLE_RF
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
@@ -502,7 +502,7 @@ int main(int argc, char **argv) {
     slot1_symbols[i] = &sf_buffer[SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)];
   }
 
-#ifndef DISABLE_UHD
+#ifndef DISABLE_RF
 
 
   sigset_t sigset;
@@ -516,13 +516,13 @@ int main(int argc, char **argv) {
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
       if (srate < 10e6) {          
-        cuhd_set_master_clock_rate(uhd, 4*srate);        
+        srslte_rf_set_master_clock_rate(&rf, 4*srate);        
       } else {
-        cuhd_set_master_clock_rate(uhd, srate);        
+        srslte_rf_set_master_clock_rate(&rf, srate);        
       }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_uhd = cuhd_set_tx_srate(uhd, (double) srate);
-      if (srate_uhd != srate) {
+      float srate_rf = srslte_rf_set_tx_srate(&rf, (double) srate);
+      if (srate_rf != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
       }
@@ -530,9 +530,9 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Invalid number of PRB %d\n", cell.nof_prb);
       exit(-1);
     }
-    printf("Set TX gain: %.1f dB\n", cuhd_set_tx_gain(uhd, uhd_gain));
+    printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&rf, rf_gain));
     printf("Set TX freq: %.2f MHz\n",
-        cuhd_set_tx_freq(uhd, uhd_freq) / 1000000);
+        srslte_rf_set_tx_freq(&rf, rf_freq) / 1000000);
   }
 #endif
 
@@ -556,8 +556,11 @@ int main(int argc, char **argv) {
   nf = 0;
   
   bool send_data = false; 
-  bool start_of_burst = true; 
   srslte_softbuffer_tx_reset(&softbuffer);
+
+#ifndef DISABLE_RF
+  bool start_of_burst = true; 
+#endif
   
   while ((nf < nof_frames || nof_frames == -1) && !go_exit) {
     for (sf_idx = 0; sf_idx < SRSLTE_NSUBFRAMES_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
@@ -642,11 +645,11 @@ int main(int argc, char **argv) {
         }
         usleep(1000);
       } else {
-#ifndef DISABLE_UHD
+#ifndef DISABLE_RF
         // FIXME
         float norm_factor = (float) cell.nof_prb/15/sqrtf(pdsch_cfg.grant.nof_prb);
-        srslte_vec_sc_prod_cfc(output_buffer, uhd_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-        cuhd_send2(uhd, output_buffer, sf_n_samples, true, start_of_burst, false);
+        srslte_vec_sc_prod_cfc(output_buffer, rf_amp*norm_factor, output_buffer, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+        srslte_rf_send2(&rf, output_buffer, sf_n_samples, true, start_of_burst, false);
         start_of_burst=false; 
 #endif
       }

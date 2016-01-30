@@ -40,12 +40,12 @@ target_link_libraries(pdsch_ue srslte pthread)
 add_executable(pdsch_enodeb pdsch_enodeb.c)
 target_link_libraries(pdsch_enodeb srslte pthread)
 
-IF(UHD_FOUND)
-  target_link_libraries(pdsch_ue srslte_uhd)
-  target_link_libraries(pdsch_enodeb srslte_uhd)
-ELSE(UHD_FOUND)
-  add_definitions(-DDISABLE_UHD)
-ENDIF(UHD_FOUND)
+IF(RF_FOUND)
+  target_link_libraries(pdsch_ue srslte_rf)
+  target_link_libraries(pdsch_enodeb srslte_rf)
+ELSE(RF_FOUND)
+  add_definitions(-DDISABLE_RF)
+ENDIF(RF_FOUND)
 
 FIND_PACKAGE(SRSGUI)
 
@@ -61,28 +61,28 @@ ENDIF(SRSGUI_FOUND)
 # These examples need the UHD driver
 #################################################################
 
-IF(UHD_FOUND)
+IF(RF_FOUND)
 
   add_executable(cell_search cell_search.c)
-  target_link_libraries(cell_search srslte srslte_uhd)
+  target_link_libraries(cell_search srslte srslte_rf)
 
   add_executable(cell_measurement cell_measurement.c)
-  target_link_libraries(cell_measurement srslte srslte_uhd)
+  target_link_libraries(cell_measurement srslte srslte_rf)
 
   add_executable(usrp_capture usrp_capture.c)
-  target_link_libraries(usrp_capture srslte srslte_uhd)
+  target_link_libraries(usrp_capture srslte srslte_rf)
 
   add_executable(usrp_capture_sync usrp_capture_sync.c)
-  target_link_libraries(usrp_capture_sync srslte srslte_uhd)
+  target_link_libraries(usrp_capture_sync srslte srslte_rf)
 
   add_executable(usrp_txrx usrp_txrx.c)
-  target_link_libraries(usrp_txrx srslte srslte_uhd)
+  target_link_libraries(usrp_txrx srslte srslte_rf)
 
-  MESSAGE(STATUS "   UHD examples will be installed.")
+  MESSAGE(STATUS "   examples will be installed.")
 
-ELSE(UHD_FOUND)
-  MESSAGE(STATUS "   UHD examples NOT INSTALLED.")
-ENDIF(UHD_FOUND)
+ELSE(RF_FOUND)
+  MESSAGE(STATUS "   examples will NOT BE INSTALLED.")
+ENDIF(RF_FOUND)
 
 # Add subdirectories 
 add_subdirectory(tutorial_examples)

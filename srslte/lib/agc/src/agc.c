@@ -124,11 +124,11 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
     if (!q->uhd_handler) {
       srslte_vec_sc_prod_cfc(signal, q->gain, signal, len);
     } else {
-      if (q->gain < 1) {
-        q->gain = 1.0; 
+      if (gain_db < 0) {
+        gain_db = 0.0; 
       }
       if (isinf(gain_db) || isnan(gain_db)) {
-        q->gain = 10.0; 
+        gain_db = 10.0; 
       } else {
         gain_uhd_db = q->set_gain_callback(q->uhd_handler, gain_db);        
         q->gain = pow(10, gain_uhd_db/10);

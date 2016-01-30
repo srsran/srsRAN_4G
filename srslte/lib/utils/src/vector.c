@@ -241,7 +241,7 @@ void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len) {
 #ifndef HAVE_VOLK_CONVERT_IF_FUNCTION
   int i;
   for (i=0;i<len;i++) {
-    z[i] = ((float) x[i])*scale;
+    z[i] = ((float) x[i])/scale;
   }
 #else
   volk_16i_s32f_convert_32f(z,x,scale,len);
@@ -402,7 +402,7 @@ void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
   uint32_t i, nbytes; 
   uint8_t byte;
   nbytes = len/8;
-  fprintf(stream, "[", len);
+  fprintf(stream, "[");
   for (i=0;i<nbytes;i++) {
     byte = (uint8_t) srslte_bit_pack(&x, 8);
     fprintf(stream, "%02x ", byte);
