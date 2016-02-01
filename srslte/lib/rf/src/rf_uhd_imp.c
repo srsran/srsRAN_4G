@@ -452,6 +452,7 @@ int rf_uhd_recv_with_time(void *h,
       }
       md = &handler->rx_md; 
       n += rxd_samples;
+      trials++;
     } while (n < nsamples && trials < 100);
   } else {
     void **buffs_ptr = (void**) &data;
@@ -513,6 +514,7 @@ int rf_uhd_send_timed(void *h,
       // Increase time spec 
       uhd_tx_metadata_add_time_spec(&handler->tx_md, txd_samples/handler->tx_rate);
       n += txd_samples;
+      trials++;
     } while (n < nsamples && trials < 100);
     return nsamples;
   } else {
