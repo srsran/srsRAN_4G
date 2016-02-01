@@ -431,6 +431,7 @@ int rf_uhd_recv_with_time(void *h,
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   size_t rxd_samples;
   uhd_rx_metadata_handle *md = &handler->rx_md_first; 
+  int trials = 0; 
   if (blocking) {
     int n = 0;
     cf_t *data_c = (cf_t*) data;
@@ -451,7 +452,7 @@ int rf_uhd_recv_with_time(void *h,
       }
       md = &handler->rx_md; 
       n += rxd_samples;
-    } while (n < nsamples);
+    } while (n < nsamples && trials < 100);
   } else {
     void **buffs_ptr = (void**) &data;
     return uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
@@ -479,6 +480,7 @@ int rf_uhd_send_timed(void *h,
   if (has_time_spec) {
     uhd_tx_metadata_set_time_spec(&handler->tx_md, secs, frac_secs);
   }
+  int trials = 0; 
   if (blocking) {
     int n = 0;
     cf_t *data_c = (cf_t*) data;
@@ -511,7 +513,7 @@ int rf_uhd_send_timed(void *h,
       // Increase time spec 
       uhd_tx_metadata_add_time_spec(&handler->tx_md, txd_samples/handler->tx_rate);
       n += txd_samples;
-    } while (n < nsamples);
+    } while (n < nsamples && trials < 100);
     return nsamples;
   } else {
     const void **buffs_ptr = (const void**) &data;
