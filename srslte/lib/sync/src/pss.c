@@ -254,6 +254,12 @@ void srslte_pss_put_slot(cf_t *pss_signal, cf_t *slot, uint32_t nof_prb, srslte_
   memset(&slot[k + SRSLTE_PSS_LEN], 0, 5 * sizeof(cf_t));
 }
 
+void srslte_pss_get_slot(cf_t *slot, cf_t *pss_signal, uint32_t nof_prb, srslte_cp_t cp) {
+  int k;
+  k = (SRSLTE_CP_NSYMB(cp) - 1) * nof_prb * SRSLTE_NRE + nof_prb * SRSLTE_NRE / 2 - 31;
+  memcpy(pss_signal, &slot[k], SRSLTE_PSS_LEN * sizeof(cf_t));  
+}
+
 
 /** Sets the current N_id_2 value. Returns -1 on error, 0 otherwise
  */

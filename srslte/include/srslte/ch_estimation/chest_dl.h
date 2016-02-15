@@ -48,6 +48,7 @@
 #include "srslte/resampling/interp.h"
 #include "srslte/ch_estimation/refsignal_dl.h"
 #include "srslte/common/phy_common.h"
+#include "srslte/sync/pss.h"
 
 #define SRSLTE_CHEST_MAX_FILTER_FREQ_LEN    21
 #define SRSLTE_CHEST_MAX_FILTER_TIME_LEN    40
@@ -55,19 +56,10 @@
 typedef struct {
   srslte_cell_t cell; 
   srslte_refsignal_cs_t csr_signal;
-  cf_t *pilot_estimates[SRSLTE_MAX_PORTS];
-  cf_t *pilot_estimates_average[SRSLTE_MAX_PORTS];
-  cf_t *pilot_recv_signal[SRSLTE_MAX_PORTS];
- 
-  uint32_t filter_freq_len;
-  float filter_freq[SRSLTE_CHEST_MAX_FILTER_FREQ_LEN];
-  uint32_t filter_time_len;
-  float filter_time[SRSLTE_CHEST_MAX_FILTER_TIME_LEN];
-  
+  cf_t *pilot_estimates;
+  cf_t *pilot_recv_signal; 
   cf_t *tmp_noise; 
-  cf_t *tmp_freqavg;
-  cf_t *tmp_timeavg[SRSLTE_CHEST_MAX_FILTER_TIME_LEN];
-  cf_t *tmp_timeavg_mult; 
+  cf_t *w_filter; 
 
   srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
   srslte_interp_lin_t srslte_interp_lin; 
@@ -75,7 +67,11 @@ typedef struct {
   float rssi[SRSLTE_MAX_PORTS]; 
   float rsrp[SRSLTE_MAX_PORTS]; 
   float noise_estimate[SRSLTE_MAX_PORTS];
-  float filter_time_ema;
+  
+  /* Use PSS for noise estimation in LS linear interpolation mode */
+  cf_t pss_signal[SRSLTE_PSS_LEN];
+  cf_t tmp_pss[SRSLTE_PSS_LEN];
+  cf_t tmp_pss_noisy[SRSLTE_PSS_LEN];
 } srslte_chest_dl_t;
 
 
@@ -84,16 +80,8 @@ SRSLTE_API int srslte_chest_dl_init(srslte_chest_dl_t *q,
 
 SRSLTE_API void srslte_chest_dl_free(srslte_chest_dl_t *q); 
 
-SRSLTE_API int srslte_chest_dl_set_filter_freq(srslte_chest_dl_t *q, 
-                                               float *filter, 
-                                               uint32_t filter_len);
-
-SRSLTE_API int srslte_chest_dl_set_filter_time(srslte_chest_dl_t *q, 
-                                               float *filter, 
-                                               uint32_t filter_len);
-
-SRSLTE_API void srslte_chest_dl_set_filter_time_ema(srslte_chest_dl_t *q, 
-                                                    float ema_coefficient); 
+SRSLTE_API void srslte_chest_dl_set_filter_w(srslte_chest_dl_t *q, 
+                                             cf_t *w); 
 
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,

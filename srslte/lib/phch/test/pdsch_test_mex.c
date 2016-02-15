@@ -53,7 +53,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_pdsch_t pdsch;
   srslte_chest_dl_t chest; 
   cf_t *input_fft;
-  int nof_re; 
   srslte_pdsch_cfg_t cfg;
   srslte_softbuffer_rx_t softbuffer; 
   uint32_t rnti32;
@@ -101,9 +100,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error initializing equalizer\n");
     return;
   }
-
-  
-  nof_re = 2 * SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
   srslte_ra_dl_grant_t grant; 
   grant.mcs.tbs = mxGetScalar(TBS);
@@ -188,6 +184,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
+  
+  cf_t *w=NULL; 
+  if (nrhs > NOF_INPUTS) {
+    mexutils_read_cf(prhs[NOF_INPUTS], &w);
+    srslte_chest_dl_set_filter_w(&chest, w);
+    srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
+    free(w);
+  } else {
+    srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
+  }
+  
+  /*
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray = NULL; 
     nof_re = mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
@@ -203,6 +211,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } else {
     srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
   }
+  */
+
   float noise_power;
   if (nrhs > NOF_INPUTS + 1) {
     noise_power = mxGetScalar(prhs[NOF_INPUTS+1]);

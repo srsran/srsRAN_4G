@@ -519,9 +519,9 @@ int main(int argc, char **argv) {
                         
             nof_trials++; 
             
-            rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.05);
-            rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
-            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);      
+            rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1);
+            rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.1);      
+            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.1);      
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -541,11 +541,11 @@ int main(int argc, char **argv) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
             }
             printf("CFO: %+6.2f KHz, "
-                  "SNR: %4.1f dB, "
-                  "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
+                   "SNR: %4.1f dB, "
+                   "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
                    
                   srslte_ue_sync_get_cfo(&ue_sync)/1000,
-                  10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), 
+                  10*log10(rsrp/noise), 
                   100*(1-(float) ue_dl.nof_detected/nof_trials), 
                   (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total);                            
           }

@@ -112,6 +112,11 @@ SRSLTE_API void srslte_pss_synch_reset(srslte_pss_synch_t *q);
 SRSLTE_API int srslte_pss_generate(cf_t *signal, 
                                    uint32_t N_id_2);
 
+SRSLTE_API void srslte_pss_get_slot(cf_t *slot, 
+                                    cf_t *pss_signal, 
+                                    uint32_t nof_prb, 
+                                    srslte_cp_t cp); 
+
 SRSLTE_API void srslte_pss_put_slot(cf_t *pss_signal, 
                                     cf_t *slot, 
                                     uint32_t nof_prb, 

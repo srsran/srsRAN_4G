@@ -6,11 +6,11 @@
 
 recordedSignal=[];
 
-Npackets = 5;
-SNR_values = linspace(18,25,5);
+Npackets = 30;
+SNR_values = linspace(9,24,5);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.9',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.0',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
@@ -28,13 +28,13 @@ end
 
 flen=rmccFgOut.SamplingRate/1000;
     
-Nsf = 10; 
+Nsf = 9; 
 
 %% Setup Fading channel model 
-cfg.Seed = 8;                  % Random channel seed
+cfg.Seed = 0;                  % Random channel seed
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EVA';      % EVA delay spread
-cfg.DopplerFreq = 5;           % 120Hz Doppler frequency
+cfg.DelayProfile = 'EPA';      % EVA delay spread
+cfg.DopplerFreq = 120;           % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
 cfg.InitTime = 0;              % Initialize at time zero
 cfg.NTerms = 16;               % Oscillators used in fading model
@@ -49,7 +49,7 @@ cec.PilotAverage = 'UserDefined';     % Type of pilot averaging
 cec.FreqWindow = 9;                   % Frequency window size
 cec.TimeWindow = 9;                   % Time window size
 cec.InterpType = 'linear';             % 2D interpolation type
-cec.InterpWindow = 'Centered';        % Interpolation window type
+cec.InterpWindow = 'Causal';        % Interpolation window type
 cec.InterpWinSize = 1;                % Interpolation window size
 
 addpath('../../build/srslte/lib/phch/test')
@@ -61,6 +61,10 @@ for snr_idx=1:length(SNR_values)
     SNRdB = SNR_values(snr_idx);
     SNR = 10^(SNRdB/10);    % Linear SNR  
     N0  = 1/(sqrt(2.0*rmccFgOut.CellRefP*double(rmccFgOut.Nfft))*SNR);
+    
+    Rhphp=zeros(30,30);
+    Rhhp=zeros(180,30);
+
     for i=1:Npackets
 
         if isempty(recordedSignal)
@@ -86,7 +90,7 @@ for snr_idx=1:length(SNR_values)
             rmccFgOut.TotSubframes=1;
 
             % Perform channel estimation
-            [hest, nest] = lteDLChannelEstimate(rmccFgOut, cec, subframe_rx);
+            [hest, nest,estimates] = lteDLChannelEstimate2(rmccFgOut, cec, subframe_rx);
 
             [cws,symbols] = ltePDSCHDecode(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
             [trblkout,blkcrc,dstate] = lteDLSCHDecode(rmccFgOut,rmccFgOut.PDSCH, ... 
@@ -99,7 +103,7 @@ for snr_idx=1:length(SNR_values)
             if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
                 [dec2, data, pdschRx, pdschSymbols2, cws2] = srslte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
                                                         rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
-                                                        subframe_rx, hest, nest);
+                                                        subframe_rx);
             else
                 dec2 = 1;
             end
@@ -117,8 +121,8 @@ for snr_idx=1:length(SNR_values)
 end
 
 if (length(SNR_values)>1)
-    semilogy(SNR_values,1-decoded/Npackets/(Nsf+1),'bo-',...
-             SNR_values,1-decoded_srslte/Npackets/(Nsf+1), 'ro-')
+    semilogy(SNR_values,1-decoded/Npackets/(Nsf),'bo-',...
+             SNR_values,1-decoded_srslte/Npackets/(Nsf), 'ro-')
     grid on;
     legend('Matlab','srsLTE')
     xlabel('SNR (dB)')
