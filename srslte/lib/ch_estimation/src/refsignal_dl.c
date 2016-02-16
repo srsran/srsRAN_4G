@@ -218,10 +218,7 @@ int srslte_refsignal_cs_put_sf(srslte_cell_t cell, uint32_t port_id, cf_t *pilot
   }
 }
 
-/** Copies the RE containing references from an array of subframe symbols into the csr_signal[][]. 
- * csr_signal[0] is the signal for the first OFDM symbol containing references and csr_signal[1] is the
- * second OFDM symbol containing references (symbol 4 or 3 if port_id < 2)
- */
+/** Copies the RE containing references from an array of subframe symbols to the pilots array. */
 int srslte_refsignal_cs_get_sf(srslte_cell_t cell, uint32_t port_id, cf_t *sf_symbols, cf_t *pilots)
 {
   uint32_t i, l;
