@@ -39,8 +39,6 @@
 
 #define MAX_CANDIDATES  64
 
-#define PDSCH_DO_ZF
-
 srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
 const uint32_t nof_ue_formats = 2; 
 
@@ -227,11 +225,9 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *
     srslte_softbuffer_rx_reset(&q->softbuffer);
   }
   
-#ifdef PDSCH_DO_ZF
-  float noise_estimate = 0; 
-#else
+  // Uncoment next line to do ZF by default in pdsch_ue example
+  //float noise_estimate = 0; 
   float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
-#endif
   
   if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
     ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
