@@ -6,20 +6,20 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=linspace(0,30,7);
-Nrealizations=4;
+SNR_values_db=30;%linspace(0,40,7);
+Nrealizations=1;
 
-Lp=10;
+Lp=20;
         
-N=512;
-K=300;
+N=1024;
+K=600;
 rstart=(N-K)/2;
 P=K/6;
 Rhphp=zeros(P,P);
 Rhhp=zeros(K,P);
 Rhh=zeros(K,K);
 
-enb.NDLRB = 25;                 % Number of resource blocks
+enb.NDLRB = 50;                 % Number of resource blocks
 enb.CellRefP = 1;               % One transmit antenna port
 enb.NCellID = 0;                % Cell ID
 enb.CyclicPrefix = 'Normal';    % Normal cyclic prefix
@@ -29,11 +29,11 @@ enb.DuplexMode = 'FDD';         % FDD
 cfg.Seed = 0;                  % Random channel seed
 cfg.InitTime = 0;
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EVA';     
+cfg.DelayProfile = 'EPA';     
 
 % doppler 5, 70 300
 
-cfg.DopplerFreq = 200;          % 120Hz Doppler frequency
+cfg.DopplerFreq = 50;          % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
 cfg.NTerms = 16;               % Oscillators used in fading model
 cfg.ModelType = 'GMEDS';       % Rayleigh fading model type
@@ -245,7 +245,7 @@ prows=rstart+(1:6:K);
 F=dftmtx(N);
 F_p=F(prows,1:Lp);
 F_l=F((rstart+1):(K+rstart),1:Lp);
-Wi=(F_p'*F_p+C_l/snr_lin)^(-1);
+Wi=(F_p'*F_p+C_l*0.01)^(-1);
 W2=F_l*Wi*F_p';
 
 % for i=1:length(hidx)
