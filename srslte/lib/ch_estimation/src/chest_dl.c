@@ -309,7 +309,7 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   }
     
   /* Compute RSRP for the channel estimates in this port */
-  q->rsrp[port_id] = srslte_vec_avg_power_cf(q->pilot_estimates, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));     
+  q->rsrp[port_id] = srslte_vec_avg_power_cf(q->pilot_recv_signal, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));     
   if (port_id == 0) {
     /* compute rssi only for port 0 */
     q->rssi[port_id] = srslte_chest_dl_rssi(q, input, port_id);     
@@ -333,7 +333,7 @@ float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
 }
 
 float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
-  return srslte_chest_dl_get_rsrp(q)/srslte_chest_dl_get_noise_estimate(q)-1;
+  return srslte_chest_dl_get_rsrp(q)/srslte_chest_dl_get_noise_estimate(q);
 }
 
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {
