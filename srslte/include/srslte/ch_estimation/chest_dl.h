@@ -83,6 +83,8 @@ SRSLTE_API void srslte_chest_dl_free(srslte_chest_dl_t *q);
 SRSLTE_API void srslte_chest_dl_set_filter_w(srslte_chest_dl_t *q, 
                                              cf_t *w); 
 
+SRSLTE_API void srslte_chest_dl_set_robust_mmse_filter(srslte_chest_dl_t *q); 
+
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,
                                         cf_t *ce[SRSLTE_MAX_PORTS],

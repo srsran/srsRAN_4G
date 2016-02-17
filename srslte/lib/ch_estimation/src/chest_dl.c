@@ -41,6 +41,9 @@
 
 #define ESTIMATE_NOISE_LS_PSS
 
+#include "robust_mmse_25prb.h"
+#include "robust_mmse_50prb.h"
+
 /** 3GPP LTE Downlink channel estimator and equalizer. 
  * Estimates the channel in the resource elements transmitting references and interpolates for the rest
  * of the resource grid. 
@@ -132,6 +135,18 @@ void srslte_chest_dl_set_filter_w(srslte_chest_dl_t *q, cf_t *w) {
   q->w_filter = w; 
 }
 
+void srslte_chest_dl_set_robust_mmse_filter(srslte_chest_dl_t *q) {
+  if (q->cell.nof_prb == 25) {
+    printf("Using robust LMMSE interpolation filter\n");
+    srslte_chest_dl_set_filter_w(q, (cf_t*) w_robust_25prb);
+  } else if (q->cell.nof_prb == 50) {
+    printf("Using robust LMMSE interpolation filter\n");
+    srslte_chest_dl_set_filter_w(q, (cf_t*) w_robust_50prb);
+  } else {
+    fprintf(stderr, "Error setting robust MMSE filter. Not available for %d PRB\n", q->cell.nof_prb);
+  }
+}
+
 /* Uses the difference between the averaged and non-averaged pilot estimates */
 static float estimate_noise_pilots(srslte_chest_dl_t *q, cf_t *ce, uint32_t port_id) 
 {
@@ -215,7 +230,7 @@ static void interpolate_filter_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimate
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 2);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 2);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(7), 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), 2);
+      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), &cesymb(10), 2);
     } else {
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(1), &cesymb(0), 1);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 5);
@@ -255,7 +270,7 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 2);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 2);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(7), 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), 2);
+      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), &cesymb(10), 2);
     } else {
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(1), &cesymb(0), 1);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 5);
