@@ -9,17 +9,17 @@ plot_noise_estimation_only=false;
 SNR_values_db=30;%linspace(0,40,7);
 Nrealizations=1;
 
-Lp=20;
+Lp=10;
         
-N=1024;
-K=600;
+N=512;
+K=300;
 rstart=(N-K)/2;
 P=K/6;
 Rhphp=zeros(P,P);
 Rhhp=zeros(K,P);
 Rhh=zeros(K,K);
 
-enb.NDLRB = 50;                 % Number of resource blocks
+enb.NDLRB = 25;                 % Number of resource blocks
 enb.CellRefP = 1;               % One transmit antenna port
 enb.NCellID = 0;                % Cell ID
 enb.CyclicPrefix = 'Normal';    % Normal cyclic prefix
