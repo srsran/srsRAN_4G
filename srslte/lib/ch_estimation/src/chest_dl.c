@@ -189,7 +189,7 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
   srslte_vec_sub_ccc(q->tmp_pss_noisy, q->tmp_pss, q->tmp_pss_noisy, SRSLTE_PSS_LEN);
   
   /* Compute average power */
-  float power = sqrt(2)*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN);
+  float power = 2*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN);
   return power; 
 }
 
