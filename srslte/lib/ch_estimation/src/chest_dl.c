@@ -41,8 +41,28 @@
 
 #define ESTIMATE_NOISE_LS_PSS
 
-#include "robust_mmse_25prb.h"
-#include "robust_mmse_50prb.h"
+#define DEFAULT_FILTER_LEN 3
+
+static void set_default_filter(srslte_chest_dl_t *q, int filter_len) {
+  
+  float fil[SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN]; 
+
+  for (int i=0;i<filter_len/2;i++) {
+    fil[i] = i+1;
+    fil[i+filter_len/2+1]=filter_len/2-i;
+  }
+  fil[filter_len/2]=filter_len/2+1;
+  
+  float s=0;
+  for (int i=0;i<filter_len;i++) {
+    s+=fil[i];
+  }
+  for (int i=0;i<filter_len;i++) {
+    fil[i]/=s;
+  }
+
+  srslte_chest_dl_set_smooth_filter(q, fil, filter_len);
+}
 
 /** 3GPP LTE Downlink channel estimator and equalizer. 
  * Estimates the channel in the resource elements transmitting references and interpolates for the rest
@@ -77,6 +97,11 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       perror("malloc");
       goto clean_exit;
     }      
+    q->pilot_estimates_average = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
+    if (!q->pilot_estimates_average) {
+      perror("malloc");
+      goto clean_exit;
+    }      
     q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
     if (!q->pilot_recv_signal) {
       perror("malloc");
@@ -98,7 +123,8 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       goto clean_exit;
     }
     
-    q->w_filter = NULL; 
+    q->smooth_filter_len = 0; 
+    set_default_filter(q, DEFAULT_FILTER_LEN);
     
     q->cell = cell; 
   }
@@ -125,26 +151,13 @@ void srslte_chest_dl_free(srslte_chest_dl_t *q)
   if (q->pilot_estimates) {
     free(q->pilot_estimates);
   }      
+  if (q->pilot_estimates_average) {
+    free(q->pilot_estimates_average);
+  }      
   if (q->pilot_recv_signal) {
     free(q->pilot_recv_signal);
   }
   bzero(q, sizeof(srslte_chest_dl_t));
-}
-
-void srslte_chest_dl_set_filter_w(srslte_chest_dl_t *q, cf_t *w) {
-  q->w_filter = w; 
-}
-
-void srslte_chest_dl_set_robust_mmse_filter(srslte_chest_dl_t *q) {
-  if (q->cell.nof_prb == 25) {
-    printf("Using robust LMMSE interpolation filter\n");
-    srslte_chest_dl_set_filter_w(q, (cf_t*) w_robust_25prb);
-  } else if (q->cell.nof_prb == 50) {
-    printf("Using robust LMMSE interpolation filter\n");
-    srslte_chest_dl_set_filter_w(q, (cf_t*) w_robust_50prb);
-  } else {
-    fprintf(stderr, "Error setting robust MMSE filter. Not available for %d PRB\n", q->cell.nof_prb);
-  }
 }
 
 /* Uses the difference between the averaged and non-averaged pilot estimates */
@@ -156,7 +169,7 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, cf_t *ce, uint32_t port
   /* Substract noisy pilot estimates */
   srslte_vec_sub_ccc(q->tmp_noise, q->pilot_estimates, q->tmp_noise, nref);  
   /* Compute average power */
-  float power = sqrt(2.0)*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
+  float power = sqrt(2)*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
   return power; 
 }
 
@@ -176,7 +189,7 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
   srslte_vec_sub_ccc(q->tmp_pss_noisy, q->tmp_pss, q->tmp_pss_noisy, SRSLTE_PSS_LEN);
   
   /* Compute average power */
-  float power = q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN)/sqrt(2);
+  float power = sqrt(2)*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN);
   return power; 
 }
 
@@ -199,45 +212,6 @@ static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
 
 
 #define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,0)]
-
-static void interpolate_filter_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t *w, cf_t *ce, uint32_t port_id) 
-{
-  int nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
-  int nsc=SRSLTE_NRE*q->cell.nof_prb;
-  int nref=2*q->cell.nof_prb;
-  
-  // Interpolation filter in frequency domain
-  for (uint32_t s=0;s<nsymbols;s++) {
-    for (int i=0;i<nsc;i++) {         
-      uint32_t sym_idx=srslte_refsignal_cs_nsymbol(s,q->cell.cp, port_id);
-      ce[nsc*sym_idx+i] = srslte_vec_dot_prod_ccc(&pilot_estimates[s*nref], &w[i*nref], nref);  
-    }
-  }
-  /* Now interpolate in the time domain between symbols */
-  if (SRSLTE_CP_ISNORM(q->cell.cp)) {
-    if (nsymbols == 4) {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(4),  &cesymb(1),  3);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(4), &cesymb(7),  &cesymb(5),  2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(8),  3);
-      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(11), &cesymb(12), 2);
-    } else {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(8), &cesymb(1), &cesymb(0), 1);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(2), 6);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 5);
-    }    
-  } else {
-    if (nsymbols == 4) {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(7), 2);
-      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), &cesymb(10), 2);
-    } else {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(1), &cesymb(0), 1);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 5);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(8), 4);
-    }    
-  }
-}
 
 static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t *ce, uint32_t port_id) 
 {
@@ -279,6 +253,25 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
   }
 }
 
+void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint32_t filter_len) {
+  if (filter_len < SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN) {
+    memcpy(q->smooth_filter, filter, filter_len*sizeof(float));
+    q->smooth_filter_len = filter_len; 
+  } else {
+    fprintf(stderr, "Error setting smoothing filter: filter len exceeds maximum (%d>%d)\n", 
+      filter_len, SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN);
+  }
+}
+
+static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint32_t port_id) {
+  uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
+  uint32_t nref = 2*q->cell.nof_prb;
+
+  for (int l=0;l<nsymbols;l++) {
+    srslte_conv_same_cf(&input[l*nref], q->smooth_filter, &output[l*nref], nref, q->smooth_filter_len);    
+  }
+}
+
 float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) {
   uint32_t l;
   
@@ -300,22 +293,21 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->csr_signal.pilots[port_id/2][sf_idx], 
               q->pilot_estimates, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
   if (ce != NULL) {
-    /* TESTING: Use robust MMSE interpolation filter */
-    if (q->w_filter) {
-      interpolate_filter_pilots(q, q->pilot_estimates, q->w_filter, ce, port_id);
-
-      /* Estimate noise from difference from averaged and estimated pilots */
+    if (q->smooth_filter_len > 0) {
+      average_pilots(q, q->pilot_estimates, q->pilot_estimates_average, port_id);
+      interpolate_pilots(q, q->pilot_estimates_average, ce, port_id);        
+      
+      /* If averaging, compute noise from difference between received and averaged estimates */
       if (sf_idx == 0 || sf_idx == 5) {
         q->noise_estimate[port_id] = estimate_noise_pilots(q, ce, port_id);
       }      
-    /* If w filter not defined, resort to LS estimate + linear interpolation */
     } else {
-      interpolate_pilots(q, q->pilot_estimates, ce, port_id);        
+      interpolate_pilots(q, q->pilot_estimates, ce, port_id);            
       
       /* If not averaging, compute noise from empty subcarriers */
       if (sf_idx == 0 || sf_idx == 5) {
 #ifdef ESTIMATE_NOISE_LS_PSS
-        q->noise_estimate[port_id] = estimate_noise_pss(q, input, ce);        
+        q->noise_estimate[port_id] = estimate_noise_pss(q, input, ce);
 #else
         q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
 #endif

@@ -141,7 +141,7 @@ bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
 /* SNR-to-CQI conversion, got from "Downlink SNR to CQI Mapping for Different Multiple Antenna Techniques in LTE"
  * Table III. 
 */
-static float cqi_to_snr_table[15] = { 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 19.9, 21.5, 24, 26, 28, 30};
+static float cqi_to_snr_table[15] = { 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 19.9, 21.5, 23.45, 25.0, 27.30, 29};
 
 uint8_t srslte_cqi_from_snr(float snr)
 {

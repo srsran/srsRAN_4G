@@ -285,7 +285,8 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
 }
 
 int srslte_rm_turbo_rx_lut(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
-{
+{ 
+  
 #ifdef LV_HAVE_AVX
   return srslte_rm_turbo_rx_lut_avx(input, output, in_len, cb_idx, rv_idx);
 #else 
@@ -295,9 +296,7 @@ int srslte_rm_turbo_rx_lut(int16_t *input, int16_t *output, uint32_t in_len, uin
     if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
       uint32_t out_len = 3*srslte_cbsegm_cbsize(cb_idx)+12;
       uint16_t *deinter = deinterleaver[cb_idx][rv_idx];
-      
-      for (int i=0;i<in_len;i++) {
-        //printf("i=%d=%d goes to %d\n", i%out_len, input[i], deinter[i%out_len]);
+      for (int i=0;i<in_len;i++) {        
         output[deinter[i%out_len]] += input[i];
       }
       return 0;    

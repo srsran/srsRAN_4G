@@ -50,16 +50,18 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/sync/pss.h"
 
-#define SRSLTE_CHEST_MAX_FILTER_FREQ_LEN    21
-#define SRSLTE_CHEST_MAX_FILTER_TIME_LEN    40
+#define SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN  65
 
 typedef struct {
   srslte_cell_t cell; 
   srslte_refsignal_cs_t csr_signal;
   cf_t *pilot_estimates;
+  cf_t *pilot_estimates_average; 
   cf_t *pilot_recv_signal; 
   cf_t *tmp_noise; 
-  cf_t *w_filter; 
+  
+  uint32_t smooth_filter_len; 
+  float smooth_filter[SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN];
 
   srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
   srslte_interp_lin_t srslte_interp_lin; 
@@ -80,10 +82,9 @@ SRSLTE_API int srslte_chest_dl_init(srslte_chest_dl_t *q,
 
 SRSLTE_API void srslte_chest_dl_free(srslte_chest_dl_t *q); 
 
-SRSLTE_API void srslte_chest_dl_set_filter_w(srslte_chest_dl_t *q, 
-                                             cf_t *w); 
-
-SRSLTE_API void srslte_chest_dl_set_robust_mmse_filter(srslte_chest_dl_t *q); 
+SRSLTE_API void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, 
+                                                  float *filter, 
+                                                  uint32_t filter_len); 
 
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,

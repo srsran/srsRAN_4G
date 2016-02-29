@@ -115,13 +115,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   output_signal2 = srslte_vec_malloc(nof_re * sizeof(cf_t));
   
   srslte_precoding_init(&cheq, nof_re);
-
-  
-  cf_t *w=NULL; 
-  if (nrhs > NOF_INPUTS) {
-    mexutils_read_cf(prhs[NOF_INPUTS], &w);
-    srslte_chest_dl_set_filter_w(&chest, w);
-  } 
     
   /* Create output values */
   if (nlhs >= 1) {
@@ -173,28 +166,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     
     if (nlhs >= 1) { 
-      for (int j=0;j<cell.nof_ports;j++) {
-        for (i=0;i<nof_re;i++) {      
-          *outr0 = (double) crealf(ce[j][i]);
-          if (outi0) {
-            *outi0 = (double) cimagf(ce[j][i]);
-          }
-          outr0++;
-          outi0++;
-        } 
-      }
+      for (i=0;i<nof_re;i++) {      
+        *outr0 = (double) crealf(ce[0][i]);
+        if (outi0) {
+          *outi0 = (double) cimagf(ce[0][i]);
+        }
+        outr0++;
+        outi0++;
+      } 
     }
     if (nlhs >= 2) {    
-      for (int j=0;j<cell.nof_ports;j++) {
-        for (i=0;i<SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb,j);i++) {
-          *outr1 = (double) crealf(chest.pilot_estimates[i]);
-          if (outi1) {
-            *outi1 = (double) cimagf(chest.pilot_estimates[i]);
-          }
-          outr1++;
-          outi1++;
+      for (i=0;i<SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb,0);i++) {
+        *outr1 = (double) crealf(chest.pilot_estimates_average[i]);
+        if (outi1) {
+          *outi1 = (double) cimagf(chest.pilot_estimates_average[i]);
         }
-      }    
+        outr1++;
+        outi1++;
+      }
     }
     if (nlhs >= 3) {
       for (i=0;i<nof_re;i++) {      
@@ -206,10 +195,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         outi2++;
       }
     }
-  }
-
-  if (w) {
-    free(w);
   }
 
   if (nlhs >= 4) {

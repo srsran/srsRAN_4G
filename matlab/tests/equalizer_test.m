@@ -6,24 +6,24 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=30;%linspace(0,40,7);
+SNR_values_db=30;%linspace(0,30,8);
 Nrealizations=1;
 
-Lp=10;
-        
+Lp=5;
 N=512;
-K=300;
+enb.NDLRB = 25;                 % Number of resource blocks
+
+enb.CellRefP = 1;               % One transmit antenna port
+enb.NCellID = 0;                % Cell ID
+enb.CyclicPrefix = 'Normal';    % Normal cyclic prefix
+enb.DuplexMode = 'FDD';         % FDD
+
+K=enb.NDLRB*12;
 rstart=(N-K)/2;
 P=K/6;
 Rhphp=zeros(P,P);
 Rhhp=zeros(K,P);
 Rhh=zeros(K,K);
-
-enb.NDLRB = 25;                 % Number of resource blocks
-enb.CellRefP = 1;               % One transmit antenna port
-enb.NCellID = 0;                % Cell ID
-enb.CyclicPrefix = 'Normal';    % Normal cyclic prefix
-enb.DuplexMode = 'FDD';         % FDD
 
 %% Channel Model Configuration
 cfg.Seed = 0;                  % Random channel seed
@@ -33,7 +33,7 @@ cfg.DelayProfile = 'EPA';
 
 % doppler 5, 70 300
 
-cfg.DopplerFreq = 50;          % 120Hz Doppler frequency
+cfg.DopplerFreq = 5;          % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
 cfg.NTerms = 16;               % Oscillators used in fading model
 cfg.ModelType = 'GMEDS';       % Rayleigh fading model type
@@ -58,7 +58,7 @@ L = gridsize(2);    % Number of OFDM symbols in one subframe
 Ports = gridsize(3);    % Number of transmit antenna ports
 
 %% Allocate memory
-Ntests=5;
+Ntests=4;
 hest=cell(1,Ntests);
 for i=1:Ntests
     hest{i}=zeros(K,140);
@@ -67,7 +67,7 @@ hls=zeros(4,4*P*10);
 MSE=zeros(Ntests,Nrealizations,length(SNR_values_db));
 noiseEst=zeros(Ntests,Nrealizations,length(SNR_values_db));
 
-legends={'matlab','ls.linear','mmse','r.mmse','r.mmse2'};
+legends={'matlab','ls.linear','mmse','r.smooth'};
 colors={'bo-','rx-','m*-','k+-','c+-'};
 colors2={'b-','r-','m-','k-','c-'};
 
@@ -224,72 +224,39 @@ snr_lin=10^(SNR_values_db(snr_idx)/10);
 Wi=((Rhphp+(1/snr_lin)*eye(P)))^-1;
 W = Rhhp*Wi;
 
-% for i=1:length(hidx)
-%     hp=hls(3,(1:P)+P*(i-1));
-%     hest{3}(:,hidx(i))=W*transpose(hp);
-% end
-
 w=reshape(transpose(W),1,[]);
 [tmp, ~, ~, noiseEst(3,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w);
 hest{3}=reshape(tmp, size(hest{1}));
 
 
-%% Robust MMSE estimation using srsLTE (Eurecom paper)
+%% Low-pass filter smoother
+ 
+prows=rstart+(1:6:K);
 t=0:Lp-1;
 alfa=log(2*Lp)/Lp;
 c_l=exp(-t*alfa);
-c_l=c_l/sum(c_l);
-C_l=diag(1./c_l);
-prows=rstart+(1:6:K);
-
-F=dftmtx(N);
-F_p=F(prows,1:Lp);
-F_l=F((rstart+1):(K+rstart),1:Lp);
-Wi=(F_p'*F_p+C_l*0.01)^(-1);
-W2=F_l*Wi*F_p';
-
-% for i=1:length(hidx)
-%    hp=hls(3,(1:P)+P*(i-1));
-%    hest{4}(:,hidx(i))=W2*transpose(hp);
-% end
-
-w2=reshape(transpose(W2),1,[]);
-[tmp, ~, ~, noiseEst(4,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w2);
-hest{4}=reshape(tmp, size(hest{1}));
-
-
-
-%% Another robust method from Infocom research paper
- 
-c_l=ones(Lp,1)/Lp;
-c_l2=[c_l; zeros(N-Lp,1)];
+c_l2=[c_l zeros(1,N-Lp)];
 C_l=diag(c_l2);
 F=dftmtx(N);
 R_hh=F*C_l*F';
-R_hphp=R_hh(prows,prows);
-R_hhp=R_hh((rstart+1):(K+rstart),prows);
-W3=R_hhp*(R_hphp+(1/snr_lin)*eye(P))^-1;
-
-% for i=1:length(hidx)
-%     hp=hls(3,(1:P)+P*(i-1));
-%     hest{5}(:,hidx(i))=W3*transpose(hp);    
-% end
+R_hh=R_hh(prows,prows);
+W3=R_hh*(R_hh+0.05*eye(P))^-1;
 
 w3=reshape(transpose(W3),1,[]);
-[tmp, ~, ~, noiseEst(5,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w3);
-hest{5}=reshape(tmp, size(hest{1}));
+[tmp, pilot_avg, ~, noiseEst(4,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w3);
+hest{4}=reshape(tmp, size(hest{1}));
 
 
 
 %% Compute MSE 
 for i=1:Ntests
-    MSE(i,nreal,snr_idx)=mean(mean(abs(h(:,:)-hest{i}(:,:)).^2));
+    MSE(i,nreal,snr_idx)=mean(mean(abs(h(:,hidx)-hest{i}(:,hidx)).^2));
     fprintf('MSE test %d: %f\n',i, 10*log10(MSE(i,nreal,snr_idx)));
 end
 
 %% Plot a single realization
 if (length(SNR_values_db) == 1)
-    subplot(1,2,1)
+    subplot(2,1,1)
     sym=1;
     ref_idx=1:P;
     ref_idx_x=[1:6:K];% (292:6:360)-216];% 577:6:648];
@@ -310,33 +277,13 @@ if (length(SNR_values_db) == 1)
     xlabel('SNR (dB)')
     ylabel('Channel Gain')
     grid on;
-    
-    u(1+ceil(chinfo.PathSampleDelays))=chinfo.PathGains(1,:);
-    
-    subplot(1,2,2)
-    plot(1:P,real(W(150,:)),1:P,real(W2(150,:)),1:P,real(W3(150,:)))
-    legend('mmse','robust1','robust2')
-    grid on
-    
+        
     fprintf('Mean MMSE Robust %.2f dB\n', 10*log10(MSE(4,nreal,snr_idx)))
     fprintf('Mean MMSE matlab %.2f dB\n', 10*log10(MSE(1,nreal,snr_idx)))
 
-%     u=zeros(N,1);
-%     u(1+ceil(chinfo.PathSampleDelays))=mean(chinfo.PathGains(7680+(1:512+40),:));
-%     
-%     subplot(2,2,1)
-%     plot(1:length(u),abs(u))
-%     
-%     subplot(2,2,2)
-%     plot(abs(fftshift(fft(u,N))))
-%     
-%     subplot(2,2,3)
-%     hf=[zeros((N-K)/2,1); h(1:K/2,1); 0; h(K/2+1:end,1); zeros((N-K)/2-1,1)];
-%     plot(1:Lp,real(ifft(ifftshift(h(:,1)),Lp)))
-%     
-%     subplot(2,2,4)
-%     plot(abs(hf))
-%     
+    subplot(2,1,2)
+    plot(1:P,abs(W3(P/2,:)))
+    
 end
 
 end
@@ -350,7 +297,7 @@ mean_snr=10*log10(1./mean(noiseEst,2));
 
 %% Plot average over all SNR values
 if (length(SNR_values_db) > 1)
-    subplot(1,2,1)
+    subplot(1,1,1)
     for i=1:Ntests
         plot(SNR_values_db, 10*log10(mean_mse(i,:)),colors{i})
         hold on;
@@ -361,21 +308,21 @@ if (length(SNR_values_db) > 1)
     xlabel('SNR (dB)')
     ylabel('MSE (dB)')
     
-    subplot(1,2,2)
-    plot(SNR_values_db, SNR_values_db,'k:')
-    hold on;
-    for i=1:Ntests
-        plot(SNR_values_db, mean_snr(i,:), colors{i})
-    end
-    hold off
-    tmp=cell(Ntests+1,1);
-    tmp{1}='Theory';
-    for i=2:Ntests+1
-        tmp{i}=legends{i-1};
-    end
-    legend(tmp)
-    grid on
-    xlabel('SNR (dB)')
-    ylabel('Estimated SNR (dB)')
+%     subplot(1,2,2)
+%     plot(SNR_values_db, SNR_values_db,'k:')
+%     hold on;
+%     for i=1:Ntests
+%         plot(SNR_values_db, mean_snr(i,:), colors{i})
+%     end
+%     hold off
+%     tmp=cell(Ntests+1,1);
+%     tmp{1}='Theory';
+%     for i=2:Ntests+1
+%         tmp{i}=legends{i-1};
+%     end
+%     legend(tmp)
+%     grid on
+%     xlabel('SNR (dB)')
+%     ylabel('Estimated SNR (dB)')
 end
 

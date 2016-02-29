@@ -6,8 +6,8 @@
 
 recordedSignal=[];
 
-Npackets = 100;
-SNR_values = linspace(2,10,10);
+Npackets = 20;
+SNR_values = linspace(2,6,10);
 
 Lp=12;
 N=256;
@@ -127,7 +127,7 @@ for snr_idx=1:length(SNR_values)
             if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
                 [dec2, data, pdschRx, pdschSymbols2, cws2] = srslte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
                                                         rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
-                                                        subframe_rx,w2);
+                                                        subframe_rx);
             else
                 dec2 = 1;
             end

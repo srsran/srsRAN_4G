@@ -183,22 +183,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for (i=0;i<cell.nof_ports;i++) {
     ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
-  
-  
-  cf_t *w=NULL; 
-  if (nrhs > NOF_INPUTS) {
-    mexutils_read_cf(prhs[NOF_INPUTS], &w);
-    srslte_chest_dl_set_filter_w(&chest, w);
-    srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
-    free(w);
-  } else {
-    srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
-  }
-  
-  /*
+    
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray = NULL; 
-    nof_re = mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
+    int nof_re = mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
     cf_t *cearray_ptr = cearray; 
     for (i=0;i<cell.nof_ports;i++) {
       for (int j=0;j<nof_re/cell.nof_ports;j++) {
@@ -211,13 +199,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } else {
     srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
   }
-  */
-
+  
   float noise_power;
   if (nrhs > NOF_INPUTS + 1) {
     noise_power = mxGetScalar(prhs[NOF_INPUTS+1]);
   } else {
-    noise_power = 0;
+    noise_power = srslte_chest_dl_get_noise_estimate(&chest);
   }
   
   uint8_t *data_bytes = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);

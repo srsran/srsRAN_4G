@@ -74,7 +74,6 @@ typedef struct {
   bool disable_plots;
   bool disable_plots_except_constellation;
   bool disable_cfo; 
-  bool use_robust_lmmse; 
   uint32_t time_offset; 
   int force_N_id_2;
   uint16_t rnti;
@@ -95,7 +94,6 @@ typedef struct {
 
 void args_default(prog_args_t *args) {
   args->disable_plots = false; 
-  args->use_robust_lmmse = false; 
   args->disable_plots_except_constellation = false; 
   args->nof_subframes = -1;
   args->rnti = SRSLTE_SIRNTI;
@@ -118,7 +116,7 @@ void args_default(prog_args_t *args) {
 }
 
 void usage(prog_args_t *args, char *prog) {
-  printf("Usage: %s [agpPoOcilLdDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
+  printf("Usage: %s [agpPoOcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", args->rf_args);
   printf("\t-g RF fix RX gain [Default AGC]\n");
@@ -133,7 +131,6 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-c cell_id for input file [Default %d]\n", args->file_cell_id);
   printf("\t-r RNTI in Hex [Default 0x%x]\n",args->rnti);
   printf("\t-l Force N_id_2 [Default best]\n");
-  printf("\t-L (Experimental) Use Robust LMMSE estimation [Default false]\n");
   printf("\t-C Disable CFO correction [Default %s]\n", args->disable_cfo?"Disabled":"Enabled");
   printf("\t-t Add time offset [Default %d]\n", args->time_offset);
 #ifndef DISABLE_GRAPHICS
@@ -153,7 +150,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aoglLipPcOCtdDnvrfuUsS")) != -1) {
+  while ((opt = getopt(argc, argv, "aoglipPcOCtdDnvrfuUsS")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -196,9 +193,6 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'l':
       args->force_N_id_2 = atoi(argv[optind]);
-      break;
-    case 'L':
-      args->use_robust_lmmse = true; 
       break;
     case 'u':
       args->net_port = atoi(argv[optind]);
@@ -413,11 +407,6 @@ int main(int argc, char **argv) {
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
   srslte_ue_dl_set_rnti(&ue_dl, prog_args.rnti); 
   
-  /* (Experimental) setup robust LMMSE estimation */
-  if (prog_args.use_robust_lmmse) {
-    srslte_chest_dl_set_robust_mmse_filter(&ue_dl.chest);
-  }
-
   /* Initialize subframe counter */
   sf_cnt = 0;
 

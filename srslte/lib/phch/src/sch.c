@@ -390,7 +390,6 @@ static int decode_tb(srslte_sch_t *q,
         n_e = Qm * ((uint32_t) ceilf((float) Gp/cb_segm->C));
       }
 
-      bzero(softbuffer->buffer_f[i], (3*cb_len+12)*sizeof(int16_t));
       /* Rate Unmatching */
       if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[i], n_e, cblen_idx, rv)) {
         fprintf(stderr, "Error in rate matching\n");

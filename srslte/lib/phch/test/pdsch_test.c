@@ -118,14 +118,6 @@ cf_t *slot_symbols[SRSLTE_MAX_PORTS];
 srslte_pdsch_t pdsch;
 srslte_ofdm_t ofdm_tx, ofdm_rx; 
 
-int dummy_function() {
-#ifdef DO_OFDM
-  srslte_ofdm_rx_sf(&ofdm_rx, sf_symbols, slot_symbols[1]);
-#endif
-  srslte_softbuffer_rx_reset_tbs(&softbuffer_rx, grant.mcs.tbs);
-  return srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
-}
-
 int main(int argc, char **argv) {
   uint32_t i, j;
   int ret = -1;
@@ -228,38 +220,53 @@ int main(int argc, char **argv) {
     for (i=0;i<grant.mcs.tbs/8;i++) {
       data[i] = rand()%256;
     }
-    for (rv=0;rv<=rv_idx;rv++) {
-
-      pdsch_cfg.rv = rv; 
+    
+    uint8_t databit[100000];
+    srslte_bit_unpack_vector(data, databit, grant.mcs.tbs);
+    srslte_vec_save_file("data_in", databit, grant.mcs.tbs);
+    
+    if (!input_file) {
       
-      if (!input_file) {
+      if (rv_idx) {
+        /* Do 1st transmission for rv_idx!=0 */
+        pdsch_cfg.rv = 0;
         if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
           fprintf(stderr, "Error encoding PDSCH\n");
           goto quit;
         }
       }
+      pdsch_cfg.rv = rv_idx; 
       
-      /* combine outputs */
-      for (i=0;i<cell.nof_ports;i++) {
-        for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
-          if (i > 0) {
-            slot_symbols[0][j] += slot_symbols[i][j];
-          }
-          ce[i][j] = 1;
-        }
+      if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
+        fprintf(stderr, "Error encoding PDSCH\n");
+        goto quit;
       }
-      
+    }
+    
+    /* combine outputs */
+    for (i=0;i<cell.nof_ports;i++) {
+      for (j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
+        if (i > 0) {
+          slot_symbols[0][j] += slot_symbols[i][j];
+        }
+        ce[i][j] = 1;
+      }
+    }
+    
   #ifdef DO_OFDM
-      srslte_ofdm_tx_sf(&ofdm_tx, slot_symbols[0], sf_symbols);
+    srslte_ofdm_tx_sf(&ofdm_tx, slot_symbols[0], sf_symbols);
   #endif
-    }    
   } 
   int M=1;
   int r=0; 
   srslte_sch_set_max_noi(&pdsch.dl_sch, 10);
   gettimeofday(&t[1], NULL);
   for (i=0;i<M;i++) {
-    r = dummy_function();
+  #ifdef DO_OFDM
+    srslte_ofdm_rx_sf(&ofdm_rx, sf_symbols, slot_symbols[1]);
+  #endif
+    srslte_softbuffer_rx_reset_tbs(&softbuffer_rx, grant.mcs.tbs);    
+    r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
