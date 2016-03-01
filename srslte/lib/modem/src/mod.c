@@ -69,8 +69,9 @@ void mod_qpsk_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint3
   for (int i=0;i<nbits/8;i++) {
     memcpy(&symbols[4*i], &q->symbol_table_qpsk[bits[i]], sizeof(qpsk_packed_t));
   }
+  // Encode last 1, 2 or 3 bit pairs if not multiple of 8
   for (int i=0;i<(nbits%8)/2;i++) {
-    symbols[8*(nbits/8)+i] = q->symbol_table[(bits[8*(nbits/8)]&mask_qpsk[i])>>shift_qpsk[i]];
+    symbols[4*(nbits/8)+i] = q->symbol_table[(bits[nbits/8]&mask_qpsk[i])>>shift_qpsk[i]];
   }
 }
 
@@ -78,7 +79,10 @@ void mod_16qam_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint
   for (int i=0;i<nbits/8;i++) {
     memcpy(&symbols[2*i], &q->symbol_table_16qam[bits[i]], sizeof(qam16_packed_t));
   }
-  symbols[8*(nbits/8)] = q->symbol_table[(bits[8*(nbits/8)]&0xf0)>>4];
+  // Encode last 4 bits if not multiple of 8
+  if (nbits%8) {
+    symbols[2*(nbits/8)] = q->symbol_table[(bits[nbits/8]&0xf0)>>4];
+  }
 }
 
 void mod_64qam_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint32_t nbits) {
@@ -101,22 +105,22 @@ void mod_64qam_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint
     symbols[i*4+3] = q->symbol_table[in3];
   }
   if (nbits%24 >= 6) {
-    in80 = bits[24*(nbits/24)+0];
+    in80 = bits[3*(nbits/24)+0];
     in0 = (in80&0xfc)>>2;
     
-    symbols[24*(nbits/24)+0] = q->symbol_table[in0];
+    symbols[4*(nbits/24)+0] = q->symbol_table[in0];
   }
   if (nbits%24 >= 12) {
-    in81 = bits[24*(nbits/24)+1];
+    in81 = bits[3*(nbits/24)+1];
     in1 = (in80&0x03)<<4 | ((in81&0xf0)>>4);
     
-    symbols[24*(nbits/24)+1] = q->symbol_table[in1];
+    symbols[4*(nbits/24)+1] = q->symbol_table[in1];
   }
   if (nbits%24 >= 18) {
-    in82 = bits[24*(nbits/24)+2];
+    in82 = bits[3*(nbits/24)+2];
     in2 = (in81&0x0f)<<2 | ((in82&0xc0)>>6);
 
-    symbols[24*(nbits/24)+2] = q->symbol_table[in2];
+    symbols[4*(nbits/24)+2] = q->symbol_table[in2];
   }
 }
 

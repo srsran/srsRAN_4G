@@ -108,6 +108,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error computing CB segmentation\n");
     return; 
   }
+  uint32_t tmp_rv=cfg.rv;
+  if (tmp_rv) {
+    cfg.rv = 0; 
+    if (srslte_dlsch_encode(&dlsch, &cfg, &softbuffer, trblkin, e_bits)) {
+      mexErrMsgTxt("Error encoding TB\n");
+      return;
+    }
+    cfg.rv = tmp_rv;
+  }
   if (srslte_dlsch_encode(&dlsch, &cfg, &softbuffer, trblkin, e_bits)) {
     mexErrMsgTxt("Error encoding TB\n");
     return;

@@ -37,7 +37,7 @@ ADD_TEST(chest_test_dl_cellid2 chest_test_dl -c 2 -r 50)
 # Downlink MEX libs  
 ########################################################################
 
-BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES srslte)
+BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES srslte srslte_mex)
 
 
 ########################################################################

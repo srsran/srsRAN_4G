@@ -425,7 +425,7 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
     * thus we don't need tot set it in the LLRs normalization
     */
     srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
-
+    
     /* descramble */
     if (rnti != q->rnti) {
       srslte_sequence_t seq; 
@@ -522,10 +522,10 @@ int srslte_pdsch_encode_rnti(srslte_pdsch_t *q,
       if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_bytes_offset(&seq, (uint8_t*) q->e, 0, cfg->nbits.nof_bits);
+      srslte_scrambling_bytes(&seq, (uint8_t*) q->e, cfg->nbits.nof_bits);
       srslte_sequence_free(&seq);
     } else {    
-      srslte_scrambling_bytes_offset(&q->seq[cfg->sf_idx], (uint8_t*) q->e, 0, cfg->nbits.nof_bits);
+      srslte_scrambling_bytes(&q->seq[cfg->sf_idx], (uint8_t*) q->e, cfg->nbits.nof_bits);
     }
 
     srslte_mod_modulate_bytes(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->e, q->d, cfg->nbits.nof_bits);

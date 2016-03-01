@@ -35,10 +35,7 @@
 #define CELLID  prhs[0]
 #define PORTS   prhs[1]
 #define INPUT   prhs[2]
-#define FREQ_FILTER   prhs[3]
-#define TIME_FILTER   prhs[4]
-#define NOF_INPUTS 5
-#define SFIDX   prhs[5]
+#define NOF_INPUTS 3
 
 void help()
 {
@@ -101,38 +98,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   uint32_t sf_idx=0; 
-  if (nsubframes == 1) {
-    if (nrhs != NOF_INPUTS+1) {
-      mexErrMsgTxt("Received 1 subframe. Need to provide subframe index.\n");
-      help();
-      return;
-    }
-    sf_idx = (uint32_t) *((double*) mxGetPr(SFIDX));
-  } 
   
-  if (nrhs > 5) {
-    uint32_t filter_len = 0;
-    float *filter; 
-    double *f; 
-    
-    filter_len = mxGetNumberOfElements(FREQ_FILTER);
-    filter = malloc(sizeof(float) * filter_len);
-    f = (double*) mxGetPr(FREQ_FILTER);
-    for (i=0;i<filter_len;i++) {
-      filter[i] = (float) f[i];
-    }
-
-    srslte_chest_dl_set_filter_freq(&chest, filter, filter_len);
-
-    filter_len = mxGetNumberOfElements(TIME_FILTER);
-    filter = malloc(sizeof(float) * filter_len);
-    f = (double*) mxGetPr(TIME_FILTER);
-    for (i=0;i<filter_len;i++) {
-      filter[i] = (float) f[i];
-    }
-    srslte_chest_dl_set_filter_time(&chest, filter, filter_len);
-  }  
-
 
   double *inr=(double *)mxGetPr(INPUT);
   double *ini=(double *)mxGetPi(INPUT);
@@ -149,7 +115,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   output_signal2 = srslte_vec_malloc(nof_re * sizeof(cf_t));
   
   srslte_precoding_init(&cheq, nof_re);
-  
+    
   /* Create output values */
   if (nlhs >= 1) {
     plhs[0] = mxCreateDoubleMatrix(nof_re * nsubframes, cell.nof_ports, mxCOMPLEX);
@@ -167,6 +133,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     outi2 = mxGetPi(plhs[2]);
   }
     
+  float noise_power=0; 
   for (int sf=0;sf<nsubframes;sf++) {
     /* Convert input to C complex type */
     for (i=0;i<nof_re;i++) {
@@ -181,12 +148,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (nsubframes != 1) {
       sf_idx = sf%10;
     }
-    
+        
     if (srslte_chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
       mexErrMsgTxt("Error running channel estimator\n");
       return;
     }    
-       
+    
+    if (sf==0) {
+      noise_power = srslte_chest_dl_get_noise_estimate(&chest);
+    }
+           
     if (cell.nof_ports == 1) {
       srslte_predecoding_single(input_signal, ce[0], output_signal2, nof_re, srslte_chest_dl_get_noise_estimate(&chest));            
     } else {
@@ -195,28 +166,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     
     if (nlhs >= 1) { 
-      for (int j=0;j<cell.nof_ports;j++) {
-        for (i=0;i<nof_re;i++) {      
-          *outr0 = (double) crealf(ce[j][i]);
-          if (outi0) {
-            *outi0 = (double) cimagf(ce[j][i]);
-          }
-          outr0++;
-          outi0++;
-        } 
-      }
+      for (i=0;i<nof_re;i++) {      
+        *outr0 = (double) crealf(ce[0][i]);
+        if (outi0) {
+          *outi0 = (double) cimagf(ce[0][i]);
+        }
+        outr0++;
+        outi0++;
+      } 
     }
     if (nlhs >= 2) {    
-      for (int j=0;j<cell.nof_ports;j++) {
-        for (i=0;i<SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb,j);i++) {
-          *outr1 = (double) crealf(chest.pilot_estimates_average[j][i]);
-          if (outi1) {
-            *outi1 = (double) cimagf(chest.pilot_estimates_average[j][i]);
-          }
-          outr1++;
-          outi1++;
+      for (i=0;i<SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb,0);i++) {
+        *outr1 = (double) crealf(chest.pilot_estimates_average[i]);
+        if (outi1) {
+          *outi1 = (double) cimagf(chest.pilot_estimates_average[i]);
         }
-      }    
+        outr1++;
+        outi1++;
+      }
     }
     if (nlhs >= 3) {
       for (i=0;i<nof_re;i++) {      
@@ -231,7 +198,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 4) {
-    plhs[3] = mxCreateDoubleScalar(srslte_chest_dl_get_noise_estimate(&chest));
+    plhs[3] = mxCreateDoubleScalar(noise_power);
   }
   if (nlhs >= 5) {
     plhs[4] = mxCreateDoubleScalar(srslte_chest_dl_get_rsrp(&chest));

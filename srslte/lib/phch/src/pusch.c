@@ -527,10 +527,10 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_bytes_offset(&seq, (uint8_t*) q->q, 0, cfg->nbits.nof_bits);      
+      srslte_scrambling_bytes(&seq, (uint8_t*) q->q, cfg->nbits.nof_bits);      
       srslte_sequence_free(&seq);
     } else {
-      srslte_scrambling_bytes_offset(&q->seq[cfg->sf_idx], (uint8_t*) q->q, 0, cfg->nbits.nof_bits);            
+      srslte_scrambling_bytes(&q->seq[cfg->sf_idx], (uint8_t*) q->q, cfg->nbits.nof_bits);            
     }
     
     // Correct UCI placeholder bits    
