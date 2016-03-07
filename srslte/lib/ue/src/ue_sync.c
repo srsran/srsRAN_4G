@@ -330,10 +330,9 @@ static int find_peak_ok(srslte_ue_sync_t *q, cf_t *input_buffer) {
 static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
   
    /* Make sure subframe idx is what we expect */
-  if ((q->sf_idx != srslte_sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track) {
-    DEBUG("Warning: Expected SF idx %d but got %d (%d,%g - %d,%g)!\n", 
-         q->sf_idx, srslte_sync_get_sf_idx(&q->strack), 
-         q->strack.m0, q->strack.m0_value, q->strack.m1, q->strack.m1_value);
+  if ((q->sf_idx != srslte_sync_get_sf_idx(&q->strack)) && q->decode_sss_on_track && srslte_sync_sss_detected(&q->sfind)) {
+    DEBUG("Warning: Expected SF idx %d but got %d!\n", 
+         q->sf_idx, srslte_sync_get_sf_idx(&q->strack));
       q->sf_idx = srslte_sync_get_sf_idx(&q->strack);          
   }
   

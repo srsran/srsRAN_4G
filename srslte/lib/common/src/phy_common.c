@@ -231,7 +231,7 @@ int srslte_symbol_sz(uint32_t nof_prb) {
     } else if (nof_prb<=25) {
       return 384;
     } else if (nof_prb<=50) {
-      return 640;
+      return 768;
     } else if (nof_prb<=75) {
       return 1024;
     } else if (nof_prb<=100) {
@@ -254,7 +254,7 @@ int srslte_nof_prb(uint32_t symbol_sz)
         return 15;
       case 384:
         return 25;
-      case 640:
+      case 768:
         return 50;
       case 1024:
         return 75;

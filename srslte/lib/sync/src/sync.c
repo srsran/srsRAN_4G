@@ -294,7 +294,7 @@ int sync_sss(srslte_sync_t *q, cf_t *input, uint32_t peak_pos, srslte_cp_t cp) {
   /* Make sure we have enough room to find SSS sequence */
   sss_idx = (int) peak_pos-2*q->fft_size-SRSLTE_CP_LEN(q->fft_size, (SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_NORM_LEN:SRSLTE_CP_EXT_LEN));
   if (sss_idx < 0) {
-    DEBUG("Not enough room to decode CP SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
+    DEBUG("Not enough room to decode SSS (sss_idx=%d, peak_pos=%d)\n", sss_idx, peak_pos);
     return SRSLTE_ERROR;
   }
   DEBUG("Searching SSS around sss_idx: %d, peak_pos: %d\n", sss_idx, peak_pos);
@@ -406,18 +406,18 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       *peak_position = (uint32_t) peak_pos;
     }
     
+    // Try to detect SSS 
+    if (q->sss_en) {
+      // Set an invalid N_id_1 indicating SSS is yet to be detected
+      q->N_id_1 = 1000; 
+      
+      if (sync_sss(q, input, find_offset + peak_pos, q->cp) < 0) {
+        DEBUG("No space for SSS processing. Frame starts at %d\n", peak_pos);
+      }
+    }
+    
     /* If peak is over threshold, compute CFO and SSS */
     if (q->peak_value >= q->threshold) {
-      
-      // Try to detect SSS 
-      if (q->sss_en) {
-        // Set an invalid N_id_1 indicating SSS is yet to be detected
-        q->N_id_1 = 1000; 
-        
-        if (sync_sss(q, input, find_offset + peak_pos, q->cp) < 0) {
-          DEBUG("No space for SSS processing. Frame starts at %d\n", peak_pos);
-        }
-      }
       
       if (q->detect_cp) {
         if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {

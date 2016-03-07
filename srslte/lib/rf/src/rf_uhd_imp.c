@@ -203,14 +203,18 @@ bool rf_uhd_has_rssi(void *h) {
 }
 
 float rf_uhd_get_rssi(void *h) {
-  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
-  uhd_sensor_value_handle value;  
-  uhd_sensor_value_make_from_realnum(&value, "rssi", 0, "dBm", "%f");
-  uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &value);
-  double val_out; 
-  uhd_sensor_value_to_realnum(value, &val_out);
-  uhd_sensor_value_free(&value);
-  return val_out; 
+  if (rf_uhd_has_rssi(h)) {
+    rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
+    uhd_sensor_value_handle value;  
+    uhd_sensor_value_make_from_realnum(&value, "rssi", 0, "dBm", "%f");
+    uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &value);
+    double val_out; 
+    uhd_sensor_value_to_realnum(value, &val_out);
+    uhd_sensor_value_free(&value);
+    return val_out; 
+  } else {
+    return 0.0;
+  }
 }
 
 int rf_uhd_open(char *args, void **h)
