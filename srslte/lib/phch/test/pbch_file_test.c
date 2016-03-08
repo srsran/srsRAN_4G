@@ -172,7 +172,8 @@ void base_free() {
 int main(int argc, char **argv) {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int n;
-  uint32_t nof_tx_ports, sfn_offset; 
+  uint32_t nof_tx_ports; 
+  int sfn_offset; 
   cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
   
   if (argc < 3) {
