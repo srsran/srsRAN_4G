@@ -95,7 +95,7 @@ SRSLTE_API int srslte_pbch_decode(srslte_pbch_t *q,
                            float noise_estimate, 
                            uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                            uint32_t *nof_tx_ports,
-                           uint32_t *sfn_offset);
+                           int *sfn_offset);
 
 SRSLTE_API int srslte_pbch_encode(srslte_pbch_t *q, 
                            uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 

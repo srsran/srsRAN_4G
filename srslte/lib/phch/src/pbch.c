@@ -411,7 +411,7 @@ int decode_frame(srslte_pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
 int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS], float noise_estimate, 
-                 uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, uint32_t *sfn_offset) 
+                 uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, int *sfn_offset) 
 {
   uint32_t src, dst, nb;
   uint32_t nant;
@@ -492,7 +492,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
               ret = decode_frame(q, src, dst, nb + 1, nof_bits, nant);     
               if (ret == 1) {
                 if (sfn_offset) {
-                  *sfn_offset = dst - src;
+                  *sfn_offset = (int) dst - src;
                 }
                 if (nof_tx_ports) {
                   *nof_tx_ports = nant; 

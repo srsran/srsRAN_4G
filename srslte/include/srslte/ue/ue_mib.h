@@ -89,7 +89,7 @@ SRSLTE_API int srslte_ue_mib_decode(srslte_ue_mib_t * q,
                                     cf_t *input, 
                                     uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                                     uint32_t *nof_tx_ports, 
-                                    uint32_t *sfn_offset); 
+                                    int *sfn_offset); 
 
 
 /* This interface uses ue_mib and ue_sync to first get synchronized subframes 
@@ -116,7 +116,7 @@ SRSLTE_API int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
                                          uint32_t max_frames_timeout,
                                          uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
                                          uint32_t *nof_tx_ports, 
-                                         uint32_t *sfn_offset); 
+                                         int *sfn_offset); 
 
 
 

@@ -123,8 +123,7 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   srslte_softbuffer_tx_t softbuffer_tx;
-  uint32_t rv;
-
+  
   parse_args(argc,argv);
 
   bzero(&pdsch, sizeof(srslte_pdsch_t));
