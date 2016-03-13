@@ -35,6 +35,20 @@ bool mexutils_isScalar(const mxArray *ptr) {
   return mxGetM(ptr) == 1 && mxGetN(ptr) == 1;
 }
 
+bool mexutils_isCell(const mxArray *ptr) {
+  return mxIsCell(ptr);
+}
+
+int mexutils_getLength(const mxArray *ptr) {
+  const mwSize *dims;
+  dims = mxGetDimensions(ptr);
+  return dims[0];
+}
+
+mxArray* mexutils_getCellArray(const mxArray *ptr, int idx) {
+  return mxGetCell(ptr, idx);
+}
+
 char *mexutils_get_char_struct(const mxArray *ptr, const char *field_name) {
   mxArray *p; 
   p = mxGetField(ptr, 0, field_name);
@@ -98,6 +112,8 @@ int mexutils_read_cf(const mxArray *ptr, cf_t **buffer) {
       __real__ tmp[i] = (float) inr[i]; 
       if (ini) {
         __imag__ tmp[i] = (float) ini[i];
+      } else {
+        __imag__ tmp[i] = 0; 
       }
     }    
     *buffer = tmp; 

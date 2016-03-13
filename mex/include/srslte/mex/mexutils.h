@@ -43,6 +43,12 @@
 
 SRSLTE_API bool mexutils_isScalar(const mxArray *ptr);
 
+SRSLTE_API bool mexutils_isCell(const mxArray *ptr);
+
+SRSLTE_API int mexutils_getLength(const mxArray *ptr); 
+
+SRSLTE_API mxArray* mexutils_getCellArray(const mxArray *ptr, int idx);
+
 SRSLTE_API int mexutils_read_cell(const mxArray *ptr, 
                                   srslte_cell_t *cell);
 

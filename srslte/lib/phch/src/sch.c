@@ -229,13 +229,6 @@ static int encode_tb_off(srslte_sch_t *q,
       parity[0] = (par&(0xff<<16))>>16;
       parity[1] = (par&(0xff<<8))>>8;
       parity[2] = par&0xff;
-
-      if (SRSLTE_VERBOSE_ISDEBUG()) {
-        DEBUG("DATA: ", 0);
-        srslte_vec_fprint_byte(stdout, data, cb_segm->tbs/8);
-        DEBUG("PARITY: ", 0);
-        srslte_vec_fprint_byte(stdout, parity, 3);
-      }      
     }
     
     wp = 0;
@@ -425,7 +418,7 @@ static int decode_tb(srslte_sch_t *q,
 
         srslte_tdec_decision_byte(&q->decoder, q->cb_in, cb_len);
                  
-        /* Check Codeblock CRC and stop early if incorrect */
+        /* Check Codeblock CRC and stop early if correct */
         if (!srslte_crc_checksum_byte(crc_ptr, q->cb_in, len_crc)) {
           early_stop = true;           
         }
@@ -447,12 +440,16 @@ static int decode_tb(srslte_sch_t *q,
         memcpy(&data[wp/8], q->cb_in, (rlen - 24)/8 * sizeof(uint8_t));
         memcpy(parity, &q->cb_in[(rlen - 24)/8], 3 * sizeof(uint8_t));
       }
-
+      
+      if (SRSLTE_VERBOSE_ISDEBUG()) {
+        early_stop = true; 
+      }
+      
       /* Set read/write pointers */
       wp += rlen;
       rp += n_e;
     }
-
+    
     if (!early_stop) {
       INFO("CB %d failed. TB is erroneous.\n",i-1);
       return SRSLTE_ERROR; 

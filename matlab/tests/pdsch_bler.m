@@ -1,158 +1,108 @@
-%% PDSCH decoding based on RMC channels
-
-%% Cell-Wide Settings
-% A structure |enbConfig| is used to configure the eNodeB.
-%clear12
-
-recordedSignal=[];
-
-Npackets = 20;
-SNR_values = linspace(2,6,10);
-
-Lp=12;
-N=256;
-K=180;
-rstart=(N-K)/2;
-P=K/6;
-Rhphp=zeros(P,P);
-Rhhp=zeros(K,P);
-Rhh=zeros(K,K);
-
-t=0:Lp-1;
-alfa=log(2*Lp)/Lp;
-c_l=exp(-t*alfa);
-c_l=c_l/sum(c_l);
-C_l=diag(1./c_l);
-prows=rstart+(1:6:K);
-
-F=dftmtx(N);
-F_p=F(prows,1:Lp);
-F_l=F((rstart+1):(K+rstart),1:Lp);
-Wi=(F_p'*F_p+C_l*0.01)^(-1);
-W2=F_l*Wi*F_p';
-w2=reshape(transpose(W2),1,[]);
-
-
-%% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.0',[1;0;0;1]);
-waveform = sum(waveform,2);
-
-if ~isempty(recordedSignal)
-    rmccFgOut = struct('CellRefP',1,'NDLRB',100,'DuplexMode','FDD','CyclicPrefix','Normal'); 
-    rmccFgOut.PDSCH.RNTI = 1234;
-    rmccFgOut.PDSCH.PRBSet = repmat(transpose(0:rmccFgOut.NDLRB-1),1,2);
-    rmccFgOut.PDSCH.TxScheme = 'Port0';
-    rmccFgOut.PDSCH.NLayers = 1;   
-    rmccFgOut.PDSCH.NTurboDecIts = 5;
-    rmccFgOut.PDSCH.Modulation = {'64QAM'};
-    trblklen=75376;
-    rmccFgOut.PDSCH.TrBlkSizes = trblklen*ones(10,1);
-    rmccFgOut.PDSCH.RV = 0;
-end
-
-flen=rmccFgOut.SamplingRate/1000;
-    
-Nsf = 9; 
-
-%% Setup Fading channel model 
-cfg.Seed = 0;                  % Random channel seed
-cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EPA';      % EVA delay spread
-cfg.DopplerFreq = 5;           % 120Hz Doppler frequency
-cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
-cfg.InitTime = 0;              % Initialize at time zero
-cfg.NTerms = 16;               % Oscillators used in fading model
-cfg.ModelType = 'GMEDS';       % Rayleigh fading model type
-cfg.InitPhase = 'Random';      % Random initial phases
-cfg.NormalizePathGains = 'On'; % Normalize delay profile power 
-cfg.NormalizeTxAnts = 'On';    % Normalize for transmit antennas
-cfg.SamplingRate = rmccFgOut.SamplingRate; 
-
-% Setup channel equalizer
-cec.PilotAverage = 'UserDefined';     % Type of pilot averaging
-cec.FreqWindow = 9;                   % Frequency window size
-cec.TimeWindow = 9;                   % Time window size
-cec.InterpType = 'linear';             % 2D interpolation type
-cec.InterpWindow = 'Causal';        % Interpolation window type
-cec.InterpWinSize = 1;                % Interpolation window size
+%% Plot PDSCH BLER vs SNR for PDSCH without equalization
+clear
+transportBlkSize=75376;
+modulation='64QAM';
+rvValues=[0 2 3 1];
+SNR=linspace(-2.9,-2.0,8);
+Nblocks=30;
 
 addpath('../../build/srslte/lib/phch/test')
 
-decoded = zeros(size(SNR_values));
-decoded_srslte = zeros(size(SNR_values));
+% Subframe configuration
+enbConfig.NCellID = 100;
+enbConfig.CyclicPrefix = 'Normal';
+enbConfig.NSubframe = 1;
+enbConfig.CellRefP = 1;
+enbConfig.NDLRB = 100;
+enbConfig.CFI = 1; 
+enbConfig.DuplexMode='FDD';
 
-for snr_idx=1:length(SNR_values)
-    SNRdB = SNR_values(snr_idx);
-    SNR = 10^(SNRdB/10);    % Linear SNR  
-    N0  = 1/(sqrt(2.0*rmccFgOut.CellRefP*double(rmccFgOut.Nfft))*SNR);
-    
-    Rhphp=zeros(30,30);
-    Rhhp=zeros(180,30);
+% Transmission mode configuration for PDSCH
+pdschConfig.NLayers = 1;
+pdschConfig.TxScheme = 'Port0';
+pdschConfig.Modulation = {modulation};
+pdschConfig.RNTI = 100;
+pdschConfig.NTurboDecIts = 5;
+pdschConfig.PRBSet = (0:enbConfig.NDLRB-1)';
 
-    for i=1:Npackets
+switch (modulation)
+    case 'QPSK'
+        bitsPerSym = 2;
+    case '16QAM'
+        bitsPerSym = 4;
+    case '64QAM'
+        bitsPerSym = 6;
+end
+noiseVarfactor = sqrt(2*bitsPerSym);
+snr = 10.^(SNR/10);
 
-        if isempty(recordedSignal)
+nErrors_mat = zeros(length(SNR),length(rvValues));
+nErrors_srs = zeros(length(SNR),length(rvValues));
+        
+for k = 1:length(SNR);
+    subframe=cell(length(rvValues));
+    pdschIdx=ltePDSCHIndices(enbConfig,pdschConfig,pdschConfig.PRBSet);
+    for i=1:length(rvValues)
+        subframe{i} = lteDLResourceGrid(enbConfig);
+    end
+    blkCounter = 0;
+    for l = 1:Nblocks;
+        % DL-SCH data bits
+        dlschBits = randi([0 1],transportBlkSize,1);
+        softBuffer = {};     
+        for rvIndex = 1:length(rvValues)
+            % DLSCH transport channel
+            pdschConfig.RV = rvValues(rvIndex);
+            pdschPayload = lteDLSCH(enbConfig, pdschConfig, length(pdschIdx)*bitsPerSym, dlschBits);
 
-            %% Fading
-            %rxWaveform = lteFadingChannel(cfg,waveform);
-            rxWaveform = waveform; 
+            % PDSCH modulated symbols
+            pdschSymbols = ltePDSCH(enbConfig, pdschConfig, pdschPayload);
+            pdschSize = size(pdschSymbols);
+
+            % Addition of noise
+            noise = (1/noiseVarfactor)*sqrt(1/snr(k))*complex(randn(pdschSize),randn(pdschSize));
+            noisySymbols = pdschSymbols + noise;
+
+            subframe{rvIndex}(pdschIdx)=noisySymbols;
             
-            %% Noise Addition
-            noise = N0*complex(randn(size(rxWaveform)), randn(size(rxWaveform)));  % Generate noise
-            rxWaveform = rxWaveform + noise; 
-        else        
-            rxWaveform = recordedSignal; 
+            % PDSCH Rx-side
+            rxCW = ltePDSCHDecode(enbConfig, pdschConfig, noisySymbols);
+            
+            % DL-SCH turbo decoding
+            [rxBits, blkCRCerr, softBuffer] = lteDLSCHDecode(enbConfig, pdschConfig, transportBlkSize, rxCW{1}, softBuffer);
+            
+            % Add errors to previous error counts
+            nErrors_mat(k,rvIndex) = nErrors_mat(k,rvIndex)+blkCRCerr;             
         end
         
-        %% Demodulate 
-        frame_rx = lteOFDMDemodulate(rmccFgOut, rxWaveform);
-
-        for sf_idx=0:Nsf-1
-       % sf_idx=9;
-            subframe_rx=frame_rx(:,sf_idx*14+1:(sf_idx+1)*14);
-            rmccFgOut.NSubframe=sf_idx;
-            rmccFgOut.TotSubframes=1;
-
-            % Perform channel estimation
-            [hest, nest,estimates] = lteDLChannelEstimate2(rmccFgOut, cec, subframe_rx);
-
-            [cws,symbols] = ltePDSCHDecode(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
-            [trblkout,blkcrc,dstate] = lteDLSCHDecode(rmccFgOut,rmccFgOut.PDSCH, ... 
-                                                    rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1),cws);
-
-            decoded(snr_idx) = decoded(snr_idx) + ~blkcrc;
-
-
-            %% Same with srsLTE
-            if (rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1) > 0)
-                [dec2, data, pdschRx, pdschSymbols2, cws2] = srslte_pdsch(rmccFgOut, rmccFgOut.PDSCH, ... 
-                                                        rmccFgOut.PDSCH.TrBlkSizes(sf_idx+1), ...
-                                                        subframe_rx);
-            else
-                dec2 = 1;
-            end
-             if (~dec2) 
-                fprintf('Error in sf=%d\n',sf_idx);
-            end
-            decoded_srslte(snr_idx) = decoded_srslte(snr_idx)+dec2;
-        end
-
-        if ~isempty(recordedSignal)
-            recordedSignal = recordedSignal(flen*10+1:end);
-        end
+        % Same with srsLTE 
+        [okSRSLTE, data, pdschRx, pdschSymbols, cws] = srslte_pdsch(enbConfig, pdschConfig, ...
+            transportBlkSize, subframe, ones(size(subframe{1})), 0);
+        
+        nErrors_srs(k,rvIndex) = nErrors_srs(k,rvIndex)+~okSRSLTE;          
     end
-    fprintf('SNR: %.1f. Decoded: %d-%d\n',SNRdB, decoded(snr_idx), decoded_srslte(snr_idx))
+    fprintf('SNR=%.1f dB, BLER_mat=%f, BLER_srs=%f\n',SNR(k),nErrors_mat(k,rvIndex)/Nblocks, nErrors_srs(k,rvIndex)/Nblocks);    
 end
 
-if (length(SNR_values)>1)
-    semilogy(SNR_values,1-decoded/Npackets/(Nsf),'bo-',...
-             SNR_values,1-decoded_srslte/Npackets/(Nsf), 'ro-')
-    grid on;
-    legend('Matlab','srsLTE')
-    xlabel('SNR (dB)')
-    ylabel('BLER')
-    axis([min(SNR_values) max(SNR_values) 1/Npackets/(Nsf+1) 1])
+PDSCHBLER_MAT = nErrors_mat./Nblocks;
+PDSCHBLER_MAT(PDSCHBLER_MAT==0)=10^-10;
+
+PDSCHBLER_SRS = nErrors_srs./Nblocks;
+PDSCHBLER_SRS(PDSCHBLER_SRS==0)=10^-10;
+
+if (Nblocks == 1 && length(SNR) == 1)
 else
-    fprintf('Matlab: %d OK\nsrsLTE: %d OK\n',decoded, decoded_srslte);
+    semilogy(SNR,PDSCHBLER_MAT,SNR,PDSCHBLER_SRS)
+    grid on
+    xlabel('Eb/No (dB)')
+    ylabel('BLER')
+    leg=[];
+    for rvIndex = 1:length(rvValues)
+        leg=strvcat(leg,sprintf('Matlab rv=%d',rvValues(rvIndex)));
+    end
+    for rvIndex = 1:length(rvValues)
+        leg=strvcat(leg,sprintf('srsLTE rv=%d',rvValues(rvIndex)));
+    end
+    legend(leg);
+    axis([min(SNR) max(SNR) 10^-4 1])
 end
-

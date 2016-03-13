@@ -649,6 +649,25 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
     INFO("DCI message is Format0\n", 0);
     return SRSLTE_ERROR;
   }
+  
+  // Check if RA procedure by PDCCH order
+  if (*y == 0) {
+    int nof_bits = riv_nbits(nof_prb);
+    int i=0;
+    while(i<nof_bits && y[1+i] == 1)
+      i++;
+    if (i == nof_bits) {
+      printf("Warning check me: could this be a RA PDCCH order??\n");
+      i=1+10+nof_bits;
+      while(i<msg->nof_bits-1 && y[i] == 0) {
+        i++;
+      }
+      if (i == msg->nof_bits-1) {
+        printf("Received a Format1A RA PDCCH order. Not implemented!\n");
+        return SRSLTE_ERROR;
+      }
+    }
+  }
 
   data->alloc_type = SRSLTE_RA_ALLOC_TYPE2;
   data->type2_alloc.mode = *y++;

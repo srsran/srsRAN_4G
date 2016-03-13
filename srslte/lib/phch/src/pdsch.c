@@ -426,6 +426,14 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
     */
     srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
     
+    /*
+    printf("WARNING REMOVE ME!\n");
+    int16_t *e=q->e;
+    for (int i=0;i<cfg->nbits.nof_bits;i++) {
+      e[i] = e[i]>0?10:-10;
+    }
+    */
+
     /* descramble */
     if (rnti != q->rnti) {
       srslte_sequence_t seq; 

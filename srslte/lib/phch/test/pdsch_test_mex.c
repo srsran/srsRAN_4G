@@ -45,6 +45,8 @@ void help()
 
 extern int indices[2048];
 
+int rv_seq[4] = {0, 2, 3, 1};
+
 /* the gateway function */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -63,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  srslte_verbose = SRSLTE_VERBOSE_INFO;
+  srslte_verbose = SRSLTE_VERBOSE_DEBUG;
   bzero(&cfg, sizeof(srslte_pdsch_cfg_t));
 
   if (mexutils_read_cell(ENBCFG, &cell)) {
@@ -174,49 +176,65 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
       
   /** Allocate input buffers */
-  if (mexutils_read_cf(INPUT, &input_fft) < 0) {
-    mexErrMsgTxt("Error reading input signal\n");
-    return; 
-  }
+  int nof_retx=1; 
+  if (mexutils_isCell(INPUT)) {
+    nof_retx = mexutils_getLength(INPUT);
+  } 
   
   cf_t *ce[SRSLTE_MAX_PORTS];
   for (i=0;i<cell.nof_ports;i++) {
     ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
-    
-  if (nrhs > NOF_INPUTS) {
-    cf_t *cearray = NULL; 
-    int nof_re = mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
-    cf_t *cearray_ptr = cearray; 
-    for (i=0;i<cell.nof_ports;i++) {
-      for (int j=0;j<nof_re/cell.nof_ports;j++) {
-        ce[i][j] = *cearray;
-        cearray++;
-      }
-    }    
-    if (cearray_ptr)
-      free(cearray_ptr);
-  } else {
-    srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
-  }
-  
-  float noise_power;
-  if (nrhs > NOF_INPUTS + 1) {
-    noise_power = mxGetScalar(prhs[NOF_INPUTS+1]);
-  } else {
-    noise_power = srslte_chest_dl_get_noise_estimate(&chest);
-  }
-  
+
   uint8_t *data_bytes = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
   if (!data_bytes) {
     return;
   }
-  
   srslte_sch_set_max_noi(&pdsch.dl_sch, max_iterations);
 
-  int r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data_bytes);
+  int r=-1;
+  for (int rvIdx=0;rvIdx<nof_retx && r != 0;rvIdx++) {
+    
+    mxArray *tmp = (mxArray*) INPUT; 
+    if (mexutils_isCell(INPUT)) {
+      tmp = mexutils_getCellArray(INPUT, rvIdx);
+      if (nof_retx > 1) {
+        cfg.rv = rv_seq[rvIdx%4];
+      }
+    } 
+    if (mexutils_read_cf(tmp, &input_fft) < 0) {
+      mexErrMsgTxt("Error reading input signal\n");
+      return; 
+    }
+    
+    if (nrhs > NOF_INPUTS) {
+      cf_t *cearray = NULL; 
+      int nof_re = mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
+      cf_t *cearray_ptr = cearray; 
+      for (i=0;i<cell.nof_ports;i++) {
+        for (int j=0;j<nof_re/cell.nof_ports;j++) {
+          ce[i][j] = *cearray;
+          cearray++;
+        }
+      }    
+      if (cearray_ptr)
+        free(cearray_ptr);
+    } else {
+      srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
+    }
+    
+    float noise_power;
+    if (nrhs > NOF_INPUTS + 1) {
+      noise_power = mxGetScalar(prhs[NOF_INPUTS+1]);
+    } else {
+      noise_power = srslte_chest_dl_get_noise_estimate(&chest);
+    }
 
-  free(data_bytes);
+    r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, data_bytes);
+
+    free(input_fft);
+
+  }
   
   uint8_t *data = malloc(grant.mcs.tbs);
   srslte_bit_unpack_vector(data_bytes, data, grant.mcs.tbs);
@@ -237,14 +255,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
   }
   
+  srslte_softbuffer_rx_free(&softbuffer);
   srslte_chest_dl_free(&chest);
   srslte_pdsch_free(&pdsch);
   
   for (i=0;i<cell.nof_ports;i++) {
     free(ce[i]);
   }
+  free(data_bytes);
   free(data);
-  free(input_fft);
   
   return;
 }
