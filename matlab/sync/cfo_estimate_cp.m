@@ -1,4 +1,4 @@
-function cfo = cfo_estimate_cp(input_slot, Nsyms, sym_len, cp0_len, cp_len)
+function [cfo, r] = cfo_estimate_cp(input_slot, Nsyms, sym_len, cp0_len, cp_len)
 
 % Start correlating from the end. Nsyms is the number of symbols to
 % correlate starting from the end. 

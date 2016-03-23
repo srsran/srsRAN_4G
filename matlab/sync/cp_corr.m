@@ -1,4 +1,4 @@
-function [ lambda ] = cp_corr( x, theta, N, L, rho)
+function [ lambda ] = cp_corr( x, theta, N, L)
 
 l0=sum(x(theta:theta+L-1).*conj(x(theta+N:theta+L+N-1)));
 l1=0;
