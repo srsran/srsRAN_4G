@@ -51,21 +51,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   cf_t *input_symbols;
   int frame_len; 
   
-  if (nrhs != NOF_INPUTS) {
+  if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
+    
+  srslte_use_standard_symbol_size(true);  
     
   if (mexutils_read_cell(ENBCFG, &cell)) {
     help();
     return;
   }
   
-  /** Allocate input buffers */
+  /* Allocate input buffers */
   frame_len = mexutils_read_cf(INPUT, &input_symbols);
   if (frame_len < 0) {
     mexErrMsgTxt("Error reading input symbols\n");
     return;
+  }
+  
+  if (nrhs == NOF_INPUTS+1) {
+    frame_len = (int) mxGetScalar(prhs[NOF_INPUTS]);
   }
   
   if (srslte_pss_synch_init_fft(&pss, frame_len, srslte_symbol_sz(cell.nof_prb))) {
@@ -76,11 +82,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     fprintf(stderr, "Error setting N_id_2=%d\n",cell.id%3);
     exit(-1);
   }
+  srslte_pss_synch_set_ema_alpha(&pss, 1.0);     
       
   int peak_idx = srslte_pss_synch_find_pss(&pss, input_symbols, NULL);
-  
+
   if (nlhs >= 1) { 
-    plhs[0] = mxCreateLogicalScalar(peak_idx);
+    plhs[0] = mxCreateDoubleScalar(peak_idx);
   }
   if (nlhs >= 2) {
     mexutils_write_cf(pss.conv_output, &plhs[1], frame_len, 1);  

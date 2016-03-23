@@ -168,6 +168,16 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, cf_t *ce, uint32_t port
   srslte_refsignal_cs_get_sf(q->cell, port_id, ce, q->tmp_noise);
   /* Substract noisy pilot estimates */
   srslte_vec_sub_ccc(q->tmp_noise, q->pilot_estimates, q->tmp_noise, nref);  
+  
+#ifdef FREQ_SEL_SNR
+  /* Compute frequency-selective SNR */
+  srslte_vec_abs_square_cf(q->tmp_noise, q->snr_vector, nref);
+  srslte_vec_abs_square_cf(q->pilot_estimates, q->pilot_power, nref);
+  srslte_vec_div_fff(q->pilot_power, q->snr_vector, q->snr_vector, nref);
+  
+  srslte_vec_fprint_f(stdout, q->snr_vector, nref);
+#endif
+  
   /* Compute average power */
   float power = 2*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
   return power; 
@@ -340,7 +350,12 @@ float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
 }
 
 float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
+#ifdef FREQ_SEL_SNR
+  int nref=SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, 0);
+  return srslte_vec_acc_ff(q->snr_vector, nref)/nref; 
+#else
   return srslte_chest_dl_get_rsrp(q)/srslte_chest_dl_get_noise_estimate(q);
+#endif
 }
 
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {

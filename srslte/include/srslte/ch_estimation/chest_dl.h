@@ -60,6 +60,10 @@ typedef struct {
   cf_t *pilot_recv_signal; 
   cf_t *tmp_noise; 
   
+#ifdef FREQ_SEL_SNR  
+  float snr_vector[12000];
+  float pilot_power[12000];
+#endif
   uint32_t smooth_filter_len; 
   float smooth_filter[SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN];
 

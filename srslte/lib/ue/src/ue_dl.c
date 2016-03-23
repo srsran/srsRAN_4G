@@ -175,11 +175,20 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint
 }
 
 int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) {
-  float cfi_corr; 
   if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Run FFT for all subframe data */
     srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
+    
+    return srslte_ue_dl_decode_estimate(q, sf_idx, cfi); 
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *cfi) {
+  float cfi_corr; 
+  if (q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Get channel estimates for each port */
     srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
@@ -203,6 +212,7 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
     return SRSLTE_ERROR_INVALID_INPUTS; 
   }
 }
+
 
 int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint32_t rvidx) 
 {

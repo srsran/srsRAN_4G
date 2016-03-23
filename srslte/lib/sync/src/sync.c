@@ -71,7 +71,7 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
     q->fft_size = fft_size;
     q->frame_size = frame_size;
     q->max_offset = max_offset;
-    q->sss_alg = SSS_PARTIAL_3;
+    q->sss_alg = SSS_DIFF;
     q->enable_cfo_corr = true; 
 
     for (int i=0;i<2;i++) {
@@ -355,13 +355,14 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
     }
 
     /* Estimate CFO using CP */
+    uint32_t cp_offset = 0; 
     if (q->enable_cfo_corr) {
-      uint32_t cp_offset = srslte_cp_synch(&q->cp_synch, input, q->nof_symbols, q->nof_symbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
+      cp_offset = srslte_cp_synch(&q->cp_synch, input, q->nof_symbols, q->nof_symbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
       cf_t cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
       float cfo = -carg(cp_corr_max) / M_PI / 2; 
       
       /* compute cumulative moving average CFO */
-      INFO("cp_offset_pos=%d, abs=%f, cfo=%f, mean_cfo=%f, nof_symb=%d\n", 
+      DEBUG("cp_offset_pos=%d, abs=%f, cfo=%f, mean_cfo=%f, nof_symb=%d\n", 
             cp_offset, cabs(cp_corr_max), cfo, q->mean_cfo, q->nof_symbols);
       if (q->mean_cfo) {
         q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
@@ -400,6 +401,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
         return SRSLTE_ERROR; 
       }      
     }
+    
     q->mean_peak_value = SRSLTE_VEC_EMA(q->peak_value, q->mean_peak_value, MEANPEAK_EMA_ALPHA);
 
     if (peak_position) {

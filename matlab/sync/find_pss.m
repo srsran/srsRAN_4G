@@ -7,12 +7,13 @@ function [ fs, cfo, p_m, w2] = find_pss( x, N_id_2)
     w2=conv(x,ccf);
     [m, fs]=max(abs(w2));
  
-    y=ccf.*x(fs-128:fs-1);
-    y0=y(1:64);
-    y1=y(65:length(y));    
+    if (fs > 128 && fs < length(x))
+        y=ccf.*x(fs-128:fs-1);
+        y0=y(1:64);
+        y1=y(65:length(y));    
     
-    cfo=angle(conj(sum(y0))*sum(y1))/pi;
-    p_m = m/mean(abs(w2));
-        
+        cfo=angle(conj(sum(y0))*sum(y1))/pi;
+        p_m = m/mean(abs(w2));
+    end
 end
 
