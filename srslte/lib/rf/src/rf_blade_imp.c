@@ -240,10 +240,18 @@ double rf_blade_set_rx_srate(void *h, double freq)
     fprintf(stderr, "Failed to set samplerate = %u: %s\n", (uint32_t) freq, bladerf_strerror(status));
     return -1;
   }
-  status = bladerf_set_bandwidth(handler->dev, BLADERF_MODULE_RX, handler->rx_rate, &bw);
-  if (status != 0) {
-    fprintf(stderr, "Failed to set bandwidth = %u: %s\n", handler->rx_rate, bladerf_strerror(status));
-    return -1;
+  if (handler->rx_rate < 2000000) { 
+    status = bladerf_set_bandwidth(handler->dev, BLADERF_MODULE_RX, handler->rx_rate, &bw);
+    if (status != 0) {
+      fprintf(stderr, "Failed to set bandwidth = %u: %s\n", handler->rx_rate, bladerf_strerror(status));
+      return -1;
+    }
+  } else {
+    status = bladerf_set_bandwidth(handler->dev, BLADERF_MODULE_RX, handler->rx_rate*0.8, &bw);
+    if (status != 0) {
+      fprintf(stderr, "Failed to set bandwidth = %u: %s\n", handler->rx_rate, bladerf_strerror(status));
+      return -1;
+    }
   }
   printf("Set RX sampling rate %.2f Mhz, filter BW: %.2f Mhz\n", (float) handler->rx_rate/1e6, (float) bw/1e6);
   return (double) handler->rx_rate;

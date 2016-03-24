@@ -71,7 +71,7 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
     q->fft_size = fft_size;
     q->frame_size = frame_size;
     q->max_offset = max_offset;
-    q->sss_alg = SSS_DIFF;
+    q->sss_alg = SSS_FULL;
     q->enable_cfo_corr = true; 
 
     for (int i=0;i<2;i++) {
@@ -228,7 +228,11 @@ srslte_cp_t srslte_sync_get_cp(srslte_sync_t *q) {
 void srslte_sync_set_cp(srslte_sync_t *q, srslte_cp_t cp) {
   q->cp = cp;
   q->cp_len = SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_LEN_NORM(1,q->fft_size):SRSLTE_CP_LEN_EXT(q->fft_size);
-  q->nof_symbols = q->frame_size/(q->fft_size+q->cp_len)-1;
+  if (q->frame_size < q->fft_size) {
+    q->nof_symbols = 1; 
+  } else {
+    q->nof_symbols = q->frame_size/(q->fft_size+q->cp_len)-1;
+  }
 }
 
 void srslte_sync_set_sss_algorithm(srslte_sync_t *q, sss_alg_t alg) {
@@ -354,10 +358,12 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       *peak_position = 0; 
     }
 
-    /* Estimate CFO using CP */
+    /* Estimate CFO using CP before computing the PSS correlation as in: 
+     * Shoujun Huang, et al, "Joint Time and Frequency Offset Estimation in LTE Downlink"
+     */
     uint32_t cp_offset = 0; 
     if (q->enable_cfo_corr) {
-      cp_offset = srslte_cp_synch(&q->cp_synch, input, q->nof_symbols, q->nof_symbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
+      cp_offset = srslte_cp_synch(&q->cp_synch, input, q->max_offset, q->nof_symbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
       cf_t cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
       float cfo = -carg(cp_corr_max) / M_PI / 2; 
       
@@ -374,6 +380,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       srslte_cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                 
     }
  
+    /* If integer CFO is enabled, find max PSS correlation for shifted +1/0/-1 integer versions */
     if (q->find_cfo_i && q->enable_cfo_corr) {
       float peak_value; 
       float max_peak_value = -99;
@@ -393,7 +400,7 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
         srslte_vec_prod_ccc(input, q->cfo_i_corr[q->cfo_i<0?0:1], input, q->frame_size);
         INFO("Compensating cfo_i=%d\n", q->cfo_i);
       }
-    } else {
+    } else {      
       srslte_pss_synch_set_N_id_2(&q->pss, q->N_id_2);
       peak_pos = srslte_pss_synch_find_pss(&q->pss, &input[find_offset], &q->peak_value);
       if (peak_pos < 0) {
@@ -435,8 +442,9 @@ int srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t find_offset, uint32
       ret = 0;
     }
     
-    DEBUG("SYNC ret=%d N_id_2=%d find_offset=%d pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
-         ret, q->N_id_2, find_offset, peak_pos, q->peak_value, q->threshold, q->sf_idx, 15*(q->cfo_i+q->mean_cfo));
+    DEBUG("SYNC ret=%d N_id_2=%d find_offset=%d frame_len=%d, pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
+         ret, q->N_id_2, find_offset, q->frame_size, peak_pos, q->peak_value, 
+         q->threshold, q->sf_idx, 15*(q->cfo_i+q->mean_cfo));
 
   } else if (srslte_N_id_2_isvalid(q->N_id_2)) {
     fprintf(stderr, "Must call srslte_sync_set_N_id_2() first!\n");

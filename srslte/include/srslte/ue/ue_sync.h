@@ -109,8 +109,13 @@ typedef struct SRSLTE_API {
   bool correct_cfo; 
   
   uint32_t peak_idx;
-  int time_offset;
-  float mean_time_offset; 
+  int next_rf_sample_offset;
+  int last_sample_offset; 
+  int max_sample_offset; 
+  int min_sample_offset;
+  float mean_sample_offset; 
+  float mean_sfo; 
+
 
   #ifdef MEASURE_EXEC_TIME
   float mean_exec_time;

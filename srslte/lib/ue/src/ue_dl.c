@@ -97,6 +97,10 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
       fprintf(stderr, "Error initiating soft buffer\n");
       goto clean_exit;
     }
+    if (srslte_cfo_init(&q->sfo_correct, q->cell.nof_prb*SRSLTE_NRE)) {
+      fprintf(stderr, "Error initiating SFO correct\n");
+      goto clean_exit;
+    }
     q->sf_symbols = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
     if (!q->sf_symbols) {
       perror("malloc");
@@ -132,6 +136,7 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
     srslte_phich_free(&q->phich);
     srslte_pdcch_free(&q->pdcch);
     srslte_pdsch_free(&q->pdsch);
+    srslte_cfo_free(&q->sfo_correct);
     srslte_softbuffer_rx_free(&q->softbuffer);
     if (q->sf_symbols) {
       free(q->sf_symbols);
@@ -159,6 +164,10 @@ void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
   bzero(&q->pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
 }
 
+void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, float sample_offset) {
+  q->sample_offset = sample_offset; 
+}
+
 /** Applies the following operations to a subframe of synchronized samples: 
  *    - OFDM demodulation
  *    - Channel estimation 
@@ -179,6 +188,14 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
     
     /* Run FFT for all subframe data */
     srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
+    
+    /* Correct SFO multiplying by complex exponential in the time domain */
+    for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
+      srslte_cfo_correct(&q->sfo_correct, 
+                         &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
+                         &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
+                         q->sample_offset / q->fft.symbol_sz);
+    }
     
     return srslte_ue_dl_decode_estimate(q, sf_idx, cfi); 
   } else {

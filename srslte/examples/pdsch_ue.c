@@ -448,7 +448,9 @@ int main(int argc, char **argv) {
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
-     
+
+    srslte_ue_dl_set_sample_offset(&ue_dl, srslte_ue_sync_get_sfo(&ue_sync));
+
     /* srslte_ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
       switch (state) {
@@ -482,7 +484,7 @@ int main(int argc, char **argv) {
           }
           
           if (decode_pdsch) {
-            if (prog_args.rnti != SRSLTE_SIRNTI) {
+            if (prog_args.rnti != SRSLTE_SIRNTI) {              
               n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data, srslte_ue_sync_get_sfidx(&ue_sync));
             } else {
               // RV for SIB1 is predefined
@@ -682,7 +684,7 @@ void *plot_thread_run(void *arg) {
         }
       }
 
-      plot_real_setNewData(&pce, tmp_plot2, 12*ue_dl.cell.nof_prb);        
+      plot_real_setNewData(&pce, tmp_plot2, i);        
       
       if (!prog_args.input_file_name) {
         if (plot_track) {
@@ -708,7 +710,7 @@ void *plot_thread_run(void *arg) {
       for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
         tmp_plot2[i] = cargf(ue_dl.ce[0][i]);
       }
-      plot_real_setNewData(&pce_arg, tmp_plot2, 12*ue_dl.cell.nof_prb);        
+      plot_real_setNewData(&pce_arg, tmp_plot2, i);        
   #endif
       
       plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);

@@ -53,6 +53,8 @@
 #include "srslte/phch/ra.h"
 #include "srslte/phch/regs.h"
 
+#include "srslte/sync/cfo.h"
+
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
@@ -66,6 +68,8 @@ typedef struct SRSLTE_API {
   srslte_regs_t regs;
   srslte_ofdm_t fft;
   srslte_chest_dl_t chest;
+  
+  srslte_cfo_t sfo_correct; 
   
   srslte_pdsch_cfg_t pdsch_cfg; 
   srslte_softbuffer_rx_t softbuffer;
@@ -87,6 +91,8 @@ typedef struct SRSLTE_API {
   
   srslte_dci_msg_t pending_ul_dci_msg; 
   uint16_t pending_ul_dci_rnti; 
+  
+  float sample_offset; 
 }srslte_ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
@@ -130,6 +136,9 @@ SRSLTE_API int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q,
                                              srslte_rnti_type_t rnti_type);
 
 SRSLTE_API uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q);
+
+SRSLTE_API void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, 
+                                               float sample_offset); 
 
 SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
                                    cf_t *input, 
