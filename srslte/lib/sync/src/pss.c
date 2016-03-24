@@ -303,7 +303,7 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
     }
 
     /* Correlate input with PSS sequence */
-    if (q->frame_size > 2*q->fft_size) {
+    if (q->frame_size >= q->fft_size) {
     #ifdef CONVOLUTION_FFT
       memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
             

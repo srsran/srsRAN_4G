@@ -41,8 +41,8 @@
 #define MAX_TIME_OFFSET 128
 cf_t dummy[MAX_TIME_OFFSET];
 
-#define TRACK_MAX_LOST          10
-#define TRACK_FRAME_SIZE        16
+#define TRACK_MAX_LOST          4
+#define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     2
 #define SAMPLE_OFFSET_MEAN_LEN    100
 
@@ -160,7 +160,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
         goto clean_exit;
       }      
     } else {
-      if(srslte_sync_init(&q->strack, q->frame_len, 3*SRSLTE_CP_LEN_NORM(1,q->fft_size), q->fft_size)) {
+      if(srslte_sync_init(&q->strack, q->frame_len, 2*SRSLTE_CP_LEN_NORM(1,q->fft_size), q->fft_size)) {
         fprintf(stderr, "Error initiating sync track\n");
         goto clean_exit;
       }
@@ -172,10 +172,10 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       srslte_sync_cp_en(&q->strack, true); 
 
       srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.9);
-      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.2);
+      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.4);
 
-      srslte_sync_cfo_i_detec_en(&q->sfind, false); 
-      srslte_sync_cfo_i_detec_en(&q->strack, false); 
+      srslte_sync_cfo_i_detec_en(&q->sfind, true); 
+      srslte_sync_cfo_i_detec_en(&q->strack, true); 
 
       srslte_sync_set_threshold(&q->sfind, 1.5);
       q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES; 
@@ -189,10 +189,10 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       srslte_sync_cp_en(&q->sfind, false);      
       srslte_sync_cp_en(&q->strack, false);        
 
-      srslte_sync_cfo_i_detec_en(&q->sfind, false); 
-      srslte_sync_cfo_i_detec_en(&q->strack, false); 
+      srslte_sync_cfo_i_detec_en(&q->sfind, true); 
+      srslte_sync_cfo_i_detec_en(&q->strack, true); 
       
-      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.7);
+      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.9);
       srslte_sync_set_cfo_ema_alpha(&q->strack, 0.01);
 
       /* In find phase and if the cell is known, do not average pss correlation
@@ -202,8 +202,8 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       srslte_sync_set_em_alpha(&q->sfind, 1);
       srslte_sync_set_threshold(&q->sfind, 4.0);
       
-      srslte_sync_set_em_alpha(&q->strack, 1.3);
-      srslte_sync_set_threshold(&q->strack, 0.001);
+      srslte_sync_set_em_alpha(&q->strack, 0.1);
+      srslte_sync_set_threshold(&q->strack, 1.3);
 
     }
       
