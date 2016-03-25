@@ -62,6 +62,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
     q->pkt_errors = 0;
     q->pkts_total = 0;
     q->pending_ul_dci_rnti = 0; 
+    q->sample_offset = 0; 
     
     if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -190,11 +191,13 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
     srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
     
     /* Correct SFO multiplying by complex exponential in the time domain */
-    for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
-      srslte_cfo_correct(&q->sfo_correct, 
+    if (q->sample_offset) {
+      for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
+        srslte_cfo_correct(&q->sfo_correct, 
                          &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
                          &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
                          q->sample_offset / q->fft.symbol_sz);
+      }
     }
     
     return srslte_ue_dl_decode_estimate(q, sf_idx, cfi); 

@@ -66,6 +66,8 @@ bool plot_track = true;
 #define PLOT_CHEST_ARGUMENT
 #define PRINT_CHANGE_SCHEDULIGN
 
+#define CORRECT_SAMPLE_OFFSET
+
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
@@ -449,8 +451,11 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
 
-    srslte_ue_dl_set_sample_offset(&ue_dl, srslte_ue_sync_get_sfo(&ue_sync));
-
+#ifdef CORRECT_SAMPLE_OFFSET
+    float sample_offset = (float) srslte_ue_sync_get_last_sample_offset(&ue_sync)+srslte_ue_sync_get_sfo(&ue_sync)/1000; 
+    srslte_ue_dl_set_sample_offset(&ue_dl, sample_offset);
+#endif
+    
     /* srslte_ue_sync_get_buffer returns 1 if successfully read 1 aligned subframe */
     if (ret == 1) {
       switch (state) {

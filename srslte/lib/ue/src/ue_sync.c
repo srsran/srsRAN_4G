@@ -44,7 +44,8 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define TRACK_MAX_LOST          4
 #define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     2
-#define SAMPLE_OFFSET_MEAN_LEN    100
+#define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  20
+#define DEFAULT_SFO_EMA_COEFF           0.1
 
 cf_t dummy_offset_buffer[1024*1024];
 
@@ -132,6 +133,8 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
     q->file_mode = false; 
     q->correct_cfo = true; 
     q->agc_period = 0; 
+    q->sample_offset_correct_period = DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD; 
+    q->sfo_ema                      = DEFAULT_SFO_EMA_COEFF; 
     
     if (cell.id == 1000) {
       
@@ -202,8 +205,8 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
       srslte_sync_set_em_alpha(&q->sfind, 1);
       srslte_sync_set_threshold(&q->sfind, 4.0);
       
-      srslte_sync_set_em_alpha(&q->strack, 0.1);
-      srslte_sync_set_threshold(&q->strack, 1.3);
+      srslte_sync_set_em_alpha(&q->strack, 0.2);
+      srslte_sync_set_threshold(&q->strack, 1.0);
 
     }
       
@@ -275,8 +278,19 @@ void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, float cfo) {
 }
 
 float srslte_ue_sync_get_sfo(srslte_ue_sync_t *q) {
-  //return 5000*q->mean_sample_offset;
-  return (float) q->last_sample_offset; 
+  return q->mean_sfo/5e-3;
+}
+
+int srslte_ue_sync_get_last_sample_offset(srslte_ue_sync_t *q) {
+  return q->last_sample_offset; 
+}
+
+void srslte_ue_sync_set_sample_offset_correct_period(srslte_ue_sync_t *q, uint32_t nof_subframes) {
+  q->sample_offset_correct_period = nof_subframes; 
+}
+
+void srslte_ue_sync_set_sfo_ema(srslte_ue_sync_t *q, float ema_coefficient) {
+  q->sfo_ema = ema_coefficient; 
 }
 
 void srslte_ue_sync_decode_sss_on_track(srslte_ue_sync_t *q, bool enabled) {
@@ -355,34 +369,40 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
     q->frame_no_cnt = 0;    
   }
   
-  // Adjust time offset 
-  uint32_t frame_idx = q->frame_ok_cnt%SAMPLE_OFFSET_MEAN_LEN;
+  // Get sampling time offset 
   q->last_sample_offset = ((int) track_idx - (int) q->strack.max_offset/2 - (int) q->strack.fft_size); 
-  q->mean_sfo = SRSLTE_VEC_EMA(q->last_sample_offset, q->mean_sfo, 0.01);
   
-  /* compute cumulative moving average time offset */
-  if (frame_idx) {
-    q->mean_sample_offset += (float) q->last_sample_offset/SAMPLE_OFFSET_MEAN_LEN;    
-    if (q->last_sample_offset > q->max_sample_offset) {
-      q->max_sample_offset = q->last_sample_offset;
-    }
-    if (q->last_sample_offset < q->min_sample_offset) {
-      q->min_sample_offset = q->last_sample_offset;
-    }
-    DEBUG("idx=%d, offset=%d, mean=%f, sfo=%f\n", frame_idx, q->last_sample_offset, q->mean_sample_offset);
-  } else {
-    q->next_rf_sample_offset = (int) round(q->mean_sfo);
-    //q->mean_sfo = SRSLTE_VEC_EMA(q->mean_sample_offset, q->mean_sfo, 0.1);
+  // Adjust sampling time every q->sample_offset_correct_period subframes
+  uint32_t frame_idx = 0; 
+  if (q->sample_offset_correct_period) {
+    frame_idx = q->frame_ok_cnt%q->sample_offset_correct_period;
+    q->mean_sample_offset += (float) q->last_sample_offset/q->sample_offset_correct_period;
+  } else {    
+    q->mean_sample_offset = q->last_sample_offset; 
+  }
 
-    printf("\n\nTime offset adjustment: %d samples (%d-%d), mean SFO: %f\n", 
-           q->next_rf_sample_offset, q->min_sample_offset, q->max_sample_offset,
-           q->mean_sfo);
-
-    srslte_sync_reset(&q->strack);
+  // Compute cumulative moving average time offset */
+  if (!frame_idx) {
+    // Adjust RF sampling time based on the mean sampling offset
+    q->next_rf_sample_offset = (int) round(q->mean_sample_offset);
     
+    // Reset PSS averaging if correcting every a period longer than 1
+    if (q->sample_offset_correct_period > 1) {
+      srslte_sync_reset(&q->strack);
+    }
+    
+    // Compute SFO based on mean sample offset 
+    if (q->sample_offset_correct_period) {
+      q->mean_sample_offset /= q->sample_offset_correct_period;
+    }
+    q->mean_sfo = SRSLTE_VEC_EMA(q->mean_sample_offset, q->mean_sfo, q->sfo_ema);
+
+    INFO("\n\nTime offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/5-sf, ema=%f, length=%d\n", 
+           q->next_rf_sample_offset, q->mean_sample_offset,
+           srslte_ue_sync_get_sfo(q), 
+           q->mean_sfo, q->sfo_ema, q->sample_offset_correct_period);    
+
     q->mean_sample_offset = 0; 
-    q->max_sample_offset = 0;
-    q->min_sample_offset = q->fft_size;
   }
 
   /* If the PSS peak is beyond the frame (we sample too slowly), 
@@ -589,7 +609,6 @@ void srslte_ue_sync_reset(srslte_ue_sync_t *q) {
   q->frame_no_cnt = 0;
   q->frame_total_cnt = 0; 
   q->mean_sample_offset = 0.0;
-  q->mean_sfo = 0; 
   q->next_rf_sample_offset = 0;
   q->frame_find_cnt = 0; 
   #ifdef MEASURE_EXEC_TIME
