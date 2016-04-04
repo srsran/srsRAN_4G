@@ -95,10 +95,26 @@ int mexutils_read_cell(const mxArray *ptr, srslte_cell_t *cell) {
   if (mexutils_read_uint32_struct(ptr, "NDLRB", &cell->nof_prb)) {
     return -1;
   }
-  // TODO
-  cell->cp = SRSLTE_CP_NORM;
-  cell->phich_length = SRSLTE_PHICH_NORM;
-  cell->phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6; 
+  if (!strcmp(mexutils_get_char_struct(ptr, "CyclicPrefix"), "Extended")) {
+    cell->cp = SRSLTE_CP_EXT;
+  } else {
+    cell->cp = SRSLTE_CP_NORM;
+  }  
+  if (!strcmp(mexutils_get_char_struct(ptr, "PHICHDuration"), "Extended")) {
+    cell->phich_length = SRSLTE_PHICH_EXT;
+  } else {
+    cell->phich_length = SRSLTE_PHICH_NORM;
+  }
+  if (!strcmp(mexutils_get_char_struct(ptr, "Ng"), "Sixth")) {
+    cell->phich_resources = SRSLTE_PHICH_R_1_6; 
+  } else if (!strcmp(mexutils_get_char_struct(ptr, "Ng"), "Half")) {
+    cell->phich_resources = SRSLTE_PHICH_R_1_2; 
+  } else if (!strcmp(mexutils_get_char_struct(ptr, "Ng"), "Two")) {
+    cell->phich_resources = SRSLTE_PHICH_R_2; 
+  } else {
+    cell->phich_resources = SRSLTE_PHICH_R_1; 
+  }
+  
   return 0;
 }
 

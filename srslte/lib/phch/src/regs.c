@@ -131,7 +131,7 @@ int regs_pdcch_init(srslte_regs_t *h) {
         if (i*PDCCH_NCOLS + PDCCH_PERM[j] >= ndummy) {
           m = i*PDCCH_NCOLS + PDCCH_PERM[j]-ndummy;
           if (k < h->cell.id) {
-            kp = (h->pdcch[cfi].nof_regs + k-h->cell.id)%h->pdcch[cfi].nof_regs;
+            kp = (h->pdcch[cfi].nof_regs + k-(h->cell.id%h->pdcch[cfi].nof_regs))%h->pdcch[cfi].nof_regs;
           } else {
             kp = (k-h->cell.id)%h->pdcch[cfi].nof_regs;            
           }
@@ -239,10 +239,10 @@ int regs_phich_init(srslte_regs_t *h) {
   int ret = SRSLTE_ERROR;
 
   switch(h->phich_res) {
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
+  case SRSLTE_PHICH_R_1_6:
     ng = (float) 1/6;
     break;
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
+  case SRSLTE_PHICH_R_1_2:
     ng = (float) 1/2;
     break;
   case SRSLTE_PHICH_R_1:

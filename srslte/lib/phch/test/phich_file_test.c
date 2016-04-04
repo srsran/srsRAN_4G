@@ -89,9 +89,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'g':
       if (!strcmp(argv[optind], "1/6")) {
-        cell.phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6;
+        cell.phich_resources = SRSLTE_PHICH_R_1_6;
       } else if (!strcmp(argv[optind], "1/2")) {
-        cell.phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_2;
+        cell.phich_resources = SRSLTE_PHICH_R_1_2;
       } else if (!strcmp(argv[optind], "1")) {
         cell.phich_resources = SRSLTE_PHICH_R_1;
       } else if (!strcmp(argv[optind], "2")) {

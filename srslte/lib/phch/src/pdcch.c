@@ -243,7 +243,7 @@ uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, srslte_dci_location_t 
       if (k < max_candidates) {
         c[k].L = l;
         c[k].ncce = (L) * (i % (q->nof_cce / (L)));
-        INFO("Common SS Candidate %d: nCCE: %d, L: %d\n",
+        DEBUG("Common SS Candidate %d: nCCE: %d, L: %d\n",
             k, c[k].ncce, c[k].L);
         k++;          
       }
@@ -284,15 +284,9 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
     /* viterbi decoder */
     srslte_viterbi_decode_f(&q->decoder, q->rm_f, data, nof_bits + 16);
 
-    if (SRSLTE_VERBOSE_ISDEBUG()) {
-      srslte_bit_fprint(stdout, data, nof_bits + 16);
-    }
-
     x = &data[nof_bits];
     p_bits = (uint16_t) srslte_bit_pack(&x, 16);
     crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
-    DEBUG("p_bits: 0x%x, crc_checksum: 0x%x, crc_rem: 0x%x\n", p_bits, crc_res,
-        p_bits ^ crc_res);
     
     if (crc) {
       *crc = p_bits ^ crc_res; 
@@ -329,9 +323,6 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
       uint32_t nof_bits = srslte_dci_format_sizeof_lut(format, q->cell.nof_prb);
       uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(location->L);
     
-      DEBUG("Decoding DCI offset %d, e_bits: %d, msg_len %d (nCCE: %d, L: %d)\n", 
-            location->ncce * 72, e_bits, nof_bits, location->ncce, location->L);
-
       double mean = 0; 
       for (int i=0;i<e_bits;i++) {
         mean += fabsf(q->llr[location->ncce * 72 + i]);
@@ -343,7 +334,13 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
         if (ret == SRSLTE_SUCCESS) {
           msg->nof_bits = nof_bits;
         } 
+        if (crc_rem) {
+          DEBUG("Decoded DCI: nCCE=%d, L=%d, msg_len=%d, mean=%f, crc_rem=0x%x\n", 
+            location->ncce, location->L, nof_bits, mean, *crc_rem);
+        }
       } else {
+        DEBUG("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f\n",
+              location->ncce, location->L, nof_bits, mean);
         ret = SRSLTE_SUCCESS;
       }
     }
@@ -411,11 +408,6 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     } else {
       srslte_predecoding_diversity(&q->precoding, q->symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols, noise_estimate);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
-    }
-
-    DEBUG("pdcch d symbols: ", 0);
-    if (SRSLTE_VERBOSE_ISDEBUG()) {
-      srslte_vec_fprint_c(stdout, q->d, nof_symbols);
     }
 
     /* demodulate symbols */

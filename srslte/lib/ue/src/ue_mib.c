@@ -153,7 +153,7 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
     srslte_ue_mib_reset(q);
     ret = SRSLTE_UE_MIB_FOUND; 
   } else {
-    DEBUG("MIB not decoded: %u\n", q->frame_cnt);
+    INFO("MIB not decoded: %u\n", q->frame_cnt);
     q->frame_cnt++;
     ret = SRSLTE_UE_MIB_NOTFOUND;
   }    

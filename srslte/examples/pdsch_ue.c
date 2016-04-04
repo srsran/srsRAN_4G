@@ -66,7 +66,7 @@ bool plot_track = true;
 #define PLOT_CHEST_ARGUMENT
 #define PRINT_CHANGE_SCHEDULIGN
 
-#define CORRECT_SAMPLE_OFFSET
+//#define CORRECT_SAMPLE_OFFSET
 
 /**********************************************************************
  *  Program arguments processing
@@ -394,8 +394,6 @@ int main(int argc, char **argv) {
 #endif
   }
 
-  state = DECODE_MIB; 
-
   if (srslte_ue_mib_init(&ue_mib, cell)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
@@ -471,7 +469,7 @@ int main(int argc, char **argv) {
               srslte_cell_fprint(stdout, &cell, sfn);
               printf("Decoded MIB. SFN: %d, offset: %d\n", sfn, sfn_offset);
               sfn = (sfn + sfn_offset)%1024; 
-              state = DECODE_PDSCH; 
+              state = DECODE_PDSCH;               
             }
           }
           break;
@@ -479,16 +477,15 @@ int main(int argc, char **argv) {
           if (prog_args.rnti != SRSLTE_SIRNTI) {
             decode_pdsch = true;             
           } else {
-            /* We are looking for SIB1 Blocks, 2search only in appropiate places */
-            // Decode only RV=0
-            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%8)==0)) {
+            /* We are looking for SIB1 Blocks, search only in appropiate places */
+            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 
             }
           }
-          
-          if (decode_pdsch) {
+
+          if (decode_pdsch) {            
             if (prog_args.rnti != SRSLTE_SIRNTI) {              
               n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data, srslte_ue_sync_get_sfidx(&ue_sync));
             } else {
@@ -497,11 +494,13 @@ int main(int argc, char **argv) {
               uint32_t rv = ((uint32_t) ceilf((float)1.5*k))%4;
               n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
                                               srslte_ue_sync_get_sfidx(&ue_sync), 
-                                              SRSLTE_SIRNTI, rv);                         
+                                              SRSLTE_SIRNTI, rv);      
+              srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv);
             }
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
+
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 srslte_netsink_write(&net_sink, data, 1+(n-1)/8);

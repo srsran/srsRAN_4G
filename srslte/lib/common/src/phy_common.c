@@ -34,6 +34,7 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/common/sequence.h"
 
+#define FORCE_STANDARD_RATE
 #ifdef FORCE_STANDARD_RATE
 static bool use_standard_rates = true; 
 #else 
@@ -74,10 +75,10 @@ void srslte_cell_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn) {
          cell->phich_length == SRSLTE_PHICH_EXT ? "Extended" : "Normal");
   fprintf(stream, " - PHICH Resources: ");
   switch (cell->phich_resources) {
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
+  case SRSLTE_PHICH_R_1_6:
     fprintf(stream, "1/6");
     break;
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
+  case SRSLTE_PHICH_R_1_2:
     fprintf(stream, "1/2");
     break;
   case SRSLTE_PHICH_R_1:

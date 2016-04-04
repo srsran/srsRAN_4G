@@ -133,8 +133,8 @@ typedef enum SRSLTE_API {
 } srslte_phich_length_t;
 
 typedef enum SRSLTE_API { 
-  SRSLTE_PHICH_SRSLTE_PHICH_R_1_6 = 0, 
-  SRSLTE_PHICH_SRSLTE_PHICH_R_1_2, 
+  SRSLTE_PHICH_R_1_6 = 0, 
+  SRSLTE_PHICH_R_1_2, 
   SRSLTE_PHICH_R_1, 
   SRSLTE_PHICH_R_2
   

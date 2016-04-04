@@ -124,7 +124,9 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
     }
     
     q->smooth_filter_len = 0; 
-    set_default_filter(q, DEFAULT_FILTER_LEN);
+    float fil[3] = {0.1, 0.8, 0.1}; 
+    srslte_chest_dl_set_smooth_filter(q, fil, 3);
+    //set_default_filter(q, DEFAULT_FILTER_LEN);
     
     q->cell = cell; 
   }

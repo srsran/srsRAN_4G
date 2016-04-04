@@ -5,16 +5,16 @@
 % A structure |enbConfig| is used to configure the eNodeB.
 clear
 
-Npackets = 1000;
-SNR_values = linspace(-5,0,8);
+Npackets = 1;
+SNR_values = 100;%linspace(-5,0,8);
 
-txCFI = 3; 
-enbConfig.NDLRB = 15;                % No of Downlink RBs in total BW
+txCFI = 1;
+enbConfig.NDLRB = 50;                % No of Downlink RBs in total BW
 enbConfig.CyclicPrefix = 'Normal';  % CP length
 enbConfig.CFI = txCFI;                                                                                                                                                                                                                                                                                                                                                                                                                           ;                  % 4 PDCCH symbols as NDLRB <= 10
-enbConfig.Ng = 'Sixth';             % HICH groups
+enbConfig.Ng = 'One';             % HICH groups
 enbConfig.CellRefP = 2;             % 1-antenna ports
-enbConfig.NCellID = 0;             % Physical layer cell identity
+enbConfig.NCellID = 424;             % Physical layer cell identity
 enbConfig.NSubframe = 5;            % Subframe number 0
 enbConfig.DuplexMode = 'FDD';       % Frame structure
 enbConfig.PHICHDuration = 'Normal';
@@ -38,13 +38,13 @@ cec.PilotAverage = 'UserDefined';     % Type of pilot averaging
 cec.FreqWindow = 9;                   % Frequency window size
 cec.TimeWindow = 9;                   % Time window size
 cec.InterpType = 'linear';             % 2D interpolation type
-cec.InterpWindow = 'Centered';        % Interpolation window type
+cec.InterpWindow = 'Causal';        % Interpolation window type
 cec.InterpWinSize = 1;                % Interpolation window size
 
 %% DCI Message Generation
 % Generate a DCI message to be mapped to the PDCCH.
 
-dciConfig.DCIFormat = 'SRSLTE_DCI_FORMAT1A';   % DCI message format
+dciConfig.DCIFormat = 'Format1A';   % DCI message format
 dciConfig.Allocation.RIV = 26;      % Resource indication value
 
 % Create DCI message for given configuration
@@ -52,9 +52,17 @@ dciConfig.Allocation.RIV = 26;      % Resource indication value
 
 %% DCI Channel Coding
 
-pdcchConfig.RNTI = C_RNTI;            % Radio network temporary identifier
-pdcchConfig.PDCCHFormat = 3;          % PDCCH format
+% Do not include RNTI if Common Search space
+if C_RNTI<65535
+    pdcchConfig.RNTI = C_RNTI;            % Radio network temporary identifier
+end
+pdcchConfig.PDCCHFormat = 2;          % PDCCH format
 ueConfig.RNTI = C_RNTI;
+
+candidates = ltePDCCHSpace(enbConfig, pdcchConfig, {'bits', '1based'});
+
+% Include now RNTI in pdcch
+pdcchConfig.RNTI = C_RNTI;        
 
 % DCI message bits coding to form coded DCI bits
 codedDciBits = lteDCIEncode(pdcchConfig, dciMessageBits);
@@ -64,23 +72,21 @@ codedDciBits = lteDCIEncode(pdcchConfig, dciMessageBits);
 pdcchDims = ltePDCCHInfo(enbConfig);
 
 % Initialize elements with -1 to indicate that all the bits are unused
-pdcchBits = -1*ones(pdcchDims.MTot, 1);
+pdcchBitsTx = -1*ones(pdcchDims.MTot, 1);
 
-% Perform search space for UE-specific control channel candidates.
-candidates = ltePDCCHSpace(enbConfig, pdcchConfig, {'bits', '1based'});
 
-Ncad=randi(length(candidates),1,1);
+Ncad=1;
 
 % Map PDCCH payload on available UE-specific candidate. In this example the
 % first available candidate is used to map the coded DCI bits.
-pdcchBits ( candidates(Ncad, 1) : candidates(Ncad, 2) ) = codedDciBits;
+pdcchBitsTx ( candidates(Ncad, 1) : candidates(Ncad, 2) ) = codedDciBits;
 
 %% PDCCH Complex-Valued Modulated Symbol Generation
 
-pdcchSymbols = ltePDCCH(enbConfig, pdcchBits);
+pdcchSymbolsTx = ltePDCCH(enbConfig, pdcchBitsTx);
 pdcchIndices = ltePDCCHIndices(enbConfig,{'1based'});
 subframe_tx = lteDLResourceGrid(enbConfig);
-subframe_tx(pdcchIndices) = pdcchSymbols;
+subframe_tx(pdcchIndices) = pdcchSymbolsTx;
 
 %% PCFICH
 cfiCodeword = lteCFI(enbConfig);
@@ -96,14 +102,14 @@ subframe_tx(cellRsInd) = cellRsSym;
 [txWaveform, info] = lteOFDMModulate(enbConfig,subframe_tx);
 cfg.SamplingRate = info.SamplingRate;
 
-addpath('../../debug/lte/phy/lib/phch/test')
+addpath('../../build/srslte/lib/phch/test')
 
 decoded = zeros(size(SNR_values));
 decoded_cfi = zeros(size(SNR_values));
 decoded_srslte = zeros(size(SNR_values));
 decoded_cfi_srslte = zeros(size(SNR_values));
 
-parfor snr_idx=1:length(SNR_values)
+for snr_idx=1:length(SNR_values)
     SNRdB = SNR_values(snr_idx);
     SNR = 10^(SNRdB/10);    % Linear SNR  
     N0  = 1/(sqrt(2.0*enbConfig.CellRefP*double(info.Nfft))*SNR);
@@ -126,10 +132,10 @@ parfor snr_idx=1:length(SNR_values)
         % Perform channel estimation
         [hest, nest] = lteDLChannelEstimate(enbConfigRx, cec, subframe_rx);
 
-        [pcfichSymbolsRx, pdcfichSymbolsHest] = lteExtractResources(pcfichIndices(:,1), subframe_rx, hest);
+        [pcfichSymbolsRx, pcfichSymbolsHest] = lteExtractResources(pcfichIndices(:,1), subframe_rx, hest);
 
         %% PCFICH decoding
-        [pcfichBits, pcfichSymbols] = ltePCFICHDecode(enbConfigRx,pcfichSymbolsRx, pdcfichSymbolsHest, nest);
+        [pcfichBits, pcfichSymbols] = ltePCFICHDecode(enbConfigRx,pcfichSymbolsRx, pcfichSymbolsHest, nest);
         rxCFI = lteCFIDecode(pcfichBits);
         
         decoded_cfi(snr_idx) = decoded_cfi(snr_idx) + (rxCFI == txCFI); 
@@ -137,19 +143,18 @@ parfor snr_idx=1:length(SNR_values)
         %% PDCCH Decoding
         enbConfigRx.CFI = rxCFI; 
         pdcchIndicesRx = ltePDCCHIndices(enbConfigRx,{'1based'});
-        [pdcchSymbolsRx, pdcchSymbolsHest] = lteExtractResources(pdcchIndicesRx(:,1), subframe_rx, hest);
-        [recPdcchBits] = ltePDCCHDecode(enbConfigRx, pdcchSymbolsRx, pdcchSymbolsHest, nest);
+        [pdcchRx, pdcchHest] = lteExtractResources(pdcchIndicesRx(:,1), subframe_rx, hest);
+        [pdcchBits, pdcchSymbols] = ltePDCCHDecode(enbConfigRx, pdcchRx, pdcchHest, nest);
 
         %% Blind Decoding using DCI Search        
-        [rxDCI, rxDCIBits] = ltePDCCHSearch(enbConfigRx, ueConfig, recPdcchBits);
+        [rxDCI, rxDCIBits] = ltePDCCHSearch(enbConfigRx, ueConfig, pdcchBits);
         decoded(snr_idx) = decoded(snr_idx) + (length(rxDCI)>0);
-
         
         %% Same with srsLTE
-        [rxCFI, pcfichSymbols2, pcfichSymbolsRx2] = srslte_pcfich(enbConfigRx, rxWaveform);
-        decoded_cfi_srslte(snr_idx) = decoded_cfi_srslte(snr_idx) + (rxCFI == txCFI); 
-        enbConfigRx.CFI = rxCFI;
-        [found_srslte, llr, pdcchSymbols2] = srslte_pdcch(enbConfigRx, ueConfig.RNTI, rxWaveform);
+        [rxCFI_srslte, pcfichRx2, pcfichSymbols2] = srslte_pcfich(enbConfigRx, subframe_rx);
+        decoded_cfi_srslte(snr_idx) = decoded_cfi_srslte(snr_idx) + (rxCFI_srslte == txCFI); 
+        enbConfigRx.CFI = rxCFI_srslte;
+        [found_srslte, pdcchBits2, pdcchRx2, pdcchSymbols2, hest2] = srslte_pdcch(enbConfigRx, ueConfig.RNTI, subframe_rx, hest, nest);
         decoded_srslte(snr_idx) = decoded_srslte(snr_idx)+found_srslte;
     end
     fprintf('SNR: %.1f\n',SNRdB)
@@ -166,6 +171,21 @@ if (Npackets>1)
     ylabel('BLER')
     axis([min(SNR_values) max(SNR_values) 1/Npackets/10 1])
 else
+    
+    %scatter(real(pdcchSymbols2),imag(pdcchSymbols2))
+    %hold on
+    %scatter(real(pdcchSymbols),imag(pdcchSymbols))
+    %axis([-1.5 1.5 -1.5 1.5])
+    %hold off
+    
+    n=min(length(pdcchSymbols),length(pdcchSymbols2));
+    subplot(2,1,1)
+    plot(abs(pdcchSymbols(1:n)-pdcchSymbols2(1:n)))
+    n=min(length(pdcchBits),length(pdcchBits2));
+    subplot(2,1,2)
+    pdcchBitsTx(pdcchBitsTx==-1)=0;
+    plot(abs((pdcchBitsTx(1:n)>0.1)-(pdcchBits2(1:n)>0.1)))
+    
     disp(decoded)
     disp(decoded_srslte)
 end

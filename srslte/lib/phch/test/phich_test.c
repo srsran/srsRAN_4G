@@ -71,9 +71,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'g':
       if (!strcmp(argv[optind], "1/6")) {
-        phich_res = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6;
+        phich_res = SRSLTE_PHICH_R_1_6;
       } else if (!strcmp(argv[optind], "1/2")) {
-        phich_res = SRSLTE_PHICH_SRSLTE_PHICH_R_1_2;
+        phich_res = SRSLTE_PHICH_R_1_2;
       } else if (!strcmp(argv[optind], "1")) {
         phich_res = SRSLTE_PHICH_R_1;
       } else if (!strcmp(argv[optind], "2")) {

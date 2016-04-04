@@ -42,7 +42,7 @@ srslte_cell_t cell = {
   0,
   0,            // cell_id
   SRSLTE_CP_NORM,       // cyclic prefix
-  SRSLTE_PHICH_SRSLTE_PHICH_R_1_6,          // PHICH resources      
+  SRSLTE_PHICH_R_1_6,          // PHICH resources      
   SRSLTE_PHICH_NORM    // PHICH length
 };
 

@@ -504,7 +504,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
       if (q->sf_idx == 10) {
         q->sf_idx = 0;
       }
-      DEBUG("Reading %d samples. sf_idx = %d\n", q->sf_len, q->sf_idx);
+      INFO("Reading %d samples. sf_idx = %d\n", q->sf_len, q->sf_idx);
       ret = 1;
     } else {
       if (receive_samples(q, input_buffer)) {

@@ -277,10 +277,10 @@ void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   phich_res = srslte_bit_pack(&msg, 2);
   switch (phich_res) {
   case 0:
-      cell->phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_6;
+      cell->phich_resources = SRSLTE_PHICH_R_1_6;
     break;
   case 1:
-      cell->phich_resources = SRSLTE_PHICH_SRSLTE_PHICH_R_1_2;
+      cell->phich_resources = SRSLTE_PHICH_R_1_2;
     break;
   case 2:
       cell->phich_resources = SRSLTE_PHICH_R_1;
@@ -315,10 +315,10 @@ void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   msg++;
 
   switch (cell->phich_resources) {
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_6:
+  case SRSLTE_PHICH_R_1_6:
     phich_res = 0;
     break;
-  case SRSLTE_PHICH_SRSLTE_PHICH_R_1_2:
+  case SRSLTE_PHICH_R_1_2:
     phich_res = 1;
     break;
   case SRSLTE_PHICH_R_1:

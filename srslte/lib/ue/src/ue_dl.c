@@ -220,7 +220,7 @@ int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *c
       return SRSLTE_ERROR;
     }
 
-    INFO("Decoded CFI=%d with correlation %.2f\n", *cfi, cfi_corr);
+    INFO("Decoded CFI=%d with correlation %.2f, sf_idx=%d\n", *cfi, cfi_corr, sf_idx);
 
     if (srslte_regs_set_cfi(&q->regs, *cfi)) {
       fprintf(stderr, "Error setting CFI\n");
@@ -252,7 +252,7 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *
   }
   
   if (q->pdsch_cfg.rv == 0) {
-    srslte_softbuffer_rx_reset(&q->softbuffer);
+    srslte_softbuffer_rx_reset_tbs(&q->softbuffer, grant->mcs.tbs);
   }
   
   // Uncoment next line to do ZF by default in pdsch_ue example
@@ -359,7 +359,7 @@ int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, 
   uint16_t crc_rem = 0; 
   for (int f=0;f<nof_formats && crc_rem != rnti;f++) {
     for (int i=0;i<nof_locations && crc_rem != rnti;i++) {
-      INFO("Trying format %s (nbits=%d), location L=%d, ncce=%d\n", srslte_dci_format_string(formats[f]), 
+      DEBUG("Trying format %s (nbits=%d), location L=%d, ncce=%d\n", srslte_dci_format_string(formats[f]), 
              srslte_dci_format_sizeof_lut(formats[f], q->cell.nof_prb), locations[i].L, locations[i].ncce);
       q->last_n_cce = locations[i].ncce;
       if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &locations[i], formats[f], &crc_rem)) {
@@ -367,6 +367,7 @@ int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, 
         return SRSLTE_ERROR;
       }
       if (crc_rem == rnti) {
+        INFO("Found DCI nCCE: %d, L: %d, n_bits=%d\n", locations[i].ncce, locations[i].L, srslte_dci_format_sizeof_lut(formats[f], q->cell.nof_prb));
         memcpy(&q->last_location, &locations[i], sizeof(srslte_dci_location_t));
       }
       if (crc_rem == rnti && formats[f] == SRSLTE_DCI_FORMAT1A && dci_msg->data[0] != 1) {
@@ -381,6 +382,7 @@ int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, 
   if (crc_rem == rnti) {
     return 1; 
   } else {
+    INFO("Couldn't find any DCI for RNTI=0x%x\n", rnti);
     return 0; 
   }
 }
@@ -442,6 +444,37 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
   } else {
     return false; 
   }
+}
+
+void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuffer, uint32_t tti, uint32_t rv_idx) {
+  srslte_vec_save_file("sf_symbols", q->sf_symbols, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  srslte_vec_save_file("ce0", q->ce[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  if (q->cell.nof_ports > 1) {
+    srslte_vec_save_file("ce1", q->ce[1], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  }
+  srslte_vec_save_file("pcfich_ce0", q->pcfich.ce[0], q->pcfich.nof_symbols*sizeof(cf_t));
+  srslte_vec_save_file("pcfich_ce1", q->pcfich.ce[1], q->pcfich.nof_symbols*sizeof(cf_t));
+  srslte_vec_save_file("pcfich_symbols", q->pcfich.symbols[0], q->pcfich.nof_symbols*sizeof(cf_t));
+  srslte_vec_save_file("pcfich_eq_symbols", q->pcfich.d, q->pcfich.nof_symbols*sizeof(cf_t));
+  srslte_vec_save_file("pcfich_llr", q->pcfich.data_f, PCFICH_CFI_LEN*sizeof(float));
+  
+  srslte_vec_save_file("pdcch_ce0", q->pdcch.ce[0], q->pdcch.nof_cce*36*sizeof(cf_t));
+  srslte_vec_save_file("pdcch_ce1", q->pdcch.ce[1], q->pdcch.nof_cce*36*sizeof(cf_t));
+  srslte_vec_save_file("pdcch_symbols", q->pdcch.symbols[0], q->pdcch.nof_cce*36*sizeof(cf_t));
+  srslte_vec_save_file("pdcch_eq_symbols", q->pdcch.d, q->pdcch.nof_cce*36*sizeof(cf_t));
+  srslte_vec_save_file("pdcch_llr", q->pdcch.llr, q->pdcch.nof_cce*72*sizeof(float));
+  
+  
+  srslte_vec_save_file("pdsch_symbols", q->pdsch.d, q->pdsch_cfg.nbits.nof_re*sizeof(cf_t));
+  srslte_vec_save_file("llr", q->pdsch.e, q->pdsch_cfg.nbits.nof_bits*sizeof(cf_t));
+  int cb_len = q->pdsch_cfg.cb_segm.K1; 
+  for (int i=0;i<q->pdsch_cfg.cb_segm.C;i++) {
+    char tmpstr[64]; 
+    snprintf(tmpstr,64,"rmout_%d.dat",i);
+    srslte_vec_save_file(tmpstr, softbuffer->buffer_f[i], (3*cb_len+12)*sizeof(int16_t));  
+  }
+  printf("Saved files for tti=%d, sf=%d, cfi=%d, mcs=%d, rv=%d, rnti=%d\n", tti, tti%10, q->cfi, 
+         q->pdsch_cfg.grant.mcs.idx, rv_idx, q->current_rnti);
 }
 
 

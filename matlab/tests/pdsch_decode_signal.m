@@ -1,6 +1,6 @@
-enb=struct('NCellID',0,'NDLRB',100,'NSubframe',9,'CFI',1,'CyclicPrefix','Normal','CellRefP',1,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
+%enb=struct('NCellID',424,'NDLRB',100,'NSubframe',9,'CFI',2,'CyclicPrefix','Normal','CellRefP',2,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
 
-RNTI=73;
+RNTI=65535;
 
 addpath('../../build/srslte/lib/phch/test')
 
@@ -30,8 +30,8 @@ if ~isempty(dci)
     % Get the PDSCH configuration from the DCI
     [pdsch, trblklen] = hPDSCHConfiguration(enb, dci, pdcch.RNTI);
     pdsch.NTurboDecIts = 10;
-    pdsch.Modulation =  {'64QAM'};
-    trblklen=75376;
+    %pdsch.Modulation =  {'QPSK'};
+    %trblklen=75376;
     fprintf('PDSCH settings after DCI decoding:\n');
     disp(pdsch);
 
@@ -40,12 +40,12 @@ if ~isempty(dci)
     [pdschIndices,pdschIndicesInfo] = ltePDSCHIndices(enb, pdsch, pdsch.PRBSet);
     [pdschRx, pdschHest] = lteExtractResources(pdschIndices, subframe_rx, hest);
     % Decode PDSCH 
-    [dlschBits,pdschSymbols] = ltePDSCHDecode(enb, pdsch, d);
+    [dlschBits,pdschSymbols] = ltePDSCHDecode(enb, pdsch, pdschRx, pdschHest, nest);
     [sib1, crc] = lteDLSCHDecode(enb, pdsch, trblklen, dlschBits);
 
-%    [dec2, data, pdschRx2, pdschSymbols2, e_bits, indices] = srslte_pdsch(enb, pdsch, ... 
-%                                                        trblklen, ...
-%                                                        subframe_rx);
+    [dec2, data, pdschRx2, pdschSymbols2, e_bits] = srslte_pdsch(enb, pdsch, ... 
+                                                        trblklen, ...
+                                                        subframe_rx, hest, nest);
 
     
     scatter(real(pdschSymbols{1}),imag(pdschSymbols{1}))
