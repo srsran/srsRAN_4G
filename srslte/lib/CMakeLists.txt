@@ -51,6 +51,7 @@ TARGET_LINK_LIBRARIES(srslte  srslte_agc
                               srslte_resampling
                               srslte_scrambling
                               srslte_ue
+                              srslte_rf
                               pthread)
 SET_TARGET_PROPERTIES(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})

@@ -23,4 +23,5 @@ ADD_LIBRARY(srslte_ue ${SOURCES})
 TARGET_LINK_LIBRARIES(srslte_ue     srslte_io
                                     srslte_sync
                                     srslte_dft
-                                    srslte_ch_estimation)
+                                    srslte_ch_estimation
+                                    srslte_agc)

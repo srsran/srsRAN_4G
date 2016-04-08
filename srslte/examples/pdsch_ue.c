@@ -246,7 +246,7 @@ int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timest
   return srslte_rf_recv(h, data, nsamples, 1);
 }
 
-double srslte_rf_set_rx_gain_th_wrapper(void *h, double f) {
+double srslte_rf_set_rx_gain_th_wrapper_(void *h, double f) {
   return srslte_rf_set_rx_gain_th((srslte_rf_t*) h, f);
 }
 
@@ -431,7 +431,7 @@ int main(int argc, char **argv) {
 
 #ifndef DISABLE_RF
   if (prog_args.rf_gain < 0) {
-    srslte_ue_sync_start_agc(&ue_sync, srslte_rf_set_rx_gain_th_wrapper, cell_detect_config.init_agc);    
+    srslte_ue_sync_start_agc(&ue_sync, srslte_rf_set_rx_gain_th_wrapper_, cell_detect_config.init_agc);
   }
 #endif
 #ifdef PRINT_CHANGE_SCHEDULIGN
