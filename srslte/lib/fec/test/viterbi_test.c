@@ -204,10 +204,10 @@ int main(int argc, char **argv) {
       for (j = 0; j < coded_length; j++) {
         llr[j] = symbols[j] ? sqrt(2) : -sqrt(2);
       }
-
+      
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);
+      
       srslte_vec_quant_fuc(llr, llr_c, Gain, 127.5, 255, coded_length);
-
 
       struct timeval t[3];
       gettimeofday(&t[1], NULL);
@@ -264,8 +264,7 @@ int main(int argc, char **argv) {
   free(data_rx);
   
   if (snr_points == 1) {
-    int expected_errors = get_expected_errors(nof_frames,
-        seed, frame_length, tail_biting, ebno_db);
+    int expected_errors = get_expected_errors(nof_frames, seed, frame_length, tail_biting, ebno_db);
     if (expected_errors == -1) {
       fprintf(stderr, "Test parameters not defined in test_results.h\n");
       exit(-1);

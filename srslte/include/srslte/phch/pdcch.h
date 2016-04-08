@@ -80,8 +80,7 @@ typedef struct SRSLTE_API {
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
   srslte_viterbi_t decoder;
   srslte_crc_t crc;
-  srslte_precoding_t precoding; 
-
+  
 } srslte_pdcch_t;
 
 SRSLTE_API int srslte_pdcch_init(srslte_pdcch_t *q, 

@@ -55,12 +55,13 @@
 int band = -1;
 int earfcn_start=-1, earfcn_end = -1;
 
-cell_search_cfg_t config = {
-  50,   // maximum number of 5ms frames to capture for MIB decoding
-  50,   // maximum number of 5ms frames to capture for PSS correlation
-  4.0,   // early-stops cell detection if mean PSR is above this value
-  0     // 0 or negative to disable AGC 
-}; 
+
+cell_search_cfg_t cell_detect_config = {
+  500,
+  50, 
+  10,
+  0
+};
 
 struct cells {
   srslte_cell_t cell;
@@ -80,13 +81,12 @@ void usage(char *prog) {
   printf("\t-s earfcn_start [Default All]\n");
   printf("\t-e earfcn_end [Default All]\n");
   printf("\t-n nof_frames_total [Default 100]\n");
-  printf("\t-t threshold [Default %.2f]\n",config.threshold);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "agsendtvb")) != -1) {
+  while ((opt = getopt(argc, argv, "agsendvb")) != -1) {
     switch(opt) {
     case 'a':
       rf_args = argv[optind];
@@ -101,10 +101,7 @@ void parse_args(int argc, char **argv) {
       earfcn_end = atoi(argv[optind]);
       break;
     case 'n':
-      config.max_frames_pss = atoi(argv[optind]);
-      break;
-    case 't':
-      config.threshold = atof(argv[optind]);
+      cell_detect_config.max_frames_pss = atoi(argv[optind]);
       break;
     case 'g':
       rf_gain = atof(argv[optind]);
@@ -159,7 +156,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }  
-  if (!config.init_agc) {
+  if (!cell_detect_config.init_agc) {
     srslte_rf_set_rx_gain(&rf, rf_gain);
   } else {
     printf("Starting AGC thread...\n");
@@ -203,19 +200,16 @@ int main(int argc, char **argv) {
       
     bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
       
-    if (srslte_ue_cellsearch_init(&cs, srslte_rf_recv_wrapper, (void*) &rf)) {
+    if (srslte_ue_cellsearch_init(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, (void*) &rf)) {
       fprintf(stderr, "Error initiating UE cell detect\n");
       exit(-1);
     }
     
-    if (config.max_frames_pss) {
-      srslte_ue_cellsearch_set_nof_frames_to_scan(&cs, config.max_frames_pss);
+    if (cell_detect_config.max_frames_pss) {
+      srslte_ue_cellsearch_set_nof_valid_frames(&cs, cell_detect_config.nof_valid_pss_frames);
     }
-    if (config.threshold) {
-      srslte_ue_cellsearch_set_threshold(&cs, config.threshold);
-    }
-    if (config.init_agc) {
-      srslte_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, config.init_agc);    
+    if (cell_detect_config.init_agc) {
+      srslte_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);    
     }
 
     INFO("Setting sampling frequency %.2f MHz for PSS search\n", SRSLTE_CS_SAMP_FREQ/1000000);
@@ -229,11 +223,11 @@ int main(int argc, char **argv) {
       exit(-1);
     } else if (n > 0) {
       for (int i=0;i<3;i++) {
-        if (found_cells[i].psr > config.threshold/2) {
+        if (found_cells[i].psr > 10.0) {
           srslte_cell_t cell;
           cell.id = found_cells[i].cell_id; 
           cell.cp = found_cells[i].cp; 
-          int ret = rf_mib_decoder(&rf, &config, &cell);
+          int ret = rf_mib_decoder(&rf, &cell_detect_config, &cell, NULL);
           if (ret < 0) {
             fprintf(stderr, "Error decoding MIB\n");
             exit(-1);

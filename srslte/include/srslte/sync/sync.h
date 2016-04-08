@@ -68,7 +68,6 @@ typedef struct SRSLTE_API {
   
   float threshold;
   float peak_value;
-  float mean_peak_value;
   uint32_t N_id_2;
   uint32_t N_id_1;
   uint32_t sf_idx;
@@ -97,6 +96,13 @@ typedef struct SRSLTE_API {
 
 }srslte_sync_t;
 
+typedef enum {
+  SRSLTE_SYNC_FOUND = 1, 
+  SRSLTE_SYNC_FOUND_NOSPACE = 2, 
+  SRSLTE_SYNC_NOFOUND = 0, 
+  SRSLTE_SYNC_ERROR = -1  
+} srslte_sync_find_ret_t; 
+
 
 SRSLTE_API int srslte_sync_init(srslte_sync_t *q, 
                                 uint32_t frame_size, 
@@ -108,10 +114,10 @@ SRSLTE_API void srslte_sync_free(srslte_sync_t *q);
 SRSLTE_API void srslte_sync_reset(srslte_sync_t *q); 
 
 /* Finds a correlation peak in the input signal around position find_offset */
-SRSLTE_API int srslte_sync_find(srslte_sync_t *q, 
-                                cf_t *input,
-                                uint32_t find_offset,
-                                uint32_t *peak_position);
+SRSLTE_API srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, 
+                                                   cf_t *input,
+                                                   uint32_t find_offset,
+                                                   uint32_t *peak_position);
 
 /* Estimates the CP length */
 SRSLTE_API srslte_cp_t srslte_sync_detect_cp(srslte_sync_t *q, 

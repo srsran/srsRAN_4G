@@ -82,7 +82,6 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   srslte_chest_dl_t est;
-  srslte_precoding_t cheq; 
   cf_t *input = NULL, *ce = NULL, *h = NULL, *output = NULL;
   int i, j, n_port=0, sf_idx=0, cid=0, num_re;
   int ret = -1;
@@ -129,8 +128,6 @@ int main(int argc, char **argv) {
     cid = cell.id;
     max_cid = cell.id;
   }
-  
-  srslte_precoding_init(&cheq, num_re);
 
   while(cid <= max_cid) {
     cell.id = cid; 
@@ -226,8 +223,6 @@ int main(int argc, char **argv) {
   ret = 0;
 
 do_exit:
-
-  srslte_precoding_free(&cheq);
 
   if (output) {
     free(output);

@@ -73,8 +73,6 @@ typedef struct SRSLTE_API {
 
   srslte_dft_precoding_t dft_precoding;  
   
-  srslte_precoding_t equalizer; 
-  
   /* buffers */
   // void buffers are shared for tx and rx
   cf_t *ce;

@@ -218,12 +218,6 @@ int srslte_pusch_init(srslte_pusch_t *q, srslte_cell_t cell) {
       goto clean; 
     }
     
-    /* This is for equalization at receiver */
-    if (srslte_precoding_init(&q->equalizer, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
-      fprintf(stderr, "Error initializing precoding\n");
-      goto clean; 
-    }
-
     q->rnti_is_set = false; 
 
     // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
@@ -281,8 +275,6 @@ void srslte_pusch_free(srslte_pusch_t *q) {
   
   srslte_dft_precoding_free(&q->dft_precoding);
 
-  srslte_precoding_free(&q->equalizer);
-  
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     srslte_sequence_free(&q->seq[i]);
   }

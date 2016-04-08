@@ -61,6 +61,8 @@ ADD_TEST(precoding_diversity2 precoding_test -n 1000 -m diversity -l 2 -p 2)
 ADD_TEST(precoding_diversity4 precoding_test -n 1024 -m diversity -l 4 -p 4) 
 
 
+# MEX file for predecoding and layer demapping test
+BuildMex(MEXNAME diversitydecode SOURCES diversitydecode_mex.c LIBRARIES srslte srslte_mex)
 
  
 

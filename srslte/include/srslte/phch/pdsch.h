@@ -67,8 +67,7 @@ typedef struct SRSLTE_API {
   srslte_modem_table_t mod[4];
   
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
-  srslte_precoding_t precoding; 
-
+  
   srslte_sch_t dl_sch;
   
 } srslte_pdsch_t;

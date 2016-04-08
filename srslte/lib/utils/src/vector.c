@@ -704,14 +704,14 @@ uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
 void srslte_vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len) {
   int i;
   int tmp;
+  
   for (i=0;i<len;i++) {
     tmp = (int) (offset + gain * in[i]);
     if (tmp < 0)
       tmp = 0;
     if (tmp > clip)
       tmp = clip;
-    out[i] = (uint8_t) tmp;
+    out[i] = (uint8_t) tmp;    
   }
-
 }
 

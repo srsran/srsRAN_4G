@@ -151,10 +151,6 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
     q->cell = cell;
     q->nof_symbols = (SRSLTE_CP_ISNORM(q->cell.cp)) ? PBCH_RE_CP_NORM : PBCH_RE_CP_EXT;
     
-    if (srslte_precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
-      fprintf(stderr, "Error initializing precoding\n");
-    }
-
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
     }
@@ -239,7 +235,6 @@ void srslte_pbch_free(srslte_pbch_t *q) {
   if (q->rm_b) {
     free(q->rm_b);
   }
-  srslte_precoding_free(&q->precoding);
   srslte_sequence_free(&q->seq);
   srslte_modem_table_free(&q->mod);
   srslte_viterbi_free(&q->decoder);
@@ -373,8 +368,6 @@ int decode_frame(srslte_pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
     uint32_t nof_bits, uint32_t nof_ports) {
   int j;
   
-  DEBUG("Trying to decode PBCH %d bits, %d ports, src: %d, dst: %d, n=%d\n", nof_bits, nof_ports, src, dst, n);
-
   memcpy(&q->temp[dst * nof_bits], &q->llr[src * nof_bits],
       n * nof_bits * sizeof(float));
 
@@ -391,6 +384,9 @@ int decode_frame(srslte_pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
 
   /* unrate matching */
   srslte_rm_conv_rx(q->temp, 4 * nof_bits, q->rm_f, SRSLTE_BCH_ENCODED_LEN);
+  
+  /* Normalize LLR */
+  srslte_vec_sc_prod_fff(q->rm_f, 1.0/((float) 2*n), q->rm_f, SRSLTE_BCH_ENCODED_LEN);
   
   /* decode */
   srslte_viterbi_decode_f(&q->decoder, q->rm_f, q->data, SRSLTE_BCH_PAYLOADCRC_LEN);
@@ -471,8 +467,8 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
           /* no need for layer demapping */
           srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, q->nof_symbols, noise_estimate);
         } else {
-          srslte_predecoding_diversity(&q->precoding, q->symbols[0], q->ce, x, nant,
-              q->nof_symbols, noise_estimate);
+          srslte_predecoding_diversity(q->symbols[0], q->ce, x, nant,
+              q->nof_symbols);
           srslte_layerdemap_diversity(x, q->d, nant, q->nof_symbols / nant);
         }
 
@@ -482,17 +478,14 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
         /* We don't know where the 40 ms begin, so we try all combinations. E.g. if we received
         * 4 frames, try 1,2,3,4 individually, 12, 23, 34 in pairs, 123, 234 and finally 1234.
         * We know they are ordered.
-        *
-        * FIXME: There are unnecessary checks because 2,3,4 have already been processed in the previous
-        * calls.
         */
-        for (nb = 0; nb < q->frame_idx && !ret; nb++) {
-          for (dst = 0; (dst < 4 - nb) && !ret; dst++) {
-            for (src = 0; src < q->frame_idx - nb && !ret; src++) {
+        for (nb = 0; nb < q->frame_idx; nb++) {
+          for (dst = 0; (dst < 4 - nb); dst++) {
+            for (src = 0; src < q->frame_idx - nb; src++) {
               ret = decode_frame(q, src, dst, nb + 1, nof_bits, nant);     
               if (ret == 1) {
                 if (sfn_offset) {
-                  *sfn_offset = (int) dst - src;
+                  *sfn_offset = (int) dst - src + q->frame_idx - 1;
                 }
                 if (nof_tx_ports) {
                   *nof_tx_ports = nant; 
@@ -500,13 +493,15 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
                 if (bch_payload) {
                   memcpy(bch_payload, q->data, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);      
                 }
+                INFO("Decoded PBCH: src=%d, dst=%d, nb=%d, sfn_offset=%d\n", src, dst, nb+1, (int) dst - src + q->frame_idx - 1);
+                return 1; 
               }
             }
           }
         }
       }
       nant++;
-    } while(nant <= q->cell.nof_ports && !ret); 
+    } while(nant <= q->cell.nof_ports); 
     
     /* If not found, make room for the next packet of radio frame symbols */
     if (q->frame_idx == 4) {
@@ -561,7 +556,7 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
     /* layer mapping & precoding */
     if (q->cell.nof_ports > 1) {
       srslte_layermap_diversity(q->d, x, q->cell.nof_ports, q->nof_symbols);
-      srslte_precoding_diversity(&q->precoding, x, q->symbols, q->cell.nof_ports,
+      srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     } else {
       memcpy(q->symbols[0], q->d, q->nof_symbols * sizeof(cf_t));

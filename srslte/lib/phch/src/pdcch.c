@@ -67,10 +67,6 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
     q->cell = cell;
     q->regs = regs;
     
-    if (srslte_precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
-      fprintf(stderr, "Error initializing precoding\n");
-    }
-
     /* Allocate memory for the maximum number of PDCCH bits (CFI=3) */
     q->max_bits = (srslte_regs_pdcch_nregs(q->regs, 3) / 9) * 72;
 
@@ -166,7 +162,6 @@ void srslte_pdcch_free(srslte_pdcch_t *q) {
     srslte_sequence_free(&q->seq[i]);
   }
 
-  srslte_precoding_free(&q->precoding);
   srslte_modem_table_free(&q->mod);
   srslte_viterbi_free(&q->decoder);
 
@@ -280,7 +275,10 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
     
     /* unrate matching */
     srslte_rm_conv_rx(e, E, q->rm_f, 3 * (nof_bits + 16));
-
+    
+    /* Normalize LLR */
+    srslte_vec_sc_prod_fff(q->rm_f, (float) 3 * nof_bits/E, q->rm_f, 3*(nof_bits+16));
+  
     /* viterbi decoder */
     srslte_viterbi_decode_f(&q->decoder, q->rm_f, data, nof_bits + 16);
 
@@ -406,7 +404,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
       /* no need for layer demapping */
       srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, nof_symbols, noise_estimate);
     } else {
-      srslte_predecoding_diversity(&q->precoding, q->symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols, noise_estimate);
+      srslte_predecoding_diversity(q->symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
     }
 
@@ -532,7 +530,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
       /* layer mapping & precoding */
       if (q->cell.nof_ports > 1) {
         srslte_layermap_diversity(q->d, x, q->cell.nof_ports, nof_symbols);
-        srslte_precoding_diversity(&q->precoding, x, q->symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
+        srslte_precoding_diversity(x, q->symbols, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
       } else {
         memcpy(q->symbols[0], q->d, nof_symbols * sizeof(cf_t));
       }

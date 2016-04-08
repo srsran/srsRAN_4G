@@ -102,6 +102,8 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
       fprintf(stderr, "Error initiating SFO correct\n");
       goto clean_exit;
     }
+    srslte_cfo_set_tol(&q->sfo_correct, 0);
+    
     q->sf_symbols = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
     if (!q->sf_symbols) {
       perror("malloc");

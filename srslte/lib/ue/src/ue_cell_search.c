@@ -35,12 +35,7 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
-int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*), void *stream_handler) 
-{
-  return srslte_ue_cellsearch_init_max(q, SRSLTE_CS_DEFAULT_MAXFRAMES_TOTAL, recv_callback, stream_handler); 
-}
-
-int srslte_ue_cellsearch_init_max(srslte_ue_cellsearch_t * q, uint32_t max_frames, 
+int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames, 
                            int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*), void *stream_handler) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -77,8 +72,7 @@ int srslte_ue_cellsearch_init_max(srslte_ue_cellsearch_t * q, uint32_t max_frame
     }
 
     q->max_frames = max_frames;
-    q->nof_frames_to_scan = SRSLTE_CS_DEFAULT_NOFFRAMES_TOTAL; 
-    q->detect_threshold = 1.0; 
+    q->nof_valid_frames = max_frames; 
     
     ret = SRSLTE_SUCCESS;
   }
@@ -107,15 +101,10 @@ void srslte_ue_cellsearch_free(srslte_ue_cellsearch_t * q)
 
 }
 
-void srslte_ue_cellsearch_set_threshold(srslte_ue_cellsearch_t * q, float threshold)
-{
-  q->detect_threshold = threshold;
-}
-
-int srslte_ue_cellsearch_set_nof_frames_to_scan(srslte_ue_cellsearch_t * q, uint32_t nof_frames)
+int srslte_ue_cellsearch_set_nof_valid_frames(srslte_ue_cellsearch_t * q, uint32_t nof_frames)
 {
   if (nof_frames <= q->max_frames) {
-    q->nof_frames_to_scan = nof_frames;    
+    q->nof_valid_frames = nof_frames;    
     return SRSLTE_SUCCESS; 
   } else {
     return SRSLTE_ERROR;
@@ -233,23 +222,20 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
       } else if (ret == 1) {
         /* This means a peak was found and ue_sync is now in tracking state */
         ret = srslte_sync_get_cell_id(&q->ue_sync.strack);
-        if (ret >= 0) {
-          if (srslte_sync_get_peak_value(&q->ue_sync.strack) > q->detect_threshold) {
-            /* Save cell id, cp and peak */
-            q->candidates[nof_detected_frames].cell_id = (uint32_t) ret;
-            q->candidates[nof_detected_frames].cp = srslte_sync_get_cp(&q->ue_sync.strack);
-            q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
-            q->candidates[nof_detected_frames].psr = srslte_sync_get_peak_value(&q->ue_sync.strack);
-            q->candidates[nof_detected_frames].cfo = srslte_ue_sync_get_cfo(&q->ue_sync);
-            DEBUG
-              ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
-                nof_detected_frames, nof_scanned_frames, q->nof_frames_to_scan,
-                q->candidates[nof_detected_frames].psr, q->candidates[nof_detected_frames].cell_id,
-                srslte_cp_string(q->candidates[nof_detected_frames].cp));
-              
-            nof_detected_frames++; 
+        if (ret >= 0) {          
+          /* Save cell id, cp and peak */
+          q->candidates[nof_detected_frames].cell_id = (uint32_t) ret;
+          q->candidates[nof_detected_frames].cp = srslte_sync_get_cp(&q->ue_sync.strack);
+          q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
+          q->candidates[nof_detected_frames].psr = srslte_sync_get_peak_value(&q->ue_sync.strack);
+          q->candidates[nof_detected_frames].cfo = srslte_ue_sync_get_cfo(&q->ue_sync);
+          DEBUG
+            ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
+              nof_detected_frames, nof_scanned_frames, q->nof_valid_frames,
+              q->candidates[nof_detected_frames].psr, q->candidates[nof_detected_frames].cell_id,
+              srslte_cp_string(q->candidates[nof_detected_frames].cp));
             
-          }
+          nof_detected_frames++;           
         }
       } else if (ret == 0) {
         /* This means a peak is not yet found and ue_sync is in find state 
@@ -259,7 +245,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
     
       nof_scanned_frames++;
       
-    } while (nof_scanned_frames < q->nof_frames_to_scan);
+    } while (nof_scanned_frames < q->max_frames && nof_detected_frames < q->nof_valid_frames);
     
     /* In either case, check if the mean PSR is above the minimum threshold */
     if (nof_detected_frames > 0) {

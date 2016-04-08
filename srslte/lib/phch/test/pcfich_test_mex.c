@@ -152,6 +152,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nlhs >= 3) {
     mexutils_write_cf(pcfich.symbols[0], &plhs[2], 16, 1);  
   }
+  if (nlhs >= 4) {
+    mexutils_write_cf(ce[0], &plhs[3], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
+  }
   
   srslte_chest_dl_free(&chest);
   srslte_ofdm_rx_free(&ofdm_rx);

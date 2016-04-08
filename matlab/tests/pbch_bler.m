@@ -1,18 +1,10 @@
-%clear
-% R.1 10 MHz 1 port
-% R.10 10 MHz 2 ports
-% R.4 1.4 MHz 1 port 
-% R.11-2 5 MHz 2 ports
-rmc = lteRMCDL('R.10');
+clear
 
-NofPortsTx=1;
-
-SNR_values_db=1;%linspace(-8,-2,4);
-Nrealizations=5;
-enb = struct('NCellID',1,'NDLRB',25,'CellRefP',NofPortsTx,'CyclicPrefix','Normal','DuplexMode','FDD','NSubframe',0);
-
-griddims = lteResourceGridSize(enb); % Resource grid dimensions
-L = griddims(2);    
+Nblock=[3];
+SNR_values_db=100;%linspace(-4,0,6);
+Nrealizations=1;
+enb = struct('NCellID',62,'NDLRB',50,'CellRefP',2,'CyclicPrefix','Normal','DuplexMode','FDD',... 
+    'NSubframe',0,'PHICHDuration','Normal','Ng','One','NFrame',101,'TotSubframes',40);
         
 cfg.Seed = 8;                  % Random channel seed
 cfg.NRxAnts = 1;               % 1 receive antenna
@@ -33,59 +25,91 @@ cec.InterpType = 'linear';             % 2D interpolation type
 cec.InterpWindow = 'Centered';        % Interpolation window type
 cec.InterpWinSize = 1;                % Interpolation window size
 
-rmc.PDSCH.Modulation = '16QAM';
-[waveform,rgrid,info] = lteRMCDLTool(rmc,[1;0;0;1]);
+griddims = lteResourceGridSize(enb); % Resource grid dimensions
+L = griddims(2);    
 
-cfg.SamplingRate = info.SamplingRate;
+% Generate signal
+mib = lteMIB(enb);
+bchCoded = lteBCH(enb,mib);
+mibCRC = lteCRCEncode(mib,'16');
+mibCoded = lteConvolutionalEncode(mibCRC);
+pbchSymbolsTx = ltePBCH(enb,bchCoded);
+pbchIndtx = ltePBCHIndices(enb);
+subframe_tx = lteDLResourceGrid(enb);
+rs = lteCellRS(enb);
+rsind = lteCellRSIndices(enb);
+subframe_tx(rsind)=rs;
 
-addpath('../../debug/lte/phy/lib/phch/test')
+NofPortsTx=enb.CellRefP;
 
+addpath('../../build/srslte/lib/phch/test')
+
+txWaveform=cell(length(Nblock));
+rxWaveform=cell(length(Nblock));
+for n=1:length(Nblock)
+    subframe_tx2=subframe_tx;
+    subframe_tx2(pbchIndtx)=pbchSymbolsTx(Nblock(n)*240+1:(Nblock(n)+1)*240,:); 
+    [txWaveform{n},info] = lteOFDMModulate(enb, subframe_tx2, 0);
+    cfg.SamplingRate = info.SamplingRate;
+end
 
 error=zeros(length(SNR_values_db),2);
 for snr_idx=1:length(SNR_values_db)
     SNRdB = SNR_values_db(snr_idx);             % Desired SNR in dB
-    SNR = 10^(SNRdB/20);    % Linear SNR  
+    SNR = 10^(SNRdB/10);    % Linear SNR  
 
     errorReal = zeros(Nrealizations,2);
     for i=1:Nrealizations
 
-        rxWaveform = lteFadingChannel(cfg,sum(waveform,2));
+        for n=1:length(Nblock)
 
-        %% Additive Noise
-        N0 = 1/(sqrt(2.0*double(enb.CellRefP)*double(info.Nfft))*SNR);
+            %rxWaveform = lteFadingChannel(cfg,sum(txWaveform,2));
+            rxWaveform{n} = sum(txWaveform{n},2);
 
-        % Create additive white Gaussian noise
-        noise = N0*complex(randn(size(rxWaveform)),randn(size(rxWaveform)));   
+            %% Additive Noise
+            N0 = 1/(sqrt(2.0*double(enb.CellRefP)*double(info.Nfft))*SNR);
 
-        rxWaveform = noise + rxWaveform;
-        
-        rxWaveform = x((i-1)*76800+1:i*76800); 
-        
-        % Number of OFDM symbols in a subframe
-        % OFDM demodulate signal
-        rxgrid = lteOFDMDemodulate(enb, rxWaveform);
+            % Create additive white Gaussian noise
+            noise = N0*complex(randn(size(rxWaveform{n})),randn(size(rxWaveform{n})));   
 
-        % Perform channel estimation
-        [hest, nest] = lteDLChannelEstimate(enb, cec, rxgrid(:,1:L,:));
-      
-        pbchIndices = ltePBCHIndices(enb);
-        [pbchRx, pbchHest] = lteExtractResources( ...
-            pbchIndices, rxgrid(:,1:L,:), hest(:,1:L,:,:));
+            rxWaveform{n} = noise + rxWaveform{n};
 
-        % Decode PBCH
-        [bchBits, pbchSymbols, nfmod4, mib, nof_ports] = ltePBCHDecode(enb, pbchRx, pbchHest, nest);
+            % Number of OFDM symbols in a subframe
+            % OFDM demodulate signal
+            rxgrid = lteOFDMDemodulate(enb, rxWaveform{n}, 0);
 
-        if (nof_ports ~= NofPortsTx)
-            errorReal(i,1)=1;
+            % Perform channel estimation
+            %enb.CellRefP=2;
+            [hest, nest] = lteDLChannelEstimate(enb, cec, rxgrid(:,1:L,:));
+
+            pbchIndices = ltePBCHIndices(enb);
+            [pbchRx, pbchHest] = lteExtractResources(pbchIndices, rxgrid(:,1:L,:), ... 
+                hest(:,1:L,:,:));
+
+            % Decode PBCH
+            [bchBits, pbchSymbols, nfmod4, mib, nof_ports] = ltePBCHDecode(enb, pbchRx, pbchHest, nest);
+
+            if (nof_ports ~= NofPortsTx)
+                errorReal(i,1)=1;
+            end
         end
         
-        [nof_ports2, pbchSymbols2, pbchBits, ce, ce2, pbchRx2, pbchHest2]= srslte_pbch(enb, rxWaveform, hest, nest);
+        %enb.CellRefP=NofPortsTx;
+        [nof_ports2, pbchSymbols2, pbchBits, ce, ce2, pbchRx2, pbchHest2, mod2, codedbits]= ...
+            srslte_pbch(enb, rxWaveform);
+           
+        subplot(2,1,1)
+        plot(abs((bchCoded(1:960)>0)-(pbchBits(1:960)>0)))
+        subplot(2,1,2)
+        codedbits2 = reshape(reshape(codedbits,3,[])',1,[]);
+        plot(abs((codedbits2'>0)-(mibCoded>0)))
+        
+        %decodedData = lteConvolutionalDecode(noisysymbols);
+        %[decodedData2, quant] = srslte_viterbi(interleavedSymbols);
+        
         if (nof_ports2 ~= NofPortsTx)
             errorReal(i,2)=1;
         end
-%         if (errorReal(i,1) ~= errorReal(i,2))
-%             i=1;
-%         end
     end
     error(snr_idx,:) = sum(errorReal);
     fprintf('SNR: %.2f dB\n', SNR_values_db(snr_idx));
@@ -100,5 +124,7 @@ if (length(SNR_values_db) > 1)
     axis([min(SNR_values_db) max(SNR_values_db) 1/Nrealizations/10 1])
 else
     disp(error)
+    disp(nfmod4)
+    disp(mod2)
 end
 

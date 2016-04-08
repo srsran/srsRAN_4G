@@ -51,21 +51,20 @@ void srslte_cp_synch_free(srslte_cp_synch_t *q)
 
 uint32_t srslte_cp_synch(srslte_cp_synch_t *q, cf_t *input, uint32_t max_offset, uint32_t nof_symbols, uint32_t cp_len)
 {  
-  if (max_offset <= q->symbol_sz) {    
-    for (int i=0;i<max_offset;i++) {
-      q->corr[i] = 0;
-      cf_t *inputPtr = input; 
-      for (int n=0;n<nof_symbols;n++) {
-        uint32_t cplen = (n%7)?cp_len:cp_len+1;
-        q->corr[i] += srslte_vec_dot_prod_conj_ccc(&inputPtr[i], &inputPtr[i+q->symbol_sz], cplen)/nof_symbols;
-        inputPtr += q->symbol_sz+cplen;        
-      }    
-    }
-    uint32_t max_idx = srslte_vec_max_abs_ci(q->corr, max_offset);
-    return max_idx; 
-  } else {
-    return 0; 
+  if (max_offset > q->symbol_sz) {    
+    max_offset = q->symbol_sz; 
   }
+  for (int i=0;i<max_offset;i++) {
+    q->corr[i] = 0;
+    cf_t *inputPtr = input; 
+    for (int n=0;n<nof_symbols;n++) {
+      uint32_t cplen = (n%7)?cp_len:cp_len+1;
+      q->corr[i] += srslte_vec_dot_prod_conj_ccc(&inputPtr[i], &inputPtr[i+q->symbol_sz], cplen)/nof_symbols;
+      inputPtr += q->symbol_sz+cplen;        
+    }    
+  }
+  uint32_t max_idx = srslte_vec_max_abs_ci(q->corr, max_offset);
+  return max_idx; 
 }
 
 cf_t srslte_cp_synch_corr_output(srslte_cp_synch_t *q, uint32_t offset) 

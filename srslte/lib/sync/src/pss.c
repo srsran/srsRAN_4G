@@ -101,7 +101,7 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
     q->N_id_2 = 10;
     q->fft_size = fft_size;
     q->frame_size = frame_size;
-    q->ema_alpha = 0.1; 
+    q->ema_alpha = 0.2; 
 
     buffer_size = fft_size + frame_size + 1;
         

@@ -41,8 +41,9 @@
 
 #define ESTIMATE_NOISE_LS_PSS
 
-#define DEFAULT_FILTER_LEN 3
+//#define DEFAULT_FILTER_LEN 3
 
+#ifdef DEFAULT_FILTER_LEN 
 static void set_default_filter(srslte_chest_dl_t *q, int filter_len) {
   
   float fil[SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN]; 
@@ -63,6 +64,7 @@ static void set_default_filter(srslte_chest_dl_t *q, int filter_len) {
 
   srslte_chest_dl_set_smooth_filter(q, fil, filter_len);
 }
+#endif
 
 /** 3GPP LTE Downlink channel estimator and equalizer. 
  * Estimates the channel in the resource elements transmitting references and interpolates for the rest
@@ -124,9 +126,13 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
     }
     
     q->smooth_filter_len = 0; 
+
+#ifdef DEFAULT_FILTER_LEN 
+    set_default_filter(q, DEFAULT_FILTER_LEN);
+#else
     float fil[3] = {0.1, 0.8, 0.1}; 
     srslte_chest_dl_set_smooth_filter(q, fil, 3);
-    //set_default_filter(q, DEFAULT_FILTER_LEN);
+#endif    
     
     q->cell = cell; 
   }

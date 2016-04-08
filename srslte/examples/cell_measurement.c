@@ -40,10 +40,10 @@
 #include "srslte/rf/rf_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
-  5000, // maximum number of frames to receive for MIB decoding
-  50, // maximum number of frames to receive for PSS correlation 
-  10.0,
-  50.0
+  500,
+  50, 
+  10,
+  0
 };
 
 /**********************************************************************
@@ -153,6 +153,7 @@ int main(int argc, char **argv) {
   int sfn_offset; 
   float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
   cf_t *ce[SRSLTE_MAX_PORTS];
+  float cfo = 0; 
 
   if (parse_args(&prog_args, argc, argv)) {
     exit(-1);
@@ -191,7 +192,7 @@ int main(int argc, char **argv) {
   
   uint32_t ntrial=0; 
   do {
-    ret = rf_search_and_decode_mib(&rf, &cell_detect_config, prog_args.force_N_id_2, &cell);
+    ret = rf_search_and_decode_mib(&rf, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
     if (ret < 0) {
       fprintf(stderr, "Error searching for cell\n");
       exit(-1); 
@@ -266,6 +267,9 @@ int main(int argc, char **argv) {
   srslte_rf_start_rx_stream(&rf);
   
   float rx_gain_offset = 0;
+
+  // Set initial CFO for ue_sync
+  srslte_ue_sync_set_cfo(&ue_sync, cfo); 
 
   /* Main loop */
   while ((sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) && !go_exit) {

@@ -73,8 +73,7 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   srslte_modem_table_t mod;  
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
-  srslte_precoding_t precoding; 
-
+  
 } srslte_pcfich_t;
 
 SRSLTE_API int srslte_pcfich_init(srslte_pcfich_t *q, 

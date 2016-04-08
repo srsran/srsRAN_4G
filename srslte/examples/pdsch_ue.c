@@ -39,15 +39,20 @@
 
 #include "srslte/srslte.h"
 
+// From srsLTE 1.2, AGC is disabled by default 
+//#define ENABLE_AGC_DEFAULT
+
 #ifndef DISABLE_RF
 #include "srslte/rf/rf.h"
 #include "srslte/rf/rf_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
-  5000,
-  200, // nof_frames_total 
-  10.0 // threshold
+  500,
+  50, 
+  10,
+  0
 };
+
 #else
 #warning Compiling pdsch_ue with no RF support
 #endif
@@ -110,7 +115,11 @@ void args_default(prog_args_t *args) {
   args->file_offset_freq = 0; 
   args->rf_args = "";
   args->rf_freq = -1.0;
+#ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0; 
+#else
+  args->rf_gain = 50.0; 
+#endif
   args->net_port = -1; 
   args->net_address = "127.0.0.1";
   args->net_port_signal = -1; 
@@ -277,6 +286,7 @@ int main(int argc, char **argv) {
   int n; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int sfn_offset;
+  float cfo = 0; 
   
   parse_args(&prog_args, argc, argv);
 
@@ -332,7 +342,7 @@ int main(int argc, char **argv) {
 
     uint32_t ntrial=0; 
     do {
-      ret = rf_search_and_decode_mib(&rf, &cell_detect_config, prog_args.force_N_id_2, &cell);
+      ret = rf_search_and_decode_mib(&rf, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
       if (ret < 0) {
         fprintf(stderr, "Error searching for cell\n");
         exit(-1); 
@@ -439,7 +449,10 @@ int main(int argc, char **argv) {
 #endif
   
   ue_sync.correct_cfo = !prog_args.disable_cfo;
-      
+  
+  // Set initial CFO for ue_sync
+  srslte_ue_sync_set_cfo(&ue_sync, cfo); 
+  
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -478,7 +491,7 @@ int main(int argc, char **argv) {
             decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, search only in appropiate places */
-            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
+            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%8)==0)) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 
@@ -486,6 +499,7 @@ int main(int argc, char **argv) {
           }
 
           if (decode_pdsch) {            
+            INFO("Attempting DL decode SFN=%d\n", sfn);
             if (prog_args.rnti != SRSLTE_SIRNTI) {              
               n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data, srslte_ue_sync_get_sfidx(&ue_sync));
             } else {
@@ -495,7 +509,14 @@ int main(int argc, char **argv) {
               n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
                                               srslte_ue_sync_get_sfidx(&ue_sync), 
                                               SRSLTE_SIRNTI, rv);      
-              srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv);
+              
+              /*
+              if (!n) {
+                printf("Saving signal...\n");
+                srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv);
+                exit(-1);
+              }
+              */
             }
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);

@@ -74,10 +74,6 @@ int srslte_pcfich_init(srslte_pcfich_t *q, srslte_regs_t *regs, srslte_cell_t ce
     q->regs = regs;
     q->nof_symbols = PCFICH_RE;
     
-    if (srslte_precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
-      fprintf(stderr, "Error initializing precoding\n");
-    }
-
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
     }
@@ -110,7 +106,6 @@ void srslte_pcfich_free(srslte_pcfich_t *q) {
     srslte_sequence_free(&q->seq[ns]);
   }
   srslte_modem_table_free(&q->mod);
-  srslte_precoding_free(&q->precoding); 
 
   bzero(q, sizeof(srslte_pcfich_t));
 }
@@ -194,8 +189,8 @@ int srslte_pcfich_decode(srslte_pcfich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE
       /* no need for layer demapping */
       srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, q->nof_symbols, noise_estimate);
     } else {
-      srslte_predecoding_diversity(&q->precoding, q->symbols[0], ce_precoding, x,
-          q->cell.nof_ports, q->nof_symbols, noise_estimate);
+      srslte_predecoding_diversity(q->symbols[0], ce_precoding, x,
+          q->cell.nof_ports, q->nof_symbols);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     }
@@ -253,7 +248,7 @@ int srslte_pcfich_encode(srslte_pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SR
     /* layer mapping & precoding */
     if (q->cell.nof_ports > 1) {
       srslte_layermap_diversity(q->d, x, q->cell.nof_ports, q->nof_symbols);
-      srslte_precoding_diversity(&q->precoding, x, symbols_precoding, q->cell.nof_ports,
+      srslte_precoding_diversity(x, symbols_precoding, q->cell.nof_ports,
           q->nof_symbols / q->cell.nof_ports);
     } else {
       memcpy(q->symbols[0], q->d, q->nof_symbols * sizeof(cf_t));

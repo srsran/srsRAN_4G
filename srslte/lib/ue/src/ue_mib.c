@@ -142,10 +142,10 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
 
   /* Decode PBCH */
   ret = srslte_pbch_decode(&q->pbch, &q->sf_symbols[SRSLTE_SLOT_LEN_RE(q->chest.cell.nof_prb, q->chest.cell.cp)], 
-                    ce_slot1, 0,
+                    ce_slot1, srslte_chest_dl_get_noise_estimate(&q->chest),
                     bch_payload, nof_tx_ports, sfn_offset);
   
-  
+
   if (ret < 0) {
     fprintf(stderr, "Error decoding PBCH (%d)\n", ret);      
   } else if (ret == 1) {
@@ -153,10 +153,11 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
     srslte_ue_mib_reset(q);
     ret = SRSLTE_UE_MIB_FOUND; 
   } else {
+    ret = SRSLTE_UE_MIB_NOTFOUND;
     INFO("MIB not decoded: %u\n", q->frame_cnt);
     q->frame_cnt++;
-    ret = SRSLTE_UE_MIB_NOTFOUND;
   }    
+  
   return ret;
 }
 

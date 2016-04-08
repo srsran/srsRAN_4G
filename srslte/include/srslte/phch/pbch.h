@@ -79,7 +79,6 @@ typedef struct SRSLTE_API {
   srslte_viterbi_t decoder;
   srslte_crc_t crc;
   srslte_convcoder_t encoder;
-  srslte_precoding_t precoding; 
   bool search_all_ports;
   
 } srslte_pbch_t;

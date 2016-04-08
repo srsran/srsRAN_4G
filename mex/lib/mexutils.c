@@ -53,7 +53,7 @@ char *mexutils_get_char_struct(const mxArray *ptr, const char *field_name) {
   mxArray *p; 
   p = mxGetField(ptr, 0, field_name);
   if (!p) {
-    return NULL;
+    return "";
   } 
   
   if (mxIsCell(p)) {

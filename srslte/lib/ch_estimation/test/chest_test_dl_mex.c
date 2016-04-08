@@ -57,7 +57,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int i;
   srslte_cell_t cell; 
   srslte_chest_dl_t chest;
-  srslte_precoding_t cheq; 
+  
   cf_t *input_signal = NULL, *output_signal[SRSLTE_MAX_LAYERS]; 
   cf_t *output_signal2 = NULL;
   cf_t *ce[SRSLTE_MAX_PORTS]; 
@@ -114,8 +114,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   output_signal2 = srslte_vec_malloc(nof_re * sizeof(cf_t));
   
-  srslte_precoding_init(&cheq, nof_re);
-    
   /* Create output values */
   if (nlhs >= 1) {
     plhs[0] = mxCreateDoubleMatrix(nof_re * nsubframes, cell.nof_ports, mxCOMPLEX);
@@ -161,7 +159,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (cell.nof_ports == 1) {
       srslte_predecoding_single(input_signal, ce[0], output_signal2, nof_re, srslte_chest_dl_get_noise_estimate(&chest));            
     } else {
-      srslte_predecoding_diversity(&cheq, input_signal, ce, output_signal, cell.nof_ports, nof_re, srslte_chest_dl_get_noise_estimate(&chest));
+      srslte_predecoding_diversity(input_signal, ce, output_signal, cell.nof_ports, nof_re);
       srslte_layerdemap_diversity(output_signal, output_signal2, cell.nof_ports, nof_re/cell.nof_ports);
     }
     
@@ -205,7 +203,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   srslte_chest_dl_free(&chest);
-  srslte_precoding_free(&cheq);
 
   return;
 }

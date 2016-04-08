@@ -29,31 +29,34 @@
 #include "srslte/rf/rf.h"
 
 typedef struct SRSLTE_API {
-  uint32_t max_frames_pbch; // maximum number of 5ms frames to capture for MIB decoding
-  uint32_t max_frames_pss; // maximum number of 5ms frames to capture for PSS correlation
-  float threshold;   // early-stops cell detection if mean PSR is above this value 
+  uint32_t max_frames_pbch;      // timeout in number of 5ms frames for MIB decoding
+  uint32_t max_frames_pss;       // timeout in number of 5ms frames for synchronization
+  uint32_t nof_valid_pss_frames; // number of required synchronized frames
   float init_agc; // 0 or negative to disable AGC  
 } cell_search_cfg_t;
 
 SRSLTE_API int rf_rssi_scan(srslte_rf_t *rf, 
-                              float *freqs, 
-                              float *rssi, 
-                              int nof_bands, 
-                              double fs, 
-                              int nsamp);
+                            float *freqs, 
+                            float *rssi, 
+                            int nof_bands, 
+                            double fs, 
+                            int nsamp);
 
 SRSLTE_API int rf_mib_decoder(srslte_rf_t *rf, 
-                                cell_search_cfg_t *config, 
-                                srslte_cell_t *cell);
+                              cell_search_cfg_t *config, 
+                              srslte_cell_t *cell, 
+                              float *cfo);
 
 SRSLTE_API int rf_cell_search(srslte_rf_t *rf, 
-                                cell_search_cfg_t *config, 
-                                int force_N_id_2, 
-                                srslte_cell_t *cell);
+                              cell_search_cfg_t *config, 
+                              int force_N_id_2, 
+                              srslte_cell_t *cell, 
+                              float *cfo);
 
 SRSLTE_API int rf_search_and_decode_mib(srslte_rf_t *rf, 
-                                          cell_search_cfg_t *config, 
-                                          int force_N_id_2, 
-                                          srslte_cell_t *cell);
+                                        cell_search_cfg_t *config, 
+                                        int force_N_id_2, 
+                                        srslte_cell_t *cell, 
+                                        float *cfo);
 
 

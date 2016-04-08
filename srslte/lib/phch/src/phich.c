@@ -82,10 +82,6 @@ int srslte_phich_init(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t cell
     q->cell = cell;
     q->regs = regs;
     
-    if (srslte_precoding_init(&q->precoding, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
-      fprintf(stderr, "Error initializing precoding\n");
-    }
-
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_BPSK)) {
       goto clean;
     }
@@ -109,7 +105,6 @@ void srslte_phich_free(srslte_phich_t *q) {
     srslte_sequence_free(&q->seq[ns]);
   }
   srslte_modem_table_free(&q->mod);
-  srslte_precoding_free(&q->precoding);
 
   bzero(q, sizeof(srslte_phich_t));
 
@@ -217,8 +212,8 @@ int srslte_phich_decode(srslte_phich_t *q, cf_t *slot_symbols, cf_t *ce[SRSLTE_M
     /* no need for layer demapping */
     srslte_predecoding_single(q->symbols[0], q->ce[0], q->d0, SRSLTE_PHICH_MAX_NSYMB, noise_estimate);
   } else {
-    srslte_predecoding_diversity(&q->precoding, q->symbols[0], ce_precoding, x,
-        q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB, noise_estimate);
+    srslte_predecoding_diversity(q->symbols[0], ce_precoding, x,
+        q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB);
     srslte_layerdemap_diversity(x, q->d0, q->cell.nof_ports,
     SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports);
   }
@@ -382,7 +377,7 @@ int srslte_phich_encode(srslte_phich_t *q, uint8_t ack, uint32_t ngroup, uint32_
   /* layer mapping & precoding */
   if (q->cell.nof_ports > 1) {
     srslte_layermap_diversity(q->d0, x, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB);
-    srslte_precoding_diversity(&q->precoding, x, symbols_precoding, q->cell.nof_ports,
+    srslte_precoding_diversity(x, symbols_precoding, q->cell.nof_ports,
     SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports);
     /**FIXME: According to 6.9.2, Precoding for 4 tx ports is different! */
   } else {
