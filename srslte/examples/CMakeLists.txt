@@ -18,10 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-IF(UHD_FOUND)
-  LINK_DIRECTORIES(${UHD_LIBRARY_DIRS})
-ENDIF(UHD_FOUND)
-
 
 #################################################################
 # Applications
@@ -85,5 +81,5 @@ ELSE(RF_FOUND)
 ENDIF(RF_FOUND)
 
 # Add subdirectories 
-add_subdirectory(tutorial_examples)
+ADD_SUBDIRECTORY(tutorial_examples)
 
