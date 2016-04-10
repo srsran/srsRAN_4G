@@ -1,10 +1,10 @@
 
 clear
 blen=40;
-SNR_values_db=linspace(-6,4,8);
-Nrealizations=5000;
+SNR_values_db=linspace(-3,4,8);
+Nrealizations=6000;
 
-addpath('../../debug/lte/phy/lib/fec/test')
+addpath('../../build/srslte/lib/fec/test')
 
 errors1=zeros(1,length(SNR_values_db));
 errors2=zeros(1,length(SNR_values_db));
@@ -28,7 +28,7 @@ for snr_idx=1:length(SNR_values_db)
         
         decodedData = lteConvolutionalDecode(noisysymbols);
         interleavedSymbols = reshape(reshape(noisysymbols,[],3)',1,[]);
-        [decodedData2, quant] = srslte_viterbi(interleavedSymbols);
+        [decodedData2, quant] = srslte_viterbi(interleavedSymbols, 32);
         
         errors1(snr_idx) = errors1(snr_idx) + any(decodedData ~= Data);
         errors2(snr_idx) = errors2(snr_idx) + any(decodedData2 ~= Data);

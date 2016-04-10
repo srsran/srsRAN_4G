@@ -111,21 +111,19 @@ int chainback_viterbi37_sse(
    */
   endstate %= 64;
   endstate <<= 2;
-
+  
   /* The store into data[] only needs to be done every 8 bits.
    * But this avoids a conditional branch, and the writes will
    * combine in the cache anyway
    */
   d += 6; /* Look past tail */
-  while(nbits-- != 0){
+  while(nbits--) {
     int k;
 
     k = (d[nbits].c[(endstate>>2)/8] >> ((endstate>>2)%8)) & 1;
     endstate = (endstate >> 1) | (k << 7);
     data[nbits] = k;
-#ifdef DEBUG
-//    printf("endstate=%3d, k=%d, w[0]=%d, w[1]=%d\n", endstate, k, d[nbits].s[1]&1, d[nbits].s[2]&1);
-#endif
+    //printf("nbits=%d, endstate=%3d, k=%d, w[0]=%d, w[1]=%d, c=%d\n", nbits, endstate, k, d[nbits].s[1]&1, d[nbits].s[2]&1, d[nbits].c[(endstate>>2)/8]&1);
   }
   return 0;
 }
@@ -163,17 +161,24 @@ void update_viterbi37_blk_sse(void *p,unsigned char *syms,int nbits, uint32_t *b
 #endif
   
   d = (decision_t *) vp->dp;
+  
+  for (int s=0;s<nbits;s++) {
+    memset(d+s,0,sizeof(decision_t));
+  }
+  
   while(nbits--) {
     __m128i sym0v,sym1v,sym2v;
     void *tmp;
     int i;
+
+   // printf("nbits=%d, syms=%d,%d,%d\n", nbits, syms[0], syms[1], syms[2]);fflush(stdout);
     
     /* Splat the 0th symbol across sym0v, the 1st symbol across sym1v, etc */
     sym0v = _mm_set1_epi8(syms[0]);
     sym1v = _mm_set1_epi8(syms[1]);
     sym2v = _mm_set1_epi8(syms[2]);
     syms += 3;
-
+    
     for(i=0;i<2;i++){
       __m128i decision0,decision1,metric,m_metric,m0,m1,m2,m3,survivor0,survivor1;
 
@@ -185,7 +190,6 @@ void update_viterbi37_blk_sse(void *p,unsigned char *syms,int nbits, uint32_t *b
       print_128i("metric_initial", metric);
 #endif
       /* There's no packed bytes right shift in SSE2, so we use the word version and mask
-       * (I'm *really* starting to like Altivec...)
        */
       metric = _mm_srli_epi16(metric,3);
       metric = _mm_and_si128(metric,_mm_set1_epi8(31));
@@ -209,7 +213,7 @@ void update_viterbi37_blk_sse(void *p,unsigned char *syms,int nbits, uint32_t *b
       survivor1 = _mm_or_si128(_mm_and_si128(decision1,m3),_mm_andnot_si128(decision1,m2));
  
       /* Pack each set of decisions into 16 bits */
-      d->s[2*i] = _mm_movemask_epi8(_mm_unpacklo_epi8(decision0,decision1));
+      d->s[2*i]   = _mm_movemask_epi8(_mm_unpacklo_epi8(decision0,decision1));
       d->s[2*i+1] = _mm_movemask_epi8(_mm_unpackhi_epi8(decision0,decision1));
 
       /* Store surviving metrics */
@@ -217,22 +221,6 @@ void update_viterbi37_blk_sse(void *p,unsigned char *syms,int nbits, uint32_t *b
       vp->new_metrics->v[2*i+1] = _mm_unpackhi_epi8(survivor0,survivor1);
         
     }
-
-
-#ifdef DEBUG      
-      uint8_t wmin=UINT8_MAX;
-      int minstate = 0; 
-      printf("[%d]: ", nbits);
-      for (int j=0;j<64;j++) {
-        printf("%d, ", vp->new_metrics->c[j]);
-        if (vp->new_metrics->c[j] <= wmin) {
-          wmin = vp->new_metrics->c[j];
-          minstate = j; 
-        }
-      }
-      printf("\n");
-      printf("%3d, ",minstate);
-#endif
 
     // See if we need to normalize
     if (vp->new_metrics->c[0] > 100) {

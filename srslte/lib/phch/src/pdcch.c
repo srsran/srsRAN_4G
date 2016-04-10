@@ -276,9 +276,6 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
     /* unrate matching */
     srslte_rm_conv_rx(e, E, q->rm_f, 3 * (nof_bits + 16));
     
-    /* Normalize LLR */
-    srslte_vec_sc_prod_fff(q->rm_f, (float) 3 * nof_bits/E, q->rm_f, 3*(nof_bits+16));
-  
     /* viterbi decoder */
     srslte_viterbi_decode_f(&q->decoder, q->rm_f, data, nof_bits + 16);
 
