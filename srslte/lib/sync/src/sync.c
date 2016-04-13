@@ -350,7 +350,7 @@ srslte_pss_synch_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q) {
 
 static float cfo_estimate(srslte_sync_t *q, cf_t *input) {
   uint32_t cp_offset = 0; 
-  cp_offset = srslte_cp_synch(&q->cp_synch, input, q->max_offset, q->nof_symbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
+  cp_offset = srslte_cp_synch(&q->cp_synch, input, q->max_offset, 2, SRSLTE_CP_LEN_NORM(1,q->fft_size));
   cf_t cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
   float cfo = -carg(cp_corr_max) / M_PI / 2; 
   return cfo; 
@@ -418,10 +418,9 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
       q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
       
       /* Correct CFO with the averaged CFO estimation */
-      srslte_cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                 
-      
+      srslte_cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                             
     }
- 
+    
     /* If integer CFO is enabled, find max PSS correlation for shifted +1/0/-1 integer versions */
     if (q->find_cfo_i && q->enable_cfo_corr) {
       q->cfo_i = cfo_i_estimate(q, input, find_offset, &peak_pos);   

@@ -51,6 +51,9 @@ void *create_viterbi37_sse(uint32_t polys[3],
 int init_viterbi37_sse(void *p, 
                         int starting_state);
 
+
+void reset_blk_sse(void *p, int nbits);
+
 int chainback_viterbi37_sse(void *p, 
                              uint8_t *data, 
                              uint32_t nbits, 

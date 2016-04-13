@@ -306,7 +306,6 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
     if (q->frame_size >= q->fft_size) {
     #ifdef CONVOLUTION_FFT
       memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));
-            
       conv_output_len = srslte_conv_fft_cc_run(&q->conv_fft, q->tmp_input, q->pss_signal_time[q->N_id_2], q->conv_output);
     #else
       conv_output_len = srslte_conv_cc(input, q->pss_signal_time[q->N_id_2], q->conv_output, q->frame_size, q->fft_size);

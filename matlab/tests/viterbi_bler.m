@@ -2,7 +2,7 @@
 clear
 blen=40;
 SNR_values_db=linspace(-3,4,8);
-Nrealizations=6000;
+Nrealizations=50000;
 
 addpath('../../build/srslte/lib/fec/test')
 

@@ -528,6 +528,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
               break;
             case SRSLTE_SYNC_FOUND_NOSPACE:
               /* If a peak was found but there is not enough space for SSS/CP detection, discard a few samples */
+              printf("No space for SSS/CP detection. Realigning frame...\n");
               q->recv_callback(q->stream, dummy_offset_buffer, q->frame_len/2, NULL); 
               srslte_sync_reset(&q->sfind);
               ret = SRSLTE_SUCCESS; 
