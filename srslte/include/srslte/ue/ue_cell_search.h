@@ -53,10 +53,6 @@
 #include "srslte/phch/pbch.h"
 #include "srslte/dft/ofdm.h"
 
-/** 
- * TODO: Check also peak offset 
- */
-
 #define SRSLTE_CS_NOF_PRB      6
 #define SRSLTE_CS_SAMP_FREQ    1920000.0
 

@@ -122,7 +122,7 @@ int rf_mib_decoder(srslte_rf_t *rf, cell_search_cfg_t *config, srslte_cell_t *ce
   }
   
   /* Find and decody MIB */
-  ret = srslte_ue_mib_sync_decode(&ue_mib, config->max_frames_pss, bch_payload, &cell->nof_ports, NULL); 
+  ret = srslte_ue_mib_sync_decode(&ue_mib, config->max_frames_pbch, bch_payload, &cell->nof_ports, NULL); 
   if (ret < 0) {
     fprintf(stderr, "Error decoding MIB\n");
     goto clean_exit; 

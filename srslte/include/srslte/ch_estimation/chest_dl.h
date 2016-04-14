@@ -90,6 +90,9 @@ SRSLTE_API void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q,
                                                   float *filter, 
                                                   uint32_t filter_len); 
 
+SRSLTE_API void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q, 
+                                                         float w); 
+
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,
                                         cf_t *ce[SRSLTE_MAX_PORTS],

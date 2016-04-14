@@ -182,7 +182,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
 
       q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES; 
       srslte_sync_set_threshold(&q->sfind, 2.0);
-      srslte_sync_set_threshold(&q->strack, 1.0);
+      srslte_sync_set_threshold(&q->strack, 1.2);
       
     } else {
       srslte_sync_set_N_id_2(&q->sfind, cell.id%3);

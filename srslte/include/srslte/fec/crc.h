@@ -55,7 +55,7 @@ SRSLTE_API int srslte_crc_init(srslte_crc_t *h,
                                int srslte_crc_order);
 
 SRSLTE_API int srslte_crc_set_init(srslte_crc_t *h, 
-                                   uint64_t srslte_crc_init_value);
+                                   uint64_t init_value);
 
 SRSLTE_API uint32_t srslte_crc_attach(srslte_crc_t *h, 
                                       uint8_t *data, 
