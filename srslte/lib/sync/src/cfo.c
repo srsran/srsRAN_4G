@@ -85,7 +85,7 @@ void srslte_cfo_correct(srslte_cfo_t *h, cf_t *input, cf_t *output, float freq) 
   if (fabs(h->last_freq - freq) > h->tol) {
     h->last_freq = freq;
     srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
-    DEBUG("CFO generating new table for frequency %.4f\n", freq);
+    DEBUG("CFO generating new table for frequency %.4fe-6\n", freq*1e6);
   }
   srslte_vec_prod_ccc(h->cur_cexp, input, output, h->nsamples);
 }

@@ -418,7 +418,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
       q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
       
       /* Correct CFO with the averaged CFO estimation */
-      srslte_cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                             
+      srslte_cfo_correct(&q->cfocorr, input, input, -q->mean_cfo / q->fft_size);                                   
     }
     
     /* If integer CFO is enabled, find max PSS correlation for shifted +1/0/-1 integer versions */

@@ -607,7 +607,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
               srslte_cfo_correct(&q->sfind.cfocorr, 
                           input_buffer, 
                           input_buffer, 
-                          -srslte_sync_get_cfo(&q->sfind) / q->fft_size);               
+                          -srslte_sync_get_cfo(&q->strack) / q->fft_size);               
                           
             }            
           }          
