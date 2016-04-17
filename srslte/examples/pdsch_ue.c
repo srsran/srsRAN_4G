@@ -506,6 +506,7 @@ int main(int argc, char **argv) {
               // RV for SIB1 is predefined
               uint32_t k  = (sfn/2)%4; 
               uint32_t rv = ((uint32_t) ceilf((float)1.5*k))%4;
+              
               n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
                                               srslte_ue_sync_get_sfidx(&ue_sync), 
                                               SRSLTE_SIRNTI, rv);      

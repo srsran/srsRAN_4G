@@ -194,8 +194,8 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
 
       srslte_sync_cfo_i_detec_en(&q->sfind, false); 
       
-      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.01);
-      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.01);
+      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.1);
+      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
 
       /* In find phase and if the cell is known, do not average pss correlation
        * because we only capture 1 subframe and do not know where the peak is. 

@@ -1,4 +1,4 @@
-%enb=struct('NCellID',424,'NDLRB',100,'NSubframe',9,'CFI',2,'CyclicPrefix','Normal','CellRefP',2,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
+enb=struct('NCellID',1,'NDLRB',50,'NSubframe',2,'CFI',2,'CyclicPrefix','Normal','CellRefP',1,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
 
 RNTI=65535;
 
@@ -11,8 +11,8 @@ cec.InterpType = 'linear';             % 2D interpolation type
 cec.InterpWindow = 'Causal';        % Interpolation window type
 cec.InterpWinSize = 1;                % Interpolation window size  
 
-%subframe_rx=lteOFDMDemodulate(enb,inputSignal);
-subframe_rx=reshape(input,[],14);
+subframe_rx=lteOFDMDemodulate(enb,y);
+%subframe_rx=reshape(input,[],14);
 [hest,nest] = lteDLChannelEstimate(enb, cec, subframe_rx);    
     
 % Search PDCCH
@@ -30,7 +30,8 @@ if ~isempty(dci)
     % Get the PDSCH configuration from the DCI
     [pdsch, trblklen] = hPDSCHConfiguration(enb, dci, pdcch.RNTI);
     pdsch.NTurboDecIts = 10;
-    %pdsch.Modulation =  {'QPSK'};
+    pdsch.Modulation =  {'QPSK'};
+    pdsch.RV=0;
     %trblklen=75376;
     fprintf('PDSCH settings after DCI decoding:\n');
     disp(pdsch);
@@ -43,9 +44,9 @@ if ~isempty(dci)
     [dlschBits,pdschSymbols] = ltePDSCHDecode(enb, pdsch, pdschRx, pdschHest, nest);
     [sib1, crc] = lteDLSCHDecode(enb, pdsch, trblklen, dlschBits);
 
-    [dec2, data, pdschRx2, pdschSymbols2, e_bits] = srslte_pdsch(enb, pdsch, ... 
-                                                        trblklen, ...
-                                                        subframe_rx, hest, nest);
+    %[dec2, data, pdschRx2, pdschSymbols2, e_bits] = srslte_pdsch(enb, pdsch, ... 
+    %                                                    trblklen, ...
+    %                                                    subframe_rx, hest, nest);
 
     
     scatter(real(pdschSymbols{1}),imag(pdschSymbols{1}))
