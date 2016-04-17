@@ -471,7 +471,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
       ret = SRSLTE_SYNC_NOFOUND;
     }
     
-    INFO("SYNC ret=%d N_id_2=%d find_offset=%d frame_len=%d, pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
+    DEBUG("SYNC ret=%d N_id_2=%d find_offset=%d frame_len=%d, pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f KHz\n",
          ret, q->N_id_2, find_offset, q->frame_size, peak_pos, q->peak_value, 
          q->threshold, q->sf_idx, 15*(q->cfo_i+q->mean_cfo));
 

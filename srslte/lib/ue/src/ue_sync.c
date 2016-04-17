@@ -361,7 +361,7 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
     q->sf_idx = srslte_sync_get_sf_idx(&q->strack);
     q->frame_no_cnt++;
     if (q->frame_no_cnt >= TRACK_MAX_LOST) {
-      printf("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
+      INFO("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
       q->state = SF_FIND;
     }
   } else {
@@ -426,7 +426,7 @@ static int track_peak_no(srslte_ue_sync_t *q) {
   /* if we missed too many PSS go back to FIND and consider this frame unsynchronized */
   q->frame_no_cnt++; 
   if (q->frame_no_cnt >= TRACK_MAX_LOST) {
-    printf("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
+    INFO("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
     q->state = SF_FIND;
     return 0; 
   } else {
@@ -622,6 +622,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
 void srslte_ue_sync_reset(srslte_ue_sync_t *q) {
 
   if (!q->file_mode) {
+    srslte_sync_reset(&q->sfind);
     srslte_sync_reset(&q->strack);
   } else {
     q->sf_idx = 9;

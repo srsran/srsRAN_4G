@@ -102,7 +102,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
       fprintf(stderr, "Error initiating SFO correct\n");
       goto clean_exit;
     }
-    srslte_cfo_set_tol(&q->sfo_correct, 0);
+    srslte_cfo_set_tol(&q->sfo_correct, 1e-5/q->fft.symbol_sz);
     
     q->sf_symbols = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
     if (!q->sf_symbols) {
@@ -194,12 +194,16 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
     
     /* Correct SFO multiplying by complex exponential in the time domain */
     if (q->sample_offset) {
+      struct timeval t[3];
+      gettimeofday(&t[1], NULL);
       for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
         srslte_cfo_correct(&q->sfo_correct, 
                          &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
                          &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
                          q->sample_offset / q->fft.symbol_sz);
       }
+      gettimeofday(&t[2], NULL);
+      get_time_interval(t);
     }
     
     return srslte_ue_dl_decode_estimate(q, sf_idx, cfi); 
