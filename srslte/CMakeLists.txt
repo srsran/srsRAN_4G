@@ -42,14 +42,19 @@ add_custom_target (add_srslte_headers SOURCES ${HEADERS_ALL})
 ########################################################################
 # Find Dependencies
 ########################################################################
-find_package(UHD)
-find_package(bladeRF)
+find_package(FFTW3F REQUIRED)
+if(FFTW3F_FOUND)
+  include_directories(${FFTW3F_INCLUDE_DIRS})
+  link_directories(${FFTW3F_LIBRARY_DIRS})
+endif(FFTW3F_FOUND)
 
+find_package(UHD)
 if(UHD_FOUND)
   include_directories(${UHD_INCLUDE_DIRS})
   link_directories(${UHD_LIBRARY_DIRS})
 endif(UHD_FOUND)
 
+find_package(bladeRF)
 if(BLADERF_FOUND)
   include_directories(${BLADERF_INCLUDE_DIRS})
   link_directories(${BLADERF_LIBRARY_DIRS})

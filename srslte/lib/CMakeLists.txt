@@ -35,26 +35,37 @@ add_subdirectory(resampling)
 add_subdirectory(scrambling)
 add_subdirectory(ue)
 
-add_library(srslte  SHARED  version.c)
-target_link_libraries(srslte  srslte_agc
-                              srslte_ch_estimation
-                              srslte_common
-                              srslte_fec
-                              srslte_mimo
-                              srslte_phch
-                              srslte_sync
-                              srslte_utils
-                              srslte_channel
-                              srslte_dft
-                              srslte_io
-                              srslte_modem
-                              srslte_resampling
-                              srslte_scrambling
-                              srslte_ue
-                              srslte_rf
-                              pthread)
+add_library(srslte  SHARED  version.c
+                            $<TARGET_OBJECTS:srslte_agc>
+                            $<TARGET_OBJECTS:srslte_ch_estimation>
+                            $<TARGET_OBJECTS:srslte_common>
+                            $<TARGET_OBJECTS:srslte_fec>
+                            $<TARGET_OBJECTS:srslte_mimo>
+                            $<TARGET_OBJECTS:srslte_phch>
+                            $<TARGET_OBJECTS:srslte_sync>
+                            $<TARGET_OBJECTS:srslte_utils>
+                            $<TARGET_OBJECTS:srslte_channel>
+                            $<TARGET_OBJECTS:srslte_dft>
+                            $<TARGET_OBJECTS:srslte_io>
+                            $<TARGET_OBJECTS:srslte_modem>
+                            $<TARGET_OBJECTS:srslte_resampling>
+                            $<TARGET_OBJECTS:srslte_scrambling>
+                            $<TARGET_OBJECTS:srslte_ue>
+                            $<TARGET_OBJECTS:srslte_rf>
+)
+target_link_libraries(srslte pthread m ${FFTW3F_LIBRARIES})
 set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
+
+if(RF_FOUND)
+  if(UHD_FOUND)
+    target_link_libraries(srslte ${UHD_LIBRARIES})
+  endif(UHD_FOUND)
+
+  if(BLADERF_FOUND)
+    target_link_libraries(srslte ${BLADERF_LIBRARIES})
+  endif(BLADERF_FOUND)
+endif(RF_FOUND)
 
 if(VOLK_FOUND)
   set_target_properties(srslte PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")

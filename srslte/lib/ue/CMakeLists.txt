@@ -19,9 +19,5 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_ue ${SOURCES})
-target_link_libraries(srslte_ue     srslte_io
-                                    srslte_sync
-                                    srslte_dft
-                                    srslte_ch_estimation
-                                    srslte_agc)
+add_library(srslte_ue OBJECT ${SOURCES})
+SRSLTE_SET_PIC(srslte_ue)

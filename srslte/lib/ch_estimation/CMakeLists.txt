@@ -19,9 +19,6 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_ch_estimation ${SOURCES})
-target_link_libraries(srslte_ch_estimation  srslte_common
-                                            srslte_resampling
-                                            srslte_utils
-                                            srslte_phch)
+add_library(srslte_ch_estimation OBJECT ${SOURCES})
+SRSLTE_SET_PIC(srslte_ch_estimation)
 add_subdirectory(test)

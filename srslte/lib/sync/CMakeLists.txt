@@ -19,6 +19,6 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_sync ${SOURCES})
-target_link_libraries(srslte_sync   srslte_common)
+add_library(srslte_sync OBJECT ${SOURCES})
+SRSLTE_SET_PIC(srslte_sync)
 add_subdirectory(test)

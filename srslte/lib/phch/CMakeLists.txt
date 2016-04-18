@@ -19,11 +19,6 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_phch ${SOURCES})
-target_link_libraries(srslte_phch   srslte_common
-                                    srslte_mimo
-                                    srslte_fec
-                                    srslte_modem
-                                    srslte_scrambling
-                                    srslte_ch_estimation)
+add_library(srslte_phch OBJECT ${SOURCES})
+SRSLTE_SET_PIC(srslte_phch)
 add_subdirectory(test)

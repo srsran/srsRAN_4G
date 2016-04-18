@@ -19,6 +19,6 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_fec ${SOURCES})
-target_link_libraries(srslte_fec    srslte_utils)
+add_library(srslte_fec OBJECT ${SOURCES})
+SRSLTE_SET_PIC(srslte_fec)
 add_subdirectory(test)

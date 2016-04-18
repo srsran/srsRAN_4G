@@ -37,8 +37,7 @@ add_executable(pdsch_enodeb pdsch_enodeb.c)
 target_link_libraries(pdsch_enodeb srslte pthread)
 
 if(RF_FOUND)
-  target_link_libraries(pdsch_ue srslte_rf)
-  target_link_libraries(pdsch_enodeb srslte_rf)
+
 else(RF_FOUND)
   add_definitions(-DDISABLE_RF)
 endif(RF_FOUND)
@@ -60,19 +59,19 @@ endif(SRSGUI_FOUND)
 if(RF_FOUND)
 
   add_executable(cell_search cell_search.c)
-  target_link_libraries(cell_search srslte srslte_rf)
+  target_link_libraries(cell_search srslte)
 
   add_executable(cell_measurement cell_measurement.c)
-  target_link_libraries(cell_measurement srslte srslte_rf)
+  target_link_libraries(cell_measurement srslte)
 
   add_executable(usrp_capture usrp_capture.c)
-  target_link_libraries(usrp_capture srslte srslte_rf)
+  target_link_libraries(usrp_capture srslte)
 
   add_executable(usrp_capture_sync usrp_capture_sync.c)
-  target_link_libraries(usrp_capture_sync srslte srslte_rf)
+  target_link_libraries(usrp_capture_sync srslte)
 
   add_executable(usrp_txrx usrp_txrx.c)
-  target_link_libraries(usrp_txrx srslte srslte_rf)
+  target_link_libraries(usrp_txrx srslte)
 
   message(STATUS "   examples will be installed.")
 

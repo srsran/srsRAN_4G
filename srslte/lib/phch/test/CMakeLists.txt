@@ -195,5 +195,5 @@ BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES srslte srslte_mex)
 
 if(UHD_FOUND)
   add_executable(prach_test_usrp prach_test_usrp.c)
-  target_link_libraries(prach_test_usrp srslte_rf srslte pthread)
+  target_link_libraries(prach_test_usrp srslte pthread)
 endif(UHD_FOUND)

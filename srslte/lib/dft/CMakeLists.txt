@@ -18,18 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-
-
-find_package(FFTW3F REQUIRED)
-if(FFTW3F_FOUND)
-  include_directories(${FFTW3F_INCLUDE_DIRS})
-  link_directories(${FFTW3F_LIBRARY_DIRS})
-endif(FFTW3F_FOUND)
-
 set(SRCS dft_fftw.c dft_precoding.c ofdm.c)
-add_library(srslte_dft ${SRCS})
-target_link_libraries(srslte_dft    srslte_utils
-                                    m
-                                    ${FFTW3F_LIBRARIES})
-
+add_library(srslte_dft OBJECT ${SRCS})
+SRSLTE_SET_PIC(srslte_dft)
 add_subdirectory(test)
