@@ -22,21 +22,21 @@
 # MODEM TEST  
 ########################################################################
 
-ADD_EXECUTABLE(modem_test modem_test.c)
-TARGET_LINK_LIBRARIES(modem_test srslte)
+add_executable(modem_test modem_test.c)
+target_link_libraries(modem_test srslte)
 
-ADD_TEST(modem_bpsk modem_test -n 1024 -m 1) 
-ADD_TEST(modem_qpsk modem_test -n 1024 -m 2)
-ADD_TEST(modem_qam16 modem_test -n 1024 -m 4)
-ADD_TEST(modem_qam64 modem_test -n 1008 -m 6)
+add_test(modem_bpsk modem_test -n 1024 -m 1) 
+add_test(modem_qpsk modem_test -n 1024 -m 2)
+add_test(modem_qam16 modem_test -n 1024 -m 4)
+add_test(modem_qam64 modem_test -n 1008 -m 6)
 
-ADD_TEST(modem_bpsk_soft modem_test -n 1024 -m 1) 
-ADD_TEST(modem_qpsk_soft modem_test -n 1024 -m 2)
-ADD_TEST(modem_qam16_soft modem_test -n 1024 -m 4)
-ADD_TEST(modem_qam64_soft modem_test -n 1008 -m 6)
+add_test(modem_bpsk_soft modem_test -n 1024 -m 1) 
+add_test(modem_qpsk_soft modem_test -n 1024 -m 2)
+add_test(modem_qam16_soft modem_test -n 1024 -m 4)
+add_test(modem_qam64_soft modem_test -n 1008 -m 6)
  
-ADD_EXECUTABLE(soft_demod_test soft_demod_test.c)
-TARGET_LINK_LIBRARIES(soft_demod_test srslte)
+add_executable(soft_demod_test soft_demod_test.c)
+target_link_libraries(soft_demod_test srslte)
 
  
 

@@ -18,9 +18,9 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-FILE(GLOB SOURCES "*.c")
-ADD_LIBRARY(srslte_ue ${SOURCES})
-TARGET_LINK_LIBRARIES(srslte_ue     srslte_io
+file(GLOB SOURCES "*.c")
+add_library(srslte_ue ${SOURCES})
+target_link_libraries(srslte_ue     srslte_io
                                     srslte_sync
                                     srslte_dft
                                     srslte_ch_estimation

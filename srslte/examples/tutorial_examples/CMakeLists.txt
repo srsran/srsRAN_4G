@@ -23,7 +23,7 @@
 # EXAMPLES shown in WinnForum 2015 Tutorial
 #################################################################
 
-IF(SRSGUI_FOUND AND UHD_FOUND)
+if(SRSGUI_FOUND AND UHD_FOUND)
 
   add_executable(pss pss.c)
   target_link_libraries(pss srslte ${SRSGUI_LIBRARIES} srslte_rf)
@@ -31,5 +31,5 @@ IF(SRSGUI_FOUND AND UHD_FOUND)
   add_executable(simple_tx simple_tx.c)
   target_link_libraries(simple_tx srslte srslte_rf)
 
-ENDIF(SRSGUI_FOUND AND UHD_FOUND)
+endif(SRSGUI_FOUND AND UHD_FOUND)
 

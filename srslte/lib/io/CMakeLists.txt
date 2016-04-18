@@ -18,5 +18,5 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-FILE(GLOB SOURCES "*.c")
-ADD_LIBRARY(srslte_io ${SOURCES})
+file(GLOB SOURCES "*.c")
+add_library(srslte_io ${SOURCES})

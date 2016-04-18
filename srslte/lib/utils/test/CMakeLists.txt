@@ -22,14 +22,14 @@
 # DFT TEST
 ########################################################################
 
-ADD_EXECUTABLE(dft_test dft_test.c)
-TARGET_LINK_LIBRARIES(dft_test srslte)
+add_executable(dft_test dft_test.c)
+target_link_libraries(dft_test srslte)
 
-ADD_TEST(dft_test dft_test)
-ADD_TEST(dft_reverse dft_test -b) # Backwards first
-ADD_TEST(dft_mirror dft_test -m)  # Mirror the freq bins
-ADD_TEST(dft_norm dft_test -n)    # Normalize each transform
-ADD_TEST(dft_dc dft_test -b -d)   # Backwards first & handle dc internally
-ADD_TEST(dft_odd dft_test -N 255) # Odd-length
-ADD_TEST(dft_odd_dc dft_test -N 255 -b -d) # Odd-length, backwards first, handle dc
+add_test(dft_test dft_test)
+add_test(dft_reverse dft_test -b) # Backwards first
+add_test(dft_mirror dft_test -m)  # Mirror the freq bins
+add_test(dft_norm dft_test -n)    # Normalize each transform
+add_test(dft_dc dft_test -b -d)   # Backwards first & handle dc internally
+add_test(dft_odd dft_test -N 255) # Odd-length
+add_test(dft_odd_dc dft_test -N 255 -b -d) # Odd-length, backwards first, handle dc
 

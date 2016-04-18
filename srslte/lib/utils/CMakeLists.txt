@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-FILE(GLOB SOURCES "*.c")
-ADD_LIBRARY(srslte_utils ${SOURCES})
+file(GLOB SOURCES "*.c")
+add_library(srslte_utils ${SOURCES})
 target_link_libraries(srslte_utils  srslte_dft)
-ADD_SUBDIRECTORY(test)
+add_subdirectory(test)

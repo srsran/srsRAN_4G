@@ -31,19 +31,19 @@ if(NOT DisableMEX)
   ########################################################################
   # Add headers to cmake project (useful for IDEs)
   ########################################################################
-  SET(HEADERS_ALL "")
-  FILE(GLOB headers *)
+  set(HEADERS_ALL "")
+  file(GLOB headers *)
   FOREACH (_header ${headers})
-          IF(IS_DIRECTORY ${_header})
-                  FILE(GLOB_RECURSE tmp "${_header}/*.h")
-                  LIST(APPEND HEADERS_ALL ${tmp})
-          ENDIF(IS_DIRECTORY ${_header})
+          if(IS_DIRECTORY ${_header})
+                  file(GLOB_RECURSE tmp "${_header}/*.h")
+                  list(APPEND HEADERS_ALL ${tmp})
+          endif(IS_DIRECTORY ${_header})
   ENDFOREACH()
 
-  ADD_CUSTOM_TARGET (add_mex_headers SOURCES ${HEADERS_ALL})
+  add_custom_target (add_mex_headers SOURCES ${HEADERS_ALL})
 
   ########################################################################
   # Add the subdirectories
   ########################################################################
-  ADD_SUBDIRECTORY(lib)
+  add_subdirectory(lib)
 endif()

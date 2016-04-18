@@ -22,13 +22,13 @@
 # RESAMPLING TEST  
 ########################################################################
 
-ADD_EXECUTABLE(resample_arb_test resample_arb_test.c)
-TARGET_LINK_LIBRARIES(resample_arb_test srslte)
+add_executable(resample_arb_test resample_arb_test.c)
+target_link_libraries(resample_arb_test srslte)
 
-ADD_EXECUTABLE(resample_arb_bench resample_arb_bench.c)
-TARGET_LINK_LIBRARIES(resample_arb_bench srslte)
+add_executable(resample_arb_bench resample_arb_bench.c)
+target_link_libraries(resample_arb_bench srslte)
 
-ADD_TEST(resample resample_arb_test)
+add_test(resample resample_arb_test)
  
 
 

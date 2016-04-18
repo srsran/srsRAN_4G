@@ -36,28 +36,28 @@ target_link_libraries(pdsch_ue srslte pthread)
 add_executable(pdsch_enodeb pdsch_enodeb.c)
 target_link_libraries(pdsch_enodeb srslte pthread)
 
-IF(RF_FOUND)
+if(RF_FOUND)
   target_link_libraries(pdsch_ue srslte_rf)
   target_link_libraries(pdsch_enodeb srslte_rf)
-ELSE(RF_FOUND)
+else(RF_FOUND)
   add_definitions(-DDISABLE_RF)
-ENDIF(RF_FOUND)
+endif(RF_FOUND)
 
-FIND_PACKAGE(SRSGUI)
+find_package(SRSGUI)
 
-IF(SRSGUI_FOUND)
+if(SRSGUI_FOUND)
   include_directories(${SRSGUI_INCLUDE_DIRS})
   target_link_libraries(pdsch_ue ${SRSGUI_LIBRARIES})
-ELSE(SRSGUI_FOUND)
+else(SRSGUI_FOUND)
   add_definitions(-DDISABLE_GRAPHICS)
-ENDIF(SRSGUI_FOUND)
+endif(SRSGUI_FOUND)
 
 
 #################################################################
 # These examples need the UHD driver
 #################################################################
 
-IF(RF_FOUND)
+if(RF_FOUND)
 
   add_executable(cell_search cell_search.c)
   target_link_libraries(cell_search srslte srslte_rf)
@@ -74,12 +74,12 @@ IF(RF_FOUND)
   add_executable(usrp_txrx usrp_txrx.c)
   target_link_libraries(usrp_txrx srslte srslte_rf)
 
-  MESSAGE(STATUS "   examples will be installed.")
+  message(STATUS "   examples will be installed.")
 
-ELSE(RF_FOUND)
-  MESSAGE(STATUS "   examples will NOT BE INSTALLED.")
-ENDIF(RF_FOUND)
+else(RF_FOUND)
+  message(STATUS "   examples will NOT BE INSTALLED.")
+endif(RF_FOUND)
 
 # Add subdirectories 
-ADD_SUBDIRECTORY(tutorial_examples)
+add_subdirectory(tutorial_examples)
 

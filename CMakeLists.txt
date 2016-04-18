@@ -33,14 +33,14 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 PROJECT (SRSLTE)
 
-LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
-INCLUDE(SRSLTEVersion) #sets version information
-INCLUDE(SRSLTEPackage) #setup cpack
-INCLUDE(BuildMex)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
+include(SRSLTEVersion) #sets version information
+include(SRSLTEPackage) #setup cpack
+include(BuildMex)
 
 include(CTest)
 set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
-CONFIGURE_FILE(
+configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
     IMMEDIATE @ONLY)
@@ -63,112 +63,112 @@ if (NOT EXISTS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
     set(CMAKE_INSTALL_LIBDIR lib)
 endif()
 
-SET(RUNTIME_DIR bin)
-SET(LIBRARY_DIR ${CMAKE_INSTALL_LIBDIR})
-SET(INCLUDE_DIR include)
-SET(MEX_DIR mex)
-SET(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
-SET(DATA_DIR share/${CPACK_PACKAGE_NAME})
+set(RUNTIME_DIR bin)
+set(LIBRARY_DIR ${CMAKE_INSTALL_LIBDIR})
+set(INCLUDE_DIR include)
+set(MEX_DIR mex)
+set(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
+set(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
 
-IF(NOT CMAKE_BUILD_TYPE)
-   SET(CMAKE_BUILD_TYPE Release)
-   MESSAGE(STATUS "Build type not specified: defaulting to Release.")
-ENDIF(NOT CMAKE_BUILD_TYPE)
-SET(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
+if(NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE Release)
+   message(STATUS "Build type not specified: defaulting to Release.")
+endif(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
 ########################################################################
 # Compiler specific setup
 ########################################################################
 macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
     include(CheckCXXCompilerFlag)
-    CHECK_CXX_COMPILER_FLAG(${flag} ${have})
+    check_cxx_compiler_flag(${flag} ${have})
     if(${have})
         add_definitions(${flag})        
     endif(${have})
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
-IF(CMAKE_COMPILER_IS_GNUCXX)
+if(CMAKE_COMPILER_IS_GNUCXX)
     #Any additional flags for CXX
-ENDIF(CMAKE_COMPILER_IS_GNUCXX)
+endif(CMAKE_COMPILER_IS_GNUCXX)
 
 
-IF(CMAKE_COMPILER_IS_GNUCC)
+if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g")
     
-  IF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
-  ELSE(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    FIND_PACKAGE(SSE)
-    IF(HAVE_AVX) 
+  else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    find_package(SSE)
+    if(HAVE_AVX)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
-    ELSEIF(HAVE_SSE)
+    elseif(HAVE_SSE)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
-    ENDIF(HAVE_AVX)    
-  ENDIF(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    endif(HAVE_AVX)
+  endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
   
   
-  IF(NOT WIN32)
+  if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
-  ENDIF(NOT WIN32)
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
+  endif(NOT WIN32)
+endif(CMAKE_COMPILER_IS_GNUCC)
 
-IF(MSVC)
-    INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/msvc) #missing headers
-    ADD_DEFINITIONS(-D_WIN32_WINNT=0x0501) #minimum version required is windows xp
-    ADD_DEFINITIONS(-DNOMINMAX) #disables stupidity and enables std::min and std::max
-    ADD_DEFINITIONS( #stop all kinds of compatibility warnings
+if(MSVC)
+    include_directories(${PROJECT_SOURCE_DIR}/msvc) #missing headers
+    add_definitions(-D_WIN32_WINNT=0x0501) #minimum version required is windows xp
+    add_definitions(-DNOMINMAX) #disables stupidity and enables std::min and std::max
+    add_definitions( #stop all kinds of compatibility warnings
         -D_SCL_SECURE_NO_WARNINGS
         -D_CRT_SECURE_NO_WARNINGS
         -D_CRT_SECURE_NO_DEPRECATE
         -D_CRT_NONSTDC_NO_DEPRECATE
     )
-    ADD_DEFINITIONS(/MP) #build with multiple processors
-ENDIF(MSVC)
+    add_definitions(/MP) #build with multiple processors
+endif(MSVC)
 
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    # The following is needed for weak linking to work under OS X
-   SET(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+   set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
 
 ########################################################################
 # Create uninstall targets
 ########################################################################
-CONFIGURE_FILE(
+configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
     IMMEDIATE @ONLY)
 
-ADD_CUSTOM_TARGET(uninstall
+add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
     
 
 ########################################################################
 # Macro to add -fPIC property to static libs 
 ########################################################################
-MACRO(SRSLTE_SET_PIC)
-    IF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
-        SET_TARGET_PROPERTIES(${ARGV} PROPERTIES COMPILE_FLAGS -fPIC)
-    ENDIF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
-ENDMACRO(SRSLTE_SET_PIC)
+macro(SRSLTE_SET_PIC)
+    if( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
+        set_target_properties(${ARGV} PROPERTIES COMPILE_FLAGS -fPIC)
+    endif( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
+endmacro(SRSLTE_SET_PIC)
 
 ########################################################################
 # Print summary
 ########################################################################
-MESSAGE(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
-MESSAGE(STATUS "Building for version: ${VERSION}") 
+message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "Building for version: ${VERSION}")
 
 ########################################################################
 # Add general includes and dependencies
 ########################################################################
-INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR}/srslte/include/)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/srslte/include/)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/mex/include)
+include_directories(${PROJECT_BINARY_DIR}/srslte/include/)
+include_directories(${PROJECT_SOURCE_DIR}/srslte/include/)
+include_directories(${PROJECT_SOURCE_DIR}/mex/include)
 
 ########################################################################
 # Add the subdirectories
 ########################################################################
-ADD_SUBDIRECTORY(srslte)
-ADD_SUBDIRECTORY(mex)
+add_subdirectory(srslte)
+add_subdirectory(mex)

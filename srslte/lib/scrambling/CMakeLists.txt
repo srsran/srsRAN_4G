@@ -18,6 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-FILE(GLOB SOURCES "*.c")
-ADD_LIBRARY(srslte_scrambling ${SOURCES})
-ADD_SUBDIRECTORY(test)
+file(GLOB SOURCES "*.c")
+add_library(srslte_scrambling ${SOURCES})
+add_subdirectory(test)

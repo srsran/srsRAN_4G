@@ -18,29 +18,30 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-IF(RF_FOUND)
+if(RF_FOUND)
   # Include common RF files
-  SET(SOURCES_RF "")
-  LIST(APPEND SOURCES_RF rf_imp.c rf_utils.c)
+  set(SOURCES_RF "")
+  list(APPEND SOURCES_RF rf_imp.c rf_utils.c)
 
-  IF (UHD_FOUND)
+  if (UHD_FOUND)
     add_definitions(-DENABLE_UHD)
-    LIST(APPEND SOURCES_RF rf_uhd_imp.c uhd_c_api.cpp)
-  ENDIF (UHD_FOUND)
+    list(APPEND SOURCES_RF rf_uhd_imp.c uhd_c_api.cpp)
+  endif (UHD_FOUND)
 
-  IF (BLADERF_FOUND)
+  if (BLADERF_FOUND)
     add_definitions(-DENABLE_BLADERF)
-    LIST(APPEND SOURCES_RF rf_blade_imp.c)
-  ENDIF (BLADERF_FOUND)
+    list(APPEND SOURCES_RF rf_blade_imp.c)
+  endif (BLADERF_FOUND)
 
-  ADD_LIBRARY(srslte_rf ${SOURCES_RF})
+  add_library(srslte_rf ${SOURCES_RF})
+  target_link_libraries(srslte_rf pthread)
 
-  IF (UHD_FOUND)
-    TARGET_LINK_LIBRARIES(srslte_rf ${UHD_LIBRARIES})
-  ENDIF (UHD_FOUND)
+  if (UHD_FOUND)
+    target_link_libraries(srslte_rf ${UHD_LIBRARIES})
+  endif (UHD_FOUND)
 
-  IF (BLADERF_FOUND)
-    TARGET_LINK_LIBRARIES(srslte_rf ${BLADERF_LIBRARIES})
-  ENDIF (BLADERF_FOUND)
+  if (BLADERF_FOUND)
+    target_link_libraries(srslte_rf ${BLADERF_LIBRARIES})
+  endif (BLADERF_FOUND)
 
-ENDIF(RF_FOUND)
+endif(RF_FOUND)

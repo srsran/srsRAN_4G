@@ -18,10 +18,10 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-FILE(GLOB SOURCES "*.c")
-ADD_LIBRARY(srslte_ch_estimation ${SOURCES})
-TARGET_LINK_LIBRARIES(srslte_ch_estimation  srslte_common
+file(GLOB SOURCES "*.c")
+add_library(srslte_ch_estimation ${SOURCES})
+target_link_libraries(srslte_ch_estimation  srslte_common
                                             srslte_resampling
                                             srslte_utils
                                             srslte_phch)
-ADD_SUBDIRECTORY(test)
+add_subdirectory(test)

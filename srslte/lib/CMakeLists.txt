@@ -18,25 +18,25 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-ADD_SUBDIRECTORY(agc)
-ADD_SUBDIRECTORY(ch_estimation)
-ADD_SUBDIRECTORY(common)
-ADD_SUBDIRECTORY(fec)
-ADD_SUBDIRECTORY(mimo)
-ADD_SUBDIRECTORY(phch)
-ADD_SUBDIRECTORY(rf)
-ADD_SUBDIRECTORY(sync)
-ADD_SUBDIRECTORY(utils)
-ADD_SUBDIRECTORY(channel)
-ADD_SUBDIRECTORY(dft)
-ADD_SUBDIRECTORY(io)
-ADD_SUBDIRECTORY(modem)
-ADD_SUBDIRECTORY(resampling)
-ADD_SUBDIRECTORY(scrambling)
-ADD_SUBDIRECTORY(ue)
+add_subdirectory(agc)
+add_subdirectory(ch_estimation)
+add_subdirectory(common)
+add_subdirectory(fec)
+add_subdirectory(mimo)
+add_subdirectory(phch)
+add_subdirectory(rf)
+add_subdirectory(sync)
+add_subdirectory(utils)
+add_subdirectory(channel)
+add_subdirectory(dft)
+add_subdirectory(io)
+add_subdirectory(modem)
+add_subdirectory(resampling)
+add_subdirectory(scrambling)
+add_subdirectory(ue)
 
-ADD_LIBRARY(srslte  SHARED  version.c)
-TARGET_LINK_LIBRARIES(srslte  srslte_agc
+add_library(srslte  SHARED  version.c)
+target_link_libraries(srslte  srslte_agc
                               srslte_ch_estimation
                               srslte_common
                               srslte_fec
@@ -53,13 +53,13 @@ TARGET_LINK_LIBRARIES(srslte  srslte_agc
                               srslte_ue
                               srslte_rf
                               pthread)
-SET_TARGET_PROPERTIES(srslte  PROPERTIES
+set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
-IF(VOLK_FOUND)
-  SET_TARGET_PROPERTIES(srslte PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")
-  TARGET_LINK_LIBRARIES(srslte ${VOLK_LIBRARIES})
-ENDIF(VOLK_FOUND)
+if(VOLK_FOUND)
+  set_target_properties(srslte PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")
+  target_link_libraries(srslte ${VOLK_LIBRARIES})
+endif(VOLK_FOUND)
 
 INSTALL(TARGETS srslte DESTINATION ${LIBRARY_DIR})
 SRSLTE_SET_PIC(srslte)

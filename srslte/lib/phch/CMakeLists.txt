@@ -18,12 +18,12 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-FILE(GLOB SOURCES "*.c")
-ADD_LIBRARY(srslte_phch ${SOURCES})
-TARGET_LINK_LIBRARIES(srslte_phch   srslte_common
+file(GLOB SOURCES "*.c")
+add_library(srslte_phch ${SOURCES})
+target_link_libraries(srslte_phch   srslte_common
                                     srslte_mimo
                                     srslte_fec
                                     srslte_modem
                                     srslte_scrambling
                                     srslte_ch_estimation)
-ADD_SUBDIRECTORY(test)
+add_subdirectory(test)
