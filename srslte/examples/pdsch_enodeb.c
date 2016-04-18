@@ -653,8 +653,8 @@ int main(int argc, char **argv) {
         start_of_burst=false; 
 #endif
       }
-      nf++;
     }
+    nf++;
     sfn = (sfn + 1) % 1024;
   }
 

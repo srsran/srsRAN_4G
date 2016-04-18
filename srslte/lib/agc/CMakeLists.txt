@@ -18,17 +18,5 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-########################################################################
-# RESAMPLING TEST  
-########################################################################
-
-add_executable(resample_arb_test resample_arb_test.c)
-target_link_libraries(resample_arb_test srslte)
-
-add_executable(resample_arb_bench resample_arb_bench.c)
-target_link_libraries(resample_arb_bench srslte)
-
-add_test(resample resample_arb_test)
- 
-
-
+file(GLOB SOURCES "*.c")
+add_library(srslte_agc ${SOURCES})

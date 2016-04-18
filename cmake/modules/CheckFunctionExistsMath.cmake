@@ -53,13 +53,13 @@ MACRO(CHECK_FUNCTION_EXISTS_MATH FUNCTION VARIABLE)
     IF(${VARIABLE})
       SET(${VARIABLE} 1 CACHE INTERNAL "Have function ${FUNCTION}")
       MESSAGE(STATUS "Looking for ${FUNCTION} - found")
-      FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeOutput.log 
+      file(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeOutput.log 
         "Determining if the function ${FUNCTION} exists passed with the following output:\n"
         "${OUTPUT}\n\n")
     ELSE(${VARIABLE})
       MESSAGE(STATUS "Looking for ${FUNCTION} - not found")
       SET(${VARIABLE} "" CACHE INTERNAL "Have function ${FUNCTION}")
-      FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log 
+      file(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log 
         "Determining if the function ${FUNCTION} exists failed with the following output:\n"
         "${OUTPUT}\n\n")
     ENDIF(${VARIABLE})

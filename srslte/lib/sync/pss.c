@@ -38,7 +38,7 @@
 #include "srslte/utils/debug.h"
 
 
-int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq, 
+int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_freq, cf_t *pss_signal_time, 
                                  uint32_t N_id_2, uint32_t fft_size, int cfo_i) {
   srslte_dft_plan_t plan;
   cf_t pss_signal_pad[2048];
@@ -48,11 +48,11 @@ int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq,
       fft_size                  <= 2048) 
   {
     
-    srslte_pss_generate(pss_signal_time, N_id_2);
+    srslte_pss_generate(pss_signal_freq, N_id_2);
 
     bzero(pss_signal_pad, fft_size * sizeof(cf_t));
-    bzero(pss_signal_freq, fft_size * sizeof(cf_t));
-    memcpy(&pss_signal_pad[(fft_size-SRSLTE_PSS_LEN)/2+cfo_i], pss_signal_time, SRSLTE_PSS_LEN * sizeof(cf_t));
+    bzero(pss_signal_time, fft_size * sizeof(cf_t));
+    memcpy(&pss_signal_pad[(fft_size-SRSLTE_PSS_LEN)/2+cfo_i], pss_signal_freq, SRSLTE_PSS_LEN * sizeof(cf_t));
 
     /* Convert signal into the time domain */    
     if (srslte_dft_plan(&plan, fft_size, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
@@ -62,10 +62,10 @@ int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_time, cf_t *pss_signal_freq,
     srslte_dft_plan_set_mirror(&plan, true);
     srslte_dft_plan_set_dc(&plan, true);
     srslte_dft_plan_set_norm(&plan, true);
-    srslte_dft_run_c(&plan, pss_signal_pad, pss_signal_freq);
+    srslte_dft_run_c(&plan, pss_signal_pad, pss_signal_time);
 
-    srslte_vec_conj_cc(pss_signal_freq, pss_signal_freq, fft_size);
-    srslte_vec_sc_prod_cfc(pss_signal_freq, 1.0/SRSLTE_PSS_LEN, pss_signal_freq, fft_size);
+    srslte_vec_conj_cc(pss_signal_time, pss_signal_time, fft_size);
+    srslte_vec_sc_prod_cfc(pss_signal_time, 1.0/SRSLTE_PSS_LEN, pss_signal_time, fft_size);
 
     srslte_dft_plan_free(&plan);
         

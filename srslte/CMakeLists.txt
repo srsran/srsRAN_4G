@@ -29,31 +29,61 @@ INSTALL(DIRECTORY include/
 ########################################################################
 # Add headers to cmake project (useful for IDEs)
 ########################################################################
-SET(HEADERS_ALL "")
-FILE(GLOB headers *)
+set(HEADERS_ALL "")
+file(GLOB headers *)
 FOREACH (_header ${headers})
-  IF(IS_DIRECTORY ${_header})
-    FILE(GLOB_RECURSE tmp "${_header}/*.h")
-    LIST(APPEND HEADERS_ALL ${tmp})
-  ENDIF(IS_DIRECTORY ${_header})
+  if(IS_DIRECTORY ${_header})
+    file(GLOB_RECURSE tmp "${_header}/*.h")
+    list(APPEND HEADERS_ALL ${tmp})
+  endif(IS_DIRECTORY ${_header})
 ENDFOREACH()
-ADD_CUSTOM_TARGET (add_srslte_headers SOURCES ${HEADERS_ALL})
+add_custom_target (add_srslte_headers SOURCES ${HEADERS_ALL})
 
 ########################################################################
 # Find Dependencies
 ########################################################################
-FIND_PACKAGE(UHD)
-FIND_PACKAGE(bladeRF)
+find_package(UHD)
+find_package(bladeRF)
 
-IF(BLADERF_FOUND OR UHD_FOUND)
+if(UHD_FOUND)
+  include_directories(${UHD_INCLUDE_DIRS})
+  link_directories(${UHD_LIBRARY_DIRS})
+endif(UHD_FOUND)
+
+if(BLADERF_FOUND)
+  include_directories(${BLADERF_INCLUDE_DIRS})
+  link_directories(${BLADERF_LIBRARY_DIRS})
+endif(BLADERF_FOUND)
+
+if(BLADERF_FOUND OR UHD_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
-ELSE(BLADERF_FOUND OR UHD_FOUND)
+else(BLADERF_FOUND OR UHD_FOUND)
   set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
-ENDIF(BLADERF_FOUND OR UHD_FOUND)
+  add_definitions(-DDISABLE_RF)
+endif(BLADERF_FOUND OR UHD_FOUND)
+
+include(CheckFunctionExistsMath)
+if(${DISABLE_VOLK})
+  if(${DISABLE_VOLK} EQUAL 0)
+    find_package(Volk)
+  else(${DISABLE_VOLK} EQUAL 0)
+    message(STATUS "VOLK library disabled (DISABLE_VOLK=1)")
+  endif(${DISABLE_VOLK} EQUAL 0)
+else(${DISABLE_VOLK})
+  find_package(Volk)
+endif(${DISABLE_VOLK})
+
+if(VOLK_FOUND)
+  include_directories(${VOLK_INCLUDE_DIRS})
+  link_directories(${VOLK_LIBRARY_DIRS})
+  message(STATUS "   Compiling with VOLK SIMD library.")
+else(VOLK_FOUND)
+  message(STATUS "   VOLK SIMD library NOT found. Using generic implementation.")
+endif(VOLK_FOUND)
 
 ########################################################################
 # Add subdirectories
 ########################################################################
-ADD_SUBDIRECTORY(lib)
-ADD_SUBDIRECTORY(include)
-ADD_SUBDIRECTORY(examples)
+add_subdirectory(lib)
+add_subdirectory(include)
+add_subdirectory(examples)

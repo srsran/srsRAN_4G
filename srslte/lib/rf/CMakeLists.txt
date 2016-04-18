@@ -18,17 +18,30 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-########################################################################
-# RESAMPLING TEST  
-########################################################################
+if(RF_FOUND)
+  # Include common RF files
+  set(SOURCES_RF "")
+  list(APPEND SOURCES_RF rf_imp.c rf_utils.c)
 
-add_executable(resample_arb_test resample_arb_test.c)
-target_link_libraries(resample_arb_test srslte)
+  if (UHD_FOUND)
+    add_definitions(-DENABLE_UHD)
+    list(APPEND SOURCES_RF rf_uhd_imp.c uhd_c_api.cpp)
+  endif (UHD_FOUND)
 
-add_executable(resample_arb_bench resample_arb_bench.c)
-target_link_libraries(resample_arb_bench srslte)
+  if (BLADERF_FOUND)
+    add_definitions(-DENABLE_BLADERF)
+    list(APPEND SOURCES_RF rf_blade_imp.c)
+  endif (BLADERF_FOUND)
 
-add_test(resample resample_arb_test)
- 
+  add_library(srslte_rf ${SOURCES_RF})
+  target_link_libraries(srslte_rf pthread)
 
+  if (UHD_FOUND)
+    target_link_libraries(srslte_rf ${UHD_LIBRARIES})
+  endif (UHD_FOUND)
 
+  if (BLADERF_FOUND)
+    target_link_libraries(srslte_rf ${BLADERF_LIBRARIES})
+  endif (BLADERF_FOUND)
+
+endif(RF_FOUND)
