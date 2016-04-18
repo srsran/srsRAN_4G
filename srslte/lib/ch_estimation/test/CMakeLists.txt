@@ -37,7 +37,7 @@ add_test(chest_test_dl_cellid2 chest_test_dl -c 2 -r 50)
 # Downlink MEX libs  
 ########################################################################
 
-BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 ########################################################################
@@ -47,9 +47,9 @@ BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES srslte srslte_mex)
 add_executable(refsignal_ul_test_all refsignal_ul_test.c)
 target_link_libraries(refsignal_ul_test_all srslte)
 
-BuildMex(MEXNAME refsignal_pusch SOURCES refsignal_pusch_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME refsignal_pusch SOURCES refsignal_pusch_mex.c LIBRARIES srslte_static srslte_mex)
 
-BuildMex(MEXNAME refsignal_srs SOURCES refsignal_srs_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME refsignal_srs SOURCES refsignal_srs_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 

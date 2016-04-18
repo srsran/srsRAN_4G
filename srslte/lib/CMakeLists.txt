@@ -53,6 +53,29 @@ add_library(srslte  SHARED  version.c
                             $<TARGET_OBJECTS:srslte_ue>
                             $<TARGET_OBJECTS:srslte_rf>
 )
+
+
+if(NOT DisableMEX)
+  add_library(srslte_static  STATIC  version.c
+                            $<TARGET_OBJECTS:srslte_agc>
+                            $<TARGET_OBJECTS:srslte_ch_estimation>
+                            $<TARGET_OBJECTS:srslte_common>
+                            $<TARGET_OBJECTS:srslte_fec>
+                            $<TARGET_OBJECTS:srslte_mimo>
+                            $<TARGET_OBJECTS:srslte_phch>
+                            $<TARGET_OBJECTS:srslte_sync>
+                            $<TARGET_OBJECTS:srslte_utils>
+                            $<TARGET_OBJECTS:srslte_channel>
+                            $<TARGET_OBJECTS:srslte_dft>
+                            $<TARGET_OBJECTS:srslte_io>
+                            $<TARGET_OBJECTS:srslte_modem>
+                            $<TARGET_OBJECTS:srslte_resampling>
+                            $<TARGET_OBJECTS:srslte_scrambling>
+                            $<TARGET_OBJECTS:srslte_ue>
+                            $<TARGET_OBJECTS:srslte_rf>
+  )
+endif(NOT DisableMEX)
+
 target_link_libraries(srslte pthread m ${FFTW3F_LIBRARIES})
 set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})

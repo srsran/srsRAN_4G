@@ -163,13 +163,11 @@ void srslte_chest_dl_free(srslte_chest_dl_t *q)
 }
 
 /* Uses the difference between the averaged and non-averaged pilot estimates */
-static float estimate_noise_pilots(srslte_chest_dl_t *q, cf_t *ce, uint32_t port_id) 
+static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id) 
 {
   int nref=SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
-  /* Get averaged pilots from channel estimates */
-  srslte_refsignal_cs_get_sf(q->cell, port_id, ce, q->tmp_noise);
   /* Substract noisy pilot estimates */
-  srslte_vec_sub_ccc(q->tmp_noise, q->pilot_estimates, q->tmp_noise, nref);  
+  srslte_vec_sub_ccc(q->pilot_estimates_average, q->pilot_estimates, q->tmp_noise, nref);  
   
 #ifdef FREQ_SEL_SNR
   /* Compute frequency-selective SNR */
@@ -181,7 +179,7 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, cf_t *ce, uint32_t port
 #endif
   
   /* Compute average power */
-  float power = 2*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
+  float power = (1/q->smooth_filter[0])*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
   return power; 
 }
 
@@ -201,7 +199,7 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
   srslte_vec_sub_ccc(q->tmp_pss_noisy, q->tmp_pss, q->tmp_pss_noisy, SRSLTE_PSS_LEN);
   
   /* Compute average power */
-  float power = sqrt(2)*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN);
+  float power = q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN);
   return power; 
 }
 
@@ -267,8 +265,12 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
 
 void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint32_t filter_len) {
   if (filter_len < SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN) {
-    memcpy(q->smooth_filter, filter, filter_len*sizeof(float));
-    q->smooth_filter_len = filter_len; 
+    if (filter) {
+      memcpy(q->smooth_filter, filter, filter_len*sizeof(float));    
+      q->smooth_filter_len = filter_len; 
+    } else {
+      q->smooth_filter_len = 0; 
+    }
   } else {
     fprintf(stderr, "Error setting smoothing filter: filter len exceeds maximum (%d>%d)\n", 
       filter_len, SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN);
@@ -320,7 +322,7 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
       
       /* If averaging, compute noise from difference between received and averaged estimates */
       if (sf_idx == 0 || sf_idx == 5) {
-        q->noise_estimate[port_id] = estimate_noise_pilots(q, ce, port_id);
+        q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);
       }      
     } else {
       interpolate_pilots(q, q->pilot_estimates, ce, port_id);            

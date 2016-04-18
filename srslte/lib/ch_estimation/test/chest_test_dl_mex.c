@@ -40,8 +40,7 @@
 void help()
 {
   mexErrMsgTxt
-    ("[estChannel, avg_refs, output] = srslte_chest(cell_id, nof_ports, inputSignal,[sf_idx|freq_filter],"
-     "[time_filter])\n\n"
+    ("[estChannel, avg_refs, output] = srslte_chest(cell_id, nof_ports, inputSignal)\n\n"
      " Returns a matrix of size equal to the inputSignal matrix with the channel estimates\n "
      "for each resource element in inputSignal. The inputSignal matrix is the received Grid\n"
      "of size nof_resource_elements x nof_ofdm_symbols.\n"
@@ -146,6 +145,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (nsubframes != 1) {
       sf_idx = sf%10;
     }
+    
+    if (nrhs > NOF_INPUTS) {
+      float w = (float) mxGetScalar(prhs[NOF_INPUTS]);
+      srslte_chest_dl_set_smooth_filter3_coeff(&chest, w);
+    } else {
+      srslte_chest_dl_set_smooth_filter(&chest, NULL, 0);
+    }
         
     if (srslte_chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
       mexErrMsgTxt("Error running channel estimator\n");
@@ -194,7 +200,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
     }
   }
-
+  
   if (nlhs >= 4) {
     plhs[3] = mxCreateDoubleScalar(noise_power);
   }

@@ -32,7 +32,7 @@ add_test(pbch_test_50 pbch_test -p 1 -n 50 -c 50)
 add_test(pbch_test_502 pbch_test -p 2 -n 50 -c 50) 
 add_test(pbch_test_504 pbch_test -p 4 -n 50 -c 50) 
  
-BuildMex(MEXNAME pbch SOURCES pbch_test_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME pbch SOURCES pbch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 ########################################################################
@@ -49,7 +49,7 @@ add_test(pcfich_test_10 pcfich_test -p 1 -n 10)
 add_test(pcfich_test_102 pcfich_test -p 2 -n 10) 
 add_test(pcfich_test_104 pcfich_test -p 4 -n 10) 
 
-BuildMex(MEXNAME pcfich SOURCES pcfich_test_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME pcfich SOURCES pcfich_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
 # PHICH TEST  
@@ -83,7 +83,7 @@ add_test(pdcch_test pdcch_test)
 add_executable(dci_unpacking dci_unpacking.c)
 target_link_libraries(dci_unpacking srslte)
 
-BuildMex(MEXNAME pdcch SOURCES pdcch_test_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME pdcch SOURCES pdcch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
 # PDSCH TEST  
@@ -96,8 +96,8 @@ add_test(pdsch_test_qpsk pdsch_test -m 10 -n 50 -r 1)
 add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100)
 add_test(pdsch_test_qam64 pdsch_test -m 28 -n 100 -r 0)
 
-BuildMex(MEXNAME pdsch SOURCES pdsch_test_mex.c LIBRARIES srslte srslte_mex)
-BuildMex(MEXNAME dlsch_encode SOURCES dlsch_encode_test_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME pdsch SOURCES pdsch_test_mex.c LIBRARIES srslte_static srslte_mex)
+BuildMex(MEXNAME dlsch_encode SOURCES dlsch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
 # FILE TEST  
@@ -131,8 +131,8 @@ add_test(pdsch_pdcch_file_test pdsch_pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CM
 add_executable(pusch_test pusch_test.c)
 target_link_libraries(pusch_test srslte)
 
-BuildMex(MEXNAME ulsch_encode SOURCES ulsch_encode_test_mex.c LIBRARIES srslte srslte_mex)
-BuildMex(MEXNAME pusch_encode SOURCES pusch_encode_test_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME ulsch_encode SOURCES ulsch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
+BuildMex(MEXNAME pusch_encode SOURCES pusch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 add_test(pusch_test pusch_test)
 
@@ -145,7 +145,7 @@ target_link_libraries(pucch_test srslte)
 
 add_test(pucch_test pucch_test)
 
-BuildMex(MEXNAME pucch_encode SOURCES pucch_encode_test_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME pucch_encode SOURCES pucch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 
@@ -190,7 +190,7 @@ add_test(prach_test_multi_n8 prach_test_multi -n 8)
 add_test(prach_test_multi_n4 prach_test_multi -n 4)
  
  
-BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES srslte srslte_mex)
+BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 if(UHD_FOUND)

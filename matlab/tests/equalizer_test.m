@@ -6,12 +6,13 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=30;%linspace(0,30,8);
-Nrealizations=1;
+SNR_values_db=linspace(0,30,5);
+Nrealizations=4;
 
-Lp=5;
-N=512;
-enb.NDLRB = 25;                 % Number of resource blocks
+w1=0.1;
+w2=0.2;
+
+enb.NDLRB = 50;                 % Number of resource blocks
 
 enb.CellRefP = 1;               % One transmit antenna port
 enb.NCellID = 0;                % Cell ID
@@ -19,17 +20,13 @@ enb.CyclicPrefix = 'Normal';    % Normal cyclic prefix
 enb.DuplexMode = 'FDD';         % FDD
 
 K=enb.NDLRB*12;
-rstart=(N-K)/2;
 P=K/6;
-Rhphp=zeros(P,P);
-Rhhp=zeros(K,P);
-Rhh=zeros(K,K);
 
 %% Channel Model Configuration
 cfg.Seed = 0;                  % Random channel seed
 cfg.InitTime = 0;
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EPA';     
+cfg.DelayProfile = 'EVA';     
 
 % doppler 5, 70 300
 
@@ -67,7 +64,7 @@ hls=zeros(4,4*P*10);
 MSE=zeros(Ntests,Nrealizations,length(SNR_values_db));
 noiseEst=zeros(Ntests,Nrealizations,length(SNR_values_db));
 
-legends={'matlab','ls.linear','mmse','r.smooth'};
+legends={'matlab','ls',num2str(w1),num2str(w2)};
 colors={'bo-','rx-','m*-','k+-','c+-'};
 colors2={'b-','r-','m-','k-','c-'};
 
@@ -190,67 +187,17 @@ noiseEst(1,nreal,snr_idx)=mean(tmpnoise)*sqrt(2)*enb.CellRefP;
 [tmp, ~, ~, noiseEst(2,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid);
 hest{2}=reshape(tmp, size(hest{1}));
 
-tmp_noise=zeros(2,1);
-for sf=[0 5]
-    enb.NSubframe=sf;
-    pssSym = ltePSS(enb);
-    pssInd = ltePSSIndices(enb);
-    x=reshape(rxGrid(pssInd),[],1);
-    hh=reshape(hest{2}(pssInd),[],1);
-    y=hh.*pssSym;
-    tmp_noise(sf/5+1)=mean(abs(x-y).^2);
-end
-% noiseEst(2,nreal,snr_idx)=mean(tmp_noise);
-
-%% MMSE estimation with srsLTE 
-
-% Compute Correlation matrices
-M=40;
-a=0.1;
-hidx=zeros(M,1);
-for i=1:M
-    if (mod(i,2)==1)
-        hx=floor((i-1)/2)*7+1;
-    else
-        hx=floor((i-1)/2)*7+5;
-    end
-    hidx(i)=hx;
-    hp=hest{1}(hls(1,(1:P)+P*(i-1)),hx);
-    Rhphp = (1-a)*Rhphp+a*(hp*hp');
-    Rhhp = (1-a)*Rhhp+a*(hest{1}(:,hx)*hp');  
-    Rhh = (1-a)*Rhh+a*h(:,hx)*h(:,hx)';
-end
-snr_lin=10^(SNR_values_db(snr_idx)/10);
-Wi=((Rhphp+(1/snr_lin)*eye(P)))^-1;
-W = Rhhp*Wi;
-
-w=reshape(transpose(W),1,[]);
-[tmp, ~, ~, noiseEst(3,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w);
+%% LS-Linear + averaging with srsLTE
+[tmp, ~, ~, noiseEst(3,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w1);
 hest{3}=reshape(tmp, size(hest{1}));
 
-
-%% Low-pass filter smoother
- 
-prows=rstart+(1:6:K);
-t=0:Lp-1;
-alfa=log(2*Lp)/Lp;
-c_l=exp(-t*alfa);
-c_l2=[c_l zeros(1,N-Lp)];
-C_l=diag(c_l2);
-F=dftmtx(N);
-R_hh=F*C_l*F';
-R_hh=R_hh(prows,prows);
-W3=R_hh*(R_hh+0.05*eye(P))^-1;
-
-w3=reshape(transpose(W3),1,[]);
-[tmp, pilot_avg, ~, noiseEst(4,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w3);
+%% LS-Linear + more averaging with srsLTE
+[tmp, ~, ~, noiseEst(4,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w2);
 hest{4}=reshape(tmp, size(hest{1}));
-
-
 
 %% Compute MSE 
 for i=1:Ntests
-    MSE(i,nreal,snr_idx)=mean(mean(abs(h(:,hidx)-hest{i}(:,hidx)).^2));
+    MSE(i,nreal,snr_idx)=mean(mean(abs(h-hest{i}).^2));
     fprintf('MSE test %d: %f\n',i, 10*log10(MSE(i,nreal,snr_idx)));
 end
 
@@ -297,7 +244,7 @@ mean_snr=10*log10(1./mean(noiseEst,2));
 
 %% Plot average over all SNR values
 if (length(SNR_values_db) > 1)
-    subplot(1,1,1)
+    subplot(1,2,1)
     for i=1:Ntests
         plot(SNR_values_db, 10*log10(mean_mse(i,:)),colors{i})
         hold on;
@@ -308,21 +255,21 @@ if (length(SNR_values_db) > 1)
     xlabel('SNR (dB)')
     ylabel('MSE (dB)')
     
-%     subplot(1,2,2)
-%     plot(SNR_values_db, SNR_values_db,'k:')
-%     hold on;
-%     for i=1:Ntests
-%         plot(SNR_values_db, mean_snr(i,:), colors{i})
-%     end
-%     hold off
-%     tmp=cell(Ntests+1,1);
-%     tmp{1}='Theory';
-%     for i=2:Ntests+1
-%         tmp{i}=legends{i-1};
-%     end
-%     legend(tmp)
-%     grid on
-%     xlabel('SNR (dB)')
-%     ylabel('Estimated SNR (dB)')
+    subplot(1,2,2)
+    plot(SNR_values_db, SNR_values_db,'k:')
+    hold on;
+    for i=1:Ntests
+        plot(SNR_values_db, mean_snr(i,:), colors{i})
+    end
+    hold off
+    tmp=cell(Ntests+1,1);
+    tmp{1}='Theory';
+    for i=2:Ntests+1
+        tmp{i}=legends{i-1};
+    end
+    legend(tmp)
+    grid on
+    xlabel('SNR (dB)')
+    ylabel('Estimated SNR (dB)')
 end
 
