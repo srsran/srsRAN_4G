@@ -279,11 +279,10 @@ void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint
 
 void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q, float w)
 {
-  if (q->smooth_filter_len == 3) {
-    q->smooth_filter[0] = w; 
-    q->smooth_filter[2] = w; 
-    q->smooth_filter[1] = 1-2*w; 
-  }
+  q->smooth_filter_len = 3;
+  q->smooth_filter[0] = w; 
+  q->smooth_filter[2] = w; 
+  q->smooth_filter[1] = 1-2*w; 
 }
 
 static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint32_t port_id) {
