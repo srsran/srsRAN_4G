@@ -5,7 +5,7 @@ srsLTE is a free and open-source LTE library for SDR UE and eNodeB developed by 
 
 **srsLTE is used by srsUE, a full stack (PHY to IP) implementation of an LTE UE. srsUE is available at https://github.com/srslte/srsue**
 
-*News*: We have just released srsUE 1.1 now supporting the bladeRF hardware. We have also added Paging and improved general stability.  
+*News*: We have just released srsUE 1.2 containing important bugfixes and improvements in the synchronization procedure. Checkout the [CHANGELOG](CHANGELOG)   
 
 
 The srsLTE software license is AGPLv3.
@@ -18,7 +18,7 @@ Current Features:
  * Cell search and synchronization procedure for the UE
  * All DL channels/signals are supported for UE and eNodeB side: PSS, SSS, PBCH, PCFICH, PHICH, PDCCH, PDSCH
  * All UL channels/signals are supported for UE side: PRACH, PUSCH, PUCCH, SRS 
- * Frequency-based ZF and MMSE
+ * Frequency-based ZF and MMSE equalizer
  * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX (+100 Mbps) and standard C (+25 Mbps)
  * MATLAB and OCTAVE MEX library generation for many components
  * UE receiver tested and verified with Amarisoft LTE 100 eNodeB and commercial LTE networks (Telefonica Spain, Three.ie and Eircom in Ireland)
