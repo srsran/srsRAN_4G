@@ -20,5 +20,10 @@
 
 file(GLOB SOURCES "*.c")
 add_library(srslte_utils OBJECT ${SOURCES})
+
+if(VOLK_FOUND)
+  set_target_properties(srslte_utils PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")
+endif(VOLK_FOUND)
+
 SRSLTE_SET_PIC(srslte_utils)
 add_subdirectory(test)

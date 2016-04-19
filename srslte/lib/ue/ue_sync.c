@@ -163,7 +163,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
         goto clean_exit;
       }      
     } else {
-      if(srslte_sync_init(&q->strack, q->frame_len, 2*SRSLTE_CP_LEN_NORM(1,q->fft_size), q->fft_size)) {
+      if(srslte_sync_init(&q->strack, q->frame_len, SRSLTE_CP_LEN_NORM(1,q->fft_size), q->fft_size)) {
         fprintf(stderr, "Error initiating sync track\n");
         goto clean_exit;
       }
@@ -516,6 +516,9 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
         fprintf(stderr, "Error receiving samples\n");
         return SRSLTE_ERROR;
       }
+
+      struct timeval t[3]; 
+
       switch (q->state) {
         case SF_FIND:     
           switch(srslte_sync_find(&q->sfind, input_buffer, 0, &q->peak_idx)) {
@@ -540,8 +543,10 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
           if (q->do_agc) {
             srslte_agc_process(&q->agc, input_buffer, q->sf_len);        
           }
+          
         break;
         case SF_TRACK:
+         
           ret = 1;
           
           srslte_sync_sss_en(&q->strack, q->decode_sss_on_track);

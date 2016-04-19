@@ -91,7 +91,6 @@ if(RF_FOUND)
 endif(RF_FOUND)
 
 if(VOLK_FOUND)
-  set_target_properties(srslte PROPERTIES COMPILE_DEFINITIONS "${VOLK_DEFINITIONS}")
   target_link_libraries(srslte ${VOLK_LIBRARIES})
 endif(VOLK_FOUND)
 
