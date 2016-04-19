@@ -1,5 +1,21 @@
 Change Log for Releases
 ==============================
 
+
+## 001.002.000
+
+* Bugfixes: 
+  * Estimation of extrapolated of out-of-band carriers 
+  * PDCCH REG interleaving for certain cell IDs
+  * MIB decoding 
+  * Overflow in viterbi in PBCH
+
+* Improvements: 
+  * Synchronization in long multipath channels
+  * Better calibration of synchronization and estimation
+  * Averaging in channel estimation
+  * Improved 2-port diversity decoding
+
+
 ## 001.001.000
 * Added support for BladeRF
