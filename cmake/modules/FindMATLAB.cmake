@@ -93,7 +93,7 @@ else()
     IF (MATLAB_BIN_EXISTS)
       execute_process(
         COMMAND which matlab
-        COMMAND xargs readlink
+        COMMAND xargs realpath
         COMMAND xargs dirname
         COMMAND xargs dirname
         COMMAND xargs echo -n
