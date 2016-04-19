@@ -517,8 +517,6 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
         return SRSLTE_ERROR;
       }
 
-      struct timeval t[3]; 
-
       switch (q->state) {
         case SF_FIND:     
           switch(srslte_sync_find(&q->sfind, input_buffer, 0, &q->peak_idx)) {
