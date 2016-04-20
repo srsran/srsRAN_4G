@@ -44,6 +44,8 @@
 #define SRSLTE_NOF_DELTA_SS    30
 #define SRSLTE_NOF_CSHIFT      8
 
+#define SRSLTE_REFSIGNAL_UL_L(ns_idx, cp) ((ns_idx+1)*SRSLTE_CP_NSYMB(cp)-4)
+
 typedef struct SRSLTE_API {
   uint32_t cyclic_shift; 
   uint32_t delta_ss;  
@@ -128,6 +130,12 @@ SRSLTE_API void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q,
                                                 uint32_t nof_prb, 
                                                 uint32_t n_prb[2], 
                                                 cf_t *sf_symbols); 
+
+SRSLTE_API void srslte_refsignal_dmrs_pusch_get(srslte_refsignal_ul_t *q, 
+                                                cf_t *sf_symbols,
+                                                uint32_t nof_prb, 
+                                                uint32_t n_prb[2], 
+                                                cf_t *r_pusch); 
 
 SRSLTE_API int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, 
                                                srslte_pucch_format_t format, 

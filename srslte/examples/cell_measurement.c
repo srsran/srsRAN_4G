@@ -35,6 +35,8 @@
 #include <assert.h>
 #include <signal.h>
 
+#define ENABLE_AGC_DEFAULT
+
 #include "srslte/srslte.h"
 #include "srslte/rf/rf.h"
 #include "srslte/rf/rf_utils.h"
@@ -63,7 +65,11 @@ void args_default(prog_args_t *args) {
   args->force_N_id_2 = -1; // Pick the best
   args->rf_args = "";
   args->rf_freq = -1.0;
+#ifdef ENABLE_AGC_DEFAULT
+  args->rf_gain = -1; 
+#else
   args->rf_gain = 50; 
+#endif
 }
 
 void usage(prog_args_t *args, char *prog) {

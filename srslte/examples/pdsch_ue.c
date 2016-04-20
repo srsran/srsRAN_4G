@@ -39,8 +39,7 @@
 
 #include "srslte/srslte.h"
 
-// From srsLTE 1.2, AGC is disabled by default 
-//#define ENABLE_AGC_DEFAULT
+#define ENABLE_AGC_DEFAULT
 
 #ifndef DISABLE_RF
 #include "srslte/rf/rf.h"
@@ -130,7 +129,11 @@ void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [agpPoOcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", args->rf_args);
+#ifdef ENABLE_AGC_DEFAULT
   printf("\t-g RF fix RX gain [Default AGC]\n");
+#else
+  printf("\t-g Set RX gain [Default %.1f dB]\n", args->rf_gain);
+#endif  
 #else
   printf("\t   RF is disabled.\n");
 #endif

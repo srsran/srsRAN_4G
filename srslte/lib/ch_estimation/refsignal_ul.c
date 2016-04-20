@@ -320,9 +320,20 @@ void srslte_refsignal_dmrs_pusch_put(srslte_refsignal_ul_t *q, cf_t *r_pusch, ui
 {
   for (uint32_t ns_idx=0;ns_idx<2;ns_idx++) {
     INFO("Putting DRMS to n_prb: %d, L: %d, ns_idx: %d\n", n_prb[ns_idx], nof_prb, ns_idx);
-    uint32_t L = (ns_idx+1)*SRSLTE_CP_NSYMB(q->cell.cp)-4;
+    uint32_t L = SRSLTE_REFSIGNAL_UL_L(ns_idx, q->cell.cp);
     memcpy(&sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, L, n_prb[ns_idx]*SRSLTE_NRE)], 
            &r_pusch[ns_idx*SRSLTE_NRE*nof_prb], nof_prb*SRSLTE_NRE*sizeof(cf_t));    
+  }
+}
+
+void srslte_refsignal_dmrs_pusch_get(srslte_refsignal_ul_t *q, cf_t *sf_symbols, uint32_t nof_prb, uint32_t n_prb[2], cf_t *r_pusch) 
+{
+  for (uint32_t ns_idx=0;ns_idx<2;ns_idx++) {
+    INFO("Getting DRMS from n_prb: %d, L: %d, ns_idx: %d\n", n_prb[ns_idx], nof_prb, ns_idx);
+    uint32_t L = SRSLTE_REFSIGNAL_UL_L(ns_idx, q->cell.cp);
+    memcpy(&r_pusch[ns_idx*SRSLTE_NRE*nof_prb],
+           &sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, L, n_prb[ns_idx]*SRSLTE_NRE)], 
+           nof_prb*SRSLTE_NRE*sizeof(cf_t));    
   }
 }
 
