@@ -138,9 +138,9 @@ static int generate_n_prs(srslte_refsignal_ul_t * q) {
       }
       q->n_prs_pusch[delta_ss][ns] = n_prs;
     }
+    srslte_sequence_free(&seq);
   }
 
-  srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS; 
 }
 
@@ -160,9 +160,9 @@ static int generate_srslte_sequence_hopping_v(srslte_refsignal_ul_t *q) {
         return SRSLTE_ERROR;
       }
       q->v_pusch[ns][delta_ss] = seq.c[ns];    
+      srslte_sequence_free(&seq);
     }
   }
-  srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS;
 }
 

@@ -48,6 +48,7 @@
 #include "srslte/common/sequence.h"
 #include "srslte/common/phy_common.h"
             
+#include "srslte/ch_estimation/chest_ul.h"
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/ch_estimation/refsignal_dl.h"
 #include "srslte/ch_estimation/refsignal_ul.h"

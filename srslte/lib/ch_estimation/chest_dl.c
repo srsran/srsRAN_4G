@@ -256,6 +256,17 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
   srslte_chest_average_pilots(input, output, q->smooth_filter, nref, nsymbols, q->smooth_filter_len);
 }
 
+float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) {
+  uint32_t l;
+  
+  float rssi = 0;
+  uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id);   
+  for (l=0;l<nsymbols;l++) {
+    cf_t *tmp = &input[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE];
+    rssi += srslte_vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * SRSLTE_NRE);    
+  }    
+  return rssi/nsymbols; 
+}
 
 int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id) 
 {
@@ -322,17 +333,7 @@ float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
 #endif
 }
 
-float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) {
-  uint32_t l;
-  
-  float rssi = 0;
-  uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id);   
-  for (l=0;l<nsymbols;l++) {
-    cf_t *tmp = &input[srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE];
-    rssi += srslte_vec_dot_prod_conj_ccc(tmp, tmp, q->cell.nof_prb * SRSLTE_NRE);    
-  }    
-  return rssi/nsymbols; 
-}
+
 
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {
   return 4*q->rssi[0]/q->cell.nof_prb/SRSLTE_NRE; 

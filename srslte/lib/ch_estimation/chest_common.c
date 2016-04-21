@@ -72,7 +72,7 @@ void srslte_chest_set_smooth_filter3_coeff(float *smooth_filter, float w)
   smooth_filter[1] = 1-2*w; 
 }
 
-void srslte_chest_average_pilots(cf_t *input, cf_t *output, cf_t *filter, 
+void srslte_chest_average_pilots(cf_t *input, cf_t *output, float *filter, 
                                  uint32_t nof_ref, uint32_t nof_symbols, uint32_t filter_len) 
 {
   for (int l=0;l<nof_symbols;l++) {

@@ -56,7 +56,6 @@ typedef struct {
   bool dmrs_signal_configured; 
   
   cf_t *pilot_estimates;
-  cf_t *pilot_estimates_average; 
   cf_t *pilot_recv_signal; 
   cf_t *tmp_noise; 
   
@@ -93,9 +92,12 @@ SRSLTE_API void srslte_chest_ul_set_smooth_filter3_coeff(srslte_chest_ul_t* q,
                                                          float w); 
 
 SRSLTE_API int srslte_chest_ul_estimate(srslte_chest_ul_t *q, 
-                                        cf_t *input,
-                                        cf_t *ce[SRSLTE_MAX_PORTS],
-                                        uint32_t sf_idx);
+                                        cf_t *input, 
+                                        cf_t *ce, 
+                                        uint32_t nof_prb, 
+                                        uint32_t sf_idx, 
+                                        uint32_t cyclic_shift_for_dmrs, 
+                                        uint32_t n_prb[2]);
 
 SRSLTE_API float srslte_chest_ul_get_noise_estimate(srslte_chest_ul_t *q); 
 

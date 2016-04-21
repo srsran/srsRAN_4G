@@ -33,22 +33,25 @@ add_test(chest_test_dl_cellid0 chest_test_dl -c 0 -r 50)
 add_test(chest_test_dl_cellid1 chest_test_dl -c 1 -r 50) 
 add_test(chest_test_dl_cellid2 chest_test_dl -c 2 -r 50) 
 
-########################################################################
-# Downlink MEX libs  
-########################################################################
-
-BuildMex(MEXNAME chest SOURCES chest_test_dl_mex.c LIBRARIES srslte_static srslte_mex)
+BuildMex(MEXNAME chest_dl SOURCES chest_test_dl_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 ########################################################################
 # Uplink Channel Estimation TEST  
 ########################################################################
 
+add_executable(chest_test_ul chest_test_ul.c)
+target_link_libraries(chest_test_ul srslte)
+
 add_executable(refsignal_ul_test_all refsignal_ul_test.c)
 target_link_libraries(refsignal_ul_test_all srslte)
 
-BuildMex(MEXNAME refsignal_pusch SOURCES refsignal_pusch_mex.c LIBRARIES srslte_static srslte_mex)
+add_test(chest_test_ul_cellid0 chest_test_ul -c 0 -r 50) 
+add_test(chest_test_ul_cellid1 chest_test_ul -c 1 -r 50) 
+add_test(chest_test_ul_cellid1 chest_test_ul -c 2 -r 50) 
 
+BuildMex(MEXNAME chest_ul SOURCES chest_test_ul_mex.c LIBRARIES srslte_static srslte_mex)
+BuildMex(MEXNAME refsignal_pusch SOURCES refsignal_pusch_mex.c LIBRARIES srslte_static srslte_mex)
 BuildMex(MEXNAME refsignal_srs SOURCES refsignal_srs_mex.c LIBRARIES srslte_static srslte_mex)
 
 

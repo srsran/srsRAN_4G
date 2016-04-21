@@ -129,18 +129,29 @@ void srslte_interp_linear_vector(srslte_interp_linsrslte_vec_t *q, cf_t *in0, cf
 
 void srslte_interp_linear_vector2(srslte_interp_linsrslte_vec_t *q, cf_t *in0, cf_t *in1, cf_t *start, cf_t *between, uint32_t M) 
 {
+  srslte_interp_linear_vector3(q, in0, in1, start, between, M, true, q->vector_len);  
+}
+
+void srslte_interp_linear_vector3(srslte_interp_linsrslte_vec_t *q, cf_t *in0, cf_t *in1, cf_t *start, cf_t *between, uint32_t M, bool to_right, uint32_t len) 
+{
   uint32_t i;
   
-  srslte_vec_sub_ccc(in1, in0, q->diff_vec, q->vector_len);
-  srslte_vec_sc_prod_cfc(q->diff_vec, (float) 1/(M+1), q->diff_vec, q->vector_len);
+  srslte_vec_sub_ccc(in1, in0, q->diff_vec, len);
+  srslte_vec_sc_prod_cfc(q->diff_vec, (float) 1/(M+1), q->diff_vec, len);
   if (start) {
-    srslte_vec_sum_ccc(start, q->diff_vec, between, q->vector_len);    
+    srslte_vec_sum_ccc(start, q->diff_vec, between, len);    
   } else {
-    srslte_vec_sum_ccc(in0, q->diff_vec, between, q->vector_len);
+    srslte_vec_sum_ccc(in0, q->diff_vec, between, len);
   }
-  for (i=0;i<M-1;i++) {
-    srslte_vec_sum_ccc(between, q->diff_vec, &between[q->vector_len], q->vector_len);
-    between += q->vector_len;
+  for (i=0;i<M-1;i++) {    
+    // Operations are done to len samples but pointers are moved the full vector length
+    if (to_right) {       
+      srslte_vec_sum_ccc(between, q->diff_vec, &between[q->vector_len], len);
+      between += q->vector_len; 
+    } else {
+      between -= q->vector_len;
+      srslte_vec_sum_ccc(&between[q->vector_len], q->diff_vec, between, len);
+    }
   }
 }
 

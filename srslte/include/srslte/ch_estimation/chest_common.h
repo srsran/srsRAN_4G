@@ -27,6 +27,7 @@
 #ifndef CHEST_
 #define CHEST_
 
+#include <stdint.h>
 #include "srslte/config.h"
 
 #define SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN  65
@@ -34,7 +35,7 @@
 
 SRSLTE_API void srslte_chest_average_pilots(cf_t *input, 
                                             cf_t *output, 
-                                            cf_t *filter, 
+                                            float *filter, 
                                             uint32_t nof_ref, 
                                             uint32_t nof_symbols, 
                                             uint32_t filter_len); 
