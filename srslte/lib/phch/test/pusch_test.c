@@ -113,10 +113,12 @@ int main(int argc, char **argv) {
   srslte_pusch_t pusch;
   uint8_t *data = NULL;
   cf_t *sf_symbols = NULL;
+  cf_t *ce = NULL; 
   int ret = -1;
   struct timeval t[3];
   srslte_pusch_cfg_t cfg; 
-  srslte_softbuffer_tx_t softbuffer; 
+  srslte_softbuffer_tx_t softbuffer_tx;
+  srslte_softbuffer_rx_t softbuffer_rx; 
   
   parse_args(argc,argv);
 
@@ -184,12 +186,6 @@ int main(int argc, char **argv) {
     perror("malloc");
     goto quit;
   }
-
-  cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  srslte_ofdm_t fft; 
-  srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
-  srslte_ofdm_set_freq_shift(&fft, 0.5);
   
   data = srslte_vec_malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
   if (!data) {
@@ -201,40 +197,48 @@ int main(int argc, char **argv) {
     data[i] = 1;
   }
 
-  if (srslte_softbuffer_tx_init(&softbuffer, 100)) {
+  if (srslte_softbuffer_tx_init(&softbuffer_tx, 100)) {
+    fprintf(stderr, "Error initiating soft buffer\n");
+    goto quit;
+  }
+  if (srslte_softbuffer_rx_init(&softbuffer_rx, 100)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
   
   uint32_t ntrials = 100; 
 
-  gettimeofday(&t[1], NULL);
-  for (int i=0;i<ntrials;i++) {
-    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
-      fprintf(stderr, "Error encoding TB\n");
-      exit(-1);
-    }
+  if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data, sf_symbols)) {
+    fprintf(stderr, "Error encoding TB\n");
+    exit(-1);
   }
   if (rv_idx > 0) {
     cfg.rv = rv_idx; 
-    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
+    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data, sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
   }
-    
-  srslte_ofdm_tx_sf(&fft, sf_symbols, scfdma);
+
+  ce = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
+  if (!ce) {
+    perror("srslte_vec_malloc");
+    goto quit;
+  }
+  for (int j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
+    ce[j] = 1;
+  }
+  
+  gettimeofday(&t[1], NULL);
+  int r = srslte_pusch_decode(&pusch, &cfg, &softbuffer_rx, sf_symbols, ce, 0, data);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-
-  //int r = srslte_pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
-  int r = 0; 
   if (r) {
     printf("Error decoding\n");
     ret = -1;
     goto quit;
   } else {
-    printf("ENCODED OK in %d:%d (TBS: %d bits, TX: %.2f Mbps, Processing: %.2f Mbps)\n", (int) t[0].tv_sec, 
+    printf("DECODED OK in %d:%d (TBS: %d bits, TX: %.2f Mbps, Processing: %.2f Mbps)\n", (int) t[0].tv_sec, 
            (int) t[0].tv_usec/ntrials, 
            cfg.grant.mcs.tbs,
            (float) cfg.grant.mcs.tbs/1000,
@@ -244,13 +248,16 @@ int main(int argc, char **argv) {
   ret = 0;
 quit:
   srslte_pusch_free(&pusch);
-  srslte_softbuffer_tx_free(&softbuffer);
+  srslte_softbuffer_tx_free(&softbuffer_tx);
   
   if (sf_symbols) {
     free(sf_symbols);
   }
   if (data) {
     free(data);
+  }
+  if (ce) {
+    free(ce);
   }
   if (ret) {
     printf("Error\n");

@@ -149,7 +149,7 @@ int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *
     if (q->shortened && slot == 1) {
       N_srs = 1; 
     }
-    INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",grant->L_prb, grant->n_prb_tilde[slot], slot);
+    INFO("%s PUSCH %d PRB to index %d at slot %d\n",advance_input?"Allocating":"Getting",grant->L_prb, grant->n_prb_tilde[slot], slot);
     for (uint32_t l=0;l<SRSLTE_CP_NSYMB(q->cell.cp)-N_srs;l++) {
       if (l != L_ref) {
         uint32_t idx = SRSLTE_RE_IDX(q->cell.nof_prb, l+slot*SRSLTE_CP_NSYMB(q->cell.cp), 
@@ -168,7 +168,11 @@ int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *
       }
     }        
   }
-  return SRSLTE_NRE*grant->L_prb; 
+  if (advance_input) {
+    return in_ptr - input;
+  } else {
+    return out_ptr - output; 
+  }
 }
 
 int pusch_put(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *output) {
@@ -393,64 +397,6 @@ int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
   return SRSLTE_SUCCESS;
 }
 
-/** Decodes the PUSCH from the received symbols
- */
-int srslte_pusch_decode(srslte_pusch_t *q, 
-                        srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
-                        cf_t *sf_symbols, 
-                        cf_t *ce, float noise_estimate, 
-                        uint8_t *data) 
-{
-
-  uint32_t n;
-  
-  if (q           != NULL &&
-      sf_symbols  != NULL &&
-      data        != NULL &&
-      cfg         != NULL)
-  {
-    
-    if (q->rnti_is_set) {
-      INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
-          cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, 
-           cfg->nbits.nof_re, cfg->nbits.nof_symb, cfg->nbits.nof_bits, cfg->rv);
-
-      /* extract symbols */
-      n = pusch_get(q, &cfg->grant, sf_symbols, q->d);
-      if (n != cfg->nbits.nof_re) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
-        return SRSLTE_ERROR;
-      }
-      
-      /* extract channel estimates */
-      n = pusch_get(q, &cfg->grant, ce, q->ce);
-      if (n != cfg->nbits.nof_re) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
-        return SRSLTE_ERROR;
-      }
-      
-      srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, noise_estimate);
-
-      srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
-      
-      /* demodulate symbols 
-      * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
-      * thus we don't need tot set it in the LLRs normalization
-      */
-      srslte_demod_soft_demodulate(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
-
-      /* descramble */
-      srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->nbits.nof_bits);
-
-      return srslte_ulsch_decode(&q->dl_sch, cfg, softbuffer, q->q, data);      
-    } else {
-      fprintf(stderr, "Must call srslte_pusch_set_rnti() before calling srslte_pusch_decode()\n");
-      return SRSLTE_ERROR; 
-    }    
-  } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-}
 
 int srslte_pusch_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
                              uint8_t *data, uint16_t rnti, 
@@ -514,6 +460,10 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       return SRSLTE_ERROR;
     }
 
+    uint8_t tx_bits[10000]; 
+    srslte_bit_unpack_vector(q->q, tx_bits, cfg->nbits.nof_bits);
+    srslte_vec_save_file("tx_bits", tx_bits, sizeof(uint8_t)*cfg->nbits.nof_bits);
+
     if (rnti != q->rnti || !q->rnti_is_set) {
       srslte_sequence_t seq; 
       if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
@@ -542,15 +492,87 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
         } 
       }
     }
+    srslte_bit_unpack_vector(q->q, tx_bits, cfg->nbits.nof_bits);
+    srslte_vec_save_file("tx_bits_scram", tx_bits, sizeof(uint8_t)*cfg->nbits.nof_bits);
     
+    // Bit mapping
     srslte_mod_modulate_bytes(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
+
+    srslte_vec_save_file("tx_symbols", q->d, sizeof(cf_t)*cfg->nbits.nof_re);
+    
+    // DFT precoding
     srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);
     
-    /* mapping to resource elements */      
+    // Mapping to resource elements
     pusch_put(q, &cfg->grant, q->z, sf_symbols);
     
     ret = SRSLTE_SUCCESS;
   } 
   return ret; 
+}
+
+
+/** Decodes the PUSCH from the received symbols
+ */
+int srslte_pusch_decode(srslte_pusch_t *q, 
+                        srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
+                        cf_t *sf_symbols, 
+                        cf_t *ce, float noise_estimate, 
+                        uint8_t *data) 
+{
+
+  uint32_t n;
+  
+  if (q           != NULL &&
+      sf_symbols  != NULL &&
+      data        != NULL &&
+      cfg         != NULL)
+  {
+    
+    if (q->rnti_is_set) {
+      INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
+          cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, 
+           cfg->nbits.nof_re, cfg->nbits.nof_symb, cfg->nbits.nof_bits, cfg->rv);
+
+      /* extract symbols */
+      n = pusch_get(q, &cfg->grant, sf_symbols, q->d);
+      if (n != cfg->nbits.nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
+        return SRSLTE_ERROR;
+      }
+      
+      /* extract channel estimates */
+      n = pusch_get(q, &cfg->grant, ce, q->ce);
+      if (n != cfg->nbits.nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
+        return SRSLTE_ERROR;
+      }
+      
+      // Equalization
+      srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, noise_estimate);
+
+      // DFT predecoding
+      srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
+
+      srslte_vec_save_file("rx_symbols", q->d, sizeof(cf_t)*cfg->nbits.nof_re);
+      
+      // Soft demodulation
+      srslte_demod_soft_demodulate(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
+
+      srslte_vec_save_file("rx_bits_scram", q->q, sizeof(float)*cfg->nbits.nof_bits);
+      
+      // Descrambling
+      srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->nbits.nof_bits);
+
+      srslte_vec_save_file("rx_bits", q->q, sizeof(float)*cfg->nbits.nof_bits);
+
+      return srslte_ulsch_decode(&q->dl_sch, cfg, softbuffer, q->q, data);      
+    } else {
+      fprintf(stderr, "Must call srslte_pusch_set_rnti() before calling srslte_pusch_decode()\n");
+      return SRSLTE_ERROR; 
+    }    
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 }
   

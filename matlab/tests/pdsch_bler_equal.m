@@ -7,33 +7,8 @@
 
 recordedSignal=[];
 
-Npackets = 20;
-SNR_values = linspace(2,6,10);
-
-Lp=12;
-N=256;
-K=180;
-rstart=(N-K)/2;
-P=K/6;
-Rhphp=zeros(P,P);
-Rhhp=zeros(K,P);
-Rhh=zeros(K,K);
-
-t=0:Lp-1;
-alfa=log(2*Lp)/Lp;
-c_l=exp(-t*alfa);
-c_l=c_l/sum(c_l);
-C_l=diag(1./c_l);
-prows=rstart+(1:6:K);
-
-F=dftmtx(N);
-F_p=F(prows,1:Lp);
-F_l=F((rstart+1):(K+rstart),1:Lp);
-Wi=(F_p'*F_p+C_l*0.01)^(-1);
-W2=F_l*Wi*F_p';
-w2=reshape(transpose(W2),1,[]);
-
-
+Npackets = 1;
+SNR_values = 10;%linspace(2,6,10);
 %% Choose RMC 
 [waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.0',[1;0;0;1]);
 waveform = sum(waveform,2);

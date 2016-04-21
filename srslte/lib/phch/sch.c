@@ -498,15 +498,6 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
                    data, e_bits);
 }
 
-int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                        int16_t *e_bits, uint8_t *data) 
-{
-  return decode_tb(q,                    
-                   softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
-                   e_bits, data);
-}
-
 /* UL-SCH channel interleaver according to 5.2.2.8 of 36.212 */
 void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
                       uint32_t N_pusch_symbs, uint8_t *q_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
@@ -559,6 +550,62 @@ void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total,
       }
     }
   }
+}
+
+uint16_t deinterleaver_buffer[100000];
+
+/* UL-SCH channel deinterleaver according to 5.2.2.8 of 36.212 */
+void ulsch_deinterleave(uint8_t *q_bits, uint32_t Qm, uint32_t H_prime_total, 
+                      uint32_t N_pusch_symbs, uint8_t *g_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
+                      uint16_t *interleaver_buffer, uint8_t *temp_buffer, uint32_t buffer_sz) 
+{
+  
+  uint32_t rows = H_prime_total/N_pusch_symbs;
+  uint32_t cols = N_pusch_symbs;
+    
+  /* Compute the interleaving function on-the-fly, because it depends on number of RI bits 
+   * Profiling show that the computation of this matrix is neglegible. 
+   */
+  uint32_t idx = 0;
+  for(uint32_t j=0; j<rows; j++) {        
+    for(uint32_t i=0; i<cols; i++) {
+      for(uint32_t k=0; k<Qm; k++) {
+        if (temp_buffer[j*Qm + i*rows*Qm + k]) {
+          interleaver_buffer[j*Qm + i*rows*Qm + k] = 0; 
+        } else {
+          if (j*Qm + i*rows*Qm + k < buffer_sz) {
+            interleaver_buffer[j*Qm + i*rows*Qm + k] = idx;
+            deinterleaver_buffer[idx] = j*Qm + i*rows*Qm + k;
+            idx++;                  
+          } else {
+            fprintf(stderr, "Error computing ULSCH interleaver. Position %d exceeds buffer size %d\n", j*Qm + i*rows*Qm + k, buffer_sz);
+          }
+        }
+      }
+    }
+  }
+  
+  srslte_vec_fprint_s(stdout, interleaver_buffer, H_prime_total*Qm);
+  srslte_vec_fprint_s(stdout, deinterleaver_buffer, H_prime_total*Qm);
+  
+  srslte_bit_interleave(q_bits, g_bits, deinterleaver_buffer, H_prime_total*Qm);      
+}
+
+
+int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                        int16_t *e_bits, uint8_t *data) 
+{
+  
+  // Interleave UL-SCH (and RI and CQI)
+  ulsch_deinterleave(e_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits, q->ack_ri_bits, Q_prime_ri*Qm, 
+                   q->ul_interleaver, q->temp_g_bits, SRSLTE_MAX_PRB*12*12*12);
+  
+
+  srslte_vec_fprint_f(stdout, q->temp_g_bits, nb_q); 
+  
+  decode_tb(q, softbuffer, &cfg->cb_segm, 
+               cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
+               e_bits, data);
 }
 
 int srslte_ulsch_encode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
@@ -625,8 +672,10 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     }    
   } 
   
-  //srslte_bit_unpack_vector(g_bits, kk, nb_q);
-  //srslte_vec_fprint_b(stdout, kk, nb_q);
+  uint8_t kk[10000];
+  srslte_bit_unpack_vector(g_bits, kk, nb_q);
+  srslte_vec_save_file("g_bits_tx", kk, nb_q);
+  srslte_vec_fprint_b(stdout, kk, nb_q);
       
   // Interleave UL-SCH (and RI and CQI)
   ulsch_interleave(g_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits, q->ack_ri_bits, Q_prime_ri*Qm, 
