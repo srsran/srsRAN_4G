@@ -313,7 +313,7 @@ int main(int argc, char **argv) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;
             } else if (n == 0) {
-              printf("CFO: %+6.4f KHz, SFO: %+6.4f Khz, NOI: %.2f, PDCCH-Det: %.3f\r",
+              printf("CFO: %+6.4f kHz, SFO: %+6.4f kHz, NOI: %.2f, PDCCH-Det: %.3f\r",
                       srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
                       srslte_sch_average_noi(&ue_dl.pdsch.dl_sch),
                       (float) ue_dl.nof_detected/nof_trials);                
@@ -355,7 +355,7 @@ int main(int argc, char **argv) {
         // Plot and Printf
         if ((nframes%10) == 0) {
 
-          printf("CFO: %+8.4f KHz, SFO: %+8.4f Khz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
+          printf("CFO: %+8.4f kHz, SFO: %+8.4f kHz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %5.1f dB\r",
                 srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
                 10*log10(rssi*1000) - rx_gain_offset,                                  

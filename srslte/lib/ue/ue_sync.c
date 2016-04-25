@@ -80,7 +80,7 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
       goto clean_exit;
     }
     
-    INFO("Offseting input file by %d samples and %.1f KHz\n", offset_time, offset_freq/1000);
+    INFO("Offseting input file by %d samples and %.1f kHz\n", offset_time, offset_freq/1000);
     
     srslte_filesource_read(&q->file_source, dummy_offset_buffer, offset_time);
     srslte_ue_sync_reset(q);
