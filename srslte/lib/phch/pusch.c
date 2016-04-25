@@ -463,7 +463,7 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
     uint8_t tx_bits[10000]; 
     srslte_bit_unpack_vector(q->q, tx_bits, cfg->nbits.nof_bits);
     srslte_vec_save_file("tx_bits", tx_bits, sizeof(uint8_t)*cfg->nbits.nof_bits);
-
+    
     if (rnti != q->rnti || !q->rnti_is_set) {
       srslte_sequence_t seq; 
       if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
@@ -557,16 +557,16 @@ int srslte_pusch_decode(srslte_pusch_t *q,
       srslte_vec_save_file("rx_symbols", q->d, sizeof(cf_t)*cfg->nbits.nof_re);
       
       // Soft demodulation
-      srslte_demod_soft_demodulate(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
+      srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
 
-      srslte_vec_save_file("rx_bits_scram", q->q, sizeof(float)*cfg->nbits.nof_bits);
+      srslte_vec_save_file("rx_bits_scram", q->q, sizeof(int16_t)*cfg->nbits.nof_bits);
       
       // Descrambling
-      srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->nbits.nof_bits);
+      srslte_scrambling_s_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->nbits.nof_bits);
 
-      srslte_vec_save_file("rx_bits", q->q, sizeof(float)*cfg->nbits.nof_bits);
+      srslte_vec_save_file("rx_bits", q->q, sizeof(int16_t)*cfg->nbits.nof_bits);
 
-      return srslte_ulsch_decode(&q->dl_sch, cfg, softbuffer, q->q, data);      
+      return srslte_ulsch_decode(&q->dl_sch, cfg, softbuffer, q->q, q->g, data);      
     } else {
       fprintf(stderr, "Must call srslte_pusch_set_rnti() before calling srslte_pusch_decode()\n");
       return SRSLTE_ERROR; 
