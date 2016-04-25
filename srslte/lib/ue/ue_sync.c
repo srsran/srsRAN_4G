@@ -44,7 +44,7 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define TRACK_MAX_LOST          4
 #define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     4
-#define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  10
+#define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  5
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
 cf_t dummy_offset_buffer[1024*1024];
@@ -80,7 +80,7 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
       goto clean_exit;
     }
     
-    INFO("Offseting input file by %d samples and %.1f KHz\n", offset_time, offset_freq/1000);
+    INFO("Offseting input file by %d samples and %.1f kHz\n", offset_time, offset_freq/1000);
     
     srslte_filesource_read(&q->file_source, dummy_offset_buffer, offset_time);
     srslte_ue_sync_reset(q);

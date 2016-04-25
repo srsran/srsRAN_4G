@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
     }
 
     printf("[%5d]: Pos: %5d (%d-%d), PSR: %4.1f (~%4.1f) Pdet: %4.2f, "
-           "FA: %4.2f, CFO: %+4.1f KHz, SFO: %+.2f Hz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f%%\r", 
+           "FA: %4.2f, CFO: %+4.1f kHz, SFO: %+.2f Hz SSSmiss: %4.2f/%4.2f/%4.2f CPNorm: %.0f%%\r", 
            frame_cnt, 
            peak_idx, min_peak_, max_peak_,
            peak_value, mean_peak,

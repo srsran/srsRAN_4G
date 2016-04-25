@@ -692,13 +692,13 @@ int srslte_refsignal_srs_send_cs(uint32_t subframe_config, uint32_t sf_idx) {
       } else {
         return 0; 
       }
-    } else if (subframe_config == 8) {
+    } else if (subframe_config == 7) {
       if (((sf_idx%tsfc)==0) || ((sf_idx%tsfc)==1)){
         return 1; 
       } else {
         return 0; 
       }
-    } else if (subframe_config == 9) {
+    } else if (subframe_config == 8) {
       if (((sf_idx%tsfc)==2) || ((sf_idx%tsfc)==3)){
         return 1; 
       } else {

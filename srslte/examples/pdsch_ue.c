@@ -570,7 +570,7 @@ int main(int argc, char **argv) {
             if (gain < 0) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
             }
-            printf("CFO: %+6.2f KHz, "
+            printf("CFO: %+6.2f kHz, "
                    "SNR: %4.1f dB, "
                    "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
                    
