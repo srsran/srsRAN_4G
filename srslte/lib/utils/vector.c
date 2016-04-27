@@ -171,6 +171,13 @@ void srslte_vec_sc_add_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
   }
 }
 
+void srslte_vec_sc_add_sss(int16_t *x, int16_t h, int16_t *z, uint32_t len) {
+  int i; 
+  for (i=0;i<len;i++) {
+    z[i] += h;
+  }
+}
+
 void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
 #ifndef HAVE_VOLK_MULT_FLOAT_FUNCTION
   int i;
@@ -245,6 +252,18 @@ void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len) {
   }
 #else
   volk_16i_s32f_convert_32f(z,x,scale,len);
+#endif  
+}
+
+
+void srslte_vec_convert_ci(int8_t *x, int16_t *z, uint32_t len) {
+#ifndef HAVE_VOLK_CONVERT_CI_FUNCTION
+  int i;
+  for (i=0;i<len;i++) {
+    z[i] = ((int16_t) x[i]);
+  }
+#else
+  volk_8i_convert_16i(z,x,len);
 #endif  
 }
 
@@ -603,6 +622,18 @@ float srslte_vec_dot_prod_fff(float *x, float *y, uint32_t len) {
 #endif  
 }
 
+int32_t srslte_vec_dot_prod_sss(int16_t *x, int16_t *y, uint32_t len) {
+#ifndef LV_HAVE_SSE
+  uint32_t i;
+  int32_t res = 0;
+  for (i=0;i<len;i++) {
+    res += x[i]*y[i];
+  }
+  return res;
+#else
+  return srslte_vec_dot_prod_sss_simd(x, y, len); 
+#endif
+}
 
 float srslte_vec_avg_power_cf(cf_t *x, uint32_t len) {
   return crealf(srslte_vec_dot_prod_conj_ccc(x,x,len)) / len;
@@ -663,6 +694,24 @@ uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
 #endif
 }
 
+int16_t srslte_vec_max_star_si(int16_t *x, uint32_t len) {
+#ifdef HAVE_VOLK_MAX_STAR_S_FUNCTION
+  int16_t target=0;
+  volk_16i_max_star_16i(&target,x,len);
+  return target;
+
+#else
+  uint32_t i;
+  int16_t m=-INT16_MIN;
+  for (i=0;i<len;i++) {
+    if (x[i]>m) {
+      m=x[i];
+    }
+  }
+  return m;
+#endif
+}
+
 void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len) {
 #ifdef HAVE_VOLK_MAX_VEC_FUNCTION
   volk_32f_x2_max_32f(z,x,y,len);
@@ -707,6 +756,20 @@ void srslte_vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, flo
   
   for (i=0;i<len;i++) {
     tmp = (int) (offset + gain * in[i]);
+    if (tmp < 0)
+      tmp = 0;
+    if (tmp > clip)
+      tmp = clip;
+    out[i] = (uint8_t) tmp;    
+  }
+}
+
+void srslte_vec_quant_suc(int16_t *in, uint8_t *out, int16_t norm, int16_t offset, int16_t clip, uint32_t len) {
+  int i;
+  int16_t tmp;
+  
+  for (i=0;i<len;i++) {
+    tmp = (int16_t) (offset + in[i]/norm);
     if (tmp < 0)
       tmp = 0;
     if (tmp > clip)

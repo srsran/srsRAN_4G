@@ -55,4 +55,12 @@ SRSLTE_API int srslte_rm_conv_rx(float *input,
                                  float *output, 
                                  uint32_t out_len);
 
+
+/************* FIX THIS. MOVE ALL PROCESSING TO INT16 AND HAVE ONLY 1 IMPLEMENTATION ******/ 
+
+SRSLTE_API int srslte_rm_conv_rx_s(int16_t *input, 
+                                   uint32_t in_len, 
+                                   int16_t *output, 
+                                   uint32_t out_len);
+
 #endif

@@ -124,6 +124,21 @@ SRSLTE_API int srslte_ulsch_decode(srslte_sch_t *q,
                                    int16_t *g_bits, 
                                    uint8_t *data);
 
+SRSLTE_API int srslte_ulsch_uci_decode(srslte_sch_t *q, 
+                                       srslte_pusch_cfg_t *cfg, 
+                                       srslte_softbuffer_rx_t *softbuffer,
+                                       int16_t *q_bits, 
+                                       int16_t *g_bits, 
+                                       uint8_t *data, 
+                                       srslte_uci_data_t *uci_data);
+
+SRSLTE_API int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, 
+                                              srslte_pusch_cfg_t *cfg, 
+                                              srslte_softbuffer_rx_t *softbuffer,
+                                              int16_t *q_bits, 
+                                              uint8_t *c_seq,
+                                              srslte_uci_data_t *uci_data); 
+
 SRSLTE_API float srslte_sch_beta_cqi(uint32_t I_cqi); 
 
 SRSLTE_API uint32_t srslte_sch_find_Ioffset_ack(float beta); 

@@ -519,9 +519,6 @@ static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs,
       }
     }
   }
-
-  printf("rows=%d, cols=%d, Qm=%d, total=%d, symb=%d\n", rows, cols, Qm, H_prime_total, N_pusch_symbs);
-  
 }
 
 /* UL-SCH channel interleaver according to 5.2.2.8 of 36.212 */
@@ -554,34 +551,130 @@ void ulsch_deinterleave(int16_t *q_bits, uint32_t Qm, uint32_t H_prime_total,
                         uint32_t N_pusch_symbs, int16_t *g_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
                         uint8_t *ri_present, uint16_t *inteleaver_lut) 
 {     
+  // Prepare ri_bits for fast search using temp_buffer
+  if (nof_ri_bits > 0) {
+    for (uint32_t i=0;i<nof_ri_bits;i++) {
+      ri_present[ri_bits[i].position] = 1;       
+    }
+  }
+
   // Generate interleaver table and interleave samples 
   ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut); 
   srslte_vec_lut_sss(q_bits, inteleaver_lut, g_bits, H_prime_total*Qm);
+
+  // Reset temp_buffer because will be reused next time
+  if (nof_ri_bits > 0) {
+    for (uint32_t i=0;i<nof_ri_bits;i++) {
+      ri_present[ri_bits[i].position] = 0;       
+    }
+  }
 }
 
-
 int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                        int16_t *q_bits, int16_t *g_bits, uint8_t *data) 
+                            int16_t *q_bits, int16_t *g_bits, uint8_t *data) 
 {
-  
+  srslte_uci_data_t uci_data; 
+  bzero(&uci_data, sizeof(srslte_uci_data_t));
+  return srslte_ulsch_uci_decode(q, cfg, softbuffer, q_bits, g_bits, data, &uci_data);
+}
+
+/* This is done before scrambling */
+int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                                   int16_t *q_bits, uint8_t *c_seq, srslte_uci_data_t *uci_data) 
+{
+  int ret = 0; 
+
   uint32_t Q_prime_ri = 0;
+  uint32_t Q_prime_ack = 0;
+  
+  uint32_t nb_q = cfg->nbits.nof_bits; 
+  uint32_t Qm = cfg->grant.Qm; 
+
+  cfg->last_O_cqi = uci_data->uci_cqi_len;
+  
+  // Deinterleave and decode HARQ bits
+  if (uci_data->uci_ack_len > 0) {
+    float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
+    if (cfg->cb_segm.tbs == 0) {
+        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
+    }
+    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ack);
+    if (ret < 0) {
+      return ret; 
+    }
+    Q_prime_ack = (uint32_t) ret; 
+
+    // Set zeros to HARQ bits
+    for (uint32_t i=0;i<Q_prime_ack;i++) {
+      q_bits[q->ack_ri_bits[i].position] = 0;  
+    }    
+  }
+        
+  // Deinterleave and decode RI bits
+  if (uci_data->uci_ri_len > 0) {
+    float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
+    if (cfg->cb_segm.tbs == 0) {
+        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
+    }
+    ret = srslte_uci_decode_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ri);
+    if (ret < 0) {
+      return ret; 
+    }
+    Q_prime_ri = (uint32_t) ret;     
+  }
+  
+  q->nof_ri_ack_bits = Q_prime_ri; 
+  
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_ulsch_uci_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                            int16_t *q_bits, int16_t *g_bits, uint8_t *data, srslte_uci_data_t *uci_data) 
+{
+  int ret = 0; 
+  
+  uint32_t Q_prime_ri = q->nof_ri_ack_bits; 
+  uint32_t Q_prime_cqi = 0; 
+  uint32_t e_offset = 0;
 
   uint32_t nb_q = cfg->nbits.nof_bits; 
   uint32_t Qm = cfg->grant.Qm; 
-  
-  // Interleave UL-SCH (and RI and CQI)
+
+  // Deinterleave data and CQI in ULSCH 
   ulsch_deinterleave(q_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, g_bits, q->ack_ri_bits, Q_prime_ri*Qm, 
                      q->temp_g_bits, q->ul_interleaver);
-
-  printf("g_bits=[");
-  for (int i=0;i<nb_q;i++) {
-    printf("%d, ", g_bits[i]>0);
-  }
-  printf("];\n");
   
-  return decode_tb(q, softbuffer, &cfg->cb_segm, 
-               cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
-               g_bits, data);
+  // Decode CQI (multiplexed at the front of ULSCH)
+  if (uci_data->uci_cqi_len > 0) {
+    struct timeval t[3];
+    gettimeofday(&t[1], NULL);
+    ret = srslte_uci_decode_cqi_pusch(&q->uci_cqi, cfg, g_bits, 
+                                      beta_cqi_offset[cfg->uci_cfg.I_offset_cqi], 
+                                      Q_prime_ri, uci_data->uci_cqi_len,
+                                      uci_data->uci_cqi, &uci_data->cqi_ack);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    printf("texec=%d us\n", t[0].tv_usec);
+    
+    if (ret < 0) {
+      return ret; 
+    }
+    Q_prime_cqi = (uint32_t) ret; 
+  }
+  
+  e_offset += Q_prime_cqi*Qm;
+
+  // Decode ULSCH
+  if (cfg->cb_segm.tbs > 0) {
+    uint32_t G = nb_q/Qm - Q_prime_ri - Q_prime_cqi;     
+    ret = decode_tb(q, softbuffer, &cfg->cb_segm, 
+                   Qm, cfg->rv, G*Qm, 
+                   &g_bits[e_offset], data);
+    if (ret) {
+      return ret; 
+    }
+  }
+  return SRSLTE_SUCCESS; 
 }
 
 int srslte_ulsch_encode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
@@ -619,8 +712,9 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     }
     Q_prime_ri = (uint32_t) ret; 
   }
-  cfg->last_O_cqi = uci_data.uci_cqi_len;
+  
   // Encode CQI
+  cfg->last_O_cqi = uci_data.uci_cqi_len;
   if (uci_data.uci_cqi_len > 0) {
     ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi, cfg, 
                                       uci_data.uci_cqi, uci_data.uci_cqi_len, 
@@ -648,17 +742,11 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     }    
   } 
   
-  uint8_t kk[10000];
-  srslte_bit_unpack_vector(g_bits, kk, nb_q);
-  srslte_vec_save_file("g_bits_tx", kk, nb_q);
-  printf("g_bits_tx=");
-  srslte_vec_fprint_b(stdout, kk, nb_q);
-      
   // Interleave UL-SCH (and RI and CQI)
   ulsch_interleave(g_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits, q->ack_ri_bits, Q_prime_ri*Qm, 
                    q->temp_g_bits, q->ul_interleaver);
   
-   // Encode (and interleave) ACK
+  // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
     float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {
