@@ -118,13 +118,13 @@ void cqi_pusch_pregen(srslte_uci_cqi_pusch_t *q) {
   uint8_t word[11]; 
     
   for (int i=0;i<11;i++) {
-    uint32_t nwords = (1<<(i+1));
-    q->cqi_table[i] = srslte_vec_malloc(sizeof(uint8_t)*nwords*32);
+    uint32_t nwords   = (1<<(i+1));
+    q->cqi_table[i]   = srslte_vec_malloc(sizeof(uint8_t)*nwords*32);
     q->cqi_table_s[i] = srslte_vec_malloc(sizeof(int16_t)*nwords*32);
     for (uint32_t w=0;w<nwords;w++) {
       uint8_t *ptr = word; 
-      srslte_bit_unpack(w, &ptr, i);
-      encode_cqi_pusch_block(q, word, i, &q->cqi_table[i][32*w]);    
+      srslte_bit_unpack(w, &ptr, i+1);
+      encode_cqi_pusch_block(q, word, i+1, &q->cqi_table[i][32*w]);    
       for (int j=0;j<32;j++) {
         q->cqi_table_s[i][32*w+j] = 2*q->cqi_table[i][32*w+j]-1;
       }
