@@ -133,6 +133,7 @@ target_link_libraries(pusch_test srslte)
 
 BuildMex(MEXNAME ulsch_encode SOURCES ulsch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
 BuildMex(MEXNAME pusch_encode SOURCES pusch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
+BuildMex(MEXNAME pusch SOURCES pusch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 add_test(pusch_test pusch_test)
 
@@ -191,6 +192,7 @@ add_test(prach_test_multi_n4 prach_test_multi -n 4)
  
  
 BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES srslte_static srslte_mex)
+BuildMex(MEXNAME prach_detect SOURCES prach_detect_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 if(UHD_FOUND)

@@ -17,8 +17,6 @@ enbConfig.NDLRB = 100;
 enbConfig.CFI = 1; 
 enbConfig.DuplexMode='FDD';
 
-lteCQIDecode
-
 % Transmission mode configuration for PDSCH
 pdschConfig.NLayers = 1;
 pdschConfig.TxScheme = 'Port0';

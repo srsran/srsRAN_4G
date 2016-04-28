@@ -553,10 +553,10 @@ int srslte_pusch_uci_decode(srslte_pusch_t *q,
       
       // Equalization
       srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, noise_estimate);
-
+      
       // DFT predecoding
       srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
-
+      
       // Soft demodulation
       srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
 
