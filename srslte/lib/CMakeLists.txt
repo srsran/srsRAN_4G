@@ -76,9 +76,15 @@ if(NOT DisableMEX)
   )
 endif(NOT DisableMEX)
 
-target_link_libraries(srslte pthread m ${FFTW3F_LIBRARIES})
+target_link_libraries(srslte pthread m)
 set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
+
+if(MKL_FOUND)
+  target_link_libraries(srslte ${MKL_LIBRARIES})
+else(MKL_FOUND)
+  target_link_libraries(srslte ${FFTW3F_LIBRARIES})
+endif(MKL_FOUND)
 
 if(RF_FOUND)
   if(UHD_FOUND)
