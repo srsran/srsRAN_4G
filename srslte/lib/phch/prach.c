@@ -469,7 +469,7 @@ int srslte_prach_detect(srslte_prach_t *p,
      sig_len > 0     &&
      indices != NULL)
   {
-    if(sig_len != p->N_ifft_prach){
+    if(sig_len < p->N_ifft_prach){
       fprintf(stderr, "srslte_prach_detect: Signal is not of length %d", p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }

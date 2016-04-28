@@ -78,8 +78,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexutils_read_uint32_struct(PRACHCFG, "CyclicShiftIdx", &zero_corr_zone);
   uint32_t high_speed_flag = 0; 
   mexutils_read_uint32_struct(PRACHCFG, "HighSpeed", &high_speed_flag);
-  uint32_t timing_offset = 0; 
-  mexutils_read_uint32_struct(PRACHCFG, "TimingOffset", &timing_offset);
   uint32_t frequency_offset = 0; 
   mexutils_read_uint32_struct(PRACHCFG, "FreqOffset", &frequency_offset);
 

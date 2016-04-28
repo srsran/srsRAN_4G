@@ -79,8 +79,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexutils_read_uint32_struct(PRACHCFG, "CyclicShiftIdx", &zero_corr_zone);
   uint32_t high_speed_flag = 0; 
   mexutils_read_uint32_struct(PRACHCFG, "HighSpeed", &high_speed_flag);
-  uint32_t timing_offset = 0; 
-  mexutils_read_uint32_struct(PRACHCFG, "TimingOffset", &timing_offset);
   uint32_t frequency_offset = 0; 
   mexutils_read_uint32_struct(PRACHCFG, "FreqOffset", &frequency_offset);
 
@@ -95,8 +93,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   uint32_t preambles[64]; 
   uint32_t nof_detected = 0; 
-  mexPrintf("nof_samples=%d\n", nof_samples);
-  if (srslte_prach_detect(&prach, frequency_offset, input_signal, nof_samples, preambles, &nof_detected)) {
+
+  if (srslte_prach_detect(&prach, frequency_offset, &input_signal[prach.N_cp], nof_samples, preambles, &nof_detected)) {    
     mexErrMsgTxt("Error detecting PRACH\n");
     return; 
   }
