@@ -47,7 +47,7 @@ void help()
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
  
-  if (nrhs != NOF_INPUTS) {
+  if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
@@ -93,6 +93,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   uint32_t preambles[64]; 
   uint32_t nof_detected = 0; 
+  
+  if (nrhs > NOF_INPUTS) {
+    float factor = mxGetScalar(prhs[NOF_INPUTS]);
+    srslte_prach_set_detect_factor(&prach, factor);
+  }
 
   if (srslte_prach_detect(&prach, frequency_offset, &input_signal[prach.N_cp], nof_samples, preambles, &nof_detected)) {    
     mexErrMsgTxt("Error detecting PRACH\n");

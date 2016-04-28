@@ -85,6 +85,9 @@ typedef struct SRSLTE_API {
   // ZC-sequence FFT and IFFT
   srslte_dft_plan_t *zc_fft;
   srslte_dft_plan_t *zc_ifft;
+  
+  cf_t *signal_fft; 
+  float detect_factor; 
 
 } srslte_prach_t;
 
@@ -127,6 +130,9 @@ SRSLTE_API int srslte_prach_detect(srslte_prach_t *p,
                                    uint32_t sig_len,
                                    uint32_t *indices,
                                    uint32_t *ind_len);
+
+SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t *p, 
+                                               float factor); 
 
 SRSLTE_API int srslte_prach_free(srslte_prach_t *p);
 

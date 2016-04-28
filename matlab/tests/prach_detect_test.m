@@ -1,8 +1,10 @@
 %% PRACH Detection Conformance Test
 clear
 
-numSubframes = 50;  % Number of subframes frames to simulate at each SNR
-SNRdB = linspace(-12,-4,7);  % SNR points to simulate
+detect_factor=5;
+
+numSubframes = 100;  % Number of subframes frames to simulate at each SNR
+SNRdB = linspace(-12,-6,8);  % SNR points to simulate
 foffset = 270.0;                        % Frequency offset in Hertz
 
 %% UE Configuration
@@ -75,30 +77,25 @@ for nSNR = 1:length(SNRdB)
 
         % Channel modeling
         chcfg.InitTime = (nsf-1)/1000;
-        %[rxwave, fadinginfo] = lteFadingChannel(chcfg, ...
-        %                        [txwave; zeros(25, 1)]);
+        [rxwave, fadinginfo] = lteFadingChannel(chcfg, ...
+                                [txwave; zeros(25, 1)]);
 
-        rxwave=txwave;
-        
         % Add noise
         noise = N*complex(randn(size(rxwave)), randn(size(rxwave)));            
         rxwave = rxwave + noise;            
 
         % Remove the implementation delay of the channel modeling
-        %rxwave = rxwave((fadinginfo.ChannelFilterDelay + 1):1920, :);  
+        rxwave = rxwave((fadinginfo.ChannelFilterDelay + 1):1920, :);  
 
         % Apply frequency offset
-        %t = ((0:size(rxwave, 1)-1)/chcfg.SamplingRate).';
-        %rxwave = rxwave .* repmat(exp(1i*2*pi*foffset*t), ...
-        %    1, size(rxwave, 2));
+        t = ((0:size(rxwave, 1)-1)/chcfg.SamplingRate).';
+        rxwave = rxwave .* repmat(exp(1i*2*pi*foffset*t), ...
+            1, size(rxwave, 2));
 
         % PRACH detection for all cell preamble indices
         [detected, offsets] = ltePRACHDetect(ue, prach, rxwave, (0:63).');
         
-        txwave_srs = srslte_prach(ue, prach);
-        plot(abs(txwave-txwave_srs))
-        
-        [detected_srs] = srslte_prach_detect(ue, prach, rxwave);
+        [detected_srs] = srslte_prach_detect(ue, prach, rxwave, detect_factor);
         
         
         % Test for preamble detection

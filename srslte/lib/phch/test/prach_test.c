@@ -31,14 +31,15 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+#include <sys/time.h>
 #include <complex.h>
 
-#include "srslte/phch/prach.h"
+#include "srslte/srslte.h"
 
 #define MAX_LEN  70176
 
 
-uint32_t N_ifft_ul        = 128;
+uint32_t N_ifft_ul        = 1536;
 uint32_t preamble_format  = 0;
 uint32_t root_seq_idx     = 0;
 uint32_t zero_corr_zone   = 1;
@@ -109,8 +110,9 @@ int main(int argc, char **argv) {
     uint32_t prach_len = p->N_seq;
     if(preamble_format == 2 || preamble_format == 3)
       prach_len /= 2;
+    
     srslte_prach_detect(p, 0, &preamble[p->N_cp], prach_len, indices, &n_indices);
-
+    
     if(n_indices != 1 || indices[0] != seq_index)
       return -1;
   }
