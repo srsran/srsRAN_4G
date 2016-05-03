@@ -34,7 +34,8 @@
 
 
 //PRACH detection threshold is PRACH_DETECT_FACTOR*average
-#define PRACH_DETECT_FACTOR 10
+#define PRACH_DETECT_FACTOR 18
+#define CFO_REPLICA_FACTOR  0.3
 
 #define   N_SEQS        64    // Number of prach sequences available
 #define   N_RB_SC       12    // Number of subcarriers per resource block
@@ -339,6 +340,7 @@ int srslte_prach_init(srslte_prach_t *p,
     p->zczc = zero_corr_zone_config;
     p->detect_factor = PRACH_DETECT_FACTOR; 
     
+    
     // Determine N_zc and N_cs
     if(4 == preamble_format){
       p->N_zc = 139;
@@ -370,7 +372,7 @@ int srslte_prach_init(srslte_prach_t *p,
       return SRSLTE_ERROR;
     }
     srslte_dft_plan_set_mirror(p->zc_ifft, false);
-    srslte_dft_plan_set_norm(p->zc_ifft, true);
+    srslte_dft_plan_set_norm(p->zc_ifft, false);
 
     // Generate our 64 sequences
     p->N_roots = 0;
@@ -380,7 +382,7 @@ int srslte_prach_init(srslte_prach_t *p,
     for(int i=0;i<N_SEQS;i++){
       srslte_dft_run(p->zc_fft, p->seqs[i], p->dft_seqs[i]);
     }
-
+    
     // Create our FFT objects and buffers
     p->N_ifft_ul = N_ifft_ul;
     if(4 == preamble_format){
@@ -388,6 +390,16 @@ int srslte_prach_init(srslte_prach_t *p,
     }else{
       p->N_ifft_prach = p->N_ifft_ul * DELTA_F/DELTA_F_RA;
     }
+    
+    /* The deadzone specifies the number of samples at the end of the correlation window
+     * that will be considered as belonging to the next preamble
+     */
+    p->deadzone = 0; 
+    /*
+    if(p->N_cs != 0) {
+      float samp_rate=15000*p->N_ifft_ul;
+      p->deadzone = (uint32_t) ceil((float) samp_rate/((float) p->N_zc*subcarrier_spacing));
+    }*/
 
     p->ifft_in = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
     p->ifft_out = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
@@ -412,7 +424,7 @@ int srslte_prach_init(srslte_prach_t *p,
     }
     
     srslte_dft_plan_set_mirror(p->fft, true);
-    srslte_dft_plan_set_norm(p->fft, true);
+    srslte_dft_plan_set_norm(p->fft, false);
 
     p->N_seq = prach_Tseq[p->f]*p->N_ifft_ul/2048;
     p->N_cp = prach_Tcp[p->f]*p->N_ifft_ul/2048;
@@ -468,11 +480,22 @@ void srslte_prach_set_detect_factor(srslte_prach_t *p, float ratio) {
 }
 
 int srslte_prach_detect(srslte_prach_t *p,
-                 uint32_t freq_offset,
-                 cf_t *signal,
-                 uint32_t sig_len,
-                 uint32_t *indices,
-                 uint32_t *n_indices)
+                        uint32_t freq_offset,
+                        cf_t *signal,
+                        uint32_t sig_len,
+                        uint32_t *indices,
+                        uint32_t *n_indices)
+{
+  return srslte_prach_detect_offset(p, freq_offset, signal, sig_len, indices, NULL, n_indices);
+}
+
+int srslte_prach_detect_offset(srslte_prach_t *p,
+                               uint32_t freq_offset,
+                               cf_t *signal,
+                               uint32_t sig_len,
+                               uint32_t *indices,
+                               uint32_t *offsets,
+                               uint32_t *n_indices)
 {
   int ret = SRSLTE_ERROR;
   if(p       != NULL &&
@@ -484,11 +507,10 @@ int srslte_prach_detect(srslte_prach_t *p,
       fprintf(stderr, "srslte_prach_detect: Signal is not of length %d", p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
-
+    
     // FFT incoming signal
     srslte_dft_run(p->fft, signal, p->signal_fft);
 
-    memset(p->prach_bins, 0, sizeof(cf_t)*p->N_zc);
     *n_indices = 0;
 
     // Extract bins of interest
@@ -497,28 +519,18 @@ int srslte_prach_detect(srslte_prach_t *p,
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);
 
-    for(int i=0;i<p->N_zc;i++){
-      p->prach_bins[i] = p->signal_fft[begin+i];
-    }
+    memcpy(p->prach_bins, &p->signal_fft[begin], p->N_zc*sizeof(cf_t));
 
     for(int i=0;i<p->N_roots;i++){
-      memset(p->corr_spec, 0, sizeof(cf_t)*p->N_zc);
-      memset(p->corr, 0, sizeof(float)*p->N_zc);
-      float corr_max = 0;
-      float corr_ave = 0;
-
       cf_t *root_spec = p->dft_seqs[p->root_seqs_idx[i]];
      
       srslte_vec_prod_conj_ccc(p->prach_bins, root_spec, p->corr_spec, p->N_zc);
 
       srslte_dft_run(p->zc_ifft, p->corr_spec, p->corr_spec);
       
-      srslte_vec_abs_cf(p->corr_spec, p->corr, p->N_zc);
-      
-      float norm = sqrtf(p->N_zc);
-      srslte_vec_sc_prod_fff(p->corr, 1.0/norm, p->corr, p->N_zc);
-      
-      corr_ave = srslte_vec_acc_ff(p->corr, p->N_zc)/p->N_zc;
+      srslte_vec_abs_square_cf(p->corr_spec, p->corr, p->N_zc);
+
+      float corr_ave = srslte_vec_acc_ff(p->corr, p->N_zc)/p->N_zc;
       
       uint32_t winsize = 0;
       if(p->N_cs != 0){
@@ -527,18 +539,37 @@ int srslte_prach_detect(srslte_prach_t *p,
         winsize = p->N_zc;
       }
       uint32_t n_wins = p->N_zc/winsize;
-      for(int j=0;j<n_wins;j++){
+      
+      float max_peak = 0; 
+      for(int j=0;j<n_wins;j++) {
         uint32_t start = (p->N_zc-(j*p->N_cs))%p->N_zc;
         uint32_t end = start+winsize;
-        corr_max = 0;
+        if (end>p->deadzone) {
+          end-=p->deadzone;
+        }
+        start += p->deadzone;
+        p->peak_values[j] = 0;
         for(int k=start;k<end;k++){
-          if(p->corr[k] > corr_max){
-            corr_max = p->corr[k];
+          if(p->corr[k] > p->peak_values[j]) {
+            p->peak_values[j]  = p->corr[k];
+            p->peak_offsets[j] = k-start; 
+            if (p->peak_values[j] > max_peak) {
+              max_peak = p->peak_values[j];
+            }
           }
         }
-        if(corr_max > p->detect_factor*corr_ave){
-          indices[*n_indices] = (i*n_wins)+j;
-          (*n_indices)++;
+      }
+      if (max_peak > p->detect_factor*corr_ave) {
+        for (int j=0;j<n_wins;j++) {
+          if(p->peak_values[j] > p->detect_factor*corr_ave && 
+             p->peak_values[j] >= CFO_REPLICA_FACTOR*max_peak)
+          {
+            indices[*n_indices] = (i*n_wins)+j;
+            if (offsets) {
+              offsets[*n_indices] = p->peak_offsets[j]; 
+            }            
+            (*n_indices)++;          
+          }
         }
       }
     }

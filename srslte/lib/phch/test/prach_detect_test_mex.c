@@ -51,6 +51,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     help();
     return;
   }
+  
+  srslte_use_standard_symbol_size(true);
    
   uint32_t n_ul_rb = 0; 
   if (mexutils_read_uint32_struct(UECFG, "NULRB", &n_ul_rb)) {
@@ -92,6 +94,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int nof_samples = mexutils_read_cf(INPUT, &input_signal);
   
   uint32_t preambles[64]; 
+  uint32_t offsets[64]; 
   uint32_t nof_detected = 0; 
   
   if (nrhs > NOF_INPUTS) {
@@ -99,13 +102,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     srslte_prach_set_detect_factor(&prach, factor);
   }
 
-  if (srslte_prach_detect(&prach, frequency_offset, &input_signal[prach.N_cp], nof_samples, preambles, &nof_detected)) {    
+  if (srslte_prach_detect_offset(&prach, frequency_offset, &input_signal[prach.N_cp], nof_samples, preambles, offsets, &nof_detected)) {    
     mexErrMsgTxt("Error detecting PRACH\n");
     return; 
   }
 
   if (nlhs >= 1) {
     mexutils_write_int((int*) preambles, &plhs[0], nof_detected, 1);
+  }
+  if (nlhs >= 2) {
+    mexutils_write_int((int*) offsets, &plhs[1], nof_detected, 1);
   }
   
   free(input_signal);  

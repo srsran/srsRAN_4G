@@ -1,16 +1,22 @@
 %% PRACH Detection Conformance Test
 clear
 
-detect_factor=5;
+d=18;%linspace(4,14,6);
+pDetection2 = zeros(2,length(d));
+for dd=1:length(d)
+detect_factor=d(dd);
 
-numSubframes = 100;  % Number of subframes frames to simulate at each SNR
-SNRdB = linspace(-12,-6,8);  % SNR points to simulate
-foffset = 270.0;                        % Frequency offset in Hertz
+numSubframes = 75;  % Number of subframes frames to simulate at each SNR
+SNRdB = linspace(-14,10,8);  % SNR points to simulate
+foffset = 300.0;                        % Frequency offset in Hertz
+add_fading=true; 
+
+addpath('../../build/srslte/lib/phch/test')
 
 %% UE Configuration
 % User Equipment (UE) settings are specified in the structure |ue|.
 
-ue.NULRB = 6;                   % 6 Resource Blocks
+ue.NULRB = 100;                   % 6 Resource Blocks
 ue.DuplexMode = 'FDD';          % Frequency Division Duplexing (FDD)
 ue.CyclicPrefixUL = 'Normal';   % Normal cyclic prefix length
 ue.NTxAnts = 1;                 % Number of transmission antennas
@@ -18,11 +24,8 @@ ue.NTxAnts = 1;                 % Number of transmission antennas
 %% PRACH Configuration
 
 prach.Format = 0;          % PRACH format: TS36.104, Table 8.4.2.1-1
-prach.SeqIdx = 22;         % Logical sequence index: TS36.141, Table A.6-1
-prach.CyclicShiftIdx = 1;  % Cyclic shift index: TS36.141, Table A.6-1
 prach.HighSpeed = 0;       % Normal mode: TS36.104, Table 8.4.2.1-1
 prach.FreqOffset = 0;      % Default frequency location
-prach.PreambleIdx = 32;    % Preamble index: TS36.141, Table A.6-1
 
 info = ltePRACHInfo(ue, prach);  % PRACH information
     
@@ -31,7 +34,7 @@ info = ltePRACHInfo(ue, prach);  % PRACH information
 % TS36.104, Table 8.4.2.1-1 [ <#9 1> ].
 
 chcfg.NRxAnts = 1;                       % Number of receive antenna
-chcfg.DelayProfile = 'EPA';              % Delay profile
+chcfg.DelayProfile = 'ETU';              % Delay profile
 chcfg.DopplerFreq = 70.0;                % Doppler frequency  
 chcfg.MIMOCorrelation = 'Low';           % MIMO correlation
 chcfg.Seed = 1;                          % Channel seed   
@@ -64,29 +67,39 @@ for nSNR = 1:length(SNRdB)
     % Loop for each subframe
     for nsf = 1:numSubframes
 
+        prach.SeqIdx = randi(838,1,1)-1;         % Logical sequence index: TS36.141, Table A.6-1
+        prach.CyclicShiftIdx = randi(16,1,1)-1;  % Cyclic shift index: TS36.141, Table A.6-1
+        prach.PreambleIdx = randi(64,1,1)-1;    % Preamble index: TS36.141, Table A.6-1
+        info = ltePRACHInfo(ue, prach);  % PRACH information
+
         % PRACH transmission
         ue.NSubframe = mod(nsf-1, 10);
         ue.NFrame = fix((nsf-1)/10);
         
         % Set PRACH timing offset in us as per TS36.141, Figure 8.4.1.4.2-2
         prach.TimingOffset = info.BaseOffset + ue.NSubframe/10.0;
-        prach.TimingOffset = 0; 
+       % prach.TimingOffset = 0;
         
         % Generate transmit wave
-        txwave = ltePRACH(ue, prach);             
+        [txwave,prachinfo] = ltePRACH(ue, prach);             
 
         % Channel modeling
-        chcfg.InitTime = (nsf-1)/1000;
-        [rxwave, fadinginfo] = lteFadingChannel(chcfg, ...
+        if (add_fading) 
+            chcfg.InitTime = (nsf-1)/1000;
+            [rxwave, fadinginfo] = lteFadingChannel(chcfg, ...
                                 [txwave; zeros(25, 1)]);
-
+        else 
+            rxwave = txwave;
+        end
         % Add noise
         noise = N*complex(randn(size(rxwave)), randn(size(rxwave)));            
         rxwave = rxwave + noise;            
 
         % Remove the implementation delay of the channel modeling
-        rxwave = rxwave((fadinginfo.ChannelFilterDelay + 1):1920, :);  
-
+        if (add_fading)
+            rxwave = rxwave((fadinginfo.ChannelFilterDelay + 1):end, :);  
+        end
+        
         % Apply frequency offset
         t = ((0:size(rxwave, 1)-1)/chcfg.SamplingRate).';
         rxwave = rxwave .* repmat(exp(1i*2*pi*foffset*t), ...
@@ -95,28 +108,26 @@ for nSNR = 1:length(SNRdB)
         % PRACH detection for all cell preamble indices
         [detected, offsets] = ltePRACHDetect(ue, prach, rxwave, (0:63).');
         
-        [detected_srs] = srslte_prach_detect(ue, prach, rxwave, detect_factor);
-        
+        [detected_srs, offsets_srs] = srslte_prach_detect(ue, prach, rxwave, detect_factor);
         
         % Test for preamble detection
         if (length(detected)==1)
             
             % Test for correct preamble detection
             if (detected==prach.PreambleIdx)         
-                detectedCount = detectedCount + 1; % Detected preamble
                 
                 % Calculate timing estimation error. The true offset is
                 % PRACH offset plus channel delay
-%                 trueOffset = prach.TimingOffset/1e6 + 310e-9;
-%                 measuredOffset = offsets(1)/chcfg.SamplingRate;
-%                 timingerror = abs(measuredOffset-trueOffset);
-%                 
-%                 % Test for acceptable timing error
-%                 if (timingerror<=2.08e-6)
-%                     detectedCount = detectedCount + 1; % Detected preamble
-%                 else
-%                     disp('Timing error');
-%                 end
+                trueOffset = prach.TimingOffset/1e6 + 310e-9;
+                measuredOffset = offsets(1)/chcfg.SamplingRate;
+                timingerror = abs(measuredOffset-trueOffset);
+                
+                % Test for acceptable timing error
+                if (timingerror<=2.08e-6)
+                    detectedCount = detectedCount + 1; % Detected preamble
+                else
+                    disp('Timing error');
+                end
             else
                 disp('Detected incorrect preamble');
             end
@@ -124,8 +135,30 @@ for nSNR = 1:length(SNRdB)
             disp('Detected multiple or zero preambles');
         end
         
-        if (length(detected_srs)==1 && detected_srs==prach.PreambleIdx)
-            detectedCount_srs = detectedCount_srs + 1;
+        % Test for preamble detection
+        if (length(detected_srs)==1)
+            
+            % Test for correct preamble detection
+            if (detected_srs==prach.PreambleIdx)         
+                
+                % Calculate timing estimation error. The true offset is
+                % PRACH offset plus channel delay
+                trueOffset = prach.TimingOffset/1e6 + 310e-9;
+                measuredOffset = offsets_srs(1)/1e6;
+                timingerror = abs(measuredOffset-trueOffset);
+                
+                % Test for acceptable timing error
+                if (timingerror<=2.08e-6)
+                    detectedCount_srs = detectedCount_srs + 1; % Detected preamble
+                else
+                    disp('SRS: Timing error');
+                end
+            else
+                disp('SRS: Detected incorrect preamble');
+            end
+        else
+            fprintf('SRS: Detected %d preambles. D=%.1f, Seq=%3d, NCS=%2d, Idx=%2d\n', ...
+                length(detected_srs),detect_factor, prach.SeqIdx, prach.CyclicShiftIdx, prach.PreambleIdx);
         end
             
 
@@ -137,12 +170,22 @@ for nSNR = 1:length(SNRdB)
 
 end % of SNR loop
 
+pDetection2(1,dd)=pDetection(1,1);
+pDetection2(2,dd)=pDetection(2,1);
+end
 %% Analysis
-
-plot(SNRdB, pDetection)
-legend('Matlab','srsLTE')
-grid on
-xlabel('SNR (dB)')
-ylabel('Pdet')
-
+if (length(SNRdB)>1)
+    plot(SNRdB, pDetection)
+    legend('Matlab','srsLTE')
+    grid on
+    xlabel('SNR (dB)')
+    ylabel('Pdet')
+else
+    plot(d,pDetection2)
+    legend('Matlab','srsLTE')
+    grid on
+    xlabel('d')
+    ylabel('Pdet')
+    fprintf('Pdet=%.4f%%, Pdet_srs=%.4f%%\n',pDetection(1,nSNR),pDetection(2,nSNR))
+end
 

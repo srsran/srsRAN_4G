@@ -70,7 +70,7 @@ typedef struct SRSLTE_API {
   cf_t dft_seqs[64][839];     // DFT-precoded seqs
   uint32_t root_seqs_idx[64]; // Indices of root seqs in seqs table
   uint32_t N_roots;           // Number of root sequences used in this configuration
-
+  
   // Containers
   cf_t *ifft_in;
   cf_t *ifft_out;
@@ -88,7 +88,11 @@ typedef struct SRSLTE_API {
   
   cf_t *signal_fft; 
   float detect_factor; 
-
+    
+  uint32_t deadzone; 
+  float    peak_values[65];
+  uint32_t peak_offsets[65];
+  
 } srslte_prach_t;
 
 typedef struct SRSLTE_API {
@@ -128,8 +132,16 @@ SRSLTE_API int srslte_prach_detect(srslte_prach_t *p,
                                    uint32_t freq_offset,
                                    cf_t *signal,
                                    uint32_t sig_len,
-                                   uint32_t *indices,
+                                   uint32_t *indices, 
                                    uint32_t *ind_len);
+
+SRSLTE_API int srslte_prach_detect_offset(srslte_prach_t *p,
+                                          uint32_t freq_offset,
+                                          cf_t *signal,
+                                          uint32_t sig_len,
+                                          uint32_t *indices, 
+                                          uint32_t *offsets,
+                                          uint32_t *ind_len);
 
 SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t *p, 
                                                float factor); 

@@ -105,6 +105,8 @@ int main(int argc, char **argv) {
   for(int i=0;i<64;i++)
     indices[i] = 0;
 
+  srslte_prach_set_detect_factor(p, 10);
+  
   for(seq_index=0;seq_index<n_seqs;seq_index++)
   {
     srslte_prach_gen(p,
