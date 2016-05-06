@@ -109,6 +109,9 @@
 #include "srslte/ue/ue_dl.h"
 #include "srslte/ue/ue_ul.h"
 
+#include "srslte/enb/enb_dl.h"
+#include "srslte/enb/enb_ul.h"
+
 #include "srslte/scrambling/scrambling.h"
 
 #include "srslte/sync/pss.h"

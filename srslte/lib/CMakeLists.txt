@@ -34,6 +34,7 @@ add_subdirectory(modem)
 add_subdirectory(resampling)
 add_subdirectory(scrambling)
 add_subdirectory(ue)
+add_subdirectory(enb)
 
 add_library(srslte  SHARED  version.c
                             $<TARGET_OBJECTS:srslte_agc>
@@ -51,6 +52,7 @@ add_library(srslte  SHARED  version.c
                             $<TARGET_OBJECTS:srslte_resampling>
                             $<TARGET_OBJECTS:srslte_scrambling>
                             $<TARGET_OBJECTS:srslte_ue>
+                            $<TARGET_OBJECTS:srslte_enb>
                             $<TARGET_OBJECTS:srslte_rf>
 )
 
@@ -72,6 +74,7 @@ if(NOT DisableMEX)
                             $<TARGET_OBJECTS:srslte_resampling>
                             $<TARGET_OBJECTS:srslte_scrambling>
                             $<TARGET_OBJECTS:srslte_ue>
+                            $<TARGET_OBJECTS:srslte_enb>
                             $<TARGET_OBJECTS:srslte_rf>
   )
 endif(NOT DisableMEX)
