@@ -456,6 +456,8 @@ int main(int argc, char **argv) {
   // Set initial CFO for ue_sync
   srslte_ue_sync_set_cfo(&ue_sync, cfo); 
   
+  srslte_pbch_decode_reset(&ue_mib.pbch);
+            
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -475,7 +477,6 @@ int main(int argc, char **argv) {
       switch (state) {
         case DECODE_MIB:
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
-            srslte_pbch_decode_reset(&ue_mib.pbch);
             n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
@@ -494,7 +495,7 @@ int main(int argc, char **argv) {
             decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, search only in appropiate places */
-            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%8)==0)) {
+            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 

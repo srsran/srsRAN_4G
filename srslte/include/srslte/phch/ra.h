@@ -178,6 +178,10 @@ typedef union {
   srslte_ra_dl_grant_t dl;
 } srslte_phy_grant_t;
 
+typedef union {
+  srslte_ra_ul_dci_t ul; 
+  srslte_ra_dl_dci_t dl; 
+} srslte_ra_dci_grant_t; 
 
 #define SRSLTE_PHY_GRANT_LEN sizeof(srslte_phy_grant_t)
 

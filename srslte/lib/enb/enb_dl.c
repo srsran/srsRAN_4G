@@ -162,6 +162,7 @@ void srslte_enb_dl_free(srslte_enb_dl_t *q)
 void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, uint32_t cfi) 
 {
   q->cfi = cfi; 
+  srslte_regs_set_cfi(&q->regs, cfi);
 }
 
 void srslte_enb_dl_clear_sf(srslte_enb_dl_t *q)
@@ -212,15 +213,21 @@ void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti)
 
 void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, cf_t *signal_buffer) 
 {
+  
   srslte_ofdm_tx_sf(&q->ifft, q->sf_symbols[0], signal_buffer);
      
   // TODO: PAPR control
-  srslte_vec_sc_prod_cfc(signal_buffer, 0.5, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+  srslte_vec_sc_prod_cfc(signal_buffer, 0.2, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
 }
 
 int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, uint32_t idx, uint16_t rnti)
 {
   return srslte_pdsch_set_rnti_multi(&q->pdsch, idx, rnti);
+}
+
+int srslte_enb_dl_rem_rnti(srslte_enb_dl_t *q, uint32_t idx)
+{
+  return srslte_pdsch_set_rnti_multi(&q->pdsch, idx, 0);
 }
 
 int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant, 
@@ -236,6 +243,7 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant,
     rnti_is_user = false; 
   }
   
+  //srslte_ra_pdsch_fprint(stdout, grant, q->cell.nof_prb);
   srslte_dci_msg_pack_pdsch(grant, &dci_msg, format, q->cell.nof_prb, rnti_is_user);
   if (srslte_pdcch_encode(&q->pdcch, &dci_msg, location, rnti, q->sf_symbols, sf_idx, q->cfi)) {
     fprintf(stderr, "Error encoding DCI message\n");
@@ -266,6 +274,8 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant,
                             uint32_t rnti_idx, uint32_t rv_idx, uint32_t sf_idx, 
                             uint8_t *data) 
 {
+  //srslte_ra_dl_grant_fprint(stdout, grant);
+  
   /* Configure pdsch_cfg parameters */
   if (srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, q->cfi, sf_idx, rv_idx)) {
     fprintf(stderr, "Error configuring PDSCH\n");
@@ -280,38 +290,46 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant,
   return SRSLTE_SUCCESS; 
 }
 
-int srslte_enb_dl_put_pdsch_multi(srslte_enb_dl_t *q, srslte_enb_dl_pdsch_t *grants, uint32_t nof_pdsch, uint32_t sf_idx)
+int srslte_enb_dl_put_grant(srslte_enb_dl_t *q, srslte_enb_dl_grant_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
-  for (int i=0;i<nof_pdsch;i++) {
-    if (srslte_enb_dl_put_pdcch_dl(q, &grants[i].grant, grants[i].format, grants[i].location, grants[i].rnti_idx, sf_idx)) {
-      fprintf(stderr, "Error putting PDCCH &d\n",i);
-      return SRSLTE_ERROR; 
+  for (int i=0;i<nof_grants;i++) {
+    if (grants[i].is_dl) {
+      srslte_dci_format_t format = SRSLTE_DCI_FORMAT1; 
+      switch(grants[i].grant.dl.dci_format) {
+        case SRSLTE_RA_DCI_FORMAT1:
+          format = SRSLTE_DCI_FORMAT1; 
+          break;
+        case SRSLTE_RA_DCI_FORMAT1A:
+          format = SRSLTE_DCI_FORMAT1A; 
+          break;
+        case SRSLTE_RA_DCI_FORMAT1C:
+          format = SRSLTE_DCI_FORMAT1C; 
+          break;
+      }
+      if (srslte_enb_dl_put_pdcch_dl(q, &grants[i].grant.dl, format, grants[i].location, grants[i].rnti_idx, sf_idx)) {
+        fprintf(stderr, "Error putting PDCCH &d\n",i);
+        return SRSLTE_ERROR; 
+      }      
+    } else {
+      if (srslte_enb_dl_put_pdcch_ul(q, &grants[i].grant.ul, grants[i].location, grants[i].rnti_idx, sf_idx)) {
+        fprintf(stderr, "Error putting PDCCH &d\n",i);
+        return SRSLTE_ERROR; 
+      }
     }
-    uint16_t rnti = srslte_pdsch_get_rnti_multi(&q->pdsch, grants[i].rnti_idx);
+    if (grants[i].is_dl) {
+      uint16_t rnti = srslte_pdsch_get_rnti_multi(&q->pdsch, grants[i].rnti_idx);
 
-    bool rnti_is_user = true; 
-    if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || rnti == SRSLTE_MRNTI) {
-      rnti_is_user = false; 
-    }
-    srslte_ra_dl_grant_t phy_grant; 
-    srslte_ra_dl_dci_to_grant(&grants[i].grant, q->cell.nof_prb, rnti_is_user, &phy_grant);
-    if (srslte_enb_dl_put_pdsch(q, &phy_grant, grants[i].rnti_idx, grants[i].rv_idx, sf_idx, grants[i].data)) {
-      fprintf(stderr, "Error putting PDCCH %d\n",i);
-      return SRSLTE_ERROR; 
+      bool rnti_is_user = true; 
+      if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || rnti == SRSLTE_MRNTI) {
+        rnti_is_user = false; 
+      }
+      srslte_ra_dl_grant_t phy_grant; 
+      srslte_ra_dl_dci_to_grant(&grants[i].grant.dl, q->cell.nof_prb, rnti_is_user, &phy_grant);
+      if (srslte_enb_dl_put_pdsch(q, &phy_grant, grants[i].rnti_idx, grants[i].rv_idx, sf_idx, grants[i].data)) {
+        fprintf(stderr, "Error putting PDCCH %d\n",i);
+        return SRSLTE_ERROR; 
+      }
     }
   }
   return SRSLTE_SUCCESS; 
 }
-
-
-int srslte_enb_dl_put_pusch_multi(srslte_enb_dl_t *q, srslte_enb_dl_pusch_grant_t *grants, uint32_t nof_pusch, uint32_t sf_idx)
-{
-  for (int i=0;i<nof_pusch;i++) {
-    if (srslte_enb_dl_put_pdcch_ul(q, &grants[i].grant, grants[i].location, grants[i].rnti_idx, sf_idx)) {
-      fprintf(stderr, "Error putting PDCCH &d\n",i);
-      return SRSLTE_ERROR; 
-    }
-  }
-  return SRSLTE_SUCCESS; 
-}
-

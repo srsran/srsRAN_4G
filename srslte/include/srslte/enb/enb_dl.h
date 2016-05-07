@@ -90,21 +90,13 @@ typedef struct SRSLTE_API {
 } srslte_enb_dl_t;
 
 typedef struct {
-  srslte_ra_dl_dci_t    grant;
-  srslte_dci_format_t   format; 
+  bool                  is_dl; 
+  srslte_ra_dci_grant_t grant;
   srslte_dci_location_t location; 
   uint32_t              rnti_idx; 
   uint32_t              rv_idx; 
   uint8_t              *data; 
-} srslte_enb_dl_pdsch_t; 
-
-
-typedef struct {
-  srslte_ra_ul_dci_t    grant;
-  srslte_dci_location_t location; 
-  uint32_t              rnti_idx; 
-  uint32_t              rv_idx; 
-} srslte_enb_dl_pusch_grant_t; 
+} srslte_enb_dl_grant_t; 
 
 
 /* This function shall be called just after the initial synchronization */
@@ -141,6 +133,9 @@ SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q,
                                       uint32_t idx, 
                                       uint16_t rnti); 
 
+SRSLTE_API int srslte_enb_dl_rem_rnti(srslte_enb_dl_t *q, 
+                                      uint32_t idx); 
+
 SRSLTE_API int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, 
                                        srslte_ra_dl_grant_t *grant, 
                                        uint32_t rnti_idx,
@@ -161,15 +156,10 @@ SRSLTE_API int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q,
                                           uint32_t rnti_idx, 
                                           uint32_t sf_idx); 
 
-SRSLTE_API int srslte_enb_dl_put_pdsch_multi(srslte_enb_dl_t *q, 
-                                             srslte_enb_dl_pdsch_t *pdsch, 
-                                             uint32_t nof_pdsch, 
-                                             uint32_t sf_idx); 
-
-SRSLTE_API int srslte_enb_dl_put_pusch_multi(srslte_enb_dl_t *q, 
-                                             srslte_enb_dl_pusch_grant_t *pusch, 
-                                             uint32_t nof_pusch, 
-                                             uint32_t sf_idx); 
+SRSLTE_API int srslte_enb_dl_put_grant(srslte_enb_dl_t *q, 
+                                       srslte_enb_dl_grant_t *grants, 
+                                       uint32_t nof_grants, 
+                                       uint32_t sf_idx); 
 
 
 #endif

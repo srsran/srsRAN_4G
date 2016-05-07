@@ -220,7 +220,8 @@ int srslte_pcfich_encode(srslte_pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SR
   int i;
 
   if (q                 != NULL                 && 
-      cfi               <  3                    &&
+      cfi               <= 3                    &&
+      cfi               >  0                    &&
       slot_symbols      != NULL                 && 
       subframe         <  SRSLTE_NSUBFRAMES_X_FRAME) 
   {

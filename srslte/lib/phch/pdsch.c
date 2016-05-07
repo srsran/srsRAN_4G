@@ -364,6 +364,7 @@ int srslte_pdsch_init_rnti_multi(srslte_pdsch_t *q, uint32_t nof_rntis)
     perror("malloc");
     return SRSLTE_ERROR; 
   }
+  bzero(q->rnti_multi, sizeof(uint16_t)*nof_rntis);
   
   q->nof_crnti = nof_rntis;
   
@@ -373,10 +374,16 @@ int srslte_pdsch_init_rnti_multi(srslte_pdsch_t *q, uint32_t nof_rntis)
 int srslte_pdsch_set_rnti_multi(srslte_pdsch_t *q, uint32_t idx, uint16_t rnti)
 {
   if (idx < q->nof_crnti) {
+    if (q->rnti_multi[idx]) {
+      for (uint32_t i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+        srslte_sequence_free(&q->seq_multi[i][idx]);  
+      }
+      q->rnti_multi[idx] = 0; 
+    }
     q->rnti_multi[idx] = rnti; 
     q->rnti_is_set = true; 
     for (uint32_t i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-      if (srslte_sequence_pdsch(&q->seq[i], rnti, 0, 2 * i, q->cell.id,
+      if (srslte_sequence_pdsch(&q->seq_multi[i][idx], rnti, 0, 2 * i, q->cell.id,
           q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
         return SRSLTE_ERROR; 
       }
@@ -598,6 +605,7 @@ int srslte_pdsch_encode_seq(srslte_pdsch_t *q,
     for (i = 0; i < q->cell.nof_ports; i++) {
       srslte_pdsch_put(q, q->symbols[i], sf_symbols[i], &cfg->grant, cfg->nbits.lstart, cfg->sf_idx);
     }
+    
     ret = SRSLTE_SUCCESS;
   } 
   return ret; 
@@ -607,8 +615,13 @@ int srslte_pdsch_encode_rnti_idx(srslte_pdsch_t *q,
                                  srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
                                  uint8_t *data, uint32_t rnti_idx, cf_t *sf_symbols[SRSLTE_MAX_PORTS]) 
 {
-  if (rnti_idx < q->nof_crnti) {    
-    return srslte_pdsch_encode_seq(q, cfg, softbuffer, data, &q->seq_multi[cfg->sf_idx][rnti_idx], sf_symbols);
+  if (rnti_idx < q->nof_crnti) {
+    if (q->rnti_multi[rnti_idx]) {
+      return srslte_pdsch_encode_seq(q, cfg, softbuffer, data, &q->seq_multi[cfg->sf_idx][rnti_idx], sf_symbols);
+    } else {
+      fprintf(stderr, "Error RNTI idx %d not set\n", rnti_idx);
+      return SRSLTE_ERROR; 
+    }
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS; 
   }
