@@ -37,16 +37,6 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define MAX_CANDIDATES  64
-
-/*
-static srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
-const static uint32_t nof_ue_formats = 2; 
-
-static srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
-const static uint32_t nof_common_formats = 2; 
-*/
-
 int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell, uint32_t nof_rnti)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 

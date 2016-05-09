@@ -41,7 +41,7 @@
 #include <stdbool.h>
 #include "srslte/config.h"
 #include "srslte/dft/dft.h"
-
+#include "srslte/common/phy_common.h"
 
 
 /** Generation and detection of RACH signals for uplink.
@@ -52,6 +52,7 @@
 
 typedef struct SRSLTE_API {
   // Parameters from higher layers (extracted from SIB2)
+  uint32_t config_idx; 
   uint32_t f;               // preamble format
   uint32_t rsi;             // rootSequenceIndex
   bool hs;                  // highSpeedFlag
@@ -105,23 +106,35 @@ typedef enum SRSLTE_API {
   SRSLTE_PRACH_SFN_ANY,  
 } srslte_prach_sfn_t;
 
+typedef struct {
+  uint32_t config_idx;
+  uint32_t root_seq_idx;
+  uint32_t zero_corr_zone; 
+  bool     hs_flag; 
+} srslte_prach_cfg_t;     
+
+
 SRSLTE_API uint32_t srslte_prach_get_preamble_format(uint32_t config_idx);
 
 SRSLTE_API srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx);
 
-SRSLTE_API bool srslte_prach_send_tti(uint32_t config_idx, 
-                                      uint32_t current_tti, 
-                                      int allowed_subframe); 
+SRSLTE_API bool srslte_prach_tti_opportunity(srslte_prach_t *p, 
+                                             uint32_t current_tti, 
+                                             int allowed_subframe); 
 
 SRSLTE_API void srslte_prach_sf_config(uint32_t config_idx, 
                                        srslte_prach_sf_config_t *sf_config);
 
 SRSLTE_API int srslte_prach_init(srslte_prach_t *p,
                                  uint32_t N_ifft_ul,
-                                 uint32_t preamble_format,
+                                 uint32_t config_idx,
                                  uint32_t root_seq_index,
                                  bool high_speed_flag,
                                  uint32_t zero_corr_zone_config);
+
+SRSLTE_API int srslte_prach_init_cfg(srslte_prach_t* p, 
+                                     srslte_prach_cfg_t* cfg, 
+                                     uint32_t nof_prb);
 
 SRSLTE_API int srslte_prach_gen(srslte_prach_t *p,
                                 uint32_t seq_index,

@@ -50,7 +50,7 @@ int rv_seq[4] = {0, 2, 3, 1};
 /* the gateway function */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  srslte_ofdm_t ofdm_tx; 
+  srslte_ofdm_t ofdm_rx; 
   srslte_pusch_t pusch;
   srslte_chest_ul_t chest; 
   cf_t *input_fft;
@@ -88,12 +88,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  if (srslte_ofdm_rx_init(&ofdm_tx, cell.cp, cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&ofdm_rx, cell.cp, cell.nof_prb)) {
     fprintf(stderr, "Error initializing FFT\n");
     return;
   }
-  srslte_ofdm_set_normalize(&ofdm_tx, true);
-  srslte_ofdm_set_freq_shift(&ofdm_tx, 0.5);
+  srslte_ofdm_set_normalize(&ofdm_rx, true);
+  srslte_ofdm_set_freq_shift(&ofdm_rx, 0.5);
 
   if (srslte_pusch_init(&pusch, cell)) {
     mexErrMsgTxt("Error initiating PDSCH\n");
@@ -218,7 +218,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!data_bytes) {
     return;
   }
-  srslte_sch_set_max_noi(&pusch.dl_sch, max_iterations);
+  srslte_sch_set_max_noi(&pusch.ul_sch, max_iterations);
 
   input_fft = NULL; 
   int r=-1;
@@ -244,7 +244,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexPrintf("Input is after fft\n");
     } else {
       input_fft = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));  
-      srslte_ofdm_rx_sf(&ofdm_tx, input_signal, input_fft);
+      srslte_ofdm_rx_sf(&ofdm_rx, input_signal, input_fft);
       mexPrintf("Input is before fft\n");
       free(input_signal);
     }
@@ -294,7 +294,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_softbuffer_rx_free(&softbuffer);
   srslte_chest_ul_free(&chest);
   srslte_pusch_free(&pusch);
-  srslte_ofdm_rx_free(&ofdm_tx);
+  srslte_ofdm_rx_free(&ofdm_rx);
   
   free(ce);
   free(data_bytes);

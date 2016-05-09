@@ -42,7 +42,7 @@
 
 #include "srslte/common/phy_common.h"
 #include "srslte/dft/ofdm.h"
-#include "srslte/ch_estimation/refsignal_ul.h"
+#include "srslte/ch_estimation/chest_ul.h"
 #include "srslte/phch/prach.h"
 #include "srslte/phch/pusch.h"
 #include "srslte/phch/pusch_cfg.h"
@@ -56,14 +56,17 @@
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
 
-  cf_t *sf_symbols[SRSLTE_MAX_PORTS]; 
+  cf_t *sf_symbols; 
+  cf_t *ce; 
   
-  srslte_ofdm_t   fft;
+  srslte_ofdm_t     fft;
+  srslte_chest_ul_t chest;
+  
   srslte_pusch_t  pusch;
+  srslte_pucch_t  pucch;
   srslte_prach_t  prach;
   
-  srslte_refsignal_ul_t ul_refs;
-  srslte_pusch_cfg_t pusch_cfg; 
+  srslte_pusch_cfg_t     pusch_cfg; 
   srslte_softbuffer_rx_t softbuffer;
       
 } srslte_enb_ul_t;
@@ -72,31 +75,34 @@ typedef struct {
   srslte_ra_ul_dci_t    grant;
   uint32_t              rnti_idx; 
   uint32_t              rv_idx; 
+  uint32_t              current_tx_nb; 
   uint8_t              *data; 
 } srslte_enb_ul_pusch_t; 
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t *q, 
                                   srslte_cell_t cell, 
+                                  srslte_prach_cfg_t* prach_cfg,  
                                   uint32_t nof_rntis);
 
 SRSLTE_API void srslte_enb_ul_free(srslte_enb_ul_t *q);
-
-SRSLTE_API void srslte_enb_ul_set_cfi(srslte_enb_ul_t *q, 
-                                      uint32_t cfi);
-
-SRSLTE_API void srslte_enb_ul_rx_signal(srslte_enb_ul_t *q, 
-                                        cf_t *signal_buffer); 
 
 SRSLTE_API int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, 
                                       uint32_t idx, 
                                       uint16_t rnti); 
 
+SRSLTE_API int srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, 
+                                      uint32_t idx); 
+
+SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q, 
+                                  cf_t *signal_buffer); 
+
 SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, 
-                                       srslte_ra_ul_dci_t *grant, 
-                                       uint32_t rnti_idx,
-                                       uint32_t rv_idx,
-                                       uint8_t *data,
+                                       srslte_ra_ul_grant_t *grant, 
+                                       uint32_t rnti_idx, 
+                                       uint32_t rv_idx, 
+                                       uint32_t current_tx_nb,
+                                       uint8_t *data, 
                                        uint32_t sf_idx); 
 
 SRSLTE_API int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, 
@@ -104,8 +110,12 @@ SRSLTE_API int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q,
                                              uint32_t nof_pusch,
                                              uint32_t sf_idx); 
 
-SRSLTE_API int srslte_enb_ul_get_prach(srslte_enb_ul_t *q, 
-                                       uint32_t sf_idx);
+SRSLTE_API int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q, 
+                                          uint32_t tti, 
+                                          uint32_t freq_offset, 
+                                          cf_t *signal, 
+                                          uint32_t *indices, 
+                                          uint32_t *offsets);
 
 
 #endif

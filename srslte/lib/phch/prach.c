@@ -189,7 +189,9 @@ srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx) {
 /* Returns true if current_tti is a valid opportunity for PRACH transmission and the is an allowed subframe, 
  * or allowed_subframe == -1
  */
-bool srslte_prach_send_tti(uint32_t config_idx, uint32_t current_tti, int allowed_subframe) {
+bool srslte_prach_tti_opportunity(srslte_prach_t *p, uint32_t current_tti, int allowed_subframe) 
+{
+  uint32_t config_idx = p->config_idx; 
   // Get SFN and sf_idx from the PRACH configuration index
   srslte_prach_sfn_t prach_sfn = srslte_prach_get_sfn(config_idx);  
 
@@ -319,9 +321,19 @@ int srslte_prach_gen_seqs(srslte_prach_t *p)
   return 0;
 }
 
+int srslte_prach_init_cfg(srslte_prach_t *p, srslte_prach_cfg_t *cfg, uint32_t nof_prb)
+{
+  return srslte_prach_init(p, 
+                           srslte_symbol_sz(nof_prb), 
+                           cfg->config_idx, 
+                           cfg->root_seq_idx,
+                           cfg->hs_flag,
+                           cfg->zero_corr_zone);
+}
+
 int srslte_prach_init(srslte_prach_t *p,
                uint32_t N_ifft_ul,
-               uint32_t preamble_format,
+               uint32_t config_idx,
                uint32_t root_seq_index,
                bool high_speed_flag,
                uint32_t zero_corr_zone_config)
@@ -329,11 +341,12 @@ int srslte_prach_init(srslte_prach_t *p,
   int ret = SRSLTE_ERROR;
   if(p                      != NULL      &&
      N_ifft_ul              <  2049      &&
-     preamble_format        <  4         && // Currently supporting formats 0-3
+     config_idx             <  16        && 
      root_seq_index         <  MAX_ROOTS &&
      zero_corr_zone_config  < 16)
   {
-
+    uint32_t preamble_format = srslte_prach_get_preamble_format(config_idx);
+    p->config_idx = config_idx; 
     p->f = preamble_format;
     p->rsi = root_seq_index;
     p->hs = high_speed_flag;
@@ -353,7 +366,7 @@ int srslte_prach_init(srslte_prach_t *p,
         p->N_cs = prach_Ncs_unrestricted[p->zczc];
       }
     }
-
+    
     // Set up containers
     p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
     p->corr_spec = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
@@ -453,7 +466,9 @@ int srslte_prach_gen(srslte_prach_t *p,
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);
 
-    DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
+    DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", 
+          p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
+    
     // Map dft-precoded sequence to ifft bins
     memset(p->ifft_in, 0, begin*sizeof(cf_t));
     memcpy(&p->ifft_in[begin], p->dft_seqs[seq_index], p->N_zc * sizeof(cf_t));
@@ -503,6 +518,7 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
      sig_len > 0     &&
      indices != NULL)
   {
+    
     if(sig_len < p->N_ifft_prach){
       fprintf(stderr, "srslte_prach_detect: Signal is not of length %d", p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
@@ -520,7 +536,7 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
     uint32_t begin = PHI + (K*k_0) + (K/2);
 
     memcpy(p->prach_bins, &p->signal_fft[begin], p->N_zc*sizeof(cf_t));
-
+    
     for(int i=0;i<p->N_roots;i++){
       cf_t *root_spec = p->dft_seqs[p->root_seqs_idx[i]];
      
@@ -539,8 +555,9 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
         winsize = p->N_zc;
       }
       uint32_t n_wins = p->N_zc/winsize;
-      
+
       float max_peak = 0; 
+      
       for(int j=0;j<n_wins;j++) {
         uint32_t start = (p->N_zc-(j*p->N_cs))%p->N_zc;
         uint32_t end = start+winsize;
@@ -549,7 +566,7 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
         }
         start += p->deadzone;
         p->peak_values[j] = 0;
-        for(int k=start;k<end;k++){
+        for(int k=start;k<end;k++) {
           if(p->corr[k] > p->peak_values[j]) {
             p->peak_values[j]  = p->corr[k];
             p->peak_offsets[j] = k-start; 
