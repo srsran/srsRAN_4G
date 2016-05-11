@@ -326,20 +326,18 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
       interpolate_pilots(q, q->pilot_estimates_average, ce, port_id);        
       
       /* If averaging, compute noise from difference between received and averaged estimates */
-      if (sf_idx == 0 || sf_idx == 5) {
-        q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);
-      }      
+      q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);            
     } else {
       interpolate_pilots(q, q->pilot_estimates, ce, port_id);            
       
       /* If not averaging, compute noise from empty subcarriers */
-      if (sf_idx == 0 || sf_idx == 5) {
 #ifdef ESTIMATE_NOISE_LS_PSS
+      if (sf_idx == 0 || sf_idx == 5) {
         q->noise_estimate[port_id] = estimate_noise_pss(q, input, ce);
-#else
-        q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
-#endif
       }
+#else
+      q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
+#endif
     }
   }
     
