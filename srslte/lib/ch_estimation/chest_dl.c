@@ -178,8 +178,14 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id)
   srslte_vec_fprint_f(stdout, q->snr_vector, nref);
 #endif
   
-  /* Compute average power */
-  float power = (1/q->smooth_filter[0])*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
+  /* Compute average power. Normalized for filter len 3 using matlab */
+  float norm  = 1;
+  if (q->smooth_filter_len == 3) {
+    float a = q->smooth_filter[0];
+    float norm3 = 6.143*a*a+0.04859*a-0.002774;
+    norm /= norm3; 
+  }
+  float power = norm*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
   return power; 
 }
 

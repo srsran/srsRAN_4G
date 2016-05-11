@@ -7,10 +7,10 @@ clear
 plot_noise_estimation_only=false;
 
 SNR_values_db=linspace(0,30,5);
-Nrealizations=4;
+Nrealizations=10;
 
 w1=0.1;
-w2=0.2;
+w2=0.3;
 
 enb.NDLRB = 50;                 % Number of resource blocks
 
@@ -26,7 +26,7 @@ P=K/6;
 cfg.Seed = 0;                  % Random channel seed
 cfg.InitTime = 0;
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EVA';     
+cfg.DelayProfile = 'EPA';     
 
 % doppler 5, 70 300
 
@@ -203,7 +203,6 @@ end
 
 %% Plot a single realization
 if (length(SNR_values_db) == 1)
-    subplot(2,1,1)
     sym=1;
     ref_idx=1:P;
     ref_idx_x=[1:6:K];% (292:6:360)-216];% 577:6:648];
@@ -227,9 +226,6 @@ if (length(SNR_values_db) == 1)
         
     fprintf('Mean MMSE Robust %.2f dB\n', 10*log10(MSE(4,nreal,snr_idx)))
     fprintf('Mean MMSE matlab %.2f dB\n', 10*log10(MSE(1,nreal,snr_idx)))
-
-    subplot(2,1,2)
-    plot(1:P,abs(W3(P/2,:)))
     
 end
 
