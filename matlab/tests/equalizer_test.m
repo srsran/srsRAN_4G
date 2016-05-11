@@ -12,7 +12,7 @@ Nrealizations=10;
 w1=0.1;
 w2=0.3;
 
-enb.NDLRB = 50;                 % Number of resource blocks
+enb.NDLRB = 25;                 % Number of resource blocks
 
 enb.CellRefP = 1;               % One transmit antenna port
 enb.NCellID = 0;                % Cell ID
