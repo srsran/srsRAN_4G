@@ -146,8 +146,15 @@ float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id)
                                                    q->pilot_estimates_average, 
                                                    q->tmp_noise, 
                                                    nref);
-  
-  return (1/q->smooth_filter[0])*q->cell.nof_ports*power; 
+ 
+  /* Compute average power. Normalized for filter len 3 using matlab */
+  float norm  = 1;
+  if (q->smooth_filter_len == 3) {
+    float a = q->smooth_filter[0];
+    float norm3 = 6.143*a*a+0.04859*a-0.002774;
+    norm /= norm3; 
+  }
+  return norm*q->cell.nof_ports*power;
 }
 
 #ifdef ESTIMATE_NOISE_LS_PSS
@@ -166,7 +173,7 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
   srslte_vec_sub_ccc(q->tmp_pss_noisy, q->tmp_pss, q->tmp_pss_noisy, SRSLTE_PSS_LEN);
   
   /* Compute average power */
-  float power = q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN);
+  float power = q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN)/sqrt(2);
   return power; 
 }
 
@@ -283,20 +290,18 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
       interpolate_pilots(q, q->pilot_estimates_average, ce, port_id);        
       
       /* If averaging, compute noise from difference between received and averaged estimates */
-      if (sf_idx == 0 || sf_idx == 5) {
-        q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);
-      }      
+      q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);            
     } else {
       interpolate_pilots(q, q->pilot_estimates, ce, port_id);            
       
       /* If not averaging, compute noise from empty subcarriers */
-      if (sf_idx == 0 || sf_idx == 5) {
 #ifdef ESTIMATE_NOISE_LS_PSS
+      if (sf_idx == 0 || sf_idx == 5) {
         q->noise_estimate[port_id] = estimate_noise_pss(q, input, ce);
-#else
-        q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
-#endif
       }
+#else
+      q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
+#endif
     }
   }
     

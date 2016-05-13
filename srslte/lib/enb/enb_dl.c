@@ -210,7 +210,7 @@ void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, cf_t *signal_buffer)
   srslte_vec_sc_prod_cfc(signal_buffer, 0.2, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
 }
 
-int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, uint32_t idx, uint16_t rnti)
+int srslte_enb_dl_cfg_rnti(srslte_enb_dl_t *q, uint32_t idx, uint16_t rnti)
 {
   return srslte_pdsch_set_rnti_multi(&q->pdsch, idx, rnti);
 }

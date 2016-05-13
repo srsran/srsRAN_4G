@@ -128,4 +128,8 @@ SRSLTE_API uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q,
                                                   uint32_t max_locations,
                                                   uint32_t cfi);
 
+SRSLTE_API uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, 
+                                                       srslte_dci_location_t *c, 
+                                                       uint32_t max_candidates); 
+
 #endif

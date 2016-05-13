@@ -6,13 +6,13 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=100;%linspace(0,30,5);
-Nrealizations=1;
+SNR_values_db=linspace(0,10,5);
+Nrealizations=10;
 
 w1=0.1;
-w2=0.2;
+w2=0.3;
 
-enb.NDLRB = 50;                 % Number of resource blocks
+enb.NDLRB = 25;                 % Number of resource blocks
 
 enb.CellRefP = 1;               % One transmit antenna port
 enb.NCellID = 0;                % Cell ID
@@ -26,11 +26,11 @@ P=K/6;
 cfg.Seed = 0;                  % Random channel seed
 cfg.InitTime = 0;
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EVA';     
+cfg.DelayProfile = 'ETU';     
 
 % doppler 5, 70 300
 
-cfg.DopplerFreq = 5;          % 120Hz Doppler frequency
+cfg.DopplerFreq = 70;          % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
 cfg.NTerms = 16;               % Oscillators used in fading model
 cfg.ModelType = 'GMEDS';       % Rayleigh fading model type
@@ -232,7 +232,11 @@ if (length(SNR_values_db) == 1)
         
     fprintf('Mean MMSE Robust %.2f dB\n', 10*log10(MSE(4,nreal,snr_idx)))
     fprintf('Mean MMSE matlab %.2f dB\n', 10*log10(MSE(1,nreal,snr_idx)))
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> master
 end
 
 end

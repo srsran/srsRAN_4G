@@ -129,7 +129,7 @@ SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t *q,
 SRSLTE_API void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, 
                                          cf_t *signal_buffer); 
 
-SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, 
+SRSLTE_API int srslte_enb_dl_cfg_rnti(srslte_enb_dl_t *q, 
                                       uint32_t idx, 
                                       uint16_t rnti); 
 

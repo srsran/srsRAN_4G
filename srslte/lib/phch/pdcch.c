@@ -227,17 +227,21 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
 uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, uint32_t max_candidates, 
                                 uint32_t cfi) 
 {
-  uint32_t i, l, L, k;
-
   set_cfi(q, cfi);
+  return srslte_pdcch_common_locations_ncce(q->nof_cce, c, max_candidates); 
+}
+
+uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates) 
+{
+  uint32_t i, l, L, k;
 
   k = 0;
   for (l = 3; l > 1; l--) {
     L = (1 << l);
-    for (i = 0; i < SRSLTE_MIN(q->nof_cce, 16) / (L); i++) {
+    for (i = 0; i < SRSLTE_MIN(nof_cce, 16) / (L); i++) {
       if (k < max_candidates) {
         c[k].L = l;
-        c[k].ncce = (L) * (i % (q->nof_cce / (L)));
+        c[k].ncce = (L) * (i % (nof_cce / (L)));
         DEBUG("Common SS Candidate %d: nCCE: %d, L: %d\n",
             k, c[k].ncce, c[k].L);
         k++;          

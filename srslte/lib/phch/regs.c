@@ -167,6 +167,15 @@ int srslte_regs_pdcch_nregs(srslte_regs_t *h, uint32_t cfi) {
   }
 }
 
+int srslte_regs_pdcch_ncce(srslte_regs_t *h, uint32_t cfi) {
+  int nregs = srslte_regs_pdcch_nregs(h, cfi); 
+  if (nregs > 0) {
+    return (uint32_t) (nregs / 9);
+  } else {
+    return SRSLTE_ERROR; 
+  }
+}
+
 /** Copy quadruplets to REGs and cyclic shift them, according to the
  * second part of 6.8.5 in 36.211
  */
