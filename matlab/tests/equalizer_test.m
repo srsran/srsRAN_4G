@@ -6,8 +6,8 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=linspace(0,10,5);
-Nrealizations=10;
+SNR_values_db=100;%linspace(20,35,8);
+Nrealizations=1;
 
 w1=0.1;
 w2=0.3;
@@ -26,11 +26,11 @@ P=K/6;
 cfg.Seed = 0;                  % Random channel seed
 cfg.InitTime = 0;
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'ETU';     
+cfg.DelayProfile = 'EPA';     
 
 % doppler 5, 70 300
 
-cfg.DopplerFreq = 70;          % 120Hz Doppler frequency
+cfg.DopplerFreq = 5;          % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
 cfg.NTerms = 16;               % Oscillators used in fading model
 cfg.ModelType = 'GMEDS';       % Rayleigh fading model type
@@ -211,13 +211,14 @@ if (length(SNR_values_db) == 1)
         plot(n,abs(reshape(hest{i}(:,sym),1,[])),colors2{i});
         hold on;
     end
-    plot(ref_idx_x,abs(hls(3,ref_idx)),'ro');
+    plot(n, abs(h(:,sym)),'g-')
+%    plot(ref_idx_x,real(hls(3,ref_idx)),'ro');
     hold off;
     tmp=cell(Ntests+1,1);
     for i=1:Ntests
         tmp{i}=legends{i};
     end
-    tmp{Ntests+1}='LS';
+    tmp{Ntests+1}='Real';
     legend(tmp)
 
     xlabel('SNR (dB)')
