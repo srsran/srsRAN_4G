@@ -71,7 +71,7 @@ int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, uint8_t b
   uint8_t *body_ptr = buff; 
   srslte_bit_unpack(msg->subband_cqi, &body_ptr, 4);  
   srslte_bit_unpack(msg->subband_label, &body_ptr, msg->subband_label_2_bits?2:1);  
-  return 4+msg->subband_label_2_bits?2:1;    
+  return 4+(msg->subband_label_2_bits)?2:1;    
 }
 
 int srslte_cqi_value_pack(srslte_cqi_value_t *value, uint8_t buff[SRSLTE_CQI_MAX_BITS])

@@ -54,8 +54,8 @@ int init_viterbi37_port(void *p, int starting_state) {
   return 0;
 }
 
-void set_viterbi37_polynomial_port(uint32_t polys[3]) {
-  uint32_t state;
+void set_viterbi37_polynomial_port(int polys[3]) {
+  int state;
 
   for (state = 0; state < 32; state++) {
     Branchtab37[0].c[state] =
@@ -68,7 +68,7 @@ void set_viterbi37_polynomial_port(uint32_t polys[3]) {
 }
 
 /* Create a new instance of a Viterbi decoder */
-void *create_viterbi37_port(uint32_t polys[3], uint32_t len) {
+void *create_viterbi37_port(int polys[3], uint32_t len) {
   struct v37 *vp;
 
   set_viterbi37_polynomial_port(polys);

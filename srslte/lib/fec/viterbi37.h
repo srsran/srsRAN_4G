@@ -26,7 +26,7 @@
 
 #include <stdbool.h>
 
-void *create_viterbi37_port(uint32_t polys[3], 
+void *create_viterbi37_port(int polys[3], 
                             uint32_t len);
 
 int init_viterbi37_port(void *p, 
@@ -45,7 +45,7 @@ int update_viterbi37_blk_port(void *p,
                               uint32_t *best_state);
 
 
-void *create_viterbi37_sse(uint32_t polys[3], 
+void *create_viterbi37_sse(int polys[3], 
                             uint32_t len);
 
 int init_viterbi37_sse(void *p, 

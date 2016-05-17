@@ -130,7 +130,7 @@ void free37(void *o) {
   delete_viterbi37_port(q->ptr);
 }
 
-int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
+int init37(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_biting) {
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
@@ -166,7 +166,7 @@ int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_
 }
 
 #ifdef LV_HAVE_SSE
-int init37_sse(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
+int init37_sse(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_biting) {
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
@@ -205,7 +205,7 @@ void srslte_viterbi_set_gain_quant(srslte_viterbi_t *q, float gain_quant) {
   q->gain_quant = gain_quant;
 }
 
-int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, uint32_t poly[3], uint32_t max_frame_length, bool tail_bitting) 
+int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, int poly[3], uint32_t max_frame_length, bool tail_bitting) 
 {
   switch (type) {
   case SRSLTE_VITERBI_37:
@@ -221,7 +221,7 @@ int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, uint32_
 }
 
 #ifdef LV_HAVE_SSE
-int srslte_viterbi_init_sse(srslte_viterbi_t *q, srslte_viterbi_type_t type, uint32_t poly[3], uint32_t max_frame_length, bool tail_bitting) 
+int srslte_viterbi_init_sse(srslte_viterbi_t *q, srslte_viterbi_type_t type, int poly[3], uint32_t max_frame_length, bool tail_bitting) 
 {
   return init37_sse(q, poly, max_frame_length, tail_bitting);      
 }

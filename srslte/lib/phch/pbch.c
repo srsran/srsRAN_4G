@@ -158,7 +158,7 @@ int srslte_pbch_init(srslte_pbch_t *q, srslte_cell_t cell) {
       goto clean;
     }
 
-    uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
+    int poly[3] = { 0x6D, 0x4F, 0x57 };
     if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, 40, true)) {
       goto clean;
     }

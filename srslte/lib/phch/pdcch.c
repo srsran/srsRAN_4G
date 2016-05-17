@@ -88,7 +88,7 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
       }
     }
 
-    uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
+    int poly[3] = { 0x6D, 0x4F, 0x57 };
     if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, SRSLTE_DCI_MAX_BITS + 16, true)) {
       goto clean;
     }
