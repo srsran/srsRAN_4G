@@ -40,6 +40,8 @@
 
 #define TB_ITER 3
 
+#define DEFAULT_GAIN 10
+
 //#undef LV_HAVE_SSE
 
 int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
@@ -132,7 +134,7 @@ int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
-  q->gain_quant = 32; 
+  q->gain_quant = DEFAULT_GAIN; 
   q->tail_biting = tail_biting;
   q->decode = decode37;
   q->free = free37;
@@ -168,7 +170,7 @@ int init37_sse(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool t
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
-  q->gain_quant = 20; 
+  q->gain_quant = DEFAULT_GAIN; 
   q->tail_biting = tail_biting;
   q->decode = decode37_sse;
   q->free = free37_sse;

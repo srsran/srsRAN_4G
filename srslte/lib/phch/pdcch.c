@@ -192,7 +192,7 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
 
   k = 0;
   // All aggregation levels from 8 to 1
-  for (l = 0; l < 3; l++) {
+  for (l = 3; l >= 0; l--) {
     L = (1 << l);
     // For all possible ncce offset
     for (i = 0; i < SRSLTE_MIN(q->nof_cce / L, S[l]/PDCCH_FORMAT_NOF_CCE(l)); i++) {

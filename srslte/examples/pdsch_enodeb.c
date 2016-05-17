@@ -66,7 +66,7 @@ srslte_cell_t cell = {
   
 int net_port = -1; // -1 generates random dataThat means there is some problem sending samples to the device
 
-uint32_t cfi=2;
+uint32_t cfi=3;
 uint32_t mcs_idx = 1, last_mcs_idx = 1;
 int nof_frames = -1;
 
@@ -597,7 +597,11 @@ int main(int argc, char **argv) {
         for (i=0;i<pdsch_cfg.grant.mcs.tbs/8;i++) {
           data[i] = rand()%256;
         }
-        send_data = true; 
+        if (sf_idx != 0 && sf_idx != 5) {
+          send_data = true; 
+        } else {
+          send_data = false;           
+        }
       }        
       
       if (send_data) {

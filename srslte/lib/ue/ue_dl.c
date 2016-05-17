@@ -194,16 +194,12 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
     
     /* Correct SFO multiplying by complex exponential in the time domain */
     if (q->sample_offset) {
-      struct timeval t[3];
-      gettimeofday(&t[1], NULL);
       for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
         srslte_cfo_correct(&q->sfo_correct, 
                          &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
                          &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
                          q->sample_offset / q->fft.symbol_sz);
       }
-      gettimeofday(&t[2], NULL);
-      get_time_interval(t);
     }
     
     return srslte_ue_dl_decode_estimate(q, sf_idx, cfi); 
@@ -221,7 +217,8 @@ int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *c
 
     /* First decode PCFICH and obtain CFI */
     if (srslte_pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
-                      srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi, &cfi_corr)<0) {
+                             srslte_chest_dl_get_noise_estimate(&q->chest), 
+                             sf_idx, cfi, &cfi_corr)<0) {
       fprintf(stderr, "Error decoding PCFICH\n");
       return SRSLTE_ERROR;
     }

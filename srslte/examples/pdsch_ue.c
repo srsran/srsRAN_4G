@@ -545,13 +545,13 @@ int main(int argc, char **argv) {
               }
               #endif
 
-            }
+            } 
                         
             nof_trials++; 
             
             rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1);
-            rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.1);      
-            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.1);      
+            rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
+            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);      
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -577,7 +577,7 @@ int main(int argc, char **argv) {
                   srslte_ue_sync_get_cfo(&ue_sync)/1000,
                   10*log10(rsrp/noise), 
                   100*(1-(float) ue_dl.nof_detected/nof_trials), 
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total);                            
+                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total);                        
           }
           break;
       }
@@ -585,6 +585,11 @@ int main(int argc, char **argv) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
+          printf("reset\n");
+          ue_dl.pkt_errors = 0; 
+          ue_dl.pkts_total = 0; 
+          ue_dl.nof_detected = 0;           
+          nof_trials = 0; 
         } 
       }
       
