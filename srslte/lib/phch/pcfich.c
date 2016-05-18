@@ -117,14 +117,16 @@ float srslte_pcfich_cfi_decode(srslte_pcfich_t *q, uint32_t *cfi) {
   int i;
   int index = 0;
   float max_corr = 0;
+  float corr[3];
   
   for (i = 0; i < 3; i++) {
-    float corr = fabsf(srslte_vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN));
-    if (corr > max_corr) {
-      max_corr = corr; 
+    corr[i] = srslte_vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN);
+    if (corr[i] > max_corr) {
+      max_corr = corr[i]; 
       index = i; 
     }
   }
+  
   if (cfi) {
     *cfi = index + 1;
   }

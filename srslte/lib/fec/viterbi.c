@@ -40,7 +40,7 @@
 
 #define TB_ITER 3
 
-#define DEFAULT_GAIN 16
+#define DEFAULT_GAIN 20
 
 //#undef LV_HAVE_SSE
 

@@ -546,7 +546,7 @@ int main(int argc, char **argv) {
               #endif
 
             } 
-                        
+                                    
             nof_trials++; 
             
             rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1);
@@ -585,7 +585,7 @@ int main(int argc, char **argv) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
-          printf("reset\n");
+          printf("\n");
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0; 
           ue_dl.nof_detected = 0;           
