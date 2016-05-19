@@ -56,7 +56,6 @@ typedef struct SRSLTE_API{
   bool tail_biting;
   float gain_quant; 
   int16_t gain_quant_s; 
-  uint32_t poly[3];
   int (*decode) (void*, uint8_t*, uint8_t*, uint32_t);
   int (*decode_f) (void*, float*, uint8_t*, uint32_t);
   void (*free) (void*);
@@ -66,7 +65,7 @@ typedef struct SRSLTE_API{
 
 SRSLTE_API int srslte_viterbi_init(srslte_viterbi_t *q, 
                                    srslte_viterbi_type_t type, 
-                                   uint32_t poly[3], 
+                                   int poly[3], 
                                    uint32_t max_frame_length, 
                                    bool tail_bitting);
 
@@ -97,7 +96,7 @@ SRSLTE_API int srslte_viterbi_decode_uc(srslte_viterbi_t *q,
 
 SRSLTE_API int srslte_viterbi_init_sse(srslte_viterbi_t *q, 
                                    srslte_viterbi_type_t type, 
-                                   uint32_t poly[3], 
+                                   int poly[3], 
                                    uint32_t max_frame_length, 
                                    bool tail_bitting);
 

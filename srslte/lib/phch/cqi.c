@@ -71,7 +71,7 @@ int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, uint8_t b
   uint8_t *body_ptr = buff; 
   srslte_bit_unpack(msg->subband_cqi, &body_ptr, 4);  
   srslte_bit_unpack(msg->subband_label, &body_ptr, msg->subband_label_2_bits?2:1);  
-  return 4+msg->subband_label_2_bits?2:1;    
+  return 4+(msg->subband_label_2_bits)?2:1;    
 }
 
 int srslte_cqi_value_pack(srslte_cqi_value_t *value, uint8_t buff[SRSLTE_CQI_MAX_BITS])
@@ -141,7 +141,11 @@ bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
 /* SNR-to-CQI conversion, got from "Downlink SNR to CQI Mapping for Different Multiple Antenna Techniques in LTE"
  * Table III. 
 */
-static float cqi_to_snr_table[15] = { 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 19.9, 21.5, 23.45, 25.0, 27.30, 29};
+// Original version
+//static float cqi_to_snr_table[15] = { 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 19.9, 21.5, 23.45, 25.0, 27.30, 29};
+
+// From experimental measurements @ 5 MHz 
+static float cqi_to_snr_table[15] = { 1, 1.75, 3, 4, 5, 6, 7.5, 9, 11.5, 13.0, 15.0, 18, 20, 22.5, 26.5};
 
 uint8_t srslte_cqi_from_snr(float snr)
 {

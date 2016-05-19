@@ -40,6 +40,8 @@
 
 #define TB_ITER 3
 
+#define DEFAULT_GAIN 16
+
 //#undef LV_HAVE_SSE
 
 int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
@@ -128,12 +130,12 @@ void free37(void *o) {
   delete_viterbi37_port(q->ptr);
 }
 
-int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
+int init37(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_biting) {
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
-  q->gain_quant = 32; 
   q->gain_quant_s = 4; 
+  q->gain_quant = DEFAULT_GAIN; 
   q->tail_biting = tail_biting;
   q->decode = decode37;
   q->free = free37;
@@ -165,12 +167,12 @@ int init37(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_
 }
 
 #ifdef LV_HAVE_SSE
-int init37_sse(srslte_viterbi_t *q, uint32_t poly[3], uint32_t framebits, bool tail_biting) {
+int init37_sse(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_biting) {
   q->K = 7;
   q->R = 3;
   q->framebits = framebits;
-  q->gain_quant = 20; 
   q->gain_quant_s = 4; 
+  q->gain_quant = DEFAULT_GAIN; 
   q->tail_biting = tail_biting;
   q->decode = decode37_sse;
   q->free = free37_sse;
@@ -209,7 +211,7 @@ void srslte_viterbi_set_gain_quant_s(srslte_viterbi_t *q, int16_t gain_quant) {
   q->gain_quant_s = gain_quant;
 }
 
-int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, uint32_t poly[3], uint32_t max_frame_length, bool tail_bitting) 
+int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, int poly[3], uint32_t max_frame_length, bool tail_bitting) 
 {
   switch (type) {
   case SRSLTE_VITERBI_37:
@@ -225,7 +227,7 @@ int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, uint32_
 }
 
 #ifdef LV_HAVE_SSE
-int srslte_viterbi_init_sse(srslte_viterbi_t *q, srslte_viterbi_type_t type, uint32_t poly[3], uint32_t max_frame_length, bool tail_bitting) 
+int srslte_viterbi_init_sse(srslte_viterbi_t *q, srslte_viterbi_type_t type, int poly[3], uint32_t max_frame_length, bool tail_bitting) 
 {
   return init37_sse(q, poly, max_frame_length, tail_bitting);      
 }
@@ -252,7 +254,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
   } else {
     len = 3 * (frame_length + q->K - 1);
   }
-  if (!q->decode_f) {
+  if (!q->decode_f) {    
     srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);    
     return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);    
   } else {

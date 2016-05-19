@@ -8,13 +8,38 @@
 recordedSignal=[];
 
 Npackets = 1;
-SNR_values = 10;%linspace(2,6,10);
+SNR_values = 56;%linspace(2,6,10);
+
+Lp=12;
+N=256;
+K=180;
+rstart=(N-K)/2;
+P=K/6;
+Rhphp=zeros(P,P);
+Rhhp=zeros(K,P);
+Rhh=zeros(K,K);
+
+t=0:Lp-1;
+alfa=log(2*Lp)/Lp;
+c_l=exp(-t*alfa);
+c_l=c_l/sum(c_l);
+C_l=diag(1./c_l);
+prows=rstart+(1:6:K);
+
+F=dftmtx(N);
+F_p=F(prows,1:Lp);
+F_l=F((rstart+1):(K+rstart),1:Lp);
+Wi=(F_p'*F_p+C_l*0.01)^(-1);
+W2=F_l*Wi*F_p';
+w2=reshape(transpose(W2),1,[]);
+
+
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.0',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.5',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
-    rmccFgOut = struct('CellRefP',1,'NDLRB',100,'DuplexMode','FDD','CyclicPrefix','Normal'); 
+    rmccFgOut = struct('CellRefP',1,'NDLRB',25,'DuplexMode','FDD','CyclicPrefix','Normal'); 
     rmccFgOut.PDSCH.RNTI = 1234;
     rmccFgOut.PDSCH.PRBSet = repmat(transpose(0:rmccFgOut.NDLRB-1),1,2);
     rmccFgOut.PDSCH.TxScheme = 'Port0';
@@ -28,7 +53,7 @@ end
 
 flen=rmccFgOut.SamplingRate/1000;
     
-Nsf = 9; 
+Nsf = 2; 
 
 %% Setup Fading channel model 
 cfg.Seed = 0;                  % Random channel seed
@@ -46,8 +71,8 @@ cfg.SamplingRate = rmccFgOut.SamplingRate;
 
 % Setup channel equalizer
 cec.PilotAverage = 'UserDefined';     % Type of pilot averaging
-cec.FreqWindow = 9;                   % Frequency window size
-cec.TimeWindow = 9;                   % Time window size
+cec.FreqWindow = 1;                   % Frequency window size
+cec.TimeWindow = 1;                   % Time window size
 cec.InterpType = 'linear';             % 2D interpolation type
 cec.InterpWindow = 'Causal';        % Interpolation window type
 cec.InterpWinSize = 1;                % Interpolation window size
@@ -70,8 +95,9 @@ for snr_idx=1:length(SNR_values)
         if isempty(recordedSignal)
 
             %% Fading
-            %rxWaveform = lteFadingChannel(cfg,waveform);
-            rxWaveform = waveform; 
+            [rxWaveform, chinfo] = lteFadingChannel(cfg,waveform);
+            rxWaveform = rxWaveform(chinfo.ChannelFilterDelay+1:end);
+            %rxWaveform = waveform; 
             
             %% Noise Addition
             noise = N0*complex(randn(size(rxWaveform)), randn(size(rxWaveform)));  % Generate noise
@@ -129,6 +155,7 @@ if (length(SNR_values)>1)
     ylabel('BLER')
     axis([min(SNR_values) max(SNR_values) 1/Npackets/(Nsf+1) 1])
 else
+    scatter(real(symbols{1}),imag(symbols{1}))
     fprintf('Matlab: %d OK\nsrsLTE: %d OK\n',decoded, decoded_srslte);
 end
 

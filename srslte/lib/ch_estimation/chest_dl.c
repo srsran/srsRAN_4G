@@ -35,12 +35,34 @@
 
 #include "srslte/config.h"
 
-#include "srslte/ch_estimation/chest_common.h"
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/utils/vector.h"
+#include "srslte/utils/convolution.h"
 
-#define ESTIMATE_NOISE_LS_PSS
+//#define DEFAULT_FILTER_LEN 3
 
+#ifdef DEFAULT_FILTER_LEN 
+static void set_default_filter(srslte_chest_dl_t *q, int filter_len) {
+  
+  float fil[SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN]; 
+
+  for (int i=0;i<filter_len/2;i++) {
+    fil[i] = i+1;
+    fil[i+filter_len/2+1]=filter_len/2-i;
+  }
+  fil[filter_len/2]=filter_len/2+1;
+  
+  float s=0;
+  for (int i=0;i<filter_len;i++) {
+    s+=fil[i];
+  }
+  for (int i=0;i<filter_len;i++) {
+    fil[i]/=s;
+  }
+
+  srslte_chest_dl_set_smooth_filter(q, fil, filter_len);
+}
+#endif
 
 /** 3GPP LTE Downlink channel estimator and equalizer. 
  * Estimates the channel in the resource elements transmitting references and interpolates for the rest
@@ -101,6 +123,8 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       goto clean_exit;
     }
     
+    q->noise_alg = SRSLTE_NOISE_ALG_PSS; 
+    
     q->smooth_filter_len = 3; 
     srslte_chest_dl_set_smooth_filter3_coeff(q, 0.1);
     
@@ -139,14 +163,21 @@ void srslte_chest_dl_free(srslte_chest_dl_t *q)
 }
 
 /* Uses the difference between the averaged and non-averaged pilot estimates */
-float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id) 
+static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id) 
 {
   int nref=SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
-  float power = srslte_chest_estimate_noise_pilots(q->pilot_estimates, 
-                                                   q->pilot_estimates_average, 
-                                                   q->tmp_noise, 
-                                                   nref);
- 
+  /* Substract noisy pilot estimates */
+  srslte_vec_sub_ccc(q->pilot_estimates_average, q->pilot_estimates, q->tmp_noise, nref);  
+  
+#ifdef FREQ_SEL_SNR
+  /* Compute frequency-selective SNR */
+  srslte_vec_abs_square_cf(q->tmp_noise, q->snr_vector, nref);
+  srslte_vec_abs_square_cf(q->pilot_estimates, q->pilot_power, nref);
+  srslte_vec_div_fff(q->pilot_power, q->snr_vector, q->snr_vector, nref);
+  
+  srslte_vec_fprint_f(stdout, q->snr_vector, nref);
+#endif
+  
   /* Compute average power. Normalized for filter len 3 using matlab */
   float norm  = 1;
   if (q->smooth_filter_len == 3) {
@@ -154,10 +185,10 @@ float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id)
     float norm3 = 6.143*a*a+0.04859*a-0.002774;
     norm /= norm3; 
   }
-  return norm*q->cell.nof_ports*power;
+  float power = norm*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
+  return power; 
 }
 
-#ifdef ESTIMATE_NOISE_LS_PSS
 static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce) 
 {
   /* Get PSS from received signal */
@@ -177,9 +208,6 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
   return power; 
 }
 
-
-#else 
-
 /* Uses the 5 empty transmitted SC before and after the SSS and PSS sequences for noise estimation */
 static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
   int k_sss = (SRSLTE_CP_NSYMB(q->cell.cp) - 2) * q->cell.nof_prb * SRSLTE_NRE + q->cell.nof_prb * SRSLTE_NRE / 2 - 31;
@@ -192,8 +220,6 @@ static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
   
   return noise_power; 
 }
-#endif
-
 
 #define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,0)]
 
@@ -251,16 +277,25 @@ void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint
   }
 }
 
-void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q, float w) {
-  srslte_chest_set_smooth_filter3_coeff(q->smooth_filter, w); 
-  q->smooth_filter_len = 3; 
+void srslte_chest_dl_set_noise_alg(srslte_chest_dl_t *q, srslte_chest_dl_noise_alg_t noise_estimation_alg) {
+  q->noise_alg = noise_estimation_alg; 
 }
 
-static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint32_t port_id) 
+void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q, float w)
 {
+  q->smooth_filter_len = 3;
+  q->smooth_filter[0] = w; 
+  q->smooth_filter[2] = w; 
+  q->smooth_filter[1] = 1-2*w; 
+}
+
+static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint32_t port_id) {
   uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
   uint32_t nref = 2*q->cell.nof_prb;
-  srslte_chest_average_pilots(input, output, q->smooth_filter, nref, nsymbols, q->smooth_filter_len);
+
+  for (int l=0;l<nsymbols;l++) {
+    srslte_conv_same_cf(&input[l*nref], q->smooth_filter, &output[l*nref], nref, q->smooth_filter_len);    
+  }
 }
 
 float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) {
@@ -283,26 +318,29 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   /* Use the known CSR signal to compute Least-squares estimates */
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->csr_signal.pilots[port_id/2][sf_idx], 
               q->pilot_estimates, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
-  
   if (ce != NULL) {
-    if (q->smooth_filter_len > 0) {
-      average_pilots(q, q->pilot_estimates, q->pilot_estimates_average, port_id);
-      interpolate_pilots(q, q->pilot_estimates_average, ce, port_id);        
-      
-      /* If averaging, compute noise from difference between received and averaged estimates */
-      q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);            
-    } else {
+    
+    /* Smooth estimates (if applicable) and interpolate */
+    if (q->smooth_filter_len == 0 || (q->smooth_filter_len == 3 && q->smooth_filter[0] == 0)) {
       interpolate_pilots(q, q->pilot_estimates, ce, port_id);            
-      
-      /* If not averaging, compute noise from empty subcarriers */
-#ifdef ESTIMATE_NOISE_LS_PSS
+    } else {
+      average_pilots(q, q->pilot_estimates, q->pilot_estimates_average, port_id);
+      interpolate_pilots(q, q->pilot_estimates_average, ce, port_id);              
+    }
+    
+    /* Estimate noise power */
+    if (q->noise_alg == SRSLTE_NOISE_ALG_REFS && q->smooth_filter_len > 0) {
+      q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);                  
+    } else if (q->noise_alg == SRSLTE_NOISE_ALG_PSS) {
       if (sf_idx == 0 || sf_idx == 5) {
         q->noise_estimate[port_id] = estimate_noise_pss(q, input, ce);
       }
-#else
-      q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
-#endif
+    } else {
+      if (sf_idx == 0 || sf_idx == 5) {
+        q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
+      }
     }
+    
   }
     
   /* Compute RSRP for the channel estimates in this port */
@@ -337,8 +375,6 @@ float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
   return srslte_chest_dl_get_rsrp(q)/srslte_chest_dl_get_noise_estimate(q);
 #endif
 }
-
-
 
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {
   return 4*q->rssi[0]/q->cell.nof_prb/SRSLTE_NRE; 

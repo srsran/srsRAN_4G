@@ -235,7 +235,7 @@ int srslte_prach_gen_seqs(srslte_prach_t *p)
   uint32_t d_u = 0;
   uint32_t d_start = 0;
   uint32_t N_shift = 0;
-  uint32_t N_neg_shift = 0;
+  int      N_neg_shift = 0;
   uint32_t N_group = 0;
   uint32_t C_v = 0;
   cf_t root[839];

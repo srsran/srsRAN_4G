@@ -88,7 +88,7 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
       }
     }
 
-    uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
+    int poly[3] = { 0x6D, 0x4F, 0x57 };
     if (srslte_viterbi_init(&q->decoder, SRSLTE_VITERBI_37, poly, SRSLTE_DCI_MAX_BITS + 16, true)) {
       goto clean;
     }
@@ -192,7 +192,7 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
 
   k = 0;
   // All aggregation levels from 8 to 1
-  for (l = 0; l < 3; l++) {
+  for (l = 3; l >= 0; l--) {
     L = (1 << l);
     // For all possible ncce offset
     for (i = 0; i < SRSLTE_MIN(q->nof_cce / L, S[l]/PDCCH_FORMAT_NOF_CCE(l)); i++) {
@@ -277,8 +277,10 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
   {
     bzero(q->rm_f, sizeof(float)*3 * (SRSLTE_DCI_MAX_BITS + 16));
     
+    uint32_t coded_len = 3 * (nof_bits + 16); 
+    
     /* unrate matching */
-    srslte_rm_conv_rx(e, E, q->rm_f, 3 * (nof_bits + 16));
+    srslte_rm_conv_rx(e, E, q->rm_f, coded_len);
     
     /* viterbi decoder */
     srslte_viterbi_decode_f(&q->decoder, q->rm_f, data, nof_bits + 16);
@@ -290,6 +292,7 @@ static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, ui
     if (crc) {
       *crc = p_bits ^ crc_res; 
     }
+        
     return SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid parameters: E: %d, max_bits: %d, nof_bits: %d\n", E, q->max_bits, nof_bits);
@@ -403,7 +406,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, nof_symbols, noise_estimate);
+      srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, nof_symbols, noise_estimate/2);
     } else {
       srslte_predecoding_diversity(q->symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
