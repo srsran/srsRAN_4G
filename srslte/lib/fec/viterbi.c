@@ -40,7 +40,7 @@
 
 #define TB_ITER 3
 
-#define DEFAULT_GAIN 20
+#define DEFAULT_GAIN 16
 
 //#undef LV_HAVE_SSE
 
@@ -248,7 +248,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
   } else {
     len = 3 * (frame_length + q->K - 1);
   }
-  if (!q->decode_f) {
+  if (!q->decode_f) {    
     srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);    
     return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);    
   } else {

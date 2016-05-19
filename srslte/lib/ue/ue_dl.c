@@ -402,7 +402,7 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
     return ret; 
   }
   
-  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, 0, sf_idx, q->cfi)) {
+  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, q->cfi)) {
     fprintf(stderr, "Error extracting LLRs\n");
     return SRSLTE_ERROR;
   }
