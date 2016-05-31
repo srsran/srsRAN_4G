@@ -122,6 +122,11 @@ SRSLTE_API uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q,
                                               uint32_t cfi,
                                               uint16_t rnti);
 
+SRSLTE_API uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, 
+                                                   srslte_dci_location_t *c, 
+                                                   uint32_t max_candidates, 
+                                                   uint32_t nsubframe, uint16_t rnti); 
+
 /* Function for generation of common search space DCI locations */
 SRSLTE_API uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, 
                                                   srslte_dci_location_t *locations, 
@@ -131,5 +136,6 @@ SRSLTE_API uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q,
 SRSLTE_API uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, 
                                                        srslte_dci_location_t *c, 
                                                        uint32_t max_candidates); 
+
 
 #endif

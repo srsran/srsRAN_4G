@@ -169,20 +169,25 @@ void srslte_pdcch_free(srslte_pdcch_t *q) {
 
 }
 
+uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, uint32_t max_candidates,
+                        uint32_t nsubframe, uint32_t cfi, uint16_t rnti) 
+{
+  set_cfi(q, cfi);
+  return srslte_pdcch_ue_locations_ncce(q->nof_cce, c, max_candidates, nsubframe, rnti);
+}
+
 /** 36.213 v9.1.1 
  * Computes up to max_candidates UE-specific candidates for DCI messages and saves them 
  * in the structure pointed by c.
  * Returns the number of candidates saved in the array c.   
  */
-uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, uint32_t max_candidates,
-                        uint32_t nsubframe, uint32_t cfi, uint16_t rnti) {
+uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates,
+                        uint32_t nsubframe, uint16_t rnti) {
   
   int l; // this must be int because of the for(;;--) loop
   uint32_t i, k, L, m; 
   uint32_t Yk, ncce;
   const int S[4] = { 6, 12, 8, 16 };
-
-  set_cfi(q, cfi);
 
   // Compute Yk for this subframe
   Yk = rnti;
@@ -195,10 +200,10 @@ uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, 
   for (l = 3; l >= 0; l--) {
     L = (1 << l);
     // For all possible ncce offset
-    for (i = 0; i < SRSLTE_MIN(q->nof_cce / L, S[l]/PDCCH_FORMAT_NOF_CCE(l)); i++) {
-      ncce = L * ((Yk + i) % (q->nof_cce / L));      
+    for (i = 0; i < SRSLTE_MIN(nof_cce / L, S[l]/PDCCH_FORMAT_NOF_CCE(l)); i++) {
+      ncce = L * ((Yk + i) % (nof_cce / L));      
       if (k                              < max_candidates     &&
-          ncce + PDCCH_FORMAT_NOF_CCE(l) <= q->nof_cce) 
+          ncce + PDCCH_FORMAT_NOF_CCE(l) <= nof_cce) 
       {            
         c[k].L = l;
         c[k].ncce = ncce;

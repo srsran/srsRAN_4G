@@ -76,7 +76,6 @@ typedef struct SRSLTE_API {
   
   srslte_refsignal_cs_t csr_signal;
   srslte_pdsch_cfg_t pdsch_cfg; 
-  srslte_softbuffer_tx_t softbuffer;
   srslte_ra_dl_dci_t dl_dci;
   
   srslte_dci_format_t dci_format;
@@ -86,17 +85,24 @@ typedef struct SRSLTE_API {
   float sss_signal0[SRSLTE_SSS_LEN]; 
   float sss_signal5[SRSLTE_SSS_LEN]; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
+    
+  srslte_softbuffer_tx_t *softbuffer;
+  uint32_t nof_rnti;
   
 } srslte_enb_dl_t;
 
 typedef struct {
-  bool                  is_dl; 
-  srslte_ra_dci_grant_t grant;
-  srslte_dci_location_t location; 
-  uint32_t              rnti_idx; 
-  uint32_t              rv_idx; 
-  uint8_t              *data; 
-} srslte_enb_dl_grant_t; 
+  uint32_t                rnti_idx; 
+  srslte_ra_dl_dci_t      grant;
+  srslte_dci_location_t   location; 
+  uint8_t                *data; 
+} srslte_enb_dl_grant_pdsch_t; 
+
+typedef struct {
+  uint32_t                rnti_idx; 
+  srslte_ra_ul_dci_t      grant;
+  srslte_dci_location_t   location; 
+} srslte_enb_dl_grant_pusch_t; 
 
 
 /* This function shall be called just after the initial synchronization */
@@ -156,10 +162,14 @@ SRSLTE_API int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q,
                                           uint32_t rnti_idx, 
                                           uint32_t sf_idx); 
 
-SRSLTE_API int srslte_enb_dl_put_grant(srslte_enb_dl_t *q, 
-                                       srslte_enb_dl_grant_t *grants, 
-                                       uint32_t nof_grants, 
-                                       uint32_t sf_idx); 
+SRSLTE_API int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, 
+                                             srslte_enb_dl_grant_pdsch_t *grants, 
+                                             uint32_t nof_grants, 
+                                             uint32_t sf_idx); 
 
+SRSLTE_API int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, 
+                                             srslte_enb_dl_grant_pusch_t *grants, 
+                                             uint32_t nof_grants, 
+                                             uint32_t sf_idx); 
 
 #endif

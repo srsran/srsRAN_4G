@@ -116,6 +116,9 @@ SRSLTE_API int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar,
 SRSLTE_API void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, 
                                             uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
 
+SRSLTE_API void srslte_dci_rar_grant_pack(srslte_dci_rar_grant_t *rar, 
+                                          uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
+
 SRSLTE_API void srslte_dci_rar_grant_fprint(FILE *stream, 
                                             srslte_dci_rar_grant_t *rar);
 

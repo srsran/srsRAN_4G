@@ -178,11 +178,6 @@ typedef union {
   srslte_ra_dl_grant_t dl;
 } srslte_phy_grant_t;
 
-typedef union {
-  srslte_ra_ul_dci_t ul; 
-  srslte_ra_dl_dci_t dl; 
-} srslte_ra_dci_grant_t; 
-
 #define SRSLTE_PHY_GRANT_LEN sizeof(srslte_phy_grant_t)
 
 
@@ -225,6 +220,8 @@ SRSLTE_API int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci,
                                                      uint32_t nof_prb); 
 
 SRSLTE_API int srslte_ra_tbs_idx_from_mcs(uint32_t mcs);
+
+SRSLTE_API int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx); 
 
 SRSLTE_API int srslte_ra_tbs_from_idx(uint32_t tbs_idx, 
                                       uint32_t n_prb); 

@@ -147,7 +147,7 @@ int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q) {
   if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC8, 8)) {
     return SRSLTE_ERROR;
   }
-  uint32_t poly[3] = { 0x6D, 0x4F, 0x57 };
+  int poly[3] = { 0x6D, 0x4F, 0x57 };
   if (srslte_viterbi_init(&q->viterbi, SRSLTE_VITERBI_37, poly, SRSLTE_UCI_MAX_CQI_LEN_PUSCH, true)) {
     return SRSLTE_ERROR;
   }

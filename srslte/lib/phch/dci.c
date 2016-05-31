@@ -149,6 +149,18 @@ void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, uint8_t grant[SRSL
   rar->cqi_request  = srslte_bit_pack(&grant_ptr, 1)?true:false;
 }
 
+/* Pack RAR UL grant as defined in Section 6.2 of 36.213 */
+void srslte_dci_rar_grant_pack(srslte_dci_rar_grant_t *rar, uint8_t grant[SRSLTE_RAR_GRANT_LEN])
+{
+  uint8_t *grant_ptr = grant; 
+  srslte_bit_unpack(rar->hopping_flag?1:0, &grant_ptr, 1);
+  srslte_bit_unpack(rar->rba, &grant_ptr, 10);
+  srslte_bit_unpack(rar->trunc_mcs, &grant_ptr, 4);
+  srslte_bit_unpack(rar->tpc_pusch, &grant_ptr, 3);
+  srslte_bit_unpack(rar->ul_delay?1:0, &grant_ptr, 1);
+  srslte_bit_unpack(rar->cqi_request?1:0, &grant_ptr, 1);
+}
+
 void srslte_dci_rar_grant_fprint(FILE *stream, srslte_dci_rar_grant_t *rar) {
   fprintf(stream, "RBA: %d, MCS: %d, TPC: %d, Hopping=%s, UL-Delay=%s, CQI=%s\n",
     rar->rba, rar->trunc_mcs, rar->tpc_pusch, 
