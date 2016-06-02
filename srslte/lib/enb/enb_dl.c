@@ -296,7 +296,7 @@ int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pusch_
 {
   for (int i=0;i<nof_grants;i++) {
     if (srslte_enb_dl_put_pdcch_ul(q, &grants[i].grant, grants[i].location, grants[i].rnti_idx, sf_idx)) {
-      fprintf(stderr, "Error putting PDCCH &d\n",i);
+      fprintf(stderr, "Error putting PUSCH %d\n",i);
       return SRSLTE_ERROR; 
     }
   }
@@ -319,7 +319,7 @@ int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pdsch_
         break;
     }
     if (srslte_enb_dl_put_pdcch_dl(q, &grants[i].grant, format, grants[i].location, grants[i].rnti_idx, sf_idx)) {
-      fprintf(stderr, "Error putting PDCCH &d\n",i);
+      fprintf(stderr, "Error putting PDCCH %d\n",i);
       return SRSLTE_ERROR; 
     }      
     uint16_t rnti = srslte_pdsch_get_rnti_multi(&q->pdsch, grants[i].rnti_idx);
