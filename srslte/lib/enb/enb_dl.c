@@ -280,7 +280,7 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant,
   }
 
   // Reset softwbuffer if this is the first transmission
-  if (data == NULL) {
+  if (data != NULL) {
     srslte_softbuffer_tx_reset_cb(&q->softbuffer[rnti_idx], q->pdsch_cfg.cb_segm.C);
   }
   
