@@ -592,14 +592,14 @@ int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
 int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
   uint32_t idx;
   if (n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
-    return SRSLTE_ERROR;
-  }
-  if (tbs < tbs_table[0][n_prb]) {
-    return SRSLTE_ERROR;
-  }
-  for (idx = 1; idx < 28; idx++) {
-    if (tbs_table[idx - 1][n_prb] <= tbs && tbs_table[idx][n_prb] >= tbs) {
-      return idx;
+      
+    if (tbs <= tbs_table[0][n_prb-1]) {
+      return 0;
+    }
+    for (idx = 0; idx < 27; idx++) {
+      if (tbs_table[idx][n_prb-1] <= tbs && tbs_table[idx+1][n_prb-1] >= tbs) {
+        return idx+1;
+      }
     }
   }
   return SRSLTE_ERROR;
