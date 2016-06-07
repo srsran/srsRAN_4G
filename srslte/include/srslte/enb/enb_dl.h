@@ -95,6 +95,7 @@ typedef struct {
   uint32_t                rnti_idx; 
   srslte_ra_dl_dci_t      grant;
   srslte_dci_location_t   location; 
+  srslte_softbuffer_tx_t *softbuffer;
   uint8_t                *data; 
 } srslte_enb_dl_grant_pdsch_t; 
 
@@ -144,6 +145,7 @@ SRSLTE_API int srslte_enb_dl_rem_rnti(srslte_enb_dl_t *q,
 
 SRSLTE_API int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, 
                                        srslte_ra_dl_grant_t *grant, 
+                                       srslte_softbuffer_tx_t *softbuffer,
                                        uint32_t rnti_idx,
                                        uint32_t rv_idx, 
                                        uint32_t sf_idx, 

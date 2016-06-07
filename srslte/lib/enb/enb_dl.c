@@ -90,12 +90,7 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell, uint32_t nof_rnti
       fprintf(stderr, "Error initiating multiple RNTIs in PDSCH\n");
       goto clean_exit;
     }
-    
-    q->softbuffer = malloc(nof_rnti*sizeof(srslte_softbuffer_tx_t));
-    for (int i=0;i<nof_rnti;i++) {
-      srslte_softbuffer_tx_init(&q->softbuffer[i], q->cell.nof_prb);
-    }
-    
+        
     if (srslte_refsignal_cs_init(&q->csr_signal, q->cell)) {
       fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
       goto clean_exit;
@@ -139,13 +134,6 @@ void srslte_enb_dl_free(srslte_enb_dl_t *q)
     srslte_pdsch_free(&q->pdsch);
     
     srslte_refsignal_cs_free(&q->csr_signal);
-
-    if (q->softbuffer) {
-      for (int i=0;i<q->nof_rnti;i++) {
-        srslte_softbuffer_tx_free(&q->softbuffer[i]);
-      }
-      free(q->softbuffer);
-    }
     
     for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
       if (q->sf_symbols[i]) {
@@ -267,7 +255,7 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, 
+int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer,
                             uint32_t rnti_idx, uint32_t rv_idx, uint32_t sf_idx, 
                             uint8_t *data) 
 {
@@ -279,13 +267,8 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant,
     return SRSLTE_ERROR;
   }
 
-  // Reset softwbuffer if this is the first transmission
-  if (data != NULL) {
-    srslte_softbuffer_tx_reset_cb(&q->softbuffer[rnti_idx], q->pdsch_cfg.cb_segm.C);
-  }
-  
   /* Encode PDSCH */
-  if (srslte_pdsch_encode_rnti_idx(&q->pdsch, &q->pdsch_cfg, &q->softbuffer[rnti_idx], data, rnti_idx, q->sf_symbols)) {
+  if (srslte_pdsch_encode_rnti_idx(&q->pdsch, &q->pdsch_cfg, softbuffer, data, rnti_idx, q->sf_symbols)) {
     fprintf(stderr, "Error encoding PDSCH\n");
     return SRSLTE_ERROR;
   }        
@@ -303,7 +286,8 @@ int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pusch_
   return SRSLTE_SUCCESS; 
 }
 
-int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pdsch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pdsch_t *grants, 
+                                  uint32_t nof_grants, uint32_t sf_idx)
 {
   for (int i=0;i<nof_grants;i++) {
     srslte_dci_format_t format = SRSLTE_DCI_FORMAT1; 
@@ -330,7 +314,7 @@ int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pdsch_
     }
     srslte_ra_dl_grant_t phy_grant; 
     srslte_ra_dl_dci_to_grant(&grants[i].grant, q->cell.nof_prb, rnti_is_user, &phy_grant);
-    if (srslte_enb_dl_put_pdsch(q, &phy_grant, grants[i].rnti_idx, grants[i].grant.rv_idx, sf_idx, 
+    if (srslte_enb_dl_put_pdsch(q, &phy_grant, grants[i].softbuffer, grants[i].rnti_idx, grants[i].grant.rv_idx, sf_idx, 
                                 grants[i].data)) 
     {
       fprintf(stderr, "Error putting PDCCH %d\n",i);
