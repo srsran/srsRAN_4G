@@ -124,7 +124,7 @@ typedef struct SRSLTE_API {
   
   uint32_t mcs_idx;
   uint32_t harq_process;
-  uint32_t rv_idx;
+  int      rv_idx;
   bool ndi;
 } srslte_ra_dl_dci_t;
 
