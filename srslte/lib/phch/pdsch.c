@@ -411,6 +411,8 @@ int srslte_pdsch_decode_rnti(srslte_pdsch_t *q,
     }
     
     if (SRSLTE_VERBOSE_ISDEBUG()) {
+      DEBUG("SAVED FILE subframe.dat: received subframe symbols\n",0);
+      srslte_vec_save_file("subframe.dat", sf_symbols, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
       DEBUG("SAVED FILE hest0.dat and hest1.dat: channel estimates for port 0 and port 1\n",0);
       srslte_vec_save_file("hest0.dat", ce[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
       if (q->cell.nof_ports > 1) {
