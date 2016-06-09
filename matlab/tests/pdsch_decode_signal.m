@@ -1,6 +1,6 @@
-enb=struct('NCellID',0,'NDLRB',25,'NSubframe',4,'CFI',3,'CyclicPrefix','Normal','CellRefP',1,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
+enb=struct('NCellID',1,'NDLRB',25,'NSubframe',5,'CFI',2,'CyclicPrefix','Normal','CellRefP',1,'Ng','Sixth','PHICHDuration','Normal','DuplexMode','FDD');
 
-RNTI=62;
+RNTI=65535;
 
 addpath('../../build/srslte/lib/phch/test')
 
@@ -11,8 +11,8 @@ cec.InterpType = 'linear';             % 2D interpolation type
 cec.InterpWindow = 'Causal';        % Interpolation window type
 cec.InterpWinSize = 1;                % Interpolation window size  
 
-subframe_rx=lteOFDMDemodulate(enb,x);
-%subframe_rx=reshape(input,[],14);
+%subframe_rx=lteOFDMDemodulate(enb,x);
+subframe_rx=reshape(x,[],14);
 [hest,nest] = lteDLChannelEstimate(enb, cec, subframe_rx);    
     
 % Search PDCCH
@@ -20,7 +20,7 @@ pdcchIndices = ltePDCCHIndices(enb);
 [pdcchRx, pdcchHest] = lteExtractResources(pdcchIndices, subframe_rx, hest);
 [dciBits, pdcchSymbols] = ltePDCCHDecode(enb, pdcchRx, pdcchHest, nest);
 pdcch = struct('RNTI', RNTI);  
-dci = ltePDCCHSearch(enb, pdcch, dciBits); % Search PDCCH for DCI                
+[dci, dcidecBits] = ltePDCCHSearch(enb, pdcch, dciBits); % Search PDCCH for DCI                
 
 if ~isempty(dci)
         
@@ -30,9 +30,8 @@ if ~isempty(dci)
     % Get the PDSCH configuration from the DCI
     [pdsch, trblklen] = hPDSCHConfiguration(enb, dci, pdcch.RNTI);
     pdsch.NTurboDecIts = 10;
-    pdsch.Modulation =  {'64QAM'};
+    %pdsch.Modulation =  {'64QAM'};
     pdsch.RV=0;
-    trblklen=14112;
     fprintf('PDSCH settings after DCI decoding:\n');
     disp(pdsch);
 
@@ -45,9 +44,9 @@ if ~isempty(dci)
     [sib1, crc] = lteDLSCHDecode(enb, pdsch, trblklen, dlschBits);
 
     
-    %[dec2, data, pdschRx2, pdschSymbols2, e_bits] = srslte_pdsch(enb, pdsch, ... 
-    %                                                    trblklen, ...
-    %                                                    subframe_rx, hest, nest);
+    [dec2, data, pdschRx2, pdschSymbols2, e_bits] = srslte_pdsch(enb, pdsch, ... 
+                                                        trblklen, ...
+                                                        subframe_rx, hest, 0);
 
     
     scatter(real(pdschSymbols{1}),imag(pdschSymbols{1}))

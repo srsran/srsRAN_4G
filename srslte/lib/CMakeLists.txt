@@ -80,6 +80,11 @@ target_link_libraries(srslte pthread m ${FFTW3F_LIBRARIES})
 set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
+if(NOT DisableMEX)
+  target_link_libraries(srslte_static ${FFTW3F_LIBRARIES})
+endif(NOT DisableMEX)
+                              
+                              
 if(RF_FOUND)
   if(UHD_FOUND)
     target_link_libraries(srslte ${UHD_LIBRARIES})
