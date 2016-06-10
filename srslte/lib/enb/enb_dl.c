@@ -37,6 +37,8 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
+#define SRSLTE_ENB_RF_AMP 0.8
+
 int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell, uint32_t nof_rnti)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
@@ -202,7 +204,8 @@ void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, cf_t *signal_buffer)
   srslte_ofdm_tx_sf(&q->ifft, q->sf_symbols[0], signal_buffer);
      
   // TODO: PAPR control
-  srslte_vec_sc_prod_cfc(signal_buffer, 0.2, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+  float norm_factor = (float) sqrt(q->cell.nof_prb)/15;
+  srslte_vec_sc_prod_cfc(signal_buffer, SRSLTE_ENB_RF_AMP*norm_factor, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
 }
 
 int srslte_enb_dl_cfg_rnti(srslte_enb_dl_t *q, uint32_t idx, uint16_t rnti)
