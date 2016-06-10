@@ -597,12 +597,12 @@ int main(int argc, char **argv) {
         for (i=0;i<pdsch_cfg.grant.mcs.tbs/8;i++) {
           data[i] = rand()%256;
         }
-        /* Uncomment this to transmit on sf 0 and 5 only 
+        /* Uncomment this to transmit on sf 0 and 5 only  */
         if (sf_idx != 0 && sf_idx != 5) {
           send_data = true; 
         } else {
           send_data = false;           
-        }*/
+        }
       }        
       
       if (send_data) {
