@@ -1,4 +1,4 @@
-enb=struct('NCellID',0,'NDLRB',25,'NSubframe',4,'CFI',3,'CyclicPrefix','Normal','CellRefP',1,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
+enb=struct('NCellID',1,'NDLRB',6,'NSubframe',4,'CFI',3,'CyclicPrefix','Normal','CellRefP',1,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
 
 RNTI=62;
 
