@@ -466,6 +466,11 @@ int srslte_prach_gen(srslte_prach_t *p,
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);
 
+    if (6 + freq_offset > N_rb_ul) {
+      fprintf(stderr, "Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", freq_offset, N_rb_ul);
+      return ret; 
+    }
+    
     DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", 
           p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
     
