@@ -139,7 +139,7 @@ uint32_t srslte_sss_synch_subframe(uint32_t m0, uint32_t m1) {
 
 /** Returns the N_id_1 value based on the m0 and m1 values */
 int srslte_sss_synch_N_id_1(srslte_sss_synch_t *q, uint32_t m0, uint32_t m1) {
-  if (m0==m1 || m0 > 29 || m1 > 29) {
+  if (m0==m1 || m0 > 30 || m1 > 30) {
     return SRSLTE_ERROR;
   }
   int N_id_1; 
