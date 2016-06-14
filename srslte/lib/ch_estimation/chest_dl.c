@@ -123,7 +123,7 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       goto clean_exit;
     }
     
-    q->noise_alg = SRSLTE_NOISE_ALG_PSS; 
+    q->noise_alg = SRSLTE_NOISE_ALG_REFS; 
     
     q->smooth_filter_len = 3; 
     srslte_chest_dl_set_smooth_filter3_coeff(q, 0.1);
