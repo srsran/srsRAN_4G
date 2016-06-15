@@ -320,7 +320,7 @@ int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pdsch_
     if (srslte_enb_dl_put_pdsch(q, &phy_grant, grants[i].softbuffer, grants[i].rnti_idx, grants[i].grant.rv_idx, sf_idx, 
                                 grants[i].data)) 
     {
-      fprintf(stderr, "Error putting PDCCH %d\n",i);
+      fprintf(stderr, "Error putting PDSCH %d\n",i);
       return SRSLTE_ERROR; 
     }
   }

@@ -555,7 +555,9 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
     } else {
         fprintf(stderr, "Illegal DCI message nCCE: %d, L: %d, nof_cce: %d\n", location.ncce, location.L, q->nof_cce);
     }
-  } 
+  } else {
+    fprintf(stderr, "Invalid parameters: cfi=%d, L=%d, nCCE=%d\n", cfi, location.L, location.ncce);
+  }
   return ret;
 }
 
