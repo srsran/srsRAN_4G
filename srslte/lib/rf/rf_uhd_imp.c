@@ -48,6 +48,8 @@ typedef struct {
   size_t tx_nof_samples;
   double tx_rate;
   bool dynamic_rate; 
+  bool has_rssi; 
+  uhd_sensor_value_handle rssi_value;
 } rf_uhd_handler_t;
 
 void suppress_handler(const char *x)
@@ -194,6 +196,11 @@ void rf_uhd_flush_buffer(void *h)
 
 bool rf_uhd_has_rssi(void *h) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
+  return handler->has_rssi;
+}
+
+bool get_has_rssi(void *h) {
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
   uhd_string_vector_handle rx_sensors;  
   uhd_string_vector_make(&rx_sensors);
   uhd_usrp_get_rx_sensor_names(handler->usrp, 0, &rx_sensors);
@@ -203,14 +210,11 @@ bool rf_uhd_has_rssi(void *h) {
 }
 
 float rf_uhd_get_rssi(void *h) {
-  if (rf_uhd_has_rssi(h)) {
-    rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
-    uhd_sensor_value_handle value;  
-    uhd_sensor_value_make_from_realnum(&value, "rssi", 0, "dBm", "%f");
-    uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &value);
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
+  if (handler->has_rssi) {
     double val_out; 
-    uhd_sensor_value_to_realnum(value, &val_out);
-    uhd_sensor_value_free(&value);
+    uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &handler->rssi_value);
+    uhd_sensor_value_to_realnum(handler->rssi_value, &val_out);
     return val_out; 
   } else {
     return 0.0;
@@ -267,6 +271,11 @@ int rf_uhd_open(char *args, void **h)
           .n_channels = 1
       };
       
+    handler->has_rssi = get_has_rssi(handler);  
+    if (handler->has_rssi) {        
+      uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
+    }
+    
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);

@@ -403,6 +403,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
     if (dci->dci_format == SRSLTE_RA_DCI_FORMAT1A) {
       n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
       i_tbs = dci->mcs_idx;
+      tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
     } else {
       if (dci->mcs_idx < 32) {
         tbs = tbs_format1c_table[dci->mcs_idx];
@@ -410,6 +411,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
     }
     grant->mcs.mod = SRSLTE_MOD_QPSK;      
   } else {
+    tbs = -1; 
     n_prb = grant->nof_prb;
     if (dci->mcs_idx < 10) {
       grant->mcs.mod = SRSLTE_MOD_QPSK;
@@ -433,8 +435,10 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
       tbs = 0;
       i_tbs = 0;
     }
+    if (tbs == -1) {
+      tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
+    }
   }  
-  tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
   
   if (tbs < 0) {
     return SRSLTE_ERROR; 

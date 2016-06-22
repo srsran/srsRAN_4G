@@ -43,7 +43,7 @@
 typedef struct SRSLTE_API {
   uint32_t R;
   uint32_t K;
-  uint32_t poly[3];
+  int poly[3];
   bool tail_biting;
 }srslte_convcoder_t;
 

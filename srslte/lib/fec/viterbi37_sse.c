@@ -44,7 +44,7 @@ struct v37 {
   decision_t *decisions; /* Beginning of decisions for block */
 };
 
-void set_viterbi37_polynomial_sse(uint32_t polys[3]) {
+void set_viterbi37_polynomial_sse(int polys[3]) {
   int state;
 
   for(state=0;state < 32;state++){
@@ -73,7 +73,7 @@ int init_viterbi37_sse(void *p, int starting_state) {
 }
 
 /* Create a new instance of a Viterbi decoder */
-void *create_viterbi37_sse(uint32_t polys[3], uint32_t len) {
+void *create_viterbi37_sse(int polys[3], uint32_t len) {
   void *p;
   struct v37 *vp;
 
