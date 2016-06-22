@@ -82,8 +82,14 @@ set_target_properties(srslte  PROPERTIES
 
 if(MKL_FOUND)
   target_link_libraries(srslte ${MKL_LIBRARIES})
+  if(NOT DisableMEX)
+    target_link_libraries(srslte_static ${MKL_LIBRARIES})
+  endif(NOT DisableMEX)
 else(MKL_FOUND)
   target_link_libraries(srslte ${FFTW3F_LIBRARIES})
+  if(NOT DisableMEX)
+    target_link_libraries(srslte_static ${FFTW3F_LIBRARIES})
+  endif(NOT DisableMEX)
 endif(MKL_FOUND)
 
 if(RF_FOUND)
