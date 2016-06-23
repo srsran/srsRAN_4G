@@ -261,6 +261,12 @@ int rf_uhd_open(char *args, void **h)
       fprintf(stderr, "Error opening UHD: code %d\n", error);
       return -1; 
     }
+    
+    /* Find out if the master clock rate is configurable */
+    double cur_clock, new_clock; 
+    uhd_usrp_get_master_clock_rate(handler->usrp, 0, &cur_clock);
+    printf("Trying to dynamically change Master clock...\n");
+    uhd_usrp_set_master_clock_rate(handler->usrp, cur_clock/2, 0);    
       
     size_t channel = 0;
     uhd_stream_args_t stream_args = {
@@ -301,11 +307,6 @@ int rf_uhd_open(char *args, void **h)
     uhd_rx_metadata_make(&handler->rx_md_first);
     uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
   
-    /* Find out if the master clock rate is configurable */
-    double cur_clock, new_clock; 
-    uhd_usrp_get_master_clock_rate(handler->usrp, 0, &cur_clock);
-    printf("Trying to dynamically change Master clock...\n");
-    uhd_usrp_set_master_clock_rate(handler->usrp, cur_clock/2, 0);
     uhd_usrp_get_master_clock_rate(handler->usrp, 0, &new_clock);
     if (new_clock == cur_clock) {
       handler->dynamic_rate = false; 
