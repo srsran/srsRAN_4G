@@ -246,22 +246,23 @@ int rf_uhd_open(char *args, void **h)
     // Allow NULL parameter
     if (args == NULL) {
       args = "";
-    } else {      
-      /* If device type or name not given in args, choose a B200 */
-      if (args[0]=='\0') {
-        if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
-          // If B200 is available, use it
-          args = "type=b200,recv_frame_size=9232,send_frame_size=9232";        
-        } else if (find_string(devices_str, "type=x300")) {
-          // Else if X300 is available, set master clock rate now (can't be changed later)
-          args = "type=x300,master_clock_rate=184.32e6";
-        }
-      } else {
-        // If args is set and x300 type is specified, make sure master_clock_rate is defined
-        if (strstr(args, "type=x300") && !strstr(args, "master_clock_rate")) {
-          sprintf(args2, "%s,master_clock_rate=184.32e6",args);
-          args = args2;          
-        }
+    }           
+    /* If device type or name not given in args, choose a B200 */
+    if (args[0]=='\0') {
+      if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
+        // If B200 is available, use it
+        args = "type=b200,recv_frame_size=9232,send_frame_size=9232";        
+      } else if (find_string(devices_str, "type=x300")) {
+        // Else if X300 is available, set master clock rate now (can't be changed later)
+        args = "type=x300,master_clock_rate=184.32e6";
+        handler->dynamic_rate = false; 
+      }
+    } else {
+      // If args is set and x300 type is specified, make sure master_clock_rate is defined
+      if (strstr(args, "type=x300") && !strstr(args, "master_clock_rate")) {
+        sprintf(args2, "%s,master_clock_rate=184.32e6",args);
+        args = args2;          
+        handler->dynamic_rate = false; 
       }
     }        
     
