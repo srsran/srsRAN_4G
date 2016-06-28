@@ -183,8 +183,22 @@ void srslte_enb_dl_put_mib(srslte_enb_dl_t *q, uint32_t tti)
 
 void srslte_enb_dl_put_pcfich(srslte_enb_dl_t *q, uint32_t sf_idx)
 {
-  srslte_pcfich_encode(&q->pcfich, q->cfi, q->sf_symbols, sf_idx);       
-  
+  srslte_pcfich_encode(&q->pcfich, q->cfi, q->sf_symbols, sf_idx);         
+}
+
+void srslte_enb_dl_put_phich(srslte_enb_dl_t *q, uint8_t ack, uint32_t n_prb_lowest, 
+                             uint32_t n_dmrs, uint32_t sf_idx)
+{
+  uint32_t ngroup, nseq; 
+  srslte_phich_calc(&q->phich, n_prb_lowest, n_dmrs, &ngroup, &nseq);
+  srslte_phich_encode(&q->phich, ack, ngroup, nseq, sf_idx, q->sf_symbols);
+}
+
+void srslte_enb_dl_put_phich_multi(srslte_enb_dl_t *q, srslte_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
+{
+  for (int i=0;i<nof_acks;i++) {
+    srslte_phich_encode(&q->phich, acks[i].ack, acks[i].n_prb_lowest, acks[i].n_dmrs, sf_idx, q->sf_symbols);    
+  }
 }
 
 void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti) 
@@ -278,7 +292,7 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srs
   return SRSLTE_SUCCESS; 
 }
 
-int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
+int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, srslte_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
 {
   for (int i=0;i<nof_grants;i++) {
     if (srslte_enb_dl_put_pdcch_ul(q, &grants[i].grant, grants[i].location, grants[i].rnti_idx, sf_idx)) {
@@ -289,7 +303,7 @@ int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pusch_
   return SRSLTE_SUCCESS; 
 }
 
-int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, srslte_enb_dl_grant_pdsch_t *grants, 
+int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, srslte_enb_dl_pdsch_t *grants, 
                                   uint32_t nof_grants, uint32_t sf_idx)
 {
   for (int i=0;i<nof_grants;i++) {

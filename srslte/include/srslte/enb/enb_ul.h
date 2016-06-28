@@ -53,6 +53,11 @@
 
 #include "srslte/config.h"
 
+typedef struct {
+  uint32_t n_prb_lowest;
+  uint32_t n_dmrs;  
+} srslte_enb_ul_phich_info_t; 
+
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
 
@@ -67,16 +72,18 @@ typedef struct SRSLTE_API {
   srslte_prach_t  prach;
   
   srslte_pusch_cfg_t     pusch_cfg; 
-  srslte_softbuffer_rx_t softbuffer;
-      
+  srslte_enb_ul_phich_info_t *phich_info;
+
 } srslte_enb_ul_t;
 
 typedef struct {
-  srslte_ra_ul_dci_t    grant;
-  uint32_t              rnti_idx; 
-  uint32_t              rv_idx; 
-  uint32_t              current_tx_nb; 
-  uint8_t              *data; 
+  uint32_t                rnti_idx; 
+  srslte_ra_ul_dci_t      grant;
+  srslte_dci_location_t   location; 
+  uint32_t                rv_idx; 
+  uint32_t                current_tx_nb; 
+  uint8_t                *data; 
+  srslte_softbuffer_rx_t *softbuffer;
 } srslte_enb_ul_pusch_t; 
 
 /* This function shall be called just after the initial synchronization */
@@ -97,8 +104,13 @@ SRSLTE_API int srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q,
 SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q, 
                                   cf_t *signal_buffer); 
 
+SRSLTE_API void srslte_enb_ul_get_phich_info(srslte_enb_ul_t *q, 
+                                             uint32_t rnti_idx, 
+                                             srslte_enb_ul_phich_info_t *phich_info);
+
 SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, 
                                        srslte_ra_ul_grant_t *grant, 
+                                       srslte_softbuffer_rx_t *softbuffer,
                                        uint32_t rnti_idx, 
                                        uint32_t rv_idx, 
                                        uint32_t current_tx_nb,
@@ -107,6 +119,7 @@ SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q,
 
 SRSLTE_API int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, 
                                              srslte_enb_ul_pusch_t *grants, 
+                                             bool *pusch_crc_res,
                                              uint32_t nof_pusch,
                                              uint32_t sf_idx); 
 

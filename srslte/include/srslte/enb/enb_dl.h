@@ -55,6 +55,8 @@
 #include "srslte/phch/ra.h"
 #include "srslte/phch/regs.h"
 
+#include "srslte/enb/enb_ul.h"
+
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
@@ -86,7 +88,6 @@ typedef struct SRSLTE_API {
   float sss_signal5[SRSLTE_SSS_LEN]; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
     
-  srslte_softbuffer_tx_t *softbuffer;
   uint32_t nof_rnti;
   
 } srslte_enb_dl_t;
@@ -97,14 +98,13 @@ typedef struct {
   srslte_dci_location_t   location; 
   srslte_softbuffer_tx_t *softbuffer;
   uint8_t                *data; 
-} srslte_enb_dl_grant_pdsch_t; 
+} srslte_enb_dl_pdsch_t; 
 
 typedef struct {
-  uint32_t                rnti_idx; 
-  srslte_ra_ul_dci_t      grant;
-  srslte_dci_location_t   location; 
-} srslte_enb_dl_grant_pusch_t; 
-
+  uint8_t  ack;
+  uint32_t rnti_idx; 
+  srslte_enb_ul_phich_info_t info; 
+} srslte_enb_dl_phich_t; 
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_enb_dl_init(srslte_enb_dl_t *q, 
@@ -129,6 +129,17 @@ SRSLTE_API void srslte_enb_dl_put_mib(srslte_enb_dl_t *q,
 
 SRSLTE_API void srslte_enb_dl_put_pcfich(srslte_enb_dl_t *q, 
                                          uint32_t sf_idx);
+
+SRSLTE_API void srslte_enb_dl_put_phich(srslte_enb_dl_t *q, 
+                                        uint8_t ack, 
+                                        uint32_t n_prb_lowest, 
+                                        uint32_t n_dmrs, 
+                                        uint32_t sf_idx);
+
+SRSLTE_API void srslte_enb_dl_put_phich_multi(srslte_enb_dl_t *q, 
+                                              srslte_enb_dl_phich_t *acks, 
+                                              uint32_t nof_acks, 
+                                              uint32_t sf_idx); 
 
 SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t *q, 
                                        uint32_t tti);
@@ -165,12 +176,12 @@ SRSLTE_API int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q,
                                           uint32_t sf_idx); 
 
 SRSLTE_API int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, 
-                                             srslte_enb_dl_grant_pdsch_t *grants, 
+                                             srslte_enb_dl_pdsch_t *grants, 
                                              uint32_t nof_grants, 
                                              uint32_t sf_idx); 
 
 SRSLTE_API int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, 
-                                             srslte_enb_dl_grant_pusch_t *grants, 
+                                             srslte_enb_ul_pusch_t *grants, 
                                              uint32_t nof_grants, 
                                              uint32_t sf_idx); 
 

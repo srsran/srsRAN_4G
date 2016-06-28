@@ -130,9 +130,13 @@ static rf_dev_t dev_blade = {
 };
 #endif
 
-//#define ENABLE_DUMMY_DEV
+#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
+int dummy_rcv() {
+  usleep(100000);
+  return 1; 
+}
 void dummy_fnc() {
   
 }
@@ -160,7 +164,7 @@ static rf_dev_t dev_dummy = {
   dummy_fnc,
   dummy_fnc,
   dummy_fnc,  
-  dummy_fnc,
+  dummy_rcv,
   dummy_fnc,
   dummy_fnc,
   dummy_fnc

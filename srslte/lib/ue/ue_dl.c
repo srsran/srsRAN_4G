@@ -425,14 +425,13 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
   }
 }
 
-/* Computes n_group and n_seq according to Section 9.1.2 in 36.213 and calls phich processing function */
+
 bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_prb_lowest, uint32_t n_dmrs)
 {
   uint8_t ack_bit; 
   float distance;
-  uint32_t Ngroups = srslte_phich_ngroups(&q->phich); 
-  uint32_t ngroup = (n_prb_lowest+n_dmrs)%Ngroups;
-  uint32_t nseq = ((n_prb_lowest/Ngroups)+n_dmrs)%(2*srslte_phich_nsf(&q->phich));
+  uint32_t ngroup, nseq; 
+  srslte_phich_calc(&q->phich, n_prb_lowest, n_dmrs, &ngroup, &nseq);
   DEBUG("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d\n", 
     sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq);
   if (!srslte_phich_decode(&q->phich, q->sf_symbols, q->ce, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {

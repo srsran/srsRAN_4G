@@ -80,11 +80,6 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       goto clean_exit; 
     }
    
-    if (srslte_softbuffer_rx_init(&q->softbuffer, q->cell.nof_prb)) {
-      fprintf(stderr, "Error initiating soft buffer\n");
-      goto clean_exit;
-    }
-    
     if (srslte_chest_ul_init(&q->chest, cell)) {
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit; 
@@ -123,7 +118,6 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
     srslte_ofdm_rx_free(&q->fft);
     srslte_pucch_free(&q->pucch);
     srslte_pusch_free(&q->pusch);
-    srslte_softbuffer_rx_free(&q->softbuffer);
     srslte_chest_ul_free(&q->chest);
     if (q->sf_symbols) {
       free(q->sf_symbols);
@@ -151,7 +145,7 @@ void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer)
 }
 
 
-int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, 
+int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
                             uint32_t rnti_idx, uint32_t rv_idx, uint32_t current_tx_nb,
                             uint8_t *data, uint32_t sf_idx)
 {
@@ -170,28 +164,34 @@ int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant,
   srslte_uci_data_t uci_data; 
   bzero(&uci_data, sizeof(srslte_uci_data_t)); 
   return srslte_pusch_uci_decode_rnti_idx(&q->pusch, &q->pusch_cfg, 
-                                          &q->softbuffer, q->sf_symbols, 
+                                          softbuffer, q->sf_symbols, 
                                           q->ce, noise_power, 
                                           rnti_idx, data, 
                                           &uci_data);
 }
 
 int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, srslte_enb_ul_pusch_t *grants, 
+                                  bool *pusch_crc_res,
                                   uint32_t nof_pusch, uint32_t tti)
 {
   uint32_t n_rb_ho = 0; 
   for (int i=0;i<nof_pusch;i++) {
     srslte_ra_ul_grant_t phy_grant; 
     srslte_ra_ul_dci_to_grant(&grants[i].grant, q->cell.nof_prb, n_rb_ho, &phy_grant, tti%8);
-    if (srslte_enb_ul_get_pusch(q, &phy_grant, grants[i].rnti_idx, grants[i].rv_idx, 
-                                grants[i].current_tx_nb, grants[i].data, tti%10) < 0) 
-    {
-      fprintf(stderr, "Error getting PUSCH\n");
-      return SRSLTE_ERROR; 
-    }
+    pusch_crc_res[i] = srslte_enb_ul_get_pusch(q, &phy_grant, grants[i].softbuffer, 
+                                               grants[i].rnti_idx, grants[i].rv_idx, 
+                                               grants[i].current_tx_nb, 
+                                               grants[i].data, tti%10) == 0; 
+
+    q->phich_info[grants[i].rnti_idx].n_prb_lowest = q->pusch_cfg.grant.n_prb_tilde[0];                                           
+    q->phich_info[grants[i].rnti_idx].n_dmrs       = phy_grant.ncs_dmrs;                                           
   }
   return SRSLTE_SUCCESS; 
 }
+
+void srslte_enb_ul_get_phich_info(srslte_enb_ul_t *q, 
+                                             uint32_t rnti_idx, 
+                                             srslte_enb_ul_phich_info_t *phich_info)
 
 int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q, uint32_t tti, 
                                uint32_t freq_offset, cf_t *signal, 
