@@ -441,7 +441,7 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
     fprintf(stderr, "Error decoding PHICH\n");
     return false; 
   }
-  if (ack_bit && distance > 1.5) {
+  if (ack_bit) {
     return true; 
   } else {
     return false; 
