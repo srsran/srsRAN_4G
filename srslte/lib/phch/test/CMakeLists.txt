@@ -70,6 +70,7 @@ add_test(phich_test_10 phich_test -p 1 -n 10 -e)
 add_test(phich_test_102 phich_test -p 2 -n 10 -g 2) 
 add_test(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2) 
  
+BuildMex(MEXNAME phich SOURCES phich_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
 # PDCCH TEST  
