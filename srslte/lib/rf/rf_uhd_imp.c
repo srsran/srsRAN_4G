@@ -243,6 +243,8 @@ int rf_uhd_open(char *args, void **h)
     
     char args2[512]; 
     
+    handler->dynamic_rate = true;
+    
     // Allow NULL parameter
     if (args == NULL) {
       args = "";
