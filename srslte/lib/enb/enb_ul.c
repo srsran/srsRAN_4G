@@ -191,13 +191,17 @@ int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, srslte_enb_ul_pusch_t *gra
   for (int i=0;i<nof_pusch;i++) {
     srslte_ra_ul_grant_t phy_grant; 
     srslte_ra_ul_dci_to_grant(&grants[i].grant, q->cell.nof_prb, n_rb_ho, &phy_grant, tti%8);
-    pusch_crc_res[i] = srslte_enb_ul_get_pusch(q, &phy_grant, grants[i].softbuffer, 
+    pusch_crc_res[i] = (srslte_enb_ul_get_pusch(q, &phy_grant, grants[i].softbuffer, 
                                                grants[i].rnti_idx, grants[i].rv_idx, 
                                                grants[i].current_tx_nb, 
                                                grants[i].data, 
                                                &uci_data[i], 
-                                               tti%10) == 0; 
+                                               tti%10) == 0); 
 
+    srslte_vec_fprint_byte(stdout, grants[i].data, 20);
+    
+    printf("crc=%d, noise=%.2f\n", pusch_crc_res[i], 10*log10(srslte_chest_ul_get_noise_estimate(&q->chest)));                                           
+                                               
     q->phich_info[grants[i].rnti_idx].n_prb_lowest = q->pusch_cfg.grant.n_prb_tilde[0];                                           
     q->phich_info[grants[i].rnti_idx].n_dmrs       = phy_grant.ncs_dmrs;                                           
   }
