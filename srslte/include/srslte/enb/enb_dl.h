@@ -103,7 +103,6 @@ typedef struct {
 typedef struct {
   uint8_t  ack;
   uint32_t rnti_idx; 
-  srslte_enb_ul_phich_info_t info; 
 } srslte_enb_dl_phich_t; 
 
 /* This function shall be called just after the initial synchronization */
@@ -137,6 +136,7 @@ SRSLTE_API void srslte_enb_dl_put_phich(srslte_enb_dl_t *q,
                                         uint32_t sf_idx);
 
 SRSLTE_API void srslte_enb_dl_put_phich_multi(srslte_enb_dl_t *q, 
+                                              srslte_enb_ul_t *q_ul,
                                               srslte_enb_dl_phich_t *acks, 
                                               uint32_t nof_acks, 
                                               uint32_t sf_idx); 

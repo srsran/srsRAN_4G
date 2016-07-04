@@ -194,10 +194,13 @@ void srslte_enb_dl_put_phich(srslte_enb_dl_t *q, uint8_t ack, uint32_t n_prb_low
   srslte_phich_encode(&q->phich, ack, ngroup, nseq, sf_idx, q->sf_symbols);
 }
 
-void srslte_enb_dl_put_phich_multi(srslte_enb_dl_t *q, srslte_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
+void srslte_enb_dl_put_phich_multi(srslte_enb_dl_t *q, srslte_enb_ul_t *q_ul, 
+                                   srslte_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
 {
   for (int i=0;i<nof_acks;i++) {
-    srslte_phich_encode(&q->phich, acks[i].ack, acks[i].n_prb_lowest, acks[i].n_dmrs, sf_idx, q->sf_symbols);    
+    srslte_enb_ul_phich_info_t info; 
+    srslte_enb_ul_get_phich_info(q_ul, acks[i].rnti_idx, &info);
+    srslte_enb_dl_put_phich(q, acks[i].ack, info.n_prb_lowest, info.n_dmrs, sf_idx);    
   }
 }
 

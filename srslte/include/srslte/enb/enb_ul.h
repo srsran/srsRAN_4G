@@ -60,7 +60,8 @@ typedef struct {
 
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
-
+  uint32_t nof_rnti; 
+  
   cf_t *sf_symbols; 
   cf_t *ce; 
   
@@ -89,12 +90,14 @@ typedef struct {
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t *q, 
                                   srslte_cell_t cell, 
-                                  srslte_prach_cfg_t* prach_cfg,  
+                                  srslte_prach_cfg_t* prach_cfg, 
+                                  srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
+                                  srslte_pucch_cfg_t *pucch_cfg,
                                   uint32_t nof_rntis);
 
 SRSLTE_API void srslte_enb_ul_free(srslte_enb_ul_t *q);
 
-SRSLTE_API int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, 
+SRSLTE_API int srslte_enb_ul_cfg_rnti(srslte_enb_ul_t *q, 
                                       uint32_t idx, 
                                       uint16_t rnti); 
 
@@ -115,11 +118,13 @@ SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q,
                                        uint32_t rv_idx, 
                                        uint32_t current_tx_nb,
                                        uint8_t *data, 
+                                       srslte_uci_data_t *uci_data,
                                        uint32_t sf_idx); 
 
 SRSLTE_API int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, 
                                              srslte_enb_ul_pusch_t *grants, 
                                              bool *pusch_crc_res,
+                                             srslte_uci_data_t *uci_data,
                                              uint32_t nof_pusch,
                                              uint32_t sf_idx); 
 

@@ -40,7 +40,10 @@
 #define MAX_CANDIDATES  64
 
 int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell, 
-                       srslte_prach_cfg_t *prach_cfg, uint32_t nof_rnti)
+                       srslte_prach_cfg_t *prach_cfg, 
+                       srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg, 
+                       srslte_pucch_cfg_t *pucch_cfg, 
+                       uint32_t nof_rnti)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -52,6 +55,7 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
     bzero(q, sizeof(srslte_enb_ul_t));
     
     q->cell = cell;
+    q->nof_rnti = nof_rnti; 
     
     if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -85,6 +89,9 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       goto clean_exit; 
     }
     
+    // SRS is a dedicated configuration
+    srslte_chest_ul_set_cfg(&q->chest, pusch_cfg, pucch_cfg, NULL);
+        
     q->sf_symbols = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
     if (!q->sf_symbols) {
       perror("malloc");
@@ -95,6 +102,12 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
     if (!q->ce) {
       perror("malloc");
       goto clean_exit; 
+    }
+    
+    q->phich_info = malloc(nof_rnti*sizeof(srslte_enb_ul_phich_info_t));
+    if (!q->phich_info) {
+      perror("malloc");
+      goto clean_exit;
     }
     
     ret = SRSLTE_SUCCESS;
@@ -125,11 +138,14 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
     if (q->ce) {
       free(q->ce);
     }
+    if (q->phich_info) {
+      free(q->phich_info);
+    }
     bzero(q, sizeof(srslte_enb_ul_t));
   }  
 }
 
-int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, uint32_t idx, uint16_t rnti)
+int srslte_enb_ul_cfg_rnti(srslte_enb_ul_t *q, uint32_t idx, uint16_t rnti)
 {
   return srslte_pusch_set_rnti_multi(&q->pusch, idx, rnti);
 }
@@ -144,10 +160,9 @@ void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer)
   srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
 }
 
-
 int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
-                            uint32_t rnti_idx, uint32_t rv_idx, uint32_t current_tx_nb,
-                            uint8_t *data, uint32_t sf_idx)
+                            uint32_t rnti_idx, uint32_t rv_idx, uint32_t current_tx_nb, 
+                            uint8_t *data, srslte_uci_data_t *uci_data, uint32_t sf_idx)
 {
      
   if (srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, grant, NULL, NULL, NULL, sf_idx, rv_idx, current_tx_nb)) {
@@ -161,17 +176,15 @@ int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srs
   
   float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
   
-  srslte_uci_data_t uci_data; 
-  bzero(&uci_data, sizeof(srslte_uci_data_t)); 
   return srslte_pusch_uci_decode_rnti_idx(&q->pusch, &q->pusch_cfg, 
                                           softbuffer, q->sf_symbols, 
                                           q->ce, noise_power, 
                                           rnti_idx, data, 
-                                          &uci_data);
+                                          uci_data);
 }
 
 int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, srslte_enb_ul_pusch_t *grants, 
-                                  bool *pusch_crc_res,
+                                  bool *pusch_crc_res, srslte_uci_data_t *uci_data,
                                   uint32_t nof_pusch, uint32_t tti)
 {
   uint32_t n_rb_ho = 0; 
@@ -181,7 +194,9 @@ int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, srslte_enb_ul_pusch_t *gra
     pusch_crc_res[i] = srslte_enb_ul_get_pusch(q, &phy_grant, grants[i].softbuffer, 
                                                grants[i].rnti_idx, grants[i].rv_idx, 
                                                grants[i].current_tx_nb, 
-                                               grants[i].data, tti%10) == 0; 
+                                               grants[i].data, 
+                                               &uci_data[i], 
+                                               tti%10) == 0; 
 
     q->phich_info[grants[i].rnti_idx].n_prb_lowest = q->pusch_cfg.grant.n_prb_tilde[0];                                           
     q->phich_info[grants[i].rnti_idx].n_dmrs       = phy_grant.ncs_dmrs;                                           
@@ -190,8 +205,14 @@ int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, srslte_enb_ul_pusch_t *gra
 }
 
 void srslte_enb_ul_get_phich_info(srslte_enb_ul_t *q, 
-                                             uint32_t rnti_idx, 
-                                             srslte_enb_ul_phich_info_t *phich_info)
+                                  uint32_t rnti_idx, 
+                                  srslte_enb_ul_phich_info_t *phich_info)
+{
+  if (rnti_idx < q->nof_rnti) {
+    phich_info->n_dmrs       = q->phich_info[rnti_idx].n_dmrs;
+    phich_info->n_prb_lowest = q->phich_info[rnti_idx].n_prb_lowest;
+  }
+}
 
 int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q, uint32_t tti, 
                                uint32_t freq_offset, cf_t *signal, 
