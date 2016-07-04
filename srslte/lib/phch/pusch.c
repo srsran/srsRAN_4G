@@ -614,7 +614,7 @@ int srslte_pusch_uci_decode_seq(srslte_pusch_t *q,
       srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
 
       // Decode RI/HARQ bits before descrambling 
-      if (srslte_ulsch_uci_decode_ri_ack(&q->ul_sch, cfg, softbuffer, q->q, seq[cfg->sf_idx].c, uci_data)) {
+      if (srslte_ulsch_uci_decode_ri_ack(&q->ul_sch, cfg, softbuffer, q->q, seq->c, uci_data)) {
         fprintf(stderr, "Error decoding RI/HARQ bits\n");
         return SRSLTE_ERROR; 
       }
