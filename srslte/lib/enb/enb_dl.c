@@ -194,16 +194,6 @@ void srslte_enb_dl_put_phich(srslte_enb_dl_t *q, uint8_t ack, uint32_t n_prb_low
   srslte_phich_encode(&q->phich, ack, ngroup, nseq, sf_idx, q->sf_symbols);
 }
 
-void srslte_enb_dl_put_phich_multi(srslte_enb_dl_t *q, srslte_enb_ul_t *q_ul, 
-                                   srslte_enb_dl_phich_t *acks, uint32_t nof_acks, uint32_t sf_idx)
-{
-  for (int i=0;i<nof_acks;i++) {
-    srslte_enb_ul_phich_info_t info; 
-    srslte_enb_ul_get_phich_info(q_ul, acks[i].rnti_idx, &info);
-    srslte_enb_dl_put_phich(q, acks[i].ack, info.n_prb_lowest, info.n_dmrs, sf_idx);    
-  }
-}
-
 void srslte_enb_dl_put_base(srslte_enb_dl_t *q, uint32_t tti) 
 {
   uint32_t sf_idx = tti%10;
@@ -292,54 +282,5 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srs
     fprintf(stderr, "Error encoding PDSCH\n");
     return SRSLTE_ERROR;
   }        
-  return SRSLTE_SUCCESS; 
-}
-
-int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, srslte_enb_ul_pusch_t *grants, uint32_t nof_grants, uint32_t sf_idx)
-{
-  for (int i=0;i<nof_grants;i++) {
-    if (srslte_enb_dl_put_pdcch_ul(q, &grants[i].grant, grants[i].location, grants[i].rnti_idx, sf_idx)) {
-      fprintf(stderr, "Error putting PUSCH %d\n",i);
-      return SRSLTE_ERROR; 
-    }
-  }
-  return SRSLTE_SUCCESS; 
-}
-
-int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, srslte_enb_dl_pdsch_t *grants, 
-                                  uint32_t nof_grants, uint32_t sf_idx)
-{
-  for (int i=0;i<nof_grants;i++) {
-    srslte_dci_format_t format = SRSLTE_DCI_FORMAT1; 
-    switch(grants[i].grant.dci_format) {
-      case SRSLTE_RA_DCI_FORMAT1:
-        format = SRSLTE_DCI_FORMAT1; 
-        break;
-      case SRSLTE_RA_DCI_FORMAT1A:
-        format = SRSLTE_DCI_FORMAT1A; 
-        break;
-      case SRSLTE_RA_DCI_FORMAT1C:
-        format = SRSLTE_DCI_FORMAT1C; 
-        break;
-    }
-    if (srslte_enb_dl_put_pdcch_dl(q, &grants[i].grant, format, grants[i].location, grants[i].rnti_idx, sf_idx)) {
-      fprintf(stderr, "Error putting PDCCH %d\n",i);
-      return SRSLTE_ERROR; 
-    }      
-    uint16_t rnti = srslte_pdsch_get_rnti_multi(&q->pdsch, grants[i].rnti_idx);
-
-    bool rnti_is_user = true; 
-    if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || rnti == SRSLTE_MRNTI) {
-      rnti_is_user = false; 
-    }
-    srslte_ra_dl_grant_t phy_grant; 
-    srslte_ra_dl_dci_to_grant(&grants[i].grant, q->cell.nof_prb, rnti_is_user, &phy_grant);
-    if (srslte_enb_dl_put_pdsch(q, &phy_grant, grants[i].softbuffer, grants[i].rnti_idx, grants[i].grant.rv_idx, sf_idx, 
-                                grants[i].data)) 
-    {
-      fprintf(stderr, "Error putting PDSCH %d\n",i);
-      return SRSLTE_ERROR; 
-    }
-  }
   return SRSLTE_SUCCESS; 
 }

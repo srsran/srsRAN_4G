@@ -73,7 +73,6 @@ typedef struct SRSLTE_API {
   srslte_prach_t  prach;
   
   srslte_pusch_cfg_t     pusch_cfg; 
-  srslte_enb_ul_phich_info_t *phich_info;
 
 } srslte_enb_ul_t;
 
@@ -107,10 +106,6 @@ SRSLTE_API int srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q,
 SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q, 
                                   cf_t *signal_buffer); 
 
-SRSLTE_API void srslte_enb_ul_get_phich_info(srslte_enb_ul_t *q, 
-                                             uint32_t rnti_idx, 
-                                             srslte_enb_ul_phich_info_t *phich_info);
-
 SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, 
                                        srslte_ra_ul_grant_t *grant, 
                                        srslte_softbuffer_rx_t *softbuffer,
@@ -120,13 +115,6 @@ SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q,
                                        uint8_t *data, 
                                        srslte_uci_data_t *uci_data,
                                        uint32_t sf_idx); 
-
-SRSLTE_API int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, 
-                                             srslte_enb_ul_pusch_t *grants, 
-                                             bool *pusch_crc_res,
-                                             srslte_uci_data_t *uci_data,
-                                             uint32_t nof_pusch,
-                                             uint32_t sf_idx); 
 
 SRSLTE_API int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q, 
                                           uint32_t tti, 

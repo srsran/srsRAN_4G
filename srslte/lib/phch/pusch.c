@@ -664,4 +664,9 @@ int srslte_pusch_uci_decode_rnti_idx(srslte_pusch_t *q,
   }
 }
 
+uint32_t srslte_pusch_last_noi(srslte_pusch_t *q) {
+  return q->ul_sch.nof_iterations;
+}
+
+
   

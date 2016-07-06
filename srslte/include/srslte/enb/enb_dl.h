@@ -135,12 +135,6 @@ SRSLTE_API void srslte_enb_dl_put_phich(srslte_enb_dl_t *q,
                                         uint32_t n_dmrs, 
                                         uint32_t sf_idx);
 
-SRSLTE_API void srslte_enb_dl_put_phich_multi(srslte_enb_dl_t *q, 
-                                              srslte_enb_ul_t *q_ul,
-                                              srslte_enb_dl_phich_t *acks, 
-                                              uint32_t nof_acks, 
-                                              uint32_t sf_idx); 
-
 SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t *q, 
                                        uint32_t tti);
 
@@ -175,14 +169,5 @@ SRSLTE_API int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q,
                                           uint32_t rnti_idx, 
                                           uint32_t sf_idx); 
 
-SRSLTE_API int srslte_enb_dl_put_grant_pdsch(srslte_enb_dl_t *q, 
-                                             srslte_enb_dl_pdsch_t *grants, 
-                                             uint32_t nof_grants, 
-                                             uint32_t sf_idx); 
-
-SRSLTE_API int srslte_enb_dl_put_grant_pusch(srslte_enb_dl_t *q, 
-                                             srslte_enb_ul_pusch_t *grants, 
-                                             uint32_t nof_grants, 
-                                             uint32_t sf_idx); 
 
 #endif

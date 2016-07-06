@@ -103,13 +103,7 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       perror("malloc");
       goto clean_exit; 
     }
-    
-    q->phich_info = malloc(nof_rnti*sizeof(srslte_enb_ul_phich_info_t));
-    if (!q->phich_info) {
-      perror("malloc");
-      goto clean_exit;
-    }
-    
+        
     ret = SRSLTE_SUCCESS;
     
   } else {
@@ -137,9 +131,6 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
     }
     if (q->ce) {
       free(q->ce);
-    }
-    if (q->phich_info) {
-      free(q->phich_info);
     }
     bzero(q, sizeof(srslte_enb_ul_t));
   }  
@@ -183,40 +174,6 @@ int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srs
                                           uci_data);
 }
 
-int srslte_enb_ul_get_pusch_multi(srslte_enb_ul_t *q, srslte_enb_ul_pusch_t *grants, 
-                                  bool *pusch_crc_res, srslte_uci_data_t *uci_data,
-                                  uint32_t nof_pusch, uint32_t tti)
-{
-  uint32_t n_rb_ho = 0; 
-  for (int i=0;i<nof_pusch;i++) {
-    srslte_ra_ul_grant_t phy_grant; 
-    srslte_ra_ul_dci_to_grant(&grants[i].grant, q->cell.nof_prb, n_rb_ho, &phy_grant, tti%8);
-    pusch_crc_res[i] = (srslte_enb_ul_get_pusch(q, &phy_grant, grants[i].softbuffer, 
-                                               grants[i].rnti_idx, grants[i].rv_idx, 
-                                               grants[i].current_tx_nb, 
-                                               grants[i].data, 
-                                               &uci_data[i], 
-                                               tti%10) == 0); 
-
-    srslte_vec_fprint_byte(stdout, grants[i].data, 20);
-    
-    printf("crc=%d, noise=%.2f\n", pusch_crc_res[i], 10*log10(srslte_chest_ul_get_noise_estimate(&q->chest)));                                           
-                                               
-    q->phich_info[grants[i].rnti_idx].n_prb_lowest = q->pusch_cfg.grant.n_prb_tilde[0];                                           
-    q->phich_info[grants[i].rnti_idx].n_dmrs       = phy_grant.ncs_dmrs;                                           
-  }
-  return SRSLTE_SUCCESS; 
-}
-
-void srslte_enb_ul_get_phich_info(srslte_enb_ul_t *q, 
-                                  uint32_t rnti_idx, 
-                                  srslte_enb_ul_phich_info_t *phich_info)
-{
-  if (rnti_idx < q->nof_rnti) {
-    phich_info->n_dmrs       = q->phich_info[rnti_idx].n_dmrs;
-    phich_info->n_prb_lowest = q->phich_info[rnti_idx].n_prb_lowest;
-  }
-}
 
 int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q, uint32_t tti, 
                                uint32_t freq_offset, cf_t *signal, 
