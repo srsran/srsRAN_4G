@@ -67,7 +67,6 @@ uint32_t plot_sf_idx=0;
 bool plot_track = true; 
 #endif
 
-#define PLOT_CHEST_ARGUMENT
 #define PRINT_CHANGE_SCHEDULIGN
 
 //#define CORRECT_SAMPLE_OFFSET
@@ -652,8 +651,7 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_GRAPHICS
 
 
-//plot_waterfall_t poutfft;
-plot_real_t p_sync, pce, pce_arg;
+plot_real_t p_sync, pce;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
 float tmp_plot[110*15*2048];
@@ -667,22 +665,18 @@ void *plot_thread_run(void *arg) {
   
   sdrgui_init();
   
-  //plot_waterfall_init(&poutfft, SRSLTE_NRE * ue_dl.cell.nof_prb, 1000);
-  //plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
-  //plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
+  plot_scatter_init(&pscatequal);
+  plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pscatequal, -4, 4);
+  plot_scatter_setYAxisScale(&pscatequal, -4, 4);
+
+  plot_scatter_addToWindowGrid(&pscatequal, (char*)"pdsch_ue", 0, 0);
 
   if (!prog_args.disable_plots_except_constellation) {
     plot_real_init(&pce);
     plot_real_setTitle(&pce, "Channel Response - Magnitude");
     plot_real_setLabels(&pce, "Index", "dB");
     plot_real_setYAxisScale(&pce, -40, 40);
-
-  #ifdef PLOT_CHEST_ARGUMENT
-    plot_real_init(&pce_arg);
-    plot_real_setTitle(&pce_arg, "Channel Response - Argument");
-    plot_real_setLabels(&pce_arg, "Index", "rad");
-    plot_real_setYAxisScale(&pce_arg, -1.1*M_PI, 1.1*M_PI);
-  #endif
     
     plot_real_init(&p_sync);
     plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
@@ -692,13 +686,11 @@ void *plot_thread_run(void *arg) {
     plot_scatter_setTitle(&pscatequal_pdcch, "PDCCH - Equalized Symbols");
     plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
     plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
+
+    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue",    0, 1);
+    plot_real_addToWindowGrid(&pscatequal_pdcch, (char*)"pdsch_ue", 1, 0);
+    plot_real_addToWindowGrid(&p_sync, (char*)"pdsch_ue", 1, 1);
   }
-
-  plot_scatter_init(&pscatequal);
-  plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&pscatequal, -4, 4);
-  plot_scatter_setYAxisScale(&pscatequal, -4, 4);
-
   
   while(1) {
     sem_wait(&plot_sem);
@@ -739,13 +731,6 @@ void *plot_thread_run(void *arg) {
         }
         
       }
-
-  #ifdef PLOT_CHEST_ARGUMENT
-      for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[i] = cargf(ue_dl.ce[0][i]);
-      }
-      plot_real_setNewData(&pce_arg, tmp_plot2, i);        
-  #endif
       
       plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
     }
