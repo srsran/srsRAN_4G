@@ -576,7 +576,7 @@ int main(int argc, char **argv) {
 
       srslte_pbch_mib_pack(&cell, sfn, bch_payload);
       if (sf_idx == 0) {
-        srslte_pbch_encode(&pbch, bch_payload, slot1_symbols);
+        srslte_pbch_encode(&pbch, bch_payload, slot1_symbols, nf%4);
       }
 
       srslte_pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       

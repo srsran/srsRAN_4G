@@ -177,7 +177,7 @@ void srslte_enb_dl_put_mib(srslte_enb_dl_t *q, uint32_t tti)
 {
   if ((tti%10) == 0) {
     srslte_pbch_mib_pack(&q->cell, tti/10, q->bch_payload);
-    srslte_pbch_encode(&q->pbch, q->bch_payload, q->slot1_symbols);
+    srslte_pbch_encode(&q->pbch, q->bch_payload, q->slot1_symbols, ((tti/10)%4));
   }  
 }
 

@@ -98,7 +98,8 @@ SRSLTE_API int srslte_pbch_decode(srslte_pbch_t *q,
 
 SRSLTE_API int srslte_pbch_encode(srslte_pbch_t *q, 
                            uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
-                           cf_t *slot1_symbols[SRSLTE_MAX_PORTS]);
+                           cf_t *slot1_symbols[SRSLTE_MAX_PORTS], 
+                           uint32_t frame_idx);
 
 SRSLTE_API void srslte_pbch_decode_reset(srslte_pbch_t *q);
 

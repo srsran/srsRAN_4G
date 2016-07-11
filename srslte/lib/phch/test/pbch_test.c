@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
     bch_payload_tx[i] = rand()%2;
   }
 
-  srslte_pbch_encode(&pbch, bch_payload_tx, slot1_symbols);
+  srslte_pbch_encode(&pbch, bch_payload_tx, slot1_symbols, 0);
 
   /* combine outputs */
   for (i=1;i<cell.nof_ports;i++) {

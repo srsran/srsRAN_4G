@@ -35,6 +35,7 @@
 
 #include "srslte/config.h"
 
+#include "srslte/dft/dft_precoding.h"
 #include "srslte/ch_estimation/chest_ul.h"
 #include "srslte/utils/vector.h"
 #include "srslte/utils/convolution.h"
@@ -207,6 +208,11 @@ int srslte_chest_ul_estimate(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
   if (!q->dmrs_signal_configured) {
     fprintf(stderr, "Error must call srslte_chest_ul_set_cfg() before using the UL estimator\n");
     return SRSLTE_ERROR; 
+  }
+  
+  if (!srslte_dft_precoding_valid_prb(nof_prb)) {
+    fprintf(stderr, "Error invalid nof_prb=%d\n", nof_prb);
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
   
   int nrefs_sym = nof_prb*SRSLTE_NRE; 
