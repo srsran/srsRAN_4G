@@ -622,7 +622,7 @@ void srslte_vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len) {
 #ifndef HAVE_VOLK_MAG_SQUARE_FUNCTION
   int i;
   for (i=0;i<len;i++) {
-    abs_square[i] = crealf(x[i])*crealf(x[i])+cimagf(x[i]*cimagf(x[i]));
+    abs_square[i] = crealf(x[i])*crealf(x[i])+cimagf(x[i])*cimagf(x[i]);
   }
 #else
   volk_32fc_magnitude_squared_32f(abs_square,x,len);
