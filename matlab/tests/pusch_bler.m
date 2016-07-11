@@ -120,7 +120,7 @@ for k = 1:length(SNR);
         end
         
         % Same with srsLTE 
-        [okSRSLTE, cqi_rx_srs, ri_rx_srs, ack_rx_srs] = srslte_pusch(ueConfig, puschConfig, ...
+        [okSRSLTE, cqi_rx_srs, ri_rx_srs, ack_rx_srs] = srslte_puscht(ueConfig, puschConfig, ...
             transportBlkSize, subframe, ones(size(subframe{1})), 0);
         
         nErrors_srs(k,rvIndex) = nErrors_srs(k,rvIndex)+~okSRSLTE;          

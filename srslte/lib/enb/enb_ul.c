@@ -62,7 +62,7 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       goto clean_exit;
     }
     srslte_ofdm_set_normalize(&q->fft, true);
-    srslte_ofdm_set_freq_shift(&q->fft, 0.5);
+    srslte_ofdm_set_freq_shift(&q->fft, -0.5);
 
     if (srslte_pucch_init(&q->pucch, q->cell)) {
       fprintf(stderr, "Error creating PUCCH object\n");
@@ -153,17 +153,17 @@ void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer)
 
 int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
                             uint32_t rnti_idx, uint32_t rv_idx, uint32_t current_tx_nb, 
-                            uint8_t *data, srslte_uci_data_t *uci_data, uint32_t sf_idx)
+                            uint8_t *data, srslte_uci_data_t *uci_data, uint32_t tti)
 {
      
-  if (srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, grant, NULL, NULL, NULL, sf_idx, rv_idx, current_tx_nb)) {
+  if (srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, grant, NULL, NULL, NULL, tti, rv_idx, current_tx_nb)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     return SRSLTE_ERROR;
   }
 
   uint32_t cyclic_shift_for_dmrs = 0; 
   
-  srslte_chest_ul_estimate(&q->chest, q->sf_symbols, q->ce, grant->L_prb, sf_idx, cyclic_shift_for_dmrs, grant->n_prb);
+  srslte_chest_ul_estimate(&q->chest, q->sf_symbols, q->ce, grant->L_prb, tti%10, cyclic_shift_for_dmrs, grant->n_prb);
   
   float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
   

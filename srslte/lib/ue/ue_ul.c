@@ -57,7 +57,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     }
     srslte_ofdm_set_freq_shift(&q->fft, 0.5);
     srslte_ofdm_set_normalize(&q->fft, true);
-    
+
     q->normalize_en = false; 
 
     if (srslte_cfo_init(&q->cfo, CURRENT_SFLEN)) {

@@ -114,7 +114,7 @@ SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q,
                                        uint32_t current_tx_nb,
                                        uint8_t *data, 
                                        srslte_uci_data_t *uci_data,
-                                       uint32_t sf_idx); 
+                                       uint32_t tti); 
 
 SRSLTE_API int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q, 
                                           uint32_t tti, 

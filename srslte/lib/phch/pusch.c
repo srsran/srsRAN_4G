@@ -603,7 +603,7 @@ int srslte_pusch_uci_decode_seq(srslte_pusch_t *q,
         fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
         return SRSLTE_ERROR;
       }
-      
+
       // Equalization
       srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, noise_estimate);
       
