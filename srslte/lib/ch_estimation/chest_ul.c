@@ -168,9 +168,12 @@ static void interpolate_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs)
   uint32_t NL = 2*SRSLTE_CP_NSYMB(q->cell.cp);
     
   /* Interpolate in the time domain between symbols */
-  srslte_interp_linear_vector3(&q->srslte_interp_linvec, &cesymb(L2), &cesymb(L1), &cesymb(L1), &cesymb(L1-1), L1,        false, nrefs);
-  srslte_interp_linear_vector3(&q->srslte_interp_linvec, &cesymb(L1), &cesymb(L2), NULL,        &cesymb(L1+1), (L2-L1)-1, true,  nrefs);
-  srslte_interp_linear_vector3(&q->srslte_interp_linvec, &cesymb(L1), &cesymb(L2), &cesymb(L2), &cesymb(L2+1), (NL-L2)-1, true,  nrefs);
+  srslte_interp_linear_vector3(&q->srslte_interp_linvec, 
+                               &cesymb(L2), &cesymb(L1), &cesymb(L1), &cesymb(L1-1), (L2-L1), L1,        false, nrefs);
+  srslte_interp_linear_vector3(&q->srslte_interp_linvec, 
+                               &cesymb(L1), &cesymb(L2), NULL,        &cesymb(L1+1), (L2-L1), (L2-L1)-1, true,  nrefs);
+  srslte_interp_linear_vector3(&q->srslte_interp_linvec, 
+                               &cesymb(L1), &cesymb(L2), &cesymb(L2), &cesymb(L2+1), (L2-L1), (NL-L2)-1, true,  nrefs);
   
 }
 

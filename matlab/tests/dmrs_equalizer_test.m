@@ -6,7 +6,7 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=linspace(0,30,5);
+SNR_values_db=100;%linspace(0,30,5);
 Nrealizations=1;
 
 w1=1/3;
@@ -54,7 +54,7 @@ legends={'matlab','ls',num2str(w1)};
 colors={'bo-','rx-','m*-','k+-','c+-'};
 colors2={'b-','r-','m-','k-','c-'};
 
-addpath('../../build/srslte/lib/ch_estimation/test')
+addpath('../../debug/srslte/lib/ch_estimation/test')
 
 offset = -1; 
 for nreal=1:Nrealizations
