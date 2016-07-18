@@ -12,7 +12,7 @@ Nrealizations=1;
 w1=0.1;
 w2=0.3;
 
-enb.NDLRB = 25;                 % Number of resource blocks
+enb.NDLRB = 6;                 % Number of resource blocks
 
 enb.CellRefP = 1;               % One transmit antenna port
 enb.NCellID = 0;                % Cell ID
@@ -26,7 +26,7 @@ P=K/6;
 cfg.Seed = 0;                  % Random channel seed
 cfg.InitTime = 0;
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EPA';     
+cfg.DelayProfile = 'EVA';     
 
 % doppler 5, 70 300
 
@@ -55,7 +55,7 @@ L = gridsize(2);    % Number of OFDM symbols in one subframe
 Ports = gridsize(3);    % Number of transmit antenna ports
 
 %% Allocate memory
-Ntests=4;
+Ntests=2;
 hest=cell(1,Ntests);
 for i=1:Ntests
     hest{i}=zeros(K,140);
