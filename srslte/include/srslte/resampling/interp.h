@@ -36,6 +36,7 @@
 #define INTERP_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "srslte/config.h"
 
@@ -43,7 +44,7 @@
 /************* STATIC LINEAR INTERPOLATION FUNCTIONS */
 
 SRSLTE_API cf_t srslte_interp_linear_onesample(cf_t input0, 
-                                        cf_t input1); 
+                                               cf_t input1); 
 
 SRSLTE_API cf_t srslte_interp_linear_onesample_cabs(cf_t input0, 
                                              cf_t input1); 
@@ -78,14 +79,25 @@ SRSLTE_API void srslte_interp_linear_vector(srslte_interp_linsrslte_vec_t *q,
                                             cf_t *in0, 
                                             cf_t *in1, 
                                             cf_t *between, 
+                                            uint32_t in1_in0_d, 
                                             uint32_t M); 
 
 SRSLTE_API void srslte_interp_linear_vector2(srslte_interp_linsrslte_vec_t *q, 
-                                            cf_t *in0, 
-                                            cf_t *in1, 
-                                            cf_t *start, 
-                                            cf_t *between, 
-                                            uint32_t M); 
+                                             cf_t *in0, 
+                                             cf_t *in1, 
+                                             cf_t *start, 
+                                             cf_t *between, 
+                                             uint32_t in1_in0_d, 
+                                             uint32_t M); 
+
+SRSLTE_API void srslte_interp_linear_vector3(srslte_interp_linsrslte_vec_t *q, 
+                                             cf_t *in0, 
+                                             cf_t *in1, 
+                                             cf_t *start, 
+                                             cf_t *between, 
+                                             uint32_t M, 
+                                             bool to_right, 
+                                             uint32_t len); 
 
 /* Interpolation within a vector */
 
