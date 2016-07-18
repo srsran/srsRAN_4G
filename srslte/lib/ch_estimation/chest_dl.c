@@ -248,7 +248,7 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
       srslte_vec_sub_ccc(&cesymb(1), &cesymb(8), q->srslte_interp_linvec.diff_vec, q->srslte_interp_linvec.vector_len);
       srslte_vec_sc_prod_cfc(q->srslte_interp_linvec.diff_vec, (float) 1/7, q->srslte_interp_linvec.diff_vec, 
                              q->srslte_interp_linvec.vector_len);
-      srslte_vec_sum_ccc(q->srslte_interp_linvec.diff_vec, &cesymb(1), &cesymb(0), q->srslte_interp_linvec.diff_vec);
+      srslte_vec_sum_ccc(q->srslte_interp_linvec.diff_vec, &cesymb(1), &cesymb(0), q->srslte_interp_linvec.vector_len);
 
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(2), 6);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 5);
@@ -263,7 +263,7 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
       srslte_vec_sub_ccc(&cesymb(1), &cesymb(7), q->srslte_interp_linvec.diff_vec, q->srslte_interp_linvec.vector_len);
       srslte_vec_sc_prod_cfc(q->srslte_interp_linvec.diff_vec, (float) 1/6, q->srslte_interp_linvec.diff_vec, 
                              q->srslte_interp_linvec.vector_len);
-      srslte_vec_sum_ccc(q->srslte_interp_linvec.diff_vec, &cesymb(1), &cesymb(0), q->srslte_interp_linvec.diff_vec);
+      srslte_vec_sum_ccc(q->srslte_interp_linvec.diff_vec, &cesymb(1), &cesymb(0), q->srslte_interp_linvec.vector_len);
 
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 5);
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(8), 4);
