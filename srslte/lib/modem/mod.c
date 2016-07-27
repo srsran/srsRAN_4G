@@ -50,7 +50,7 @@ int srslte_mod_modulate(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, u
   }
   return j;
 }
-
+  
 void mod_bpsk_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint32_t nbits) {
   uint8_t mask_bpsk[8]  = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
   uint8_t shift_bpsk[8] = {7, 6, 5, 4, 3, 2, 1, 0};

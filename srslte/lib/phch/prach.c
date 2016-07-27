@@ -32,10 +32,10 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
+float save_corr[4096];
 
 //PRACH detection threshold is PRACH_DETECT_FACTOR*average
 #define PRACH_DETECT_FACTOR 18
-#define CFO_REPLICA_FACTOR  0.3
 
 #define   N_SEQS        64    // Number of prach sequences available
 #define   N_RB_SC       12    // Number of subcarriers per resource block
@@ -440,8 +440,9 @@ int srslte_prach_init(srslte_prach_t *p,
     srslte_dft_plan_set_norm(p->fft, false);
 
     p->N_seq = prach_Tseq[p->f]*p->N_ifft_ul/2048;
-    p->N_cp = prach_Tcp[p->f]*p->N_ifft_ul/2048;
-
+    p->N_cp  = prach_Tcp[p->f]*p->N_ifft_ul/2048;
+    p->T_seq = prach_Tseq[p->f]*SRSLTE_LTE_TS;
+    
     ret = SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid parameters\n");
@@ -506,7 +507,7 @@ int srslte_prach_detect(srslte_prach_t *p,
                         uint32_t *indices,
                         uint32_t *n_indices)
 {
-  return srslte_prach_detect_offset(p, freq_offset, signal, sig_len, indices, NULL, n_indices);
+  return srslte_prach_detect_offset(p, freq_offset, signal, sig_len, indices, NULL, NULL, n_indices);
 }
 
 int srslte_prach_detect_offset(srslte_prach_t *p,
@@ -514,7 +515,8 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
                                cf_t *signal,
                                uint32_t sig_len,
                                uint32_t *indices,
-                               uint32_t *offsets,
+                               float *t_offsets,
+                               float    *peak_to_avg,
                                uint32_t *n_indices)
 {
   int ret = SRSLTE_ERROR;
@@ -525,7 +527,7 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
   {
     
     if(sig_len < p->N_ifft_prach){
-      fprintf(stderr, "srslte_prach_detect: Signal is not of length %d", p->N_ifft_prach);
+      fprintf(stderr, "srslte_prach_detect: Signal length is %d and should be %d\n", sig_len, p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
     
@@ -562,7 +564,6 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
       uint32_t n_wins = p->N_zc/winsize;
 
       float max_peak = 0; 
-      
       for(int j=0;j<n_wins;j++) {
         uint32_t start = (p->N_zc-(j*p->N_cs))%p->N_zc;
         uint32_t end = start+winsize;
@@ -583,12 +584,20 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
       }
       if (max_peak > p->detect_factor*corr_ave) {
         for (int j=0;j<n_wins;j++) {
-          if(p->peak_values[j] > p->detect_factor*corr_ave && 
-             p->peak_values[j] >= CFO_REPLICA_FACTOR*max_peak)
+          if(p->peak_values[j] > p->detect_factor*corr_ave)
           {
-            indices[*n_indices] = (i*n_wins)+j;
-            if (offsets) {
-              offsets[*n_indices] = p->peak_offsets[j]; 
+            printf("ncs=%d, nzc=%d, nwins=%d, Nroot=%d, i=%d, j=%d, start=%d, peak_value=%f, peak_offset=%d, tseq=%f\n", 
+                   p->N_cs, p->N_zc, n_wins, p->N_roots, i, j, (p->N_zc-(j*p->N_cs))%p->N_zc, p->peak_values[j], 
+                   p->peak_offsets[j], p->T_seq*1e6);
+            memcpy(save_corr, p->corr, p->N_zc*sizeof(float));
+            if (indices) {
+              indices[*n_indices]     = (i*n_wins)+j;
+            }
+            if (peak_to_avg) {
+              peak_to_avg[*n_indices] = p->peak_values[j]/corr_ave; 
+            }
+            if (t_offsets) {
+              t_offsets[*n_indices] = (float) p->peak_offsets[j]*p->T_seq/p->N_zc; 
             }            
             (*n_indices)++;          
           }

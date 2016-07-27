@@ -83,6 +83,8 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       fprintf(stderr, "Error initiating PRACH\n");
       goto clean_exit; 
     }
+    
+    srslte_prach_set_detect_factor(&q->prach, 60);
    
     if (srslte_chest_ul_init(&q->chest, cell)) {
       fprintf(stderr, "Error initiating channel estimator\n");
@@ -177,18 +179,20 @@ int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srs
 
 int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q, uint32_t tti, 
                                uint32_t freq_offset, cf_t *signal, 
-                               uint32_t *indices, uint32_t *offsets)
+                               uint32_t *indices, float *offsets, float *peak2avg)
 {
   uint32_t nof_detected_prach = 0; 
   // consider the number of subframes the transmission must be anticipated 
   if (srslte_prach_tti_opportunity(&q->prach, tti, -1)) 
   {
+    
     if (srslte_prach_detect_offset(&q->prach,
                                    freq_offset,
                                    &signal[q->prach.N_cp],
                                    SRSLTE_SF_LEN_PRB(q->cell.nof_prb),
                                    indices, 
                                    offsets,
+                                   peak2avg,
                                    &nof_detected_prach)) 
     {
       fprintf(stderr, "Error detecting PRACH\n");

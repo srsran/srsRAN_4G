@@ -64,6 +64,7 @@ typedef struct SRSLTE_API {
   uint32_t N_zc;  // PRACH sequence length
   uint32_t N_cs;  // Cyclic shift size
   uint32_t N_seq; // Preamble length
+  float    T_seq; // Preamble length in seconds
   uint32_t N_cp;  // Cyclic prefix length
 
   // Generated tables
@@ -153,7 +154,8 @@ SRSLTE_API int srslte_prach_detect_offset(srslte_prach_t *p,
                                           cf_t *signal,
                                           uint32_t sig_len,
                                           uint32_t *indices, 
-                                          uint32_t *offsets,
+                                          float    *t_offsets,
+					  float    *peak_to_avg,
                                           uint32_t *ind_len);
 
 SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t *p, 

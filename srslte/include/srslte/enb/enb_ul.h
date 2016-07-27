@@ -122,7 +122,8 @@ SRSLTE_API int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q,
                                           uint32_t freq_offset, 
                                           cf_t *signal, 
                                           uint32_t *indices, 
-                                          uint32_t *offsets);
+                                          float *offsets, 
+					  float *peak2avg);
 
 
 #endif

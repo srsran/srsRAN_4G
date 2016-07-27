@@ -82,7 +82,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexutils_read_uint32_struct(PRACHCFG, "FreqOffset", &frequency_offset);
 
   srslte_prach_t prach; 
-  if (srslte_prach_init(&prach, N_ifft_ul, preamble_format, root_seq_idx, high_speed_flag, zero_corr_zone)) {
+  if (srslte_prach_init(&prach, N_ifft_ul, preamble_format*16, root_seq_idx, high_speed_flag, zero_corr_zone)) {
     mexErrMsgTxt("Error initiating PRACH\n");
     return;
   }

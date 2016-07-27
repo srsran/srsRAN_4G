@@ -29,6 +29,8 @@
 #include "srslte/srslte.h"
 #include "srslte/mex/mexutils.h"
 
+extern float save_corr[4096];
+
 /** MEX function to be called from MATLAB to test the channel estimator 
  */
 
@@ -85,7 +87,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexutils_read_uint32_struct(PRACHCFG, "FreqOffset", &frequency_offset);
 
   srslte_prach_t prach; 
-  if (srslte_prach_init(&prach, N_ifft_ul, preamble_format, root_seq_idx, high_speed_flag, zero_corr_zone)) {
+  if (srslte_prach_init(&prach, N_ifft_ul, preamble_format*16, root_seq_idx, high_speed_flag, zero_corr_zone)) {
     mexErrMsgTxt("Error initiating PRACH\n");
     return;
   }
@@ -94,7 +96,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int nof_samples = mexutils_read_cf(INPUT, &input_signal);
   
   uint32_t preambles[64]; 
-  uint32_t offsets[64]; 
+  float offsets[64]; 
   uint32_t nof_detected = 0; 
   
   if (nrhs > NOF_INPUTS) {
@@ -102,7 +104,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     srslte_prach_set_detect_factor(&prach, factor);
   }
 
-  if (srslte_prach_detect_offset(&prach, frequency_offset, &input_signal[prach.N_cp], nof_samples, preambles, offsets, &nof_detected)) {    
+  if (srslte_prach_detect_offset(&prach, frequency_offset, &input_signal[prach.N_cp], nof_samples, preambles, offsets, NULL, &nof_detected)) {    
     mexErrMsgTxt("Error detecting PRACH\n");
     return; 
   }
@@ -111,7 +113,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_int((int*) preambles, &plhs[0], nof_detected, 1);
   }
   if (nlhs >= 2) {
-    mexutils_write_int((int*) offsets, &plhs[1], nof_detected, 1);
+    mexutils_write_f(offsets, &plhs[1], nof_detected, 1);
+  }
+  if (nlhs >= 3) {
+    mexutils_write_f(save_corr, &plhs[2], prach.N_zc, 1);
   }
   
   free(input_signal);  

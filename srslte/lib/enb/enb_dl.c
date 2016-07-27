@@ -175,9 +175,11 @@ void srslte_enb_dl_put_refs(srslte_enb_dl_t *q, uint32_t sf_idx)
 
 void srslte_enb_dl_put_mib(srslte_enb_dl_t *q, uint32_t tti)
 {
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
+
   if ((tti%10) == 0) {
-    srslte_pbch_mib_pack(&q->cell, tti/10, q->bch_payload);
-    srslte_pbch_encode(&q->pbch, q->bch_payload, q->slot1_symbols, ((tti/10)%4));
+    srslte_pbch_mib_pack(&q->cell, tti/10, bch_payload);
+    srslte_pbch_encode(&q->pbch, bch_payload, q->slot1_symbols, ((tti/10)%4));
   }  
 }
 
@@ -237,13 +239,16 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant,
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || (rnti >= SRSLTE_RARNTI_START && rnti <= SRSLTE_RARNTI_END)) {
     rnti_is_user = false; 
   }
-  //srslte_ra_pdsch_fprint(stdout, grant, q->cell.nof_prb);
   srslte_dci_msg_pack_pdsch(grant, &dci_msg, format, q->cell.nof_prb, rnti_is_user);
-  //srslte_vec_fprint_hex(stdout, dci_msg.data, dci_msg.nof_bits);
   if (srslte_pdcch_encode(&q->pdcch, &dci_msg, location, rnti, q->sf_symbols, sf_idx, q->cfi)) {
     fprintf(stderr, "Error encoding DCI message\n");
     return SRSLTE_ERROR;
   }
+/*  printf("format: %s, sf_idx=%d, rnti=%d, location=%d,%d, cfi=%d\n", 
+	 srslte_dci_format_string(format), sf_idx, rnti, location.L, location.ncce, q->cfi);
+  srslte_ra_pdsch_fprint(stdout, grant, q->cell.nof_prb);
+  srslte_vec_fprint_hex(stdout, dci_msg.data, dci_msg.nof_bits);
+*/
 
   return SRSLTE_SUCCESS;
 }

@@ -86,7 +86,6 @@ typedef struct SRSLTE_API {
   cf_t pss_signal[SRSLTE_PSS_LEN];
   float sss_signal0[SRSLTE_SSS_LEN]; 
   float sss_signal5[SRSLTE_SSS_LEN]; 
-  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
     
   uint32_t nof_rnti;
   

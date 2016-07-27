@@ -292,8 +292,10 @@ void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
-void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
+void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *payload) {
   int bw, phich_res = 0;
+  
+  uint8_t *msg = payload; 
 
   bzero(msg, 24);
 
@@ -325,6 +327,7 @@ void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   }
   srslte_bit_unpack(phich_res, &msg, 2);
   srslte_bit_unpack(sfn >> 2, &msg, 8);
+  
 }
 
 void srslte_pbch_decode_reset(srslte_pbch_t *q) {
