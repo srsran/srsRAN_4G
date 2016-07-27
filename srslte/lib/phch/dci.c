@@ -79,7 +79,7 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
         return ret;
       } 
       
-      srslte_ra_dl_dci_to_grant(dl_dci, nof_prb, crc_is_crnti, grant);
+      srslte_ra_dl_dci_to_grant(dl_dci, nof_prb, msg_rnti, grant);
 
       if (SRSLTE_VERBOSE_ISINFO()) {
         srslte_ra_pdsch_fprint(stdout, dl_dci, nof_prb);

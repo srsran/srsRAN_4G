@@ -95,7 +95,8 @@ target_link_libraries(pdsch_test srslte)
 
 add_test(pdsch_test_qpsk pdsch_test -m 10 -n 50 -r 1)
 add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100)
-add_test(pdsch_test_qam64 pdsch_test -m 28 -n 100 -r 0)
+add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100 -r 2)
+add_test(pdsch_test_qam64 pdsch_test -m 28 -n 100)
 
 BuildMex(MEXNAME pdsch SOURCES pdsch_test_mex.c LIBRARIES srslte_static srslte_mex)
 BuildMex(MEXNAME dlsch_encode SOURCES dlsch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)

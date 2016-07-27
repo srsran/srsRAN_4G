@@ -458,8 +458,12 @@ void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srsl
 }
 
 /** Obtains a DL grant from a DCI grant for PDSCH */
-int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, bool crc_is_crnti, srslte_ra_dl_grant_t *grant) 
+int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, uint16_t msg_rnti, srslte_ra_dl_grant_t *grant) 
 {  
+  bool crc_is_crnti = false; 
+  if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
+    crc_is_crnti = true; 
+  }
   // Compute PRB allocation 
   if (!dl_dci_to_grant_prb_allocation(dci, grant, nof_prb)) {
     // Compute MCS 
@@ -467,6 +471,13 @@ int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, bool cr
       // Fill rest of grant structure 
       grant->mcs.idx = dci->mcs_idx;
       grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
+      
+      // Apply Section 7.1.7.3. If RA-RNTI and Format1C rv_idx=0
+      if (msg_rnti >= SRSLTE_RARNTI_START && msg_rnti <= SRSLTE_RARNTI_END && 
+        dci->dci_format == SRSLTE_RA_DCI_FORMAT1C) 
+      {
+        dci->rv_idx = 0; 
+      }  
     } else {
       return SRSLTE_ERROR; 
     }

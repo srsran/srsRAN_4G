@@ -345,7 +345,7 @@ int update_radl() {
   srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   srslte_ra_dl_grant_t dummy_grant; 
   srslte_ra_nbits_t dummy_nbits;
-  srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, true, &dummy_grant);
+  srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &dummy_grant);
   srslte_ra_dl_grant_to_nbits(&dummy_grant, cfi, cell, 0, &dummy_nbits);
   srslte_ra_dl_grant_fprint(stdout, &dummy_grant);
   printf("Type new MCS index and press Enter: "); fflush(stdout);
@@ -617,7 +617,7 @@ int main(int argc, char **argv) {
 
         /* Configure pdsch_cfg parameters */
         srslte_ra_dl_grant_t grant; 
-        srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, true, &grant);        
+        srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &grant);        
         if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, sf_idx, 0)) {
           fprintf(stderr, "Error configuring PDSCH\n");
           exit(-1);
