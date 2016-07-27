@@ -135,10 +135,11 @@ int main(int argc, char **argv) {
   
   srslte_ra_dl_dci_t dci;
   bzero(&dci, sizeof(srslte_ra_dl_dci_t));
+  dci.dci_format = SRSLTE_DCI_FORMAT1;
   dci.mcs_idx = mcs;
   dci.rv_idx = rv_idx;
   dci.type0_alloc.rbg_bitmask = 0xffffffff;
-  if (srslte_ra_dl_dci_to_grant(&dci, cell.nof_prb, true, &grant)) {
+  if (srslte_ra_dl_dci_to_grant(&dci, cell.nof_prb, rnti, &grant)) {
     fprintf(stderr, "Error computing resource allocation\n");
     return ret;
   }
