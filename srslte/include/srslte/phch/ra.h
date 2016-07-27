@@ -189,7 +189,7 @@ SRSLTE_API char* srslte_ra_dl_dci_string(srslte_ra_dl_dci_t *dci);
 
 SRSLTE_API int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, 
                                          uint32_t nof_prb, 
-                                         bool crc_is_crnti, 
+                                         uint16_t rnti, 
                                          srslte_ra_dl_grant_t *grant);
 
 SRSLTE_API void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, 
