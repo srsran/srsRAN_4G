@@ -429,6 +429,23 @@ void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len) {
   fprintf(stream, "];\n");
 }
 
+void srslte_vec_sprint_hex(char *str, uint8_t *x, uint32_t len) {
+  uint32_t i, nbytes; 
+  uint8_t byte;
+  nbytes = len/8;
+  int n=0;
+  n+=sprintf(&str[n], "[");
+  for (i=0;i<nbytes;i++) {
+    byte = (uint8_t) srslte_bit_pack(&x, 8);
+    n+=sprintf(&str[n], "%02x ", byte);
+  }
+  if (len%8) {
+    byte = (uint8_t) srslte_bit_pack(&x, len%8)<<(8-(len%8));
+    n+=sprintf(&str[n], "%02x ", byte);
+  }
+  n+=sprintf(&str[n], "];\n");
+}
+
 void srslte_vec_save_file(char *filename, void *buffer, uint32_t len) {
   FILE *f; 
   f = fopen(filename, "w");

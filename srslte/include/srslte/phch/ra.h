@@ -109,12 +109,6 @@ typedef struct SRSLTE_API {
 /** Unpacked DCI message for DL grant */
 typedef struct SRSLTE_API {
   
-  enum {
-    SRSLTE_RA_DCI_FORMAT1, 
-    SRSLTE_RA_DCI_FORMAT1A, 
-    SRSLTE_RA_DCI_FORMAT1C, 
-  } dci_format; 
-  
   srslte_ra_type_t alloc_type;
   union {
     srslte_ra_type0_t type0_alloc;
@@ -122,10 +116,22 @@ typedef struct SRSLTE_API {
     srslte_ra_type2_t type2_alloc;
   };
   
-  uint32_t mcs_idx;
   uint32_t harq_process;
+  uint32_t mcs_idx;
   int      rv_idx;
-  bool ndi;
+  bool     ndi;
+  uint32_t mcs_idx_1;
+  int      rv_idx_1;
+  bool     ndi_1;
+  
+  bool     tb_cw_swap; 
+  bool     sram_id; 
+  uint8_t  pinfo; 
+  bool     pconf;
+  bool     power_offset; 
+  
+  bool     dci_is_1a;
+  bool     dci_is_1c; 
 } srslte_ra_dl_dci_t;
 
 
@@ -184,8 +190,6 @@ typedef union {
 /**************************************************
  * Functions 
  **************************************************/
-
-SRSLTE_API char* srslte_ra_dl_dci_string(srslte_ra_dl_dci_t *dci);
 
 SRSLTE_API int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, 
                                          uint32_t nof_prb, 

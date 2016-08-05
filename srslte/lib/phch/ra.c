@@ -267,19 +267,6 @@ uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, srslte_cell_t ce
   return nof_re; 
 }
 
-char* srslte_ra_dl_dci_string(srslte_ra_dl_dci_t *dci) {
-  switch(dci->dci_format) {
-    case SRSLTE_RA_DCI_FORMAT1:
-      return "1";
-    case SRSLTE_RA_DCI_FORMAT1A:
-      return "1A";
-    case SRSLTE_RA_DCI_FORMAT1C:
-      return "1C";
-    default:
-      return "";
-  }
-}
-
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
 static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, uint32_t nof_prb) {
   int i, j;
@@ -400,7 +387,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
   uint32_t i_tbs = 0; 
   
   if (!crc_is_crnti) {
-    if (dci->dci_format == SRSLTE_RA_DCI_FORMAT1A) {
+    if (dci->dci_is_1a) {
       n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
       i_tbs = dci->mcs_idx;
       tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
@@ -458,7 +445,8 @@ void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srsl
 }
 
 /** Obtains a DL grant from a DCI grant for PDSCH */
-int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, uint16_t msg_rnti, srslte_ra_dl_grant_t *grant) 
+int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, 
+                              uint32_t nof_prb, uint16_t msg_rnti, srslte_ra_dl_grant_t *grant) 
 {  
   bool crc_is_crnti = false; 
   if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
@@ -474,7 +462,7 @@ int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, uint16_
       
       // Apply Section 7.1.7.3. If RA-RNTI and Format1C rv_idx=0
       if (msg_rnti >= SRSLTE_RARNTI_START && msg_rnti <= SRSLTE_RARNTI_END && 
-        dci->dci_format == SRSLTE_RA_DCI_FORMAT1C) 
+        dci->dci_is_1c) 
       {
         dci->rv_idx = 0; 
       }  

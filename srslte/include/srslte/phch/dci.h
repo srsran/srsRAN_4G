@@ -52,7 +52,14 @@ typedef enum {
   SRSLTE_DCI_FORMAT1, 
   SRSLTE_DCI_FORMAT1A, 
   SRSLTE_DCI_FORMAT1C, 
-  SRSLTE_DCI_FORMAT_ERROR
+  SRSLTE_DCI_FORMAT1B,
+  SRSLTE_DCI_FORMAT1D, 
+  SRSLTE_DCI_FORMAT2, 
+  SRSLTE_DCI_FORMAT2A, 
+  SRSLTE_DCI_FORMAT2B, 
+  //SRSLTE_DCI_FORMAT3, 
+  //SRSLTE_DCI_FORMAT3A, 
+  SRSLTE_DCI_NOF_FORMATS
 } srslte_dci_format_t;
 
 // Each type is for a different interface to packing/unpacking functions
@@ -80,6 +87,7 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   uint8_t data[SRSLTE_DCI_MAX_BITS];
   uint32_t nof_bits;
+  srslte_dci_format_t format; 
 } srslte_dci_msg_t;
 
 typedef struct SRSLTE_API {
@@ -97,6 +105,7 @@ typedef struct SRSLTE_API {
 SRSLTE_API int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, 
                                           uint16_t msg_rnti,
                                           uint32_t nof_prb, 
+                                          uint32_t nof_ports, 
                                           srslte_ra_dl_dci_t *dl_dci, 
                                           srslte_ra_dl_grant_t *grant);
 
@@ -151,19 +160,22 @@ SRSLTE_API int srslte_dci_msg_unpack_pusch(srslte_dci_msg_t *msg,
 
 // For srslte_dci_msg_type_t = SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED
 SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, 
+                                         srslte_dci_format_t format,
                                          srslte_dci_msg_t *msg, 
-                                         srslte_dci_format_t format, 
                                          uint32_t nof_prb, 
                                          bool crc_is_crnti);
 
 SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, 
                                            srslte_ra_dl_dci_t *data, 
                                            uint32_t nof_prb, 
+                                           uint32_t nof_ports, 
                                            bool crc_is_crnti);
 
 SRSLTE_API uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, 
-                                             uint32_t nof_prb);
+                                             uint32_t nof_prb, 
+                                             uint32_t nof_ports);
 
+// This is for backwards compatibility only for tm1 formats
 SRSLTE_API uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, 
                                                  uint32_t nof_prb);
 

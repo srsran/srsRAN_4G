@@ -270,7 +270,7 @@ uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_locatio
  *
  * TODO: UE transmit antenna selection CRC mask
  */
-static int dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
+int srslte_pdcch_dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t E, uint32_t nof_bits, uint16_t *crc) {
 
   uint16_t p_bits, crc_res;
   uint8_t *x;
@@ -336,14 +336,20 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
       }
       mean /= e_bits; 
       if (mean > 0.5) {
-        ret = dci_decode(q, &q->llr[location->ncce * 72], 
+        ret = srslte_pdcch_dci_decode(q, &q->llr[location->ncce * 72], 
                         msg->data, e_bits, nof_bits, crc_rem);
         if (ret == SRSLTE_SUCCESS) {
           msg->nof_bits = nof_bits;
+          // Check format differentiation 
+          if (format == SRSLTE_DCI_FORMAT0 || format == SRSLTE_DCI_FORMAT1A) {
+            msg->format = (msg->data[0] == 0)?SRSLTE_DCI_FORMAT0:SRSLTE_DCI_FORMAT1A;
+          } else {
+            msg->format   = format; 
+          }
         } 
         if (crc_rem) {
-          DEBUG("Decoded DCI: nCCE=%d, L=%d, msg_len=%d, mean=%f, crc_rem=0x%x\n", 
-            location->ncce, location->L, nof_bits, mean, *crc_rem);
+          DEBUG("Decoded DCI: nCCE=%d, L=%d, format=%s, msg_len=%d, mean=%f, crc_rem=0x%x\n", 
+            location->ncce, location->L, srslte_dci_format_string(format), nof_bits, mean, *crc_rem);
         }
       } else {
         DEBUG("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f\n",
@@ -443,12 +449,26 @@ static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   }
 }
 
+void srslte_pdcch_dci_encode_conv(srslte_pdcch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *coded_data, uint16_t rnti) {
+  srslte_convcoder_t encoder;
+  int poly[3] = { 0x6D, 0x4F, 0x57 };
+  encoder.K = 7;
+  encoder.R = 3;
+  encoder.tail_biting = true;
+  memcpy(encoder.poly, poly, 3 * sizeof(int));
+
+  srslte_crc_attach(&q->crc, data, nof_bits);
+  crc_set_mask_rnti(&data[nof_bits], rnti);
+
+  srslte_convcoder_encode(&encoder, data, coded_data, nof_bits + 16);
+}
+
 /** 36.212 5.3.3.2 to 5.3.3.4
  * TODO: UE transmit antenna selection CRC mask
  */
-static int dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, uint32_t E,
-    uint16_t rnti) {
-  srslte_convcoder_t encoder;
+int srslte_pdcch_dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, uint32_t E,
+    uint16_t rnti) 
+{
   uint8_t tmp[3 * (SRSLTE_DCI_MAX_BITS + 16)];
   
   if (q                 != NULL        && 
@@ -458,16 +478,7 @@ static int dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof
       E                 < q->max_bits)
   {
 
-    int poly[3] = { 0x6D, 0x4F, 0x57 };
-    encoder.K = 7;
-    encoder.R = 3;
-    encoder.tail_biting = true;
-    memcpy(encoder.poly, poly, 3 * sizeof(int));
-
-    srslte_crc_attach(&q->crc, data, nof_bits);
-    crc_set_mask_rnti(&data[nof_bits], rnti);
-
-    srslte_convcoder_encode(&encoder, data, tmp, nof_bits + 16);
+    srslte_pdcch_dci_encode_conv(q, data, nof_bits, tmp, rnti); 
 
     DEBUG("CConv output: ", 0);
     if (SRSLTE_VERBOSE_ISDEBUG()) {
@@ -519,7 +530,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
       DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
           msg->nof_bits, e_bits, location.ncce, location.L, rnti);
 
-      dci_encode(q, msg->data, q->e, msg->nof_bits, e_bits, rnti);
+      srslte_pdcch_dci_encode(q, msg->data, q->e, msg->nof_bits, e_bits, rnti);
     
       /* number of layers equals number of ports */
       for (i = 0; i < q->cell.nof_ports; i++) {

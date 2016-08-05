@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   switch (dci_type.type) {
   case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
     bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
-    srslte_dci_msg_unpack_pdsch(&msg, &ra_dl, nof_prb, false);
+    srslte_dci_msg_unpack_pdsch(&msg, &ra_dl, nof_prb, 1, false);
     srslte_ra_pdsch_fprint(stdout, &ra_dl, nof_prb);
     break;
   default:
