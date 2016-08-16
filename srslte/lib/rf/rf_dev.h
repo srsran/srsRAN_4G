@@ -130,7 +130,7 @@ static rf_dev_t dev_blade = {
 };
 #endif
 
-#define ENABLE_DUMMY_DEV
+//#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
 int dummy_rcv() {
