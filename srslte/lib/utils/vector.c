@@ -443,7 +443,7 @@ void srslte_vec_sprint_hex(char *str, uint8_t *x, uint32_t len) {
     byte = (uint8_t) srslte_bit_pack(&x, len%8)<<(8-(len%8));
     n+=sprintf(&str[n], "%02x ", byte);
   }
-  n+=sprintf(&str[n], "];\n");
+  n+=sprintf(&str[n], "]");
 }
 
 void srslte_vec_save_file(char *filename, void *buffer, uint32_t len) {
