@@ -78,7 +78,6 @@ void srslte_dft_precoding_free(srslte_dft_precoding_t  *q)
 {
   for (uint32_t i=1;i<=q->max_prb;i++) {
     if(srslte_dft_precoding_valid_prb(i)) {      
-      DEBUG("Freeing DFT precoding plan for %d PRBs\n", i);
       srslte_dft_plan_free(&q->dft_plan[i]);
       srslte_dft_plan_free(&q->idft_plan[i]);        
     }
@@ -121,7 +120,7 @@ int srslte_dft_predecoding(srslte_dft_precoding_t *q, cf_t *input, cf_t *output,
   }
 
   for (uint32_t i=0;i<nof_symbols;i++) {
-    srslte_dft_run_c(&q->dft_plan[nof_prb], &input[i*SRSLTE_NRE*nof_prb], &output[i*SRSLTE_NRE*nof_prb]);
+    srslte_dft_run_c(&q->idft_plan[nof_prb], &input[i*SRSLTE_NRE*nof_prb], &output[i*SRSLTE_NRE*nof_prb]);
   }
   
   return SRSLTE_SUCCESS;

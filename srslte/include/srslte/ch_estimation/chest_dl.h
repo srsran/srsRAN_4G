@@ -45,12 +45,12 @@
 
 #include "srslte/config.h"
 
+#include "srslte/ch_estimation/chest_common.h"
 #include "srslte/resampling/interp.h"
 #include "srslte/ch_estimation/refsignal_dl.h"
 #include "srslte/common/phy_common.h"
 #include "srslte/sync/pss.h"
 
-#define SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN  65
 
 typedef enum {
   SRSLTE_NOISE_ALG_REFS, 
@@ -71,7 +71,7 @@ typedef struct {
   float pilot_power[12000];
 #endif
   uint32_t smooth_filter_len; 
-  float smooth_filter[SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN];
+  float smooth_filter[SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN];
 
   srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
   srslte_interp_lin_t srslte_interp_lin; 

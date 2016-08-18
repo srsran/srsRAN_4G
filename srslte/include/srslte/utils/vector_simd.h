@@ -35,7 +35,8 @@ extern "C" {
 #include <stdint.h>
 #include "srslte/config.h"
 
-
+SRSLTE_API int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len); 
+  
 SRSLTE_API void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len);
 
 SRSLTE_API void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len); 

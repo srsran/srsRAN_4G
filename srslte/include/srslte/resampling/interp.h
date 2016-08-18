@@ -95,6 +95,7 @@ SRSLTE_API void srslte_interp_linear_vector3(srslte_interp_linsrslte_vec_t *q,
                                              cf_t *in1, 
                                              cf_t *start, 
                                              cf_t *between, 
+                                             uint32_t in1_in0_d, 
                                              uint32_t M, 
                                              bool to_right, 
                                              uint32_t len); 

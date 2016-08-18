@@ -57,8 +57,10 @@ Ports = gridsize(3);    % Number of transmit antenna ports
 %% Allocate memory
 Ntests=2;
 hest=cell(1,Ntests);
+tmpnoise=cell(1,Ntests);
 for i=1:Ntests
     hest{i}=zeros(K,140);
+    tmpnoise{i}=zeros(1,10);
 end
 hls=zeros(4,4*P*10);
 MSE=zeros(Ntests,Nrealizations,length(SNR_values_db));
@@ -173,27 +175,31 @@ rxGrid_nonoise = rxGrid_nonoise(:,1:140);
 % True channel
 h=rxGrid_nonoise./(txGrid);
 
-
-%% Channel Estimation with Matlab
-tmpnoise=zeros(10,1);
 for i=1:10
     enb.NSubframe=i-1;
-    [hest{1}(:,(1:14)+(i-1)*14), tmpnoise(i), hls(:,(1:4*P)+(i-1)*4*P)] = ...
-                    lteDLChannelEstimate2(enb,cec,rxGrid(:,(i-1)*14+1:i*14));
+
+    rxGrid_sf = rxGrid(:,(i-1)*14+1:i*14); 
+    
+    %% Channel Estimation with Matlab
+    [hest{1}(:,(1:14)+(i-1)*14), tmpnoise{1}(i), hls(:,(1:4*P)+(i-1)*4*P)] = ...
+                    lteDLChannelEstimate2(enb,cec,rxGrid_sf);
+    tmpnoise{1}(i)=tmpnoise{1}(i)*sqrt(2)*enb.CellRefP;
+    
+    %% LS-Linear estimation with srsLTE
+    [hest{2}(:,(1:14)+(i-1)*14), tmpnoise{2}(i)] = srslte_chest_dl(enb,rxGrid_sf);
+    
+    %% LS-Linear + averaging with srsLTE
+    [hest{3}(:,(1:14)+(i-1)*14), tmpnoise{3}(i)] = srslte_chest_dl(enb,rxGrid_sf,w1);
+    
+    %% LS-Linear + more averaging with srsLTE
+    [hest{4}(:,(1:14)+(i-1)*14), tmpnoise{4}(i)] = srslte_chest_dl(enb,rxGrid_sf,w2);
+
 end
-noiseEst(1,nreal,snr_idx)=mean(tmpnoise)*sqrt(2)*enb.CellRefP;
 
-%% LS-Linear estimation with srsLTE
-[tmp, ~, ~, noiseEst(2,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid);
-hest{2}=reshape(tmp, size(hest{1}));
-
-%% LS-Linear + averaging with srsLTE
-[tmp, ~, ~, noiseEst(3,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w1);
-hest{3}=reshape(tmp, size(hest{1}));
-
-%% LS-Linear + more averaging with srsLTE
-[tmp, ~, ~, noiseEst(4,nreal,snr_idx)] = srslte_chest(enb.NCellID,enb.CellRefP,rxGrid,w2);
-hest{4}=reshape(tmp, size(hest{1}));
+%% Average noise estimates over all frame
+for i=1:Ntests
+    noiseEst(i,nreal,snr_idx)=mean(tmpnoise{i});
+end
 
 %% Compute MSE 
 for i=1:Ntests
@@ -227,7 +233,11 @@ if (length(SNR_values_db) == 1)
         
     fprintf('Mean MMSE Robust %.2f dB\n', 10*log10(MSE(4,nreal,snr_idx)))
     fprintf('Mean MMSE matlab %.2f dB\n', 10*log10(MSE(1,nreal,snr_idx)))
+<<<<<<< HEAD
+
+=======
     
+>>>>>>> master
 end
 
 end

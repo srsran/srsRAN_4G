@@ -34,6 +34,7 @@ add_subdirectory(modem)
 add_subdirectory(resampling)
 add_subdirectory(scrambling)
 add_subdirectory(ue)
+add_subdirectory(enb)
 
 add_library(srslte  SHARED  version.c
                             $<TARGET_OBJECTS:srslte_agc>
@@ -51,6 +52,7 @@ add_library(srslte  SHARED  version.c
                             $<TARGET_OBJECTS:srslte_resampling>
                             $<TARGET_OBJECTS:srslte_scrambling>
                             $<TARGET_OBJECTS:srslte_ue>
+                            $<TARGET_OBJECTS:srslte_enb>
                             $<TARGET_OBJECTS:srslte_rf>
 )
 
@@ -72,6 +74,7 @@ if(NOT DisableMEX)
                             $<TARGET_OBJECTS:srslte_resampling>
                             $<TARGET_OBJECTS:srslte_scrambling>
                             $<TARGET_OBJECTS:srslte_ue>
+                            $<TARGET_OBJECTS:srslte_enb>
                             $<TARGET_OBJECTS:srslte_rf>
   )
 endif(NOT DisableMEX)
@@ -81,12 +84,22 @@ set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 6fa983df3c19f49b7a3e009015aaa204745d22c3
 if(MKL_FOUND)
   target_link_libraries(srslte ${MKL_LIBRARIES})
+  if(NOT DisableMEX)
+    target_link_libraries(srslte_static ${MKL_LIBRARIES})
+  endif(NOT DisableMEX)
 else(MKL_FOUND)
   target_link_libraries(srslte ${FFTW3F_LIBRARIES})
+  if(NOT DisableMEX)
+    target_link_libraries(srslte_static ${FFTW3F_LIBRARIES})
+  endif(NOT DisableMEX)
 endif(MKL_FOUND)
 
+<<<<<<< HEAD
 =======
 if(NOT DisableMEX)
   target_link_libraries(srslte_static ${FFTW3F_LIBRARIES})
@@ -94,6 +107,8 @@ endif(NOT DisableMEX)
                               
                               
 >>>>>>> 96237d74ad45bed22a1eb316e9386f089539c565
+=======
+>>>>>>> 6fa983df3c19f49b7a3e009015aaa204745d22c3
 if(RF_FOUND)
   if(UHD_FOUND)
     target_link_libraries(srslte ${UHD_LIBRARIES})

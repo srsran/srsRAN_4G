@@ -32,9 +32,10 @@
 #include "srslte/utils/debug.h"
 #include "srslte/utils/vector.h"
 
+float save_corr[4096];
 
 //PRACH detection threshold is PRACH_DETECT_FACTOR*average
-#define PRACH_DETECT_FACTOR 10
+#define PRACH_DETECT_FACTOR 18
 
 #define   N_SEQS        64    // Number of prach sequences available
 #define   N_RB_SC       12    // Number of subcarriers per resource block
@@ -188,7 +189,9 @@ srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx) {
 /* Returns true if current_tti is a valid opportunity for PRACH transmission and the is an allowed subframe, 
  * or allowed_subframe == -1
  */
-bool srslte_prach_send_tti(uint32_t config_idx, uint32_t current_tti, int allowed_subframe) {
+bool srslte_prach_tti_opportunity(srslte_prach_t *p, uint32_t current_tti, int allowed_subframe) 
+{
+  uint32_t config_idx = p->config_idx; 
   // Get SFN and sf_idx from the PRACH configuration index
   srslte_prach_sfn_t prach_sfn = srslte_prach_get_sfn(config_idx);  
 
@@ -318,9 +321,19 @@ int srslte_prach_gen_seqs(srslte_prach_t *p)
   return 0;
 }
 
+int srslte_prach_init_cfg(srslte_prach_t *p, srslte_prach_cfg_t *cfg, uint32_t nof_prb)
+{
+  return srslte_prach_init(p, 
+                           srslte_symbol_sz(nof_prb), 
+                           cfg->config_idx, 
+                           cfg->root_seq_idx,
+                           cfg->hs_flag,
+                           cfg->zero_corr_zone);
+}
+
 int srslte_prach_init(srslte_prach_t *p,
                uint32_t N_ifft_ul,
-               uint32_t preamble_format,
+               uint32_t config_idx,
                uint32_t root_seq_index,
                bool high_speed_flag,
                uint32_t zero_corr_zone_config)
@@ -328,15 +341,18 @@ int srslte_prach_init(srslte_prach_t *p,
   int ret = SRSLTE_ERROR;
   if(p                      != NULL      &&
      N_ifft_ul              <  2049      &&
-     preamble_format        <  4         && // Currently supporting formats 0-3
+     config_idx             <  16        && 
      root_seq_index         <  MAX_ROOTS &&
      zero_corr_zone_config  < 16)
   {
-
+    uint32_t preamble_format = srslte_prach_get_preamble_format(config_idx);
+    p->config_idx = config_idx; 
     p->f = preamble_format;
     p->rsi = root_seq_index;
     p->hs = high_speed_flag;
     p->zczc = zero_corr_zone_config;
+    p->detect_factor = PRACH_DETECT_FACTOR; 
+    
     
     // Determine N_zc and N_cs
     if(4 == preamble_format){
@@ -350,7 +366,7 @@ int srslte_prach_init(srslte_prach_t *p,
         p->N_cs = prach_Ncs_unrestricted[p->zczc];
       }
     }
-
+    
     // Set up containers
     p->prach_bins = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
     p->corr_spec = srslte_vec_malloc(sizeof(cf_t)*p->N_zc);
@@ -369,7 +385,7 @@ int srslte_prach_init(srslte_prach_t *p,
       return SRSLTE_ERROR;
     }
     srslte_dft_plan_set_mirror(p->zc_ifft, false);
-    srslte_dft_plan_set_norm(p->zc_ifft, true);
+    srslte_dft_plan_set_norm(p->zc_ifft, false);
 
     // Generate our 64 sequences
     p->N_roots = 0;
@@ -379,7 +395,7 @@ int srslte_prach_init(srslte_prach_t *p,
     for(int i=0;i<N_SEQS;i++){
       srslte_dft_run(p->zc_fft, p->seqs[i], p->dft_seqs[i]);
     }
-
+    
     // Create our FFT objects and buffers
     p->N_ifft_ul = N_ifft_ul;
     if(4 == preamble_format){
@@ -387,6 +403,16 @@ int srslte_prach_init(srslte_prach_t *p,
     }else{
       p->N_ifft_prach = p->N_ifft_ul * DELTA_F/DELTA_F_RA;
     }
+    
+    /* The deadzone specifies the number of samples at the end of the correlation window
+     * that will be considered as belonging to the next preamble
+     */
+    p->deadzone = 0; 
+    /*
+    if(p->N_cs != 0) {
+      float samp_rate=15000*p->N_ifft_ul;
+      p->deadzone = (uint32_t) ceil((float) samp_rate/((float) p->N_zc*subcarrier_spacing));
+    }*/
 
     p->ifft_in = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
     p->ifft_out = (cf_t*)srslte_vec_malloc(p->N_ifft_prach*sizeof(cf_t));
@@ -403,12 +429,20 @@ int srslte_prach_init(srslte_prach_t *p,
       fprintf(stderr, "Error creating DFT plan\n");
       return -1;
     }
+    
+    p->signal_fft = srslte_vec_malloc(sizeof(cf_t)*p->N_ifft_prach);
+    if (!p->signal_fft) {
+      fprintf(stderr, "Error allocating memory\n");
+      return -1; 
+    }
+    
     srslte_dft_plan_set_mirror(p->fft, true);
-    srslte_dft_plan_set_norm(p->fft, true);
+    srslte_dft_plan_set_norm(p->fft, false);
 
     p->N_seq = prach_Tseq[p->f]*p->N_ifft_ul/2048;
-    p->N_cp = prach_Tcp[p->f]*p->N_ifft_ul/2048;
-
+    p->N_cp  = prach_Tcp[p->f]*p->N_ifft_ul/2048;
+    p->T_seq = prach_Tseq[p->f]*SRSLTE_LTE_TS;
+    
     ret = SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid parameters\n");
@@ -433,7 +467,14 @@ int srslte_prach_gen(srslte_prach_t *p,
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);
 
-    DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
+    if (6 + freq_offset > N_rb_ul) {
+      fprintf(stderr, "Error no space for PRACH: frequency offset=%d, N_rb_ul=%d\n", freq_offset, N_rb_ul);
+      return ret; 
+    }
+    
+    DEBUG("N_zc: %d, N_cp: %d, N_seq: %d, N_ifft_prach=%d begin: %d\n", 
+          p->N_zc, p->N_cp, p->N_seq, p->N_ifft_prach, begin);
+    
     // Map dft-precoded sequence to ifft bins
     memset(p->ifft_in, 0, begin*sizeof(cf_t));
     memcpy(&p->ifft_in[begin], p->dft_seqs[seq_index], p->N_zc * sizeof(cf_t));
@@ -455,13 +496,28 @@ int srslte_prach_gen(srslte_prach_t *p,
   return ret;
 }
 
+void srslte_prach_set_detect_factor(srslte_prach_t *p, float ratio) {
+  p->detect_factor = ratio; 
+}
 
 int srslte_prach_detect(srslte_prach_t *p,
-                 uint32_t freq_offset,
-                 cf_t *signal,
-                 uint32_t sig_len,
-                 uint32_t *indices,
-                 uint32_t *n_indices)
+                        uint32_t freq_offset,
+                        cf_t *signal,
+                        uint32_t sig_len,
+                        uint32_t *indices,
+                        uint32_t *n_indices)
+{
+  return srslte_prach_detect_offset(p, freq_offset, signal, sig_len, indices, NULL, NULL, n_indices);
+}
+
+int srslte_prach_detect_offset(srslte_prach_t *p,
+                               uint32_t freq_offset,
+                               cf_t *signal,
+                               uint32_t sig_len,
+                               uint32_t *indices,
+                               float *t_offsets,
+                               float    *peak_to_avg,
+                               uint32_t *n_indices)
 {
   int ret = SRSLTE_ERROR;
   if(p       != NULL &&
@@ -469,15 +525,15 @@ int srslte_prach_detect(srslte_prach_t *p,
      sig_len > 0     &&
      indices != NULL)
   {
-    if(sig_len != p->N_ifft_prach){
-      INFO("srslte_prach_detect: Signal is not of length %d", p->N_ifft_prach);
+    
+    if(sig_len < p->N_ifft_prach){
+      fprintf(stderr, "srslte_prach_detect: Signal length is %d and should be %d\n", sig_len, p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
-
+    
     // FFT incoming signal
-    srslte_dft_run(p->fft, signal, signal);
+    srslte_dft_run(p->fft, signal, p->signal_fft);
 
-    memset(p->prach_bins, 0, sizeof(cf_t)*p->N_zc);
     *n_indices = 0;
 
     // Extract bins of interest
@@ -486,31 +542,19 @@ int srslte_prach_detect(srslte_prach_t *p,
     uint32_t K = DELTA_F/DELTA_F_RA;
     uint32_t begin = PHI + (K*k_0) + (K/2);
 
-    for(int i=0;i<p->N_zc;i++){
-      p->prach_bins[i] = signal[begin+i];
-    }
-
+    memcpy(p->prach_bins, &p->signal_fft[begin], p->N_zc*sizeof(cf_t));
+    
     for(int i=0;i<p->N_roots;i++){
-      memset(p->corr_spec, 0, sizeof(cf_t)*p->N_zc);
-      memset(p->corr, 0, sizeof(float)*p->N_zc);
-      float corr_max = 0;
-      float corr_ave = 0;
-
       cf_t *root_spec = p->dft_seqs[p->root_seqs_idx[i]];
-
-      for(int j=0;j<p->N_zc;j++){
-        p->corr_spec[j] = p->prach_bins[j]*conjf(root_spec[j]);
-      }
+     
+      srslte_vec_prod_conj_ccc(p->prach_bins, root_spec, p->corr_spec, p->N_zc);
 
       srslte_dft_run(p->zc_ifft, p->corr_spec, p->corr_spec);
+      
+      srslte_vec_abs_square_cf(p->corr_spec, p->corr, p->N_zc);
 
-      float norm = sqrtf(p->N_zc);
-      for(int j=0;j<p->N_zc;j++){
-        p->corr[j] = cabsf(p->corr_spec[j])/norm;
-        corr_ave += p->corr[j];
-      }
-      corr_ave /= p->N_zc;
-
+      float corr_ave = srslte_vec_acc_ff(p->corr, p->N_zc)/p->N_zc;
+      
       uint32_t winsize = 0;
       if(p->N_cs != 0){
         winsize = p->N_cs;
@@ -518,18 +562,45 @@ int srslte_prach_detect(srslte_prach_t *p,
         winsize = p->N_zc;
       }
       uint32_t n_wins = p->N_zc/winsize;
-      for(int j=0;j<n_wins;j++){
+
+      float max_peak = 0; 
+      for(int j=0;j<n_wins;j++) {
         uint32_t start = (p->N_zc-(j*p->N_cs))%p->N_zc;
         uint32_t end = start+winsize;
-        corr_max = 0;
-        for(int k=start;k<end;k++){
-          if(p->corr[k] > corr_max){
-            corr_max = p->corr[k];
+        if (end>p->deadzone) {
+          end-=p->deadzone;
+        }
+        start += p->deadzone;
+        p->peak_values[j] = 0;
+        for(int k=start;k<end;k++) {
+          if(p->corr[k] > p->peak_values[j]) {
+            p->peak_values[j]  = p->corr[k];
+            p->peak_offsets[j] = k-start; 
+            if (p->peak_values[j] > max_peak) {
+              max_peak = p->peak_values[j];
+            }
           }
         }
-        if(corr_max > PRACH_DETECT_FACTOR*corr_ave){
-          indices[*n_indices] = (i*n_wins)+j;
-          (*n_indices)++;
+      }
+      if (max_peak > p->detect_factor*corr_ave) {
+        for (int j=0;j<n_wins;j++) {
+          if(p->peak_values[j] > p->detect_factor*corr_ave)
+          {
+            printf("ncs=%d, nzc=%d, nwins=%d, Nroot=%d, i=%d, j=%d, start=%d, peak_value=%f, peak_offset=%d, tseq=%f\n", 
+                   p->N_cs, p->N_zc, n_wins, p->N_roots, i, j, (p->N_zc-(j*p->N_cs))%p->N_zc, p->peak_values[j], 
+                   p->peak_offsets[j], p->T_seq*1e6);
+            memcpy(save_corr, p->corr, p->N_zc*sizeof(float));
+            if (indices) {
+              indices[*n_indices]     = (i*n_wins)+j;
+            }
+            if (peak_to_avg) {
+              peak_to_avg[*n_indices] = p->peak_values[j]/corr_ave; 
+            }
+            if (t_offsets) {
+              t_offsets[*n_indices] = (float) p->peak_offsets[j]*p->T_seq/p->N_zc; 
+            }            
+            (*n_indices)++;          
+          }
         }
       }
     }
@@ -554,6 +625,10 @@ int srslte_prach_free(srslte_prach_t *p) {
   srslte_dft_plan_free(p->zc_ifft);
   free(p->zc_ifft);
 
+  if (p->signal_fft) {
+    free(p->signal_fft); 
+  }
+  
   bzero(p, sizeof(srslte_prach_t));
 
   return 0;

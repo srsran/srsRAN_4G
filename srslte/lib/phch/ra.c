@@ -267,19 +267,6 @@ uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, srslte_cell_t ce
   return nof_re; 
 }
 
-char* srslte_ra_dl_dci_string(srslte_ra_dl_dci_t *dci) {
-  switch(dci->dci_format) {
-    case SRSLTE_RA_DCI_FORMAT1:
-      return "1";
-    case SRSLTE_RA_DCI_FORMAT1A:
-      return "1A";
-    case SRSLTE_RA_DCI_FORMAT1C:
-      return "1C";
-    default:
-      return "";
-  }
-}
-
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
 static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, uint32_t nof_prb) {
   int i, j;
@@ -400,7 +387,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
   uint32_t i_tbs = 0; 
   
   if (!crc_is_crnti) {
-    if (dci->dci_format == SRSLTE_RA_DCI_FORMAT1A) {
+    if (dci->dci_is_1a) {
       n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
       i_tbs = dci->mcs_idx;
       tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
@@ -458,8 +445,13 @@ void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srsl
 }
 
 /** Obtains a DL grant from a DCI grant for PDSCH */
-int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, bool crc_is_crnti, srslte_ra_dl_grant_t *grant) 
+int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, 
+                              uint32_t nof_prb, uint16_t msg_rnti, srslte_ra_dl_grant_t *grant) 
 {  
+  bool crc_is_crnti = false; 
+  if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
+    crc_is_crnti = true; 
+  }
   // Compute PRB allocation 
   if (!dl_dci_to_grant_prb_allocation(dci, grant, nof_prb)) {
     // Compute MCS 
@@ -467,6 +459,13 @@ int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, uint32_t nof_prb, bool cr
       // Fill rest of grant structure 
       grant->mcs.idx = dci->mcs_idx;
       grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
+      
+      // Apply Section 7.1.7.3. If RA-RNTI and Format1C rv_idx=0
+      if (msg_rnti >= SRSLTE_RARNTI_START && msg_rnti <= SRSLTE_RARNTI_END && 
+        dci->dci_is_1c) 
+      {
+        dci->rv_idx = 0; 
+      }  
     } else {
       return SRSLTE_ERROR; 
     }
@@ -568,6 +567,15 @@ int srslte_ra_tbs_idx_from_mcs(uint32_t mcs) {
   }
 }
 
+int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx) {
+  for (int i=0;i<29;i++) {
+    if (tbs_idx == mcs_tbs_idx_table[i]) {
+      return i; 
+    }
+  } 
+  return SRSLTE_ERROR;
+}
+
 /* Table 7.1.7.2.1-1: Transport block size table on 36.213 */
 int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
   if (tbs_idx < 27 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
@@ -583,14 +591,14 @@ int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb) {
 int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
   uint32_t idx;
   if (n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
-    return SRSLTE_ERROR;
-  }
-  if (tbs < tbs_table[0][n_prb]) {
-    return SRSLTE_ERROR;
-  }
-  for (idx = 1; idx < 28; idx++) {
-    if (tbs_table[idx - 1][n_prb] <= tbs && tbs_table[idx][n_prb] >= tbs) {
-      return idx;
+      
+    if (tbs <= tbs_table[0][n_prb-1]) {
+      return 0;
+    }
+    for (idx = 0; idx < 27; idx++) {
+      if (tbs_table[idx][n_prb-1] <= tbs && tbs_table[idx+1][n_prb-1] >= tbs) {
+        return idx+1;
+      }
     }
   }
   return SRSLTE_ERROR;

@@ -87,7 +87,12 @@ typedef struct SRSLTE_API {
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
   srslte_sequence_t seq_type2_fo; 
   
-  srslte_sch_t dl_sch;
+  // This is to generate the scrambling seq for multiple CRNTIs
+  uint32_t nof_crnti; 
+  srslte_sequence_t *seq_multi[SRSLTE_NSUBFRAMES_X_FRAME];
+  uint16_t *rnti_multi;
+
+  srslte_sch_t ul_sch;
   bool shortened;
   
 }srslte_pusch_t;
@@ -110,6 +115,17 @@ SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t             *q,
 
 SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t *q, 
                                      uint16_t rnti);
+
+SRSLTE_API int srslte_pusch_init_rnti_multi(srslte_pusch_t *q, 
+                                            uint32_t nof_rntis); 
+
+SRSLTE_API int srslte_pusch_set_rnti_multi(srslte_pusch_t *q, 
+                                           uint32_t idx,
+                                           uint16_t rnti);
+
+SRSLTE_API uint16_t srslte_pusch_get_rnti_multi(srslte_pusch_t *q, 
+                                                uint32_t idx);
+
 
 SRSLTE_API int srslte_pusch_encode(srslte_pusch_t *q, 
                                    srslte_pusch_cfg_t *cfg,
@@ -146,6 +162,25 @@ SRSLTE_API int srslte_pusch_decode(srslte_pusch_t *q,
                                    cf_t *ce,
                                    float noise_estimate, 
                                    uint8_t *data);
+
+SRSLTE_API int srslte_pusch_uci_decode(srslte_pusch_t *q, 
+                                       srslte_pusch_cfg_t *cfg,
+                                       srslte_softbuffer_rx_t *softbuffer,
+                                       cf_t *sf_symbols, 
+                                       cf_t *ce,
+                                       float noise_estimate, 
+                                       uint8_t *data, 
+                                       srslte_uci_data_t *uci_data);
+
+SRSLTE_API int srslte_pusch_uci_decode_rnti_idx(srslte_pusch_t *q, 
+                                                srslte_pusch_cfg_t *cfg,
+                                                srslte_softbuffer_rx_t *softbuffer,
+                                                cf_t *sf_symbols, 
+                                                cf_t *ce,
+                                                float noise_estimate, 
+                                                uint32_t rnti_idx,
+                                                uint8_t *data, 
+                                                srslte_uci_data_t *uci_data);
 
 SRSLTE_API float srslte_pusch_average_noi(srslte_pusch_t *q); 
 

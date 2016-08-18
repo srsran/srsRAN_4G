@@ -1,12 +1,12 @@
-ueConfig=struct('NCellID',1,'NULRB',50,'CyclicPrefixUL','Normal','NTxAnts',1,'RNTI',64);
+ueConfig=struct('NCellID',1,'NULRB',6,'CyclicPrefixUL','Normal','NTxAnts',1,'RNTI',64);
 puschConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0,'NBundled',0);
 
-addpath('/home/ismael/work/srsLTE/debug/srslte/lib/phch/test')
+addpath('../../build//srslte/lib/phch/test')
 
-cqilen=[0 20];
+cqilen=[0 4 20];
 mods={'64QAM'};
 rvs=0;
-betas=[0 2.0 2.5 5.0, 20.0];
+betas=[0 5.0, 20.0];
 for p=1:ueConfig.NULRB
     for i=0:26
         for m=1:length(mods)
@@ -40,7 +40,6 @@ for p=1:ueConfig.NULRB
                                    ack_bit=[];
                                end
 
-
                                 if (cqilen(c)>0 || TBs>0)
                                     [enc, info]=lteULSCH(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
                                     cw_mat=ltePUSCH(ueConfig,puschConfig,enc);
@@ -49,16 +48,11 @@ for p=1:ueConfig.NULRB
                                     %drs_idx=ltePUSCHDRSIndices(ueConfig,puschConfig);
                                     subframe_mat = lteULResourceGrid(ueConfig);
                                     subframe_mat(idx)=cw_mat;
-                                    %subframe_mat(drs_idx)=drs;
-                                    waveform = lteSCFDMAModulate(ueConfig,subframe_mat,0);
 
-                                    [waveform_lib, subframe_lib, cwlib, bits]=srslte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
-                                    err=max(abs(waveform-waveform_lib));
+                                    [~, subframe_lib, cwlib, bits]=srslte_pusch_encode(ueConfig,puschConfig,trblkin,ones(1,cqilen(c)),ri_bit,ack_bit);
+                                    err=max(abs(subframe_mat(:)-subframe_lib));
                                     if (err > 10^-5)
-                                      disp(err)    
-                                      t=1:200;
-                                      %plot(t,bits(t),t,cw_scram(t))
-                                      plot(abs(double(bits)-double(cw_scram)))
+                                      plot(abs(subframe_mat(:)-subframe_lib))
                                       error('Error!');
                                     end
                                 end

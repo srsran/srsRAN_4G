@@ -111,7 +111,12 @@ SRSLTE_API uint32_t srslte_regs_phich_ngroups(srslte_regs_t *h);
 SRSLTE_API int srslte_regs_phich_reset(srslte_regs_t *h, 
                                        cf_t *slot_symbols);
 
-SRSLTE_API int srslte_regs_pdcch_nregs(srslte_regs_t *h, uint32_t cfi);
+SRSLTE_API int srslte_regs_pdcch_nregs(srslte_regs_t *h, 
+                                       uint32_t cfi);
+
+SRSLTE_API int srslte_regs_pdcch_ncce(srslte_regs_t *h, 
+                                      uint32_t cfi); 
+
 SRSLTE_API int srslte_regs_pdcch_put(srslte_regs_t *h, 
                                      cf_t *d, 
                                      cf_t *slot_symbols);

@@ -157,4 +157,29 @@ uint8_t srslte_cqi_from_snr(float snr)
  return 0;
 }
 
+/* Returns the subband size for higher layer-configured subband feedback,
+ * i.e., the number of RBs per subband as a function of the cell bandwidth
+ * (Table 7.2.1-3 in TS 36.213)
+ */
+int srslte_cqi_hl_get_subband_size(int nof_prb)
+{
+  if (nof_prb < 7) {
+    return 0;
+  } else if (nof_prb <= 26) {
+    return 4;
+  } else if (nof_prb <= 63) {
+    return 6;
+  } else if (nof_prb <= 110) {
+    return 8;
+  } else {
+    return -1;
+  }
+}
 
+/* Returns the number of subbands to be reported in CQI measurements as
+ * defined in clause 7.2 in TS 36.213, i.e., the N parameter
+ */
+int srslte_cqi_hl_get_no_subbands(int nof_prb)
+{
+  return (int)ceil(nof_prb/(float)srslte_cqi_hl_get_subband_size(nof_prb));
+}

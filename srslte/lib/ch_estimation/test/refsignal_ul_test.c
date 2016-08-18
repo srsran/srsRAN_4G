@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     for (int delta_ss=29;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
       for (int cshift=0;cshift<SRSLTE_NOF_CSHIFT;cshift++) {
         for (int h=0;h<3;h++) {
-          for (int sf_idx=0;sf_idx<SRSLTE_NSLOTS_X_FRAME;sf_idx++) {
+          for (int sf_idx=0;sf_idx<10;sf_idx++) {
             for (int cshift_dmrs=0;cshift_dmrs<SRSLTE_NOF_CSHIFT;cshift_dmrs++) {
               
               uint32_t nof_prb = n;

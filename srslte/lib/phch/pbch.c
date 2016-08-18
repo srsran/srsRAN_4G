@@ -292,8 +292,10 @@ void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
 /** Unpacks MIB from PBCH message.
  * msg buffer must be 24 byte length at least
  */
-void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
+void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *payload) {
   int bw, phich_res = 0;
+  
+  uint8_t *msg = payload; 
 
   bzero(msg, 24);
 
@@ -325,6 +327,7 @@ void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *msg) {
   }
   srslte_bit_unpack(phich_res, &msg, 2);
   srslte_bit_unpack(sfn >> 2, &msg, 8);
+  
 }
 
 void srslte_pbch_decode_reset(srslte_pbch_t *q) {
@@ -514,7 +517,7 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS]) {
+int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS], uint32_t frame_idx) {
   int i;
   int nof_bits;
   cf_t *x[SRSLTE_MAX_LAYERS];
@@ -536,7 +539,9 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
     }
     memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
     
-    if (q->frame_idx == 0) {
+    frame_idx=frame_idx%4;
+    
+    if (frame_idx == 0) {
       memcpy(q->data, bch_payload, sizeof(uint8_t) * SRSLTE_BCH_PAYLOAD_LEN);
 
       /* encode & modulate */
@@ -548,9 +553,9 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
       srslte_rm_conv_tx(q->data_enc, SRSLTE_BCH_ENCODED_LEN, q->rm_b, 4 * nof_bits);
     }
 
-    srslte_scrambling_b_offset(&q->seq, &q->rm_b[q->frame_idx * nof_bits],
-        q->frame_idx * nof_bits, nof_bits);
-    srslte_mod_modulate(&q->mod, &q->rm_b[q->frame_idx * nof_bits], q->d,
+    srslte_scrambling_b_offset(&q->seq, &q->rm_b[frame_idx * nof_bits],
+        frame_idx * nof_bits, nof_bits);
+    srslte_mod_modulate(&q->mod, &q->rm_b[frame_idx * nof_bits], q->d,
         nof_bits);
 
     /* layer mapping & precoding */
@@ -565,10 +570,6 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
     /* mapping to resource elements */
     for (i = 0; i < q->cell.nof_ports; i++) {
       srslte_pbch_put(q->symbols[i], slot1_symbols[i], q->cell);
-    }
-    q->frame_idx++;
-    if (q->frame_idx == 4) {
-      q->frame_idx = 0;
     }
     return SRSLTE_SUCCESS;
   } else {

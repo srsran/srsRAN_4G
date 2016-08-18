@@ -345,7 +345,7 @@ int update_radl() {
   srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   srslte_ra_dl_grant_t dummy_grant; 
   srslte_ra_nbits_t dummy_nbits;
-  srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, true, &dummy_grant);
+  srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &dummy_grant);
   srslte_ra_dl_grant_to_nbits(&dummy_grant, cfi, cell, 0, &dummy_nbits);
   srslte_ra_dl_grant_fprint(stdout, &dummy_grant);
   printf("Type new MCS index and press Enter: "); fflush(stdout);
@@ -576,7 +576,7 @@ int main(int argc, char **argv) {
 
       srslte_pbch_mib_pack(&cell, sfn, bch_payload);
       if (sf_idx == 0) {
-        srslte_pbch_encode(&pbch, bch_payload, slot1_symbols);
+        srslte_pbch_encode(&pbch, bch_payload, slot1_symbols, nf%4);
       }
 
       srslte_pcfich_encode(&pcfich, cfi, sf_symbols, sf_idx);       
@@ -608,8 +608,8 @@ int main(int argc, char **argv) {
       if (send_data) {
               
         /* Encode PDCCH */
-        srslte_dci_msg_pack_pdsch(&ra_dl, &dci_msg, SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
         INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
+        srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_msg, cell.nof_prb, false);
         if (srslte_pdcch_encode(&pdcch, &dci_msg, locations[sf_idx][0], UE_CRNTI, sf_symbols, sf_idx, cfi)) {
           fprintf(stderr, "Error encoding DCI message\n");
           exit(-1);
@@ -617,7 +617,7 @@ int main(int argc, char **argv) {
 
         /* Configure pdsch_cfg parameters */
         srslte_ra_dl_grant_t grant; 
-        srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, true, &grant);        
+        srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &grant);        
         if (srslte_pdsch_cfg(&pdsch_cfg, cell, &grant, cfi, sf_idx, 0)) {
           fprintf(stderr, "Error configuring PDSCH\n");
           exit(-1);

@@ -55,6 +55,7 @@ typedef struct SRSLTE_API{
   uint32_t framebits;
   bool tail_biting;
   float gain_quant; 
+  int16_t gain_quant_s; 
   int (*decode) (void*, uint8_t*, uint8_t*, uint32_t);
   int (*decode_f) (void*, float*, uint8_t*, uint32_t);
   void (*free) (void*);
@@ -71,10 +72,18 @@ SRSLTE_API int srslte_viterbi_init(srslte_viterbi_t *q,
 SRSLTE_API void srslte_viterbi_set_gain_quant(srslte_viterbi_t *q, 
                                               float gain_quant); 
 
+SRSLTE_API void srslte_viterbi_set_gain_quant_s(srslte_viterbi_t *q, 
+                                                int16_t gain_quant); 
+
 SRSLTE_API void srslte_viterbi_free(srslte_viterbi_t *q);
 
 SRSLTE_API int srslte_viterbi_decode_f(srslte_viterbi_t *q, 
                                        float *symbols, 
+                                       uint8_t *data, 
+                                       uint32_t frame_length);
+
+SRSLTE_API int srslte_viterbi_decode_s(srslte_viterbi_t *q, 
+                                       int16_t *symbols, 
                                        uint8_t *data, 
                                        uint32_t frame_length);
 

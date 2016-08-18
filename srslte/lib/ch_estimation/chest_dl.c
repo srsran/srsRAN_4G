@@ -264,7 +264,7 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
 }
 
 void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint32_t filter_len) {
-  if (filter_len < SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN) {
+  if (filter_len < SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN) {
     if (filter) {
       memcpy(q->smooth_filter, filter, filter_len*sizeof(float));    
       q->smooth_filter_len = filter_len; 
@@ -273,7 +273,7 @@ void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint
     }
   } else {
     fprintf(stderr, "Error setting smoothing filter: filter len exceeds maximum (%d>%d)\n", 
-      filter_len, SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN);
+      filter_len, SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN);
   }
 }
 

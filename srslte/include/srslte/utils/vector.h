@@ -70,6 +70,7 @@ SRSLTE_API void srslte_vec_fprint_byte(FILE *stream, uint8_t *x, uint32_t len);
 SRSLTE_API void srslte_vec_fprint_i(FILE *stream, int *x, uint32_t len);
 SRSLTE_API void srslte_vec_fprint_s(FILE *stream, short *x, uint32_t len); 
 SRSLTE_API void srslte_vec_fprint_hex(FILE *stream, uint8_t *x, uint32_t len);
+SRSLTE_API void srslte_vec_sprint_hex(char *str, uint8_t *x, uint32_t len); 
 
 /* Saves/loads a vector to a file */
 SRSLTE_API void srslte_vec_save_file(char *filename, void *buffer, uint32_t len);
@@ -96,6 +97,7 @@ SRSLTE_API void srslte_vec_square_dist(cf_t symbol, cf_t *points, float *distanc
 SRSLTE_API void srslte_vec_sc_add_fff(float *x, float h, float *z, uint32_t len); 
 SRSLTE_API void srslte_vec_sc_add_cfc(cf_t *x, float h, cf_t *z, uint32_t len); 
 SRSLTE_API void srslte_vec_sc_add_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len); 
+SRSLTE_API void srslte_vec_sc_add_sss(int16_t *x, int16_t h, int16_t *z, uint32_t len); 
 
 /* scalar product */
 SRSLTE_API void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len);
@@ -109,6 +111,7 @@ SRSLTE_API void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t 
 
 SRSLTE_API void srslte_vec_convert_fi(float *x, int16_t *z, float scale, uint32_t len);
 SRSLTE_API void srslte_vec_convert_if(int16_t *x, float *z, float scale, uint32_t len);
+SRSLTE_API void srslte_vec_convert_ci(int8_t *x, int16_t *z, uint32_t len); 
 
 SRSLTE_API void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len);
 SRSLTE_API void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len); 
@@ -136,6 +139,7 @@ SRSLTE_API cf_t srslte_vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len);
 SRSLTE_API cf_t srslte_vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len);
 SRSLTE_API cf_t srslte_vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len);
 SRSLTE_API float srslte_vec_dot_prod_fff(float *x, float *y, uint32_t len);
+SRSLTE_API int32_t srslte_vec_dot_prod_sss(int16_t *x, int16_t *y, uint32_t len); 
 
 /* z=x/y vector division (element-wise) */
 SRSLTE_API void srslte_vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *z_imag, uint32_t len);
@@ -151,12 +155,14 @@ SRSLTE_API float srslte_vec_avg_power_cf(cf_t *x, uint32_t len);
 /* return the index of the maximum value in the vector */
 SRSLTE_API uint32_t srslte_vec_max_fi(float *x, uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len);
+SRSLTE_API int16_t srslte_vec_max_star_si(int16_t *x, uint32_t len);
 
 /* maximum between two vectors */
 SRSLTE_API void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len);
 
-/* quantify vector of floats and convert to uint8_t */
+/* quantify vector of floats or int16 and convert to uint8_t */
 SRSLTE_API void srslte_vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len);
+SRSLTE_API void srslte_vec_quant_suc(int16_t *in, uint8_t *out, int16_t norm, int16_t offset, int16_t clip, uint32_t len); 
 
 /* magnitude of each vector element */
 SRSLTE_API void srslte_vec_abs_cf(cf_t *x, float *abs, uint32_t len);

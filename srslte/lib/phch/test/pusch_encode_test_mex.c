@@ -101,7 +101,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    mexErrMsgTxt("Unknown modulation\n");
    return;
   }
-
   mxFree(mod_str);
   
   float *prbset = NULL; 
@@ -135,20 +134,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   grant.Qm = srslte_mod_bits_x_symbol(grant.mcs.mod);
 
   if (srslte_pusch_cfg(&pusch, &cfg, &grant, NULL, NULL, NULL, cfg.sf_idx, cfg.rv, 0)) {
-    fprintf(stderr, "Error configuring PDSCH\n");
+    fprintf(stderr, "Error configuring PUSCH\n");
     exit(-1);
   }
   
   mexPrintf("L_prb: %d, n_prb: %d\n", grant.L_prb, grant.n_prb[0]);
   
-
   srslte_softbuffer_tx_t softbuffer; 
   if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
     mexErrMsgTxt("Error initiating soft buffer\n");
     return;
   }
   
-
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   cf_t *sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
@@ -215,19 +212,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
   }
 
-  cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  srslte_ofdm_t fft; 
-  srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
-  srslte_ofdm_set_normalize(&fft, true);
-  srslte_ofdm_set_freq_shift(&fft, 0.5);
-  srslte_ofdm_tx_sf(&fft, sf_symbols, scfdma);
 
-  // Matlab toolbox expects further normalization 
-  srslte_vec_sc_prod_cfc(scfdma, 1.0/sqrtf(srslte_symbol_sz(cell.nof_prb)), scfdma, SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  
   if (nlhs >= 1) {
+    
+    cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    srslte_ofdm_t fft; 
+    srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
+    srslte_ofdm_set_normalize(&fft, true);
+    srslte_ofdm_set_freq_shift(&fft, 0.5);
+
+    srslte_ofdm_tx_sf(&fft, sf_symbols, scfdma);
+    // Matlab toolbox expects further normalization 
+    srslte_vec_sc_prod_cfc(scfdma, 1.0/sqrtf(srslte_symbol_sz(cell.nof_prb)), scfdma, SRSLTE_SF_LEN_PRB(cell.nof_prb));
+     
     mexutils_write_cf(scfdma, &plhs[0], SRSLTE_SF_LEN_PRB(cell.nof_prb), 1);  
+    
+    free(scfdma);
+
   }
   if (nlhs >= 2) {
     mexutils_write_cf(sf_symbols, &plhs[1], nof_re, 1);  
@@ -238,10 +240,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nlhs >= 4) {
     mexutils_write_uint8(pusch.q, &plhs[3], cfg.nbits.nof_bits, 1);  
   }
-  srslte_pusch_free(&pusch);  
+  srslte_pusch_free(&pusch);
+  srslte_softbuffer_tx_free(&softbuffer);  
   free(trblkin);
   free(sf_symbols);
-  free(scfdma);
   
   return;
 }

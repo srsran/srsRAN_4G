@@ -31,21 +31,22 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+#include <sys/time.h>
 #include <complex.h>
 
-#include "srslte/phch/prach.h"
+#include "srslte/srslte.h"
 
 #define MAX_LEN  70176
 
 
-uint32_t N_ifft_ul        = 128;
-uint32_t preamble_format  = 0;
+uint32_t N_ifft_ul        = 1536;
+uint32_t config_idx       = 3;
 uint32_t root_seq_idx     = 0;
-uint32_t zero_corr_zone   = 1;
+uint32_t zero_corr_zone   = 15;
 
 void usage(char *prog) {
   printf("Usage: %s\n", prog);
-  printf("\t-N Uplink IFFT size [Default 128]\n");
+  printf("\t-N Uplink IFFT size [Default %d]\n", N_ifft_ul);
   printf("\t-f Preamble format [Default 0]\n");
   printf("\t-r Root sequence index [Default 0]\n");
   printf("\t-z Zero correlation zone config [Default 1]\n");
@@ -59,7 +60,7 @@ void parse_args(int argc, char **argv) {
       N_ifft_ul = atoi(argv[optind]);
       break;
     case 'f':
-      preamble_format = atoi(argv[optind]);
+      config_idx = atoi(argv[optind]);
       break;
     case 'r':
       root_seq_idx = atoi(argv[optind]);
@@ -86,7 +87,7 @@ int main(int argc, char **argv) {
 
   srslte_prach_init(p,
              N_ifft_ul,
-             preamble_format,
+             config_idx,
              root_seq_idx,
              high_speed_flag,
              zero_corr_zone);
@@ -107,10 +108,13 @@ int main(int argc, char **argv) {
               preamble);
 
     uint32_t prach_len = p->N_seq;
-    if(preamble_format == 2 || preamble_format == 3)
-      prach_len /= 2;
-    srslte_prach_detect(p, 0, &preamble[p->N_cp], prach_len, indices, &n_indices);
-
+    
+    struct timeval t[3];
+    gettimeofday(&t[1], NULL);
+    srslte_prach_detect(p, frequency_offset, &preamble[p->N_cp], prach_len, indices, &n_indices);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    printf("texec=%d us\n", t[0].tv_usec);
     if(n_indices != 1 || indices[0] != seq_index)
       return -1;
   }

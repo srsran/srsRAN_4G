@@ -134,6 +134,9 @@ void srslte_sequence_free(srslte_sequence_t *q) {
   if (q->c_float) {
     free(q->c_float);
   }
+  if (q->c_short) {
+    free(q->c_short);
+  }
   bzero(q, sizeof(srslte_sequence_t));
 }
 

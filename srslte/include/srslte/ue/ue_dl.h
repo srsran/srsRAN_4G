@@ -171,7 +171,8 @@ SRSLTE_API void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q,
 SRSLTE_API void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, 
                                          srslte_softbuffer_rx_t *softbuffer, 
                                          uint32_t tti, 
-                                         uint32_t rv_idx); 
+                                         uint32_t rv_idx, 
+                                         uint16_t rnti); 
 
 
 #endif

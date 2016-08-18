@@ -96,7 +96,7 @@ int test_dci_payload_size() {
   for (i = 0; i < 6; i++) {
     int n = prb[i];
     for (j = 0; j < 4; j++) {
-      x[j] = srslte_dci_format_sizeof(formats[j], n);
+      x[j] = srslte_dci_format_sizeof(formats[j], n, 1);
       if (x[j] != dci_sz[i][j]) {
         fprintf(stderr, "Invalid DCI payload size for %s\n",
             srslte_dci_format_string(formats[j]));
@@ -112,7 +112,7 @@ int test_dci_payload_size() {
     for (i=0;i<=100;i++) {
       printf("  {");
       for (int j=0;j<4;j++) {
-        printf("%d",srslte_dci_format_sizeof(formats[j], i));
+        printf("%d",srslte_dci_format_sizeof(formats[j], i, 1));
         if (j<3) {
           printf(", ");
         }
@@ -191,11 +191,11 @@ int main(int argc, char **argv) {
   ra_dl.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   ra_dl.type0_alloc.rbg_bitmask = 0x5;
 
-  srslte_dci_msg_pack_pdsch(&ra_dl, &dci_tx[0], SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
+  srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_tx[0], cell.nof_prb, false);
   srslte_dci_location_set(&dci_locations[0], 0, 0);
 
   ra_dl.mcs_idx = 15;
-  srslte_dci_msg_pack_pdsch(&ra_dl, &dci_tx[1], SRSLTE_DCI_FORMAT1, cell.nof_prb, false);
+  srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_tx[1], cell.nof_prb, false);
   srslte_dci_location_set(&dci_locations[1], 0, 1);
   
   for (i=0;i<nof_dcis;i++) {

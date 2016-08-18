@@ -32,21 +32,14 @@
 /** MEX function to be called from MATLAB to test the channel estimator 
  */
 
-#define CELLID  prhs[0]
-#define PORTS   prhs[1]
-#define INPUT   prhs[2]
-#define NOF_INPUTS 3
+#define ENBCFG prhs[0]
+#define INPUT  prhs[1]
+#define NOF_INPUTS 2
 
 void help()
 {
   mexErrMsgTxt
-    ("[estChannel, avg_refs, output] = srslte_chest(cell_id, nof_ports, inputSignal)\n\n"
-     " Returns a matrix of size equal to the inputSignal matrix with the channel estimates\n "
-     "for each resource element in inputSignal. The inputSignal matrix is the received Grid\n"
-     "of size nof_resource_elements x nof_ofdm_symbols.\n"
-     "The sf_idx is the subframe index only used if inputSignal is 1 subframe length.\n"
-     "Returns the averaged references and output signal after ZF/MMSE equalization\n"
-    );
+    ("[estChannel, noiseEst, eq_output] = srslte_chest_dl(enb, inputSignal, [w_coeff])\n");
 }
 
 /* the gateway function */
@@ -57,158 +50,109 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_cell_t cell; 
   srslte_chest_dl_t chest;
   
-  cf_t *input_signal = NULL, *output_signal[SRSLTE_MAX_LAYERS]; 
-  cf_t *output_signal2 = NULL;
+  cf_t *input_signal = NULL, *output_signal = NULL, *tmp_x[SRSLTE_MAX_LAYERS]; 
   cf_t *ce[SRSLTE_MAX_PORTS]; 
-  double *outr0=NULL, *outi0=NULL;
-  double *outr1=NULL, *outi1=NULL;
-  double *outr2=NULL, *outi2=NULL;
   
-  if (!mxIsDouble(CELLID) && mxGetN(CELLID) != 1 && 
-      !mxIsDouble(PORTS) && mxGetN(PORTS) != 1 && 
-      mxGetM(CELLID) != 1) {
+  for (int i=0;i<SRSLTE_MAX_LAYERS;i++) {
+    tmp_x[i] = NULL; 
+  }
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    ce[i] = NULL; 
+  }
+  
+  if (nrhs < NOF_INPUTS) {
     help();
     return;
   }
 
-  cell.id = (uint32_t) *((double*) mxGetPr(CELLID));
-  cell.nof_prb = mxGetM(INPUT)/SRSLTE_NRE;
-  cell.nof_ports = (uint32_t) *((double*) mxGetPr(PORTS)); 
-  if ((mxGetN(INPUT)%14) == 0) {
-    cell.cp = SRSLTE_CP_NORM;    
-  } else if ((mxGetN(INPUT)%12)!=0) {
-    cell.cp = SRSLTE_CP_EXT;
-  } else {
-    mexErrMsgTxt("Invalid number of symbols\n");
+  if (mexutils_read_cell(ENBCFG, &cell)) {
     help();
     return;
   }
-  
+
+  uint32_t sf_idx=0; 
+  if (mexutils_read_uint32_struct(ENBCFG, "NSubframe", &sf_idx)) {
+    help();
+    return;
+  }
+
   if (srslte_chest_dl_init(&chest, cell)) {
     mexErrMsgTxt("Error initiating channel estimator\n");
     return;
   }
-  
-  int nsubframes;
-  if (cell.cp == SRSLTE_CP_NORM) {
-    nsubframes = mxGetN(INPUT)/14;
-  } else {
-    nsubframes = mxGetN(INPUT)/12;
-  }
-  
-  uint32_t sf_idx=0; 
-  
-
-  double *inr=(double *)mxGetPr(INPUT);
-  double *ini=(double *)mxGetPi(INPUT);
-  
+    
   /** Allocate input buffers */
   int nof_re = 2*SRSLTE_CP_NSYMB(cell.cp)*cell.nof_prb*SRSLTE_NRE;
   for (i=0;i<SRSLTE_MAX_PORTS;i++) {
     ce[i] = srslte_vec_malloc(nof_re * sizeof(cf_t));
   }
-  input_signal = srslte_vec_malloc(nof_re * sizeof(cf_t));
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    output_signal[i] = srslte_vec_malloc(nof_re * sizeof(cf_t));
+  for (i=0;i<SRSLTE_MAX_LAYERS;i++) {
+    tmp_x[i] = srslte_vec_malloc(nof_re * sizeof(cf_t));
   }
-  output_signal2 = srslte_vec_malloc(nof_re * sizeof(cf_t));
+  output_signal = srslte_vec_malloc(nof_re * sizeof(cf_t));
   
-  /* Create output values */
+  // Read input signal 
+  int insignal_len = mexutils_read_cf(INPUT, &input_signal);
+  if (insignal_len < 0) {
+    mexErrMsgTxt("Error reading input signal\n");
+    return; 
+  }
+  
+  // Read optional value smooth filter coefficient
+  if (nrhs > NOF_INPUTS) {
+    float w = (float) mxGetScalar(prhs[NOF_INPUTS]);
+    srslte_chest_dl_set_smooth_filter3_coeff(&chest, w);
+  } else {
+    srslte_chest_dl_set_smooth_filter(&chest, NULL, 0);
+  }
+      
+  // Perform channel estimation 
+  if (srslte_chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
+    mexErrMsgTxt("Error running channel estimator\n");
+    return;
+  }    
+  
+  // Get noise power estimation 
+  float noise_power = srslte_chest_dl_get_noise_estimate(&chest);
+          
+  // Perform channel equalization 
+  if (cell.nof_ports == 1) {
+    srslte_predecoding_single(input_signal, ce[0], output_signal, nof_re, noise_power);            
+  } else {
+    srslte_predecoding_diversity(input_signal, ce, tmp_x, cell.nof_ports, nof_re);
+    srslte_layerdemap_diversity(tmp_x, output_signal, cell.nof_ports, nof_re/cell.nof_ports);
+  }
+    
+  /* Write output values */
   if (nlhs >= 1) {
-    plhs[0] = mxCreateDoubleMatrix(nof_re * nsubframes, cell.nof_ports, mxCOMPLEX);
-    outr0 = mxGetPr(plhs[0]);
-    outi0 = mxGetPi(plhs[0]);
+    mexutils_write_cf(ce[0], &plhs[0], mxGetM(INPUT), mxGetN(INPUT));  
   }  
   if (nlhs >= 2) {
-    plhs[1] = mxCreateDoubleMatrix(SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb)*nsubframes, cell.nof_ports, mxCOMPLEX);
-    outr1 = mxGetPr(plhs[1]);
-    outi1 = mxGetPi(plhs[1]);
+    plhs[1] = mxCreateLogicalScalar(noise_power);
   }
   if (nlhs >= 3) {
-    plhs[2] = mxCreateDoubleMatrix(nof_re * nsubframes, 1,  mxCOMPLEX);
-    outr2 = mxGetPr(plhs[2]);
-    outi2 = mxGetPi(plhs[2]);
-  }
-    
-  float noise_power=0; 
-  for (int sf=0;sf<nsubframes;sf++) {
-    /* Convert input to C complex type */
-    for (i=0;i<nof_re;i++) {
-      __real__ input_signal[i] = (float) *inr;
-      if (ini) {
-        __imag__ input_signal[i] = (float) *ini;
-      }
-      inr++;
-      ini++;
-    }
-    
-    if (nsubframes != 1) {
-      sf_idx = sf%10;
-    }
-    
-    if (nrhs > NOF_INPUTS) {
-      float w = (float) mxGetScalar(prhs[NOF_INPUTS]);
-      srslte_chest_dl_set_smooth_filter3_coeff(&chest, w);
-    } else {
-      srslte_chest_dl_set_smooth_filter(&chest, NULL, 0);
-    }
-        
-    if (srslte_chest_dl_estimate(&chest, input_signal, ce, sf_idx)) {
-      mexErrMsgTxt("Error running channel estimator\n");
-      return;
-    }    
-    
-    if (sf==0) {
-      noise_power = srslte_chest_dl_get_noise_estimate(&chest);
-    }
-           
-    if (cell.nof_ports == 1) {
-      srslte_predecoding_single(input_signal, ce[0], output_signal2, nof_re, srslte_chest_dl_get_noise_estimate(&chest));            
-    } else {
-      srslte_predecoding_diversity(input_signal, ce, output_signal, cell.nof_ports, nof_re);
-      srslte_layerdemap_diversity(output_signal, output_signal2, cell.nof_ports, nof_re/cell.nof_ports);
-    }
-    
-    if (nlhs >= 1) { 
-      for (i=0;i<nof_re;i++) {      
-        *outr0 = (double) crealf(ce[0][i]);
-        if (outi0) {
-          *outi0 = (double) cimagf(ce[0][i]);
-        }
-        outr0++;
-        outi0++;
-      } 
-    }
-    if (nlhs >= 2) {    
-      for (i=0;i<SRSLTE_REFSIGNAL_NUM_SF(cell.nof_prb,0);i++) {
-        *outr1 = (double) crealf(chest.pilot_estimates_average[i]);
-        if (outi1) {
-          *outi1 = (double) cimagf(chest.pilot_estimates_average[i]);
-        }
-        outr1++;
-        outi1++;
-      }
-    }
-    if (nlhs >= 3) {
-      for (i=0;i<nof_re;i++) {      
-        *outr2 = (double) crealf(output_signal2[i]);
-        if (outi2) {
-          *outi2 = (double) cimagf(output_signal2[i]);
-        }
-        outr2++;
-        outi2++;
-      }
-    }
+    mexutils_write_cf(output_signal, &plhs[2], mxGetM(INPUT), mxGetN(INPUT));
   }
   
-  if (nlhs >= 4) {
-    plhs[3] = mxCreateDoubleScalar(noise_power);
-  }
-  if (nlhs >= 5) {
-    plhs[4] = mxCreateDoubleScalar(srslte_chest_dl_get_rsrp(&chest));
-  }
-  
+  // Free all memory 
   srslte_chest_dl_free(&chest);
+  
+  for (i=0;i<SRSLTE_MAX_LAYERS;i++) {
+    if (tmp_x[i]) {
+      free(tmp_x[i]);
+    }
+  }
+  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
+    if (ce[i]) {
+      free(ce[i]);
+    }
+  }
+  if (input_signal) {
+    free(input_signal);
+  }
+  if (output_signal) {
+    free(output_signal);
+  }
 
   return;
 }

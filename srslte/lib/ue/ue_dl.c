@@ -39,10 +39,10 @@
 
 #define MAX_CANDIDATES  64
 
-srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
+static srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also
 const uint32_t nof_ue_formats = 2; 
 
-srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
+static srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
 const uint32_t nof_common_formats = 2; 
 
 
@@ -201,7 +201,6 @@ int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf
                          q->sample_offset / q->fft.symbol_sz);
       }
     }
-    
     return srslte_ue_dl_decode_estimate(q, sf_idx, cfi); 
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS; 
@@ -303,7 +302,8 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
       }
-      if (dci_msg->data[0] != 0) {
+      // Check format differentiation
+      if (dci_msg->format != SRSLTE_DCI_FORMAT0) {
         crc_rem = 0; 
       }
       DEBUG("Decoded DCI message RNTI: 0x%x\n", crc_rem);
@@ -373,7 +373,7 @@ int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, 
         INFO("Found DCI nCCE: %d, L: %d, n_bits=%d\n", locations[i].ncce, locations[i].L, srslte_dci_format_sizeof_lut(formats[f], q->cell.nof_prb));
         memcpy(&q->last_location, &locations[i], sizeof(srslte_dci_location_t));
       }
-      if (crc_rem == rnti && formats[f] == SRSLTE_DCI_FORMAT1A && dci_msg->data[0] != 1) {
+      if (crc_rem == rnti && dci_msg->format == SRSLTE_DCI_FORMAT0) {
         /* Save Format 0 msg. Recovered next call to srslte_ue_dl_find_ul_dci() */
         q->pending_ul_dci_rnti = crc_rem; 
         memcpy(&q->pending_ul_dci_msg, dci_msg, sizeof(srslte_dci_msg_t));
@@ -410,7 +410,7 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
   int found_dci = srslte_ue_dl_find_dl_dci(q, &dci_msg, q->cfi, sf_idx, rnti);   
   if (found_dci == 1) {
     
-    if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, &dci_unpacked, &grant)) {
+    if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, q->cell.nof_ports, &dci_unpacked, &grant)) {
       fprintf(stderr, "Error unpacking DCI\n");
       return SRSLTE_ERROR;   
     }
@@ -425,14 +425,13 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
   }
 }
 
-/* Computes n_group and n_seq according to Section 9.1.2 in 36.213 and calls phich processing function */
+
 bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_prb_lowest, uint32_t n_dmrs)
 {
   uint8_t ack_bit; 
   float distance;
-  uint32_t Ngroups = srslte_phich_ngroups(&q->phich); 
-  uint32_t ngroup = (n_prb_lowest+n_dmrs)%Ngroups;
-  uint32_t nseq = ((n_prb_lowest/Ngroups)+n_dmrs)%(2*srslte_phich_nsf(&q->phich));
+  uint32_t ngroup, nseq; 
+  srslte_phich_calc(&q->phich, n_prb_lowest, n_dmrs, &ngroup, &nseq);
   DEBUG("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d\n", 
     sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq);
   if (!srslte_phich_decode(&q->phich, q->sf_symbols, q->ce, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
@@ -448,7 +447,7 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
   }
 }
 
-void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuffer, uint32_t tti, uint32_t rv_idx) {
+void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuffer, uint32_t tti, uint32_t rv_idx, uint16_t rnti) {
   srslte_vec_save_file("sf_symbols", q->sf_symbols, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   printf("%d samples\n", SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
   srslte_vec_save_file("ce0", q->ce[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
@@ -477,7 +476,7 @@ void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuf
     srslte_vec_save_file(tmpstr, softbuffer->buffer_f[i], (3*cb_len+12)*sizeof(int16_t));  
   }
   printf("Saved files for tti=%d, sf=%d, cfi=%d, mcs=%d, rv=%d, rnti=%d\n", tti, tti%10, q->cfi, 
-         q->pdsch_cfg.grant.mcs.idx, rv_idx, q->current_rnti);
+         q->pdsch_cfg.grant.mcs.idx, rv_idx, rnti);
 }
 
 
