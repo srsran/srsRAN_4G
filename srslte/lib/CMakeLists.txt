@@ -80,12 +80,20 @@ target_link_libraries(srslte pthread m)
 set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
+<<<<<<< HEAD
 if(MKL_FOUND)
   target_link_libraries(srslte ${MKL_LIBRARIES})
 else(MKL_FOUND)
   target_link_libraries(srslte ${FFTW3F_LIBRARIES})
 endif(MKL_FOUND)
 
+=======
+if(NOT DisableMEX)
+  target_link_libraries(srslte_static ${FFTW3F_LIBRARIES})
+endif(NOT DisableMEX)
+                              
+                              
+>>>>>>> 96237d74ad45bed22a1eb316e9386f089539c565
 if(RF_FOUND)
   if(UHD_FOUND)
     target_link_libraries(srslte ${UHD_LIBRARIES})
@@ -98,6 +106,9 @@ endif(RF_FOUND)
 
 if(VOLK_FOUND)
   target_link_libraries(srslte ${VOLK_LIBRARIES})
+  if(NOT DisableMEX)
+    target_link_libraries(srslte_static ${VOLK_LIBRARIES})
+  endif(NOT DisableMEX)
 endif(VOLK_FOUND)
 
 INSTALL(TARGETS srslte DESTINATION ${LIBRARY_DIR})

@@ -32,13 +32,14 @@
  */
 
 #define ENBCFG  prhs[0]
-#define INPUT   prhs[1]
-#define NOF_INPUTS 2
+#define HIRES   prhs[1]
+#define INPUT   prhs[2]
+#define NOF_INPUTS 3
 
 void help()
 {
   mexErrMsgTxt
-    ("[cfi] = srslte_pcfich(enbConfig, rxWaveform)\n\n");
+    ("[hi, symbols] = srslte_phich(enbConfig, hires, input_signal, [hest, nest])\n\n");
 }
 
 /* the gateway function */
@@ -46,7 +47,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   int i; 
   srslte_cell_t cell; 
-  srslte_pcfich_t pcfich;
+  srslte_phich_t phich;
   srslte_chest_dl_t chest; 
   srslte_ofdm_t ofdm_rx; 
   srslte_regs_t regs;
@@ -83,8 +84,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  if (srslte_pcfich_init(&pcfich, &regs, cell)) {
-    mexErrMsgTxt("Error creating PBCH object\n");
+  if (srslte_phich_init(&phich, &regs, cell)) {
+    mexErrMsgTxt("Error creating PHICH object\n");
     return;
   }
       
@@ -108,7 +109,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
   }
   
-  mexPrintf("sf_idx=%d, nof_ports=%d, cell_id=%d\n", sf_idx, cell.nof_ports, cell.id);
   if (nrhs > NOF_INPUTS) {
     cf_t *cearray = NULL; 
     mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
@@ -132,33 +132,35 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     noise_power = 0; 
   } else {
     noise_power = srslte_chest_dl_get_noise_estimate(&chest);
+  } 
+  
+  // Read hires values 
+  float *hires = NULL; 
+  int nhires = mexutils_read_f(HIRES, &hires); 
+  if (nhires != 2) {
+    mexErrMsgTxt("Expecting 2 values for hires parameter\n");
+    return; 
   }
-    
-    
-  uint32_t cfi;
+  uint32_t ngroup = (uint32_t) hires[0]; 
+  uint32_t nseq   = (uint32_t) hires[1]; 
+  uint8_t ack;
   float corr_res; 
-  int n = srslte_pcfich_decode(&pcfich, input_fft, ce, noise_power,  sf_idx, &cfi, &corr_res);
+  int n = srslte_phich_decode(&phich, input_fft, ce, noise_power, ngroup, nseq, sf_idx, &ack, &corr_res);
 
   if (nlhs >= 1) { 
     if (n < 0) {      
       plhs[0] = mxCreateDoubleScalar(-1);
     } else {
-      plhs[0] = mxCreateDoubleScalar(cfi);      
+      plhs[0] = mxCreateDoubleScalar(ack);      
     }
   }
   if (nlhs >= 2) {
-    mexutils_write_cf(pcfich.d, &plhs[1], 16, 1);  
-  }
-  if (nlhs >= 3) {
-    mexutils_write_cf(pcfich.symbols[0], &plhs[2], 16, 1);  
-  }
-  if (nlhs >= 4) {
-    mexutils_write_cf(ce[0], &plhs[3], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
+    mexutils_write_cf(phich.z, &plhs[1], 1, SRSLTE_PHICH_NBITS);  
   }
   
   srslte_chest_dl_free(&chest);
   srslte_ofdm_rx_free(&ofdm_rx);
-  srslte_pcfich_free(&pcfich);
+  srslte_phich_free(&phich);
   srslte_regs_free(&regs);
   
   for (i=0;i<cell.nof_ports;i++) {

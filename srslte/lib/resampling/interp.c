@@ -122,17 +122,19 @@ void srslte_interp_linear_vector_free(srslte_interp_linsrslte_vec_t *q) {
 
 }
 
-void srslte_interp_linear_vector(srslte_interp_linsrslte_vec_t *q, cf_t *in0, cf_t *in1, cf_t *between, uint32_t M) 
+void srslte_interp_linear_vector(srslte_interp_linsrslte_vec_t *q, cf_t *in0, cf_t *in1, cf_t *between,                                            
+                                 uint32_t in1_in0_d, uint32_t M) 
 {
-  srslte_interp_linear_vector2(q, in0, in1, NULL, between, M); 
+  srslte_interp_linear_vector2(q, in0, in1, NULL, between, in1_in0_d, M); 
 }
 
-void srslte_interp_linear_vector2(srslte_interp_linsrslte_vec_t *q, cf_t *in0, cf_t *in1, cf_t *start, cf_t *between, uint32_t M) 
+void srslte_interp_linear_vector2(srslte_interp_linsrslte_vec_t *q, cf_t *in0, cf_t *in1, cf_t *start, cf_t *between, 
+                                  uint32_t in1_in0_d, uint32_t M) 
 {
   uint32_t i;
   
   srslte_vec_sub_ccc(in1, in0, q->diff_vec, q->vector_len);
-  srslte_vec_sc_prod_cfc(q->diff_vec, (float) 1/(M+1), q->diff_vec, q->vector_len);
+  srslte_vec_sc_prod_cfc(q->diff_vec, (float) 1/in1_in0_d, q->diff_vec, q->vector_len);
   if (start) {
     srslte_vec_sum_ccc(start, q->diff_vec, between, q->vector_len);    
   } else {

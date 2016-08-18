@@ -48,6 +48,8 @@ typedef struct {
   size_t tx_nof_samples;
   double tx_rate;
   bool dynamic_rate; 
+  bool has_rssi; 
+  uhd_sensor_value_handle rssi_value;
 } rf_uhd_handler_t;
 
 void suppress_handler(const char *x)
@@ -194,6 +196,11 @@ void rf_uhd_flush_buffer(void *h)
 
 bool rf_uhd_has_rssi(void *h) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
+  return handler->has_rssi;
+}
+
+bool get_has_rssi(void *h) {
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
   uhd_string_vector_handle rx_sensors;  
   uhd_string_vector_make(&rx_sensors);
   uhd_usrp_get_rx_sensor_names(handler->usrp, 0, &rx_sensors);
@@ -203,14 +210,11 @@ bool rf_uhd_has_rssi(void *h) {
 }
 
 float rf_uhd_get_rssi(void *h) {
-  if (rf_uhd_has_rssi(h)) {
-    rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
-    uhd_sensor_value_handle value;  
-    uhd_sensor_value_make_from_realnum(&value, "rssi", 0, "dBm", "%f");
-    uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &value);
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;  
+  if (handler->has_rssi) {
     double val_out; 
-    uhd_sensor_value_to_realnum(value, &val_out);
-    uhd_sensor_value_free(&value);
+    uhd_usrp_get_rx_sensor(handler->usrp, "rssi", 0, &handler->rssi_value);
+    uhd_sensor_value_to_realnum(handler->rssi_value, &val_out);
     return val_out; 
   } else {
     return 0.0;
@@ -237,18 +241,32 @@ int rf_uhd_open(char *args, void **h)
     uhd_string_vector_make(&devices_str);
     uhd_usrp_find("", &devices_str);
     
+    char args2[512]; 
+    
+    handler->dynamic_rate = true;
+    
     // Allow NULL parameter
     if (args == NULL) {
       args = "";
-    }
-    
+    }           
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
-      // If B200 is available, use it
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
-        args = "type=b200,recv_frame_size=9232,send_frame_size=9232";
+        // If B200 is available, use it
+        args = "type=b200,recv_frame_size=9232,send_frame_size=9232";        
+      } else if (find_string(devices_str, "type=x300")) {
+        // Else if X300 is available, set master clock rate now (can't be changed later)
+        args = "type=x300,master_clock_rate=184.32e6";
+        handler->dynamic_rate = false; 
       }
-    }
+    } else {
+      // If args is set and x300 type is specified, make sure master_clock_rate is defined
+      if (strstr(args, "type=x300") && !strstr(args, "master_clock_rate")) {
+        sprintf(args2, "%s,master_clock_rate=184.32e6",args);
+        args = args2;          
+        handler->dynamic_rate = false; 
+      }
+    }        
     
     /* Create UHD handler */
     printf("Opening USRP with args: %s\n", args);
@@ -257,7 +275,7 @@ int rf_uhd_open(char *args, void **h)
       fprintf(stderr, "Error opening UHD: code %d\n", error);
       return -1; 
     }
-      
+          
     size_t channel = 0;
     uhd_stream_args_t stream_args = {
           .cpu_format = "fc32",
@@ -267,6 +285,11 @@ int rf_uhd_open(char *args, void **h)
           .n_channels = 1
       };
       
+    handler->has_rssi = get_has_rssi(handler);  
+    if (handler->has_rssi) {        
+      uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
+    }
+    
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
@@ -291,28 +314,6 @@ int rf_uhd_open(char *args, void **h)
     uhd_rx_metadata_make(&handler->rx_md);
     uhd_rx_metadata_make(&handler->rx_md_first);
     uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
-  
-    /* Find out if the master clock rate is configurable */
-    double cur_clock, new_clock; 
-    uhd_usrp_get_master_clock_rate(handler->usrp, 0, &cur_clock);
-    printf("Trying to dynamically change Master clock...\n");
-    uhd_usrp_set_master_clock_rate(handler->usrp, cur_clock/2, 0);
-    uhd_usrp_get_master_clock_rate(handler->usrp, 0, &new_clock);
-    if (new_clock == cur_clock) {
-      handler->dynamic_rate = false; 
-      /* Master clock rate is not configurable. Check if it is compatible with LTE */
-      int cur_clock_i = (int) cur_clock;
-      if (cur_clock_i % 1920000) {
-        fprintf(stderr, "Error: LTE sampling rates are not supported. Master clock rate is %.1f MHz\n", cur_clock/1e6);
-        return -1; 
-      } else {
-        printf("Master clock is not configurable. Using standard symbol sizes and sampling rates.\n");
-        srslte_use_standard_symbol_size(true);
-      }
-    } else {
-      printf("Master clock is configurable. Using reduced symbol sizes and sampling rates.\n");
-      handler->dynamic_rate = true; 
-    }
   
     return 0;
   } else {

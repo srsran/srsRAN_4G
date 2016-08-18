@@ -117,14 +117,16 @@ float srslte_pcfich_cfi_decode(srslte_pcfich_t *q, uint32_t *cfi) {
   int i;
   int index = 0;
   float max_corr = 0;
+  float corr[3];
   
   for (i = 0; i < 3; i++) {
-    float corr = fabsf(srslte_vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN));
-    if (corr > max_corr) {
-      max_corr = corr; 
+    corr[i] = srslte_vec_dot_prod_fff(q->cfi_table_float[i], q->data_f, PCFICH_CFI_LEN);
+    if (corr[i] > max_corr) {
+      max_corr = corr[i]; 
       index = i; 
     }
   }
+  
   if (cfi) {
     *cfi = index + 1;
   }
@@ -134,7 +136,7 @@ float srslte_pcfich_cfi_decode(srslte_pcfich_t *q, uint32_t *cfi) {
 /** Encodes the CFI producing a vector of 32 bits.
  *  36.211 10.3 section 5.3.4
  */
-int srslte_pcfich_cfi_encode(int cfi, uint8_t bits[PCFICH_CFI_LEN]) {
+int srslte_pcfich_cfi_encode(uint32_t cfi, uint8_t bits[PCFICH_CFI_LEN]) {
   if (cfi < 1 || cfi > 3) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   } else{
@@ -220,7 +222,7 @@ int srslte_pcfich_encode(srslte_pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SR
   int i;
 
   if (q                 != NULL                 && 
-      cfi               <  3                    &&
+      cfi               <=  3                    &&
       slot_symbols      != NULL                 && 
       subframe         <  SRSLTE_NSUBFRAMES_X_FRAME) 
   {

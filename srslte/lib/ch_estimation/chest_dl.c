@@ -39,8 +39,6 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/convolution.h"
 
-#define ESTIMATE_NOISE_LS_PSS
-
 //#define DEFAULT_FILTER_LEN 3
 
 #ifdef DEFAULT_FILTER_LEN 
@@ -125,6 +123,8 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       goto clean_exit;
     }
     
+    q->noise_alg = SRSLTE_NOISE_ALG_REFS; 
+    
     q->smooth_filter_len = 3; 
     srslte_chest_dl_set_smooth_filter3_coeff(q, 0.1);
     
@@ -178,12 +178,17 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id)
   srslte_vec_fprint_f(stdout, q->snr_vector, nref);
 #endif
   
-  /* Compute average power */
-  float power = (1/q->smooth_filter[0])*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
+  /* Compute average power. Normalized for filter len 3 using matlab */
+  float norm  = 1;
+  if (q->smooth_filter_len == 3) {
+    float a = q->smooth_filter[0];
+    float norm3 = 6.143*a*a+0.04859*a-0.002774;
+    norm /= norm3; 
+  }
+  float power = norm*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
   return power; 
 }
 
-#ifdef ESTIMATE_NOISE_LS_PSS
 static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce) 
 {
   /* Get PSS from received signal */
@@ -199,12 +204,9 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
   srslte_vec_sub_ccc(q->tmp_pss_noisy, q->tmp_pss, q->tmp_pss_noisy, SRSLTE_PSS_LEN);
   
   /* Compute average power */
-  float power = q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN);
+  float power = q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN)/sqrt(2);
   return power; 
 }
-
-
-#else 
 
 /* Uses the 5 empty transmitted SC before and after the SSS and PSS sequences for noise estimation */
 static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
@@ -218,8 +220,6 @@ static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
   
   return noise_power; 
 }
-#endif
-
 
 #define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,0)]
 
@@ -240,25 +240,25 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
   /* Now interpolate in the time domain between symbols */
   if (SRSLTE_CP_ISNORM(q->cell.cp)) {
     if (nsymbols == 4) {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(4),  &cesymb(1),  3);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(4), &cesymb(7),  &cesymb(5),  2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(8),  3);
-      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(11), &cesymb(12), 2);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(4),  &cesymb(1), 4, 3);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(4), &cesymb(7),  &cesymb(5), 3, 2);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(8), 4, 3);
+      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(11), &cesymb(12), 4, 2);
     } else {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(8), &cesymb(1), &cesymb(0), 1);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(2), 6);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 5);
+      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(8), &cesymb(1), &cesymb(1), &cesymb(0), 7, 1);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(2), 7, 6);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 7, 5);
     }    
   } else {
     if (nsymbols == 4) {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(7), 2);
-      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), &cesymb(10), 2);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 3, 2);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 3, 2);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(7), 3, 2);
+      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), &cesymb(10), 3, 2);
     } else {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(1), &cesymb(0), 1);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 5);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(8), 4);
+      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(7), &cesymb(1), &cesymb(1), &cesymb(0), 6, 1);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 6, 5);
+      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(8), 6, 4);
     }    
   }
 }
@@ -275,6 +275,10 @@ void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint
     fprintf(stderr, "Error setting smoothing filter: filter len exceeds maximum (%d>%d)\n", 
       filter_len, SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN);
   }
+}
+
+void srslte_chest_dl_set_noise_alg(srslte_chest_dl_t *q, srslte_chest_dl_noise_alg_t noise_estimation_alg) {
+  q->noise_alg = noise_estimation_alg; 
 }
 
 void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q, float w)
@@ -315,26 +319,28 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->csr_signal.pilots[port_id/2][sf_idx], 
               q->pilot_estimates, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id)); 
   if (ce != NULL) {
-    if (q->smooth_filter_len > 0) {
-      average_pilots(q, q->pilot_estimates, q->pilot_estimates_average, port_id);
-      interpolate_pilots(q, q->pilot_estimates_average, ce, port_id);        
-      
-      /* If averaging, compute noise from difference between received and averaged estimates */
-      if (sf_idx == 0 || sf_idx == 5) {
-        q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);
-      }      
-    } else {
+    
+    /* Smooth estimates (if applicable) and interpolate */
+    if (q->smooth_filter_len == 0 || (q->smooth_filter_len == 3 && q->smooth_filter[0] == 0)) {
       interpolate_pilots(q, q->pilot_estimates, ce, port_id);            
-      
-      /* If not averaging, compute noise from empty subcarriers */
+    } else {
+      average_pilots(q, q->pilot_estimates, q->pilot_estimates_average, port_id);
+      interpolate_pilots(q, q->pilot_estimates_average, ce, port_id);              
+    }
+    
+    /* Estimate noise power */
+    if (q->noise_alg == SRSLTE_NOISE_ALG_REFS && q->smooth_filter_len > 0) {
+      q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);                  
+    } else if (q->noise_alg == SRSLTE_NOISE_ALG_PSS) {
       if (sf_idx == 0 || sf_idx == 5) {
-#ifdef ESTIMATE_NOISE_LS_PSS
         q->noise_estimate[port_id] = estimate_noise_pss(q, input, ce);
-#else
+      }
+    } else {
+      if (sf_idx == 0 || sf_idx == 5) {
         q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
-#endif
       }
     }
+    
   }
     
   /* Compute RSRP for the channel estimates in this port */

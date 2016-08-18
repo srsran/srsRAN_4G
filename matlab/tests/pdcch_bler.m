@@ -11,7 +11,7 @@ SNR_values = linspace(2,6,6);
 txCFI = 3;
 enbConfig.NDLRB = 15;                % No of Downlink RBs in total BW
 enbConfig.CyclicPrefix = 'Normal';  % CP length
-enbConfig.CFI = txCFI;                                                                                                                                                                                                                                                                                                                                                                                                                           ;                  % 4 PDCCH symbols as NDLRB <= 10
+enbConfig.CFI = txCFI;                                                                                                                                                                                                                                                                                                                                                                                                                                             % 4 PDCCH symbols as NDLRB <= 10
 enbConfig.Ng = 'One';             % HICH groups
 enbConfig.CellRefP = 1;             % 1-antenna ports
 enbConfig.NCellID = 0;             % Physical layer cell identity
@@ -23,7 +23,7 @@ C_RNTI = 1;                         % 16-bit UE-specific mask
 %% Setup Fading channel model 
 cfg.Seed = 8;                  % Random channel seed
 cfg.NRxAnts = 1;               % 1 receive antenna
-cfg.DelayProfile = 'EVA';      % EVA delay spread
+cfg.DelayProfile = 'EPA';      % EVA delay spread
 cfg.DopplerFreq = 5;           % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
 cfg.InitTime = 0;              % Initialize at time zero
@@ -56,7 +56,7 @@ dciConfig.Allocation.RIV = 26;      % Resource indication value
 if C_RNTI<65535
     pdcchConfig.RNTI = C_RNTI;            % Radio network temporary identifier
 end
-pdcchConfig.PDCCHFormat = 0;          % PDCCH format
+pdcchConfig.PDCCHFormat = 3;          % PDCCH format
 ueConfig.RNTI = C_RNTI;
 
 candidates = ltePDCCHSpace(enbConfig, pdcchConfig, {'bits', '1based'});
@@ -153,7 +153,7 @@ for snr_idx=1:length(SNR_values)
         %% Same with srsLTE
         [rxCFI_srslte, pcfichRx2, pcfichSymbols2] = srslte_pcfich(enbConfigRx, subframe_rx);
         decoded_cfi_srslte(snr_idx) = decoded_cfi_srslte(snr_idx) + (rxCFI_srslte == txCFI); 
-        enbConfigRx.CFI = rxCFI;
+        enbConfigRx.CFI = txCFI;
         [found_srslte, pdcchBits2, pdcchRx2, pdcchSymbols2, hest2] = srslte_pdcch(enbConfigRx, ueConfig.RNTI, subframe_rx, hest, nest);
         decoded_srslte(snr_idx) = decoded_srslte(snr_idx)+found_srslte;
     end

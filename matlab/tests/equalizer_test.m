@@ -6,13 +6,13 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=linspace(0,30,5);
-Nrealizations=4;
+SNR_values_db=100;%linspace(20,35,8);
+Nrealizations=1;
 
 w1=0.1;
-w2=0.2;
+w2=0.3;
 
-enb.NDLRB = 50;                 % Number of resource blocks
+enb.NDLRB = 6;                 % Number of resource blocks
 
 enb.CellRefP = 1;               % One transmit antenna port
 enb.NCellID = 0;                % Cell ID
@@ -55,7 +55,7 @@ L = gridsize(2);    % Number of OFDM symbols in one subframe
 Ports = gridsize(3);    % Number of transmit antenna ports
 
 %% Allocate memory
-Ntests=4;
+Ntests=2;
 hest=cell(1,Ntests);
 for i=1:Ntests
     hest{i}=zeros(K,140);
@@ -203,7 +203,6 @@ end
 
 %% Plot a single realization
 if (length(SNR_values_db) == 1)
-    subplot(2,1,1)
     sym=1;
     ref_idx=1:P;
     ref_idx_x=[1:6:K];% (292:6:360)-216];% 577:6:648];
@@ -212,13 +211,14 @@ if (length(SNR_values_db) == 1)
         plot(n,abs(reshape(hest{i}(:,sym),1,[])),colors2{i});
         hold on;
     end
-    plot(ref_idx_x,abs(hls(3,ref_idx)),'ro');
+    plot(n, abs(h(:,sym)),'g-')
+%    plot(ref_idx_x,real(hls(3,ref_idx)),'ro');
     hold off;
     tmp=cell(Ntests+1,1);
     for i=1:Ntests
         tmp{i}=legends{i};
     end
-    tmp{Ntests+1}='LS';
+    tmp{Ntests+1}='Real';
     legend(tmp)
 
     xlabel('SNR (dB)')
@@ -227,9 +227,6 @@ if (length(SNR_values_db) == 1)
         
     fprintf('Mean MMSE Robust %.2f dB\n', 10*log10(MSE(4,nreal,snr_idx)))
     fprintf('Mean MMSE matlab %.2f dB\n', 10*log10(MSE(1,nreal,snr_idx)))
-
-    subplot(2,1,2)
-    plot(1:P,abs(W3(P/2,:)))
     
 end
 

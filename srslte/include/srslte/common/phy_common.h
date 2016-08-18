@@ -61,10 +61,10 @@
 typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
 
 
-#define SRSLTE_CRNTI_START  0x003D
+#define SRSLTE_CRNTI_START  0x000B
 #define SRSLTE_CRNTI_END    0xFFF3
 #define SRSLTE_RARNTI_START 0x0001
-#define SRSLTE_RARNTI_END   0x003C
+#define SRSLTE_RARNTI_END   0x000A
 #define SRSLTE_SIRNTI       0xFFFF
 #define SRSLTE_PRNTI        0xFFFE
 #define SRSLTE_MRNTI        0xFFFD
