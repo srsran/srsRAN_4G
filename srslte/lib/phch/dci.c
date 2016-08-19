@@ -944,7 +944,7 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
 
   data->mcs_idx = srslte_bit_pack(&y, 5);
   
-  data->rv_idx = -1; // For SI-RNTI, get RV from TTI 
+  data->rv_idx = -1; // Get RV later
   
   msg->nof_bits = (y - msg->data);
 

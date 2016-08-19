@@ -463,7 +463,7 @@ static int decode_tb(srslte_sch_t *q,
       par_tx = ((uint32_t) parity[0])<<16 | ((uint32_t) parity[1])<<8 | ((uint32_t) parity[2]);
       
       if (!par_rx) {
-        printf("Warning: Received all-zero transport block\n\n", 0);        
+        INFO("Warning: Received all-zero transport block\n\n", 0);        
       }
 
       if (par_rx == par_tx && par_rx) {
