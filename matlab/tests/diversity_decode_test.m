@@ -10,7 +10,7 @@ cec.InterpWinSize = 1;
 cec.InterpWindow = 'Causal';
 
 cfg.Seed = 1;                  % Random channel seed
-cfg.NRxAnts = 1;               % 1 receive antenna
+cfg.NRxAnts = 2;               % 1 receive antenna
 cfg.DelayProfile = 'ETU';      % EVA delay spread
 cfg.DopplerFreq = 100;           % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
@@ -29,16 +29,20 @@ txWaveform = txWaveform+complex(randn(n,2),randn(n,2))*1e-3;
 
 rxWaveform = lteFadingChannel(cfg,txWaveform);
 
-rxGrid = lteOFDMDemodulate(enb,sum(rxWaveform,2));
+rxGrid = lteOFDMDemodulate(enb,rxWaveform);
 
 [h,n0] = lteDLChannelEstimate(enb,cec,rxGrid);
 
-signal=rxGrid(:,1);
-hest(:,1,1)=reshape(h(:,1,1,1),[],1);
-hest(:,1,2)=reshape(h(:,1,1,1),[],1);
+s=size(h);
+p=s(1);
+Nt=s(4);
+Nr=s(3);
 
-output_mat = lteTransmitDiversityDecode(signal(, hest(1:598,1,:)); 
-output_srs = srslte_diversitydecode(signal(1:598), hest(1:598,1,:));
+rx=reshape(rxGrid(:,1,:),p,Nr);
+hp=reshape(h(:,1,:,:),p,Nr,Nt);
+
+output_mat = lteTransmitDiversityDecode(rx, hp); 
+output_srs = srslte_diversitydecode(rx, hp);
 
 plot(abs(output_mat-output_srs))
 mean(abs(output_mat-output_srs).^2)
