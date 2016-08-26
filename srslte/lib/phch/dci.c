@@ -65,7 +65,7 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
     srslte_dci_format_t tmp = msg->format; 
     ret = srslte_dci_msg_unpack_pdsch(msg, dl_dci, nof_prb, nof_ports, crc_is_crnti);
     if (ret) {
-      fprintf(stderr, "Can't unpack DCI message %s (%d)\n", srslte_dci_format_string(tmp), ret);
+      fprintf(stderr, "Can't unpack DCI message %s (%d)\n", srslte_dci_format_string(tmp), tmp);
       return ret;
     } 
     
@@ -386,7 +386,8 @@ uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb, 
     return dci_format3A_sizeof(nof_prb);
     */
   default:
-    return SRSLTE_ERROR;
+    printf("Error computing DCI bits: Unknown format %d\n", format);
+    return 0;
   }
 }
 
