@@ -39,7 +39,7 @@
 
 #include "srslte/srslte.h"
 
-#define ENABLE_AGC_DEFAULT
+//#define ENABLE_AGC_DEFAULT
 
 #ifndef DISABLE_RF
 #include "srslte/rf/rf.h"
@@ -116,7 +116,7 @@ void args_default(prog_args_t *args) {
 #ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0; 
 #else
-  args->rf_gain = 50.0; 
+  args->rf_gain = 70.0; 
 #endif
   args->net_port = -1; 
   args->net_address = "127.0.0.1";
