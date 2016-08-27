@@ -39,32 +39,8 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/convolution.h"
 
-#define AVERAGE_SUBFRAME
-
-//#define DEFAULT_FILTER_LEN 3
-
-#ifdef DEFAULT_FILTER_LEN 
-static void set_default_filter(srslte_chest_dl_t *q, int filter_len) {
-  
-  float fil[SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN]; 
-
-  for (int i=0;i<filter_len/2;i++) {
-    fil[i] = i+1;
-    fil[i+filter_len/2+1]=filter_len/2-i;
-  }
-  fil[filter_len/2]=filter_len/2+1;
-  
-  float s=0;
-  for (int i=0;i<filter_len;i++) {
-    s+=fil[i];
-  }
-  for (int i=0;i<filter_len;i++) {
-    fil[i]/=s;
-  }
-
-  srslte_chest_dl_set_smooth_filter(q, fil, filter_len);
-}
-#endif
+#define DEFAULT_FILTER_LEN       3
+#define DEFAULT_TIME_EMA_COEFF   0.9
 
 /** 3GPP LTE Downlink channel estimator and equalizer. 
  * Estimates the channel in the resource elements transmitting references and interpolates for the rest
@@ -104,6 +80,11 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
       perror("malloc");
       goto clean_exit;
     }      
+    q->pilot_average_last = srslte_vec_malloc(sizeof(cf_t) * 2 * cell.nof_prb);
+    if (!q->pilot_average_last) {
+      perror("malloc");
+      goto clean_exit;
+    }      
     q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(cell.nof_prb));
     if (!q->pilot_recv_signal) {
       perror("malloc");
@@ -127,7 +108,14 @@ int srslte_chest_dl_init(srslte_chest_dl_t *q, srslte_cell_t cell)
     
     q->noise_alg = SRSLTE_NOISE_ALG_REFS; 
     
-    q->smooth_filter_len = 3; 
+    q->time_ema_coeff = 1.0; 
+#ifdef DEFAULT_TIME_EMA_COEFF
+    q->time_ema_coeff = DEFAULT_TIME_EMA_COEFF;
+#endif
+    
+    q->average_subframe = true; 
+    
+    q->smooth_filter_len = DEFAULT_FILTER_LEN; 
     srslte_chest_dl_set_smooth_filter3_coeff(q, 0.1);
     
     q->cell = cell; 
@@ -157,6 +145,9 @@ void srslte_chest_dl_free(srslte_chest_dl_t *q)
   }      
   if (q->pilot_estimates_average) {
     free(q->pilot_estimates_average);
+  }      
+  if (q->pilot_average_last) {
+    free(q->pilot_average_last);
   }      
   if (q->pilot_recv_signal) {
     free(q->pilot_recv_signal);
@@ -233,52 +224,52 @@ static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
 static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t *ce, uint32_t port_id) 
 {
     
-#ifdef AVERAGE_SUBFRAME
-  // Interpolate symbol 0 in the frequency domain  
-  uint32_t fidx_offset = srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);    
-  srslte_interp_linear_offset(&q->srslte_interp_lin, pilot_estimates,
-                        &ce[srslte_refsignal_cs_nsymbol(0,q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE], 
-                        fidx_offset, SRSLTE_NRE/2-fidx_offset); 
-  // All channel estimates in the subframe are the same 
-  for (int l=1;l<2*SRSLTE_CP_NSYMB(q->cell.cp);l++) {
-    memcpy(&ce[l*q->cell.nof_prb*SRSLTE_NRE], ce, q->cell.nof_prb*SRSLTE_NRE*sizeof(cf_t));
-  }
-#else
-  uint32_t l=0; 
-  uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
-
-  // Interpolate in the frequency domain 
-  for (l=0;l<nsymbols;l++) {
-    uint32_t fidx_offset = srslte_refsignal_cs_fidx(q->cell, l, port_id, 0);    
-    srslte_interp_linear_offset(&q->srslte_interp_lin, &pilot_estimates[2*q->cell.nof_prb*l],
-                         &ce[srslte_refsignal_cs_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE], 
-                         fidx_offset, SRSLTE_NRE/2-fidx_offset); 
-  }
-  // Interpolate in the time domain between symbols
-  if (SRSLTE_CP_ISNORM(q->cell.cp)) {
-    if (nsymbols == 4) {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(4),  &cesymb(1), 4, 3);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(4), &cesymb(7),  &cesymb(5), 3, 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(8), 4, 3);
-      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(11), &cesymb(12), 4, 2);
-    } else {
-      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(8), &cesymb(1), &cesymb(1), &cesymb(0), 7, 1);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(2), 7, 6);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 7, 5);
-    }    
+  if (q->average_subframe) {
+    // Interpolate symbol 0 in the frequency domain  
+    uint32_t fidx_offset = srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);    
+    srslte_interp_linear_offset(&q->srslte_interp_lin, pilot_estimates,
+                          &ce[srslte_refsignal_cs_nsymbol(0,q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE], 
+                          fidx_offset, SRSLTE_NRE/2-fidx_offset); 
+    // All channel estimates in the subframe are the same 
+    for (int l=1;l<2*SRSLTE_CP_NSYMB(q->cell.cp);l++) {
+      memcpy(&ce[l*q->cell.nof_prb*SRSLTE_NRE], ce, q->cell.nof_prb*SRSLTE_NRE*sizeof(cf_t));
+    }
   } else {
-    if (nsymbols == 4) {
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 3, 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 3, 2);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(7), 3, 2);
-      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), &cesymb(10), 3, 2);
+    uint32_t l=0; 
+    uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
+
+    // Interpolate in the frequency domain 
+    for (l=0;l<nsymbols;l++) {
+      uint32_t fidx_offset = srslte_refsignal_cs_fidx(q->cell, l, port_id, 0);    
+      srslte_interp_linear_offset(&q->srslte_interp_lin, &pilot_estimates[2*q->cell.nof_prb*l],
+                          &ce[srslte_refsignal_cs_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE], 
+                          fidx_offset, SRSLTE_NRE/2-fidx_offset); 
+    }
+    // Interpolate in the time domain between symbols
+    if (SRSLTE_CP_ISNORM(q->cell.cp)) {
+      if (nsymbols == 4) {
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(4),  &cesymb(1), 4, 3);
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(4), &cesymb(7),  &cesymb(5), 3, 2);
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(8), 4, 3);
+        srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(7), &cesymb(11), &cesymb(11), &cesymb(12), 4, 2);
+      } else {
+        srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(8), &cesymb(1), &cesymb(1), &cesymb(0), 7, 1);
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(2), 7, 6);
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(8), &cesymb(9), 7, 5);
+      }    
     } else {
-      srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(7), &cesymb(1), &cesymb(1), &cesymb(0), 6, 1);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 6, 5);
-      srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(8), 6, 4);
-    }    
+      if (nsymbols == 4) {
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(3), &cesymb(1), 3, 2);
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(3), &cesymb(6), &cesymb(4), 3, 2);
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(7), 3, 2);
+        srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(6), &cesymb(9), &cesymb(9), &cesymb(10), 3, 2);
+      } else {
+        srslte_interp_linear_vector2(&q->srslte_interp_linvec, &cesymb(7), &cesymb(1), &cesymb(1), &cesymb(0), 6, 1);
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(2), 6, 5);
+        srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(8), 6, 4);
+      }    
+    }
   }
-#endif
 }
 
 void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint32_t filter_len) {
@@ -307,21 +298,36 @@ void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q, float w)
   q->smooth_filter[1] = 1-2*w; 
 }
 
+void srslte_chest_dl_set_time_ema_coeff(srslte_chest_dl_t *q, float t) {
+  if (t > 0.0 && t <= 1.0) {
+    q->time_ema_coeff = t; 
+  }
+}
+
+void srslte_chest_dl_set_average_subframe(srslte_chest_dl_t *q, bool enable) {
+  q->average_subframe = enable; 
+}
+
 static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint32_t port_id) {
   uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
   uint32_t nref = 2*q->cell.nof_prb;
 
   memcpy(output, input, nref*sizeof(cf_t));
   for (int l=1;l<nsymbols;l++) {
-#ifdef AVERAGE_SUBFRAME
-    srslte_vec_sum_ccc(output, &input[l*nref], output, nref);  
-#else  
-    srslte_conv_same_cf(&input[l*nref], q->smooth_filter, &output[l*nref], nref, q->smooth_filter_len);    
-#endif
+    if (q->average_subframe) {
+      srslte_vec_sum_ccc(output, &input[l*nref], output, nref);  
+    } else {
+      srslte_conv_same_cf(&input[l*nref], q->smooth_filter, &output[l*nref], nref, q->smooth_filter_len);    
+    }
   }
-#ifdef AVERAGE_SUBFRAME
-  srslte_vec_sc_prod_cfc(output, (float) 1.0/nsymbols, output, nref);
-#endif
+  if (q->average_subframe) {
+    srslte_vec_sc_prod_cfc(output, (float) q->time_ema_coeff/nsymbols, output, nref);
+    if (q->time_ema_coeff < 1.0) {
+      srslte_vec_sc_prod_cfc(q->pilot_average_last, 1-q->time_ema_coeff, q->pilot_average_last, nref);
+      srslte_vec_sum_ccc(q->pilot_average_last, output, output, nref);
+      memcpy(q->pilot_average_last, output, nref*sizeof(cf_t));
+    }
+  }
 }
 
 float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) {

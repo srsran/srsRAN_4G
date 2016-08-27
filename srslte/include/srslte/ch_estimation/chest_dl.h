@@ -63,6 +63,7 @@ typedef struct {
   srslte_refsignal_cs_t csr_signal;
   cf_t *pilot_estimates;
   cf_t *pilot_estimates_average; 
+  cf_t *pilot_average_last; 
   cf_t *pilot_recv_signal; 
   cf_t *tmp_noise; 
   
@@ -73,6 +74,9 @@ typedef struct {
   uint32_t smooth_filter_len; 
   float smooth_filter[SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN];
 
+  float time_ema_coeff; 
+  bool  average_subframe; 
+  
   srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
   srslte_interp_lin_t srslte_interp_lin; 
   
@@ -101,6 +105,12 @@ SRSLTE_API void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q,
 
 SRSLTE_API void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q, 
                                                          float w); 
+
+SRSLTE_API void srslte_chest_dl_set_time_ema_coeff(srslte_chest_dl_t *q, 
+                                                   float t); 
+
+SRSLTE_API void srslte_chest_dl_set_average_subframe(srslte_chest_dl_t *q, 
+                                                     bool enable); 
 
 SRSLTE_API void srslte_chest_dl_set_noise_alg(srslte_chest_dl_t *q, 
                                               srslte_chest_dl_noise_alg_t noise_estimation_alg); 
