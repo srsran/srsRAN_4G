@@ -116,7 +116,7 @@ for snr_idx=1:length(SNR_values)
             rmccFgOut.TotSubframes=1;
 
             % Perform channel estimation
-            [hest, nest] = lteDLChannelEstimate(rmccFgOut, cec, subframe_rx);
+            [hest, nest,estimates] = lteDLChannelEstimate2(rmccFgOut, cec, subframe_rx);
 
             [cws,symbols] = ltePDSCHDecode(rmccFgOut,rmccFgOut.PDSCH,subframe_rx,hest,nest);
             [trblkout,blkcrc,dstate] = lteDLSCHDecode(rmccFgOut,rmccFgOut.PDSCH, ... 
@@ -156,7 +156,6 @@ if (length(SNR_values)>1)
     axis([min(SNR_values) max(SNR_values) 1/Npackets/(Nsf+1) 1])
 else
     scatter(real(symbols{1}),imag(symbols{1}))
-    plot(
     fprintf('Matlab: %d OK\nsrsLTE: %d OK\n',decoded, decoded_srslte);
 end
 

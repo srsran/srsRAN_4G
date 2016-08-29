@@ -583,13 +583,11 @@ int main(int argc, char **argv) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
-          /*
           printf("\n");
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0; 
           ue_dl.nof_detected = 0;           
           nof_trials = 0; 
-          */
         } 
       }
       

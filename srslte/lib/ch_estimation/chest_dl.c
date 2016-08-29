@@ -39,8 +39,6 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/convolution.h"
 
-#define AVERAGE_SUBFRAME
-
 //#define DEFAULT_FILTER_LEN 3
 
 #ifdef DEFAULT_FILTER_LEN 
@@ -167,18 +165,7 @@ void srslte_chest_dl_free(srslte_chest_dl_t *q)
 /* Uses the difference between the averaged and non-averaged pilot estimates */
 static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id) 
 {
-  float norm  = sqrt(2);
-#ifdef AVERAGE_SUBFRAME
-  int nref=2*q->cell.nof_prb;
-#else
   int nref=SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id);
-  if (q->smooth_filter_len == 3) {
-    float a = q->smooth_filter[0];
-    float norm3 = 6.143*a*a+0.04859*a-0.002774;
-    norm /= norm3; 
-  }
-#endif 
-  
   /* Substract noisy pilot estimates */
   srslte_vec_sub_ccc(q->pilot_estimates_average, q->pilot_estimates, q->tmp_noise, nref);  
   
@@ -192,6 +179,12 @@ static float estimate_noise_pilots(srslte_chest_dl_t *q, uint32_t port_id)
 #endif
   
   /* Compute average power. Normalized for filter len 3 using matlab */
+  float norm  = 1;
+  if (q->smooth_filter_len == 3) {
+    float a = q->smooth_filter[0];
+    float norm3 = 6.143*a*a+0.04859*a-0.002774;
+    norm /= norm3; 
+  }
   float power = norm*q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_noise, nref);
   return power; 
 }
@@ -232,29 +225,19 @@ static float estimate_noise_empty_sc(srslte_chest_dl_t *q, cf_t *input) {
 
 static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t *ce, uint32_t port_id) 
 {
-    
-#ifdef AVERAGE_SUBFRAME
-  // Interpolate symbol 0 in the frequency domain  
-  uint32_t fidx_offset = srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);    
-  srslte_interp_linear_offset(&q->srslte_interp_lin, pilot_estimates,
-                        &ce[srslte_refsignal_cs_nsymbol(0,q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE], 
-                        fidx_offset, SRSLTE_NRE/2-fidx_offset); 
-  // All channel estimates in the subframe are the same 
-  for (int l=1;l<2*SRSLTE_CP_NSYMB(q->cell.cp);l++) {
-    memcpy(&ce[l*q->cell.nof_prb*SRSLTE_NRE], ce, q->cell.nof_prb*SRSLTE_NRE*sizeof(cf_t));
-  }
-#else
-  uint32_t l=0; 
+  /* interpolate the symbols with references in the freq domain */
+  uint32_t l; 
   uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
-
-  // Interpolate in the frequency domain 
+  
+  /* Interpolate in the frequency domain */
   for (l=0;l<nsymbols;l++) {
     uint32_t fidx_offset = srslte_refsignal_cs_fidx(q->cell, l, port_id, 0);    
     srslte_interp_linear_offset(&q->srslte_interp_lin, &pilot_estimates[2*q->cell.nof_prb*l],
                          &ce[srslte_refsignal_cs_nsymbol(l,q->cell.cp, port_id) * q->cell.nof_prb * SRSLTE_NRE], 
                          fidx_offset, SRSLTE_NRE/2-fidx_offset); 
   }
-  // Interpolate in the time domain between symbols
+  
+  /* Now interpolate in the time domain between symbols */
   if (SRSLTE_CP_ISNORM(q->cell.cp)) {
     if (nsymbols == 4) {
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(0), &cesymb(4),  &cesymb(1), 4, 3);
@@ -278,7 +261,6 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
       srslte_interp_linear_vector(&q->srslte_interp_linvec, &cesymb(1), &cesymb(7), &cesymb(8), 6, 4);
     }    
   }
-#endif
 }
 
 void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint32_t filter_len) {
@@ -311,17 +293,9 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
   uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
   uint32_t nref = 2*q->cell.nof_prb;
 
-  memcpy(output, input, nref*sizeof(cf_t));
-  for (int l=1;l<nsymbols;l++) {
-#ifdef AVERAGE_SUBFRAME
-    srslte_vec_sum_ccc(output, &input[l*nref], output, nref);  
-#else  
+  for (int l=0;l<nsymbols;l++) {
     srslte_conv_same_cf(&input[l*nref], q->smooth_filter, &output[l*nref], nref, q->smooth_filter_len);    
-#endif
   }
-#ifdef AVERAGE_SUBFRAME
-  srslte_vec_sc_prod_cfc(output, (float) 1.0/nsymbols, output, nref);
-#endif
 }
 
 float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) {
