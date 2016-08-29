@@ -91,11 +91,11 @@ int srslte_chest_ul_init(srslte_chest_ul_t *q, srslte_cell_t cell)
 
     q->smooth_filter_len = 3; 
     srslte_chest_ul_set_smooth_filter3_coeff(q, 0.3333);
-    
+  
+    q->dmrs_signal_configured = false; 
+  
   }
-  
-  q->dmrs_signal_configured = false; 
-  
+    
   ret = SRSLTE_SUCCESS;
   
 clean_exit:

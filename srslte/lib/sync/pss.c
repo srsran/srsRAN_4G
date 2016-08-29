@@ -94,6 +94,8 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
     
   if (q != NULL) {
   
+    ret = SRSLTE_ERROR; 
+    
     uint32_t N_id_2; 
     uint32_t buffer_size; 
     bzero(q, sizeof(srslte_pss_synch_t));

@@ -512,13 +512,12 @@ int main(int argc, char **argv) {
                                               srslte_ue_sync_get_sfidx(&ue_sync), 
                                               SRSLTE_SIRNTI, rv);      
               
-              /*
-              if (!n) {
+              if (n>0) {
                 printf("Saving signal...\n");
-                srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv);
+                srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv, prog_args.rnti);
                 exit(-1);
               }
-              */
+              
             }
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);

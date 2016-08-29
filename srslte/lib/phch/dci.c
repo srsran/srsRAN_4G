@@ -170,7 +170,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
     ret = SRSLTE_ERROR;
     
     bzero(ul_dci, sizeof(srslte_ra_ul_dci_t));
-    bzero(grant, sizeof(srslte_ra_ul_dci_t));
+    bzero(grant, sizeof(srslte_ra_ul_grant_t));
     
     if (srslte_dci_msg_unpack_pusch(msg, ul_dci, nof_prb)) {
       return ret;
@@ -392,7 +392,7 @@ uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb, 
 }
 
 uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, uint32_t nof_prb) {
-  if (nof_prb <= 100 && format < 11) {
+  if (nof_prb < 101 && format < 4) {
     return dci_sz_table[nof_prb][format];
   } else {
     return 0;

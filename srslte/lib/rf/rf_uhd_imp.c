@@ -62,6 +62,8 @@ srslte_rf_error_handler_t uhd_error_handler = NULL;
 void msg_handler(const char *msg)
 {
   srslte_rf_error_t error; 
+  bzero(&error, sizeof(srslte_rf_error_t));
+  
   if(0 == strcmp(msg, "O")) {
     error.type = SRSLTE_RF_ERROR_OVERFLOW;
   } else if(0 == strcmp(msg, "D")) {

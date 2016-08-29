@@ -316,19 +316,22 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
  */
 int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint32_t rvidx) 
 {
-  
-  if (cfg && grant) {
-    memcpy(&cfg->grant, grant, sizeof(srslte_ra_dl_grant_t));
-  }
-  if (srslte_cbsegm(&cfg->cb_segm, cfg->grant.mcs.tbs)) {
-    fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
-    return SRSLTE_ERROR; 
-  }
-  srslte_ra_dl_grant_to_nbits(&cfg->grant, cfi, cell, sf_idx, &cfg->nbits);
-  cfg->sf_idx = sf_idx; 
-  cfg->rv = rvidx;  
+  if (cfg) {
+    if (grant) {
+      memcpy(&cfg->grant, grant, sizeof(srslte_ra_dl_grant_t));
+    }
+    if (srslte_cbsegm(&cfg->cb_segm, cfg->grant.mcs.tbs)) {
+      fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
+      return SRSLTE_ERROR; 
+    }
+    srslte_ra_dl_grant_to_nbits(&cfg->grant, cfi, cell, sf_idx, &cfg->nbits);
+    cfg->sf_idx = sf_idx; 
+    cfg->rv = rvidx;  
 
-  return SRSLTE_SUCCESS;   
+    return SRSLTE_SUCCESS;   
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 }
 
 

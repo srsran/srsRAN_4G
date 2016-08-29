@@ -478,10 +478,12 @@ int rf_blade_send_timed(void *h,
   if (is_end_of_burst) {
     meta.flags |= BLADERF_META_FLAG_TX_BURST_END;
   }
+  srslte_rf_error_t error; 
+  bzero(&error, sizeof(srslte_rf_error_t));
+  
   status = bladerf_sync_tx(handler->dev, handler->tx_buffer, nsamples, &meta, 2000);
   if (status == BLADERF_ERR_TIME_PAST) {
     if (blade_error_handler) {
-      srslte_rf_error_t error; 
       error.type = SRSLTE_RF_ERROR_LATE;
       blade_error_handler(error);
     } else {
@@ -492,7 +494,6 @@ int rf_blade_send_timed(void *h,
     return status;
   } else if (meta.status == BLADERF_META_STATUS_UNDERRUN) {
     if (blade_error_handler) {
-      srslte_rf_error_t error; 
       error.type = SRSLTE_RF_ERROR_UNDERFLOW;
       blade_error_handler(error);
     } else {

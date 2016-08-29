@@ -6,11 +6,11 @@ clear
 
 plot_noise_estimation_only=false;
 
-SNR_values_db=100;%linspace(20,35,8);
-Nrealizations=1;
+SNR_values_db=linspace(0,30,8);
+Nrealizations=10;
 
 w1=0.1;
-w2=0.3;
+w2=0.2;
 
 enb.NDLRB = 6;                 % Number of resource blocks
 
@@ -55,7 +55,7 @@ L = gridsize(2);    % Number of OFDM symbols in one subframe
 Ports = gridsize(3);    % Number of transmit antenna ports
 
 %% Allocate memory
-Ntests=2;
+Ntests=4;
 hest=cell(1,Ntests);
 tmpnoise=cell(1,Ntests);
 for i=1:Ntests
@@ -181,8 +181,8 @@ for i=1:10
     rxGrid_sf = rxGrid(:,(i-1)*14+1:i*14); 
     
     %% Channel Estimation with Matlab
-    [hest{1}(:,(1:14)+(i-1)*14), tmpnoise{1}(i), hls(:,(1:4*P)+(i-1)*4*P)] = ...
-                    lteDLChannelEstimate2(enb,cec,rxGrid_sf);
+    [hest{1}(:,(1:14)+(i-1)*14), tmpnoise{1}(i)] = ...
+                    lteDLChannelEstimate(enb,cec,rxGrid_sf);
     tmpnoise{1}(i)=tmpnoise{1}(i)*sqrt(2)*enb.CellRefP;
     
     %% LS-Linear estimation with srsLTE
@@ -233,11 +233,6 @@ if (length(SNR_values_db) == 1)
         
     fprintf('Mean MMSE Robust %.2f dB\n', 10*log10(MSE(4,nreal,snr_idx)))
     fprintf('Mean MMSE matlab %.2f dB\n', 10*log10(MSE(1,nreal,snr_idx)))
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> master
 end
 
 end

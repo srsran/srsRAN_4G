@@ -58,7 +58,7 @@ float beta_cqi_offset[16] = {-1.0, -1.0, 1.125, 1.25, 1.375, 1.625, 1.750, 2.0, 
 
 
 float srslte_sch_beta_cqi(uint32_t I_cqi) {
-  if (I_cqi <= 16) {
+  if (I_cqi < 16) {
     return beta_cqi_offset[I_cqi];
   } else {
     return 0;
@@ -463,7 +463,7 @@ static int decode_tb(srslte_sch_t *q,
       par_tx = ((uint32_t) parity[0])<<16 | ((uint32_t) parity[1])<<8 | ((uint32_t) parity[2]);
       
       if (!par_rx) {
-        printf("Warning: Received all-zero transport block\n\n", 0);        
+        printf("Warning: Received all-zero transport block\n\n");        
       }
 
       if (par_rx == par_tx && par_rx) {

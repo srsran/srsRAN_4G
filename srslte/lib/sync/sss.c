@@ -139,14 +139,15 @@ uint32_t srslte_sss_synch_subframe(uint32_t m0, uint32_t m1) {
 
 /** Returns the N_id_1 value based on the m0 and m1 values */
 int srslte_sss_synch_N_id_1(srslte_sss_synch_t *q, uint32_t m0, uint32_t m1) {
-  if (m0==m1 || m0 > 30 || m1 > 30) {
-    return SRSLTE_ERROR;
-  }
-  int N_id_1; 
+  int N_id_1 = -1; 
   if (m1 > m0) {
-    N_id_1 = q->N_id_1_table[m0][m1 - 1];
+    if (m0 < 30 && m1 - 1 < 30) {
+      N_id_1 = q->N_id_1_table[m0][m1 - 1];
+    }
   } else {
-    N_id_1 = q->N_id_1_table[m1][m0 - 1];
+    if (m1 < 30 && m0 - 1 < 30) {
+      N_id_1 = q->N_id_1_table[m1][m0 - 1];
+    }
   } 
   return N_id_1;
 }

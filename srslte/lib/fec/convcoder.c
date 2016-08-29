@@ -36,13 +36,13 @@
 int srslte_convcoder_encode(srslte_convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length) {
   uint32_t sr;
   uint32_t i,j;
-  uint32_t len = q->tail_biting ? frame_length : (frame_length + q->K - 1);
 
   if (q                 != NULL    &&
       input             != NULL    &&
       output            != NULL    &&
       frame_length      > q->K + 1)
   {
+    uint32_t len = q->tail_biting ? frame_length : (frame_length + q->K - 1);
     if (q->tail_biting) {
       sr = 0;
       for (i=frame_length - q->K + 1; i<frame_length; i++) {
