@@ -296,7 +296,7 @@ typedef struct {
   uint32_t nof_locations; 
 } dci_blind_search_t; 
 
-static int dci_blind_search(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, dci_blind_search_t *search_space, uint16_t rnti) 
+static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space, uint16_t rnti, srslte_dci_msg_t *dci_msg) 
 {
   int ret = SRSLTE_ERROR; 
   uint16_t crc_rem = 0; 
@@ -329,7 +329,7 @@ static int dci_blind_search(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, dci_bl
   return ret; 
 }
 
-int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
+int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
   if (rnti) {
     /* Do not search if an UL DCI is already pending */    
@@ -343,14 +343,14 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
     dci_blind_search_t search_space; 
     search_space.format = SRSLTE_DCI_FORMAT0; 
     search_space.nof_locations = srslte_pdcch_ue_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
-    return dci_blind_search(q, dci_msg, &search_space, rnti);
+    return dci_blind_search(q, &search_space, rnti, dci_msg);
     
   } else {
     return 0; 
   }
 }
 
-int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
+int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
   srslte_rnti_type_t rnti_type; 
   if (rnti == SRSLTE_SIRNTI) {
@@ -362,11 +362,11 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint3
   } else {
     rnti_type = SRSLTE_RNTI_USER;
   }
-  return srslte_ue_dl_find_dl_dci_type(q, dci_msg, cfi, sf_idx, rnti, rnti_type);
+  return srslte_ue_dl_find_dl_dci_type(q, cfi, sf_idx, rnti, rnti_type, dci_msg);
 }
 
 // Blind search for SI/P/RA-RNTI
-static int find_dl_dci_type_siprarnti(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint16_t rnti)
+static int find_dl_dci_type_siprarnti(srslte_ue_dl_t *q, uint32_t cfi, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
   int ret = 0; 
   // Configure and run DCI blind search 
@@ -374,7 +374,7 @@ static int find_dl_dci_type_siprarnti(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_m
   search_space.nof_locations = srslte_pdcch_common_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_COM, q->cfi);
   for (int f=0;f<nof_common_formats;f++) {
     search_space.format = common_formats[f];   
-    if ((ret = dci_blind_search(q, dci_msg, &search_space, rnti))) {
+    if ((ret = dci_blind_search(q, &search_space, rnti, dci_msg))) {
       return ret; 
     }
   }
@@ -382,7 +382,7 @@ static int find_dl_dci_type_siprarnti(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_m
 }
 
 // Blind search for C-RNTI
-static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
+static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
   int ret = 0; 
   // Search UE-specific search space 
@@ -390,23 +390,23 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, 
   search_space.nof_locations = srslte_pdcch_ue_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_UE, sf_idx, q->cfi, rnti);    
   for (int f=0;f<nof_ue_formats;f++) {
     search_space.format = ue_formats[f];   
-    if ((ret = dci_blind_search(q, dci_msg, &search_space, rnti))) {
+    if ((ret = dci_blind_search(q, &search_space, rnti, dci_msg))) {
       return ret; 
     }
   }
   // Search Common search space for Format 1A
   search_space.format = SRSLTE_DCI_FORMAT1A; 
   search_space.nof_locations = srslte_pdcch_common_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_COM, q->cfi);
-  return dci_blind_search(q, dci_msg, &search_space, rnti);   
+  return dci_blind_search(q, &search_space, rnti, dci_msg);   
 }
 
-int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, srslte_dci_msg_t *dci_msg, uint32_t cfi, uint32_t sf_idx, 
-                                  uint16_t rnti, srslte_rnti_type_t rnti_type)
+int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, 
+                                  uint16_t rnti, srslte_rnti_type_t rnti_type, srslte_dci_msg_t *dci_msg)
 {  
   if (rnti_type == SRSLTE_RNTI_SI || rnti_type == SRSLTE_RNTI_PCH || rnti_type == SRSLTE_RNTI_RAR) {
-    return find_dl_dci_type_siprarnti(q, dci_msg, cfi, rnti);
+    return find_dl_dci_type_siprarnti(q, cfi, rnti, dci_msg);
   } else {
-    return find_dl_dci_type_crnti(q, dci_msg, cfi, sf_idx, rnti);
+    return find_dl_dci_type_crnti(q, cfi, sf_idx, rnti, dci_msg);
   }
 }
 
@@ -427,7 +427,7 @@ int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, u
     return SRSLTE_ERROR;
   }
 
-  int found_dci = srslte_ue_dl_find_dl_dci(q, &dci_msg, q->cfi, sf_idx, rnti);   
+  int found_dci = srslte_ue_dl_find_dl_dci(q, q->cfi, sf_idx, rnti, &dci_msg);   
   if (found_dci == 1) {
     
     if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, q->cell.nof_ports, &dci_unpacked, &grant)) {
