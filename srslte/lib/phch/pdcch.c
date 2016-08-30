@@ -201,20 +201,21 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
     L = (1 << l);
     // For all possible ncce offset
     for (i = 0; i < M[l]; i++) {
-      ncce = L * ((Yk + i) % (nof_cce / L));      
-      if (k                              < max_candidates     &&
-          ncce + PDCCH_FORMAT_NOF_CCE(l) <= nof_cce) 
-      {            
-        c[k].L = l;
-        c[k].ncce = ncce;
-        
-        DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
-            k, c[k].ncce, c[k].L);            
+      if (nof_cce > L) {
+        ncce = L * ((Yk + i) % (nof_cce / L));      
+        if (k < max_candidates  && ncce + L <= nof_cce) 
+        {            
+          c[k].L = l;
+          c[k].ncce = ncce;
+          
+          DEBUG("UE-specific SS Candidate %d: nCCE: %d, L: %d\n",
+              k, c[k].ncce, c[k].L);            
 
-        k++;          
-      } 
+          k++;          
+        } 
+      }
     }
-  }
+  }    
 
   DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", k, rnti);
   
@@ -245,15 +246,16 @@ uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_locatio
   for (l = 3; l > 1; l--) {
     L = (1 << l);
     for (i = 0; i < M[l]; i++) {
-      uint32_t ncce = L * (i % (nof_cce / L));
-      if (k                              < max_candidates     &&
-          ncce + PDCCH_FORMAT_NOF_CCE(l) <= nof_cce) 
-      {  
-        c[k].L = l;
-        c[k].ncce = ncce; 
-        DEBUG("Common SS Candidate %d: nCCE: %d, L: %d\n",
-            k, c[k].ncce, c[k].L);
-        k++;          
+      if (nof_cce > L) {
+        uint32_t ncce = L * (i % (nof_cce / L));
+        if (k < max_candidates  && ncce + L <= nof_cce) 
+        {  
+          c[k].L = l;
+          c[k].ncce = ncce; 
+          DEBUG("Common SS Candidate %d: nCCE: %d, L: %d\n",
+              k, c[k].ncce, c[k].L);
+          k++;          
+        }
       }
     }
   }
