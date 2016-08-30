@@ -304,23 +304,27 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
     ret = 0; 
     int i=0;
     do {
-       if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &search_space->loc[i], search_space->format, &crc_rem)) {
+      printf("Searching format %s in %d,%d\n", 
+             srslte_dci_format_string(search_space->format), search_space->loc[i].ncce, search_space->loc[i].L);
+      if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &search_space->loc[i], search_space->format, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
       }
       if (crc_rem == rnti) {        
-        
+        printf("Found crc_rem=0x%x, format=%d\n", rnti, dci_msg->format);
         // If searching for Format1A but found Format0 save it for later 
         if (dci_msg->format == SRSLTE_DCI_FORMAT0 && search_space->format == SRSLTE_DCI_FORMAT1A) 
         {
           q->pending_ul_dci_rnti = crc_rem; 
           memcpy(&q->pending_ul_dci_msg, dci_msg, sizeof(srslte_dci_msg_t));
-          
+          printf("Saved UL for later\n");
         // Else if we found it, save location and leave
-        } else if (dci_msg->format != search_space->format) 
+        } else if (dci_msg->format == search_space->format) 
         {
           ret = 1; 
           memcpy(&q->last_location, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+        } else {
+          printf("msg_format=%d, search_format=%d\n", dci_msg->format, search_space->format);
         }
       }
       i++; 
@@ -343,8 +347,8 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, u
     dci_blind_search_t search_space; 
     search_space.format = SRSLTE_DCI_FORMAT0; 
     search_space.nof_locations = srslte_pdcch_ue_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
+    printf("Searching UL C-RNTI in %d ue locations\n", search_space.nof_locations);
     return dci_blind_search(q, &search_space, rnti, dci_msg);
-    
   } else {
     return 0; 
   }
@@ -372,6 +376,7 @@ static int find_dl_dci_type_siprarnti(srslte_ue_dl_t *q, uint32_t cfi, uint16_t 
   // Configure and run DCI blind search 
   dci_blind_search_t search_space; 
   search_space.nof_locations = srslte_pdcch_common_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_COM, q->cfi);
+  printf("Searching SI/P/RA-RNTI in %d common locations, %d formats\n", search_space.nof_locations, nof_common_formats);
   for (int f=0;f<nof_common_formats;f++) {
     search_space.format = common_formats[f];   
     if ((ret = dci_blind_search(q, &search_space, rnti, dci_msg))) {
@@ -388,6 +393,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_i
   // Search UE-specific search space 
   dci_blind_search_t search_space; 
   search_space.nof_locations = srslte_pdcch_ue_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_UE, sf_idx, q->cfi, rnti);    
+  printf("Searching DL C-RNTI in %d ue locations, %d formats\n", search_space.nof_locations, nof_ue_formats);
   for (int f=0;f<nof_ue_formats;f++) {
     search_space.format = ue_formats[f];   
     if ((ret = dci_blind_search(q, &search_space, rnti, dci_msg))) {
@@ -397,6 +403,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_i
   // Search Common search space for Format 1A
   search_space.format = SRSLTE_DCI_FORMAT1A; 
   search_space.nof_locations = srslte_pdcch_common_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_COM, q->cfi);
+  printf("Searching DL C-RNTI in %d ue locations, format 1A\n", search_space.nof_locations, nof_ue_formats);
   return dci_blind_search(q, &search_space, rnti, dci_msg);   
 }
 

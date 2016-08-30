@@ -395,11 +395,12 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
     }
     q->mean_sfo = SRSLTE_VEC_EMA(q->mean_sample_offset, q->mean_sfo, q->sfo_ema);
 
-    INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/5-sf, ema=%f, length=%d\n", 
+    if (q->next_rf_sample_offset) {
+      INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/5-sf, ema=%f, length=%d\n", 
            q->next_rf_sample_offset, q->mean_sample_offset,
            srslte_ue_sync_get_sfo(q), 
            q->mean_sfo, q->sfo_ema, q->sample_offset_correct_period);    
-
+    }
     q->mean_sample_offset = 0; 
   }
 
