@@ -247,6 +247,10 @@ int regs_phich_init(srslte_regs_t *h) {
   srslte_regs_reg_t **regs_phich[3];
   int ret = SRSLTE_ERROR;
 
+  for (int i=0;i<3;i++) {
+    regs_phich[i] = NULL; 
+  }
+  
   switch(h->phich_res) {
   case SRSLTE_PHICH_R_1_6:
     ng = (float) 1/6;
@@ -768,8 +772,10 @@ int srslte_regs_init(srslte_regs_t *h, srslte_cell_t cell) {
     ret = SRSLTE_SUCCESS;
   }
 clean_and_exit:
-  if (ret != SRSLTE_SUCCESS) {
-    srslte_regs_free(h);
+  if (h) {
+    if (ret != SRSLTE_SUCCESS) {
+      srslte_regs_free(h);
+    }
   }
   return ret;
 }

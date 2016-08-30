@@ -271,7 +271,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (nlhs >= 5) {
     mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
   }
-  
+  if (nlhs >= 6) {
+    mexutils_write_cf(ce[0], &plhs[5], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
+  }
   srslte_softbuffer_rx_free(&softbuffer);
   srslte_chest_dl_free(&chest);
   srslte_pdsch_free(&pdsch);

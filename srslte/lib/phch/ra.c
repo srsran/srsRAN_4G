@@ -595,7 +595,10 @@ int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
     if (tbs <= tbs_table[0][n_prb-1]) {
       return 0;
     }
-    for (idx = 0; idx < 27; idx++) {
+    if (tbs >= tbs_table[26][n_prb-1]) {
+      return 27;
+    }
+    for (idx = 0; idx < 26; idx++) {
       if (tbs_table[idx][n_prb-1] <= tbs && tbs_table[idx+1][n_prb-1] >= tbs) {
         return idx+1;
       }

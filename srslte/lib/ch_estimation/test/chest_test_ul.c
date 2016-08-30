@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
                   /* Generate random input */
                   bzero(input, sizeof(cf_t) * num_re);
                   for (i=0;i<num_re;i++) {
-                    input[i] = 0.5-rand()/RAND_MAX+I*(0.5-rand()/RAND_MAX);
+                    input[i] = 0.5-rand()/RAND_MAX+I*(0.5-(float) rand()/RAND_MAX);
                   }
 
                   /* Generate channel and pass input through channel */

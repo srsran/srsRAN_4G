@@ -129,12 +129,12 @@ bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
   } else if (I_cqi_pmi <= 1023) {
     return false; 
   }
-  
-  if ((tti-N_offset)%N_p == 0) {
-    return true; 
-  } else {
-    return false; 
+  if (N_p) {
+    if ((tti-N_offset)%N_p == 0) {
+      return true; 
+    } 
   }
+  return false; 
 }
 
 
@@ -181,5 +181,10 @@ int srslte_cqi_hl_get_subband_size(int nof_prb)
  */
 int srslte_cqi_hl_get_no_subbands(int nof_prb)
 {
-  return (int)ceil(nof_prb/(float)srslte_cqi_hl_get_subband_size(nof_prb));
+  int hl_size = srslte_cqi_hl_get_subband_size(nof_prb); 
+  if (hl_size > 0) {
+    return (int)ceil((float)nof_prb/hl_size);
+  } else {
+    return 0;
+  }
 }

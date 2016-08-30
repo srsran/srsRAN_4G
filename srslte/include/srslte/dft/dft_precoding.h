@@ -44,8 +44,8 @@
 typedef struct SRSLTE_API {
 
   uint32_t max_prb;  
-  srslte_dft_plan_t dft_plan[SRSLTE_MAX_PRB];
-  srslte_dft_plan_t idft_plan[SRSLTE_MAX_PRB];
+  srslte_dft_plan_t dft_plan[SRSLTE_MAX_PRB+1];
+  srslte_dft_plan_t idft_plan[SRSLTE_MAX_PRB+1];
     
 }srslte_dft_precoding_t;
 

@@ -184,13 +184,13 @@ int main(int argc, char **argv) {
   sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
     perror("malloc");
-    goto quit;
+    exit(-1);
   }
   
   data = srslte_vec_malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
   if (!data) {
     perror("malloc");
-    goto quit;
+    exit(-1);
   }
   
   for (uint32_t i=0;i<cfg.grant.mcs.tbs/8;i++) {

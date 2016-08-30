@@ -177,6 +177,8 @@ int srslte_refsignal_ul_init(srslte_refsignal_ul_t * q, srslte_cell_t cell)
 
   if (q != NULL && srslte_cell_isvalid(&cell)) {
 
+    ret = SRSLTE_ERROR; 
+    
     bzero(q, sizeof(srslte_refsignal_ul_t));
     q->cell = cell; 
     
@@ -275,11 +277,13 @@ static uint32_t get_q(uint32_t u, uint32_t v, uint32_t N_sz) {
 static void arg_r_uv_mprb(float *arg, uint32_t M_sc, uint32_t u, uint32_t v) {
 
   uint32_t N_sz = largest_prime_lower_than(M_sc);
-  float q = get_q(u,v,N_sz);
-  float n_sz = (float) N_sz;
-  for (uint32_t i = 0; i < M_sc; i++) {
-    float m = (float) (i%N_sz);
-    arg[i] =  -M_PI * q * m * (m + 1) / n_sz;
+  if (N_sz > 0) {
+    float q = get_q(u,v,N_sz);
+    float n_sz = (float) N_sz;
+    for (uint32_t i = 0; i < M_sc; i++) {
+      float m = (float) (i%N_sz);
+      arg[i] =  -M_PI * q * m * (m + 1) / n_sz;
+    }
   }
 }
 
@@ -478,29 +482,35 @@ static uint32_t get_pucch_dmrs_symbol(uint32_t m, srslte_pucch_format_t format, 
     case SRSLTE_PUCCH_FORMAT_1A:
     case SRSLTE_PUCCH_FORMAT_1B:
       if (SRSLTE_CP_ISNORM(cp)) {
-        if (m < 4) {
+        if (m < 3) {
           return pucch_dmrs_symbol_format1_cpnorm[m];           
         }
       } else {
-        if (m < 3) {
+        if (m < 2) {
           return pucch_dmrs_symbol_format1_cpext[m]; 
         }
       }
+      break;
     case SRSLTE_PUCCH_FORMAT_2:
       if (SRSLTE_CP_ISNORM(cp)) {
-        if (m < 3) {
+        if (m < 2) {
           return pucch_dmrs_symbol_format2_cpnorm[m];           
         }
       } else {
-        if (m < 2) {
+        if (m < 1) {
           return pucch_dmrs_symbol_format2_cpext[m]; 
         }
       }
+      break;
     case SRSLTE_PUCCH_FORMAT_2A:
     case SRSLTE_PUCCH_FORMAT_2B:
-      if (m < 3) {
+      if (m < 2) {
         return pucch_dmrs_symbol_format2_cpnorm[m]; 
       }
+      break;
+    default:
+      fprintf(stderr, "Unsupported format %d\n", format);
+      return 0; 
   }
   return 0; 
 }
@@ -759,21 +769,23 @@ uint32_t srslte_refsignal_srs_rb_L_cs(uint32_t bw_cfg, uint32_t nof_prb) {
 }
 
 uint32_t srs_Fb(srslte_refsignal_srs_cfg_t *cfg, uint32_t b, uint32_t nof_prb, uint32_t tti) {
-  uint32_t n_srs = tti/T_srs_table(cfg->I_srs); 
-  uint32_t N_b = Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
- 
-  uint32_t prod_1=1;
-  for (uint32_t bp=cfg->b_hop+1;bp<b;bp++) {
-    prod_1 *= Nb[srsbwtable_idx(nof_prb)][bp][cfg->bw_cfg];
+  uint32_t Fb = 0;
+  uint32_t T = T_srs_table(cfg->I_srs);
+  if (T) {
+    uint32_t n_srs = tti/T; 
+    uint32_t N_b = Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg]; 
+  
+    uint32_t prod_1=1;
+    for (uint32_t bp=cfg->b_hop+1;bp<b;bp++) {
+      prod_1 *= Nb[srsbwtable_idx(nof_prb)][bp][cfg->bw_cfg];
+    }
+    uint32_t prod_2 = prod_1*Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg];
+    if ((N_b%2) == 0) {
+      Fb = (N_b/2)*((n_srs%prod_2)/prod_1)+((n_srs%prod_2)/prod_1/2);
+    } else {
+      Fb = (N_b/2)*(n_srs/prod_1);
+    }
   }
-  uint32_t prod_2 = prod_1*Nb[srsbwtable_idx(nof_prb)][b][cfg->bw_cfg];
-  uint32_t Fb;
-  if ((N_b%2) == 0) {
-    Fb = (N_b/2)*((n_srs%prod_2)/prod_1)+((n_srs%prod_2)/prod_1/2);
-  } else {
-    Fb = (N_b/2)*(n_srs/prod_1);
-  }
-
   return Fb;
 }
 

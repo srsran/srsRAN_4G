@@ -58,7 +58,7 @@ float beta_cqi_offset[16] = {-1.0, -1.0, 1.125, 1.25, 1.375, 1.625, 1.750, 2.0, 
 
 
 float srslte_sch_beta_cqi(uint32_t I_cqi) {
-  if (I_cqi <= 16) {
+  if (I_cqi < 16) {
     return beta_cqi_offset[I_cqi];
   } else {
     return 0;

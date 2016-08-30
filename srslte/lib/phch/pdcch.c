@@ -275,33 +275,36 @@ int srslte_pdcch_dci_decode(srslte_pdcch_t *q, float *e, uint8_t *data, uint32_t
   uint16_t p_bits, crc_res;
   uint8_t *x;
 
-  if (q         != NULL         &&
-      data      != NULL         &&
-      E         <= q->max_bits   && 
-      nof_bits  <= SRSLTE_DCI_MAX_BITS)
-  {
-    bzero(q->rm_f, sizeof(float)*3 * (SRSLTE_DCI_MAX_BITS + 16));
-    
-    uint32_t coded_len = 3 * (nof_bits + 16); 
-    
-    /* unrate matching */
-    srslte_rm_conv_rx(e, E, q->rm_f, coded_len);
-    
-    /* viterbi decoder */
-    srslte_viterbi_decode_f(&q->decoder, q->rm_f, data, nof_bits + 16);
+  if (q           != NULL) {
+    if (data      != NULL         &&
+        E         <= q->max_bits   && 
+        nof_bits  <= SRSLTE_DCI_MAX_BITS)
+    {
+      bzero(q->rm_f, sizeof(float)*3 * (SRSLTE_DCI_MAX_BITS + 16));
+      
+      uint32_t coded_len = 3 * (nof_bits + 16); 
+      
+      /* unrate matching */
+      srslte_rm_conv_rx(e, E, q->rm_f, coded_len);
+      
+      /* viterbi decoder */
+      srslte_viterbi_decode_f(&q->decoder, q->rm_f, data, nof_bits + 16);
 
-    x = &data[nof_bits];
-    p_bits = (uint16_t) srslte_bit_pack(&x, 16);
-    crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
-    
-    if (crc) {
-      *crc = p_bits ^ crc_res; 
+      x = &data[nof_bits];
+      p_bits = (uint16_t) srslte_bit_pack(&x, 16);
+      crc_res = ((uint16_t) srslte_crc_checksum(&q->crc, data, nof_bits) & 0xffff);
+      
+      if (crc) {
+        *crc = p_bits ^ crc_res; 
+      }
+          
+      return SRSLTE_SUCCESS;
+    } else {
+      fprintf(stderr, "Invalid parameters: E: %d, max_bits: %d, nof_bits: %d\n", E, q->max_bits, nof_bits);
+      return SRSLTE_ERROR_INVALID_INPUTS;      
     }
-        
-    return SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Invalid parameters: E: %d, max_bits: %d, nof_bits: %d\n", E, q->max_bits, nof_bits);
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS;          
   }
 }
 
@@ -525,7 +528,7 @@ int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_loc
     ret = SRSLTE_ERROR;
     
     if (location.ncce + PDCCH_FORMAT_NOF_CCE(location.L) <= q->nof_cce && 
-        msg->nof_bits < SRSLTE_DCI_MAX_BITS) 
+        msg->nof_bits < SRSLTE_DCI_MAX_BITS - 16) 
     {      
       DEBUG("Encoding DCI: Nbits: %d, E: %d, nCCE: %d, L: %d, RNTI: 0x%x\n",
           msg->nof_bits, e_bits, location.ncce, location.L, rnti);

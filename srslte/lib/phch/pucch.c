@@ -136,7 +136,7 @@ uint32_t get_pucch_symbol(uint32_t m, srslte_pucch_format_t format, srslte_cp_t 
     case SRSLTE_PUCCH_FORMAT_1:
     case SRSLTE_PUCCH_FORMAT_1A:
     case SRSLTE_PUCCH_FORMAT_1B:
-      if (m < 5) {
+      if (m < 4) {
         if (SRSLTE_CP_ISNORM(cp)) {
           return pucch_symbol_format1_cpnorm[m];
         } else {
@@ -147,7 +147,7 @@ uint32_t get_pucch_symbol(uint32_t m, srslte_pucch_format_t format, srslte_cp_t 
     case SRSLTE_PUCCH_FORMAT_2:
     case SRSLTE_PUCCH_FORMAT_2A:
     case SRSLTE_PUCCH_FORMAT_2B:
-      if (m < 6) {
+      if (m < 5) {
         if (SRSLTE_CP_ISNORM(cp)) {
           return pucch_symbol_format2_cpnorm[m];
         } else {
