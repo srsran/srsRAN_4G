@@ -80,7 +80,6 @@ typedef struct SRSLTE_API {
   cf_t *ce[SRSLTE_MAX_PORTS];
   
   srslte_dci_format_t dci_format;
-  uint32_t cfi;
   uint64_t pkt_errors; 
   uint64_t pkts_total;
   uint64_t nof_detected; 
@@ -172,7 +171,8 @@ SRSLTE_API void srslte_ue_dl_save_signal(srslte_ue_dl_t *q,
                                          srslte_softbuffer_rx_t *softbuffer, 
                                          uint32_t tti, 
                                          uint32_t rv_idx, 
-                                         uint16_t rnti); 
+                                         uint16_t rnti, 
+                                         uint32_t cfi); 
 
 
 #endif

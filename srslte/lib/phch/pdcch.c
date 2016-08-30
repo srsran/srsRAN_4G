@@ -322,14 +322,15 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q                 != NULL       && 
       msg               != NULL       && 
-      srslte_dci_location_isvalid(location)  &&
-      crc_rem           != NULL)
+      srslte_dci_location_isvalid(location))
   {
     if (location->ncce * 72 + PDCCH_FORMAT_NOF_BITS(location->L) > 
       q->nof_cce*72) {
       fprintf(stderr, "Invalid location: nCCE: %d, L: %d, NofCCE: %d\n", 
         location->ncce, location->L, q->nof_cce);
     } else {
+      ret = SRSLTE_SUCCESS;
+      
       uint32_t nof_bits = srslte_dci_format_sizeof_lut(format, q->cell.nof_prb);
       uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(location->L);
     
@@ -349,17 +350,20 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
           } else {
             msg->format   = format; 
           }
-        } 
+        } else {
+          fprintf(stderr, "Error calling pdcch_dci_decode\n");
+        }
         if (crc_rem) {
           DEBUG("Decoded DCI: nCCE=%d, L=%d, format=%s, msg_len=%d, mean=%f, crc_rem=0x%x\n", 
             location->ncce, location->L, srslte_dci_format_string(format), nof_bits, mean, *crc_rem);
         }
       } else {
         DEBUG("Skipping DCI:  nCCE=%d, L=%d, msg_len=%d, mean=%f\n",
-              location->ncce, location->L, nof_bits, mean);
-        ret = SRSLTE_SUCCESS;
+              location->ncce, location->L, nof_bits, mean);        
       }
     }
+  } else {
+    fprintf(stderr, "Invalid parameters, location=%d,%d\n", location->ncce, location->L);
   }
   return ret;
 }

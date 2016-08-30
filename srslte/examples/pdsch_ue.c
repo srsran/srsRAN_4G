@@ -536,7 +536,7 @@ int main(int argc, char **argv) {
                   memcmp(&ue_dl.dl_dci.type2_alloc, &old_dl_dci.type2_alloc, sizeof(srslte_ra_type2_t)))
               {
                 memcpy(&old_dl_dci, &ue_dl.dl_dci, sizeof(srslte_ra_dl_dci_t));
-                fflush(stdout);printf("\nCFI:\t%d\n", ue_dl.cfi);
+                fflush(stdout);
                 printf("Format: %s\n", srslte_dci_format_string(ue_dl.dci_format));
                 srslte_ra_pdsch_fprint(stdout, &old_dl_dci, cell.nof_prb);
                 srslte_ra_dl_grant_fprint(stdout, &ue_dl.pdsch_cfg.grant);
