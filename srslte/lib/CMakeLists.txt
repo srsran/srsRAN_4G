@@ -36,52 +36,37 @@ add_subdirectory(scrambling)
 add_subdirectory(ue)
 add_subdirectory(enb)
 
-add_library(srslte  SHARED  version.c
-                            $<TARGET_OBJECTS:srslte_agc>
-                            $<TARGET_OBJECTS:srslte_ch_estimation>
-                            $<TARGET_OBJECTS:srslte_common>
-                            $<TARGET_OBJECTS:srslte_fec>
-                            $<TARGET_OBJECTS:srslte_mimo>
-                            $<TARGET_OBJECTS:srslte_phch>
-                            $<TARGET_OBJECTS:srslte_sync>
-                            $<TARGET_OBJECTS:srslte_utils>
-                            $<TARGET_OBJECTS:srslte_channel>
-                            $<TARGET_OBJECTS:srslte_dft>
-                            $<TARGET_OBJECTS:srslte_io>
-                            $<TARGET_OBJECTS:srslte_modem>
-                            $<TARGET_OBJECTS:srslte_resampling>
-                            $<TARGET_OBJECTS:srslte_scrambling>
-                            $<TARGET_OBJECTS:srslte_ue>
-                            $<TARGET_OBJECTS:srslte_enb>
-                            $<TARGET_OBJECTS:srslte_rf>
+set(srslte_srcs     version.c
+                    $<TARGET_OBJECTS:srslte_agc>
+                    $<TARGET_OBJECTS:srslte_ch_estimation>
+                    $<TARGET_OBJECTS:srslte_common>
+                    $<TARGET_OBJECTS:srslte_fec>
+                    $<TARGET_OBJECTS:srslte_mimo>
+                    $<TARGET_OBJECTS:srslte_phch>
+                    $<TARGET_OBJECTS:srslte_sync>
+                    $<TARGET_OBJECTS:srslte_utils>
+                    $<TARGET_OBJECTS:srslte_channel>
+                    $<TARGET_OBJECTS:srslte_dft>
+                    $<TARGET_OBJECTS:srslte_io>
+                    $<TARGET_OBJECTS:srslte_modem>
+                    $<TARGET_OBJECTS:srslte_resampling>
+                    $<TARGET_OBJECTS:srslte_scrambling>
+                    $<TARGET_OBJECTS:srslte_ue>
+                    $<TARGET_OBJECTS:srslte_enb>
 )
 
+if(RF_FOUND)
+  list(APPEND srslte_srcs $<TARGET_OBJECTS:srslte_rf>)
+endif(RF_FOUND)
 
-if(NOT DisableMEX)
-  add_library(srslte_static  STATIC  version.c
-                            $<TARGET_OBJECTS:srslte_agc>
-                            $<TARGET_OBJECTS:srslte_ch_estimation>
-                            $<TARGET_OBJECTS:srslte_common>
-                            $<TARGET_OBJECTS:srslte_fec>
-                            $<TARGET_OBJECTS:srslte_mimo>
-                            $<TARGET_OBJECTS:srslte_phch>
-                            $<TARGET_OBJECTS:srslte_sync>
-                            $<TARGET_OBJECTS:srslte_utils>
-                            $<TARGET_OBJECTS:srslte_channel>
-                            $<TARGET_OBJECTS:srslte_dft>
-                            $<TARGET_OBJECTS:srslte_io>
-                            $<TARGET_OBJECTS:srslte_modem>
-                            $<TARGET_OBJECTS:srslte_resampling>
-                            $<TARGET_OBJECTS:srslte_scrambling>
-                            $<TARGET_OBJECTS:srslte_ue>
-                            $<TARGET_OBJECTS:srslte_enb>
-                            $<TARGET_OBJECTS:srslte_rf>
-  )
-endif(NOT DisableMEX)
-
+add_library(srslte SHARED ${srslte_srcs})
 target_link_libraries(srslte pthread m)
 set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
+
+if(NOT DisableMEX)
+  add_library(srslte_static STATIC ${srslte_srcs})
+endif(NOT DisableMEX)
 
 if(MKL_FOUND)
   target_link_libraries(srslte ${MKL_LIBRARIES})
