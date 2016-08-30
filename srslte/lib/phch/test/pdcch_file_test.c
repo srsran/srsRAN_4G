@@ -34,7 +34,7 @@
 
 char *input_file_name = NULL;
 
-#define MAX_CANDIDATES 64
+#define MAX_CANDIDATES 16
 
 srslte_cell_t cell = {
   6,            // cell.cell.cell.nof_prb

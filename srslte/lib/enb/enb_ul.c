@@ -37,7 +37,7 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define MAX_CANDIDATES  64
+#define MAX_CANDIDATES  16
 
 int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell, 
                        srslte_prach_cfg_t *prach_cfg, 

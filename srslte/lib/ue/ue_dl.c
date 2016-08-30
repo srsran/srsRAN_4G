@@ -287,8 +287,8 @@ uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {
   return q->last_n_cce; 
 }
 
-#define MAX_CANDIDATES_UE  6 // From 36.213 Table 9.1.1-1
-#define MAX_CANDIDATES_COM 4 // From 36.213 Table 9.1.1-1
+#define MAX_CANDIDATES_UE  16 // From 36.213 Table 9.1.1-1
+#define MAX_CANDIDATES_COM 6 // From 36.213 Table 9.1.1-1
 #define MAX_CANDIDATES (MAX_CANDIDATES_UE + MAX_CANDIDATES_COM)   
 typedef struct {
   srslte_dci_format_t format; 

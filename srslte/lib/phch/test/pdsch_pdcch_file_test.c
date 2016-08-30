@@ -32,7 +32,7 @@
 
 #include "srslte/srslte.h"
 
-#define MAX_CANDIDATES 64
+#define MAX_CANDIDATES 16
 
 char *input_file_name = NULL;
 
