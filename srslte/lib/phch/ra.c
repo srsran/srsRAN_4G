@@ -380,6 +380,40 @@ static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_
   return SRSLTE_SUCCESS;
 }
 
+static int dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb) {
+  uint32_t i_tbs = 0; 
+  int tbs = -1; 
+  if (mcs->idx < 10) {
+    mcs->mod = SRSLTE_MOD_QPSK;
+    i_tbs = mcs->idx;
+  } else if (mcs->idx < 17) {
+    mcs->mod = SRSLTE_MOD_16QAM;
+    i_tbs = mcs->idx-1;
+  } else if (mcs->idx < 29) {
+    mcs->mod = SRSLTE_MOD_64QAM;
+    i_tbs = mcs->idx-2;
+  } else if (mcs->idx == 29) {
+    mcs->mod = SRSLTE_MOD_QPSK;
+    tbs = 0;
+    i_tbs = 0;
+  } else if (mcs->idx == 30) {
+    mcs->mod = SRSLTE_MOD_16QAM;
+    tbs = 0;
+    i_tbs = 0;
+  } else if (mcs->idx == 31) {
+    mcs->mod = SRSLTE_MOD_64QAM;
+    tbs = 0;
+    i_tbs = 0;
+  }
+  if (tbs == -1) {
+    tbs = srslte_ra_tbs_from_idx(i_tbs, nprb);
+    if (tbs >= 0) {
+      mcs->tbs = tbs; 
+    }
+  }  
+  return tbs; 
+}
+
 /* Modulation order and transport block size determination 7.1.7 in 36.213 */
 static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, bool crc_is_crnti) {
   uint32_t n_prb=0;
@@ -397,40 +431,23 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
       } 
     }
     grant->mcs.mod = SRSLTE_MOD_QPSK;      
+    grant->mcs.tbs = (uint32_t) tbs; 
   } else {
-    tbs = -1; 
     n_prb = grant->nof_prb;
-    if (dci->mcs_idx < 10) {
-      grant->mcs.mod = SRSLTE_MOD_QPSK;
-      i_tbs = dci->mcs_idx;
-    } else if (dci->mcs_idx < 17) {
-      grant->mcs.mod = SRSLTE_MOD_16QAM;
-      i_tbs = dci->mcs_idx-1;
-    } else if (dci->mcs_idx < 29) {
-      grant->mcs.mod = SRSLTE_MOD_64QAM;
-      i_tbs = dci->mcs_idx-2;
-    } else if (dci->mcs_idx == 29) {
-      grant->mcs.mod = SRSLTE_MOD_QPSK;
-      tbs = 0;
-      i_tbs = 0;
-    } else if (dci->mcs_idx == 30) {
-      grant->mcs.mod = SRSLTE_MOD_16QAM;
-      tbs = 0;
-      i_tbs = 0;
-    } else if (dci->mcs_idx == 31) {
-      grant->mcs.mod = SRSLTE_MOD_64QAM;
-      tbs = 0;
-      i_tbs = 0;
-    }
-    if (tbs == -1) {
-      tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
+    grant->mcs.idx = dci->mcs_idx;
+    tbs   = dl_fill_ra_mcs(&grant->mcs, n_prb);
+    if (dci->nof_tb == 2) {
+      grant->mcs2.idx = dci->mcs_idx_1;
+      tbs = dl_fill_ra_mcs(&grant->mcs2, n_prb);
     }
   }  
-  
+  grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
+  if (dci->nof_tb == 2) {
+    grant->Qm2 = srslte_mod_bits_x_symbol(grant->mcs2.mod);      
+  }
   if (tbs < 0) {
     return SRSLTE_ERROR; 
-  } else {
-    grant->mcs.tbs = (uint32_t) tbs; 
+  } else {    
     return SRSLTE_SUCCESS; 
   }
 }
@@ -455,11 +472,7 @@ int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci,
   // Compute PRB allocation 
   if (!dl_dci_to_grant_prb_allocation(dci, grant, nof_prb)) {
     // Compute MCS 
-    if (!dl_dci_to_grant_mcs(dci, grant, crc_is_crnti)) {      
-      // Fill rest of grant structure 
-      grant->mcs.idx = dci->mcs_idx;
-      grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
-      
+    if (!dl_dci_to_grant_mcs(dci, grant, crc_is_crnti)) {            
       // Apply Section 7.1.7.3. If RA-RNTI and Format1C rv_idx=0
       if (msg_rnti >= SRSLTE_RARNTI_START && msg_rnti <= SRSLTE_RARNTI_END && 
         dci->dci_is_1c) 

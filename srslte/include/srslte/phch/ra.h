@@ -102,8 +102,10 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   bool prb_idx[2][SRSLTE_MAX_PRB];
   uint32_t nof_prb;  
-  uint32_t Qm; 
+  uint32_t Qm;
+  uint32_t Qm2; 
   srslte_ra_mcs_t mcs;
+  srslte_ra_mcs_t mcs2;
 } srslte_ra_dl_grant_t;
 
 /** Unpacked DCI message for DL grant */
@@ -129,6 +131,8 @@ typedef struct SRSLTE_API {
   uint8_t  pinfo; 
   bool     pconf;
   bool     power_offset; 
+  
+  uint32_t nof_tb; 
   
   bool     dci_is_1a;
   bool     dci_is_1c; 

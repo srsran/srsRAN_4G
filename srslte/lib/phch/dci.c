@@ -627,6 +627,7 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   
   // TPC not implemented
   
+  data->nof_tb = 1; 
 
   return SRSLTE_SUCCESS;
 }
@@ -812,6 +813,8 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
     y++; // MSB of TPC is reserved
     data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
+  
+  data->nof_tb = 1; 
 
   return SRSLTE_SUCCESS;
 }
@@ -856,7 +859,8 @@ int dci_format1B_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
   
   data->pinfo = srslte_bit_pack(&y, tpmi_bits(nof_ports));
   data->pconf = *y++ ? true : false;
-  
+
+  data->nof_tb = 1;   
 
   return SRSLTE_SUCCESS;
 }
@@ -948,6 +952,8 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   data->rv_idx = -1; // Get RV later
   
   msg->nof_bits = (y - msg->data);
+  
+  data->nof_tb = 1; 
 
   return SRSLTE_SUCCESS;
 }
@@ -993,6 +999,7 @@ int dci_format1D_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
   data->pinfo = srslte_bit_pack(&y, tpmi_bits(nof_ports));
   data->power_offset = *y++ ? true : false;
   
+  data->nof_tb = 1; 
 
   return SRSLTE_SUCCESS;
 }
@@ -1059,6 +1066,8 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
     data->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(nof_ports));
   }
+  
+  data->nof_tb = 2; 
   
   return SRSLTE_SUCCESS;
 }
