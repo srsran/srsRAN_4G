@@ -702,14 +702,16 @@ void *plot_thread_run(void *arg) {
           tmp_plot[i] = -80;
         }
       }
+      int sz = srslte_symbol_sz(ue_dl.cell.nof_prb);
+      bzero(tmp_plot2, sizeof(float)*sz);
+      int g = (sz - 12*ue_dl.cell.nof_prb)/2;
       for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.ce[0][i]));
-        if (isinf(tmp_plot2[i])) {
-          tmp_plot2[i] = -80;
+        tmp_plot2[g+i] = 20 * log10(cabs(ue_dl.ce[0][i]));
+        if (isinf(tmp_plot2[g+i])) {
+          tmp_plot2[g+i] = -80;
         }
       }
-
-      plot_real_setNewData(&pce, tmp_plot2, i);        
+      plot_real_setNewData(&pce, tmp_plot2, sz);        
       
       if (!prog_args.input_file_name) {
         if (plot_track) {
