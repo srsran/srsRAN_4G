@@ -284,7 +284,7 @@ int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *
 
 
 uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {
-  return q->last_n_cce; 
+  return q->last_location.ncce; 
 }
 
 #define MAX_CANDIDATES_UE  16 // From 36.213 Table 9.1.1-1
