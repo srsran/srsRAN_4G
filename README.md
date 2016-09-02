@@ -5,9 +5,7 @@ srsLTE
 
 srsLTE is a free and open-source LTE library for SDR UE and eNodeB developed by SRS (www.softwareradiosystems.com). The library is highly modular with minimum inter-module or external dependencies. It is entirely written in C and, if available in the system, uses the acceleration library VOLK distributed in GNURadio. 
 
-**srsLTE is used by srsUE, a full stack (PHY to IP) implementation of an LTE UE. srsUE is available at https://github.com/srslte/srsue**
-
-*News*: We have just released srsUE 1.2 containing important bugfixes and improvements in the synchronization procedure. Checkout the [CHANGELOG](CHANGELOG)   
+**srsLTE is used by srsUE, a full stack (PHY to IP) implementation of an LTE UE. srsUE is available at https://github.com/srslte/srsue**   
 
 
 The srsLTE software license is AGPLv3.
