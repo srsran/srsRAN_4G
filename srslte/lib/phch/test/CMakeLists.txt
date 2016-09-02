@@ -81,9 +81,6 @@ target_link_libraries(pdcch_test srslte)
 
 add_test(pdcch_test pdcch_test) 
 
-add_executable(dci_unpacking dci_unpacking.c)
-target_link_libraries(dci_unpacking srslte)
-
 BuildMex(MEXNAME pdcch SOURCES pdcch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
@@ -95,7 +92,8 @@ target_link_libraries(pdsch_test srslte)
 
 add_test(pdsch_test_qpsk pdsch_test -m 10 -n 50 -r 1)
 add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100)
-add_test(pdsch_test_qam64 pdsch_test -m 28 -n 100 -r 0)
+add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100 -r 2)
+add_test(pdsch_test_qam64 pdsch_test -m 28 -n 100)
 
 BuildMex(MEXNAME pdsch SOURCES pdsch_test_mex.c LIBRARIES srslte_static srslte_mex)
 BuildMex(MEXNAME dlsch_encode SOURCES dlsch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
@@ -134,6 +132,7 @@ target_link_libraries(pusch_test srslte)
 
 BuildMex(MEXNAME ulsch_encode SOURCES ulsch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
 BuildMex(MEXNAME pusch_encode SOURCES pusch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
+BuildMex(MEXNAME pusch SOURCES pusch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 add_test(pusch_test pusch_test)
 
@@ -192,6 +191,7 @@ add_test(prach_test_multi_n4 prach_test_multi -n 4)
  
  
 BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES srslte_static srslte_mex)
+BuildMex(MEXNAME prach_detect SOURCES prach_detect_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 if(UHD_FOUND)

@@ -58,7 +58,7 @@ float beta_cqi_offset[16] = {-1.0, -1.0, 1.125, 1.25, 1.375, 1.625, 1.750, 2.0, 
 
 
 float srslte_sch_beta_cqi(uint32_t I_cqi) {
-  if (I_cqi <= 16) {
+  if (I_cqi < 16) {
     return beta_cqi_offset[I_cqi];
   } else {
     return 0;
@@ -463,10 +463,10 @@ static int decode_tb(srslte_sch_t *q,
       par_tx = ((uint32_t) parity[0])<<16 | ((uint32_t) parity[1])<<8 | ((uint32_t) parity[2]);
       
       if (!par_rx) {
-        INFO("\n\tCAUTION!! Received all-zero transport block\n\n", 0);
+        INFO("Warning: Received all-zero transport block\n\n", 0);        
       }
 
-      if (par_rx == par_tx) {
+      if (par_rx == par_tx && par_rx) {
         INFO("TB decoded OK\n",i);
         return SRSLTE_SUCCESS;
       } else {
@@ -498,67 +498,183 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
                    data, e_bits);
 }
 
-int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                        int16_t *e_bits, uint8_t *data) 
+/* Compute the interleaving function on-the-fly, because it depends on number of RI bits 
+ * Profiling show that the computation of this matrix is neglegible. 
+ */
+static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs, uint32_t Qm,
+                                 uint8_t *ri_present, uint16_t *interleaver_lut)
 {
-  return decode_tb(q,                    
-                   softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
-                   e_bits, data);
+  uint32_t rows = H_prime_total/N_pusch_symbs;
+  uint32_t cols = N_pusch_symbs;
+  uint32_t idx = 0;
+  for(uint32_t j=0; j<rows; j++) {        
+    for(uint32_t i=0; i<cols; i++) {
+      for(uint32_t k=0; k<Qm; k++) {
+        if (ri_present[j*Qm + i*rows*Qm + k]) {
+          interleaver_lut[j*Qm + i*rows*Qm + k] = 0; 
+        } else {
+          interleaver_lut[j*Qm + i*rows*Qm + k] = idx;
+          idx++;                  
+        }
+      }
+    }
+  }
 }
 
 /* UL-SCH channel interleaver according to 5.2.2.8 of 36.212 */
 void ulsch_interleave(uint8_t *g_bits, uint32_t Qm, uint32_t H_prime_total, 
                       uint32_t N_pusch_symbs, uint8_t *q_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
-                      uint16_t *interleaver_buffer, uint8_t *temp_buffer, uint32_t buffer_sz) 
+                      uint8_t *ri_present, uint16_t *inteleaver_lut) 
 {
-  
-  uint32_t rows = H_prime_total/N_pusch_symbs;
-  uint32_t cols = N_pusch_symbs;
   
   // Prepare ri_bits for fast search using temp_buffer
   if (nof_ri_bits > 0) {
     for (uint32_t i=0;i<nof_ri_bits;i++) {
-      if (ri_bits[i].position < buffer_sz) {
-        temp_buffer[ri_bits[i].position] = 1; 
-      } else {
-        fprintf(stderr, "Error computing ULSCH interleaver RI bits. Position %d exceeds buffer size %d\n", ri_bits[i].position, buffer_sz);
-      }
+      ri_present[ri_bits[i].position] = 1;       
     }
   }
   
-  /* Compute the interleaving function on-the-fly, because it depends on number of RI bits 
-   * Profiling show that the computation of this matrix is neglegible. 
-   */
-  uint32_t idx = 0;
-  for(uint32_t j=0; j<rows; j++) {        
-    for(uint32_t i=0; i<cols; i++) {
-      for(uint32_t k=0; k<Qm; k++) {
-        if (temp_buffer[j*Qm + i*rows*Qm + k]) {
-          interleaver_buffer[j*Qm + i*rows*Qm + k] = 0; 
-        } else {
-          if (j*Qm + i*rows*Qm + k < buffer_sz) {
-            interleaver_buffer[j*Qm + i*rows*Qm + k] = idx;
-            idx++;                  
-          } else {
-            fprintf(stderr, "Error computing ULSCH interleaver. Position %d exceeds buffer size %d\n", j*Qm + i*rows*Qm + k, buffer_sz);
-          }
-        }
-      }
-    }
-  }
-  srslte_bit_interleave(g_bits, q_bits, interleaver_buffer, H_prime_total*Qm);    
+  // Genearate interleaver table and interleave bits
+  ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut); 
+  srslte_bit_interleave(g_bits, q_bits, inteleaver_lut, H_prime_total*Qm);    
   
   // Reset temp_buffer because will be reused next time
   if (nof_ri_bits > 0) {
     for (uint32_t i=0;i<nof_ri_bits;i++) {
-      if (ri_bits[i].position < buffer_sz) {
-        temp_buffer[ri_bits[i].position] = 0; 
-      } else {
-        fprintf(stderr, "Error computing ULSCH interleaver RI bits. Position %d exceeds buffer size %d\n", ri_bits[i].position, buffer_sz);
-      }
+      ri_present[ri_bits[i].position] = 0;       
     }
   }
+}
+
+/* UL-SCH channel deinterleaver according to 5.2.2.8 of 36.212 */
+void ulsch_deinterleave(int16_t *q_bits, uint32_t Qm, uint32_t H_prime_total, 
+                        uint32_t N_pusch_symbs, int16_t *g_bits, srslte_uci_bit_t *ri_bits, uint32_t nof_ri_bits, 
+                        uint8_t *ri_present, uint16_t *inteleaver_lut) 
+{     
+  // Prepare ri_bits for fast search using temp_buffer
+  if (nof_ri_bits > 0) {
+    for (uint32_t i=0;i<nof_ri_bits;i++) {
+      ri_present[ri_bits[i].position] = 1;       
+    }
+  }
+
+  // Generate interleaver table and interleave samples 
+  ulsch_interleave_gen(H_prime_total, N_pusch_symbs, Qm, ri_present, inteleaver_lut); 
+  srslte_vec_lut_sss(q_bits, inteleaver_lut, g_bits, H_prime_total*Qm);
+
+  // Reset temp_buffer because will be reused next time
+  if (nof_ri_bits > 0) {
+    for (uint32_t i=0;i<nof_ri_bits;i++) {
+      ri_present[ri_bits[i].position] = 0;       
+    }
+  }
+}
+
+int srslte_ulsch_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                            int16_t *q_bits, int16_t *g_bits, uint8_t *data) 
+{
+  srslte_uci_data_t uci_data; 
+  bzero(&uci_data, sizeof(srslte_uci_data_t));
+  return srslte_ulsch_uci_decode(q, cfg, softbuffer, q_bits, g_bits, data, &uci_data);
+}
+
+/* This is done before scrambling */
+int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                                   int16_t *q_bits, uint8_t *c_seq, srslte_uci_data_t *uci_data) 
+{
+  int ret = 0; 
+
+  uint32_t Q_prime_ri = 0;
+  uint32_t Q_prime_ack = 0;
+  
+  uint32_t nb_q = cfg->nbits.nof_bits; 
+  uint32_t Qm = cfg->grant.Qm; 
+
+  cfg->last_O_cqi = uci_data->uci_cqi_len;
+  
+  // Deinterleave and decode HARQ bits
+  if (uci_data->uci_ack_len > 0) {
+    float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
+    if (cfg->cb_segm.tbs == 0) {
+        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
+    }
+    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ack);
+    if (ret < 0) {
+      return ret; 
+    }
+    Q_prime_ack = (uint32_t) ret; 
+
+    // Set zeros to HARQ bits
+    for (uint32_t i=0;i<Q_prime_ack;i++) {
+      q_bits[q->ack_ri_bits[i].position] = 0;  
+    }    
+  }
+        
+  // Deinterleave and decode RI bits
+  if (uci_data->uci_ri_len > 0) {
+    float beta = beta_ri_offset[cfg->uci_cfg.I_offset_ri]; 
+    if (cfg->cb_segm.tbs == 0) {
+        beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
+    }
+    ret = srslte_uci_decode_ri(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ri);
+    if (ret < 0) {
+      return ret; 
+    }
+    Q_prime_ri = (uint32_t) ret;     
+  }
+  
+  q->nof_ri_ack_bits = Q_prime_ri; 
+  
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_ulsch_uci_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                            int16_t *q_bits, int16_t *g_bits, uint8_t *data, srslte_uci_data_t *uci_data) 
+{
+  int ret = 0; 
+  
+  uint32_t Q_prime_ri = q->nof_ri_ack_bits; 
+  uint32_t Q_prime_cqi = 0; 
+  uint32_t e_offset = 0;
+
+  uint32_t nb_q = cfg->nbits.nof_bits; 
+  uint32_t Qm = cfg->grant.Qm; 
+
+  // Deinterleave data and CQI in ULSCH 
+  ulsch_deinterleave(q_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, g_bits, q->ack_ri_bits, Q_prime_ri*Qm, 
+                     q->temp_g_bits, q->ul_interleaver);
+  
+  // Decode CQI (multiplexed at the front of ULSCH)
+  if (uci_data->uci_cqi_len > 0) {
+    struct timeval t[3];
+    gettimeofday(&t[1], NULL);
+    ret = srslte_uci_decode_cqi_pusch(&q->uci_cqi, cfg, g_bits, 
+                                      beta_cqi_offset[cfg->uci_cfg.I_offset_cqi], 
+                                      Q_prime_ri, uci_data->uci_cqi_len,
+                                      uci_data->uci_cqi, &uci_data->cqi_ack);
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    printf("texec=%d us\n", t[0].tv_usec);
+    
+    if (ret < 0) {
+      return ret; 
+    }
+    Q_prime_cqi = (uint32_t) ret; 
+  }
+  
+  e_offset += Q_prime_cqi*Qm;
+
+  // Decode ULSCH
+  if (cfg->cb_segm.tbs > 0) {
+    uint32_t G = nb_q/Qm - Q_prime_ri - Q_prime_cqi;     
+    ret = decode_tb(q, softbuffer, &cfg->cb_segm, 
+                   Qm, cfg->rv, G*Qm, 
+                   &g_bits[e_offset], data);
+    if (ret) {
+      return ret; 
+    }
+  }
+  return SRSLTE_SUCCESS; 
 }
 
 int srslte_ulsch_encode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
@@ -596,8 +712,9 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     }
     Q_prime_ri = (uint32_t) ret; 
   }
-  cfg->last_O_cqi = uci_data.uci_cqi_len;
+  
   // Encode CQI
+  cfg->last_O_cqi = uci_data.uci_cqi_len;
   if (uci_data.uci_cqi_len > 0) {
     ret = srslte_uci_encode_cqi_pusch(&q->uci_cqi, cfg, 
                                       uci_data.uci_cqi, uci_data.uci_cqi_len, 
@@ -625,14 +742,11 @@ int srslte_ulsch_uci_encode(srslte_sch_t *q,
     }    
   } 
   
-  //srslte_bit_unpack_vector(g_bits, kk, nb_q);
-  //srslte_vec_fprint_b(stdout, kk, nb_q);
-      
   // Interleave UL-SCH (and RI and CQI)
   ulsch_interleave(g_bits, Qm, nb_q/Qm, cfg->nbits.nof_symb, q_bits, q->ack_ri_bits, Q_prime_ri*Qm, 
-                   q->ul_interleaver, q->temp_g_bits, SRSLTE_MAX_PRB*12*12*12);
+                   q->temp_g_bits, q->ul_interleaver);
   
-   // Encode (and interleave) ACK
+  // Encode (and interleave) ACK
   if (uci_data.uci_ack_len > 0) {
     float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {

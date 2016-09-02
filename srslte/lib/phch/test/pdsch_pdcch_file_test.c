@@ -32,7 +32,7 @@
 
 #include "srslte/srslte.h"
 
-#define MAX_CANDIDATES 64
+#define MAX_CANDIDATES 16
 
 char *input_file_name = NULL;
 
@@ -103,7 +103,7 @@ void parse_args(int argc, char **argv) {
       break;
     case 'o':
       dci_format = srslte_dci_format_from_string(argv[optind]);
-      if (dci_format == SRSLTE_DCI_FORMAT_ERROR) {
+      if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
         fprintf(stderr, "Error unsupported format %s\n", argv[optind]);
         exit(-1);
       }

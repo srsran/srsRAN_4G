@@ -79,7 +79,7 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
     }
     
     // Set a CFO tolerance of approx 100 Hz
-    srslte_cfo_set_tol(&q->cfocorr, 100/(15000*q->fft_size));
+    srslte_cfo_set_tol(&q->cfocorr, 100.0/(15000.0*q->fft_size));
 
     for (int i=0;i<2;i++) {
       q->cfo_i_corr[i] = srslte_vec_malloc(sizeof(cf_t)*q->frame_size);
@@ -398,8 +398,11 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
   
   srslte_sync_find_ret_t ret = SRSLTE_SYNC_ERROR; 
   
-  if (q                 != NULL     &&
-      input             != NULL     &&
+  if (!q) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+  
+  if (input             != NULL     &&
       srslte_N_id_2_isvalid(q->N_id_2) && 
       fft_size_isvalid(q->fft_size))
   {

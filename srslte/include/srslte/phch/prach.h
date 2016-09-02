@@ -41,7 +41,7 @@
 #include <stdbool.h>
 #include "srslte/config.h"
 #include "srslte/dft/dft.h"
-
+#include "srslte/common/phy_common.h"
 
 
 /** Generation and detection of RACH signals for uplink.
@@ -52,6 +52,7 @@
 
 typedef struct SRSLTE_API {
   // Parameters from higher layers (extracted from SIB2)
+  uint32_t config_idx; 
   uint32_t f;               // preamble format
   uint32_t rsi;             // rootSequenceIndex
   bool hs;                  // highSpeedFlag
@@ -63,6 +64,7 @@ typedef struct SRSLTE_API {
   uint32_t N_zc;  // PRACH sequence length
   uint32_t N_cs;  // Cyclic shift size
   uint32_t N_seq; // Preamble length
+  float    T_seq; // Preamble length in seconds
   uint32_t N_cp;  // Cyclic prefix length
 
   // Generated tables
@@ -70,7 +72,7 @@ typedef struct SRSLTE_API {
   cf_t dft_seqs[64][839];     // DFT-precoded seqs
   uint32_t root_seqs_idx[64]; // Indices of root seqs in seqs table
   uint32_t N_roots;           // Number of root sequences used in this configuration
-
+  
   // Containers
   cf_t *ifft_in;
   cf_t *ifft_out;
@@ -85,7 +87,14 @@ typedef struct SRSLTE_API {
   // ZC-sequence FFT and IFFT
   srslte_dft_plan_t *zc_fft;
   srslte_dft_plan_t *zc_ifft;
-
+  
+  cf_t *signal_fft; 
+  float detect_factor; 
+    
+  uint32_t deadzone; 
+  float    peak_values[65];
+  uint32_t peak_offsets[65];
+  
 } srslte_prach_t;
 
 typedef struct SRSLTE_API {
@@ -98,23 +107,35 @@ typedef enum SRSLTE_API {
   SRSLTE_PRACH_SFN_ANY,  
 } srslte_prach_sfn_t;
 
+typedef struct {
+  uint32_t config_idx;
+  uint32_t root_seq_idx;
+  uint32_t zero_corr_zone; 
+  bool     hs_flag; 
+} srslte_prach_cfg_t;     
+
+
 SRSLTE_API uint32_t srslte_prach_get_preamble_format(uint32_t config_idx);
 
 SRSLTE_API srslte_prach_sfn_t srslte_prach_get_sfn(uint32_t config_idx);
 
-SRSLTE_API bool srslte_prach_send_tti(uint32_t config_idx, 
-                                      uint32_t current_tti, 
-                                      int allowed_subframe); 
+SRSLTE_API bool srslte_prach_tti_opportunity(srslte_prach_t *p, 
+                                             uint32_t current_tti, 
+                                             int allowed_subframe); 
 
 SRSLTE_API void srslte_prach_sf_config(uint32_t config_idx, 
                                        srslte_prach_sf_config_t *sf_config);
 
 SRSLTE_API int srslte_prach_init(srslte_prach_t *p,
                                  uint32_t N_ifft_ul,
-                                 uint32_t preamble_format,
+                                 uint32_t config_idx,
                                  uint32_t root_seq_index,
                                  bool high_speed_flag,
                                  uint32_t zero_corr_zone_config);
+
+SRSLTE_API int srslte_prach_init_cfg(srslte_prach_t* p, 
+                                     srslte_prach_cfg_t* cfg, 
+                                     uint32_t nof_prb);
 
 SRSLTE_API int srslte_prach_gen(srslte_prach_t *p,
                                 uint32_t seq_index,
@@ -125,8 +146,20 @@ SRSLTE_API int srslte_prach_detect(srslte_prach_t *p,
                                    uint32_t freq_offset,
                                    cf_t *signal,
                                    uint32_t sig_len,
-                                   uint32_t *indices,
+                                   uint32_t *indices, 
                                    uint32_t *ind_len);
+
+SRSLTE_API int srslte_prach_detect_offset(srslte_prach_t *p,
+                                          uint32_t freq_offset,
+                                          cf_t *signal,
+                                          uint32_t sig_len,
+                                          uint32_t *indices, 
+                                          float    *t_offsets,
+					  float    *peak_to_avg,
+                                          uint32_t *ind_len);
+
+SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t *p, 
+                                               float factor); 
 
 SRSLTE_API int srslte_prach_free(srslte_prach_t *p);
 

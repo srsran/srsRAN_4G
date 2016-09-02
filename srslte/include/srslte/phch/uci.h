@@ -39,6 +39,7 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/pusch_cfg.h"
 #include "srslte/fec/crc.h"
+#include "srslte/fec/viterbi.h"
 #include "srslte/phch/cqi.h"
 
 #define SRSLTE_UCI_MAX_CQI_LEN_PUSCH       512
@@ -47,8 +48,12 @@
 
 typedef struct SRSLTE_API {
   srslte_crc_t crc;
+  srslte_viterbi_t viterbi; 
   uint8_t tmp_cqi[SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
   uint8_t encoded_cqi[3*SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
+  int16_t encoded_cqi_s[3*SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
+  uint8_t *cqi_table[11];
+  int16_t *cqi_table_s[11];
 } srslte_uci_cqi_pusch_t;
 
 typedef struct SRSLTE_API {
@@ -61,6 +66,7 @@ typedef struct SRSLTE_API {
   uint32_t uci_ack_len;
   bool scheduling_request; 
   bool channel_selection; 
+  bool cqi_ack; 
 } srslte_uci_data_t;
 
 typedef enum {
@@ -84,6 +90,15 @@ SRSLTE_API int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q,
                                            uint32_t Q_prime_ri, 
                                            uint8_t *q_bits);
 
+SRSLTE_API int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t *q, 
+                                           srslte_pusch_cfg_t *cfg,
+                                           int16_t *q_bits, 
+                                           float beta, 
+                                           uint32_t Q_prime_ri, 
+                                           uint32_t cqi_len, 
+                                           uint8_t *cqi_data, 
+                                           bool *cqi_ack); 
+
 SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, 
                                            uint32_t cqi_len, 
                                            uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
@@ -95,12 +110,30 @@ SRSLTE_API int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
                                      uint32_t H_prime_total, 
                                      srslte_uci_bit_t *ri_bits); 
 
+SRSLTE_API int srslte_uci_decode_ack(srslte_pusch_cfg_t *cfg,
+                                     int16_t *q_bits,
+                                     uint8_t *c_seq, 
+                                     float beta, 
+                                     uint32_t H_prime_total, 
+                                     uint32_t O_cqi,
+                                     srslte_uci_bit_t *ack_bits,
+                                     uint8_t *data); 
+
 SRSLTE_API int srslte_uci_encode_ri(srslte_pusch_cfg_t *cfg,
                                     uint8_t data, 
                                     uint32_t O_cqi, 
                                     float beta, 
                                     uint32_t H_prime_total, 
                                     srslte_uci_bit_t *ri_bits); 
+
+SRSLTE_API int srslte_uci_decode_ri(srslte_pusch_cfg_t *cfg,
+                                    int16_t *q_bits, 
+                                    uint8_t *c_seq, 
+                                    float beta, 
+                                    uint32_t H_prime_total, 
+                                    uint32_t O_cqi, 
+                                    srslte_uci_bit_t *ri_bits,
+                                    uint8_t *data); 
 
 
 #endif

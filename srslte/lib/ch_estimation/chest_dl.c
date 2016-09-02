@@ -264,7 +264,7 @@ static void interpolate_pilots(srslte_chest_dl_t *q, cf_t *pilot_estimates, cf_t
 }
 
 void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint32_t filter_len) {
-  if (filter_len < SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN) {
+  if (filter_len < SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN) {
     if (filter) {
       memcpy(q->smooth_filter, filter, filter_len*sizeof(float));    
       q->smooth_filter_len = filter_len; 
@@ -273,7 +273,7 @@ void srslte_chest_dl_set_smooth_filter(srslte_chest_dl_t *q, float *filter, uint
     }
   } else {
     fprintf(stderr, "Error setting smoothing filter: filter len exceeds maximum (%d>%d)\n", 
-      filter_len, SRSLTE_CHEST_DL_MAX_SMOOTH_FIL_LEN);
+      filter_len, SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN);
   }
 }
 
@@ -293,6 +293,7 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
   uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
   uint32_t nref = 2*q->cell.nof_prb;
 
+  // Average in the frequency domain
   for (int l=0;l<nsymbols;l++) {
     srslte_conv_same_cf(&input[l*nref], q->smooth_filter, &output[l*nref], nref, q->smooth_filter_len);    
   }

@@ -130,12 +130,56 @@ static rf_dev_t dev_blade = {
 };
 #endif
 
+//#define ENABLE_DUMMY_DEV
+
+#ifdef ENABLE_DUMMY_DEV
+int dummy_rcv() {
+  usleep(100000);
+  return 1; 
+}
+void dummy_fnc() {
+  
+}
+
+static rf_dev_t dev_dummy = {
+  "dummy", 
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc, 
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc,  
+  dummy_rcv,
+  dummy_fnc,
+  dummy_fnc,
+  dummy_fnc
+};
+#endif
+
 static rf_dev_t *available_devices[] = {
 #ifdef ENABLE_UHD
   &dev_uhd, 
 #endif
 #ifdef ENABLE_BLADERF
-  &dev_blade,
+  &dev_blade,  
+#endif
+#ifdef ENABLE_DUMMY_DEV
+  &dev_dummy,
 #endif
   NULL
 };

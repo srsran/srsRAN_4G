@@ -110,6 +110,16 @@ void srslte_phich_free(srslte_phich_t *q) {
 
 }
 
+/* Computes n_group and n_seq according to Section 9.1.2 in 36.213 */
+void srslte_phich_calc(srslte_phich_t *q, uint32_t n_prb_lowest, uint32_t n_dmrs, 
+                       uint32_t *ngroup, uint32_t *nseq) 
+{
+  uint32_t Ngroups = srslte_phich_ngroups(q); 
+  *ngroup = (n_prb_lowest+n_dmrs)%Ngroups;
+  *nseq = ((n_prb_lowest/Ngroups)+n_dmrs)%(2*srslte_phich_nsf(q)); 
+}
+
+
 /* Decodes ACK
  *
  */

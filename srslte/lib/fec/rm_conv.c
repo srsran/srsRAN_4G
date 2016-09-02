@@ -152,3 +152,70 @@ int srslte_rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out
   return 0;
 }
 
+/************* FIX THIS. MOVE ALL PROCESSING TO INT16 AND HAVE ONLY 1 IMPLEMENTATION ******/ 
+
+/* Undoes Convolutional Code Rate Matching.
+ * 3GPP TS 36.212 v10.1.0 section 5.1.4.2
+ */
+int srslte_rm_conv_rx_s(int16_t *input, uint32_t in_len, int16_t *output, uint32_t out_len) {
+
+  int nrows, ndummy, K_p;
+  int i, j, k;
+  int d_i, d_j;
+
+  int16_t tmp[3 * NCOLS * NROWS_MAX];
+  
+  nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
+  if (nrows > NROWS_MAX) {
+    fprintf(stderr, "Output too large. Max output length is %d\n",
+        3 * NCOLS * NROWS_MAX);
+    return -1;
+  }
+  K_p = nrows * NCOLS;
+
+  ndummy = K_p - out_len / 3;
+  if (ndummy < 0) {
+    ndummy = 0;
+  }
+
+  for (i = 0; i < 3 * K_p; i++) {
+    tmp[i] = SRSLTE_RX_NULL;
+  }
+
+  /* Undo bit collection. Account for dummy bits */
+  k = 0;
+  j = 0;
+  while (k < in_len) {
+    d_i = (j % K_p) / nrows;
+    d_j = (j % K_p) % nrows;
+
+    if (d_j * NCOLS + RM_PERM_CC[d_i] >= ndummy) {
+      if (tmp[j] == SRSLTE_RX_NULL) {
+        tmp[j] = input[k];
+      } else if (input[k] != SRSLTE_RX_NULL) {
+        tmp[j] += input[k]; /* soft combine LLRs */
+      }
+      k++;
+    }
+    j++;
+    if (j == 3 * K_p) {
+      j = 0;
+    }
+  }
+
+  /* interleaving and bit selection */
+  for (i = 0; i < out_len / 3; i++) {
+    d_i = (i + ndummy) / NCOLS;
+    d_j = (i + ndummy) % NCOLS;
+    for (j = 0; j < 3; j++) {
+      int16_t o = tmp[K_p * j + RM_PERM_CC_INV[d_j] * nrows + d_i];
+      if (o != SRSLTE_RX_NULL) {
+        output[i * 3 + j] = o;
+      } else {
+        output[i * 3 + j] = 0;
+      }
+    }
+  }
+  return 0;
+}
+

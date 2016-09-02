@@ -48,6 +48,7 @@
 #include "srslte/common/sequence.h"
 #include "srslte/common/phy_common.h"
             
+#include "srslte/ch_estimation/chest_ul.h"
 #include "srslte/ch_estimation/chest_dl.h"
 #include "srslte/ch_estimation/refsignal_dl.h"
 #include "srslte/ch_estimation/refsignal_ul.h"
@@ -107,6 +108,9 @@
 #include "srslte/ue/ue_cell_search.h"
 #include "srslte/ue/ue_dl.h"
 #include "srslte/ue/ue_ul.h"
+
+#include "srslte/enb/enb_dl.h"
+#include "srslte/enb/enb_ul.h"
 
 #include "srslte/scrambling/scrambling.h"
 

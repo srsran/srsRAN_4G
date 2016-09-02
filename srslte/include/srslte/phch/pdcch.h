@@ -114,6 +114,26 @@ SRSLTE_API int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
                                        srslte_dci_format_t format,
                                        uint16_t *crc_rem);
 
+SRSLTE_API int srslte_pdcch_dci_decode(srslte_pdcch_t *q, 
+                                 float *e, 
+                                 uint8_t *data, 
+                                 uint32_t E, 
+                                 uint32_t nof_bits, 
+                                 uint16_t *crc); 
+
+SRSLTE_API int srslte_pdcch_dci_encode(srslte_pdcch_t *q, 
+                                       uint8_t *data, 
+                                       uint8_t *e, 
+                                       uint32_t nof_bits, 
+                                       uint32_t E,
+                                       uint16_t rnti); 
+
+SRSLTE_API void srslte_pdcch_dci_encode_conv(srslte_pdcch_t *q, 
+                                            uint8_t *data, 
+                                            uint32_t nof_bits, 
+                                            uint8_t *coded_data, 
+                                            uint16_t rnti); 
+
 /* Function for generation of UE-specific search space DCI locations */
 SRSLTE_API uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, 
                                               srslte_dci_location_t *locations, 
@@ -122,10 +142,20 @@ SRSLTE_API uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q,
                                               uint32_t cfi,
                                               uint16_t rnti);
 
+SRSLTE_API uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, 
+                                                   srslte_dci_location_t *c, 
+                                                   uint32_t max_candidates, 
+                                                   uint32_t nsubframe, uint16_t rnti); 
+
 /* Function for generation of common search space DCI locations */
 SRSLTE_API uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, 
                                                   srslte_dci_location_t *locations, 
                                                   uint32_t max_locations,
                                                   uint32_t cfi);
+
+SRSLTE_API uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, 
+                                                       srslte_dci_location_t *c, 
+                                                       uint32_t max_candidates); 
+
 
 #endif

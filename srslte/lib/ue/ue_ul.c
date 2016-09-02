@@ -57,7 +57,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     }
     srslte_ofdm_set_freq_shift(&q->fft, 0.5);
     srslte_ofdm_set_normalize(&q->fft, true);
-    
+
     q->normalize_en = false; 
 
     if (srslte_cfo_init(&q->cfo, CURRENT_SFLEN)) {
@@ -434,12 +434,14 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
 {
  
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-  bzero(q->sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
   
   if (q             != NULL &&
       softbuffer    != NULL &&
       output_signal != NULL) 
   {
+
+    bzero(q->sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
+    
     if (srslte_pusch_uci_encode_rnti(&q->pusch, &q->pusch_cfg, softbuffer, data, uci_data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 

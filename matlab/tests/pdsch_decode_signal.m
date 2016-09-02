@@ -1,4 +1,4 @@
-enb=struct('NCellID',1,'NDLRB',25,'NSubframe',5,'CFI',2,'CyclicPrefix','Normal','CellRefP',1,'Ng','Sixth','PHICHDuration','Normal','DuplexMode','FDD');
+enb=struct('NCellID',313,'NDLRB',75,'NSubframe',5,'CFI',1,'CyclicPrefix','Normal','CellRefP',2,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
 
 RNTI=65535;
 
@@ -29,7 +29,7 @@ if ~isempty(dci)
     
     % Get the PDSCH configuration from the DCI
     [pdsch, trblklen] = hPDSCHConfiguration(enb, dci, pdcch.RNTI);
-    pdsch.NTurboDecIts = 10;
+    pdsch.NTurboDecIts = 16;
     %pdsch.Modulation =  {'64QAM'};
     pdsch.RV=0;
     fprintf('PDSCH settings after DCI decoding:\n');
@@ -44,19 +44,28 @@ if ~isempty(dci)
     [sib1, crc] = lteDLSCHDecode(enb, pdsch, trblklen, dlschBits);
 
     
-    [dec2, data, pdschRx2, pdschSymbols2, e_bits] = srslte_pdsch(enb, pdsch, ... 
+    [dec2, data, pdschRx2, pdschSymbols2, e_bits, ce] = srslte_pdsch(enb, pdsch, ... 
                                                         trblklen, ...
-                                                        subframe_rx, hest, 0);
+                                                        subframe_rx);
 
     
+    subplot(2,1,1)
     scatter(real(pdschSymbols{1}),imag(pdschSymbols{1}))
+    subplot(2,1,2)
+    scatter(real(pdschSymbols2),imag(pdschSymbols2))
 
     if crc == 0
-        fprintf('PDSCH OK.\n\n');
+        fprintf('PDSCH Matlab OK.\n\n');
     else
-        fprintf('PDSCH ERROR.\n\n');
+        fprintf('PDSCH Matlab ERROR.\n\n');
     end
-        
+
+    if dec2 == 1
+        fprintf('PDSCH srsLTE OK.\n\n');
+    else
+        fprintf('PDSCH srsLTE ERROR.\n\n');
+    end
+
     else
         % indicate that DCI decoding failed 
         fprintf('DCI decoding failed.\n\n');

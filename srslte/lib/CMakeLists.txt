@@ -34,6 +34,7 @@ add_subdirectory(modem)
 add_subdirectory(resampling)
 add_subdirectory(scrambling)
 add_subdirectory(ue)
+add_subdirectory(enb)
 
 set(srslte_srcs     version.c
                     $<TARGET_OBJECTS:srslte_agc>
@@ -51,22 +52,33 @@ set(srslte_srcs     version.c
                     $<TARGET_OBJECTS:srslte_resampling>
                     $<TARGET_OBJECTS:srslte_scrambling>
                     $<TARGET_OBJECTS:srslte_ue>
+                    $<TARGET_OBJECTS:srslte_enb>
 )
 
 if(RF_FOUND)
   list(APPEND srslte_srcs $<TARGET_OBJECTS:srslte_rf>)
 endif(RF_FOUND)
 
-
 add_library(srslte SHARED ${srslte_srcs})
-target_link_libraries(srslte pthread m ${FFTW3F_LIBRARIES})
+target_link_libraries(srslte pthread m)
 set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
 if(NOT DisableMEX)
   add_library(srslte_static STATIC ${srslte_srcs})
-  target_link_libraries(srslte_static ${FFTW3F_LIBRARIES})
 endif(NOT DisableMEX)
+
+if(MKL_FOUND)
+  target_link_libraries(srslte ${MKL_LIBRARIES})
+  if(NOT DisableMEX)
+    target_link_libraries(srslte_static ${MKL_LIBRARIES})
+  endif(NOT DisableMEX)
+else(MKL_FOUND)
+  target_link_libraries(srslte ${FFTW3F_LIBRARIES})
+  if(NOT DisableMEX)
+    target_link_libraries(srslte_static ${FFTW3F_LIBRARIES})
+  endif(NOT DisableMEX)
+endif(MKL_FOUND)
 
 if(RF_FOUND)
   if(UHD_FOUND)

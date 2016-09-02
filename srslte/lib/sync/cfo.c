@@ -62,7 +62,7 @@ void srslte_cfo_free(srslte_cfo_t *h) {
   if (h->cur_cexp) {
     free(h->cur_cexp);
   }
-  bzero(h, sizeof(cf_t));
+  bzero(h, sizeof(srslte_cfo_t));
 }
 
 void srslte_cfo_set_tol(srslte_cfo_t *h, float tol) {

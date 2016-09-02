@@ -41,6 +41,48 @@
 #endif
 
 
+
+int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len)
+{
+  int result = 0; 
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 8;
+
+  const __m128i* xPtr = (const __m128i*) x;
+  const __m128i* yPtr = (const __m128i*) y;
+  
+  __m128i dotProdVal = _mm_setzero_si128();
+
+  __m128i xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_load_si128(xPtr);
+    yVal = _mm_load_si128(yPtr);
+
+    zVal = _mm_mullo_epi16(xVal, yVal);
+
+    dotProdVal = _mm_add_epi16(dotProdVal, zVal);
+
+    xPtr ++;
+    yPtr ++;
+  }
+  
+  short dotProdVector[8];
+  _mm_store_si128((__m128i*) dotProdVector, dotProdVal);
+  for (int i=0;i<8;i++) {
+    result += dotProdVector[i]; 
+  }
+
+  number = points * 8;
+  for(;number < len; number++){
+    result += (x[number] * y[number]);
+  }
+  
+#endif
+  return result; 
+}
+
 void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE

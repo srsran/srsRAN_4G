@@ -90,11 +90,11 @@ int main(int argc, char **argv) {
 
   if (srslte_pucch_init(&pucch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
-    goto quit;
+    exit(-1);
   }
   if (srslte_refsignal_ul_init(&dmrs, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
-    goto quit;
+    exit(-1);
   }
   
   bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));

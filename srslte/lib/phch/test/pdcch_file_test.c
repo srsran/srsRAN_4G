@@ -34,7 +34,7 @@
 
 char *input_file_name = NULL;
 
-#define MAX_CANDIDATES 64
+#define MAX_CANDIDATES 16
 
 srslte_cell_t cell = {
   6,            // cell.cell.cell.nof_prb
@@ -99,7 +99,7 @@ void parse_args(int argc, char **argv) {
       break;
     case 'o':
       dci_format = srslte_dci_format_from_string(argv[optind]);
-      if (dci_format == SRSLTE_DCI_FORMAT_ERROR) {
+      if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
         fprintf(stderr, "Error unsupported format %s\n", argv[optind]);
         exit(-1);
       }
@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
       switch(type.type) {
       case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
         bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
-        if (srslte_dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, rnti != SRSLTE_SIRNTI)) {
+        if (srslte_dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, cell.nof_ports, rnti != SRSLTE_SIRNTI)) {
           fprintf(stderr, "Can't unpack DCI message\n");
         } else {
           srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);

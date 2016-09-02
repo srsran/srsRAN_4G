@@ -67,7 +67,6 @@ uint32_t plot_sf_idx=0;
 bool plot_track = true; 
 #endif
 
-#define PLOT_CHEST_ARGUMENT
 #define PRINT_CHANGE_SCHEDULIGN
 
 //#define CORRECT_SAMPLE_OFFSET
@@ -456,6 +455,8 @@ int main(int argc, char **argv) {
   // Set initial CFO for ue_sync
   srslte_ue_sync_set_cfo(&ue_sync, cfo); 
   
+  srslte_pbch_decode_reset(&ue_mib.pbch);
+            
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
@@ -475,7 +476,6 @@ int main(int argc, char **argv) {
       switch (state) {
         case DECODE_MIB:
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
-            srslte_pbch_decode_reset(&ue_mib.pbch);
             n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
@@ -500,7 +500,6 @@ int main(int argc, char **argv) {
               decode_pdsch = false; 
             }
           }
-
           if (decode_pdsch) {            
             INFO("Attempting DL decode SFN=%d\n", sfn);
             if (prog_args.rnti != SRSLTE_SIRNTI) {              
@@ -509,15 +508,14 @@ int main(int argc, char **argv) {
               // RV for SIB1 is predefined
               uint32_t k  = (sfn/2)%4; 
               uint32_t rv = ((uint32_t) ceilf((float)1.5*k))%4;
-              
               n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
                                               srslte_ue_sync_get_sfidx(&ue_sync), 
                                               SRSLTE_SIRNTI, rv);      
-              
+
               /*
-              if (!n) {
+              if (n>0) {
                 printf("Saving signal...\n");
-                srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv);
+                srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv, prog_args.rnti);
                 exit(-1);
               }
               */
@@ -538,7 +536,7 @@ int main(int argc, char **argv) {
                   memcmp(&ue_dl.dl_dci.type2_alloc, &old_dl_dci.type2_alloc, sizeof(srslte_ra_type2_t)))
               {
                 memcpy(&old_dl_dci, &ue_dl.dl_dci, sizeof(srslte_ra_dl_dci_t));
-                fflush(stdout);printf("\nCFI:\t%d\n", ue_dl.cfi);
+                fflush(stdout);
                 printf("Format: %s\n", srslte_dci_format_string(ue_dl.dci_format));
                 srslte_ra_pdsch_fprint(stdout, &old_dl_dci, cell.nof_prb);
                 srslte_ra_dl_grant_fprint(stdout, &ue_dl.pdsch_cfg.grant);
@@ -652,8 +650,7 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_GRAPHICS
 
 
-//plot_waterfall_t poutfft;
-plot_real_t p_sync, pce, pce_arg;
+plot_real_t p_sync, pce;
 plot_scatter_t  pscatequal, pscatequal_pdcch;
 
 float tmp_plot[110*15*2048];
@@ -667,22 +664,18 @@ void *plot_thread_run(void *arg) {
   
   sdrgui_init();
   
-  //plot_waterfall_init(&poutfft, SRSLTE_NRE * ue_dl.cell.nof_prb, 1000);
-  //plot_waterfall_setTitle(&poutfft, "Output FFT - Magnitude");
-  //plot_waterfall_setPlotYAxisScale(&poutfft, -40, 40);
+  plot_scatter_init(&pscatequal);
+  plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pscatequal, -4, 4);
+  plot_scatter_setYAxisScale(&pscatequal, -4, 4);
+
+  plot_scatter_addToWindowGrid(&pscatequal, (char*)"pdsch_ue", 0, 0);
 
   if (!prog_args.disable_plots_except_constellation) {
     plot_real_init(&pce);
     plot_real_setTitle(&pce, "Channel Response - Magnitude");
     plot_real_setLabels(&pce, "Index", "dB");
     plot_real_setYAxisScale(&pce, -40, 40);
-
-  #ifdef PLOT_CHEST_ARGUMENT
-    plot_real_init(&pce_arg);
-    plot_real_setTitle(&pce_arg, "Channel Response - Argument");
-    plot_real_setLabels(&pce_arg, "Index", "rad");
-    plot_real_setYAxisScale(&pce_arg, -1.1*M_PI, 1.1*M_PI);
-  #endif
     
     plot_real_init(&p_sync);
     plot_real_setTitle(&p_sync, "PSS Cross-Corr abs value");
@@ -692,13 +685,11 @@ void *plot_thread_run(void *arg) {
     plot_scatter_setTitle(&pscatequal_pdcch, "PDCCH - Equalized Symbols");
     plot_scatter_setXAxisScale(&pscatequal_pdcch, -4, 4);
     plot_scatter_setYAxisScale(&pscatequal_pdcch, -4, 4);
+
+    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue",    0, 1);
+    plot_real_addToWindowGrid(&pscatequal_pdcch, (char*)"pdsch_ue", 1, 0);
+    plot_real_addToWindowGrid(&p_sync, (char*)"pdsch_ue", 1, 1);
   }
-
-  plot_scatter_init(&pscatequal);
-  plot_scatter_setTitle(&pscatequal, "PDSCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&pscatequal, -4, 4);
-  plot_scatter_setYAxisScale(&pscatequal, -4, 4);
-
   
   while(1) {
     sem_wait(&plot_sem);
@@ -711,14 +702,16 @@ void *plot_thread_run(void *arg) {
           tmp_plot[i] = -80;
         }
       }
+      int sz = srslte_symbol_sz(ue_dl.cell.nof_prb);
+      bzero(tmp_plot2, sizeof(float)*sz);
+      int g = (sz - 12*ue_dl.cell.nof_prb)/2;
       for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.ce[0][i]));
-        if (isinf(tmp_plot2[i])) {
-          tmp_plot2[i] = -80;
+        tmp_plot2[g+i] = 20 * log10(cabs(ue_dl.ce[0][i]));
+        if (isinf(tmp_plot2[g+i])) {
+          tmp_plot2[g+i] = -80;
         }
       }
-
-      plot_real_setNewData(&pce, tmp_plot2, i);        
+      plot_real_setNewData(&pce, tmp_plot2, sz);        
       
       if (!prog_args.input_file_name) {
         if (plot_track) {
@@ -739,13 +732,6 @@ void *plot_thread_run(void *arg) {
         }
         
       }
-
-  #ifdef PLOT_CHEST_ARGUMENT
-      for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[i] = cargf(ue_dl.ce[0][i]);
-      }
-      plot_real_setNewData(&pce_arg, tmp_plot2, i);        
-  #endif
       
       plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
     }

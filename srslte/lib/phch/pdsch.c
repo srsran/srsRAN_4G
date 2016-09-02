@@ -212,6 +212,7 @@ int srslte_pdsch_init(srslte_pdsch_t *q, srslte_cell_t cell) {
     
     q->cell = cell;
     q->max_re = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
+    q->nof_crnti = 0; 
 
     INFO("Init PDSCH: %d ports %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
         q->cell.nof_prb, q->max_re);
@@ -286,6 +287,19 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
   for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     srslte_sequence_free(&q->seq[i]);
   }
+  
+  for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+    for (int n=0;n<q->nof_crnti;n++) {
+      srslte_sequence_free(&q->seq_multi[i][n]);
+    }
+    if (q->seq_multi[i]) {
+      free(q->seq_multi[i]);
+    }
+  }
+  
+  if (q->rnti_multi) {
+    free(q->rnti_multi);
+  }
 
   for (i = 0; i < 4; i++) {
     srslte_modem_table_free(&q->mod[i]);
@@ -302,19 +316,22 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
  */
 int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint32_t rvidx) 
 {
-  
-  if (cfg && grant) {
-    memcpy(&cfg->grant, grant, sizeof(srslte_ra_dl_grant_t));
-  }
-  if (srslte_cbsegm(&cfg->cb_segm, cfg->grant.mcs.tbs)) {
-    fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
-    return SRSLTE_ERROR; 
-  }
-  srslte_ra_dl_grant_to_nbits(&cfg->grant, cfi, cell, sf_idx, &cfg->nbits);
-  cfg->sf_idx = sf_idx; 
-  cfg->rv = rvidx;  
+  if (cfg) {
+    if (grant) {
+      memcpy(&cfg->grant, grant, sizeof(srslte_ra_dl_grant_t));
+    }
+    if (srslte_cbsegm(&cfg->cb_segm, cfg->grant.mcs.tbs)) {
+      fprintf(stderr, "Error computing Codeblock segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
+      return SRSLTE_ERROR; 
+    }
+    srslte_ra_dl_grant_to_nbits(&cfg->grant, cfi, cell, sf_idx, &cfg->nbits);
+    cfg->sf_idx = sf_idx; 
+    cfg->rv = rvidx;  
 
-  return SRSLTE_SUCCESS;   
+    return SRSLTE_SUCCESS;   
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 }
 
 
@@ -332,6 +349,61 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
   q->rnti_is_set = true; 
   q->rnti = rnti; 
   return SRSLTE_SUCCESS;
+}
+
+/* Initializes the memory to support pre-calculation of multiple scrambling sequences */
+int srslte_pdsch_init_rnti_multi(srslte_pdsch_t *q, uint32_t nof_rntis)
+{
+  for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+    q->seq_multi[i] = malloc(sizeof(srslte_sequence_t)*nof_rntis);
+    if (!q->seq_multi[i]) {
+      perror("malloc"); 
+      return SRSLTE_ERROR; 
+    }
+  }
+  
+  q->rnti_multi = srslte_vec_malloc(sizeof(uint16_t)*nof_rntis);
+  if (!q->rnti_multi) {
+    perror("malloc");
+    return SRSLTE_ERROR; 
+  }
+  bzero(q->rnti_multi, sizeof(uint16_t)*nof_rntis);
+  
+  q->nof_crnti = nof_rntis;
+  
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pdsch_set_rnti_multi(srslte_pdsch_t *q, uint32_t idx, uint16_t rnti)
+{
+  if (idx < q->nof_crnti) {
+    if (q->rnti_multi[idx]) {
+      for (uint32_t i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+        srslte_sequence_free(&q->seq_multi[i][idx]);  
+      }
+      q->rnti_multi[idx] = 0; 
+    }
+    q->rnti_multi[idx] = rnti; 
+    q->rnti_is_set = true; 
+    for (uint32_t i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+      if (srslte_sequence_pdsch(&q->seq_multi[i][idx], rnti, 0, 2 * i, q->cell.id,
+          q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
+        return SRSLTE_ERROR; 
+      }
+    }
+    return SRSLTE_SUCCESS;
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+uint16_t srslte_pdsch_get_rnti_multi(srslte_pdsch_t *q, uint32_t idx)
+{
+  if (idx < q->nof_crnti) {
+    return q->rnti_multi[idx];
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
 }
 
 int srslte_pdsch_decode(srslte_pdsch_t *q, 
@@ -479,12 +551,11 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
   }
 }
 
-/** Converts the PDSCH data bits to symbols mapped to the slot ready for transmission
- */
-int srslte_pdsch_encode_rnti(srslte_pdsch_t *q, 
+int srslte_pdsch_encode_seq(srslte_pdsch_t *q, 
                              srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
-                             uint8_t *data, uint16_t rnti, cf_t *sf_symbols[SRSLTE_MAX_PORTS]) 
+                             uint8_t *data, srslte_sequence_t *seq, cf_t *sf_symbols[SRSLTE_MAX_PORTS]) 
 {
+  
   int i;
   /* Set pointers for layermapping & precoding */
   cf_t *x[SRSLTE_MAX_LAYERS];
@@ -527,16 +598,7 @@ int srslte_pdsch_encode_rnti(srslte_pdsch_t *q,
       return SRSLTE_ERROR;
     }
 
-    if (rnti != q->rnti) {
-      srslte_sequence_t seq; 
-      if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
-        return SRSLTE_ERROR; 
-      }
-      srslte_scrambling_bytes(&seq, (uint8_t*) q->e, cfg->nbits.nof_bits);
-      srslte_sequence_free(&seq);
-    } else {    
-      srslte_scrambling_bytes(&q->seq[cfg->sf_idx], (uint8_t*) q->e, cfg->nbits.nof_bits);
-    }
+    srslte_scrambling_bytes(seq, (uint8_t*) q->e, cfg->nbits.nof_bits);
 
     srslte_mod_modulate_bytes(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->e, q->d, cfg->nbits.nof_bits);
     
@@ -553,10 +615,47 @@ int srslte_pdsch_encode_rnti(srslte_pdsch_t *q,
     for (i = 0; i < q->cell.nof_ports; i++) {
       srslte_pdsch_put(q, q->symbols[i], sf_symbols[i], &cfg->grant, cfg->nbits.lstart, cfg->sf_idx);
     }
+    
     ret = SRSLTE_SUCCESS;
   } 
   return ret; 
 }
+
+int srslte_pdsch_encode_rnti_idx(srslte_pdsch_t *q, 
+                                 srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
+                                 uint8_t *data, uint32_t rnti_idx, cf_t *sf_symbols[SRSLTE_MAX_PORTS]) 
+{
+  if (rnti_idx < q->nof_crnti) {
+    if (q->rnti_multi[rnti_idx]) {
+      return srslte_pdsch_encode_seq(q, cfg, softbuffer, data, &q->seq_multi[cfg->sf_idx][rnti_idx], sf_symbols);
+    } else {
+      fprintf(stderr, "Error RNTI idx %d not set\n", rnti_idx);
+      return SRSLTE_ERROR; 
+    }
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+/** Converts the PDSCH data bits to symbols mapped to the slot ready for transmission
+ */
+int srslte_pdsch_encode_rnti(srslte_pdsch_t *q, 
+                             srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
+                             uint8_t *data, uint16_t rnti, cf_t *sf_symbols[SRSLTE_MAX_PORTS]) 
+{
+  if (rnti != q->rnti) {
+    srslte_sequence_t seq; 
+    if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
+      return SRSLTE_ERROR; 
+    }
+    int r = srslte_pdsch_encode_seq(q, cfg, softbuffer, data, &seq, sf_symbols);
+    srslte_sequence_free(&seq);
+    return r; 
+  } else {    
+    return srslte_pdsch_encode_seq(q, cfg, softbuffer, data, &q->seq[cfg->sf_idx], sf_symbols);
+  } 
+}
+
 
 float srslte_pdsch_average_noi(srslte_pdsch_t *q) 
 {

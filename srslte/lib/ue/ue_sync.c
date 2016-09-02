@@ -44,7 +44,7 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define TRACK_MAX_LOST          4
 #define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     4
-#define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  5
+#define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  0
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
 cf_t dummy_offset_buffer[1024*1024];
@@ -358,7 +358,6 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
   {
     INFO("Warning: Expected SF idx %d but got %d! (%d frames)\n", 
            q->sf_idx, srslte_sync_get_sf_idx(&q->strack), q->frame_no_cnt);
-    q->sf_idx = srslte_sync_get_sf_idx(&q->strack);
     q->frame_no_cnt++;
     if (q->frame_no_cnt >= TRACK_MAX_LOST) {
       INFO("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
@@ -396,11 +395,12 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
     }
     q->mean_sfo = SRSLTE_VEC_EMA(q->mean_sample_offset, q->mean_sfo, q->sfo_ema);
 
-    INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/5-sf, ema=%f, length=%d\n", 
+    if (q->next_rf_sample_offset) {
+      INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/5-sf, ema=%f, length=%d\n", 
            q->next_rf_sample_offset, q->mean_sample_offset,
            srslte_ue_sync_get_sfo(q), 
            q->mean_sfo, q->sfo_ema, q->sample_offset_correct_period);    
-
+    }
     q->mean_sample_offset = 0; 
   }
 

@@ -102,18 +102,14 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   bool prb_idx[2][SRSLTE_MAX_PRB];
   uint32_t nof_prb;  
-  uint32_t Qm; 
+  uint32_t Qm;
+  uint32_t Qm2; 
   srslte_ra_mcs_t mcs;
+  srslte_ra_mcs_t mcs2;
 } srslte_ra_dl_grant_t;
 
 /** Unpacked DCI message for DL grant */
 typedef struct SRSLTE_API {
-  
-  enum {
-    SRSLTE_RA_DCI_FORMAT1, 
-    SRSLTE_RA_DCI_FORMAT1A, 
-    SRSLTE_RA_DCI_FORMAT1C, 
-  } dci_format; 
   
   srslte_ra_type_t alloc_type;
   union {
@@ -122,10 +118,24 @@ typedef struct SRSLTE_API {
     srslte_ra_type2_t type2_alloc;
   };
   
-  uint32_t mcs_idx;
   uint32_t harq_process;
+  uint32_t mcs_idx;
   int      rv_idx;
-  bool ndi;
+  bool     ndi;
+  uint32_t mcs_idx_1;
+  int      rv_idx_1;
+  bool     ndi_1;
+  
+  bool     tb_cw_swap; 
+  bool     sram_id; 
+  uint8_t  pinfo; 
+  bool     pconf;
+  bool     power_offset; 
+  
+  uint32_t nof_tb; 
+  
+  bool     dci_is_1a;
+  bool     dci_is_1c; 
 } srslte_ra_dl_dci_t;
 
 
@@ -185,11 +195,9 @@ typedef union {
  * Functions 
  **************************************************/
 
-SRSLTE_API char* srslte_ra_dl_dci_string(srslte_ra_dl_dci_t *dci);
-
 SRSLTE_API int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci, 
                                          uint32_t nof_prb, 
-                                         bool crc_is_crnti, 
+                                         uint16_t rnti, 
                                          srslte_ra_dl_grant_t *grant);
 
 SRSLTE_API void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, 
@@ -220,6 +228,8 @@ SRSLTE_API int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci,
                                                      uint32_t nof_prb); 
 
 SRSLTE_API int srslte_ra_tbs_idx_from_mcs(uint32_t mcs);
+
+SRSLTE_API int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx); 
 
 SRSLTE_API int srslte_ra_tbs_from_idx(uint32_t tbs_idx, 
                                       uint32_t n_prb); 

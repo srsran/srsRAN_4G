@@ -89,6 +89,12 @@ SRSLTE_API int srslte_phich_init(srslte_phich_t *q,
 
 SRSLTE_API void srslte_phich_free(srslte_phich_t *q);
 
+SRSLTE_API void srslte_phich_calc(srslte_phich_t *q, 
+                                  uint32_t n_prb_lowest, 
+                                  uint32_t n_dmrs, 
+                                  uint32_t *ngroup, 
+                                  uint32_t *nseq); 
+
 SRSLTE_API int srslte_phich_decode(srslte_phich_t *q, 
                                    cf_t *slot_symbols, 
                                    cf_t *ce[SRSLTE_MAX_PORTS],

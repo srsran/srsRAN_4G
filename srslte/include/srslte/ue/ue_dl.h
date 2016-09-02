@@ -80,13 +80,11 @@ typedef struct SRSLTE_API {
   cf_t *ce[SRSLTE_MAX_PORTS];
   
   srslte_dci_format_t dci_format;
-  uint32_t cfi;
   uint64_t pkt_errors; 
   uint64_t pkts_total;
   uint64_t nof_detected; 
 
   uint16_t current_rnti;
-  uint32_t last_n_cce; 
   srslte_dci_location_t last_location;
   
   srslte_dci_msg_t pending_ul_dci_msg; 
@@ -117,23 +115,23 @@ SRSLTE_API int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q,
                                       uint32_t rvidx); 
 
 SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, 
-                                        srslte_dci_msg_t *dci_msg, 
                                         uint32_t cfi, 
                                         uint32_t sf_idx, 
-                                        uint16_t rnti); 
+                                        uint16_t rnti, 
+                                        srslte_dci_msg_t *dci_msg); 
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, 
-                                        srslte_dci_msg_t *dci_msg, 
                                         uint32_t cfi, 
                                         uint32_t sf_idx, 
-                                        uint16_t rnti); 
+                                        uint16_t rnti, 
+                                        srslte_dci_msg_t *dci_msg); 
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, 
-                                             srslte_dci_msg_t *dci_msg, 
                                              uint32_t cfi, 
                                              uint32_t sf_idx, 
                                              uint16_t rnti, 
-                                             srslte_rnti_type_t rnti_type);
+                                             srslte_rnti_type_t rnti_type, 
+                                             srslte_dci_msg_t *dci_msg);
 
 SRSLTE_API uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q);
 
@@ -171,7 +169,9 @@ SRSLTE_API void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q,
 SRSLTE_API void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, 
                                          srslte_softbuffer_rx_t *softbuffer, 
                                          uint32_t tti, 
-                                         uint32_t rv_idx); 
+                                         uint32_t rv_idx, 
+                                         uint16_t rnti, 
+                                         uint32_t cfi); 
 
 
 #endif

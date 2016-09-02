@@ -122,6 +122,10 @@ SRSLTE_API int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg
 SRSLTE_API bool srslte_cqi_send(uint32_t I_cqi_pmi, 
                                 uint32_t tti); 
 
-SRSLTE_API uint8_t srslte_cqi_from_snr(float snr); 
+SRSLTE_API uint8_t srslte_cqi_from_snr(float snr);
+
+SRSLTE_API int srslte_cqi_hl_get_subband_size(int num_prbs);
+
+SRSLTE_API int srslte_cqi_hl_get_no_subbands(int num_prbs);
 
 #endif // CQI_

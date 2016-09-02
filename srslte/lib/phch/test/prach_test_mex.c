@@ -78,13 +78,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexutils_read_uint32_struct(PRACHCFG, "CyclicShiftIdx", &zero_corr_zone);
   uint32_t high_speed_flag = 0; 
   mexutils_read_uint32_struct(PRACHCFG, "HighSpeed", &high_speed_flag);
-  uint32_t timing_offset = 0; 
-  mexutils_read_uint32_struct(PRACHCFG, "TimingOffset", &timing_offset);
   uint32_t frequency_offset = 0; 
   mexutils_read_uint32_struct(PRACHCFG, "FreqOffset", &frequency_offset);
 
   srslte_prach_t prach; 
-  if (srslte_prach_init(&prach, N_ifft_ul, preamble_format, root_seq_idx, high_speed_flag, zero_corr_zone)) {
+  if (srslte_prach_init(&prach, N_ifft_ul, preamble_format*16, root_seq_idx, high_speed_flag, zero_corr_zone)) {
     mexErrMsgTxt("Error initiating PRACH\n");
     return;
   }

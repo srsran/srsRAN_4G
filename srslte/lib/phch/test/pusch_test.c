@@ -113,10 +113,12 @@ int main(int argc, char **argv) {
   srslte_pusch_t pusch;
   uint8_t *data = NULL;
   cf_t *sf_symbols = NULL;
+  cf_t *ce = NULL; 
   int ret = -1;
   struct timeval t[3];
   srslte_pusch_cfg_t cfg; 
-  srslte_softbuffer_tx_t softbuffer; 
+  srslte_softbuffer_tx_t softbuffer_tx;
+  srslte_softbuffer_rx_t softbuffer_rx; 
   
   parse_args(argc,argv);
 
@@ -153,7 +155,7 @@ int main(int argc, char **argv) {
   printf("Encoding rv_idx=%d\n",rv_idx);
   
   srslte_uci_cfg_t uci_cfg; 
-  uci_cfg.I_offset_cqi = 7; 
+  uci_cfg.I_offset_cqi = 6; 
   uci_cfg.I_offset_ri = 2; 
   uci_cfg.I_offset_ack = 4; 
 
@@ -164,93 +166,113 @@ int main(int argc, char **argv) {
   
   srslte_pusch_set_rnti(&pusch, 1234);
   
-  srslte_uci_data_t uci_data; 
-  bzero(&uci_data, sizeof(srslte_uci_data_t));
-  uci_data.uci_cqi_len = 0; 
-  uci_data.uci_ri_len = 0; 
-  uci_data.uci_ack_len = 0; 
-
+  srslte_uci_data_t uci_data_tx; 
+  srslte_uci_data_t uci_data_rx; 
+  bzero(&uci_data_tx, sizeof(srslte_uci_data_t));
+  uci_data_tx.uci_cqi_len = 4; 
+  uci_data_tx.uci_ri_len = 0; 
+  uci_data_tx.uci_ack_len = 0; 
+  memcpy(&uci_data_rx, &uci_data_tx, sizeof(srslte_uci_data_t));
+    
   for (uint32_t i=0;i<20;i++) {
-    uci_data.uci_cqi [i] = 1;
+    uci_data_tx.uci_cqi [i] = 1;
   }
-  uci_data.uci_ri = 0; 
-  uci_data.uci_ack = 0; 
-
-  
+  uci_data_tx.uci_ri = 1; 
+  uci_data_tx.uci_ack = 1; 
 
   uint32_t nof_re = SRSLTE_NRE*cell.nof_prb*2*SRSLTE_CP_NSYMB(cell.cp);
   sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
     perror("malloc");
-    goto quit;
+    exit(-1);
   }
-
-  cf_t *scfdma = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  bzero(scfdma, sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-  srslte_ofdm_t fft; 
-  srslte_ofdm_tx_init(&fft, SRSLTE_CP_NORM, cell.nof_prb);
-  srslte_ofdm_set_freq_shift(&fft, 0.5);
   
   data = srslte_vec_malloc(sizeof(uint8_t) * cfg.grant.mcs.tbs);
   if (!data) {
     perror("malloc");
-    goto quit;
+    exit(-1);
   }
   
   for (uint32_t i=0;i<cfg.grant.mcs.tbs/8;i++) {
     data[i] = 1;
   }
 
-  if (srslte_softbuffer_tx_init(&softbuffer, 100)) {
+  if (srslte_softbuffer_tx_init(&softbuffer_tx, 100)) {
+    fprintf(stderr, "Error initiating soft buffer\n");
+    goto quit;
+  }
+  if (srslte_softbuffer_rx_init(&softbuffer_rx, 100)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
   
   uint32_t ntrials = 100; 
 
-  gettimeofday(&t[1], NULL);
-  for (int i=0;i<ntrials;i++) {
-    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
-      fprintf(stderr, "Error encoding TB\n");
-      exit(-1);
-    }
+  if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data_tx, sf_symbols)) {
+    fprintf(stderr, "Error encoding TB\n");
+    exit(-1);
   }
   if (rv_idx > 0) {
     cfg.rv = rv_idx; 
-    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, data, uci_data, sf_symbols)) {
+    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data_tx, sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
   }
-    
-  srslte_ofdm_tx_sf(&fft, sf_symbols, scfdma);
+
+  ce = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
+  if (!ce) {
+    perror("srslte_vec_malloc");
+    goto quit;
+  }
+  for (int j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
+    ce[j] = 1;
+  }
+  
+  gettimeofday(&t[1], NULL);
+  int r = srslte_pusch_uci_decode(&pusch, &cfg, &softbuffer_rx, sf_symbols, ce, 0, data, &uci_data_rx);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-
-  //int r = srslte_pusch_decode(&pusch, slot_symbols[0], ce, 0, data, subframe, &harq_process, rv);
-  int r = 0; 
   if (r) {
     printf("Error decoding\n");
     ret = -1;
-    goto quit;
   } else {
-    printf("ENCODED OK in %d:%d (TBS: %d bits, TX: %.2f Mbps, Processing: %.2f Mbps)\n", (int) t[0].tv_sec, 
+    ret = 0;
+    printf("DECODED OK in %d:%d (TBS: %d bits, TX: %.2f Mbps, Processing: %.2f Mbps)\n", (int) t[0].tv_sec, 
            (int) t[0].tv_usec/ntrials, 
            cfg.grant.mcs.tbs,
            (float) cfg.grant.mcs.tbs/1000,
-           (float) cfg.grant.mcs.tbs/t[0].tv_usec*ntrials);
+           (float) cfg.grant.mcs.tbs/t[0].tv_usec*ntrials);    
   }
-  
-  ret = 0;
+  if (uci_data_tx.uci_ack_len) {
+    if (uci_data_tx.uci_ack != uci_data_rx.uci_ack) {
+      printf("UCI ACK bit error: %d != %d\n", uci_data_tx.uci_ack, uci_data_rx.uci_ack);
+    }
+  }
+  if (uci_data_tx.uci_ri_len) {
+    if (uci_data_tx.uci_ri != uci_data_rx.uci_ri) {
+      printf("UCI RI bit error: %d != %d\n", uci_data_tx.uci_ri, uci_data_rx.uci_ri);
+    }
+  }
+  if (uci_data_tx.uci_cqi_len) {
+    printf("cqi_tx=");
+    srslte_vec_fprint_b(stdout, uci_data_tx.uci_cqi, uci_data_tx.uci_cqi_len);
+    printf("cqi_rx=");
+    srslte_vec_fprint_b(stdout, uci_data_rx.uci_cqi, uci_data_rx.uci_cqi_len);
+  }
+
 quit:
   srslte_pusch_free(&pusch);
-  srslte_softbuffer_tx_free(&softbuffer);
+  srslte_softbuffer_tx_free(&softbuffer_tx);
   
   if (sf_symbols) {
     free(sf_symbols);
   }
   if (data) {
     free(data);
+  }
+  if (ce) {
+    free(ce);
   }
   if (ret) {
     printf("Error\n");

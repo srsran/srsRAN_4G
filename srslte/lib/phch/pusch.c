@@ -149,7 +149,7 @@ int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *
     if (q->shortened && slot == 1) {
       N_srs = 1; 
     }
-    INFO("Allocating PUSCH %d PRB to index %d at slot %d\n",grant->L_prb, grant->n_prb_tilde[slot], slot);
+    INFO("%s PUSCH %d PRB to index %d at slot %d\n",advance_input?"Allocating":"Getting",grant->L_prb, grant->n_prb_tilde[slot], slot);
     for (uint32_t l=0;l<SRSLTE_CP_NSYMB(q->cell.cp)-N_srs;l++) {
       if (l != L_ref) {
         uint32_t idx = SRSLTE_RE_IDX(q->cell.nof_prb, l+slot*SRSLTE_CP_NSYMB(q->cell.cp), 
@@ -168,7 +168,11 @@ int pusch_cp(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *
       }
     }        
   }
-  return SRSLTE_NRE*grant->L_prb; 
+  if (advance_input) {
+    return in_ptr - input;
+  } else {
+    return out_ptr - output; 
+  }
 }
 
 int pusch_put(srslte_pusch_t *q, srslte_ra_ul_grant_t *grant, cf_t *input, cf_t *output) {
@@ -211,7 +215,7 @@ int srslte_pusch_init(srslte_pusch_t *q, srslte_cell_t cell) {
       goto clean; 
     }
 
-    srslte_sch_init(&q->dl_sch);
+    srslte_sch_init(&q->ul_sch);
     
     if (srslte_dft_precoding_init(&q->dft_precoding, cell.nof_prb)) {
       fprintf(stderr, "Error initiating DFT transform precoding\n");
@@ -220,14 +224,14 @@ int srslte_pusch_init(srslte_pusch_t *q, srslte_cell_t cell) {
     
     q->rnti_is_set = false; 
 
-    // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
-    q->q = srslte_vec_malloc(sizeof(float) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
+    // Allocate int16 for reception (LLRs). Buffer casted to uint8_t for transmission
+    q->q = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
     if (!q->q) {
       goto clean;
     }
 
-    // Allocate floats for reception (LLRs). Buffer casted to uint8_t for transmission
-    q->g = srslte_vec_malloc(sizeof(float) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
+    // Allocate int16 for reception (LLRs). Buffer casted to uint8_t for transmission
+    q->g = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
     if (!q->g) {
       goto clean;
     }
@@ -284,7 +288,7 @@ void srslte_pusch_free(srslte_pusch_t *q) {
   for (i = 0; i < 4; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
-  srslte_sch_free(&q->dl_sch);
+  srslte_sch_free(&q->ul_sch);
 
   bzero(q, sizeof(srslte_pusch_t));
 
@@ -393,62 +397,59 @@ int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
   return SRSLTE_SUCCESS;
 }
 
-/** Decodes the PUSCH from the received symbols
- */
-int srslte_pusch_decode(srslte_pusch_t *q, 
-                        srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
-                        cf_t *sf_symbols, 
-                        cf_t *ce, float noise_estimate, 
-                        uint8_t *data) 
+
+/* Initializes the memory to support pre-calculation of multiple scrambling sequences */
+int srslte_pusch_init_rnti_multi(srslte_pusch_t *q, uint32_t nof_rntis)
 {
-
-  uint32_t n;
-  
-  if (q           != NULL &&
-      sf_symbols  != NULL &&
-      data        != NULL &&
-      cfg         != NULL)
-  {
-    
-    if (q->rnti_is_set) {
-      INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
-          cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, 
-           cfg->nbits.nof_re, cfg->nbits.nof_symb, cfg->nbits.nof_bits, cfg->rv);
-
-      /* extract symbols */
-      n = pusch_get(q, &cfg->grant, sf_symbols, q->d);
-      if (n != cfg->nbits.nof_re) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
-        return SRSLTE_ERROR;
-      }
-      
-      /* extract channel estimates */
-      n = pusch_get(q, &cfg->grant, ce, q->ce);
-      if (n != cfg->nbits.nof_re) {
-        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
-        return SRSLTE_ERROR;
-      }
-      
-      srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, noise_estimate);
-
-      srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
-      
-      /* demodulate symbols 
-      * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
-      * thus we don't need tot set it in the LLRs normalization
-      */
-      srslte_demod_soft_demodulate(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
-
-      /* descramble */
-      srslte_scrambling_f_offset(&q->seq[cfg->sf_idx], q->q, 0, cfg->nbits.nof_bits);
-
-      return srslte_ulsch_decode(&q->dl_sch, cfg, softbuffer, q->q, data);      
-    } else {
-      fprintf(stderr, "Must call srslte_pusch_set_rnti() before calling srslte_pusch_decode()\n");
+  for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+    q->seq_multi[i] = malloc(sizeof(srslte_sequence_t)*nof_rntis);
+    if (!q->seq_multi[i]) {
+      perror("malloc"); 
       return SRSLTE_ERROR; 
-    }    
+    }
+  }
+  
+  q->rnti_multi = srslte_vec_malloc(sizeof(uint16_t)*nof_rntis);
+  if (!q->rnti_multi) {
+    perror("malloc");
+    return SRSLTE_ERROR; 
+  }
+  bzero(q->rnti_multi, sizeof(uint16_t)*nof_rntis);
+  
+  q->nof_crnti = nof_rntis;
+  
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_pusch_set_rnti_multi(srslte_pusch_t *q, uint32_t idx, uint16_t rnti)
+{
+  if (idx < q->nof_crnti) {
+    if (q->rnti_multi[idx]) {
+      for (uint32_t i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+        srslte_sequence_free(&q->seq_multi[i][idx]);  
+      }
+      q->rnti_multi[idx] = 0; 
+    }
+    q->rnti_multi[idx] = rnti; 
+    q->rnti_is_set = true; 
+    for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+      if (srslte_sequence_pusch(&q->seq_multi[i][idx], rnti, 2 * i, q->cell.id,
+          q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
+        return SRSLTE_ERROR; 
+      }
+    }
+    return SRSLTE_SUCCESS;
   } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+uint16_t srslte_pusch_get_rnti_multi(srslte_pusch_t *q, uint32_t idx)
+{
+  if (idx < q->nof_crnti) {
+    return q->rnti_multi[idx];
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS; 
   }
 }
 
@@ -509,7 +510,7 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
          cfg->grant.mcs.tbs, cfg->nbits.nof_re, cfg->nbits.nof_symb, cfg->nbits.nof_bits, cfg->rv);
     
     bzero(q->q, cfg->nbits.nof_bits);
-    if (srslte_ulsch_uci_encode(&q->dl_sch, cfg, softbuffer, data, uci_data, q->g, q->q)) {
+    if (srslte_ulsch_uci_encode(&q->ul_sch, cfg, softbuffer, data, uci_data, q->g, q->q)) {
       fprintf(stderr, "Error encoding TB\n");
       return SRSLTE_ERROR;
     }
@@ -525,14 +526,14 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       srslte_scrambling_bytes(&q->seq[cfg->sf_idx], (uint8_t*) q->q, cfg->nbits.nof_bits);            
     }
     
-    // Correct UCI placeholder bits    
+    // Correct UCI placeholder/repetition bits    
     uint8_t *d = q->q; 
-    for (int i = 0; i < q->dl_sch.nof_ri_ack_bits; i++) {     
-      if (q->dl_sch.ack_ri_bits[i].type == UCI_BIT_PLACEHOLDER) {
-        d[q->dl_sch.ack_ri_bits[i].position/8] |= (1<<(7-q->dl_sch.ack_ri_bits[i].position%8)); 
-      } else if (q->dl_sch.ack_ri_bits[i].type == UCI_BIT_REPETITION) {
-        if (q->dl_sch.ack_ri_bits[i].position > 1) {
-          uint32_t p=q->dl_sch.ack_ri_bits[i].position;
+    for (int i = 0; i < q->ul_sch.nof_ri_ack_bits; i++) {     
+      if (q->ul_sch.ack_ri_bits[i].type == UCI_BIT_PLACEHOLDER) {
+        d[q->ul_sch.ack_ri_bits[i].position/8] |= (1<<(7-q->ul_sch.ack_ri_bits[i].position%8)); 
+      } else if (q->ul_sch.ack_ri_bits[i].type == UCI_BIT_REPETITION) {
+        if (q->ul_sch.ack_ri_bits[i].position > 1) {
+          uint32_t p=q->ul_sch.ack_ri_bits[i].position;
           uint8_t bit = d[(p-1)/8] & (1<<(7-(p-1)%8)); 
           if (bit) {
             d[p/8] |= 1<<(7-p%8);
@@ -543,14 +544,129 @@ int srslte_pusch_uci_encode_rnti(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srs
       }
     }
     
+    // Bit mapping
     srslte_mod_modulate_bytes(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->q, q->d, cfg->nbits.nof_bits);
+
+    // DFT precoding
     srslte_dft_precoding(&q->dft_precoding, q->d, q->z, cfg->grant.L_prb, cfg->nbits.nof_symb);
     
-    /* mapping to resource elements */      
+    // Mapping to resource elements
     pusch_put(q, &cfg->grant, q->z, sf_symbols);
     
     ret = SRSLTE_SUCCESS;
   } 
   return ret; 
 }
+
+int srslte_pusch_decode(srslte_pusch_t *q, 
+                        srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
+                        cf_t *sf_symbols, 
+                        cf_t *ce, float noise_estimate, 
+                        uint8_t *data) 
+{
+  srslte_uci_data_t uci_data; 
+  bzero(&uci_data, sizeof(srslte_uci_data_t));
+  return srslte_pusch_uci_decode(q, cfg, softbuffer, sf_symbols, ce, noise_estimate, data, &uci_data);
+}
+
+int srslte_pusch_uci_decode_seq(srslte_pusch_t *q, 
+                                srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
+                                srslte_sequence_t *seq, 
+                                cf_t *sf_symbols, 
+                                cf_t *ce, float noise_estimate, 
+                                uint8_t *data, srslte_uci_data_t *uci_data) 
+{
+
+  uint32_t n;
+  
+  if (q           != NULL &&
+      sf_symbols  != NULL &&
+      data        != NULL &&
+      cfg         != NULL)
+  {
+    
+    if (q->rnti_is_set) {
+      INFO("Decoding PUSCH SF: %d, Mod %s, NofBits: %d, NofRE: %d, NofSymbols=%d, NofBitsE: %d, rv_idx: %d\n",
+          cfg->sf_idx, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, 
+           cfg->nbits.nof_re, cfg->nbits.nof_symb, cfg->nbits.nof_bits, cfg->rv);
+
+      /* extract symbols */
+      n = pusch_get(q, &cfg->grant, sf_symbols, q->d);
+      if (n != cfg->nbits.nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
+        return SRSLTE_ERROR;
+      }
+      
+      /* extract channel estimates */
+      n = pusch_get(q, &cfg->grant, ce, q->ce);
+      if (n != cfg->nbits.nof_re) {
+        fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->nbits.nof_re, n);
+        return SRSLTE_ERROR;
+      }
+
+      // Equalization
+      srslte_predecoding_single(q->d, q->ce, q->z, cfg->nbits.nof_re, noise_estimate);
+      
+      // DFT predecoding
+      srslte_dft_predecoding(&q->dft_precoding, q->z, q->d, cfg->grant.L_prb, cfg->nbits.nof_symb);
+      
+      // Soft demodulation
+      srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
+
+      // Decode RI/HARQ bits before descrambling 
+      if (srslte_ulsch_uci_decode_ri_ack(&q->ul_sch, cfg, softbuffer, q->q, seq->c, uci_data)) {
+        fprintf(stderr, "Error decoding RI/HARQ bits\n");
+        return SRSLTE_ERROR; 
+      }
+      
+      // Descrambling
+      srslte_scrambling_s_offset(seq, q->q, 0, cfg->nbits.nof_bits);
+
+      return srslte_ulsch_uci_decode(&q->ul_sch, cfg, softbuffer, q->q, q->g, data, uci_data);      
+    } else {
+      fprintf(stderr, "Must call srslte_pusch_set_rnti() before calling srslte_pusch_decode()\n");
+      return SRSLTE_ERROR; 
+    }    
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
+/** Decodes the PUSCH from the received symbols
+ */
+int srslte_pusch_uci_decode(srslte_pusch_t *q, 
+                            srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
+                            cf_t *sf_symbols, 
+                            cf_t *ce, float noise_estimate, 
+                            uint8_t *data, srslte_uci_data_t *uci_data) 
+{
+  return srslte_pusch_uci_decode_seq(q, cfg, softbuffer, &q->seq[cfg->sf_idx], sf_symbols, ce, noise_estimate, data, uci_data);
+}
+
+/** Decodes the PUSCH from the received symbols for a given RNTI index
+ */
+int srslte_pusch_uci_decode_rnti_idx(srslte_pusch_t *q, 
+                                     srslte_pusch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
+                                     cf_t *sf_symbols, 
+                                     cf_t *ce, float noise_estimate, 
+                                     uint32_t rnti_idx, 
+                                     uint8_t *data, srslte_uci_data_t *uci_data) 
+{
+  if (rnti_idx < q->nof_crnti) {
+    if (q->rnti_multi[rnti_idx]) {
+      return srslte_pusch_uci_decode_seq(q, cfg, softbuffer, &q->seq_multi[cfg->sf_idx][rnti_idx], sf_symbols, ce, noise_estimate, data, uci_data);
+    } else {
+      fprintf(stderr, "Error RNTI idx %d not set\n", rnti_idx);
+      return SRSLTE_ERROR; 
+    }
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS; 
+  }
+}
+
+uint32_t srslte_pusch_last_noi(srslte_pusch_t *q) {
+  return q->ul_sch.nof_iterations;
+}
+
+
   
