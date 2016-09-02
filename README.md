@@ -28,7 +28,6 @@ Current Features:
 Missing Features: 
  * Closed-loop power control 
  * Semi-Persistent Scheduling
- * Aperiodic CQI reports
 
 Hardware
 ========

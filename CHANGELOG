@@ -1,6 +1,20 @@
 Change Log for Releases
 ==============================
 
+## 001.003.000
+
+* Bugfixes: 
+  * x300 master clock rate
+  * PHICH: fixed bug causing more NACKs
+  * PBCH: fixed bug in encoding function
+  * channel estimation: fixed issue in time interpolation
+  * DCI: Fixed bug in Format1A packing
+  * DCI: Fixed bug in Format1C for RA-RNTI
+  * DCI: Fixed overflow in MIMO formats
+  
+* Improvements: 
+  * Changed and cleaned DCI blind search API
+  * Added eNodeB PHY processing functions
 
 ## 001.002.000
 
