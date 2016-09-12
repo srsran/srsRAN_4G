@@ -425,10 +425,15 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
       n_prb = dci->type2_alloc.n_prb1a == SRSLTE_RA_TYPE2_NPRB1A_2 ? 2 : 3;
       i_tbs = dci->mcs_idx;
       tbs = srslte_ra_tbs_from_idx(i_tbs, n_prb);
-    } else {
+    } else if (dci->dci_is_1c) {
       if (dci->mcs_idx < 32) {
         tbs = tbs_format1c_table[dci->mcs_idx];
-      } 
+      } else {
+        fprintf(stderr, "Error decoding DCI: Invalid mcs_idx=%d in Format1C\n", dci->mcs_idx);
+      }
+    } else {
+      fprintf(stderr, "Error decoding DCI: P/SI/RA-RNTI supports Format1A/1C only\n");
+      return SRSLTE_ERROR; 
     }
     grant->mcs.mod = SRSLTE_MOD_QPSK;      
     grant->mcs.tbs = (uint32_t) tbs; 
