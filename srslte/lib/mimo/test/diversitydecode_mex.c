@@ -65,13 +65,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   uint32_t nof_rx_ants  = 1; 
   const mwSize *dims = mxGetDimensions(INPUT);
   mwSize ndims = mxGetNumberOfDimensions(INPUT);
-  nof_symbols = dims[0]*dims[1];
+  nof_symbols = dims[0];
   
-  if (ndims >= 3) {
-    nof_rx_ants = dims[2];
-  }
-  if (ndims >= 4) {
-    nof_tx_ports = dims[3];
+  if (ndims >= 2) {
+    nof_rx_ants = dims[1];
   }
   
   // Read channel estimates
@@ -79,7 +76,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error reading hest\n");
     return; 
   }
+  dims = mxGetDimensions(HEST);
+  ndims = mxGetNumberOfDimensions(HEST);
+
+  if (ndims == 3) {
+    nof_tx_ports = dims[2];        
+  }
   
+  mexPrintf("nof_tx_ports=%d, nof_rx_ants=%d, nof_symbols=%d\n", nof_tx_ports, nof_rx_ants, nof_symbols);
+
   // Read noise estimate
   float noise_estimate = 0; 
   if (nrhs >= NOF_INPUTS) {
@@ -111,12 +116,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for (int j=0;j<nof_rx_ants;j++) {
     y[j] = &input[j*nof_symbols];
   }
-  
-  mexPrintf("nof_tx_ports=%d, nof_rx_ants=%d, nof_symbols=%d\n", nof_tx_ports, nof_rx_ants, nof_symbols);
-  
+    
   if (nof_tx_ports > 1) {
-    //srslte_predecoding_diversity(input, h, x, nof_tx_ports, nof_symbols); 
-    //srslte_layerdemap_diversity(x, output, nof_tx_ports, nof_symbols / nof_tx_ports);
+    srslte_predecoding_diversity_multi(y, h, x, nof_rx_ants, nof_tx_ports, nof_symbols); 
+    srslte_layerdemap_diversity(x, output, nof_tx_ports, nof_symbols / nof_tx_ports);
   } else {
     srslte_predecoding_single_multi(y, h[0], output, nof_rx_ants, nof_symbols, noise_estimate);
   }

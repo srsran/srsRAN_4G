@@ -1,6 +1,6 @@
 clear
 
-addpath('../../debug/srslte/lib/mimo/test')
+addpath('../../build/srslte/lib/mimo/test')
 
 %enb = lteRMCDL('R.10'); % 2-ports
 enb = lteRMCDL('R.0'); % 1-ports
@@ -11,7 +11,7 @@ cec.InterpWinSize = 1;
 cec.InterpWindow = 'Causal';
 
 cfg.Seed = 1;                  % Random channel seed
-cfg.NRxAnts = 1;               % 1 receive antenna
+cfg.NRxAnts = 2;               % 1 receive antenna
 cfg.DelayProfile = 'ETU';      % EVA delay spread
 cfg.DopplerFreq = 100;           % 120Hz Doppler frequency
 cfg.MIMOCorrelation = 'Low';   % Low (no) MIMO correlation
@@ -47,13 +47,8 @@ else
     Nt=1;
 end
 
-if (Nr > 1)
-    rx=reshape(rxGrid,p,n,Nr);
-    hp=reshape(h,p,n,Nr,Nt);    
-else
-    rx=rxGrid;
-    hp=h;
-end
+rx=reshape(rxGrid,p*n,Nr);
+hp=reshape(h,p*n,Nr,Nt);    
 
 if (Nt > 1) 
     output_mat = lteTransmitDiversityDecode(rx, hp); 
@@ -65,6 +60,6 @@ output_srs = srslte_diversitydecode(rx, hp, n0);
 plot(abs(output_mat(:)-output_srs(:)))
 mean(abs(output_mat(:)-output_srs(:)).^2)
 
-t=1:10;
+t=1:100;
 plot(t,real(output_mat(t)),t,real(output_srs(t)))
 
