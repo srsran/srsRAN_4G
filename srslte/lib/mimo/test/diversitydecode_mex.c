@@ -33,6 +33,7 @@
 
 #define INPUT prhs[0]
 #define HEST  prhs[1]
+#define NEST  prhs[2]
 #define NOF_INPUTS 2
 
 
@@ -56,44 +57,70 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   // Read input symbols
-  nof_symbols = mexutils_read_cf(INPUT, &input);
-  if (nof_symbols < 0) {
+  if (mexutils_read_cf(INPUT, &input) < 0) {
     mexErrMsgTxt("Error reading input\n");
     return; 
   }
+  uint32_t nof_tx_ports = 1; 
+  uint32_t nof_rx_ants  = 1; 
+  const mwSize *dims = mxGetDimensions(INPUT);
+  mwSize ndims = mxGetNumberOfDimensions(INPUT);
+  nof_symbols = dims[0]*dims[1];
+  
+  if (ndims >= 3) {
+    nof_rx_ants = dims[2];
+  }
+  if (ndims >= 4) {
+    nof_tx_ports = dims[3];
+  }
+  
   // Read channel estimates
-  uint32_t nof_symbols2 = mexutils_read_cf(HEST, &hest);
-  if (nof_symbols < 0) {
+  if (mexutils_read_cf(HEST, &hest) < 0) {
     mexErrMsgTxt("Error reading hest\n");
     return; 
   }
-  if ((nof_symbols2 % nof_symbols) != 0) {
-    mexErrMsgTxt("Hest size must be multiple of input size\n");
-    return; 
-  }
-  // Calculate number of ports
-  uint32_t nof_ports = nof_symbols2/nof_symbols; 
   
-  cf_t *x[8]; 
-  cf_t *h[4];
+  // Read noise estimate
+  float noise_estimate = 0; 
+  if (nrhs >= NOF_INPUTS) {
+    noise_estimate = mxGetScalar(NEST);
+  }
+  
+  cf_t *x[SRSLTE_MAX_LAYERS]; 
+  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT];
+  cf_t *y[SRSLTE_MAX_RXANT];
+
+  for (int i=0;i<SRSLTE_MAX_LAYERS;i++) {
+    x[i] = NULL; 
+  }
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    for (int j=0;j<SRSLTE_MAX_RXANT;j++) {
+      h[i][j] = NULL; 
+    }
+  }
   
   /* Allocate memory */
   output = srslte_vec_malloc(sizeof(cf_t)*nof_symbols);
-  int i;
-  for (i = 0; i < nof_ports; i++) {
+  for (int i = 0; i < nof_tx_ports; i++) {
     x[i] = srslte_vec_malloc(sizeof(cf_t)*nof_symbols);
-    h[i] = &hest[i*nof_symbols];
-  }
-  for (;i<8;i++) {
-    x[i] = NULL; 
-  }
-  for (i=nof_ports;i<4;i++) {
-    h[i] = NULL; 
+    for (int j=0;j<nof_rx_ants;j++) {
+      h[i][j] = &hest[i*nof_symbols*nof_rx_ants + j*nof_symbols];
+    }
   }
   
-  srslte_predecoding_diversity(input, h, x, nof_ports, nof_symbols); 
-  srslte_layerdemap_diversity(x, output, nof_ports, nof_symbols / nof_ports);
-
+  for (int j=0;j<nof_rx_ants;j++) {
+    y[j] = &input[j*nof_symbols];
+  }
+  
+  mexPrintf("nof_tx_ports=%d, nof_rx_ants=%d, nof_symbols=%d\n", nof_tx_ports, nof_rx_ants, nof_symbols);
+  
+  if (nof_tx_ports > 1) {
+    //srslte_predecoding_diversity(input, h, x, nof_tx_ports, nof_symbols); 
+    //srslte_layerdemap_diversity(x, output, nof_tx_ports, nof_symbols / nof_tx_ports);
+  } else {
+    srslte_predecoding_single_multi(y, h[0], output, nof_rx_ants, nof_symbols, noise_estimate);
+  }
+  
 
   if (nlhs >= 1) { 
     mexutils_write_cf(output, &plhs[0], nof_symbols, 1);  
@@ -105,7 +132,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (output) {
     free(output);
   }
-  for (i=0;i<8;i++) {
+  for (int i=0;i<SRSLTE_MAX_LAYERS;i++) {
     if (x[i]) {
       free(x[i]);      
     }

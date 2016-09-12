@@ -71,9 +71,9 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
   __m128 noise = _mm_set1_ps(noise_estimate);
   __m128 h1Val1, h2Val1, y1Val1, y2Val1;
   __m128 h1Val2, h2Val2, y1Val2, y2Val2;
-  __m128 h12square1, h1square1, h2square1, h1conj1, h2conj1, x1Val1, x2Val1;
-  __m128 h12square2, h1square2, h2square2, h1conj2, h2conj2, x1Val2, x2Val2;
-  
+  __m128 hsquare, h1square, h2square, h1conj1, h2conj1, x1Val1, x2Val1;
+  __m128 hsquare2, h1conj2, h2conj2, x1Val2, x2Val2;
+
   for (int i=0;i<nof_symbols/4;i++) {
     y1Val1 = _mm_load_ps(yPtr1); yPtr1+=4;
     y2Val1 = _mm_load_ps(yPtr1); yPtr1+=4;
@@ -87,25 +87,17 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
       h2Val2 = _mm_load_ps(hPtr2); hPtr2+=4;      
     }
     
-    h12square1 = _mm_hadd_ps(_mm_mul_ps(h1Val1, h1Val1), _mm_mul_ps(h2Val1, h2Val1)); 
+    hsquare = _mm_hadd_ps(_mm_mul_ps(h1Val1, h1Val1), _mm_mul_ps(h2Val1, h2Val1)); 
     if (nof_rxant == 2) {
-      h12square2 = _mm_hadd_ps(_mm_mul_ps(h1Val2, h1Val2), _mm_mul_ps(h2Val2, h2Val2)); 
-      h12square1 = _mm_add_ps(h12square1, h12square2);
+      hsquare2 = _mm_hadd_ps(_mm_mul_ps(h1Val2, h1Val2), _mm_mul_ps(h2Val2, h2Val2)); 
+      hsquare = _mm_add_ps(hsquare, hsquare2);
     }
     if (noise_estimate > 0) {
-      h12square1  = _mm_add_ps(h12square1, noise);
+      hsquare  = _mm_add_ps(hsquare, noise);
     }
     
-    h1square1  = _mm_shuffle_ps(h12square1, h12square1, _MM_SHUFFLE(1, 1, 0, 0));
-    h2square1  = _mm_shuffle_ps(h12square1, h12square1, _MM_SHUFFLE(3, 3, 2, 2));
-    
-    if (nof_rxant == 2) {
-      h1square2  = _mm_shuffle_ps(h12square2, h12square2, _MM_SHUFFLE(1, 1, 0, 0));
-      h2square2  = _mm_shuffle_ps(h12square2, h12square2, _MM_SHUFFLE(3, 3, 2, 2));
-      
-      h1square1  = _mm_add_ps(h1square1, h1square2);
-      h2square1  = _mm_add_ps(h2square1, h2square2);
-    }
+    h1square  = _mm_shuffle_ps(hsquare, hsquare, _MM_SHUFFLE(1, 1, 0, 0));
+    h2square  = _mm_shuffle_ps(hsquare, hsquare, _MM_SHUFFLE(3, 3, 2, 2));
     
     /* Conjugate channel */
     h1conj1 = _mm_xor_ps(h1Val1, conjugator); 
@@ -122,17 +114,26 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
 
     if (nof_rxant == 2) {
       x1Val2 = PROD(y1Val2, h1conj2);
-      x2Val2 = PROD(y2Val2, h2conj2);      
+      x2Val2 = PROD(y2Val2, h2conj2);
+      x1Val1 = _mm_add_ps(x1Val1, x1Val2);
+      x2Val1 = _mm_add_ps(x2Val1, x2Val2);
     }
     
-    x1Val1 = _mm_div_ps(x1Val1, h1square1);
-    x2Val1 = _mm_div_ps(x2Val1, h2square1);
+    x1Val1 = _mm_div_ps(x1Val1, h1square);
+    x2Val1 = _mm_div_ps(x2Val1, h2square);
     
-    _mm_store_ps(xPtr, x1Val); xPtr+=4;
-    _mm_store_ps(xPtr, x2Val); xPtr+=4;
+    _mm_store_ps(xPtr, x1Val1); xPtr+=4;
+    _mm_store_ps(xPtr, x2Val1); xPtr+=4;
+    
   }
   for (int i=8*(nof_symbols/8);i<nof_symbols;i++) {
-    x[i] = y[i]*conj(h[i])/(conj(h[i])*h[i]+noise_estimate);
+    cf_t r  = 0; 
+    cf_t hh = 0; 
+    for (int p=0;p<nof_rxant;p++) {
+      r  += y[p][i]*conj(h[p][i]);
+      hh += conj(h[p][i])*h[p][i];
+    }
+    x[i] = r/(hh+noise_estimate);
   }
   return nof_symbols;
 }
@@ -155,7 +156,9 @@ int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
   
   __m256 noise = _mm256_set1_ps(noise_estimate);
   __m256 h1Val, h2Val, y1Val, y2Val, h12square, h1square, h2square, h1_p, h2_p, h1conj, h2conj, x1Val, x2Val;
-  
+
+  printf("using avx\n");
+    
   for (int i=0;i<nof_symbols/8;i++) {
     y1Val = _mm256_load_ps(yPtr); yPtr+=8;
     y2Val = _mm256_load_ps(yPtr); yPtr+=8;
@@ -188,7 +191,13 @@ int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
     _mm256_store_ps(xPtr, x2Val); xPtr+=8;
   }
   for (int i=16*(nof_symbols/16);i<nof_symbols;i++) {
-    x[i] = y[i]*conj(h[i])/(conj(h[i])*h[i]+noise_estimate);
+    cf_t r  = 0; 
+    cf_t hh = 0; 
+    for (int p=0;p<nof_rxant;p++) {
+      r  += y[p][i]*conj(h[p][i]);
+      hh += conj(h[p][i])*h[p][i];
+    }
+    x[i] = r/(hh+noise_estimate);
   }
   return nof_symbols;
 }
@@ -219,16 +228,16 @@ int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, floa
   
 #ifdef LV_HAVE_AVX
   if (nof_symbols > 32) {
-    return srslte_predecoding_single_avx(y, h, x, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, noise_estimate);
   } else {
-    return srslte_predecoding_single_gen(y, h, x, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);
   }
 #else
   #ifdef LV_HAVE_SSE
     if (nof_symbols > 32) {
-      return srslte_predecoding_single_sse(y, h, x, nof_symbols, noise_estimate);
+      return srslte_predecoding_single_sse(y, h, x, nof_rxant, nof_symbols, noise_estimate);
     } else {
-      return srslte_predecoding_single_gen(y, h, x, nof_symbols, noise_estimate);      
+      return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);      
     }
   #else
     return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);
@@ -240,16 +249,16 @@ int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, floa
 int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_RXANT], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
 #ifdef LV_HAVE_AVX
   if (nof_symbols > 32) {
-    return srslte_predecoding_single_avx(y, h, x, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, noise_estimate);
   } else {
-    return srslte_predecoding_single_gen(y, h, x, nof_symbols, noise_estimate);
+    return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);
   }
 #else
   #ifdef LV_HAVE_SSE
     if (nof_symbols > 32) {
-      return srslte_predecoding_single_sse(y, h, x, nof_symbols, noise_estimate);
+      return srslte_predecoding_single_sse(y, h, x, nof_rxant, nof_symbols, noise_estimate);
     } else {
-      return srslte_predecoding_single_gen(y, h, x, nof_symbols, noise_estimate);      
+      return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);      
     }
   #else
     return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, noise_estimate);
