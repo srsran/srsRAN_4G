@@ -149,41 +149,69 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
 int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_RXANT], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
   
   float *xPtr = (float*) x;
-  const float *hPtr = (const float*) h;
-  const float *yPtr = (const float*) y;
+  const float *hPtr1 = (const float*) h[0];
+  const float *yPtr1 = (const float*) y[0];
+  const float *hPtr2 = (const float*) h[1];
+  const float *yPtr2 = (const float*) y[1];
 
   __m256 conjugator = _mm256_setr_ps(0, -0.f, 0, -0.f, 0, -0.f, 0, -0.f);
   
   __m256 noise = _mm256_set1_ps(noise_estimate);
-  __m256 h1Val, h2Val, y1Val, y2Val, h12square, h1square, h2square, h1_p, h2_p, h1conj, h2conj, x1Val, x2Val;
+  __m256 h1Val1, h2Val1, y1Val1, y2Val1, h12square, h1square, h2square, h1_p, h2_p, h1conj1, h2conj1, x1Val, x2Val;
+  __m256 h1Val2, h2Val2, y1Val2, y2Val2, h1conj2, h2conj2;
 
   printf("using avx\n");
     
   for (int i=0;i<nof_symbols/8;i++) {
-    y1Val = _mm256_load_ps(yPtr); yPtr+=8;
-    y2Val = _mm256_load_ps(yPtr); yPtr+=8;
-    h1Val = _mm256_load_ps(hPtr); hPtr+=8;
-    h2Val = _mm256_load_ps(hPtr); hPtr+=8;
+    y1Val1 = _mm256_load_ps(yPtr1); yPtr1+=8;
+    y2Val1 = _mm256_load_ps(yPtr1); yPtr1+=8;
+    h1Val1 = _mm256_load_ps(hPtr1); hPtr1+=8;
+    h2Val1 = _mm256_load_ps(hPtr1); hPtr1+=8;
+
+    if (nof_rxant == 2) {
+      y1Val2 = _mm256_load_ps(yPtr2); yPtr2+=8;
+      y2Val2 = _mm256_load_ps(yPtr2); yPtr2+=8;
+      h1Val2 = _mm256_load_ps(hPtr2); hPtr2+=8;
+      h2Val2 = _mm256_load_ps(hPtr2); hPtr2+=8;      
+    }
     
-    __m256 t1 = _mm256_mul_ps(h1Val, h1Val);
-    __m256 t2 = _mm256_mul_ps(h2Val, h2Val);
+    __m256 t1 = _mm256_mul_ps(h1Val1, h1Val1);
+    __m256 t2 = _mm256_mul_ps(h2Val1, h2Val1);
     h12square = _mm256_hadd_ps(_mm256_permute2f128_ps(t1, t2, 0x20), _mm256_permute2f128_ps(t1, t2, 0x31)); 
+
+    if (nof_rxant == 2) {
+      t1 = _mm256_mul_ps(h1Val2, h1Val2);
+      t2 = _mm256_mul_ps(h2Val2, h2Val2);
+      h12square = _mm256_add_ps(h12square, _mm256_hadd_ps(_mm256_permute2f128_ps(t1, t2, 0x20), _mm256_permute2f128_ps(t1, t2, 0x31)));   
+    }
+
     if (noise_estimate > 0) {
       h12square  = _mm256_add_ps(h12square, noise);
     }
+    
     h1_p     = _mm256_permute_ps(h12square, _MM_SHUFFLE(1, 1, 0, 0));
     h2_p     = _mm256_permute_ps(h12square, _MM_SHUFFLE(3, 3, 2, 2));
     h1square = _mm256_permute2f128_ps(h1_p, h2_p, 2<<4);
     h2square = _mm256_permute2f128_ps(h1_p, h2_p, 3<<4 | 1);
     
     /* Conjugate channel */
-    h1conj = _mm256_xor_ps(h1Val, conjugator); 
-    h2conj = _mm256_xor_ps(h2Val, conjugator); 
+    h1conj1 = _mm256_xor_ps(h1Val1, conjugator); 
+    h2conj1 = _mm256_xor_ps(h2Val1, conjugator); 
 
+    if (nof_rxant == 2) {
+      h1conj2 = _mm256_xor_ps(h1Val2, conjugator); 
+      h2conj2 = _mm256_xor_ps(h2Val2, conjugator);       
+    }
+    
     /* Complex product */      
-    x1Val = PROD_AVX(y1Val, h1conj);
-    x2Val = PROD_AVX(y2Val, h2conj);
+    x1Val = PROD_AVX(y1Val1, h1conj1);
+    x2Val = PROD_AVX(y2Val1, h2conj1);
 
+    if (nof_rxant == 2) {
+      x1Val = _mm256_add_ps(x1Val, PROD_AVX(y1Val2, h1conj2));
+      x2Val = _mm256_add_ps(x2Val, PROD_AVX(y2Val2, h2conj2));  
+    }
+    
     x1Val = _mm256_div_ps(x1Val, h1square);
     x2Val = _mm256_div_ps(x2Val, h2square);
     
