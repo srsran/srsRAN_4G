@@ -426,6 +426,7 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
     init_plots(cell);    
+    sleep(1);
   }
 #endif
 

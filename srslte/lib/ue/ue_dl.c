@@ -467,8 +467,9 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
   float distance;
   uint32_t ngroup, nseq; 
   srslte_phich_calc(&q->phich, n_prb_lowest, n_dmrs, &ngroup, &nseq);
-  DEBUG("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d\n", 
-    sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq);
+  INFO("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d, Ngroups=%d, Nsf=%d\n", 
+    sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq, 
+    srslte_phich_ngroups(&q->phich), srslte_phich_nsf(&q->phich));
   if (!srslte_phich_decode(&q->phich, q->sf_symbols, q->ce, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
     INFO("Decoded PHICH %d with distance %f\n", ack_bit, distance);    
   } else {

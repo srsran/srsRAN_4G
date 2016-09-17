@@ -170,7 +170,8 @@ int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_
 }
 
 srslte_mod_t last_mod[8];
-uint32_t     last_tbs_idx[8];
+uint32_t     last_ul_tbs_idx[8];
+uint32_t     last_dl_tbs[8];
 
 static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, uint32_t harq_pid) {  
   int tbs = -1; 
@@ -180,15 +181,15 @@ static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *gr
     if (dci->mcs_idx < 11) {
       grant->mcs.mod = SRSLTE_MOD_QPSK;
       tbs = srslte_ra_tbs_from_idx(dci->mcs_idx, grant->L_prb);      
-      last_tbs_idx[harq_pid%8] = dci->mcs_idx;
+      last_ul_tbs_idx[harq_pid%8] = dci->mcs_idx;
     } else if (dci->mcs_idx < 21) {
       grant->mcs.mod = SRSLTE_MOD_16QAM;
       tbs = srslte_ra_tbs_from_idx(dci->mcs_idx-1, grant->L_prb);
-      last_tbs_idx[harq_pid%8] = dci->mcs_idx-1;
+      last_ul_tbs_idx[harq_pid%8] = dci->mcs_idx-1;
     } else if (dci->mcs_idx < 29) {
       grant->mcs.mod = SRSLTE_MOD_64QAM;
       tbs = srslte_ra_tbs_from_idx(dci->mcs_idx-2, grant->L_prb);
-      last_tbs_idx[harq_pid%8] = dci->mcs_idx-2;      
+      last_ul_tbs_idx[harq_pid%8] = dci->mcs_idx-2;      
     } else {
       fprintf(stderr, "Invalid MCS index %d\n", dci->mcs_idx);
     }
@@ -196,10 +197,10 @@ static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *gr
   } else if (dci->mcs_idx == 29 && dci->cqi_request && grant->L_prb <= 4) {
     // 8.6.1 and 8.6.2 36.213 second paragraph
     grant->mcs.mod = SRSLTE_MOD_QPSK;
-    tbs = srslte_ra_tbs_from_idx(last_tbs_idx[harq_pid%8], grant->L_prb); 
+    tbs = srslte_ra_tbs_from_idx(last_ul_tbs_idx[harq_pid%8], grant->L_prb); 
   } else if (dci->mcs_idx >= 29) {
     // Else use last TBS/Modulation and use mcs to obtain rv_idx 
-    tbs = srslte_ra_tbs_from_idx(last_tbs_idx[harq_pid%8], grant->L_prb); 
+    tbs = srslte_ra_tbs_from_idx(last_ul_tbs_idx[harq_pid%8], grant->L_prb); 
     grant->mcs.mod = last_mod[harq_pid%8]; 
     dci->rv_idx = dci->mcs_idx - 28;
     DEBUG("TTI=%d, harq_pid=%d, mcs_idx=%d, tbs=%d, mod=%d, rv=%d\n", 
@@ -441,6 +442,12 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
     n_prb = grant->nof_prb;
     grant->mcs.idx = dci->mcs_idx;
     tbs   = dl_fill_ra_mcs(&grant->mcs, n_prb);
+    if (tbs) {
+      last_dl_tbs[dci->harq_process%8] = tbs;
+    } else {
+      // For mcs>=29, set last TBS received for this PID
+      grant->mcs.tbs = last_dl_tbs[dci->harq_process%8]; 
+    }
     if (dci->nof_tb == 2) {
       grant->mcs2.idx = dci->mcs_idx_1;
       tbs = dl_fill_ra_mcs(&grant->mcs2, n_prb);
