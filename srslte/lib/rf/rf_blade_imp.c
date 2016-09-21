@@ -70,7 +70,12 @@ const unsigned int buffer_size_tx = 1024;
 const unsigned int num_transfers  = 32;
 const unsigned int timeout_ms     = 4000;
 
-  
+ 
+char* rf_blade_devname(void* h)
+{
+  return DEVNAME;
+}
+
 int rf_blade_start_tx_stream(void *h)
 {
   int status; 

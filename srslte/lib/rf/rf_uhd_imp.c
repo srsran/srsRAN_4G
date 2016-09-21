@@ -36,6 +36,7 @@
 #include "uhd_c_api.h"
 
 typedef struct {
+  char *devname; 
   uhd_usrp_handle usrp;
   uhd_rx_streamer_handle rx_stream;
   uhd_tx_streamer_handle tx_stream;
@@ -115,6 +116,12 @@ static bool isLocked(rf_uhd_handler_t *handler, char *sensor_name, uhd_sensor_va
   }
     
   return val_out;
+}
+
+char* rf_uhd_devname(void* h)
+{
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+  return handler->devname; 
 }
 
 bool rf_uhd_rx_wait_lo_locked(void *h)
@@ -251,15 +258,19 @@ int rf_uhd_open(char *args, void **h)
     if (args == NULL) {
       args = "";
     }           
+    handler->devname = "uhd_unknown";
+    
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
         // If B200 is available, use it
         args = "type=b200,recv_frame_size=9232,send_frame_size=9232";        
+        handler->devname = DEVNAME_B200;
       } else if (find_string(devices_str, "type=x300")) {
         // Else if X300 is available, set master clock rate now (can't be changed later)
         args = "type=x300,master_clock_rate=184.32e6";
         handler->dynamic_rate = false; 
+        handler->devname = DEVNAME_X300;
       }
     } else {
       // If args is set and x300 type is specified, make sure master_clock_rate is defined
@@ -267,6 +278,9 @@ int rf_uhd_open(char *args, void **h)
         sprintf(args2, "%s,master_clock_rate=184.32e6",args);
         args = args2;          
         handler->dynamic_rate = false; 
+        handler->devname = DEVNAME_X300;
+      } else if (strstr(args, "type=b200")) {
+        handler->devname = DEVNAME_B200;
       }
     }        
     

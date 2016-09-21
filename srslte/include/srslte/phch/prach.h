@@ -155,7 +155,7 @@ SRSLTE_API int srslte_prach_detect_offset(srslte_prach_t *p,
                                           uint32_t sig_len,
                                           uint32_t *indices, 
                                           float    *t_offsets,
-					  float    *peak_to_avg,
+                                          float    *peak_to_avg,
                                           uint32_t *ind_len);
 
 SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t *p, 
