@@ -495,7 +495,7 @@ int main(int argc, char **argv) {
             decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, search only in appropiate places */
-            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%8)==0)) {
+            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 
@@ -503,28 +503,21 @@ int main(int argc, char **argv) {
           }
           if (decode_pdsch) {            
             INFO("Attempting DL decode SFN=%d\n", sfn);
-            if (prog_args.rnti != SRSLTE_SIRNTI) {              
-              n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data, srslte_ue_sync_get_sfidx(&ue_sync));
-            } else {
-              // RV for SIB1 is predefined
-              uint32_t k  = (sfn/2)%4; 
-              uint32_t rv = ((uint32_t) ceilf((float)1.5*k))%4;
-              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
-                                              srslte_ue_sync_get_sfidx(&ue_sync), 
-                                              SRSLTE_SIRNTI, rv);      
-
-              /*
-              if (n>0) {
-                printf("Saving signal...\n");
-                srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv, prog_args.rnti);
-                exit(-1);
-              }
-              */
-            }
+            n = srslte_ue_dl_decode(&ue_dl, 
+                                    &sf_buffer[prog_args.time_offset], 
+                                    data, 
+                                    sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
+          
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
 
+              /*
+              printf("Saving signal...\n");
+              srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv, prog_args.rnti);
+              exit(-1);
+              */
+              
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 srslte_netsink_write(&net_sink, data, 1+(n-1)/8);
