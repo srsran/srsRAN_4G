@@ -307,8 +307,7 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = srslte_ue_dl_decode_rnti_rv(&ue_dl, sf_buffer, data, srslte_ue_sync_get_sfidx(&ue_sync), SRSLTE_SIRNTI,
-                                 ((int) ceilf((float)3*(((sfn)/2)%4)/2))%4);
+            n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;

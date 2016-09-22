@@ -178,12 +178,8 @@ void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, float sample_offset) {
  *    - PDCCH decoding: Find DCI for RNTI given by previous call to srslte_ue_dl_set_rnti()
  *    - PDSCH decoding: Decode TB scrambling with RNTI given by srslte_ue_dl_set_rnti()
  */
-int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx) {
-  return srslte_ue_dl_decode_rnti_rv(q, input, data, sf_idx, q->current_rnti, 0);
-}
-
-int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti) {
-  return srslte_ue_dl_decode_rnti_rv(q, input, data, sf_idx, rnti, 0);
+int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti) {
+  return srslte_ue_dl_decode_rnti(q, input, data, tti, q->current_rnti);
 }
 
 int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) {
@@ -241,47 +237,86 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
   return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx);
 }
 
-int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint8_t *data, 
-                                uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti, uint16_t rnti) 
 {
+  srslte_dci_msg_t dci_msg;
+  srslte_ra_dl_dci_t dci_unpacked;
+  srslte_ra_dl_grant_t grant; 
   int ret = SRSLTE_ERROR; 
+  uint32_t cfi;
+  
+  uint32_t sf_idx = tti%10; 
+  
+  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &cfi)) < 0) {
+    return ret; 
+  }
+  
+  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
+    fprintf(stderr, "Error extracting LLRs\n");
+    return SRSLTE_ERROR;
+  }
 
-  q->nof_detected++;
-  
-  /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
-  if (srslte_ue_dl_cfg_grant(q, grant, cfi, sf_idx, rvidx)) {
-    return SRSLTE_ERROR; 
-  }
-  
-  if (q->pdsch_cfg.rv == 0) {
-    srslte_softbuffer_rx_reset_tbs(&q->softbuffer, grant->mcs.tbs);
-  }
-  
-  // Uncoment next line to do ZF by default in pdsch_ue example
-  //float noise_estimate = 0; 
-  float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
-  
-  if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
-    ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
-                                   q->sf_symbols, q->ce, 
-                                   noise_estimate, 
-                                   rnti, data);
+  int found_dci = srslte_ue_dl_find_dl_dci(q, cfi, sf_idx, rnti, &dci_msg);   
+  if (found_dci == 1) {
     
-    if (ret == SRSLTE_ERROR) {
-      q->pkt_errors++;
-    } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
-      fprintf(stderr, "Error calling srslte_pdsch_decode()\n");      
-    } else if (ret == SRSLTE_SUCCESS) {
-      if (SRSLTE_VERBOSE_ISDEBUG()) {
-        INFO("Decoded Message: ", 0);
-        srslte_vec_fprint_hex(stdout, data, q->pdsch_cfg.grant.mcs.tbs);
+    if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, q->cell.nof_ports, &dci_unpacked, &grant)) {
+      fprintf(stderr, "Error unpacking DCI\n");
+      return SRSLTE_ERROR;   
+    }
+    
+    /* ===== These lines of code are supposed to be MAC functionality === */
+
+    
+    uint32_t rvidx = 0; 
+    if (dci_unpacked.rv_idx < 0) {
+      uint32_t sfn = tti/10; 
+      uint32_t k   = (sfn/2)%4; 
+      rvidx        = ((uint32_t) ceilf((float)1.5*k))%4;
+      srslte_softbuffer_rx_reset_tbs(&q->softbuffer, grant.mcs.tbs);      
+    } else {
+      rvidx = dci_unpacked.rv_idx;
+      srslte_softbuffer_rx_reset_tbs(&q->softbuffer, grant.mcs.tbs);      
+    }
+
+    if (srslte_ue_dl_cfg_grant(q, &grant, cfi, sf_idx, rvidx)) {
+      return SRSLTE_ERROR; 
+    }
+    
+    /* ===== End of MAC functionality ========== */
+
+    q->nof_detected++;
+  
+    // Uncoment next line to do ZF by default in pdsch_ue example
+    //float noise_estimate = 0; 
+    float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
+    
+    if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
+      ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
+                                    q->sf_symbols, q->ce, 
+                                    noise_estimate, 
+                                    rnti, data);
+      
+      if (ret == SRSLTE_ERROR) {
+        q->pkt_errors++;
+      } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
+        fprintf(stderr, "Error calling srslte_pdsch_decode()\n");      
+      } else if (ret == SRSLTE_SUCCESS) {
+        if (SRSLTE_VERBOSE_ISDEBUG()) {
+          INFO("Decoded Message: ", 0);
+          srslte_vec_fprint_hex(stdout, data, q->pdsch_cfg.grant.mcs.tbs);
+        }
       }
     }
-    q->pkts_total++;
   }
-  return ret; 
-}
 
+  q->pkts_total++;
+
+  if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
+    return q->pdsch_cfg.grant.mcs.tbs;    
+  } else {
+    return 0;
+  }
+}
 
 uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {
   return q->last_location.ncce; 
@@ -422,44 +457,6 @@ int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_i
     return find_dl_dci_type_crnti(q, cfi, sf_idx, rnti, dci_msg);
   }
 }
-
-
-int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
-{
-  srslte_dci_msg_t dci_msg;
-  srslte_ra_dl_dci_t dci_unpacked;
-  srslte_ra_dl_grant_t grant; 
-  int ret = SRSLTE_ERROR; 
-  uint32_t cfi;
-  
-  
-  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &cfi)) < 0) {
-    return ret; 
-  }
-  
-  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
-    fprintf(stderr, "Error extracting LLRs\n");
-    return SRSLTE_ERROR;
-  }
-
-  int found_dci = srslte_ue_dl_find_dl_dci(q, cfi, sf_idx, rnti, &dci_msg);   
-  if (found_dci == 1) {
-    
-    if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, q->cell.nof_ports, &dci_unpacked, &grant)) {
-      fprintf(stderr, "Error unpacking DCI\n");
-      return SRSLTE_ERROR;   
-    }
-
-    ret = srslte_ue_dl_decode_rnti_rv_packet(q, &grant, data, cfi, sf_idx, rnti, rvidx);    
-  }
-   
-  if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
-    return q->pdsch_cfg.grant.mcs.tbs;    
-  } else {
-    return 0;
-  }
-}
-
 
 bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_prb_lowest, uint32_t n_dmrs)
 {

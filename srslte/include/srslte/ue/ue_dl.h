@@ -141,20 +141,13 @@ SRSLTE_API void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q,
 SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
                                    cf_t *input, 
                                    uint8_t *data,
-                                   uint32_t sf_idx);
+                                   uint32_t tti);
 
 SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q, 
                                         cf_t *input, 
                                         uint8_t *data,
-                                        uint32_t sf_idx,
+                                        uint32_t tti,
                                         uint16_t rnti);
-
-SRSLTE_API int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t * q, 
-                                           cf_t *input, 
-                                           uint8_t * data,
-                                           uint32_t sf_idx, 
-                                           uint16_t rnti, 
-                                           uint32_t rvidx); 
 
 SRSLTE_API bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, 
                                           uint32_t sf_idx, 
