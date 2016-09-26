@@ -648,6 +648,8 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
     fprintf(stderr, "Format 1A accepts type2 resource allocation only\n");
     return SRSLTE_ERROR;
   }
+  
+  data->dci_is_1a = true; 
 
   *y++ = data->type2_alloc.mode; // localized or distributed VRB assignment
 
@@ -719,7 +721,7 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
     *y++ = 0;
   }
   msg->nof_bits = (y - msg->data);
-
+  
   return SRSLTE_SUCCESS;
 }
 
@@ -878,6 +880,8 @@ int dci_format1Cs_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
         "Format 1C accepts distributed type2 resource allocation only\n");
     return SRSLTE_ERROR;
   }
+  
+  data->dci_is_1c = true; 
 
   if (nof_prb >= 50) {
     *y++ = data->type2_alloc.n_gap;
