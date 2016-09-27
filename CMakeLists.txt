@@ -32,6 +32,9 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 ########################################################################
 CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 PROJECT (SRSLTE)
+MESSAGE( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
+MESSAGE( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
+MESSAGE( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(SRSLTEVersion) #sets version information
@@ -149,9 +152,7 @@ add_custom_target(uninstall
 # Macro to add -fPIC property to static libs 
 ########################################################################
 macro(SRSLTE_SET_PIC)
-    if( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
-        set_target_properties(${ARGV} PROPERTIES COMPILE_FLAGS -fPIC)
-    endif( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
+    set_target_properties(${ARGV} PROPERTIES COMPILE_FLAGS -fPIC)
 endmacro(SRSLTE_SET_PIC)
 
 ########################################################################
