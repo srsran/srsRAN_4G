@@ -562,7 +562,6 @@ int srslte_pdsch_encode_seq(srslte_pdsch_t *q,
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
    
    if (q             != NULL &&
-       data          != NULL &&
        cfg  != NULL)
   {
 

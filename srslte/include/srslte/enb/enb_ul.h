@@ -77,7 +77,7 @@ typedef struct SRSLTE_API {
 } srslte_enb_ul_t;
 
 typedef struct {
-  uint32_t                rnti_idx; 
+  int                     rnti_idx; 
   srslte_ra_ul_dci_t      grant;
   srslte_dci_location_t   location; 
   uint32_t                rv_idx; 

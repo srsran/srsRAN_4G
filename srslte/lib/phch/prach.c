@@ -600,10 +600,7 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
         for (int j=0;j<n_wins;j++) {
           if(p->peak_values[j] > p->detect_factor*corr_ave)
           {
-            printf("ncs=%d, nzc=%d, nwins=%d, Nroot=%d, i=%d, j=%d, start=%d, peak_value=%f, peak_offset=%d, tseq=%f\n", 
-                   p->N_cs, p->N_zc, n_wins, p->N_roots, i, j, (p->N_zc-(j*p->N_cs))%p->N_zc, p->peak_values[j], 
-                   p->peak_offsets[j], p->T_seq*1e6);
-            memcpy(save_corr, p->corr, p->N_zc*sizeof(float));
+            //memcpy(save_corr, p->corr, p->N_zc*sizeof(float));
             if (indices) {
               indices[*n_indices]     = (i*n_wins)+j;
             }
