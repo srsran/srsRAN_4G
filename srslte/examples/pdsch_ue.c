@@ -511,12 +511,6 @@ int main(int argc, char **argv) {
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
-
-              /*
-              printf("Saving signal...\n");
-              srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv, prog_args.rnti);
-              exit(-1);
-              */
               
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
