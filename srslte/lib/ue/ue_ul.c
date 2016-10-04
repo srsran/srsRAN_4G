@@ -65,6 +65,8 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
       goto clean_exit;
     }
     
+    srslte_cfo_set_tol(&q->cfo, 0);
+    
     if (srslte_pusch_init(&q->pusch, q->cell)) {
       fprintf(stderr, "Error creating PUSCH object\n");
       goto clean_exit;
