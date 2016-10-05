@@ -302,12 +302,13 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint
         fprintf(stderr, "Error calling srslte_pdsch_decode()\n");      
       } 
     }
-    
+  
+  /*
     printf("Saving signal...\n");
     srslte_vec_save_file("input", input, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     srslte_ue_dl_save_signal(q, &q->softbuffer, sf_idx, rvidx, rnti, cfi);
     //exit(-1);
-
+  */
   
   }
 

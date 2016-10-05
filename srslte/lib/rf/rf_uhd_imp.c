@@ -258,7 +258,7 @@ int rf_uhd_open(char *args, void **h)
     if (args == NULL) {
       args = "";
     }           
-    handler->devname = "uhd_unknown";
+    handler->devname = NULL;
     
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
@@ -291,7 +291,19 @@ int rf_uhd_open(char *args, void **h)
       fprintf(stderr, "Error opening UHD: code %d\n", error);
       return -1; 
     }
-          
+    
+    if (!handler->devname) {
+      char dev_str[1024];
+      uhd_usrp_get_mboard_name(handler->usrp, 0, dev_str, 1024);
+      if (strstr(dev_str, "B2") || strstr(dev_str, "B2")) {
+        handler->devname = DEVNAME_B200;
+      } else if (strstr(dev_str, "X3") || strstr(dev_str, "X3")) {
+        handler->devname = DEVNAME_X300;        
+      }
+    }
+    if (!handler->devname) {
+      handler->devname = "uhd_unknown"; 
+    }
     size_t channel = 0;
     uhd_stream_args_t stream_args = {
           .cpu_format = "fc32",
