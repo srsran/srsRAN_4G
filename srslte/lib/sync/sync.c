@@ -78,9 +78,17 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
       fprintf(stderr, "Error initiating CFO\n");
       goto clean_exit;
     }
+
+    if (srslte_cfo_init(&q->cfocorr2, q->frame_size)) {
+      fprintf(stderr, "Error initiating CFO\n");
+      goto clean_exit;
+    }
     
     // Set a CFO tolerance of approx 50 Hz
     srslte_cfo_set_tol(&q->cfocorr, 50.0/(15000.0*q->fft_size));
+
+    // Set a CFO tolerance of approx 50 Hz
+    srslte_cfo_set_tol(&q->cfocorr2, 50.0/(15000.0*q->fft_size));
 
     for (int i=0;i<2;i++) {
       q->cfo_i_corr[i] = srslte_vec_malloc(sizeof(cf_t)*q->frame_size);
@@ -131,6 +139,7 @@ void srslte_sync_free(srslte_sync_t *q) {
     srslte_pss_synch_free(&q->pss);     
     srslte_sss_synch_free(&q->sss);  
     srslte_cfo_free(&q->cfocorr);
+    srslte_cfo_free(&q->cfocorr2);
     srslte_cp_synch_free(&q->cp_synch);
     for (int i=0;i<2;i++) {
       if (q->cfo_i_corr[i]) {
@@ -433,7 +442,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
       q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
       
       /* Correct CFO with the averaged CFO estimation */
-      srslte_cfo_correct(&q->cfocorr, input, q->temp, -q->mean_cfo / q->fft_size);      
+      srslte_cfo_correct(&q->cfocorr2, input, q->temp, -q->mean_cfo / q->fft_size);      
       
       input_cfo = q->temp; 
     }

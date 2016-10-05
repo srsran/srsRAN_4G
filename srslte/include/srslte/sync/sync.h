@@ -84,6 +84,7 @@ typedef struct SRSLTE_API {
   uint32_t nof_symbols;
   uint32_t cp_len;
   srslte_cfo_t cfocorr;
+  srslte_cfo_t cfocorr2;
   sss_alg_t sss_alg; 
   bool detect_cp;
   bool sss_en;
