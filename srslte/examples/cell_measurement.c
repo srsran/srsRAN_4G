@@ -356,7 +356,7 @@ int main(int argc, char **argv) {
 
           printf("CFO: %+8.4f kHz, SFO: %+8.4f kHz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %5.1f dB\r",
-                srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
+                srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync), 
                 10*log10(rssi*1000) - rx_gain_offset,                                  
                 10*log10(rssi_utra*1000)- rx_gain_offset, 
                 10*log10(rsrp*1000) - rx_gain_offset, 
