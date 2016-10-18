@@ -238,7 +238,7 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, srslte_pucch_format_t format, ui
       }
       break;
     default:
-      fprintf(stderr, "Error getting PUCCH format %d not supported\n");
+      fprintf(stderr, "Error getting PUCCH format %d not supported\n", format);
       return SRSLTE_ERROR;      
   }
 

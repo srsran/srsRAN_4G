@@ -315,7 +315,7 @@ int rf_uhd_open(char *args, void **h)
     
     // Set external clock reference   
     if (strstr(args, "clock=external")) {
-      uhd_usrp_set_clock_source(handler->usrp, "external", 0); 
+      uhd_usrp_set_clock_source(handler->usrp, "external", 0);       
     }
       
     handler->has_rssi = get_has_rssi(handler);  
