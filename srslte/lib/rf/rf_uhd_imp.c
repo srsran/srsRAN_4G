@@ -245,7 +245,7 @@ int rf_uhd_open(char *args, void **h)
     /* Set priority to UHD threads */
     uhd_set_thread_priority(uhd_default_thread_priority, true);
     
-    /* Set correct options for the USRP device */
+    /* Find available devices */
     uhd_string_vector_handle devices_str;
     uhd_string_vector_make(&devices_str);
     uhd_usrp_find("", &devices_str);
@@ -312,6 +312,11 @@ int rf_uhd_open(char *args, void **h)
           .channel_list = &channel,
           .n_channels = 1
       };
+    
+    // Set external clock reference   
+    if (strstr(args, "clock=external")) {
+      uhd_usrp_set_clock_source(handler->usrp, "external", 0); 
+    }
       
     handler->has_rssi = get_has_rssi(handler);  
     if (handler->has_rssi) {        
