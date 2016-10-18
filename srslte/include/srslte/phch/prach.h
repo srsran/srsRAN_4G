@@ -110,7 +110,8 @@ typedef enum SRSLTE_API {
 typedef struct {
   uint32_t config_idx;
   uint32_t root_seq_idx;
-  uint32_t zero_corr_zone; 
+  uint32_t zero_corr_zone;
+  uint32_t freq_offset;
   bool     hs_flag; 
 } srslte_prach_cfg_t;     
 

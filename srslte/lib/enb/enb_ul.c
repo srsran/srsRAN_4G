@@ -42,6 +42,7 @@
 int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell, 
                        srslte_prach_cfg_t *prach_cfg, 
                        srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg, 
+                       srslte_pusch_hopping_cfg_t *hopping_cfg, 
                        srslte_pucch_cfg_t *pucch_cfg, 
                        uint32_t nof_rnti)
 {
@@ -56,6 +57,16 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
     
     q->cell = cell;
     q->nof_rnti = nof_rnti; 
+    
+    if (hopping_cfg) {
+      memcpy(&q->hopping_cfg, hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
+    } 
+    
+    q->uci_cfg_en     = calloc(sizeof(bool),nof_rnti);
+    q->srs_cfg_en     = calloc(sizeof(bool),nof_rnti);
+    
+    q->uci_cfg        = calloc(sizeof(srslte_uci_cfg_t),nof_rnti);
+    q->srs_cfg        = calloc(sizeof(srslte_refsignal_srs_cfg_t),nof_rnti);
     
     if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -91,6 +102,9 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       goto clean_exit; 
     }
     
+    // Configure common PUCCH configuration 
+    srslte_pucch_set_cfg(&q->pucch, pucch_cfg, pusch_cfg->group_hopping_en);
+    
     // SRS is a dedicated configuration
     srslte_chest_ul_set_cfg(&q->chest, pusch_cfg, pucch_cfg, NULL);
         
@@ -123,6 +137,20 @@ clean_exit:
 void srslte_enb_ul_free(srslte_enb_ul_t *q)
 {
   if (q) {
+    
+    if (q->uci_cfg) {
+      free(q->uci_cfg);
+    }
+    if (q->uci_cfg_en) {
+      free(q->uci_cfg_en);
+    }
+    if (q->srs_cfg) {
+      free(q->srs_cfg);
+    }
+    if (q->srs_cfg_en) {
+      free(q->srs_cfg_en);
+    }
+    
     srslte_prach_free(&q->prach);
     srslte_ofdm_rx_free(&q->fft);
     srslte_pucch_free(&q->pucch);
@@ -143,6 +171,30 @@ int srslte_enb_ul_cfg_rnti(srslte_enb_ul_t *q, uint32_t idx, uint16_t rnti)
   return srslte_pusch_set_rnti_multi(&q->pusch, idx, rnti);
 }
 
+int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint32_t idx, 
+                         srslte_uci_cfg_t *uci_cfg, 
+                         srslte_refsignal_srs_cfg_t *srs_cfg) 
+{
+  if (idx < q->nof_rnti) {
+    if (uci_cfg) {
+      memcpy(&q->uci_cfg[idx], uci_cfg, sizeof(srslte_uci_cfg_t));
+      q->uci_cfg_en[idx] = true; 
+    } else {
+      q->uci_cfg_en[idx] = false; 
+    }
+    if (srs_cfg) {
+      memcpy(&q->srs_cfg[idx], srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
+      q->srs_cfg_en[idx] = true; 
+    } else {
+      q->srs_cfg_en[idx] = false; 
+    }
+    return SRSLTE_SUCCESS;
+  } else {
+    fprintf(stderr, "Error configuring UE: Invalid idx=%d, max users=%d\n", idx, q->nof_rnti);
+    return SRSLTE_ERROR; 
+  }
+}
+                         
 int srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, uint32_t idx)
 {
   return srslte_pusch_set_rnti_multi(&q->pusch, idx, 0);
@@ -153,12 +205,58 @@ void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer)
   srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
 }
 
+int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch,
+                            uint32_t rnti_idx, srslte_uci_data_t *uci_data, uint32_t tti)
+{
+  
+  if (srslte_chest_ul_estimate_pucch(&q->chest, q->sf_symbols, q->ce, format, n_pucch, tti%10)) {
+    fprintf(stderr,"Error estimating PUCCH DMRS\n");
+    return SRSLTE_ERROR;
+  }
+  
+  float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
+  
+  uint8_t bits[SRSLTE_PUCCH_MAX_BITS];
+  if (srslte_pucch_decode(&q->pucch, format, n_pucch, tti%10, q->sf_symbols, q->ce, noise_power, bits)) {
+    fprintf(stderr,"Error decoding PUCCH\n");
+    return SRSLTE_ERROR; 
+  }
+  
+  switch(format) {
+    case SRSLTE_PUCCH_FORMAT_1:
+      if (bits[0]) {
+        uci_data->scheduling_request = true;
+      }
+      break;
+    case SRSLTE_PUCCH_FORMAT_1A:
+    case SRSLTE_PUCCH_FORMAT_1B:
+      uci_data->uci_ack     = bits[0];
+      uci_data->uci_ack_len = 1; 
+      if (format == SRSLTE_PUCCH_FORMAT_1B) {
+        uci_data->uci_ack_2   = bits[0];
+        uci_data->uci_ack_len = 2;         
+      }
+      break;
+    default:
+      fprintf(stderr, "Error getting PUCCH format %d not supported\n");
+      return SRSLTE_ERROR;      
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
                             uint32_t rnti_idx, uint32_t rv_idx, uint32_t current_tx_nb, 
                             uint8_t *data, srslte_uci_data_t *uci_data, uint32_t tti)
 {
      
-  if (srslte_pusch_cfg(&q->pusch, &q->pusch_cfg, grant, NULL, NULL, NULL, tti, rv_idx, current_tx_nb)) {
+  if (srslte_pusch_cfg(&q->pusch, 
+                       &q->pusch_cfg, 
+                       grant, 
+                       q->uci_cfg_en[rnti_idx]?&q->uci_cfg[rnti_idx]:NULL, 
+                       &q->hopping_cfg, 
+                       q->srs_cfg_en[rnti_idx]?&q->srs_cfg[rnti_idx]:NULL, 
+                       tti, rv_idx, current_tx_nb)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     return SRSLTE_ERROR;
   }

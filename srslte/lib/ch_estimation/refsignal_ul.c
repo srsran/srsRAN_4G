@@ -452,7 +452,7 @@ int srslte_refsignal_dmrs_pusch_gen(srslte_refsignal_ul_t *q, uint32_t nof_prb, 
 }
 
 /* Number of PUCCH demodulation reference symbols per slot N_rs_pucch tABLE 5.5.2.2.1-1 36.211 */
-static uint32_t get_N_rs(srslte_pucch_format_t format, srslte_cp_t cp) {
+uint32_t srslte_refsignal_dmrs_N_rs(srslte_pucch_format_t format, srslte_cp_t cp) {
   switch (format) {
     case SRSLTE_PUCCH_FORMAT_1:
     case SRSLTE_PUCCH_FORMAT_1A:
@@ -476,7 +476,7 @@ static uint32_t get_N_rs(srslte_pucch_format_t format, srslte_cp_t cp) {
 }
 
 /* Table 5.5.2.2.2-1: Demodulation reference signal location for different PUCCH formats. 36.211 */
-static uint32_t get_pucch_dmrs_symbol(uint32_t m, srslte_pucch_format_t format, srslte_cp_t cp) {
+uint32_t srslte_refsignal_dmrs_pucch_symbol(uint32_t m, srslte_pucch_format_t format, srslte_cp_t cp) {
   switch (format) {
     case SRSLTE_PUCCH_FORMAT_1:
     case SRSLTE_PUCCH_FORMAT_1A:
@@ -523,7 +523,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
   if (q && r_pucch) {
     ret = SRSLTE_ERROR;
     
-    uint32_t N_rs=get_N_rs(format, q->cell.cp); 
+    uint32_t N_rs=srslte_refsignal_dmrs_N_rs(format, q->cell.cp); 
     
     cf_t z_m_1 = 1.0;     
     if (format == SRSLTE_PUCCH_FORMAT_2A || format == SRSLTE_PUCCH_FORMAT_2B) {
@@ -543,7 +543,7 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
       for (uint32_t m=0;m<N_rs;m++) {
         uint32_t n_oc=0; 
         
-        uint32_t l = get_pucch_dmrs_symbol(m, format, q->cell.cp);
+        uint32_t l = srslte_refsignal_dmrs_pucch_symbol(m, format, q->cell.cp);
         // Add cyclic prefix alpha
         float alpha = 0.0; 
         if (format < SRSLTE_PUCCH_FORMAT_2) {
@@ -594,36 +594,48 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
   return ret;   
 }
 
-/* Maps PUCCH DMRS to the physical resources as defined in 5.5.2.2.2 in 36.211 */
-int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, cf_t *r_pucch, cf_t *output) 
+int srslte_refsignal_dmrs_pucch_cp(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, cf_t *source, cf_t *dest, bool source_is_grid) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-  if (q && output && r_pucch) {
+  if (q && source && dest) {
     ret = SRSLTE_ERROR; 
     uint32_t nsymbols = SRSLTE_CP_ISNORM(q->cell.cp)?SRSLTE_CP_NORM_NSYMB:SRSLTE_CP_EXT_NSYMB;
-    
-    // Determine m 
-    uint32_t m = srslte_pucch_m(&q->pucch_cfg, format, n_pucch, q->cell.cp); 
-    
-    uint32_t N_rs = get_N_rs(format, q->cell.cp);
+        
+    uint32_t N_rs = srslte_refsignal_dmrs_N_rs(format, q->cell.cp);
     for (uint32_t ns=0;ns<2;ns++) {
-      // Determine n_prb 
-      uint32_t n_prb = m/2; 
-      if ((m+ns)%2) {
-        n_prb = q->cell.nof_prb-1-m/2; 
-      }
-      
+    
+      // Determine n_prb
+      uint32_t n_prb = srslte_pucch_n_prb(&q->pucch_cfg, format, n_pucch, q->cell.nof_prb, q->cell.cp, ns); 
+
       for (uint32_t i=0;i<N_rs;i++) {
-        uint32_t l = get_pucch_dmrs_symbol(i, format, q->cell.cp);
-        memcpy(&output[SRSLTE_RE_IDX(q->cell.nof_prb, l+ns*nsymbols, n_prb*SRSLTE_NRE)], 
-               &r_pucch[ns*N_rs*SRSLTE_NRE+i*SRSLTE_NRE], 
-               SRSLTE_NRE*sizeof(cf_t));
+        uint32_t l = srslte_refsignal_dmrs_pucch_symbol(i, format, q->cell.cp);
+        if (!source_is_grid) {
+          memcpy(&dest[SRSLTE_RE_IDX(q->cell.nof_prb, l+ns*nsymbols, n_prb*SRSLTE_NRE)], 
+                &source[ns*N_rs*SRSLTE_NRE+i*SRSLTE_NRE], 
+                SRSLTE_NRE*sizeof(cf_t));
+        } else {
+          memcpy(&dest[ns*N_rs*SRSLTE_NRE+i*SRSLTE_NRE], 
+                 &source[SRSLTE_RE_IDX(q->cell.nof_prb, l+ns*nsymbols, n_prb*SRSLTE_NRE)], 
+                 SRSLTE_NRE*sizeof(cf_t));          
+        }
       }
     }
     
     ret = SRSLTE_SUCCESS; 
   }
-  return ret;   
+  return ret;     
+}
+
+/* Maps PUCCH DMRS to the physical resources as defined in 5.5.2.2.2 in 36.211 */
+int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, cf_t *r_pucch, cf_t *output) 
+{
+  return srslte_refsignal_dmrs_pucch_cp(q, format, n_pucch, r_pucch, output, false);
+}
+
+/* Gets PUCCH DMRS from the physical resources as defined in 5.5.2.2.2 in 36.211 */
+int srslte_refsignal_dmrs_pucch_get(srslte_refsignal_ul_t *q, srslte_pucch_format_t format, uint32_t n_pucch, cf_t *input, cf_t *r_pucch) 
+{
+  return srslte_refsignal_dmrs_pucch_cp(q, format, n_pucch, input, r_pucch, true);
 }
 
 
