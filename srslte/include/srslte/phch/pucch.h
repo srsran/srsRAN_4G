@@ -40,6 +40,7 @@
 #include "srslte/common/sequence.h"
 #include "srslte/modem/mod.h"
 #include "srslte/phch/cqi.h"
+#include "srslte/phch/uci.h"
 
 #define SRSLTE_PUCCH_N_SEQ       12 
 #define SRSLTE_PUCCH_MAX_BITS    SRSLTE_CQI_MAX_BITS
@@ -51,7 +52,8 @@ typedef enum SRSLTE_API {
   SRSLTE_PUCCH_FORMAT_1B, 
   SRSLTE_PUCCH_FORMAT_2, 
   SRSLTE_PUCCH_FORMAT_2A, 
-  SRSLTE_PUCCH_FORMAT_2B
+  SRSLTE_PUCCH_FORMAT_2B,
+  SRSLTE_PUCCH_FORMAT_ERROR,
 } srslte_pucch_format_t; 
 
 typedef struct SRSLTE_API {
@@ -159,6 +161,14 @@ SRSLTE_API uint32_t srslte_pucch_m(srslte_pucch_cfg_t *cfg,
                                    srslte_pucch_format_t format, 
                                    uint32_t n_pucch, 
                                    srslte_cp_t cp); 
+
+SRSLTE_API srslte_pucch_format_t srslte_pucch_get_format(srslte_uci_data_t *uci_data, 
+                                                         srslte_cp_t cp);
+
+SRSLTE_API uint32_t srslte_pucch_get_npucch(uint32_t n_cce, 
+                                            srslte_pucch_format_t format, 
+                                            bool has_scheduling_request, 
+                                            srslte_pucch_sched_t *pucch_sched);
 
 SRSLTE_API uint32_t srslte_pucch_n_prb(srslte_pucch_cfg_t *cfg, 
                                        srslte_pucch_format_t format, 

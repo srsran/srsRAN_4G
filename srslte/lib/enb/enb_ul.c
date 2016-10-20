@@ -216,24 +216,16 @@ void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer)
   srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
 }
 
-int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, srslte_pucch_format_t format, uint32_t pdcch_n_cce, 
-                            uint32_t rnti_idx, srslte_uci_data_t *uci_data, uint32_t sf_rx)
+int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint32_t rnti_idx, 
+                            uint32_t pdcch_n_cce, uint32_t sf_rx, 
+                            srslte_uci_data_t *uci_data)
 {
 
   if (rnti_idx < q->nof_rnti) {
-    uint32_t n_pucch = 0; 
-    switch(format) {
-      case SRSLTE_PUCCH_FORMAT_1:
-        n_pucch = q->pucch_sched[rnti_idx].n_pucch_sr; 
-        break;
-      case SRSLTE_PUCCH_FORMAT_1A:
-      case SRSLTE_PUCCH_FORMAT_1B:
-        n_pucch = pdcch_n_cce + q->pucch_sched[rnti_idx].N_pucch_1;         
-        break;
-      default:
-        fprintf(stderr, "Error getting PUCCH format %d not supported\n", format);
-        return SRSLTE_ERROR;      
-    }
+    
+    srslte_pucch_format_t format = srslte_pucch_get_format(uci_data, q->cell.cp);
+    
+    uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data->scheduling_request, &q->pucch_sched[rnti_idx]);
     
     if (srslte_chest_ul_estimate_pucch(&q->chest, q->sf_symbols, q->ce, format, n_pucch, sf_rx)) {
       fprintf(stderr,"Error estimating PUCCH DMRS\n");
@@ -243,33 +235,21 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, srslte_pucch_format_t format, ui
     float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
     
     uint8_t bits[SRSLTE_PUCCH_MAX_BITS];
-    if (srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, q->sf_symbols, q->ce, noise_power, bits)) {
+    int ret_val = srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, q->sf_symbols, q->ce, noise_power, bits); 
+    if (ret_val < 0) {
       fprintf(stderr,"Error decoding PUCCH\n");
       return SRSLTE_ERROR; 
     }
     
-    switch(format) {
-      case SRSLTE_PUCCH_FORMAT_1:
-        if (bits[0]) {
-          uci_data->scheduling_request = true;
-        } else {
-          uci_data->scheduling_request = false; 
-        }
-        break;
-      case SRSLTE_PUCCH_FORMAT_1A:
-      case SRSLTE_PUCCH_FORMAT_1B:
-        uci_data->uci_ack     = bits[0];
-        uci_data->uci_ack_len = 1; 
-        if (format == SRSLTE_PUCCH_FORMAT_1B) {
-          uci_data->uci_ack_2   = bits[0];
-          uci_data->uci_ack_len = 2;         
-        }
-        break;
-      default:
-        fprintf(stderr, "Error getting PUCCH format %d not supported\n", format);
-        return SRSLTE_ERROR;      
+    // update schedulign request 
+    if (uci_data->scheduling_request) {
+      uci_data->scheduling_request = ret_val; 
     }
-
+    
+    // Save ACK bits 
+    if (uci_data->uci_ack_len > 0) {
+      uci_data->uci_ack = bits[0];      
+    }
     return SRSLTE_SUCCESS;
   } else {
     fprintf(stderr, "Invalid rnti_idx=%d\n", rnti_idx);

@@ -125,11 +125,10 @@ SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q,
                                   cf_t *signal_buffer); 
 
 SRSLTE_API int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, 
-                                       srslte_pucch_format_t format, 
-                                       uint32_t pdcch_n_cce,
                                        uint32_t rnti_idx, 
-                                       srslte_uci_data_t *uci_data, 
-                                       uint32_t sf_rx); 
+                                       uint32_t pdcch_n_cce, 
+                                       uint32_t sf_rx, 
+                                       srslte_uci_data_t *uci_data); 
 
 SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, 
                                        srslte_ra_ul_grant_t *grant, 

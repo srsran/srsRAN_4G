@@ -160,6 +160,64 @@ uint32_t get_pucch_symbol(uint32_t m, srslte_pucch_format_t format, srslte_cp_t 
   return 0; 
 }
 
+/* Choose PUCCH format based on pending transmission as described in 10.1 of 36.213 */
+srslte_pucch_format_t srslte_pucch_get_format(srslte_uci_data_t *uci_data, srslte_cp_t cp) 
+{
+  srslte_pucch_format_t format = SRSLTE_PUCCH_FORMAT_ERROR; 
+  // No CQI data
+  if (uci_data->uci_cqi_len == 0) {
+    // 1-bit ACK + optional SR
+    if (uci_data->uci_ack_len == 1) {
+      format = SRSLTE_PUCCH_FORMAT_1A;
+    }
+    // 2-bit ACK + optional SR
+    else if (uci_data->uci_ack_len == 2) {
+      format = SRSLTE_PUCCH_FORMAT_1B;    
+    }
+    // SR only 
+    else if (uci_data->scheduling_request) {
+      format = SRSLTE_PUCCH_FORMAT_1;    
+    }
+  }
+  // CQI data
+  else {
+    // CQI and no ack
+    if (uci_data->uci_ack_len == 0) {
+      format = SRSLTE_PUCCH_FORMAT_2;    
+    }
+    // CQI + 1-bit ACK
+    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 1) {
+      format = SRSLTE_PUCCH_FORMAT_2A;    
+    }
+    // CQI + 2-bit ACK 
+    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 2) {
+      format = SRSLTE_PUCCH_FORMAT_2B;    
+    }
+    // CQI + 2-bit ACK + cyclic prefix 
+    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 1 && SRSLTE_CP_ISEXT(cp)) {
+      format = SRSLTE_PUCCH_FORMAT_2B;    
+    }
+  }
+  return format; 
+}
+
+/** Choose PUCCH resource as desribed in 10.1 of 36.213 */
+uint32_t srslte_pucch_get_npucch(uint32_t n_cce, srslte_pucch_format_t format, bool has_scheduling_request, srslte_pucch_sched_t *pucch_sched) 
+{
+  uint32_t n_pucch = 0; 
+  if (has_scheduling_request) {
+    n_pucch = pucch_sched->n_pucch_sr; 
+  } else if (format != SRSLTE_PUCCH_FORMAT_2) {
+    if (pucch_sched->sps_enabled) {
+      n_pucch = pucch_sched->n_pucch_1[pucch_sched->tpc_for_pucch%4];
+    } else {
+      n_pucch = n_cce + pucch_sched->N_pucch_1; 
+    }
+  } else {
+    n_pucch = pucch_sched->n_pucch_2; 
+  }
+}
+
 uint32_t srslte_pucch_n_prb(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format, uint32_t n_pucch, 
                             uint32_t nof_prb, srslte_cp_t cp, uint32_t ns) 
 {  
@@ -655,15 +713,15 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         pucch_encode(q, format, n_pucch, sf_idx, bits, q->z_tmp);
         corr = crealf(srslte_vec_dot_prod_conj_ccc(q->z, q->z_tmp, nof_re))/nof_re;
         if (corr >= q->threshold_format1) {
-          bits[0] = 1; 
+          ret = 1; 
         } else {
-          bits[0] = 0; 
+          ret = 0; 
         }
         DEBUG("format1 corr=%f, nof_re=%d, th=%f\n", corr, nof_re, q->threshold_format1);
         break;
       case SRSLTE_PUCCH_FORMAT_1A:
         bzero(bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
-        
+        ret = 0; 
         for (int b=0;b<2;b++) {
           bits[0] = b; 
           pucch_encode(q, format, n_pucch, sf_idx, bits, q->z_tmp);
@@ -671,6 +729,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
           if (corr > corr_max && corr >= q->threshold_format1a) {
             corr_max = corr; 
             b_max = b; 
+            ret = 1; 
           }
           DEBUG("format1a b=%d, corr=%f, nof_re=%d, th=%f\n", b, corr, nof_re, q->threshold_format1a);
         }
@@ -678,6 +737,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         break;
       default:
         fprintf(stderr, "Error decoding PUCCH: Format %d not supported\n", format);
+        ret = SRSLTE_ERROR; 
         break;
     }
     ret = SRSLTE_SUCCESS; 
