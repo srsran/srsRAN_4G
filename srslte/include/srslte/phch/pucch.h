@@ -43,7 +43,7 @@
 
 #define SRSLTE_PUCCH_N_SEQ       12 
 #define SRSLTE_PUCCH_MAX_BITS    SRSLTE_CQI_MAX_BITS
-#define SRSLTE_PUCCH_MAX_SYMBOLS 120 
+#define SRSLTE_PUCCH_MAX_SYMBOLS 120
 
 typedef enum SRSLTE_API {
   SRSLTE_PUCCH_FORMAT_1 = 0, 
@@ -68,6 +68,7 @@ typedef struct SRSLTE_API {
   uint32_t delta_pucch_shift; 
   uint32_t n_rb_2; 
   uint32_t N_cs; 
+  uint32_t n1_pucch_an; 
   
   // SRS configuration 
   bool srs_configured; 
@@ -87,9 +88,11 @@ typedef struct SRSLTE_API {
   uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB]; 
   uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME];
   float tmp_arg[SRSLTE_PUCCH_N_SEQ];
-  cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS];
-  cf_t z_tmp[SRSLTE_PUCCH_MAX_SYMBOLS];
-  cf_t ce[SRSLTE_PUCCH_MAX_SYMBOLS];
+  
+  cf_t *z;
+  cf_t *z_tmp;
+  cf_t *ce;
+  
   bool rnti_is_set;
   bool shortened; 
   bool group_hopping_en;

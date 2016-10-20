@@ -81,6 +81,7 @@ typedef struct SRSLTE_API {
   bool *srs_cfg_en;
   srslte_uci_cfg_t *uci_cfg;
   srslte_refsignal_srs_cfg_t *srs_cfg;
+  srslte_pucch_sched_t *pucch_sched;
   
 } srslte_enb_ul_t;
 
@@ -113,6 +114,7 @@ SRSLTE_API int srslte_enb_ul_cfg_rnti(srslte_enb_ul_t *q,
 
 SRSLTE_API int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint32_t idx, 
                                     srslte_uci_cfg_t *uci_cfg, 
+                                    srslte_pucch_sched_t *pucch_sched,
                                     srslte_refsignal_srs_cfg_t *srs_cfg);
 
 
@@ -124,10 +126,10 @@ SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q,
 
 SRSLTE_API int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, 
                                        srslte_pucch_format_t format, 
-                                       uint32_t n_pucch,
+                                       uint32_t pdcch_n_cce,
                                        uint32_t rnti_idx, 
                                        srslte_uci_data_t *uci_data, 
-                                       uint32_t tti); 
+                                       uint32_t sf_rx); 
 
 SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, 
                                        srslte_ra_ul_grant_t *grant, 

@@ -370,6 +370,10 @@ int srslte_pucch_init(srslte_pucch_t *q, srslte_cell_t cell) {
     if (srslte_pucch_n_cs_cell(q->cell, q->n_cs_cell)) {
       return SRSLTE_ERROR;
     }
+    
+    q->z = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
+    q->z_tmp = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
+    q->ce = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
 
     ret = SRSLTE_SUCCESS;
   }
@@ -382,6 +386,16 @@ void srslte_pucch_free(srslte_pucch_t *q) {
       srslte_sequence_free(&q->seq_f2[sf_idx]);
     }
   }
+  if (q->z) {
+    free(q->z);
+  }
+  if (q->z_tmp) {
+    free(q->z_tmp);
+  }
+  if (q->ce) {
+    free(q->ce);
+  }
+  
   srslte_modem_table_free(&q->mod);
   bzero(q, sizeof(srslte_pucch_t));
 }
@@ -645,7 +659,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         } else {
           bits[0] = 0; 
         }
-        printf("format1 corr=%f, nof_re=%d, th=%f\n", corr, nof_re, q->threshold_format1);
+        DEBUG("format1 corr=%f, nof_re=%d, th=%f\n", corr, nof_re, q->threshold_format1);
         break;
       case SRSLTE_PUCCH_FORMAT_1A:
         bzero(bits, SRSLTE_PUCCH_MAX_BITS*sizeof(uint8_t));
@@ -658,7 +672,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
             corr_max = corr; 
             b_max = b; 
           }
-          DEBUG("format1a b=%d, corr=%f, nof_re=%d, th=%f\n", b, corr, nof_re, q->threshold_format1);
+          DEBUG("format1a b=%d, corr=%f, nof_re=%d, th=%f\n", b, corr, nof_re, q->threshold_format1a);
         }
         bits[0] = b_max; 
         break;
@@ -666,7 +680,6 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         fprintf(stderr, "Error decoding PUCCH: Format %d not supported\n", format);
         break;
     }
-    
     ret = SRSLTE_SUCCESS; 
   }
 
