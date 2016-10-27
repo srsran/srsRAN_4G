@@ -471,6 +471,9 @@ uint32_t srslte_refsignal_dmrs_N_rs(srslte_pucch_format_t format, srslte_cp_t cp
     case SRSLTE_PUCCH_FORMAT_2A:
     case SRSLTE_PUCCH_FORMAT_2B:
       return 2; 
+    default:
+      fprintf(stderr, "Unsupported format %d\n", format);
+      return 0; 
   }
   return 0; 
 }
@@ -575,6 +578,9 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
           case SRSLTE_PUCCH_FORMAT_2B:
             w=w_arg_pucch_format2_cpnorm;
             break;
+          default:
+            fprintf(stderr, "Unsupported format %d\n", format);
+            return SRSLTE_ERROR; 
         }
         cf_t z_m = 1.0; 
         if (m == 1) {

@@ -99,8 +99,10 @@ uint32_t get_N_sf(srslte_pucch_format_t format, uint32_t slot_idx, bool shortene
       }
     case SRSLTE_PUCCH_FORMAT_2:
     case SRSLTE_PUCCH_FORMAT_2A:
-    case SRSLTE_PUCCH_FORMAT_2B:
+    case SRSLTE_PUCCH_FORMAT_2B:    
       return 5; 
+    default: 
+      return 0; 
   }
   return 0; 
 }
@@ -128,6 +130,8 @@ uint32_t srslte_pucch_nbits_format(srslte_pucch_format_t format) {
       return 21; 
     case SRSLTE_PUCCH_FORMAT_2B:
       return 22; 
+    default:
+      return 0; 
   }
   return 0; 
 }
@@ -156,6 +160,8 @@ uint32_t get_pucch_symbol(uint32_t m, srslte_pucch_format_t format, srslte_cp_t 
         }        
       }
     break;
+    default:
+      return 0;
   }
   return 0; 
 }
@@ -216,6 +222,7 @@ uint32_t srslte_pucch_get_npucch(uint32_t n_cce, srslte_pucch_format_t format, b
   } else {
     n_pucch = pucch_sched->n_pucch_2; 
   }
+  return n_pucch;
 }
 
 uint32_t srslte_pucch_n_prb(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format, uint32_t n_pucch, 
@@ -248,7 +255,10 @@ uint32_t srslte_pucch_m(srslte_pucch_cfg_t *cfg, srslte_pucch_format_t format, u
   case SRSLTE_PUCCH_FORMAT_2:
   case SRSLTE_PUCCH_FORMAT_2A:
   case SRSLTE_PUCCH_FORMAT_2B:
-    m = n_pucch/SRSLTE_NRE; 
+    m = n_pucch/SRSLTE_NRE;     
+  break;
+  default:
+    m = 0; 
   break;
   }
   return m; 
@@ -729,6 +739,8 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
           if (corr > corr_max && corr >= q->threshold_format1a) {
             corr_max = corr; 
             b_max = b; 
+          }
+          if (corr_max > q->threshold_format1a) {
             ret = 1; 
           }
           DEBUG("format1a b=%d, corr=%f, nof_re=%d, th=%f\n", b, corr, nof_re, q->threshold_format1a);
@@ -740,7 +752,6 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         ret = SRSLTE_ERROR; 
         break;
     }
-    ret = SRSLTE_SUCCESS; 
   }
 
   return ret;     

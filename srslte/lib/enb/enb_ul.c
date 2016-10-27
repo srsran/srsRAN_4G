@@ -190,7 +190,6 @@ int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint32_t idx,
       q->uci_cfg_en[idx] = false; 
     }
     if (pucch_sched) {
-      printf("saving sched for idx=%d, N_pucch_1=%d\n", idx, pucch_sched->N_pucch_1);
       memcpy(&q->pucch_sched[idx], pucch_sched, sizeof(srslte_pucch_sched_t));
     }
     if (srs_cfg) {
@@ -216,39 +215,59 @@ void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer)
   srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
 }
 
+int get_pucch(srslte_enb_ul_t *q, uint32_t rnti_idx, 
+              uint32_t pdcch_n_cce, uint32_t sf_rx, 
+              srslte_uci_data_t *uci_data, uint8_t bits[SRSLTE_PUCCH_MAX_BITS]) 
+{
+  float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
+  
+  srslte_pucch_format_t format = srslte_pucch_get_format(uci_data, q->cell.cp);
+    
+  uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data->scheduling_request, &q->pucch_sched[rnti_idx]);
+  
+  if (srslte_chest_ul_estimate_pucch(&q->chest, q->sf_symbols, q->ce, format, n_pucch, sf_rx)) {
+    fprintf(stderr,"Error estimating PUCCH DMRS\n");
+    return SRSLTE_ERROR;
+  }
+  
+  
+  int ret_val = srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, q->sf_symbols, q->ce, noise_power, bits); 
+  if (ret_val < 0) {
+    fprintf(stderr,"Error decoding PUCCH\n");
+    return SRSLTE_ERROR; 
+  }
+  return ret_val;
+}
+
 int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint32_t rnti_idx, 
                             uint32_t pdcch_n_cce, uint32_t sf_rx, 
                             srslte_uci_data_t *uci_data)
 {
-
+  uint8_t bits[SRSLTE_PUCCH_MAX_BITS];
+  
   if (rnti_idx < q->nof_rnti) {
-    
-    srslte_pucch_format_t format = srslte_pucch_get_format(uci_data, q->cell.cp);
-    
-    uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data->scheduling_request, &q->pucch_sched[rnti_idx]);
-    
-    if (srslte_chest_ul_estimate_pucch(&q->chest, q->sf_symbols, q->ce, format, n_pucch, sf_rx)) {
-      fprintf(stderr,"Error estimating PUCCH DMRS\n");
-      return SRSLTE_ERROR;
+
+    int ret_val = get_pucch(q, rnti_idx, pdcch_n_cce, sf_rx, uci_data, bits);
+
+    // If we are looking for SR and ACK at the same time and ret=0, means there is no SR. 
+    // try again to decode ACK only 
+    if (uci_data->scheduling_request && uci_data->uci_ack_len && ret_val != 1) {
+      uci_data->scheduling_request = false; 
+      ret_val = get_pucch(q, rnti_idx, pdcch_n_cce, sf_rx, uci_data, bits);
     }
-    
-    float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
-    
-    uint8_t bits[SRSLTE_PUCCH_MAX_BITS];
-    int ret_val = srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, q->sf_symbols, q->ce, noise_power, bits); 
-    if (ret_val < 0) {
-      fprintf(stderr,"Error decoding PUCCH\n");
-      return SRSLTE_ERROR; 
-    }
-    
+
     // update schedulign request 
     if (uci_data->scheduling_request) {
-      uci_data->scheduling_request = ret_val; 
+      uci_data->scheduling_request = (ret_val==1); 
     }
     
     // Save ACK bits 
     if (uci_data->uci_ack_len > 0) {
-      uci_data->uci_ack = bits[0];      
+      if (ret_val > 0) {
+        uci_data->uci_ack = bits[0];      
+      } else {
+        uci_data->uci_ack = 0; 
+      }
     }
     return SRSLTE_SUCCESS;
   } else {

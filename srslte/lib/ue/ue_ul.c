@@ -265,6 +265,7 @@ int srslte_ue_ul_pucch_encode(srslte_ue_ul_t *q, srslte_uci_data_t uci_data,
     
     // Choose n_pucch 
     uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data.scheduling_request, &q->pucch_sched);
+    
     if (srslte_pucch_encode(&q->pucch, format, n_pucch, sf_idx, pucch_bits, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 

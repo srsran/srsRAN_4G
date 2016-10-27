@@ -65,7 +65,7 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
     srslte_dci_format_t tmp = msg->format; 
     ret = srslte_dci_msg_unpack_pdsch(msg, dl_dci, nof_prb, nof_ports, crc_is_crnti);
     if (ret) {
-      fprintf(stderr, "Can't unpack DCI message %s (%d)\n", srslte_dci_format_string(tmp), tmp);
+      //fprintf(stderr, "Can't unpack DCI message %s (%d)\n", srslte_dci_format_string(tmp), tmp);
       return ret;
     } 
     
@@ -754,13 +754,13 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
     while(i<nof_bits && y[1+i] == 1)
       i++;
     if (i == nof_bits) {
-      printf("Warning check me: could this be a RA PDCCH order??\n");
+      //printf("Warning check me: could this be a RA PDCCH order??\n");
       i=1+10+nof_bits;
       while(i<msg->nof_bits-1 && y[i] == 0) {
         i++;
       }
       if (i == msg->nof_bits-1) {
-        printf("Received a Format1A RA PDCCH order. Not implemented!\n");
+        //printf("Received a Format1A RA PDCCH order. Not implemented!\n");
         return SRSLTE_ERROR;
       }
     }

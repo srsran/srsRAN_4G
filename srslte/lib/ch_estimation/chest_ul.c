@@ -269,8 +269,12 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
     return SRSLTE_ERROR; 
   }
     
-  int n_rs      = srslte_refsignal_dmrs_N_rs(format, q->cell.cp);
-  int nrefs_sf  = SRSLTE_NRE*n_rs*2; 
+  int n_rs = srslte_refsignal_dmrs_N_rs(format, q->cell.cp);
+  if (!n_rs) {
+    fprintf(stderr, "Error computing N_rs\n");
+    return SRSLTE_ERROR; 
+  }
+  int nrefs_sf = SRSLTE_NRE*n_rs*2; 
   
   /* Get references from the input signal */
   srslte_refsignal_dmrs_pucch_get(&q->dmrs_signal, format, n_pucch, input, q->pilot_recv_signal);
