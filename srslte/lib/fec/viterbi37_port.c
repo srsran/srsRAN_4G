@@ -50,10 +50,11 @@ int init_viterbi37_port(void *p, int starting_state) {
   struct v37 *vp = p;
   uint32_t i;
   
-  clear_v37(vp);
-  
   if (p == NULL)
     return -1;
+  
+  clear_v37(vp);
+    
   for (i = 0; i < 64; i++)
     vp->metrics1.w[i] = 63;
 

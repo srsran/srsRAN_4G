@@ -586,13 +586,9 @@ int srslte_refsignal_dmrs_pucch_gen(srslte_refsignal_ul_t *q, srslte_pucch_forma
         if (m == 1) {
           z_m = z_m_1; 
         }
-        if (w) {
-          for (uint32_t n=0;n<SRSLTE_NRE;n++) {
-            r_pucch[(ns%2)*SRSLTE_NRE*N_rs+m*SRSLTE_NRE+n] = z_m*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
-          }                                 
-        } else {
-          return SRSLTE_ERROR; 
-        }          
+        for (uint32_t n=0;n<SRSLTE_NRE;n++) {
+          r_pucch[(ns%2)*SRSLTE_NRE*N_rs+m*SRSLTE_NRE+n] = z_m*cexpf(I*(w[m]+q->tmp_arg[n]+alpha*n));
+        }                                 
       }
     }
     ret = SRSLTE_SUCCESS; 

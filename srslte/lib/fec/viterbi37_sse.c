@@ -69,11 +69,11 @@ void clear_v37_sse(struct v37 *vp) {
 int init_viterbi37_sse(void *p, int starting_state) {
   struct v37 *vp = p;
   uint32_t i;
-
-  clear_v37_sse(vp);
   
   for(i=0;i<64;i++)
     vp->metrics1.c[i] = 63;
+
+  clear_v37_sse(vp);
 
   vp->old_metrics = &vp->metrics1;
   vp->new_metrics = &vp->metrics2;
