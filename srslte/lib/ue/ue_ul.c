@@ -229,9 +229,12 @@ void pucch_encode_bits(srslte_uci_data_t *uci_data, srslte_pucch_format_t format
     pucch_bits[0] = uci_data->uci_ack; 
     pucch_bits[1] = uci_data->uci_ack_2; // this will be ignored in format 1a 
   }
-  if (format == SRSLTE_PUCCH_FORMAT_2A || format == SRSLTE_PUCCH_FORMAT_2B) {
-    pucch2_bits[0] = uci_data->uci_ack; 
-    pucch2_bits[1] = uci_data->uci_ack_2; // this will be ignored in format 2a 
+  if (format >= SRSLTE_PUCCH_FORMAT_2) {
+    srslte_uci_encode_cqi_pucch(uci_data->uci_cqi, uci_data->uci_cqi_len, pucch_bits);
+    if (format > SRSLTE_PUCCH_FORMAT_2) {
+      pucch2_bits[0] = uci_data->uci_ack; 
+      pucch2_bits[1] = uci_data->uci_ack_2; // this will be ignored in format 2a 
+    }
   }
 }
 
