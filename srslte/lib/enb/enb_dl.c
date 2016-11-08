@@ -37,7 +37,7 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define SRSLTE_ENB_RF_AMP 0.8
+#define SRSLTE_ENB_RF_AMP 0.5
 
 int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell, uint32_t nof_rnti)
 {

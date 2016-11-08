@@ -60,6 +60,18 @@
 
 #include "srslte/config.h"
 
+
+#define MAX_CANDIDATES_UE  16 // From 36.213 Table 9.1.1-1
+#define MAX_CANDIDATES_COM 6 // From 36.213 Table 9.1.1-1
+#define MAX_CANDIDATES (MAX_CANDIDATES_UE + MAX_CANDIDATES_COM)   
+
+
+typedef struct {
+  srslte_dci_format_t format; 
+  srslte_dci_location_t loc[MAX_CANDIDATES];
+  uint32_t nof_locations; 
+} dci_blind_search_t; 
+
 typedef struct SRSLTE_API {
   srslte_pcfich_t pcfich;
   srslte_pdcch_t pdcch;
@@ -85,7 +97,10 @@ typedef struct SRSLTE_API {
   uint64_t nof_detected; 
 
   uint16_t current_rnti;
+  dci_blind_search_t current_ss_ue[3][10];
+  dci_blind_search_t current_ss_common[3];
   srslte_dci_location_t last_location;
+  srslte_dci_location_t last_location_ul;
   
   srslte_dci_msg_t pending_ul_dci_msg; 
   uint16_t pending_ul_dci_rnti; 
