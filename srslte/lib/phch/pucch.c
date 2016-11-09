@@ -192,15 +192,15 @@ srslte_pucch_format_t srslte_pucch_get_format(srslte_uci_data_t *uci_data, srslt
       format = SRSLTE_PUCCH_FORMAT_2;    
     }
     // CQI + 1-bit ACK
-    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 1) {
+    else if (uci_data->uci_ack_len == 1 && SRSLTE_CP_ISNORM(cp)) {
       format = SRSLTE_PUCCH_FORMAT_2A;    
     }
     // CQI + 2-bit ACK 
-    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 2) {
+    else if (uci_data->uci_ack_len == 2) {
       format = SRSLTE_PUCCH_FORMAT_2B;    
     }
     // CQI + 2-bit ACK + cyclic prefix 
-    else if (uci_data->uci_cqi_len > 0 && uci_data->uci_ack_len == 1 && SRSLTE_CP_ISEXT(cp)) {
+    else if (uci_data->uci_ack_len == 1 && SRSLTE_CP_ISEXT(cp)) {
       format = SRSLTE_PUCCH_FORMAT_2B;    
     }
   }
@@ -213,7 +213,7 @@ uint32_t srslte_pucch_get_npucch(uint32_t n_cce, srslte_pucch_format_t format, b
   uint32_t n_pucch = 0; 
   if (has_scheduling_request) {
     n_pucch = pucch_sched->n_pucch_sr; 
-  } else if (format != SRSLTE_PUCCH_FORMAT_2) {
+  } else if (format < SRSLTE_PUCCH_FORMAT_2) {
     if (pucch_sched->sps_enabled) {
       n_pucch = pucch_sched->n_pucch_1[pucch_sched->tpc_for_pucch%4];
     } else {
