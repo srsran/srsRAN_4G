@@ -162,9 +162,9 @@ void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
   // Compute UE-specific and Common search space for this RNTI
   for (int cfi=0;cfi<3;cfi++) {
     for (int sf_idx=0;sf_idx<10;sf_idx++) {
-      q->current_ss_ue[cfi][sf_idx].nof_locations = srslte_pdcch_ue_locations(&q->pdcch, q->current_ss_ue[cfi][sf_idx].loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);              
+      q->current_ss_ue[cfi][sf_idx].nof_locations = srslte_pdcch_ue_locations(&q->pdcch, q->current_ss_ue[cfi][sf_idx].loc, MAX_CANDIDATES_UE, sf_idx, cfi+1, rnti);              
     }
-    q->current_ss_common[cfi].nof_locations = srslte_pdcch_common_locations(&q->pdcch, q->current_ss_common[cfi].loc, MAX_CANDIDATES_COM, cfi);
+    q->current_ss_common[cfi].nof_locations = srslte_pdcch_common_locations(&q->pdcch, q->current_ss_common[cfi].loc, MAX_CANDIDATES_COM, cfi+1);
   }  
   
   q->current_rnti = rnti; 
@@ -341,8 +341,10 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
     ret = 0; 
     int i=0;
     while (!ret && i < search_space->nof_locations) {
-      INFO("Searching format %s in %d,%d\n", 
-             srslte_dci_format_string(search_space->format), search_space->loc[i].ncce, search_space->loc[i].L);
+      DEBUG("Searching format %s in %d,%d (%d/%d)\n", 
+             srslte_dci_format_string(search_space->format), search_space->loc[i].ncce, search_space->loc[i].L, 
+             i, search_space->nof_locations);
+      
       if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &search_space->loc[i], search_space->format, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
@@ -357,7 +359,7 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
         // Else if we found it, save location and leave
         } else if (dci_msg->format == search_space->format) {
           ret = 1; 
-          if (search_space->format == SRSLTE_DCI_FORMAT0) {
+          if (dci_msg->format == SRSLTE_DCI_FORMAT0) {
             memcpy(&q->last_location_ul, &search_space->loc[i], sizeof(srslte_dci_location_t));          
           } else {
             memcpy(&q->last_location, &search_space->loc[i], sizeof(srslte_dci_location_t));          
@@ -385,12 +387,15 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, u
     // Configure and run DCI blind search 
     dci_blind_search_t search_space; 
     dci_blind_search_t *current_ss = &search_space;
-     if (q->current_rnti == rnti) {
+    if (q->current_rnti == rnti) {
       current_ss = &q->current_ss_ue[cfi-1][sf_idx];
     } else {
       // If locations are not pre-generated, generate them now
       current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
-    }    
+    }
+    
+    srslte_pdcch_set_cfi(&q->pdcch, cfi);
+    
     current_ss->format = SRSLTE_DCI_FORMAT0; 
     INFO("Searching UL C-RNTI in %d ue locations\n", search_space.nof_locations);
     return dci_blind_search(q, current_ss, rnti, dci_msg);
@@ -448,6 +453,9 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_i
     // If locations are not pre-generated, generate them now
     current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
   }
+  
+  srslte_pdcch_set_cfi(&q->pdcch, cfi);
+  
   INFO("Searching DL C-RNTI in %d ue locations, %d formats\n", current_ss->nof_locations, nof_ue_formats);
   for (int f=0;f<nof_ue_formats;f++) {
     current_ss->format = ue_formats[f];   
@@ -463,6 +471,9 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_i
     // If locations are not pre-generated, generate them now
     current_ss->nof_locations = srslte_pdcch_common_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_COM, cfi);
   }
+  
+  srslte_pdcch_set_cfi(&q->pdcch, cfi);
+  
   // Search for RNTI only if there is room for the common search space 
   if (current_ss->nof_locations > 0) {    
     current_ss->format = SRSLTE_DCI_FORMAT1A; 
