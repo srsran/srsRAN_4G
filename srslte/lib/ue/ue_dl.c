@@ -37,7 +37,6 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define MAX_LOCATIONS  64
 
 static srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // Only TM1 and TM2 are currently supported 
 const uint32_t nof_ue_formats = 2; 
@@ -159,6 +158,15 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
  */
 void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
   srslte_pdsch_set_rnti(&q->pdsch, rnti);
+  
+  // Compute UE-specific and Common search space for this RNTI
+  for (int cfi=0;cfi<3;cfi++) {
+    for (int sf_idx=0;sf_idx<10;sf_idx++) {
+      q->current_ss_ue[cfi][sf_idx].nof_locations = srslte_pdcch_ue_locations(&q->pdcch, q->current_ss_ue[cfi][sf_idx].loc, MAX_CANDIDATES_UE, sf_idx, cfi+1, rnti);              
+    }
+    q->current_ss_common[cfi].nof_locations = srslte_pdcch_common_locations(&q->pdcch, q->current_ss_common[cfi].loc, MAX_CANDIDATES_COM, cfi+1);
+  }  
+  
   q->current_rnti = rnti; 
 }
 
@@ -325,15 +333,6 @@ uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {
   return q->last_location.ncce; 
 }
 
-#define MAX_CANDIDATES_UE  16 // From 36.213 Table 9.1.1-1
-#define MAX_CANDIDATES_COM 6 // From 36.213 Table 9.1.1-1
-#define MAX_CANDIDATES (MAX_CANDIDATES_UE + MAX_CANDIDATES_COM)   
-typedef struct {
-  srslte_dci_format_t format; 
-  srslte_dci_location_t loc[MAX_CANDIDATES];
-  uint32_t nof_locations; 
-} dci_blind_search_t; 
-
 static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space, uint16_t rnti, srslte_dci_msg_t *dci_msg) 
 {
   int ret = SRSLTE_ERROR; 
@@ -342,8 +341,10 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
     ret = 0; 
     int i=0;
     while (!ret && i < search_space->nof_locations) {
-      INFO("Searching format %s in %d,%d\n", 
-             srslte_dci_format_string(search_space->format), search_space->loc[i].ncce, search_space->loc[i].L);
+      DEBUG("Searching format %s in %d,%d (%d/%d)\n", 
+             srslte_dci_format_string(search_space->format), search_space->loc[i].ncce, search_space->loc[i].L, 
+             i, search_space->nof_locations);
+      
       if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &search_space->loc[i], search_space->format, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
@@ -354,10 +355,15 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
         {
           q->pending_ul_dci_rnti = crc_rem; 
           memcpy(&q->pending_ul_dci_msg, dci_msg, sizeof(srslte_dci_msg_t));          
+          memcpy(&q->last_location_ul, &search_space->loc[i], sizeof(srslte_dci_location_t));          
         // Else if we found it, save location and leave
         } else if (dci_msg->format == search_space->format) {
           ret = 1; 
-          memcpy(&q->last_location, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+          if (dci_msg->format == SRSLTE_DCI_FORMAT0) {
+            memcpy(&q->last_location_ul, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+          } else {
+            memcpy(&q->last_location, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+          }
         } 
       }
       i++; 
@@ -380,10 +386,19 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, u
     
     // Configure and run DCI blind search 
     dci_blind_search_t search_space; 
-    search_space.format = SRSLTE_DCI_FORMAT0; 
-    search_space.nof_locations = srslte_pdcch_ue_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
+    dci_blind_search_t *current_ss = &search_space;
+    if (q->current_rnti == rnti) {
+      current_ss = &q->current_ss_ue[cfi-1][sf_idx];
+    } else {
+      // If locations are not pre-generated, generate them now
+      current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
+    }
+    
+    srslte_pdcch_set_cfi(&q->pdcch, cfi);
+    
+    current_ss->format = SRSLTE_DCI_FORMAT0; 
     INFO("Searching UL C-RNTI in %d ue locations\n", search_space.nof_locations);
-    return dci_blind_search(q, &search_space, rnti, dci_msg);
+    return dci_blind_search(q, current_ss, rnti, dci_msg);
   } else {
     return 0; 
   }
@@ -428,25 +443,42 @@ static int find_dl_dci_type_siprarnti(srslte_ue_dl_t *q, uint32_t cfi, uint16_t 
 static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
   int ret = SRSLTE_SUCCESS; 
+  dci_blind_search_t search_space; 
+  dci_blind_search_t *current_ss = &search_space;
   
   // Search UE-specific search space 
-  dci_blind_search_t search_space; 
-  search_space.nof_locations = srslte_pdcch_ue_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);    
-  INFO("Searching DL C-RNTI in %d ue locations, %d formats\n", search_space.nof_locations, nof_ue_formats);
+  if (q->current_rnti == rnti) {
+    current_ss = &q->current_ss_ue[cfi-1][sf_idx];
+  } else {
+    // If locations are not pre-generated, generate them now
+    current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
+  }
+  
+  srslte_pdcch_set_cfi(&q->pdcch, cfi);
+  
+  INFO("Searching DL C-RNTI in %d ue locations, %d formats\n", current_ss->nof_locations, nof_ue_formats);
   for (int f=0;f<nof_ue_formats;f++) {
-    search_space.format = ue_formats[f];   
-    if ((ret = dci_blind_search(q, &search_space, rnti, dci_msg))) {
+    current_ss->format = ue_formats[f];   
+    if ((ret = dci_blind_search(q, current_ss, rnti, dci_msg))) {
       return ret; 
     }
   }
   
   // Search Format 1A in the Common SS also
-  search_space.format = SRSLTE_DCI_FORMAT1A; 
-  search_space.nof_locations = srslte_pdcch_common_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_COM, cfi);
+  if (q->current_rnti == rnti) {
+    current_ss = &q->current_ss_common[cfi-1];
+  } else {
+    // If locations are not pre-generated, generate them now
+    current_ss->nof_locations = srslte_pdcch_common_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_COM, cfi);
+  }
+  
+  srslte_pdcch_set_cfi(&q->pdcch, cfi);
+  
   // Search for RNTI only if there is room for the common search space 
-  if (search_space.nof_locations > 0) {    
-    INFO("Searching DL C-RNTI in %d ue locations, format 1A\n", search_space.nof_locations, nof_ue_formats);
-    return dci_blind_search(q, &search_space, rnti, dci_msg);   
+  if (current_ss->nof_locations > 0) {    
+    current_ss->format = SRSLTE_DCI_FORMAT1A; 
+    INFO("Searching DL C-RNTI in %d ue locations, format 1A\n", current_ss->nof_locations, nof_ue_formats);
+    return dci_blind_search(q, current_ss, rnti, dci_msg);   
   }
   return SRSLTE_SUCCESS; 
 }

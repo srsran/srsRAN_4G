@@ -73,7 +73,7 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
-    srslte_ofdm_set_normalize(&q->fft, true);
+    srslte_ofdm_set_normalize(&q->fft, false);
     srslte_ofdm_set_freq_shift(&q->fft, -0.5);
 
     if (srslte_pucch_init(&q->pucch, q->cell)) {

@@ -52,6 +52,9 @@ static void set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
   } 
 }
 
+void srslte_pdcch_set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
+  set_cfi(q, cfi);
+}
 
 /** Initializes the PDCCH transmitter and receiver */
 int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
@@ -217,7 +220,8 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
     }
   }    
 
-  DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", k, rnti);
+  DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x, nsubframe=%d, nof_cce=%d\n", 
+         k, rnti, nsubframe, nof_cce);
   
   return k; 
 }

@@ -32,8 +32,6 @@
 
 #include "srslte/srslte.h"
 
-#define MAX_CANDIDATES 16
-
 char *input_file_name = NULL;
 
 srslte_cell_t cell = {
