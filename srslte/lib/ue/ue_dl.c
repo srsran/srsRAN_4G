@@ -477,7 +477,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_i
   // Search for RNTI only if there is room for the common search space 
   if (current_ss->nof_locations > 0) {    
     current_ss->format = SRSLTE_DCI_FORMAT1A; 
-    INFO("Searching DL C-RNTI in %d ue locations, format 1A\n", current_ss->nof_locations, nof_ue_formats);
+    INFO("Searching DL C-RNTI in %d ue locations, format 1A\n", current_ss->nof_locations);
     return dci_blind_search(q, current_ss, rnti, dci_msg);   
   }
   return SRSLTE_SUCCESS; 
