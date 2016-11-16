@@ -1,6 +1,11 @@
 Change Log for Releases
 ==============================
 
+## 001.004.000
+  * Fixed issue in rv for format1C causing incorrect SIB1 decoding in some networks
+  * Improved PDCCH decoding BER (fixed incorrect trellis initialization)
+  * Improved PUCCH RX performance
+
 ## 001.003.000
 
 * Bugfixes: 
