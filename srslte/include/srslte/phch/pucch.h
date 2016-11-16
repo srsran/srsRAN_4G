@@ -101,6 +101,7 @@ typedef struct SRSLTE_API {
 
   float threshold_format1;
   float threshold_format1a;
+  float last_corr;
   
 }srslte_pucch_t;
 
@@ -124,6 +125,8 @@ SRSLTE_API int srslte_pucch_set_crnti(srslte_pucch_t *q,
 SRSLTE_API uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, 
                                              srslte_pucch_format_t format, 
                                              bool shortened); 
+
+SRSLTE_API float srslte_pucch_get_last_corr(srslte_pucch_t* q); 
 
 SRSLTE_API int srslte_pucch_encode(srslte_pucch_t *q, 
                                    srslte_pucch_format_t format,

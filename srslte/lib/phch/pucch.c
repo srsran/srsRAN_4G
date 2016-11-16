@@ -671,6 +671,10 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
   return ret;     
 }
 
+float srslte_pucch_get_last_corr(srslte_pucch_t* q) 
+{
+  return q->last_corr; 
+}
   
 /* Equalize, demodulate and decode PUCCH bits according to Section 5.4.1 of 36.211 */
 int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format, 
@@ -752,6 +756,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         ret = SRSLTE_ERROR; 
         break;
     }
+    q->last_corr = corr; 
   }
 
   return ret;     
