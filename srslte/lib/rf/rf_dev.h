@@ -28,7 +28,8 @@
 /* RF frontend API */
 typedef struct {
   const char *name;
-  bool   (*srslte_rf_rx_wait_lo_locked) (void*);
+  char*  (*srslte_rf_devname) (void *h);
+  bool   (*srslte_rf_rx_wait_lo_locked) (void *h);
   int    (*srslte_rf_start_rx_stream)(void *h);
   int    (*srslte_rf_stop_rx_stream)(void *h);
   void   (*srslte_rf_flush_buffer)(void *h);
@@ -67,6 +68,7 @@ typedef struct {
 
 static rf_dev_t dev_uhd = {
   "UHD", 
+  rf_uhd_devname,
   rf_uhd_rx_wait_lo_locked,
   rf_uhd_start_rx_stream,
   rf_uhd_stop_rx_stream,
@@ -102,6 +104,7 @@ static rf_dev_t dev_uhd = {
 
 static rf_dev_t dev_blade = {
   "bladeRF", 
+  rf_blade_devname,
   rf_blade_rx_wait_lo_locked,
   rf_blade_start_rx_stream,
   rf_blade_stop_rx_stream,
@@ -143,6 +146,7 @@ void dummy_fnc() {
 
 static rf_dev_t dev_dummy = {
   "dummy", 
+  dummy_fnc,
   dummy_fnc,
   dummy_fnc,
   dummy_fnc,

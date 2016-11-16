@@ -451,7 +451,7 @@ static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer) {
   if (q->next_rf_sample_offset < 0) {
     q->next_rf_sample_offset = -q->next_rf_sample_offset;
   }
-
+  
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
   if (q->recv_callback(q->stream, &input_buffer[q->next_rf_sample_offset], q->frame_len - q->next_rf_sample_offset, &q->last_timestamp) < 0) {
     return SRSLTE_ERROR;
@@ -529,7 +529,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
               break;
             case SRSLTE_SYNC_FOUND_NOSPACE:
               /* If a peak was found but there is not enough space for SSS/CP detection, discard a few samples */
-              printf("No space for SSS/CP detection. Realigning frame...\n");
+              INFO("No space for SSS/CP detection. Realigning frame...\n",0);
               q->recv_callback(q->stream, dummy_offset_buffer, q->frame_len/2, NULL); 
               srslte_sync_reset(&q->sfind);
               ret = SRSLTE_SUCCESS; 
@@ -605,14 +605,12 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
             } 
                       
             q->frame_total_cnt++;       
-          } else {
-            if (q->correct_cfo) {
-              srslte_cfo_correct(&q->sfind.cfocorr, 
+          } 
+          if (q->correct_cfo) {
+            srslte_cfo_correct(&q->sfind.cfocorr, 
                           input_buffer, 
                           input_buffer, 
-                          -srslte_sync_get_cfo(&q->strack) / q->fft_size);               
-                          
-            }            
+                          -srslte_sync_get_cfo(&q->strack) / q->fft_size);                         
           }          
         break;
       }

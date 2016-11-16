@@ -70,7 +70,12 @@ const unsigned int buffer_size_tx = 1024;
 const unsigned int num_transfers  = 32;
 const unsigned int timeout_ms     = 4000;
 
-  
+ 
+char* rf_blade_devname(void* h)
+{
+  return DEVNAME;
+}
+
 int rf_blade_start_tx_stream(void *h)
 {
   int status; 
@@ -336,6 +341,10 @@ double rf_blade_set_rx_freq(void *h, double freq)
             (uint32_t) freq, bladerf_strerror(status));
     return -1;
   }
+  f_int=0;
+  bladerf_get_frequency(handler->dev, BLADERF_MODULE_RX, &f_int);
+  printf("set RX frequency to %u\n", f_int);
+  
   return freq;
 }
 
@@ -350,6 +359,9 @@ double rf_blade_set_tx_freq(void *h, double freq)
     return -1;
   }
   
+  f_int=0;
+  bladerf_get_frequency(handler->dev, BLADERF_MODULE_TX, &f_int);
+  printf("set TX frequency to %u\n", f_int);
   return freq;
 }
 

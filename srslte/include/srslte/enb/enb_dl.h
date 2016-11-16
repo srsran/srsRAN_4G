@@ -92,7 +92,7 @@ typedef struct SRSLTE_API {
 } srslte_enb_dl_t;
 
 typedef struct {
-  uint32_t                rnti_idx; 
+  int                     rnti_idx; 
   srslte_ra_dl_dci_t      grant;
   srslte_dci_location_t   location; 
   srslte_softbuffer_tx_t *softbuffer;
@@ -101,7 +101,7 @@ typedef struct {
 
 typedef struct {
   uint8_t  ack;
-  uint32_t rnti_idx; 
+  int      rnti_idx; 
 } srslte_enb_dl_phich_t; 
 
 /* This function shall be called just after the initial synchronization */

@@ -46,6 +46,7 @@
 
 #define SRSLTE_REFSIGNAL_UL_L(ns_idx, cp) ((ns_idx+1)*SRSLTE_CP_NSYMB(cp)-4)
 
+/* PUSCH DMRS common configuration (received in SIB2) */
 typedef struct SRSLTE_API {
   uint32_t cyclic_shift; 
   uint32_t delta_ss;  
@@ -53,15 +54,19 @@ typedef struct SRSLTE_API {
   bool sequence_hopping_en; 
 }srslte_refsignal_dmrs_pusch_cfg_t;
 
+
 typedef struct SRSLTE_API {
+  // Common Configuration 
   uint32_t subframe_config;
-  uint32_t I_srs; 
   uint32_t bw_cfg; 
-  uint32_t n_srs; 
-  uint32_t k_tc; 
-  uint32_t n_rrc;
+
+  // Dedicated configuration 
   uint32_t B; 
   uint32_t b_hop; 
+  uint32_t n_srs; 
+  uint32_t I_srs; 
+  uint32_t k_tc; 
+  uint32_t n_rrc;
   bool configured; 
 }srslte_refsignal_srs_cfg_t;
 
@@ -100,6 +105,13 @@ SRSLTE_API void srslte_refsignal_ul_set_cfg(srslte_refsignal_ul_t *q,
 
 SRSLTE_API void srslte_refsignal_r_uv_arg_1prb(float *arg, 
                                                uint32_t u); 
+
+SRSLTE_API uint32_t srslte_refsignal_dmrs_N_rs(srslte_pucch_format_t format, 
+                                               srslte_cp_t cp); 
+
+SRSLTE_API uint32_t srslte_refsignal_dmrs_pucch_symbol(uint32_t m, 
+                                                       srslte_pucch_format_t format, 
+                                                       srslte_cp_t cp); 
 
 SRSLTE_API bool srslte_refsignal_dmrs_pusch_cfg_isvalid(srslte_refsignal_ul_t *q, 
                                                         srslte_refsignal_dmrs_pusch_cfg_t *cfg, 
@@ -149,6 +161,12 @@ SRSLTE_API int srslte_refsignal_dmrs_pucch_put(srslte_refsignal_ul_t* q,
                                                uint32_t n_pucch, 
                                                cf_t *r_pucch, 
                                                cf_t *output);
+
+SRSLTE_API int srslte_refsignal_dmrs_pucch_get(srslte_refsignal_ul_t* q, 
+                                               srslte_pucch_format_t format, 
+                                               uint32_t n_pucch, 
+                                               cf_t *input, 
+                                               cf_t *r_pucch);
 
 SRSLTE_API int srslte_refsignal_srs_pregen(srslte_refsignal_ul_t *q, 
                                            srslte_refsignal_srs_pregen_t *pregen);

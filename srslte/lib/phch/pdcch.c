@@ -52,6 +52,9 @@ static void set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
   } 
 }
 
+void srslte_pdcch_set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
+  set_cfi(q, cfi);
+}
 
 /** Initializes the PDCCH transmitter and receiver */
 int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
@@ -187,7 +190,7 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
   int l; // this must be int because of the for(;;--) loop
   uint32_t i, k, L, m; 
   uint32_t Yk, ncce;
-  const int M[4] = { 6, 6, 2, 2 };
+  const int S[4] = { 6, 12, 8, 16 };
 
   // Compute Yk for this subframe
   Yk = rnti;
@@ -200,7 +203,7 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
   for (l = 3; l >= 0; l--) {
     L = (1 << l);
     // For all possible ncce offset
-    for (i = 0; i < M[l]; i++) {
+    for (i = 0; i < SRSLTE_MIN(nof_cce / L, S[l]/PDCCH_FORMAT_NOF_CCE(l)); i++) {
       if (nof_cce > L) {
         ncce = L * ((Yk + i) % (nof_cce / L));      
         if (k < max_candidates  && ncce + L <= nof_cce) 
@@ -217,7 +220,8 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
     }
   }    
 
-  DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x\n", k, rnti);
+  DEBUG("Initiated %d candidate(s) in the UE-specific search space for C-RNTI: 0x%x, nsubframe=%d, nof_cce=%d\n", 
+         k, rnti, nsubframe, nof_cce);
   
   return k; 
 }
@@ -240,22 +244,17 @@ uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, srslte_dci_location_t 
 uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates) 
 {
   uint32_t i, l, L, k;
-  const int M[4] = { 0, 0, 4, 2 };
-  
+
   k = 0;
   for (l = 3; l > 1; l--) {
     L = (1 << l);
-    for (i = 0; i < M[l]; i++) {
-      if (nof_cce > L) {
-        uint32_t ncce = L * (i % (nof_cce / L));
-        if (k < max_candidates  && ncce + L <= nof_cce) 
-        {  
-          c[k].L = l;
-          c[k].ncce = ncce; 
-          DEBUG("Common SS Candidate %d: nCCE: %d, L: %d\n",
-              k, c[k].ncce, c[k].L);
-          k++;          
-        }
+    for (i = 0; i < SRSLTE_MIN(nof_cce, 16) / (L); i++) {
+      if (k < max_candidates) {
+        c[k].L = l;
+        c[k].ncce = (L) * (i % (nof_cce / (L)));
+        DEBUG("Common SS Candidate %d: nCCE: %d, L: %d\n",
+            k, c[k].ncce, c[k].L);
+        k++;
       }
     }
   }

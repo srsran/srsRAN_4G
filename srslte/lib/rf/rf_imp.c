@@ -137,7 +137,7 @@ void srslte_rf_set_rx_cal(srslte_rf_t *rf, srslte_rf_cal_t *cal) {
 
 
 const char* srslte_rf_name(srslte_rf_t *rf) {
-  return ((rf_dev_t*) rf->dev)->name; 
+  return ((rf_dev_t*) rf->dev)->srslte_rf_devname(rf->handler); 
 }
 
 bool srslte_rf_rx_wait_lo_locked(srslte_rf_t *rf)

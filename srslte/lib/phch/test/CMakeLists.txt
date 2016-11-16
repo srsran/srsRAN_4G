@@ -146,7 +146,7 @@ target_link_libraries(pucch_test srslte)
 add_test(pucch_test pucch_test)
 
 BuildMex(MEXNAME pucch_encode SOURCES pucch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
-
+BuildMex(MEXNAME pucch SOURCES pucch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 

@@ -73,11 +73,20 @@ typedef struct SRSLTE_API {
   srslte_prach_t  prach;
   
   srslte_pusch_cfg_t     pusch_cfg; 
-
+  
+  srslte_pusch_hopping_cfg_t hopping_cfg;
+  
+  // Configuration for each user
+  bool *uci_cfg_en;
+  bool *srs_cfg_en;
+  srslte_uci_cfg_t *uci_cfg;
+  srslte_refsignal_srs_cfg_t *srs_cfg;
+  srslte_pucch_sched_t *pucch_sched;
+  
 } srslte_enb_ul_t;
 
 typedef struct {
-  uint32_t                rnti_idx; 
+  int                     rnti_idx; 
   srslte_ra_ul_dci_t      grant;
   srslte_dci_location_t   location; 
   uint32_t                rv_idx; 
@@ -85,6 +94,7 @@ typedef struct {
   bool                    needs_pdcch; 
   uint8_t                *data; 
   srslte_softbuffer_rx_t *softbuffer;
+  
 } srslte_enb_ul_pusch_t; 
 
 /* This function shall be called just after the initial synchronization */
@@ -92,6 +102,7 @@ SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t *q,
                                   srslte_cell_t cell, 
                                   srslte_prach_cfg_t* prach_cfg, 
                                   srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
+                                  srslte_pusch_hopping_cfg_t *hopping_cfg,
                                   srslte_pucch_cfg_t *pucch_cfg,
                                   uint32_t nof_rntis);
 
@@ -101,11 +112,23 @@ SRSLTE_API int srslte_enb_ul_cfg_rnti(srslte_enb_ul_t *q,
                                       uint32_t idx, 
                                       uint16_t rnti); 
 
+SRSLTE_API int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint32_t idx, 
+                                    srslte_uci_cfg_t *uci_cfg, 
+                                    srslte_pucch_sched_t *pucch_sched,
+                                    srslte_refsignal_srs_cfg_t *srs_cfg);
+
+
 SRSLTE_API int srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, 
                                       uint32_t idx); 
 
 SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q, 
                                   cf_t *signal_buffer); 
+
+SRSLTE_API int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, 
+                                       uint32_t rnti_idx, 
+                                       uint32_t pdcch_n_cce, 
+                                       uint32_t sf_rx, 
+                                       srslte_uci_data_t *uci_data); 
 
 SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, 
                                        srslte_ra_ul_grant_t *grant, 
@@ -123,7 +146,7 @@ SRSLTE_API int srslte_enb_ul_detect_prach(srslte_enb_ul_t *q,
                                           cf_t *signal, 
                                           uint32_t *indices, 
                                           float *offsets, 
-					  float *peak2avg);
+                                          float *peak2avg);
 
 
 #endif

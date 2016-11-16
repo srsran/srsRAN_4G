@@ -1,13 +1,13 @@
 %% PRACH Detection Conformance Test
 %clear
 
-d=50;%linspace(4,14,6);
+d=80;%linspace(4,14,6);
 pDetection2 = zeros(2,length(d));
 for dd=1:length(d)
 detect_factor=d(dd);
 
 numSubframes = 1;  % Number of subframes frames to simulate at each SNR
-SNRdB = 10;%linspace(-14,10,8);  % SNR points to simulate
+SNRdB = 50;%linspace(-14,10,8);  % SNR points to simulate
 foffset = 0.0;           % Frequency offset in Hertz
 delay=0;
 add_fading=false; 
@@ -26,7 +26,7 @@ ue.NTxAnts = 1;                 % Number of transmission antennas
 
 prach.Format = 0;          % PRACH format: TS36.104, Table 8.4.2.1-1
 prach.HighSpeed = 0;       % Normal mode: TS36.104, Table 8.4.2.1-1
-prach.FreqOffset = 4;      % Default frequency location
+prach.FreqOffset = 2;      % Default frequency location
 info = ltePRACHInfo(ue, prach);  % PRACH information
     
 %% Propagation Channel Configuration
@@ -67,9 +67,10 @@ for nSNR = 1:length(SNRdB)
     % Loop for each subframe
     for nsf = 1:numSubframes
 
-        prach.SeqIdx = 0;%randi(838,1,1)-1;         % Logical sequence index: TS36.141, Table A.6-1
+        prach.SeqIdx = 41;%randi(838,1,1)-1;         % Logical sequence index: TS36.141, Table A.6-1
         prach.CyclicShiftIdx = 11;%randi(16,1,1)-1;  % Cyclic shift index: TS36.141, Table A.6-1
         prach.PreambleIdx = 1;%randi(64,1,1)-1;    % Preamble index: TS36.141, Table A.6-1
+        prach.TimingOffset = 0; 
         info = ltePRACHInfo(ue, prach);  % PRACH information
 
         % PRACH transmission
@@ -99,7 +100,7 @@ for nSNR = 1:length(SNRdB)
             rxwave = rxwave((fadinginfo.ChannelFilterDelay + 1):end, :);  
         end
 
-        rxwave=x;
+        rxwave=lteFrequencyCorrect(ue, x, -20);
        % rxwave=[zeros(delay,1); txwave(1:end-delay)];
 
         % Apply frequency offset

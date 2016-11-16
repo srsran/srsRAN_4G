@@ -37,7 +37,6 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define MAX_LOCATIONS  64
 
 static srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // Only TM1 and TM2 are currently supported 
 const uint32_t nof_ue_formats = 2; 
@@ -159,6 +158,15 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
  */
 void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
   srslte_pdsch_set_rnti(&q->pdsch, rnti);
+  
+  // Compute UE-specific and Common search space for this RNTI
+  for (int cfi=0;cfi<3;cfi++) {
+    for (int sf_idx=0;sf_idx<10;sf_idx++) {
+      q->current_ss_ue[cfi][sf_idx].nof_locations = srslte_pdcch_ue_locations(&q->pdcch, q->current_ss_ue[cfi][sf_idx].loc, MAX_CANDIDATES_UE, sf_idx, cfi+1, rnti);              
+    }
+    q->current_ss_common[cfi].nof_locations = srslte_pdcch_common_locations(&q->pdcch, q->current_ss_common[cfi].loc, MAX_CANDIDATES_COM, cfi+1);
+  }  
+  
   q->current_rnti = rnti; 
 }
 
@@ -178,12 +186,8 @@ void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, float sample_offset) {
  *    - PDCCH decoding: Find DCI for RNTI given by previous call to srslte_ue_dl_set_rnti()
  *    - PDSCH decoding: Decode TB scrambling with RNTI given by srslte_ue_dl_set_rnti()
  */
-int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx) {
-  return srslte_ue_dl_decode_rnti_rv(q, input, data, sf_idx, q->current_rnti, 0);
-}
-
-int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti) {
-  return srslte_ue_dl_decode_rnti_rv(q, input, data, sf_idx, rnti, 0);
+int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti) {
+  return srslte_ue_dl_decode_rnti(q, input, data, tti, q->current_rnti);
 }
 
 int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) {
@@ -241,60 +245,93 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
   return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx);
 }
 
-int srslte_ue_dl_decode_rnti_rv_packet(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint8_t *data, 
-                                uint32_t cfi, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
+int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti, uint16_t rnti) 
 {
+  srslte_dci_msg_t dci_msg;
+  srslte_ra_dl_dci_t dci_unpacked;
+  srslte_ra_dl_grant_t grant; 
   int ret = SRSLTE_ERROR; 
+  uint32_t cfi;
+  
+  uint32_t sf_idx = tti%10; 
+  
+  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &cfi)) < 0) {
+    return ret; 
+  }
+  
+  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
+    fprintf(stderr, "Error extracting LLRs\n");
+    return SRSLTE_ERROR;
+  }
 
-  q->nof_detected++;
-  
-  /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
-  if (srslte_ue_dl_cfg_grant(q, grant, cfi, sf_idx, rvidx)) {
-    return SRSLTE_ERROR; 
-  }
-  
-  if (q->pdsch_cfg.rv == 0) {
-    srslte_softbuffer_rx_reset_tbs(&q->softbuffer, grant->mcs.tbs);
-  }
-  
-  // Uncoment next line to do ZF by default in pdsch_ue example
-  //float noise_estimate = 0; 
-  float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
-  
-  if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
-    ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
-                                   q->sf_symbols, q->ce, 
-                                   noise_estimate, 
-                                   rnti, data);
+  int found_dci = srslte_ue_dl_find_dl_dci(q, cfi, sf_idx, rnti, &dci_msg);   
+  if (found_dci == 1) {
     
-    if (ret == SRSLTE_ERROR) {
-      q->pkt_errors++;
-    } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
-      fprintf(stderr, "Error calling srslte_pdsch_decode()\n");      
-    } else if (ret == SRSLTE_SUCCESS) {
-      if (SRSLTE_VERBOSE_ISDEBUG()) {
-        INFO("Decoded Message: ", 0);
-        srslte_vec_fprint_hex(stdout, data, q->pdsch_cfg.grant.mcs.tbs);
-      }
+    if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, q->cell.nof_ports, &dci_unpacked, &grant)) {
+      fprintf(stderr, "Error unpacking DCI\n");
+      return SRSLTE_ERROR;   
     }
-    q->pkts_total++;
-  }
-  return ret; 
-}
+    
+    /* ===== These lines of code are supposed to be MAC functionality === */
 
+    
+    uint32_t rvidx = 0; 
+    if (dci_unpacked.rv_idx < 0) {
+      uint32_t sfn = tti/10; 
+      uint32_t k   = (sfn/2)%4; 
+      rvidx        = ((uint32_t) ceilf((float)1.5*k))%4;
+      srslte_softbuffer_rx_reset_tbs(&q->softbuffer, grant.mcs.tbs);      
+    } else {
+      rvidx = dci_unpacked.rv_idx;
+      srslte_softbuffer_rx_reset_tbs(&q->softbuffer, grant.mcs.tbs);      
+    }
+
+    if (srslte_ue_dl_cfg_grant(q, &grant, cfi, sf_idx, rvidx)) {
+      return SRSLTE_ERROR; 
+    }
+    
+    /* ===== End of MAC functionality ========== */
+
+    q->nof_detected++;
+  
+    // Uncoment next line to do ZF by default in pdsch_ue example
+    //float noise_estimate = 0; 
+    float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
+    
+    if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
+      ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
+                                    q->sf_symbols, q->ce, 
+                                    noise_estimate, 
+                                    rnti, data);
+      
+      if (ret == SRSLTE_ERROR) {
+        q->pkt_errors++;
+      } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
+        fprintf(stderr, "Error calling srslte_pdsch_decode()\n");      
+      } 
+    }
+  
+  /*
+    printf("Saving signal...\n");
+    srslte_vec_save_file("input", input, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+    srslte_ue_dl_save_signal(q, &q->softbuffer, sf_idx, rvidx, rnti, cfi);
+    //exit(-1);
+  */
+  
+  }
+
+  q->pkts_total++;
+
+  if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
+    return q->pdsch_cfg.grant.mcs.tbs;    
+  } else {
+    return 0;
+  }
+}
 
 uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {
   return q->last_location.ncce; 
 }
-
-#define MAX_CANDIDATES_UE  16 // From 36.213 Table 9.1.1-1
-#define MAX_CANDIDATES_COM 6 // From 36.213 Table 9.1.1-1
-#define MAX_CANDIDATES (MAX_CANDIDATES_UE + MAX_CANDIDATES_COM)   
-typedef struct {
-  srslte_dci_format_t format; 
-  srslte_dci_location_t loc[MAX_CANDIDATES];
-  uint32_t nof_locations; 
-} dci_blind_search_t; 
 
 static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space, uint16_t rnti, srslte_dci_msg_t *dci_msg) 
 {
@@ -304,8 +341,10 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
     ret = 0; 
     int i=0;
     while (!ret && i < search_space->nof_locations) {
-      INFO("Searching format %s in %d,%d\n", 
-             srslte_dci_format_string(search_space->format), search_space->loc[i].ncce, search_space->loc[i].L);
+      DEBUG("Searching format %s in %d,%d (%d/%d)\n", 
+             srslte_dci_format_string(search_space->format), search_space->loc[i].ncce, search_space->loc[i].L, 
+             i, search_space->nof_locations);
+      
       if (srslte_pdcch_decode_msg(&q->pdcch, dci_msg, &search_space->loc[i], search_space->format, &crc_rem)) {
         fprintf(stderr, "Error decoding DCI msg\n");
         return SRSLTE_ERROR;
@@ -316,10 +355,15 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
         {
           q->pending_ul_dci_rnti = crc_rem; 
           memcpy(&q->pending_ul_dci_msg, dci_msg, sizeof(srslte_dci_msg_t));          
+          memcpy(&q->last_location_ul, &search_space->loc[i], sizeof(srslte_dci_location_t));          
         // Else if we found it, save location and leave
         } else if (dci_msg->format == search_space->format) {
           ret = 1; 
-          memcpy(&q->last_location, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+          if (dci_msg->format == SRSLTE_DCI_FORMAT0) {
+            memcpy(&q->last_location_ul, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+          } else {
+            memcpy(&q->last_location, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+          }
         } 
       }
       i++; 
@@ -342,10 +386,19 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, u
     
     // Configure and run DCI blind search 
     dci_blind_search_t search_space; 
-    search_space.format = SRSLTE_DCI_FORMAT0; 
-    search_space.nof_locations = srslte_pdcch_ue_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
+    dci_blind_search_t *current_ss = &search_space;
+    if (q->current_rnti == rnti) {
+      current_ss = &q->current_ss_ue[cfi-1][sf_idx];
+    } else {
+      // If locations are not pre-generated, generate them now
+      current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
+    }
+    
+    srslte_pdcch_set_cfi(&q->pdcch, cfi);
+    
+    current_ss->format = SRSLTE_DCI_FORMAT0; 
     INFO("Searching UL C-RNTI in %d ue locations\n", search_space.nof_locations);
-    return dci_blind_search(q, &search_space, rnti, dci_msg);
+    return dci_blind_search(q, current_ss, rnti, dci_msg);
   } else {
     return 0; 
   }
@@ -390,25 +443,42 @@ static int find_dl_dci_type_siprarnti(srslte_ue_dl_t *q, uint32_t cfi, uint16_t 
 static int find_dl_dci_type_crnti(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
   int ret = SRSLTE_SUCCESS; 
+  dci_blind_search_t search_space; 
+  dci_blind_search_t *current_ss = &search_space;
   
   // Search UE-specific search space 
-  dci_blind_search_t search_space; 
-  search_space.nof_locations = srslte_pdcch_ue_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);    
-  INFO("Searching DL C-RNTI in %d ue locations, %d formats\n", search_space.nof_locations, nof_ue_formats);
+  if (q->current_rnti == rnti) {
+    current_ss = &q->current_ss_ue[cfi-1][sf_idx];
+  } else {
+    // If locations are not pre-generated, generate them now
+    current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_UE, sf_idx, cfi, rnti);        
+  }
+  
+  srslte_pdcch_set_cfi(&q->pdcch, cfi);
+  
+  INFO("Searching DL C-RNTI in %d ue locations, %d formats\n", current_ss->nof_locations, nof_ue_formats);
   for (int f=0;f<nof_ue_formats;f++) {
-    search_space.format = ue_formats[f];   
-    if ((ret = dci_blind_search(q, &search_space, rnti, dci_msg))) {
+    current_ss->format = ue_formats[f];   
+    if ((ret = dci_blind_search(q, current_ss, rnti, dci_msg))) {
       return ret; 
     }
   }
   
   // Search Format 1A in the Common SS also
-  search_space.format = SRSLTE_DCI_FORMAT1A; 
-  search_space.nof_locations = srslte_pdcch_common_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_COM, cfi);
+  if (q->current_rnti == rnti) {
+    current_ss = &q->current_ss_common[cfi-1];
+  } else {
+    // If locations are not pre-generated, generate them now
+    current_ss->nof_locations = srslte_pdcch_common_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_COM, cfi);
+  }
+  
+  srslte_pdcch_set_cfi(&q->pdcch, cfi);
+  
   // Search for RNTI only if there is room for the common search space 
-  if (search_space.nof_locations > 0) {    
-    INFO("Searching DL C-RNTI in %d ue locations, format 1A\n", search_space.nof_locations, nof_ue_formats);
-    return dci_blind_search(q, &search_space, rnti, dci_msg);   
+  if (current_ss->nof_locations > 0) {    
+    current_ss->format = SRSLTE_DCI_FORMAT1A; 
+    INFO("Searching DL C-RNTI in %d ue locations, format 1A\n", current_ss->nof_locations);
+    return dci_blind_search(q, current_ss, rnti, dci_msg);   
   }
   return SRSLTE_SUCCESS; 
 }
@@ -423,52 +493,15 @@ int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_i
   }
 }
 
-
-int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t sf_idx, uint16_t rnti, uint32_t rvidx) 
-{
-  srslte_dci_msg_t dci_msg;
-  srslte_ra_dl_dci_t dci_unpacked;
-  srslte_ra_dl_grant_t grant; 
-  int ret = SRSLTE_ERROR; 
-  uint32_t cfi;
-  
-  
-  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &cfi)) < 0) {
-    return ret; 
-  }
-  
-  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
-    fprintf(stderr, "Error extracting LLRs\n");
-    return SRSLTE_ERROR;
-  }
-
-  int found_dci = srslte_ue_dl_find_dl_dci(q, cfi, sf_idx, rnti, &dci_msg);   
-  if (found_dci == 1) {
-    
-    if (srslte_dci_msg_to_dl_grant(&dci_msg, rnti, q->cell.nof_prb, q->cell.nof_ports, &dci_unpacked, &grant)) {
-      fprintf(stderr, "Error unpacking DCI\n");
-      return SRSLTE_ERROR;   
-    }
-
-    ret = srslte_ue_dl_decode_rnti_rv_packet(q, &grant, data, cfi, sf_idx, rnti, rvidx);    
-  }
-   
-  if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
-    return q->pdsch_cfg.grant.mcs.tbs;    
-  } else {
-    return 0;
-  }
-}
-
-
 bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_prb_lowest, uint32_t n_dmrs)
 {
   uint8_t ack_bit; 
   float distance;
   uint32_t ngroup, nseq; 
   srslte_phich_calc(&q->phich, n_prb_lowest, n_dmrs, &ngroup, &nseq);
-  DEBUG("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d\n", 
-    sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq);
+  INFO("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d, Ngroups=%d, Nsf=%d\n", 
+    sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq, 
+    srslte_phich_ngroups(&q->phich), srslte_phich_nsf(&q->phich));
   if (!srslte_phich_decode(&q->phich, q->sf_symbols, q->ce, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
     INFO("Decoded PHICH %d with distance %f\n", ack_bit, distance);    
   } else {
