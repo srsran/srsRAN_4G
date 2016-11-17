@@ -56,6 +56,10 @@ void srslte_pdcch_set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
   set_cfi(q, cfi);
 }
 
+float srslte_pdcch_coderate(uint32_t nof_bits, uint32_t l) {
+  return (float) (nof_bits+16)/PDCCH_FORMAT_NOF_BITS(l);
+}
+
 /** Initializes the PDCCH transmitter and receiver */
 int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;

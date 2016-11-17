@@ -106,7 +106,7 @@ uint32_t ra_re_x_prb(uint32_t subframe, uint32_t slot, uint32_t prb_idx, uint32_
   return re;
 }
 
-int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, uint32_t n_rb_ho, uint32_t nof_prb) 
+int srslte_ra_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, uint32_t n_rb_ho, uint32_t nof_prb) 
 {
   bzero(grant, sizeof(srslte_ra_ul_grant_t));  
   
@@ -228,7 +228,7 @@ int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, uint32_t nof_prb, uint32_
 {
   
   // Compute PRB allocation 
-  if (!srslte_ul_dci_to_grant_prb_allocation(dci, grant, n_rb_ho, nof_prb)) {
+  if (!srslte_ra_ul_dci_to_grant_prb_allocation(dci, grant, n_rb_ho, nof_prb)) {
     
     // Compute MCS 
     if (!ul_dci_to_grant_mcs(dci, grant, harq_pid)) {
@@ -269,7 +269,7 @@ uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, srslte_cell_t ce
 }
 
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
-static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, uint32_t nof_prb) {
+int srslte_ra_dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, uint32_t nof_prb) {
   int i, j;
   uint32_t bitmask;
   uint32_t P = srslte_ra_type0_P(nof_prb);
@@ -482,7 +482,7 @@ int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci,
     crc_is_crnti = true; 
   }
   // Compute PRB allocation 
-  if (!dl_dci_to_grant_prb_allocation(dci, grant, nof_prb)) {
+  if (!srslte_ra_dl_dci_to_grant_prb_allocation(dci, grant, nof_prb)) {
     // Compute MCS 
     if (!dl_dci_to_grant_mcs(dci, grant, crc_is_crnti)) {            
       // Apply Section 7.1.7.3. If RA-RNTI and Format1C rv_idx=0
@@ -590,6 +590,16 @@ int srslte_ra_tbs_idx_from_mcs(uint32_t mcs) {
   } else {
     return SRSLTE_ERROR;
   }
+}
+
+srslte_mod_t srslte_ra_mod_from_mcs(uint32_t mcs) {
+  if (mcs <= 10 || mcs == 29) {
+    return SRSLTE_MOD_QPSK;
+  } else if (mcs <= 17 || mcs == 30) {
+    return SRSLTE_MOD_16QAM;
+  } else {
+    return SRSLTE_MOD_64QAM;
+  } 
 }
 
 int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx) {
