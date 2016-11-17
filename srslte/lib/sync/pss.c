@@ -202,6 +202,8 @@ void srslte_pss_synch_free(srslte_pss_synch_t *q) {
     if (q->conv_output_avg) {
       free(q->conv_output_avg);
     }
+    
+    srslte_dft_plan_free(&q->dftp_input);
 
     bzero(q, sizeof(srslte_pss_synch_t));    
   }
