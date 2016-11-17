@@ -95,6 +95,11 @@ SRSLTE_API int srslte_pdsch_set_rnti_multi(srslte_pdsch_t *q,
 SRSLTE_API uint16_t srslte_pdsch_get_rnti_multi(srslte_pdsch_t *q, 
                                                 uint32_t idx);
 
+SRSLTE_API float srslte_pdsch_coderate(uint32_t tbs, 
+                                       uint32_t nof_re); 
+
+SRSLTE_API void print_pdsch_coderate(); 
+
 SRSLTE_API int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, 
                                 srslte_cell_t cell, 
                                 srslte_ra_dl_grant_t *grant, 

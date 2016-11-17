@@ -156,6 +156,7 @@ SRSLTE_API float srslte_vec_avg_power_cf(cf_t *x, uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_fi(float *x, uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len);
 SRSLTE_API int16_t srslte_vec_max_star_si(int16_t *x, uint32_t len);
+SRSLTE_API int16_t srslte_vec_max_abs_star_si(int16_t *x, uint32_t len);
 
 /* maximum between two vectors */
 SRSLTE_API void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len);

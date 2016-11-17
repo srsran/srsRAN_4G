@@ -729,6 +729,17 @@ int16_t srslte_vec_max_star_si(int16_t *x, uint32_t len) {
 #endif
 }
 
+int16_t srslte_vec_max_abs_star_si(int16_t *x, uint32_t len) {
+  uint32_t i;
+  int16_t m=-INT16_MIN;
+  for (i=0;i<len;i++) {
+    if (abs(x[i])>m) {
+      m=abs(x[i]);
+    }
+  }
+  return m;
+}
+
 void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len) {
 #ifdef HAVE_VOLK_MAX_VEC_FUNCTION
   volk_32f_x2_max_32f(z,x,y,len);
