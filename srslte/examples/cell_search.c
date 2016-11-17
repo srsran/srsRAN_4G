@@ -218,6 +218,7 @@ int main(int argc, char **argv) {
     srslte_rf_start_rx_stream(&rf);
     
     n = srslte_ue_cellsearch_scan(&cs, found_cells, NULL); 
+    srslte_ue_cellsearch_free(&cs);
     if (n < 0) {
       fprintf(stderr, "Error searching cell\n");
       exit(-1);
