@@ -264,7 +264,7 @@ int rf_uhd_open(char *args, void **h)
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
         // If B200 is available, use it
-        args = "type=b200,recv_frame_size=9232,send_frame_size=9232";        
+        args = "type=b200";        
         handler->devname = DEVNAME_B200;
       } else if (find_string(devices_str, "type=x300")) {
         // Else if X300 is available, set master clock rate now (can't be changed later)
