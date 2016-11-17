@@ -57,7 +57,7 @@ void srslte_pdcch_set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
 }
 
 float srslte_pdcch_coderate(uint32_t nof_bits, uint32_t l) {
-  return (float) (nof_bits+16)/PDCCH_FORMAT_NOF_BITS(l);
+  return (float) (nof_bits+16)/(4*PDCCH_FORMAT_NOF_REGS(l));
 }
 
 /** Initializes the PDCCH transmitter and receiver */
