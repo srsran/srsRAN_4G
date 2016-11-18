@@ -430,12 +430,14 @@ int srslte_pusch_set_rnti_multi(srslte_pusch_t *q, uint32_t idx, uint16_t rnti)
       }
       q->rnti_multi[idx] = 0; 
     }
-    q->rnti_multi[idx] = rnti; 
-    q->rnti_is_set = true; 
-    for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-      if (srslte_sequence_pusch(&q->seq_multi[i][idx], rnti, 2 * i, q->cell.id,
-          q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
-        return SRSLTE_ERROR; 
+    if (rnti) {
+      q->rnti_multi[idx] = rnti; 
+      q->rnti_is_set = true; 
+      for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+        if (srslte_sequence_pusch(&q->seq_multi[i][idx], rnti, 2 * i, q->cell.id,
+            q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
+          return SRSLTE_ERROR; 
+        }
       }
     }
     return SRSLTE_SUCCESS;
