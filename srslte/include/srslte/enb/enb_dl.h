@@ -88,6 +88,7 @@ typedef struct SRSLTE_API {
   float sss_signal5[SRSLTE_SSS_LEN]; 
     
   uint32_t nof_rnti;
+  float tx_amp;
   
 } srslte_enb_dl_t;
 
@@ -113,6 +114,9 @@ SRSLTE_API void srslte_enb_dl_free(srslte_enb_dl_t *q);
 
 SRSLTE_API void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, 
                                       uint32_t cfi);
+
+SRSLTE_API void srslte_enb_dl_set_amp(srslte_enb_dl_t *q, 
+                                      float amp); 
 
 SRSLTE_API void srslte_enb_dl_clear_sf(srslte_enb_dl_t *q);
 
