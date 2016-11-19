@@ -40,7 +40,7 @@
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
 
-#define SRSLTE_CQI_MAX_BITS 20
+#define SRSLTE_CQI_MAX_BITS 64
 
 typedef struct {
   bool     configured; 
