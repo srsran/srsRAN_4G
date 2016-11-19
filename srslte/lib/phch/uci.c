@@ -314,8 +314,7 @@ int decode_cqi_long(srslte_uci_cqi_pusch_t *q, int16_t *q_bits, uint32_t Q,
     }
     
     ret = srslte_crc_checksum(&q->crc, q->tmp_cqi, nof_bits + 8);
-    printf("ret=%d, nof_bits=%d\n", ret, nof_bits);
-    if (ret == 0) {
+   if (ret == 0) {
       memcpy(data, q->tmp_cqi, nof_bits*sizeof(uint8_t));
       ret = 1; 
     } else {
