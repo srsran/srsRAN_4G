@@ -299,7 +299,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint
     float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
     
     if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
-      ret = srslte_pdsch_decode_rnti(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
+      ret = srslte_pdsch_decode(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
                                     q->sf_symbols, q->ce, 
                                     noise_estimate, 
                                     rnti, data);
@@ -543,7 +543,7 @@ void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuf
     snprintf(tmpstr,64,"rmout_%d.dat",i);
     srslte_vec_save_file(tmpstr, softbuffer->buffer_f[i], (3*cb_len+12)*sizeof(int16_t));  
   }
-  printf("Saved files for tti=%d, sf=%d, cfi=%d, mcs=%d, rv=%d, rnti=%d\n", tti, tti%10, cfi, 
+  printf("Saved files for tti=%d, sf=%d, cfi=%d, mcs=%d, rv=%d, rnti=0x%x\n", tti, tti%10, cfi, 
          q->pdsch_cfg.grant.mcs.idx, rv_idx, rnti);
 }
 

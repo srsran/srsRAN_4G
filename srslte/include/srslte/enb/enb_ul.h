@@ -58,9 +58,16 @@ typedef struct {
   uint32_t n_dmrs;  
 } srslte_enb_ul_phich_info_t; 
 
+typedef struct {
+  bool uci_cfg_en;
+  bool srs_cfg_en;
+  srslte_uci_cfg_t uci_cfg;
+  srslte_refsignal_srs_cfg_t srs_cfg;
+  srslte_pucch_sched_t pucch_sched;  
+} srslte_enb_ul_user_t; 
+
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
-  uint32_t nof_rnti; 
   
   cf_t *sf_symbols; 
   cf_t *ce; 
@@ -77,16 +84,12 @@ typedef struct SRSLTE_API {
   srslte_pusch_hopping_cfg_t hopping_cfg;
   
   // Configuration for each user
-  bool *uci_cfg_en;
-  bool *srs_cfg_en;
-  srslte_uci_cfg_t *uci_cfg;
-  srslte_refsignal_srs_cfg_t *srs_cfg;
-  srslte_pucch_sched_t *pucch_sched;
+  srslte_enb_ul_user_t **users; 
   
 } srslte_enb_ul_t;
 
 typedef struct {
-  int                     rnti_idx; 
+  uint16_t                rnti; 
   srslte_ra_ul_dci_t      grant;
   srslte_dci_location_t   location; 
   uint32_t                rv_idx; 
@@ -103,29 +106,27 @@ SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t *q,
                                   srslte_prach_cfg_t* prach_cfg, 
                                   srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg,
                                   srslte_pusch_hopping_cfg_t *hopping_cfg,
-                                  srslte_pucch_cfg_t *pucch_cfg,
-                                  uint32_t nof_rntis);
+                                  srslte_pucch_cfg_t *pucch_cfg);
 
 SRSLTE_API void srslte_enb_ul_free(srslte_enb_ul_t *q);
 
-SRSLTE_API int srslte_enb_ul_cfg_rnti(srslte_enb_ul_t *q, 
-                                      uint32_t idx, 
+SRSLTE_API int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, 
                                       uint16_t rnti); 
 
-SRSLTE_API int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint32_t idx, 
+SRSLTE_API void srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, 
+                                      uint16_t rnti); 
+
+SRSLTE_API int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint16_t rnti, 
                                     srslte_uci_cfg_t *uci_cfg, 
                                     srslte_pucch_sched_t *pucch_sched,
                                     srslte_refsignal_srs_cfg_t *srs_cfg);
 
 
-SRSLTE_API int srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, 
-                                      uint32_t idx); 
-
 SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q, 
                                   cf_t *signal_buffer); 
 
 SRSLTE_API int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, 
-                                       uint32_t rnti_idx, 
+                                       uint16_t rnti, 
                                        uint32_t pdcch_n_cce, 
                                        uint32_t sf_rx, 
                                        srslte_uci_data_t *uci_data); 
@@ -133,7 +134,7 @@ SRSLTE_API int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q,
 SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, 
                                        srslte_ra_ul_grant_t *grant, 
                                        srslte_softbuffer_rx_t *softbuffer,
-                                       uint32_t rnti_idx, 
+                                       uint16_t rnti, 
                                        uint32_t rv_idx, 
                                        uint32_t current_tx_nb,
                                        uint8_t *data, 

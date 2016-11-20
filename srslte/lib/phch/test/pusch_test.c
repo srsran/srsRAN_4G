@@ -164,7 +164,8 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   
-  srslte_pusch_set_rnti(&pusch, 1234);
+  uint16_t rnti = 1234; 
+  srslte_pusch_set_rnti(&pusch, rnti);
   
   srslte_uci_data_t uci_data_tx; 
   srslte_uci_data_t uci_data_rx; 
@@ -208,13 +209,13 @@ int main(int argc, char **argv) {
   
   uint32_t ntrials = 100; 
 
-  if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data_tx, sf_symbols)) {
+  if (srslte_pusch_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data_tx, rnti, sf_symbols)) {
     fprintf(stderr, "Error encoding TB\n");
     exit(-1);
   }
   if (rv_idx > 0) {
     cfg.rv = rv_idx; 
-    if (srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data_tx, sf_symbols)) {
+    if (srslte_pusch_encode(&pusch, &cfg, &softbuffer_tx, data, uci_data_tx, rnti, sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       exit(-1);
     }
@@ -230,7 +231,7 @@ int main(int argc, char **argv) {
   }
   
   gettimeofday(&t[1], NULL);
-  int r = srslte_pusch_uci_decode(&pusch, &cfg, &softbuffer_rx, sf_symbols, ce, 0, data, &uci_data_rx);
+  int r = srslte_pusch_decode(&pusch, &cfg, &softbuffer_rx, sf_symbols, ce, 0, rnti, data, &uci_data_rx);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   if (r) {

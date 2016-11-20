@@ -229,14 +229,14 @@ int main(int argc, char **argv) {
       if (rv_idx) {
         /* Do 1st transmission for rv_idx!=0 */
         pdsch_cfg.rv = 0;
-        if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
+        if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, rnti, slot_symbols)) {
           fprintf(stderr, "Error encoding PDSCH\n");
           goto quit;
         }
       }
       pdsch_cfg.rv = rv_idx; 
       
-      if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, slot_symbols)) {
+      if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer_tx, data, rnti, slot_symbols)) {
         fprintf(stderr, "Error encoding PDSCH\n");
         goto quit;
       }
@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
     srslte_ofdm_rx_sf(&ofdm_rx, sf_symbols, slot_symbols[1]);
   #endif
     srslte_softbuffer_rx_reset_tbs(&softbuffer_rx, grant.mcs.tbs);    
-    r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, data);
+    r = srslte_pdsch_decode(&pdsch, &pdsch_cfg, &softbuffer_rx, slot_symbols[0], ce, 0, rnti, data);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);

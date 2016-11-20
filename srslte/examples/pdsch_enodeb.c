@@ -624,7 +624,7 @@ int main(int argc, char **argv) {
         }
        
         /* Encode PDSCH */
-        if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer, data, sf_symbols)) {
+        if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, &softbuffer, data, UE_CRNTI, sf_symbols)) {
           fprintf(stderr, "Error encoding PDSCH\n");
           exit(-1);
         }        

@@ -394,7 +394,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
 
     bzero(q->sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
     
-    if (srslte_pusch_uci_encode_rnti(&q->pusch, &q->pusch_cfg, softbuffer, data, uci_data, rnti, q->sf_symbols)) {
+    if (srslte_pusch_encode(&q->pusch, &q->pusch_cfg, softbuffer, data, uci_data, rnti, q->sf_symbols)) {
       fprintf(stderr, "Error encoding TB\n");
       return ret; 
     }

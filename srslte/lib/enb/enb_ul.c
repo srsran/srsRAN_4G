@@ -43,8 +43,7 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
                        srslte_prach_cfg_t *prach_cfg, 
                        srslte_refsignal_dmrs_pusch_cfg_t *pusch_cfg, 
                        srslte_pusch_hopping_cfg_t *hopping_cfg, 
-                       srslte_pucch_cfg_t *pucch_cfg, 
-                       uint32_t nof_rnti)
+                       srslte_pucch_cfg_t *pucch_cfg)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -56,18 +55,16 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
     bzero(q, sizeof(srslte_enb_ul_t));
     
     q->cell = cell;
-    q->nof_rnti = nof_rnti; 
     
     if (hopping_cfg) {
       memcpy(&q->hopping_cfg, hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
     } 
     
-    q->uci_cfg_en     = calloc(sizeof(bool), nof_rnti);
-    q->srs_cfg_en     = calloc(sizeof(bool), nof_rnti);
-    
-    q->uci_cfg        = calloc(sizeof(srslte_uci_cfg_t), nof_rnti);
-    q->srs_cfg        = calloc(sizeof(srslte_refsignal_srs_cfg_t), nof_rnti);
-    q->pucch_sched    = calloc(sizeof(srslte_pucch_sched_t), nof_rnti);
+    q->users = calloc(sizeof(srslte_enb_ul_user_t*), SRSLTE_SIRNTI);
+    if (!q->users) {
+      perror("malloc");
+      goto clean_exit;
+    }
     
     if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -86,18 +83,14 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       goto clean_exit;
     }
     
-    if (srslte_pusch_init_rnti_multi(&q->pusch, nof_rnti)) {
-      fprintf(stderr, "Error initiating multiple RNTIs in PUSCH\n");
-      goto clean_exit;
-    }
-
-    if (srslte_prach_init_cfg(&q->prach, prach_cfg, q->cell.nof_prb)) {
-      fprintf(stderr, "Error initiating PRACH\n");
-      goto clean_exit; 
+    if (prach_cfg) {
+      if (srslte_prach_init_cfg(&q->prach, prach_cfg, q->cell.nof_prb)) {
+        fprintf(stderr, "Error initiating PRACH\n");
+        goto clean_exit; 
+      }
+      srslte_prach_set_detect_factor(&q->prach, 60);    
     }
     
-    srslte_prach_set_detect_factor(&q->prach, 60);
-   
     srslte_pucch_set_threshold(&q->pucch, 0.5, 0.5);
     
     if (srslte_chest_ul_init(&q->chest, cell)) {
@@ -141,20 +134,13 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
 {
   if (q) {
     
-    if (q->uci_cfg) {
-      free(q->uci_cfg);
-    }
-    if (q->uci_cfg_en) {
-      free(q->uci_cfg_en);
-    }
-    if (q->srs_cfg) {
-      free(q->srs_cfg);
-    }
-    if (q->srs_cfg_en) {
-      free(q->srs_cfg_en);
-    }
-    if (q->pucch_sched) {
-      free(q->pucch_sched);
+    if (q->users) {
+      for (int i=0;i<SRSLTE_SIRNTI;i++) {
+        if (q->users[i]) {
+          free(q->users[i]);
+        }
+      }
+      free(q->users);
     }
     
     srslte_prach_free(&q->prach);
@@ -172,42 +158,52 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
   }  
 }
 
-int srslte_enb_ul_cfg_rnti(srslte_enb_ul_t *q, uint32_t idx, uint16_t rnti)
+int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, uint16_t rnti)
 {
-  return srslte_pusch_set_rnti_multi(&q->pusch, idx, rnti);
+  if (!q->users[rnti]) {
+    q->users[rnti] = malloc(sizeof(srslte_enb_ul_user_t));
+    return srslte_pusch_set_rnti(&q->pusch, rnti);
+  } else {
+    fprintf(stderr, "Error adding rnti=0x%x, already exists\n", rnti);
+    return -1; 
+  }
 }
 
-int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint32_t idx, 
+void srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, uint16_t rnti)
+{
+  if (q->users[rnti]) {
+    free(q->users[rnti]); 
+    q->users[rnti] = NULL; 
+    srslte_pusch_clear_rnti(&q->pusch, rnti);
+  }
+}
+
+int srslte_enb_ul_cfg_ue(srslte_enb_ul_t *q, uint16_t rnti, 
                          srslte_uci_cfg_t *uci_cfg, 
                          srslte_pucch_sched_t *pucch_sched,
                          srslte_refsignal_srs_cfg_t *srs_cfg) 
 {
-  if (idx < q->nof_rnti) {
+  if (q->users[rnti]) {
     if (uci_cfg) {
-      memcpy(&q->uci_cfg[idx], uci_cfg, sizeof(srslte_uci_cfg_t));
-      q->uci_cfg_en[idx] = true; 
+      memcpy(&q->users[rnti]->uci_cfg, uci_cfg, sizeof(srslte_uci_cfg_t));
+      q->users[rnti]->uci_cfg_en = true; 
     } else {
-      q->uci_cfg_en[idx] = false; 
+      q->users[rnti]->uci_cfg_en = false; 
     }
     if (pucch_sched) {
-      memcpy(&q->pucch_sched[idx], pucch_sched, sizeof(srslte_pucch_sched_t));
+      memcpy(&q->users[rnti]->pucch_sched, pucch_sched, sizeof(srslte_pucch_sched_t));
     }
     if (srs_cfg) {
-      memcpy(&q->srs_cfg[idx], srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
-      q->srs_cfg_en[idx] = true; 
+      memcpy(&q->users[rnti]->srs_cfg, srs_cfg, sizeof(srslte_refsignal_srs_cfg_t));
+      q->users[rnti]->srs_cfg_en = true; 
     } else {
-      q->srs_cfg_en[idx] = false; 
+      q->users[rnti]->srs_cfg_en = false; 
     }
     return SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Error configuring UE: Invalid idx=%d, max users=%d\n", idx, q->nof_rnti);
+    fprintf(stderr, "Error configuring UE: rnti=0x%x not found\n", rnti);
     return SRSLTE_ERROR; 
   }
-}
-                         
-int srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, uint32_t idx)
-{
-  return srslte_pusch_set_rnti_multi(&q->pusch, idx, 0);
 }
 
 void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer) 
@@ -215,7 +211,7 @@ void srslte_enb_ul_fft(srslte_enb_ul_t *q, cf_t *signal_buffer)
   srslte_ofdm_rx_sf(&q->fft, signal_buffer, q->sf_symbols);
 }
 
-int get_pucch(srslte_enb_ul_t *q, uint32_t rnti_idx, 
+int get_pucch(srslte_enb_ul_t *q, uint16_t rnti, 
               uint32_t pdcch_n_cce, uint32_t sf_rx, 
               srslte_uci_data_t *uci_data, uint8_t bits[SRSLTE_PUCCH_MAX_BITS]) 
 {
@@ -223,7 +219,7 @@ int get_pucch(srslte_enb_ul_t *q, uint32_t rnti_idx,
   
   srslte_pucch_format_t format = srslte_pucch_get_format(uci_data, q->cell.cp);
     
-  uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data->scheduling_request, &q->pucch_sched[rnti_idx]);
+  uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data->scheduling_request, &q->users[rnti]->pucch_sched);
   
   if (srslte_chest_ul_estimate_pucch(&q->chest, q->sf_symbols, q->ce, format, n_pucch, sf_rx)) {
     fprintf(stderr,"Error estimating PUCCH DMRS\n");
@@ -239,21 +235,21 @@ int get_pucch(srslte_enb_ul_t *q, uint32_t rnti_idx,
   return ret_val;
 }
 
-int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint32_t rnti_idx, 
+int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti, 
                             uint32_t pdcch_n_cce, uint32_t sf_rx, 
                             srslte_uci_data_t *uci_data)
 {
   uint8_t bits[SRSLTE_PUCCH_MAX_BITS];
   
-  if (rnti_idx < q->nof_rnti) {
+  if (q->users[rnti]) {
 
-    int ret_val = get_pucch(q, rnti_idx, pdcch_n_cce, sf_rx, uci_data, bits);
+    int ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, bits);
 
     // If we are looking for SR and ACK at the same time and ret=0, means there is no SR. 
     // try again to decode ACK only 
     if (uci_data->scheduling_request && uci_data->uci_ack_len && ret_val != 1) {
       uci_data->scheduling_request = false; 
-      ret_val = get_pucch(q, rnti_idx, pdcch_n_cce, sf_rx, uci_data, bits);
+      ret_val = get_pucch(q, rnti, pdcch_n_cce, sf_rx, uci_data, bits);
     }
 
     // update schedulign request 
@@ -271,38 +267,50 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint32_t rnti_idx,
     }
     return SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Invalid rnti_idx=%d\n", rnti_idx);
+    fprintf(stderr, "Error getting PUCCH: rnti=0x%x not found\n", rnti);
     return SRSLTE_ERROR; 
   }
 }
 
 int srslte_enb_ul_get_pusch(srslte_enb_ul_t *q, srslte_ra_ul_grant_t *grant, srslte_softbuffer_rx_t *softbuffer, 
-                            uint32_t rnti_idx, uint32_t rv_idx, uint32_t current_tx_nb, 
+                            uint16_t rnti, uint32_t rv_idx, uint32_t current_tx_nb, 
                             uint8_t *data, srslte_uci_data_t *uci_data, uint32_t tti)
 {
-     
-  if (srslte_pusch_cfg(&q->pusch, 
-                       &q->pusch_cfg, 
-                       grant, 
-                       q->uci_cfg_en[rnti_idx]?&q->uci_cfg[rnti_idx]:NULL, 
-                       &q->hopping_cfg, 
-                       q->srs_cfg_en[rnti_idx]?&q->srs_cfg[rnti_idx]:NULL, 
-                       tti, rv_idx, current_tx_nb)) {
-    fprintf(stderr, "Error configuring PDSCH\n");
-    return SRSLTE_ERROR;
+  if (q->users[rnti]) {
+    if (srslte_pusch_cfg(&q->pusch, 
+                        &q->pusch_cfg, 
+                        grant, 
+                        q->users[rnti]->uci_cfg_en?&q->users[rnti]->uci_cfg:NULL, 
+                        &q->hopping_cfg, 
+                        q->users[rnti]->srs_cfg_en?&q->users[rnti]->srs_cfg:NULL, 
+                        tti, rv_idx, current_tx_nb)) {
+      fprintf(stderr, "Error configuring PDSCH\n");
+      return SRSLTE_ERROR;
+    }
+  } else {
+      if (srslte_pusch_cfg(&q->pusch, 
+                        &q->pusch_cfg, 
+                        grant, 
+                        NULL, 
+                        &q->hopping_cfg, 
+                        NULL, 
+                        tti, rv_idx, current_tx_nb)) {
+      fprintf(stderr, "Error configuring PDSCH\n");
+      return SRSLTE_ERROR;
+    }
   }
-
+  
   uint32_t cyclic_shift_for_dmrs = 0; 
   
   srslte_chest_ul_estimate(&q->chest, q->sf_symbols, q->ce, grant->L_prb, tti%10, cyclic_shift_for_dmrs, grant->n_prb);
   
   float noise_power = srslte_chest_ul_get_noise_estimate(&q->chest); 
   
-  return srslte_pusch_uci_decode_rnti_idx(&q->pusch, &q->pusch_cfg, 
-                                          softbuffer, q->sf_symbols, 
-                                          q->ce, noise_power, 
-                                          rnti_idx, data, 
-                                          uci_data);
+  return srslte_pusch_decode(&q->pusch, &q->pusch_cfg, 
+                              softbuffer, q->sf_symbols, 
+                              q->ce, noise_power, 
+                              rnti, data, 
+                              uci_data);
 }
 
 

@@ -87,13 +87,12 @@ typedef struct SRSLTE_API {
   float sss_signal0[SRSLTE_SSS_LEN]; 
   float sss_signal5[SRSLTE_SSS_LEN]; 
     
-  uint32_t nof_rnti;
   float tx_amp;
   
 } srslte_enb_dl_t;
 
 typedef struct {
-  int                     rnti_idx; 
+  uint16_t                rnti; 
   srslte_ra_dl_dci_t      grant;
   srslte_dci_location_t   location; 
   srslte_softbuffer_tx_t *softbuffer;
@@ -101,14 +100,15 @@ typedef struct {
 } srslte_enb_dl_pdsch_t; 
 
 typedef struct {
+  uint16_t rnti; 
   uint8_t  ack;
-  int      rnti_idx; 
+  uint32_t n_prb_lowest;
+  uint32_t n_dmrs;  
 } srslte_enb_dl_phich_t; 
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_enb_dl_init(srslte_enb_dl_t *q, 
-                                  srslte_cell_t cell, 
-                                  uint32_t nof_rntis);
+                                  srslte_cell_t cell);
 
 SRSLTE_API void srslte_enb_dl_free(srslte_enb_dl_t *q);
 
@@ -144,17 +144,16 @@ SRSLTE_API void srslte_enb_dl_put_base(srslte_enb_dl_t *q,
 SRSLTE_API void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, 
                                          cf_t *signal_buffer); 
 
-SRSLTE_API int srslte_enb_dl_cfg_rnti(srslte_enb_dl_t *q, 
-                                      uint32_t idx, 
+SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, 
                                       uint16_t rnti); 
 
-SRSLTE_API int srslte_enb_dl_rem_rnti(srslte_enb_dl_t *q, 
-                                      uint32_t idx); 
+SRSLTE_API void srslte_enb_dl_rem_rnti(srslte_enb_dl_t *q, 
+                                      uint16_t rnti); 
 
 SRSLTE_API int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, 
                                        srslte_ra_dl_grant_t *grant, 
                                        srslte_softbuffer_tx_t *softbuffer,
-                                       uint32_t rnti_idx,
+                                       uint16_t rnti,
                                        uint32_t rv_idx, 
                                        uint32_t sf_idx, 
                                        uint8_t *data); 
@@ -163,13 +162,13 @@ SRSLTE_API int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q,
                                           srslte_ra_dl_dci_t *grant, 
                                           srslte_dci_format_t format, 
                                           srslte_dci_location_t location,
-                                          uint32_t rnti_idx, 
+                                          uint16_t rnti, 
                                           uint32_t sf_idx); 
 
 SRSLTE_API int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, 
                                           srslte_ra_ul_dci_t *grant, 
                                           srslte_dci_location_t location,
-                                          uint32_t rnti_idx, 
+                                          uint16_t rnti, 
                                           uint32_t sf_idx); 
 
 
