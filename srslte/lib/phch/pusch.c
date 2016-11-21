@@ -536,8 +536,7 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     
     // Create sequence if does not exist
     if (!q->users[rnti]) {
-      srslte_sequence_t tmp;
-      seq = &tmp; 
+      seq = &q->tmp_seq; 
       if (srslte_sequence_pusch(seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
