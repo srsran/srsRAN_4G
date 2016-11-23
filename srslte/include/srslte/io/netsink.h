@@ -60,7 +60,7 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int srslte_netsink_init(srslte_netsink_t *q, 
                                    char *address, 
-                                   int port, 
+                                   uint16_t port,
                                    srslte_netsink_type_t type);
 
 SRSLTE_API void srslte_netsink_free(srslte_netsink_t *q);
