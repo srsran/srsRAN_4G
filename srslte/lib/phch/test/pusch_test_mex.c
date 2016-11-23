@@ -99,7 +99,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error initiating PDSCH\n");
     return;
   }
-  srslte_pusch_set_rnti(&pusch, (uint16_t) (rnti32 & 0xffff));
+  uint16_t rnti = (uint16_t) (rnti32 & 0xffff);
+  srslte_pusch_set_rnti(&pusch, rnti);
 
   if (srslte_softbuffer_rx_init(&softbuffer, cell.nof_prb)) {
     mexErrMsgTxt("Error initiating soft buffer\n");
@@ -272,7 +273,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       noise_power = srslte_chest_ul_get_noise_estimate(&chest);
     }
 
-    r = srslte_pusch_uci_decode(&pusch, &cfg, &softbuffer, input_fft, ce, noise_power, data_bytes, &uci_data);
+    r = srslte_pusch_decode(&pusch, &cfg, &softbuffer, input_fft, ce, noise_power, rnti, data_bytes, &uci_data);
   }
   
   uint8_t *data = malloc(grant.mcs.tbs);
