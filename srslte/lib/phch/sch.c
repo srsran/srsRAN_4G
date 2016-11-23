@@ -654,7 +654,7 @@ int srslte_ulsch_uci_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_sof
                                       uci_data->uci_cqi, &uci_data->cqi_ack);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
-    printf("texec=%d us\n", t[0].tv_usec);
+    printf("texec=%ld us\n", t[0].tv_usec);
     
     if (ret < 0) {
       return ret; 

@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
     srslte_prach_detect(p, frequency_offset, &preamble[p->N_cp], prach_len, indices, &n_indices);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
-    printf("texec=%d us\n", t[0].tv_usec);
+    printf("texec=%ld us\n", t[0].tv_usec);
     if(n_indices != 1 || indices[0] != seq_index)
       return -1;
   }
