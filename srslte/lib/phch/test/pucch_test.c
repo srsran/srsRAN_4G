@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
           }     
           gettimeofday(&t[2], NULL);
           get_time_interval(t);
-          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_exec=%d us\n", format, n_pucch, ncs, d, t[0].tv_usec);
+          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_exec=%ld us\n", format, n_pucch, ncs, d, t[0].tv_usec);
         }
       }
     }    

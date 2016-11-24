@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-  printf("Execution Time: %d us\n", t[0].tv_usec);
+  printf("Execution Time: %ld us\n", t[0].tv_usec);
   
   /* check errors */
   mse = 0;

@@ -131,13 +131,13 @@ int main(int argc, char **argv) {
               srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, cshift_dmrs, signal);              
               gettimeofday(&t[2], NULL);
               get_time_interval(t);
-              printf("DMRS ExecTime: %d us\n", t[0].tv_usec);
+              printf("DMRS ExecTime: %ld us\n", t[0].tv_usec);
 
               gettimeofday(&t[1], NULL);
               srslte_refsignal_srs_gen(&refs, sf_idx, signal);
               gettimeofday(&t[2], NULL);
               get_time_interval(t);
-              printf("SRS ExecTime: %d us\n", t[0].tv_usec);
+              printf("SRS ExecTime: %ld us\n", t[0].tv_usec);
             }
           }
         }

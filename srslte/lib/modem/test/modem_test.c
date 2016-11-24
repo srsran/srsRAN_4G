@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   
-  printf("Bit: %d us\n", t[0].tv_usec);
+  printf("Bit: %ld us\n", t[0].tv_usec);
   
   /* Test packed implementation */
   srslte_bit_pack_vector(input, input_bytes, num_bits);
@@ -170,8 +170,8 @@ int main(int argc, char **argv) {
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   
-  printf("Byte: %d us\n", t[0].tv_usec);
   
+  printf("Byte: %ld us\n", t[0].tv_usec);
   for (int i=0;i<num_bits/mod.nbits_x_symbol;i++) {
     if (symbols[i] != symbols_bytes[i]) {
       printf("error in symbol %d\n", i);
@@ -183,8 +183,8 @@ int main(int argc, char **argv) {
   gettimeofday(&x, NULL);
   srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
   gettimeofday(&y, NULL);
-  printf("\nElapsed time [ns]: %d\n", (int) y.tv_usec - (int) x.tv_usec);
   
+  printf("\nElapsed time [ns]: %ld\n", (int) y.tv_usec - (int) x.tv_usec);
   for (i=0;i<num_bits;i++) {
     output[i] = llr[i]>=0 ? 1 : 0;
   }

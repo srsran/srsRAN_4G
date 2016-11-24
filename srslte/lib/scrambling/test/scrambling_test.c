@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
     srslte_scrambling_b(&seq, scrambled_b);
 
     get_time_interval(t);
-    printf("Texec=%d us for %d bits\n", t[0].tv_usec, seq.len);
+    printf("Texec=%ld us for %d bits\n", t[0].tv_usec, seq.len);
     
     for (i=0;i<seq.len;i++) {
       if (scrambled_b[i] != input_b[i]) {
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
     srslte_scrambling_f(&seq, scrambled_f);
 
     get_time_interval(t);
-    printf("Texec=%d us for %d bits\n", t[0].tv_usec, seq.len);
+    printf("Texec=%ld us for %d bits\n", t[0].tv_usec, seq.len);
 
     for (i=0;i<seq.len;i++) {
       if (scrambled_f[i] != input_f[i]) {
