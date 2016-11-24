@@ -341,7 +341,7 @@ int srslte_prach_init(srslte_prach_t *p,
   int ret = SRSLTE_ERROR;
   if(p                      != NULL      &&
      N_ifft_ul              <  2049      &&
-     config_idx             <  16        && 
+     config_idx             <  64        && 
      root_seq_index         <  MAX_ROOTS)
   {
     uint32_t preamble_format = srslte_prach_get_preamble_format(config_idx);
