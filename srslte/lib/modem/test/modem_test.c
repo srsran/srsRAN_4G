@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
   srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
   gettimeofday(&y, NULL);
   
-  printf("\nElapsed time [ns]: %ld\n", (int) y.tv_usec - (int) x.tv_usec);
+  printf("\nElapsed time [us]: %ld\n", y.tv_usec - x.tv_usec);
   for (i=0;i<num_bits;i++) {
     output[i] = llr[i]>=0 ? 1 : 0;
   }
