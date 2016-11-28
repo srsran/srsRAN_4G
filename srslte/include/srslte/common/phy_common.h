@@ -158,7 +158,6 @@ typedef enum {
 typedef struct SRSLTE_API {
   uint32_t nof_prb;
   uint32_t nof_ports; 
-  uint32_t bw_idx; 
   uint32_t id;
   srslte_cp_t cp;
   srslte_phich_length_t phich_length;
@@ -246,7 +245,11 @@ SRSLTE_API char *srslte_mod_string(srslte_mod_t mod);
 
 SRSLTE_API uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod);
 
+SRSLTE_API int srslte_band_get_band(uint32_t earfcn); 
+
 SRSLTE_API float srslte_band_fd(uint32_t earfcn);
+
+SRSLTE_API float srslte_band_fu(uint32_t earfcn); 
 
 SRSLTE_API int srslte_band_get_fd_band(uint32_t band, 
                                        srslte_earfcn_t *earfcn, 

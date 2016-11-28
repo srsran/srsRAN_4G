@@ -250,8 +250,8 @@ void srslte_pbch_free(srslte_pbch_t *q) {
 void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   int phich_res;
 
-  cell->bw_idx = srslte_bit_pack(&msg, 3);
-  switch (cell->bw_idx) {
+  uint32_t bw_idx = srslte_bit_pack(&msg, 3);
+  switch (bw_idx) {
   case 0:
     cell->nof_prb = 6;
     break;
@@ -259,7 +259,7 @@ void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
     cell->nof_prb = 15;
     break;
   default:
-    cell->nof_prb = (cell->bw_idx - 1) * 25;
+    cell->nof_prb = (bw_idx - 1) * 25;
     break;
   }
   if (*msg) {
