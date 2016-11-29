@@ -37,7 +37,6 @@ char *input_file_name = NULL;
 srslte_cell_t cell = {
   6,            // cell.cell.cell.nof_prb
   1,            // cell.cell.nof_ports
-  0,            // bw_idx
   0,            // cell.id
   SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      

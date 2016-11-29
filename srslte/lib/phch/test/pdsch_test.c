@@ -39,7 +39,6 @@
 srslte_cell_t cell = {
   6,            // nof_prb
   1,            // nof_ports
-  0,
   0,            // cell_id
   SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1_6,          // PHICH resources      

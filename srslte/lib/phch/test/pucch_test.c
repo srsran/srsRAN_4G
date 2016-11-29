@@ -36,7 +36,6 @@
 srslte_cell_t cell = {
   25,            // nof_prb
   1,            // nof_ports
-  2,            // bw_idx = 5 MHz
   1,            // cell_id
   SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1_6,          // PHICH resources      
