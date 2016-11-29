@@ -431,14 +431,9 @@ float get_fd(struct lte_band *band, uint32_t earfcn) {
 }
 
 int srslte_band_get_band(uint32_t earfcn) {
-  uint32_t i;
-  i=0;
-  while(i < SRSLTE_NOF_LTE_BANDS && lte_bands[i].earfcn_offset<earfcn) {
-    i++;
-  }
-  if (i == SRSLTE_NOF_LTE_BANDS) {
-    fprintf(stderr, "Error: EARFCN %d not found\n", earfcn);
-    return -1;
+  uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
+  while(i > 0 && lte_bands[i].earfcn_offset>earfcn) {
+    i--;
   }
   return lte_bands[i].band;
 }
