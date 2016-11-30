@@ -48,10 +48,14 @@ int srslte_netsink_init(srslte_netsink_t *q, char *address, uint16_t port, srslt
   }
 
   int enable = 1;
+#if defined (SO_REUSEADDR)
   if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
       perror("setsockopt(SO_REUSEADDR) failed");
+#endif
+#if defined (SO_REUSEPORT)
   if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
       perror("setsockopt(SO_REUSEPORT) failed");
+#endif
 
   q->servaddr.sin_family = AF_INET;
   q->servaddr.sin_addr.s_addr=inet_addr(address);

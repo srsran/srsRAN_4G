@@ -48,11 +48,14 @@ int srslte_netsource_init(srslte_netsource_t *q, char *address, uint16_t port, s
 
   // Make sockets reusable 
   int enable = 1;
+#if defined (SO_REUSEADDR)
   if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
       perror("setsockopt(SO_REUSEADDR) failed");
+#endif
+#if defined (SO_REUSEPORT)
   if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
       perror("setsockopt(SO_REUSEPORT) failed");
-
+#endif
   q->type = type; 
   
   q->servaddr.sin_family = AF_INET;
