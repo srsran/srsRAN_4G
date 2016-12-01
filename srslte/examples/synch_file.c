@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
   }
   gettimeofday(&tdata[2], NULL);
   get_time_interval(tdata);
-  printf("done in %ld s %ld ms\n", (int) tdata[0].tv_sec, (int) tdata[0].tv_usec/1000);
+  printf("done in %ld s %ld ms\n", tdata[0].tv_sec, tdata[0].tv_usec/1000);
 
   printf("\n\tFr.Cnt\tN_id_2\tN_id_1\tSubf\tPSS Peak/Avg\tIdx\tm0\tm1\tCFO\n");
   printf("\t===============================================================================\n");
