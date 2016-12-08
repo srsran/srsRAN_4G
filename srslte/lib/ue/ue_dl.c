@@ -376,7 +376,7 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
 
 int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, uint32_t cfi, uint32_t sf_idx, uint16_t rnti, srslte_dci_msg_t *dci_msg)
 {
-  if (rnti) {
+  if (rnti && cfi > 1 && cfi < 4) {
     /* Do not search if an UL DCI is already pending */    
     if (q->pending_ul_dci_rnti == rnti) {
       q->pending_ul_dci_rnti = 0;      
