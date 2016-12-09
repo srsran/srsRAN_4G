@@ -36,7 +36,7 @@
 
 #include "srslte/io/netsource.h"
 
-int srslte_netsource_init(srslte_netsource_t *q, char *address, uint16_t port, srslte_netsource_type_t type) {
+int srslte_netsource_init(srslte_netsource_t *q, const char *address, uint16_t port, srslte_netsource_type_t type) {
   bzero(q, sizeof(srslte_netsource_t));
 
   q->sockfd=socket(AF_INET,type==SRSLTE_NETSOURCE_TCP?SOCK_STREAM:SOCK_DGRAM,0);

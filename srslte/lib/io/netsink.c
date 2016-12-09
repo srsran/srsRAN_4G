@@ -38,7 +38,7 @@
 
 #include "srslte/io/netsink.h"
 
-int srslte_netsink_init(srslte_netsink_t *q, char *address, uint16_t port, srslte_netsink_type_t type) {
+int srslte_netsink_init(srslte_netsink_t *q, const char *address, uint16_t port, srslte_netsink_type_t type) {
   bzero(q, sizeof(srslte_netsink_t));
 
   q->sockfd=socket(AF_INET, type==SRSLTE_NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  

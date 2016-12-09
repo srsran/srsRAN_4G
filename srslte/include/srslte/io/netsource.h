@@ -60,7 +60,7 @@ typedef struct SRSLTE_API {
 }srslte_netsource_t;
 
 SRSLTE_API int srslte_netsource_init(srslte_netsource_t *q, 
-                                     char *address, 
+                                     const char *address,
                                      uint16_t port,
                                      srslte_netsource_type_t type);
 
