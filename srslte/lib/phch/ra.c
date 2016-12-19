@@ -198,6 +198,7 @@ static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *gr
     // 8.6.1 and 8.6.2 36.213 second paragraph
     grant->mcs.mod = SRSLTE_MOD_QPSK;
     tbs = srslte_ra_tbs_from_idx(last_ul_tbs_idx[harq_pid%8], grant->L_prb); 
+    dci->rv_idx = 1; 
   } else if (dci->mcs_idx >= 29) {
     // Else use last TBS/Modulation and use mcs to obtain rv_idx 
     tbs = srslte_ra_tbs_from_idx(last_ul_tbs_idx[harq_pid%8], grant->L_prb); 
@@ -247,6 +248,24 @@ int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, uint32_t nof_prb, uint32_
     return SRSLTE_ERROR; 
   }
   return SRSLTE_SUCCESS;
+}
+
+uint32_t srslte_ra_dl_approx_nof_re(srslte_cell_t cell, uint32_t nof_prb, uint32_t nof_ctrl_symbols) 
+{
+  uint32_t nof_refs = 0; 
+  uint32_t nof_symb     = 2*SRSLTE_CP_NSYMB(cell.cp)-nof_ctrl_symbols;
+  switch(cell.nof_ports) {
+    case 1: 
+      nof_refs = 2*3; 
+      break; 
+    case 2: 
+      nof_refs = 4*3; 
+      break; 
+    case 4: 
+      nof_refs = 4*4; 
+      break; 
+  }
+  return nof_prb * (nof_symb*SRSLTE_NRE-nof_refs);
 }
 
 /* Computes the number of RE for each PRB in the prb_dist structure */

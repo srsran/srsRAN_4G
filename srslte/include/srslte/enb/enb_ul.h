@@ -94,10 +94,9 @@ typedef struct {
   srslte_dci_location_t   location; 
   uint32_t                rv_idx; 
   uint32_t                current_tx_nb; 
-  bool                    needs_pdcch; 
   uint8_t                *data; 
   srslte_softbuffer_rx_t *softbuffer;
-  
+  bool                    needs_pdcch; 
 } srslte_enb_ul_pusch_t; 
 
 /* This function shall be called just after the initial synchronization */

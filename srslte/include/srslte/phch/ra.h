@@ -206,6 +206,10 @@ SRSLTE_API void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant,
                                             uint32_t sf_idx, 
                                             srslte_ra_nbits_t *nbits); 
 
+SRSLTE_API uint32_t srslte_ra_dl_approx_nof_re(srslte_cell_t cell, 
+                                               uint32_t nof_prb, 
+                                               uint32_t nof_ctrl_symbols); 
+
 SRSLTE_API uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, 
                                               srslte_cell_t cell, 
                                               uint32_t sf_idx, 
