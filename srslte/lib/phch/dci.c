@@ -445,14 +445,11 @@ int dci_format0_pack(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
 
   *y++ = data->ndi;
 
-  // TCP commands not implemented
-  *y++ = 0;
-  *y++ = 0;
+  // TCP command
+  srslte_bit_unpack(data->tpc_pusch, &y, 2);
 
   // DM RS not implemented
-  *y++ = 0;
-  *y++ = 0;
-  *y++ = 0;
+  srslte_bit_unpack(data->n_dmrs, &y, 3);
 
   // CQI request
   *y++ = data->cqi_request;
