@@ -85,14 +85,16 @@ void srslte_dft_precoding_free(srslte_dft_precoding_t  *q)
   bzero(q, sizeof(srslte_dft_precoding_t));
 }
 
+static bool valid_prb[101]={true,true,true,true,true,true,true,false,true,true,true,false,true,false,false,true,true,false,true,false,true,false,false,false,
+  true,true,false,true,false,false,true,false,true,false,false,false,true,false,false,false,true,false,false,false,false,true,false,false,true,false,
+  true,false,false,false,true,false,false,false,false,false,true,false,false,false,true,false,false,false,false,false,false,false,true,false,false,true,
+  false,false,false,false,true,true,false,false,false,false,false,false,false,false,true,false,false,false,false,false,true,false,false,false,true};
+
 bool srslte_dft_precoding_valid_prb(uint32_t nof_prb) {
-  if (nof_prb > 0 && 
-     (nof_prb == 1 || (nof_prb%2) == 0 || (nof_prb%3) == 0 || (nof_prb%5) == 0)) 
-  {
-    return true; 
-  } else {
-    return false; 
+  if (nof_prb <= 100) {
+    return valid_prb[nof_prb];
   }
+  return false; 
 }
 
 int srslte_dft_precoding(srslte_dft_precoding_t *q, cf_t *input, cf_t *output, 
