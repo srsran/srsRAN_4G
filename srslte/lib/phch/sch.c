@@ -466,7 +466,7 @@ static int decode_tb(srslte_sch_t *q,
         INFO("Warning: Received all-zero transport block\n\n", 0);        
       }
 
-      if (par_rx == par_tx && par_rx) {
+      if (par_rx == par_tx) {
         INFO("TB decoded OK\n",i);
         return SRSLTE_SUCCESS;
       } else {
