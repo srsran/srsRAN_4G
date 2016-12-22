@@ -445,7 +445,7 @@ int dci_format0_pack(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
 
   *y++ = data->ndi;
 
-  // TCP command
+  // TCP command for PUSCH 
   srslte_bit_unpack(data->tpc_pusch, &y, 2);
 
   // DM RS not implemented
@@ -563,9 +563,8 @@ int dci_format1_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
   // rv version
   srslte_bit_unpack(data->rv_idx, &y, 2);
 
-  // TPC not implemented
-  *y++ = 0;
-  *y++ = 0;
+  // TCP command for PUCCH 
+  srslte_bit_unpack(data->tpc_pucch, &y, 2);
 
   // Padding with zeros
   uint32_t n = srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1, nof_prb);
