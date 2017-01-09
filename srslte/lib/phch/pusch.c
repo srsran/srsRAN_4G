@@ -533,7 +533,7 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->q, cfg->nbits.nof_re);
 
     srslte_sequence_t *seq = NULL;
-    
+
     // Create sequence if does not exist
     if (!q->users[rnti]) {
       seq = &q->tmp_seq; 
@@ -557,7 +557,7 @@ int srslte_pusch_decode(srslte_pusch_t *q,
       srslte_scrambling_s_offset(seq, q->q, 0, cfg->nbits.nof_bits);
       srslte_sequence_free(seq);
     }
-
+    
     return srslte_ulsch_uci_decode(&q->ul_sch, cfg, softbuffer, q->q, q->g, data, uci_data);      
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;

@@ -145,13 +145,13 @@ void srslte_chest_ul_set_cfg(srslte_chest_ul_t *q,
 }
 
 /* Uses the difference between the averaged and non-averaged pilot estimates */
-static float estimate_noise_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs) 
+static float estimate_noise_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs, uint32_t n_prb[2]) 
 {
   
   float power = 0; 
   for (int i=0;i<2;i++) {
     power += srslte_chest_estimate_noise_pilots(&q->pilot_estimates[i*nrefs], 
-                                                &ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE], 
+                                                &ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE+n_prb[i]*SRSLTE_NRE], 
                                                 q->tmp_noise, 
                                                 nrefs);
   }
@@ -168,9 +168,9 @@ static float estimate_noise_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nref
   }
 }
 
-#define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,0)]
-
-static void interpolate_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs) 
+// The interpolator currently only supports same frequency allocation for each subframe
+#define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,n_prb[0]*SRSLTE_NRE)]
+static void interpolate_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs, uint32_t n_prb[2]) 
 {
   uint32_t L1 = SRSLTE_REFSIGNAL_UL_L(0, q->cell.cp);
   uint32_t L2 = SRSLTE_REFSIGNAL_UL_L(1, q->cell.cp); 
@@ -206,10 +206,10 @@ void srslte_chest_ul_set_smooth_filter3_coeff(srslte_chest_ul_t* q, float w)
   q->smooth_filter_len = 3; 
 }
 
-static void average_pilots(srslte_chest_ul_t *q, cf_t *input, cf_t *ce, uint32_t nrefs) {
+static void average_pilots(srslte_chest_ul_t *q, cf_t *input, cf_t *ce, uint32_t nrefs, uint32_t n_prb[2]) {
   for (int i=0;i<2;i++) {
     srslte_chest_average_pilots(&input[i*nrefs], 
-                                &ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE], 
+                                &ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE+n_prb[i]*SRSLTE_NRE], 
                                 q->smooth_filter, nrefs, 1, q->smooth_filter_len);
   }
 }
@@ -237,21 +237,25 @@ int srslte_chest_ul_estimate(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->dmrs_pregen.r[cyclic_shift_for_dmrs][sf_idx][nof_prb], 
                            q->pilot_estimates, nrefs_sf);
   
+  if (n_prb[0] != n_prb[1]) {
+    printf("ERROR: intra-subframe frequency hopping not supported in the estimator!!\n");
+  }
+  
   if (ce != NULL) {
     if (q->smooth_filter_len > 0) {
-      average_pilots(q, q->pilot_estimates, ce, nrefs_sym);
-      interpolate_pilots(q, ce, nrefs_sym);        
+      average_pilots(q, q->pilot_estimates, ce, nrefs_sym, n_prb);
+      interpolate_pilots(q, ce, nrefs_sym, n_prb);        
       
       /* If averaging, compute noise from difference between received and averaged estimates */
-      q->noise_estimate = estimate_noise_pilots(q, ce, nrefs_sym);
+      q->noise_estimate = estimate_noise_pilots(q, ce, nrefs_sym, n_prb);
     } else {
       // Copy estimates to CE vector without averaging
       for (int i=0;i<2;i++) {
-        memcpy(&ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE], 
+        memcpy(&ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE+n_prb[i]*SRSLTE_NRE], 
                &q->pilot_estimates[i*nrefs_sym], 
-               nrefs_sym*sizeof(cf_t));
+               nrefs_sym*sizeof(cf_t));        
       }
-      interpolate_pilots(q, ce, nrefs_sym);                  
+      interpolate_pilots(q, ce, nrefs_sym, n_prb);                  
       q->noise_estimate = 0;              
     }
   }

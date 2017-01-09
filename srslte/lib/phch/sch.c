@@ -463,7 +463,7 @@ static int decode_tb(srslte_sch_t *q,
       par_tx = ((uint32_t) parity[0])<<16 | ((uint32_t) parity[1])<<8 | ((uint32_t) parity[2]);
       
       if (!par_rx) {
-        INFO("Warning: Received all-zero transport block\n\n", 0);        
+        INFO("Warning: Received all-zero transport block\n\n", 0);      
       }
 
       if (par_rx == par_tx) {
@@ -657,7 +657,7 @@ int srslte_ulsch_uci_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_sof
   }
   
   e_offset += Q_prime_cqi*Qm;
-
+  
   // Decode ULSCH
   if (cfg->cb_segm.tbs > 0) {
     uint32_t G = nb_q/Qm - Q_prime_ri - Q_prime_cqi;     
