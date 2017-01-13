@@ -102,6 +102,8 @@ typedef struct SRSLTE_API {
   float threshold_format1;
   float threshold_format1a;
   float last_corr;
+  uint32_t last_n_prb;
+  uint32_t last_n_pucch;
   
 }srslte_pucch_t;
 

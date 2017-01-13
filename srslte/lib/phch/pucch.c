@@ -67,7 +67,7 @@ float w_n_oc[2][3][4] = {
 bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t *cfg, uint32_t nof_prb) {
   if (cfg->delta_pucch_shift > 0 && cfg->delta_pucch_shift < 4 &&
       cfg->N_cs < 8 && (cfg->N_cs%cfg->delta_pucch_shift) == 0 && 
-      cfg->n_rb_2 < nof_prb) {
+      cfg->n_rb_2 <= nof_prb) {
     return true; 
   } else {
     return false;    
@@ -377,7 +377,7 @@ static int pucch_cp(srslte_pucch_t *q, srslte_pucch_format_t format, uint32_t n_
       
       // Determine n_prb
       uint32_t n_prb = srslte_pucch_n_prb(&q->pucch_cfg, format, n_pucch, q->cell.nof_prb, q->cell.cp, ns); 
-
+      q->last_n_prb = n_prb; 
       if (n_prb < q->cell.nof_prb) {
         for (uint32_t i=0;i<N_sf;i++) {
           uint32_t l = get_pucch_symbol(i, format, q->cell.cp);
@@ -654,6 +654,8 @@ int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
       }
     }
     
+    q->last_n_pucch = n_pucch; 
+    
     if (format >= SRSLTE_PUCCH_FORMAT_2 && !q->rnti_is_set) {
       fprintf(stderr, "Error encoding PUCCH: C-RNTI must be set before encoding PUCCH Format 2/2a/2b\n");
       return SRSLTE_ERROR; 
@@ -700,6 +702,8 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
       }
     }
     
+    q->last_n_pucch = n_pucch; 
+    
     if (format >= SRSLTE_PUCCH_FORMAT_2 && !q->rnti_is_set) {
       fprintf(stderr, "Error decoding PUCCH: C-RNTI must be set before encoding PUCCH Format 2/2a/2b\n");
       return SRSLTE_ERROR; 
@@ -731,6 +735,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         } else {
           ret = 0; 
         }
+        q->last_corr = corr; 
         DEBUG("format1 corr=%f, nof_re=%d, th=%f\n", corr, nof_re, q->threshold_format1);
         break;
       case SRSLTE_PUCCH_FORMAT_1A:
@@ -740,15 +745,32 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
           bits[0] = b; 
           pucch_encode(q, format, n_pucch, sf_idx, bits, q->z_tmp);
           corr = crealf(srslte_vec_dot_prod_conj_ccc(q->z, q->z_tmp, nof_re))/nof_re;          
-          if (corr > corr_max && corr >= q->threshold_format1a) {
+          if (corr > corr_max) {
             corr_max = corr; 
             b_max = b; 
           }
-          if (corr_max > q->threshold_format1a) {
+          if (corr_max > q->threshold_format1) { // check with format1 in case ack+sr because ack only is binary
             ret = 1; 
           }
           DEBUG("format1a b=%d, corr=%f, nof_re=%d, th=%f\n", b, corr, nof_re, q->threshold_format1a);
         }
+        q->last_corr = corr_max; 
+
+/*
+        if (corr_max < 0.01) {
+          srslte_vec_save_file("sf_symbols", sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
+          srslte_vec_save_file("sf_ce", ce, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
+          srslte_vec_save_file("ce", q->ce, sizeof(cf_t)*nof_re);
+          srslte_vec_save_file("z_before", zz, sizeof(cf_t)*nof_re);
+          srslte_vec_save_file("z_eq", q->z, sizeof(cf_t)*nof_re);
+          srslte_vec_save_file("z_1", q->z_tmp, sizeof(cf_t)*nof_re);
+          bits[0] = 0; 
+          pucch_encode(q, format, n_pucch, sf_idx, bits, q->z_tmp);
+          srslte_vec_save_file("z_0", q->z_tmp, sizeof(cf_t)*nof_re);
+          printf("corr_max=%f, b_max=%d, n_pucch=%d, n_prb=%d, sf_idx=%d, nof_re=%d, noise_estimate=%f\n", corr_max, b_max, n_pucch, q->last_n_prb, sf_idx, nof_re, noise_estimate);
+          exit(-1);
+        }
+*/
         bits[0] = b_max; 
         break;
       default:
@@ -756,7 +778,6 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         ret = SRSLTE_ERROR; 
         break;
     }
-    q->last_corr = corr; 
   }
 
   return ret;     

@@ -259,11 +259,7 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
     
     // Save ACK bits 
     if (uci_data->uci_ack_len > 0) {
-      if (ret_val > 0) {
-        uci_data->uci_ack = bits[0];      
-      } else {
-        uci_data->uci_ack = 0; 
-      }
+      uci_data->uci_ack = bits[0];            
     }
     return SRSLTE_SUCCESS;
   } else {

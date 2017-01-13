@@ -289,7 +289,7 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
   
   /* Use the known DMRS signal to compute Least-squares estimates */
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->pilot_known_signal, q->pilot_estimates, nrefs_sf);
-  
+ 
   if (ce != NULL) {
     /* FIXME: Currently averaging entire slot, performance good enough? */
     for (int ns=0;ns<2;ns++) {

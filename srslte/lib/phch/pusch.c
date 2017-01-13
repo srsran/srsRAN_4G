@@ -554,7 +554,6 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     srslte_scrambling_s_offset(seq, q->q, 0, cfg->nbits.nof_bits);
         
     if (!q->users[rnti]) {
-      srslte_scrambling_s_offset(seq, q->q, 0, cfg->nbits.nof_bits);
       srslte_sequence_free(seq);
     }
     

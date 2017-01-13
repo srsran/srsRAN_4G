@@ -237,6 +237,8 @@ void srslte_refsignal_ul_set_cfg(srslte_refsignal_ul_t *q,
   if (pucch_cfg) {
     if (srslte_pucch_cfg_isvalid(pucch_cfg, q->cell.nof_prb)) {
       memcpy(&q->pucch_cfg, pucch_cfg, sizeof(srslte_pucch_cfg_t));    
+    } else {
+      fprintf(stderr, "Invalid PUCCH configuration in refsignal_ul\n");
     }
   }
   if (srs_cfg) {

@@ -1,15 +1,16 @@
 clear 
-ueConfig=struct('NCellID',1,'RNTI',11,'NULRB',25,'NSubframe',0,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Off');
-pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0,'ResourceSize',2);
+ueConfig=struct('NCellID',1,'RNTI',46,'NULRB',25,'CyclicPrefixUL','Normal','NTxAnts',1,'Hopping','Off');
+pucchConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0);
 
 format_str={'1','1a'};
 
 threshold=[0.5 0];
-formats=[1];
+formats=1;
 pucchConfig.ResourceIdx= 0;
-pucchConfig.DeltaShift = 1;
+pucchConfig.DeltaShift = 2;
 pucchConfig.CyclicShifts = 0;
-ueConfig.NSubframe=0;
+pucchConfig.ResourceSize=2;
+ueConfig.NSubframe=9;
 
 enable_fading=false; 
 
