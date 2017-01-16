@@ -52,6 +52,7 @@ configure_file(
 # Options
 ########################################################################
 option(DisableMEX "DisableMEX" ON)
+option(StaticMKL "StaticMKL" OFF)
 
 ########################################################################
 # Install Dirs
@@ -98,7 +99,7 @@ endif(CMAKE_COMPILER_IS_GNUCXX)
 
 if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g")
-    
+
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     find_package(SSE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
