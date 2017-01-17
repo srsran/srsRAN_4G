@@ -280,3 +280,173 @@ void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
   }
 #endif
 }
+
+
+// for enb no-volk
+void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 4;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  float* zPtr = (float*) z;
+
+  __m128 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_load_ps(xPtr);
+    yVal = _mm_load_ps(yPtr);
+
+    zVal = _mm_add_ps(xVal, yVal);
+
+    _mm_store_ps(zPtr, zVal); 
+
+    xPtr += 4;
+    yPtr += 4;
+    zPtr += 4;
+  }
+
+  number = points * 4;
+  for(;number < len; number++){
+    z[number] = x[number] + y[number];
+  }
+#endif
+}
+
+static inline __m128 _mm_complexmul_ps(__m128 x, __m128 y) {
+  __m128 yl, yh, tmp1, tmp2;
+  yl = _mm_moveldup_ps(y); // Load yl with cr,cr,dr,dr
+  yh = _mm_movehdup_ps(y); // Load yh with ci,ci,di,di
+  tmp1 = _mm_mul_ps(x, yl); // tmp1 = ar*cr,ai*cr,br*dr,bi*dr
+  x = _mm_shuffle_ps(x, x, 0xB1); // Re-arrange x to be ai,ar,bi,br
+  tmp2 = _mm_mul_ps(x, yh); // tmp2 = ai*ci,ar*ci,bi*di,br*di
+  return _mm_addsub_ps(tmp1, tmp2); // ar*cr-ai*ci, ai*cr+ar*ci, br*dr-bi*di, bi*dr+br*di
+}
+
+void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) 
+{
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int halfPoints = len / 2;
+
+  __m128 xVal, yVal, zVal;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+
+  for(; number < halfPoints; number++){
+    xVal = _mm_load_ps(xPtr); 
+    yVal = _mm_load_ps(yPtr); 
+    zVal = _mm_complexmul_ps(xVal, yVal);
+    _mm_store_ps(zPtr, zVal); 
+
+    xPtr += 4;
+    yPtr += 4;
+    zPtr += 4;
+  }
+
+  if((len % 2) != 0){
+    *zPtr = (*xPtr) * (*yPtr);
+  }
+#endif
+}
+
+static inline __m128 _mm_complexmulconj_ps(__m128 x, __m128 y) {
+  const __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
+  y = _mm_xor_ps(y, conjugator); 
+  return _mm_complexmul_ps(x, y);
+}
+
+void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int halfPoints = len / 2;
+
+  __m128 xVal, yVal, zVal;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+
+  for(; number < halfPoints; number++){
+    xVal = _mm_load_ps(xPtr); 
+    yVal = _mm_load_ps(yPtr); 
+    zVal = _mm_complexmulconj_ps(xVal, yVal);
+    _mm_store_ps(zPtr, zVal); 
+
+    xPtr += 4;
+    yPtr += 4;
+    zPtr += 4;
+  }
+
+  if((len % 2) != 0){
+    *zPtr = (*xPtr) * (*yPtr);
+  }
+#endif
+}
+
+void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int halfPoints = len / 2;
+
+  __m128 xVal, yl, yh, zVal, tmp1, tmp2;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+
+  // Set up constant scalar vector
+  yl = _mm_set_ps1(creal(h));
+  yh = _mm_set_ps1(cimag(h));
+
+  for(;number < halfPoints; number++){
+
+    xVal = _mm_load_ps(xPtr); 
+    tmp1 = _mm_mul_ps(xVal,yl); 
+    xVal = _mm_shuffle_ps(xVal,xVal,0xB1); 
+    tmp2 = _mm_mul_ps(xVal,yh); 
+    zVal = _mm_addsub_ps(tmp1,tmp2); 
+    _mm_storeu_ps(zPtr,zVal); 
+
+    xPtr += 4;
+    zPtr += 4;
+  }
+
+  if((len % 2) != 0) {
+    *zPtr = (*xPtr) * h;
+  }
+#endif
+}
+
+void srslte_vec_abs_square_cf_simd(cf_t *x, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int quarterPoints = len / 4;
+
+  const float* xPtr = (const float*) x;
+  float* zPtr = z;
+
+  __m128 xVal1, xVal2, zVal;
+  for(; number < quarterPoints; number++){
+    xVal1 = _mm_load_ps(xPtr);
+    xPtr += 4;
+    xVal2 = _mm_load_ps(xPtr);
+    xPtr += 4;
+    xVal1 = _mm_mul_ps(xVal1, xVal1); 
+    xVal2 = _mm_mul_ps(xVal2, xVal2); 
+    zVal = _mm_hadd_ps(xVal1, xVal2);
+    _mm_store_ps(zPtr, zVal);
+    zPtr += 4;
+  }
+
+  number = quarterPoints * 4;
+  for(; number < len; number++){
+    float val1Real = *xPtr++;
+    float val1Imag = *xPtr++;
+    *zPtr++ = (val1Real * val1Real) + (val1Imag * val1Imag);
+  }
+#endif
+}
+
+
+
+

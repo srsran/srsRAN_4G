@@ -74,25 +74,6 @@ else(BLADERF_FOUND OR UHD_FOUND)
   add_definitions(-DDISABLE_RF)
 endif(BLADERF_FOUND OR UHD_FOUND)
 
-include(CheckFunctionExistsMath)
-if(${DISABLE_VOLK})
-  if(${DISABLE_VOLK} EQUAL 0)
-    find_package(Volk)
-  else(${DISABLE_VOLK} EQUAL 0)
-    message(STATUS "VOLK library disabled (DISABLE_VOLK=1)")
-  endif(${DISABLE_VOLK} EQUAL 0)
-else(${DISABLE_VOLK})
-  find_package(Volk)
-endif(${DISABLE_VOLK})
-
-if(VOLK_FOUND)
-  include_directories(${VOLK_INCLUDE_DIRS})
-  link_directories(${VOLK_LIBRARY_DIRS})
-  message(STATUS "   Compiling with VOLK SIMD library.")
-else(VOLK_FOUND)
-  message(STATUS "   VOLK SIMD library NOT found. Using generic implementation.")
-endif(VOLK_FOUND)
-
 ########################################################################
 # Add subdirectories
 ########################################################################

@@ -90,13 +90,6 @@ if(RF_FOUND)
   endif(BLADERF_FOUND)
 endif(RF_FOUND)
 
-if(VOLK_FOUND)
-  target_link_libraries(srslte ${VOLK_LIBRARIES})
-  if(NOT DisableMEX)
-    target_link_libraries(srslte_static ${VOLK_LIBRARIES})
-  endif(NOT DisableMEX)
-endif(VOLK_FOUND)
-
 INSTALL(TARGETS srslte DESTINATION ${LIBRARY_DIR})
 SRSLTE_SET_PIC(srslte)
 
