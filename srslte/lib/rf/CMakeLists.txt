@@ -33,6 +33,15 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_blade_imp.c)
   endif (BLADERF_FOUND)
 
-  add_library(srslte_rf OBJECT ${SOURCES_RF})
+  add_library(srslte_rf SHARED ${SOURCES_RF})
+
+  if (UHD_FOUND)
+    target_link_libraries(srslte_rf ${UHD_LIBRARIES})
+  endif (UHD_FOUND)
+
+  if (BLADERF_FOUND)
+    target_link_libraries(srslte_rf ${BLADERF_LIBRARIES})
+  endif (BLADERF_FOUND)
+
   SRSLTE_SET_PIC(srslte_rf)
 endif(RF_FOUND)
