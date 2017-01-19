@@ -55,10 +55,6 @@ set(srslte_srcs     version.c
                     $<TARGET_OBJECTS:srslte_enb>
 )
 
-if(RF_FOUND)
-  list(APPEND srslte_srcs $<TARGET_OBJECTS:srslte_rf>)
-endif(RF_FOUND)
-
 add_library(srslte SHARED ${srslte_srcs})
 target_link_libraries(srslte pthread m)
 set_target_properties(srslte  PROPERTIES
@@ -87,7 +83,11 @@ else(MKL_FOUND)
   endif(NOT DisableMEX)
 endif(MKL_FOUND)
 
+## This linkage is required for the examples and tests only
 if(RF_FOUND)
+
+  target_link_libraries(srslte srslte_rf)
+
   if(UHD_FOUND)
     target_link_libraries(srslte ${UHD_LIBRARIES})
   endif(UHD_FOUND)
