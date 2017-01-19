@@ -51,8 +51,9 @@ configure_file(
 ########################################################################
 # Options
 ########################################################################
-option(DisableMEX "DisableMEX" ON)
-option(StaticMKL "StaticMKL" OFF)
+option(DisableMEX     "DisableMEX"     ON)
+option(StaticMKL      "StaticMKL"      OFF)
+option(DisableBladeRF "DisableBladeRF" OFF)
 
 ########################################################################
 # Install Dirs
@@ -102,14 +103,14 @@ if(CMAKE_COMPILER_IS_GNUCC)
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     find_package(SSE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
     if(HAVE_AVX)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")      
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")      
     elseif(HAVE_SSE)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
     endif(HAVE_AVX)
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
     find_package(SSE)
     if(HAVE_AVX)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
