@@ -41,9 +41,7 @@
 
 #include "dci_sz_table.h"
 
-
 int harq_pid_len = 3; 
-
 
 /* Unpacks a DCI message and configures the DL grant object
  */

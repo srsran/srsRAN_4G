@@ -47,6 +47,8 @@
 
 #define SRSLTE_RAR_GRANT_LEN 20
 
+SRSLTE_API extern int harq_pid_len; 
+
 typedef enum {
   SRSLTE_DCI_FORMAT0 = 0, 
   SRSLTE_DCI_FORMAT1, 
