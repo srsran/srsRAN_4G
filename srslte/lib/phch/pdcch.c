@@ -340,7 +340,7 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
     } else {
       ret = SRSLTE_SUCCESS;
       
-      uint32_t nof_bits = srslte_dci_format_sizeof_lut(format, q->cell.nof_prb);
+      uint32_t nof_bits = srslte_dci_format_sizeof(format, q->cell.nof_prb, q->cell.nof_ports);
       uint32_t e_bits = PDCCH_FORMAT_NOF_BITS(location->L);
     
       double mean = 0; 
