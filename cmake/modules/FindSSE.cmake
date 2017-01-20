@@ -6,6 +6,7 @@ include(CheckCSourceRuns)
 
 option(ENABLE_SSE "Enable compile-time SSE4.1 support." ON)
 option(ENABLE_AVX "Enable compile-time AVX support."  ON)
+option(ENABLE_AVX2 "Enable compile-time AVX2 support."  ON)
 
 if (ENABLE_SSE)
     #
@@ -52,7 +53,31 @@ if (ENABLE_SSE)
             message(STATUS "AVX is enabled - target CPU must support it")
         endif()
     endif()
+    
+     if (ENABLE_AVX2)
+
+        #
+        # Check compiler for AVX intrinsics
+        #
+        if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG )
+            set(CMAKE_REQUIRED_FLAGS "-mavx2")
+            check_c_source_runs("
+            #include <immintrin.h>
+
+            int main()
+            {
+            __m256i a = _mm256_setzero_si256();
+            __m256i b = _mm256_abs_epi16(a);
+            return 0;
+            }"
+            HAVE_AVX2)
+        endif()
+
+        if (HAVE_AVX2)
+            message(STATUS "AVX2 is enabled - target CPU must support it")
+        endif()
+    endif()
 
 endif()
 
-mark_as_advanced(HAVE_SSE, HAVE_AVX)
+mark_as_advanced(HAVE_SSE, HAVE_AVX, HAVE_AVX2)
