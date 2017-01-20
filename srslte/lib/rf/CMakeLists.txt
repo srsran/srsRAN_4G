@@ -45,5 +45,6 @@ if(RF_FOUND)
     target_link_libraries(srslte_rf ${BLADERF_LIBRARIES})
   endif (BLADERF_FOUND)
 
+  INSTALL(TARGETS srslte_rf DESTINATION ${LIBRARY_DIR})
   SRSLTE_SET_PIC(srslte_rf)
 endif(RF_FOUND)
