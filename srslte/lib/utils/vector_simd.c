@@ -314,6 +314,7 @@ void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len) {
 #endif
 }
 
+#ifdef LV_HAVE_SSE
 static inline __m128 _mm_complexmul_ps(__m128 x, __m128 y) {
   __m128 yl, yh, tmp1, tmp2;
   yl = _mm_moveldup_ps(y); // Load yl with cr,cr,dr,dr
@@ -323,6 +324,7 @@ static inline __m128 _mm_complexmul_ps(__m128 x, __m128 y) {
   tmp2 = _mm_mul_ps(x, yh); // tmp2 = ai*ci,ar*ci,bi*di,br*di
   return _mm_addsub_ps(tmp1, tmp2); // ar*cr-ai*ci, ai*cr+ar*ci, br*dr-bi*di, bi*dr+br*di
 }
+#endif
 
 void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) 
 {
@@ -352,11 +354,13 @@ void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
 #endif
 }
 
+#ifdef LV_HAVE_SSE
 static inline __m128 _mm_complexmulconj_ps(__m128 x, __m128 y) {
   const __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
   y = _mm_xor_ps(y, conjugator); 
   return _mm_complexmul_ps(x, y);
 }
+#endif
 
 void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
