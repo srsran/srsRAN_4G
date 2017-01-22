@@ -223,8 +223,8 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t l
   __m128i xVal, lutVal;
   for(;number < points; number++){
 
-    xVal   = _mm_load_si128(xPtr);
-    lutVal = _mm_load_si128(lutPtr);
+    xVal   = _mm_loadu_si128(xPtr);
+    lutVal = _mm_loadu_si128(lutPtr);
     
     for (int i=0;i<8;i++) {
       int16_t x = (int16_t)   _mm_extract_epi16(xVal, i); 
