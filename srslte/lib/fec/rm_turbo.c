@@ -327,8 +327,11 @@ int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint32_t in_len,
         lutVal = _mm_loadu_si128(lutPtr);
       
         for (int j=0;j<8;j++) {
-          int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
-          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, j);
+          // For -O0 builds: shuffle j-th element to pos 0 and extract from there
+          _mm_shuffle_epi8(xVal,_mm_set1_epi8(j));
+          int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   0);
+          _mm_shuffle_epi8(lutVal,_mm_set1_epi8(j));
+          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, 0);
           output[l] += x;
         }
         xPtr ++;
@@ -346,8 +349,10 @@ int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint32_t in_len,
         lutVal = _mm_loadu_si128(lutPtr);
       
         for (int j=0;j<8;j++) {
-          int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
-          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, j);
+          _mm_shuffle_epi8(xVal,_mm_set1_epi8(j));
+          int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   0);
+          _mm_shuffle_epi8(lutVal,_mm_set1_epi8(j));
+          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, 0);
           output[l] += x;
         }
         xPtr++;
