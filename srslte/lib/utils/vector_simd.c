@@ -227,8 +227,10 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t l
     lutVal = _mm_load_si128(lutPtr);
     
     for (int i=0;i<8;i++) {
-      int16_t x = (int16_t)   _mm_extract_epi16(xVal, i); 
-      uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, i);
+      _mm_shuffle_epi8(xVal,_mm_set1_epi8(i));
+      int16_t x = (int16_t)   _mm_extract_epi16(xVal, 0);
+      _mm_shuffle_epi8(lutVal,_mm_set1_epi8(i));
+      uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, 0);
       y[l] = x;
     }
     xPtr ++;
@@ -295,12 +297,12 @@ void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len) {
   __m128 xVal, yVal, zVal;
   for(;number < points; number++){
 
-    xVal = _mm_load_ps(xPtr);
-    yVal = _mm_load_ps(yPtr);
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
 
     zVal = _mm_add_ps(xVal, yVal);
 
-    _mm_store_ps(zPtr, zVal); 
+    _mm_storeu_ps(zPtr, zVal);
 
     xPtr += 4;
     yPtr += 4;
@@ -338,10 +340,10 @@ void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
   const float* yPtr = (const float*) y;
 
   for(; number < halfPoints; number++){
-    xVal = _mm_load_ps(xPtr); 
-    yVal = _mm_load_ps(yPtr); 
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
     zVal = _mm_complexmul_ps(xVal, yVal);
-    _mm_store_ps(zPtr, zVal); 
+    _mm_storeu_ps(zPtr, zVal);
 
     xPtr += 4;
     yPtr += 4;
