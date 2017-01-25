@@ -200,19 +200,18 @@ void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len) {
 }
 
 // Used throughout 
-void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
-#ifndef LV_HAVE_SSE
+void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) { 
+  #ifndef LV_HAVE_SSE
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*h;
   }
+  
 #else
-  cf_t hh;
-  __real__ hh = h;
-  __imag__ hh = 0;
-  srslte_vec_sc_prod_ccc_simd(x,hh,z,len);
+ srslte_vec_sc_prod_cfc_simd(x, h, z, len); 
 #endif
 }
+
 
 // Chest UL 
 void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {

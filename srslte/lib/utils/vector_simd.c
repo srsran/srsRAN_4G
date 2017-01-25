@@ -57,8 +57,8 @@ int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len)
   __m128i xVal, yVal, zVal;
   for(;number < points; number++){
 
-    xVal = _mm_load_si128(xPtr);
-    yVal = _mm_load_si128(yPtr);
+    xVal = _mm_loadu_si128(xPtr);
+    yVal = _mm_loadu_si128(yPtr);
 
     zVal = _mm_mullo_epi16(xVal, yVal);
 
@@ -69,7 +69,7 @@ int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len)
   }
   
   short dotProdVector[8];
-  _mm_store_si128((__m128i*) dotProdVector, dotProdVal);
+  _mm_storeu_si128((__m128i*) dotProdVector, dotProdVal);
   for (int i=0;i<8;i++) {
     result += dotProdVector[i]; 
   }
@@ -96,12 +96,12 @@ void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len)
   __m128i xVal, yVal, zVal;
   for(;number < points; number++){
 
-    xVal = _mm_load_si128(xPtr);
-    yVal = _mm_load_si128(yPtr);
+    xVal = _mm_loadu_si128(xPtr);
+    yVal = _mm_loadu_si128(yPtr);
 
     zVal = _mm_add_epi16(xVal, yVal);
 
-    _mm_store_si128(zPtr, zVal); 
+    _mm_storeu_si128(zPtr, zVal); 
 
     xPtr ++;
     yPtr ++;
@@ -129,12 +129,12 @@ void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len)
   __m128i xVal, yVal, zVal;
   for(;number < points; number++){
 
-    xVal = _mm_load_si128(xPtr);
-    yVal = _mm_load_si128(yPtr);
+    xVal = _mm_loadu_si128(xPtr);
+    yVal = _mm_loadu_si128(yPtr);
 
     zVal = _mm_sub_epi16(xVal, yVal);
 
-    _mm_store_si128(zPtr, zVal); 
+    _mm_storeu_si128(zPtr, zVal); 
 
     xPtr ++;
     yPtr ++;
@@ -161,12 +161,12 @@ void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len)
   __m128i xVal, yVal, zVal;
   for(;number < points; number++){
 
-    xVal = _mm_load_si128(xPtr);
-    yVal = _mm_load_si128(yPtr);
+    xVal = _mm_loadu_si128(xPtr);
+    yVal = _mm_loadu_si128(yPtr);
 
     zVal = _mm_mullo_epi16(xVal, yVal);
 
-    _mm_store_si128(zPtr, zVal); 
+    _mm_storeu_si128(zPtr, zVal); 
 
     xPtr ++;
     yPtr ++;
@@ -192,11 +192,11 @@ void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
   __m128i xVal, zVal;
   for(;number < points; number++){
 
-    xVal = _mm_load_si128(xPtr);
+    xVal = _mm_loadu_si128(xPtr);
     
     zVal = _mm_srai_epi16(xVal, k);                 
       
-    _mm_store_si128(zPtr, zVal); 
+    _mm_storeu_si128(zPtr, zVal); 
 
     xPtr ++;
     zPtr ++;
@@ -223,8 +223,8 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t l
   __m128i xVal, lutVal;
   for(;number < points; number++){
 
-    xVal   = _mm_load_si128(xPtr);
-    lutVal = _mm_load_si128(lutPtr);
+    xVal   = _mm_loadu_si128(xPtr);
+    lutVal = _mm_loadu_si128(lutPtr);
     
     for (int i=0;i<8;i++) {
       int16_t x = (int16_t)   _mm_extract_epi16(xVal, i); 
@@ -295,12 +295,12 @@ void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len) {
   __m128 xVal, yVal, zVal;
   for(;number < points; number++){
 
-    xVal = _mm_load_ps(xPtr);
-    yVal = _mm_load_ps(yPtr);
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
 
     zVal = _mm_add_ps(xVal, yVal);
 
-    _mm_store_ps(zPtr, zVal); 
+    _mm_storeu_ps(zPtr, zVal); 
 
     xPtr += 4;
     yPtr += 4;
@@ -338,18 +338,19 @@ void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
   const float* yPtr = (const float*) y;
 
   for(; number < halfPoints; number++){
-    xVal = _mm_load_ps(xPtr); 
-    yVal = _mm_load_ps(yPtr); 
+    xVal = _mm_loadu_ps(xPtr); 
+    yVal = _mm_loadu_ps(yPtr); 
     zVal = _mm_complexmul_ps(xVal, yVal);
-    _mm_store_ps(zPtr, zVal); 
+    _mm_storeu_ps(zPtr, zVal); 
 
     xPtr += 4;
     yPtr += 4;
     zPtr += 4;
   }
 
-  if((len % 2) != 0){
-    *zPtr = (*xPtr) * (*yPtr);
+  number = halfPoints * 2;
+  for(;number < len; number++){
+    z[number] = x[number] * y[number];
   }
 #endif
 }
@@ -373,18 +374,19 @@ void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
   const float* yPtr = (const float*) y;
 
   for(; number < halfPoints; number++){
-    xVal = _mm_load_ps(xPtr); 
-    yVal = _mm_load_ps(yPtr); 
+    xVal = _mm_loadu_ps(xPtr); 
+    yVal = _mm_loadu_ps(yPtr); 
     zVal = _mm_complexmulconj_ps(xVal, yVal);
-    _mm_store_ps(zPtr, zVal); 
+    _mm_storeu_ps(zPtr, zVal); 
 
     xPtr += 4;
     yPtr += 4;
     zPtr += 4;
   }
 
-  if((len % 2) != 0){
-    *zPtr = (*xPtr) * (*yPtr);
+  number = halfPoints * 2;
+  for(;number < len; number++){
+    z[number] = x[number] * conjf(y[number]);
   }
 #endif
 }
@@ -404,7 +406,7 @@ void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
 
   for(;number < halfPoints; number++){
 
-    xVal = _mm_load_ps(xPtr); 
+    xVal = _mm_loadu_ps(xPtr); 
     tmp1 = _mm_mul_ps(xVal,yl); 
     xVal = _mm_shuffle_ps(xVal,xVal,0xB1); 
     tmp2 = _mm_mul_ps(xVal,yh); 
@@ -415,12 +417,43 @@ void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
     zPtr += 4;
   }
 
-  if((len % 2) != 0) {
-    *zPtr = (*xPtr) * h;
+  number = halfPoints * 2;
+  for(;number < len; number++){
+    z[number] = x[number] * h;
   }
 #endif
 }
 
+
+void srslte_vec_sc_prod_cfc_simd(cf_t *x, float h, cf_t *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int halfPoints = len / 2;
+
+  __m128 xVal, hVal, zVal;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+
+  // Set up constant scalar vector
+  hVal = _mm_set_ps1(h);
+  
+  for(;number < halfPoints; number++){
+
+    xVal = _mm_loadu_ps(xPtr); 
+    zVal = _mm_mul_ps(xVal,hVal); 
+    _mm_storeu_ps(zPtr,zVal); 
+
+    xPtr += 4;
+    zPtr += 4;
+  }
+
+  number = halfPoints * 2;
+  for(;number < len; number++){
+    z[number] = x[number] * h;
+  }
+
+#endif
+}
 void srslte_vec_abs_square_cf_simd(cf_t *x, float *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -431,22 +464,20 @@ void srslte_vec_abs_square_cf_simd(cf_t *x, float *z, uint32_t len) {
 
   __m128 xVal1, xVal2, zVal;
   for(; number < quarterPoints; number++){
-    xVal1 = _mm_load_ps(xPtr);
+    xVal1 = _mm_loadu_ps(xPtr);
     xPtr += 4;
-    xVal2 = _mm_load_ps(xPtr);
+    xVal2 = _mm_loadu_ps(xPtr);
     xPtr += 4;
     xVal1 = _mm_mul_ps(xVal1, xVal1); 
     xVal2 = _mm_mul_ps(xVal2, xVal2); 
     zVal = _mm_hadd_ps(xVal1, xVal2);
-    _mm_store_ps(zPtr, zVal);
+    _mm_storeu_ps(zPtr, zVal);
     zPtr += 4;
   }
 
   number = quarterPoints * 4;
-  for(; number < len; number++){
-    float val1Real = *xPtr++;
-    float val1Imag = *xPtr++;
-    *zPtr++ = (val1Real * val1Real) + (val1Imag * val1Imag);
+  for(;number < len; number++){
+    z[number] = creal(x[number]) * creal(x[number]) + cimag(x[number])*cimag(x[number]);
   }
 #endif
 }

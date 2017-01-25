@@ -51,6 +51,8 @@ SRSLTE_API void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, ui
 
 SRSLTE_API void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len);
 
+SRSLTE_API void srslte_vec_sc_prod_cfc_simd(cf_t *x, float h, cf_t *z, uint32_t len); 
+
 SRSLTE_API void srslte_vec_abs_square_cf_simd(cf_t *x, float *abs_square, uint32_t len);
 
 SRSLTE_API cf_t srslte_vec_dot_prod_ccc_simd(cf_t *x, cf_t *y, uint32_t len); 
