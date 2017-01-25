@@ -227,10 +227,8 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t l
     lutVal = _mm_loadu_si128(lutPtr);
     
     for (int i=0;i<8;i++) {
-      _mm_shuffle_epi8(xVal,_mm_set1_epi8(i));
-      int16_t x = (int16_t)   _mm_extract_epi16(xVal, 0);
-      _mm_shuffle_epi8(lutVal,_mm_set1_epi8(i));
-      uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, 0);
+      int16_t x = (int16_t)   _mm_extract_epi16(xVal, i); 
+      uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, i);
       y[l] = x;
     }
     xPtr ++;
