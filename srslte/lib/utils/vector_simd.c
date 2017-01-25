@@ -431,14 +431,14 @@ void srslte_vec_abs_square_cf_simd(cf_t *x, float *z, uint32_t len) {
 
   __m128 xVal1, xVal2, zVal;
   for(; number < quarterPoints; number++){
-    xVal1 = _mm_load_ps(xPtr);
+    xVal1 = _mm_loadu_ps(xPtr);
     xPtr += 4;
-    xVal2 = _mm_load_ps(xPtr);
+    xVal2 = _mm_loadu_ps(xPtr);
     xPtr += 4;
     xVal1 = _mm_mul_ps(xVal1, xVal1); 
     xVal2 = _mm_mul_ps(xVal2, xVal2); 
     zVal = _mm_hadd_ps(xVal1, xVal2);
-    _mm_store_ps(zPtr, zVal);
+    _mm_storeu_ps(zPtr, zVal);
     zPtr += 4;
   }
 
