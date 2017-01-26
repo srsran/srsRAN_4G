@@ -439,15 +439,21 @@ int srslte_band_get_band(uint32_t earfcn) {
 }
 
 float srslte_band_fd(uint32_t earfcn) {
+  if (earfcn > lte_bands[SRSLTE_NOF_LTE_BANDS-1].earfcn_max) {
+    return -1; 
+  }
   uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
   while(i > 0 && lte_bands[i].earfcn_offset>earfcn) {
     i--;
   }
-  return get_fd(&lte_bands[i], earfcn);
+  return get_fd(&lte_bands[i], earfcn);  
 }
 
 
 float srslte_band_fu(uint32_t earfcn) {
+  if (earfcn > lte_bands[SRSLTE_NOF_LTE_BANDS-1].earfcn_max) {
+    return -1; 
+  }
   uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
   while(i > 0 && lte_bands[i].earfcn_offset>earfcn) {
     i--;
