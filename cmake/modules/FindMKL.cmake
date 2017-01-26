@@ -5,9 +5,14 @@
 #  MKL_LIBRARIES - The libraries needed to use mkl
 #  MKL_DEFINITIONS - Compiler switches required for using mkl
 
-find_path(MKL_INCLUDE_DIRS
+find_path(MKL_INCLUDE_DIR
             NAMES mkl.h
             HINTS $ENV{MKL_DIR}/include
+            PATHS)
+
+find_path(MKL_FFTW_INCLUDE_DIR
+            NAMES fftw3.h
+            HINTS $ENV{MKL_DIR}/include/fftw
             PATHS)
 
 find_library(MKL_LIBRARIES
@@ -31,6 +36,7 @@ find_library(MKL_SEQ
             PATHS)
 
 set(MKL_STATIC_LIBRARIES -Wl,--start-group ${MKL_CORE} ${MKL_ILP} ${MKL_SEQ} -Wl,--end-group -lpthread -lm -ldl)
+set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIR} ${MKL_FFTW_INCLUDE_DIR})
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set MKL_FOUND to TRUE
