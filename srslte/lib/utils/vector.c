@@ -44,7 +44,7 @@ int srslte_vec_acc_ii(int *x, uint32_t len) {
   return z;
 }
 
-// Used in PRACH detector
+// Used in PRACH detector, AGC and chest_dl for noise averaging
 float srslte_vec_acc_ff(float *x, uint32_t len) {
   int i;
   float z=0;
@@ -79,10 +79,14 @@ void srslte_vec_square_dist(cf_t symbol, cf_t *points, float *distance, uint32_t
 }
 
 void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
+#ifndef LV_HAVE_SSE
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]-y[i];
   }
+#else
+  srslte_vec_sub_fff_simd(x, y, z, len);
+#endif
 }
 
 void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len) {
@@ -96,6 +100,7 @@ void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len) {
 #endif
 }
 
+// Noise estimation in chest_dl, interpolation 
 void srslte_vec_sub_ccc(cf_t *x, cf_t *y, cf_t *z, uint32_t len) {
   return srslte_vec_sub_fff((float*) x,(float*) y,(float*) z, 2*len);
 }
@@ -161,12 +166,16 @@ void srslte_vec_sc_add_sss(int16_t *x, int16_t h, int16_t *z, uint32_t len) {
     z[i] += h;
   }
 }
-
+// PSS, PBCH, DEMOD, FFTW, etc. 
 void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
+#ifndef LV_HAVE_SSE
   int i;
   for (i=0;i<len;i++) {
     z[i] = x[i]*h;
   }
+#else
+  srslte_vec_sc_prod_fff_simd(x, h, z, len);
+#endif
 }
 
 void srslte_vec_sc_prod_sfs(short *x, float h, short *z, uint32_t len) {
@@ -490,8 +499,9 @@ void srslte_vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #endif
 }
 
-#define DIV_USE_VEC
+//#define DIV_USE_VEC
 
+// Used in SSS 
 /* Complex division is conjugate multiplication + real division */
 void srslte_vec_div_ccc(cf_t *x, cf_t *y, float *y_mod, cf_t *z, float *z_real, float *z_imag, uint32_t len) {
 #ifdef DIV_USE_VEC
@@ -528,16 +538,21 @@ void srslte_vec_div_fff(float *x, float *y, float *z, uint32_t len) {
   }
 }
 
+// PSS. convolution 
 cf_t srslte_vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len) {
+#ifndef LV_HAVE_SSE
   uint32_t i;
   cf_t res = 0;
   for (i=0;i<len;i++) {
     res += x[i]*y[i];
   }
   return res;
+#else
+  return srslte_vec_dot_prod_ccc_simd(x, y, len); 
+#endif
 }
 
-// Convolution filter 
+// Convolution filter and in SSS search 
 cf_t srslte_vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len) {
   uint32_t i;
   cf_t res = 0;
@@ -547,13 +562,19 @@ cf_t srslte_vec_dot_prod_cfc(cf_t *x, float *y, uint32_t len) {
   return res;
 }
 
+// SYNC 
 cf_t srslte_vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len) {
+#ifndef LV_HAVE_SSE
   uint32_t i;
   cf_t res = 0;
   for (i=0;i<len;i++) {
-    res += x[i]*conjf(y[i]);
+    res += x[i]*y[i];
   }
   return res;
+#else
+  return srslte_vec_dot_prod_conj_ccc_simd(x, y, len); 
+#endif
+  
 }
 
 // PHICH 
@@ -583,7 +604,7 @@ float srslte_vec_avg_power_cf(cf_t *x, uint32_t len) {
   return crealf(srslte_vec_dot_prod_conj_ccc(x,x,len)) / len;
 }
 
-// PSS
+// PSS (disabled and using abs_square )
 void srslte_vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
   int i;
   for (i=0;i<len;i++) {

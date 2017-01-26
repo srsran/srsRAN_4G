@@ -53,17 +53,25 @@ SRSLTE_API void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
 
 SRSLTE_API void srslte_vec_sc_prod_cfc_simd(cf_t *x, float h, cf_t *z, uint32_t len); 
 
+SRSLTE_API void srslte_vec_sc_prod_fff_simd(float *x, float h, float *z, uint32_t len); 
+
 SRSLTE_API void srslte_vec_abs_square_cf_simd(cf_t *x, float *abs_square, uint32_t len);
 
 SRSLTE_API cf_t srslte_vec_dot_prod_ccc_simd(cf_t *x, cf_t *y, uint32_t len); 
 
-SRSLTE_API void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len); 
+SRSLTE_API void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len);
+
+SRSLTE_API void srslte_vec_sub_fff_simd(float *x, float *h, float *z, uint32_t len); 
 
 SRSLTE_API cf_t srslte_vec_dot_prod_conj_ccc_simd(cf_t *x, cf_t *y, uint32_t len); 
 
 SRSLTE_API void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len); 
 
 SRSLTE_API void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, uint32_t len); 
+
+SRSLTE_API cf_t srslte_vec_dot_prod_conj_ccc_simd(cf_t *x, cf_t *y, uint32_t len); 
+
+SRSLTE_API void srslte_vec_sc_prod_cfc_simd(cf_t *x, float h, cf_t *z, uint32_t len); 
 
 SRSLTE_API float srslte_vec_acc_ff_simd(float *x, uint32_t len); 
 

@@ -314,6 +314,38 @@ void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len) {
 #endif
 }
 
+void srslte_vec_sub_fff_simd(float *x, float *y, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 4;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  float* zPtr = (float*) z;
+
+  __m128 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
+
+    zVal = _mm_sub_ps(xVal, yVal);
+
+    _mm_storeu_ps(zPtr, zVal);
+
+    xPtr += 4;
+    yPtr += 4;
+    zPtr += 4;
+  }
+
+  number = points * 4;
+  for(;number < len; number++){
+    z[number] = x[number] + y[number];
+  }
+#endif
+}
+
+
 #ifdef LV_HAVE_SSE
 static inline __m128 _mm_complexmul_ps(__m128 x, __m128 y) {
   __m128 yl, yh, tmp1, tmp2;
@@ -326,6 +358,97 @@ static inline __m128 _mm_complexmul_ps(__m128 x, __m128 y) {
 }
 #endif
 
+
+#ifdef LV_HAVE_SSE
+static inline __m128 _mm_complexmulconj_ps(__m128 x, __m128 y) {
+  const __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
+  y = _mm_xor_ps(y, conjugator); 
+  return _mm_complexmul_ps(x, y);
+}
+#endif
+
+cf_t srslte_vec_dot_prod_ccc_simd(cf_t *x, cf_t *y, uint32_t len)
+{
+  cf_t result = 0; 
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 2;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  
+  __m128 dotProdVal = _mm_setzero_ps();
+
+  __m128 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
+
+    zVal = _mm_complexmul_ps(xVal, yVal);
+
+    dotProdVal = _mm_add_ps(dotProdVal, zVal);
+
+    xPtr += 4;
+    yPtr += 4;
+  }
+  
+  cf_t dotProdVector[2];
+  _mm_storeu_ps((float*) dotProdVector, dotProdVal);
+  for (int i=0;i<2;i++) {
+    result += dotProdVector[i]; 
+  }
+
+  number = points * 2;
+  for(;number < len; number++){
+    result += (x[number] * y[number]);
+  }
+  
+#endif
+  return result; 
+}
+
+
+cf_t srslte_vec_dot_prod_conj_ccc_simd(cf_t *x, cf_t *y, uint32_t len)
+{
+  cf_t result = 0; 
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 2;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  
+  __m128 dotProdVal = _mm_setzero_ps();
+
+  __m128 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm_loadu_ps(xPtr);
+    yVal = _mm_loadu_ps(yPtr);
+
+    zVal = _mm_complexmulconj_ps(xVal, yVal);
+
+    dotProdVal = _mm_add_ps(dotProdVal, zVal);
+
+    xPtr += 4;
+    yPtr += 4;
+  }
+  
+  cf_t dotProdVector[2];
+  _mm_storeu_ps((float*) dotProdVector, dotProdVal);
+  for (int i=0;i<2;i++) {
+    result += dotProdVector[i]; 
+  }
+
+  number = points * 2;
+  for(;number < len; number++){
+    result += (x[number] * y[number]);
+  }
+  
+#endif
+  return result; 
+}
 void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) 
 {
 #ifdef LV_HAVE_SSE
@@ -355,13 +478,6 @@ void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
 #endif
 }
 
-#ifdef LV_HAVE_SSE
-static inline __m128 _mm_complexmulconj_ps(__m128 x, __m128 y) {
-  const __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
-  y = _mm_xor_ps(y, conjugator); 
-  return _mm_complexmul_ps(x, y);
-}
-#endif
 
 void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
@@ -454,6 +570,40 @@ void srslte_vec_sc_prod_cfc_simd(cf_t *x, float h, cf_t *z, uint32_t len) {
 
 #endif
 }
+
+
+
+void srslte_vec_sc_prod_fff_simd(float *x, float h, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int quarterPoints = len / 4;
+
+  __m128 xVal, hVal, zVal;
+  float* zPtr = (float*) z;
+  const float* xPtr = (const float*) x;
+
+  // Set up constant scalar vector
+  hVal = _mm_set_ps1(h);
+  
+  for(;number < quarterPoints; number++){
+
+    xVal = _mm_loadu_ps(xPtr); 
+    zVal = _mm_mul_ps(xVal,hVal); 
+    _mm_storeu_ps(zPtr,zVal); 
+
+    xPtr += 4;
+    zPtr += 4;
+  }
+
+  number = quarterPoints * 4;
+  for(;number < len; number++){
+    z[number] = x[number] * h;
+  }
+
+#endif
+}
+
+
 void srslte_vec_abs_square_cf_simd(cf_t *x, float *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
