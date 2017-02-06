@@ -372,39 +372,40 @@ struct lte_band {
   float fd_low_mhz;
   uint32_t earfcn_offset;
   uint32_t earfcn_max;
+  float duplex_mhz; 
   enum band_geographical_area area;
 };
 
 struct lte_band lte_bands[SRSLTE_NOF_LTE_BANDS] = {
-    {1, 2110, 0, 599, SRSLTE_BAND_GEO_AREA_ALL},
-    {2, 1930, 600, 1199, SRSLTE_BAND_GEO_AREA_NAR},
-    {3, 1805, 1200, 1949, SRSLTE_BAND_GEO_AREA_ALL},
-    {4, 2110, 1950, 2399, SRSLTE_BAND_GEO_AREA_NAR},
-    {5, 869, 2400, 2649, SRSLTE_BAND_GEO_AREA_NAR},
-    {6, 875, 2650, 2749, SRSLTE_BAND_GEO_AREA_APAC},
-    {7, 2620, 2750, 3449, SRSLTE_BAND_GEO_AREA_EMEA},
-    {8, 925, 3450, 3799, SRSLTE_BAND_GEO_AREA_ALL},
-    {9, 1844.9, 3800, 4149, SRSLTE_BAND_GEO_AREA_APAC},
-    {10, 2110, 4150, 4749, SRSLTE_BAND_GEO_AREA_NAR},
-    {11, 1475.9, 4750, 4949, SRSLTE_BAND_GEO_AREA_JAPAN},
-    {12, 729, 5010, 5179, SRSLTE_BAND_GEO_AREA_NAR},
-    {13, 746, 5180, 5279, SRSLTE_BAND_GEO_AREA_NAR},
-    {14, 758, 5280, 5379, SRSLTE_BAND_GEO_AREA_NAR},
-    {17, 734, 5730, 5849, SRSLTE_BAND_GEO_AREA_NAR},
-    {18, 860, 5850, 5999, SRSLTE_BAND_GEO_AREA_JAPAN},
-    {19, 875, 6000, 6149, SRSLTE_BAND_GEO_AREA_JAPAN},
-    {20, 791, 6150, 6449, SRSLTE_BAND_GEO_AREA_EMEA},
-    {21, 1495.9, 6450, 6599, SRSLTE_BAND_GEO_AREA_JAPAN},
-    {22, 3500, 6600, 7399, SRSLTE_BAND_GEO_AREA_NA},
-    {23, 2180, 7500, 7699, SRSLTE_BAND_GEO_AREA_NAR},
-    {24, 1525, 7700, 8039, SRSLTE_BAND_GEO_AREA_NAR},
-    {25, 1930, 8040, 8689, SRSLTE_BAND_GEO_AREA_NAR},
-    {26, 859, 8690, 9039, SRSLTE_BAND_GEO_AREA_NAR},
-    {27, 852, 9040, 9209, SRSLTE_BAND_GEO_AREA_NAR},
-    {28, 758, 9210, 9659, SRSLTE_BAND_GEO_AREA_APAC},
-    {29, 717, 9660, 9769, SRSLTE_BAND_GEO_AREA_NAR},
-    {30, 2350, 9770, 9869, SRSLTE_BAND_GEO_AREA_NAR},
-    {31, 462.5, 9870, 9919, SRSLTE_BAND_GEO_AREA_CALA}
+    {1, 2110, 0, 599, 190, SRSLTE_BAND_GEO_AREA_ALL},
+    {2, 1930, 600, 1199, 80, SRSLTE_BAND_GEO_AREA_NAR},
+    {3, 1805, 1200, 1949, 95, SRSLTE_BAND_GEO_AREA_ALL},
+    {4, 2110, 1950, 2399, 400, SRSLTE_BAND_GEO_AREA_NAR},
+    {5, 869, 2400, 2649, 45, SRSLTE_BAND_GEO_AREA_NAR},
+    {6, 875, 2650, 2749, 45, SRSLTE_BAND_GEO_AREA_APAC},
+    {7, 2620, 2750, 3449, 120, SRSLTE_BAND_GEO_AREA_EMEA},
+    {8, 925, 3450, 3799, 45, SRSLTE_BAND_GEO_AREA_ALL},
+    {9, 1844.9, 3800, 4149, 95, SRSLTE_BAND_GEO_AREA_APAC},
+    {10, 2110, 4150, 4749, 400, SRSLTE_BAND_GEO_AREA_NAR},
+    {11, 1475.9, 4750, 4949, 48, SRSLTE_BAND_GEO_AREA_JAPAN},
+    {12, 729, 5010, 5179, 30, SRSLTE_BAND_GEO_AREA_NAR},
+    {13, 746, 5180, 5279, -31, SRSLTE_BAND_GEO_AREA_NAR},
+    {14, 758, 5280, 5379, -30, SRSLTE_BAND_GEO_AREA_NAR},
+    {17, 734, 5730, 5849, 30, SRSLTE_BAND_GEO_AREA_NAR},
+    {18, 860, 5850, 5999, 45, SRSLTE_BAND_GEO_AREA_JAPAN},
+    {19, 875, 6000, 6149, 45, SRSLTE_BAND_GEO_AREA_JAPAN},
+    {20, 791, 6150, 6449, -41, SRSLTE_BAND_GEO_AREA_EMEA},
+    {21, 1495.9, 6450, 6599, 48, SRSLTE_BAND_GEO_AREA_JAPAN},
+    {22, 3500, 6600, 7399, 100, SRSLTE_BAND_GEO_AREA_NA},
+    {23, 2180, 7500, 7699, 180, SRSLTE_BAND_GEO_AREA_NAR},
+    {24, 1525, 7700, 8039, -101.5, SRSLTE_BAND_GEO_AREA_NAR},
+    {25, 1930, 8040, 8689, 80, SRSLTE_BAND_GEO_AREA_NAR},
+    {26, 859, 8690, 9039, 45, SRSLTE_BAND_GEO_AREA_NAR},
+    {27, 852, 9040, 9209, 45, SRSLTE_BAND_GEO_AREA_NAR},
+    {28, 758, 9210, 9659, 55, SRSLTE_BAND_GEO_AREA_APAC},
+    {29, 717, 9660, 9769, 0, SRSLTE_BAND_GEO_AREA_NAR},
+    {30, 2350, 9770, 9869, 45, SRSLTE_BAND_GEO_AREA_NAR},
+    {31, 462.5, 9870, 9919, 10, SRSLTE_BAND_GEO_AREA_CALA}
 };
 #define EOF_BAND 9919
 
@@ -429,17 +430,35 @@ float get_fd(struct lte_band *band, uint32_t earfcn) {
   }
 }
 
+int srslte_band_get_band(uint32_t earfcn) {
+  uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
+  while(i > 0 && lte_bands[i].earfcn_offset>earfcn) {
+    i--;
+  }
+  return lte_bands[i].band;
+}
+
 float srslte_band_fd(uint32_t earfcn) {
-  uint32_t i;
-  i=0;
-  while(i < SRSLTE_NOF_LTE_BANDS && lte_bands[i].earfcn_offset<earfcn) {
-    i++;
+  if (earfcn > lte_bands[SRSLTE_NOF_LTE_BANDS-1].earfcn_max) {
+    return -1; 
   }
-  if (i == SRSLTE_NOF_LTE_BANDS) {
-    fprintf(stderr, "Error: EARFCN %d not found\n", earfcn);
-    return -1.0;
+  uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
+  while(i > 0 && lte_bands[i].earfcn_offset>earfcn) {
+    i--;
   }
-  return get_fd(&lte_bands[i], earfcn);
+  return get_fd(&lte_bands[i], earfcn);  
+}
+
+
+float srslte_band_fu(uint32_t earfcn) {
+  if (earfcn > lte_bands[SRSLTE_NOF_LTE_BANDS-1].earfcn_max) {
+    return -1; 
+  }
+  uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
+  while(i > 0 && lte_bands[i].earfcn_offset>earfcn) {
+    i--;
+  }
+  return get_fd(&lte_bands[i], earfcn) - lte_bands[i].duplex_mhz;
 }
 
 int srslte_band_get_fd_band_all(uint32_t band, srslte_earfcn_t *earfcn, uint32_t max_elems) {

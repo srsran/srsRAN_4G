@@ -28,8 +28,13 @@
 #include "srslte/config.h"
 #include "srslte/rf/rf.h"
 
+#define DEVNAME "bladerf"
+
 SRSLTE_API int rf_blade_open(char *args, 
                         void **handler);
+
+
+SRSLTE_API char* rf_blade_devname(void *h);
 
 SRSLTE_API int rf_blade_close(void *h);
 

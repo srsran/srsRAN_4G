@@ -44,7 +44,7 @@ cf_t dummy[MAX_TIME_OFFSET];
 #define TRACK_MAX_LOST          4
 #define TRACK_FRAME_SIZE        32
 #define FIND_NOF_AVG_FRAMES     4
-#define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  5
+#define DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD  0
 #define DEFAULT_SFO_EMA_COEFF                 0.1
 
 cf_t dummy_offset_buffer[1024*1024];
@@ -358,7 +358,6 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
   {
     INFO("Warning: Expected SF idx %d but got %d! (%d frames)\n", 
            q->sf_idx, srslte_sync_get_sf_idx(&q->strack), q->frame_no_cnt);
-    q->sf_idx = srslte_sync_get_sf_idx(&q->strack);
     q->frame_no_cnt++;
     if (q->frame_no_cnt >= TRACK_MAX_LOST) {
       INFO("\n%d frames lost. Going back to FIND\n", (int) q->frame_no_cnt);
@@ -396,11 +395,12 @@ static int track_peak_ok(srslte_ue_sync_t *q, uint32_t track_idx) {
     }
     q->mean_sfo = SRSLTE_VEC_EMA(q->mean_sample_offset, q->mean_sfo, q->sfo_ema);
 
-    INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/5-sf, ema=%f, length=%d\n", 
+    if (q->next_rf_sample_offset) {
+      INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/5-sf, ema=%f, length=%d\n", 
            q->next_rf_sample_offset, q->mean_sample_offset,
            srslte_ue_sync_get_sfo(q), 
            q->mean_sfo, q->sfo_ema, q->sample_offset_correct_period);    
-
+    }
     q->mean_sample_offset = 0; 
   }
 
@@ -451,7 +451,7 @@ static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer) {
   if (q->next_rf_sample_offset < 0) {
     q->next_rf_sample_offset = -q->next_rf_sample_offset;
   }
-
+  
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
   if (q->recv_callback(q->stream, &input_buffer[q->next_rf_sample_offset], q->frame_len - q->next_rf_sample_offset, &q->last_timestamp) < 0) {
     return SRSLTE_ERROR;
@@ -529,7 +529,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
               break;
             case SRSLTE_SYNC_FOUND_NOSPACE:
               /* If a peak was found but there is not enough space for SSS/CP detection, discard a few samples */
-              printf("No space for SSS/CP detection. Realigning frame...\n");
+              INFO("No space for SSS/CP detection. Realigning frame...\n",0);
               q->recv_callback(q->stream, dummy_offset_buffer, q->frame_len/2, NULL); 
               srslte_sync_reset(&q->sfind);
               ret = SRSLTE_SUCCESS; 
@@ -605,14 +605,12 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
             } 
                       
             q->frame_total_cnt++;       
-          } else {
-            if (q->correct_cfo) {
-              srslte_cfo_correct(&q->sfind.cfocorr, 
+          } 
+          if (q->correct_cfo) {
+            srslte_cfo_correct(&q->sfind.cfocorr, 
                           input_buffer, 
                           input_buffer, 
-                          -srslte_sync_get_cfo(&q->strack) / q->fft_size);               
-                          
-            }            
+                          -srslte_sync_get_cfo(&q->strack) / q->fft_size);                         
           }          
         break;
       }

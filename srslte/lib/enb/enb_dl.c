@@ -37,9 +37,9 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
-#define SRSLTE_ENB_RF_AMP 0.8
+#define SRSLTE_ENB_RF_AMP 0.1
 
-int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell, uint32_t nof_rnti)
+int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -52,7 +52,7 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell, uint32_t nof_rnti
     
     q->cell = cell;
     q->cfi  = 3; 
-    q->nof_rnti = nof_rnti; 
+    q->tx_amp = SRSLTE_ENB_RF_AMP;
     
     if (srslte_ofdm_tx_init(&q->ifft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -88,11 +88,6 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell, uint32_t nof_rnti
       goto clean_exit;
     }
     
-    if (srslte_pdsch_init_rnti_multi(&q->pdsch, nof_rnti)) {
-      fprintf(stderr, "Error initiating multiple RNTIs in PDSCH\n");
-      goto clean_exit;
-    }
-        
     if (srslte_refsignal_cs_init(&q->csr_signal, q->cell)) {
       fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
       goto clean_exit;
@@ -144,6 +139,11 @@ void srslte_enb_dl_free(srslte_enb_dl_t *q)
     }
     bzero(q, sizeof(srslte_enb_dl_t));
   }  
+}
+
+void srslte_enb_dl_set_amp(srslte_enb_dl_t *q, float amp)
+{
+  q->tx_amp = amp; 
 }
 
 void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, uint32_t cfi) 
@@ -214,26 +214,24 @@ void srslte_enb_dl_gen_signal(srslte_enb_dl_t *q, cf_t *signal_buffer)
      
   // TODO: PAPR control
   float norm_factor = (float) sqrt(q->cell.nof_prb)/15;
-  srslte_vec_sc_prod_cfc(signal_buffer, SRSLTE_ENB_RF_AMP*norm_factor, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+  srslte_vec_sc_prod_cfc(signal_buffer, q->tx_amp*norm_factor, signal_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
 }
 
-int srslte_enb_dl_cfg_rnti(srslte_enb_dl_t *q, uint32_t idx, uint16_t rnti)
+int srslte_enb_dl_add_rnti(srslte_enb_dl_t *q, uint16_t rnti)
 {
-  return srslte_pdsch_set_rnti_multi(&q->pdsch, idx, rnti);
+  return srslte_pdsch_set_rnti(&q->pdsch, rnti);
 }
 
-int srslte_enb_dl_rem_rnti(srslte_enb_dl_t *q, uint32_t idx)
+void srslte_enb_dl_rem_rnti(srslte_enb_dl_t *q, uint16_t rnti)
 {
-  return srslte_pdsch_set_rnti_multi(&q->pdsch, idx, 0);
+  srslte_pdsch_free_rnti(&q->pdsch, rnti);
 }
 
 int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant, 
                                srslte_dci_format_t format, srslte_dci_location_t location,
-                               uint32_t rnti_idx, uint32_t sf_idx) 
+                               uint16_t rnti, uint32_t sf_idx) 
 {
   srslte_dci_msg_t dci_msg;
-
-  uint16_t rnti = srslte_pdsch_get_rnti_multi(&q->pdsch, rnti_idx);
   
   bool rnti_is_user = true; 
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || (rnti >= SRSLTE_RARNTI_START && rnti <= SRSLTE_RARNTI_END)) {
@@ -245,23 +243,16 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant,
     fprintf(stderr, "Error encoding DCI message\n");
     return SRSLTE_ERROR;
   }
-/*  printf("format: %s, sf_idx=%d, rnti=%d, location=%d,%d, cfi=%d\n", 
-	 srslte_dci_format_string(format), sf_idx, rnti, location.L, location.ncce, q->cfi);
-  srslte_ra_pdsch_fprint(stdout, grant, q->cell.nof_prb);
-  srslte_vec_fprint_hex(stdout, dci_msg.data, dci_msg.nof_bits);
-*/
 
   return SRSLTE_SUCCESS;
 }
 
 int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant, 
                                srslte_dci_location_t location,
-                               uint32_t rnti_idx, uint32_t sf_idx) 
+                               uint16_t rnti, uint32_t sf_idx) 
 {
   srslte_dci_msg_t dci_msg;
 
-  uint16_t rnti = srslte_pdsch_get_rnti_multi(&q->pdsch, rnti_idx);
-  
   srslte_dci_msg_pack_pusch(grant, &dci_msg, q->cell.nof_prb);
   if (srslte_pdcch_encode(&q->pdcch, &dci_msg, location, rnti, q->sf_symbols, sf_idx, q->cfi)) {
     fprintf(stderr, "Error encoding DCI message\n");
@@ -272,11 +263,9 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
 }
 
 int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer,
-                            uint32_t rnti_idx, uint32_t rv_idx, uint32_t sf_idx, 
+                            uint16_t rnti, uint32_t rv_idx, uint32_t sf_idx, 
                             uint8_t *data) 
-{
-  //srslte_ra_dl_grant_fprint(stdout, grant);
-  
+{  
   /* Configure pdsch_cfg parameters */
   if (srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, q->cfi, sf_idx, rv_idx)) {
     fprintf(stderr, "Error configuring PDSCH\n");
@@ -284,7 +273,7 @@ int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srs
   }
 
   /* Encode PDSCH */
-  if (srslte_pdsch_encode_rnti_idx(&q->pdsch, &q->pdsch_cfg, softbuffer, data, rnti_idx, q->sf_symbols)) {
+  if (srslte_pdsch_encode(&q->pdsch, &q->pdsch_cfg, softbuffer, data, rnti, q->sf_symbols)) {
     fprintf(stderr, "Error encoding PDSCH\n");
     return SRSLTE_ERROR;
   }        

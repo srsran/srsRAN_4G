@@ -76,6 +76,7 @@ typedef struct SRSLTE_API {
   uint32_t max_offset;
   bool enable_cfo_corr;
   float mean_cfo;
+  float mean_cfo2; 
   int cfo_i;
   bool find_cfo_i; 
   bool find_cfo_i_initiated; 
@@ -83,6 +84,7 @@ typedef struct SRSLTE_API {
   uint32_t nof_symbols;
   uint32_t cp_len;
   srslte_cfo_t cfocorr;
+  srslte_cfo_t cfocorr2;
   sss_alg_t sss_alg; 
   bool detect_cp;
   bool sss_en;
@@ -93,6 +95,7 @@ typedef struct SRSLTE_API {
   float m1_value;
   float M_norm_avg; 
   float M_ext_avg; 
+  cf_t  *temp;
 
 }srslte_sync_t;
 

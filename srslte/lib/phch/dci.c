@@ -41,6 +41,8 @@
 
 #include "dci_sz_table.h"
 
+int harq_pid_len = 3; 
+
 /* Unpacks a DCI message and configures the DL grant object
  */
 int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
@@ -62,10 +64,10 @@ int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
     if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
       crc_is_crnti = true; 
     }
-    srslte_dci_format_t tmp = msg->format; 
+    //srslte_dci_format_t tmp = msg->format; 
     ret = srslte_dci_msg_unpack_pdsch(msg, dl_dci, nof_prb, nof_ports, crc_is_crnti);
     if (ret) {
-      fprintf(stderr, "Can't unpack DCI message %s (%d)\n", srslte_dci_format_string(tmp), ret);
+      fprintf(stderr, "Can't unpack DCI message %s (%d)\n", srslte_dci_format_string(msg->format), msg->format);
       return ret;
     } 
     
@@ -170,7 +172,7 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
     ret = SRSLTE_ERROR;
     
     bzero(ul_dci, sizeof(srslte_ra_ul_dci_t));
-    bzero(grant, sizeof(srslte_ra_ul_dci_t));
+    bzero(grant, sizeof(srslte_ra_ul_grant_t));
     
     if (srslte_dci_msg_unpack_pusch(msg, ul_dci, nof_prb)) {
       return ret;
@@ -240,7 +242,7 @@ uint32_t dci_format0_sizeof_(uint32_t nof_prb) {
 
 uint32_t dci_format1A_sizeof(uint32_t nof_prb) {
   uint32_t n;
-  n = 1 + 1 + riv_nbits(nof_prb) + 5 + 3 + 1 + 2 + 2;
+  n = 1 + 1 + riv_nbits(nof_prb) + 5 + harq_pid_len + 1 + 2 + 2;
   while (n < dci_format0_sizeof_(nof_prb)) {
     n++;
   }
@@ -260,7 +262,7 @@ uint32_t dci_format0_sizeof(uint32_t nof_prb) {
 
 uint32_t dci_format1_sizeof(uint32_t nof_prb) {
 
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb)) + 5 + 3 + 1 + 2
+  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb)) + 5 + harq_pid_len + 1 + 2
       + 2;
   if (nof_prb > 10) {
     n++;
@@ -316,7 +318,7 @@ uint32_t precoding_bits_f2(uint32_t nof_ports) {
 }
 
 uint32_t dci_format2_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+3+1+2*(5+1+2)+precoding_bits_f2(nof_ports);
+  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+harq_pid_len+1+2*(5+1+2)+precoding_bits_f2(nof_ports);
   if (nof_prb > 10) {
     n++;
   }
@@ -336,7 +338,7 @@ uint32_t precoding_bits_f2a(uint32_t nof_ports) {
 }
 
 uint32_t dci_format2A_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+3+1+2*(5+1+2)+precoding_bits_f2a(nof_ports);
+  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+harq_pid_len+1+2*(5+1+2)+precoding_bits_f2a(nof_ports);
   if (nof_prb > 10) {
     n++;
   }
@@ -348,7 +350,7 @@ uint32_t dci_format2A_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
 }
 
 uint32_t dci_format2B_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+3+1+2*(5+1+2);
+  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+harq_pid_len+1+2*(5+1+2);
   if (nof_prb > 10) {
     n++;
   }
@@ -386,12 +388,13 @@ uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb, 
     return dci_format3A_sizeof(nof_prb);
     */
   default:
-    return SRSLTE_ERROR;
+    printf("Error computing DCI bits: Unknown format %d\n", format);
+    return 0;
   }
 }
 
 uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, uint32_t nof_prb) {
-  if (nof_prb <= 100 && format < 11) {
+  if (nof_prb < 101 && format < 4) {
     return dci_sz_table[nof_prb][format];
   } else {
     return 0;
@@ -444,20 +447,17 @@ int dci_format0_pack(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
 
   *y++ = data->ndi;
 
-  // TCP commands not implemented
-  *y++ = 0;
-  *y++ = 0;
+  // TCP command for PUSCH 
+  srslte_bit_unpack(data->tpc_pusch, &y, 2);
 
   // DM RS not implemented
-  *y++ = 0;
-  *y++ = 0;
-  *y++ = 0;
+  srslte_bit_unpack(data->n_dmrs, &y, 3);
 
   // CQI request
   *y++ = data->cqi_request;
 
   // Padding with zeros
-  uint32_t n = srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT0, nof_prb);
+  uint32_t n = srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, nof_prb, 1);
   while (y - msg->data < n) {
     *y++ = 0;
   }
@@ -476,7 +476,7 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t
   uint32_t n_ul_hop;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT0 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT0, nof_prb)) {
+  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, nof_prb, 1)) {
     fprintf(stderr, "Invalid message length for format 0\n");
     return SRSLTE_ERROR;
   }
@@ -558,19 +558,18 @@ int dci_format1_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
   srslte_bit_unpack(data->mcs_idx, &y, 5);
 
   /* harq process number */
-  srslte_bit_unpack(data->harq_process, &y, 3);
+  srslte_bit_unpack(data->harq_process, &y, harq_pid_len);
 
   *y++ = data->ndi;
 
   // rv version
   srslte_bit_unpack(data->rv_idx, &y, 2);
 
-  // TPC not implemented
-  *y++ = 0;
-  *y++ = 0;
+  // TCP command for PUCCH 
+  srslte_bit_unpack(data->tpc_pucch, &y, 2);
 
   // Padding with zeros
-  uint32_t n = srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1, nof_prb);
+  uint32_t n = srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb, 1);
   while (y - msg->data < n) {
     *y++ = 0;
   }
@@ -585,7 +584,7 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   uint8_t *y = msg->data;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT1 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1, nof_prb)) {
+  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb, 1)) {
     fprintf(stderr, "Invalid message length for format 1\n");
     return SRSLTE_ERROR;
   }
@@ -618,7 +617,7 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   data->mcs_idx = srslte_bit_pack(&y, 5);
   
   /* harq process number */
-  data->harq_process = srslte_bit_pack(&y, 3);
+  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
 
   data->ndi = *y++ ? true : false;
   // rv version
@@ -626,6 +625,8 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   
   // TPC not implemented
   
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -646,6 +647,8 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
     fprintf(stderr, "Format 1A accepts type2 resource allocation only\n");
     return SRSLTE_ERROR;
   }
+  
+  data->dci_is_1a = true; 
 
   *y++ = data->type2_alloc.mode; // localized or distributed VRB assignment
 
@@ -687,7 +690,7 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   // in format1A, MCS = TBS according to 7.1.7.2 of 36.213
   srslte_bit_unpack(data->mcs_idx, &y, 5);
 
-  srslte_bit_unpack(data->harq_process, &y, 3);
+  srslte_bit_unpack(data->harq_process, &y, harq_pid_len);
 
   if (crc_is_crnti) {
     if (nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
@@ -712,12 +715,12 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   }
 
   // Padding with zeros
-  uint32_t n = srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1A, nof_prb);
+  uint32_t n = srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb, 1);
   while (y - msg->data < n) {
     *y++ = 0;
   }
   msg->nof_bits = (y - msg->data);
-
+  
   return SRSLTE_SUCCESS;
 }
 
@@ -731,7 +734,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   uint8_t *y = msg->data;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT0 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1A, nof_prb)) {
+  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb, 1)) {
     fprintf(stderr, "Invalid message length for format 1A\n");
     return SRSLTE_ERROR;
   }
@@ -750,13 +753,13 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
     while(i<nof_bits && y[1+i] == 1)
       i++;
     if (i == nof_bits) {
-      printf("Warning check me: could this be a RA PDCCH order??\n");
+      //printf("Warning check me: could this be a RA PDCCH order??\n");
       i=1+10+nof_bits;
       while(i<msg->nof_bits-1 && y[i] == 0) {
         i++;
       }
       if (i == msg->nof_bits-1) {
-        printf("Received a Format1A RA PDCCH order. Not implemented!\n");
+        //printf("Received a Format1A RA PDCCH order. Not implemented!\n");
         return SRSLTE_ERROR;
       }
     }
@@ -788,7 +791,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   // unpack MCS
   data->mcs_idx = srslte_bit_pack(&y, 5);
 
-  data->harq_process = srslte_bit_pack(&y, 3);
+  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
 
   if (!crc_is_crnti)  {
     if (nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
@@ -811,6 +814,9 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
     y++; // MSB of TPC is reserved
     data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
+  
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -846,7 +852,7 @@ int dci_format1B_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
 
   // unpack MCS, Harq pid and ndi 
   data->mcs_idx = srslte_bit_pack(&y, 5);
-  data->harq_process = srslte_bit_pack(&y, 3);
+  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
   data->ndi = *y++ ? true : false;
   data->rv_idx = srslte_bit_pack(&y, 2);
   
@@ -855,7 +861,9 @@ int dci_format1B_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
   
   data->pinfo = srslte_bit_pack(&y, tpmi_bits(nof_ports));
   data->pconf = *y++ ? true : false;
-  
+
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -873,6 +881,8 @@ int dci_format1Cs_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
         "Format 1C accepts distributed type2 resource allocation only\n");
     return SRSLTE_ERROR;
   }
+  
+  data->dci_is_1c = true; 
 
   if (nof_prb >= 50) {
     *y++ = data->type2_alloc.n_gap;
@@ -919,7 +929,7 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   /* pack bits */
   uint8_t *y = msg->data;
 
-  if (msg->nof_bits != srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1C, nof_prb)) {
+  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1C, nof_prb, 1)) {
     fprintf(stderr, "Invalid message length for format 1C\n");
     return SRSLTE_ERROR;
   }
@@ -944,9 +954,12 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
 
   data->mcs_idx = srslte_bit_pack(&y, 5);
   
-  data->rv_idx = -1; // For SI-RNTI, get RV from TTI 
+  data->rv_idx = -1; // Get RV later
   
   msg->nof_bits = (y - msg->data);
+  
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -982,7 +995,7 @@ int dci_format1D_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
 
   // unpack MCS, Harq pid and ndi 
   data->mcs_idx = srslte_bit_pack(&y, 5);
-  data->harq_process = srslte_bit_pack(&y, 3);
+  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
   data->ndi = *y++ ? true : false;
   data->rv_idx = srslte_bit_pack(&y, 2);
   
@@ -992,6 +1005,8 @@ int dci_format1D_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
   data->pinfo = srslte_bit_pack(&y, tpmi_bits(nof_ports));
   data->power_offset = *y++ ? true : false;
   
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -1030,7 +1045,7 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   y+=2; 
   
   /* harq process number */
-  data->harq_process = srslte_bit_pack(&y, 3);
+  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
 
   // Transpor block to codeword swap flag 
   if (msg->format == SRSLTE_DCI_FORMAT2B) {
@@ -1041,16 +1056,23 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   
   /* unpack MCS according to 7.1.7 of 36.213 */
   data->mcs_idx = srslte_bit_pack(&y, 5);
-  
   data->ndi = *y++ ? true : false;
-  
-  // rv version
   data->rv_idx = srslte_bit_pack(&y, 2);
+  if (data->mcs_idx == 0 && data->rv_idx == 1) {
+    data->tb_en[0] = false; 
+  } else {
+    data->tb_en[0] = true; 
+  }
   
   // same for tb1
   data->mcs_idx_1 = srslte_bit_pack(&y, 5);  
   data->ndi_1 = *y++ ? true : false;  
   data->rv_idx_1 = srslte_bit_pack(&y, 2);
+  if (data->mcs_idx_1 == 0 && data->rv_idx_1 == 1) {
+    data->tb_en[1] = false; 
+  } else {
+    data->tb_en[1] = true; 
+  }
   
   // Precoding information 
   if (msg->format == SRSLTE_DCI_FORMAT2A) {
@@ -1058,6 +1080,7 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
     data->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(nof_ports));
   }
+  
   
   return SRSLTE_SUCCESS;
 }
@@ -1192,16 +1215,16 @@ int srslte_dci_msg_get_type(srslte_dci_msg_t *msg, srslte_dci_msg_type_t *type, 
     uint16_t msg_rnti) 
 {
   DEBUG("Get message type: nof_bits=%d, msg_rnti=0x%x\n", msg->nof_bits, msg_rnti);
-  if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT0, nof_prb)
+  if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, nof_prb, 1)
       && !msg->data[0]) {
     type->type = SRSLTE_DCI_MSG_TYPE_PUSCH_SCHED;
     type->format = SRSLTE_DCI_FORMAT0;
     return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1, nof_prb)) {
+  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb, 1)) {
     type->type = SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED; // only these 2 types supported
     type->format = SRSLTE_DCI_FORMAT1;
     return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1A, nof_prb)) {
+  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb, 1)) {
     /* The RNTI is not the only condition. Also some fields in the packet. 
      * if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
       type->type = SRSLTE_DCI_MSG_TYPE_RA_PROC_PDCCH;
@@ -1212,7 +1235,7 @@ int srslte_dci_msg_get_type(srslte_dci_msg_t *msg, srslte_dci_msg_type_t *type, 
       type->format = SRSLTE_DCI_FORMAT1A;
     //}
     return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof_lut(SRSLTE_DCI_FORMAT1C, nof_prb)) {
+  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1C, nof_prb, 1)) {
     if (msg_rnti == SRSLTE_MRNTI) {
       type->type = SRSLTE_DCI_MSG_TYPE_MCCH_CHANGE;
       type->format = SRSLTE_DCI_FORMAT1C;

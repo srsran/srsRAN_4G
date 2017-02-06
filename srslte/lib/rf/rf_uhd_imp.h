@@ -30,8 +30,14 @@
 #include "srslte/config.h"
 #include "srslte/rf/rf.h"
 
+#define DEVNAME_B200 "uhd_b200"
+#define DEVNAME_X300 "uhd_x300"
+
+
 SRSLTE_API int rf_uhd_open(char *args, 
                         void **handler);
+
+SRSLTE_API char* rf_uhd_devname(void *h);
 
 SRSLTE_API int rf_uhd_close(void *h);
 

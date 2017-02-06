@@ -18,6 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+find_package(SRSGUI)
+
 ########################################################################
 # PROGRAM TO DEBUG PSS FROM USRP  
 ########################################################################
@@ -25,21 +27,22 @@
 add_executable(pss_file pss_file.c)
 target_link_libraries(pss_file srslte)
 
-if(SRSGUI_FOUND)
-  target_link_libraries(pss_file ${SRSGUI_LIBRARIES})
-else(SRSGUI_FOUND)
-  set_target_properties(pss_file PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-endif(SRSGUI_FOUND)
-
 if(UHD_FOUND)
   add_executable(pss_usrp pss_usrp.c)
-  target_link_libraries(pss_usrp srslte)
-  if(SRSGUI_FOUND)
-    target_link_libraries(pss_usrp ${SRSGUI_LIBRARIES})
-  else(SRSGUI_FOUND)
-    set_target_properties(pss_usrp PROPERTIES COMPILE_DEFINITIONS "DISABLE_GRAPHICS")
-  endif(SRSGUI_FOUND)
+  target_link_libraries(pss_usrp srslte)  
 endif(UHD_FOUND)
+
+
+if(SRSGUI_FOUND)
+  include_directories(${SRSGUI_INCLUDE_DIRS})
+  target_link_libraries(pss_file ${SRSGUI_LIBRARIES})
+  if(UHD_FOUND)
+    target_link_libraries(pss_usrp ${SRSGUI_LIBRARIES})
+  endif(UHD_FOUND)
+else(SRSGUI_FOUND)
+  add_definitions(-DDISABLE_GRAPHICS)
+endif(SRSGUI_FOUND)
+
 
 BuildMex(MEXNAME pss SOURCES pss_mex.c LIBRARIES srslte_static srslte_mex)
 BuildMex(MEXNAME sss SOURCES sss_mex.c LIBRARIES srslte_static srslte_mex)

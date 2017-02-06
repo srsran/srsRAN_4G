@@ -36,6 +36,7 @@
 #include "uhd_c_api.h"
 
 typedef struct {
+  char *devname; 
   uhd_usrp_handle usrp;
   uhd_rx_streamer_handle rx_stream;
   uhd_tx_streamer_handle tx_stream;
@@ -62,6 +63,8 @@ srslte_rf_error_handler_t uhd_error_handler = NULL;
 void msg_handler(const char *msg)
 {
   srslte_rf_error_t error; 
+  bzero(&error, sizeof(srslte_rf_error_t));
+  
   if(0 == strcmp(msg, "O")) {
     error.type = SRSLTE_RF_ERROR_OVERFLOW;
   } else if(0 == strcmp(msg, "D")) {
@@ -113,6 +116,12 @@ static bool isLocked(rf_uhd_handler_t *handler, char *sensor_name, uhd_sensor_va
   }
     
   return val_out;
+}
+
+char* rf_uhd_devname(void* h)
+{
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+  return handler->devname; 
 }
 
 bool rf_uhd_rx_wait_lo_locked(void *h)
@@ -236,7 +245,7 @@ int rf_uhd_open(char *args, void **h)
     /* Set priority to UHD threads */
     uhd_set_thread_priority(uhd_default_thread_priority, true);
     
-    /* Set correct options for the USRP device */
+    /* Find available devices */
     uhd_string_vector_handle devices_str;
     uhd_string_vector_make(&devices_str);
     uhd_usrp_find("", &devices_str);
@@ -249,15 +258,19 @@ int rf_uhd_open(char *args, void **h)
     if (args == NULL) {
       args = "";
     }           
+    handler->devname = NULL;
+    
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
         // If B200 is available, use it
-        args = "type=b200,recv_frame_size=9232,send_frame_size=9232";        
+        args = "type=b200";        
+        handler->devname = DEVNAME_B200;
       } else if (find_string(devices_str, "type=x300")) {
         // Else if X300 is available, set master clock rate now (can't be changed later)
         args = "type=x300,master_clock_rate=184.32e6";
         handler->dynamic_rate = false; 
+        handler->devname = DEVNAME_X300;
       }
     } else {
       // If args is set and x300 type is specified, make sure master_clock_rate is defined
@@ -265,8 +278,13 @@ int rf_uhd_open(char *args, void **h)
         sprintf(args2, "%s,master_clock_rate=184.32e6",args);
         args = args2;          
         handler->dynamic_rate = false; 
+        handler->devname = DEVNAME_X300;
+      } else if (strstr(args, "type=b200")) {
+        handler->devname = DEVNAME_B200;
       }
     }        
+    
+    uhd_string_vector_free(&devices_str);
     
     /* Create UHD handler */
     printf("Opening USRP with args: %s\n", args);
@@ -275,7 +293,19 @@ int rf_uhd_open(char *args, void **h)
       fprintf(stderr, "Error opening UHD: code %d\n", error);
       return -1; 
     }
-          
+    
+    if (!handler->devname) {
+      char dev_str[1024];
+      uhd_usrp_get_mboard_name(handler->usrp, 0, dev_str, 1024);
+      if (strstr(dev_str, "B2") || strstr(dev_str, "B2")) {
+        handler->devname = DEVNAME_B200;
+      } else if (strstr(dev_str, "X3") || strstr(dev_str, "X3")) {
+        handler->devname = DEVNAME_X300;        
+      }
+    }
+    if (!handler->devname) {
+      handler->devname = "uhd_unknown"; 
+    }
     size_t channel = 0;
     uhd_stream_args_t stream_args = {
           .cpu_format = "fc32",
@@ -284,6 +314,11 @@ int rf_uhd_open(char *args, void **h)
           .channel_list = &channel,
           .n_channels = 1
       };
+    
+    // Set external clock reference   
+    if (strstr(args, "clock=external")) {
+      uhd_usrp_set_clock_source(handler->usrp, "external", 0);       
+    }
       
     handler->has_rssi = get_has_rssi(handler);  
     if (handler->has_rssi) {        
@@ -325,6 +360,19 @@ int rf_uhd_open(char *args, void **h)
 int rf_uhd_close(void *h)
 {
   rf_uhd_stop_rx_stream(h);
+  
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+  
+  uhd_tx_metadata_free(&handler->tx_md);
+  uhd_rx_metadata_free(&handler->rx_md_first);
+  uhd_rx_metadata_free(&handler->rx_md);
+  uhd_meta_range_free(&handler->rx_gain_range);
+  uhd_tx_streamer_free(&handler->tx_stream);
+  uhd_rx_streamer_free(&handler->rx_stream);
+  if (handler->has_rssi) {
+    uhd_sensor_value_free(&handler->rssi_value);
+  }
+  uhd_usrp_free(&handler->usrp);
   
   /** Something else to close the USRP?? */
   return 0;

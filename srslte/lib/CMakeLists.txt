@@ -36,58 +36,46 @@ add_subdirectory(scrambling)
 add_subdirectory(ue)
 add_subdirectory(enb)
 
-add_library(srslte  SHARED  version.c
-                            $<TARGET_OBJECTS:srslte_agc>
-                            $<TARGET_OBJECTS:srslte_ch_estimation>
-                            $<TARGET_OBJECTS:srslte_common>
-                            $<TARGET_OBJECTS:srslte_fec>
-                            $<TARGET_OBJECTS:srslte_mimo>
-                            $<TARGET_OBJECTS:srslte_phch>
-                            $<TARGET_OBJECTS:srslte_sync>
-                            $<TARGET_OBJECTS:srslte_utils>
-                            $<TARGET_OBJECTS:srslte_channel>
-                            $<TARGET_OBJECTS:srslte_dft>
-                            $<TARGET_OBJECTS:srslte_io>
-                            $<TARGET_OBJECTS:srslte_modem>
-                            $<TARGET_OBJECTS:srslte_resampling>
-                            $<TARGET_OBJECTS:srslte_scrambling>
-                            $<TARGET_OBJECTS:srslte_ue>
-                            $<TARGET_OBJECTS:srslte_enb>
-                            $<TARGET_OBJECTS:srslte_rf>
+set(srslte_srcs     version.c
+                    $<TARGET_OBJECTS:srslte_agc>
+                    $<TARGET_OBJECTS:srslte_ch_estimation>
+                    $<TARGET_OBJECTS:srslte_common>
+                    $<TARGET_OBJECTS:srslte_fec>
+                    $<TARGET_OBJECTS:srslte_mimo>
+                    $<TARGET_OBJECTS:srslte_phch>
+                    $<TARGET_OBJECTS:srslte_sync>
+                    $<TARGET_OBJECTS:srslte_utils>
+                    $<TARGET_OBJECTS:srslte_channel>
+                    $<TARGET_OBJECTS:srslte_dft>
+                    $<TARGET_OBJECTS:srslte_io>
+                    $<TARGET_OBJECTS:srslte_modem>
+                    $<TARGET_OBJECTS:srslte_resampling>
+                    $<TARGET_OBJECTS:srslte_scrambling>
+                    $<TARGET_OBJECTS:srslte_ue>
+                    $<TARGET_OBJECTS:srslte_enb>
 )
 
-
-if(NOT DisableMEX)
-  add_library(srslte_static  STATIC  version.c
-                            $<TARGET_OBJECTS:srslte_agc>
-                            $<TARGET_OBJECTS:srslte_ch_estimation>
-                            $<TARGET_OBJECTS:srslte_common>
-                            $<TARGET_OBJECTS:srslte_fec>
-                            $<TARGET_OBJECTS:srslte_mimo>
-                            $<TARGET_OBJECTS:srslte_phch>
-                            $<TARGET_OBJECTS:srslte_sync>
-                            $<TARGET_OBJECTS:srslte_utils>
-                            $<TARGET_OBJECTS:srslte_channel>
-                            $<TARGET_OBJECTS:srslte_dft>
-                            $<TARGET_OBJECTS:srslte_io>
-                            $<TARGET_OBJECTS:srslte_modem>
-                            $<TARGET_OBJECTS:srslte_resampling>
-                            $<TARGET_OBJECTS:srslte_scrambling>
-                            $<TARGET_OBJECTS:srslte_ue>
-                            $<TARGET_OBJECTS:srslte_enb>
-                            $<TARGET_OBJECTS:srslte_rf>
-  )
-endif(NOT DisableMEX)
-
+add_library(srslte SHARED ${srslte_srcs})
 target_link_libraries(srslte pthread m)
 set_target_properties(srslte  PROPERTIES
                               VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
+if(NOT DisableMEX)
+  add_library(srslte_static STATIC ${srslte_srcs})
+endif(NOT DisableMEX)
+
 if(MKL_FOUND)
-  target_link_libraries(srslte ${MKL_LIBRARIES})
-  if(NOT DisableMEX)
-    target_link_libraries(srslte_static ${MKL_LIBRARIES})
-  endif(NOT DisableMEX)
+  if(StaticMKL)
+    target_link_libraries(srslte ${MKL_STATIC_LIBRARIES})
+    if(NOT DisableMEX)
+      target_link_libraries(srslte_static ${MKL_STATIC_LIBRARIES})
+    endif(NOT DisableMEX)
+  else(StaticMKL)
+    target_link_libraries(srslte ${MKL_LIBRARIES})
+    if(NOT DisableMEX)
+      target_link_libraries(srslte_static ${MKL_LIBRARIES})
+    endif(NOT DisableMEX)
+  endif(StaticMKL)
 else(MKL_FOUND)
   target_link_libraries(srslte ${FFTW3F_LIBRARIES})
   if(NOT DisableMEX)
@@ -95,7 +83,11 @@ else(MKL_FOUND)
   endif(NOT DisableMEX)
 endif(MKL_FOUND)
 
+## This linkage is required for the examples and tests only
 if(RF_FOUND)
+
+  target_link_libraries(srslte srslte_rf)
+
   if(UHD_FOUND)
     target_link_libraries(srslte ${UHD_LIBRARIES})
   endif(UHD_FOUND)

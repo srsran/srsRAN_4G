@@ -102,8 +102,11 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   bool prb_idx[2][SRSLTE_MAX_PRB];
   uint32_t nof_prb;  
-  uint32_t Qm; 
+  uint32_t Qm;
+  uint32_t Qm2; 
   srslte_ra_mcs_t mcs;
+  srslte_ra_mcs_t mcs2;
+  uint32_t nof_tb;
 } srslte_ra_dl_grant_t;
 
 /** Unpacked DCI message for DL grant */
@@ -129,6 +132,10 @@ typedef struct SRSLTE_API {
   uint8_t  pinfo; 
   bool     pconf;
   bool     power_offset; 
+  
+  uint8_t tpc_pucch;
+
+  bool     tb_en[2]; 
   
   bool     dci_is_1a;
   bool     dci_is_1c; 
@@ -175,7 +182,7 @@ typedef struct SRSLTE_API {
   uint32_t n_dmrs; 
   bool ndi;
   bool cqi_request;
-  uint32_t tpc_pusch;
+  uint8_t tpc_pusch;
 
 } srslte_ra_ul_dci_t;
 
@@ -202,6 +209,10 @@ SRSLTE_API void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant,
                                             uint32_t sf_idx, 
                                             srslte_ra_nbits_t *nbits); 
 
+SRSLTE_API uint32_t srslte_ra_dl_approx_nof_re(srslte_cell_t cell, 
+                                               uint32_t nof_prb, 
+                                               uint32_t nof_ctrl_symbols); 
+
 SRSLTE_API uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, 
                                               srslte_cell_t cell, 
                                               uint32_t sf_idx, 
@@ -218,12 +229,18 @@ SRSLTE_API void srslte_ra_ul_grant_to_nbits(srslte_ra_ul_grant_t *grant,
                                             uint32_t N_srs, 
                                             srslte_ra_nbits_t *nbits); 
 
-SRSLTE_API int srslte_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, 
+SRSLTE_API int srslte_ra_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, 
                                                      srslte_ra_ul_grant_t *grant,
                                                      uint32_t n_rb_ho, 
                                                      uint32_t nof_prb); 
 
+SRSLTE_API int srslte_ra_dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, 
+                                                        srslte_ra_dl_grant_t *grant, 
+                                                        uint32_t nof_prb); 
+
 SRSLTE_API int srslte_ra_tbs_idx_from_mcs(uint32_t mcs);
+
+SRSLTE_API srslte_mod_t srslte_ra_mod_from_mcs(uint32_t mcs); 
 
 SRSLTE_API int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx); 
 

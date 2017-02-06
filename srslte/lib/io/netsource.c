@@ -36,7 +36,7 @@
 
 #include "srslte/io/netsource.h"
 
-int srslte_netsource_init(srslte_netsource_t *q, char *address, int port, srslte_netsource_type_t type) {
+int srslte_netsource_init(srslte_netsource_t *q, const char *address, uint16_t port, srslte_netsource_type_t type) {
   bzero(q, sizeof(srslte_netsource_t));
 
   q->sockfd=socket(AF_INET,type==SRSLTE_NETSOURCE_TCP?SOCK_STREAM:SOCK_DGRAM,0);
@@ -45,6 +45,17 @@ int srslte_netsource_init(srslte_netsource_t *q, char *address, int port, srslte
     perror("socket");
     return -1; 
   }
+
+  // Make sockets reusable 
+  int enable = 1;
+#if defined (SO_REUSEADDR)
+  if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+      perror("setsockopt(SO_REUSEADDR) failed");
+#endif
+#if defined (SO_REUSEPORT)
+  if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+      perror("setsockopt(SO_REUSEPORT) failed");
+#endif
   q->type = type; 
   
   q->servaddr.sin_family = AF_INET;

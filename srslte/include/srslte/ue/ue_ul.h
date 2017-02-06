@@ -51,8 +51,6 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_UE_UL_NOF_HARQ_PROCESSES 8
-
 /* UE UL power control */
 typedef struct {
   // Common configuration

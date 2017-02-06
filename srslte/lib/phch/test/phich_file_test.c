@@ -38,7 +38,6 @@ char *matlab_file_name = NULL;
 srslte_cell_t cell = {
   50,           // cell.nof_prb
   2,            // cell.nof_ports
-  2,            // bw_idx
   150,          // cell.id
   SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1,          // PHICH resources      

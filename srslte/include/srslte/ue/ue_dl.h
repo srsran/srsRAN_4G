@@ -60,6 +60,18 @@
 
 #include "srslte/config.h"
 
+
+#define MAX_CANDIDATES_UE  16 // From 36.213 Table 9.1.1-1
+#define MAX_CANDIDATES_COM 6 // From 36.213 Table 9.1.1-1
+#define MAX_CANDIDATES (MAX_CANDIDATES_UE + MAX_CANDIDATES_COM)   
+
+
+typedef struct {
+  srslte_dci_format_t format; 
+  srslte_dci_location_t loc[MAX_CANDIDATES];
+  uint32_t nof_locations; 
+} dci_blind_search_t; 
+
 typedef struct SRSLTE_API {
   srslte_pcfich_t pcfich;
   srslte_pdcch_t pdcch;
@@ -80,14 +92,15 @@ typedef struct SRSLTE_API {
   cf_t *ce[SRSLTE_MAX_PORTS];
   
   srslte_dci_format_t dci_format;
-  uint32_t cfi;
   uint64_t pkt_errors; 
   uint64_t pkts_total;
   uint64_t nof_detected; 
 
   uint16_t current_rnti;
-  uint32_t last_n_cce; 
+  dci_blind_search_t current_ss_ue[3][10];
+  dci_blind_search_t current_ss_common[3];
   srslte_dci_location_t last_location;
+  srslte_dci_location_t last_location_ul;
   
   srslte_dci_msg_t pending_ul_dci_msg; 
   uint16_t pending_ul_dci_rnti; 
@@ -117,23 +130,23 @@ SRSLTE_API int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q,
                                       uint32_t rvidx); 
 
 SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, 
-                                        srslte_dci_msg_t *dci_msg, 
                                         uint32_t cfi, 
                                         uint32_t sf_idx, 
-                                        uint16_t rnti); 
+                                        uint16_t rnti, 
+                                        srslte_dci_msg_t *dci_msg); 
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, 
-                                        srslte_dci_msg_t *dci_msg, 
                                         uint32_t cfi, 
                                         uint32_t sf_idx, 
-                                        uint16_t rnti); 
+                                        uint16_t rnti, 
+                                        srslte_dci_msg_t *dci_msg); 
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, 
-                                             srslte_dci_msg_t *dci_msg, 
                                              uint32_t cfi, 
                                              uint32_t sf_idx, 
                                              uint16_t rnti, 
-                                             srslte_rnti_type_t rnti_type);
+                                             srslte_rnti_type_t rnti_type, 
+                                             srslte_dci_msg_t *dci_msg);
 
 SRSLTE_API uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q);
 
@@ -143,20 +156,13 @@ SRSLTE_API void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q,
 SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
                                    cf_t *input, 
                                    uint8_t *data,
-                                   uint32_t sf_idx);
+                                   uint32_t tti);
 
 SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q, 
                                         cf_t *input, 
                                         uint8_t *data,
-                                        uint32_t sf_idx,
+                                        uint32_t tti,
                                         uint16_t rnti);
-
-SRSLTE_API int srslte_ue_dl_decode_rnti_rv(srslte_ue_dl_t * q, 
-                                           cf_t *input, 
-                                           uint8_t * data,
-                                           uint32_t sf_idx, 
-                                           uint16_t rnti, 
-                                           uint32_t rvidx); 
 
 SRSLTE_API bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, 
                                           uint32_t sf_idx, 
@@ -172,7 +178,8 @@ SRSLTE_API void srslte_ue_dl_save_signal(srslte_ue_dl_t *q,
                                          srslte_softbuffer_rx_t *softbuffer, 
                                          uint32_t tti, 
                                          uint32_t rv_idx, 
-                                         uint16_t rnti); 
+                                         uint16_t rnti, 
+                                         uint32_t cfi); 
 
 
 #endif

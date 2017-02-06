@@ -22,7 +22,7 @@ void partab_init(void) {
     while (ti) {
       if (ti & 1)
         cnt++;
-        ti >>= 1;
+      ti >>= 1;
     }
     Partab[i] = cnt & 1;
   }

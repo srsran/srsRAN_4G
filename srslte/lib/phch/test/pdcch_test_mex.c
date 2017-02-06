@@ -36,7 +36,6 @@
 #define INPUT   prhs[2]
 #define NOF_INPUTS 3
 
-#define MAX_CANDIDATES 64
 
 
 srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1}; // SRSLTE_DCI_FORMAT1B should go here also

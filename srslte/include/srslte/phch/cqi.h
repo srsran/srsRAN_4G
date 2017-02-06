@@ -40,7 +40,7 @@
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
 
-#define SRSLTE_CQI_MAX_BITS 20
+#define SRSLTE_CQI_MAX_BITS 64
 
 typedef struct {
   bool     configured; 
@@ -104,6 +104,8 @@ typedef struct {
 } srslte_cqi_value_t;
 
 
+SRSLTE_API int srslte_cqi_size(srslte_cqi_value_t *value); 
+
 SRSLTE_API int srslte_cqi_value_pack(srslte_cqi_value_t *value, 
                                      uint8_t buff[SRSLTE_CQI_MAX_BITS]);
 
@@ -119,10 +121,27 @@ SRSLTE_API int srslte_cqi_format2_wideband_pack(srslte_cqi_format2_wideband_t *m
 SRSLTE_API int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, 
                                         uint8_t buff[SRSLTE_CQI_MAX_BITS]);
 
+SRSLTE_API int srslte_cqi_value_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
+                                       srslte_cqi_value_t *value);
+
+SRSLTE_API int srslte_cqi_hl_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
+                                            srslte_cqi_hl_subband_t *msg);
+
+SRSLTE_API int srslte_cqi_ue_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
+                                            srslte_cqi_ue_subband_t *msg);
+
+SRSLTE_API int srslte_cqi_format2_wideband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
+                                                  srslte_cqi_format2_wideband_t *msg);
+
+SRSLTE_API int srslte_cqi_format2_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
+                                                 srslte_cqi_format2_subband_t *msg);
+
 SRSLTE_API bool srslte_cqi_send(uint32_t I_cqi_pmi, 
                                 uint32_t tti); 
 
 SRSLTE_API uint8_t srslte_cqi_from_snr(float snr);
+
+SRSLTE_API float srslte_cqi_to_coderate(uint32_t cqi); 
 
 SRSLTE_API int srslte_cqi_hl_get_subband_size(int num_prbs);
 

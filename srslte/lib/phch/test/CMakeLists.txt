@@ -81,9 +81,6 @@ target_link_libraries(pdcch_test srslte)
 
 add_test(pdcch_test pdcch_test) 
 
-add_executable(dci_unpacking dci_unpacking.c)
-target_link_libraries(dci_unpacking srslte)
-
 BuildMex(MEXNAME pdcch SOURCES pdcch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
@@ -149,7 +146,7 @@ target_link_libraries(pucch_test srslte)
 add_test(pucch_test pucch_test)
 
 BuildMex(MEXNAME pucch_encode SOURCES pucch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
-
+BuildMex(MEXNAME pucch SOURCES pucch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 

@@ -33,15 +33,28 @@ struct v37 {
   decision_t *dp; /* Pointer to current decision */
   metric_t *old_metrics, *new_metrics; /* Pointers to path metrics, swapped on every bit */
   decision_t *decisions; /* Beginning of decisions for block */
+  uint32_t len; 
 };
+
+void clear_v37(struct v37 *vp) {
+  bzero(vp->decisions, sizeof(decision_t)*vp->len);
+  vp->dp = NULL; 
+  bzero(&vp->metrics1, sizeof(metric_t));
+  bzero(&vp->metrics2, sizeof(metric_t));
+  vp->old_metrics = NULL; 
+  vp->new_metrics = NULL; 
+}
 
 /* Initialize Viterbi decoder for start of new frame */
 int init_viterbi37_port(void *p, int starting_state) {
   struct v37 *vp = p;
   uint32_t i;
-
+  
   if (p == NULL)
     return -1;
+  
+  clear_v37(vp);
+    
   for (i = 0; i < 64; i++)
     vp->metrics1.w[i] = 63;
 
@@ -81,6 +94,8 @@ void *create_viterbi37_port(int polys[3], uint32_t len) {
     free(vp);
     return NULL ;
   }
+  
+  vp->len = len+6; 
 
   return vp;
 }

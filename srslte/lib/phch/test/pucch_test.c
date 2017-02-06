@@ -36,7 +36,6 @@
 srslte_cell_t cell = {
   25,            // nof_prb
   1,            // nof_ports
-  2,            // bw_idx = 5 MHz
   1,            // cell_id
   SRSLTE_CP_NORM,       // cyclic prefix
   SRSLTE_PHICH_R_1_6,          // PHICH resources      
@@ -90,11 +89,11 @@ int main(int argc, char **argv) {
 
   if (srslte_pucch_init(&pucch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
-    goto quit;
+    exit(-1);
   }
   if (srslte_refsignal_ul_init(&dmrs, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
-    goto quit;
+    exit(-1);
   }
   
   bzero(&pucch_cfg, sizeof(srslte_pucch_cfg_t));
@@ -156,7 +155,7 @@ int main(int argc, char **argv) {
           }     
           gettimeofday(&t[2], NULL);
           get_time_interval(t);
-          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_exec=%d us\n", format, n_pucch, ncs, d, t[0].tv_usec);
+          INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_exec=%ld us\n", format, n_pucch, ncs, d, t[0].tv_usec);
         }
       }
     }    

@@ -264,7 +264,7 @@ int srslte_prach_gen_seqs(srslte_prach_t *p)
             if(((p_*u) % p->N_zc) == 1)
                 break;
         }
-        if(p_ >= 0 && p_ < p->N_zc/2){
+        if(p_ < p->N_zc/2){
             d_u = p_;
         }else{
             d_u = p->N_zc - p_;
@@ -341,9 +341,8 @@ int srslte_prach_init(srslte_prach_t *p,
   int ret = SRSLTE_ERROR;
   if(p                      != NULL      &&
      N_ifft_ul              <  2049      &&
-     config_idx             <  16        && 
-     root_seq_index         <  MAX_ROOTS &&
-     zero_corr_zone_config  < 16)
+     config_idx             <  64        && 
+     root_seq_index         <  MAX_ROOTS)
   {
     uint32_t preamble_format = srslte_prach_get_preamble_format(config_idx);
     p->config_idx = config_idx; 
@@ -356,14 +355,29 @@ int srslte_prach_init(srslte_prach_t *p,
     
     // Determine N_zc and N_cs
     if(4 == preamble_format){
-      p->N_zc = 139;
-      p->N_cs = prach_Ncs_format4[p->zczc];
+      if (p->zczc < 7) {
+        p->N_zc = 139;
+        p->N_cs = prach_Ncs_format4[p->zczc];
+      } else {
+        fprintf(stderr, "Invalid zeroCorrelationZoneConfig=%d for format4\n", p->zczc);
+        return SRSLTE_ERROR;
+      }
     }else{
       p->N_zc = 839;
       if(p->hs){
-        p->N_cs = prach_Ncs_restricted[p->zczc];
+        if (p->zczc < 15) {
+          p->N_cs = prach_Ncs_restricted[p->zczc];
+        } else {
+          fprintf(stderr, "Invalid zeroCorrelationZoneConfig=%d for restricted set\n", p->zczc);
+          return SRSLTE_ERROR;
+        }   
       }else{
-        p->N_cs = prach_Ncs_unrestricted[p->zczc];
+        if (p->zczc < 16) {
+          p->N_cs = prach_Ncs_unrestricted[p->zczc];
+        } else {
+          fprintf(stderr, "Invalid zeroCorrelationZoneConfig=%d\n", p->zczc);
+          return SRSLTE_ERROR;
+        }   
       }
     }
     
@@ -586,10 +600,8 @@ int srslte_prach_detect_offset(srslte_prach_t *p,
         for (int j=0;j<n_wins;j++) {
           if(p->peak_values[j] > p->detect_factor*corr_ave)
           {
-            printf("ncs=%d, nzc=%d, nwins=%d, Nroot=%d, i=%d, j=%d, start=%d, peak_value=%f, peak_offset=%d, tseq=%f\n", 
-                   p->N_cs, p->N_zc, n_wins, p->N_roots, i, j, (p->N_zc-(j*p->N_cs))%p->N_zc, p->peak_values[j], 
-                   p->peak_offsets[j], p->T_seq*1e6);
-            memcpy(save_corr, p->corr, p->N_zc*sizeof(float));
+            //printf("saving prach correlation\n");
+            //memcpy(save_corr, p->corr, p->N_zc*sizeof(float));
             if (indices) {
               indices[*n_indices]     = (i*n_wins)+j;
             }

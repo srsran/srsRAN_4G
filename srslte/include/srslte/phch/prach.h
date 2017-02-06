@@ -110,7 +110,8 @@ typedef enum SRSLTE_API {
 typedef struct {
   uint32_t config_idx;
   uint32_t root_seq_idx;
-  uint32_t zero_corr_zone; 
+  uint32_t zero_corr_zone;
+  uint32_t freq_offset;
   bool     hs_flag; 
 } srslte_prach_cfg_t;     
 
@@ -155,7 +156,7 @@ SRSLTE_API int srslte_prach_detect_offset(srslte_prach_t *p,
                                           uint32_t sig_len,
                                           uint32_t *indices, 
                                           float    *t_offsets,
-					  float    *peak_to_avg,
+                                          float    *peak_to_avg,
                                           uint32_t *ind_len);
 
 SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t *p, 

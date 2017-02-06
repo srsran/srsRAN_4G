@@ -90,6 +90,12 @@ SRSLTE_API int srslte_pdcch_init(srslte_pdcch_t *q,
 SRSLTE_API void srslte_pdcch_free(srslte_pdcch_t *q);
 
 
+SRSLTE_API void srslte_pdcch_set_cfi(srslte_pdcch_t *q, 
+                                     uint32_t cfi); 
+
+SRSLTE_API float srslte_pdcch_coderate(uint32_t nof_bits, 
+                                       uint32_t l); 
+
 /* Encoding function */
 SRSLTE_API int srslte_pdcch_encode(srslte_pdcch_t *q, 
                                    srslte_dci_msg_t *msg,

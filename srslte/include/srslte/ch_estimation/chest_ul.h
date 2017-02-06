@@ -57,6 +57,7 @@ typedef struct {
   
   cf_t *pilot_estimates;
   cf_t *pilot_recv_signal; 
+  cf_t *pilot_known_signal; 
   cf_t *tmp_noise; 
   
 #ifdef FREQ_SEL_SNR  
@@ -98,6 +99,13 @@ SRSLTE_API int srslte_chest_ul_estimate(srslte_chest_ul_t *q,
                                         uint32_t sf_idx, 
                                         uint32_t cyclic_shift_for_dmrs, 
                                         uint32_t n_prb[2]);
+
+SRSLTE_API int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t *q, 
+                                              cf_t *input, 
+                                              cf_t *ce, 
+                                              srslte_pucch_format_t format, 
+                                              uint32_t n_pucch, 
+                                              uint32_t sf_idx); 
 
 SRSLTE_API float srslte_chest_ul_get_noise_estimate(srslte_chest_ul_t *q); 
 

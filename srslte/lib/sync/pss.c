@@ -94,6 +94,8 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
     
   if (q != NULL) {
   
+    ret = SRSLTE_ERROR; 
+    
     uint32_t N_id_2; 
     uint32_t buffer_size; 
     bzero(q, sizeof(srslte_pss_synch_t));
@@ -200,6 +202,8 @@ void srslte_pss_synch_free(srslte_pss_synch_t *q) {
     if (q->conv_output_avg) {
       free(q->conv_output_avg);
     }
+    
+    srslte_dft_plan_free(&q->dftp_input);
 
     bzero(q, sizeof(srslte_pss_synch_t));    
   }
@@ -302,7 +306,12 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
       return SRSLTE_ERROR;
     }
 
-    /* Correlate input with PSS sequence */
+    /* Correlate input with PSS sequence
+     * 
+     * We do not reverse time-domain PSS signal because it's conjugate is symmetric.
+     * The conjugate operation on pss_signal_time has been done in srslte_pss_synch_init_N_id_2
+     * This is why we can use FFT-based convolution
+     */
     if (q->frame_size >= q->fft_size) {
     #ifdef CONVOLUTION_FFT
       memcpy(q->tmp_input, input, q->frame_size * sizeof(cf_t));

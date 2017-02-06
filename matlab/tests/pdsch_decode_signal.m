@@ -1,6 +1,6 @@
-enb=struct('NCellID',137,'NDLRB',50,'NSubframe',8,'CFI',1,'CyclicPrefix','Normal','CellRefP',2,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
+enb=struct('NCellID',313,'NDLRB',75,'NSubframe',5,'CFI',1,'CyclicPrefix','Normal','CellRefP',2,'Ng','One','PHICHDuration','Normal','DuplexMode','FDD');
 
-RNTI=5;
+RNTI=65535;
 
 addpath('../../build/srslte/lib/phch/test')
 
@@ -44,12 +44,15 @@ if ~isempty(dci)
     [sib1, crc] = lteDLSCHDecode(enb, pdsch, trblklen, dlschBits);
 
     
-    [dec2, data, pdschRx2, pdschSymbols2, e_bits] = srslte_pdsch(enb, pdsch, ... 
+    [dec2, data, pdschRx2, pdschSymbols2, e_bits, ce] = srslte_pdsch(enb, pdsch, ... 
                                                         trblklen, ...
                                                         subframe_rx);
 
     
+    subplot(2,1,1)
     scatter(real(pdschSymbols{1}),imag(pdschSymbols{1}))
+    subplot(2,1,2)
+    scatter(real(pdschSymbols2),imag(pdschSymbols2))
 
     if crc == 0
         fprintf('PDSCH Matlab OK.\n\n');

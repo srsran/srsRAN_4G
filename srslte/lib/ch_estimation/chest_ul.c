@@ -84,6 +84,12 @@ int srslte_chest_ul_init(srslte_chest_ul_t *q, srslte_cell_t cell)
       goto clean_exit;
     }
     
+    q->pilot_known_signal = srslte_vec_malloc(sizeof(cf_t) * (NOF_REFS_SF+1));
+    if (!q->pilot_known_signal) {
+      perror("malloc");
+      goto clean_exit;
+    }
+    
     if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, NOF_REFS_SYM)) {
       fprintf(stderr, "Error initializing vector interpolator\n");
       goto clean_exit; 
@@ -91,11 +97,11 @@ int srslte_chest_ul_init(srslte_chest_ul_t *q, srslte_cell_t cell)
 
     q->smooth_filter_len = 3; 
     srslte_chest_ul_set_smooth_filter3_coeff(q, 0.3333);
-    
+  
+    q->dmrs_signal_configured = false; 
+  
   }
-  
-  q->dmrs_signal_configured = false; 
-  
+    
   ret = SRSLTE_SUCCESS;
   
 clean_exit:
@@ -122,6 +128,9 @@ void srslte_chest_ul_free(srslte_chest_ul_t *q)
   if (q->pilot_recv_signal) {
     free(q->pilot_recv_signal);
   }
+  if (q->pilot_known_signal) {
+    free(q->pilot_known_signal);
+  }
   bzero(q, sizeof(srslte_chest_ul_t));
 }
 
@@ -136,13 +145,13 @@ void srslte_chest_ul_set_cfg(srslte_chest_ul_t *q,
 }
 
 /* Uses the difference between the averaged and non-averaged pilot estimates */
-static float estimate_noise_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs) 
+static float estimate_noise_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs, uint32_t n_prb[2]) 
 {
   
   float power = 0; 
   for (int i=0;i<2;i++) {
     power += srslte_chest_estimate_noise_pilots(&q->pilot_estimates[i*nrefs], 
-                                                &ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE], 
+                                                &ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE+n_prb[i]*SRSLTE_NRE], 
                                                 q->tmp_noise, 
                                                 nrefs);
   }
@@ -159,9 +168,9 @@ static float estimate_noise_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nref
   }
 }
 
-#define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,0)]
-
-static void interpolate_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs) 
+// The interpolator currently only supports same frequency allocation for each subframe
+#define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.nof_prb,i,n_prb[0]*SRSLTE_NRE)]
+static void interpolate_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs, uint32_t n_prb[2]) 
 {
   uint32_t L1 = SRSLTE_REFSIGNAL_UL_L(0, q->cell.cp);
   uint32_t L2 = SRSLTE_REFSIGNAL_UL_L(1, q->cell.cp); 
@@ -197,10 +206,10 @@ void srslte_chest_ul_set_smooth_filter3_coeff(srslte_chest_ul_t* q, float w)
   q->smooth_filter_len = 3; 
 }
 
-static void average_pilots(srslte_chest_ul_t *q, cf_t *input, cf_t *ce, uint32_t nrefs) {
+static void average_pilots(srslte_chest_ul_t *q, cf_t *input, cf_t *ce, uint32_t nrefs, uint32_t n_prb[2]) {
   for (int i=0;i<2;i++) {
     srslte_chest_average_pilots(&input[i*nrefs], 
-                                &ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE], 
+                                &ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE+n_prb[i]*SRSLTE_NRE], 
                                 q->smooth_filter, nrefs, 1, q->smooth_filter_len);
   }
 }
@@ -228,21 +237,25 @@ int srslte_chest_ul_estimate(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
   srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->dmrs_pregen.r[cyclic_shift_for_dmrs][sf_idx][nof_prb], 
                            q->pilot_estimates, nrefs_sf);
   
+  if (n_prb[0] != n_prb[1]) {
+    printf("ERROR: intra-subframe frequency hopping not supported in the estimator!!\n");
+  }
+  
   if (ce != NULL) {
     if (q->smooth_filter_len > 0) {
-      average_pilots(q, q->pilot_estimates, ce, nrefs_sym);
-      interpolate_pilots(q, ce, nrefs_sym);        
+      average_pilots(q, q->pilot_estimates, ce, nrefs_sym, n_prb);
+      interpolate_pilots(q, ce, nrefs_sym, n_prb);        
       
       /* If averaging, compute noise from difference between received and averaged estimates */
-      q->noise_estimate = estimate_noise_pilots(q, ce, nrefs_sym);
+      q->noise_estimate = estimate_noise_pilots(q, ce, nrefs_sym, n_prb);
     } else {
       // Copy estimates to CE vector without averaging
       for (int i=0;i<2;i++) {
-        memcpy(&ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE], 
+        memcpy(&ce[SRSLTE_REFSIGNAL_UL_L(i, q->cell.cp)*q->cell.nof_prb*SRSLTE_NRE+n_prb[i]*SRSLTE_NRE], 
                &q->pilot_estimates[i*nrefs_sym], 
-               nrefs_sym*sizeof(cf_t));
+               nrefs_sym*sizeof(cf_t));        
       }
-      interpolate_pilots(q, ce, nrefs_sym);                  
+      interpolate_pilots(q, ce, nrefs_sym, n_prb);                  
       q->noise_estimate = 0;              
     }
   }
@@ -251,6 +264,63 @@ int srslte_chest_ul_estimate(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
   q->pilot_power = srslte_vec_avg_power_cf(q->pilot_recv_signal, nrefs_sf); 
   return 0;
 }
+
+int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t *q, cf_t *input, cf_t *ce, 
+                                   srslte_pucch_format_t format, uint32_t n_pucch, uint32_t sf_idx) 
+{
+  if (!q->dmrs_signal_configured) {
+    fprintf(stderr, "Error must call srslte_chest_ul_set_cfg() before using the UL estimator\n");
+    return SRSLTE_ERROR; 
+  }
+    
+  int n_rs = srslte_refsignal_dmrs_N_rs(format, q->cell.cp);
+  if (!n_rs) {
+    fprintf(stderr, "Error computing N_rs\n");
+    return SRSLTE_ERROR; 
+  }
+  int nrefs_sf = SRSLTE_NRE*n_rs*2; 
+  
+  /* Get references from the input signal */
+  srslte_refsignal_dmrs_pucch_get(&q->dmrs_signal, format, n_pucch, input, q->pilot_recv_signal);
+  
+  /* Generate known pilots */
+  uint8_t pucch2_bits[2] = {0, 0};
+  srslte_refsignal_dmrs_pucch_gen(&q->dmrs_signal, format, n_pucch, sf_idx, pucch2_bits, q->pilot_known_signal),
+  
+  /* Use the known DMRS signal to compute Least-squares estimates */
+  srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->pilot_known_signal, q->pilot_estimates, nrefs_sf);
+ 
+  if (ce != NULL) {
+    /* FIXME: Currently averaging entire slot, performance good enough? */
+    for (int ns=0;ns<2;ns++) {
+      // Average all slot 
+      for (int i=1;i<n_rs;i++) {
+        srslte_vec_sum_ccc(&q->pilot_estimates[ns*n_rs*SRSLTE_NRE], &q->pilot_estimates[(i+ns*n_rs)*SRSLTE_NRE], 
+                           &q->pilot_estimates[ns*n_rs*SRSLTE_NRE], 
+                           SRSLTE_NRE);
+      }
+      srslte_vec_sc_prod_ccc(&q->pilot_estimates[ns*n_rs*SRSLTE_NRE], (float) 1.0/n_rs, 
+                             &q->pilot_estimates[ns*n_rs*SRSLTE_NRE], 
+                             SRSLTE_NRE);
+      
+      // Average in freq domain
+      srslte_chest_average_pilots(&q->pilot_estimates[ns*n_rs*SRSLTE_NRE], &q->pilot_recv_signal[ns*n_rs*SRSLTE_NRE], 
+                                  q->smooth_filter, SRSLTE_NRE, 1, q->smooth_filter_len);
+      
+      // Determine n_prb
+      uint32_t n_prb = srslte_pucch_n_prb(&q->dmrs_signal.pucch_cfg, format, n_pucch, q->cell.nof_prb, q->cell.cp, ns); 
+
+      // copy estimates to slot 
+      for (int i=0;i<SRSLTE_CP_NSYMB(q->cell.cp);i++) {
+        memcpy(&ce[SRSLTE_RE_IDX(q->cell.nof_prb, i+ns*SRSLTE_CP_NSYMB(q->cell.cp), n_prb*SRSLTE_NRE)], 
+               &q->pilot_recv_signal[ns*n_rs*SRSLTE_NRE], sizeof(cf_t)*SRSLTE_NRE);
+      }
+    }
+  }
+  
+  return 0;
+}
+
 
 float srslte_chest_ul_get_noise_estimate(srslte_chest_ul_t *q) {
   return q->noise_estimate;

@@ -58,7 +58,7 @@ float beta_cqi_offset[16] = {-1.0, -1.0, 1.125, 1.25, 1.375, 1.625, 1.750, 2.0, 
 
 
 float srslte_sch_beta_cqi(uint32_t I_cqi) {
-  if (I_cqi <= 16) {
+  if (I_cqi < 16) {
     return beta_cqi_offset[I_cqi];
   } else {
     return 0;
@@ -463,10 +463,10 @@ static int decode_tb(srslte_sch_t *q,
       par_tx = ((uint32_t) parity[0])<<16 | ((uint32_t) parity[1])<<8 | ((uint32_t) parity[2]);
       
       if (!par_rx) {
-        printf("Warning: Received all-zero transport block\n\n", 0);        
+        INFO("Warning: Received all-zero transport block\n\n", 0);      
       }
 
-      if (par_rx == par_tx && par_rx) {
+      if (par_rx == par_tx) {
         INFO("TB decoded OK\n",i);
         return SRSLTE_SUCCESS;
       } else {
@@ -646,16 +646,10 @@ int srslte_ulsch_uci_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_sof
   
   // Decode CQI (multiplexed at the front of ULSCH)
   if (uci_data->uci_cqi_len > 0) {
-    struct timeval t[3];
-    gettimeofday(&t[1], NULL);
     ret = srslte_uci_decode_cqi_pusch(&q->uci_cqi, cfg, g_bits, 
                                       beta_cqi_offset[cfg->uci_cfg.I_offset_cqi], 
                                       Q_prime_ri, uci_data->uci_cqi_len,
                                       uci_data->uci_cqi, &uci_data->cqi_ack);
-    gettimeofday(&t[2], NULL);
-    get_time_interval(t);
-    printf("texec=%d us\n", t[0].tv_usec);
-    
     if (ret < 0) {
       return ret; 
     }
@@ -663,7 +657,7 @@ int srslte_ulsch_uci_decode(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srslte_sof
   }
   
   e_offset += Q_prime_cqi*Qm;
-
+  
   // Decode ULSCH
   if (cfg->cb_segm.tbs > 0) {
     uint32_t G = nb_q/Qm - Q_prime_ri - Q_prime_cqi;     

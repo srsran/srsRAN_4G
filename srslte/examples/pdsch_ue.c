@@ -426,6 +426,7 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
     init_plots(cell);    
+    sleep(1);
   }
 #endif
 
@@ -494,7 +495,7 @@ int main(int argc, char **argv) {
             decode_pdsch = true;             
           } else {
             /* We are looking for SIB1 Blocks, search only in appropiate places */
-            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%8)==0)) {
+            if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
               decode_pdsch = true; 
             } else {
               decode_pdsch = false; 
@@ -502,28 +503,15 @@ int main(int argc, char **argv) {
           }
           if (decode_pdsch) {            
             INFO("Attempting DL decode SFN=%d\n", sfn);
-            if (prog_args.rnti != SRSLTE_SIRNTI) {              
-              n = srslte_ue_dl_decode(&ue_dl, &sf_buffer[prog_args.time_offset], data, srslte_ue_sync_get_sfidx(&ue_sync));
-            } else {
-              // RV for SIB1 is predefined
-              uint32_t k  = (sfn/2)%4; 
-              uint32_t rv = ((uint32_t) ceilf((float)1.5*k))%4;
-              n = srslte_ue_dl_decode_rnti_rv(&ue_dl, &sf_buffer[prog_args.time_offset], data, 
-                                              srslte_ue_sync_get_sfidx(&ue_sync), 
-                                              SRSLTE_SIRNTI, rv);      
-              
-              /*
-              if (!n) {
-                printf("Saving signal...\n");
-                srslte_ue_dl_save_signal(&ue_dl, &ue_dl.softbuffer, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), rv);
-                exit(-1);
-              }
-              */
-            }
+            n = srslte_ue_dl_decode(&ue_dl, 
+                                    &sf_buffer[prog_args.time_offset], 
+                                    data, 
+                                    sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
+          
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
             } else if (n > 0) {
-
+              
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 srslte_netsink_write(&net_sink, data, 1+(n-1)/8);
@@ -536,7 +524,7 @@ int main(int argc, char **argv) {
                   memcmp(&ue_dl.dl_dci.type2_alloc, &old_dl_dci.type2_alloc, sizeof(srslte_ra_type2_t)))
               {
                 memcpy(&old_dl_dci, &ue_dl.dl_dci, sizeof(srslte_ra_dl_dci_t));
-                fflush(stdout);printf("\nCFI:\t%d\n", ue_dl.cfi);
+                fflush(stdout);
                 printf("Format: %s\n", srslte_dci_format_string(ue_dl.dci_format));
                 srslte_ra_pdsch_fprint(stdout, &old_dl_dci, cell.nof_prb);
                 srslte_ra_dl_grant_fprint(stdout, &ue_dl.pdsch_cfg.grant);
@@ -702,14 +690,16 @@ void *plot_thread_run(void *arg) {
           tmp_plot[i] = -80;
         }
       }
+      int sz = srslte_symbol_sz(ue_dl.cell.nof_prb);
+      bzero(tmp_plot2, sizeof(float)*sz);
+      int g = (sz - 12*ue_dl.cell.nof_prb)/2;
       for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[i] = 20 * log10f(cabsf(ue_dl.ce[0][i]));
-        if (isinf(tmp_plot2[i])) {
-          tmp_plot2[i] = -80;
+        tmp_plot2[g+i] = 20 * log10(cabs(ue_dl.ce[0][i]));
+        if (isinf(tmp_plot2[g+i])) {
+          tmp_plot2[g+i] = -80;
         }
       }
-
-      plot_real_setNewData(&pce, tmp_plot2, i);        
+      plot_real_setNewData(&pce, tmp_plot2, sz);        
       
       if (!prog_args.input_file_name) {
         if (plot_track) {

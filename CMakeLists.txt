@@ -32,6 +32,9 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 ########################################################################
 CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 PROJECT (SRSLTE)
+MESSAGE( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
+MESSAGE( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
+MESSAGE( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(SRSLTEVersion) #sets version information
@@ -48,7 +51,9 @@ configure_file(
 ########################################################################
 # Options
 ########################################################################
-option(DisableMEX "DisableMEX" ON)
+option(DisableMEX     "DisableMEX"     ON)
+option(StaticMKL      "StaticMKL"      OFF)
+option(DisableBladeRF "DisableBladeRF" OFF)
 
 ########################################################################
 # Install Dirs
@@ -95,16 +100,28 @@ endif(CMAKE_COMPILER_IS_GNUCXX)
 
 if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g")
-    
+
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
-  else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     find_package(SSE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
     if(HAVE_AVX)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")      
     elseif(HAVE_SSE)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
     endif(HAVE_AVX)
+  else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    find_package(SSE)
+    if (HAVE_AVX2)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx2 -Ofast -funroll-loops -DLV_HAVE_AVX -DLV_HAVE_SSE")
+    else (HAVE_AVX2)
+      if(HAVE_AVX)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -Ofast -funroll-loops -DLV_HAVE_AVX -DLV_HAVE_SSE")
+      elseif(HAVE_SSE)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -Ofast -funroll-loops -DLV_HAVE_SSE")
+      endif(HAVE_AVX)
+    endif (HAVE_AVX2)
+    
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
   
   
@@ -149,9 +166,7 @@ add_custom_target(uninstall
 # Macro to add -fPIC property to static libs 
 ########################################################################
 macro(SRSLTE_SET_PIC)
-    if( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
-        set_target_properties(${ARGV} PROPERTIES COMPILE_FLAGS -fPIC)
-    endif( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
+    set_target_properties(${ARGV} PROPERTIES COMPILE_FLAGS -fPIC)
 endmacro(SRSLTE_SET_PIC)
 
 ########################################################################

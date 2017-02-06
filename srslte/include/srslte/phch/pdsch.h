@@ -47,13 +47,15 @@
 #include "srslte/phch/sch.h"
 #include "srslte/phch/pdsch_cfg.h"
 
+typedef struct {
+  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];  
+} srslte_pdsch_user_t;
+
 /* PDSCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
   
   uint32_t max_re;
-  bool rnti_is_set; 
-  uint16_t rnti; 
   
   /* buffers */
   // void buffers are shared for tx and rx
@@ -66,12 +68,8 @@ typedef struct SRSLTE_API {
   /* tx & rx objects */
   srslte_modem_table_t mod[4];
   
-  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
-  
   // This is to generate the scrambling seq for multiple CRNTIs
-  uint32_t nof_crnti; 
-  srslte_sequence_t *seq_multi[SRSLTE_NSUBFRAMES_X_FRAME];
-  uint16_t *rnti_multi;
+  srslte_pdsch_user_t **users;
   
   srslte_sch_t dl_sch;
   
@@ -85,15 +83,11 @@ SRSLTE_API void srslte_pdsch_free(srslte_pdsch_t *q);
 SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q, 
                                      uint16_t rnti);
 
-SRSLTE_API int srslte_pdsch_init_rnti_multi(srslte_pdsch_t *q, 
-                                            uint32_t nof_rntis); 
+SRSLTE_API void srslte_pdsch_free_rnti(srslte_pdsch_t *q, 
+                                      uint16_t rnti);
 
-SRSLTE_API int srslte_pdsch_set_rnti_multi(srslte_pdsch_t *q, 
-                                           uint32_t idx,
-                                           uint16_t rnti);
-
-SRSLTE_API uint16_t srslte_pdsch_get_rnti_multi(srslte_pdsch_t *q, 
-                                                uint32_t idx);
+SRSLTE_API float srslte_pdsch_coderate(uint32_t tbs, 
+                                       uint32_t nof_re); 
 
 SRSLTE_API int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, 
                                 srslte_cell_t cell, 
@@ -106,21 +100,8 @@ SRSLTE_API int srslte_pdsch_encode(srslte_pdsch_t *q,
                                    srslte_pdsch_cfg_t *cfg,
                                    srslte_softbuffer_tx_t *softbuffer,
                                    uint8_t *data, 
+                                   uint16_t rnti,
                                    cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
-
-SRSLTE_API int srslte_pdsch_encode_rnti_idx(srslte_pdsch_t *q,
-                                            srslte_pdsch_cfg_t *cfg,
-                                            srslte_softbuffer_tx_t *softbuffer,
-                                            uint8_t *data, 
-                                            uint32_t rnti_idx,
-                                            cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
-
-SRSLTE_API int srslte_pdsch_encode_rnti(srslte_pdsch_t *q,
-                                        srslte_pdsch_cfg_t *cfg,
-                                        srslte_softbuffer_tx_t *softbuffer,
-                                        uint8_t *data, 
-                                        uint16_t rnti,
-                                        cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API int srslte_pdsch_decode(srslte_pdsch_t *q, 
                                    srslte_pdsch_cfg_t *cfg, 
@@ -128,16 +109,8 @@ SRSLTE_API int srslte_pdsch_decode(srslte_pdsch_t *q,
                                    cf_t *sf_symbols, 
                                    cf_t *ce[SRSLTE_MAX_PORTS],
                                    float noise_estimate, 
+                                   uint16_t rnti,
                                    uint8_t *data);
-
-SRSLTE_API int srslte_pdsch_decode_rnti(srslte_pdsch_t *q, 
-                                        srslte_pdsch_cfg_t *cfg, 
-                                        srslte_softbuffer_rx_t *softbuffer,
-                                        cf_t *sf_symbols, 
-                                        cf_t *ce[SRSLTE_MAX_PORTS],
-                                        float noise_estimate, 
-                                        uint16_t rnti,
-                                        uint8_t *data);
 
 SRSLTE_API float srslte_pdsch_average_noi(srslte_pdsch_t *q); 
 

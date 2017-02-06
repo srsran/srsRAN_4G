@@ -38,7 +38,7 @@
 
 #include "srslte/io/netsink.h"
 
-int srslte_netsink_init(srslte_netsink_t *q, char *address, int port, srslte_netsink_type_t type) {
+int srslte_netsink_init(srslte_netsink_t *q, const char *address, uint16_t port, srslte_netsink_type_t type) {
   bzero(q, sizeof(srslte_netsink_t));
 
   q->sockfd=socket(AF_INET, type==SRSLTE_NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
@@ -46,6 +46,16 @@ int srslte_netsink_init(srslte_netsink_t *q, char *address, int port, srslte_net
     perror("socket");
     return -1; 
   }
+
+  int enable = 1;
+#if defined (SO_REUSEADDR)
+  if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+      perror("setsockopt(SO_REUSEADDR) failed");
+#endif
+#if defined (SO_REUSEPORT)
+  if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+      perror("setsockopt(SO_REUSEPORT) failed");
+#endif
 
   q->servaddr.sin_family = AF_INET;
   q->servaddr.sin_addr.s_addr=inet_addr(address);

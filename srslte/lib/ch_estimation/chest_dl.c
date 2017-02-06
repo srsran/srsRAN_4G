@@ -293,6 +293,7 @@ static void average_pilots(srslte_chest_dl_t *q, cf_t *input, cf_t *output, uint
   uint32_t nsymbols = srslte_refsignal_cs_nof_symbols(port_id); 
   uint32_t nref = 2*q->cell.nof_prb;
 
+  // Average in the frequency domain
   for (int l=0;l<nsymbols;l++) {
     srslte_conv_same_cf(&input[l*nref], q->smooth_filter, &output[l*nref], nref, q->smooth_filter_len);    
   }

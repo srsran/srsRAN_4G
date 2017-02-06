@@ -3,11 +3,11 @@ puschConfig=struct('NLayers',1,'OrthCover','Off','Shortened',0,'NBundled',0);
 
 addpath('../../build//srslte/lib/phch/test')
 
-cqilen=[0 4 20];
+cqilen=0;%[0 4 20];
 mods={'64QAM'};
 rvs=0;
-betas=[0 5.0, 20.0];
-for p=1:ueConfig.NULRB
+betas=0;%[0 5.0, 20.0];
+for p=1
     for i=0:26
         for m=1:length(mods)
             for r=1:length(rvs)

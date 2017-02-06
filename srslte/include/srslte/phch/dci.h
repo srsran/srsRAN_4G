@@ -43,9 +43,11 @@
 #include "srslte/common/phy_common.h"
 #include "srslte/phch/ra.h"
 
-#define SRSLTE_DCI_MAX_BITS  57
+#define SRSLTE_DCI_MAX_BITS  128
 
 #define SRSLTE_RAR_GRANT_LEN 20
+
+SRSLTE_API extern int harq_pid_len; 
 
 typedef enum {
   SRSLTE_DCI_FORMAT0 = 0, 

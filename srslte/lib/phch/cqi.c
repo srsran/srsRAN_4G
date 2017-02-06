@@ -39,7 +39,9 @@
 #include "srslte/utils/vector.h"
 #include "srslte/utils/debug.h"
 
-
+/*******************************************************
+ *            PACKING FUNCTIONS                        *
+ *******************************************************/
 int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
 {
   uint8_t *body_ptr = buff; 
@@ -89,6 +91,74 @@ int srslte_cqi_value_pack(srslte_cqi_value_t *value, uint8_t buff[SRSLTE_CQI_MAX
   return -1; 
 }
 
+
+/*******************************************************
+ *          UNPACKING FUNCTIONS                        *
+ *******************************************************/
+
+int srslte_cqi_hl_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_hl_subband_t *msg) 
+{
+  uint8_t *body_ptr     = buff; 
+  msg->wideband_cqi     = srslte_bit_pack(&body_ptr, 4);
+  msg->subband_diff_cqi = srslte_bit_pack(&body_ptr, 2*msg->N);
+  
+  return 4+2*msg->N;
+}
+
+int srslte_cqi_ue_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_ue_subband_t *msg)
+{
+  uint8_t *body_ptr     = buff; 
+  msg->wideband_cqi     = srslte_bit_pack(&body_ptr, 4);
+  msg->subband_diff_cqi = srslte_bit_pack(&body_ptr, 2);  
+  msg->subband_diff_cqi = srslte_bit_pack(&body_ptr, msg->L);  
+  
+  return 4+2+msg->L;
+}
+
+int srslte_cqi_format2_wideband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_format2_wideband_t *msg) 
+{
+  uint8_t *body_ptr = buff; 
+  msg->wideband_cqi = srslte_bit_pack(&body_ptr, 4);  
+  return 4;  
+}
+
+int srslte_cqi_format2_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_format2_subband_t *msg) 
+{
+  uint8_t *body_ptr  = buff; 
+  msg->subband_cqi   = srslte_bit_pack(&body_ptr, 4);  
+  msg->subband_label = srslte_bit_pack(&body_ptr, msg->subband_label_2_bits?2:1);  
+  return 4+(msg->subband_label_2_bits)?2:1;    
+}
+
+int srslte_cqi_value_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_value_t *value)
+{
+  switch(value->type) {
+    case SRSLTE_CQI_TYPE_WIDEBAND:
+      return srslte_cqi_format2_wideband_unpack(buff, &value->wideband);
+    case SRSLTE_CQI_TYPE_SUBBAND:
+      return srslte_cqi_format2_subband_unpack(buff, &value->subband);
+    case SRSLTE_CQI_TYPE_SUBBAND_UE:
+      return srslte_cqi_ue_subband_unpack(buff, &value->subband_ue);
+    case SRSLTE_CQI_TYPE_SUBBAND_HL:
+      return srslte_cqi_hl_subband_unpack(buff, &value->subband_hl);
+  }
+  return -1; 
+}
+
+int srslte_cqi_size(srslte_cqi_value_t *value) {
+  switch(value->type) {
+    case SRSLTE_CQI_TYPE_WIDEBAND:
+      return 4;
+    case SRSLTE_CQI_TYPE_SUBBAND:
+      return 4+(value->subband.subband_label_2_bits)?2:1;
+    case SRSLTE_CQI_TYPE_SUBBAND_UE:
+      return 4+2+value->subband_ue.L;
+    case SRSLTE_CQI_TYPE_SUBBAND_HL:
+      return 4+2*value->subband_hl.N;
+  }
+  return -1;
+}
+
 bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
   
   uint32_t N_p = 0;
@@ -129,14 +199,25 @@ bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
   } else if (I_cqi_pmi <= 1023) {
     return false; 
   }
-  
-  if ((tti-N_offset)%N_p == 0) {
-    return true; 
-  } else {
-    return false; 
+  if (N_p) {
+    if ((tti-N_offset)%N_p == 0) {
+      return true; 
+    } 
   }
+  return false; 
 }
 
+
+// CQI-to-Spectral Efficiency:  36.213 Table 7.2.3-1  */
+static float cqi_to_coderate[16] = {0, 0.1523, 0.2344, 0.3770, 0.6016, 0.8770, 1.1758, 1.4766, 1.9141, 2.4063, 2.7305, 3.3223, 3.9023, 4.5234, 5.1152, 5.5547}; 
+
+float srslte_cqi_to_coderate(uint32_t cqi) {
+  if (cqi < 16) {
+    return cqi_to_coderate[cqi];
+  } else {
+    return 0; 
+  }
+}
 
 /* SNR-to-CQI conversion, got from "Downlink SNR to CQI Mapping for Different Multiple Antenna Techniques in LTE"
  * Table III. 
@@ -181,5 +262,10 @@ int srslte_cqi_hl_get_subband_size(int nof_prb)
  */
 int srslte_cqi_hl_get_no_subbands(int nof_prb)
 {
-  return (int)ceil(nof_prb/(float)srslte_cqi_hl_get_subband_size(nof_prb));
+  int hl_size = srslte_cqi_hl_get_subband_size(nof_prb); 
+  if (hl_size > 0) {
+    return (int)ceil((float)nof_prb/hl_size);
+  } else {
+    return 0;
+  }
 }

@@ -76,8 +76,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Field RNTI not found in pusch config\n");
     return;
   }
-  srslte_pusch_set_rnti(&pusch, (uint16_t) (rnti32 & 0xffff));
   
+  uint16_t rnti = (uint16_t) (rnti32 & 0xffff);
+  srslte_pusch_set_rnti(&pusch, rnti);
   
   
   srslte_pusch_cfg_t cfg; 
@@ -195,7 +196,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mexPrintf("I_cqi: %2d, I_ri: %2d, I_ack=%2d\n", cfg.uci_cfg.I_offset_cqi, cfg.uci_cfg.I_offset_ri, cfg.uci_cfg.I_offset_ack);
 
   mexPrintf("NofRE: %3d, NofBits: %3d, TBS: %3d, N_srs=%d\n", cfg.nbits.nof_re, cfg.nbits.nof_bits, grant.mcs.tbs, N_srs);
-  int r = srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, sf_symbols);
+  int r = srslte_pusch_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, rnti, sf_symbols);
   if (r < 0) {
     mexErrMsgTxt("Error encoding PUSCH\n");
     return;
@@ -205,7 +206,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   if (cfg.rv > 0) {
-    r = srslte_pusch_uci_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, sf_symbols);
+    r = srslte_pusch_encode(&pusch, &cfg, &softbuffer, trblkin, uci_data, rnti, sf_symbols);
     if (r < 0) {
       mexErrMsgTxt("Error encoding PUSCH\n");
       return;
