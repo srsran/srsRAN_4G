@@ -172,6 +172,7 @@ int srslte_ra_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_
 srslte_mod_t last_mod[8];
 uint32_t     last_ul_tbs_idx[8];
 uint32_t     last_dl_tbs[8];
+uint32_t     last_dl_tbs2[8];
 
 static int ul_dci_to_grant_mcs(srslte_ra_ul_dci_t *dci, srslte_ra_ul_grant_t *grant, uint32_t harq_pid) {  
   int tbs = -1; 
@@ -459,21 +460,38 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
     grant->mcs.tbs = (uint32_t) tbs; 
   } else {
     n_prb = grant->nof_prb;
-    grant->mcs.idx = dci->mcs_idx;
-    tbs   = dl_fill_ra_mcs(&grant->mcs, n_prb);
-    if (tbs) {
-      last_dl_tbs[dci->harq_process%8] = tbs;
+    grant->nof_tb = 0; 
+    if (dci->tb_en[0]) {
+      grant->mcs.idx = dci->mcs_idx;
+      tbs   = dl_fill_ra_mcs(&grant->mcs, n_prb);
+      if (tbs) {
+        last_dl_tbs[dci->harq_process%8] = tbs;
+      } else {
+        // For mcs>=29, set last TBS received for this PID
+        grant->mcs.tbs = last_dl_tbs[dci->harq_process%8]; 
+      }
+      grant->nof_tb++;
     } else {
-      // For mcs>=29, set last TBS received for this PID
-      grant->mcs.tbs = last_dl_tbs[dci->harq_process%8]; 
+      grant->mcs.tbs = 0; 
     }
-    if (dci->nof_tb == 2) {
+    if (dci->tb_en[1]) {
       grant->mcs2.idx = dci->mcs_idx_1;
       tbs = dl_fill_ra_mcs(&grant->mcs2, n_prb);
+      if (tbs) {
+        last_dl_tbs2[dci->harq_process%8] = tbs;
+      } else {
+        // For mcs>=29, set last TBS received for this PID
+        grant->mcs2.tbs = last_dl_tbs2[dci->harq_process%8]; 
+      }
+      grant->nof_tb++;
+    } else {
+      grant->mcs2.tbs = 0; 
     }
   }  
-  grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
-  if (dci->nof_tb == 2) {
+  if (dci->tb_en[0]) {
+    grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
+  }
+  if (dci->tb_en[1]) {
     grant->Qm2 = srslte_mod_bits_x_symbol(grant->mcs2.mod);      
   }
   if (tbs < 0) {

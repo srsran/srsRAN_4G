@@ -625,7 +625,8 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   
   // TPC not implemented
   
-  data->nof_tb = 1; 
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -814,7 +815,8 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
     data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
   
-  data->nof_tb = 1; 
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -860,7 +862,8 @@ int dci_format1B_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
   data->pinfo = srslte_bit_pack(&y, tpmi_bits(nof_ports));
   data->pconf = *y++ ? true : false;
 
-  data->nof_tb = 1;   
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -955,7 +958,8 @@ int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   
   msg->nof_bits = (y - msg->data);
   
-  data->nof_tb = 1; 
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -1001,7 +1005,8 @@ int dci_format1D_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
   data->pinfo = srslte_bit_pack(&y, tpmi_bits(nof_ports));
   data->power_offset = *y++ ? true : false;
   
-  data->nof_tb = 1; 
+  data->tb_en[0] = true;
+  data->tb_en[1] = false;
 
   return SRSLTE_SUCCESS;
 }
@@ -1051,16 +1056,23 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   
   /* unpack MCS according to 7.1.7 of 36.213 */
   data->mcs_idx = srslte_bit_pack(&y, 5);
-  
   data->ndi = *y++ ? true : false;
-  
-  // rv version
   data->rv_idx = srslte_bit_pack(&y, 2);
+  if (data->mcs_idx == 0 && data->rv_idx == 1) {
+    data->tb_en[0] = false; 
+  } else {
+    data->tb_en[0] = true; 
+  }
   
   // same for tb1
   data->mcs_idx_1 = srslte_bit_pack(&y, 5);  
   data->ndi_1 = *y++ ? true : false;  
   data->rv_idx_1 = srslte_bit_pack(&y, 2);
+  if (data->mcs_idx_1 == 0 && data->rv_idx_1 == 1) {
+    data->tb_en[1] = false; 
+  } else {
+    data->tb_en[1] = true; 
+  }
   
   // Precoding information 
   if (msg->format == SRSLTE_DCI_FORMAT2A) {
@@ -1069,7 +1081,6 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
     data->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(nof_ports));
   }
   
-  data->nof_tb = 2; 
   
   return SRSLTE_SUCCESS;
 }
