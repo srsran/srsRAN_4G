@@ -8,10 +8,10 @@
 recordedSignal=[];
 
 Npackets = 1;
-SNR_values = 56;%linspace(2,6,10);
+SNR_values = 50;%linspace(8,11,5);
 
 %% Choose RMC 
-[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.5',[1;0;0;1]);
+[waveform,rgrid,rmccFgOut] = lteRMCDLTool('R.12',[1;0;0;1]);
 waveform = sum(waveform,2);
 
 if ~isempty(recordedSignal)
@@ -105,9 +105,6 @@ for snr_idx=1:length(SNR_values)
                                                         subframe_rx);
             else
                 dec2 = 1;
-            end
-             if (~dec2) 
-                fprintf('Error in sf=%d\n',sf_idx);
             end
             decoded_srslte(snr_idx) = decoded_srslte(snr_idx)+dec2;
         end

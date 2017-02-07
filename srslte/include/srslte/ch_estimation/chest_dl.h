@@ -107,8 +107,9 @@ SRSLTE_API void srslte_chest_dl_set_noise_alg(srslte_chest_dl_t *q,
 
 SRSLTE_API int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, 
                                               cf_t *input[SRSLTE_MAX_RXANT],
-                                              cf_t *ce[SRSLTE_MAX_RXANT][SRSLTE_MAX_PORTS],
-                                              uint32_t sf_idx);
+                                              cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT],
+                                              uint32_t sf_idx, 
+                                              uint32_t nof_rx_antennas);
 
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,
