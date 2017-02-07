@@ -354,12 +354,26 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   return 0;
 }
 
+int srslte_chest_dl_estimate(srslte_chest_dl_t *q, cf_t *input[SRSLTE_MAX_RXANT], cf_t *ce[SRSLTE_MAX_RXANT][SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t nof_rx_antennas) 
+{
+  for (uint32_t rxant=0;rxant<nof_rx_antennas;rxant++) {
+    for (uint32_t port_id=0;port_id<q->cell.nof_ports;port_id++) {
+      if (srslte_chest_dl_estimate_port(q, input[rxant], ce[rxant][port_id], sf_idx, port_id)) {
+        return SRSLTE_ERROR; 
+      }
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
 int srslte_chest_dl_estimate(srslte_chest_dl_t *q, cf_t *input, cf_t *ce[SRSLTE_MAX_PORTS], uint32_t sf_idx) 
 {
   uint32_t port_id; 
   
   for (port_id=0;port_id<q->cell.nof_ports;port_id++) {
-    srslte_chest_dl_estimate_port(q, input, ce[port_id], sf_idx, port_id);
+    if (srslte_chest_dl_estimate_port(q, input, ce[port_id], sf_idx, port_id)) {
+      return SRSLTE_ERROR;
+    }
   }
   return SRSLTE_SUCCESS;
 }

@@ -128,8 +128,8 @@ if (length(SNR_values)>1)
     ylabel('BLER')
     axis([min(SNR_values) max(SNR_values) 1/Npackets/(Nsf+1) 1])
 else
-    plot(abs(symbols{1}-pdschSymbols2))
-    %scatter(real(symbols{1}),imag(symbols{1}))
+    %plot(abs(symbols{1}-pdschSymbols2))
+    scatter(real(pdschSymbols2),imag(pdschSymbols2))
     fprintf('Matlab: %d OK\nsrsLTE: %d OK\n',decoded, decoded_srslte);
 end
 

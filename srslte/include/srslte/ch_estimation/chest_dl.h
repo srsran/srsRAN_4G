@@ -105,6 +105,11 @@ SRSLTE_API void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q,
 SRSLTE_API void srslte_chest_dl_set_noise_alg(srslte_chest_dl_t *q, 
                                               srslte_chest_dl_noise_alg_t noise_estimation_alg); 
 
+SRSLTE_API int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, 
+                                              cf_t *input[SRSLTE_MAX_RXANT],
+                                              cf_t *ce[SRSLTE_MAX_RXANT][SRSLTE_MAX_PORTS],
+                                              uint32_t sf_idx);
+
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,
                                         cf_t *ce[SRSLTE_MAX_PORTS],
