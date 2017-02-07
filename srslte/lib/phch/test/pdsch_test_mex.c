@@ -245,7 +245,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       cf_t *cearray = NULL; 
       mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
       cf_t *cearray_ptr = cearray; 
-      for (int k=0;k<SRSLTE_MAX_RXANT;k++) {
+      for (int k=0;k<nof_antennas;k++) {
         for (i=0;i<cell.nof_ports;i++) {
           for (int j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
             ce[i][k][j] = *cearray_ptr;
@@ -293,8 +293,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     uint32_t len = nof_antennas*cell.nof_ports*SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
     cf_t *cearray_ptr = srslte_vec_malloc(len*sizeof(cf_t)); 
     int n=0;
-    for (int k=0;k<nof_antennas;k++) {
-      for (i=0;i<cell.nof_ports;i++) {
+    for (i=0;i<cell.nof_ports;i++) {
+      for (int k=0;k<nof_antennas;k++) {
         for (int j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
           cearray_ptr[n] = ce[i][k][j];
           n++;

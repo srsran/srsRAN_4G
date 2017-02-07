@@ -444,7 +444,7 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
       /* no need for layer demapping */
       srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, cfg->nbits.nof_re, noise_estimate);
     } else {
-      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, q->cell.nof_ports, q->nof_rx_antennas, cfg->nbits.nof_re);
+      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nbits.nof_re);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, cfg->nbits.nof_re / q->cell.nof_ports);
     }
     
