@@ -98,7 +98,7 @@ const char* srslte_rf_get_devname(srslte_rf_t *rf) {
   return ((rf_dev_t*) rf->dev)->name;
 }
 
-int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args) {
+int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_rx_antennas) {
   /* Try to open the device if name is provided */
   if (devname) {
     if (devname[0] != '\0') {
@@ -106,7 +106,7 @@ int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args) {
       while(available_devices[i] != NULL) {
         if (!strcmp(available_devices[i]->name, devname)) {
           rf->dev = available_devices[i];
-          return available_devices[i]->srslte_rf_open(args, &rf->handler);
+          return available_devices[i]->srslte_rf_open_multi(args, &rf->handler, nof_rx_antennas);
         }
         i++;
       }    
@@ -182,7 +182,12 @@ void srslte_rf_register_error_handler(srslte_rf_t *rf, srslte_rf_error_handler_t
 
 int srslte_rf_open(srslte_rf_t *h, char *args) 
 {
-  return srslte_rf_open_devname(h, NULL, args);
+  return srslte_rf_open_devname(h, NULL, args, 1);
+}
+
+int srslte_rf_open_multi(srslte_rf_t *h, char *args, uint32_t nof_rx_antennas) 
+{
+  return srslte_rf_open_devname(h, NULL, args, nof_rx_antennas);
 }
 
 int srslte_rf_close(srslte_rf_t *rf)
@@ -231,6 +236,11 @@ int srslte_rf_recv(srslte_rf_t *rf, void *data, uint32_t nsamples, bool blocking
   return srslte_rf_recv_with_time(rf, data, nsamples, blocking, NULL, NULL);
 }
 
+int srslte_rf_recv_multi(srslte_rf_t *rf, void **data, uint32_t nsamples, bool blocking)
+{
+  return srslte_rf_recv_with_time_multi(rf, data, nsamples, blocking, NULL, NULL);
+}
+
 int srslte_rf_recv_with_time(srslte_rf_t *rf,
                     void *data,
                     uint32_t nsamples,
@@ -239,6 +249,16 @@ int srslte_rf_recv_with_time(srslte_rf_t *rf,
                     double *frac_secs) 
 {
   return ((rf_dev_t*) rf->dev)->srslte_rf_recv_with_time(rf->handler, data, nsamples, blocking, secs, frac_secs);  
+}
+
+int srslte_rf_recv_with_time_multi(srslte_rf_t *rf,
+                                    void **data,
+                                    uint32_t nsamples,
+                                    bool blocking,
+                                    time_t *secs,
+                                    double *frac_secs) 
+{
+  return ((rf_dev_t*) rf->dev)->srslte_rf_recv_with_time_multi(rf->handler, data, nsamples, blocking, secs, frac_secs);  
 }
 
 double srslte_rf_set_tx_gain(srslte_rf_t *rf, double gain)

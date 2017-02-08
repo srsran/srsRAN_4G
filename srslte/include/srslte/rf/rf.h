@@ -73,7 +73,8 @@ SRSLTE_API int srslte_rf_open(srslte_rf_t *h,
 
 SRSLTE_API int srslte_rf_open_devname(srslte_rf_t *h, 
                                char *devname, 
-                               char *args);
+                               char *args, 
+                               uint32_t nof_rx_antennas);
 
 SRSLTE_API const char *srslte_rf_name(srslte_rf_t *h); 
 
@@ -138,6 +139,13 @@ SRSLTE_API int srslte_rf_recv_with_time(srslte_rf_t *h,
                                  bool blocking,
                                  time_t *secs,
                                  double *frac_secs);
+
+SRSLTE_API int srslte_rf_recv_with_time_multi(srslte_rf_t *h,
+                                              void **data,
+                                              uint32_t nsamples,
+                                              bool blocking,
+                                              time_t *secs,
+                                              double *frac_secs);
 
 SRSLTE_API double srslte_rf_set_tx_srate(srslte_rf_t *h, 
                                   double freq);

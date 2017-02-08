@@ -178,6 +178,11 @@ float rf_blade_get_rssi(void *h)
   return 0;
 }
 
+int rf_blade_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
+{
+  return rf_blade_open(args, h); 
+}
+
 int rf_blade_open(char *args, void **h)
 {
   *h = NULL; 
@@ -411,6 +416,17 @@ void rf_blade_get_time(void *h, time_t *secs, double *frac_secs)
               bladerf_strerror(status));
   }
   timestamp_to_secs(handler->rx_rate, meta.timestamp, secs, frac_secs);
+}
+
+
+int rf_blade_recv_with_time_multi(void *h,
+                                  void **data,
+                                  uint32_t nsamples,
+                                  bool blocking,
+                                  time_t *secs,
+                                  double *frac_secs) 
+{
+  return rf_blade_recv_with_time(h, *data, nsamples, blocking, secs, frac_secs);  
 }
 
 int rf_blade_recv_with_time(void *h,
