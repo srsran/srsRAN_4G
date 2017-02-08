@@ -33,7 +33,6 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_blade_imp.c)
   endif (BLADERF_FOUND)
 
-  add_compile_options(-march=native -mfpmath=sse -mno-avx -msse4.1)
   add_library(srslte_rf SHARED ${SOURCES_RF})
   
   
