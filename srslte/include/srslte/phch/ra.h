@@ -106,6 +106,7 @@ typedef struct SRSLTE_API {
   uint32_t Qm2; 
   srslte_ra_mcs_t mcs;
   srslte_ra_mcs_t mcs2;
+  uint32_t nof_tb;
 } srslte_ra_dl_grant_t;
 
 /** Unpacked DCI message for DL grant */
@@ -134,7 +135,7 @@ typedef struct SRSLTE_API {
   
   uint8_t tpc_pucch;
 
-  uint32_t nof_tb; 
+  bool     tb_en[2]; 
   
   bool     dci_is_1a;
   bool     dci_is_1c; 

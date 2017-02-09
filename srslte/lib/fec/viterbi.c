@@ -40,7 +40,7 @@
 
 #define TB_ITER 3
 
-#define DEFAULT_GAIN 16
+#define DEFAULT_GAIN 32
 
 //#undef LV_HAVE_SSE
 
@@ -99,8 +99,8 @@ int decode37_sse(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length
     chainback_viterbi37_sse(q->ptr,  q->tmp, TB_ITER*frame_length, best_state);
     memcpy(data, &q->tmp[((int) (TB_ITER/2))*frame_length], frame_length*sizeof(uint8_t));
   } else {
-    update_viterbi37_blk_sse(q->ptr, symbols, frame_length+q->K-1, &best_state);
-    chainback_viterbi37_sse(q->ptr, data, frame_length, best_state);
+    update_viterbi37_blk_sse(q->ptr, symbols, frame_length+q->K-1, NULL);
+    chainback_viterbi37_sse(q->ptr, data, frame_length, 0);
   }
   
   return q->framebits;
