@@ -1,9 +1,9 @@
 
 include(CheckCSourceRuns)
 
-option(ENABLE_SSE "Enable compile-time SSE4.1 support." ON)
-option(ENABLE_AVX "Enable compile-time AVX support."  ON)
-option(ENABLE_AVX2 "Enable compile-time AVX2 support."  ON)
+option(ENABLE_SSE  "Enable compile-time SSE4.1 support." ON)
+option(ENABLE_AVX  "Enable compile-time AVX support."    ON)
+option(ENABLE_AVX2 "Enable compile-time AVX2 support."   ON)
 
 if (ENABLE_SSE)
     #
