@@ -187,6 +187,7 @@ int rf_uhd_start_rx_stream(void *h)
     stream_cmd.time_spec_full_secs += 1; 
   }
   uhd_rx_streamer_issue_stream_cmd(handler->rx_stream, &stream_cmd);  return 0;
+  return 0; 
 }
 
 int rf_uhd_stop_rx_stream(void *h)
