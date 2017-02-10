@@ -177,10 +177,17 @@ void rf_uhd_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 int rf_uhd_start_rx_stream(void *h)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+
   uhd_stream_cmd_t stream_cmd = {
         .stream_mode = UHD_STREAM_MODE_START_CONTINUOUS,
-        .stream_now = true
-  };  
+        .stream_now = false
+  };
+  uhd_usrp_get_time_now(handler->usrp, 0, &stream_cmd.time_spec_full_secs, &stream_cmd.time_spec_frac_secs);
+  stream_cmd.time_spec_frac_secs += 0.5; 
+  if (stream_cmd.time_spec_frac_secs > 1) {
+    stream_cmd.time_spec_frac_secs -= 1;
+    stream_cmd.time_spec_full_secs += 1; 
+  }
   uhd_rx_streamer_issue_stream_cmd(handler->rx_stream, &stream_cmd);
   return 0;
 }
@@ -199,9 +206,11 @@ int rf_uhd_stop_rx_stream(void *h)
 void rf_uhd_flush_buffer(void *h)
 {
   int n; 
-  cf_t tmp[1024];
+  cf_t tmp1[1024];
+  cf_t tmp2[1024];
+  void *data[2] = {tmp1, tmp2};
   do {
-    n = rf_uhd_recv_with_time(h, tmp, 1024, 0, NULL, NULL);
+    n = rf_uhd_recv_with_time_multi(h, data, 1024, 0, NULL, NULL);
   } while (n > 0);  
 }
 
@@ -505,6 +514,9 @@ int rf_uhd_recv_with_time(void *h,
   return rf_uhd_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
 }
 
+cf_t data1[1024*100];
+cf_t data2[1024*100];
+
 int rf_uhd_recv_with_time_multi(void *h,
                                 void **data,
                                 uint32_t nsamples,
@@ -514,13 +526,13 @@ int rf_uhd_recv_with_time_multi(void *h,
 {
   
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  size_t rxd_samples[4];
+  size_t rxd_samples;
   uhd_rx_metadata_handle *md = &handler->rx_md_first; 
   int trials = 0; 
   if (blocking) {
     int n = 0;
     do {
-      size_t rx_samples = handler->rx_nof_samples;
+      size_t rx_samples = nsamples;
              
       if (rx_samples > nsamples - n) {
         rx_samples = nsamples - n; 
@@ -528,22 +540,22 @@ int rf_uhd_recv_with_time_multi(void *h,
       void *buffs_ptr[4]; 
       for (int i=0;i<handler->nof_rx_channels;i++) {
         cf_t *data_c = (cf_t*) data[i];
-        buffs_ptr[i] = &data_c[n];
+        buffs_ptr[i] = &data_c[n];        
       }
+
       uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
-                                             rx_samples, md, 1.0, false, rxd_samples);
-      
+                                             rx_samples, md, 1.0, false, &rxd_samples);
       if (error) {
         fprintf(stderr, "Error receiving from UHD: %d\n", error);
         return -1; 
       }
       md = &handler->rx_md; 
-      n += rxd_samples[0];
+      n += rxd_samples;
       trials++;
     } while (n < nsamples && trials < 100);
   } else {
     return uhd_rx_streamer_recv(handler->rx_stream, data, 
-                                             nsamples, md, 0.0, false, rxd_samples);
+                                nsamples, md, 0.0, false, &rxd_samples);
   }
   if (secs && frac_secs) {
     uhd_rx_metadata_time_spec(handler->rx_md_first, secs, frac_secs);

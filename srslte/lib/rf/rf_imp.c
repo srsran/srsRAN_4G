@@ -98,7 +98,11 @@ const char* srslte_rf_get_devname(srslte_rf_t *rf) {
   return ((rf_dev_t*) rf->dev)->name;
 }
 
-int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_rx_antennas) {
+int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args) {
+  return srslte_rf_open_devname_multi(rf, devname, args, 1);
+}
+
+int srslte_rf_open_devname_multi(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_rx_antennas) {
   /* Try to open the device if name is provided */
   if (devname) {
     if (devname[0] != '\0') {
@@ -117,7 +121,7 @@ int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args, uint32_t 
   /* If in auto mode or provided device not found, try to open in order of apperance in available_devices[] array */
   int i=0;
   while(available_devices[i] != NULL) {
-    if (!available_devices[i]->srslte_rf_open(args, &rf->handler)) {
+    if (!available_devices[i]->srslte_rf_open_multi(args, &rf->handler, nof_rx_antennas)) {
       rf->dev = available_devices[i];
       return 0; 
     }
@@ -182,12 +186,12 @@ void srslte_rf_register_error_handler(srslte_rf_t *rf, srslte_rf_error_handler_t
 
 int srslte_rf_open(srslte_rf_t *h, char *args) 
 {
-  return srslte_rf_open_devname(h, NULL, args, 1);
+  return srslte_rf_open_devname_multi(h, NULL, args, 1);
 }
 
 int srslte_rf_open_multi(srslte_rf_t *h, char *args, uint32_t nof_rx_antennas) 
 {
-  return srslte_rf_open_devname(h, NULL, args, nof_rx_antennas);
+  return srslte_rf_open_devname_multi(h, NULL, args, nof_rx_antennas);
 }
 
 int srslte_rf_close(srslte_rf_t *rf)

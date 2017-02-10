@@ -82,10 +82,11 @@ free_and_exit:
   return ret;
 }
 
-
+cf_t data2[1920*160];
 int srslte_rf_recv_wrapper_cs(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv(h, data, nsamples, 1);
+  void *d[2] = {data, data2}; 
+  return srslte_rf_recv_with_time_multi(h, d, nsamples, 1, NULL, NULL);
 }
 
 double srslte_rf_set_rx_gain_th_wrapper(void *h, double f) {
