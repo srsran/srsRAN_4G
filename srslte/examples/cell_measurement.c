@@ -129,9 +129,10 @@ void sig_int_handler(int signo)
   }
 }
 
-int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *q) {
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_RXANT], uint32_t nsamples, srslte_timestamp_t *q) {  
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv(h, data, nsamples, 1);
+  
+  return srslte_rf_recv(h, data[0], nsamples, 1);
 }
 
 enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state; 
@@ -141,7 +142,7 @@ enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state;
 
 int main(int argc, char **argv) {
   int ret; 
-  cf_t *sf_buffer; 
+  cf_t *sf_buffer[SRSLTE_MAX_RXANT] = {NULL, NULL}; 
   prog_args_t prog_args; 
   srslte_cell_t cell;  
   int64_t sf_cnt;
@@ -180,6 +181,8 @@ int main(int argc, char **argv) {
     }
     srslte_rf_set_rx_gain(&rf, 50);
   }
+  
+  sf_buffer[0] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
 
   sigset_t sigset;
   sigemptyset(&sigset);
@@ -198,7 +201,7 @@ int main(int argc, char **argv) {
   
   uint32_t ntrial=0; 
   do {
-    ret = rf_search_and_decode_mib(&rf, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
+    ret = rf_search_and_decode_mib(&rf, 1, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
     if (ret < 0) {
       fprintf(stderr, "Error searching for cell\n");
       exit(-1); 
@@ -234,11 +237,11 @@ int main(int argc, char **argv) {
   srslte_rf_stop_rx_stream(&rf);
   srslte_rf_flush_buffer(&rf);
   
-  if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*) &rf)) {
+  if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
-  if (srslte_ue_dl_init(&ue_dl, cell)) { 
+  if (srslte_ue_dl_init(&ue_dl, cell, 1)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
@@ -280,7 +283,7 @@ int main(int argc, char **argv) {
   /* Main loop */
   while ((sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) && !go_exit) {
     
-    ret = srslte_ue_sync_get_buffer(&ue_sync, &sf_buffer);
+    ret = srslte_ue_sync_zerocopy(&ue_sync, sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
@@ -292,7 +295,7 @@ int main(int argc, char **argv) {
         case DECODE_MIB:
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
             srslte_pbch_decode_reset(&ue_mib.pbch);
-            n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload, NULL, &sfn_offset);
+            n = srslte_ue_mib_decode(&ue_mib, sf_buffer[0], bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               return -1;
@@ -329,11 +332,11 @@ int main(int argc, char **argv) {
         
         if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
           /* Run FFT for all subframe data */
-          srslte_ofdm_rx_sf(&fft, sf_buffer, sf_symbols);
+          srslte_ofdm_rx_sf(&fft, sf_buffer[0], sf_symbols);
           
           srslte_chest_dl_estimate(&chest, sf_symbols, ce, srslte_ue_sync_get_sfidx(&ue_sync));
                   
-          rssi = SRSLTE_VEC_EMA(srslte_vec_avg_power_cf(sf_buffer,SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))),rssi,0.05);
+          rssi = SRSLTE_VEC_EMA(srslte_vec_avg_power_cf(sf_buffer[0],SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb))),rssi,0.05);
           rssi_utra = SRSLTE_VEC_EMA(srslte_chest_dl_get_rssi(&chest),rssi_utra,0.05);
           rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&chest),rsrq,0.05);
           rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&chest),rsrp,0.05);      

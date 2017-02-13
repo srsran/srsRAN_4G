@@ -46,11 +46,13 @@ const uint32_t nof_common_formats = 2;
 
 
 int srslte_ue_dl_init(srslte_ue_dl_t *q, 
-               srslte_cell_t cell) 
+                      srslte_cell_t cell, 
+                      uint32_t nof_rx_antennas) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
-  if (q                 != NULL &&
+  if (q               != NULL             &&
+      nof_rx_antennas <= SRSLTE_MAX_RXANT &&
       srslte_cell_isvalid(&cell))   
   {
     ret = SRSLTE_ERROR;
@@ -62,6 +64,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
     q->pkts_total = 0;
     q->pending_ul_dci_rnti = 0; 
     q->sample_offset = 0; 
+    q->nof_rx_antennas = nof_rx_antennas; 
     
     if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
@@ -89,7 +92,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
       goto clean_exit;
     }
 
-    if (srslte_pdsch_init(&q->pdsch, q->cell)) {
+    if (srslte_pdsch_init_multi(&q->pdsch, q->cell, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
@@ -103,16 +106,18 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
     }
     srslte_cfo_set_tol(&q->sfo_correct, 1e-5/q->fft.symbol_sz);
     
-    q->sf_symbols = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
-    if (!q->sf_symbols) {
-      perror("malloc");
-      goto clean_exit; 
-    }
-    for (uint32_t i=0;i<q->cell.nof_ports;i++) {
-      q->ce[i] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
-      if (!q->ce[i]) {
+    for (int j=0;j<nof_rx_antennas;j++) {
+      q->sf_symbols[j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+      if (!q->sf_symbols[j]) {
         perror("malloc");
         goto clean_exit; 
+      }
+      for (uint32_t i=0;i<q->cell.nof_ports;i++) {
+        q->ce[i][j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+        if (!q->ce[i][j]) {
+          perror("malloc");
+          goto clean_exit; 
+        }
       }
     }
     
@@ -140,12 +145,14 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
     srslte_pdsch_free(&q->pdsch);
     srslte_cfo_free(&q->sfo_correct);
     srslte_softbuffer_rx_free(&q->softbuffer);
-    if (q->sf_symbols) {
-      free(q->sf_symbols);
-    }
-    for (uint32_t i=0;i<q->cell.nof_ports;i++) {
-      if (q->ce[i]) {
-        free(q->ce[i]);
+    for (int j=0;j<q->nof_rx_antennas;j++) {
+      if (q->sf_symbols[j]) {
+        free(q->sf_symbols[j]);
+      }
+      for (uint32_t i=0;i<q->cell.nof_ports;i++) {
+        if (q->ce[i][j]) {
+          free(q->ce[i][j]);
+        }
       }
     }
     bzero(q, sizeof(srslte_ue_dl_t));
@@ -186,23 +193,25 @@ void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, float sample_offset) {
  *    - PDCCH decoding: Find DCI for RNTI given by previous call to srslte_ue_dl_set_rnti()
  *    - PDSCH decoding: Decode TB scrambling with RNTI given by srslte_ue_dl_set_rnti()
  */
-int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti) {
+int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_RXANT], uint8_t *data, uint32_t tti) {
   return srslte_ue_dl_decode_rnti(q, input, data, tti, q->current_rnti);
 }
 
-int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) {
+int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_RXANT], uint32_t sf_idx, uint32_t *cfi) {
   if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Run FFT for all subframe data */
-    srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
-    
-    /* Correct SFO multiplying by complex exponential in the time domain */
-    if (q->sample_offset) {
-      for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
-        srslte_cfo_correct(&q->sfo_correct, 
-                         &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
-                         &q->sf_symbols[i*q->cell.nof_prb*SRSLTE_NRE], 
-                         q->sample_offset / q->fft.symbol_sz);
+    for (int j=0;j<q->nof_rx_antennas;j++) {
+      srslte_ofdm_rx_sf(&q->fft, input[j], q->sf_symbols[j]);
+
+      /* Correct SFO multiplying by complex exponential in the time domain */
+      if (q->sample_offset) {
+        for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
+          srslte_cfo_correct(&q->sfo_correct, 
+                          &q->sf_symbols[j][i*q->cell.nof_prb*SRSLTE_NRE], 
+                          &q->sf_symbols[j][i*q->cell.nof_prb*SRSLTE_NRE], 
+                          q->sample_offset / q->fft.symbol_sz);
+        }
       }
     }
     return srslte_ue_dl_decode_estimate(q, sf_idx, cfi); 
@@ -216,10 +225,14 @@ int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *c
   if (q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Get channel estimates for each port */
-    srslte_chest_dl_estimate(&q->chest, q->sf_symbols, q->ce, sf_idx);
+    srslte_chest_dl_estimate_multi(&q->chest, q->sf_symbols, q->ce, sf_idx, q->nof_rx_antennas);
 
     /* First decode PCFICH and obtain CFI */
-    if (srslte_pcfich_decode(&q->pcfich, q->sf_symbols, q->ce, 
+    cf_t *ce0[SRSLTE_MAX_PORTS];
+    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+      ce0[i] = q->ce[i][0];
+    }
+    if (srslte_pcfich_decode(&q->pcfich, q->sf_symbols[0], ce0, 
                              srslte_chest_dl_get_noise_estimate(&q->chest), 
                              sf_idx, cfi, &cfi_corr)<0) {
       fprintf(stderr, "Error decoding PCFICH\n");
@@ -245,7 +258,7 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
   return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx);
 }
 
-int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti, uint16_t rnti) 
+int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_RXANT], uint8_t *data, uint32_t tti, uint16_t rnti) 
 {
   srslte_dci_msg_t dci_msg;
   srslte_ra_dl_dci_t dci_unpacked;
@@ -259,7 +272,11 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint
     return ret; 
   }
   
-  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols, q->ce, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
+  cf_t *ce0[SRSLTE_MAX_PORTS];
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    ce0[i] = q->ce[i][0];
+  }
+  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols[0], ce0, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
     fprintf(stderr, "Error extracting LLRs\n");
     return SRSLTE_ERROR;
   }
@@ -299,7 +316,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint
     float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
     
     if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
-      ret = srslte_pdsch_decode(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
+      ret = srslte_pdsch_decode_multi(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
                                     q->sf_symbols, q->ce, 
                                     noise_estimate, 
                                     rnti, data);
@@ -502,7 +519,14 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
   INFO("Decoding PHICH sf_idx=%d, n_prb_lowest=%d, n_dmrs=%d, n_group=%d, n_seq=%d, Ngroups=%d, Nsf=%d\n", 
     sf_idx, n_prb_lowest, n_dmrs, ngroup, nseq, 
     srslte_phich_ngroups(&q->phich), srslte_phich_nsf(&q->phich));
-  if (!srslte_phich_decode(&q->phich, q->sf_symbols, q->ce, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
+  
+  cf_t *ce0[SRSLTE_MAX_PORTS];
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    ce0[i] = q->ce[i][0];
+  }
+
+  
+  if (!srslte_phich_decode(&q->phich, q->sf_symbols[0], ce0, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
     INFO("Decoded PHICH %d with distance %f\n", ack_bit, distance);    
   } else {
     fprintf(stderr, "Error decoding PHICH\n");

@@ -260,10 +260,13 @@ void sig_int_handler(int signo)
 cf_t *sf_buffer[2] = {NULL, NULL}; 
 
 #ifndef DISABLE_RF
-int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_RXANT], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  void *d[2] = {data, sf_buffer[1]}; 
-  return srslte_rf_recv_with_time_multi(h, d, nsamples, true, NULL, NULL);
+  void *ptr[SRSLTE_MAX_RXANT];
+  for (int i=0;i<SRSLTE_MAX_RXANT;i++) {
+    ptr[i] = data[i];
+  }
+  return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }
 
 double srslte_rf_set_rx_gain_th_wrapper_(void *h, double f) {
@@ -351,7 +354,7 @@ int main(int argc, char **argv) {
 
     uint32_t ntrial=0; 
     do {
-      ret = rf_search_and_decode_mib(&rf, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
+      ret = rf_search_and_decode_mib(&rf, prog_args.rf_nof_rx_ant, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
       if (ret < 0) {
         fprintf(stderr, "Error searching for cell\n");
         exit(-1); 
@@ -386,7 +389,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    printf("Stopping RF and flushing buffer...\r",0);
+    INFO("Stopping RF and flushing buffer...\r",0);
   }
 #endif
   
@@ -408,7 +411,7 @@ int main(int argc, char **argv) {
 
   } else {
 #ifndef DISABLE_RF
-    if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*) &rf)) {
+    if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
@@ -420,7 +423,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }    
 
-  if (srslte_ue_dl_init(&ue_dl, cell)) {  // This is the User RNTI
+  if (srslte_ue_dl_init(&ue_dl, cell, prog_args.rf_nof_rx_ant)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
@@ -471,11 +474,11 @@ int main(int argc, char **argv) {
   
   srslte_pbch_decode_reset(&ue_mib.pbch);
             
-  printf("\nEntering main loop...\n\n", 0);
+  INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     
-    ret = srslte_ue_sync_zerocopy(&ue_sync, sf_buffer[0]);
+    ret = srslte_ue_sync_zerocopy(&ue_sync, sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
@@ -517,7 +520,7 @@ int main(int argc, char **argv) {
           if (decode_pdsch) {            
             INFO("Attempting DL decode SFN=%d\n", sfn);
             n = srslte_ue_dl_decode(&ue_dl, 
-                                    sf_buffer[0], 
+                                    sf_buffer, 
                                     data, 
                                     sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
           
@@ -698,7 +701,7 @@ void *plot_thread_run(void *arg) {
     uint32_t nof_symbols = ue_dl.pdsch_cfg.nbits.nof_re;
     if (!prog_args.disable_plots_except_constellation) {      
       for (i = 0; i < nof_re; i++) {
-        tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
+        tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[0][i]));
         if (isinf(tmp_plot[i])) {
           tmp_plot[i] = -80;
         }
@@ -707,7 +710,7 @@ void *plot_thread_run(void *arg) {
       bzero(tmp_plot2, sizeof(float)*sz);
       int g = (sz - 12*ue_dl.cell.nof_prb)/2;
       for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[g+i] = 20 * log10(cabs(ue_dl.ce[0][i]));
+        tmp_plot2[g+i] = 20 * log10(cabs(ue_dl.ce[0][0][i]));
         if (isinf(tmp_plot2[g+i])) {
           tmp_plot2[g+i] = -80;
         }

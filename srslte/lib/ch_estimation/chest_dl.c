@@ -358,7 +358,6 @@ int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, cf_t *input[SRSLTE_MAX_
 {
   for (uint32_t rxant=0;rxant<nof_rx_antennas;rxant++) {
     for (uint32_t port_id=0;port_id<q->cell.nof_ports;port_id++) {
-      printf("rxant=%d, port=%d, input=0x%x, ce=0x%x\n", rxant, port_id, input[rxant], ce[port_id][rxant]);
       if (srslte_chest_dl_estimate_port(q, input[rxant], ce[port_id][rxant], sf_idx, port_id)) {
         return SRSLTE_ERROR; 
       }

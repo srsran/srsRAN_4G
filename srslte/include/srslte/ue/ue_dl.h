@@ -88,8 +88,10 @@ typedef struct SRSLTE_API {
   srslte_ra_dl_dci_t dl_dci;
   srslte_cell_t cell;
 
-  cf_t *sf_symbols; 
-  cf_t *ce[SRSLTE_MAX_PORTS];
+  uint32_t nof_rx_antennas;
+  
+  cf_t *sf_symbols[SRSLTE_MAX_RXANT]; 
+  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT];
   
   srslte_dci_format_t dci_format;
   uint64_t pkt_errors; 
@@ -110,12 +112,13 @@ typedef struct SRSLTE_API {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q, 
-                                 srslte_cell_t cell);
+                                 srslte_cell_t cell, 
+                                 uint32_t nof_rx_antennas);
 
 SRSLTE_API void srslte_ue_dl_free(srslte_ue_dl_t *q);
 
 SRSLTE_API int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, 
-                                                cf_t *input, 
+                                                cf_t *input[SRSLTE_MAX_RXANT], 
                                                 uint32_t sf_idx, 
                                                 uint32_t *cfi); 
 
@@ -154,12 +157,12 @@ SRSLTE_API void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q,
                                                float sample_offset); 
 
 SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
-                                   cf_t *input, 
+                                   cf_t *input[SRSLTE_MAX_RXANT], 
                                    uint8_t *data,
                                    uint32_t tti);
 
 SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q, 
-                                        cf_t *input, 
+                                        cf_t *input[SRSLTE_MAX_RXANT], 
                                         uint8_t *data,
                                         uint32_t tti,
                                         uint16_t rnti);

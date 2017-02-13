@@ -36,7 +36,9 @@
 #include "srslte/utils/vector.h"
 
 int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames, 
-                           int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*), void *stream_handler) 
+                              int (recv_callback)(void*, cf_t*[SRSLTE_MAX_RXANT], uint32_t,srslte_timestamp_t*), 
+                              uint32_t nof_rx_antennas,
+                              void *stream_handler) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -50,10 +52,15 @@ int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames,
     cell.id = SRSLTE_CELL_ID_UNKNOWN; 
     cell.nof_prb = SRSLTE_CS_NOF_PRB; 
 
-    if (srslte_ue_sync_init(&q->ue_sync, cell, recv_callback, stream_handler)) {
+    if (srslte_ue_sync_init(&q->ue_sync, cell, recv_callback, nof_rx_antennas, stream_handler)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       goto clean_exit; 
     }
+    
+    for (int i=0;i<nof_rx_antennas;i++) {
+      q->sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
+    }
+    q->nof_rx_antennas = nof_rx_antennas; 
     
     q->candidates = calloc(sizeof(srslte_ue_cellsearch_result_t), max_frames);
     if (!q->candidates) {
@@ -86,6 +93,11 @@ clean_exit:
 
 void srslte_ue_cellsearch_free(srslte_ue_cellsearch_t * q)
 {
+  for (int i=0;i<q->nof_rx_antennas;i++) {
+    if (q->sf_buffer[i]) {
+      free(q->sf_buffer[i]);
+    }
+  }
   if (q->candidates) {
     free(q->candidates);
   }
@@ -203,7 +215,6 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
                                      srslte_ue_cellsearch_result_t *found_cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  cf_t *sf_buffer = NULL; 
   uint32_t nof_detected_frames = 0; 
   uint32_t nof_scanned_frames = 0; 
 
@@ -215,7 +226,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
     srslte_ue_sync_reset(&q->ue_sync);
     do {
       
-      ret = srslte_ue_sync_get_buffer(&q->ue_sync, &sf_buffer);
+      ret = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer);
       if (ret < 0) {
         fprintf(stderr, "Error calling srslte_ue_sync_work()\n");       
         break; 
