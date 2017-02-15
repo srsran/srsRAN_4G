@@ -1,3 +1,6 @@
+#if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|^i[3,9]86$")
+#   return()
+#endif()
 
 include(CheckCSourceRuns)
 
