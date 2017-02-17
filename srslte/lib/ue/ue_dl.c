@@ -87,7 +87,7 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
       goto clean_exit;
     }
 
-    if (srslte_pdcch_init(&q->pdcch, &q->regs, q->cell)) {
+    if (srslte_pdcch_init_multi(&q->pdcch, &q->regs, q->cell, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PDCCH object\n");
       goto clean_exit;
     }
@@ -272,11 +272,11 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_RXANT], u
     return ret; 
   }
   
-  cf_t *ce0[SRSLTE_MAX_PORTS];
-  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce0[i] = q->ce[i][0];
-  }
-  if (srslte_pdcch_extract_llr(&q->pdcch, q->sf_symbols[0], ce0, srslte_chest_dl_get_noise_estimate(&q->chest), sf_idx, cfi)) {
+  float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
+  // Uncoment next line to do ZF by default in pdsch_ue example
+  //float noise_estimate = 0; 
+
+  if (srslte_pdcch_extract_llr_multi(&q->pdcch, q->sf_symbols, q->ce, noise_estimate, sf_idx, cfi)) {
     fprintf(stderr, "Error extracting LLRs\n");
     return SRSLTE_ERROR;
   }
@@ -311,9 +311,6 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_RXANT], u
 
     q->nof_detected++;
   
-    // Uncoment next line to do ZF by default in pdsch_ue example
-    //float noise_estimate = 0; 
-    float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
     
     if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
       ret = srslte_pdsch_decode_multi(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 

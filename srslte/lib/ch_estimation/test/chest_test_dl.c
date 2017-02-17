@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
         struct timeval t[3];
         gettimeofday(&t[1], NULL);
         for (int j=0;j<100;j++) {
-          srslte_chest_dl_estimate_port(&est, input, ce, sf_idx, n_port);          
+          srslte_chest_dl_estimate_port(&est, input, ce, sf_idx, n_port, 0);          
         }
         gettimeofday(&t[2], NULL);
         get_time_interval(t);

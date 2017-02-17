@@ -62,8 +62,12 @@ float srslte_pdcch_coderate(uint32_t nof_bits, uint32_t l) {
 
 /** Initializes the PDCCH transmitter and receiver */
 int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
+  return srslte_pdcch_init_multi(q, regs, cell, 1);
+}
+
+int srslte_pdcch_init_multi(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell, uint32_t nof_rx_antennas) 
+{
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  uint32_t i;
 
   if (q                         != NULL &&
       regs                      != NULL &&
@@ -73,6 +77,7 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
     bzero(q, sizeof(srslte_pdcch_t));
     q->cell = cell;
     q->regs = regs;
+    q->nof_rx_antennas = nof_rx_antennas; 
     
     /* Allocate memory for the maximum number of PDCCH bits (CFI=3) */
     q->max_bits = (srslte_regs_pdcch_nregs(q->regs, 3) / 9) * 72;
@@ -87,7 +92,7 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
       goto clean;
     }
 
-    for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+    for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
       // we need to pregenerate the sequence for the maximum number of bits, which is 8 times 
       // the maximum number of REGs (for CFI=3)
       if (srslte_sequence_pdcch(&q->seq[i], 2 * i, q->cell.id, 8*srslte_regs_pdcch_nregs(q->regs, 3))) {
@@ -117,17 +122,21 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
       goto clean;
     }
 
-    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->ce[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
-      if (!q->ce[i]) {
-        goto clean;
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+      for (int j=0;j<q->nof_rx_antennas;j++) {
+        q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+        if (!q->ce[i][j]) {
+          goto clean;
+        }          
       }
       q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
       if (!q->x[i]) {
         goto clean;
       }
-      q->symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
-      if (!q->symbols[i]) {
+    }
+    for (int j=0;j<q->nof_rx_antennas;j++) {
+      q->symbols[j] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+      if (!q->symbols[j]) {
         goto clean;
       }
     }
@@ -142,7 +151,6 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
 }
 
 void srslte_pdcch_free(srslte_pdcch_t *q) {
-  int i;
 
   if (q->e) {
     free(q->e);
@@ -153,19 +161,22 @@ void srslte_pdcch_free(srslte_pdcch_t *q) {
   if (q->d) {
     free(q->d);
   }
-  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    if (q->ce[i]) {
-      free(q->ce[i]);
+  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    for (int j=0;j<q->nof_rx_antennas;j++) {
+      if (q->ce[i][j]) {
+        free(q->ce[i][j]);
+      }      
     }
     if (q->x[i]) {
       free(q->x[i]);
     }
-    if (q->symbols[i]) {
-      free(q->symbols[i]);
+  }
+  for (int j=0;j<q->nof_rx_antennas;j++) {
+    if (q->symbols[j]) {
+      free(q->symbols[j]);
     }
   }
-
-  for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+  for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
     srslte_sequence_free(&q->seq[i]);
   }
 
@@ -379,13 +390,27 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t *q,
 
 int cnt=0;
 
+int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate, 
+                      uint32_t nsubframe, uint32_t cfi) 
+{
+  cf_t *_sf_symbols[SRSLTE_MAX_RXANT]; 
+  cf_t *_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT];
+  
+  _sf_symbols[0] = sf_symbols; 
+  for (int i=0;i<q->cell.nof_ports;i++) {
+    _ce[i][0] = ce[i]; 
+  }
+  return srslte_pdcch_extract_llr_multi(q, _sf_symbols, _ce, noise_estimate, nsubframe, cfi);
+}
+
 /** Extracts the LLRs from srslte_dci_location_t location of the subframe and stores them in the srslte_pdcch_t structure. 
  * DCI messages can be extracted from this location calling the function srslte_pdcch_decode_msg(). 
  * Every time this function is called (with a different location), the last demodulated symbols are overwritten and
  * new messages from other locations can be decoded 
  */
-int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate, 
-                      uint32_t nsubframe, uint32_t cfi) {
+int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MAX_RXANT], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], float noise_estimate, 
+                                   uint32_t nsubframe, uint32_t cfi) 
+{
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
@@ -415,27 +440,29 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
     memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
           
     /* extract symbols */
-    int n = srslte_regs_pdcch_get(q->regs, sf_symbols, q->symbols[0]);
-    if (nof_symbols != n) {
-      fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
-      return ret;
-    }
-
-    /* extract channel estimates */
-    for (i = 0; i < q->cell.nof_ports; i++) {
-      n = srslte_regs_pdcch_get(q->regs, ce[i], q->ce[i]);
+    for (int j=0;j<q->nof_rx_antennas;j++) {
+      int n = srslte_regs_pdcch_get(q->regs, sf_symbols[j], q->symbols[j]);
       if (nof_symbols != n) {
         fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
         return ret;
       }
-    }
 
+      /* extract channel estimates */
+      for (i = 0; i < q->cell.nof_ports; i++) {
+        n = srslte_regs_pdcch_get(q->regs, ce[i][j], q->ce[i][j]);
+        if (nof_symbols != n) {
+          fprintf(stderr, "Expected %d PDCCH symbols but got %d symbols\n", nof_symbols, n);
+          return ret;
+        }
+      }      
+    }
+    
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, nof_symbols, noise_estimate/2);
+      srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, nof_symbols, noise_estimate/2);
     } else {
-      srslte_predecoding_diversity(q->symbols[0], q->ce, x, q->cell.nof_ports, nof_symbols);
+      srslte_predecoding_diversity_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, nof_symbols);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, nof_symbols / q->cell.nof_ports);
     }
 
