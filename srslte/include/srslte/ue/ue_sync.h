@@ -75,7 +75,7 @@ typedef struct SRSLTE_API {
   uint32_t agc_period; 
   
   void *stream; 
-  int (*recv_callback)(void*, cf_t*[SRSLTE_MAX_RXANT], uint32_t, srslte_timestamp_t*); 
+  int (*recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*); 
   srslte_timestamp_t last_timestamp;
   
   uint32_t nof_rx_antennas; 
@@ -124,7 +124,7 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int srslte_ue_sync_init(srslte_ue_sync_t *q, 
                                    srslte_cell_t cell,
-                                   int (recv_callback)(void*, cf_t*[SRSLTE_MAX_RXANT], uint32_t, srslte_timestamp_t*), 
+                                   int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*), 
                                    uint32_t nof_rx_antennas,
                                    void *stream_handler);
 
@@ -147,7 +147,7 @@ SRSLTE_API void srslte_ue_sync_set_agc_period(srslte_ue_sync_t *q,
 
 /* CAUTION: input_buffer MUST have space for 2 subframes */
 SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, 
-                                       cf_t *input_buffer[SRSLTE_MAX_RXANT]);
+                                       cf_t *input_buffer[SRSLTE_MAX_PORTS]);
 
 SRSLTE_API void srslte_ue_sync_set_cfo(srslte_ue_sync_t *q, 
                                        float cfo); 

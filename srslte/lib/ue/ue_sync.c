@@ -50,7 +50,7 @@ cf_t dummy_buffer0[15*2048/2];
 cf_t dummy_buffer1[15*2048/2];
 
 // FIXME: this will break for 4 antennas!!
-cf_t *dummy_offset_buffer[SRSLTE_MAX_RXANT] = {dummy_buffer0, dummy_buffer1};
+cf_t *dummy_offset_buffer[SRSLTE_MAX_PORTS] = {dummy_buffer0, dummy_buffer1};
 
 int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset_time, float offset_freq) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -108,7 +108,7 @@ int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(voi
 
 int srslte_ue_sync_init(srslte_ue_sync_t *q, 
                  srslte_cell_t cell,
-                 int (recv_callback)(void*, cf_t*[SRSLTE_MAX_RXANT], uint32_t,srslte_timestamp_t*),
+                 int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
                  uint32_t nof_rx_antennas,
                  void *stream_handler) 
 {
@@ -117,7 +117,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
   if (q                                 != NULL && 
       stream_handler                    != NULL && 
       srslte_nofprb_isvalid(cell.nof_prb)       &&
-      nof_rx_antennas <= SRSLTE_MAX_RXANT       &&
+      nof_rx_antennas <= SRSLTE_MAX_PORTS       &&
       recv_callback                     != NULL)
   {
     ret = SRSLTE_ERROR;
@@ -299,7 +299,7 @@ void srslte_ue_sync_set_agc_period(srslte_ue_sync_t *q, uint32_t period) {
   q->agc_period = period; 
 }
 
-static int find_peak_ok(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_RXANT]) {
+static int find_peak_ok(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PORTS]) {
 
   
   if (srslte_sync_sss_detected(&q->sfind)) {    
@@ -433,7 +433,7 @@ static int track_peak_no(srslte_ue_sync_t *q) {
 
 }
 
-static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_RXANT]) {
+static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PORTS]) {
   
   /* A negative time offset means there are samples in our buffer for the next subframe, 
   because we are sampling too fast. 
@@ -443,8 +443,8 @@ static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_RX
   }
   
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
-  cf_t *ptr[SRSLTE_MAX_RXANT]; 
-  for (int i=0;i<SRSLTE_MAX_RXANT;i++) {
+  cf_t *ptr[SRSLTE_MAX_PORTS]; 
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     ptr[i] = &input_buffer[i][q->next_rf_sample_offset];
   }
   if (q->recv_callback(q->stream, ptr, q->frame_len - q->next_rf_sample_offset, &q->last_timestamp) < 0) {
@@ -460,7 +460,7 @@ static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_RX
 bool first_track = true; 
 
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
-int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_RXANT]) {
+int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PORTS]) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   uint32_t track_idx; 
   

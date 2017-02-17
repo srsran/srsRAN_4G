@@ -354,7 +354,7 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
   return 0;
 }
 
-int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, cf_t *input[SRSLTE_MAX_RXANT], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], uint32_t sf_idx, uint32_t nof_rx_antennas) 
+int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t nof_rx_antennas) 
 {
   for (uint32_t rxant_id=0;rxant_id<nof_rx_antennas;rxant_id++) {
     for (uint32_t port_id=0;port_id<q->cell.nof_ports;port_id++) {

@@ -120,10 +120,10 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_RXANT], uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  void *ptr[SRSLTE_MAX_RXANT];
-  for (int i=0;i<SRSLTE_MAX_RXANT;i++) {
+  void *ptr[SRSLTE_MAX_PORTS];
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     ptr[i] = data[i];
   }
   return srslte_rf_recv_with_time_multi((srslte_rf_t*) h, ptr, nsamples, 1, NULL, NULL);

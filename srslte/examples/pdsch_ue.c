@@ -260,10 +260,10 @@ void sig_int_handler(int signo)
 cf_t *sf_buffer[2] = {NULL, NULL}; 
 
 #ifndef DISABLE_RF
-int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_RXANT], uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  void *ptr[SRSLTE_MAX_RXANT];
-  for (int i=0;i<SRSLTE_MAX_RXANT;i++) {
+  void *ptr[SRSLTE_MAX_PORTS];
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
     ptr[i] = data[i];
   }
   return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);

@@ -92,14 +92,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   cf_t *x[SRSLTE_MAX_LAYERS]; 
-  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT];
-  cf_t *y[SRSLTE_MAX_RXANT];
+  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  cf_t *y[SRSLTE_MAX_PORTS];
 
   for (int i=0;i<SRSLTE_MAX_LAYERS;i++) {
     x[i] = NULL; 
   }
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    for (int j=0;j<SRSLTE_MAX_RXANT;j++) {
+    for (int j=0;j<SRSLTE_MAX_PORTS;j++) {
       h[i][j] = NULL; 
     }
   }

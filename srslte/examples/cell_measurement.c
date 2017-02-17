@@ -129,7 +129,7 @@ void sig_int_handler(int signo)
   }
 }
 
-int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_RXANT], uint32_t nsamples, srslte_timestamp_t *q) {  
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *q) {  
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   
   return srslte_rf_recv(h, data[0], nsamples, 1);
@@ -142,7 +142,7 @@ enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state;
 
 int main(int argc, char **argv) {
   int ret; 
-  cf_t *sf_buffer[SRSLTE_MAX_RXANT] = {NULL, NULL}; 
+  cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL, NULL}; 
   prog_args_t prog_args; 
   srslte_cell_t cell;  
   int64_t sf_cnt;

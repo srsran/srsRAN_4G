@@ -215,7 +215,7 @@ int srslte_pdsch_init_multi(srslte_pdsch_t *q, srslte_cell_t cell, uint32_t nof_
 
  if (q != NULL                  &&
      srslte_cell_isvalid(&cell) && 
-     nof_rx_antennas <= SRSLTE_MAX_RXANT) 
+     nof_rx_antennas <= SRSLTE_MAX_PORTS) 
   {   
     
     bzero(q, sizeof(srslte_pdsch_t));
@@ -383,8 +383,8 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
                         cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate, 
                         uint16_t rnti, uint8_t *data) 
 {
-  cf_t *_sf_symbols[SRSLTE_MAX_RXANT]; 
-  cf_t *_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT];
+  cf_t *_sf_symbols[SRSLTE_MAX_PORTS]; 
+  cf_t *_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   
   _sf_symbols[0] = sf_symbols; 
   for (int i=0;i<q->cell.nof_ports;i++) {
@@ -397,7 +397,7 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
  */
 int srslte_pdsch_decode_multi(srslte_pdsch_t *q, 
                               srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                              cf_t *sf_symbols[SRSLTE_MAX_RXANT], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], float noise_estimate, 
+                              cf_t *sf_symbols[SRSLTE_MAX_PORTS], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate, 
                               uint16_t rnti, uint8_t *data) 
 {
 

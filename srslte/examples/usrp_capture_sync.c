@@ -98,13 +98,13 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_RXANT], uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   return srslte_rf_recv(h, data[2], nsamples, 1);
 }
 
 int main(int argc, char **argv) {
-  cf_t *buffer[SRSLTE_MAX_RXANT] = {NULL, NULL}; 
+  cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL, NULL}; 
   int n;
   srslte_rf_t rf;
   srslte_filesink_t sink;

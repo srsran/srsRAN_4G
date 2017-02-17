@@ -393,8 +393,8 @@ int cnt=0;
 int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate, 
                       uint32_t nsubframe, uint32_t cfi) 
 {
-  cf_t *_sf_symbols[SRSLTE_MAX_RXANT]; 
-  cf_t *_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT];
+  cf_t *_sf_symbols[SRSLTE_MAX_PORTS]; 
+  cf_t *_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   
   _sf_symbols[0] = sf_symbols; 
   for (int i=0;i<q->cell.nof_ports;i++) {
@@ -408,7 +408,7 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
  * Every time this function is called (with a different location), the last demodulated symbols are overwritten and
  * new messages from other locations can be decoded 
  */
-int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MAX_RXANT], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], float noise_estimate, 
+int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate, 
                                    uint32_t nsubframe, uint32_t cfi) 
 {
 

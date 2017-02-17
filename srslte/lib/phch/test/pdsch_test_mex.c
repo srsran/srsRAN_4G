@@ -55,7 +55,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_ofdm_t ofdm_rx; 
   srslte_pdsch_t pdsch;
   srslte_chest_dl_t chest; 
-  cf_t *input_fft[SRSLTE_MAX_RXANT];
+  cf_t *input_fft[SRSLTE_MAX_PORTS];
   srslte_pdsch_cfg_t cfg;
   srslte_softbuffer_rx_t softbuffer; 
   uint32_t rnti32;
@@ -196,8 +196,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     nof_retx = mexutils_getLength(INPUT);
   } 
   
-  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT];
-  for (int j=0;j<SRSLTE_MAX_RXANT;j++) {
+  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  for (int j=0;j<SRSLTE_MAX_PORTS;j++) {
     for (i=0;i<cell.nof_ports;i++) {
       ce[i][j] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     }

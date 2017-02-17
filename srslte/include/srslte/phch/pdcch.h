@@ -68,8 +68,8 @@ typedef struct SRSLTE_API {
   srslte_regs_t *regs;
 
   /* buffers */
-  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT];
-  cf_t *symbols[SRSLTE_MAX_RXANT];
+  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  cf_t *symbols[SRSLTE_MAX_PORTS];
   cf_t *x[SRSLTE_MAX_PORTS];
   cf_t *d;
   uint8_t *e;
@@ -120,8 +120,8 @@ SRSLTE_API int srslte_pdcch_extract_llr(srslte_pdcch_t *q,
                                         uint32_t cfi);
 
 SRSLTE_API int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, 
-                                              cf_t *sf_symbols[SRSLTE_MAX_RXANT], 
-                                              cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT],
+                                              cf_t *sf_symbols[SRSLTE_MAX_PORTS], 
+                                              cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                               float noise_estimate, 
                                               uint32_t nsubframe, 
                                               uint32_t cfi);

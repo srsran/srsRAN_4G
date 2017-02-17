@@ -36,7 +36,7 @@
 #include "srslte/utils/vector.h"
 
 int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames, 
-                              int (recv_callback)(void*, cf_t*[SRSLTE_MAX_RXANT], uint32_t,srslte_timestamp_t*), 
+                              int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*), 
                               uint32_t nof_rx_antennas,
                               void *stream_handler) 
 {

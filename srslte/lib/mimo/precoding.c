@@ -37,13 +37,13 @@
 #ifdef LV_HAVE_SSE
 #include <xmmintrin.h>
 #include <pmmintrin.h>
-int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_RXANT], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
-int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_symbols);
+int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
+int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_symbols);
 #endif
 
 #ifdef LV_HAVE_AVX
 #include <immintrin.h>
-int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_RXANT], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
+int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
 #endif
 
 
@@ -58,7 +58,7 @@ int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
 
 #define PROD(a,b) _mm_addsub_ps(_mm_mul_ps(a,_mm_moveldup_ps(b)),_mm_mul_ps(_mm_shuffle_ps(a,a,0xB1),_mm_movehdup_ps(b)))
 
-int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_RXANT], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
   
   float *xPtr = (float*) x;
   const float *hPtr1 = (const float*) h[0];
@@ -146,7 +146,7 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
 
 
 
-int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_RXANT], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
   
   float *xPtr = (float*) x;
   const float *hPtr1 = (const float*) h[0];
@@ -230,7 +230,7 @@ int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
 
 #endif
 
-int srslte_predecoding_single_gen(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_RXANT], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
   for (int i=0;i<nof_symbols;i++) {
     cf_t r  = 0; 
     cf_t hh = 0; 
@@ -246,8 +246,8 @@ int srslte_predecoding_single_gen(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_
 /* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
 int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, float noise_estimate) {
   
-  cf_t *y[SRSLTE_MAX_RXANT]; 
-  cf_t *h[SRSLTE_MAX_RXANT];
+  cf_t *y[SRSLTE_MAX_PORTS]; 
+  cf_t *h[SRSLTE_MAX_PORTS];
   y[0] = y_;
   h[0] = h_; 
   int nof_rxant = 1; 
@@ -272,7 +272,7 @@ int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, int nof_symbols, floa
 }
 
 /* ZF/MMSE SISO equalizer x=y(h'h+no)^(-1)h' (ZF if n0=0.0)*/
-int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_RXANT], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
+int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate) {
 #ifdef LV_HAVE_AVX
   if (nof_symbols > 32) {
     return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, noise_estimate);
@@ -293,7 +293,7 @@ int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MA
 }
 
 /* C implementatino of the SFBC equalizer */
-int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], 
+int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
                                       cf_t *x[SRSLTE_MAX_LAYERS], 
                                       int nof_rxant, int nof_ports, int nof_symbols, int symbol_start) 
 {
@@ -362,7 +362,7 @@ int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_
   }
 }
 
-int srslte_predecoding_diversity_gen(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], 
+int srslte_predecoding_diversity_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
                                      cf_t *x[SRSLTE_MAX_LAYERS], 
                                      int nof_rxant, int nof_ports, int nof_symbols) {
   return srslte_predecoding_diversity_gen_(y, h, x, nof_rxant, nof_ports, nof_symbols, 0);
@@ -370,7 +370,7 @@ int srslte_predecoding_diversity_gen(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_M
 
 /* SSE implementation of the 2-port SFBC equalizer */
 #ifdef LV_HAVE_SSE
-int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], 
+int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
                                       cf_t *x[SRSLTE_MAX_LAYERS], 
                                       int nof_rxant, int nof_symbols) 
 {
@@ -481,8 +481,8 @@ int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_
 int srslte_predecoding_diversity(cf_t *y_, cf_t *h_[SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], 
                           int nof_ports, int nof_symbols) 
 {
-  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT]; 
-  cf_t *y[SRSLTE_MAX_RXANT]; 
+  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
+  cf_t *y[SRSLTE_MAX_PORTS]; 
   uint32_t nof_rxant = 1; 
   
   for (int i=0;i<nof_ports;i++) {
@@ -501,7 +501,7 @@ int srslte_predecoding_diversity(cf_t *y_, cf_t *h_[SRSLTE_MAX_PORTS], cf_t *x[S
 #endif   
 }
 
-int srslte_predecoding_diversity_multi(cf_t *y[SRSLTE_MAX_RXANT], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_RXANT], cf_t *x[SRSLTE_MAX_LAYERS], 
+int srslte_predecoding_diversity_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], 
                           int nof_rxant, int nof_ports, int nof_symbols) 
 {
 #ifdef LV_HAVE_SSE
