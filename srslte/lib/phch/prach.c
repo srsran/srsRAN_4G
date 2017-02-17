@@ -195,6 +195,11 @@ bool srslte_prach_tti_opportunity(srslte_prach_t *p, uint32_t current_tti, int a
   // Get SFN and sf_idx from the PRACH configuration index
   srslte_prach_sfn_t prach_sfn = srslte_prach_get_sfn(config_idx);  
 
+  // This is the only option which provides always an opportunity for PRACH transmission.
+  if(config_idx == 14) {
+    return true;
+  }
+
   if ((prach_sfn == SRSLTE_PRACH_SFN_EVEN && ((current_tti/10)%2)==0) ||
       prach_sfn == SRSLTE_PRACH_SFN_ANY) 
   {
