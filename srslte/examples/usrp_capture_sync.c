@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
   cell.nof_prb = nof_prb; 
   cell.nof_ports = 1; 
   
-  if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
+  if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
   while((subframe_count < nof_subframes || nof_subframes == -1)
         && !stop_capture)
   {
-    n = srslte_ue_sync_zerocopy(&ue_sync, buffer);
+    n = srslte_ue_sync_zerocopy_multi(&ue_sync, buffer);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);

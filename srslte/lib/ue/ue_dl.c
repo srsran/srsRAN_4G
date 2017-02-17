@@ -44,10 +44,15 @@ const uint32_t nof_ue_formats = 2;
 static srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
 const uint32_t nof_common_formats = 2; 
 
-
 int srslte_ue_dl_init(srslte_ue_dl_t *q, 
-                      srslte_cell_t cell, 
-                      uint32_t nof_rx_antennas) 
+                      srslte_cell_t cell) 
+{
+  return srslte_ue_dl_init_multi(q, cell, 1);
+}
+
+int srslte_ue_dl_init_multi(srslte_ue_dl_t *q, 
+                            srslte_cell_t cell, 
+                            uint32_t nof_rx_antennas) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -107,18 +112,23 @@ int srslte_ue_dl_init(srslte_ue_dl_t *q,
     srslte_cfo_set_tol(&q->sfo_correct, 1e-5/q->fft.symbol_sz);
     
     for (int j=0;j<nof_rx_antennas;j++) {
-      q->sf_symbols[j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
-      if (!q->sf_symbols[j]) {
+      q->sf_symbols_m[j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+      if (!q->sf_symbols_m[j]) {
         perror("malloc");
         goto clean_exit; 
       }
       for (uint32_t i=0;i<q->cell.nof_ports;i++) {
-        q->ce[i][j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
-        if (!q->ce[i][j]) {
+        q->ce_m[i][j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+        if (!q->ce_m[i][j]) {
           perror("malloc");
           goto clean_exit; 
         }
       }
+    }
+    
+    q->sf_symbols = q->sf_symbols_m[0];
+    for (int i=0;i<q->cell.nof_ports;i++) {
+      q->ce[i] = q->ce_m[i][0];
     }
     
     ret = SRSLTE_SUCCESS;
@@ -146,12 +156,12 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
     srslte_cfo_free(&q->sfo_correct);
     srslte_softbuffer_rx_free(&q->softbuffer);
     for (int j=0;j<q->nof_rx_antennas;j++) {
-      if (q->sf_symbols[j]) {
-        free(q->sf_symbols[j]);
+      if (q->sf_symbols_m[j]) {
+        free(q->sf_symbols_m[j]);
       }
       for (uint32_t i=0;i<q->cell.nof_ports;i++) {
-        if (q->ce[i][j]) {
-          free(q->ce[i][j]);
+        if (q->ce_m[i][j]) {
+          free(q->ce_m[i][j]);
         }
       }
     }
@@ -193,23 +203,37 @@ void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, float sample_offset) {
  *    - PDCCH decoding: Find DCI for RNTI given by previous call to srslte_ue_dl_set_rnti()
  *    - PDSCH decoding: Decode TB scrambling with RNTI given by srslte_ue_dl_set_rnti()
  */
-int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data, uint32_t tti) {
-  return srslte_ue_dl_decode_rnti(q, input, data, tti, q->current_rnti);
+int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti) {
+  cf_t *_input[SRSLTE_MAX_PORTS]; 
+  _input[0] = input; 
+  return srslte_ue_dl_decode_rnti_multi(q, _input, data, tti, q->current_rnti);
 }
 
-int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t *cfi) {
+int srslte_ue_dl_decode_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data, uint32_t tti) {
+  return srslte_ue_dl_decode_rnti_multi(q, input, data, tti, q->current_rnti);
+}
+
+int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) 
+{
+  cf_t *_input[SRSLTE_MAX_PORTS]; 
+  _input[0] = input; 
+  return srslte_ue_dl_decode_fft_estimate_multi(q, _input, sf_idx, cfi);
+}
+
+int srslte_ue_dl_decode_fft_estimate_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t *cfi) 
+{
   if (input && q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Run FFT for all subframe data */
     for (int j=0;j<q->nof_rx_antennas;j++) {
-      srslte_ofdm_rx_sf(&q->fft, input[j], q->sf_symbols[j]);
+      srslte_ofdm_rx_sf(&q->fft, input[j], q->sf_symbols_m[j]);
 
       /* Correct SFO multiplying by complex exponential in the time domain */
       if (q->sample_offset) {
         for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
           srslte_cfo_correct(&q->sfo_correct, 
-                          &q->sf_symbols[j][i*q->cell.nof_prb*SRSLTE_NRE], 
-                          &q->sf_symbols[j][i*q->cell.nof_prb*SRSLTE_NRE], 
+                          &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE], 
+                          &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE], 
                           q->sample_offset / q->fft.symbol_sz);
         }
       }
@@ -225,10 +249,10 @@ int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *c
   if (q && cfi && sf_idx < SRSLTE_NSUBFRAMES_X_FRAME) {
     
     /* Get channel estimates for each port */
-    srslte_chest_dl_estimate_multi(&q->chest, q->sf_symbols, q->ce, sf_idx, q->nof_rx_antennas);
+    srslte_chest_dl_estimate_multi(&q->chest, q->sf_symbols_m, q->ce_m, sf_idx, q->nof_rx_antennas);
 
     /* First decode PCFICH and obtain CFI */
-    if (srslte_pcfich_decode_multi(&q->pcfich, q->sf_symbols, q->ce, 
+    if (srslte_pcfich_decode_multi(&q->pcfich, q->sf_symbols_m, q->ce_m, 
                              srslte_chest_dl_get_noise_estimate(&q->chest), 
                              sf_idx, cfi, &cfi_corr)<0) {
       fprintf(stderr, "Error decoding PCFICH\n");
@@ -254,7 +278,14 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
   return srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx);
 }
 
-int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data, uint32_t tti, uint16_t rnti) 
+int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti, uint16_t rnti) 
+{
+  cf_t *_input[SRSLTE_MAX_PORTS];
+  _input[0] = input; 
+  return srslte_ue_dl_decode_rnti_multi(q, _input, data, tti, rnti);
+}
+
+int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data, uint32_t tti, uint16_t rnti) 
 {
   srslte_dci_msg_t dci_msg;
   srslte_ra_dl_dci_t dci_unpacked;
@@ -264,7 +295,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], u
   
   uint32_t sf_idx = tti%10; 
   
-  if ((ret = srslte_ue_dl_decode_fft_estimate(q, input, sf_idx, &cfi)) < 0) {
+  if ((ret = srslte_ue_dl_decode_fft_estimate_multi(q, input, sf_idx, &cfi)) < 0) {
     return ret; 
   }
   
@@ -272,7 +303,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], u
   // Uncoment next line to do ZF by default in pdsch_ue example
   //float noise_estimate = 0; 
 
-  if (srslte_pdcch_extract_llr_multi(&q->pdcch, q->sf_symbols, q->ce, noise_estimate, sf_idx, cfi)) {
+  if (srslte_pdcch_extract_llr_multi(&q->pdcch, q->sf_symbols_m, q->ce_m, noise_estimate, sf_idx, cfi)) {
     fprintf(stderr, "Error extracting LLRs\n");
     return SRSLTE_ERROR;
   }
@@ -310,7 +341,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], u
     
     if (q->pdsch_cfg.grant.mcs.mod > 0 && q->pdsch_cfg.grant.mcs.tbs >= 0) {
       ret = srslte_pdsch_decode_multi(&q->pdsch, &q->pdsch_cfg, &q->softbuffer, 
-                                    q->sf_symbols, q->ce, 
+                                    q->sf_symbols_m, q->ce_m, 
                                     noise_estimate, 
                                     rnti, data);
       
@@ -515,11 +546,11 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
   
   cf_t *ce0[SRSLTE_MAX_PORTS];
   for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce0[i] = q->ce[i][0];
+    ce0[i] = q->ce_m[i][0];
   }
 
   
-  if (!srslte_phich_decode(&q->phich, q->sf_symbols[0], ce0, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
+  if (!srslte_phich_decode(&q->phich, q->sf_symbols_m[0], ce0, 0, ngroup, nseq, sf_idx, &ack_bit, &distance)) {
     INFO("Decoded PHICH %d with distance %f\n", ack_bit, distance);    
   } else {
     fprintf(stderr, "Error decoding PHICH\n");
@@ -533,11 +564,11 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
 }
 
 void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuffer, uint32_t tti, uint32_t rv_idx, uint16_t rnti, uint32_t cfi) {
-  srslte_vec_save_file("sf_symbols", q->sf_symbols, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  srslte_vec_save_file("sf_symbols", q->sf_symbols_m, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   printf("%d samples\n", SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
-  srslte_vec_save_file("ce0", q->ce[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  srslte_vec_save_file("ce0", q->ce_m[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   if (q->cell.nof_ports > 1) {
-    srslte_vec_save_file("ce1", q->ce[1], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+    srslte_vec_save_file("ce1", q->ce_m[1], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   }
   srslte_vec_save_file("pcfich_ce0", q->pcfich.ce[0], q->pcfich.nof_symbols*sizeof(cf_t));
   srslte_vec_save_file("pcfich_ce1", q->pcfich.ce[1], q->pcfich.nof_symbols*sizeof(cf_t));

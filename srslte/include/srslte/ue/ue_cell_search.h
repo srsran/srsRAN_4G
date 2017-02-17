@@ -83,9 +83,14 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t *q, 
                                          uint32_t max_frames_total, 
-                                         int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
-                                         uint32_t nof_rx_antennas,
+                                         int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*),
                                          void *stream_handler);
+
+SRSLTE_API int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t *q, 
+                                               uint32_t max_frames_total, 
+                                               int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
+                                               uint32_t nof_rx_antennas,
+                                               void *stream_handler);
 
 SRSLTE_API void srslte_ue_cellsearch_free(srslte_ue_cellsearch_t *q);
 

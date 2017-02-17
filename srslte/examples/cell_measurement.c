@@ -237,11 +237,11 @@ int main(int argc, char **argv) {
   srslte_rf_stop_rx_stream(&rf);
   srslte_rf_flush_buffer(&rf);
   
-  if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
+  if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
-  if (srslte_ue_dl_init(&ue_dl, cell, 1)) { 
+  if (srslte_ue_dl_init_multi(&ue_dl, cell, 1)) { 
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
@@ -283,7 +283,7 @@ int main(int argc, char **argv) {
   /* Main loop */
   while ((sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) && !go_exit) {
     
-    ret = srslte_ue_sync_zerocopy(&ue_sync, sf_buffer);
+    ret = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
+            n = srslte_ue_dl_decode_multi(&ue_dl, sf_buffer, data, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;

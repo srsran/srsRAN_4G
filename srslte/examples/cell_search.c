@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
       
     bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
       
-    if (srslte_ue_cellsearch_init(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
+    if (srslte_ue_cellsearch_init_multi(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
       fprintf(stderr, "Error initiating UE cell detect\n");
       exit(-1);
     }

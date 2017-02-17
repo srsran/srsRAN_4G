@@ -107,9 +107,15 @@ typedef struct {
 SRSLTE_API int srslte_ue_mib_sync_init(srslte_ue_mib_sync_t *q, 
                                        uint32_t cell_id, 
                                        srslte_cp_t cp,
-                                       int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t *),   
-                                       uint32_t nof_rx_antennas,
+                                       int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t *),   
                                        void *stream_handler);
+
+SRSLTE_API int srslte_ue_mib_sync_init_multi(srslte_ue_mib_sync_t *q, 
+                                             uint32_t cell_id, 
+                                             srslte_cp_t cp,
+                                             int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t *),   
+                                             uint32_t nof_rx_antennas,
+                                             void *stream_handler);
 
 SRSLTE_API void srslte_ue_mib_sync_free(srslte_ue_mib_sync_t *q);
 

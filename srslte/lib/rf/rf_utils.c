@@ -103,7 +103,7 @@ int rf_mib_decoder(srslte_rf_t *rf, uint32_t nof_rx_antennas,cell_search_cfg_t *
   srslte_ue_mib_sync_t ue_mib; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
 
-  if (srslte_ue_mib_sync_init(&ue_mib, cell->id, cell->cp, srslte_rf_recv_wrapper_cs, nof_rx_antennas, (void*) rf)) {
+  if (srslte_ue_mib_sync_init_multi(&ue_mib, cell->id, cell->cp, srslte_rf_recv_wrapper_cs, nof_rx_antennas, (void*) rf)) {
     fprintf(stderr, "Error initiating srslte_ue_mib_sync\n");
     goto clean_exit; 
   }
@@ -164,7 +164,7 @@ int rf_cell_search(srslte_rf_t *rf, uint32_t nof_rx_antennas,
 
   bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
     
-  if (srslte_ue_cellsearch_init(&cs, config->max_frames_pss, srslte_rf_recv_wrapper_cs, nof_rx_antennas, (void*) rf)) {
+  if (srslte_ue_cellsearch_init_multi(&cs, config->max_frames_pss, srslte_rf_recv_wrapper_cs, nof_rx_antennas, (void*) rf)) {
     fprintf(stderr, "Error initiating UE cell detect\n");
     return SRSLTE_ERROR; 
   }

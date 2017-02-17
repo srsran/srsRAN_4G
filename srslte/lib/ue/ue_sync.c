@@ -106,11 +106,26 @@ int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(voi
   return n; 
 }
 
+int recv_callback_multi_to_single(void *h, cf_t *x[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t*t)
+{
+  srslte_ue_sync_t *q = (srslte_ue_sync_t*) h; 
+  return q->recv_callback_single(q->stream, (void*) x[0], nsamples, t);
+}
+
 int srslte_ue_sync_init(srslte_ue_sync_t *q, 
                  srslte_cell_t cell,
-                 int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
-                 uint32_t nof_rx_antennas,
+                 int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*),                 
                  void *stream_handler) 
+{
+  q->recv_callback_single = recv_callback;
+  return srslte_ue_sync_init_multi(q, cell, recv_callback_multi_to_single, 1, q);
+}
+
+int srslte_ue_sync_init_multi(srslte_ue_sync_t *q, 
+                              srslte_cell_t cell,
+                              int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
+                              uint32_t nof_rx_antennas,
+                              void *stream_handler) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
@@ -459,8 +474,14 @@ static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PO
 
 bool first_track = true; 
 
+int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer) {
+  cf_t *_input_buffer[SRSLTE_MAX_PORTS]; 
+  _input_buffer[0] = input_buffer; 
+  return srslte_ue_sync_zerocopy_multi(q, _input_buffer);  
+}
+
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
-int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PORTS]) {
+int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PORTS]) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   uint32_t track_idx; 
   

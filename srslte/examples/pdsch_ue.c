@@ -411,7 +411,7 @@ int main(int argc, char **argv) {
 
   } else {
 #ifndef DISABLE_RF
-    if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf)) {
+    if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
@@ -423,7 +423,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }    
 
-  if (srslte_ue_dl_init(&ue_dl, cell, prog_args.rf_nof_rx_ant)) {  // This is the User RNTI
+  if (srslte_ue_dl_init_multi(&ue_dl, cell, prog_args.rf_nof_rx_ant)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
@@ -478,7 +478,7 @@ int main(int argc, char **argv) {
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     
-    ret = srslte_ue_sync_zerocopy(&ue_sync, sf_buffer);
+    ret = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
@@ -519,10 +519,10 @@ int main(int argc, char **argv) {
           }
           if (decode_pdsch) {            
             INFO("Attempting DL decode SFN=%d\n", sfn);
-            n = srslte_ue_dl_decode(&ue_dl, 
-                                    sf_buffer, 
-                                    data, 
-                                    sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
+            n = srslte_ue_dl_decode_multi(&ue_dl, 
+                                          sf_buffer, 
+                                          data, 
+                                          sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
           
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
@@ -701,7 +701,7 @@ void *plot_thread_run(void *arg) {
     uint32_t nof_symbols = ue_dl.pdsch_cfg.nbits.nof_re;
     if (!prog_args.disable_plots_except_constellation) {      
       for (i = 0; i < nof_re; i++) {
-        tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[0][i]));
+        tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
         if (isinf(tmp_plot[i])) {
           tmp_plot[i] = -80;
         }
@@ -710,7 +710,7 @@ void *plot_thread_run(void *arg) {
       bzero(tmp_plot2, sizeof(float)*sz);
       int g = (sz - 12*ue_dl.cell.nof_prb)/2;
       for (i = 0; i < 12*ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[g+i] = 20 * log10(cabs(ue_dl.ce[0][0][i]));
+        tmp_plot2[g+i] = 20 * log10(cabs(ue_dl.ce[0][i]));
         if (isinf(tmp_plot2[g+i])) {
           tmp_plot2[g+i] = -80;
         }

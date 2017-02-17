@@ -36,6 +36,59 @@
 #include "srslte/utils/vector.h"
 
 int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames, 
+                              int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*), 
+                              void *stream_handler) 
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL) {
+    ret = SRSLTE_ERROR;
+    srslte_cell_t cell;
+
+    bzero(q, sizeof(srslte_ue_cellsearch_t));    
+    
+    bzero(&cell, sizeof(srslte_cell_t));
+    cell.id = SRSLTE_CELL_ID_UNKNOWN; 
+    cell.nof_prb = SRSLTE_CS_NOF_PRB; 
+
+    if (srslte_ue_sync_init(&q->ue_sync, cell, recv_callback, stream_handler)) {
+      fprintf(stderr, "Error initiating ue_sync\n");
+      goto clean_exit; 
+    }
+    
+    q->sf_buffer[0] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
+    q->nof_rx_antennas = 1; 
+    
+    q->candidates = calloc(sizeof(srslte_ue_cellsearch_result_t), max_frames);
+    if (!q->candidates) {
+      perror("malloc");
+      goto clean_exit; 
+    }
+    q->mode_ntimes = calloc(sizeof(uint32_t), max_frames);
+    if (!q->mode_ntimes) {
+      perror("malloc");
+      goto clean_exit;  
+    }
+    q->mode_counted = calloc(sizeof(uint8_t), max_frames);
+    if (!q->mode_counted) {
+      perror("malloc");
+      goto clean_exit;  
+    }
+
+    q->max_frames = max_frames;
+    q->nof_valid_frames = max_frames; 
+    
+    ret = SRSLTE_SUCCESS;
+  }
+
+clean_exit:
+  if (ret == SRSLTE_ERROR) {
+    srslte_ue_cellsearch_free(q);
+  }
+  return ret;
+}
+
+int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t * q, uint32_t max_frames, 
                               int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*), 
                               uint32_t nof_rx_antennas,
                               void *stream_handler) 
@@ -52,7 +105,7 @@ int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames,
     cell.id = SRSLTE_CELL_ID_UNKNOWN; 
     cell.nof_prb = SRSLTE_CS_NOF_PRB; 
 
-    if (srslte_ue_sync_init(&q->ue_sync, cell, recv_callback, nof_rx_antennas, stream_handler)) {
+    if (srslte_ue_sync_init_multi(&q->ue_sync, cell, recv_callback, nof_rx_antennas, stream_handler)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       goto clean_exit; 
     }
@@ -226,7 +279,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
     srslte_ue_sync_reset(&q->ue_sync);
     do {
       
-      ret = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer);
+      ret = srslte_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);
       if (ret < 0) {
         fprintf(stderr, "Error calling srslte_ue_sync_work()\n");       
         break; 
