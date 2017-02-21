@@ -267,6 +267,7 @@ int rf_uhd_open(char *args, void **h)
     }           
     handler->devname = NULL;
     
+    
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
@@ -294,7 +295,11 @@ int rf_uhd_open(char *args, void **h)
     uhd_string_vector_free(&devices_str);
     
     /* Create UHD handler */
-    printf("Opening USRP with args: %s\n", args);
+    if (strstr(args, "silent")) {
+      rf_uhd_suppress_stdout(NULL);
+    } else {
+      printf("Opening USRP with args: %s\n", args);
+    }
     uhd_error error = uhd_usrp_make(&handler->usrp, args);
     if (error) {
       fprintf(stderr, "Error opening UHD: code %d\n", error);
