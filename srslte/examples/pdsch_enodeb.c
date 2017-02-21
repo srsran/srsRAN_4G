@@ -340,6 +340,7 @@ int update_radl() {
   ra_dl.rv_idx = 0;
   ra_dl.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
+  ra_dl.tb_en[0] = 1; 
 
   srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
   srslte_ra_dl_grant_t dummy_grant; 
