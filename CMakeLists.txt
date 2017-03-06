@@ -39,7 +39,6 @@ MESSAGE( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(SRSLTEVersion) #sets version information
 include(SRSLTEPackage) #setup cpack
-include(BuildMex)
 
 include(CTest)
 set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
@@ -51,7 +50,6 @@ configure_file(
 ########################################################################
 # Options
 ########################################################################
-option(DisableMEX     "DisableMEX"     ON)
 option(StaticMKL      "StaticMKL"      OFF)
 option(DisableBladeRF "DisableBladeRF" OFF)
 
@@ -71,7 +69,6 @@ endif()
 set(RUNTIME_DIR bin)
 set(LIBRARY_DIR ${CMAKE_INSTALL_LIBDIR})
 set(INCLUDE_DIR include)
-set(MEX_DIR mex)
 set(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
 set(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
@@ -155,8 +152,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-
-
 ########################################################################
 # Create uninstall targets
 ########################################################################
@@ -167,7 +162,6 @@ configure_file(
 
 add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
-    
 
 ########################################################################
 # Macro to add -fPIC property to static libs 
@@ -187,10 +181,8 @@ message(STATUS "Building for version: ${VERSION}")
 ########################################################################
 include_directories(${PROJECT_BINARY_DIR}/srslte/include/)
 include_directories(${PROJECT_SOURCE_DIR}/srslte/include/)
-include_directories(${PROJECT_SOURCE_DIR}/mex/include)
 
 ########################################################################
 # Add the subdirectories
 ########################################################################
 add_subdirectory(srslte)
-add_subdirectory(mex)
