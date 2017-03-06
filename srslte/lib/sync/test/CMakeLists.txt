@@ -43,13 +43,6 @@ else(SRSGUI_FOUND)
   add_definitions(-DDISABLE_GRAPHICS)
 endif(SRSGUI_FOUND)
 
-
-BuildMex(MEXNAME pss SOURCES pss_mex.c LIBRARIES srslte_static srslte_mex)
-BuildMex(MEXNAME sss SOURCES sss_mex.c LIBRARIES srslte_static srslte_mex)
-
-# Build MEX for cp-based synchronization
-BuildMex(MEXNAME cp_synch SOURCES cp_mex.c LIBRARIES srslte_static srslte_mex)
-
 ########################################################################
 # SYNC TEST  
 ########################################################################
