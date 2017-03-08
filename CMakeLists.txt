@@ -100,7 +100,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     find_package(SSE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -DDEBUG_MODE")
     if(HAVE_AVX)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")      
     elseif(HAVE_SSE)
