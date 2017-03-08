@@ -519,9 +519,6 @@ int rf_uhd_recv_with_time(void *h,
   return rf_uhd_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
 }
 
-cf_t data1[1024*100];
-cf_t data2[1024*100];
-
 int rf_uhd_recv_with_time_multi(void *h,
                                 void **data,
                                 uint32_t nsamples,

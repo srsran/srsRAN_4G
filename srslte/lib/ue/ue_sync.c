@@ -109,7 +109,7 @@ int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, double (set_gain_callback)(voi
 int recv_callback_multi_to_single(void *h, cf_t *x[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t*t)
 {
   srslte_ue_sync_t *q = (srslte_ue_sync_t*) h; 
-  return q->recv_callback_single(q->stream, (void*) x[0], nsamples, t);
+  return q->recv_callback_single(q->stream_single, (void*) x[0], nsamples, t);
 }
 
 int srslte_ue_sync_init(srslte_ue_sync_t *q, 
@@ -117,8 +117,10 @@ int srslte_ue_sync_init(srslte_ue_sync_t *q,
                  int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*),                 
                  void *stream_handler) 
 {
+  int ret = srslte_ue_sync_init_multi(q, cell, recv_callback_multi_to_single, 1, (void*) q);
   q->recv_callback_single = recv_callback;
-  return srslte_ue_sync_init_multi(q, cell, recv_callback_multi_to_single, 1, q);
+  q->stream_single = stream_handler;
+  return ret; 
 }
 
 int srslte_ue_sync_init_multi(srslte_ue_sync_t *q, 
@@ -459,13 +461,12 @@ static int receive_samples(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE_MAX_PO
   
   /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */  
   cf_t *ptr[SRSLTE_MAX_PORTS]; 
-  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+  for (int i=0;i<q->nof_rx_antennas;i++) {
     ptr[i] = &input_buffer[i][q->next_rf_sample_offset];
   }
   if (q->recv_callback(q->stream, ptr, q->frame_len - q->next_rf_sample_offset, &q->last_timestamp) < 0) {
     return SRSLTE_ERROR;
   }
-  
   /* reset time offset */
   q->next_rf_sample_offset = 0;
 

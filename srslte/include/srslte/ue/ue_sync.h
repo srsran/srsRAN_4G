@@ -75,6 +75,7 @@ typedef struct SRSLTE_API {
   uint32_t agc_period; 
   
   void *stream; 
+  void *stream_single; 
   int (*recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*);
   int (*recv_callback_single)(void*, void*, uint32_t, srslte_timestamp_t*); 
   srslte_timestamp_t last_timestamp;
