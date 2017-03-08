@@ -88,8 +88,12 @@ typedef struct SRSLTE_API {
   srslte_ra_dl_dci_t dl_dci;
   srslte_cell_t cell;
 
-  cf_t *sf_symbols; 
-  cf_t *ce[SRSLTE_MAX_PORTS];
+  uint32_t nof_rx_antennas;
+  
+  cf_t *sf_symbols;  // this is for backwards compatibility
+  cf_t *sf_symbols_m[SRSLTE_MAX_PORTS]; 
+  cf_t *ce[SRSLTE_MAX_PORTS]; // compatibility
+  cf_t *ce_m[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   
   srslte_dci_format_t dci_format;
   uint64_t pkt_errors; 
@@ -112,10 +116,19 @@ typedef struct SRSLTE_API {
 SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q, 
                                  srslte_cell_t cell);
 
+SRSLTE_API int srslte_ue_dl_init_multi(srslte_ue_dl_t *q, 
+                                       srslte_cell_t cell, 
+                                       uint32_t nof_rx_antennas);
+
 SRSLTE_API void srslte_ue_dl_free(srslte_ue_dl_t *q);
 
 SRSLTE_API int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, 
                                                 cf_t *input, 
+                                                uint32_t sf_idx, 
+                                                uint32_t *cfi); 
+
+SRSLTE_API int srslte_ue_dl_decode_fft_estimate_multi(srslte_ue_dl_t *q, 
+                                                cf_t *input[SRSLTE_MAX_PORTS], 
                                                 uint32_t sf_idx, 
                                                 uint32_t *cfi); 
 
@@ -158,11 +171,22 @@ SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q,
                                    uint8_t *data,
                                    uint32_t tti);
 
+SRSLTE_API int srslte_ue_dl_decode_multi(srslte_ue_dl_t * q, 
+                                         cf_t *input[SRSLTE_MAX_PORTS], 
+                                         uint8_t *data,
+                                         uint32_t tti);
+
 SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q, 
                                         cf_t *input, 
                                         uint8_t *data,
                                         uint32_t tti,
                                         uint16_t rnti);
+
+SRSLTE_API int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t * q, 
+                                              cf_t *input[SRSLTE_MAX_PORTS], 
+                                              uint8_t *data,
+                                              uint32_t tti,
+                                              uint16_t rnti);
 
 SRSLTE_API bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, 
                                           uint32_t sf_idx, 

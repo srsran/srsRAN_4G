@@ -120,9 +120,13 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv((srslte_rf_t*) h, data, nsamples, 1);
+  void *ptr[SRSLTE_MAX_PORTS];
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    ptr[i] = data[i];
+  }
+  return srslte_rf_recv_with_time_multi((srslte_rf_t*) h, ptr, nsamples, 1, NULL, NULL);
 }
 
 bool go_exit = false; 
@@ -200,7 +204,7 @@ int main(int argc, char **argv) {
       
     bzero(found_cells, 3*sizeof(srslte_ue_cellsearch_result_t));
       
-    if (srslte_ue_cellsearch_init(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, (void*) &rf)) {
+    if (srslte_ue_cellsearch_init_multi(&cs, cell_detect_config.max_frames_pss, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
       fprintf(stderr, "Error initiating UE cell detect\n");
       exit(-1);
     }
@@ -228,7 +232,7 @@ int main(int argc, char **argv) {
           srslte_cell_t cell;
           cell.id = found_cells[i].cell_id; 
           cell.cp = found_cells[i].cp; 
-          int ret = rf_mib_decoder(&rf, &cell_detect_config, &cell, NULL);
+          int ret = rf_mib_decoder(&rf, 1, &cell_detect_config, &cell, NULL);
           if (ret < 0) {
             fprintf(stderr, "Error decoding MIB\n");
             exit(-1);

@@ -311,7 +311,7 @@ float srslte_chest_dl_rssi(srslte_chest_dl_t *q, cf_t *input, uint32_t port_id) 
   return rssi/nsymbols; 
 }
 
-int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id) 
+int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, uint32_t sf_idx, uint32_t port_id, uint32_t rxant_id) 
 {
   /* Get references from the input signal */
   srslte_refsignal_cs_get_sf(q->cell, port_id, input, q->pilot_recv_signal);
@@ -331,27 +331,40 @@ int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q, cf_t *input, cf_t *ce, u
     
     /* Estimate noise power */
     if (q->noise_alg == SRSLTE_NOISE_ALG_REFS && q->smooth_filter_len > 0) {
-      q->noise_estimate[port_id] = estimate_noise_pilots(q, port_id);                  
+      q->noise_estimate[rxant_id][port_id] = estimate_noise_pilots(q, port_id);                  
     } else if (q->noise_alg == SRSLTE_NOISE_ALG_PSS) {
       if (sf_idx == 0 || sf_idx == 5) {
-        q->noise_estimate[port_id] = estimate_noise_pss(q, input, ce);
+        q->noise_estimate[rxant_id][port_id] = estimate_noise_pss(q, input, ce);
       }
     } else {
       if (sf_idx == 0 || sf_idx == 5) {
-        q->noise_estimate[port_id] = estimate_noise_empty_sc(q, input);        
+        q->noise_estimate[rxant_id][port_id] = estimate_noise_empty_sc(q, input);        
       }
     }
     
   }
     
   /* Compute RSRP for the channel estimates in this port */
-  q->rsrp[port_id] = srslte_vec_avg_power_cf(q->pilot_recv_signal, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));     
+  q->rsrp[rxant_id][port_id] = srslte_vec_avg_power_cf(q->pilot_recv_signal, SRSLTE_REFSIGNAL_NUM_SF(q->cell.nof_prb, port_id));     
   if (port_id == 0) {
     /* compute rssi only for port 0 */
-    q->rssi[port_id] = srslte_chest_dl_rssi(q, input, port_id);     
+    q->rssi[rxant_id][port_id] = srslte_chest_dl_rssi(q, input, port_id);     
   }
       
   return 0;
+}
+
+int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t sf_idx, uint32_t nof_rx_antennas) 
+{
+  for (uint32_t rxant_id=0;rxant_id<nof_rx_antennas;rxant_id++) {
+    for (uint32_t port_id=0;port_id<q->cell.nof_ports;port_id++) {
+      if (srslte_chest_dl_estimate_port(q, input[rxant_id], ce[port_id][rxant_id], sf_idx, port_id, rxant_id)) {
+        return SRSLTE_ERROR; 
+      }
+    }
+  }
+  q->last_nof_antennas = nof_rx_antennas; 
+  return SRSLTE_SUCCESS;
 }
 
 int srslte_chest_dl_estimate(srslte_chest_dl_t *q, cf_t *input, cf_t *ce[SRSLTE_MAX_PORTS], uint32_t sf_idx) 
@@ -359,13 +372,20 @@ int srslte_chest_dl_estimate(srslte_chest_dl_t *q, cf_t *input, cf_t *ce[SRSLTE_
   uint32_t port_id; 
   
   for (port_id=0;port_id<q->cell.nof_ports;port_id++) {
-    srslte_chest_dl_estimate_port(q, input, ce[port_id], sf_idx, port_id);
+    if (srslte_chest_dl_estimate_port(q, input, ce[port_id], sf_idx, port_id, 0)) {
+      return SRSLTE_ERROR;
+    }
   }
+  q->last_nof_antennas = 1; 
   return SRSLTE_SUCCESS;
 }
 
 float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q) {
-  return srslte_vec_acc_ff(q->noise_estimate, q->cell.nof_ports)/q->cell.nof_ports;
+  float n = 0; 
+  for (int i=0;i<q->last_nof_antennas;i++) {
+    n += srslte_vec_acc_ff(q->noise_estimate[i], q->cell.nof_ports)/q->cell.nof_ports;
+  }
+  return n/q->last_nof_antennas;
 }
 
 float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
@@ -378,20 +398,31 @@ float srslte_chest_dl_get_snr(srslte_chest_dl_t *q) {
 }
 
 float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q) {
-  return 4*q->rssi[0]/q->cell.nof_prb/SRSLTE_NRE; 
+  float n = 0; 
+  for (int i=0;i<q->last_nof_antennas;i++) {
+   n += 4*q->rssi[i][0]/q->cell.nof_prb/SRSLTE_NRE; 
+  } 
+  return n/q->last_nof_antennas;
 }
 
 /* q->rssi[0] is the average power in all RE in all symbol containing references for port 0 . q->rssi[0]/q->cell.nof_prb is the average power per PRB 
  * q->rsrp[0] is the average power of RE containing references only (for port 0). 
 */ 
 float srslte_chest_dl_get_rsrq(srslte_chest_dl_t *q) {
-  return q->cell.nof_prb*q->rsrp[0] / q->rssi[0];
+  float n = 0; 
+  for (int i=0;i<q->last_nof_antennas;i++) {
+    n += q->cell.nof_prb*q->rsrp[i][0] / q->rssi[i][0];
+  }
+  return n/q->last_nof_antennas;
   
 }
 
-float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {
-  
+float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {  
   // return sum of power received from all tx ports
-  return srslte_vec_acc_ff(q->rsrp, q->cell.nof_ports); 
+  float n = 0; 
+  for (int i=0;i<q->last_nof_antennas;i++) {
+    n += srslte_vec_acc_ff(q->rsrp[i], q->cell.nof_ports)/q->cell.nof_ports; 
+  }
+  return n/q->last_nof_antennas;
 }
 

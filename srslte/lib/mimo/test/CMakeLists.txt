@@ -53,13 +53,12 @@ add_test(layermap_multiplex_28 layermap_test -n 1000 -m multiplex -c 2 -l 8)
 # LAYER MAPPING TEST  
 ########################################################################
  
-add_executable(precoding_test precoding_test.c)
+add_executable(precoding_test precoder_test.c)
 target_link_libraries(precoding_test srslte)
 
 add_test(precoding_single precoding_test -n 1000 -m single) 
 add_test(precoding_diversity2 precoding_test -n 1000 -m diversity -l 2 -p 2) 
 add_test(precoding_diversity4 precoding_test -n 1024 -m diversity -l 4 -p 4) 
 
- 
 
 

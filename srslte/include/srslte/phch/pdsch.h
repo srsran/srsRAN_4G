@@ -55,11 +55,13 @@ typedef struct {
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
   
+  uint32_t nof_rx_antennas;
+  
   uint32_t max_re;
   
   /* buffers */
   // void buffers are shared for tx and rx
-  cf_t *ce[SRSLTE_MAX_PORTS];
+  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   cf_t *symbols[SRSLTE_MAX_PORTS];
   cf_t *x[SRSLTE_MAX_PORTS];
   cf_t *d;
@@ -77,6 +79,10 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int srslte_pdsch_init(srslte_pdsch_t *q, 
                                  srslte_cell_t cell);
+
+SRSLTE_API int srslte_pdsch_init_multi(srslte_pdsch_t *q, 
+                                       srslte_cell_t cell, 
+                                       uint32_t nof_rx_antennas);
 
 SRSLTE_API void srslte_pdsch_free(srslte_pdsch_t *q);
 
@@ -111,6 +117,15 @@ SRSLTE_API int srslte_pdsch_decode(srslte_pdsch_t *q,
                                    float noise_estimate, 
                                    uint16_t rnti,
                                    uint8_t *data);
+
+SRSLTE_API int srslte_pdsch_decode_multi(srslte_pdsch_t *q, 
+                                         srslte_pdsch_cfg_t *cfg, 
+                                         srslte_softbuffer_rx_t *softbuffer,
+                                         cf_t *sf_symbols[SRSLTE_MAX_PORTS], 
+                                         cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                         float noise_estimate, 
+                                         uint16_t rnti,
+                                         uint8_t *data);
 
 SRSLTE_API float srslte_pdsch_average_noi(srslte_pdsch_t *q); 
 

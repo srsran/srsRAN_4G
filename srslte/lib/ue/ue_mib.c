@@ -161,13 +161,11 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
   return ret;
 }
 
-
-
 int srslte_ue_mib_sync_init(srslte_ue_mib_sync_t *q, 
-                     uint32_t cell_id, 
-                     srslte_cp_t cp, 
-                     int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*),                             
-                     void *stream_handler) 
+                            uint32_t cell_id, 
+                            srslte_cp_t cp, 
+                            int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*),                             
+                            void *stream_handler) 
 {
   srslte_cell_t cell; 
   // If the ports are set to 0, ue_mib goes through 1, 2 and 4 ports to blindly detect nof_ports
@@ -175,6 +173,9 @@ int srslte_ue_mib_sync_init(srslte_ue_mib_sync_t *q,
   cell.id = cell_id; 
   cell.cp = cp; 
   cell.nof_prb = SRSLTE_UE_MIB_NOF_PRB; 
+  
+  q->sf_buffer[0] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  q->nof_rx_antennas = 1;
   
   if (srslte_ue_mib_init(&q->ue_mib, cell)) {
     fprintf(stderr, "Error initiating ue_mib\n");
@@ -189,7 +190,44 @@ int srslte_ue_mib_sync_init(srslte_ue_mib_sync_t *q,
   return SRSLTE_SUCCESS;
 }
 
+int srslte_ue_mib_sync_init_multi(srslte_ue_mib_sync_t *q, 
+                                  uint32_t cell_id, 
+                                  srslte_cp_t cp, 
+                                  int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),                             
+                                  uint32_t nof_rx_antennas,
+                                  void *stream_handler) 
+{
+  srslte_cell_t cell; 
+  // If the ports are set to 0, ue_mib goes through 1, 2 and 4 ports to blindly detect nof_ports
+  cell.nof_ports = 0;  
+  cell.id = cell_id; 
+  cell.cp = cp; 
+  cell.nof_prb = SRSLTE_UE_MIB_NOF_PRB; 
+  
+  for (int i=0;i<nof_rx_antennas;i++) {
+    q->sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  }
+  q->nof_rx_antennas = nof_rx_antennas;
+  
+  if (srslte_ue_mib_init(&q->ue_mib, cell)) {
+    fprintf(stderr, "Error initiating ue_mib\n");
+    return SRSLTE_ERROR;
+  }
+  if (srslte_ue_sync_init_multi(&q->ue_sync, cell, recv_callback, nof_rx_antennas, stream_handler)) {
+    fprintf(stderr, "Error initiating ue_sync\n");
+    srslte_ue_mib_free(&q->ue_mib);
+    return SRSLTE_ERROR;
+  }
+  srslte_ue_sync_decode_sss_on_track(&q->ue_sync, true);
+  return SRSLTE_SUCCESS;
+}
+
 void srslte_ue_mib_sync_free(srslte_ue_mib_sync_t *q) {
+  for (int i=0;i<q->nof_rx_antennas;i++) {
+    if (q->sf_buffer[i]) {
+      free(q->sf_buffer[i]);
+    }
+  }
   srslte_ue_mib_free(&q->ue_mib);
   srslte_ue_sync_free(&q->ue_sync);
 }
@@ -207,7 +245,6 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
 {
   
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  cf_t *sf_buffer = NULL; 
   uint32_t nof_frames = 0; 
   int mib_ret = SRSLTE_UE_MIB_NOTFOUND; 
 
@@ -216,13 +253,13 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
     ret = SRSLTE_SUCCESS;     
     do {
       mib_ret = SRSLTE_UE_MIB_NOTFOUND; 
-      ret = srslte_ue_sync_get_buffer(&q->ue_sync, &sf_buffer);
+      ret = srslte_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);
       if (ret < 0) {
         fprintf(stderr, "Error calling srslte_ue_sync_work()\n");       
         break; 
       } else if (srslte_ue_sync_get_sfidx(&q->ue_sync) == 0) {
         if (ret == 1) {
-          mib_ret = srslte_ue_mib_decode(&q->ue_mib, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);                    
+          mib_ret = srslte_ue_mib_decode(&q->ue_mib, q->sf_buffer[0], bch_payload, nof_tx_ports, sfn_offset);                    
         } else {
           DEBUG("Resetting PBCH decoder after %d frames\n", q->ue_mib.frame_cnt);
           srslte_ue_mib_reset(&q->ue_mib);

@@ -69,6 +69,9 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_ue_sync_t ue_sync;
   
+  cf_t *sf_buffer[SRSLTE_MAX_PORTS];
+  uint32_t nof_rx_antennas; 
+  
   uint32_t max_frames;
   uint32_t nof_valid_frames;  // number of 5 ms frames to scan 
     
@@ -82,6 +85,12 @@ SRSLTE_API int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t *q,
                                          uint32_t max_frames_total, 
                                          int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*),
                                          void *stream_handler);
+
+SRSLTE_API int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t *q, 
+                                               uint32_t max_frames_total, 
+                                               int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
+                                               uint32_t nof_rx_antennas,
+                                               void *stream_handler);
 
 SRSLTE_API void srslte_ue_cellsearch_free(srslte_ue_cellsearch_t *q);
 
