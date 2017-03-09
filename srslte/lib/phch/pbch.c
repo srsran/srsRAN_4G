@@ -436,7 +436,6 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       x[i] = q->x[i];
     }
-    memset(&x[SRSLTE_MAX_PORTS], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - SRSLTE_MAX_PORTS));
     
     /* extract symbols */
     if (q->nof_symbols != srslte_pbch_get(slot1_symbols, q->symbols[0], q->cell)) {
