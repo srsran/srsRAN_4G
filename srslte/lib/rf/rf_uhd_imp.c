@@ -60,6 +60,9 @@ void suppress_handler(const char *x)
   // do nothing
 }
 
+cf_t zero_mem[64*1024];
+
+
 srslte_rf_error_handler_t uhd_error_handler = NULL; 
 
 void msg_handler(const char *msg)
@@ -276,6 +279,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     }           
     handler->devname = NULL;
     
+    bzero(zero_mem, sizeof(cf_t)*64*1024);
     
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
@@ -327,17 +331,6 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     if (!handler->devname) {
       handler->devname = "uhd_unknown"; 
     }
-    size_t channel[4] = {0, 1, 2, 3};
-    uhd_stream_args_t stream_args = {
-          .cpu_format = "fc32",
-          .otw_format = "sc16",
-          .args = "",
-          .channel_list = channel,
-          .n_channels = nof_rx_antennas
-      };
-      
-    handler->nof_rx_channels = nof_rx_antennas; 
-    handler->nof_tx_channels = 1; 
     
     // Set external clock reference   
     if (strstr(args, "clock=external")) {
@@ -348,6 +341,18 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     if (handler->has_rssi) {        
       uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
     }
+    
+    size_t channel[4] = {0, 1, 2, 3};
+    uhd_stream_args_t stream_args = {
+          .cpu_format = "fc32",
+          .otw_format = "sc12",
+          .args = "",
+          .channel_list = channel,
+          .n_channels = nof_rx_antennas
+      };
+      
+    handler->nof_rx_channels = nof_rx_antennas; 
+    handler->nof_tx_channels = 1; 
     
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
@@ -604,7 +609,7 @@ int rf_uhd_send_timed(void *h,
       }
       
       void *buff = (void*) &data_c[n];
-      const void **buffs_ptr = (const void**) &buff;
+      const void *buffs_ptr[4] = {buff, zero_mem, zero_mem, zero_mem};
       uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, 
                                              tx_samples, &handler->tx_md, 3.0, &txd_samples);
       if (error) {
@@ -618,7 +623,7 @@ int rf_uhd_send_timed(void *h,
     } while (n < nsamples && trials < 100);
     return nsamples;
   } else {
-    const void **buffs_ptr = (const void**) &data;
+    const void *buffs_ptr[4] = {data, zero_mem, zero_mem, zero_mem};
     uhd_tx_metadata_set_start(&handler->tx_md, is_start_of_burst);
     uhd_tx_metadata_set_end(&handler->tx_md, is_end_of_burst);
     return uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 0.0, &txd_samples);
