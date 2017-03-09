@@ -166,7 +166,14 @@ int srslte_ra_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_
     INFO("n_rb_pusch: %d, prb1: %d, prb2: %d, L: %d\n", n_rb_pusch, grant->n_prb[0], grant->n_prb[1], grant->L_prb);
     grant->freq_hopping = 1;
   }
-  return SRSLTE_SUCCESS; 
+  
+  if (grant->n_prb[0] + grant->L_prb < nof_prb && 
+      grant->n_prb[1] + grant->L_prb < nof_prb) 
+  {
+    return SRSLTE_SUCCESS; 
+  } else {
+    return SRSLTE_ERROR;   
+  }
 }
 
 srslte_mod_t last_mod[8];
@@ -325,15 +332,20 @@ int srslte_ra_dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_
     bitmask = dci->type1_alloc.vrb_bitmask;
     for (i = 0; i < n_rb_type1; i++) {
       if (bitmask & (1 << (n_rb_type1 - i - 1))) {
-        grant->prb_idx[0][((i + shift) / P)
+        if ((((i + shift) / P)
+            * P * P + dci->type1_alloc.rbg_subset * P + (i + shift) % P) < nof_prb) {
+          grant->prb_idx[0][((i + shift) / P)
             * P * P + dci->type1_alloc.rbg_subset * P + (i + shift) % P] = true;
-        grant->nof_prb++;
+          grant->nof_prb++;
+        } else {
+          return SRSLTE_ERROR; 
+        }
       }
     }
     memcpy(&grant->prb_idx[1], &grant->prb_idx[0], SRSLTE_MAX_PRB*sizeof(bool));
     break;
   case SRSLTE_RA_ALLOC_TYPE2:
-    if (dci->type2_alloc.mode == SRSLTE_RA_TYPE2_LOC) {
+    if (dci->type2_alloc.mode == SRSLTE_RA_TYPE2_LOC) {      
       for (i = 0; i < dci->type2_alloc.L_crb; i++) {
         grant->prb_idx[0][i + dci->type2_alloc.RB_start] = true;
         grant->nof_prb++;
@@ -379,17 +391,31 @@ int srslte_ra_dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_
             + N_tilde_vrb * (n_vrb / N_tilde_vrb);
 
         if (n_tilde_prb_odd < N_tilde_vrb / 2) {
-          grant->prb_idx[0][n_tilde_prb_odd] = true;
+          if (n_tilde_prb_odd < nof_prb) {
+            grant->prb_idx[0][n_tilde_prb_odd] = true;
+          } else {
+            return SRSLTE_ERROR; 
+          }
         } else {
-          grant->prb_idx[0][n_tilde_prb_odd + N_gap
-              - N_tilde_vrb / 2] = true;
+          if (n_tilde_prb_odd + N_gap - N_tilde_vrb / 2 < nof_prb) {
+            grant->prb_idx[0][n_tilde_prb_odd + N_gap - N_tilde_vrb / 2] = true;
+          } else {
+            return SRSLTE_ERROR; 
+          }
         }
         grant->nof_prb++;
         if (n_tilde_prb_even < N_tilde_vrb / 2) {
-          grant->prb_idx[1][n_tilde_prb_even] = true;
+          if(n_tilde_prb_even < nof_prb) {
+            grant->prb_idx[1][n_tilde_prb_even] = true;
+          } else {
+            return SRSLTE_ERROR; 
+          }
         } else {
-          grant->prb_idx[1][n_tilde_prb_even + N_gap
-              - N_tilde_vrb / 2] = true;
+          if (n_tilde_prb_even + N_gap - N_tilde_vrb / 2 < nof_prb) {
+            grant->prb_idx[1][n_tilde_prb_even + N_gap - N_tilde_vrb / 2] = true;
+          } else {
+            return SRSLTE_ERROR; 
+          }
         }
       }
     }
