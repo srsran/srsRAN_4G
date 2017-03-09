@@ -178,7 +178,6 @@ int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb,
     } 
 
     if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant, harq_pid)) {
-      fprintf(stderr, "Error computing resource allocation\n");
       return ret;
     }
     
