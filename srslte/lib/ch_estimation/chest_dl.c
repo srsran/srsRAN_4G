@@ -421,7 +421,7 @@ float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {
   // return sum of power received from all tx ports
   float n = 0; 
   for (int i=0;i<q->last_nof_antennas;i++) {
-    n += srslte_vec_acc_ff(q->rsrp[i], q->cell.nof_ports)/q->cell.nof_ports; 
+    n += srslte_vec_acc_ff(q->rsrp[i], q->cell.nof_ports); 
   }
   return n/q->last_nof_antennas;
 }
