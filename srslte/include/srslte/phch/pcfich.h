@@ -51,12 +51,14 @@
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
   int nof_symbols;
+  
+  uint32_t nof_rx_antennas; 
 
   /* handler to REGs resource mapper */
   srslte_regs_t *regs;
 
   /* buffers */
-  cf_t ce[SRSLTE_MAX_PORTS][PCFICH_RE];
+  cf_t ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS][PCFICH_RE];
   cf_t symbols[SRSLTE_MAX_PORTS][PCFICH_RE];
   cf_t x[SRSLTE_MAX_PORTS][PCFICH_RE];
   cf_t d[PCFICH_RE];
@@ -80,6 +82,11 @@ SRSLTE_API int srslte_pcfich_init(srslte_pcfich_t *q,
                            srslte_regs_t *regs, 
                            srslte_cell_t cell);
 
+SRSLTE_API int srslte_pcfich_init_multi(srslte_pcfich_t *q, 
+                                        srslte_regs_t *regs, 
+                                        srslte_cell_t cell, 
+                                        uint32_t nof_rx_antennas);
+
 SRSLTE_API void srslte_pcfich_free(srslte_pcfich_t *q);
 
 SRSLTE_API int srslte_pcfich_decode(srslte_pcfich_t *q, 
@@ -89,6 +96,14 @@ SRSLTE_API int srslte_pcfich_decode(srslte_pcfich_t *q,
                              uint32_t subframe, 
                              uint32_t *cfi, 
                              float *corr_result);
+
+SRSLTE_API int srslte_pcfich_decode_multi(srslte_pcfich_t *q, 
+                                          cf_t *sf_symbols[SRSLTE_MAX_PORTS], 
+                                          cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                          float noise_estimate, 
+                                          uint32_t subframe, 
+                                          uint32_t *cfi, 
+                                          float *corr_result);
 
 SRSLTE_API int srslte_pcfich_encode(srslte_pcfich_t *q, 
                              uint32_t cfi, 

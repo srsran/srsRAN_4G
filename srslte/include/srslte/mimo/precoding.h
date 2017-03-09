@@ -70,11 +70,25 @@ SRSLTE_API int srslte_predecoding_single(cf_t *y,
                                          int nof_symbols, 
                                          float noise_estimate);
 
+SRSLTE_API int srslte_predecoding_single_multi(cf_t *y[SRSLTE_MAX_PORTS], 
+                                               cf_t *h[SRSLTE_MAX_PORTS], 
+                                               cf_t *x, 
+                                               int nof_rxant,
+                                               int nof_symbols, 
+                                               float noise_estimate);
+
 SRSLTE_API int srslte_predecoding_diversity(cf_t *y, 
                                             cf_t *h[SRSLTE_MAX_PORTS], 
                                             cf_t *x[SRSLTE_MAX_LAYERS],    
                                             int nof_ports, 
                                             int nof_symbols);
+
+SRSLTE_API int srslte_predecoding_diversity_multi(cf_t *y[SRSLTE_MAX_PORTS], 
+                                                  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
+                                                  cf_t *x[SRSLTE_MAX_LAYERS],    
+                                                  int nof_rxant,
+                                                  int nof_ports, 
+                                                  int nof_symbols);
 
 SRSLTE_API int srslte_predecoding_type(cf_t *y, 
                                        cf_t *h[SRSLTE_MAX_PORTS], 

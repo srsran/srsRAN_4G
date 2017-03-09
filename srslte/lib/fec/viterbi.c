@@ -255,7 +255,14 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
     len = 3 * (frame_length + q->K - 1);
   }
   if (!q->decode_f) {    
-    srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant, 127.5, 255, len);    
+    
+    float max = -9e9; 
+    for (int i=0;i<len;i++) {
+      if (fabs(symbols[i]) > max) {
+        max = fabs(symbols[i]);
+      }
+    }
+    srslte_vec_quant_fuc(symbols, q->symbols_uc, 50/max, 127.5, 255, len);    
     return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);    
   } else {
     return q->decode_f(q, symbols, data, frame_length);
@@ -276,7 +283,15 @@ int srslte_viterbi_decode_s(srslte_viterbi_t *q, int16_t *symbols, uint8_t *data
   } else {
     len = 3 * (frame_length + q->K - 1);
   }
-  srslte_vec_quant_suc(symbols, q->symbols_uc, q->gain_quant_s, 127, 255, len);    
+  
+  int16_t max = -INT16_MAX; 
+  for (int i=0;i<len;i++) {
+    if (abs(symbols[i]) > max) {
+      max = symbols[i];
+    }
+  }
+  
+  srslte_vec_quant_suc(symbols, q->symbols_uc, 50/max, 127, 255, len);    
   return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);    
 }
 

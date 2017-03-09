@@ -38,6 +38,7 @@ typedef struct {
   void   (*srslte_rf_suppress_stdout)(void *h);
   void   (*srslte_rf_register_error_handler)(void *h, srslte_rf_error_handler_t error_handler);
   int    (*srslte_rf_open)(char *args, void **h);
+  int    (*srslte_rf_open_multi)(char *args, void **h, uint32_t nof_rx_antennas);
   int    (*srslte_rf_close)(void *h);
   void   (*srslte_rf_set_master_clock_rate)(void *h, double rate);
   bool   (*srslte_rf_is_master_clock_dynamic)(void *h);
@@ -51,6 +52,8 @@ typedef struct {
   double (*srslte_rf_set_tx_freq)(void *h, double freq);
   void   (*srslte_rf_get_time)(void *h, time_t *secs, double *frac_secs);  
   int    (*srslte_rf_recv_with_time)(void *h, void *data, uint32_t nsamples, 
+                           bool blocking, time_t *secs,double *frac_secs);
+  int    (*srslte_rf_recv_with_time_multi)(void *h, void **data, uint32_t nsamples, 
                            bool blocking, time_t *secs,double *frac_secs);
   int    (*srslte_rf_send_timed)(void *h, void *data, int nsamples,
                      time_t secs, double frac_secs, bool has_time_spec,
@@ -78,6 +81,7 @@ static rf_dev_t dev_uhd = {
   rf_uhd_suppress_stdout,
   rf_uhd_register_error_handler,
   rf_uhd_open,
+  rf_uhd_open_multi,
   rf_uhd_close,
   rf_uhd_set_master_clock_rate,
   rf_uhd_is_master_clock_dynamic,
@@ -91,6 +95,7 @@ static rf_dev_t dev_uhd = {
   rf_uhd_set_tx_freq,
   rf_uhd_get_time,  
   rf_uhd_recv_with_time,
+  rf_uhd_recv_with_time_multi,
   rf_uhd_send_timed,
   rf_uhd_set_tx_cal,
   rf_uhd_set_rx_cal
@@ -114,6 +119,7 @@ static rf_dev_t dev_blade = {
   rf_blade_suppress_stdout,
   rf_blade_register_error_handler,
   rf_blade_open,
+  rf_blade_open_multi,
   rf_blade_close,
   rf_blade_set_master_clock_rate,
   rf_blade_is_master_clock_dynamic,
@@ -127,6 +133,7 @@ static rf_dev_t dev_blade = {
   rf_blade_set_tx_freq,
   rf_blade_get_time,  
   rf_blade_recv_with_time,
+  rf_blade_recv_with_time_multi,
   rf_blade_send_timed,
   rf_blade_set_tx_cal,
   rf_blade_set_rx_cal

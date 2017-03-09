@@ -51,12 +51,17 @@ typedef struct {
   bool dynamic_rate; 
   bool has_rssi; 
   uhd_sensor_value_handle rssi_value;
+  uint32_t nof_rx_channels;
+  int nof_tx_channels;
 } rf_uhd_handler_t;
 
 void suppress_handler(const char *x)
 {
   // do nothing
 }
+
+cf_t zero_mem[64*1024];
+
 
 srslte_rf_error_handler_t uhd_error_handler = NULL; 
 
@@ -174,12 +179,19 @@ void rf_uhd_set_rx_cal(void *h, srslte_rf_cal_t *cal)
 
 int rf_uhd_start_rx_stream(void *h)
 {
-  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+ rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+
   uhd_stream_cmd_t stream_cmd = {
         .stream_mode = UHD_STREAM_MODE_START_CONTINUOUS,
-        .stream_now = true
-  };  
-  uhd_rx_streamer_issue_stream_cmd(handler->rx_stream, &stream_cmd);
+        .stream_now = false
+  };
+  uhd_usrp_get_time_now(handler->usrp, 0, &stream_cmd.time_spec_full_secs, &stream_cmd.time_spec_frac_secs);
+  stream_cmd.time_spec_frac_secs += 0.5; 
+  if (stream_cmd.time_spec_frac_secs > 1) {
+    stream_cmd.time_spec_frac_secs -= 1;
+    stream_cmd.time_spec_full_secs += 1; 
+  }
+  uhd_rx_streamer_issue_stream_cmd(handler->rx_stream, &stream_cmd);  
   return 0;
 }
 
@@ -197,9 +209,11 @@ int rf_uhd_stop_rx_stream(void *h)
 void rf_uhd_flush_buffer(void *h)
 {
   int n; 
-  cf_t tmp[1024];
+  cf_t tmp1[1024];
+  cf_t tmp2[1024];
+  void *data[2] = {tmp1, tmp2};
   do {
-    n = rf_uhd_recv_with_time(h, tmp, 1024, 0, NULL, NULL);
+    n = rf_uhd_recv_with_time_multi(h, data, 1024, 0, NULL, NULL);
   } while (n > 0);  
 }
 
@@ -232,6 +246,11 @@ float rf_uhd_get_rssi(void *h) {
 
 int rf_uhd_open(char *args, void **h)
 {
+  return rf_uhd_open_multi(args, h, 1);
+}
+
+int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
+{
   if (h) {
     *h = NULL; 
     
@@ -260,6 +279,8 @@ int rf_uhd_open(char *args, void **h)
     }           
     handler->devname = NULL;
     
+    bzero(zero_mem, sizeof(cf_t)*64*1024);
+    
     /* If device type or name not given in args, choose a B200 */
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
@@ -287,7 +308,11 @@ int rf_uhd_open(char *args, void **h)
     uhd_string_vector_free(&devices_str);
     
     /* Create UHD handler */
-    printf("Opening USRP with args: %s\n", args);
+    if (strstr(args, "silent")) {
+      rf_uhd_suppress_stdout(NULL);
+    } else {
+      printf("Opening USRP with args: %s\n", args);
+    }
     uhd_error error = uhd_usrp_make(&handler->usrp, args);
     if (error) {
       fprintf(stderr, "Error opening UHD: code %d\n", error);
@@ -306,14 +331,6 @@ int rf_uhd_open(char *args, void **h)
     if (!handler->devname) {
       handler->devname = "uhd_unknown"; 
     }
-    size_t channel = 0;
-    uhd_stream_args_t stream_args = {
-          .cpu_format = "fc32",
-          .otw_format = "sc16",
-          .args = "",
-          .channel_list = &channel,
-          .n_channels = 1
-      };
     
     // Set external clock reference   
     if (strstr(args, "clock=external")) {
@@ -324,6 +341,18 @@ int rf_uhd_open(char *args, void **h)
     if (handler->has_rssi) {        
       uhd_sensor_value_make_from_realnum(&handler->rssi_value, "rssi", 0, "dBm", "%f");      
     }
+    
+    size_t channel[4] = {0, 1, 2, 3};
+    uhd_stream_args_t stream_args = {
+          .cpu_format = "fc32",
+          .otw_format = "sc12",
+          .args = "",
+          .channel_list = channel,
+          .n_channels = nof_rx_antennas
+      };
+      
+    handler->nof_rx_channels = nof_rx_antennas; 
+    handler->nof_tx_channels = 1; 
     
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
@@ -393,7 +422,9 @@ bool rf_uhd_is_master_clock_dynamic(void *h) {
 double rf_uhd_set_rx_srate(void *h, double freq)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  uhd_usrp_set_rx_rate(handler->usrp, freq, 0);
+  for (int i=0;i<handler->nof_rx_channels;i++) {
+    uhd_usrp_set_rx_rate(handler->usrp, freq, i);
+  }
   uhd_usrp_get_rx_rate(handler->usrp, 0, &freq);
   return freq; 
 }
@@ -401,7 +432,9 @@ double rf_uhd_set_rx_srate(void *h, double freq)
 double rf_uhd_set_tx_srate(void *h, double freq)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  uhd_usrp_set_tx_rate(handler->usrp, freq, 0);
+  for (int i=0;i<handler->nof_tx_channels;i++) {
+    uhd_usrp_set_tx_rate(handler->usrp, freq, i);
+  }
   uhd_usrp_get_tx_rate(handler->usrp, 0, &freq);
   handler->tx_rate = freq;
   return freq; 
@@ -410,7 +443,9 @@ double rf_uhd_set_tx_srate(void *h, double freq)
 double rf_uhd_set_rx_gain(void *h, double gain)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  uhd_usrp_set_rx_gain(handler->usrp, gain, 0, "");
+  for (int i=0;i<handler->nof_rx_channels;i++) {
+    uhd_usrp_set_rx_gain(handler->usrp, gain, i, "");
+  }
   uhd_usrp_get_rx_gain(handler->usrp, 0, "", &gain);
   return gain;
 }
@@ -418,7 +453,9 @@ double rf_uhd_set_rx_gain(void *h, double gain)
 double rf_uhd_set_tx_gain(void *h, double gain)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  uhd_usrp_set_tx_gain(handler->usrp, gain, 0, "");
+  for (int i=0;i<handler->nof_tx_channels;i++) {
+    uhd_usrp_set_tx_gain(handler->usrp, gain, i, "");
+  }
   uhd_usrp_get_tx_gain(handler->usrp, 0, "", &gain);
   return gain;
 }
@@ -448,7 +485,9 @@ double rf_uhd_set_rx_freq(void *h, double freq)
   };
   uhd_tune_result_t tune_result;
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  uhd_usrp_set_rx_freq(handler->usrp, &tune_request, 0, &tune_result);
+  for (int i=0;i<handler->nof_rx_channels;i++) {
+    uhd_usrp_set_rx_freq(handler->usrp, &tune_request, i, &tune_result);
+  }
   uhd_usrp_get_rx_freq(handler->usrp, 0, &freq);
   return freq;
 }
@@ -462,7 +501,9 @@ double rf_uhd_set_tx_freq(void *h, double freq)
   };
   uhd_tune_result_t tune_result;
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  uhd_usrp_set_tx_freq(handler->usrp, &tune_request, 0, &tune_result);
+  for (int i=0;i<handler->nof_tx_channels;i++) {
+    uhd_usrp_set_tx_freq(handler->usrp, &tune_request, i, &tune_result);
+  }
   uhd_usrp_get_tx_freq(handler->usrp, 0, &freq);
   return freq;
 }
@@ -480,6 +521,16 @@ int rf_uhd_recv_with_time(void *h,
                     time_t *secs,
                     double *frac_secs) 
 {
+  return rf_uhd_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
+}
+
+int rf_uhd_recv_with_time_multi(void *h,
+                                void **data,
+                                uint32_t nsamples,
+                                bool blocking,
+                                time_t *secs,
+                                double *frac_secs) 
+{
   
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   size_t rxd_samples;
@@ -487,18 +538,20 @@ int rf_uhd_recv_with_time(void *h,
   int trials = 0; 
   if (blocking) {
     int n = 0;
-    cf_t *data_c = (cf_t*) data;
     do {
-      size_t rx_samples = handler->rx_nof_samples;
+      size_t rx_samples = nsamples;
              
       if (rx_samples > nsamples - n) {
         rx_samples = nsamples - n; 
       }
-      void *buff = (void*) &data_c[n];
-      void **buffs_ptr = (void**) &buff;
+      void *buffs_ptr[4]; 
+      for (int i=0;i<handler->nof_rx_channels;i++) {
+        cf_t *data_c = (cf_t*) data[i];
+        buffs_ptr[i] = &data_c[n];        
+      }
+
       uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
-                                             rx_samples, md, 5.0, false, &rxd_samples);
-      
+                                             rx_samples, md, 1.0, false, &rxd_samples);
       if (error) {
         fprintf(stderr, "Error receiving from UHD: %d\n", error);
         return -1; 
@@ -508,9 +561,8 @@ int rf_uhd_recv_with_time(void *h,
       trials++;
     } while (n < nsamples && trials < 100);
   } else {
-    void **buffs_ptr = (void**) &data;
-    return uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
-                                             nsamples, md, 0.0, false, &rxd_samples);
+    return uhd_rx_streamer_recv(handler->rx_stream, data, 
+                                nsamples, md, 0.0, false, &rxd_samples);
   }
   if (secs && frac_secs) {
     uhd_rx_metadata_time_spec(handler->rx_md_first, secs, frac_secs);
@@ -557,7 +609,7 @@ int rf_uhd_send_timed(void *h,
       }
       
       void *buff = (void*) &data_c[n];
-      const void **buffs_ptr = (const void**) &buff;
+      const void *buffs_ptr[4] = {buff, zero_mem, zero_mem, zero_mem};
       uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, 
                                              tx_samples, &handler->tx_md, 3.0, &txd_samples);
       if (error) {
@@ -571,7 +623,7 @@ int rf_uhd_send_timed(void *h,
     } while (n < nsamples && trials < 100);
     return nsamples;
   } else {
-    const void **buffs_ptr = (const void**) &data;
+    const void *buffs_ptr[4] = {data, zero_mem, zero_mem, zero_mem};
     uhd_tx_metadata_set_start(&handler->tx_md, is_start_of_burst);
     uhd_tx_metadata_set_end(&handler->tx_md, is_end_of_burst);
     return uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 0.0, &txd_samples);

@@ -213,6 +213,7 @@ void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
 /* No improvement with AVX */
 void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t len)
 {
+#ifndef DEBUG_MODE
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 8;
@@ -240,6 +241,7 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t l
     y[lut[number]] = x[number];
   }
 #endif  
+#endif
 }
 
 /* Modified from volk_32f_s32f_convert_16i_a_simd2. Removed clipping */

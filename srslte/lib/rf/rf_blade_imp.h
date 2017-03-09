@@ -33,6 +33,8 @@
 SRSLTE_API int rf_blade_open(char *args, 
                         void **handler);
 
+SRSLTE_API int rf_blade_open_multi(char *args, 
+                        void **handler, uint32_t nof_rx_antennas);
 
 SRSLTE_API char* rf_blade_devname(void *h);
 
@@ -81,6 +83,13 @@ SRSLTE_API void rf_blade_register_error_handler(void *h,
 
 SRSLTE_API double rf_blade_set_rx_freq(void *h, 
                                   double freq);
+
+SRSLTE_API int rf_blade_recv_with_time_multi(void *h,
+                                            void **data,
+                                            uint32_t nsamples,
+                                            bool blocking,
+                                            time_t *secs,
+                                            double *frac_secs);
 
 SRSLTE_API int rf_blade_recv_with_time(void *h,
                                   void *data,

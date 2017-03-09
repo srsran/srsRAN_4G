@@ -62,12 +62,14 @@
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
   
+  uint32_t nof_rx_antennas; 
+  
   /* handler to REGs resource mapper */
   srslte_regs_t *regs;
 
   /* buffers */
-  cf_t ce[SRSLTE_MAX_PORTS][SRSLTE_PHICH_MAX_NSYMB];
-  cf_t symbols[SRSLTE_MAX_PORTS][SRSLTE_PHICH_MAX_NSYMB];
+  cf_t ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS][SRSLTE_PHICH_MAX_NSYMB];
+  cf_t sf_symbols[SRSLTE_MAX_PORTS][SRSLTE_PHICH_MAX_NSYMB];
   cf_t x[SRSLTE_MAX_PORTS][SRSLTE_PHICH_MAX_NSYMB];
   cf_t d[SRSLTE_PHICH_MAX_NSYMB];
   cf_t d0[SRSLTE_PHICH_MAX_NSYMB];
@@ -87,6 +89,11 @@ SRSLTE_API int srslte_phich_init(srslte_phich_t *q,
                                  srslte_regs_t *regs, 
                                  srslte_cell_t cell);
 
+SRSLTE_API int srslte_phich_init_multi(srslte_phich_t *q, 
+                                       srslte_regs_t *regs, 
+                                       srslte_cell_t cell, 
+                                       uint32_t nof_rx_antennas);
+
 SRSLTE_API void srslte_phich_free(srslte_phich_t *q);
 
 SRSLTE_API void srslte_phich_calc(srslte_phich_t *q, 
@@ -104,6 +111,16 @@ SRSLTE_API int srslte_phich_decode(srslte_phich_t *q,
                                    uint32_t nsubframe, 
                                    uint8_t *ack, 
                                    float *distance);
+
+SRSLTE_API int srslte_phich_decode_multi(srslte_phich_t *q, 
+                                         cf_t *slot_symbols[SRSLTE_MAX_PORTS], 
+                                         cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                         float noise_estimate, 
+                                         uint32_t ngroup, 
+                                         uint32_t nseq, 
+                                         uint32_t nsubframe, 
+                                         uint8_t *ack, 
+                                         float *distance);
 
 SRSLTE_API int srslte_phich_encode(srslte_phich_t *q, 
                                    uint8_t ack, 

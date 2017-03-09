@@ -31,8 +31,6 @@ add_test(pbch_test_64 pbch_test -p 4 -n 6 -c 100)
 add_test(pbch_test_50 pbch_test -p 1 -n 50 -c 50) 
 add_test(pbch_test_502 pbch_test -p 2 -n 50 -c 50) 
 add_test(pbch_test_504 pbch_test -p 4 -n 50 -c 50) 
- 
-BuildMex(MEXNAME pbch SOURCES pbch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 ########################################################################
@@ -48,8 +46,6 @@ add_test(pcfich_test_64 pcfich_test -p 4 -n 6)
 add_test(pcfich_test_10 pcfich_test -p 1 -n 10) 
 add_test(pcfich_test_102 pcfich_test -p 2 -n 10) 
 add_test(pcfich_test_104 pcfich_test -p 4 -n 10) 
-
-BuildMex(MEXNAME pcfich SOURCES pcfich_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
 # PHICH TEST  
@@ -69,8 +65,6 @@ add_test(phich_test_64e phich_test -p 4 -n 6 -e -l -g 2)
 add_test(phich_test_10 phich_test -p 1 -n 10 -e) 
 add_test(phich_test_102 phich_test -p 2 -n 10 -g 2) 
 add_test(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2) 
- 
-BuildMex(MEXNAME phich SOURCES phich_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
 # PDCCH TEST  
@@ -80,8 +74,6 @@ add_executable(pdcch_test pdcch_test.c)
 target_link_libraries(pdcch_test srslte)
 
 add_test(pdcch_test pdcch_test) 
-
-BuildMex(MEXNAME pdcch SOURCES pdcch_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
 # PDSCH TEST  
@@ -94,9 +86,6 @@ add_test(pdsch_test_qpsk pdsch_test -m 10 -n 50 -r 1)
 add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100)
 add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100 -r 2)
 add_test(pdsch_test_qam64 pdsch_test -m 28 -n 100)
-
-BuildMex(MEXNAME pdsch SOURCES pdsch_test_mex.c LIBRARIES srslte_static srslte_mex)
-BuildMex(MEXNAME dlsch_encode SOURCES dlsch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 ########################################################################
 # FILE TEST  
@@ -130,10 +119,6 @@ add_test(pdsch_pdcch_file_test pdsch_pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CM
 add_executable(pusch_test pusch_test.c)
 target_link_libraries(pusch_test srslte)
 
-BuildMex(MEXNAME ulsch_encode SOURCES ulsch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
-BuildMex(MEXNAME pusch_encode SOURCES pusch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
-BuildMex(MEXNAME pusch SOURCES pusch_test_mex.c LIBRARIES srslte_static srslte_mex)
-
 add_test(pusch_test pusch_test)
 
 ########################################################################
@@ -144,12 +129,6 @@ add_executable(pucch_test pucch_test.c)
 target_link_libraries(pucch_test srslte)
 
 add_test(pucch_test pucch_test)
-
-BuildMex(MEXNAME pucch_encode SOURCES pucch_encode_test_mex.c LIBRARIES srslte_static srslte_mex)
-BuildMex(MEXNAME pucch SOURCES pucch_test_mex.c LIBRARIES srslte_static srslte_mex)
-
-
-
 
 ########################################################################
 # PRACH TEST  
@@ -188,10 +167,6 @@ add_test(prach_test_multi_n32 prach_test_multi -n 32)
 add_test(prach_test_multi_n16 prach_test_multi -n 16)
 add_test(prach_test_multi_n8 prach_test_multi -n 8)
 add_test(prach_test_multi_n4 prach_test_multi -n 4)
- 
- 
-BuildMex(MEXNAME prach SOURCES prach_test_mex.c LIBRARIES srslte_static srslte_mex)
-BuildMex(MEXNAME prach_detect SOURCES prach_detect_test_mex.c LIBRARIES srslte_static srslte_mex)
 
 
 if(UHD_FOUND)

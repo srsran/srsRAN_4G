@@ -39,7 +39,6 @@ MESSAGE( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(SRSLTEVersion) #sets version information
 include(SRSLTEPackage) #setup cpack
-include(BuildMex)
 
 include(CTest)
 set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
@@ -51,7 +50,6 @@ configure_file(
 ########################################################################
 # Options
 ########################################################################
-option(DisableMEX     "DisableMEX"     ON)
 option(StaticMKL      "StaticMKL"      OFF)
 option(DisableBladeRF "DisableBladeRF" OFF)
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
@@ -72,7 +70,6 @@ endif()
 set(RUNTIME_DIR bin)
 set(LIBRARY_DIR ${CMAKE_INSTALL_LIBDIR})
 set(INCLUDE_DIR include)
-set(MEX_DIR mex)
 set(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
 set(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
@@ -105,7 +102,8 @@ if(CMAKE_COMPILER_IS_GNUCC)
   find_package(SSE)
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+    find_package(SSE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -DDEBUG_MODE")
     if(HAVE_AVX)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
     elseif(HAVE_SSE)
@@ -125,7 +123,14 @@ if(CMAKE_COMPILER_IS_GNUCC)
     
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
   
-  
+  IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
+message(STATUS "have ARM")
+ELSE(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+ENDIF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+
+set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
+
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
   endif(NOT WIN32)
@@ -149,8 +154,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-
-
 ########################################################################
 # Create uninstall targets
 ########################################################################
@@ -161,7 +164,6 @@ configure_file(
 
 add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
-    
 
 ########################################################################
 # Macro to add -fPIC property to static libs 
@@ -181,10 +183,8 @@ message(STATUS "Building for version: ${VERSION}")
 ########################################################################
 include_directories(${PROJECT_BINARY_DIR}/srslte/include/)
 include_directories(${PROJECT_SOURCE_DIR}/srslte/include/)
-include_directories(${PROJECT_SOURCE_DIR}/mex/include)
 
 ########################################################################
 # Add the subdirectories
 ########################################################################
 add_subdirectory(srslte)
-add_subdirectory(mex)

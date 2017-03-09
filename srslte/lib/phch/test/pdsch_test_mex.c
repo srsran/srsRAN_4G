@@ -55,7 +55,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_ofdm_t ofdm_rx; 
   srslte_pdsch_t pdsch;
   srslte_chest_dl_t chest; 
-  cf_t *input_fft;
+  cf_t *input_fft[SRSLTE_MAX_PORTS];
   srslte_pdsch_cfg_t cfg;
   srslte_softbuffer_rx_t softbuffer; 
   uint32_t rnti32;
@@ -92,8 +92,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     fprintf(stderr, "Error initializing FFT\n");
     return;
   }
-
-  if (srslte_pdsch_init(&pdsch, cell)) {
+  
+  
+  const size_t ndims = mxGetNumberOfDimensions(INPUT);
+  uint32_t nof_antennas = 1; 
+  if (ndims >= 3) {
+    const mwSize *dims = mxGetDimensions(INPUT);
+    nof_antennas = dims[2];
+  }
+  
+  if (srslte_pdsch_init_multi(&pdsch, cell, nof_antennas)) {
     mexErrMsgTxt("Error initiating PDSCH\n");
     return;
   }
@@ -188,18 +196,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     nof_retx = mexutils_getLength(INPUT);
   } 
   
-  cf_t *ce[SRSLTE_MAX_PORTS];
-  for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  for (int j=0;j<SRSLTE_MAX_PORTS;j++) {
+    for (i=0;i<cell.nof_ports;i++) {
+      ce[i][j] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
+    }
   }
-
   uint8_t *data_bytes = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
   if (!data_bytes) {
     return;
   }
   srslte_sch_set_max_noi(&pdsch.dl_sch, max_iterations);
 
-  input_fft = NULL; 
+  bool input_fft_allocated = false; 
   int r=-1;
   for (int rvIdx=0;rvIdx<nof_retx && r != 0;rvIdx++) {
     
@@ -218,11 +227,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexErrMsgTxt("Error reading input signal\n");
       return; 
     }
-    if (insignal_len == SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp)) {
-      input_fft = input_signal; 
-    } else {
-      input_fft = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));  
-      srslte_ofdm_rx_sf(&ofdm_rx, input_signal, input_fft);
+    if (!(insignal_len % SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp))) {
+      for (int i=0;i<nof_antennas;i++) {
+        input_fft[i] = &input_signal[i*insignal_len/nof_antennas]; 
+      }      
+    } else if (!(insignal_len % SRSLTE_SF_LEN_PRB(cell.nof_prb))) {
+      
+      for (int i=0;i<nof_antennas;i++) {
+        input_fft[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));  
+        srslte_ofdm_rx_sf(&ofdm_rx, &input_signal[i*insignal_len/nof_antennas], input_fft[i]);
+        input_fft_allocated = true; 
+      }      
       free(input_signal);
     }
     
@@ -230,16 +245,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       cf_t *cearray = NULL; 
       mexutils_read_cf(prhs[NOF_INPUTS], &cearray);
       cf_t *cearray_ptr = cearray; 
-      for (i=0;i<cell.nof_ports;i++) {
-        for (int j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
-          ce[i][j] = *cearray_ptr;
-          cearray_ptr++;
-        }
-      }    
+      for (int k=0;k<nof_antennas;k++) {
+        for (i=0;i<cell.nof_ports;i++) {
+          for (int j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
+            ce[i][k][j] = *cearray_ptr;
+            cearray_ptr++;
+          }
+        }    
+      }
       if (cearray)
         free(cearray);
     } else {
-      srslte_chest_dl_estimate(&chest, input_fft, ce, cfg.sf_idx);    
+      srslte_chest_dl_estimate_multi(&chest, input_fft, ce, cfg.sf_idx, nof_antennas);    
     }
     
     float noise_power;
@@ -251,7 +268,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       noise_power = srslte_chest_dl_get_noise_estimate(&chest);
     }
 
-    r = srslte_pdsch_decode(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, rnti, data_bytes);
+    r = srslte_pdsch_decode_multi(&pdsch, &cfg, &softbuffer, input_fft, ce, noise_power, rnti, data_bytes);
   }
   
   uint8_t *data = malloc(grant.mcs.tbs);
@@ -273,21 +290,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
   }
   if (nlhs >= 6) {
-    mexutils_write_cf(ce[0], &plhs[5], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), 1);  
+    uint32_t len = nof_antennas*cell.nof_ports*SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
+    cf_t *cearray_ptr = srslte_vec_malloc(len*sizeof(cf_t)); 
+    int n=0;
+    for (i=0;i<cell.nof_ports;i++) {
+      for (int k=0;k<nof_antennas;k++) {
+        for (int j=0;j<SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);j++) {
+          cearray_ptr[n] = ce[i][k][j];
+          n++;
+        }
+      }    
+    }
+    mexutils_write_cf(cearray_ptr, &plhs[5], len, 1);  
+    if (cearray_ptr) {
+      free(cearray_ptr);
+    }
   }
   srslte_softbuffer_rx_free(&softbuffer);
   srslte_chest_dl_free(&chest);
   srslte_pdsch_free(&pdsch);
   srslte_ofdm_rx_free(&ofdm_rx);
   
-  for (i=0;i<cell.nof_ports;i++) {
-    free(ce[i]);
+  for (int j=0;j<nof_antennas;j++) {
+    for (i=0;i<cell.nof_ports;i++) {
+      if (ce[i][j]) {
+        free(ce[i][j]);
+      }
+    } 
+    if (input_fft_allocated) {
+      if (input_fft[j]) {
+        free(input_fft[j]); 
+      }
+    }
   }
   free(data_bytes);
   free(data);
-  if (input_fft) {
-    free(input_fft); 
-  }
   
   return;
 }

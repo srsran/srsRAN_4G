@@ -89,6 +89,7 @@ typedef struct {
   uint32_t file_nof_ports;
   uint32_t file_cell_id;
   char *rf_args; 
+  uint32_t rf_nof_rx_ant; 
   double rf_freq; 
   float rf_gain;
   int net_port; 
@@ -113,6 +114,7 @@ void args_default(prog_args_t *args) {
   args->file_offset_freq = 0; 
   args->rf_args = "";
   args->rf_freq = -1.0;
+  args->rf_nof_rx_ant = 1; 
 #ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0; 
 #else
@@ -128,6 +130,7 @@ void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [agpPoOcildDnruv] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", args->rf_args);
+  printf("\t-A Number of RX antennas [Default %d]\n", args->rf_nof_rx_ant);
 #ifdef ENABLE_AGC_DEFAULT
   printf("\t-g RF fix RX gain [Default AGC]\n");
 #else
@@ -163,7 +166,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aoglipPcOCtdDnvrfuUsS")) != -1) {
+  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsS")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -185,6 +188,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'a':
       args->rf_args = argv[optind];
+      break;
+    case 'A':
+      args->rf_nof_rx_ant = atoi(argv[optind]);
       break;
     case 'g':
       args->rf_gain = atof(argv[optind]);
@@ -252,10 +258,16 @@ void sig_int_handler(int signo)
   }
 }
 
+cf_t *sf_buffer[2] = {NULL, NULL}; 
+
 #ifndef DISABLE_RF
-int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv(h, data, nsamples, 1);
+  void *ptr[SRSLTE_MAX_PORTS];
+  for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    ptr[i] = data[i];
+  }
+  return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }
 
 double srslte_rf_set_rx_gain_th_wrapper_(void *h, double f) {
@@ -273,7 +285,6 @@ srslte_ue_sync_t ue_sync;
 prog_args_t prog_args; 
 
 uint32_t sfn = 0; // system frame number
-cf_t *sf_buffer = NULL; 
 srslte_netsink_t net_sink, net_sink_signal; 
 
 int main(int argc, char **argv) {
@@ -311,8 +322,8 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
     
-    printf("Opening RF device...\n");
-    if (srslte_rf_open(&rf, prog_args.rf_args)) {
+    printf("Opening RF device with %d RX antennas...\n", prog_args.rf_nof_rx_ant);
+    if (srslte_rf_open_multi(&rf, prog_args.rf_args, prog_args.rf_nof_rx_ant)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
@@ -344,7 +355,7 @@ int main(int argc, char **argv) {
 
     uint32_t ntrial=0; 
     do {
-      ret = rf_search_and_decode_mib(&rf, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
+      ret = rf_search_and_decode_mib(&rf, prog_args.rf_nof_rx_ant, &cell_detect_config, prog_args.force_N_id_2, &cell, &cfo);
       if (ret < 0) {
         fprintf(stderr, "Error searching for cell\n");
         exit(-1); 
@@ -356,6 +367,10 @@ int main(int argc, char **argv) {
     if (go_exit) {
       exit(0);
     }
+
+    srslte_rf_stop_rx_stream(&rf);
+    srslte_rf_flush_buffer(&rf);    
+
     /* set sampling frequency */
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
@@ -376,8 +391,6 @@ int main(int argc, char **argv) {
     }
 
     INFO("Stopping RF and flushing buffer...\r",0);
-    srslte_rf_stop_rx_stream(&rf);
-    srslte_rf_flush_buffer(&rf);    
   }
 #endif
   
@@ -399,7 +412,7 @@ int main(int argc, char **argv) {
 
   } else {
 #ifndef DISABLE_RF
-    if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*) &rf)) {
+    if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
@@ -411,9 +424,13 @@ int main(int argc, char **argv) {
     exit(-1);
   }    
 
-  if (srslte_ue_dl_init(&ue_dl, cell)) {  // This is the User RNTI
+  if (srslte_ue_dl_init_multi(&ue_dl, cell, prog_args.rf_nof_rx_ant)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
+  }
+  
+  for (int i=0;i<prog_args.rf_nof_rx_ant;i++) {
+    sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }
   
   /* Configure downlink receiver for the SI-RNTI since will be the only one we'll use */
@@ -462,7 +479,7 @@ int main(int argc, char **argv) {
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     
-    ret = srslte_ue_sync_get_buffer(&ue_sync, &sf_buffer);
+    ret = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }
@@ -477,7 +494,7 @@ int main(int argc, char **argv) {
       switch (state) {
         case DECODE_MIB:
           if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
-            n = srslte_ue_mib_decode(&ue_mib, sf_buffer, bch_payload, NULL, &sfn_offset);
+            n = srslte_ue_mib_decode(&ue_mib, sf_buffer[0], bch_payload, NULL, &sfn_offset);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);
@@ -503,10 +520,10 @@ int main(int argc, char **argv) {
           }
           if (decode_pdsch) {            
             INFO("Attempting DL decode SFN=%d\n", sfn);
-            n = srslte_ue_dl_decode(&ue_dl, 
-                                    &sf_buffer[prog_args.time_offset], 
-                                    data, 
-                                    sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
+            n = srslte_ue_dl_decode_multi(&ue_dl, 
+                                          sf_buffer, 
+                                          data, 
+                                          sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
           
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);

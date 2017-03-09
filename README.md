@@ -20,7 +20,6 @@ Current Features:
  * All UL channels/signals are supported for UE side: PRACH, PUSCH, PUCCH, SRS 
  * Frequency-based ZF and MMSE equalizer
  * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX (+100 Mbps) and standard C (+25 Mbps)
- * MATLAB and OCTAVE MEX library generation for many components
  * UE receiver tested and verified with Amarisoft LTE 100 eNodeB and commercial LTE networks (Telefonica Spain, Three.ie and Eircom in Ireland)
 
 Missing Features: 
@@ -44,8 +43,7 @@ Download & Install Instructions
   * libfftw
 * Optional requirements: 
   * srsgui:        for real-time plotting. Download it here: https://github.com/srslte/srsgui 
-  * VOLK:          if the VOLK library and headers are detected, they will be used for accelerating some signal processing functions. 
-  * Matlab/Octave: if found by CMake, MEX files will also be generated and installed. If you find any compilation issue with MEX and you don't need them, pass -DDisableMEX=ON to cmake to disable them. 
+  * VOLK:          if the VOLK library and headers are detected, they will be used for accelerating some signal processing functions.  
 
 Download and build srsLTE: 
 ```

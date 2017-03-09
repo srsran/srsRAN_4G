@@ -43,17 +43,20 @@ SRSLTE_API int rf_rssi_scan(srslte_rf_t *rf,
                             int nsamp);
 
 SRSLTE_API int rf_mib_decoder(srslte_rf_t *rf, 
+                              uint32_t nof_rx_antennas,
                               cell_search_cfg_t *config, 
                               srslte_cell_t *cell, 
                               float *cfo);
 
 SRSLTE_API int rf_cell_search(srslte_rf_t *rf, 
+                              uint32_t nof_rx_antennas,
                               cell_search_cfg_t *config, 
                               int force_N_id_2, 
                               srslte_cell_t *cell, 
                               float *cfo);
 
 SRSLTE_API int rf_search_and_decode_mib(srslte_rf_t *rf, 
+                                        uint32_t nof_rx_antennas,
                                         cell_search_cfg_t *config, 
                                         int force_N_id_2, 
                                         srslte_cell_t *cell, 

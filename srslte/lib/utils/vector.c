@@ -268,12 +268,17 @@ void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len) {
 }
 
 void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len) {
+#ifdef DEBUG_MODE
+#warning FIXME: Disabling SSE/AVX in srslte_vec_lut_sss
+  srslte_vec_lut_sss_simd(x, lut, y, len);
+#else
 #ifndef LV_HAVE_SSE
   for (int i=0;i<len;i++) {
     y[lut[i]] = x[i];
   }
 #else
   srslte_vec_lut_sss_simd(x, lut, y, len);
+#endif
 #endif
 }
 

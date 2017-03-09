@@ -98,13 +98,13 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int srslte_rf_recv_wrapper(void *h, void *data, uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv(h, data, nsamples, 1);
+  return srslte_rf_recv(h, data[2], nsamples, 1);
 }
 
 int main(int argc, char **argv) {
-  cf_t *buffer; 
+  cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL, NULL}; 
   int n;
   srslte_rf_t rf;
   srslte_filesink_t sink;
@@ -124,6 +124,8 @@ int main(int argc, char **argv) {
   }
   srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
 
+  buffer[0] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
+  
   sigset_t sigset;
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGINT);
@@ -156,7 +158,7 @@ int main(int argc, char **argv) {
   cell.nof_prb = nof_prb; 
   cell.nof_ports = 1; 
   
-  if (srslte_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*) &rf)) {
+  if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
@@ -167,7 +169,7 @@ int main(int argc, char **argv) {
   while((subframe_count < nof_subframes || nof_subframes == -1)
         && !stop_capture)
   {
-    n = srslte_ue_sync_get_buffer(&ue_sync, &buffer);
+    n = srslte_ue_sync_zerocopy_multi(&ue_sync, buffer);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
@@ -179,7 +181,7 @@ int main(int argc, char **argv) {
         }        
       } else {
         printf("Writing to file %6d subframes...\r", subframe_count);
-        srslte_filesink_write(&sink, buffer, SRSLTE_SF_LEN_PRB(nof_prb));
+        srslte_filesink_write(&sink, buffer[0], SRSLTE_SF_LEN_PRB(nof_prb));
         subframe_count++;                              
       }      
     }

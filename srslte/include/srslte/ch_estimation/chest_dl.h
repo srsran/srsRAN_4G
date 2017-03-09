@@ -76,9 +76,9 @@ typedef struct {
   srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
   srslte_interp_lin_t srslte_interp_lin; 
   
-  float rssi[SRSLTE_MAX_PORTS]; 
-  float rsrp[SRSLTE_MAX_PORTS]; 
-  float noise_estimate[SRSLTE_MAX_PORTS];
+  float rssi[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
+  float rsrp[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
+  float noise_estimate[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   
   /* Use PSS for noise estimation in LS linear interpolation mode */
   cf_t pss_signal[SRSLTE_PSS_LEN];
@@ -86,6 +86,7 @@ typedef struct {
   cf_t tmp_pss_noisy[SRSLTE_PSS_LEN];
   
   srslte_chest_dl_noise_alg_t noise_alg; 
+  int last_nof_antennas;
 
 } srslte_chest_dl_t;
 
@@ -105,6 +106,12 @@ SRSLTE_API void srslte_chest_dl_set_smooth_filter3_coeff(srslte_chest_dl_t* q,
 SRSLTE_API void srslte_chest_dl_set_noise_alg(srslte_chest_dl_t *q, 
                                               srslte_chest_dl_noise_alg_t noise_estimation_alg); 
 
+SRSLTE_API int srslte_chest_dl_estimate_multi(srslte_chest_dl_t *q, 
+                                              cf_t *input[SRSLTE_MAX_PORTS],
+                                              cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                              uint32_t sf_idx, 
+                                              uint32_t nof_rx_antennas);
+
 SRSLTE_API int srslte_chest_dl_estimate(srslte_chest_dl_t *q, 
                                         cf_t *input,
                                         cf_t *ce[SRSLTE_MAX_PORTS],
@@ -114,7 +121,8 @@ SRSLTE_API int srslte_chest_dl_estimate_port(srslte_chest_dl_t *q,
                                              cf_t *input,
                                              cf_t *ce,
                                              uint32_t sf_idx, 
-                                             uint32_t port_id);
+                                             uint32_t port_id, 
+                                             uint32_t rxant_id);
 
 SRSLTE_API float srslte_chest_dl_get_noise_estimate(srslte_chest_dl_t *q); 
 

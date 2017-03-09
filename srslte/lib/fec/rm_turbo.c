@@ -36,6 +36,11 @@
 #include "srslte/utils/vector.h"
 #include "srslte/fec/cbsegm.h"
 
+#ifdef DEBUG_MODE
+#warning FIXME: Disabling SSE/AVX turbo rate matching 
+#undef LV_HAVE_SSE
+#undef LV_HAVE_AVX
+#endif
 
 #ifdef LV_HAVE_SSE
 #include <smmintrin.h>
