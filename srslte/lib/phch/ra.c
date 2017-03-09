@@ -252,7 +252,6 @@ int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, uint32_t nof_prb, uint32_
       return SRSLTE_ERROR; 
     }
   } else {
-    fprintf(stderr, "Error computing PRB allocation\n");
     return SRSLTE_ERROR; 
   }
   return SRSLTE_SUCCESS;

@@ -112,7 +112,6 @@ int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, uint32_t nof_prb,
                            nof_prb, nof_prb);
   
   if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant, 0)) {
-    fprintf(stderr, "Error computing resource allocation\n");
     return SRSLTE_ERROR;
   }
   
