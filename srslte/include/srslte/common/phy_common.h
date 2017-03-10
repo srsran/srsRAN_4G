@@ -125,7 +125,7 @@ typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
         || l == SRSLTE_CP_NSYMB(cp) - 3)
 
 
-#define SRSLTE_NOF_LTE_BANDS 29
+#define SRSLTE_NOF_LTE_BANDS 37
 
 #define SRSLTE_DEFAULT_MAX_FRAMES_PBCH      500
 #define SRSLTE_DEFAULT_MAX_FRAMES_PSS       10
