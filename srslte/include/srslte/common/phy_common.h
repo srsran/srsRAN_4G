@@ -125,7 +125,7 @@ typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
         || l == SRSLTE_CP_NSYMB(cp) - 3)
 
 
-#define SRSLTE_NOF_LTE_BANDS 37
+#define SRSLTE_NOF_LTE_BANDS 38
 
 #define SRSLTE_DEFAULT_MAX_FRAMES_PBCH      500
 #define SRSLTE_DEFAULT_MAX_FRAMES_PSS       10
@@ -246,11 +246,13 @@ SRSLTE_API char *srslte_mod_string(srslte_mod_t mod);
 
 SRSLTE_API uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod);
 
-SRSLTE_API int srslte_band_get_band(uint32_t earfcn); 
+SRSLTE_API int srslte_band_get_band(uint32_t dl_earfcn); 
 
-SRSLTE_API float srslte_band_fd(uint32_t earfcn);
+SRSLTE_API float srslte_band_fd(uint32_t dl_earfcn);
 
-SRSLTE_API float srslte_band_fu(uint32_t earfcn); 
+SRSLTE_API float srslte_band_fu(uint32_t ul_earfcn); 
+
+SRSLTE_API uint32_t srslte_band_ul_earfcn(uint32_t dl_earfcn); 
 
 SRSLTE_API int srslte_band_get_fd_band(uint32_t band, 
                                        srslte_earfcn_t *earfcn, 
