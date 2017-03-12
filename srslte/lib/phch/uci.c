@@ -297,13 +297,6 @@ int decode_cqi_long(srslte_uci_cqi_pusch_t *q, int16_t *q_bits, uint32_t Q,
     
     srslte_rm_conv_rx_s(q_bits, Q, q->encoded_cqi_s, 3 * (nof_bits + 8));
 
-    // Set viterbi normalization based on amplitude
-    int16_t max = srslte_vec_max_abs_star_si(q->encoded_cqi_s, 3 * (nof_bits + 8));
-    if (abs(max) > 100) {
-      srslte_viterbi_set_gain_quant_s(&q->viterbi, (float) abs(max)/36); 
-    } else {
-      srslte_viterbi_set_gain_quant_s(&q->viterbi, 1); 
-    }
     DEBUG("cconv_rx=", 0);
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       srslte_vec_fprint_s(stdout, q->encoded_cqi_s, 3 * (nof_bits + 8));
