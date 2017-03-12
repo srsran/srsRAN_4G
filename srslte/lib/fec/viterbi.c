@@ -40,7 +40,7 @@
 
 #define TB_ITER 3
 
-#define DEFAULT_GAIN 32
+#define DEFAULT_GAIN 127
 
 //#undef LV_HAVE_SSE
 
@@ -262,7 +262,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
         max = fabs(symbols[i]);
       }
     }
-    srslte_vec_quant_fuc(symbols, q->symbols_uc, 50/max, 127.5, 255, len);    
+    srslte_vec_quant_fuc(symbols, q->symbols_uc, q->gain_quant/max, 127.5, 255, len);    
     return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);    
   } else {
     return q->decode_f(q, symbols, data, frame_length);
@@ -291,7 +291,7 @@ int srslte_viterbi_decode_s(srslte_viterbi_t *q, int16_t *symbols, uint8_t *data
     }
   }
   
-  srslte_vec_quant_suc(symbols, q->symbols_uc, 50/max, 127, 255, len);    
+  srslte_vec_quant_suc(symbols, q->symbols_uc, q->gain_quant/max, 127, 255, len);    
   return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);    
 }
 
