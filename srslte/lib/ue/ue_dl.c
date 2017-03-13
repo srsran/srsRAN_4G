@@ -394,9 +394,11 @@ static int dci_blind_search(srslte_ue_dl_t *q, dci_blind_search_t *search_space,
         // If searching for Format1A but found Format0 save it for later 
         if (dci_msg->format == SRSLTE_DCI_FORMAT0 && search_space->format == SRSLTE_DCI_FORMAT1A) 
         {
-          q->pending_ul_dci_rnti = crc_rem; 
-          memcpy(&q->pending_ul_dci_msg, dci_msg, sizeof(srslte_dci_msg_t));          
-          memcpy(&q->last_location_ul, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+          if (!q->pending_ul_dci_rnti) {
+            q->pending_ul_dci_rnti = crc_rem; 
+            memcpy(&q->pending_ul_dci_msg, dci_msg, sizeof(srslte_dci_msg_t));          
+            memcpy(&q->last_location_ul, &search_space->loc[i], sizeof(srslte_dci_location_t));          
+          }
         // Else if we found it, save location and leave
         } else if (dci_msg->format == search_space->format) {
           ret = 1; 
