@@ -797,12 +797,12 @@ void srslte_vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, flo
   }
 }
 
-void srslte_vec_quant_suc(int16_t *in, uint8_t *out, int16_t norm, int16_t offset, int16_t clip, uint32_t len) {
+void srslte_vec_quant_suc(int16_t *in, uint8_t *out, float gain, int16_t offset, int16_t clip, uint32_t len) {
   int i;
   int16_t tmp;
   
   for (i=0;i<len;i++) {
-    tmp = (int16_t) (offset + in[i]/norm);
+    tmp = (int16_t) (offset + in[i]*gain);
     if (tmp < 0)
       tmp = 0;
     if (tmp > clip)
