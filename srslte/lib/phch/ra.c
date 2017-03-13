@@ -167,8 +167,8 @@ int srslte_ra_ul_dci_to_grant_prb_allocation(srslte_ra_ul_dci_t *dci, srslte_ra_
     grant->freq_hopping = 1;
   }
   
-  if (grant->n_prb[0] + grant->L_prb < nof_prb && 
-      grant->n_prb[1] + grant->L_prb < nof_prb) 
+  if (grant->n_prb[0] + grant->L_prb <= nof_prb && 
+      grant->n_prb[1] + grant->L_prb <= nof_prb) 
   {
     return SRSLTE_SUCCESS; 
   } else {
@@ -252,6 +252,7 @@ int srslte_ra_ul_dci_to_grant(srslte_ra_ul_dci_t *dci, uint32_t nof_prb, uint32_
       return SRSLTE_ERROR; 
     }
   } else {
+    printf("Error computing UL PRB allocation\n");
     return SRSLTE_ERROR; 
   }
   return SRSLTE_SUCCESS;
