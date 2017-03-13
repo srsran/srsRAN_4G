@@ -407,7 +407,7 @@ struct lte_band lte_bands[SRSLTE_NOF_LTE_BANDS] = {
     {30, 2350, 9770, 27660, 45, SRSLTE_BAND_GEO_AREA_NAR},
     {31, 462.5, 9870, 27760, 10, SRSLTE_BAND_GEO_AREA_CALA},
     {32, 1452, 9920, 0, 0, SRSLTE_BAND_GEO_AREA_EMEA},
-    {64, 0,    10359, 10359, 0, SRSLTE_BAND_GEO_AREA_ALL},
+    {64, 0,    10359, 27809, 0, SRSLTE_BAND_GEO_AREA_ALL},
     {65, 2110, 65536, 131072, 90, SRSLTE_BAND_GEO_AREA_ALL},
     {66, 2110, 66436, 131972, 90, SRSLTE_BAND_GEO_AREA_NAR},
     {67, 738, 67336, 0, 0, SRSLTE_BAND_GEO_AREA_EMEA},
@@ -441,7 +441,7 @@ float get_fd(struct lte_band *band, uint32_t dl_earfcn) {
 
 float get_fu(struct lte_band *band, uint32_t ul_earfcn) {
   if (ul_earfcn >= band->ul_earfcn_offset) {
-    return band->fd_low_mhz + band->duplex_mhz + 0.1*(ul_earfcn - band->ul_earfcn_offset);    
+    return band->fd_low_mhz - band->duplex_mhz + 0.1*(ul_earfcn - band->ul_earfcn_offset);    
   } else {
     return 0.0;
   }
@@ -478,7 +478,7 @@ float srslte_band_fu(uint32_t ul_earfcn) {
     fprintf(stderr, "Invalid UL_EARFCN=%d\n", ul_earfcn);
   }
   i--;
-  while(i > 0 && lte_bands[i].dl_earfcn_offset>ul_earfcn) {
+  while(i > 0 && (lte_bands[i].ul_earfcn_offset>ul_earfcn || lte_bands[i].ul_earfcn_offset == 0)) {
     i--;
   }
   return get_fu(&lte_bands[i], ul_earfcn);
@@ -493,7 +493,7 @@ uint32_t srslte_band_ul_earfcn(uint32_t dl_earfcn) {
   while(i > 0 && lte_bands[i].dl_earfcn_offset>dl_earfcn) {
     i--;
   }
-  return lte_bands[i].ul_earfcn_offset + (lte_bands[i].dl_earfcn_offset-dl_earfcn); 
+  return lte_bands[i].ul_earfcn_offset + (dl_earfcn-lte_bands[i].dl_earfcn_offset); 
 }
 
 int srslte_band_get_fd_band_all(uint32_t band, srslte_earfcn_t *earfcn, uint32_t max_elems) {
