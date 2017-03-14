@@ -461,6 +461,7 @@ int srslte_prach_init(srslte_prach_t *p,
     p->N_seq = prach_Tseq[p->f]*p->N_ifft_ul/2048;
     p->N_cp  = prach_Tcp[p->f]*p->N_ifft_ul/2048;
     p->T_seq = prach_Tseq[p->f]*SRSLTE_LTE_TS;
+    p->T_tot = (prach_Tseq[p->f]+prach_Tcp[p->f])*SRSLTE_LTE_TS;
     
     ret = SRSLTE_SUCCESS;
   } else {

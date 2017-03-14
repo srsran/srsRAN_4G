@@ -163,7 +163,7 @@ SRSLTE_API void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len);
 
 /* quantify vector of floats or int16 and convert to uint8_t */
 SRSLTE_API void srslte_vec_quant_fuc(float *in, uint8_t *out, float gain, float offset, float clip, uint32_t len);
-SRSLTE_API void srslte_vec_quant_suc(int16_t *in, uint8_t *out, int16_t norm, int16_t offset, int16_t clip, uint32_t len); 
+SRSLTE_API void srslte_vec_quant_suc(int16_t *in, uint8_t *out, float gain, int16_t offset, int16_t clip, uint32_t len); 
 
 /* magnitude of each vector element */
 SRSLTE_API void srslte_vec_abs_cf(cf_t *x, float *abs, uint32_t len);

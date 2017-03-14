@@ -287,11 +287,10 @@ int srslte_viterbi_decode_s(srslte_viterbi_t *q, int16_t *symbols, uint8_t *data
   int16_t max = -INT16_MAX; 
   for (int i=0;i<len;i++) {
     if (abs(symbols[i]) > max) {
-      max = symbols[i];
+      max = abs(symbols[i]);
     }
   }
-  
-  srslte_vec_quant_suc(symbols, q->symbols_uc, q->gain_quant/max, 127, 255, len);    
+  srslte_vec_quant_suc(symbols, q->symbols_uc, (float) q->gain_quant/max, 127, 255, len);    
   return srslte_viterbi_decode_uc(q, q->symbols_uc, data, frame_length);    
 }
 
