@@ -65,6 +65,7 @@ typedef struct SRSLTE_API {
   uint32_t N_cs;  // Cyclic shift size
   uint32_t N_seq; // Preamble length
   float    T_seq; // Preamble length in seconds
+  float    T_tot; // Total sequence length in seconds
   uint32_t N_cp;  // Cyclic prefix length
 
   // Generated tables
