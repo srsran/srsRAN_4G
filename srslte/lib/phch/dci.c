@@ -1098,7 +1098,7 @@ int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, srslte_dci_format_t form
   case SRSLTE_DCI_FORMAT1C:
     return dci_format1Cs_pack(data, msg, nof_prb);
   default:
-    fprintf(stderr, "DCI pack pdsch: Invalid DCI format %s in \n",
+    fprintf(stderr, "DCI pack pdsch: Invalid DCI format %s\n",
         srslte_dci_format_string(format));
     return SRSLTE_ERROR;
   }
