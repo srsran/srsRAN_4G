@@ -165,6 +165,7 @@ SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data,
                                          srslte_dci_format_t format,
                                          srslte_dci_msg_t *msg, 
                                          uint32_t nof_prb, 
+                                         uint32_t nof_ports,
                                          bool crc_is_crnti);
 
 SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, 

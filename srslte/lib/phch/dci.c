@@ -1010,6 +1010,76 @@ int dci_format1D_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
 }
 
 
+int dci_format2AB_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb, uint32_t nof_ports) {
+
+  /* pack bits */
+  uint8_t *y = msg->data;
+
+  if (nof_prb > 10) {
+    *y++ = data->alloc_type;
+  }
+
+  /* Resource allocation: type0 or type 1 */
+  uint32_t P = srslte_ra_type0_P(nof_prb);
+  uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
+  switch (data->alloc_type) {
+  case SRSLTE_RA_ALLOC_TYPE0:
+    srslte_bit_unpack((uint32_t) data->type0_alloc.rbg_bitmask, &y, alloc_size);
+    break;
+  case SRSLTE_RA_ALLOC_TYPE1:
+    srslte_bit_unpack((uint32_t) data->type1_alloc.rbg_subset, &y, (int) ceilf(log2f(P)));
+    *y++ = data->type1_alloc.shift ? 1 : 0;
+    srslte_bit_unpack((uint32_t) data->type1_alloc.vrb_bitmask, &y,
+        alloc_size - (int) ceilf(log2f(P)) - 1);
+    break;
+  default:
+    fprintf(stderr,
+        "Format 1 accepts type0 or type1 resource allocation only\n");
+    return SRSLTE_ERROR;
+
+  }
+
+  // pack TPC command for PUCCH (not implemented) 
+  y+=2; 
+
+  /* harq process number */
+  srslte_bit_unpack(data->harq_process, &y, harq_pid_len);
+
+  
+  // Transpor block to codeword swap flag 
+  if (msg->format == SRSLTE_DCI_FORMAT2B) {
+    *y++ = data->sram_id;
+  } else {
+    *y++ = data->tb_cw_swap;
+  }
+  
+  /* pack TB1 */
+  srslte_bit_unpack(data->mcs_idx, &y, 5);
+  *y++ = data->ndi;
+  srslte_bit_unpack(data->rv_idx, &y, 2);
+
+  /* pack TB2 */
+  srslte_bit_unpack(data->mcs_idx_1, &y, 5);
+  *y++ = data->ndi_1;
+  srslte_bit_unpack(data->rv_idx_1, &y, 2);
+
+  // Precoding information 
+  if (msg->format == SRSLTE_DCI_FORMAT2A) {
+    srslte_bit_unpack(data->pinfo, &y, precoding_bits_f2(nof_ports));
+  } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
+    srslte_bit_unpack(data->pinfo, &y, precoding_bits_f2a(nof_ports));
+  }
+
+  // Padding with zeros
+  uint32_t n = srslte_dci_format_sizeof(msg->format, nof_prb, nof_ports);
+  while (y - msg->data < n) {
+    *y++ = 0;
+  }
+  msg->nof_bits = (y - msg->data);
+
+  return SRSLTE_SUCCESS;
+}
+
 int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb, uint32_t nof_ports) {
 
   /* pack bits */
@@ -1086,7 +1156,7 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
 
 
 int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, srslte_dci_format_t format, 
-                              srslte_dci_msg_t *msg, uint32_t nof_prb, 
+                              srslte_dci_msg_t *msg, uint32_t nof_prb, uint32_t nof_ports, 
                               bool crc_is_crnti) 
 {
   msg->format = format; 
@@ -1097,6 +1167,10 @@ int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, srslte_dci_format_t form
     return dci_format1As_pack(data, msg, nof_prb, crc_is_crnti);
   case SRSLTE_DCI_FORMAT1C:
     return dci_format1Cs_pack(data, msg, nof_prb);
+  case SRSLTE_DCI_FORMAT2:
+  case SRSLTE_DCI_FORMAT2A:
+  case SRSLTE_DCI_FORMAT2B:
+    return dci_format2AB_pack(data, msg, nof_prb, nof_ports);
   default:
     fprintf(stderr, "DCI pack pdsch: Invalid DCI format %s\n",
         srslte_dci_format_string(format));

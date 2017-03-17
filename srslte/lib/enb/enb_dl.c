@@ -238,7 +238,7 @@ int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, srslte_ra_dl_dci_t *grant,
     rnti_is_user = false; 
   }
   
-  srslte_dci_msg_pack_pdsch(grant, format, &dci_msg, q->cell.nof_prb, rnti_is_user);
+  srslte_dci_msg_pack_pdsch(grant, format, &dci_msg, q->cell.nof_prb, q->cell.nof_ports, rnti_is_user);
   if (srslte_pdcch_encode(&q->pdcch, &dci_msg, location, rnti, q->sf_symbols, sf_idx, q->cfi)) {
     fprintf(stderr, "Error encoding DCI message\n");
     return SRSLTE_ERROR;
