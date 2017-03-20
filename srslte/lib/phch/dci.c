@@ -1018,7 +1018,7 @@ int dci_format2AB_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   if (nof_prb > 10) {
     *y++ = data->alloc_type;
   }
-
+  
   /* Resource allocation: type0 or type 1 */
   uint32_t P = srslte_ra_type0_P(nof_prb);
   uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
@@ -1044,7 +1044,6 @@ int dci_format2AB_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
 
   /* harq process number */
   srslte_bit_unpack(data->harq_process, &y, harq_pid_len);
-
   
   // Transpor block to codeword swap flag 
   if (msg->format == SRSLTE_DCI_FORMAT2B) {
@@ -1064,18 +1063,20 @@ int dci_format2AB_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   srslte_bit_unpack(data->rv_idx_1, &y, 2);
 
   // Precoding information 
-  if (msg->format == SRSLTE_DCI_FORMAT2A) {
+  if (msg->format == SRSLTE_DCI_FORMAT2) {
     srslte_bit_unpack(data->pinfo, &y, precoding_bits_f2(nof_ports));
   } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
     srslte_bit_unpack(data->pinfo, &y, precoding_bits_f2a(nof_ports));
   }
 
-  // Padding with zeros
+  // Padding with zeros  
   uint32_t n = srslte_dci_format_sizeof(msg->format, nof_prb, nof_ports);
   while (y - msg->data < n) {
     *y++ = 0;
   }
   msg->nof_bits = (y - msg->data);
+
+
 
   return SRSLTE_SUCCESS;
 }
@@ -1143,7 +1144,7 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   }
   
   // Precoding information 
-  if (msg->format == SRSLTE_DCI_FORMAT2A) {
+  if (msg->format == SRSLTE_DCI_FORMAT2) {
     data->pinfo = srslte_bit_pack(&y, precoding_bits_f2(nof_ports));
   } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
     data->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(nof_ports));
@@ -1162,14 +1163,18 @@ int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, srslte_dci_format_t form
   msg->format = format; 
   switch (format) {
   case SRSLTE_DCI_FORMAT1:
+    msg->format = format; 
     return dci_format1_pack(data, msg, nof_prb);
   case SRSLTE_DCI_FORMAT1A:
+    msg->format = format; 
     return dci_format1As_pack(data, msg, nof_prb, crc_is_crnti);
   case SRSLTE_DCI_FORMAT1C:
+    msg->format = format; 
     return dci_format1Cs_pack(data, msg, nof_prb);
   case SRSLTE_DCI_FORMAT2:
   case SRSLTE_DCI_FORMAT2A:
   case SRSLTE_DCI_FORMAT2B:
+    msg->format = format; 
     return dci_format2AB_pack(data, msg, nof_prb, nof_ports);
   default:
     fprintf(stderr, "DCI pack pdsch: Invalid DCI format %s\n",
