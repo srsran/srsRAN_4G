@@ -53,7 +53,14 @@ SRSLTE_API int srslte_precoding_single(cf_t *x,
 
 SRSLTE_API int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], 
                                           cf_t *y[SRSLTE_MAX_PORTS], 
-                                          int nof_ports, int nof_symbols);
+                                          int nof_ports, 
+                                          int nof_symbols);
+
+SRSLTE_API int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], 
+                                    cf_t *y[SRSLTE_MAX_PORTS], 
+                                    int nof_layers, 
+                                    int nof_ports, 
+                                    int nof_symbols);
 
 SRSLTE_API int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], 
                                      cf_t *y[SRSLTE_MAX_PORTS], 

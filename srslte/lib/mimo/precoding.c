@@ -620,6 +620,31 @@ int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
   }
 }
 
+int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers, int nof_ports, int nof_symbols) 
+{
+  int i;
+  if (nof_ports == 2) {
+    if (nof_layers != 2) {
+      fprintf(stderr, "Invalid number of layers %d for 2 ports\n", nof_layers);
+      return -1; 
+    }
+    for (i = 0; i < nof_symbols; i++) {
+      y[0][i] =  (x[0][i]+x[1][i])/2;
+      y[1][i] =  (x[0][i]-x[1][i])/2;
+      i++;
+      y[0][i] =  (x[0][i]+x[1][i])/2;
+      y[1][i] = (-x[0][i]+x[1][i])/2;
+    }
+    return 2 * i;
+  } else if (nof_ports == 4) {
+    fprintf(stderr, "Not implemented\n");
+    return -1;
+  } else {
+    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
+    return -1;
+  }
+}
+
 /* 36.211 v10.3.0 Section 6.3.4 */
 int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers,
     int nof_ports, int nof_symbols, srslte_mimo_type_t type) {
@@ -637,8 +662,7 @@ int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS],
 
   switch (type) {
   case SRSLTE_MIMO_TYPE_CDD:
-    fprintf(stderr, "CCD not supported\n");
-    return -1; 
+    return srslte_precoding_cdd(x, y, nof_layers, nof_ports, nof_symbols); 
   case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     if (nof_ports == 1 && nof_layers == 1) {
       return srslte_precoding_single(x[0], y[0], nof_symbols);
