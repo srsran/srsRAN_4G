@@ -191,11 +191,11 @@ int main(int argc, char **argv) {
   ra_dl.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   ra_dl.type0_alloc.rbg_bitmask = 0x5;
 
-  srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_tx[0], cell.nof_prb, false);
+  srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_tx[0], cell.nof_prb, cell.nof_ports, false);
   srslte_dci_location_set(&dci_locations[0], 0, 0);
 
   ra_dl.mcs_idx = 15;
-  srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_tx[1], cell.nof_prb, false);
+  srslte_dci_msg_pack_pdsch(&ra_dl, SRSLTE_DCI_FORMAT1, &dci_tx[1], cell.nof_prb, cell.nof_ports, false);
   srslte_dci_location_set(&dci_locations[1], 0, 1);
   
   for (i=0;i<nof_dcis;i++) {

@@ -59,7 +59,7 @@ int srslte_layermap_multiplex(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_
     n[1] = nof_layers - n[0];
     if (nof_symbols[0] / n[0] == nof_symbols[1] / n[1]) {
 
-      srslte_layermap_diversity(d[0], x,     n[0], nof_symbols[0]);
+      srslte_layermap_diversity(d[0],  x,       n[0], nof_symbols[0]);
       srslte_layermap_diversity(d[1], &x[n[0]], n[1], nof_symbols[1]);
       return nof_symbols[0] / n[0];
 
@@ -115,11 +115,9 @@ int srslte_layermap_type(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_LAYER
     }
     break;
   case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+  case SRSLTE_MIMO_TYPE_CDD:
     return srslte_layermap_multiplex(d, x, nof_cw, nof_layers, nof_symbols);
     break;
-  case SRSLTE_MIMO_TYPE_CDD:
-    fprintf(stderr, "CDD Not implemented\n");
-    return -1; 
   }
   return 0;
 }

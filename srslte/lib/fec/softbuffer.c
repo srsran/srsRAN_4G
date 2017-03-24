@@ -69,7 +69,7 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t *q, uint32_t nof_prb) {
           return SRSLTE_ERROR;
         }
       }      
-      srslte_softbuffer_rx_reset(q);
+      //srslte_softbuffer_rx_reset(q);
       ret = SRSLTE_SUCCESS;
     }
   }
