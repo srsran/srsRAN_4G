@@ -429,6 +429,9 @@ int srslte_pucch_init(srslte_pucch_t *q, srslte_cell_t cell) {
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       return SRSLTE_ERROR;
     }
+    
+    srslte_demod_hard_init(&q->demod);    
+    srslte_demod_hard_table_set(&q->demod, SRSLTE_MOD_QPSK);
 
     // Precompute group hopping values u. 
     if (srslte_group_hopping_f_gh(q->f_gh, q->cell.id)) {
@@ -582,13 +585,19 @@ static int uci_mod_bits(srslte_pucch_t *q, srslte_pucch_format_t format, uint8_t
 // Declare this here, since we can not include refsignal_ul.h
 void srslte_refsignal_r_uv_arg_1prb(float *arg, uint32_t u);
 
-static int pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format, 
-                    uint32_t n_pucch, uint32_t sf_idx, 
-                    uint8_t bits[SRSLTE_PUCCH_MAX_BITS], cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS]) 
+static int pucch_encode_(srslte_pucch_t* q, srslte_pucch_format_t format, 
+                          uint32_t n_pucch, uint32_t sf_idx, 
+                          uint8_t bits[SRSLTE_PUCCH_MAX_BITS], cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS], bool signal_only) 
 {
-  if (uci_mod_bits(q, format, bits, sf_idx)) {
-    fprintf(stderr, "Error encoding PUCCH bits\n");
-    return SRSLTE_ERROR; 
+  if (!signal_only) {
+    if (uci_mod_bits(q, format, bits, sf_idx)) {
+      fprintf(stderr, "Error encoding PUCCH bits\n");
+      return SRSLTE_ERROR; 
+    }
+  } else {
+    for (int i=0;i<SRSLTE_PUCCH_MAX_BITS/2;i++) {
+      q->d[i] = 1.0; 
+    }
   }
   uint32_t N_sf_0 = get_N_sf(format, 0, q->shortened);
   for (uint32_t ns=2*sf_idx;ns<2*(sf_idx+1);ns++) {
@@ -630,6 +639,14 @@ static int pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format,
   }    
   return SRSLTE_SUCCESS;
 }
+
+static int pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format, 
+                    uint32_t n_pucch, uint32_t sf_idx, 
+                    uint8_t bits[SRSLTE_PUCCH_MAX_BITS], cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS]) 
+{
+  return pucch_encode_(q, format, n_pucch, sf_idx, bits, z, false); 
+}
+
 
 /* Encode, modulate and resource mapping of PUCCH bits according to Section 5.4.1 of 36.211 */
 int srslte_pucch_encode(srslte_pucch_t* q, srslte_pucch_format_t format, 
@@ -689,6 +706,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
       sf_symbols != NULL)
   {
     ret = SRSLTE_ERROR; 
+    cf_t ref[SRSLTE_PUCCH_MAX_SYMBOLS]; 
     
     // Shortened PUCCH happen in every cell-specific SRS subframes for Format 1/1a/1b
     if (q->pucch_cfg.srs_configured && format < SRSLTE_PUCCH_FORMAT_2) {
@@ -705,7 +723,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
     q->last_n_pucch = n_pucch; 
     
     if (format >= SRSLTE_PUCCH_FORMAT_2 && !q->rnti_is_set) {
-      fprintf(stderr, "Error decoding PUCCH: C-RNTI must be set before encoding PUCCH Format 2/2a/2b\n");
+      fprintf(stderr, "Error decoding PUCCH: C-RNTI must be set before decoding PUCCH Format 2/2a/2b\n");
       return SRSLTE_ERROR; 
     }
     int nof_re = pucch_get(q, format, n_pucch, sf_symbols, q->z_tmp); 
@@ -755,28 +773,24 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
           DEBUG("format1a b=%d, corr=%f, nof_re=%d, th=%f\n", b, corr, nof_re, q->threshold_format1a);
         }
         q->last_corr = corr_max; 
-
-/*
-        if (corr_max < 0.01) {
-          srslte_vec_save_file("sf_symbols", sf_symbols, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
-          srslte_vec_save_file("sf_ce", ce, sizeof(cf_t)*SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
-          srslte_vec_save_file("ce", q->ce, sizeof(cf_t)*nof_re);
-          srslte_vec_save_file("z_before", zz, sizeof(cf_t)*nof_re);
-          srslte_vec_save_file("z_eq", q->z, sizeof(cf_t)*nof_re);
-          srslte_vec_save_file("z_1", q->z_tmp, sizeof(cf_t)*nof_re);
-          bits[0] = 0; 
-          pucch_encode(q, format, n_pucch, sf_idx, bits, q->z_tmp);
-          srslte_vec_save_file("z_0", q->z_tmp, sizeof(cf_t)*nof_re);
-          printf("corr_max=%f, b_max=%d, n_pucch=%d, n_prb=%d, sf_idx=%d, nof_re=%d, noise_estimate=%f\n", corr_max, b_max, n_pucch, q->last_n_prb, sf_idx, nof_re, noise_estimate);
-          exit(-1);
-        }
-*/
         bits[0] = b_max; 
         break;
-      default:
-        fprintf(stderr, "Error decoding PUCCH: Format %d not supported\n", format);
-        ret = SRSLTE_ERROR; 
+      case SRSLTE_PUCCH_FORMAT_2:
+        pucch_encode_(q, format, n_pucch, sf_idx, NULL, ref, true);
+        srslte_vec_prod_conj_ccc(q->z, ref, q->z_tmp, SRSLTE_PUCCH_MAX_SYMBOLS);
+        for (int i=0;i<SRSLTE_PUCCH_MAX_BITS/2;i++) {
+          q->z[i] = 0; 
+          for (int j=0;j<SRSLTE_NRE;j++) {
+            q->z[i] += q->z_tmp[i*SRSLTE_NRE+j]/SRSLTE_NRE;
+          }
+        }
+        srslte_demod_hard_demodulate(&q->demod, q->z, bits, SRSLTE_PUCCH_MAX_BITS/2);
+        srslte_scrambling_b(&q->seq_f2[sf_idx], bits);
+        ret = 1; 
         break;
+      default:
+        fprintf(stderr, "PUCCH format %d not implemented\n", format);
+        return SRSLTE_ERROR; 
     }
   }
 

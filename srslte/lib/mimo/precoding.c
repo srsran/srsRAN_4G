@@ -516,9 +516,23 @@ int srslte_predecoding_diversity_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE
 }
 
 
+int srslte_predecoding_type(cf_t *y_, cf_t *h_[SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
+    int nof_ports, int nof_layers, int nof_symbols, srslte_mimo_type_t type, float noise_estimate) 
+{
+  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
+  cf_t *y[SRSLTE_MAX_PORTS]; 
+  uint32_t nof_rxant = 1; 
+  
+  for (int i=0;i<nof_ports;i++) {
+    h[i][0] = h_[i];
+  }
+  y[0] = y_; 
+  return srslte_predecoding_type_multi(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols, type, noise_estimate);  
+}
+
 /* 36.211 v10.3.0 Section 6.3.4 */
-int srslte_predecoding_type(cf_t *y, cf_t *h[SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
-    int nof_ports, int nof_layers, int nof_symbols, srslte_mimo_type_t type, float noise_estimate) {
+int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
+    int nof_rxant, int nof_ports, int nof_layers, int nof_symbols, srslte_mimo_type_t type, float noise_estimate) {
 
   if (nof_ports > SRSLTE_MAX_PORTS) {
     fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,

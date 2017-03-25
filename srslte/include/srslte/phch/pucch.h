@@ -41,6 +41,7 @@
 #include "srslte/modem/mod.h"
 #include "srslte/phch/cqi.h"
 #include "srslte/phch/uci.h"
+#include "srslte/modem/demod_hard.h"
 
 #define SRSLTE_PUCCH_N_SEQ       12 
 #define SRSLTE_PUCCH_MAX_BITS    SRSLTE_CQI_MAX_BITS
@@ -84,6 +85,7 @@ typedef struct SRSLTE_API {
   srslte_pucch_cfg_t pucch_cfg;
   srslte_sequence_t seq_f2[SRSLTE_NSUBFRAMES_X_FRAME]; 
   srslte_modem_table_t mod; 
+  srslte_demod_hard_t  demod; 
   
   uint8_t bits_scram[SRSLTE_PUCCH_MAX_BITS];
   cf_t d[SRSLTE_PUCCH_MAX_BITS/2];

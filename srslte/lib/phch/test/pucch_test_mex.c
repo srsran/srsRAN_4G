@@ -192,7 +192,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
   
-  if (srslte_pucch_decode(&pucch, format, n_pucch, sf_idx, sf_symbols, ce, 0, bits)) {
+  if (srslte_pucch_decode(&pucch, format, n_pucch, sf_idx, sf_symbols, ce, 0, bits)<0) {
     mexErrMsgTxt("Error decoding PUCCH\n");
     return; 
   }
@@ -210,11 +210,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   if (nlhs >= 2) {
-    mexutils_write_cf(pucch.z, &plhs[1], 2*srslte_refsignal_dmrs_N_rs(format, cell.cp)*SRSLTE_NRE*2, 1);  
+    mexutils_write_cf(pucch.z, &plhs[1], 10, 1);  
   }
 
   if (nlhs >= 3) {
-    mexutils_write_cf(ce, &plhs[2], nof_re, 1);
+    mexutils_write_cf(pucch.z_tmp, &plhs[2], 120, 1);
   }
 
   srslte_pucch_free(&pucch);  
