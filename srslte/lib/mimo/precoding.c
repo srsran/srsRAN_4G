@@ -551,7 +551,7 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     return -1; 
   case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     if (nof_ports == 1 && nof_layers == 1) {
-      return srslte_predecoding_single(y, h[0], x[0], nof_symbols, noise_estimate);              
+      return srslte_predecoding_single_multi(y, h[0], x[0], nof_rxant, nof_symbols, noise_estimate);              
     } else {
       fprintf(stderr,
           "Number of ports and layers must be 1 for transmission on single antenna ports\n");
@@ -560,7 +560,7 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     break;
   case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
     if (nof_ports == nof_layers) {
-      return srslte_predecoding_diversity(y, h, x, nof_ports, nof_symbols);
+      return srslte_predecoding_diversity_multi(y, h, x, nof_rxant, nof_ports, nof_symbols);
     } else {
       fprintf(stderr,
           "Error number of layers must equal number of ports in transmit diversity\n");
