@@ -219,7 +219,7 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
     L = (1 << l);
     // For all possible ncce offset
     for (i = 0; i < SRSLTE_MIN(nof_cce / L, S[l]/PDCCH_FORMAT_NOF_CCE(l)); i++) {
-      if (nof_cce > L) {
+      if (nof_cce >= L) {
         ncce = L * ((Yk + i) % (nof_cce / L));      
         if (k < max_candidates  && ncce + L <= nof_cce) 
         {            
