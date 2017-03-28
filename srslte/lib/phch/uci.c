@@ -104,7 +104,75 @@ static uint8_t M_basis_seq_pucch[20][13]={
                                   {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0},
                                   };                                    
 
+void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t *q) {
+  uint8_t word[16]; 
+    
+  uint32_t nwords      = 16;
+  for (uint32_t w=0;w<nwords;w++) {
+    uint8_t *ptr = word; 
+    srslte_bit_unpack(w, &ptr, 4);
+    srslte_uci_encode_cqi_pucch(word, 4, q->cqi_table[w]);    
+    for (int j=0;j<SRSLTE_UCI_CQI_CODED_PUCCH_B;j++) {
+      q->cqi_table_s[w][j] = 2*q->cqi_table[w][j]-1;
+    }
+  }
+}
 
+/* Encode UCI CQI/PMI as described in 5.2.3.3 of 36.212 
+ */
+int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
+{
+  if (cqi_len <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH) {
+    for (uint32_t i=0;i<SRSLTE_UCI_CQI_CODED_PUCCH_B;i++) {
+      uint64_t x=0;
+      for (uint32_t n=0;n<cqi_len;n++) {
+        x += cqi_data[n]*M_basis_seq_pucch[i][n];
+      }
+      b_bits[i] = (uint8_t) (x%2);
+    }
+    return SRSLTE_SUCCESS;
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
+/* Decode UCI CQI/PMI over PUCCH 
+ */
+int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t *q, int16_t b_bits[32], uint8_t *cqi_data, uint32_t cqi_len)
+{
+  if (cqi_len           == 4     &&
+      b_bits            != NULL  &&
+      cqi_data          != NULL) 
+  {
+    uint32_t max_w = 0;
+    int32_t max_corr = INT32_MIN;   
+    for (uint32_t w=0;w<16;w++) {
+          
+      // Calculate correlation with pregenerated word and select maximum
+      int32_t corr = srslte_vec_dot_prod_sss(q->cqi_table_s[w], b_bits, SRSLTE_UCI_CQI_CODED_PUCCH_B);
+      if (corr > max_corr) {
+        max_corr = corr; 
+        max_w = w; 
+      }
+    }
+    // Convert word to bits again
+    uint8_t *ptr = cqi_data; 
+    srslte_bit_unpack(max_w, &ptr, cqi_len);
+    
+    INFO("Decoded CQI: w=%d, corr=%d\n", max_w, max_corr);
+    return max_corr;
+  } else {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }  
+}
+
+                                  
+                                  
+                                  
+                                  
+                                  
+                                  
+                                  
 void encode_cqi_pusch_block(srslte_uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t output[32]) {
   for (int i=0;i<32;i++) {
     output[i] = 0;
@@ -318,24 +386,6 @@ int decode_cqi_long(srslte_uci_cqi_pusch_t *q, int16_t *q_bits, uint32_t Q,
     }
   }
   return ret;   
-}
-
-/* Encode UCI CQI/PMI as described in 5.2.3.3 of 36.212 
- */
-int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
-{
-  if (cqi_len <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH) {
-    for (uint32_t i=0;i<SRSLTE_UCI_CQI_CODED_PUCCH_B;i++) {
-      uint64_t x=0;
-      for (uint32_t n=0;n<cqi_len;n++) {
-        x += cqi_data[n]*M_basis_seq_pucch[i][n];
-      }
-      b_bits[i] = (uint8_t) (x%2);
-    }
-    return SRSLTE_SUCCESS;
-  } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
 }
 
 /* Encode UCI CQI/PMI 

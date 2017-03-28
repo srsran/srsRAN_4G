@@ -41,9 +41,9 @@
 #include "srslte/modem/mod.h"
 #include "srslte/phch/cqi.h"
 #include "srslte/phch/uci.h"
-#include "srslte/modem/demod_hard.h"
 
 #define SRSLTE_PUCCH_N_SEQ       12 
+#define SRSLTE_PUCCH2_NOF_BITS   SRSLTE_UCI_CQI_CODED_PUCCH_B
 #define SRSLTE_PUCCH_MAX_BITS    SRSLTE_CQI_MAX_BITS
 #define SRSLTE_PUCCH_MAX_SYMBOLS 120
 
@@ -79,13 +79,19 @@ typedef struct SRSLTE_API {
   bool srs_simul_ack; 
 } srslte_pucch_cfg_t;
 
+typedef struct  {
+  srslte_sequence_t seq_f2[SRSLTE_NSUBFRAMES_X_FRAME];   
+} srslte_pucch_user_t; 
+
 /* PUCCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
   srslte_pucch_cfg_t pucch_cfg;
-  srslte_sequence_t seq_f2[SRSLTE_NSUBFRAMES_X_FRAME]; 
   srslte_modem_table_t mod; 
-  srslte_demod_hard_t  demod; 
+  
+  srslte_uci_cqi_pucch_t cqi; 
+  
+  srslte_pucch_user_t **users;
   
   uint8_t bits_scram[SRSLTE_PUCCH_MAX_BITS];
   cf_t d[SRSLTE_PUCCH_MAX_BITS/2];
@@ -97,7 +103,6 @@ typedef struct SRSLTE_API {
   cf_t *z_tmp;
   cf_t *ce;
   
-  bool rnti_is_set;
   bool shortened; 
   bool group_hopping_en;
 
@@ -126,6 +131,9 @@ SRSLTE_API void srslte_pucch_set_threshold(srslte_pucch_t *q,
 SRSLTE_API int srslte_pucch_set_crnti(srslte_pucch_t *q, 
                                       uint16_t c_rnti); 
 
+SRSLTE_API void srslte_pucch_clear_rnti(srslte_pucch_t *q, 
+                                        uint16_t rnti); 
+
 SRSLTE_API uint32_t srslte_pucch_nof_symbols(srslte_pucch_cfg_t *cfg, 
                                              srslte_pucch_format_t format, 
                                              bool shortened); 
@@ -136,6 +144,7 @@ SRSLTE_API int srslte_pucch_encode(srslte_pucch_t *q,
                                    srslte_pucch_format_t format,
                                    uint32_t n_pucch, // n_pucch_1 or n_pucch_2 depending on format
                                    uint32_t sf_idx, 
+                                   uint16_t rnti,
                                    uint8_t bits[SRSLTE_PUCCH_MAX_BITS], 
                                    cf_t *sf_symbols); 
 
@@ -143,6 +152,7 @@ SRSLTE_API int srslte_pucch_decode(srslte_pucch_t *q,
                                    srslte_pucch_format_t format,
                                    uint32_t n_pucch, // n_pucch_1 or n_pucch_2 depending on format
                                    uint32_t sf_idx, 
+                                   uint16_t rnti,
                                    cf_t *sf_symbols,
                                    cf_t *ce, 
                                    float noise_estimate,
