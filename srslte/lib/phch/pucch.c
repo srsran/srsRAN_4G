@@ -794,6 +794,8 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
         bits[0] = b_max; 
         break;
       case SRSLTE_PUCCH_FORMAT_2:
+      case SRSLTE_PUCCH_FORMAT_2A:
+      case SRSLTE_PUCCH_FORMAT_2B:
         if (q->users[rnti]) {
           pucch_encode_(q, format, n_pucch, sf_idx, rnti, NULL, ref, true);
           srslte_vec_prod_conj_ccc(q->z, ref, q->z_tmp, SRSLTE_PUCCH_MAX_SYMBOLS);

@@ -230,11 +230,10 @@ int get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
     
   uint32_t n_pucch = srslte_pucch_get_npucch(pdcch_n_cce, format, uci_data->scheduling_request, &q->users[rnti]->pucch_sched);
   
-  if (srslte_chest_ul_estimate_pucch(&q->chest, q->sf_symbols, q->ce, format, n_pucch, sf_rx)) {
+  if (srslte_chest_ul_estimate_pucch(&q->chest, q->sf_symbols, q->ce, format, n_pucch, sf_rx, &bits[20])) {
     fprintf(stderr,"Error estimating PUCCH DMRS\n");
     return SRSLTE_ERROR;
   }
-  
   
   int ret_val = srslte_pucch_decode(&q->pucch, format, n_pucch, sf_rx, rnti, q->sf_symbols, q->ce, noise_power, bits); 
   if (ret_val < 0) {
@@ -271,9 +270,15 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t *q, uint16_t rnti,
       uci_data->uci_ack = pucch_bits[0];            
     }
     
-    // Decode CQI bits 
+    // PUCCH2 CQI bits are decoded inside srslte_pucch_decode() 
     if (uci_data->uci_cqi_len) {
       memcpy(uci_data->uci_cqi, pucch_bits, uci_data->uci_cqi_len*sizeof(uint8_t));
+      if (uci_data->uci_ack_len >= 1) {
+        uci_data->uci_ack = pucch_bits[20];
+      }
+      if (uci_data->uci_ack_len == 2) {
+        uci_data->uci_ack_2 = pucch_bits[21];
+      }
     }
 
     return SRSLTE_SUCCESS;
