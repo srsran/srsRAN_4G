@@ -78,6 +78,13 @@ int srslte_chest_ul_init(srslte_chest_ul_t *q, srslte_cell_t cell)
       perror("malloc");
       goto clean_exit;
     }      
+    for (int i=0;i<4;i++) {
+      q->pilot_estimates_tmp[i] = srslte_vec_malloc(sizeof(cf_t) * NOF_REFS_SF);
+      if (!q->pilot_estimates_tmp[i]) {
+        perror("malloc");
+        goto clean_exit;
+      }      
+    }
     q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * (NOF_REFS_SF+1));
     if (!q->pilot_recv_signal) {
       perror("malloc");
@@ -125,6 +132,11 @@ void srslte_chest_ul_free(srslte_chest_ul_t *q)
   if (q->pilot_estimates) {
     free(q->pilot_estimates);
   }      
+  for (int i=0;i<4;i++) {
+    if (q->pilot_estimates_tmp[i]) {
+      free(q->pilot_estimates_tmp[i]);
+    }
+  }
   if (q->pilot_recv_signal) {
     free(q->pilot_recv_signal);
   }
@@ -266,7 +278,8 @@ int srslte_chest_ul_estimate(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
 }
 
 int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t *q, cf_t *input, cf_t *ce, 
-                                   srslte_pucch_format_t format, uint32_t n_pucch, uint32_t sf_idx) 
+                                   srslte_pucch_format_t format, uint32_t n_pucch, uint32_t sf_idx, 
+                                   uint8_t *pucch2_ack_bits) 
 {
   if (!q->dmrs_signal_configured) {
     fprintf(stderr, "Error must call srslte_chest_ul_set_cfg() before using the UL estimator\n");
@@ -285,11 +298,37 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t *q, cf_t *input, cf_t *ce,
   
   /* Generate known pilots */
   uint8_t pucch2_bits[2] = {0, 0};
-  srslte_refsignal_dmrs_pucch_gen(&q->dmrs_signal, format, n_pucch, sf_idx, pucch2_bits, q->pilot_known_signal),
+  if (format == SRSLTE_PUCCH_FORMAT_2A || format == SRSLTE_PUCCH_FORMAT_2B) {
+    float max = -1e9;
+    int i_max = 0; 
+    
+    int m = 0; 
+    if (format == SRSLTE_PUCCH_FORMAT_2A) {
+      m = 2; 
+    } else {
+      m = 4; 
+    }
+    
+    for (int i=0;i<m;i++) {
+      pucch2_bits[0] = i%2;
+      pucch2_bits[1] = i/2;
+      srslte_refsignal_dmrs_pucch_gen(&q->dmrs_signal, format, n_pucch, sf_idx, pucch2_bits, q->pilot_known_signal);
+      srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->pilot_known_signal, q->pilot_estimates_tmp[i], nrefs_sf);
+      float x = cabsf(srslte_vec_acc_cc(q->pilot_estimates_tmp[i], nrefs_sf));
+      if (x >= max) {
+        max = x; 
+        i_max = i; 
+      }      
+    }
+    memcpy(q->pilot_estimates, q->pilot_estimates_tmp[i_max], nrefs_sf*sizeof(cf_t));
+    pucch2_ack_bits[0] = i_max%2;
+    pucch2_ack_bits[1] = i_max/2;
+  } else {
+    srslte_refsignal_dmrs_pucch_gen(&q->dmrs_signal, format, n_pucch, sf_idx, pucch2_bits, q->pilot_known_signal);
+    /* Use the known DMRS signal to compute Least-squares estimates */
+    srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->pilot_known_signal, q->pilot_estimates, nrefs_sf);
+  }
   
-  /* Use the known DMRS signal to compute Least-squares estimates */
-  srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->pilot_known_signal, q->pilot_estimates, nrefs_sf);
- 
   if (ce != NULL) {
     /* FIXME: Currently averaging entire slot, performance good enough? */
     for (int ns=0;ns<2;ns++) {

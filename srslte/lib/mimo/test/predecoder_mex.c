@@ -31,16 +31,18 @@
 /** MEX function to be called from MATLAB to test the predecoder
  */
 
-#define INPUT prhs[0]
-#define HEST  prhs[1]
-#define NEST  prhs[2]
-#define NOF_INPUTS 2
+#define INPUT    prhs[0]
+#define HEST     prhs[1]
+#define NEST     prhs[2]
+#define NLAYERS  prhs[3]
+#define TXSCHEME prhs[4]
+#define NOF_INPUTS 5
 
 
 void help()
 {
   mexErrMsgTxt
-    ("[output] = srslte_predecoder(input, hest, nest)\n\n");
+    ("[output] = srslte_predecoder(input, hest, nest, Nl, TxScheme)\n\n");
 }
 
 /* the gateway function */
@@ -61,7 +63,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("Error reading input\n");
     return; 
   }
+  uint32_t nof_layers   = mxGetScalar(NLAYERS); 
   uint32_t nof_tx_ports = 1; 
+  uint32_t nof_codewords = 1; 
+
   uint32_t nof_rx_ants  = 1; 
   const mwSize *dims = mxGetDimensions(INPUT);
   mwSize ndims = mxGetNumberOfDimensions(INPUT);
@@ -83,7 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     nof_tx_ports = dims[2];        
   }
   
-  mexPrintf("nof_tx_ports=%d, nof_rx_ants=%d, nof_symbols=%d\n", nof_tx_ports, nof_rx_ants, nof_symbols);
+  mexPrintf("nof_tx_ports=%d, nof_rx_ants=%d, nof_layers=%d, nof_symbols=%d\n", nof_tx_ports, nof_rx_ants, nof_layers, nof_symbols);
 
   // Read noise estimate
   float noise_estimate = 0; 
@@ -117,12 +122,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     y[j] = &input[j*nof_symbols];
   }
     
-  if (nof_tx_ports > 1) {
-    srslte_predecoding_diversity_multi(y, h, x, nof_rx_ants, nof_tx_ports, nof_symbols); 
-    srslte_layerdemap_diversity(x, output, nof_tx_ports, nof_symbols / nof_tx_ports);
+  char *txscheme = "Port0";
+  if (nrhs >= NOF_INPUTS) {
+    txscheme = mxArrayToString(TXSCHEME);
+  }  
+  srslte_mimo_type_t type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA; 
+  if (!strcmp(txscheme, "Port0")) {
+    type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+  } else if (!strcmp(txscheme, "TxDiversity")) {
+    type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+  } else if (!strcmp(txscheme, "CDD")) {    
+    type = SRSLTE_MIMO_TYPE_CDD;
+  } else if (!strcmp(txscheme, "SpatialMux")) {    
+    type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
   } else {
-    srslte_predecoding_single_multi(y, h[0], output, nof_rx_ants, nof_symbols, noise_estimate);
+    mexPrintf("Unsupported TxScheme=%s\n", txscheme);
+    return; 
   }
+  int symbols_layers[SRSLTE_MAX_LAYERS];
+  for (int i=0;i<nof_layers;i++) {
+    symbols_layers[i] = nof_symbols; 
+  }
+  cf_t *d[SRSLTE_MAX_LAYERS]; 
+  d[0] = output; 
+  srslte_predecoding_type_multi(y, h, x, nof_rx_ants, nof_tx_ports, nof_layers, nof_symbols/nof_layers, type, noise_estimate);
+  srslte_layerdemap_type(x, d, nof_layers, nof_codewords, nof_symbols, symbols_layers, type);
   
 
   if (nlhs >= 1) { 

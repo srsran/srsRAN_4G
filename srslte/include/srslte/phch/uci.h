@@ -57,6 +57,11 @@ typedef struct SRSLTE_API {
 } srslte_uci_cqi_pusch_t;
 
 typedef struct SRSLTE_API {
+  uint8_t cqi_table[16][32];
+  int16_t cqi_table_s[16][32]; // aligned for simd
+} srslte_uci_cqi_pucch_t;
+
+typedef struct SRSLTE_API {
   uint8_t  uci_cqi[SRSLTE_CQI_MAX_BITS];
   uint32_t uci_cqi_len;
   uint8_t  uci_ri;  // Only 1-bit supported for RI
@@ -78,6 +83,18 @@ typedef struct {
   srslte_uci_bit_type_t type;
 } srslte_uci_bit_t;
 
+SRSLTE_API void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t *q);
+
+SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, 
+                                           uint32_t cqi_len, 
+                                           uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
+
+SRSLTE_API int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t *q, 
+                                           int16_t b_bits[32], // aligned for simd 
+                                           uint8_t *cqi_data, 
+                                           uint32_t cqi_len);
+
+
 SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q);
 
 SRSLTE_API void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t *q);
@@ -98,10 +115,6 @@ SRSLTE_API int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t *q,
                                            uint32_t cqi_len, 
                                            uint8_t *cqi_data, 
                                            bool *cqi_ack); 
-
-SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, 
-                                           uint32_t cqi_len, 
-                                           uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
 
 SRSLTE_API int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
                                      uint8_t data, 

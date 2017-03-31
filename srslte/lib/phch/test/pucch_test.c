@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
             goto quit; 
           }
           
-          if (srslte_pucch_encode(&pucch, format, n_pucch, subframe, bits, sf_symbols)) {
+          if (srslte_pucch_encode(&pucch, format, n_pucch, subframe, 11, bits, sf_symbols)) {
             fprintf(stderr, "Error encoding PUCCH\n");
             goto quit; 
           }
