@@ -268,7 +268,11 @@ uint32_t srslte_ra_dl_grant_nof_re(srslte_ra_dl_grant_t *grant, srslte_cell_t ce
   return nof_re; 
 }
 
-/** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
+/** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213
+ * Decode dci->type?_alloc to grant
+ * This function only reads dci->type?_alloc and dci->alloc_type fields.
+ * This function only writes grant->prb_idx and grant->nof_prb.
+ */
 static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, uint32_t nof_prb) {
   int i, j;
   uint32_t bitmask;
@@ -381,7 +385,7 @@ static int dl_dci_to_grant_prb_allocation(srslte_ra_dl_dci_t *dci, srslte_ra_dl_
   return SRSLTE_SUCCESS;
 }
 
-static int dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb) {
+int dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb) {
   uint32_t i_tbs = 0; 
   int tbs = -1; 
   if (mcs->idx < 10) {
@@ -415,7 +419,12 @@ static int dl_fill_ra_mcs(srslte_ra_mcs_t *mcs, uint32_t nprb) {
   return tbs; 
 }
 
-/* Modulation order and transport block size determination 7.1.7 in 36.213 */
+/* Modulation order and transport block size determination 7.1.7 in 36.213
+ * This looks at DCI type, type of RNTI and reads fields dci->type?_alloc, dci->mcs_idx,
+ * dci->dci_is_1a and dci->dci_is_1c
+ * Reads global variable last_dl_tbs if mcs>=29
+ * Writes global variable last_dl_tbs if mcs<29
+ * */
 static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *grant, bool crc_is_crnti) {
   uint32_t n_prb=0;
   int tbs = -1; 

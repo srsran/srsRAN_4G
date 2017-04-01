@@ -314,8 +314,18 @@ static int encode_tb(srslte_sch_t *q,
   
 
 
-/* Decode a transport block according to 36.212 5.3.2
+/**
+ * Decode a transport block according to 36.212 5.3.2
  *
+ * @param[in] q
+ * @param[inout] softbuffer Initialized softbuffer
+ * @param[in] cb_segm Code block segmentation parameters
+ * @param[in] e_bits Input transport block
+ * @param[in] Qm Modulation type
+ * @param[in] rv Redundancy Version. Indicates which part of FEC bits is in input buffer
+ * @param[out] softbuffer Initialized output softbuffer
+ * @param[out] data Decoded transport block
+ * @return negative if error in parameters or CRC error in decoding
  */
 static int decode_tb(srslte_sch_t *q, 
                      srslte_softbuffer_rx_t *softbuffer, srslte_cbsegm_t *cb_segm, 
@@ -351,7 +361,7 @@ static int decode_tb(srslte_sch_t *q,
 
     if (cb_segm->C > softbuffer->max_cb) {
       fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
-      return -1; 
+      return SRSLTE_ERROR;
     }
     
     if (cb_segm->C>0) {
@@ -489,6 +499,16 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
                    e_bits, data);
 }
 
+/**
+ * Encode transport block. Segments into code blocks, adds channel coding, and does rate matching.
+ *
+ * @param[in] q Initialized 
+ * @param[in] cfg Encoding parameters
+ * @param[inout] softbuffer Initialized softbuffer
+ * @param[in] data Byte array of data. Size is implicit in cfg->cb_segm
+ * @param e_bits
+ * @return Error code
+ */
 int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
                         uint8_t *data, uint8_t *e_bits) 
 {

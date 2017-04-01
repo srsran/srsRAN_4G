@@ -39,6 +39,12 @@ uint8_t RM_PERM_CC_INV[NCOLS] =
     { 16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26, 10, 22, 6, 30, 14, 17, 1, 25, 9,
         21, 5, 29, 13, 19, 3, 27, 11, 23, 7, 31, 15 };
 
+/**
+ * Rate matching for convolution encoder
+ *
+ * @param[in] input Unpacked bit array. Size in_len
+ * @param[output] output Unpacked bit array. Size out_len <= in_len
+ */
 int srslte_rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t out_len) {
 
   uint8_t tmp[3 * NCOLS * NROWS_MAX];

@@ -111,6 +111,10 @@ int srslte_pbch_cp(cf_t *input, cf_t *output, srslte_cell_t cell, bool put) {
  * Returns the number of symbols written to slot1_data
  *
  * 36.211 10.3 section 6.6.4
+ *
+ * @param[in] pbch PBCH complex symbols to place in slot1_data
+ * @param[out] slot1_data Complex symbol buffer for slot1
+ * @param[in] cell Cell configuration
  */
 int srslte_pbch_put(cf_t *pbch, cf_t *slot1_data, srslte_cell_t cell) {
   return srslte_pbch_cp(pbch, slot1_data, cell, true);
@@ -122,6 +126,10 @@ int srslte_pbch_put(cf_t *pbch, cf_t *slot1_data, srslte_cell_t cell) {
  * Returns the number of symbols written to pbch
  *
  * 36.211 10.3 section 6.6.4
+ *
+ * @param[in] slot1_data Complex symbols for slot1
+ * @param[out] pbch Extracted complex PBCH symbols
+ * @param[in] cell Cell configuration
  */
 int srslte_pbch_get(cf_t *slot1_data, cf_t *pbch, srslte_cell_t cell) {
   return srslte_pbch_cp(slot1_data, pbch, cell, false);
@@ -244,8 +252,12 @@ void srslte_pbch_free(srslte_pbch_t *q) {
 }
 
 
-/** Unpacks MIB from PBCH message.
- * msg buffer must be 24 byte length at least
+/**
+ * Unpacks MIB from PBCH message.
+ *
+ * @param[in] msg PBCH in an unpacked bit array of size 24
+ * @param[out] sfn System frame number
+ * @param[out] cell MIB information about PHICH and system bandwidth will be saved here
  */
 void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   int phich_res;
@@ -289,8 +301,12 @@ void srslte_pbch_mib_unpack(uint8_t *msg, srslte_cell_t *cell, uint32_t *sfn) {
   }
 }
 
-/** Unpacks MIB from PBCH message.
- * msg buffer must be 24 byte length at least
+/**
+ * Packs MIB to PBCH message.
+ *
+ * @param[out] payload Output unpacked bit array of size 24
+ * @param[in] sfn System frame number
+ * @param[in] cell Cell configuration to be encoded in MIB
  */
 void srslte_pbch_mib_pack(srslte_cell_t *cell, uint32_t sfn, uint8_t *payload) {
   int bw, phich_res = 0;
