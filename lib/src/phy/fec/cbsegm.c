@@ -48,7 +48,13 @@ const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 8
     4800, 4864, 4928, 4992, 5056, 5120, 5184, 5248, 5312, 5376, 5440, 5504,
     5568, 5632, 5696, 5760, 5824, 5888, 5952, 6016, 6080, 6144 };
 
-/* Calculate Codeblock Segmentation as in Section 5.1.2 of 36.212 */
+/**
+ * Calculate Codeblock Segmentation parameters as in Section 5.1.2 of 36.212
+ *
+ * @param[out] s Output of code block segmentation calculation
+ * @param[in] tbs Input Transport Block Size in bits. CRC's will be added to this
+ * @return Error code
+ */
 int srslte_cbsegm(srslte_cbsegm_t *s, uint32_t tbs) {
   uint32_t Bp, B, idx1;
   int ret; 
@@ -104,6 +110,8 @@ int srslte_cbsegm(srslte_cbsegm_t *s, uint32_t tbs) {
 
 /*
  * Finds index of minimum K>=long_cb in Table 5.1.3-3 of 36.212
+ *
+ * @return I_TBS or error code
  */
 int srslte_cbsegm_cbindex(uint32_t long_cb) {
   int j = 0;
@@ -120,6 +128,8 @@ int srslte_cbsegm_cbindex(uint32_t long_cb) {
 
 /*
  * Returns Turbo coder interleaver size for Table 5.1.3-3 (36.212) index
+ *
+ * @return Code block size in bits or error code
  */
 int srslte_cbsegm_cbsize(uint32_t index) {
   if (index < SRSLTE_NOF_TC_CB_SIZES) {
@@ -129,6 +139,12 @@ int srslte_cbsegm_cbsize(uint32_t index) {
   }
 }
 
+/**
+ * Check is code block size is valid for LTE Turbo Code
+ *
+ * @param[in] size Size of code block in bits
+ * @return true if Code Block size is allowed
+ */
 bool srslte_cbsegm_cbsize_isvalid(uint32_t size) {
   for (int i=0;i<SRSLTE_NOF_TC_CB_SIZES;i++) {
     if (tc_cb_sizes[i] == size) {

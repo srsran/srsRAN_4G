@@ -209,6 +209,15 @@ bitarray_copy(const unsigned char *src_org, int src_offset, int src_len,
     }
 }
 
+/**
+ * Copy bits from src to dst, with offsets and length in bits
+ *
+ * @param[out] dst Output array
+ * @param[in] src Input array
+ * @param dst_offset Output array write offset in bits
+ * @param src_offset Input array read offset in bits
+ * @param nof_bits Number of bits to copy
+ */
 void srslte_bit_copy(uint8_t *dst, uint32_t dst_offset, uint8_t *src, uint32_t src_offset, uint32_t nof_bits)
 {
   static const uint8_t mask_dst[] =
@@ -247,6 +256,13 @@ void srslte_bit_unpack_l(uint64_t value, uint8_t **bits, int nof_bits)
   *bits += nof_bits;
 }
 
+/**
+ * Unpacks nof_bits from LSBs of value in MSB order to *bits. Advances pointer past unpacked bits.
+ *
+ * @param[in] value nof_bits lowest order bits will be unpacked in MSB order
+ * @param[in] nof_bits Number of bits to unpack
+ * @param[out] bits Points to buffer pointer. The buffer pointer will be advanced by nof_bits
+ */
 void srslte_bit_unpack(uint32_t value, uint8_t **bits, int nof_bits)
 {
     int i;
