@@ -89,7 +89,7 @@ int regs_pdcch_init(srslte_regs_t *h) {
   bzero(&h->pdcch, sizeof(srslte_regs_ch_t));
 
   for (cfi=0;cfi<3;cfi++) {
-    if (h->cell.nof_prb < 10) {
+    if (h->cell.nof_prb <= 10) {
       nof_ctrl_symbols = cfi+2;
     } else {
       nof_ctrl_symbols = cfi+1;
@@ -673,7 +673,7 @@ void srslte_regs_free(srslte_regs_t *h) {
 int srslte_regs_set_cfi(srslte_regs_t *h, uint32_t cfi) {  
   if (cfi > 0 && cfi <= 3) {
     if (h->phich_len == SRSLTE_PHICH_EXT &&
-        ((h->cell.nof_prb < 10 && cfi < 2) || (h->cell.nof_prb >= 10 && cfi < 3))) {
+        ((h->cell.nof_prb <= 10 && cfi < 2) || (h->cell.nof_prb >= 10 && cfi < 3))) {
       fprintf(stderr, "PHICH length is extended. The number of control symbols should be at least 3.\n");
       return SRSLTE_ERROR_INVALID_INPUTS;
     } else {
@@ -705,7 +705,7 @@ int srslte_regs_init(srslte_regs_t *h, srslte_cell_t cell) {
     bzero(h, sizeof(srslte_regs_t));
     ret = SRSLTE_ERROR;
     
-    max_ctrl_symbols = cell.nof_prb<10?4:3;
+    max_ctrl_symbols = cell.nof_prb<=10?4:3;
     vo = cell.id % 3;
     h->cell = cell;
     h->max_ctrl_symbols = max_ctrl_symbols;

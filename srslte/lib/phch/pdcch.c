@@ -56,7 +56,13 @@ void srslte_pdcch_set_cfi(srslte_pdcch_t *q, uint32_t cfi) {
   set_cfi(q, cfi);
 }
 
-/** Initializes the PDCCH transmitter and receiver */
+/**
+ * Initializes the PDCCH transmitter and receiver structure
+ *
+ * @param[out] q PDCCH structure to initialize
+ * @param[in] regs PDCCH structure stores a reference to regs
+ * @param[in] cell PDCCH structure stores a copy of cell
+ */
 int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i;
@@ -172,6 +178,16 @@ void srslte_pdcch_free(srslte_pdcch_t *q) {
 
 }
 
+/**
+ * Calculate DCI locations in UE-specific space and set CFI
+ *
+ * @param[out] c Buffer of length max_candidates for storing calculated DCI locations
+ * @param[in] max_candidates Size of buffer c
+ * @param[in] cfi Control Format Indicator. Affects length of PDCCH, thus there's more locations
+ * @param[in] nsubframe Subframe to calculate DCI locations for
+ * @param[in] rnti Destination RNTI
+ * @return Number of DCI locations stored in c
+ */
 uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, uint32_t max_candidates,
                         uint32_t nsubframe, uint32_t cfi, uint16_t rnti) 
 {
@@ -229,10 +245,19 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
 
 
 /**
+ * Calculate DCI locations for common search space and set PDCCH CFI
+ *
  * 36.213 9.1.1
- * Computes up to max_candidates candidates in the common search space 
+ * First sets Control Format Indicator.
+ * Then computes up to max_candidates candidates in the common search space 
  * for DCI messages and saves them in the structure pointed by c.  
  * Returns the number of candidates saved in the array c.   
+ *
+ * @param[inout] q PDCCH information. q->cfi is set to cfi.
+ * @param[out] c Buffer of length max_candidates for storing calculated DCI locations
+ * @param[in] max_candidates Size of buffer c
+ * @param[in] cfi Control Format Indicator. Affects length of PDCCH, thus there's more locations. Also it is copied to q->cfi
+ * @return Number of DCI locations stored in c
  */
 uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, uint32_t max_candidates, 
                                 uint32_t cfi) 
@@ -241,6 +266,14 @@ uint32_t srslte_pdcch_common_locations(srslte_pdcch_t *q, srslte_dci_location_t 
   return srslte_pdcch_common_locations_ncce(q->nof_cce, c, max_candidates); 
 }
 
+/**
+ * Calculate DCI locations for common search space
+ *
+ * @param[out] c Buffer of length max_candidates for storing calculated DCI locations
+ * @param[in] max_candidates Size of buffer c
+ * @param[in] cfi Control Format Indicator. Affects length of PDCCH, thus there's more locations
+ * @return Number of DCI locations stored in c
+ */
 uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_location_t *c, uint32_t max_candidates) 
 {
   uint32_t i, l, L, k;
@@ -447,7 +480,12 @@ int srslte_pdcch_extract_llr(srslte_pdcch_t *q, cf_t *sf_symbols, cf_t *ce[SRSLT
 }
 
 
-
+/**
+ * Unpacks RNTI into a bit array and XORs with bit array in crc
+ *
+ * @param[in] crc Location to XOR unpacked RNTI to
+ * @param[in] rnti RNTI to unpack and XOR
+ */
 static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   uint32_t i;
   uint8_t mask[16];
@@ -461,6 +499,14 @@ static void crc_set_mask_rnti(uint8_t *crc, uint16_t rnti) {
   }
 }
 
+/**
+ * Appends CRC to a packed DCI message. Applies convolution encoding. Does not do rate matching.
+ *
+ * @param[in] data Unpacked bit array. MSB first.
+ * @param[in] nof_bits Length of data array
+ * @param[out] coded_data Output unpacked bit array. Size (nof_bits+16)*3
+ * @param[in] rnti Destination RNTI
+ */
 void srslte_pdcch_dci_encode_conv(srslte_pdcch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *coded_data, uint16_t rnti) {
   srslte_convcoder_t encoder;
   int poly[3] = { 0x6D, 0x4F, 0x57 };
@@ -475,8 +521,21 @@ void srslte_pdcch_dci_encode_conv(srslte_pdcch_t *q, uint8_t *data, uint32_t nof
   srslte_convcoder_encode(&encoder, data, coded_data, nof_bits + 16);
 }
 
-/** 36.212 5.3.3.2 to 5.3.3.4
- * TODO: UE transmit antenna selection CRC mask
+/**
+ * Appends CRC to a packed DCI message. Applies convolution encoding. Does rate matching.
+ *
+ * 36.212 5.3.3.2 to 5.3.3.4
+ * @TODO: UE transmit antenna selection CRC mask
+ *
+ * @param[in] data Unpacked bit array. MSB first.
+ * @param[in] nof_bits Length of data array
+ * @param[in] E Rate match to this size buffer
+ * @param[out] e Output unpacked bit array. Size E
+ * @param[in] rnti Destination RNTI
+ * @return Error code
+ */
+/**
+ *
  */
 int srslte_pdcch_dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32_t nof_bits, uint32_t E,
     uint16_t rnti) 
@@ -512,6 +571,14 @@ int srslte_pdcch_dci_encode(srslte_pdcch_t *q, uint8_t *data, uint8_t *e, uint32
  * If the same location is provided in multiple messages, the encoded bits will be overwritten. 
  * 
  * @TODO: Use a bitmask and CFI to ensure message locations are valid and old messages are not overwritten. 
+ *
+ * @param[in] q PDCCH parameters
+ * @param[in] msg Input DCI message buffer
+ * @param[in] location
+ * @param[in] rnti Destination RNTI
+ * @param[out] sf_symbols Pointers to all symbols in a subframe for all antenna ports
+ * @param[in] nsubframe Current subframe index. Affects scrambling and UE-specific DCI message locations
+ * @param[in] cfi Control Format Indicator
  */
 int srslte_pdcch_encode(srslte_pdcch_t *q, srslte_dci_msg_t *msg, srslte_dci_location_t location, uint16_t rnti, 
                  cf_t *sf_symbols[SRSLTE_MAX_PORTS], uint32_t nsubframe, uint32_t cfi) 

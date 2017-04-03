@@ -33,6 +33,19 @@
 #include "srslte/fec/convcoder.h"
 #include "parity.h"
 
+/**
+ * Convolution encodes according to given parameters.
+ *
+ * q->R is rate
+ * q->tail_biting enables tail biting
+ * q->K is a parameter for tail biting
+ *
+ * @param[in] q Convolution coder parameters
+ * @param[in] input Unpacked bit array. Size frame_length
+ * @param[out] output Unpacked bit array. Size q->R*frame_length if q->tail_biting, else q->R*(frame_length + q->K - 1)
+ * @param[in] frame_length Number of bits in input_array
+ * @return Number of bits in output
+ */
 int srslte_convcoder_encode(srslte_convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length) {
   uint32_t sr;
   uint32_t i,j;
