@@ -56,6 +56,7 @@ typedef struct {
   bool dmrs_signal_configured; 
   
   cf_t *pilot_estimates;
+  cf_t *pilot_estimates_tmp[4];
   cf_t *pilot_recv_signal; 
   cf_t *pilot_known_signal; 
   cf_t *tmp_noise; 
@@ -105,7 +106,8 @@ SRSLTE_API int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t *q,
                                               cf_t *ce, 
                                               srslte_pucch_format_t format, 
                                               uint32_t n_pucch, 
-                                              uint32_t sf_idx); 
+                                              uint32_t sf_idx, 
+                                              uint8_t *pucch2_ack_bits); 
 
 SRSLTE_API float srslte_chest_ul_get_noise_estimate(srslte_chest_ul_t *q); 
 

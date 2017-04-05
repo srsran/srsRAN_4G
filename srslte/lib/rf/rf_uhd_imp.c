@@ -108,12 +108,16 @@ static bool find_string(uhd_string_vector_handle h, char *str)
   return false; 
 }
 
-static bool isLocked(rf_uhd_handler_t *handler, char *sensor_name, uhd_sensor_value_handle *value_h)
+static bool isLocked(rf_uhd_handler_t *handler, char *sensor_name, bool is_rx, uhd_sensor_value_handle *value_h)
 {
   bool val_out = false; 
   
   if (sensor_name) {
-    uhd_usrp_get_rx_sensor(handler->usrp, sensor_name, 0, value_h);
+    if (is_rx) {
+      uhd_usrp_get_rx_sensor(handler->usrp, sensor_name, 0, value_h);
+    } else {
+      uhd_usrp_get_mboard_sensor(handler->usrp, sensor_name, 0, value_h);
+    }
     uhd_sensor_value_to_bool(*value_h, &val_out);
   } else {
     usleep(500);
@@ -143,26 +147,28 @@ bool rf_uhd_rx_wait_lo_locked(void *h)
   uhd_usrp_get_mboard_sensor_names(handler->usrp, 0, &mb_sensors);
   uhd_usrp_get_rx_sensor_names(handler->usrp, 0, &rx_sensors);
 
-  if (find_string(rx_sensors, "lo_locked")) {
+  /*if (find_string(rx_sensors, "lo_locked")) {
     sensor_name = "lo_locked";
-  } else if (find_string(mb_sensors, "ref_locked")) {
+  } else */if (find_string(mb_sensors, "ref_locked")) {
     sensor_name = "ref_locked";
   } else {
     sensor_name = NULL;
   }
   
   double report = 0.0;
-  while (!isLocked(handler, sensor_name, &value_h) && report < 30.0) {
+  while (!isLocked(handler, sensor_name, false, &value_h) && report < 30.0) {
     report += 0.1;
     usleep(1000);
   }
 
-  bool val = isLocked(handler, sensor_name, &value_h);
+  bool val = isLocked(handler, sensor_name, false, &value_h);
   
   uhd_string_vector_free(&mb_sensors);
   uhd_string_vector_free(&rx_sensors);
   uhd_sensor_value_free(&value_h);
 
+  printf("Locked=%d\n", val);
+  
   return val;
 }
 
@@ -335,7 +341,10 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     // Set external clock reference   
     if (strstr(args, "clock=external")) {
       uhd_usrp_set_clock_source(handler->usrp, "external", 0);       
+    } else if (strstr(args, "clock=gpsdo")) {
+      uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);       
     }
+
       
     handler->has_rssi = get_has_rssi(handler);  
     if (handler->has_rssi) {        
