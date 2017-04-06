@@ -167,8 +167,6 @@ bool rf_uhd_rx_wait_lo_locked(void *h)
   uhd_string_vector_free(&rx_sensors);
   uhd_sensor_value_free(&value_h);
 
-  printf("Locked=%d\n", val);
-  
   return val;
 }
 
