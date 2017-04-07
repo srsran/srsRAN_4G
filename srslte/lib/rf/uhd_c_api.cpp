@@ -9,6 +9,7 @@ extern "C" {
 #include "uhd_c_api.h"
 }
 
+/*
 #if UHD_VERSION < 31100
 static void (*handler)(const char*);
 
@@ -26,6 +27,7 @@ void rf_uhd_register_msg_handler_c(void (*new_handler)(const char*))
   uhd::msg::register_handler(translate_handler);
 #endif
 }
+*/
 
 void uhd_tx_metadata_set_time_spec(uhd_tx_metadata_handle *md, time_t secs, double frac_secs)
 {
