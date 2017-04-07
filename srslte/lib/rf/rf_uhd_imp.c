@@ -53,6 +53,10 @@ typedef struct {
   uhd_sensor_value_handle rssi_value;
   uint32_t nof_rx_channels;
   int nof_tx_channels;
+
+  srslte_rf_error_handler_t uhd_error_handler; 
+  
+  pthread_t async_thread; 
 } rf_uhd_handler_t;
 
 void suppress_handler(const char *x)
@@ -62,36 +66,67 @@ void suppress_handler(const char *x)
 
 cf_t zero_mem[64*1024];
 
-
-srslte_rf_error_handler_t uhd_error_handler = NULL; 
-
-void msg_handler(const char *msg)
-{
-  srslte_rf_error_t error; 
-  bzero(&error, sizeof(srslte_rf_error_t));
-  
-  if(0 == strcmp(msg, "O")) {
+static void log_overflow(rf_uhd_handler_t *h) {  
+  if (h->uhd_error_handler) {
+    srslte_rf_error_t error; 
+    bzero(&error, sizeof(srslte_rf_error_t));
     error.type = SRSLTE_RF_ERROR_OVERFLOW;
-  } else if(0 == strcmp(msg, "D")) {
-    error.type = SRSLTE_RF_ERROR_OVERFLOW;
-  }else if(0 == strcmp(msg, "U")) {
-    error.type = SRSLTE_RF_ERROR_UNDERFLOW;
-  } else if(0 == strcmp(msg, "L")) {
+    h->uhd_error_handler(error);
+  }
+}
+
+static void log_late(rf_uhd_handler_t *h) {  
+  if (h->uhd_error_handler) {
+    srslte_rf_error_t error; 
+    bzero(&error, sizeof(srslte_rf_error_t));
     error.type = SRSLTE_RF_ERROR_LATE;
+    h->uhd_error_handler(error);
   }
-  if (uhd_error_handler) {
-    uhd_error_handler(error);
+}
+
+static void log_underflow(rf_uhd_handler_t *h) {  
+  if (h->uhd_error_handler) {
+    srslte_rf_error_t error; 
+    bzero(&error, sizeof(srslte_rf_error_t));
+    error.type = SRSLTE_RF_ERROR_UNDERFLOW;
+    h->uhd_error_handler(error);
   }
+}
+
+static void* async_thread(void *h) {
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h; 
+  uhd_async_metadata_handle md; 
+  uhd_async_metadata_make(&md); 
+  while(1) {
+    bool valid; 
+    uhd_error err = uhd_tx_streamer_recv_async_msg(handler->tx_stream, &md, 10.0, &valid);
+    if (err == UHD_ERROR_NONE) {
+      if (valid) {
+        uhd_async_metadata_event_code_t event_code; 
+        uhd_async_metadata_event_code(md, &event_code);
+        if (event_code == UHD_ASYNC_METADATA_EVENT_CODE_UNDERFLOW || 
+            event_code == UHD_ASYNC_METADATA_EVENT_CODE_UNDERFLOW_IN_PACKET) {
+          log_underflow(handler);
+        } else if (event_code == UHD_ASYNC_METADATA_EVENT_CODE_TIME_ERROR) {
+          log_late(handler);
+        }
+      }
+    } else {
+      fprintf(stderr, "Error while receiving aync metadata: 0x%x\n", err);
+      return NULL; 
+    }
+  }
+  return NULL; 
 }
 
 void rf_uhd_suppress_stdout(void *h) {
   rf_uhd_register_msg_handler_c(suppress_handler);
 }
 
-void rf_uhd_register_error_handler(void *notused, srslte_rf_error_handler_t new_handler)
+void rf_uhd_register_error_handler(void *h, srslte_rf_error_handler_t new_handler)
 {
-  uhd_error_handler = new_handler;
-  rf_uhd_register_msg_handler_c(msg_handler);
+  rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
+  handler->uhd_error_handler = new_handler;
 }
 
 static bool find_string(uhd_string_vector_handle h, char *str) 
@@ -386,6 +421,13 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     uhd_rx_metadata_make(&handler->rx_md_first);
     uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
   
+    
+    // Start low priority thread to receive async commands 
+    if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
+      perror("pthread_create");
+      return -1; 
+    }
+    
     return 0;
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS; 
@@ -566,6 +608,17 @@ int rf_uhd_recv_with_time_multi(void *h,
       md = &handler->rx_md; 
       n += rxd_samples;
       trials++;
+      
+      uhd_rx_metadata_error_code_t error_code;
+      uhd_rx_metadata_error_code(*md, &error_code);
+      if (error_code == UHD_RX_METADATA_ERROR_CODE_OVERFLOW) {
+        log_overflow(handler);
+      } else if (error_code == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND) {
+        log_late(handler);
+      } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE) {
+        fprintf(stderr, "Error code 0x%x was returned during streaming. Aborting.\n", error_code);
+      }
+      
     } while (n < nsamples && trials < 100);
   } else {
     return uhd_rx_streamer_recv(handler->rx_stream, data, 
