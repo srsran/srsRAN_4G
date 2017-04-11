@@ -100,7 +100,7 @@ static void* async_thread(void *h) {
   uhd_async_metadata_make(&md); 
   while(handler->async_thread_running) {
     bool valid; 
-    uhd_error err = uhd_tx_streamer_recv_async_msg(handler->tx_stream, &md, 10.0, &valid);
+    uhd_error err = uhd_tx_streamer_recv_async_msg(handler->tx_stream, &md, 0.5, &valid);
     if (err == UHD_ERROR_NONE) {
       if (valid) {
         uhd_async_metadata_event_code_t event_code; 
