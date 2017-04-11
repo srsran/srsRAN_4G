@@ -205,7 +205,7 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
   int l; // this must be int because of the for(;;--) loop
   uint32_t i, k, L, m; 
   uint32_t Yk, ncce;
-  const int S[4] = { 6, 12, 8, 16 };
+  const int nof_candidates[4] = { 6, 6, 2, 2};
 
   // Compute Yk for this subframe
   Yk = rnti;
@@ -217,10 +217,11 @@ uint32_t srslte_pdcch_ue_locations_ncce(uint32_t nof_cce, srslte_dci_location_t 
   // All aggregation levels from 8 to 1
   for (l = 3; l >= 0; l--) {
     L = (1 << l);
-    // For all possible ncce offset
-    for (i = 0; i < SRSLTE_MIN(nof_cce / L, S[l]/PDCCH_FORMAT_NOF_CCE(l)); i++) {
+    // For all candidates as given in table 9.1.1-1
+    for (i = 0; i < nof_candidates[l]; i++) {
       if (nof_cce >= L) {
-        ncce = L * ((Yk + i) % (nof_cce / L));      
+        ncce = L * ((Yk + i) % (nof_cce / L));
+        // Check if candidate fits in c vector and in CCE region
         if (k < max_candidates  && ncce + L <= nof_cce) 
         {            
           c[k].L = l;
