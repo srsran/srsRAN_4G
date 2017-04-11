@@ -56,6 +56,7 @@ typedef struct {
 
   srslte_rf_error_handler_t uhd_error_handler; 
   
+  bool async_thread_running; 
   pthread_t async_thread; 
 } rf_uhd_handler_t;
 
@@ -97,7 +98,7 @@ static void* async_thread(void *h) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h; 
   uhd_async_metadata_handle md; 
   uhd_async_metadata_make(&md); 
-  while(1) {
+  while(handler->async_thread_running) {
     bool valid; 
     uhd_error err = uhd_tx_streamer_recv_async_msg(handler->tx_stream, &md, 10.0, &valid);
     if (err == UHD_ERROR_NONE) {
@@ -423,6 +424,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
   
     
     // Start low priority thread to receive async commands 
+    handler->async_thread_running = true; 
     if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
       perror("pthread_create");
       return -1; 
@@ -450,6 +452,8 @@ int rf_uhd_close(void *h)
   if (handler->has_rssi) {
     uhd_sensor_value_free(&handler->rssi_value);
   }
+  handler->async_thread_running = false; 
+  pthread_join(handler->async_thread, NULL); 
   uhd_usrp_free(&handler->usrp);
   
   /** Something else to close the USRP?? */
