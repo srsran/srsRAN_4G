@@ -388,10 +388,10 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     size_t channel[4] = {0, 1, 2, 3};
     uhd_stream_args_t stream_args = {
           .cpu_format = "fc32",
-          .otw_format = "sc12",
+          .otw_format = "sc16",
           .args = "",
           .channel_list = channel,
-          .n_channels = nof_rx_antennas
+          .n_channels = 1
       };
       
     handler->nof_rx_channels = nof_rx_antennas; 
