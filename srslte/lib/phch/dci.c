@@ -41,7 +41,7 @@
 
 #include "dci_sz_table.h"
 
-int harq_pid_len = 3; 
+#define HARQ_PID_LEN 3 
 
 /* Unpacks a DCI message and configures the DL grant object
  */
@@ -240,7 +240,7 @@ uint32_t dci_format0_sizeof_(uint32_t nof_prb) {
 
 uint32_t dci_format1A_sizeof(uint32_t nof_prb) {
   uint32_t n;
-  n = 1 + 1 + riv_nbits(nof_prb) + 5 + harq_pid_len + 1 + 2 + 2;
+  n = 1 + 1 + riv_nbits(nof_prb) + 5 + HARQ_PID_LEN + 1 + 2 + 2;
   while (n < dci_format0_sizeof_(nof_prb)) {
     n++;
   }
@@ -260,7 +260,7 @@ uint32_t dci_format0_sizeof(uint32_t nof_prb) {
 
 uint32_t dci_format1_sizeof(uint32_t nof_prb) {
 
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb)) + 5 + harq_pid_len + 1 + 2
+  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb)) + 5 + HARQ_PID_LEN + 1 + 2
       + 2;
   if (nof_prb > 10) {
     n++;
@@ -316,7 +316,7 @@ uint32_t precoding_bits_f2(uint32_t nof_ports) {
 }
 
 uint32_t dci_format2_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+harq_pid_len+1+2*(5+1+2)+precoding_bits_f2(nof_ports);
+  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+HARQ_PID_LEN+1+2*(5+1+2)+precoding_bits_f2(nof_ports);
   if (nof_prb > 10) {
     n++;
   }
@@ -336,7 +336,7 @@ uint32_t precoding_bits_f2a(uint32_t nof_ports) {
 }
 
 uint32_t dci_format2A_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+harq_pid_len+1+2*(5+1+2)+precoding_bits_f2a(nof_ports);
+  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+HARQ_PID_LEN+1+2*(5+1+2)+precoding_bits_f2a(nof_ports);
   if (nof_prb > 10) {
     n++;
   }
@@ -348,7 +348,7 @@ uint32_t dci_format2A_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
 }
 
 uint32_t dci_format2B_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+harq_pid_len+1+2*(5+1+2);
+  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+HARQ_PID_LEN+1+2*(5+1+2);
   if (nof_prb > 10) {
     n++;
   }
@@ -556,7 +556,7 @@ int dci_format1_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t n
   srslte_bit_unpack(data->mcs_idx, &y, 5);
 
   /* harq process number */
-  srslte_bit_unpack(data->harq_process, &y, harq_pid_len);
+  srslte_bit_unpack(data->harq_process, &y, HARQ_PID_LEN);
 
   *y++ = data->ndi;
 
@@ -615,7 +615,7 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
   data->mcs_idx = srslte_bit_pack(&y, 5);
   
   /* harq process number */
-  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
+  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
 
   data->ndi = *y++ ? true : false;
   // rv version
@@ -688,7 +688,7 @@ int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   // in format1A, MCS = TBS according to 7.1.7.2 of 36.213
   srslte_bit_unpack(data->mcs_idx, &y, 5);
 
-  srslte_bit_unpack(data->harq_process, &y, harq_pid_len);
+  srslte_bit_unpack(data->harq_process, &y, HARQ_PID_LEN);
 
   if (crc_is_crnti) {
     if (nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
@@ -789,7 +789,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   // unpack MCS
   data->mcs_idx = srslte_bit_pack(&y, 5);
 
-  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
+  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
 
   if (!crc_is_crnti)  {
     if (nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
@@ -850,7 +850,7 @@ int dci_format1B_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
 
   // unpack MCS, Harq pid and ndi 
   data->mcs_idx = srslte_bit_pack(&y, 5);
-  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
+  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
   data->ndi = *y++ ? true : false;
   data->rv_idx = srslte_bit_pack(&y, 2);
   
@@ -993,7 +993,7 @@ int dci_format1D_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
 
   // unpack MCS, Harq pid and ndi 
   data->mcs_idx = srslte_bit_pack(&y, 5);
-  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
+  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
   data->ndi = *y++ ? true : false;
   data->rv_idx = srslte_bit_pack(&y, 2);
   
@@ -1043,7 +1043,7 @@ int dci_format2AB_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t
   y+=2; 
 
   /* harq process number */
-  srslte_bit_unpack(data->harq_process, &y, harq_pid_len);
+  srslte_bit_unpack(data->harq_process, &y, HARQ_PID_LEN);
   
   // Transpor block to codeword swap flag 
   if (msg->format == SRSLTE_DCI_FORMAT2B) {
@@ -1114,7 +1114,7 @@ int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
   y+=2; 
   
   /* harq process number */
-  data->harq_process = srslte_bit_pack(&y, harq_pid_len);
+  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
 
   // Transpor block to codeword swap flag 
   if (msg->format == SRSLTE_DCI_FORMAT2B) {

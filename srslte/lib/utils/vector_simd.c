@@ -58,7 +58,7 @@ int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len)
   for(;number < points; number++){
 
     xVal = _mm_load_si128(xPtr);
-    yVal = _mm_load_si128(yPtr);
+    yVal = _mm_loadu_si128(yPtr);
 
     zVal = _mm_mullo_epi16(xVal, yVal);
 

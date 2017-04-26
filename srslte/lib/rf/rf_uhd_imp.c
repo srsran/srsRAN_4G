@@ -376,6 +376,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     if (strstr(args, "clock=external")) {
       uhd_usrp_set_clock_source(handler->usrp, "external", 0);       
     } else if (strstr(args, "clock=gpsdo")) {
+      printf("Using GPSDO clock\n");
       uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);       
     }
 

@@ -153,28 +153,28 @@ void srslte_vec_sum_bbb(uint8_t *x, uint8_t *y, uint8_t *z, uint32_t len) {
 void srslte_vec_sc_add_fff(float *x, float h, float *z, uint32_t len) {
   int i; 
   for (i=0;i<len;i++) {
-    z[i] += h;
+    z[i] = x[i]+h;
   }
 }
 
 void srslte_vec_sc_add_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
   int i; 
   for (i=0;i<len;i++) {
-    z[i] += h;
+    z[i] = x[i]+ h;
   }
 }
 
 void srslte_vec_sc_add_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
   int i; 
   for (i=0;i<len;i++) {
-    z[i] += h;
+    z[i] = x[i]+ h;
   }
 }
 
 void srslte_vec_sc_add_sss(int16_t *x, int16_t h, int16_t *z, uint32_t len) {
   int i; 
   for (i=0;i<len;i++) {
-    z[i] += h;
+    z[i] = x[i]+ h;
   }
 }
 
