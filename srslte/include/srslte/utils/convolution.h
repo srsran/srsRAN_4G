@@ -49,6 +49,9 @@ typedef struct SRSLTE_API {
   srslte_dft_plan_t input_plan;
   srslte_dft_plan_t filter_plan;
   srslte_dft_plan_t output_plan;
+  cf_t *pss_signal_time_fft[3]; // One sequence for each N_id_2
+  cf_t *pss_signal_time[3];
+  
 }srslte_conv_fft_cc_t;
 
 SRSLTE_API int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, 
@@ -60,6 +63,11 @@ SRSLTE_API void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q);
 SRSLTE_API uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q, 
                                            cf_t *input, 
                                            cf_t *filter, 
+                                           cf_t *output);
+
+SRSLTE_API uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, 
+                                           cf_t *input, 
+                                           int N_id_2, 
                                            cf_t *output);
 
 SRSLTE_API uint32_t srslte_conv_cc(cf_t *input, 

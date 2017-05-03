@@ -138,9 +138,9 @@ int srslte_ue_sync_init_multi(srslte_ue_sync_t *q,
       recv_callback                     != NULL)
   {
     ret = SRSLTE_ERROR;
-    
+    int decimate = q->decimate;
     bzero(q, sizeof(srslte_ue_sync_t));
-
+    q->decimate = decimate;
     q->stream = stream_handler;
     q->recv_callback = recv_callback;
     q->nof_rx_antennas = nof_rx_antennas;
@@ -169,7 +169,16 @@ int srslte_ue_sync_init_multi(srslte_ue_sync_t *q,
     }
 
     q->frame_len = q->nof_recv_sf*q->sf_len;
-
+    
+    if(q->fft_size > 1000 && q->decimate)
+    {
+        q->sfind.decimate = q->decimate;    
+    }
+    else
+    {
+        q->sfind.decimate = 1;
+    }
+  
     if(srslte_sync_init(&q->sfind, q->frame_len, q->frame_len, q->fft_size)) {
       fprintf(stderr, "Error initiating sync find\n");
       goto clean_exit;

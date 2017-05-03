@@ -95,6 +95,15 @@ if(RF_FOUND)
   if(BLADERF_FOUND)
     target_link_libraries(srslte ${BLADERF_LIBRARIES})
   endif(BLADERF_FOUND)
+
+  if(LIMESDR_FOUND)
+    target_link_libraries(srslte ${LIMESDR_LIBRARIES})
+  endif(LIMESDR_FOUND)
+
+  if(SOAPYSDR_FOUND)
+    target_link_libraries(srslte ${SOAPYSDR_LIBRARIES})
+  endif(SOAPYSDR_FOUND)
+
 endif(RF_FOUND)
 
 if(VOLK_FOUND)

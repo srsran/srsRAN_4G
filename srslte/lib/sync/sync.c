@@ -56,7 +56,8 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
       fft_size_isvalid(fft_size))
   {
     ret = SRSLTE_ERROR; 
-    
+    int decimate = q->decimate;
+
     bzero(q, sizeof(srslte_sync_t));
     q->detect_cp = true;
     q->sss_en = true;
@@ -105,7 +106,12 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
     }
     
     srslte_sync_set_cp(q, SRSLTE_CP_NORM);
-    
+      
+    if(!decimate)
+      decimate = 1;
+                 
+    q->pss.decimate = decimate;
+
     if (srslte_pss_synch_init_fft(&q->pss, max_offset, fft_size)) {
       fprintf(stderr, "Error initializing PSS object\n");
       goto clean_exit;

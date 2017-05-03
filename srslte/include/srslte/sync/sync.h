@@ -65,7 +65,7 @@ typedef struct SRSLTE_API {
   srslte_sss_synch_t sss;
   srslte_cp_synch_t cp_synch;
   cf_t *cfo_i_corr[2];
-  
+  int decimate;
   float threshold;
   float peak_value;
   uint32_t N_id_2;

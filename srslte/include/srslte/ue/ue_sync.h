@@ -73,7 +73,7 @@ typedef struct SRSLTE_API {
   srslte_agc_t agc; 
   bool do_agc; 
   uint32_t agc_period; 
-  
+  int decimate;
   void *stream; 
   void *stream_single; 
   int (*recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*);

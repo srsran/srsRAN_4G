@@ -51,6 +51,7 @@
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
 #include "srslte/utils/convolution.h"
+#include "srslte/utils/filter.h"
 
 #define CONVOLUTION_FFT
 
@@ -74,8 +75,10 @@ typedef struct SRSLTE_API {
   
 #ifdef CONVOLUTION_FFT
   srslte_conv_fft_cc_t conv_fft;
-#endif
+  srslte_filt_cc_t filter;
 
+#endif
+  int decimate;
   uint32_t frame_size;
   uint32_t N_id_2;
   uint32_t fft_size;

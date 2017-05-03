@@ -58,6 +58,15 @@ int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_
   srslte_dft_plan_set_norm(&q->input_plan, true);
   srslte_dft_plan_set_norm(&q->filter_plan, true);
   srslte_dft_plan_set_norm(&q->output_plan, false);
+  
+  for(int i =0; i< 3; i++)
+  {
+      q->pss_signal_time_fft[i] = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
+
+      srslte_dft_run_c(&q->filter_plan, q->pss_signal_time[i], q->pss_signal_time_fft[i]);
+     
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -71,11 +80,26 @@ void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q) {
   if (q->output_fft) {
     free(q->output_fft);
   }
+  for(int i = 0; i < 3;i++)
+  {
+	free(q->pss_signal_time_fft[i]);
+  }
+
   srslte_dft_plan_free(&q->input_plan);
   srslte_dft_plan_free(&q->filter_plan);
   srslte_dft_plan_free(&q->output_plan);
   
   bzero(q, sizeof(srslte_conv_fft_cc_t));
+
+}
+
+uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, cf_t *input, int N_id_2, cf_t *output) 
+{
+    srslte_dft_run_c(&q->input_plan, input, q->input_fft);
+  	srslte_vec_prod_ccc(q->input_fft,q->pss_signal_time_fft[N_id_2],q->output_fft,q->output_len);
+  	srslte_dft_run_c(&q->output_plan, q->output_fft, output);
+
+  return (q->output_len-1); // divide output length by dec factor
 
 }
 
