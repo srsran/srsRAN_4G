@@ -170,7 +170,7 @@ int srslte_ue_sync_init_multi(srslte_ue_sync_t *q,
 
     q->frame_len = q->nof_recv_sf*q->sf_len;
     
-    if(q->fft_size > 1000 && q->decimate)
+    if(q->fft_size > 700  && q->decimate)
     {
         q->sfind.decimate = q->decimate;    
     }

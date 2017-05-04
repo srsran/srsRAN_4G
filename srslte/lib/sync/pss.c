@@ -119,10 +119,11 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
         srslte_filt_decim_cc_init(&q->filter,q->decimate,filter_order);
         q->filter.filter_output = srslte_vec_malloc((buffer_size) * sizeof(cf_t));
         q->filter.downsampled_input = srslte_vec_malloc((buffer_size + filter_order) * sizeof(cf_t));
+        printf("decimation for the  PSS search is %d \n",q->decimate);
     }
     
     
-    printf("decimation in the PSS is %d \n",q->decimate);
+   
 
         
     if (srslte_dft_plan(&q->dftp_input, fft_size, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {

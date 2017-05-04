@@ -106,7 +106,6 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
     }
     
     srslte_sync_set_cp(q, SRSLTE_CP_NORM);
-      
     if(!decimate)
       decimate = 1;
                  

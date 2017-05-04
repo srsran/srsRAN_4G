@@ -417,8 +417,17 @@ int main(int argc, char **argv) {
 
   } else {
 #ifndef DISABLE_RF
-      if(!prog_args.decimate)
-        ue_sync.decimate = prog_args.decimate;
+      if(prog_args.decimate)
+      {
+          if(prog_args.decimate > 4 || prog_args.decimate < 0)
+          {
+              printf("Invalid decimation factor, setting to 1 \n");
+          }
+          else
+          {
+              ue_sync.decimate = prog_args.decimate;
+          }
+      }
     if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
