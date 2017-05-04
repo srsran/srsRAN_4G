@@ -31,15 +31,20 @@
 #include "srslte/dft/dft.h"
 #include "srslte/utils/vector.h"
 #include "srslte/utils/convolution.h"
+int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) 
+{
+    srslte_conv_fft_cc_init_opt(q, input_len, filter_len, NULL, NULL);
+}
 
-
-int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {
+int srslte_conv_fft_cc_init_opt(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len, cf_t **filter_time, cf_t **filter_freq) {
   q->input_len = input_len;
   q->filter_len = filter_len;
   q->output_len = input_len+filter_len;
   q->input_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
   q->filter_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
   q->output_fft = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
+  
+  
   if (!q->input_fft || !q->filter_fft || !q->output_fft) {
     return SRSLTE_ERROR;
   }
@@ -59,14 +64,13 @@ int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_
   srslte_dft_plan_set_norm(&q->filter_plan, true);
   srslte_dft_plan_set_norm(&q->output_plan, false);
   
-  for(int i =0; i< 3; i++)
+  if(filter_time != NULL)
   {
-      q->pss_signal_time_fft[i] = srslte_vec_malloc(sizeof(cf_t)*q->output_len);
-
-      srslte_dft_run_c(&q->filter_plan, q->pss_signal_time[i], q->pss_signal_time_fft[i]);
-     
+    for(int i =0; i< 3; i++)
+    {
+        srslte_dft_run_c(&q->filter_plan, filter_time[i], filter_freq[i]);
+    }
   }
-
   return SRSLTE_SUCCESS;
 }
 
@@ -93,11 +97,11 @@ void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q) {
 
 }
 
-uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, cf_t *input, int N_id_2, cf_t *output) 
+uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, cf_t *input,cf_t *filter_freq, cf_t *output) 
 {
     srslte_dft_run_c(&q->input_plan, input, q->input_fft);
-  	srslte_vec_prod_ccc(q->input_fft,q->pss_signal_time_fft[N_id_2],q->output_fft,q->output_len);
-  	srslte_dft_run_c(&q->output_plan, q->output_fft, output);
+    srslte_vec_prod_ccc(q->input_fft, filter_freq, q->output_fft, q->output_len);
+    srslte_dft_run_c(&q->output_plan, q->output_fft, output);
 
   return (q->output_len-1); // divide output length by dec factor
 

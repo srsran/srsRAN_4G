@@ -50,7 +50,7 @@ typedef struct SRSLTE_API {
   srslte_dft_plan_t filter_plan;
   srslte_dft_plan_t output_plan;
   cf_t *pss_signal_time_fft[3]; // One sequence for each N_id_2
-  cf_t *pss_signal_time[3];
+  //cf_t *pss_signal_time[3];
   
 }srslte_conv_fft_cc_t;
 

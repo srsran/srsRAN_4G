@@ -179,10 +179,12 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
     }    
     #ifdef CONVOLUTION_FFT
 
-    for(N_id_2 = 0; N_id_2<3; N_id_2++)
-        q->conv_fft.pss_signal_time[N_id_2] = q->pss_signal_time[N_id_2];
+    //for(N_id_2 = 0; N_id_2<3; N_id_2++)
+    //    q->conv_fft.pss_signal_time[N_id_2] = q->pss_signal_time[N_id_2];
+    
+    
 
-    if (srslte_conv_fft_cc_init(&q->conv_fft, frame_size, fft_size)) {
+    if (srslte_conv_fft_cc_init(&q->conv_fft, frame_size, fft_size, q->pss_signal_time, )) {
       fprintf(stderr, "Error initiating convolution FFT\n");
       goto clean_and_exit;
     }
