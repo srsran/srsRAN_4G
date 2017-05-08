@@ -70,6 +70,7 @@ int srslte_conv_fft_cc_init_opt(srslte_conv_fft_cc_t *q, uint32_t input_len, uin
     {
         srslte_dft_run_c(&q->filter_plan, filter_time[i], filter_freq[i]);
     }
+    printf("optimization being used\n");
   }
   return SRSLTE_SUCCESS;
 }
@@ -84,10 +85,6 @@ void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q) {
   if (q->output_fft) {
     free(q->output_fft);
   }
-  for(int i = 0; i < 3;i++)
-  {
-	free(q->pss_signal_time_fft[i]);
-  }
 
   srslte_dft_plan_free(&q->input_plan);
   srslte_dft_plan_free(&q->filter_plan);
@@ -97,7 +94,7 @@ void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q) {
 
 }
 
-uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, cf_t *input,cf_t *filter_freq, cf_t *output) 
+uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, cf_t *input, cf_t *filter_freq, cf_t *output) 
 {
     srslte_dft_run_c(&q->input_plan, input, q->input_fft);
     srslte_vec_prod_ccc(q->input_fft, filter_freq, q->output_fft, q->output_len);

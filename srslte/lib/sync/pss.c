@@ -179,12 +179,11 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
     }    
     #ifdef CONVOLUTION_FFT
 
-    //for(N_id_2 = 0; N_id_2<3; N_id_2++)
-    //    q->conv_fft.pss_signal_time[N_id_2] = q->pss_signal_time[N_id_2];
-    
-    
 
-    if (srslte_conv_fft_cc_init(&q->conv_fft, frame_size, fft_size, q->pss_signal_time, )) {
+    for(N_id_2 = 0; N_id_2<3; N_id_2++)
+    q->pss_signal_freq_full[N_id_2]   = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+
+    if (srslte_conv_fft_cc_init_opt(&q->conv_fft, frame_size, fft_size, q->pss_signal_time,q->pss_signal_freq_full)) {
       fprintf(stderr, "Error initiating convolution FFT\n");
       goto clean_and_exit;
     }
@@ -209,6 +208,9 @@ void srslte_pss_synch_free(srslte_pss_synch_t *q) {
     for (i=0;i<3;i++) {
       if (q->pss_signal_time[i]) {
         free(q->pss_signal_time[i]);
+      }
+      if(q->pss_signal_freq_full[i]){
+        free(q->pss_signal_freq_full[i]);
       }
     }
   #ifdef CONVOLUTION_FFT
@@ -351,11 +353,11 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
     if(q->decimate > 1)
     {
       srslte_filt_decim_cc_execute(&(q->filter), q->tmp_input, q->filter.downsampled_input, q->filter.filter_output , (q->frame_size * q->decimate));
-      conv_output_len = srslte_conv_fft_cc_run_opt(&q->conv_fft, q->filter.filter_output, q->N_id_2, q->conv_output);
+      conv_output_len = srslte_conv_fft_cc_run_opt(&q->conv_fft, q->filter.filter_output,q->pss_signal_freq_full[q->N_id_2], q->conv_output);
     }
     else
     {
-      conv_output_len = srslte_conv_fft_cc_run_opt(&q->conv_fft, q->tmp_input, q->N_id_2, q->conv_output);
+      conv_output_len = srslte_conv_fft_cc_run_opt(&q->conv_fft, q->tmp_input, q->pss_signal_freq_full[q->N_id_2], q->conv_output);
     }
       
     #else
