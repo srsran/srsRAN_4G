@@ -31,12 +31,9 @@
 #include "srslte/dft/dft.h"
 #include "srslte/utils/vector.h"
 #include "srslte/utils/convolution.h"
-int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) 
-{
-    srslte_conv_fft_cc_init_opt(q, input_len, filter_len, NULL, NULL);
-}
 
-int srslte_conv_fft_cc_init_opt(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len, cf_t **filter_time, cf_t **filter_freq) {
+
+int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {
   q->input_len = input_len;
   q->filter_len = filter_len;
   q->output_len = input_len+filter_len;
@@ -64,14 +61,6 @@ int srslte_conv_fft_cc_init_opt(srslte_conv_fft_cc_t *q, uint32_t input_len, uin
   srslte_dft_plan_set_norm(&q->filter_plan, true);
   srslte_dft_plan_set_norm(&q->output_plan, false);
   
-  if(filter_time != NULL)
-  {
-    for(int i =0; i< 3; i++)
-    {
-        srslte_dft_run_c(&q->filter_plan, filter_time[i], filter_freq[i]);
-    }
-    printf("optimization being used\n");
-  }
   return SRSLTE_SUCCESS;
 }
 
@@ -105,15 +94,10 @@ uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q, cf_t *input, cf_t *
 }
 
 uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q, cf_t *input, cf_t *filter, cf_t *output) {
-
-  srslte_dft_run_c(&q->input_plan, input, q->input_fft);
+  
   srslte_dft_run_c(&q->filter_plan, filter, q->filter_fft);
 
-  srslte_vec_prod_ccc(q->input_fft,q->filter_fft,q->output_fft,q->output_len);
-
-  srslte_dft_run_c(&q->output_plan, q->output_fft, output);
-
-  return q->output_len-1;
+  return srslte_conv_fft_cc_run_opt(q, input, q->filter_fft, output);
 
 }
 

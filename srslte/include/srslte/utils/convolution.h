@@ -58,11 +58,6 @@ SRSLTE_API int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q,
                                        uint32_t input_len, 
                                        uint32_t filter_len);
 
-SRSLTE_API int srslte_conv_fft_cc_init_opt(srslte_conv_fft_cc_t *q, 
-                                           uint32_t input_len, 
-                                           uint32_t filter_len, 
-                                           cf_t **filter_time, 
-                                           cf_t **filter_freq);
 
 SRSLTE_API void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q);
 

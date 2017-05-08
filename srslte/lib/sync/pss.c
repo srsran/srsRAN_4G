@@ -183,10 +183,15 @@ int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q, uint32_t frame
     for(N_id_2 = 0; N_id_2<3; N_id_2++)
     q->pss_signal_freq_full[N_id_2]   = srslte_vec_malloc(buffer_size * sizeof(cf_t));
 
-    if (srslte_conv_fft_cc_init_opt(&q->conv_fft, frame_size, fft_size, q->pss_signal_time,q->pss_signal_freq_full)) {
+    if (srslte_conv_fft_cc_init(&q->conv_fft, frame_size, fft_size)) {
       fprintf(stderr, "Error initiating convolution FFT\n");
       goto clean_and_exit;
     }
+    for(int i =0; i< 3; i++)
+    {
+        srslte_dft_run_c(&q->conv_fft.filter_plan, q->pss_signal_time[i], q->pss_signal_freq_full[i]);
+    }
+    
     #endif
     
     srslte_pss_synch_reset(q);
