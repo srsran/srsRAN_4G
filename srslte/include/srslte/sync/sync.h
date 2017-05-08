@@ -112,6 +112,13 @@ SRSLTE_API int srslte_sync_init(srslte_sync_t *q,
                                 uint32_t max_offset,
                                 uint32_t fft_size);
 
+SRSLTE_API int srslte_sync_init_decim(srslte_sync_t *q, 
+                                uint32_t frame_size, 
+                                uint32_t max_offset,
+                                uint32_t fft_size,
+                                int decimate);
+
+
 SRSLTE_API void srslte_sync_free(srslte_sync_t *q);
 
 SRSLTE_API void srslte_sync_reset(srslte_sync_t *q); 

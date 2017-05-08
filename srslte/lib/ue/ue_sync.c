@@ -128,6 +128,18 @@ int srslte_ue_sync_init_multi(srslte_ue_sync_t *q,
                               int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
                               uint32_t nof_rx_antennas,
                               void *stream_handler) 
+
+{
+    
+    return srslte_ue_sync_init_multi_decim(q,  cell,recv_callback ,nof_rx_antennas,stream_handler,1); 
+}
+
+int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q, 
+                              srslte_cell_t cell,
+                              int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*),
+                              uint32_t nof_rx_antennas,
+                              void *stream_handler,
+                              int decimate) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
@@ -138,7 +150,7 @@ int srslte_ue_sync_init_multi(srslte_ue_sync_t *q,
       recv_callback                     != NULL)
   {
     ret = SRSLTE_ERROR;
-    int decimate = q->decimate;
+    //int decimate = q->decimate;
     bzero(q, sizeof(srslte_ue_sync_t));
     q->decimate = decimate;
     q->stream = stream_handler;
@@ -170,16 +182,13 @@ int srslte_ue_sync_init_multi(srslte_ue_sync_t *q,
 
     q->frame_len = q->nof_recv_sf*q->sf_len;
     
-    if(q->fft_size > 700  && q->decimate)
+    if(q->fft_size < 700  && q->decimate)
     {
-        q->sfind.decimate = q->decimate;    
+        q->decimate = 1;    
     }
-    else
-    {
-        q->sfind.decimate = 1;
-    }
+    
   
-    if(srslte_sync_init(&q->sfind, q->frame_len, q->frame_len, q->fft_size)) {
+    if(srslte_sync_init_decim(&q->sfind, q->frame_len, q->frame_len, q->fft_size,q->decimate)) {
       fprintf(stderr, "Error initiating sync find\n");
       goto clean_exit;
     }

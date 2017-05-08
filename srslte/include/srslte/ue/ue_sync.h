@@ -135,6 +135,13 @@ SRSLTE_API int srslte_ue_sync_init_multi(srslte_ue_sync_t *q,
                                          uint32_t nof_rx_antennas,
                                          void *stream_handler);
 
+SRSLTE_API int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q, 
+                                         srslte_cell_t cell,
+                                         int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*), 
+                                         uint32_t nof_rx_antennas,
+                                         void *stream_handler,
+                                         int decimate);
+
 SRSLTE_API int srslte_ue_sync_init_file(srslte_ue_sync_t *q, 
                                         uint32_t nof_prb,
                                         char *file_name, 

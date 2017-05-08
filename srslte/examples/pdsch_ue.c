@@ -294,6 +294,7 @@ srslte_netsink_t net_sink, net_sink_signal;
 
 int main(int argc, char **argv) {
   int ret; 
+  int decimate = 1;
   srslte_cell_t cell;  
   int64_t sf_cnt;
   srslte_ue_mib_t ue_mib; 
@@ -425,10 +426,11 @@ int main(int argc, char **argv) {
           }
           else
           {
-              ue_sync.decimate = prog_args.decimate;
+              decimate = prog_args.decimate;
+             //ue_sync.decimate = prog_args.decimate;
           }
       }
-    if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf)) {
+    if (srslte_ue_sync_init_multi_decim(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf,decimate)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }

@@ -84,27 +84,31 @@ int srslte_pss_synch_init_fft(srslte_pss_synch_t *q, uint32_t frame_size, uint32
   return srslte_pss_synch_init_fft_offset(q, frame_size, fft_size, 0);
 }
 
+int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size, int offset) {
+  return srslte_pss_synch_init_fft_offset_decim(q, frame_size, fft_size,  offset,  1);
+}
+
 /* Initializes the PSS synchronization object. 
  * 
  * It correlates a signal of frame_size samples with the PSS sequence in the frequency 
  * domain. The PSS sequence is transformed using fft_size samples. 
  */
-int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size, int offset) {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q, uint32_t frame_size, uint32_t fft_size, int offset, int decimate) {
+
     
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL) {
   
     ret = SRSLTE_ERROR; 
     
     uint32_t N_id_2; 
     uint32_t buffer_size;
-    int decimation_factor = q->decimate;
     bzero(q, sizeof(srslte_pss_synch_t));
     
     q->N_id_2 = 10;  
     q->ema_alpha = 0.2;
     
-    q->decimate = decimation_factor;
+    q->decimate = decimate;
     fft_size = fft_size/q->decimate;
     frame_size = frame_size/q->decimate;
     
@@ -121,11 +125,7 @@ int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q, uint32_t frame_size,
         q->filter.downsampled_input = srslte_vec_malloc((buffer_size + filter_order) * sizeof(cf_t));
         printf("decimation for the  PSS search is %d \n",q->decimate);
     }
-    
-    
-   
-
-        
+      
     if (srslte_dft_plan(&q->dftp_input, fft_size, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
       fprintf(stderr, "Error creating DFT plan \n");
       goto clean_and_exit;
@@ -199,7 +199,9 @@ clean_and_exit:
     srslte_pss_synch_free(q);
   }
   return ret;
+
 }
+
 
 void srslte_pss_synch_free(srslte_pss_synch_t *q) {
   uint32_t i;
@@ -434,7 +436,7 @@ int srslte_pss_synch_find_pss(srslte_pss_synch_t *q, cf_t *input, float *corr_pe
     
     if(q->decimate >1)
     {
-        int decimation_correction = (q->filter.num_taps -2);
+        int decimation_correction = (q->filter.num_taps - 2);
         corr_peak_pos = corr_peak_pos - decimation_correction;
         corr_peak_pos = corr_peak_pos*q->decimate;
     }
