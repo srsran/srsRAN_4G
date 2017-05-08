@@ -140,6 +140,83 @@ static rf_dev_t dev_blade = {
 };
 #endif
 
+/* Define implementation for LimeSDR */
+#ifdef ENABLE_LIMESDR
+
+#include "rf_limesdr_imp.h"
+
+static rf_dev_t dev_limesdr = {
+  "limesdr",
+  rf_limesdr_devname,
+  rf_limesdr_rx_wait_lo_locked,
+  rf_limesdr_start_rx_stream,
+  rf_limesdr_stop_rx_stream,
+  rf_limesdr_flush_buffer,
+  rf_limesdr_has_rssi,
+  rf_limesdr_get_rssi,
+  rf_limesdr_suppress_stdout,
+  rf_limesdr_register_error_handler,
+  rf_limesdr_open,
+  rf_limesdr_open_multi,
+  rf_limesdr_close,
+  rf_limesdr_set_master_clock_rate,
+  rf_limesdr_is_master_clock_dynamic,
+  rf_limesdr_set_rx_srate,
+  rf_limesdr_set_rx_gain,
+  rf_limesdr_set_tx_gain,
+  rf_limesdr_get_rx_gain,
+  rf_limesdr_get_tx_gain,
+  rf_limesdr_set_rx_freq,
+  rf_limesdr_set_tx_srate,
+  rf_limesdr_set_tx_freq,
+  rf_limesdr_get_time,
+  rf_limesdr_recv_with_time,
+  rf_limesdr_recv_with_time_multi,
+  rf_limesdr_send_timed,
+  rf_limesdr_set_tx_cal,
+  rf_limesdr_set_rx_cal
+};
+
+#endif
+
+#ifdef ENABLE_SOAPYSDR
+
+#include "rf_soapy_imp.h"
+
+static rf_dev_t dev_soapy = {
+  "soapy",
+  rf_soapy_devname,
+  rf_soapy_rx_wait_lo_locked,
+  rf_soapy_start_rx_stream,
+  rf_soapy_stop_rx_stream,
+  rf_soapy_flush_buffer,
+  rf_soapy_has_rssi,
+  rf_soapy_get_rssi,
+  rf_soapy_suppress_stdout,
+  rf_soapy_register_error_handler,
+  rf_soapy_open,
+  rf_soapy_open_multi,
+  rf_soapy_close,
+  rf_soapy_set_master_clock_rate,
+  rf_soapy_is_master_clock_dynamic,
+  rf_soapy_set_rx_srate,
+  rf_soapy_set_rx_gain,
+  rf_soapy_set_tx_gain,
+  rf_soapy_get_rx_gain,
+  rf_soapy_get_tx_gain,
+  rf_soapy_set_rx_freq,
+  rf_soapy_set_tx_srate,
+  rf_soapy_set_tx_freq,
+  rf_soapy_get_time,
+  rf_soapy_recv_with_time,
+  rf_soapy_recv_with_time_multi,
+  rf_soapy_send_timed,
+  rf_soapy_set_tx_cal,
+  rf_soapy_set_rx_cal
+};
+
+#endif
+
 //#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
@@ -183,11 +260,18 @@ static rf_dev_t dev_dummy = {
 #endif
 
 static rf_dev_t *available_devices[] = {
+
 #ifdef ENABLE_UHD
   &dev_uhd, 
 #endif
+#ifdef ENABLE_SOAPYSDR
+  &dev_soapy,
+#endif
 #ifdef ENABLE_BLADERF
   &dev_blade,  
+#endif
+#ifdef ENABLE_LIMESDR
+  &dev_limesdr,
 #endif
 #ifdef ENABLE_DUMMY_DEV
   &dev_dummy,

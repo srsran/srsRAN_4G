@@ -95,7 +95,8 @@ typedef struct {
   int net_port; 
   char *net_address; 
   int net_port_signal; 
-  char *net_address_signal;   
+  char *net_address_signal;
+  int decimate;
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
@@ -124,6 +125,7 @@ void args_default(prog_args_t *args) {
   args->net_address = "127.0.0.1";
   args->net_port_signal = -1; 
   args->net_address_signal = "127.0.0.1";
+  args->decimate = 0;
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -166,7 +168,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsS")) != -1) {
+  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsSZ")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -234,6 +236,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'v':
       srslte_verbose++;
       break;
+    case 'Z':
+      args->decimate = atoi(argv[optind]);
+    break;
     default:
       usage(args, argv[0]);
       exit(-1);
@@ -289,6 +294,7 @@ srslte_netsink_t net_sink, net_sink_signal;
 
 int main(int argc, char **argv) {
   int ret; 
+  int decimate = 1;
   srslte_cell_t cell;  
   int64_t sf_cnt;
   srslte_ue_mib_t ue_mib; 
@@ -412,7 +418,19 @@ int main(int argc, char **argv) {
 
   } else {
 #ifndef DISABLE_RF
-    if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf)) {
+      if(prog_args.decimate)
+      {
+          if(prog_args.decimate > 4 || prog_args.decimate < 0)
+          {
+              printf("Invalid decimation factor, setting to 1 \n");
+          }
+          else
+          {
+              decimate = prog_args.decimate;
+             //ue_sync.decimate = prog_args.decimate;
+          }
+      }
+    if (srslte_ue_sync_init_multi_decim(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf,decimate)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }

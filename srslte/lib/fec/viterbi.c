@@ -119,6 +119,51 @@ void free37_sse(void *o) {
 
 #endif
 
+
+#ifdef HAVE_NEON
+int decode37_neon(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
+  srslte_viterbi_t *q = o;
+
+  uint32_t best_state;
+
+  if (frame_length > q->framebits) {
+    fprintf(stderr, "Initialized decoder for max frame length %d bits\n",
+        q->framebits);
+    return -1;
+  }
+
+  /* Initialize Viterbi decoder */
+  init_viterbi37_neon(q->ptr, q->tail_biting?-1:0);
+
+  /* Decode block */
+  if (q->tail_biting) {
+    for (int i=0;i<TB_ITER;i++) {
+      memcpy(&q->tmp[i*3*frame_length], symbols, 3*frame_length*sizeof(uint8_t));      
+    }
+    update_viterbi37_blk_neon(q->ptr, q->tmp, TB_ITER*frame_length, &best_state);
+    chainback_viterbi37_neon(q->ptr,  q->tmp, TB_ITER*frame_length, best_state);
+    memcpy(data, &q->tmp[((int) (TB_ITER/2))*frame_length], frame_length*sizeof(uint8_t));
+  } else {
+    update_viterbi37_blk_neon(q->ptr, symbols, frame_length+q->K-1, NULL);
+    chainback_viterbi37_neon(q->ptr, data, frame_length, 0);
+  }
+  
+  return q->framebits;
+}
+
+void free37_neon(void *o) {
+  srslte_viterbi_t *q = o;
+  if (q->symbols_uc) {
+    free(q->symbols_uc);
+  }
+  if (q->tmp) {
+    free(q->tmp);
+  }
+  delete_viterbi37_neon(q->ptr);
+}
+
+#endif
+
 void free37(void *o) {
   srslte_viterbi_t *q = o;
   if (q->symbols_uc) {
@@ -203,6 +248,44 @@ int init37_sse(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_b
 }
 #endif
 
+#ifdef HAVE_NEON
+int init37_neon(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_biting) {
+  q->K = 7;
+  q->R = 3;
+  q->framebits = framebits;
+  q->gain_quant_s = 4; 
+  q->gain_quant = DEFAULT_GAIN; 
+  q->tail_biting = tail_biting;
+  q->decode = decode37_neon;
+  q->free = free37_neon;
+  q->decode_f = NULL;
+  printf("USING NEON VITERBI***************\n");
+  q->symbols_uc = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+  if (!q->symbols_uc) {
+    perror("malloc");
+    return -1;
+  }
+  if (q->tail_biting) {
+    q->tmp = srslte_vec_malloc(TB_ITER*3*(q->framebits + q->K - 1) * sizeof(uint8_t));
+    if (!q->tmp) {
+      perror("malloc");
+      free37(q);
+      return -1;
+    }
+  } else {
+    q->tmp = NULL;
+  }
+  
+  if ((q->ptr = create_viterbi37_neon(poly, TB_ITER*framebits)) == NULL) {
+    fprintf(stderr, "create_viterbi37 failed\n");
+    free37(q);
+    return -1;
+  } else {
+    return 0;
+  }     
+}
+#endif
+
 void srslte_viterbi_set_gain_quant(srslte_viterbi_t *q, float gain_quant) {
   q->gain_quant = gain_quant;
 }
@@ -218,7 +301,11 @@ int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, int pol
 #ifdef LV_HAVE_SSE
     return init37_sse(q, poly, max_frame_length, tail_bitting);
 #else
+	#ifdef HAVE_NEON
+	return init37_neon(q, poly, max_frame_length, tail_bitting);
+	#else
     return init37(q, poly, max_frame_length, tail_bitting);
+	#endif
 #endif
   default:
     fprintf(stderr, "Decoder not implemented\n");

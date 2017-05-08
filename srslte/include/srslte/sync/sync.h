@@ -65,7 +65,7 @@ typedef struct SRSLTE_API {
   srslte_sss_synch_t sss;
   srslte_cp_synch_t cp_synch;
   cf_t *cfo_i_corr[2];
-  
+  int decimate;
   float threshold;
   float peak_value;
   uint32_t N_id_2;
@@ -111,6 +111,13 @@ SRSLTE_API int srslte_sync_init(srslte_sync_t *q,
                                 uint32_t frame_size, 
                                 uint32_t max_offset,
                                 uint32_t fft_size);
+
+SRSLTE_API int srslte_sync_init_decim(srslte_sync_t *q, 
+                                uint32_t frame_size, 
+                                uint32_t max_offset,
+                                uint32_t fft_size,
+                                int decimate);
+
 
 SRSLTE_API void srslte_sync_free(srslte_sync_t *q);
 
