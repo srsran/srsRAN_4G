@@ -83,10 +83,10 @@ void srslte_filt_decim_cc_init(srslte_filt_cc_t *q, int factor, int order)
         case 3:
             for(int i = 0; i <(q->num_taps); i++)
                 q->taps[i] = srslte_filt_decim3[(q->num_taps) - 4][i];
+        break;
         case 4:
             for(int i = 0; i <(q->num_taps); i++)
                 q->taps[i] = srslte_filt_decim4[(q->num_taps) - 4][i];
-            
         break;
         default:
         
