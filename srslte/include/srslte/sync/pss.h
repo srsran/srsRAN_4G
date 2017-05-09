@@ -107,7 +107,7 @@ SRSLTE_API int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q,
                                                 uint32_t fft_size, 
                                                 int cfo_i);
 
-SRSLTE_API int srslte_pps_synch_init_fft_offset_decim(srslte_pss_synch_t *q, 
+SRSLTE_API int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q,
                                                 uint32_t frame_size, 
                                                 uint32_t fft_size, 
                                                 int cfo_i,
