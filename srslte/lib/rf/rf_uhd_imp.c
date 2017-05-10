@@ -318,6 +318,9 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
       args = "";
     }           
     handler->devname = NULL;
+
+    // Initialize handler
+    handler->uhd_error_handler = NULL;
     
     bzero(zero_mem, sizeof(cf_t)*64*1024);
     

@@ -51,6 +51,7 @@
 #include "srslte/config.h"
 #include "srslte/common/phy_common.h"
 #include "srslte/utils/convolution.h"
+#include "srslte/utils/filter.h"
 
 #define CONVOLUTION_FFT
 
@@ -74,13 +75,17 @@ typedef struct SRSLTE_API {
   
 #ifdef CONVOLUTION_FFT
   srslte_conv_fft_cc_t conv_fft;
-#endif
+  srslte_filt_cc_t filter;
 
+#endif
+  int decimate;
   uint32_t frame_size;
   uint32_t N_id_2;
   uint32_t fft_size;
-
+  cf_t *pss_signal_freq_full[3];
+  
   cf_t *pss_signal_time[3];
+  
   cf_t pss_signal_freq[3][SRSLTE_PSS_LEN]; // One sequence for each N_id_2
   cf_t *tmp_input;
   cf_t *conv_output;
@@ -101,6 +106,12 @@ SRSLTE_API int srslte_pss_synch_init_fft_offset(srslte_pss_synch_t *q,
                                                 uint32_t frame_size, 
                                                 uint32_t fft_size, 
                                                 int cfo_i);
+
+SRSLTE_API int srslte_pss_synch_init_fft_offset_decim(srslte_pss_synch_t *q,
+                                                uint32_t frame_size, 
+                                                uint32_t fft_size, 
+                                                int cfo_i,
+                                                int decimate);
 
 SRSLTE_API int srslte_pss_synch_init(srslte_pss_synch_t *q, 
                                      uint32_t frame_size);

@@ -47,7 +47,13 @@ static bool fft_size_isvalid(uint32_t fft_size) {
   }
 }
 
-int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset, uint32_t fft_size) {
+
+
+int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset, uint32_t fft_size)
+{
+    return srslte_sync_init_decim(q, frame_size, max_offset, fft_size, 1);
+}
+int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset, uint32_t fft_size, int decimate) {
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
@@ -56,7 +62,6 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
       fft_size_isvalid(fft_size))
   {
     ret = SRSLTE_ERROR; 
-    
     bzero(q, sizeof(srslte_sync_t));
     q->detect_cp = true;
     q->sss_en = true;
@@ -105,8 +110,12 @@ int srslte_sync_init(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset,
     }
     
     srslte_sync_set_cp(q, SRSLTE_CP_NORM);
+    q->decimate = decimate;
+    if(!decimate)
+      decimate = 1;
+                 
     
-    if (srslte_pss_synch_init_fft(&q->pss, max_offset, fft_size)) {
+    if (srslte_pss_synch_init_fft_offset_decim(&q->pss, max_offset, fft_size,0,decimate)) {
       fprintf(stderr, "Error initializing PSS object\n");
       goto clean_exit;
     }
@@ -457,8 +466,13 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
     } else {      
       srslte_pss_synch_set_N_id_2(&q->pss, q->N_id_2);
       peak_pos = srslte_pss_synch_find_pss(&q->pss, &input_cfo[find_offset], &q->peak_value);
+      // this compensates for the constant time shift caused by the low pass filter
+      if(q->decimate && peak_pos < 0)
+      {
+              peak_pos  =  0 ;//peak_pos + q->decimate*(2);// replace 2 with q->filter_size -2;
+      }
       if (peak_pos < 0) {
-        fprintf(stderr, "Error calling finding PSS sequence\n");
+        fprintf(stderr, "Error calling finding PSS sequence at : %d  \n", peak_pos);
         return SRSLTE_ERROR; 
       }      
     }
