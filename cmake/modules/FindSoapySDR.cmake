@@ -7,7 +7,7 @@ if(NOT SOAPYSDR_FOUND)
     NAMES Device.h
     PATHS ${SOAPYSDR_PKG_INCLUDE_DIRS}
           /usr/include/SoapySDR
-          /usr/include/local/SoapySDR
+          /usr/local/include/SoapySDR
   )
 
   find_library(SOAPYSDR_LIBRARIES 
@@ -15,8 +15,9 @@ if(NOT SOAPYSDR_FOUND)
     PATHS ${LIMESDR_PKG_LIBRARY_DIRS}
           /usr/lib
           /usr/local/lib
-          
+          /usr/lib/arm-linux-gnueabihf     
   )
+
 
 if(SOAPYSDR_INCLUDE_DIRS AND SOAPYSDR_LIBRARIES)
   set(SOAPYSDR_FOUND TRUE CACHE INTERNAL "libSOAPYSDR found")

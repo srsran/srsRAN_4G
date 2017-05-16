@@ -348,7 +348,7 @@ int main(int argc, char **argv) {
         
         if ((nframes%100) == 0 || rx_gain_offset == 0) {
           if (srslte_rf_has_rssi(&rf)) {
-            rx_gain_offset = 10*log10(rssi)-srslte_rf_get_rssi(&rf);
+            rx_gain_offset = 10*log10(rssi*1000)-srslte_rf_get_rssi(&rf);
           } else {
             rx_gain_offset = srslte_rf_get_rx_gain(&rf);            
           }
@@ -357,10 +357,10 @@ int main(int argc, char **argv) {
         // Plot and Printf
         if ((nframes%10) == 0) {
 
-          printf("CFO: %+8.4f kHz, SFO: %+8.4f kHz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
+          printf("CFO: %+8.4f kHz, SFO: %+8.4f Hz, RSSI: %5.1f dBm, RSSI/ref-symbol: %+5.1f dBm, "
                  "RSRP: %+5.1f dBm, RSRQ: %5.1f dB, SNR: %5.1f dB\r",
                 srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync), 
-                10*log10(rssi*1000) - rx_gain_offset,                                  
+                10*log10(rssi*1000) - rx_gain_offset,                        
                 10*log10(rssi_utra*1000)- rx_gain_offset, 
                 10*log10(rsrp*1000) - rx_gain_offset, 
                 10*log10(rsrq), 10*log10(snr));                
