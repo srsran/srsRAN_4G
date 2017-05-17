@@ -76,6 +76,7 @@ bool plot_track = true;
  ***********************************************************************/
 typedef struct {
   int nof_subframes;
+  int cpu_affinity;
   bool disable_plots;
   bool disable_plots_except_constellation;
   bool disable_cfo; 
@@ -126,6 +127,7 @@ void args_default(prog_args_t *args) {
   args->net_port_signal = -1; 
   args->net_address_signal = "127.0.0.1";
   args->decimate = 0;
+  args->cpu_affinity = -1;
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -157,6 +159,7 @@ void usage(prog_args_t *args, char *prog) {
 #else
   printf("\t plots are disabled. Graphics library not available\n");
 #endif
+  printf("\t-y set the cpu affinity mask [Default %d] \n  ",args->cpu_affinity);
   printf("\t-n nof_subframes [Default %d]\n", args->nof_subframes);
   printf("\t-s remote UDP port to send input signal (-1 does nothing with it) [Default %d]\n", args->net_port_signal);
   printf("\t-S remote UDP address to send input signal [Default %s]\n", args->net_address_signal);
@@ -168,7 +171,7 @@ void usage(prog_args_t *args, char *prog) {
 void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsSZ")) != -1) {
+  while ((opt = getopt(argc, argv, "aAoglipPcOCtdDnvrfuUsSZy")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -238,7 +241,10 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'Z':
       args->decimate = atoi(argv[optind]);
-    break;
+      break;
+    case 'y':
+      args->cpu_affinity = atoi(argv[optind]);
+      break;
     default:
       usage(args, argv[0]);
       exit(-1);
@@ -308,7 +314,28 @@ int main(int argc, char **argv) {
   float cfo = 0; 
   
   parse_args(&prog_args, argc, argv);
-
+  
+  if(prog_args.cpu_affinity > -1) {
+    
+    cpu_set_t cpuset;
+    pthread_t thread;
+    
+    thread = pthread_self();
+    for(int i = 0; i < 8;i++){
+      if(((prog_args.cpu_affinity >> i) & 0x01) == 1){
+        printf("Setting pdsch_ue with affinity to core %d\n", i);
+        CPU_SET((size_t) i , &cpuset);        
+      }
+      if(pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset)){
+      fprintf(stderr, "Error setting main thread affinity to %d \n", prog_args.cpu_affinity);
+      exit(-1);
+      }
+    }
+    
+      
+    
+  }
+  
   if (prog_args.net_port > 0) {
     if (srslte_netsink_init(&net_sink, prog_args.net_address, prog_args.net_port, SRSLTE_NETSINK_TCP)) {
       fprintf(stderr, "Error initiating UDP socket to %s:%d\n", prog_args.net_address, prog_args.net_port);
