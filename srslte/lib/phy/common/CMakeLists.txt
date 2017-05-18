@@ -19,5 +19,5 @@
 #
 
 file(GLOB SOURCES "*.c")
-add_library(srslte_common OBJECT ${SOURCES})
-SRSLTE_SET_PIC(srslte_common)
+add_library(srslte_phy_common OBJECT ${SOURCES})
+SRSLTE_SET_PIC(srslte_phy_common)
