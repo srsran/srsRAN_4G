@@ -109,7 +109,7 @@ void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len) {
     z[i] = x[i]-y[i];
   }
 #else
-  srslte_vec_sub_sss_simd(x, y, z, len);
+  srslte_vec_sub_sss_simd_avx(x, y, z, len);
 #endif
 }
 
@@ -135,7 +135,7 @@ void srslte_vec_sum_sss(short *x, short *y, short *z, uint32_t len) {
     z[i] = x[i]+y[i];
   }
 #else
-  srslte_vec_sum_sss_simd(x, y, z, len);
+  srslte_vec_sum_sss_simd_avx(x, y, z, len);
 #endif
 }
 
@@ -204,7 +204,7 @@ void srslte_vec_sc_div2_sss(short *x, int n_rightshift, short *z, uint32_t len) 
     z[i] = x[i]/pow2_div;
   }
 #else
-  srslte_vec_sc_div2_sss_simd(x, n_rightshift, z, len);
+  srslte_vec_sc_div2_sss_simd_avx(x, n_rightshift, z, len);
 #endif
 }
 
@@ -226,10 +226,7 @@ void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
     z[i] = x[i]*h;
   }
 #else
-  cf_t hh;
-  __real__ hh = h;
-  __imag__ hh = 0;
-  volk_32fc_s32fc_multiply_32fc(z,x,hh,len);
+  srslte_32fc_s32f_multiply_32fc_avx(z,x, h, len);
 #endif
 }
 
@@ -514,7 +511,7 @@ void srslte_vec_prod_sss(short *x, short *y, short *z, uint32_t len) {
     z[i] = x[i]*y[i];
   }
 #else
-  srslte_vec_prod_sss_simd(x,y,z,len);
+  srslte_vec_prod_sss_simd_avx(x,y,z,len);
 #endif
 }
 
@@ -653,7 +650,7 @@ int32_t srslte_vec_dot_prod_sss(int16_t *x, int16_t *y, uint32_t len) {
   }
   return res;
 #else
-  return srslte_vec_dot_prod_sss_simd(x, y, len); 
+  return srslte_vec_dot_prod_sss_simd_avx(x, y, len); 
 #endif
 }
 

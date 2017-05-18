@@ -106,6 +106,12 @@ SRSLTE_API int srslte_viterbi_init_neon(srslte_viterbi_t *q,
                                    uint32_t max_frame_length, 
                                    bool tail_bitting);
 
+SRSLTE_API int srslte_viterbi_init_avx2(srslte_viterbi_t *q, 
+                                   srslte_viterbi_type_t type, 
+                                   int poly[3], 
+                                   uint32_t max_frame_length, 
+                                   bool tail_bitting);
+
 
 
 #endif

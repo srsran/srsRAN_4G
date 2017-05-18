@@ -40,6 +40,9 @@
 #include <smmintrin.h>
 #endif
 
+#ifdef LV_HAVE_AVX
+#include <immintrin.h>
+#endif
 
 
 int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len)
@@ -83,6 +86,47 @@ int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len)
   return result; 
 }
 
+
+int srslte_vec_dot_prod_sss_simd_avx(short *x, short *y, uint32_t len)
+{
+  int result = 0; 
+#ifdef LV_HAVE_AVX
+  unsigned int number = 0;
+  const unsigned int points = len / 16;
+
+  const __m256i* xPtr = (const __m256i*) x;
+  const __m256i* yPtr = (const __m256*) y;
+  
+  __m256i dotProdVal = _mm256_setzero_si256();
+
+  __m256i xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_load_si256(xPtr);
+    yVal = _mm256_loadu_si256(yPtr);
+    zVal = _mm256_mullo_epi16(xVal, yVal);
+    dotProdVal = _mm256_add_epi16(dotProdVal, zVal);
+    xPtr ++;
+    yPtr ++;
+  }
+  
+  short dotProdVector[16];
+  _mm256_store_si256((__m256i*) dotProdVector, dotProdVal);
+  for (int i=0;i<16;i++) {
+    result += dotProdVector[i]; 
+  }
+
+  number = points * 16;
+  for(;number < len; number++){
+    result += (x[number] * y[number]);
+  }
+  
+#endif
+  return result; 
+}
+
+
+
 void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
@@ -116,6 +160,39 @@ void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len)
 
 }
 
+void srslte_vec_sum_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
+{
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 16;
+
+  const __m256i* xPtr = (const __m256i*) x;
+  const __m256i* yPtr = (const __m256i*) y;
+  __m256i* zPtr = (__m256i*) z;
+
+  __m256i xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_load_si256(xPtr);
+    yVal = _mm256_loadu_si256(yPtr);
+
+    zVal = _mm256_add_epi16(xVal, yVal);
+    _mm256_store_si256(zPtr, zVal); 
+
+    xPtr ++;
+    yPtr ++;
+    zPtr ++;
+  }
+
+  number = points * 16;
+  for(;number < len; number++){
+    z[number] = x[number] + y[number];
+  }
+#endif
+
+}
+
+
 void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
@@ -147,6 +224,41 @@ void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len)
   }
 #endif
 }
+
+void srslte_vec_sub_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
+{
+#ifdef LV_HAVE_AVX
+  unsigned int number = 0;
+  const unsigned int points = len / 16;
+
+  const __m256i* xPtr = (const __m256i*) x;
+  const __m256i* yPtr = (const __m256i*) y;
+  __m256i* zPtr = (__m256i*) z;
+
+  __m256i xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_load_si256(xPtr);
+    yVal = _mm256_loadu_si256(yPtr);
+
+    zVal = _mm256_sub_epi16(xVal, yVal);
+
+    _mm256_store_si256(zPtr, zVal); 
+
+    xPtr ++;
+    yPtr ++;
+    zPtr ++;
+  }
+
+  number = points * 16;
+  for(;number < len; number++){
+    z[number] = x[number] - y[number];
+  }
+  #endif
+}
+
+
+
 
 void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len)
 {
@@ -180,6 +292,38 @@ void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len)
 #endif
 }
 
+void srslte_vec_prod_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
+{
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 16;
+
+  const __m256i* xPtr = (const __m256i*) x;
+  const __m256i* yPtr = (const __m256i*) y;
+  __m256i* zPtr = (__m256i*) z;
+
+  __m256i xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_load_si256(xPtr);
+    yVal = _mm256_loadu_si256(yPtr);
+
+    zVal = _mm256_mullo_epi16(xVal, yVal);
+
+    _mm256_store_si256(zPtr, zVal); 
+
+    xPtr ++;
+    yPtr ++;
+    zPtr ++;
+  }
+
+  number = points * 16;
+  for(;number < len; number++){
+    z[number] = x[number] * y[number];
+  }
+#endif
+}
+
 void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
@@ -203,6 +347,36 @@ void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
   }
 
   number = points * 8;
+  short divn = (1<<k);
+  for(;number < len; number++){
+    z[number] = x[number] / divn;
+  }
+#endif
+}
+
+void srslte_vec_sc_div2_sss_simd_avx(short *x, int k, short *z, uint32_t len)
+{
+#ifdef LV_HAVE_AVX
+  unsigned int number = 0;
+  const unsigned int points = len / 16;
+
+  const __m256i* xPtr = (const __m256i*) x;
+  __m256i* zPtr = (__m256i*) z;
+
+  __m256i xVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_load_si256(xPtr);
+    
+    zVal = _mm256_srai_epi16(xVal, k);                 
+      
+    _mm256_store_si256(zPtr, zVal); 
+
+    xPtr ++;
+    zPtr ++;
+  }
+
+  number = points * 16;
   short divn = (1<<k);
   for(;number < len; number++){
     z[number] = x[number] / divn;
@@ -280,5 +454,35 @@ void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
   for(; number < len; number++){
     z[number] = (int16_t) (x[number] * scale);
   }
+#endif
+}
+
+
+ void srslte_32fc_s32f_multiply_32fc_avx( cf_t *z,const cf_t *x,const float h,const uint32_t len)
+{
+#ifdef LV_HAVE_AVX
+   
+    unsigned int i = 0;
+    const unsigned int loops = len/4;
+    //__m256 outputVec;
+     cf_t *xPtr = x;
+     cf_t *zPtr = z;
+    
+    __m256 inputVec, outputVec;
+     const __m256 tapsVec  = _mm256_set1_ps(h);
+    for(;i < loops;i++)
+    {
+        inputVec  = _mm256_loadu_ps((float*)xPtr);
+       //__builtin_prefetch(xPtr+4);
+        outputVec = _mm256_mul_ps(inputVec,tapsVec);
+       _mm256_storeu_ps((float*)zPtr,outputVec);
+       xPtr += 4;
+       zPtr += 4;
+    }
+    
+    for(i = loops * 4;i < len;i++)
+    {
+        *zPtr++ = (*xPtr++) * h;
+    }
 #endif
 }
