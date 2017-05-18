@@ -30,11 +30,11 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/dft/dft.h"
-#include "srslte/dft/ofdm.h"
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/dft/dft.h"
+#include "srslte/phy/dft/ofdm.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_prb, srslte_dft_dir_t dir) {
 

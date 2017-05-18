@@ -40,8 +40,8 @@
 #include <stdint.h>
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/phch/ra.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/phch/ra.h"
 
 #define SRSLTE_DCI_MAX_BITS  128
 

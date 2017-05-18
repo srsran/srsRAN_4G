@@ -40,7 +40,7 @@
 #include <complex.h>
 #include <stdint.h>
 
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/common/phy_common.h"
 #include "srslte/config.h"
 
 typedef struct {

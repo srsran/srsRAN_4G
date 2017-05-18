@@ -26,7 +26,7 @@
 
   
 #include "srslte/config.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 
 #define DEVNAME "bladerf"
 

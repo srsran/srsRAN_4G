@@ -33,14 +33,14 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phch/pdsch.h"
-#include "srslte/phch/pusch.h"
-#include "srslte/phch/sch.h"
-#include "srslte/phch/uci.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/phch/pdsch.h"
+#include "srslte/phy/phch/pusch.h"
+#include "srslte/phy/phch/sch.h"
+#include "srslte/phy/phch/uci.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 #define SRSLTE_PDSCH_MAX_TDEC_ITERS         4
 

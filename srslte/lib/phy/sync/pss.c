@@ -31,11 +31,11 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/sync/pss.h"
-#include "srslte/dft/dft.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/convolution.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/sync/pss.h"
+#include "srslte/phy/dft/dft.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/convolution.h"
+#include "srslte/phy/utils/debug.h"
 
 
 int srslte_pss_synch_init_N_id_2(cf_t *pss_signal_freq, cf_t *pss_signal_time, 

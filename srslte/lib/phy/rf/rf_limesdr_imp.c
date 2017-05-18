@@ -32,7 +32,7 @@
 
 #include "srslte/srslte.h"
 #include "rf_limesdr_imp.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 #include "lime/LimeSuite.h"
 
 typedef struct {

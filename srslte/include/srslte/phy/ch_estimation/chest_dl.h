@@ -45,11 +45,11 @@
 
 #include "srslte/config.h"
 
-#include "srslte/ch_estimation/chest_common.h"
-#include "srslte/resampling/interp.h"
-#include "srslte/ch_estimation/refsignal_dl.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/sync/pss.h"
+#include "srslte/phy/ch_estimation/chest_common.h"
+#include "srslte/phy/resampling/interp.h"
+#include "srslte/phy/ch_estimation/refsignal_dl.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/sync/pss.h"
 
 
 typedef enum {

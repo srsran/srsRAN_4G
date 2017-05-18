@@ -33,11 +33,11 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phch/dci.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/phch/dci.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 #include "dci_sz_table.h"
 

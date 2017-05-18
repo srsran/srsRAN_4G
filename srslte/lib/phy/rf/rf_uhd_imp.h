@@ -28,7 +28,7 @@
 #include <stdint.h>
   
 #include "srslte/config.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 
 #define DEVNAME_B200 "uhd_b200"
 #define DEVNAME_X300 "uhd_x300"

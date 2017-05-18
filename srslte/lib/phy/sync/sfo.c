@@ -27,7 +27,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "srslte/sync/sfo.h"
+#include "srslte/phy/sync/sfo.h"
 
 /* Estimate SFO based on the array of time estimates t0
  * of length len. The parameter period is the time between t0 samples

@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include "srslte/config.h"
 #include <stdbool.h>
-#include "srslte/utils/vector.h"
+#include "srslte/phy/utils/vector.h"
 typedef struct SRSLTE_API{
     cf_t *filter_input;
     cf_t *downsampled_input;

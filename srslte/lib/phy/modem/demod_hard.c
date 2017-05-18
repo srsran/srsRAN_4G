@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/modem/demod_hard.h"
+#include "srslte/phy/modem/demod_hard.h"
 #include "hard_demod_lte.h"
 
 

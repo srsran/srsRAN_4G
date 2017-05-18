@@ -31,7 +31,7 @@
 #include <string.h>
 #include <stddef.h>
 
-#include "srslte/utils/bit.h"
+#include "srslte/phy/utils/bit.h"
 
 void srslte_bit_interleave(uint8_t *input, uint8_t *output, uint16_t *interleaver, uint32_t nof_bits) {
   srslte_bit_interleave_w_offset(input, output, interleaver, nof_bits, 0);

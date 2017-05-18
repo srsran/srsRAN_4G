@@ -31,7 +31,7 @@
 #include <math.h>
 
 #include "gauss.h"
-#include "srslte/channel/ch_awgn.h"
+#include "srslte/phy/channel/ch_awgn.h"
 
 float srslte_ch_awgn_get_variance(float ebno_db, float rate) {
   float esno_db = ebno_db + 10 * log10f(rate);

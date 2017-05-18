@@ -33,13 +33,13 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/phch/ra.h"
-#include "srslte/fec/turbodecoder_gen.h"
-#include "srslte/fec/rm_turbo.h"
-#include "srslte/fec/softbuffer.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/phch/ra.h"
+#include "srslte/phy/fec/turbodecoder_gen.h"
+#include "srslte/phy/fec/rm_turbo.h"
+#include "srslte/phy/fec/softbuffer.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 

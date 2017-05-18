@@ -43,10 +43,10 @@
 
 #include "srslte/config.h"
 
-#include "srslte/ch_estimation/chest_common.h"
-#include "srslte/resampling/interp.h"
-#include "srslte/ch_estimation/refsignal_ul.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/ch_estimation/chest_common.h"
+#include "srslte/phy/resampling/interp.h"
+#include "srslte/phy/ch_estimation/refsignal_ul.h"
+#include "srslte/phy/common/phy_common.h"
 
 typedef struct {
   srslte_cell_t cell; 

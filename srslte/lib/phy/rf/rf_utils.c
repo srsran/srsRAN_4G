@@ -36,8 +36,8 @@
 
 #include "srslte/srslte.h"
 
-#include "srslte/rf/rf.h"
-#include "srslte/rf/rf_utils.h"
+#include "srslte/phy/rf/rf.h"
+#include "srslte/phy/rf/rf_utils.h"
 
 int rf_rssi_scan(srslte_rf_t *rf, float *freqs, float *rssi, int nof_bands, double fs, int nsamp) {
   int i, j;

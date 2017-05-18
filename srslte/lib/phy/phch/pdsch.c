@@ -34,12 +34,12 @@
 #include <math.h>
 
 #include "prb_dl.h"
-#include "srslte/phch/pdsch.h"
-#include "srslte/phch/sch.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/phch/pdsch.h"
+#include "srslte/phy/phch/sch.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)

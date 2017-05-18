@@ -26,7 +26,7 @@
 
 
 #include "srslte/srslte.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 
 typedef struct SRSLTE_API {
   uint32_t max_frames_pbch;      // timeout in number of 5ms frames for MIB decoding

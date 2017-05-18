@@ -36,18 +36,18 @@
 #define PDCCH_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/mimo/precoding.h"
-#include "srslte/mimo/layermap.h"
-#include "srslte/modem/mod.h"
-#include "srslte/modem/demod_soft.h"
-#include "srslte/scrambling/scrambling.h"
-#include "srslte/fec/rm_conv.h"
-#include "srslte/fec/convcoder.h"
-#include "srslte/fec/viterbi.h"
-#include "srslte/fec/crc.h"
-#include "srslte/phch/dci.h"
-#include "srslte/phch/regs.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/mimo/layermap.h"
+#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/scrambling/scrambling.h"
+#include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/fec/convcoder.h"
+#include "srslte/phy/fec/viterbi.h"
+#include "srslte/phy/fec/crc.h"
+#include "srslte/phy/phch/dci.h"
+#include "srslte/phy/phch/regs.h"
 
 
 

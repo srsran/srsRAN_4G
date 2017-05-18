@@ -32,9 +32,9 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/modem/modem_table.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/modem/modem_table.h"
+#include "srslte/phy/utils/vector.h"
 #include "lte_tables.h"
 
 /** Internal functions */

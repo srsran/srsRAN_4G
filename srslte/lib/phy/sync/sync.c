@@ -29,11 +29,11 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/utils/debug.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/sync/sync.h"
-#include "srslte/utils/vector.h"
-#include "srslte/sync/cfo.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/sync/sync.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/sync/cfo.h"
 
 #define MEANPEAK_EMA_ALPHA      0.1
 #define CFO_EMA_ALPHA           0.1

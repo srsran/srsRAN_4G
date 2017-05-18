@@ -27,10 +27,10 @@
 #include <math.h>
 #include <string.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/phch/prach.h"
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/phch/prach.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 float save_corr[4096];
 

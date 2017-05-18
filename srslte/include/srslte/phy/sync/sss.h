@@ -40,8 +40,8 @@
 #include <stdbool.h>
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/dft/dft.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/dft/dft.h"
 
 
 #define SRSLTE_SSS_N      31

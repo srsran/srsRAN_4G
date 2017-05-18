@@ -24,7 +24,7 @@
  *
  */
 
-#include "srslte/enb/enb_ul.h"
+#include "srslte/phy/enb/enb_ul.h"
 
 #include <complex.h>
 #include <math.h>

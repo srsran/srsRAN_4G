@@ -36,8 +36,8 @@
 #define SCRAMBLING_
 
 #include "srslte/config.h"
-#include "srslte/common/sequence.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/common/sequence.h"
+#include "srslte/phy/common/phy_common.h"
 
 /* Scrambling has no state */
 SRSLTE_API void srslte_scrambling_b(srslte_sequence_t *s, 

@@ -1,7 +1,7 @@
 
 #include <uhd.h>
 #include "srslte/config.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 
 /* Declare functions not currently provided by the C-API */
 SRSLTE_API void rf_uhd_register_msg_handler_c(void (*new_handler)(const char*));

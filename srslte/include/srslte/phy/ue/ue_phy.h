@@ -33,7 +33,7 @@
  *****************************************************************************/
 
 #include "srslte/srslte.h"
-#include "srslte/utils/queue.h"
+#include "srslte/phy/utils/queue.h"
 
 #ifndef UEPHY_H
 #define UEPHY_H

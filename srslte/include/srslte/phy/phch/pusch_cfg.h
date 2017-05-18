@@ -35,9 +35,9 @@
 #ifndef PUSCHCFG_
 #define PUSCHCFG_
 
-#include "srslte/phch/ra.h"
-#include "srslte/fec/softbuffer.h"
-#include "srslte/fec/cbsegm.h"
+#include "srslte/phy/phch/ra.h"
+#include "srslte/phy/fec/softbuffer.h"
+#include "srslte/phy/fec/cbsegm.h"
 
 typedef struct SRSLTE_API {
   uint32_t I_offset_cqi;

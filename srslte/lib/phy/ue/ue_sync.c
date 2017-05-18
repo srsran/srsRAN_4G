@@ -31,11 +31,11 @@
 #include <unistd.h>
 
 
-#include "srslte/ue/ue_sync.h"
+#include "srslte/phy/ue/ue_sync.h"
 
-#include "srslte/io/filesource.h"
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/io/filesource.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 
 #define MAX_TIME_OFFSET 128

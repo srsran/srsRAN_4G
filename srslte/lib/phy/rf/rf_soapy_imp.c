@@ -32,7 +32,7 @@
 
 #include "srslte/srslte.h"
 #include "rf_soapy_imp.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 
 #include <SoapySDR/Device.h>
 #include <SoapySDR/Formats.h>

@@ -38,7 +38,7 @@
 #include <complex.h>
 
 #include "srslte/config.h"
-#include "srslte/utils/cexptab.h"
+#include "srslte/phy/utils/cexptab.h"
 
 /** If the frequency is changed more than the tolerance, a new table is generated */
 #define SRSLTE_CFO_TOLERANCE    0.00001

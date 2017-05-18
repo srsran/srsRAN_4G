@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/utils/vector_simd.h"
+#include "srslte/phy/utils/vector_simd.h"
 
 #include <inttypes.h>
 #include <stdio.h>

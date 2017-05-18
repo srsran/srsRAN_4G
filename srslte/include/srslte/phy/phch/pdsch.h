@@ -36,16 +36,16 @@
 #define PDSCH_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/mimo/precoding.h"
-#include "srslte/mimo/layermap.h"
-#include "srslte/modem/mod.h"
-#include "srslte/modem/demod_soft.h"
-#include "srslte/scrambling/scrambling.h"
-#include "srslte/phch/dci.h"
-#include "srslte/phch/regs.h"
-#include "srslte/phch/sch.h"
-#include "srslte/phch/pdsch_cfg.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/mimo/layermap.h"
+#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/scrambling/scrambling.h"
+#include "srslte/phy/phch/dci.h"
+#include "srslte/phy/phch/regs.h"
+#include "srslte/phy/phch/sch.h"
+#include "srslte/phy/phch/pdsch_cfg.h"
 
 typedef struct {
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];  

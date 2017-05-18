@@ -37,11 +37,11 @@
 
 #include "srslte/srslte.h"
 
-#include "srslte/rf/rf_utils.h"
+#include "srslte/phy/rf/rf_utils.h"
 
 
 #ifndef DISABLE_RF
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 #endif
 
 #define MHZ             1000000

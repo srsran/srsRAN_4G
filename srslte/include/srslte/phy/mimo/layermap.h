@@ -38,7 +38,7 @@
 #define LAYERMAP_H_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/common/phy_common.h"
 
 /* Generates the vector of layer-mapped symbols "x" based on the vector of data symbols "d"
  */

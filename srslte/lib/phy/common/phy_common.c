@@ -31,8 +31,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/common/sequence.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/sequence.h"
 
 #ifdef FORCE_STANDARD_RATE
 static bool use_standard_rates = true; 

@@ -40,8 +40,8 @@
 #define TURBODECODER_SSE_
 
 #include "srslte/config.h"
-#include "srslte/fec/tc_interl.h"
-#include "srslte/fec/cbsegm.h"
+#include "srslte/phy/fec/tc_interl.h"
+#include "srslte/phy/fec/cbsegm.h"
 
 #define SRSLTE_TCOD_RATE 3
 #define SRSLTE_TCOD_TOTALTAIL 12

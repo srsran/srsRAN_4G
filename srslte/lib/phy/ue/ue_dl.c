@@ -24,7 +24,7 @@
  *
  */
 
-#include "srslte/ue/ue_dl.h"
+#include "srslte/phy/ue/ue_dl.h"
 
 #include <complex.h>
 #include <math.h>

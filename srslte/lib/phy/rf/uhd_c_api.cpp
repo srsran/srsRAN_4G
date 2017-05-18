@@ -5,7 +5,7 @@
 #include <uhd/usrp/multi_usrp.hpp>
 
 extern "C" {
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 #include "uhd_c_api.h"
 }
 

@@ -40,16 +40,16 @@
 
 #include <stdbool.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/dft/ofdm.h"
-#include "srslte/ch_estimation/chest_ul.h"
-#include "srslte/phch/prach.h"
-#include "srslte/phch/pusch.h"
-#include "srslte/phch/pusch_cfg.h"
-#include "srslte/phch/ra.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/dft/ofdm.h"
+#include "srslte/phy/ch_estimation/chest_ul.h"
+#include "srslte/phy/phch/prach.h"
+#include "srslte/phy/phch/pusch.h"
+#include "srslte/phy/phch/pusch_cfg.h"
+#include "srslte/phy/phch/ra.h"
 
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 #include "srslte/config.h"
 

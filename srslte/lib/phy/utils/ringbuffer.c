@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "srslte/utils/ringbuffer.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/utils/ringbuffer.h"
+#include "srslte/phy/utils/vector.h"
 
 int srslte_ringbuffer_init(srslte_ringbuffer_t *q, int capacity)
 {

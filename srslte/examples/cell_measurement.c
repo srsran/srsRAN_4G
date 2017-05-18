@@ -38,8 +38,8 @@
 #define ENABLE_AGC_DEFAULT
 
 #include "srslte/srslte.h"
-#include "srslte/rf/rf.h"
-#include "srslte/rf/rf_utils.h"
+#include "srslte/phy/rf/rf.h"
+#include "srslte/phy/rf/rf_utils.h"
 
 cell_search_cfg_t cell_detect_config = {
   SRSLTE_DEFAULT_MAX_FRAMES_PBCH,

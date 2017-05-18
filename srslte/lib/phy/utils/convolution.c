@@ -28,9 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/dft/dft.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/convolution.h"
+#include "srslte/phy/dft/dft.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/convolution.h"
 
 
 int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t *q, uint32_t input_len, uint32_t filter_len) {

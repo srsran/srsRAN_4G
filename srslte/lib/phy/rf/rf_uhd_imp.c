@@ -32,7 +32,7 @@
 
 #include "srslte/srslte.h"
 #include "rf_uhd_imp.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 #include "uhd_c_api.h"
 
 typedef struct {

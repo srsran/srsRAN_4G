@@ -31,8 +31,8 @@
 #include <strings.h>
 #include <math.h>
 
-#include "srslte/fec/turbodecoder_sse.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/fec/turbodecoder_sse.h"
+#include "srslte/phy/utils/vector.h"
 
 #include <inttypes.h>
 

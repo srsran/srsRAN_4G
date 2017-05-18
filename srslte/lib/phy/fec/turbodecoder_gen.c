@@ -31,8 +31,8 @@
 #include <strings.h>
 #include <math.h>
 
-#include "srslte/fec/turbodecoder_gen.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/fec/turbodecoder_gen.h"
+#include "srslte/phy/utils/vector.h"
 
 #define NUMSTATES       8
 #define NINPUTS         2

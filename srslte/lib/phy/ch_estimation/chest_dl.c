@@ -35,9 +35,9 @@
 
 #include "srslte/config.h"
 
-#include "srslte/ch_estimation/chest_dl.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/convolution.h"
+#include "srslte/phy/ch_estimation/chest_dl.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/convolution.h"
 
 //#define DEFAULT_FILTER_LEN 3
 

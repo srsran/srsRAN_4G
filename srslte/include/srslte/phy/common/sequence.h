@@ -37,7 +37,7 @@
 #define LTESEQ_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/common/phy_common.h"
 
 typedef struct SRSLTE_API {
   uint8_t *c;

@@ -30,15 +30,15 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "srslte/fec/turbodecoder.h"
-#include "srslte/fec/turbodecoder_gen.h"
+#include "srslte/phy/fec/turbodecoder.h"
+#include "srslte/phy/fec/turbodecoder_gen.h"
 
 
 #ifdef LV_HAVE_SSE
-#include "srslte/fec/turbodecoder_sse.h"
+#include "srslte/phy/fec/turbodecoder_sse.h"
 #endif
 
-#include "srslte/utils/vector.h"
+#include "srslte/phy/utils/vector.h"
 
 
 int srslte_tdec_init(srslte_tdec_t * h, uint32_t max_long_cb) {

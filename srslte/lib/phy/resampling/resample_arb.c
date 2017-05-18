@@ -26,8 +26,8 @@
 
 #include <math.h>
 #include <string.h>
-#include "srslte/resampling/resample_arb.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/resampling/resample_arb.h"
+#include "srslte/phy/utils/debug.h"
 
 float srslte_resample_arb_polyfilt[SRSLTE_RESAMPLE_ARB_N][SRSLTE_RESAMPLE_ARB_M] =
 {{0,0.002400347599485495,-0.006922416132556366,0.0179104136912176,0.99453086623794,-0.008521087756729117,0.0008598969867484128,0.0004992625165376107},

@@ -30,9 +30,9 @@
 #include <string.h>
 #include <math.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/mimo/precoding.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/utils/vector.h"
 
 #ifdef LV_HAVE_SSE
 #include <xmmintrin.h>

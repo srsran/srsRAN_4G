@@ -26,7 +26,7 @@
 
 #include <string.h>
 
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 #include "srslte/srslte.h"
 #include "rf_dev.h"
 

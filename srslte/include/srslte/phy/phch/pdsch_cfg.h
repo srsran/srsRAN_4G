@@ -35,9 +35,9 @@
 #ifndef PDSCHCFG_
 #define PDSCHCFG_
 
-#include "srslte/phch/ra.h"
-#include "srslte/fec/softbuffer.h"
-#include "srslte/fec/cbsegm.h"
+#include "srslte/phy/phch/ra.h"
+#include "srslte/phy/fec/softbuffer.h"
+#include "srslte/phy/fec/cbsegm.h"
 
 typedef struct SRSLTE_API {
   srslte_cbsegm_t cb_segm; 

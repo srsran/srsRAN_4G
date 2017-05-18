@@ -30,7 +30,7 @@
 #include <assert.h>
 #include <complex.h>
 
-#include "srslte/utils/cexptab.h"
+#include "srslte/phy/utils/cexptab.h"
 
 int srslte_cexptab_init(srslte_cexptab_t *h, uint32_t size) {
   uint32_t i;

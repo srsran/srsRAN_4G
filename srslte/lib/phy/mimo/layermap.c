@@ -29,8 +29,8 @@
 #include <assert.h>
 #include <string.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/mimo/layermap.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/mimo/layermap.h"
 
 
 

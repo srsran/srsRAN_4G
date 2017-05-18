@@ -28,7 +28,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "srslte/ue/ue_ul.h"
+#include "srslte/phy/ue/ue_ul.h"
 
 #define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
 #define CURRENT_SFLEN     SRSLTE_SF_LEN(CURRENT_FFTSIZE)

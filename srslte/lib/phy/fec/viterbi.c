@@ -31,8 +31,8 @@
 #include <math.h>
 #include <string.h>
 
-#include "srslte/utils/vector.h"
-#include "srslte/fec/viterbi.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/fec/viterbi.h"
 #include "parity.h"
 #include "viterbi37.h"
 

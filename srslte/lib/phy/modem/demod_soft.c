@@ -28,9 +28,9 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "srslte/utils/vector.h"
-#include "srslte/utils/bit.h"
-#include "srslte/modem/demod_soft.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/modem/demod_soft.h"
 
 // AVX implementation not useful for integers. Wait for AVX2
 

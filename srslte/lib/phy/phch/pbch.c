@@ -34,11 +34,11 @@
 #include <math.h>
 
 #include "prb_dl.h"
-#include "srslte/phch/pbch.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/phch/pbch.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 #define PBCH_RE_CP_NORM    240
 #define PBCH_RE_CP_EXT     216

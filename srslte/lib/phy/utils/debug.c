@@ -24,7 +24,7 @@
  *
  */
 
-#include "srslte/utils/debug.h"
+#include "srslte/phy/utils/debug.h"
 
 int srslte_verbose = 0;
 

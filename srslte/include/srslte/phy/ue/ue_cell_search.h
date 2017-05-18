@@ -46,12 +46,12 @@
 #include <stdbool.h>
 
 #include "srslte/config.h"
-#include "srslte/ue/ue_sync.h"
-#include "srslte/ue/ue_mib.h"
-#include "srslte/sync/cfo.h"
-#include "srslte/ch_estimation/chest_dl.h"
-#include "srslte/phch/pbch.h"
-#include "srslte/dft/ofdm.h"
+#include "srslte/phy/ue/ue_sync.h"
+#include "srslte/phy/ue/ue_mib.h"
+#include "srslte/phy/sync/cfo.h"
+#include "srslte/phy/ch_estimation/chest_dl.h"
+#include "srslte/phy/phch/pbch.h"
+#include "srslte/phy/dft/ofdm.h"
 
 #define SRSLTE_CS_NOF_PRB      6
 #define SRSLTE_CS_SAMP_FREQ    1920000.0

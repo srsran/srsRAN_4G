@@ -26,7 +26,7 @@
 
 #include <stdbool.h>
 
-#include "srslte/fec/crc.h"
+#include "srslte/phy/fec/crc.h"
 
 typedef struct {
   int n;

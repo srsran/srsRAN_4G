@@ -36,11 +36,11 @@
 #define UCI_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/phch/pusch_cfg.h"
-#include "srslte/fec/crc.h"
-#include "srslte/fec/viterbi.h"
-#include "srslte/phch/cqi.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/phch/pusch_cfg.h"
+#include "srslte/phy/fec/crc.h"
+#include "srslte/phy/fec/viterbi.h"
+#include "srslte/phy/phch/cqi.h"
 
 #define SRSLTE_UCI_MAX_CQI_LEN_PUSCH       512
 #define SRSLTE_UCI_MAX_CQI_LEN_PUCCH       13

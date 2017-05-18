@@ -49,11 +49,11 @@
 #include <stdbool.h>
 
 #include "srslte/config.h"
-#include "srslte/ue/ue_sync.h"
-#include "srslte/sync/cfo.h"
-#include "srslte/ch_estimation/chest_dl.h"
-#include "srslte/phch/pbch.h"
-#include "srslte/dft/ofdm.h"
+#include "srslte/phy/ue/ue_sync.h"
+#include "srslte/phy/sync/cfo.h"
+#include "srslte/phy/ch_estimation/chest_dl.h"
+#include "srslte/phy/phch/pbch.h"
+#include "srslte/phy/dft/ofdm.h"
 
 
 #define SRSLTE_UE_MIB_NOF_PRB              6

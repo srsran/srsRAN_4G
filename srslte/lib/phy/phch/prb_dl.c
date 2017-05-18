@@ -29,7 +29,7 @@
 #include <string.h>
 
 #include "prb_dl.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/common/phy_common.h"
 
 //#define DEBUG_IDX
 

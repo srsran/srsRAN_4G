@@ -34,7 +34,7 @@
 #include <strings.h>
 #include <errno.h>
 
-#include "srslte/io/netsource.h"
+#include "srslte/phy/io/netsource.h"
 
 int srslte_netsource_init(srslte_netsource_t *q, const char *address, uint16_t port, srslte_netsource_type_t type) {
   bzero(q, sizeof(srslte_netsource_t));

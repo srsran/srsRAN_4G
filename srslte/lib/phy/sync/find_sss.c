@@ -29,8 +29,8 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/utils/vector.h"
-#include "srslte/sync/sss.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/sync/sss.h"
 
 #define MAX_M 3
 

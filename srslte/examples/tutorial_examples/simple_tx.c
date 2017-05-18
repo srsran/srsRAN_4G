@@ -35,7 +35,7 @@
 
 #include "srslte/srslte.h"
 
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 srslte_rf_t rf;
 
 char *output_file_name = NULL;

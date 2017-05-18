@@ -27,9 +27,9 @@
 #include <strings.h>
 #include <math.h>
 
-#include "srslte/fec/turbodecoder_gen.h"
-#include "srslte/fec/cbsegm.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/fec/turbodecoder_gen.h"
+#include "srslte/phy/fec/cbsegm.h"
+#include "srslte/phy/utils/debug.h"
 
 
 const uint32_t tc_cb_sizes[SRSLTE_NOF_TC_CB_SIZES] = { 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120,

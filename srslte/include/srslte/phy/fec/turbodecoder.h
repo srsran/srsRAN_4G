@@ -40,8 +40,8 @@
 #define TURBODECODER_
 
 #include "srslte/config.h"
-#include "srslte/fec/tc_interl.h"
-#include "srslte/fec/cbsegm.h"
+#include "srslte/phy/fec/tc_interl.h"
+#include "srslte/phy/fec/cbsegm.h"
 
 #define SRSLTE_TCOD_RATE 3
 #define SRSLTE_TCOD_TOTALTAIL 12
@@ -49,10 +49,10 @@
 #define SRSLTE_TCOD_MAX_LEN_CB     6144
 #define SRSLTE_TCOD_MAX_LEN_CODED  (SRSLTE_TCOD_RATE*SRSLTE_TCOD_MAX_LEN_CB+SRSLTE_TCOD_TOTALTAIL)
 
-#include "srslte/fec/turbodecoder_gen.h"
+#include "srslte/phy/fec/turbodecoder_gen.h"
 
 #ifdef LV_HAVE_SSE
-#include "srslte/fec/turbodecoder_sse.h"
+#include "srslte/phy/fec/turbodecoder_sse.h"
 #endif
 
 typedef struct SRSLTE_API {

@@ -40,23 +40,23 @@
 
 #include <stdbool.h>
 
-#include "srslte/ch_estimation/chest_dl.h"
-#include "srslte/dft/ofdm.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/ch_estimation/chest_dl.h"
+#include "srslte/phy/dft/ofdm.h"
+#include "srslte/phy/common/phy_common.h"
 
-#include "srslte/phch/dci.h"
-#include "srslte/phch/pcfich.h"
-#include "srslte/phch/pdcch.h"
-#include "srslte/phch/pdsch.h"
-#include "srslte/phch/pdsch_cfg.h"
-#include "srslte/phch/phich.h"
-#include "srslte/phch/ra.h"
-#include "srslte/phch/regs.h"
+#include "srslte/phy/phch/dci.h"
+#include "srslte/phy/phch/pcfich.h"
+#include "srslte/phy/phch/pdcch.h"
+#include "srslte/phy/phch/pdsch.h"
+#include "srslte/phy/phch/pdsch_cfg.h"
+#include "srslte/phy/phch/phich.h"
+#include "srslte/phy/phch/ra.h"
+#include "srslte/phy/phch/regs.h"
 
-#include "srslte/sync/cfo.h"
+#include "srslte/phy/sync/cfo.h"
 
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 #include "srslte/config.h"
 

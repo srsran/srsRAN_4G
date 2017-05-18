@@ -52,14 +52,14 @@
 #include <stdbool.h>
 
 #include "srslte/config.h"
-#include "srslte/sync/sync.h"
-#include "srslte/sync/cfo.h"
-#include "srslte/agc/agc.h"
-#include "srslte/ch_estimation/chest_dl.h"
-#include "srslte/phch/pbch.h"
-#include "srslte/dft/ofdm.h"
-#include "srslte/common/timestamp.h"
-#include "srslte/io/filesource.h"
+#include "srslte/phy/sync/sync.h"
+#include "srslte/phy/sync/cfo.h"
+#include "srslte/phy/agc/agc.h"
+#include "srslte/phy/ch_estimation/chest_dl.h"
+#include "srslte/phy/phch/pbch.h"
+#include "srslte/phy/dft/ofdm.h"
+#include "srslte/phy/common/timestamp.h"
+#include "srslte/phy/io/filesource.h"
 
 
 typedef enum SRSLTE_API { SF_FIND, SF_TRACK} srslte_ue_sync_state_t;

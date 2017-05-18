@@ -30,10 +30,10 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "srslte/ue/ue_cell_search.h"
+#include "srslte/phy/ue/ue_cell_search.h"
 
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames, 
                               int (recv_callback)(void*, void*, uint32_t,srslte_timestamp_t*), 

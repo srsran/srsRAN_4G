@@ -26,9 +26,9 @@
 
 #include <stdlib.h>
 
-#include "srslte/sync/cp.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/sync/cp.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 int srslte_cp_synch_init(srslte_cp_synch_t *q, uint32_t symbol_sz) 
 {

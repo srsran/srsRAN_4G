@@ -28,8 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "srslte/utils/bit.h"
-#include "srslte/fec/crc.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/fec/crc.h"
 
 void gen_crc_table(srslte_crc_t *h) {
 

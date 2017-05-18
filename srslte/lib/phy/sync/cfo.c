@@ -28,10 +28,10 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "srslte/utils/cexptab.h"
-#include "srslte/sync/cfo.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/utils/cexptab.h"
+#include "srslte/phy/sync/cfo.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 int srslte_cfo_init(srslte_cfo_t *h, uint32_t nsamples) {
   int ret = SRSLTE_ERROR;

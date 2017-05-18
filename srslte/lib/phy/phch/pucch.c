@@ -34,15 +34,15 @@
 #include <math.h>
 #include <complex.h>
 
-#include "srslte/ch_estimation/refsignal_ul.h"
-#include "srslte/phch/pucch.h"
-#include "srslte/common/sequence.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/mimo/precoding.h"
-#include "srslte/scrambling/scrambling.h"
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
-#include "srslte/modem/demod_soft.h"
+#include "srslte/phy/ch_estimation/refsignal_ul.h"
+#include "srslte/phy/phch/pucch.h"
+#include "srslte/phy/common/sequence.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/scrambling/scrambling.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/modem/demod_soft.h"
 
 #define MAX_PUSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 

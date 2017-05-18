@@ -31,11 +31,11 @@
 #include <stdlib.h>
 #include <complex.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/ch_estimation/refsignal_dl.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
-#include "srslte/common/sequence.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/ch_estimation/refsignal_dl.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/common/sequence.h"
 
 uint32_t srslte_refsignal_cs_v(uint32_t port_id, uint32_t ref_symbol_idx)
 {

@@ -32,13 +32,13 @@
 #include <stdbool.h>
 #include <math.h>
 
-#include "srslte/phch/dci.h"
-#include "srslte/phch/regs.h"
-#include "srslte/phch/pdcch.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/phch/dci.h"
+#include "srslte/phy/phch/regs.h"
+#include "srslte/phy/phch/pdcch.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 #define PDCCH_NOF_FORMATS               4
 #define PDCCH_FORMAT_NOF_CCE(i)         (1<<i)

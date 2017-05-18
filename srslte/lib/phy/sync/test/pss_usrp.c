@@ -35,7 +35,7 @@
 #include <stdbool.h>
 
 #include "srslte/srslte.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 
 
 #ifndef DISABLE_GRAPHICS

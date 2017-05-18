@@ -31,10 +31,10 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "srslte/sync/sss.h"
-#include "srslte/dft/dft.h"
-#include "srslte/utils/convolution.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/sync/sss.h"
+#include "srslte/phy/dft/dft.h"
+#include "srslte/phy/utils/convolution.h"
+#include "srslte/phy/utils/vector.h"
 
 void generate_sss_all_tables(srslte_sss_tables_t *tables, uint32_t N_id_2);
 void convert_tables(srslte_sss_fc_tables_t *fc_tables, srslte_sss_tables_t *in);

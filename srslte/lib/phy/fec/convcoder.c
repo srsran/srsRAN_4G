@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "srslte/fec/convcoder.h"
+#include "srslte/phy/fec/convcoder.h"
 #include "parity.h"
 
 int srslte_convcoder_encode(srslte_convcoder_t *q, uint8_t *input, uint8_t *output, uint32_t frame_length) {

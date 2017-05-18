@@ -33,11 +33,11 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
-#include "srslte/dft/dft.h"
-#include "srslte/dft/dft_precoding.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/dft/dft.h"
+#include "srslte/phy/dft/dft_precoding.h"
 
 /* Create DFT plans for transform precoding */
 int srslte_dft_precoding_init(srslte_dft_precoding_t *q, uint32_t max_prb) 

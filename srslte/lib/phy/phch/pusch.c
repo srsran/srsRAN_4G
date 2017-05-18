@@ -33,15 +33,15 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/ch_estimation/refsignal_ul.h"
-#include "srslte/phch/pusch.h"
-#include "srslte/phch/pusch_cfg.h"
-#include "srslte/phch/uci.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
-#include "srslte/dft/dft_precoding.h"
+#include "srslte/phy/ch_estimation/refsignal_ul.h"
+#include "srslte/phy/phch/pusch.h"
+#include "srslte/phy/phch/pusch_cfg.h"
+#include "srslte/phy/phch/uci.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/dft/dft_precoding.h"
 
 #define MAX_PUSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
 

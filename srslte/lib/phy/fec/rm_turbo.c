@@ -31,10 +31,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "srslte/fec/rm_turbo.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/vector.h"
-#include "srslte/fec/cbsegm.h"
+#include "srslte/phy/fec/rm_turbo.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/fec/cbsegm.h"
 
 #ifdef DEBUG_MODE
 #warning FIXME: Disabling SSE/AVX turbo rate matching 

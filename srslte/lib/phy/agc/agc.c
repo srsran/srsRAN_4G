@@ -31,11 +31,11 @@
 #include <math.h>
 #include <complex.h>
 
-#include "srslte/utils/debug.h"
+#include "srslte/phy/utils/debug.h"
 
-#include "srslte/agc/agc.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/agc/agc.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 int srslte_agc_init (srslte_agc_t *q, srslte_agc_mode_t mode) {
   return srslte_agc_init_acc(q, mode, 0);

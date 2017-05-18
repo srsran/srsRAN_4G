@@ -35,10 +35,10 @@
 
 #include "srslte/config.h"
 
-#include "srslte/dft/dft_precoding.h"
-#include "srslte/ch_estimation/chest_ul.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/convolution.h"
+#include "srslte/phy/dft/dft_precoding.h"
+#include "srslte/phy/ch_estimation/chest_ul.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/convolution.h"
 
 #define NOF_REFS_SYM    (q->cell.nof_prb*SRSLTE_NRE)
 #define NOF_REFS_SF     (NOF_REFS_SYM*2) // 2 reference symbols per subframe

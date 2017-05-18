@@ -36,12 +36,12 @@
 #define PHICH_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/mimo/precoding.h"
-#include "srslte/mimo/layermap.h"
-#include "srslte/modem/mod.h"
-#include "srslte/modem/demod_soft.h"
-#include "srslte/scrambling/scrambling.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/mimo/layermap.h"
+#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/scrambling/scrambling.h"
 #include "regs.h"
 
 

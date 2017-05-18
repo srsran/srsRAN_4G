@@ -28,11 +28,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/fec/tc_interl.h"
-#include "srslte/fec/turbocoder.h"
-#include "srslte/fec/cbsegm.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/fec/tc_interl.h"
+#include "srslte/phy/fec/turbocoder.h"
+#include "srslte/phy/fec/cbsegm.h"
+#include "srslte/phy/utils/debug.h"
 
 /************************************************
  *

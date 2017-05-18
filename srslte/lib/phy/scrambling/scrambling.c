@@ -28,9 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "srslte/utils/bit.h"
-#include "srslte/utils/vector.h"
-#include "srslte/scrambling/scrambling.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/scrambling/scrambling.h"
 
 void srslte_scrambling_f(srslte_sequence_t *s, float *data) {
   srslte_scrambling_f_offset(s, data, 0, s->len);

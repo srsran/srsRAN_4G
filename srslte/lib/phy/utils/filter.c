@@ -24,7 +24,7 @@
  *
  */
 
-#include "srslte/utils/filter.h"
+#include "srslte/phy/utils/filter.h"
 #define SRSLTE_NUM_FILTERS 8
 #define SRSLTE_MAX_FILTER_SIZE 11
 

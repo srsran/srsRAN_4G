@@ -27,7 +27,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "srslte/config.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 
 
 SRSLTE_API int rf_limesdr_open( char *args,

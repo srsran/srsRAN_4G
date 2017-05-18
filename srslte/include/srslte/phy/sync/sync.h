@@ -49,10 +49,10 @@
 #include <math.h>
 
 #include "srslte/config.h"
-#include "srslte/sync/pss.h"
-#include "srslte/sync/sss.h"
-#include "srslte/sync/cfo.h"
-#include "srslte/sync/cp.h"
+#include "srslte/phy/sync/pss.h"
+#include "srslte/phy/sync/sss.h"
+#include "srslte/phy/sync/cfo.h"
+#include "srslte/phy/sync/cp.h"
 
 #define SRSLTE_SYNC_FFT_SZ_MIN    64
 #define SRSLTE_SYNC_FFT_SZ_MAX    2048

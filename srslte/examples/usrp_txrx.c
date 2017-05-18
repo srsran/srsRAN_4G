@@ -33,7 +33,7 @@
 #include <time.h>
 #include <complex.h>
 
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 #include "srslte/srslte.h"
 
 uint32_t nof_prb    = 25;

@@ -32,7 +32,7 @@
 #include <time.h>
 #include <complex.h>
 
-#include "srslte/dft/dft.h"
+#include "srslte/phy/dft/dft.h"
 
 
 

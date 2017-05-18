@@ -36,8 +36,8 @@
 #define SRSLTE_REFSIGNAL_UL_
 
 #include "srslte/config.h"
-#include "srslte/phch/pucch.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/phch/pucch.h"
+#include "srslte/phy/common/phy_common.h"
 
 #define SRSLTE_NOF_GROUPS_U    30
 #define SRSLTE_NOF_SEQUENCES_U 2

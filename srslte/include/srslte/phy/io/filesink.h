@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #include "srslte/config.h"
-#include "srslte/io/format.h"
+#include "srslte/phy/io/format.h"
 
 /* Low-level API */
 typedef struct SRSLTE_API {

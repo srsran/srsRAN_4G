@@ -33,12 +33,12 @@
 #include <assert.h>
 #include <math.h>
 
-#include "srslte/phch/regs.h"
-#include "srslte/phch/pcfich.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/phch/regs.h"
+#include "srslte/phy/phch/pcfich.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 // Table 5.3.4-1
 static uint8_t cfi_table[4][PCFICH_CFI_LEN] = { 

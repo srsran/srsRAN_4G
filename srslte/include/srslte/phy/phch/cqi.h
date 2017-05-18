@@ -38,7 +38,7 @@
 #include <stdint.h>
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/common/phy_common.h"
 
 #define SRSLTE_CQI_MAX_BITS 64
 

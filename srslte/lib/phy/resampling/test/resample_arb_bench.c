@@ -32,7 +32,7 @@
 #include <time.h>
 
 #include "srslte/srslte.h"
-#include "srslte/resampling/resample_arb.h"
+#include "srslte/phy/resampling/resample_arb.h"
 
 
 

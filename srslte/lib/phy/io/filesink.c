@@ -31,7 +31,7 @@
 #include <strings.h>
 
 
-#include "srslte/io/filesink.h"
+#include "srslte/phy/io/filesink.h"
 
 int srslte_filesink_init(srslte_filesink_t *q, char *filename, srslte_datatype_t type) {
   bzero(q, sizeof(srslte_filesink_t));

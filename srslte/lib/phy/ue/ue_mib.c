@@ -30,10 +30,10 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "srslte/ue/ue_mib.h"
+#include "srslte/phy/ue/ue_mib.h"
 
-#include "srslte/utils/debug.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 int srslte_ue_mib_init(srslte_ue_mib_t * q, 
                        srslte_cell_t cell) 

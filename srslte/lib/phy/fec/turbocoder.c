@@ -30,10 +30,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "srslte/fec/cbsegm.h"
-#include "srslte/fec/turbocoder.h"
-#include "srslte/utils/bit.h"
-#include "srslte/utils/vector.h"
+#include "srslte/phy/fec/cbsegm.h"
+#include "srslte/phy/fec/turbocoder.h"
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
 
 #define NOF_REGS 3
 

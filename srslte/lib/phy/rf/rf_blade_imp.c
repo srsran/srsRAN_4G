@@ -32,7 +32,7 @@
 
 #include "srslte/srslte.h"
 #include "rf_blade_imp.h"
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 
 
 #define CONVERT_BUFFER_SIZE 240*1024

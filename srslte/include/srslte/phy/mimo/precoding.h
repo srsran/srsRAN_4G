@@ -37,7 +37,7 @@
 #define PRECODING_H_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/common/phy_common.h"
 
 /** The precoder takes as input nlayers vectors "x" from the
  * layer mapping and generates nports vectors "y" to be mapped onto

@@ -29,9 +29,9 @@
 #include <strings.h>
 #include <assert.h>
 
-#include "srslte/common/sequence.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/bit.h"
+#include "srslte/phy/common/sequence.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/bit.h"
 
 #define Nc 1600
 

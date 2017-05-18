@@ -49,9 +49,9 @@
 #include <stdbool.h>
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/utils/convolution.h"
-#include "srslte/utils/filter.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/utils/convolution.h"
+#include "srslte/phy/utils/filter.h"
 
 #define CONVOLUTION_FFT
 

@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "srslte/modem/modem_table.h"
+#include "srslte/phy/modem/modem_table.h"
 #include "lte_tables.h"
 
 /**

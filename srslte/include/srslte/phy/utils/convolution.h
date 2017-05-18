@@ -36,7 +36,7 @@
 #define CONVOLUTION_H_
 
 #include "srslte/config.h"
-#include "srslte/dft/dft.h"
+#include "srslte/phy/dft/dft.h"
 
 typedef struct SRSLTE_API {
   cf_t *input_fft;

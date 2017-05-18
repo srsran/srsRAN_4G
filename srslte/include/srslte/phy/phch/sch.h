@@ -36,14 +36,14 @@
 #define SCH_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/fec/rm_turbo.h"
-#include "srslte/fec/turbocoder.h"
-#include "srslte/fec/turbodecoder.h"
-#include "srslte/fec/crc.h"
-#include "srslte/phch/pdsch_cfg.h"
-#include "srslte/phch/pusch_cfg.h"
-#include "srslte/phch/uci.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/fec/rm_turbo.h"
+#include "srslte/phy/fec/turbocoder.h"
+#include "srslte/phy/fec/turbodecoder.h"
+#include "srslte/phy/fec/crc.h"
+#include "srslte/phy/phch/pdsch_cfg.h"
+#include "srslte/phy/phch/pusch_cfg.h"
+#include "srslte/phy/phch/uci.h"
 
 #ifndef SRSLTE_RX_NULL
 #define SRSLTE_RX_NULL 10000

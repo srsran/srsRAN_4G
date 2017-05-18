@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <strings.h> 
 
-#include "srslte/resampling/interp.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/resampling/interp.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 /*************** STATIC FUNCTIONS ***********************/
 

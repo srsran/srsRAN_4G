@@ -36,11 +36,11 @@
 #define PUCCH_
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
-#include "srslte/common/sequence.h"
-#include "srslte/modem/mod.h"
-#include "srslte/phch/cqi.h"
-#include "srslte/phch/uci.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/sequence.h"
+#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/phch/cqi.h"
+#include "srslte/phy/phch/uci.h"
 
 #define SRSLTE_PUCCH_N_SEQ       12 
 #define SRSLTE_PUCCH2_NOF_BITS   SRSLTE_UCI_CQI_CODED_PUCCH_B

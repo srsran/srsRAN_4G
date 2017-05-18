@@ -33,9 +33,9 @@
 #include <complex.h>
 #include <math.h>
 
-#include "srslte/ch_estimation/chest_common.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/convolution.h"
+#include "srslte/phy/ch_estimation/chest_common.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/convolution.h"
 
 void srslte_chest_set_triangle_filter(float *fil, int filter_len) 
 {

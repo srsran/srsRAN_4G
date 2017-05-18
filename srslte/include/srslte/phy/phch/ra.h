@@ -40,7 +40,7 @@
 #include <stdbool.h>
 
 #include "srslte/config.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/common/phy_common.h"
 
 /**************************************************
  * Common structures used for Resource Allocation 

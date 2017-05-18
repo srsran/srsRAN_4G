@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/phch/regs.h"
-#include "srslte/utils/debug.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/phch/regs.h"
+#include "srslte/phy/utils/debug.h"
 
 #define REG_IDX(r, i, n) r->k[i]+r->l*n*SRSLTE_NRE
 

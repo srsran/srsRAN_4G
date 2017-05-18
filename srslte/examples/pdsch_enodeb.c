@@ -41,7 +41,7 @@
 
 
 #ifndef DISABLE_RF
-#include "srslte/rf/rf.h"
+#include "srslte/phy/rf/rf.h"
 srslte_rf_t rf;
 #else
 #warning Compiling pdsch_ue with no RF support

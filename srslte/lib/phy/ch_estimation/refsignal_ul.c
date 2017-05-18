@@ -30,12 +30,12 @@
 #include <stdlib.h>
 #include <complex.h>
 
-#include "srslte/common/phy_common.h"
-#include "srslte/ch_estimation/refsignal_ul.h"
-#include "srslte/utils/vector.h"
-#include "srslte/utils/debug.h"
-#include "srslte/common/sequence.h"
-#include "srslte/dft/dft_precoding.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/ch_estimation/refsignal_ul.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/common/sequence.h"
+#include "srslte/phy/dft/dft_precoding.h"
 
 #include "ul_rs_tables.h"
 

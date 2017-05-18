@@ -36,8 +36,8 @@
 #include <stdbool.h>
 
 #include "srslte/srslte.h"
-#include "srslte/rf/rf.h"
-#include "srslte/io/filesink.h"
+#include "srslte/phy/rf/rf.h"
+#include "srslte/phy/io/filesink.h"
 
 static bool keep_running = true;
 char *output_file_name;

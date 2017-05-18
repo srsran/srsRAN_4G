@@ -40,8 +40,8 @@
 #include <complex.h>
 #include <stdbool.h>
 #include "srslte/config.h"
-#include "srslte/dft/dft.h"
-#include "srslte/common/phy_common.h"
+#include "srslte/phy/dft/dft.h"
+#include "srslte/phy/common/phy_common.h"
 
 
 /** Generation and detection of RACH signals for uplink.

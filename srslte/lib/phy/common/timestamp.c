@@ -24,7 +24,7 @@
  *
  */
 
-#include "srslte/common/timestamp.h"
+#include "srslte/phy/common/timestamp.h"
 #include "math.h"
 
 int srslte_timestamp_init(srslte_timestamp_t *t, time_t full_secs, double frac_secs){
