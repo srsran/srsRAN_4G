@@ -17,7 +17,9 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+if(RF_FOUND)
 add_library(srslte_radio SHARED radio.cc radio_multi.cc)
 INSTALL(TARGETS srslte_radio DESTINATION ${LIBRARY_DIR})
 target_link_libraries(srslte_radio srslte_rf)
 SRSLTE_SET_PIC(srslte_radio)
+endif(RF_FOUND)
