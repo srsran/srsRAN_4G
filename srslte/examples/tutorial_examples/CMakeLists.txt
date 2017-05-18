@@ -26,10 +26,10 @@
 if(SRSGUI_FOUND AND UHD_FOUND)
 
   add_executable(pss pss.c)
-  target_link_libraries(pss srslte ${SRSGUI_LIBRARIES})
+  target_link_libraries(pss srslte_phy ${SRSGUI_LIBRARIES})
 
   add_executable(simple_tx simple_tx.c)
-  target_link_libraries(simple_tx srslte)
+  target_link_libraries(simple_tx srslte_phy)
 
 endif(SRSGUI_FOUND AND UHD_FOUND)
 

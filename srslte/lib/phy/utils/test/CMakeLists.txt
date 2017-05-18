@@ -23,7 +23,7 @@
 ########################################################################
 
 add_executable(dft_test dft_test.c)
-target_link_libraries(dft_test srslte)
+target_link_libraries(dft_test srslte_phy)
 
 add_test(dft_test dft_test)
 add_test(dft_reverse dft_test -b) # Backwards first

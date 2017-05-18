@@ -54,64 +54,64 @@ set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
                     $<TARGET_OBJECTS:srslte_enb>
 )
 
-add_library(srslte SHARED ${srslte_srcs})
-target_link_libraries(srslte pthread m)
-set_target_properties(srslte  PROPERTIES
-                              VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
+add_library(srslte_phy SHARED ${srslte_srcs})
+target_link_libraries(srslte_phy pthread m)
+set_target_properties(srslte_phy PROPERTIES
+                                 VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
 if(NOT DisableMEX)
-  add_library(srslte_static STATIC ${srslte_srcs})
+  add_library(srslte_phy_static STATIC ${srslte_srcs})
 endif(NOT DisableMEX)
 
 if(MKL_FOUND)
   if(StaticMKL)
-    target_link_libraries(srslte ${MKL_STATIC_LIBRARIES})
+    target_link_libraries(srslte_phy ${MKL_STATIC_LIBRARIES})
     if(NOT DisableMEX)
-      target_link_libraries(srslte_static ${MKL_STATIC_LIBRARIES})
+      target_link_libraries(srslte_phy_static ${MKL_STATIC_LIBRARIES})
     endif(NOT DisableMEX)
   else(StaticMKL)
-    target_link_libraries(srslte ${MKL_LIBRARIES})
+    target_link_libraries(srslte_phy ${MKL_LIBRARIES})
     if(NOT DisableMEX)
-      target_link_libraries(srslte_static ${MKL_LIBRARIES})
+      target_link_libraries(srslte_phy_static ${MKL_LIBRARIES})
     endif(NOT DisableMEX)
   endif(StaticMKL)
 else(MKL_FOUND)
-  target_link_libraries(srslte ${FFTW3F_LIBRARIES})
+  target_link_libraries(srslte_phy ${FFTW3F_LIBRARIES})
   if(NOT DisableMEX)
-    target_link_libraries(srslte_static ${FFTW3F_LIBRARIES})
+    target_link_libraries(srslte_phy_static ${FFTW3F_LIBRARIES})
   endif(NOT DisableMEX)
 endif(MKL_FOUND)
 
 ## This linkage is required for the examples and tests only
 if(RF_FOUND)
 
-  target_link_libraries(srslte srslte_rf)
+  target_link_libraries(srslte_phy srslte_rf)
 
   if(UHD_FOUND)
-    target_link_libraries(srslte ${UHD_LIBRARIES})
+    target_link_libraries(srslte_phy ${UHD_LIBRARIES})
   endif(UHD_FOUND)
 
   if(BLADERF_FOUND)
-    target_link_libraries(srslte ${BLADERF_LIBRARIES})
+    target_link_libraries(srslte_phy ${BLADERF_LIBRARIES})
   endif(BLADERF_FOUND)
 
   if(LIMESDR_FOUND)
-    target_link_libraries(srslte ${LIMESDR_LIBRARIES})
+    target_link_libraries(srslte_phy ${LIMESDR_LIBRARIES})
   endif(LIMESDR_FOUND)
 
   if(SOAPYSDR_FOUND)
-    target_link_libraries(srslte ${SOAPYSDR_LIBRARIES})
+    target_link_libraries(srslte_phy ${SOAPYSDR_LIBRARIES})
   endif(SOAPYSDR_FOUND)
 
 endif(RF_FOUND)
 
 if(VOLK_FOUND)
-  target_link_libraries(srslte ${VOLK_LIBRARIES})
+  target_link_libraries(srslte_phy ${VOLK_LIBRARIES})
   if(NOT DisableMEX)
-    target_link_libraries(srslte_static ${VOLK_LIBRARIES})
+    target_link_libraries(srslte_phy_static ${VOLK_LIBRARIES})
   endif(NOT DisableMEX)
 endif(VOLK_FOUND)
 
-INSTALL(TARGETS srslte DESTINATION ${LIBRARY_DIR})
-SRSLTE_SET_PIC(srslte)
+INSTALL(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})
+SRSLTE_SET_PIC(srslte_phy)
 

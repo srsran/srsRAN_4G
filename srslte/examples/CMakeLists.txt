@@ -24,17 +24,17 @@
 #################################################################
 
 add_executable(synch_file synch_file.c)
-target_link_libraries(synch_file srslte)
+target_link_libraries(synch_file srslte_phy)
 
 #################################################################
 # These can be compiled without UHD or graphics support
 #################################################################
 
 add_executable(pdsch_ue pdsch_ue.c)
-target_link_libraries(pdsch_ue srslte pthread)
+target_link_libraries(pdsch_ue srslte_phy pthread)
 
 add_executable(pdsch_enodeb pdsch_enodeb.c)
-target_link_libraries(pdsch_enodeb srslte pthread)
+target_link_libraries(pdsch_enodeb srslte_phy pthread)
 
 if(RF_FOUND)
 
@@ -59,19 +59,19 @@ endif(SRSGUI_FOUND)
 if(RF_FOUND)
 
   add_executable(cell_search cell_search.c)
-  target_link_libraries(cell_search srslte)
+  target_link_libraries(cell_search srslte_phy)
 
   add_executable(cell_measurement cell_measurement.c)
-  target_link_libraries(cell_measurement srslte)
+  target_link_libraries(cell_measurement srslte_phy)
 
   add_executable(usrp_capture usrp_capture.c)
-  target_link_libraries(usrp_capture srslte)
+  target_link_libraries(usrp_capture srslte_phy)
 
   add_executable(usrp_capture_sync usrp_capture_sync.c)
-  target_link_libraries(usrp_capture_sync srslte)
+  target_link_libraries(usrp_capture_sync srslte_phy)
 
   add_executable(usrp_txrx usrp_txrx.c)
-  target_link_libraries(usrp_txrx srslte)
+  target_link_libraries(usrp_txrx srslte_phy)
 
   message(STATUS "   examples will be installed.")
 

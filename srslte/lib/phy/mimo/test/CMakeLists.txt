@@ -23,7 +23,7 @@
 ########################################################################
 
 add_executable(layermap_test layermap_test.c)
-target_link_libraries(layermap_test srslte)
+target_link_libraries(layermap_test srslte_phy)
 
 add_test(layermap_single layermap_test -n 1000 -m single -c 1 -l 1) 
 
@@ -46,7 +46,7 @@ add_test(layermap_multiplex_24 layermap_test -n 1000 -m multiplex -c 2 -l 4)
 ########################################################################
  
 add_executable(precoding_test precoder_test.c)
-target_link_libraries(precoding_test srslte)
+target_link_libraries(precoding_test srslte_phy)
 
 add_test(precoding_single precoding_test -n 1000 -m single) 
 add_test(precoding_diversity2 precoding_test -n 1000 -m diversity -l 2 -p 2) 

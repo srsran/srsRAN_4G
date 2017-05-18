@@ -25,11 +25,11 @@ find_package(SRSGUI)
 ########################################################################
 
 add_executable(pss_file pss_file.c)
-target_link_libraries(pss_file srslte)
+target_link_libraries(pss_file srslte_phy)
 
 if(UHD_FOUND)
   add_executable(pss_usrp pss_usrp.c)
-  target_link_libraries(pss_usrp srslte)  
+  target_link_libraries(pss_usrp srslte_phy)
 endif(UHD_FOUND)
 
 
@@ -48,7 +48,7 @@ endif(SRSGUI_FOUND)
 ########################################################################
 
 add_executable(sync_test sync_test.c)
-target_link_libraries(sync_test srslte)
+target_link_libraries(sync_test srslte_phy)
 
 add_test(sync_test_100 sync_test -o 100 -c 501)
 add_test(sync_test_400 sync_test -o 400 -c 2)
@@ -65,7 +65,7 @@ add_test(sync_test_400_e sync_test -o 400 -e -p 50 -c 123)
 ########################################################################
 
 add_executable(cfo_test cfo_test.c)
-target_link_libraries(cfo_test srslte)
+target_link_libraries(cfo_test srslte_phy)
 
 add_test(cfo_test_1 cfo_test -f 0.12345 -n 1000)
 add_test(cfo_test_2 cfo_test -f 0.99849 -n 1000)
