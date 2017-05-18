@@ -38,7 +38,7 @@ add_subdirectory(enb)
 
 set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
                     $<TARGET_OBJECTS:srslte_ch_estimation>
-                    $<TARGET_OBJECTS:srslte_common>
+                    $<TARGET_OBJECTS:srslte_phy_common>
                     $<TARGET_OBJECTS:srslte_fec>
                     $<TARGET_OBJECTS:srslte_mimo>
                     $<TARGET_OBJECTS:srslte_phch>
