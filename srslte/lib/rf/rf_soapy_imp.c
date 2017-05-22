@@ -48,7 +48,7 @@ typedef struct {
 
 int soapy_error(void *h)
 {
-
+  return 0;
 }
 
 
@@ -82,16 +82,9 @@ void rf_soapy_register_error_handler(void *notused, srslte_rf_error_handler_t ne
 }
 
 
-static bool isLocked(rf_soapy_handler_t *handler, char *sensor_name, void *value_h)
-{
-  printf("TODO: implement isLocked()\n");
-  return true;
-}
-
-
 char* rf_soapy_devname(void* h)
 {
-  printf("TODO: implement rf_soapy_devname()\n");
+  return "soapy";
 }
 
 bool rf_soapy_rx_wait_lo_locked(void *h)
@@ -248,6 +241,8 @@ int rf_soapy_close(void *h)
   
   SoapySDRDevice_unmake(handler->device);
   free(handler);
+  
+  return SRSLTE_SUCCESS;
 }
 
 void rf_soapy_set_master_clock_rate(void *h, double rate)
@@ -438,7 +433,7 @@ int rf_soapy_send_timed(void *h,
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   timeNs = secs * 1000000000;
   timeNs = timeNs + (frac_secs * 1000000000);
-  int ret = SoapySDRDevice_writeStream(handler->device, handler->txStream, &data, nsamples, &flags, timeNs,  100000);
+  int ret = SoapySDRDevice_writeStream(handler->device, handler->txStream, data, nsamples, &flags, timeNs,  100000);
   if(ret != nsamples)
     return SRSLTE_ERROR;
   
