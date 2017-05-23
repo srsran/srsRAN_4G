@@ -248,7 +248,7 @@ int rf_soapy_close(void *h)
 void rf_soapy_set_master_clock_rate(void *h, double rate)
 {
   // Allow the soapy to automatically set the appropriate clock rate
-  printf("SET MASTER CLOCK RATE\n");
+  // TODO: implement this function
 }
 
 
@@ -266,10 +266,7 @@ double rf_soapy_set_rx_srate(void *h, double rate)
     printf("setSampleRate fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
-  
-  double ret = SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_RX,0);
-  printf("Sampling rate is set to %f.3 : \n",ret);
-  return ret;
+  return SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_RX,0);
 }
 
 double rf_soapy_set_tx_srate(void *h, double rate)
@@ -279,9 +276,7 @@ double rf_soapy_set_tx_srate(void *h, double rate)
     printf("setSampleRate fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
-  double ret = SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_TX,0);
-  printf("Sampling rate is set to %f.3 : \n",ret);
-  return ret;
+  return SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_TX,0);
 }
 
 
@@ -293,9 +288,7 @@ double rf_soapy_set_rx_gain(void *h, double gain)
     printf("setGain fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
-  double ret = rf_soapy_get_rx_gain(h);
-  printf("Rx gain has been set to %f.2 \n",ret);
-  return ret;
+  return rf_soapy_get_rx_gain(h);
 }
 
 
@@ -307,9 +300,7 @@ double rf_soapy_set_tx_gain(void *h, double gain)
     printf("setGain fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
-  double ret = rf_soapy_get_rx_gain(h);
-  printf("Tx gain has been set to %f.2 \n",ret);
-  return ret;
+  return rf_soapy_get_rx_gain(h);
 }
 
 
@@ -336,9 +327,7 @@ double rf_soapy_set_rx_freq(void *h, double freq)
     return SRSLTE_ERROR;
   }
   
-  double ret = SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0);
-  printf("Rx frequency has been set to %f : \n",ret);
-  return ret;
+  return SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0);
 }
 
 double rf_soapy_set_tx_freq(void *h, double freq)
@@ -349,10 +338,7 @@ double rf_soapy_set_tx_freq(void *h, double freq)
     printf("setFrequency fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
-  double ret = SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0);
-  printf("Tx frequency has been set to %f : \n",ret);
-  return ret;
-  
+  return SoapySDRDevice_getFrequency(handler->device, SOAPY_SDR_RX, 0);
 }
 
 
@@ -392,10 +378,18 @@ int  rf_soapy_recv_with_time_multi(void *h,
       cf_t *data_c = (cf_t*) data[i];
       buffs_ptr[i] = &data_c[n];
     }   //(void*)(&data)
-    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream,buffs_ptr , rx_samples, &flags, &timeNs, 1000000);
-    
-    if(ret < 0)
-      return SRSLTE_ERROR;
+    ret = SoapySDRDevice_readStream(handler->device, handler->rxStream, buffs_ptr , rx_samples, &flags, &timeNs, 1000000);
+    if(ret < 0) {
+      // continue when getting overflows
+      if (ret == SOAPY_SDR_OVERFLOW) {
+        fprintf(stderr, "O");
+        fflush(stderr);
+        continue;
+      } else {
+        return SRSLTE_ERROR;
+      }
+    }
+
     n += ret;
     trials++;
   } while (n < nsamples && trials < 100);
