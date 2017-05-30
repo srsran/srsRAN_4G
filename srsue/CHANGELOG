@@ -1,0 +1,57 @@
+Change Log for Releases
+==============================
+
+## 001.004.000
+  * Fixed issues in RLC AM
+  * Added warning messages for unhandled ASN extensions
+  * Moved some classes from srsue to srslte namescape 
+  * Improved compatibility with more eNodeBs
+
+* Known Bugs: 
+  * Found bug in PBR UL schedulign. Disabled PBR. 
+  * Possible problem with UL TA compensation. Disabled TA from MAC commands (from RAR still enabled)
+  
+## 001.003.000
+
+* Bugfixes: 
+  * Moved UL signal pregeneration to after attach (causing timeout after ConnectionSetup)
+  * Fixed issue with incorrect TransactionID 
+  * Fixed bug in PDN attach procedure
+  * Fixed bugs in RLC AM mode 
+  * Fixed bug in BSR procedure 
+  
+* Improvements: 
+  * Added Aperiodic CQI support 3-1
+  * Added EIA1 support
+  * Added RLC AM resegmentation support
+  
+
+* Known bugs: 
+  * Tun/tap write failure, seen at high rates with many retx (>70% retx)
+  * RRC Reestablishment procedure. Incorrect short-MAC computation
+  * BER performance at 20 MHz for MCS=28. More errors than expected. 
+
+## 001.002.000
+
+* Bugfixes: 
+  * UL BLER stdout metric bad formatting
+  * GW blocking when RLC queue was full
+  * Memory bug in RLC AM uplink
+  
+* Improvements: 
+  * Management of radio link failure according to the specifications
+  
+* Known bugs: 
+  * Tun/tap write failure, seen at high rates with many retx (>70% retx)
+  * RRC Reestablishment procedure. Incorrect short-MAC computation
+  * BER performance at 20 MHz for MCS=28. More errors than expected. 
+
+  
+## 001.001.000
+
+* Added support for BladeRF
+* Added paging support, RRC reconnection
+* Improved overall stability
+* Calibrated RF front-end time advances
+* Bugfix: PDCP SN size config bug for AM
+* Bugfix: Added RRC Connection setup defaults

@@ -292,3 +292,9 @@ include_directories(${PROJECT_SOURCE_DIR}/lib/include/srslte)
 # Add the subdirectories
 ########################################################################
 add_subdirectory(lib)
+if(NOT DISABLE_SRSUE)
+  message(STATUS "Building with srsUE")
+  add_subdirectory(srsue)
+else(NOT DISABLE_SRSUE)
+  message(STATUS "Building without srsUE")
+endif(NOT DISABLE_SRSUE)
