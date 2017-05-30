@@ -1,7 +1,7 @@
 #
-# Copyright 2013-2015 Software Radio Systems Limited
+# Copyright 2013-2017 Software Radio Systems Limited
 #
-# This file is part of the srsLTE library.
+# This file is part of srsLTE
 #
 # srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -30,18 +30,18 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 ########################################################################
 # Project setup
 ########################################################################
-CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
-PROJECT (SRSLTE)
-MESSAGE( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
-MESSAGE( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
-MESSAGE( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
+cmake_minimum_required(VERSION 2.6)
+project( SRSLTE )
+message( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
+message( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
+message( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(SRSLTEVersion) #sets version information
 include(SRSLTEPackage) #setup cpack
 
 include(CTest)
-set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
+set(CTEST_MEMORYCHECK_COMMAND valgrind)
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
@@ -50,8 +50,11 @@ configure_file(
 ########################################################################
 # Options
 ########################################################################
-option(StaticMKL      "StaticMKL"      OFF)
-option(DisableBladeRF "DisableBladeRF" OFF)
+option(STATIC_MKL      "Statically link MKL libraries"   OFF)
+option(DISABLE_BLADERF "Disable BladeRF"                 OFF)
+option(RPATH           "Enable RPATH"                    OFF)
+
+set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
 
 ########################################################################
@@ -92,13 +95,13 @@ if(UHD_FOUND)
   link_directories(${UHD_LIBRARY_DIRS})
 endif(UHD_FOUND)
 
-if(NOT DisableBladeRF)
+if(NOT DISABLE_BLADERF)
   find_package(bladeRF)
   if(BLADERF_FOUND)
     include_directories(${BLADERF_INCLUDE_DIRS})
     link_directories(${BLADERF_LIBRARY_DIRS})
   endif(BLADERF_FOUND)
-endif(NOT DisableBladeRF)
+endif(NOT DISABLE_BLADERF)
 
 find_package(SoapySDR)
 if(SOAPYSDR_FOUND)
@@ -224,13 +227,11 @@ if(CMAKE_COMPILER_IS_GNUCC)
     
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
   
-  IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
-set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
-message(STATUS "have ARM")
-ELSE(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
-ENDIF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
-
-set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
+    message(STATUS "have ARM")
+  endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+  set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
 
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)

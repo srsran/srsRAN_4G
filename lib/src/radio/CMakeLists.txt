@@ -1,13 +1,14 @@
-# Copyright 2015 Software Radio Systems Limited
 #
-# This file is part of srsUE
+# Copyright 2013-2017 Software Radio Systems Limited
 #
-# srsUE is free software: you can redistribute it and/or modify
+# This file is part of srsLTE
+#
+# srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
 # published by the Free Software Foundation, either version 3 of
 # the License, or (at your option) any later version.
 #
-# srsUE is distributed in the hope that it will be useful,
+# srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
@@ -18,8 +19,8 @@
 #
 
 if(RF_FOUND)
-add_library(srslte_radio SHARED radio.cc radio_multi.cc)
-INSTALL(TARGETS srslte_radio DESTINATION ${LIBRARY_DIR})
-target_link_libraries(srslte_radio srslte_rf)
-SRSLTE_SET_PIC(srslte_radio)
+  add_library(srslte_radio SHARED radio.cc radio_multi.cc)
+  install(TARGETS srslte_radio DESTINATION ${LIBRARY_DIR})
+  target_link_libraries(srslte_radio srslte_rf)
+  SRSLTE_SET_PIC(srslte_radio)
 endif(RF_FOUND)

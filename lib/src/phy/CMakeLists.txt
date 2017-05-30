@@ -1,7 +1,7 @@
 #
-# Copyright 2013-2015 Software Radio Systems Limited
+# Copyright 2013-2017 Software Radio Systems Limited
 #
-# This file is part of the srsLTE library.
+# This file is part of srsLTE
 #
 # srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -64,17 +64,17 @@ if(NOT DisableMEX)
 endif(NOT DisableMEX)
 
 if(MKL_FOUND)
-  if(StaticMKL)
+  if(STATIC_MKL)
     target_link_libraries(srslte_phy ${MKL_STATIC_LIBRARIES})
     if(NOT DisableMEX)
       target_link_libraries(srslte_phy_static ${MKL_STATIC_LIBRARIES})
     endif(NOT DisableMEX)
-  else(StaticMKL)
+  else(STATIC_MKL)
     target_link_libraries(srslte_phy ${MKL_LIBRARIES})
     if(NOT DisableMEX)
       target_link_libraries(srslte_phy_static ${MKL_LIBRARIES})
     endif(NOT DisableMEX)
-  endif(StaticMKL)
+  endif(STATIC_MKL)
 else(MKL_FOUND)
   target_link_libraries(srslte_phy ${FFTW3F_LIBRARIES})
   if(NOT DisableMEX)
@@ -112,6 +112,6 @@ if(VOLK_FOUND)
   endif(NOT DisableMEX)
 endif(VOLK_FOUND)
 
-INSTALL(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})
+install(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})
 SRSLTE_SET_PIC(srslte_phy)
 

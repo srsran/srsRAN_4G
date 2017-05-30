@@ -1,7 +1,7 @@
 #
-# Copyright 2013-2015 Software Radio Systems Limited
+# Copyright 2013-2017 Software Radio Systems Limited
 #
-# This file is part of the srsLTE library.
+# This file is part of srsLTE
 #
 # srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -22,5 +22,5 @@ file(GLOB CXX_SOURCES "*.cc")
 file(GLOB C_SOURCES "*.c")
 add_library(srslte_common SHARED ${C_SOURCES} ${CXX_SOURCES})
 target_link_libraries(srslte_common ${POLAR_LIBRARIES})
-INSTALL(TARGETS srslte_common DESTINATION ${LIBRARY_DIR})
+install(TARGETS srslte_common DESTINATION ${LIBRARY_DIR})
 SRSLTE_SET_PIC(srslte_common)
