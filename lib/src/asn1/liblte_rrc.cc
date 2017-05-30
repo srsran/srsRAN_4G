@@ -59,7 +59,7 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "liblte_rrc.h"
+#include "srslte/asn1/liblte_rrc.h"
 
 #include <stdlib.h>
 #include <stdio.h>

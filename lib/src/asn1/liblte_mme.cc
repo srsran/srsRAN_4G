@@ -40,8 +40,8 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "liblte_mme.h"
-#include "liblte_security.h"
+#include "srslte/asn1/liblte_mme.h"
+#include "srslte/common/liblte_security.h"
 
 /*******************************************************************************
                               DEFINES

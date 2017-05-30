@@ -34,8 +34,8 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "liblte_security.h"
-#include "liblte_ssl.h"
+#include "srslte/common/liblte_security.h"
+#include "srslte/common/liblte_ssl.h"
 #include "math.h"
 
 /*******************************************************************************
