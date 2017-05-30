@@ -33,7 +33,7 @@
 #ifndef INTERFACES_H
 #define INTERFACES_H
 
-#include "liblte_rrc.h"
+#include "asn1/liblte_rrc.h"
 #include "common/interfaces_common.h"
 #include "common/common.h"
 #include "common/security.h"

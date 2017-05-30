@@ -113,7 +113,7 @@ endif(VOLK_FOUND)
 ########################################################################
 # Add subdirectories
 ########################################################################
-add_subdirectory(lib)
+add_subdirectory(src)
 add_subdirectory(include)
 add_subdirectory(examples)
 add_subdirectory(test)

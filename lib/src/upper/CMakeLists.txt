@@ -19,6 +19,6 @@
 
 file(GLOB SOURCES "*.cc")
 add_library(srslte_upper SHARED ${SOURCES})
-target_link_libraries(srslte_upper srslte_common)
+target_link_libraries(srslte_upper srslte_common srslte_asn1)
 INSTALL(TARGETS srslte_upper DESTINATION ${LIBRARY_DIR})
 SRSLTE_SET_PIC(srslte_upper)

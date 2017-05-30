@@ -32,7 +32,7 @@
 #include "common/common.h"
 #include "common/interfaces.h"
 #include "common/security.h"
-#include "liblte_mme.h"
+#include "asn1/liblte_mme.h"
 
 using srslte::byte_buffer_t;
 

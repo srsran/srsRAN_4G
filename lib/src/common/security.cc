@@ -26,7 +26,7 @@
 
 
 #include "common/security.h"
-#include "liblte_security.h"
+#include "common/liblte_security.h"
 #include "common/snow_3g.h"
 
 using namespace srslte;

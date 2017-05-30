@@ -40,7 +40,7 @@
 #include "common/interfaces_common.h"
 #include "common/timers.h"
 
-#include "liblte_rrc.h"
+#include "asn1/liblte_rrc.h"
 
 namespace srsue {
   

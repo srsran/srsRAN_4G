@@ -74,6 +74,79 @@ else(POLARSSL_FOUND)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
+find_package(MKL)
+if(MKL_FOUND)
+  include_directories(${MKL_INCLUDE_DIRS})
+  link_directories(${MKL_LIBRARY_DIRS})
+else(MKL_FOUND)
+  find_package(FFTW3F REQUIRED)
+  if(FFTW3F_FOUND)
+    include_directories(${FFTW3F_INCLUDE_DIRS})
+    link_directories(${FFTW3F_LIBRARY_DIRS})
+  endif(FFTW3F_FOUND)
+endif(MKL_FOUND)
+
+find_package(UHD)
+if(UHD_FOUND)
+  include_directories(${UHD_INCLUDE_DIRS})
+  link_directories(${UHD_LIBRARY_DIRS})
+endif(UHD_FOUND)
+
+if(NOT DisableBladeRF)
+  find_package(bladeRF)
+  if(BLADERF_FOUND)
+    include_directories(${BLADERF_INCLUDE_DIRS})
+    link_directories(${BLADERF_LIBRARY_DIRS})
+  endif(BLADERF_FOUND)
+endif(NOT DisableBladeRF)
+
+find_package(SoapySDR)
+if(SOAPYSDR_FOUND)
+  include_directories(${SOAPYSDR_INCLUDE_DIRS})
+  link_directories(${SOAPYSDR_LIBRARY_DIRS})
+endif(SOAPYSDR_FOUND)
+
+find_package(LimeSDR)
+if(LIMESDR_FOUND)
+  include_directories(${LIMESDR_INCLUDE_DIRS})
+  link_directories(${LIMESDR_LIBRARY_DIRS})
+endif(LIMESDR_FOUND)
+
+if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+  set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
+else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+  set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
+  add_definitions(-DDISABLE_RF)
+endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+
+include(CheckFunctionExistsMath)
+if(${DISABLE_VOLK})
+  if(${DISABLE_VOLK} EQUAL 0)
+    find_package(Volk)
+  else(${DISABLE_VOLK} EQUAL 0)
+    message(STATUS "VOLK library disabled (DISABLE_VOLK=1)")
+  endif(${DISABLE_VOLK} EQUAL 0)
+else(${DISABLE_VOLK})
+  find_package(Volk)
+endif(${DISABLE_VOLK})
+
+if(VOLK_FOUND)
+  include_directories(${VOLK_INCLUDE_DIRS})
+  link_directories(${VOLK_LIBRARY_DIRS})
+  message(STATUS "   Compiling with VOLK SIMD library.")
+else(VOLK_FOUND)
+  message(STATUS "   VOLK SIMD library NOT found. Using generic implementation.")
+endif(VOLK_FOUND)
+
+if(ENABLE_GUI)
+    find_package(SRSGUI)
+    if(SRSGUI_FOUND)
+        add_definitions(-DENABLE_GUI)
+        include_directories(${SRSGUI_INCLUDE_DIRS})
+        link_directories(${SRSGUI_LIBRARY_DIRS})
+    endif(SRSGUI_FOUND)
+endif(ENABLE_GUI)
+
 
 ########################################################################
 # Install Dirs
@@ -100,6 +173,14 @@ if(NOT CMAKE_BUILD_TYPE)
    message(STATUS "Build type not specified: defaulting to Release.")
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
+
+########################################################################
+# Install headers
+########################################################################
+INSTALL(DIRECTORY include/
+        DESTINATION "${INCLUDE_DIR}"
+        FILES_MATCHING PATTERN "*.h"
+)
 
 ########################################################################
 # Compiler specific setup
@@ -201,15 +282,13 @@ message(STATUS "Building for version: ${VERSION}")
 ########################################################################
 # Add general includes and dependencies
 ########################################################################
-include_directories(${PROJECT_BINARY_DIR}/srslte/include/)
-include_directories(${PROJECT_SOURCE_DIR}/srslte/include/)
+include_directories(${PROJECT_BINARY_DIR}/lib/include)
+include_directories(${PROJECT_SOURCE_DIR}/lib/include)
 
 # Includes needed by all code previously resided in srsUE
-include_directories(${PROJECT_SOURCE_DIR}/srslte/include/srslte)
-include_directories(${PROJECT_SOURCE_DIR}/liblte/hdr)
+include_directories(${PROJECT_SOURCE_DIR}/lib/include/srslte)
 
 ########################################################################
 # Add the subdirectories
 ########################################################################
-add_subdirectory(liblte)
-add_subdirectory(srslte)
+add_subdirectory(lib)

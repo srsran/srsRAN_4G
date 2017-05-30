@@ -27,8 +27,8 @@
 #include <iostream>
 #include <srslte/srslte.h>
 #include "common/log_stdout.h"
-#include "liblte_rrc.h"
-#include "liblte_mme.h"
+#include "asn1/liblte_rrc.h"
+#include "asn1/liblte_mme.h"
 
 void nas_test() {
   srslte::log_stdout log1("NAS");
