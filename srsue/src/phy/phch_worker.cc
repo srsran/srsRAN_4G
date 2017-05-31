@@ -287,7 +287,7 @@ void phch_worker::work_imp()
   
   /* Tell the plotting thread to draw the plots */
 #ifdef ENABLE_GUI
-  if (get_id() == plot_worker_id) {
+  if ((int) get_id() == plot_worker_id) {
     sem_post(&plot_sem);    
   }
 #endif

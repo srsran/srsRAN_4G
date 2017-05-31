@@ -23,5 +23,5 @@ add_library(srsue_phy ${SOURCES})
 target_link_libraries(srsue_phy ${SRSLTE_PHY_LIBRARY})
 
 if(ENABLE_GUI AND SRSGUI_FOUND)
-    target_link_libraries(srsue_phy ${SRSGUI_LIBRARIES})
+  target_link_libraries(srsue_phy ${SRSGUI_LIBRARIES})
 endif(ENABLE_GUI AND SRSGUI_FOUND)

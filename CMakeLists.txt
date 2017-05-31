@@ -53,6 +53,7 @@ configure_file(
 option(STATIC_MKL      "Statically link MKL libraries"   OFF)
 option(DISABLE_BLADERF "Disable BladeRF"                 OFF)
 option(RPATH           "Enable RPATH"                    OFF)
+option(ENABLE_GUI      "Enable GUI"                      ON)
 
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
@@ -143,12 +144,12 @@ endif(VOLK_FOUND)
 
 
 if(ENABLE_GUI)
-    find_package(SRSGUI)
-    if(SRSGUI_FOUND)
-        add_definitions(-DENABLE_GUI)
-        include_directories(${SRSGUI_INCLUDE_DIRS})
-        link_directories(${SRSGUI_LIBRARY_DIRS})
-    endif(SRSGUI_FOUND)
+  find_package(SRSGUI)
+  if(SRSGUI_FOUND)
+    add_definitions(-DENABLE_GUI)
+    include_directories(${SRSGUI_INCLUDE_DIRS})
+    link_directories(${SRSGUI_LIBRARY_DIRS})
+  endif(SRSGUI_FOUND)
 endif(ENABLE_GUI)
 
 
