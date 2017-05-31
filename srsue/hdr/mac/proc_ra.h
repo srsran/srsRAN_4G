@@ -29,12 +29,12 @@
 
 #include <stdint.h>
 
-#include "common/log.h"
-#include "common/timers.h"
+#include "srslte/common/log.h"
+#include "srslte/common/timers.h"
 #include "mac/mux.h"
 #include "mac/demux.h"
-#include "common/pdu.h"
-#include "common/mac_pcap.h"
+#include "srslte/common/pdu.h"
+#include "srslte/common/mac_pcap.h"
 
 /* Random access procedure as specified in Section 5.1 of 36.321 */
 

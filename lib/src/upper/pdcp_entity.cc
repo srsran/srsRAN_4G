@@ -25,8 +25,8 @@
  */
 
 
-#include "upper/pdcp_entity.h"
-#include "common/security.h"
+#include "srslte/upper/pdcp_entity.h"
+#include "srslte/common/security.h"
 
 using namespace srslte;
 

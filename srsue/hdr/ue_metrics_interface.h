@@ -29,8 +29,8 @@
 
 #include <stdint.h>
 
-#include "upper/gw_metrics.h"
-#include "upper/rlc_metrics.h"
+#include "srslte/upper/gw_metrics.h"
+#include "srslte/upper/rlc_metrics.h"
 #include "mac/mac_metrics.h"
 #include "phy/phy_metrics.h"
 

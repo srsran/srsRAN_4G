@@ -25,7 +25,7 @@
  */
 
 
-#include "upper/gw.h"
+#include "srslte/upper/gw.h"
 
 #include <errno.h>
 #include <unistd.h>

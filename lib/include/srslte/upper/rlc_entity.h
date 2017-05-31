@@ -27,13 +27,13 @@
 #ifndef RLC_ENTITY_H
 #define RLC_ENTITY_H
 
-#include "common/log.h"
-#include "common/common.h"
-#include "common/interfaces.h"
-#include "upper/rlc_common.h"
-#include "upper/rlc_tm.h"
-#include "upper/rlc_um.h"
-#include "upper/rlc_am.h"
+#include "srslte/common/log.h"
+#include "srslte/common/common.h"
+#include "srslte/common/interfaces.h"
+#include "srslte/upper/rlc_common.h"
+#include "srslte/upper/rlc_tm.h"
+#include "srslte/upper/rlc_um.h"
+#include "srslte/upper/rlc_am.h"
 
 namespace srsue {
 

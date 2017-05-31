@@ -34,8 +34,8 @@
 
 #include "srslte/srslte.h"
 
-#include "common/threads.h"
-#include "common/log.h"
+#include "srslte/common/threads.h"
+#include "srslte/common/log.h"
 #include "phy/phy.h"
 #include "phy/phch_worker.h"
 

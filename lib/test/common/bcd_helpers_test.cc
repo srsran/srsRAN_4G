@@ -25,7 +25,7 @@
  */
 
 #include <assert.h>
-#include "common/bcd_helpers.h"
+#include "srslte/common/bcd_helpers.h"
 
 using namespace srslte;
 

@@ -29,10 +29,10 @@
 #include <pthread.h>
 
 #include "srslte/srslte.h"
-#include "common/log.h"
+#include "srslte/common/log.h"
 #include "phy/prach.h"
 #include "phy/phy.h"
-#include "common/phy_interface.h"
+#include "srslte/common/phy_interface.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)

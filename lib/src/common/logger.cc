@@ -27,7 +27,7 @@
 
 #define LOG_BUFFER_SIZE 1024*32
 
-#include "common/logger.h"
+#include "srslte/common/logger.h"
 
 using namespace std;
 

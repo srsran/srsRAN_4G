@@ -29,10 +29,10 @@
 
 #include <stdint.h>
 
-#include "common/log.h"
-#include "common/mac_interface.h"
-#include "common/interfaces.h"
-#include "common/timers.h"
+#include "srslte/common/log.h"
+#include "srslte/common/mac_interface.h"
+#include "srslte/common/interfaces.h"
+#include "srslte/common/timers.h"
 
 /* Buffer status report procedure */
 

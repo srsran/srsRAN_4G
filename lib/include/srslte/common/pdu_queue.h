@@ -27,11 +27,11 @@
 #ifndef PDUPROC_H
 #define PDUPROC_H
 
-#include "common/log.h"
-#include "common/block_queue.h"
-#include "common/buffer_pool.h"
-#include "common/timers.h"
-#include "common/pdu.h"
+#include "srslte/common/log.h"
+#include "srslte/common/block_queue.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/timers.h"
+#include "srslte/common/pdu.h"
 
 /* Logical Channel Demultiplexing and MAC CE dissassemble */   
 

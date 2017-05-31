@@ -34,9 +34,9 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include "common/log.h"
+#include "srslte/common/log.h"
 #include "mac/mac.h"
-#include "common/pcap.h"
+#include "srslte/common/pcap.h"
 
 
 namespace srsue {

@@ -30,8 +30,8 @@
 
 #include "upper/rrc.h"
 #include <srslte/phy/utils/bit.h>
-#include "common/security.h"
-#include "common/bcd_helpers.h"
+#include "srslte/common/security.h"
+#include "srslte/common/bcd_helpers.h"
 
 #define TIMEOUT_RESYNC_REESTABLISH 100
 

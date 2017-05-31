@@ -31,6 +31,15 @@ target_link_libraries(ip_test srsue_mac
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES})
 
+add_executable(usim_test usim_test.cc)
+target_link_libraries(usim_test srsue_upper srslte_upper srslte_phy)
+add_test(usim_test usim_test)
+
+add_executable(rrc_reconfig_test rrc_reconfig_test.cc)
+target_link_libraries(rrc_reconfig_test srsue_upper srslte_upper srslte_phy)
+add_test(rrc_reconfig_test rrc_reconfig_test)
+
+                              
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################

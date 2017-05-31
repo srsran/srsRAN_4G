@@ -29,11 +29,11 @@
 
 #include "pthread.h"
 
-#include "common/buffer_pool.h"
-#include "common/log.h"
-#include "common/common.h"
-#include "common/interfaces.h"
-#include "common/security.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/log.h"
+#include "srslte/common/common.h"
+#include "srslte/common/interfaces.h"
+#include "srslte/common/security.h"
 
 #include <map>
 

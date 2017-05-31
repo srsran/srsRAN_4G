@@ -25,10 +25,10 @@
  */
 
 
-#include "upper/rlc.h"
-#include "upper/rlc_tm.h"
-#include "upper/rlc_um.h"
-#include "upper/rlc_am.h"
+#include "srslte/upper/rlc.h"
+#include "srslte/upper/rlc_tm.h"
+#include "srslte/upper/rlc_um.h"
+#include "srslte/upper/rlc_am.h"
 
 using namespace srslte;
 

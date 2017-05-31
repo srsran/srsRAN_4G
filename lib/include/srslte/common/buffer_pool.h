@@ -36,7 +36,7 @@
                               INCLUDES
 *******************************************************************************/
 
-#include "common/common.h"
+#include "srslte/common/common.h"
 
 namespace srslte {
 

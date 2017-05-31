@@ -28,7 +28,7 @@
 #define MACPCAP_H
 
 #include <stdint.h>
-#include "common/pcap.h"
+#include "srslte/common/pcap.h"
 
 namespace srslte {
 

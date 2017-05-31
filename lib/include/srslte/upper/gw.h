@@ -27,13 +27,13 @@
 #ifndef GW_H
 #define GW_H
 
-#include "common/buffer_pool.h"
-#include "common/log.h"
-#include "common/common.h"
-#include "common/msg_queue.h"
-#include "common/interfaces.h"
-#include "common/threads.h"
-#include "upper/gw_metrics.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/log.h"
+#include "srslte/common/common.h"
+#include "srslte/common/msg_queue.h"
+#include "srslte/common/interfaces.h"
+#include "srslte/common/threads.h"
+#include "srslte/upper/gw_metrics.h"
 
 #include <linux/if.h>
 

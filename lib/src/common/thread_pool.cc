@@ -27,7 +27,7 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include "common/thread_pool.h"
+#include "srslte/common/thread_pool.h"
 
 #define DEBUG 0
 #define debug_thread(fmt, ...) do { if(DEBUG) printf(fmt, __VA_ARGS__); } while(0)

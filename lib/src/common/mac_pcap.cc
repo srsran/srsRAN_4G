@@ -27,8 +27,8 @@
 
 #include <stdint.h>
 #include "srslte/srslte.h"
-#include "common/pcap.h"
-#include "common/mac_pcap.h"
+#include "srslte/common/pcap.h"
+#include "srslte/common/mac_pcap.h"
 
 
 

@@ -26,7 +26,7 @@
 
 #include <unistd.h>
 #include "srslte/srslte.h"
-#include "common/log.h"
+#include "srslte/common/log.h"
 #include "phy/phch_worker.h"
 #include "phy/phch_common.h"
 #include "phy/phch_recv.h"

@@ -31,9 +31,9 @@
 
 #include <vector>
 
-#include "common/log.h"
-#include "common/mac_interface.h"
-#include "common/pdu.h"
+#include "srslte/common/log.h"
+#include "srslte/common/mac_interface.h"
+#include "srslte/common/pdu.h"
 #include "mac/proc_bsr.h"
 #include "mac/proc_phr.h"
 

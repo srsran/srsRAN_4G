@@ -30,9 +30,9 @@
 #include <string.h>
 
 #include "srslte/srslte.h"
-#include "radio/radio.h"
-#include "common/log.h"
-#include "common/phy_interface.h"
+#include "srslte/radio/radio.h"
+#include "srslte/common/log.h"
+#include "srslte/common/phy_interface.h"
 
 namespace srsue {
 

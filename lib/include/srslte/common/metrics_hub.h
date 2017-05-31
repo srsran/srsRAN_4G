@@ -9,7 +9,7 @@
 #define METRICS_HUB_H
 
 #include <vector>
-#include "common/threads.h"
+#include "srslte/common/threads.h"
 
 namespace srslte {
 

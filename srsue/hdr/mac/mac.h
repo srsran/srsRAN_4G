@@ -27,10 +27,10 @@
 #ifndef MAC_H
 #define MAC_H
 
-#include "common/log.h"
+#include "srslte/common/log.h"
 #include "mac/dl_harq.h"
 #include "mac/ul_harq.h"
-#include "common/timers.h"
+#include "srslte/common/timers.h"
 #include "mac/mac_metrics.h"
 #include "mac/proc_ra.h"
 #include "mac/proc_sr.h"
@@ -38,11 +38,11 @@
 #include "mac/proc_phr.h"
 #include "mac/mux.h"
 #include "mac/demux.h"
-#include "common/mac_pcap.h"
-#include "common/phy_interface.h"
-#include "common/mac_interface.h"
-#include "common/tti_sync_cv.h"
-#include "common/threads.h"
+#include "srslte/common/mac_pcap.h"
+#include "srslte/common/phy_interface.h"
+#include "srslte/common/mac_interface.h"
+#include "srslte/common/tti_sync_cv.h"
+#include "srslte/common/threads.h"
 
 namespace srsue {
   

@@ -33,10 +33,10 @@
 #ifndef INTERFACES_H
 #define INTERFACES_H
 
-#include "asn1/liblte_rrc.h"
-#include "common/interfaces_common.h"
-#include "common/common.h"
-#include "common/security.h"
+#include "srslte/asn1/liblte_rrc.h"
+#include "srslte/common/interfaces_common.h"
+#include "srslte/common/common.h"
+#include "srslte/common/security.h"
 #include "mac_interface.h"
 #include "phy_interface.h"
 

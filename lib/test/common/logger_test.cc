@@ -29,7 +29,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "common/logger.h"
+#include "srslte/common/logger.h"
 
 using namespace srslte;
 

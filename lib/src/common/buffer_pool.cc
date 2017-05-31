@@ -26,7 +26,7 @@
 
 
 #include <pthread.h>
-#include "common/buffer_pool.h"
+#include "srslte/common/buffer_pool.h"
 #include <stdio.h>
 #include <string>
 

@@ -27,10 +27,10 @@
 #ifndef PDCP_H
 #define PDCP_H
 
-#include "common/log.h"
-#include "common/common.h"
-#include "common/interfaces.h"
-#include "upper/pdcp_entity.h"
+#include "srslte/common/log.h"
+#include "srslte/common/common.h"
+#include "srslte/common/interfaces.h"
+#include "srslte/upper/pdcp_entity.h"
 
 using srslte::byte_buffer_t;
 

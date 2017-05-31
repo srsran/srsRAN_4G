@@ -27,13 +27,13 @@
 #include <iostream>
 #include "upper/usim.h"
 #include "upper/nas.h"
-#include "upper/rlc.h"
+#include "srslte/upper/rlc.h"
 #include "upper/rrc.h"
 #include "mac/mac.h"
-#include "upper/pdcp_entity.h"
-#include "upper/pdcp.h"
-#include "common/log_stdout.h"
-#include "common/interfaces.h"
+#include "srslte/upper/pdcp_entity.h"
+#include "srslte/upper/pdcp.h"
+#include "srslte/common/log_stdout.h"
+#include "srslte/common/interfaces.h"
 
 using namespace srsue;
 

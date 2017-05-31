@@ -25,7 +25,7 @@
  */
 
 
-#include "upper/rlc_um.h"
+#include "srslte/upper/rlc_um.h"
 
 #define RX_MOD_BASE(x) (x-vr_uh-rx_window_size)%rx_mod
 

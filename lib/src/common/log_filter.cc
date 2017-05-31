@@ -31,7 +31,7 @@
 #include <string.h>
 #include <sys/time.h>
 
-#include "common/log_filter.h"
+#include "srslte/common/log_filter.h"
 
 namespace srslte{
 

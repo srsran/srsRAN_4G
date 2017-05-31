@@ -28,11 +28,11 @@
 #define PROCPHR_H
 
 #include <stdint.h>
-#include "common/timers.h"
-#include "common/phy_interface.h"
-#include "common/log.h"
+#include "srslte/common/timers.h"
+#include "srslte/common/phy_interface.h"
+#include "srslte/common/log.h"
 
-#include "common/mac_interface.h"
+#include "srslte/common/mac_interface.h"
 
 /* Power headroom report procedure */
 

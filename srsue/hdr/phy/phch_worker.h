@@ -29,9 +29,9 @@
 
 #include <string.h>
 #include "srslte/srslte.h"
-#include "common/thread_pool.h"
-#include "common/phy_interface.h"
-#include "common/trace.h"
+#include "srslte/common/thread_pool.h"
+#include "srslte/common/phy_interface.h"
+#include "srslte/common/trace.h"
 #include "phy/phch_common.h"
 
 #define LOG_EXECTIME

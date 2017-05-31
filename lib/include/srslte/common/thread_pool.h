@@ -39,7 +39,7 @@
 #include <vector>
 #include <stack>
 
-#include "common/threads.h"
+#include "srslte/common/threads.h"
 
 namespace srslte {
 

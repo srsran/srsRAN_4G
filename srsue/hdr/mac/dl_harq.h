@@ -27,13 +27,13 @@
 #ifndef DL_HARQ_H
 #define DL_HARQ_H
 
-#include "common/log.h"
-#include "common/timers.h"
+#include "srslte/common/log.h"
+#include "srslte/common/timers.h"
 #include "mac/demux.h"
 #include "mac/dl_sps.h"
-#include "common/mac_pcap.h"
+#include "srslte/common/mac_pcap.h"
 
-#include "common/mac_interface.h"
+#include "srslte/common/mac_interface.h"
 
 /* Downlink HARQ entity as defined in 5.3.2 of 36.321 */
 

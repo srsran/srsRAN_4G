@@ -32,7 +32,7 @@
 #include "mac/proc_phr.h"
 #include "mac/mac.h"
 #include "mac/mux.h"
-#include "common/phy_interface.h"
+#include "srslte/common/phy_interface.h"
 
 
   namespace srsue {

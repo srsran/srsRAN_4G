@@ -38,13 +38,6 @@ add_executable(rlc_um_test rlc_um_test.cc)
 target_link_libraries(rlc_um_test srslte_upper srslte_phy)
 add_test(rlc_um_test rlc_um_test)
   
-add_executable(usim_test usim_test.cc)
-target_link_libraries(usim_test srslte_upper srslte_phy)
-add_test(usim_test usim_test)
-
-add_executable(rrc_reconfig_test rrc_reconfig_test.cc)
-target_link_libraries(rrc_reconfig_test srslte_upper srslte_phy)
-add_test(rrc_reconfig_test rrc_reconfig_test)
 
 ########################################################################
 # Option to run command after build (useful for remote builds)

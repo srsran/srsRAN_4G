@@ -28,7 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "common/pdu.h"
+#include "srslte/common/pdu.h"
 #include "srslte/srslte.h"
 
 // Table 6.1.3.1-1 Buffer size levels for BSR 

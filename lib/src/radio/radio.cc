@@ -28,7 +28,7 @@
 extern "C" {
 #include "srslte/phy/rf/rf.h"
 }
-#include "radio/radio.h"
+#include "srslte/radio/radio.h"
 #include <string.h>
 
 namespace srslte {

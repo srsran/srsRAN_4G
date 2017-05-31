@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <deque>
 #include <string>
-#include "common/threads.h"
+#include "srslte/common/threads.h"
 
 namespace srslte {
 

@@ -1,5 +1,5 @@
 
-#include "common/timers.h"
+#include "srslte/common/timers.h"
 
 #ifndef INTERFACE_COMMON_H
 #define INTERFACE_COMMON_H

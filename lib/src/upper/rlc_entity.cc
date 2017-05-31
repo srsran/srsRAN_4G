@@ -24,7 +24,7 @@
  *
  */
 
-#include "upper/rlc_entity.h"
+#include "srslte/upper/rlc_entity.h"
 
 namespace srsue {
 

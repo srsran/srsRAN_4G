@@ -27,7 +27,7 @@
 #define NMSGS    1000000
 
 #include <stdio.h>
-#include "common/msg_queue.h"
+#include "srslte/common/msg_queue.h"
 
 using namespace srslte;
 

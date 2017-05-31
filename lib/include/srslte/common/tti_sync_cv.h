@@ -34,7 +34,7 @@
 #define TTISYNC_CV_H
 
 #include <pthread.h>
-#include "common/tti_sync.h"
+#include "srslte/common/tti_sync.h"
 
 namespace srslte {
   

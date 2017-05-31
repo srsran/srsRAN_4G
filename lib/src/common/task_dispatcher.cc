@@ -25,7 +25,7 @@
  */
 
 
-#include "common/task_dispatcher.h"
+#include "srslte/common/task_dispatcher.h"
 #include <queue>
 
 namespace srslte {

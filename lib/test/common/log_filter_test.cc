@@ -28,7 +28,7 @@
 #define NMSGS    100
 
 #include <stdio.h>
-#include "common/log_filter.h"
+#include "srslte/common/log_filter.h"
 
 using namespace srslte;
 

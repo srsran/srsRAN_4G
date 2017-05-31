@@ -28,14 +28,14 @@
 #define UEPHYRECV_H
 
 #include "srslte/srslte.h"
-#include "common/log.h"
-#include "common/threads.h"
-#include "common/thread_pool.h"
-#include "radio/radio_multi.h"
+#include "srslte/common/log.h"
+#include "srslte/common/threads.h"
+#include "srslte/common/thread_pool.h"
+#include "srslte/radio/radio_multi.h"
 #include "phy/prach.h"
 #include "phy/phch_worker.h"
 #include "phy/phch_common.h"
-#include "common/interfaces.h"
+#include "srslte/common/interfaces.h"
 
 namespace srsue {
     

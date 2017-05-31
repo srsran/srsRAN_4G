@@ -37,7 +37,7 @@
 #include <string>
 #include "srslte/srslte.h"
 
-#include "asn1/liblte_rrc.h"
+#include "srslte/asn1/liblte_rrc.h"
 
 namespace srsue {
   

@@ -25,7 +25,7 @@
  */
 
 #include <iostream>
-#include "upper/rlc_um.h"
+#include "srslte/upper/rlc_um.h"
 #include <assert.h>
 
 // Fixed header only

@@ -27,13 +27,13 @@
 #ifndef DEMUX_H
 #define DEMUX_H
 
-#include "common/interfaces.h"
-#include "common/phy_interface.h"
-#include "common/mac_interface.h"
-#include "common/pdu_queue.h"
-#include "common/log.h"
-#include "common/timers.h"
-#include "common/pdu.h"
+#include "srslte/common/interfaces.h"
+#include "srslte/common/phy_interface.h"
+#include "srslte/common/mac_interface.h"
+#include "srslte/common/pdu_queue.h"
+#include "srslte/common/log.h"
+#include "srslte/common/timers.h"
+#include "srslte/common/pdu.h"
 
 /* Logical Channel Demultiplexing and MAC CE dissassemble */   
 

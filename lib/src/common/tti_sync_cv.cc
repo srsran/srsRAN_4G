@@ -26,7 +26,7 @@
 
 #include <pthread.h>
 
-#include "common/tti_sync_cv.h"
+#include "srslte/common/tti_sync_cv.h"
 
 
 namespace srslte {

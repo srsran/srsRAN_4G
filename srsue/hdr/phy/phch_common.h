@@ -31,10 +31,10 @@
 #include <string.h>
 #include <vector>
 #include "srslte/srslte.h"
-#include "common/mac_interface.h"
-#include "common/phy_interface.h"
-#include "radio/radio.h"
-#include "common/log.h"
+#include "srslte/common/mac_interface.h"
+#include "srslte/common/phy_interface.h"
+#include "srslte/radio/radio.h"
+#include "srslte/common/log.h"
 #include "phy/phy_metrics.h"
 
 //#define CONTINUOUS_TX

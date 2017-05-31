@@ -37,7 +37,7 @@
 
 #include <stdarg.h>
 #include <string>
-#include <common/log.h>
+#include "srslte/common/log.h"
 #include "logger.h"
 
 namespace srslte {

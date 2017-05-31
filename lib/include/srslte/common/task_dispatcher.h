@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <string>
 #include <queue>
-#include "common/threads.h"
+#include "srslte/common/threads.h"
 
 namespace srslte {
   

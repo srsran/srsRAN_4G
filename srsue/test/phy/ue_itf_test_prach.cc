@@ -28,9 +28,9 @@
 
 #include "srslte/phy/utils/debug.h"
 #include "phy/phy.h"
-#include "common/phy_interface.h"
-#include "common/log_stdout.h"
-#include "radio/radio_multi.h"
+#include "srslte/common/phy_interface.h"
+#include "srslte/common/log_stdout.h"
+#include "srslte/radio/radio_multi.h"
 
 /**********************************************************************
  *  Program arguments processing

@@ -28,9 +28,9 @@
 
 #include "srslte/phy/utils/debug.h"
 #include "phy/phy.h"
-#include "common/log_stdout.h"
-#include "common/mac_interface.h"
-#include "radio/radio_multi.h"
+#include "srslte/common/log_stdout.h"
+#include "srslte/common/mac_interface.h"
+#include "srslte/radio/radio_multi.h"
 
 
 /**********************************************************************

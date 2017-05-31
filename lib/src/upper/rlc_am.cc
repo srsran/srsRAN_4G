@@ -25,7 +25,7 @@
  */
 
 
-#include "upper/rlc_am.h"
+#include "srslte/upper/rlc_am.h"
 
 #include <iostream>
 #include <sstream>

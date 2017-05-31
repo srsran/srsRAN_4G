@@ -27,8 +27,8 @@
 #ifndef ULSPS_H
 #define ULSPS_H
 
-#include "common/log.h"
-#include "common/timers.h"
+#include "srslte/common/log.h"
+#include "srslte/common/timers.h"
 
 /* Uplink Semi-Persistent schedulign (Section 5.10.2) */
 

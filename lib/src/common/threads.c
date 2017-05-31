@@ -31,7 +31,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "common/threads.h"
+#include "srslte/common/threads.h"
 
 bool threads_new_rt(pthread_t *thread, void *(*start_routine) (void*), void *arg) {
   return threads_new_rt_prio(thread, start_routine, arg, -1);

@@ -25,8 +25,8 @@
  */
 
 #include <iostream>
-#include "common/log_stdout.h"
-#include "upper/rlc_am.h"
+#include "srslte/common/log_stdout.h"
+#include "srslte/upper/rlc_am.h"
 #include <assert.h>
 #define NBUFS 5
 

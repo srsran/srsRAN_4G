@@ -32,7 +32,7 @@
 
 #include "mac/mac.h"
 #include "mac/demux.h"
-#include "common/phy_interface.h"
+#include "srslte/common/phy_interface.h"
 
 namespace srsue {
     

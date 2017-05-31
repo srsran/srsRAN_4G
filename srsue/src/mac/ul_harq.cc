@@ -29,7 +29,7 @@
 #define Info(fmt, ...)    log_h->info_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   log_h->debug_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-#include "common/log.h"
+#include "srslte/common/log.h"
 #include "mac/mac.h"
 #include "mac/ul_harq.h"
 

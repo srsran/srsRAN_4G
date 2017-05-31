@@ -32,7 +32,7 @@
  *****************************************************************************/
 
 
-#include "common/common.h"
+#include "srslte/common/common.h"
 
 
 #define SECURITY_DIRECTION_UPLINK   0

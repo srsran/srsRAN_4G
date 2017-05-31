@@ -18,14 +18,14 @@
 #include "srslte/phy/utils/debug.h"
 #include "mac/mac.h"
 #include "phy/phy.h"
-#include "common/threads.h"
-#include "common/common.h"
-#include "common/buffer_pool.h"
-#include "common/logger.h"
-#include "common/log_filter.h"
-#include "upper/rlc.h"
+#include "srslte/common/threads.h"
+#include "srslte/common/common.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/logger.h"
+#include "srslte/common/log_filter.h"
+#include "srslte/upper/rlc.h"
 #include "upper/rrc.h"
-#include "radio/radio_multi.h"
+#include "srslte/radio/radio_multi.h"
 
 #define START_TUNTAP
 #define USE_RADIO

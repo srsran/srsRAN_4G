@@ -27,12 +27,12 @@
 #ifndef ULHARQ_H
 #define ULHARQ_H
 
-#include "common/mac_interface.h"
-#include "common/log.h"
+#include "srslte/common/mac_interface.h"
+#include "srslte/common/log.h"
 #include "mac/mux.h"
 #include "mac/ul_sps.h"
-#include "common/mac_pcap.h"
-#include "common/timers.h"
+#include "srslte/common/mac_pcap.h"
+#include "srslte/common/timers.h"
 
 /* Uplink HARQ entity as defined in 5.4.2 of 36.321 */
 

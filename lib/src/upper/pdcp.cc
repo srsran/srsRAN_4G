@@ -25,7 +25,7 @@
  */
 
 
-#include "upper/pdcp.h"
+#include "srslte/upper/pdcp.h"
 
 using namespace srslte;
 

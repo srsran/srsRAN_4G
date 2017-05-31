@@ -36,7 +36,7 @@
 #include <stdarg.h>
 #include <string>
 
-#include "common/log_stdout.h"
+#include "srslte/common/log_stdout.h"
 
 
 using namespace std; 

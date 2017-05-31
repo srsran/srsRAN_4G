@@ -37,20 +37,20 @@
 #include <string>
 #include <pthread.h>
 
-#include "radio/radio_multi.h"
+#include "srslte/radio/radio_multi.h"
 #include "phy/phy.h"
 #include "mac/mac.h"
-#include "upper/rlc.h"
-#include "upper/pdcp.h"
+#include "srslte/upper/rlc.h"
+#include "srslte/upper/pdcp.h"
 #include "upper/rrc.h"
 #include "upper/nas.h"
-#include "upper/gw.h"
+#include "srslte/upper/gw.h"
 #include "upper/usim.h"
 
-#include "common/buffer_pool.h"
-#include "common/interfaces.h"
-#include "common/logger.h"
-#include "common/log_filter.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/interfaces.h"
+#include "srslte/common/logger.h"
+#include "srslte/common/log_filter.h"
 
 #include "ue_metrics_interface.h"
 

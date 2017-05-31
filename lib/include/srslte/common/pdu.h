@@ -28,8 +28,8 @@
 #define MACPDU_H
 
 #include <stdint.h>
-#include "common/log.h"
-#include "common/interfaces_common.h"
+#include "srslte/common/log.h"
+#include "srslte/common/interfaces_common.h"
 #include <vector>
 #include <stdio.h>
 

@@ -33,7 +33,7 @@
 #ifndef MSG_QUEUE_H
 #define MSG_QUEUE_H
 
-#include "common/common.h"
+#include "srslte/common/common.h"
 #include <pthread.h>
 
 namespace srslte {

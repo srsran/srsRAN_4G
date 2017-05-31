@@ -25,7 +25,7 @@
  */
 
 
-#include "upper/rlc_tm.h"
+#include "srslte/upper/rlc_tm.h"
 
 using namespace srslte;
 

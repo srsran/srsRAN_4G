@@ -27,12 +27,12 @@
 #ifndef RLC_TM_H
 #define RLC_TM_H
 
-#include "common/buffer_pool.h"
-#include "common/log.h"
-#include "common/common.h"
-#include "common/interfaces.h"
-#include "common/msg_queue.h"
-#include "upper/rlc_common.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/log.h"
+#include "srslte/common/common.h"
+#include "srslte/common/interfaces.h"
+#include "srslte/common/msg_queue.h"
+#include "srslte/upper/rlc_common.h"
 
 namespace srsue {
 

@@ -294,9 +294,6 @@ message(STATUS "Building for version: ${VERSION}")
 include_directories(${PROJECT_BINARY_DIR}/lib/include)
 include_directories(${PROJECT_SOURCE_DIR}/lib/include)
 
-# Includes needed by all code previously resided in srsUE
-include_directories(${PROJECT_SOURCE_DIR}/lib/include/srslte)
-
 ########################################################################
 # Add headers to cmake project (useful for IDEs)
 ########################################################################
