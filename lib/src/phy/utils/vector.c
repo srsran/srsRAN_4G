@@ -698,7 +698,7 @@ void srslte_vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
 
 uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
 #ifdef HAVE_VOLK_MAX_FUNCTION
-  uint32_t target=0;
+  uint16_t target=0;
   volk_32f_index_max_16u(&target,x,len);
   return target;
 
@@ -763,7 +763,7 @@ void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len) {
 
 uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
 #ifdef HAVE_VOLK_MAX_ABS_FUNCTION
-  uint32_t target=0;
+  uint16_t target=0;
   volk_32fc_index_max_16u(&target,x,len);
   return target;
 

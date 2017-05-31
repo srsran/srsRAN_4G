@@ -93,7 +93,7 @@ bool phch_worker::init_cell(srslte_cell_t cell_)
   memcpy(&cell, &cell_, sizeof(srslte_cell_t));
   
   // ue_sync in phy.cc requires a buffer for 3 subframes 
-  for (int i=0;i<phy->args->nof_rx_ant;i++) {
+  for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
     signal_buffer[i] = (cf_t*) srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (!signal_buffer[i]) {
       Error("Allocating memory\n");
@@ -121,7 +121,7 @@ bool phch_worker::init_cell(srslte_cell_t cell_)
 void phch_worker::free_cell()
 {
   if (cell_initiated) {
-    for (int i=0;i<phy->args->nof_rx_ant;i++) {
+    for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
       if (signal_buffer[i]) {
         free(signal_buffer[i]);
       }      
@@ -950,7 +950,7 @@ void phch_worker::start_plot() {
 }
 
 int phch_worker::read_ce_abs(float *ce_abs) {
-  int i=0;
+  uint32_t i=0;
   int sz = srslte_symbol_sz(cell.nof_prb);
   bzero(ce_abs, sizeof(float)*sz);
   int g = (sz - 12*cell.nof_prb)/2;

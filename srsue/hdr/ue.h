@@ -160,7 +160,7 @@ public:
 private:
   static ue *instance;
   ue();
-  ~ue();
+  virtual ~ue();
 
   srslte::radio_multi radio;
   srsue::phy        phy;

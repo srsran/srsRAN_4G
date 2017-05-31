@@ -83,7 +83,7 @@ public:
   }
   
   bool new_subh() {
-    if (nof_subheaders < max_subheaders - 1 && rem_len > 0) {
+    if (nof_subheaders < (int)max_subheaders - 1 && rem_len > 0) {
       nof_subheaders++;
       next();
       return true; 
@@ -148,7 +148,7 @@ protected:
   uint32_t   pdu_len; 
   uint32_t   rem_len; 
   int        cur_idx;
-  int        nof_subheaders; 
+  int        nof_subheaders;
   uint32_t   max_subheaders; 
   bool       pdu_is_ul;
   uint8_t*   buffer_tx; 
@@ -169,7 +169,7 @@ private:
     total_sdu_len  = 0; 
     last_sdu_idx   = -1;
     reset();
-    for (int i=0;i<max_subheaders;i++) {
+    for (uint32_t i=0;i<max_subheaders;i++) {
       subheaders[i].parent = this; 
       subheaders[i].init();
     }

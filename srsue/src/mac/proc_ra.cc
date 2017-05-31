@@ -450,7 +450,7 @@ void ra_proc::step_contention_resolution() {
     {
       // Random Access with transmission of MAC C-RNTI CE
       if ((!started_by_pdcch && pdcch_to_crnti_received == PDCCH_CRNTI_UL_GRANT) || 
-            started_by_pdcch && pdcch_to_crnti_received != PDCCH_CRNTI_NOT_RECEIVED) 
+            (started_by_pdcch && pdcch_to_crnti_received != PDCCH_CRNTI_NOT_RECEIVED))
       {
         rDebug("PDCCH for C-RNTI received\n");
         timers_db->get(mac::CONTENTION_TIMER)->stop();
@@ -515,6 +515,7 @@ void ra_proc::step(uint32_t tti_)
     case COMPLETION:
       step_completition();
     case COMPLETION_DONE:
+    case RA_PROBLEM:
     break;
   }
 }

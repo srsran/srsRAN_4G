@@ -176,7 +176,7 @@ uint8_t* sch_pdu::write_packet(srslte::log *log_h)
   uint8_t *pdu_start_ptr = ptr; 
   
   // Add single/two byte padding first 
-  for (int i=0;i<onetwo_padding;i++) {
+  for (uint32_t i=0;i<onetwo_padding;i++) {
     padding.write_subheader(&ptr, false);  
   }
   // Then write subheaders for MAC CE
@@ -244,7 +244,7 @@ uint8_t* sch_pdu::write_packet(srslte::log *log_h)
     return NULL; 
   }
 
-  if (header_sz + ce_payload_sz != (int) (ptr - pdu_start_ptr)) {
+  if ((int)(header_sz + ce_payload_sz) != (int) (ptr - pdu_start_ptr)) {
     fprintf(stderr, "Expected a header and CE payload of %d bytes but wrote %d\n", 
             header_sz+ce_payload_sz,(int) (ptr - pdu_start_ptr));
     return NULL;
@@ -291,7 +291,13 @@ bool sch_pdu::update_space_ce(uint32_t nbytes)
 
 bool sch_pdu::has_space_sdu(uint32_t nbytes)
 {
-  return get_sdu_space() >= nbytes;
+  int s = get_sdu_space();
+
+  if (s < 0) {
+    return false;
+  } else {
+    return (uint32_t)s >= nbytes;
+  }
 }
 
 bool sch_pdu::update_space_sdu(uint32_t nbytes)
@@ -495,7 +501,7 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
       w_payload_ce[1] = (buff_size_table(buff_size[1])&0xf)  << 4 | (buff_size_table(buff_size[2])&0xf0)>>4;
       w_payload_ce[2] = (buff_size_table(buff_size[2])&0x3)  << 6 | (buff_size_table(buff_size[3])&0x3f);
     } else {
-      w_payload_ce[0] = (nonzero_lcg&0x3)<<6 | buff_size_table(buff_size[nonzero_lcg])&0x3f;
+      w_payload_ce[0] = (nonzero_lcg&0x3)<<6 | (buff_size_table(buff_size[nonzero_lcg])&0x3f);
     }
     lcid = format;
     ((sch_pdu*)parent)->update_space_ce(ce_size);
@@ -569,7 +575,7 @@ int sch_subh::set_sdu(uint32_t lcid_, uint32_t requested_bytes, read_pdu_interfa
     
     payload = ((sch_pdu*)parent)->get_current_sdu_ptr();
     // Copy data and get final number of bytes written to the MAC PDU 
-    int sdu_sz = sdu_itf->read_pdu(lcid, payload, requested_bytes);
+    uint32_t sdu_sz = sdu_itf->read_pdu(lcid, payload, requested_bytes);
     
     if (sdu_sz < 0 || sdu_sz > requested_bytes) {
       return -1;
@@ -652,7 +658,7 @@ bool sch_subh::read_subheader(uint8_t** ptr)
       nof_bytes = (uint32_t)*(*ptr) & 0x7f;
       *ptr += 1;
       if (F_bit) {
-        nof_bytes = nof_bytes<<8 | (uint32_t) *(*ptr) & 0xff;
+        nof_bytes = nof_bytes<<8 | ((uint32_t) *(*ptr) & 0xff);
         *ptr += 1;
       }
     } else {
@@ -807,7 +813,7 @@ void rar_subh::set_temp_crnti(uint16_t temp_rnti_)
 // Section 6.2.2
 void rar_subh::write_subheader(uint8_t** ptr, bool is_last)
 {
-  *(*ptr) = (uint8_t) (!is_last<<7 | 1<<6 | preamble & 0x3f);
+  *(*ptr) = (uint8_t) (!is_last<<7 | 1<<6 | (preamble & 0x3f));
   *ptr += 1;
 }
 // Section 6.2.3

@@ -118,7 +118,7 @@ bool phy::init(srslte::radio_multi* radio_handler_, mac_interface_phy *mac, rrc_
   nof_workers = args->nof_phy_threads; 
   
   // Add workers to workers pool and start threads
-  for (int i=0;i<nof_workers;i++) {
+  for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_common(&workers_common);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO, args->worker_cpu_mask);    
   }
@@ -141,14 +141,14 @@ void phy::set_agc_enable(bool enabled)
 
 void phy::start_trace()
 {
-  for (int i=0;i<nof_workers;i++) {
+  for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].start_trace();
   }
 }
 
 void phy::write_trace(std::string filename)
 {
-  for (int i=0;i<nof_workers;i++) {
+  for (uint32_t i=0;i<nof_workers;i++) {
     string i_str = static_cast<ostringstream*>( &(ostringstream() << i) )->str();
     workers[i].write_trace(filename + "_" + i_str);
   }
@@ -200,7 +200,7 @@ void phy::configure_prach_params()
 void phy::configure_ul_params(bool pregen_disabled)
 {
   Info("PHY:   Configuring UL parameters\n");
-  for (int i=0;i<nof_workers;i++) {
+  for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_ul_params(pregen_disabled);
   }
 }

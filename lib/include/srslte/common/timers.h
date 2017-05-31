@@ -106,22 +106,22 @@ public:
   }
   
   void step_all() {
-    for (int i=0;i<nof_timers;i++) {
+    for (uint32_t i=0;i<nof_timers;i++) {
       get(i)->step();
     }
   }
   void stop_all() {
-    for (int i=0;i<nof_timers;i++) {
+    for (uint32_t i=0;i<nof_timers;i++) {
       get(i)->stop();
     }
   }
   void run_all() {
-    for (int i=0;i<nof_timers;i++) {
+    for (uint32_t i=0;i<nof_timers;i++) {
       get(i)->run();
     }
   }
   void reset_all() {
-    for (int i=0;i<nof_timers;i++) {
+    for (uint32_t i=0;i<nof_timers;i++) {
       get(i)->reset();
     }
   }

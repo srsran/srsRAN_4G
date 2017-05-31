@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
   assert(s.N_nack == 0);
   rlc_am_write_status_pdu(&s, &b2);
   assert(b2.N_bytes == PDU1_LEN);
-  for(int i=0;i<b2.N_bytes;i++)
+  for(uint32_t i=0;i<b2.N_bytes;i++)
     assert(b2.msg[i] == b1.msg[i]);
 
   b1.reset();
@@ -65,6 +65,6 @@ int main(int argc, char **argv) {
   assert(s.nacks[3].nack_sn == 4);
   rlc_am_write_status_pdu(&s, &b2);
   assert(b2.N_bytes == PDU2_LEN);
-  for(int i=0;i<b2.N_bytes;i++)
+  for(uint32_t i=0;i<b2.N_bytes;i++)
     assert(b2.msg[i] == b1.msg[i]);
 }

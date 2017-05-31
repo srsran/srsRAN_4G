@@ -57,7 +57,7 @@ public:
   buffer_pool(uint32_t nof_buffers = POOL_SIZE)
   {
     pthread_mutex_init(&mutex, NULL);
-    for(int i=0;i<nof_buffers;i++) {
+    for(uint32_t i=0;i<nof_buffers;i++) {
       buffer_t *b = new buffer_t;
       available.push(b);
     }
