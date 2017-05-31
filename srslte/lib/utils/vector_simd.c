@@ -45,7 +45,7 @@
 #endif
 
 
-int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len)
+int srslte_vec_dot_prod_sss_sse(short *x, short *y, uint32_t len)
 {
   int result = 0; 
 #ifdef LV_HAVE_SSE
@@ -87,7 +87,7 @@ int srslte_vec_dot_prod_sss_simd(short *x, short *y, uint32_t len)
 }
 
 
-int srslte_vec_dot_prod_sss_simd_avx(short *x, short *y, uint32_t len)
+int srslte_vec_dot_prod_sss_avx(short *x, short *y, uint32_t len)
 {
   int result = 0; 
 #ifdef LV_HAVE_AVX
@@ -127,7 +127,7 @@ int srslte_vec_dot_prod_sss_simd_avx(short *x, short *y, uint32_t len)
 
 
 
-void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_sum_sss_sse(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -160,7 +160,7 @@ void srslte_vec_sum_sss_simd(short *x, short *y, short *z, uint32_t len)
 
 }
 
-void srslte_vec_sum_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_sum_sss_avx(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -193,7 +193,7 @@ void srslte_vec_sum_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
 }
 
 
-void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_sub_sss_sse(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -225,7 +225,7 @@ void srslte_vec_sub_sss_simd(short *x, short *y, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_sub_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_sub_sss_avx(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_AVX
   unsigned int number = 0;
@@ -260,7 +260,7 @@ void srslte_vec_sub_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
 
 
 
-void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_prod_sss_sse(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -292,7 +292,7 @@ void srslte_vec_prod_sss_simd(short *x, short *y, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_prod_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_prod_sss_avx(short *x, short *y, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -324,7 +324,12 @@ void srslte_vec_prod_sss_simd_avx(short *x, short *y, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
+
+
+
+
+
+void srslte_vec_sc_div2_sss_sse(short *x, int k, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -354,7 +359,7 @@ void srslte_vec_sc_div2_sss_simd(short *x, int k, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_sc_div2_sss_simd_avx(short *x, int k, short *z, uint32_t len)
+void srslte_vec_sc_div2_sss_avx(short *x, int k, short *z, uint32_t len)
 {
 #ifdef LV_HAVE_AVX
   unsigned int number = 0;
@@ -384,8 +389,10 @@ void srslte_vec_sc_div2_sss_simd_avx(short *x, int k, short *z, uint32_t len)
 #endif
 }
 
+
+
 /* No improvement with AVX */
-void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t len)
+void srslte_vec_lut_sss_sse(short *x, unsigned short *lut, short *y, uint32_t len)
 {
 #ifndef DEBUG_MODE
 #ifdef LV_HAVE_SSE
@@ -419,7 +426,7 @@ void srslte_vec_lut_sss_simd(short *x, unsigned short *lut, short *y, uint32_t l
 }
 
 /* Modified from volk_32f_s32f_convert_16i_a_simd2. Removed clipping */
-void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
+void srslte_vec_convert_fi_sse(float *x, int16_t *z, float scale, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -457,8 +464,8 @@ void srslte_vec_convert_fi_simd(float *x, int16_t *z, float scale, uint32_t len)
 #endif
 }
 
-
- void srslte_32fc_s32f_multiply_32fc_avx( cf_t *z,const cf_t *x,const float h,const uint32_t len)
+//srslte_32fc_s32f_multiply_32fc_avx
+ void srslte_vec_mult_scalar_cf_f_avx( cf_t *z,const cf_t *x,const float h,const uint32_t len)
 {
 #ifdef LV_HAVE_AVX
    
