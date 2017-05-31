@@ -27,19 +27,6 @@ INSTALL(DIRECTORY include/
 )
 
 ########################################################################
-# Add headers to cmake project (useful for IDEs)
-########################################################################
-set(HEADERS_ALL "")
-file(GLOB headers *)
-FOREACH (_header ${headers})
-  if(IS_DIRECTORY ${_header})
-    file(GLOB_RECURSE tmp "${_header}/*.h")
-    list(APPEND HEADERS_ALL ${tmp})
-  endif(IS_DIRECTORY ${_header})
-ENDFOREACH()
-add_custom_target (add_srslte_headers SOURCES ${HEADERS_ALL})
-
-########################################################################
 # Find Dependencies
 ########################################################################
 

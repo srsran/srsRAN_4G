@@ -200,10 +200,12 @@ endif(CMAKE_COMPILER_IS_GNUCXX)
 
 if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable")
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     find_package(SSE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -DDEBUG_MODE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -std=c++03")
     if(HAVE_AVX)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")      
     elseif(HAVE_SSE)
@@ -211,14 +213,18 @@ if(CMAKE_COMPILER_IS_GNUCC)
     endif(HAVE_AVX)
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++03")
     find_package(SSE)
     if (HAVE_AVX2)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx2 -Ofast -funroll-loops -DLV_HAVE_AVX -DLV_HAVE_SSE")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse -mavx2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
     else (HAVE_AVX2)
       if(HAVE_AVX)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -Ofast -funroll-loops -DLV_HAVE_AVX -DLV_HAVE_SSE")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
       elseif(HAVE_SSE)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -Ofast -funroll-loops -DLV_HAVE_SSE")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
       endif(HAVE_AVX)
     endif (HAVE_AVX2)
     
@@ -287,6 +293,19 @@ include_directories(${PROJECT_SOURCE_DIR}/lib/include)
 
 # Includes needed by all code previously resided in srsUE
 include_directories(${PROJECT_SOURCE_DIR}/lib/include/srslte)
+
+########################################################################
+# Add headers to cmake project (useful for IDEs)
+########################################################################
+set(HEADERS_ALL "")
+file(GLOB headers *)
+foreach(_header ${headers})
+    if(IS_DIRECTORY ${_header})
+        file(GLOB_RECURSE tmp "${_header}/*.h")
+        list(APPEND HEADERS_ALL ${tmp})
+    endif(IS_DIRECTORY ${_header})
+endforeach()
+add_custom_target(add_srslte_headers SOURCES ${HEADERS_ALL})
 
 ########################################################################
 # Add the subdirectories
