@@ -542,7 +542,7 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
       if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
         return SRSLTE_ERROR; 
       }
-      srslte_scrambling_bytes(&q->users[rnti]->seq[cfg->sf_idx], (uint8_t*) q->e, cfg->nbits.nof_bits);
+      srslte_scrambling_bytes(&seq, (uint8_t*) q->e, cfg->nbits.nof_bits);
       srslte_sequence_free(&seq);
     } else {    
       srslte_scrambling_bytes(&q->users[rnti]->seq[cfg->sf_idx], (uint8_t*) q->e, cfg->nbits.nof_bits);
