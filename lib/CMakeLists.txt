@@ -1,7 +1,7 @@
 #
-# Copyright 2013-2015 Software Radio Systems Limited
+# Copyright 2013-2017 Software Radio Systems Limited
 #
-# This file is part of the srsLTE library.
+# This file is part of srsLTE
 #
 # srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -48,13 +48,13 @@ if(UHD_FOUND)
   link_directories(${UHD_LIBRARY_DIRS})
 endif(UHD_FOUND)
 
-if(NOT DisableBladeRF) 
+if(NOT DISABLE_BLADERF)
   find_package(bladeRF)
   if(BLADERF_FOUND)
     include_directories(${BLADERF_INCLUDE_DIRS})
     link_directories(${BLADERF_LIBRARY_DIRS})
   endif(BLADERF_FOUND)
-endif(NOT DisableBladeRF)
+endif(NOT DISABLE_BLADERF)
 
 find_package(SoapySDR)
 if(SOAPYSDR_FOUND)
