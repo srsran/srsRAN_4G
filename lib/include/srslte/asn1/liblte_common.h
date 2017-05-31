@@ -121,8 +121,12 @@ struct LIBLTE_BYTE_MSG_STRUCT{
     }
     LIBLTE_BYTE_MSG_STRUCT & operator= (const LIBLTE_BYTE_MSG_STRUCT & buf)
     {
+      // avoid self assignment
+      if (&buf == this)
+        return *this;
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
+      return *this;
     }
     uint32 get_headroom()
     {
@@ -152,8 +156,12 @@ struct LIBLTE_BIT_MSG_STRUCT{
       memcpy(msg, buf.msg, N_bits);
     }
     LIBLTE_BIT_MSG_STRUCT & operator= (const LIBLTE_BIT_MSG_STRUCT & buf){
+      // avoid self assignment
+      if (&buf == this)
+        return *this;
       N_bits = buf.N_bits;
       memcpy(msg, buf.msg, N_bits);
+      return *this;
     }
     uint32 get_headroom()
     {

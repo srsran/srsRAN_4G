@@ -200,7 +200,7 @@ void process_connsetup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *msg, srsue::mac *mac,
   phy->configure_ul_params();
   
   // Setup radio bearers
-  for (int i=0;i<msg->rr_cnfg.srb_to_add_mod_list_size;i++) {
+  for (uint32_t i=0;i<msg->rr_cnfg.srb_to_add_mod_list_size;i++) {
     if (msg->rr_cnfg.srb_to_add_mod_list[i].lc_default_cnfg_present) {
       printf("Setting up Default Configuration for SRB%d \n", msg->rr_cnfg.srb_to_add_mod_list[i].srb_id);
       switch(msg->rr_cnfg.srb_to_add_mod_list[i].srb_id) {
@@ -315,7 +315,7 @@ public:
       uint8_t *ue_cri_ptr = (uint8_t*) &uecri; 
       uint32_t nbytes = bit_msg.N_bits/8;
       uint8_t *ptr = bit_msg.msg; 
-      for (int i=0;i<nbytes;i++) {
+      for (uint32_t i=0;i<nbytes;i++) {
         ue_cri_ptr[nbytes-i-1] = (uint8_t) srslte_bit_pack(&ptr, 8);
       }
       printf("Setting UE contention resolution ID: %lu\n", uecri);
@@ -370,6 +370,8 @@ public:
           connsetup_decoded = true; 
           break;
         case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REJ:
+        case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST:
+        case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST_REJ:
           break;
       } 
     } else if (lcid == 1) {

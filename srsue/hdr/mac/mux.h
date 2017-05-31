@@ -41,7 +41,7 @@
 
 
 typedef struct {
-  int           id; 
+  uint32_t      id;
   int           Bj;
   int           PBR; // -1 sets to infinity
   uint32_t      BSD;

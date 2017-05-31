@@ -58,11 +58,11 @@ void mac_pcap::pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reT
     {
         FDD_RADIO, direction, rnti_type,
         crnti,       /* RNTI */
-        ue_id,      /* UEId */
-        reTX,        /* Retx */
+        (uint16_t)ue_id,      /* UEId */
+        (uint8_t)reTX,        /* Retx */
         crc_ok,        /* CRC Stsatus (i.e. OK) */
-        tti/10,        /* Sysframe number */
-        tti%10        /* Subframe number */
+        (uint16_t)(tti/10),        /* Sysframe number */
+        (uint16_t)(tti%10)        /* Subframe number */
     };
     if (pdu) {
       MAC_LTE_PCAP_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);

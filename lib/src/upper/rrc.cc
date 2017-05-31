@@ -282,7 +282,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu)
                     liblte_rrc_si_window_length_num[sib1.si_window_length],
                     liblte_rrc_si_periodicity_num[sib1.sched_info[0].si_periodicity]);
       std::stringstream ss;
-      for(int i=0;i<sib1.N_plmn_ids;i++){
+      for(uint32_t i=0;i<sib1.N_plmn_ids;i++){
         std::string mcc;
         std::string mnc;
         mcc_to_string(sib1.plmn_id[i].id.mcc, &mcc);
@@ -340,7 +340,7 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu)
     }
     
     LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi_paged;
-    for (int i=0;i<pcch_msg.paging_record_list_size;i++) {
+    for (uint32_t i=0;i<pcch_msg.paging_record_list_size;i++) {
       s_tmsi_paged = &pcch_msg.paging_record_list[i].ue_identity.s_tmsi;
       rrc_log->info("Received paging (%d/%d) for UE 0x%x\n", i+1, pcch_msg.paging_record_list_size,
                     pcch_msg.paging_record_list[i].ue_identity.s_tmsi);
@@ -396,7 +396,7 @@ void rrc::send_con_request()
   // Byte align and pack the message bits for PDCP
   if((bit_buf.N_bits % 8) != 0)
   {
-    for(int i=0; i<8-(bit_buf.N_bits % 8); i++)
+    for(uint32_t i=0; i<8-(bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
@@ -409,7 +409,7 @@ void rrc::send_con_request()
   uint64_t uecri=0;
   uint8_t *ue_cri_ptr = (uint8_t*) &uecri;
   uint32_t nbytes = 6;
-  for (int i=0;i<nbytes;i++) {
+  for (uint32_t i=0;i<nbytes;i++) {
     ue_cri_ptr[nbytes-i-1] = pdcp_buf->msg[i];
   }
   rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
@@ -490,7 +490,7 @@ void rrc::send_con_restablish_request()
   // Byte align and pack the message bits for PDCP
   if((bit_buf.N_bits % 8) != 0)
   {
-    for(int i=0; i<8-(bit_buf.N_bits % 8); i++)
+    for(uint32_t i=0; i<8-(bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
@@ -502,7 +502,7 @@ void rrc::send_con_restablish_request()
   uint64_t uecri=0;
   uint8_t *ue_cri_ptr = (uint8_t*) &uecri;
   uint32_t nbytes = 6;
-  for (int i=0;i<nbytes;i++) {
+  for (uint32_t i=0;i<nbytes;i++) {
     ue_cri_ptr[nbytes-i-1] = pdcp_buf->msg[i];
   }
   rrc_log->debug("Setting UE contention resolution ID: %d\n", uecri);
@@ -527,7 +527,7 @@ void rrc::send_con_restablish_complete()
   // Byte align and pack the message bits for PDCP
   if((bit_buf.N_bits % 8) != 0)
   {
-    for(int i=0; i<8-(bit_buf.N_bits % 8); i++)
+    for(uint32_t i=0; i<8-(bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
@@ -558,7 +558,7 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg)
   // Byte align and pack the message bits for PDCP
   if((bit_buf.N_bits % 8) != 0)
   {
-    for(int i=0; i<8-(bit_buf.N_bits % 8); i++)
+    for(uint32_t i=0; i<8-(bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
@@ -592,7 +592,7 @@ void rrc::send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu)
   // Byte align and pack the message bits for PDCP
   if((bit_buf.N_bits % 8) != 0)
   {
-    for(int i=0; i<8-(bit_buf.N_bits % 8); i++)
+    for(uint32_t i=0; i<8-(bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
@@ -616,7 +616,7 @@ void rrc::send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu)
   // Byte align and pack the message bits for PDCP
   if((bit_buf.N_bits % 8) != 0)
   {
-    for(int i=0; i<8-(bit_buf.N_bits % 8); i++)
+    for(uint32_t i=0; i<8-(bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
@@ -640,7 +640,7 @@ void rrc::send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu)
   // Byte align and pack the message bits for PDCP
   if((bit_buf.N_bits % 8) != 0)
   {
-    for(int i=0; i<8-(bit_buf.N_bits % 8); i++)
+    for(uint32_t i=0; i<8-(bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
@@ -727,7 +727,7 @@ void rrc::send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu)
   // Byte align and pack the message bits for PDCP
   if((bit_buf.N_bits % 8) != 0)
   {
-    for(int i=0; i<8-(bit_buf.N_bits % 8); i++)
+    for(uint32_t i=0; i<8-(bit_buf.N_bits % 8); i++)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
@@ -823,7 +823,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu)
     break;
   case LIBLTE_RRC_DL_DCCH_MSG_TYPE_UE_CAPABILITY_ENQUIRY:
     transaction_id = dl_dcch_msg.msg.ue_cap_enquiry.rrc_transaction_id;
-    for(int i=0; i<dl_dcch_msg.msg.ue_cap_enquiry.N_ue_cap_reqs; i++)
+    for(uint32_t i=0; i<dl_dcch_msg.msg.ue_cap_enquiry.N_ue_cap_reqs; i++)
     {
       if(LIBLTE_RRC_RAT_TYPE_EUTRA == dl_dcch_msg.msg.ue_cap_enquiry.ue_capability_request[i])
       {
@@ -1251,14 +1251,14 @@ void rrc::apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg)
   if(cnfg->rlf_timers_and_constants_present) {
     //TODO
   }
-  for(int i=0; i<cnfg->srb_to_add_mod_list_size; i++) {
+  for(uint32_t i=0; i<cnfg->srb_to_add_mod_list_size; i++) {
     // TODO: handle SRB modification
     add_srb(&cnfg->srb_to_add_mod_list[i]);
   }
-  for(int i=0; i<cnfg->drb_to_release_list_size; i++) {
+  for(uint32_t i=0; i<cnfg->drb_to_release_list_size; i++) {
     release_drb(cnfg->drb_to_release_list[i]);
   }
-  for(int i=0; i<cnfg->drb_to_add_mod_list_size; i++) {
+  for(uint32_t i=0; i<cnfg->drb_to_add_mod_list_size; i++) {
     // TODO: handle DRB modification
     add_drb(&cnfg->drb_to_add_mod_list[i]);
   }

@@ -222,14 +222,14 @@ void bsr_proc::step(uint32_t tti)
   }  
   
   int periodic = liblte_rrc_periodic_bsr_timer_num[mac_cfg->main.ulsch_cnfg.periodic_bsr_timer];
-  if (periodic != timers_db->get(mac::BSR_TIMER_PERIODIC)->get_timeout() && periodic > 0) 
+  if (periodic > 0 && (uint32_t)periodic != timers_db->get(mac::BSR_TIMER_PERIODIC)->get_timeout())
   {
     timers_db->get(mac::BSR_TIMER_PERIODIC)->set(this, periodic);
     timers_db->get(mac::BSR_TIMER_PERIODIC)->run();
     Info("BSR:   Configured timer periodic %d ms\n", periodic);    
   }      
   int retx = liblte_rrc_retransmission_bsr_timer_num[mac_cfg->main.ulsch_cnfg.retx_bsr_timer];
-  if (retx != timers_db->get(mac::BSR_TIMER_RETX)->get_timeout() && retx > 0) 
+  if (retx > 0 && (uint32_t)retx != timers_db->get(mac::BSR_TIMER_RETX)->get_timeout())
   {
     timers_db->get(mac::BSR_TIMER_RETX)->set(this, retx);
     timers_db->get(mac::BSR_TIMER_RETX)->run();
@@ -279,6 +279,8 @@ char* bsr_proc::bsr_format_tostring(bsr_format_t format) {
       return (char*) "Short";
     case bsr_proc::TRUNC_BSR: 
       return (char*) "Truncated";
+    default:
+      return (char*) "Short";
   }
 }
 
@@ -290,7 +292,7 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr)
   if (triggered_bsr_type == PERIODIC || triggered_bsr_type == REGULAR) {
     /* Check if grant + MAC SDU headers is enough to accomodate all pending data */
     int total_data = 0; 
-    for (int i=0;i<MAX_LCID && total_data < grant_size;i++) {
+    for (int i=0;i<MAX_LCID && total_data < (int)grant_size;i++) {
       total_data += srslte::sch_pdu::size_header_sdu(rlc->get_buffer_state(i))+rlc->get_buffer_state(i);      
     }
     total_data--; // Because last SDU has no size header 
@@ -300,7 +302,7 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr)
      */
     generate_bsr(bsr, 0);
     bsr_sz = bsr->format==LONG_BSR?3:1;
-    if (total_data <= grant_size && total_data + 1 + bsr_sz > grant_size) {
+    if (total_data <= (int)grant_size && total_data + 1 + bsr_sz > grant_size) {
       Debug("Grant is not enough to accomodate the BSR MAC CE\n");
     } else {
       Debug("BSR:   Including Regular BSR: grant_size=%d, total_data=%d, bsr_sz=%d\n", 
@@ -390,7 +392,8 @@ void bsr_proc::set_priority(uint32_t lcid, uint32_t priority) {
 }
 
 uint32_t bsr_proc::find_max_priority_lcid() {
-  uint32_t max_prio = 0, max_idx = 0; 
+  int32_t max_prio = 0;
+  uint32_t max_idx = 0;
   for (int i=0;i<MAX_LCID;i++) {
     if (priorities[i] > max_prio) {
       max_prio = priorities[i]; 

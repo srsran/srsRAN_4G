@@ -295,7 +295,8 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Check for SDU segment
   if(tx_sdu)
   {
-    to_move = ((pdu_space-head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space-head_len;
+    uint32_t space = pdu_space-head_len;
+    to_move = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
     log->debug("%s adding remainder of SDU segment - %d bytes of %d remaining\n",
                rb_id_text[lcid], to_move, tx_sdu->N_bytes);
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
@@ -323,7 +324,8 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       header.li[header.N_li++] = last_li;
     head_len = rlc_um_packed_length(&header);
     tx_sdu_queue.read(&tx_sdu);
-    to_move = ((pdu_space-head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space-head_len;
+    uint32_t space = pdu_space-head_len;
+    to_move = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
     log->debug("%s adding new SDU segment - %d bytes of %d remaining\n",
                rb_id_text[lcid], to_move, tx_sdu->N_bytes);
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
@@ -445,14 +447,14 @@ void rlc_um::reassemble_rx_sdus()
       rx_sdu->reset();
     }else{
       // Handle any SDU segments
-      for(int i=0; i<rx_window[vr_ur].header.N_li; i++)
+      for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++)
       {
         int len = rx_window[vr_ur].header.li[i];
         memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
         rx_sdu->N_bytes += len;
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
-        if(pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi) || vr_ur != ((vr_ur_in_rx_sdu+1)%rx_mod)) {
+        if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%rx_mod))) {
           log->warning("Dropping remainder of lost PDU (lower edge middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
           rx_sdu->reset();
         } else {
@@ -497,7 +499,7 @@ void rlc_um::reassemble_rx_sdus()
   while(rx_window.end() != rx_window.find(vr_ur))
   {
     // Handle any SDU segments
-    for(int i=0; i<rx_window[vr_ur].header.N_li; i++)
+    for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++)
     {
       int len = rx_window[vr_ur].header.li[i];
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
@@ -506,7 +508,7 @@ void rlc_um::reassemble_rx_sdus()
       rx_sdu->N_bytes += len;      
       rx_window[vr_ur].buf->msg += len;
       rx_window[vr_ur].buf->N_bytes -= len;
-      if(pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi) || vr_ur != ((vr_ur_in_rx_sdu+1)%rx_mod)) {
+      if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%rx_mod))) {
         log->warning("Dropping remainder of lost PDU (update vr_ur middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
         rx_sdu->reset();
       } else {

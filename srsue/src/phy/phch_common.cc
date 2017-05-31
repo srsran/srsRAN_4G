@@ -84,7 +84,7 @@ void phch_common::init(phy_interface_rrc::phy_cfg_t *_config, phy_args_t *_args,
   is_first_tx = true; 
   sr_last_tx_tti = -1;
   
-  for (int i=0;i<nof_mutex;i++) {
+  for (uint32_t i=0;i<nof_mutex;i++) {
     pthread_mutex_init(&tx_mutex[i], NULL);
   }
 }
@@ -95,8 +95,8 @@ void phch_common::set_nof_mutex(uint32_t nof_mutex_) {
 }
 
 bool phch_common::ul_rnti_active(uint32_t tti) {
-  if ((tti >= ul_rnti_start && ul_rnti_start >= 0 || ul_rnti_start < 0) && 
-      (tti <  ul_rnti_end   && ul_rnti_end   >= 0 || ul_rnti_end   < 0)) 
+  if ((((int)tti >= ul_rnti_start && ul_rnti_start >= 0) || ul_rnti_start < 0) &&
+      (((int)tti <  ul_rnti_end   && ul_rnti_end   >= 0) || ul_rnti_end   < 0))
   {
     return true; 
   } else {
@@ -106,8 +106,8 @@ bool phch_common::ul_rnti_active(uint32_t tti) {
 
 bool phch_common::dl_rnti_active(uint32_t tti) {
   Debug("tti=%d, dl_rnti_start=%d, dl_rnti_end=%d, dl_rnti=0x%x\n", tti, dl_rnti_start, dl_rnti_end, dl_rnti);
-  if (((tti >= dl_rnti_start && dl_rnti_start >= 0)  || dl_rnti_start < 0) && 
-      ((tti <  dl_rnti_end   && dl_rnti_end   >= 0)  || dl_rnti_end   < 0))
+  if ((((int)tti >= dl_rnti_start && dl_rnti_start >= 0)  || dl_rnti_start < 0) &&
+      (((int)tti <  dl_rnti_end   && dl_rnti_end   >= 0)  || dl_rnti_end   < 0))
   {
     bool ret = true; 
     // FIXME: This scheduling decision belongs to RRC
@@ -325,7 +325,7 @@ void phch_common::reset_ul()
 {
   is_first_tx = true; 
   is_first_of_burst = true; 
-  for (int i=0;i<nof_mutex;i++) {
+  for (uint32_t i=0;i<nof_mutex;i++) {
     pthread_mutex_trylock(&tx_mutex[i]);
     pthread_mutex_unlock(&tx_mutex[i]);
   }

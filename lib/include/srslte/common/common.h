@@ -126,8 +126,12 @@ public:
     }
     byte_buffer_t & operator= (const byte_buffer_t & buf)
     {
+      // avoid self assignment
+      if (&buf == this)
+        return *this;
       N_bytes = buf.N_bytes;
       memcpy(msg, buf.msg, N_bytes);
+      return *this;
     }
     void reset()
     {
@@ -187,8 +191,12 @@ struct bit_buffer_t{
       memcpy(msg, buf.msg, N_bits);
     }
     bit_buffer_t & operator= (const bit_buffer_t & buf){
+      // avoid self assignment
+      if (&buf == this)
+        return *this;
       N_bits = buf.N_bits;
       memcpy(msg, buf.msg, N_bits);
+      return *this;
     }
     void reset()
     {

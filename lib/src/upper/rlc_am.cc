@@ -372,9 +372,9 @@ void rlc_am::check_reordering_timeout()
 
 bool rlc_am::poll_required()
 {
-  if(poll_pdu > 0 && pdu_without_poll > poll_pdu)
+  if(poll_pdu > 0 && pdu_without_poll > (uint32_t)poll_pdu)
     return true;
-  if(poll_byte > 0 && byte_without_poll > poll_byte)
+  if(poll_byte > 0 && byte_without_poll > (uint32_t)poll_byte)
     return true;
   if(poll_retx())
     return true;
@@ -402,7 +402,7 @@ int rlc_am::prepare_status()
 int  rlc_am::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   int pdu_len = rlc_am_packed_length(&status);
-  if(nof_bytes >= pdu_len)
+  if(pdu_len > 0 && nof_bytes >= (uint32_t)pdu_len)
   {
     log->info("%s Tx status PDU - %s\n",
               rb_id_text[lcid], rlc_am_to_string(&status).c_str());
@@ -432,7 +432,7 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Is resegmentation needed?
-  if(retx.is_segment || required_buffer_size(retx) > nof_bytes) {
+  if(retx.is_segment || required_buffer_size(retx) > (int)nof_bytes) {
     log->debug("%s build_retx_pdu - resegmentation required\n", rb_id_text[lcid]);
     return build_segment(payload, nof_bytes, retx);
   }
@@ -506,7 +506,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
   uint32_t upper     = 0;
   uint32_t li        = 0;
 
-  for(int i=0; i<old_header.N_li; i++) {
+  for(uint32_t i=0; i<old_header.N_li; i++) {
     if(lower >= retx.so_end)
       break;
 
@@ -561,7 +561,7 @@ int rlc_am::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t r
 
   debug_state();
   int pdu_len = (ptr-payload) + len;
-  if(pdu_len > nof_bytes) {
+  if(pdu_len > (int)nof_bytes) {
     log->error("%s Retx PDU segment length error. Available: %d, Used: %d\n",
                rb_id_text[lcid], nof_bytes, pdu_len);
     log->debug("%s Retx PDU segment length error. Header len: %d, Payload len: %d, N_li: %d\n",
@@ -784,8 +784,8 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
     if(
        vr_x == vr_r ||
        (RX_MOD_BASE(vr_x) < RX_MOD_BASE(vr_r)  ||
-        RX_MOD_BASE(vr_x) > RX_MOD_BASE(vr_mr) &&
-        vr_x != vr_mr)
+        (RX_MOD_BASE(vr_x) > RX_MOD_BASE(vr_mr) &&
+        vr_x != vr_mr))
        )
     {
       reordering_timeout.reset();
@@ -902,7 +902,7 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
     std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
 
     bool nack = false;
-    for(int j=0;j<status.N_nack;j++) {
+    for(uint32_t j=0;j<status.N_nack;j++) {
       if(status.nacks[j].nack_sn == i) {
         nack = true;
         update_vt_a = false;
@@ -963,7 +963,7 @@ void rlc_am::reassemble_rx_sdus()
   while(rx_window.end() != rx_window.find(vr_r))
   {
     // Handle any SDU segments
-    for(int i=0; i<rx_window[vr_r].header.N_li; i++)
+    for(uint32_t i=0; i<rx_window[vr_r].header.N_li; i++)
     {
       int len = rx_window[vr_r].header.li[i];
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
@@ -1076,7 +1076,7 @@ bool rlc_am::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pd
     if(it->header.N_li > 0) {
       header.li[header.N_li++] = it->header.li[0] + carryover;
       count += it->header.li[0];
-      for(int i=1; i<it->header.N_li; i++) {
+      for(uint32_t i=1; i<it->header.N_li; i++) {
         header.li[header.N_li++] = it->header.li[i];
         count += it->header.li[i];
       }
@@ -1134,7 +1134,7 @@ int rlc_am::required_buffer_size(rlc_amd_retx_t retx)
   uint32_t upper     = 0;
   uint32_t li        = 0;
 
-  for(int i=0; i<old_header.N_li; i++) {
+  for(uint32_t i=0; i<old_header.N_li; i++) {
     if(lower >= retx.so_end)
       break;
 
@@ -1448,7 +1448,7 @@ std::string rlc_am_to_string(rlc_status_pdu_t *status)
   if(status->N_nack > 0)
   {
     ss << ", NACK_SN = ";
-    for(int i=0; i<status->N_nack; i++)
+    for(uint32_t i=0; i<status->N_nack; i++)
     {
       if(status->nacks[i].has_so) {
         ss << "[" << status->nacks[i].nack_sn << " " << status->nacks[i].so_start \

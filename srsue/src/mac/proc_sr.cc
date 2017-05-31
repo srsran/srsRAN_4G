@@ -57,7 +57,7 @@ bool sr_proc::need_tx(uint32_t tti)
 {
   int last_tx_tti = phy_h->sr_last_tx_tti(); 
   if (last_tx_tti >= 0)  {
-    if (tti > last_tx_tti) {
+    if (tti > (uint32_t)last_tx_tti) {
       if (tti - last_tx_tti > 8) {
         return true; 
       }

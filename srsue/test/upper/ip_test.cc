@@ -225,7 +225,7 @@ public:
                       liblte_rrc_si_window_length_num[sib1.si_window_length],
                       liblte_rrc_si_periodicity_num[sib1.sched_info[0].si_periodicity]);
         std::stringstream ss;
-        for(int i=0;i<sib1.N_plmn_ids;i++){
+        for(uint32_t i=0;i<sib1.N_plmn_ids;i++){
           ss << " PLMN Id: MCC " << sib1.plmn_id[i].id.mcc << " MNC " << sib1.plmn_id[i].id.mnc;
         }
         log_h->console("SIB1 received, CellID=%d, %s\n",
@@ -250,13 +250,13 @@ public:
         
         // Send Msg3 
         sdu->N_bytes = 10; 
-        for (int i=0;i<sdu->N_bytes;i++) {
+        for (uint32_t i=0;i<sdu->N_bytes;i++) {
           sdu->msg[i] = i+1; 
         }
         uint64_t uecri = 0; 
         uint8_t *ue_cri_ptr = (uint8_t*) &uecri;
         uint32_t nbytes = 6;
-        for (int i=0;i<nbytes;i++) {
+        for (uint32_t i=0;i<nbytes;i++) {
           ue_cri_ptr[nbytes-i-1] = sdu->msg[i];
         }
         log_h->info("Setting UE contention resolution ID: %d\n", uecri);        
@@ -274,7 +274,7 @@ public:
 
   void write_pdu(uint32_t lcid, srslte::byte_buffer_t *sdu)
   {
-    int n=0;
+    uint32_t n=0;
     switch(lcid) {
       case LCID:
         n = write(tun_fd, sdu->msg, sdu->N_bytes);

@@ -52,6 +52,7 @@ void* thread_loop(void *a) {
     filter.info("Thread %d: %d", args->thread_id, i);
     filter.debug("Thread %d: %d", args->thread_id, i);
   }
+  return NULL;
 }
 
 void* thread_loop_hex(void *a) {

@@ -95,7 +95,7 @@ void ul_harq_entity::set_ack(uint32_t tti, bool ack) {
     tti_harq += 10240; 
   }
   uint32_t pid_harq = pidof(tti_harq); 
-  if (proc[pid_harq].has_grant() && proc[pid_harq].last_tx_tti() <= tti_harq) {
+  if (proc[pid_harq].has_grant() && (proc[pid_harq].last_tx_tti() <= (uint32_t)tti_harq)) {
     proc[pid_harq].set_harq_feedback(ack);
   }
 }
@@ -228,7 +228,7 @@ void ul_harq_entity::ul_harq_process::run_tti(uint32_t tti_tx, mac_interface_phy
 {   
   
   
-  int max_retx; 
+  uint32_t max_retx;
   if (is_msg3) {
     max_retx = harq_entity->mac_cfg->rach.max_harq_msg3_tx;
   } else {
@@ -238,7 +238,7 @@ void ul_harq_entity::ul_harq_process::run_tti(uint32_t tti_tx, mac_interface_phy
   
   // Receive and route HARQ feedbacks
   if (grant) {
-    if ((!grant->rnti_type == SRSLTE_RNTI_TEMP && grant->ndi != get_ndi()) || 
+    if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi != get_ndi()) ||
         (grant->rnti_type == SRSLTE_RNTI_USER && !has_grant())             ||
          grant->is_from_rar) 
     {          

@@ -63,7 +63,7 @@ void phch_recv::init(srslte::radio_multi* _radio_handler, mac_interface_phy *_ma
   cell_is_set  = false; 
   sync_sfn_cnt = 0; 
   
-  for (int i=0;i<nof_rx_antennas;i++) { 
+  for (uint32_t i=0;i<nof_rx_antennas;i++) {
     sf_buffer_sfn[i] = (cf_t*) srslte_vec_malloc(sizeof(cf_t)*3*SRSLTE_SF_LEN_PRB(100));
   }
   
@@ -81,7 +81,7 @@ void phch_recv::init(srslte::radio_multi* _radio_handler, mac_interface_phy *_ma
 void phch_recv::stop() {
   running = false; 
   wait_thread_finish();
-  for (int i=0;i<nof_rx_antennas;i++) {
+  for (uint32_t i=0;i<nof_rx_antennas;i++) {
     if (sf_buffer_sfn[i]) {
       free(sf_buffer_sfn[i]);
     }
@@ -156,7 +156,7 @@ bool phch_recv::init_cell() {
       // Set options defined in expert section 
       set_ue_sync_opts(&ue_sync); 
       
-      for (int i=0;i<workers_pool->get_nof_workers();i++) {
+      for (uint32_t i=0;i<workers_pool->get_nof_workers();i++) {
         if (!((phch_worker*) workers_pool->get_worker(i))->init_cell(cell)) {
           Error("Error setting cell: initiating PHCH worker\n");
           return false; 
@@ -180,7 +180,7 @@ bool phch_recv::init_cell() {
 void phch_recv::free_cell()
 {
   if (cell_is_set) {
-    for (int i=0;i<workers_pool->get_nof_workers();i++) {
+    for (uint32_t i=0;i<workers_pool->get_nof_workers();i++) {
       ((phch_worker*) workers_pool->get_worker(i))->free_cell();
     }
     prach_buffer->free_cell();
@@ -402,7 +402,7 @@ void phch_recv::run_thread()
         worker = (phch_worker*) workers_pool->wait_worker(tti);
         sync_res = 0; 
         if (worker) {       
-          for (int i=0;i<nof_rx_antennas;i++) {
+          for (uint32_t i=0;i<nof_rx_antennas;i++) {
             buffer[i] = worker->get_buffer(i);
           }
 

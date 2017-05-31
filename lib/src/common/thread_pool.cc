@@ -84,7 +84,7 @@ thread_pool::thread_pool(uint32_t max_workers_)  :
                                   
 {
   max_workers = max_workers_;
-  for (int i=0;i<max_workers;i++) {
+  for (uint32_t i=0;i<max_workers;i++) {
     workers[i] = NULL;
     status[i] = IDLE; 
     pthread_mutex_init(&mutex[i], NULL);
@@ -177,7 +177,7 @@ thread_pool::worker* thread_pool::wait_worker()
 }
 
 bool thread_pool::find_finished_worker(uint32_t tti, uint32_t *id) {
-  for(int i=0;i<nof_workers;i++) {
+  for(uint32_t i=0;i<nof_workers;i++) {
     if (status[i] == IDLE) {
       *id = i; 
       return true; 

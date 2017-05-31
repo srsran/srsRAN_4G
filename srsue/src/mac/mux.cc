@@ -68,7 +68,7 @@ void mux::reset()
 
 bool mux::is_pending_any_sdu()
 {
-  for (int i=0;i<lch.size();i++) {
+  for (uint32_t i=0;i<lch.size();i++) {
     if (rlc->get_buffer_state(lch[i].id)) {
       return true; 
     }
@@ -82,7 +82,7 @@ bool mux::is_pending_sdu(uint32_t lch_id) {
 
 int mux::find_lchid(uint32_t lcid) 
 {
-  for (int i=0;i<lch.size();i++) {
+  for (uint32_t i=0;i<lch.size();i++) {
     if(lch[i].id == lcid) {
       return i;
     }
@@ -131,10 +131,11 @@ srslte::sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
   switch(format) {
     case bsr_proc::LONG_BSR: 
       return srslte::sch_subh::LONG_BSR;
-    case bsr_proc::SHORT_BSR: 
+    case bsr_proc::TRUNC_BSR:
+      return srslte::sch_subh::TRUNC_BSR;
+    case bsr_proc::SHORT_BSR:
+    default:
       return srslte::sch_subh::SHORT_BSR;
-    case bsr_proc::TRUNC_BSR: 
-      return srslte::sch_subh::TRUNC_BSR;   
   }
 }
 
@@ -151,12 +152,12 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
   pthread_mutex_lock(&mutex);
     
   // Update Bj
-  for (int i=0;i<lch.size();i++) {    
+  for (uint32_t i=0;i<lch.size();i++) {
     // Add PRB unless it's infinity 
     if (lch[i].PBR >= 0) {
       lch[i].Bj += lch[i].PBR;
     }
-    if (lch[i].Bj >= lch[i].BSD) {
+    if (lch[i].Bj >= (int)lch[i].BSD) {
       lch[i].Bj = lch[i].BSD*lch[i].PBR; 
     }    
   }
@@ -197,14 +198,14 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
   }
   // Update buffer states for all logical channels 
   int sdu_space = pdu_msg.get_sdu_space(); 
-  for (int i=0;i<lch.size();i++) {
+  for (uint32_t i=0;i<lch.size();i++) {
     lch[i].buffer_len = rlc->get_buffer_state(lch[i].id);
     lch[i].sched_len  = 0; 
   }
   
   // data from any Logical Channel, except data from UL-CCCH;  
   // first only those with positive Bj
-  for (int i=0;i<lch.size();i++) {
+  for (uint32_t i=0;i<lch.size();i++) {
     if (lch[i].id != 0) {
       if (sched_sdu(&lch[i], &sdu_space, (lch[i].PBR<0)?-1:lch[i].Bj) && lch[i].PBR >= 0) {
         lch[i].Bj -= lch[i].sched_len;         
@@ -213,7 +214,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
   }
 
   // If resources remain, allocate regardless of their Bj value
-  for (int i=0;i<lch.size();i++) {
+  for (uint32_t i=0;i<lch.size();i++) {
     if (lch[i].id != 0) {
       sched_sdu(&lch[i], &sdu_space, -1);
     }
@@ -221,7 +222,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
   
   // Maximize the grant utilization 
   if (lch.size() > 0) {
-    for (int i=lch.size()-1;i--;i>=0) {
+    for (int i=(int)lch.size()-1;i>=0;i--) {
       if (lch[i].sched_len > 0) {
         lch[i].sched_len = -1; 
         break;
@@ -229,7 +230,7 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
     }
   }
   // Now allocate the SDUs from the RLC 
-  for (int i=0;i<lch.size();i++) {
+  for (uint32_t i=0;i<lch.size();i++) {
     if (lch[i].sched_len != 0) {
       log_h->info("Allocating scheduled lch=%d len=%d\n", lch[i].id, lch[i].sched_len);
       allocate_sdu(lch[i].id, &pdu_msg, lch[i].sched_len);    

@@ -115,7 +115,7 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
     gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
   }else{
     int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
-    if(pdu->N_bytes != n)
+    if(n > 0 && (pdu->N_bytes != (uint32_t)n))
     {
       gw_log->warning("DL TUN/TAP write failure\n");
     } 

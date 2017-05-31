@@ -197,7 +197,7 @@ bool dl_harq_entity::dl_harq_process::is_sps()
 bool dl_harq_entity::dl_harq_process::calc_is_new_transmission(mac_interface_phy::mac_grant_t grant) {
   
   bool is_new_tb = true; 
-  if (srslte_tti_interval(grant.tti, cur_grant.tti) <= 8 && grant.n_bytes == cur_grant.n_bytes ||
+  if ((srslte_tti_interval(grant.tti, cur_grant.tti) <= 8 && (grant.n_bytes == cur_grant.n_bytes)) ||
       pid == HARQ_BCCH_PID) 
   {
     is_new_tb = false; 

@@ -4494,7 +4494,7 @@ typedef enum{
 }LIBLTE_RRC_MAX_RETX_THRESHOLD_ENUM;
 static const char liblte_rrc_max_retx_threshold_text[LIBLTE_RRC_MAX_RETX_THRESHOLD_N_ITEMS][20] = { "t1",  "t2",  "t3",  "t4",
                                                                                                     "t6",  "t8", "t16", "t32"};
-static const int32 liblte_rrc_max_retx_threshold_num[LIBLTE_RRC_MAX_RETX_THRESHOLD_N_ITEMS]     = { 1,  2,  3,  4,
+static const uint32_t liblte_rrc_max_retx_threshold_num[LIBLTE_RRC_MAX_RETX_THRESHOLD_N_ITEMS]     = { 1,  2,  3,  4,
                                                                                                     6,  8, 16, 32};
 typedef enum{
     LIBLTE_RRC_T_REORDERING_MS0 = 0,

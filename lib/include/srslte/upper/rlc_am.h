@@ -134,7 +134,7 @@ private:
   int32_t    t_poll_retx;      // Poll retx timeout (ms)
   int32_t    poll_pdu;         // Insert poll bit after this many PDUs
   int32_t    poll_byte;        // Insert poll bit after this much data (KB)
-  int32_t    max_retx_thresh;  // Max number of retx
+  uint32_t   max_retx_thresh;  // Max number of retx
 
   // RX configs
   int32_t   t_reordering;       // Timer used by rx to detect PDU loss  (ms)

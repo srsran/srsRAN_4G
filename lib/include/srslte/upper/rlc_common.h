@@ -126,7 +126,7 @@ struct rlc_amd_pdu_header_t{
     lsf  = h.lsf;
     so   = h.so;
     N_li = h.N_li;
-    for(int i=0;i<h.N_li;i++)
+    for(uint32_t i=0;i<h.N_li;i++)
       li[i] = h.li[i];
   }
 };

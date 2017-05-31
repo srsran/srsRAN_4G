@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
   assert(6    == h.sn);
   rlc_am_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU1_LEN);
-  for(int i=0;i<b2.N_bytes;i++)
+  for(uint32_t i=0;i<b2.N_bytes;i++)
     assert(b2.msg[i] == b1.msg[i]);
 
   b1.reset();
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
   assert(0    == h.sn);
   rlc_am_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU2_LEN);
-  for(int i=0;i<b2.N_bytes;i++)
+  for(uint32_t i=0;i<b2.N_bytes;i++)
     assert(b2.msg[i] == b1.msg[i]);
 
   b1.reset();
@@ -104,6 +104,6 @@ int main(int argc, char **argv) {
   assert(0    == h.sn);
   rlc_am_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU3_LEN);
-  for(int i=0;i<b2.N_bytes;i++)
+  for(uint32_t i=0;i<b2.N_bytes;i++)
     assert(b2.msg[i] == b1.msg[i]);
 }

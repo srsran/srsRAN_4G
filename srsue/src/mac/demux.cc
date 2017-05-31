@@ -158,7 +158,7 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
       if (pdu_msg->get()->get_sdu_lcid() == 0) {
         uint8_t *x = pdu_msg->get()->get_sdu_ptr();
         uint32_t sum = 0; 
-        for (int i=0;i<pdu_msg->get()->get_payload_size();i++) {
+        for (uint32_t i=0;i<pdu_msg->get()->get_payload_size();i++) {
           sum += x[i];
         }
         if (sum == 0) {
