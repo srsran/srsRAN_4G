@@ -43,13 +43,6 @@
 #define DEFAULT_GAIN 100
 
 
-#define AVX_ON
-
-#ifdef LV_HAVE_AVX
-    #ifdef AVX_ON
-        #define USE_AVX
-    #endif
-#endif
 //#undef LV_HAVE_SSE
 
 int decode37(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
@@ -391,7 +384,7 @@ int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, int pol
   switch (type) {
   case SRSLTE_VITERBI_37:
 #ifdef LV_HAVE_SSE
-    #ifdef USE_AVX 
+    #ifdef LV_HAVE_AVX 
         return init37_avx2(q, poly, max_frame_length, tail_bitting);
     #else
         return init37_sse(q, poly, max_frame_length, tail_bitting);
