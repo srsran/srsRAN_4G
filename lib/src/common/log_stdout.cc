@@ -97,7 +97,7 @@ void log_stdout::console(std::string message, ...) {
   char     *args_msg;
   va_list   args;
   va_start(args, message);
-  if(vasprintf(&args_msg, message.c_str(), args) > 0);
+  if(vasprintf(&args_msg, message.c_str(), args) > 0)
     printf("%s",args_msg); // Print directly to stdout
   va_end(args);
   free(args_msg);
@@ -108,7 +108,7 @@ void log_stdout::error(std::string message, ...) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_ERROR, tti, args_msg);
     va_end(args);
     free(args_msg);
@@ -119,7 +119,7 @@ void log_stdout::warning(std::string message, ...) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_WARNING, tti, args_msg);
     va_end(args);
     free(args_msg);
@@ -130,7 +130,7 @@ void log_stdout::info(std::string message, ...) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_INFO, tti, args_msg);
     va_end(args);
     free(args_msg);
@@ -141,7 +141,7 @@ void log_stdout::debug(std::string message, ...) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_DEBUG, tti, args_msg);
     va_end(args);
     free(args_msg);
@@ -153,7 +153,7 @@ void log_stdout::error_hex(uint8_t *hex, int size, std::string message, ...) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_ERROR, tti, args_msg, hex, size);
     va_end(args);
     free(args_msg);
@@ -164,7 +164,7 @@ void log_stdout::warning_hex(uint8_t *hex, int size, std::string message, ...) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_WARNING, tti, args_msg, hex, size);
     va_end(args);
     free(args_msg);
@@ -175,7 +175,7 @@ void log_stdout::info_hex(uint8_t *hex, int size, std::string message, ...) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_INFO, tti, args_msg, hex, size);
     va_end(args);
     free(args_msg);
@@ -186,7 +186,7 @@ void log_stdout::debug_hex(uint8_t *hex, int size, std::string message, ...) {
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log(LOG_LEVEL_DEBUG, tti, args_msg, hex, size);
     va_end(args);
     free(args_msg);
@@ -199,7 +199,7 @@ void log_stdout::error_line(std::string file, int line, std::string message, ...
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log_line(LOG_LEVEL_ERROR, tti, file, line, args_msg);
     va_end(args);
     free(args_msg);
@@ -212,7 +212,7 @@ void log_stdout::warning_line(std::string file, int line, std::string message, .
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log_line(LOG_LEVEL_WARNING, tti, file, line, args_msg);
     va_end(args);
     free(args_msg);
@@ -225,7 +225,7 @@ void log_stdout::info_line(std::string file, int line, std::string message, ...)
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log_line(LOG_LEVEL_INFO, tti, file, line, args_msg);
     va_end(args);
     free(args_msg);
@@ -238,7 +238,7 @@ void log_stdout::debug_line(std::string file, int line, std::string message, ...
     char     *args_msg;
     va_list   args;
     va_start(args, message);
-    if(vasprintf(&args_msg, message.c_str(), args) > 0);
+    if(vasprintf(&args_msg, message.c_str(), args) > 0)
       all_log_line(LOG_LEVEL_DEBUG, tti, file, line, args_msg);
     va_end(args);
     free(args_msg);
