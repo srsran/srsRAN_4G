@@ -95,7 +95,7 @@ int srslte_vec_dot_prod_sss_avx(short *x, short *y, uint32_t len)
   const unsigned int points = len / 16;
 
   const __m256i* xPtr = (const __m256i*) x;
-  const __m256i* yPtr = (const __m256*) y;
+  const __m256i* yPtr = (const __m256i*) y;
   
   __m256i dotProdVal = _mm256_setzero_si256();
 
@@ -472,8 +472,8 @@ void srslte_vec_convert_fi_sse(float *x, int16_t *z, float scale, uint32_t len)
     unsigned int i = 0;
     const unsigned int loops = len/4;
     //__m256 outputVec;
-     cf_t *xPtr = x;
-     cf_t *zPtr = z;
+     cf_t *xPtr = (cf_t*) x;
+     cf_t *zPtr = (cf_t*) z;
     
     __m256 inputVec, outputVec;
      const __m256 tapsVec  = _mm256_set1_ps(h);
