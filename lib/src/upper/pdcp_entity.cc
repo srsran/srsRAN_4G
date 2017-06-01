@@ -28,9 +28,7 @@
 #include "srslte/upper/pdcp_entity.h"
 #include "srslte/common/security.h"
 
-using namespace srslte;
-
-namespace srsue{
+namespace srslte {
 
 pdcp_entity::pdcp_entity()
   :active(false)
@@ -42,10 +40,10 @@ pdcp_entity::pdcp_entity()
   pool = byte_buffer_pool::get_instance();
 }
 
-void pdcp_entity::init(rlc_interface_pdcp            *rlc_,
-                       rrc_interface_pdcp            *rrc_,
-                       gw_interface_pdcp             *gw_,
-                       srslte::log                   *log_,
+void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
+                       srsue::rrc_interface_pdcp      *rrc_,
+                       srsue::gw_interface_pdcp       *gw_,
+                       srslte::log                    *log_,
                        uint32_t                       lcid_,
                        u_int8_t                       direction_,
                        LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg)

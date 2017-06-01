@@ -32,7 +32,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 
 #include <map>
@@ -112,8 +112,8 @@ private:
   uint8_t               k_up_enc[32];
   uint8_t               k_up_int[32];   // Not used: only for relay nodes (3GPP 33.401 Annex A.7)
 
-  CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-  INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
   LIBLTE_RRC_MIB_STRUCT                                 mib;
   LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT               sib1;

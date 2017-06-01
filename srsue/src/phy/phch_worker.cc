@@ -27,8 +27,7 @@
 #include <unistd.h>
 #include <string.h>
 #include "phy/phch_worker.h"
-#include "srslte/common/mac_interface.h"
-#include "srslte/common/phy_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/asn1/liblte_rrc.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) phy->log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)

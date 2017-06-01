@@ -31,7 +31,7 @@
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/radio/radio_multi.h"
 #include "phy/phy.h"
-#include "srslte/common/mac_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log_stdout.h"
 #include "mac/mac.h"
 #include "srslte/common/mac_pcap.h"

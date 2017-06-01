@@ -35,7 +35,7 @@
 #include "phy/prach.h"
 #include "phy/phch_worker.h"
 #include "phy/phch_common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
     

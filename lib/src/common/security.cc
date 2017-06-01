@@ -29,9 +29,7 @@
 #include "srslte/common/liblte_security.h"
 #include "srslte/common/snow_3g.h"
 
-using namespace srslte;
-
-namespace srsue{
+namespace srslte {
 
 /******************************************************************************
  * Key Generation

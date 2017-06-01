@@ -23,5 +23,6 @@ add_library(srslte_asn1 SHARED
   liblte_common.cc
   liblte_rrc.cc
   liblte_mme.cc
+  liblte_s1ap.cc
 )
 install(TARGETS srslte_asn1 DESTINATION ${LIBRARY_DIR})

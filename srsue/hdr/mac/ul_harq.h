@@ -27,7 +27,7 @@
 #ifndef ULHARQ_H
 #define ULHARQ_H
 
-#include "srslte/common/mac_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log.h"
 #include "mac/mux.h"
 #include "mac/ul_sps.h"

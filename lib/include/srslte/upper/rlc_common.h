@@ -27,7 +27,7 @@
 #ifndef RLC_COMMON_H
 #define RLC_COMMON_H
 
-namespace srsue {
+namespace srslte {
 
 /****************************************************************************
  * Structs and Defines
@@ -157,11 +157,11 @@ struct rlc_status_pdu_t{
 class rlc_common
 {
 public:
-  virtual void init(srslte::log        *rlc_entity_log_,
-                    uint32_t            lcid_,
-                    pdcp_interface_rlc *pdcp_,
-                    rrc_interface_rlc  *rrc_,
-                    srslte::mac_interface_timers *mac_timers_) = 0;
+  virtual void init(srslte::log                       *rlc_entity_log_,
+                    uint32_t                           lcid_,
+                    srsue::pdcp_interface_rlc         *pdcp_,
+                    srsue::rrc_interface_rlc          *rrc_,
+                    srslte::mac_interface_timers      *mac_timers_) = 0;
   virtual void configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) = 0;
   virtual void reset() = 0;
   virtual void empty_queue() = 0; 
@@ -170,7 +170,7 @@ public:
   virtual uint32_t      get_bearer() = 0;
 
   // PDCP interface
-  virtual void write_sdu(srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_sdu(byte_buffer_t *sdu) = 0;
 
   // MAC interface
   virtual uint32_t get_buffer_state() = 0;

@@ -29,13 +29,13 @@
 
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/rlc_common.h"
 #include "srslte/upper/rlc_tm.h"
 #include "srslte/upper/rlc_um.h"
 #include "srslte/upper/rlc_am.h"
 
-namespace srsue {
+namespace srslte {
 
 
 
@@ -48,11 +48,11 @@ class rlc_entity
 public:
   rlc_entity();
   void init(rlc_mode_t            mode,
-            srslte::log          *rlc_entity_log_,
+            log          *rlc_entity_log_,
             uint32_t              lcid_,
-            pdcp_interface_rlc   *pdcp_,
-            rrc_interface_rlc    *rrc_,
-            srslte::mac_interface_timers *mac_timers_);
+            srsue::pdcp_interface_rlc   *pdcp_,
+            srsue::rrc_interface_rlc    *rrc_,
+            mac_interface_timers *mac_timers_);
 
   void configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg);
   void reset();

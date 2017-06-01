@@ -33,7 +33,7 @@
 #include "srslte/upper/pdcp_entity.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/common/log_stdout.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 using namespace srsue;
 

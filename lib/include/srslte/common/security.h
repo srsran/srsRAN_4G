@@ -38,7 +38,7 @@
 #define SECURITY_DIRECTION_UPLINK   0
 #define SECURITY_DIRECTION_DOWNLINK 1
 
-namespace srsue{
+namespace srslte {
 
 typedef enum{
     CIPHERING_ALGORITHM_ID_EEA0 = 0,

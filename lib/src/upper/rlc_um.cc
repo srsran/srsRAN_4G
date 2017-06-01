@@ -29,9 +29,7 @@
 
 #define RX_MOD_BASE(x) (x-vr_uh-rx_window_size)%rx_mod
 
-using namespace srslte;
-
-namespace srsue{
+namespace srslte {
 
 rlc_um::rlc_um() : tx_sdu_queue(16)
 {
@@ -53,10 +51,10 @@ rlc_um::rlc_um() : tx_sdu_queue(16)
   pdu_lost = false;
 }
 
-void rlc_um::init(srslte::log          *log_,
-                  uint32_t              lcid_,
-                  pdcp_interface_rlc   *pdcp_,
-                  rrc_interface_rlc    *rrc_,
+void rlc_um::init(srslte::log                 *log_,
+                  uint32_t                     lcid_,
+                  srsue::pdcp_interface_rlc   *pdcp_,
+                  srsue::rrc_interface_rlc    *rrc_,
                   srslte::mac_interface_timers *mac_timers_)
 {
   log                   = log_;

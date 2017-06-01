@@ -30,32 +30,32 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/msg_queue.h"
 #include "srslte/upper/rlc_common.h"
 #include <pthread.h>
 #include <map>
 #include <queue>
 
-namespace srsue {
+namespace srslte {
 
 struct rlc_umd_pdu_t{
   rlc_umd_pdu_header_t  header;
-  srslte::byte_buffer_t        *buf;
+  byte_buffer_t        *buf;
 };
 
 class rlc_um
-    :public srslte::timer_callback
+    :public timer_callback
     ,public rlc_common
 {
 public:
   rlc_um();
 
-  void init(srslte::log          *rlc_entity_log_,
+  void init(log          *rlc_entity_log_,
             uint32_t              lcid_,
-            pdcp_interface_rlc   *pdcp_,
-            rrc_interface_rlc    *rrc_,
-            srslte::mac_interface_timers *mac_timers_);
+            srsue::pdcp_interface_rlc   *pdcp_,
+            srsue::rrc_interface_rlc    *rrc_,
+            mac_interface_timers *mac_timers_);
   void configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg);
   void reset();
   void empty_queue(); 
@@ -64,7 +64,7 @@ public:
   uint32_t      get_bearer();
 
   // PDCP interface
-  void write_sdu(srslte::byte_buffer_t *sdu);
+  void write_sdu(byte_buffer_t *sdu);
 
   // MAC interface
   uint32_t get_buffer_state();
@@ -79,16 +79,16 @@ public:
 
 private:
 
-  srslte::byte_buffer_pool          *pool;
-  srslte::log          *log;
-  uint32_t              lcid;
-  pdcp_interface_rlc   *pdcp;
-  rrc_interface_rlc    *rrc;
-  srslte::mac_interface_timers *mac_timers; 
+  byte_buffer_pool            *pool;
+  srslte::log                 *log;
+  uint32_t                     lcid;
+  srsue::pdcp_interface_rlc   *pdcp;
+  srsue::rrc_interface_rlc    *rrc;
+  mac_interface_timers        *mac_timers; 
 
   // TX SDU buffers
-  srslte::msg_queue           tx_sdu_queue;
-  srslte::byte_buffer_t      *tx_sdu;
+  msg_queue           tx_sdu_queue;
+  byte_buffer_t      *tx_sdu;
 
   // Rx window
   std::map<uint32_t, rlc_umd_pdu_t>  rx_window;
@@ -97,7 +97,7 @@ private:
   uint32_t                           tx_mod; // Tx counter modulus
 
   // RX SDU buffers
-  srslte::byte_buffer_t      *rx_sdu;
+  byte_buffer_t      *rx_sdu;
   uint32_t            vr_ur_in_rx_sdu;
 
   // Mutexes
@@ -144,9 +144,9 @@ private:
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 36.322 v10.0.0 Section 6.2.1
  ***************************************************************************/
-void        rlc_um_read_data_pdu_header(srslte::byte_buffer_t *pdu, rlc_umd_sn_size_t sn_size, rlc_umd_pdu_header_t *header);
+void        rlc_um_read_data_pdu_header(byte_buffer_t *pdu, rlc_umd_sn_size_t sn_size, rlc_umd_pdu_header_t *header);
 void        rlc_um_read_data_pdu_header(uint8_t *payload, uint32_t nof_bytes, rlc_umd_sn_size_t sn_size, rlc_umd_pdu_header_t *header);
-void        rlc_um_write_data_pdu_header(rlc_umd_pdu_header_t *header, srslte::byte_buffer_t *pdu);
+void        rlc_um_write_data_pdu_header(rlc_umd_pdu_header_t *header, byte_buffer_t *pdu);
 
 uint32_t    rlc_um_packed_length(rlc_umd_pdu_header_t *header);
 bool        rlc_um_start_aligned(uint8_t fi);

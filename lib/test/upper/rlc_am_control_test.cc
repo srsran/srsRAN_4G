@@ -37,7 +37,7 @@ uint8_t pdu2[] = {0x00 ,0x22 ,0x00 ,0x40 ,0x0C ,0x01 ,0xC0 ,0x20};
 uint32_t PDU2_LEN = 8;
 
 int main(int argc, char **argv) {
-  srsue::rlc_status_pdu_t s;
+  srslte::rlc_status_pdu_t s;
   srslte::byte_buffer_t b1,b2;
 
   memcpy(b1.msg, &pdu1[0], PDU1_LEN);
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
   b1.reset();
   b2.reset();
-  memset(&s, 0, sizeof(srsue::rlc_status_pdu_t));
+  memset(&s, 0, sizeof(srslte::rlc_status_pdu_t));
 
   memcpy(b1.msg, &pdu2[0], PDU2_LEN);
   b1.N_bytes = PDU2_LEN;

@@ -27,7 +27,6 @@
 #ifndef DL_SPS_H
 #define DL_SPS_H
 
-#include "srslte/common/mac_interface.h"
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 

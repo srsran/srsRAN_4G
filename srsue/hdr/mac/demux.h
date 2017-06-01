@@ -27,9 +27,7 @@
 #ifndef DEMUX_H
 #define DEMUX_H
 
-#include "srslte/common/interfaces.h"
-#include "srslte/common/phy_interface.h"
-#include "srslte/common/mac_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/pdu_queue.h"
 #include "srslte/common/log.h"
 #include "srslte/common/timers.h"
@@ -56,7 +54,7 @@ public:
   void     set_uecrid_callback(bool (*callback)(void*, uint64_t), void *arg);
   bool     get_uecrid_successful();
   
-  void     process_pdu(uint8_t *pdu, uint32_t nof_bytes);
+  void     process_pdu(uint8_t *pdu, uint32_t nof_bytes, uint32_t tstamp);
   
 private:
   const static int NOF_HARQ_PID    = 8; 

@@ -28,8 +28,7 @@
 #define PROCSR_H
 
 #include <stdint.h>
-#include "srslte/common/phy_interface.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log.h"
 
 /* Scheduling Request procedure as defined in 5.4.4 of 36.321 */

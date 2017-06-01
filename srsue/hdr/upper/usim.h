@@ -30,7 +30,7 @@
 #include <string>
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 
 namespace srsue {
@@ -71,8 +71,8 @@ public:
 
   void generate_nas_keys(uint8_t *k_nas_enc,
                          uint8_t *k_nas_int,
-                         CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                         INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+                         srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                         srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
   // RRC interface
   void generate_as_keys(uint32_t count_ul,
@@ -80,8 +80,8 @@ public:
                         uint8_t *k_rrc_int,
                         uint8_t *k_up_enc,
                         uint8_t *k_up_int,
-                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+                        srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
 
 private:

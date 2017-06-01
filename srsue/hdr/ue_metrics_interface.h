@@ -44,11 +44,11 @@ typedef struct {
 }rf_metrics_t;
 
 typedef struct {
-  rf_metrics_t rf;
-  phy_metrics_t phy;
-  mac_metrics_t mac;
-  rlc_metrics_t rlc;
-  gw_metrics_t  gw;
+  rf_metrics_t          rf;
+  phy_metrics_t         phy;
+  mac_metrics_t         mac;
+  srslte::rlc_metrics_t rlc;
+  srslte::gw_metrics_t  gw;
 }ue_metrics_t;
 
 // UE interface

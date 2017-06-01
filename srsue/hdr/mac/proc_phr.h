@@ -29,10 +29,9 @@
 
 #include <stdint.h>
 #include "srslte/common/timers.h"
-#include "srslte/common/phy_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log.h"
 
-#include "srslte/common/mac_interface.h"
 
 /* Power headroom report procedure */
 

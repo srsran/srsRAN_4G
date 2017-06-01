@@ -29,24 +29,23 @@
 
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp_entity.h"
 
-using srslte::byte_buffer_t;
-
-namespace srsue {
+namespace srslte {
 
 class pdcp
-    :public pdcp_interface_gw
-    ,public pdcp_interface_rlc
-    ,public pdcp_interface_rrc
+    :public srsue::pdcp_interface_gw
+    ,public srsue::pdcp_interface_rlc
+    ,public srsue::pdcp_interface_rrc
 {
 public:
   pdcp();
-  void init(rlc_interface_pdcp *rlc_,
-            rrc_interface_pdcp *rrc_,
-            gw_interface_pdcp *gw_,
-            srslte::log *pdcp_log_,
+  virtual ~pdcp(){}
+  void init(srsue::rlc_interface_pdcp *rlc_,
+            srsue::rrc_interface_pdcp *rrc_,
+            srsue::gw_interface_pdcp *gw_,
+            log *pdcp_log_,
             uint8_t direction_);
   void stop();
 
@@ -67,12 +66,12 @@ public:
   void write_pdu_pcch(byte_buffer_t *sdu);
 
 private:
-  srslte::log        *pdcp_log;
+  log        *pdcp_log;
   pdcp_entity         pdcp_array[SRSUE_N_RADIO_BEARERS];
 
-  rlc_interface_pdcp *rlc;
-  rrc_interface_pdcp *rrc;
-  gw_interface_pdcp  *gw;
+  srsue::rlc_interface_pdcp *rlc;
+  srsue::rrc_interface_pdcp *rrc;
+  srsue::gw_interface_pdcp  *gw;
 
   uint8_t             direction;
 

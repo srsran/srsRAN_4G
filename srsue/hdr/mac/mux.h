@@ -32,7 +32,7 @@
 #include <vector>
 
 #include "srslte/common/log.h"
-#include "srslte/common/mac_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/pdu.h"
 #include "mac/proc_bsr.h"
 #include "mac/proc_phr.h"

@@ -39,12 +39,12 @@ uint32_t PDU2_LEN = 4;
 using namespace srsue;
 
 int main(int argc, char **argv) {
-  rlc_umd_pdu_header_t h;
+  srslte::rlc_umd_pdu_header_t h;
   srslte::byte_buffer_t  b1,b2;
 
   memcpy(b1.msg, &pdu1[0], PDU1_LEN);
   b1.N_bytes = PDU1_LEN;
-  rlc_um_read_data_pdu_header(&b1, RLC_UMD_SN_SIZE_10_BITS, &h);
+  rlc_um_read_data_pdu_header(&b1, srslte::RLC_UMD_SN_SIZE_10_BITS, &h);
   assert(0x03 == h.fi);
   assert(0    == h.N_li);
   assert(226  == h.sn);
@@ -55,11 +55,11 @@ int main(int argc, char **argv) {
 
   b1.reset();
   b2.reset();
-  memset(&h, 0, sizeof(rlc_umd_pdu_header_t));
+  memset(&h, 0, sizeof(srslte::rlc_umd_pdu_header_t));
 
   memcpy(b1.msg, &pdu2[0], PDU2_LEN);
   b1.N_bytes = PDU2_LEN;
-  rlc_um_read_data_pdu_header(&b1, RLC_UMD_SN_SIZE_10_BITS, &h);
+  rlc_um_read_data_pdu_header(&b1, srslte::RLC_UMD_SN_SIZE_10_BITS, &h);
   assert(0x03 == h.fi);
   assert(225  == h.sn);
   assert(1    == h.N_li);

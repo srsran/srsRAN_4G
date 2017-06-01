@@ -26,19 +26,19 @@
 
 #include "srslte/upper/rlc_entity.h"
 
-namespace srsue {
+namespace srslte {
 
 rlc_entity::rlc_entity()
   :rlc(NULL)
 {
 }
 
-void rlc_entity::init(rlc_mode_t            mode,
-                      srslte::log          *rlc_entity_log_,
-                      uint32_t              lcid_,
-                      pdcp_interface_rlc   *pdcp_,
-                      rrc_interface_rlc    *rrc_,
-                      srslte::mac_interface_timers *mac_timers_)
+void rlc_entity::init(rlc_mode_t                   mode,
+                      log                         *rlc_entity_log_,
+                      uint32_t                     lcid_,
+                      srsue::pdcp_interface_rlc   *pdcp_,
+                      srsue::rrc_interface_rlc    *rrc_,
+                      mac_interface_timers        *mac_timers_)
 {
   tm.reset();
   um.reset();

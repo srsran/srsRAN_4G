@@ -38,15 +38,13 @@
 #include <sys/socket.h>
 
 
-using namespace srslte;
-
-namespace srsue{
+namespace srslte {
 
 gw::gw()
   :if_up(false)
 {}
 
-void gw::init(pdcp_interface_gw *pdcp_, rrc_interface_gw *rrc_, ue_interface *ue_, srslte::log *gw_log_)
+void gw::init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_)
 {
   pool    = byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
@@ -105,7 +103,7 @@ void gw::get_metrics(gw_metrics_t &m)
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
-void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
+void gw::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 {
   gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU");
   gw_log->info("RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
@@ -126,7 +124,7 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 /*******************************************************************************
   NAS interface
 *******************************************************************************/
-srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
+error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
 {
   if(!if_up)
   {
@@ -164,7 +162,7 @@ srslte::error_t gw::setup_if_addr(uint32_t ip_addr, char *err_str)
   return(ERROR_NONE);
 }
 
-srslte::error_t gw::init_if(char *err_str)
+error_t gw::init_if(char *err_str)
 {
     if(if_up)
     {

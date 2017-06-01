@@ -32,7 +32,7 @@
 #include "srslte/common/log.h"
 #include "phy/prach.h"
 #include "phy/phy.h"
-#include "srslte/common/phy_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning_line(__FILE__, __LINE__, fmt, ##__VA_ARGS__)

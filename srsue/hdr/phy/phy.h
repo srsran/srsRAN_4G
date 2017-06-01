@@ -28,7 +28,6 @@
 #define UEPHY_H
 
 #include "srslte/srslte.h"
-#include "srslte/common/phy_interface.h"
 #include "srslte/common/log.h"
 #include "phy/phy_metrics.h"
 #include "phy/phch_recv.h"
@@ -38,8 +37,7 @@
 #include "srslte/radio/radio.h"
 #include "srslte/common/task_dispatcher.h"
 #include "srslte/common/trace.h"
-#include "srslte/common/mac_interface.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
     

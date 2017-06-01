@@ -28,7 +28,7 @@
 #define UE_GW_METRICS_H
 
 
-namespace srsue {
+namespace srslte {
 
 struct gw_metrics_t
 {

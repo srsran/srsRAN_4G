@@ -27,20 +27,18 @@
 
 #include "srslte/upper/rlc_tm.h"
 
-using namespace srslte;
-
-namespace srsue{
+namespace srslte {
 
 rlc_tm::rlc_tm() : ul_queue(16)
 {
   pool = byte_buffer_pool::get_instance();
 }
 
-void rlc_tm::init(srslte::log        *log_,
-                  uint32_t            lcid_,
-                  pdcp_interface_rlc *pdcp_,
-                  rrc_interface_rlc  *rrc_, 
-                  mac_interface_timers *mac_timers)
+void rlc_tm::init(srslte::log               *log_,
+                  uint32_t                   lcid_,
+                  srsue::pdcp_interface_rlc *pdcp_,
+                  srsue::rrc_interface_rlc  *rrc_, 
+                  mac_interface_timers      *mac_timers)
 {
   log  = log_;
   lcid = lcid_;

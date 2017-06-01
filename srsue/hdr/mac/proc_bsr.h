@@ -30,8 +30,7 @@
 #include <stdint.h>
 
 #include "srslte/common/log.h"
-#include "srslte/common/mac_interface.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/timers.h"
 
 /* Buffer status report procedure */

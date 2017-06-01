@@ -30,13 +30,11 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 
-using srslte::byte_buffer_t; 
 
-
-namespace srsue {
+namespace srslte {
 
 /****************************************************************************
  * Structs and Defines
@@ -64,9 +62,9 @@ class pdcp_entity
 {
 public:
   pdcp_entity();
-  void init(rlc_interface_pdcp            *rlc_,
-            rrc_interface_pdcp            *rrc_,
-            gw_interface_pdcp             *gw_,
+  void init(srsue::rlc_interface_pdcp     *rlc_,
+            srsue::rrc_interface_pdcp     *rrc_,
+            srsue::gw_interface_pdcp      *gw_,
             srslte::log                   *log_,
             uint32_t                       lcid_,
             uint8_t                        direction_,
@@ -87,11 +85,12 @@ public:
   void write_pdu(byte_buffer_t *pdu);
 
 private:
-  srslte::byte_buffer_pool        *pool;
-  srslte::log        *log;
-  rlc_interface_pdcp *rlc;
-  rrc_interface_pdcp *rrc;
-  gw_interface_pdcp  *gw;
+  byte_buffer_pool        *pool;
+  srslte::log             *log;
+
+  srsue::rlc_interface_pdcp *rlc;
+  srsue::rrc_interface_pdcp *rrc;
+  srsue::gw_interface_pdcp  *gw;
 
   bool                active;
   uint32_t            lcid;

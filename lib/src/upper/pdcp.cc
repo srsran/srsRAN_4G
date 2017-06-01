@@ -27,14 +27,12 @@
 
 #include "srslte/upper/pdcp.h"
 
-using namespace srslte;
-
-namespace srsue{
+namespace srslte {
 
 pdcp::pdcp()
 {}
 
-void pdcp::init(rlc_interface_pdcp *rlc_, rrc_interface_pdcp *rrc_, gw_interface_pdcp *gw_, srslte::log *pdcp_log_, uint8_t direction_)
+void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_, srsue::gw_interface_pdcp *gw_, log *pdcp_log_, uint8_t direction_)
 {
   rlc       = rlc_;
   rrc       = rrc_;

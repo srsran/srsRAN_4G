@@ -48,7 +48,7 @@
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/logger.h"
 #include "srslte/common/log_filter.h"
 
@@ -163,15 +163,15 @@ private:
   virtual ~ue();
 
   srslte::radio_multi radio;
-  srsue::phy        phy;
-  srsue::mac        mac;
+  srsue::phy         phy;
+  srsue::mac         mac;
   srslte::mac_pcap   mac_pcap;
-  srsue::rlc        rlc;
-  srsue::pdcp       pdcp;
-  srsue::rrc        rrc;
-  srsue::nas        nas;
-  srsue::gw         gw;
-  srsue::usim       usim;
+  srslte::rlc        rlc;
+  srslte::pdcp       pdcp;
+  srsue::rrc         rrc;
+  srsue::nas         nas;
+  srslte::gw         gw;
+  srsue::usim        usim;
 
   srslte::logger     logger;
   srslte::log_filter rf_log;

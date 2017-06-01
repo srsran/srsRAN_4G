@@ -30,7 +30,6 @@
 #include <string.h>
 #include "srslte/srslte.h"
 #include "srslte/common/thread_pool.h"
-#include "srslte/common/phy_interface.h"
 #include "srslte/common/trace.h"
 #include "phy/phch_common.h"
 

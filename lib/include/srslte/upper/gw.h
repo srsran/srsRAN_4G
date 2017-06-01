@@ -31,41 +31,42 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/common/msg_queue.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/threads.h"
 #include "srslte/upper/gw_metrics.h"
 
 #include <linux/if.h>
 
-namespace srsue {
+namespace srslte {
 
 class gw
-    :public gw_interface_pdcp
-    ,public gw_interface_nas
+    :public srsue::gw_interface_pdcp
+    ,public srsue::gw_interface_nas
     ,public thread
 {
 public:
   gw();
-  void init(pdcp_interface_gw *pdcp_, rrc_interface_gw *rrc_, ue_interface *ue_, srslte::log *gw_log_);
+  void init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_);
   void stop();
 
   void get_metrics(gw_metrics_t &m);
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu);
+  void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
 
   // NAS interface
-  srslte::error_t setup_if_addr(uint32_t ip_addr, char *err_str);
+  error_t setup_if_addr(uint32_t ip_addr, char *err_str);
   
 private:
   
   static const int GW_THREAD_PRIO = 7; 
   
-  srslte::byte_buffer_pool        *pool;
-  srslte::log        *gw_log;
-  pdcp_interface_gw  *pdcp;
-  rrc_interface_gw   *rrc;
-  ue_interface       *ue;
+  srsue::pdcp_interface_gw  *pdcp;
+  srsue::rrc_interface_gw   *rrc;
+  srsue::ue_interface       *ue;
+
+  byte_buffer_pool   *pool;
+  log                *gw_log;
   bool                running;
   bool                run_enable;
   int32               tun_fd;
@@ -78,7 +79,7 @@ private:
   struct timeval      metrics_time[3];
 
   void                run_thread();
-  srslte::error_t     init_if(char *err_str);
+  error_t     init_if(char *err_str);
 };
 
 } // namespace srsue

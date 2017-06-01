@@ -30,7 +30,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/msg_queue.h"
 #include "srslte/common/timeout.h"
 #include "srslte/upper/rlc_common.h"
@@ -38,9 +38,7 @@
 #include <deque>
 #include <list>
 
-using srslte::byte_buffer_t; 
-
-namespace srsue {
+namespace srslte {
 
 
 
@@ -73,11 +71,11 @@ class rlc_am
 {
 public:
   rlc_am();
-  void init(srslte::log          *rlc_entity_log_,
+  void init(log          *rlc_entity_log_,
             uint32_t              lcid_,
-            pdcp_interface_rlc   *pdcp_,
-            rrc_interface_rlc    *rrc_,
-            srslte::mac_interface_timers *mac_timers);
+            srsue::pdcp_interface_rlc   *pdcp_,
+            srsue::rrc_interface_rlc    *rrc_,
+            mac_interface_timers *mac_timers);
   void configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg);
   void reset();
   void empty_queue(); 
@@ -96,14 +94,14 @@ public:
 
 private:
 
-  srslte::byte_buffer_pool        *pool;
-  srslte::log        *log;
-  uint32_t            lcid;
-  pdcp_interface_rlc *pdcp;
-  rrc_interface_rlc  *rrc;
+  byte_buffer_pool          *pool;
+  srslte::log               *log;
+  uint32_t                   lcid;
+  srsue::pdcp_interface_rlc *pdcp;
+  srsue::rrc_interface_rlc  *rrc;
 
   // TX SDU buffers
-  srslte::msg_queue      tx_sdu_queue;
+  msg_queue      tx_sdu_queue;
   byte_buffer_t *tx_sdu;
 
   // PDU being resegmented
@@ -166,9 +164,9 @@ private:
    * Timers
    * Ref: 3GPP TS 36.322 v10.0.0 Section 7
    ***************************************************************************/
-  srslte::timeout poll_retx_timeout;
-  srslte::timeout reordering_timeout;
-  srslte::timeout status_prohibit_timeout;
+  timeout poll_retx_timeout;
+  timeout reordering_timeout;
+  timeout status_prohibit_timeout;
 
   static const int reordering_timeout_id = 1;
 

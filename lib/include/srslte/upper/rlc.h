@@ -30,12 +30,12 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/common/interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/msg_queue.h"
 #include "srslte/upper/rlc_entity.h"
 #include "srslte/upper/rlc_metrics.h"
 
-namespace srsue {
+namespace srslte {
 
 /****************************************************************************
  * RLC Layer
@@ -44,17 +44,18 @@ namespace srsue {
  * each bearer.
  ***************************************************************************/
 class rlc
-    :public rlc_interface_mac
-    ,public rlc_interface_pdcp
-    ,public rlc_interface_rrc
+    :public srsue::rlc_interface_mac
+    ,public srsue::rlc_interface_pdcp
+    ,public srsue::rlc_interface_rrc
 {
 public:
   rlc();
-  void init(pdcp_interface_rlc *pdcp_,
-            rrc_interface_rlc  *rrc_,
-            ue_interface       *ue_,
-            srslte::log        *rlc_log_, 
-            srslte::mac_interface_timers *mac_timers_);
+  virtual ~rlc() {}
+  void init(srsue::pdcp_interface_rlc *pdcp_,
+            srsue::rrc_interface_rlc  *rrc_,
+            srsue::ue_interface       *ue_,
+            log        *rlc_log_, 
+            mac_interface_timers *mac_timers_);
   void stop();
 
   void get_metrics(rlc_metrics_t &m);
@@ -79,13 +80,13 @@ public:
 private:
   void reset_metrics(); 
   
-  srslte::byte_buffer_pool        *pool;
-  srslte::log        *rlc_log;
-  pdcp_interface_rlc *pdcp;
-  rrc_interface_rlc  *rrc;
+  byte_buffer_pool            *pool;
+  srslte::log                 *rlc_log;
+  srsue::pdcp_interface_rlc   *pdcp;
+  srsue::rrc_interface_rlc    *rrc;
   srslte::mac_interface_timers *mac_timers; 
-  ue_interface       *ue;
-  rlc_entity          rlc_array[SRSUE_N_RADIO_BEARERS];
+  srsue::ue_interface         *ue;
+  srslte::rlc_entity           rlc_array[SRSUE_N_RADIO_BEARERS];
 
   long                ul_tput_bytes[SRSUE_N_RADIO_BEARERS];
   long                dl_tput_bytes[SRSUE_N_RADIO_BEARERS];

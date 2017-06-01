@@ -31,8 +31,7 @@
 #include <string.h>
 #include <vector>
 #include "srslte/srslte.h"
-#include "srslte/common/mac_interface.h"
-#include "srslte/common/phy_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/common/log.h"
 #include "phy/phy_metrics.h"

@@ -124,7 +124,7 @@ public:
     read_enable = true; 
   }
   
-  void init(srsue::phy *phy_, srsue::mac *mac_, srsue::rlc *rlc_, srslte::log *log_h_, std::string ip_address) {
+  void init(srsue::phy *phy_, srsue::mac *mac_, srslte::rlc *rlc_, srslte::log *log_h_, std::string ip_address) {
     log_h = log_h_; 
     rlc   = rlc_; 
     mac   = mac_; 
@@ -333,7 +333,7 @@ private:
   bool running; 
   srslte::log *log_h;
   srslte::byte_buffer_pool *pool;
-  srsue::rlc *rlc; 
+  srslte::rlc *rlc; 
   srsue::mac *mac; 
   srsue::phy *phy;  
   srslte::bit_buffer_t bit_buf;
@@ -472,7 +472,7 @@ srslte::log_filter log_tester;
 srslte::mac_pcap   mac_pcap;
 srsue::phy my_phy;
 srsue::mac my_mac;
-srsue::rlc rlc;
+srslte::rlc rlc;
 srslte::radio_multi my_radio; 
 
 // Local classes for testing

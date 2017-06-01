@@ -28,7 +28,7 @@
 #define UE_RLC_METRICS_H
 
 
-namespace srsue {
+namespace srslte {
 
 struct rlc_metrics_t
 {

@@ -32,7 +32,7 @@
 #include "srslte/srslte.h"
 #include "srslte/radio/radio.h"
 #include "srslte/common/log.h"
-#include "srslte/common/phy_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
 

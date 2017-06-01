@@ -39,8 +39,7 @@
 #include "mac/mux.h"
 #include "mac/demux.h"
 #include "srslte/common/mac_pcap.h"
-#include "srslte/common/phy_interface.h"
-#include "srslte/common/mac_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/common/threads.h"
 

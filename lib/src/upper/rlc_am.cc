@@ -34,9 +34,7 @@
 #define RX_MOD_BASE(x) (x-vr_r)%1024
 #define TX_MOD_BASE(x) (x-vt_a)%1024
 
-using namespace srslte;
-
-namespace srsue{
+namespace srslte {
 
 rlc_am::rlc_am() : tx_sdu_queue(16)
 {
@@ -64,11 +62,11 @@ rlc_am::rlc_am() : tx_sdu_queue(16)
   do_status     = false;
 }
 
-void rlc_am::init(srslte::log          *log_,
-                  uint32_t              lcid_,
-                  pdcp_interface_rlc   *pdcp_,
-                  rrc_interface_rlc    *rrc_,
-                  mac_interface_timers *mac_timers)
+void rlc_am::init(srslte::log                 *log_,
+                  uint32_t                     lcid_,
+                  srsue::pdcp_interface_rlc   *pdcp_,
+                  srsue::rrc_interface_rlc    *rrc_,
+                  srslte::mac_interface_timers *mac_timers)
 {
   log  = log_;
   lcid = lcid_;

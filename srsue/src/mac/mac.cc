@@ -155,7 +155,9 @@ void mac::run_thread() {
     
     if (started) {
       log_h->step(tti);
-        
+
+      timers_db.step_all();
+      
       // Step all procedures 
       bsr_procedure.step(tti);
       phr_procedure.step(tti);

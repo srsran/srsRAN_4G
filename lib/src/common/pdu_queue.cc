@@ -74,10 +74,11 @@ void pdu_queue::deallocate(uint8_t* pdu)
  * This function enqueues the packet and returns quicly because ACK 
  * deadline is important here. 
  */ 
-void pdu_queue::push(uint8_t *ptr, uint32_t len)
+void pdu_queue::push(uint8_t *ptr, uint32_t len, uint32_t tstamp)
 {
-  pdu_t *pdu = (pdu_t*) ptr; 
-  pdu->len   = len; 
+  pdu_t *pdu  = (pdu_t*) ptr; 
+  pdu->len    = len; 
+  pdu->tstamp = tstamp; 
   pdu_q.push(pdu);    
 }
 
@@ -88,7 +89,7 @@ bool pdu_queue::process_pdus()
   pdu_t *pdu; 
   while(pdu_q.try_pop(&pdu)) {
     if (callback) {
-      callback->process_pdu(pdu->ptr, pdu->len);
+      callback->process_pdu(pdu->ptr, pdu->len, pdu->tstamp);
     }
     if (!pool.deallocate(pdu)) {
       log_h->warning("Error deallocating from buffer pool: buffer not created in this pool.\n");

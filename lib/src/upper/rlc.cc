@@ -30,20 +30,18 @@
 #include "srslte/upper/rlc_um.h"
 #include "srslte/upper/rlc_am.h"
 
-using namespace srslte;
-
-namespace srsue{
+namespace srslte {
 
 rlc::rlc()
 {
   pool = byte_buffer_pool::get_instance();
 }
 
-void rlc::init(pdcp_interface_rlc *pdcp_,
-               rrc_interface_rlc  *rrc_,
-               ue_interface       *ue_,
-               srslte::log        *rlc_log_, 
-               mac_interface_timers *mac_timers_)
+void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
+               srsue::rrc_interface_rlc  *rrc_,
+               srsue::ue_interface       *ue_,
+               log                       *rlc_log_, 
+               mac_interface_timers      *mac_timers_)
 {
   pdcp    = pdcp_;
   rrc     = rrc_;
