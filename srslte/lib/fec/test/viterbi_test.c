@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
       gettimeofday(&t[1], NULL);
       int M = 1; 
       
-      srslte_vec_fprint_b(stdout, data_tx, frame_length);
+      //srslte_vec_fprint_b(stdout, data_tx, frame_length);
       
       for (int i=0;i<M;i++) {
         srslte_viterbi_decode_uc(&dec, llr_c, data_rx, frame_length);      
