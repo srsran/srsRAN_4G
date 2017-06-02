@@ -113,11 +113,11 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         
         /* Expert section */
         ("expert.phy.worker_cpu_mask",
-            bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(254),
+            bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
             "cpu bit mask (eg 255 = 1111 1111)")        
         
         ("expert.phy.sync_cpu_affinity",
-            bpo::value<int>(&args->expert.phy.sync_cpu_affinity)->default_value(2),
+            bpo::value<int>(&args->expert.phy.sync_cpu_affinity)->default_value(-1),
             "index of the core used by the sync thread")
     
         ("expert.ue_category",

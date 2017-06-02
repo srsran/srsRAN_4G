@@ -65,7 +65,7 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
       fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
     }
   }
-  if(cpu != -1) {
+  if(cpu > 0) {
     if(cpu > 50) {
       int mask;
       mask = cpu/100;
@@ -73,19 +73,17 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
       CPU_ZERO(&cpuset);	
       for(int i = 0; i < 8;i++){
         if(((mask >> i) & 0x01) == 1){
-          printf("Setting this worker with affinity to core %d\n", i);
           CPU_SET((size_t) i , &cpuset);        
         }     
       }  
     } else {
         CPU_ZERO(&cpuset);
         CPU_SET((size_t) cpu, &cpuset);
-        printf("Setting CPU affinity to cpu_id=%d\n", cpu);
     }
     
     if(pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpuset)) {
-            perror("pthread_attr_setaffinity_np");
-      }
+      perror("pthread_attr_setaffinity_np");
+    }
   }
 
   int err = pthread_create(thread, prio_offset >= 0 ? &attr : NULL, start_routine, arg);
@@ -94,9 +92,9 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
       perror("Warning: Failed to create thread with real-time priority. Creating it with normal priority");
       err = pthread_create(thread, NULL, start_routine, arg);
       if (err) {
-	perror("pthread_create");
+        perror("pthread_create");
       } else {
-	ret = true; 
+        ret = true; 
       }
     } else {
       perror("pthread_create");
