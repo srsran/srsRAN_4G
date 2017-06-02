@@ -21,9 +21,9 @@
 #                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us. 
 #####################################################################
 [rf]
-dl_freq = 2680000000
-ul_freq = 2560000000
-tx_gain = 60
+dl_freq = 2685000000
+ul_freq = 2565000000
+tx_gain = 70
 rx_gain = 50
 
 #nof_rx_ant = 1

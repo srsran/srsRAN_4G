@@ -8,7 +8,7 @@ mac_cnfg =
   };
   ulsch_cnfg = 
   {
-    max_harq_tx = 5;
+    max_harq_tx = 4;
     periodic_bsr_timer = 20; // in ms 
     retx_bsr_timer = 320;   // in ms
   };
@@ -21,7 +21,7 @@ phy_cnfg =
   phich_cnfg = 
   {
     duration  = "Normal";
-    resources = "1/6"; 
+    resources = "1"; 
   };
 
   pusch_cnfg_ded =
@@ -34,7 +34,7 @@ phy_cnfg =
   // PUCCH-SR resources are scheduled on time-frequeny domain first, then multiplexed in the same resource. 
   sched_request_cnfg =
   {
-    dsr_trans_max = 4;
+    dsr_trans_max = 16;
     period = 40;       // in ms
     subframe = [0];    // vector of subframe indices allowed for SR transmissions 
     nof_prb = 2;       // number of PRBs on each extreme used for SR (total prb is twice this number)
