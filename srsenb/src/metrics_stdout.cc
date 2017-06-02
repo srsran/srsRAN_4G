@@ -2,12 +2,11 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2015 The srsUE Developers. See the
- * COPYRIGHT file at the top-level directory of this distribution.
+ * Copyright 2013-2017 Software Radio Systems Limited
  *
  * \section LICENSE
  *
- * This file is part of the srsUE library.
+ * This file is part of srsLTE.
  *
  * srsUE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
