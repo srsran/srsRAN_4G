@@ -330,10 +330,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error setting main thread affinity to %d \n", prog_args.cpu_affinity);
       exit(-1);
       }
-    }
-    
-      
-    
+    }    
   }
   
   if (prog_args.net_port > 0) {
@@ -398,6 +395,7 @@ int main(int argc, char **argv) {
     } while (ret == 0 && !go_exit); 
     
     if (go_exit) {
+      srslte_rf_close(&rf);    
       exit(0);
     }
 
