@@ -344,7 +344,6 @@ int init37_avx2(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_
   q->decode = decode37_avx2;
   q->free = free37_avx2;
   q->decode_f = NULL;
-  printf("USING AVX VITERBI\n");
   q->symbols_uc = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
   if (!q->symbols_uc) {
     perror("malloc");
