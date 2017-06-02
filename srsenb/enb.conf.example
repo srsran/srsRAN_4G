@@ -57,7 +57,7 @@ drb_config = drb.conf
 #####################################################################
 [rf]
 dl_earfcn = 3400
-tx_gain = 60
+tx_gain = 70
 rx_gain = 50
 
 #device_name = auto
@@ -121,8 +121,8 @@ enable = false
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
-#pusch_max_mcs    = -1
-#nof_ctrl_symbols = 3
+pusch_max_mcs    = 16
+nof_ctrl_symbols = 2
 
 #####################################################################
 # Expert configuration options
@@ -134,6 +134,8 @@ enable = false
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # link_failure_nof_err: Number of PUSCH failures after which a radio-link failure is triggered. 
 #                       a link failure is when SNR<0 and CRC=KO
+# max_prach_offset_us:  Maximum allowed RACH offset (in us) 
+#
 #####################################################################
 [expert]
 #pdsch_max_its        = 4
@@ -142,6 +144,7 @@ enable = false
 #tx_amplitude         = 0.8
 #link_failure_nof_err = 10
 #rrc_inactivity_timer = 5000
+#max_prach_offset_us  = 30
 
 #####################################################################
 # Manual RF calibration

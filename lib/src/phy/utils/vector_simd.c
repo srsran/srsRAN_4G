@@ -305,12 +305,12 @@ void srslte_vec_prod_sss_avx(short *x, short *y, short *z, uint32_t len)
   __m256i xVal, yVal, zVal;
   for(;number < points; number++){
 
-    xVal = _mm256_load_si256(xPtr);
+    xVal = _mm256_loadu_si256(xPtr);
     yVal = _mm256_loadu_si256(yPtr);
 
     zVal = _mm256_mullo_epi16(xVal, yVal);
 
-    _mm256_store_si256(zPtr, zVal); 
+    _mm256_storeu_si256(zPtr, zVal); 
 
     xPtr ++;
     yPtr ++;

@@ -217,42 +217,54 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
     endif(${have})
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-    #Any additional flags for CXX
-endif(CMAKE_COMPILER_IS_GNUCXX)
-
-
-if(CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-comment -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -std=c++03")
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    find_package(SSE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -DDEBUG_MODE")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -std=c++03")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -DDEBUG_MODE")
+  else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+  endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
+  find_package(SSE)
+  if (HAVE_AVX2)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
+  else (HAVE_AVX2)
     if(HAVE_AVX)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")      
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
     elseif(HAVE_SSE)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
     endif(HAVE_AVX)
+  endif (HAVE_AVX2)
+endif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+
+
+if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE")
+
+  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -DDEBUG_MODE")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++03")
-    find_package(SSE)
-    if (HAVE_AVX2)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx2 -Ofast -funroll-loops -DLV_HAVE_AVX -DLV_HAVE_SSE")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse -mavx2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
-    else (HAVE_AVX2)
-      if(HAVE_AVX)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -Ofast -funroll-loops -DLV_HAVE_AVX -DLV_HAVE_SSE")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
-      elseif(HAVE_SSE)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -Ofast -funroll-loops -DLV_HAVE_SSE")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
-      endif(HAVE_AVX)
-    endif (HAVE_AVX2)
-    
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
+  find_package(SSE)
+  if (HAVE_AVX2)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
+  else (HAVE_AVX2)
+    if(HAVE_AVX)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
+    elseif(HAVE_SSE)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
+    endif(HAVE_AVX)
+  endif (HAVE_AVX2)
+
+  if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    if(HAVE_SSE)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast -funroll-loops")
+    endif(HAVE_SSE)
+  endif(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
   
   if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
@@ -263,25 +275,15 @@ if(CMAKE_COMPILER_IS_GNUCC)
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
   endif(NOT WIN32)
-endif(CMAKE_COMPILER_IS_GNUCC)
-
-if(MSVC)
-    include_directories(${PROJECT_SOURCE_DIR}/msvc) #missing headers
-    add_definitions(-D_WIN32_WINNT=0x0501) #minimum version required is windows xp
-    add_definitions(-DNOMINMAX) #disables stupidity and enables std::min and std::max
-    add_definitions( #stop all kinds of compatibility warnings
-        -D_SCL_SECURE_NO_WARNINGS
-        -D_CRT_SECURE_NO_WARNINGS
-        -D_CRT_SECURE_NO_DEPRECATE
-        -D_CRT_NONSTDC_NO_DEPRECATE
-    )
-    add_definitions(/MP) #build with multiple processors
-endif(MSVC)
+endif(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    # The following is needed for weak linking to work under OS X
    set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+message(STATUS "CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
+message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
 
 ########################################################################
 # Create uninstall targets
