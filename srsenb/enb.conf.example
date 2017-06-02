@@ -142,7 +142,7 @@ nof_ctrl_symbols = 2
 #nof_phy_threads      = 2
 #pregenerate_signals  = false
 #tx_amplitude         = 0.8
-#link_failure_nof_err = 10
+#link_failure_nof_err = 50
 #rrc_inactivity_timer = 5000
 #max_prach_offset_us  = 30
 
