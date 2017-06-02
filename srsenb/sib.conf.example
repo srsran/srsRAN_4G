@@ -8,9 +8,9 @@ sib1 =
     sched_info =
     (
         {
-            si_periodicity = 32;
-            si_mapping_info = []; // comma-separated array of SIB-indexes (from 3 to 13). 
-                                  // Leave empty or commented to just scheduler sib2
+            si_periodicity = 16;
+	    si_mapping_info = []; // comma-separated array of SIB-indexes (from 3 to 13). 
+				   // Leave empty or commented to just scheduler sib2
         }
     );
     system_info_value_tag = 0;
@@ -22,7 +22,7 @@ sib2 =
     {
         rach_cnfg = 
         {
-            num_ra_preambles = 52
+            num_ra_preambles = 52;
             preamble_init_rx_target_pwr = -108;
             pwr_ramping_step = 6;  // in dB
             preamble_trans_max = 7;
@@ -32,11 +32,11 @@ sib2 =
         };
         bcch_cnfg = 
         {
-            modification_period_coeff = 2; // in ms
+            modification_period_coeff = 16; // in ms
         };
         pcch_cnfg = 
         {
-            default_paging_cycle = 128; // in ms
+            default_paging_cycle = 32; // in rf
             nB = "1";
         };
         prach_cnfg =
@@ -78,12 +78,12 @@ sib2 =
         };
         ul_pwr_ctrl =
         {
-            p0_nominal_pusch = -86; 
+            p0_nominal_pusch = -108; 
             alpha = 1.0; 
-            p0_nominal_pucch = -108; 
+            p0_nominal_pucch = -88; 
             delta_flist_pucch =
             {
-                format_1  = 0; 
+                format_1  = 2; 
                 format_1b = 3; 
                 format_2  = 0; 
                 format_2a = 0; 
@@ -103,11 +103,11 @@ sib2 =
         t311 = 1000; // in ms
         n311 = 1;
     };
-
+	
     freqInfo = 
     {
-        ul_carrier_freq_present = false; 
-        ul_bw_present = false; 
+        ul_carrier_freq_present = true; 
+        ul_bw_present = true; 
         additional_spectrum_emission = 1; 
     };
 
