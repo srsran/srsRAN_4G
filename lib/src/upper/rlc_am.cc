@@ -256,12 +256,14 @@ uint32_t rlc_am::get_buffer_state()
   }
 
   // Bytes needed for tx SDUs
-  n_sdus  = tx_sdu_queue.size();
-  n_bytes = tx_sdu_queue.size_bytes();
-  if(tx_sdu)
-  {
-    n_sdus++;
-    n_bytes += tx_sdu->N_bytes;
+  if(tx_window.size() < RLC_AM_WINDOW_SIZE) {
+    n_sdus  = tx_sdu_queue.size();
+    n_bytes = tx_sdu_queue.size_bytes();
+    if(tx_sdu)
+    {
+      n_sdus++;
+      n_bytes += tx_sdu->N_bytes;
+    }
   }
 
   // Room needed for header extensions? (integer rounding)
@@ -676,8 +678,11 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Set Poll bit
   pdu_without_poll++;
   byte_without_poll += (pdu->N_bytes + head_len);
+  log->debug("%s pdu_without_poll: %d\n", rb_id_text[lcid], pdu_without_poll);
+  log->debug("%s byte_without_poll: %d\n", rb_id_text[lcid], byte_without_poll);
   if(poll_required())
   {
+    log->debug("%s setting poll bit to request status\n", rb_id_text[lcid]);
     header.p          = 1;
     poll_sn           = vt_s;
     pdu_without_poll  = 0;
