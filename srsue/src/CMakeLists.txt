@@ -26,29 +26,29 @@ if (RPATH)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif (RPATH)
 
-add_executable(ue main.cc ue.cc metrics_stdout.cc)
-target_link_libraries(ue    srsue_mac
-                            srsue_phy
-                            srsue_upper
-                            srslte_common
-                            srslte_phy
-                            srslte_upper
-                            srslte_radio
-                            ${SRSLTE_LIBRARIES}
-                            ${LIBLTE_LIBRARY}
-                            ${CMAKE_THREAD_LIBS_INIT}
-                            ${Boost_LIBRARIES})
+add_executable(srsue main.cc ue.cc metrics_stdout.cc)
+target_link_libraries(srsue   srsue_mac
+                              srsue_phy
+                              srsue_upper
+                              srslte_common
+                              srslte_phy
+                              srslte_upper
+                              srslte_radio
+                              ${SRSLTE_LIBRARIES}
+                              ${LIBLTE_LIBRARY}
+                              ${CMAKE_THREAD_LIBS_INIT}
+                              ${Boost_LIBRARIES})
 
 if (RPATH)
-  set_target_properties(ue PROPERTIES INSTALL_RPATH ".")
+  set_target_properties(srsue PROPERTIES INSTALL_RPATH ".")
 endif (RPATH)
 
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################
-if (NOT ${BUILD_CMD} STREQUAL "")
-  message(STATUS "Added custom post-build command: ${BUILD_CMD}")
-  add_custom_command(TARGET ue POST_BUILD COMMAND ${BUILD_CMD})
-else(NOT ${BUILD_CMD} STREQUAL "")
-  message(STATUS "No post-build command defined")
-endif (NOT ${BUILD_CMD} STREQUAL "")
+if (NOT ${BUILDUE_CMD} STREQUAL "")
+  message(STATUS "Added custom post-build-UE command: ${BUILDUE_CMD}")
+  add_custom_command(TARGET ue POST_BUILD COMMAND ${BUILDUE_CMD})
+else(NOT ${BUILDUE_CMD} STREQUAL "")
+  message(STATUS "No post-build-UE command defined")
+endif (NOT ${BUILDUE_CMD} STREQUAL "")
