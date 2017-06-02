@@ -33,11 +33,6 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_blade_imp.c)
   endif (BLADERF_FOUND)
 
-  if (LIMESDR_FOUND)
-    add_definitions(-DENABLE_LIMESDR)
-    list(APPEND SOURCES_RF rf_limesdr_imp.c)
-  endif (LIMESDR_FOUND)
-
   if (SOAPYSDR_FOUND)
     add_definitions(-DENABLE_SOAPYSDR)
     list(APPEND SOURCES_RF rf_soapy_imp.c)
@@ -54,10 +49,6 @@ if(RF_FOUND)
   if (BLADERF_FOUND)
     target_link_libraries(srslte_rf ${BLADERF_LIBRARIES})
   endif (BLADERF_FOUND)
-
-  if (LIMESDR_FOUND)
-    target_link_libraries(srslte_rf ${LIMESDR_LIBRARIES})
-  endif (LIMESDR_FOUND)
 
   if (SOAPYSDR_FOUND)
     target_link_libraries(srslte_rf ${SOAPYSDR_LIBRARIES})

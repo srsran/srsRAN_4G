@@ -84,7 +84,7 @@ else(POLARSSL_FOUND)
     set(POLAR_LIBRARIES    "${MBEDTLS_LIBRARIES}")
     add_definitions(-DHAVE_MBEDTLS)
   else(MBEDTLS_FOUND)
-    message(FATAL_ERROR "Either polarssl or mbedtls is required to compile srsUE")
+    message(FATAL_ERROR "Either polarssl or mbedtls is required to compile srsLTE")
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
@@ -120,20 +120,15 @@ if(SOAPYSDR_FOUND)
   link_directories(${SOAPYSDR_LIBRARY_DIRS})
 endif(SOAPYSDR_FOUND)
 
-find_package(LimeSDR)
-if(LIMESDR_FOUND)
-  include_directories(${LIMESDR_INCLUDE_DIRS})
-  link_directories(${LIMESDR_LIBRARY_DIRS})
-endif(LIMESDR_FOUND)
-
-if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
-else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
   add_definitions(-DDISABLE_RF)
-endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 
 if(ENABLE_SRSUE OR ENABLE_SRSENB)
+  # Find Boost
   set(BOOST_REQUIRED_COMPONENTS
       program_options
       system
