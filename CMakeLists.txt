@@ -47,13 +47,22 @@ configure_file(
     "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
     IMMEDIATE @ONLY)
 
+if(NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE Release)
+   message(STATUS "Build type not specified: defaulting to Release.")
+endif(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
+
 ########################################################################
 # Options
 ########################################################################
-option(STATIC_MKL      "Statically link MKL libraries"   OFF)
-option(DISABLE_BLADERF "Disable BladeRF"                 OFF)
-option(RPATH           "Enable RPATH"                    OFF)
-option(ENABLE_GUI      "Enable GUI"                      ON)
+option(STATIC_BUILD    "Attempt to build with static linking"   OFF)
+option(RPATH           "Enable RPATH"                           OFF)
+option(ENABLE_VOLK     "Enable VOLK SIMD library"               ON)
+option(ENABLE_GUI      "Enable GUI"                             ON)
+option(ENABLE_SRSUE    "Build srsUE application"                ON)
+option(ENABLE_SRSENB   "Build srsENB application"               ON)
+option(ENABLE_BLADERF  "Enable BladeRF"                         ON)
 
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
@@ -64,7 +73,6 @@ set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 find_package(Threads REQUIRED)
 
 find_package(Polarssl)
-
 if (POLARSSL_FOUND)
   set(POLAR_INCLUDE_DIRS "${POLARSSL_INCLUDE_DIRS}")
   set(POLAR_LIBRARIES    "${POLARSSL_LIBRARIES}")
@@ -76,7 +84,7 @@ else(POLARSSL_FOUND)
     set(POLAR_LIBRARIES    "${MBEDTLS_LIBRARIES}")
     add_definitions(-DHAVE_MBEDTLS)
   else(MBEDTLS_FOUND)
-    message(FATAL_ERROR "Either polarssl or mbedtls is required to compile srsUE")
+    message(FATAL_ERROR "Either polarssl or mbedtls is required to compile srsLTE")
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
@@ -98,13 +106,13 @@ if(UHD_FOUND)
   link_directories(${UHD_LIBRARY_DIRS})
 endif(UHD_FOUND)
 
-if(NOT DISABLE_BLADERF)
+if(ENABLE_BLADERF)
   find_package(bladeRF)
   if(BLADERF_FOUND)
     include_directories(${BLADERF_INCLUDE_DIRS})
     link_directories(${BLADERF_LIBRARY_DIRS})
   endif(BLADERF_FOUND)
-endif(NOT DISABLE_BLADERF)
+endif(ENABLE_BLADERF)
 
 find_package(SoapySDR)
 if(SOAPYSDR_FOUND)
@@ -112,29 +120,33 @@ if(SOAPYSDR_FOUND)
   link_directories(${SOAPYSDR_LIBRARY_DIRS})
 endif(SOAPYSDR_FOUND)
 
-find_package(LimeSDR)
-if(LIMESDR_FOUND)
-  include_directories(${LIMESDR_INCLUDE_DIRS})
-  link_directories(${LIMESDR_LIBRARY_DIRS})
-endif(LIMESDR_FOUND)
-
-if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
-else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
   add_definitions(-DDISABLE_RF)
-endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR LIMESDR_FOUND)
+endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 
-include(CheckFunctionExistsMath)
-if(${DISABLE_VOLK})
-  if(${DISABLE_VOLK} EQUAL 0)
-    find_package(Volk)
-  else(${DISABLE_VOLK} EQUAL 0)
-    message(STATUS "VOLK library disabled (DISABLE_VOLK=1)")
-  endif(${DISABLE_VOLK} EQUAL 0)
-else(${DISABLE_VOLK})
-  find_package(Volk)
-endif(${DISABLE_VOLK})
+if(ENABLE_SRSUE OR ENABLE_SRSENB)
+  # Find Boost
+  set(BOOST_REQUIRED_COMPONENTS
+      program_options
+      system
+  )
+  if(UNIX AND EXISTS "/usr/lib64")
+      list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
+  endif(UNIX AND EXISTS "/usr/lib64")
+  set(Boost_ADDITIONAL_VERSIONS
+      "1.35.0" "1.35" "1.36.0" "1.36" "1.37.0" "1.37" "1.38.0" "1.38" "1.39.0" "1.39"
+      "1.40.0" "1.40" "1.41.0" "1.41" "1.42.0" "1.42" "1.43.0" "1.43" "1.44.0" "1.44"
+      "1.45.0" "1.45" "1.46.0" "1.46" "1.47.0" "1.47" "1.48.0" "1.48" "1.49.0" "1.49"
+      "1.50.0" "1.50" "1.51.0" "1.51" "1.52.0" "1.52" "1.53.0" "1.53" "1.54.0" "1.54"
+      "1.55.0" "1.55" "1.56.0" "1.56" "1.57.0" "1.57" "1.58.0" "1.58" "1.59.0" "1.59"
+      "1.60.0" "1.60" "1.61.0" "1.61" "1.62.0" "1.62" "1.63.0" "1.63" "1.64.0" "1.64"
+      "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
+  )
+  find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
+endif(ENABLE_SRSUE OR ENABLE_SRSENB)
 
 
 if(ENABLE_GUI)
@@ -146,35 +158,19 @@ if(ENABLE_GUI)
   endif(SRSGUI_FOUND)
 endif(ENABLE_GUI)
 
-########################################################################
-# Find boost
-########################################################################
-set(BOOST_REQUIRED_COMPONENTS
-    program_options
-    system
-)
-if(UNIX AND EXISTS "/usr/lib64")
-    list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
-endif(UNIX AND EXISTS "/usr/lib64")
-set(Boost_ADDITIONAL_VERSIONS
-    "1.35.0" "1.35" "1.36.0" "1.36" "1.37.0" "1.37" "1.38.0" "1.38" "1.39.0" "1.39"
-    "1.40.0" "1.40" "1.41.0" "1.41" "1.42.0" "1.42" "1.43.0" "1.43" "1.44.0" "1.44"
-    "1.45.0" "1.45" "1.46.0" "1.46" "1.47.0" "1.47" "1.48.0" "1.48" "1.49.0" "1.49"
-    "1.50.0" "1.50" "1.51.0" "1.51" "1.52.0" "1.52" "1.53.0" "1.53" "1.54.0" "1.54"
-    "1.55.0" "1.55" "1.56.0" "1.56" "1.57.0" "1.57" "1.58.0" "1.58" "1.59.0" "1.59"
-    "1.60.0" "1.60" "1.61.0" "1.61" "1.62.0" "1.62" "1.63.0" "1.63" "1.64.0" "1.64"
-    "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
-)
-find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
-
-
-if(VOLK_FOUND)
-  include_directories(${VOLK_INCLUDE_DIRS})
-  link_directories(${VOLK_LIBRARY_DIRS})
-  message(STATUS "   Compiling with VOLK SIMD library.")
-else(VOLK_FOUND)
-  message(STATUS "   VOLK SIMD library NOT found. Using generic implementation.")
-endif(VOLK_FOUND)
+include(CheckFunctionExistsMath)
+if(ENABLE_VOLK)
+  find_package(Volk)
+  if(VOLK_FOUND)
+    include_directories(${VOLK_INCLUDE_DIRS})
+    link_directories(${VOLK_LIBRARY_DIRS})
+    message(STATUS "Compiling with VOLK SIMD library.")
+  else(VOLK_FOUND)
+    message(STATUS "VOLK SIMD library NOT found. Using generic implementation.")
+  endif(VOLK_FOUND)
+else(ENABLE_VOLK)
+  message(STATUS "VOLK library disabled")
+endif(ENABLE_VOLK)
 
 
 ########################################################################
@@ -196,12 +192,6 @@ set(INCLUDE_DIR include)
 set(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
 set(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
-
-if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE Release)
-   message(STATUS "Build type not specified: defaulting to Release.")
-endif(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
 ########################################################################
 # Install headers
@@ -337,24 +327,21 @@ add_custom_target(add_srslte_headers SOURCES ${HEADERS_ALL})
 # Add the subdirectories
 ########################################################################
 add_subdirectory(lib)
-if(NOT DISABLE_SRSUE)
-  if(RF_FOUND)
+
+if(RF_FOUND)
+  if(ENABLE_SRSUE)
     message(STATUS "Building with srsUE")
     add_subdirectory(srsue)
-  else(RF_FOUND)
-    message(STATUS "Building without srsUE due to missing RF driver")
-  endif(RF_FOUND)
-else(NOT DISABLE_SRSUE)
-  message(STATUS "Building without srsUE")
-endif(NOT DISABLE_SRSUE)
+  else(ENABLE_SRSUE)
+    message(STATUS "srsUE build disabled")
+  endif(ENABLE_SRSUE)
 
-if(NOT DISABLE_SRSENB)
-  if(RF_FOUND)
+  if(ENABLE_SRSENB)
     message(STATUS "Building with srsENB")
     add_subdirectory(srsenb)
-  else(RF_FOUND)
-    message(STATUS "Building without srsENB due to missing RF driver")
-  endif(RF_FOUND)
-else(NOT DISABLE_SRSENB)
-  message(STATUS "Building without srsENB")
-endif(NOT DISABLE_SRSENB)
+  else(ENABLE_SRSENB)
+    message(STATUS "srsUE build disabled")
+  endif(ENABLE_SRSENB)
+else(RF_FOUND)
+  message(STATUS "srsUE and srsENB builds disabled due to missing RF driver")
+endif(RF_FOUND)

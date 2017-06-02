@@ -140,45 +140,6 @@ static rf_dev_t dev_blade = {
 };
 #endif
 
-/* Define implementation for LimeSDR */
-#ifdef ENABLE_LIMESDR
-
-#include "rf_limesdr_imp.h"
-
-static rf_dev_t dev_limesdr = {
-  "limesdr",
-  rf_limesdr_devname,
-  rf_limesdr_rx_wait_lo_locked,
-  rf_limesdr_start_rx_stream,
-  rf_limesdr_stop_rx_stream,
-  rf_limesdr_flush_buffer,
-  rf_limesdr_has_rssi,
-  rf_limesdr_get_rssi,
-  rf_limesdr_suppress_stdout,
-  rf_limesdr_register_error_handler,
-  rf_limesdr_open,
-  rf_limesdr_open_multi,
-  rf_limesdr_close,
-  rf_limesdr_set_master_clock_rate,
-  rf_limesdr_is_master_clock_dynamic,
-  rf_limesdr_set_rx_srate,
-  rf_limesdr_set_rx_gain,
-  rf_limesdr_set_tx_gain,
-  rf_limesdr_get_rx_gain,
-  rf_limesdr_get_tx_gain,
-  rf_limesdr_set_rx_freq,
-  rf_limesdr_set_tx_srate,
-  rf_limesdr_set_tx_freq,
-  rf_limesdr_get_time,
-  rf_limesdr_recv_with_time,
-  rf_limesdr_recv_with_time_multi,
-  rf_limesdr_send_timed,
-  rf_limesdr_set_tx_cal,
-  rf_limesdr_set_rx_cal
-};
-
-#endif
-
 #ifdef ENABLE_SOAPYSDR
 
 #include "rf_soapy_imp.h"
@@ -269,9 +230,6 @@ static rf_dev_t *available_devices[] = {
 #endif
 #ifdef ENABLE_BLADERF
   &dev_blade,  
-#endif
-#ifdef ENABLE_LIMESDR
-  &dev_limesdr,
 #endif
 #ifdef ENABLE_DUMMY_DEV
   &dev_dummy,
