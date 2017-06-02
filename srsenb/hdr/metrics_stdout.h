@@ -2,11 +2,11 @@
  *
  * \section COPYRIGHT
  *
- * Copyright 2013-2015 Software Radio Systems Limited
+ * Copyright 2013-2017 Software Radio Systems Limited
  *
  * \section LICENSE
  *
- * This file is part of the srsUE library.
+ * This file is part of srsLTE.
  *
  * srsUE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -23,6 +23,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
 
 /******************************************************************************
  * File:        metrics_stdout.h
