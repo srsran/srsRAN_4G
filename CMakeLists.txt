@@ -1,7 +1,7 @@
 #
-# Copyright 2013-2015 Software Radio Systems Limited
+# Copyright 2013-2017 Software Radio Systems Limited
 #
-# This file is part of the srsLTE library.
+# This file is part of srsLTE
 #
 # srsLTE is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -30,28 +30,148 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 ########################################################################
 # Project setup
 ########################################################################
-CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
-PROJECT (SRSLTE)
-MESSAGE( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
-MESSAGE( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
-MESSAGE( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
+cmake_minimum_required(VERSION 2.6)
+project( SRSLTE )
+message( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
+message( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
+message( STATUS "CMAKE_CXX_COMPILER: " ${CMAKE_CXX_COMPILER} )
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 include(SRSLTEVersion) #sets version information
 include(SRSLTEPackage) #setup cpack
 
 include(CTest)
-set( CTEST_MEMORYCHECK_COMMAND valgrind ) 
+set(CTEST_MEMORYCHECK_COMMAND valgrind)
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"
     IMMEDIATE @ONLY)
 
+if(NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE Release)
+   message(STATUS "Build type not specified: defaulting to Release.")
+endif(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
+
 ########################################################################
 # Options
 ########################################################################
-option(StaticMKL      "StaticMKL"      OFF)
-option(DisableBladeRF "DisableBladeRF" OFF)
+option(STATIC_BUILD    "Attempt to build with static linking"   OFF)
+option(RPATH           "Enable RPATH"                           OFF)
+option(ENABLE_VOLK     "Enable VOLK SIMD library"               ON)
+option(ENABLE_GUI      "Enable GUI"                             ON)
+option(ENABLE_SRSUE    "Build srsUE application"                ON)
+option(ENABLE_SRSENB   "Build srsENB application"               ON)
+option(ENABLE_BLADERF  "Enable BladeRF"                         ON)
+
+set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
+
+
+########################################################################
+# Find dependencies
+########################################################################
+find_package(Threads REQUIRED)
+
+find_package(Polarssl)
+if (POLARSSL_FOUND)
+  set(POLAR_INCLUDE_DIRS "${POLARSSL_INCLUDE_DIRS}")
+  set(POLAR_LIBRARIES    "${POLARSSL_LIBRARIES}")
+  add_definitions(-DHAVE_POLARSSL)
+else(POLARSSL_FOUND)
+  find_package(MbedTLS)
+  if (MBEDTLS_FOUND)
+    set(POLAR_INCLUDE_DIRS "${MBEDTLS_INCLUDE_DIRS}")
+    set(POLAR_LIBRARIES    "${MBEDTLS_LIBRARIES}")
+    add_definitions(-DHAVE_MBEDTLS)
+  else(MBEDTLS_FOUND)
+    message(FATAL_ERROR "Either polarssl or mbedtls is required to compile srsLTE")
+  endif (MBEDTLS_FOUND)
+endif(POLARSSL_FOUND)
+
+find_package(MKL)
+if(MKL_FOUND)
+  include_directories(${MKL_INCLUDE_DIRS})
+  link_directories(${MKL_LIBRARY_DIRS})
+else(MKL_FOUND)
+  find_package(FFTW3F REQUIRED)
+  if(FFTW3F_FOUND)
+    include_directories(${FFTW3F_INCLUDE_DIRS})
+    link_directories(${FFTW3F_LIBRARY_DIRS})
+  endif(FFTW3F_FOUND)
+endif(MKL_FOUND)
+
+find_package(UHD)
+if(UHD_FOUND)
+  include_directories(${UHD_INCLUDE_DIRS})
+  link_directories(${UHD_LIBRARY_DIRS})
+endif(UHD_FOUND)
+
+if(ENABLE_BLADERF)
+  find_package(bladeRF)
+  if(BLADERF_FOUND)
+    include_directories(${BLADERF_INCLUDE_DIRS})
+    link_directories(${BLADERF_LIBRARY_DIRS})
+  endif(BLADERF_FOUND)
+endif(ENABLE_BLADERF)
+
+find_package(SoapySDR)
+if(SOAPYSDR_FOUND)
+  include_directories(${SOAPYSDR_INCLUDE_DIRS})
+  link_directories(${SOAPYSDR_LIBRARY_DIRS})
+endif(SOAPYSDR_FOUND)
+
+if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+  set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
+else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+  set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
+  add_definitions(-DDISABLE_RF)
+endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+
+if(ENABLE_SRSUE OR ENABLE_SRSENB)
+  # Find Boost
+  set(BOOST_REQUIRED_COMPONENTS
+      program_options
+      system
+  )
+  if(UNIX AND EXISTS "/usr/lib64")
+      list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
+  endif(UNIX AND EXISTS "/usr/lib64")
+  set(Boost_ADDITIONAL_VERSIONS
+      "1.35.0" "1.35" "1.36.0" "1.36" "1.37.0" "1.37" "1.38.0" "1.38" "1.39.0" "1.39"
+      "1.40.0" "1.40" "1.41.0" "1.41" "1.42.0" "1.42" "1.43.0" "1.43" "1.44.0" "1.44"
+      "1.45.0" "1.45" "1.46.0" "1.46" "1.47.0" "1.47" "1.48.0" "1.48" "1.49.0" "1.49"
+      "1.50.0" "1.50" "1.51.0" "1.51" "1.52.0" "1.52" "1.53.0" "1.53" "1.54.0" "1.54"
+      "1.55.0" "1.55" "1.56.0" "1.56" "1.57.0" "1.57" "1.58.0" "1.58" "1.59.0" "1.59"
+      "1.60.0" "1.60" "1.61.0" "1.61" "1.62.0" "1.62" "1.63.0" "1.63" "1.64.0" "1.64"
+      "1.65.0" "1.65" "1.66.0" "1.66" "1.67.0" "1.67" "1.68.0" "1.68" "1.69.0" "1.69"
+  )
+  find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
+endif(ENABLE_SRSUE OR ENABLE_SRSENB)
+
+
+if(ENABLE_GUI)
+  find_package(SRSGUI)
+  if(SRSGUI_FOUND)
+    add_definitions(-DENABLE_GUI)
+    include_directories(${SRSGUI_INCLUDE_DIRS})
+    link_directories(${SRSGUI_LIBRARY_DIRS})
+  endif(SRSGUI_FOUND)
+endif(ENABLE_GUI)
+
+include(CheckFunctionExistsMath)
+if(ENABLE_VOLK)
+  find_package(Volk)
+  if(VOLK_FOUND)
+    include_directories(${VOLK_INCLUDE_DIRS})
+    link_directories(${VOLK_LIBRARY_DIRS})
+    message(STATUS "Compiling with VOLK SIMD library.")
+  else(VOLK_FOUND)
+    message(STATUS "VOLK SIMD library NOT found. Using generic implementation.")
+  endif(VOLK_FOUND)
+else(ENABLE_VOLK)
+  message(STATUS "VOLK library disabled")
+endif(ENABLE_VOLK)
+
 
 ########################################################################
 # Install Dirs
@@ -73,11 +193,13 @@ set(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
 set(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
 
-if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE Release)
-   message(STATUS "Build type not specified: defaulting to Release.")
-endif(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
+########################################################################
+# Install headers
+########################################################################
+INSTALL(DIRECTORY include/
+        DESTINATION "${INCLUDE_DIR}"
+        FILES_MATCHING PATTERN "*.h"
+)
 
 ########################################################################
 # Compiler specific setup
@@ -90,67 +212,73 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
     endif(${have})
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-    #Any additional flags for CXX
-endif(CMAKE_COMPILER_IS_GNUCXX)
-
-
-if(CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE -g")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -std=c++03")
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    find_package(SSE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -DDEBUG_MODE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -DDEBUG_MODE")
+  else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+  endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
+  find_package(SSE)
+  if (HAVE_AVX2)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
+  else (HAVE_AVX2)
     if(HAVE_AVX)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")      
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
     elseif(HAVE_SSE)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
     endif(HAVE_AVX)
+  endif (HAVE_AVX2)
+endif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+
+
+if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-write-strings -Wno-format-extra-args -Winline -Wno-unused-result -Wno-format -std=c99 -D_GNU_SOURCE")
+
+  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -DDEBUG_MODE")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
-    find_package(SSE)
-    if (HAVE_AVX2)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx2 -Ofast -funroll-loops -DLV_HAVE_AVX -DLV_HAVE_SSE")
-    else (HAVE_AVX2)
-      if(HAVE_AVX)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -mavx -Ofast -funroll-loops -DLV_HAVE_AVX -DLV_HAVE_SSE")
-      elseif(HAVE_SSE)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mfpmath=sse -msse4.1 -Ofast -funroll-loops -DLV_HAVE_SSE")
-      endif(HAVE_AVX)
-    endif (HAVE_AVX2)
-    
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-  
-  IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
-set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
-message(STATUS "have ARM")
-ELSE(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
-ENDIF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
 
-set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
+  find_package(SSE)
+  if (HAVE_AVX2)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
+  else (HAVE_AVX2)
+    if(HAVE_AVX)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
+    elseif(HAVE_SSE)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
+    endif(HAVE_AVX)
+  endif (HAVE_AVX2)
+
+  if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    if(HAVE_SSE)
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast -funroll-loops")
+    endif(HAVE_SSE)
+  endif(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
+  
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
+    message(STATUS "have ARM")
+  endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+  set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
 
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN)
   endif(NOT WIN32)
-endif(CMAKE_COMPILER_IS_GNUCC)
-
-if(MSVC)
-    include_directories(${PROJECT_SOURCE_DIR}/msvc) #missing headers
-    add_definitions(-D_WIN32_WINNT=0x0501) #minimum version required is windows xp
-    add_definitions(-DNOMINMAX) #disables stupidity and enables std::min and std::max
-    add_definitions( #stop all kinds of compatibility warnings
-        -D_SCL_SECURE_NO_WARNINGS
-        -D_CRT_SECURE_NO_WARNINGS
-        -D_CRT_SECURE_NO_DEPRECATE
-        -D_CRT_NONSTDC_NO_DEPRECATE
-    )
-    add_definitions(/MP) #build with multiple processors
-endif(MSVC)
+endif(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    # The following is needed for weak linking to work under OS X
    set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+message(STATUS "CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
+message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
 
 ########################################################################
 # Create uninstall targets
@@ -179,10 +307,41 @@ message(STATUS "Building for version: ${VERSION}")
 ########################################################################
 # Add general includes and dependencies
 ########################################################################
-include_directories(${PROJECT_BINARY_DIR}/srslte/include/)
-include_directories(${PROJECT_SOURCE_DIR}/srslte/include/)
+include_directories(${PROJECT_BINARY_DIR}/lib/include)
+include_directories(${PROJECT_SOURCE_DIR}/lib/include)
+
+########################################################################
+# Add headers to cmake project (useful for IDEs)
+########################################################################
+set(HEADERS_ALL "")
+file(GLOB headers *)
+foreach(_header ${headers})
+    if(IS_DIRECTORY ${_header})
+        file(GLOB_RECURSE tmp "${_header}/*.h")
+        list(APPEND HEADERS_ALL ${tmp})
+    endif(IS_DIRECTORY ${_header})
+endforeach()
+add_custom_target(add_srslte_headers SOURCES ${HEADERS_ALL})
 
 ########################################################################
 # Add the subdirectories
 ########################################################################
-add_subdirectory(srslte)
+add_subdirectory(lib)
+
+if(RF_FOUND)
+  if(ENABLE_SRSUE)
+    message(STATUS "Building with srsUE")
+    add_subdirectory(srsue)
+  else(ENABLE_SRSUE)
+    message(STATUS "srsUE build disabled")
+  endif(ENABLE_SRSUE)
+
+  if(ENABLE_SRSENB)
+    message(STATUS "Building with srsENB")
+    add_subdirectory(srsenb)
+  else(ENABLE_SRSENB)
+    message(STATUS "srsUE build disabled")
+  endif(ENABLE_SRSENB)
+else(RF_FOUND)
+  message(STATUS "srsUE and srsENB builds disabled due to missing RF driver")
+endif(RF_FOUND)
