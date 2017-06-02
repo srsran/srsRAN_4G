@@ -190,15 +190,6 @@ set(INCLUDE_DIR include)
 set(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
 set(DATA_DIR share/${CPACK_PACKAGE_NAME})
 
-
-########################################################################
-# Install headers
-########################################################################
-INSTALL(DIRECTORY include/
-        DESTINATION "${INCLUDE_DIR}"
-        FILES_MATCHING PATTERN "*.h"
-)
-
 ########################################################################
 # Compiler specific setup
 ########################################################################
