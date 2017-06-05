@@ -179,6 +179,6 @@ public:
   virtual void     write_pdu(uint8_t *payload, uint32_t nof_bytes) = 0;
 };
 
-} // namespace srsue
+} // namespace srslte
 
 #endif // RLC_COMMON_H

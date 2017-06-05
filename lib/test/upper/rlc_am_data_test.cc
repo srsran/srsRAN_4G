@@ -40,7 +40,7 @@ uint32_t PDU2_LEN = 5;
 uint8_t pdu3[] = {0x8C, 0x00, 0xDD, 0xCD, 0xDC, 0x5D, 0xC0};
 uint32_t PDU3_LEN = 7;
 
-using namespace srsue;
+using namespace srslte;
 
 int main(int argc, char **argv) {
   srslte::rlc_amd_pdu_header_t h;
