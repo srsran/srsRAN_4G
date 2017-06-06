@@ -141,7 +141,7 @@ void gtpu::rem_user(uint16_t rnti)
 
 void gtpu::run_thread()
 {
-  byte_buffer_t *pdu = pool->allocate();
+  byte_buffer_t *pdu = pool_allocate;
   run_enable = true;
 
   running=true; 
@@ -176,7 +176,7 @@ void gtpu::run_thread()
 
     pdcp->write_sdu(rnti, lcid, pdu);
     do {
-      pdu = pool->allocate();
+      pdu = pool_allocate;
       if (!pdu) {
         gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
         usleep(10000);

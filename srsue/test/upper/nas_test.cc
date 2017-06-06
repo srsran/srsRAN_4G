@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
 
 
-  byte_buffer_t* tmp = pool->allocate();
+  byte_buffer_t* tmp = pool_allocate;
   memcpy(tmp->msg, &pdu1[0], PDU1_LEN);
   tmp->N_bytes = PDU1_LEN;
 

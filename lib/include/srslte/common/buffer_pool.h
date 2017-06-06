@@ -72,8 +72,16 @@ public:
     }
   }
   
+  void print_all_buffers()
+  {
+    printf("%d buffers in queue\n", (int) used.size());
+    for (uint32_t i=0;i<used.size();i++) {
+      printf("%s\n", used[i]->debug_name?used[i]->debug_name:"Undefined");              
+    }
+  }
   
-  buffer_t* allocate()
+
+  buffer_t* allocate(const char *debug_name = NULL)
   {
     pthread_mutex_lock(&mutex);
     buffer_t* b = NULL;
@@ -87,9 +95,18 @@ public:
       if (available.size() < capacity/20) {
         printf("Warning buffer pool capacity is %f %%\n", (float) available.size()/capacity);
       }
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    if (debug_name) {
+      strncpy(b->debug_name, debug_name, 128);
+    }
+#endif
       
     } else {
       printf("Error - buffer pool is empty\n");
+      
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+      print_all_buffers();
+#endif
     }
 
     pthread_mutex_unlock(&mutex);
@@ -134,8 +151,8 @@ public:
   ~byte_buffer_pool() {
     delete pool; 
   }
-  byte_buffer_t* allocate() {
-    return pool->allocate();
+  byte_buffer_t* allocate(const char *debug_name = NULL) {
+    return pool->allocate(debug_name);
   }
   void deallocate(byte_buffer_t *b) {
     b->reset();

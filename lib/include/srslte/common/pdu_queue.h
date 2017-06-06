@@ -64,6 +64,10 @@ private:
     uint8_t  ptr[MAX_PDU_LEN]; 
     uint32_t len; 
     uint32_t tstamp; 
+    #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+      char   debug_name[128];
+    #endif
+
   } pdu_t; 
   
   block_queue<pdu_t*> pdu_q; 

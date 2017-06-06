@@ -222,7 +222,7 @@ void gw::run_thread()
     struct iphdr   *ip_pkt;
     uint32          idx = 0;
     int32           N_bytes;
-    byte_buffer_t  *pdu = pool->allocate();
+    byte_buffer_t  *pdu = pool_allocate;
 
     gw_log->info("GW IP packet receiver thread run_enable\n");
 
@@ -264,7 +264,7 @@ void gw::run_thread()
             pdcp->write_sdu(RB_ID_DRB1, pdu);
             
             do {
-              pdu = pool->allocate();
+              pdu = pool_allocate;
               if (!pdu) {
                 printf("Not enough buffers in pool\n");
                 usleep(100000);

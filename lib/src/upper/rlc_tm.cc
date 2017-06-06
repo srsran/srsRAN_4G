@@ -115,7 +115,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 void rlc_tm:: write_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
-  byte_buffer_t *buf = pool->allocate();
+  byte_buffer_t *buf = pool_allocate;
   memcpy(buf->msg, payload, nof_bytes);
   buf->N_bytes = nof_bytes;
   buf->set_timestamp();

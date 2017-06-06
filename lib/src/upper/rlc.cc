@@ -152,7 +152,7 @@ void rlc::write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "BCCH BCH message received.");
   dl_tput_bytes[0] += nof_bytes;
-  byte_buffer_t *buf = pool->allocate();
+  byte_buffer_t *buf = pool_allocate;
   memcpy(buf->msg, payload, nof_bytes);
   buf->N_bytes = nof_bytes;
   buf->set_timestamp();
@@ -163,7 +163,7 @@ void rlc::write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "BCCH TXSCH message received.");
   dl_tput_bytes[0] += nof_bytes;
-  byte_buffer_t *buf = pool->allocate();
+  byte_buffer_t *buf = pool_allocate;
   memcpy(buf->msg, payload, nof_bytes);
   buf->N_bytes = nof_bytes;
   buf->set_timestamp();
@@ -174,7 +174,7 @@ void rlc::write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "PCCH message received.");
   dl_tput_bytes[0] += nof_bytes;
-  byte_buffer_t *buf = pool->allocate();
+  byte_buffer_t *buf = pool_allocate;
   memcpy(buf->msg, payload, nof_bytes);
   buf->N_bytes = nof_bytes;
   buf->set_timestamp();

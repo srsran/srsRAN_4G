@@ -527,7 +527,7 @@ void nas::parse_emm_information(uint32_t lcid, byte_buffer_t *pdu)
 void nas::send_attach_request()
 {
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT  attach_req;
-  byte_buffer_t                  *msg = pool->allocate();
+  byte_buffer_t                  *msg = pool_allocate;
   u_int32_t                             i;
 
   attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
@@ -601,7 +601,7 @@ void nas::send_identity_response(){}
 
 void nas::send_service_request()
 {
-  byte_buffer_t *msg = pool->allocate();
+  byte_buffer_t *msg = pool_allocate;
   count_ul++;
 
   // Pack the service request message directly

@@ -245,7 +245,7 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
   if (users.count(old_rnti) == 1) {
     if (users[old_rnti].is_connected()) {
-      users[old_rnti].send_connection_reconf_upd(pool->allocate());
+      users[old_rnti].send_connection_reconf_upd(pool_allocate);
     } else {
       users[old_rnti].send_connection_release();
     }
@@ -1336,7 +1336,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 
 void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  srslte::byte_buffer_t *pdu = parent->pool->allocate();
+  srslte::byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
 
   LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
   dl_dcch_msg.msg_type = LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG;
@@ -1421,7 +1421,7 @@ void rrc::ue::send_ue_cap_enquiry()
 void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg) 
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP 
-  byte_buffer_t *pdu = parent->pool->allocate();
+  byte_buffer_t *pdu = parent->pool->allocate(__FUNCTION__);
   if (pdu) {
     liblte_rrc_pack_dl_ccch_msg(dl_ccch_msg, (LIBLTE_BIT_MSG_STRUCT*) &parent->bit_buf);
     srslte_bit_pack_vector(parent->bit_buf.msg, pdu->msg, parent->bit_buf.N_bits);
@@ -1441,7 +1441,7 @@ void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg)
 void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buffer_t *pdu) 
 {  
   if (!pdu) {
-    pdu = parent->pool->allocate();
+    pdu = parent->pool->allocate(__FUNCTION__);
   }
   if (pdu) {
     liblte_rrc_pack_dl_dcch_msg(dl_dcch_msg, (LIBLTE_BIT_MSG_STRUCT*) &parent->bit_buf);

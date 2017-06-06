@@ -50,6 +50,14 @@
 #define SRSUE_MAX_BUFFER_SIZE_BYTES 12756
 #define SRSUE_BUFFER_HEADER_OFFSET  1024
 
+#define SRSLTE_BUFFER_POOL_LOG_ENABLED
+
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+#define pool_allocate (pool->allocate(__FUNCTION__))
+#else
+#define pool_allocate (pool->allocate())
+#endif
+
 #include "srslte/srslte.h"
 
 /*******************************************************************************
@@ -112,6 +120,9 @@ public:
     uint32_t    N_bytes;
     uint8_t     buffer[SRSUE_MAX_BUFFER_SIZE_BYTES];
     uint8_t    *msg;
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    char        debug_name[128];
+#endif
 
     byte_buffer_t():N_bytes(0)
     {
@@ -181,6 +192,9 @@ struct bit_buffer_t{
     uint32_t    N_bits;
     uint8_t     buffer[SRSUE_MAX_BUFFER_SIZE_BITS];
     uint8_t    *msg;
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    char        debug_name[128];
+#endif
 
     bit_buffer_t():N_bits(0)
     {

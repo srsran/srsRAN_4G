@@ -264,7 +264,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
-  byte_buffer_t *pdu = pool->allocate();
+  byte_buffer_t *pdu = pool_allocate;
   if(!pdu || pdu->N_bytes != 0)
   {
     log->error("Failed to allocate PDU buffer\n");
@@ -387,7 +387,7 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   // Write to rx window
   rlc_umd_pdu_t pdu;
-  pdu.buf = pool->allocate();
+  pdu.buf = pool_allocate;
   if (!pdu.buf) {
     log->error("Discarting packet: no space in buffer pool\n");
     return;
@@ -435,7 +435,7 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 void rlc_um::reassemble_rx_sdus()
 {
   if(!rx_sdu)
-    rx_sdu = pool->allocate();
+    rx_sdu = pool_allocate;
 
   // First catch up with lower edge of reordering window
   while(!inside_reordering_window(vr_ur))
@@ -459,7 +459,7 @@ void rlc_um::reassemble_rx_sdus()
           log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d (lower edge middle segments)", rb_id_text[lcid], vr_ur, i);
           rx_sdu->set_timestamp();
           pdcp->write_pdu(lcid, rx_sdu);
-          rx_sdu = pool->allocate();
+          rx_sdu = pool_allocate;
         }
         pdu_lost = false;
       }
@@ -479,7 +479,7 @@ void rlc_um::reassemble_rx_sdus()
           log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", rb_id_text[lcid], vr_ur);
           rx_sdu->set_timestamp();
           pdcp->write_pdu(lcid, rx_sdu);
-          rx_sdu = pool->allocate();
+          rx_sdu = pool_allocate;
         }
         pdu_lost = false;
       }
@@ -513,7 +513,7 @@ void rlc_um::reassemble_rx_sdus()
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)", rb_id_text[lcid], vr_ur, i);
         rx_sdu->set_timestamp();
         pdcp->write_pdu(lcid, rx_sdu);
-        rx_sdu = pool->allocate();
+        rx_sdu = pool_allocate;
       }
       pdu_lost = false;
     }
@@ -533,7 +533,7 @@ void rlc_um::reassemble_rx_sdus()
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", rb_id_text[lcid], vr_ur);
         rx_sdu->set_timestamp();
         pdcp->write_pdu(lcid, rx_sdu);
-        rx_sdu = pool->allocate();
+        rx_sdu = pool_allocate;
       }
       pdu_lost = false;
     }

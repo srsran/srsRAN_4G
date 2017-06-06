@@ -400,7 +400,7 @@ void rrc::send_con_request()
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool->allocate();
+  byte_buffer_t *pdcp_buf = pool_allocate;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits/8;
   pdcp_buf->set_timestamp();
@@ -494,7 +494,7 @@ void rrc::send_con_restablish_request()
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool->allocate();
+  byte_buffer_t *pdcp_buf = pool_allocate;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits/8;
 
@@ -531,7 +531,7 @@ void rrc::send_con_restablish_complete()
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool->allocate();
+  byte_buffer_t *pdcp_buf = pool_allocate;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits/8;
 
@@ -562,7 +562,7 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool->allocate();
+  byte_buffer_t *pdcp_buf = pool_allocate;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits/8;
   pdcp_buf->set_timestamp();
@@ -1309,7 +1309,7 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
   byte_buffer_t *nas_sdu;
   for(i=0;i<reconfig->N_ded_info_nas;i++)
   {
-    nas_sdu = pool->allocate();
+    nas_sdu = pool_allocate;
     memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
     nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
     nas->write_pdu(lcid, nas_sdu);

@@ -87,7 +87,7 @@ void s1ap::get_metrics(s1ap_metrics_t &m)
 
 void s1ap::run_thread()
 {
-  srslte::byte_buffer_t *pdu = pool->allocate();
+  srslte::byte_buffer_t *pdu = pool_allocate;
 
   uint32_t sz = SRSUE_MAX_BUFFER_SIZE_BYTES - SRSUE_BUFFER_HEADER_OFFSET;
   running = true;
@@ -512,7 +512,7 @@ bool s1ap::handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT
     s1ap_log->warning("Not handling SubscriberProfileIDforRFP\n");
   }
 
-  srslte::byte_buffer_t *pdu = pool->allocate();
+  srslte::byte_buffer_t *pdu = pool_allocate;
   memcpy(pdu->msg, msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
   pdu->N_bytes = msg->NAS_PDU.n_octets;
   rrc->write_dl_info(rnti, pdu);
@@ -848,7 +848,7 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_I
   if(!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t *buf = pool->allocate();
+  srslte::byte_buffer_t *buf = pool_allocate;
   LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
 
   tx_pdu.ext          = false;
@@ -894,7 +894,7 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETU
   if(!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t *buf = pool->allocate();
+  srslte::byte_buffer_t *buf = pool_allocate;
   LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
 
   tx_pdu.ext          = false;
@@ -940,7 +940,7 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   if(!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t *buf = pool->allocate();
+  srslte::byte_buffer_t *buf = pool_allocate;
   LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
   tx_pdu.ext         = false;
   tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME;

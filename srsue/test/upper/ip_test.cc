@@ -245,7 +245,7 @@ public:
         mac->bcch_stop_rx();
         apply_sib2_configs();
         
-        srslte::byte_buffer_t *sdu = pool->allocate(); 
+        srslte::byte_buffer_t *sdu = pool_allocate; 
         assert(sdu); 
         
         // Send Msg3 
@@ -364,7 +364,7 @@ private:
     struct iphdr   *ip_pkt;
     uint32_t        idx = 0;
     int32_t         N_bytes;
-    srslte::byte_buffer_t  *pdu = pool->allocate();
+    srslte::byte_buffer_t  *pdu = pool_allocate;
 
     log_h->info("TUN/TAP reader thread running\n");
 
@@ -388,7 +388,7 @@ private:
           pdu->set_timestamp();
           rlc->write_sdu(LCID, pdu);
           
-          pdu = pool->allocate();
+          pdu = pool_allocate;
           idx = 0;
         } else{
           idx += N_bytes;

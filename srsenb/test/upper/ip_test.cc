@@ -212,7 +212,7 @@ public:
         
         // Send dummy ConnectionSetup. MAC will send contention resolution ID automatically. 
         log_h->info("Sending ConnectionSetup\n");
-        sdu = pool->allocate();
+        sdu = pool_allocate;
         sdu->msg[0]  = 0xab; 
         sdu->N_bytes = 1; 
         rlc->write_sdu(0, sdu);
@@ -273,7 +273,7 @@ private:
     struct iphdr   *ip_pkt;
     uint32_t        idx = 0;
     int32_t         N_bytes = 0;
-    srslte::byte_buffer_t  *pdu = pool->allocate();
+    srslte::byte_buffer_t  *pdu = pool_allocate;
 
     log_h->info("TUN/TAP reader thread running\n");
 
@@ -304,7 +304,7 @@ private:
             // Indicate RLC status to mac 
             mac->rlc_buffer_state(rnti, LCID, rlc->get_buffer_state(LCID), 0);
             
-            pdu = pool->allocate();
+            pdu = pool_allocate;
             idx = 0;
           } else{
             idx += N_bytes;

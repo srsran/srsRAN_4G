@@ -473,6 +473,13 @@ int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MA
     /* descramble */
     srslte_scrambling_f_offset(&q->seq[nsubframe], q->llr, 0, e_bits);
     
+    float mean = 0;
+    for (int i=0;i<e_bits;i++) {
+      mean += fabsf(q->llr[i]);
+    }
+    mean /= e_bits;
+    printf("power %f\n",mean);
+
     ret = SRSLTE_SUCCESS;
   } 
   return ret;  
