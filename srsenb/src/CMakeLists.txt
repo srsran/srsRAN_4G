@@ -25,7 +25,7 @@ target_link_libraries(srsenb  srsenb_upper
                               srslte_radio
                               ${CMAKE_THREAD_LIBS_INIT} 
                               ${Boost_LIBRARIES} 
-                              ${POLAR_LIBRARIES} 
+                              ${SEC_LIBRARIES}
                               ${LIBCONFIGPP_LIBRARIES}
                               ${SCTP_LIBRARIES})
 

@@ -30,13 +30,13 @@ endif()
 ########################################################################
 include_directories(
     ${Boost_INCLUDE_DIRS}
-    ${POLAR_INCLUDE_DIRS}
+    ${SEC_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/srsue/hdr
 )
 
 link_directories(
     ${Boost_LIBRARY_DIRS}
-    ${POLAR_LIBRARY_DIRS}
+    ${SEC_LIBRARY_DIRS}
 )
 
 ########################################################################

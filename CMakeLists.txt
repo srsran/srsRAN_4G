@@ -74,17 +74,15 @@ find_package(Threads REQUIRED)
 
 find_package(Polarssl)
 if (POLARSSL_FOUND)
-  set(POLAR_INCLUDE_DIRS "${POLARSSL_INCLUDE_DIRS}")
-  set(POLAR_LIBRARIES    "${POLARSSL_LIBRARIES}")
+  set(SEC_INCLUDE_DIRS "${POLARSSL_INCLUDE_DIRS}")
+  set(SEC_LIBRARIES    "${POLARSSL_LIBRARIES}")
   add_definitions(-DHAVE_POLARSSL)
 else(POLARSSL_FOUND)
-  find_package(MbedTLS)
+  find_package(MbedTLS REQUIRED)
   if (MBEDTLS_FOUND)
-    set(POLAR_INCLUDE_DIRS "${MBEDTLS_INCLUDE_DIRS}")
-    set(POLAR_LIBRARIES    "${MBEDTLS_LIBRARIES}")
+    set(SEC_INCLUDE_DIRS "${MBEDTLS_INCLUDE_DIRS}")
+    set(SEC_LIBRARIES    "${MBEDTLS_LIBRARIES}")
     add_definitions(-DHAVE_MBEDTLS)
-  else(MBEDTLS_FOUND)
-    message(FATAL_ERROR "Either polarssl or mbedtls is required to compile srsLTE")
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
@@ -191,15 +189,6 @@ set(LIBRARY_DIR ${CMAKE_INSTALL_LIBDIR})
 set(INCLUDE_DIR include)
 set(DOC_DIR "share/doc/${CPACK_PACKAGE_NAME}")
 set(DATA_DIR share/${CPACK_PACKAGE_NAME})
-
-
-########################################################################
-# Install headers
-########################################################################
-INSTALL(DIRECTORY include/
-        DESTINATION "${INCLUDE_DIR}"
-        FILES_MATCHING PATTERN "*.h"
-)
 
 ########################################################################
 # Compiler specific setup
