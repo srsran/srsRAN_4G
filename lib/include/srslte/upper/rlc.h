@@ -86,10 +86,10 @@ private:
   srsue::rrc_interface_rlc    *rrc;
   srslte::mac_interface_timers *mac_timers; 
   srsue::ue_interface         *ue;
-  srslte::rlc_entity           rlc_array[SRSUE_N_RADIO_BEARERS];
+  srslte::rlc_entity           rlc_array[SRSLTE_N_RADIO_BEARERS];
 
-  long                ul_tput_bytes[SRSUE_N_RADIO_BEARERS];
-  long                dl_tput_bytes[SRSUE_N_RADIO_BEARERS];
+  long                ul_tput_bytes[SRSLTE_N_RADIO_BEARERS];
+  long                dl_tput_bytes[SRSLTE_N_RADIO_BEARERS];
   struct timeval      metrics_time[3];
 
   bool valid_lcid(uint32_t lcid);

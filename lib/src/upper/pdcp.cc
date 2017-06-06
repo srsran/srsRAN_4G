@@ -48,7 +48,7 @@ void pdcp::stop()
 
 void pdcp::reset()
 {
-  for(uint32_t i=0;i<SRSUE_N_RADIO_BEARERS;i++) {
+  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
     pdcp_array[i].reset();
   }
 
@@ -66,8 +66,8 @@ void pdcp::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 
 void pdcp::add_bearer(uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg)
 {
-  if(lcid < 0 || lcid >= SRSUE_N_RADIO_BEARERS) {
-    pdcp_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSUE_N_RADIO_BEARERS, lcid);
+  if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
+    pdcp_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return;
   }
   if (!pdcp_array[lcid].is_active()) {
@@ -116,8 +116,8 @@ void pdcp::write_pdu_pcch(byte_buffer_t *sdu)
 *******************************************************************************/
 bool pdcp::valid_lcid(uint32_t lcid)
 {
-  if(lcid < 0 || lcid >= SRSUE_N_RADIO_BEARERS) {
-    pdcp_log->error("Radio bearer id must be in [0:%d] - %d", SRSUE_N_RADIO_BEARERS, lcid);
+  if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
+    pdcp_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
     return false;
   }
   if(!pdcp_array[lcid].is_active()) {

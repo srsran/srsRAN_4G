@@ -38,17 +38,17 @@
                               DEFINES
 *******************************************************************************/
 
-#define SRSUE_UE_CATEGORY     4
+#define SRSLTE_UE_CATEGORY     4
 
-#define SRSUE_N_SRB           3
-#define SRSUE_N_DRB           8
-#define SRSUE_N_RADIO_BEARERS 11
+#define SRSLTE_N_SRB           3
+#define SRSLTE_N_DRB           8
+#define SRSLTE_N_RADIO_BEARERS 11
 
 // Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1
-#define SRSUE_MAX_BUFFER_SIZE_BITS  102048
-#define SRSUE_MAX_BUFFER_SIZE_BYTES 12756
-#define SRSUE_BUFFER_HEADER_OFFSET  1024
+#define SRSLTE_MAX_BUFFER_SIZE_BITS  102048
+#define SRSLTE_MAX_BUFFER_SIZE_BYTES 12756
+#define SRSLTE_BUFFER_HEADER_OFFSET  1024
 
 #define SRSLTE_BUFFER_POOL_LOG_ENABLED
 
@@ -118,7 +118,7 @@ static const char rb_id_text[RB_ID_N_ITEMS][20] = { "SRB0",
 class byte_buffer_t{
 public:
     uint32_t    N_bytes;
-    uint8_t     buffer[SRSUE_MAX_BUFFER_SIZE_BYTES];
+    uint8_t     buffer[SRSLTE_MAX_BUFFER_SIZE_BYTES];
     uint8_t    *msg;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     char        debug_name[128];
@@ -127,7 +127,7 @@ public:
     byte_buffer_t():N_bytes(0)
     {
       timestamp_is_set = false; 
-      msg  = &buffer[SRSUE_BUFFER_HEADER_OFFSET];
+      msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       next = NULL; 
     }
     byte_buffer_t(const byte_buffer_t& buf)
@@ -146,7 +146,7 @@ public:
     }
     void reset()
     {
-      msg       = &buffer[SRSUE_BUFFER_HEADER_OFFSET];
+      msg       = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bytes   = 0;
       timestamp_is_set = false; 
     }
@@ -190,7 +190,7 @@ private:
 
 struct bit_buffer_t{
     uint32_t    N_bits;
-    uint8_t     buffer[SRSUE_MAX_BUFFER_SIZE_BITS];
+    uint8_t     buffer[SRSLTE_MAX_BUFFER_SIZE_BITS];
     uint8_t    *msg;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     char        debug_name[128];
@@ -198,7 +198,7 @@ struct bit_buffer_t{
 
     bit_buffer_t():N_bits(0)
     {
-      msg = &buffer[SRSUE_BUFFER_HEADER_OFFSET];
+      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
     }
     bit_buffer_t(const bit_buffer_t& buf){
       N_bits = buf.N_bits;
@@ -214,7 +214,7 @@ struct bit_buffer_t{
     }
     void reset()
     {
-      msg       = &buffer[SRSUE_BUFFER_HEADER_OFFSET];
+      msg       = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bits    = 0;
       timestamp_is_set = false; 
     }

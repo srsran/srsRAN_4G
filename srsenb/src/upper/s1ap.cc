@@ -89,7 +89,7 @@ void s1ap::run_thread()
 {
   srslte::byte_buffer_t *pdu = pool_allocate;
 
-  uint32_t sz = SRSUE_MAX_BUFFER_SIZE_BYTES - SRSUE_BUFFER_HEADER_OFFSET;
+  uint32_t sz = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
   running = true;
 
   // Connect to MME

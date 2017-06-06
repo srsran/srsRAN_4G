@@ -369,7 +369,7 @@ private:
     log_h->info("TUN/TAP reader thread running\n");
 
     while(running) {
-      N_bytes = read(tun_fd, &pdu->msg[idx], SRSUE_MAX_BUFFER_SIZE_BYTES-SRSUE_BUFFER_HEADER_OFFSET - idx);      
+      N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);      
       if(N_bytes > 0 && read_enable)
       {
         pdu->N_bytes = idx + N_bytes;

@@ -79,7 +79,7 @@ void rrc::init(phy_interface_rrc     *phy_,
 
   pthread_mutex_init(&mutex, NULL); 
   
-  ue_category = SRSUE_UE_CATEGORY; 
+  ue_category = SRSLTE_UE_CATEGORY; 
   
   transaction_id = 0;
   
@@ -318,7 +318,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu)
 
 void rrc::write_pdu_pcch(byte_buffer_t *pdu)
 {
-  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSUE_MAX_BUFFER_SIZE_BITS) {
+  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     rrc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received %d bytes\n", pdu->N_bytes);
     rrc_log->info("PCCH message Stack latency: %ld us\n", pdu->get_latency_us());
     rrc_log->console("PCCH message received %d bytes\n", pdu->N_bytes);

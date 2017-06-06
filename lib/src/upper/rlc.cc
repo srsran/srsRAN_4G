@@ -57,8 +57,8 @@ void rlc::init(srsue::pdcp_interface_rlc *pdcp_,
 
 void rlc::reset_metrics() 
 {
-  bzero(dl_tput_bytes, sizeof(long)*SRSUE_N_RADIO_BEARERS);
-  bzero(ul_tput_bytes, sizeof(long)*SRSUE_N_RADIO_BEARERS);
+  bzero(dl_tput_bytes, sizeof(long)*SRSLTE_N_RADIO_BEARERS);
+  bzero(ul_tput_bytes, sizeof(long)*SRSLTE_N_RADIO_BEARERS);
 }
 
 void rlc::stop()
@@ -75,7 +75,7 @@ void rlc::get_metrics(rlc_metrics_t &m)
   
   m.dl_tput_mbps = 0; 
   m.ul_tput_mbps = 0; 
-  for (int i=0;i<SRSUE_N_RADIO_BEARERS;i++) {
+  for (int i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
     m.dl_tput_mbps += (dl_tput_bytes[i]*8/(double)1e6)/secs;
     m.ul_tput_mbps += (ul_tput_bytes[i]*8/(double)1e6)/secs;    
     if(rlc_array[i].active()) {
@@ -92,7 +92,7 @@ void rlc::get_metrics(rlc_metrics_t &m)
 
 void rlc::reset()
 {
-  for(uint32_t i=0; i<SRSUE_N_RADIO_BEARERS; i++) {
+  for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
     if(rlc_array[i].active())
       rlc_array[i].reset();
   }
@@ -210,8 +210,8 @@ void rlc::add_bearer(uint32_t lcid)
 
 void rlc::add_bearer(uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg)
 {
-  if(lcid < 0 || lcid >= SRSUE_N_RADIO_BEARERS) {
-    rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSUE_N_RADIO_BEARERS, lcid);
+  if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
+    rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return;
   }
   
@@ -249,7 +249,7 @@ void rlc::add_bearer(uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg)
 *******************************************************************************/
 bool rlc::valid_lcid(uint32_t lcid)
 {
-  if(lcid < 0 || lcid >= SRSUE_N_RADIO_BEARERS) {
+  if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
     return false;
   }
   if(!rlc_array[lcid].active()) {

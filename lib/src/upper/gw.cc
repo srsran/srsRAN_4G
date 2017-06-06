@@ -229,8 +229,8 @@ void gw::run_thread()
     running = true; 
     while(run_enable)
     {
-      if (SRSUE_MAX_BUFFER_SIZE_BYTES-SRSUE_BUFFER_HEADER_OFFSET > idx) {
-        N_bytes = read(tun_fd, &pdu->msg[idx], SRSUE_MAX_BUFFER_SIZE_BYTES-SRSUE_BUFFER_HEADER_OFFSET - idx);
+      if (SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET > idx) {
+        N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);
       } else {
         gw_log->error("GW pdu buffer full - gw receive thread exiting.\n");
         gw_log->console("GW pdu buffer full - gw receive thread exiting.\n");

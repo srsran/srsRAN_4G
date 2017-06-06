@@ -281,7 +281,7 @@ private:
     while(running) {
       if (tun_fd > 0) {
         pdu->msg[0] = 0x0; 
-        N_bytes = read(tun_fd, &pdu->msg[idx], SRSUE_MAX_BUFFER_SIZE_BYTES-SRSUE_BUFFER_HEADER_OFFSET - idx);
+        N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES-SRSLTE_BUFFER_HEADER_OFFSET - idx);
       } 
       if(N_bytes > 0)
       {

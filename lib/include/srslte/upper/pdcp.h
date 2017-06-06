@@ -67,7 +67,7 @@ public:
 
 private:
   log        *pdcp_log;
-  pdcp_entity         pdcp_array[SRSUE_N_RADIO_BEARERS];
+  pdcp_entity         pdcp_array[SRSLTE_N_RADIO_BEARERS];
 
   srsue::rlc_interface_pdcp *rlc;
   srsue::rrc_interface_pdcp *rrc;
