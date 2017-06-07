@@ -63,6 +63,7 @@ option(ENABLE_GUI      "Enable GUI"                             ON)
 option(ENABLE_SRSUE    "Build srsUE application"                ON)
 option(ENABLE_SRSENB   "Build srsENB application"               ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                         ON)
+option(USE_LTE_RATES   "Use standard LTE sampling rates"        OFF)
 
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
@@ -219,6 +220,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
+  if (USE_LTE_RATES)
+    message(STATUS "Using standard LTE sampling rates")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DFORCE_STANDARD_RATE")
+  endif (USE_LTE_RATES)
 
   find_package(SSE)
   if (HAVE_AVX2)
