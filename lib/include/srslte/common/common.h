@@ -54,6 +54,7 @@
 
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
 #define pool_allocate (pool->allocate(__FUNCTION__))
+#define SRSLTE_BUFFER_POOL_LOG_NAME_LEN 128
 #else
 #define pool_allocate (pool->allocate())
 #endif
@@ -121,7 +122,7 @@ public:
     uint8_t     buffer[SRSLTE_MAX_BUFFER_SIZE_BYTES];
     uint8_t    *msg;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-    char        debug_name[128];
+    char        debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
 #endif
 
     byte_buffer_t():N_bytes(0)
@@ -129,6 +130,9 @@ public:
       timestamp_is_set = false; 
       msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       next = NULL; 
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+      debug_name[0] = 0;
+#endif
     }
     byte_buffer_t(const byte_buffer_t& buf)
     {

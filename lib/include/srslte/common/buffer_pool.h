@@ -76,7 +76,7 @@ public:
   {
     printf("%d buffers in queue\n", (int) used.size());
     for (uint32_t i=0;i<used.size();i++) {
-      printf("%s\n", used[i]->debug_name?used[i]->debug_name:"Undefined");              
+      printf("%s\n", strlen(used[i]->debug_name)?used[i]->debug_name:"Undefined");
     }
   }
   
@@ -97,7 +97,8 @@ public:
       }
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     if (debug_name) {
-      strncpy(b->debug_name, debug_name, 128);
+      strncpy(b->debug_name, debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
+      b->debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN-1] = 0;
     }
 #endif
       
