@@ -39,6 +39,13 @@
 #include "volk/volk.h"
 #endif
 
+#ifdef DEBUG_MODE
+#warning FIXME: Disabling SSE/AVX vector code
+#undef LV_HAVE_SSE
+#undef LV_HAVE_AVX
+#endif
+
+
 int srslte_vec_acc_ii(int *x, uint32_t len) {
   int i;
   int z=0;
@@ -295,21 +302,17 @@ void srslte_vec_lut_fuf(float *x, uint32_t *lut, float *y, uint32_t len) {
 }
 
 void srslte_vec_lut_sss(short *x, unsigned short *lut, short *y, uint32_t len) {
-#ifdef DEBUG_MODE
-#warning FIXME: Disabling SSE/AVX in srslte_vec_lut_sss
-#else
-#ifdef LV_HAVE_SSE
+#ifndef LV_HAVE_SSE
   for (int i=0;i<len;i++) {
     y[lut[i]] = x[i];
   }
 #else
   srslte_vec_lut_sss_sse(x, lut, y, len);
 #endif
-#endif
 }
 
 void srslte_vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len) {
- #ifdef HAVE_VOLK_INTERLEAVE_FUNCTION
+#ifdef HAVE_VOLK_INTERLEAVE_FUNCTION
   volk_32f_x2_interleave_32fc(x, real, imag, len);
 #else 
   int i;
@@ -320,7 +323,7 @@ void srslte_vec_interleave_cf(float *real, float *imag, cf_t *x, uint32_t len) {
 }
 
 void srslte_vec_deinterleave_cf(cf_t *x, float *real, float *imag, uint32_t len) {
- #ifdef HAVE_VOLK_DEINTERLEAVE_FUNCTION
+#ifdef HAVE_VOLK_DEINTERLEAVE_FUNCTION
   volk_32fc_deinterleave_32f_x2(real, imag, x, len);
 #else 
   int i;
@@ -517,8 +520,6 @@ void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void srslte_vec_prod_sss(short *x, short *y, short *z, uint32_t len) {
-
-
 #ifdef LV_HAVE_AVX
   srslte_vec_prod_sss_avx(x,y,z,len);
 #else
