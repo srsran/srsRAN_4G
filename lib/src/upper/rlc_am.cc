@@ -909,22 +909,30 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
       if(status.nacks[j].nack_sn == i) {
         nack = true;
         update_vt_a = false;
-        if(tx_window.end() != tx_window.find(i))
+        it = tx_window.find(i);
+        if(tx_window.end() != it)
         {
           if(!retx_queue_has_sn(i)) {
             rlc_amd_retx_t retx;
-            retx.is_segment = status.nacks[j].has_so;
-            if(retx.is_segment) {
-              retx.so_start = status.nacks[j].so_start;
-              if(status.nacks[j].so_end == 0x7FFF) {
-                retx.so_end = tx_window.find(i)->second.buf->N_bytes;
-              }else{
-                retx.so_end   = status.nacks[j].so_end + 1;
+            retx.so_start = 0;
+            retx.so_end   = it->second.buf->N_bytes;
+
+            if(status.nacks[j].has_so) {
+              if(status.nacks[j].so_start <  it->second.buf->N_bytes &&
+                 status.nacks[j].so_end   <= it->second.buf->N_bytes) {
+                  retx.is_segment = true;
+                  retx.so_start = status.nacks[j].so_start;
+                  if(status.nacks[j].so_end == 0x7FFF) {
+                    retx.so_end = it->second.buf->N_bytes;
+                  }else{
+                    retx.so_end   = status.nacks[j].so_end + 1;
+                  }
+              } else {
+                log->warning("%s invalid segment NACK received for SN %d. so_start: %d, so_end: %d, N_bytes: %d\n",
+                             rb_id_text[lcid], i, status.nacks[j].so_start, status.nacks[j].so_end, it->second.buf->N_bytes);
               }
-            } else {
-              retx.so_start = 0;
-              retx.so_end   = tx_window.find(i)->second.buf->N_bytes;
             }
+
             retx.sn         = i;
             retx_queue.push_back(retx);
           }
