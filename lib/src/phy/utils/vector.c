@@ -57,12 +57,18 @@ int srslte_vec_acc_ii(int *x, uint32_t len) {
 
 // Used in PRACH detector, AGC and chest_dl for noise averaging
 float srslte_vec_acc_ff(float *x, uint32_t len) {
-  int i;
-  float z=0;
-  for (i=0;i<len;i++) {
-    z+=x[i];
-  }
-  return z;
+#ifdef HAVE_VOLK_ACC_FUNCTION
+  float result;
+  volk_32f_accumulator_s32f(&result,x,len);
+  return result;
+#else
+   int i;
+   float z=0;
+   for (i=0;i<len;i++) {
+     z+=x[i];
+   }
+   return z;
+#endif
 }
 
 void srslte_vec_ema_filter(cf_t *new_data, cf_t *average, cf_t *output, float coeff, uint32_t len) {
@@ -336,7 +342,7 @@ void srslte_vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
  */
 void *srslte_vec_malloc(uint32_t size) {
   void *ptr;
-  if (posix_memalign(&ptr,64,size)) {
+  if (posix_memalign(&ptr,256,size)) {
     return NULL;
   } else {
     return ptr;
