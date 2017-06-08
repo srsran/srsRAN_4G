@@ -33,7 +33,8 @@ srsUE Features
  * Cell search and synchronization procedure for the UE
  * Soft USIM supporting Milenage and XOR authentication 
  * Virtual network interface *tun_srsue* created upon network attach
- * Above 60 Mbps DL in SISO configuration.
+ * 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
+ * 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.
 
 srsUE has been fully tested and validated with the following network equipment: 
  * Amarisoft LTE100 eNodeB and EPC
@@ -45,12 +46,14 @@ srsENB Features
 ---------------
 
  * Round Robin MAC scheduler with FAPI-like C++ API
- * PUCCH Format1 and Format1A receiver
+ * SR support
+ * Periodic and Aperiodic CQI feedback support
  * Standard S1AP and GTP-U interfaces to the Core Network
  * Tested up to 75 Mbps DL in SISO configuration with commercial UEs 
 
 srsENB has been tested and validated with the following handsets:
  * LG Nexus 5
+ * LG Nexus 4
  * Motorola Moto G4 plus
 
 Hardware
@@ -62,6 +65,7 @@ We have tested the following hardware:
  * USRP B210
  * USRP X300
  * bladeRF
+ * limeSDR
 
 Build Instructions
 ------------------
@@ -77,8 +81,8 @@ Build Instructions
     * lksctp:            http://lksctp.sourceforge.net/
 
 * Optional requirements: 
-  * srsgui:        https://github.com/srslte/srsgui - for real-time plotting.
-  * VOLK:          https://github.com/gnuradio/volk -  if the VOLK library and headers are detected, they will be used to accelerate some signal processing functions.
+  * srsgui:              https://github.com/srslte/srsgui - for real-time plotting.
+  * VOLK:                https://github.com/gnuradio/volk -  if the VOLK library and headers are detected, they will be used to accelerate some signal processing functions.
 
 * RF front-end driver:
   * UHD:                 https://github.com/EttusResearch/uhd
