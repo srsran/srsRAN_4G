@@ -56,13 +56,16 @@ set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 ########################################################################
 # Options
 ########################################################################
-option(STATIC_BUILD    "Attempt to build with static linking"   OFF)
-option(RPATH           "Enable RPATH"                           OFF)
-option(ENABLE_VOLK     "Enable VOLK SIMD library"               ON)
-option(ENABLE_GUI      "Enable GUI"                             ON)
-option(ENABLE_SRSUE    "Build srsUE application"                ON)
-option(ENABLE_SRSENB   "Build srsENB application"               ON)
-option(ENABLE_BLADERF  "Enable BladeRF"                         ON)
+option(ENABLE_SRSUE    "Build srsUE application"                  ON)
+option(ENABLE_SRSENB   "Build srsENB application"                 ON)
+
+option(ENABLE_VOLK     "Enable use of VOLK SIMD library"          ON)
+option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
+option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
+
+option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
+option(RPATH           "Enable RPATH"                             OFF)
+
 
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
@@ -281,11 +284,9 @@ add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 ########################################################################
-# Macro to add -fPIC property to static libs 
+# Add -fPIC property to all targets
 ########################################################################
-macro(SRSLTE_SET_PIC)
-    set_target_properties(${ARGV} PROPERTIES COMPILE_FLAGS -fPIC)
-endmacro(SRSLTE_SET_PIC)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 ########################################################################
 # Print summary

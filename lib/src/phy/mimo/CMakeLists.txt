@@ -20,5 +20,4 @@
 
 file(GLOB SOURCES "*.c")
 add_library(srslte_mimo OBJECT ${SOURCES})
-SRSLTE_SET_PIC(srslte_mimo)
 add_subdirectory(test)

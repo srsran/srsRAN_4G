@@ -26,8 +26,6 @@ target_link_libraries(ip_test srsue_mac
                               srslte_phy
                               srslte_radio
                               srslte_upper
-                              ${SRSLTE_LIBRARIES}
-                              ${LIBLTE_LIBRARY}
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES})
 

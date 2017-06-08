@@ -20,5 +20,4 @@
 
 file(GLOB SOURCES "*.c")
 add_library(srslte_modem OBJECT ${SOURCES})
-SRSLTE_SET_PIC(srslte_modem)
 add_subdirectory(test)

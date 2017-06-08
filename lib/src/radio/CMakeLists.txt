@@ -20,7 +20,6 @@
 
 if(RF_FOUND)
   add_library(srslte_radio SHARED radio.cc radio_multi.cc)
-  install(TARGETS srslte_radio DESTINATION ${LIBRARY_DIR})
   target_link_libraries(srslte_radio srslte_rf)
-  SRSLTE_SET_PIC(srslte_radio)
+  install(TARGETS srslte_radio DESTINATION ${LIBRARY_DIR})
 endif(RF_FOUND)

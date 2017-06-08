@@ -113,5 +113,4 @@ if(VOLK_FOUND)
 endif(VOLK_FOUND)
 
 install(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})
-SRSLTE_SET_PIC(srslte_phy)
 

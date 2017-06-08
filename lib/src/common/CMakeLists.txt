@@ -20,7 +20,7 @@
 
 file(GLOB CXX_SOURCES "*.cc")
 file(GLOB C_SOURCES "*.c")
-add_library(srslte_common SHARED ${C_SOURCES} ${CXX_SOURCES})
+add_library(srslte_common STATIC ${C_SOURCES} ${CXX_SOURCES})
 target_link_libraries(srslte_common ${SEC_LIBRARIES})
 install(TARGETS srslte_common DESTINATION ${LIBRARY_DIR})
-SRSLTE_SET_PIC(srslte_common)
+

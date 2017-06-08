@@ -20,5 +20,4 @@
 
 file(GLOB SOURCES "*.c")
 add_library(srslte_fec OBJECT ${SOURCES})
-SRSLTE_SET_PIC(srslte_fec)
 add_subdirectory(test)
