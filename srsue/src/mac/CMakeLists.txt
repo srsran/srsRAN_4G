@@ -19,5 +19,5 @@
 #
 
 file(GLOB SOURCES "*.cc")
-add_library(srsue_mac ${SOURCES})
-target_link_libraries(srsue_mac)
+add_library(srsue_mac STATIC ${SOURCES})
+install(TARGETS srsue_mac DESTINATION ${LIBRARY_DIR})

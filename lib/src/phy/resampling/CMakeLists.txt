@@ -20,5 +20,4 @@
 
 file(GLOB SOURCES "*.c")
 add_library(srslte_resampling OBJECT ${SOURCES})
-SRSLTE_SET_PIC(srslte_resampling)
 add_subdirectory(test)
