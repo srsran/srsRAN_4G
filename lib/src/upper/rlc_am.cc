@@ -914,8 +914,9 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
         {
           if(!retx_queue_has_sn(i)) {
             rlc_amd_retx_t retx;
-            retx.so_start = 0;
-            retx.so_end   = it->second.buf->N_bytes;
+            retx.is_segment = false;
+            retx.so_start   = 0;
+            retx.so_end     = it->second.buf->N_bytes;
 
             if(status.nacks[j].has_so) {
               if(status.nacks[j].so_start <  it->second.buf->N_bytes &&
