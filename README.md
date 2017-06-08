@@ -35,8 +35,6 @@ srsUE Features
  * Virtual network interface *tun_srsue* created upon network attach
  * Above 60 Mbps DL in SISO configuration.
 
-### Compatibility
-
 srsUE has been fully tested and validated with the following network equipment: 
  * Amarisoft LTE100 eNodeB and EPC
  * Nokia FlexiRadio family FSMF system module with 1800MHz FHED radio module and TravelHawk EPC simulator
@@ -50,8 +48,6 @@ srsENB Features
  * PUCCH Format1 and Format1A receiver
  * Standard S1AP and GTP-U interfaces to the Core Network
  * Tested up to 75 Mbps DL in SISO configuration with commercial UEs 
-
-### Compatibility
 
 srsENB has been tested and validated with the following handsets:
  * LG Nexus 5
