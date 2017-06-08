@@ -1,6 +1,15 @@
 Change Log for Releases
 ==============================
 
+## 002.000.000
+  * Added fully functional srsENB to srsLTE code
+  * Merged srsUE code into srsLTE and reestructured PHY code 
+  * Added support for SoapySDR devices (eg LimeSDR)
+  * Fixed issues in RLC AM 
+  * Added support for NEON and AVX in many kernels and Viterbi decoder
+  * Added support for CPU affinity
+  * Other minor bug-fixes and new features 
+
 ## 001.004.000
   * Fixed issue in rv for format1C causing incorrect SIB1 decoding in some networks
   * Improved PDCCH decoding BER (fixed incorrect trellis initialization)
