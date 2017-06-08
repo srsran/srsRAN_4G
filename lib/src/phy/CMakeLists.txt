@@ -55,7 +55,6 @@ set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
 )
 
 add_library(srslte_phy STATIC ${srslte_srcs})
-target_link_libraries(srslte_phy pthread m)
 set_target_properties(srslte_phy PROPERTIES
                                  VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
@@ -109,5 +108,5 @@ if(VOLK_FOUND)
   target_link_libraries(srslte_phy ${VOLK_LIBRARIES})
 endif(VOLK_FOUND)
 
+target_link_libraries(srslte_phy pthread m)
 install(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})
-
