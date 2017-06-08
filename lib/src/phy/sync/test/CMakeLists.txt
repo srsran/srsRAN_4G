@@ -29,7 +29,7 @@ target_link_libraries(pss_file srslte_phy)
 
 if(UHD_FOUND)
   add_executable(pss_usrp pss_usrp.c)
-  target_link_libraries(pss_usrp srslte_phy)
+  target_link_libraries(pss_usrp srslte_phy srslte_rf)
 endif(UHD_FOUND)
 
 

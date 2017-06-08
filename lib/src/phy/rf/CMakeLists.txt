@@ -19,9 +19,14 @@
 #
 
 if(RF_FOUND)
+
+  # This library is only used by the examples 
+  add_library(srslte_rf_utils STATIC rf_utils.c)
+  target_link_libraries(srslte_rf_utils srslte_phy)
+
   # Include common RF files
   set(SOURCES_RF "")
-  list(APPEND SOURCES_RF rf_imp.c rf_utils.c)
+  list(APPEND SOURCES_RF rf_imp.c)
 
   if (UHD_FOUND)
     add_definitions(-DENABLE_UHD)
@@ -40,7 +45,7 @@ if(RF_FOUND)
 
 
   add_library(srslte_rf SHARED ${SOURCES_RF})
-  
+  target_link_libraries(srslte_rf srslte_rf_utils srslte_phy)
   
   if (UHD_FOUND)
     target_link_libraries(srslte_rf ${UHD_LIBRARIES})
