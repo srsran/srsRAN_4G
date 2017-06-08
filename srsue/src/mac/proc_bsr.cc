@@ -336,8 +336,9 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr)
     }
     generate_bsr(bsr, nof_padding_bytes);
     ret = true; 
-    Info("BSR:   Including BSR type %s, format %s, nof_padding_bytes=%d\n", 
-           bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format), nof_padding_bytes);
+    Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n", 
+         bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format), 
+         bsr->buff_size[0], bsr->buff_size[1], bsr->buff_size[2], bsr->buff_size[3]);
     
     if (timers_db->get(mac::BSR_TIMER_PERIODIC)->get_timeout() && bsr->format != TRUNC_BSR) {
       timers_db->get(mac::BSR_TIMER_PERIODIC)->reset();
