@@ -78,8 +78,17 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
     }
     
     INFO("Offseting input file by %d samples and %.1f kHz\n", offset_time, offset_freq/1000);
-    
-    srslte_filesource_read(&q->file_source, dummy_offset_buffer, offset_time);
+
+    if (offset_time) {
+      cf_t *file_offset_buffer = srslte_vec_malloc(offset_time * sizeof(cf_t));
+      if (!file_offset_buffer) {
+        perror("malloc");
+        goto clean_exit;
+      }
+      srslte_filesource_read(&q->file_source, file_offset_buffer, offset_time);
+      free(file_offset_buffer);
+    }
+
     srslte_ue_sync_reset(q);
     
     ret = SRSLTE_SUCCESS;

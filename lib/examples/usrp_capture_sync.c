@@ -100,7 +100,7 @@ void parse_args(int argc, char **argv) {
 
 int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv(h, data[2], nsamples, 1);
+  return srslte_rf_recv(h, data[0], nsamples, 1);
 }
 
 int main(int argc, char **argv) {

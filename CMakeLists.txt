@@ -66,6 +66,7 @@ option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
 
+option(USE_LTE_RATES   "Use standard LTE sampling rates"        OFF)
 
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
@@ -88,18 +89,6 @@ else(POLARSSL_FOUND)
     add_definitions(-DHAVE_MBEDTLS)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
-
-find_package(MKL)
-if(MKL_FOUND)
-  include_directories(${MKL_INCLUDE_DIRS})
-  link_directories(${MKL_LIBRARY_DIRS})
-else(MKL_FOUND)
-  find_package(FFTW3F REQUIRED)
-  if(FFTW3F_FOUND)
-    include_directories(${FFTW3F_INCLUDE_DIRS})
-    link_directories(${FFTW3F_LIBRARY_DIRS})
-  endif(FFTW3F_FOUND)
-endif(MKL_FOUND)
 
 find_package(UHD)
 if(UHD_FOUND)
@@ -234,6 +223,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   else(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
   endif(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+
+  if (USE_LTE_RATES)
+    message(STATUS "Using standard LTE sampling rates")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DFORCE_STANDARD_RATE")
+  endif (USE_LTE_RATES)
 
   find_package(SSE)
   if (HAVE_AVX2)

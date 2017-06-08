@@ -117,10 +117,10 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
  * This function enqueues the packet and returns quicly because ACK 
  * deadline is important here. 
  */ 
-void demux::push_pdu(uint32_t pid, uint8_t *buff, uint32_t nof_bytes)
+void demux::push_pdu(uint32_t pid, uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp)
 {
   if (pid < NOF_HARQ_PID) {    
-    return pdus.push(buff, nof_bytes);
+    return pdus.push(buff, nof_bytes, tstamp);
   } else if (pid == NOF_HARQ_PID) {
     /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through 
     * the MAC in transparent mode. 

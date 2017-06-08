@@ -300,7 +300,7 @@ void dl_harq_entity::dl_harq_process::tb_decoded(bool ack_)
         harq_entity->pcap->write_dl_sirnti(payload_buffer_ptr, cur_grant.n_bytes, ack, cur_grant.tti);
       }
       Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.n_bytes);
-      harq_entity->demux_unit->push_pdu(pid, payload_buffer_ptr, cur_grant.n_bytes);
+      harq_entity->demux_unit->push_pdu(pid, payload_buffer_ptr, cur_grant.n_bytes, cur_grant.tti);
     } else {      
       if (harq_entity->pcap) {
         harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes, cur_grant.rnti, ack, cur_grant.tti);            
@@ -311,10 +311,10 @@ void dl_harq_entity::dl_harq_process::tb_decoded(bool ack_)
           harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes);
         } else {
           Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes);
-          harq_entity->demux_unit->push_pdu(pid, payload_buffer_ptr, cur_grant.n_bytes);
-	  	  
-	  // Compute average number of retransmissions per packet 
-	  harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx, harq_entity->nof_pkts++); 
+          harq_entity->demux_unit->push_pdu(pid, payload_buffer_ptr, cur_grant.n_bytes, cur_grant.tti);
+
+          // Compute average number of retransmissions per packet 
+          harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx, harq_entity->nof_pkts++); 
         }
       }
     }
