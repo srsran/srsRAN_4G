@@ -19,4 +19,5 @@
 #
 
 file(GLOB SOURCES "*.cc")
-add_library(srsue_upper SHARED ${SOURCES})
+add_library(srsue_upper STATIC ${SOURCES})
+install(TARGETS srsue_upper DESTINATION ${LIBRARY_DIR})

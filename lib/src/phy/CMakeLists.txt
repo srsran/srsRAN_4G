@@ -54,14 +54,9 @@ set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
                     $<TARGET_OBJECTS:srslte_enb>
 )
 
-add_library(srslte_phy SHARED ${srslte_srcs})
-target_link_libraries(srslte_phy pthread m)
+add_library(srslte_phy STATIC ${srslte_srcs})
 set_target_properties(srslte_phy PROPERTIES
                                  VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
-
-if(NOT DisableMEX)
-  add_library(srslte_phy_static STATIC ${srslte_srcs})
-endif(NOT DisableMEX)
 
 find_package(MKL)
 if(MKL_FOUND)
@@ -79,26 +74,17 @@ endif(MKL_FOUND)
 if(MKL_FOUND)
   if(STATIC_MKL)
     target_link_libraries(srslte_phy ${MKL_STATIC_LIBRARIES})
-    if(NOT DisableMEX)
-      target_link_libraries(srslte_phy_static ${MKL_STATIC_LIBRARIES})
-    endif(NOT DisableMEX)
   else(STATIC_MKL)
     target_link_libraries(srslte_phy ${MKL_LIBRARIES})
-    if(NOT DisableMEX)
-      target_link_libraries(srslte_phy_static ${MKL_LIBRARIES})
-    endif(NOT DisableMEX)
   endif(STATIC_MKL)
 else(MKL_FOUND)
   target_link_libraries(srslte_phy ${FFTW3F_LIBRARIES})
-  if(NOT DisableMEX)
-    target_link_libraries(srslte_phy_static ${FFTW3F_LIBRARIES})
-  endif(NOT DisableMEX)
 endif(MKL_FOUND)
 
 ## This linkage is required for the examples and tests only
 if(RF_FOUND)
 
-  target_link_libraries(srslte_phy srslte_rf)
+  target_link_libraries(srslte_phy)
 
   if(UHD_FOUND)
     target_link_libraries(srslte_phy ${UHD_LIBRARIES})
@@ -120,11 +106,7 @@ endif(RF_FOUND)
 
 if(VOLK_FOUND)
   target_link_libraries(srslte_phy ${VOLK_LIBRARIES})
-  if(NOT DisableMEX)
-    target_link_libraries(srslte_phy_static ${VOLK_LIBRARIES})
-  endif(NOT DisableMEX)
 endif(VOLK_FOUND)
 
+target_link_libraries(srslte_phy pthread m)
 install(TARGETS srslte_phy DESTINATION ${LIBRARY_DIR})
-SRSLTE_SET_PIC(srslte_phy)
-

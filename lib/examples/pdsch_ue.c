@@ -558,7 +558,7 @@ int main(int argc, char **argv) {
             if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
               decode_pdsch = true; 
             } else {
-              decode_pdsch = true; 
+              decode_pdsch = false; 
             }
           }
           if (decode_pdsch) {            

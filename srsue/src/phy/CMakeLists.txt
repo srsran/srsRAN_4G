@@ -19,9 +19,10 @@
 #
 
 file(GLOB SOURCES "*.cc")
-add_library(srsue_phy ${SOURCES})
-target_link_libraries(srsue_phy ${SRSLTE_PHY_LIBRARY})
+add_library(srsue_phy STATIC ${SOURCES})
 
 if(ENABLE_GUI AND SRSGUI_FOUND)
   target_link_libraries(srsue_phy ${SRSGUI_LIBRARIES})
 endif(ENABLE_GUI AND SRSGUI_FOUND)
+
+install(TARGETS srsue_phy DESTINATION ${LIBRARY_DIR})

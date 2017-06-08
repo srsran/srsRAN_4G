@@ -171,5 +171,5 @@ add_test(prach_test_multi_n4 prach_test_multi -n 4)
 
 if(UHD_FOUND)
   add_executable(prach_test_usrp prach_test_usrp.c)
-  target_link_libraries(prach_test_usrp srslte_phy pthread)
+  target_link_libraries(prach_test_usrp srslte_rf srslte_phy pthread)
 endif(UHD_FOUND)
