@@ -3,7 +3,13 @@ srsLTE
 
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/10045/badge.svg)](https://scan.coverity.com/projects/10045)
 
-srsLTE is a free and open-source LTE software suite developed by SRS (www.softwareradiosystems.com). It includes srsUE - a complete SDR LTE UE application featuring all layers from PHY to IP, srsENB - a complete SDR LTE eNodeB application and a highly modular set of common libraries for PHY, MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers. 
+srsLTE is a free and open-source LTE software suite developed by SRS (www.softwareradiosystems.com). 
+
+It includes:
+  * srsUE - a complete SDR LTE UE application featuring all layers from PHY to IP
+  * srsENB - a complete SDR LTE eNodeB application 
+  * a highly modular set of common libraries for PHY, MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers. 
+
 srsLTE is released under the AGPLv3 license and uses software from the OpenLTE project (http://sourceforge.net/projects/openlte) for some security functions and for RRC/NAS message parsing.
 
 Common Features
@@ -64,7 +70,7 @@ We have tested the following hardware:
 Build Instructions
 ------------------
 
-* Mandatory dependencies: 
+* Mandatory requirements: 
   * Common:
     * libfftw            http://www.fftw.org/
     * PolarSSL/mbedTLS   https://tls.mbed.org
@@ -74,13 +80,13 @@ Build Instructions
     * Boost:             http://www.boost.org
     * lksctp:            http://lksctp.sourceforge.net/
 
-* RF front-end driver:
-  * UHD:                 https://github.com/EttusResearch/uhd
-  * BladeRF:             https://github.com/Nuand/bladeRF
-
 * Optional requirements: 
   * srsgui:        https://github.com/srslte/srsgui - for real-time plotting.
   * VOLK:          https://github.com/gnuradio/volk -  if the VOLK library and headers are detected, they will be used to accelerate some signal processing functions.
+
+* RF front-end driver:
+  * UHD:                 https://github.com/EttusResearch/uhd
+  * BladeRF:             https://github.com/Nuand/bladeRF
 
 Download and build srsLTE: 
 ```
