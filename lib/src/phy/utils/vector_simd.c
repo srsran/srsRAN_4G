@@ -110,7 +110,7 @@ int srslte_vec_dot_prod_sss_avx2(short *x, short *y, uint32_t len)
     yPtr ++;
   }
   
-  short dotProdVector[16];
+  __attribute__ ((aligned (256))) short dotProdVector[16];
   _mm256_store_si256((__m256i*) dotProdVector, dotProdVal);
   for (int i=0;i<16;i++) {
     result += dotProdVector[i]; 
