@@ -54,7 +54,7 @@ set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
                     $<TARGET_OBJECTS:srslte_enb>
 )
 
-add_library(srslte_phy SHARED ${srslte_srcs})
+add_library(srslte_phy STATIC ${srslte_srcs})
 set_target_properties(srslte_phy PROPERTIES
                                  VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
