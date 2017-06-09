@@ -717,11 +717,17 @@ void srslte_vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
 }
 
 uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
-#ifdef HAVE_VOLK_MAX_FUNCTION
-  uint16_t target=0;
+
+  // This is to solve an issue with incorrect type of 1st parameter in version 1.2 of volk
+#ifdef HAVE_VOLK_MAX_FUNCTION_32
+  uint32_t target=0;
+  volk_32f_index_max_32u(&target,x,len);
+  return target;
+#else
+#ifdef HAVE_VOLK_MAX_FUNCTION_16
+  uint32_t target=0;
   volk_32f_index_max_16u(&target,x,len);
   return target;
-
 #else
   uint32_t i;
   float m=-FLT_MAX;
@@ -733,6 +739,7 @@ uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
     }
   }
   return p;
+#endif
 #endif
 }
 
@@ -782,11 +789,15 @@ void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len) {
 
 
 uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
-#ifdef HAVE_VOLK_MAX_ABS_FUNCTION
-  uint16_t target=0;
+#ifdef HAVE_VOLK_MAX_ABS_FUNCTION_32
+  uint32_t target=0;
+  volk_32fc_index_max_32u(&target,x,len);
+  return target;
+#else
+#ifdef HAVE_VOLK_MAX_ABS_FUNCTION_16
+  uint32_t target=0;
   volk_32fc_index_max_16u(&target,x,len);
   return target;
-
 #else
   uint32_t i;
   float m=-FLT_MAX;
@@ -800,6 +811,7 @@ uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
     }
   }
   return p;
+#endif
 #endif
 }
 
