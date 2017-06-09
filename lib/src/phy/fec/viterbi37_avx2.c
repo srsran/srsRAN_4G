@@ -14,7 +14,7 @@
 
 //#define DEBUG
 
-#ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_AVX2
 
 #include <emmintrin.h>
 #include <tmmintrin.h>

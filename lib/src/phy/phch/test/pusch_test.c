@@ -202,10 +202,12 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
+  srslte_softbuffer_tx_reset(&softbuffer_tx);
   if (srslte_softbuffer_rx_init(&softbuffer_rx, 100)) {
     fprintf(stderr, "Error initiating soft buffer\n");
     goto quit;
   }
+  srslte_softbuffer_rx_reset(&softbuffer_rx);
   
   uint32_t ntrials = 100; 
 

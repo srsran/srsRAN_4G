@@ -110,8 +110,8 @@ void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  srslte_vec_sub_sss_avx(x, y, z, len);
+#ifdef LV_HAVE_AVX2
+  srslte_vec_sub_sss_avx2(x, y, z, len);
 #else
 #ifdef LV_HAVE_SSE
   srslte_vec_sub_sss_sse(x, y, z, len);
@@ -140,8 +140,8 @@ void srslte_vec_sum_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void srslte_vec_sum_sss(short *x, short *y, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  srslte_vec_sum_sss_avx(x, y, z, len);
+#ifdef LV_HAVE_AVX2
+  srslte_vec_sum_sss_avx2(x, y, z, len);
 #else
 #ifdef LV_HAVE_SSE
   srslte_vec_sum_sss_sse(x, y, z, len);
@@ -212,8 +212,8 @@ void srslte_vec_sc_prod_sfs(short *x, float h, short *z, uint32_t len) {
 }
 
 void srslte_vec_sc_div2_sss(short *x, int n_rightshift, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  srslte_vec_sc_div2_sss_avx(x, n_rightshift, z, len);
+#ifdef LV_HAVE_AVX2
+  srslte_vec_sc_div2_sss_avx2(x, n_rightshift, z, len);
 #else
 #ifdef LV_HAVE_SSE
   srslte_vec_sc_div2_sss_sse(x, n_rightshift, z, len);
@@ -345,14 +345,14 @@ void srslte_vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
 #endif  
 }
 
-/* Note: We align memory to 32 bytes (for AVX compatibility) 
+/* Note: We align memory to 32 bytes (for AVX2 compatibility) 
  * because in some cases volk can incorrectly detect the architecture. 
  * This could be inefficient for SSE or non-SIMD platforms but shouldn't 
  * be a huge problem. 
  */
 void *srslte_vec_malloc(uint32_t size) {
   void *ptr;
-  if (posix_memalign(&ptr,32,size)) {
+  if (posix_memalign(&ptr,256,size)) {
     return NULL;
   } else {
     return ptr;
@@ -364,7 +364,7 @@ void *srslte_vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
   return realloc(ptr, new_size);
 #else
   void *new_ptr;
-  if (posix_memalign(&new_ptr,volk_get_alignment(),new_size)) {
+  if (posix_memalign(&new_ptr,256,new_size)) {
     return NULL;
   } else {
     memcpy(new_ptr, ptr, old_size);
@@ -520,8 +520,8 @@ void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len) {
 }
 
 void srslte_vec_prod_sss(short *x, short *y, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  srslte_vec_prod_sss_avx(x,y,z,len);
+#ifdef LV_HAVE_AVX2
+  srslte_vec_prod_sss_avx2(x,y,z,len);
 #else
 #ifdef LV_HAVE_SSE
   srslte_vec_prod_sss_sse(x,y,z,len);
@@ -661,8 +661,8 @@ float srslte_vec_dot_prod_fff(float *x, float *y, uint32_t len) {
 }
 
 int32_t srslte_vec_dot_prod_sss(int16_t *x, int16_t *y, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  return srslte_vec_dot_prod_sss_avx(x, y, len);
+#ifdef LV_HAVE_AVX2
+  return srslte_vec_dot_prod_sss_avx2(x, y, len);
 #else
 #ifdef LV_HAVE_SSE
   return srslte_vec_dot_prod_sss_sse(x, y, len);

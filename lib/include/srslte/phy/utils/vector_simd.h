@@ -37,19 +37,19 @@ extern "C" {
 
 SRSLTE_API int srslte_vec_dot_prod_sss_sse(short *x, short *y, uint32_t len); 
 
-SRSLTE_API int srslte_vec_dot_prod_sss_avx(short *x, short *y, uint32_t len); 
+SRSLTE_API int srslte_vec_dot_prod_sss_avx2(short *x, short *y, uint32_t len); 
 
 
   
 SRSLTE_API void srslte_vec_sum_sss_sse(short *x, short *y, short *z, uint32_t len);
 
-SRSLTE_API void srslte_vec_sum_sss_avx(short *x, short *y, short *z, uint32_t len);
+SRSLTE_API void srslte_vec_sum_sss_avx2(short *x, short *y, short *z, uint32_t len);
 
 
 
 SRSLTE_API void srslte_vec_sub_sss_sse(short *x, short *y, short *z, uint32_t len); 
 
-SRSLTE_API void srslte_vec_sub_sss_avx(short *x, short *y, short *z, uint32_t len);
+SRSLTE_API void srslte_vec_sub_sss_avx2(short *x, short *y, short *z, uint32_t len);
 
 
 
@@ -57,12 +57,12 @@ SRSLTE_API void srslte_vec_sub_sss_avx(short *x, short *y, short *z, uint32_t le
 
 SRSLTE_API void srslte_vec_prod_sss_sse(short *x, short *y, short *z, uint32_t len); 
 
-SRSLTE_API void srslte_vec_prod_sss_avx(short *x, short *y, short *z, uint32_t len);
+SRSLTE_API void srslte_vec_prod_sss_avx2(short *x, short *y, short *z, uint32_t len);
 
 
 SRSLTE_API void srslte_vec_sc_div2_sss_sse(short *x, int n_rightshift, short *z, uint32_t len); 
 
-SRSLTE_API  void srslte_vec_sc_div2_sss_avx(short *x, int k, short *z, uint32_t len);
+SRSLTE_API  void srslte_vec_sc_div2_sss_avx2(short *x, int k, short *z, uint32_t len);
 
 
 

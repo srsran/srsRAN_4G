@@ -122,7 +122,7 @@ void free37_sse(void *o) {
 
 
 
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
 int decode37_avx2(void *o, uint8_t *symbols, uint8_t *data, uint32_t frame_length) {
   srslte_viterbi_t *q = o;
 
@@ -333,7 +333,7 @@ int init37_neon(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_
 #endif
 
 
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
 int init37_avx2(srslte_viterbi_t *q, int poly[3], uint32_t framebits, bool tail_biting) {
   q->K = 7;
   q->R = 3;
@@ -383,7 +383,7 @@ int srslte_viterbi_init(srslte_viterbi_t *q, srslte_viterbi_type_t type, int pol
   switch (type) {
   case SRSLTE_VITERBI_37:
 #ifdef LV_HAVE_SSE
-    #ifdef LV_HAVE_AVX 
+    #ifdef LV_HAVE_AVX2
         return init37_avx2(q, poly, max_frame_length, tail_bitting);
     #else
         return init37_sse(q, poly, max_frame_length, tail_bitting);
@@ -408,7 +408,7 @@ int srslte_viterbi_init_sse(srslte_viterbi_t *q, srslte_viterbi_type_t type, int
 }
 #endif
 
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
 int srslte_viterbi_init_avx2(srslte_viterbi_t *q, srslte_viterbi_type_t type, int poly[3], uint32_t max_frame_length, bool tail_bitting) 
 {
   return init37_avx2(q, poly, max_frame_length, tail_bitting);      

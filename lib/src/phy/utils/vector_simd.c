@@ -87,10 +87,10 @@ int srslte_vec_dot_prod_sss_sse(short *x, short *y, uint32_t len)
 }
 
 
-int srslte_vec_dot_prod_sss_avx(short *x, short *y, uint32_t len)
+int srslte_vec_dot_prod_sss_avx2(short *x, short *y, uint32_t len)
 {
   int result = 0; 
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -160,9 +160,9 @@ void srslte_vec_sum_sss_sse(short *x, short *y, short *z, uint32_t len)
 
 }
 
-void srslte_vec_sum_sss_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_sum_sss_avx2(short *x, short *y, short *z, uint32_t len)
 {
-#ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -225,9 +225,9 @@ void srslte_vec_sub_sss_sse(short *x, short *y, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_sub_sss_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_sub_sss_avx2(short *x, short *y, short *z, uint32_t len)
 {
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -292,9 +292,9 @@ void srslte_vec_prod_sss_sse(short *x, short *y, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_prod_sss_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_prod_sss_avx2(short *x, short *y, short *z, uint32_t len)
 {
-#ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -359,9 +359,9 @@ void srslte_vec_sc_div2_sss_sse(short *x, int k, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_sc_div2_sss_avx(short *x, int k, short *z, uint32_t len)
+void srslte_vec_sc_div2_sss_avx2(short *x, int k, short *z, uint32_t len)
 {
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -394,7 +394,11 @@ void srslte_vec_sc_div2_sss_avx(short *x, int k, short *z, uint32_t len)
 /* No improvement with AVX */
 void srslte_vec_lut_sss_sse(short *x, unsigned short *lut, short *y, uint32_t len)
 {
-#ifndef DEBUG_MODE
+#ifdef DEBUG_MODE
+  for (int i=0;i<len;i++) {
+    y[lut[i]] = x[i];
+  }
+#else
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 8;
