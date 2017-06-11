@@ -52,6 +52,17 @@
 
 #ifdef LV_HAVE_SSE
 
+/*
+static void print_128i(__m128i x) {
+  int16_t *s = (int16_t*) &x; 
+  printf("[%d", s[0]);
+  for (int i=1;i<8;i++) {
+    printf(",%d", s[i]);
+  }
+  printf("]\n");
+}
+*/
+
 /* Computes the horizontal MAX from 8 16-bit integers using the minpos_epu16 SSE4.1 instruction */
 static inline int16_t hMax(__m128i buffer)
 {
@@ -126,7 +137,8 @@ void map_gen_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
     alpha_k = _mm_load_si128(alphaPtr);\
     alphaPtr--;\
     bp = _mm_add_epi16(bp, alpha_k);\
-    bn = _mm_add_epi16(bn, alpha_k); output[k-d] = hMax(bn) - hMax(bp);
+    bn = _mm_add_epi16(bn, alpha_k);\
+    output[k-d] = hMax(bn) - hMax(bp);
 
   /* The tail does not require to load alpha or produce outputs. Only update 
    * beta metrics accordingly */
@@ -134,7 +146,6 @@ void map_gen_beta(map_gen_t * s, int16_t * output, uint32_t long_cb)
     int16_t g0 = s->branch[2*k];
     int16_t g1 = s->branch[2*k+1];
     g = _mm_set_epi16(g1, g0, g0, g1, g1, g0, g0, g1);
-  
     BETA_STEP(g);
   }  
   
