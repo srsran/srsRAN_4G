@@ -995,6 +995,7 @@ bool rrc::ue::release_erabs()
 void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 {
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT res;
+  res.ext = false;
   res.E_RABSetupListCtxtSURes.len = 0;
   res.E_RABFailedToSetupListCtxtSURes.len = 0;
 
