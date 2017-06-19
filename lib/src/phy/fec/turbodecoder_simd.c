@@ -131,9 +131,9 @@ void map_simd_free(map_gen_t * h)
 void map_simd_dec(map_gen_t * h, int16_t * input[SRSLTE_TDEC_NPAR], int16_t *app[SRSLTE_TDEC_NPAR], int16_t * parity[SRSLTE_TDEC_NPAR], 
                   int16_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
 {
- 
+  
   // Compute branch metrics
-  for (int i=0;i<nof_cb;i++) {
+  for (int i=0;i<nof_cb;i++) {    
     map_simd_gamma(h, input[i], app?app[i]:NULL, parity[i], i, nof_cb, long_cb);    
   }
 
@@ -344,7 +344,7 @@ void srslte_tdec_simd_iteration(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_T
     uint16_t *deinter = h->interleaver[h->current_cbidx].reverse;
     
     for (int i=0;i<nof_cb;i++) {
-      if (h->n_iter[i] == 0) {
+      if (h->n_iter[i] == 0 && input[i]) {
         deinterleave_input_simd(h, input[i], i, long_cb);        
       }        
     }

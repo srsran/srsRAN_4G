@@ -460,7 +460,7 @@ void map_avx_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity,
   }
   
   if (long_cb%16) {
-    map_sse_gamma_single((int16_t*) resPtr, (int16_t*) appPtr, (int16_t*) inPtr, (int16_t*) paPtr);
+    map_sse_gamma_single((int16_t*) resPtr, (int16_t*) inPtr, (int16_t*) appPtr, (int16_t*) paPtr);
   }
     
   for (int i=long_cb;i<long_cb+3;i++) {
