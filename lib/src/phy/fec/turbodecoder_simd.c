@@ -96,20 +96,23 @@ void map_simd_gamma(map_gen_t * s, int16_t *input, int16_t *app, int16_t *parity
 }
 
 /* Inititalizes constituent decoder object */
-int map_simd_init(map_gen_t * h, int max_long_cb)
+int map_simd_init(map_gen_t * h, uint32_t max_par_cb, uint32_t max_long_cb)
 {
   bzero(h, sizeof(map_gen_t));
-  h->alpha = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES * SRSLTE_TDEC_NPAR);
+
+  h->max_par_cb  = max_par_cb;
+  h->max_long_cb = max_long_cb;
+
+  h->alpha = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES * h->max_par_cb);
   if (!h->alpha) {
     perror("srslte_vec_malloc");
     return -1;
   }
-  h->branch = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES * SRSLTE_TDEC_NPAR);
+  h->branch = srslte_vec_malloc(sizeof(int16_t) * (max_long_cb + SRSLTE_TCOD_TOTALTAIL + 1) * NUMSTATES * h->max_par_cb);
   if (!h->branch) {
     perror("srslte_vec_malloc");
     return -1;
   }
-  h->max_long_cb = max_long_cb;
   return 0;
 }
 
@@ -142,15 +145,16 @@ void map_simd_dec(map_gen_t * h, int16_t * input[SRSLTE_TDEC_NPAR], int16_t *app
 }
 
 /* Initializes the turbo decoder object */
-int srslte_tdec_simd_init(srslte_tdec_simd_t * h, uint32_t max_long_cb)
+int srslte_tdec_simd_init(srslte_tdec_simd_t * h, uint32_t max_par_cb, uint32_t max_long_cb)
 {
   int ret = -1;
   bzero(h, sizeof(srslte_tdec_simd_t));
   uint32_t len = max_long_cb + SRSLTE_TCOD_TOTALTAIL;
 
   h->max_long_cb = max_long_cb;
-
-  for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+  h->max_par_cb  = max_par_cb; 
+  
+  for (int i=0;i<h->max_par_cb;i++) {
     h->app1[i] = srslte_vec_malloc(sizeof(int16_t) * len);
     if (!h->app1[i]) {
       perror("srslte_vec_malloc");
@@ -189,7 +193,7 @@ int srslte_tdec_simd_init(srslte_tdec_simd_t * h, uint32_t max_long_cb)
     
   }
 
-  if (map_simd_init(&h->dec, h->max_long_cb)) {
+  if (map_simd_init(&h->dec, h->max_par_cb, h->max_long_cb)) {
     goto clean_and_exit;
   }
 
@@ -209,7 +213,7 @@ clean_and_exit:if (ret == -1) {
 
 void srslte_tdec_simd_free(srslte_tdec_simd_t * h)
 {
-  for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+  for (int i=0;i<h->max_par_cb;i++) {
     if (h->app1[i]) {
       free(h->app1[i]);
     }
@@ -333,33 +337,34 @@ void deinterleave_input_simd(srslte_tdec_simd_t *h, int16_t *input, uint32_t cbi
 void srslte_tdec_simd_iteration(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
 {
 
+  int16_t *tmp_app[SRSLTE_TDEC_NPAR];
+
   if (h->current_cbidx >= 0) {
     uint16_t *inter   = h->interleaver[h->current_cbidx].forward;
     uint16_t *deinter = h->interleaver[h->current_cbidx].reverse;
     
-    if (h->n_iter == 0) {
-      for (int i=0;i<nof_cb;i++) {
+    for (int i=0;i<nof_cb;i++) {
+      if (h->n_iter[i] == 0) {
         deinterleave_input_simd(h, input[i], i, long_cb);        
       }        
     }
     
     // Add apriori information to decoder 1 
-    if (h->n_iter > 0) {
-      for (int i=0;i<nof_cb;i++) {
+    for (int i=0;i<nof_cb;i++) {
+      if (h->n_iter[i] > 0) {
         srslte_vec_sub_sss(h->app1[i], h->ext1[i], h->app1[i], long_cb);
       }
     }
 
     // Run MAP DEC #1
-    if (h->n_iter == 0) {
-      map_simd_dec(&h->dec, h->syst, NULL, h->parity0, h->ext1, nof_cb, long_cb);            
-    } else {
-      map_simd_dec(&h->dec, h->syst, h->app1, h->parity0, h->ext1, nof_cb, long_cb);      
+    for (int i=0;i<h->max_par_cb;i++) {
+      tmp_app[i] = h->n_iter[i]?h->app1[i]:NULL;
     }
+    map_simd_dec(&h->dec, h->syst, tmp_app, h->parity0, h->ext1, nof_cb, long_cb);            
     
     // Convert aposteriori information into extrinsic information    
-    if (h->n_iter > 0) {
-      for (int i=0;i<nof_cb;i++) {
+    for (int i=0;i<nof_cb;i++) {
+      if (h->n_iter[i] > 0) {
         srslte_vec_sub_sss(h->ext1[i], h->app1[i], h->ext1[i], long_cb);
       }
     }
@@ -377,7 +382,9 @@ void srslte_tdec_simd_iteration(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_T
       srslte_vec_lut_sss(h->ext2[i], inter, h->app1[i], long_cb);
     }
 
-    h->n_iter++;
+    for (int i=0;i<h->max_par_cb;i++) {
+      h->n_iter[i]++;     
+    }
   } else {
     fprintf(stderr, "Error CB index not set (call srslte_tdec_simd_reset() first\n");    
   }
@@ -391,13 +398,26 @@ int srslte_tdec_simd_reset(srslte_tdec_simd_t * h, uint32_t long_cb)
             h->max_long_cb);
     return -1;
   }
-  h->n_iter = 0; 
+  for (int i=0;i<h->max_par_cb;i++) {
+    h->n_iter[i] = 0;     
+  }
   h->current_cbidx = srslte_cbsegm_cbindex(long_cb);
   if (h->current_cbidx < 0) {
     fprintf(stderr, "Invalid CB length %d\n", long_cb);
     return -1; 
   }
   return 0;
+}
+
+int srslte_tdec_simd_reset_cb(srslte_tdec_simd_t * h, uint32_t cb_idx)
+{
+  h->n_iter[cb_idx] = 0; 
+  return 0;
+}
+
+int srslte_tdec_simd_get_nof_iterations_cb(srslte_tdec_simd_t * h, uint32_t cb_idx)
+{
+  return h->n_iter[cb_idx];
 }
 
 void tdec_simd_decision(srslte_tdec_simd_t * h, uint8_t *output, uint32_t cbidx, uint32_t long_cb)
@@ -433,7 +453,7 @@ void srslte_tdec_simd_decision(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TD
   }
 }
 
-void tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output, uint32_t cbidx, uint32_t long_cb)
+void srslte_tdec_simd_decision_byte_cb(srslte_tdec_simd_t * h, uint8_t *output, uint32_t cbidx, uint32_t long_cb)
 {
   uint8_t mask[8] = {0x80, 0x40, 0x20, 0x10, 0x8, 0x4, 0x2, 0x1};
   
@@ -449,17 +469,13 @@ void tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output, uint32_t c
     uint8_t out7 = h->app1[cbidx][8*i+7]>0?mask[7]:0;
     
     output[i] = out0 | out1 | out2 | out3 | out4 | out5 | out6 | out7;
-    
-    //if (i<10) {
-    //  printf("output[%d]=%d\n",i,output[i]);
-    //}
   }
 }
 
 void srslte_tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
 {
   for (int i=0;i<nof_cb;i++) {
-    tdec_simd_decision_byte(h, output[i], i, long_cb);
+    srslte_tdec_simd_decision_byte_cb(h, output[i], i, long_cb);
   }
 }
 
@@ -474,7 +490,7 @@ int srslte_tdec_simd_run_all(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC
 
   do {
     srslte_tdec_simd_iteration(h, input, nof_cb, long_cb);
-  } while (h->n_iter < nof_iterations);
+  } while (h->n_iter[0] < nof_iterations);
 
   srslte_tdec_simd_decision_byte(h, output, nof_cb, long_cb);
   

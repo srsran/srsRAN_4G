@@ -153,8 +153,6 @@ void map_avx_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_NPAR], uint32_t lo
   __m256i gv;
   int16_t *b = &s->branch[2*NCB*long_cb-16];
   __m256i *gPtr = (__m256i*) b;
-
-  __m256i bn2, bp2; 
   
   /* This defines a beta computation step: 
    * Adds and substracts the branch metrics to the previous beta step, 
@@ -175,10 +173,10 @@ void map_avx_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_NPAR], uint32_t lo
     alphaPtr--;\
     bp = _mm256_add_epi16(bp, alpha_k);\
     bn = _mm256_add_epi16(bn, alpha_k);\
-    bn2 = _mm256_sub_epi8(_mm256_set1_epi16(0x7FFF), bn);\
-    bp2 = _mm256_sub_epi8(_mm256_set1_epi16(0x7FFF), bp);\
-    output[0][k-d] = hMax0(bn2) - hMax0(bp2);\
-    output[1][k-d] = hMax1(bn2) - hMax1(bp2);
+    bn = _mm256_sub_epi16(_mm256_set1_epi16(0x7FFF), bn);\
+    bp = _mm256_sub_epi16(_mm256_set1_epi16(0x7FFF), bp);\
+    output[0][k-d] = hMax0(bn) - hMax0(bp);\
+    output[1][k-d] = hMax1(bn) - hMax1(bp);
 
   /* The tail does not require to load alpha or produce outputs. Only update 
    * beta metrics accordingly */
@@ -309,7 +307,7 @@ void map_avx_alpha(map_gen_t * s, uint32_t long_cb)
   an = _mm256_shuffle_epi8(an, shuf_an);\
   alpha_k = _mm256_max_epi16(ap, an);\
   _mm256_store_si256(alphaPtr, alpha_k);\
-  alphaPtr++;    \
+  alphaPtr++;\
 
 
   /* In this loop, we compute 8 steps and normalize twice for each branch metrics memory load */
@@ -335,15 +333,62 @@ void map_avx_alpha(map_gen_t * s, uint32_t long_cb)
   }  
 }
 
-/* Compute branch metrics (gamma) */
-void map_avx_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t cbidx, uint32_t long_cb) 
+void map_sse_gamma_single(int16_t *output, int16_t *input, int16_t *app, int16_t *parity) 
 {
-  __m128i res10, res20, res11, res21, res1, res2; 
+  __m128i res00, res10, res01, res11, res0, res1; 
   __m128i in, ap, pa, g1, g0;
 
   __m128i *inPtr  = (__m128i*) input;
   __m128i *appPtr = (__m128i*) app;
   __m128i *paPtr  = (__m128i*) parity;
+  __m128i *resPtr = (__m128i*) output;
+  
+  __m128i res00_mask = _mm_set_epi8(0xff,0xff,7,6,0xff,0xff,5,4,0xff,0xff,3,2,0xff,0xff,1,0);
+  __m128i res10_mask = _mm_set_epi8(0xff,0xff,15,14,0xff,0xff,13,12,0xff,0xff,11,10,0xff,0xff,9,8);
+  __m128i res01_mask = _mm_set_epi8(7,6,0xff,0xff,5,4,0xff,0xff,3,2,0xff,0xff,1,0,0xff,0xff);
+  __m128i res11_mask = _mm_set_epi8(15,14,0xff,0xff,13,12,0xff,0xff,11,10,0xff,0xff,9,8,0xff,0xff);
+  
+  in = _mm_load_si128(inPtr);
+  inPtr++;
+  pa = _mm_load_si128(paPtr);
+  paPtr++;
+  
+  if (appPtr) {
+    ap = _mm_load_si128(appPtr);
+    appPtr++;
+    in = _mm_add_epi16(ap, in);
+  }
+  
+  g1 = _mm_add_epi16(in, pa);
+  g0 = _mm_sub_epi16(in, pa);
+
+  g1 = _mm_srai_epi16(g1, 1);
+  g0 = _mm_srai_epi16(g0, 1);
+  
+  res00 = _mm_shuffle_epi8(g0, res00_mask);
+  res10 = _mm_shuffle_epi8(g0, res10_mask);
+  res01 = _mm_shuffle_epi8(g1, res01_mask);
+  res11 = _mm_shuffle_epi8(g1, res11_mask);
+
+  res0  = _mm_or_si128(res00, res01);
+  res1  = _mm_or_si128(res10, res11);
+
+  _mm_store_si128(resPtr, res0);
+  resPtr++;
+  _mm_store_si128(resPtr, res1);    
+  resPtr++;
+}
+
+
+/* Compute branch metrics (gamma) */
+void map_avx_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity, uint32_t cbidx, uint32_t long_cb) 
+{
+  __m128i res10, res20, res11, res21, res1, res2; 
+  __m256i in, ap, pa, g1, g0;
+
+  __m256i *inPtr  = (__m256i*) input;
+  __m256i *appPtr = (__m256i*) app;
+  __m256i *paPtr  = (__m256i*) parity;
   __m128i *resPtr = (__m128i*) h->branch;
   
   if (cbidx) {
@@ -351,32 +396,37 @@ void map_avx_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity,
   }
   
   __m128i res10_mask = _mm_set_epi8(0xff,0xff,7,6,0xff,0xff,5,4,0xff,0xff,3,2,0xff,0xff,1,0);
-  __m128i res20_mask = _mm_set_epi8(0xff,0xff,15,14,0xff,0xff,13,12,0xff,0xff,11,10,0xff,0xff,9,8);
   __m128i res11_mask = _mm_set_epi8(7,6,0xff,0xff,5,4,0xff,0xff,3,2,0xff,0xff,1,0,0xff,0xff);
+
+  __m128i res20_mask = _mm_set_epi8(0xff,0xff,15,14,0xff,0xff,13,12,0xff,0xff,11,10,0xff,0xff,9,8);
   __m128i res21_mask = _mm_set_epi8(15,14,0xff,0xff,13,12,0xff,0xff,11,10,0xff,0xff,9,8,0xff,0xff);
 
-  for (int i=0;i<long_cb/8;i++) {
-    in = _mm_load_si128(inPtr);
+  for (int i=0;i<long_cb/16;i++) {
+    in = _mm256_load_si256(inPtr);
     inPtr++;
-    pa = _mm_load_si128(paPtr);
+    pa = _mm256_load_si256(paPtr);
     paPtr++;
     
     if (appPtr) {
-      ap = _mm_load_si128(appPtr);
+      ap = _mm256_load_si256(appPtr);
       appPtr++;
-      in = _mm_add_epi16(ap, in);
+      in = _mm256_add_epi16(ap, in);
     }
     
-    g1 = _mm_add_epi16(in, pa);
-    g0 = _mm_sub_epi16(in, pa);
-
-    g1 = _mm_srai_epi16(g1, 1);
-    g0 = _mm_srai_epi16(g0, 1);
+    g0 = _mm256_sub_epi16(in, pa);
+    g1 = _mm256_add_epi16(in, pa);
+ 
+    g0 = _mm256_srai_epi16(g0, 1);
+    g1 = _mm256_srai_epi16(g1, 1);
     
-    res10 = _mm_shuffle_epi8(g0, res10_mask);
-    res20 = _mm_shuffle_epi8(g0, res20_mask);
-    res11 = _mm_shuffle_epi8(g1, res11_mask);
-    res21 = _mm_shuffle_epi8(g1, res21_mask);
+    __m128i g0_t = _mm256_extractf128_si256(g0, 0);
+    __m128i g1_t = _mm256_extractf128_si256(g1, 0);
+    
+    res10 = _mm_shuffle_epi8(g0_t, res10_mask);
+    res11 = _mm_shuffle_epi8(g1_t, res11_mask);
+
+    res20 = _mm_shuffle_epi8(g0_t, res20_mask);
+    res21 = _mm_shuffle_epi8(g1_t, res21_mask);
 
     res1  = _mm_or_si128(res10, res11);
     res2  = _mm_or_si128(res20, res21);
@@ -386,7 +436,31 @@ void map_avx_gamma(map_gen_t * h, int16_t *input, int16_t *app, int16_t *parity,
     resPtr++;
     _mm_store_si128(resPtr, res2);    
     resPtr++;
-    resPtr++;    
+    resPtr++;          
+    
+    g0_t = _mm256_extractf128_si256(g0, 1);
+    g1_t = _mm256_extractf128_si256(g1, 1);
+    
+    res10 = _mm_shuffle_epi8(g0_t, res10_mask);
+    res11 = _mm_shuffle_epi8(g1_t, res11_mask);
+
+    res20 = _mm_shuffle_epi8(g0_t, res20_mask);
+    res21 = _mm_shuffle_epi8(g1_t, res21_mask);
+
+    res1  = _mm_or_si128(res10, res11);
+    res2  = _mm_or_si128(res20, res21);
+
+    _mm_store_si128(resPtr, res1);
+    resPtr++;
+    resPtr++;
+    _mm_store_si128(resPtr, res2);    
+    resPtr++;
+    resPtr++;          
+
+  }
+  
+  if (long_cb%16) {
+    map_sse_gamma_single((int16_t*) resPtr, (int16_t*) appPtr, (int16_t*) inPtr, (int16_t*) paPtr);
   }
     
   for (int i=long_cb;i<long_cb+3;i++) {

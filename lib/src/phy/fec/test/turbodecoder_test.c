@@ -257,13 +257,10 @@ int main(int argc, char **argv) {
       int16_t *input[SRSLTE_TDEC_NPAR];
       uint8_t *output[SRSLTE_TDEC_NPAR];        
       
-      input[0] = llr_s; 
-      if (SRSLTE_TDEC_NPAR == 2)
-        input[1] = llr_s; 
-      
-      output[0] = data_rx_bytes[0]; 
-      if (SRSLTE_TDEC_NPAR == 2)
-        output[1] = data_rx_bytes[1]; 
+      for (int n=0;n<SRSLTE_TDEC_NPAR;n++) {
+        input[n] = llr_s;         
+        output[n] = data_rx_bytes[n]; 
+      }
 
       gettimeofday(&tdata[1], NULL); 
       for (int k=0;k<nof_repetitions;k++) { 
@@ -284,7 +281,7 @@ int main(int argc, char **argv) {
       }
       printf("Eb/No: %2.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
       printf("BER: %.2e  ", (float) errors / (nof_cb*frame_cnt * frame_length));
-      printf("%3.1f Mbps (%6.2f usec)", (float) SRSLTE_TDEC_NPAR*frame_length / mean_usec, mean_usec);
+      printf("%3.1f Mbps (%6.2f usec)", (float) (nof_cb*frame_length) / mean_usec, mean_usec);
       printf("\r");        
 
     }    
