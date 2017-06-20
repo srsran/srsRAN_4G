@@ -79,6 +79,7 @@ Build Instructions
   * srsENB:
     * Boost:             http://www.boost.org
     * lksctp:            http://lksctp.sourceforge.net/
+    * config:            http://www.hyperrealm.com/libconfig/
 
 * Optional requirements: 
   * srsgui:              https://github.com/srslte/srsgui - for real-time plotting.
