@@ -175,8 +175,8 @@ void map_avx_beta(map_gen_t * s, int16_t * output[SRSLTE_TDEC_NPAR], uint32_t lo
     bn = _mm256_add_epi16(bn, alpha_k);\
     bn = _mm256_sub_epi16(_mm256_set1_epi16(0x7FFF), bn);\
     bp = _mm256_sub_epi16(_mm256_set1_epi16(0x7FFF), bp);\
-    if (output[0]) output[0][k-d] = hMax0(bn) - hMax0(bp);\
-    if (output[1]) output[1][k-d] = hMax1(bn) - hMax1(bp);
+    output[0][k-d] = hMax0(bn) - hMax0(bp);\
+    output[1][k-d] = hMax1(bn) - hMax1(bp);
 
   /* The tail does not require to load alpha or produce outputs. Only update 
    * beta metrics accordingly */

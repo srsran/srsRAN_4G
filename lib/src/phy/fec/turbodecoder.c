@@ -91,9 +91,9 @@ int srslte_tdec_get_nof_iterations_cb(srslte_tdec_t * h, uint32_t cb_idx)
 #endif  
 }
 
-void srslte_tdec_iteration_par(srslte_tdec_t * h, int16_t* input[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb) {
+void srslte_tdec_iteration_par(srslte_tdec_t * h, int16_t* input[SRSLTE_TDEC_NPAR], uint32_t long_cb) {
 #ifdef LV_HAVE_SSE
-  srslte_tdec_simd_iteration(&h->tdec_simd, input, nof_cb, long_cb);      
+  srslte_tdec_simd_iteration(&h->tdec_simd, input, long_cb);      
 #else
   srslte_vec_convert_if(input[0], h->input_conv, 0.01, 3*long_cb+12);
   srslte_tdec_gen_iteration(&h->tdec_gen, h->input_conv, long_cb);
@@ -103,12 +103,12 @@ void srslte_tdec_iteration_par(srslte_tdec_t * h, int16_t* input[SRSLTE_TDEC_NPA
 void srslte_tdec_iteration(srslte_tdec_t * h, int16_t* input, uint32_t long_cb) {
   int16_t *input_par[SRSLTE_TDEC_NPAR]; 
   input_par[0] = input; 
-  return srslte_tdec_iteration_par(h, input_par, 1, long_cb);
+  return srslte_tdec_iteration_par(h, input_par, long_cb);
 }
 
-void srslte_tdec_decision_par(srslte_tdec_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb) {
+void srslte_tdec_decision_par(srslte_tdec_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t long_cb) {
 #ifdef LV_HAVE_SSE
-  return srslte_tdec_simd_decision(&h->tdec_simd, output, nof_cb, long_cb);
+  return srslte_tdec_simd_decision(&h->tdec_simd, output, long_cb);
 #else
   return srslte_tdec_gen_decision(&h->tdec_gen, output[0], long_cb);
 #endif
@@ -117,12 +117,12 @@ void srslte_tdec_decision_par(srslte_tdec_t * h, uint8_t *output[SRSLTE_TDEC_NPA
 void srslte_tdec_decision(srslte_tdec_t * h, uint8_t *output, uint32_t long_cb) {
   uint8_t *output_par[SRSLTE_TDEC_NPAR]; 
   output_par[0] = output; 
-  srslte_tdec_decision_par(h, output_par, 1, long_cb);
+  srslte_tdec_decision_par(h, output_par, long_cb);
 }
 
-void srslte_tdec_decision_byte_par(srslte_tdec_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb) {
+void srslte_tdec_decision_byte_par(srslte_tdec_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t long_cb) {
 #ifdef LV_HAVE_SSE
-  srslte_tdec_simd_decision_byte(&h->tdec_simd, output, nof_cb, long_cb);  
+  srslte_tdec_simd_decision_byte(&h->tdec_simd, output, long_cb);  
 #else
   srslte_tdec_gen_decision_byte(&h->tdec_gen, output[0], long_cb);
 #endif  
@@ -139,14 +139,14 @@ void srslte_tdec_decision_byte_par_cb(srslte_tdec_t * h, uint8_t *output, uint32
 void srslte_tdec_decision_byte(srslte_tdec_t * h, uint8_t *output, uint32_t long_cb) {
   uint8_t *output_par[SRSLTE_TDEC_NPAR]; 
   output_par[0] = output; 
-  srslte_tdec_decision_byte_par(h, output_par, 1, long_cb);
+  srslte_tdec_decision_byte_par(h, output_par, long_cb);
 }
 
 int srslte_tdec_run_all_par(srslte_tdec_t * h, int16_t * input[SRSLTE_TDEC_NPAR], 
                             uint8_t *output[SRSLTE_TDEC_NPAR], 
-                            uint32_t nof_iterations, uint32_t nof_cb, uint32_t long_cb) {
+                            uint32_t nof_iterations, uint32_t long_cb) {
 #ifdef LV_HAVE_SSE
-  return srslte_tdec_simd_run_all(&h->tdec_simd, input, output, nof_iterations, nof_cb, long_cb);  
+  return srslte_tdec_simd_run_all(&h->tdec_simd, input, output, nof_iterations, long_cb);  
 #else
   srslte_vec_convert_if(input[0], h->input_conv, 0.01, 3*long_cb+12);
   return srslte_tdec_gen_run_all(&h->tdec_gen, h->input_conv, output[0], nof_iterations, long_cb);
@@ -160,7 +160,7 @@ int srslte_tdec_run_all(srslte_tdec_t * h, int16_t * input, uint8_t *output, uin
   int16_t *input_par[SRSLTE_TDEC_NPAR]; 
   input_par[0] = input; 
  
-  return srslte_tdec_run_all_par(h, input_par, output_par, nof_iterations, 1, long_cb);
+  return srslte_tdec_run_all_par(h, input_par, output_par, nof_iterations, long_cb);
 }
 
 

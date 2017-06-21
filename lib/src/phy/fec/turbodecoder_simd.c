@@ -129,19 +129,38 @@ void map_simd_free(map_gen_t * h)
 
 /* Runs one instance of a decoder */
 void map_simd_dec(map_gen_t * h, int16_t * input[SRSLTE_TDEC_NPAR], int16_t *app[SRSLTE_TDEC_NPAR], int16_t * parity[SRSLTE_TDEC_NPAR], 
-                  int16_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
+                  int16_t *output[SRSLTE_TDEC_NPAR], uint32_t cb_mask, uint32_t long_cb)
 {
   
+  uint32_t nof_cb = 1;
+  int16_t *outptr[SRSLTE_TDEC_NPAR];
+  
   // Compute branch metrics
-  for (int i=0;i<nof_cb;i++) {    
-    map_simd_gamma(h, input[i], app?app[i]:NULL, parity[i], i, nof_cb, long_cb);    
+  switch(cb_mask) {
+    case 1:
+      nof_cb = 1; 
+      outptr[0] = output[0];
+      map_simd_gamma(h, input[0], app?app[0]:NULL, parity[0], 0, 1, long_cb);    
+      break;
+    case 2:
+      nof_cb = 1; 
+      outptr[0] = output[1];
+      map_simd_gamma(h, input[1], app?app[1]:NULL, parity[1], 0, 1, long_cb);    
+      break;
+    case 3:
+      nof_cb = 2; 
+      for (int i=0;i<2;i++) {    
+        outptr[i] = output[i];
+        map_simd_gamma(h, input[i], app?app[i]:NULL, parity[i], i, 2, long_cb);    
+      }
+      break;
   }
 
   // Forward recursion
   map_simd_alpha(h, nof_cb, long_cb);
 
   // Backwards recursion + LLR computation
-  map_simd_beta(h, output, nof_cb, long_cb);
+  map_simd_beta(h, outptr, nof_cb, long_cb);
 }
 
 /* Initializes the turbo decoder object */
@@ -204,6 +223,7 @@ int srslte_tdec_simd_init(srslte_tdec_simd_t * h, uint32_t max_par_cb, uint32_t 
     srslte_tc_interl_LTE_gen(&h->interleaver[i], srslte_cbsegm_cbsize(i));
   }
   h->current_cbidx = -1; 
+  h->cb_mask = 0; 
   ret = 0;
 clean_and_exit:if (ret == -1) {
     srslte_tdec_simd_free(h);
@@ -334,7 +354,7 @@ void deinterleave_input_simd(srslte_tdec_simd_t *h, int16_t *input, uint32_t cbi
 }
 
 /* Runs 1 turbo decoder iteration */
-void srslte_tdec_simd_iteration(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
+void srslte_tdec_simd_iteration(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC_NPAR], uint32_t long_cb)
 {
 
   int16_t *tmp_app[SRSLTE_TDEC_NPAR];
@@ -343,47 +363,64 @@ void srslte_tdec_simd_iteration(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_T
     uint16_t *inter   = h->interleaver[h->current_cbidx].forward;
     uint16_t *deinter = h->interleaver[h->current_cbidx].reverse;
     
-    for (int i=0;i<nof_cb;i++) {
+#if SRSLTE_TDEC_NPAR == 2
+    h->cb_mask = (input[0]?1:0) | (input[1]?2:0);
+#else
+    h->cb_mask = input[0]?1:0;
+#endif
+    
+    for (int i=0;i<h->max_par_cb;i++) {
       if (h->n_iter[i] == 0 && input[i]) {
+        //printf("deinterleaveing %d\n",i);
         deinterleave_input_simd(h, input[i], i, long_cb);        
       }        
     }
     
     // Add apriori information to decoder 1 
-    for (int i=0;i<nof_cb;i++) {
-      if (h->n_iter[i] > 0) {
+    for (int i=0;i<h->max_par_cb;i++) {
+      if (h->n_iter[i] > 0 && input[i]) {
         srslte_vec_sub_sss(h->app1[i], h->ext1[i], h->app1[i], long_cb);
       }
     }
 
     // Run MAP DEC #1
     for (int i=0;i<h->max_par_cb;i++) {
-      tmp_app[i] = h->n_iter[i]?h->app1[i]:NULL;
+      if (input[i]) {
+        tmp_app[i] = h->n_iter[i]?h->app1[i]:NULL;
+      } else {
+        tmp_app[i] = NULL; 
+      }
     }
-    map_simd_dec(&h->dec, h->syst, tmp_app, h->parity0, h->ext1, nof_cb, long_cb);            
+    map_simd_dec(&h->dec, h->syst, tmp_app, h->parity0, h->ext1, h->cb_mask, long_cb);            
     
     // Convert aposteriori information into extrinsic information    
-    for (int i=0;i<nof_cb;i++) {
-      if (h->n_iter[i] > 0) {
+    for (int i=0;i<h->max_par_cb;i++) {
+      if (h->n_iter[i] > 0 && input[i]) {
         srslte_vec_sub_sss(h->ext1[i], h->app1[i], h->ext1[i], long_cb);
       }
     }
     
     // Interleave extrinsic output of DEC1 to form apriori info for decoder 2
-    for (int i=0;i<nof_cb;i++) {
-      srslte_vec_lut_sss(h->ext1[i], deinter, h->app2[i], long_cb);
+    for (int i=0;i<h->max_par_cb;i++) {
+      if (input[i]) {
+        srslte_vec_lut_sss(h->ext1[i], deinter, h->app2[i], long_cb);
+      }
     }
 
     // Run MAP DEC #2. 2nd decoder uses apriori information as systematic bits
-    map_simd_dec(&h->dec, h->app2, NULL, h->parity1, h->ext2, nof_cb, long_cb);
+    map_simd_dec(&h->dec, h->app2, NULL, h->parity1, h->ext2, h->cb_mask, long_cb);
 
     // Deinterleaved extrinsic bits become apriori info for decoder 1 
-    for (int i=0;i<nof_cb;i++) {
-      srslte_vec_lut_sss(h->ext2[i], inter, h->app1[i], long_cb);
+    for (int i=0;i<h->max_par_cb;i++) {
+      if (input[i]) {
+        srslte_vec_lut_sss(h->ext2[i], inter, h->app1[i], long_cb);
+      }
     }
 
     for (int i=0;i<h->max_par_cb;i++) {
-      h->n_iter[i]++;     
+      if (input[i]) {
+        h->n_iter[i]++;     
+      }
     }
   } else {
     fprintf(stderr, "Error CB index not set (call srslte_tdec_simd_reset() first\n");    
@@ -401,6 +438,7 @@ int srslte_tdec_simd_reset(srslte_tdec_simd_t * h, uint32_t long_cb)
   for (int i=0;i<h->max_par_cb;i++) {
     h->n_iter[i] = 0;     
   }
+  h->cb_mask = 0; 
   h->current_cbidx = srslte_cbsegm_cbindex(long_cb);
   if (h->current_cbidx < 0) {
     fprintf(stderr, "Invalid CB length %d\n", long_cb);
@@ -446,9 +484,9 @@ void tdec_simd_decision(srslte_tdec_simd_t * h, uint8_t *output, uint32_t cbidx,
   }
 }
 
-void srslte_tdec_simd_decision(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
+void srslte_tdec_simd_decision(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t long_cb)
 {
-  for (int i=0;i<nof_cb;i++) {
+  for (int i=0;i<h->max_par_cb;i++) {    
     tdec_simd_decision(h, output[i], i, long_cb);
   }
 }
@@ -472,9 +510,9 @@ void srslte_tdec_simd_decision_byte_cb(srslte_tdec_simd_t * h, uint8_t *output, 
   }
 }
 
-void srslte_tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t nof_cb, uint32_t long_cb)
+void srslte_tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output[SRSLTE_TDEC_NPAR], uint32_t long_cb)
 {
-  for (int i=0;i<nof_cb;i++) {
+  for (int i=0;i<h->max_par_cb;i++) {
     srslte_tdec_simd_decision_byte_cb(h, output[i], i, long_cb);
   }
 }
@@ -482,17 +520,17 @@ void srslte_tdec_simd_decision_byte(srslte_tdec_simd_t * h, uint8_t *output[SRSL
 
 /* Runs nof_iterations iterations and decides the output bits */
 int srslte_tdec_simd_run_all(srslte_tdec_simd_t * h, int16_t * input[SRSLTE_TDEC_NPAR], uint8_t *output[SRSLTE_TDEC_NPAR],
-                            uint32_t nof_iterations, uint32_t nof_cb, uint32_t long_cb)
+                            uint32_t nof_iterations, uint32_t long_cb)
 {
   if (srslte_tdec_simd_reset(h, long_cb)) {
     return SRSLTE_ERROR; 
   }
 
   do {
-    srslte_tdec_simd_iteration(h, input, nof_cb, long_cb);
+    srslte_tdec_simd_iteration(h, input, long_cb);
   } while (h->n_iter[0] < nof_iterations);
 
-  srslte_tdec_simd_decision_byte(h, output, nof_cb, long_cb);
+  srslte_tdec_simd_decision_byte(h, output, long_cb);
   
   return SRSLTE_SUCCESS;
 }

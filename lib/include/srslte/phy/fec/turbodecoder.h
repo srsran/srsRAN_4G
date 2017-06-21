@@ -102,17 +102,14 @@ SRSLTE_API int srslte_tdec_run_all(srslte_tdec_t * h,
 
 SRSLTE_API void srslte_tdec_iteration_par(srslte_tdec_t * h, 
                                           int16_t* input[SRSLTE_TDEC_NPAR], 
-                                          uint32_t nof_cb,
                                           uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_decision_par(srslte_tdec_t * h, 
                                          uint8_t *output[SRSLTE_TDEC_NPAR], 
-                                         uint32_t nof_cb,
                                          uint32_t long_cb);
 
 SRSLTE_API void srslte_tdec_decision_byte_par(srslte_tdec_t * h, 
                                               uint8_t *output[SRSLTE_TDEC_NPAR], 
-                                              uint32_t nof_cb,
                                               uint32_t long_cb); 
 
 SRSLTE_API void srslte_tdec_decision_byte_par_cb(srslte_tdec_t * h, 
@@ -124,7 +121,6 @@ SRSLTE_API int srslte_tdec_run_all_par(srslte_tdec_t * h,
                                        int16_t * input[SRSLTE_TDEC_NPAR], 
                                        uint8_t *output[SRSLTE_TDEC_NPAR],
                                        uint32_t nof_iterations, 
-                                       uint32_t nof_cb,
                                        uint32_t long_cb);
 
 #endif

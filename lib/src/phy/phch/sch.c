@@ -321,7 +321,6 @@ bool decode_tb_cb(srslte_sch_t *q,
   bool cb_map[SRSLTE_MAX_CODEBLOCKS];
     
   uint32_t cb_idx[SRSLTE_TDEC_NPAR];
-  bool cb_in_use[SRSLTE_TDEC_NPAR];
   int16_t *decoder_input[SRSLTE_TDEC_NPAR];
   
   uint32_t nof_cb     = cb_size_group?cb_segm->C2:cb_segm->C1;
@@ -340,9 +339,8 @@ bool decode_tb_cb(srslte_sch_t *q,
   }
   
   for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
-    cb_idx[i]    = i+first_cb; 
-    cb_in_use[i] = false; 
-    decoder_input[i] = NULL; 
+    cb_idx[i]        = i+first_cb; 
+    decoder_input[i] = false; 
   }
   
   for (int i=0;i<nof_cb;i++) {
@@ -354,49 +352,46 @@ bool decode_tb_cb(srslte_sch_t *q,
   uint32_t remaining_cb = nof_cb; 
   
   while(remaining_cb>0) {
-    uint32_t npar = SRSLTE_MIN(remaining_cb, SRSLTE_TDEC_NPAR);
         
     // Unratematch the codeblocks left to decode 
-    for (int i=0;i<npar;i++) {
+    for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
       
-      if (!cb_in_use[i] && i < remaining_cb) {        
+      if (!decoder_input[i] && remaining_cb > 0) {        
         // Find an unprocessed CB 
         cb_idx[i]=first_cb;
         while(cb_idx[i]<first_cb+nof_cb-1 && cb_map[cb_idx[i]]) {
           cb_idx[i]++;
         }
-        cb_in_use[i]      = true; 
-        cb_map[cb_idx[i]] = true; 
-        
-        uint32_t rp   = cb_idx[i]*n_e;  
-        uint32_t n_e2 = n_e;
-        
-        if (cb_idx[i] > cb_segm->C - gamma) {
-          n_e2 = n_e+Qm;
-          rp   = (cb_segm->C - gamma)*n_e + (cb_idx[i]-(cb_segm->C - gamma))*n_e2;
-        }
-              
-        INFO("CB %d: rp=%d, n_e=%d, i=%d\n", cb_idx[i], rp, n_e2, i);
-        if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[cb_idx[i]], n_e2, cb_len_idx, rv)) {
-          fprintf(stderr, "Error in rate matching\n");
-          return SRSLTE_ERROR;
-        }
+        if (cb_map[cb_idx[i]] == false) {
+          cb_map[cb_idx[i]] = true; 
+          
+          uint32_t rp   = cb_idx[i]*n_e;  
+          uint32_t n_e2 = n_e;
+          
+          if (cb_idx[i] > cb_segm->C - gamma) {
+            n_e2 = n_e+Qm;
+            rp   = (cb_segm->C - gamma)*n_e + (cb_idx[i]-(cb_segm->C - gamma))*n_e2;
+          }
+                
+          INFO("CB %d: rp=%d, n_e=%d, i=%d\n", cb_idx[i], rp, n_e2, i);
+          if (srslte_rm_turbo_rx_lut(&e_bits[rp], softbuffer->buffer_f[cb_idx[i]], n_e2, cb_len_idx, rv)) {
+            fprintf(stderr, "Error in rate matching\n");
+            return SRSLTE_ERROR;
+          }
 
-        decoder_input[i] = softbuffer->buffer_f[cb_idx[i]];
+          decoder_input[i] = softbuffer->buffer_f[cb_idx[i]];          
+        }
       }
     }
-    
+        
     // Run 1 iteration for up to TDEC_NPAR codeblocks 
-    if (SRSLTE_TDEC_NPAR > 1) {
-      INFO("Processing %d CBs, index %d,%d\n", npar, cb_idx[0], cb_idx[1]);      
-    }
-    srslte_tdec_iteration_par(&q->decoder, decoder_input, npar, cb_len);
+    srslte_tdec_iteration_par(&q->decoder, decoder_input, cb_len);
 
     q->nof_iterations = srslte_tdec_get_nof_iterations_cb(&q->decoder, 0); 
     
     // Decide output bits and compute CRC 
-    for (int i=0;i<npar;i++) {
-      if (cb_in_use[i]) {        
+    for (int i=0;i<SRSLTE_TDEC_NPAR;i++) {
+      if (decoder_input[i]) {        
         srslte_tdec_decision_byte_par_cb(&q->decoder, q->cb_in, i, cb_len);
 
         uint32_t len_crc; 
@@ -418,13 +413,14 @@ bool decode_tb_cb(srslte_sch_t *q,
           // Reset number of iterations for that CB in the decoder 
           srslte_tdec_reset_cb(&q->decoder, i);
           remaining_cb--;        
-          cb_in_use[i] = false; 
+          decoder_input[i] = NULL; 
+          cb_idx[i] = 0; 
           
         // CRC is error and exceeded maximum iterations for this CB. 
         // Early stop the whole transport block.
         } else if (srslte_tdec_get_nof_iterations_cb(&q->decoder, i) >= q->max_iterations) {
-          INFO("CB %d: Error. CB is erroneous. remaining_cb=%d, i=%d, first_cb=%d, nof_cb=%d, npar=%d\n", 
-                cb_idx[i], remaining_cb, i, first_cb, nof_cb, npar);          
+          INFO("CB %d: Error. CB is erroneous. remaining_cb=%d, i=%d, first_cb=%d, nof_cb=%d\n", 
+                cb_idx[i], remaining_cb, i, first_cb, nof_cb);          
           return false; 
         }
       }

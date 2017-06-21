@@ -258,13 +258,17 @@ int main(int argc, char **argv) {
       uint8_t *output[SRSLTE_TDEC_NPAR];        
       
       for (int n=0;n<SRSLTE_TDEC_NPAR;n++) {
-        input[n] = llr_s;         
-        output[n] = data_rx_bytes[n]; 
+        if (n < nof_cb) {
+          input[n] = llr_s;         
+        } else {
+          input[n] = NULL; 
+        }
+        output[n] = data_rx_bytes[n];           
       }
 
       gettimeofday(&tdata[1], NULL); 
       for (int k=0;k<nof_repetitions;k++) { 
-        srslte_tdec_run_all_par(&tdec, input, output, t, nof_cb, frame_length);        
+        srslte_tdec_run_all_par(&tdec, input, output, t, frame_length);        
       }
       gettimeofday(&tdata[2], NULL);
       get_time_interval(tdata);
