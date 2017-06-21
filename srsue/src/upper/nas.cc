@@ -29,41 +29,71 @@
 
 using namespace srslte;
 
-namespace srsue{
+namespace srsue {
 
-nas::nas()
-  :state(EMM_STATE_DEREGISTERED)
-  ,is_guti_set(false)
-  ,ip_addr(0)
-  ,eps_bearer_id(0)
-  ,count_ul(0)
-  ,count_dl(0)
-{}
+  nas::nas()
+    : state(EMM_STATE_DEREGISTERED), plmn_selection(PLMN_SELECTED), is_guti_set(false), ip_addr(0), eps_bearer_id(0),
+      count_ul(0), count_dl(0) {}
 
-void nas::init(usim_interface_nas *usim_,
-               rrc_interface_nas  *rrc_,
-               gw_interface_nas   *gw_,
-               srslte::log        *nas_log_)
-{
-  pool    = byte_buffer_pool::get_instance();
-  usim    = usim_;
-  rrc     = rrc_;
-  gw      = gw_;
-  nas_log = nas_log_;
-}
+  void nas::init(usim_interface_nas *usim_,
+                 rrc_interface_nas *rrc_,
+                 gw_interface_nas *gw_,
+                 srslte::log *nas_log_) {
+    pool = byte_buffer_pool::get_instance();
+    usim = usim_;
+    rrc = rrc_;
+    gw = gw_;
+    nas_log = nas_log_;
+    state = EMM_STATE_DEREGISTERED;
 
-void nas::stop()
-{}
+    // Manual PLMN selection procedure
+    current_plmn.mcc = 1;
+    current_plmn.mnc = 1;
+    plmn_selection = PLMN_SELECTED;
+  }
 
-emm_state_t nas::get_state()
-{
-  return state;
-}
+  void nas::stop() {}
 
+  emm_state_t nas::get_state() {
+    return state;
+  }
+
+/*******************************************************************************
+  UE interface
+*******************************************************************************/
+  void nas::attach_request() {
+    if (state == EMM_STATE_DEREGISTERED) {
+      state = EMM_STATE_REGISTERED_INITIATED;
+      if (plmn_selection == PLMN_NOT_SELECTED) {
+        rrc->plmn_search();
+      } else if (plmn_selection == PLMN_SELECTED) {
+        rrc->plmn_select(current_plmn);
+      }
+    } else {
+      nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
+    }
+  }
+
+  void nas::deattach_request() {
+    state = EMM_STATE_DEREGISTERED_INITIATED;
+    nas_log->info("Dettach request not supported\n");
+  }
 
 /*******************************************************************************
   RRC interface
 *******************************************************************************/
+
+void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) {
+  // if it's the plmn we want rrc->plmn_select() and plmn_selection = PLMN_SELECTED
+}
+
+void nas::cell_selected() {
+  if (state == EMM_STATE_REGISTERED_INITIATED) {
+    rrc->connect();
+  } else {
+    nas_log->info("Cell selcted in invalid state = %s\n", emm_state_text[state]);
+  }
+}
 
 bool nas::is_attached()
 {
@@ -73,7 +103,7 @@ bool nas::is_attached()
 void nas::notify_connection_setup()
 {
   nas_log->debug("State = %s\n", emm_state_text[state]);
-  if(EMM_STATE_DEREGISTERED == state) {
+  if(EMM_STATE_REGISTERED_INITIATED == state) {
     send_attach_request();
   } else {
     send_service_request();

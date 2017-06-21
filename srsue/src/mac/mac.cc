@@ -138,24 +138,23 @@ void mac::reset()
 
 void mac::run_thread() {
   int cnt=0;
-  
-  Info("Waiting PHY to synchronize with cell\n");  
-  phy_h->sync_start();
-  while(!phy_h->get_current_tti() && started) {
-    usleep(50000);
-  }
-  Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
-  ttisync.set_producer_cntr(phy_h->get_current_tti());
-     
+
   while(started) {
 
-    /* Warning: Here order of invocation of procedures is important!! */
-    ttisync.wait();
-    tti = phy_h->get_current_tti();
-    
-    if (started) {
-      log_h->step(tti);
+    while (!phy_h->sync_status()) {
+      usleep(5000);
+      if (phy_h->sync_status()) {
+        Debug("Setting ttysync to %d\n", phy_h->get_current_tti());
+        ttisync.set_producer_cntr(phy_h->get_current_tti());
+      }
+    }
 
+    if (started && phy_h->sync_status()) {
+      /* Warning: Here order of invocation of procedures is important!! */
+      ttisync.wait();
+      tti = phy_h->get_current_tti();
+
+      log_h->step(tti);
       timers_db.step_all();
       
       // Step all procedures 
@@ -488,7 +487,7 @@ void mac::upper_timers::reset()
 /********************************************************
  *
  * Class that runs a thread to process DL MAC PDUs from
- * DEMU unit
+ * DEMUX unit
  *
  *******************************************************/
 mac::pdu_process::pdu_process(demux *demux_unit_)

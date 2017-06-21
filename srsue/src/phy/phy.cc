@@ -205,6 +205,21 @@ void phy::configure_ul_params(bool pregen_disabled)
   }
 }
 
+void phy::cell_search_start()
+{
+  sf_recv.cell_search_start();
+}
+
+void phy::cell_search_next()
+{
+  sf_recv.cell_search_next();
+}
+
+bool phy::cell_select(uint32_t earfcn, srslte_cell_t phy_cell)
+{
+  return sf_recv.cell_select(earfcn, phy_cell);
+}
+
 float phy::get_phr()
 {
   float phr = radio_handler->get_max_tx_power() - workers_common.cur_pusch_power; 
@@ -280,23 +295,18 @@ int phy::sr_last_tx_tti()
   return workers_common.sr_last_tx_tti;
 }
 
-bool phy::status_is_sync()
-{
-  return sf_recv.status_is_sync();
-}
-
 void phy::resync_sfn() {
   sf_recv.resync_sfn();
 }
 
-void phy::sync_start()
+void phy::set_earfcn(vector< uint32_t > earfcns)
 {
-  sf_recv.sync_start();
+  sf_recv.set_earfcn(earfcns);
 }
 
-void phy::sync_stop()
+bool phy::sync_status()
 {
-  sf_recv.sync_stop();
+  return sf_recv.status_is_sync();
 }
 
 void phy::set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN])

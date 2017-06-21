@@ -29,7 +29,6 @@
 #include <sstream>
 
 #include "upper/rrc.h"
-#include "srslte/phy/utils/bit.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 
@@ -39,6 +38,11 @@ using namespace srslte;
 
 namespace srsue{
 
+  
+/*******************************************************************************
+  Base functions 
+*******************************************************************************/
+    
 rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
@@ -76,6 +80,11 @@ void rrc::init(phy_interface_rrc     *phy_,
   usim    = usim_;
   rrc_log = rrc_log_;
   mac_timers = mac_timers_;
+  state   = RRC_STATE_IDLE; 
+  si_acquire_state = SI_ACQUIRE_IDLE; 
+  
+  thread_running = true; 
+  start();
 
   pthread_mutex_init(&mutex, NULL); 
   
@@ -93,7 +102,10 @@ void rrc::init(phy_interface_rrc     *phy_,
 }
 
 void rrc::stop()
-{}
+{
+  thread_running = false; 
+  wait_thread_finish();
+}
 
 rrc_state_t rrc::get_state()
 {
@@ -110,65 +122,126 @@ void rrc::set_ue_category(int category)
 }
 
 
+
+/*******************************************************************************
+ * 
+ * 
+ * 
+ * PLMN selection, cell selection/reselection and acquisition of SI procedures
+ * 
+ * 
+ * 
+*******************************************************************************/
+
+
 /*******************************************************************************
   NAS interface
 *******************************************************************************/
 
-void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
-{
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", rb_id_text[lcid]);
-
-  switch(state)
-  {
-  case RRC_STATE_COMPLETING_SETUP:
-    send_con_setup_complete(sdu);
-    break;
-  case RRC_STATE_RRC_CONNECTED:
-    send_ul_info_transfer(lcid, sdu);
-    break;
-  default:
-    rrc_log->error("SDU received from NAS while RRC state = %s", rrc_state_text[state]);
-    break;
-  }
-}
-
 uint16_t rrc::get_mcc()
 {
-  if(sib1.N_plmn_ids > 0)
-    return sib1.plmn_id[0].id.mcc;
-  else
-    return 0;
+  if (current_cell) {
+    if(current_cell->sib1.N_plmn_ids > 0) {
+      return current_cell->sib1.plmn_id[0].id.mcc;
+    }
+  }
+  return 0;
 }
 
 uint16_t rrc::get_mnc()
 {
-  if(sib1.N_plmn_ids > 0)
-    return sib1.plmn_id[0].id.mnc;
-  else
-    return 0;
+  if (current_cell) {
+    if(current_cell->sib1.N_plmn_ids > 0) {
+      return current_cell->sib1.plmn_id[0].id.mnc;      
+    }
+  }
+  return 0;
 }
 
-/*******************************************************************************
-  MAC interface
-*******************************************************************************/
-/* Reception of PUCCH/SRS release procedure (Section 5.3.13) */
-void rrc::release_pucch_srs()
+void rrc::plmn_search()
 {
-  // Apply default configuration for PUCCH (CQI and SR) and SRS (release)
-  set_phy_default_pucch_srs();
-  
-  // Configure RX signals without pregeneration because default option is release
-  phy->configure_ul_params(true);
-  
+  state = RRC_STATE_PLMN_SELECTION;
+  phy->cell_search_start();
 }
 
-void rrc::ra_problem() {
-  radio_link_failure();
+void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id)
+{
+  bool sync_ok = false; 
+  
+  state = RRC_STATE_CELL_SELECTING; 
+  
+  // Sort cells according to RSRP
+
+  selected_plmn_id = plmn_id; 
+  last_selected_cell = -1; 
+
+  select_next_cell_in_plmn();  
+}
+
+void rrc::connect()
+{
+  pthread_mutex_lock(&mutex);
+  if(RRC_STATE_CELL_SELECTED == state) {
+    if (si_acquire_state == SI_ACQUIRE_IDLE) {
+      rrc_log->info("RRC in IDLE state - sending connection request.\n");
+      state = RRC_STATE_CONNECTING;
+      send_con_request();
+    } else {
+      rrc_log->warning("Received connect() but SI not acquired\n");
+    }
+  } else {
+    rrc_log->warning("Received connect() but cell is not selected\n");
+  }
+  pthread_mutex_unlock(&mutex);  
+}
+
+void rrc::select_next_cell_in_plmn() {
+  for (uint32_t i=last_selected_cell+1;i<known_cells.size();i++) {
+    for (uint32_t j=0;j<known_cells[i].sib1.N_plmn_ids;j++) {
+      if (known_cells[i].sib1.plmn_id[j].id.mcc == selected_plmn_id.mcc || 
+          known_cells[i].sib1.plmn_id[j].id.mnc == selected_plmn_id.mnc) 
+      {
+        // Check that cell satisfies S criteria 
+        if (phy->cell_select(known_cells[i].earfcn, known_cells[i].phy_cell)) {
+          si_acquire_state = SI_ACQUIRE_SIB1; 
+          last_selected_cell = i; 
+          return;           
+        }
+      }      
+    }
+  }
 }
 
 /*******************************************************************************
   PHY interface
 *******************************************************************************/
+
+void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
+    
+  // find if cell_id-earfcn combination already exists 
+  for (uint32_t i=0;i<known_cells.size();i++) {
+    if (earfcn == known_cells[i].earfcn && phy_cell.id == known_cells[i].phy_cell.id) {
+      known_cells[i].rsrp = rsrp; 
+      current_cell = &known_cells[i];
+      rrc_log->info("Updating cell EARFCN=%d, PCI=%d, RSRP=%d dBm\n", known_cells[i].earfcn, known_cells[i].phy_cell.id, known_cells[i].rsrp);            
+      return; 
+    }
+  }
+  // add to list of known cells 
+  cell_t cell; 
+  cell.phy_cell = phy_cell; 
+  cell.rsrp     = rsrp; 
+  cell.earfcn   = earfcn;
+  cell.has_valid_sib1 = false; 
+  cell.has_valid_sib2 = false; 
+  known_cells.push_back(cell);  
+  
+  // save current cell 
+  current_cell = &known_cells.back(); 
+
+  rrc_log->info("Found new cell EARFCN=%d, PCI=%d, RSRP=%d dBm\n", cell.earfcn, cell.phy_cell.id, cell.rsrp);
+  
+}
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync()
@@ -198,22 +271,236 @@ void rrc::in_sync()
 }
 
 /*******************************************************************************
+  PDCP interface
+*******************************************************************************/
+void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu)
+{
+  pool->deallocate(pdu);
+  if (state == RRC_STATE_PLMN_SELECTION) {
+    // Do we need to do something with BCH?
+    rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
+    si_acquire_state = SI_ACQUIRE_SIB1;       
+  } else {
+    rrc_log->warning("Received BCCH BCH in incorrect state\n");
+  }
+}
+
+void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu)
+{
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH DLSCH message received.");
+  rrc_log->info("BCCH DLSCH message Stack latency: %ld us\n", pdu->get_latency_us());
+  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
+  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes*8);
+  bit_buf.N_bits = pdu->N_bytes*8;
+  pool->deallocate(pdu);
+  liblte_rrc_unpack_bcch_dlsch_msg((LIBLTE_BIT_MSG_STRUCT*)&bit_buf, &dlsch_msg);
+
+  if (dlsch_msg.N_sibs > 0) {
+    if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[0].sib_type && SI_ACQUIRE_SIB1 == si_acquire_state) 
+    {
+      mac->bcch_stop_rx();
+
+      // Handle SIB1
+      memcpy(&current_cell->sib1, &dlsch_msg.sibs[0].sib.sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
+
+      rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
+                    current_cell->sib1.cell_id&0xfff,
+                    liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length],
+                    liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity]);
+
+      // Send PLMN and TAC to NAS
+      std::stringstream ss;
+      for(uint32_t i=0;i<current_cell->sib1.N_plmn_ids;i++){
+        std::string mcc;
+        std::string mnc;
+        mcc_to_string(current_cell->sib1.plmn_id[i].id.mcc, &mcc);
+        mnc_to_string(current_cell->sib1.plmn_id[i].id.mnc, &mnc);
+        ss << " PLMN Id: MCC " << mcc << " MNC " << mnc;
+
+        nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
+      }
+            
+      // Set TDD Config 
+      if (current_cell->sib1.tdd) {
+        phy->set_config_tdd(&current_cell->sib1.tdd_cnfg);
+      }
+      
+      rrc_log->console("SIB1 received, CellID=%d, %s\n",
+                       current_cell->sib1.cell_id&0xfff,
+                       ss.str().c_str());
+
+      current_cell->has_valid_sib1 = true; 
+      si_acquire_state = SI_ACQUIRE_SIB2;
+
+    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[0].sib_type && SI_ACQUIRE_SIB2 == si_acquire_state) 
+    {
+      mac->bcch_stop_rx();      
+
+      // Handle SIB2
+      memcpy(&current_cell->sib2, &dlsch_msg.sibs[0].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
+      rrc_log->console("SIB2 received\n");
+      rrc_log->info("SIB2 received\n");
+      
+      apply_sib2_configs(&current_cell->sib2);
+
+      current_cell->has_valid_sib2 = true; 
+      si_acquire_state = SI_ACQUIRE_IDLE; 
+    }
+  }
+}
+
+
+// Right now, this thread only controls System Information acquisition procedure
+void rrc::run_thread()
+{
+  uint32_t  tti ;
+  uint32_t  si_win_start, si_win_len;
+  uint16_t  period;
+  uint32_t  nof_sib1_trials = 0; 
+  const int SIB1_SEARCH_TIMEOUT = 30; 
+
+  while(thread_running)
+  {
+    switch(si_acquire_state)
+    {
+    case SI_ACQUIRE_SIB1:
+      // Instruct MAC to look for SIB1
+      if (!current_cell->has_valid_sib1) {
+        tti          = mac->get_current_tti();
+        si_win_start = sib_start_tti(tti, 2, 5);
+        mac->bcch_start_rx(si_win_start, 1);
+        rrc_log->debug("Instructed MAC to search for SIB1, win_start=%d, win_len=%d\n",
+                      si_win_start, 1);
+        nof_sib1_trials++;
+        if (nof_sib1_trials >= SIB1_SEARCH_TIMEOUT) {
+          if (state == RRC_STATE_CELL_SELECTING) {
+            select_next_cell_in_plmn();
+            si_acquire_state = SI_ACQUIRE_IDLE;
+          } else if (state == RRC_STATE_PLMN_SELECTION) {
+            phy->cell_search_next();
+          } 
+          nof_sib1_trials = 0; 
+        }
+      } else {
+        si_acquire_state = SI_ACQUIRE_SIB2; 
+      }
+      break;
+    case SI_ACQUIRE_SIB2:
+      // Instruct MAC to look for SIB2 only when selecting a cell 
+      if (state == RRC_STATE_CELL_SELECTING && !current_cell->has_valid_sib2) {
+        tti          = mac->get_current_tti();
+        period       = liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity];
+        si_win_start = sib_start_tti(tti, period, 0);
+        si_win_len   = liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length];
+
+        mac->bcch_start_rx(si_win_start, si_win_len);
+        rrc_log->debug("Instructed MAC to search for SIB2, win_start=%d, win_len=%d\n",
+                      si_win_start, si_win_len);
+      } else {
+        si_acquire_state = SI_ACQUIRE_DONE; 
+      }
+      break;
+    case SI_ACQUIRE_DONE: 
+      
+      // After acquiring SI, tell NAS that the cell is selected or go to next cell in case of PLMN selection 
+      
+      if (state == RRC_STATE_CELL_SELECTING) {        
+        nas->cell_selected();
+        state = RRC_STATE_CELL_SELECTED;
+      } else if (state == RRC_STATE_PLMN_SELECTION) {
+        phy->cell_search_next();
+      }
+      si_acquire_state = SI_ACQUIRE_IDLE; 
+      break;
+    default:
+      break;
+    }      
+    usleep(10000);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*******************************************************************************
+ * 
+ * 
+ * 
+ * Connection control and establishment/reestablishment procedures 
+ * 
+ * 
+ * 
+*******************************************************************************/
+
+
+
+
+
+
+/*******************************************************************************
+  NAS interface
+*******************************************************************************/
+
+void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
+{
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", rb_id_text[lcid]);
+
+  switch(state)
+  {
+  case RRC_STATE_CONNECTING:
+    send_con_setup_complete(sdu);
+    break;
+  case RRC_STATE_CONNECTED:
+    send_ul_info_transfer(lcid, sdu);
+    break;
+  default:
+    rrc_log->error("SDU received from NAS while RRC state = %s", rrc_state_text[state]);
+    break;
+  }
+}
+
+
+
+/*******************************************************************************
+  MAC interface
+*******************************************************************************/
+/* Reception of PUCCH/SRS release procedure (Section 5.3.13) */
+void rrc::release_pucch_srs()
+{
+  // Apply default configuration for PUCCH (CQI and SR) and SRS (release)
+  set_phy_default_pucch_srs();
+  
+  // Configure RX signals without pregeneration because default option is release
+  phy->configure_ul_params(true);  
+}
+
+void rrc::ra_problem() {
+  radio_link_failure();
+}
+
+
+/*******************************************************************************
   GW interface
 *******************************************************************************/
 
-bool rrc::rrc_connected()
+bool rrc::is_connected()
 {
-  return (RRC_STATE_RRC_CONNECTED == state);
-}
-
-void rrc::rrc_connect() {
-  pthread_mutex_lock(&mutex);
-  if(RRC_STATE_IDLE == state) {
-    rrc_log->info("RRC in IDLE state - sending connection request.\n");
-    state = RRC_STATE_WAIT_FOR_CON_SETUP;
-    send_con_request();
-  }
-  pthread_mutex_unlock(&mutex);
+  return (RRC_STATE_CONNECTED == state);
 }
 
 bool rrc::have_drb()
@@ -246,75 +533,6 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 
 }
 
-void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu)
-{
-  // Unpack the MIB
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
-  rrc_log->info("BCCH BCH message Stack latency: %ld us\n", pdu->get_latency_us());
-  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes*8);
-  bit_buf.N_bits = pdu->N_bytes*8;
-  pool->deallocate(pdu);
-  liblte_rrc_unpack_bcch_bch_msg((LIBLTE_BIT_MSG_STRUCT*)&bit_buf, &mib);
-  rrc_log->info("MIB received BW=%s MHz\n", liblte_rrc_dl_bandwidth_text[mib.dl_bw]);
-  rrc_log->console("MIB received BW=%s MHz\n", liblte_rrc_dl_bandwidth_text[mib.dl_bw]);
-
-  // Start the SIB search state machine
-  state = RRC_STATE_SIB1_SEARCH;
-  pthread_create(&sib_search_thread, NULL, &rrc::start_sib_thread, this);
-}
-
-void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu)
-{
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH DLSCH message received.");
-  rrc_log->info("BCCH DLSCH message Stack latency: %ld us\n", pdu->get_latency_us());
-  LIBLTE_RRC_BCCH_DLSCH_MSG_STRUCT dlsch_msg;
-  srslte_bit_unpack_vector(pdu->msg, bit_buf.msg, pdu->N_bytes*8);
-  bit_buf.N_bits = pdu->N_bytes*8;
-  pool->deallocate(pdu);
-  liblte_rrc_unpack_bcch_dlsch_msg((LIBLTE_BIT_MSG_STRUCT*)&bit_buf, &dlsch_msg);
-
-  if (dlsch_msg.N_sibs > 0) {
-    if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1 == dlsch_msg.sibs[0].sib_type && RRC_STATE_SIB1_SEARCH == state) {
-      // Handle SIB1
-      memcpy(&sib1, &dlsch_msg.sibs[0].sib.sib1, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT));
-      rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
-                    sib1.cell_id&0xfff,
-                    liblte_rrc_si_window_length_num[sib1.si_window_length],
-                    liblte_rrc_si_periodicity_num[sib1.sched_info[0].si_periodicity]);
-      std::stringstream ss;
-      for(uint32_t i=0;i<sib1.N_plmn_ids;i++){
-        std::string mcc;
-        std::string mnc;
-        mcc_to_string(sib1.plmn_id[i].id.mcc, &mcc);
-        mnc_to_string(sib1.plmn_id[i].id.mnc, &mnc);
-        ss << " PLMN Id: MCC " << mcc << " MNC " << mnc;
-      }
-      
-      // Set TDD Config 
-      if (dlsch_msg.sibs[0].sib.sib1.tdd) {
-        phy->set_config_tdd(&dlsch_msg.sibs[0].sib.sib1.tdd_cnfg);
-      }
-      
-      rrc_log->console("SIB1 received, CellID=%d, %s\n",
-                       sib1.cell_id&0xfff,
-                       ss.str().c_str());
-      
-      state = RRC_STATE_SIB2_SEARCH;
-      mac->bcch_stop_rx();
-      //TODO: Use all SIB1 info
-
-    } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[0].sib_type && RRC_STATE_SIB2_SEARCH == state) {
-      // Handle SIB2
-      memcpy(&sib2, &dlsch_msg.sibs[0].sib.sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
-      rrc_log->console("SIB2 received\n");
-      rrc_log->info("SIB2 received\n");
-      state = RRC_STATE_WAIT_FOR_CON_SETUP;
-      mac->bcch_stop_rx();
-      apply_sib2_configs();
-      send_con_request();
-    }
-  }
-}
 
 void rrc::write_pdu_pcch(byte_buffer_t *pdu)
 {
@@ -352,7 +570,7 @@ void rrc::write_pdu_pcch(byte_buffer_t *pdu)
         mac->pcch_stop_rx();
         if(RRC_STATE_IDLE == state) {
           rrc_log->info("RRC in IDLE state - sending connection request.\n");
-          state = RRC_STATE_WAIT_FOR_CON_SETUP;
+          state = RRC_STATE_CONNECTING;
           send_con_request();
         }
       }
@@ -400,7 +618,7 @@ void rrc::send_con_request()
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool_allocate;
+  byte_buffer_t *pdcp_buf = pool_allocate;;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits/8;
   pdcp_buf->set_timestamp();
@@ -417,7 +635,6 @@ void rrc::send_con_request()
   mac->set_contention_id(uecri);
 
   rrc_log->info("Sending RRC Connection Request on SRB0\n");
-  state = RRC_STATE_WAIT_FOR_CON_SETUP;
   pdcp->write_sdu(RB_ID_SRB0, pdcp_buf);
 }
 
@@ -478,7 +695,7 @@ void rrc::send_con_restablish_request()
   
   // Wait for cell re-synchronization  
   uint32_t timeout_cnt = 0; 
-  while(!phy->status_is_sync() && timeout_cnt < TIMEOUT_RESYNC_REESTABLISH){
+  while(!phy->sync_status() && timeout_cnt < TIMEOUT_RESYNC_REESTABLISH){
     usleep(10000);
     timeout_cnt++; 
   }
@@ -494,7 +711,7 @@ void rrc::send_con_restablish_request()
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool_allocate;
+  byte_buffer_t *pdcp_buf = pool_allocate;;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits/8;
 
@@ -509,7 +726,6 @@ void rrc::send_con_restablish_request()
   mac->set_contention_id(uecri);
 
   rrc_log->info("Sending RRC Connection Resetablishment Request on SRB0\n");
-  state = RRC_STATE_WAIT_FOR_CON_SETUP;
   pdcp->write_sdu(RB_ID_SRB0, pdcp_buf);
 }
 
@@ -531,11 +747,11 @@ void rrc::send_con_restablish_complete()
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool_allocate;
+  byte_buffer_t *pdcp_buf = pool_allocate;;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits/8;
 
-  state = RRC_STATE_RRC_CONNECTED;
+  state = RRC_STATE_CONNECTED;
   rrc_log->console("RRC Connected\n");
   rrc_log->info("Sending RRC Connection Reestablishment Complete\n");
   pdcp->write_sdu(RB_ID_SRB1, pdcp_buf);
@@ -562,12 +778,12 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg)
       bit_buf.msg[bit_buf.N_bits + i] = 0;
     bit_buf.N_bits += 8 - (bit_buf.N_bits % 8);
   }
-  byte_buffer_t *pdcp_buf = pool_allocate;
+  byte_buffer_t *pdcp_buf = pool_allocate;;
   srslte_bit_pack_vector(bit_buf.msg, pdcp_buf->msg, bit_buf.N_bits);
   pdcp_buf->N_bytes = bit_buf.N_bits/8;
   pdcp_buf->set_timestamp();
 
-  state = RRC_STATE_RRC_CONNECTED;
+  state = RRC_STATE_CONNECTED;
   rrc_log->console("RRC Connected\n");
   rrc_log->info("Sending RRC Connection Setup Complete\n");
   pdcp->write_sdu(RB_ID_SRB1, pdcp_buf);
@@ -654,7 +870,7 @@ void rrc::send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu)
 
 void rrc::enable_capabilities()
 {
-  bool enable_ul_64 = ue_category>=5 && sib2.rr_config_common_sib.pusch_cnfg.enable_64_qam;
+  bool enable_ul_64 = ue_category>=5 && current_cell->sib2.rr_config_common_sib.pusch_cnfg.enable_64_qam;
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64?"Enabling":"Disabling");
   phy->set_config_64qam_en(enable_ul_64);  
 }
@@ -766,7 +982,6 @@ void rrc::parse_dl_ccch(byte_buffer_t *pdu)
     transaction_id = dl_ccch_msg.msg.rrc_con_setup.rrc_transaction_id;
     handle_con_setup(&dl_ccch_msg.msg.rrc_con_setup);
     rrc_log->info("Notifying NAS of connection setup\n");
-    state = RRC_STATE_COMPLETING_SETUP;
     nas->notify_connection_setup();
     break;
   case LIBLTE_RRC_DL_CCCH_MSG_TYPE_RRC_CON_REEST:
@@ -904,108 +1119,44 @@ void rrc::radio_link_failure() {
   
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
-  if (state != RRC_STATE_RRC_CONNECTED) {
+  if (state != RRC_STATE_CONNECTED) {
     rrc_connection_release();
   } else {    
     send_con_restablish_request();
   }
 }
 
-void* rrc::start_sib_thread(void *rrc_)
-{
-  rrc *r = (rrc*)rrc_;
-  r->sib_search();
-  return NULL;
-}
-
-void rrc::sib_search()
-{
-  bool      searching = true;
-  uint32_t  tti ;
-  uint32_t  si_win_start, si_win_len;
-  uint16_t  period;
-  uint32_t  nof_sib1_trials = 0; 
-  const int SIB1_SEARCH_TIMEOUT = 30; 
-
-  while(searching)
-  {
-    switch(state)
-    {
-    case RRC_STATE_SIB1_SEARCH:
-      // Instruct MAC to look for SIB1
-      while(!phy->status_is_sync()){
-        usleep(50000);
-      }
-      usleep(10000); 
-      tti          = mac->get_current_tti();
-      si_win_start = sib_start_tti(tti, 2, 5);
-      mac->bcch_start_rx(si_win_start, 1);
-      rrc_log->debug("Instructed MAC to search for SIB1, win_start=%d, win_len=%d\n",
-                     si_win_start, 1);
-      nof_sib1_trials++;
-      if (nof_sib1_trials >= SIB1_SEARCH_TIMEOUT) {
-        rrc_log->info("Timeout while searching for SIB1. Resynchronizing SFN...\n");
-        rrc_log->console("Timeout while searching for SIB1. Resynchronizing SFN...\n");
-        phy->resync_sfn();
-        nof_sib1_trials = 0; 
-      }
-      break;
-    case RRC_STATE_SIB2_SEARCH:
-      // Instruct MAC to look for SIB2
-      usleep(10000);
-      tti          = mac->get_current_tti();
-      period       = liblte_rrc_si_periodicity_num[sib1.sched_info[0].si_periodicity];
-      si_win_start = sib_start_tti(tti, period, 0);
-      si_win_len   = liblte_rrc_si_window_length_num[sib1.si_window_length];
-
-      mac->bcch_start_rx(si_win_start, si_win_len);
-      rrc_log->debug("Instructed MAC to search for SIB2, win_start=%d, win_len=%d\n",
-                     si_win_start, si_win_len);
-
-      break;
-    default:
-      searching = false;
-      break;
-    }
-    usleep(100000);
-  }
-}
 
 // Determine SI messages scheduling as in 36.331 5.2.3 Acquisition of an SI message
 uint32_t rrc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t x) {
   return (period*10*(1+tti/(period*10))+x)%10240; // the 1 means next opportunity
 }
 
-void rrc::apply_sib2_configs()
+void rrc::apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2)
 {
-  if(RRC_STATE_WAIT_FOR_CON_SETUP != state){
-    rrc_log->error("State must be RRC_STATE_WAIT_FOR_CON_SETUP to handle SIB2. Actual state: %s\n",
-                   rrc_state_text[state]);
-    return;
-  }
   
   // Apply RACH timeAlginmentTimer configuration 
   mac_interface_rrc::mac_cfg_t cfg; 
   mac->get_config(&cfg);
-  cfg.main.time_alignment_timer = sib2.time_alignment_timer; 
-  memcpy(&cfg.rach, &sib2.rr_config_common_sib.rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT)); 
-  cfg.prach_config_index = sib2.rr_config_common_sib.prach_cnfg.root_sequence_index; 
+  cfg.main.time_alignment_timer = sib2->time_alignment_timer; 
+  memcpy(&cfg.rach, &sib2->rr_config_common_sib.rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT)); 
+  cfg.prach_config_index = sib2->rr_config_common_sib.prach_cnfg.root_sequence_index; 
   mac->set_config(&cfg);
   
   rrc_log->info("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",
-         liblte_rrc_number_of_ra_preambles_num[sib2.rr_config_common_sib.rach_cnfg.num_ra_preambles],
-         liblte_rrc_ra_response_window_size_num[sib2.rr_config_common_sib.rach_cnfg.ra_resp_win_size],
-         liblte_rrc_mac_contention_resolution_timer_num[sib2.rr_config_common_sib.rach_cnfg.mac_con_res_timer]);
+         liblte_rrc_number_of_ra_preambles_num[sib2->rr_config_common_sib.rach_cnfg.num_ra_preambles],
+         liblte_rrc_ra_response_window_size_num[sib2->rr_config_common_sib.rach_cnfg.ra_resp_win_size],
+         liblte_rrc_mac_contention_resolution_timer_num[sib2->rr_config_common_sib.rach_cnfg.mac_con_res_timer]);
 
   // Apply PHY RR Config Common
   phy_interface_rrc::phy_cfg_common_t common; 
-  memcpy(&common.pdsch_cnfg,  &sib2.rr_config_common_sib.pdsch_cnfg,  sizeof(LIBLTE_RRC_PDSCH_CONFIG_COMMON_STRUCT));
-  memcpy(&common.pusch_cnfg,  &sib2.rr_config_common_sib.pusch_cnfg,  sizeof(LIBLTE_RRC_PUSCH_CONFIG_COMMON_STRUCT));
-  memcpy(&common.pucch_cnfg,  &sib2.rr_config_common_sib.pucch_cnfg,  sizeof(LIBLTE_RRC_PUCCH_CONFIG_COMMON_STRUCT));
-  memcpy(&common.ul_pwr_ctrl, &sib2.rr_config_common_sib.ul_pwr_ctrl, sizeof(LIBLTE_RRC_UL_POWER_CONTROL_COMMON_STRUCT));
-  memcpy(&common.prach_cnfg,  &sib2.rr_config_common_sib.prach_cnfg,  sizeof(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT));
-  if (sib2.rr_config_common_sib.srs_ul_cnfg.present) {
-    memcpy(&common.srs_ul_cnfg,  &sib2.rr_config_common_sib.srs_ul_cnfg, sizeof(LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT));
+  memcpy(&common.pdsch_cnfg,  &sib2->rr_config_common_sib.pdsch_cnfg,  sizeof(LIBLTE_RRC_PDSCH_CONFIG_COMMON_STRUCT));
+  memcpy(&common.pusch_cnfg,  &sib2->rr_config_common_sib.pusch_cnfg,  sizeof(LIBLTE_RRC_PUSCH_CONFIG_COMMON_STRUCT));
+  memcpy(&common.pucch_cnfg,  &sib2->rr_config_common_sib.pucch_cnfg,  sizeof(LIBLTE_RRC_PUCCH_CONFIG_COMMON_STRUCT));
+  memcpy(&common.ul_pwr_ctrl, &sib2->rr_config_common_sib.ul_pwr_ctrl, sizeof(LIBLTE_RRC_UL_POWER_CONTROL_COMMON_STRUCT));
+  memcpy(&common.prach_cnfg,  &sib2->rr_config_common_sib.prach_cnfg,  sizeof(LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT));
+  if (sib2->rr_config_common_sib.srs_ul_cnfg.present) {
+    memcpy(&common.srs_ul_cnfg,  &sib2->rr_config_common_sib.srs_ul_cnfg, sizeof(LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT));
   } else {
     // default is release
     common.srs_ul_cnfg.present = false; 
@@ -1015,34 +1166,34 @@ void rrc::apply_sib2_configs()
   phy->configure_ul_params();
 
   rrc_log->info("Set PUSCH ConfigCommon: HopOffset=%d, RSGroup=%d, RSNcs=%d, N_sb=%d\n",
-                sib2.rr_config_common_sib.pusch_cnfg.pusch_hopping_offset,
-                sib2.rr_config_common_sib.pusch_cnfg.ul_rs.group_assignment_pusch,
-                sib2.rr_config_common_sib.pusch_cnfg.ul_rs.cyclic_shift,
-                sib2.rr_config_common_sib.pusch_cnfg.n_sb);
+                sib2->rr_config_common_sib.pusch_cnfg.pusch_hopping_offset,
+                sib2->rr_config_common_sib.pusch_cnfg.ul_rs.group_assignment_pusch,
+                sib2->rr_config_common_sib.pusch_cnfg.ul_rs.cyclic_shift,
+                sib2->rr_config_common_sib.pusch_cnfg.n_sb);
 
   rrc_log->info("Set PUCCH ConfigCommon: DeltaShift=%d, CyclicShift=%d, N1=%d, NRB=%d\n",
-                liblte_rrc_delta_pucch_shift_num[sib2.rr_config_common_sib.pucch_cnfg.delta_pucch_shift],
-                sib2.rr_config_common_sib.pucch_cnfg.n_cs_an,
-                sib2.rr_config_common_sib.pucch_cnfg.n1_pucch_an,
-                sib2.rr_config_common_sib.pucch_cnfg.n_rb_cqi);
+                liblte_rrc_delta_pucch_shift_num[sib2->rr_config_common_sib.pucch_cnfg.delta_pucch_shift],
+                sib2->rr_config_common_sib.pucch_cnfg.n_cs_an,
+                sib2->rr_config_common_sib.pucch_cnfg.n1_pucch_an,
+                sib2->rr_config_common_sib.pucch_cnfg.n_rb_cqi);
   
   rrc_log->info("Set PRACH ConfigCommon: SeqIdx=%d, HS=%s, FreqOffset=%d, ZC=%d, ConfigIndex=%d\n",
-                 sib2.rr_config_common_sib.prach_cnfg.root_sequence_index,
-                 sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.high_speed_flag?"yes":"no",
-                 sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset,
-                 sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.zero_correlation_zone_config,
-                 sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_config_index);
+                 sib2->rr_config_common_sib.prach_cnfg.root_sequence_index,
+                 sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.high_speed_flag?"yes":"no",
+                 sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset,
+                 sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.zero_correlation_zone_config,
+                 sib2->rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_config_index);
 
   rrc_log->info("Set SRS ConfigCommon: BW-Configuration=%d, SF-Configuration=%d, ACKNACK=%s\n",
-                 liblte_rrc_srs_bw_config_num[sib2.rr_config_common_sib.srs_ul_cnfg.bw_cnfg],
-                 liblte_rrc_srs_subfr_config_num[sib2.rr_config_common_sib.srs_ul_cnfg.subfr_cnfg],
-                 sib2.rr_config_common_sib.srs_ul_cnfg.ack_nack_simul_tx?"yes":"no");
+                 liblte_rrc_srs_bw_config_num[sib2->rr_config_common_sib.srs_ul_cnfg.bw_cnfg],
+                 liblte_rrc_srs_subfr_config_num[sib2->rr_config_common_sib.srs_ul_cnfg.subfr_cnfg],
+                 sib2->rr_config_common_sib.srs_ul_cnfg.ack_nack_simul_tx?"yes":"no");
 
-  mac_timers->get(t301)->set(this, liblte_rrc_t301_num[sib2.ue_timers_and_constants.t301]);
-  mac_timers->get(t310)->set(this, liblte_rrc_t310_num[sib2.ue_timers_and_constants.t310]);
-  mac_timers->get(t311)->set(this, liblte_rrc_t311_num[sib2.ue_timers_and_constants.t311]);
-  N310 = liblte_rrc_n310_num[sib2.ue_timers_and_constants.n310];
-  N311 = liblte_rrc_n311_num[sib2.ue_timers_and_constants.n311];
+  mac_timers->get(t301)->set(this, liblte_rrc_t301_num[sib2->ue_timers_and_constants.t301]);
+  mac_timers->get(t310)->set(this, liblte_rrc_t310_num[sib2->ue_timers_and_constants.t310]);
+  mac_timers->get(t311)->set(this, liblte_rrc_t311_num[sib2->ue_timers_and_constants.t311]);
+  N310 = liblte_rrc_n310_num[sib2->ue_timers_and_constants.n310];
+  N311 = liblte_rrc_n311_num[sib2->ue_timers_and_constants.n311];
   
   rrc_log->info("Set Constants and Timers: N310=%d, N311=%d, t301=%d, t310=%d, t311=%d\n", 
     N310, N311, mac_timers->get(t301)->get_timeout(), 
@@ -1309,7 +1460,7 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
   byte_buffer_t *nas_sdu;
   for(i=0;i<reconfig->N_ded_info_nas;i++)
   {
-    nas_sdu = pool_allocate;
+    nas_sdu = pool_allocate;;
     memcpy(nas_sdu->msg, &reconfig->ded_info_nas_list[i].msg, reconfig->ded_info_nas_list[i].N_bytes);
     nas_sdu->N_bytes = reconfig->ded_info_nas_list[i].N_bytes;
     nas->write_pdu(lcid, nas_sdu);

@@ -69,18 +69,21 @@ public:
   void enable_pregen_signals(bool enable); 
   
   void start_trace();
-  void write_trace(std::string filename); 
-  
+  void write_trace(std::string filename);
+
+  void set_earfcn(std::vector<uint32_t> earfcns);
+
   /********** RRC INTERFACE ********************/
   void    reset();
-  bool    status_is_sync();
   void    configure_ul_params(bool pregen_disabled = false);
-  void    resync_sfn(); 
-  
+  void    resync_sfn();
+  void    cell_search_start();
+  void    cell_search_next();
+  bool    cell_select(uint32_t earfcn, srslte_cell_t phy_cell);
+
   /********** MAC INTERFACE ********************/
   /* Functions to synchronize with a cell */
-  void    sync_start(); 
-  void    sync_stop();
+  bool    sync_status(); // this is also RRC interface
 
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   void set_crnti(uint16_t rnti);

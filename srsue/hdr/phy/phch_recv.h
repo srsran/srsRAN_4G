@@ -51,12 +51,16 @@ public:
   void stop();
   void set_agc_enable(bool enable);
 
-  void     resync_sfn(); 
-  
+  void     resync_sfn();
+
+  void    set_earfcn(std::vector<uint32_t> earfcn);
+
+  void    cell_search_start();
+  void    cell_search_next();
+  bool    cell_select(uint32_t earfcn, srslte_cell_t cell);
+
   uint32_t get_current_tti();
   
-  void    sync_start(); 
-  void    sync_stop();
   bool    status_is_sync();
 
   void    set_time_adv_sec(float time_adv_sec);
@@ -65,7 +69,9 @@ public:
   const static int MUTEX_X_WORKER = 4; 
 
 private:
-  
+
+  std::vector<uint32_t> earfcn;
+
   void   set_ue_sync_opts(srslte_ue_sync_t *q); 
   void   run_thread();
   int    sync_sfn();
@@ -91,7 +97,7 @@ private:
   sync_metrics_t metrics;
 
   enum {
-    IDLE, CELL_SEARCH, SYNCING, SYNC_DONE
+    IDLE, CELL_SEARCH, CELL_SELECT, CAMPING
   } phy_state; 
 
   srslte_cell_t cell; 
@@ -111,6 +117,7 @@ private:
   uint32_t      sync_sfn_cnt;
   const static uint32_t SYNC_SFN_TIMEOUT = 5000;
   float ul_dl_factor;
+  int cur_earfcn_index;
   
   bool          cell_search(int force_N_id_2 = -1);
   bool          init_cell();

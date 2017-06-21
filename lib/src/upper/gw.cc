@@ -249,8 +249,8 @@ void gw::run_thread()
           {
             gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-            while(run_enable && (!rrc->rrc_connected() || !rrc->have_drb())) {
-              rrc->rrc_connect();
+            while(run_enable && (!rrc->is_connected() || !rrc->have_drb())) {
+              rrc->connect();
               usleep(1000);
             }
             

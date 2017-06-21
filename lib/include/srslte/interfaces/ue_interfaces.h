@@ -101,6 +101,16 @@ public:
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
+  virtual void      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
+  virtual void      cell_selected() = 0;
+};
+
+// NAS interface for UE
+class nas_interface_ue
+{
+public:
+  virtual void      attach_request() = 0;
+  virtual void      deattach_request() = 0;
 };
 
 // RRC interface for MAC
@@ -117,6 +127,7 @@ class rrc_interface_phy
 public:
   virtual void in_sync() = 0;
   virtual void out_of_sync() = 0;
+  virtual void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) = 0;
 };
 
 // RRC interface for NAS
@@ -127,14 +138,18 @@ public:
   virtual uint16_t get_mcc() = 0;
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
+  virtual void plmn_search() = 0;
+  virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
+  virtual void connect() = 0;
+
 };
 
 // RRC interface for GW
 class rrc_interface_gw
 {
 public:
-  virtual bool rrc_connected() = 0;
-  virtual void rrc_connect() = 0; 
+  virtual bool is_connected() = 0;
+  virtual void connect() = 0;
   virtual bool have_drb() = 0;
 };
 
@@ -400,8 +415,7 @@ public:
   virtual void configure_prach_params() = 0;
   
   /* Start synchronization with strongest cell in the current carrier frequency */
-  virtual void sync_start() = 0; 
-  virtual void sync_stop() = 0;
+  virtual bool sync_status() = 0;
   
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   virtual void set_crnti(uint16_t rnti) = 0; 
@@ -462,9 +476,14 @@ public:
   virtual void set_config_common(phy_cfg_common_t *common) = 0; 
   virtual void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd) = 0; 
   virtual void set_config_64qam_en(bool enable) = 0;
-  
+
+  /* Cell search and selection procedures */
+  virtual void cell_search_start() = 0;
+  virtual void cell_search_next() = 0;
+  virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
+
   /* Is the PHY downlink synchronized? */
-  virtual bool status_is_sync() = 0;
+  virtual bool sync_status() = 0;
 
   /* Configure UL using parameters written with set_param() */
   virtual void configure_ul_params(bool pregen_disabled = false) = 0;
