@@ -81,28 +81,6 @@ else(MKL_FOUND)
   target_link_libraries(srslte_phy ${FFTW3F_LIBRARIES})
 endif(MKL_FOUND)
 
-## This linkage is required for the examples and tests only
-if(RF_FOUND)
-
-  target_link_libraries(srslte_phy)
-
-  if(UHD_FOUND)
-    target_link_libraries(srslte_phy ${UHD_LIBRARIES})
-  endif(UHD_FOUND)
-
-  if(BLADERF_FOUND)
-    target_link_libraries(srslte_phy ${BLADERF_LIBRARIES})
-  endif(BLADERF_FOUND)
-
-  if(LIMESDR_FOUND)
-    target_link_libraries(srslte_phy ${LIMESDR_LIBRARIES})
-  endif(LIMESDR_FOUND)
-
-  if(SOAPYSDR_FOUND)
-    target_link_libraries(srslte_phy ${SOAPYSDR_LIBRARIES})
-  endif(SOAPYSDR_FOUND)
-
-endif(RF_FOUND)
 
 if(VOLK_FOUND)
   target_link_libraries(srslte_phy ${VOLK_LIBRARIES})

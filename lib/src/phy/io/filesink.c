@@ -52,7 +52,7 @@ void srslte_filesink_free(srslte_filesink_t *q) {
 }
 
 int srslte_filesink_write(srslte_filesink_t *q, void *buffer, int nsamples) {
-  int i;
+  int i = 0;
   float *fbuf = (float*) buffer;
   _Complex float *cbuf = (_Complex float*) buffer;
   _Complex short *sbuf = (_Complex short*) buffer;

@@ -46,7 +46,7 @@ endif (RPATH)
 ########################################################################
 if (NOT ${BUILDUE_CMD} STREQUAL "")
   message(STATUS "Added custom post-build-UE command: ${BUILDUE_CMD}")
-  add_custom_command(TARGET ue POST_BUILD COMMAND ${BUILDUE_CMD})
+  add_custom_command(TARGET srsue POST_BUILD COMMAND ${BUILDUE_CMD})
 else(NOT ${BUILDUE_CMD} STREQUAL "")
   message(STATUS "No post-build-UE command defined")
 endif (NOT ${BUILDUE_CMD} STREQUAL "")

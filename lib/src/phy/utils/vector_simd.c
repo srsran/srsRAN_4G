@@ -87,10 +87,10 @@ int srslte_vec_dot_prod_sss_sse(short *x, short *y, uint32_t len)
 }
 
 
-int srslte_vec_dot_prod_sss_avx(short *x, short *y, uint32_t len)
+int srslte_vec_dot_prod_sss_avx2(short *x, short *y, uint32_t len)
 {
   int result = 0; 
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -110,7 +110,7 @@ int srslte_vec_dot_prod_sss_avx(short *x, short *y, uint32_t len)
     yPtr ++;
   }
   
-  short dotProdVector[16];
+  __attribute__ ((aligned (256))) short dotProdVector[16];
   _mm256_store_si256((__m256i*) dotProdVector, dotProdVal);
   for (int i=0;i<16;i++) {
     result += dotProdVector[i]; 
@@ -160,9 +160,9 @@ void srslte_vec_sum_sss_sse(short *x, short *y, short *z, uint32_t len)
 
 }
 
-void srslte_vec_sum_sss_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_sum_sss_avx2(short *x, short *y, short *z, uint32_t len)
 {
-#ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -225,9 +225,9 @@ void srslte_vec_sub_sss_sse(short *x, short *y, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_sub_sss_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_sub_sss_avx2(short *x, short *y, short *z, uint32_t len)
 {
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -292,9 +292,9 @@ void srslte_vec_prod_sss_sse(short *x, short *y, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_prod_sss_avx(short *x, short *y, short *z, uint32_t len)
+void srslte_vec_prod_sss_avx2(short *x, short *y, short *z, uint32_t len)
 {
-#ifdef LV_HAVE_SSE
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -359,9 +359,9 @@ void srslte_vec_sc_div2_sss_sse(short *x, int k, short *z, uint32_t len)
 #endif
 }
 
-void srslte_vec_sc_div2_sss_avx(short *x, int k, short *z, uint32_t len)
+void srslte_vec_sc_div2_sss_avx2(short *x, int k, short *z, uint32_t len)
 {
-#ifdef LV_HAVE_AVX
+#ifdef LV_HAVE_AVX2
   unsigned int number = 0;
   const unsigned int points = len / 16;
 
@@ -394,7 +394,11 @@ void srslte_vec_sc_div2_sss_avx(short *x, int k, short *z, uint32_t len)
 /* No improvement with AVX */
 void srslte_vec_lut_sss_sse(short *x, unsigned short *lut, short *y, uint32_t len)
 {
-#ifndef DEBUG_MODE
+#ifdef DEBUG_MODE
+  for (int i=0;i<len;i++) {
+    y[lut[i]] = x[i];
+  }
+#else
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 8;
@@ -466,7 +470,7 @@ void srslte_vec_convert_fi_sse(float *x, int16_t *z, float scale, uint32_t len)
 
 
 // for enb no-volk
-void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len) {
+void srslte_vec_sum_fff_sse(float *x, float *y, float *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 4;
@@ -497,7 +501,7 @@ void srslte_vec_sum_fff_simd(float *x, float *y, float *z, uint32_t len) {
 #endif
 }
 
-void srslte_vec_sub_fff_simd(float *x, float *y, float *z, uint32_t len) {
+void srslte_vec_sub_fff_sse(float *x, float *y, float *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int points = len / 4;
@@ -550,7 +554,7 @@ static inline __m128 _mm_complexmulconj_ps(__m128 x, __m128 y) {
 }
 #endif
 
-cf_t srslte_vec_dot_prod_ccc_simd(cf_t *x, cf_t *y, uint32_t len)
+cf_t srslte_vec_dot_prod_ccc_sse(cf_t *x, cf_t *y, uint32_t len)
 {
   cf_t result = 0; 
 #ifdef LV_HAVE_SSE
@@ -591,8 +595,7 @@ cf_t srslte_vec_dot_prod_ccc_simd(cf_t *x, cf_t *y, uint32_t len)
   return result; 
 }
 
-
-cf_t srslte_vec_dot_prod_conj_ccc_simd(cf_t *x, cf_t *y, uint32_t len)
+cf_t srslte_vec_dot_prod_conj_ccc_sse(cf_t *x, cf_t *y, uint32_t len)
 {
   cf_t result = 0; 
 #ifdef LV_HAVE_SSE
@@ -632,7 +635,8 @@ cf_t srslte_vec_dot_prod_conj_ccc_simd(cf_t *x, cf_t *y, uint32_t len)
 #endif
   return result; 
 }
-void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) 
+
+void srslte_vec_prod_ccc_sse(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
 {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -662,7 +666,7 @@ void srslte_vec_prod_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len)
 }
 
 
-void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
+void srslte_vec_prod_conj_ccc_sse(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int halfPoints = len / 2;
@@ -690,7 +694,7 @@ void srslte_vec_prod_conj_ccc_simd(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
 #endif
 }
 
-void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
+void srslte_vec_sc_prod_ccc_sse(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int halfPoints = len / 2;
@@ -724,7 +728,7 @@ void srslte_vec_sc_prod_ccc_simd(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
 }
 
 
-void srslte_vec_sc_prod_cfc_simd(cf_t *x, float h, cf_t *z, uint32_t len) {
+void srslte_vec_sc_prod_cfc_sse(cf_t *x, float h, cf_t *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int halfPoints = len / 2;
@@ -756,7 +760,7 @@ void srslte_vec_sc_prod_cfc_simd(cf_t *x, float h, cf_t *z, uint32_t len) {
 
 
 
-void srslte_vec_sc_prod_fff_simd(float *x, float h, float *z, uint32_t len) {
+void srslte_vec_sc_prod_fff_sse(float *x, float h, float *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int quarterPoints = len / 4;
@@ -786,8 +790,7 @@ void srslte_vec_sc_prod_fff_simd(float *x, float h, float *z, uint32_t len) {
 #endif
 }
 
-
-void srslte_vec_abs_square_cf_simd(cf_t *x, float *z, uint32_t len) {
+void srslte_vec_abs_square_cf_sse(cf_t *x, float *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
   const unsigned int quarterPoints = len / 4;

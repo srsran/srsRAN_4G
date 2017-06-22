@@ -245,6 +245,20 @@ void srslte_rm_turbo_gentables() {
 }
 
 
+/**
+ * Rate matching for LTE Turbo Coder
+ *
+ * @param[out] w_buff Preallocated softbuffer
+ * @param[in] systematic Input code block in a byte array
+ * @param[in] parity Input code turbo coder parity bits in a byte array
+ * @param[out] output Rate matched output array of size out_len
+ * @param out_len Output buffer size to be filled with as many FEC bits as fit
+ * @param w_offset Start writing to output at this bit offset
+ * @param cb_idx Code block index. Used to lookup interleaver parameters
+ * @param rv_idx Redundancy Version Index. Indexed offset of FEC bits to copy
+ *
+ * @return Error code
+ */
 int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity, uint8_t *output, 
                            uint32_t cb_idx, uint32_t out_len, 
                            uint32_t w_offset, uint32_t rv_idx) 
@@ -289,6 +303,15 @@ int srslte_rm_turbo_tx_lut(uint8_t *w_buff, uint8_t *systematic, uint8_t *parity
   }
 }
 
+/**
+ * Undoes rate matching for LTE Turbo Coder. Expands rate matched buffer to full size buffer.
+ *
+ * @param[in] input Input buffer of size in_len
+ * @param[out] output Output buffer of size 3*srslte_cbsegm_cbsize(cb_idx)+12
+ * @param[in] cb_idx Code block table index
+ * @param[in] rv_idx Redundancy Version from DCI control message
+ * @return Error code
+ */
 int srslte_rm_turbo_rx_lut(int16_t *input, int16_t *output, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx) 
 { 
   

@@ -102,13 +102,13 @@ void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
     z[i] = x[i]-y[i];
   }
 #else
-  srslte_vec_sub_fff_simd(x, y, z, len);
+  srslte_vec_sub_fff_sse(x, y, z, len);
 #endif
 }
 
 void srslte_vec_sub_sss(short *x, short *y, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  srslte_vec_sub_sss_avx(x, y, z, len);
+#ifdef LV_HAVE_AVX2
+  srslte_vec_sub_sss_avx2(x, y, z, len);
 #else
 #ifdef LV_HAVE_SSE
   srslte_vec_sub_sss_sse(x, y, z, len);
@@ -134,13 +134,13 @@ void srslte_vec_sum_fff(float *x, float *y, float *z, uint32_t len) {
     z[i] = x[i]+y[i];
   }
 #else
-  srslte_vec_sum_fff_simd(x, y, z, len);
+  srslte_vec_sum_fff_sse(x, y, z, len);
 #endif
 }
 
 void srslte_vec_sum_sss(short *x, short *y, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  srslte_vec_sum_sss_avx(x, y, z, len);
+#ifdef LV_HAVE_AVX2
+  srslte_vec_sum_sss_avx2(x, y, z, len);
 #else
 #ifdef LV_HAVE_SSE
   srslte_vec_sum_sss_sse(x, y, z, len);
@@ -199,7 +199,7 @@ void srslte_vec_sc_prod_fff(float *x, float h, float *z, uint32_t len) {
     z[i] = x[i]*h;
   }
 #else
-  srslte_vec_sc_prod_fff_simd(x, h, z, len);
+  srslte_vec_sc_prod_fff_sse(x, h, z, len);
 #endif
 }
 
@@ -211,8 +211,8 @@ void srslte_vec_sc_prod_sfs(short *x, float h, short *z, uint32_t len) {
 }
 
 void srslte_vec_sc_div2_sss(short *x, int n_rightshift, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  srslte_vec_sc_div2_sss_avx(x, n_rightshift, z, len);
+#ifdef LV_HAVE_AVX2
+  srslte_vec_sc_div2_sss_avx2(x, n_rightshift, z, len);
 #else
 #ifdef LV_HAVE_SSE
   srslte_vec_sc_div2_sss_sse(x, n_rightshift, z, len);
@@ -258,7 +258,7 @@ void srslte_vec_sc_prod_ccc(cf_t *x, cf_t h, cf_t *z, uint32_t len) {
     z[i] = x[i]*h;
   }
 #else
-  srslte_vec_sc_prod_ccc_simd(x,h,z,len);
+  srslte_vec_sc_prod_ccc_sse(x,h,z,len);
 #endif
 }
 
@@ -335,7 +335,7 @@ void srslte_vec_deinterleave_real_cf(cf_t *x, float *real, uint32_t len) {
   }
 }
 
-/* Note: We align memory to 32 bytes (for AVX compatibility) 
+/* Note: We align memory to 32 bytes (for AVX2 compatibility) 
  * because in some cases volk can incorrectly detect the architecture. 
  * This could be inefficient for SSE or non-SIMD platforms but shouldn't 
  * be a huge problem. 
@@ -354,7 +354,7 @@ void *srslte_vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
   return realloc(ptr, new_size);
 #else
   void *new_ptr;
-  if (posix_memalign(&new_ptr,64,new_size)) {
+  if (posix_memalign(&new_ptr,256,new_size)) {
     return NULL;
   } else {
     memcpy(new_ptr, ptr, old_size);
@@ -501,8 +501,8 @@ void srslte_vec_prod_fff(float *x, float *y, float *z, uint32_t len) {
 
 // Scrambling Short
 void srslte_vec_prod_sss(short *x, short *y, short *z, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  srslte_vec_prod_sss_avx(x,y,z,len);
+#ifdef LV_HAVE_AVX2
+  srslte_vec_prod_sss_avx2(x,y,z,len);
 #else
 #ifdef LV_HAVE_SSE
   srslte_vec_prod_sss_sse(x,y,z,len);
@@ -523,7 +523,7 @@ void srslte_vec_prod_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
     z[i] = x[i]*y[i];
   }
 #else
-  srslte_vec_prod_ccc_simd(x,y,z,len);
+  srslte_vec_prod_ccc_sse(x,y,z,len);
 #endif
 }
 
@@ -535,7 +535,7 @@ void srslte_vec_prod_conj_ccc(cf_t *x,cf_t *y, cf_t *z, uint32_t len) {
     z[i] = x[i]*conjf(y[i]);
   }
 #else
-  srslte_vec_prod_conj_ccc_simd(x,y,z,len);
+  srslte_vec_prod_conj_ccc_sse(x,y,z,len);
 #endif
 }
 
@@ -588,7 +588,7 @@ cf_t srslte_vec_dot_prod_ccc(cf_t *x, cf_t *y, uint32_t len) {
   }
   return res;
 #else
-  return srslte_vec_dot_prod_ccc_simd(x, y, len); 
+  return srslte_vec_dot_prod_ccc_sse(x, y, len);
 #endif
 }
 
@@ -612,7 +612,7 @@ cf_t srslte_vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len) {
   }
   return res;
 #else
-  return srslte_vec_dot_prod_conj_ccc_simd(x, y, len); 
+  return srslte_vec_dot_prod_conj_ccc_sse(x, y, len);
 #endif
   
 }
@@ -628,8 +628,8 @@ float srslte_vec_dot_prod_fff(float *x, float *y, uint32_t len) {
 }
 
 int32_t srslte_vec_dot_prod_sss(int16_t *x, int16_t *y, uint32_t len) {
-#ifdef LV_HAVE_AVX
-  return srslte_vec_dot_prod_sss_avx(x, y, len);
+#ifdef LV_HAVE_AVX2
+  return srslte_vec_dot_prod_sss_avx2(x, y, len);
 #else
 #ifdef LV_HAVE_SSE
   return srslte_vec_dot_prod_sss_sse(x, y, len);
@@ -664,7 +664,7 @@ void srslte_vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t len) {
     abs_square[i] = crealf(x[i])*crealf(x[i])+cimagf(x[i])*cimagf(x[i]);
   }
 #else
-  srslte_vec_abs_square_cf_simd(x,abs_square,len);
+  srslte_vec_abs_square_cf_sse(x,abs_square,len);
 #endif
 }
 
@@ -677,11 +677,17 @@ void srslte_vec_arg_cf(cf_t *x, float *arg, uint32_t len) {
 }
 
 uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
-#ifdef HAVE_VOLK_MAX_FUNCTION
-  uint16_t target=0;
+
+  // This is to solve an issue with incorrect type of 1st parameter in version 1.2 of volk
+#ifdef HAVE_VOLK_MAX_FUNCTION_32
+  uint32_t target=0;
+  volk_32f_index_max_32u(&target,x,len);
+  return target;
+#else
+#ifdef HAVE_VOLK_MAX_FUNCTION_16
+  uint32_t target=0;
   volk_32f_index_max_16u(&target,x,len);
   return target;
-
 #else
   uint32_t i;
   float m=-FLT_MAX;
@@ -693,6 +699,7 @@ uint32_t srslte_vec_max_fi(float *x, uint32_t len) {
     }
   }
   return p;
+#endif
 #endif
 }
 
@@ -732,11 +739,15 @@ void srslte_vec_max_fff(float *x, float *y, float *z, uint32_t len) {
 
 // CP autocorr
 uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
-#ifdef HAVE_VOLK_MAX_ABS_FUNCTION
-  uint16_t target=0;
+#ifdef HAVE_VOLK_MAX_ABS_FUNCTION_32
+  uint32_t target=0;
+  volk_32fc_index_max_32u(&target,x,len);
+  return target;
+#else
+#ifdef HAVE_VOLK_MAX_ABS_FUNCTION_16
+  uint32_t target=0;
   volk_32fc_index_max_16u(&target,x,len);
   return target;
-
 #else
   uint32_t i;
   float m=-FLT_MAX;
@@ -750,6 +761,7 @@ uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len) {
     }
   }
   return p;
+#endif
 #endif
 }
 
