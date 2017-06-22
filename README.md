@@ -81,6 +81,12 @@ Build Instructions
     * lksctp:            http://lksctp.sourceforge.net/
     * config:            http://www.hyperrealm.com/libconfig/
 
+For example, on Ubuntu 17.04, one can install the required libraries with:
+```
+sudo apt-get install libfftw3-dev libmbedtls-dev libboost-all-dev libconfig++-dev libsctp-dev
+```
+Note that depending on your flavor and version of Linux, the actual package names may be different.
+
 * Optional requirements: 
   * srsgui:              https://github.com/srslte/srsgui - for real-time plotting.
   * VOLK:                https://github.com/gnuradio/volk -  if the VOLK library and headers are detected, they will be used to accelerate some signal processing functions.
