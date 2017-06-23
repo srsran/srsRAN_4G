@@ -66,7 +66,7 @@ option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
 
-option(USE_LTE_RATES   "Use standard LTE sampling rates"        OFF)
+option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
@@ -79,13 +79,21 @@ find_package(Threads REQUIRED)
 find_package(Polarssl)
 if (POLARSSL_FOUND)
   set(SEC_INCLUDE_DIRS "${POLARSSL_INCLUDE_DIRS}")
-  set(SEC_LIBRARIES    "${POLARSSL_LIBRARIES}")
+  if(BUILD_STATIC)
+    set(SEC_LIBRARIES    "${POLARSSL_STATIC_LIBRARIES}")
+  else(BUILD_STATIC)
+    set(SEC_LIBRARIES    "${POLARSSL_LIBRARIES}")
+  endif(BUILD_STATIC)
   add_definitions(-DHAVE_POLARSSL)
 else(POLARSSL_FOUND)
   find_package(MbedTLS REQUIRED)
   if (MBEDTLS_FOUND)
     set(SEC_INCLUDE_DIRS "${MBEDTLS_INCLUDE_DIRS}")
-    set(SEC_LIBRARIES    "${MBEDTLS_LIBRARIES}")
+    if(BUILD_STATIC)
+      set(SEC_LIBRARIES    "${MBEDTLS_STATIC_LIBRARIES}")
+    else(BUILD_STATIC)
+      set(SEC_LIBRARIES    "${MBEDTLS_LIBRARIES}")
+    endif(BUILD_STATIC)
     add_definitions(-DHAVE_MBEDTLS)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
@@ -119,6 +127,10 @@ endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 
 if(ENABLE_SRSUE OR ENABLE_SRSENB)
   # Find Boost
+  if(BUILD_STATIC)
+    set(Boost_USE_STATIC_LIBS ON)
+  endif(BUILD_STATIC)
+
   set(BOOST_REQUIRED_COMPONENTS
       program_options
       system
