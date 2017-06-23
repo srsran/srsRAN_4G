@@ -16,7 +16,7 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/common.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/logger.h"
+#include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/upper/rlc.h"
 #include "srslte/radio/radio.h"
@@ -320,11 +320,11 @@ private:
 
 
 // Create classes
-srslte::logger logger;
-srslte::log_filter log_phy;
-srslte::log_filter log_mac;
-srslte::log_filter log_rlc;
-srslte::log_filter log_tester;
+srslte::logger_file logger;
+srslte::log_filter  log_phy;
+srslte::log_filter  log_mac;
+srslte::log_filter  log_rlc;
+srslte::log_filter  log_tester;
 srsenb::phy my_phy;
 srsenb::mac my_mac;
 srslte::rlc  my_rlc;
