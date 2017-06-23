@@ -25,23 +25,26 @@
  */
 
 /******************************************************************************
- * File:        logger.h
+ * File:        logger_stdout.h
  * Description: Interface for logging output
  *****************************************************************************/
 
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef LOGGER_STDOUT_H
+#define LOGGER_STDOUT_H
 
 #include <stdio.h>
 #include <string>
+#include "srslte/common/logger.h"
 
 namespace srslte {
 
-class logger
-{
-public:
-  virtual void log(std::string *msg) = 0;
-};
+  class logger_stdout : public logger
+  {
+  public:
+    void log(std::string *msg) {
+      fprintf(stdout, "%s", msg->c_str());
+    }
+  };
 
 } // namespace srslte
 

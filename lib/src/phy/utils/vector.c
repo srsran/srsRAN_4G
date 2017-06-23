@@ -240,7 +240,7 @@ void srslte_vec_norm_cfc(cf_t *x, float amplitude, cf_t *y, uint32_t len) {
 
 void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
 #ifdef LV_HAVE_AVX
-  srslte_vec_mult_scalar_cf_f_avx(z,x, h, len);  
+  srslte_vec_sc_prod_cfc_avx(x,h,z,len);
 #else
   int i;
   for (i=0;i<len;i++) {
