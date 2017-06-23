@@ -58,19 +58,6 @@ add_library(srslte_phy STATIC ${srslte_srcs})
 set_target_properties(srslte_phy PROPERTIES
                                  VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
 
-find_package(MKL)
-if(MKL_FOUND)
-  include_directories(${MKL_INCLUDE_DIRS})
-  link_directories(${MKL_LIBRARY_DIRS})
-else(MKL_FOUND)
-  find_package(FFTW3F REQUIRED)
-  if(FFTW3F_FOUND)
-    include_directories(${FFTW3F_INCLUDE_DIRS})
-    link_directories(${FFTW3F_LIBRARY_DIRS})
-  endif(FFTW3F_FOUND)
-endif(MKL_FOUND)
-
-
 if(MKL_FOUND)
   if(BUILD_STATIC)
     target_link_libraries(srslte_phy ${MKL_STATIC_LIBRARIES})

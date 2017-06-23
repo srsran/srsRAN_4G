@@ -46,6 +46,8 @@ if (RPATH)
   set_target_properties(srsue PROPERTIES INSTALL_RPATH ".")
 endif (RPATH)
 
+install(TARGETS srsue DESTINATION ${RUNTIME_DIR})
+
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################

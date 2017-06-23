@@ -76,6 +76,18 @@ set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 ########################################################################
 find_package(Threads REQUIRED)
 
+find_package(MKL)
+if(MKL_FOUND)
+  include_directories(${MKL_INCLUDE_DIRS})
+  link_directories(${MKL_LIBRARY_DIRS})
+else(MKL_FOUND)
+  find_package(FFTW3F REQUIRED)
+  if(FFTW3F_FOUND)
+    include_directories(${FFTW3F_INCLUDE_DIRS})
+    link_directories(${FFTW3F_LIBRARY_DIRS})
+  endif(FFTW3F_FOUND)
+endif(MKL_FOUND)
+
 find_package(Polarssl)
 if (POLARSSL_FOUND)
   set(SEC_INCLUDE_DIRS "${POLARSSL_INCLUDE_DIRS}")

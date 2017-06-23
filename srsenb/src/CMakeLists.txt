@@ -31,7 +31,9 @@ target_link_libraries(srsenb  srsenb_upper
 
 if (RPATH)
   set_target_properties(srsenb PROPERTIES INSTALL_RPATH ".")
-endif (RPATH)                          
+endif (RPATH)
+
+install(TARGETS srsenb DESTINATION ${RUNTIME_DIR})
 
 ########################################################################
 # Option to run command after build (useful for remote builds)
