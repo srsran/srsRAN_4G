@@ -5,9 +5,9 @@ add_subdirectory(upper)
 
 
 # Link libstdc++ and libgcc
-if(STATIC_LIB)
+if(BUILD_STATIC)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-endif(STATIC_LIB)
+endif(BUILD_STATIC)
 
 
 if (RPATH)

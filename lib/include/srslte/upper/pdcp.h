@@ -66,14 +66,13 @@ public:
   void write_pdu_pcch(byte_buffer_t *sdu);
 
 private:
-  log        *pdcp_log;
-  pdcp_entity         pdcp_array[SRSLTE_N_RADIO_BEARERS];
-
   srsue::rlc_interface_pdcp *rlc;
   srsue::rrc_interface_pdcp *rrc;
   srsue::gw_interface_pdcp  *gw;
 
-  uint8_t             direction;
+  log                       *pdcp_log;
+  pdcp_entity                pdcp_array[SRSLTE_N_RADIO_BEARERS];
+  uint8_t                    direction;
 
   bool valid_lcid(uint32_t lcid);
 };

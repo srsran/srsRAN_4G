@@ -22,6 +22,11 @@ add_subdirectory(phy)
 add_subdirectory(mac)
 add_subdirectory(upper)
 
+# Link libstdc++ and libgcc
+if(BUILD_STATIC)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+endif(BUILD_STATIC)
+
 if (RPATH)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif (RPATH)
