@@ -51,7 +51,7 @@ mux::mux() : pdu_msg(MAX_NOF_SUBHEADERS)
   msg3_flush();
 }
 
-void mux::init(rlc_interface_mac *rlc_, srslte::log *log_h_, bsr_proc *bsr_procedure_, phr_proc *phr_procedure_)
+void mux::init(rlc_interface_mac *rlc_, srslte::log *log_h_, bsr_interface_mux *bsr_procedure_, phr_proc *phr_procedure_)
 {
   log_h      = log_h_;
   rlc        = rlc_;

@@ -230,6 +230,31 @@ public:
 };
 
 
+//BSR interface for MUX
+class bsr_interface_mux
+{
+public:
+  typedef enum {
+    LONG_BSR,
+    SHORT_BSR,
+    TRUNC_BSR
+  } bsr_format_t;
+
+  typedef struct {
+    bsr_format_t format;
+    uint32_t buff_size[4];
+  } bsr_t;
+
+  /* MUX calls BSR to check if it can fit a BSR into PDU */
+  virtual bool need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr) = 0;
+
+  /* MUX calls BSR to let it generate a padding BSR if there is space in PDU */
+  virtual bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr) = 0;
+
+  /* MAX calls BSR to set the Tx TTI */
+  virtual void set_tx_tti(uint32_t tti) = 0;
+};
+
 
 /** MAC interface 
  *
