@@ -309,9 +309,27 @@ public:
   
 };
 
+/* Interface RRC -> MAC shared between different RATs */
+class mac_interface_rrc_common
+{
+public:
+  // Class to handle UE specific RNTIs between RRC and MAC
+  typedef struct {
+    uint16_t crnti;
+    uint16_t temp_rnti;
+    uint16_t tpc_rnti;
+    uint16_t sps_rnti;
+    uint64_t contention_id;
+  } ue_rnti_t;
+
+  typedef struct {
+    uint32_t max_harq_msg3_tx;
+    uint32_t max_harq_tx;
+  } ul_harq_params_t;
+};
 
 /* Interface RRC -> MAC */
-class mac_interface_rrc
+class mac_interface_rrc : public mac_interface_rrc_common
 {
 public:
   
@@ -319,19 +337,10 @@ public:
     LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT           main; 
     LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT        rach;     
     LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT sr; 
+    ul_harq_params_t                            ul_harq_params;
     uint32_t prach_config_index; 
   } mac_cfg_t; 
 
-  
-  // Class to handle UE specific RNTIs between RRC and MAC
-  typedef struct {
-    uint16_t crnti; 
-    uint16_t temp_rnti; 
-    uint16_t tpc_rnti; 
-    uint16_t sps_rnti; 
-    uint64_t contention_id; 
-  } ue_rnti_t;  
-  
   /* Instructs the MAC to start receiving BCCH */
   virtual void    bcch_start_rx() = 0; 
   virtual void    bcch_stop_rx() = 0; 
