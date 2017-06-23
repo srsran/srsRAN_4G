@@ -59,21 +59,21 @@ public:
     timers_db   = NULL; 
     mux_unit    = NULL; 
     log_h       = NULL; 
-    mac_cfg     = NULL; 
+    params      = NULL;
     rntis       = NULL; 
     average_retx = 0; 
     nof_pkts     = 0;
   }
 
   bool init(srslte::log *log_h_, 
-            mac_interface_rrc::ue_rnti_t *rntis_, 
-            mac_interface_rrc::mac_cfg_t *mac_cfg_, 
+            mac_interface_rrc_common::ue_rnti_t *rntis_,
+            mac_interface_rrc_common::ul_harq_params_t *params_,
             srslte::timers* timers_db_, 
             mux *mux_unit_)
   {
     log_h     = log_h_;
     mux_unit  = mux_unit_;
-    mac_cfg   = mac_cfg_;
+    params    = params_;
     rntis     = rntis_;
     timers_db = timers_db_;
     for (uint32_t i=0;i<N;i++) {
@@ -201,9 +201,9 @@ private:
     {
       uint32_t max_retx;
       if (is_msg3) {
-        max_retx = harq_entity->mac_cfg->rach.max_harq_msg3_tx;
+        max_retx = harq_entity->params->max_harq_msg3_tx;
       } else {
-        max_retx = liblte_rrc_max_harq_tx_num[harq_entity->mac_cfg->main.ulsch_cnfg.max_harq_tx];
+        max_retx = harq_entity->params->max_harq_tx;
       }
 
       // Receive and route HARQ feedbacks
@@ -409,8 +409,8 @@ private:
   srslte::log     *log_h;
   srslte::mac_pcap *pcap; 
 
-  mac_interface_rrc::ue_rnti_t *rntis;
-  mac_interface_rrc::mac_cfg_t *mac_cfg; 
+  mac_interface_rrc_common::ue_rnti_t *rntis;
+  mac_interface_rrc_common::ul_harq_params_t *params;
   
   float            average_retx;   
   uint64_t         nof_pkts; 

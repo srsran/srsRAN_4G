@@ -58,11 +58,10 @@ public:
     pcap = NULL;
   }
     
-  bool init(srslte::log *log_h_, mac_interface_rrc::mac_cfg_t *mac_cfg_, srslte::timers *timers_, demux *demux_unit_)
+  bool init(srslte::log *log_h_, srslte::timers *timers_, demux *demux_unit_)
   {
     timers_db  = timers_; 
     demux_unit = demux_unit_; 
-    mac_cfg    = mac_cfg_; 
     si_window_start = 0; 
     log_h = log_h_; 
     for (uint32_t i=0;i<N+1;i++) {
@@ -347,7 +346,6 @@ private:
 
   std::vector<dl_harq_process> proc;
   srslte::timers   *timers_db;
-  mac_interface_rrc::mac_cfg_t *mac_cfg; 
   demux           *demux_unit; 
   srslte::log     *log_h;
   srslte::mac_pcap *pcap; 

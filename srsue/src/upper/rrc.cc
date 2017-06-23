@@ -989,7 +989,8 @@ void rrc::apply_sib2_configs()
   mac->get_config(&cfg);
   cfg.main.time_alignment_timer = sib2.time_alignment_timer; 
   memcpy(&cfg.rach, &sib2.rr_config_common_sib.rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT)); 
-  cfg.prach_config_index = sib2.rr_config_common_sib.prach_cnfg.root_sequence_index; 
+  cfg.prach_config_index = sib2.rr_config_common_sib.prach_cnfg.root_sequence_index;
+  cfg.ul_harq_params.max_harq_msg3_tx = cfg.rach.max_harq_msg3_tx;
   mac->set_config(&cfg);
   
   rrc_log->info("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",
@@ -1218,7 +1219,13 @@ void rrc::apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cnfg
   }
   
   // Setup MAC configuration 
-  mac->set_config_main(&default_cfg);              
+  mac->set_config_main(&default_cfg);
+
+  // Update UL HARQ config
+  mac_interface_rrc::mac_cfg_t cfg;
+  mac->get_config(&cfg);
+  cfg.ul_harq_params.max_harq_tx = liblte_rrc_max_harq_tx_num[default_cfg.ulsch_cnfg.max_harq_tx];
+  mac->set_config(&cfg);
 
   rrc_log->info("Set MAC main config: harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n",
                 liblte_rrc_max_harq_tx_num[default_cfg.ulsch_cnfg.max_harq_tx],

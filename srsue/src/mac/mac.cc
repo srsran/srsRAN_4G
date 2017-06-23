@@ -66,13 +66,13 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
   
   bsr_procedure.init(       rlc_h, log_h,          &config, &timers_db);
-  phr_procedure.init(phy_h,        log_h,          &config, &timers_db);
-  mux_unit.init     (       rlc_h, log_h,                               &bsr_procedure, &phr_procedure);
-  demux_unit.init   (phy_h, rlc_h, log_h,                   &timers_db);
-  ra_procedure.init (phy_h, rrc,   log_h, &uernti, &config, &timers_db, &mux_unit, &demux_unit);
+  phr_procedure.init(phy_h,        log_h,          &config,                &timers_db);
+  mux_unit.init     (       rlc_h, log_h,                                              &bsr_procedure, &phr_procedure);
+  demux_unit.init   (phy_h, rlc_h, log_h,                                  &timers_db);
+  ra_procedure.init (phy_h, rrc,   log_h, &uernti, &config,                &timers_db, &mux_unit, &demux_unit);
   sr_procedure.init (phy_h, rrc,   log_h,          &config);
-  ul_harq.init      (              log_h, &uernti, &config, &timers_db, &mux_unit);
-  dl_harq.init      (              log_h,          &config, &timers_db, &demux_unit);
+  ul_harq.init      (              log_h, &uernti, &config.ul_harq_params, &timers_db, &mux_unit);
+  dl_harq.init      (              log_h,                                  &timers_db, &demux_unit);
 
   reset();
   
