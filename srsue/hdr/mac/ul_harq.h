@@ -43,17 +43,18 @@
 
 /* Uplink HARQ entity as defined in 5.4.2 of 36.321 */
 namespace srsue {
-  
+
+template <std::size_t N, typename Tgrant, typename Taction, typename Tphygrant>
 class ul_harq_entity
 {
 public:
-  const static uint32_t NOF_HARQ_PROC = 8; 
   static uint32_t pidof(uint32_t tti)
   {
-    return (uint32_t) tti%NOF_HARQ_PROC;
+    return (uint32_t) tti%N;
   }
   
-  ul_harq_entity() {  
+  ul_harq_entity() : proc(N)
+  {
     pcap        = NULL; 
     timers_db   = NULL; 
     mux_unit    = NULL; 
@@ -61,7 +62,7 @@ public:
     mac_cfg     = NULL; 
     rntis       = NULL; 
     average_retx = 0; 
-    nof_pkts     = 0; 
+    nof_pkts     = 0;
   }
 
   bool init(srslte::log *log_h_, 
@@ -75,7 +76,7 @@ public:
     mac_cfg   = mac_cfg_;
     rntis     = rntis_;
     timers_db = timers_db_;
-    for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
+    for (uint32_t i=0;i<N;i++) {
       if (!proc[i].init(i, this)) {
         return false;
       }
@@ -85,7 +86,7 @@ public:
 
   void reset()
   {
-    for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
+    for (uint32_t i=0;i<N;i++) {
       proc[i].reset();
     }
     ul_sps_assig.clear();
@@ -93,7 +94,7 @@ public:
 
   void reset_ndi()
   {
-    for (uint32_t i=0;i<NOF_HARQ_PROC;i++) {
+    for (uint32_t i=0;i<N;i++) {
       proc[i].reset_ndi();
     }
   }
@@ -105,7 +106,7 @@ public:
 
   
   /***************** PHY->MAC interface for UL processes **************************/
-  void new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_ul_t *action)
+  void new_grant_ul(Tgrant grant, Taction *action)
   {
     if (grant.rnti_type == SRSLTE_RNTI_USER ||
       grant.rnti_type == SRSLTE_RNTI_TEMP ||
@@ -125,13 +126,13 @@ public:
     }
   }
 
-  void new_grant_ul_ack(mac_interface_phy::mac_grant_t grant, bool ack, mac_interface_phy::tb_action_ul_t *action)
+  void new_grant_ul_ack(Tgrant grant, bool ack, Taction *action)
   {
     set_ack(grant.tti, ack);
     new_grant_ul(grant, action);
   }
 
-  void harq_recv(uint32_t tti, bool ack, mac_interface_phy::tb_action_ul_t *action)
+  void harq_recv(uint32_t tti, bool ack, Taction *action)
   {
     set_ack(tti, ack);
     run_tti(tti, NULL, action);
@@ -162,7 +163,7 @@ private:
       is_initiated = false;
       is_grant_configured = false;
       tti_last_tx = 0;
-      bzero(&cur_grant, sizeof(mac_interface_phy::mac_grant_t));
+      bzero(&cur_grant, sizeof(Tgrant));
     }
 
     bool init(uint32_t pid_, ul_harq_entity *parent)
@@ -191,12 +192,12 @@ private:
       current_irv = 0;
       tti_last_tx = 0;
       is_grant_configured = false;
-      bzero(&cur_grant, sizeof(mac_interface_phy::mac_grant_t));
+      bzero(&cur_grant, sizeof(Tgrant));
     }
 
     void reset_ndi() { ndi = false; }
     
-    void run_tti(uint32_t tti_tx, mac_interface_phy::mac_grant_t *grant, mac_interface_phy::tb_action_ul_t* action)
+    void run_tti(uint32_t tti_tx, Tgrant *grant, Taction* action)
     {
       uint32_t max_retx;
       if (is_msg3) {
@@ -287,7 +288,7 @@ private:
     int get_current_tbs() { return cur_grant.n_bytes*8; }
    
   private: 
-    mac_interface_phy::mac_grant_t cur_grant;
+    Tgrant                      cur_grant;
     
     uint32_t                    pid;
     uint32_t                    current_tx_nb;
@@ -307,14 +308,14 @@ private:
     uint8_t *payload_buffer;
     uint8_t *pdu_ptr; 
     
-    void generate_retx(uint32_t tti_tx, mac_interface_phy::tb_action_ul_t *action)
+    void generate_retx(uint32_t tti_tx, Taction *action)
     {
       generate_retx(tti_tx, NULL, action);
     }
 
     // Retransmission with or w/o grant (Section 5.4.2.2)
-    void generate_retx(uint32_t tti_tx, mac_interface_phy::mac_grant_t *grant, 
-                                        mac_interface_phy::tb_action_ul_t *action)
+    void generate_retx(uint32_t tti_tx, Tgrant *grant,
+                                        Taction *action)
     {
       int irv_of_rv[4] = {0, 3, 1, 2};
       if (grant) {
@@ -322,7 +323,7 @@ private:
         if (grant->rv) {
           current_irv = irv_of_rv[grant->rv%4];
         }
-        memcpy(&cur_grant, grant, sizeof(mac_interface_phy::mac_grant_t));
+        memcpy(&cur_grant, grant, sizeof(Tgrant));
         harq_feedback = false;
         Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d\n",
              pid, current_tx_nb, get_rv(), grant->n_bytes);
@@ -345,13 +346,12 @@ private:
     }
 
     // New transmission (Section 5.4.2.2)
-    void generate_new_tx(uint32_t tti_tx, bool is_msg3_, mac_interface_phy::mac_grant_t *grant,
-                         mac_interface_phy::tb_action_ul_t *action)
+    void generate_new_tx(uint32_t tti_tx, bool is_msg3_, Tgrant *grant, Taction *action)
     {
       if (grant) {
         // Compute average number of retransmissions per packet considering previous packet
         harq_entity->average_retx = SRSLTE_VEC_CMA((float) current_tx_nb, harq_entity->average_retx, harq_entity->nof_pkts++);
-        memcpy(&cur_grant, grant, sizeof(mac_interface_phy::mac_grant_t));
+        memcpy(&cur_grant, grant, sizeof(Tgrant));
         harq_feedback = false;
         is_grant_configured = true;
         current_tx_nb = 0;
@@ -364,7 +364,7 @@ private:
     }
 
     // Transmission of pending frame (Section 5.4.2.2)
-    void generate_tx(uint32_t tti_tx, mac_interface_phy::tb_action_ul_t *action)
+    void generate_tx(uint32_t tti_tx, Taction *action)
     {
       action->current_tx_nb = current_tx_nb;
       current_tx_nb++;
@@ -374,7 +374,7 @@ private:
       action->softbuffer = &softbuffer;
       action->tx_enabled = true;
       action->payload_ptr = pdu_ptr;
-      memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(srslte_phy_grant_t));
+      memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(Tphygrant));
 
       current_irv = (current_irv+1)%4;
       tti_last_tx = tti_tx;
@@ -383,7 +383,7 @@ private:
 
   // Implements Section 5.4.2.1
   // Called with UL grant
-  void run_tti(uint32_t tti, mac_interface_phy::mac_grant_t *grant, mac_interface_phy::tb_action_ul_t* action)
+  void run_tti(uint32_t tti, Tgrant *grant, Taction* action)
   {
     uint32_t tti_tx = (tti+4)%10240;
     proc[pidof(tti_tx)].run_tti(tti_tx, grant, action);
@@ -405,7 +405,7 @@ private:
 
   srslte::timers  *timers_db;
   mux             *mux_unit;
-  ul_harq_process proc[NOF_HARQ_PROC];
+  std::vector<ul_harq_process> proc;
   srslte::log     *log_h;
   srslte::mac_pcap *pcap; 
 

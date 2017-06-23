@@ -45,15 +45,15 @@
 
 
 namespace srsue {
-  
+
+template <std::size_t N, typename Tgrant, typename Taction, typename Tphygrant>
 class dl_harq_entity
 {
 public:
 
-  const static uint32_t NOF_HARQ_PROC = 8; 
-  const static uint32_t HARQ_BCCH_PID = NOF_HARQ_PROC; 
+  const static uint32_t HARQ_BCCH_PID = N;
   
-  dl_harq_entity()
+  dl_harq_entity() : proc(N+1)
   {
     pcap = NULL;
   }
@@ -65,7 +65,7 @@ public:
     mac_cfg    = mac_cfg_; 
     si_window_start = 0; 
     log_h = log_h_; 
-    for (uint32_t i=0;i<NOF_HARQ_PROC+1;i++) {
+    for (uint32_t i=0;i<N+1;i++) {
       if (!proc[i].init(i, this)) {
         return false; 
       }
@@ -74,7 +74,7 @@ public:
   }
 
   /***************** PHY->MAC interface for DL processes **************************/
-  void new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t *action)
+  void new_grant_dl(Tgrant grant, Taction *action)
   {
     if (grant.rnti_type != SRSLTE_RNTI_SPS) {
       uint32_t harq_pid; 
@@ -82,7 +82,7 @@ public:
       if (grant.rnti_type == SRSLTE_RNTI_SI) {
         harq_pid = HARQ_BCCH_PID; 
       } else {
-        harq_pid = grant.pid%NOF_HARQ_PROC; 
+        harq_pid = grant.pid%N;
       }
       if (grant.rnti_type == SRSLTE_RNTI_TEMP && last_temporal_crnti != grant.rnti) {
         grant.ndi = true;
@@ -96,7 +96,7 @@ public:
       proc[harq_pid].new_grant_dl(grant, action);
     } else {
       /* This is for SPS scheduling */
-      uint32_t harq_pid = get_harq_sps_pid(grant.tti)%NOF_HARQ_PROC; 
+      uint32_t harq_pid = get_harq_sps_pid(grant.tti)%N;
       if (grant.ndi) {
         grant.ndi = false; 
         proc[harq_pid].new_grant_dl(grant, action);
@@ -121,16 +121,16 @@ public:
   void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
   {
     if (rnti_type == SRSLTE_RNTI_SI) {
-      proc[NOF_HARQ_PROC].tb_decoded(ack);    
+      proc[N].tb_decoded(ack);
     } else {
-      proc[harq_pid%NOF_HARQ_PROC].tb_decoded(ack);
+      proc[harq_pid%N].tb_decoded(ack);
     }
   }
 
 
   void reset()
   {
-    for (uint32_t i=0;i<NOF_HARQ_PROC+1;i++) {
+    for (uint32_t i=0;i<N+1;i++) {
       proc[i].reset();
     }
     dl_sps_assig.clear();
@@ -138,7 +138,7 @@ public:
 
   void start_pcap(srslte::mac_pcap* pcap_) { pcap = pcap_; }
 
-  int  get_current_tbs(uint32_t harq_pid) { return proc[harq_pid%NOF_HARQ_PROC].get_current_tbs(); }
+  int  get_current_tbs(uint32_t harq_pid) { return proc[harq_pid%N].get_current_tbs(); }
 
   void set_si_window_start(int si_window_start_) { si_window_start = si_window_start_; }
 
@@ -151,7 +151,7 @@ private:
     {
       is_initiated = false; 
       ack = false; 
-      bzero(&cur_grant, sizeof(mac_interface_phy::mac_grant_t));
+      bzero(&cur_grant, sizeof(Tgrant));
     }
 
     bool init(uint32_t pid_, dl_harq_entity *parent)
@@ -172,13 +172,13 @@ private:
     {
       ack = false; 
       payload_buffer_ptr = NULL; 
-      bzero(&cur_grant, sizeof(mac_interface_phy::mac_grant_t));
+      bzero(&cur_grant, sizeof(Tgrant));
       if (is_initiated) {
         srslte_softbuffer_rx_reset(&softbuffer);
       }
     }
     
-    void new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::tb_action_dl_t *action)
+    void new_grant_dl(Tgrant grant, Taction *action)
     {
       // Compute RV for BCCH when not specified in PDCCH format
       if (pid == HARQ_BCCH_PID && grant.rv == -1) {
@@ -201,10 +201,10 @@ private:
       // Save grant 
       grant.last_ndi = cur_grant.ndi; 
       grant.last_tti = cur_grant.tti; 
-      memcpy(&cur_grant, &grant, sizeof(mac_interface_phy::mac_grant_t)); 
+      memcpy(&cur_grant, &grant, sizeof(Tgrant));
       
       // Fill action structure 
-      bzero(action, sizeof(mac_interface_phy::tb_action_dl_t));
+      bzero(action, sizeof(Taction));
       action->default_ack = ack; 
       action->generate_ack = true; 
       action->decode_enabled = false; 
@@ -224,7 +224,7 @@ private:
         action->rv = cur_grant.rv; 
         action->rnti = cur_grant.rnti; 
         action->softbuffer = &softbuffer;     
-        memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(srslte_phy_grant_t));
+        memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(Tphygrant));
         n_retx++; 
         
       } else {
@@ -293,7 +293,7 @@ private:
     int get_current_tbs() { return cur_grant.n_bytes*8; }
     
   private: 
-    bool calc_is_new_transmission(mac_interface_phy::mac_grant_t grant)
+    bool calc_is_new_transmission(Tgrant grant)
     {
       bool is_new_tb = true; 
       if ((srslte_tti_interval(grant.tti, cur_grant.tti) <= 8 && (grant.n_bytes == cur_grant.n_bytes)) ||
@@ -328,7 +328,7 @@ private:
     
     uint32_t        n_retx; 
     
-    mac_interface_phy::mac_grant_t cur_grant;    
+    Tgrant                         cur_grant;
     srslte_softbuffer_rx_t         softbuffer; 
   };
   
@@ -344,7 +344,8 @@ private:
   
   dl_sps           dl_sps_assig;
   
-  dl_harq_process  proc[NOF_HARQ_PROC+1];
+
+  std::vector<dl_harq_process> proc;
   srslte::timers   *timers_db;
   mac_interface_rrc::mac_cfg_t *mac_cfg; 
   demux           *demux_unit; 
