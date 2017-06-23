@@ -65,7 +65,12 @@ if(MKL_FOUND)
     target_link_libraries(srslte_phy ${MKL_LIBRARIES})
   endif(BUILD_STATIC)
 else(MKL_FOUND)
-  target_link_libraries(srslte_phy ${FFTW3F_LIBRARIES})
+  if(BUILD_STATIC)
+    target_link_libraries(srslte_phy ${FFTW3F_STATIC_LIBRARIES})
+  else(BUILD_STATIC)
+    target_link_libraries(srslte_phy ${FFTW3F_LIBRARIES})
+  endif(BUILD_STATIC)
+
 endif(MKL_FOUND)
 
 
