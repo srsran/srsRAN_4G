@@ -190,8 +190,8 @@ bool demux::process_ce(srslte::sch_subh *subh) {
       Info("Received TA=%d\n", subh->get_ta_cmd());
       
       // Start or restart timeAlignmentTimer
-      timers_db->get(mac::TIME_ALIGNMENT)->reset();
-      timers_db->get(mac::TIME_ALIGNMENT)->run();      
+      timers_db->get(TIME_ALIGNMENT)->reset();
+      timers_db->get(TIME_ALIGNMENT)->run();
       break;
     case srslte::sch_subh::PADDING:
       break;

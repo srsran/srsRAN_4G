@@ -308,7 +308,7 @@ void mac::new_grant_ul(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
   /* Start PHR Periodic timer on first UL grant */
   if (is_first_ul_grant) {
     is_first_ul_grant = false; 
-    timers_db.get(mac::PHR_TIMER_PERIODIC)->run();
+    timers_db.get(PHR_TIMER_PERIODIC)->run();
   }
   if (grant.rnti_type == SRSLTE_RNTI_USER && ra_procedure.is_contention_resolution()) {
     ra_procedure.pdcch_to_crnti(true);    

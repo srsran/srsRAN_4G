@@ -98,17 +98,6 @@ public:
   u_int32_t                get_unique_id();
   
   uint32_t get_current_tti();
-      
-  enum {
-    HARQ_RTT, 
-    TIME_ALIGNMENT,
-    CONTENTION_TIMER,
-    BSR_TIMER_PERIODIC,
-    BSR_TIMER_RETX,
-    PHR_TIMER_PERIODIC,
-    PHR_TIMER_PROHIBIT,
-    NOF_MAC_TIMERS
-  } mac_timers_t; 
   
   static const int MAC_NOF_UPPER_TIMERS = 20; 
   
