@@ -25,7 +25,7 @@
  */
 
 #include <iostream>
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/upper/rlc_um.h"
 #include <assert.h>
 
@@ -78,8 +78,8 @@ public:
 
 void basic_test()
 {
-  srslte::log_stdout log1("RLC_UM_1");
-  srslte::log_stdout log2("RLC_UM_2");
+  srslte::log_filter log1("RLC_UM_1");
+  srslte::log_filter log2("RLC_UM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -146,8 +146,8 @@ void basic_test()
 
 void loss_test()
 {
-  srslte::log_stdout log1("RLC_UM_1");
-  srslte::log_stdout log2("RLC_UM_2");
+  srslte::log_filter log1("RLC_UM_1");
+  srslte::log_filter log2("RLC_UM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);

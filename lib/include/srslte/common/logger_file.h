@@ -25,24 +25,52 @@
  */
 
 /******************************************************************************
- * File:        logger.h
- * Description: Interface for logging output
+ * File:        logger_file.h
+ * Description: Common log object. Maintains a queue of log messages
+ *              and runs a thread to read messages and write to file.
+ *              Multiple producers, single consumer. If full, producers
+ *              increase queue size. If empty, consumer blocks.
  *****************************************************************************/
 
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef LOGGER_FILE_H
+#define LOGGER_FILE_H
 
 #include <stdio.h>
+#include <deque>
 #include <string>
+#include "srslte/common/logger.h"
+#include "srslte/common/threads.h"
 
 namespace srslte {
 
-class logger
+typedef std::string* str_ptr;
+
+class logger_file : public thread, public logger
 {
 public:
-  virtual void log(std::string *msg) = 0;
+  logger_file();
+  logger_file(std::string file);
+  ~logger_file();
+  void init(std::string file);
+  // Implementation of log_out
+  void log(str_ptr msg);
+  void log(const char *msg);
+
+private:
+  void run_thread(); 
+  void flush();
+
+  FILE*                 logfile;
+  bool                  inited;
+  bool                  not_done;
+  std::string           filename;
+  pthread_cond_t        not_empty;
+  pthread_cond_t        not_full;
+  pthread_mutex_t       mutex;
+  pthread_t             thread;
+  std::deque<str_ptr> buffer;
 };
 
-} // namespace srslte
+} // namespace srsue
 
 #endif // LOGGER_H

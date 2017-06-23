@@ -28,7 +28,7 @@
 
 #include "srslte/phy/utils/debug.h"
 #include "phy/phy.h"
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio_multi.h"
 
@@ -153,7 +153,7 @@ srslte::radio_multi radio;
 
 int main(int argc, char *argv[])
 {
-  srslte::log_stdout log("PHY");
+  srslte::log_filter log("PHY");
   
   parse_args(&prog_args, argc, argv);
 

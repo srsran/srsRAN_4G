@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include "upper/usim.h"
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include <assert.h>
 
 using namespace srsue;
@@ -67,7 +67,7 @@ uint16 mnc = 93;
 
 int main(int argc, char **argv)
 {
-  srslte::log_stdout usim_log("USIM");
+  srslte::log_filter usim_log("USIM");
   bool    net_valid;
   uint8_t res[16];
 

@@ -32,7 +32,7 @@
 #include "srslte/radio/radio_multi.h"
 #include "phy/phy.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
 #include "mac/mac.h"
 #include "srslte/common/mac_pcap.h"
 
@@ -427,7 +427,7 @@ private:
 
 int main(int argc, char *argv[])
 {
-  srslte::log_stdout mac_log("MAC"), phy_log("PHY"); 
+  srslte::log_filter mac_log("MAC"), phy_log("PHY");
   rlctest my_rlc;  
   parse_args(&prog_args, argc, argv);
   

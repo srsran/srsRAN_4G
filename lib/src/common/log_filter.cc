@@ -40,6 +40,11 @@ log_filter::log_filter()
   do_tti = false; 
 }
 
+log_filter::log_filter(std::string layer)
+{
+  init(layer, &def_logger_stdout, tti);
+}
+
 log_filter::log_filter(std::string layer, logger *logger_, bool tti)
 {
   init(layer, logger_, tti);

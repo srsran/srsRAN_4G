@@ -50,7 +50,7 @@
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/logger.h"
+#include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -173,15 +173,15 @@ private:
   srsenb::gtpu       gtpu;
   srsenb::s1ap       s1ap;
 
-  srslte::logger     logger;
-  srslte::log_filter rf_log;
-  std::vector<void*> phy_log;
-  srslte::log_filter mac_log;
-  srslte::log_filter rlc_log;
-  srslte::log_filter pdcp_log;
-  srslte::log_filter rrc_log;
-  srslte::log_filter gtpu_log;
-  srslte::log_filter s1ap_log;
+  srslte::logger_file logger;
+  srslte::log_filter  rf_log;
+  std::vector<void*>  phy_log;
+  srslte::log_filter  mac_log;
+  srslte::log_filter  rlc_log;
+  srslte::log_filter  pdcp_log;
+  srslte::log_filter  rrc_log;
+  srslte::log_filter  gtpu_log;
+  srslte::log_filter  s1ap_log;
 
   srslte::byte_buffer_pool *pool;
 
