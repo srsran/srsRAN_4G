@@ -55,24 +55,7 @@ set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
 )
 
 add_library(srslte_phy STATIC ${srslte_srcs})
-set_target_properties(srslte_phy PROPERTIES
-                                 VERSION ${SRSLTE_VERSION_MAJOR}.${SRSLTE_VERSION_MINOR})
-
-if(MKL_FOUND)
-  if(BUILD_STATIC)
-    target_link_libraries(srslte_phy ${MKL_STATIC_LIBRARIES})
-  else(BUILD_STATIC)
-    target_link_libraries(srslte_phy ${MKL_LIBRARIES})
-  endif(BUILD_STATIC)
-else(MKL_FOUND)
-  if(BUILD_STATIC)
-    target_link_libraries(srslte_phy ${FFTW3F_STATIC_LIBRARIES})
-  else(BUILD_STATIC)
-    target_link_libraries(srslte_phy ${FFTW3F_LIBRARIES})
-  endif(BUILD_STATIC)
-
-endif(MKL_FOUND)
-
+target_link_libraries(srslte_phy ${FFT_LIBRARIES})
 
 if(VOLK_FOUND)
   target_link_libraries(srslte_phy ${VOLK_LIBRARIES})
