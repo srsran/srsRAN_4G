@@ -61,15 +61,16 @@ namespace srsue {
 *******************************************************************************/
 
 typedef struct {
+  uint32_t      dl_earfcn;
   float         dl_freq;
   float         ul_freq;
   float         rx_gain;
   float         tx_gain;
-  uint32_t      nof_rx_ant; 
-  std::string   device_name; 
-  std::string   device_args; 
-  std::string   time_adv_nsamples; 
-  std::string   burst_preamble; 
+  uint32_t      nof_rx_ant;
+  std::string   device_name;
+  std::string   device_args;
+  std::string   time_adv_nsamples;
+  std::string   burst_preamble;
 }rf_args_t;
 
 typedef struct {
@@ -110,16 +111,16 @@ typedef struct {
 }gui_args_t;
 
 typedef struct {
-  phy_args_t phy; 
+  phy_args_t phy;
   float      metrics_period_secs;
   bool pregenerate_signals;
   int ue_cateogry;
-  
+
 }expert_args_t;
 
 typedef struct {
   rf_args_t     rf;
-  rf_cal_t      rf_cal; 
+  rf_cal_t      rf_cal;
   pcap_args_t   pcap;
   trace_args_t  trace;
   log_args_t    log;
@@ -144,7 +145,7 @@ public:
   void stop();
   bool is_attached();
   void start_plot();
-  
+
   static void rf_msg(srslte_rf_error_t error);
   void handle_rf_msg(srslte_rf_error_t error);
 
@@ -152,10 +153,10 @@ public:
   bool get_metrics(ue_metrics_t &m);
 
   void pregenerate_signals(bool enable);
-  
+
   // Testing
-  void test_con_restablishment(); 
-  
+  void test_con_restablishment();
+
 
 private:
   static ue *instance;

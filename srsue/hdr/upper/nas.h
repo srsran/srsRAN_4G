@@ -107,6 +107,9 @@ namespace srsue {
 
     plmn_selection_state_t plmn_selection;
     LIBLTE_RRC_PLMN_IDENTITY_STRUCT current_plmn;
+    LIBLTE_RRC_PLMN_IDENTITY_STRUCT home_plmn;
+
+    std::vector<LIBLTE_RRC_PLMN_IDENTITY_STRUCT > known_plmns;
 
     // Save short MAC
 

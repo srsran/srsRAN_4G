@@ -47,7 +47,7 @@ bool radio::init(char *args, char *devname)
   cur_tx_srate = 0; 
   is_start_of_burst = true; 
   
-  // Suppress radio stdout 
+  // Suppress radio stdout
   srslte_rf_suppress_stdout(&rf_device);
   
   tx_adv_auto = true; 
@@ -389,8 +389,6 @@ void radio::set_tx_srate(float srate)
   
   // Calculate TX advance in seconds from samples and sampling rate 
   tx_adv_sec = nsamples/cur_tx_srate;
-  
-  printf("Setting TX/RX offset %d samples, %.2f us\n", nsamples, tx_adv_sec*1e6);
 }
 
 void radio::start_rx()

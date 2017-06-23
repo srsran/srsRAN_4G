@@ -61,8 +61,7 @@ namespace srsue {
   typedef enum {
     SI_ACQUIRE_IDLE = 0,
     SI_ACQUIRE_SIB1,
-    SI_ACQUIRE_SIB2,
-    SI_ACQUIRE_DONE
+    SI_ACQUIRE_SIB2
   } si_acquire_state_t;
 
 

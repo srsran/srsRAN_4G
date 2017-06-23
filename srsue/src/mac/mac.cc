@@ -141,7 +141,7 @@ void mac::run_thread() {
 
   while(started) {
 
-    while (!phy_h->sync_status()) {
+    while (!phy_h->sync_status() && started) {
       usleep(5000);
       if (phy_h->sync_status()) {
         Debug("Setting ttysync to %d\n", phy_h->get_current_tti());

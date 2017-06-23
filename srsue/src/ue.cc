@@ -33,6 +33,7 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <ue.h>
 
 using namespace srslte;
 
@@ -74,7 +75,7 @@ ue::~ue()
 bool ue::init(all_args_t *args_)
 {
   args     = args_;
-  
+
   logger.init(args->log.filename);
   rf_log.init("RF  ", &logger);
   phy_log.init("PHY ", &logger, true);
@@ -169,6 +170,7 @@ bool ue::init(all_args_t *args_)
   }
   if (args->rf.tx_gain > 0) {
     radio.set_tx_gain(args->rf.tx_gain);    
+    printf("set tx gain %f\n", args->rf.tx_gain);
   } else {
     radio.set_tx_gain(args->rf.rx_gain);
     std::cout << std::endl << 
@@ -188,6 +190,14 @@ bool ue::init(all_args_t *args_)
   nas.init(&usim, &rrc, &gw, &nas_log);
   gw.init(&pdcp, &rrc, this, &gw_log);
   usim.init(&args->usim, &usim_log);
+
+  // Currently EARFCN list is set to only one frequency as indicated in ue.conf
+  std::vector<uint32_t> earfcn_list;
+  earfcn_list.push_back(args->rf.dl_earfcn);
+  phy.set_earfcn(earfcn_list);
+
+  printf("\n\nRequesting NAS Attach...\n");
+  nas.attach_request();
 
   started = true;
   return true;

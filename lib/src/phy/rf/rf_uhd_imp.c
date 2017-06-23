@@ -623,7 +623,9 @@ int rf_uhd_recv_with_time_multi(void *h,
         log_overflow(handler);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND) {
         log_late(handler);
-      } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE) {
+      } else if (error_code == UHD_RX_METADATA_ERROR_CODE_TIMEOUT) {
+        fprintf(stderr, "Error timed out while receiving asynchronoous messages from UHD.\n");
+      } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE ) {
         fprintf(stderr, "Error code 0x%x was returned during streaming. Aborting.\n", error_code);
       }
       
