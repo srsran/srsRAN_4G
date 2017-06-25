@@ -911,13 +911,13 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
   poll_retx_timeout.reset();
 
   // Handle ACKs and NACKs
+  std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
   bool update_vt_a = true;
-  uint32_t i = vt_a;
+  uint32_t i       = vt_a;
+
   while(TX_MOD_BASE(i) < TX_MOD_BASE(status.ack_sn) &&
         TX_MOD_BASE(i) < TX_MOD_BASE(vt_s))
   {
-    std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
-
     bool nack = false;
     for(uint32_t j=0;j<status.N_nack;j++) {
       if(status.nacks[j].nack_sn == i) {
@@ -960,11 +960,12 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
       if(tx_window.count(i) > 0) {
         it = tx_window.find(i);
         it->second.is_acked = true;
+        if(it->second.buf) {
+          pool->deallocate(it->second.buf);
+          it->second.buf = 0;
+        }
         if(update_vt_a)
         {
-          if(it->second.buf) {
-            pool->deallocate(it->second.buf);
-          }
           tx_window.erase(it);
           vt_a = (vt_a + 1)%MOD;
           vt_ms = (vt_ms + 1)%MOD;
