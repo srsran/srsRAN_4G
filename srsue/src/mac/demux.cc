@@ -40,7 +40,7 @@ demux::demux() : mac_msg(20), pending_mac_msg(20)
 {
 }
 
-void demux::init(phy_interface_mac* phy_h_, rlc_interface_mac *rlc_, srslte::log* log_h_, srslte::timers* timers_db_)
+void demux::init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc_, srslte::log* log_h_, srslte::timers* timers_db_)
 {
   phy_h     = phy_h_; 
   log_h     = log_h_; 
