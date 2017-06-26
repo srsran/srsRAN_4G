@@ -29,6 +29,7 @@
 
 #include "pthread.h"
 
+#include "rrc_common.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -40,24 +41,6 @@
 using srslte::byte_buffer_t;
 
 namespace srsue {
-
-// RRC states (3GPP 36.331 v10.0.0)
-typedef enum{
-    RRC_STATE_IDLE = 0,
-    RRC_STATE_SIB1_SEARCH,
-    RRC_STATE_SIB2_SEARCH,
-    RRC_STATE_WAIT_FOR_CON_SETUP,
-    RRC_STATE_COMPLETING_SETUP,
-    RRC_STATE_RRC_CONNECTED,
-    RRC_STATE_N_ITEMS,
-}rrc_state_t;
-static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "SIB1_SEARCH",
-                                                            "SIB2_SEARCH",
-                                                            "WAIT FOR CON SETUP",
-                                                            "COMPLETING SETUP",
-                                                            "RRC CONNECTED"};
-
 
 class rrc
     :public rrc_interface_nas
