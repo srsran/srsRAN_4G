@@ -128,13 +128,13 @@ public:
 
   void new_grant_ul_ack(Tgrant grant, bool ack, Taction *action)
   {
-    set_ack(grant.tti, ack);
+    set_ack(grant.tti, ack, action);
     new_grant_ul(grant, action);
   }
 
   void harq_recv(uint32_t tti, bool ack, Taction *action)
   {
-    set_ack(tti, ack);
+    set_ack(tti, ack, action);
     run_tti(tti, NULL, action);
   }
 
@@ -385,13 +385,13 @@ private:
   // Called with UL grant
   void run_tti(uint32_t tti, Tgrant *grant, Taction* action)
   {
-    uint32_t tti_tx = (tti+4)%10240;
+    uint32_t tti_tx = (tti+action->tti_offset)%10240;
     proc[pidof(tti_tx)].run_tti(tti_tx, grant, action);
   }
 
-  void set_ack(uint32_t tti, bool ack)
+  void set_ack(uint32_t tti, bool ack, Taction *action)
   {
-    int tti_harq = (int) tti - 4;
+    int tti_harq = (int) tti - action->tti_offset;
     if (tti_harq < 0) {
       tti_harq += 10240;
     }

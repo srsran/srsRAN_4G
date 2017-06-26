@@ -300,6 +300,7 @@ public:
     uint32_t                rv;
     uint16_t                rnti; 
     uint32_t                current_tx_nb;
+    int32_t                 tti_offset;     // relative offset between grant and UL tx/HARQ rx
     srslte_softbuffer_tx_t *softbuffer;
     srslte_phy_grant_t      phy_grant;
     uint8_t                *payload_ptr; 
