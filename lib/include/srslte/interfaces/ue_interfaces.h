@@ -104,11 +104,16 @@ public:
 };
 
 // RRC interface for MAC
-class rrc_interface_mac
+class rrc_interface_mac_common
+{
+public:
+  virtual void ra_problem() = 0;
+};
+
+class rrc_interface_mac : public rrc_interface_mac_common
 {
 public:
   virtual void release_pucch_srs() = 0;
-  virtual void ra_problem() = 0; 
 };
 
 // RRC interface for PHY
@@ -426,46 +431,51 @@ typedef struct {
   float estimator_fil_w;   
   bool rssi_sensor_enabled;
 } phy_args_t; 
-  
+
+
+/* RAT agnostic Interface MAC -> PHY */
+class phy_interface_mac_common
+{
+public:
+  /* Start synchronization with strongest cell in the current carrier frequency */
+  virtual void sync_start() = 0;
+  virtual void sync_stop() = 0;
+
+  /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
+  virtual void set_crnti(uint16_t rnti) = 0;
+
+  /* Time advance commands */
+  virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;
+  virtual void set_timeadv(uint32_t ta_cmd) = 0;
+
+  /* Sets RAR grant payload */
+  virtual void set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]) = 0;
+
+  virtual uint32_t get_current_tti() = 0;
+
+  virtual float get_phr() = 0;
+  virtual float get_pathloss_db() = 0;
+};
+
 /* Interface MAC -> PHY */
-class phy_interface_mac
+class phy_interface_mac : public phy_interface_mac_common
 {
 public:
   /* Configure PRACH using parameters written by RRC */
   virtual void configure_prach_params() = 0;
-  
-  /* Start synchronization with strongest cell in the current carrier frequency */
-  virtual void sync_start() = 0; 
-  virtual void sync_stop() = 0;
-  
-  /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
-  virtual void set_crnti(uint16_t rnti) = 0; 
-  
+
   virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;  
   virtual int  prach_tx_tti() = 0; 
   
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send() = 0;  
   virtual int  sr_last_tx_tti() = 0; 
-  
-  /* Time advance commands */
-  virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;
-  virtual void set_timeadv(uint32_t ta_cmd) = 0;
-  
-  /* Sets RAR grant payload */
-  virtual void set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]) = 0; 
 
   /* Instruct the PHY to decode PDCCH with the CRC scrambled with given RNTI */
   virtual void pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
   virtual void pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
   virtual void pdcch_ul_search_reset() = 0;
   virtual void pdcch_dl_search_reset() = 0;
-  
-  virtual uint32_t get_current_tti() = 0;
-  
-  virtual float get_phr() = 0; 
-  virtual float get_pathloss_db() = 0;
-    
 };
 
 class phy_interface_rrc
