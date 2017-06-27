@@ -74,20 +74,30 @@ set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 ########################################################################
 # Find dependencies
 ########################################################################
+
+# Threads
 find_package(Threads REQUIRED)
 
+# FFT
 find_package(MKL)
 if(MKL_FOUND)
   include_directories(${MKL_INCLUDE_DIRS})
   link_directories(${MKL_LIBRARY_DIRS})
+  set(FFT_LIBRARIES "${MKL_STATIC_LIBRARIES}") # Static by default
 else(MKL_FOUND)
   find_package(FFTW3F REQUIRED)
   if(FFTW3F_FOUND)
     include_directories(${FFTW3F_INCLUDE_DIRS})
     link_directories(${FFTW3F_LIBRARY_DIRS})
+    if(BUILD_STATIC)
+      set(FFT_LIBRARIES "${FFTW3F_STATIC_LIBRARIES}")
+    else(BUILD_STATIC)
+      set(FFT_LIBRARIES "${FFTW3F_LIBRARIES}")
+    endif(BUILD_STATIC)
   endif(FFTW3F_FOUND)
 endif(MKL_FOUND)
 
+# Crypto
 find_package(Polarssl)
 if (POLARSSL_FOUND)
   set(SEC_INCLUDE_DIRS "${POLARSSL_INCLUDE_DIRS}")
@@ -112,12 +122,14 @@ else(POLARSSL_FOUND)
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 
+# UHD
 find_package(UHD)
 if(UHD_FOUND)
   include_directories(${UHD_INCLUDE_DIRS})
   link_directories(${UHD_LIBRARY_DIRS})
 endif(UHD_FOUND)
 
+# BladeRF
 if(ENABLE_BLADERF)
   find_package(bladeRF)
   if(BLADERF_FOUND)
@@ -126,6 +138,7 @@ if(ENABLE_BLADERF)
   endif(BLADERF_FOUND)
 endif(ENABLE_BLADERF)
 
+# Soapy
 find_package(SoapySDR)
 if(SOAPYSDR_FOUND)
   include_directories(${SOAPYSDR_INCLUDE_DIRS})
@@ -139,8 +152,8 @@ else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   add_definitions(-DDISABLE_RF)
 endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
 
+# Boost
 if(ENABLE_SRSUE OR ENABLE_SRSENB)
-  # Find Boost
   if(BUILD_STATIC)
     set(Boost_USE_STATIC_LIBS ON)
   endif(BUILD_STATIC)
@@ -164,7 +177,7 @@ if(ENABLE_SRSUE OR ENABLE_SRSENB)
   find_package(Boost "1.35" COMPONENTS ${BOOST_REQUIRED_COMPONENTS})
 endif(ENABLE_SRSUE OR ENABLE_SRSENB)
 
-
+# srsGUI
 if(ENABLE_GUI)
   find_package(SRSGUI)
   if(SRSGUI_FOUND)
@@ -174,6 +187,7 @@ if(ENABLE_GUI)
   endif(SRSGUI_FOUND)
 endif(ENABLE_GUI)
 
+# VOLK
 include(CheckFunctionExistsMath)
 if(ENABLE_VOLK)
   find_package(Volk)
@@ -187,7 +201,6 @@ if(ENABLE_VOLK)
 else(ENABLE_VOLK)
   message(STATUS "VOLK library disabled")
 endif(ENABLE_VOLK)
-
 
 ########################################################################
 # Install Dirs
