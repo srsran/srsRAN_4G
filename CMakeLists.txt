@@ -42,6 +42,8 @@ include(SRSLTEPackage) #setup cpack
 
 include(CTest)
 set(CTEST_MEMORYCHECK_COMMAND valgrind)
+set(CTEST_MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full" )
+
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/CTestCustom.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake"

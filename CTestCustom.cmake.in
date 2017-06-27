@@ -7,7 +7,7 @@ SET(CTEST_CUSTOM_MEMCHECK_IGNORE
   realplot_test
   complexplot_test
 
-# Ignore these to, they take too lonk
+# Ignore these to, they take too long
   fft_normal
   fft_extened
   chest_test_all_cellids
