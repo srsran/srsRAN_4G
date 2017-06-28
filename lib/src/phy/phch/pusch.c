@@ -393,7 +393,7 @@ int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
   uint32_t i;
   
   if (!q->users[rnti]) {
-    q->users[rnti] = malloc(sizeof(srslte_pusch_user_t));
+    q->users[rnti] = calloc(1, sizeof(srslte_pusch_user_t));
     if (q->users[rnti]) {
       for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
         if (srslte_sequence_pusch(&q->users[rnti]->seq[i], rnti, 2 * i, q->cell.id,
