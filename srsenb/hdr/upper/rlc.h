@@ -54,6 +54,7 @@ public:
 
   // rlc_interface_pdcp
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);
+  std::string get_rb_name(uint32_t lcid);
   
   // rlc_interface_mac
   int  read_pdu(uint16_t rnti, uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
@@ -73,6 +74,7 @@ private:
     void write_pdu_bcch_dlsch(srslte::byte_buffer_t *sdu);
     void write_pdu_pcch(srslte::byte_buffer_t *sdu);  
     void max_retx_attempted(); 
+    std::string get_rb_name(uint32_t lcid);
     uint16_t rnti; 
 
     srsenb::pdcp_interface_rlc *pdcp; 

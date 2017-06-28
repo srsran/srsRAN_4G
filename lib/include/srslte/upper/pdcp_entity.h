@@ -67,9 +67,7 @@ public:
             srsue::gw_interface_pdcp      *gw_,
             srslte::log                   *log_,
             uint32_t                       lcid_,
-            uint8_t                        direction_,
-            LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg = NULL
-            );
+            srslte_pdcp_config_t           cfg_);
   void reset();
 
   bool is_active();
@@ -94,12 +92,7 @@ private:
 
   bool                active;
   uint32_t            lcid;
-  bool                do_security;
-  u_int8_t            direction;
-
-  uint8_t             sn_len;
-  // TODO: Support the following configurations
-  // bool do_rohc;
+  srslte_pdcp_config_t cfg;
 
   uint32_t            rx_count;
   uint32_t            tx_count;

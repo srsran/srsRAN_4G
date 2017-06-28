@@ -132,6 +132,7 @@ public:
   virtual uint16_t get_mcc() = 0;
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
+  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // RRC interface for GW
@@ -151,6 +152,7 @@ public:
   virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_pcch(srslte::byte_buffer_t *pdu) = 0;
+  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // RRC interface for RLC
@@ -158,6 +160,7 @@ class rrc_interface_rlc
 {
 public:
   virtual void max_retx_attempted() = 0;
+  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // PDCP interface for GW
@@ -173,7 +176,7 @@ class pdcp_interface_rrc
 public:
   virtual void reset() = 0;
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
-  virtual void add_bearer(uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg=NULL) = 0;
+  virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
   virtual void config_security(uint32_t lcid,
                                uint8_t *k_rrc_enc_,
                                uint8_t *k_rrc_int_,

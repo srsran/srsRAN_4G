@@ -25,6 +25,7 @@
  */
 
 #include "upper/pdcp.h"
+#include "upper/common_enb.h"
 
 namespace srsenb {
   
@@ -50,7 +51,7 @@ void pdcp::add_user(uint16_t rnti)
 {
   if (users.count(rnti) == 0) {
     srslte::pdcp *obj = new srslte::pdcp;     
-    obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf, log_h, SECURITY_DIRECTION_DOWNLINK);
+    obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf, log_h, RB_ID_SRB0, SECURITY_DIRECTION_DOWNLINK);
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;
     users[rnti].rrc_itf.rnti  = rnti;
@@ -72,10 +73,16 @@ void pdcp::rem_user(uint16_t rnti)
   }
 }
 
-void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT* cnfg)
+void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT* cnfg_)
 {
   if (users.count(rnti)) {
-    users[rnti].pdcp->add_bearer(lcid, cnfg);
+    srslte::srslte_pdcp_config_t cfg;
+    if(cnfg_->rlc_um_pdcp_sn_size_present) {
+      if(LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == cnfg_->rlc_um_pdcp_sn_size) {
+        cfg.sn_len = 7;
+      }
+    }
+    users[rnti].pdcp->add_bearer(lcid, cfg);
   }
 }
 
@@ -143,6 +150,10 @@ void pdcp::user_interface_rrc::write_pdu_pcch(srslte::byte_buffer_t* pdu)
 {
   fprintf(stderr, "Error: Received PCCH from ue=%d\n", rnti);
 }
-  
-  
+
+std::string pdcp::user_interface_rrc::get_rb_name(uint32_t lcid)
+{
+  return std::string(rb_id_text[lcid]);
+}
+
 }

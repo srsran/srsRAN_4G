@@ -55,13 +55,15 @@ public:
             srsue::rrc_interface_rlc  *rrc_,
             srsue::ue_interface       *ue_,
             log        *rlc_log_, 
-            mac_interface_timers *mac_timers_);
+            mac_interface_timers *mac_timers_,
+            uint32_t                  lcid_);
   void stop();
 
   void get_metrics(rlc_metrics_t &m);
 
   // PDCP interface
   void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  std::string get_rb_name(uint32_t lcid);
 
   // MAC interface
   uint32_t get_buffer_state(uint32_t lcid);
@@ -87,6 +89,7 @@ private:
   srslte::mac_interface_timers *mac_timers; 
   srsue::ue_interface         *ue;
   srslte::rlc_entity           rlc_array[SRSLTE_N_RADIO_BEARERS];
+  uint32_t                     default_lcid;
 
   long                ul_tput_bytes[SRSLTE_N_RADIO_BEARERS];
   long                dl_tput_bytes[SRSLTE_N_RADIO_BEARERS];

@@ -161,14 +161,15 @@ bool ue::init(all_args_t *args_)
   phy_log.console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz\n", args->rf.dl_freq/1e6, args->rf.ul_freq/1e6);
 
   mac.init(&phy, &rlc, &rrc, &mac_log);
-  rlc.init(&pdcp, &rrc, this, &rlc_log, &mac);
-  pdcp.init(&rlc, &rrc, &gw, &pdcp_log, SECURITY_DIRECTION_UPLINK);
+  rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
+
+  pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
+
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
-  
   rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
   
-  nas.init(&usim, &rrc, &gw, &nas_log);
-  gw.init(&pdcp, &rrc, this, &gw_log);
+  nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
+  gw.init(&pdcp, &rrc, this, &gw_log, 3 /* RB_ID_DRB1 */);
   usim.init(&args->usim, &usim_log);
 
   started = true;

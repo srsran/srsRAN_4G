@@ -144,6 +144,23 @@ private:
   void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
   void write_pdu_pcch(byte_buffer_t *pdu);
 
+  // Radio bearers
+  typedef enum{
+    RB_ID_SRB0 = 0,
+    RB_ID_SRB1,
+    RB_ID_SRB2,
+    RB_ID_DRB1,
+    RB_ID_DRB2,
+    RB_ID_DRB3,
+    RB_ID_DRB4,
+    RB_ID_DRB5,
+    RB_ID_DRB6,
+    RB_ID_DRB7,
+    RB_ID_DRB8
+  } rb_id_t;
+  std::map<uint8_t, std::string> bearers;
+  std::string get_rb_name(uint32_t lcid) { return bearers.at(lcid); }
+
   // RLC interface
   void max_retx_attempted();
 
@@ -185,6 +202,7 @@ private:
   void          set_phy_default();
   void          set_mac_default();
   void          set_rrc_default(); 
+  void          set_bearers();
   
 };
 

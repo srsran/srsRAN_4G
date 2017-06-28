@@ -89,6 +89,7 @@ private:
     void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu);
     void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu);
     void write_pdu_pcch(srslte::byte_buffer_t *pdu);
+    std::string get_rb_name(uint32_t lcid);
   };
   
   class user_interface 

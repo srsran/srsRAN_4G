@@ -32,6 +32,7 @@
 #include "srslte/phy/utils/bit.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
+#include "boost/assign.hpp"
 
 #define TIMEOUT_RESYNC_REESTABLISH 100
 
@@ -42,7 +43,9 @@ namespace srsue{
 rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
-{}
+{
+  set_bearers();
+}
 
 static void liblte_rrc_handler(void *ctx, char *str) {
   rrc *r = (rrc*) ctx; 
@@ -116,7 +119,7 @@ void rrc::set_ue_category(int category)
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 {
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", rb_id_text[lcid]);
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", bearers.at(lcid));
 
   switch(state)
   {
@@ -227,7 +230,7 @@ bool rrc::have_drb()
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", rb_id_text[lcid]);
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", bearers.at(lcid));
   rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
 
   switch(lcid)
@@ -793,7 +796,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu)
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT*)&bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
-                rb_id_text[lcid],
+                bearers.at(lcid),
                 liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
   // Reset and reuse pdu buffer if possible
@@ -1326,9 +1329,10 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
 void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg)
 {
   // Setup PDCP
-  pdcp->add_bearer(srb_cnfg->srb_id);
-  if(RB_ID_SRB2 == srb_cnfg->srb_id)
+  pdcp->add_bearer(srb_cnfg->srb_id, srslte_pdcp_config_t(true)); // Set PDCP config control flag
+  if(RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+  }
 
   // Setup RLC
   if(srb_cnfg->rlc_cnfg_present)
@@ -1372,7 +1376,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg)
   }
 
   srbs[srb_cnfg->srb_id] = *srb_cnfg;
-  rrc_log->info("Added radio bearer %s\n", rb_id_text[srb_cnfg->srb_id]);
+  rrc_log->info("Added radio bearer %s\n", bearers.at(srb_cnfg->srb_id));
 }
 
 void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
@@ -1394,7 +1398,14 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
   }
   
   // Setup PDCP
-  pdcp->add_bearer(lcid, &drb_cnfg->pdcp_cnfg);
+  srslte_pdcp_config_t pdcp_cfg;
+  pdcp_cfg.is_data = true;
+  if (drb_cnfg->pdcp_cnfg.rlc_um_pdcp_sn_size_present) {
+    if (LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == drb_cnfg->pdcp_cnfg.rlc_um_pdcp_sn_size) {
+      pdcp_cfg.sn_len = 7;
+    }
+  }
+  pdcp->add_bearer(lcid, pdcp_cfg);
   // TODO: setup PDCP security (using k_up_enc)
 
   // Setup RLC
@@ -1426,7 +1437,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
   
   drbs[lcid] = *drb_cnfg;
   drb_up     = true;
-  rrc_log->info("Added radio bearer %s\n", rb_id_text[lcid]);
+  rrc_log->info("Added radio bearer %s\n", bearers.at(lcid));
 }
 
 void rrc::release_drb(uint8_t lcid)
@@ -1484,6 +1495,21 @@ void rrc::set_rrc_default() {
   mac_timers->get(t310)->set(this, 1000);
   mac_timers->get(t311)->set(this, 1000);
   mac_timers->get(safe_reset_timer)->set(this, 10);
+}
+
+void rrc::set_bearers()
+{
+  boost::assign::insert(bearers) (RB_ID_SRB0, "SRB0")
+                                 (RB_ID_SRB1, "SRB1")
+                                 (RB_ID_SRB2, "SRB2")
+                                 (RB_ID_DRB1, "DRB1")
+                                 (RB_ID_DRB2, "DRB2")
+                                 (RB_ID_DRB3, "DRB3")
+                                 (RB_ID_DRB4, "DRB4")
+                                 (RB_ID_DRB5, "DRB5")
+                                 (RB_ID_DRB6, "DRB6")
+                                 (RB_ID_DRB7, "DRB7")
+                                 (RB_ID_DRB8, "DRB8");
 }
 
 } // namespace srsue

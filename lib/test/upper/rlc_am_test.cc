@@ -67,6 +67,7 @@ public:
   
   // RRC interface
   void max_retx_attempted(){}
+  std::string get_rb_name(uint32_t lcid) { return std::string(""); }
 
   byte_buffer_t *sdus[10];
   int n_sdus;

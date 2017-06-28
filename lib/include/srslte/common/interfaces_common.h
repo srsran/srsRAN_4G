@@ -28,8 +28,29 @@
 #define INTERFACE_COMMON_H
 
 #include "srslte/common/timers.h"
+#include "srslte/common/security.h"
 
 namespace srslte {
+
+class srslte_pdcp_config_t
+{
+public:
+  srslte_pdcp_config_t(bool is_control_ = false)
+    :direction(SECURITY_DIRECTION_UPLINK)
+    ,is_control(is_control_)
+    ,is_data(false)
+    ,do_security(false)
+    ,sn_len(12) {}
+
+  u_int8_t            direction;
+  bool                is_control;
+  bool                is_data;
+  bool                do_security;
+  uint8_t             sn_len;
+
+  // TODO: Support the following configurations
+  // bool do_rohc;
+};
 
 class mac_interface_timers
 {
