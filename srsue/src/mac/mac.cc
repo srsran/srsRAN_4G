@@ -42,7 +42,9 @@
 namespace srsue {
 
 mac::mac() : ttisync(10240), 
-             timers_db((uint32_t) NOF_MAC_TIMERS), 
+             timers_db((uint32_t) NOF_MAC_TIMERS),
+             mux_unit(MAC_NOF_HARQ_PROC),
+             demux_unit(MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
 {
   started = false;  
