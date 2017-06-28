@@ -189,13 +189,17 @@ uint8_t* mux::pdu_get(uint8_t *payload, uint32_t pdu_sz, uint32_t tx_tti, uint32
       bsr_is_inserted  = true; 
     }
   }
+
   // MAC control element for PHR
-  float phr_value; 
-  if (phr_procedure->generate_phr_on_ul_grant(&phr_value)) {
-    if (pdu_msg.new_subh()) {
-      pdu_msg.get()->set_phr(phr_value);
+  if (phr_procedure) {
+    float phr_value;
+    if (phr_procedure->generate_phr_on_ul_grant(&phr_value)) {
+      if (pdu_msg.new_subh()) {
+        pdu_msg.get()->set_phr(phr_value);
+      }
     }
   }
+
   // Update buffer states for all logical channels 
   int sdu_space = pdu_msg.get_sdu_space(); 
   for (uint32_t i=0;i<lch.size();i++) {
