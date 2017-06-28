@@ -44,13 +44,14 @@ gw::gw()
   :if_up(false)
 {}
 
-void gw::init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_)
+void gw::init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_, uint32_t lcid_)
 {
   pool    = byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
   rrc     = rrc_;
   ue      = ue_;
   gw_log  = gw_log_;
+  lcid    = lcid_;
   run_enable = true;
 
   gettimeofday(&metrics_time[1], NULL);
@@ -261,7 +262,7 @@ void gw::run_thread()
             // Send PDU directly to PDCP
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
-            pdcp->write_sdu(RB_ID_DRB1, pdu);
+            pdcp->write_sdu(lcid, pdu);
             
             do {
               pdu = pool_allocate;
