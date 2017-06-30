@@ -2545,6 +2545,12 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_transaction_identifier_ie(uint8             
 // Enums
 // Structs
 // Functions
+
+
+LIBLTE_ERROR_ENUM liblte_mme_parse_msg_sec_header(LIBLTE_BYTE_MSG_STRUCT *msg,
+                                                  uint8 *pd,
+                                                  uint8 *sec_hdr_type);
+
 LIBLTE_ERROR_ENUM liblte_mme_parse_msg_header(LIBLTE_BYTE_MSG_STRUCT *msg,
                                               uint8                  *pd,
                                               uint8                  *msg_type);
