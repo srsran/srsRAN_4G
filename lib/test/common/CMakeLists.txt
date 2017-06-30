@@ -35,4 +35,12 @@ target_link_libraries(log_filter_test srslte_phy srslte_common srslte_phy ${SEC_
 add_executable(timeout_test timeout_test.cc)
 target_link_libraries(timeout_test srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable(test_eea1 test_eea1.cc)
+target_link_libraries(test_eea1 check rt pthread subunit srslte_common)
+add_test(test_eea1 test_eea1)
+
+add_executable(test_eea2 test_eea2.cc)
+target_link_libraries(test_eea2 check rt pthread subunit srslte_common)
+add_test(test_eea2 test_eea2)
+
 add_executable(bcd_helpers_test bcd_helpers_test.cc)
