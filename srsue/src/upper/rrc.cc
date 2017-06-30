@@ -813,7 +813,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu)
     integ_algo  = (INTEGRITY_ALGORITHM_ID_ENUM)dl_dcch_msg.msg.security_mode_cmd.sec_algs.int_alg;
 
     // Configure PDCP for security
-    usim->generate_as_keys(nas->get_ul_count(), k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+    usim->generate_as_keys(k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
     pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     send_security_mode_complete(lcid, pdu);
     break;

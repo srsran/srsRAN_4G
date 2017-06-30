@@ -59,7 +59,8 @@ public:
                                                 uint16_t  mnc,
                                                 bool     *net_valid,
                                                 uint8_t  *res) = 0;
-  virtual void generate_nas_keys(uint8_t *k_nas_enc,
+  virtual void generate_nas_keys(uint32_t count_ul,
+                                 uint8_t *k_nas_enc,
                                  uint8_t *k_nas_int,
                                  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
@@ -69,8 +70,7 @@ public:
 class usim_interface_rrc
 {
 public:
-  virtual void generate_as_keys(uint32_t count_ul,
-                                uint8_t *k_rrc_enc,
+  virtual void generate_as_keys(uint8_t *k_rrc_enc,
                                 uint8_t *k_rrc_int,
                                 uint8_t *k_up_enc,
                                 uint8_t *k_up_int,

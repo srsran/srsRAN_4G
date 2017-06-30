@@ -108,7 +108,8 @@ class usim_dummy : public usim_interface_nas
   }
 
 
-  void generate_nas_keys(uint8_t *k_nas_enc,
+  void generate_nas_keys(uint32_t count_ul,
+                                   uint8_t *k_nas_enc,
                                    uint8_t *k_nas_int,
                                    CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                    INTEGRITY_ALGORITHM_ID_ENUM integ_algo){

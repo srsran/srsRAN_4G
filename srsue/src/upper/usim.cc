@@ -146,7 +146,8 @@ void usim::generate_authentication_response(uint8_t  *rand,
   }
 }
 
-void usim::generate_nas_keys(uint8_t *k_nas_enc,
+void usim::generate_nas_keys(uint32_t count_ul,
+                             uint8_t *k_nas_enc,
                              uint8_t *k_nas_int,
                              CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                              INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
@@ -157,24 +158,23 @@ void usim::generate_nas_keys(uint8_t *k_nas_enc,
                            integ_algo,
                            k_nas_enc,
                            k_nas_int);
+    // Generate K_enb
+  security_generate_k_enb( k_asme,
+                           count_ul,
+                           k_enb);
 }
 
 /*******************************************************************************
   RRC interface
 *******************************************************************************/
 
-void usim::generate_as_keys(uint32_t count_ul,
-                            uint8_t *k_rrc_enc,
+void usim::generate_as_keys(uint8_t *k_rrc_enc,
                             uint8_t *k_rrc_int,
                             uint8_t *k_up_enc,
                             uint8_t *k_up_int,
                             CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                             INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
-  // Generate K_enb
-  security_generate_k_enb( k_asme,
-                           count_ul,
-                           k_enb);
 
   // Generate K_rrc_enc and K_rrc_int
   security_generate_k_rrc( k_enb,
