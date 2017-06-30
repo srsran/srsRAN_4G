@@ -116,9 +116,16 @@ private:
                           uint8_t  *msg,
                           uint32_t  msg_len,
                           uint8_t  *mac);
-  void integrity_check();
-  void cipher_encrypt();
-  void cipher_decrypt();
+
+  bool integrity_check(uint32 lcid,
+                        byte_buffer_t *pdu);
+
+  void cipher_encrypt(uint32 lcid,
+                      byte_buffer_t *pdu);
+
+  void cipher_decrypt(uint32 lcid,
+                      byte_buffer_t *pdu);
+
 
   // Parsers
   void parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu);

@@ -26,6 +26,7 @@
 
 
 #include "upper/nas.h"
+#include "srslte/common/security.h"
 
 using namespace srslte;
 
@@ -180,19 +181,103 @@ void nas::integrity_generate(uint8_t  *key_128,
   }
 }
 
-void nas::integrity_check()
+
+// This function depends to a valid k_nas_int.
+// This key is generated in the security mode command.
+
+bool nas::integrity_check(uint32 lcid,
+                          byte_buffer_t *pdu)
 {
 
+    uint8_t exp_mac[4];
+    uint8_t *mac = &pdu->msg[1];
+    int i;
+    integrity_generate(&k_nas_int[16],
+                       pdu->msg[5],
+                       lcid-1,
+                       SECURITY_DIRECTION_DOWNLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes-5,
+                       &exp_mac[0]);
+
+    // Check if expected mac equals the sent mac
+    for(i=0; i<4; i++){
+      if(exp_mac[i] != mac[i]){
+       nas_log->warning("Expected MAC [%02x %02x %02x %02x] does not match sent MAC [%02x %02x %02x %02x]\n", exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3], mac[0], mac[1], mac[2], mac[3]);
+       return false;
+      }
+    }
+    nas_log->info("Expected MAC [%02x %02x %02x %02x] equals sent MAC [%02x %02x %02x %02x]\n", exp_mac[0], exp_mac[1], exp_mac[2], exp_mac[3], mac[0], mac[1], mac[2], mac[3]);
+    return true;
 }
 
-void nas::cipher_encrypt()
+void nas::cipher_encrypt(uint32 lcid,
+                         byte_buffer_t *pdu)
 {
-
+    byte_buffer_t pdu_tmp;
+    switch(cipher_algo)
+    {
+    case CIPHERING_ALGORITHM_ID_EEA0:
+        break;
+    case CIPHERING_ALGORITHM_ID_128_EEA1:
+        security_128_eea1(&k_nas_enc[16],
+                          pdu->msg[5],
+                          lcid-1,
+                          SECURITY_DIRECTION_UPLINK,
+                          &pdu->msg[6],
+                          pdu->N_bytes-6,
+                          &pdu_tmp.msg[6]);
+        memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+        break;
+    case CIPHERING_ALGORITHM_ID_128_EEA2:
+        security_128_eea2(&k_nas_enc[16],
+                          pdu->msg[5],
+                          lcid-1,
+                          SECURITY_DIRECTION_UPLINK,
+                          &pdu->msg[6],
+                          pdu->N_bytes-6,
+                          &pdu_tmp.msg[6]);
+        memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+        break;
+    default:
+        nas_log->error("Ciphering algorithmus not known");
+        break;
+    }
 }
 
-void nas::cipher_decrypt()
+void nas::cipher_decrypt(uint32 lcid,
+                         byte_buffer_t *pdu)
 {
-
+    byte_buffer_t tmp_pdu;
+    switch(cipher_algo)
+    {
+    case CIPHERING_ALGORITHM_ID_EEA0:
+        break;
+    case CIPHERING_ALGORITHM_ID_128_EEA1:
+        security_128_eea1(&k_nas_enc[16],
+                          pdu->msg[5],
+                          lcid-1,
+                          SECURITY_DIRECTION_DOWNLINK,
+                          &pdu->msg[6],
+                          pdu->N_bytes-6,
+                          &tmp_pdu.msg[6]);
+        memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+        break;
+    case CIPHERING_ALGORITHM_ID_128_EEA2:
+        security_128_eea2(&k_nas_enc[16],
+                          pdu->msg[5],
+                          lcid-1,
+                          SECURITY_DIRECTION_DOWNLINK,
+                          &pdu->msg[6],
+                          pdu->N_bytes-6,
+                          &tmp_pdu.msg[6]);
+        nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+        memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+        break;
+      default:
+        nas_log->error("Ciphering algorithmus not known");
+        break;
+    }
 }
 
 
