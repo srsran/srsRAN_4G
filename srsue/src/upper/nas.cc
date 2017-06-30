@@ -525,26 +525,7 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
     nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
 
     // Check incoming MAC
-    uint8_t *inMAC = &pdu->msg[1];
-    uint8_t genMAC[4];
-    integrity_generate(&k_nas_int[16],
-                       count_dl,
-                       lcid-1,
-                       SECURITY_DIRECTION_DOWNLINK,
-                       &pdu->msg[5],
-                       pdu->N_bytes-5,
-                       genMAC);
-
-    nas_log->info_hex(inMAC, 4, "Incoming PDU MAC:");
-    nas_log->info_hex(genMAC, 4, "Generated PDU MAC:");
-
-    bool match=true;
-    for(int i=0;i<4;i++) {
-      if(inMAC[i] != genMAC[i]) {
-        match = false;
-      }
-    }
-    if(!match) {
+    if(integrity_check(lcid, pdu) != true) {
       sec_mode_rej.emm_cause = LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED;
       nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
       success = false;
