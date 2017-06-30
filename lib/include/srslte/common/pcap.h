@@ -33,7 +33,8 @@
 #include <sys/time.h>
 
 #define MAC_LTE_DLT 147
-
+#define RRC_LTE_DLT 148
+#define NAS_LTE_DLT 149
 
 /* This structure gets written to the start of the file */
 typedef struct pcap_hdr_s {
@@ -113,7 +114,10 @@ typedef struct MAC_Context_Info_t {
 } MAC_Context_Info_t;
 
 
-
+/* Context information for every NAS PDU that will be logged */
+typedef struct NAS_Context_Info_s {
+  // No Context yet
+} NAS_Context_Info_t;
 
 /**************************************************************************/
 /* API functions for opening/writing/closing MAC-LTE PCAP files           */
@@ -214,5 +218,71 @@ inline void MAC_LTE_PCAP_Close(FILE *fd)
   if(fd)
     fclose(fd);
 }
+
+
+/**************************************************************************/
+/* API functions for opening/writing/closing NAS-LTE PCAP files           */
+
+/* Open the file and write file header */
+inline FILE *NAS_LTE_PCAP_Open(const char *fileName)
+{
+    pcap_hdr_t file_header =
+    {
+        0xa1b2c3d4,   /* magic number */
+        2, 4,         /* version number is 2.4 */
+        0,            /* timezone */
+        0,            /* sigfigs - apparently all tools do this */
+        65535,        /* snaplen - this should be long enough */
+        NAS_LTE_DLT  /* Data Link Type (DLT).  Set as unused value 149 for now */
+    };
+
+    FILE *fd = fopen(fileName, "w");
+    if (fd == NULL) {
+        printf("Failed to open file \"%s\" for writing\n", fileName);
+        return NULL;
+    }
+
+    /* Write the file header */
+    fwrite(&file_header, sizeof(pcap_hdr_t), 1, fd);
+
+    return fd;
+}
+
+/* Write an individual PDU (PCAP packet header + mac-context + mac-pdu) */
+inline int NAS_LTE_PCAP_WritePDU(FILE *fd, NAS_Context_Info_t *context,
+                          const unsigned char *PDU, unsigned int length)
+{
+    pcaprec_hdr_t packet_header;
+
+    /* Can't write if file wasn't successfully opened */
+    if (fd == NULL) {
+        printf("Error: Can't write to empty file handle\n");
+        return 0;
+    }
+
+    /****************************************************************/
+    /* PCAP Header                                                  */
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    packet_header.ts_sec = t.tv_sec;
+    packet_header.ts_usec = t.tv_usec;
+    packet_header.incl_len = length;
+    packet_header.orig_len = length;
+
+    /***************************************************************/
+    /* Now write everything to the file                            */
+    fwrite(&packet_header, sizeof(pcaprec_hdr_t), 1, fd);
+    fwrite(PDU, 1, length, fd);
+
+    return 1;
+}
+
+/* Close the PCAP file */
+inline void NAS_LTE_PCAP_Close(FILE *fd)
+{
+  if(fd)
+    fclose(fd);
+}
+
 
 #endif /* UEPCAP_H */
