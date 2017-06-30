@@ -88,6 +88,11 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 
   nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s PDU", rb_id_text[lcid]);
 
+  // Write NAS pcap
+  if(pcap != NULL){
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
   // Parse the message
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)pdu, &pd, &msg_type);
   switch(msg_type)
@@ -140,6 +145,15 @@ bool      nas::get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi)
   } else {
     return false;
   }
+}
+
+/*******************************************************************************
+  PCAP
+*******************************************************************************/
+
+void nas::start_pcap(srslte::nas_pcap *pcap_)
+{
+  pcap = pcap_;
 }
 
 /*******************************************************************************
@@ -408,6 +422,11 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu)
     // Instruct RRC to enable capabilities
     rrc->enable_capabilities();
 
+
+    // Write NAS pcap
+    if (pcap != NULL){
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
     nas_log->info("Sending Attach Complete\n");
     rrc->write_sdu(lcid, pdu);
     
@@ -464,6 +483,10 @@ void nas::parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu)
     liblte_mme_pack_authentication_response_msg(&auth_res, (LIBLTE_BYTE_MSG_STRUCT*)pdu);
 
     nas_log->info("Sending Authentication Response\n");
+    // Write NAS pcap
+    if (pcap != NULL){
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
     rrc->write_sdu(lcid, pdu);
   }
   else
@@ -570,6 +593,11 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
     liblte_mme_pack_security_mode_reject_msg(&sec_mode_rej, (LIBLTE_BYTE_MSG_STRUCT*)pdu);
   }
 
+  // Write NAS pcap
+  if(pcap != NULL){
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
   rrc->write_sdu(lcid, pdu);
 }
 
@@ -636,6 +664,11 @@ void nas::send_attach_request()
 
   // Pack the message
   liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT*)msg);
+  
+  // Write NAS pcap
+  if(pcap != NULL){
+    pcap->write_nas(msg->msg, msg->N_bytes);
+  }
 
   nas_log->info("Sending attach request\n");
   rrc->write_sdu(RB_ID_SRB1, msg);
@@ -691,6 +724,12 @@ void nas::send_service_request()
   msg->msg[3] = mac[3];
   msg->N_bytes++;
   nas_log->info("Sending service request\n");
+  
+  // Write NAS pcap
+  if (pcap != NULL){
+      pcap->write_nas(msg->msg, msg->N_bytes);
+  }
+
   rrc->write_sdu(RB_ID_SRB1, msg);
 }
 

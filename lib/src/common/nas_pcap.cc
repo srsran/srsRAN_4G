@@ -19,7 +19,7 @@ void nas_pcap::open(const char* filename, uint32_t ue_id)
 }
 void nas_pcap::close()
 {
-  fprintf(stdout, "Saving PCAP file\n");
+  fprintf(stdout, "Saving NAS PCAP file\n");
   MAC_LTE_PCAP_Close(pcap_file);
 }
 

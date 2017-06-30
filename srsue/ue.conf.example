@@ -48,6 +48,8 @@ rx_gain = 50
 [pcap]
 enable = false
 filename = /tmp/ue.pcap
+nas_enable = false 
+nas_filename = /tmp/ue_nas.pcap
 
 #####################################################################
 # Log configuration

@@ -75,6 +75,8 @@ typedef struct {
 typedef struct {
   bool          enable;
   std::string   filename;
+  bool          nas_enable;
+  std::string   nas_filename;
 }pcap_args_t;
 
 typedef struct {
@@ -166,6 +168,7 @@ private:
   srsue::phy         phy;
   srsue::mac         mac;
   srslte::mac_pcap   mac_pcap;
+  srslte::nas_pcap   nas_pcap;
   srslte::rlc        rlc;
   srslte::pdcp       pdcp;
   srsue::rrc         rrc;
