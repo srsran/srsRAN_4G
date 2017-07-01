@@ -85,16 +85,41 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 {
   uint8 pd;
   uint8 msg_type;
+  uint8 sec_hdr_type;
+  bool  mac_valid = false;
 
   nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s PDU", rb_id_text[lcid]);
 
+  // Parse the message
+  liblte_mme_parse_msg_sec_header((LIBLTE_BYTE_MSG_STRUCT*)pdu, &pd, &sec_hdr_type);
+
+  switch(sec_hdr_type)
+  {
+    case LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS:
+    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT:
+    case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
+    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY:
+        break;
+    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED:
+        mac_valid = integrity_check(lcid, pdu);
+        cipher_decrypt(lcid, pdu);
+        break;
+    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT:
+        break;
+    default:
+      nas_log->error("Not handling NAS message with SEC_HDR_TYPE=%02X\n",msg_type);
+      pool->deallocate(pdu);
+      break;
+  }
+  
   // Write NAS pcap
   if(pcap != NULL){
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  // Parse the message
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)pdu, &pd, &msg_type);
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s Decrypted PDU", rb_id_text[lcid]);
+  // TODO: Check if message type requieres specical security header type and if it isvalid
   switch(msg_type)
   {
   case LIBLTE_MME_MSG_TYPE_ATTACH_ACCEPT:
