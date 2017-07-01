@@ -436,6 +436,12 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu)
                                         LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
                                         count_ul,
                                         (LIBLTE_BYTE_MSG_STRUCT*)pdu);
+    // Write NAS pcap
+    if (pcap != NULL){
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
+
+    cipher_encrypt(lcid, pdu);
     integrity_generate(&k_nas_int[16],
                        count_ul,
                        lcid-1,
@@ -447,11 +453,6 @@ void nas::parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu)
     // Instruct RRC to enable capabilities
     rrc->enable_capabilities();
 
-
-    // Write NAS pcap
-    if (pcap != NULL){
-      pcap->write_nas(pdu->msg, pdu->N_bytes);
-    }
     nas_log->info("Sending Attach Complete\n");
     rrc->write_sdu(lcid, pdu);
     
@@ -560,7 +561,10 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
   nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
 
-  if(CIPHERING_ALGORITHM_ID_EEA0 != cipher_algo ||
+  // TODO: REDO check for security capabilites
+  if((CIPHERING_ALGORITHM_ID_EEA0 != cipher_algo &&
+     CIPHERING_ALGORITHM_ID_128_EEA1 != cipher_algo &&
+     CIPHERING_ALGORITHM_ID_128_EEA2 != cipher_algo) ||
      (INTEGRITY_ALGORITHM_ID_128_EIA2 != integ_algo &&
       INTEGRITY_ALGORITHM_ID_128_EIA1 != integ_algo) ||
      sec_mode_cmd.nas_ksi.tsc_flag != LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE)
@@ -569,58 +573,61 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
     nas_log->warning("Sending Security Mode Reject due to security capabilities mismatch\n");
     success = false;
   }
+
+  // Check incoming MAC
+  if (integrity_check(lcid, pdu) != true)
+  {
+    sec_mode_rej.emm_cause = LIBLTE_MME_EMM_CAUSE_MAC_FAILURE;
+    nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
+    success = false;
+  }
   else
   {
-
-    // Check incoming MAC
-    if(integrity_check(lcid, pdu) != true) {
-      sec_mode_rej.emm_cause = LIBLTE_MME_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED;
-      nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
-      success = false;
-    } else {
-
-      if(sec_mode_cmd.imeisv_req_present && LIBLTE_MME_IMEISV_REQUESTED == sec_mode_cmd.imeisv_req)
-      {
-          sec_mode_comp.imeisv_present = true;
-          sec_mode_comp.imeisv.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEISV;
-          usim->get_imei_vec(sec_mode_comp.imeisv.imeisv, 15);
-          sec_mode_comp.imeisv.imeisv[14] = 5;
-          sec_mode_comp.imeisv.imeisv[15] = 3;
-      }
-      else
-      {
-          sec_mode_comp.imeisv_present = false;
-      }
-
-      // Reuse pdu for response
-      pdu->reset();
-      liblte_mme_pack_security_mode_complete_msg(&sec_mode_comp,
-                                                 LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                                 count_ul,
-                                                 (LIBLTE_BYTE_MSG_STRUCT*)pdu);
-      integrity_generate(&k_nas_int[16],
-                         count_ul,
-                         lcid-1,
-                         SECURITY_DIRECTION_UPLINK,
-                         &pdu->msg[5],
-                         pdu->N_bytes-5,
-                         &pdu->msg[1]);
-      nas_log->info("Sending Security Mode Complete nas_count_ul=%d, RB=%s\n",
-                   count_ul,
-                   rb_id_text[lcid]);
-      success = true;
+    // Send security mode complete
+    success = true;
+    if (sec_mode_cmd.imeisv_req_present && LIBLTE_MME_IMEISV_REQUESTED == sec_mode_cmd.imeisv_req)
+    {
+      sec_mode_comp.imeisv_present = true;
+      sec_mode_comp.imeisv.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEISV;
+      usim->get_imei_vec(sec_mode_comp.imeisv.imeisv, 15);
+      sec_mode_comp.imeisv.imeisv[14] = 5;
+      sec_mode_comp.imeisv.imeisv[15] = 3;
     }
+    else
+    {
+      sec_mode_comp.imeisv_present = false;
+    }
+
+    // Reuse pdu for response
+    pdu->reset();
+    liblte_mme_pack_security_mode_complete_msg(&sec_mode_comp,
+                                               LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT,
+                                               count_ul,
+                                               (LIBLTE_BYTE_MSG_STRUCT *)pdu);
+
+    // Write NAS pcap
+    if(pcap != NULL){
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
+    cipher_encrypt(lcid, pdu);
+    integrity_generate(&k_nas_int[16],
+                       count_ul,
+                       lcid - 1,
+                       SECURITY_DIRECTION_UPLINK,
+                       &pdu->msg[5],
+                       pdu->N_bytes - 5,
+                       &pdu->msg[1]);
   }
 
-  if(!success) {
+
+  if(!  success) {
     // Reuse pdu for response
     pdu->reset();
     liblte_mme_pack_security_mode_reject_msg(&sec_mode_rej, (LIBLTE_BYTE_MSG_STRUCT*)pdu);
-  }
-
-  // Write NAS pcap
-  if(pcap != NULL){
-    pcap->write_nas(pdu->msg, pdu->N_bytes);
+    // Write NAS pcap
+    if(pcap != NULL){
+      pcap->write_nas(pdu->msg, pdu->N_bytes);
+    }
   }
 
   rrc->write_sdu(lcid, pdu);
@@ -657,6 +664,9 @@ void nas::send_attach_request()
       attach_req.ue_network_cap.eia[i] = false;
   }
   attach_req.ue_network_cap.eea[0] = true; // EEA0 supported
+  attach_req.ue_network_cap.eea[1] = true; // EEA1 supported
+  attach_req.ue_network_cap.eea[2] = true; // EEA2 supported
+
   attach_req.ue_network_cap.eia[0] = true; // EIA0 supported
   attach_req.ue_network_cap.eia[1] = true; // EIA1 supported
   attach_req.ue_network_cap.eia[2] = true; // EIA2 supported
