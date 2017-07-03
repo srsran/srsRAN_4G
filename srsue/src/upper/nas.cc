@@ -553,13 +553,13 @@ void nas::parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu)
   // FIXME: Currently only handling ciphering EEA0 (null) and integrity EIA1,EIA2
   // FIXME: Use selected_nas_sec_algs to choose correct algos
 
-  nas_log->debug("Security details: ksi=%d, eea=%s, eia=%s\n",
+  nas_log->info("Security details: ksi=%d, eea=%s, eia=%s\n",
                  ksi, ciphering_algorithm_id_text[cipher_algo], integrity_algorithm_id_text[integ_algo]);
 
   // Generate NAS encryption key and integrity protection key
   usim->generate_nas_keys(count_ul, k_nas_enc, k_nas_int, cipher_algo, integ_algo);
-  nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
-  nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
+  nas_log->info_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
+  nas_log->info_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
 
   // TODO: REDO check for security capabilites
   if((CIPHERING_ALGORITHM_ID_EEA0 != cipher_algo &&
