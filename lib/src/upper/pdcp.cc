@@ -92,6 +92,12 @@ void pdcp::config_security(uint32_t lcid,
     pdcp_array[lcid].config_security(k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
 }
 
+void pdcp::enable_encryption(uint32_t lcid)
+{
+  if(valid_lcid(lcid))
+    pdcp_array[lcid].enable_encryption();
+}
+
 /*******************************************************************************
   RLC interface
 *******************************************************************************/

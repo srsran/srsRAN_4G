@@ -84,6 +84,7 @@ public:
                        uint8_t *k_rrc_int_,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
+  void enable_encryption();
 
   // RLC interface
   void write_pdu(byte_buffer_t *pdu);
@@ -102,8 +103,9 @@ private:
 
   bool                active;
   uint32_t            lcid;
-  bool                do_security;
   u_int8_t            direction;
+  bool                do_integrity;
+  bool                do_encryption;
 
   uint8_t             sn_len;
   // TODO: Support the following configurations
@@ -117,13 +119,24 @@ private:
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
-  void integrity_generate(uint8_t  *key_128,
-                          uint32_t  count,
-                          uint8_t   rb_id,
-                          uint8_t   direction,
-                          uint8_t  *msg,
+  void integrity_generate(uint8_t  *msg,
                           uint32_t  msg_len,
                           uint8_t  *mac);
+
+  bool integrity_verify(uint8_t  *msg,
+                        uint32_t  count,
+                        uint32_t  msg_len,
+                        uint8_t  *mac);
+
+  void cipher_encrypt(uint8_t  *msg,
+                      uint32_t  msg_len,
+                      uint8_t  *ct);
+
+  void cipher_decrypt(uint8_t  *ct,
+                      uint32_t  count,
+                      uint32_t  ct_len,
+                      uint8_t  *msg);
+
   void run_thread();
 };
 

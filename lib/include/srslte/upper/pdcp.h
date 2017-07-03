@@ -58,6 +58,7 @@ public:
                        uint8_t *k_rrc_int,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  void enable_encryption(uint32_t lcid);
 
   // RLC interface
   void write_pdu(uint32_t lcid, byte_buffer_t *sdu);

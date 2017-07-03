@@ -814,8 +814,14 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu)
 
     // Configure PDCP for security
     usim->generate_as_keys(k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+    rrc_log->debug("Security details lcid=%d, eea=%s, eia=%s\n", lcid, ciphering_algorithm_id_text[cipher_algo], integrity_algorithm_id_text[integ_algo]);
+    rrc_log->debug_hex(k_rrc_enc, 32, "RRC encryption key - k_rrc_enc");
+    rrc_log->debug_hex(k_rrc_int, 32, "RRC integrity key - k_rrc_int");
+    rrc_log->debug_hex(k_up_enc, 32, "User plane encryption key - k_up_enc");
+    rrc_log->debug_hex(k_up_enc, 32, "User plane integrity key - k_up_int (obsolet?)");
     pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
     send_security_mode_complete(lcid, pdu);
+    pdcp->enable_encryption(lcid);
     break;
   case LIBLTE_RRC_DL_DCCH_MSG_TYPE_RRC_CON_RECONFIG:
     transaction_id = dl_dcch_msg.msg.rrc_con_reconfig.rrc_transaction_id;
