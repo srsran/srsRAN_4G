@@ -119,7 +119,7 @@ void rrc::set_ue_category(int category)
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 {
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", bearers.at(lcid));
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", bearers.at(lcid).c_str());
 
   switch(state)
   {
@@ -230,7 +230,7 @@ bool rrc::have_drb()
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", bearers.at(lcid));
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", bearers.at(lcid).c_str());
   rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
 
   switch(lcid)
@@ -796,7 +796,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu)
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT*)&bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
-                bearers.at(lcid),
+                bearers.at(lcid).c_str(),
                 liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
   // Reset and reuse pdu buffer if possible
@@ -1376,7 +1376,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg)
   }
 
   srbs[srb_cnfg->srb_id] = *srb_cnfg;
-  rrc_log->info("Added radio bearer %s\n", bearers.at(srb_cnfg->srb_id));
+  rrc_log->info("Added radio bearer %s\n", bearers.at(srb_cnfg->srb_id).c_str());
 }
 
 void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
@@ -1437,7 +1437,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
   
   drbs[lcid] = *drb_cnfg;
   drb_up     = true;
-  rrc_log->info("Added radio bearer %s\n", bearers.at(lcid));
+  rrc_log->info("Added radio bearer %s\n", bearers.at(lcid).c_str());
 }
 
 void rrc::release_drb(uint8_t lcid)
