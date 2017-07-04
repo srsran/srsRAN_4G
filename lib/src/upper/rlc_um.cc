@@ -27,7 +27,7 @@
 
 #include "srslte/upper/rlc_um.h"
 
-#define RX_MOD_BASE(x) (x-vr_uh-rx_window_size)%rx_mod
+#define RX_MOD_BASE(x) (x-vr_uh-cfg.rx_window_size)%cfg.rx_mod
 
 namespace srslte {
 
@@ -65,41 +65,28 @@ void rlc_um::init(srslte::log                 *log_,
   reordering_timeout_id = mac_timers->get_unique_id();
 }
 
-void rlc_um::configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg)
+void rlc_um::configure(srslte_rlc_config_t cnfg_)
 {
-  switch(cnfg->rlc_mode)
+  cfg = cnfg_.um;
+
+  switch(cnfg_.rlc_mode)
   {
   case LIBLTE_RRC_RLC_MODE_UM_BI:
-    t_reordering        = liblte_rrc_t_reordering_num[cnfg->dl_um_bi_rlc.t_reordering];
-    rx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->dl_um_bi_rlc.sn_field_len;
-    rx_window_size      = (RLC_UMD_SN_SIZE_5_BITS == rx_sn_field_length) ? 16 : 512;
-    rx_mod              = (RLC_UMD_SN_SIZE_5_BITS == rx_sn_field_length) ? 32 : 1024;
-    tx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->ul_um_bi_rlc.sn_field_len;
-    tx_mod              = (RLC_UMD_SN_SIZE_5_BITS == tx_sn_field_length) ? 32 : 1024;
     log->info("%s configured in %s mode: "
               "t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg->rlc_mode],
-              t_reordering,
-              rlc_umd_sn_size_num[rx_sn_field_length],
-              rlc_umd_sn_size_num[tx_sn_field_length]);
+              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
+              cfg.t_reordering, cfg.rx_sn_field_length, cfg.tx_sn_field_length);
     break;
   case LIBLTE_RRC_RLC_MODE_UM_UNI_UL:
-    tx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->ul_um_uni_rlc.sn_field_len;
-    tx_mod              = (RLC_UMD_SN_SIZE_5_BITS == tx_sn_field_length) ? 32 : 1024;
     log->info("%s configured in %s mode: tx_sn_field_length=%u bits\n",
-              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg->rlc_mode],
-              rlc_umd_sn_size_num[tx_sn_field_length]);
+              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
+              cfg.tx_sn_field_length);
     break;
   case LIBLTE_RRC_RLC_MODE_UM_UNI_DL:
-    t_reordering        = liblte_rrc_t_reordering_num[cnfg->dl_um_uni_rlc.t_reordering];
-    rx_sn_field_length  = (rlc_umd_sn_size_t)cnfg->dl_um_uni_rlc.sn_field_len;
-    rx_window_size      = (RLC_UMD_SN_SIZE_5_BITS == rx_sn_field_length) ? 16 : 512;
-    rx_mod              = (RLC_UMD_SN_SIZE_5_BITS == rx_sn_field_length) ? 32 : 1024;
     log->info("%s configured in %s mode: "
               "t_reordering=%d ms, rx_sn_field_length=%u bits\n",
-              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg->rlc_mode],
-              liblte_rrc_t_reordering_num[t_reordering],
-              rlc_umd_sn_size_num[rx_sn_field_length]);
+              rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
+              cfg.t_reordering, cfg.rx_sn_field_length);
     break;
   default:
     log->error("RLC configuration mode not recognized\n");
@@ -229,7 +216,7 @@ void rlc_um::timer_expired(uint32_t timeout_id)
     rx_sdu->reset();
     while(RX_MOD_BASE(vr_ur) < RX_MOD_BASE(vr_ux))
     {
-      vr_ur = (vr_ur + 1)%rx_mod;
+      vr_ur = (vr_ur + 1)%cfg.rx_mod;
       log->debug("Entering Reassemble from timeout id=%d\n", timeout_id);
       reassemble_rx_sdus();
       log->debug("Finished reassemble from timeout id=%d\n", timeout_id);
@@ -237,7 +224,7 @@ void rlc_um::timer_expired(uint32_t timeout_id)
     mac_timers->get(reordering_timeout_id)->stop();
     if(RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur))
     {
-      mac_timers->get(reordering_timeout_id)->set(this, t_reordering);
+      mac_timers->get(reordering_timeout_id)->set(this, cfg.t_reordering);
       mac_timers->get(reordering_timeout_id)->run();
       vr_ux = vr_uh;
     }
@@ -274,7 +261,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   header.fi   = RLC_FI_FIELD_START_AND_END_ALIGNED;
   header.sn   = vt_us;
   header.N_li = 0;
-  header.sn_size = tx_sn_field_length;
+  header.sn_size = cfg.tx_sn_field_length;
 
   uint32_t to_move   = 0;
   uint32_t last_li   = 0;
@@ -347,7 +334,7 @@ int  rlc_um::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   // Set SN
   header.sn = vt_us;
-  vt_us = (vt_us + 1)%tx_mod;
+  vt_us = (vt_us + 1)%cfg.tx_mod;
 
   // Add header and TX
   log->debug("%s packing PDU with length %d\n", rrc->get_rb_name(lcid).c_str(), pdu->N_bytes);
@@ -365,12 +352,12 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it;
   rlc_umd_pdu_header_t header;
-  rlc_um_read_data_pdu_header(payload, nof_bytes, rx_sn_field_length, &header);
+  rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.rx_sn_field_length, &header);
 
   log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN: %d",
                 rrc->get_rb_name(lcid).c_str(), header.sn);
 
-  if(RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_uh-rx_window_size) &&
+  if(RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_uh-cfg.rx_window_size) &&
      RX_MOD_BASE(header.sn) <  RX_MOD_BASE(vr_ur))
   {
     log->info("%s SN: %d outside rx window [%d:%d] - discarding\n",
@@ -403,7 +390,7 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   
   // Update vr_uh
   if(!inside_reordering_window(header.sn))
-    vr_uh  = (header.sn + 1)%rx_mod;
+    vr_uh  = (header.sn + 1)%cfg.rx_mod;
 
   // Reassemble and deliver SDUs, while updating vr_ur
   log->debug("Entering Reassemble from received PDU\n");
@@ -423,7 +410,7 @@ void rlc_um::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   {
     if(RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur))
     {
-      mac_timers->get(reordering_timeout_id)->set(this, t_reordering);
+      mac_timers->get(reordering_timeout_id)->set(this, cfg.t_reordering);
       mac_timers->get(reordering_timeout_id)->run();
       vr_ux = vr_uh;
     }
@@ -452,7 +439,7 @@ void rlc_um::reassemble_rx_sdus()
         rx_sdu->N_bytes += len;
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
-        if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%rx_mod))) {
+        if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%cfg.rx_mod))) {
           log->warning("Dropping remainder of lost PDU (lower edge middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
           rx_sdu->reset();
         } else {
@@ -489,7 +476,7 @@ void rlc_um::reassemble_rx_sdus()
       rx_window.erase(vr_ur);
     }
 
-    vr_ur = (vr_ur + 1)%rx_mod;
+    vr_ur = (vr_ur + 1)%cfg.rx_mod;
   }
 
 
@@ -502,11 +489,11 @@ void rlc_um::reassemble_rx_sdus()
       int len = rx_window[vr_ur].header.li[i];
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_ur].buf->msg, len);
       log->debug("Concatenating %d bytes in to current length %d. rx_window remaining bytes=%d, vr_ur_in_rx_sdu=%d, vr_ur=%d, rx_mod=%d, last_mod=%d\n",
-        len, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur_in_rx_sdu, vr_ur, rx_mod, (vr_ur_in_rx_sdu+1)%rx_mod);
+        len, rx_sdu->N_bytes, rx_window[vr_ur].buf->N_bytes, vr_ur_in_rx_sdu, vr_ur, cfg.rx_mod, (vr_ur_in_rx_sdu+1)%cfg.rx_mod);
       rx_sdu->N_bytes += len;      
       rx_window[vr_ur].buf->msg += len;
       rx_window[vr_ur].buf->N_bytes -= len;
-      if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%rx_mod))) {
+      if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%cfg.rx_mod))) {
         log->warning("Dropping remainder of lost PDU (update vr_ur middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
         rx_sdu->reset();
       } else {
@@ -542,13 +529,13 @@ void rlc_um::reassemble_rx_sdus()
     pool->deallocate(rx_window[vr_ur].buf);
     rx_window.erase(vr_ur);
 
-    vr_ur = (vr_ur + 1)%rx_mod;
+    vr_ur = (vr_ur + 1)%cfg.rx_mod;
   }
 }
 
 bool rlc_um::inside_reordering_window(uint16_t sn)
 {
-  if(RX_MOD_BASE(sn) >= RX_MOD_BASE(vr_uh-rx_window_size) &&
+  if(RX_MOD_BASE(sn) >= RX_MOD_BASE(vr_uh-cfg.rx_window_size) &&
      RX_MOD_BASE(sn) <  RX_MOD_BASE(vr_uh))
   {
     return true;

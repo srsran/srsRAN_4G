@@ -1341,7 +1341,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg)
     {
       rlc->add_bearer(srb_cnfg->srb_id);
     }else{
-      rlc->add_bearer(srb_cnfg->srb_id, &srb_cnfg->rlc_explicit_cnfg);
+      rlc->add_bearer(srb_cnfg->srb_id, srslte_rlc_config_t(&srb_cnfg->rlc_explicit_cnfg));
     }
   }
 
@@ -1409,7 +1409,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
   // TODO: setup PDCP security (using k_up_enc)
 
   // Setup RLC
-  rlc->add_bearer(lcid, &drb_cnfg->rlc_cnfg);
+  rlc->add_bearer(lcid, srslte_rlc_config_t(&drb_cnfg->rlc_cnfg));
 
   // Setup MAC
   uint8_t  log_chan_group       =  0;

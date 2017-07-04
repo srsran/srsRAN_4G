@@ -39,6 +39,7 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/common.h"
 #include "srslte/common/security.h"
+#include "srslte/upper/rlc_interface.h"
 
 namespace srsue {
 
@@ -201,7 +202,7 @@ class rlc_interface_rrc
 public:
   virtual void reset() = 0;
   virtual void add_bearer(uint32_t lcid) = 0;
-  virtual void add_bearer(uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) = 0;
+  virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
 };
 
 // RLC interface for PDCP

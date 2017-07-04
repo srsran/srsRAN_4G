@@ -34,6 +34,7 @@
 #include "srslte/common/msg_queue.h"
 #include "srslte/upper/rlc_entity.h"
 #include "srslte/upper/rlc_metrics.h"
+#include "srslte/upper/rlc_common.h"
 
 namespace srslte {
 
@@ -77,7 +78,7 @@ public:
   // RRC interface
   void reset();
   void add_bearer(uint32_t lcid);
-  void add_bearer(uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg);
+  void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
 
 private:
   void reset_metrics(); 

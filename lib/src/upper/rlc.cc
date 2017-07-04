@@ -194,10 +194,10 @@ void rlc::write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes)
 void rlc::add_bearer(uint32_t lcid)
 {
   // No config provided - use defaults for lcid
-  LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
   if(default_lcid == lcid || (default_lcid+1) == lcid)
   {
     if (!rlc_array[lcid].active()) {
+      LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
       cnfg.rlc_mode                     = LIBLTE_RRC_RLC_MODE_AM;
       cnfg.ul_am_rlc.t_poll_retx        = LIBLTE_RRC_T_POLL_RETRANSMIT_MS45;
       cnfg.ul_am_rlc.poll_pdu           = LIBLTE_RRC_POLL_PDU_INFINITY;
@@ -205,7 +205,7 @@ void rlc::add_bearer(uint32_t lcid)
       cnfg.ul_am_rlc.max_retx_thresh    = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
       cnfg.dl_am_rlc.t_reordering       = LIBLTE_RRC_T_REORDERING_MS35;
       cnfg.dl_am_rlc.t_status_prohibit  = LIBLTE_RRC_T_STATUS_PROHIBIT_MS0;
-      add_bearer(lcid, &cnfg);
+      add_bearer(lcid, srslte_rlc_config_t(&cnfg));
     } else {
       rlc_log->warning("Bearer %s already configured. Reconfiguration not supported\n", get_rb_name(lcid).c_str());
     }
@@ -215,18 +215,17 @@ void rlc::add_bearer(uint32_t lcid)
   }
 }
 
-void rlc::add_bearer(uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg)
+void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
 {
   if(lcid < 0 || lcid >= SRSLTE_N_RADIO_BEARERS) {
     rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return;
   }
-  
-  
+
   if (!rlc_array[lcid].active()) {
     rlc_log->info("Adding radio bearer %s with mode %s\n",
-                  get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg->rlc_mode]);
-    switch(cnfg->rlc_mode)
+                  get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg.rlc_mode]);
+    switch(cnfg.rlc_mode)
     {
     case LIBLTE_RRC_RLC_MODE_AM:
       rlc_array[lcid].init(RLC_MODE_AM, rlc_log, lcid, pdcp, rrc, mac_timers);

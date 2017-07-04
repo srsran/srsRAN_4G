@@ -29,6 +29,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/upper/rlc_interface.h"
 #include "srslte/asn1/liblte_rrc.h"
 #include "srslte/asn1/liblte_s1ap.h"
 
@@ -156,7 +157,7 @@ public:
   virtual void add_user(uint16_t rnti) = 0; 
   virtual void rem_user(uint16_t rnti) = 0; 
   virtual void add_bearer(uint16_t rnti, uint32_t lcid) = 0;
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
 };
 
 // PDCP interface for GTPU

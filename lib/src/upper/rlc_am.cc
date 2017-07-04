@@ -74,20 +74,13 @@ void rlc_am::init(srslte::log                 *log_,
   rrc  = rrc_;
 }
 
-void rlc_am::configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg)
+void rlc_am::configure(srslte_rlc_config_t cfg_)
 {
-  t_poll_retx       = liblte_rrc_t_poll_retransmit_num[cnfg->ul_am_rlc.t_poll_retx];
-  poll_pdu          = liblte_rrc_poll_pdu_num[cnfg->ul_am_rlc.poll_pdu];
-  poll_byte         = liblte_rrc_poll_byte_num[cnfg->ul_am_rlc.poll_byte]*1000; // KB
-  max_retx_thresh   = liblte_rrc_max_retx_threshold_num[cnfg->ul_am_rlc.max_retx_thresh];
-
-  t_reordering      = liblte_rrc_t_reordering_num[cnfg->dl_am_rlc.t_reordering];
-  t_status_prohibit = liblte_rrc_t_status_prohibit_num[cnfg->dl_am_rlc.t_status_prohibit];
-
+  cfg = cfg_.am;
   log->info("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
             "t_reordering=%d, t_status_prohibit=%d\n",
-            rrc->get_rb_name(lcid).c_str(), t_poll_retx, poll_pdu, poll_byte, max_retx_thresh,
-            t_reordering, t_status_prohibit);
+            rrc->get_rb_name(lcid).c_str(), cfg.t_poll_retx, cfg.poll_pdu, cfg.poll_byte, cfg.max_retx_thresh,
+            cfg.t_reordering, cfg.t_status_prohibit);
 }
 
 
@@ -362,7 +355,7 @@ void rlc_am::check_reordering_timeout()
 
     if(RX_MOD_BASE(vr_h) > RX_MOD_BASE(vr_ms))
     {
-      reordering_timeout.start(t_reordering);
+      reordering_timeout.start(cfg.t_reordering);
       vr_x = vr_h;
     }
 
@@ -376,9 +369,9 @@ void rlc_am::check_reordering_timeout()
 
 bool rlc_am::poll_required()
 {
-  if(poll_pdu > 0 && pdu_without_poll > (uint32_t)poll_pdu)
+  if(cfg.poll_pdu > 0 && pdu_without_poll > (uint32_t)cfg.poll_pdu)
     return true;
-  if(poll_byte > 0 && byte_without_poll > (uint32_t)poll_byte)
+  if(cfg.poll_byte > 0 && byte_without_poll > (uint32_t)cfg.poll_byte)
     return true;
   if(poll_retx())
     return true;
@@ -414,8 +407,8 @@ int  rlc_am::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
     do_status     = false;
     poll_received = false;
 
-    if(t_status_prohibit > 0)
-      status_prohibit_timeout.start(t_status_prohibit);
+    if(cfg.t_status_prohibit > 0)
+      status_prohibit_timeout.start(cfg.t_status_prohibit);
     debug_state();
     return rlc_am_write_status_pdu(&status, payload);
   }else{
@@ -450,7 +443,7 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
     poll_sn           = vt_s;
     pdu_without_poll  = 0;
     byte_without_poll = 0;
-    poll_retx_timeout.start(t_poll_retx);
+    poll_retx_timeout.start(cfg.t_poll_retx);
   }
 
   uint8_t *ptr = payload;
@@ -459,7 +452,7 @@ int  rlc_am::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
 
   retx_queue.pop_front();
   tx_window[retx.sn].retx_count++;
-  if(tx_window[retx.sn].retx_count >= max_retx_thresh)
+  if(tx_window[retx.sn].retx_count >= cfg.max_retx_thresh)
     rrc->max_retx_attempted();
   log->info("%s Retx PDU scheduled for tx. SN: %d, retx count: %d\n",
             rrc->get_rb_name(lcid).c_str(), retx.sn, tx_window[retx.sn].retx_count);
@@ -701,7 +694,7 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     poll_sn           = vt_s;
     pdu_without_poll  = 0;
     byte_without_poll = 0;
-    poll_retx_timeout.start(t_poll_retx);
+    poll_retx_timeout.start(cfg.t_poll_retx);
   }
 
   // Set SN
@@ -812,7 +805,7 @@ void rlc_am::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_h
   {
     if(RX_MOD_BASE(vr_h) > RX_MOD_BASE(vr_r))
     {
-      reordering_timeout.start(t_reordering);
+      reordering_timeout.start(cfg.t_reordering);
       vr_x = vr_h;
     }
   }

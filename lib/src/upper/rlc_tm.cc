@@ -46,7 +46,7 @@ void rlc_tm::init(srslte::log               *log_,
   rrc  = rrc_;
 }
 
-void rlc_tm::configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg)
+void rlc_tm::configure(srslte_rlc_config_t cnfg)
 {
   log->error("Attempted to configure TM RLC entity");
 }

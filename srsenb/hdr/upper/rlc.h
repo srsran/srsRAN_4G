@@ -50,7 +50,7 @@ public:
   void add_user(uint16_t rnti); 
   void rem_user(uint16_t rnti);
   void add_bearer(uint16_t rnti, uint32_t lcid);
-  void add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg);
+  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg);
 
   // rlc_interface_pdcp
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);

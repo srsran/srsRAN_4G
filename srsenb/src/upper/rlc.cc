@@ -98,7 +98,7 @@ void rlc::add_bearer(uint16_t rnti, uint32_t lcid)
   }
 }
 
-void rlc::add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT* cnfg)
+void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg)
 {
   if (users.count(rnti)) {
     users[rnti].rlc->add_bearer(lcid, cnfg);
