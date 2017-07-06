@@ -81,7 +81,7 @@ void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
     pdcp_array[lcid].init(rlc, rrc, gw, pdcp_log, lcid, cfg);
     pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
-    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid));
+    pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }
 }
 
