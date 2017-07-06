@@ -51,6 +51,11 @@ SRSLTE_API int rf_blade_start_rx_stream_nsamples(void *h,
 
 SRSLTE_API int rf_blade_stop_rx_stream(void *h);
 
+SRSLTE_API int rf_blade_start_tx_stream(void *h);
+
+SRSLTE_API int rf_blade_stop_tx_stream(void *h);
+
+
 SRSLTE_API void rf_blade_flush_buffer(void *h);
 
 SRSLTE_API bool rf_blade_has_rssi(void *h);
