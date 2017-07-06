@@ -515,8 +515,8 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
 bool sch_subh::set_c_rnti(uint16_t crnti)
 {
   if (((sch_pdu*)parent)->has_space_ce(2)) {
-    w_payload_ce[0] = (uint8_t) (crnti&0xff00)>>8;
-    w_payload_ce[1] = (uint8_t) (crnti&0x00ff);
+    w_payload_ce[0] = (uint8_t) ((crnti&0xff00)>>8);
+    w_payload_ce[1] = (uint8_t) ((crnti&0x00ff));
     lcid = CRNTI;
     ((sch_pdu*)parent)->update_space_ce(2);
     nof_bytes = 2; 
