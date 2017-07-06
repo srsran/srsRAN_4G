@@ -73,19 +73,12 @@ void pdcp::rem_user(uint16_t rnti)
   }
 }
 
-void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT* cnfg_)
+void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cfg)
 {
   if (users.count(rnti)) {
-    srslte::srslte_pdcp_config_t cfg;
-    if(cnfg_->rlc_um_pdcp_sn_size_present) {
-      if(LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == cnfg_->rlc_um_pdcp_sn_size) {
-        cfg.sn_len = 7;
-      }
-    }
     users[rnti].pdcp->add_bearer(lcid, cfg);
   }
 }
-
 
 void pdcp::reset(uint16_t rnti)
 {

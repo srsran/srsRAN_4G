@@ -41,7 +41,13 @@ void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_
   lcid      = lcid_;
   direction = direction_;
 
-  pdcp_array[0].init(rlc, rrc, gw, pdcp_log, lcid, direction);
+  // Default config
+  srslte_pdcp_config_t cnfg;
+  cnfg.is_control = false;
+  cnfg.is_data = false;
+  cnfg.direction = direction_;
+
+  pdcp_array[0].init(rlc, rrc, gw, pdcp_log, lcid, cnfg);
 }
 
 void pdcp::stop()

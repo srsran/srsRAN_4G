@@ -29,20 +29,22 @@
 
 #include "srslte/common/timers.h"
 #include "srslte/common/security.h"
+#include "srslte/asn1/liblte_rrc.h"
+
 
 namespace srslte {
 
 class srslte_pdcp_config_t
 {
 public:
-  srslte_pdcp_config_t(bool is_control_ = false)
-    :direction(SECURITY_DIRECTION_UPLINK)
+  srslte_pdcp_config_t(bool is_control_ = false, bool is_data_ = false, uint8_t direction_ = SECURITY_DIRECTION_UPLINK)
+    :direction(direction_)
     ,is_control(is_control_)
-    ,is_data(false)
+    ,is_data(is_data_)
     ,do_security(false)
     ,sn_len(12) {}
 
-  u_int8_t            direction;
+  uint8_t             direction;
   bool                is_control;
   bool                is_data;
   bool                do_security;

@@ -193,9 +193,8 @@ void rlc::write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes)
 *******************************************************************************/
 void rlc::add_bearer(uint32_t lcid)
 {
-  // No config provided - use defaults for lcid
-  if(default_lcid == lcid || (default_lcid+1) == lcid)
-  {
+  // No config provided - use defaults for SRB1 and SRB2
+  if(lcid < 3) {
     if (!rlc_array[lcid].active()) {
       LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg;
       cnfg.rlc_mode                     = LIBLTE_RRC_RLC_MODE_AM;
@@ -210,7 +209,7 @@ void rlc::add_bearer(uint32_t lcid)
       rlc_log->warning("Bearer %s already configured. Reconfiguration not supported\n", get_rb_name(lcid).c_str());
     }
   }else{
-    rlc_log->error("Radio bearer %s does not support default RLC configuration.",
+    rlc_log->error("Radio bearer %s does not support default RLC configuration.\n",
                    get_rb_name(lcid).c_str());
   }
 }

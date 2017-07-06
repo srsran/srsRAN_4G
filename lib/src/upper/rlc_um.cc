@@ -75,18 +75,18 @@ void rlc_um::configure(srslte_rlc_config_t cnfg_)
     log->info("%s configured in %s mode: "
               "t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
               rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
-              cfg.t_reordering, cfg.rx_sn_field_length, cfg.tx_sn_field_length);
+              cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
     break;
   case LIBLTE_RRC_RLC_MODE_UM_UNI_UL:
     log->info("%s configured in %s mode: tx_sn_field_length=%u bits\n",
               rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
-              cfg.tx_sn_field_length);
+              rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
     break;
   case LIBLTE_RRC_RLC_MODE_UM_UNI_DL:
     log->info("%s configured in %s mode: "
               "t_reordering=%d ms, rx_sn_field_length=%u bits\n",
               rrc->get_rb_name(lcid).c_str(), liblte_rrc_rlc_mode_text[cnfg_.rlc_mode],
-              cfg.t_reordering, cfg.rx_sn_field_length);
+              cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
     break;
   default:
     log->error("RLC configuration mode not recognized\n");

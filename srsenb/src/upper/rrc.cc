@@ -1154,9 +1154,14 @@ void rrc::ue::send_connection_setup(bool is_setup)
   // Configure MAC 
   parent->mac->ue_cfg(rnti, &sched_cfg);
     
-  // Configure SRB1 in RLC and PDCP     
+  // Configure SRB1 in RLC
   parent->rlc->add_bearer(rnti, 1);
-  parent->pdcp->add_bearer(rnti, 1);
+
+  // Configure SRB1 in PDCP
+  srslte::srslte_pdcp_config_t pdcp_cnfg;
+  pdcp_cnfg.is_control = true;
+  pdcp_cnfg.direction = SECURITY_DIRECTION_DOWNLINK;
+  parent->pdcp->add_bearer(rnti, 1, pdcp_cnfg);
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
@@ -1168,7 +1173,6 @@ void rrc::ue::send_connection_setup(bool is_setup)
   rr_cfg->sps_cnfg_present = false; 
   
   send_dl_ccch(&dl_ccch_msg);
-  
 }
 
 
@@ -1312,12 +1316,27 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   
   // Configure SRB2 in RLC and PDCP
   parent->rlc->add_bearer(rnti, 2);
-  parent->pdcp->add_bearer(rnti, 2);
-  
+
+  // Configure SRB2 in PDCP
+  srslte::srslte_pdcp_config_t pdcp_cnfg;
+  pdcp_cnfg.direction = SECURITY_DIRECTION_DOWNLINK;
+  pdcp_cnfg.is_control = true;
+  pdcp_cnfg.is_data = false;
+  parent->pdcp->add_bearer(rnti, 2, pdcp_cnfg);
+
   // Configure DRB1 in RLC
   parent->rlc->add_bearer(rnti, 3, &conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].rlc_cnfg);
+
   // Configure DRB1 in PDCP
-  parent->pdcp->add_bearer(rnti, 3, &conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].pdcp_cnfg);
+  pdcp_cnfg.is_control = false;
+  pdcp_cnfg.is_data = true;
+  if (conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].pdcp_cnfg.rlc_um_pdcp_sn_size_present) {
+    if(LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].pdcp_cnfg.rlc_um_pdcp_sn_size) {
+      pdcp_cnfg.sn_len = 7;
+    }
+  }
+  parent->pdcp->add_bearer(rnti, 3, pdcp_cnfg);
+
   // DRB1 has already been configured in GTPU through bearer setup
 
   // Add NAS Attach accept 
