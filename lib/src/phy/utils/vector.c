@@ -102,7 +102,11 @@ void srslte_vec_sub_fff(float *x, float *y, float *z, uint32_t len) {
     z[i] = x[i]-y[i];
   }
 #else
+#ifdef LV_HAVE_AVX
+  srslte_vec_sub_fff_avx(x, y, z, len);
+#else
   srslte_vec_sub_fff_sse(x, y, z, len);
+#endif
 #endif
 }
 
@@ -134,7 +138,11 @@ void srslte_vec_sum_fff(float *x, float *y, float *z, uint32_t len) {
     z[i] = x[i]+y[i];
   }
 #else
-  srslte_vec_sum_fff_sse(x, y, z, len);
+  #ifdef LV_HAVE_AVX
+    srslte_vec_sum_fff_avx(x, y, z, len);
+  #else
+    srslte_vec_sum_fff_sse(x, y, z, len);
+  #endif
 #endif
 }
 
@@ -246,7 +254,7 @@ void srslte_vec_sc_prod_cfc(cf_t *x, float h, cf_t *z, uint32_t len) {
   for (i=0;i<len;i++) {
     z[i] = x[i]*h;
   }
-#endif  
+#endif
 }
 
 

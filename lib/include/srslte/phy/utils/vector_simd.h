@@ -49,7 +49,11 @@ SRSLTE_API void srslte_vec_sub_sss_avx2(short *x, short *y, short *z, uint32_t l
 
 SRSLTE_API void srslte_vec_sum_fff_sse(float *x, float *y, float *z, uint32_t len);
 
+SRSLTE_API void srslte_vec_sum_fff_avx(float *x, float *y, float *z, uint32_t len);
+
 SRSLTE_API void srslte_vec_sub_fff_sse(float *x, float *y, float *z, uint32_t len);
+
+SRSLTE_API void srslte_vec_sub_fff_avx(float *x, float *y, float *z, uint32_t len);
 
 SRSLTE_API void srslte_vec_sc_prod_fff_sse(float *x, float h, float *z, uint32_t len);
 

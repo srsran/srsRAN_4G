@@ -501,6 +501,36 @@ void srslte_vec_sum_fff_sse(float *x, float *y, float *z, uint32_t len) {
 #endif
 }
 
+void srslte_vec_sum_fff_avx(float *x, float *y, float *z, uint32_t len) {
+#ifdef LV_HAVE_AVX
+  unsigned int number = 0;
+  const unsigned int points = len / 8;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  float* zPtr = (float*) z;
+
+  __m256 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_loadu_ps(xPtr);
+    yVal = _mm256_loadu_ps(yPtr);
+
+    zVal = _mm256_add_ps(xVal, yVal);
+
+    _mm256_storeu_ps(zPtr, zVal);
+
+    xPtr += 8;
+    yPtr += 8;
+    zPtr += 8;
+  }
+
+  for(number = points * 8;number < len; number++){
+    z[number] = x[number] + y[number];
+  }
+#endif
+}
+
 void srslte_vec_sub_fff_sse(float *x, float *y, float *z, uint32_t len) {
 #ifdef LV_HAVE_SSE
   unsigned int number = 0;
@@ -525,13 +555,42 @@ void srslte_vec_sub_fff_sse(float *x, float *y, float *z, uint32_t len) {
     zPtr += 4;
   }
 
-  number = points * 4;
-  for(;number < len; number++){
-    z[number] = x[number] + y[number];
+  for(number = points * 4;number < len; number++){
+    z[number] = x[number] - y[number];
   }
 #endif
 }
 
+
+void srslte_vec_sub_fff_avx(float *x, float *y, float *z, uint32_t len) {
+#ifdef LV_HAVE_SSE
+  unsigned int number = 0;
+  const unsigned int points = len / 8;
+
+  const float* xPtr = (const float*) x;
+  const float* yPtr = (const float*) y;
+  float* zPtr = (float*) z;
+
+  __m256 xVal, yVal, zVal;
+  for(;number < points; number++){
+
+    xVal = _mm256_loadu_ps(xPtr);
+    yVal = _mm256_loadu_ps(yPtr);
+
+    zVal = _mm256_sub_ps(xVal, yVal);
+
+    _mm256_storeu_ps(zPtr, zVal);
+
+    xPtr += 8;
+    yPtr += 8;
+    zPtr += 8;
+  }
+
+  for(number = points * 8;number < len; number++){
+    z[number] = x[number] - y[number];
+  }
+#endif
+}
 
 #ifdef LV_HAVE_SSE
 static inline __m128 _mm_complexmul_ps(__m128 x, __m128 y) {
