@@ -608,7 +608,7 @@ cf_t srslte_vec_dot_prod_conj_ccc(cf_t *x, cf_t *y, uint32_t len) {
   uint32_t i;
   cf_t res = 0;
   for (i=0;i<len;i++) {
-    res += x[i]*y[i];
+    res += x[i]*conjf(y[i]);
   }
   return res;
 #else
