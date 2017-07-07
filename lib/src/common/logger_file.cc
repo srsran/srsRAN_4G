@@ -27,20 +27,20 @@
 
 #define LOG_BUFFER_SIZE 1024*32
 
-#include "srslte/common/logger.h"
+#include "srslte/common/logger_file.h"
 
 using namespace std;
 
 namespace srslte{
 
-logger::logger()
+logger_file::logger_file()
   :inited(false)
   ,not_done(true)
 {}
 
-logger::~logger() {
+logger_file::~logger_file() {
   not_done = false;
-  log("Closing log");
+  log(new std::string("Closing log"));
   if(inited) {
     wait_thread_finish();
     flush();
@@ -48,7 +48,7 @@ logger::~logger() {
   }
 }
 
-void logger::init(std::string file) {
+void logger_file::init(std::string file) {
   pthread_mutex_init(&mutex, NULL); 
   pthread_cond_init(&not_empty, NULL);
   pthread_cond_init(&not_full, NULL);
@@ -61,19 +61,18 @@ void logger::init(std::string file) {
   inited = true;
 }
 
-void logger::log(const char *msg) {
-  str_ptr s_ptr(new std::string(msg));
-  log(s_ptr);
+void logger_file::log(const char *msg) {
+  log(new std::string(msg));
 }
 
-void logger::log(str_ptr msg) {
+void logger_file::log(str_ptr msg) {
   pthread_mutex_lock(&mutex);
   buffer.push_back(msg);
   pthread_cond_signal(&not_empty);
   pthread_mutex_unlock(&mutex);
 }
 
-void logger::run_thread() {
+void logger_file::run_thread() {
   while(not_done) {
   pthread_mutex_lock(&mutex);
     while(buffer.empty()) {
@@ -89,7 +88,7 @@ void logger::run_thread() {
   }
 }
 
-void logger::flush() {
+void logger_file::flush() {
   std::deque<str_ptr>::iterator it;
   for(it=buffer.begin();it!=buffer.end();it++)
   {

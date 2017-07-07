@@ -38,15 +38,19 @@
 #include <stdarg.h>
 #include <string>
 #include "srslte/common/log.h"
-#include "logger.h"
+#include "srslte/common/logger.h"
+#include "srslte/common/logger_stdout.h"
 
 namespace srslte {
+
+typedef std::string* str_ptr;
 
 class log_filter : public srslte::log
 {
 public:
 
   log_filter();
+  log_filter(std::string layer);
   log_filter(std::string layer, logger *logger_, bool tti=false);
 
   void init(std::string layer, logger *logger_, bool tti=false);
@@ -70,6 +74,8 @@ public:
 private:
   logger *logger_h;
   bool    do_tti;
+
+  logger_stdout def_logger_stdout;
 
   void all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, char *msg);
   void all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, char *msg, uint8_t *hex, int size);

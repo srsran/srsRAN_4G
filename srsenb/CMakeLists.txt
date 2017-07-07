@@ -21,9 +21,9 @@
 find_package(LibConfig REQUIRED)
 find_package(SCTP REQUIRED)
 
-if(STATIC_LIBCONFIGPP)
+if(BUILD_STATIC)
   set(LIBCONFIGPP_LIBRARIES "${LIBCONFIGPP_STATIC_LIBRARY_PATH}")
-endif(STATIC_LIBCONFIGPP)
+endif(BUILD_STATIC)
 
 if(NOT Boost_FOUND)
     message(FATAL_ERROR "Boost required to compile srsENB")

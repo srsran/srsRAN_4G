@@ -156,6 +156,9 @@ public:
     return pool->allocate(debug_name);
   }
   void deallocate(byte_buffer_t *b) {
+    if(!b) {
+      return;
+    }
     b->reset();
     pool->deallocate(b);
   }

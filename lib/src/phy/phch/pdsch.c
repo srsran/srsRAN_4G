@@ -260,7 +260,7 @@ int srslte_pdsch_init_multi(srslte_pdsch_t *q, srslte_cell_t cell, uint32_t nof_
         }
       }
     }
-    for (int j=0;j<q->nof_rx_antennas;j++) {
+    for (int j=0;j<SRSLTE_MAX(q->nof_rx_antennas, q->cell.nof_ports);j++) {
       q->symbols[j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
       if (!q->symbols[j]) {
         goto clean;

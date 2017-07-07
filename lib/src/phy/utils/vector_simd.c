@@ -820,7 +820,7 @@ void srslte_vec_abs_square_cf_sse(cf_t *x, float *z, uint32_t len) {
 
 
 //srslte_32fc_s32f_multiply_32fc_avx
- void srslte_vec_mult_scalar_cf_f_avx( cf_t *z,const cf_t *x,const float h,const uint32_t len)
+ void srslte_vec_sc_prod_cfc_avx( const cf_t *x,const float h,cf_t *z,const uint32_t len)
 {
 #ifdef LV_HAVE_AVX
    

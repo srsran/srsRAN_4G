@@ -49,7 +49,7 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/logger.h"
+#include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
 
 #include "ue_metrics_interface.h"
@@ -173,16 +173,16 @@ private:
   srslte::gw         gw;
   srsue::usim        usim;
 
-  srslte::logger     logger;
-  srslte::log_filter rf_log;
-  srslte::log_filter phy_log;
-  srslte::log_filter mac_log;
-  srslte::log_filter rlc_log;
-  srslte::log_filter pdcp_log;
-  srslte::log_filter rrc_log;
-  srslte::log_filter nas_log;
-  srslte::log_filter gw_log;
-  srslte::log_filter usim_log;
+  srslte::logger_file logger;
+  srslte::log_filter  rf_log;
+  srslte::log_filter  phy_log;
+  srslte::log_filter  mac_log;
+  srslte::log_filter  rlc_log;
+  srslte::log_filter  pdcp_log;
+  srslte::log_filter  rrc_log;
+  srslte::log_filter  nas_log;
+  srslte::log_filter  gw_log;
+  srslte::log_filter  usim_log;
 
   srslte::byte_buffer_pool *pool;
 

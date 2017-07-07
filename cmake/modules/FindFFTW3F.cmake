@@ -15,6 +15,12 @@ find_path(FFTW3F_INCLUDE_DIR
             PATHS /usr/local/include 
                   /usr/include )
 
+find_library(FFTW3F_STATIC_LIBRARY
+            NAMES fftw3f.a libfftw3f.a libfftw3f-3.a
+            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} $ENV{FFTW3_DIR}/lib
+            PATHS /usr/local/lib
+                  /usr/lib)
+
 find_library(FFTW3F_LIBRARY 
             NAMES fftw3f libfftw3f libfftw3f-3
             HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} $ENV{FFTW3_DIR}/lib
@@ -22,12 +28,17 @@ find_library(FFTW3F_LIBRARY
                   /usr/lib)
 
 set(FFTW3F_LIBRARIES ${FFTW3F_LIBRARY} )
+set(FFTW3F_STATIC_LIBRARIES ${FFTW3F_STATIC_LIBRARY} )
 set(FFTW3F_INCLUDE_DIRS ${FFTW3F_INCLUDE_DIR} )
+
+message(STATUS "FFTW3F LIBRARIES: " ${FFTW3F_LIBRARIES})
+message(STATUS "FFTW3F STATIC LIBRARIES: " ${FFTW3F_STATIC_LIBRARIES})
+message(STATUS "FFTW3F INCLUDE DIRS: " ${FFTW3F_INCLUDE_DIRS})
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set FFTW3F_FOUND to TRUE
 # if all listed variables are TRUE
 find_package_handle_standard_args(fftw3f  DEFAULT_MSG
-                                  FFTW3F_LIBRARY FFTW3F_INCLUDE_DIR)
+                                  FFTW3F_LIBRARY FFTW3F_STATIC_LIBRARY FFTW3F_INCLUDE_DIR)
 
-mark_as_advanced(FFTW3F_INCLUDE_DIR FFTW3F_LIBRARY )
+mark_as_advanced(FFTW3F_INCLUDE_DIR FFTW3F_STATIC_LIBRARY FFTW3F_LIBRARY )

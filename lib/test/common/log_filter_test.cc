@@ -29,11 +29,12 @@
 
 #include <stdio.h>
 #include "srslte/common/log_filter.h"
+#include "srslte/common/logger_file.h"
 
 using namespace srslte;
 
 typedef struct {
-  logger *l;
+  logger_file *l;
   int thread_id;
 }args_t;
 
@@ -78,7 +79,7 @@ void* thread_loop_hex(void *a) {
 }
 
 void write(std::string filename) {
-  logger l;
+  logger_file l;
   l.init(filename);
   pthread_t threads[NTHREADS];
   args_t    args[NTHREADS];

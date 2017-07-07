@@ -208,12 +208,14 @@ uint32_t rlc_am::get_total_buffer_state()
   }
 
   // Bytes needed for tx SDUs
-  n_sdus  = tx_sdu_queue.size();
-  n_bytes += tx_sdu_queue.size_bytes();
-  if(tx_sdu)
-  {
-    n_sdus++;
-    n_bytes += tx_sdu->N_bytes;
+  if(tx_window.size() < 1024) {
+    n_sdus  = tx_sdu_queue.size();
+    n_bytes += tx_sdu_queue.size_bytes();
+    if(tx_sdu)
+    {
+      n_sdus++;
+      n_bytes += tx_sdu->N_bytes;
+    }
   }
 
   // Room needed for header extensions? (integer rounding)
@@ -256,7 +258,7 @@ uint32_t rlc_am::get_buffer_state()
   }
 
   // Bytes needed for tx SDUs
-  if(tx_window.size() < RLC_AM_WINDOW_SIZE) {
+  if(tx_window.size() < 1024) {
     n_sdus  = tx_sdu_queue.size();
     n_bytes = tx_sdu_queue.size_bytes();
     if(tx_sdu)
@@ -286,6 +288,7 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   pthread_mutex_lock(&mutex);
 
   log->debug("MAC opportunity - %d bytes\n", nof_bytes);
+  log->debug("tx_window size - %d PDUs\n", tx_window.size());
 
   // Tx STATUS if requested
   if(do_status && !status_prohibited()) {
@@ -298,10 +301,11 @@ int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     return build_retx_pdu(payload, nof_bytes);
   }
 
-  pthread_mutex_unlock(&mutex);
-
   // Build a PDU from SDUs
-  return build_data_pdu(payload, nof_bytes);
+  int ret = build_data_pdu(payload, nof_bytes);
+
+  pthread_mutex_unlock(&mutex);
+  return ret;
 }
 
 void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
@@ -582,6 +586,16 @@ int  rlc_am::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   byte_buffer_t *pdu = pool_allocate;
   if (!pdu) {
     log->console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
+    log->console("tx_window size: %d PDUs\n", tx_window.size());
+    log->console("vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d "
+                 "vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d\n",
+                 vt_a, vt_ms, vt_s, poll_sn,
+                 vr_r, vr_mr, vr_x, vr_ms, vr_h);
+    log->console("retx_queue size: %d PDUs\n", retx_queue.size());
+    std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator txit;
+    for(txit = tx_window.begin(); txit != tx_window.end(); txit++) {
+      log->console("tx_window - SN: %d\n", txit->first);
+    }
     exit(-1);
   }
   rlc_amd_pdu_header_t header;
@@ -897,13 +911,13 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
   poll_retx_timeout.reset();
 
   // Handle ACKs and NACKs
+  std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
   bool update_vt_a = true;
-  uint32_t i = vt_a;
+  uint32_t i       = vt_a;
+
   while(TX_MOD_BASE(i) < TX_MOD_BASE(status.ack_sn) &&
         TX_MOD_BASE(i) < TX_MOD_BASE(vt_s))
   {
-    std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator it;
-
     bool nack = false;
     for(uint32_t j=0;j<status.N_nack;j++) {
       if(status.nacks[j].nack_sn == i) {
@@ -943,14 +957,16 @@ void rlc_am::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
 
     if(!nack) {
       //ACKed SNs get marked and removed from tx_window if possible
-      it = tx_window.find(i);
-      if(tx_window.end() != it)
-      {
-        tx_window[i].is_acked = true;
+      if(tx_window.count(i) > 0) {
+        it = tx_window.find(i);
+        it->second.is_acked = true;
+        if(it->second.buf) {
+          pool->deallocate(it->second.buf);
+          it->second.buf = 0;
+        }
         if(update_vt_a)
         {
-          pool->deallocate(tx_window[i].buf);
-          tx_window.erase(i);
+          tx_window.erase(it);
           vt_a = (vt_a + 1)%MOD;
           vt_ms = (vt_ms + 1)%MOD;
         }

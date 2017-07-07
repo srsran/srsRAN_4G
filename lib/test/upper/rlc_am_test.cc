@@ -25,7 +25,8 @@
  */
 
 #include <iostream>
-#include "srslte/common/log_stdout.h"
+#include "srslte/common/log_filter.h"
+#include "srslte/common/logger_stdout.h"
 #include "srslte/upper/rlc_am.h"
 #include <assert.h>
 #define NBUFS 5
@@ -73,8 +74,8 @@ public:
 
 void basic_test()
 {
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -152,8 +153,8 @@ void basic_test()
 
 void concat_test()
 {
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -216,8 +217,8 @@ void concat_test()
 
 void segment_test()
 {
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -298,8 +299,8 @@ void segment_test()
 
 void retx_test()
 {
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -394,8 +395,8 @@ void resegment_test_1()
   // PDUs:                |  10  |  10  |  10  |  10  |  10  |
   // Retx PDU segments:                 | 5 | 5|
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -503,8 +504,8 @@ void resegment_test_2()
   // PDUs:              | 5 |  10  |     20     |  10  | 5 |
   // Retx PDU segments:            |  10  |  10 |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -609,8 +610,8 @@ void resegment_test_3()
   // PDUs:              | 5 | 5|      20     |  10  |  10  |
   // Retx PDU segments:        |  10  |  10  |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -711,8 +712,8 @@ void resegment_test_4()
   // PDUs:              | 5 | 5|         30         | 5 | 5|
   // Retx PDU segments:        |    15    |    15   |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -813,8 +814,8 @@ void resegment_test_5()
   // PDUs:              |2|3|            40            |3|2|
   // Retx PDU segments:     |     20      |     20     |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
@@ -914,8 +915,8 @@ void resegment_test_6()
   // PDUs:                |10|10|10|                270               | 54 |
   // Retx PDU segments:            |  120           |      150        |
 
-  srslte::log_stdout log1("RLC_AM_1");
-  srslte::log_stdout log2("RLC_AM_2");
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
