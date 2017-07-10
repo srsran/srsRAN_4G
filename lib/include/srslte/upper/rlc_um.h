@@ -56,7 +56,7 @@ public:
             srsue::pdcp_interface_rlc   *pdcp_,
             srsue::rrc_interface_rlc    *rrc_,
             mac_interface_timers *mac_timers_);
-  void configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg);
+  void configure(srslte_rlc_config_t cnfg);
   void reset();
   void empty_queue(); 
 
@@ -92,9 +92,6 @@ private:
 
   // Rx window
   std::map<uint32_t, rlc_umd_pdu_t>  rx_window;
-  uint32_t                           rx_window_size;
-  uint32_t                           rx_mod; // Rx counter modulus
-  uint32_t                           tx_mod; // Tx counter modulus
 
   // RX SDU buffers
   byte_buffer_t      *rx_sdu;
@@ -108,9 +105,7 @@ private:
    * Ref: 3GPP TS 36.322 v10.0.0 Section 7
    ***************************************************************************/
 
-  int32_t           t_reordering;       // Timer used by rx to detect PDU loss  (ms)
-  rlc_umd_sn_size_t tx_sn_field_length; // Number of bits used for tx (UL) sequence number
-  rlc_umd_sn_size_t rx_sn_field_length; // Number of bits used for rx (DL) sequence number
+  srslte_rlc_um_config_t cfg;
 
   /****************************************************************************
    * State variables and counters

@@ -67,6 +67,7 @@ public:
   
   // RRC interface
   void max_retx_attempted(){}
+  std::string get_rb_name(uint32_t lcid) { return std::string(""); }
 
   byte_buffer_t *sdus[10];
   int n_sdus;
@@ -101,6 +102,7 @@ void basic_test()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -180,6 +182,7 @@ void concat_test()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -244,6 +247,7 @@ void segment_test()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -326,6 +330,7 @@ void retx_test()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -422,6 +427,7 @@ void resegment_test_1()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -531,6 +537,7 @@ void resegment_test_2()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -637,6 +644,7 @@ void resegment_test_3()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -739,6 +747,7 @@ void resegment_test_4()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -841,6 +850,7 @@ void resegment_test_5()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);
@@ -942,6 +952,7 @@ void resegment_test_6()
   cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
   cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_KB25;
   cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_P4;
+  cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS5;
 
   rlc1.configure(&cnfg);
   rlc2.configure(&cnfg);

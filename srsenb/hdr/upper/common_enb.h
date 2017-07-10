@@ -43,6 +43,32 @@ namespace srsenb {
 #define SRSENB_N_DRB           8
 #define SRSENB_N_RADIO_BEARERS 11
 
+typedef enum{
+  RB_ID_SRB0 = 0,
+  RB_ID_SRB1,
+  RB_ID_SRB2,
+  RB_ID_DRB1,
+  RB_ID_DRB2,
+  RB_ID_DRB3,
+  RB_ID_DRB4,
+  RB_ID_DRB5,
+  RB_ID_DRB6,
+  RB_ID_DRB7,
+  RB_ID_DRB8,
+  RB_ID_N_ITEMS,
+}rb_id_t;
+static const char rb_id_text[RB_ID_N_ITEMS][20] = { "SRB0",
+                                                    "SRB1",
+                                                    "SRB2",
+                                                    "DRB1",
+                                                    "DRB2",
+                                                    "DRB3",
+                                                    "DRB4",
+                                                    "DRB5",
+                                                    "DRB6",
+                                                    "DRB7",
+                                                    "DRB8"};
+
 // Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1
 #define SRSENB_MAX_BUFFER_SIZE_BITS  102048

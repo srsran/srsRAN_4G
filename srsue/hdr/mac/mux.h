@@ -55,9 +55,9 @@ namespace srsue {
 class mux
 {
 public:
-  mux();
+  mux(uint8_t nof_harq_proc_);
   void     reset();
-  void     init(rlc_interface_mac *rlc, srslte::log *log_h, bsr_proc *bsr_procedure, phr_proc *phr_procedure_);
+  void     init(rlc_interface_mac *rlc, srslte::log *log_h, bsr_interface_mux *bsr_procedure, phr_proc *phr_procedure_);
 
   bool     is_pending_any_sdu();
   bool     is_pending_sdu(uint32_t lcid); 
@@ -87,16 +87,17 @@ private:
   std::vector<lchid_t> lch; 
   
   // Keep track of the PIDs that transmitted BSR reports 
-  bool pid_has_bsr[MAX_HARQ_PROC]; 
+  std::vector<bool> pid_has_bsr;
   
   // Mutex for exclusive access
   pthread_mutex_t mutex; 
 
   srslte::log       *log_h;
   rlc_interface_mac *rlc; 
-  bsr_proc          *bsr_procedure;
+  bsr_interface_mux *bsr_procedure;
   phr_proc          *phr_procedure;
   uint16_t           pending_crnti_ce;
+  uint8_t            nof_harq_proc;
   
   /* Msg3 Buffer */
   static const uint32_t MSG3_BUFF_SZ = 128; 
@@ -105,9 +106,6 @@ private:
   /* PDU Buffer */
   srslte::sch_pdu    pdu_msg; 
   bool msg3_has_been_transmitted;
-  
-  
-  
 };
 
 } // namespace srsue

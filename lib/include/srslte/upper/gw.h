@@ -46,7 +46,7 @@ class gw
 {
 public:
   gw();
-  void init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_);
+  void init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_, uint32_t lcid_);
   void stop();
 
   void get_metrics(gw_metrics_t &m);
@@ -56,11 +56,11 @@ public:
 
   // NAS interface
   error_t setup_if_addr(uint32_t ip_addr, char *err_str);
-  
+
 private:
-  
-  static const int GW_THREAD_PRIO = 7; 
-  
+
+  static const int GW_THREAD_PRIO = 7;
+
   srsue::pdcp_interface_gw  *pdcp;
   srsue::rrc_interface_gw   *rrc;
   srsue::ue_interface       *ue;
@@ -73,6 +73,7 @@ private:
   struct ifreq        ifr;
   int32               sock;
   bool                if_up;
+  uint32_t            lcid;
 
   long                ul_tput_bytes;
   long                dl_tput_bytes;
