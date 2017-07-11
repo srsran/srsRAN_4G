@@ -48,7 +48,8 @@
 #include "srslte/phy/phch/pdsch_cfg.h"
 
 typedef struct {
-  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];  
+  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
+  bool sequence_generated;
 } srslte_pdsch_user_t;
 
 /* PDSCH object */
