@@ -61,7 +61,8 @@ typedef struct {
 } srslte_pusch_hopping_cfg_t;
 
 typedef struct {
-  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];  
+  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
+  bool sequences_generated;
 } srslte_pusch_user_t; 
 
 /* PUSCH object */

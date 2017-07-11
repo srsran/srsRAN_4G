@@ -400,7 +400,8 @@ int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
             q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
           return SRSLTE_ERROR; 
         }
-      }      
+      }
+      q->users[rnti]->sequences_generated = true;
     }
   }
   return SRSLTE_SUCCESS;
@@ -444,15 +445,15 @@ int srslte_pusch_encode(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softb
       return SRSLTE_ERROR;
     }
 
-    if (!q->users[rnti]) {
-      srslte_sequence_t seq; 
-      if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
-        return SRSLTE_ERROR; 
-      }
-      srslte_scrambling_bytes(&seq, (uint8_t*) q->q, cfg->nbits.nof_bits);      
-      srslte_sequence_free(&seq);
+    if (q->users[rnti] && q->users[rnti]->sequences_generated) {
+      srslte_scrambling_bytes(&q->users[rnti]->seq[cfg->sf_idx], (uint8_t*) q->q, cfg->nbits.nof_bits);
     } else {
-      srslte_scrambling_bytes(&q->users[rnti]->seq[cfg->sf_idx], (uint8_t*) q->q, cfg->nbits.nof_bits);            
+      srslte_sequence_t seq;
+      if (srslte_sequence_pusch(&seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
+        return SRSLTE_ERROR;
+      }
+      srslte_scrambling_bytes(&seq, (uint8_t*) q->q, cfg->nbits.nof_bits);
+      srslte_sequence_free(&seq);
     }
     
     // Correct UCI placeholder/repetition bits    
@@ -535,13 +536,13 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     srslte_sequence_t *seq = NULL;
 
     // Create sequence if does not exist
-    if (!q->users[rnti]) {
-      seq = &q->tmp_seq; 
-      if (srslte_sequence_pusch(seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
-        return SRSLTE_ERROR; 
-      }
+    if (q->users[rnti] && q->users[rnti]->sequences_generated) {
+      seq = &q->users[rnti]->seq[cfg->sf_idx];
     } else {
-      seq = &q->users[rnti]->seq[cfg->sf_idx]; 
+      seq = &q->tmp_seq;
+      if (srslte_sequence_pusch(seq, rnti, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
+        return SRSLTE_ERROR;
+      }
     }
     
     // Decode RI/HARQ bits before descrambling 
@@ -553,7 +554,7 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     // Descrambling
     srslte_scrambling_s_offset(seq, q->q, 0, cfg->nbits.nof_bits);
         
-    if (!q->users[rnti]) {
+    if (!(q->users[rnti] && q->users[rnti]->sequences_generated)) {
       srslte_sequence_free(seq);
     }
     
