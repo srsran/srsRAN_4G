@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <math.h>
 #include <complex.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 #include "srslte/phy/phch/pucch.h"
@@ -489,7 +490,7 @@ void srslte_pucch_clear_rnti(srslte_pucch_t *q, uint16_t rnti) {
 
 int srslte_pucch_set_crnti(srslte_pucch_t *q, uint16_t rnti) {
   if (!q->users[rnti]) {
-    q->users[rnti] = malloc(sizeof(srslte_pucch_user_t));
+    q->users[rnti] = calloc(1, sizeof(srslte_pucch_user_t));
     if (q->users[rnti]) {
       for (uint32_t sf_idx=0;sf_idx<SRSLTE_NSUBFRAMES_X_FRAME;sf_idx++) {
         // Precompute scrambling sequence for pucch format 2    
@@ -498,6 +499,7 @@ int srslte_pucch_set_crnti(srslte_pucch_t *q, uint16_t rnti) {
           return SRSLTE_ERROR; 
         }        
       }
+      q->users[rnti]->sequence_generated = true;
     }
   }
   return SRSLTE_SUCCESS; 
@@ -591,7 +593,7 @@ static int uci_mod_bits(srslte_pucch_t *q, srslte_pucch_format_t format, uint8_t
     case SRSLTE_PUCCH_FORMAT_2:
     case SRSLTE_PUCCH_FORMAT_2A:
     case SRSLTE_PUCCH_FORMAT_2B:
-      if (q->users[rnti]) {
+      if (q->users[rnti] && q->users[rnti]->sequence_generated) {
         memcpy(q->bits_scram, bits, SRSLTE_PUCCH2_NOF_BITS*sizeof(uint8_t));
         srslte_scrambling_b(&q->users[rnti]->seq_f2[sf_idx], q->bits_scram);
         srslte_mod_modulate(&q->mod, q->bits_scram, q->d, SRSLTE_PUCCH2_NOF_BITS);
@@ -796,7 +798,7 @@ int srslte_pucch_decode(srslte_pucch_t* q, srslte_pucch_format_t format,
       case SRSLTE_PUCCH_FORMAT_2:
       case SRSLTE_PUCCH_FORMAT_2A:
       case SRSLTE_PUCCH_FORMAT_2B:
-        if (q->users[rnti]) {
+        if (q->users[rnti] && q->users[rnti]->sequence_generated) {
           pucch_encode_(q, format, n_pucch, sf_idx, rnti, NULL, ref, true);
           srslte_vec_prod_conj_ccc(q->z, ref, q->z_tmp, SRSLTE_PUCCH_MAX_SYMBOLS);
           for (int i=0;i<SRSLTE_PUCCH2_NOF_BITS/2;i++) {
