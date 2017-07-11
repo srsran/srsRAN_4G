@@ -80,7 +80,8 @@ typedef struct SRSLTE_API {
 } srslte_pucch_cfg_t;
 
 typedef struct  {
-  srslte_sequence_t seq_f2[SRSLTE_NSUBFRAMES_X_FRAME];   
+  srslte_sequence_t seq_f2[SRSLTE_NSUBFRAMES_X_FRAME];
+  bool sequence_generated;
 } srslte_pucch_user_t; 
 
 /* PUCCH object */
