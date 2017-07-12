@@ -218,7 +218,7 @@ uint32_t rlc_am::get_total_buffer_state()
   // Room needed for fixed header?
   if(n_bytes > 0) {
     n_bytes += 2;
-    log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
+    log->debug("Total buffer state LCID=%d - tx SDUs: %d bytes\n", lcid, n_bytes);
   }
 
   pthread_mutex_unlock(&mutex);
@@ -235,7 +235,7 @@ uint32_t rlc_am::get_buffer_state()
   check_reordering_timeout();
   if(do_status && !status_prohibited()) {
     n_bytes = prepare_status();
-    log->debug("Buffer state - status report: %d bytes\n", n_bytes);
+    log->debug("Buffer state LCID=%d - status report: %d bytes\n", lcid, n_bytes);
     goto unlock_and_return;
   }
 
@@ -268,7 +268,7 @@ uint32_t rlc_am::get_buffer_state()
   // Room needed for fixed header?
   if(n_bytes > 0) {
     n_bytes += 2;
-    log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
+    log->debug("Buffer state LCID=%d - tx SDUs: %d bytes\n", lcid, n_bytes);
   }
 
 unlock_and_return:
