@@ -154,19 +154,9 @@ int srslte_rf_start_rx_stream(srslte_rf_t *rf)
   return ((rf_dev_t*) rf->dev)->srslte_rf_start_rx_stream(rf->handler);  
 }
 
-int srslte_rf_start_tx_stream(srslte_rf_t *rf)
-{
-  return ((rf_dev_t*) rf->dev)->srslte_rf_start_tx_stream(rf->handler);  
-}
-
 int srslte_rf_stop_rx_stream(srslte_rf_t *rf)
 {
   return ((rf_dev_t*) rf->dev)->srslte_rf_stop_rx_stream(rf->handler);  
-}
-
-int srslte_rf_stop_tx_stream(srslte_rf_t *rf)
-{
-  return ((rf_dev_t*) rf->dev)->srslte_rf_stop_tx_stream(rf->handler);  
 }
 
 void srslte_rf_flush_buffer(srslte_rf_t *rf)

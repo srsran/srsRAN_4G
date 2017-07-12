@@ -99,10 +99,6 @@ SRSLTE_API int srslte_rf_start_rx_stream(srslte_rf_t *h);
 
 SRSLTE_API int srslte_rf_stop_rx_stream(srslte_rf_t *h);
 
-SRSLTE_API int srslte_rf_start_tx_stream(srslte_rf_t *h);
-
-SRSLTE_API int srslte_rf_stop_tx_stream(srslte_rf_t *h);
-
 SRSLTE_API void srslte_rf_flush_buffer(srslte_rf_t *h);
 
 SRSLTE_API bool srslte_rf_has_rssi(srslte_rf_t *h);

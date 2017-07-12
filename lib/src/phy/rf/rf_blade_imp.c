@@ -164,13 +164,6 @@ int rf_blade_stop_rx_stream(void *h)
   return 0;
 }
 
-
-int rf_blade_stop_tx_stream(void *h)
-{
- return 0;
-}
-
-
 void rf_blade_flush_buffer(void *h)
 {
 }

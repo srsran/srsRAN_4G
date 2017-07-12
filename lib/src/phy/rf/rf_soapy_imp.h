@@ -49,10 +49,6 @@ SRSLTE_API int rf_soapy_start_rx_stream(void *h);
 
 SRSLTE_API int rf_soapy_stop_rx_stream(void *h);
 
-SRSLTE_API int rf_soapy_start_tx_stream(void *h);
-
-SRSLTE_API int rf_soapy_stop_tx_stream(void *h);
-
 SRSLTE_API void rf_soapy_flush_buffer(void *h);
 
 SRSLTE_API bool rf_soapy_has_rssi(void *h);
