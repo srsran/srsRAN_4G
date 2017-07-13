@@ -129,14 +129,11 @@ int rf_soapy_start_rx_stream(void *h)
 
 int rf_soapy_start_tx_stream(void *h)
 {
-  rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-  if (SoapySDRDevice_setupStream(handler->device, &(handler->txStream), SOAPY_SDR_TX, SOAPY_SDR_CF32, NULL, 0, NULL) != 0) {
-    printf("setupStream fail: %s\n", SoapySDRDevice_lastError());
-    return SRSLTE_ERROR;
-  }
-  
+rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   if(SoapySDRDevice_activateStream(handler->device, handler->txStream, 0, 0, 0) != 0)
     return SRSLTE_ERROR;
+
+  handler->tx_stream_active = true;
 
   return SRSLTE_SUCCESS;
 }
@@ -224,6 +221,13 @@ int rf_soapy_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     printf("setupStream fail: %s\n", SoapySDRDevice_lastError());
     return SRSLTE_ERROR;
   }
+
+  
+  if (SoapySDRDevice_setupStream(handler->device, &(handler->txStream), SOAPY_SDR_TX, SOAPY_SDR_CF32, NULL, 0, NULL) != 0) {
+    printf("setupStream fail: %s\n", SoapySDRDevice_lastError());
+    return SRSLTE_ERROR;
+  }
+  
   
   return SRSLTE_SUCCESS;
 }
