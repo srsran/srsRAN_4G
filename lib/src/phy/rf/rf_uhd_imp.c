@@ -235,17 +235,6 @@ int rf_uhd_start_rx_stream(void *h)
   return 0;
 }
 
-int rf_uhd_start_tx_stream(void *h)
-{
-  return 0;
-}
-
-int rf_uhd_stop_tx_stream(void *h)
-{
-  return 0;
-}
-
-
 int rf_uhd_stop_rx_stream(void *h)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;

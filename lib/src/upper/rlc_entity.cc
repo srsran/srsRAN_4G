@@ -64,7 +64,7 @@ void rlc_entity::init(rlc_mode_t                   mode,
   rlc->init(rlc_entity_log_, lcid_, pdcp_, rrc_, mac_timers_);
 }
 
-void rlc_entity::configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg)
+void rlc_entity::configure(srslte_rlc_config_t cnfg)
 {
   if(rlc)
     rlc->configure(cnfg);

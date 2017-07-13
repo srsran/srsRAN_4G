@@ -27,10 +27,8 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "upper/rrc.h"
 
-using srslte::rb_id_text; 
 using srslte::byte_buffer_t;
 using srslte::bit_buffer_t;
-using srslte::rb_id_t; 
 
 namespace srsenb {
   
@@ -607,11 +605,11 @@ void rrc::run_thread()
     }
     switch(p.lcid)
     {
-    case srslte::RB_ID_SRB0:
+    case RB_ID_SRB0:
       parse_ul_ccch(p.rnti, p.pdu);
       break;
-    case srslte::RB_ID_SRB1:
-    case srslte::RB_ID_SRB2:
+    case RB_ID_SRB1:
+    case RB_ID_SRB2:
       parse_ul_dcch(p.rnti, p.lcid, p.pdu);
       break;
     case LCID_REM_USER:
@@ -919,7 +917,7 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
                           k_up_enc,
                           k_up_int);
 
-  parent->configure_security(rnti, srslte::RB_ID_SRB1,
+  parent->configure_security(rnti, RB_ID_SRB1,
                              k_rrc_enc, k_rrc_int,
                              k_up_enc,  k_up_int,
                              cipher_algo, integ_algo);
@@ -1156,9 +1154,14 @@ void rrc::ue::send_connection_setup(bool is_setup)
   // Configure MAC 
   parent->mac->ue_cfg(rnti, &sched_cfg);
     
-  // Configure SRB1 in RLC and PDCP     
+  // Configure SRB1 in RLC
   parent->rlc->add_bearer(rnti, 1);
-  parent->pdcp->add_bearer(rnti, 1);
+
+  // Configure SRB1 in PDCP
+  srslte::srslte_pdcp_config_t pdcp_cnfg;
+  pdcp_cnfg.is_control = true;
+  pdcp_cnfg.direction = SECURITY_DIRECTION_DOWNLINK;
+  parent->pdcp->add_bearer(rnti, 1, pdcp_cnfg);
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
@@ -1170,7 +1173,6 @@ void rrc::ue::send_connection_setup(bool is_setup)
   rr_cfg->sps_cnfg_present = false; 
   
   send_dl_ccch(&dl_ccch_msg);
-  
 }
 
 
@@ -1314,12 +1316,27 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   
   // Configure SRB2 in RLC and PDCP
   parent->rlc->add_bearer(rnti, 2);
-  parent->pdcp->add_bearer(rnti, 2);
-  
+
+  // Configure SRB2 in PDCP
+  srslte::srslte_pdcp_config_t pdcp_cnfg;
+  pdcp_cnfg.direction = SECURITY_DIRECTION_DOWNLINK;
+  pdcp_cnfg.is_control = true;
+  pdcp_cnfg.is_data = false;
+  parent->pdcp->add_bearer(rnti, 2, pdcp_cnfg);
+
   // Configure DRB1 in RLC
   parent->rlc->add_bearer(rnti, 3, &conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].rlc_cnfg);
+
   // Configure DRB1 in PDCP
-  parent->pdcp->add_bearer(rnti, 3, &conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].pdcp_cnfg);
+  pdcp_cnfg.is_control = false;
+  pdcp_cnfg.is_data = true;
+  if (conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].pdcp_cnfg.rlc_um_pdcp_sn_size_present) {
+    if(LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].pdcp_cnfg.rlc_um_pdcp_sn_size) {
+      pdcp_cnfg.sn_len = 7;
+    }
+  }
+  parent->pdcp->add_bearer(rnti, 3, pdcp_cnfg);
+
   // DRB1 has already been configured in GTPU through bearer setup
 
   // Add NAS Attach accept 
@@ -1432,7 +1449,7 @@ void rrc::ue::send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg)
                           rnti,
                           liblte_rrc_dl_ccch_msg_type_text[dl_ccch_msg->msg_type]);
     
-    parent->pdcp->write_sdu(rnti, srslte::RB_ID_SRB0, pdu);
+    parent->pdcp->write_sdu(rnti, RB_ID_SRB0, pdu);
     
   } else {
     parent->rrc_log->error("Allocating pdu\n");
@@ -1453,7 +1470,7 @@ void rrc::ue::send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, byte_buff
                           rnti,
                           liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg->msg_type]);
     
-    parent->pdcp->write_sdu(rnti, srslte::RB_ID_SRB1, pdu);
+    parent->pdcp->write_sdu(rnti, RB_ID_SRB1, pdu);
     
   } else {
     parent->rrc_log->error("Allocating pdu\n");

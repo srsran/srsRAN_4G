@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <srslte/phy/phch/pdsch.h>
 
 #include "prb_dl.h"
 #include "srslte/phy/phch/pdsch.h"
@@ -362,6 +363,7 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
           return SRSLTE_ERROR; 
         }
       }
+      q->users[rnti]->sequence_generated = true;
     }
   }
   return SRSLTE_SUCCESS;
@@ -467,15 +469,15 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
     srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
     
     /* descramble */
-    if (!q->users[rnti]) {
-      srslte_sequence_t seq; 
+    if (q->users[rnti] && q->users[rnti]->sequence_generated) {
+      srslte_scrambling_s_offset(&q->users[rnti]->seq[cfg->sf_idx], q->e, 0, cfg->nbits.nof_bits);
+    } else {
+      srslte_sequence_t seq;
       if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
-        return SRSLTE_ERROR; 
+        return SRSLTE_ERROR;
       }
-      srslte_scrambling_s_offset(&seq, q->e, 0, cfg->nbits.nof_bits);      
+      srslte_scrambling_s_offset(&seq, q->e, 0, cfg->nbits.nof_bits);
       srslte_sequence_free(&seq);
-    } else {    
-      srslte_scrambling_s_offset(&q->users[rnti]->seq[cfg->sf_idx], q->e, 0, cfg->nbits.nof_bits);      
     }
 
     if (SRSLTE_VERBOSE_ISDEBUG()) {
@@ -537,15 +539,15 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
     }
 
     /* scramble */
-    if (!q->users[rnti]) {
-      srslte_sequence_t seq; 
+    if (q->users[rnti] && q->users[rnti]->sequence_generated) {
+      srslte_scrambling_bytes(&q->users[rnti]->seq[cfg->sf_idx], (uint8_t*) q->e, cfg->nbits.nof_bits);
+    } else {
+      srslte_sequence_t seq;
       if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
-        return SRSLTE_ERROR; 
+        return SRSLTE_ERROR;
       }
       srslte_scrambling_bytes(&seq, (uint8_t*) q->e, cfg->nbits.nof_bits);
       srslte_sequence_free(&seq);
-    } else {    
-      srslte_scrambling_bytes(&q->users[rnti]->seq[cfg->sf_idx], (uint8_t*) q->e, cfg->nbits.nof_bits);
     }
     
     srslte_mod_modulate_bytes(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->e, q->d, cfg->nbits.nof_bits);

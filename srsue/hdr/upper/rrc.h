@@ -29,6 +29,7 @@
 
 #include "pthread.h"
 
+#include "rrc_common.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -40,24 +41,6 @@
 using srslte::byte_buffer_t;
 
 namespace srsue {
-
-// RRC states (3GPP 36.331 v10.0.0)
-typedef enum{
-    RRC_STATE_IDLE = 0,
-    RRC_STATE_SIB1_SEARCH,
-    RRC_STATE_SIB2_SEARCH,
-    RRC_STATE_WAIT_FOR_CON_SETUP,
-    RRC_STATE_COMPLETING_SETUP,
-    RRC_STATE_RRC_CONNECTED,
-    RRC_STATE_N_ITEMS,
-}rrc_state_t;
-static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "SIB1_SEARCH",
-                                                            "SIB2_SEARCH",
-                                                            "WAIT FOR CON SETUP",
-                                                            "COMPLETING SETUP",
-                                                            "RRC CONNECTED"};
-
 
 class rrc
     :public rrc_interface_nas
@@ -161,6 +144,23 @@ private:
   void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
   void write_pdu_pcch(byte_buffer_t *pdu);
 
+  // Radio bearers
+  typedef enum{
+    RB_ID_SRB0 = 0,
+    RB_ID_SRB1,
+    RB_ID_SRB2,
+    RB_ID_DRB1,
+    RB_ID_DRB2,
+    RB_ID_DRB3,
+    RB_ID_DRB4,
+    RB_ID_DRB5,
+    RB_ID_DRB6,
+    RB_ID_DRB7,
+    RB_ID_DRB8
+  } rb_id_t;
+  std::map<uint8_t, std::string> bearers;
+  std::string get_rb_name(uint32_t lcid) { return bearers.at(lcid); }
+
   // RLC interface
   void max_retx_attempted();
 
@@ -202,6 +202,7 @@ private:
   void          set_phy_default();
   void          set_mac_default();
   void          set_rrc_default(); 
+  void          set_bearers();
   
 };
 

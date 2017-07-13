@@ -510,7 +510,7 @@ int main(int argc, char **argv) {
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
   signal(SIGINT, sig_int_handler);
-  
+
   if (!output_file_name) {
     
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
@@ -534,7 +534,6 @@ int main(int argc, char **argv) {
     printf("Set TX freq: %.2f MHz\n",
         srslte_rf_set_tx_freq(&rf, rf_freq) / 1000000);
   }
-srslte_rf_start_tx_stream(&rf); 
 #endif
 
   if (update_radl(sf_idx)) {
@@ -663,7 +662,7 @@ srslte_rf_start_tx_stream(&rf);
     nf++;
     sfn = (sfn + 1) % 1024;
   }
-	srslte_rf_stop_tx_stream(&rf);
+
   base_free();
 
   printf("Done\n");

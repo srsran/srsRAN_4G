@@ -32,8 +32,6 @@ typedef struct {
   bool   (*srslte_rf_rx_wait_lo_locked) (void *h);
   int    (*srslte_rf_start_rx_stream)(void *h);
   int    (*srslte_rf_stop_rx_stream)(void *h);
-  int    (*srslte_rf_start_tx_stream)(void *h);
-  int    (*srslte_rf_stop_tx_stream)(void *h);
   void   (*srslte_rf_flush_buffer)(void *h);
   bool   (*srslte_rf_has_rssi)(void *h);
   float  (*srslte_rf_get_rssi)(void *h);
@@ -77,8 +75,6 @@ static rf_dev_t dev_uhd = {
   rf_uhd_rx_wait_lo_locked,
   rf_uhd_start_rx_stream,
   rf_uhd_stop_rx_stream,
-  rf_uhd_start_tx_stream,
-  rf_uhd_stop_tx_stream,
   rf_uhd_flush_buffer,
   rf_uhd_has_rssi,
   rf_uhd_get_rssi,
@@ -117,8 +113,6 @@ static rf_dev_t dev_blade = {
   rf_blade_rx_wait_lo_locked,
   rf_blade_start_rx_stream,
   rf_blade_stop_rx_stream,
-  rf_blade_start_tx_stream,
-  rf_blade_stop_tx_stream,
   rf_blade_flush_buffer,
   rf_blade_has_rssi,
   rf_blade_get_rssi,
@@ -156,8 +150,6 @@ static rf_dev_t dev_soapy = {
   rf_soapy_rx_wait_lo_locked,
   rf_soapy_start_rx_stream,
   rf_soapy_stop_rx_stream,
-  rf_soapy_start_tx_stream,
-  rf_soapy_stop_tx_stream,
   rf_soapy_flush_buffer,
   rf_soapy_has_rssi,
   rf_soapy_get_rssi,
