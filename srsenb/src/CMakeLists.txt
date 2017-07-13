@@ -43,4 +43,4 @@ else(NOT ${BUILDENB_CMD} STREQUAL "")
   message(STATUS "No post-build-ENB command defined")
 endif (NOT ${BUILDENB_CMD} STREQUAL "")
 
-install(TARGETS srsenb DESTINATION bin)
+install(TARGETS srsenb DESTINATION ${RUNTIME_DIR})
