@@ -50,3 +50,5 @@ if (NOT ${BUILDUE_CMD} STREQUAL "")
 else(NOT ${BUILDUE_CMD} STREQUAL "")
   message(STATUS "No post-build-UE command defined")
 endif (NOT ${BUILDUE_CMD} STREQUAL "")
+
+install(TARGETS srsue DESTINATION ${RUNTIME_DIR})
