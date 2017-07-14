@@ -65,7 +65,7 @@ We have tested the following hardware:
  * USRP B210
  * USRP X300
  * bladeRF
- * limeSDR
+ * LimeSDR (only with pdsch_ue, cell_search, and cell_measurement)
 
 Build Instructions
 ------------------
