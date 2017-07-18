@@ -156,11 +156,6 @@ void nas::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
   }
 }
 
-uint32_t  nas::get_ul_count()
-{
-  return count_ul;
-}
-
 bool      nas::get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi)
 {
   if(is_guti_set) {
