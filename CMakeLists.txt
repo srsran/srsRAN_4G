@@ -110,6 +110,12 @@ if(SOAPYSDR_FOUND)
   link_directories(${SOAPYSDR_LIBRARY_DIRS})
 endif(SOAPYSDR_FOUND)
 
+find_package(Check)
+if(CHECK_FOUND)
+  include_directories(${CHECK_INCLUDE_DIRS})
+  link_directories(${CHECK_LIBRARY_DIRS})
+endif(CHECK_FOUND)
+
 if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
 else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
