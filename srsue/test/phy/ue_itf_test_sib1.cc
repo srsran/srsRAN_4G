@@ -90,6 +90,13 @@ uint32_t total_oks=0;
 uint8_t payload[1024]; 
 srslte_softbuffer_rx_t softbuffer; 
 
+class rrc_dummy : public srsue::rrc_interface_phy
+{
+public:
+  void in_sync() {};
+  void out_of_sync() {};
+};
+
 /******** MAC Interface implementation */
 class testmac : public srsue::mac_interface_phy
 {
@@ -147,7 +154,7 @@ public:
 
 testmac             my_mac;
 srslte::radio_multi radio; 
-
+rrc_dummy           rrc_dummy;
 
 
 
@@ -159,7 +166,7 @@ int main(int argc, char *argv[])
 
   // Init Radio and PHY
   radio.init();
-  my_phy.init(&radio, &my_mac, NULL, &log);
+  my_phy.init(&radio, &my_mac, &rrc_dummy, &log);
   if (prog_args.rf_gain > 0) {
     radio.set_rx_gain(prog_args.rf_gain);     
   } else {
