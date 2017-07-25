@@ -524,29 +524,28 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 }
 
 
-int srslte_dlsch_decode_multi(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS],
-                        int16_t *e_bits[SRSLTE_MAX_CODEWORDS], uint8_t *data[SRSLTE_MAX_CODEWORDS])
+int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                        int16_t *e_bits, uint8_t *data, int codeword_idx)
 {
-  int ret  = SRSLTE_SUCCESS;
   uint32_t Nl = 1;
 
   if (cfg->nof_layers != cfg->grant.nof_tb) {
     Nl = 2;
   }
 
-  if (cfg->nbits.nof_bits) {
-    ret |= decode_tb(q, &softbuffers[0], &cfg->cb_segm,
+  if (codeword_idx == 0) {
+    return decode_tb(q, softbuffer, &cfg->cb_segm,
                      cfg->grant.Qm*Nl, cfg->rv, cfg->nbits.nof_bits,
-                     e_bits[0], data[0]);
+                     e_bits, data);
   }
 
-  if (cfg->nbits2.nof_bits) {
-    ret |= decode_tb(q, &softbuffers[1], &cfg->cb_segm2,
+  if (codeword_idx == 1) {
+    return decode_tb(q, softbuffer, &cfg->cb_segm2,
                      cfg->grant.Qm2*Nl, cfg->rv2, cfg->nbits2.nof_bits,
-                     e_bits[1], data[1]);
+                     e_bits, data);
   }
 
-  return ret;
+  return SRSLTE_ERROR;
 }
 
 /**

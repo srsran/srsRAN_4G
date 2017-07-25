@@ -33,6 +33,8 @@
 #include <assert.h>
 #include <math.h>
 #include <srslte/phy/phch/pdsch.h>
+#include <srslte/phy/phch/ra.h>
+#include <srslte/phy/phch/pdsch_cfg.h>
 
 #include "prb_dl.h"
 #include "srslte/phy/phch/pdsch.h"
@@ -488,7 +490,8 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
   /* Set pointers for layermapping & precoding */
   uint32_t i, n;
   cf_t *x[SRSLTE_MAX_LAYERS];
-  
+  int ret = 0;
+
   if (q            != NULL &&
       sf_symbols   != NULL &&
       data         != NULL && 
@@ -564,26 +567,14 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
     * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation, 
     * thus we don't need tot set it in the LLRs normalization
     */
-    if (cfg->nbits.nof_re) {
+    if (cfg->nbits.nof_bits) {
+      INFO("Decoding CW 0 (%d bits)\n", cfg->nbits.nof_bits);
       srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
-    }
 
-    if (cfg->nbits2.nof_re) {
-      srslte_demod_soft_demodulate_s(cfg->grant.mcs2.mod, q->d2, q->e2, cfg->nbits2.nof_re);
-    }
-
-    /* descramble */
-    if (q->users[rnti] && q->users[rnti]->sequence_generated) {
-      if (cfg->nbits.nof_bits) {
+      if (q->users[rnti] && q->users[rnti]->sequence_generated) {
         srslte_scrambling_s_offset(&q->users[rnti]->seq[cfg->sf_idx], q->e, 0, cfg->nbits.nof_bits);
-      }
-
-      if (cfg->nbits2.nof_bits) {
-        srslte_scrambling_s_offset(&q->users[rnti]->seq2[cfg->sf_idx], q->e2, 0, cfg->nbits2.nof_bits);
-      }
-    } else {
-      srslte_sequence_t seq;
-      if (cfg->nbits.nof_bits) {
+      } else {
+        srslte_sequence_t seq;
         if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
           return SRSLTE_ERROR;
         }
@@ -591,22 +582,34 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
         srslte_sequence_free(&seq);
       }
 
-      if (cfg->nbits2.nof_bits) {
+      ret |= srslte_dlsch_decode2(&q->dl_sch, cfg, &softbuffers[0], q->e, data[0], 0);
+    }
+
+    if (cfg->nbits2.nof_bits) {
+      INFO("Decoding CW 1 (%d bits)\n", cfg->nbits2.nof_bits);
+      srslte_demod_soft_demodulate_s(cfg->grant.mcs2.mod, q->d2, q->e2, cfg->nbits2.nof_re);
+
+      if (q->users[rnti] && q->users[rnti]->sequence_generated) {
+        srslte_scrambling_s_offset(&q->users[rnti]->seq2[cfg->sf_idx], q->e2, 0, cfg->nbits2.nof_bits);
+      } else {
+        srslte_sequence_t seq;
         if (srslte_sequence_pdsch(&seq, rnti, 1, 2 * cfg->sf_idx, q->cell.id, cfg->nbits2.nof_bits)) {
           return SRSLTE_ERROR;
         }
         srslte_scrambling_s_offset(&seq, q->e2, 0, cfg->nbits2.nof_bits);
         srslte_sequence_free(&seq);
       }
+
+      ret |= srslte_dlsch_decode2(&q->dl_sch, cfg, &softbuffers[1], q->e2, data[1], 1);
     }
+
 
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling\n",0);
       srslte_vec_save_file("llr.dat", q->e, cfg->nbits.nof_bits*sizeof(int16_t));
     }
 
-    return srslte_dlsch_decode_multi(&q->dl_sch, cfg, softbuffers, (int16_t *[SRSLTE_MAX_CODEWORDS]) {q->e, q->e2},
-                                     data);
+    return ret;
     
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;
