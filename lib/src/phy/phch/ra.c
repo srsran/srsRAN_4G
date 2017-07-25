@@ -496,7 +496,6 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
     grant->mcs.tbs = (uint32_t) tbs; 
   } else {
     n_prb = grant->nof_prb;
-    grant->nof_tb = 0; 
     if (dci->tb_en[0]) {
       grant->mcs.idx = dci->mcs_idx;
       tbs   = dl_fill_ra_mcs(&grant->mcs, n_prb);
@@ -506,7 +505,6 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
         // For mcs>=29, set last TBS received for this PID
         grant->mcs.tbs = last_dl_tbs[dci->harq_process%8]; 
       }
-      grant->nof_tb++;
     } else {
       grant->mcs.tbs = 0; 
     }
@@ -519,16 +517,18 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
         // For mcs>=29, set last TBS received for this PID
         grant->mcs2.tbs = last_dl_tbs2[dci->harq_process%8]; 
       }
-      grant->nof_tb++;
     } else {
       grant->mcs2.tbs = 0; 
     }
-  }  
+  }
+  grant->nof_tb = 0;
   if (dci->tb_en[0]) {
-    grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);      
+    grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);
+    grant->nof_tb++;
   }
   if (dci->tb_en[1]) {
-    grant->Qm2 = srslte_mod_bits_x_symbol(grant->mcs2.mod);      
+    grant->Qm2 = srslte_mod_bits_x_symbol(grant->mcs2.mod);
+    grant->nof_tb++;
   }
   if (tbs < 0) {
     return SRSLTE_ERROR; 
@@ -544,6 +544,23 @@ void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srsl
   nbits->lstart = cell.nof_prb<10?(cfi+1):cfi;
   nbits->nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-nbits->lstart;
   nbits->nof_bits = nbits->nof_re * grant->Qm;      
+}
+
+void srslte_ra_dl_grant_to_nbits_multi(srslte_ra_dl_grant_t *grant, uint32_t cfi, srslte_cell_t cell, uint32_t sf_idx,
+                                       srslte_ra_nbits_t *nbits, srslte_ra_nbits_t *nbits2) {
+  /* Compute number of RE for first transport block */
+  nbits->nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb<10?(cfi+1):cfi);
+  nbits->lstart = cell.nof_prb<10?(cfi+1):cfi;
+  nbits->nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-nbits->lstart;
+  nbits->nof_bits = nbits->nof_re * grant->Qm;
+
+  /*/ Compute number of RE for second transport block */
+  if (grant->nof_tb > 1) {
+    nbits2->nof_re = nbits->nof_re;
+    nbits2->lstart = nbits->lstart;
+    nbits2->nof_symb = 2 * SRSLTE_CP_NSYMB(cell.cp) - nbits2->lstart;
+    nbits2->nof_bits = nbits2->nof_re * grant->Qm2;
+  }
 }
 
 /** Obtains a DL grant from a DCI grant for PDSCH */
@@ -796,18 +813,31 @@ void srslte_ra_pdsch_fprint(FILE *f, srslte_ra_dl_dci_t *dci, uint32_t nof_prb) 
     }
     break;
   }
-  fprintf(f, " - Modulation and coding scheme index:\t%d\n", dci->mcs_idx);
   fprintf(f, " - HARQ process:\t\t\t%d\n", dci->harq_process);
-  fprintf(f, " - New data indicator:\t\t\t%s\n", dci->ndi ? "Yes" : "No");
-  fprintf(f, " - Redundancy version:\t\t\t%d\n", dci->rv_idx);
   fprintf(f, " - TPC command for PUCCH:\t\t--\n");
+  fprintf(f, " - Transport blocks swapped:\t\t%s\n", (dci->tb_cw_swap)?"true":"false");
+  fprintf(f, " - Transport block 1 enabled:\t\t%s\n", (dci->tb_en[0])?"true":"false");
+  if (dci->tb_en[0]) {
+    fprintf(f, "   + Modulation and coding scheme index:\t%d\n", dci->mcs_idx);
+    fprintf(f, "   + New data indicator:\t\t\t%s\n", dci->ndi ? "Yes" : "No");
+    fprintf(f, "   + Redundancy version:\t\t\t%d\n", dci->rv_idx);
+  }
+  fprintf(f, " - Transport block 2 enabled:\t\t%s\n", (dci->tb_en[1])?"true":"false");
+  if (dci->tb_en[1]) {
+    fprintf(f, "   + Modulation and coding scheme index:\t%d\n", dci->mcs_idx_1);
+    fprintf(f, "   + New data indicator:\t\t\t%s\n", dci->ndi_1 ? "Yes" : "No");
+    fprintf(f, "   + Redundancy version:\t\t\t%d\n", dci->rv_idx_1);
+  }
 }
 
 void srslte_ra_dl_grant_fprint(FILE *f, srslte_ra_dl_grant_t *grant) {
   srslte_ra_prb_fprint(f, grant);
   fprintf(f, " - Number of PRBs:\t\t\t%d\n", grant->nof_prb);
+  fprintf(f, " - Number of TBs:\t\t\t%d\n", grant->nof_tb);
   fprintf(f, " - Modulation type:\t\t\t%s\n", srslte_mod_string(grant->mcs.mod));
   fprintf(f, " - Transport block size:\t\t%d\n", grant->mcs.tbs);
+  fprintf(f, " - Modulation type (TB2):\t\t%s\n", srslte_mod_string(grant->mcs2.mod));
+  fprintf(f, " - Transport block size (TB2):\t\t%d\n", grant->mcs2.tbs);
 }
 
 void srslte_ra_prb_fprint(FILE *f, srslte_ra_dl_grant_t *grant) {

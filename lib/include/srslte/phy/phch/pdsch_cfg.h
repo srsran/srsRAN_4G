@@ -41,10 +41,15 @@
 
 typedef struct SRSLTE_API {
   srslte_cbsegm_t cb_segm; 
+  srslte_cbsegm_t cb_segm2;
   srslte_ra_dl_grant_t grant; 
   srslte_ra_nbits_t nbits; 
+  srslte_ra_nbits_t nbits2;
   uint32_t rv; 
+  uint32_t rv2;
   uint32_t sf_idx;  
+  uint32_t nof_layers;
+  srslte_mimo_type_t mimo_type;
 } srslte_pdsch_cfg_t;
 
 #endif

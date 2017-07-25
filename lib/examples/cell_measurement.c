@@ -118,7 +118,7 @@ int  parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-uint8_t data[1000000];
+uint8_t *data[SRSLTE_MAX_CODEWORDS];
 
 bool go_exit = false; 
 void sig_int_handler(int signo)
@@ -183,6 +183,9 @@ int main(int argc, char **argv) {
   }
   
   sf_buffer[0] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    data[i] = srslte_vec_malloc(sizeof(uint8_t) * 1500*8);
+  }
 
   sigset_t sigset;
   sigemptyset(&sigset);
@@ -322,7 +325,7 @@ int main(int argc, char **argv) {
               nof_trials++; 
             } else {
               printf("Decoded SIB1. Payload: ");
-              srslte_vec_fprint_byte(stdout, data, n/8);;
+              srslte_vec_fprint_byte(stdout, data[0], n/8);;
               state = MEASURE;
             }
           }
@@ -385,6 +388,12 @@ int main(int argc, char **argv) {
         
     sf_cnt++;                  
   } // Main loop
+
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (data[i]) {
+      free(data[i]);
+    }
+  }
 
   srslte_ue_sync_free(&ue_sync);
   srslte_rf_close(&rf);

@@ -63,5 +63,6 @@ SRSLTE_API extern int srslte_verbose;
 #define INFO(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO) \
   fprintf(stdout, "[INFO]:  " _fmt, __VA_ARGS__)
 
+#define ERROR(_fmt) fprintf(stderr, "%s.%d: " _fmt "\n", __FILE__, __LINE__)
 
 #endif // DEBUG_H

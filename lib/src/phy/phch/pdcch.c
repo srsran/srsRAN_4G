@@ -65,7 +65,19 @@ int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell
   return srslte_pdcch_init_multi(q, regs, cell, 1);
 }
 
-int srslte_pdcch_init_multi(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell, uint32_t nof_rx_antennas) 
+int srslte_pdcch_init_tx(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
+  return srslte_pdcch_init_txrx(q, regs, cell, 1, false);
+}
+
+int srslte_pdcch_init_rx(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell, uint32_t nof_rx_antennas) {
+  return srslte_pdcch_init_txrx(q, regs, cell, nof_rx_antennas, true);
+}
+
+int srslte_pdcch_init_multi(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell, uint32_t nof_rx_antennas) {
+  return srslte_pdcch_init_txrx(q, regs, cell, nof_rx_antennas, true);
+}
+
+int srslte_pdcch_init_txrx(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell, uint32_t nof_rx_antennas, bool isReceiver)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -122,19 +134,25 @@ int srslte_pdcch_init_multi(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_
       goto clean;
     }
 
-    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      for (int j=0;j<q->nof_rx_antennas;j++) {
-        q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
-        if (!q->ce[i][j]) {
-          goto clean;
-        }          
+    if (isReceiver) {
+      for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+        for (int j = 0; j < q->nof_rx_antennas; j++) {
+          q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+          if (!q->ce[i][j]) {
+            goto clean;
+          }
+        }
       }
+    }
+
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
       q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
       if (!q->x[i]) {
         goto clean;
       }
     }
-    for (int j=0;j<q->nof_rx_antennas;j++) {
+
+    for (int j = 0; j < ((isReceiver) ? q->nof_rx_antennas : cell.nof_ports); j++) {
       q->symbols[j] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
       if (!q->symbols[j]) {
         goto clean;

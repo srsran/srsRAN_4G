@@ -96,11 +96,23 @@ SRSLTE_API int srslte_dlsch_encode(srslte_sch_t *q,
                                    uint8_t *data, 
                                    uint8_t *e_bits);
 
+SRSLTE_API int srslte_dlsch_encode_multi(srslte_sch_t *q,
+                                   srslte_pdsch_cfg_t *cfg,
+                                   srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS],
+                                   uint8_t *data[SRSLTE_MAX_CODEWORDS],
+                                   uint8_t *e_bits[SRSLTE_MAX_CODEWORDS]);
+
 SRSLTE_API int srslte_dlsch_decode(srslte_sch_t *q, 
                                    srslte_pdsch_cfg_t *cfg,
                                    srslte_softbuffer_rx_t *softbuffer,
                                    int16_t *e_bits, 
                                    uint8_t *data);
+
+SRSLTE_API int srslte_dlsch_decode_multi(srslte_sch_t *q,
+                                   srslte_pdsch_cfg_t *cfg,
+                                   srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS],
+                                   int16_t *e_bits[SRSLTE_MAX_CODEWORDS],
+                                   uint8_t *data[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_ulsch_encode(srslte_sch_t *q, 
                                    srslte_pusch_cfg_t *cfg,

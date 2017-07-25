@@ -42,7 +42,7 @@ add_test(layermap_multiplex_24 layermap_test -n 1000 -m multiplex -c 2 -l 4)
  
  
 ########################################################################
-# LAYER MAPPING TEST  
+# PRECODING MAPPING TEST
 ########################################################################
  
 add_executable(precoding_test precoder_test.c)
@@ -52,6 +52,7 @@ add_test(precoding_single precoding_test -n 1000 -m single)
 add_test(precoding_diversity2 precoding_test -n 1000 -m diversity -l 2 -p 2) 
 add_test(precoding_diversity4 precoding_test -n 1024 -m diversity -l 4 -p 4) 
 
+add_test(precoding_cdd_2x2 precoding_test -m cdd -l 2 -p 2 -r 2)
  
 
 

@@ -172,7 +172,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   srslte_pucch_set_cfg(&pucch, &pucch_cfg, group_hopping_en);
   
-  if (srslte_pucch_encode(&pucch, format, n_pucch, sf_idx, bits, sf_symbols)) {
+  if (srslte_pucch_encode(&pucch, format, n_pucch, sf_idx, (uint16_t) rnti, bits, sf_symbols)) {
     mexErrMsgTxt("Error encoding PUCCH\n");
     return; 
   }

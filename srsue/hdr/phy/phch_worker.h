@@ -78,6 +78,7 @@ private:
   bool decode_pdcch_dl(mac_interface_phy::mac_grant_t *grant);
   bool decode_phich(bool *ack); 
   bool decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload, srslte_softbuffer_rx_t* softbuffer, int rv, uint16_t rnti, uint32_t pid);
+  bool decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSLTE_MAX_CODEWORDS], srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS], int rv, uint16_t rnti, uint32_t pid);
 
   /* ... for UL */
   void encode_pusch(srslte_ra_ul_grant_t *grant, uint8_t *payload, uint32_t current_tx_nb, srslte_softbuffer_tx_t *softbuffer, 

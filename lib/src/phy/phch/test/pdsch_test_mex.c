@@ -101,7 +101,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     nof_antennas = dims[2];
   }
   
-  if (srslte_pdsch_init_multi(&pdsch, cell, nof_antennas)) {
+  if (srslte_pdsch_init_rx_multi(&pdsch, cell, nof_antennas)) {
     mexErrMsgTxt("Error initiating PDSCH\n");
     return;
   }

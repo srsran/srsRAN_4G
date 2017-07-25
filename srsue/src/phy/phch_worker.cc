@@ -405,8 +405,14 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
   }
 }
 
-bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload, 
+bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
                                srslte_softbuffer_rx_t* softbuffer, int rv, uint16_t rnti, uint32_t harq_pid)
+{
+  return decode_pdsch_multi(grant, &payload, softbuffer, rv, rnti, harq_pid);
+}
+
+bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSLTE_MAX_CODEWORDS],
+                               srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS], int rv, uint16_t rnti, uint32_t harq_pid)
 {
   char timestr[64];
   timestr[0]='\0';
@@ -435,7 +441,7 @@ bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
         gettimeofday(&t[1], NULL);
   #endif
         
-        bool ack = srslte_pdsch_decode_multi(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols_m, 
+        bool ack = srslte_pdsch_decode_multi(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffers, ue_dl.sf_symbols_m,
                                       ue_dl.ce_m, noise_estimate, rnti, payload) == 0;
   #ifdef LOG_EXECTIME
         gettimeofday(&t[2], NULL);

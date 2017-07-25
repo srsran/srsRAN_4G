@@ -530,6 +530,154 @@ int srslte_predecoding_type(cf_t *y_, cf_t *h_[SRSLTE_MAX_PORTS], cf_t *x[SRSLTE
   return srslte_predecoding_type_multi(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols, type, noise_estimate);  
 }
 
+
+int srslte_precoding_mimo_2x2_gen(cf_t W[2][2], cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], 
+                              int nof_symbols, float noise_estimate)
+{
+ 
+  cf_t G[2][2], Gx[2][2]; 
+  
+  for (int i=0; i<nof_symbols; i++) {
+  
+    // G=H*W
+    G[0][0] = h[0][0][i]*W[0][0]+h[0][1][i]*W[1][0];        
+    G[0][1] = h[0][0][i]*W[1][0]+h[0][1][i]*W[1][1]; 
+    G[1][0] = h[1][0][i]*W[0][0]+h[1][1][i]*W[1][0];
+    G[1][1] = h[1][0][i]*W[1][0]+h[1][1][i]*W[1][1]; 
+    
+    if (noise_estimate == 0) {
+      // MF equalizer: Gx = G'
+      Gx[0][0] = conjf(G[0][0]); 
+      Gx[0][1] = conjf(G[1][0]); 
+      Gx[1][0] = conjf(G[0][1]); 
+      Gx[1][1] = conjf(G[1][1]); 
+    } else {
+      // MMSE equalizer: Gx = (G'G+I)      
+      fprintf(stderr, "MMSE MIMO decoder not implemented\n");
+      return -1; 
+    }
+    
+    // x=G*y
+    x[0][i] = Gx[0][0]*y[0][i] + Gx[0][1]*y[1][i];
+    x[1][i] = Gx[1][0]*y[0][i] + Gx[1][1]*y[1][i];
+  }
+  
+  return SRSLTE_SUCCESS; 
+}
+
+
+
+
+
+
+
+// SSE implementation of ZF 2x2 CCD equalizer
+#ifdef LV_HAVE_SSE
+
+int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
+                                      cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                      cf_t *x[SRSLTE_MAX_LAYERS],
+                                      uint32_t nof_symbols) {
+  uint32_t i = 0;
+
+  /* Conjugate mask */
+  __m128 conj_mask = (__m128) {+0.0f, -0.0f, +0.0f, -0.0f};
+
+  for (i = 0; i < nof_symbols; i += 2) {
+    /* Load channel */
+    __m128 h00i = _mm_load_ps((float *) &h[0][0][i]);
+    __m128 h01i = _mm_load_ps((float *) &h[0][1][i]);
+    __m128 h10i = _mm_load_ps((float *) &h[1][0][i]);
+    __m128 h11i = _mm_load_ps((float *) &h[1][1][i]);
+
+    /* Apply precoding */
+    __m128 h00 = _mm_add_ps(h00i, _mm_xor_ps(h10i, (__m128) {+0.0f, +0.0f, -0.0f, -0.0f}));
+    __m128 h10 = _mm_add_ps(h01i, _mm_xor_ps(h11i, (__m128) {+0.0f, +0.0f, -0.0f, -0.0f}));
+    __m128 h01 = _mm_add_ps(h00i, _mm_xor_ps(h10i, (__m128) {-0.0f, -0.0f, +0.0f, +0.0f}));
+    __m128 h11 = _mm_add_ps(h01i, _mm_xor_ps(h11i, (__m128) {-0.0f, -0.0f, +0.0f, +0.0f}));
+
+    __m128 detmult1 = PROD(h00, h11);
+    __m128 detmult2 = PROD(h01, h10);
+
+    __m128 det = _mm_sub_ps(detmult1, detmult2);
+    __m128 detconj = _mm_xor_ps(det, conj_mask);
+    __m128 detabs2 = PROD(det, detconj);
+    __m128 detabs2rec = _mm_rcp_ps(detabs2);
+    detabs2rec = _mm_shuffle_ps(detabs2rec, detabs2rec, _MM_SHUFFLE(2, 2, 0, 0));
+    __m128 detrec = _mm_mul_ps(_mm_mul_ps(detconj, detabs2rec), (__m128) {2.0f, 2.0f, 2.0f, 2.0f});
+
+    __m128 y0 = _mm_load_ps((float *) &y[0][i]);
+    __m128 y1 = _mm_load_ps((float *) &y[1][i]);
+
+    __m128 x0 = PROD(_mm_sub_ps(PROD(h11, y0), PROD(h01, y1)), detrec);
+    __m128 x1 = PROD(_mm_sub_ps(PROD(h00, y1), PROD(h10, y0)), detrec);
+
+    _mm_store_ps((float *) &x[0][i], x0);
+    _mm_store_ps((float *) &x[1][i], x1);
+  }
+
+  return nof_symbols;
+}
+#endif
+
+// Generic implementation of ZF 2x2 CCD equalizer
+int srslte_predecoding_ccd_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
+                                      int nof_symbols) {
+  cf_t h00, h01, h10, h11, det;
+  for (int i = 0; i < nof_symbols; i++) {
+
+    // Even precoder
+    h00 = +h[0][0][i] + h[1][0][i];
+    h10 = +h[0][1][i] + h[1][1][i];
+    h01 = +h[0][0][i] - h[1][0][i];
+    h11 = +h[0][1][i] - h[1][1][i];
+    det = (h00 * h11 - h01 * h10);
+    det = conjf(det) * ((float) 2.0 / (crealf(det) * crealf(det) + cimagf(det) * cimagf(det)));
+
+    x[0][i] = (+h11 * y[0][i] - h01 * y[1][i]) * det;
+    x[1][i] = (-h10 * y[0][i] + h00 * y[1][i]) * det;
+
+    i++;
+
+    // Odd precoder
+    h00 = h[0][0][i] - h[1][0][i];
+    h10 = h[0][1][i] - h[1][1][i];
+    h01 = h[0][0][i] + h[1][0][i];
+    h11 = h[0][1][i] + h[1][1][i];
+    det = (h00 * h11 - h01 * h10);
+    det = conjf(det) * ((float) 2.0 / (crealf(det) * crealf(det) + cimagf(det) * cimagf(det)));
+
+    x[0][i] = (+h11 * y[0][i] - h01 * y[1][i]) * det;
+    x[1][i] = (-h10 * y[0][i] + h00 * y[1][i]) * det;
+
+  }
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], 
+                              int nof_rxant, int nof_ports, int nof_layers, int nof_symbols) 
+{
+  if (nof_ports == 2 && nof_rxant == 2) {
+    if (nof_layers == 2) {
+#ifdef LV_HAVE_SSE
+      return srslte_predecoding_ccd_2x2_zf_sse(y, h, x, nof_symbols);
+#else
+      return srslte_predecoding_ccd_2x2_zf_gen(y, h, x, nof_symbols);
+#endif
+    } else {
+      fprintf(stderr, "Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
+      return -1;       
+    }          
+  } else if (nof_ports == 4) {
+    fprintf(stderr, "Error predecoding CCD: Only 2 ports supported\n");
+  } else {
+    fprintf(stderr, "Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
+  }
+  return SRSLTE_ERROR;
+}
+
+
+
 /* 36.211 v10.3.0 Section 6.3.4 */
 int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
     int nof_rxant, int nof_ports, int nof_layers, int nof_symbols, srslte_mimo_type_t type, float noise_estimate) {
@@ -547,7 +695,13 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
 
   switch (type) {
   case SRSLTE_MIMO_TYPE_CDD:
-    fprintf(stderr, "CCD not supported\n");
+    if (nof_layers >= 2 && nof_layers <= 4) {
+      return srslte_predecoding_ccd_zf(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols);
+    } else {
+      fprintf(stderr,
+          "Invalid number of layers %d\n", nof_layers);
+      return -1;
+    }
     return -1; 
   case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     if (nof_ports == 1 && nof_layers == 1) {

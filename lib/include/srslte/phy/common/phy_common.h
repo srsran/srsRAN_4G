@@ -244,6 +244,8 @@ SRSLTE_API uint32_t srslte_N_ta_new(uint32_t N_ta_old,
 
 SRSLTE_API char *srslte_cp_string(srslte_cp_t cp); 
 
+SRSLTE_API srslte_mod_t srslte_str2mod (char * mod_str);
+
 SRSLTE_API char *srslte_mod_string(srslte_mod_t mod);
 
 SRSLTE_API uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod);

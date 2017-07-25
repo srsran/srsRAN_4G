@@ -87,6 +87,27 @@ add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100)
 add_test(pdsch_test_qam16 pdsch_test -m 20 -n 100 -r 2)
 add_test(pdsch_test_qam64 pdsch_test -m 28 -n 100)
 
+add_test(pdsch_test_sin_6   pdsch_test -p 1 -a 2 -w 1 -n 6)
+add_test(pdsch_test_sin_12  pdsch_test -p 1 -a 2 -w 1 -n 12)
+add_test(pdsch_test_sin_25  pdsch_test -p 1 -a 2 -w 1 -n 25)
+add_test(pdsch_test_sin_50  pdsch_test -p 1 -a 2 -w 1 -n 50)
+add_test(pdsch_test_sin_75  pdsch_test -p 1 -a 2 -w 1 -n 75)
+add_test(pdsch_test_sin_100 pdsch_test -p 1 -a 2 -w 1 -n 100 -m 28)
+
+add_test(pdsch_test_div_6   pdsch_test -p 2 -a 2 -w 1 -n 6)
+add_test(pdsch_test_div_12  pdsch_test -p 2 -a 2 -w 1 -n 12)
+add_test(pdsch_test_div_25  pdsch_test -p 2 -a 2 -w 1 -n 25)
+add_test(pdsch_test_div_50  pdsch_test -p 2 -a 2 -w 1 -n 50)
+add_test(pdsch_test_div_75  pdsch_test -p 2 -a 2 -w 1 -n 75)
+add_test(pdsch_test_div_100 pdsch_test -p 2 -a 2 -w 1 -n 100 -m 28)
+
+add_test(pdsch_test_cdd_6   pdsch_test -p 2 -a 2 -w 2 -n 6)
+add_test(pdsch_test_cdd_12  pdsch_test -p 2 -a 2 -w 2 -n 12)
+add_test(pdsch_test_cdd_25  pdsch_test -p 2 -a 2 -w 2 -n 25)
+add_test(pdsch_test_cdd_50  pdsch_test -p 2 -a 2 -w 2 -n 50)
+add_test(pdsch_test_cdd_75  pdsch_test -p 2 -a 2 -w 2 -n 75)
+add_test(pdsch_test_cdd_100 pdsch_test -p 2 -a 2 -w 2 -n 100 -m 28 -M 28)
+
 ########################################################################
 # FILE TEST  
 ########################################################################

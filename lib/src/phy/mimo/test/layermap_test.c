@@ -40,7 +40,7 @@ int nof_cw = 1, nof_layers = 1;
 char *mimo_type_name = NULL;
 
 void usage(char *prog) {
-  printf("Usage: %s -m [single|diversity|multiplex] -c [nof_cw] -l [nof_layers]\n", prog);
+  printf("Usage: %s -m [single|diversity|multiplex|cdd] -c [nof_cw] -l [nof_layers]\n", prog);
   printf("\t-n num_symbols [Default %d]\n", nof_symbols);
 }
 

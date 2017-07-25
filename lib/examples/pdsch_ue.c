@@ -258,7 +258,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
 /**********************************************************************/
 
 /* TODO: Do something with the output data */
-uint8_t data[20000];
+uint8_t *data[SRSLTE_MAX_CODEWORDS];
 
 bool go_exit = false; 
 void sig_int_handler(int signo)
@@ -266,10 +266,12 @@ void sig_int_handler(int signo)
   printf("SIGINT received. Exiting...\n");
   if (signo == SIGINT) {
     go_exit = true;
+  } else if (signo == SIGSEGV) {
+    exit(1);
   }
 }
 
-cf_t *sf_buffer[2] = {NULL, NULL}; 
+cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL};
 
 #ifndef DISABLE_RF
 int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
@@ -315,6 +317,14 @@ int main(int argc, char **argv) {
   
   parse_args(&prog_args, argc, argv);
   
+  for (int i = 0; i< SRSLTE_MAX_CODEWORDS; i++) {
+    data[i] = srslte_vec_malloc(sizeof(uint8_t)*1500*8);
+    if (!data[i]) {
+      ERROR("Allocating data");
+      go_exit = true;
+    }
+  }
+
   if(prog_args.cpu_affinity > -1) {
     
     cpu_set_t cpuset;
@@ -435,8 +445,8 @@ int main(int argc, char **argv) {
     cell.nof_ports = prog_args.file_nof_ports; 
     cell.nof_prb = prog_args.file_nof_prb; 
     
-    if (srslte_ue_sync_init_file(&ue_sync, prog_args.file_nof_prb, 
-      prog_args.input_file_name, prog_args.file_offset_time, prog_args.file_offset_freq)) {
+    if (srslte_ue_sync_init_file_multi(&ue_sync, prog_args.file_nof_prb,
+      prog_args.input_file_name, prog_args.file_offset_time, prog_args.file_offset_freq, prog_args.rf_nof_rx_ant)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
     }
@@ -498,7 +508,7 @@ int main(int argc, char **argv) {
     
   // Variables for measurements 
   uint32_t nframes=0;
-  float rsrp=0.0, rsrq=0.0, noise=0.0;
+  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0;
   bool decode_pdsch = false; 
 
 #ifndef DISABLE_RF
@@ -596,8 +606,9 @@ int main(int argc, char **argv) {
             nof_trials++; 
             
             rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1);
-            rsrp = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp(&ue_dl.chest), rsrp, 0.05);      
-            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);      
+            rsrp0 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 0), rsrp0, 0.05);
+            rsrp1 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 1), rsrp1, 0.05);
+            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -605,9 +616,12 @@ int main(int argc, char **argv) {
             if (isnan(noise)) {
               noise = 0; 
             }
-            if (isnan(rsrp)) {
-              rsrp = 0; 
-            }        
+            if (isnan(rsrp0)) {
+              rsrp1 = 0;
+            }
+            if (isnan(rsrp0)) {
+              rsrp1 = 0;
+            }
           }
 
           // Plot and Printf
@@ -616,14 +630,27 @@ int main(int argc, char **argv) {
             if (gain < 0) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
             }
-            printf("CFO: %+6.2f kHz, "
-                   "SNR: %4.1f dB, "
-                   "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
-                   
-                  srslte_ue_sync_get_cfo(&ue_sync)/1000,
-                  10*log10(rsrp/noise), 
-                  100*(1-(float) ue_dl.nof_detected/nof_trials), 
-                  (float) 100*ue_dl.pkt_errors/ue_dl.pkts_total);                        
+            if (cell.nof_ports == 1) {
+              printf("CFO: %+6.2f kHz, "
+                         "SNR: %4.1f dB, "
+                         "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
+
+                     srslte_ue_sync_get_cfo(&ue_sync) / 1000,
+                     10 * log10(rsrp0 / noise),
+                     100 * (1 - (float) ue_dl.nof_detected / nof_trials),
+                     (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+            } else {
+              printf("CFO: %+6.2f kHz, "
+                         "SNR port 0: %4.1f dB, "
+                         "SNR port 1: %4.1f dB, "
+                         "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
+
+                     srslte_ue_sync_get_cfo(&ue_sync) / 1000,
+                     10 * log10(rsrp0 / noise),
+                     10 * log10(rsrp1 / noise),
+                     100 * (1 - (float) ue_dl.nof_detected / nof_trials),
+                     (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+            }
           }
           break;
       }
@@ -674,6 +701,16 @@ int main(int argc, char **argv) {
 #endif
   srslte_ue_dl_free(&ue_dl);
   srslte_ue_sync_free(&ue_sync);
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (data[i]) {
+      free(data[i]);
+    }
+  }
+  for (int i = 0; i < prog_args.rf_nof_rx_ant; i++) {
+    if (sf_buffer[i]) {
+      free(sf_buffer[i]);
+    }
+  }
   
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {

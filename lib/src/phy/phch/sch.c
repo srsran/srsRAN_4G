@@ -523,6 +523,32 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
                    e_bits, data);
 }
 
+
+int srslte_dlsch_decode_multi(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS],
+                        int16_t *e_bits[SRSLTE_MAX_CODEWORDS], uint8_t *data[SRSLTE_MAX_CODEWORDS])
+{
+  int ret  = SRSLTE_SUCCESS;
+  uint32_t Nl = 1;
+
+  if (cfg->nof_layers != cfg->grant.nof_tb) {
+    Nl = 2;
+  }
+
+  if (cfg->nbits.nof_bits) {
+    ret |= decode_tb(q, &softbuffers[0], &cfg->cb_segm,
+                     cfg->grant.Qm*Nl, cfg->rv, cfg->nbits.nof_bits,
+                     e_bits[0], data[0]);
+  }
+
+  if (cfg->nbits2.nof_bits) {
+    ret |= decode_tb(q, &softbuffers[1], &cfg->cb_segm2,
+                     cfg->grant.Qm2*Nl, cfg->rv2, cfg->nbits2.nof_bits,
+                     e_bits[1], data[1]);
+  }
+
+  return ret;
+}
+
 /**
  * Encode transport block. Segments into code blocks, adds channel coding, and does rate matching.
  *
@@ -540,6 +566,35 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
                    softbuffer, &cfg->cb_segm, 
                    cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
                    data, e_bits);
+}
+
+int srslte_dlsch_encode_multi(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS],
+                        uint8_t *data[SRSLTE_MAX_CODEWORDS], uint8_t *e_bits[SRSLTE_MAX_CODEWORDS])
+{
+  int ret = 0;
+  uint32_t Nl = 1;
+
+  if (cfg->nof_layers != cfg->grant.nof_tb) {
+    Nl = 2;
+  }
+
+  /* Check if codeword 1 shall be encoded */
+  if(cfg->nbits.nof_bits) {
+    ret |= encode_tb(q,
+                     &softbuffers[0], &cfg->cb_segm,
+                     cfg->grant.Qm*Nl, cfg->rv, cfg->nbits.nof_bits,
+                     data[0], e_bits[0]);
+  }
+
+  /* Check if codeword 2 shall be encoded */
+  if(cfg->nbits2.nof_bits) {
+    ret |= encode_tb(q,
+                     &softbuffers[1], &cfg->cb_segm2,
+                     cfg->grant.Qm2*Nl, cfg->rv2, cfg->nbits2.nof_bits,
+                     data[1], e_bits[1]);
+  }
+
+  return ret;
 }
 
 /* Compute the interleaving function on-the-fly, because it depends on number of RI bits 
