@@ -36,6 +36,9 @@
 #include <signal.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/phch/pdsch_cfg.h>
+#include <srslte/phy/phch/ra.h>
 
 #include "srslte/srslte.h"
 
@@ -508,7 +511,7 @@ int main(int argc, char **argv) {
     
   // Variables for measurements 
   uint32_t nframes=0;
-  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0;
+  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0;
   bool decode_pdsch = false; 
 
 #ifndef DISABLE_RF
@@ -584,7 +587,9 @@ int main(int argc, char **argv) {
               
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
-                srslte_netsink_write(&net_sink, data, 1+(n-1)/8);
+                // FIXME: UDP Data transmission does not work
+                srslte_netsink_write(&net_sink, data[0], 1 + (ue_dl.pdsch_cfg.grant.mcs.tbs - 1) / 8);
+                srslte_netsink_write(&net_sink, data[1], 1 + (ue_dl.pdsch_cfg.grant.mcs2.tbs - 1) / 8);
               }
               
               #ifdef PRINT_CHANGE_SCHEDULIGN
@@ -609,6 +614,8 @@ int main(int argc, char **argv) {
             rsrp0 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 0), rsrp0, 0.05);
             rsrp1 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 1), rsrp1, 0.05);
             noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);
+            enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs.tbs + ue_dl.pdsch_cfg.grant.mcs2.tbs)/1000.0, enodebrate, 0.05);
+            uerate = SRSLTE_VEC_EMA((n>0)?(ue_dl.pdsch_cfg.grant.mcs.tbs + ue_dl.pdsch_cfg.grant.mcs2.tbs)/1000.0:0.0, uerate, 0.01);
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -640,14 +647,17 @@ int main(int argc, char **argv) {
                      100 * (1 - (float) ue_dl.nof_detected / nof_trials),
                      (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
             } else {
-              printf("CFO: %+6.2f kHz, "
-                         "SNR port 0: %4.1f dB, "
-                         "SNR port 1: %4.1f dB, "
-                         "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
+              printf("CFO: %+5.2f kHz, "
+                         "SNR: %+5.1f dB | %+5.1f dB, "
+                         "Rb: %6.2f / %6.2f Mbps, "
+                         "PDCCH-Miss: %5.2f%%, "
+                         "PDSCH-BLER: %5.2f%%\r",
 
                      srslte_ue_sync_get_cfo(&ue_sync) / 1000,
                      10 * log10(rsrp0 / noise),
                      10 * log10(rsrp1 / noise),
+                     uerate,
+                     enodebrate,
                      100 * (1 - (float) ue_dl.nof_detected / nof_trials),
                      (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
             }
