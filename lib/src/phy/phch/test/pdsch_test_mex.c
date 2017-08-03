@@ -202,10 +202,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       ce[i][j] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
     }
   }
-  uint8_t *data_bytes = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
-  if (!data_bytes) {
+  uint8_t *data_bytes[SRSLTE_MAX_CODEWORDS];
+  data_bytes[0] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs/8);
+  if (!data_bytes[0]) {
     return;
   }
+
+  data_bytes[1] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs2.tbs/8);
+  if (!data_bytes[1]) {
+    return;
+  }
+
   srslte_sch_set_max_noi(&pdsch.dl_sch, max_iterations);
 
   bool input_fft_allocated = false; 
@@ -272,7 +279,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
   
   uint8_t *data = malloc(grant.mcs.tbs);
-  srslte_bit_unpack_vector(data_bytes, data, grant.mcs.tbs);
+  srslte_bit_unpack_vector(data_bytes[0], data, grant.mcs.tbs);
   
   if (nlhs >= 1) { 
     plhs[0] = mxCreateLogicalScalar(r == 0);
@@ -323,7 +330,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       }
     }
   }
-  free(data_bytes);
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (data_bytes[i]) {
+      free(data_bytes[i]);
+    }
+  }
   free(data);
   
   return;

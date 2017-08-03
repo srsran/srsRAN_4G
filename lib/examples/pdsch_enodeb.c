@@ -70,6 +70,8 @@ uint32_t mcs_idx = 1, last_mcs_idx = 1;
 int nof_frames = -1;
 char mimo_type_str[32] = "single";
 uint32_t nof_tb = 1;
+uint32_t multiplex_pmi = 0;
+uint32_t multiplex_nof_layers = 1;
 
 char *rf_args = "";
 float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 2400000000;
@@ -104,7 +106,7 @@ uint8_t *data[2], data2[DATA_BUFF_SZ];
 uint8_t data_tmp[DATA_BUFF_SZ];
 
 void usage(char *prog) {
-  printf("Usage: %s [agmfoncvpuM]\n", prog);
+  printf("Usage: %s [agmfoncvpuxb]\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", rf_args);
   printf("\t-l RF amplitude [Default %.2f]\n", rf_amp);
@@ -118,14 +120,18 @@ void usage(char *prog) {
   printf("\t-n number of frames [Default %d]\n", nof_frames);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-M Transmission mode[single|diversity|cdd] [Default %s]\n", mimo_type_str);
+  printf("\t-x Transmission mode[single|diversity|cdd|multiplex] [Default %s]\n", mimo_type_str);
+  printf("\t-b Precoding Matrix Index (multiplex mode only)* [Default %d]\n", multiplex_pmi);
+  printf("\t-w Number of codewords/layers (multiplex mode only)* [Default %d]\n", multiplex_nof_layers);
   printf("\t-u listen TCP port for input data (-1 is random) [Default %d]\n", net_port);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\n");
+  printf("\t*: See 3GPP 36.212 Table  5.3.3.1.5-4 for more information\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "aglfmoncpvutM")) != -1) {
+  while ((opt = getopt(argc, argv, "aglfmoncpvutxbw")) != -1) {
     switch (opt) {
     case 'a':
       rf_args = argv[optind];
@@ -157,8 +163,14 @@ void parse_args(int argc, char **argv) {
     case 'c':
       cell.id = atoi(argv[optind]);
       break;
-    case 'M':
+    case 'x':
       strncpy(mimo_type_str, argv[optind], 32);
+      break;
+    case 'b':
+      multiplex_pmi = (uint32_t) atoi(argv[optind]);
+      break;
+    case 'w':
+      multiplex_nof_layers = (uint32_t) atoi(argv[optind]);
       break;
     case 'v':
       srslte_verbose++;
@@ -201,6 +213,11 @@ void base_init() {
       cell.nof_ports = 2;
       pdsch_cfg.nof_layers = 2;
       nof_tb = 2;
+      break;
+    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+      cell.nof_ports = 2;
+      pdsch_cfg.nof_layers = multiplex_nof_layers;
+      nof_tb = multiplex_nof_layers;
       break;
     default:
       ERROR("Transmission mode not implemented.");
@@ -695,7 +712,7 @@ int main(int argc, char **argv) {
       }        
       
       if (send_data) {
-        srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1;
+        srslte_dci_format_t dci_format;
         switch(pdsch_cfg.mimo_type) {
           case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
             dci_format = SRSLTE_DCI_FORMAT1;
@@ -705,6 +722,13 @@ int main(int argc, char **argv) {
             dci_format = SRSLTE_DCI_FORMAT2A;
             break;
           case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+            dci_format = SRSLTE_DCI_FORMAT2;
+            if (multiplex_nof_layers == 1) {
+              ra_dl.pinfo = (uint8_t) (multiplex_pmi + 1);
+            } else {
+              ra_dl.pinfo = (uint8_t) multiplex_pmi;
+            }
+            break;
           default:
             fprintf(stderr, "Wrong MIMO configuration\n");
             exit(SRSLTE_ERROR);
@@ -720,7 +744,7 @@ int main(int argc, char **argv) {
         /* Configure pdsch_cfg parameters */
         srslte_ra_dl_grant_t grant; 
         srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &grant);        
-        if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, sf_idx, 0, 0)) {
+        if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, sf_idx, 0, 0, pdsch_cfg.mimo_type, multiplex_pmi)) {
           fprintf(stderr, "Error configuring PDSCH\n");
           exit(-1);
         }

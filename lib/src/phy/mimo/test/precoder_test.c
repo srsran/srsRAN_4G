@@ -38,6 +38,7 @@
 #define MSE_THRESHOLD	0.0005
 
 int nof_symbols = 1000;
+uint32_t codebook_idx = 0;
 int nof_layers = 1, nof_tx_ports = 1, nof_rx_ports = 1, nof_re = 1;
 char *mimo_type_name = NULL;
 
@@ -46,11 +47,12 @@ void usage(char *prog) {
       "Usage: %s -m [single|diversity|multiplex|cdd] -l [nof_layers] -p [nof_tx_ports]\n"
           " -r [nof_rx_ports]\n", prog);
   printf("\t-n num_symbols [Default %d]\n", nof_symbols);
+  printf("\t-c codebook_idx [Default %d]\n\n", codebook_idx);
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "mplnr")) != -1) {
+  while ((opt = getopt(argc, argv, "mplnrc")) != -1) {
     switch (opt) {
     case 'n':
       nof_symbols = atoi(argv[optind]);
@@ -66,6 +68,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'm':
       mimo_type_name = argv[optind];
+      break;
+    case 'c':
+      codebook_idx = (uint32_t) atoi(argv[optind]);
       break;
     default:
       usage(argv[0]);
@@ -116,16 +121,13 @@ void populate_channel_single(cf_t *h) {
 
 void populate_channel(srslte_mimo_type_t type, cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]) {
   switch (type) {
+    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
     case SRSLTE_MIMO_TYPE_CDD:
       populate_channel_cdd(h, (uint32_t) nof_re);
       break;
     case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
       populate_channel_diversity(h, (uint32_t) nof_re);
       break;
-    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-      fprintf(stderr, "Error: not implemented channel emulator\n");
-      exit(-1);
-      //break;
     case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
     default:
       populate_channel_single(h[0][0]);
@@ -157,6 +159,9 @@ int main(int argc, char **argv) {
   switch (type) {
     case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
       nof_re = nof_layers*nof_symbols;
+      break;
+    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+      nof_re = nof_symbols;
       break;
     case SRSLTE_MIMO_TYPE_CDD:
       nof_re = nof_symbols*nof_tx_ports/nof_layers;
@@ -223,7 +228,7 @@ int main(int argc, char **argv) {
   }
 
   /* Execute Precoding (Tx) */
-  if (srslte_precoding_type(x, y, nof_layers, nof_tx_ports, nof_symbols, type) < 0) {
+  if (srslte_precoding_type(x, y, nof_layers, nof_tx_ports, codebook_idx, nof_symbols, type) < 0) {
     fprintf(stderr, "Error layer mapper encoder\n");
     exit(-1);
   }
@@ -246,7 +251,7 @@ int main(int argc, char **argv) {
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
   srslte_predecoding_type_multi(r, h, xr, nof_rx_ports, nof_tx_ports, nof_layers,
-                                nof_re, type, 0);
+                                codebook_idx, nof_re, type, 0);
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   printf("Execution Time: %ld us\n", t[0].tv_usec);

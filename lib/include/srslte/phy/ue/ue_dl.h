@@ -147,7 +147,9 @@ SRSLTE_API int srslte_ue_dl_cfg_grant_multi(srslte_ue_dl_t *q,
                                             uint32_t cfi,
                                             uint32_t sf_idx,
                                             uint32_t rvidx,
-                                            uint32_t rvidx2);
+                                            uint32_t rvidx2,
+                                            srslte_mimo_type_t mimo_type,
+                                            uint32_t pinfo);
 
 SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, 
                                         uint32_t cfi, 

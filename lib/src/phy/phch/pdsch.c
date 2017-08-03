@@ -387,7 +387,7 @@ int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_g
  * If dci_msg is NULL, the grant is assumed to be already stored in cfg->grant
  */
 int srslte_pdsch_cfg_multi(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_grant_t *grant, uint32_t cfi,
-                           uint32_t sf_idx, uint32_t rvidx, uint32_t rvidx2)
+                           uint32_t sf_idx, uint32_t rvidx, uint32_t rvidx2, srslte_mimo_type_t mimo_type, uint32_t pmi)
 {
   if (cfg) {
     if (grant) {
@@ -399,7 +399,7 @@ int srslte_pdsch_cfg_multi(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_r
     }
 
     if (srslte_cbsegm(&cfg->cb_segm2, (uint32_t) cfg->grant.mcs2.tbs)) {
-      fprintf(stderr, "Error computing Codeblock (2) segmentation for TBS=%d\n", cfg->grant.mcs.tbs);
+      fprintf(stderr, "Error computing Codeblock (2) segmentation for TBS=%d\n", cfg->grant.mcs2.tbs);
       return SRSLTE_ERROR;
     }
 
@@ -407,19 +407,41 @@ int srslte_pdsch_cfg_multi(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_r
     cfg->sf_idx = sf_idx;
     cfg->rv = rvidx;
     cfg->rv2 = rvidx2;
+    cfg->mimo_type = mimo_type;
 
-    if (cell.nof_ports == 1 && grant->nof_tb == 1) {
-      cfg->mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
-      cfg->nof_layers = 1;
-    } else if (cell.nof_ports == 2 && grant->nof_tb == 1) {
-      cfg->mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-      cfg->nof_layers = 2;
-    } else if (cell.nof_ports == 2 && grant->nof_tb == 2) {
-      cfg->mimo_type = SRSLTE_MIMO_TYPE_CDD;
-      cfg->nof_layers = 2;
-    } else {
-      INFO("nof_ports=%d, nof_tb=%d are not consistent\n", cell.nof_ports, grant->nof_tb);
-      return SRSLTE_ERROR;
+    /* Check and configure PDSCH transmission modes */
+    switch(mimo_type) {
+      case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
+        if (grant->nof_tb != 1) {
+          ERROR("Number of transport blocks is not supported for single transmission mode.");
+          return SRSLTE_ERROR;
+        }
+        cfg->nof_layers = 1;
+        break;
+      case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
+        if (grant->nof_tb != 1) {
+          ERROR("Number of transport blocks is not supported for transmit diversity mode.");
+          return SRSLTE_ERROR;
+        }
+        cfg->nof_layers = 2;
+        break;
+      case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+        if (grant->nof_tb == 1) {
+          cfg->codebook_idx = pmi;
+          cfg->nof_layers = 1;
+        } else {
+          cfg->codebook_idx = pmi + 1;
+          cfg->nof_layers = 2;
+        }
+        INFO("PDSCH configured for Spatial Multiplex; nof_codewords=%d; nof_layers=%d; codebook_idx=%d;\n", grant->nof_tb, cfg->nof_layers, cfg->codebook_idx);
+        break;
+      case SRSLTE_MIMO_TYPE_CDD:
+        if (grant->nof_tb != 2) {
+          ERROR("Number of transport blocks is not supported for CDD transmission mode.");
+          return SRSLTE_ERROR;
+        }
+        cfg->nof_layers = 2;
+        break;
     }
 
     return SRSLTE_SUCCESS;
@@ -498,9 +520,9 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
       cfg          != NULL)
   {
     
-    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d, C_prb=%d\n",
+    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: [%d %d], C_prb=%d\n",
         cfg->sf_idx, rnti, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, cfg->nbits.nof_re, 
-         cfg->nbits.nof_bits, cfg->rv, cfg->grant.nof_prb);
+         cfg->nbits.nof_bits, cfg->rv, cfg->rv2, cfg->grant.nof_prb);
 
     /* number of layers equals number of ports */
     for (i = 0; i < q->cell.nof_ports; i++) {
@@ -525,17 +547,19 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
         }
       }      
     }
-    
+
+    INFO("PDSCH Layer demapper and predecode: mimo_type=%d, nof_layers=%d, nof_tb=%d\n", cfg->mimo_type,
+         cfg->nof_layers, cfg->grant.nof_tb);
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
       srslte_predecoding_single_multi(q->symbols, q->ce[0], q->d, q->nof_rx_antennas, cfg->nbits.nof_re, noise_estimate);
     } else {
       int nof_symbols [SRSLTE_MAX_CODEWORDS];
-      nof_symbols[0] = cfg->nbits.nof_re * cfg->grant.nof_tb / q->cell.nof_ports;
-      nof_symbols[1] = cfg->nbits2.nof_re * cfg->grant.nof_tb / q->cell.nof_ports;
+      nof_symbols[0] = cfg->nbits.nof_re * cfg->grant.nof_tb / cfg->nof_layers;
+      nof_symbols[1] = cfg->nbits2.nof_re * cfg->grant.nof_tb / cfg->nof_layers;
 
       srslte_predecoding_type_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
-                                    cfg->nbits.nof_re, cfg->mimo_type, 0.0);
+                                    cfg->codebook_idx, cfg->nbits.nof_re, cfg->mimo_type, 0.0);
       srslte_layerdemap_type(x, (cf_t *[SRSLTE_MAX_CODEWORDS]) {q->d, q->d2}, cfg->nof_layers, cfg->grant.nof_tb,
                              nof_symbols[0], nof_symbols, cfg->mimo_type);
     }
@@ -614,6 +638,79 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
+}
+
+int srslte_pdsch_ri_pmi_select(srslte_pdsch_t *q,
+                               srslte_pdsch_cfg_t *cfg,
+                               cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate, uint32_t nof_ce,
+                               uint32_t *ri, uint32_t *pmi,
+                               float *current_sinr) {
+  uint32_t best_pmi_1l;
+  uint32_t best_pmi_2l;
+  float sinr_1l[SRSLTE_MAX_CODEBOOKS];
+  float sinr_2l[SRSLTE_MAX_CODEBOOKS];
+  float best_sinr_1l = 0.0;
+  float best_sinr_2l = 0.0;
+  int n1, n2;
+
+  if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
+    n1 = srslte_precoding_pmi_select(ce, nof_ce, noise_estimate, 1, &best_pmi_1l, sinr_1l);
+    if (n1 < 0) {
+      ERROR("PMI Select for 1 layer");
+      return SRSLTE_ERROR;
+    }
+
+    n2 = srslte_precoding_pmi_select(ce, nof_ce, noise_estimate, 2, &best_pmi_2l, sinr_2l);
+    if (n2 < 0) {
+      ERROR("PMI Select for 2 layer");
+      return SRSLTE_ERROR;
+    }
+
+    for (int i = 0; i < n1; i++) {
+      if (sinr_1l[i] > best_sinr_1l) {
+        best_sinr_1l = sinr_1l[i];
+      }
+    }
+
+    for (int i = 0; i < n2; i++) {
+      if (sinr_2l[i] > best_sinr_2l) {
+        best_sinr_2l = sinr_2l[i];
+      }
+    }
+
+    /* Set RI */
+    if (ri != NULL) {
+      *ri = (best_sinr_1l > best_sinr_2l) ? 1 : 2;
+    }
+
+    /* Set PMI */
+    if (pmi != NULL) {
+      *pmi = (best_sinr_1l > best_sinr_2l) ? best_pmi_1l : best_pmi_2l;
+    }
+
+    /* Set current condition number */
+    if (current_sinr != NULL) {
+      if (cfg->nof_layers == 1) {
+        *current_sinr = sinr_1l[cfg->codebook_idx];
+      } else if (cfg->nof_layers == 2) {
+        *current_sinr = sinr_2l[cfg->codebook_idx - 1];
+      }else {
+        ERROR("Not implemented number of layers");
+        return SRSLTE_ERROR;
+      }
+    }
+
+    /* Print Trace */
+    if (ri != NULL && pmi != NULL && current_sinr != NULL) {
+      INFO("PDSCH Select RI=%d; PMI=%d; Current SINR=%.1fdB (nof_layers=%d, codebook_idx=%d)\n", *ri, *pmi,
+           10*log10(*current_sinr), cfg->nof_layers, cfg->codebook_idx);
+    }
+  } else {
+    ERROR("Not implemented configuration");
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  return SRSLTE_SUCCESS;
 }
 
 int srslte_pdsch_encode(srslte_pdsch_t *q, 
@@ -785,7 +882,7 @@ int srslte_pdsch_encode_multi(srslte_pdsch_t *q,
     if (q->cell.nof_ports > 1) {
       int nof_symbols = srslte_layermap_type((cf_t *[SRSLTE_MAX_CODEWORDS]) {q->d, q->d2}, x, cfg->grant.nof_tb, cfg->nof_layers,
                            (int[SRSLTE_MAX_CODEWORDS]) {cfg->nbits.nof_re, cfg->nbits2.nof_re}, cfg->mimo_type);
-      srslte_precoding_type(x, q->symbols, q->cell.nof_ports, cfg->nof_layers,
+      srslte_precoding_type(x, q->symbols, cfg->nof_layers, q->cell.nof_ports, cfg->codebook_idx,
                             nof_symbols, cfg->mimo_type);
     } else {
       memcpy(q->symbols[0], q->d, cfg->nbits.nof_re * sizeof(cf_t));

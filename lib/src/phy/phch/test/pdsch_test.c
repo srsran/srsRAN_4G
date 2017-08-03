@@ -52,15 +52,17 @@ srslte_cell_t cell = {
   SRSLTE_PHICH_R_1_6    // PHICH resources
 };
 
+char mimo_type_str [32] = "single";
+srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
 uint32_t cfi = 2;
 uint32_t mcs = 0;
 uint32_t mcs2 = 0;
 uint32_t subframe = 1;
 uint32_t rv_idx = 0;
-uint32_t rv_idx2 = 0;
+uint32_t rv_idx2 = 1;
 uint16_t rnti = 1234;
-uint32_t nof_tb = 1;
 uint32_t nof_rx_antennas = 1;
+uint32_t pmi = 0;
 char *input_file = NULL; 
 
 void usage(char *prog) {
@@ -74,16 +76,16 @@ void usage(char *prog) {
   printf("\t-t rv_idx2 [Default %d]\n", rv_idx2);
   printf("\t-R rnti [Default %d]\n", rnti);
   printf("\t-F cfi [Default %d]\n", cfi);
-  printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
+  printf("\t-x Transmission mode [single|diversity|cdd|multiplex] [Default %s]\n", mimo_type_str);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.nof_prb);
-  printf("\t-w nof_tb [Default %d]\n", nof_tb);
   printf("\t-a nof_rx_antennas [Default %d]\n", nof_rx_antennas);
+  printf("\t-p pmi (multiplex only)  [Default %d]\n", pmi);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "fmMcsrtRFpnwav")) != -1) {
+  while ((opt = getopt(argc, argv, "fmMcsrtRFpnavx")) != -1) {
     switch(opt) {
     case 'f':
       input_file = argv[optind];
@@ -109,17 +111,17 @@ void parse_args(int argc, char **argv) {
     case 'F':
       cfi = atoi(argv[optind]);
       break;
+    case 'x':
+      strncpy(mimo_type_str, argv[optind], 32);
+      break;
     case 'p':
-      cell.nof_ports = atoi(argv[optind]);
+      pmi = (uint32_t) atoi(argv[optind]);
       break;
     case 'n':
       cell.nof_prb = atoi(argv[optind]);
       break;
     case 'c':
       cell.id = atoi(argv[optind]);
-      break;
-    case 'w':
-      nof_tb = (uint32_t) atoi(argv[optind]);
       break;
     case 'a':
       nof_rx_antennas = (uint32_t) atoi(argv[optind]);
@@ -165,14 +167,43 @@ int main(int argc, char **argv) {
   bzero(rx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(softbuffers_tx, sizeof(srslte_softbuffer_tx_t)*SRSLTE_MAX_CODEWORDS);
   bzero(softbuffers_rx, sizeof(srslte_softbuffer_rx_t)*SRSLTE_MAX_CODEWORDS);
-  
+
+  /* Parse transmission mode */
+  if (srslte_str2mimotype(mimo_type_str, &mimo_type)) {
+    ERROR("Wrong transmission mode.");
+    goto quit;
+  }
+
+  switch(mimo_type) {
+
+    case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
+      cell.nof_ports = 1;
+      break;
+    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+    case SRSLTE_MIMO_TYPE_CDD:
+      if (nof_rx_antennas < 2) {
+        ERROR("At least two receiving antennas are required");
+        goto quit;
+      }
+    case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
+    default:
+      cell.nof_ports = 2;
+      break;
+  }
+
   srslte_ra_dl_dci_t dci;
   bzero(&dci, sizeof(srslte_ra_dl_dci_t));
-  dci.mcs_idx = mcs;
-  dci.rv_idx = rv_idx;
   dci.type0_alloc.rbg_bitmask = 0xffffffff;
-  dci.tb_en[0] = true; 
-  if (nof_tb > 1) {
+
+  /* If transport block 0 is enabled */
+  if (mcs != 0 || rv_idx != 1) {
+    dci.mcs_idx = mcs;
+    dci.rv_idx = rv_idx;
+    dci.tb_en[0] = true;
+  }
+
+  /* If transport block 0 is disabled */
+  if (mcs2 != 0 || rv_idx2 != 1) {
     dci.mcs_idx_1 = mcs2;
     dci.rv_idx_1 = rv_idx2;
     dci.tb_en[1] = true;
@@ -183,7 +214,9 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error computing resource allocation\n");
     return ret;
   }
-  
+
+
+
 #ifdef DO_OFDM
   srslte_ofdm_tx_init(&ofdm_tx, cell.cp, cell.nof_prb);
   srslte_ofdm_rx_init(&ofdm_rx, cell.cp, cell.nof_prb);
@@ -201,24 +234,9 @@ int main(int argc, char **argv) {
 #endif /* DO_OFDM */
 
   /* Configure PDSCH */
-  if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, subframe, rv_idx, rv_idx2)) {
+  if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, subframe, rv_idx, rv_idx2, mimo_type, pmi)) {
     fprintf(stderr, "Error configuring PDSCH\n");
-    exit(-1);
-  }
-
-  /* Select MIMO mode */
-  if (cell.nof_ports == 1 && nof_tb == 1) {
-    pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
-    pdsch_cfg.nof_layers = 1;
-  } else if (cell.nof_ports == 2 && nof_tb == 1) {
-    pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-    pdsch_cfg.nof_layers = 2;
-  } else if (cell.nof_ports == 2 && nof_tb == 2) {
-    pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_CDD;
-    pdsch_cfg.nof_layers = 2;
-  } else {
-    fprintf(stderr, "nof_ports=%d, nof_tb=%d are not consistent\n", cell.nof_ports, nof_tb);
-    exit(-1);
+    goto quit;
   }
 
   /* init memory */
@@ -250,7 +268,7 @@ int main(int argc, char **argv) {
   }
 
   if (grant.mcs2.tbs) {
-    data[1] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs);
+    data[1] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs2.tbs);
     if (!data[1]) {
       perror("srslte_vec_malloc");
       goto quit;
@@ -264,7 +282,7 @@ int main(int argc, char **argv) {
 
   srslte_pdsch_set_rnti(&pdsch_rx, rnti);
 
-  for (i = 0; i < nof_tb; i++) {
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     if (srslte_softbuffer_rx_init(&softbuffers_rx[i], cell.nof_prb)) {
       fprintf(stderr, "Error initiating RX soft buffer\n");
       goto quit;
@@ -306,7 +324,7 @@ int main(int argc, char **argv) {
     srslte_filesource_t fsrc;
     if (srslte_filesource_init(&fsrc, input_file, SRSLTE_COMPLEX_FLOAT_BIN)) {
       fprintf(stderr, "Error opening file %s\n", input_file);
-      exit(-1);
+      goto quit;
     }
 #ifdef DO_OFDM
     srslte_filesource_read(&fsrc, rx_slot_symbols, SRSLTE_SF_LEN_PRB(cell.nof_prb));
@@ -332,7 +350,7 @@ int main(int argc, char **argv) {
 
     srslte_pdsch_set_rnti(&pdsch_tx, rnti);
 
-    for (i = 0; i < nof_tb; i++) {
+    for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       if (srslte_softbuffer_tx_init(&softbuffers_tx[i], cell.nof_prb)) {
         fprintf(stderr, "Error initiating TX soft buffer\n");
         goto quit;
@@ -438,7 +456,7 @@ int main(int argc, char **argv) {
 quit:
   srslte_pdsch_free(&pdsch_tx);
   srslte_pdsch_free(&pdsch_rx);
-  for (i = 0; i < nof_tb; i++) {
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     srslte_softbuffer_tx_free(&softbuffers_tx[i]);
     srslte_softbuffer_rx_free(&softbuffers_rx[i]);
 

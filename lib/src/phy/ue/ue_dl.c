@@ -38,8 +38,8 @@
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
 
-static srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1, SRSLTE_DCI_FORMAT2A}; // Only TM1 and TM2 are currently supported
-const uint32_t nof_ue_formats = 3;
+static srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1, SRSLTE_DCI_FORMAT2A, SRSLTE_DCI_FORMAT2}; // Only TM1, TM2, TM3 and TM4 are currently supported
+const uint32_t nof_ue_formats = 4;
 
 static srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FORMAT1C};
 const uint32_t nof_common_formats = 2; 
@@ -284,12 +284,33 @@ int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *c
 
 int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint32_t rvidx) 
 {
-  return srslte_pdsch_cfg_multi(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx, 0);
+  return srslte_pdsch_cfg_multi(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx, 0, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0);
 }
 
-int srslte_ue_dl_cfg_grant_multi(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx, uint32_t rvidx, uint32_t rvidx2)
+int srslte_ue_dl_cfg_grant_multi(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx,
+                                 uint32_t rvidx, uint32_t rvidx2, srslte_mimo_type_t mimo_type, uint32_t pinfo)
 {
-  return srslte_pdsch_cfg_multi(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx, rvidx2);
+  uint32_t pmi = 0;
+
+  /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
+  if (q->pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
+    if (q->pdsch_cfg.grant.nof_tb == 1) {
+      if (pinfo > 0 && pinfo < 5) {
+        pmi = pinfo - 1;
+      } else {
+        ERROR("Not Implemented");
+        return SRSLTE_ERROR;
+      }
+    } else {
+      if (pinfo < 2) {
+        pmi = pinfo;
+      } else {
+        ERROR("Not Implemented");
+        return SRSLTE_ERROR;
+      }
+    }
+  }
+  return srslte_pdsch_cfg_multi(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx, rvidx2, mimo_type, pmi);
 }
 
 int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti, uint16_t rnti)
@@ -303,6 +324,7 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint
 
 int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data[SRSLTE_MAX_CODEWORDS], uint32_t tti, uint16_t rnti)
 {
+  srslte_mimo_type_t mimo_type;
   srslte_dci_msg_t dci_msg;
   srslte_ra_dl_dci_t dci_unpacked;
   srslte_ra_dl_grant_t grant; 
@@ -355,7 +377,39 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
       }
     }
 
-    if (srslte_ue_dl_cfg_grant_multi(q, &grant, cfi, sf_idx, rvidx, rvidx2)) {
+    switch(dci_msg.format) {
+      case SRSLTE_DCI_FORMAT1:
+      case SRSLTE_DCI_FORMAT1A:
+        mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+        break;
+      case SRSLTE_DCI_FORMAT2:
+        if (grant.nof_tb == 1 && dci_unpacked.pinfo == 0) {
+          mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+        } else {
+          mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+        }
+        break;
+      case SRSLTE_DCI_FORMAT2A:
+        if (grant.nof_tb == 1 && dci_unpacked.pinfo == 0) {
+          mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+        } else {
+          mimo_type = SRSLTE_MIMO_TYPE_CDD;
+        }
+        break;
+
+      /* Not implemented formats */
+      case SRSLTE_DCI_FORMAT0:
+      case SRSLTE_DCI_FORMAT1C:
+      case SRSLTE_DCI_FORMAT1B:
+      case SRSLTE_DCI_FORMAT1D:
+      case SRSLTE_DCI_FORMAT2B:
+      default:
+        ERROR("Transmission mode not supported.");
+        return SRSLTE_ERROR;
+    }
+
+    if (srslte_ue_dl_cfg_grant_multi(q, &grant, cfi, sf_idx, rvidx, rvidx2, mimo_type, dci_unpacked.pinfo)) {
+      ERROR("Configuing PDSCH");
       return SRSLTE_ERROR; 
     }
     
@@ -374,7 +428,10 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
         q->pkt_errors++;
       } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
         fprintf(stderr, "Error calling srslte_pdsch_decode()\n");      
-      } 
+      }
+
+      /* If we are in TM4 (Closed-Loop MIMO), compute condition number */
+
     }
   
   /*
@@ -393,6 +450,13 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
   } else {
     return 0;
   }
+}
+
+int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, float *current_sinr) {
+  float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
+  return srslte_pdsch_ri_pmi_select(&q->pdsch, &q->pdsch_cfg, q->ce_m, noise_estimate,
+                                    SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp),
+                                    ri, pmi, current_sinr);
 }
 
 uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {

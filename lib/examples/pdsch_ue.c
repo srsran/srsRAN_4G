@@ -511,7 +511,8 @@ int main(int argc, char **argv) {
     
   // Variables for measurements 
   uint32_t nframes=0;
-  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0;
+  uint32_t ri = 0, pmi = 0;
+  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0, sinr = 0.0;
   bool decode_pdsch = false; 
 
 #ifndef DISABLE_RF
@@ -616,6 +617,16 @@ int main(int argc, char **argv) {
             noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);
             enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs.tbs + ue_dl.pdsch_cfg.grant.mcs2.tbs)/1000.0, enodebrate, 0.05);
             uerate = SRSLTE_VEC_EMA((n>0)?(ue_dl.pdsch_cfg.grant.mcs.tbs + ue_dl.pdsch_cfg.grant.mcs2.tbs)/1000.0:0.0, uerate, 0.01);
+
+            if (ue_dl.cell.nof_ports == 2 && ue_dl.pdsch.nof_rx_antennas == 2) {
+              float _sinr;
+              srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, &_sinr);
+
+              if (!isinff(_sinr) && !isnanf(_sinr)) {
+                sinr = SRSLTE_VEC_EMA(_sinr, sinr, 0.05f);
+              }
+            }
+
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -651,7 +662,8 @@ int main(int argc, char **argv) {
                          "SNR: %+5.1f dB | %+5.1f dB, "
                          "Rb: %6.2f / %6.2f Mbps, "
                          "PDCCH-Miss: %5.2f%%, "
-                         "PDSCH-BLER: %5.2f%%\r",
+                         "PDSCH-BLER: %5.2f%%, "
+                         "SINR: %3.1f dB RI: %d PMI: %d    \r",
 
                      srslte_ue_sync_get_cfo(&ue_sync) / 1000,
                      10 * log10(rsrp0 / noise),
@@ -659,7 +671,10 @@ int main(int argc, char **argv) {
                      uerate,
                      enodebrate,
                      100 * (1 - (float) ue_dl.nof_detected / nof_trials),
-                     (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+                     (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total,
+                     10 * log10(sinr),
+                     ri,
+                     pmi);
             }
           }
           break;

@@ -436,7 +436,7 @@ int srslte_str2mimotype(char *mimo_type_str, srslte_mimo_type_t *type) {
     *type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
   } else if (!strcmp(mimo_type_str, "diversity") || !strcmp(mimo_type_str, "TxDiversity")) {
     *type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-  } else if (!strcmp(mimo_type_str, "multiplex")) {
+  } else if (!strcmp(mimo_type_str, "multiplex") || !strcmp(mimo_type_str, "SpatialMux")) {
     *type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
   } else if (!strcmp(mimo_type_str, "cdd") || !strcmp(mimo_type_str, "CDD")) {
     *type = SRSLTE_MIMO_TYPE_CDD;

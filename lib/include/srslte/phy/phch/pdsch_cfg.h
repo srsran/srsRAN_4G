@@ -49,6 +49,7 @@ typedef struct SRSLTE_API {
   uint32_t rv2;
   uint32_t sf_idx;  
   uint32_t nof_layers;
+  uint32_t codebook_idx;
   srslte_mimo_type_t mimo_type;
 } srslte_pdsch_cfg_t;
 

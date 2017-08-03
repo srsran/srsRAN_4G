@@ -33,6 +33,7 @@
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/utils/vector.h"
+#include "srslte/phy/utils/debug.h"
 
 #ifdef LV_HAVE_SSE
 #include <xmmintrin.h>
@@ -43,6 +44,9 @@ int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
 
 #ifdef LV_HAVE_AVX
 #include <immintrin.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/utils/algebra.h>
+
 int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
 #endif
 
@@ -527,7 +531,7 @@ int srslte_predecoding_type(cf_t *y_, cf_t *h_[SRSLTE_MAX_PORTS], cf_t *x[SRSLTE
     h[i][0] = h_[i];
   }
   y[0] = y_; 
-  return srslte_predecoding_type_multi(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols, type, noise_estimate);  
+  return srslte_predecoding_type_multi(y, h, x, nof_rxant, nof_ports, nof_layers, 0, nof_symbols, type, noise_estimate);
 }
 
 
@@ -565,11 +569,46 @@ int srslte_precoding_mimo_2x2_gen(cf_t W[2][2], cf_t *y[SRSLTE_MAX_PORTS], cf_t 
   return SRSLTE_SUCCESS; 
 }
 
+// SSE implementation of ZF 2x2 CCD equalizer
+#ifdef LV_HAVE_AVX
 
+int srslte_predecoding_ccd_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS],
+                                      cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                      cf_t *x[SRSLTE_MAX_LAYERS],
+                                      uint32_t nof_symbols) {
+  uint32_t i = 0;
 
+  for (i = 0; i < nof_symbols; i += 4) {
+    /* Load channel */
+    __m256 h00i = _mm256_load_ps((float *) &h[0][0][i]);
+    __m256 h01i = _mm256_load_ps((float *) &h[0][1][i]);
+    __m256 h10i = _mm256_load_ps((float *) &h[1][0][i]);
+    __m256 h11i = _mm256_load_ps((float *) &h[1][1][i]);
 
+    /* Apply precoding */
+    __m256 h00 = _mm256_add_ps(h00i, _mm256_xor_ps(h10i,
+                                                   (__m256) {+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f}));
+    __m256 h10 = _mm256_add_ps(h01i, _mm256_xor_ps(h11i,
+                                                   (__m256) {+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f}));
+    __m256 h01 = _mm256_add_ps(h00i, _mm256_xor_ps(h10i,
+                                                   (__m256) {-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f}));
+    __m256 h11 = _mm256_add_ps(h01i, _mm256_xor_ps(h11i,
+                                                   (__m256) {-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f}));
 
+    __m256 y0 = _mm256_load_ps((float *) &y[0][i]);
+    __m256 y1 = _mm256_load_ps((float *) &y[1][i]);
 
+    __m256 x0, x1;
+
+    srslte_algebra_2x2_zf_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f);
+
+    _mm256_store_ps((float *) &x[0][i], x0);
+    _mm256_store_ps((float *) &x[1][i], x1);
+  }
+
+  return nof_symbols;
+}
+#endif /* LV_HAVE_AVX */
 
 // SSE implementation of ZF 2x2 CCD equalizer
 #ifdef LV_HAVE_SSE
@@ -579,9 +618,6 @@ int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
                                       cf_t *x[SRSLTE_MAX_LAYERS],
                                       uint32_t nof_symbols) {
   uint32_t i = 0;
-
-  /* Conjugate mask */
-  __m128 conj_mask = (__m128) {+0.0f, -0.0f, +0.0f, -0.0f};
 
   for (i = 0; i < nof_symbols; i += 2) {
     /* Load channel */
@@ -596,21 +632,12 @@ int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
     __m128 h01 = _mm_add_ps(h00i, _mm_xor_ps(h10i, (__m128) {-0.0f, -0.0f, +0.0f, +0.0f}));
     __m128 h11 = _mm_add_ps(h01i, _mm_xor_ps(h11i, (__m128) {-0.0f, -0.0f, +0.0f, +0.0f}));
 
-    __m128 detmult1 = PROD(h00, h11);
-    __m128 detmult2 = PROD(h01, h10);
-
-    __m128 det = _mm_sub_ps(detmult1, detmult2);
-    __m128 detconj = _mm_xor_ps(det, conj_mask);
-    __m128 detabs2 = PROD(det, detconj);
-    __m128 detabs2rec = _mm_rcp_ps(detabs2);
-    detabs2rec = _mm_shuffle_ps(detabs2rec, detabs2rec, _MM_SHUFFLE(2, 2, 0, 0));
-    __m128 detrec = _mm_mul_ps(_mm_mul_ps(detconj, detabs2rec), (__m128) {2.0f, 2.0f, 2.0f, 2.0f});
-
     __m128 y0 = _mm_load_ps((float *) &y[0][i]);
     __m128 y1 = _mm_load_ps((float *) &y[1][i]);
 
-    __m128 x0 = PROD(_mm_sub_ps(PROD(h11, y0), PROD(h01, y1)), detrec);
-    __m128 x1 = PROD(_mm_sub_ps(PROD(h00, y1), PROD(h10, y0)), detrec);
+    __m128 x0, x1;
+
+    srslte_algebra_2x2_zf_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f);
 
     _mm_store_ps((float *) &x[0][i], x0);
     _mm_store_ps((float *) &x[1][i], x1);
@@ -659,11 +686,15 @@ int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORT
 {
   if (nof_ports == 2 && nof_rxant == 2) {
     if (nof_layers == 2) {
+#ifdef LV_HAVE_AVX
+      return srslte_predecoding_ccd_2x2_zf_avx(y, h, x, nof_symbols);
+#else
 #ifdef LV_HAVE_SSE
       return srslte_predecoding_ccd_2x2_zf_sse(y, h, x, nof_symbols);
 #else
       return srslte_predecoding_ccd_2x2_zf_gen(y, h, x, nof_symbols);
-#endif
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX */
     } else {
       fprintf(stderr, "Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
       return -1;       
@@ -676,11 +707,535 @@ int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORT
   return SRSLTE_ERROR;
 }
 
+/* PMI Select for 1 layer */
+int srslte_precoding_pmi_select_1l (cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                    float noise_estimate, uint32_t *pmi,
+                                    float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
 
+#define SQRT1_2 ((float)M_SQRT1_2);
+  float max_sinr = 0.0;
+  uint32_t i, count;
+
+  for (i = 0; i < 4; i++) {
+    sinr_list[i] = 0;
+    count = 0;
+
+    for (uint32_t j = 0; j < nof_symbols; j += 100) {
+      /* 0. Load channel matrix */
+      cf_t h00 = h[0][0][j];
+      cf_t h01 = h[1][0][j];
+      cf_t h10 = h[0][1][j];
+      cf_t h11 = h[1][1][j];
+
+      /* 1. B = W'* H' */
+      cf_t a0, a1;
+      switch(i) {
+        case 0:
+          a0 = conjf(h00) + conjf(h01);
+          a1 = conjf(h10) + conjf(h11);
+          break;
+        case 1:
+          a0 = conjf(h00) - conjf(h01);
+          a1 = conjf(h10) - conjf(h11);
+          break;
+        case 2:
+          a0 = conjf(h00) - _Complex_I * conjf(h01);
+          a1 = conjf(h10) - _Complex_I * conjf(h11);
+          break;
+        case 3:
+          a0 = conjf(h00) + _Complex_I * conjf(h01);
+          a1 = conjf(h10) + _Complex_I * conjf(h11);
+          break;
+      }
+      a0 *= SQRT1_2;
+      a1 *= SQRT1_2;
+
+      /* 2. B = W' * H' * H = A * H */
+      cf_t b0 = a0*h00 + a1*h10;
+      cf_t b1 = a0*h01 + a1*h11;
+
+      /* 3. C = W' * H' * H * W' = B * W */
+      cf_t c;
+      switch(i) {
+        case 0:
+          c = b0 + b1;
+          break;
+        case 1:
+          c = b0 - b1;
+          break;
+        case 2:
+          c = b0 + _Complex_I*b1;
+          break;
+        case 3:
+          c = b0 - _Complex_I*b1;
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      c *= SQRT1_2;
+
+      /* Add for averaging */
+      sinr_list[i] += crealf(c);
+
+      count ++;
+    }
+
+    /* Divide average by noise */
+    sinr_list[i] /= noise_estimate*count;
+
+    if (sinr_list[i] > max_sinr) {
+      max_sinr = sinr_list[i];
+      *pmi = i;
+    }
+  }
+
+  INFO("Precoder PMI Select for 1 layer SINR=[%.1fdB; %.1fdB; %.1fdB; %.1fdB] PMI=%d\n", 10*log10(sinr_list[0]), 10*log10(sinr_list[1]),
+       10*log10(sinr_list[2]), 10*log10(sinr_list[3]), *pmi);
+
+  return i;
+}
+
+/* PMI Select for 2 layers */
+int srslte_precoding_pmi_select_2l (cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                    float noise_estimate, uint32_t *pmi,
+                                    float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+
+  float max_sinr = 0.0;
+  uint32_t i, count;
+
+  for (i = 0; i < 2; i++) {
+    sinr_list[i] = 0;
+    count = 0;
+
+    for (uint32_t j = 0; j < nof_symbols; j += 100) {
+      /* 0. Load channel matrix */
+      cf_t h00 = h[0][0][j];
+      cf_t h01 = h[1][0][j];
+      cf_t h10 = h[0][1][j];
+      cf_t h11 = h[1][1][j];
+
+      /* 1. B = W'* H' */
+      cf_t a00, a01, a10, a11;
+      switch(i) {
+        case 0:
+          a00 = conjf(h00) + conjf(h01);
+          a01 = conjf(h10) + conjf(h11);
+          a10 = conjf(h00) - conjf(h01);
+          a11 = conjf(h10) - conjf(h11);
+          break;
+        case 1:
+          a00 = conjf(h00) - _Complex_I*conjf(h01);
+          a01 = conjf(h10) - _Complex_I*conjf(h11);
+          a10 = conjf(h00) + _Complex_I*conjf(h01);
+          a11 = conjf(h10) + _Complex_I*conjf(h11);
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      a00 *= 0.5f;
+      a01 *= 0.5f;
+      a10 *= 0.5f;
+      a11 *= 0.5f;
+
+      /* 2. B = W' * H' * H = A * H */
+      cf_t b00 = a00*h00 + a01*h10;
+      cf_t b01 = a00*h01 + a01*h11;
+      cf_t b10 = a10*h00 + a11*h10;
+      cf_t b11 = a10*h01 + a11*h11;
+
+      /* 3. C = W' * H' * H * W' = B * W */
+      cf_t c00, c01, c10, c11;
+      switch(i) {
+        case 0:
+          c00 = b00 + b01;
+          c01 = b00 - b01;
+          c10 = b10 + b11;
+          c11 = b10 - b11;
+          break;
+        case 1:
+          c00 = b00 + _Complex_I*b01;
+          c01 = b00 - _Complex_I*b01;
+          c10 = b10 + _Complex_I*b11;
+          c11 = b10 - _Complex_I*b11;
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      c00 *= 0.5;
+      c01 *= 0.5;
+      c10 *= 0.5;
+      c11 *= 0.5;
+
+      /* 4. C += noise * I */
+      c00 += noise_estimate;
+      c11 += noise_estimate;
+
+      /* 5. detC */
+      cf_t detC = c00*c11 - c01*c10;
+      cf_t inv_detC = conjf(detC)/(crealf(detC)*crealf(detC) + cimagf(detC)*cimagf(detC));
+
+      cf_t den0 = noise_estimate*c00*inv_detC;
+      cf_t den1 = noise_estimate*c11*inv_detC;
+
+      float gamma0 = crealf((conjf(den0)/(crealf(den0)*crealf(den0) + cimagf(den0)*cimagf(den0))) - 1);
+      float gamma1 = crealf((conjf(den1)/(crealf(den1)*crealf(den1) + cimagf(den1)*cimagf(den1))) - 1);
+
+      /* Add for averaging */
+      sinr_list[i] += (gamma0 + gamma1);
+
+      count ++;
+    }
+
+    /* Divide average by noise */
+    sinr_list[i] /= (2*count);
+
+    if (sinr_list[i] > max_sinr) {
+      max_sinr = sinr_list[i];
+      *pmi = i;
+    }
+  }
+
+  INFO("Precoder PMI Select for 2 layers SINR=[%.1fdB; %.1fdB] PMI=%d\n", 10*log10(sinr_list[0]), 10*log10(sinr_list[1]), *pmi);
+
+  return i;
+}
+
+int srslte_precoding_pmi_select (cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                 float noise_estimate, int nof_layers, uint32_t *pmi,
+                                 float sinr[SRSLTE_MAX_CODEBOOKS]) {
+  int ret;
+
+  if (sinr == NULL || pmi == NULL) {
+    ERROR("Null pointer");
+    ret = SRSLTE_ERROR_INVALID_INPUTS;
+  } else if (nof_layers == 1) {
+    ret = srslte_precoding_pmi_select_1l(h, nof_symbols, noise_estimate, pmi, sinr);
+  } else if (nof_layers == 2) {
+    ret = srslte_precoding_pmi_select_2l(h, nof_symbols, noise_estimate, pmi, sinr);
+  } else {
+    ERROR("Wrong number of layers");
+    ret = SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  return ret;
+}
+
+// Generic implementation of ZF 2x2 Spatial Multiplexity equalizer
+int srslte_predecoding_multiplex_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+  int i = 0;
+  float norm = 1.0;
+
+  switch(codebook_idx) {
+    case 0:
+      norm = (float) M_SQRT2;
+      break;
+    case 1:
+    case 2:
+      norm = 2.0f;
+      break;
+    default:
+      fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+      return SRSLTE_ERROR;
+  }
+
+#ifdef LV_HAVE_AVX
+  for (/* i = 0*/; i < nof_symbols; i += 4) {
+    __m256 _h00 = _mm256_load_ps((float*)&(h[0][0][i]));
+    __m256 _h01 = _mm256_load_ps((float*)&(h[0][1][i]));
+    __m256 _h10 = _mm256_load_ps((float*)&(h[1][0][i]));
+    __m256 _h11 = _mm256_load_ps((float*)&(h[1][1][i]));
+
+    __m256 h00, h01, h10, h11;
+    switch (codebook_idx) {
+      case 0:
+        h00 = _h00;
+        h01 = _h10;
+        h10 = _h01;
+        h11 = _h11;
+        break;
+      case 1:
+        h00 = _mm256_add_ps(_h00, _h10);
+        h01 = _mm256_sub_ps(_h00, _h10);
+        h10 = _mm256_add_ps(_h01, _h11);
+        h11 = _mm256_sub_ps(_h01, _h11);
+        break;
+      case 2:
+        h00 = _mm256_add_ps(_h00, _MM256_MULJ_PS(_h10));
+        h01 = _mm256_sub_ps(_h00, _MM256_MULJ_PS(_h10));
+        h10 = _mm256_add_ps(_h01, _MM256_MULJ_PS(_h11));
+        h11 = _mm256_sub_ps(_h01, _MM256_MULJ_PS(_h11));
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    __m256 y0 = _mm256_load_ps((float *) &y[0][i]);
+    __m256 y1 = _mm256_load_ps((float *) &y[1][i]);
+
+    __m256 x0, x1;
+
+    srslte_algebra_2x2_zf_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, norm);
+
+    _mm256_store_ps((float *) &x[0][i], x0);
+    _mm256_store_ps((float *) &x[1][i], x1);
+
+  }
+  if (i > nof_symbols) {
+    i -= 4;
+  }
+#endif /* LV_HAVE_AVX */
+
+#ifdef LV_HAVE_SSE
+  for (/* i = 0*/; i < nof_symbols; i += 2) {
+    __m128 _h00 = _mm_load_ps((float*)&(h[0][0][i]));
+    __m128 _h01 = _mm_load_ps((float*)&(h[0][1][i]));
+    __m128 _h10 = _mm_load_ps((float*)&(h[1][0][i]));
+    __m128 _h11 = _mm_load_ps((float*)&(h[1][1][i]));
+
+    __m128 h00, h01, h10, h11;
+    switch (codebook_idx) {
+      case 0:
+        h00 = _h00;
+        h01 = _h10;
+        h10 = _h01;
+        h11 = _h11;
+        break;
+      case 1:
+        h00 = _mm_add_ps(_h00, _h10);
+        h01 = _mm_sub_ps(_h00, _h10);
+        h10 = _mm_add_ps(_h01, _h11);
+        h11 = _mm_sub_ps(_h01, _h11);
+        break;
+      case 2:
+        h00 = _mm_add_ps(_h00, _MM_MULJ_PS(_h10));
+        h01 = _mm_sub_ps(_h00, _MM_MULJ_PS(_h10));
+        h10 = _mm_add_ps(_h01, _MM_MULJ_PS(_h11));
+        h11 = _mm_sub_ps(_h01, _MM_MULJ_PS(_h11));
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    __m128 y0 = _mm_load_ps((float *) &y[0][i]);
+    __m128 y1 = _mm_load_ps((float *) &y[1][i]);
+
+    __m128 x0, x1;
+
+    srslte_algebra_2x2_zf_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, norm);
+
+    _mm_store_ps((float *) &x[0][i], x0);
+    _mm_store_ps((float *) &x[1][i], x1);
+
+  }
+  if (i > nof_symbols) {
+    i -= 2;
+  }
+#endif /* LV_HAVE_SSE */
+
+  for (/*int i = 0*/; i < nof_symbols; i++) {
+    cf_t h00, h01, h10, h11, det;
+
+    switch(codebook_idx) {
+      case 0:
+        h00 = h[0][0][i];
+        h01 = h[1][0][i];
+        h10 = h[0][1][i];
+        h11 = h[1][1][i];
+        break;
+      case 1:
+        h00 = h[0][0][i] + h[1][0][i];
+        h01 = h[0][0][i] - h[1][0][i];
+        h10 = h[0][1][i] + h[1][1][i];
+        h11 = h[0][1][i] - h[1][1][i];
+        break;
+      case 2:
+        h00 = h[0][0][i] + _Complex_I*h[1][0][i];
+        h01 = h[0][0][i] - _Complex_I*h[1][0][i];
+        h10 = h[0][1][i] + _Complex_I*h[1][1][i];
+        h11 = h[0][1][i] - _Complex_I*h[1][1][i];
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    det = (h00 * h11 - h01 * h10);
+    det = conjf(det) * (norm / (crealf(det) * crealf(det) + cimagf(det) * cimagf(det)));
+
+    x[0][i] = (+h11 * y[0][i] - h01 * y[1][i]) * det;
+    x[1][i] = (-h10 * y[0][i] + h00 * y[1][i]) * det;
+  }
+  return SRSLTE_SUCCESS;
+}
+
+// Generic implementation of MRC 2x1 (two antennas into one layer) Spatial Multiplexing equalizer
+int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+  int i = 0;
+
+#ifdef LV_HAVE_AVX
+  for (/* i = 0*/; i < nof_symbols; i += 4) {
+      __m256 _h00 = _mm256_load_ps((float*)&(h[0][0][i]));
+      __m256 _h01 = _mm256_load_ps((float*)&(h[0][1][i]));
+      __m256 _h10 = _mm256_load_ps((float*)&(h[1][0][i]));
+      __m256 _h11 = _mm256_load_ps((float*)&(h[1][1][i]));
+
+    __m256 h0, h1;
+    switch (codebook_idx) {
+      case 0:
+        h0 = _mm256_add_ps(_h00, _h10);
+        h1 = _mm256_add_ps(_h01, _h11);
+        break;
+      case 1:
+        h0 = _mm256_sub_ps(_h00, _h10);
+        h1 = _mm256_sub_ps(_h01, _h11);
+        break;
+      case 2:
+        h0 = _mm256_add_ps(_h00, _mm256_permute_ps(_MM256_CONJ_PS(_h10), 0b10110001));
+        h1 = _mm256_add_ps(_h01, _mm256_permute_ps(_MM256_CONJ_PS(_h11), 0b10110001));
+        break;
+      case 3:
+        h0 = _mm256_sub_ps(_h00, _mm256_permute_ps(_MM256_CONJ_PS(_h10), 0b10110001));
+        h1 = _mm256_sub_ps(_h01, _mm256_permute_ps(_MM256_CONJ_PS(_h11), 0b10110001));
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    __m256 h0_2 = _mm256_mul_ps(h0, h0);
+    __m256 h1_2 = _mm256_mul_ps(h1, h1);
+    __m256 hh0 = _mm256_add_ps(_mm256_movehdup_ps(h0_2), _mm256_moveldup_ps(h0_2));
+    __m256 hh1 = _mm256_add_ps(_mm256_movehdup_ps(h1_2), _mm256_moveldup_ps(h1_2));
+    __m256 hh = _mm256_add_ps(hh0, hh1);
+    __m256 hhrec = _mm256_rcp_ps(hh);
+
+    hhrec = _mm256_mul_ps(hhrec, (__m256){(float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2,
+                                          (float) M_SQRT2,(float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2});
+    __m256 y0 = _mm256_load_ps((float*)&y[0][i]);
+    __m256 y1 = _mm256_load_ps((float*)&y[1][i]);
+
+    __m256 x0 = _mm256_add_ps(_MM256_PROD_PS(_MM256_CONJ_PS(h0), y0), _MM256_PROD_PS(_MM256_CONJ_PS(h1), y1));
+    x0 = _mm256_mul_ps(hhrec, x0);
+
+    _mm256_store_ps((float*)&x[0][i], x0);
+
+  }
+  if (i > nof_symbols) {
+    i -= 4;
+  }
+#endif /* LV_HAVE_AVX */
+
+#ifdef LV_HAVE_SSE
+  for (/* i = 0*/; i < nof_symbols; i += 2) {
+    __m128 _h00 = _mm_load_ps((float*)&(h[0][0][i]));
+    __m128 _h01 = _mm_load_ps((float*)&(h[0][1][i]));
+    __m128 _h10 = _mm_load_ps((float*)&(h[1][0][i]));
+    __m128 _h11 = _mm_load_ps((float*)&(h[1][1][i]));
+
+    __m128 h0, h1;
+    switch (codebook_idx) {
+      case 0:
+        h0 = _mm_add_ps(_h00, _h10);
+        h1 = _mm_add_ps(_h01, _h11);
+        break;
+      case 1:
+        h0 = _mm_sub_ps(_h00, _h10);
+        h1 = _mm_sub_ps(_h01, _h11);
+        break;
+      case 2:
+        h0 = _mm_add_ps(_h00, _mm_permute_ps(_MM_CONJ_PS(_h10), 0b10110001));
+        h1 = _mm_add_ps(_h01, _mm_permute_ps(_MM_CONJ_PS(_h11), 0b10110001));
+        break;
+      case 3:
+        h0 = _mm_sub_ps(_h00, _mm_permute_ps(_MM_CONJ_PS(_h10), 0b10110001));
+        h1 = _mm_sub_ps(_h01, _mm_permute_ps(_MM_CONJ_PS(_h11), 0b10110001));
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    __m128 h0_2 = _mm_mul_ps(h0, h0);
+    __m128 h1_2 = _mm_mul_ps(h1, h1);
+    __m128 hh0 = _mm_add_ps(_mm_movehdup_ps(h0_2), _mm_moveldup_ps(h0_2));
+    __m128 hh1 = _mm_add_ps(_mm_movehdup_ps(h1_2), _mm_moveldup_ps(h1_2));
+    __m128 hh = _mm_add_ps(hh0, hh1);
+    __m128 hhrec = _mm_rcp_ps(hh);
+
+    hhrec = _mm_mul_ps(hhrec, (__m128){(float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2});
+
+    __m128 y0 = _mm_load_ps((float*)&y[0][i]);
+    __m128 y1 = _mm_load_ps((float*)&y[1][i]);
+
+    __m128 x0 = _mm_add_ps(_MM_PROD_PS(_MM_CONJ_PS(h0), y0), _MM_PROD_PS(_MM_CONJ_PS(h1), y1));
+    x0 = _mm_mul_ps(hhrec, x0);
+
+    _mm_store_ps((float*)&x[0][i], x0);
+
+  }
+  if (i > nof_symbols) {
+    i -= 2;
+  }
+#endif /* LV_HAVE_SSE */
+
+  for (/*i = 0*/; i < nof_symbols; i += 1) {
+    cf_t h0, h1;
+    float hh;
+
+    switch(codebook_idx) {
+      case 0:
+        h0 = h[0][0][i] + h[1][0][i];
+        h1 = h[0][1][i] + h[1][1][i];
+        break;
+      case 1:
+        h0 = h[0][0][i] - h[1][0][i];
+        h1 = h[0][1][i] - h[1][1][i];
+        break;
+      case 2:
+        h0 = h[0][0][i] + _Complex_I * h[1][0][i];
+        h1 = h[0][1][i] + _Complex_I * h[1][1][i];
+        break;
+      case 3:
+        h0 = h[0][0][i] - _Complex_I * h[1][0][i];
+        h1 = h[0][1][i] - _Complex_I * h[1][1][i];
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    hh = (float) M_SQRT2/(crealf(h0)*crealf(h0) + cimagf(h0)*cimagf(h0) + crealf(h1)*crealf(h1) + cimagf(h1)*cimagf(h1));
+
+    x[0][i] = (conjf(h0) * y[0][i] + conjf(h1) * y[1][i]) * hh;
+  }
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_predecoding_multiplex_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
+                              int nof_rxant, int nof_ports, int nof_layers, int codebook_idx, int nof_symbols)
+{
+  if (nof_ports == 2 && nof_rxant == 2) {
+    if (nof_layers == 2) {
+      return srslte_predecoding_multiplex_2x2_zf(y, h, x, codebook_idx, nof_symbols);
+    } else {
+      return srslte_predecoding_multiplex_2x1_mrc(y, h, x, codebook_idx, nof_symbols);
+    }
+  } else if (nof_ports == 4) {
+    fprintf(stderr, "Error predecoding CCD: Only 2 ports supported\n");
+  } else {
+    fprintf(stderr, "Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
+  }
+  return SRSLTE_ERROR;
+}
 
 /* 36.211 v10.3.0 Section 6.3.4 */
-int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
-    int nof_rxant, int nof_ports, int nof_layers, int nof_symbols, srslte_mimo_type_t type, float noise_estimate) {
+int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                  cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_ports, int nof_layers,
+                                  int codebook_idx, int nof_symbols, srslte_mimo_type_t type, float noise_estimate) {
 
   if (nof_ports > SRSLTE_MAX_PORTS) {
     fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,
@@ -722,10 +1277,11 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     }
     break;
   case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-    fprintf(stderr, "Spatial multiplexing not supported\n");
-    return -1;
+    return srslte_predecoding_multiplex_zf(y, h, x, nof_rxant, nof_ports, nof_layers, codebook_idx, nof_symbols);
+    default:
+      return SRSLTE_ERROR;
   }
-  return 0;
+  return SRSLTE_ERROR;
 }
 
 
@@ -813,9 +1369,70 @@ int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], 
   }
 }
 
+int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers, int nof_ports,
+                               int codebook_idx, uint32_t nof_symbols)
+{
+  int i;
+  if (nof_ports == 2) {
+    if (nof_layers == 1) {
+      switch(codebook_idx) {
+        case 0:
+          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[1], nof_symbols);
+          break;
+        case 1:
+          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[0], -1.0f/sqrtf(2.0f), y[1], nof_symbols);
+          break;
+        case 2:
+          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
+          srslte_vec_sc_prod_ccc(x[0], _Complex_I/sqrtf(2.0f), y[1], nof_symbols);
+          break;
+        case 3:
+          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
+          srslte_vec_sc_prod_ccc(x[0], -_Complex_I/sqrtf(2.0f), y[1], nof_symbols);
+          break;
+        default:
+          fprintf(stderr, "Invalid multiplex combination: codebook_idx=%d, nof_layers=%d, nof_ports=%d\n",
+                  codebook_idx, nof_layers, nof_ports);
+          return SRSLTE_ERROR;
+      }
+    } else if (nof_layers == 2) {
+      switch(codebook_idx) {
+        case 0:
+          srslte_vec_sc_prod_cfc(x[0], 1.0f/sqrtf(2.0f), y[0], nof_symbols);
+          srslte_vec_sc_prod_cfc(x[1], 1.0f/sqrtf(2.0f), y[1], nof_symbols);
+          break;
+        case 1:
+          for (i = 0; i < nof_symbols; i++) {
+            y[0][i] = 0.5f*x[0][i] + 0.5f*x[1][i];
+            y[1][i] = 0.5f*x[0][i] - 0.5f*x[1][i];
+          }
+          break;
+        case 2:
+          for (i = 0; i < nof_symbols; i++) {
+            y[0][i] = 0.5f*x[0][i] + 0.5f*x[1][i];
+            y[1][i] = 0.5f*_Complex_I*x[0][i] - 0.5f*_Complex_I*x[1][i];
+          }
+          break;
+        case 3:
+        default:
+          fprintf(stderr, "Invalid multiplex combination: codebook_idx=%d, nof_layers=%d, nof_ports=%d\n",
+                  codebook_idx, nof_layers, nof_ports);
+          return SRSLTE_ERROR;
+      }
+    } else {
+      ERROR("Not implemented");
+    }
+  } else {
+    ERROR("Not implemented");
+  }
+  return SRSLTE_SUCCESS;
+}
+
 /* 36.211 v10.3.0 Section 6.3.4 */
 int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers,
-    int nof_ports, int nof_symbols, srslte_mimo_type_t type) {
+    int nof_ports, int codebook_idx, int nof_symbols, srslte_mimo_type_t type) {
 
   if (nof_ports > SRSLTE_MAX_PORTS) {
     fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,
@@ -829,29 +1446,30 @@ int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS],
   }
 
   switch (type) {
-  case SRSLTE_MIMO_TYPE_CDD:
-    return srslte_precoding_cdd(x, y, nof_layers, nof_ports, nof_symbols); 
-  case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
-    if (nof_ports == 1 && nof_layers == 1) {
-      return srslte_precoding_single(x[0], y[0], nof_symbols);
-    } else {
-      fprintf(stderr,
-          "Number of ports and layers must be 1 for transmission on single antenna ports\n");
-      return -1;
-    }
-    break;
-  case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
-    if (nof_ports == nof_layers) {
-      return srslte_precoding_diversity(x, y, nof_ports, nof_symbols);
-    } else {
-      fprintf(stderr,
-          "Error number of layers must equal number of ports in transmit diversity\n");
-      return -1;
-    }
-  case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-    fprintf(stderr, "Spatial multiplexing not supported\n");
-    return -1;
+    case SRSLTE_MIMO_TYPE_CDD:
+      return srslte_precoding_cdd(x, y, nof_layers, nof_ports, nof_symbols);
+    case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
+      if (nof_ports == 1 && nof_layers == 1) {
+        return srslte_precoding_single(x[0], y[0], nof_symbols);
+      } else {
+        fprintf(stderr,
+                "Number of ports and layers must be 1 for transmission on single antenna ports\n");
+        return -1;
+      }
+      break;
+    case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
+      if (nof_ports == nof_layers) {
+        return srslte_precoding_diversity(x, y, nof_ports, nof_symbols);
+      } else {
+        fprintf(stderr,
+                "Error number of layers must equal number of ports in transmit diversity\n");
+        return -1;
+      }
+    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+      return srslte_precoding_multiplex(x, y, nof_layers, nof_ports, codebook_idx, nof_symbols);
+    default:
+      return SRSLTE_ERROR;
   }
-  return 0;
+  return SRSLTE_ERROR;
 }
 

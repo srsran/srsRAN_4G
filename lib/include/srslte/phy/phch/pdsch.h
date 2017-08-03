@@ -115,7 +115,9 @@ SRSLTE_API int srslte_pdsch_cfg_multi(srslte_pdsch_cfg_t *cfg,
                                       uint32_t cfi,
                                       uint32_t sf_idx,
                                       uint32_t rvidx,
-                                      uint32_t rvidx2);
+                                      uint32_t rvidx2,
+                                      srslte_mimo_type_t mimo_type,
+                                      uint32_t pmi);
 
 SRSLTE_API int srslte_pdsch_encode(srslte_pdsch_t *q,
                                    srslte_pdsch_cfg_t *cfg,

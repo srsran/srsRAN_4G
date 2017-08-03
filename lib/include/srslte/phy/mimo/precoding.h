@@ -65,8 +65,9 @@ SRSLTE_API int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS],
 SRSLTE_API int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], 
                                      cf_t *y[SRSLTE_MAX_PORTS], 
                                      int nof_layers,
-                                     int nof_ports, 
-                                     int nof_symbols, 
+                                     int nof_ports,
+                                     int codebook_idx,
+                                     int nof_symbols,
                                      srslte_mimo_type_t type);
 
 /* Estimates the vector "x" based on the received signal "y" and the channel estimates "h"
@@ -112,8 +113,16 @@ SRSLTE_API int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS],
                                              int nof_rxant,
                                              int nof_ports, 
                                              int nof_layers, 
+                                             int codebook_idx,
                                              int nof_symbols, 
                                              srslte_mimo_type_t type, 
                                              float noise_estimate);
+
+int srslte_precoding_pmi_select (cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                 uint32_t nof_symbols,
+                                 float noise_estimate,
+                                 int nof_layers,
+                                 uint32_t *pmi,
+                                 float sinr[SRSLTE_MAX_CODEBOOKS]);
 
 #endif /* PRECODING_H_ */
