@@ -447,7 +447,6 @@ int rf_soapy_send_timed(void *h,
     rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
     timeNs = secs * 1000000000;
     timeNs = timeNs + (frac_secs * 1000000000);
-    int num_channels = 1;
     int n = 0;
 
     if(!handler->tx_stream_active){
