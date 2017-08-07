@@ -66,7 +66,7 @@ public:
             rrc_interface_nas   *rrc_,
             gw_interface_nas    *gw_,
             srslte::log         *nas_log_,
-            uint32_t            lcid_);
+            srslte::srslte_nas_config_t cfg_);
   void stop();
 
   emm_state_t get_state();
@@ -84,7 +84,7 @@ private:
   rrc_interface_nas  *rrc;
   usim_interface_nas *usim;
   gw_interface_nas   *gw;
-  uint32_t           default_lcid;
+  srslte::srslte_nas_config_t cfg;
 
   emm_state_t        state;
    

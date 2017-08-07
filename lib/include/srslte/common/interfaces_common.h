@@ -34,6 +34,17 @@
 
 namespace srslte {
 
+class srslte_nas_config_t
+{
+public:
+  srslte_nas_config_t(uint32_t lcid_ = 0)
+    :lcid(lcid_)
+    {}
+
+  uint32_t lcid;
+};
+
+
 class srslte_pdcp_config_t
 {
 public:
