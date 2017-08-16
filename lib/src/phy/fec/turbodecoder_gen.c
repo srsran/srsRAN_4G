@@ -328,6 +328,9 @@ void srslte_tdec_gen_iteration(srslte_tdec_gen_t * h, float * input, uint32_t lo
   } else {
     fprintf(stderr, "Error CB index not set (call srslte_tdec_gen_reset() first\n");    
   }
+
+  // Increase number of iterations
+  h->n_iter++;
 }
 
 int srslte_tdec_gen_reset(srslte_tdec_gen_t * h, uint32_t long_cb)
@@ -339,6 +342,7 @@ int srslte_tdec_gen_reset(srslte_tdec_gen_t * h, uint32_t long_cb)
   }
   memset(h->w, 0, sizeof(float) * long_cb);
   h->current_cbidx = srslte_cbsegm_cbindex(long_cb);
+  h->current_cb_len = long_cb;
   if (h->current_cbidx < 0) {
     fprintf(stderr, "Invalid CB length %d\n", long_cb);
     return -1; 

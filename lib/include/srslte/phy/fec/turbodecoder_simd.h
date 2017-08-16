@@ -48,13 +48,13 @@
 // The constant SRSLTE_TDEC_NPAR defines the maximum number of parallel CB supported by all SIMD decoders 
 #ifdef ENABLE_SIMD_INTER
   #include "srslte/phy/fec/turbodecoder_simd_inter.h"
-  #if LV_HAVE_AVX2
+  #ifdef LV_HAVE_AVX2
     #define SRSLTE_TDEC_NPAR_INTRA 2
   #else
     #define SRSLTE_TDEC_NPAR_INTRA 1
   #endif
 #else
-  #if LV_HAVE_AVX2
+  #ifdef LV_HAVE_AVX2
     #define SRSLTE_TDEC_NPAR 2
   #else
     #define SRSLTE_TDEC_NPAR 1
