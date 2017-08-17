@@ -213,7 +213,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     return;
   }
 
-  srslte_sch_set_max_noi(&pdsch.dl_sch, max_iterations);
+  srslte_pdsch_set_max_noi(&pdsch, max_iterations);
 
   bool input_fft_allocated = false; 
   int r=-1;
@@ -291,10 +291,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexutils_write_cf(pdsch.symbols[0], &plhs[2], cfg.nbits.nof_re, 1);  
   }
   if (nlhs >= 4) {
-    mexutils_write_cf(pdsch.d, &plhs[3], cfg.nbits.nof_re, 1);  
+    mexutils_write_cf(pdsch.d[0], &plhs[3], cfg.nbits.nof_re, 1);
   }
   if (nlhs >= 5) {
-    mexutils_write_s(pdsch.e, &plhs[4], cfg.nbits.nof_bits, 1);  
+    mexutils_write_s(pdsch.e[0], &plhs[4], cfg.nbits.nof_bits, 1);
   }
   if (nlhs >= 6) {
     uint32_t len = nof_antennas*cell.nof_ports*SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);

@@ -528,24 +528,25 @@ int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbu
                         int16_t *e_bits, uint8_t *data, int codeword_idx)
 {
   uint32_t Nl = 1;
+  int ret = SRSLTE_ERROR;
 
   if (cfg->nof_layers != cfg->grant.nof_tb) {
     Nl = 2;
   }
 
   if (codeword_idx == 0) {
-    return decode_tb(q, softbuffer, &cfg->cb_segm,
+    ret = decode_tb(q, softbuffer, &cfg->cb_segm,
                      cfg->grant.Qm*Nl, cfg->rv, cfg->nbits.nof_bits,
                      e_bits, data);
-  }
-
-  if (codeword_idx == 1) {
-    return decode_tb(q, softbuffer, &cfg->cb_segm2,
+  } else if (codeword_idx == 1) {
+    ret = decode_tb(q, softbuffer, &cfg->cb_segm2,
                      cfg->grant.Qm2*Nl, cfg->rv2, cfg->nbits2.nof_bits,
                      e_bits, data);
+  } else {
+    ERROR("Not implemented");
   }
 
-  return SRSLTE_ERROR;
+  return ret;
 }
 
 /**
@@ -565,6 +566,28 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
                    softbuffer, &cfg->cb_segm, 
                    cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
                    data, e_bits);
+}
+
+int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
+                              uint8_t *data, uint8_t *e_bits, int codeword_idx) {
+  int ret = SRSLTE_ERROR;
+  uint32_t Nl = 1;
+
+  if (cfg->nof_layers != cfg->grant.nof_tb) {
+    Nl = 2;
+  }
+
+  if(codeword_idx == 0) {
+    /* Codeword 1 shall be encoded */
+    ret = encode_tb(q, softbuffer, &cfg->cb_segm, cfg->grant.Qm*Nl, cfg->rv, cfg->nbits.nof_bits, data, e_bits);
+  } else if(codeword_idx == 1) {
+    /* Codeword 2 shall be encoded */
+    ret = encode_tb(q, softbuffer, &cfg->cb_segm2, cfg->grant.Qm2*Nl, cfg->rv2, cfg->nbits2.nof_bits, data, e_bits);
+  } else {
+    ERROR("Not implemented");
+  }
+
+  return ret;
 }
 
 int srslte_dlsch_encode_multi(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS],

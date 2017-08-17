@@ -191,11 +191,16 @@ SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q,
                                         uint32_t tti,
                                         uint16_t rnti);
 
-SRSLTE_API int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t * q, 
+SRSLTE_API int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t * q,
                                               cf_t *input[SRSLTE_MAX_PORTS], 
                                               uint8_t *data[SRSLTE_MAX_CODEWORDS],
                                               uint32_t tti,
                                               uint16_t rnti);
+
+SRSLTE_API int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q,
+                                          uint32_t *ri,
+                                          uint32_t *pmi,
+                                          float *current_sinr);
 
 SRSLTE_API bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, 
                                           uint32_t sf_idx, 

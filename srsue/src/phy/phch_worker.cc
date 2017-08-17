@@ -432,7 +432,7 @@ bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *paylo
         
         /* Set decoder iterations */
         if (phy->args->pdsch_max_its > 0) {
-          srslte_sch_set_max_noi(&ue_dl.pdsch.dl_sch, phy->args->pdsch_max_its);
+          srslte_pdsch_set_max_noi(&ue_dl.pdsch, phy->args->pdsch_max_its);
         }
 
         

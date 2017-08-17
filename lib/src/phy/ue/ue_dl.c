@@ -293,19 +293,19 @@ int srslte_ue_dl_cfg_grant_multi(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant,
   uint32_t pmi = 0;
 
   /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
-  if (q->pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
-    if (q->pdsch_cfg.grant.nof_tb == 1) {
+  if (mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
+    if (grant->nof_tb == 1) {
       if (pinfo > 0 && pinfo < 5) {
         pmi = pinfo - 1;
       } else {
-        ERROR("Not Implemented");
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, pinfo);
         return SRSLTE_ERROR;
       }
     } else {
       if (pinfo < 2) {
         pmi = pinfo;
       } else {
-        ERROR("Not Implemented");
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, pinfo);
         return SRSLTE_ERROR;
       }
     }

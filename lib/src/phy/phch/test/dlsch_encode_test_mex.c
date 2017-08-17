@@ -46,7 +46,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   int i;
   srslte_sch_t dlsch;
   srslte_pdsch_cfg_t cfg; 
-  srslte_softbuffer_tx_t *softbuffers[SRSLTE_MAX_CODEWORDS];
+  srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS];
   uint32_t nof_codewords = 1;
 
   memset(&dlsch, 0, sizeof(srslte_sch_t));
@@ -107,8 +107,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   /* Initialise buffers */
   for (i = 0; i < nof_codewords; i++) {
-    softbuffers[i] = srslte_vec_malloc(sizeof(srslte_softbuffer_tx_t));
-    if (srslte_softbuffer_tx_init(softbuffers[i], cell.nof_prb)) {
+    if (srslte_softbuffer_tx_init(&softbuffers[i], cell.nof_prb)) {
       mexErrMsgTxt("Error initiating DL-SCH soft buffer\n");
       return;
     }
@@ -151,8 +150,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(e_bits);
   free(e_bits_unpacked);
   for (i = 0; i < nof_codewords; i++) {
-    srslte_softbuffer_tx_free(softbuffers[i]);
-    free(softbuffers[i]);
+    srslte_softbuffer_tx_free(&softbuffers[i]);
   }
   return;
 }

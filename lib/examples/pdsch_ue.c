@@ -846,7 +846,7 @@ void *plot_thread_run(void *arg) {
       plot_scatter_setNewData(&pscatequal_pdcch, ue_dl.pdcch.d, 36*ue_dl.pdcch.nof_cce);
     }
     
-    plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d, nof_symbols);
+    plot_scatter_setNewData(&pscatequal, ue_dl.pdsch.d[0], nof_symbols);
     
     if (plot_sf_idx == 1) {
       if (prog_args.net_port_signal > 0) {

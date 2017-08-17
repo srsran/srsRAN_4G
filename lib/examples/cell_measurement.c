@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
             } else if (n == 0) {
               printf("CFO: %+6.4f kHz, SFO: %+6.4f kHz, NOI: %.2f, PDCCH-Det: %.3f\r",
                       srslte_ue_sync_get_cfo(&ue_sync)/1000, srslte_ue_sync_get_sfo(&ue_sync)/1000, 
-                      srslte_sch_average_noi(&ue_dl.pdsch.dl_sch),
+                      srslte_pdsch_average_noi(&ue_dl.pdsch),
                       (float) ue_dl.nof_detected/nof_trials);                
               nof_trials++; 
             } else {

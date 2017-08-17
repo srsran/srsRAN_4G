@@ -155,7 +155,8 @@ int main(int argc, char **argv) {
   int ret = -1;
   struct timeval t[3];
   srslte_softbuffer_tx_t softbuffers_tx[SRSLTE_MAX_CODEWORDS];
-  
+  int M=10;
+
   parse_args(argc,argv);
 
   /* Initialise to zeros */
@@ -265,6 +266,7 @@ int main(int argc, char **argv) {
       perror("srslte_vec_malloc");
       goto quit;
     }
+    bzero(data[0], sizeof(uint8_t) * grant.mcs.tbs);
   }
 
   if (grant.mcs2.tbs) {
@@ -273,6 +275,7 @@ int main(int argc, char **argv) {
       perror("srslte_vec_malloc");
       goto quit;
     }
+    bzero(data[1], sizeof(uint8_t) * grant.mcs2.tbs);
   }
 
   if (srslte_pdsch_init_rx_multi(&pdsch_rx, cell, nof_rx_antennas)) {
@@ -388,10 +391,18 @@ int main(int argc, char **argv) {
     }
     pdsch_cfg.rv = rv_idx;
     pdsch_cfg.rv2 = rv_idx2;
-    if (srslte_pdsch_encode_multi(&pdsch_tx, &pdsch_cfg, softbuffers_tx, data, rnti, tx_slot_symbols)) {
-      fprintf(stderr, "Error encoding PDSCH\n");
-      goto quit;
+    gettimeofday(&t[1], NULL);
+    for (k = 0; k < M; k++) {
+      if (srslte_pdsch_encode_multi(&pdsch_tx, &pdsch_cfg, softbuffers_tx, data, rnti, tx_slot_symbols)) {
+        ERROR("Error encoding PDSCH");
+        goto quit;
+      }
     }
+    gettimeofday(&t[2], NULL);
+    get_time_interval(t);
+    printf("ENCODED in %.2f (PHY bitrate=%.2f Mbps. Processing bitrate=%.2f Mbps)\n",
+           (float) t[0].tv_usec/M, (float) (grant.mcs.tbs + grant.mcs2.tbs)/1000.0f,
+           (float) (grant.mcs.tbs + grant.mcs2.tbs)*M/t[0].tv_usec);
 
   #ifdef DO_OFDM
     for (i = 0; i < cell.nof_ports; i++) {
@@ -422,9 +433,9 @@ int main(int argc, char **argv) {
 
 
   }
-  int M=10;
-  int r=0; 
-  srslte_sch_set_max_noi(&pdsch_rx.dl_sch, 10);
+  int r=0;
+  srslte_pdsch_set_max_noi(&pdsch_rx, 10);
+
   gettimeofday(&t[1], NULL);
   for (k = 0; k < M; k++) {
 #ifdef DO_OFDM
@@ -443,7 +454,7 @@ int main(int argc, char **argv) {
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-  INFO("DECODED %s in %.2f (PHY bitrate=%.2f Mbps. Processing bitrate=%.2f Mbps)\n", r?"Error":"OK",
+  printf("DECODED %s in %.2f (PHY bitrate=%.2f Mbps. Processing bitrate=%.2f Mbps)\n", r?"Error":"OK",
          (float) t[0].tv_usec/M, (float) (grant.mcs.tbs + grant.mcs2.tbs)/1000.0f,
          (float) (grant.mcs.tbs + grant.mcs2.tbs)*M/t[0].tv_usec);
   if (r) {

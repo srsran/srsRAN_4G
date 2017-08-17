@@ -96,6 +96,13 @@ SRSLTE_API int srslte_dlsch_encode(srslte_sch_t *q,
                                    uint8_t *data, 
                                    uint8_t *e_bits);
 
+SRSLTE_API int srslte_dlsch_encode2(srslte_sch_t *q,
+                                    srslte_pdsch_cfg_t *cfg,
+                                    srslte_softbuffer_tx_t *softbuffer,
+                                    uint8_t *data,
+                                    uint8_t *e_bits,
+                                    int codeword_idx);
+
 SRSLTE_API int srslte_dlsch_encode_multi(srslte_sch_t *q,
                                    srslte_pdsch_cfg_t *cfg,
                                    srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS],
