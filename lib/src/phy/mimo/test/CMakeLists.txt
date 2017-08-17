@@ -69,4 +69,13 @@ add_test(precoding_multiplex_2l_cb0_mmse precoding_test -m multiplex -l 2 -p 2 -
 add_test(precoding_multiplex_2l_cb1_mmse precoding_test -m multiplex -l 2 -p 2 -r 2 -n 14000 -c 1 -d mmse)
 add_test(precoding_multiplex_2l_cb2_mmse precoding_test -m multiplex -l 2 -p 2 -r 2 -n 14000 -c 2 -d mmse)
 
+########################################################################
+# PMI SELECT TEST
+########################################################################
+
+add_executable(pmi_select_test pmi_select_test.c)
+target_link_libraries(pmi_select_test srslte_phy)
+
+add_test(pmi_select_test pmi_select_test)
+
 

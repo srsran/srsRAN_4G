@@ -25,7 +25,6 @@
  */
 
 #include <stdlib.h>
-#include <assert.h>
 #include <complex.h>
 #include <string.h>
 #include <math.h>
@@ -1985,7 +1984,7 @@ int srslte_precoding_pmi_select_1l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
 
     for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 4 + 1; j += PMI_SEL_PRECISION * 4) {
       /* 0. Load channel matrix */
-      __m256 h00 = _mm256_set_ps(crealf(h[0][0][j]),
+      __m256 h00 = _mm256_setr_ps(crealf(h[0][0][j]),
                                  cimagf(h[0][0][j]),
                                  crealf(h[0][0][j + PMI_SEL_PRECISION]),
                                  cimagf(h[0][0][j + PMI_SEL_PRECISION]),
@@ -1993,7 +1992,7 @@ int srslte_precoding_pmi_select_1l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
                                  cimagf(h[0][0][j + PMI_SEL_PRECISION * 2]),
                                  crealf(h[0][0][j + PMI_SEL_PRECISION * 3]),
                                  cimagf(h[0][0][j + PMI_SEL_PRECISION * 3]));
-      __m256 h01 = _mm256_set_ps(crealf(h[1][0][j]),
+      __m256 h01 = _mm256_setr_ps(crealf(h[1][0][j]),
                                  cimagf(h[1][0][j]),
                                  crealf(h[1][0][j + PMI_SEL_PRECISION]),
                                  cimagf(h[1][0][j + PMI_SEL_PRECISION]),
@@ -2001,7 +2000,7 @@ int srslte_precoding_pmi_select_1l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
                                  cimagf(h[1][0][j + PMI_SEL_PRECISION * 2]),
                                  crealf(h[1][0][j + PMI_SEL_PRECISION * 3]),
                                  cimagf(h[1][0][j + PMI_SEL_PRECISION * 3]));
-      __m256 h10 = _mm256_set_ps(crealf(h[0][1][j]),
+      __m256 h10 = _mm256_setr_ps(crealf(h[0][1][j]),
                                  cimagf(h[0][1][j]),
                                  crealf(h[0][1][j + PMI_SEL_PRECISION]),
                                  cimagf(h[0][1][j + PMI_SEL_PRECISION]),
@@ -2009,7 +2008,7 @@ int srslte_precoding_pmi_select_1l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
                                  cimagf(h[0][1][j + PMI_SEL_PRECISION * 2]),
                                  crealf(h[0][1][j + PMI_SEL_PRECISION * 3]),
                                  cimagf(h[0][1][j + PMI_SEL_PRECISION * 3]));
-      __m256 h11 = _mm256_set_ps(crealf(h[1][1][j]),
+      __m256 h11 = _mm256_setr_ps(crealf(h[1][1][j]),
                                  cimagf(h[1][1][j]),
                                  crealf(h[1][1][j + PMI_SEL_PRECISION]),
                                  cimagf(h[1][1][j + PMI_SEL_PRECISION]),
@@ -2030,12 +2029,12 @@ int srslte_precoding_pmi_select_1l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
           a1 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
           break;
         case 2:
-          a0 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
-          a1 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
-          break;
-        default:
           a0 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
           a1 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
+          break;
+        default:
+          a0 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
+          a1 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
           break;
       }
 
@@ -2058,10 +2057,10 @@ int srslte_precoding_pmi_select_1l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
           c = _mm256_sub_ps(b0, b1);
           break;
         case 2:
-          c = _mm256_sub_ps(b0, _MM256_MULJ_PS(b1));
+          c = _mm256_add_ps(b0, _MM256_MULJ_PS(b1));
           break;
         case 3:
-          c = _mm256_add_ps(b0, _MM256_MULJ_PS(b1));
+          c = _mm256_sub_ps(b0, _MM256_MULJ_PS(b1));
           break;
         default:
           return SRSLTE_ERROR;
@@ -2216,7 +2215,9 @@ int srslte_precoding_pmi_select_2l_sse(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
   float max_sinr = 0.0;
   uint32_t i, count;
 
-  __m128 sse_noise_estimate = (__m128) {noise_estimate, 0.0f, noise_estimate, 0.0f};
+  __m128 sse_noise_estimate = _mm_setr_ps(noise_estimate, 0.0f, noise_estimate, 0.0f);
+  __m128 sse_norm = _mm_set1_ps(0.25f);
+  __m128 sse_ones = _mm_set1_ps(1.0f);
 
   for (i = 0; i < 2; i++) {
     sinr_list[i] = 0;
@@ -2224,22 +2225,22 @@ int srslte_precoding_pmi_select_2l_sse(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
 
     for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 2 + 1; j += PMI_SEL_PRECISION * 2) {
       /* 0. Load channel matrix */
-      __m128 h00 = _mm_set_ps(crealf(h[0][0][j]),
-                              cimagf(h[0][0][j]),
-                              crealf(h[0][0][j + PMI_SEL_PRECISION]),
-                              cimagf(h[0][0][j + PMI_SEL_PRECISION]));
-      __m128 h01 = _mm_set_ps(crealf(h[1][0][j]),
-                              cimagf(h[1][0][j]),
-                              crealf(h[1][0][j + PMI_SEL_PRECISION]),
-                              cimagf(h[1][0][j + PMI_SEL_PRECISION]));
-      __m128 h10 = _mm_set_ps(crealf(h[0][1][j]),
-                              cimagf(h[0][1][j]),
-                              crealf(h[0][1][j + PMI_SEL_PRECISION]),
-                              cimagf(h[0][1][j + PMI_SEL_PRECISION]));
-      __m128 h11 = _mm_set_ps(crealf(h[1][1][j]),
-                              cimagf(h[1][1][j]),
-                              crealf(h[1][1][j + PMI_SEL_PRECISION]),
-                              cimagf(h[1][1][j + PMI_SEL_PRECISION]));
+      __m128 h00 = _mm_setr_ps(crealf(h[0][0][j]),
+                               cimagf(h[0][0][j]),
+                               crealf(h[0][0][j + PMI_SEL_PRECISION]),
+                               cimagf(h[0][0][j + PMI_SEL_PRECISION]));
+      __m128 h01 = _mm_setr_ps(crealf(h[1][0][j]),
+                               cimagf(h[1][0][j]),
+                               crealf(h[1][0][j + PMI_SEL_PRECISION]),
+                               cimagf(h[1][0][j + PMI_SEL_PRECISION]));
+      __m128 h10 = _mm_setr_ps(crealf(h[0][1][j]),
+                               cimagf(h[0][1][j]),
+                               crealf(h[0][1][j + PMI_SEL_PRECISION]),
+                               cimagf(h[0][1][j + PMI_SEL_PRECISION]));
+      __m128 h11 = _mm_setr_ps(crealf(h[1][1][j]),
+                               cimagf(h[1][1][j]),
+                               crealf(h[1][1][j + PMI_SEL_PRECISION]),
+                               cimagf(h[1][1][j + PMI_SEL_PRECISION]));
 
       /* 1. B = W'* H' */
       __m128 a00, a01, a10, a11;
@@ -2284,38 +2285,38 @@ int srslte_precoding_pmi_select_2l_sse(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
         default:
           return SRSLTE_ERROR;
       }
-      c00 = _mm_mul_ps(c00, _mm_set1_ps(0.25f));
-      c01 = _mm_mul_ps(c01, _mm_set1_ps(0.25f));
-      c10 = _mm_mul_ps(c10, _mm_set1_ps(0.25f));
-      c11 = _mm_mul_ps(c11, _mm_set1_ps(0.25f));
+      c00 = _mm_mul_ps(c00, sse_norm);
+      c01 = _mm_mul_ps(c01, sse_norm);
+      c10 = _mm_mul_ps(c10, sse_norm);
+      c11 = _mm_mul_ps(c11, sse_norm);
 
       /* 4. C += noise * I */
       c00 = _mm_add_ps(c00, sse_noise_estimate);
       c11 = _mm_add_ps(c11, sse_noise_estimate);
 
       /* 5. detC */
-      __m128 detC = _mm_sub_ps(_MM_PROD_PS(c00, c11), _MM_PROD_PS(c01, c10));
+      __m128 detC = srslte_algebra_2x2_det_sse(c00, c01, c10, c11);
       __m128 inv_detC = srslte_algebra_cf_recip_sse(detC);
+      inv_detC = _mm_mul_ps(sse_noise_estimate, inv_detC);
 
       __m128 den0 = _MM_PROD_PS(c00, inv_detC);
       __m128 den1 = _MM_PROD_PS(c11, inv_detC);
 
-      __m128 gamma0 = _mm_sub_ps(srslte_algebra_cf_recip_sse(den0), _mm_set1_ps(1.0f));
-      __m128 gamma1 = _mm_sub_ps(srslte_algebra_cf_recip_sse(den1), _mm_set1_ps(1.0f));
+      __m128 gamma0 = _mm_sub_ps(_mm_rcp_ps(den0), sse_ones);
+      __m128 gamma1 = _mm_sub_ps(_mm_rcp_ps(den1), sse_ones);
 
       /* Add for averaging */
-      __m128 sum = _MM_SWAP(_mm_add_ps(gamma0, gamma1));
-      __m128 sinr_sse = _mm_hadd_ps(sum, sum);
+      __m128 sinr_sse = _mm_add_ps(gamma0, gamma1);
       __attribute__((aligned(128))) float sinr[4];
       _mm_store_ps(sinr, sinr_sse);
 
-      sinr_list[i] += sinr[0];
+      sinr_list[i] += sinr[0] + sinr[2];
 
       count += 2;
     }
 
     /* Divide average by noise */
-    sinr_list[i] /= (2 * count * noise_estimate);
+    sinr_list[i] /= 2 * count;
 
     if (sinr_list[i] > max_sinr) {
       max_sinr = sinr_list[i];
@@ -2339,7 +2340,7 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
 
   __m256 avx_noise_estimate = _mm256_setr_ps(noise_estimate, 0.0f, noise_estimate, 0.0f,
                                         noise_estimate, 0.0f, noise_estimate, 0.0f);
-  __m256 avx_norm = _mm256_set1_ps(0.5f);
+  __m256 avx_norm = _mm256_set1_ps(0.25f);
   __m256 avx_ones = _mm256_set1_ps(1.0f);
 
   for (i = 0; i < 2; i++) {
@@ -2348,7 +2349,7 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
 
     for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 4 + 1; j += PMI_SEL_PRECISION * 4) {
       /* 0. Load channel matrix */
-      __m256 h00 = _mm256_set_ps(crealf(h[0][0][j]),
+      __m256 h00 = _mm256_setr_ps(crealf(h[0][0][j]),
                                  cimagf(h[0][0][j]),
                                  crealf(h[0][0][j + PMI_SEL_PRECISION]),
                                  cimagf(h[0][0][j + PMI_SEL_PRECISION]),
@@ -2356,7 +2357,7 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
                                  cimagf(h[0][0][j + PMI_SEL_PRECISION * 2]),
                                  crealf(h[0][0][j + PMI_SEL_PRECISION * 3]),
                                  cimagf(h[0][0][j + PMI_SEL_PRECISION * 3]));
-      __m256 h01 = _mm256_set_ps(crealf(h[1][0][j]),
+      __m256 h01 = _mm256_setr_ps(crealf(h[1][0][j]),
                                  cimagf(h[1][0][j]),
                                  crealf(h[1][0][j + PMI_SEL_PRECISION]),
                                  cimagf(h[1][0][j + PMI_SEL_PRECISION]),
@@ -2364,7 +2365,7 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
                                  cimagf(h[1][0][j + PMI_SEL_PRECISION * 2]),
                                  crealf(h[1][0][j + PMI_SEL_PRECISION * 3]),
                                  cimagf(h[1][0][j + PMI_SEL_PRECISION * 3]));
-      __m256 h10 = _mm256_set_ps(crealf(h[0][1][j]),
+      __m256 h10 = _mm256_setr_ps(crealf(h[0][1][j]),
                                  cimagf(h[0][1][j]),
                                  crealf(h[0][1][j + PMI_SEL_PRECISION]),
                                  cimagf(h[0][1][j + PMI_SEL_PRECISION]),
@@ -2372,7 +2373,7 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
                                  cimagf(h[0][1][j + PMI_SEL_PRECISION * 2]),
                                  crealf(h[0][1][j + PMI_SEL_PRECISION * 3]),
                                  cimagf(h[0][1][j + PMI_SEL_PRECISION * 3]));
-      __m256 h11 = _mm256_set_ps(crealf(h[1][1][j]),
+      __m256 h11 = _mm256_setr_ps(crealf(h[1][1][j]),
                                  cimagf(h[1][1][j]),
                                  crealf(h[1][1][j + PMI_SEL_PRECISION]),
                                  cimagf(h[1][1][j + PMI_SEL_PRECISION]),
@@ -2399,10 +2400,6 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
         default:
           return SRSLTE_ERROR;
       }
-      a00 = _mm256_mul_ps(a00, avx_norm);
-      a01 = _mm256_mul_ps(a01, avx_norm);
-      a10 = _mm256_mul_ps(a10, avx_norm);
-      a11 = _mm256_mul_ps(a11, avx_norm);
 
       /* 2. B = W' * H' * H = A * H */
 #ifdef LV_HAVE_FMA
@@ -2445,18 +2442,15 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
       c11 = _mm256_add_ps(c11, avx_noise_estimate);
 
       /* 5. detC */
-#ifdef LV_HAVE_FMA
-      __m256 detC = _MM256_PROD_SUB_PS(c00, c11, _MM256_PROD_PS(c01, c10));
-#else
-      __m256 detC = _mm256_sub_ps(_MM256_PROD_PS(c00, c11), _MM256_PROD_PS(c01, c10));
-#endif /* LV_HAVE_FMA */
+      __m256 detC = srslte_algebra_2x2_det_avx(c00, c01, c10, c11);
       __m256 inv_detC = srslte_algebra_cf_recip_avx(detC);
+      inv_detC = _mm256_mul_ps(avx_noise_estimate, inv_detC);
 
       __m256 den0 = _MM256_PROD_PS(c00, inv_detC);
       __m256 den1 = _MM256_PROD_PS(c11, inv_detC);
 
-      __m256 gamma0 = _mm256_sub_ps(srslte_algebra_cf_recip_avx(den0), avx_ones);
-      __m256 gamma1 = _mm256_sub_ps(srslte_algebra_cf_recip_avx(den1), avx_ones);
+      __m256 gamma0 = _mm256_sub_ps(_mm256_rcp_ps(den0), avx_ones);
+      __m256 gamma1 = _mm256_sub_ps(_mm256_rcp_ps(den1), avx_ones);
 
       /* Add for averaging */
       __m256 sinr_avx = _mm256_permute_ps(_mm256_add_ps(gamma0, gamma1), 0b00101000);
@@ -2469,7 +2463,7 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
     }
 
     /* Divide average by noise */
-    sinr_list[i] /= 2 * count * noise_estimate;
+    sinr_list[i] /= 2 * count;
 
     if (sinr_list[i] > max_sinr) {
       max_sinr = sinr_list[i];
