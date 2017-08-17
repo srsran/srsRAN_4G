@@ -44,14 +44,14 @@ void nas::init(usim_interface_nas *usim_,
                rrc_interface_nas  *rrc_,
                gw_interface_nas   *gw_,
                srslte::log        *nas_log_,
-               uint32_t           lcid_)
+               srslte::srslte_nas_config_t cfg_)
 {
   pool    = byte_buffer_pool::get_instance();
   usim    = usim_;
   rrc     = rrc_;
   gw      = gw_;
   nas_log = nas_log_;
-  default_lcid = lcid_;
+  cfg     = cfg_;
 }
 
 void nas::stop()
@@ -574,7 +574,7 @@ void nas::send_attach_request()
   liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT*)msg);
 
   nas_log->info("Sending attach request\n");
-  rrc->write_sdu(default_lcid, msg);
+  rrc->write_sdu(cfg.lcid, msg);
 }
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg)
@@ -616,7 +616,7 @@ void nas::send_service_request()
   uint8_t mac[4];
   integrity_generate(&k_nas_int[16],
                       count_ul,
-                      default_lcid-1,
+                      cfg.lcid-1,
                       SECURITY_DIRECTION_UPLINK,
                       &msg->msg[0],
                       2,
@@ -627,7 +627,7 @@ void nas::send_service_request()
   msg->msg[3] = mac[3];
   msg->N_bytes++;
   nas_log->info("Sending service request\n");
-  rrc->write_sdu(default_lcid, msg);
+  rrc->write_sdu(cfg.lcid, msg);
 }
 
 void nas::send_esm_information_response(){}

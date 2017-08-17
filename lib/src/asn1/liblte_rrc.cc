@@ -2006,6 +2006,7 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_meas_object_eutra_ie(LIBLTE_RRC_MEAS_OBJECT_EU
         liblte_value_2_bits(0, ie_ptr, 1);
 
         // Optional indicators
+        liblte_value_2_bits(meas_obj_eutra->offset_freq_not_default, ie_ptr, 1);
         liblte_value_2_bits(meas_obj_eutra->cells_to_remove_list_present, ie_ptr, 1);
         if(0 != meas_obj_eutra->N_cells_to_add_mod)
         {
@@ -2035,7 +2036,10 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_meas_object_eutra_ie(LIBLTE_RRC_MEAS_OBJECT_EU
         liblte_rrc_pack_neigh_cell_config_ie(meas_obj_eutra->neigh_cell_cnfg, ie_ptr);
 
         // Offset Freq
-        liblte_rrc_pack_q_offset_range_ie(meas_obj_eutra->offset_freq, ie_ptr);
+        if(meas_obj_eutra->offset_freq_not_default)
+        {
+          liblte_rrc_pack_q_offset_range_ie(meas_obj_eutra->offset_freq, ie_ptr);
+        }
 
         // Cells To Remove List
         if(meas_obj_eutra->cells_to_remove_list_present)
@@ -2328,6 +2332,9 @@ LIBLTE_ERROR_ENUM liblte_rrc_pack_meas_object_to_add_mod_list_ie(LIBLTE_RRC_MEAS
         {
             // Meas Object ID
             liblte_rrc_pack_meas_object_id_ie(list->meas_obj_list[i].meas_obj_id, ie_ptr);
+
+            // Meas Object Choice Extension
+            liblte_value_2_bits(0, ie_ptr, 1); // Choice from before extension marker
 
             // Meas Object Choice
             liblte_value_2_bits(list->meas_obj_list[i].meas_obj_type, ie_ptr, 2);
