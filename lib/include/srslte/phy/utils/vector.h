@@ -172,6 +172,9 @@ SRSLTE_API void srslte_vec_abs_square_cf(cf_t *x, float *abs_square, uint32_t le
 /* argument of each vector element */
 SRSLTE_API void srslte_vec_arg_cf(cf_t *x, float *arg, uint32_t len);
 
+/* Copy 256 bit aligned vector */
+SRSLTE_API void srs_vec_cf_cpy(cf_t *src, cf_t *dst, int len);
+
 #ifdef __cplusplus
 }
 #endif

@@ -96,19 +96,19 @@ int main(int argc, char **argv) {
   }
 
   for (i=0;i<nof_cw;i++) {
-    d[i] = malloc(sizeof(cf_t) * nof_symb_cw[i]);
+    d[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symb_cw[i]);
     if (!d[i]) {
       perror("malloc");
       exit(-1);
     }
-    dp[i] = malloc(sizeof(cf_t) * nof_symb_cw[i]);
+    dp[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symb_cw[i]);
     if (!dp[i]) {
       perror("malloc");
       exit(-1);
     }
   }
   for (i=0;i<nof_layers;i++) {
-    x[i] = malloc(sizeof(cf_t) * nof_symbols);
+    x[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
     if (!x[i]) {
       perror("malloc");
       exit(-1);
