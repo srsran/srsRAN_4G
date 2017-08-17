@@ -35,8 +35,10 @@
 #define HEST     prhs[1]
 #define NEST     prhs[2]
 #define NLAYERS  prhs[3]
-#define TXSCHEME prhs[4]
-#define NOF_INPUTS 5
+#define NCW      prhs[4]
+#define TXSCHEME prhs[5]
+#define CODEBOOK prhs[6]
+#define NOF_INPUTS 7
 
 
 void help()
@@ -58,6 +60,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   uint32_t nof_layers;
   uint32_t nof_tx_ports = 1;
   uint32_t nof_codewords = 1;
+  uint32_t codebook_idx = 0;
   float noise_estimate = 0;
   cf_t *x[SRSLTE_MAX_LAYERS];
   cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
@@ -80,6 +83,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   /* Read number of layers */
   nof_layers = (uint32_t) mxGetScalar(NLAYERS);
+
+  /* Read number of codewords */
+  nof_codewords = (uint32_t) mxGetScalar(NCW);
 
   if (nof_layers > SRSLTE_MAX_LAYERS) {
     mexErrMsgTxt("Too many layers\n");
@@ -109,7 +115,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   /* Print parameters trace */
-  mexPrintf("nof_tx_ports=%d, nof_rx_ants=%d, nof_layers=%d, nof_symbols=%d\n", nof_tx_ports, nof_rx_ants, nof_layers, nof_symbols);
+  mexPrintf("nof_tx_ports=%d, nof_rx_ants=%d, nof_layers=%d, nof_codewords=%d, codebook_idx=%d, nof_symbols=%d\n",
+            nof_tx_ports, nof_rx_ants, nof_layers, nof_codewords, codebook_idx, nof_symbols);
 
   /* Read noise estimate */
   if (nrhs >= NOF_INPUTS) {
@@ -134,7 +141,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   /* Allocate memory for intermediate data */
   for (i = 0; i < nof_tx_ports; i++) {
-    x[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
+    x[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols*nof_layers);
   }
 
   /* Allocate memory for channel estimate */
@@ -155,15 +162,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxGetString_700(TXSCHEME, txscheme, 32);
   }
 
-  if (!strcmp(txscheme, "Port0")) {
-    type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
-  } else if (!strcmp(txscheme, "TxDiversity")) {
-    type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-  } else if (!strcmp(txscheme, "CDD")) {    
-    type = SRSLTE_MIMO_TYPE_CDD;
-  } else if (!strcmp(txscheme, "SpatialMux")) {
-    type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
-  } else {
+  codebook_idx = (uint32_t) mxGetScalar(CODEBOOK);
+
+  if (srslte_str2mimotype(txscheme, &type)) {
     mexPrintf("Unsupported TxScheme=%s\n", txscheme);
     return; 
   }
@@ -176,18 +177,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /* Set output pointer */
   cf_t *d[SRSLTE_MAX_CODEWORDS];
   for (i = 0; i<nof_codewords; i++) {
-    d[i] = output;
+    d[i] = &output[i*nof_symbols*nof_layers/nof_codewords];
   }
 
   /* Pre-decode */
-  srslte_predecoding_type_multi(y, h, x, nof_rx_ants, nof_tx_ports, nof_layers, nof_symbols, type, noise_estimate);
+  srslte_predecoding_type_multi(y, h, x, nof_rx_ants, nof_tx_ports, nof_layers, codebook_idx, nof_symbols, type,
+                                noise_estimate);
 
   /* Layer de-mapper */
   srslte_layerdemap_type(x, d, nof_layers, nof_codewords, nof_symbols, symbols_layers, type);
   
   /* Write output */
   if (nlhs >= 1) {
-    mexutils_write_cf(output, &plhs[0], nof_symbols*nof_layers*nof_rx_ants/nof_tx_ports, 1);
+    mexutils_write_cf(output, &plhs[0], nof_symbols, nof_codewords);
   }
 
   /* Free memory */

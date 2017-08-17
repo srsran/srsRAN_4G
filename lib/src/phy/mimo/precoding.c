@@ -36,21 +36,20 @@
 #include "srslte/phy/utils/debug.h"
 
 #ifdef LV_HAVE_SSE
-#include <xmmintrin.h>
-#include <pmmintrin.h>
+#include <immintrin.h>
+#include "srslte/phy/utils/algebra.h"
 int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
 int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_symbols);
 #endif
 
 #ifdef LV_HAVE_AVX
 #include <immintrin.h>
-#include <srslte/srslte.h>
-#include <srslte/phy/utils/algebra.h>
-
+#include "srslte/phy/utils/algebra.h"
 int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
 #endif
 
 
+static srslte_mimo_decoder_t mimo_decoder = SRSLTE_MIMO_DECODER_MMSE;
 
 /************************************************
  * 
@@ -569,7 +568,7 @@ int srslte_precoding_mimo_2x2_gen(cf_t W[2][2], cf_t *y[SRSLTE_MAX_PORTS], cf_t 
   return SRSLTE_SUCCESS; 
 }
 
-// SSE implementation of ZF 2x2 CCD equalizer
+// AVX implementation of ZF 2x2 CCD equalizer
 #ifdef LV_HAVE_AVX
 
 int srslte_predecoding_ccd_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS],
@@ -578,7 +577,10 @@ int srslte_predecoding_ccd_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS],
                                       uint32_t nof_symbols) {
   uint32_t i = 0;
 
-  for (i = 0; i < nof_symbols; i += 4) {
+  __m256 mask0 = _mm256_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f);
+  __m256 mask1 = _mm256_setr_ps(-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f);
+
+  for (i = 0; i < nof_symbols - 3; i += 4) {
     /* Load channel */
     __m256 h00i = _mm256_load_ps((float *) &h[0][0][i]);
     __m256 h01i = _mm256_load_ps((float *) &h[0][1][i]);
@@ -586,14 +588,10 @@ int srslte_predecoding_ccd_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS],
     __m256 h11i = _mm256_load_ps((float *) &h[1][1][i]);
 
     /* Apply precoding */
-    __m256 h00 = _mm256_add_ps(h00i, _mm256_xor_ps(h10i,
-                                                   (__m256) {+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f}));
-    __m256 h10 = _mm256_add_ps(h01i, _mm256_xor_ps(h11i,
-                                                   (__m256) {+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f}));
-    __m256 h01 = _mm256_add_ps(h00i, _mm256_xor_ps(h10i,
-                                                   (__m256) {-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f}));
-    __m256 h11 = _mm256_add_ps(h01i, _mm256_xor_ps(h11i,
-                                                   (__m256) {-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f}));
+    __m256 h00 = _mm256_add_ps(h00i, _mm256_xor_ps(h10i, mask0));
+    __m256 h10 = _mm256_add_ps(h01i, _mm256_xor_ps(h11i, mask0));
+    __m256 h01 = _mm256_add_ps(h00i, _mm256_xor_ps(h10i, mask1));
+    __m256 h11 = _mm256_add_ps(h01i, _mm256_xor_ps(h11i, mask1));
 
     __m256 y0 = _mm256_load_ps((float *) &y[0][i]);
     __m256 y1 = _mm256_load_ps((float *) &y[1][i]);
@@ -619,7 +617,7 @@ int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
                                       uint32_t nof_symbols) {
   uint32_t i = 0;
 
-  for (i = 0; i < nof_symbols; i += 2) {
+  for (i = 0; i < nof_symbols - 1; i += 2) {
     /* Load channel */
     __m128 h00i = _mm_load_ps((float *) &h[0][0][i]);
     __m128 h01i = _mm_load_ps((float *) &h[0][1][i]);
@@ -627,10 +625,10 @@ int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
     __m128 h11i = _mm_load_ps((float *) &h[1][1][i]);
 
     /* Apply precoding */
-    __m128 h00 = _mm_add_ps(h00i, _mm_xor_ps(h10i, (__m128) {+0.0f, +0.0f, -0.0f, -0.0f}));
-    __m128 h10 = _mm_add_ps(h01i, _mm_xor_ps(h11i, (__m128) {+0.0f, +0.0f, -0.0f, -0.0f}));
-    __m128 h01 = _mm_add_ps(h00i, _mm_xor_ps(h10i, (__m128) {-0.0f, -0.0f, +0.0f, +0.0f}));
-    __m128 h11 = _mm_add_ps(h01i, _mm_xor_ps(h11i, (__m128) {-0.0f, -0.0f, +0.0f, +0.0f}));
+    __m128 h00 = _mm_add_ps(h00i, _mm_xor_ps(h10i, _mm_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f)));
+    __m128 h10 = _mm_add_ps(h01i, _mm_xor_ps(h11i, _mm_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f)));
+    __m128 h01 = _mm_add_ps(h00i, _mm_xor_ps(h10i, _mm_setr_ps(-0.0f, -0.0f, +0.0f, +0.0f)));
+    __m128 h11 = _mm_add_ps(h01i, _mm_xor_ps(h11i, _mm_setr_ps(-0.0f, -0.0f, +0.0f, +0.0f)));
 
     __m128 y0 = _mm_load_ps((float *) &y[0][i]);
     __m128 y1 = _mm_load_ps((float *) &y[1][i]);
@@ -681,7 +679,7 @@ int srslte_predecoding_ccd_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
   return SRSLTE_SUCCESS;
 }
 
-int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], 
+int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
                               int nof_rxant, int nof_ports, int nof_layers, int nof_symbols) 
 {
   if (nof_ports == 2 && nof_rxant == 2) {
@@ -707,223 +705,137 @@ int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORT
   return SRSLTE_ERROR;
 }
 
-/* PMI Select for 1 layer */
-int srslte_precoding_pmi_select_1l (cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
-                                    float noise_estimate, uint32_t *pmi,
-                                    float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+// AVX implementation of MMSE 2x2 CCD equalizer
+#ifdef LV_HAVE_AVX
 
-#define SQRT1_2 ((float)M_SQRT1_2);
-  float max_sinr = 0.0;
-  uint32_t i, count;
+int srslte_predecoding_ccd_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS],
+                                        cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS],
+                                        uint32_t nof_symbols, float noise_estimate) {
+  uint32_t i = 0;
 
-  for (i = 0; i < 4; i++) {
-    sinr_list[i] = 0;
-    count = 0;
+  for (i = 0; i < nof_symbols - 3; i += 4) {
+    /* Load channel */
+    __m256 h00i = _mm256_load_ps((float *) &h[0][0][i]);
+    __m256 h01i = _mm256_load_ps((float *) &h[0][1][i]);
+    __m256 h10i = _mm256_load_ps((float *) &h[1][0][i]);
+    __m256 h11i = _mm256_load_ps((float *) &h[1][1][i]);
 
-    for (uint32_t j = 0; j < nof_symbols; j += 100) {
-      /* 0. Load channel matrix */
-      cf_t h00 = h[0][0][j];
-      cf_t h01 = h[1][0][j];
-      cf_t h10 = h[0][1][j];
-      cf_t h11 = h[1][1][j];
+    /* Apply precoding */
+    __m256 h00 = _mm256_add_ps(h00i, _mm256_xor_ps(h10i, _mm256_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f)));
+    __m256 h10 = _mm256_add_ps(h01i, _mm256_xor_ps(h11i, _mm256_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f)));
+    __m256 h01 = _mm256_add_ps(h00i, _mm256_xor_ps(h10i, _mm256_setr_ps(-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f)));
+    __m256 h11 = _mm256_add_ps(h01i, _mm256_xor_ps(h11i, _mm256_setr_ps(-0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f)));
 
-      /* 1. B = W'* H' */
-      cf_t a0, a1;
-      switch(i) {
-        case 0:
-          a0 = conjf(h00) + conjf(h01);
-          a1 = conjf(h10) + conjf(h11);
-          break;
-        case 1:
-          a0 = conjf(h00) - conjf(h01);
-          a1 = conjf(h10) - conjf(h11);
-          break;
-        case 2:
-          a0 = conjf(h00) - _Complex_I * conjf(h01);
-          a1 = conjf(h10) - _Complex_I * conjf(h11);
-          break;
-        case 3:
-          a0 = conjf(h00) + _Complex_I * conjf(h01);
-          a1 = conjf(h10) + _Complex_I * conjf(h11);
-          break;
-      }
-      a0 *= SQRT1_2;
-      a1 *= SQRT1_2;
+    __m256 y0 = _mm256_load_ps((float *) &y[0][i]);
+    __m256 y1 = _mm256_load_ps((float *) &y[1][i]);
 
-      /* 2. B = W' * H' * H = A * H */
-      cf_t b0 = a0*h00 + a1*h10;
-      cf_t b1 = a0*h01 + a1*h11;
+    __m256 x0, x1;
 
-      /* 3. C = W' * H' * H * W' = B * W */
-      cf_t c;
-      switch(i) {
-        case 0:
-          c = b0 + b1;
-          break;
-        case 1:
-          c = b0 - b1;
-          break;
-        case 2:
-          c = b0 + _Complex_I*b1;
-          break;
-        case 3:
-          c = b0 - _Complex_I*b1;
-          break;
-        default:
-          return SRSLTE_ERROR;
-      }
-      c *= SQRT1_2;
+    srslte_algebra_2x2_mmse_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f);
 
-      /* Add for averaging */
-      sinr_list[i] += crealf(c);
-
-      count ++;
-    }
-
-    /* Divide average by noise */
-    sinr_list[i] /= noise_estimate*count;
-
-    if (sinr_list[i] > max_sinr) {
-      max_sinr = sinr_list[i];
-      *pmi = i;
-    }
+    _mm256_store_ps((float *) &x[0][i], x0);
+    _mm256_store_ps((float *) &x[1][i], x1);
   }
 
-  INFO("Precoder PMI Select for 1 layer SINR=[%.1fdB; %.1fdB; %.1fdB; %.1fdB] PMI=%d\n", 10*log10(sinr_list[0]), 10*log10(sinr_list[1]),
-       10*log10(sinr_list[2]), 10*log10(sinr_list[3]), *pmi);
-
-  return i;
+  return nof_symbols;
 }
+#endif /* LV_HAVE_AVX */
 
-/* PMI Select for 2 layers */
-int srslte_precoding_pmi_select_2l (cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
-                                    float noise_estimate, uint32_t *pmi,
-                                    float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+// SSE implementation of ZF 2x2 CCD equalizer
+#ifdef LV_HAVE_SSE
 
-  float max_sinr = 0.0;
-  uint32_t i, count;
+int srslte_predecoding_ccd_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS],
+                                      cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                      cf_t *x[SRSLTE_MAX_LAYERS],
+                                      uint32_t nof_symbols, float noise_estimate) {
+  uint32_t i = 0;
 
-  for (i = 0; i < 2; i++) {
-    sinr_list[i] = 0;
-    count = 0;
+  for (i = 0; i < nof_symbols - 1; i += 2) {
+    /* Load channel */
+    __m128 h00i = _mm_load_ps((float *) &h[0][0][i]);
+    __m128 h01i = _mm_load_ps((float *) &h[0][1][i]);
+    __m128 h10i = _mm_load_ps((float *) &h[1][0][i]);
+    __m128 h11i = _mm_load_ps((float *) &h[1][1][i]);
 
-    for (uint32_t j = 0; j < nof_symbols; j += 100) {
-      /* 0. Load channel matrix */
-      cf_t h00 = h[0][0][j];
-      cf_t h01 = h[1][0][j];
-      cf_t h10 = h[0][1][j];
-      cf_t h11 = h[1][1][j];
+    /* Apply precoding */
+    __m128 h00 = _mm_add_ps(h00i, _mm_xor_ps(h10i, _mm_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f)));
+    __m128 h10 = _mm_add_ps(h01i, _mm_xor_ps(h11i, _mm_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f)));
+    __m128 h01 = _mm_add_ps(h00i, _mm_xor_ps(h10i, _mm_setr_ps(-0.0f, -0.0f, +0.0f, +0.0f)));
+    __m128 h11 = _mm_add_ps(h01i, _mm_xor_ps(h11i, _mm_setr_ps(-0.0f, -0.0f, +0.0f, +0.0f)));
 
-      /* 1. B = W'* H' */
-      cf_t a00, a01, a10, a11;
-      switch(i) {
-        case 0:
-          a00 = conjf(h00) + conjf(h01);
-          a01 = conjf(h10) + conjf(h11);
-          a10 = conjf(h00) - conjf(h01);
-          a11 = conjf(h10) - conjf(h11);
-          break;
-        case 1:
-          a00 = conjf(h00) - _Complex_I*conjf(h01);
-          a01 = conjf(h10) - _Complex_I*conjf(h11);
-          a10 = conjf(h00) + _Complex_I*conjf(h01);
-          a11 = conjf(h10) + _Complex_I*conjf(h11);
-          break;
-        default:
-          return SRSLTE_ERROR;
-      }
-      a00 *= 0.5f;
-      a01 *= 0.5f;
-      a10 *= 0.5f;
-      a11 *= 0.5f;
+    __m128 y0 = _mm_load_ps((float *) &y[0][i]);
+    __m128 y1 = _mm_load_ps((float *) &y[1][i]);
 
-      /* 2. B = W' * H' * H = A * H */
-      cf_t b00 = a00*h00 + a01*h10;
-      cf_t b01 = a00*h01 + a01*h11;
-      cf_t b10 = a10*h00 + a11*h10;
-      cf_t b11 = a10*h01 + a11*h11;
+    __m128 x0, x1;
 
-      /* 3. C = W' * H' * H * W' = B * W */
-      cf_t c00, c01, c10, c11;
-      switch(i) {
-        case 0:
-          c00 = b00 + b01;
-          c01 = b00 - b01;
-          c10 = b10 + b11;
-          c11 = b10 - b11;
-          break;
-        case 1:
-          c00 = b00 + _Complex_I*b01;
-          c01 = b00 - _Complex_I*b01;
-          c10 = b10 + _Complex_I*b11;
-          c11 = b10 - _Complex_I*b11;
-          break;
-        default:
-          return SRSLTE_ERROR;
-      }
-      c00 *= 0.5;
-      c01 *= 0.5;
-      c10 *= 0.5;
-      c11 *= 0.5;
+    srslte_algebra_2x2_mmse_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f);
 
-      /* 4. C += noise * I */
-      c00 += noise_estimate;
-      c11 += noise_estimate;
-
-      /* 5. detC */
-      cf_t detC = c00*c11 - c01*c10;
-      cf_t inv_detC = conjf(detC)/(crealf(detC)*crealf(detC) + cimagf(detC)*cimagf(detC));
-
-      cf_t den0 = noise_estimate*c00*inv_detC;
-      cf_t den1 = noise_estimate*c11*inv_detC;
-
-      float gamma0 = crealf((conjf(den0)/(crealf(den0)*crealf(den0) + cimagf(den0)*cimagf(den0))) - 1);
-      float gamma1 = crealf((conjf(den1)/(crealf(den1)*crealf(den1) + cimagf(den1)*cimagf(den1))) - 1);
-
-      /* Add for averaging */
-      sinr_list[i] += (gamma0 + gamma1);
-
-      count ++;
-    }
-
-    /* Divide average by noise */
-    sinr_list[i] /= (2*count);
-
-    if (sinr_list[i] > max_sinr) {
-      max_sinr = sinr_list[i];
-      *pmi = i;
-    }
+    _mm_store_ps((float *) &x[0][i], x0);
+    _mm_store_ps((float *) &x[1][i], x1);
   }
 
-  INFO("Precoder PMI Select for 2 layers SINR=[%.1fdB; %.1fdB] PMI=%d\n", 10*log10(sinr_list[0]), 10*log10(sinr_list[1]), *pmi);
+  return nof_symbols;
+}
+#endif /* LV_HAVE_SSE */
 
-  return i;
+// Generic implementation of ZF 2x2 CCD equalizer
+int srslte_predecoding_ccd_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
+                                      int nof_symbols, float noise_estimate) {
+  cf_t h00, h01, h10, h11;
+  for (int i = 0; i < nof_symbols; i++) {
+
+    // Even precoder
+    h00 = +h[0][0][i] + h[1][0][i];
+    h10 = +h[0][1][i] + h[1][1][i];
+    h01 = +h[0][0][i] - h[1][0][i];
+    h11 = +h[0][1][i] - h[1][1][i];
+    srslte_algebra_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f);
+
+    i++;
+
+    // Odd precoder
+    h00 = h[0][0][i] - h[1][0][i];
+    h10 = h[0][1][i] - h[1][1][i];
+    h01 = h[0][0][i] + h[1][0][i];
+    h11 = h[0][1][i] + h[1][1][i];
+    srslte_algebra_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f);
+  }
+  return SRSLTE_SUCCESS;
 }
 
-int srslte_precoding_pmi_select (cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
-                                 float noise_estimate, int nof_layers, uint32_t *pmi,
-                                 float sinr[SRSLTE_MAX_CODEBOOKS]) {
-  int ret;
 
-  if (sinr == NULL || pmi == NULL) {
-    ERROR("Null pointer");
-    ret = SRSLTE_ERROR_INVALID_INPUTS;
-  } else if (nof_layers == 1) {
-    ret = srslte_precoding_pmi_select_1l(h, nof_symbols, noise_estimate, pmi, sinr);
-  } else if (nof_layers == 2) {
-    ret = srslte_precoding_pmi_select_2l(h, nof_symbols, noise_estimate, pmi, sinr);
+int srslte_predecoding_ccd_mmse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
+                              int nof_rxant, int nof_ports, int nof_layers, int nof_symbols, float noise_estimate)
+{
+  if (nof_ports == 2 && nof_rxant == 2) {
+    if (nof_layers == 2) {
+#ifdef LV_HAVE_AVX
+      return srslte_predecoding_ccd_2x2_mmse_avx(y, h, x, nof_symbols, noise_estimate);
+#else
+      #ifdef LV_HAVE_SSE
+      return srslte_predecoding_ccd_2x2_mmse_sse(y, h, x, nof_symbols, noise_estimate);
+#else
+      return srslte_predecoding_ccd_2x2_mmse_gen(y, h, x, nof_symbols, noise_estimate);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX */
+    } else {
+      fprintf(stderr, "Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
+      return -1;
+    }
+  } else if (nof_ports == 4) {
+    fprintf(stderr, "Error predecoding CCD: Only 2 ports supported\n");
   } else {
-    ERROR("Wrong number of layers");
-    ret = SRSLTE_ERROR_INVALID_INPUTS;
+    fprintf(stderr, "Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
   }
-
-  return ret;
+  return SRSLTE_ERROR;
 }
+
+#ifdef LV_HAVE_AVX
 
 // Generic implementation of ZF 2x2 Spatial Multiplexity equalizer
-int srslte_predecoding_multiplex_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+int srslte_predecoding_multiplex_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                         cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
-  int i = 0;
   float norm = 1.0;
 
   switch(codebook_idx) {
@@ -935,12 +847,11 @@ int srslte_predecoding_multiplex_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLT
       norm = 2.0f;
       break;
     default:
-      fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+      ERROR("Wrong codebook_idx=%d", codebook_idx);
       return SRSLTE_ERROR;
   }
 
-#ifdef LV_HAVE_AVX
-  for (/* i = 0*/; i < nof_symbols; i += 4) {
+  for (int i = 0; i < nof_symbols - 3; i += 4) {
     __m256 _h00 = _mm256_load_ps((float*)&(h[0][0][i]));
     __m256 _h01 = _mm256_load_ps((float*)&(h[0][1][i]));
     __m256 _h10 = _mm256_load_ps((float*)&(h[1][0][i]));
@@ -982,13 +893,33 @@ int srslte_predecoding_multiplex_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLT
     _mm256_store_ps((float *) &x[1][i], x1);
 
   }
-  if (i > nof_symbols) {
-    i -= 4;
-  }
+
+  return SRSLTE_SUCCESS;
+}
+
 #endif /* LV_HAVE_AVX */
 
 #ifdef LV_HAVE_SSE
-  for (/* i = 0*/; i < nof_symbols; i += 2) {
+
+// SSE implementation of ZF 2x2 Spatial Multiplexity equalizer
+int srslte_predecoding_multiplex_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+  float norm = 1.0;
+
+  switch(codebook_idx) {
+    case 0:
+      norm = (float) M_SQRT2;
+      break;
+    case 1:
+    case 2:
+      norm = 2.0f;
+      break;
+    default:
+      ERROR("Wrong codebook_idx=%d", codebook_idx);
+      return SRSLTE_ERROR;
+  }
+
+  for (int i = 0; i < nof_symbols - 1; i += 2) {
     __m128 _h00 = _mm_load_ps((float*)&(h[0][0][i]));
     __m128 _h01 = _mm_load_ps((float*)&(h[0][1][i]));
     __m128 _h10 = _mm_load_ps((float*)&(h[1][0][i]));
@@ -1030,12 +961,32 @@ int srslte_predecoding_multiplex_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLT
     _mm_store_ps((float *) &x[1][i], x1);
 
   }
-  if (i > nof_symbols) {
-    i -= 2;
-  }
+
+  return SRSLTE_SUCCESS;
+}
+
 #endif /* LV_HAVE_SSE */
 
-  for (/*int i = 0*/; i < nof_symbols; i++) {
+
+// Generic implementation of ZF 2x2 Spatial Multiplexity equalizer
+int srslte_predecoding_multiplex_2x2_zf_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+  float norm = 1.0;
+
+  switch(codebook_idx) {
+    case 0:
+      norm = (float) M_SQRT2;
+      break;
+    case 1:
+    case 2:
+      norm = 2.0f;
+      break;
+    default:
+      fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+      return SRSLTE_ERROR;
+  }
+
+  for (int i = 0; i < nof_symbols; i++) {
     cf_t h00, h01, h10, h11, det;
 
     switch(codebook_idx) {
@@ -1071,17 +1022,206 @@ int srslte_predecoding_multiplex_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLT
   return SRSLTE_SUCCESS;
 }
 
-// Generic implementation of MRC 2x1 (two antennas into one layer) Spatial Multiplexing equalizer
-int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
-  int i = 0;
+#ifdef LV_HAVE_AVX
+
+// AVX implementation of ZF 2x2 Spatial Multiplexity equalizer
+int srslte_predecoding_multiplex_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols,
+                                        float noise_estimate) {
+  float norm = 1.0;
+
+  switch(codebook_idx) {
+    case 0:
+      norm = (float) M_SQRT2;
+      break;
+    case 1:
+    case 2:
+      norm = 2.0f;
+      break;
+    default:
+      fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+      return SRSLTE_ERROR;
+  }
+
+  for (int i = 0; i < nof_symbols; i += 4) {
+    __m256 _h00 = _mm256_load_ps((float*)&(h[0][0][i]));
+    __m256 _h01 = _mm256_load_ps((float*)&(h[0][1][i]));
+    __m256 _h10 = _mm256_load_ps((float*)&(h[1][0][i]));
+    __m256 _h11 = _mm256_load_ps((float*)&(h[1][1][i]));
+
+    __m256 h00, h01, h10, h11;
+    switch (codebook_idx) {
+      case 0:
+        h00 = _h00;
+        h01 = _h10;
+        h10 = _h01;
+        h11 = _h11;
+        break;
+      case 1:
+        h00 = _mm256_add_ps(_h00, _h10);
+        h01 = _mm256_sub_ps(_h00, _h10);
+        h10 = _mm256_add_ps(_h01, _h11);
+        h11 = _mm256_sub_ps(_h01, _h11);
+        break;
+      case 2:
+        h00 = _mm256_add_ps(_h00, _MM256_MULJ_PS(_h10));
+        h01 = _mm256_sub_ps(_h00, _MM256_MULJ_PS(_h10));
+        h10 = _mm256_add_ps(_h01, _MM256_MULJ_PS(_h11));
+        h11 = _mm256_sub_ps(_h01, _MM256_MULJ_PS(_h11));
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    __m256 y0 = _mm256_load_ps((float *) &y[0][i]);
+    __m256 y1 = _mm256_load_ps((float *) &y[1][i]);
+
+    __m256 x0, x1;
+
+    srslte_algebra_2x2_mmse_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, norm);
+
+    _mm256_store_ps((float *) &x[0][i], x0);
+    _mm256_store_ps((float *) &x[1][i], x1);
+
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+#endif /* LV_HAVE_AVX */
+
+
+#ifdef LV_HAVE_SSE
+
+// SSE implementation of ZF 2x2 Spatial Multiplexity equalizer
+int srslte_predecoding_multiplex_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols,
+                                        float noise_estimate) {
+  float norm;
+
+  switch(codebook_idx) {
+    case 0:
+      norm = (float) M_SQRT2;
+      break;
+    case 1:
+    case 2:
+      norm = 2.0f;
+      break;
+    default:
+      fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+      return SRSLTE_ERROR;
+  }
+
+  for (int i = 0; i < nof_symbols - 1; i += 2) {
+    __m128 _h00 = _mm_load_ps((float*)&(h[0][0][i]));
+    __m128 _h01 = _mm_load_ps((float*)&(h[0][1][i]));
+    __m128 _h10 = _mm_load_ps((float*)&(h[1][0][i]));
+    __m128 _h11 = _mm_load_ps((float*)&(h[1][1][i]));
+
+    __m128 h00, h01, h10, h11;
+    switch (codebook_idx) {
+      case 0:
+        h00 = _h00;
+        h01 = _h10;
+        h10 = _h01;
+        h11 = _h11;
+        break;
+      case 1:
+        h00 = _mm_add_ps(_h00, _h10);
+        h01 = _mm_sub_ps(_h00, _h10);
+        h10 = _mm_add_ps(_h01, _h11);
+        h11 = _mm_sub_ps(_h01, _h11);
+        break;
+      case 2:
+        h00 = _mm_add_ps(_h00, _MM_MULJ_PS(_h10));
+        h01 = _mm_sub_ps(_h00, _MM_MULJ_PS(_h10));
+        h10 = _mm_add_ps(_h01, _MM_MULJ_PS(_h11));
+        h11 = _mm_sub_ps(_h01, _MM_MULJ_PS(_h11));
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    __m128 y0 = _mm_load_ps((float *) &y[0][i]);
+    __m128 y1 = _mm_load_ps((float *) &y[1][i]);
+
+    __m128 x0, x1;
+
+    srslte_algebra_2x2_mmse_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, norm);
+
+    _mm_store_ps((float *) &x[0][i], x0);
+    _mm_store_ps((float *) &x[1][i], x1);
+
+  }
+
+  return SRSLTE_SUCCESS;
+}
+#endif /* LV_HAVE_SSE */
+
+// Generic implementation of ZF 2x2 Spatial Multiplexity equalizer
+int srslte_predecoding_multiplex_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols,
+                                        float noise_estimate) {
+  float norm = 1.0;
+
+  switch(codebook_idx) {
+    case 0:
+      norm = (float) M_SQRT2;
+      break;
+    case 1:
+    case 2:
+      norm = 2.0f;
+      break;
+    default:
+      ERROR("Wrong codebook_idx=%d", codebook_idx);
+      return SRSLTE_ERROR;
+  }
+
+  for (int i = 0; i < nof_symbols; i++) {
+    cf_t h00, h01, h10, h11;
+
+    switch(codebook_idx) {
+      case 0:
+        h00 = h[0][0][i];
+        h01 = h[1][0][i];
+        h10 = h[0][1][i];
+        h11 = h[1][1][i];
+        break;
+      case 1:
+        h00 = h[0][0][i] + h[1][0][i];
+        h01 = h[0][0][i] - h[1][0][i];
+        h10 = h[0][1][i] + h[1][1][i];
+        h11 = h[0][1][i] - h[1][1][i];
+        break;
+      case 2:
+        h00 = h[0][0][i] + _Complex_I*h[1][0][i];
+        h01 = h[0][0][i] - _Complex_I*h[1][0][i];
+        h10 = h[0][1][i] + _Complex_I*h[1][1][i];
+        h11 = h[0][1][i] - _Complex_I*h[1][1][i];
+        break;
+      default:
+        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        return SRSLTE_ERROR;
+    }
+
+    srslte_algebra_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, norm);
+  }
+  return SRSLTE_SUCCESS;
+}
 
 #ifdef LV_HAVE_AVX
-  for (/* i = 0*/; i < nof_symbols; i += 4) {
-      __m256 _h00 = _mm256_load_ps((float*)&(h[0][0][i]));
-      __m256 _h01 = _mm256_load_ps((float*)&(h[0][1][i]));
-      __m256 _h10 = _mm256_load_ps((float*)&(h[1][0][i]));
-      __m256 _h11 = _mm256_load_ps((float*)&(h[1][1][i]));
+
+// Generic implementation of MRC 2x1 (two antennas into one layer) Spatial Multiplexing equalizer
+int srslte_predecoding_multiplex_2x1_mrc_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                             cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+
+  for (int i = 0; i < nof_symbols - 3; i += 4) {
+    __m256 _h00 = _mm256_load_ps((float*)&(h[0][0][i]));
+    __m256 _h01 = _mm256_load_ps((float*)&(h[0][1][i]));
+    __m256 _h10 = _mm256_load_ps((float*)&(h[1][0][i]));
+    __m256 _h11 = _mm256_load_ps((float*)&(h[1][1][i]));
 
     __m256 h0, h1;
     switch (codebook_idx) {
@@ -1094,12 +1234,12 @@ int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSL
         h1 = _mm256_sub_ps(_h01, _h11);
         break;
       case 2:
-        h0 = _mm256_add_ps(_h00, _mm256_permute_ps(_MM256_CONJ_PS(_h10), 0b10110001));
-        h1 = _mm256_add_ps(_h01, _mm256_permute_ps(_MM256_CONJ_PS(_h11), 0b10110001));
+        h0 = _mm256_add_ps(_h00, _MM256_MULJ_PS(_h10));
+        h1 = _mm256_add_ps(_h01, _MM256_MULJ_PS(_h11));
         break;
       case 3:
-        h0 = _mm256_sub_ps(_h00, _mm256_permute_ps(_MM256_CONJ_PS(_h10), 0b10110001));
-        h1 = _mm256_sub_ps(_h01, _mm256_permute_ps(_MM256_CONJ_PS(_h11), 0b10110001));
+        h0 = _mm256_sub_ps(_h00, _MM256_MULJ_PS(_h10));
+        h1 = _mm256_sub_ps(_h01, _MM256_MULJ_PS(_h11));
         break;
       default:
         fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
@@ -1113,8 +1253,7 @@ int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSL
     __m256 hh = _mm256_add_ps(hh0, hh1);
     __m256 hhrec = _mm256_rcp_ps(hh);
 
-    hhrec = _mm256_mul_ps(hhrec, (__m256){(float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2,
-                                          (float) M_SQRT2,(float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2});
+    hhrec = _mm256_mul_ps(hhrec, _mm256_set1_ps((float) M_SQRT2));
     __m256 y0 = _mm256_load_ps((float*)&y[0][i]);
     __m256 y1 = _mm256_load_ps((float*)&y[1][i]);
 
@@ -1124,13 +1263,20 @@ int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSL
     _mm256_store_ps((float*)&x[0][i], x0);
 
   }
-  if (i > nof_symbols) {
-    i -= 4;
-  }
+
+  return SRSLTE_SUCCESS;
+}
+
 #endif /* LV_HAVE_AVX */
 
+
+// SSE  implementation of MRC 2x1 (two antennas into one layer) Spatial Multiplexing equalizer
 #ifdef LV_HAVE_SSE
-  for (/* i = 0*/; i < nof_symbols; i += 2) {
+
+int srslte_predecoding_multiplex_2x1_mrc_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                             cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+
+  for (int i = 0; i < nof_symbols - 1; i += 2) {
     __m128 _h00 = _mm_load_ps((float*)&(h[0][0][i]));
     __m128 _h01 = _mm_load_ps((float*)&(h[0][1][i]));
     __m128 _h10 = _mm_load_ps((float*)&(h[1][0][i]));
@@ -1147,12 +1293,12 @@ int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSL
         h1 = _mm_sub_ps(_h01, _h11);
         break;
       case 2:
-        h0 = _mm_add_ps(_h00, _mm_permute_ps(_MM_CONJ_PS(_h10), 0b10110001));
-        h1 = _mm_add_ps(_h01, _mm_permute_ps(_MM_CONJ_PS(_h11), 0b10110001));
+        h0 = _mm_add_ps(_h00, _MM_MULJ_PS(_h10));
+        h1 = _mm_add_ps(_h01, _MM_MULJ_PS(_h11));
         break;
       case 3:
-        h0 = _mm_sub_ps(_h00, _mm_permute_ps(_MM_CONJ_PS(_h10), 0b10110001));
-        h1 = _mm_sub_ps(_h01, _mm_permute_ps(_MM_CONJ_PS(_h11), 0b10110001));
+        h0 = _mm_sub_ps(_h00, _MM_MULJ_PS(_h10));
+        h1 = _mm_sub_ps(_h01, _MM_MULJ_PS(_h11));
         break;
       default:
         fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
@@ -1166,7 +1312,7 @@ int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSL
     __m128 hh = _mm_add_ps(hh0, hh1);
     __m128 hhrec = _mm_rcp_ps(hh);
 
-    hhrec = _mm_mul_ps(hhrec, (__m128){(float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2, (float) M_SQRT2});
+    hhrec = _mm_mul_ps(hhrec, _mm_set1_ps((float) M_SQRT2));
 
     __m128 y0 = _mm_load_ps((float*)&y[0][i]);
     __m128 y1 = _mm_load_ps((float*)&y[1][i]);
@@ -1177,12 +1323,16 @@ int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSL
     _mm_store_ps((float*)&x[0][i], x0);
 
   }
-  if (i > nof_symbols) {
-    i -= 2;
-  }
+
+  return SRSLTE_SUCCESS;
+}
+
 #endif /* LV_HAVE_SSE */
 
-  for (/*i = 0*/; i < nof_symbols; i += 1) {
+// Generic implementation of MRC 2x1 (two antennas into one layer) Spatial Multiplexing equalizer
+int srslte_predecoding_multiplex_2x1_mrc_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        cf_t *x[SRSLTE_MAX_LAYERS], int codebook_idx, int nof_symbols) {
+  for (int i = 0; i < nof_symbols; i += 1) {
     cf_t h0, h1;
     float hh;
 
@@ -1215,21 +1365,57 @@ int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSL
   return SRSLTE_SUCCESS;
 }
 
-int srslte_predecoding_multiplex_zf(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
-                              int nof_rxant, int nof_ports, int nof_layers, int codebook_idx, int nof_symbols)
+int srslte_predecoding_multiplex(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS],
+                                 int nof_rxant, int nof_ports, int nof_layers, int codebook_idx, int nof_symbols,
+                                 float noise_estimate)
 {
   if (nof_ports == 2 && nof_rxant == 2) {
     if (nof_layers == 2) {
-      return srslte_predecoding_multiplex_2x2_zf(y, h, x, codebook_idx, nof_symbols);
+      switch (mimo_decoder) {
+        case SRSLTE_MIMO_DECODER_ZF:
+#ifdef LV_HAVE_AVX
+          return srslte_predecoding_multiplex_2x2_zf_avx(y, h, x, codebook_idx, nof_symbols);
+#else
+#ifdef LV_HAVE_SSE
+          return srslte_predecoding_multiplex_2x2_zf_sse(y, h, x, codebook_idx, nof_symbols);
+#else
+          return srslte_predecoding_multiplex_2x2_zf_gen(y, h, x, codebook_idx, nof_symbols);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX */
+          break;
+        case SRSLTE_MIMO_DECODER_MMSE:
+#ifdef LV_HAVE_AVX
+          return srslte_predecoding_multiplex_2x2_mmse_avx(y, h, x, codebook_idx, nof_symbols, noise_estimate);
+#else
+#ifdef LV_HAVE_SSE
+          return srslte_predecoding_multiplex_2x2_mmse_sse(y, h, x, codebook_idx, nof_symbols, noise_estimate);
+#else
+          return srslte_predecoding_multiplex_2x2_mmse_gen(y, h, x, codebook_idx, nof_symbols, noise_estimate);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX */
+          break;
+      }
     } else {
-      return srslte_predecoding_multiplex_2x1_mrc(y, h, x, codebook_idx, nof_symbols);
+#ifdef LV_HAVE_AVX
+      return srslte_predecoding_multiplex_2x1_mrc_avx(y, h, x, codebook_idx, nof_symbols);
+#else
+#ifdef LV_HAVE_SSE
+      return srslte_predecoding_multiplex_2x1_mrc_sse(y, h, x, codebook_idx, nof_symbols);
+#else
+      return srslte_predecoding_multiplex_2x1_mrc_gen(y, h, x, codebook_idx, nof_symbols);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX */
     }
   } else if (nof_ports == 4) {
-    fprintf(stderr, "Error predecoding CCD: Only 2 ports supported\n");
+    ERROR("Error predecoding CCD: Only 2 ports supported");
   } else {
     fprintf(stderr, "Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
+}
+
+void srslte_predecoding_set_mimo_decoder (srslte_mimo_decoder_t _mimo_decoder) {
+  mimo_decoder = _mimo_decoder;
 }
 
 /* 36.211 v10.3.0 Section 6.3.4 */
@@ -1251,7 +1437,14 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
   switch (type) {
   case SRSLTE_MIMO_TYPE_CDD:
     if (nof_layers >= 2 && nof_layers <= 4) {
-      return srslte_predecoding_ccd_zf(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols);
+      switch (mimo_decoder) {
+        case SRSLTE_MIMO_DECODER_ZF:
+          return srslte_predecoding_ccd_zf(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols);
+          break;
+        case SRSLTE_MIMO_DECODER_MMSE:
+          return srslte_predecoding_ccd_mmse(y, h, x, nof_rxant, nof_ports, nof_layers, nof_symbols, noise_estimate);
+          break;
+      }
     } else {
       fprintf(stderr,
           "Invalid number of layers %d\n", nof_layers);
@@ -1277,7 +1470,8 @@ int srslte_predecoding_type_multi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     }
     break;
   case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-    return srslte_predecoding_multiplex_zf(y, h, x, nof_rxant, nof_ports, nof_layers, codebook_idx, nof_symbols);
+    return srslte_predecoding_multiplex(y, h, x, nof_rxant, nof_ports, nof_layers, codebook_idx, nof_symbols,
+                                        noise_estimate);
     default:
       return SRSLTE_ERROR;
   }
@@ -1344,22 +1538,85 @@ int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
   }
 }
 
-int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers, int nof_ports, int nof_symbols) 
+#ifdef LV_HAVE_AVX
+
+int srslte_precoding_cdd_2x2_avx(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols)
 {
-  int i;
+  __m256 norm_avx = _mm256_set1_ps(0.5f);
+  for (int i = 0; i < nof_symbols - 3; i += 4) {
+    __m256 x0 = _mm256_load_ps((float*) &x[0][i]);
+    __m256 x1 = _mm256_load_ps((float*) &x[1][i]);
+
+    __m256 y0 = _mm256_mul_ps(norm_avx, _mm256_add_ps(x0, x1));
+
+    x0 = _mm256_xor_ps(x0, _mm256_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f));
+    x1 = _mm256_xor_ps(x1, _mm256_set_ps(+0.0f, +0.0f, -0.0f, -0.0f, +0.0f, +0.0f, -0.0f, -0.0f));
+
+    __m256 y1 = _mm256_mul_ps(norm_avx, _mm256_add_ps(x0, x1));
+
+    _mm256_store_ps((float*)&y[0][i], y0);
+    _mm256_store_ps((float*)&y[1][i], y1);
+  }
+
+  return 2*nof_symbols;
+}
+
+#endif /* LV_HAVE_AVX */
+
+#ifdef LV_HAVE_SSE
+
+int srslte_precoding_cdd_2x2_sse(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols)
+{
+  __m128 norm_sse = _mm_set1_ps(0.5f);
+  for (int i = 0; i < nof_symbols - 1; i += 2) {
+    __m128 x0 = _mm_load_ps((float*) &x[0][i]);
+    __m128 x1 = _mm_load_ps((float*) &x[1][i]);
+
+    __m128 y0 = _mm_mul_ps(norm_sse, _mm_add_ps(x0, x1));
+
+    x0 = _mm_xor_ps(x0, _mm_setr_ps(+0.0f, +0.0f, -0.0f, -0.0f));
+    x1 = _mm_xor_ps(x1, _mm_set_ps(+0.0f, +0.0f, -0.0f, -0.0f));
+
+    __m128 y1 = _mm_mul_ps(norm_sse, _mm_add_ps(x0, x1));
+
+    _mm_store_ps((float*)&y[0][i], y0);
+    _mm_store_ps((float*)&y[1][i], y1);
+  }
+
+  return 2 * nof_symbols;
+}
+
+#endif /* LV_HAVE_SSE */
+
+
+int srslte_precoding_cdd_2x2_gen(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_symbols)
+{
+  for (int i = 0; i < nof_symbols; i++) {
+    y[0][i] =  (x[0][i]+x[1][i])/2.0f;
+    y[1][i] =  (x[0][i]-x[1][i])/2.0f;
+    i++;
+    y[0][i] =  (x[0][i]+x[1][i])/2.0f;
+    y[1][i] = (-x[0][i]+x[1][i])/2.0f;
+  }
+  return 2 * nof_symbols;
+}
+
+int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers, int nof_ports, int nof_symbols)
+{
   if (nof_ports == 2) {
     if (nof_layers != 2) {
       fprintf(stderr, "Invalid number of layers %d for 2 ports\n", nof_layers);
-      return -1; 
+      return -1;
     }
-    for (i = 0; i < nof_symbols; i++) {
-      y[0][i] =  (x[0][i]+x[1][i])/2;
-      y[1][i] =  (x[0][i]-x[1][i])/2;
-      i++;
-      y[0][i] =  (x[0][i]+x[1][i])/2;
-      y[1][i] = (-x[0][i]+x[1][i])/2;
-    }
-    return 2 * i;
+#ifdef LV_HAVE_AVX
+    return srslte_precoding_cdd_2x2_avx(x, y, nof_symbols);
+#else
+#ifdef LV_HAVE_SSE
+    return srslte_precoding_cdd_2x2_sse(x, y, nof_symbols);
+#else
+    return srslte_precoding_cdd_2x2_gen(x, y, nof_symbols);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX */
   } else if (nof_ports == 4) {
     fprintf(stderr, "Not implemented\n");
     return -1;
@@ -1372,7 +1629,7 @@ int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], 
 int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers, int nof_ports,
                                int codebook_idx, uint32_t nof_symbols)
 {
-  int i;
+  int i = 0;
   if (nof_ports == 2) {
     if (nof_layers == 1) {
       switch(codebook_idx) {
@@ -1404,13 +1661,65 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
           srslte_vec_sc_prod_cfc(x[1], 1.0f/sqrtf(2.0f), y[1], nof_symbols);
           break;
         case 1:
-          for (i = 0; i < nof_symbols; i++) {
+#ifdef LV_HAVE_AVX
+          for (; i < nof_symbols - 3; i += 4) {
+            __m256 x0 = _mm256_load_ps((float*)&x[0][i]);
+            __m256 x1 = _mm256_load_ps((float*)&x[1][i]);
+
+            __m256 y0 = _mm256_mul_ps(_mm256_set1_ps(0.5f), _mm256_add_ps(x0, x1));
+            __m256 y1 = _mm256_mul_ps(_mm256_set1_ps(0.5f), _mm256_sub_ps(x0, x1));
+
+            _mm256_store_ps((float*)&y[0][i], y0);
+            _mm256_store_ps((float*)&y[1][i], y1);
+          }
+#endif /* LV_HAVE_AVX */
+
+#ifdef LV_HAVE_SSE
+          for (; i < nof_symbols - 1; i += 2) {
+            __m128 x0 = _mm_load_ps((float*)&x[0][i]);
+            __m128 x1 = _mm_load_ps((float*)&x[1][i]);
+
+            __m128 y0 = _mm_mul_ps(_mm_set1_ps(0.5f), _mm_add_ps(x0, x1));
+            __m128 y1 = _mm_mul_ps(_mm_set1_ps(0.5f), _mm_sub_ps(x0, x1));
+
+            _mm_store_ps((float*)&y[0][i], y0);
+            _mm_store_ps((float*)&y[1][i], y1);
+          }
+#endif /* LV_HAVE_SSE */
+
+          for (; i < nof_symbols; i++) {
             y[0][i] = 0.5f*x[0][i] + 0.5f*x[1][i];
             y[1][i] = 0.5f*x[0][i] - 0.5f*x[1][i];
           }
           break;
         case 2:
-          for (i = 0; i < nof_symbols; i++) {
+#ifdef LV_HAVE_AVX
+          for (; i < nof_symbols - 3; i += 4) {
+            __m256 x0 = _mm256_load_ps((float*)&x[0][i]);
+            __m256 x1 = _mm256_load_ps((float*)&x[1][i]);
+
+            __m256 y0 = _mm256_mul_ps(_mm256_set1_ps(0.5f), _mm256_add_ps(x0, x1));
+            __m256 y1 = _mm256_mul_ps(_mm256_set1_ps(0.5f), _MM256_MULJ_PS(_mm256_sub_ps(x0, x1)));
+
+            _mm256_store_ps((float*)&y[0][i], y0);
+            _mm256_store_ps((float*)&y[1][i], y1);
+          }
+#endif /* LV_HAVE_AVX */
+
+#ifdef LV_HAVE_SSE
+          for (; i < nof_symbols - 1; i += 2) {
+            __m128 x0 = _mm_load_ps((float*)&x[0][i]);
+            __m128 x1 = _mm_load_ps((float*)&x[1][i]);
+
+            __m128 y0 = _mm_mul_ps(_mm_set1_ps(0.5f), _mm_add_ps(x0, x1));
+            __m128 y1 = _mm_mul_ps(_mm_set1_ps(0.5f), _MM_MULJ_PS(_mm_sub_ps(x0, x1)));
+
+            _mm_store_ps((float*)&y[0][i], y0);
+            _mm_store_ps((float*)&y[1][i], y1);
+          }
+#endif /* LV_HAVE_SSE */
+
+          for (; i < nof_symbols; i++) {
             y[0][i] = 0.5f*x[0][i] + 0.5f*x[1][i];
             y[1][i] = 0.5f*_Complex_I*x[0][i] - 0.5f*_Complex_I*x[1][i];
           }
@@ -1473,3 +1782,744 @@ int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS],
   return SRSLTE_ERROR;
 }
 
+#define PMI_SEL_PRECISION 24
+
+/* PMI Select for 1 layer */
+int srslte_precoding_pmi_select_1l_gen(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                       float noise_estimate, uint32_t *pmi,
+                                       float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+
+#define SQRT1_2 ((float)M_SQRT1_2)
+  float max_sinr = 0.0;
+  uint32_t i, count;
+
+  for (i = 0; i < 4; i++) {
+    sinr_list[i] = 0;
+    count = 0;
+
+    for (uint32_t j = 0; j < nof_symbols; j += PMI_SEL_PRECISION) {
+      /* 0. Load channel matrix */
+      cf_t h00 = h[0][0][j];
+      cf_t h01 = h[1][0][j];
+      cf_t h10 = h[0][1][j];
+      cf_t h11 = h[1][1][j];
+
+      /* 1. B = W'* H' */
+      cf_t a0, a1;
+      switch (i) {
+        case 0:
+          a0 = conjf(h00) + conjf(h01);
+          a1 = conjf(h10) + conjf(h11);
+          break;
+        case 1:
+          a0 = conjf(h00) - conjf(h01);
+          a1 = conjf(h10) - conjf(h11);
+          break;
+        case 2:
+          a0 = conjf(h00) - _Complex_I * conjf(h01);
+          a1 = conjf(h10) - _Complex_I * conjf(h11);
+          break;
+        case 3:
+          a0 = conjf(h00) + _Complex_I * conjf(h01);
+          a1 = conjf(h10) + _Complex_I * conjf(h11);
+          break;
+      }
+      a0 *= SQRT1_2;
+      a1 *= SQRT1_2;
+
+      /* 2. B = W' * H' * H = A * H */
+      cf_t b0 = a0 * h00 + a1 * h10;
+      cf_t b1 = a0 * h01 + a1 * h11;
+
+      /* 3. C = W' * H' * H * W' = B * W */
+      cf_t c;
+      switch (i) {
+        case 0:
+          c = b0 + b1;
+          break;
+        case 1:
+          c = b0 - b1;
+          break;
+        case 2:
+          c = b0 + _Complex_I * b1;
+          break;
+        case 3:
+          c = b0 - _Complex_I * b1;
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      c *= SQRT1_2;
+
+      /* Add for averaging */
+      sinr_list[i] += crealf(c);
+
+      count++;
+    }
+
+    /* Divide average by noise */
+    sinr_list[i] /= noise_estimate * count;
+
+    if (sinr_list[i] > max_sinr) {
+      max_sinr = sinr_list[i];
+      *pmi = i;
+    }
+  }
+
+  return i;
+}
+
+#ifdef LV_HAVE_SSE
+
+/* PMI Select for 1 layer */
+int srslte_precoding_pmi_select_1l_sse(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                       float noise_estimate, uint32_t *pmi,
+                                       float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+  float max_sinr = 0.0;
+  uint32_t i, count;
+  __m128 sse_norm = _mm_set1_ps(0.5f);
+
+  for (i = 0; i < 4; i++) {
+    sinr_list[i] = 0;
+    count = 0;
+
+    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 2 + 1; j += PMI_SEL_PRECISION * 2) {
+      /* 0. Load channel matrix */
+      __m128 h00 = _mm_set_ps(crealf(h[0][0][j]),
+                              cimagf(h[0][0][j]),
+                              crealf(h[0][0][j + PMI_SEL_PRECISION]),
+                              cimagf(h[0][0][j + PMI_SEL_PRECISION]));
+      __m128 h01 = _mm_set_ps(crealf(h[1][0][j]),
+                              cimagf(h[1][0][j]),
+                              crealf(h[1][0][j + PMI_SEL_PRECISION]),
+                              cimagf(h[1][0][j + PMI_SEL_PRECISION]));
+      __m128 h10 = _mm_set_ps(crealf(h[0][1][j]),
+                              cimagf(h[0][1][j]),
+                              crealf(h[0][1][j + PMI_SEL_PRECISION]),
+                              cimagf(h[0][1][j + PMI_SEL_PRECISION]));
+      __m128 h11 = _mm_set_ps(crealf(h[1][1][j]),
+                              cimagf(h[1][1][j]),
+                              crealf(h[1][1][j + PMI_SEL_PRECISION]),
+                              cimagf(h[1][1][j + PMI_SEL_PRECISION]));
+
+      /* 1. B = W'* H' */
+      __m128 a0, a1;
+      switch (i) {
+        case 0:
+          a0 = _mm_add_ps(_MM_CONJ_PS(h00), _MM_CONJ_PS(h01));
+          a1 = _mm_add_ps(_MM_CONJ_PS(h10), _MM_CONJ_PS(h11));
+          break;
+        case 1:
+          a0 = _mm_sub_ps(_MM_CONJ_PS(h00), _MM_CONJ_PS(h01));
+          a1 = _mm_sub_ps(_MM_CONJ_PS(h10), _MM_CONJ_PS(h11));
+          break;
+        case 2:
+          a0 = _mm_add_ps(_MM_CONJ_PS(h00), _MM_MULJ_PS(_MM_CONJ_PS(h01)));
+          a1 = _mm_add_ps(_MM_CONJ_PS(h10), _MM_MULJ_PS(_MM_CONJ_PS(h11)));
+          break;
+        case 3:
+          a0 = _mm_sub_ps(_MM_CONJ_PS(h00), _MM_MULJ_PS(_MM_CONJ_PS(h01)));
+          a1 = _mm_sub_ps(_MM_CONJ_PS(h10), _MM_MULJ_PS(_MM_CONJ_PS(h11)));
+          break;
+      }
+
+      /* 2. B = W' * H' * H = A * H */
+      __m128 b0 = _mm_add_ps(_MM_PROD_PS(a0, h00), _MM_PROD_PS(a1, h10));
+      __m128 b1 = _mm_add_ps(_MM_PROD_PS(a0, h01), _MM_PROD_PS(a1, h11));
+
+      /* 3. C = W' * H' * H * W' = B * W */
+      __m128 c;
+      switch (i) {
+        case 0:
+          c = _mm_add_ps(b0, b1);
+          break;
+        case 1:
+          c = _mm_sub_ps(b0, b1);
+          break;
+        case 2:
+          c = _mm_sub_ps(b0, _MM_MULJ_PS(b1));
+          break;
+        case 3:
+          c = _mm_add_ps(b0, _MM_MULJ_PS(b1));
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      c = _mm_mul_ps(c, sse_norm);
+
+      /* Add for averaging */
+      __attribute__((aligned(128))) float gamma[4];
+      _mm_store_ps(gamma, c);
+      sinr_list[i] += gamma[0] + gamma[2];
+
+      count += 2;
+    }
+
+    /* Divide average by noise */
+    sinr_list[i] /= noise_estimate * count;
+
+    if (sinr_list[i] > max_sinr) {
+      max_sinr = sinr_list[i];
+      *pmi = i;
+    }
+  }
+
+  return i;
+}
+
+#endif /* LV_HAVE_SSE */
+
+#ifdef LV_HAVE_AVX
+
+/* PMI Select for 1 layer */
+int srslte_precoding_pmi_select_1l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                       float noise_estimate, uint32_t *pmi,
+                                       float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+  float max_sinr = 0.0;
+  uint32_t i, count;
+  __m256 avx_norm = _mm256_set1_ps(0.5f);
+
+  for (i = 0; i < 4; i++) {
+    sinr_list[i] = 0;
+    count = 0;
+
+    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 4 + 1; j += PMI_SEL_PRECISION * 4) {
+      /* 0. Load channel matrix */
+      __m256 h00 = _mm256_set_ps(crealf(h[0][0][j]),
+                                 cimagf(h[0][0][j]),
+                                 crealf(h[0][0][j + PMI_SEL_PRECISION]),
+                                 cimagf(h[0][0][j + PMI_SEL_PRECISION]),
+                                 crealf(h[0][0][j + PMI_SEL_PRECISION * 2]),
+                                 cimagf(h[0][0][j + PMI_SEL_PRECISION * 2]),
+                                 crealf(h[0][0][j + PMI_SEL_PRECISION * 3]),
+                                 cimagf(h[0][0][j + PMI_SEL_PRECISION * 3]));
+      __m256 h01 = _mm256_set_ps(crealf(h[1][0][j]),
+                                 cimagf(h[1][0][j]),
+                                 crealf(h[1][0][j + PMI_SEL_PRECISION]),
+                                 cimagf(h[1][0][j + PMI_SEL_PRECISION]),
+                                 crealf(h[1][0][j + PMI_SEL_PRECISION * 2]),
+                                 cimagf(h[1][0][j + PMI_SEL_PRECISION * 2]),
+                                 crealf(h[1][0][j + PMI_SEL_PRECISION * 3]),
+                                 cimagf(h[1][0][j + PMI_SEL_PRECISION * 3]));
+      __m256 h10 = _mm256_set_ps(crealf(h[0][1][j]),
+                                 cimagf(h[0][1][j]),
+                                 crealf(h[0][1][j + PMI_SEL_PRECISION]),
+                                 cimagf(h[0][1][j + PMI_SEL_PRECISION]),
+                                 crealf(h[0][1][j + PMI_SEL_PRECISION * 2]),
+                                 cimagf(h[0][1][j + PMI_SEL_PRECISION * 2]),
+                                 crealf(h[0][1][j + PMI_SEL_PRECISION * 3]),
+                                 cimagf(h[0][1][j + PMI_SEL_PRECISION * 3]));
+      __m256 h11 = _mm256_set_ps(crealf(h[1][1][j]),
+                                 cimagf(h[1][1][j]),
+                                 crealf(h[1][1][j + PMI_SEL_PRECISION]),
+                                 cimagf(h[1][1][j + PMI_SEL_PRECISION]),
+                                 crealf(h[1][1][j + PMI_SEL_PRECISION * 2]),
+                                 cimagf(h[1][1][j + PMI_SEL_PRECISION * 2]),
+                                 crealf(h[1][1][j + PMI_SEL_PRECISION * 3]),
+                                 cimagf(h[1][1][j + PMI_SEL_PRECISION * 3]));
+
+      /* 1. B = W'* H' */
+      __m256 a0, a1;
+      switch (i) {
+        case 0:
+          a0 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_CONJ_PS(h01));
+          a1 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
+          break;
+        case 1:
+          a0 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_CONJ_PS(h01));
+          a1 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
+          break;
+        case 2:
+          a0 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
+          a1 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
+          break;
+        default:
+          a0 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
+          a1 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
+          break;
+      }
+
+      /* 2. B = W' * H' * H = A * H */
+#ifdef  LV_HAVE_FMA
+      __m256 b0 = _MM256_PROD_ADD_PS(a0, h00, _MM256_PROD_PS(a1, h10));
+      __m256 b1 = _MM256_PROD_ADD_PS(a0, h01, _MM256_PROD_PS(a1, h11));
+#else
+      __m256 b0 = _mm256_add_ps(_MM256_PROD_PS(a0, h00), _MM256_PROD_PS(a1, h10));
+      __m256 b1 = _mm256_add_ps(_MM256_PROD_PS(a0, h01), _MM256_PROD_PS(a1, h11));
+#endif /* LV_HAVE_FMA */
+
+      /* 3. C = W' * H' * H * W' = B * W */
+      __m256 c;
+      switch (i) {
+        case 0:
+          c = _mm256_add_ps(b0, b1);
+          break;
+        case 1:
+          c = _mm256_sub_ps(b0, b1);
+          break;
+        case 2:
+          c = _mm256_sub_ps(b0, _MM256_MULJ_PS(b1));
+          break;
+        case 3:
+          c = _mm256_add_ps(b0, _MM256_MULJ_PS(b1));
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      c = _mm256_mul_ps(c, avx_norm);
+
+      /* Add for averaging */
+      __attribute__((aligned(256))) float gamma[8];
+      _mm256_store_ps(gamma, c);
+      sinr_list[i] += gamma[0] + gamma[2] + gamma[4] + gamma[6];
+
+      count += 4;
+    }
+
+    /* Divide average by noise */
+    sinr_list[i] /= noise_estimate * count;
+
+    if (sinr_list[i] > max_sinr) {
+      max_sinr = sinr_list[i];
+      *pmi = i;
+    }
+  }
+
+  return i;
+}
+
+#endif /* LV_HAVE_AVX */
+
+int srslte_precoding_pmi_select_1l(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                   float noise_estimate, uint32_t *pmi,
+                                   float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+  int ret;
+#ifdef LV_HAVE_AVX
+  ret = srslte_precoding_pmi_select_1l_avx(h, nof_symbols, noise_estimate, pmi, sinr_list);
+#else
+  #ifdef LV_HAVE_SSE
+  ret = srslte_precoding_pmi_select_1l_sse(h, nof_symbols, noise_estimate, pmi, sinr_list);
+#else
+  ret = srslte_precoding_pmi_select_1l_gen(h, nof_symbols, noise_estimate, pmi, sinr_list);
+#endif
+#endif
+  INFO("Precoder PMI Select for 1 layer SINR=[%.1fdB; %.1fdB; %.1fdB; %.1fdB] PMI=%d\n", 10 * log10(sinr_list[0]),
+       10 * log10(sinr_list[1]), 10 * log10(sinr_list[2]), 10 * log10(sinr_list[3]), *pmi);
+
+  return ret;
+}
+
+int srslte_precoding_pmi_select_2l_gen(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                       float noise_estimate, uint32_t *pmi,
+                                       float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+
+  float max_sinr = 0.0;
+  uint32_t i, count;
+
+  for (i = 0; i < 2; i++) {
+    sinr_list[i] = 0;
+    count = 0;
+
+    for (uint32_t j = 0; j < nof_symbols; j += PMI_SEL_PRECISION) {
+      /* 0. Load channel matrix */
+      cf_t h00 = h[0][0][j];
+      cf_t h01 = h[1][0][j];
+      cf_t h10 = h[0][1][j];
+      cf_t h11 = h[1][1][j];
+
+      /* 1. B = W'* H' */
+      cf_t a00, a01, a10, a11;
+      switch (i) {
+        case 0:
+          a00 = conjf(h00) + conjf(h01);
+          a01 = conjf(h10) + conjf(h11);
+          a10 = conjf(h00) - conjf(h01);
+          a11 = conjf(h10) - conjf(h11);
+          break;
+        case 1:
+          a00 = conjf(h00) - _Complex_I * conjf(h01);
+          a01 = conjf(h10) - _Complex_I * conjf(h11);
+          a10 = conjf(h00) + _Complex_I * conjf(h01);
+          a11 = conjf(h10) + _Complex_I * conjf(h11);
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+
+      /* 2. B = W' * H' * H = A * H */
+      cf_t b00 = a00 * h00 + a01 * h10;
+      cf_t b01 = a00 * h01 + a01 * h11;
+      cf_t b10 = a10 * h00 + a11 * h10;
+      cf_t b11 = a10 * h01 + a11 * h11;
+
+      /* 3. C = W' * H' * H * W' = B * W */
+      cf_t c00, c01, c10, c11;
+      switch (i) {
+        case 0:
+          c00 = b00 + b01;
+          c01 = b00 - b01;
+          c10 = b10 + b11;
+          c11 = b10 - b11;
+          break;
+        case 1:
+          c00 = b00 + _Complex_I * b01;
+          c01 = b00 - _Complex_I * b01;
+          c10 = b10 + _Complex_I * b11;
+          c11 = b10 - _Complex_I * b11;
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      c00 *= 0.25;
+      c01 *= 0.25;
+      c10 *= 0.25;
+      c11 *= 0.25;
+
+      /* 4. C += noise * I */
+      c00 += noise_estimate;
+      c11 += noise_estimate;
+
+      /* 5. detC */
+      cf_t detC = c00 * c11 - c01 * c10;
+      cf_t inv_detC = conjf(detC) / (crealf(detC) * crealf(detC) + cimagf(detC) * cimagf(detC));
+
+      cf_t den0 = noise_estimate * c00 * inv_detC;
+      cf_t den1 = noise_estimate * c11 * inv_detC;
+
+      float gamma0 = crealf((conjf(den0) / (crealf(den0) * crealf(den0) + cimagf(den0) * cimagf(den0))) - 1);
+      float gamma1 = crealf((conjf(den1) / (crealf(den1) * crealf(den1) + cimagf(den1) * cimagf(den1))) - 1);
+
+      /* Add for averaging */
+      sinr_list[i] += (gamma0 + gamma1);
+
+      count++;
+    }
+
+    /* Divide average by noise */
+    sinr_list[i] /= (2 * count);
+
+    if (sinr_list[i] > max_sinr) {
+      max_sinr = sinr_list[i];
+      *pmi = i;
+    }
+  }
+
+  return i;
+}
+
+#ifdef LV_HAVE_SSE
+
+int srslte_precoding_pmi_select_2l_sse(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                       float noise_estimate, uint32_t *pmi,
+                                       float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+
+  float max_sinr = 0.0;
+  uint32_t i, count;
+
+  __m128 sse_noise_estimate = (__m128) {noise_estimate, 0.0f, noise_estimate, 0.0f};
+
+  for (i = 0; i < 2; i++) {
+    sinr_list[i] = 0;
+    count = 0;
+
+    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 2 + 1; j += PMI_SEL_PRECISION * 2) {
+      /* 0. Load channel matrix */
+      __m128 h00 = _mm_set_ps(crealf(h[0][0][j]),
+                              cimagf(h[0][0][j]),
+                              crealf(h[0][0][j + PMI_SEL_PRECISION]),
+                              cimagf(h[0][0][j + PMI_SEL_PRECISION]));
+      __m128 h01 = _mm_set_ps(crealf(h[1][0][j]),
+                              cimagf(h[1][0][j]),
+                              crealf(h[1][0][j + PMI_SEL_PRECISION]),
+                              cimagf(h[1][0][j + PMI_SEL_PRECISION]));
+      __m128 h10 = _mm_set_ps(crealf(h[0][1][j]),
+                              cimagf(h[0][1][j]),
+                              crealf(h[0][1][j + PMI_SEL_PRECISION]),
+                              cimagf(h[0][1][j + PMI_SEL_PRECISION]));
+      __m128 h11 = _mm_set_ps(crealf(h[1][1][j]),
+                              cimagf(h[1][1][j]),
+                              crealf(h[1][1][j + PMI_SEL_PRECISION]),
+                              cimagf(h[1][1][j + PMI_SEL_PRECISION]));
+
+      /* 1. B = W'* H' */
+      __m128 a00, a01, a10, a11;
+      switch (i) {
+        case 0:
+          a00 = _mm_add_ps(_MM_CONJ_PS(h00), _MM_CONJ_PS(h01));
+          a01 = _mm_add_ps(_MM_CONJ_PS(h10), _MM_CONJ_PS(h11));
+          a10 = _mm_sub_ps(_MM_CONJ_PS(h00), _MM_CONJ_PS(h01));
+          a11 = _mm_sub_ps(_MM_CONJ_PS(h10), _MM_CONJ_PS(h11));
+          break;
+        case 1:
+          a00 = _mm_sub_ps(_MM_CONJ_PS(h00), _MM_MULJ_PS(_MM_CONJ_PS(h01)));
+          a01 = _mm_sub_ps(_MM_CONJ_PS(h10), _MM_MULJ_PS(_MM_CONJ_PS(h11)));
+          a10 = _mm_add_ps(_MM_CONJ_PS(h00), _MM_MULJ_PS(_MM_CONJ_PS(h01)));
+          a11 = _mm_add_ps(_MM_CONJ_PS(h10), _MM_MULJ_PS(_MM_CONJ_PS(h11)));
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+
+      /* 2. B = W' * H' * H = A * H */
+      __m128 b00 = _mm_add_ps(_MM_PROD_PS(a00, h00), _MM_PROD_PS(a01, h10));
+      __m128 b01 = _mm_add_ps(_MM_PROD_PS(a00, h01), _MM_PROD_PS(a01, h11));
+      __m128 b10 = _mm_add_ps(_MM_PROD_PS(a10, h00), _MM_PROD_PS(a11, h10));
+      __m128 b11 = _mm_add_ps(_MM_PROD_PS(a10, h01), _MM_PROD_PS(a11, h11));
+
+      /* 3. C = W' * H' * H * W' = B * W */
+      __m128 c00, c01, c10, c11;
+      switch (i) {
+        case 0:
+          c00 = _mm_add_ps(b00, b01);
+          c01 = _mm_sub_ps(b00, b01);
+          c10 = _mm_add_ps(b10, b11);
+          c11 = _mm_sub_ps(b10, b11);
+          break;
+        case 1:
+          c00 = _mm_add_ps(b00, _MM_MULJ_PS(b01));
+          c01 = _mm_sub_ps(b00, _MM_MULJ_PS(b01));
+          c10 = _mm_add_ps(b10, _MM_MULJ_PS(b11));
+          c11 = _mm_sub_ps(b10, _MM_MULJ_PS(b11));
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      c00 = _mm_mul_ps(c00, _mm_set1_ps(0.25f));
+      c01 = _mm_mul_ps(c01, _mm_set1_ps(0.25f));
+      c10 = _mm_mul_ps(c10, _mm_set1_ps(0.25f));
+      c11 = _mm_mul_ps(c11, _mm_set1_ps(0.25f));
+
+      /* 4. C += noise * I */
+      c00 = _mm_add_ps(c00, sse_noise_estimate);
+      c11 = _mm_add_ps(c11, sse_noise_estimate);
+
+      /* 5. detC */
+      __m128 detC = _mm_sub_ps(_MM_PROD_PS(c00, c11), _MM_PROD_PS(c01, c10));
+      __m128 inv_detC = srslte_algebra_cf_recip_sse(detC);
+
+      __m128 den0 = _MM_PROD_PS(c00, inv_detC);
+      __m128 den1 = _MM_PROD_PS(c11, inv_detC);
+
+      __m128 gamma0 = _mm_sub_ps(srslte_algebra_cf_recip_sse(den0), _mm_set1_ps(1.0f));
+      __m128 gamma1 = _mm_sub_ps(srslte_algebra_cf_recip_sse(den1), _mm_set1_ps(1.0f));
+
+      /* Add for averaging */
+      __m128 sum = _MM_SWAP(_mm_add_ps(gamma0, gamma1));
+      __m128 sinr_sse = _mm_hadd_ps(sum, sum);
+      __attribute__((aligned(128))) float sinr[4];
+      _mm_store_ps(sinr, sinr_sse);
+
+      sinr_list[i] += sinr[0];
+
+      count += 2;
+    }
+
+    /* Divide average by noise */
+    sinr_list[i] /= (2 * count * noise_estimate);
+
+    if (sinr_list[i] > max_sinr) {
+      max_sinr = sinr_list[i];
+      *pmi = i;
+    }
+  }
+
+  return i;
+}
+
+#endif /* LV_HAVE_SSE */
+
+#ifdef LV_HAVE_AVX
+
+int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                       float noise_estimate, uint32_t *pmi,
+                                       float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+
+  float max_sinr = 0.0;
+  uint32_t i, count;
+
+  __m256 avx_noise_estimate = _mm256_setr_ps(noise_estimate, 0.0f, noise_estimate, 0.0f,
+                                        noise_estimate, 0.0f, noise_estimate, 0.0f);
+  __m256 avx_norm = _mm256_set1_ps(0.5f);
+  __m256 avx_ones = _mm256_set1_ps(1.0f);
+
+  for (i = 0; i < 2; i++) {
+    sinr_list[i] = 0;
+    count = 0;
+
+    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 4 + 1; j += PMI_SEL_PRECISION * 4) {
+      /* 0. Load channel matrix */
+      __m256 h00 = _mm256_set_ps(crealf(h[0][0][j]),
+                                 cimagf(h[0][0][j]),
+                                 crealf(h[0][0][j + PMI_SEL_PRECISION]),
+                                 cimagf(h[0][0][j + PMI_SEL_PRECISION]),
+                                 crealf(h[0][0][j + PMI_SEL_PRECISION * 2]),
+                                 cimagf(h[0][0][j + PMI_SEL_PRECISION * 2]),
+                                 crealf(h[0][0][j + PMI_SEL_PRECISION * 3]),
+                                 cimagf(h[0][0][j + PMI_SEL_PRECISION * 3]));
+      __m256 h01 = _mm256_set_ps(crealf(h[1][0][j]),
+                                 cimagf(h[1][0][j]),
+                                 crealf(h[1][0][j + PMI_SEL_PRECISION]),
+                                 cimagf(h[1][0][j + PMI_SEL_PRECISION]),
+                                 crealf(h[1][0][j + PMI_SEL_PRECISION * 2]),
+                                 cimagf(h[1][0][j + PMI_SEL_PRECISION * 2]),
+                                 crealf(h[1][0][j + PMI_SEL_PRECISION * 3]),
+                                 cimagf(h[1][0][j + PMI_SEL_PRECISION * 3]));
+      __m256 h10 = _mm256_set_ps(crealf(h[0][1][j]),
+                                 cimagf(h[0][1][j]),
+                                 crealf(h[0][1][j + PMI_SEL_PRECISION]),
+                                 cimagf(h[0][1][j + PMI_SEL_PRECISION]),
+                                 crealf(h[0][1][j + PMI_SEL_PRECISION * 2]),
+                                 cimagf(h[0][1][j + PMI_SEL_PRECISION * 2]),
+                                 crealf(h[0][1][j + PMI_SEL_PRECISION * 3]),
+                                 cimagf(h[0][1][j + PMI_SEL_PRECISION * 3]));
+      __m256 h11 = _mm256_set_ps(crealf(h[1][1][j]),
+                                 cimagf(h[1][1][j]),
+                                 crealf(h[1][1][j + PMI_SEL_PRECISION]),
+                                 cimagf(h[1][1][j + PMI_SEL_PRECISION]),
+                                 crealf(h[1][1][j + PMI_SEL_PRECISION * 2]),
+                                 cimagf(h[1][1][j + PMI_SEL_PRECISION * 2]),
+                                 crealf(h[1][1][j + PMI_SEL_PRECISION * 3]),
+                                 cimagf(h[1][1][j + PMI_SEL_PRECISION * 3]));
+
+      /* 1. B = W'* H' */
+      __m256 a00, a01, a10, a11;
+      switch (i) {
+        case 0:
+          a00 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_CONJ_PS(h01));
+          a01 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
+          a10 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_CONJ_PS(h01));
+          a11 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
+          break;
+        case 1:
+          a00 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
+          a01 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
+          a10 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
+          a11 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      a00 = _mm256_mul_ps(a00, avx_norm);
+      a01 = _mm256_mul_ps(a01, avx_norm);
+      a10 = _mm256_mul_ps(a10, avx_norm);
+      a11 = _mm256_mul_ps(a11, avx_norm);
+
+      /* 2. B = W' * H' * H = A * H */
+#ifdef LV_HAVE_FMA
+      __m256 b00 = _MM256_PROD_ADD_PS(a00, h00, _MM256_PROD_PS(a01, h10));
+      __m256 b01 = _MM256_PROD_ADD_PS(a00, h01, _MM256_PROD_PS(a01, h11));
+      __m256 b10 = _MM256_PROD_ADD_PS(a10, h00, _MM256_PROD_PS(a11, h10));
+      __m256 b11 = _MM256_PROD_ADD_PS(a10, h01, _MM256_PROD_PS(a11, h11));
+#else
+      __m256 b00 = _mm256_add_ps(_MM256_PROD_PS(a00, h00), _MM256_PROD_PS(a01, h10));
+      __m256 b01 = _mm256_add_ps(_MM256_PROD_PS(a00, h01), _MM256_PROD_PS(a01, h11));
+      __m256 b10 = _mm256_add_ps(_MM256_PROD_PS(a10, h00), _MM256_PROD_PS(a11, h10));
+      __m256 b11 = _mm256_add_ps(_MM256_PROD_PS(a10, h01), _MM256_PROD_PS(a11, h11));
+#endif /* LV_HAVE_FMA */
+
+      /* 3. C = W' * H' * H * W' = B * W */
+      __m256 c00, c01, c10, c11;
+      switch (i) {
+        case 0:
+          c00 = _mm256_add_ps(b00, b01);
+          c01 = _mm256_sub_ps(b00, b01);
+          c10 = _mm256_add_ps(b10, b11);
+          c11 = _mm256_sub_ps(b10, b11);
+          break;
+        case 1:
+          c00 = _mm256_add_ps(b00, _MM256_MULJ_PS(b01));
+          c01 = _mm256_sub_ps(b00, _MM256_MULJ_PS(b01));
+          c10 = _mm256_add_ps(b10, _MM256_MULJ_PS(b11));
+          c11 = _mm256_sub_ps(b10, _MM256_MULJ_PS(b11));
+          break;
+        default:
+          return SRSLTE_ERROR;
+      }
+      c00 = _mm256_mul_ps(c00, avx_norm);
+      c01 = _mm256_mul_ps(c01, avx_norm);
+      c10 = _mm256_mul_ps(c10, avx_norm);
+      c11 = _mm256_mul_ps(c11, avx_norm);
+
+      /* 4. C += noise * I */
+      c00 = _mm256_add_ps(c00, avx_noise_estimate);
+      c11 = _mm256_add_ps(c11, avx_noise_estimate);
+
+      /* 5. detC */
+#ifdef LV_HAVE_FMA
+      __m256 detC = _MM256_PROD_SUB_PS(c00, c11, _MM256_PROD_PS(c01, c10));
+#else
+      __m256 detC = _mm256_sub_ps(_MM256_PROD_PS(c00, c11), _MM256_PROD_PS(c01, c10));
+#endif /* LV_HAVE_FMA */
+      __m256 inv_detC = srslte_algebra_cf_recip_avx(detC);
+
+      __m256 den0 = _MM256_PROD_PS(c00, inv_detC);
+      __m256 den1 = _MM256_PROD_PS(c11, inv_detC);
+
+      __m256 gamma0 = _mm256_sub_ps(srslte_algebra_cf_recip_avx(den0), avx_ones);
+      __m256 gamma1 = _mm256_sub_ps(srslte_algebra_cf_recip_avx(den1), avx_ones);
+
+      /* Add for averaging */
+      __m256 sinr_avx = _mm256_permute_ps(_mm256_add_ps(gamma0, gamma1), 0b00101000);
+      __attribute__((aligned(256))) float sinr[8];
+      _mm256_store_ps(sinr, sinr_avx);
+
+      sinr_list[i] += sinr[0] + sinr[2] + sinr[4] + sinr[6];
+
+      count += 4;
+    }
+
+    /* Divide average by noise */
+    sinr_list[i] /= 2 * count * noise_estimate;
+
+    if (sinr_list[i] > max_sinr) {
+      max_sinr = sinr_list[i];
+      *pmi = i;
+    }
+  }
+
+  return i;
+}
+
+#endif /* LV_HAVE_AVX */
+
+/* PMI Select for 2 layers */
+int srslte_precoding_pmi_select_2l(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                   float noise_estimate, uint32_t *pmi,
+                                   float sinr_list[SRSLTE_MAX_CODEBOOKS]) {
+
+  int ret;
+#ifdef LV_HAVE_AVX
+  ret = srslte_precoding_pmi_select_2l_avx(h, nof_symbols, noise_estimate, pmi, sinr_list);
+#else
+  #ifdef LV_HAVE_SSE
+  ret = srslte_precoding_pmi_select_2l_sse(h, nof_symbols, noise_estimate, pmi, sinr_list);
+#else
+  ret = srslte_precoding_pmi_select_2l_gen(h, nof_symbols, noise_estimate, pmi, sinr_list);
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX */
+
+  INFO("Precoder PMI Select for 2 layers SINR=[%.1fdB; %.1fdB] PMI=%d\n", 10 * log10(sinr_list[0]),
+       10 * log10(sinr_list[1]), *pmi);
+
+  return ret;
+}
+
+int srslte_precoding_pmi_select(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols,
+                                float noise_estimate, int nof_layers, uint32_t *pmi,
+                                float sinr[SRSLTE_MAX_CODEBOOKS]) {
+  int ret;
+
+  if (sinr == NULL || pmi == NULL) {
+    ERROR("Null pointer");
+    ret = SRSLTE_ERROR_INVALID_INPUTS;
+  } else if (nof_layers == 1) {
+    ret = srslte_precoding_pmi_select_1l(h, nof_symbols, noise_estimate, pmi, sinr);
+  } else if (nof_layers == 2) {
+    ret = srslte_precoding_pmi_select_2l(h, nof_symbols, noise_estimate, pmi, sinr);
+  } else {
+    ERROR("Wrong number of layers");
+    ret = SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  return ret;
+}
