@@ -35,13 +35,6 @@
 #ifndef PDSCH_
 #define PDSCH_
 
-#ifndef SRSLTE_SINGLE_THREAD
-
-#include <pthread.h>
-#include <semaphore.h>
-
-#endif /* SRSLTE_SINGLE_THREAD */
-
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/mimo/precoding.h"
@@ -58,34 +51,6 @@ typedef struct {
   srslte_sequence_t seq[SRSLTE_MAX_CODEWORDS][SRSLTE_NSUBFRAMES_X_FRAME];
   bool sequence_generated;
 } srslte_pdsch_user_t;
-
-#ifndef SRSLTE_SINGLE_THREAD
-
-typedef struct {
-  /* Thread identifier: they must set before thread creation */
-  uint32_t codeword_idx;
-  void *pdsch_ptr;
-
-  /* Configuration Encoder/Decoder: they must be set before posting start semaphore */
-  srslte_pdsch_cfg_t *cfg;
-  uint16_t rnti;
-
-  /* Encoder/Decoder data pointers: they must be set before posting start semaphore  */
-  uint8_t *data;
-  void *softbuffer;
-
-  /* Execution status */
-  int ret_status;
-
-  /* Semaphores */
-  sem_t start;
-  sem_t finish;
-
-  /* Thread kill flag */
-  bool quit;
-} srslte_pdsch_thread_args_t;
-
-#endif /* SRSLTE_SINGLE_THREAD */
 
 /* PDSCH object */
 typedef struct SRSLTE_API {
@@ -110,13 +75,6 @@ typedef struct SRSLTE_API {
   srslte_pdsch_user_t **users;
   
   srslte_sch_t dl_sch[SRSLTE_MAX_CODEWORDS];
-
-#ifndef SRSLTE_SINGLE_THREAD
-
-  pthread_t threads[SRSLTE_MAX_CODEWORDS];
-  srslte_pdsch_thread_args_t thread_args[SRSLTE_MAX_CODEWORDS];
-
-#endif /* SRSLTE_SINGLE_THREAD */
 
 } srslte_pdsch_t;
 
@@ -190,14 +148,13 @@ SRSLTE_API int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
                                          uint16_t rnti,
                                          uint8_t *data[SRSLTE_MAX_CODEWORDS]);
 
-SRSLTE_API int srslte_pdsch_ri_pmi_select(srslte_pdsch_t *q,
-                                          srslte_pdsch_cfg_t *cfg,
-                                          cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                          float noise_estimate,
-                                          uint32_t nof_ce,
-                                          uint32_t *ri,
-                                          uint32_t *pmi,
-                                          float *current_sinr);
+SRSLTE_API int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
+                                       srslte_pdsch_cfg_t *cfg,
+                                       cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                       float noise_estimate,
+                                       uint32_t nof_ce,
+                                       uint32_t pmi[SRSLTE_MAX_LAYERS],
+                                       float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS]);
 
 SRSLTE_API void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, int max_iter);
 

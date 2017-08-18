@@ -33,13 +33,6 @@
 #include <assert.h>
 #include <math.h>
 
-#ifndef SRSLTE_SINGLE_THREAD
-
-#include <pthread.h>
-#include <semaphore.h>
-
-#endif /* SRSLTE_SINGLE_THREAD */
-
 #include "prb_dl.h"
 #include "srslte/phy/phch/pdsch.h"
 #include "srslte/phy/phch/sch.h"
@@ -63,13 +56,6 @@ cf_t *offset_original=NULL;
 extern int indices[100000];
 extern int indices_ptr; 
 #endif
-
-#ifndef SRSLTE_SINGLE_THREAD
-
-static void *srslte_pdsch_encode_thread (void *arg);
-static void *srslte_pdsch_decode_thread (void *arg);
-
-#endif /* SRSLTE_SINGLE_THREAD */
 
 float srslte_pdsch_coderate(uint32_t tbs, uint32_t nof_re) 
 {
@@ -263,20 +249,6 @@ int srslte_pdsch_init_multi(srslte_pdsch_t *q, srslte_cell_t cell, uint32_t nof_
         goto clean;
       }
 
-#ifndef SRSLTE_SINGLE_THREAD
-      if (sem_init(&q->thread_args[i].start, 0, 0)) {
-        ERROR("Creating semaphore");
-        goto clean;
-      }
-      if (sem_init(&q->thread_args[i].finish, 0, 0)) {
-        ERROR("Creating semaphore");
-        goto clean;
-      }
-      q->thread_args[i].codeword_idx = (uint32_t) i;
-      q->thread_args[i].pdsch_ptr = q;
-      pthread_create(&q->threads[i], NULL, (is_receiver) ? srslte_pdsch_decode_thread : srslte_pdsch_encode_thread,
-                     (void *) &q->thread_args[i]);
-#endif /* SRSLTE_SINGLE_THREAD */
     }
 
     /* Layer mapped symbols memory allocation */
@@ -339,15 +311,6 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
 
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
 
-#ifndef SRSLTE_SINGLE_THREAD
-    /* Stop threads */
-    q->thread_args[i].quit = true;
-    sem_post(&q->thread_args[i].start);
-    pthread_join(q->threads[i], NULL);
-    pthread_detach(q->threads[i]);
-
-#endif /* SRSLTE_SINGLE_THREAD */
-
     if (q->e[i]) {
       free(q->e[i]);
     }
@@ -358,7 +321,6 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
 
     /* Free sch objects */
     srslte_sch_free(&q->dl_sch[i]);
-
 
   }
 
@@ -506,7 +468,7 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
   return SRSLTE_SUCCESS;
 }
 
-static inline int srslte_pdsch_codeword_encode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_t *cfg,
+static int srslte_pdsch_codeword_encode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_t *cfg,
                                                srslte_softbuffer_tx_t *softbuffer, uint16_t rnti, uint8_t *data,
                                                uint32_t codeword_idx) {
   srslte_sch_t *dl_sch = &pdsch->dl_sch[codeword_idx];
@@ -550,33 +512,7 @@ static inline int srslte_pdsch_codeword_encode(srslte_pdsch_t *pdsch, srslte_pds
   return SRSLTE_SUCCESS;
 }
 
-
-#ifndef SRSLTE_SINGLE_THREAD
-
-static void *srslte_pdsch_encode_thread(void *arg) {
-  srslte_pdsch_thread_args_t *q = (srslte_pdsch_thread_args_t *) arg;
-  uint32_t codeword_idx = q->codeword_idx;
-
-  INFO("[PDSCH Encoder CW %d] waiting for data\n", codeword_idx);
-
-  sem_wait(&q->start);
-  while (!q->quit) {
-    q->ret_status = srslte_pdsch_codeword_encode(q->pdsch_ptr, q->cfg, q->softbuffer, q->rnti, q->data, codeword_idx);
-
-    /* Post finish semaphore */
-    sem_post(&q->finish);
-
-    /* Wait for next loop */
-    sem_wait(&q->start);
-  }
-
-  pthread_exit(NULL);
-  return q;
-}
-
-#endif /* SRSLTE_SINGLE_THREAD */
-
-static inline int srslte_pdsch_codeword_decode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_t *cfg,
+static int srslte_pdsch_codeword_decode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_t *cfg,
                                                srslte_softbuffer_rx_t *softbuffer, uint16_t rnti, uint8_t *data,
                                                uint32_t codeword_idx) {
   srslte_sch_t *dl_sch = &pdsch->dl_sch[codeword_idx];
@@ -588,6 +524,10 @@ static inline int srslte_pdsch_codeword_decode(srslte_pdsch_t *pdsch, srslte_pds
          cfg->sf_idx, codeword_idx, srslte_mod_string(mcs->mod), mcs->tbs,
          nbits->nof_re, nbits->nof_bits, (codeword_idx == 0) ? cfg->rv : cfg->rv2);
 
+    /* demodulate symbols
+     * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation,
+     * thus we don't need tot set it in the LLRs normalization
+     */
     srslte_demod_soft_demodulate_s(mcs->mod, pdsch->d[codeword_idx], pdsch->e[codeword_idx], cfg->nbits.nof_re);
 
     if (pdsch->users[rnti] && pdsch->users[rnti]->sequence_generated) {
@@ -608,32 +548,6 @@ static inline int srslte_pdsch_codeword_decode(srslte_pdsch_t *pdsch, srslte_pds
 
   return SRSLTE_SUCCESS;
 }
-
-#ifndef SRSLTE_SINGLE_THREAD
-
-static void *srslte_pdsch_decode_thread(void *arg) {
-  srslte_pdsch_thread_args_t *q = (srslte_pdsch_thread_args_t *) arg;
-  uint32_t codeword_idx = q->codeword_idx;
-
-  INFO("[PDSCH Encoder CW %d] waiting for data\n", codeword_idx);
-
-  sem_wait(&q->start);
-  while (!q->quit) {
-    q->ret_status = srslte_pdsch_codeword_decode(q->pdsch_ptr, q->cfg, q->softbuffer, q->rnti, q->data, codeword_idx);
-
-    /* Post finish semaphore */
-    sem_post(&q->finish);
-
-    /* Wait for next loop */
-    sem_wait(&q->start);
-  }
-
-  pthread_exit(NULL);
-  return q;
-}
-
-#endif /* SRSLTE_SINGLE_THREAD */
-
 
 void srslte_pdsch_free_rnti(srslte_pdsch_t* q, uint16_t rnti)
 {
@@ -760,32 +674,9 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
       srslte_vec_save_file("pdsch_symbols.dat", q->d, cfg->nbits.nof_re*sizeof(cf_t));
     }
 
-#ifndef SRSLTE_SINGLE_THREAD
-
-    for (i = 0; i < cfg->grant.nof_tb; i++) {
-      srslte_pdsch_thread_args_t *thread_args = &q->thread_args[i];
-      thread_args->cfg = cfg;
-      thread_args->softbuffer = &softbuffers[i];
-      thread_args->data = data[i];
-      thread_args->rnti = rnti;
-      sem_post(&thread_args->start);
-    }
-
-    for (i = 0; i < cfg->grant.nof_tb; i++) {
-      srslte_pdsch_thread_args_t *thread_args = &q->thread_args[i];
-      sem_wait(&thread_args->finish);
-      ret |= thread_args->ret_status;
-    }
-
-#else
-    /* demodulate symbols
-    * The MAX-log-MAP algorithm used in turbo decoding is unsensitive to SNR estimation,
-    * thus we don't need tot set it in the LLRs normalization
-    */
     for (uint32_t tb = 0; tb < cfg->grant.nof_tb; tb ++) {
         ret |= srslte_pdsch_codeword_decode(q, cfg, &softbuffers[tb], rnti, data[tb], tb);
     }
-#endif /* SRSLTE_SINGLE_THREAD */
 
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling\n",0);
@@ -799,70 +690,20 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
   }
 }
 
-int srslte_pdsch_ri_pmi_select(srslte_pdsch_t *q,
-                               srslte_pdsch_cfg_t *cfg,
-                               cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate, uint32_t nof_ce,
-                               uint32_t *ri, uint32_t *pmi,
-                               float *current_sinr) {
-  uint32_t best_pmi_1l;
-  uint32_t best_pmi_2l;
-  float sinr_1l[SRSLTE_MAX_CODEBOOKS];
-  float sinr_2l[SRSLTE_MAX_CODEBOOKS];
-  float best_sinr_1l = 0.0;
-  float best_sinr_2l = 0.0;
-  int n1, n2;
+int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
+                                  srslte_pdsch_cfg_t *cfg,
+                                  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate, uint32_t nof_ce,
+                                  uint32_t pmi[SRSLTE_MAX_LAYERS], float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS]) {
 
   if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
-    n1 = srslte_precoding_pmi_select(ce, nof_ce, noise_estimate, 1, &best_pmi_1l, sinr_1l);
-    if (n1 < 0) {
-      ERROR("PMI Select for 1 layer");
-      return SRSLTE_ERROR;
-    }
-
-    n2 = srslte_precoding_pmi_select(ce, nof_ce, noise_estimate, 2, &best_pmi_2l, sinr_2l);
-    if (n2 < 0) {
-      ERROR("PMI Select for 2 layer");
-      return SRSLTE_ERROR;
-    }
-
-    for (int i = 0; i < n1; i++) {
-      if (sinr_1l[i] > best_sinr_1l) {
-        best_sinr_1l = sinr_1l[i];
+    for (int nof_layers = 1; nof_layers <= cfg->nof_layers; nof_layers++ ) {
+      if (sinr[nof_layers - 1] && pmi) {
+        if (srslte_precoding_pmi_select(ce, nof_ce, noise_estimate, nof_layers, &pmi[nof_layers - 1],
+                                        sinr[nof_layers - 1]) < 0) {
+          ERROR("PMI Select for %d layers", nof_layers);
+          return SRSLTE_ERROR;
+        }
       }
-    }
-
-    for (int i = 0; i < n2; i++) {
-      if (sinr_2l[i] > best_sinr_2l) {
-        best_sinr_2l = sinr_2l[i];
-      }
-    }
-
-    /* Set RI */
-    if (ri != NULL) {
-      *ri = (best_sinr_1l > best_sinr_2l) ? 1 : 2;
-    }
-
-    /* Set PMI */
-    if (pmi != NULL) {
-      *pmi = (best_sinr_1l > best_sinr_2l) ? best_pmi_1l : best_pmi_2l;
-    }
-
-    /* Set current SINR */
-    if (current_sinr != NULL && cfg->mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
-      if (cfg->nof_layers == 1) {
-        *current_sinr = sinr_1l[cfg->codebook_idx];
-      } else if (cfg->nof_layers == 2) {
-        *current_sinr = sinr_2l[cfg->codebook_idx - 1];
-      } else {
-        ERROR("Not implemented number of layers");
-        return SRSLTE_ERROR;
-      }
-    }
-
-    /* Print Trace */
-    if (ri != NULL && pmi != NULL && current_sinr != NULL) {
-      INFO("PDSCH Select RI=%d; PMI=%d; Current SINR=%.1fdB (nof_layers=%d, codebook_idx=%d)\n", *ri, *pmi,
-           10*log10(*current_sinr), cfg->nof_layers, cfg->codebook_idx);
     }
   } else {
     ERROR("Not implemented configuration");
@@ -981,28 +822,9 @@ int srslte_pdsch_encode_multi(srslte_pdsch_t *q,
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
-#ifndef SRSLTE_SINGLE_THREAD
-
-    for (int tb = 0; tb < cfg->grant.nof_tb; tb++) {
-      srslte_pdsch_thread_args_t *thread_args = &q->thread_args[tb];
-      thread_args->cfg = cfg;
-      thread_args->softbuffer = &softbuffers[tb];
-      thread_args->data = data[tb];
-      thread_args->rnti = rnti;
-      sem_post(&thread_args->start);
-    }
-
-    for (int tb = 0; tb < cfg->grant.nof_tb; tb++) {
-      srslte_pdsch_thread_args_t *thread_args = &q->thread_args[tb];
-      sem_wait(&thread_args->finish);
-      ret |= thread_args->ret_status;
-    }
-
-#else
     for (uint32_t tb = 0; tb < cfg->grant.nof_tb; tb ++) {
       ret |= srslte_pdsch_codeword_encode(q, cfg, &softbuffers[tb], rnti, data[tb], tb);
     }
-#endif /* SRSLTE_SINGLE_THREAD */
 
     if (q->cell.nof_ports > 1) {
       int nof_symbols;

@@ -454,9 +454,58 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
 
 int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, float *current_sinr) {
   float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
-  return srslte_pdsch_ri_pmi_select(&q->pdsch, &q->pdsch_cfg, q->ce_m, noise_estimate,
-                                    SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp),
-                                    ri, pmi, current_sinr);
+  float best_sinr = -INFINITY;
+  uint32_t best_pmi = 0, best_ri = 0;
+
+  if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
+    if (srslte_pdsch_pmi_select(&q->pdsch, &q->pdsch_cfg, q->ce_m, noise_estimate,
+                                  SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp), q->pmi, q->sinr)) {
+      ERROR("SINR calculation error");
+      return SRSLTE_ERROR;
+    }
+
+    /* Select the best Rank indicator (RI) and Precoding Matrix Indicator (PMI) */
+    for (uint32_t nof_layers = 1; nof_layers <= q->pdsch_cfg.nof_layers; nof_layers++ ) {
+      if (q->sinr[nof_layers][q->pmi[nof_layers]] > best_sinr) {
+        best_sinr = q->sinr[nof_layers][q->pmi[nof_layers]];
+        best_pmi = q->pmi[nof_layers];
+        best_ri = nof_layers;
+      }
+    }
+
+    /* Set RI */
+    if (ri != NULL) {
+      *ri = best_ri;
+    }
+
+    /* Set PMI */
+    if (pmi != NULL) {
+      *pmi = best_pmi;
+    }
+
+    /* Set current SINR */
+    if (current_sinr != NULL && q->pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
+      if (q->pdsch_cfg.nof_layers == 1) {
+        *current_sinr = q->sinr[0][q->pdsch_cfg.codebook_idx];
+      } else if (q->pdsch_cfg.nof_layers == 2) {
+        *current_sinr = q->sinr[1][q->pdsch_cfg.codebook_idx - 1];
+      } else {
+        ERROR("Not implemented number of layers");
+        return SRSLTE_ERROR;
+      }
+    }
+
+    /* Print Trace */
+    if (ri != NULL && pmi != NULL && current_sinr != NULL) {
+      INFO("PDSCH Select RI=%d; PMI=%d; Current SINR=%.1fdB (nof_layers=%d, codebook_idx=%d)\n", *ri, *pmi,
+           10*log10(*current_sinr), q->pdsch_cfg.nof_layers, q->pdsch_cfg.codebook_idx);
+    }
+  } else {
+    ERROR("Not implemented configuration");
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  return SRSLTE_SUCCESS;
 }
 
 uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {

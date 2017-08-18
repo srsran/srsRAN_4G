@@ -94,7 +94,12 @@ typedef struct SRSLTE_API {
   cf_t *sf_symbols_m[SRSLTE_MAX_PORTS]; 
   cf_t *ce[SRSLTE_MAX_PORTS]; // compatibility
   cf_t *ce_m[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  
+
+  /* RI, PMI and SINR for MIMO statistics */
+  float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS];
+  uint32_t pmi[SRSLTE_MAX_LAYERS];
+  uint32_t ri;
+
   srslte_dci_format_t dci_format;
   uint64_t pkt_errors; 
   uint64_t pkts_total;
