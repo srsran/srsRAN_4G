@@ -141,19 +141,12 @@ SRSLTE_API int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q,
                                             uint32_t sf_idx, 
                                             uint32_t *cfi); 
 
-SRSLTE_API int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, 
-                                      srslte_ra_dl_grant_t *grant, 
-                                      uint32_t cfi, 
-                                      uint32_t sf_idx, 
-                                      int rvidx);
-
-SRSLTE_API int srslte_ue_dl_cfg_grant_multi(srslte_ue_dl_t *q,
-                                            srslte_ra_dl_grant_t *grant,
-                                            uint32_t cfi,
-                                            uint32_t sf_idx,
-                                            int rvidx[SRSLTE_MAX_CODEWORDS],
-                                            srslte_mimo_type_t mimo_type,
-                                            uint32_t pinfo);
+SRSLTE_API int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q,
+                                      srslte_ra_dl_grant_t *grant,
+                                      uint32_t cfi,
+                                      uint32_t sf_idx,
+                                      int rvidx[SRSLTE_MAX_CODEWORDS],
+                                      srslte_mimo_type_t mimo_type);
 
 SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q, 
                                         uint32_t cfi, 

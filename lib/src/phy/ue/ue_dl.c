@@ -283,31 +283,23 @@ int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *c
 
 
 int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx,
-                           int rvidx) {
-  int _rvidx [SRSLTE_MAX_CODEWORDS] = {1};
-  _rvidx[0] = rvidx;
-
-  return srslte_pdsch_cfg_multi(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, _rvidx, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0);
-}
-
-int srslte_ue_dl_cfg_grant_multi(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx,
-                                 int rvidx[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type, uint32_t pinfo) {
+                                 int rvidx[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type) {
   uint32_t pmi = 0;
 
   /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
   if (mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
     if (grant->nof_tb == 1) {
-      if (pinfo > 0 && pinfo < 5) {
-        pmi = pinfo - 1;
+      if (grant->pinfo > 0 && grant->pinfo < 5) {
+        pmi = grant->pinfo - 1;
       } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, pinfo);
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, grant->pinfo);
         return SRSLTE_ERROR;
       }
     } else {
-      if (pinfo < 2) {
-        pmi = pinfo;
+      if (grant->pinfo < 2) {
+        pmi = grant->pinfo;
       } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, pinfo);
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, grant->pinfo);
         return SRSLTE_ERROR;
       }
     }
@@ -415,7 +407,7 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
         return SRSLTE_ERROR;
     }
 
-    if (srslte_ue_dl_cfg_grant_multi(q, &grant, cfi, sf_idx, rvidx, mimo_type, dci_unpacked.pinfo)) {
+    if (srslte_ue_dl_cfg_grant(q, &grant, cfi, sf_idx, rvidx, mimo_type)) {
       ERROR("Configuing PDSCH");
       return SRSLTE_ERROR; 
     }

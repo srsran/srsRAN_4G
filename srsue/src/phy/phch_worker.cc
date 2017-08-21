@@ -431,6 +431,7 @@ bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *paylo
   }
 
   switch(phy->config->dedicated.antenna_info_explicit_value.tx_mode) {
+    /* Implemented Tx Modes */
     case LIBLTE_RRC_TRANSMISSION_MODE_1:
       mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
       break;
@@ -447,9 +448,18 @@ bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *paylo
         valid_config = false;
       }
       break;
+    case LIBLTE_RRC_TRANSMISSION_MODE_4:
+      if (grant->nof_tb == 1) {
+        mimo_type = (grant->pinfo == 0) ? SRSLTE_MIMO_TYPE_TX_DIVERSITY : SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+      } else if (grant->nof_tb == 2) {
+        mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+      } else {
+        Error("Wrong number of transport blocks (%d) for TM4\n", grant->nof_tb);
+        valid_config = false;
+      }
+    break;
 
     /* Not implemented cases */
-    case LIBLTE_RRC_TRANSMISSION_MODE_4:
     case LIBLTE_RRC_TRANSMISSION_MODE_5:
     case LIBLTE_RRC_TRANSMISSION_MODE_6:
     case LIBLTE_RRC_TRANSMISSION_MODE_7:
@@ -468,7 +478,7 @@ bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *paylo
 
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
   if (valid_config) {
-    if (!srslte_ue_dl_cfg_grant_multi(&ue_dl, grant, cfi, tti%10, rv, mimo_type, 0)) {
+    if (!srslte_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, rv, mimo_type)) {
       if (ue_dl.pdsch_cfg.grant.mcs[0].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[0].tbs >= 0) {
         
         float noise_estimate = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);

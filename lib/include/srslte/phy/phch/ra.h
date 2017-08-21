@@ -105,6 +105,7 @@ typedef struct SRSLTE_API {
   uint32_t Qm[SRSLTE_MAX_CODEWORDS];
   srslte_ra_mcs_t mcs[SRSLTE_MAX_CODEWORDS];
   uint32_t nof_tb;
+  uint32_t pinfo;
 } srslte_ra_dl_grant_t;
 
 /** Unpacked DCI message for DL grant */

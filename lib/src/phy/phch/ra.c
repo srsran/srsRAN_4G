@@ -528,6 +528,7 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
       grant->nof_tb++;
     }
   }
+  grant->pinfo = dci->pinfo;
 
   if (tbs < 0) {
     return SRSLTE_ERROR; 
