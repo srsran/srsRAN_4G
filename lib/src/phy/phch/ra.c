@@ -492,44 +492,43 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
       fprintf(stderr, "Error decoding DCI: P/SI/RA-RNTI supports Format1A/1C only\n");
       return SRSLTE_ERROR; 
     }
-    grant->mcs.mod = SRSLTE_MOD_QPSK;      
-    grant->mcs.tbs = (uint32_t) tbs; 
+    grant->mcs[0].mod = SRSLTE_MOD_QPSK;
+    grant->mcs[0].tbs = (uint32_t) tbs;
   } else {
     n_prb = grant->nof_prb;
     if (dci->tb_en[0]) {
-      grant->mcs.idx = dci->mcs_idx;
-      tbs   = dl_fill_ra_mcs(&grant->mcs, n_prb);
+      grant->mcs[0].idx = dci->mcs_idx;
+      tbs   = dl_fill_ra_mcs(&grant->mcs[0], n_prb);
       if (tbs) {
         last_dl_tbs[dci->harq_process%8] = tbs;
       } else {
         // For mcs>=29, set last TBS received for this PID
-        grant->mcs.tbs = last_dl_tbs[dci->harq_process%8]; 
+        grant->mcs[0].tbs = last_dl_tbs[dci->harq_process%8];
       }
     } else {
-      grant->mcs.tbs = 0; 
+      grant->mcs[0].tbs = 0;
     }
     if (dci->tb_en[1]) {
-      grant->mcs2.idx = dci->mcs_idx_1;
-      tbs = dl_fill_ra_mcs(&grant->mcs2, n_prb);
+      grant->mcs[1].idx = dci->mcs_idx_1;
+      tbs = dl_fill_ra_mcs(&grant->mcs[1], n_prb);
       if (tbs) {
         last_dl_tbs2[dci->harq_process%8] = tbs;
       } else {
         // For mcs>=29, set last TBS received for this PID
-        grant->mcs2.tbs = last_dl_tbs2[dci->harq_process%8]; 
+        grant->mcs[1].tbs = last_dl_tbs2[dci->harq_process%8];
       }
     } else {
-      grant->mcs2.tbs = 0; 
+      grant->mcs[1].tbs = 0;
     }
   }
   grant->nof_tb = 0;
-  if (dci->tb_en[0]) {
-    grant->Qm = srslte_mod_bits_x_symbol(grant->mcs.mod);
-    grant->nof_tb++;
+  for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    if (dci->tb_en[tb]) {
+      grant->Qm[tb] = srslte_mod_bits_x_symbol(grant->mcs[tb].mod);
+      grant->nof_tb++;
+    }
   }
-  if (dci->tb_en[1]) {
-    grant->Qm2 = srslte_mod_bits_x_symbol(grant->mcs2.mod);
-    grant->nof_tb++;
-  }
+
   if (tbs < 0) {
     return SRSLTE_ERROR; 
   } else {    
@@ -537,29 +536,16 @@ static int dl_dci_to_grant_mcs(srslte_ra_dl_dci_t *dci, srslte_ra_dl_grant_t *gr
   }
 }
 
-void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srslte_cell_t cell, uint32_t sf_idx, srslte_ra_nbits_t *nbits) 
+void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, uint32_t cfi, srslte_cell_t cell, uint32_t sf_idx,
+                                 srslte_ra_nbits_t nbits [SRSLTE_MAX_CODEWORDS])
 {
   // Compute number of RE 
-  nbits->nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb<10?(cfi+1):cfi);
-  nbits->lstart = cell.nof_prb<10?(cfi+1):cfi;
-  nbits->nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-nbits->lstart;
-  nbits->nof_bits = nbits->nof_re * grant->Qm;      
-}
-
-void srslte_ra_dl_grant_to_nbits_multi(srslte_ra_dl_grant_t *grant, uint32_t cfi, srslte_cell_t cell, uint32_t sf_idx,
-                                       srslte_ra_nbits_t *nbits, srslte_ra_nbits_t *nbits2) {
-  /* Compute number of RE for first transport block */
-  nbits->nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb<10?(cfi+1):cfi);
-  nbits->lstart = cell.nof_prb<10?(cfi+1):cfi;
-  nbits->nof_symb = 2*SRSLTE_CP_NSYMB(cell.cp)-nbits->lstart;
-  nbits->nof_bits = nbits->nof_re * grant->Qm;
-
-  /*/ Compute number of RE for second transport block */
-  if (grant->nof_tb > 1) {
-    nbits2->nof_re = nbits->nof_re;
-    nbits2->lstart = nbits->lstart;
-    nbits2->nof_symb = 2 * SRSLTE_CP_NSYMB(cell.cp) - nbits2->lstart;
-    nbits2->nof_bits = nbits2->nof_re * grant->Qm2;
+  for (int i = 0; i < grant->nof_tb; i++) {
+    /* Compute number of RE for first transport block */
+    nbits[i].nof_re = srslte_ra_dl_grant_nof_re(grant, cell, sf_idx, cell.nof_prb < 10 ? (cfi + 1) : cfi);
+    nbits[i].lstart = cell.nof_prb < 10 ? (cfi + 1) : cfi;
+    nbits[i].nof_symb = 2 * SRSLTE_CP_NSYMB(cell.cp) - nbits[0].lstart;
+    nbits[i].nof_bits = nbits[i].nof_re * grant->Qm[i];
   }
 }
 
@@ -834,10 +820,11 @@ void srslte_ra_dl_grant_fprint(FILE *f, srslte_ra_dl_grant_t *grant) {
   srslte_ra_prb_fprint(f, grant);
   fprintf(f, " - Number of PRBs:\t\t\t%d\n", grant->nof_prb);
   fprintf(f, " - Number of TBs:\t\t\t%d\n", grant->nof_tb);
-  fprintf(f, " - Modulation type:\t\t\t%s\n", srslte_mod_string(grant->mcs.mod));
-  fprintf(f, " - Transport block size:\t\t%d\n", grant->mcs.tbs);
-  fprintf(f, " - Modulation type (TB2):\t\t%s\n", srslte_mod_string(grant->mcs2.mod));
-  fprintf(f, " - Transport block size (TB2):\t\t%d\n", grant->mcs2.tbs);
+  for (int i = 0; i < grant->nof_tb; i++) {
+    fprintf(f, "  - Transport block:\t\t\t%d\n", i);
+    fprintf(f, "   -> Modulation type:\t\t\t%s\n", srslte_mod_string(grant->mcs[i].mod));
+    fprintf(f, "   -> Transport block size:\t\t%d\n", grant->mcs[i].tbs);
+  }
 }
 
 void srslte_ra_prb_fprint(FILE *f, srslte_ra_dl_grant_t *grant) {

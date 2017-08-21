@@ -145,14 +145,13 @@ SRSLTE_API int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q,
                                       srslte_ra_dl_grant_t *grant, 
                                       uint32_t cfi, 
                                       uint32_t sf_idx, 
-                                      uint32_t rvidx); 
+                                      int rvidx);
 
 SRSLTE_API int srslte_ue_dl_cfg_grant_multi(srslte_ue_dl_t *q,
                                             srslte_ra_dl_grant_t *grant,
                                             uint32_t cfi,
                                             uint32_t sf_idx,
-                                            uint32_t rvidx,
-                                            uint32_t rvidx2,
+                                            int rvidx[SRSLTE_MAX_CODEWORDS],
                                             srslte_mimo_type_t mimo_type,
                                             uint32_t pinfo);
 

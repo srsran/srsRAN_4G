@@ -104,15 +104,14 @@ SRSLTE_API int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg,
                                 srslte_ra_dl_grant_t *grant, 
                                 uint32_t cfi, 
                                 uint32_t sf_idx, 
-                                uint32_t rvidx); 
+                                int rvidx);
 
 SRSLTE_API int srslte_pdsch_cfg_multi(srslte_pdsch_cfg_t *cfg,
                                       srslte_cell_t cell,
                                       srslte_ra_dl_grant_t *grant,
                                       uint32_t cfi,
                                       uint32_t sf_idx,
-                                      uint32_t rvidx,
-                                      uint32_t rvidx2,
+                                      int rvidx[SRSLTE_MAX_CODEWORDS],
                                       srslte_mimo_type_t mimo_type,
                                       uint32_t pmi);
 
@@ -156,7 +155,7 @@ SRSLTE_API int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
                                        uint32_t pmi[SRSLTE_MAX_LAYERS],
                                        float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS]);
 
-SRSLTE_API void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, int max_iter);
+SRSLTE_API void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, uint32_t max_iter);
 
 SRSLTE_API float srslte_pdsch_average_noi(srslte_pdsch_t *q);
 

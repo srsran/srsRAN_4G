@@ -204,9 +204,9 @@ void phch_worker::work_imp()
       /* Decode PDSCH if instructed to do so */
       dl_ack = dl_action.default_ack; 
       if (dl_action.decode_enabled) {
-        dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr, 
+        dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr,
                               dl_action.softbuffer, dl_action.rv, dl_action.rnti, 
-                              dl_mac_grant.pid);              
+                              dl_mac_grant.pid);
       }
       if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
         phy->mac->tb_decoded(dl_ack, dl_mac_grant.rnti_type, dl_mac_grant.pid);
@@ -382,7 +382,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     /* Fill MAC grant structure */
     grant->ndi = dci_unpacked.ndi;
     grant->pid = dci_unpacked.harq_process;
-    grant->n_bytes = grant->phy_grant.dl.mcs.tbs/8;
+    grant->n_bytes = grant->phy_grant.dl.mcs[0].tbs/8;
     grant->tti = tti; 
     grant->rv  = dci_unpacked.rv_idx;
     grant->rnti = dl_rnti; 
@@ -406,23 +406,70 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
 }
 
 bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
-                               srslte_softbuffer_rx_t* softbuffer, int rv, uint16_t rnti, uint32_t harq_pid)
-{
-  return decode_pdsch_multi(grant, &payload, softbuffer, rv, rnti, harq_pid);
+                               srslte_softbuffer_rx_t *softbuffer, int rv,
+                               uint16_t rnti, uint32_t harq_pid) {
+  int _rv [SRSLTE_MAX_CODEWORDS] = {1};
+  _rv[0] = rv;
+
+  return decode_pdsch_multi(grant, &payload, softbuffer, _rv, rnti, harq_pid);
 }
 
 bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSLTE_MAX_CODEWORDS],
-                               srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS], int rv, uint16_t rnti, uint32_t harq_pid)
-{
+                                     srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS],
+                                     int rv[SRSLTE_MAX_CODEWORDS],
+                                     uint16_t rnti, uint32_t harq_pid) {
   char timestr[64];
+  bool valid_config = true;
   timestr[0]='\0';
-  
+  srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+
+  for (uint32_t tb = 0; tb < grant->nof_tb; tb++) {
+    if (rv[tb] < 0 || rv[tb] > 3) {
+      valid_config = false;
+      Error("Wrong RV (%d) for TB index %d", rv[tb], tb);
+    }
+  }
+
+  switch(phy->config->dedicated.antenna_info_explicit_value.tx_mode) {
+    case LIBLTE_RRC_TRANSMISSION_MODE_1:
+      mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+      break;
+    case LIBLTE_RRC_TRANSMISSION_MODE_2:
+      mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+      break;
+    case LIBLTE_RRC_TRANSMISSION_MODE_3:
+      if (grant->nof_tb == 1) {
+        mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+      } else if (grant->nof_tb == 2) {
+        mimo_type = SRSLTE_MIMO_TYPE_CDD;
+      } else {
+        Error("Wrong number of transport blocks (%d) for TM3\n", grant->nof_tb);
+        valid_config = false;
+      }
+      break;
+
+    /* Not implemented cases */
+    case LIBLTE_RRC_TRANSMISSION_MODE_4:
+    case LIBLTE_RRC_TRANSMISSION_MODE_5:
+    case LIBLTE_RRC_TRANSMISSION_MODE_6:
+    case LIBLTE_RRC_TRANSMISSION_MODE_7:
+    case LIBLTE_RRC_TRANSMISSION_MODE_8:
+      Error("Not implemented Tx mode (%d)\n", phy->config->dedicated.antenna_info_explicit_value.tx_mode);
+      break;
+
+    /* Error cases */
+    case LIBLTE_RRC_TRANSMISSION_MODE_N_ITEMS:
+    default:
+      Error("Wrong Tx mode (%d)\n", phy->config->dedicated.antenna_info_explicit_value.tx_mode);
+      valid_config = false;
+  }
+
   Debug("DL Buffer TTI %d: Decoding PDSCH\n", tti);
 
   /* Setup PDSCH configuration for this CFI, SFIDX and RVIDX */
-  if (rv >= 0 && rv <= 3) {
-    if (!srslte_ue_dl_cfg_grant(&ue_dl, grant, cfi, tti%10, rv)) {
-      if (ue_dl.pdsch_cfg.grant.mcs.mod > 0 && ue_dl.pdsch_cfg.grant.mcs.tbs >= 0) {
+  if (valid_config) {
+    if (!srslte_ue_dl_cfg_grant_multi(&ue_dl, grant, cfi, tti%10, rv, mimo_type, 0)) {
+      if (ue_dl.pdsch_cfg.grant.mcs[0].mod > 0 && ue_dl.pdsch_cfg.grant.mcs[0].tbs >= 0) {
         
         float noise_estimate = srslte_chest_dl_get_noise_estimate(&ue_dl.chest);
         
@@ -451,7 +498,7 @@ bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *paylo
         
         Info("PDSCH: l_crb=%2d, harq=%d, tbs=%d, mcs=%d, rv=%d, crc=%s, snr=%.1f dB, n_iter=%d%s\n", 
               grant->nof_prb, harq_pid, 
-              grant->mcs.tbs/8, grant->mcs.idx, rv, 
+              grant->mcs[0].tbs/8, grant->mcs[0].idx, rv,
               ack?"OK":"KO", 
               10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), 
               srslte_pdsch_last_noi(&ue_dl.pdsch),
@@ -461,7 +508,7 @@ bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *paylo
         //srslte_vec_save_file("pdsch", signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
         
         // Store metrics
-        dl_metrics.mcs    = grant->mcs.idx;
+        dl_metrics.mcs    = grant->mcs[0].idx;
         
         return ack; 
       } else {
@@ -470,8 +517,6 @@ bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *paylo
     } else {
       Error("Error configuring DL grant\n"); 
     }
-  } else {
-    Error("Error RV is not set or is invalid (%d)\n", rv);
   }
   return true; 
 }
@@ -973,8 +1018,9 @@ int phch_worker::read_ce_abs(float *ce_abs) {
 
 int phch_worker::read_pdsch_d(cf_t* pdsch_d)
 {
-  memcpy(pdsch_d, ue_dl.pdsch.d, ue_dl.pdsch_cfg.nbits.nof_re*sizeof(cf_t));
-  return ue_dl.pdsch_cfg.nbits.nof_re; 
+
+  memcpy(pdsch_d, ue_dl.pdsch.d, ue_dl.pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
+  return ue_dl.pdsch_cfg.nbits[0].nof_re;
 }
 
 

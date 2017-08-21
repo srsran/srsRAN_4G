@@ -102,10 +102,8 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   bool prb_idx[2][SRSLTE_MAX_PRB];
   uint32_t nof_prb;  
-  uint32_t Qm;
-  uint32_t Qm2; 
-  srslte_ra_mcs_t mcs;
-  srslte_ra_mcs_t mcs2;
+  uint32_t Qm[SRSLTE_MAX_CODEWORDS];
+  srslte_ra_mcs_t mcs[SRSLTE_MAX_CODEWORDS];
   uint32_t nof_tb;
 } srslte_ra_dl_grant_t;
 
@@ -206,8 +204,8 @@ SRSLTE_API int srslte_ra_dl_dci_to_grant(srslte_ra_dl_dci_t *dci,
 SRSLTE_API void srslte_ra_dl_grant_to_nbits(srslte_ra_dl_grant_t *grant, 
                                             uint32_t cfi, 
                                             srslte_cell_t cell, 
-                                            uint32_t sf_idx, 
-                                            srslte_ra_nbits_t *nbits); 
+                                            uint32_t sf_idx,
+                                            srslte_ra_nbits_t nbits[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API void srslte_ra_dl_grant_to_nbits_multi(srslte_ra_dl_grant_t *grant,
                                                   uint32_t cfi,

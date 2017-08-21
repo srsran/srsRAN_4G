@@ -514,39 +514,23 @@ static int decode_tb(srslte_sch_t *q,
   }
 }
 
-int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
-                        int16_t *e_bits, uint8_t *data) 
-{
-  return decode_tb(q,                    
-                   softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
-                   e_bits, data);
+int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                        int16_t *e_bits, uint8_t *data) {
+  return srslte_dlsch_decode2(q, cfg, softbuffer, e_bits, data, 0);
 }
 
 
 int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
-                        int16_t *e_bits, uint8_t *data, int codeword_idx)
-{
+                         int16_t *e_bits, uint8_t *data, int codeword_idx) {
   uint32_t Nl = 1;
-  int ret = SRSLTE_ERROR;
 
   if (cfg->nof_layers != cfg->grant.nof_tb) {
     Nl = 2;
   }
 
-  if (codeword_idx == 0) {
-    ret = decode_tb(q, softbuffer, &cfg->cb_segm,
-                     cfg->grant.Qm*Nl, cfg->rv, cfg->nbits.nof_bits,
-                     e_bits, data);
-  } else if (codeword_idx == 1) {
-    ret = decode_tb(q, softbuffer, &cfg->cb_segm2,
-                     cfg->grant.Qm2*Nl, cfg->rv2, cfg->nbits2.nof_bits,
-                     e_bits, data);
-  } else {
-    ERROR("Not implemented");
-  }
-
-  return ret;
+  return decode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx],
+                   cfg->grant.Qm[codeword_idx] * Nl, cfg->rv[codeword_idx], cfg->nbits[codeword_idx].nof_bits,
+                   e_bits, data);
 }
 
 /**
@@ -562,64 +546,22 @@ int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbu
 int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
                         uint8_t *data, uint8_t *e_bits) 
 {
-  return encode_tb(q, 
-                   softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
-                   data, e_bits);
+  return srslte_dlsch_encode2(q, cfg, softbuffer, data, e_bits, 0);
 }
 
 int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
                               uint8_t *data, uint8_t *e_bits, int codeword_idx) {
-  int ret = SRSLTE_ERROR;
   uint32_t Nl = 1;
 
   if (cfg->nof_layers != cfg->grant.nof_tb) {
     Nl = 2;
   }
 
-  if(codeword_idx == 0) {
-    /* Codeword 1 shall be encoded */
-    ret = encode_tb(q, softbuffer, &cfg->cb_segm, cfg->grant.Qm*Nl, cfg->rv, cfg->nbits.nof_bits, data, e_bits);
-  } else if(codeword_idx == 1) {
-    /* Codeword 2 shall be encoded */
-    ret = encode_tb(q, softbuffer, &cfg->cb_segm2, cfg->grant.Qm2*Nl, cfg->rv2, cfg->nbits2.nof_bits, data, e_bits);
-  } else {
-    ERROR("Not implemented");
-  }
-
-  return ret;
+  return encode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx], cfg->grant.Qm[codeword_idx]*Nl, cfg->rv[codeword_idx],
+                   cfg->nbits[codeword_idx].nof_bits, data, e_bits);
 }
 
-int srslte_dlsch_encode_multi(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS],
-                        uint8_t *data[SRSLTE_MAX_CODEWORDS], uint8_t *e_bits[SRSLTE_MAX_CODEWORDS])
-{
-  int ret = 0;
-  uint32_t Nl = 1;
-
-  if (cfg->nof_layers != cfg->grant.nof_tb) {
-    Nl = 2;
-  }
-
-  /* Check if codeword 1 shall be encoded */
-  if(cfg->nbits.nof_bits) {
-    ret |= encode_tb(q,
-                     &softbuffers[0], &cfg->cb_segm,
-                     cfg->grant.Qm*Nl, cfg->rv, cfg->nbits.nof_bits,
-                     data[0], e_bits[0]);
-  }
-
-  /* Check if codeword 2 shall be encoded */
-  if(cfg->nbits2.nof_bits) {
-    ret |= encode_tb(q,
-                     &softbuffers[1], &cfg->cb_segm2,
-                     cfg->grant.Qm2*Nl, cfg->rv2, cfg->nbits2.nof_bits,
-                     data[1], e_bits[1]);
-  }
-
-  return ret;
-}
-
-/* Compute the interleaving function on-the-fly, because it depends on number of RI bits 
+/* Compute the interleaving function on-the-fly, because it depends on number of RI bits
  * Profiling show that the computation of this matrix is neglegible. 
  */
 static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs, uint32_t Qm,

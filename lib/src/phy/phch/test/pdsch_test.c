@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <srslte/phy/phch/ra.h>
@@ -55,11 +54,9 @@ srslte_cell_t cell = {
 char mimo_type_str [32] = "single";
 srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
 uint32_t cfi = 2;
-uint32_t mcs = 0;
-uint32_t mcs2 = 0;
+uint32_t mcs[SRSLTE_MAX_CODEWORDS] = {0, 0};
 uint32_t subframe = 1;
-uint32_t rv_idx = 0;
-uint32_t rv_idx2 = 1;
+int rv_idx[SRSLTE_MAX_CODEWORDS] = {0, 1};
 uint16_t rnti = 1234;
 uint32_t nof_rx_antennas = 1;
 uint32_t pmi = 0;
@@ -68,12 +65,12 @@ char *input_file = NULL;
 void usage(char *prog) {
   printf("Usage: %s [fmMcsrtRFpnwav] \n", prog);
   printf("\t-f read signal from file [Default generate it with pdsch_encode()]\n");
-  printf("\t-m MCS [Default %d]\n", mcs);
-  printf("\t-M MCS2 [Default %d]\n", mcs2);
+  printf("\t-m MCS [Default %d]\n", mcs[0]);
+  printf("\t-M MCS2 [Default %d]\n", mcs[1]);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-s subframe [Default %d]\n", subframe);
-  printf("\t-r rv_idx [Default %d]\n", rv_idx);
-  printf("\t-t rv_idx2 [Default %d]\n", rv_idx2);
+  printf("\t-r rv_idx [Default %d]\n", rv_idx[0]);
+  printf("\t-t rv_idx2 [Default %d]\n", rv_idx[1]);
   printf("\t-R rnti [Default %d]\n", rnti);
   printf("\t-F cfi [Default %d]\n", cfi);
   printf("\t-x Transmission mode [single|diversity|cdd|multiplex] [Default %s]\n", mimo_type_str);
@@ -91,19 +88,19 @@ void parse_args(int argc, char **argv) {
       input_file = argv[optind];
       break;
     case 'm':
-      mcs = atoi(argv[optind]);
+      mcs[0] = (uint32_t) atoi(argv[optind]);
       break;
     case 'M':
-      mcs2 = (uint32_t) atoi(argv[optind]);
+      mcs[1] = (uint32_t) atoi(argv[optind]);
       break;
     case 's':
       subframe = atoi(argv[optind]);
       break;
     case 'r':
-      rv_idx = atoi(argv[optind]);
+      rv_idx[0] = (uint32_t) atoi(argv[optind]);
       break;
     case 't':
-      rv_idx2 = (uint32_t) atoi(argv[optind]);
+      rv_idx[1] = (uint32_t) atoi(argv[optind]);
       break;
     case 'R':
       rnti = atoi(argv[optind]);
@@ -197,16 +194,16 @@ int main(int argc, char **argv) {
   dci.type0_alloc.rbg_bitmask = 0xffffffff;
 
   /* If transport block 0 is enabled */
-  if (mcs != 0 || rv_idx != 1) {
-    dci.mcs_idx = mcs;
-    dci.rv_idx = rv_idx;
+  if (mcs[0] != 0 || rv_idx[0] != 1) {
+    dci.mcs_idx = mcs[0];
+    dci.rv_idx = rv_idx[0];
     dci.tb_en[0] = true;
   }
 
   /* If transport block 0 is disabled */
-  if (mcs2 != 0 || rv_idx2 != 1) {
-    dci.mcs_idx_1 = mcs2;
-    dci.rv_idx_1 = rv_idx2;
+  if (mcs[1] != 0 || rv_idx[1] != 1) {
+    dci.mcs_idx_1 = mcs[1];
+    dci.rv_idx_1 = rv_idx[1];
     dci.tb_en[1] = true;
   }
 
@@ -235,7 +232,7 @@ int main(int argc, char **argv) {
 #endif /* DO_OFDM */
 
   /* Configure PDSCH */
-  if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, subframe, rv_idx, rv_idx2, mimo_type, pmi)) {
+  if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, subframe, rv_idx, mimo_type, pmi)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     goto quit;
   }
@@ -260,22 +257,15 @@ int main(int argc, char **argv) {
   }
 
 
-  if (grant.mcs.tbs) {
-    data[0] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs.tbs);
-    if (!data[0]) {
-      perror("srslte_vec_malloc");
-      goto quit;
+  for (int i = 0; i < grant.nof_tb; i++) {
+    if (grant.mcs[i].tbs) {
+      data[i] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs[i].tbs);
+      if (!data[i]) {
+        perror("srslte_vec_malloc");
+        goto quit;
+      }
+      bzero(data[i], sizeof(uint8_t) * grant.mcs[i].tbs);
     }
-    bzero(data[0], sizeof(uint8_t) * grant.mcs.tbs);
-  }
-
-  if (grant.mcs2.tbs) {
-    data[1] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs2.tbs);
-    if (!data[1]) {
-      perror("srslte_vec_malloc");
-      goto quit;
-    }
-    bzero(data[1], sizeof(uint8_t) * grant.mcs2.tbs);
   }
 
   if (srslte_pdsch_init_rx_multi(&pdsch_rx, cell, nof_rx_antennas)) {
@@ -292,6 +282,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  INFO(" Global:\n");
   INFO("         nof_prb=%d\n", cell.nof_prb);
   INFO("       nof_ports=%d\n", cell.nof_ports);
   INFO("              id=%d\n", cell.id);
@@ -300,28 +291,22 @@ int main(int argc, char **argv) {
   INFO(" phich_resources=%d\n", (int) cell.phich_resources);
   INFO("          nof_tb=%d\n", pdsch_cfg.grant.nof_tb);
   INFO("         nof_prb=%d\n", pdsch_cfg.grant.nof_prb);
-  INFO("              Qm=%d\n", pdsch_cfg.grant.Qm);
-  INFO("             Qm2=%d\n", pdsch_cfg.grant.Qm2);
-  INFO("         mcs.idx=0x%X\n", pdsch_cfg.grant.mcs.idx);
-  INFO("         mcs.tbs=%d\n", pdsch_cfg.grant.mcs.tbs);
-  INFO("         mcs.mod=%s\n", srslte_mod_string(pdsch_cfg.grant.mcs.mod));
-  INFO("        mcs2.idx=0x%X\n", pdsch_cfg.grant.mcs2.idx);
-  INFO("        mcs2.tbs=%d\n", pdsch_cfg.grant.mcs2.tbs);
-  INFO("        mcs2.mod=%s\n", srslte_mod_string(pdsch_cfg.grant.mcs2.mod));
-  INFO("      nof_layers=%d\n", pdsch_cfg.nof_layers);
-  INFO("              rv=%d\n", pdsch_cfg.rv);
-  INFO("             rv2=%d\n", pdsch_cfg.rv2);
   INFO("          sf_idx=%d\n", pdsch_cfg.sf_idx);
-  INFO("       mimo_type=%d\n", (int) pdsch_cfg.mimo_type);
+  INFO("       mimo_type=%s\n", srslte_mimotype2str(pdsch_cfg.mimo_type));
+  INFO("      nof_layers=%d\n", pdsch_cfg.nof_layers);
   INFO("          nof_tb=%d\n", pdsch_cfg.grant.nof_tb);
-  INFO("          lstart=%d\n", pdsch_cfg.nbits.lstart);
-  INFO("        nof_bits=%d\n", pdsch_cfg.nbits.nof_bits);
-  INFO("          nof_re=%d\n", pdsch_cfg.nbits.nof_re);
-  INFO("        nof_symb=%d\n", pdsch_cfg.nbits.nof_symb);
-  INFO("          lstart=%d\n", pdsch_cfg.nbits2.lstart);
-  INFO("        nof_bits=%d\n", pdsch_cfg.nbits2.nof_bits);
-  INFO("          nof_re=%d\n", pdsch_cfg.nbits2.nof_re);
-  INFO("        nof_symb=%d\n", pdsch_cfg.nbits2.nof_symb);
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    INFO(" Tranport block index %d:\n", i);
+    INFO("              Qm=%d\n", pdsch_cfg.grant.Qm[i]);
+    INFO("         mcs.idx=0x%X\n", pdsch_cfg.grant.mcs[i].idx);
+    INFO("         mcs.tbs=%d\n", pdsch_cfg.grant.mcs[i].tbs);
+    INFO("         mcs.mod=%s\n", srslte_mod_string(pdsch_cfg.grant.mcs[i].mod));
+    INFO("              rv=%d\n", pdsch_cfg.rv[i]);
+    INFO("          lstart=%d\n", pdsch_cfg.nbits[i].lstart);
+    INFO("        nof_bits=%d\n", pdsch_cfg.nbits[i].nof_bits);
+    INFO("          nof_re=%d\n", pdsch_cfg.nbits[i].nof_re);
+    INFO("        nof_symb=%d\n", pdsch_cfg.nbits[i].nof_symb);
+  }
 
   if (input_file) {
     srslte_filesource_t fsrc;
@@ -368,29 +353,25 @@ int main(int argc, char **argv) {
       }
     }
 
-    for (i = 0; i < grant.mcs.tbs / 8; i++) {
-      data[0][i] = (uint8_t) (rand() % 256);
-    }
-
-    for (i = 0; i < grant.mcs2.tbs / 8; i++) {
-      data[1][i] = (uint8_t) (rand() % 256);
+    for (i = 0; i< grant.nof_tb; i++) {
+      for (i = 0; i < grant.mcs[i].tbs / 8; i++) {
+        data[i][i] = (uint8_t) (rand() % 256);
+      }
     }
 
     /*uint8_t databit[100000];
     srslte_bit_unpack_vector(data, databit, grant.mcs.tbs);
     srslte_vec_save_file("data_in", databit, grant.mcs.tbs);*/
     
-    if (rv_idx) {
+    if (rv_idx[0] != 0 || rv_idx[1] != 0) {
       /* Do 1st transmission for rv_idx!=0 */
-      pdsch_cfg.rv = 0;
-      pdsch_cfg.rv2 = 0;
+      bzero(pdsch_cfg.rv, sizeof(uint32_t)*SRSLTE_MAX_CODEWORDS);
       if (srslte_pdsch_encode_multi(&pdsch_tx, &pdsch_cfg, softbuffers_tx, data, rnti, tx_slot_symbols)) {
         fprintf(stderr, "Error encoding PDSCH\n");
         goto quit;
       }
     }
-    pdsch_cfg.rv = rv_idx;
-    pdsch_cfg.rv2 = rv_idx2;
+    memcpy(pdsch_cfg.rv, rv_idx, sizeof(uint32_t)*SRSLTE_MAX_CODEWORDS);
     gettimeofday(&t[1], NULL);
     for (k = 0; k < M; k++) {
       if (srslte_pdsch_encode_multi(&pdsch_tx, &pdsch_cfg, softbuffers_tx, data, rnti, tx_slot_symbols)) {
@@ -401,8 +382,8 @@ int main(int argc, char **argv) {
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     printf("ENCODED in %.2f (PHY bitrate=%.2f Mbps. Processing bitrate=%.2f Mbps)\n",
-           (float) t[0].tv_usec/M, (float) (grant.mcs.tbs + grant.mcs2.tbs)/1000.0f,
-           (float) (grant.mcs.tbs + grant.mcs2.tbs)*M/t[0].tv_usec);
+           (float) t[0].tv_usec/M, (float) (grant.mcs[0].tbs + grant.mcs[1].tbs)/1000.0f,
+           (float) (grant.mcs[0].tbs + grant.mcs[1].tbs)*M/t[0].tv_usec);
 
   #ifdef DO_OFDM
     for (i = 0; i < cell.nof_ports; i++) {
@@ -444,19 +425,18 @@ int main(int argc, char **argv) {
       srslte_ofdm_rx_sf(&ofdm_rx, tx_sf_symbols[i], rx_slot_symbols[i]);
     }
 #endif
-    if (grant.mcs.tbs) {
-      srslte_softbuffer_rx_reset_tbs(&softbuffers_rx[0], (uint32_t) grant.mcs.tbs);
-    }
-    if (grant.mcs2.tbs) {
-      srslte_softbuffer_rx_reset_tbs(&softbuffers_rx[1], (uint32_t) grant.mcs2.tbs);
+    for (i = 0; i < grant.nof_tb; i++) {
+      if (grant.mcs[i].tbs) {
+        srslte_softbuffer_rx_reset_tbs(&softbuffers_rx[i], (uint32_t) grant.mcs[i].tbs);
+      }
     }
     r = srslte_pdsch_decode_multi(&pdsch_rx, &pdsch_cfg, softbuffers_rx, rx_slot_symbols, ce, 0, rnti, data);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   printf("DECODED %s in %.2f (PHY bitrate=%.2f Mbps. Processing bitrate=%.2f Mbps)\n", r?"Error":"OK",
-         (float) t[0].tv_usec/M, (float) (grant.mcs.tbs + grant.mcs2.tbs)/1000.0f,
-         (float) (grant.mcs.tbs + grant.mcs2.tbs)*M/t[0].tv_usec);
+         (float) t[0].tv_usec/M, (float) (grant.mcs[0].tbs + grant.mcs[1].tbs)/1000.0f,
+         (float) (grant.mcs[0].tbs + grant.mcs[1].tbs)*M/t[0].tv_usec);
   if (r) {
     ret = -1;
     goto quit;

@@ -86,7 +86,8 @@ srslte_pdsch_t pdsch;
 srslte_pdsch_cfg_t pdsch_cfg; 
 srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS];
 srslte_regs_t regs;
-srslte_ra_dl_dci_t ra_dl;  
+srslte_ra_dl_dci_t ra_dl;
+int rvidx[SRSLTE_MAX_CODEWORDS] = {0, 0};
 
 cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL}, *output_buffer [SRSLTE_MAX_PORTS] = {NULL};
 int sf_n_re, sf_n_samples;
@@ -423,7 +424,7 @@ int update_radl() {
   ra_dl.harq_process = 0;
   ra_dl.mcs_idx = mcs_idx;
   ra_dl.ndi = 0;
-  ra_dl.rv_idx = 0;
+  ra_dl.rv_idx = rvidx[0];
   ra_dl.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   ra_dl.type0_alloc.rbg_bitmask = prbset_to_bitmask();
   ra_dl.tb_en[0] = 1;
@@ -431,7 +432,7 @@ int update_radl() {
   if (nof_tb > 1) {
     ra_dl.mcs_idx_1 = mcs_idx;
     ra_dl.ndi_1 = 0;
-    ra_dl.rv_idx_1 = 0;
+    ra_dl.rv_idx_1 = rvidx[1];
     ra_dl.tb_en[1] = 1;
   }
 
@@ -513,7 +514,7 @@ void *net_thread_fnc(void *arg) {
     n = srslte_netsource_read(&net_source, &data2[rpm], DATA_BUFF_SZ-rpm);
     if (n > 0) {
       // FIXME: I assume that both transport blocks have same size in case of 2 tb are active
-      int nbytes = 1 + (pdsch_cfg.grant.mcs.tbs + pdsch_cfg.grant.mcs2.tbs - 1) / 8;
+      int nbytes = 1 + (pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs - 1) / 8;
       rpm += n; 
       INFO("received %d bytes. rpm=%d/%d\n",n,rpm,nbytes);
       wpm = 0; 
@@ -696,12 +697,11 @@ int main(int argc, char **argv) {
           INFO("Transmitting packet\n",0);
         }
       } else {
-        INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs.tbs);
-        for (i = 0; i < pdsch_cfg.grant.mcs.tbs / 8; i++) {
-          data[0][i] = rand() % 256;
-        }
-        for (i = 0; i < pdsch_cfg.grant.mcs2.tbs / 8; i++) {
-          data[1][i] = rand() % 256;
+        INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
+        for (uint32_t tb = 0; tb < pdsch_cfg.grant.nof_tb; tb++) {
+          for (i = 0; i < pdsch_cfg.grant.mcs[tb].tbs / 8; i++) {
+            data[tb][i] = (uint8_t) rand();
+          }
         }
         /* Uncomment this to transmit on sf 0 and 5 only  */
         if (sf_idx != 0 && sf_idx != 5) {
@@ -744,7 +744,7 @@ int main(int argc, char **argv) {
         /* Configure pdsch_cfg parameters */
         srslte_ra_dl_grant_t grant; 
         srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &grant);        
-        if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, sf_idx, 0, 0, pdsch_cfg.mimo_type, multiplex_pmi)) {
+        if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, sf_idx, rvidx, pdsch_cfg.mimo_type, multiplex_pmi)) {
           fprintf(stderr, "Error configuring PDSCH\n");
           exit(-1);
         }
@@ -757,13 +757,9 @@ int main(int argc, char **argv) {
         }        
         if (net_port > 0 && net_packet_ready) {
           if (null_file_sink) {
-            srslte_bit_pack_vector(data[0], data_tmp, pdsch_cfg.grant.mcs.tbs);
-            if (srslte_netsink_write(&net_sink, data_tmp, 1+(pdsch_cfg.grant.mcs.tbs-1)/8) < 0) {
-              fprintf(stderr, "Error sending data through UDP socket\n");
-            }
-            if (nof_tb > 1) {
-              srslte_bit_pack_vector(data[1], data_tmp, pdsch_cfg.grant.mcs2.tbs);
-              if (srslte_netsink_write(&net_sink, data_tmp, 1 + (pdsch_cfg.grant.mcs2.tbs - 1) / 8) < 0) {
+            for (uint32_t tb = 0; tb < pdsch_cfg.grant.nof_tb; tb++) {
+              srslte_bit_pack_vector(data[tb], data_tmp, pdsch_cfg.grant.mcs[tb].tbs);
+              if (srslte_netsink_write(&net_sink, data_tmp, 1 + (pdsch_cfg.grant.mcs[tb].tbs - 1) / 8) < 0) {
                 fprintf(stderr, "Error sending data through UDP socket\n");
               }
             }

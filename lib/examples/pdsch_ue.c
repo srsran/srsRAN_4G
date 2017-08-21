@@ -594,8 +594,10 @@ int main(int argc, char **argv) {
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 // FIXME: UDP Data transmission does not work
-                srslte_netsink_write(&net_sink, data[0], 1 + (ue_dl.pdsch_cfg.grant.mcs.tbs - 1) / 8);
-                srslte_netsink_write(&net_sink, data[1], 1 + (ue_dl.pdsch_cfg.grant.mcs2.tbs - 1) / 8);
+                for (uint32_t tb = 0; tb < ue_dl.pdsch_cfg.grant.nof_tb; tb++) {
+                  srslte_netsink_write(&net_sink, data[tb], 1 + (ue_dl.pdsch_cfg.grant.mcs[tb].tbs - 1) / 8);
+
+                }
               }
               
               #ifdef PRINT_CHANGE_SCHEDULIGN
@@ -616,12 +618,12 @@ int main(int argc, char **argv) {
                                     
             nof_trials++; 
             
-            rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1);
-            rsrp0 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 0), rsrp0, 0.05);
-            rsrp1 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 1), rsrp1, 0.05);
-            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05);
-            enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs.tbs + ue_dl.pdsch_cfg.grant.mcs2.tbs)/1000.0, enodebrate, 0.05);
-            uerate = SRSLTE_VEC_EMA((n>0)?(ue_dl.pdsch_cfg.grant.mcs.tbs + ue_dl.pdsch_cfg.grant.mcs2.tbs)/1000.0:0.0, uerate, 0.01);
+            rsrq = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrq(&ue_dl.chest), rsrq, 0.1f);
+            rsrp0 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 0), rsrp0, 0.05f);
+            rsrp1 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 1), rsrp1, 0.05f);
+            noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05f);
+            enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs[0].tbs + ue_dl.pdsch_cfg.grant.mcs[1].tbs)/1000.0f, enodebrate, 0.05f);
+            uerate = SRSLTE_VEC_EMA((n>0)?(ue_dl.pdsch_cfg.grant.mcs[0].tbs + ue_dl.pdsch_cfg.grant.mcs[1].tbs)/1000.0f:0.0f, uerate, 0.01f);
 
             nframes++;
             if (isnan(rsrq)) {
@@ -812,7 +814,7 @@ void *plot_thread_run(void *arg) {
   while(1) {
     sem_wait(&plot_sem);
     
-    uint32_t nof_symbols = ue_dl.pdsch_cfg.nbits.nof_re;
+    uint32_t nof_symbols = ue_dl.pdsch_cfg.nbits[0].nof_re;
     if (!prog_args.disable_plots_except_constellation) {      
       for (i = 0; i < nof_re; i++) {
         tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
