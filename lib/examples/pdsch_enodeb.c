@@ -65,7 +65,7 @@ srslte_cell_t cell = {
 
 int net_port = -1; // -1 generates random dataThat means there is some problem sending samples to the device
 
-uint32_t cfi=3;
+uint32_t cfi = 1;
 uint32_t mcs_idx = 1, last_mcs_idx = 1;
 int nof_frames = -1;
 char mimo_type_str[32] = "single";
