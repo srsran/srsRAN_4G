@@ -512,8 +512,13 @@ int main(int argc, char **argv) {
   // Variables for measurements 
   uint32_t nframes=0;
   uint32_t ri = 0, pmi = 0;
-  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0, sinr = 0.0;
+  float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0,
+      sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS];
   bool decode_pdsch = false; 
+
+  for (int i = 0; i < SRSLTE_MAX_LAYERS; i++) {
+    bzero(sinr[i], sizeof(float)*SRSLTE_MAX_CODEBOOKS);
+  }
 
 #ifndef DISABLE_RF
   if (prog_args.rf_gain < 0) {
@@ -618,15 +623,6 @@ int main(int argc, char **argv) {
             enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs.tbs + ue_dl.pdsch_cfg.grant.mcs2.tbs)/1000.0, enodebrate, 0.05);
             uerate = SRSLTE_VEC_EMA((n>0)?(ue_dl.pdsch_cfg.grant.mcs.tbs + ue_dl.pdsch_cfg.grant.mcs2.tbs)/1000.0:0.0, uerate, 0.01);
 
-            if (ue_dl.cell.nof_ports == 2 && ue_dl.pdsch.nof_rx_antennas == 2) {
-              float _sinr;
-              srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, &_sinr);
-
-              if (!isinff(_sinr) && !isnanf(_sinr)) {
-                sinr = SRSLTE_VEC_EMA(_sinr, sinr, 0.05f);
-              }
-            }
-
             nframes++;
             if (isnan(rsrq)) {
               rsrq = 0; 
@@ -658,23 +654,34 @@ int main(int argc, char **argv) {
                      100 * (1 - (float) ue_dl.nof_detected / nof_trials),
                      (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
             } else {
-              printf("CFO: %+5.2f kHz, "
-                         "SNR: %+5.1f dB | %+5.1f dB, "
-                         "Rb: %6.2f / %6.2f Mbps, "
-                         "PDCCH-Miss: %5.2f%%, "
-                         "PDSCH-BLER: %5.2f%%, "
-                         "SINR: %3.1f dB RI: %d PMI: %d    \r",
+              /* Compute Rank Indicator (RI) and Precoding Matrix Indicator (PMI) */
+              srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, NULL);
+              for (uint32_t nl = 0; nl < SRSLTE_MAX_LAYERS; nl++) {
+                for (uint32_t cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb ++) {
+                  sinr[nl][cb] = SRSLTE_VEC_EMA(ue_dl.sinr[nl][cb], sinr[nl][cb], 0.05f);
+                }
+              }
 
-                     srslte_ue_sync_get_cfo(&ue_sync) / 1000,
-                     10 * log10(rsrp0 / noise),
-                     10 * log10(rsrp1 / noise),
-                     uerate,
-                     enodebrate,
-                     100 * (1 - (float) ue_dl.nof_detected / nof_trials),
-                     (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total,
-                     10 * log10(sinr),
-                     ri,
-                     pmi);
+              /* Print Results */
+              printf("\033[K    Tx scheme: %-10s\n", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type));
+              printf("\033[K   nof layers: %d \n", ue_dl.pdsch_cfg.nof_layers);
+              printf("\033[Knof codewords: %d \n", ue_dl.pdsch_cfg.grant.nof_tb);
+              printf("\033[K          CFO: %+5.2f kHz\n", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
+              printf("\033[K          SNR: %+5.1f dB | %+5.1f dB\n", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
+              printf("\033[K           Rb: %6.2f / %6.2f Mbps (net/maximum)\n", uerate, enodebrate);
+              printf("\033[K   PDCCH-Miss: %5.2f%%\n", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
+              printf("\033[K   PDSCH-BLER: %5.2f%%\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+              printf("\033[K   PDSCH-BLER: %5.2f%%\n\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+              printf("\033[K\n");
+              printf("\033[KSINR (dB) Vs RI and PMI:\n");
+              printf("\033[K   | RI |   1   |   2   |\n");
+              printf("\033[K -------+-------+-------+\n");
+              printf("\033[K P |  0 | %5.2f%c| %5.2f%c|\n", 10 * log10(sinr[0][0]), (ri == 1 && pmi == 0)?'*':' ', 10 * log10(sinr[1][0]), (ri == 2 && pmi == 0)?'*':' ');
+              printf("\033[K M |  1 | %5.2f%c| %5.2f%c|\n", 10 * log10(sinr[0][1]), (ri == 1 && pmi == 1)?'*':' ', 10 * log10(sinr[1][1]), (ri == 2 && pmi == 1)?'*':' ');
+              printf("\033[K I |  2 | %5.2f%c|-------+ \n", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2)?'*':' ');
+              printf("\033[K   |  3 | %5.2f%c|         \n", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3)?'*':' ');
+              printf("\033[K\n\n");
+              printf("\033[20A");
             }
           }
           break;
@@ -683,7 +690,7 @@ int main(int argc, char **argv) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
-          printf("\n");
+          printf("\033[20B");
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0; 
           ue_dl.nof_detected = 0;           
@@ -715,7 +722,8 @@ int main(int argc, char **argv) {
         
     sf_cnt++;                  
   } // Main loop
-  
+  printf("\033[20B");
+
 #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
     if (!pthread_kill(plot_thread, 0)) {

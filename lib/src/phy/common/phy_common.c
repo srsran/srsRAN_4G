@@ -446,6 +446,21 @@ int srslte_str2mimotype(char *mimo_type_str, srslte_mimo_type_t *type) {
   return SRSLTE_SUCCESS;
 }
 
+char *srslte_mimotype2str(srslte_mimo_type_t mimo_type) {
+  switch (mimo_type) {
+    case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
+      return "Single";
+    case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
+      return "Diversity";
+    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+      return "Multiplex";
+    case SRSLTE_MIMO_TYPE_CDD:
+      return "CDD";
+    default:
+      return "N/A";
+  }
+}
+
 float get_fd(struct lte_band *band, uint32_t dl_earfcn) {
   if (dl_earfcn >= band->dl_earfcn_offset) {
     return band->fd_low_mhz + 0.1*(dl_earfcn - band->dl_earfcn_offset);    
