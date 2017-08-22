@@ -59,6 +59,7 @@ phy::phy() : workers_pool(MAX_WORKERS),
 
 void phy::set_default_args(phy_args_t *args)
 {
+  args->nof_rx_ant          = 1;
   args->ul_pwr_ctrl_en      = false; 
   args->prach_gain          = -1;
   args->cqi_max             = -1; 
