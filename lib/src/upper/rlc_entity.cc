@@ -76,6 +76,12 @@ void rlc_entity::reset()
   rlc = NULL;
 }
 
+
+void rlc_entity::empty_queue()
+{
+  rlc->empty_queue();
+}
+
 bool rlc_entity::active()
 {
   return (rlc != NULL);

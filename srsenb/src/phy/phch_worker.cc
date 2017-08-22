@@ -109,7 +109,7 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     return;
   }
   
-  srslte_pucch_set_threshold(&enb_ul.pucch, 0.8, 0.5); 
+  srslte_pucch_set_threshold(&enb_ul.pucch, 0.5, 0.5);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
   
@@ -355,7 +355,6 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       }
       if (cqi_enabled) {
         uci_data.uci_cqi_len = srslte_cqi_size(&cqi_value);
-        Info("cqi enabled len=%d\n", uci_data.uci_cqi_len);
       }
       
       // mark this tti as having an ul grant to avoid pucch 
@@ -415,7 +414,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       }
       */
       log_h->info_hex(grants[i].data, phy_grant.mcs.tbs/8,
-          "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s\n", 
+          "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s\n",
           rnti, phy_grant.n_prb[0], phy_grant.n_prb[0]+phy_grant.L_prb,
           phy_grant.mcs.tbs/8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
           snr_db, 

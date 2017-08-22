@@ -259,7 +259,7 @@ void mac::rl_failure(uint16_t rnti)
   if (ue_db.count(rnti)) {         
     uint32_t nof_fails = ue_db[rnti]->rl_failure();  
     if (nof_fails >= (uint32_t) args.link_failure_nof_err && args.link_failure_nof_err > 0) {    
-      Info("Detected PUSCH failure for rnti=0x%x\n", rnti);
+      Info("Detected Uplink failure for rnti=0x%x\n", rnti);
       rrc_h->rl_failure(rnti);
       ue_db[rnti]->rl_failure_reset();
     }

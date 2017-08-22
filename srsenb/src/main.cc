@@ -152,7 +152,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         "Maximum number of turbo decoder iterations")
 
     ("expert.tx_amplitude",
-        bpo::value<float>(&args->expert.phy.tx_amplitude)->default_value(0.8),
+        bpo::value<float>(&args->expert.phy.tx_amplitude)->default_value(0.6),
         "Transmit amplitude factor")
 
     ("expert.nof_phy_threads",
@@ -176,7 +176,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         "Chooses the coefficients for the 3-tap channel estimator centered filter.")
 
     ("expert.rrc_inactivity_timer",
-        bpo::value<uint32_t>(&args->expert.rrc_inactivity_timer)->default_value(30000),
+        bpo::value<uint32_t>(&args->expert.rrc_inactivity_timer)->default_value(10000),
         "Inactivity timer in ms")
 
 

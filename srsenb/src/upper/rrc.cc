@@ -313,7 +313,7 @@ void rrc::release_complete(uint16_t rnti)
       rlc->clear_buffer(rnti); 
       users[rnti].send_connection_release();
       // There is no RRCReleaseComplete message from UE thus sleep to enable all retx in PHY +50%
-      usleep(1.5*8*1e3*cfg.mac_cnfg.ulsch_cnfg.max_harq_tx);
+      usleep(1500*8*cfg.mac_cnfg.ulsch_cnfg.max_harq_tx);
     }
     rem_user(rnti);
   } else {
@@ -437,7 +437,7 @@ void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID)
 // Described in Section 7 of 36.304
 bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
 {
-  int sf_pattern[4][3] = {{9, 4, 0}, {-1, 9, 4}, {-1, -1, 5}, {-1, -1, 9}}; 
+  int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
   
   if (pending_paging.empty()) {
     return false; 
@@ -466,7 +466,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
     
     if ((sfn % T) == (T/N) * (ueid % N)) {
             
-      int sf_idx = sf_pattern[i_s%4][(Ns-1)%3]; 
+      int sf_idx = sf_pattern[i_s%4][(Ns-1)%4];
       if (sf_idx < 0) {
         rrc_log->error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d\n", Ns, i_s, ueid);
       } else if ((uint32_t) sf_idx == (tti%10)) {
