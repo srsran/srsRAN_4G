@@ -317,7 +317,7 @@ int main(int argc, char **argv) {
 #ifdef DO_OFDM
     srslte_filesource_read(&fsrc, rx_slot_symbols, SRSLTE_SF_LEN_PRB(cell.nof_prb));
 #else
-    srslte_filesource_read(&fsrc, rx_slot_symbols[0], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
+    srslte_filesource_read_multi(&fsrc, (void*) rx_slot_symbols, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), pdsch_cfg.nof_layers);
 #endif
     
     srslte_chest_dl_t chest; 
@@ -325,7 +325,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error initializing equalizer\n");
       exit(-1);
     }
-    srslte_chest_dl_estimate(&chest, rx_slot_symbols[0], ce[0], subframe);
+    srslte_chest_dl_estimate_multi(&chest, rx_slot_symbols, ce, subframe, nof_rx_antennas);
     srslte_chest_dl_free(&chest);
     
     srslte_filesource_free(&fsrc);
