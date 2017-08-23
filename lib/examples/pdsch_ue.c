@@ -101,6 +101,7 @@ typedef struct {
   int net_port_signal; 
   char *net_address_signal;
   int decimate;
+  int verbose;
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
@@ -131,6 +132,7 @@ void args_default(prog_args_t *args) {
   args->net_address_signal = "127.0.0.1";
   args->decimate = 0;
   args->cpu_affinity = -1;
+  args->verbose = 0;
 }
 
 void usage(prog_args_t *args, char *prog) {
@@ -187,6 +189,8 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'o':
       args->file_offset_freq = atof(argv[optind]);
+        argv++;
+        argc--;
       break;
     case 'O':
       args->file_offset_time = atoi(argv[optind]);
@@ -240,7 +244,8 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->disable_plots_except_constellation = true;
       break;
     case 'v':
-      srslte_verbose++;
+      args->verbose++;
+      srslte_verbose = args->verbose;
       break;
     case 'Z':
       args->decimate = atoi(argv[optind]);
@@ -392,8 +397,8 @@ int main(int argc, char **argv) {
     srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
 
     /* set receiver frequency */
-    printf("Tunning receiver to %.3f MHz\n", prog_args.rf_freq/1000000);
-    srslte_rf_set_rx_freq(&rf, prog_args.rf_freq);
+    printf("Tunning receiver to %.3f MHz\n", (prog_args.rf_freq + prog_args.file_offset_freq)/1000000);
+    srslte_rf_set_rx_freq(&rf, prog_args.rf_freq + prog_args.file_offset_freq);
     srslte_rf_rx_wait_lo_locked(&rf);
 
     uint32_t ntrial=0; 
@@ -416,7 +421,7 @@ int main(int argc, char **argv) {
     srslte_rf_flush_buffer(&rf);    
 
     /* set sampling frequency */
-    int srate = srslte_sampling_freq_hz(cell.nof_prb);    
+    int srate = srslte_sampling_freq_hz(cell.nof_prb)*(1 + prog_args.file_offset_freq/prog_args.rf_freq);
     if (srate != -1) {  
       if (srate < 10e6) {          
         srslte_rf_set_master_clock_rate(&rf, 4*srate);        
@@ -540,7 +545,27 @@ int main(int argc, char **argv) {
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
-    
+    char input[128];
+
+    fd_set set;
+    FD_ZERO(&set);
+    FD_SET(0, &set);
+
+    struct timeval to;
+    to.tv_sec = 0;
+    to.tv_usec = 0;
+
+    /* Set default verbose level */
+    srslte_verbose = prog_args.verbose;
+    int n = select(1, &set, NULL, NULL, &to);
+    if (n == 1) {
+      /* If a new line is detected set verbose level to Debug */
+      if (fgets(input, sizeof(input), stdin)) {
+        srslte_verbose = SRSLTE_VERBOSE_DEBUG;
+      }
+    }
+
+
     ret = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
@@ -673,7 +698,9 @@ int main(int argc, char **argv) {
               printf("\033[K           Rb: %6.2f / %6.2f Mbps (net/maximum)\n", uerate, enodebrate);
               printf("\033[K   PDCCH-Miss: %5.2f%%\n", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
               printf("\033[K   PDSCH-BLER: %5.2f%%\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
-              printf("\033[K   PDSCH-BLER: %5.2f%%\n\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+              printf("\033[K   PDSCH-BLER: %5.2f%%\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+              printf("\033[K         TB 0: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[0].idx, ue_dl.pdsch_cfg.grant.mcs[0].tbs);
+              printf("\033[K         TB 1: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[1].idx, ue_dl.pdsch_cfg.grant.mcs[1].tbs);
               printf("\033[K\n");
               printf("\033[KSINR (dB) Vs RI and PMI:\n");
               printf("\033[K   | RI |   1   |   2   |\n");
@@ -683,7 +710,7 @@ int main(int argc, char **argv) {
               printf("\033[K I |  2 | %5.2f%c|-------+ \n", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2)?'*':' ');
               printf("\033[K   |  3 | %5.2f%c|         \n", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3)?'*':' ');
               printf("\033[K\n\n");
-              printf("\033[20A");
+              printf("\033[21A");
             }
           }
           break;
@@ -692,7 +719,7 @@ int main(int argc, char **argv) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
-          printf("\033[20B");
+          printf("\033[21B");
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0; 
           ue_dl.nof_detected = 0;           
@@ -724,7 +751,7 @@ int main(int argc, char **argv) {
         
     sf_cnt++;                  
   } // Main loop
-  printf("\033[20B");
+  printf("\033[21B\n");
 
 #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
