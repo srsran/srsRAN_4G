@@ -318,7 +318,6 @@ int main(int argc, char **argv) {
   srslte_rf_t rf; 
 #endif
   uint32_t nof_trials = 0; 
-  int n; 
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int sfn_offset;
   float cfo = 0; 
@@ -690,7 +689,12 @@ int main(int argc, char **argv) {
               }
 
               /* Print Results */
-              printf("\033[K    Tx scheme: %-10s\n", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type));
+              if (ue_dl.pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
+                printf("\033[K    Tx scheme: %s (codebook_idx=%d)\n", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type),
+                       ue_dl.pdsch_cfg.codebook_idx);
+              } else {
+                printf("\033[K    Tx scheme: %s\n", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type));
+              }
               printf("\033[K   nof layers: %d \n", ue_dl.pdsch_cfg.nof_layers);
               printf("\033[Knof codewords: %d \n", ue_dl.pdsch_cfg.grant.nof_tb);
               printf("\033[K          CFO: %+5.2f kHz\n", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
@@ -702,7 +706,7 @@ int main(int argc, char **argv) {
               printf("\033[K         TB 0: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[0].idx, ue_dl.pdsch_cfg.grant.mcs[0].tbs);
               printf("\033[K         TB 1: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[1].idx, ue_dl.pdsch_cfg.grant.mcs[1].tbs);
               printf("\033[K\n");
-              printf("\033[KSINR (dB) Vs RI and PMI:\n");
+              printf("\033[KSINR (dB) Vs RI and PMI (for TM4, close loop MIMO only):\n");
               printf("\033[K   | RI |   1   |   2   |\n");
               printf("\033[K -------+-------+-------+\n");
               printf("\033[K P |  0 | %5.2f%c| %5.2f%c|\n", 10 * log10(sinr[0][0]), (ri == 1 && pmi == 0)?'*':' ', 10 * log10(sinr[1][0]), (ri == 2 && pmi == 0)?'*':' ');
