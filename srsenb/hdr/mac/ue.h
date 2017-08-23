@@ -58,6 +58,10 @@ public:
   }
   
   virtual ~ue() {
+    for (int i=0;i<NOF_HARQ_PROCESSES;i++) {
+      srslte_softbuffer_rx_free(&softbuffer_rx[i]);
+      srslte_softbuffer_tx_free(&softbuffer_tx[i]);
+    }
     pthread_mutex_destroy(&mutex);
   }
   

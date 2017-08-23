@@ -60,6 +60,8 @@ void ue::config(uint16_t rnti_, uint32_t nof_prb, sched_interface *sched_, rrc_i
   }
 }  
 
+
+
 void ue::reset()
 {
   bzero(&metrics, sizeof(mac_metrics_t));  
