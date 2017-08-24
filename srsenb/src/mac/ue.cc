@@ -248,12 +248,12 @@ bool ue::process_ce(srslte::sch_subh *subh) {
       idx = subh->get_bsr(buff_size);
       if (idx > 0) {
         // Indicate BSR to scheduler 
-        sched->ul_bsr(rnti, idx, buff_size[idx]);
+        sched->ul_bsr(rnti, idx, 2*buff_size[idx]);
         Info("CE:    Received BSR rnti=0x%x, lcid=%d, value=%d\n", rnti, idx, buff_size[idx]);        
       } else if (idx == 0) {
         // TODO: map lcid group to lcid
         for (int i=0;i<4;i++) {
-          sched->ul_bsr(rnti, i, buff_size[i]);
+          sched->ul_bsr(rnti, i, 2*buff_size[i]);
         }
         Info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n", rnti, 
              buff_size[0], buff_size[1], buff_size[2], buff_size[3]);        

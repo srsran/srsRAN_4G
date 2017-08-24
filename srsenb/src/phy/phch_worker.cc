@@ -109,7 +109,7 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     return;
   }
   
-  srslte_pucch_set_threshold(&enb_ul.pucch, 0.5, 0.5);
+  srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
   
@@ -178,8 +178,8 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
     srslte_enb_ul_cfg_ue(&enb_ul, rnti, uci_cfg, pucch_sched, srs_cfg);
         
     ue_db[rnti].I_sr    = I_sr; 
-    ue_db[rnti].I_sr_en = true; 
-    
+    ue_db[rnti].I_sr_en = true;
+
     if (pucch_cqi) {
       ue_db[rnti].pmi_idx = pmi_idx; 
       ue_db[rnti].cqi_en  = true;       
