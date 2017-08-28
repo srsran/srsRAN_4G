@@ -26,6 +26,7 @@
 
 #include <string.h>
 #include <boost/concept_check.hpp>
+#include <srslte/interfaces/sched_interface.h>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
@@ -171,9 +172,8 @@ void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
     } else {
       lch[lc_id].bsr += bsr;
     }
-    Debug("SCHED: UL lcid=%d buffer_state=%d\n", lc_id, bsr);
   }
-  Info("SCHED: bsr=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", bsr, lc_id,
+  Debug("SCHED: bsr=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", bsr, lc_id,
        lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
 }
 
@@ -245,7 +245,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
   
   // First check if it has pending ACKs 
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (((dl_harq[i].get_tti()+8)%10240) == current_tti) {
+    if (((dl_harq[i].get_tti()+4)%10240) == current_tti) {
       uint32_t n_pucch = srslte_pucch_get_npucch(dl_harq[i].get_n_cce(), SRSLTE_PUCCH_FORMAT_1A, has_sr, &pucch_sched);
       if (prb_idx) {
         for (int i=0;i<2;i++) {
@@ -255,7 +255,8 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
       if (L) {
         *L = 1; 
       }
-      Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], n_pucch);      
+      Info("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, n_cce=%d, has_sr=%d\n",
+           rnti, prb_idx[0], prb_idx[1], n_pucch, dl_harq[i].get_n_cce(), has_sr);
       return true; 
     }
   }
@@ -269,9 +270,24 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
     if (L) {
       *L = 1; 
     }
-    Debug("SCHED: Reserved Format1 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], cfg.sr_N_pucch);
+    Info("SCHED: Reserved Format1 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], cfg.sr_N_pucch);
     return true; 
   }
+  // Finally check Format2 (periodic CQI)
+  if (cfg.cqi_enabled && srslte_cqi_send(cfg.cqi_idx, current_tti)) {
+    if (prb_idx) {
+      for (int i=0;i<2;i++) {
+        prb_idx[i] = srslte_pucch_n_prb(&cfg.pucch_cfg, SRSLTE_PUCCH_FORMAT_2, cfg.cqi_pucch, cell.nof_prb, cell.cp, i);
+      }
+    }
+    if(L) {
+      *L = 2;
+    }
+    Info("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
+         rnti, prb_idx[0], prb_idx[1], cfg.cqi_pucch, cfg.cqi_idx);
+    return true;
+  }
+
   return false; 
 }
 
@@ -303,7 +319,7 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
       }
     }
   }
-  Info("SCHED: recv_len=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", len, lcid,
+  Debug("SCHED: recv_len=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", len, lcid,
        lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
 }
 
@@ -563,7 +579,7 @@ uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
     pending_data = 0; 
   }
   if (pending_data) {
-    Info("SCHED: pending_data=%d, pending_ul_data=%d, bsr={%d,%d,%d,%d}\n", pending_data,pending_ul_data,
+    Debug("SCHED: pending_data=%d, pending_ul_data=%d, bsr={%d,%d,%d,%d}\n", pending_data,pending_ul_data,
          lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
   }
   return pending_data; 

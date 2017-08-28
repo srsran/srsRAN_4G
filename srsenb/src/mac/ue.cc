@@ -226,7 +226,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, uint32_t tstamp)
   if (!bsr_received && lcid_most_data > 2) {
     // Add BSR to the LCID for which most data was received
     sched->ul_bsr(rnti, lcid_most_data, 256, false); // false adds BSR instead of setting
-    Info("BSR not received. Giving extra grant\n");
+    Debug("BSR not received. Giving extra grant\n");
   }
 
   Debug("MAC PDU processed\n");
@@ -282,9 +282,9 @@ bool ue::process_ce(srslte::sch_subh *subh) {
       for (uint32_t i=0;i<lc_groups[idx].size();i++) {
         // Indicate BSR to scheduler
         sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
-        Info("CE:    Received %s BSR rnti=0x%x, lcg=%d, lcid=%d, value=%d\n",
-             subh->ce_type()==srslte::sch_subh::SHORT_BSR?"Short":"Trunc", rnti, idx, lc_groups[idx][i], buff_size[idx]);
       }
+      Info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d\n",
+           subh->ce_type()==srslte::sch_subh::SHORT_BSR?"Short":"Trunc", rnti, idx, buff_size[idx]);
       is_bsr = true;
       break;
     case srslte::sch_subh::LONG_BSR:
