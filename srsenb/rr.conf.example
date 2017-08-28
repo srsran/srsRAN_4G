@@ -9,7 +9,7 @@ mac_cnfg =
   ulsch_cnfg = 
   {
     max_harq_tx = 4;
-    periodic_bsr_timer = 5; // in ms 
+    periodic_bsr_timer = 40; // in ms 
     retx_bsr_timer = 320;   // in ms
   };
   

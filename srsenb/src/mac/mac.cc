@@ -33,6 +33,7 @@
 #include <strings.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <srslte/interfaces/sched_interface.h>
 
 #include "srslte/common/log.h"
 #include "mac/mac.h"
@@ -163,7 +164,9 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
 
 int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
 {
-  if (ue_db.count(rnti)) {   
+  if (ue_db.count(rnti)) {
+    // configure BSR group in UE
+    ue_db[rnti]->set_lcg(lc_id, (uint32_t) cfg->group);
     return scheduler.bearer_ue_cfg(rnti, lc_id, cfg);      
   } else {
     Error("User rnti=0x%x not found\n", rnti);

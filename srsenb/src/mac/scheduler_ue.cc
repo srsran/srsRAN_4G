@@ -163,12 +163,18 @@ void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
   phy_config_dedicated_enabled = enabled; 
 }
 
-void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr)
+void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
 {
   if (lc_id < sched_interface::MAX_LC) {
-    lch[lc_id].bsr = bsr;
+    if (set_value) {
+      lch[lc_id].bsr = bsr;
+    } else {
+      lch[lc_id].bsr += bsr;
+    }
     Debug("SCHED: UL lcid=%d buffer_state=%d\n", lc_id, bsr);
-  }  
+  }
+  Info("SCHED: bsr=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", bsr, lc_id,
+       lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
 }
 
 void sched_ue::ul_phr(int phr)
@@ -297,6 +303,8 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
       }
     }
   }
+  Info("SCHED: recv_len=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", len, lcid,
+       lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
 }
 
 void sched_ue::set_ul_crc(uint32_t tti, bool crc_res)
@@ -553,6 +561,10 @@ uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
     pending_data -= pending_ul_data; 
   } else {
     pending_data = 0; 
+  }
+  if (pending_data) {
+    Info("SCHED: pending_data=%d, pending_ul_data=%d, bsr={%d,%d,%d,%d}\n", pending_data,pending_ul_data,
+         lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
   }
   return pending_data; 
 }

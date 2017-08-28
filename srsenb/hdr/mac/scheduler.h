@@ -108,7 +108,7 @@ public:
   
   int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc);
   int ul_sr_info(uint32_t tti, uint16_t rnti); 
-  int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr); 
+  int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true);
   int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len);
   int ul_phr(uint16_t rnti, int phr); 
   int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code); 

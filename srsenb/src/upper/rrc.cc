@@ -24,6 +24,8 @@
  *
  */
 
+#include <srslte/interfaces/sched_interface.h>
+#include <srslte/asn1/liblte_rrc.h>
 #include "srslte/asn1/liblte_mme.h"
 #include "upper/rrc.h"
 
@@ -1311,7 +1313,9 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   // Add SRB2 and DRB1 to the scheduler
   srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
   bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  bearer_cfg.group = 0;
   parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
+  bearer_cfg.group = conn_reconf->rr_cnfg_ded.drb_to_add_mod_list[0].lc_cnfg.ul_specific_params.log_chan_group;
   parent->mac->bearer_ue_cfg(rnti, 3, &bearer_cfg);
   
   // Configure SRB2 in RLC and PDCP

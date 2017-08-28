@@ -26,7 +26,7 @@ ul_freq = 2565000000
 tx_gain = 80
 rx_gain = 60
 
-#nof_rx_ant = 1
+nof_rx_ant = 2
 #device_name = auto
 #device_args = auto
 #time_adv_nsamples = auto
