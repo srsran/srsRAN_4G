@@ -102,8 +102,14 @@ int srslte_ue_dl_init_multi(srslte_ue_dl_t *q,
       goto clean_exit;
     }
 
-    for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-      if (srslte_softbuffer_rx_init(&q->softbuffers[i], q->cell.nof_prb)) {
+    for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+      q->softbuffers[i] = srslte_vec_malloc(sizeof(srslte_softbuffer_rx_t));
+      if (!q->softbuffers[i]) {
+        fprintf(stderr, "Error allocating soft buffer\n");
+        goto clean_exit;
+      }
+
+      if (srslte_softbuffer_rx_init(q->softbuffers[i], q->cell.nof_prb)) {
         fprintf(stderr, "Error initiating soft buffer\n");
         goto clean_exit;
       }
@@ -157,8 +163,11 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
     srslte_pdcch_free(&q->pdcch);
     srslte_pdsch_free(&q->pdsch);
     srslte_cfo_free(&q->sfo_correct);
-    for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-      srslte_softbuffer_rx_free(&q->softbuffers[i]);
+    for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+      srslte_softbuffer_rx_free(q->softbuffers[i]);
+      if (q->softbuffers[i]) {
+        free(q->softbuffers[i]);
+      }
     }
     for (int j=0;j<q->nof_rx_antennas;j++) {
       if (q->sf_symbols_m[j]) {
@@ -194,7 +203,7 @@ void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
 
 void srslte_ue_dl_reset(srslte_ue_dl_t *q) {
   for(int i = 0; i < SRSLTE_MAX_CODEWORDS; i++){
-    srslte_softbuffer_rx_reset(&q->softbuffers[i]);
+    srslte_softbuffer_rx_reset(q->softbuffers[i]);
   }
   bzero(&q->pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
 }
@@ -212,14 +221,16 @@ void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, float sample_offset) {
  */
 int srslte_ue_dl_decode(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti) {
   uint8_t *_data[SRSLTE_MAX_CODEWORDS];
-  cf_t *_input[SRSLTE_MAX_PORTS]; 
+  cf_t *_input[SRSLTE_MAX_PORTS];
+  bool acks[SRSLTE_MAX_CODEWORDS] = {false};
   _data[0] = data;
   _input[0] = input; 
-  return srslte_ue_dl_decode_rnti_multi(q, _input, _data, tti, q->current_rnti);
+  return srslte_ue_dl_decode_rnti_multi(q, _input, _data, tti, q->current_rnti, acks);
 }
 
-int srslte_ue_dl_decode_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data[SRSLTE_MAX_CODEWORDS], uint32_t tti) {
-  return srslte_ue_dl_decode_rnti_multi(q, input, data, tti, q->current_rnti);
+int srslte_ue_dl_decode_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data[SRSLTE_MAX_CODEWORDS],
+                              uint32_t tti, bool acks[SRSLTE_MAX_CODEWORDS]) {
+  return srslte_ue_dl_decode_rnti_multi(q, input, data, tti, q->current_rnti, acks);
 }
 
 int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, cf_t *input, uint32_t sf_idx, uint32_t *cfi) 
@@ -307,16 +318,18 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
   return srslte_pdsch_cfg_multi(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx, mimo_type, pmi);
 }
 
-int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti, uint16_t rnti)
-{
+int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti, uint16_t rnti) {
   uint8_t *_data[SRSLTE_MAX_CODEWORDS];
   cf_t *_input[SRSLTE_MAX_PORTS];
+  bool acks[SRSLTE_MAX_CODEWORDS] = {false};
   _input[0] = input; 
   _data[0] = data;
-  return srslte_ue_dl_decode_rnti_multi(q, _input, _data, tti, rnti);
+  return srslte_ue_dl_decode_rnti_multi(q, _input, _data, tti, rnti, acks);
 }
 
-int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS], uint8_t *data[SRSLTE_MAX_CODEWORDS], uint32_t tti, uint16_t rnti)
+int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
+                                   uint8_t *data[SRSLTE_MAX_CODEWORDS], uint32_t tti, uint16_t rnti,
+                                   bool acks[SRSLTE_MAX_CODEWORDS])
 {
   srslte_mimo_type_t mimo_type;
   srslte_dci_msg_t dci_msg;
@@ -324,8 +337,7 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
   srslte_ra_dl_grant_t grant; 
   int ret = SRSLTE_ERROR; 
   uint32_t cfi;
-  
-  uint32_t sf_idx = tti%10; 
+  uint32_t sf_idx = tti%10;
   
   if ((ret = srslte_ue_dl_decode_fft_estimate_multi(q, input, sf_idx, &cfi)) < 0) {
     return ret; 
@@ -357,7 +369,7 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
       uint32_t k   = (sfn/2)%4;
       for (int i = 0; i < grant.nof_tb; i++) {
         rvidx[i] = ((uint32_t) ceilf((float) 1.5 * k)) % 4;
-        srslte_softbuffer_rx_reset_tbs(&q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
+        srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
       }
     } else {
       for (int i = 0; i < grant.nof_tb; i++) {
@@ -372,7 +384,7 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
             ERROR("Wrong number of transport blocks");
             return SRSLTE_ERROR;
         }
-        srslte_softbuffer_rx_reset_tbs(&q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
+        srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
       }
     }
 
@@ -421,7 +433,7 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
       ret = srslte_pdsch_decode_multi(&q->pdsch, &q->pdsch_cfg, q->softbuffers,
                                     q->sf_symbols_m, q->ce_m, 
                                     noise_estimate, 
-                                    rnti, data);
+                                    rnti, data, acks);
       
       if (ret == SRSLTE_ERROR) {
         q->pkt_errors++;

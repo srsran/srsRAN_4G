@@ -135,7 +135,7 @@ void parse_args(int argc, char **argv) {
 
 uint8_t *data[SRSLTE_MAX_CODEWORDS] = {NULL};
 cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-srslte_softbuffer_rx_t softbuffers_rx[SRSLTE_MAX_CODEWORDS];
+srslte_softbuffer_rx_t *softbuffers_rx[SRSLTE_MAX_CODEWORDS];
 srslte_ra_dl_grant_t grant; 
 srslte_pdsch_cfg_t pdsch_cfg; 
 #ifdef DO_OFDM
@@ -151,8 +151,9 @@ int main(int argc, char **argv) {
   uint32_t i, j, k;
   int ret = -1;
   struct timeval t[3];
-  srslte_softbuffer_tx_t softbuffers_tx[SRSLTE_MAX_CODEWORDS];
+  srslte_softbuffer_tx_t *softbuffers_tx[SRSLTE_MAX_CODEWORDS];
   int M=10;
+  bool acks[SRSLTE_MAX_CODEWORDS] = {false};
 
   parse_args(argc,argv);
 
@@ -163,8 +164,6 @@ int main(int argc, char **argv) {
   bzero(ce, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(tx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
   bzero(rx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
-  bzero(softbuffers_tx, sizeof(srslte_softbuffer_tx_t)*SRSLTE_MAX_CODEWORDS);
-  bzero(softbuffers_rx, sizeof(srslte_softbuffer_rx_t)*SRSLTE_MAX_CODEWORDS);
 
   /* Parse transmission mode */
   if (srslte_str2mimotype(mimo_type_str, &mimo_type)) {
@@ -275,8 +274,14 @@ int main(int argc, char **argv) {
 
   srslte_pdsch_set_rnti(&pdsch_rx, rnti);
 
-  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    if (srslte_softbuffer_rx_init(&softbuffers_rx[i], cell.nof_prb)) {
+  for (i = 0; i < SRSLTE_MAX_TB; i++) {
+    softbuffers_rx[i] = calloc(sizeof(srslte_softbuffer_rx_t), 1);
+    if (!softbuffers_rx[i]) {
+      fprintf(stderr, "Error allocating RX soft buffer\n");
+      goto quit;
+    }
+
+    if (srslte_softbuffer_rx_init(softbuffers_rx[i], cell.nof_prb)) {
       fprintf(stderr, "Error initiating RX soft buffer\n");
       goto quit;
     }
@@ -339,7 +344,13 @@ int main(int argc, char **argv) {
     srslte_pdsch_set_rnti(&pdsch_tx, rnti);
 
     for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-      if (srslte_softbuffer_tx_init(&softbuffers_tx[i], cell.nof_prb)) {
+      softbuffers_tx[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);
+
+      if (!softbuffers_tx[i]) {
+        fprintf(stderr, "Error allocating TX soft buffer\n");
+      }
+
+      if (srslte_softbuffer_tx_init(softbuffers_tx[i], cell.nof_prb)) {
         fprintf(stderr, "Error initiating TX soft buffer\n");
         goto quit;
       }
@@ -427,29 +438,44 @@ int main(int argc, char **argv) {
 #endif
     for (i = 0; i < grant.nof_tb; i++) {
       if (grant.mcs[i].tbs) {
-        srslte_softbuffer_rx_reset_tbs(&softbuffers_rx[i], (uint32_t) grant.mcs[i].tbs);
+        srslte_softbuffer_rx_reset_tbs(softbuffers_rx[i], (uint32_t) grant.mcs[i].tbs);
       }
     }
-    r = srslte_pdsch_decode_multi(&pdsch_rx, &pdsch_cfg, softbuffers_rx, rx_slot_symbols, ce, 0, rnti, data);
+    r = srslte_pdsch_decode_multi(&pdsch_rx, &pdsch_cfg, softbuffers_rx, rx_slot_symbols, ce, 0, rnti, data, acks);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
   printf("DECODED %s in %.2f (PHY bitrate=%.2f Mbps. Processing bitrate=%.2f Mbps)\n", r?"Error":"OK",
          (float) t[0].tv_usec/M, (float) (grant.mcs[0].tbs + grant.mcs[1].tbs)/1000.0f,
          (float) (grant.mcs[0].tbs + grant.mcs[1].tbs)*M/t[0].tv_usec);
-  if (r) {
-    ret = -1;
-    goto quit;
-  } 
 
-  ret = 0;
+  /* If there is an error in PDSCH decode */
+  if (r) {
+    ERROR("PDSCH decode");
+    ret = SRSLTE_ERROR;
+    goto quit;
+  }
+
+  /* Check all transport blocks have been decoded OK */
+  for (int tb = 0; tb < grant.nof_tb; tb++) {
+    ret |= (acks[tb]) ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+  }
+
+  ret = SRSLTE_SUCCESS;
 
 quit:
   srslte_pdsch_free(&pdsch_tx);
   srslte_pdsch_free(&pdsch_rx);
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    srslte_softbuffer_tx_free(&softbuffers_tx[i]);
-    srslte_softbuffer_rx_free(&softbuffers_rx[i]);
+    srslte_softbuffer_tx_free(softbuffers_tx[i]);
+    if (softbuffers_tx[i]) {
+      free(softbuffers_tx[i]);
+    }
+
+    srslte_softbuffer_rx_free(softbuffers_rx[i]);
+    if (softbuffers_rx[i]) {
+      free(softbuffers_rx[i]);
+    }
 
     if (data[i]) {
       free(data[i]);

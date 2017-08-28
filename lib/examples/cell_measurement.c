@@ -160,7 +160,8 @@ int main(int argc, char **argv) {
   int sfn_offset; 
   float rssi_utra=0,rssi=0, rsrp=0, rsrq=0, snr=0;
   cf_t *ce[SRSLTE_MAX_PORTS];
-  float cfo = 0; 
+  float cfo = 0;
+  bool acks[SRSLTE_MAX_CODEWORDS] = {false};
 
   if (parse_args(&prog_args, argc, argv)) {
     exit(-1);
@@ -313,7 +314,7 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = srslte_ue_dl_decode_multi(&ue_dl, sf_buffer, data, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
+            n = srslte_ue_dl_decode_multi(&ue_dl, sf_buffer, data, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;

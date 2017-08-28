@@ -84,7 +84,7 @@ srslte_pcfich_t pcfich;
 srslte_pdcch_t pdcch;
 srslte_pdsch_t pdsch;
 srslte_pdsch_cfg_t pdsch_cfg; 
-srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS];
+srslte_softbuffer_tx_t *softbuffers[SRSLTE_MAX_CODEWORDS];
 srslte_regs_t regs;
 srslte_ra_dl_dci_t ra_dl;
 int rvidx[SRSLTE_MAX_CODEWORDS] = {0, 0};
@@ -267,7 +267,7 @@ void base_init() {
   } else {
 #ifndef DISABLE_RF
     printf("Opening RF device...\n");
-    if (srslte_rf_open_multi2(&rf, rf_args, cell.nof_ports, 1)) {
+    if (srslte_rf_open_multi(&rf, rf_args, cell.nof_ports)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
@@ -334,7 +334,7 @@ void base_init() {
   srslte_pdsch_set_rnti(&pdsch, UE_CRNTI);
 
   for (i = 0; i < nof_tb; i++) {
-    if (srslte_softbuffer_tx_init(&softbuffers[i], cell.nof_prb)) {
+    if (srslte_softbuffer_tx_init(softbuffers[i], cell.nof_prb)) {
       fprintf(stderr, "Error initiating soft buffer\n");
       exit(-1);
     }
@@ -344,7 +344,10 @@ void base_init() {
 void base_free() {
   int i;
   for (i = 0; i < nof_tb; i++) {
-    srslte_softbuffer_tx_free(&softbuffers[i]);
+    if (softbuffers[i]) {
+      free(softbuffers[i]);
+    }
+    srslte_softbuffer_tx_free(softbuffers[i]);
   }
   srslte_pdsch_free(&pdsch);
   srslte_pdcch_free(&pdcch);
@@ -649,7 +652,7 @@ int main(int argc, char **argv) {
   
   bool send_data = false; 
   for (i = 0; i < nof_tb; i++) {
-    srslte_softbuffer_tx_reset(&softbuffers[i]);
+    srslte_softbuffer_tx_reset(softbuffers[i]);
   }
 
 #ifndef DISABLE_RF

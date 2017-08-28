@@ -84,7 +84,7 @@ typedef struct SRSLTE_API {
   srslte_cfo_t sfo_correct; 
   
   srslte_pdsch_cfg_t pdsch_cfg; 
-  srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS];
+  srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS];
   srslte_ra_dl_dci_t dl_dci;
   srslte_cell_t cell;
 
@@ -180,7 +180,7 @@ SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q,
 SRSLTE_API int srslte_ue_dl_decode_multi(srslte_ue_dl_t * q, 
                                          cf_t *input[SRSLTE_MAX_PORTS], 
                                          uint8_t *data[SRSLTE_MAX_CODEWORDS],
-                                         uint32_t tti);
+                                         uint32_t tti, bool acks[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q, 
                                         cf_t *input, 
@@ -192,7 +192,8 @@ SRSLTE_API int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t * q,
                                               cf_t *input[SRSLTE_MAX_PORTS], 
                                               uint8_t *data[SRSLTE_MAX_CODEWORDS],
                                               uint32_t tti,
-                                              uint16_t rnti);
+                                              uint16_t rnti,
+                                              bool acks[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q,
                                           uint32_t *ri,

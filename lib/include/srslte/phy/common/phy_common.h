@@ -52,6 +52,7 @@
 #define SRSLTE_MAX_PORTS     4
 #define SRSLTE_MAX_LAYERS    4
 #define SRSLTE_MAX_CODEWORDS 2
+#define SRSLTE_MAX_TB        SRSLTE_MAX_CODEWORDS
 
 #define SRSLTE_MAX_CODEBLOCKS 32
 
@@ -150,12 +151,12 @@ typedef enum SRSLTE_API {
 } srslte_phich_resources_t;
 
 typedef enum {
-  SRSLTE_RNTI_USER = 0,
-  SRSLTE_RNTI_SI,
-  SRSLTE_RNTI_RAR,
-  SRSLTE_RNTI_TEMP,
-  SRSLTE_RNTI_SPS,
-  SRSLTE_RNTI_PCH,  
+  SRSLTE_RNTI_USER = 0, /* Cell RNTI */
+  SRSLTE_RNTI_SI,       /* System Information RNTI */
+  SRSLTE_RNTI_RAR,      /* Random Access RNTI */
+  SRSLTE_RNTI_TEMP,     /* Temporary C-RNTI */
+  SRSLTE_RNTI_SPS,      /* Semi-Persistent Scheduling C-RNTI */
+  SRSLTE_RNTI_PCH,      /* Paging RNTI */
   SRSLTE_RNTI_NOF_TYPES
 } srslte_rnti_type_t;
 

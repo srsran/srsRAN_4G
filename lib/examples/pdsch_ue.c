@@ -540,7 +540,8 @@ int main(int argc, char **argv) {
   INFO("\nEntering main loop...\n\n", 0);
   /* Main loop */
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
-    
+    bool acks [SRSLTE_MAX_CODEWORDS] = {false};
+
     ret = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
@@ -585,7 +586,7 @@ int main(int argc, char **argv) {
             n = srslte_ue_dl_decode_multi(&ue_dl, 
                                           sf_buffer, 
                                           data, 
-                                          sfn*10+srslte_ue_sync_get_sfidx(&ue_sync));
+                                          sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
           
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
@@ -623,7 +624,7 @@ int main(int argc, char **argv) {
             rsrp1 = SRSLTE_VEC_EMA(srslte_chest_dl_get_rsrp_port(&ue_dl.chest, 1), rsrp1, 0.05f);
             noise = SRSLTE_VEC_EMA(srslte_chest_dl_get_noise_estimate(&ue_dl.chest), noise, 0.05f);
             enodebrate = SRSLTE_VEC_EMA((ue_dl.pdsch_cfg.grant.mcs[0].tbs + ue_dl.pdsch_cfg.grant.mcs[1].tbs)/1000.0f, enodebrate, 0.05f);
-            uerate = SRSLTE_VEC_EMA((n>0)?(ue_dl.pdsch_cfg.grant.mcs[0].tbs + ue_dl.pdsch_cfg.grant.mcs[1].tbs)/1000.0f:0.0f, uerate, 0.01f);
+            uerate = SRSLTE_VEC_EMA(((acks[0]?ue_dl.pdsch_cfg.grant.mcs[0].tbs:0) + (acks[1]?ue_dl.pdsch_cfg.grant.mcs[1].tbs:0))/1000.0f, uerate, 0.01f);
 
             nframes++;
             if (isnan(rsrq)) {
