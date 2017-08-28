@@ -173,7 +173,7 @@ void s1ap::build_tai_cgi()
 void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
-  ue_ctxt_map[rnti].stream_id      = next_ue_stream_id++;
+  ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
   send_initialuemessage(rnti, pdu, false);
@@ -182,7 +182,7 @@ void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu)
 void s1ap::initial_ue(uint16_t rnti, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
-  ue_ctxt_map[rnti].stream_id      = next_ue_stream_id++;
+  ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
   send_initialuemessage(rnti, pdu, true, m_tmsi, mmec);
