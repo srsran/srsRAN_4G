@@ -84,20 +84,20 @@ public:
         harq_pid = grant.pid%N;
       }
       if (grant.rnti_type == SRSLTE_RNTI_TEMP && last_temporal_crnti != grant.rnti) {
-        grant.ndi = true;
+        grant.ndi[0] = true;
         Info("Set NDI=1 for Temp-RNTI DL grant\n");
         last_temporal_crnti = grant.rnti;
       }
       if (grant.rnti_type == SRSLTE_RNTI_USER && proc[harq_pid].is_sps()) {
-        grant.ndi = true;
+        grant.ndi[0] = true;
         Info("Set NDI=1 for C-RNTI DL grant\n");
       }
       proc[harq_pid].new_grant_dl(grant, action);
     } else {
       /* This is for SPS scheduling */
       uint32_t harq_pid = get_harq_sps_pid(grant.tti)%N;
-      if (grant.ndi) {
-        grant.ndi = false; 
+      if (grant.ndi[0]) {
+        grant.ndi[0] = false;
         proc[harq_pid].new_grant_dl(grant, action);
       } else {
         if (grant.is_sps_release) {
@@ -117,12 +117,12 @@ public:
   }
 
 
-  void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
+  void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
   {
     if (rnti_type == SRSLTE_RNTI_SI) {
-      proc[N].tb_decoded(ack);
+      proc[N].tb_decoded(ack, 0);
     } else {
-      proc[harq_pid%N].tb_decoded(ack);
+      proc[harq_pid%N].tb_decoded(ack, tb_idx);
     }
   }
 
@@ -137,200 +137,239 @@ public:
 
   void start_pcap(srslte::mac_pcap* pcap_) { pcap = pcap_; }
 
-  int  get_current_tbs(uint32_t harq_pid) { return proc[harq_pid%N].get_current_tbs(); }
+  int  get_current_tbs(uint32_t harq_pid, uint32_t tb_idx) { return proc[harq_pid%N].get_current_tbs(tb_idx); }
 
   void set_si_window_start(int si_window_start_) { si_window_start = si_window_start_; }
 
   float get_average_retx() { return average_retx; }
 
-private:  
+private:
   class dl_harq_process {
   public:
-    dl_harq_process()
-    {
-      is_initiated = false; 
-      ack = false; 
-      bzero(&cur_grant, sizeof(Tgrant));
+    dl_harq_process() : subproc(SRSLTE_MAX_TB) {
+
     }
 
-    bool init(uint32_t pid_, dl_harq_entity *parent)
-    {
-      if (srslte_softbuffer_rx_init(&softbuffer, 110)) {
-        Error("Error initiating soft buffer\n");
-        return false; 
-      } else {
-        pid = pid_;
-        is_initiated = true; 
-        harq_entity = parent; 
-        log_h = harq_entity->log_h; 
-        return true;
+    bool init(uint32_t pid_, dl_harq_entity *parent) {
+      bool ret = true;
+
+      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        ret &= subproc[tb].init(pid_, parent, tb);
+      }
+      return ret;
+    }
+
+    void reset(void) {
+      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        subproc[tb].reset();
       }
     }
 
-    void reset()
-    {
-      ack = false; 
-      payload_buffer_ptr = NULL; 
-      bzero(&cur_grant, sizeof(Tgrant));
-      if (is_initiated) {
-        srslte_softbuffer_rx_reset(&softbuffer);
+    void new_grant_dl(Tgrant grant, Taction *action) {
+      for (uint32_t tb = 0; tb < grant.phy_grant.dl.nof_tb; tb++) {
+        subproc[tb].new_grant_dl(grant, action);
       }
     }
-    
-    void new_grant_dl(Tgrant grant, Taction *action)
-    {
-      // Compute RV for BCCH when not specified in PDCCH format
-      if (pid == HARQ_BCCH_PID && grant.rv == -1) {
-        uint32_t k; 
-        if ((grant.tti/10)%2 == 0 && grant.tti%10 == 5) { // This is SIB1, k is different
-          k = (grant.tti/20)%4; 
-          grant.rv = ((uint32_t) ceilf((float)1.5*k))%4;
-        } else if (grant.rv == -1) {      
-          k = (grant.tti-harq_entity->si_window_start)%4; 
-          grant.rv = ((uint32_t) ceilf((float)1.5*k))%4;
-        }
-      }
-      calc_is_new_transmission(grant);
-      if (is_new_transmission) {
-        ack = false; 
-        srslte_softbuffer_rx_reset_tbs(&softbuffer, cur_grant.n_bytes*8);
-        n_retx = 0; 
-      }
-      
-      // Save grant 
-      grant.last_ndi = cur_grant.ndi; 
-      grant.last_tti = cur_grant.tti; 
-      memcpy(&cur_grant, &grant, sizeof(Tgrant));
-      
-      // Fill action structure 
-      bzero(action, sizeof(Taction));
-      action->default_ack = ack; 
-      action->generate_ack = true; 
-      action->decode_enabled = false; 
-      
-      // If data has not yet been successfully decoded
-      if (ack == false) {
-        
-        // Instruct the PHY To combine the received data and attempt to decode it
-        payload_buffer_ptr = harq_entity->demux_unit->request_buffer(pid, cur_grant.n_bytes);
-        action->payload_ptr = payload_buffer_ptr;
-        if (!action->payload_ptr) {
-          action->decode_enabled = false; 
-          Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes);
-          return;       
-        }    
-        action->decode_enabled = true;     
-        action->rv = cur_grant.rv; 
-        action->rnti = cur_grant.rnti; 
-        action->softbuffer = &softbuffer;     
-        memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(Tphygrant));
-        n_retx++; 
-        
-      } else {
-        Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
-      }
-        
-      if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(TIME_ALIGNMENT)->is_expired()) {
-        // Do not generate ACK
-        Debug("Not generating ACK\n");
-        action->generate_ack = false;    
-      } else {
-        if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP && ack == false) {
-          // Postpone ACK after contention resolution is resolved
-          action->generate_ack_callback = harq_entity->generate_ack_callback; 
-          action->generate_ack_callback_arg = harq_entity->demux_unit;
-          Debug("ACK pending contention resolution\n");
-        } else {
-          Debug("Generating ACK\n");
-        }
-      }
-    }
-    
-    void tb_decoded(bool ack_)
-    {
-      ack = ack_;
-      if (ack == true) {
-        if (pid == HARQ_BCCH_PID) {
-          if (harq_entity->pcap) {
-            harq_entity->pcap->write_dl_sirnti(payload_buffer_ptr, cur_grant.n_bytes, ack, cur_grant.tti);
-          }
-          Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.n_bytes);
-          harq_entity->demux_unit->push_pdu(pid, payload_buffer_ptr, cur_grant.n_bytes, cur_grant.tti);
-        } else {      
-          if (harq_entity->pcap) {
-            harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes, cur_grant.rnti, ack, cur_grant.tti);            
-          }
-          if (ack) {
-            if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
-              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n", cur_grant.n_bytes);
-              harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes);
-            } else {
-              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes);
-              harq_entity->demux_unit->push_pdu(pid, payload_buffer_ptr, cur_grant.n_bytes, cur_grant.tti);
 
-              // Compute average number of retransmissions per packet 
-              harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx, harq_entity->nof_pkts++); 
-            }
-          }
-        }
-      } else {
-        harq_entity->demux_unit->deallocate(payload_buffer_ptr);
-      }
-      
-      Info("DL %d:  %s tbs=%d, rv=%d, ack=%s, ndi=%d (%d), tti=%d (%d)\n", 
-           pid, is_new_transmission?"newTX":"reTX ", 
-           cur_grant.n_bytes, cur_grant.rv, ack?"OK":"KO", 
-           cur_grant.ndi, cur_grant.last_ndi, cur_grant.tti, cur_grant.last_tti);
-      
-      if (ack && pid == HARQ_BCCH_PID) {
-        reset();
-      }
-    }
+    int get_current_tbs(uint32_t tb_idx) { return subproc[tb_idx].get_current_tbs(); }
 
     bool is_sps() { return false; }
 
-    int get_current_tbs() { return cur_grant.n_bytes*8; }
-    
-  private: 
-    bool calc_is_new_transmission(Tgrant grant)
-    {
-      bool is_new_tb = true; 
-      if ((srslte_tti_interval(grant.tti, cur_grant.tti) <= 8 && (grant.n_bytes == cur_grant.n_bytes)) ||
-          pid == HARQ_BCCH_PID) 
-      {
-        is_new_tb = false; 
-      }
-      
-      if ((grant.ndi != cur_grant.ndi && !is_new_tb) || // NDI toggled for same TB
-          is_new_tb                                  || // is new TB
-          (pid == HARQ_BCCH_PID && grant.rv == 0))      // Broadcast PID and 1st TX (RV=0)
-      {
-        is_new_transmission = true; 
-        Debug("Set HARQ for new transmission\n");
-      } else {
-        is_new_transmission = false; 
-        Debug("Set HARQ for retransmission\n");
-      }
-
-      return is_new_transmission;
+    void tb_decoded(bool ack_, uint32_t tb_idx) {
+      subproc[tb_idx].tb_decoded(ack_);
     }
 
-    bool            is_initiated; 
-    dl_harq_entity *harq_entity; 
-    srslte::log    *log_h;
-    
-    bool            is_new_transmission; 
-    
-    uint32_t        pid;    
-    uint8_t        *payload_buffer_ptr; 
-    bool            ack;
-    
-    uint32_t        n_retx; 
-    
-    Tgrant                         cur_grant;
-    srslte_softbuffer_rx_t         softbuffer; 
+  private:
+    class dl_tb_process {
+    public:
+      dl_tb_process(void) {
+        is_initiated = false;
+        ack = false;
+        bzero(&cur_grant, sizeof(Tgrant));
+      }
+
+      bool init(uint32_t pid_, dl_harq_entity *parent, uint32_t tb_idx) {
+        tid = tb_idx;
+        if (srslte_softbuffer_rx_init(&softbuffer, 110)) {
+          Error("Error initiating soft buffer\n");
+          return false;
+        } else {
+          pid = pid_;
+          is_initiated = true;
+          harq_entity = parent;
+          log_h = harq_entity->log_h;
+          return true;
+        }
+      }
+
+      void reset(void) {
+        ack = false;
+        payload_buffer_ptr = NULL;
+        bzero(&cur_grant, sizeof(Tgrant));
+        if (is_initiated) {
+          srslte_softbuffer_rx_reset(&softbuffer);
+        }
+      }
+
+      void new_grant_dl(Tgrant grant, Taction *action) {
+        // Compute RV for BCCH when not specified in PDCCH format
+        if (pid == HARQ_BCCH_PID && grant.rv[tid] == -1) {
+          uint32_t k;
+          if ((grant.tti / 10) % 2 == 0 && grant.tti % 10 == 5) { // This is SIB1, k is different
+            k = (grant.tti / 20) % 4;
+            grant.rv[tid] = ((uint32_t) ceilf((float) 1.5 * k)) % 4;
+          } else if (grant.rv[tid] == -1) {
+            k = (grant.tti - harq_entity->si_window_start) % 4;
+            grant.rv[tid] = ((uint32_t) ceilf((float) 1.5 * k)) % 4;
+          }
+        }
+        calc_is_new_transmission(grant);
+        if (is_new_transmission) {
+          ack = false;
+          srslte_softbuffer_rx_reset_tbs(&softbuffer, cur_grant.n_bytes[tid] * 8);
+          n_retx = 0;
+        }
+
+        // Save grant
+        grant.last_ndi[tid] = cur_grant.ndi[tid];
+        grant.last_tti = cur_grant.tti;
+        memcpy(&cur_grant, &grant, sizeof(Tgrant));
+
+        // Fill action structure
+        bzero(action, sizeof(Taction));
+        action->default_ack = ack;
+        action->generate_ack = true;
+        action->decode_enabled = false;
+
+        // If data has not yet been successfully decoded
+        if (!ack) {
+
+          // Instruct the PHY To combine the received data and attempt to decode it
+          payload_buffer_ptr = harq_entity->demux_unit->request_buffer(pid * SRSLTE_MAX_TB + tid,
+                                                                       cur_grant.n_bytes[tid]);
+          action->payload_ptr[tid] = payload_buffer_ptr;
+          if (!action->payload_ptr) {
+            action->decode_enabled = false;
+            Error("Can't get a buffer for TBS=%d\n", cur_grant.n_bytes[tid]);
+            return;
+          }
+          action->decode_enabled = true;
+          action->rv[tid] = cur_grant.rv[tid];
+          action->rnti = cur_grant.rnti;
+          action->softbuffers[tid] = &softbuffer;
+          memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(Tphygrant));
+          n_retx++;
+
+        } else {
+          Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
+        }
+
+        if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(TIME_ALIGNMENT)->is_expired()) {
+          // Do not generate ACK
+          Debug("Not generating ACK\n");
+          action->generate_ack = false;
+        } else {
+          if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP && !ack) {
+            // Postpone ACK after contention resolution is resolved
+            action->generate_ack_callback = harq_entity->generate_ack_callback;
+            action->generate_ack_callback_arg = harq_entity->demux_unit;
+            Debug("ACK pending contention resolution\n");
+          } else {
+            Debug("Generating ACK\n");
+          }
+        }
+      }
+
+
+      void tb_decoded(bool ack_) {
+        ack = ack_;
+        if (ack) {
+          if (pid == HARQ_BCCH_PID) {
+            if (harq_entity->pcap) {
+              harq_entity->pcap->write_dl_sirnti(payload_buffer_ptr, cur_grant.n_bytes[tid], ack, cur_grant.tti);
+            }
+            Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)\n", cur_grant.n_bytes[tid]);
+            harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
+                                              cur_grant.tti);
+          } else {
+            if (harq_entity->pcap) {
+              harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.rnti, ack,
+                                                cur_grant.tti);
+            }
+            if (ack) {
+              if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
+                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
+                      cur_grant.n_bytes[tid]);
+                harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid]);
+              } else {
+                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes[tid]);
+                harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
+                                                  cur_grant.tti);
+
+                // Compute average number of retransmissions per packet
+                harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx,
+                                                           harq_entity->nof_pkts++);
+              }
+            }
+          }
+        } else {
+          harq_entity->demux_unit->deallocate(payload_buffer_ptr);
+        }
+
+        Info("DL %d (TB %d):  %s tbs=%d, rv=%d, ack=%s, ndi=%d (%d), tti=%d (%d)\n",
+             pid, tid, is_new_transmission ? "newTX" : "reTX ",
+             cur_grant.n_bytes[tid], cur_grant.rv[tid], ack ? "OK" : "KO",
+             cur_grant.ndi[tid], cur_grant.last_ndi, cur_grant.tti, cur_grant.last_tti);
+
+        if (ack && pid == HARQ_BCCH_PID) {
+          reset();
+        }
+      }
+
+      int get_current_tbs(void) { return cur_grant.n_bytes[tid] * 8; }
+
+    private:
+      bool calc_is_new_transmission(Tgrant grant) {
+        bool is_new_tb = true;
+        if ((srslte_tti_interval(grant.tti, cur_grant.tti) <= 8 && (grant.n_bytes[tid] == cur_grant.n_bytes[tid])) ||
+            pid == HARQ_BCCH_PID) {
+          is_new_tb = false;
+        }
+
+        if ((grant.ndi[tid] != cur_grant.ndi[tid] && !is_new_tb) || // NDI toggled for same TB
+            is_new_tb || // is new TB
+            (pid == HARQ_BCCH_PID && grant.rv[tid] == 0))      // Broadcast PID and 1st TX (RV=0)
+        {
+          is_new_transmission = true;
+          Debug("Set HARQ for new transmission\n");
+        } else {
+          is_new_transmission = false;
+          Debug("Set HARQ for retransmission\n");
+        }
+
+        return is_new_transmission;
+      }
+
+      bool is_initiated;
+      dl_harq_entity *harq_entity;
+      srslte::log *log_h;
+
+      bool is_new_transmission;
+
+      uint32_t pid;     /* HARQ Proccess ID   */
+      uint32_t tid;     /* Transport block ID */
+      uint8_t *payload_buffer_ptr;
+      bool ack;
+
+      uint32_t n_retx;
+
+      Tgrant cur_grant;
+      srslte_softbuffer_rx_t softbuffer;
+    };
+
+    /* Transport blocks */
+    std::vector<dl_tb_process> subproc;
   };
-  
   // Private members of dl_harq_entity
   
   static bool      generate_ack_callback(void *arg)

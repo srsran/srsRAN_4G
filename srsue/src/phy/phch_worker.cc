@@ -178,8 +178,8 @@ void phch_worker::work_imp()
   reset_uci();
 
   bool dl_grant_available = false; 
-  bool ul_grant_available = false; 
-  bool dl_ack = false;
+  bool ul_grant_available = false;
+  bool dl_ack[SRSLTE_MAX_CODEWORDS] = {false};
 
   mac_interface_phy::mac_grant_t    dl_mac_grant;
   mac_interface_phy::tb_action_dl_t dl_action; 
@@ -200,22 +200,28 @@ void phch_worker::work_imp()
     if(dl_grant_available) {
       /* Send grant to MAC and get action for this TB */
       phy->mac->new_grant_dl(dl_mac_grant, &dl_action);
-      
+
+      /* Set DL ACKs to default */
+      for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+        dl_ack[tb] = dl_action.default_ack;
+      }
+
       /* Decode PDSCH if instructed to do so */
-      dl_ack = dl_action.default_ack; 
       if (dl_action.decode_enabled) {
-        dl_ack = decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr,
-                              dl_action.softbuffer, dl_action.rv, dl_action.rnti, 
-                              dl_mac_grant.pid);
+        decode_pdsch_multi(&dl_action.phy_grant.dl, dl_action.payload_ptr,
+                              dl_action.softbuffers, dl_action.rv, dl_action.rnti,
+                              dl_mac_grant.pid, dl_ack);
       }
       if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
-        phy->mac->tb_decoded(dl_ack, dl_mac_grant.rnti_type, dl_mac_grant.pid);
-        dl_ack = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
-        Debug("Calling generate ACK callback returned=%d\n", dl_ack);
+        for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+          phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+          dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
+          Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack);
+        }
       }
-      Debug("dl_ack=%d, generate_ack=%d\n", dl_ack, dl_action.generate_ack);
+      Debug("dl_ack={%d, %d}, generate_ack=%d\n", dl_ack[0], dl_ack[1], dl_action.generate_ack);
       if (dl_action.generate_ack) {
-        set_uci_ack(dl_ack);
+        set_uci_ack(dl_ack, dl_mac_grant.phy_grant.dl.nof_tb);
       }
     }
   }
@@ -258,8 +264,8 @@ void phch_worker::work_imp()
   /* Transmit PUSCH, PUCCH or SRS */
   bool signal_ready = false; 
   if (ul_action.tx_enabled) {
-    encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr, ul_action.current_tx_nb, 
-                 ul_action.softbuffer, ul_action.rv, ul_action.rnti, ul_mac_grant.is_from_rar);          
+    encode_pusch(&ul_action.phy_grant.ul, ul_action.payload_ptr[0], ul_action.current_tx_nb,
+                 &ul_action.softbuffers[0], ul_action.rv[0], ul_action.rnti, ul_mac_grant.is_from_rar);
     signal_ready = true; 
     if (ul_action.expect_ack) {
       phy->set_pending_ack(tti + 8, ue_ul.pusch_cfg.grant.n_prb_tilde[0], ul_action.phy_grant.ul.ncs_dmrs);
@@ -279,9 +285,11 @@ void phch_worker::work_imp()
   
   if (dl_action.decode_enabled && !dl_action.generate_ack_callback) {
     if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH) {
-      phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes);
+      phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
     } else {
-      phy->mac->tb_decoded(dl_ack, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+      for (uint32_t tb = 0; tb < dl_mac_grant.phy_grant.dl.nof_tb; tb++) {
+        phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+      }
     }
   }
 
@@ -380,13 +388,16 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     }
     
     /* Fill MAC grant structure */
-    grant->ndi = dci_unpacked.ndi;
+    grant->ndi[0] = dci_unpacked.ndi;
+    grant->ndi[1] = dci_unpacked.ndi_1;
     grant->pid = dci_unpacked.harq_process;
-    grant->n_bytes = grant->phy_grant.dl.mcs[0].tbs/8;
-    grant->tti = tti; 
-    grant->rv  = dci_unpacked.rv_idx;
-    grant->rnti = dl_rnti; 
-    grant->rnti_type = type; 
+    grant->n_bytes[0] = grant->phy_grant.dl.mcs[0].tbs / (uint32_t) 8;
+    grant->n_bytes[1] = grant->phy_grant.dl.mcs[1].tbs / (uint32_t) 8;
+    grant->tti = tti;
+    grant->rv[0] = dci_unpacked.rv_idx;
+    grant->rv[1] = dci_unpacked.rv_idx_1;
+    grant->rnti = dl_rnti;
+    grant->rnti_type = type;
     grant->last_tti = 0;
     
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
@@ -405,23 +416,27 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
   }
 }
 
-bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
+int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
                                srslte_softbuffer_rx_t *softbuffer, int rv,
-                               uint16_t rnti, uint32_t harq_pid) {
-  int _rv [SRSLTE_MAX_CODEWORDS] = {1};
-  _rv[0] = rv;
+                               uint16_t rnti, uint32_t harq_pid, bool acks[SRSLTE_MAX_CODEWORDS]) {
+  int _rv [SRSLTE_MAX_TB] = {1};
+  srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_TB] = {NULL};
 
-  return decode_pdsch_multi(grant, &payload, softbuffer, _rv, rnti, harq_pid);
+  _rv[0] = rv;
+  softbuffers[0] = softbuffer;
+
+  return decode_pdsch_multi(grant, &payload, softbuffers, _rv, rnti, harq_pid, acks);
 }
 
-bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSLTE_MAX_CODEWORDS],
-                                     srslte_softbuffer_rx_t softbuffers[SRSLTE_MAX_CODEWORDS],
+int phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSLTE_MAX_CODEWORDS],
+                                     srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS],
                                      int rv[SRSLTE_MAX_CODEWORDS],
-                                     uint16_t rnti, uint32_t harq_pid) {
+                                     uint16_t rnti, uint32_t harq_pid, bool acks[SRSLTE_MAX_CODEWORDS]) {
   char timestr[64];
   bool valid_config = true;
   timestr[0]='\0';
   srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+  int ret = SRSLTE_SUCCESS;
 
   for (uint32_t tb = 0; tb < grant->nof_tb; tb++) {
     if (rv[tb] < 0 || rv[tb] > 3) {
@@ -497,38 +512,39 @@ bool phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *paylo
         struct timeval t[3];
         gettimeofday(&t[1], NULL);
   #endif
-        
-        bool ack = srslte_pdsch_decode_multi(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffers, ue_dl.sf_symbols_m,
-                                      ue_dl.ce_m, noise_estimate, rnti, payload) == 0;
+        ret = srslte_pdsch_decode_multi(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffers, ue_dl.sf_symbols_m,
+                                        ue_dl.ce_m, noise_estimate, rnti, payload, acks);
+        if (ret) {
+          Error("Decoding PDSCH");
+        }
   #ifdef LOG_EXECTIME
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
-        
-        Info("PDSCH: l_crb=%2d, harq=%d, tbs=%d, mcs=%d, rv=%d, crc=%s, snr=%.1f dB, n_iter=%d%s\n", 
-              grant->nof_prb, harq_pid, 
-              grant->mcs[0].tbs/8, grant->mcs[0].idx, rv,
-              ack?"OK":"KO", 
-              10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), 
-              srslte_pdsch_last_noi(&ue_dl.pdsch),
-              timestr);
+
+        Info("PDSCH: l_crb=%2d, harq=%d, nof_tb=%d, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d%s\n",
+             grant->nof_prb, harq_pid,
+             grant->nof_tb, grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx, grant->mcs[1].idx,
+             rv[0], rv[1], acks[0] ? "OK" : "KO", acks[1] ? "OK" : "KO",
+             10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
+             srslte_pdsch_last_noi(&ue_dl.pdsch),
+             timestr);
 
         //printf("tti=%d, cfo=%f\n", tti, cfo*15000);
         //srslte_vec_save_file("pdsch", signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
         
         // Store metrics
         dl_metrics.mcs    = grant->mcs[0].idx;
-        
-        return ack; 
       } else {
         Warning("Received grant for TBS=0\n");
       }
     } else {
-      Error("Error configuring DL grant\n"); 
+      Error("Error configuring DL grant\n");
+      ret = SRSLTE_ERROR;
     }
   }
-  return true; 
+  return ret;
 }
 
 bool phch_worker::decode_phich(bool *ack)
@@ -625,12 +641,12 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
   }
   
   if (ret) {    
-    grant->ndi = dci_unpacked.ndi;
+    grant->ndi[0] = dci_unpacked.ndi;
     grant->pid = 0; // This is computed by MAC from TTI 
-    grant->n_bytes = grant->phy_grant.ul.mcs.tbs/8;
+    grant->n_bytes[0] = grant->phy_grant.ul.mcs.tbs / (uint32_t) 8;
     grant->tti = tti; 
     grant->rnti = ul_rnti; 
-    grant->rv = dci_unpacked.rv_idx;
+    grant->rv[0] = dci_unpacked.rv_idx;
     if (SRSLTE_VERBOSE_ISINFO()) {
       srslte_ra_pusch_fprint(stdout, &dci_unpacked, cell.nof_prb);
     }
@@ -646,11 +662,22 @@ void phch_worker::reset_uci()
   bzero(&uci_data, sizeof(srslte_uci_data_t));
 }
 
-void phch_worker::set_uci_ack(bool ack)
-{
-  uci_data.uci_ack = ack?1:0;
-  uci_data.uci_ack_len = 1; 
-}
+  void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb) {
+    if (nof_tb > 0) {
+      uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
+    }
+
+    if (nof_tb > 1) {
+      uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
+    }
+
+    if (nof_tb > 2) {
+      Error("Number of transport blocks is not supported");
+    }
+
+    uci_data.uci_ack_len = nof_tb;
+
+  }
 
 void phch_worker::set_uci_sr()
 {
