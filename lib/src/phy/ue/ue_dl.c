@@ -391,7 +391,11 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
     switch(dci_msg.format) {
       case SRSLTE_DCI_FORMAT1:
       case SRSLTE_DCI_FORMAT1A:
-        mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+        if (q->cell.nof_ports == 1) {
+          mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+        } else {
+          mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+        }
         break;
       case SRSLTE_DCI_FORMAT2:
         if (grant.nof_tb == 1 && dci_unpacked.pinfo == 0) {
@@ -468,7 +472,10 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
   float best_sinr = -INFINITY;
   uint32_t best_pmi = 0, best_ri = 0;
 
-  if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
+  if (q->cell.nof_ports < 2 || q->nof_rx_antennas < 2) {
+    /* Do nothing */
+    return SRSLTE_SUCCESS;
+  } else if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
     if (srslte_pdsch_pmi_select(&q->pdsch, &q->pdsch_cfg, q->ce_m, noise_estimate,
                                   SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp), q->pmi, q->sinr)) {
       ERROR("SINR calculation error");
@@ -501,7 +508,7 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
       } else if (q->pdsch_cfg.nof_layers == 2) {
         *current_sinr = q->sinr[1][q->pdsch_cfg.codebook_idx - 1];
       } else {
-        ERROR("Not implemented number of layers");
+        ERROR("Not implemented number of layers (%d)", q->pdsch_cfg.nof_layers);
         return SRSLTE_ERROR;
       }
     }
