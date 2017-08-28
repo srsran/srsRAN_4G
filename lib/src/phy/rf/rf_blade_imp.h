@@ -34,7 +34,7 @@ SRSLTE_API int rf_blade_open(char *args,
                         void **handler);
 
 SRSLTE_API int rf_blade_open_multi(char *args, 
-                        void **handler, uint32_t nof_tx_antennas, uint32_t nof_rx_antennas);
+                        void **handler, uint32_t nof_channels);
 
 SRSLTE_API char* rf_blade_devname(void *h);
 

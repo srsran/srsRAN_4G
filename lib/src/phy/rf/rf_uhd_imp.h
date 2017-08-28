@@ -39,8 +39,7 @@ SRSLTE_API int rf_uhd_open(char *args,
 
 SRSLTE_API int rf_uhd_open_multi(char *args, 
                                  void **handler, 
-                                 uint32_t nof_tx_antennas,
-                                 uint32_t nof_rx_antennas);
+                                 uint32_t nof_channels);
 
 SRSLTE_API char* rf_uhd_devname(void *h);
 

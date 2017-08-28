@@ -178,7 +178,7 @@ float rf_blade_get_rssi(void *h)
   return 0;
 }
 
-int rf_blade_open_multi(char *args, void **h, uint32_t nof_tx_antennas, uint32_t nof_rx_antennas)
+int rf_blade_open_multi(char *args, void **h, uint32_t nof_channels)
 {
   return rf_blade_open(args, h); 
 }

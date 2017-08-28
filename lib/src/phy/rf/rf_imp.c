@@ -102,11 +102,7 @@ int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args) {
   return srslte_rf_open_devname_multi(rf, devname, args, 1);
 }
 
-int srslte_rf_open_devname_multi(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_rx_antennas) {
-  return srslte_rf_open_devname_multi2(rf, devname, args, 1, nof_rx_antennas);
-}
-
-int srslte_rf_open_devname_multi2(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_tx_antennas, uint32_t nof_rx_antennas) {
+int srslte_rf_open_devname_multi(srslte_rf_t *rf, char *devname, char *args, uint32_t nof_channels) {
   /* Try to open the device if name is provided */
   if (devname) {
     if (devname[0] != '\0') {
@@ -114,7 +110,7 @@ int srslte_rf_open_devname_multi2(srslte_rf_t *rf, char *devname, char *args, ui
       while(available_devices[i] != NULL) {
         if (!strcmp(available_devices[i]->name, devname)) {
           rf->dev = available_devices[i];
-          return available_devices[i]->srslte_rf_open_multi(args, &rf->handler, nof_tx_antennas, nof_rx_antennas);
+          return available_devices[i]->srslte_rf_open_multi(args, &rf->handler, nof_channels);
         }
         i++;
       }    
@@ -125,7 +121,7 @@ int srslte_rf_open_devname_multi2(srslte_rf_t *rf, char *devname, char *args, ui
   /* If in auto mode or provided device not found, try to open in order of apperance in available_devices[] array */
   int i=0;
   while(available_devices[i] != NULL) {
-    if (!available_devices[i]->srslte_rf_open_multi(args, &rf->handler, nof_tx_antennas, nof_rx_antennas)) {
+    if (!available_devices[i]->srslte_rf_open_multi(args, &rf->handler, nof_channels)) {
       rf->dev = available_devices[i];
       return 0; 
     }
@@ -196,11 +192,6 @@ int srslte_rf_open(srslte_rf_t *h, char *args)
 int srslte_rf_open_multi(srslte_rf_t *h, char *args, uint32_t nof_rx_antennas) 
 {
   return srslte_rf_open_devname_multi(h, NULL, args, nof_rx_antennas);
-}
-
-int srslte_rf_open_multi2(srslte_rf_t *h, char *args, uint32_t nof_tx_antennas, uint32_t nof_rx_antennas)
-{
-  return srslte_rf_open_devname_multi2(h, NULL, args, nof_tx_antennas, nof_rx_antennas);
 }
 
 int srslte_rf_close(srslte_rf_t *rf)
@@ -310,6 +301,20 @@ int srslte_rf_send_timed3(srslte_rf_t *rf,
                                  has_time_spec, blocking, is_start_of_burst, is_end_of_burst);  
 }
 
+int srslte_rf_send_timed_multi(srslte_rf_t *rf,
+                               void *data[4],
+                               int nsamples,
+                               time_t secs,
+                               double frac_secs,
+                               bool blocking,
+                               bool is_start_of_burst,
+                               bool is_end_of_burst)
+{
+
+  return ((rf_dev_t*) rf->dev)->srslte_rf_send_timed_multi(rf->handler, data, nsamples, secs, frac_secs,
+                                                           true, blocking, is_start_of_burst, is_end_of_burst);
+}
+
 int srslte_rf_send_multi(srslte_rf_t *rf,
                      void *data[4],
                      int nsamples,
@@ -318,8 +323,7 @@ int srslte_rf_send_multi(srslte_rf_t *rf,
                      bool is_end_of_burst)
 {
 
-  return ((rf_dev_t*) rf->dev)->srslte_rf_send_timed_multi(rf->handler, data, nsamples, 0, 0,
-                                 false, blocking, is_start_of_burst, is_end_of_burst);
+  return srslte_rf_send_timed_multi(rf, data, nsamples, 0, 0, blocking, is_start_of_burst, is_end_of_burst);
 }
 
 int srslte_rf_send(srslte_rf_t *rf, void *data, uint32_t nsamples, bool blocking)

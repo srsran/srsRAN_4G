@@ -286,10 +286,10 @@ float rf_uhd_get_rssi(void *h) {
 
 int rf_uhd_open(char *args, void **h)
 {
-  return rf_uhd_open_multi(args, h, 1, 1);
+  return rf_uhd_open_multi(args, h, 1);
 }
 
-int rf_uhd_open_multi(char *args, void **h, uint32_t nof_tx_antennas, uint32_t nof_rx_antennas)
+int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
 {
   if (h) {
     *h = NULL; 
@@ -395,11 +395,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_tx_antennas, uint32_t n
           .otw_format = "sc16",
           .args = "",
           .channel_list = channel,
-          .n_channels = (nof_tx_antennas > nof_rx_antennas)?nof_tx_antennas:nof_rx_antennas,
+          .n_channels = nof_channels,
       };
       
-    handler->nof_rx_channels = nof_rx_antennas; 
-    handler->nof_tx_channels = nof_tx_antennas;
+    handler->nof_rx_channels = nof_channels;
+    handler->nof_tx_channels = nof_channels;
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
@@ -664,7 +664,7 @@ int rf_uhd_send_timed_multi(void *h,
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*) h;
   
   /* Resets the USRP time FIXME: this might cause problems for burst transmissions */
-  if (is_start_of_burst && handler->nof_tx_channels > 1) {
+  if (!has_time_spec && is_start_of_burst && handler->nof_tx_channels > 1) {
     uhd_usrp_set_time_now(handler->usrp, 0, 0, 0);
     uhd_tx_metadata_set_time_spec(&handler->tx_md, 0, 0.1);
   }

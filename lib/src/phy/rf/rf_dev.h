@@ -38,7 +38,7 @@ typedef struct {
   void   (*srslte_rf_suppress_stdout)(void *h);
   void   (*srslte_rf_register_error_handler)(void *h, srslte_rf_error_handler_t error_handler);
   int    (*srslte_rf_open)(char *args, void **h);
-  int    (*srslte_rf_open_multi)(char *args, void **h, uint32_t nof_tx_antennas, uint32_t nof_rx_antennas);
+  int    (*srslte_rf_open_multi)(char *args, void **h, uint32_t nof_channels);
   int    (*srslte_rf_close)(void *h);
   void   (*srslte_rf_set_master_clock_rate)(void *h, double rate);
   bool   (*srslte_rf_is_master_clock_dynamic)(void *h);
