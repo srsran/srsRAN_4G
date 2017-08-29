@@ -133,7 +133,8 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-uint8_t *data[SRSLTE_MAX_CODEWORDS] = {NULL};
+static uint8_t *data_tx[SRSLTE_MAX_CODEWORDS] = {NULL};
+static uint8_t *data_rx[SRSLTE_MAX_CODEWORDS] = {NULL};
 cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
 srslte_softbuffer_rx_t *softbuffers_rx[SRSLTE_MAX_CODEWORDS];
 srslte_ra_dl_grant_t grant; 
@@ -258,12 +259,20 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < grant.nof_tb; i++) {
     if (grant.mcs[i].tbs) {
-      data[i] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs[i].tbs);
-      if (!data[i]) {
+      data_tx[i] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs[i].tbs);
+      if (!data_tx[i]) {
         perror("srslte_vec_malloc");
         goto quit;
       }
-      bzero(data[i], sizeof(uint8_t) * grant.mcs[i].tbs);
+      bzero(data_tx[i], sizeof(uint8_t) * grant.mcs[i].tbs);
+
+      data_rx[i] = srslte_vec_malloc(sizeof(uint8_t) * grant.mcs[i].tbs);
+      if (!data_rx[i]) {
+        perror("srslte_vec_malloc");
+        goto quit;
+      }
+      bzero(data_rx[i], sizeof(uint8_t) * grant.mcs[i].tbs);
+
     }
   }
 
@@ -274,7 +283,7 @@ int main(int argc, char **argv) {
 
   srslte_pdsch_set_rnti(&pdsch_rx, rnti);
 
-  for (i = 0; i < SRSLTE_MAX_TB; i++) {
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     softbuffers_rx[i] = calloc(sizeof(srslte_softbuffer_rx_t), 1);
     if (!softbuffers_rx[i]) {
       fprintf(stderr, "Error allocating RX soft buffer\n");
@@ -322,7 +331,7 @@ int main(int argc, char **argv) {
 #ifdef DO_OFDM
     srslte_filesource_read(&fsrc, rx_slot_symbols, SRSLTE_SF_LEN_PRB(cell.nof_prb));
 #else
-    srslte_filesource_read_multi(&fsrc, (void*) rx_slot_symbols, SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp), pdsch_cfg.nof_layers);
+    srslte_filesource_read(&fsrc, rx_slot_symbols[0], SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp));
 #endif
     
     srslte_chest_dl_t chest; 
@@ -330,7 +339,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "Error initializing equalizer\n");
       exit(-1);
     }
-    srslte_chest_dl_estimate_multi(&chest, rx_slot_symbols, ce, subframe, nof_rx_antennas);
+    srslte_chest_dl_estimate(&chest, rx_slot_symbols[0], ce[0], subframe);
     srslte_chest_dl_free(&chest);
     
     srslte_filesource_free(&fsrc);
@@ -345,7 +354,6 @@ int main(int argc, char **argv) {
 
     for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       softbuffers_tx[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);
-
       if (!softbuffers_tx[i]) {
         fprintf(stderr, "Error allocating TX soft buffer\n");
       }
@@ -364,9 +372,9 @@ int main(int argc, char **argv) {
       }
     }
 
-    for (i = 0; i< grant.nof_tb; i++) {
-      for (i = 0; i < grant.mcs[i].tbs / 8; i++) {
-        data[i][i] = (uint8_t) (rand() % 256);
+    for (int tb = 0; tb < grant.nof_tb; tb++) {
+      for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
+        data_tx[tb][byte] = (uint8_t)(rand() % 256);
       }
     }
 
@@ -377,7 +385,7 @@ int main(int argc, char **argv) {
     if (rv_idx[0] != 0 || rv_idx[1] != 0) {
       /* Do 1st transmission for rv_idx!=0 */
       bzero(pdsch_cfg.rv, sizeof(uint32_t)*SRSLTE_MAX_CODEWORDS);
-      if (srslte_pdsch_encode_multi(&pdsch_tx, &pdsch_cfg, softbuffers_tx, data, rnti, tx_slot_symbols)) {
+      if (srslte_pdsch_encode_multi(&pdsch_tx, &pdsch_cfg, softbuffers_tx, data_tx, rnti, tx_slot_symbols)) {
         fprintf(stderr, "Error encoding PDSCH\n");
         goto quit;
       }
@@ -385,7 +393,7 @@ int main(int argc, char **argv) {
     memcpy(pdsch_cfg.rv, rv_idx, sizeof(uint32_t)*SRSLTE_MAX_CODEWORDS);
     gettimeofday(&t[1], NULL);
     for (k = 0; k < M; k++) {
-      if (srslte_pdsch_encode_multi(&pdsch_tx, &pdsch_cfg, softbuffers_tx, data, rnti, tx_slot_symbols)) {
+      if (srslte_pdsch_encode_multi(&pdsch_tx, &pdsch_cfg, softbuffers_tx, data_tx, rnti, tx_slot_symbols)) {
         ERROR("Error encoding PDSCH");
         goto quit;
       }
@@ -441,7 +449,7 @@ int main(int argc, char **argv) {
         srslte_softbuffer_rx_reset_tbs(softbuffers_rx[i], (uint32_t) grant.mcs[i].tbs);
       }
     }
-    r = srslte_pdsch_decode_multi(&pdsch_rx, &pdsch_cfg, softbuffers_rx, rx_slot_symbols, ce, 0, rnti, data, acks);
+    r = srslte_pdsch_decode_multi(&pdsch_rx, &pdsch_cfg, softbuffers_rx, rx_slot_symbols, ce, 0, rnti, data_rx, acks);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
@@ -451,9 +459,19 @@ int main(int argc, char **argv) {
 
   /* If there is an error in PDSCH decode */
   if (r) {
-    ERROR("PDSCH decode");
-    ret = SRSLTE_ERROR;
+    ret = -1;
     goto quit;
+  }
+
+  /* Check Tx and Rx bytes */
+  for (int tb = 0; tb < grant.nof_tb; tb++) {
+    for (int byte = 0; byte < grant.mcs[tb].tbs / 8; byte++) {
+      if (data_tx[tb][byte] != data_rx[tb][byte]) {
+        ERROR("Found BYTE error in TB %d (%02X != %02X), quiting...", tb, data_tx[tb][byte], data_rx[tb][byte]);
+        ret = SRSLTE_ERROR;
+        goto quit;
+      }
+    }
   }
 
   /* Check all transport blocks have been decoded OK */
@@ -477,8 +495,12 @@ quit:
       free(softbuffers_rx[i]);
     }
 
-    if (data[i]) {
-      free(data[i]);
+    if (data_tx[i]) {
+      free(data_tx[i]);
+    }
+
+    if (data_rx[i]) {
+      free(data_rx[i]);
     }
   }
 
