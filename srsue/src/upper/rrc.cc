@@ -79,7 +79,14 @@ void rrc::init(phy_interface_rrc     *phy_,
   nas     = nas_;
   usim    = usim_;
   rrc_log = rrc_log_;
+
+  // Use MAC timers
   mac_timers = mac_timers_;
+  t301 = mac_timers->get_unique_id();
+  t310 = mac_timers->get_unique_id();
+  t311 = mac_timers->get_unique_id();
+  safe_reset_timer = mac_timers->get_unique_id();
+
 
   pthread_mutex_init(&mutex, NULL); 
   
@@ -1492,10 +1499,6 @@ void rrc::set_mac_default()
 void rrc::set_rrc_default() {
   N310 = 1;
   N311 = 1; 
-  t301 = mac_timers->get_unique_id();
-  t310 = mac_timers->get_unique_id();
-  t311 = mac_timers->get_unique_id();
-  safe_reset_timer = mac_timers->get_unique_id();
   mac_timers->get(t310)->set(this, 1000);
   mac_timers->get(t311)->set(this, 1000);
   mac_timers->get(safe_reset_timer)->set(this, 10);
