@@ -27,6 +27,7 @@
 
 #include <unistd.h>
 #include <sstream>
+#include <srslte/asn1/liblte_rrc.h>
 
 #include "upper/rrc.h"
 #include "srslte/phy/utils/bit.h"
@@ -1084,8 +1085,11 @@ void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT
     current_cfg->ul_pwr_ctrl_ded.accumulation_en = true; 
     current_cfg->ul_pwr_ctrl_ded.p0_ue_pucch     = 0;
     current_cfg->ul_pwr_ctrl_ded.p_srs_offset    = 7;
-    current_cfg->ul_pwr_ctrl_ded.filter_coeff    = LIBLTE_RRC_FILTER_COEFFICIENT_FC4;      
-    current_cfg->ul_pwr_ctrl_ded.filter_coeff_present = true; 
+  }
+  if (phy_cnfg->ul_pwr_ctrl_ded.filter_coeff_present) {
+    current_cfg->ul_pwr_ctrl_ded.filter_coeff = current_cfg->ul_pwr_ctrl_ded.filter_coeff;
+  } else {
+    current_cfg->ul_pwr_ctrl_ded.filter_coeff = LIBLTE_RRC_FILTER_COEFFICIENT_FC4;
   }
   if(phy_cnfg->tpc_pdcch_cnfg_pucch_present) {
     memcpy(&current_cfg->tpc_pdcch_cnfg_pucch, &phy_cnfg->tpc_pdcch_cnfg_pucch, sizeof(LIBLTE_RRC_TPC_PDCCH_CONFIG_STRUCT)); 
