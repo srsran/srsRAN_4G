@@ -314,12 +314,11 @@ void rrc::release_complete(uint16_t rnti)
     if (!users[rnti].is_idle()) {
       rlc->clear_buffer(rnti); 
       users[rnti].send_connection_release();
-      // There is no RRCReleaseComplete message from UE thus sleep to enable all retx in PHY +50%
-      usleep(1500*8*cfg.mac_cnfg.ulsch_cnfg.max_harq_tx);
+      // There is no RRCReleaseComplete message from UE thus wait ~100 subframes for tx
+      usleep(100000);
     }
     rem_user(rnti);
   } else {
-    
     rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
   }
 }

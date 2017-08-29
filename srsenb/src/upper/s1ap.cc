@@ -594,7 +594,7 @@ bool s1ap::handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMA
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
 
-  uint16_t rnti;
+  uint16_t rnti = 0;
   if(msg->UE_S1AP_IDs.choice_type == LIBLTE_S1AP_UE_S1AP_IDS_CHOICE_UE_S1AP_ID_PAIR) {
 
     if(msg->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.ext) {
