@@ -395,7 +395,7 @@ int sched_ue::generate_format1(dl_harq_proc *h,
     uint32_t nof_ctrl_symbols = cfi+(cell.nof_prb<10?1:0);
     uint32_t nof_re = srslte_ra_dl_grant_nof_re(&grant, cell, sf_idx, nof_ctrl_symbols);
     if (fixed_mcs_dl < 0) {
-      tbs = alloc_tbs(dl_cqi, nof_prb, nof_re, req_bytes, max_mcs_dl, &mcs);      
+      tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), nof_prb);
       mcs = fixed_mcs_dl; 
@@ -466,7 +466,7 @@ int sched_ue::generate_format0(ul_harq_proc *h,
     uint32_t N_srs = 0; 
     uint32_t nof_re = (2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs)*allocation.L*SRSLTE_NRE;
     if (fixed_mcs_ul < 0) {
-      tbs = alloc_tbs(ul_cqi, allocation.L, nof_re, req_bytes, max_mcs_ul, &mcs);      
+      tbs = alloc_tbs_ul(allocation.L, nof_re, req_bytes, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), allocation.L);
       mcs = fixed_mcs_ul;
@@ -610,7 +610,7 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
   for (n=1;n<cell.nof_prb && nbytes < req_bytes;n++) {
     nof_re = srslte_ra_dl_approx_nof_re(cell, n, nof_ctrl_symbols);
     if (fixed_mcs_dl < 0) {
-      tbs = alloc_tbs(dl_cqi, n, nof_re, 0, max_mcs_dl, &mcs);      
+      tbs = alloc_tbs_dl(n, nof_re, 0, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl), n);
     }
@@ -639,7 +639,7 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
     uint32_t nof_re = (2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs)*n*SRSLTE_NRE;
     int tbs = 0; 
     if (fixed_mcs_ul < 0) {
-      tbs = alloc_tbs(ul_cqi, n, nof_re, 0, max_mcs_ul, &mcs);      
+      tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul), n);
     }
@@ -760,10 +760,12 @@ uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb) {
   return nof_prb; 
 }
 
-int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t *mcs) {
+int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, uint32_t *mcs) {
   float max_coderate = srslte_cqi_to_coderate(cqi);
   int sel_mcs = max_mcs+1; 
-  float coderate = 99; 
+  float coderate = 99;
+  float eff_coderate = 99;
+  uint32_t Qm = 1;
   int tbs = 0; 
 
   do {
@@ -771,25 +773,47 @@ int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32
     uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs);
     tbs = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
     coderate = srslte_coderate(tbs, nof_re);
-  } while(sel_mcs > 0 && coderate >= max_coderate);
+    Qm = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(srslte_ra_mod_from_mcs(sel_mcs)));
+    eff_coderate = coderate/Qm;
+  } while((sel_mcs > 0 && coderate > max_coderate) || eff_coderate > 0.930);
   if (mcs) {
     *mcs = (uint32_t) sel_mcs; 
   }
   return tbs; 
 }
 
-/* In this scheduler we tend to use all the available bandwidth and select the MCS 
+int sched_ue::alloc_tbs_dl(uint32_t nof_prb,
+                        uint32_t nof_re,
+                        uint32_t req_bytes,
+                        int *mcs)
+{
+  return alloc_tbs(nof_prb, nof_re, req_bytes, false, mcs);
+}
+
+int sched_ue::alloc_tbs_ul(uint32_t nof_prb,
+                           uint32_t nof_re,
+                           uint32_t req_bytes,
+                           int *mcs)
+{
+  return alloc_tbs(nof_prb, nof_re, req_bytes, true, mcs);
+}
+
+  /* In this scheduler we tend to use all the available bandwidth and select the MCS
  * that approximates the minimum between the capacity and the requested rate 
  */
-int sched_ue::alloc_tbs(uint32_t cqi, 
-                              uint32_t nof_prb, 
-                              uint32_t nof_re,
-                              uint32_t req_bytes, 
-                              uint32_t max_mcs, 
-                              int *mcs) 
+int sched_ue::alloc_tbs(uint32_t nof_prb,
+                        uint32_t nof_re,
+                        uint32_t req_bytes,
+                        bool is_ul,
+                        int *mcs)
 {
-  uint32_t sel_mcs = 0; 
-  int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, &sel_mcs)/8;
+  uint32_t sel_mcs = 0;
+
+  uint32_t cqi     = is_ul?ul_cqi:dl_cqi;
+  uint32_t max_mcs = is_ul?max_mcs_ul:max_mcs_dl;
+  uint32_t max_Qm  = is_ul?4:6; // Allow 16-QAM in PUSCH Only
+
+  int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, &sel_mcs)/8;
   
   /* If less bytes are requested, lower the MCS */
   if (tbs > (int) req_bytes && req_bytes > 0) {

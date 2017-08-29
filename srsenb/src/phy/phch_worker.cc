@@ -49,6 +49,8 @@ using namespace std;
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
+#include <srslte/phy/phch/ra.h>
+
 void init_plots(srsenb::phch_worker *worker);
 pthread_t plot_thread; 
 sem_t plot_sem; 
@@ -363,7 +365,11 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       srslte_ra_ul_grant_t phy_grant; 
       int res = -1;
       if (!srslte_ra_ul_dci_to_grant(&grants[i].grant, enb_ul.cell.nof_prb, n_rb_ho, &phy_grant, tti%8)) {
-        res = srslte_enb_ul_get_pusch(&enb_ul, &phy_grant, grants[i].softbuffer, 
+        if (phy_grant.mcs.mod == SRSLTE_MOD_64QAM) {
+          phy_grant.mcs.mod = SRSLTE_MOD_16QAM;
+        }
+        phy_grant.Qm = SRSLTE_MIN(phy_grant.Qm, 4);
+        res = srslte_enb_ul_get_pusch(&enb_ul, &phy_grant, grants[i].softbuffer,
                                                 rnti, grants[i].rv_idx, 
                                                 grants[i].current_tx_nb, 
                                                 grants[i].data, 

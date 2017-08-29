@@ -60,7 +60,7 @@ sib2 =
             n_sb = 1;
             hopping_mode = "inter-subframe";
             pusch_hopping_offset = 2;
-            enable_64_qam = false;
+            enable_64_qam = false; // 64QAM PUSCH is not currently enabled
             ul_rs = 
             {
                 cyclic_shift = 0; 
