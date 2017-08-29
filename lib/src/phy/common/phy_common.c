@@ -191,6 +191,11 @@ uint32_t srslte_N_ta_new(uint32_t N_ta_old, uint32_t ta) {
   }
 }
 
+float srslte_coderate(uint32_t tbs, uint32_t nof_re)
+{
+  return (float) (tbs + 24)/(nof_re);
+}
+
 /* Returns the new time advance as indicated by the random access response 
  * as specified in Section 4.2.3 of 36.213 */
 uint32_t srslte_N_ta_new_rar(uint32_t ta) {

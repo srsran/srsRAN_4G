@@ -94,7 +94,8 @@ public:
   typedef struct {
     int priority; 
     int bsd; 
-    int pbr; 
+    int pbr;
+    int group;
     enum {IDLE = 0, UL, DL, BOTH} direction; 
   } ue_bearer_cfg_t; 
   
@@ -231,7 +232,7 @@ public:
   /* UL information */
   virtual int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc) = 0; 
   virtual int ul_sr_info(uint32_t tti, uint16_t rnti) = 0; 
-  virtual int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr) = 0; 
+  virtual int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true) = 0;
   virtual int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len) = 0; 
   virtual int ul_phr(uint16_t rnti, int phr) = 0; 
   virtual int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code) = 0; 

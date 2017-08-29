@@ -77,6 +77,7 @@ public:
 
   // RRC interface
   void reset();
+  void empty_queue();
   void add_bearer(uint32_t lcid);
   void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
 

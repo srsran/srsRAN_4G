@@ -102,6 +102,14 @@ void rlc::reset()
   rlc_array[0].init(RLC_MODE_TM, rlc_log, default_lcid, pdcp, rrc, mac_timers); // SRB0
 }
 
+void rlc::empty_queue()
+{
+  for(uint32_t i=0; i<SRSLTE_N_RADIO_BEARERS; i++) {
+    if(rlc_array[i].active())
+      rlc_array[i].empty_queue();
+  }
+}
+
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/

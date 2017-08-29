@@ -9,7 +9,7 @@ mac_cnfg =
   ulsch_cnfg = 
   {
     max_harq_tx = 4;
-    periodic_bsr_timer = 5; // in ms 
+    periodic_bsr_timer = 40; // in ms 
     retx_bsr_timer = 320;   // in ms
   };
   
@@ -28,7 +28,7 @@ phy_cnfg =
   {
     beta_offset_ack_idx = 10;
     beta_offset_ri_idx  = 5;
-    beta_offset_cqi_idx = 5;
+    beta_offset_cqi_idx = 10;
   };
   
   // PUCCH-SR resources are scheduled on time-frequeny domain first, then multiplexed in the same resource. 

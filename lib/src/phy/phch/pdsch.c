@@ -57,12 +57,7 @@ extern int indices[100000];
 extern int indices_ptr; 
 #endif
 
-float srslte_pdsch_coderate(uint32_t tbs, uint32_t nof_re) 
-{
-  return (float) (tbs + 24)/(nof_re);
-}
-
-int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_grant_t *grant, uint32_t lstart_grant, uint32_t nsubframe, bool put) 
+int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_grant_t *grant, uint32_t lstart_grant, uint32_t nsubframe, bool put)
 {
   uint32_t s, n, l, lp, lstart, lend, nof_refs;
   bool is_pbch, is_sss;

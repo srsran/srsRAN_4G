@@ -27,6 +27,7 @@
 
 #include <unistd.h>
 #include <sstream>
+#include <srslte/asn1/liblte_rrc.h>
 
 #include "upper/rrc.h"
 #include "srslte/phy/utils/bit.h"
@@ -78,7 +79,14 @@ void rrc::init(phy_interface_rrc     *phy_,
   nas     = nas_;
   usim    = usim_;
   rrc_log = rrc_log_;
+
+  // Use MAC timers
   mac_timers = mac_timers_;
+  t301 = mac_timers->get_unique_id();
+  t310 = mac_timers->get_unique_id();
+  t311 = mac_timers->get_unique_id();
+  safe_reset_timer = mac_timers->get_unique_id();
+
 
   pthread_mutex_init(&mutex, NULL); 
   
@@ -1084,8 +1092,11 @@ void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT
     current_cfg->ul_pwr_ctrl_ded.accumulation_en = true; 
     current_cfg->ul_pwr_ctrl_ded.p0_ue_pucch     = 0;
     current_cfg->ul_pwr_ctrl_ded.p_srs_offset    = 7;
-    current_cfg->ul_pwr_ctrl_ded.filter_coeff    = LIBLTE_RRC_FILTER_COEFFICIENT_FC4;      
-    current_cfg->ul_pwr_ctrl_ded.filter_coeff_present = true; 
+  }
+  if (phy_cnfg->ul_pwr_ctrl_ded.filter_coeff_present) {
+    current_cfg->ul_pwr_ctrl_ded.filter_coeff = phy_cnfg->ul_pwr_ctrl_ded.filter_coeff;
+  } else {
+    current_cfg->ul_pwr_ctrl_ded.filter_coeff = LIBLTE_RRC_FILTER_COEFFICIENT_FC4;
   }
   if(phy_cnfg->tpc_pdcch_cnfg_pucch_present) {
     memcpy(&current_cfg->tpc_pdcch_cnfg_pucch, &phy_cnfg->tpc_pdcch_cnfg_pucch, sizeof(LIBLTE_RRC_TPC_PDCCH_CONFIG_STRUCT)); 
@@ -1488,10 +1499,6 @@ void rrc::set_mac_default()
 void rrc::set_rrc_default() {
   N310 = 1;
   N311 = 1; 
-  t301 = mac_timers->get_unique_id();
-  t310 = mac_timers->get_unique_id();
-  t311 = mac_timers->get_unique_id();
-  safe_reset_timer = mac_timers->get_unique_id();
   mac_timers->get(t310)->set(this, 1000);
   mac_timers->get(t311)->set(this, 1000);
   mac_timers->get(safe_reset_timer)->set(this, 10);

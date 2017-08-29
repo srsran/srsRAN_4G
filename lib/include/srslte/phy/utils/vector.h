@@ -152,6 +152,9 @@ SRSLTE_API void srslte_vec_conj_cc(cf_t *x, cf_t *y, uint32_t len);
 /* average vector power */
 SRSLTE_API float srslte_vec_avg_power_cf(cf_t *x, uint32_t len);
 
+/* Correlation between complex vectors x and y */
+SRSLTE_API float srslte_vec_corr_ccc(cf_t *x, cf_t *y, uint32_t len);
+
 /* return the index of the maximum value in the vector */
 SRSLTE_API uint32_t srslte_vec_max_fi(float *x, uint32_t len);
 SRSLTE_API uint32_t srslte_vec_max_abs_ci(cf_t *x, uint32_t len);
