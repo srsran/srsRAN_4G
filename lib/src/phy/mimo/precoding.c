@@ -2517,3 +2517,37 @@ int srslte_precoding_pmi_select(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uin
 
   return ret;
 }
+
+/* PMI Select for 1 layer */
+float srslte_precoding_2x2_cn_gen(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_symbols) {
+  uint32_t count = 0;
+  float cn_avg = 0.0f;
+
+  for (uint32_t i = 0; i < nof_symbols; i += PMI_SEL_PRECISION) {
+    /* 0. Load channel matrix */
+    cf_t h00 = h[0][0][i];
+    cf_t h01 = h[1][0][i];
+    cf_t h10 = h[0][1][i];
+    cf_t h11 = h[1][1][i];
+
+    cn_avg += srslte_algebra_2x2_cn(h00, h01, h10, h11);
+
+    count++;
+  }
+
+  return cn_avg/count;
+}
+
+/* Computes the condition number for a given number of antennas,
+ * stores in the parameter *cn the Condition Number in dB */
+int srslte_precoding_cn(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_tx_antennas,
+                          uint32_t nof_rx_antennas, uint32_t nof_symbols, float *cn) {
+  if (nof_tx_antennas == 2 && nof_rx_antennas == 2) {
+    *cn = srslte_precoding_2x2_cn_gen(h, nof_symbols);
+    return SRSLTE_SUCCESS;
+  } else {
+    ERROR("MIMO Condition Number calculation not implemented for %d×%d", nof_tx_antennas, nof_rx_antennas);
+    return SRSLTE_ERROR;
+  }
+}
+

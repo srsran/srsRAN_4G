@@ -513,7 +513,7 @@ int main(int argc, char **argv) {
   uint32_t nframes=0;
   uint32_t ri = 0, pmi = 0;
   float rsrp0=0.0, rsrp1=0.0, rsrq=0.0, noise=0.0, enodebrate = 0.0, uerate = 0.0,
-      sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS];
+      sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS], cn = 0.0;
   bool decode_pdsch = false; 
 
   for (int i = 0; i < SRSLTE_MAX_LAYERS; i++) {
@@ -678,11 +678,14 @@ int main(int argc, char **argv) {
                      100 * (1 - (float) ue_dl.nof_detected / nof_trials),
                      (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
             } else {
+              /* Compute condition number */
+              srslte_ue_dl_ri_select(&ue_dl, NULL, &cn);
+
               /* Compute Rank Indicator (RI) and Precoding Matrix Indicator (PMI) */
               srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, NULL);
               for (uint32_t nl = 0; nl < SRSLTE_MAX_LAYERS; nl++) {
                 for (uint32_t cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb ++) {
-                  sinr[nl][cb] = SRSLTE_VEC_EMA(ue_dl.sinr[nl][cb], sinr[nl][cb], 0.05f);
+                  sinr[nl][cb] = SRSLTE_VEC_EMA(ue_dl.sinr[nl][cb], sinr[nl][cb], 0.5f);
                 }
               }
 
@@ -703,6 +706,7 @@ int main(int argc, char **argv) {
               printf("\033[K   PDSCH-BLER: %5.2f%%\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
               printf("\033[K         TB 0: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[0].idx, ue_dl.pdsch_cfg.grant.mcs[0].tbs);
               printf("\033[K         TB 1: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[1].idx, ue_dl.pdsch_cfg.grant.mcs[1].tbs);
+              printf("\033[K            κ: %.1f dB (Condition number, 0 dB => Best)\n", cn);
               printf("\033[K\n");
               printf("\033[KSINR (dB) Vs RI and PMI (for TM4, close loop MIMO only):\n");
               printf("\033[K   | RI |   1   |   2   |\n");

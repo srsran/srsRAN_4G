@@ -108,6 +108,12 @@ SRSLTE_API void srslte_algebra_2x2_mmse_gen(cf_t y0, cf_t y1,
                                             float noise_estimate,
                                             float norm);
 
+SRSLTE_API float srslte_algebra_2x2_cn(cf_t h00,
+                                       cf_t h01,
+                                       cf_t h10,
+                                       cf_t h11);
+
+
 #ifdef LV_HAVE_SSE
 
 /* SSE implementation for complex reciprocal */

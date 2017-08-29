@@ -200,6 +200,10 @@ SRSLTE_API int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q,
                                           uint32_t *pmi,
                                           float *current_sinr);
 
+SRSLTE_API int srslte_ue_dl_ri_select(srslte_ue_dl_t *q,
+                                      uint32_t *ri,
+                                      float *cn);
+
 SRSLTE_API bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, 
                                           uint32_t sf_idx, 
                                           uint32_t n_prb_lowest, 

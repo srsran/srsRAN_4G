@@ -467,6 +467,8 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
   }
 }
 
+/* Compute the Rank Indicator (RI) and Precoder Matrix Indicator (PMI) by computing the Signal to Interference plus
+ * Noise Ratio (SINR), valid for TM4 */
 int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, float *current_sinr) {
   float noise_estimate = srslte_chest_dl_get_noise_estimate(&q->chest);
   float best_sinr = -INFINITY;
@@ -484,8 +486,8 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
 
     /* Select the best Rank indicator (RI) and Precoding Matrix Indicator (PMI) */
     for (uint32_t nof_layers = 1; nof_layers <= q->pdsch_cfg.nof_layers; nof_layers++ ) {
-      if (q->sinr[nof_layers][q->pmi[nof_layers]] > best_sinr) {
-        best_sinr = q->sinr[nof_layers][q->pmi[nof_layers]];
+      if (q->sinr[nof_layers][q->pmi[nof_layers]] > best_sinr + 0.1) {
+        best_sinr = q->sinr[nof_layers][q->pmi[nof_layers]]*nof_layers;
         best_pmi = q->pmi[nof_layers];
         best_ri = nof_layers;
       }
@@ -525,6 +527,26 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
 
   return SRSLTE_SUCCESS;
 }
+
+
+/* Compute the Rank Indicator (RI) by computing the condition number, valid for TM3 */
+int srslte_ue_dl_ri_select(srslte_ue_dl_t *q, uint32_t *ri, float *cn) {
+  float _cn;
+  int ret = srslte_pdsch_cn_compute(&q->pdsch, q->ce_m, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp), &_cn);
+
+  /* Set Condition number */
+  if (cn) {
+    *cn = _cn;
+  }
+
+  /* Set rank indicator */
+  if (!ret && ri) {
+    *ri = (_cn > 3.0f)? 1:0;
+  }
+
+  return ret;
+}
+
 
 uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q) {
   return q->last_location.ncce; 

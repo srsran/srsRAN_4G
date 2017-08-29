@@ -700,6 +700,11 @@ int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
   return SRSLTE_SUCCESS;
 }
 
+int srslte_pdsch_cn_compute(srslte_pdsch_t *q,
+                            cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t nof_ce, float *cn) {
+  return srslte_precoding_cn(ce, q->cell.nof_ports, q->nof_rx_antennas, nof_ce, cn);
+}
+
 int srslte_pdsch_encode(srslte_pdsch_t *q,
                         srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
                         uint8_t *data, uint16_t rnti, cf_t *sf_symbols[SRSLTE_MAX_PORTS])

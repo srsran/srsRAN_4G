@@ -156,6 +156,11 @@ SRSLTE_API int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
                                        uint32_t pmi[SRSLTE_MAX_LAYERS],
                                        float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS]);
 
+SRSLTE_API int srslte_pdsch_cn_compute(srslte_pdsch_t *q,
+                                       cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                       uint32_t nof_ce,
+                                       float *cn);
+
 SRSLTE_API void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, uint32_t max_iter);
 
 SRSLTE_API float srslte_pdsch_average_noi(srslte_pdsch_t *q);

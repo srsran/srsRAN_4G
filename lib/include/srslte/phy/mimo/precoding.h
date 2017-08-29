@@ -127,4 +127,11 @@ SRSLTE_API int srslte_precoding_pmi_select(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_
                                            uint32_t *pmi,
                                            float sinr[SRSLTE_MAX_CODEBOOKS]);
 
+SRSLTE_API int srslte_precoding_cn(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                   uint32_t nof_tx_antennas,
+                                   uint32_t nof_rx_antennas,
+                                   uint32_t nof_symbols,
+                                   float *cn);
+
+
 #endif /* PRECODING_H_ */

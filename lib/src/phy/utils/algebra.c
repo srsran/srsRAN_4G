@@ -26,6 +26,7 @@
 
 #include <complex.h>
 #include <immintrin.h>
+#include <math.h>
 
 #include "srslte/phy/utils/algebra.h"
 
@@ -90,6 +91,28 @@ inline void srslte_algebra_2x2_mmse_gen(cf_t y0, cf_t y1, cf_t h00, cf_t h01, cf
   /* 4. X = W x Y */
   *x0 = (y0 * w00 + y1 * w01) * _norm;
   *x1 = (y0 * w10 + y1 * w11) * _norm;
+}
+
+inline float srslte_algebra_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11) {
+  /* 1. A = H * H' (A = A') */
+  float a00 =
+      crealf(h00) * crealf(h00) + crealf(h01) * crealf(h01) + cimagf(h00) * cimagf(h00) + cimagf(h01) * cimagf(h01);
+  cf_t a01 = h00 * conjf(h10) + h01 * conjf(h11);
+  //cf_t a10 = h10*conjf(h00) + h11*conjf(h01) = conjf(a01);
+  float a11 =
+      crealf(h10) * crealf(h10) + crealf(h11) * crealf(h11) + cimagf(h10) * cimagf(h10) + cimagf(h11) * cimagf(h11);
+
+  /* 2. |H * H' - {λ0, λ1}| = 0 -> aλ² + bλ + c = 0 */
+  float b = a00 + a11;
+  float c = a00 * a11 - (crealf(a01) * crealf(a01) + cimagf(a01) * cimagf(a01));
+
+  /* 3. λ = (-b ± sqrt(b² - 4 * c))/2 */
+  float sqr = sqrtf(b * b - 4.0f * c);
+  float xmax = b + sqr;
+  float xmin = b - sqr;
+
+  /* 4. κ = sqrt(λ_max / λ_min) */
+  return 10 * log10f(xmax / xmin);
 }
 
 #ifdef LV_HAVE_SSE

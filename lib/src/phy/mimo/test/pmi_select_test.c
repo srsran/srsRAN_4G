@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
   float noise_estimate;
   float sinr_1l[SRSLTE_MAX_CODEBOOKS];
   float sinr_2l[SRSLTE_MAX_CODEBOOKS];
+  float cn;
   uint32_t pmi[2];
   uint32_t nof_symbols = (uint32_t) SRSLTE_SF_LEN_RE(6, SRSLTE_CP_NORM);
   int ret = SRSLTE_ERROR;
@@ -118,6 +119,19 @@ int main(int argc, char **argv) {
     /* Check PMI select for 2 layer*/
     if (pmi[1] != gold->pmi[1]) {
       ERROR("Test case %d failed computing 2 layer PMI (test=%d; gold=%d)\n", c + 1, pmi[1], gold->pmi[1]);
+      goto clean;
+    }
+
+    /* Condition number */
+    if (srslte_precoding_cn(h, 2, 2, nof_symbols, &cn)) {
+      ERROR("Test case %d condition number returned error\n");
+      goto clean;
+    }
+
+    /* Check condition number */
+    if (fabsf(gold->k - cn) > 0.1) {
+      ERROR("Test case %d failed computing condition number (test=%.2f; gold=%.2f)\n",
+            c + 1, cn, gold->k);
       goto clean;
     }
   }
