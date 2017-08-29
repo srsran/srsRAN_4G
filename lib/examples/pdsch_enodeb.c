@@ -202,23 +202,15 @@ void base_init() {
   switch(pdsch_cfg.mimo_type) {
     case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
       cell.nof_ports = 1;
-      pdsch_cfg.nof_layers = 1;
-      nof_tb = 1;
       break;
     case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
       cell.nof_ports = 2;
-      pdsch_cfg.nof_layers = 2;
-      nof_tb = 1;
       break;
     case SRSLTE_MIMO_TYPE_CDD:
       cell.nof_ports = 2;
-      pdsch_cfg.nof_layers = 2;
-      nof_tb = 2;
       break;
     case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
       cell.nof_ports = 2;
-      pdsch_cfg.nof_layers = multiplex_nof_layers;
-      nof_tb = multiplex_nof_layers;
       break;
     default:
       ERROR("Transmission mode not implemented.");
@@ -226,7 +218,7 @@ void base_init() {
   }
 
   /* Allocate memory */
-  for(i = 0; i < nof_tb; i++) {
+  for(i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     data[i] = srslte_vec_malloc(sizeof(uint8_t) * SOFTBUFFER_SIZE);
     if (!data[i]) {
       perror("malloc");
@@ -236,7 +228,7 @@ void base_init() {
   }
 
   /* init memory */
-  for (i = 0; i < cell.nof_ports; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     sf_buffer[i] = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
     if (!sf_buffer[i]) {
       perror("malloc");
@@ -333,7 +325,13 @@ void base_init() {
 
   srslte_pdsch_set_rnti(&pdsch, UE_CRNTI);
 
-  for (i = 0; i < nof_tb; i++) {
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    softbuffers[i] = calloc(sizeof(srslte_softbuffer_tx_t), 1);
+    if (!softbuffers[i]) {
+      fprintf(stderr, "Error allocating soft buffer\n");
+      exit(-1);
+    }
+
     if (srslte_softbuffer_tx_init(softbuffers[i], cell.nof_prb)) {
       fprintf(stderr, "Error initiating soft buffer\n");
       exit(-1);
@@ -343,11 +341,11 @@ void base_init() {
 
 void base_free() {
   int i;
-  for (i = 0; i < nof_tb; i++) {
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    srslte_softbuffer_tx_free(softbuffers[i]);
     if (softbuffers[i]) {
       free(softbuffers[i]);
     }
-    srslte_softbuffer_tx_free(softbuffers[i]);
   }
   srslte_pdsch_free(&pdsch);
   srslte_pdcch_free(&pdcch);
@@ -422,7 +420,30 @@ uint32_t prbset_to_bitmask() {
 }
 
 int update_radl() {
-  
+
+  /* Configure cell and PDSCH in function of the transmission mode */
+  switch(pdsch_cfg.mimo_type) {
+    case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
+      pdsch_cfg.nof_layers = 1;
+      nof_tb = 1;
+      break;
+    case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
+      pdsch_cfg.nof_layers = 2;
+      nof_tb = 1;
+      break;
+    case SRSLTE_MIMO_TYPE_CDD:
+      pdsch_cfg.nof_layers = 2;
+      nof_tb = 2;
+      break;
+    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+      pdsch_cfg.nof_layers = multiplex_nof_layers;
+      nof_tb = multiplex_nof_layers;
+      break;
+    default:
+      ERROR("Transmission mode not implemented.");
+      exit(-1);
+  }
+
   bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
   ra_dl.harq_process = 0;
   ra_dl.mcs_idx = mcs_idx;
@@ -445,8 +466,21 @@ int update_radl() {
   srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &dummy_grant);
   srslte_ra_dl_grant_to_nbits(&dummy_grant, cfi, cell, 0, &dummy_nbits);
   srslte_ra_dl_grant_fprint(stdout, &dummy_grant);
-  printf("Type new MCS index and press Enter: "); fflush(stdout);
- 
+
+  if (pdsch_cfg.mimo_type != SRSLTE_MIMO_TYPE_SINGLE_ANTENNA) {
+    printf("\nTransmission mode key table:\n");
+    printf("   Mode   |   1TB   | 2TB |\n");
+    printf("----------+---------+-----+\n");
+    printf("Diversity |    x    |     |\n");
+    printf("      CDD |         |  z  |\n");
+    printf("Multiplex | q,w,e,r | a,s |\n");
+    printf("\n");
+    printf("Type new MCS index (0-28) or mode key and press Enter: ");
+  } else {
+    printf("Type new MCS index (0-28) and press Enter: ");
+  }
+  fflush(stdout);
+
   return 0; 
 }
 
@@ -487,8 +521,47 @@ int update_control() {
             break;          
         }
       } else {
-        last_mcs_idx = mcs_idx; 
-        mcs_idx = atoi(input);          
+        switch (input[0]) {
+          case 'q':
+            pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+            multiplex_pmi = 0;
+            multiplex_nof_layers = 1;
+            break;
+          case 'w':
+            pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+            multiplex_pmi = 1;
+            multiplex_nof_layers = 1;
+            break;
+          case 'e':
+            pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+            multiplex_pmi = 2;
+            multiplex_nof_layers = 1;
+            break;
+          case 'r':
+            pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+            multiplex_pmi = 3;
+            multiplex_nof_layers = 1;
+            break;
+          case 'a':
+            pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+            multiplex_pmi = 0;
+            multiplex_nof_layers = 2;
+            break;
+          case 's':
+            pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
+            multiplex_pmi = 1;
+            multiplex_nof_layers = 2;
+            break;
+          case 'z':
+            pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_CDD;
+            break;
+          case 'x':
+            pdsch_cfg.mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+            break;
+          default:
+            last_mcs_idx = mcs_idx;
+            mcs_idx = atoi(input);
+        }
       }
       bzero(input,sizeof(input));
       if (update_radl()) {
@@ -651,7 +724,7 @@ int main(int argc, char **argv) {
   nf = 0;
   
   bool send_data = false; 
-  for (i = 0; i < nof_tb; i++) {
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     srslte_softbuffer_tx_reset(softbuffers[i]);
   }
 
