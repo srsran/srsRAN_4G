@@ -683,7 +683,7 @@ int srslte_pdsch_pmi_select(srslte_pdsch_t *q,
                                   uint32_t pmi[SRSLTE_MAX_LAYERS], float sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS]) {
 
   if (q->cell.nof_ports == 2 && q->nof_rx_antennas == 2) {
-    for (int nof_layers = 1; nof_layers <= cfg->nof_layers; nof_layers++ ) {
+    for (int nof_layers = 1; nof_layers <= 2; nof_layers++ ) {
       if (sinr[nof_layers - 1] && pmi) {
         if (srslte_precoding_pmi_select(ce, nof_ce, noise_estimate, nof_layers, &pmi[nof_layers - 1],
                                         sinr[nof_layers - 1]) < 0) {

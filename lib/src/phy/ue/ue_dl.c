@@ -438,9 +438,15 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
                                     q->sf_symbols_m, q->ce_m, 
                                     noise_estimate, 
                                     rnti, data, acks);
-      
+
+      for (int tb = 0; tb < q->pdsch_cfg.grant.nof_tb; tb++) {
+        if (!acks[tb]) {
+          q->pkt_errors++;
+        }
+        q->pkts_total++;
+      }
+
       if (ret == SRSLTE_ERROR) {
-        q->pkt_errors++;
       } else if (ret == SRSLTE_ERROR_INVALID_INPUTS) {
         fprintf(stderr, "Error calling srslte_pdsch_decode()\n");      
       }
@@ -457,8 +463,6 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
   */
   
   }
-
-  q->pkts_total++;
 
   if (found_dci == 1 && ret == SRSLTE_SUCCESS) { 
     return q->pdsch_cfg.grant.mcs[0].tbs;
@@ -485,10 +489,11 @@ int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q, uint32_t *ri, uint32_t *pmi, f
     }
 
     /* Select the best Rank indicator (RI) and Precoding Matrix Indicator (PMI) */
-    for (uint32_t nof_layers = 1; nof_layers <= q->pdsch_cfg.nof_layers; nof_layers++ ) {
-      if (q->sinr[nof_layers][q->pmi[nof_layers]] > best_sinr + 0.1) {
-        best_sinr = q->sinr[nof_layers][q->pmi[nof_layers]]*nof_layers;
-        best_pmi = q->pmi[nof_layers];
+    for (uint32_t nof_layers = 1; nof_layers <= 2; nof_layers++) {
+      float _sinr = q->sinr[nof_layers - 1][q->pmi[nof_layers - 1]] * nof_layers;
+      if (_sinr > best_sinr + 0.1) {
+        best_sinr = _sinr;
+        best_pmi = q->pmi[nof_layers - 1];
         best_ri = nof_layers;
       }
     }
