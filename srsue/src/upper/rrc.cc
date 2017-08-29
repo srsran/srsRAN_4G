@@ -1087,7 +1087,7 @@ void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT
     current_cfg->ul_pwr_ctrl_ded.p_srs_offset    = 7;
   }
   if (phy_cnfg->ul_pwr_ctrl_ded.filter_coeff_present) {
-    current_cfg->ul_pwr_ctrl_ded.filter_coeff = current_cfg->ul_pwr_ctrl_ded.filter_coeff;
+    current_cfg->ul_pwr_ctrl_ded.filter_coeff = phy_cnfg->ul_pwr_ctrl_ded.filter_coeff;
   } else {
     current_cfg->ul_pwr_ctrl_ded.filter_coeff = LIBLTE_RRC_FILTER_COEFFICIENT_FC4;
   }
