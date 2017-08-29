@@ -242,6 +242,9 @@ SRSLTE_API uint32_t srslte_N_ta_new_rar(uint32_t ta);
 SRSLTE_API uint32_t srslte_N_ta_new(uint32_t N_ta_old, 
                                     uint32_t ta);
 
+SRSLTE_API float srslte_coderate(uint32_t tbs,
+                                 uint32_t nof_re);
+
 SRSLTE_API char *srslte_cp_string(srslte_cp_t cp); 
 
 SRSLTE_API char *srslte_mod_string(srslte_mod_t mod);

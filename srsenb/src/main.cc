@@ -130,7 +130,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
         bpo::value<int>(&args->expert.mac.sched.pusch_mcs)->default_value(-1),
         "Optional fixed PUSCH MCS (ignores reported CQIs if specified)")
     ("scheduler.pusch_max_mcs",
-        bpo::value<int>(&args->expert.mac.sched.pusch_max_mcs)->default_value(16),
+        bpo::value<int>(&args->expert.mac.sched.pusch_max_mcs)->default_value(-1),
         "Optional PUSCH MCS limit")
     ("scheduler.nof_ctrl_symbols",
         bpo::value<int>(&args->expert.mac.sched.nof_ctrl_symbols)->default_value(3),

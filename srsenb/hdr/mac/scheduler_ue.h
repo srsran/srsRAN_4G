@@ -131,8 +131,10 @@ private:
   int        alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
 
   static uint32_t format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb); 
-  static int cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t *mcs);
-  static int alloc_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, uint32_t max_mcs, int *mcs); 
+  static int cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, uint32_t *mcs);
+  int alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int *mcs);
+  int alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int *mcs);
+  int alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int *mcs);
   
   static bool bearer_is_ul(ue_bearer_t *lch);
   static bool bearer_is_dl(ue_bearer_t *lch);
