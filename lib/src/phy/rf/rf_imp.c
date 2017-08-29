@@ -323,7 +323,8 @@ int srslte_rf_send_multi(srslte_rf_t *rf,
                      bool is_end_of_burst)
 {
 
-  return srslte_rf_send_timed_multi(rf, data, nsamples, 0, 0, blocking, is_start_of_burst, is_end_of_burst);
+  return ((rf_dev_t*) rf->dev)->srslte_rf_send_timed_multi(rf->handler, data, nsamples, 0, 0,
+                                                           false, blocking, is_start_of_burst, is_end_of_burst);
 }
 
 int srslte_rf_send(srslte_rf_t *rf, void *data, uint32_t nsamples, bool blocking)
