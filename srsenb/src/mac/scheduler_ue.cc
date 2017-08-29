@@ -770,7 +770,7 @@ int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32
     sel_mcs--; 
     uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs);
     tbs = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
-    coderate = srslte_pdsch_coderate(tbs, nof_re);     
+    coderate = srslte_coderate(tbs, nof_re);
   } while(sel_mcs > 0 && coderate >= max_coderate);
   if (mcs) {
     *mcs = (uint32_t) sel_mcs; 
