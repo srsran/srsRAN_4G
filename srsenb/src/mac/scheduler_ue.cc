@@ -27,6 +27,7 @@
 #include <string.h>
 #include <boost/concept_check.hpp>
 #include <srslte/interfaces/sched_interface.h>
+#include <srslte/phy/phch/pucch.h>
 
 #include "srslte/srslte.h"
 #include "srslte/common/pdu.h"
@@ -236,7 +237,8 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
   if (!phy_config_dedicated_enabled) {
     return false; 
   }
-  srslte_pucch_sched_t pucch_sched; 
+  srslte_pucch_sched_t pucch_sched;
+  pucch_sched.sps_enabled = false;
   pucch_sched.n_pucch_sr = cfg.sr_N_pucch;
   pucch_sched.n_pucch_2  = cfg.n_pucch_cqi;
   pucch_sched.N_pucch_1  = cfg.pucch_cfg.n1_pucch_an; 
@@ -255,8 +257,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
       if (L) {
         *L = 1; 
       }
-      Info("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, n_cce=%d, has_sr=%d\n",
-           rnti, prb_idx[0], prb_idx[1], n_pucch, dl_harq[i].get_n_cce(), has_sr);
+      Info("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], n_pucch);
       return true; 
     }
   }
