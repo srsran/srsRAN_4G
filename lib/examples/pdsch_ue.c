@@ -663,7 +663,7 @@ int main(int argc, char **argv) {
           }
 
           // Plot and Printf
-          if (srslte_ue_sync_get_sfidx(&ue_sync) == 5) {
+          if (srslte_ue_sync_get_sfidx(&ue_sync) == 5 && sfn % 20 == 0) {
             float gain = prog_args.rf_gain; 
             if (gain < 0) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
@@ -703,7 +703,6 @@ int main(int argc, char **argv) {
               printf("\033[K           Rb: %6.2f / %6.2f Mbps (net/maximum)\n", uerate, enodebrate);
               printf("\033[K   PDCCH-Miss: %5.2f%%\n", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
               printf("\033[K   PDSCH-BLER: %5.2f%%\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
-              printf("\033[K   PDSCH-BLER: %5.2f%%\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
               printf("\033[K         TB 0: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[0].idx, ue_dl.pdsch_cfg.grant.mcs[0].tbs);
               printf("\033[K         TB 1: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[1].idx, ue_dl.pdsch_cfg.grant.mcs[1].tbs);
               printf("\033[K            κ: %.1f dB (Condition number, 0 dB => Best)\n", cn);
@@ -715,7 +714,7 @@ int main(int argc, char **argv) {
               printf("\033[K M |  1 | %5.2f%c| %5.2f%c|\n", 10 * log10(sinr[0][1]), (ri == 1 && pmi == 1)?'*':' ', 10 * log10(sinr[1][1]), (ri == 2 && pmi == 1)?'*':' ');
               printf("\033[K I |  2 | %5.2f%c|-------+ \n", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2)?'*':' ');
               printf("\033[K   |  3 | %5.2f%c|         \n", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3)?'*':' ');
-              printf("\033[K\n\n");
+              printf("\033[K\nPress enter maximum printing debug log of 1 subframe.\n");
               printf("\033[21A");
             }
           }
