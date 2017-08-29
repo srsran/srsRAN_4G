@@ -2195,7 +2195,7 @@ int srslte_precoding_pmi_select_2l_gen(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
     }
 
     /* Divide average by noise */
-    sinr_list[i] /= (2 * count);
+    sinr_list[i] /= count;
 
     if (sinr_list[i] > max_sinr) {
       max_sinr = sinr_list[i];
@@ -2316,7 +2316,7 @@ int srslte_precoding_pmi_select_2l_sse(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
     }
 
     /* Divide average by noise */
-    sinr_list[i] /= 2 * count;
+    sinr_list[i] /= count;
 
     if (sinr_list[i] > max_sinr) {
       max_sinr = sinr_list[i];
@@ -2463,7 +2463,7 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
     }
 
     /* Divide average by noise */
-    sinr_list[i] /= 2 * count;
+    sinr_list[i] /= count;
 
     if (sinr_list[i] > max_sinr) {
       max_sinr = sinr_list[i];
