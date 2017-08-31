@@ -75,22 +75,7 @@ SRSLTE_API int srslte_rf_open_multi(srslte_rf_t *h,
                                     char *args, 
                                     uint32_t nof_rx_antennas);
 
-SRSLTE_API int srslte_rf_open_multi2(srslte_rf_t *h,
-                                     char *args,
-                                     uint32_t nof_tx_antennas,
-                                     uint32_t nof_rx_antennas);
-
-SRSLTE_API int srslte_rf_open_multi2(srslte_rf_t *h,
-                                     char *args,
-                                     uint32_t nof_tx_antennas,
-                                     uint32_t nof_rx_antennas);
-
-SRSLTE_API int srslte_rf_open_multi2(srslte_rf_t *h,
-                                     char *args,
-                                     uint32_t nof_tx_antennas,
-                                     uint32_t nof_rx_antennas);
-
-SRSLTE_API int srslte_rf_open_devname(srslte_rf_t *h, 
+SRSLTE_API int srslte_rf_open_devname(srslte_rf_t *h,
                                       char *devname, 
                                       char *args);
 
