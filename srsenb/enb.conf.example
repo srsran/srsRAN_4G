@@ -12,6 +12,7 @@
 # mnc:            Mobile Network Code
 # mme_addr:       IP address of MME for S1 connnection
 # gtp_bind_addr:  Local IP address to bind for GTP connection
+# n_prb:          Number of Physical Resource Blocks (6,15,25,50,75,100)
 #
 #####################################################################
 [enb]
