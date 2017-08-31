@@ -125,6 +125,11 @@ bool srslte_N_id_1_isvalid(uint32_t N_id_1) {
 }
 
 srslte_mod_t srslte_str2mod (char * mod_str) {
+  int i = 0;
+
+  /* Upper case */
+  while (mod_str[i] &= (~' '), mod_str[++i]);
+
   if (!strcmp(mod_str, "QPSK")) {
     return SRSLTE_MOD_QPSK;
   } else if (!strcmp(mod_str, "16QAM")) {
@@ -437,13 +442,18 @@ struct lte_band lte_bands[SRSLTE_NOF_LTE_BANDS] = {
 
 
 int srslte_str2mimotype(char *mimo_type_str, srslte_mimo_type_t *type) {
-  if (!strcmp(mimo_type_str, "single") || !strcmp(mimo_type_str, "Port0")) {
+  int i = 0;
+
+  /* Low case */
+  while (mimo_type_str[i] |= ' ', mimo_type_str[++i]);
+
+  if (!strcmp(mimo_type_str, "single") || !strcmp(mimo_type_str, "port0")) {
     *type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
-  } else if (!strcmp(mimo_type_str, "diversity") || !strcmp(mimo_type_str, "TxDiversity")) {
+  } else if (!strcmp(mimo_type_str, "diversity") || !strcmp(mimo_type_str, "txdiversity")) {
     *type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-  } else if (!strcmp(mimo_type_str, "multiplex") || !strcmp(mimo_type_str, "SpatialMux")) {
+  } else if (!strcmp(mimo_type_str, "multiplex") || !strcmp(mimo_type_str, "spatialmux")) {
     *type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
-  } else if (!strcmp(mimo_type_str, "cdd") || !strcmp(mimo_type_str, "CDD")) {
+  } else if (!strcmp(mimo_type_str, "cdd")) {
     *type = SRSLTE_MIMO_TYPE_CDD;
   } else {
     return SRSLTE_ERROR;
