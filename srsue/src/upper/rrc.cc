@@ -27,11 +27,13 @@
 
 #include <unistd.h>
 #include <sstream>
+#include <srslte/asn1/liblte_rrc.h>
 
 #include "upper/rrc.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
+#include "boost/assign.hpp"
 
 #define TIMEOUT_RESYNC_REESTABLISH 100
 
@@ -42,7 +44,9 @@ namespace srsue{
 rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
-{}
+{
+  set_bearers();
+}
 
 static void liblte_rrc_handler(void *ctx, char *str) {
   rrc *r = (rrc*) ctx; 
@@ -75,7 +79,14 @@ void rrc::init(phy_interface_rrc     *phy_,
   nas     = nas_;
   usim    = usim_;
   rrc_log = rrc_log_;
+
+  // Use MAC timers
   mac_timers = mac_timers_;
+  t301 = mac_timers->get_unique_id();
+  t310 = mac_timers->get_unique_id();
+  t311 = mac_timers->get_unique_id();
+  safe_reset_timer = mac_timers->get_unique_id();
+
 
   pthread_mutex_init(&mutex, NULL); 
   
@@ -116,7 +127,7 @@ void rrc::set_ue_category(int category)
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu)
 {
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", rb_id_text[lcid]);
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", bearers.at(lcid).c_str());
 
   switch(state)
   {
@@ -227,7 +238,7 @@ bool rrc::have_drb()
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
 {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", rb_id_text[lcid]);
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", bearers.at(lcid).c_str());
   rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
 
   switch(lcid)
@@ -793,7 +804,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu)
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT*)&bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
-                rb_id_text[lcid],
+                bearers.at(lcid).c_str(),
                 liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
   // Reset and reuse pdu buffer if possible
@@ -989,7 +1000,8 @@ void rrc::apply_sib2_configs()
   mac->get_config(&cfg);
   cfg.main.time_alignment_timer = sib2.time_alignment_timer; 
   memcpy(&cfg.rach, &sib2.rr_config_common_sib.rach_cnfg, sizeof(LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT)); 
-  cfg.prach_config_index = sib2.rr_config_common_sib.prach_cnfg.root_sequence_index; 
+  cfg.prach_config_index = sib2.rr_config_common_sib.prach_cnfg.root_sequence_index;
+  cfg.ul_harq_params.max_harq_msg3_tx = cfg.rach.max_harq_msg3_tx;
   mac->set_config(&cfg);
   
   rrc_log->info("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",
@@ -1080,8 +1092,11 @@ void rrc::apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT
     current_cfg->ul_pwr_ctrl_ded.accumulation_en = true; 
     current_cfg->ul_pwr_ctrl_ded.p0_ue_pucch     = 0;
     current_cfg->ul_pwr_ctrl_ded.p_srs_offset    = 7;
-    current_cfg->ul_pwr_ctrl_ded.filter_coeff    = LIBLTE_RRC_FILTER_COEFFICIENT_FC4;      
-    current_cfg->ul_pwr_ctrl_ded.filter_coeff_present = true; 
+  }
+  if (phy_cnfg->ul_pwr_ctrl_ded.filter_coeff_present) {
+    current_cfg->ul_pwr_ctrl_ded.filter_coeff = phy_cnfg->ul_pwr_ctrl_ded.filter_coeff;
+  } else {
+    current_cfg->ul_pwr_ctrl_ded.filter_coeff = LIBLTE_RRC_FILTER_COEFFICIENT_FC4;
   }
   if(phy_cnfg->tpc_pdcch_cnfg_pucch_present) {
     memcpy(&current_cfg->tpc_pdcch_cnfg_pucch, &phy_cnfg->tpc_pdcch_cnfg_pucch, sizeof(LIBLTE_RRC_TPC_PDCCH_CONFIG_STRUCT)); 
@@ -1218,7 +1233,13 @@ void rrc::apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cnfg
   }
   
   // Setup MAC configuration 
-  mac->set_config_main(&default_cfg);              
+  mac->set_config_main(&default_cfg);
+
+  // Update UL HARQ config
+  mac_interface_rrc::mac_cfg_t cfg;
+  mac->get_config(&cfg);
+  cfg.ul_harq_params.max_harq_tx = liblte_rrc_max_harq_tx_num[default_cfg.ulsch_cnfg.max_harq_tx];
+  mac->set_config(&cfg);
 
   rrc_log->info("Set MAC main config: harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n",
                 liblte_rrc_max_harq_tx_num[default_cfg.ulsch_cnfg.max_harq_tx],
@@ -1319,9 +1340,10 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGU
 void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg)
 {
   // Setup PDCP
-  pdcp->add_bearer(srb_cnfg->srb_id);
-  if(RB_ID_SRB2 == srb_cnfg->srb_id)
+  pdcp->add_bearer(srb_cnfg->srb_id, srslte_pdcp_config_t(true)); // Set PDCP config control flag
+  if(RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+  }
 
   // Setup RLC
   if(srb_cnfg->rlc_cnfg_present)
@@ -1330,7 +1352,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg)
     {
       rlc->add_bearer(srb_cnfg->srb_id);
     }else{
-      rlc->add_bearer(srb_cnfg->srb_id, &srb_cnfg->rlc_explicit_cnfg);
+      rlc->add_bearer(srb_cnfg->srb_id, srslte_rlc_config_t(&srb_cnfg->rlc_explicit_cnfg));
     }
   }
 
@@ -1365,7 +1387,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg)
   }
 
   srbs[srb_cnfg->srb_id] = *srb_cnfg;
-  rrc_log->info("Added radio bearer %s\n", rb_id_text[srb_cnfg->srb_id]);
+  rrc_log->info("Added radio bearer %s\n", bearers.at(srb_cnfg->srb_id).c_str());
 }
 
 void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
@@ -1387,11 +1409,18 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
   }
   
   // Setup PDCP
-  pdcp->add_bearer(lcid, &drb_cnfg->pdcp_cnfg);
+  srslte_pdcp_config_t pdcp_cfg;
+  pdcp_cfg.is_data = true;
+  if (drb_cnfg->pdcp_cnfg.rlc_um_pdcp_sn_size_present) {
+    if (LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == drb_cnfg->pdcp_cnfg.rlc_um_pdcp_sn_size) {
+      pdcp_cfg.sn_len = 7;
+    }
+  }
+  pdcp->add_bearer(lcid, pdcp_cfg);
   // TODO: setup PDCP security (using k_up_enc)
 
   // Setup RLC
-  rlc->add_bearer(lcid, &drb_cnfg->rlc_cnfg);
+  rlc->add_bearer(lcid, srslte_rlc_config_t(&drb_cnfg->rlc_cnfg));
 
   // Setup MAC
   uint8_t  log_chan_group       =  0;
@@ -1419,7 +1448,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg)
   
   drbs[lcid] = *drb_cnfg;
   drb_up     = true;
-  rrc_log->info("Added radio bearer %s\n", rb_id_text[lcid]);
+  rrc_log->info("Added radio bearer %s\n", bearers.at(lcid).c_str());
 }
 
 void rrc::release_drb(uint8_t lcid)
@@ -1470,13 +1499,24 @@ void rrc::set_mac_default()
 void rrc::set_rrc_default() {
   N310 = 1;
   N311 = 1; 
-  t301 = mac_timers->get_unique_id();
-  t310 = mac_timers->get_unique_id();
-  t311 = mac_timers->get_unique_id();
-  safe_reset_timer = mac_timers->get_unique_id();
   mac_timers->get(t310)->set(this, 1000);
   mac_timers->get(t311)->set(this, 1000);
   mac_timers->get(safe_reset_timer)->set(this, 10);
+}
+
+void rrc::set_bearers()
+{
+  boost::assign::insert(bearers) (RB_ID_SRB0, "SRB0")
+                                 (RB_ID_SRB1, "SRB1")
+                                 (RB_ID_SRB2, "SRB2")
+                                 (RB_ID_DRB1, "DRB1")
+                                 (RB_ID_DRB2, "DRB2")
+                                 (RB_ID_DRB3, "DRB3")
+                                 (RB_ID_DRB4, "DRB4")
+                                 (RB_ID_DRB5, "DRB5")
+                                 (RB_ID_DRB6, "DRB6")
+                                 (RB_ID_DRB7, "DRB7")
+                                 (RB_ID_DRB8, "DRB8");
 }
 
 } // namespace srsue

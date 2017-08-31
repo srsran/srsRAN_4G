@@ -108,7 +108,6 @@ typedef struct SRSLTE_API {
   bool group_hopping_en;
 
   float threshold_format1;
-  float threshold_format1a;
   float last_corr;
   uint32_t last_n_prb;
   uint32_t last_n_pucch;
@@ -125,9 +124,8 @@ SRSLTE_API bool srslte_pucch_set_cfg(srslte_pucch_t* q,
                                      srslte_pucch_cfg_t* cfg, 
                                      bool group_hopping_en); 
 
-SRSLTE_API void srslte_pucch_set_threshold(srslte_pucch_t *q, 
-                                           float format1, 
-                                           float format1a); 
+SRSLTE_API void srslte_pucch_set_threshold(srslte_pucch_t *q,
+                                           float format1_threshold);
 
 SRSLTE_API int srslte_pucch_set_crnti(srslte_pucch_t *q, 
                                       uint16_t c_rnti); 

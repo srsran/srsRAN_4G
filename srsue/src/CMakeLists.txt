@@ -31,7 +31,7 @@ if (RPATH)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif (RPATH)
 
-add_executable(srsue main.cc ue.cc metrics_stdout.cc)
+add_executable(srsue main.cc ue_base.cc ue.cc metrics_stdout.cc)
 target_link_libraries(srsue   srsue_mac
                               srsue_phy
                               srsue_upper
@@ -57,3 +57,5 @@ if (NOT ${BUILDUE_CMD} STREQUAL "")
 else(NOT ${BUILDUE_CMD} STREQUAL "")
   message(STATUS "No post-build-UE command defined")
 endif (NOT ${BUILDUE_CMD} STREQUAL "")
+
+install(TARGETS srsue DESTINATION ${RUNTIME_DIR})

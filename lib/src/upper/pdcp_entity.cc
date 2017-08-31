@@ -34,8 +34,6 @@ pdcp_entity::pdcp_entity()
   :active(false)
   ,tx_count(0)
   ,rx_count(0)
-  ,do_security(false)
-  ,sn_len(12)
 {
   pool = byte_buffer_pool::get_instance();
 }
@@ -45,38 +43,27 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
                        srsue::gw_interface_pdcp       *gw_,
                        srslte::log                    *log_,
                        uint32_t                       lcid_,
-                       u_int8_t                       direction_,
-                       LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg)
+                       srslte_pdcp_config_t           cfg_)
 {
   rlc       = rlc_;
   rrc       = rrc_;
   gw        = gw_;
   log       = log_;
   lcid      = lcid_;
-  direction = direction_;
+  cfg       = cfg_;
   active    = true;
 
   tx_count    = 0;
   rx_count    = 0;
-  do_security = false;
 
-  if(cnfg)
-  {
-    if(cnfg->rlc_um_pdcp_sn_size_present) {
-      if(LIBLTE_RRC_PDCP_SN_SIZE_7_BITS == cnfg->rlc_um_pdcp_sn_size) {
-        sn_len = 7;
-      }
-    }
-    // TODO: handle remainder of cnfg
-  }
-  log->debug("Init %s\n", rb_id_text[lcid]);
+  log->debug("Init %s\n", rrc->get_rb_name(lcid).c_str());
 }
 
 void pdcp_entity::reset()
 {
   active      = false;
   if(log)
-    log->debug("Reset %s\n", rb_id_text[lcid]);
+    log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
 }
 
 bool pdcp_entity::is_active()
@@ -87,44 +74,32 @@ bool pdcp_entity::is_active()
 // RRC interface
 void pdcp_entity::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU, do_security = %s", rb_id_text[lcid], (do_security)?"true":"false");
+  log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU, do_security = %s", rrc->get_rb_name(lcid).c_str(), (cfg.do_security)?"true":"false");
 
-  // Handle SRB messages
-  switch(lcid)
-  {
-  case RB_ID_SRB0:
-    rlc->write_sdu(lcid, sdu);
-    break;
-  case RB_ID_SRB1:  // Intentional fall-through
-  case RB_ID_SRB2:
+  if (cfg.is_control) {
     pdcp_pack_control_pdu(tx_count, sdu);
-    if(do_security)
+    if(cfg.do_security)
     {
       integrity_generate(&k_rrc_int[16],
                          tx_count,
                          lcid-1,
-                         direction,
+                         cfg.direction,
                          sdu->msg,
                          sdu->N_bytes-4,
                          &sdu->msg[sdu->N_bytes-4]);
     }
     tx_count++;
-    rlc->write_sdu(lcid, sdu);
-
-    break;
   }
 
-  // Handle DRB messages
-  if(lcid >= RB_ID_DRB1)
-  {
-    if(12 == sn_len)
-    {
+  if (cfg.is_data) {
+    if(12 == cfg.sn_len) {
       pdcp_pack_data_pdu_long_sn(tx_count++, sdu);
     } else {
       pdcp_pack_data_pdu_short_sn(tx_count++, sdu);
     }
-    rlc->write_sdu(lcid, sdu);
   }
+
+  rlc->write_sdu(lcid, sdu);
 }
 
 void pdcp_entity::config_security(uint8_t *k_rrc_enc_,
@@ -132,7 +107,7 @@ void pdcp_entity::config_security(uint8_t *k_rrc_enc_,
                                   CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                   INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
 {
-  do_security = true;
+  cfg.do_security = true;
   for(int i=0; i<32; i++)
   {
     k_rrc_enc[i] = k_rrc_enc_[i];
@@ -145,37 +120,32 @@ void pdcp_entity::config_security(uint8_t *k_rrc_enc_,
 // RLC interface
 void pdcp_entity::write_pdu(byte_buffer_t *pdu)
 {
-  // Handle SRB messages
-  switch(lcid)
-  {
-  case RB_ID_SRB0:
-    // Simply pass on to RRC
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rb_id_text[lcid]);
-    rrc->write_pdu(RB_ID_SRB0, pdu);
-    break;
-  case RB_ID_SRB1: // Intentional fall-through
-  case RB_ID_SRB2:
-    uint32_t sn;
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rb_id_text[lcid]);
-    pdcp_unpack_control_pdu(pdu, &sn);
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s SDU SN: %d",
-                  rb_id_text[lcid], sn);
-    rrc->write_pdu(lcid, pdu);
-    break;
-  }
 
-  // Handle DRB messages
-  if(lcid >= RB_ID_DRB1)
-  {
+
+
+
+
+  if (cfg.is_data) {
     uint32_t sn;
-    if(12 == sn_len)
+    if(12 == cfg.sn_len)
     {
       pdcp_unpack_data_pdu_long_sn(pdu, &sn);
     } else {
       pdcp_unpack_data_pdu_short_sn(pdu, &sn);
     }
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU: %d", rb_id_text[lcid], sn);
+    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU: %d", rrc->get_rb_name(lcid).c_str(), sn);
     gw->write_pdu(lcid, pdu);
+  } else {
+    if (cfg.is_control) {
+      uint32_t sn;
+      pdcp_unpack_control_pdu(pdu, &sn);
+      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s SDU SN: %d",
+                    rrc->get_rb_name(lcid).c_str(), sn);
+    } else {
+      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rrc->get_rb_name(lcid).c_str());
+    }
+    // pass to RRC
+    rrc->write_pdu(lcid, pdu);
   }
 }
 

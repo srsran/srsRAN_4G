@@ -46,7 +46,7 @@ public:
             srsue::pdcp_interface_rlc   *pdcp_,
             srsue::rrc_interface_rlc    *rrc_,
             mac_interface_timers *mac_timers);
-  void configure(LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg);
+  void configure(srslte_rlc_config_t cnfg);
   void reset();
   void empty_queue(); 
 

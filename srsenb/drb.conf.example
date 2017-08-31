@@ -15,14 +15,14 @@ qci_config = (
     };
     dl_um = {
       sn_field_length = 10; 
-      t_reordering    = 80;             
+      t_reordering    = 45;             
     };
   };
   logical_channel_config = {
-    priority = 11; 
+    priority = 13; 
     prioritized_bit_rate   = -1; 
     bucket_size_duration  = 100; 
-    log_chan_group = 3; 
+    log_chan_group = 2; 
   };
 },
 {

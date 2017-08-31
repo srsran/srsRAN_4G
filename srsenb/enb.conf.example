@@ -57,8 +57,8 @@ drb_config = drb.conf
 #####################################################################
 [rf]
 dl_earfcn = 3400
-tx_gain = 70
-rx_gain = 50
+tx_gain = 80
+rx_gain = 60
 
 #device_name = auto
 #device_args = auto
@@ -121,7 +121,7 @@ enable = false
 #pdsch_mcs        = -1
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
-pusch_max_mcs    = 16
+#pusch_max_mcs    = -1
 nof_ctrl_symbols = 2
 
 #####################################################################
@@ -141,9 +141,9 @@ nof_ctrl_symbols = 2
 #pdsch_max_its        = 4
 #nof_phy_threads      = 2
 #pregenerate_signals  = false
-#tx_amplitude         = 0.8
+#tx_amplitude         = 0.6
 #link_failure_nof_err = 50
-#rrc_inactivity_timer = 30000
+#rrc_inactivity_timer = 10000
 #max_prach_offset_us  = 30
 
 #####################################################################

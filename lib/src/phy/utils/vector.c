@@ -656,6 +656,15 @@ float srslte_vec_avg_power_cf(cf_t *x, uint32_t len) {
   return crealf(srslte_vec_dot_prod_conj_ccc(x,x,len)) / len;
 }
 
+// Correlation assumes zero-mean x and y
+float srslte_vec_corr_ccc(cf_t *x, cf_t *y, uint32_t len) {
+//  return crealf(srslte_vec_dot_prod_conj_ccc(x,y,len)) / len;
+  float s_x = crealf(srslte_vec_dot_prod_conj_ccc(x, x, len))/len;
+  float s_y = crealf(srslte_vec_dot_prod_conj_ccc(y, y, len))/len;
+  float cov = crealf(srslte_vec_dot_prod_conj_ccc(x, y, len))/len;
+  return cov/(sqrt(s_x*s_y));
+}
+
 // PSS (disabled and using abs_square )
 void srslte_vec_abs_cf(cf_t *x, float *abs, uint32_t len) {
   int i;
