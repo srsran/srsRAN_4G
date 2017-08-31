@@ -39,145 +39,145 @@ using srslte::byte_buffer_t;
 namespace srsue {
 
 // EMM states (3GPP 24.302 v10.0.0)
-  typedef enum {
-    EMM_STATE_NULL = 0,
-    EMM_STATE_DEREGISTERED,
-    EMM_STATE_REGISTERED_INITIATED,
-    EMM_STATE_REGISTERED,
-    EMM_STATE_SERVICE_REQUEST_INITIATED,
-    EMM_STATE_DEREGISTERED_INITIATED,
-    EMM_STATE_TAU_INITIATED,
-    EMM_STATE_N_ITEMS,
-  } emm_state_t;
-  static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
-                                                              "DEREGISTERED",
-                                                              "REGISTERED INITIATED",
-                                                              "REGISTERED",
-                                                              "SERVICE REQUEST INITIATED",
-                                                              "DEREGISTERED INITIATED",
-                                                              "TRACKING AREA UPDATE INITIATED"};
+typedef enum {
+  EMM_STATE_NULL = 0,
+  EMM_STATE_DEREGISTERED,
+  EMM_STATE_REGISTERED_INITIATED,
+  EMM_STATE_REGISTERED,
+  EMM_STATE_SERVICE_REQUEST_INITIATED,
+  EMM_STATE_DEREGISTERED_INITIATED,
+  EMM_STATE_TAU_INITIATED,
+  EMM_STATE_N_ITEMS,
+} emm_state_t;
+static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
+                                                            "DEREGISTERED",
+                                                            "REGISTERED INITIATED",
+                                                            "REGISTERED",
+                                                            "SERVICE REQUEST INITIATED",
+                                                            "DEREGISTERED INITIATED",
+                                                            "TRACKING AREA UPDATE INITIATED"};
 
-  typedef enum {
-    PLMN_NOT_SELECTED = 0,
-    PLMN_SELECTED
-  } plmn_selection_state_t;
+typedef enum {
+  PLMN_NOT_SELECTED = 0,
+  PLMN_SELECTED
+} plmn_selection_state_t;
 
-  class nas
-    : public nas_interface_rrc, public nas_interface_ue {
-  public:
-    nas();
+class nas
+  : public nas_interface_rrc, public nas_interface_ue {
+public:
+  nas();
 
-    void init(usim_interface_nas *usim_,
-              rrc_interface_nas *rrc_,
-              gw_interface_nas *gw_,
-              srslte::log *nas_log_);
+  void init(usim_interface_nas *usim_,
+            rrc_interface_nas *rrc_,
+            gw_interface_nas *gw_,
+            srslte::log *nas_log_);
 
-    void stop();
+  void stop();
 
-    emm_state_t get_state();
+  emm_state_t get_state();
 
-    // RRC interface
-    void notify_connection_setup();
+  // RRC interface
+  void notify_connection_setup();
 
-    void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
+  void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
 
-    uint32_t get_ul_count();
+  uint32_t get_ul_count();
 
-    bool is_attached();
+  bool is_attached();
 
-    bool get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
+  bool get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
 
-    void plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code);
+  void plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code);
 
-    void cell_selected();
+  void cell_selected();
 
-    // UE interface
-    void attach_request();
+  // UE interface
+  void attach_request();
 
-    void deattach_request();
+  void deattach_request();
 
-  private:
-    srslte::byte_buffer_pool *pool;
-    srslte::log *nas_log;
-    rrc_interface_nas *rrc;
-    usim_interface_nas *usim;
-    gw_interface_nas *gw;
+private:
+  srslte::byte_buffer_pool *pool;
+  srslte::log *nas_log;
+  rrc_interface_nas *rrc;
+  usim_interface_nas *usim;
+  gw_interface_nas *gw;
 
-    emm_state_t state;
+  emm_state_t state;
 
-    plmn_selection_state_t plmn_selection;
-    LIBLTE_RRC_PLMN_IDENTITY_STRUCT current_plmn;
-    LIBLTE_RRC_PLMN_IDENTITY_STRUCT home_plmn;
+  plmn_selection_state_t plmn_selection;
+  LIBLTE_RRC_PLMN_IDENTITY_STRUCT current_plmn;
+  LIBLTE_RRC_PLMN_IDENTITY_STRUCT home_plmn;
 
-    std::vector<LIBLTE_RRC_PLMN_IDENTITY_STRUCT > known_plmns;
+  std::vector<LIBLTE_RRC_PLMN_IDENTITY_STRUCT > known_plmns;
 
-    // Save short MAC
+  // Save short MAC
 
-    // Identifiers
-    LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
-    bool is_guti_set;
+  // Identifiers
+  LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
+  bool is_guti_set;
 
-    uint32_t ip_addr;
-    uint8_t eps_bearer_id;
+  uint32_t ip_addr;
+  uint8_t eps_bearer_id;
 
-    uint8_t transaction_id;
+  uint8_t transaction_id;
 
-    // NAS counters - incremented for each security-protected message recvd/sent
-    uint32_t count_ul;
-    uint32_t count_dl;
+  // NAS counters - incremented for each security-protected message recvd/sent
+  uint32_t count_ul;
+  uint32_t count_dl;
 
-    // Security
-    uint8_t ksi;
-    uint8_t k_nas_enc[32];
-    uint8_t k_nas_int[32];
+  // Security
+  uint8_t ksi;
+  uint8_t k_nas_enc[32];
+  uint8_t k_nas_int[32];
 
-    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
-    void integrity_generate(uint8_t *key_128,
-                            uint32_t count,
-                            uint8_t rb_id,
-                            uint8_t direction,
-                            uint8_t *msg,
-                            uint32_t msg_len,
-                            uint8_t *mac);
+  void integrity_generate(uint8_t *key_128,
+                          uint32_t count,
+                          uint8_t rb_id,
+                          uint8_t direction,
+                          uint8_t *msg,
+                          uint32_t msg_len,
+                          uint8_t *mac);
 
-    void integrity_check();
+  void integrity_check();
 
-    void cipher_encrypt();
+  void cipher_encrypt();
 
-    void cipher_decrypt();
+  void cipher_decrypt();
 
-    // Parsers
-    void parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu);
+  // Parsers
+  void parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_attach_reject(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_authentication_request(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_authentication_reject(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_identity_request(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_identity_request(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_security_mode_command(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_service_reject(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_service_reject(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_esm_information_request(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_emm_information(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_emm_information(uint32_t lcid, byte_buffer_t *pdu);
 
-    // Senders
-    void send_attach_request();
+  // Senders
+  void send_attach_request();
 
-    void send_identity_response();
+  void send_identity_response();
 
-    void send_service_request();
+  void send_service_request();
 
-    void send_esm_information_response();
+  void send_esm_information_response();
 
-    void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
-  };
+  void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
+};
 
 } // namespace srsue
 

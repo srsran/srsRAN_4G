@@ -43,230 +43,230 @@ using srslte::byte_buffer_t;
 namespace srsue {
 
 // RRC states (3GPP 36.331 v10.0.0)
-  typedef enum {
-    RRC_STATE_IDLE = 0,
-    RRC_STATE_PLMN_SELECTION,
-    RRC_STATE_CELL_SELECTING,
-    RRC_STATE_CELL_SELECTED,
-    RRC_STATE_CONNECTING,
-    RRC_STATE_CONNECTED,
-    RRC_STATE_N_ITEMS,
-  } rrc_state_t;
-  static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                              "PLMN SELECTION",
-                                                              "CELL SELECTION",
-                                                              "CONNECTING",
-                                                              "CONNECTED",
-                                                              "RRC CONNECTED"};
-  typedef enum {
-    SI_ACQUIRE_IDLE = 0,
-    SI_ACQUIRE_SIB1,
-    SI_ACQUIRE_SIB2
-  } si_acquire_state_t;
-
-
-  class rrc
-    : public rrc_interface_nas,
-      public rrc_interface_phy,
-      public rrc_interface_mac,
-      public rrc_interface_gw,
-      public rrc_interface_pdcp,
-      public rrc_interface_rlc,
-      public srslte::timer_callback,
-      public thread
-  {
-  public:
-    rrc();
-
-    void init(phy_interface_rrc *phy_,
-              mac_interface_rrc *mac_,
-              rlc_interface_rrc *rlc_,
-              pdcp_interface_rrc *pdcp_,
-              nas_interface_rrc *nas_,
-              usim_interface_rrc *usim_,
-              srslte::mac_interface_timers *mac_timers_,
-              srslte::log *rrc_log_);
-
-    void stop();
-
-    rrc_state_t get_state();
-
-    void set_ue_category(int category);
-
-    // Timeout callback interface
-    void timer_expired(uint32_t timeout_id);
-
-    void test_con_restablishment();
-
-    void liblte_rrc_log(char *str);
-
-  private:
-    srslte::byte_buffer_pool *pool;
-    srslte::log *rrc_log;
-    phy_interface_rrc *phy;
-    mac_interface_rrc *mac;
-    rlc_interface_rrc *rlc;
-    pdcp_interface_rrc *pdcp;
-    nas_interface_rrc *nas;
-    usim_interface_rrc *usim;
+typedef enum {
+  RRC_STATE_IDLE = 0,
+  RRC_STATE_PLMN_SELECTION,
+  RRC_STATE_CELL_SELECTING,
+  RRC_STATE_CELL_SELECTED,
+  RRC_STATE_CONNECTING,
+  RRC_STATE_CONNECTED,
+  RRC_STATE_N_ITEMS,
+} rrc_state_t;
+static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
+                                                            "PLMN SELECTION",
+                                                            "CELL SELECTION",
+                                                            "CONNECTING",
+                                                            "CONNECTED",
+                                                            "RRC CONNECTED"};
+typedef enum {
+  SI_ACQUIRE_IDLE = 0,
+  SI_ACQUIRE_SIB1,
+  SI_ACQUIRE_SIB2
+} si_acquire_state_t;
+
+
+class rrc
+  : public rrc_interface_nas,
+    public rrc_interface_phy,
+    public rrc_interface_mac,
+    public rrc_interface_gw,
+    public rrc_interface_pdcp,
+    public rrc_interface_rlc,
+    public srslte::timer_callback,
+    public thread
+{
+public:
+  rrc();
+
+  void init(phy_interface_rrc *phy_,
+            mac_interface_rrc *mac_,
+            rlc_interface_rrc *rlc_,
+            pdcp_interface_rrc *pdcp_,
+            nas_interface_rrc *nas_,
+            usim_interface_rrc *usim_,
+            srslte::mac_interface_timers *mac_timers_,
+            srslte::log *rrc_log_);
+
+  void stop();
+
+  rrc_state_t get_state();
+
+  void set_ue_category(int category);
+
+  // Timeout callback interface
+  void timer_expired(uint32_t timeout_id);
+
+  void test_con_restablishment();
+
+  void liblte_rrc_log(char *str);
+
+private:
+  srslte::byte_buffer_pool *pool;
+  srslte::log *rrc_log;
+  phy_interface_rrc *phy;
+  mac_interface_rrc *mac;
+  rlc_interface_rrc *rlc;
+  pdcp_interface_rrc *pdcp;
+  nas_interface_rrc *nas;
+  usim_interface_rrc *usim;
 
-    srslte::bit_buffer_t bit_buf;
+  srslte::bit_buffer_t bit_buf;
 
-    pthread_mutex_t mutex;
+  pthread_mutex_t mutex;
 
-    rrc_state_t state;
-    uint8_t transaction_id;
-    bool drb_up;
+  rrc_state_t state;
+  uint8_t transaction_id;
+  bool drb_up;
 
 
-    uint8_t k_rrc_enc[32];
-    uint8_t k_rrc_int[32];
-    uint8_t k_up_enc[32];
-    uint8_t k_up_int[32];   // Not used: only for relay nodes (3GPP 33.401 Annex A.7)
+  uint8_t k_rrc_enc[32];
+  uint8_t k_rrc_int[32];
+  uint8_t k_up_enc[32];
+  uint8_t k_up_int[32];   // Not used: only for relay nodes (3GPP 33.401 Annex A.7)
 
-    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
-    std::map<uint32_t, LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT> srbs;
-    std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT> drbs;
+  std::map<uint32_t, LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT> srbs;
+  std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT> drbs;
 
-    LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
-    LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
+  LIBLTE_RRC_DL_CCCH_MSG_STRUCT dl_ccch_msg;
+  LIBLTE_RRC_DL_DCCH_MSG_STRUCT dl_dcch_msg;
 
-    // RRC constants and timers
-    srslte::mac_interface_timers *mac_timers;
-    uint32_t n310_cnt, N310;
-    uint32_t n311_cnt, N311;
-    uint32_t t301, t310, t311;
-    uint32_t safe_reset_timer;
-    int ue_category;
+  // RRC constants and timers
+  srslte::mac_interface_timers *mac_timers;
+  uint32_t n310_cnt, N310;
+  uint32_t n311_cnt, N311;
+  uint32_t t301, t310, t311;
+  uint32_t safe_reset_timer;
+  int ue_category;
 
-    typedef struct {
-      uint32_t earfcn;
-      srslte_cell_t phy_cell;
-      float    rsrp;
-      bool     has_valid_sib1;
-      bool     has_valid_sib2;
-      LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT sib1;
-      LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2;
-    } cell_t;
+  typedef struct {
+    uint32_t earfcn;
+    srslte_cell_t phy_cell;
+    float    rsrp;
+    bool     has_valid_sib1;
+    bool     has_valid_sib2;
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT sib1;
+    LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2;
+  } cell_t;
 
-    std::vector<cell_t> known_cells;
-    cell_t *current_cell;
+  std::vector<cell_t> known_cells;
+  cell_t *current_cell;
 
-    si_acquire_state_t si_acquire_state;
+  si_acquire_state_t si_acquire_state;
 
-    void select_next_cell_in_plmn();
-    LIBLTE_RRC_PLMN_IDENTITY_STRUCT selected_plmn_id;
-    int last_selected_cell;
+  void select_next_cell_in_plmn();
+  LIBLTE_RRC_PLMN_IDENTITY_STRUCT selected_plmn_id;
+  int last_selected_cell;
 
-    bool thread_running;
-    void run_thread();
+  bool thread_running;
+  void run_thread();
 
-    // NAS interface
-    void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
+  // NAS interface
+  void write_sdu(uint32_t lcid, byte_buffer_t *sdu);
 
-    uint16_t get_mcc();
+  uint16_t get_mcc();
 
-    uint16_t get_mnc();
+  uint16_t get_mnc();
 
-    void enable_capabilities();
-    void plmn_search();
-    void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
-    void connect();
+  void enable_capabilities();
+  void plmn_search();
+  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
+  void connect();
 
-    // PHY interface
-    void in_sync();
+  // PHY interface
+  void in_sync();
 
-    void out_of_sync();
-    void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
+  void out_of_sync();
+  void cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp);
 
-    // MAC interface
-    void release_pucch_srs();
+  // MAC interface
+  void release_pucch_srs();
 
-    void ra_problem();
+  void ra_problem();
 
-    // GW interface
-    bool is_connected();
+  // GW interface
+  bool is_connected();
 
-    bool have_drb();
+  bool have_drb();
 
-    // PDCP interface
-    void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
+  // PDCP interface
+  void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
 
-    void write_pdu_bcch_bch(byte_buffer_t *pdu);
+  void write_pdu_bcch_bch(byte_buffer_t *pdu);
 
-    void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
+  void write_pdu_bcch_dlsch(byte_buffer_t *pdu);
 
-    void write_pdu_pcch(byte_buffer_t *pdu);
+  void write_pdu_pcch(byte_buffer_t *pdu);
 
-    // RLC interface
-    void max_retx_attempted();
+  // RLC interface
+  void max_retx_attempted();
 
-    // Senders
-    void send_con_request();
+  // Senders
+  void send_con_request();
 
-    void send_con_restablish_request();
+  void send_con_restablish_request();
 
-    void send_con_restablish_complete();
+  void send_con_restablish_complete();
 
-    void send_con_setup_complete(byte_buffer_t *nas_msg);
+  void send_con_setup_complete(byte_buffer_t *nas_msg);
 
-    void send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu);
+  void send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu);
 
-    void send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu);
+  void send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu);
 
-    void send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu);
+  void send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu);
 
-    void send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu);
+  void send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu);
 
-    // Parsers
-    void parse_dl_ccch(byte_buffer_t *pdu);
+  // Parsers
+  void parse_dl_ccch(byte_buffer_t *pdu);
 
-    void parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu);
 
-    void parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
+  void parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
 
-    // Helpers
-    void reset_ue();
+  // Helpers
+  void reset_ue();
 
-    void rrc_connection_release();
+  void rrc_connection_release();
 
-    void radio_link_failure();
+  void radio_link_failure();
 
-    uint32_t sib_start_tti(uint32_t tti, uint32_t period, uint32_t x);
+  uint32_t sib_start_tti(uint32_t tti, uint32_t period, uint32_t x);
 
-    void apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
+  void apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
 
-    void handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
+  void handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
 
-    void handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
+  void handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
 
-    void
-    handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig, byte_buffer_t *pdu);
+  void
+  handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig, byte_buffer_t *pdu);
 
-    void add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);
+  void add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);
 
-    void add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
+  void add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
 
-    void release_drb(uint8_t lcid);
+  void release_drb(uint8_t lcid);
 
-    void apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
+  void apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
 
-    void apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults);
+  void apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults);
 
-    void apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults);
+  void apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults);
 
-    // Helpers for setting default values
-    void set_phy_default_pucch_srs();
+  // Helpers for setting default values
+  void set_phy_default_pucch_srs();
 
-    void set_phy_default();
+  void set_phy_default();
 
-    void set_mac_default();
+  void set_mac_default();
 
-    void set_rrc_default();
+  void set_rrc_default();
 
-  };
+};
 
 } // namespace srsue
 
