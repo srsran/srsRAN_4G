@@ -74,7 +74,7 @@ typedef struct SRSLTE_API {
   // This is to generate the scrambling seq for multiple CRNTIs
   srslte_pdsch_user_t **users;
   
-  srslte_sch_t dl_sch[SRSLTE_MAX_CODEWORDS];
+  srslte_sch_t dl_sch;
 
 } srslte_pdsch_t;
 

@@ -227,12 +227,12 @@ int srslte_pdsch_init_multi(srslte_pdsch_t *q, srslte_cell_t cell, uint32_t nof_
       srslte_modem_table_bytes(&q->mod[i]);
     }
 
-    for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-      if (srslte_sch_init(&q->dl_sch[i])) {
-        ERROR("Initiating DL SCH");
-        goto clean;
-      }
+    if (srslte_sch_init(&q->dl_sch)) {
+      ERROR("Initiating DL SCH");
+      goto clean;
+    }
 
+    for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       // Allocate int16_t for reception (LLRs)
       q->e[i] = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
       if (!q->e[i]) {
@@ -313,11 +313,10 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
     if (q->d[i]) {
       free(q->d[i]);
     }
-
-    /* Free sch objects */
-    srslte_sch_free(&q->dl_sch[i]);
-
   }
+
+  /* Free sch objects */
+  srslte_sch_free(&q->dl_sch);
 
   for (i = 0; i < q->cell.nof_ports; i++) {
     if (q->x[i]) {
@@ -452,7 +451,6 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
 static int srslte_pdsch_codeword_encode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_t *cfg,
                                                srslte_softbuffer_tx_t *softbuffer, uint16_t rnti, uint8_t *data,
                                                uint32_t codeword_idx) {
-  srslte_sch_t *dl_sch = &pdsch->dl_sch[codeword_idx];
   srslte_ra_nbits_t *nbits = &cfg->nbits[codeword_idx];
   srslte_ra_mcs_t *mcs = &cfg->grant.mcs[codeword_idx];
   uint32_t rv = cfg->rv[codeword_idx];
@@ -463,7 +461,7 @@ static int srslte_pdsch_codeword_encode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_
          nbits->nof_re, nbits->nof_bits, rv);
 
     /* Channel coding */
-    if (srslte_dlsch_encode2(dl_sch, cfg, softbuffer, data, pdsch->e[codeword_idx], codeword_idx)) {
+    if (srslte_dlsch_encode2(&pdsch->dl_sch, cfg, softbuffer, data, pdsch->e[codeword_idx], codeword_idx)) {
       ERROR("Error encoding TB %d", codeword_idx);
       return SRSLTE_ERROR;
     }
@@ -497,7 +495,6 @@ static int srslte_pdsch_codeword_encode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_
 static int srslte_pdsch_codeword_decode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_t *cfg,
                                                srslte_softbuffer_rx_t *softbuffer, uint16_t rnti, uint8_t *data,
                                                uint32_t codeword_idx) {
-  srslte_sch_t *dl_sch = &pdsch->dl_sch[codeword_idx];
   srslte_ra_nbits_t *nbits = &cfg->nbits[codeword_idx];
   srslte_ra_mcs_t *mcs = &cfg->grant.mcs[codeword_idx];
   uint32_t rv = cfg->rv[codeword_idx];
@@ -526,7 +523,7 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_
       srslte_sequence_free(&seq);
     }
 
-    return srslte_dlsch_decode2(dl_sch, cfg, softbuffer, pdsch->e[codeword_idx], data, codeword_idx);
+    return srslte_dlsch_decode2(&pdsch->dl_sch, cfg, softbuffer, pdsch->e[codeword_idx], data, codeword_idx);
   }
 
   return SRSLTE_SUCCESS;
@@ -741,7 +738,7 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
     }
     memset(&x[q->cell.nof_ports], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - q->cell.nof_ports));
 
-    if (srslte_dlsch_encode(&q->dl_sch[0], cfg, softbuffer, data, q->e[0])) {
+    if (srslte_dlsch_encode(&q->dl_sch, cfg, softbuffer, data, q->e[0])) {
       fprintf(stderr, "Error encoding TB\n");
       return SRSLTE_ERROR;
     }
@@ -852,17 +849,15 @@ int srslte_pdsch_encode_multi(srslte_pdsch_t *q,
 }
 
 void srslte_pdsch_set_max_noi(srslte_pdsch_t *q, uint32_t max_iter) {
-  for (int cw = 0; cw < SRSLTE_MAX_CODEWORDS; cw++) {
-    srslte_sch_set_max_noi(&q->dl_sch[cw], max_iter);
-  }
+  srslte_sch_set_max_noi(&q->dl_sch, max_iter);
 }
 
 float srslte_pdsch_average_noi(srslte_pdsch_t *q) {
-  return q->dl_sch[0].average_nof_iterations;
+  return q->dl_sch.average_nof_iterations;
 }
 
 uint32_t srslte_pdsch_last_noi(srslte_pdsch_t *q) {
-  return q->dl_sch[0].nof_iterations;
+  return q->dl_sch.nof_iterations;
 }
 
 
