@@ -32,7 +32,7 @@
 #include <immintrin.h>
 #include <sys/time.h>
 
-#include "srslte/phy/utils/algebra.h"
+#include "srslte/phy/utils/mat.h"
 
 
 bool zf_solver = false;
@@ -104,7 +104,7 @@ bool test_zf_solver_gen(void) {
   cf_t y0 = x0_gold * h00 + x1_gold * h01;
   cf_t y1 = x0_gold * h10 + x1_gold * h11;
 
-  srslte_algebra_2x2_zf_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 1.0f);
+  srslte_mat_2x2_zf_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 1.0f);
 
   cf_error0 = x0 - x0_gold;
   cf_error1 = x1 - x1_gold;
@@ -127,7 +127,7 @@ bool test_mmse_solver_gen(void) {
   cf_t y0 = x0_gold * h00 + x1_gold * h01;
   cf_t y1 = x0_gold * h10 + x1_gold * h11;
 
-  srslte_algebra_2x2_mmse_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 0.0f, 1.0f);
+  srslte_mat_2x2_mmse_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 0.0f, 1.0f);
 
   cf_error0 = x0 - x0_gold;
   cf_error1 = x1 - x1_gold;
@@ -171,7 +171,7 @@ bool test_zf_solver_sse(void) {
 
   __m128 _x0, _x1;
 
-  srslte_algebra_2x2_zf_sse(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 1.0f);
+  srslte_mat_2x2_zf_sse(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 1.0f);
 
 
   __attribute__((aligned(128))) cf_t x0[2];
@@ -225,7 +225,7 @@ bool test_mmse_solver_sse(void) {
 
   __m128 _x0, _x1;
 
-  srslte_algebra_2x2_mmse_sse(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 0.0f, 1.0f);
+  srslte_mat_2x2_mmse_sse(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 0.0f, 1.0f);
 
 
   __attribute__((aligned(128))) cf_t x0[2];
@@ -289,7 +289,7 @@ bool test_zf_solver_avx(void) {
 
   __m256 _x0, _x1;
 
-  srslte_algebra_2x2_zf_avx(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 1.0f);
+  srslte_mat_2x2_zf_avx(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 1.0f);
 
 
   __attribute__((aligned(256))) cf_t x0[4];
@@ -349,7 +349,7 @@ bool test_mmse_solver_avx(void) {
 
   __m256 _x0, _x1;
 
-  srslte_algebra_2x2_mmse_avx(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 0.0f, 1.0f);
+  srslte_mat_2x2_mmse_avx(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 0.0f, 1.0f);
 
 
   __attribute__((aligned(256))) cf_t x0[4];

@@ -36,14 +36,14 @@
 
 #ifdef LV_HAVE_SSE
 #include <immintrin.h>
-#include "srslte/phy/utils/algebra.h"
+#include "srslte/phy/utils/mat.h"
 int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
 int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_rxant, int nof_symbols);
 #endif
 
 #ifdef LV_HAVE_AVX
 #include <immintrin.h>
-#include "srslte/phy/utils/algebra.h"
+#include "srslte/phy/utils/mat.h"
 int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS], cf_t *x, int nof_rxant, int nof_symbols, float noise_estimate);
 #endif
 
@@ -597,7 +597,7 @@ int srslte_predecoding_ccd_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS],
 
     __m256 x0, x1;
 
-    srslte_algebra_2x2_zf_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f);
+    srslte_mat_2x2_zf_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f);
 
     _mm256_store_ps((float *) &x[0][i], x0);
     _mm256_store_ps((float *) &x[1][i], x1);
@@ -634,7 +634,7 @@ int srslte_predecoding_ccd_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS],
 
     __m128 x0, x1;
 
-    srslte_algebra_2x2_zf_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f);
+    srslte_mat_2x2_zf_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, 2.0f);
 
     _mm_store_ps((float *) &x[0][i], x0);
     _mm_store_ps((float *) &x[1][i], x1);
@@ -731,7 +731,7 @@ int srslte_predecoding_ccd_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS],
 
     __m256 x0, x1;
 
-    srslte_algebra_2x2_mmse_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f);
+    srslte_mat_2x2_mmse_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f);
 
     _mm256_store_ps((float *) &x[0][i], x0);
     _mm256_store_ps((float *) &x[1][i], x1);
@@ -768,7 +768,7 @@ int srslte_predecoding_ccd_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS],
 
     __m128 x0, x1;
 
-    srslte_algebra_2x2_mmse_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f);
+    srslte_mat_2x2_mmse_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, 2.0f);
 
     _mm_store_ps((float *) &x[0][i], x0);
     _mm_store_ps((float *) &x[1][i], x1);
@@ -789,7 +789,7 @@ int srslte_predecoding_ccd_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLT
     h10 = +h[0][1][i] + h[1][1][i];
     h01 = +h[0][0][i] - h[1][0][i];
     h11 = +h[0][1][i] - h[1][1][i];
-    srslte_algebra_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f);
+    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f);
 
     i++;
 
@@ -798,7 +798,7 @@ int srslte_predecoding_ccd_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLT
     h10 = h[0][1][i] - h[1][1][i];
     h01 = h[0][0][i] + h[1][0][i];
     h11 = h[0][1][i] + h[1][1][i];
-    srslte_algebra_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f);
+    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, 2.0f);
   }
   return SRSLTE_SUCCESS;
 }
@@ -886,7 +886,7 @@ int srslte_predecoding_multiplex_2x2_zf_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[S
 
     __m256 x0, x1;
 
-    srslte_algebra_2x2_zf_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, norm);
+    srslte_mat_2x2_zf_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, norm);
 
     _mm256_store_ps((float *) &x[0][i], x0);
     _mm256_store_ps((float *) &x[1][i], x1);
@@ -954,7 +954,7 @@ int srslte_predecoding_multiplex_2x2_zf_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[S
 
     __m128 x0, x1;
 
-    srslte_algebra_2x2_zf_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, norm);
+    srslte_mat_2x2_zf_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, norm);
 
     _mm_store_ps((float *) &x[0][i], x0);
     _mm_store_ps((float *) &x[1][i], x1);
@@ -1078,7 +1078,7 @@ int srslte_predecoding_multiplex_2x2_mmse_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h
 
     __m256 x0, x1;
 
-    srslte_algebra_2x2_mmse_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, norm);
+    srslte_mat_2x2_mmse_avx(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, norm);
 
     _mm256_store_ps((float *) &x[0][i], x0);
     _mm256_store_ps((float *) &x[1][i], x1);
@@ -1148,7 +1148,7 @@ int srslte_predecoding_multiplex_2x2_mmse_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h
 
     __m128 x0, x1;
 
-    srslte_algebra_2x2_mmse_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, norm);
+    srslte_mat_2x2_mmse_sse(y0, y1, h00, h01, h10, h11, &x0, &x1, noise_estimate, norm);
 
     _mm_store_ps((float *) &x[0][i], x0);
     _mm_store_ps((float *) &x[1][i], x1);
@@ -1205,7 +1205,7 @@ int srslte_predecoding_multiplex_2x2_mmse_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h
         return SRSLTE_ERROR;
     }
 
-    srslte_algebra_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, norm);
+    srslte_mat_2x2_mmse_gen(y[0][i], y[1][i], h00, h01, h10, h11, &x[0][i], &x[1][i], noise_estimate, norm);
   }
   return SRSLTE_SUCCESS;
 }
@@ -2295,8 +2295,8 @@ int srslte_precoding_pmi_select_2l_sse(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
       c11 = _mm_add_ps(c11, sse_noise_estimate);
 
       /* 5. detC */
-      __m128 detC = srslte_algebra_2x2_det_sse(c00, c01, c10, c11);
-      __m128 inv_detC = srslte_algebra_cf_recip_sse(detC);
+      __m128 detC = srslte_mat_2x2_det_sse(c00, c01, c10, c11);
+      __m128 inv_detC = srslte_mat_cf_recip_sse(detC);
       inv_detC = _mm_mul_ps(sse_noise_estimate, inv_detC);
 
       __m128 den0 = _MM_PROD_PS(c00, inv_detC);
@@ -2442,8 +2442,8 @@ int srslte_precoding_pmi_select_2l_avx(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
       c11 = _mm256_add_ps(c11, avx_noise_estimate);
 
       /* 5. detC */
-      __m256 detC = srslte_algebra_2x2_det_avx(c00, c01, c10, c11);
-      __m256 inv_detC = srslte_algebra_cf_recip_avx(detC);
+      __m256 detC = srslte_mat_2x2_det_avx(c00, c01, c10, c11);
+      __m256 inv_detC = srslte_mat_cf_recip_avx(detC);
       inv_detC = _mm256_mul_ps(avx_noise_estimate, inv_detC);
 
       __m256 den0 = _MM256_PROD_PS(c00, inv_detC);
@@ -2530,7 +2530,7 @@ float srslte_precoding_2x2_cn_gen(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], u
     cf_t h10 = h[0][1][i];
     cf_t h11 = h[1][1][i];
 
-    cn_avg += srslte_algebra_2x2_cn(h00, h01, h10, h11);
+    cn_avg += srslte_mat_2x2_cn(h00, h01, h10, h11);
 
     count++;
   }
