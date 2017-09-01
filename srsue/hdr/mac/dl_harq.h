@@ -280,7 +280,6 @@ private:
         }
       }
 
-
       void tb_decoded(bool ack_) {
         ack = ack_;
         if (ack) {
@@ -319,7 +318,7 @@ private:
         Info("DL %d (TB %d):  %s tbs=%d, rv=%d, ack=%s, ndi=%d (%d), tti=%d (%d)\n",
              pid, tid, is_new_transmission ? "newTX" : "reTX ",
              cur_grant.n_bytes[tid], cur_grant.rv[tid], ack ? "OK" : "KO",
-             cur_grant.ndi[tid], cur_grant.last_ndi, cur_grant.tti, cur_grant.last_tti);
+             cur_grant.ndi[tid], cur_grant.last_ndi[tid], cur_grant.tti, cur_grant.last_tti);
 
         if (ack && pid == HARQ_BCCH_PID) {
           reset();
