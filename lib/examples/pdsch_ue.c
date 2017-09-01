@@ -304,6 +304,12 @@ prog_args_t prog_args;
 uint32_t sfn = 0; // system frame number
 srslte_netsink_t net_sink, net_sink_signal; 
 
+/* Useful macros for printing lines which will disappear */
+#define PRINT_LINE_INIT() int this_nof_lines = 0; static int prev_nof_lines = 0
+#define PRINT_LINE(_fmt, ...) printf("\033[K" _fmt "\n", ##__VA_ARGS__); this_nof_lines++
+#define PRINT_LINE_RESET_CURSOR() printf("\033[%dA", this_nof_lines); prev_nof_lines = this_nof_lines
+#define PRINT_LINE_ADVANCE_CURSOR() printf("\033[%dB", prev_nof_lines + 1)
+
 int main(int argc, char **argv) {
   int ret; 
   int decimate = 1;
@@ -542,6 +548,7 @@ int main(int argc, char **argv) {
   while (!go_exit && (sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1)) {
     bool acks [SRSLTE_MAX_CODEWORDS] = {false};
     char input[128];
+    PRINT_LINE_INIT();
 
     fd_set set;
     FD_ZERO(&set);
@@ -668,55 +675,64 @@ int main(int argc, char **argv) {
             if (gain < 0) {
               gain = 10*log10(srslte_agc_get_gain(&ue_sync.agc)); 
             }
-            if (cell.nof_ports == 1) {
-              printf("CFO: %+6.2f kHz, "
-                         "SNR: %4.1f dB, "
-                         "PDCCH-Miss: %5.2f%%, PDSCH-BLER: %5.2f%%\r",
 
-                     srslte_ue_sync_get_cfo(&ue_sync) / 1000,
-                     10 * log10(rsrp0 / noise),
-                     100 * (1 - (float) ue_dl.nof_detected / nof_trials),
-                     (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+            /* Print transmission scheme */
+            if (ue_dl.pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
+              PRINT_LINE("    Tx scheme: %s (codebook_idx=%d)", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type),
+                         ue_dl.pdsch_cfg.codebook_idx);
             } else {
+              PRINT_LINE("    Tx scheme: %s", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type));
+            }
+
+            /* Print basic Parameters */
+            PRINT_LINE("   nof layers: %d", ue_dl.pdsch_cfg.nof_layers);
+            PRINT_LINE("nof codewords: %d", ue_dl.pdsch_cfg.grant.nof_tb);
+            PRINT_LINE("          CFO: %+5.2f kHz", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
+            PRINT_LINE("          SNR: %+5.1f dB | %+5.1f dB", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
+            PRINT_LINE("           Rb: %6.2f / %6.2f Mbps (net/maximum)", uerate, enodebrate);
+            PRINT_LINE("   PDCCH-Miss: %5.2f%%", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
+            PRINT_LINE("   PDSCH-BLER: %5.2f%%", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
+            PRINT_LINE("         TB 0: mcs=%d; tbs=%d", ue_dl.pdsch_cfg.grant.mcs[0].idx,
+                       ue_dl.pdsch_cfg.grant.mcs[0].tbs);
+            PRINT_LINE("         TB 1: mcs=%d; tbs=%d", ue_dl.pdsch_cfg.grant.mcs[1].idx,
+                       ue_dl.pdsch_cfg.grant.mcs[1].tbs);
+
+            /* MIMO: if tx and rx antennas are bigger than 1 */
+            if (cell.nof_ports > 1 && ue_dl.pdsch.nof_rx_antennas > 1) {
               /* Compute condition number */
               srslte_ue_dl_ri_select(&ue_dl, NULL, &cn);
+
+              /* Print condition number */
+              PRINT_LINE("            κ: %.1f dB (Condition number, 0 dB => Best)", cn);
+            }
+            PRINT_LINE("");
+
+            /* Spatial multiplex only */
+            if (ue_dl.pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
 
               /* Compute Rank Indicator (RI) and Precoding Matrix Indicator (PMI) */
               srslte_ue_dl_ri_pmi_select(&ue_dl, &ri, &pmi, NULL);
               for (uint32_t nl = 0; nl < SRSLTE_MAX_LAYERS; nl++) {
-                for (uint32_t cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb ++) {
+                for (uint32_t cb = 0; cb < SRSLTE_MAX_CODEBOOKS; cb++) {
                   sinr[nl][cb] = SRSLTE_VEC_EMA(ue_dl.sinr[nl][cb], sinr[nl][cb], 0.5f);
                 }
               }
 
-              /* Print Results */
-              if (ue_dl.pdsch_cfg.mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
-                printf("\033[K    Tx scheme: %s (codebook_idx=%d)\n", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type),
-                       ue_dl.pdsch_cfg.codebook_idx);
-              } else {
-                printf("\033[K    Tx scheme: %s\n", srslte_mimotype2str(ue_dl.pdsch_cfg.mimo_type));
-              }
-              printf("\033[K   nof layers: %d \n", ue_dl.pdsch_cfg.nof_layers);
-              printf("\033[Knof codewords: %d \n", ue_dl.pdsch_cfg.grant.nof_tb);
-              printf("\033[K          CFO: %+5.2f kHz\n", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
-              printf("\033[K          SNR: %+5.1f dB | %+5.1f dB\n", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
-              printf("\033[K           Rb: %6.2f / %6.2f Mbps (net/maximum)\n", uerate, enodebrate);
-              printf("\033[K   PDCCH-Miss: %5.2f%%\n", 100 * (1 - (float) ue_dl.nof_detected / nof_trials));
-              printf("\033[K   PDSCH-BLER: %5.2f%%\n", (float) 100 * ue_dl.pkt_errors / ue_dl.pkts_total);
-              printf("\033[K         TB 0: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[0].idx, ue_dl.pdsch_cfg.grant.mcs[0].tbs);
-              printf("\033[K         TB 1: mcs=%d; tbs=%d\n", ue_dl.pdsch_cfg.grant.mcs[1].idx, ue_dl.pdsch_cfg.grant.mcs[1].tbs);
-              printf("\033[K            κ: %.1f dB (Condition number, 0 dB => Best)\n", cn);
-              printf("\033[K\n");
-              printf("\033[KSINR (dB) Vs RI and PMI (for TM4, close loop MIMO only):\n");
-              printf("\033[K   | RI |   1   |   2   |\n");
-              printf("\033[K -------+-------+-------+\n");
-              printf("\033[K P |  0 | %5.2f%c| %5.2f%c|\n", 10 * log10(sinr[0][0]), (ri == 1 && pmi == 0)?'*':' ', 10 * log10(sinr[1][0]), (ri == 2 && pmi == 0)?'*':' ');
-              printf("\033[K M |  1 | %5.2f%c| %5.2f%c|\n", 10 * log10(sinr[0][1]), (ri == 1 && pmi == 1)?'*':' ', 10 * log10(sinr[1][1]), (ri == 2 && pmi == 1)?'*':' ');
-              printf("\033[K I |  2 | %5.2f%c|-------+ \n", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2)?'*':' ');
-              printf("\033[K   |  3 | %5.2f%c|         \n", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3)?'*':' ');
-              printf("\033[K\nPress enter maximum printing debug log of 1 subframe.\n");
-              printf("\033[21A");
+              /* Print Multiplex stats */
+              PRINT_LINE("SINR (dB) Vs RI and PMI:");
+              PRINT_LINE("   | RI |   1   |   2   |");
+              PRINT_LINE(" -------+-------+-------+");
+              PRINT_LINE(" P |  0 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][0]), (ri == 1 && pmi == 0) ? '*' : ' ',
+                         10 * log10(sinr[1][0]), (ri == 2 && pmi == 0) ? '*' : ' ');
+              PRINT_LINE(" M |  1 | %5.2f%c| %5.2f%c|", 10 * log10(sinr[0][1]), (ri == 1 && pmi == 1) ? '*' : ' ',
+                         10 * log10(sinr[1][1]), (ri == 2 && pmi == 1) ? '*' : ' ');
+              PRINT_LINE(" I |  2 | %5.2f%c|-------+ ", 10 * log10(sinr[0][2]), (ri == 1 && pmi == 2) ? '*' : ' ');
+              PRINT_LINE("   |  3 | %5.2f%c|         ", 10 * log10(sinr[0][3]), (ri == 1 && pmi == 3) ? '*' : ' ');
+              PRINT_LINE("");
             }
+            PRINT_LINE("Press enter maximum printing debug log of 1 subframe.");
+            PRINT_LINE("");
+            PRINT_LINE_RESET_CURSOR();
           }
           break;
       }
@@ -724,7 +740,7 @@ int main(int argc, char **argv) {
         sfn++; 
         if (sfn == 1024) {
           sfn = 0; 
-          printf("\033[21B");
+          PRINT_LINE_ADVANCE_CURSOR();
           ue_dl.pkt_errors = 0; 
           ue_dl.pkts_total = 0; 
           ue_dl.nof_detected = 0;           
@@ -756,7 +772,7 @@ int main(int argc, char **argv) {
         
     sf_cnt++;                  
   } // Main loop
-  printf("\033[21B\n");
+  printf("\033[30B\n");
 
 #ifndef DISABLE_GRAPHICS
   if (!prog_args.disable_plots) {
