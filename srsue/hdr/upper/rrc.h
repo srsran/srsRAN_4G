@@ -43,20 +43,19 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
-typedef enum {
-  SI_ACQUIRE_IDLE = 0,
-  SI_ACQUIRE_SIB1,
-  SI_ACQUIRE_SIB2
-} si_acquire_state_t;
+static std::string rb_id_str[] = {"SRB0", "SRB1", "SRB2",
+                                    "DRB1","DRB2","DRB3",
+                                    "DRB4","DRB5","DRB6",
+                                    "DRB7","DRB8"};
 
 class rrc
-  : public rrc_interface_nas,
-    public rrc_interface_phy,
-    public rrc_interface_mac,
-    public rrc_interface_pdcp,
-    public rrc_interface_rlc,
-    public srslte::timer_callback,
-    public thread
+  :public rrc_interface_nas
+  ,public rrc_interface_phy
+  ,public rrc_interface_mac
+  ,public rrc_interface_pdcp
+  ,public rrc_interface_rlc
+  ,public srslte::timer_callback
+  ,public thread
 {
 public:
   rrc();
@@ -145,6 +144,13 @@ private:
   std::vector<cell_t> known_cells;
   cell_t *current_cell;
 
+
+  typedef enum {
+    SI_ACQUIRE_IDLE = 0,
+    SI_ACQUIRE_SIB1,
+    SI_ACQUIRE_SIB2
+  } si_acquire_state_t;
+
   si_acquire_state_t si_acquire_state;
 
   void select_next_cell_in_plmn();
@@ -206,8 +212,13 @@ private:
     RB_ID_MAX
   } rb_id_t;
 
-  std::map<uint8_t, std::string> bearers;
-  std::string get_rb_name(uint32_t lcid) { return bearers.at(lcid); }
+  std::string get_rb_name(uint32_t lcid) {
+    if (lcid < RB_ID_MAX) {
+      return rb_id_str[lcid];
+    } else {
+      return std::string("INVALID_RB");
+    }
+  }
 
   // RLC interface
   void          max_retx_attempted();

@@ -48,7 +48,6 @@ rrc::rrc()
   :state(RRC_STATE_IDLE)
   ,drb_up(false)
 {
-  set_bearers();
 }
 
 static void liblte_rrc_handler(void *ctx, char *str) {
@@ -496,7 +495,7 @@ NAS interface
 *******************************************************************************/
 
 void rrc::write_sdu(uint32_t lcid, byte_buffer_t *sdu) {
-  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", bearers.at(lcid).c_str());
+  rrc_log->info_hex(sdu->msg, sdu->N_bytes, "RX %s SDU", get_rb_name(lcid).c_str());
   switch (state) {
     case RRC_STATE_CONNECTING:
       send_con_setup_complete(sdu);
@@ -544,7 +543,7 @@ PDCP interface
 *******************************************************************************/
 
 void rrc::write_pdu(uint32_t lcid, byte_buffer_t *pdu) {
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", bearers.at(lcid).c_str());
+  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "TX %s PDU", get_rb_name(lcid).c_str());
   rrc_log->info("TX PDU Stack latency: %ld us\n", pdu->get_latency_us());
 
   switch (lcid) {
@@ -1011,7 +1010,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu) {
   liblte_rrc_unpack_dl_dcch_msg((LIBLTE_BIT_MSG_STRUCT *) &bit_buf, &dl_dcch_msg);
 
   rrc_log->info("%s - Received %s\n",
-                bearers.at(lcid).c_str(),
+                get_rb_name(lcid).c_str(),
                 liblte_rrc_dl_dcch_msg_type_text[dl_dcch_msg.msg_type]);
 
   // Reset and reuse pdu buffer if possible
@@ -1521,7 +1520,7 @@ void rrc::add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg) {
   }
 
   srbs[srb_cnfg->srb_id] = *srb_cnfg;
-  rrc_log->info("Added radio bearer %s\n", bearers.at(srb_cnfg->srb_id).c_str());
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(srb_cnfg->srb_id).c_str());
 }
 
 void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
@@ -1579,7 +1578,7 @@ void rrc::add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg) {
 
   drbs[lcid] = *drb_cnfg;
   drb_up     = true;
-  rrc_log->info("Added radio bearer %s\n", bearers.at(lcid).c_str());
+  rrc_log->info("Added radio bearer %s\n", get_rb_name(lcid).c_str());
 }
 
 void rrc::release_drb(uint8_t lcid) {
@@ -1631,19 +1630,5 @@ void rrc::set_rrc_default() {
   mac_timers->get(safe_reset_timer)->set(this, 10);
 }
 
-void rrc::set_bearers()
-{
-  boost::assign::insert(bearers) (RB_ID_SRB0, "SRB0")
-                                 (RB_ID_SRB1, "SRB1")
-                                 (RB_ID_SRB2, "SRB2")
-                                 (RB_ID_DRB1, "DRB1")
-                                 (RB_ID_DRB2, "DRB2")
-                                 (RB_ID_DRB3, "DRB3")
-                                 (RB_ID_DRB4, "DRB4")
-                                 (RB_ID_DRB5, "DRB5")
-                                 (RB_ID_DRB6, "DRB6")
-                                 (RB_ID_DRB7, "DRB7")
-                                 (RB_ID_DRB8, "DRB8");
-}
 
 } // namespace srsue
