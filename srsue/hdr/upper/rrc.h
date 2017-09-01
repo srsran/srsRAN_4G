@@ -42,14 +42,20 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
+static std::string rb_id_str[] = {"SRB0", "SRB1", "SRB2",
+                                    "DRB1","DRB2","DRB3",
+                                    "DRB4","DRB5","DRB6",
+                                    "DRB7","DRB8"};
+
+
 class rrc
-    :public rrc_interface_nas
-    ,public rrc_interface_phy
-    ,public rrc_interface_mac
-    ,public rrc_interface_gw
-    ,public rrc_interface_pdcp
-    ,public rrc_interface_rlc
-    ,public srslte::timer_callback
+  :public rrc_interface_nas
+  ,public rrc_interface_phy
+  ,public rrc_interface_mac
+  ,public rrc_interface_gw
+  ,public rrc_interface_pdcp
+  ,public rrc_interface_rlc
+  ,public srslte::timer_callback
 {
 public:
   rrc();
@@ -156,10 +162,17 @@ private:
     RB_ID_DRB5,
     RB_ID_DRB6,
     RB_ID_DRB7,
-    RB_ID_DRB8
+    RB_ID_DRB8,
+    RB_ID_MAX
   } rb_id_t;
-  std::map<uint8_t, std::string> bearers;
-  std::string get_rb_name(uint32_t lcid) { return bearers.at(lcid); }
+
+  std::string get_rb_name(uint32_t lcid) {
+    if (lcid < RB_ID_MAX) {
+      return rb_id_str[lcid];
+    } else {
+      return std::string("INVALID_RB");
+    }
+  }
 
   // RLC interface
   void max_retx_attempted();
