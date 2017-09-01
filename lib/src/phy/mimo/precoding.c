@@ -1406,9 +1406,9 @@ int srslte_predecoding_multiplex(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_P
 #endif /* LV_HAVE_AVX */
     }
   } else if (nof_ports == 4) {
-    ERROR("Error predecoding CCD: Only 2 ports supported");
+    ERROR("Error predecoding multiplex: not implemented for %d Tx ports", nof_ports);
   } else {
-    fprintf(stderr, "Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
+    ERROR("Error predecoding multiplex: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
 }

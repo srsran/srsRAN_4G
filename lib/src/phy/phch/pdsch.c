@@ -611,21 +611,19 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
       for (i = 0; i < cfg->nof_layers; i++) {
         x[i] = q->d[i];
       }
-
-      srslte_predecoding_type_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
-                                    cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, noise_estimate);
-
     } else {
-      /* number of layers equals number of ports */
-      for (i = 0; i < cfg->nof_layers; i++) {
-        x[i] = q->x[i];
-      }
-      memset(&x[cfg->nof_layers], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - cfg->nof_layers));
+        /* number of layers equals number of ports */
+        for (i = 0; i < cfg->nof_layers; i++) {
+          x[i] = q->x[i];
+        }
+        memset(&x[cfg->nof_layers], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - cfg->nof_layers));
+    }
 
       srslte_predecoding_type_multi(q->symbols, q->ce, x, q->nof_rx_antennas, q->cell.nof_ports, cfg->nof_layers,
                                     cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, noise_estimate);
 
-      srslte_layerdemap_type(x, q->d, cfg->nof_layers, cfg->grant.nof_tb,
+    if (cfg->nof_layers != cfg->grant.nof_tb) {
+        srslte_layerdemap_type(x, q->d, cfg->nof_layers, cfg->grant.nof_tb,
                              nof_symbols[0], nof_symbols, cfg->mimo_type);
     }
 
