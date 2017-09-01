@@ -95,6 +95,8 @@ else(POLARSSL_FOUND)
       set(SEC_LIBRARIES    "${MBEDTLS_LIBRARIES}")
     endif(BUILD_STATIC)
     add_definitions(-DHAVE_MBEDTLS)
+  else(MBEDTLS_FOUND)
+    message(FATAL_ERROR "Either PolarSSL or mbedTLS are required to build srsLTE")
   endif (MBEDTLS_FOUND)
 endif(POLARSSL_FOUND)
 

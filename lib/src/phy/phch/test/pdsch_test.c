@@ -177,11 +177,15 @@ int main(int argc, char **argv) {
     goto quit;
   }
 
-  if (srslte_pdsch_init(&pdsch, cell)) {
+  if (srslte_pdsch_init_ue(&pdsch, cell.nof_prb)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     goto quit;
   }
-  
+  if (srslte_pdsch_set_cell(&pdsch, cell)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
+    goto quit;
+  }
+
   srslte_pdsch_set_rnti(&pdsch, rnti);
   
   if (srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb)) {
@@ -202,11 +206,15 @@ int main(int argc, char **argv) {
 #endif
     
     srslte_chest_dl_t chest; 
-    if (srslte_chest_dl_init(&chest, cell)) {
+    if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
       printf("Error initializing equalizer\n");
       exit(-1);
     }
-    srslte_chest_dl_estimate(&chest, slot_symbols[0], ce, subframe);    
+    if (srslte_chest_dl_set_cell(&chest, cell)) {
+      printf("Error initializing equalizer\n");
+      exit(-1);
+    }
+    srslte_chest_dl_estimate(&chest, slot_symbols[0], ce, subframe);
     srslte_chest_dl_free(&chest);
     
     srslte_filesource_free(&fsrc);

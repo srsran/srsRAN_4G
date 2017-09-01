@@ -107,14 +107,6 @@ void nas::plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_
   }
 }
 
-void nas::cell_selected() {
-  if (state == EMM_STATE_REGISTERED_INITIATED) {
-    rrc->connect();
-  } else {
-    nas_log->info("Cell selected in invalid state = %s\n", emm_state_text[state]);
-  }
-}
-
 bool nas::is_attached() {
   return state == EMM_STATE_REGISTERED;
 }

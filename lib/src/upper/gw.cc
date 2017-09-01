@@ -44,11 +44,10 @@ gw::gw()
   :if_up(false)
 {}
 
-void gw::init(srsue::pdcp_interface_gw *pdcp_, srsue::rrc_interface_gw *rrc_, srsue::ue_interface *ue_, log *gw_log_)
+void gw::init(srsue::pdcp_interface_gw *pdcp_, srsue::ue_interface *ue_, log *gw_log_)
 {
   pool    = byte_buffer_pool::get_instance();
   pdcp    = pdcp_;
-  rrc     = rrc_;
   ue      = ue_;
   gw_log  = gw_log_;
   run_enable = true;
@@ -249,11 +248,6 @@ void gw::run_thread()
           {
             gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-            while(run_enable && (!rrc->is_connected() || !rrc->have_drb())) {
-              rrc->connect();
-              usleep(1000);
-            }
-            
             if (!run_enable) {
               break;
             }

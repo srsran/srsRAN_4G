@@ -177,8 +177,8 @@ void dl_harq_entity::dl_harq_process::reset() {
 }
 
 bool dl_harq_entity::dl_harq_process::init(uint32_t pid_, dl_harq_entity *parent) {
-  if (srslte_softbuffer_rx_init(&softbuffer, 110)) {
-    Error("Error initiating soft buffer\n");
+  if (srslte_softbuffer_rx_init(&softbuffer, SRSLTE_MAX_PRB)) {
+    fprintf(stderr, "Error initiating soft buffer\n");
     return false; 
   } else {
     pid = pid_;

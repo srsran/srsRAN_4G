@@ -61,43 +61,30 @@ float srslte_pdcch_coderate(uint32_t nof_bits, uint32_t l) {
 }
 
 /** Initializes the PDCCH transmitter and receiver */
-int srslte_pdcch_init(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell) {
-  return srslte_pdcch_init_multi(q, regs, cell, 1);
+int srslte_pdcch_init(srslte_pdcch_t *q, uint32_t max_prb) {
+  return srslte_pdcch_init_multi(q, max_prb, 1);
 }
 
-int srslte_pdcch_init_multi(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell, uint32_t nof_rx_antennas) 
+int srslte_pdcch_init_multi(srslte_pdcch_t *q, uint32_t max_prb, uint32_t nof_rx_antennas)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q                         != NULL &&
-      regs                      != NULL &&
-      srslte_cell_isvalid(&cell)) 
+  if (q != NULL)
   {   
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_pdcch_t));
-    q->cell = cell;
-    q->regs = regs;
-    q->nof_rx_antennas = nof_rx_antennas; 
+    q->nof_rx_antennas = nof_rx_antennas;
     
     /* Allocate memory for the maximum number of PDCCH bits (CFI=3) */
-    q->max_bits = (srslte_regs_pdcch_nregs(q->regs, 3) / 9) * 72;
+    q->max_bits = max_prb*3*12*2;
 
-    INFO("Init PDCCH: Max bits: %d, %d ports.\n", 
-         q->max_bits, q->cell.nof_ports);
+    INFO("Init PDCCH: Max bits: %d\n", q->max_bits);
 
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       goto clean;
     }
     if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC16, 16)) {
       goto clean;
-    }
-
-    for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-      // we need to pregenerate the sequence for the maximum number of bits, which is 8 times 
-      // the maximum number of REGs (for CFI=3)
-      if (srslte_sequence_pdcch(&q->seq[i], 2 * i, q->cell.id, 8*srslte_regs_pdcch_nregs(q->regs, 3))) {
-        goto clean;
-      }
     }
 
     int poly[3] = { 0x6D, 0x4F, 0x57 };
@@ -186,6 +173,39 @@ void srslte_pdcch_free(srslte_pdcch_t *q) {
   bzero(q, sizeof(srslte_pdcch_t));
 
 }
+
+int srslte_pdcch_set_cell(srslte_pdcch_t *q, srslte_regs_t *regs, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q                         != NULL &&
+      regs                      != NULL &&
+      srslte_cell_isvalid(&cell))
+  {
+    q->regs = regs;
+
+    /* Allocate memory for the maximum number of PDCCH bits (CFI=3) */
+    q->max_bits = (srslte_regs_pdcch_nregs(q->regs, 3) / 9) * 72;
+
+    INFO("PDCCH: Cell config PCI=%d, %d ports.\n",
+         q->cell.id, q->cell.nof_ports);
+
+    if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+
+      for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+        // we need to pregenerate the sequence for the maximum number of bits, which is 8 times
+        // the maximum number of REGs (for CFI=3)
+        if (srslte_sequence_pdcch(&q->seq[i], 2 * i, q->cell.id, 8*srslte_regs_pdcch_nregs(q->regs, 3))) {
+          return SRSLTE_ERROR;
+        }
+      }
+    }
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
+}
+
 
 uint32_t srslte_pdcch_ue_locations(srslte_pdcch_t *q, srslte_dci_location_t *c, uint32_t max_candidates,
                         uint32_t nsubframe, uint32_t cfi, uint16_t rnti) 
@@ -472,7 +492,7 @@ int srslte_pdcch_extract_llr_multi(srslte_pdcch_t *q, cf_t *sf_symbols[SRSLTE_MA
 
     /* descramble */
     srslte_scrambling_f_offset(&q->seq[nsubframe], q->llr, 0, e_bits);
-    
+
     ret = SRSLTE_SUCCESS;
   } 
   return ret;  

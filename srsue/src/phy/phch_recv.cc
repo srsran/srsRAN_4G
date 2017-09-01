@@ -39,12 +39,33 @@
 
 namespace srsue {
 
+int radio_recv_wrapper_cs(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
+  srslte::radio_multi *radio_h = (srslte::radio_multi *) h;
+  if (radio_h->rx_now(data, nsamples, rx_time)) {
+    int offset = nsamples - radio_h->get_tti_len();
+    if (abs(offset) < 10 && offset != 0) {
+      radio_h->tx_offset(offset);
+    } else if (nsamples < 10) {
+      radio_h->tx_offset(nsamples);
+    }
+    return nsamples;
+  } else {
+    return -1;
+  }
+}
+
+double callback_set_rx_gain(void *h, double gain) {
+  srslte::radio_multi *radio_handler = (srslte::radio_multi *) h;
+  return radio_handler->set_rx_gain_th(gain);
+}
+
 
 phch_recv::phch_recv() {
+  bzero(&cell, sizeof(srslte_cell_t));
   running = false;
 }
 
-void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_mac, rrc_interface_phy *_rrc,
+void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_mac, rrc_interface_phy *_rrc,
                      prach *_prach_buffer, srslte::thread_pool *_workers_pool,
                      phch_common *_worker_com, srslte::log *_log_h, uint32_t nof_rx_antennas_, uint32_t prio,
                      int sync_cpu_affinity) {
@@ -65,9 +86,46 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   sync_sfn_cnt = 0;
   srate_mode = SRATE_NONE;
   cell_search_in_progress = false;
+  current_earfcn = 0;
 
   for (uint32_t i = 0; i < nof_rx_antennas; i++) {
     sf_buffer[i] = (cf_t *) srslte_vec_malloc(sizeof(cf_t) * 3 * SRSLTE_SF_LEN_PRB(100));
+  }
+
+
+  if (srslte_ue_cellsearch_init_multi(&cs, SRSLTE_DEFAULT_MAX_FRAMES_PSS, radio_recv_wrapper_cs, nof_rx_antennas,
+                                      radio_h)) {
+    Error("Initiating UE cell search\n");
+    return;
+  }
+
+  srslte_ue_cellsearch_set_nof_valid_frames(&cs, SRSLTE_DEFAULT_NOF_VALID_PSS_FRAMES);
+
+  // Set options defined in expert section
+  set_ue_sync_opts(&cs.ue_sync);
+
+  if (do_agc) {
+    srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, last_gain);
+  }
+
+  if (srslte_ue_dl_init_multi(&ue_dl_measure, SRSLTE_MAX_PRB, nof_rx_antennas)) {
+    Error("Initiating ue_dl_measure\n");
+    return;
+  }
+
+  if (srslte_ue_mib_init(&ue_mib, SRSLTE_MAX_PRB)) {
+    Error("Initiating UE MIB decoder\n");
+    return;
+  }
+
+  if (srslte_ue_sync_init_multi(&ue_sync, SRSLTE_MAX_PRB, false, radio_recv_wrapper_cs, nof_rx_antennas, radio_h)) {
+    Error("Initiating ue_sync\n");
+    return;
+  }
+
+  if (srslte_ue_mib_sync_init_multi(&ue_mib_sync, radio_recv_wrapper_cs, nof_rx_antennas, radio_h)) {
+    Error("Initiating UE MIB synchronization\n");
+    return;
   }
 
   nof_tx_mutex = MUTEX_X_WORKER * workers_pool->get_nof_workers();
@@ -77,42 +135,28 @@ void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_ma
   } else {
     start_cpu(prio, sync_cpu_affinity);
   }
-
-
 }
 
-void phch_recv::stop() {
-  running = false;
-  wait_thread_finish();
+phch_recv::~phch_recv() {
   for (uint32_t i = 0; i < nof_rx_antennas; i++) {
     if (sf_buffer[i]) {
       free(sf_buffer[i]);
     }
   }
+  srslte_ue_sync_free(&ue_sync);
+  srslte_ue_dl_free(&ue_dl_measure);
+  srslte_ue_mib_sync_free(&ue_mib_sync);
+  srslte_ue_cellsearch_free(&cs);
+}
+
+void phch_recv::stop() {
+
+  running = false;
+  wait_thread_finish();
 }
 
 void phch_recv::set_agc_enable(bool enable) {
   do_agc = enable;
-}
-
-int radio_recv_wrapper_cs(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
-  srslte::radio_multi *radio_h = (srslte::radio_multi *) h;
-  if (radio_h->rx_now(data, nsamples, rx_time)) {
-    int offset = nsamples - radio_h->get_tti_len();
-    if (abs(offset) < 10 && offset != 0) {
-      radio_h->tx_offset(offset);
-    } else if (nsamples < 10) {
-      radio_h->tx_offset(nsamples);
-    }
-    return nsamples;
-  } else {
-    return -1;
-  }
-}
-
-double callback_set_rx_gain(void *h, double gain) {
-  srslte::radio_multi *radio_handler = (srslte::radio_multi *) h;
-  return radio_handler->set_rx_gain_th(gain);
 }
 
 void phch_recv::set_time_adv_sec(float _time_adv_sec) {
@@ -147,83 +191,47 @@ void phch_recv::set_ue_sync_opts(srslte_ue_sync_t *q) {
   srslte_sync_set_sss_algorithm(&q->sfind, (sss_alg_t) sss_alg);
 }
 
-bool phch_recv::init_cell() {
+bool phch_recv::set_cell() {
   cell_is_set = false;
-  if (!srslte_ue_mib_init(&ue_mib, cell)) {
-    if (!srslte_ue_sync_init_multi(&ue_sync, cell, radio_recv_wrapper_cs, nof_rx_antennas, radio_h)) {
-
-      // Set options defined in expert section
-      set_ue_sync_opts(&ue_sync);
-
-      if (srslte_ue_dl_init_multi(&ue_dl_measure, cell, nof_rx_antennas)) {
-        Error("Setting cell: initiating ue_dl_measure\n");
-        return false;
-      }
-
-      for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
-        if (!((phch_worker *) workers_pool->get_worker(i))->init_cell(cell)) {
-          Error("Setting cell: initiating PHCH worker\n");
-          return false;
-        }
-      }
-      radio_h->set_tti_len(SRSLTE_SF_LEN_PRB(cell.nof_prb));
-      if (do_agc) {
-        srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, last_gain);
-      }
-      srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
-      cell_is_set = true;
-    } else {
-      Error("Error setting cell: initiating ue_sync");
-    }
-  } else {
-    Error("Error setting cell: initiating ue_mib\n");
+  if (srslte_ue_mib_set_cell(&ue_mib, cell)) {
+    Error("Setting cell: initiating ue_mib\n");
+    return false;
   }
-  return cell_is_set;
-}
-
-void phch_recv::free_cell() {
-  if (phy_state != IDLE) {
-    phy_state = IDLE;
-    usleep(2000);
-  }
-
-  srslte_ue_sync_free(&ue_sync);
-
-  srslte_ue_dl_free(&ue_dl_measure);
-
-  if (cell_is_set) {
-    for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
-      ((phch_worker *) workers_pool->get_worker(i))->free_cell();
-    }
-    prach_buffer->free_cell();
-    cell_is_set = false;
-  }
-}
-
-
-bool phch_recv::cell_search(int force_N_id_2) {
-  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
-  uint8_t bch_payload_bits[SRSLTE_BCH_PAYLOAD_LEN / 8];
-
-  srslte_ue_cellsearch_result_t found_cells[3];
-  srslte_ue_cellsearch_t cs;
-
-  bzero(found_cells, 3 * sizeof(srslte_ue_cellsearch_result_t));
-
-  if (srslte_ue_cellsearch_init_multi(&cs, SRSLTE_DEFAULT_MAX_FRAMES_PSS, radio_recv_wrapper_cs, nof_rx_antennas,
-                                      radio_h)) {
-    Error("Initiating UE cell search\n");
+  if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
+    Error("Setting cell: initiating ue_sync");
     return false;
   }
 
-  srslte_ue_cellsearch_set_nof_valid_frames(&cs, SRSLTE_DEFAULT_NOF_VALID_PSS_FRAMES);
-
   // Set options defined in expert section
-  set_ue_sync_opts(&cs.ue_sync);
+  set_ue_sync_opts(&ue_sync);
 
-  if (do_agc) {
-    srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, last_gain);
+  if (srslte_ue_dl_set_cell(&ue_dl_measure, cell)) {
+    Error("Setting cell: initiating ue_dl_measure\n");
+    return false;
   }
+
+  for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
+    if (!((phch_worker *) workers_pool->get_worker(i))->set_cell(cell)) {
+      Error("Setting cell: initiating PHCH worker\n");
+      return false;
+    }
+  }
+  radio_h->set_tti_len(SRSLTE_SF_LEN_PRB(cell.nof_prb));
+  if (do_agc) {
+    srslte_ue_sync_start_agc(&ue_sync, callback_set_rx_gain, last_gain);
+  }
+  cell_is_set = true;
+
+  return cell_is_set;
+}
+
+bool phch_recv::cell_search(int force_N_id_2) {
+  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
+
+  srslte_ue_cellsearch_result_t found_cells[3];
+
+  bzero(&cell, sizeof(srslte_cell_t));
+  bzero(found_cells, 3 * sizeof(srslte_ue_cellsearch_result_t));
 
   if (srate_mode != SRATE_FIND) {
     srate_mode = SRATE_FIND;
@@ -245,7 +253,6 @@ bool phch_recv::cell_search(int force_N_id_2) {
   last_gain = srslte_agc_get_gain(&cs.ue_sync.agc);
 
   radio_h->stop_rx();
-  srslte_ue_cellsearch_free(&cs);
 
   if (ret < 0) {
     Error("Error decoding MIB: Error searching PSS\n");
@@ -260,11 +267,8 @@ bool phch_recv::cell_search(int force_N_id_2) {
   cell.cp = found_cells[max_peak_cell].cp;
   cellsearch_cfo = found_cells[max_peak_cell].cfo;
 
-  srslte_ue_mib_sync_t ue_mib_sync;
-
-  if (srslte_ue_mib_sync_init_multi(&ue_mib_sync, cell.id, cell.cp, radio_recv_wrapper_cs, nof_rx_antennas,
-                                    radio_h)) {
-    Error("Initiating UE MIB synchronization\n");
+  if (srslte_ue_mib_sync_set_cell(&ue_mib_sync, cell.id, cell.cp)) {
+    Error("Setting UE MIB cell\n");
     return false;
   }
 
@@ -275,19 +279,23 @@ bool phch_recv::cell_search(int force_N_id_2) {
     srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync, callback_set_rx_gain, last_gain);
   }
 
+  srslte_ue_sync_reset(&ue_mib_sync.ue_sync);
   srslte_ue_sync_set_cfo(&ue_mib_sync.ue_sync, cellsearch_cfo);
 
   /* Find and decode MIB */
-  uint32_t sfn;
   int sfn_offset;
   radio_h->start_rx();
   ret = srslte_ue_mib_sync_decode(&ue_mib_sync,
-                                  SRSLTE_DEFAULT_MAX_FRAMES_PBCH,
+                                  40,
                                   bch_payload, &cell.nof_ports, &sfn_offset);
   radio_h->stop_rx();
   last_gain = srslte_agc_get_gain(&ue_mib_sync.ue_sync.agc);
   cellsearch_cfo = srslte_ue_sync_get_cfo(&ue_mib_sync.ue_sync);
-  srslte_ue_mib_sync_free(&ue_mib_sync);
+
+  srslte_ue_sync_reset(&ue_sync);
+  srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
+
+  Info("Setting ue_sync cfo=%f KHz\n", cellsearch_cfo/1000);
 
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, &cell, NULL);
@@ -297,87 +305,6 @@ bool phch_recv::cell_search(int force_N_id_2) {
     Warning("Error decoding MIB: Error decoding PBCH\n");
     return false;
   }
-}
-
-
-void phch_recv::resync_sfn() {
-  sync_sfn_cnt = 0;
-  phy_state = CELL_SELECT;
-}
-
-void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
-  this->earfcn = earfcn;
-}
-
-void phch_recv::cell_search_next() {
-  cell_search_in_progress = true;
-  cur_earfcn_index++;
-  if (cur_earfcn_index >= 0) {
-    if (cur_earfcn_index >= (int) earfcn.size() - 1) {
-      cur_earfcn_index = 0;
-    }
-    // If PHY is running, stop and free resources
-    free_cell();
-
-    float dl_freq = 1e6*srslte_band_fd(earfcn[cur_earfcn_index]);
-    if (dl_freq >= 0) {
-      log_h->info("Cell Search: Set DL EARFCN=%d, frequency=%.1f MHz, channel_index=%d\n", earfcn[cur_earfcn_index],
-                  dl_freq / 1e6, cur_earfcn_index);
-      radio_h->set_rx_freq(dl_freq);
-
-      // Start PHY cell search (finds maximum cell in frequency)
-      phy_state = CELL_SEARCH;
-    } else {
-      log_h->error("Cell Search: Invalid EARFCN=%d, channel_index=%d\n", earfcn[cur_earfcn_index], cur_earfcn_index);
-    }
-  }
-}
-
-void phch_recv::cell_search_start() {
-  if (earfcn.size() > 0) {
-    cur_earfcn_index = -1;
-    log_h->console("Starting Cell Search procedure in %d EARFCNs...\n", earfcn.size());
-    log_h->info("Cell Search: Starting procedure...\n");
-    cell_search_next();
-  } else {
-    log_h->info("Empty EARFCN list. Stopping cell search...\n");
-    log_h->console("Empty EARFCN list. Stopping cell search...\n");
-  }
-}
-
-bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
-  free_cell();
-
-  int cnt=0;
-  while(phy_state == CELL_SEARCH && cnt<100) {
-    usleep(10000);
-    log_h->info("PHY in CELL_SEARCH. Waiting...\n");
-  }
-  if (phy_state==CELL_SEARCH) {
-    log_h->warning("PHY still in CELL_SEARCH, forcing CELL_SELECT...\n");
-  }
-  float dl_freq = 1e6*srslte_band_fd(earfcn);
-  float ul_freq = 1e6*srslte_band_fu(srslte_band_ul_earfcn(earfcn));
-  if (dl_freq >= 0 || ul_freq <= 0) {
-    log_h->info("Cell Select: Set EARFCN=%d, frequency=%.1f MHz, UL frequency=%.1f MHz\n", earfcn, dl_freq / 1e6,
-                ul_freq / 1e6);
-    radio_h->set_rx_freq(dl_freq);
-    radio_h->set_tx_freq(ul_freq);
-
-    ul_dl_factor = ul_freq/dl_freq;
-
-    cell_search_in_progress = false;
-    this->cell = cell;
-    if (init_cell()) {
-      phy_state = CELL_SELECT;
-      return true;
-    } else {
-      log_h->error("Cell Select: Initializing cell in EARFCN=%d, PCI=%d\n", earfcn, cell.id);
-    }
-  } else {
-    log_h->error("Cell Select: Invalid EARFCN=%d\n", earfcn);
-  }
-  return false;
 }
 
 
@@ -451,43 +378,185 @@ int phch_recv::cell_meas_rsrp() {
   return 0;
 }
 
+void phch_recv::resync_sfn() {
+  radio_h->stop_rx();
+  radio_h->start_rx();
+  srslte_ue_mib_reset(&ue_mib);
+  sync_sfn_cnt = 0;
+  phy_state = CELL_SELECT;
+}
+
+void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
+  this->earfcn = earfcn;
+}
+
+bool phch_recv::stop_sync() {
+  Info("SYNC:   Going to IDLE\n");
+  phy_state = IDLE;
+  int cnt=0;
+  while(!is_in_idle && cnt<100) {
+    usleep(10000);
+    cnt++;
+  }
+  return is_in_idle;
+}
+
+void phch_recv::cell_search_inc()
+{
+  cur_earfcn_index++;
+  Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
+  if (cur_earfcn_index >= 0) {
+    if (cur_earfcn_index >= (int) earfcn.size() - 1) {
+      cur_earfcn_index = 0;
+    }
+  }
+  if (current_earfcn != earfcn[cur_earfcn_index]) {
+    current_earfcn = earfcn[cur_earfcn_index];
+    set_frequency();
+  }
+}
+
+void phch_recv::cell_search_next() {
+  if (cell_search_in_progress) {
+    cell_search_in_progress = false;
+    if (!stop_sync()) {
+      log_h->warning("Couldn't stop sync\n");
+    }
+    cell_search_inc();
+    phy_state = CELL_SEARCH;
+    cell_search_in_progress = true;
+  }
+}
+
+void phch_recv::cell_search_start() {
+  if (earfcn.size() > 0) {
+    cell_search_in_progress = true;
+    cur_earfcn_index = -1;
+    cell_search_next();
+    log_h->console("Starting Cell Search procedure in %d EARFCNs...\n", earfcn.size());
+    log_h->info("Cell Search: Starting procedure...\n");
+  } else {
+    log_h->info("Empty EARFCN list. Stopping cell search...\n");
+    log_h->console("Empty EARFCN list. Stopping cell search...\n");
+  }
+}
+
+bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
+
+  // Check if we are already camping in this cell
+  if (earfcn == current_earfcn && this->cell.id == cell.id) {
+    log_h->info("Cell Select: Already in Cell EARFCN=%d\n", earfcn);
+      cell_search_in_progress = false;
+    if (srate_mode != SRATE_CAMP) {
+      set_sampling_rate();
+    }
+    if (phy_state != CELL_SELECT) {
+      resync_sfn();
+    }
+    return true;
+  } else {
+
+    cell_search_in_progress = false;
+
+    if (!stop_sync()) {
+      log_h->warning("Still not in idle\n");
+    }
+
+    current_earfcn = earfcn;
+
+    if (set_frequency()) {
+      this->cell = cell;
+      log_h->info("Cell Select: Configuring cell...\n");
+
+      if (set_cell()) {
+        log_h->info("Cell Select: Synchronizing on cell...\n");
+
+        resync_sfn();
+
+        usleep(500000); // Time offset we set start_rx to start receveing samples
+        return true;
+      } else {
+        log_h->error("Cell Select: Configuring cell in EARFCN=%d, PCI=%d\n", earfcn, cell.id);
+      }
+    }
+    return false;
+  }
+}
+
+bool phch_recv::set_frequency()
+{
+  float dl_freq = 1e6*srslte_band_fd(current_earfcn);
+  float ul_freq = 1e6*srslte_band_fu(srslte_band_ul_earfcn(current_earfcn));
+  if (dl_freq > 0 && ul_freq > 0) {
+    log_h->info("Set DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
+                current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
+
+    log_h->console("Tunning to EARFCN=%d, F_dl=%.1f MHz, F_ul=%.1f MHz\n",
+                current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
+
+    radio_h->set_rx_freq(dl_freq);
+    radio_h->set_tx_freq(ul_freq);
+    ul_dl_factor = ul_freq / dl_freq;
+
+    srslte_ue_sync_reset(&ue_sync);
+
+    return true;
+  } else {
+    log_h->error("Cell Search: Invalid EARFCN=%d\n", current_earfcn);
+    return false;
+  }
+}
+
+void phch_recv::set_sampling_rate()
+{
+  float srate = (float) srslte_sampling_freq_hz(cell.nof_prb);
+
+  if (30720 % ((int) srate / 1000) == 0) {
+    radio_h->set_master_clock_rate(30.72e6);
+  } else {
+    radio_h->set_master_clock_rate(23.04e6);
+  }
+
+  srate_mode = SRATE_CAMP;
+  radio_h->set_rx_srate(srate);
+  radio_h->set_tx_srate(srate);
+}
+
 void phch_recv::run_thread() {
   int sync_res;
   phch_worker *worker = NULL;
   cf_t *buffer[SRSLTE_MAX_PORTS];
+  phy_state  = IDLE;
+  is_in_idle = true;
+
   while (running) {
+    if (phy_state != IDLE) {
+      is_in_idle = false;
+      Debug("SYNC state=%d\n", phy_state);
+    }
     switch (phy_state) {
       case CELL_SEARCH:
-        if (cell_search()) {
-          init_cell();
-          float srate = (float) srslte_sampling_freq_hz(cell.nof_prb);
-
-          if (30720 % ((int) srate / 1000) == 0) {
-            radio_h->set_master_clock_rate(30.72e6);
-          } else {
-            radio_h->set_master_clock_rate(23.04e6);
+        if (cell_search() && cell_search_in_progress) {
+          if (!srslte_cell_isvalid(&cell)) {
+            Error("Detected invalid cell\n");
+            phy_state = IDLE;
+            break;
+          }
+          if (set_cell()) {
+            set_sampling_rate();
+            resync_sfn();
           }
 
-          log_h->info("Setting Sampling frequency %.2f MHz\n", (float) srate / 1000000);
-          srate_mode = SRATE_CAMP;
-          radio_h->set_rx_srate(srate);
-          radio_h->set_tx_srate(srate);
-
           Info("SYNC:  Cell found. Synchronizing...\n");
-          phy_state = CELL_SELECT;
-          sync_sfn_cnt = 0;
-          srslte_ue_mib_reset(&ue_mib);
+        } else {
+          if (cell_search_in_progress) {
+            cell_search_inc();
+          }
         }
         break;
       case CELL_SELECT:
 
         srslte_ue_sync_decode_sss_on_track(&ue_sync, true);
-
-        if (!radio_is_streaming) {
-          // Start streaming
-          radio_h->start_rx();
-          radio_is_streaming = true;
-        }
 
         switch (cell_sync_sfn()) {
           default:
@@ -511,17 +580,17 @@ void phch_recv::run_thread() {
         sync_sfn_cnt++;
         if (sync_sfn_cnt >= SYNC_SFN_TIMEOUT) {
           sync_sfn_cnt = 0;
-          radio_h->stop_rx();
-          radio_is_streaming = false;
-          log_h->console("Timeout while synchronizing SFN\n");
+          phy_state = IDLE;
           log_h->warning("Timeout while synchronizing SFN\n");
         }
         break;
       case CELL_MEASURE:
         switch(cell_meas_rsrp()) {
           case 1:
-            rrc->cell_found(earfcn[cur_earfcn_index], cell, 10*log10(measure_rsrp/1000));
             phy_state = CELL_CAMP;
+            rrc->cell_found(earfcn[cur_earfcn_index], cell, 10*log10(measure_rsrp/1000));
+            log_h->info("Measured OK. Camping on cell PCI=%d...\n", cell.id);
+            break;
           case 0:
             break;
           default:
@@ -579,13 +648,11 @@ void phch_recv::run_thread() {
               log_h->debug("Sending in-sync to RRC\n");
             }
           } else {
-            log_h->console("Sync error.\n");
             log_h->error("Sync error. Sending out-of-sync to RRC\n");
             // Notify RRC of out-of-sync frame
             rrc->out_of_sync();
             worker->release();
             worker_com->reset_ul();
-            phy_state = CELL_SELECT;
           }
         } else {
           // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
@@ -593,6 +660,10 @@ void phch_recv::run_thread() {
         }
         break;
       case IDLE:
+        if (!is_in_idle) {
+          radio_h->stop_rx();
+        }
+        is_in_idle = true;
         usleep(1000);
         break;
     }

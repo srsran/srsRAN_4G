@@ -29,6 +29,7 @@
 #include <complex.h>
 #include <math.h>
 #include <string.h>
+#include <srslte/phy/common/phy_common.h>
 
 
 #define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
@@ -39,61 +40,55 @@
 
 #define SRSLTE_ENB_RF_AMP 0.1
 
-int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell)
+int srslte_enb_dl_init(srslte_enb_dl_t *q, uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
-  if (q                 != NULL &&
-      srslte_cell_isvalid(&cell))   
+  if (q != NULL)
   {
     ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(srslte_enb_dl_t));
     
-    q->cell = cell;
-    q->cfi  = 3; 
+    q->cfi  = 3;
     q->tx_amp = SRSLTE_ENB_RF_AMP;
     
-    if (srslte_ofdm_tx_init(&q->ifft, q->cell.cp, q->cell.nof_prb)) {
+    if (srslte_ofdm_tx_init(&q->ifft, SRSLTE_CP_NORM, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
 
     srslte_ofdm_set_normalize(&q->ifft, true);
 
-    if (srslte_regs_init(&q->regs, q->cell)) {
-      fprintf(stderr, "Error initiating REGs\n");
-      goto clean_exit;
-    }
-    if (srslte_pbch_init(&q->pbch, q->cell)) {
+    if (srslte_pbch_init(&q->pbch)) {
       fprintf(stderr, "Error creating PBCH object\n");
       goto clean_exit;
     }
-    if (srslte_pcfich_init(&q->pcfich, &q->regs, q->cell)) {
+    if (srslte_pcfich_init(&q->pcfich)) {
       fprintf(stderr, "Error creating PCFICH object\n");
       goto clean_exit;
     }
-    if (srslte_phich_init(&q->phich, &q->regs, q->cell)) {
+    if (srslte_phich_init(&q->phich)) {
       fprintf(stderr, "Error creating PHICH object\n");
       goto clean_exit;
     }
 
-    if (srslte_pdcch_init(&q->pdcch, &q->regs, q->cell)) {
+    if (srslte_pdcch_init(&q->pdcch, max_prb)) {
       fprintf(stderr, "Error creating PDCCH object\n");
       goto clean_exit;
     }
 
-    if (srslte_pdsch_init(&q->pdsch, q->cell)) {
+    if (srslte_pdsch_init_enb(&q->pdsch, max_prb)) {
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
     
-    if (srslte_refsignal_cs_init(&q->csr_signal, q->cell)) {
+    if (srslte_refsignal_cs_init(&q->csr_signal, max_prb)) {
       fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
       goto clean_exit;
     }
     
-    for (int i=0;i<q->cell.nof_ports;i++) {
+    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
       q->sf_symbols[i] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
       if (!q->sf_symbols[i]) {
         perror("malloc");
@@ -102,15 +97,10 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell)
       q->slot1_symbols[i] = &q->sf_symbols[i][CURRENT_SLOTLEN_RE];
     }
     
-    /* Generate PSS/SSS signals */
-    srslte_pss_generate(q->pss_signal, cell.id%3);
-    srslte_sss_generate(q->sss_signal0, q->sss_signal5, cell.id);
-    
     ret = SRSLTE_SUCCESS;
     
   } else {
-    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
-            cell.id, cell.nof_ports, cell.nof_prb);      
+    fprintf(stderr, "Invalid parameters\n");
   }
 
 clean_exit: 
@@ -140,6 +130,71 @@ void srslte_enb_dl_free(srslte_enb_dl_t *q)
     bzero(q, sizeof(srslte_enb_dl_t));
   }  
 }
+
+int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q                 != NULL &&
+      srslte_cell_isvalid(&cell))
+  {
+    q->cfi  = 3;
+    q->tx_amp = SRSLTE_ENB_RF_AMP;
+
+    if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
+      if (q->cell.nof_prb) {
+        if (srslte_regs_init(&q->regs, q->cell)) {
+          fprintf(stderr, "Error initiating REGs\n");
+          return SRSLTE_ERROR;
+        }
+      }
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+
+      if (srslte_ofdm_rx_set_prb(&q->ifft, q->cell.cp, q->cell.nof_prb)) {
+        fprintf(stderr, "Error initiating FFT\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_pbch_set_cell(&q->pbch, q->cell)) {
+        fprintf(stderr, "Error creating PBCH object\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_pcfich_set_cell(&q->pcfich, &q->regs, q->cell)) {
+        fprintf(stderr, "Error creating PCFICH object\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_phich_set_cell(&q->phich, &q->regs, q->cell)) {
+        fprintf(stderr, "Error creating PHICH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pdcch_set_cell(&q->pdcch, &q->regs, q->cell)) {
+        fprintf(stderr, "Error creating PDCCH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pdsch_set_cell(&q->pdsch, q->cell)) {
+        fprintf(stderr, "Error creating PDSCH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_refsignal_cs_set_cell(&q->csr_signal, q->cell)) {
+        fprintf(stderr, "Error initializing CSR signal (%d)\n",ret);
+        return SRSLTE_ERROR;
+      }
+      /* Generate PSS/SSS signals */
+      srslte_pss_generate(q->pss_signal, cell.id%3);
+      srslte_sss_generate(q->sss_signal0, q->sss_signal5, cell.id);
+    }
+    ret = SRSLTE_SUCCESS;
+
+  } else {
+    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
+            cell.id, cell.nof_ports, cell.nof_prb);
+  }
+  return ret;
+}
+
+
 
 void srslte_enb_dl_set_amp(srslte_enb_dl_t *q, float amp)
 {

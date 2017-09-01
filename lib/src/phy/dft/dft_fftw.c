@@ -29,6 +29,7 @@
 #include <complex.h>
 #include <fftw3.h>
 #include <string.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/dft/dft.h"
 #include "srslte/phy/utils/vector.h"
@@ -46,9 +47,39 @@ int srslte_dft_plan(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_di
   return 0;
 }
 
+int srslte_dft_replan(srslte_dft_plan_t *plan, const int new_dft_points) {
+  if (new_dft_points <= plan->init_size) {
+    if(plan->mode == SRSLTE_DFT_COMPLEX){
+      return srslte_dft_replan_c(plan,new_dft_points);
+    } else {
+      return srslte_dft_replan_r(plan,new_dft_points);
+    }
+  } else {
+    fprintf(stderr, "DFT: Error calling replan: new_dft_points (%d) must be lower or equal "
+      "dft_size passed initially (%d)\n", new_dft_points, plan->init_size);
+    return -1;
+  }
+}
+
+
+
 static void allocate(srslte_dft_plan_t *plan, int size_in, int size_out, int len) {
   plan->in = fftwf_malloc(size_in*len);
   plan->out = fftwf_malloc(size_out*len);
+}
+
+int srslte_dft_replan_c(srslte_dft_plan_t *plan, const int new_dft_points) {
+  int sign = (plan->dir == SRSLTE_DFT_FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
+  if (plan->p) {
+    fftwf_destroy_plan(plan->p);
+    plan->p = NULL;
+  }
+  plan->p = fftwf_plan_dft_1d(new_dft_points, plan->in, plan->out, sign, 0U);
+  if (!plan->p) {
+    return -1;
+  }
+  plan->size = new_dft_points;
+  return 0;
 }
 
 int srslte_dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir) {
@@ -59,6 +90,7 @@ int srslte_dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_
     return -1;
   }
   plan->size = dft_points;
+  plan->init_size = plan->size;
   plan->mode = SRSLTE_DFT_COMPLEX;
   plan->dir = dir;
   plan->forward = (dir==SRSLTE_DFT_FORWARD)?true:false;
@@ -70,6 +102,20 @@ int srslte_dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_
   return 0;
 }
 
+int srslte_dft_replan_r(srslte_dft_plan_t *plan, const int new_dft_points) {
+  int sign = (plan->dir == SRSLTE_DFT_FORWARD) ? FFTW_R2HC : FFTW_HC2R;
+  if (plan->p) {
+    fftwf_destroy_plan(plan->p);
+    plan->p = NULL;
+  }
+  plan->p = fftwf_plan_r2r_1d(new_dft_points, plan->in, plan->out, sign, 0U);
+  if (!plan->p) {
+    return -1;
+  }
+  plan->size = new_dft_points;
+  return 0;
+}
+
 int srslte_dft_plan_r(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir) {
   allocate(plan,sizeof(float),sizeof(float), dft_points);
   int sign = (dir == SRSLTE_DFT_FORWARD) ? FFTW_R2HC : FFTW_HC2R;
@@ -78,6 +124,7 @@ int srslte_dft_plan_r(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_
     return -1;
   }
   plan->size = dft_points;
+  plan->init_size = plan->size;
   plan->mode = SRSLTE_REAL;
   plan->dir = dir;
   plan->forward = (dir==SRSLTE_DFT_FORWARD)?true:false;

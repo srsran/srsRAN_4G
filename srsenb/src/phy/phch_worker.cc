@@ -93,17 +93,22 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     fprintf(stderr, "Error allocating memory\n");
     return; 
   }
-  if (srslte_enb_dl_init(&enb_dl, phy->cell)) {
+  if (srslte_enb_dl_init(&enb_dl, phy->cell.nof_prb)) {
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
-  
-  if (srslte_enb_ul_init(&enb_ul, 
-                          phy->cell, 
-                          NULL, 
-                          &phy->pusch_cfg, 
-                          &phy->hopping_cfg,
-                          &phy->pucch_cfg)) 
+  if (srslte_enb_dl_set_cell(&enb_dl, phy->cell)) {
+    fprintf(stderr, "Error initiating ENB DL\n");
+    return;
+  }
+  srslte_enb_ul_init(&enb_ul, phy->cell.nof_prb);
+
+  if (srslte_enb_ul_set_cell(&enb_ul,
+                              phy->cell,
+                              NULL,
+                              &phy->pusch_cfg,
+                              &phy->hopping_cfg,
+                              &phy->pucch_cfg))
   {
     fprintf(stderr, "Error initiating ENB DL\n");
     return;

@@ -227,7 +227,11 @@ void base_init() {
     exit(-1);
   }
   srslte_ofdm_set_normalize(&ifft, true);
-  if (srslte_pbch_init(&pbch, cell)) {
+  if (srslte_pbch_init(&pbch)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
+  if (srslte_pbch_set_cell(&pbch, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
@@ -237,7 +241,11 @@ void base_init() {
     exit(-1);
   }
 
-  if (srslte_pcfich_init(&pcfich, &regs, cell)) {
+  if (srslte_pcfich_init(&pcfich)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    exit(-1);
+  }
+  if (srslte_pcfich_set_cell(&pcfich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }
@@ -247,16 +255,24 @@ void base_init() {
     exit(-1);
   }
 
-  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init(&pdcch, cell.nof_prb)) {
+    fprintf(stderr, "Error creating PDCCH object\n");
+    exit(-1);
+  }
+  if (srslte_pdcch_set_cell(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }
 
-  if (srslte_pdsch_init(&pdsch, cell)) {
+  if (srslte_pdsch_init_enb(&pdsch, cell.nof_prb)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
-  
+  if (srslte_pdsch_set_cell(&pdsch, cell)) {
+    fprintf(stderr, "Error creating PDSCH object\n");
+    exit(-1);
+  }
+
   srslte_pdsch_set_rnti(&pdsch, UE_CRNTI);
   
   if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
@@ -492,7 +508,11 @@ int main(int argc, char **argv) {
   srslte_sss_generate(sss_signal0, sss_signal5, cell.id);
   
   /* Generate CRS signals */
-  if (srslte_chest_dl_init(&est, cell)) {
+  if (srslte_chest_dl_init(&est, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    exit(-1);
+  }
+  if (srslte_chest_dl_set_cell(&est, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     exit(-1);
   }

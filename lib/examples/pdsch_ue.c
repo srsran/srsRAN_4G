@@ -455,23 +455,42 @@ int main(int argc, char **argv) {
              //ue_sync.decimate = prog_args.decimate;
           }
       }
-    if (srslte_ue_sync_init_multi_decim(&ue_sync, cell, srslte_rf_recv_wrapper, prog_args.rf_nof_rx_ant, (void*) &rf,decimate)) {
+    if (srslte_ue_sync_init_multi_decim(&ue_sync,
+                                        cell.nof_prb,
+                                        cell.id==1000,
+                                        srslte_rf_recv_wrapper,
+                                        prog_args.rf_nof_rx_ant,
+                                        (void*) &rf,decimate))
+    {
       fprintf(stderr, "Error initiating ue_sync\n");
       exit(-1); 
+    }
+    if (srslte_ue_sync_set_cell(&ue_sync, cell))
+    {
+      fprintf(stderr, "Error initiating ue_sync\n");
+      exit(-1);
     }
 #endif
   }
 
-  if (srslte_ue_mib_init(&ue_mib, cell)) {
+  if (srslte_ue_mib_init(&ue_mib, cell.nof_prb)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
     exit(-1);
-  }    
+  }
+  if (srslte_ue_mib_set_cell(&ue_mib, cell)) {
+    fprintf(stderr, "Error initaiting UE MIB decoder\n");
+    exit(-1);
+  }
 
-  if (srslte_ue_dl_init_multi(&ue_dl, cell, prog_args.rf_nof_rx_ant)) {  // This is the User RNTI
+  if (srslte_ue_dl_init_multi(&ue_dl, cell.nof_prb, prog_args.rf_nof_rx_ant)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
-  
+  if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+    fprintf(stderr, "Error initiating UE downlink processing module\n");
+    exit(-1);
+  }
+
   for (int i=0;i<prog_args.rf_nof_rx_ant;i++) {
     sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
   }

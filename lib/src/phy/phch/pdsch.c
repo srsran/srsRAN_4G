@@ -33,6 +33,8 @@
 #include <assert.h>
 #include <math.h>
 #include <srslte/phy/phch/pdsch.h>
+#include <srslte/phy/phch/pdsch_cfg.h>
+#include <srslte/phy/phch/ra.h>
 
 #include "prb_dl.h"
 #include "srslte/phy/phch/pdsch.h"
@@ -203,31 +205,23 @@ int srslte_pdsch_get(srslte_pdsch_t *q, cf_t *sf_symbols, cf_t *symbols,
   return srslte_pdsch_cp(q, sf_symbols, symbols, grant, lstart, subframe, false);
 }
 
-int srslte_pdsch_init(srslte_pdsch_t *q, srslte_cell_t cell) 
-{
-  return srslte_pdsch_init_multi(q, cell, 1);
-}
-
 /** Initializes the PDCCH transmitter and receiver */
-int srslte_pdsch_init_multi(srslte_pdsch_t *q, srslte_cell_t cell, uint32_t nof_rx_antennas) 
+int pdsch_init_multi(srslte_pdsch_t *q, uint32_t max_prb, uint32_t nof_rx_antennas, bool is_ue)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   int i;
 
  if (q != NULL                  &&
-     srslte_cell_isvalid(&cell) && 
-     nof_rx_antennas <= SRSLTE_MAX_PORTS) 
+     nof_rx_antennas <= SRSLTE_MAX_PORTS)
   {   
     
     bzero(q, sizeof(srslte_pdsch_t));
     ret = SRSLTE_ERROR;
     
-    q->cell = cell;
-    q->max_re = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
+    q->max_re = max_prb * MAX_PDSCH_RE(q->cell.cp);
     q->nof_rx_antennas = nof_rx_antennas; 
     
-    INFO("Init PDSCH: %d ports %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
-        q->cell.nof_prb, q->max_re);
+    INFO("Init PDSCH: %d PRBs, max_symbols: %d\n", max_prb, q->max_re);
 
     for (i = 0; i < 4; i++) {
       if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
@@ -249,15 +243,17 @@ int srslte_pdsch_init_multi(srslte_pdsch_t *q, srslte_cell_t cell, uint32_t nof_
       goto clean;
     }
 
-    for (i = 0; i < q->cell.nof_ports; i++) {
+    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
       if (!q->x[i]) {
         goto clean;
       }
-      for (int j=0;j<q->nof_rx_antennas;j++) {
-        q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
-        if (!q->ce[i][j]) {
-          goto clean;
+      if (is_ue) {
+        for (int j=0;j<q->nof_rx_antennas;j++) {
+          q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+          if (!q->ce[i][j]) {
+            goto clean;
+          }
         }
       }
     }
@@ -267,13 +263,18 @@ int srslte_pdsch_init_multi(srslte_pdsch_t *q, srslte_cell_t cell, uint32_t nof_
         goto clean;
       }              
     }
-    
-    q->users = calloc(sizeof(srslte_pdsch_user_t*), 1+SRSLTE_SIRNTI);
+
+    q->is_ue = is_ue;
+    q->users = calloc(sizeof(srslte_pdsch_user_t*), is_ue?1:(1+SRSLTE_SIRNTI));
     if (!q->users) {
       perror("malloc");
       goto clean;
     }
-    
+
+    if (srslte_sequence_init(&q->tmp_seq, q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
+      goto clean;
+    }
+
     ret = SRSLTE_SUCCESS;
   }
   clean: 
@@ -282,6 +283,27 @@ int srslte_pdsch_init_multi(srslte_pdsch_t *q, srslte_cell_t cell, uint32_t nof_
   }
   return ret;
 }
+
+int srslte_pdsch_init_ue(srslte_pdsch_t *q, uint32_t max_prb)
+{
+  return pdsch_init_multi(q, max_prb, 1, true);
+}
+
+int srslte_pdsch_init_enb(srslte_pdsch_t *q, uint32_t max_prb)
+{
+  return pdsch_init_multi(q, max_prb, 1, false);
+}
+
+int srslte_pdsch_init_multi_ue(srslte_pdsch_t *q, uint32_t max_prb, uint32_t nof_rx_antennas)
+{
+  return pdsch_init_multi(q, max_prb, nof_rx_antennas, true);
+}
+
+int srslte_pdsch_init_multi_enb(srslte_pdsch_t *q, uint32_t max_prb, uint32_t nof_rx_antennas)
+{
+  return pdsch_init_multi(q, max_prb, nof_rx_antennas, false);
+}
+
 
 void srslte_pdsch_free(srslte_pdsch_t *q) {
   int i;
@@ -292,7 +314,7 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
   if (q->d) {
     free(q->d);
   }
-  for (i = 0; i < q->cell.nof_ports; i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     if (q->x[i]) {
       free(q->x[i]);
     }
@@ -308,13 +330,20 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
     }          
   }
   if (q->users) {
-    for (uint16_t u=0;u<SRSLTE_SIRNTI;u++) {
-      if (q->users[u]) {
-        srslte_pdsch_free_rnti(q, u);
+    if (q->is_ue) {
+      srslte_pdsch_free_rnti(q, 0);
+    } else {
+      for (uint16_t u=0;u<SRSLTE_SIRNTI;u++) {
+        if (q->users[u]) {
+          srslte_pdsch_free_rnti(q, u);
+        }
       }
-    }      
+    }
     free(q->users);
   }
+
+  srslte_sequence_free(&q->tmp_seq);
+
   for (i = 0; i < 4; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
@@ -323,6 +352,24 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
 
   bzero(q, sizeof(srslte_pdsch_t));
 
+}
+
+int srslte_pdsch_set_cell(srslte_pdsch_t *q, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL                  &&
+      srslte_cell_isvalid(&cell))
+  {
+    memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+    q->max_re = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
+
+    INFO("PDSCH: Cell config PCI=%d, %d ports, %d PRBs, max_symbols: %d\n", q->cell.nof_ports,
+         q->cell.id, q->cell.nof_prb, q->max_re);
+
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
 }
 
 /* Configures the structure srslte_pdsch_cfg_t from the DL DCI allocation dci_msg. 
@@ -353,17 +400,19 @@ int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_g
  * to execute, so shall be called once the final C-RNTI has been allocated for the session.
  */
 int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
-  uint32_t i;  
-  if (!q->users[rnti]) {
-    q->users[rnti] = calloc(1, sizeof(srslte_pdsch_user_t));
-    if (q->users[rnti]) {
+  uint32_t i;
+  uint32_t rnti_idx = q->is_ue?0:rnti;
+
+  if (!q->users[rnti_idx]) {
+    q->users[rnti_idx] = calloc(1, sizeof(srslte_pdsch_user_t));
+    if (q->users[rnti_idx]) {
       for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-        if (srslte_sequence_pdsch(&q->users[rnti]->seq[i], rnti, 0, 2 * i, q->cell.id,
+        if (srslte_sequence_pdsch(&q->users[rnti_idx]->seq[i], rnti, 0, 2 * i, q->cell.id,
             q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
           return SRSLTE_ERROR; 
         }
       }
-      q->users[rnti]->sequence_generated = true;
+      q->users[rnti_idx]->sequence_generated = true;
     }
   }
   return SRSLTE_SUCCESS;
@@ -371,12 +420,13 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
 
 void srslte_pdsch_free_rnti(srslte_pdsch_t* q, uint16_t rnti)
 {
-  if (q->users[rnti]) {
+  uint32_t rnti_idx = q->is_ue?0:rnti;
+  if (q->users[rnti_idx]) {
     for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-      srslte_sequence_free(&q->users[rnti]->seq[i]);
+      srslte_sequence_free(&q->users[rnti_idx]->seq[i]);
     }
-    free(q->users[rnti]);
-    q->users[rnti] = NULL; 
+    free(q->users[rnti_idx]);
+    q->users[rnti_idx] = NULL;
   }
 }
 
@@ -393,6 +443,17 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
     _ce[i][0] = ce[i]; 
   }
   return srslte_pdsch_decode_multi(q, cfg, softbuffer, _sf_symbols, _ce, noise_estimate, rnti, data); 
+}
+
+static srslte_sequence_t *get_user_sequence(srslte_pdsch_t *q, uint16_t rnti, uint32_t sf_idx, uint32_t len)
+{
+  uint32_t rnti_idx = q->is_ue?0:rnti;
+  if (q->users[rnti_idx] && q->users[rnti_idx]->sequence_generated) {
+    return &q->users[rnti_idx]->seq[sf_idx];
+  } else {
+    srslte_sequence_pdsch(&q->tmp_seq, rnti, 0, 2 * sf_idx, q->cell.id, len);
+    return &q->tmp_seq;
+  }
 }
 
 /** Decodes the PDSCH from the received symbols
@@ -412,7 +473,7 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
       data         != NULL && 
       cfg          != NULL)
   {
-    
+
     INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, Mod %s, TBS: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d, C_prb=%d\n",
         cfg->sf_idx, rnti, srslte_mod_string(cfg->grant.mcs.mod), cfg->grant.mcs.tbs, cfg->nbits.nof_re, 
          cfg->nbits.nof_bits, cfg->rv, cfg->grant.nof_prb);
@@ -467,25 +528,19 @@ int srslte_pdsch_decode_multi(srslte_pdsch_t *q,
     * thus we don't need tot set it in the LLRs normalization
     */
     srslte_demod_soft_demodulate_s(cfg->grant.mcs.mod, q->d, q->e, cfg->nbits.nof_re);
-    
-    /* descramble */
-    if (q->users[rnti] && q->users[rnti]->sequence_generated) {
-      srslte_scrambling_s_offset(&q->users[rnti]->seq[cfg->sf_idx], q->e, 0, cfg->nbits.nof_bits);
-    } else {
-      srslte_sequence_t seq;
-      if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
-        return SRSLTE_ERROR;
-      }
-      srslte_scrambling_s_offset(&seq, q->e, 0, cfg->nbits.nof_bits);
-      srslte_sequence_free(&seq);
-    }
+
+    // Generate scrambling sequence if not pre-generated
+    srslte_sequence_t *seq = get_user_sequence(q, rnti, cfg->sf_idx, cfg->nbits.nof_bits);
+
+    // Run scrambling
+    srslte_scrambling_s_offset(seq, q->e, 0, cfg->nbits.nof_bits);
 
     if (SRSLTE_VERBOSE_ISDEBUG()) {
       DEBUG("SAVED FILE llr.dat: LLR estimates after demodulation and descrambling\n",0);
       srslte_vec_save_file("llr.dat", q->e, cfg->nbits.nof_bits*sizeof(int16_t));
     }
 
-    return srslte_dlsch_decode(&q->dl_sch, cfg, softbuffer, q->e, data);      
+    return srslte_dlsch_decode(&q->dl_sch, cfg, softbuffer, q->e, data);
     
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;
@@ -538,18 +593,11 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
       return SRSLTE_ERROR;
     }
 
-    /* scramble */
-    if (q->users[rnti] && q->users[rnti]->sequence_generated) {
-      srslte_scrambling_bytes(&q->users[rnti]->seq[cfg->sf_idx], (uint8_t*) q->e, cfg->nbits.nof_bits);
-    } else {
-      srslte_sequence_t seq;
-      if (srslte_sequence_pdsch(&seq, rnti, 0, 2 * cfg->sf_idx, q->cell.id, cfg->nbits.nof_bits)) {
-        return SRSLTE_ERROR;
-      }
-      srslte_scrambling_bytes(&seq, (uint8_t*) q->e, cfg->nbits.nof_bits);
-      srslte_sequence_free(&seq);
-    }
-    
+    // Generate scrambling sequence if not pre-generated
+    srslte_sequence_t *seq = get_user_sequence(q, rnti, cfg->sf_idx, cfg->nbits.nof_bits);
+
+    srslte_scrambling_bytes(seq, (uint8_t*) q->e, cfg->nbits.nof_bits);
+
     srslte_mod_modulate_bytes(&q->mod[cfg->grant.mcs.mod], (uint8_t*) q->e, q->d, cfg->nbits.nof_bits);
     
     /* TODO: only diversity supported */

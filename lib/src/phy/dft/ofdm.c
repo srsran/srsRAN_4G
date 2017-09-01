@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <complex.h>
 #include <math.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/dft/dft.h"
@@ -48,6 +49,12 @@ int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_p
     return -1;
   }
 
+  q->shift_buffer = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN(symbol_sz));
+  if (!q->shift_buffer) {
+    perror("malloc");
+    return -1;
+  }
+
   srslte_dft_plan_set_mirror(&q->fft_plan, true);
   srslte_dft_plan_set_dc(&q->fft_plan, true);
 
@@ -55,7 +62,6 @@ int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_p
   q->nof_symbols = SRSLTE_CP_NSYMB(cp);
   q->cp = cp;
   q->freq_shift = false;
-  q->shift_buffer = NULL; 
   q->nof_re = nof_prb * SRSLTE_NRE;
   q->nof_guards = ((symbol_sz - q->nof_re) / 2);
   q->slot_sz = SRSLTE_SLOT_LEN(symbol_sz);
@@ -63,6 +69,32 @@ int srslte_ofdm_init_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_p
   DEBUG("Init %s symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
       dir==SRSLTE_DFT_FORWARD?"FFT":"iFFT", q->symbol_sz, q->nof_symbols,
           q->cp==SRSLTE_CP_NORM?"Normal":"Extended", q->nof_re, q->nof_guards);
+
+  return SRSLTE_SUCCESS;
+}
+
+
+int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_prb) {
+
+  if (srslte_dft_replan_c(&q->fft_plan, symbol_sz)) {
+    fprintf(stderr, "Error: Creating DFT plan\n");
+    return -1;
+  }
+
+  q->symbol_sz = (uint32_t) symbol_sz;
+  q->nof_symbols = SRSLTE_CP_NSYMB(cp);
+  q->cp = cp;
+  q->nof_re = nof_prb * SRSLTE_NRE;
+  q->nof_guards = ((symbol_sz - q->nof_re) / 2);
+  q->slot_sz = SRSLTE_SLOT_LEN(symbol_sz);
+
+  if (q->freq_shift) {
+    srslte_ofdm_set_freq_shift(q, q->freq_shift_f);
+  }
+
+  DEBUG("Replan symbol_sz=%d, nof_symbols=%d, cp=%s, nof_re=%d, nof_guards=%d\n",
+        q->symbol_sz, q->nof_symbols,
+        q->cp==SRSLTE_CP_NORM?"Normal":"Extended", q->nof_re, q->nof_guards);
 
   return SRSLTE_SUCCESS;
 }
@@ -78,30 +110,28 @@ void srslte_ofdm_free_(srslte_ofdm_t *q) {
   bzero(q, sizeof(srslte_ofdm_t));
 }
 
-int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
-  int symbol_sz = srslte_symbol_sz(nof_prb);
+int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t max_prb) {
+  int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+    fprintf(stderr, "Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
-  return srslte_ofdm_init_(q, cp, symbol_sz, nof_prb, SRSLTE_DFT_FORWARD);
+  q->max_prb = max_prb;
+  return srslte_ofdm_init_(q, cp, symbol_sz, max_prb, SRSLTE_DFT_FORWARD);
 }
 
-void srslte_ofdm_rx_free(srslte_ofdm_t *q) {
-  srslte_ofdm_free_(q);
-}
-
-int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
+int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t max_prb) {
   uint32_t i;
   int ret;
   
-  int symbol_sz = srslte_symbol_sz(nof_prb);
+  int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+    fprintf(stderr, "Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
+  q->max_prb = max_prb;
 
-  ret = srslte_ofdm_init_(q, cp, symbol_sz, nof_prb, SRSLTE_DFT_BACKWARD); 
+  ret = srslte_ofdm_init_(q, cp, symbol_sz, max_prb, SRSLTE_DFT_BACKWARD);
   
   if (ret == SRSLTE_SUCCESS) {
     srslte_dft_plan_set_norm(&q->fft_plan, false);
@@ -115,16 +145,57 @@ int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   return ret;
 }
 
+int srslte_ofdm_rx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
+  if (nof_prb <= q->max_prb) {
+    int symbol_sz = srslte_symbol_sz(nof_prb);
+    if (symbol_sz < 0) {
+      fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+      return -1;
+    }
+    return srslte_ofdm_replan_(q, cp, symbol_sz, nof_prb);
+  } else {
+    fprintf(stderr, "OFDM: Error calling set_prb: nof_prb must be equal or lower initialized max_prb\n");
+    return -1;
+  }
+}
+
+int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
+  uint32_t i;
+  int ret;
+
+  if (nof_prb <= q->max_prb) {
+    int symbol_sz = srslte_symbol_sz(nof_prb);
+    if (symbol_sz < 0) {
+      fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+      return -1;
+    }
+
+    ret = srslte_ofdm_replan_(q, cp, symbol_sz, nof_prb);
+
+    if (ret == SRSLTE_SUCCESS) {
+      /* set now zeros at CP */
+      for (i=0;i<q->nof_symbols;i++) {
+        bzero(q->tmp, q->nof_guards * sizeof(cf_t));
+        bzero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards * sizeof(cf_t));
+      }
+    }
+    return ret;
+  } else {
+    fprintf(stderr, "OFDM: Error calling set_prb: nof_prb must be equal or lower initialized max_prb\n");
+    return -1;
+  }
+}
+
+
+void srslte_ofdm_rx_free(srslte_ofdm_t *q) {
+  srslte_ofdm_free_(q);
+}
+
 /* Shifts the signal after the iFFT or before the FFT. 
  * Freq_shift is relative to inter-carrier spacing.
  * Caution: This function shall not be called during run-time 
  */
 int srslte_ofdm_set_freq_shift(srslte_ofdm_t *q, float freq_shift) {
-  q->shift_buffer = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN(q->symbol_sz));
-  if (!q->shift_buffer) {
-    perror("malloc");
-    return -1; 
-  }
   cf_t *ptr = q->shift_buffer;
   for (uint32_t n=0;n<2;n++) {
     for (uint32_t i=0;i<q->nof_symbols;i++) {
@@ -140,7 +211,7 @@ int srslte_ofdm_set_freq_shift(srslte_ofdm_t *q, float freq_shift) {
   srslte_dft_plan_set_dc(&q->fft_plan, false);  
  
   q->freq_shift = true;
-  
+  q->freq_shift_f = freq_shift;
   return SRSLTE_SUCCESS;
 }
 

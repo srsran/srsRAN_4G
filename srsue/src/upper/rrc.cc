@@ -156,31 +156,21 @@ void rrc::plmn_search() {
   rrc_log->info("Starting PLMN search procedure\n");
   state = RRC_STATE_PLMN_SELECTION;
   phy->cell_search_start();
+  plmn_select_timeout = 0;
 }
 
 void rrc::plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
   rrc_log->info("PLMN %s selected\n", plmn_id_to_c_str(plmn_id).c_str());
 
-  state = RRC_STATE_CELL_SELECTING;
 
   // Sort cells according to RSRP
 
   selected_plmn_id = plmn_id;
   last_selected_cell = -1;
+  select_cell_timeout = 0;
 
+  state = RRC_STATE_CELL_SELECTING;
   select_next_cell_in_plmn();
-}
-
-void rrc::connect() {
-  pthread_mutex_lock(&mutex);
-  if (RRC_STATE_CELL_SELECTED == state) {
-    rrc_log->info("RRC in IDLE state - sending connection request.\n");
-    state = RRC_STATE_CONNECTING;
-    send_con_request();
-  } else {
-    rrc_log->warning("Received connect() but cell is not selected\n");
-  }
-  pthread_mutex_unlock(&mutex);
 }
 
 void rrc::select_next_cell_in_plmn() {
@@ -196,25 +186,8 @@ void rrc::select_next_cell_in_plmn() {
                       known_cells[i].sib1.cell_id);
         // Check that cell satisfies S criteria
         if (phy->cell_select(known_cells[i].earfcn, known_cells[i].phy_cell)) {
-          // Give time to the PHY to sync on the new cell
-          int cnt=0;
-          while(!phy->sync_status() && cnt<100) {
-            usleep(1000);
-            cnt++;
-          }
-          if (phy->sync_status()) {
-            if (!known_cells[i].has_valid_sib1) {
-              si_acquire_state = SI_ACQUIRE_SIB1;
-            } else if (!known_cells[i].has_valid_sib2) {
-              si_acquire_state = SI_ACQUIRE_SIB2;
-            } else {
-              si_acquire_state = SI_ACQUIRE_IDLE;
-            }
-            last_selected_cell = i;
-          } else {
-            rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x: Could not synchronize\n",
-                           known_cells[i].earfcn, known_cells[i].sib1.cell_id);
-          }
+          last_selected_cell = i;
+          current_cell = &known_cells[i];
           return;
         } else {
           rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x.\n",
@@ -223,6 +196,7 @@ void rrc::select_next_cell_in_plmn() {
       }
     }
   }
+  rrc_log->info("No more known cells...\n");
 }
 
 /*******************************************************************************
@@ -238,6 +212,14 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
       current_cell = &known_cells[i];
       rrc_log->info("Updating cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n", known_cells[i].earfcn,
                     known_cells[i].phy_cell.id, known_cells[i].rsrp);
+
+      if (!known_cells[i].has_valid_sib1) {
+        si_acquire_state = SI_ACQUIRE_SIB1;
+      } else {
+        for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
+          nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
+        }
+      }
       return;
     }
   }
@@ -332,6 +314,12 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 
       current_cell->has_valid_sib1 = true;
 
+      // Send PLMN and TAC to NAS
+      std::stringstream ss;
+      for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
+        nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
+      }
+
       // Jump to next state
       switch(state) {
         case RRC_STATE_CELL_SELECTING:
@@ -345,12 +333,6 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
           break;
         default:
           si_acquire_state = SI_ACQUIRE_IDLE;
-      }
-
-      // Send PLMN and TAC to NAS
-      std::stringstream ss;
-      for (uint32_t i = 0; i < current_cell->sib1.N_plmn_ids; i++) {
-        nas->plmn_found(current_cell->sib1.plmn_id[i].id, current_cell->sib1.tracking_area_code);
       }
 
     } else if (LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2 == dlsch_msg.sibs[0].sib_type &&
@@ -370,12 +352,10 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
         case RRC_STATE_CELL_SELECTING:
           si_acquire_state = SI_ACQUIRE_IDLE;
           state = RRC_STATE_CELL_SELECTED;
-          nas->cell_selected();
           break;
         default:
           si_acquire_state = SI_ACQUIRE_IDLE;
       }
-
     }
   }
 }
@@ -384,7 +364,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
 // Right now, this thread only controls System Information acquisition procedure
 void rrc::run_thread() {
   uint32_t tti;
-  uint32_t si_win_start, si_win_len;
+  uint32_t si_win_start=0, si_win_len=0, last_win_start=0;
   uint16_t period;
   uint32_t nof_sib1_trials = 0;
   const int SIB1_SEARCH_TIMEOUT = 30;
@@ -395,32 +375,94 @@ void rrc::run_thread() {
         // Instruct MAC to look for SIB1
         tti = mac->get_current_tti();
         si_win_start = sib_start_tti(tti, 2, 5);
-        mac->bcch_start_rx(si_win_start, 1);
-        rrc_log->debug("Instructed MAC to search for SIB1, win_start=%d, win_len=%d\n",
-                       si_win_start, 1);
-        nof_sib1_trials++;
-        if (nof_sib1_trials >= SIB1_SEARCH_TIMEOUT) {
-          if (state == RRC_STATE_CELL_SELECTING) {
-            select_next_cell_in_plmn();
-            si_acquire_state = SI_ACQUIRE_IDLE;
-          } else if (state == RRC_STATE_PLMN_SELECTION) {
-            phy->cell_search_next();
+        if (tti > last_win_start + 10) {
+          last_win_start = si_win_start;
+          mac->bcch_start_rx(si_win_start, 1);
+          rrc_log->debug("Instructed MAC to search for SIB1, win_start=%d, win_len=%d\n",
+                         si_win_start, 1);
+          nof_sib1_trials++;
+          if (nof_sib1_trials >= SIB1_SEARCH_TIMEOUT) {
+            if (state == RRC_STATE_CELL_SELECTING) {
+              select_next_cell_in_plmn();
+              si_acquire_state = SI_ACQUIRE_IDLE;
+            } else if (state == RRC_STATE_PLMN_SELECTION) {
+              phy->cell_search_next();
+            }
+            nof_sib1_trials = 0;
           }
-          nof_sib1_trials = 0;
         }
-        usleep(20000);
         break;
       case SI_ACQUIRE_SIB2:
         // Instruct MAC to look for SIB2 only when selecting a cell
         tti = mac->get_current_tti();
         period = liblte_rrc_si_periodicity_num[current_cell->sib1.sched_info[0].si_periodicity];
         si_win_start = sib_start_tti(tti, period, 0);
-        si_win_len = liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length];
+        if (tti > last_win_start + 10) {
+          last_win_start = si_win_start;
+          si_win_len = liblte_rrc_si_window_length_num[current_cell->sib1.si_window_length];
 
-        mac->bcch_start_rx(si_win_start, si_win_len);
-        rrc_log->debug("Instructed MAC to search for SIB2, win_start=%d, win_len=%d\n",
-                       si_win_start, si_win_len);
-        usleep(current_cell->sib1.si_window_length*1000);
+          mac->bcch_start_rx(si_win_start, si_win_len);
+          rrc_log->debug("Instructed MAC to search for SIB2, win_start=%d, win_len=%d\n",
+                         si_win_start, si_win_len);
+        }
+        break;
+      default:
+        break;
+    }
+    switch(state) {
+      case RRC_STATE_IDLE:
+        if (nas->is_attached()) {
+          usleep(100000);
+          rrc_log->info("RRC IDLE: NAS is attached, re-selecting cell...\n");
+          plmn_select(selected_plmn_id);
+        }
+        break;
+      case RRC_STATE_PLMN_SELECTION:
+        plmn_select_timeout++;
+        if (plmn_select_timeout >= RRC_PLMN_SELECT_TIMEOUT) {
+          rrc_log->info("RRC PLMN Search: timeout expired. Searching again\n");
+          sleep(1);
+          rrc_log->console("RRC PLMN Search: timeout expired. Searching again\n");
+          plmn_select_timeout = 0;
+          phy->cell_search_start();
+        }
+        break;
+      case RRC_STATE_CELL_SELECTING:
+        if (phy->sync_status()) {
+          if (!current_cell->has_valid_sib1) {
+            si_acquire_state = SI_ACQUIRE_SIB1;
+          } else if (!current_cell->has_valid_sib2) {
+            si_acquire_state = SI_ACQUIRE_SIB2;
+          } else {
+            apply_sib2_configs(&current_cell->sib2);
+            si_acquire_state = SI_ACQUIRE_IDLE;
+            state = RRC_STATE_CELL_SELECTED;
+          }
+        }
+        select_cell_timeout++;
+        if (select_cell_timeout >= RRC_SELECT_CELL_TIMEOUT) {
+          rrc_log->info("RRC Cell Selecting: timeout expired. Starting Cell Search...\n");
+          state = RRC_STATE_PLMN_SELECTION;
+          plmn_select_timeout = 0;
+          phy->cell_search_start();
+        }
+        break;
+      case RRC_STATE_CELL_SELECTED:
+        rrc_log->info("RRC Cell Selected: Sending connection request...\n");
+        send_con_request();
+        state = RRC_STATE_CONNECTING;
+        connecting_timeout = 0;
+        break;
+      case RRC_STATE_CONNECTING:
+        connecting_timeout++;
+        if (connecting_timeout >= RRC_CONNECTING_TIMEOUT) {
+          // Select another cell
+          rrc_log->info("RRC Connecting: timeout expired. Selecting next cell\n");
+          state = RRC_STATE_CELL_SELECTING;
+        }
+        break;
+      case RRC_STATE_CONNECTED:
+        // Take measurements, cell reselection, etc
         break;
       default:
         break;
@@ -436,26 +478,6 @@ void rrc::run_thread() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-/*******************************************************************************
-*
-*
-*
-* Connection control and establishment/reestablishment procedures
-*
-*
-*
-*******************************************************************************/
 
 
 
@@ -1074,6 +1096,7 @@ void rrc::rrc_connection_release() {
   pthread_mutex_lock(&mutex);
   drb_up = false;
   state = RRC_STATE_IDLE;
+  phy->sync_stop();
   set_phy_default();
   set_mac_default();
   mac_timers->get(t311)->run();

@@ -106,10 +106,13 @@ typedef struct SRSLTE_API {
 
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srslte_ue_ul_init(srslte_ue_ul_t *q, 
-                                 srslte_cell_t cell);
+SRSLTE_API int srslte_ue_ul_init(srslte_ue_ul_t *q,
+                                 uint32_t max_prb);
 
 SRSLTE_API void srslte_ue_ul_free(srslte_ue_ul_t *q);
+
+SRSLTE_API int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
+                                     srslte_cell_t cell);
 
 SRSLTE_API void srslte_ue_ul_set_cfo(srslte_ue_ul_t *q, 
                                      float cur_cfo); 

@@ -108,11 +108,14 @@ typedef struct {
 
 /* This function shall be called just after the initial synchronization */
 SRSLTE_API int srslte_enb_dl_init(srslte_enb_dl_t *q, 
-                                  srslte_cell_t cell);
+                                  uint32_t max_prb);
 
 SRSLTE_API void srslte_enb_dl_free(srslte_enb_dl_t *q);
 
-SRSLTE_API void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q, 
+SRSLTE_API int srslte_enb_dl_set_cell(srslte_enb_dl_t *q,
+                                      srslte_cell_t cell);
+
+SRSLTE_API void srslte_enb_dl_set_cfi(srslte_enb_dl_t *q,
                                       uint32_t cfi);
 
 SRSLTE_API void srslte_enb_dl_set_amp(srslte_enb_dl_t *q, 

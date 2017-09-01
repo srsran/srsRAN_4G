@@ -97,6 +97,8 @@ typedef struct SRSLTE_API {
   float M_ext_avg; 
   cf_t  *temp;
 
+  uint32_t max_frame_size;
+
 }srslte_sync_t;
 
 typedef enum {
@@ -120,6 +122,11 @@ SRSLTE_API int srslte_sync_init_decim(srslte_sync_t *q,
 
 
 SRSLTE_API void srslte_sync_free(srslte_sync_t *q);
+
+SRSLTE_API int srslte_sync_resize(srslte_sync_t *q,
+                                  uint32_t frame_size,
+                                  uint32_t max_offset,
+                                  uint32_t fft_size);
 
 SRSLTE_API void srslte_sync_reset(srslte_sync_t *q); 
 

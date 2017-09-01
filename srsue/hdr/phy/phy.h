@@ -46,6 +46,7 @@ typedef _Complex float cf_t;
 class phy
     : public phy_interface_mac
     , public phy_interface_rrc
+    , public thread
 {
 public:
   phy();
@@ -56,6 +57,9 @@ public:
             phy_args_t *args = NULL);
   
   void stop();
+
+  void wait_initialize();
+  bool is_initiated();
 
   void set_agc_enable(bool enabled);
 
@@ -84,6 +88,7 @@ public:
   /********** MAC INTERFACE ********************/
   /* Functions to synchronize with a cell */
   bool    sync_status(); // this is also RRC interface
+  bool    sync_stop();
 
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   void set_crnti(uint16_t rnti);
@@ -130,7 +135,10 @@ public:
   void    start_plot();
     
 private:
-    
+
+  void run_thread();
+
+  bool     initiated;
   uint32_t nof_workers; 
   
   const static int MAX_WORKERS         = 4;
@@ -139,8 +147,10 @@ private:
   const static int SF_RECV_THREAD_PRIO = 1;
   const static int WORKERS_THREAD_PRIO = 0; 
   
-  srslte::radio_multi   *radio_handler;
-  srslte::log           *log_h;
+  srslte::radio_multi      *radio_handler;
+  srslte::log              *log_h;
+  srsue::mac_interface_phy *mac;
+  srsue::rrc_interface_phy *rrc;
 
   srslte::thread_pool      workers_pool;
   std::vector<phch_worker> workers;

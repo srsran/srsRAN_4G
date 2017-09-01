@@ -121,7 +121,11 @@ bool ue::init(all_args_t *args_)
   }
   
   // Init layers
-  
+
+  // PHY initis in background, start before radio
+  args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
+  phy.init(&radio, &mac, &rrc, &phy_log, &args->expert.phy);
+
   /* Start Radio */
   char *dev_name = NULL;
   if (args->rf.device_name.compare("auto")) {
@@ -152,15 +156,13 @@ bool ue::init(all_args_t *args_)
   radio.set_manual_calibration(&args->rf_cal);
 
   // Set PHY options
-  args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
 
   if (args->rf.tx_gain > 0) {
     args->expert.phy.ul_pwr_ctrl_en = false; 
   } else {
     args->expert.phy.ul_pwr_ctrl_en = true; 
   }
-  phy.init(&radio, &mac, &rrc, &phy_log, &args->expert.phy);
-  
+
   if (args->rf.rx_gain < 0) {
     radio.start_agc(false);    
     radio.set_tx_rx_gain_offset(10);
@@ -170,7 +172,6 @@ bool ue::init(all_args_t *args_)
   }
   if (args->rf.tx_gain > 0) {
     radio.set_tx_gain(args->rf.tx_gain);    
-    printf("set tx gain %f\n", args->rf.tx_gain);
   } else {
     radio.set_tx_gain(args->rf.rx_gain);
     std::cout << std::endl << 
@@ -183,18 +184,22 @@ bool ue::init(all_args_t *args_)
   mac.init(&phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, SECURITY_DIRECTION_UPLINK);
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
-  
-  rrc.set_ue_category(args->expert.ue_cateogry);
-  
+
   nas.init(&usim, &rrc, &gw, &nas_log);
-  gw.init(&pdcp, &rrc, this, &gw_log);
+  gw.init(&pdcp, this, &gw_log);
   usim.init(&args->usim, &usim_log);
+
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
+  rrc.set_ue_category(args->expert.ue_cateogry);
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;
   earfcn_list.push_back(args->rf.dl_earfcn);
   phy.set_earfcn(earfcn_list);
+
+  printf("Waiting PHY to initialize...\n");
+  phy.wait_initialize();
+  phy.configure_ul_params();
 
   printf("\n\nRequesting NAS Attach...\n");
   nas.attach_request();

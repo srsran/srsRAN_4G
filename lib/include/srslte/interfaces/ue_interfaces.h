@@ -102,7 +102,6 @@ public:
   virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
   virtual void      plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code) = 0;
-  virtual void      cell_selected() = 0;
 };
 
 // NAS interface for UE
@@ -140,17 +139,7 @@ public:
   virtual void enable_capabilities() = 0;
   virtual void plmn_search() = 0;
   virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
-  virtual void connect() = 0;
 
-};
-
-// RRC interface for GW
-class rrc_interface_gw
-{
-public:
-  virtual bool is_connected() = 0;
-  virtual void connect() = 0;
-  virtual bool have_drb() = 0;
 };
 
 // RRC interface for PDCP
@@ -392,8 +381,8 @@ typedef struct {
   int worker_cpu_mask;
   int sync_cpu_affinity;
   
-  uint32_t nof_rx_ant;   
-  std::string equalizer_mode; 
+  uint32_t nof_rx_ant;
+  std::string equalizer_mode;
   int cqi_max; 
   int cqi_fixed; 
   float snr_ema_coeff; 
@@ -481,6 +470,7 @@ public:
   virtual void cell_search_start() = 0;
   virtual void cell_search_next() = 0;
   virtual bool cell_select(uint32_t earfcn, srslte_cell_t cell) = 0;
+  virtual bool sync_stop() = 0;
 
   /* Is the PHY downlink synchronized? */
   virtual bool sync_status() = 0;

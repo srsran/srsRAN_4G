@@ -455,7 +455,7 @@ static int decode_tb(srslte_sch_t *q,
       e_bits       != NULL &&
       cb_segm      != NULL)
   {
-    
+
     if (cb_segm->tbs == 0 || cb_segm->C == 0) {
       return SRSLTE_SUCCESS;
     }
@@ -476,8 +476,8 @@ static int decode_tb(srslte_sch_t *q,
     
     data[cb_segm->tbs/8+0] = 0; 
     data[cb_segm->tbs/8+1] = 0; 
-    data[cb_segm->tbs/8+2] = 0; 
-    
+    data[cb_segm->tbs/8+2] = 0;
+
     // Process Codeblocks in groups of equal CB size to parallelize according to SRSLTE_TDEC_NPAR
     for (uint32_t i=0;i<nof_cb_groups && crc_ok;i++) {
       crc_ok = decode_tb_cb(q, softbuffer, cb_segm, Qm, rv, nof_e_bits, e_bits, data, i);            
@@ -519,7 +519,7 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 {
   return decode_tb(q,                    
                    softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
+                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits,
                    e_bits, data);
 }
 
@@ -538,7 +538,7 @@ int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 {
   return encode_tb(q, 
                    softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits, 
+                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits,
                    data, e_bits);
 }
 

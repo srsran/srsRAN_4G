@@ -29,6 +29,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <srslte/phy/common/phy_common.h>
 
 #include "srslte/srslte.h"
 
@@ -165,7 +166,11 @@ int base_init() {
     }
   }
 
-  if (srslte_chest_dl_init(&chest, cell)) {
+  if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
+    fprintf(stderr, "Error initializing equalizer\n");
+    return -1;
+  }
+  if (srslte_chest_dl_set_cell(&chest, cell)) {
     fprintf(stderr, "Error initializing equalizer\n");
     return -1;
   }
@@ -180,7 +185,11 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_phich_init(&phich, &regs, cell)) {
+  if (srslte_phich_init(&phich)) {
+    fprintf(stderr, "Error creating PBCH object\n");
+    return -1;
+  }
+  if (srslte_phich_set_cell(&phich, &regs, cell)) {
     fprintf(stderr, "Error creating PBCH object\n");
     return -1;
   }

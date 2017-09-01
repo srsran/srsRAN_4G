@@ -163,7 +163,6 @@ private:
   
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap;
-  bool signals_pregenerated;
   bool is_first_ul_grant;
 
 

@@ -212,7 +212,7 @@ int srslte_symbol_sz_power2(uint32_t nof_prb) {
     return 1024;
   } else if (nof_prb<=75) {
     return 1536;
-  } else if (nof_prb<=100) {
+  } else if (nof_prb<=110) {
     return 2048;
   } else {
     return -1;
@@ -234,7 +234,7 @@ int srslte_symbol_sz(uint32_t nof_prb) {
       return 768;
     } else if (nof_prb<=75) {
       return 1024;
-    } else if (nof_prb<=100) {
+    } else if (nof_prb<=110) {
       return 1536;
     } else {
       return SRSLTE_ERROR;

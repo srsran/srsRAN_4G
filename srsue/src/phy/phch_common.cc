@@ -186,7 +186,9 @@ void phch_common::set_dl_rnti(srslte_rnti_type_t type, uint16_t rnti_value, int 
   dl_rnti_type  = type;
   dl_rnti_start = tti_start;
   dl_rnti_end   = tti_end;
-  Debug("Set DL rnti: start=%d, end=%d, value=0x%x\n", tti_start, tti_end, rnti_value);  
+  if (log_h) {
+    Debug("Set DL rnti: start=%d, end=%d, value=0x%x\n", tti_start, tti_end, rnti_value);
+  }
 }
 
 void phch_common::reset_pending_ack(uint32_t tti) {

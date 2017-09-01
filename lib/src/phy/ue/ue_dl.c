@@ -37,6 +37,7 @@
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)
 
+#define MAX_SFLEN_RE SRSLTE_SF_LEN_RE(max_prb, q->cell.cp)
 
 static srslte_dci_format_t ue_formats[] = {SRSLTE_DCI_FORMAT1A, SRSLTE_DCI_FORMAT1}; // Only TM1 and TM2 are currently supported 
 const uint32_t nof_ue_formats = 2; 
@@ -45,80 +46,74 @@ static srslte_dci_format_t common_formats[] = {SRSLTE_DCI_FORMAT1A,SRSLTE_DCI_FO
 const uint32_t nof_common_formats = 2; 
 
 int srslte_ue_dl_init(srslte_ue_dl_t *q, 
-                      srslte_cell_t cell) 
+                      uint32_t max_prb)
 {
-  return srslte_ue_dl_init_multi(q, cell, 1);
+  return srslte_ue_dl_init_multi(q, max_prb, 1);
 }
 
 int srslte_ue_dl_init_multi(srslte_ue_dl_t *q, 
-                            srslte_cell_t cell, 
+                            uint32_t max_prb,
                             uint32_t nof_rx_antennas) 
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS; 
   
   if (q               != NULL             &&
-      nof_rx_antennas <= SRSLTE_MAX_PORTS &&
-      srslte_cell_isvalid(&cell))   
+      nof_rx_antennas <= SRSLTE_MAX_PORTS)
   {
     ret = SRSLTE_ERROR;
     
     bzero(q, sizeof(srslte_ue_dl_t));
     
-    q->cell = cell; 
     q->pkt_errors = 0;
     q->pkts_total = 0;
     q->pending_ul_dci_rnti = 0; 
     q->sample_offset = 0; 
-    q->nof_rx_antennas = nof_rx_antennas; 
-    
-    if (srslte_ofdm_rx_init(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+    q->nof_rx_antennas = nof_rx_antennas;
+
+    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, max_prb)) {
       fprintf(stderr, "Error initiating FFT\n");
       goto clean_exit;
     }
-    if (srslte_chest_dl_init(&q->chest, cell)) {
+    if (srslte_chest_dl_init(&q->chest, max_prb)) {
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit;
     }
-    if (srslte_regs_init(&q->regs, q->cell)) {
-      fprintf(stderr, "Error initiating REGs\n");
-      goto clean_exit;
-    }
-    if (srslte_pcfich_init_multi(&q->pcfich, &q->regs, q->cell, nof_rx_antennas)) {
+    if (srslte_pcfich_init_multi(&q->pcfich, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PCFICH object\n");
       goto clean_exit;
     }
-    if (srslte_phich_init(&q->phich, &q->regs, q->cell)) {
+    if (srslte_phich_init(&q->phich)) {
       fprintf(stderr, "Error creating PHICH object\n");
       goto clean_exit;
     }
 
-    if (srslte_pdcch_init_multi(&q->pdcch, &q->regs, q->cell, nof_rx_antennas)) {
+    if (srslte_pdcch_init_multi(&q->pdcch, max_prb, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PDCCH object\n");
       goto clean_exit;
     }
 
-    if (srslte_pdsch_init_multi(&q->pdsch, q->cell, nof_rx_antennas)) {
+    if (srslte_pdsch_init_multi_ue(&q->pdsch, max_prb, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
-    if (srslte_softbuffer_rx_init(&q->softbuffer, q->cell.nof_prb)) {
+    if (srslte_softbuffer_rx_init(&q->softbuffer, max_prb)) {
       fprintf(stderr, "Error initiating soft buffer\n");
       goto clean_exit;
     }
-    if (srslte_cfo_init(&q->sfo_correct, q->cell.nof_prb*SRSLTE_NRE)) {
+    if (srslte_cfo_init(&q->sfo_correct, max_prb*SRSLTE_NRE)) {
       fprintf(stderr, "Error initiating SFO correct\n");
       goto clean_exit;
     }
     srslte_cfo_set_tol(&q->sfo_correct, 1e-5/q->fft.symbol_sz);
     
     for (int j=0;j<nof_rx_antennas;j++) {
-      q->sf_symbols_m[j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+      q->sf_symbols_m[j] = srslte_vec_malloc(MAX_SFLEN_RE * sizeof(cf_t));
       if (!q->sf_symbols_m[j]) {
         perror("malloc");
         goto clean_exit; 
       }
-      for (uint32_t i=0;i<q->cell.nof_ports;i++) {
-        q->ce_m[i][j] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+      for (uint32_t i=0;i<SRSLTE_MAX_PORTS;i++) {
+        q->ce_m[i][j] = srslte_vec_malloc(MAX_SFLEN_RE * sizeof(cf_t));
         if (!q->ce_m[i][j]) {
           perror("malloc");
           goto clean_exit; 
@@ -127,14 +122,13 @@ int srslte_ue_dl_init_multi(srslte_ue_dl_t *q,
     }
     
     q->sf_symbols = q->sf_symbols_m[0];
-    for (int i=0;i<q->cell.nof_ports;i++) {
+    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
       q->ce[i] = q->ce_m[i][0];
     }
     
     ret = SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
-            cell.id, cell.nof_ports, cell.nof_prb);      
+    fprintf(stderr, "Invalid parametres\n");
   }
 
 clean_exit: 
@@ -159,7 +153,7 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
       if (q->sf_symbols_m[j]) {
         free(q->sf_symbols_m[j]);
       }
-      for (uint32_t i=0;i<q->cell.nof_ports;i++) {
+      for (uint32_t i=0;i<SRSLTE_MAX_PORTS;i++) {
         if (q->ce_m[i][j]) {
           free(q->ce_m[i][j]);
         }
@@ -167,6 +161,67 @@ void srslte_ue_dl_free(srslte_ue_dl_t *q) {
     }
     bzero(q, sizeof(srslte_ue_dl_t));
   }
+}
+
+int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q               != NULL             &&
+      srslte_cell_isvalid(&cell))
+  {
+    q->pkt_errors = 0;
+    q->pkts_total = 0;
+    q->pending_ul_dci_rnti = 0;
+    q->sample_offset = 0;
+
+    if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
+      if (q->cell.nof_prb != 0) {
+        srslte_regs_free(&q->regs);
+      }
+      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+      if (srslte_regs_init(&q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing REGs\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_cfo_resize(&q->sfo_correct, q->cell.nof_prb*SRSLTE_NRE)) {
+        fprintf(stderr, "Error resizing SFO correct\n");
+        return SRSLTE_ERROR;
+      }
+      srslte_cfo_set_tol(&q->sfo_correct, 1e-5/q->fft.symbol_sz);
+      if (srslte_ofdm_rx_set_prb(&q->fft, q->cell.cp, q->cell.nof_prb)) {
+        fprintf(stderr, "Error resizing FFT\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_chest_dl_set_cell(&q->chest, q->cell)) {
+        fprintf(stderr, "Error resizing channel estimator\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_pcfich_set_cell(&q->pcfich, &q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing PCFICH object\n");
+        return SRSLTE_ERROR;
+      }
+      if (srslte_phich_set_cell(&q->phich, &q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing PHICH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pdcch_set_cell(&q->pdcch, &q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing PDCCH object\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_pdsch_set_cell(&q->pdsch, q->cell)) {
+        fprintf(stderr, "Error creating PDSCH object\n");
+        return SRSLTE_ERROR;
+      }
+    }
+    ret = SRSLTE_SUCCESS;
+  } else {
+    fprintf(stderr, "Invalid cell properties: Id=%d, Ports=%d, PRBs=%d\n",
+            cell.id, cell.nof_ports, cell.nof_prb);
+  }
+  return ret;
 }
 
 /* Precalculate the PDSCH scramble sequences for a given RNTI. This function takes a while 
@@ -231,7 +286,7 @@ int srslte_ue_dl_decode_fft_estimate_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE
       /* Correct SFO multiplying by complex exponential in the time domain */
       if (q->sample_offset) {
         for (int i=0;i<2*SRSLTE_CP_NSYMB(q->cell.cp);i++) {
-          srslte_cfo_correct(&q->sfo_correct, 
+          srslte_cfo_correct(&q->sfo_correct,
                           &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE], 
                           &q->sf_symbols_m[j][i*q->cell.nof_prb*SRSLTE_NRE], 
                           q->sample_offset / q->fft.symbol_sz);
@@ -566,11 +621,11 @@ bool srslte_ue_dl_decode_phich(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t n_pr
 }
 
 void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuffer, uint32_t tti, uint32_t rv_idx, uint16_t rnti, uint32_t cfi) {
-  srslte_vec_save_file("sf_symbols", q->sf_symbols_m, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  srslte_vec_save_file("sf_symbols", q->sf_symbols, SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   printf("%d samples\n", SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp));
-  srslte_vec_save_file("ce0", q->ce_m[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+  srslte_vec_save_file("ce0", q->ce[0], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   if (q->cell.nof_ports > 1) {
-    srslte_vec_save_file("ce1", q->ce_m[1], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
+    srslte_vec_save_file("ce1", q->ce[1], SRSLTE_SF_LEN_RE(q->cell.nof_prb, q->cell.cp)*sizeof(cf_t));
   }
   srslte_vec_save_file("pcfich_ce0", q->pcfich.ce[0], q->pcfich.nof_symbols*sizeof(cf_t));
   srslte_vec_save_file("pcfich_ce1", q->pcfich.ce[1], q->pcfich.nof_symbols*sizeof(cf_t));
@@ -583,10 +638,11 @@ void srslte_ue_dl_save_signal(srslte_ue_dl_t *q, srslte_softbuffer_rx_t *softbuf
   srslte_vec_save_file("pdcch_symbols", q->pdcch.symbols[0], q->pdcch.nof_cce*36*sizeof(cf_t));
   srslte_vec_save_file("pdcch_eq_symbols", q->pdcch.d, q->pdcch.nof_cce*36*sizeof(cf_t));
   srslte_vec_save_file("pdcch_llr", q->pdcch.llr, q->pdcch.nof_cce*72*sizeof(float));
-  
-  
-  srslte_vec_save_file("pdsch_symbols", q->pdsch.d, q->pdsch_cfg.nbits.nof_re*sizeof(cf_t));
-  srslte_vec_save_file("llr", q->pdsch.e, q->pdsch_cfg.nbits.nof_bits*sizeof(cf_t));
+
+
+  srslte_vec_save_file("pdsch_symbols", q->pdsch.symbols[0], q->pdsch_cfg.nbits.nof_re*sizeof(cf_t));
+  srslte_vec_save_file("pdsch_eq_symbols", q->pdsch.d, q->pdsch_cfg.nbits.nof_re*sizeof(cf_t));
+  srslte_vec_save_file("pdsch_llr", q->pdsch.e, q->pdsch_cfg.nbits.nof_bits*sizeof(cf_t));
   int cb_len = q->pdsch_cfg.cb_segm.K1; 
   for (int i=0;i<q->pdsch_cfg.cb_segm.C;i++) {
     char tmpstr[64]; 

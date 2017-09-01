@@ -69,7 +69,6 @@ class rrc
   : public rrc_interface_nas,
     public rrc_interface_phy,
     public rrc_interface_mac,
-    public rrc_interface_gw,
     public rrc_interface_pdcp,
     public rrc_interface_rlc,
     public srslte::timer_callback,
@@ -118,6 +117,14 @@ private:
   uint8_t transaction_id;
   bool drb_up;
 
+  uint32_t connecting_timeout;
+  static const uint32_t RRC_CONNECTING_TIMEOUT = 100;
+
+  uint32_t plmn_select_timeout;
+  static const uint32_t RRC_PLMN_SELECT_TIMEOUT = 1000;
+
+  uint32_t select_cell_timeout;
+  static const uint32_t RRC_SELECT_CELL_TIMEOUT = 500;
 
   uint8_t k_rrc_enc[32];
   uint8_t k_rrc_int[32];
@@ -173,7 +180,6 @@ private:
   void enable_capabilities();
   void plmn_search();
   void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id);
-  void connect();
 
   // PHY interface
   void in_sync();

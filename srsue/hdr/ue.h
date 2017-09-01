@@ -175,6 +175,7 @@ private:
   srsue::usim        usim;
 
   srslte::logger_file logger;
+  //srslte::logger_stdout logger;
   srslte::log_filter  rf_log;
   srslte::log_filter  phy_log;
   srslte::log_filter  mac_log;

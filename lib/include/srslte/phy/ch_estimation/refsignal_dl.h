@@ -53,7 +53,10 @@ typedef struct SRSLTE_API {
 
 
 SRSLTE_API int srslte_refsignal_cs_init(srslte_refsignal_cs_t *q, 
-                                        srslte_cell_t cell);
+                                        uint32_t max_prb);
+
+SRSLTE_API int srslte_refsignal_cs_set_cell(srslte_refsignal_cs_t * q,
+                                           srslte_cell_t cell);
 
 SRSLTE_API void srslte_refsignal_cs_free(srslte_refsignal_cs_t *q);
 

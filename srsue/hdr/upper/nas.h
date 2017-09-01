@@ -89,8 +89,6 @@ public:
 
   void plmn_found(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id, uint16_t tracking_area_code);
 
-  void cell_selected();
-
   // UE interface
   void attach_request();
 

@@ -47,7 +47,6 @@ mac::mac() : ttisync(10240),
 {
   started = false;  
   pcap    = NULL;   
-  signals_pregenerated = false;  
   bzero(&metrics, sizeof(mac_metrics_t));
 }
   
@@ -130,8 +129,7 @@ void mac::reset()
   phy_h->pdcch_dl_search_reset();
   phy_h->pdcch_ul_search_reset();
   
-  signals_pregenerated = false; 
-  is_first_ul_grant = true;   
+  is_first_ul_grant = true;
   
   bzero(&uernti, sizeof(ue_rnti_t));
 }
@@ -178,18 +176,6 @@ void mac::run_thread() {
         ra_procedure.start_mac_order();
       }
       ra_procedure.step(tti);
-      
-      if (ra_procedure.is_successful() && !signals_pregenerated) {
-
-        // Configure PHY to look for UL C-RNTI grants
-        phy_h->pdcch_ul_search(SRSLTE_RNTI_USER, uernti.crnti);
-        phy_h->pdcch_dl_search(SRSLTE_RNTI_USER, uernti.crnti);
-        
-        // Pregenerate UL signals and C-RNTI scrambling sequences
-        Debug("Pre-computing C-RNTI scrambling sequences for C-RNTI=0x%x\n", uernti.crnti);
-        phy_h->set_crnti(uernti.crnti);
-        signals_pregenerated = true; 
-      }      
     }
   }  
 }

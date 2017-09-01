@@ -177,7 +177,11 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srslte_pdcch_init(&pdcch, &regs, cell)) {
+  if (srslte_pdcch_init(&pdcch, cell.nof_prb)) {
+    fprintf(stderr, "Error creating PDCCH object\n");
+    exit(-1);
+  }
+  if (srslte_pdcch_set_cell(&pdcch, &regs, cell)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }

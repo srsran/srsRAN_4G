@@ -40,6 +40,10 @@
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/phch/pdsch_cfg.h>
+#include <srslte/phy/phch/ra.h>
+
 void init_plots(srsue::phch_worker *worker);
 pthread_t plot_thread; 
 sem_t plot_sem; 
@@ -57,15 +61,31 @@ phch_worker::phch_worker() : tr_exec(10240)
 {
   phy = NULL; 
   bzero(signal_buffer, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
-  
+
+  mem_initiated   = false;
   cell_initiated  = false; 
   pregen_enabled  = false; 
-  trace_enabled   = false; 
-  
+  trace_enabled   = false;
+
   reset();  
 }
 
-void phch_worker::reset() 
+
+phch_worker::~phch_worker()
+{
+  if (mem_initiated) {
+    for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
+      if (signal_buffer[i]) {
+        free(signal_buffer[i]);
+      }
+    }
+    srslte_ue_dl_free(&ue_dl);
+    srslte_ue_ul_free(&ue_ul);
+    mem_initiated = false;
+  }
+}
+
+void phch_worker::reset()
 {
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   bzero(&ul_metrics, sizeof(ul_metrics_t));
@@ -86,48 +106,56 @@ void phch_worker::set_common(phch_common* phy_)
 {
   phy = phy_;   
 }
-    
-bool phch_worker::init_cell(srslte_cell_t cell_)
+
+bool phch_worker::init(uint32_t max_prb)
 {
-  memcpy(&cell, &cell_, sizeof(srslte_cell_t));
-  
-  // ue_sync in phy.cc requires a buffer for 3 subframes 
+  // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
-    signal_buffer[i] = (cf_t*) srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    signal_buffer[i] = (cf_t*) srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(max_prb));
     if (!signal_buffer[i]) {
       Error("Allocating memory\n");
-      return false; 
+      return false;
     }
   }
 
-  if (srslte_ue_dl_init_multi(&ue_dl, cell, phy->args->nof_rx_ant)) {    
+  if (srslte_ue_dl_init_multi(&ue_dl, max_prb, phy->args->nof_rx_ant)) {
     Error("Initiating UE DL\n");
-    return false; 
+    return false;
   }
-  
-  if (srslte_ue_ul_init(&ue_ul, cell)) {  
+
+  if (srslte_ue_ul_init(&ue_ul, max_prb)) {
     Error("Initiating UE UL\n");
-    return false; 
+    return false;
   }
+
   srslte_ue_ul_set_normalization(&ue_ul, true);
   srslte_ue_ul_set_cfo_enable(&ue_ul, true);
-    
-  cell_initiated = true; 
-  
-  return true; 
+
+  mem_initiated = true;
+
+  return true;
 }
 
-void phch_worker::free_cell()
+bool phch_worker::set_cell(srslte_cell_t cell_)
 {
-  if (cell_initiated) {
-    for (uint32_t i=0;i<phy->args->nof_rx_ant;i++) {
-      if (signal_buffer[i]) {
-        free(signal_buffer[i]);
-      }      
+  if (cell.id != cell_.id || !cell_initiated) {
+    memcpy(&cell, &cell_, sizeof(srslte_cell_t));
+
+    if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+      Error("Initiating UE DL\n");
+      return false;
     }
-    srslte_ue_dl_free(&ue_dl);
-    srslte_ue_ul_free(&ue_ul);
+
+    if (srslte_ue_ul_set_cell(&ue_ul, cell)) {
+      Error("Initiating UE UL\n");
+      return false;
+    }
+    srslte_ue_ul_set_normalization(&ue_ul, true);
+    srslte_ue_ul_set_cfo_enable(&ue_ul, true);
+
+    cell_initiated = true;
   }
+  return true;
 }
 
 cf_t* phch_worker::get_buffer(uint32_t antenna_idx)
@@ -375,7 +403,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
       Error("Converting DCI message to DL grant\n");
       return false;   
     }
-    
+
     /* Fill MAC grant structure */
     grant->ndi = dci_unpacked.ndi;
     grant->pid = dci_unpacked.harq_process;
@@ -426,21 +454,21 @@ bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
           srslte_sch_set_max_noi(&ue_dl.pdsch.dl_sch, phy->args->pdsch_max_its);
         }
 
-        
+
   #ifdef LOG_EXECTIME
         struct timeval t[3];
         gettimeofday(&t[1], NULL);
   #endif
-        
-        bool ack = srslte_pdsch_decode_multi(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols_m, 
+
+        bool ack = srslte_pdsch_decode_multi(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffer, ue_dl.sf_symbols_m,
                                       ue_dl.ce_m, noise_estimate, rnti, payload) == 0;
   #ifdef LOG_EXECTIME
         gettimeofday(&t[2], NULL);
         get_time_interval(t);
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
-        
-        Info("PDSCH: l_crb=%2d, harq=%d, tbs=%d, mcs=%d, rv=%d, crc=%s, snr=%.1f dB, n_iter=%d%s\n", 
+
+        Info("PDSCH: l_crb=%2d, harq=%d, tbs=%d, mcs=%d, rv=%d, crc=%s, snr=%.1f dB, n_iter=%d%s\n",
               grant->nof_prb, harq_pid, 
               grant->mcs.tbs/8, grant->mcs.idx, rv, 
               ack?"OK":"KO", 
@@ -448,9 +476,6 @@ bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
               srslte_pdsch_last_noi(&ue_dl.pdsch),
               timestr);
 
-        //printf("tti=%d, cfo=%f\n", tti, cfo*15000);
-        //srslte_vec_save_file("pdsch", signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
-        
         // Store metrics
         dl_metrics.mcs    = grant->mcs.idx;
         

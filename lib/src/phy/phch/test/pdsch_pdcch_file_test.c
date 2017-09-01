@@ -137,11 +137,15 @@ int base_init() {
     exit(-1);
   }
 
-  if (srslte_ue_dl_init_multi(&ue_dl, cell, 1)) {
+  if (srslte_ue_dl_init_multi(&ue_dl, cell.nof_prb, 1)) {
     fprintf(stderr, "Error initializing UE DL\n");
     return -1;
   }
-  
+  if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+    fprintf(stderr, "Error initializing UE DL\n");
+    return -1;
+  }
+
   srslte_ue_dl_set_rnti(&ue_dl, rnti); 
 
   DEBUG("Memory init OK\n",0);

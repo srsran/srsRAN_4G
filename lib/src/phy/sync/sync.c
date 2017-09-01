@@ -28,6 +28,7 @@
 #include <strings.h>
 #include <complex.h>
 #include <math.h>
+#include <srslte/srslte.h>
 
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/common/phy_common.h"
@@ -36,7 +37,7 @@
 #include "srslte/phy/sync/cfo.h"
 
 #define MEANPEAK_EMA_ALPHA      0.1
-#define CFO_EMA_ALPHA           0.1
+#define CFO_EMA_ALPHA           0.2
 #define CP_EMA_ALPHA            0.1
 
 static bool fft_size_isvalid(uint32_t fft_size) {
@@ -77,7 +78,8 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     q->frame_size = frame_size;
     q->max_offset = max_offset;
     q->sss_alg = SSS_FULL;
-        
+    q->max_frame_size = frame_size;
+
     q->enable_cfo_corr = true; 
     if (srslte_cfo_init(&q->cfocorr, q->frame_size)) {
       fprintf(stderr, "Error initiating CFO\n");
@@ -91,8 +93,6 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     
     // Set a CFO tolerance of approx 50 Hz
     srslte_cfo_set_tol(&q->cfocorr, 50.0/(15000.0*q->fft_size));
-
-    // Set a CFO tolerance of approx 50 Hz
     srslte_cfo_set_tol(&q->cfocorr2, 50.0/(15000.0*q->fft_size));
 
     for (int i=0;i<2;i++) {
@@ -113,8 +113,7 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     q->decimate = decimate;
     if(!decimate)
       decimate = 1;
-                 
-    
+
     if (srslte_pss_synch_init_fft_offset_decim(&q->pss, max_offset, fft_size,0,decimate)) {
       fprintf(stderr, "Error initializing PSS object\n");
       goto clean_exit;
@@ -161,6 +160,77 @@ void srslte_sync_free(srslte_sync_t *q) {
     }
   }
 }
+
+int srslte_sync_resize(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offset, uint32_t fft_size) {
+
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q                 != NULL         &&
+      frame_size        <= 307200       &&
+      fft_size_isvalid(fft_size))
+  {
+    ret = SRSLTE_ERROR;
+
+    if (frame_size > q->max_frame_size) {
+      fprintf(stderr, "Error in sync_resize(): frame_size must be lower than initialized\n");
+      return SRSLTE_ERROR;
+    }
+    q->detect_cp = true;
+    q->sss_en = true;
+    q->mean_cfo = 0;
+    q->mean_cfo2 = 0;
+    q->N_id_2 = 1000;
+    q->N_id_1 = 1000;
+    q->cfo_i = 0;
+    q->find_cfo_i = false;
+    q->find_cfo_i_initiated = false;
+    q->cfo_ema_alpha = CFO_EMA_ALPHA;
+    q->fft_size = fft_size;
+    q->frame_size = frame_size;
+    q->max_offset = max_offset;
+    q->sss_alg = SSS_FULL;
+
+    q->enable_cfo_corr = true;
+
+    if (srslte_pss_synch_resize(&q->pss, max_offset, fft_size, 0)) {
+      fprintf(stderr, "Error resizing PSS object\n");
+      return SRSLTE_ERROR;
+    }
+    if (srslte_sss_synch_resize(&q->sss, fft_size)) {
+      fprintf(stderr, "Error resizing SSS object\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (srslte_cp_synch_resize(&q->cp_synch, fft_size)) {
+      fprintf(stderr, "Error resizing CFO\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (srslte_cfo_resize(&q->cfocorr, q->frame_size)) {
+      fprintf(stderr, "Error resizing CFO\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (srslte_cfo_resize(&q->cfocorr2, q->frame_size)) {
+      fprintf(stderr, "Error resizing CFO\n");
+      return SRSLTE_ERROR;
+    }
+
+    // Update CFO tolerance
+    srslte_cfo_set_tol(&q->cfocorr, 50.0/(15000.0*q->fft_size));
+    srslte_cfo_set_tol(&q->cfocorr2, 50.0/(15000.0*q->fft_size));
+
+
+    DEBUG("SYNC init with frame_size=%d, max_offset=%d and fft_size=%d\n", frame_size, max_offset, fft_size);
+
+    ret = SRSLTE_SUCCESS;
+  }  else {
+    fprintf(stderr, "Invalid parameters frame_size: %d, fft_size: %d\n", frame_size, fft_size);
+  }
+
+  return ret;
+}
+
 
 void srslte_sync_set_threshold(srslte_sync_t *q, float threshold) {
   q->threshold = threshold;
@@ -451,7 +521,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
       q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
       
       /* Correct CFO with the averaged CFO estimation */
-      srslte_cfo_correct(&q->cfocorr2, input, q->temp, -q->mean_cfo / q->fft_size);      
+      srslte_cfo_correct(&q->cfocorr2, input, q->temp, -q->mean_cfo / q->fft_size);
       
       input_cfo = q->temp; 
     }

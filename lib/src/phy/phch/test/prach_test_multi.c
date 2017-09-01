@@ -90,12 +90,14 @@ int main(int argc, char **argv) {
   cf_t preamble_sum[MAX_LEN];
   memset(preamble_sum, 0, sizeof(cf_t)*MAX_LEN);
 
-  srslte_prach_init(p,
-             N_ifft_ul,
-             preamble_format,
-             root_seq_idx,
-             high_speed_flag,
-             zero_corr_zone);
+  srslte_prach_init(p, N_ifft_ul);
+
+  srslte_prach_set_cell( p,
+                         N_ifft_ul,
+                         preamble_format,
+                         root_seq_idx,
+                         high_speed_flag,
+                         zero_corr_zone);
 
   uint32_t seq_index = 0;
   uint32_t frequency_offset = 0;

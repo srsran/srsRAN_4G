@@ -158,11 +158,15 @@ int main(int argc, char **argv) {
   cell.nof_prb = nof_prb; 
   cell.nof_ports = 1; 
   
-  if (srslte_ue_sync_init_multi(&ue_sync, cell, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
+  if (srslte_ue_sync_init_multi(&ue_sync, cell.nof_prb, cell.id==1000, srslte_rf_recv_wrapper, 1, (void*) &rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1); 
   }
- 
+  if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
+    fprintf(stderr, "Error initiating ue_sync\n");
+    exit(-1);
+  }
+
   uint32_t subframe_count = 0;
   bool start_capture = false; 
   bool stop_capture = false; 
