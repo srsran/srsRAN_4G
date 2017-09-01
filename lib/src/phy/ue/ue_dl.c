@@ -97,7 +97,7 @@ int srslte_ue_dl_init_multi(srslte_ue_dl_t *q,
       goto clean_exit;
     }
 
-    if (srslte_pdsch_init_rx_multi(&q->pdsch, q->cell, nof_rx_antennas)) {
+    if (srslte_pdsch_init_rx(&q->pdsch, q->cell, nof_rx_antennas)) {
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
@@ -315,7 +315,7 @@ int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint3
       }
     }
   }
-  return srslte_pdsch_cfg_multi(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx, mimo_type, pmi);
+  return srslte_pdsch_cfg_mimo(&q->pdsch_cfg, q->cell, grant, cfi, sf_idx, rvidx, mimo_type, pmi);
 }
 
 int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input, uint8_t *data, uint32_t tti, uint16_t rnti) {
@@ -434,10 +434,10 @@ int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_POR
   
     
     if (q->pdsch_cfg.grant.mcs[0].mod > 0 && q->pdsch_cfg.grant.mcs[0].tbs >= 0) {
-      ret = srslte_pdsch_decode_multi(&q->pdsch, &q->pdsch_cfg, q->softbuffers,
-                                    q->sf_symbols_m, q->ce_m, 
-                                    noise_estimate, 
-                                    rnti, data, acks);
+      ret = srslte_pdsch_decode(&q->pdsch, &q->pdsch_cfg, q->softbuffers,
+                                q->sf_symbols_m, q->ce_m,
+                                noise_estimate,
+                                rnti, data, acks);
 
       for (int tb = 0; tb < q->pdsch_cfg.grant.nof_tb; tb++) {
         if (!acks[tb]) {

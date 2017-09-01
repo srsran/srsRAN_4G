@@ -647,8 +647,9 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
                              phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, grants[i].softbuffer, rnti, grants[i].grant.rv_idx, sf_idx, 
-                                  grants[i].data)) 
+      srslte_softbuffer_tx_t *sb[SRSLTE_MAX_CODEWORDS] = {grants[i].softbuffer, NULL};
+      uint8_t *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, grants[i].grant.rv_idx, sf_idx, d))
       {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 

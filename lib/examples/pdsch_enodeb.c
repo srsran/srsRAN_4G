@@ -318,7 +318,7 @@ void base_init() {
   }
 
   bzero(&pdsch, sizeof(srslte_pdsch_t));
-  if (srslte_pdsch_init_tx_multi(&pdsch, cell)) {
+  if (srslte_pdsch_init_tx(&pdsch, cell)) {
     fprintf(stderr, "Error creating PDSCH object\n");
     exit(-1);
   }
@@ -820,14 +820,13 @@ int main(int argc, char **argv) {
         /* Configure pdsch_cfg parameters */
         srslte_ra_dl_grant_t grant; 
         srslte_ra_dl_dci_to_grant(&ra_dl, cell.nof_prb, UE_CRNTI, &grant);        
-        if (srslte_pdsch_cfg_multi(&pdsch_cfg, cell, &grant, cfi, sf_idx, rvidx, pdsch_cfg.mimo_type, multiplex_pmi)) {
+        if (srslte_pdsch_cfg_mimo(&pdsch_cfg, cell, &grant, cfi, sf_idx, rvidx, pdsch_cfg.mimo_type, multiplex_pmi)) {
           fprintf(stderr, "Error configuring PDSCH\n");
           exit(-1);
         }
        
         /* Encode PDSCH */
-        if (srslte_pdsch_encode_multi(&pdsch, &pdsch_cfg, softbuffers, data, UE_CRNTI,
-                                      sf_symbols)) {
+        if (srslte_pdsch_encode(&pdsch, &pdsch_cfg, softbuffers, data, UE_CRNTI, sf_symbols)) {
           fprintf(stderr, "Error encoding PDSCH\n");
           exit(-1);
         }        

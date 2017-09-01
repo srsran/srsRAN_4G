@@ -41,6 +41,7 @@
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
 #include <srslte/srslte.h>
+#include <srslte/interfaces/ue_interfaces.h>
 
 void init_plots(srsue::phch_worker *worker);
 pthread_t plot_thread; 
@@ -210,12 +211,14 @@ void phch_worker::work_imp()
 
       /* Decode PDSCH if instructed to do so */
       if (dl_action.decode_enabled) {
-        decode_pdsch_multi(&dl_action.phy_grant.dl, dl_action.payload_ptr,
-                              dl_action.softbuffers, dl_action.rv, dl_action.rnti,
-                              dl_mac_grant.pid, dl_ack);
+        decode_pdsch(&dl_action.phy_grant.dl, dl_action.payload_ptr,
+                      dl_action.softbuffers, dl_action.rv, dl_action.rnti,
+                      dl_mac_grant.pid, dl_ack);
       }
       if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
-        for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+
+        // NOTE: Currently hard-coded to 1st TB only
+        for (uint32_t tb = 0; tb < 1; tb++) {
           phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
           dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
           Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack);
@@ -418,19 +421,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
   }
 }
 
-int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
-                               srslte_softbuffer_rx_t *softbuffer, int rv,
-                               uint16_t rnti, uint32_t harq_pid, bool acks[SRSLTE_MAX_CODEWORDS]) {
-  int _rv [SRSLTE_MAX_TB] = {1};
-  srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_TB] = {NULL};
-
-  _rv[0] = rv;
-  softbuffers[0] = softbuffer;
-
-  return decode_pdsch_multi(grant, &payload, softbuffers, _rv, rnti, harq_pid, acks);
-}
-
-int phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSLTE_MAX_CODEWORDS],
+int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSLTE_MAX_CODEWORDS],
                                      srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_CODEWORDS],
                                      int rv[SRSLTE_MAX_CODEWORDS],
                                      uint16_t rnti, uint32_t harq_pid, bool acks[SRSLTE_MAX_CODEWORDS]) {
@@ -518,8 +509,8 @@ int phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *payloa
         struct timeval t[3];
         gettimeofday(&t[1], NULL);
   #endif
-        ret = srslte_pdsch_decode_multi(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffers, ue_dl.sf_symbols_m,
-                                        ue_dl.ce_m, noise_estimate, rnti, payload, acks);
+        ret = srslte_pdsch_decode(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffers, ue_dl.sf_symbols_m,
+                                  ue_dl.ce_m, noise_estimate, rnti, payload, acks);
         if (ret) {
           Error("Decoding PDSCH");
         }
