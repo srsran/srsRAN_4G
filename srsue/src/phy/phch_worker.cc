@@ -40,6 +40,8 @@
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
+#include <srslte/srslte.h>
+
 void init_plots(srsue::phch_worker *worker);
 pthread_t plot_thread; 
 sem_t plot_sem; 
@@ -451,7 +453,11 @@ int phch_worker::decode_pdsch_multi(srslte_ra_dl_grant_t *grant, uint8_t *payloa
       mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_2:
-      mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+      if (cell.nof_ports > 1) {
+        mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
+      } else {
+        mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
+      }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_3:
       if (grant->nof_tb == 1) {
