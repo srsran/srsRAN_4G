@@ -328,7 +328,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
         // If B200 is available, use it
-        args = "type=b200";        
+        args = "type=b200,master_clock_rate=30.72e6";
         handler->devname = DEVNAME_B200;
       } else if (find_string(devices_str, "type=x300")) {
         // Else if X300 is available, set master clock rate now (can't be changed later)
@@ -344,6 +344,8 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
         handler->dynamic_rate = false; 
         handler->devname = DEVNAME_X300;
       } else if (strstr(args, "type=b200")) {
+        snprintf(args2, sizeof(args2), "%s,master_clock_rate=30.72e6", args);
+        args = args2;
         handler->devname = DEVNAME_B200;
       }
     }        
@@ -399,7 +401,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
       };
       
     handler->nof_rx_channels = nof_rx_antennas; 
-    handler->nof_tx_channels = 1; 
+    handler->nof_tx_channels = 1;
+
+    /* Set default rate to avoid decimation warnings */
+    uhd_usrp_set_rx_rate(handler->usrp, 1.92e6, 0);
+    uhd_usrp_set_tx_rate(handler->usrp, 1.92e6, 0);
     
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);

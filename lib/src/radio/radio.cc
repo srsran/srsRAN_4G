@@ -333,7 +333,7 @@ void radio::set_tx_srate(float srate)
       } else if (srate_khz == 15.36e3) {
         nsamples = 131;
       } else if (srate_khz == 23.04e3) {
-        nsamples = 175;
+        nsamples = 150;
       } else {
         /* Interpolate from known values */
         printf("\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n", cur_tx_srate);
@@ -353,7 +353,7 @@ void radio::set_tx_srate(float srate)
       } else if (srate_khz == 15.36e3) {
         nsamples = 86;
       } else if (srate_khz == 23.04e3) {
-        nsamples = 119;
+        nsamples = 110;
       } else {
         /* Interpolate from known values */
         printf("\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n", cur_tx_srate);

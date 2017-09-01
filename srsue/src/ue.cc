@@ -26,7 +26,6 @@
 
 
 #include "ue.h"
-//#include "srslte_version_check.h"
 #include "srslte/srslte.h"
 #include <pthread.h>
 #include <iostream>
@@ -38,28 +37,6 @@
 using namespace srslte;
 
 namespace srsue{
-
-ue*           ue::instance = NULL;
-pthread_mutex_t ue_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-ue* ue::get_instance(void)
-{
-  pthread_mutex_lock(&ue_instance_mutex);
-  if(NULL == instance) {
-      instance = new ue();
-  }
-  pthread_mutex_unlock(&ue_instance_mutex);
-  return(instance);
-}
-void ue::cleanup(void)
-{
-  pthread_mutex_lock(&ue_instance_mutex);
-  if(NULL != instance) {
-      delete instance;
-      instance = NULL;
-  }
-  pthread_mutex_unlock(&ue_instance_mutex);
-}
 
 ue::ue()
     :started(false)
@@ -182,15 +159,16 @@ bool ue::init(all_args_t *args_)
   radio.register_error_handler(rf_msg);
 
   mac.init(&phy, &rlc, &rrc, &mac_log);
-  rlc.init(&pdcp, &rrc, this, &rlc_log, &mac);
-  pdcp.init(&rlc, &rrc, &gw, &pdcp_log, SECURITY_DIRECTION_UPLINK);
+  rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
+  pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
-  nas.init(&usim, &rrc, &gw, &nas_log);
-  gw.init(&pdcp, this, &gw_log);
+  nas.init(&usim, &rrc, &gw, &nas_log, 1 /* RB_ID_SRB1 */);
+  gw.init(&pdcp, this, &gw_log, 3 /* RB_ID_DRB1 */);
+
   usim.init(&args->usim, &usim_log);
 
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, &usim, &mac, &rrc_log);
-  rrc.set_ue_category(args->expert.ue_cateogry);
+  rrc.set_ue_category(atoi(args->expert.ue_cateogry.c_str()));
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;
@@ -281,49 +259,8 @@ bool ue::get_metrics(ue_metrics_t &m)
 
 void ue::rf_msg(srslte_rf_error_t error)
 {
-  ue *u = ue::get_instance();
-  u->handle_rf_msg(error);
-}
-
-void ue::handle_rf_msg(srslte_rf_error_t error)
-{
-  if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
-    rf_metrics.rf_o++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Overflow\n");
-  }else if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_UNDERFLOW) {
-    rf_metrics.rf_u++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Underflow\n");
-  } else if(error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_LATE) {
-    rf_metrics.rf_l++;
-    rf_metrics.rf_error = true;
-    rf_log.warning("Late\n");
-  } else if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OTHER) {
-    std::string str(error.msg);
-    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
-    str.erase(std::remove(str.begin(), str.end(), '\r'), str.end());
-    str.push_back('\n');
-    rf_log.info(str);
-  }
-}
-
-srslte::LOG_LEVEL_ENUM ue::level(std::string l)
-{
-  std::transform(l.begin(), l.end(), l.begin(), ::toupper);
-  if("NONE" == l){
-    return srslte::LOG_LEVEL_NONE;
-  }else if("ERROR" == l){
-    return srslte::LOG_LEVEL_ERROR;
-  }else if("WARNING" == l){
-    return srslte::LOG_LEVEL_WARNING;
-  }else if("INFO" == l){
-    return srslte::LOG_LEVEL_INFO;
-  }else if("DEBUG" == l){
-    return srslte::LOG_LEVEL_DEBUG;
-  }else{
-    return srslte::LOG_LEVEL_NONE;
-  }
+  ue_base *ue = ue_base::get_instance(LTE);
+  ue->handle_rf_msg(error);
 }
 
 } // namespace srsue

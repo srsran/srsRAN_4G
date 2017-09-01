@@ -27,26 +27,14 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <strings.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <math.h>
-#include <srslte/phy/phch/pdsch.h>
-#include <srslte/phy/phch/pdsch_cfg.h>
-#include <srslte/phy/phch/ra.h>
-
-#include "prb_dl.h"
 #include "srslte/phy/phch/pdsch.h"
-#include "srslte/phy/phch/sch.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/bit.h"
+#include "prb_dl.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
 
 #define MAX_PDSCH_RE(cp) (2 * SRSLTE_CP_NSYMB(cp) * 12)
-
 
 
 const static srslte_mod_t modulations[4] =
@@ -60,12 +48,7 @@ extern int indices[100000];
 extern int indices_ptr; 
 #endif
 
-float srslte_pdsch_coderate(uint32_t tbs, uint32_t nof_re) 
-{
-  return (float) (tbs + 24)/(nof_re);
-}
-
-int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_grant_t *grant, uint32_t lstart_grant, uint32_t nsubframe, bool put) 
+int srslte_pdsch_cp(srslte_pdsch_t *q, cf_t *input, cf_t *output, srslte_ra_dl_grant_t *grant, uint32_t lstart_grant, uint32_t nsubframe, bool put)
 {
   uint32_t s, n, l, lp, lstart, lend, nof_refs;
   bool is_pbch, is_sss;
@@ -257,7 +240,7 @@ int pdsch_init_multi(srslte_pdsch_t *q, uint32_t max_prb, uint32_t nof_rx_antenn
         }
       }
     }
-    for (int j=0;j<q->nof_rx_antennas;j++) {
+    for (int j=0;j<SRSLTE_MAX(q->nof_rx_antennas, q->cell.nof_ports);j++) {
       q->symbols[j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
       if (!q->symbols[j]) {
         goto clean;

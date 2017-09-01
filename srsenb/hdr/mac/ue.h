@@ -58,6 +58,10 @@ public:
   }
   
   virtual ~ue() {
+    for (int i=0;i<NOF_HARQ_PROCESSES;i++) {
+      srslte_softbuffer_rx_free(&softbuffer_rx[i]);
+      srslte_softbuffer_tx_free(&softbuffer_tx[i]);
+    }
     pthread_mutex_destroy(&mutex);
   }
   
@@ -81,7 +85,9 @@ public:
   
   uint32_t rl_failure();
   void     rl_failure_reset();
-  
+
+  void set_lcg(uint32_t lcid, uint32_t lcg);
+
   void metrics_read(srsenb::mac_metrics_t* metrics);
   void metrics_rx(bool crc, uint32_t tbs);
   void metrics_tx(bool crc, uint32_t tbs);
@@ -96,7 +102,9 @@ private:
   void allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid);
   
   void metrics_phr(float phr); 
-  uint32_t phr_counter; 
+  uint32_t phr_counter;
+
+  std::vector<uint32_t> lc_groups[4];
   
   mac_metrics_t metrics;
   

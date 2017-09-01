@@ -33,7 +33,7 @@
 
 // Table 6.1.3.1-1 Buffer size levels for BSR 
 static uint32_t btable[64] = {
-  0, 5, 10, 12, 14, 17, 19, 22, 26, 31, 36, 42, 49, 57, 67, 78, 91, 107, 125, 146, 171, 200, 234, 274, 321, 376, 440, 515, 603, 706, 826, 967, 1132, 
+  0, 1, 10, 12, 14, 17, 19, 22, 26, 31, 36, 42, 49, 57, 67, 78, 91, 107, 125, 146, 171, 200, 234, 274, 321, 376, 440, 515, 603, 706, 826, 967, 1132,
   1326, 1552, 1817, 2127, 2490, 2915, 3413, 3995, 4667, 5476, 6411, 7505, 8787, 10287, 12043, 14099, 16507, 19325, 22624, 26487, 31009, 36304, 
   42502, 49759, 58255, 68201, 79846, 93479, 109439, 128125, 150000};
 
@@ -428,12 +428,16 @@ int sch_subh::get_bsr(uint32_t buff_size[4])
       buff_size[2] = (payload[1]&0x0F) << 4 | (payload[1]&0xC0) >> 6;
       buff_size[3] = (payload[2]&0x3F); 
     } else {
-      uint32_t nonzero_lcg     = (payload[0]&0xc0) >> 6;
+      nonzero_lcg              = (payload[0]&0xc0) >> 6;
       buff_size[nonzero_lcg%4] =  payload[0]&0x3f;
     }
     for (int i=0;i<4;i++) {
       if (buff_size[i]) {
-        buff_size[i] = btable[buff_size[i]%64];
+        if (buff_size[i]<63) {
+          buff_size[i] = btable[1+buff_size[i]];
+        } else {
+          buff_size[i] = btable[63];
+        }
       }
     }
     return nonzero_lcg;
@@ -515,8 +519,8 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
 bool sch_subh::set_c_rnti(uint16_t crnti)
 {
   if (((sch_pdu*)parent)->has_space_ce(2)) {
-    w_payload_ce[0] = (uint8_t) (crnti&0xff00)>>8;
-    w_payload_ce[1] = (uint8_t) (crnti&0x00ff);
+    w_payload_ce[0] = (uint8_t) ((crnti&0xff00)>>8);
+    w_payload_ce[1] = (uint8_t) ((crnti&0x00ff));
     lcid = CRNTI;
     ((sch_pdu*)parent)->update_space_ce(2);
     nof_bytes = 2; 

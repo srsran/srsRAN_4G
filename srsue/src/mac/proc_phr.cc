@@ -76,13 +76,13 @@ bool phr_proc::pathloss_changed() {
 /* Trigger PHR when timers exire */
 void phr_proc::timer_expired(uint32_t timer_id) {
   switch(timer_id) {
-    case mac::PHR_TIMER_PERIODIC:
-      timers_db->get(mac::PHR_TIMER_PERIODIC)->reset();    
-      timers_db->get(mac::PHR_TIMER_PERIODIC)->run();    
+    case PHR_TIMER_PERIODIC:
+      timers_db->get(PHR_TIMER_PERIODIC)->reset();
+      timers_db->get(PHR_TIMER_PERIODIC)->run();
       Debug("PHR:   Triggered by timer periodic (timer expired).\n");
       phr_is_triggered = true; 
       break;
-    case mac::PHR_TIMER_PROHIBIT:
+    case PHR_TIMER_PROHIBIT:
       int pathloss_db = liblte_rrc_dl_pathloss_change_num[mac_cfg->main.phr_cnfg.dl_pathloss_change];
       if (pathloss_changed()) {
         Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%f (timer expired)\n", last_pathloss_db);
@@ -105,8 +105,8 @@ void phr_proc::step(uint32_t tti)
     if (timer_periodic != cfg_timer_periodic && cfg_timer_periodic > 0) 
     {
       timer_periodic = cfg_timer_periodic; 
-      timers_db->get(mac::PHR_TIMER_PERIODIC)->set(this, timer_periodic);
-      timers_db->get(mac::PHR_TIMER_PERIODIC)->run();
+      timers_db->get(PHR_TIMER_PERIODIC)->set(this, timer_periodic);
+      timers_db->get(PHR_TIMER_PERIODIC)->run();
       phr_is_triggered = true; 
       Info("PHR:   Configured timer periodic %d ms\n", timer_periodic);
     }
@@ -118,12 +118,12 @@ void phr_proc::step(uint32_t tti)
   if (timer_prohibit != cfg_timer_prohibit && cfg_timer_prohibit > 0) 
   {
     timer_prohibit = cfg_timer_prohibit; 
-    timers_db->get(mac::PHR_TIMER_PROHIBIT)->set(this, timer_prohibit);
-    timers_db->get(mac::PHR_TIMER_PROHIBIT)->run();
+    timers_db->get(PHR_TIMER_PROHIBIT)->set(this, timer_prohibit);
+    timers_db->get(PHR_TIMER_PROHIBIT)->run();
     Info("PHR:   Configured timer prohibit %d ms\n", timer_prohibit);
     phr_is_triggered = true; 
   }  
-  if (pathloss_changed() && timers_db->get(mac::PHR_TIMER_PROHIBIT)->is_expired()) 
+  if (pathloss_changed() && timers_db->get(PHR_TIMER_PROHIBIT)->is_expired())
   {
     Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%f\n", last_pathloss_db);
     phr_is_triggered = true;        
@@ -140,10 +140,10 @@ bool phr_proc::generate_phr_on_ul_grant(float *phr)
     
     Debug("PHR:   Generating PHR=%f\n", phr?*phr:0.0);
     
-    timers_db->get(mac::PHR_TIMER_PERIODIC)->reset();
-    timers_db->get(mac::PHR_TIMER_PROHIBIT)->reset();
-    timers_db->get(mac::PHR_TIMER_PERIODIC)->run();
-    timers_db->get(mac::PHR_TIMER_PROHIBIT)->run();
+    timers_db->get(PHR_TIMER_PERIODIC)->reset();
+    timers_db->get(PHR_TIMER_PROHIBIT)->reset();
+    timers_db->get(PHR_TIMER_PERIODIC)->run();
+    timers_db->get(PHR_TIMER_PROHIBIT)->run();
     
     phr_is_triggered = false; 
     

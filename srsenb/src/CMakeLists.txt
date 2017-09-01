@@ -31,7 +31,9 @@ target_link_libraries(srsenb  srsenb_upper
 
 if (RPATH)
   set_target_properties(srsenb PROPERTIES INSTALL_RPATH ".")
-endif (RPATH)                          
+endif (RPATH)
+
+install(TARGETS srsenb DESTINATION ${RUNTIME_DIR})
 
 ########################################################################
 # Option to run command after build (useful for remote builds)
@@ -42,3 +44,5 @@ if (NOT ${BUILDENB_CMD} STREQUAL "")
 else(NOT ${BUILDENB_CMD} STREQUAL "")
   message(STATUS "No post-build-ENB command defined")
 endif (NOT ${BUILDENB_CMD} STREQUAL "")
+
+install(TARGETS srsenb DESTINATION ${RUNTIME_DIR})

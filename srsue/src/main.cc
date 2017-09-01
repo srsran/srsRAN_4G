@@ -127,7 +127,7 @@ void parse_args(all_args_t *args, int argc, char *argv[]) {
      "index of the core used by the sync thread")
 
     ("expert.ue_category",
-     bpo::value<int>(&args->expert.ue_cateogry)->default_value(4),
+     bpo::value<string>(&args->expert.ue_cateogry)->default_value("4"),
      "UE Category (1 to 5)")
 
     ("expert.metrics_period_secs",
@@ -343,18 +343,26 @@ void *input_loop(void *m) {
   return NULL;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   signal(SIGINT, sig_int_handler);
   all_args_t args;
-  metrics_stdout metrics;
-  ue *ue = ue::get_instance();
-
-  cout << "---  Software Radio Systems LTE UE  ---" << endl << endl;
-
   parse_args(&args, argc, argv);
+
+
+  srsue_instance_type_t type = LTE;
+  ue_base *ue = ue_base::get_instance(type);
+  if (!ue) {
+    cout << "Error creating UE instance." << endl << endl;
+    exit(1);
+  }
+
+  cout << "---  Software Radio Systems " << srsue_instance_type_text[type] << " UE  ---" << endl << endl;
   if (!ue->init(&args)) {
     exit(1);
   }
+
+  metrics_stdout metrics;
   metrics.init(ue, args.expert.metrics_period_secs);
 
   pthread_t input;

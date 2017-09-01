@@ -49,6 +49,8 @@ using namespace std;
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
+#include <srslte/phy/phch/ra.h>
+
 void init_plots(srsenb::phch_worker *worker);
 pthread_t plot_thread; 
 sem_t plot_sem; 
@@ -114,7 +116,7 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     return;
   }
   
-  srslte_pucch_set_threshold(&enb_ul.pucch, 0.8, 0.5); 
+  srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
   
@@ -183,8 +185,8 @@ void phch_worker::set_config_dedicated(uint16_t rnti,
     srslte_enb_ul_cfg_ue(&enb_ul, rnti, uci_cfg, pucch_sched, srs_cfg);
         
     ue_db[rnti].I_sr    = I_sr; 
-    ue_db[rnti].I_sr_en = true; 
-    
+    ue_db[rnti].I_sr_en = true;
+
     if (pucch_cqi) {
       ue_db[rnti].pmi_idx = pmi_idx; 
       ue_db[rnti].cqi_en  = true;       
@@ -360,7 +362,6 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       }
       if (cqi_enabled) {
         uci_data.uci_cqi_len = srslte_cqi_size(&cqi_value);
-        Info("cqi enabled len=%d\n", uci_data.uci_cqi_len);
       }
       
       // mark this tti as having an ul grant to avoid pucch 
@@ -369,7 +370,11 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       srslte_ra_ul_grant_t phy_grant; 
       int res = -1;
       if (!srslte_ra_ul_dci_to_grant(&grants[i].grant, enb_ul.cell.nof_prb, n_rb_ho, &phy_grant, tti%8)) {
-        res = srslte_enb_ul_get_pusch(&enb_ul, &phy_grant, grants[i].softbuffer, 
+        if (phy_grant.mcs.mod == SRSLTE_MOD_64QAM) {
+          phy_grant.mcs.mod = SRSLTE_MOD_16QAM;
+        }
+        phy_grant.Qm = SRSLTE_MIN(phy_grant.Qm, 4);
+        res = srslte_enb_ul_get_pusch(&enb_ul, &phy_grant, grants[i].softbuffer,
                                                 rnti, grants[i].rv_idx, 
                                                 grants[i].current_tx_nb, 
                                                 grants[i].data, 
@@ -420,7 +425,7 @@ int phch_worker::decode_pusch(srslte_enb_ul_pusch_t *grants, uint32_t nof_pusch,
       }
       */
       log_h->info_hex(grants[i].data, phy_grant.mcs.tbs/8,
-          "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s\n", 
+          "PUSCH: rnti=0x%x, prb=(%d,%d), tbs=%d, mcs=%d, rv=%d, snr=%.1f dB, n_iter=%d, crc=%s%s%s%s\n",
           rnti, phy_grant.n_prb[0], phy_grant.n_prb[0]+phy_grant.L_prb,
           phy_grant.mcs.tbs/8, phy_grant.mcs.idx, grants[i].grant.rv_idx,
           snr_db, 

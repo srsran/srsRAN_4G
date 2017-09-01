@@ -268,6 +268,9 @@ void phch_worker::work_imp()
     set_uci_periodic_cqi();
   }
 
+  /* TTI offset for UL is always 4 for LTE */
+  ul_action.tti_offset = 4;
+
   /* Send UL grant or HARQ information (from PHICH) to MAC */
   if (ul_grant_available         && ul_ack_available)  {    
     phy->mac->new_grant_ul_ack(ul_mac_grant, ul_ack, &ul_action);      

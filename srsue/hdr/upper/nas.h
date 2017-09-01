@@ -66,12 +66,11 @@ class nas
   : public nas_interface_rrc, public nas_interface_ue {
 public:
   nas();
-
-  void init(usim_interface_nas *usim_,
-            rrc_interface_nas *rrc_,
-            gw_interface_nas *gw_,
-            srslte::log *nas_log_);
-
+  void init(usim_interface_nas  *usim_,
+            rrc_interface_nas   *rrc_,
+            gw_interface_nas    *gw_,
+            srslte::log         *nas_log_,
+            srslte::srslte_nas_config_t cfg_);
   void stop();
 
   emm_state_t get_state();
@@ -100,6 +99,8 @@ private:
   rrc_interface_nas *rrc;
   usim_interface_nas *usim;
   gw_interface_nas *gw;
+
+  srslte::srslte_nas_config_t cfg;
 
   emm_state_t state;
 

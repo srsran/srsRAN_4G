@@ -302,12 +302,12 @@ int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch
   return ret; 
 }
 
-int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr)
+int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
 {
   pthread_mutex_lock(&mutex);
   int ret = 0; 
   if (ue_db.count(rnti)) {         
-    ue_db[rnti].ul_buffer_state(lcid, bsr);
+    ue_db[rnti].ul_buffer_state(lcid, bsr, set_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
@@ -792,13 +792,13 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
             user->unset_sr();
           }
 
-          log_h->info("SCHED: %s %s rnti=0x%x, pid=%d, dci=%d,%d, grant=%d,%d, n_rtx=%d, tbs=%d, bsr=%d (%d)\n", 
+          log_h->info("SCHED: %s %s rnti=0x%x, pid=%d, dci=%d,%d, grant=%d,%d, n_rtx=%d, tbs=%d, bsr=%d (%d-%d)\n",
                       is_rar?"RAR":"UL",
                       is_newtx?"tx":"retx",                
                       rnti, h->get_id(), 
                       sched_result->pusch[nof_dci_elems].dci_location.L, sched_result->pusch[nof_dci_elems].dci_location.ncce,
                       alloc.RB_start, alloc.L, h->nof_retx(), sched_result->pusch[nof_dci_elems].tbs, 
-                      user->get_pending_ul_new_data(current_tti),pending_data_before);
+                      user->get_pending_ul_new_data(current_tti),pending_data_before, user->get_pending_ul_old_data());
 
           nof_dci_elems++;          
         } else {
@@ -812,8 +812,16 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
         }   
       }
     }
-  } 
-  
+  }
+
+  // Update pending data counters after this TTI
+  for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
+    sched_ue *user = (sched_ue *) &iter->second;
+    uint16_t rnti = (uint16_t) iter->first;
+
+    user->get_ul_harq(current_tti)->reset_pending_data();
+  }
+
   sched_result->nof_dci_elems   = nof_dci_elems;
   sched_result->nof_phich_elems = nof_phich_elems;
 

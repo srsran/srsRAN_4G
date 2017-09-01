@@ -57,10 +57,10 @@ void bsr_proc::init(rlc_interface_mac *rlc_, srslte::log* log_h_, mac_interface_
 
 void bsr_proc::reset()
 {
-  timers_db->get(mac::BSR_TIMER_PERIODIC)->stop();
-  timers_db->get(mac::BSR_TIMER_PERIODIC)->reset();
-  timers_db->get(mac::BSR_TIMER_RETX)->stop();
-  timers_db->get(mac::BSR_TIMER_RETX)->reset();
+  timers_db->get(BSR_TIMER_PERIODIC)->stop();
+  timers_db->get(BSR_TIMER_PERIODIC)->reset();
+  timers_db->get(BSR_TIMER_RETX)->stop();
+  timers_db->get(BSR_TIMER_RETX)->reset();
   
   reset_sr = false; 
   sr_is_sent = false; 
@@ -78,14 +78,14 @@ void bsr_proc::reset()
 /* Process Periodic BSR */
 void bsr_proc::timer_expired(uint32_t timer_id) {
   switch(timer_id) {
-    case mac::BSR_TIMER_PERIODIC:
+    case BSR_TIMER_PERIODIC:
       if (triggered_bsr_type == NONE) {
         // Check condition 4 in Sec 5.4.5 
         triggered_bsr_type = PERIODIC; 
         Debug("BSR:   Triggering Periodic BSR\n");
       }
       break;
-    case mac::BSR_TIMER_RETX:
+    case BSR_TIMER_RETX:
       // Enable reTx of SR only if periodic timer is not infinity
       int periodic = liblte_rrc_periodic_bsr_timer_num[mac_cfg->main.ulsch_cnfg.periodic_bsr_timer];
       if (periodic >= 0) {
@@ -222,17 +222,17 @@ void bsr_proc::step(uint32_t tti)
   }  
   
   int periodic = liblte_rrc_periodic_bsr_timer_num[mac_cfg->main.ulsch_cnfg.periodic_bsr_timer];
-  if (periodic > 0 && (uint32_t)periodic != timers_db->get(mac::BSR_TIMER_PERIODIC)->get_timeout())
+  if (periodic > 0 && (uint32_t)periodic != timers_db->get(BSR_TIMER_PERIODIC)->get_timeout())
   {
-    timers_db->get(mac::BSR_TIMER_PERIODIC)->set(this, periodic);
-    timers_db->get(mac::BSR_TIMER_PERIODIC)->run();
+    timers_db->get(BSR_TIMER_PERIODIC)->set(this, periodic);
+    timers_db->get(BSR_TIMER_PERIODIC)->run();
     Info("BSR:   Configured timer periodic %d ms\n", periodic);    
   }      
   int retx = liblte_rrc_retransmission_bsr_timer_num[mac_cfg->main.ulsch_cnfg.retx_bsr_timer];
-  if (retx > 0 && (uint32_t)retx != timers_db->get(mac::BSR_TIMER_RETX)->get_timeout())
+  if (retx > 0 && (uint32_t)retx != timers_db->get(BSR_TIMER_RETX)->get_timeout())
   {
-    timers_db->get(mac::BSR_TIMER_RETX)->set(this, retx);
-    timers_db->get(mac::BSR_TIMER_RETX)->run();
+    timers_db->get(BSR_TIMER_RETX)->set(this, retx);
+    timers_db->get(BSR_TIMER_RETX)->run();
     Info("BSR:   Configured timer reTX %d ms\n", retx);
   }
 
@@ -309,18 +309,18 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr)
           grant_size, total_data, bsr_sz);
       ret = true; 
     }    
-    if (timers_db->get(mac::BSR_TIMER_PERIODIC)->get_timeout() && bsr->format != TRUNC_BSR) {
-      timers_db->get(mac::BSR_TIMER_PERIODIC)->reset();
-      timers_db->get(mac::BSR_TIMER_PERIODIC)->run();
+    if (timers_db->get(BSR_TIMER_PERIODIC)->get_timeout() && bsr->format != TRUNC_BSR) {
+      timers_db->get(BSR_TIMER_PERIODIC)->reset();
+      timers_db->get(BSR_TIMER_PERIODIC)->run();
     }
   }
   // Cancel all triggered BSR and SR     
   triggered_bsr_type = NONE; 
   reset_sr = true;     
   // Restart or Start ReTX timer
-  if (timers_db->get(mac::BSR_TIMER_RETX)->get_timeout()) {
-    timers_db->get(mac::BSR_TIMER_RETX)->reset();
-    timers_db->get(mac::BSR_TIMER_RETX)->run();
+  if (timers_db->get(BSR_TIMER_RETX)->get_timeout()) {
+    timers_db->get(BSR_TIMER_RETX)->reset();
+    timers_db->get(BSR_TIMER_RETX)->run();
   }
   return ret;   
 }
@@ -340,9 +340,9 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr)
          bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format), 
          bsr->buff_size[0], bsr->buff_size[1], bsr->buff_size[2], bsr->buff_size[3]);
     
-    if (timers_db->get(mac::BSR_TIMER_PERIODIC)->get_timeout() && bsr->format != TRUNC_BSR) {
-      timers_db->get(mac::BSR_TIMER_PERIODIC)->reset();
-      timers_db->get(mac::BSR_TIMER_PERIODIC)->run();
+    if (timers_db->get(BSR_TIMER_PERIODIC)->get_timeout() && bsr->format != TRUNC_BSR) {
+      timers_db->get(BSR_TIMER_PERIODIC)->reset();
+      timers_db->get(BSR_TIMER_PERIODIC)->run();
     }    
     
   }

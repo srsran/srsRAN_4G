@@ -63,7 +63,7 @@ typedef struct {
 typedef struct {
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
   bool sequence_generated;
-} srslte_pusch_user_t; 
+} srslte_pusch_user_t;
 
 /* PUSCH object */
 typedef struct SRSLTE_API {

@@ -101,7 +101,7 @@ int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t * q, uint32_t max_fra
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q != NULL) {
+  if (q != NULL && nof_rx_antennas > 0) {
     ret = SRSLTE_ERROR;
     srslte_cell_t cell;
 

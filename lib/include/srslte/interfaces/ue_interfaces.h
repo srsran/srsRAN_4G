@@ -39,6 +39,7 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/common.h"
 #include "srslte/common/security.h"
+#include "srslte/upper/rlc_interface.h"
 
 namespace srsue {
 
@@ -113,11 +114,16 @@ public:
 };
 
 // RRC interface for MAC
-class rrc_interface_mac
+class rrc_interface_mac_common
+{
+public:
+  virtual void ra_problem() = 0;
+};
+
+class rrc_interface_mac : public rrc_interface_mac_common
 {
 public:
   virtual void release_pucch_srs() = 0;
-  virtual void ra_problem() = 0; 
 };
 
 // RRC interface for PHY
@@ -139,7 +145,7 @@ public:
   virtual void enable_capabilities() = 0;
   virtual void plmn_search() = 0;
   virtual void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) = 0;
-
+  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // RRC interface for PDCP
@@ -150,6 +156,7 @@ public:
   virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu) = 0;
   virtual void write_pdu_pcch(srslte::byte_buffer_t *pdu) = 0;
+  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // RRC interface for RLC
@@ -157,6 +164,7 @@ class rrc_interface_rlc
 {
 public:
   virtual void max_retx_attempted() = 0;
+  virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
 // PDCP interface for GW
@@ -172,7 +180,7 @@ class pdcp_interface_rrc
 public:
   virtual void reset() = 0;
   virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
-  virtual void add_bearer(uint32_t lcid, LIBLTE_RRC_PDCP_CONFIG_STRUCT *cnfg=NULL) = 0;
+  virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
   virtual void config_security(uint32_t lcid,
                                uint8_t *k_rrc_enc_,
                                uint8_t *k_rrc_int_,
@@ -197,7 +205,7 @@ class rlc_interface_rrc
 public:
   virtual void reset() = 0;
   virtual void add_bearer(uint32_t lcid) = 0;
-  virtual void add_bearer(uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT *cnfg) = 0;
+  virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
 };
 
 // RLC interface for PDCP
@@ -233,6 +241,31 @@ public:
   virtual void write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes) = 0;
 };
 
+
+//BSR interface for MUX
+class bsr_interface_mux
+{
+public:
+  typedef enum {
+    LONG_BSR,
+    SHORT_BSR,
+    TRUNC_BSR
+  } bsr_format_t;
+
+  typedef struct {
+    bsr_format_t format;
+    uint32_t buff_size[4];
+  } bsr_t;
+
+  /* MUX calls BSR to check if it can fit a BSR into PDU */
+  virtual bool need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr) = 0;
+
+  /* MUX calls BSR to let it generate a padding BSR if there is space in PDU */
+  virtual bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr) = 0;
+
+  /* MAX calls BSR to set the Tx TTI */
+  virtual void set_tx_tti(uint32_t tti) = 0;
+};
 
 
 /** MAC interface 
@@ -279,6 +312,7 @@ public:
     uint32_t                rv;
     uint16_t                rnti; 
     uint32_t                current_tx_nb;
+    int32_t                 tti_offset;     // relative offset between grant and UL tx/HARQ rx
     srslte_softbuffer_tx_t *softbuffer;
     srslte_phy_grant_t      phy_grant;
     uint8_t                *payload_ptr; 
@@ -313,9 +347,27 @@ public:
   
 };
 
+/* Interface RRC -> MAC shared between different RATs */
+class mac_interface_rrc_common
+{
+public:
+  // Class to handle UE specific RNTIs between RRC and MAC
+  typedef struct {
+    uint16_t crnti;
+    uint16_t temp_rnti;
+    uint16_t tpc_rnti;
+    uint16_t sps_rnti;
+    uint64_t contention_id;
+  } ue_rnti_t;
+
+  typedef struct {
+    uint32_t max_harq_msg3_tx;
+    uint32_t max_harq_tx;
+  } ul_harq_params_t;
+};
 
 /* Interface RRC -> MAC */
-class mac_interface_rrc
+class mac_interface_rrc : public mac_interface_rrc_common
 {
 public:
   
@@ -323,19 +375,10 @@ public:
     LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT           main; 
     LIBLTE_RRC_RACH_CONFIG_COMMON_STRUCT        rach;     
     LIBLTE_RRC_SCHEDULING_REQUEST_CONFIG_STRUCT sr; 
+    ul_harq_params_t                            ul_harq_params;
     uint32_t prach_config_index; 
   } mac_cfg_t; 
 
-  
-  // Class to handle UE specific RNTIs between RRC and MAC
-  typedef struct {
-    uint16_t crnti; 
-    uint16_t temp_rnti; 
-    uint16_t tpc_rnti; 
-    uint16_t sps_rnti; 
-    uint64_t contention_id; 
-  } ue_rnti_t;  
-  
   /* Instructs the MAC to start receiving BCCH */
   virtual void    bcch_start_rx() = 0; 
   virtual void    bcch_stop_rx() = 0; 
@@ -395,45 +438,50 @@ typedef struct {
   float estimator_fil_w;   
   bool rssi_sensor_enabled;
 } phy_args_t; 
-  
-/* Interface MAC -> PHY */
-class phy_interface_mac
+
+
+/* RAT agnostic Interface MAC -> PHY */
+class phy_interface_mac_common
 {
 public:
-  /* Configure PRACH using parameters written by RRC */
-  virtual void configure_prach_params() = 0;
-  
   /* Start synchronization with strongest cell in the current carrier frequency */
   virtual bool sync_status() = 0;
   
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
-  virtual void set_crnti(uint16_t rnti) = 0; 
-  
+  virtual void set_crnti(uint16_t rnti) = 0;
+
+  /* Time advance commands */
+  virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;
+  virtual void set_timeadv(uint32_t ta_cmd) = 0;
+
+  /* Sets RAR grant payload */
+  virtual void set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]) = 0;
+
+  virtual uint32_t get_current_tti() = 0;
+
+  virtual float get_phr() = 0;
+  virtual float get_pathloss_db() = 0;
+};
+
+/* Interface MAC -> PHY */
+class phy_interface_mac : public phy_interface_mac_common
+{
+public:
+  /* Configure PRACH using parameters written by RRC */
+  virtual void configure_prach_params() = 0;
+
   virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;  
   virtual int  prach_tx_tti() = 0; 
   
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send() = 0;  
   virtual int  sr_last_tx_tti() = 0; 
-  
-  /* Time advance commands */
-  virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;
-  virtual void set_timeadv(uint32_t ta_cmd) = 0;
-  
-  /* Sets RAR grant payload */
-  virtual void set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]) = 0; 
 
   /* Instruct the PHY to decode PDCCH with the CRC scrambled with given RNTI */
   virtual void pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
   virtual void pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
   virtual void pdcch_ul_search_reset() = 0;
   virtual void pdcch_dl_search_reset() = 0;
-  
-  virtual uint32_t get_current_tti() = 0;
-  
-  virtual float get_phr() = 0; 
-  virtual float get_pathloss_db() = 0;
-    
 };
 
 class phy_interface_rrc

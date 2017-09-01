@@ -25,6 +25,7 @@
  */
 
 #include "upper/rlc.h"
+#include "upper/common_enb.h"
 
 namespace srsenb {
   
@@ -53,7 +54,7 @@ void rlc::add_user(uint16_t rnti)
 {
   if (users.count(rnti) == 0) {    
     srslte::rlc *obj = new srslte::rlc;     
-    obj->init(&users[rnti], &users[rnti], &users[rnti], log_h, mac_timers);
+    obj->init(&users[rnti], &users[rnti], &users[rnti], log_h, mac_timers, RB_ID_SRB0);
     users[rnti].rnti   = rnti; 
     users[rnti].pdcp   = pdcp; 
     users[rnti].rrc    = rrc; 
@@ -82,11 +83,11 @@ void rlc::reset(uint16_t rnti)
 void rlc::clear_buffer(uint16_t rnti)
 {
   if (users.count(rnti)) {
-    log_h->info("Clearing buffer rnti=0x%x\n", rnti);
-    users[rnti].rlc->reset();
+    users[rnti].rlc->empty_queue();
     for (int i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
       mac->rlc_buffer_state(rnti, i, 0, 0);      
     }
+    log_h->info("Cleared buffer rnti=0x%x\n", rnti);
   }
 }
 
@@ -97,7 +98,7 @@ void rlc::add_bearer(uint16_t rnti, uint32_t lcid)
   }
 }
 
-void rlc::add_bearer(uint16_t rnti, uint32_t lcid, LIBLTE_RRC_RLC_CONFIG_STRUCT* cnfg)
+void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg)
 {
   if (users.count(rnti)) {
     users[rnti].rlc->add_bearer(lcid, cnfg);
@@ -182,6 +183,11 @@ void rlc::user_interface::write_pdu_bcch_dlsch(srslte::byte_buffer_t* sdu)
 void rlc::user_interface::write_pdu_pcch(srslte::byte_buffer_t* sdu)
 {
   fprintf(stderr, "Error: Received PCCH from ue=%d\n", rnti);
+}
+
+std::string rlc::user_interface::get_rb_name(uint32_t lcid)
+{
+  return std::string(rb_id_text[lcid]);
 }
 
 }

@@ -512,7 +512,7 @@ int srslte_pusch_encode(srslte_pusch_t *q, srslte_pusch_cfg_t *cfg, srslte_softb
     // Run scrambling
     srslte_scrambling_bytes(seq, (uint8_t*) q->q, cfg->nbits.nof_bits);
 
-    // Correct UCI placeholder/repetition bits    
+    // Correct UCI placeholder/repetition bits
     uint8_t *d = q->q; 
     for (int i = 0; i < q->ul_sch.nof_ri_ack_bits; i++) {     
       if (q->ul_sch.ack_ri_bits[i].type == UCI_BIT_PLACEHOLDER) {
@@ -592,7 +592,7 @@ int srslte_pusch_decode(srslte_pusch_t *q,
     // Generate scrambling sequence if not pre-generated
     srslte_sequence_t *seq = get_user_sequence(q, rnti, cfg->sf_idx, cfg->nbits.nof_bits);
 
-    // Decode RI/HARQ bits before descrambling 
+    // Decode RI/HARQ bits before descrambling
     if (srslte_ulsch_uci_decode_ri_ack(&q->ul_sch, cfg, softbuffer, q->q, seq->c, uci_data)) {
       fprintf(stderr, "Error decoding RI/HARQ bits\n");
       return SRSLTE_ERROR; 

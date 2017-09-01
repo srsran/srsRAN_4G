@@ -29,6 +29,7 @@
 
 #include "pthread.h"
 
+#include "rrc_common.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
@@ -42,28 +43,11 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
-// RRC states (3GPP 36.331 v10.0.0)
-typedef enum {
-  RRC_STATE_IDLE = 0,
-  RRC_STATE_PLMN_SELECTION,
-  RRC_STATE_CELL_SELECTING,
-  RRC_STATE_CELL_SELECTED,
-  RRC_STATE_CONNECTING,
-  RRC_STATE_CONNECTED,
-  RRC_STATE_N_ITEMS,
-} rrc_state_t;
-static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "PLMN SELECTION",
-                                                            "CELL SELECTION",
-                                                            "CONNECTING",
-                                                            "CONNECTED",
-                                                            "RRC CONNECTED"};
 typedef enum {
   SI_ACQUIRE_IDLE = 0,
   SI_ACQUIRE_SIB1,
   SI_ACQUIRE_SIB2
 } si_acquire_state_t;
-
 
 class rrc
   : public rrc_interface_nas,
@@ -206,72 +190,68 @@ private:
 
   void write_pdu_pcch(byte_buffer_t *pdu);
 
+  // Radio bearers
+  typedef enum{
+    RB_ID_SRB0 = 0,
+    RB_ID_SRB1,
+    RB_ID_SRB2,
+    RB_ID_DRB1,
+    RB_ID_DRB2,
+    RB_ID_DRB3,
+    RB_ID_DRB4,
+    RB_ID_DRB5,
+    RB_ID_DRB6,
+    RB_ID_DRB7,
+    RB_ID_DRB8,
+    RB_ID_MAX
+  } rb_id_t;
+
+  std::map<uint8_t, std::string> bearers;
+  std::string get_rb_name(uint32_t lcid) { return bearers.at(lcid); }
+
   // RLC interface
-  void max_retx_attempted();
+  void          max_retx_attempted();
 
   // Senders
-  void send_con_request();
-
-  void send_con_restablish_request();
-
-  void send_con_restablish_complete();
-
-  void send_con_setup_complete(byte_buffer_t *nas_msg);
-
-  void send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu);
-
-  void send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu);
-
-  void send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu);
-
-  void send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu);
+  void          send_con_request();
+  void          send_con_restablish_request();
+  void          send_con_restablish_complete();
+  void          send_con_setup_complete(byte_buffer_t *nas_msg);
+  void          send_ul_info_transfer(uint32_t lcid, byte_buffer_t *sdu);
+  void          send_security_mode_complete(uint32_t lcid, byte_buffer_t *pdu);
+  void          send_rrc_con_reconfig_complete(uint32_t lcid, byte_buffer_t *pdu);
+  void          send_rrc_ue_cap_info(uint32_t lcid, byte_buffer_t *pdu);
 
   // Parsers
-  void parse_dl_ccch(byte_buffer_t *pdu);
-
-  void parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu);
-
-  void parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
+  void          parse_dl_ccch(byte_buffer_t *pdu);
+  void          parse_dl_dcch(uint32_t lcid, byte_buffer_t *pdu);
+  void          parse_dl_info_transfer(uint32_t lcid, byte_buffer_t *pdu);
 
   // Helpers
-  void reset_ue();
-
-  void rrc_connection_release();
-
-  void radio_link_failure();
-
-  uint32_t sib_start_tti(uint32_t tti, uint32_t period, uint32_t x);
-
-  void apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
-
-  void handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
-
-  void handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
-
-  void
-  handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig, byte_buffer_t *pdu);
-
-  void add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);
-
-  void add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
-
-  void release_drb(uint8_t lcid);
-
-  void apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
-
-  void apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults);
-
-  void apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults);
-
-  // Helpers for setting default values
-  void set_phy_default_pucch_srs();
-
-  void set_phy_default();
-
-  void set_mac_default();
-
-  void set_rrc_default();
-
+  void          reset_ue();
+  void          rrc_connection_release();
+  void          radio_link_failure(); 
+  static void*  start_sib_thread(void *rrc_);
+  void          sib_search();
+  uint32_t      sib_start_tti(uint32_t tti, uint32_t period, uint32_t x);
+  void          apply_sib2_configs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
+  void          handle_con_setup(LIBLTE_RRC_CONNECTION_SETUP_STRUCT *setup);
+  void          handle_con_reest(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_STRUCT *setup);
+  void          handle_rrc_con_reconfig(uint32_t lcid, LIBLTE_RRC_CONNECTION_RECONFIGURATION_STRUCT *reconfig, byte_buffer_t *pdu);
+  void          add_srb(LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT *srb_cnfg);
+  void          add_drb(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb_cnfg);
+  void          release_drb(uint8_t lcid);
+  void          apply_rr_config_dedicated(LIBLTE_RRC_RR_CONFIG_DEDICATED_STRUCT *cnfg);
+  void          apply_phy_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *phy_cnfg, bool apply_defaults); 
+  void          apply_mac_config_dedicated(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT *mac_cfg, bool apply_defaults); 
+  
+  // Helpers for setting default values 
+  void          set_phy_default_pucch_srs();
+  void          set_phy_default();
+  void          set_mac_default();
+  void          set_rrc_default(); 
+  void          set_bearers();
+  
 };
 
 } // namespace srsue

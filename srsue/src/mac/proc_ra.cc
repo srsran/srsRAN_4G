@@ -115,7 +115,7 @@ void ra_proc::read_params() {
   delta_preamble_db         = delta_preamble_db_table[configIndex%5]; 
   
   if (contentionResolutionTimer > 0) {
-    timers_db->get(mac::CONTENTION_TIMER)->set(this, contentionResolutionTimer);
+    timers_db->get(CONTENTION_TIMER)->set(this, contentionResolutionTimer);
   }
 
 }
@@ -165,14 +165,14 @@ void ra_proc::process_timeadv_cmd(uint32_t ta) {
   if (preambleIndex == 0) {
     // Preamble not selected by UE MAC 
     phy_h->set_timeadv_rar(ta);
-    timers_db->get(mac::TIME_ALIGNMENT)->reset();
-    timers_db->get(mac::TIME_ALIGNMENT)->run();
+    timers_db->get(TIME_ALIGNMENT)->reset();
+    timers_db->get(TIME_ALIGNMENT)->run();
     Debug("Applying RAR TA CMD %d\n", ta);
   } else {
     // Preamble selected by UE MAC 
-    if (!timers_db->get(mac::TIME_ALIGNMENT)->is_running()) {
+    if (!timers_db->get(TIME_ALIGNMENT)->is_running()) {
       phy_h->set_timeadv_rar(ta);
-      timers_db->get(mac::TIME_ALIGNMENT)->run();
+      timers_db->get(TIME_ALIGNMENT)->run();
       Debug("Applying RAR TA CMD %d\n", ta);
     } else {
       // Ignore TA CMD
@@ -355,8 +355,8 @@ void ra_proc::tb_decoded_ok() {
         state = CONTENTION_RESOLUTION;
         
         // Start contention resolution timer 
-        timers_db->get(mac::CONTENTION_TIMER)->reset();
-        timers_db->get(mac::CONTENTION_TIMER)->run();                      
+        timers_db->get(CONTENTION_TIMER)->reset();
+        timers_db->get(CONTENTION_TIMER)->run();
       }  
     } else {
       rDebug("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
@@ -417,7 +417,7 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id) {
   rDebug("MAC PDU Contains Contention Resolution ID CE\n");
   
   // MAC PDU successfully decoded and contains MAC CE contention Id
-  timers_db->get(mac::CONTENTION_TIMER)->stop();
+  timers_db->get(CONTENTION_TIMER)->stop();
   
   if (transmitted_contention_id == rx_contention_id) 
   {    
@@ -453,7 +453,7 @@ void ra_proc::step_contention_resolution() {
             (started_by_pdcch && pdcch_to_crnti_received != PDCCH_CRNTI_NOT_RECEIVED))
       {
         rDebug("PDCCH for C-RNTI received\n");
-        timers_db->get(mac::CONTENTION_TIMER)->stop();
+        timers_db->get(CONTENTION_TIMER)->stop();
         rntis->temp_rnti = 0; 
         state = COMPLETION;           
       }            
@@ -565,7 +565,7 @@ void ra_proc::pdcch_to_crnti(bool contains_uplink_grant) {
 
 void ra_proc::harq_retx()
 {
-  timers_db->get(mac::CONTENTION_TIMER)->reset();
+  timers_db->get(CONTENTION_TIMER)->reset();
 }
 
 }

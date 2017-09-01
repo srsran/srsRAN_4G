@@ -73,8 +73,8 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
       goto clean_exit;
     }
 
-    srslte_pucch_set_threshold(&q->pucch, 0.5, 0.5);
-    
+    srslte_pucch_set_threshold(&q->pucch, 0.8);
+
     if (srslte_chest_ul_init(&q->chest, max_prb)) {
       fprintf(stderr, "Error initiating channel estimator\n");
       goto clean_exit; 
@@ -173,8 +173,6 @@ int srslte_enb_ul_set_cell(srslte_enb_ul_t *q, srslte_cell_t cell,
         }
         srslte_prach_set_detect_factor(&q->prach, 60);
       }
-
-      srslte_pucch_set_threshold(&q->pucch, 0.5, 0.5);
 
       if (srslte_chest_ul_set_cell(&q->chest, cell)) {
         fprintf(stderr, "Error initiating channel estimator\n");

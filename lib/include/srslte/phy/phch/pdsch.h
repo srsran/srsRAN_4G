@@ -107,10 +107,7 @@ SRSLTE_API int srslte_pdsch_set_rnti(srslte_pdsch_t *q,
 SRSLTE_API void srslte_pdsch_free_rnti(srslte_pdsch_t *q, 
                                       uint16_t rnti);
 
-SRSLTE_API float srslte_pdsch_coderate(uint32_t tbs, 
-                                       uint32_t nof_re); 
-
-SRSLTE_API int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, 
+SRSLTE_API int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg,
                                 srslte_cell_t cell, 
                                 srslte_ra_dl_grant_t *grant, 
                                 uint32_t cfi, 

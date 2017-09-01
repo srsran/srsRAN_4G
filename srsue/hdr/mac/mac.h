@@ -98,17 +98,6 @@ public:
   u_int32_t                get_unique_id();
   
   uint32_t get_current_tti();
-      
-  enum {
-    HARQ_RTT, 
-    TIME_ALIGNMENT,
-    CONTENTION_TIMER,
-    BSR_TIMER_PERIODIC,
-    BSR_TIMER_RETX,
-    PHR_TIMER_PERIODIC,
-    PHR_TIMER_PROHIBIT,
-    NOF_MAC_TIMERS
-  } mac_timers_t; 
   
   static const int MAC_NOF_UPPER_TIMERS = 20; 
   
@@ -117,6 +106,7 @@ private:
   
   static const int MAC_MAIN_THREAD_PRIO = 5; 
   static const int MAC_PDU_THREAD_PRIO  = 6;
+  static const int MAC_NOF_HARQ_PROC    = 8;
 
   // Interaction with PHY 
   srslte::tti_sync_cv   ttisync; 
@@ -141,9 +131,9 @@ private:
   mux           mux_unit; 
   demux         demux_unit; 
   
-  /* DL/UL HARQ */  
-  dl_harq_entity dl_harq; 
-  ul_harq_entity ul_harq; 
+  /* DL/UL HARQ */
+  dl_harq_entity<MAC_NOF_HARQ_PROC, mac_grant_t, tb_action_dl_t, srslte_phy_grant_t> dl_harq;
+  ul_harq_entity<MAC_NOF_HARQ_PROC, mac_grant_t, tb_action_ul_t, srslte_phy_grant_t> ul_harq;
   
   /* MAC Uplink-related Procedures */
   ra_proc       ra_procedure;
