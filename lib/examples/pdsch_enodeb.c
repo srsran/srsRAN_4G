@@ -194,7 +194,7 @@ void base_init() {
 
   /* Select transmission mode */
   if (srslte_str2mimotype(mimo_type_str, &pdsch_cfg.mimo_type)) {
-    ERROR("Wrong transmission mode! Allowed modes: single, diversity, cdd");
+    ERROR("Wrong transmission mode! Allowed modes: single, diversity, cdd and multiplex");
     exit(-1);
   }
 
