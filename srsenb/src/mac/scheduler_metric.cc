@@ -214,7 +214,8 @@ void ul_metric_rr::new_tti(std::map<uint16_t,sched_ue> &ue_db, uint32_t nof_rb_,
   for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user      = (sched_ue*) &iter->second;
     if (user->get_pending_ul_new_data(current_tti) || !user->get_ul_harq(current_tti)->is_empty()) {
-      user->ue_idx = nof_users_with_data;
+      user->ue_idx    = nof_users_with_data;
+      user->has_pusch = true;
       nof_users_with_data++; 
     }
   }
