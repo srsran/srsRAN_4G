@@ -54,11 +54,13 @@ void enb::cleanup(void)
 enb::enb()
     :started(false)
 {
+  srslte_dft_load();
   pool = srslte::byte_buffer_pool::get_instance();
 }
 
 enb::~enb()
 {
+  srslte_dft_exit();
   srslte::byte_buffer_pool::cleanup();
 }
 

@@ -72,9 +72,11 @@ typedef struct SRSLTE_API {
   srslte_dft_mode_t mode;   // Complex/Real
 }srslte_dft_plan_t;
 
-/* Create DFT plans */
+SRSLTE_API void srslte_dft_load();
 
-SRSLTE_API int srslte_dft_plan(srslte_dft_plan_t *plan, 
+SRSLTE_API void srslte_dft_exit();
+
+SRSLTE_API int srslte_dft_plan(srslte_dft_plan_t *plan,
                                int dft_points, 
                                srslte_dft_dir_t dir,                         
                                srslte_dft_mode_t type);

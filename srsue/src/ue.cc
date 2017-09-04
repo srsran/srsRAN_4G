@@ -179,7 +179,7 @@ bool ue::init(all_args_t *args_)
   phy.wait_initialize();
   phy.configure_ul_params();
 
-  printf("\n\nRequesting NAS Attach...\n");
+  printf("...\n");
   nas.attach_request();
 
   started = true;
