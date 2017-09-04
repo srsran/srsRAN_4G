@@ -242,6 +242,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'v':
       srslte_verbose++;
+      args->verbose = srslte_verbose;
       break;
     case 'Z':
       args->decimate = atoi(argv[optind]);
@@ -323,7 +324,7 @@ int main(int argc, char **argv) {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int sfn_offset;
   float cfo = 0; 
-  
+
   parse_args(&prog_args, argc, argv);
   
   for (int i = 0; i< SRSLTE_MAX_CODEWORDS; i++) {
@@ -486,7 +487,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }    
 
-  if (srslte_ue_dl_init_multi(&ue_dl, cell, prog_args.rf_nof_rx_ant)) {  // This is the User RNTI
+  if (srslte_ue_dl_init(&ue_dl, cell, prog_args.rf_nof_rx_ant)) {  // This is the User RNTI
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     exit(-1);
   }
@@ -608,13 +609,30 @@ int main(int argc, char **argv) {
               decode_pdsch = false; 
             }
           }
-          if (decode_pdsch) {            
-            INFO("Attempting DL decode SFN=%d\n", sfn);
-            n = srslte_ue_dl_decode_multi(&ue_dl, 
-                                          sf_buffer, 
-                                          data, 
-                                          sfn*10+srslte_ue_sync_get_sfidx(&ue_sync),
+
+          INFO("Attempting DL decode SFN=%d\n", sfn);
+          if (decode_pdsch) {
+            if (cell.nof_ports == 1) {
+              /* Transmission mode 1 */
+              n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
+            } else {
+              if (prog_args.rf_nof_rx_ant == 1) {
+                /* Transmission mode 2 */
+                n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 1, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                                        acks);
+              } else {
+                /* Transmission mode 3 */
+                n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 2, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
+                                        acks);
+                if (n < 1) {
+                  /* Transmission mode 4 */
+                  n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 3, sfn * 10 + srslte_ue_sync_get_sfidx(&ue_sync),
                                           acks);
+                }
+              }
+            }
+
+
           
             if (n < 0) {
              // fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);

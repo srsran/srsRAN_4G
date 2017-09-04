@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Error initiating ue_sync\n");
     return -1; 
   }
-  if (srslte_ue_dl_init_multi(&ue_dl, cell, 1)) { 
+  if (srslte_ue_dl_init(&ue_dl, cell, 1)) {
     fprintf(stderr, "Error initiating UE downlink processing module\n");
     return -1;
   }
@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
         case DECODE_SIB:
           /* We are looking for SI Blocks, search only in appropiate places */
           if ((srslte_ue_sync_get_sfidx(&ue_sync) == 5 && (sfn%2)==0)) {
-            n = srslte_ue_dl_decode_multi(&ue_dl, sf_buffer, data, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
+            n = srslte_ue_dl_decode(&ue_dl, sf_buffer, data, 0, sfn*10+srslte_ue_sync_get_sfidx(&ue_sync), acks);
             if (n < 0) {
               fprintf(stderr, "Error decoding UE DL\n");fflush(stdout);
               return -1;

@@ -118,21 +118,13 @@ typedef struct SRSLTE_API {
 }srslte_ue_dl_t;
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q, 
-                                 srslte_cell_t cell);
-
-SRSLTE_API int srslte_ue_dl_init_multi(srslte_ue_dl_t *q, 
-                                       srslte_cell_t cell, 
-                                       uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_ue_dl_init(srslte_ue_dl_t *q,
+                                 srslte_cell_t cell,
+                                 uint32_t nof_rx_antennas);
 
 SRSLTE_API void srslte_ue_dl_free(srslte_ue_dl_t *q);
 
-SRSLTE_API int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q, 
-                                                cf_t *input, 
-                                                uint32_t sf_idx, 
-                                                uint32_t *cfi); 
-
-SRSLTE_API int srslte_ue_dl_decode_fft_estimate_multi(srslte_ue_dl_t *q, 
+SRSLTE_API int srslte_ue_dl_decode_fft_estimate(srslte_ue_dl_t *q,
                                                 cf_t *input[SRSLTE_MAX_PORTS], 
                                                 uint32_t sf_idx, 
                                                 uint32_t *cfi); 
@@ -155,12 +147,14 @@ SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t *q,
                                         srslte_dci_msg_t *dci_msg); 
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t *q, 
+                                        uint32_t tm,
                                         uint32_t cfi, 
                                         uint32_t sf_idx, 
                                         uint16_t rnti, 
                                         srslte_dci_msg_t *dci_msg); 
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci_type(srslte_ue_dl_t *q, 
+                                             uint32_t tm,
                                              uint32_t cfi, 
                                              uint32_t sf_idx, 
                                              uint16_t rnti, 
@@ -172,28 +166,20 @@ SRSLTE_API uint32_t srslte_ue_dl_get_ncce(srslte_ue_dl_t *q);
 SRSLTE_API void srslte_ue_dl_set_sample_offset(srslte_ue_dl_t * q, 
                                                float sample_offset); 
 
-SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t * q, 
-                                   cf_t *input, 
-                                   uint8_t *data,
-                                   uint32_t tti);
+SRSLTE_API int srslte_ue_dl_decode(srslte_ue_dl_t *q,
+                                   cf_t *input[SRSLTE_MAX_PORTS],
+                                   uint8_t *data[SRSLTE_MAX_CODEWORDS],
+                                   uint32_t tm,
+                                   uint32_t tti,
+                                   bool acks[SRSLTE_MAX_CODEWORDS]);
 
-SRSLTE_API int srslte_ue_dl_decode_multi(srslte_ue_dl_t * q, 
-                                         cf_t *input[SRSLTE_MAX_PORTS], 
-                                         uint8_t *data[SRSLTE_MAX_CODEWORDS],
-                                         uint32_t tti, bool acks[SRSLTE_MAX_CODEWORDS]);
-
-SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t * q, 
-                                        cf_t *input, 
-                                        uint8_t *data,
+SRSLTE_API int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q,
+                                        cf_t *input[SRSLTE_MAX_PORTS],
+                                        uint8_t *data[SRSLTE_MAX_CODEWORDS],
+                                        uint32_t tm,
                                         uint32_t tti,
-                                        uint16_t rnti);
-
-SRSLTE_API int srslte_ue_dl_decode_rnti_multi(srslte_ue_dl_t * q,
-                                              cf_t *input[SRSLTE_MAX_PORTS], 
-                                              uint8_t *data[SRSLTE_MAX_CODEWORDS],
-                                              uint32_t tti,
-                                              uint16_t rnti,
-                                              bool acks[SRSLTE_MAX_CODEWORDS]);
+                                        uint16_t rnti,
+                                        bool acks[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_ue_dl_ri_pmi_select(srslte_ue_dl_t *q,
                                           uint32_t *ri,

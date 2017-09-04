@@ -103,7 +103,7 @@ bool phch_worker::init_cell(srslte_cell_t cell_)
     }
   }
 
-  if (srslte_ue_dl_init_multi(&ue_dl, cell, phy->args->nof_rx_ant)) {    
+  if (srslte_ue_dl_init(&ue_dl, cell, phy->args->nof_rx_ant)) {
     Error("Initiating UE DL\n");
     return false; 
   }
@@ -334,7 +334,7 @@ bool phch_worker::extract_fft_and_pdcch_llr() {
       srslte_chest_dl_set_noise_alg(&ue_dl.chest, SRSLTE_NOISE_ALG_PSS);      
     }
   
-    if (srslte_ue_dl_decode_fft_estimate_multi(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
+    if (srslte_ue_dl_decode_fft_estimate(&ue_dl, signal_buffer, tti%10, &cfi) < 0) {
       Error("Getting PDCCH FFT estimate\n");
       return false; 
     }        
@@ -383,7 +383,8 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     
     Debug("Looking for RNTI=0x%x\n", dl_rnti);
     
-    if (srslte_ue_dl_find_dl_dci_type(&ue_dl, cfi, tti%10, dl_rnti, type, &dci_msg) != 1) {
+    if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
+                                      dl_rnti, type, &dci_msg) != 1) {
       return false; 
     }
     
