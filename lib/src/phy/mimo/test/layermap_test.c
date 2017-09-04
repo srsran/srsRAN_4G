@@ -40,7 +40,7 @@ int nof_cw = 1, nof_layers = 1;
 char *mimo_type_name = NULL;
 
 void usage(char *prog) {
-  printf("Usage: %s -m [single|diversity|multiplex] -c [nof_cw] -l [nof_layers]\n", prog);
+  printf("Usage: %s -m [single|diversity|multiplex|cdd] -c [nof_cw] -l [nof_layers]\n", prog);
   printf("\t-n num_symbols [Default %d]\n", nof_symbols);
 }
 
@@ -96,19 +96,19 @@ int main(int argc, char **argv) {
   }
 
   for (i=0;i<nof_cw;i++) {
-    d[i] = malloc(sizeof(cf_t) * nof_symb_cw[i]);
+    d[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symb_cw[i]);
     if (!d[i]) {
       perror("malloc");
       exit(-1);
     }
-    dp[i] = malloc(sizeof(cf_t) * nof_symb_cw[i]);
+    dp[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symb_cw[i]);
     if (!dp[i]) {
       perror("malloc");
       exit(-1);
     }
   }
   for (i=0;i<nof_layers;i++) {
-    x[i] = malloc(sizeof(cf_t) * nof_symbols);
+    x[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
     if (!x[i]) {
       perror("malloc");
       exit(-1);

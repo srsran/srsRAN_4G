@@ -116,3 +116,29 @@ int srslte_filesource_read(srslte_filesource_t *q, void *buffer, int nsamples) {
   return i;
 }
 
+int srslte_filesource_read_multi(srslte_filesource_t *q, void **buffer, int nsamples, int nof_channels) {
+  int i, j, count = 0;
+  _Complex float **cbuf = (_Complex float **) buffer;
+
+  switch (q->type) {
+    case SRSLTE_FLOAT:
+    case SRSLTE_COMPLEX_FLOAT:
+    case SRSLTE_COMPLEX_SHORT:
+    case SRSLTE_FLOAT_BIN:
+    case SRSLTE_COMPLEX_SHORT_BIN:
+      fprintf(stderr, "%s.%d:Read Mode not implemented\n", __FILE__, __LINE__);
+      count = SRSLTE_ERROR;
+      break;
+    case SRSLTE_COMPLEX_FLOAT_BIN:
+      for (i = 0; i < nsamples; i++) {
+        for (j = 0; j < nof_channels; j++) {
+          count += fread(&cbuf[j][i], sizeof(cf_t), (size_t) 1, q->f);
+        }
+      }
+      break;
+    default:
+      count = SRSLTE_ERROR;
+      break;
+  }
+  return count;
+}

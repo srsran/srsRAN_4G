@@ -33,3 +33,12 @@ add_test(dft_dc dft_test -b -d)   # Backwards first & handle dc internally
 add_test(dft_odd dft_test -N 255) # Odd-length
 add_test(dft_odd_dc dft_test -N 255 -b -d) # Odd-length, backwards first, handle dc
 
+########################################################################
+# Algebra TEST
+########################################################################
+
+add_executable(algebra_test mat_test.c)
+target_link_libraries(algebra_test srslte_phy)
+
+add_test(algebra_2x2_zf_solver_test algebra_test -z)
+add_test(algebra_2x2_mmse_solver_test algebra_test -m)

@@ -44,7 +44,7 @@ namespace srsue {
 mac::mac() : ttisync(10240), 
              timers_db((uint32_t) NOF_MAC_TIMERS),
              mux_unit(MAC_NOF_HARQ_PROC),
-             demux_unit(MAC_NOF_HARQ_PROC),
+             demux_unit(SRSLTE_MAX_TB*MAC_NOF_HARQ_PROC),
              pdu_process_thread(&demux_unit)
 {
   started = false;  
@@ -255,17 +255,17 @@ void mac::pch_decoded_ok(uint32_t len)
   }
 }
 
-void mac::tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
+void mac::tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid)
 {
   if (rnti_type == SRSLTE_RNTI_RAR) {
     if (ack) {
       ra_procedure.tb_decoded_ok();
     }
   } else {
-    dl_harq.tb_decoded(ack, rnti_type, harq_pid);
+    dl_harq.tb_decoded(ack, tb_idx, rnti_type, harq_pid);
     if (ack) {
       pdu_process_thread.notify();
-      metrics.rx_brate += dl_harq.get_current_tbs(harq_pid);
+      metrics.rx_brate += dl_harq.get_current_tbs(harq_pid, tb_idx);
     } else {
       metrics.rx_errors++;
     }
@@ -283,12 +283,12 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
     action->generate_ack = false; 
     action->decode_enabled = true; 
     srslte_softbuffer_rx_reset_cb(&pch_softbuffer, 1);
-    action->payload_ptr = pch_payload_buffer;
-    action->softbuffer  = &pch_softbuffer;
+    action->payload_ptr[0] = pch_payload_buffer;
+    action->softbuffers[0]  = &pch_softbuffer;
     action->rnti = grant.rnti;
-    action->rv   = grant.rv; 
-    if (grant.n_bytes > pch_payload_buffer_sz) {
-      Error("Received grant for PCH (%d bytes) exceeds buffer (%d bytes)\n", grant.n_bytes, pch_payload_buffer_sz);
+    action->rv[0]   = grant.rv[0];
+    if (grant.n_bytes[0] > pch_payload_buffer_sz) {
+      Error("Received grant for PCH (%d bytes) exceeds buffer (%d bytes)\n", grant.n_bytes[0], pch_payload_buffer_sz);
       action->decode_enabled = false; 
     }
   } else {

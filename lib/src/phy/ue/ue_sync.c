@@ -53,6 +53,11 @@ cf_t dummy_buffer1[15*2048/2];
 cf_t *dummy_offset_buffer[SRSLTE_MAX_PORTS] = {dummy_buffer0, dummy_buffer1};
 
 int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset_time, float offset_freq) {
+  return srslte_ue_sync_init_file_multi(q, nof_prb, file_name, offset_time, offset_freq, 1);
+}
+
+int srslte_ue_sync_init_file_multi(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_name, int offset_time,
+                                   float offset_freq, uint32_t nof_rx_ant) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q                   != NULL && 
@@ -66,6 +71,7 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
     q->file_cfo = -offset_freq; 
     q->correct_cfo = true; 
     q->fft_size = srslte_symbol_sz(nof_prb);
+    q->nof_rx_antennas = nof_rx_ant;
     
     if (srslte_cfo_init(&q->file_cfo_correct, 2*q->sf_len)) {
       fprintf(stderr, "Error initiating CFO\n");
@@ -80,12 +86,12 @@ int srslte_ue_sync_init_file(srslte_ue_sync_t *q, uint32_t nof_prb, char *file_n
     INFO("Offseting input file by %d samples and %.1f kHz\n", offset_time, offset_freq/1000);
 
     if (offset_time) {
-      cf_t *file_offset_buffer = srslte_vec_malloc(offset_time * sizeof(cf_t));
+      cf_t *file_offset_buffer = srslte_vec_malloc(offset_time * nof_rx_ant * sizeof(cf_t));
       if (!file_offset_buffer) {
         perror("malloc");
         goto clean_exit;
       }
-      srslte_filesource_read(&q->file_source, file_offset_buffer, offset_time);
+      srslte_filesource_read(&q->file_source, file_offset_buffer, offset_time * nof_rx_ant);
       free(file_offset_buffer);
     }
 
@@ -518,26 +524,27 @@ int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q, cf_t *input_buffer[SRSLTE
   {
     
     if (q->file_mode) {
-      int n = srslte_filesource_read(&q->file_source, input_buffer[0], q->sf_len);
+      int n = srslte_filesource_read_multi(&q->file_source, (void **) input_buffer, q->sf_len, q->nof_rx_antennas);
       if (n < 0) {
         fprintf(stderr, "Error reading input file\n");
-        return SRSLTE_ERROR; 
+        return SRSLTE_ERROR;
       }
       if (n == 0) {
         srslte_filesource_seek(&q->file_source, 0);
-        q->sf_idx = 9; 
-        int n = srslte_filesource_read(&q->file_source, input_buffer[0], q->sf_len);
+        q->sf_idx = 9;
+        n = srslte_filesource_read_multi(&q->file_source, (void **) input_buffer, q->sf_len, q->nof_rx_antennas);
         if (n < 0) {
           fprintf(stderr, "Error reading input file\n");
-          return SRSLTE_ERROR; 
+          return SRSLTE_ERROR;
         }
       }
       if (q->correct_cfo) {
-        srslte_cfo_correct(&q->file_cfo_correct, 
-                    input_buffer[0], 
-                    input_buffer[0], 
-                    q->file_cfo / 15000 / q->fft_size);               
-                    
+        for (int i = 0; i < q->nof_rx_antennas; i++) {
+          srslte_cfo_correct(&q->file_cfo_correct,
+                             input_buffer[i],
+                             input_buffer[i],
+                             q->file_cfo / 15000 / q->fft_size);
+        }
       }
       q->sf_idx++;
       if (q->sf_idx == 10) {

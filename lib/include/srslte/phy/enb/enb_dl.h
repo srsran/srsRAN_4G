@@ -152,11 +152,11 @@ SRSLTE_API void srslte_enb_dl_rem_rnti(srslte_enb_dl_t *q,
 
 SRSLTE_API int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, 
                                        srslte_ra_dl_grant_t *grant, 
-                                       srslte_softbuffer_tx_t *softbuffer,
+                                       srslte_softbuffer_tx_t *softbuffer[SRSLTE_MAX_CODEWORDS],
                                        uint16_t rnti,
                                        uint32_t rv_idx, 
                                        uint32_t sf_idx, 
-                                       uint8_t *data); 
+                                       uint8_t *data[SRSLTE_MAX_CODEWORDS]);
 
 SRSLTE_API int srslte_enb_dl_put_pdcch_dl(srslte_enb_dl_t *q, 
                                           srslte_ra_dl_dci_t *grant, 

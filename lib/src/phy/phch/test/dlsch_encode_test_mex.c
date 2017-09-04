@@ -43,9 +43,14 @@ void help()
 /* the gateway function */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
+  int i;
   srslte_sch_t dlsch;
   srslte_pdsch_cfg_t cfg; 
-  srslte_softbuffer_tx_t softbuffer; 
+  srslte_softbuffer_tx_t softbuffers[SRSLTE_MAX_CODEWORDS];
+  uint32_t nof_codewords = 1;
+
+  memset(&dlsch, 0, sizeof(srslte_sch_t));
+  memset(&cfg, 0, sizeof(srslte_pdsch_cfg_t));
 
   if (nrhs < NOF_INPUTS) {
     help();
@@ -62,6 +67,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   srslte_verbose = SRSLTE_VERBOSE_NONE; 
   
   uint8_t *trblkin_bits = NULL;
+  cfg.grant.nof_tb = 1;
   cfg.grant.mcs.tbs = mexutils_read_uint8(TRBLKIN, &trblkin_bits);
   if (cfg.grant.mcs.tbs == 0) {
     mexErrMsgTxt("Error trblklen is zero\n");
@@ -73,6 +79,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   if (mexutils_read_uint32_struct(PUSCHCFG, "RV", &cfg.rv)) {
     mexErrMsgTxt("Field RV not found in dlsch config\n");
+    return;
+  }
+
+  if (mexutils_read_uint32_struct(PUSCHCFG, "NLayers", &cfg.nof_layers)) {
+    mexErrMsgTxt("Field NLayers not found in dlsch config\n");
     return;
   }
 
@@ -94,9 +105,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   mxFree(mod_str);
 
-  if (srslte_softbuffer_tx_init(&softbuffer, cell.nof_prb)) {
-    mexErrMsgTxt("Error initiating DL-SCH soft buffer\n");
-    return; 
+  /* Initialise buffers */
+  for (i = 0; i < nof_codewords; i++) {
+    if (srslte_softbuffer_tx_init(&softbuffers[i], cell.nof_prb)) {
+      mexErrMsgTxt("Error initiating DL-SCH soft buffer\n");
+      return;
+    }
   }
 
   cfg.nbits.nof_bits = mxGetScalar(OUTLEN); 
@@ -111,13 +125,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   uint32_t tmp_rv=cfg.rv;
   if (tmp_rv) {
     cfg.rv = 0; 
-    if (srslte_dlsch_encode(&dlsch, &cfg, &softbuffer, trblkin, e_bits)) {
+    if (srslte_dlsch_encode_multi(&dlsch, &cfg, softbuffers, &trblkin, &e_bits)) {
       mexErrMsgTxt("Error encoding TB\n");
       return;
     }
     cfg.rv = tmp_rv;
   }
-  if (srslte_dlsch_encode(&dlsch, &cfg, &softbuffer, trblkin, e_bits)) {
+  if (srslte_dlsch_encode_multi(&dlsch, &cfg, softbuffers, &trblkin, &e_bits)) {
     mexErrMsgTxt("Error encoding TB\n");
     return;
   }
@@ -135,7 +149,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   free(trblkin);
   free(e_bits);
   free(e_bits_unpacked);
-  
+  for (i = 0; i < nof_codewords; i++) {
+    srslte_softbuffer_tx_free(&softbuffers[i]);
+  }
   return;
 }
 

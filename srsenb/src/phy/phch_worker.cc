@@ -637,7 +637,7 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
       if (LOG_THIS(rnti)) { 
         uint8_t x = 0;
         uint8_t *ptr = grants[i].data;
-        uint32_t len = phy_grant.mcs.tbs/8;
+        uint32_t len = phy_grant.mcs[0].tbs / (uint32_t) 8;
         if (!ptr) {          
           ptr = &x;
           len = 1; 
@@ -645,17 +645,18 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
         log_h->info_hex(ptr, len,
                              "PDSCH: rnti=0x%x, l_crb=%2d, %s, harq=%d, tbs=%d, mcs=%d, rv=%d, tti_tx=%d\n", 
                              rnti, phy_grant.nof_prb, grant_str, grants[i].grant.harq_process, 
-                             phy_grant.mcs.tbs/8, phy_grant.mcs.idx, grants[i].grant.rv_idx, tti_tx);
+                             phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, grants[i].softbuffer, rnti, grants[i].grant.rv_idx, sf_idx, 
-                                  grants[i].data)) 
+      srslte_softbuffer_tx_t *sb[SRSLTE_MAX_CODEWORDS] = {grants[i].softbuffer, NULL};
+      uint8_t *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, grants[i].grant.rv_idx, sf_idx, d))
       {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 
       }
 
       // Save metrics stats 
-      ue_db[rnti].metrics_dl(phy_grant.mcs.idx);
+      ue_db[rnti].metrics_dl(phy_grant.mcs[0].idx);
     }
   }
   return SRSLTE_SUCCESS; 

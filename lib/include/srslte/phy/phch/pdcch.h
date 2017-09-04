@@ -88,10 +88,25 @@ SRSLTE_API int srslte_pdcch_init(srslte_pdcch_t *q,
                                  srslte_regs_t *regs, 
                                  srslte_cell_t cell);
 
+SRSLTE_API int srslte_pdcch_init_tx(srslte_pdcch_t *q,
+                         srslte_regs_t *regs,
+                         srslte_cell_t cell);
+
+SRSLTE_API int srslte_pdcch_init_rx(srslte_pdcch_t *q,
+                         srslte_regs_t *regs,
+                         srslte_cell_t cell,
+                         uint32_t nof_rx_antennas);
+
 SRSLTE_API int srslte_pdcch_init_multi(srslte_pdcch_t *q, 
                                        srslte_regs_t *regs, 
                                        srslte_cell_t cell, 
                                        uint32_t nof_rx_antennas);
+
+SRSLTE_API int srslte_pdcch_init_txrx(srslte_pdcch_t *q,
+                                      srslte_regs_t *regs,
+                                      srslte_cell_t cell,
+                                      uint32_t nof_rx_antennas,
+                                      bool isReceiver);
 
 SRSLTE_API void srslte_pdcch_free(srslte_pdcch_t *q);
 
