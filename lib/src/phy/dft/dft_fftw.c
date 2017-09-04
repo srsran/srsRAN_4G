@@ -40,9 +40,7 @@
 #define FFTW_WISDOM_FILE ".fftw_wisdom"
 
 void srslte_dft_load() {
-  if (!fftwf_import_wisdom_from_filename(FFTW_WISDOM_FILE)) {
-    fprintf(stderr, "Error loading FFTW wisdom from file %s\n", FFTW_WISDOM_FILE);
-  }
+  fftwf_import_wisdom_from_filename(FFTW_WISDOM_FILE);
 }
 
 void srslte_dft_exit() {

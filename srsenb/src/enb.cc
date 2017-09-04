@@ -44,6 +44,7 @@ enb* enb::get_instance(void)
 }
 void enb::cleanup(void)
 {
+  srslte_dft_exit();
   boost::mutex::scoped_lock lock(enb_instance_mutex);
   if(NULL != instance) {
       delete instance;
@@ -60,7 +61,6 @@ enb::enb()
 
 enb::~enb()
 {
-  srslte_dft_exit();
   srslte::byte_buffer_pool::cleanup();
 }
 
