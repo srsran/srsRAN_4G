@@ -113,12 +113,12 @@ public:
       grant.rnti_type == SRSLTE_RNTI_RAR)
     {
       if (grant.rnti_type == SRSLTE_RNTI_USER && proc[pidof(grant.tti)].is_sps()) {
-        grant.ndi = true;
+        grant.ndi[0] = true;
       }
       run_tti(grant.tti, &grant, action);
     } else if (grant.rnti_type == SRSLTE_RNTI_SPS) {
-      if (grant.ndi) {
-        grant.ndi = proc[pidof(grant.tti)].get_ndi();
+      if (grant.ndi[0]) {
+        grant.ndi[0] = proc[pidof(grant.tti)].get_ndi();
         run_tti(grant.tti, &grant, action);
       } else {
         Info("Not implemented\n");
@@ -208,7 +208,7 @@ private:
 
       // Receive and route HARQ feedbacks
       if (grant) {
-        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi != get_ndi()) ||
+        if ((!(grant->rnti_type == SRSLTE_RNTI_TEMP) && grant->ndi[0] != get_ndi()) ||
           (grant->rnti_type == SRSLTE_RNTI_USER && !has_grant())             ||
           grant->is_from_rar)
         {
@@ -216,8 +216,8 @@ private:
 
           // Uplink grant in a RAR
           if (grant->is_from_rar) {
-            Debug("Getting Msg3 buffer payload, grant size=%d bytes\n", grant->n_bytes);
-            pdu_ptr  = harq_entity->mux_unit->msg3_get(payload_buffer, grant->n_bytes);
+            Debug("Getting Msg3 buffer payload, grant size=%d bytes\n", grant->n_bytes[0]);
+            pdu_ptr  = harq_entity->mux_unit->msg3_get(payload_buffer, grant->n_bytes[0]);
             if (pdu_ptr) {
               generate_new_tx(tti_tx, true, grant, action);
             } else {
@@ -227,7 +227,7 @@ private:
             // Normal UL grant
           } else {
             // Request a MAC PDU from the Multiplexing & Assemble Unit
-            pdu_ptr = harq_entity->mux_unit->pdu_get(payload_buffer, grant->n_bytes, tti_tx, pid);
+            pdu_ptr = harq_entity->mux_unit->pdu_get(payload_buffer, grant->n_bytes[0], tti_tx, pid);
             if (pdu_ptr) {
               generate_new_tx(tti_tx, false, grant, action);
             } else {
@@ -258,7 +258,7 @@ private:
         if (grant->is_from_rar) {
           grant->rnti = harq_entity->rntis->temp_rnti;
         }
-        harq_entity->pcap->write_ul_crnti(pdu_ptr, grant->n_bytes, grant->rnti, get_nof_retx(), tti_tx);
+        harq_entity->pcap->write_ul_crnti(pdu_ptr, grant->n_bytes[0], grant->rnti, get_nof_retx(), tti_tx);
       }
     }
 
@@ -285,7 +285,7 @@ private:
     bool is_sps() { return false; }
     uint32_t last_tx_tti() { return tti_last_tx; }
     uint32_t get_nof_retx() { return current_tx_nb; }
-    int get_current_tbs() { return cur_grant.n_bytes*8; }
+    int get_current_tbs() { return cur_grant.n_bytes[0]*8; }
    
   private: 
     Tgrant                      cur_grant;
@@ -321,16 +321,16 @@ private:
       if (grant) {
         // HARQ entity requests an adaptive transmission
         if (grant->rv) {
-          current_irv = irv_of_rv[grant->rv%4];
+          current_irv = irv_of_rv[grant->rv[0]%4];
         }
         memcpy(&cur_grant, grant, sizeof(Tgrant));
         harq_feedback = false;
         Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d\n",
-             pid, current_tx_nb, get_rv(), grant->n_bytes);
+             pid, current_tx_nb, get_rv(), grant->n_bytes[0]);
         generate_tx(tti_tx, action);
       } else {
         Info("UL %d:  Non-Adaptive retx=%d, RV=%d, TBS=%d\n",
-             pid, current_tx_nb, get_rv(), cur_grant.n_bytes);
+             pid, current_tx_nb, get_rv(), cur_grant.n_bytes[0]);
         // HARQ entity requests a non-adaptive transmission
         if (!harq_feedback) {
           generate_tx(tti_tx, action);
@@ -358,7 +358,7 @@ private:
         current_irv = 0;
         is_msg3 = is_msg3_;
         Info("UL %d:  New TX%s, RV=%d, TBS=%d, RNTI=%d\n",
-             pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.n_bytes, cur_grant.rnti);
+             pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.n_bytes[0], cur_grant.rnti);
         generate_tx(tti_tx, action);
       }
     }
@@ -370,10 +370,10 @@ private:
       current_tx_nb++;
       action->expect_ack = true;
       action->rnti = is_msg3?harq_entity->rntis->temp_rnti:cur_grant.rnti;
-      action->rv = cur_grant.rv>0?cur_grant.rv:get_rv();
-      action->softbuffer = &softbuffer;
+      action->rv[0] = cur_grant.rv[0]>0?cur_grant.rv[0]:get_rv();
+      action->softbuffers = &softbuffer;
       action->tx_enabled = true;
-      action->payload_ptr = pdu_ptr;
+      action->payload_ptr[0] = pdu_ptr;
       memcpy(&action->phy_grant, &cur_grant.phy_grant, sizeof(Tphygrant));
 
       current_irv = (current_irv+1)%4;

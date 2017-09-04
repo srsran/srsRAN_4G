@@ -36,6 +36,18 @@
 #define dft_ceil(a,b) ((a-1)/b+1)
 #define dft_floor(a,b) (a/b)
 
+#define FFTW_WISDOM_FILE ".fftw_wisdom"
+
+void srslte_dft_load() {
+  fftwf_import_wisdom_from_filename(FFTW_WISDOM_FILE);
+}
+
+void srslte_dft_exit() {
+  if (!fftwf_export_wisdom_to_filename(FFTW_WISDOM_FILE)) {
+    fprintf(stderr, "Error saving FFTW wisdom to file %s\n", FFTW_WISDOM_FILE);
+  }
+}
+
 int srslte_dft_plan(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir,
              srslte_dft_mode_t mode) {
   if(mode == SRSLTE_DFT_COMPLEX){
@@ -54,7 +66,7 @@ static void allocate(srslte_dft_plan_t *plan, int size_in, int size_out, int len
 int srslte_dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir) {
   allocate(plan,sizeof(fftwf_complex),sizeof(fftwf_complex), dft_points);
   int sign = (dir == SRSLTE_DFT_FORWARD) ? FFTW_FORWARD : FFTW_BACKWARD;
-  plan->p = fftwf_plan_dft_1d(dft_points, plan->in, plan->out, sign, 0U);
+  plan->p = fftwf_plan_dft_1d(dft_points, plan->in, plan->out, sign, FFTW_MEASURE);
   if (!plan->p) {
     return -1;
   }
@@ -73,7 +85,7 @@ int srslte_dft_plan_c(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_
 int srslte_dft_plan_r(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir) {
   allocate(plan,sizeof(float),sizeof(float), dft_points);
   int sign = (dir == SRSLTE_DFT_FORWARD) ? FFTW_R2HC : FFTW_HC2R;
-  plan->p = fftwf_plan_r2r_1d(dft_points, plan->in, plan->out, sign, 0U);
+  plan->p = fftwf_plan_r2r_1d(dft_points, plan->in, plan->out, sign, FFTW_MEASURE);
   if (!plan->p) {
     return -1;
   }

@@ -83,7 +83,7 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, srslte_cell_t cell)
       goto clean_exit;
     }
 
-    if (srslte_pdsch_init(&q->pdsch, q->cell)) {
+    if (srslte_pdsch_init_tx(&q->pdsch, q->cell)) {
       fprintf(stderr, "Error creating PDSCH object\n");
       goto clean_exit;
     }
@@ -262,9 +262,9 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
   return SRSLTE_SUCCESS;
 }
 
-int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer,
+int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer[SRSLTE_MAX_CODEWORDS],
                             uint16_t rnti, uint32_t rv_idx, uint32_t sf_idx, 
-                            uint8_t *data) 
+                            uint8_t *data[SRSLTE_MAX_CODEWORDS])
 {  
   /* Configure pdsch_cfg parameters */
   if (srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, q->cfi, sf_idx, rv_idx)) {

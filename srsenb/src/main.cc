@@ -373,6 +373,7 @@ int main(int argc, char *argv[])
   pthread_cancel(input);
   metrics.stop();
   enb->stop();
+  enb->cleanup();
   cout << "---  exiting  ---" << endl;
   exit(0);
 }

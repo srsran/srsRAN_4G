@@ -99,3 +99,60 @@ int srslte_filesink_write(srslte_filesink_t *q, void *buffer, int nsamples) {
   return i;
 }
 
+int srslte_filesink_write_multi(srslte_filesink_t *q, void **buffer, int nsamples, int nchannels) {
+  int i, j;
+  float **fbuf = (float**) buffer;
+  _Complex float **cbuf = (_Complex float**) buffer;
+  _Complex short **sbuf = (_Complex short**) buffer;
+  int size;
+
+  switch(q->type) {
+    case SRSLTE_FLOAT:
+      for (i=0;i<nsamples;i++) {
+        for (j=0;j<nchannels;j++) {
+          fprintf(q->f, "%g%c", fbuf[j][i], (j!=(nchannels-1))?'\t':'\n');
+        }
+      }
+      break;
+    case SRSLTE_COMPLEX_FLOAT:
+      for (i=0;i<nsamples;i++) {
+        for (j=0;j<nchannels;j++) {
+          fprintf(q->f, "%g%+gi%c", __real__ cbuf[j][i], __imag__ cbuf[j][i], (j!=(nchannels-1))?'\t':'\n');
+        }
+      }
+      break;
+    case SRSLTE_COMPLEX_SHORT:
+      for (i=0;i<nsamples;i++) {
+        for (j=0;j<nchannels;j++) {
+          fprintf(q->f, "%hd%+hdi%c", __real__ sbuf[j][i], __imag__ sbuf[j][i], (j!=(nchannels-1))?'\t':'\n');
+        }
+      }
+      break;
+    case SRSLTE_FLOAT_BIN:
+    case SRSLTE_COMPLEX_FLOAT_BIN:
+    case SRSLTE_COMPLEX_SHORT_BIN:
+      if (q->type == SRSLTE_FLOAT_BIN) {
+        size = sizeof(float);
+      } else if (q->type == SRSLTE_COMPLEX_FLOAT_BIN) {
+        size = sizeof(_Complex float);
+      } else if (q->type == SRSLTE_COMPLEX_SHORT_BIN) {
+        size = sizeof(_Complex short);
+      }
+      if (nchannels > 1) {
+        uint32_t count = 0;
+        for (i = 0; i < nsamples; i++) {
+          for (j = 0; j < nchannels; j++) {
+            count += fwrite(&cbuf[j][i], size, 1, q->f);
+          }
+        }
+        return count;
+      } else {
+        return fwrite(buffer[0], size, nsamples, q->f);
+      }
+      break;
+    default:
+      i = -1;
+      break;
+  }
+  return i;
+}

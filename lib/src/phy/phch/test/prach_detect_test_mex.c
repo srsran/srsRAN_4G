@@ -104,6 +104,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     srslte_prach_set_detect_factor(&prach, factor);
   }
 
+  mexPrintf("format=%d config=%d, N_cp=%d, ifft=%d\n", prach.f, prach.config_idx, prach.N_cp, prach.N_ifft_ul);
+
   if (srslte_prach_detect_offset(&prach, frequency_offset, &input_signal[prach.N_cp], nof_samples, preambles, offsets, NULL, &nof_detected)) {    
     mexErrMsgTxt("Error detecting PRACH\n");
     return; 
