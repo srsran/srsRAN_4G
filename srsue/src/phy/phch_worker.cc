@@ -221,7 +221,7 @@ void phch_worker::work_imp()
         for (uint32_t tb = 0; tb < 1; tb++) {
           phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
           dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
-          Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack);
+          Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack[tb]);
         }
       }
       Debug("dl_ack={%d, %d}, generate_ack=%d\n", dl_ack[0], dl_ack[1], dl_action.generate_ack);

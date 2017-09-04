@@ -288,7 +288,7 @@ void mac::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_phy::
     action->rnti = grant.rnti;
     action->rv[0]   = grant.rv[0];
     if (grant.n_bytes[0] > pch_payload_buffer_sz) {
-      Error("Received grant for PCH (%d bytes) exceeds buffer (%d bytes)\n", grant.n_bytes, pch_payload_buffer_sz);
+      Error("Received grant for PCH (%d bytes) exceeds buffer (%d bytes)\n", grant.n_bytes[0], pch_payload_buffer_sz);
       action->decode_enabled = false; 
     }
   } else {

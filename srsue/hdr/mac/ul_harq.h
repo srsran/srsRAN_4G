@@ -326,11 +326,11 @@ private:
         memcpy(&cur_grant, grant, sizeof(Tgrant));
         harq_feedback = false;
         Info("UL %d:  Adaptive retx=%d, RV=%d, TBS=%d\n",
-             pid, current_tx_nb, get_rv(), grant->n_bytes);
+             pid, current_tx_nb, get_rv(), grant->n_bytes[0]);
         generate_tx(tti_tx, action);
       } else {
         Info("UL %d:  Non-Adaptive retx=%d, RV=%d, TBS=%d\n",
-             pid, current_tx_nb, get_rv(), cur_grant.n_bytes);
+             pid, current_tx_nb, get_rv(), cur_grant.n_bytes[0]);
         // HARQ entity requests a non-adaptive transmission
         if (!harq_feedback) {
           generate_tx(tti_tx, action);
@@ -358,7 +358,7 @@ private:
         current_irv = 0;
         is_msg3 = is_msg3_;
         Info("UL %d:  New TX%s, RV=%d, TBS=%d, RNTI=%d\n",
-             pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.n_bytes, cur_grant.rnti);
+             pid, is_msg3?" for Msg3":"", get_rv(), cur_grant.n_bytes[0], cur_grant.rnti);
         generate_tx(tti_tx, action);
       }
     }

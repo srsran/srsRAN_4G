@@ -285,7 +285,7 @@ void ra_proc::new_grant_dl(mac_interface_phy::mac_grant_t grant, mac_interface_p
       srslte_softbuffer_rx_reset(&softbuffer_rar);
     }
   } else {
-    rError("Received RAR grant exceeds buffer length (%d>%d)\n", grant.n_bytes, MAX_RAR_PDU_LEN);
+    rError("Received RAR grant exceeds buffer length (%d>%d)\n", grant.n_bytes[0], MAX_RAR_PDU_LEN);
     action->decode_enabled = false; 
     state = RESPONSE_ERROR;
   }
