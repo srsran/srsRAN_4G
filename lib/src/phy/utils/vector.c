@@ -35,6 +35,16 @@
 #include "srslte/phy/utils/vector_simd.h"
 #include "srslte/phy/utils/bit.h"
 
+
+#ifdef LV_HAVE_SSE
+#include <smmintrin.h>
+#endif
+
+#ifdef LV_HAVE_AVX
+#include <immintrin.h>
+#endif
+
+
 #ifdef HAVE_VOLK
 #include "volk/volk.h"
 #endif

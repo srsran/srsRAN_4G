@@ -25,7 +25,6 @@
  */
 
 #include <complex.h>
-#include <immintrin.h>
 #include <math.h>
 
 #include "srslte/phy/utils/mat.h"
@@ -116,6 +115,7 @@ inline float srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11) {
 }
 
 #ifdef LV_HAVE_SSE
+#include <smmintrin.h>
 
 /* SSE implementation for complex reciprocal */
 inline __m128 srslte_mat_cf_recip_sse(__m128 a) {
@@ -186,6 +186,7 @@ inline void srslte_mat_2x2_mmse_sse(__m128 y0, __m128 y1, __m128 h00, __m128 h01
 #endif /* LV_HAVE_SSE */
 
 #ifdef LV_HAVE_AVX
+#include <immintrin.h>
 
 /* AVX implementation for complex reciprocal */
 inline __m256 srslte_mat_cf_recip_avx(__m256 a) {

@@ -30,6 +30,7 @@
 #include "srslte/phy/utils/simd.h"
 #include "srslte/config.h"
 
+
 /*
  * Generic Macros
  */
@@ -65,6 +66,7 @@ SRSLTE_API float srslte_mat_2x2_cn(cf_t h00,
 
 
 #ifdef LV_HAVE_SSE
+#include <smmintrin.h>
 
 /* SSE implementation for complex reciprocal */
 SRSLTE_API __m128 srslte_mat_cf_recip_sse(__m128 a);
@@ -87,6 +89,8 @@ SRSLTE_API void srslte_mat_2x2_mmse_sse(__m128 y0, __m128 y1,
 #endif /* LV_HAVE_SSE */
 
 #ifdef LV_HAVE_AVX
+
+#include <immintrin.h>
 
 /* AVX implementation for complex reciprocal */
 SRSLTE_API __m256 srslte_mat_cf_recip_avx(__m256 a);
