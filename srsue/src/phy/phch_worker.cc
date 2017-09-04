@@ -472,7 +472,7 @@ bool phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload,
   #endif
 
         Info("PDSCH: l_crb=%2d, harq=%d, tbs=%d, mcs=%d, rv=%d, crc=%s, snr=%.1f dB, n_iter=%d%s\n",
-              grant->nof_prb, harq_pid, 
+              grant->nof_prb, harq_pid,
               grant->mcs.tbs/8, grant->mcs.idx, rv, 
               ack?"OK":"KO", 
               10*log10(srslte_chest_dl_get_snr(&ue_dl.chest)), 

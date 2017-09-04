@@ -349,7 +349,6 @@ int main(int argc, char *argv[])
   all_args_t args;
   parse_args(&args, argc, argv);
 
-
   srsue_instance_type_t type = LTE;
   ue_base *ue = ue_base::get_instance(type);
   if (!ue) {

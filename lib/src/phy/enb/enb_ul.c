@@ -220,7 +220,7 @@ void srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, uint16_t rnti)
   if (q->users[rnti]) {
     free(q->users[rnti]); 
     q->users[rnti] = NULL; 
-    srslte_pusch_clear_rnti(&q->pusch, rnti);
+    srslte_pusch_free_rnti(&q->pusch, rnti);
   }
 }
 

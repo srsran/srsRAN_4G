@@ -30,6 +30,7 @@
 #include "srslte/asn1/liblte_rrc.h"
 #include "upper/rrc.h"
 #include <boost/assign.hpp>
+#include <upper/rrc.h>
 #include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 
@@ -187,17 +188,21 @@ void rrc::select_next_cell_in_plmn() {
         rrc_log->info("Selecting cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
                       known_cells[i].phy_cell.id, known_cells[i].earfcn,
                       known_cells[i].sib1.cell_id);
-        rrc_log->console("Selecting cell PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
+        rrc_log->console("Select cell: PCI=%d, EARFCN=%d, Cell ID=0x%x\n",
                       known_cells[i].phy_cell.id, known_cells[i].earfcn,
                       known_cells[i].sib1.cell_id);
         // Check that cell satisfies S criteria
-        if (phy->cell_select(known_cells[i].earfcn, known_cells[i].phy_cell)) {
-          last_selected_cell = i;
-          current_cell = &known_cells[i];
-          return;
-        } else {
-          rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x.\n",
-                         known_cells[i].earfcn, known_cells[i].sib1.cell_id);
+        if (known_cells[i].in_sync) { // %% rsrp > S dbm
+          // Try to select Cell
+          if (phy->cell_select(known_cells[i].earfcn, known_cells[i].phy_cell))
+          {
+            last_selected_cell = i;
+            current_cell = &known_cells[i];
+            return;
+          } else {
+            rrc_log->warning("Selecting cell EARFCN=%d, Cell ID=0x%x.\n",
+                           known_cells[i].earfcn, known_cells[i].sib1.cell_id);
+          }
         }
       }
     }
@@ -214,7 +219,8 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
   // find if cell_id-earfcn combination already exists
   for (uint32_t i = 0; i < known_cells.size(); i++) {
     if (earfcn == known_cells[i].earfcn && phy_cell.id == known_cells[i].phy_cell.id) {
-      known_cells[i].rsrp = rsrp;
+      known_cells[i].rsrp    = rsrp;
+      known_cells[i].in_sync = true;
       current_cell = &known_cells[i];
       rrc_log->info("Updating cell EARFCN=%d, PCI=%d, RSRP=%.1f dBm\n", known_cells[i].earfcn,
                     known_cells[i].phy_cell.id, known_cells[i].rsrp);
@@ -255,6 +261,7 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
 // Detection of physical layer problems (5.3.11.1)
 void rrc::out_of_sync() {
+    current_cell->in_sync = false;
   if (!mac_timers->get(t311)->is_running() && !mac_timers->get(t310)->is_running()) {
     n310_cnt++;
     if (n310_cnt == N310) {
@@ -268,6 +275,7 @@ void rrc::out_of_sync() {
 
 // Recovery of physical layer problems (5.3.11.2)
 void rrc::in_sync() {
+  current_cell->in_sync = true;
   if (mac_timers->get(t310)->is_running()) {
     n311_cnt++;
     if (n311_cnt == N311) {
@@ -1087,7 +1095,7 @@ void rrc::reset_ue() {
   mac->pcch_start_rx();
   mac_timers->get(safe_reset_timer)->stop();
   mac_timers->get(safe_reset_timer)->reset();
-  rrc_log->console("RRC Connection released.\n");
+  rrc_log->console("RRC Connection Released.\n");
 }
 
 void rrc::rrc_connection_release() {

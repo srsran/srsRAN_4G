@@ -62,6 +62,7 @@ typedef struct {
 
 typedef struct {
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
+  uint32_t cell_id;
   bool sequence_generated;
 } srslte_pusch_user_t;
 
@@ -121,7 +122,7 @@ SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t             *q,
 SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t *q, 
                                      uint16_t rnti);
 
-SRSLTE_API void srslte_pusch_clear_rnti(srslte_pusch_t *q, 
+SRSLTE_API void srslte_pusch_free_rnti(srslte_pusch_t *q,
                                        uint16_t rnti);
 
 SRSLTE_API int srslte_pusch_encode(srslte_pusch_t *q, 

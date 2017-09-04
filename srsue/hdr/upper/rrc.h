@@ -137,6 +137,7 @@ private:
     float    rsrp;
     bool     has_valid_sib1;
     bool     has_valid_sib2;
+    bool     in_sync;
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_1_STRUCT sib1;
     LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2;
   } cell_t;

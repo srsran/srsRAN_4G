@@ -111,7 +111,11 @@ private:
   sync_metrics_t metrics;
 
   enum {
-    IDLE, CELL_SEARCH, CELL_MEASURE, CELL_SELECT, CELL_CAMP
+    IDLE = 0,
+    CELL_SEARCH,
+    CELL_SELECT,
+    CELL_MEASURE,
+    CELL_CAMP
   } phy_state;
 
   bool is_in_idle;

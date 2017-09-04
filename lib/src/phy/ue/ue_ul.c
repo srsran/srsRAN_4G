@@ -446,7 +446,7 @@ int srslte_ue_ul_pusch_encode_rnti_softbuffer(srslte_ue_ul_t *q,
                                              q->pusch_cfg.grant.n_prb_tilde, 
                                              q->sf_symbols);
     } else {
-   
+
       if (srslte_refsignal_dmrs_pusch_gen(&q->signals, q->pusch_cfg.grant.L_prb, 
                                           q->pusch_cfg.sf_idx,
                                           q->pusch_cfg.grant.ncs_dmrs,

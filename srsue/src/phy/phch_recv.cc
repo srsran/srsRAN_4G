@@ -433,8 +433,7 @@ void phch_recv::cell_search_start() {
     cell_search_in_progress = true;
     cur_earfcn_index = -1;
     cell_search_next();
-    log_h->console("Starting Cell Search procedure in %d EARFCNs...\n", earfcn.size());
-    log_h->info("Cell Search: Starting procedure...\n");
+    log_h->info("Starting Cell Search procedure in %d EARFCNs...\n", earfcn.size());
   } else {
     log_h->info("Empty EARFCN list. Stopping cell search...\n");
     log_h->console("Empty EARFCN list. Stopping cell search...\n");
@@ -445,12 +444,12 @@ bool phch_recv::cell_select(uint32_t earfcn, srslte_cell_t cell) {
 
   // Check if we are already camping in this cell
   if (earfcn == current_earfcn && this->cell.id == cell.id) {
-    log_h->info("Cell Select: Already in Cell EARFCN=%d\n", earfcn);
-      cell_search_in_progress = false;
+    log_h->info("Cell Select: Already in cell EARFCN=%d\n", earfcn);
+    cell_search_in_progress = false;
     if (srate_mode != SRATE_CAMP) {
       set_sampling_rate();
     }
-    if (phy_state != CELL_SELECT) {
+    if (phy_state < CELL_SELECT) {
       resync_sfn();
     }
     return true;
@@ -491,11 +490,11 @@ bool phch_recv::set_frequency()
     log_h->info("Set DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
                 current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
 
-    log_h->console("Tunning to EARFCN=%d, F_dl=%.1f MHz, F_ul=%.1f MHz\n",
+    log_h->console("Searching cell in DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
                 current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
 
-    radio_h->set_rx_freq(dl_freq);
-    radio_h->set_tx_freq(ul_freq);
+    radio_h->set_rx_freq(dl_freq-4000);
+    radio_h->set_tx_freq(ul_freq-4000);
     ul_dl_factor = ul_freq / dl_freq;
 
     srslte_ue_sync_reset(&ue_sync);
@@ -567,7 +566,7 @@ void phch_recv::run_thread() {
             srslte_ue_sync_set_agc_period(&ue_sync, 20);
             if (!cell_search_in_progress) {
               phy_state = CELL_CAMP;
-              log_h->console("Sync OK. Camping on cell PCI=%d...\n", cell.id);
+              log_h->info("Sync OK. Camping on cell PCI=%d...\n", cell.id);
             } else {
               measure_cnt  = 0;
               measure_rsrp = 0;
@@ -587,9 +586,9 @@ void phch_recv::run_thread() {
       case CELL_MEASURE:
         switch(cell_meas_rsrp()) {
           case 1:
+            log_h->info("Measured OK. Camping on cell PCI=%d...\n", cell.id);
             phy_state = CELL_CAMP;
             rrc->cell_found(earfcn[cur_earfcn_index], cell, 10*log10(measure_rsrp/1000));
-            log_h->info("Measured OK. Camping on cell PCI=%d...\n", cell.id);
             break;
           case 0:
             break;

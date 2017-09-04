@@ -293,10 +293,10 @@ void srslte_pusch_free(srslte_pusch_t *q) {
 
   if (q->users) {
     if (q->is_ue) {
-      srslte_pusch_clear_rnti(q, 0);
+      srslte_pusch_free_rnti(q, 0);
     } else {
       for (int rnti=0;rnti<SRSLTE_SIRNTI;rnti++) {
-        srslte_pusch_clear_rnti(q, rnti);
+        srslte_pusch_free_rnti(q, rnti);
       }
     }
     free(q->users);
@@ -435,25 +435,33 @@ int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
   uint32_t i;
 
   uint32_t rnti_idx = q->is_ue?0:rnti; 
-  
-  if (!q->users[rnti_idx]) {
-    q->users[rnti_idx] = calloc(1, sizeof(srslte_pusch_user_t));
-    if (q->users[rnti_idx]) {
-      for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
-        if (srslte_sequence_pusch(&q->users[rnti_idx]->seq[i], rnti, 2 * i, q->cell.id,
-            q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
-          fprintf(stderr, "Error initializing PUSCH scrambling sequence\n");
-          srslte_pusch_clear_rnti(q, rnti);
-          return SRSLTE_ERROR;
-        }
+
+  if (!q->users[rnti_idx] || q->is_ue) {
+    if (!q->users[rnti_idx]) {
+      q->users[rnti_idx] = calloc(1, sizeof(srslte_pusch_user_t));
+      if (!q->users[rnti_idx]) {
+        perror("calloc");
+        return -1;
       }
-      q->users[rnti_idx]->sequence_generated = true;
     }
+    for (i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {
+      if (srslte_sequence_pusch(&q->users[rnti_idx]->seq[i], rnti, 2 * i, q->cell.id,
+                                q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM)))
+      {
+        fprintf(stderr, "Error initializing PUSCH scrambling sequence\n");
+        srslte_pusch_free_rnti(q, rnti);
+        return SRSLTE_ERROR;
+      }
+    }
+    q->users[rnti_idx]->cell_id = q->cell.id;
+    q->users[rnti_idx]->sequence_generated = true;
+  } else {
+    fprintf(stderr, "Error generating PUSCH sequence: rnti=0x%x already generated\n", rnti);
   }
   return SRSLTE_SUCCESS;
 }
 
-void srslte_pusch_clear_rnti(srslte_pusch_t *q, uint16_t rnti) {
+void srslte_pusch_free_rnti(srslte_pusch_t *q, uint16_t rnti) {
 
   uint32_t rnti_idx = q->is_ue?0:rnti;
 
@@ -470,7 +478,12 @@ void srslte_pusch_clear_rnti(srslte_pusch_t *q, uint16_t rnti) {
 static srslte_sequence_t *get_user_sequence(srslte_pusch_t *q, uint16_t rnti, uint32_t sf_idx, uint32_t len)
 {
   uint32_t rnti_idx = q->is_ue?0:rnti;
-  if (q->users[rnti_idx] && q->users[rnti_idx]->sequence_generated) {
+
+  // The scrambling sequence is pregenerated for all RNTIs in the eNodeB but only for C-RNTI in the UE
+  if (q->users[rnti_idx] && q->users[rnti_idx]->sequence_generated &&
+      q->users[rnti_idx]->cell_id == q->cell.id &&
+      ((rnti >= SRSLTE_CRNTI_START && rnti < SRSLTE_CRNTI_END) || !q->is_ue))
+  {
     return &q->users[rnti_idx]->seq[sf_idx];
   } else {
     srslte_sequence_pusch(&q->tmp_seq, rnti, 2 * sf_idx, q->cell.id, len);

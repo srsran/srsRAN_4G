@@ -49,6 +49,7 @@
 
 typedef struct {
   srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
+  uint32_t cell_id;
   bool sequence_generated;
 } srslte_pdsch_user_t;
 
