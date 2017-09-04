@@ -134,7 +134,7 @@ class ue_base
     ,public ue_metrics_interface
 {
 public:
-  ue_base() {}
+  ue_base();
   virtual ~ue_base() {}
 
   static ue_base* get_instance(srsue_instance_type_t type);

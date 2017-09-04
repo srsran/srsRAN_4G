@@ -57,8 +57,16 @@ ue_base* ue_base::get_instance(srsue_instance_type_t type)
   return(instance);
 }
 
+ue_base::ue_base() {
+  // load FFTW wisdom
+  srslte_dft_load();
+}
+
 void ue_base::cleanup(void)
 {
+  // save FFTW wisdom
+  srslte_dft_exit();
+
   pthread_mutex_lock(&ue_instance_mutex);
   if(NULL != instance) {
     delete instance;
