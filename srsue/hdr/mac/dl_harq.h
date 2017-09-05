@@ -301,20 +301,18 @@ private:
               harq_entity->pcap->write_dl_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid], cur_grant.rnti, ack,
                                                 cur_grant.tti);
             }
-            if (ack) {
-              if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
-                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
-                      cur_grant.n_bytes[tid]);
-                harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid]);
-              } else {
-                Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes[tid]);
-                harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
-                                                  cur_grant.tti);
+            if (cur_grant.rnti_type == SRSLTE_RNTI_TEMP) {
+              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)\n",
+                    cur_grant.n_bytes[tid]);
+              harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.n_bytes[tid]);
+            } else {
+              Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit\n", cur_grant.n_bytes[tid]);
+              harq_entity->demux_unit->push_pdu(pid * SRSLTE_MAX_TB + tid, payload_buffer_ptr, cur_grant.n_bytes[tid],
+                                                cur_grant.tti);
 
-                // Compute average number of retransmissions per packet
-                harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx,
-                                                           harq_entity->nof_pkts++);
-              }
+              // Compute average number of retransmissions per packet
+              harq_entity->average_retx = SRSLTE_VEC_CMA((float) n_retx, harq_entity->average_retx,
+                                                         harq_entity->nof_pkts++);
             }
           }
         } else {
