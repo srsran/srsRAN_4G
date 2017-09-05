@@ -136,9 +136,6 @@ int srslte_sequence_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed) {
     q->c_float[i] = (1-2*q->c[i]);
     q->c_short[i] = (int16_t) q->c_float[i];
   }
-
-
-
   return SRSLTE_SUCCESS;
 }
 

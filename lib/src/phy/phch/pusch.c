@@ -434,7 +434,7 @@ int srslte_pusch_cfg(srslte_pusch_t             *q,
 int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
   uint32_t i;
 
-  uint32_t rnti_idx = q->is_ue?0:rnti; 
+  uint32_t rnti_idx = q->is_ue?0:rnti;
 
   if (!q->users[rnti_idx] || q->is_ue) {
     if (!q->users[rnti_idx]) {

@@ -103,8 +103,10 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
-  srslte_enb_ul_init(&enb_ul, phy->cell.nof_prb);
-
+  if (srslte_enb_ul_init(&enb_ul, phy->cell.nof_prb)) {
+    fprintf(stderr, "Error initiating ENB UL\n");
+    return;
+  }
   if (srslte_enb_ul_set_cell(&enb_ul,
                               phy->cell,
                               NULL,
@@ -112,7 +114,7 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
                               &phy->hopping_cfg,
                               &phy->pucch_cfg))
   {
-    fprintf(stderr, "Error initiating ENB DL\n");
+    fprintf(stderr, "Error initiating ENB UL\n");
     return;
   }
   
@@ -154,14 +156,14 @@ void phch_worker::set_time(uint32_t tti_, uint32_t tx_mutex_cnt_, srslte_timesta
 
 int phch_worker::add_rnti(uint16_t rnti)
 {
-  
+
   if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
     return -1; 
   }
   if (srslte_enb_ul_add_rnti(&enb_ul, rnti)) {
     return -1; 
   }
-  
+
   // Create user 
   ue_db[rnti].rnti = rnti; 
     

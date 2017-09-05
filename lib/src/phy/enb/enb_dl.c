@@ -30,6 +30,7 @@
 #include <math.h>
 #include <string.h>
 #include <srslte/phy/common/phy_common.h>
+#include <srslte/srslte.h>
 
 
 #define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
@@ -89,12 +90,12 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, uint32_t max_prb)
     }
     
     for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-      q->sf_symbols[i] = srslte_vec_malloc(CURRENT_SFLEN_RE * sizeof(cf_t));
+      q->sf_symbols[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
       if (!q->sf_symbols[i]) {
         perror("malloc");
         goto clean_exit; 
       }
-      q->slot1_symbols[i] = &q->sf_symbols[i][CURRENT_SLOTLEN_RE];
+      q->slot1_symbols[i] = &q->sf_symbols[i][SRSLTE_SLOT_LEN_RE(max_prb, SRSLTE_CP_NORM)];
     }
     
     ret = SRSLTE_SUCCESS;
@@ -115,6 +116,7 @@ void srslte_enb_dl_free(srslte_enb_dl_t *q)
   if (q) {
     srslte_ofdm_tx_free(&q->ifft);
     srslte_regs_free(&q->regs);
+    srslte_pbch_free(&q->pbch);
     srslte_pcfich_free(&q->pcfich);
     srslte_phich_free(&q->phich);
     srslte_pdcch_free(&q->pdcch);
@@ -138,18 +140,18 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
   if (q                 != NULL &&
       srslte_cell_isvalid(&cell))
   {
-    q->cfi  = 3;
+    srslte_enb_dl_set_cfi(q, 3);
     q->tx_amp = SRSLTE_ENB_RF_AMP;
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
-      if (q->cell.nof_prb) {
-        if (srslte_regs_init(&q->regs, q->cell)) {
-          fprintf(stderr, "Error initiating REGs\n");
-          return SRSLTE_ERROR;
-        }
+      if (q->cell.nof_prb != 0) {
+        srslte_regs_free(&q->regs);
       }
       memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
-
+      if (srslte_regs_init(&q->regs, q->cell)) {
+        fprintf(stderr, "Error resizing REGs\n");
+        return SRSLTE_ERROR;
+      }
       if (srslte_ofdm_rx_set_prb(&q->ifft, q->cell.cp, q->cell.nof_prb)) {
         fprintf(stderr, "Error initiating FFT\n");
         return SRSLTE_ERROR;

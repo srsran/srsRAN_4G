@@ -331,6 +331,9 @@ int srslte_prach_gen_seqs(srslte_prach_t *p)
 
 int srslte_prach_init_cfg(srslte_prach_t *p, srslte_prach_cfg_t *cfg, uint32_t nof_prb)
 {
+  if (srslte_prach_init(p, srslte_symbol_sz(nof_prb))) {
+    return -1;
+  }
   return srslte_prach_set_cell(p,
                            srslte_symbol_sz(nof_prb), 
                            cfg->config_idx, 

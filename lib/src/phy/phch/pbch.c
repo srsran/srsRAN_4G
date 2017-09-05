@@ -253,7 +253,6 @@ int srslte_pbch_set_cell(srslte_pbch_t *q, srslte_cell_t cell) {
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
       memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
-
       if (srslte_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
         return SRSLTE_ERROR;
       }
