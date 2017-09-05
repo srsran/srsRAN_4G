@@ -557,7 +557,7 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *pdsch, srslte_pdsch_cfg_
         ERROR("Initialising scrambling sequence");
         return SRSLTE_ERROR;
       }
-      srslte_scrambling_s_offset(&seq, pdsch->e[codeword_idx], codeword_idx, nbits->nof_bits);
+      srslte_scrambling_s_offset(&seq, pdsch->e[codeword_idx], 0, nbits->nof_bits);
       srslte_sequence_free(&seq);
     }
 
