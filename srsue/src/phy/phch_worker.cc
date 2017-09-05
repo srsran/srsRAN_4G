@@ -429,7 +429,10 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     grant->rnti = dl_rnti;
     grant->rnti_type = type;
     grant->last_tti = 0;
-    
+    grant->tb_en[0] = dci_unpacked.tb_en[0];
+    grant->tb_en[1] = dci_unpacked.tb_en[1];
+    grant->tb_cw_swap = dci_unpacked.tb_cw_swap; // FIXME: tb_cw_swap not supported
+
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
     char hexstr[16];
@@ -1064,7 +1067,7 @@ int phch_worker::read_ce_abs(float *ce_abs) {
   bzero(ce_abs, sizeof(float)*sz);
   int g = (sz - 12*cell.nof_prb)/2;
   for (i = 0; i < 12*cell.nof_prb; i++) {
-    ce_abs[g+i] = 20 * log10(cabs(ue_dl.ce[0][i]));
+    ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[0][0][i]));
     if (isinf(ce_abs[g+i])) {
       ce_abs[g+i] = -80;
     }
