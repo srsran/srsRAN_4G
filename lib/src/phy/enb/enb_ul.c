@@ -60,7 +60,7 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q, srslte_cell_t cell,
       memcpy(&q->hopping_cfg, hopping_cfg, sizeof(srslte_pusch_hopping_cfg_t));
     } 
     
-    q->users = calloc(sizeof(srslte_enb_ul_user_t*), SRSLTE_SIRNTI);
+    q->users = calloc(sizeof(srslte_enb_ul_user_t*), (1+SRSLTE_SIRNTI));
     if (!q->users) {
       perror("malloc");
       goto clean_exit;
@@ -161,7 +161,7 @@ void srslte_enb_ul_free(srslte_enb_ul_t *q)
 int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, uint16_t rnti)
 {
   if (!q->users[rnti]) {
-    q->users[rnti] = malloc(sizeof(srslte_enb_ul_user_t));
+    q->users[rnti] = calloc(1, sizeof(srslte_enb_ul_user_t));
     
     if (srslte_pucch_set_crnti(&q->pucch, rnti)) {
       fprintf(stderr, "Error setting PUCCH rnti\n");

@@ -54,6 +54,7 @@ public:
  
   
   phch_common(uint32_t max_mutex_) : tx_mutex(max_mutex_) {
+    nof_mutex = 0;
     max_mutex = max_mutex_; 
     params.max_prach_offset_us = 20; 
   }

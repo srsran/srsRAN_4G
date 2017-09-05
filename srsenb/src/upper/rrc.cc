@@ -61,7 +61,8 @@ void rrc::init(rrc_cfg_t *cfg_,
  
   pthread_mutex_init(&user_mutex, NULL);
   pthread_mutex_init(&paging_mutex, NULL);
-  
+
+  act_monitor.start(RRC_THREAD_PRIO);
   bzero(&sr_sched, sizeof(sr_sched_t));
   
   start(RRC_THREAD_PRIO);
@@ -69,9 +70,8 @@ void rrc::init(rrc_cfg_t *cfg_,
 
 rrc::activity_monitor::activity_monitor(rrc* parent_) 
 {
-  running = true; 
-  parent = parent_; 
-  start(RRC_THREAD_PRIO);
+  running = true;
+  parent = parent_;
 }
 
 void rrc::activity_monitor::stop()

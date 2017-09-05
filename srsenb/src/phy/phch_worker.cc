@@ -110,7 +110,18 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     fprintf(stderr, "Error initiating ENB DL\n");
     return;
   }
-  
+
+  /* Setup SI-RNTI in PHY */
+  add_rnti(SRSLTE_SIRNTI);
+
+  /* Setup P-RNTI in PHY */
+  add_rnti(SRSLTE_PRNTI);
+
+  /* Setup RA-RNTI in PHY */
+  for (int i=0;i<10;i++) {
+    add_rnti(1+i);
+  }
+
   srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
