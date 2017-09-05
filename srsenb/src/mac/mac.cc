@@ -329,6 +329,7 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 
   if (ue_db.count(rnti)) {         
     scheduler.dl_cqi_info(tti, rnti, cqi_value);
+    ue_db[rnti]->metrics_dl_cqi(cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     return -1;
