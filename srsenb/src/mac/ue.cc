@@ -396,14 +396,20 @@ void ue::metrics_read(mac_metrics_t* metrics_)
   metrics.dl_buffer = sched->get_dl_buffer(rnti);
   
   memcpy(metrics_, &metrics, sizeof(mac_metrics_t));
-  
-  phr_counter = 0; 
+
+  phr_counter = 0;
+  dl_cqi_counter = 0;
   bzero(&metrics, sizeof(mac_metrics_t));  
 }
 
 void ue::metrics_phr(float phr) {
   metrics.phr = SRSLTE_VEC_CMA(phr, metrics.phr, phr_counter);
-  phr_counter++; 
+  phr_counter++;
+}
+
+void ue::metrics_dl_cqi(uint32_t dl_cqi) {
+  metrics.dl_cqi = SRSLTE_VEC_CMA((float) dl_cqi, metrics.dl_cqi, dl_cqi_counter);
+  dl_cqi_counter++;
 }
 
 void ue::metrics_rx(bool crc, uint32_t tbs)

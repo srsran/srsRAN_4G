@@ -257,7 +257,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
       if (L) {
         *L = 1; 
       }
-      Info("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], n_pucch);
+      Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], n_pucch);
       return true; 
     }
   }
@@ -271,7 +271,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
     if (L) {
       *L = 1; 
     }
-    Info("SCHED: Reserved Format1 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], cfg.sr_N_pucch);
+    Debug("SCHED: Reserved Format1 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], cfg.sr_N_pucch);
     return true; 
   }
   // Finally check Format2 (periodic CQI)
@@ -284,7 +284,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
     if(L) {
       *L = 2;
     }
-    Info("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
+    Debug("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
          rnti, prb_idx[0], prb_idx[1], cfg.cqi_pucch, cfg.cqi_idx);
     return true;
   }
