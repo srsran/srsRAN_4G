@@ -452,7 +452,17 @@ void srslte_pucch_free(srslte_pucch_t *q) {
     }
     free(q->users);
   }
-
+  srslte_uci_cqi_pucch_free(&q->cqi);
+  if (q->z) {
+    free(q->z);
+  }
+  if (q->z_tmp) {
+    free(q->z_tmp);
+  }
+  if (q->ce) {
+    free(q->ce);
+  }
+  
   srslte_modem_table_free(&q->mod);
   bzero(q, sizeof(srslte_pucch_t));
 }
