@@ -218,15 +218,17 @@ void phch_worker::work_imp()
       if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
 
         // NOTE: Currently hard-coded to 1st TB only
-        for (uint32_t tb = 0; tb < 1; tb++) {
-          phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
-          dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
-          Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack[tb]);
+        for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+          if (dl_mac_grant.tb_en[tb]) {
+            phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+            dl_ack[tb] = dl_action.generate_ack_callback(dl_action.generate_ack_callback_arg);
+            Debug("Calling generate ACK callback for TB %d returned=%d\n", tb, dl_ack[tb]);
+          }
         }
       }
       Debug("dl_ack={%d, %d}, generate_ack=%d\n", dl_ack[0], dl_ack[1], dl_action.generate_ack);
       if (dl_action.generate_ack) {
-        set_uci_ack(dl_ack, dl_mac_grant.phy_grant.dl.nof_tb);
+        set_uci_ack(dl_ack, dl_mac_grant.tb_en);
       }
     }
   }
@@ -292,8 +294,10 @@ void phch_worker::work_imp()
     if (dl_mac_grant.rnti_type == SRSLTE_RNTI_PCH) {
       phy->mac->pch_decoded_ok(dl_mac_grant.n_bytes[0]);
     } else {
-      for (uint32_t tb = 0; tb < dl_mac_grant.phy_grant.dl.nof_tb; tb++) {
-        phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        if (dl_mac_grant.tb_en[tb]) {
+          phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
+        }
       }
     }
   }
@@ -405,7 +409,15 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     grant->rnti = dl_rnti;
     grant->rnti_type = type;
     grant->last_tti = 0;
-    
+    grant->tb_en[0] = dci_unpacked.tb_en[0];
+    grant->tb_en[1] = dci_unpacked.tb_en[1];
+    grant->tb_cw_swap = dci_unpacked.tb_cw_swap;
+
+    if (grant->tb_cw_swap) {
+      Info("tb_cw_swap = true\n");
+      printf("tb_cw_swap = true\n");
+    }
+
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
     char hexstr[16];
@@ -432,8 +444,8 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
   srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
   int ret = SRSLTE_SUCCESS;
 
-  for (uint32_t tb = 0; tb < grant->nof_tb; tb++) {
-    if (rv[tb] < 0 || rv[tb] > 3) {
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+    if (grant->tb_en[tb] && (rv[tb] < 0 || rv[tb] > 3)) {
       valid_config = false;
       Error("Wrong RV (%d) for TB index %d", rv[tb], tb);
     }
@@ -452,22 +464,22 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
       }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_3:
-      if (grant->nof_tb == 1) {
+      if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
         mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
-      } else if (grant->nof_tb == 2) {
+      } else if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_CDD;
       } else {
-        Error("Wrong number of transport blocks (%d) for TM3\n", grant->nof_tb);
+        Error("Wrong number of transport blocks (%d) for TM3\n", SRSLTE_RA_DL_GRANT_NOF_TB(grant));
         valid_config = false;
       }
       break;
     case LIBLTE_RRC_TRANSMISSION_MODE_4:
-      if (grant->nof_tb == 1) {
+      if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 1) {
         mimo_type = (grant->pinfo == 0) ? SRSLTE_MIMO_TYPE_TX_DIVERSITY : SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
-      } else if (grant->nof_tb == 2) {
+      } else if (SRSLTE_RA_DL_GRANT_NOF_TB(grant) == 2) {
         mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
       } else {
-        Error("Wrong number of transport blocks (%d) for TM4\n", grant->nof_tb);
+        Error("Wrong number of transport blocks (%d) for TM4\n", SRSLTE_RA_DL_GRANT_NOF_TB(grant));
         valid_config = false;
       }
     break;
@@ -521,13 +533,14 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         snprintf(timestr, 64, ", dec_time=%4d us", (int) t[0].tv_usec);
   #endif
 
-        Info("PDSCH: l_crb=%2d, harq=%d, nof_tb=%d, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d%s\n",
-             grant->nof_prb, harq_pid,
-             grant->nof_tb, grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx, grant->mcs[1].idx,
-             rv[0], rv[1], acks[0] ? "OK" : "KO", acks[1] ? "OK" : "KO",
-             10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
-             srslte_pdsch_last_noi(&ue_dl.pdsch),
-             timestr);
+        Info(
+            "PDSCH: l_crb=%2d, harq=%d, tb_en={%s, %s}, tbs={%d, %d}, mcs={%d, %d}, rv={%d, %d}, crc={%s, %s}, snr=%.1f dB, n_iter=%d%s\n",
+            grant->nof_prb, harq_pid, grant->tb_en[0] ? "on" : "off", grant->tb_en[1] ? "on" : "off",
+            grant->mcs[0].tbs / 8, grant->mcs[1].tbs / 8, grant->mcs[0].idx,
+            grant->mcs[1].idx, rv[0], rv[1], acks[0] ? "OK" : "KO", acks[1] ? "OK" : "KO",
+            10 * log10(srslte_chest_dl_get_snr(&ue_dl.chest)),
+            srslte_pdsch_last_noi(&ue_dl.pdsch),
+            timestr);
 
         //printf("tti=%d, cfo=%f\n", tti, cfo*15000);
         //srslte_vec_save_file("pdsch", signal_buffer, sizeof(cf_t)*SRSLTE_SF_LEN_PRB(cell.nof_prb));
@@ -660,22 +673,22 @@ void phch_worker::reset_uci()
   bzero(&uci_data, sizeof(srslte_uci_data_t));
 }
 
-  void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb) {
-    if (nof_tb > 0) {
-      uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
-    }
-
-    if (nof_tb > 1) {
-      uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
-    }
-
-    if (nof_tb > 2) {
-      Error("Number of transport blocks is not supported");
-    }
-
-    uci_data.uci_ack_len = nof_tb;
-
+void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS])
+{
+  uint32_t nof_tb = 0;
+  if (tb_en[0]) {
+    uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
+    nof_tb++;
   }
+
+  if (tb_en[1]) {
+    uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
+    nof_tb++;
+  }
+
+  uci_data.uci_ack_len = nof_tb;
+
+}
 
 void phch_worker::set_uci_sr()
 {

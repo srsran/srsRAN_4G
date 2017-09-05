@@ -166,8 +166,10 @@ private:
     }
 
     void new_grant_dl(Tgrant grant, Taction *action) {
-      for (uint32_t tb = 0; tb < grant.phy_grant.dl.nof_tb; tb++) {
-        subproc[tb].new_grant_dl(grant, action);
+      for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        if (grant.tb_en[tb]) {
+          subproc[tb].new_grant_dl(grant, action);
+        }
       }
     }
 

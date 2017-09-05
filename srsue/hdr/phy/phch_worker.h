@@ -95,7 +95,7 @@ private:
   void set_uci_sr();
   void set_uci_periodic_cqi();
   void set_uci_aperiodic_cqi();
-  void set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb);
+  void set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_MAX_CODEWORDS]);
   bool srs_is_ready_to_send();
   float set_power(float tx_power);
   void setup_tx_gain();
