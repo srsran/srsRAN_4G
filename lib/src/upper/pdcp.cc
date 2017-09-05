@@ -44,7 +44,11 @@ void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_
 }
 
 void pdcp::stop()
-{}
+{
+  for(uint32_t i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
+    pdcp_array[i].stop();
+  }
+}
 
 void pdcp::reset()
 {
@@ -86,6 +90,12 @@ void pdcp::config_security(uint32_t lcid,
 {
   if(valid_lcid(lcid))
     pdcp_array[lcid].config_security(k_rrc_enc, k_rrc_int, cipher_algo, integ_algo);
+}
+
+void pdcp::enable_encryption(uint32_t lcid)
+{
+  if(valid_lcid(lcid))
+    pdcp_array[lcid].enable_encryption();
 }
 
 /*******************************************************************************

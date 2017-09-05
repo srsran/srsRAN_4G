@@ -113,6 +113,11 @@ bool ue::init(all_args_t *args_)
     mac_pcap.open(args->pcap.filename.c_str());
     mac.start_pcap(&mac_pcap);
   }
+  if(args->pcap.nas_enable)
+  {
+    nas_pcap.open(args->pcap.nas_filename.c_str());
+    nas.start_pcap(&nas_pcap);
+  }
   if(args->trace.enable)
   {
     phy.start_trace();
@@ -232,6 +237,10 @@ void ue::stop()
     if(args->pcap.enable)
     {
        mac_pcap.close();
+    }
+    if(args->pcap.nas_enable)
+    {
+      nas_pcap.close();
     }
     if(args->trace.enable)
     {

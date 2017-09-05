@@ -59,7 +59,8 @@ public:
                                                 uint16_t  mnc,
                                                 bool     *net_valid,
                                                 uint8_t  *res) = 0;
-  virtual void generate_nas_keys(uint8_t *k_nas_enc,
+  virtual void generate_nas_keys(uint32_t count_ul,
+                                 uint8_t *k_nas_enc,
                                  uint8_t *k_nas_int,
                                  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
@@ -69,8 +70,7 @@ public:
 class usim_interface_rrc
 {
 public:
-  virtual void generate_as_keys(uint32_t count_ul,
-                                uint8_t *k_rrc_enc,
+  virtual void generate_as_keys(uint8_t *k_rrc_enc,
                                 uint8_t *k_rrc_int,
                                 uint8_t *k_up_enc,
                                 uint8_t *k_up_int,
@@ -99,7 +99,6 @@ public:
   virtual bool      is_attached() = 0;
   virtual void      notify_connection_setup() = 0;
   virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
-  virtual uint32_t  get_ul_count() = 0;
   virtual bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi) = 0;
 };
 
@@ -174,6 +173,7 @@ public:
                                uint8_t *k_rrc_int_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) = 0;
+  virtual void enable_encryption(uint32_t lcid) = 0;
 };
 
 // PDCP interface for RLC

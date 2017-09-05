@@ -33,6 +33,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 #include "srslte/asn1/liblte_mme.h"
+#include "srslte/common/nas_pcap.h"
 
 using srslte::byte_buffer_t;
 
@@ -76,7 +77,10 @@ public:
   uint32_t  get_ul_count();
   bool      is_attached();
   bool      get_s_tmsi(LIBLTE_RRC_S_TMSI_STRUCT *s_tmsi);
-  
+
+  // PCAP
+  void start_pcap(srslte::nas_pcap *pcap_);
+
 private:
   srslte::byte_buffer_pool *pool;
   srslte::log        *nas_log;
@@ -106,6 +110,9 @@ private:
   uint8_t  k_nas_enc[32];
   uint8_t  k_nas_int[32];
 
+  // PCAP
+  srslte::nas_pcap *pcap = NULL;
+
   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
@@ -116,9 +123,16 @@ private:
                           uint8_t  *msg,
                           uint32_t  msg_len,
                           uint8_t  *mac);
-  void integrity_check();
-  void cipher_encrypt();
-  void cipher_decrypt();
+
+  bool integrity_check(uint32 lcid,
+                        byte_buffer_t *pdu);
+
+  void cipher_encrypt(uint32 lcid,
+                      byte_buffer_t *pdu);
+
+  void cipher_decrypt(uint32 lcid,
+                      byte_buffer_t *pdu);
+
 
   // Parsers
   void parse_attach_accept(uint32_t lcid, byte_buffer_t *pdu);

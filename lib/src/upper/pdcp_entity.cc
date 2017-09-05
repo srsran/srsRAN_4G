@@ -34,7 +34,8 @@ pdcp_entity::pdcp_entity()
   :active(false)
   ,tx_count(0)
   ,rx_count(0)
-  ,do_security(false)
+  ,do_integrity(false)
+  ,do_encryption(false)
   ,sn_len(12)
 {
   pool = byte_buffer_pool::get_instance();
@@ -58,7 +59,8 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
 
   tx_count    = 0;
   rx_count    = 0;
-  do_security = false;
+  do_integrity = false;
+  do_encryption = false;
 
   if(cnfg)
   {
@@ -69,7 +71,17 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
     }
     // TODO: handle remainder of cnfg
   }
+  start(PDCP_THREAD_PRIO);
   log->debug("Init %s\n", rb_id_text[lcid]);
+}
+
+void pdcp_entity::stop()
+{
+  if(running) {
+    running = false;
+    thread_cancel();
+    wait_thread_finish();
+  }
 }
 
 void pdcp_entity::reset()
@@ -87,7 +99,9 @@ bool pdcp_entity::is_active()
 // RRC interface
 void pdcp_entity::write_sdu(byte_buffer_t *sdu)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU, do_security = %s", rb_id_text[lcid], (do_security)?"true":"false");
+  log->info_hex(sdu->msg, sdu->N_bytes,
+      "TX %s SDU, do_integrity = %s, do_encryption = %s", rb_id_text[lcid],
+      (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
   // Handle SRB messages
   switch(lcid)
@@ -98,13 +112,9 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu)
   case RB_ID_SRB1:  // Intentional fall-through
   case RB_ID_SRB2:
     pdcp_pack_control_pdu(tx_count, sdu);
-    if(do_security)
+    if(do_integrity)
     {
-      integrity_generate(&k_rrc_int[16],
-                         tx_count,
-                         lcid-1,
-                         direction,
-                         sdu->msg,
+      integrity_generate(sdu->msg,
                          sdu->N_bytes-4,
                          &sdu->msg[sdu->N_bytes-4]);
     }
@@ -132,7 +142,7 @@ void pdcp_entity::config_security(uint8_t *k_rrc_enc_,
                                   CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                   INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
 {
-  do_security = true;
+  do_integrity = true;
   for(int i=0; i<32; i++)
   {
     k_rrc_enc[i] = k_rrc_enc_[i];
@@ -142,10 +152,187 @@ void pdcp_entity::config_security(uint8_t *k_rrc_enc_,
   integ_algo  = integ_algo_;
 }
 
+void pdcp_entity::enable_encryption()
+{
+  do_encryption = true;
+}
+
 // RLC interface
 void pdcp_entity::write_pdu(byte_buffer_t *pdu)
 {
-  // Handle SRB messages
+  rx_pdu_queue.write(pdu);
+}
+
+void pdcp_entity::integrity_generate(uint8_t  *msg,
+                                     uint32_t  msg_len,
+                                     uint8_t  *mac)
+{
+  switch(integ_algo)
+  {
+  case INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case INTEGRITY_ALGORITHM_ID_128_EIA1:
+    security_128_eia1(&k_rrc_int[16],
+                      tx_count,
+                      lcid-1,
+                      direction,
+                      msg,
+                      msg_len,
+                      mac);
+    break;
+  case INTEGRITY_ALGORITHM_ID_128_EIA2:
+    security_128_eia2(&k_rrc_int[16],
+                      tx_count,
+                      lcid-1,
+                      direction,
+                      msg,
+                      msg_len,
+                      mac);
+    break;
+  default:
+    break;
+  }
+}
+
+bool pdcp_entity::integrity_verify(uint8_t  *msg,
+                                   uint32_t  count,
+                                   uint32_t  msg_len,
+                                   uint8_t  *mac)
+{
+  uint8_t mac_exp[4] = {0x00};
+  uint8_t i = 0;
+  bool isValid = true;
+
+  switch(integ_algo)
+  {
+  case INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case INTEGRITY_ALGORITHM_ID_128_EIA1:
+    security_128_eia1(&k_rrc_int[16],
+                      count,
+                      lcid-1,
+                      (direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      msg,
+                      msg_len,
+                      mac_exp);
+    break;
+  case INTEGRITY_ALGORITHM_ID_128_EIA2:
+    security_128_eia2(&k_rrc_int[16],
+                      count,
+                      lcid-1,
+                      (direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      msg,
+                      msg_len,
+                      mac_exp);
+    break;
+  default:
+    break;
+  }
+
+  switch(integ_algo)
+  {
+  case INTEGRITY_ALGORITHM_ID_EIA0:
+    break;
+  case INTEGRITY_ALGORITHM_ID_128_EIA1: // Intentional fall-through
+  case INTEGRITY_ALGORITHM_ID_128_EIA2:
+    for(i=0; i<4; i++){
+      if(mac[i] != mac_exp[i]){
+        log->error_hex(mac_exp, 4, "MAC mismatch (expected)");
+        log->error_hex(mac,     4, "MAC mismatch (found)");
+        isValid = false;
+        break;
+      }
+    }
+    if (isValid){
+      log->info_hex(mac_exp, 4, "MAC match (expected)");
+      log->info_hex(mac,     4, "MAC match (found)");
+    }
+    break;
+  default:
+    break;
+  }
+
+  return isValid;
+}
+
+void pdcp_entity::cipher_encrypt(uint8_t  *msg,
+                                 uint32_t  msg_len,
+                                 uint8_t  *ct)
+{
+  byte_buffer_t ct_tmp;
+  switch(cipher_algo)
+  {
+  case CIPHERING_ALGORITHM_ID_EEA0:
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA1:
+    security_128_eea1(&(k_rrc_enc[16]),
+                      tx_count,
+                      lcid - 1,
+                      direction,
+                      msg,
+                      msg_len,
+                      ct_tmp.msg);
+    memcpy(ct, ct_tmp.msg, msg_len);
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA2:
+    security_128_eea2(&(k_rrc_enc[16]),
+                      tx_count,
+                      lcid - 1,
+                      direction,
+                      msg,
+                      msg_len,
+                      ct_tmp.msg);
+    memcpy(ct, ct_tmp.msg, msg_len);
+    break;
+  default:
+    break;
+  }
+}
+
+void pdcp_entity::cipher_decrypt(uint8_t  *ct,
+                                 uint32_t  count,
+                                 uint32_t  ct_len,
+                                 uint8_t  *msg)
+{
+  byte_buffer_t msg_tmp;
+  switch(cipher_algo)
+  {
+  case CIPHERING_ALGORITHM_ID_EEA0:
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA1:
+    security_128_eea1(&(k_rrc_enc[16]),
+                      count,
+                      lcid - 1,
+                      (direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      ct,
+                      ct_len,
+                      msg_tmp.msg);
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA2:
+    security_128_eea2(&(k_rrc_enc[16]),
+                      count,
+                      lcid - 1,
+                      (direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      ct,
+                      ct_len,
+                      msg_tmp.msg);
+    memcpy(msg, msg_tmp.msg, ct_len);
+    break;
+  default:
+    break;
+  }
+}
+
+
+void pdcp_entity::run_thread()
+{
+  byte_buffer_t *pdu;
+  running = true;
+
+  while(running) {
+    rx_pdu_queue.read(&pdu);
+
+    // Handle SRB messages
   switch(lcid)
   {
   case RB_ID_SRB0:
@@ -156,7 +343,24 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
   case RB_ID_SRB1: // Intentional fall-through
   case RB_ID_SRB2:
     uint32_t sn;
+
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rb_id_text[lcid]);
+
+    if (do_encryption) {
+      cipher_decrypt(&(pdu->msg[1]),
+                     pdu->msg[0],
+                     pdu->N_bytes - 1,
+                     &(pdu->msg[1]));
+      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rb_id_text[lcid]);
+    }
+
+    if (do_integrity) {
+      integrity_verify(pdu->msg,
+                       pdu->msg[0],
+                       pdu->N_bytes - 4,
+                       &(pdu->msg[pdu->N_bytes - 4]));
+    }
+
     pdcp_unpack_control_pdu(pdu, &sn);
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s SDU SN: %d",
                   rb_id_text[lcid], sn);
@@ -164,53 +368,19 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
     break;
   }
 
-  // Handle DRB messages
-  if(lcid >= RB_ID_DRB1)
-  {
-    uint32_t sn;
-    if(12 == sn_len)
+    // Handle DRB messages
+    if(lcid >= RB_ID_DRB1)
     {
-      pdcp_unpack_data_pdu_long_sn(pdu, &sn);
-    } else {
-      pdcp_unpack_data_pdu_short_sn(pdu, &sn);
+      uint32_t sn;
+      if(12 == sn_len)
+      {
+        pdcp_unpack_data_pdu_long_sn(pdu, &sn);
+      } else {
+        pdcp_unpack_data_pdu_short_sn(pdu, &sn);
+      }
+      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU: %d", rb_id_text[lcid], sn);
+      gw->write_pdu(lcid, pdu);
     }
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU: %d", rb_id_text[lcid], sn);
-    gw->write_pdu(lcid, pdu);
-  }
-}
-
-void pdcp_entity::integrity_generate( uint8_t  *key_128,
-                                      uint32_t  count,
-                                      uint8_t   rb_id,
-                                      uint8_t   direction,
-                                      uint8_t  *msg,
-                                      uint32_t  msg_len,
-                                      uint8_t  *mac)
-{
-  switch(integ_algo)
-  {
-  case INTEGRITY_ALGORITHM_ID_EIA0:
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA1:
-    security_128_eia1(key_128,
-                      count,
-                      rb_id,
-                      direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA2:
-    security_128_eia2(key_128,
-                      count,
-                      rb_id,
-                      direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
-  default:
-    break;
   }
 }
 

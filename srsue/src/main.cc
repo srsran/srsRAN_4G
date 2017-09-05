@@ -74,6 +74,8 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
 
         ("pcap.enable",       bpo::value<bool>(&args->pcap.enable)->default_value(false),           "Enable MAC packet captures for wireshark")
         ("pcap.filename",     bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"),   "MAC layer capture filename")
+        ("pcap.nas_enable",   bpo::value<bool>(&args->pcap.nas_enable)->default_value(false),           "Enable NAS packet captures for wireshark")
+        ("pcap.nas_filename", bpo::value<string>(&args->pcap.nas_filename)->default_value("ue_nas.pcap"),   "NAS layer capture filename (useful when NAS encryption is enabled)")
 
         ("trace.enable",      bpo::value<bool>(&args->trace.enable)->default_value(false),                  "Enable PHY and radio timing traces")
         ("trace.phy_filename",bpo::value<string>(&args->trace.phy_filename)->default_value("ue.phy_trace"), "PHY timing traces filename")

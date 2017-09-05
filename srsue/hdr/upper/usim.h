@@ -69,14 +69,14 @@ public:
                                         bool     *net_valid,
                                         uint8_t  *res);
 
-  void generate_nas_keys(uint8_t *k_nas_enc,
+  void generate_nas_keys(uint32_t count_ul,
+                         uint8_t *k_nas_enc,
                          uint8_t *k_nas_int,
                          srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                          srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
   // RRC interface
-  void generate_as_keys(uint32_t count_ul,
-                        uint8_t *k_rrc_enc,
+  void generate_as_keys(uint8_t *k_rrc_enc,
                         uint8_t *k_rrc_int,
                         uint8_t *k_up_enc,
                         uint8_t *k_up_int,
