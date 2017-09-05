@@ -26,6 +26,7 @@
 
 #include <srslte/interfaces/sched_interface.h>
 #include <srslte/asn1/liblte_rrc.h>
+#include <upper/rrc.h>
 #include "srslte/asn1/liblte_mme.h"
 #include "upper/rrc.h"
 
@@ -61,7 +62,8 @@ void rrc::init(rrc_cfg_t *cfg_,
  
   pthread_mutex_init(&user_mutex, NULL);
   pthread_mutex_init(&paging_mutex, NULL);
-  
+
+  act_monitor.start(RRC_THREAD_PRIO);
   bzero(&sr_sched, sizeof(sr_sched_t));
   
   start(RRC_THREAD_PRIO);
@@ -69,9 +71,8 @@ void rrc::init(rrc_cfg_t *cfg_,
 
 rrc::activity_monitor::activity_monitor(rrc* parent_) 
 {
-  running = true; 
-  parent = parent_; 
-  start(RRC_THREAD_PRIO);
+  running = true;
+  parent = parent_;
 }
 
 void rrc::activity_monitor::stop()
@@ -149,6 +150,7 @@ uint32_t rrc::generate_sibs()
     srslte_bit_pack_vector(bitbuffer.msg, sib_buffer[i].msg, bitbuffer.N_bits);
     sib_buffer[i].N_bytes = (bitbuffer.N_bits-1)/8+1;
   }
+  free(msg);
   return nof_messages; 
 }
 
@@ -604,23 +606,32 @@ void rrc::run_thread()
     if (p.pdu) {
       rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
     }
-    switch(p.lcid)
-    {
-    case RB_ID_SRB0:
-      parse_ul_ccch(p.rnti, p.pdu);
-      break;
-    case RB_ID_SRB1:
-    case RB_ID_SRB2:
-      parse_ul_dcch(p.rnti, p.lcid, p.pdu);
-      break;
-    case LCID_REM_USER:
-      usleep(10000);
-      rem_user(p.rnti);
-      break;
-    default:
-      rrc_log->error("Rx PDU with invalid bearer id: %s", p.lcid);
-      break;
+    pthread_mutex_lock(&user_mutex);
+    if (users.count(p.rnti) == 1) {
+      switch(p.lcid)
+      {
+        case RB_ID_SRB0:
+          parse_ul_ccch(p.rnti, p.pdu);
+          break;
+        case RB_ID_SRB1:
+        case RB_ID_SRB2:
+          parse_ul_dcch(p.rnti, p.lcid, p.pdu);
+          break;
+        case LCID_REM_USER:
+          pthread_mutex_unlock(&user_mutex);
+          usleep(10000);
+          rem_user(p.rnti);
+          pthread_mutex_lock(&user_mutex);
+          break;
+        default:
+          rrc_log->error("Rx PDU with invalid bearer id: %s", p.lcid);
+          break;
+      }
+    } else {
+      printf("Discarting rnti=0x%xn", p.rnti);
+      rrc_log->warning("Discarting PDU for removed rnti=0x%x\n", p.rnti);
     }
+    pthread_mutex_unlock(&user_mutex);
   }
 }
 void rrc::activity_monitor::run_thread()

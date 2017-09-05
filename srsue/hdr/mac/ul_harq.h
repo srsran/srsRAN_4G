@@ -163,7 +163,18 @@ private:
       is_initiated = false;
       is_grant_configured = false;
       tti_last_tx = 0;
+      payload_buffer = NULL;
       bzero(&cur_grant, sizeof(Tgrant));
+    }
+
+    ~ul_harq_process()
+    {
+      if (is_initiated) {
+        if (payload_buffer) {
+          free(payload_buffer);
+        }
+        srslte_softbuffer_tx_free(&softbuffer);
+      }
     }
 
     bool init(uint32_t pid_, ul_harq_entity *parent)

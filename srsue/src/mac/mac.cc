@@ -86,6 +86,8 @@ bool mac::init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac
 
 void mac::stop()
 {
+  srslte_softbuffer_rx_free(&pch_softbuffer);
+
   started = false;   
   ttisync.increase();
   upper_timers_thread.thread_cancel();

@@ -57,8 +57,9 @@ int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac
   }
   
   start(priority);
-  initiated = true; 
-  
+  initiated = true;
+
+  sf_cnt = 0;
   pending_tti   = 0; 
   processed_tti = 0; 
   return 0; 
@@ -66,6 +67,11 @@ int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac
 
 void prach_worker::stop()
 {
+  srslte_prach_free(&prach);
+
+  if (signal_buffer_rx) {
+    free(signal_buffer_rx);
+  }
   pthread_mutex_lock(&mutex);
   processed_tti = 99999; 
   running = false; 

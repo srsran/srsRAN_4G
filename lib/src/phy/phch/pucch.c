@@ -451,7 +451,7 @@ clean_exit:
 
 void srslte_pucch_free(srslte_pucch_t *q) {
   if (q->users) {
-    for (int rnti=0;rnti<SRSLTE_SIRNTI;rnti++) {      
+    for (int rnti=0;rnti<=SRSLTE_SIRNTI;rnti++) {
       srslte_pucch_clear_rnti(q, rnti);
     }
     free(q->users);

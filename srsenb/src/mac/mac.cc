@@ -83,12 +83,16 @@ bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, 
     reset();
 
     started = true; 
-  }    
+  }
+
   return started; 
 }
 
 void mac::stop()
 {
+  for (uint32_t i=0;i<ue_db.size();i++) {
+    delete ue_db[i];
+  }
   for (int i=0;i<NOF_BCCH_DLSCH_MSG;i++) {
     srslte_softbuffer_tx_free(&bcch_softbuffer_tx[i]);
   }  
@@ -113,16 +117,6 @@ void mac::reset()
   /* Setup scheduler */
   scheduler.reset();
   
-  /* Setup SI-RNTI in PHY */
-  phy_h->add_rnti(SRSLTE_SIRNTI);
-
-  /* Setup P-RNTI in PHY */
-  phy_h->add_rnti(SRSLTE_PRNTI);
-
-  /* Setup RA-RNTI in PHY */
-  for (int i=0;i<10;i++) {
-    phy_h->add_rnti(1+i);
-  }    
 }
 
 uint32_t mac::get_unique_id()

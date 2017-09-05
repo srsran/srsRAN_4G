@@ -118,6 +118,17 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
     return;
   }
   
+  /* Setup SI-RNTI in PHY */
+  add_rnti(SRSLTE_SIRNTI);
+
+  /* Setup P-RNTI in PHY */
+  add_rnti(SRSLTE_PRNTI);
+
+  /* Setup RA-RNTI in PHY */
+  for (int i=0;i<10;i++) {
+    add_rnti(1+i);
+  }
+
   srslte_pucch_set_threshold(&enb_ul.pucch, 0.8);
   srslte_sch_set_max_noi(&enb_ul.pusch.ul_sch, phy->params.pusch_max_its);
   srslte_enb_dl_set_amp(&enb_dl, phy->params.tx_amplitude);
@@ -125,12 +136,29 @@ void phch_worker::init(phch_common* phy_, srslte::log *log_h_)
   Info("Worker %d configured cell %d PRB\n", get_id(), phy->cell.nof_prb);
   
   initiated = true; 
-  
+  running   = true;
+
 #ifdef DEBUG_WRITE_FILE
   f = fopen("test.dat", "w");
 #endif
 }
 
+void phch_worker::stop()
+{
+  running = false;
+  pthread_mutex_lock(&mutex);
+
+  srslte_enb_dl_free(&enb_dl);
+  srslte_enb_ul_free(&enb_ul);
+  if (signal_buffer_rx) {
+    free(signal_buffer_rx);
+  }
+  if (signal_buffer_tx) {
+    free(signal_buffer_tx);
+  }
+  pthread_mutex_unlock(&mutex);
+  pthread_mutex_destroy(&mutex);
+}
 void phch_worker::reset() 
 {
   initiated  = false; 
@@ -234,7 +262,11 @@ void phch_worker::rem_rnti(uint16_t rnti)
 
 void phch_worker::work_imp()
 {
-  uint32_t sf_ack; 
+  uint32_t sf_ack;
+
+  if (!running) {
+    return;
+  }
   
   pthread_mutex_lock(&mutex); 
   

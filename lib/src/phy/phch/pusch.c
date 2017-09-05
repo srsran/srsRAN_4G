@@ -295,7 +295,7 @@ void srslte_pusch_free(srslte_pusch_t *q) {
     if (q->is_ue) {
       srslte_pusch_free_rnti(q, 0);
     } else {
-      for (int rnti=0;rnti<SRSLTE_SIRNTI;rnti++) {
+      for (int rnti=0;rnti<=SRSLTE_SIRNTI;rnti++) {
         srslte_pusch_free_rnti(q, rnti);
       }
     }

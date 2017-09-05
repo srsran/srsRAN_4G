@@ -20,9 +20,16 @@ namespace srsenb {
  *******************************************************/
 sched::sched()
 {
+  current_tti = 0;
   log_h = NULL; 
   pthread_mutex_init(&mutex, NULL);
   reset();
+}
+
+sched::~sched()
+{
+  srslte_regs_free(&regs);
+  pthread_mutex_destroy(&mutex);
 }
 
 void sched::init(rrc_interface_mac *rrc_, srslte::log* log)
@@ -39,6 +46,7 @@ void sched::init(rrc_interface_mac *rrc_, srslte::log* log)
 
 int sched::reset()
 {
+  bzero(pending_msg3, sizeof(pending_msg3_t)*10);
   bzero(pending_rar, sizeof(sched_rar_t)*SCHED_MAX_PENDING_RAR);
   bzero(pending_sibs, sizeof(sched_sib_t)*MAX_SIBS); 
   ue_db.clear();

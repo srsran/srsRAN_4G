@@ -347,6 +347,7 @@ bool s1ap::setup_s1()
   uint16_t                    tmp16;
   srslte::byte_buffer_t       msg;
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
+  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
 
   pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
 

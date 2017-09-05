@@ -145,6 +145,7 @@ phch_recv::~phch_recv() {
   }
   srslte_ue_sync_free(&ue_sync);
   srslte_ue_dl_free(&ue_dl_measure);
+  srslte_ue_mib_free(&ue_mib);
   srslte_ue_mib_sync_free(&ue_mib_sync);
   srslte_ue_cellsearch_free(&cs);
 }

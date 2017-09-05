@@ -73,6 +73,10 @@ void ra_proc::init(phy_interface_mac* phy_h_,
   reset();
 }
 
+ra_proc::~ra_proc() {
+  srslte_softbuffer_rx_free(&softbuffer_rar);
+}
+
 void ra_proc::reset() {
   state = IDLE;
   msg3_transmitted = false;

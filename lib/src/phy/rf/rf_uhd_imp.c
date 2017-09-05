@@ -117,6 +117,7 @@ static void* async_thread(void *h) {
       return NULL; 
     }
   }
+  uhd_async_metadata_free(&md);
   return NULL; 
 }
 
@@ -457,14 +458,17 @@ int rf_uhd_close(void *h)
   uhd_rx_metadata_free(&handler->rx_md_first);
   uhd_rx_metadata_free(&handler->rx_md);
   uhd_meta_range_free(&handler->rx_gain_range);
-  uhd_tx_streamer_free(&handler->tx_stream);
-  uhd_rx_streamer_free(&handler->rx_stream);
   if (handler->has_rssi) {
     uhd_sensor_value_free(&handler->rssi_value);
   }
   handler->async_thread_running = false; 
-  pthread_join(handler->async_thread, NULL); 
+  pthread_join(handler->async_thread, NULL);
+
+  uhd_tx_streamer_free(&handler->tx_stream);
+  uhd_rx_streamer_free(&handler->rx_stream);
   uhd_usrp_free(&handler->usrp);
+
+  free(handler);
   
   /** Something else to close the USRP?? */
   return 0;

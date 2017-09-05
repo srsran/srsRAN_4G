@@ -320,7 +320,7 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
     if (q->is_ue) {
       srslte_pdsch_free_rnti(q, 0);
     } else {
-      for (uint16_t u=0;u<SRSLTE_SIRNTI;u++) {
+      for (int u=0;u<=SRSLTE_SIRNTI;u++) {
         if (q->users[u]) {
           srslte_pdsch_free_rnti(q, u);
         }
