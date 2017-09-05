@@ -464,6 +464,7 @@ void srslte_pucch_free(srslte_pucch_t *q) {
     }
     free(q->users);
   }
+  srslte_uci_cqi_pucch_free(&q->cqi);
   if (q->z) {
     free(q->z);
   }
