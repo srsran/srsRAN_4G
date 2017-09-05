@@ -793,9 +793,11 @@ int main(int argc, char **argv) {
         }
       } else {
         INFO("SF: %d, Generating %d random bits\n", sf_idx, pdsch_cfg.grant.mcs[0].tbs + pdsch_cfg.grant.mcs[1].tbs);
-        for (uint32_t tb = 0; tb < pdsch_cfg.grant.nof_tb; tb++) {
-          for (i = 0; i < pdsch_cfg.grant.mcs[tb].tbs / 8; i++) {
-            data[tb][i] = (uint8_t) rand();
+        for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+          if (pdsch_cfg.grant.tb_en[tb]) {
+            for (i = 0; i < pdsch_cfg.grant.mcs[tb].tbs / 8; i++) {
+              data[tb][i] = (uint8_t) rand();
+            }
           }
         }
         /* Uncomment this to transmit on sf 0 and 5 only  */
@@ -851,10 +853,12 @@ int main(int argc, char **argv) {
         }        
         if (net_port > 0 && net_packet_ready) {
           if (null_file_sink) {
-            for (uint32_t tb = 0; tb < pdsch_cfg.grant.nof_tb; tb++) {
-              srslte_bit_pack_vector(data[tb], data_tmp, pdsch_cfg.grant.mcs[tb].tbs);
-              if (srslte_netsink_write(&net_sink, data_tmp, 1 + (pdsch_cfg.grant.mcs[tb].tbs - 1) / 8) < 0) {
-                fprintf(stderr, "Error sending data through UDP socket\n");
+            for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+              if (pdsch_cfg.grant.tb_en[tb]) {
+                srslte_bit_pack_vector(data[tb], data_tmp, pdsch_cfg.grant.mcs[tb].tbs);
+                if (srslte_netsink_write(&net_sink, data_tmp, 1 + (pdsch_cfg.grant.mcs[tb].tbs - 1) / 8) < 0) {
+                  fprintf(stderr, "Error sending data through UDP socket\n");
+                }
               }
             }
           }

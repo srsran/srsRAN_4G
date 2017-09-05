@@ -660,9 +660,10 @@ int main(int argc, char **argv) {
               /* Send data if socket active */
               if (prog_args.net_port > 0) {
                 // FIXME: UDP Data transmission does not work
-                for (uint32_t tb = 0; tb < ue_dl.pdsch_cfg.grant.nof_tb; tb++) {
-                  srslte_netsink_write(&net_sink, data[tb], 1 + (ue_dl.pdsch_cfg.grant.mcs[tb].tbs - 1) / 8);
-
+                for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+                  if (ue_dl.pdsch_cfg.grant.tb_en[tb]) {
+                    srslte_netsink_write(&net_sink, data[tb], 1 + (ue_dl.pdsch_cfg.grant.mcs[tb].tbs - 1) / 8);
+                  }
                 }
               }
               
@@ -723,7 +724,7 @@ int main(int argc, char **argv) {
 
             /* Print basic Parameters */
             PRINT_LINE("   nof layers: %d", ue_dl.pdsch_cfg.nof_layers);
-            PRINT_LINE("nof codewords: %d", ue_dl.pdsch_cfg.grant.nof_tb);
+            PRINT_LINE("nof codewords: %d", SRSLTE_RA_DL_GRANT_NOF_TB(&ue_dl.pdsch_cfg.grant));
             PRINT_LINE("          CFO: %+5.2f kHz", srslte_ue_sync_get_cfo(&ue_sync) / 1000);
             PRINT_LINE("          SNR: %+5.1f dB | %+5.1f dB", 10 * log10(rsrp0 / noise), 10 * log10(rsrp1 / noise));
             PRINT_LINE("           Rb: %6.2f / %6.2f Mbps (net/maximum)", uerate, enodebrate);

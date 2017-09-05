@@ -524,7 +524,7 @@ int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbu
                          int16_t *e_bits, uint8_t *data, int codeword_idx) {
   uint32_t Nl = 1;
 
-  if (cfg->nof_layers != cfg->grant.nof_tb) {
+  if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 
@@ -553,7 +553,7 @@ int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbu
                               uint8_t *data, uint8_t *e_bits, int codeword_idx) {
   uint32_t Nl = 1;
 
-  if (cfg->nof_layers != cfg->grant.nof_tb) {
+  if (cfg->nof_layers != SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant)) {
     Nl = 2;
   }
 

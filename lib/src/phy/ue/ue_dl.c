@@ -337,21 +337,22 @@ int srslte_ue_dl_decode_estimate(srslte_ue_dl_t *q, uint32_t sf_idx, uint32_t *c
 int srslte_ue_dl_cfg_grant(srslte_ue_dl_t *q, srslte_ra_dl_grant_t *grant, uint32_t cfi, uint32_t sf_idx,
                                  int rvidx[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type) {
   uint32_t pmi = 0;
+  uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
 
   /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
   if (mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
-    if (grant->nof_tb == 1) {
+    if (nof_tb == 1) {
       if (grant->pinfo > 0 && grant->pinfo < 5) {
         pmi = grant->pinfo - 1;
       } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, grant->pinfo);
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
         return SRSLTE_ERROR;
       }
     } else {
       if (grant->pinfo < 2) {
         pmi = grant->pinfo;
       } else {
-        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", q->pdsch_cfg.grant.nof_tb, grant->pinfo);
+        ERROR("Not Implemented (nof_tb=%d, pinfo=%d)", nof_tb, grant->pinfo);
         return SRSLTE_ERROR;
       }
     }
@@ -393,29 +394,33 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
     
     /* ===== These lines of code are supposed to be MAC functionality === */
 
-    
+
     int rvidx[SRSLTE_MAX_CODEWORDS] = {1};
     if (dci_unpacked.rv_idx < 0) {
-      uint32_t sfn = tti/10; 
-      uint32_t k   = (sfn/2)%4;
-      for (int i = 0; i < grant.nof_tb; i++) {
-        rvidx[i] = ((uint32_t) ceilf((float) 1.5 * k)) % 4;
-        srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
+      uint32_t sfn = tti / 10;
+      uint32_t k = (sfn / 2) % 4;
+      for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+        if (grant.tb_en[i]) {
+          rvidx[i] = ((uint32_t) ceilf((float) 1.5 * k)) % 4;
+          srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
+        }
       }
     } else {
-      for (int i = 0; i < grant.nof_tb; i++) {
-        switch(i) {
-          case 0:
-            rvidx[i] = (uint32_t) dci_unpacked.rv_idx;
-            break;
-          case 1:
-            rvidx[i] = (uint32_t) dci_unpacked.rv_idx_1;
-            break;
-          default:
-            ERROR("Wrong number of transport blocks");
-            return SRSLTE_ERROR;
+      for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+        if (grant.tb_en[i]) {
+          switch (i) {
+            case 0:
+              rvidx[i] = (uint32_t) dci_unpacked.rv_idx;
+              break;
+            case 1:
+              rvidx[i] = (uint32_t) dci_unpacked.rv_idx_1;
+              break;
+            default:
+              ERROR("Wrong number of transport blocks");
+              return SRSLTE_ERROR;
+          }
+          srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
         }
-        srslte_softbuffer_rx_reset_tbs(q->softbuffers[i], (uint32_t) grant.mcs[i].tbs);
       }
     }
 
@@ -429,14 +434,14 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
         }
         break;
       case SRSLTE_DCI_FORMAT2:
-        if (grant.nof_tb == 1 && dci_unpacked.pinfo == 0) {
+        if (SRSLTE_RA_DL_GRANT_NOF_TB(&grant) == 1 && dci_unpacked.pinfo == 0) {
           mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
         } else {
           mimo_type = SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX;
         }
         break;
       case SRSLTE_DCI_FORMAT2A:
-        if (grant.nof_tb == 1 && dci_unpacked.pinfo == 0) {
+        if (SRSLTE_RA_DL_GRANT_NOF_TB(&grant) == 1 && dci_unpacked.pinfo == 0) {
           mimo_type = SRSLTE_MIMO_TYPE_TX_DIVERSITY;
         } else {
           mimo_type = SRSLTE_MIMO_TYPE_CDD;
@@ -470,11 +475,13 @@ int srslte_ue_dl_decode_rnti(srslte_ue_dl_t *q, cf_t *input[SRSLTE_MAX_PORTS],
                                 noise_estimate,
                                 rnti, data, acks);
 
-      for (int tb = 0; tb < q->pdsch_cfg.grant.nof_tb; tb++) {
-        if (!acks[tb]) {
-          q->pkt_errors++;
+      for (int tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+        if (grant.tb_en[tb]) {
+          if (!acks[tb]) {
+            q->pkt_errors++;
+          }
+          q->pkts_total++;
         }
-        q->pkts_total++;
       }
 
       if (ret == SRSLTE_ERROR) {

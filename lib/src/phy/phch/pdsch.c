@@ -463,15 +463,17 @@ int srslte_pdsch_cfg(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_g
 int srslte_pdsch_cfg_mimo(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra_dl_grant_t *grant, uint32_t cfi,
                            uint32_t sf_idx, int rvidx[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type,
                            uint32_t pmi) {
-  if (cfg) {
-    if (grant) {
-      memcpy(&cfg->grant, grant, sizeof(srslte_ra_dl_grant_t));
-    }
+  if (cfg && grant) {
+    uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(grant);
+    memcpy(&cfg->grant, grant, sizeof(srslte_ra_dl_grant_t));
 
-    for (int i = 0; i < grant->nof_tb; i++) {
-      if (srslte_cbsegm(&cfg->cb_segm[i], (uint32_t) cfg->grant.mcs[i].tbs)) {
-        fprintf(stderr, "Error computing Codeblock (1) segmentation for TBS=%d\n", cfg->grant.mcs[i].tbs);
-        return SRSLTE_ERROR;
+
+    for (int cw = 0; cw < SRSLTE_MAX_CODEWORDS; cw++) {
+      if (grant->tb_en[cw]) {
+        if (srslte_cbsegm(&cfg->cb_segm[cw], (uint32_t) cfg->grant.mcs[cw].tbs)) {
+          fprintf(stderr, "Error computing Codeblock (1) segmentation for TBS=%d\n", cfg->grant.mcs[cw].tbs);
+          return SRSLTE_ERROR;
+        }
       }
     }
     srslte_ra_dl_grant_to_nbits(&cfg->grant, cfi, cell, sf_idx, cfg->nbits);
@@ -483,33 +485,36 @@ int srslte_pdsch_cfg_mimo(srslte_pdsch_cfg_t *cfg, srslte_cell_t cell, srslte_ra
     /* Check and configure PDSCH transmission modes */
     switch(mimo_type) {
       case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
-        if (grant->nof_tb != 1) {
-          ERROR("Number of transport blocks is not supported for single transmission mode.");
+        if (nof_tb != 1) {
+          ERROR("Wrong number of transport blocks (%d) for single antenna.", nof_tb);
           return SRSLTE_ERROR;
         }
         cfg->nof_layers = 1;
         break;
       case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
-        if (grant->nof_tb != 1) {
-          ERROR("Number of transport blocks is not supported for transmit diversity mode.");
+        if (nof_tb != 1) {
+          ERROR("Wrong number of transport blocks (%d) for transmit diversity.", nof_tb);
           return SRSLTE_ERROR;
         }
         cfg->nof_layers = 2;
         break;
       case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-        if (grant->nof_tb == 1) {
+        if (nof_tb == 1) {
           cfg->codebook_idx = pmi;
           cfg->nof_layers = 1;
-        } else {
+        } else if (nof_tb == 2) {
           cfg->codebook_idx = pmi + 1;
           cfg->nof_layers = 2;
+        } else {
+          ERROR("Wrong number of transport blocks (%d) for spatial multiplexing.", nof_tb);
+          return SRSLTE_ERROR;
         }
         INFO("PDSCH configured for Spatial Multiplex; nof_codewords=%d; nof_layers=%d; codebook_idx=%d;\n",
-             grant->nof_tb, cfg->nof_layers, cfg->codebook_idx);
+             nof_tb, cfg->nof_layers, cfg->codebook_idx);
         break;
       case SRSLTE_MIMO_TYPE_CDD:
-        if (grant->nof_tb != 2) {
-          ERROR("Number of transport blocks (%d) is not supported for CDD transmission mode.", grant->nof_tb);
+        if (nof_tb != 2) {
+          ERROR("Wrong number of transport blocks (%d) for CDD.", nof_tb);
           return SRSLTE_ERROR;
         }
         cfg->nof_layers = 2;
@@ -622,9 +627,10 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
       data         != NULL &&
       cfg          != NULL)
   {
+    uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant);
 
-    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, NofSymbols: %d, C_prb=%d, nof_layers=%d, nof_tb=%d\n",
-        cfg->sf_idx, rnti, cfg->nbits[0].nof_re, cfg->grant.nof_prb, cfg->nof_layers, cfg->grant.nof_tb);
+    INFO("Decoding PDSCH SF: %d, RNTI: 0x%x, NofSymbols: %d, C_prb=%d, mimo_type=%d, nof_layers=%d, nof_tb=%d\n",
+        cfg->sf_idx, rnti, cfg->nbits[0].nof_re, cfg->grant.nof_prb, cfg->nof_layers, nof_tb);
 
     // Extract Symbols and Channel Estimates
     for (int j=0;j<q->nof_rx_antennas;j++) {
@@ -645,10 +651,10 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
 
     // Prepare layers
     int nof_symbols [SRSLTE_MAX_CODEWORDS];
-    nof_symbols[0] = cfg->nbits[0].nof_re * cfg->grant.nof_tb / cfg->nof_layers;
-    nof_symbols[1] = cfg->nbits[1].nof_re * cfg->grant.nof_tb / cfg->nof_layers;
+    nof_symbols[0] = cfg->nbits[0].nof_re * nof_tb / cfg->nof_layers;
+    nof_symbols[1] = cfg->nbits[1].nof_re * nof_tb / cfg->nof_layers;
 
-    if (cfg->nof_layers == cfg->grant.nof_tb) {
+    if (cfg->nof_layers == nof_tb) {
       /* Skip layer demap */
       for (i = 0; i < cfg->nof_layers; i++) {
         x[i] = q->d[i];
@@ -666,15 +672,17 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
                                     cfg->codebook_idx, cfg->nbits[0].nof_re, cfg->mimo_type, noise_estimate);
 
     // Layer demapping only if necessary
-    if (cfg->nof_layers != cfg->grant.nof_tb) {
-        srslte_layerdemap_type(x, q->d, cfg->nof_layers, cfg->grant.nof_tb,
+    if (cfg->nof_layers != nof_tb) {
+        srslte_layerdemap_type(x, q->d, cfg->nof_layers, nof_tb,
                              nof_symbols[0], nof_symbols, cfg->mimo_type);
     }
 
     // Codeword decoding
-    for (uint32_t tb = 0; tb < cfg->grant.nof_tb; tb ++) {
-      int ret = srslte_pdsch_codeword_decode(q, cfg, softbuffers[tb], rnti, data[tb], tb);
-      acks[tb] = (ret == SRSLTE_SUCCESS);
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb ++) {
+      if (cfg->grant.tb_en[tb]) {
+        int ret = srslte_pdsch_codeword_decode(q, cfg, softbuffers[tb], rnti, data[tb], tb);
+        acks[tb] = (ret == SRSLTE_SUCCESS);
+      }
     }
 
     pdsch_decode_debug(q, cfg, sf_symbols, ce);
@@ -725,6 +733,8 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
 
   if (q != NULL &&
       cfg != NULL) {
+    uint32_t nof_tb = SRSLTE_RA_DL_GRANT_NOF_TB(&cfg->grant);
+
 
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (sf_symbols[i] == NULL) {
@@ -744,15 +754,17 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
-    for (uint32_t tb = 0; tb < cfg->grant.nof_tb; tb ++) {
-      ret |= srslte_pdsch_codeword_encode(q, cfg, softbuffers[tb], rnti, data[tb], tb);
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb ++) {
+      if (cfg->grant.tb_en[tb]) {
+        ret |= srslte_pdsch_codeword_encode(q, cfg, softbuffers[tb], rnti, data[tb], tb);
+      }
     }
 
     // Layer mapping & precode if necessary
     if (q->cell.nof_ports > 1) {
       int nof_symbols;
       /* If number of layers is equal to transport blocks (codewords) skip layer mapping */
-      if (cfg->nof_layers == cfg->grant.nof_tb) {
+      if (cfg->nof_layers == nof_tb) {
         for (i = 0; i < cfg->nof_layers; i++) {
           x[i] = q->d[i];
         }
@@ -764,7 +776,7 @@ int srslte_pdsch_encode(srslte_pdsch_t *q,
         }
         memset(&x[cfg->nof_layers], 0, sizeof(cf_t *) * (SRSLTE_MAX_LAYERS - cfg->nof_layers));
 
-        nof_symbols = srslte_layermap_type(q->d, x, cfg->grant.nof_tb, cfg->nof_layers,
+        nof_symbols = srslte_layermap_type(q->d, x, nof_tb, cfg->nof_layers,
                                            (int[SRSLTE_MAX_CODEWORDS]) {cfg->nbits[0].nof_re, cfg->nbits[1].nof_re},
                                            cfg->mimo_type);
       }
