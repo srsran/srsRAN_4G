@@ -39,7 +39,7 @@ SRSLTE_API int rf_uhd_open(char *args,
 
 SRSLTE_API int rf_uhd_open_multi(char *args, 
                                  void **handler, 
-                                 uint32_t nof_rx_antennas);
+                                 uint32_t nof_channels);
 
 SRSLTE_API char* rf_uhd_devname(void *h);
 
@@ -122,4 +122,14 @@ SRSLTE_API int  rf_uhd_send_timed(void *h,
                                   bool blocking, 
                                   bool is_start_of_burst, 
                                   bool is_end_of_burst);
+
+SRSLTE_API int rf_uhd_send_timed_multi(void *h,
+                                       void *data[SRSLTE_MAX_PORTS],
+                                       int nsamples,
+                                       time_t secs,
+                                       double frac_secs,
+                                       bool has_time_spec,
+                                       bool blocking,
+                                       bool is_start_of_burst,
+                                       bool is_end_of_burst);
 

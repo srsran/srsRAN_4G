@@ -289,7 +289,7 @@ int rf_uhd_open(char *args, void **h)
   return rf_uhd_open_multi(args, h, 1);
 }
 
-int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
+int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
 {
   if (h) {
     *h = NULL; 
@@ -397,11 +397,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
           .otw_format = "sc16",
           .args = "",
           .channel_list = channel,
-          .n_channels = 1
+          .n_channels = nof_channels,
       };
       
-    handler->nof_rx_channels = nof_rx_antennas; 
-    handler->nof_tx_channels = 1;
+    handler->nof_rx_channels = nof_channels;
+    handler->nof_tx_channels = nof_channels;
 
     /* Set default rate to avoid decimation warnings */
     uhd_usrp_set_rx_rate(handler->usrp, 1.92e6, 0);
@@ -656,8 +656,28 @@ int rf_uhd_send_timed(void *h,
                      bool is_start_of_burst,
                      bool is_end_of_burst) 
 {
+  void *_data[SRSLTE_MAX_PORTS]= {data, zero_mem, zero_mem, zero_mem};
+
+  return rf_uhd_send_timed_multi(h, _data, nsamples, secs, frac_secs, has_time_spec, blocking, is_start_of_burst, is_end_of_burst);
+}
+
+int rf_uhd_send_timed_multi(void *h,
+                            void *data[4],
+                            int nsamples,
+                            time_t secs,
+                            double frac_secs,
+                            bool has_time_spec,
+                            bool blocking,
+                            bool is_start_of_burst,
+                            bool is_end_of_burst) {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*) h;
   
+  /* Resets the USRP time FIXME: this might cause problems for burst transmissions */
+  if (!has_time_spec && is_start_of_burst && handler->nof_tx_channels > 1) {
+    uhd_usrp_set_time_now(handler->usrp, 0, 0, 0);
+    uhd_tx_metadata_set_time_spec(&handler->tx_md, 0, 0.1);
+  }
+
   size_t txd_samples;
   if (has_time_spec) {
     uhd_tx_metadata_set_time_spec(&handler->tx_md, secs, frac_secs);
@@ -665,7 +685,10 @@ int rf_uhd_send_timed(void *h,
   int trials = 0; 
   if (blocking) {
     int n = 0;
-    cf_t *data_c = (cf_t*) data;
+    cf_t *data_c[4];
+    for (int i = 0; i < 4; i++) {
+      data_c[i] = data[i];
+    }
     do {
       size_t tx_samples = handler->tx_nof_samples;
       
@@ -683,9 +706,12 @@ int rf_uhd_send_timed(void *h,
         tx_samples = nsamples - n; 
         uhd_tx_metadata_set_end(&handler->tx_md, is_end_of_burst);
       }
-      
-      void *buff = (void*) &data_c[n];
-      const void *buffs_ptr[4] = {buff, zero_mem, zero_mem, zero_mem};
+
+      const void *buffs_ptr[4];
+      for (int i = 0; i < 4; i++) {
+        void *buff = (void*) &data_c[i][n];
+        buffs_ptr[i] = buff;
+      }
       uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, 
                                              tx_samples, &handler->tx_md, 3.0, &txd_samples);
       if (error) {
@@ -699,7 +725,10 @@ int rf_uhd_send_timed(void *h,
     } while (n < nsamples && trials < 100);
     return nsamples;
   } else {
-    const void *buffs_ptr[4] = {data, zero_mem, zero_mem, zero_mem};
+    const void *buffs_ptr[4];
+    for (int i = 0; i < 4; i++) {
+     buffs_ptr[i] = data[i];
+    }
     uhd_tx_metadata_set_start(&handler->tx_md, is_start_of_burst);
     uhd_tx_metadata_set_end(&handler->tx_md, is_end_of_burst);
     return uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 0.0, &txd_samples);

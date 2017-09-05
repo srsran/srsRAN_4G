@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    if (srslte_pcfich_init(&pcfich)) {
+    if (srslte_pcfich_init(&pcfich, 1)) {
       fprintf(stderr, "Error creating PBCH object\n");
       exit(-1);
     }

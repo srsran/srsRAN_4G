@@ -40,7 +40,10 @@ class sched_ue {
 public: 
   
   // used by sched_metric
-  uint32_t ue_idx;   
+  uint32_t ue_idx;
+
+  bool has_pusch;
+  bool has_pucch;
   
   typedef struct {
     uint32_t cce_start[4][6];

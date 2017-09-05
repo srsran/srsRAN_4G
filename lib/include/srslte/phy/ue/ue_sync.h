@@ -153,6 +153,13 @@ SRSLTE_API int srslte_ue_sync_init_file(srslte_ue_sync_t *q,
                                         int offset_time, 
                                         float offset_freq);
 
+SRSLTE_API int srslte_ue_sync_init_file_multi(srslte_ue_sync_t *q,
+                                              uint32_t nof_prb,
+                                              char *file_name,
+                                              int offset_time,
+                                              float offset_freq,
+                                              uint32_t nof_rx_ant);
+
 SRSLTE_API void srslte_ue_sync_free(srslte_ue_sync_t *q);
 
 SRSLTE_API int srslte_ue_sync_set_cell(srslte_ue_sync_t *q,

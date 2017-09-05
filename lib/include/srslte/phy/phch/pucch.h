@@ -100,9 +100,9 @@ typedef struct SRSLTE_API {
   uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME];
   float tmp_arg[SRSLTE_PUCCH_N_SEQ];
   
-  cf_t z[SRSLTE_PUCCH_MAX_SYMBOLS];
-  cf_t z_tmp[SRSLTE_PUCCH_MAX_SYMBOLS];
-  cf_t ce[SRSLTE_PUCCH_MAX_SYMBOLS];
+  cf_t *z;
+  cf_t *z_tmp;
+  cf_t *ce;
   
   bool shortened; 
   bool group_hopping_en;

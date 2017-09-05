@@ -62,4 +62,9 @@ SRSLTE_API int srslte_filesource_read(srslte_filesource_t *q,
                                       void *buffer, 
                                       int nsamples);
 
+SRSLTE_API int srslte_filesource_read_multi(srslte_filesource_t *q,
+                                            void **buffer,
+                                            int nsamples,
+                                            int nof_channels);
+
 #endif // FILESOURCE_

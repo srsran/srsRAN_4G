@@ -57,14 +57,10 @@ bool srslte_pcfich_exists(int nframe, int nslot) {
   return true;
 }
 
-int srslte_pcfich_init(srslte_pcfich_t *q) {
-  return srslte_pcfich_init_multi(q, 1);
-}
-
 /** Initializes the pcfich channel receiver. 
  * On error, returns -1 and frees the structrure 
  */
-int srslte_pcfich_init_multi(srslte_pcfich_t *q, uint32_t nof_rx_antennas) {
+int srslte_pcfich_init(srslte_pcfich_t *q, uint32_t nof_rx_antennas) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   
   if (q != NULL)

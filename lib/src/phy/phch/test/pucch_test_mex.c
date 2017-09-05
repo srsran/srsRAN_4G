@@ -187,12 +187,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   srslte_pucch_set_cfg(&pucch, &pucch_cfg, group_hopping_en);
   
-  if (srslte_chest_ul_estimate_pucch(&chest_ul, sf_symbols, ce, format, n_pucch, sf_idx)) {
+  uint8_t pucch2_ack_bits[2] = {0};
+
+  if (srslte_chest_ul_estimate_pucch(&chest_ul, sf_symbols, ce, format, n_pucch, sf_idx, &pucch2_ack_bits)) {
     mexErrMsgTxt("Error estimating PUCCH DMRS\n");
     return;
   }
   
-  if (srslte_pucch_decode(&pucch, format, n_pucch, sf_idx, sf_symbols, ce, 0, bits)<0) {
+  if (srslte_pucch_decode(&pucch, format, n_pucch, sf_idx, (uint16_t) rnti, sf_symbols, ce, 0, bits)<0) {
     mexErrMsgTxt("Error decoding PUCCH\n");
     return; 
   }

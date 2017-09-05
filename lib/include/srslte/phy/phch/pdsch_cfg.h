@@ -40,11 +40,14 @@
 #include "srslte/phy/fec/cbsegm.h"
 
 typedef struct SRSLTE_API {
-  srslte_cbsegm_t cb_segm; 
-  srslte_ra_dl_grant_t grant; 
-  srslte_ra_nbits_t nbits; 
-  uint32_t rv; 
-  uint32_t sf_idx;  
+  srslte_cbsegm_t cb_segm[SRSLTE_MAX_CODEWORDS];
+  srslte_ra_dl_grant_t grant;
+  srslte_ra_nbits_t nbits[SRSLTE_MAX_CODEWORDS];
+  uint32_t rv[SRSLTE_MAX_CODEWORDS];
+  uint32_t sf_idx;
+  uint32_t nof_layers;
+  uint32_t codebook_idx;
+  srslte_mimo_type_t mimo_type;
 } srslte_pdsch_cfg_t;
 
 #endif

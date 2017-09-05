@@ -61,11 +61,7 @@ float srslte_pdcch_coderate(uint32_t nof_bits, uint32_t l) {
 }
 
 /** Initializes the PDCCH transmitter and receiver */
-int srslte_pdcch_init(srslte_pdcch_t *q, uint32_t max_prb) {
-  return srslte_pdcch_init_multi(q, max_prb, 1);
-}
-
-int srslte_pdcch_init_multi(srslte_pdcch_t *q, uint32_t max_prb, uint32_t nof_rx_antennas)
+static int pdcch_init(srslte_pdcch_t *q, uint32_t max_prb, uint32_t nof_rx_antennas, bool is_ue)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -74,7 +70,7 @@ int srslte_pdcch_init_multi(srslte_pdcch_t *q, uint32_t max_prb, uint32_t nof_rx
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_pdcch_t));
     q->nof_rx_antennas = nof_rx_antennas;
-    
+    q->is_ue           = is_ue;
     /* Allocate memory for the maximum number of PDCCH bits (CFI=3) */
     q->max_bits = max_prb*3*12*2;
 
@@ -110,21 +106,21 @@ int srslte_pdcch_init_multi(srslte_pdcch_t *q, uint32_t max_prb, uint32_t nof_rx
     }
 
     for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      for (int j=0;j<q->nof_rx_antennas;j++) {
-        q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
-        if (!q->ce[i][j]) {
-          goto clean;
-        }          
-      }
       q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
       if (!q->x[i]) {
         goto clean;
       }
-    }
-    for (int j=0;j<q->nof_rx_antennas;j++) {
-      q->symbols[j] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
-      if (!q->symbols[j]) {
+      q->symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+      if (!q->symbols[i]) {
         goto clean;
+      }
+      if (q->is_ue) {
+        for (int j = 0; j < q->nof_rx_antennas; j++) {
+          q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+          if (!q->ce[i][j]) {
+            goto clean;
+          }
+        }
       }
     }
 
@@ -135,6 +131,14 @@ int srslte_pdcch_init_multi(srslte_pdcch_t *q, uint32_t max_prb, uint32_t nof_rx
     srslte_pdcch_free(q);
   }
   return ret;
+}
+
+int srslte_pdcch_init_enb(srslte_pdcch_t *q, uint32_t max_prb) {
+  return pdcch_init(q, max_prb, 0, false);
+}
+
+int srslte_pdcch_init_ue(srslte_pdcch_t *q, uint32_t max_prb, uint32_t nof_rx_antennas) {
+  return pdcch_init(q, max_prb, nof_rx_antennas, true);
 }
 
 void srslte_pdcch_free(srslte_pdcch_t *q) {
@@ -149,18 +153,18 @@ void srslte_pdcch_free(srslte_pdcch_t *q) {
     free(q->d);
   }
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    for (int j=0;j<q->nof_rx_antennas;j++) {
-      if (q->ce[i][j]) {
-        free(q->ce[i][j]);
-      }      
-    }
     if (q->x[i]) {
       free(q->x[i]);
     }
-  }
-  for (int j=0;j<q->nof_rx_antennas;j++) {
-    if (q->symbols[j]) {
-      free(q->symbols[j]);
+    if (q->symbols[i]) {
+      free(q->symbols[i]);
+    }
+    if (q->is_ue) {
+      for (int j=0;j<q->nof_rx_antennas;j++) {
+        if (q->ce[i][j]) {
+          free(q->ce[i][j]);
+        }
+      }
     }
   }
   for (int i = 0; i < SRSLTE_NSUBFRAMES_X_FRAME; i++) {

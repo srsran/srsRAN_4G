@@ -58,10 +58,16 @@ SRSLTE_API extern int srslte_verbose;
 #define PRINT_NONE srslte_verbose=SRSLTE_VERBOSE_NONE
 
 #define DEBUG(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG) \
-  fprintf(stdout, "[DEBUG]: " _fmt, __VA_ARGS__)
+  fprintf(stdout, "[DEBUG]: " _fmt, ##__VA_ARGS__)
 
 #define INFO(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO) \
-  fprintf(stdout, "[INFO]:  " _fmt, __VA_ARGS__)
+  fprintf(stdout, "[INFO]:  " _fmt, ##__VA_ARGS__)
 
+#if CMAKE_BUILD_TYPE==Debug
+/* In debug mode, it prints out the  */
+#define ERROR(_fmt, ...) fprintf(stderr, "%s.%d: " _fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define ERROR(_fmt, ...) fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__)
+#endif /* CMAKE_BUILD_TYPE==Debug */
 
 #endif // DEBUG_H

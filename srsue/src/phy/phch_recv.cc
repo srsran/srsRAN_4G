@@ -108,7 +108,7 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
     srslte_ue_sync_start_agc(&cs.ue_sync, callback_set_rx_gain, last_gain);
   }
 
-  if (srslte_ue_dl_init_multi(&ue_dl_measure, SRSLTE_MAX_PRB, nof_rx_antennas)) {
+  if (srslte_ue_dl_init(&ue_dl_measure, SRSLTE_MAX_PRB, nof_rx_antennas)) {
     Error("Initiating ue_dl_measure\n");
     return;
   }
@@ -358,7 +358,7 @@ int phch_recv::cell_meas_rsrp() {
 
   int sync_res = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
   if (sync_res == 1) {
-    if (srslte_ue_dl_decode_fft_estimate_multi(&ue_dl_measure, sf_buffer, sf_idx, &cfi)) {
+    if (srslte_ue_dl_decode_fft_estimate(&ue_dl_measure, sf_buffer, sf_idx, &cfi)) {
       log_h->error("SYNC:  Measuring RSRP: Estimating channel\n");
       return -1;
     }

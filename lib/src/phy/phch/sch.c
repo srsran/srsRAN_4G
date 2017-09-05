@@ -455,7 +455,7 @@ static int decode_tb(srslte_sch_t *q,
       e_bits       != NULL &&
       cb_segm      != NULL)
   {
-
+    
     if (cb_segm->tbs == 0 || cb_segm->C == 0) {
       return SRSLTE_SUCCESS;
     }
@@ -476,8 +476,8 @@ static int decode_tb(srslte_sch_t *q,
     
     data[cb_segm->tbs/8+0] = 0; 
     data[cb_segm->tbs/8+1] = 0; 
-    data[cb_segm->tbs/8+2] = 0;
-
+    data[cb_segm->tbs/8+2] = 0; 
+    
     // Process Codeblocks in groups of equal CB size to parallelize according to SRSLTE_TDEC_NPAR
     for (uint32_t i=0;i<nof_cb_groups && crc_ok;i++) {
       crc_ok = decode_tb_cb(q, softbuffer, cb_segm, Qm, rv, nof_e_bits, e_bits, data, i);            
@@ -514,12 +514,22 @@ static int decode_tb(srslte_sch_t *q,
   }
 }
 
-int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer, 
-                        int16_t *e_bits, uint8_t *data) 
-{
-  return decode_tb(q,                    
-                   softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits,
+int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                        int16_t *e_bits, uint8_t *data) {
+  return srslte_dlsch_decode2(q, cfg, softbuffer, e_bits, data, 0);
+}
+
+
+int srslte_dlsch_decode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_rx_t *softbuffer,
+                         int16_t *e_bits, uint8_t *data, int codeword_idx) {
+  uint32_t Nl = 1;
+
+  if (cfg->nof_layers != cfg->grant.nof_tb) {
+    Nl = 2;
+  }
+
+  return decode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx],
+                   cfg->grant.Qm[codeword_idx] * Nl, cfg->rv[codeword_idx], cfg->nbits[codeword_idx].nof_bits,
                    e_bits, data);
 }
 
@@ -536,13 +546,22 @@ int srslte_dlsch_decode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuf
 int srslte_dlsch_encode(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
                         uint8_t *data, uint8_t *e_bits) 
 {
-  return encode_tb(q, 
-                   softbuffer, &cfg->cb_segm, 
-                   cfg->grant.Qm, cfg->rv, cfg->nbits.nof_bits,
-                   data, e_bits);
+  return srslte_dlsch_encode2(q, cfg, softbuffer, data, e_bits, 0);
 }
 
-/* Compute the interleaving function on-the-fly, because it depends on number of RI bits 
+int srslte_dlsch_encode2(srslte_sch_t *q, srslte_pdsch_cfg_t *cfg, srslte_softbuffer_tx_t *softbuffer,
+                              uint8_t *data, uint8_t *e_bits, int codeword_idx) {
+  uint32_t Nl = 1;
+
+  if (cfg->nof_layers != cfg->grant.nof_tb) {
+    Nl = 2;
+  }
+
+  return encode_tb(q, softbuffer, &cfg->cb_segm[codeword_idx], cfg->grant.Qm[codeword_idx]*Nl, cfg->rv[codeword_idx],
+                   cfg->nbits[codeword_idx].nof_bits, data, e_bits);
+}
+
+/* Compute the interleaving function on-the-fly, because it depends on number of RI bits
  * Profiling show that the computation of this matrix is neglegible. 
  */
 static void ulsch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs, uint32_t Qm,

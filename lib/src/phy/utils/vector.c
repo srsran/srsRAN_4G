@@ -35,6 +35,16 @@
 #include "srslte/phy/utils/vector_simd.h"
 #include "srslte/phy/utils/bit.h"
 
+
+#ifdef LV_HAVE_SSE
+#include <smmintrin.h>
+#endif
+
+#ifdef LV_HAVE_AVX
+#include <immintrin.h>
+#endif
+
+
 #ifdef HAVE_VOLK
 #include "volk/volk.h"
 #endif
@@ -852,3 +862,24 @@ void srslte_vec_quant_suc(int16_t *in, uint8_t *out, float gain, int16_t offset,
   }
 }
 
+void srs_vec_cf_cpy(cf_t *dst, cf_t *src, int len) {
+  int i = 0;
+
+#ifdef LV_HAVE_AVX
+    for (; i < len - 3; i += 4) {
+      _mm256_store_ps((float *) &dst[i], _mm256_load_ps((float *) &src[i]));
+    }
+#endif /* LV_HAVE_AVX */
+#ifdef LV_HAVE_SSE
+    for (; i < len - 1; i += 2) {
+      _mm_store_ps((float *) &dst[i], _mm_load_ps((float *) &src[i]));
+    }
+  for (; i < len; i++) {
+    ((__m64*) dst)[i] = ((__m64*) src)[i];
+  }
+#else
+  for (; i < len; i++) {
+    dst[i] = src[i];
+  }
+#endif /* LV_HAVE_SSE */
+}

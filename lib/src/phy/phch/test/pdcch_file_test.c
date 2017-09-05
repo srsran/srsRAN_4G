@@ -171,7 +171,7 @@ int base_init() {
     fprintf(stderr, "Error setting CFI %d\n", cfi);
     return -1;
   }
-  if (srslte_pdcch_init(&pdcch, cell.nof_prb)) {
+  if (srslte_pdcch_init_ue(&pdcch, cell.nof_prb, 1)) {
     fprintf(stderr, "Error creating PDCCH object\n");
     exit(-1);
   }

@@ -434,6 +434,10 @@ int srslte_pucch_init(srslte_pucch_t *q) {
     
     srslte_uci_cqi_pucch_init(&q->cqi);
 
+    q->z = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
+    q->z_tmp = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
+    q->ce = srslte_vec_malloc(sizeof(cf_t)*SRSLTE_PUCCH_MAX_SYMBOLS);
+
     q->threshold_format1  = 0.8;
 
     ret = SRSLTE_SUCCESS;

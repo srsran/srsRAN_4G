@@ -131,7 +131,7 @@ int srslte_dft_replan_r(srslte_dft_plan_t *plan, const int new_dft_points) {
 int srslte_dft_plan_r(srslte_dft_plan_t *plan, const int dft_points, srslte_dft_dir_t dir) {
   allocate(plan,sizeof(float),sizeof(float), dft_points);
   int sign = (dir == SRSLTE_DFT_FORWARD) ? FFTW_R2HC : FFTW_HC2R;
-  plan->p = fftwf_plan_r2r_1d(dft_points, plan->in, plan->out, sign, 0U);
+  plan->p = fftwf_plan_r2r_1d(dft_points, plan->in, plan->out, sign, FFTW_MEASURE);
   if (!plan->p) {
     return -1;
   }

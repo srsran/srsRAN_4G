@@ -185,7 +185,7 @@ int base_init() {
     return -1;
   }
 
-  if (srslte_phich_init(&phich)) {
+  if (srslte_phich_init(&phich, 1)) {
     fprintf(stderr, "Error creating PBCH object\n");
     return -1;
   }

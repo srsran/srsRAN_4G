@@ -280,10 +280,10 @@ public:
     uint32_t    pid;    
     uint32_t    tti;
     uint32_t    last_tti;
-    bool        ndi; 
-    bool        last_ndi; 
-    uint32_t    n_bytes;
-    int         rv; 
+    bool        ndi[SRSLTE_MAX_CODEWORDS];
+    bool        last_ndi[SRSLTE_MAX_CODEWORDS];
+    uint32_t    n_bytes[SRSLTE_MAX_CODEWORDS];
+    int         rv[SRSLTE_MAX_CODEWORDS];
     uint16_t    rnti; 
     bool        is_from_rar;
     bool        is_sps_release;
@@ -294,28 +294,28 @@ public:
   
   typedef struct {
     bool                    decode_enabled;
-    int                     rv;
+    int                     rv[SRSLTE_MAX_TB];
     uint16_t                rnti; 
     bool                    generate_ack; 
     bool                    default_ack; 
     // If non-null, called after tb_decoded_ok to determine if ack needs to be sent
     bool                  (*generate_ack_callback)(void*); 
     void                   *generate_ack_callback_arg;
-    uint8_t                *payload_ptr; 
-    srslte_softbuffer_rx_t *softbuffer;
+    uint8_t                *payload_ptr[SRSLTE_MAX_TB];
+    srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_TB];
     srslte_phy_grant_t      phy_grant;
   } tb_action_dl_t;
 
   typedef struct {
     bool                    tx_enabled;
     bool                    expect_ack;
-    uint32_t                rv;
+    uint32_t                rv[SRSLTE_MAX_TB];
     uint16_t                rnti; 
     uint32_t                current_tx_nb;
     int32_t                 tti_offset;     // relative offset between grant and UL tx/HARQ rx
-    srslte_softbuffer_tx_t *softbuffer;
+    srslte_softbuffer_tx_t *softbuffers;
     srslte_phy_grant_t      phy_grant;
-    uint8_t                *payload_ptr; 
+    uint8_t                *payload_ptr[SRSLTE_MAX_TB];
   } tb_action_ul_t;
   
   /* Indicate reception of UL grant. 
@@ -332,7 +332,7 @@ public:
   virtual void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) = 0;
   
   /* Indicate successfull decoding of PDSCH TB. */
-  virtual void tb_decoded(bool ack, srslte_rnti_type_t rnti_type, uint32_t harq_pid) = 0;
+  virtual void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid) = 0;
   
   /* Indicate successfull decoding of BCH TB through PBCH */
   virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;  

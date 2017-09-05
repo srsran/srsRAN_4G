@@ -257,7 +257,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
       if (L) {
         *L = 1; 
       }
-      Info("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], n_pucch);
+      Debug("SCHED: Reserved Format1A PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], n_pucch);
       return true; 
     }
   }
@@ -271,7 +271,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
     if (L) {
       *L = 1; 
     }
-    Info("SCHED: Reserved Format1 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], cfg.sr_N_pucch);
+    Debug("SCHED: Reserved Format1 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d\n", rnti, prb_idx[0], prb_idx[1], cfg.sr_N_pucch);
     return true; 
   }
   // Finally check Format2 (periodic CQI)
@@ -284,7 +284,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2], uint32
     if(L) {
       *L = 2;
     }
-    Info("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
+    Debug("SCHED: Reserved Format2 PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, pmi_idx=%d\n",
          rnti, prb_idx[0], prb_idx[1], cfg.cqi_pucch, cfg.cqi_idx);
     return true;
   }
@@ -812,6 +812,11 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   uint32_t cqi     = is_ul?ul_cqi:dl_cqi;
   uint32_t max_mcs = is_ul?max_mcs_ul:max_mcs_dl;
   uint32_t max_Qm  = is_ul?4:6; // Allow 16-QAM in PUSCH Only
+
+  // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
+  if (has_pucch) {
+    cqi-=2;
+  }
 
   int tbs = cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, &sel_mcs)/8;
   

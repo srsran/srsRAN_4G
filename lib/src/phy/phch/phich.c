@@ -68,13 +68,8 @@ void srslte_phich_reset(srslte_phich_t *q, cf_t *slot_symbols[SRSLTE_MAX_PORTS])
   }
 }
 
-int srslte_phich_init(srslte_phich_t *q)
-{
-  return srslte_phich_init_multi(q, 1);
-}
-
 /** Initializes the phich channel receiver */
-int srslte_phich_init_multi(srslte_phich_t *q, uint32_t nof_rx_antennas)
+int srslte_phich_init(srslte_phich_t *q, uint32_t nof_rx_antennas)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   

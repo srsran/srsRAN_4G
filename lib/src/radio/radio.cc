@@ -169,6 +169,8 @@ bool radio::has_rssi()
 
 bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
 {
+  void *iq_samples[4] = {(void *) zeros, (void *) zeros, (void *) zeros, (void *) zeros};
+
   if (!tx_adv_negative) {
     srslte_timestamp_sub(&tx_time, 0, tx_adv_sec);
   } else {
@@ -177,11 +179,11 @@ bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
   
   if (is_start_of_burst) {
     if (burst_preamble_samples != 0) {
-      srslte_timestamp_t tx_time_pad; 
+      srslte_timestamp_t tx_time_pad;
       srslte_timestamp_copy(&tx_time_pad, &tx_time);
       srslte_timestamp_sub(&tx_time_pad, 0, burst_preamble_time_rounded); 
       save_trace(1, &tx_time_pad);
-      srslte_rf_send_timed2(&rf_device, zeros, burst_preamble_samples, tx_time_pad.full_secs, tx_time_pad.frac_secs, true, false);
+      srslte_rf_send_timed_multi(&rf_device, iq_samples, burst_preamble_samples, tx_time_pad.full_secs, tx_time_pad.frac_secs, true, true, false);
       is_start_of_burst = false; 
     }        
   }
@@ -191,7 +193,8 @@ bool radio::tx(void* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time)
   srslte_timestamp_add(&end_of_burst_time, 0, (double) nof_samples/cur_tx_srate); 
   
   save_trace(0, &tx_time);
-  int ret = srslte_rf_send_timed2(&rf_device, buffer, nof_samples+offset, tx_time.full_secs, tx_time.frac_secs, is_start_of_burst, false);
+  iq_samples[0] = buffer;
+  int ret = srslte_rf_send_timed_multi(&rf_device, (void**) iq_samples, nof_samples+offset, tx_time.full_secs, tx_time.frac_secs, true, is_start_of_burst, false);
   offset = 0; 
   is_start_of_burst = false; 
   if (ret > 0) {

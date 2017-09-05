@@ -45,7 +45,8 @@
 typedef struct {
   bool     configured; 
   uint32_t pmi_idx; 
-  bool     simul_cqi_ack; 
+  uint32_t ri_idx;
+  bool     simul_cqi_ack;
   bool     format_is_subband; 
   uint32_t subband_size; 
 } srslte_cqi_periodic_cfg_t; 
@@ -137,7 +138,11 @@ SRSLTE_API int srslte_cqi_format2_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BIT
                                                  srslte_cqi_format2_subband_t *msg);
 
 SRSLTE_API bool srslte_cqi_send(uint32_t I_cqi_pmi, 
-                                uint32_t tti); 
+                                uint32_t tti);
+
+SRSLTE_API bool srslte_ri_send(uint32_t I_cqi_pmi,
+                               uint32_t I_ri,
+                               uint32_t tti);
 
 SRSLTE_API uint8_t srslte_cqi_from_snr(float snr);
 

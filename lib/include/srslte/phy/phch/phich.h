@@ -85,10 +85,8 @@ typedef struct SRSLTE_API {
   
 } srslte_phich_t;
 
-SRSLTE_API int srslte_phich_init(srslte_phich_t *q);
-
-SRSLTE_API int srslte_phich_init_multi(srslte_phich_t *q, 
-                                       uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_phich_init(srslte_phich_t *q,
+                                 uint32_t nof_rx_antennas);
 
 SRSLTE_API void srslte_phich_free(srslte_phich_t *q);
 

@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <srslte/phy/utils/vector.h>
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/mimo/layermap.h"
@@ -51,7 +52,12 @@ int srslte_layermap_diversity(cf_t *d, cf_t *x[SRSLTE_MAX_LAYERS], int nof_layer
 
 int srslte_layermap_multiplex(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_cw, int nof_layers,
     int nof_symbols[SRSLTE_MAX_CODEWORDS]) {
-  if (nof_cw == 1) {
+  if (nof_cw == nof_layers) {
+    for (int i = 0; i < nof_cw; i++) {
+      srs_vec_cf_cpy(x[i], d[i], (uint32_t) nof_symbols[0]);
+    }
+    return nof_symbols[0];
+  } else if (nof_cw == 1) {
     return srslte_layermap_diversity(d[0], x, nof_layers, nof_symbols[0]);
   } else {
     int n[2];

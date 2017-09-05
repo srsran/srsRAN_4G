@@ -135,6 +135,9 @@ SRSLTE_API float srslte_chest_dl_get_rssi(srslte_chest_dl_t *q);
 
 SRSLTE_API float srslte_chest_dl_get_rsrq(srslte_chest_dl_t *q);
 
+SRSLTE_API float srslte_chest_dl_get_rsrp_port(srslte_chest_dl_t *q,
+                                                     uint32_t port);
+
 SRSLTE_API float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q);
 
 #endif

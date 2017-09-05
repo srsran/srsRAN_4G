@@ -43,6 +43,7 @@ struct mac_metrics_t
   int rx_brate;
   int ul_buffer;
   int dl_buffer;
+  float dl_cqi;
   float phr; 
 };
 

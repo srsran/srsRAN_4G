@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
     cid = cell.id;
     max_cid = cell.id;
   }
-  if (srslte_phich_init(&phich)) {
+  if (srslte_phich_init(&phich, 1)) {
     fprintf(stderr, "Error creating PBCH object\n");
     exit(-1);
   }

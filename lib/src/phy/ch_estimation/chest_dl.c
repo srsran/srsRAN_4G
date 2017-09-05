@@ -448,12 +448,15 @@ float srslte_chest_dl_get_rsrq(srslte_chest_dl_t *q) {
   
 }
 
-float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {  
-  // Note: use only port 0 but average across antennas
-  float n = 0; 
-  for (int i=0;i<q->last_nof_antennas;i++) {
-    n += q->rsrp[i][0]; 
+float srslte_chest_dl_get_rsrp_port(srslte_chest_dl_t *q, uint32_t port) {
+  float n = 0;
+  for (int i = 0; i < q->last_nof_antennas; i++) {
+      n += q->rsrp[i][port];
   }
-  return n/q->last_nof_antennas;
+  return n / q->last_nof_antennas;
 }
 
+float srslte_chest_dl_get_rsrp(srslte_chest_dl_t *q) {
+  // Note: use only port 0 but average across antennas
+  return srslte_chest_dl_get_rsrp_port(q, 0);
+}

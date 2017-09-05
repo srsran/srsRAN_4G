@@ -691,7 +691,10 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   for(std::map<uint16_t, sched_ue>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     sched_ue *user = (sched_ue*) &iter->second;
     uint16_t rnti  = (uint16_t) iter->first; 
-    
+
+    user->has_pusch = false;
+    user->has_pucch = false;
+
     ul_harq_proc *h = user->get_ul_harq(current_tti);
   
     /* Indicate PHICH acknowledgment if needed */
@@ -717,9 +720,13 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
     uint32_t prb_idx[2] = {0, 0}; 
     uint32_t L = 0; 
     if (user->get_pucch_sched(current_tti, prb_idx, &L)) {
-      for (int i=0;i<2;i++) {
-        ul_harq_proc::ul_alloc_t pucch = {prb_idx[i], L};
-        ul_metric->update_allocation(pucch);        
+      user->has_pucch = true;
+      // allocate PUCCH if no PUSCH for user
+      if (!user->has_pusch) {
+        for (int i=0;i<2;i++) {
+          ul_harq_proc::ul_alloc_t pucch = {prb_idx[i], L};
+          ul_metric->update_allocation(pucch);
+        }
       }
     }
   }

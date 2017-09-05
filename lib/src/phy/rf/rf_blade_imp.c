@@ -178,7 +178,7 @@ float rf_blade_get_rssi(void *h)
   return 0;
 }
 
-int rf_blade_open_multi(char *args, void **h, uint32_t nof_rx_antennas)
+int rf_blade_open_multi(char *args, void **h, uint32_t nof_channels)
 {
   return rf_blade_open(args, h); 
 }
@@ -469,6 +469,20 @@ int rf_blade_recv_with_time(void *h,
   return nsamples;
 }
                    
+int rf_blade_send_timed_multi(void *h,
+                     void *data[4],
+                     int nsamples,
+                     time_t secs,
+                     double frac_secs,                      
+                     bool has_time_spec,
+                     bool blocking,
+                     bool is_start_of_burst,
+                     bool is_end_of_burst)
+{
+  return rf_blade_send_timed(h, data[0], nsamples, secs, frac_secs, has_time_spec, blocking, is_start_of_burst,
+                             is_end_of_burst);
+}
+
 int rf_blade_send_timed(void *h,
                      void *data,
                      int nsamples,
