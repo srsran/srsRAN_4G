@@ -411,12 +411,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     grant->last_tti = 0;
     grant->tb_en[0] = dci_unpacked.tb_en[0];
     grant->tb_en[1] = dci_unpacked.tb_en[1];
-    grant->tb_cw_swap = dci_unpacked.tb_cw_swap;
-
-    if (grant->tb_cw_swap) {
-      Info("tb_cw_swap = true\n");
-      printf("tb_cw_swap = true\n");
-    }
+    grant->tb_cw_swap = dci_unpacked.tb_cw_swap; // FIXME: tb_cw_swap not supported
 
     last_dl_pdcch_ncce = srslte_ue_dl_get_ncce(&ue_dl);
 
@@ -1056,7 +1051,7 @@ int phch_worker::read_ce_abs(float *ce_abs) {
   bzero(ce_abs, sizeof(float)*sz);
   int g = (sz - 12*cell.nof_prb)/2;
   for (i = 0; i < 12*cell.nof_prb; i++) {
-    ce_abs[g+i] = 20 * log10(cabs(ue_dl.ce[0][i]));
+    ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[0][0][i]));
     if (isinf(ce_abs[g+i])) {
       ce_abs[g+i] = -80;
     }
@@ -1067,7 +1062,7 @@ int phch_worker::read_ce_abs(float *ce_abs) {
 int phch_worker::read_pdsch_d(cf_t* pdsch_d)
 {
 
-  memcpy(pdsch_d, ue_dl.pdsch.d, ue_dl.pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
+  memcpy(pdsch_d, ue_dl.pdsch.d[0], ue_dl.pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
   return ue_dl.pdsch_cfg.nbits[0].nof_re;
 }
 
