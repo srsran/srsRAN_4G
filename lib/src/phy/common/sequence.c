@@ -38,12 +38,14 @@
 
 #define MAX_SEQ_LEN  (128*1024)
 
+#define static_memory
+
 /*
  * Pseudo Random Sequence generation.
  * It follows the 3GPP Release 8 (LTE) 36.211
  * Section 7.2
  */
-#ifdef static
+#ifdef static_memory
 static uint8_t x1[Nc+MAX_SEQ_LEN+31];
 static uint8_t x2[Nc+MAX_SEQ_LEN+31];
 
@@ -78,6 +80,8 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed
     q->c[n] = (x1[n + Nc] + x2[n + Nc]) & 0x1;
   }
   pthread_mutex_unlock(&mutex);
+
+  return 0;
 }
 
 #else
