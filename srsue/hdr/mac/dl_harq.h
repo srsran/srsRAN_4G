@@ -166,6 +166,13 @@ private:
     }
 
     void new_grant_dl(Tgrant grant, Taction *action) {
+      /* Fill action structure */
+      bzero(action, sizeof(Taction));
+      action->default_ack = false;
+      action->generate_ack = true;
+      action->decode_enabled = false;
+
+      /* For each subprocess... */
       for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
         if (grant.tb_en[tb]) {
           subproc[tb].new_grant_dl(grant, action);
@@ -237,12 +244,6 @@ private:
         grant.last_tti = cur_grant.tti;
         memcpy(&cur_grant, &grant, sizeof(Tgrant));
 
-        // Fill action structure
-        bzero(action, sizeof(Taction));
-        action->default_ack = ack;
-        action->generate_ack = true;
-        action->decode_enabled = false;
-
         // If data has not yet been successfully decoded
         if (!ack) {
 
@@ -264,6 +265,7 @@ private:
 
         } else {
           Warning("DL PID %d: Received duplicate TB. Discarting and retransmitting ACK\n", pid);
+          action->phy_grant.dl.tb_en[tid] = false;
         }
 
         if (pid == HARQ_BCCH_PID || harq_entity->timers_db->get(TIME_ALIGNMENT)->is_expired()) {
