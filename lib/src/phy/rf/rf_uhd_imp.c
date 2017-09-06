@@ -492,8 +492,7 @@ double rf_uhd_set_rx_srate(void *h, double freq)
   for (int i=0;i<handler->nof_rx_channels;i++) {
     uhd_usrp_set_rx_rate(handler->usrp, freq, i);
   }
-  uhd_usrp_get_rx_rate(handler->usrp, 0, &freq);
-  return freq; 
+  return freq;
 }
 
 double rf_uhd_set_tx_srate(void *h, double freq)
@@ -502,7 +501,6 @@ double rf_uhd_set_tx_srate(void *h, double freq)
   for (int i=0;i<handler->nof_tx_channels;i++) {
     uhd_usrp_set_tx_rate(handler->usrp, freq, i);
   }
-  uhd_usrp_get_tx_rate(handler->usrp, 0, &freq);
   handler->tx_rate = freq;
   return freq; 
 }
@@ -513,7 +511,6 @@ double rf_uhd_set_rx_gain(void *h, double gain)
   for (int i=0;i<handler->nof_rx_channels;i++) {
     uhd_usrp_set_rx_gain(handler->usrp, gain, i, "");
   }
-  uhd_usrp_get_rx_gain(handler->usrp, 0, "", &gain);
   return gain;
 }
 
@@ -523,7 +520,6 @@ double rf_uhd_set_tx_gain(void *h, double gain)
   for (int i=0;i<handler->nof_tx_channels;i++) {
     uhd_usrp_set_tx_gain(handler->usrp, gain, i, "");
   }
-  uhd_usrp_get_tx_gain(handler->usrp, 0, "", &gain);
   return gain;
 }
 
@@ -555,7 +551,6 @@ double rf_uhd_set_rx_freq(void *h, double freq)
   for (int i=0;i<handler->nof_rx_channels;i++) {
     uhd_usrp_set_rx_freq(handler->usrp, &tune_request, i, &tune_result);
   }
-  uhd_usrp_get_rx_freq(handler->usrp, 0, &freq);
   return freq;
 }
 
@@ -571,7 +566,6 @@ double rf_uhd_set_tx_freq(void *h, double freq)
   for (int i=0;i<handler->nof_tx_channels;i++) {
     uhd_usrp_set_tx_freq(handler->usrp, &tune_request, i, &tune_result);
   }
-  uhd_usrp_get_tx_freq(handler->usrp, 0, &freq);
   return freq;
 }
 
