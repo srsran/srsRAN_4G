@@ -29,6 +29,7 @@
 #include <complex.h>
 #include <math.h>
 #include <srslte/srslte.h>
+#include <srslte/phy/sync/sync.h>
 
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/common/phy_common.h"
@@ -79,6 +80,8 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     q->max_offset = max_offset;
     q->sss_alg = SSS_FULL;
     q->max_frame_size = frame_size;
+    q->mean_cfo_isunset = true;
+    q->mean_cfo2_isunset = true;
 
     q->enable_cfo_corr = true; 
     if (srslte_cfo_init(&q->cfocorr, q->frame_size)) {
@@ -287,7 +290,10 @@ float srslte_sync_get_cfo(srslte_sync_t *q) {
 }
 
 void srslte_sync_set_cfo(srslte_sync_t *q, float cfo) {
-  q->mean_cfo = cfo;
+  q->mean_cfo  = cfo;
+  q->mean_cfo2 = cfo;
+  q->mean_cfo2_isunset = false;
+  q->mean_cfo_isunset  = false;
 }
 
 void srslte_sync_set_cfo_i(srslte_sync_t *q, int cfo_i) {
@@ -515,11 +521,16 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
     cf_t *input_cfo = input; 
 
     if (q->enable_cfo_corr) {
-      float cfo = cfo_estimate(q, input); 
-      
-      /* compute exponential moving average CFO */
-      q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
-      
+      float cfo = cfo_estimate(q, input);
+
+      if (q->mean_cfo_isunset) {
+        q->mean_cfo = cfo;
+        q->mean_cfo_isunset = false;
+      } else {
+        /* compute exponential moving average CFO */
+        q->mean_cfo = SRSLTE_VEC_EMA(cfo, q->mean_cfo, q->cfo_ema_alpha);
+      }
+
       /* Correct CFO with the averaged CFO estimation */
       srslte_cfo_correct(&q->cfocorr2, input, q->temp, -q->mean_cfo / q->fft_size);
       
@@ -574,7 +585,12 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
   
       if (peak_pos + find_offset >= 2*(q->fft_size + SRSLTE_CP_LEN_EXT(q->fft_size))) {
         float cfo2   = srslte_pss_synch_cfo_compute(&q->pss, &input[find_offset + peak_pos - q->fft_size]);
-        q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
+        if (q->mean_cfo2_isunset) {
+          q->mean_cfo2 = cfo2;
+          q->mean_cfo2_isunset = true;
+        } else {
+          q->mean_cfo2 = SRSLTE_VEC_EMA(cfo2, q->mean_cfo2, q->cfo_ema_alpha);
+        }
         
         ret = SRSLTE_SYNC_FOUND;
       } else {
@@ -596,7 +612,9 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, cf_t *input, uint32_t 
 }
 
 void srslte_sync_reset(srslte_sync_t *q) {
-  q->M_ext_avg = 0; 
+  q->mean_cfo2_isunset = true;
+  q->mean_cfo_isunset  = true;
+  q->M_ext_avg  = 0;
   q->M_norm_avg = 0; 
   srslte_pss_synch_reset(&q->pss);
 }

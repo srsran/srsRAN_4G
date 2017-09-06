@@ -405,7 +405,7 @@ bool phch_worker::decode_pdcch_dl(srsue::mac_interface_phy::mac_grant_t* grant)
     srslte_dci_msg_t dci_msg; 
     srslte_ra_dl_dci_t dci_unpacked;
     
-    Debug("Looking for RNTI=0x%x\n", dl_rnti);
+    Info("Looking for RNTI=0x%x\n", dl_rnti);
     
     if (srslte_ue_dl_find_dl_dci_type(&ue_dl, phy->config->dedicated.antenna_info_explicit_value.tx_mode, cfi, tti%10,
                                       dl_rnti, type, &dci_msg) != 1) {
@@ -681,22 +681,22 @@ void phch_worker::reset_uci()
   bzero(&uci_data, sizeof(srslte_uci_data_t));
 }
 
-  void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb) {
-    if (nof_tb > 0) {
-      uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
-    }
-
-    if (nof_tb > 1) {
-      uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
-    }
-
-    if (nof_tb > 2) {
-      Error("Number of transport blocks is not supported");
-    }
-
-    uci_data.uci_ack_len = nof_tb;
-
+void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb) {
+  if (nof_tb > 0) {
+    uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
   }
+
+  if (nof_tb > 1) {
+    uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
+  }
+
+  if (nof_tb > 2) {
+    Error("Number of transport blocks is not supported");
+  }
+
+  uci_data.uci_ack_len = nof_tb;
+
+}
 
 void phch_worker::set_uci_sr()
 {

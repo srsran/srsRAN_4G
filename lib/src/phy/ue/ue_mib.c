@@ -149,8 +149,6 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q, cf_t *input,
   int ret = SRSLTE_SUCCESS;
   cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
 
-
-
   /* Run FFT for the slot symbols */
   srslte_ofdm_rx_sf(&q->fft, input, q->sf_symbols);
             

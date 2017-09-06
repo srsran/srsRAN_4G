@@ -27,6 +27,7 @@
 #include "srslte/phy/ue/ue_dl.h"
 
 #include <string.h>
+#include <srslte/srslte.h>
 
 
 #define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
@@ -228,6 +229,7 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
         fprintf(stderr, "Error creating PDSCH object\n");
         return SRSLTE_ERROR;
       }
+      q->current_rnti = 0;
     }
     ret = SRSLTE_SUCCESS;
   } else {
@@ -242,6 +244,7 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t *q, srslte_cell_t cell)
  * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
  */
 void srslte_ue_dl_set_rnti(srslte_ue_dl_t *q, uint16_t rnti) {
+
   srslte_pdsch_set_rnti(&q->pdsch, rnti);
   
   // Compute UE-specific and Common search space for this RNTI

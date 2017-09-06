@@ -140,7 +140,7 @@ private:
   uint32_t      current_earfcn;
 
   uint32_t      sync_sfn_cnt;
-  const static uint32_t SYNC_SFN_TIMEOUT = 100;
+  const static uint32_t SYNC_SFN_TIMEOUT = 200;
   float ul_dl_factor;
   int cur_earfcn_index;
   bool cell_search_in_progress;
