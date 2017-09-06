@@ -240,8 +240,6 @@ void phch_worker::work_imp()
                       dl_mac_grant.pid, dl_ack);
       }
       if (dl_action.generate_ack_callback && dl_action.decode_enabled) {
-
-        // NOTE: Currently hard-coded to 1st TB only
         for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
           if (dl_mac_grant.tb_en[tb]) {
             phy->mac->tb_decoded(dl_ack[tb], tb, dl_mac_grant.rnti_type, dl_mac_grant.pid);
@@ -549,7 +547,7 @@ int phch_worker::decode_pdsch(srslte_ra_dl_grant_t *grant, uint8_t *payload[SRSL
         ret = srslte_pdsch_decode(&ue_dl.pdsch, &ue_dl.pdsch_cfg, softbuffers, ue_dl.sf_symbols_m,
                                   ue_dl.ce_m, noise_estimate, rnti, payload, acks);
         if (ret) {
-          Error("Decoding PDSCH");
+          Error("ERROR: Decoding PDSCH\n");
         }
   #ifdef LOG_EXECTIME
         gettimeofday(&t[2], NULL);
@@ -699,12 +697,14 @@ void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], bool tb_en[SRSLTE_
   uint32_t nof_tb = 0;
   if (tb_en[0]) {
     uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
-    nof_tb++;
+    nof_tb = 1;
+  } else {
+    uci_data.uci_ack = 1;
   }
 
   if (tb_en[1]) {
     uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
-    nof_tb++;
+    nof_tb = 2;
   }
 
   uci_data.uci_ack_len = nof_tb;
@@ -893,10 +893,12 @@ void phch_worker::encode_pucch()
   float tx_power = srslte_ue_ul_pucch_power(&ue_ul, phy->pathloss, ue_ul.last_pucch_format, uci_data.uci_cqi_len, uci_data.uci_ack_len);
   float gain = set_power(tx_power);  
   
-  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s, sr=%s, cfo=%.1f Hz%s\n", 
+  Info("PUCCH: power=%.2f dBm, tti_tx=%d, n_cce=%3d, n_pucch=%d, n_prb=%d, ack=%s%s, sr=%s, cfo=%.1f Hz%s\n",
          tx_power, (tti+4)%10240, 
          last_dl_pdcch_ncce, ue_ul.pucch.last_n_pucch, ue_ul.pucch.last_n_prb, 
-       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",uci_data.scheduling_request?"yes":"no", 
+       uci_data.uci_ack_len>0?(uci_data.uci_ack?"1":"0"):"no",
+       uci_data.uci_ack_len>1?(uci_data.uci_ack_2?"1":"0"):"",
+       uci_data.scheduling_request?"yes":"no",
          cfo*15000, timestr);        
   }   
   

@@ -581,12 +581,13 @@ static int srslte_pdsch_codeword_encode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
 
 static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *cfg,
                                                srslte_softbuffer_rx_t *softbuffer, uint16_t rnti, uint8_t *data,
-                                               uint32_t codeword_idx) {
+                                               uint32_t codeword_idx, bool *ack) {
   srslte_ra_nbits_t *nbits = &cfg->nbits[codeword_idx];
   srslte_ra_mcs_t *mcs = &cfg->grant.mcs[codeword_idx];
   uint32_t rv = cfg->rv[codeword_idx];
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (nbits->nof_bits) {
+  if (softbuffer && data && ack) {
     INFO("Decoding PDSCH SF: %d (TB %d), Mod %s, NofBits: %d, NofSymbols: %d, NofBitsE: %d, rv_idx: %d\n",
          cfg->sf_idx, codeword_idx, srslte_mod_string(mcs->mod), mcs->tbs,
          nbits->nof_re, nbits->nof_bits, rv);
@@ -603,10 +604,19 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t *q, srslte_pdsch_cfg_t *c
     /* Bit scrambling */
     srslte_scrambling_s_offset(seq, q->e[codeword_idx], 0, nbits->nof_bits);
 
-    return srslte_dlsch_decode2(&q->dl_sch, cfg, softbuffer, q->e[codeword_idx], data, codeword_idx);
+    /* Return  */
+    ret = srslte_dlsch_decode2(&q->dl_sch, cfg, softbuffer, q->e[codeword_idx], data, codeword_idx);
+    if (ret == SRSLTE_SUCCESS) {
+      *ack = true;
+    } else if (ret == SRSLTE_ERROR) {
+      *ack = false;
+      ret = SRSLTE_SUCCESS;
+    }
+  } else {
+    ERROR("Detected NULL pointer");
   }
 
-  return SRSLTE_SUCCESS;
+  return ret;
 }
 
 /** Decodes the PDSCH from the received symbols
@@ -680,8 +690,12 @@ int srslte_pdsch_decode(srslte_pdsch_t *q,
     // Codeword decoding
     for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb ++) {
       if (cfg->grant.tb_en[tb]) {
-        int ret = srslte_pdsch_codeword_decode(q, cfg, softbuffers[tb], rnti, data[tb], tb);
-        acks[tb] = (ret == SRSLTE_SUCCESS);
+        int ret = srslte_pdsch_codeword_decode(q, cfg, softbuffers[tb], rnti, data[tb], tb, &acks[tb]);
+
+        /* Check if there has been any execution error */
+        if (ret) {
+          return ret;
+        }
       }
     }
 
