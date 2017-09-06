@@ -98,6 +98,7 @@ namespace srslte {
       void set_tx_rx_gain_offset(float offset); 
       double set_rx_gain_th(float gain);
 
+      void set_freq_offset(float freq);
       void set_tx_freq(float freq);
       void set_rx_freq(float freq);
 
@@ -158,7 +159,7 @@ namespace srslte {
       const static double blade_default_tx_adv_samples     = 27;
       const static double blade_default_tx_adv_offset_sec  = 1e-6; 
       
-      float tx_freq, rx_freq; 
+      float tx_freq, rx_freq, freq_offset;
       
       trace<uint32_t> tr_local_time;
       trace<uint32_t> tr_usrp_time;

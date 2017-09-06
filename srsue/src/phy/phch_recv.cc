@@ -235,14 +235,18 @@ bool phch_recv::cell_search(int force_N_id_2) {
   bzero(found_cells, 3 * sizeof(srslte_ue_cellsearch_result_t));
 
   if (srate_mode != SRATE_FIND) {
+    printf("set rx rate\n");
     srate_mode = SRATE_FIND;
     radio_h->set_rx_srate(1.92e6);
   }
+  printf("start rx\n");
   radio_h->start_rx();
 
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
   uint32_t max_peak_cell = 0;
   int ret = SRSLTE_ERROR;
+
+  Info("Searching for cell...\n");
 
   if (force_N_id_2 >= 0 && force_N_id_2 < 3) {
     ret = srslte_ue_cellsearch_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
@@ -253,13 +257,14 @@ bool phch_recv::cell_search(int force_N_id_2) {
 
   last_gain = srslte_agc_get_gain(&cs.ue_sync.agc);
 
+  printf("stop rx\n");
   radio_h->stop_rx();
 
   if (ret < 0) {
     Error("Error decoding MIB: Error searching PSS\n");
     return false;
   } else if (ret == 0) {
-    Error("Error decoding MIB: Could not find any PSS in this frequency\n");
+    Info("Could not find any cell in this frequency\n");
     return false;
   }
 
@@ -404,6 +409,7 @@ bool phch_recv::stop_sync() {
 
 void phch_recv::cell_search_inc()
 {
+  printf("cell search inc\n");
   cur_earfcn_index++;
   Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
   if (cur_earfcn_index >= 0) {
@@ -494,8 +500,9 @@ bool phch_recv::set_frequency()
     log_h->console("Searching cell in DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
                 current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
 
-    radio_h->set_rx_freq(dl_freq-4000);
-    radio_h->set_tx_freq(ul_freq-4000);
+    printf("set frequency\n");
+    radio_h->set_rx_freq(dl_freq);
+    radio_h->set_tx_freq(ul_freq);
     ul_dl_factor = ul_freq / dl_freq;
 
     srslte_ue_sync_reset(&ue_sync);
@@ -549,6 +556,7 @@ void phch_recv::run_thread() {
 
           Info("SYNC:  Cell found. Synchronizing...\n");
         } else {
+          printf("no trobat in progress=%d\n", cell_search_in_progress);
           if (cell_search_in_progress) {
             cell_search_inc();
           }

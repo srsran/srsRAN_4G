@@ -32,7 +32,6 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
-#include <ue.h>
 
 using namespace srslte;
 
@@ -157,6 +156,7 @@ bool ue::init(all_args_t *args_)
   }
 
   radio.register_error_handler(rf_msg);
+  radio.set_freq_offset(args->rf.freq_offset);
 
   mac.init(&phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);

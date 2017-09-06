@@ -55,6 +55,7 @@ typedef struct {
   uint32_t      dl_earfcn;
   float         dl_freq;
   float         ul_freq;
+  float         freq_offset;
   float         rx_gain;
   float         tx_gain;
   uint32_t      nof_rx_ant;

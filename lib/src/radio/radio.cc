@@ -250,9 +250,13 @@ void radio::save_trace(uint32_t is_eob, srslte_timestamp_t *tx_time) {
   }
 }
 
+void radio::set_freq_offset(float freq) {
+  freq_offset = freq;
+}
+
 void radio::set_rx_freq(float freq)
 {
-  rx_freq = srslte_rf_set_rx_freq(&rf_device, freq);
+  rx_freq = srslte_rf_set_rx_freq(&rf_device, freq+freq_offset);
 }
 
 void radio::set_rx_gain(float gain)
@@ -277,7 +281,7 @@ void radio::set_rx_srate(float srate)
 
 void radio::set_tx_freq(float freq)
 {
-  tx_freq = srslte_rf_set_tx_freq(&rf_device, freq);  
+  tx_freq = srslte_rf_set_tx_freq(&rf_device, freq+freq_offset);
 }
 
 void radio::set_tx_gain(float gain)
