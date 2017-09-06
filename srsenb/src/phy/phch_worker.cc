@@ -50,6 +50,9 @@ using namespace std;
 #include "srsgui/srsgui.h"
 #include <semaphore.h>
 #include <srslte/phy/phch/ra.h>
+#include <srslte/srslte.h>
+#include <srslte/phy/phch/pdsch.h>
+#include <srslte/phy/common/sequence.h>
 
 void init_plots(srsenb::phch_worker *worker);
 pthread_t plot_thread; 
@@ -267,8 +270,8 @@ void phch_worker::work_imp()
   if (!running) {
     return;
   }
-  
-  pthread_mutex_lock(&mutex); 
+
+  pthread_mutex_lock(&mutex);
   
   mac_interface_phy::ul_sched_t *ul_grants = phy->ul_grants;
   mac_interface_phy::dl_sched_t *dl_grants = phy->dl_grants; 
@@ -283,10 +286,10 @@ void phch_worker::work_imp()
     ue_db[rnti].has_grant_tti = -1; 
   }
 
-  // Process UL signal 
+  // Process UL signal
   srslte_enb_ul_fft(&enb_ul, signal_buffer_rx);
 
-  // Decode pending UL grants for the tti they were scheduled 
+  // Decode pending UL grants for the tti they were scheduled
   decode_pusch(ul_grants[sf_rx].sched_grants, ul_grants[sf_rx].nof_grants, sf_rx);
   
   // Decode remaining PUCCH ACKs not associated with PUSCH transmission and SR signals
@@ -355,7 +358,7 @@ void phch_worker::work_imp()
   }
 #endif
 
-unlock: 
+unlock:
   pthread_mutex_unlock(&mutex); 
 
 }
@@ -687,8 +690,10 @@ int phch_worker::encode_pdsch(srslte_enb_dl_pdsch_t *grants, uint32_t nof_grants
                              phy_grant.mcs[0].tbs/8, phy_grant.mcs[0].idx, grants[i].grant.rv_idx, tti_tx);
       }
       srslte_softbuffer_tx_t *sb[SRSLTE_MAX_CODEWORDS] = {grants[i].softbuffer, NULL};
-      uint8_t *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, grants[i].grant.rv_idx, sf_idx, d))
+      uint8_t                 *d[SRSLTE_MAX_CODEWORDS] = {grants[i].data, NULL};
+      int                     rv[SRSLTE_MAX_CODEWORDS] = {grants[i].grant.rv_idx, 0};
+
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &phy_grant, sb, rnti, rv, sf_idx, d, SRSLTE_MIMO_TYPE_SINGLE_ANTENNA, 0))
       {
         fprintf(stderr, "Error putting PDSCH %d\n",i);
         return SRSLTE_ERROR; 

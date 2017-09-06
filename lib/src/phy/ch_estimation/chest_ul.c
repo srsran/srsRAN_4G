@@ -45,6 +45,7 @@
 #define NOF_REFS_SYM    (q->cell.nof_prb*SRSLTE_NRE)
 #define NOF_REFS_SF     (NOF_REFS_SYM*2) // 2 reference symbols per subframe
 
+#define MAX_REFS_SYM    (max_prb*SRSLTE_NRE)
 #define MAX_REFS_SF     (max_prb*SRSLTE_NRE*2) // 2 reference symbols per subframe
 
 /** 3GPP LTE Downlink channel estimator and equalizer. 
@@ -98,7 +99,7 @@ int srslte_chest_ul_init(srslte_chest_ul_t *q, uint32_t max_prb)
       goto clean_exit;
     }
     
-    if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, MAX_REFS_SF)) {
+    if (srslte_interp_linear_vector_init(&q->srslte_interp_linvec, MAX_REFS_SYM)) {
       fprintf(stderr, "Error initializing vector interpolator\n");
       goto clean_exit; 
     }
@@ -165,7 +166,7 @@ int srslte_chest_ul_set_cell(srslte_chest_ul_t *q, srslte_cell_t cell)
         return SRSLTE_ERROR;
       }
 
-      if (srslte_interp_linear_vector_resize(&q->srslte_interp_linvec, NOF_REFS_SF)) {
+      if (srslte_interp_linear_vector_resize(&q->srslte_interp_linvec, NOF_REFS_SYM)) {
         fprintf(stderr, "Error initializing vector interpolator\n");
         return SRSLTE_ERROR;
       }

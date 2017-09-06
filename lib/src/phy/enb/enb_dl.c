@@ -320,11 +320,11 @@ int srslte_enb_dl_put_pdcch_ul(srslte_enb_dl_t *q, srslte_ra_ul_dci_t *grant,
 }
 
 int srslte_enb_dl_put_pdsch(srslte_enb_dl_t *q, srslte_ra_dl_grant_t *grant, srslte_softbuffer_tx_t *softbuffer[SRSLTE_MAX_CODEWORDS],
-                            uint16_t rnti, uint32_t rv_idx, uint32_t sf_idx, 
-                            uint8_t *data[SRSLTE_MAX_CODEWORDS])
+                            uint16_t rnti, int rv_idx[SRSLTE_MAX_CODEWORDS], uint32_t sf_idx,
+                            uint8_t *data[SRSLTE_MAX_CODEWORDS], srslte_mimo_type_t mimo_type, uint32_t pmi)
 {  
   /* Configure pdsch_cfg parameters */
-  if (srslte_pdsch_cfg(&q->pdsch_cfg, q->cell, grant, q->cfi, sf_idx, rv_idx)) {
+  if (srslte_pdsch_cfg_mimo(&q->pdsch_cfg, q->cell, grant, q->cfi, sf_idx, rv_idx, mimo_type, pmi)) {
     fprintf(stderr, "Error configuring PDSCH\n");
     return SRSLTE_ERROR;
   }

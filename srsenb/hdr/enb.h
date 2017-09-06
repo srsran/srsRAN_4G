@@ -138,7 +138,7 @@ typedef struct {
   Main UE class
 *******************************************************************************/
 
-#define LOG_STDOUT
+//#define LOG_STDOUT
 
 class enb
     :public enb_metrics_interface {
