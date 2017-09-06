@@ -100,14 +100,16 @@ private:
   uint8_t transaction_id;
   bool drb_up;
 
+  // timeouts in ms
+
   uint32_t connecting_timeout;
-  static const uint32_t RRC_CONNECTING_TIMEOUT = 100;
+  static const uint32_t RRC_CONNECTING_TIMEOUT = 1000;
 
   uint32_t plmn_select_timeout;
-  static const uint32_t RRC_PLMN_SELECT_TIMEOUT = 1000;
+  static const uint32_t RRC_PLMN_SELECT_TIMEOUT = 10000;
 
   uint32_t select_cell_timeout;
-  static const uint32_t RRC_SELECT_CELL_TIMEOUT = 500;
+  static const uint32_t RRC_SELECT_CELL_TIMEOUT = 2000;
 
   uint8_t k_rrc_enc[32];
   uint8_t k_rrc_int[32];

@@ -57,6 +57,7 @@
 
 namespace srsue {
 
+//#define LOG_STDOUT
 
 /*******************************************************************************
   Main UE class
@@ -99,8 +100,11 @@ private:
   srslte::gw         gw;
   srsue::usim        usim;
 
-  srslte::logger_file logger;
-  //srslte::logger_stdout logger;
+#ifdef LOG_STDOUT
+    srslte::logger_stdout logger;
+#else
+    srslte::logger_file logger;
+#endif
   srslte::log_filter  rf_log;
   srslte::log_filter  phy_log;
   srslte::log_filter  mac_log;

@@ -52,7 +52,9 @@ bool ue::init(all_args_t *args_)
 {
   args     = args_;
 
-  logger.init(args->log.filename);
+#ifndef LOG_STDOUT
+    logger.init(args->log.filename);
+#endif
   rf_log.init("RF  ", &logger);
   phy_log.init("PHY ", &logger, true);
   mac_log.init("MAC ", &logger, true);
@@ -64,7 +66,9 @@ bool ue::init(all_args_t *args_)
   usim_log.init("USIM", &logger);
 
   // Init logs
+#ifndef LOG_STDOUT
   logger.log("\n\n");
+#endif
   rf_log.set_level(srslte::LOG_LEVEL_INFO);
   phy_log.set_level(level(args->log.phy_level));
   mac_log.set_level(level(args->log.mac_level));

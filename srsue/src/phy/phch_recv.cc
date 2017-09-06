@@ -93,13 +93,13 @@ void phch_recv::  init(srslte::radio_multi *_radio_handler, mac_interface_phy *_
   }
 
 
-  if (srslte_ue_cellsearch_init_multi(&cs, SRSLTE_DEFAULT_MAX_FRAMES_PSS, radio_recv_wrapper_cs, nof_rx_antennas,
+  if (srslte_ue_cellsearch_init_multi(&cs, 5, radio_recv_wrapper_cs, nof_rx_antennas,
                                       radio_h)) {
     Error("Initiating UE cell search\n");
     return;
   }
 
-  srslte_ue_cellsearch_set_nof_valid_frames(&cs, SRSLTE_DEFAULT_NOF_VALID_PSS_FRAMES);
+  srslte_ue_cellsearch_set_nof_valid_frames(&cs, 2);
 
   // Set options defined in expert section
   set_ue_sync_opts(&cs.ue_sync);
@@ -211,6 +211,8 @@ bool phch_recv::set_cell() {
     return false;
   }
 
+  worker_com->set_cell(cell);
+
   for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
     if (!((phch_worker *) workers_pool->get_worker(i))->set_cell(cell)) {
       Error("Setting cell: initiating PHCH worker\n");
@@ -235,11 +237,9 @@ bool phch_recv::cell_search(int force_N_id_2) {
   bzero(found_cells, 3 * sizeof(srslte_ue_cellsearch_result_t));
 
   if (srate_mode != SRATE_FIND) {
-    printf("set rx rate\n");
     srate_mode = SRATE_FIND;
     radio_h->set_rx_srate(1.92e6);
   }
-  printf("start rx\n");
   radio_h->start_rx();
 
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
@@ -247,6 +247,7 @@ bool phch_recv::cell_search(int force_N_id_2) {
   int ret = SRSLTE_ERROR;
 
   Info("Searching for cell...\n");
+  printf("."); fflush(stdout);
 
   if (force_N_id_2 >= 0 && force_N_id_2 < 3) {
     ret = srslte_ue_cellsearch_scan_N_id_2(&cs, force_N_id_2, &found_cells[force_N_id_2]);
@@ -257,21 +258,23 @@ bool phch_recv::cell_search(int force_N_id_2) {
 
   last_gain = srslte_agc_get_gain(&cs.ue_sync.agc);
 
-  printf("stop rx\n");
-  radio_h->stop_rx();
-
   if (ret < 0) {
+    radio_h->stop_rx();
     Error("Error decoding MIB: Error searching PSS\n");
     return false;
   } else if (ret == 0) {
+    radio_h->stop_rx();
     Info("Could not find any cell in this frequency\n");
     return false;
   }
-
   // Save result
   cell.id = found_cells[max_peak_cell].cell_id;
   cell.cp = found_cells[max_peak_cell].cp;
   cellsearch_cfo = found_cells[max_peak_cell].cfo;
+
+  printf("\n");
+  Info("SYNC:  PSS/SSS detected: PCI=%d, CFO=%.1f KHz, CP=%s\n",
+       cell.id, cellsearch_cfo/1000, srslte_cp_string(cell.cp));
 
   if (srslte_ue_mib_sync_set_cell(&ue_mib_sync, cell.id, cell.cp)) {
     Error("Setting UE MIB cell\n");
@@ -290,7 +293,6 @@ bool phch_recv::cell_search(int force_N_id_2) {
 
   /* Find and decode MIB */
   int sfn_offset;
-  radio_h->start_rx();
   ret = srslte_ue_mib_sync_decode(&ue_mib_sync,
                                   40,
                                   bch_payload, &cell.nof_ports, &sfn_offset);
@@ -301,14 +303,18 @@ bool phch_recv::cell_search(int force_N_id_2) {
   srslte_ue_sync_reset(&ue_sync);
   srslte_ue_sync_set_cfo(&ue_sync, cellsearch_cfo);
 
-  Info("Setting ue_sync cfo=%f KHz\n", cellsearch_cfo/1000);
-
   if (ret == 1) {
     srslte_pbch_mib_unpack(bch_payload, &cell, NULL);
-    worker_com->set_cell(cell);
+
+    fprintf(stdout, "Found Cell:  PCI=%d, PRB=%d, Ports=%d, CFO=%.1f KHz\n",
+         cell.id, cell.nof_prb, cell.nof_ports, cellsearch_cfo/1000);
+
+    Info("SYNC:  MIB Decoded: PCI=%d, PRB=%d, Ports=%d, CFO=%.1f KHz\n",
+         cell.id, cell.nof_prb, cell.nof_ports, cellsearch_cfo/1000);
+
     return true;
   } else {
-    Warning("Error decoding MIB: Error decoding PBCH\n");
+    Warning("Found PSS but could not decode PBCH\n");
     return false;
   }
 }
@@ -329,7 +335,7 @@ int phch_recv::cell_sync_sfn(void) {
   if (ret == 1) {
     if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
       int sfn_offset = 0;
-      Info("SYNC:  Decoding MIB...\n");
+      Info("SYNC:  Trying to decode MIB...\n");
       int n = srslte_ue_mib_decode(&ue_mib, sf_buffer[0], bch_payload, NULL, &sfn_offset);
       if (n < 0) {
         Error("SYNC:  Error decoding MIB while synchronising SFN");
@@ -388,6 +394,7 @@ void phch_recv::resync_sfn() {
   radio_h->stop_rx();
   radio_h->start_rx();
   srslte_ue_mib_reset(&ue_mib);
+  Info("SYNC:  Starting SFN synchronization\n");
   sync_sfn_cnt = 0;
   phy_state = CELL_SELECT;
 }
@@ -397,7 +404,7 @@ void phch_recv::set_earfcn(std::vector<uint32_t> earfcn) {
 }
 
 bool phch_recv::stop_sync() {
-  Info("SYNC:   Going to IDLE\n");
+  Info("SYNC:  Going to IDLE\n");
   phy_state = IDLE;
   int cnt=0;
   while(!is_in_idle && cnt<100) {
@@ -409,7 +416,6 @@ bool phch_recv::stop_sync() {
 
 void phch_recv::cell_search_inc()
 {
-  printf("cell search inc\n");
   cur_earfcn_index++;
   Info("SYNC:  Cell Search idx %d/%d\n", cur_earfcn_index, earfcn.size());
   if (cur_earfcn_index >= 0) {
@@ -500,7 +506,6 @@ bool phch_recv::set_frequency()
     log_h->console("Searching cell in DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
                 current_earfcn, dl_freq / 1e6, ul_freq / 1e6);
 
-    printf("set frequency\n");
     radio_h->set_rx_freq(dl_freq);
     radio_h->set_tx_freq(ul_freq);
     ul_dl_factor = ul_freq / dl_freq;
@@ -518,12 +523,13 @@ void phch_recv::set_sampling_rate()
 {
   float srate = (float) srslte_sampling_freq_hz(cell.nof_prb);
 
+  Info("Setting sampling rate %.1f MHz\n", srate/1000000);
+
   if (30720 % ((int) srate / 1000) == 0) {
     radio_h->set_master_clock_rate(30.72e6);
   } else {
     radio_h->set_master_clock_rate(23.04e6);
   }
-
   srate_mode = SRATE_CAMP;
   radio_h->set_rx_srate(srate);
   radio_h->set_tx_srate(srate);
@@ -554,9 +560,7 @@ void phch_recv::run_thread() {
             resync_sfn();
           }
 
-          Info("SYNC:  Cell found. Synchronizing...\n");
         } else {
-          printf("no trobat in progress=%d\n", cell_search_in_progress);
           if (cell_search_in_progress) {
             cell_search_inc();
           }
@@ -636,7 +640,7 @@ void phch_recv::run_thread() {
             srslte_timestamp_add(&tx_time, 0, 4e-3 - time_adv_sec);
             worker->set_tx_time(tx_time);
 
-            Debug("Settting TTI=%d, tx_mutex=%d to worker %d\n", tti, tx_mutex_cnt, worker->get_id());
+            Debug("Setting TTI=%d, tx_mutex=%d to worker %d\n", tti, tx_mutex_cnt, worker->get_id());
             worker->set_tti(tti, tx_mutex_cnt);
             tx_mutex_cnt = (tx_mutex_cnt+1) % nof_tx_mutex;
 

@@ -227,7 +227,7 @@ int rf_uhd_start_rx_stream(void *h)
         .stream_now = false
   };
   uhd_usrp_get_time_now(handler->usrp, 0, &stream_cmd.time_spec_full_secs, &stream_cmd.time_spec_frac_secs);
-  stream_cmd.time_spec_frac_secs += 0.5; 
+  stream_cmd.time_spec_frac_secs += 0.1;
   if (stream_cmd.time_spec_frac_secs > 1) {
     stream_cmd.time_spec_frac_secs -= 1;
     stream_cmd.time_spec_full_secs += 1; 

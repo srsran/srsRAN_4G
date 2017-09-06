@@ -249,14 +249,9 @@ void rrc::cell_found(uint32_t earfcn, srslte_cell_t phy_cell, float rsrp) {
 
   si_acquire_state = SI_ACQUIRE_SIB1;
 
-  rrc_log->info("Found Cell: PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm\n",
+  rrc_log->info("New Cell: PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm\n",
                 cell.phy_cell.id, cell.phy_cell.nof_prb, cell.phy_cell.nof_ports,
                 cell.earfcn, cell.rsrp);
-
-  rrc_log->console("Found Cell:  PCI=%d, PRB=%d, Ports=%d, EARFCN=%d, RSRP=%.1f dBm\n",
-                cell.phy_cell.id, cell.phy_cell.nof_prb, cell.phy_cell.nof_ports,
-                cell.earfcn, cell.rsrp);
-
 }
 
 // Detection of physical layer problems (5.3.11.1)
@@ -426,7 +421,7 @@ void rrc::run_thread() {
     switch(state) {
       case RRC_STATE_IDLE:
         if (nas->is_attached()) {
-          usleep(100000);
+          usleep(10000);
           rrc_log->info("RRC IDLE: NAS is attached, re-selecting cell...\n");
           plmn_select(selected_plmn_id);
         }
@@ -436,7 +431,7 @@ void rrc::run_thread() {
         if (plmn_select_timeout >= RRC_PLMN_SELECT_TIMEOUT) {
           rrc_log->info("RRC PLMN Search: timeout expired. Searching again\n");
           sleep(1);
-          rrc_log->console("RRC PLMN Search: timeout expired. Searching again\n");
+          rrc_log->console("\nRRC PLMN Search: timeout expired. Searching again\n");
           plmn_select_timeout = 0;
           phy->cell_search_start();
         }
@@ -481,7 +476,7 @@ void rrc::run_thread() {
       default:
         break;
     }
-    usleep(10000);
+    usleep(1000);
   }
 }
 

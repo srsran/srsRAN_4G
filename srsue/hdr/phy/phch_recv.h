@@ -149,7 +149,7 @@ private:
   srslte_ue_dl_t ue_dl_measure;
 
 
-  const static int RSRP_MEASURE_NOF_FRAMES = 20;
+  const static int RSRP_MEASURE_NOF_FRAMES = 5;
 
   int    cell_sync_sfn();
   int    cell_meas_rsrp();
