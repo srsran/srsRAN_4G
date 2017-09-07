@@ -657,14 +657,17 @@ int srslte_ulsch_uci_decode_ri_ack(srslte_sch_t *q, srslte_pusch_cfg_t *cfg, srs
   
   // Deinterleave and decode HARQ bits
   if (uci_data->uci_ack_len > 0) {
+    uint8_t acks[2] = {0, 0};
     float beta = beta_harq_offset[cfg->uci_cfg.I_offset_ack]; 
     if (cfg->cb_segm.tbs == 0) {
         beta /= beta_cqi_offset[cfg->uci_cfg.I_offset_cqi];
     }
-    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, &uci_data->uci_ack);
+    ret = srslte_uci_decode_ack(cfg, q_bits, c_seq, beta, nb_q/Qm, uci_data->uci_cqi_len, q->ack_ri_bits, acks, uci_data->uci_ack_len);
     if (ret < 0) {
       return ret; 
     }
+    uci_data->uci_ack = acks[0];
+    uci_data->uci_ack_2 = acks[1];
     Q_prime_ack = (uint32_t) ret; 
 
     // Set zeros to HARQ bits
