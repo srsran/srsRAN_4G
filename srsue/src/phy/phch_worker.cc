@@ -1054,7 +1054,7 @@ int phch_worker::read_ce_abs(float *ce_abs) {
 int phch_worker::read_pdsch_d(cf_t* pdsch_d)
 {
 
-  memcpy(pdsch_d, ue_dl.pdsch.d, ue_dl.pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
+  memcpy(pdsch_d, ue_dl.pdsch.d[0], ue_dl.pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
   return ue_dl.pdsch_cfg.nbits[0].nof_re;
 }
 
