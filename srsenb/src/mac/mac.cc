@@ -113,16 +113,6 @@ void mac::reset()
   /* Setup scheduler */
   scheduler.reset();
   
-  /* Setup SI-RNTI in PHY */
-  phy_h->add_rnti(SRSLTE_SIRNTI);
-
-  /* Setup P-RNTI in PHY */
-  phy_h->add_rnti(SRSLTE_PRNTI);
-
-  /* Setup RA-RNTI in PHY */
-  for (int i=0;i<10;i++) {
-    phy_h->add_rnti(1+i);
-  }    
 }
 
 uint32_t mac::get_unique_id()
