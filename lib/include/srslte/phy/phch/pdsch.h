@@ -61,6 +61,7 @@ typedef struct SRSLTE_API {
   
   uint32_t max_re;
 
+  uint16_t ue_rnti;
   bool is_ue;
 
   /* buffers */

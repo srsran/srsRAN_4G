@@ -606,7 +606,7 @@ bool phch_worker::decode_pdcch_ul(mac_interface_phy::mac_grant_t* grant)
     {
       Error("Converting RAR message to UL grant\n");
       return false; 
-    } 
+    }
     grant->rnti_type = SRSLTE_RNTI_TEMP;
     grant->is_from_rar = true; 
     grant->has_cqi_request = false; // In contention-based Random Access CQI request bit is reserved
@@ -681,22 +681,22 @@ void phch_worker::reset_uci()
   bzero(&uci_data, sizeof(srslte_uci_data_t));
 }
 
-void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb) {
-  if (nof_tb > 0) {
-    uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
+  void phch_worker::set_uci_ack(bool ack[SRSLTE_MAX_CODEWORDS], uint32_t nof_tb) {
+    if (nof_tb > 0) {
+      uci_data.uci_ack = (uint8_t) ((ack[0]) ? 1 : 0);
+    }
+
+    if (nof_tb > 1) {
+      uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
+    }
+
+    if (nof_tb > 2) {
+      Error("Number of transport blocks is not supported");
+    }
+
+    uci_data.uci_ack_len = nof_tb;
+
   }
-
-  if (nof_tb > 1) {
-    uci_data.uci_ack_2 = (uint8_t) ((ack[1]) ? 1 : 0);
-  }
-
-  if (nof_tb > 2) {
-    Error("Number of transport blocks is not supported");
-  }
-
-  uci_data.uci_ack_len = nof_tb;
-
-}
 
 void phch_worker::set_uci_sr()
 {
@@ -1075,7 +1075,7 @@ int phch_worker::read_ce_abs(float *ce_abs) {
 int phch_worker::read_pdsch_d(cf_t* pdsch_d)
 {
 
-  memcpy(pdsch_d, ue_dl.pdsch.d, ue_dl.pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
+  memcpy(pdsch_d, ue_dl.pdsch.d[0], ue_dl.pdsch_cfg.nbits[0].nof_re*sizeof(cf_t));
   return ue_dl.pdsch_cfg.nbits[0].nof_re;
 }
 

@@ -74,6 +74,8 @@ private:
   bool                if_up;
   uint32_t            lcid;
 
+  uint32_t            current_ip_addr;
+
   long                ul_tput_bytes;
   long                dl_tput_bytes;
   struct timeval      metrics_time[3];

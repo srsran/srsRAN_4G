@@ -71,6 +71,7 @@ typedef struct SRSLTE_API {
   srslte_cell_t cell;
 
   bool is_ue;
+  uint16_t ue_rnti;
   uint32_t max_re;
 
   srslte_dft_precoding_t dft_precoding;  

@@ -453,6 +453,7 @@ int srslte_pusch_set_rnti(srslte_pusch_t *q, uint16_t rnti) {
         return SRSLTE_ERROR;
       }
     }
+    q->ue_rnti = rnti;
     q->users[rnti_idx]->cell_id = q->cell.id;
     q->users[rnti_idx]->sequence_generated = true;
   } else {
@@ -471,9 +472,9 @@ void srslte_pusch_free_rnti(srslte_pusch_t *q, uint16_t rnti) {
     }    
     free(q->users[rnti_idx]);
     q->users[rnti_idx] = NULL;
+    q->ue_rnti = 0;
   }
 }
-
 
 static srslte_sequence_t *get_user_sequence(srslte_pusch_t *q, uint16_t rnti, uint32_t sf_idx, uint32_t len)
 {
@@ -481,7 +482,8 @@ static srslte_sequence_t *get_user_sequence(srslte_pusch_t *q, uint16_t rnti, ui
 
   // The scrambling sequence is pregenerated for all RNTIs in the eNodeB but only for C-RNTI in the UE
   if (q->users[rnti_idx] && q->users[rnti_idx]->sequence_generated &&
-      q->users[rnti_idx]->cell_id == q->cell.id &&
+      q->users[rnti_idx]->cell_id == q->cell.id                    &&
+      q->ue_rnti == rnti                                           &&
       ((rnti >= SRSLTE_CRNTI_START && rnti < SRSLTE_CRNTI_END) || !q->is_ue))
   {
     return &q->users[rnti_idx]->seq[sf_idx];
