@@ -59,7 +59,7 @@ drb_config = drb.conf
 [rf]
 dl_earfcn = 3400
 tx_gain = 80
-rx_gain = 60
+rx_gain = 50
 
 #device_name = auto
 #device_args = auto
