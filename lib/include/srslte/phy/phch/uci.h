@@ -117,8 +117,9 @@ SRSLTE_API int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t *q,
                                            bool *cqi_ack); 
 
 SRSLTE_API int srslte_uci_encode_ack(srslte_pusch_cfg_t *cfg,
-                                     uint8_t data, 
-                                     uint32_t O_cqi, 
+                                     uint8_t acks[2],
+                                     uint32_t nof_acks,
+                                     uint32_t O_cqi,
                                      float beta, 
                                      uint32_t H_prime_total, 
                                      srslte_uci_bit_t *ri_bits); 
